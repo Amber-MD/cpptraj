@@ -34,10 +34,10 @@ fi
 cd $SRCDIR
 
 # Configure
-echo ""
-echo "CC=$CC"
-echo "CFLAGS=$CFLAGS"
-echo "PREFIX=$PREFIX"
+#echo ""
+#echo "CC=$CC"
+#echo "CFLAGS=$CFLAGS"
+#echo "PREFIX=$PREFIX"
 echo -n "Configuring NetCDF... "
 ./configure CC="$CC" CFLAGS="$CFLAGS" \
   --prefix=$PREFIX --disable-netcdf-4 --disable-dap $windows_hostflag \
@@ -52,6 +52,7 @@ fi
 
 # Build
 echo -n "Compiling NetCDF... "
+make clean > ../netcdf_compile.log 2>&1
 make > ../netcdf_compile.log 2>&1
 if [ $? -ne 0 ] ; then
   echo "Build failed."
