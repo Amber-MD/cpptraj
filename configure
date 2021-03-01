@@ -110,6 +110,12 @@ EXE=''            # Binary executable suffix
 COMPERR='cpptrajcfg.compile.err'
 COMPOUT='cpptrajcfg.compile.out'
 
+# ----- Variables for downloading libraries ------
+NETCDF_SRCTAR='netcdf-4.6.1.tar.gz'
+NETCDF_SRCDIR='netcdf-4.6.1'
+NETCDF_URL="ftp://ftp.unidata.ucar.edu/pub/netcdf/$NETCDF_SRCTAR"
+
+
 # ----- Configure options ------------------------
 USE_CMAKE=0       # 1 = use cmake for build
 COMPILE_VERBOSE=0 # 1 = show details during compile
@@ -444,30 +450,50 @@ int main() { printf("Testing\n"); printf("%s\n",nc_strerror(0)); return 0; }
 EOF
   TestProgram silent "  Checking NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]}"
   if [ $? -ne 0 ] ; then
-    # Should we try to get netcdf?
     if [ "${LIB_STAT[$LNETCDF]}" = 'enabled' ] ; then
-      echo "No NetCDF found; should CPPTRAJ try to download and compile it? {y|n}: "
-      read yesno
-      while [ "$yesno" != 'y' -a "$yesno" != 'n' ] ; do
-        echo "  Please enter 'y' or 'n': "
-        read yesno
-      done
-      if [ "$yesno" = 'y' ] ; then
-        PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS ./get_netcdf.sh
-        if [ $? -ne 0 ] ; then
-          echo "Getting NetCDF failed."
+      LIB_STAT[$LNETCDF]='specified'
+      LIB_HOME[$LNETCDF]=$CPPTRAJHOME
+      LIB_FLAG[$LNETCDF]=$CPPTRAJHOME/lib/${LIB_STTC[$LNETCDF]}
+      LIB_INCL[$LNETCDF]="-I$CPPTRAJHOME/include"
+      # See if cpptraj previously downloaded netcdf
+      build_netcdf='yes'
+      if [ -d "$NETCDF_SRCDIR" ] ; then
+        # See if we can link to it
+        TestProgram silent "  Checking bundled NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]}"
+        if [ $? -eq 0 ] ; then
+          build_netcdf='built'
+        else
+          echo "Must be rebuilt."
+        fi
+      fi
+      if [ "$build_netcdf" = 'yes' ] ; then
+        # Should we try to get netcdf?
+        if [ ! -f "$NETCDF_SRCTAR" ] ; then
+          echo "No working NetCDF found; should CPPTRAJ try to download and compile it? {y|n}: "
+          read yesno
+          while [ "$yesno" != 'y' -a "$yesno" != 'n' ] ; do
+            echo "  Please enter 'y' or 'n': "
+            read yesno
+          done
+          if [ "$yesno" = 'n' ] ; then
+            build_netcdf='no'
+          fi
+        fi
+        if [ "$build_netcdf" = 'yes' ] ; then
+          PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS \
+            SRCDIR=$NETCDF_SRCDIR SRCTAR=$NETCDF_SRCTAR URL=$NETCDF_URL ./get_netcdf.sh
+          if [ $? -ne 0 ] ; then
+            ErrMsg "Building NetCDF failed."
+            exit 1
+          fi
+          TestProgram "  Checking built NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]}"
+        else
+          ErrMsg "No NetCDF. Configure failed."
           exit 1
         fi
-        LIB_STAT[$LNETCDF]='specified'
-        LIB_HOME[$LNETCDF]=$CPPTRAJHOME
-        LIB_FLAG[$LNETCDF]=$CPPTRAJHOME/lib/${LIB_STTC[$LNETCDF]}
-        LIB_INCL[$LNETCDF]="-I$CPPTRAJHOME/include"
-        TestProgram "  Checking NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]}"
-      else
-        echo "No NetCDF. Configure failed."
-        exit 1
       fi
     else
+      # NetCDF specified but failed.
       echo "Failed."
       ErrMsg "NetCDF build/link failed: $COMPILE_ERROR_LINE"
       echo "Error message follows:"

@@ -2,9 +2,10 @@
 
 WORKDIR=`pwd`
 # Attempt to download and install a copy of NetCDF
-SRCTAR='netcdf-4.6.1.tar.gz'
-SRCDIR='netcdf-4.6.1'
-URL="ftp://ftp.unidata.ucar.edu/pub/netcdf/$SRCTAR"
+if [ -z "$SRCTAR" -o -z "$SRCDIR" -o -z "$URL" ] ; then
+  echo "Error: Script variables are empty."
+  exit 1
+fi
 
 # Get netcdf if necessary
 if [ ! -f "$SRCTAR" ] ; then
