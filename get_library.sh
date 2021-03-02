@@ -104,7 +104,7 @@ elif [ -f 'Makefile' ] ; then
     exit 1
   fi
 else
-  echo "Error: No configure or Makefile."
+  echo "Error: $LIBNAME has no 'configure' or 'Makefile'."
   exit 1
 fi
 echo "Success."
