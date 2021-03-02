@@ -121,6 +121,11 @@ BZIP2_SRCDIR=''
 BZIP2_URL="https://www.sourceware.org/pub/bzip2/$BZIP2_SRCTAR"
 BZIP2_OPTS=''
 
+ZLIB_SRCTAR='zlib-1.2.11.tar.gz'
+ZLIB_SRCDIR='zlib-1.2.11'
+ZLIB_URL="https://zlib.net/$ZLIB_SRCTAR"
+ZLIB_OPTS=''
+
 # ----- Configure options ------------------------
 USE_CMAKE=0       # 1 = use cmake for build
 COMPILE_VERBOSE=0 # 1 = show details during compile
@@ -471,7 +476,35 @@ TestZlib() {
 #include "zlib.h"
 int main() { gzFile gfile; gfile=NULL; printf("Testing\n"); return 0; }
 EOF
-  TestProgram "  Checking ZLIB" "$CXX" "$CXXFLAGS ${LIB_INCL[$LZIP]}" testp.cpp "${LIB_FLAG[$LZIP]}"
+  TestProgram silent "  Checking ZLIB" "$CXX" "$CXXFLAGS ${LIB_INCL[$LZIP]}" testp.cpp "${LIB_FLAG[$LZIP]}"
+  if [ $? -ne 0 ] ; then
+    if [ "${LIB_STAT[$LZIP]}" = 'enabled' ] ; then
+      # See if there is already a version of ZLIB in CPPTRAJHOME
+      LIB_STAT[$LZIP]='specified'
+      LIB_HOME[$LZIP]=$CPPTRAJHOME
+      LIB_FLAG[$LZIP]=$CPPTRAJHOME/lib/${LIB_STTC[$LZIP]}
+      LIB_INCL[$LZIP]="-I$CPPTRAJHOME/include"
+      TestProgram silent "  Checking for bundled ZLIB" "$CXX" "$CXXFLAGS ${LIB_INCL[$LZIP]}" testp.cpp "${LIB_FLAG[$LZIP]}"
+      if [ $? -ne 0 ] ; then
+        # See if user would like to get ZLIB
+        PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS LIBNAME='zlib' \
+            SRCDIR=$ZLIB_SRCDIR SRCTAR=$ZLIB_SRCTAR URL=$ZLIB_URL ./get_library.sh $ZLIB_OPTS
+        if [ $? -ne 0 ] ; then
+          ErrMsg "Building ZLIB failed."
+          exit 1
+        fi
+        # Test the built ZLIB
+        TestProgram "  Checking built ZLIB" "$CXX" "$CXXFLAGS ${LIB_INCL[$LZIP]}" testp.cpp "${LIB_FLAG[$LZIP]}"
+      fi
+    else
+      # ZLIB specified but failed.
+      echo "Failed."
+      ErrMsg "ZLIB build/link failed: $COMPILE_ERROR_LINE"
+      echo "Error message follows:"
+      echo "$COMPILE_ERROR_MESSAGE"
+      exit 1
+    fi
+  fi
 }
 
 TestNetcdf() {

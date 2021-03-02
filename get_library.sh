@@ -79,7 +79,7 @@ cd $SRCDIR
 echo -n "    Configuring $LIBNAME... "
 if [ -f 'configure' ] ; then
   # Run configure
-  ./configure CC="$CC" CFLAGS="$CFLAGS" --prefix=$PREFIX $CONFIGOPTS > $CONFIGURE_LOG 2>&1
+  CC="$CC" CFLAGS="$CFLAGS" ./configure --prefix=$PREFIX $CONFIGOPTS > $CONFIGURE_LOG 2>&1
   if [ $? -ne 0 ] ; then
     echo "Failed."
     echo "Check $CONFIGURE_LOG for errors."
