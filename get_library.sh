@@ -3,7 +3,7 @@
 WORKDIR=`pwd`
 
 # Attempt to download and install a copy of library 
-if [ -z "$SRCTAR" -o -z "$SRCDIR" -o -z "$URL" -o -z "$LIBNAME" ] ; then
+if [ -z "$SRCTAR" -o -z "$URL" -o -z "$LIBNAME" ] ; then
   echo "Error: Script variables are empty."
   exit 1
 fi
@@ -48,7 +48,19 @@ if [ ! -f "$SRCTAR" ] ; then
   fi
 fi
 
+# Get SRCDIR if necessary
+if [ -z "$SRCDIR" ] ; then
+  FIRSTFILE=`tar -tzf $SRCTAR | head -1`
+  if [ ! -z "$FIRSTFILE" ] ; then
+    SRCDIR=`dirname $FIRSTFILE`
+  fi
+fi
+
 # Unpack
+if [ -z "$SRCDIR" ] ; then
+  echo "Error: SRCDIR is empty."
+  exit 1
+fi
 if [ ! -d "$SRCDIR" ] ; then
   echo "    Unpacking $LIBNAME..."
   tar -zxf $SRCTAR
