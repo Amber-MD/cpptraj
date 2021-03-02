@@ -451,28 +451,21 @@ EOF
   TestProgram silent "  Checking NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]}"
   if [ $? -ne 0 ] ; then
     if [ "${LIB_STAT[$LNETCDF]}" = 'enabled' ] ; then
+      # See if there is already a version of NetCDF in CPPTRAJHOME
       LIB_STAT[$LNETCDF]='specified'
       LIB_HOME[$LNETCDF]=$CPPTRAJHOME
       LIB_FLAG[$LNETCDF]=$CPPTRAJHOME/lib/${LIB_STTC[$LNETCDF]}
       LIB_INCL[$LNETCDF]="-I$CPPTRAJHOME/include"
-      # See if cpptraj previously downloaded netcdf
-      build_netcdf='yes'
-      if [ -d "$NETCDF_SRCDIR" ] ; then
-        # See if we can link to it
-        TestProgram silent "  Checking bundled NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]}"
-        if [ $? -eq 0 ] ; then
-          build_netcdf='built'
-        else
-          echo "Must be rebuilt."
-        fi
-      fi
-      if [ "$build_netcdf" = 'yes' ] ; then
+      TestProgram silent "  Checking for bundled NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]}"
+      if [ $? -ne 0 ] ; then
+        # See if user would like to get netcdf
         PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS LIBNAME='netcdf' \
             SRCDIR=$NETCDF_SRCDIR SRCTAR=$NETCDF_SRCTAR URL=$NETCDF_URL ./get_library.sh $NETCDF_OPTS
         if [ $? -ne 0 ] ; then
           ErrMsg "Building NetCDF failed."
           exit 1
         fi
+        # Test the built netcdf
         TestProgram "  Checking built NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]}"
       fi
     else

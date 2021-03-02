@@ -12,7 +12,7 @@ fi
 echo "Should CPPTRAJ attempt to build its own $LIBNAME? {y|n}: "
 read yesno
 while [ "$yesno" != 'y' -a "$yesno" != 'n' ] ; do
-  echo "  Please enter 'y' or 'n': "
+  echo "    Please enter 'y' or 'n': "
   read yesno
 done
 if [ "$yesno" = 'n' ] ; then
@@ -26,14 +26,14 @@ while [ ! -z "$1" ] ; do
   shift
 done
 
-echo "CONFIGOPTS: $CONFIGOPTS"
+echo "    CONFIGOPTS: $CONFIGOPTS"
 
 CONFIGURE_LOG=$WORKDIR/$LIBNAME"_config.log"
 COMPILE_LOG=$WORKDIR/$LIBNAME"_compile.log"
 
 # Get library if necessary
 if [ ! -f "$SRCTAR" ] ; then
-  echo "Downloading $LIBNAME..."
+  echo "    Downloading $LIBNAME..."
   WGET=`which wget`
 
   if [ -z "$WGET" ] ; then
@@ -50,7 +50,7 @@ fi
 
 # Unpack
 if [ ! -d "$SRCDIR" ] ; then
-  echo "Unpacking $LIBNAME..."
+  echo "    Unpacking $LIBNAME..."
   tar -zxf $SRCTAR
   if [ $? -ne 0 -o ! -d "$SRCDIR" ] ; then
     echo "Error: Could not unpack $SRCTAR"
@@ -64,7 +64,7 @@ cd $SRCDIR
 #echo "CC=$CC"
 #echo "CFLAGS=$CFLAGS"
 #echo "PREFIX=$PREFIX"
-echo -n "Configuring $LIBNAME... "
+echo -n "    Configuring $LIBNAME... "
 ./configure CC="$CC" CFLAGS="$CFLAGS" --prefix=$PREFIX $CONFIGOPTS > $CONFIGURE_LOG 2>&1
 if [ $? -ne 0 ] ; then
   echo "Failed."
@@ -75,7 +75,7 @@ else
 fi
 
 # Build
-echo -n "Compiling $LIBNAME... "
+echo -n "    Compiling $LIBNAME... "
 make clean > $COMPILE_LOG 2>&1
 make > $COMPILE_LOG 2>&1
 if [ $? -ne 0 ] ; then
