@@ -71,6 +71,12 @@ if [ ! -d "$SRCDIR" ] ; then
 fi
 cd $SRCDIR
 
+# Compiler/library-specific modifications
+if [ "$CC" = 'icc' ] ; then
+  # Avoids 'error: identifier "_LIB_VERSION_TYPE" is undefined'
+  CFLAGS="-D__PURE_INTEL_C99_HEADERS__ $CFLAGS"
+fi
+
 # Configure
 #echo ""
 #echo "CC=$CC"
