@@ -481,7 +481,7 @@ EOF
         fi
         if [ "$build_netcdf" = 'yes' ] ; then
           PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS LIBNAME='netcdf' \
-            SRCDIR=$NETCDF_SRCDIR SRCTAR=$NETCDF_SRCTAR URL=$NETCDF_URL ./get_netcdf.sh $NETCDF_OPTS
+            SRCDIR=$NETCDF_SRCDIR SRCTAR=$NETCDF_SRCTAR URL=$NETCDF_URL ./get_library.sh $NETCDF_OPTS
           if [ $? -ne 0 ] ; then
             ErrMsg "Building NetCDF failed."
             exit 1
