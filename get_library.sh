@@ -21,6 +21,7 @@ COMPILE_LOG=$WORKDIR/$LIBNAME"_compile.log"
 
 # Get library if necessary
 if [ ! -f "$SRCTAR" ] ; then
+  echo "Downloading $LIBNAME..."
   WGET=`which wget`
 
   if [ -z "$WGET" ] ; then
@@ -37,6 +38,7 @@ fi
 
 # Unpack
 if [ ! -d "$SRCDIR" ] ; then
+  echo "Unpacking $LIBNAME..."
   tar -zxf $SRCTAR
   if [ $? -ne 0 -o ! -d "$SRCDIR" ] ; then
     echo "Error: Could not unpack $SRCTAR"
