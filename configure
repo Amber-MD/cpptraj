@@ -126,6 +126,11 @@ ZLIB_SRCDIR='zlib-1.2.11'
 ZLIB_URL="https://zlib.net/$ZLIB_SRCTAR"
 ZLIB_OPTS=''
 
+MATH_SRCTAR='OpenBLAS-0.3.13.tar.gz'
+MATH_SRCDIR='OpenBLAS-0.3.13'
+MATH_URL="https://github.com/xianyi/OpenBLAS/releases/download/v0.3.13/$MATH_SRCTAR"
+MATH_OPTS=''
+
 # ----- Configure options ------------------------
 USE_CMAKE=0       # 1 = use cmake for build
 COMPILE_VERBOSE=0 # 1 = show details during compile
