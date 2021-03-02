@@ -467,30 +467,13 @@ EOF
         fi
       fi
       if [ "$build_netcdf" = 'yes' ] ; then
-        # Should we try to get netcdf?
-        if [ ! -f "$NETCDF_SRCTAR" ] ; then
-          echo "No working NetCDF found; should CPPTRAJ try to download and compile it? {y|n}: "
-          read yesno
-          while [ "$yesno" != 'y' -a "$yesno" != 'n' ] ; do
-            echo "  Please enter 'y' or 'n': "
-            read yesno
-          done
-          if [ "$yesno" = 'n' ] ; then
-            build_netcdf='no'
-          fi
-        fi
-        if [ "$build_netcdf" = 'yes' ] ; then
-          PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS LIBNAME='netcdf' \
+        PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS LIBNAME='netcdf' \
             SRCDIR=$NETCDF_SRCDIR SRCTAR=$NETCDF_SRCTAR URL=$NETCDF_URL ./get_library.sh $NETCDF_OPTS
-          if [ $? -ne 0 ] ; then
-            ErrMsg "Building NetCDF failed."
-            exit 1
-          fi
-          TestProgram "  Checking built NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]}"
-        else
-          ErrMsg "No NetCDF. Configure failed."
+        if [ $? -ne 0 ] ; then
+          ErrMsg "Building NetCDF failed."
           exit 1
         fi
+        TestProgram "  Checking built NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]}"
       fi
     else
       # NetCDF specified but failed.

@@ -1,9 +1,21 @@
 #!/bin/bash
 
 WORKDIR=`pwd`
+
 # Attempt to download and install a copy of library 
 if [ -z "$SRCTAR" -o -z "$SRCDIR" -o -z "$URL" -o -z "$LIBNAME" ] ; then
   echo "Error: Script variables are empty."
+  exit 1
+fi
+
+# First ask if we want to get the library
+echo "Should CPPTRAJ attempt to build its own $LIBNAME? {y|n}: "
+read yesno
+while [ "$yesno" != 'y' -a "$yesno" != 'n' ] ; do
+  echo "  Please enter 'y' or 'n': "
+  read yesno
+done
+if [ "$yesno" = 'n' ] ; then
   exit 1
 fi
 
