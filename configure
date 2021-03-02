@@ -116,6 +116,11 @@ NETCDF_SRCDIR='netcdf-4.6.1'
 NETCDF_URL="ftp://ftp.unidata.ucar.edu/pub/netcdf/$NETCDF_SRCTAR"
 NETCDF_OPTS=" --disable-netcdf-4 --disable-dap $windows_hostflag --disable-shared --disable-doxygen"
 
+BZIP2_SRCTAR='bzip2-latest.tar.gz'
+BZIP2_SRCDIR=''
+BZIP2_URL="https://www.sourceware.org/pub/bzip2/$BZIP2_SRCTAR"
+BZIP2_OPTS=''
+
 # ----- Configure options ------------------------
 USE_CMAKE=0       # 1 = use cmake for build
 COMPILE_VERBOSE=0 # 1 = show details during compile
@@ -429,7 +434,35 @@ TestBzlib() {
 #include "bzlib.h"
 int main() { BZFILE *bfile; bfile=NULL; printf("Testing\n"); return 0; }
 EOF
-  TestProgram "  Checking BZLIB" "$CXX" "$CXXFLAGS ${LIB_INCL[$LBZIP]}" testp.cpp "${LIB_FLAG[$LBZIP]}"
+  TestProgram silent "  Checking BZLIB" "$CXX" "$CXXFLAGS ${LIB_INCL[$LBZIP]}" testp.cpp "${LIB_FLAG[$LBZIP]}"
+  if [ $? -ne 0 ] ; then
+    if [ "${LIB_STAT[$LBZIP]}" = 'enabled' ] ; then
+      # See if there is already a version of BZIP2 in CPPTRAJHOME
+      LIB_STAT[$LBZIP]='specified'
+      LIB_HOME[$LBZIP]=$CPPTRAJHOME
+      LIB_FLAG[$LBZIP]=$CPPTRAJHOME/lib/${LIB_STTC[$LBZIP]}
+      LIB_INCL[$LBZIP]="-I$CPPTRAJHOME/include"
+      TestProgram silent "  Checking for bundled BZIP2" "$CXX" "$CXXFLAGS ${LIB_INCL[$LBZIP]}" testp.cpp "${LIB_FLAG[$LBZIP]}"
+      if [ $? -ne 0 ] ; then
+        # See if user would like to get Bzip2 
+        PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS LIBNAME='bzip2' \
+            SRCDIR=$BZIP2_SRCDIR SRCTAR=$BZIP2_SRCTAR URL=$BZIP2_URL ./get_library.sh $BZIP2_OPTS
+        if [ $? -ne 0 ] ; then
+          ErrMsg "Building Bzip2 failed."
+          exit 1
+        fi
+        # Test the built Bzip2 
+        TestProgram "  Checking built Bzip2" "$CXX" "$CXXFLAGS ${LIB_INCL[$LBZIP]}" testp.cpp "${LIB_FLAG[$LBZIP]}"
+      fi
+    else
+      # Bzip2 specified but failed.
+      echo "Failed."
+      ErrMsg "Bzip2 build/link failed: $COMPILE_ERROR_LINE"
+      echo "Error message follows:"
+      echo "$COMPILE_ERROR_MESSAGE"
+      exit 1
+    fi
+  fi
 }
 
 TestZlib() {
