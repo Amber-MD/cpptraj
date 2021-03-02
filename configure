@@ -390,15 +390,19 @@ CheckLibraryKeys() {
 # ARGS: [noexe|silent|quiet] <description> <compiler> <args> <file> [<link>]
 TestProgram() {
   if [ "$1" = 'noexe' ] ; then
+    # Output messages, do not execute compiled binary
     silent=3
     shift
   elif [ "$1" = 'quiet' ] ; then
+    # Output nothing.
     silent=2
     shift
   elif [ "$1" = 'silent' ] ; then
+    # Output messages but return 1 instead of exit 1
     silent=1
     shift
   else
+    # Output message; exit on error
     silent=0
   fi
   desc="$1"
