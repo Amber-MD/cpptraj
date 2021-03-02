@@ -478,11 +478,12 @@ EOF
       LIB_HOME[$LBZIP]=$CPPTRAJHOME
       LIB_FLAG[$LBZIP]=$CPPTRAJHOME/lib/${LIB_STTC[$LBZIP]}
       LIB_INCL[$LBZIP]="-I$CPPTRAJHOME/include"
-      TestProgram silent "  Checking for bundled BZIP2" "$CXX" "$CXXFLAGS ${LIB_INCL[$LBZIP]}" testp.cpp "${LIB_FLAG[$LBZIP]}"
+      TestProgram silent "  Checking for bundled Bzip2" "$CXX" "$CXXFLAGS ${LIB_INCL[$LBZIP]}" testp.cpp "${LIB_FLAG[$LBZIP]}"
       if [ $? -ne 0 ] ; then
+        CheckRebuild "Bzip2" "${LIB_FLAG[$LBZIP]}"
         # See if user would like to get Bzip2 
         PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS LIBNAME='bzip2' \
-            SRCDIR=$BZIP2_SRCDIR SRCTAR=$BZIP2_SRCTAR URL=$BZIP2_URL ./get_library.sh $BZIP2_OPTS
+            SRCDIR=$BZIP2_SRCDIR SRCTAR=$BZIP2_SRCTAR URL=$BZIP2_URL ./get_library.sh $REBUILDOPT $BZIP2_OPTS
         if [ $? -ne 0 ] ; then
           ErrMsg "Building Bzip2 failed."
           exit 1
@@ -513,9 +514,10 @@ EOF
       LIB_INCL[$LZIP]="-I$CPPTRAJHOME/include"
       TestProgram silent "  Checking for bundled ZLIB" "$CXX" "$CXXFLAGS ${LIB_INCL[$LZIP]}" testp.cpp "${LIB_FLAG[$LZIP]}"
       if [ $? -ne 0 ] ; then
+        CheckRebuild "ZLIB" "${LIB_FLAG[$LZIP]}"
         # See if user would like to get ZLIB
         PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS LIBNAME='zlib' \
-            SRCDIR=$ZLIB_SRCDIR SRCTAR=$ZLIB_SRCTAR URL=$ZLIB_URL ./get_library.sh $ZLIB_OPTS
+            SRCDIR=$ZLIB_SRCDIR SRCTAR=$ZLIB_SRCTAR URL=$ZLIB_URL ./get_library.sh $REBUILDOPT $ZLIB_OPTS
         if [ $? -ne 0 ] ; then
           ErrMsg "Building ZLIB failed."
           exit 1
