@@ -8,15 +8,24 @@ if [ -z "$SRCTAR" -o -z "$URL" -o -z "$LIBNAME" ] ; then
   exit 1
 fi
 
+# Check if --rebuild specified
+REBUILD=0
+if [ "$1" == '--rebuild' ] ; then
+  REBUILD=1
+  shift
+fi
+
 # First ask if we want to get the library
-echo "Should CPPTRAJ attempt to build its own $LIBNAME? {y|n}: "
-read yesno
-while [ "$yesno" != 'y' -a "$yesno" != 'n' ] ; do
-  echo "    Please enter 'y' or 'n': "
+if [ $REBUILD -eq 0 ] ; then
+  echo "Should CPPTRAJ attempt to build its own $LIBNAME? {y|n}: "
   read yesno
-done
-if [ "$yesno" = 'n' ] ; then
-  exit 1
+  while [ "$yesno" != 'y' -a "$yesno" != 'n' ] ; do
+    echo "    Please enter 'y' or 'n': "
+    read yesno
+  done
+  if [ "$yesno" = 'n' ] ; then
+    exit 1
+  fi
 fi
 
 # Get configure options

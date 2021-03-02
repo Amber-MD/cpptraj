@@ -107,6 +107,7 @@ DIRECTIVES=''     # Common compiler directives
 INCLUDE=''        # Library header include line
 SFX=''            # Binary suffix
 EXE=''            # Binary executable suffix
+REBUILDOPT=''     # Can be set to --rebuild and passed to get_library.sh
 COMPERR='cpptrajcfg.compile.err'
 COMPOUT='cpptrajcfg.compile.out'
 
@@ -389,6 +390,7 @@ CheckLibraryKeys() {
 # Test compile and run a program.
 # ARGS: [noexe|silent|quiet] <description> <compiler> <args> <file> [<link>]
 TestProgram() {
+  REBUILDOPT=''
   if [ "$1" = 'noexe' ] ; then
     # Output messages, do not execute compiled binary
     silent=3
@@ -450,6 +452,17 @@ TestProgErr() {
   ErrMsg "$COMPILE_ERROR_MESSAGE"
   exit 1
 }
+
+# This is invoked if linking a bundled library fails.
+CheckRebuild() {
+  desc=$1
+  libfile=$2
+  if [ -f "$libfile" ] ; then
+    echo "Bundled $desc present but needs to be rebuilt."
+    REBUILDOPT='--rebuild'
+  fi
+}
+
 # ===== LIBRARY TESTS ==========================================================
 TestBzlib() {
   cat > testp.cpp <<EOF
@@ -534,9 +547,11 @@ EOF
       LIB_INCL[$LNETCDF]="-I$CPPTRAJHOME/include"
       TestProgram silent "  Checking for bundled NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]}"
       if [ $? -ne 0 ] ; then
+        # Check if lib present but needs to be rebuilt
+        CheckRebuild "NetCDF" "${LIB_FLAG[$LNETCDF]}"
         # See if user would like to get netcdf
         PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS LIBNAME='netcdf' \
-            SRCDIR=$NETCDF_SRCDIR SRCTAR=$NETCDF_SRCTAR URL=$NETCDF_URL ./get_library.sh $NETCDF_OPTS
+            SRCDIR=$NETCDF_SRCDIR SRCTAR=$NETCDF_SRCTAR URL=$NETCDF_URL ./get_library.sh $REBUILDOPT $NETCDF_OPTS
         if [ $? -ne 0 ] ; then
           ErrMsg "Building NetCDF failed."
           exit 1
