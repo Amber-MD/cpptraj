@@ -441,6 +441,15 @@ TestProgram() {
   return 0
 }
 
+# Error message for TestProgram silent
+TestProgErr() {
+  desc=$1
+  echo "Failed."
+  ErrMsg "$1 build/link failed: $COMPILE_ERROR_LINE"
+  ErrMsg "Error message follows:"
+  ErrMsg "$COMPILE_ERROR_MESSAGE"
+  exit 1
+}
 # ===== LIBRARY TESTS ==========================================================
 TestBzlib() {
   cat > testp.cpp <<EOF
@@ -470,11 +479,7 @@ EOF
       fi
     else
       # Bzip2 specified but failed.
-      echo "Failed."
-      ErrMsg "Bzip2 build/link failed: $COMPILE_ERROR_LINE"
-      echo "Error message follows:"
-      echo "$COMPILE_ERROR_MESSAGE"
-      exit 1
+      TestProgErr "Bzip2"
     fi
   fi
 }
@@ -507,11 +512,7 @@ EOF
       fi
     else
       # ZLIB specified but failed.
-      echo "Failed."
-      ErrMsg "ZLIB build/link failed: $COMPILE_ERROR_LINE"
-      echo "Error message follows:"
-      echo "$COMPILE_ERROR_MESSAGE"
-      exit 1
+      TestProgErr "ZLIB"
     fi
   fi
 }
@@ -545,11 +546,7 @@ EOF
       fi
     else
       # NetCDF specified but failed.
-      echo "Failed."
-      ErrMsg "NetCDF build/link failed: $COMPILE_ERROR_LINE"
-      echo "Error message follows:"
-      echo "$COMPILE_ERROR_MESSAGE"
-      exit 1
+      TestProgErr "NetCDF"
     fi
   fi
 }
@@ -586,7 +583,7 @@ DetermineFlink() {
       fi
       if [ "$use_flink" = 'yes' -a "$use_pthread" = 'yes' ] ; then
         # Final try. Report errors here
-        report=''
+        report='silent'
       else
         report='quiet'
       fi
@@ -605,11 +602,15 @@ DetermineFlink() {
           echo "$desc: OK"
         fi
         return 0
+      elif [ "$report" = 'silent' ] ; then
+        # Final iteration failed
+        return 1
       fi
     done
   done
   if [ $flink_success -eq 0 ] ; then
     # Sanity check. Should not make it here.
+    echo "Error: Unexpected error in DetermineFlink()."
     exit 1
   fi
   return 0
@@ -636,6 +637,9 @@ int main() {
 }
 EOF
   DetermineFlink "  Checking LAPACK/BLAS" "${LIB_FLAG[$LLAPACK]} ${LIB_FLAG[$LBLAS]}"
+  if [ $? -ne 0 ] ; then
+    TestProgErr "LAPACK/BLAS"
+  fi
 }
 
 TestArpack() {
@@ -657,6 +661,9 @@ int main() {
 }
 EOF
   DetermineFlink "  Checking ARPACK" "${LIB_FLAG[$LARPACK]} ${LIB_FLAG[$LLAPACK]} ${LIB_FLAG[$LBLAS]}"
+  if [ $? -ne 0 ] ; then
+    TestProgErr "ARPACK"
+  fi
 }
 
 TestFFTW3() {
