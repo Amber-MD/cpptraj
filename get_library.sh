@@ -77,14 +77,37 @@ cd $SRCDIR
 #echo "CFLAGS=$CFLAGS"
 #echo "PREFIX=$PREFIX"
 echo -n "    Configuring $LIBNAME... "
-./configure CC="$CC" CFLAGS="$CFLAGS" --prefix=$PREFIX $CONFIGOPTS > $CONFIGURE_LOG 2>&1
-if [ $? -ne 0 ] ; then
-  echo "Failed."
-  echo "Check $CONFIGURE_LOG for errors."
-  exit 1
+if [ -f 'configure' ] ; then
+  # Run configure
+  ./configure CC="$CC" CFLAGS="$CFLAGS" --prefix=$PREFIX $CONFIGOPTS > $CONFIGURE_LOG 2>&1
+  if [ $? -ne 0 ] ; then
+    echo "Failed."
+    echo "Check $CONFIGURE_LOG for errors."
+    exit 1
+  fi
+elif [ -f 'Makefile' ] ; then
+  # No configure - try to modify Makefile on the fly.
+  if [ ! -f 'Makefile.original' ] ; then
+    cp Makefile Makefile.original
+  fi
+  awk -v cc="$CC" -v cflags="$CFLAGS" -v prefix="$PREFIX" '{
+    if (index($1,"CC=")!=0)
+      printf("CC=%s\n", cc);
+    else if (index($1,"CFLAGS=")!=0)
+      printf("CFLAGS=%s\n", cflags);
+    else if (index($1,"PREFIX=")!=0)
+      printf("PREFIX=%s\n", prefix);
+    else
+      print $0;
+  }' Makefile.original > Makefile
+  if [ $? -ne 0 ] ; then
+    exit 1
+  fi
 else
-  echo "Success."
+  echo "Error: No configure or Makefile."
+  exit 1
 fi
+echo "Success."
 
 # Build
 echo -n "    Compiling $LIBNAME... "
