@@ -114,7 +114,7 @@ COMPOUT='cpptrajcfg.compile.out'
 NETCDF_SRCTAR='netcdf-4.6.1.tar.gz'
 NETCDF_SRCDIR='netcdf-4.6.1'
 NETCDF_URL="ftp://ftp.unidata.ucar.edu/pub/netcdf/$NETCDF_SRCTAR"
-
+NETCDF_OPTS=" --disable-netcdf-4 --disable-dap $windows_hostflag --disable-shared --disable-doxygen"
 
 # ----- Configure options ------------------------
 USE_CMAKE=0       # 1 = use cmake for build
@@ -480,8 +480,8 @@ EOF
           fi
         fi
         if [ "$build_netcdf" = 'yes' ] ; then
-          PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS \
-            SRCDIR=$NETCDF_SRCDIR SRCTAR=$NETCDF_SRCTAR URL=$NETCDF_URL ./get_netcdf.sh
+          PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS LIBNAME='netcdf' \
+            SRCDIR=$NETCDF_SRCDIR SRCTAR=$NETCDF_SRCTAR URL=$NETCDF_URL ./get_netcdf.sh $NETCDF_OPTS
           if [ $? -ne 0 ] ; then
             ErrMsg "Building NetCDF failed."
             exit 1

@@ -1,18 +1,30 @@
 #!/bin/bash
 
 WORKDIR=`pwd`
-# Attempt to download and install a copy of NetCDF
-if [ -z "$SRCTAR" -o -z "$SRCDIR" -o -z "$URL" ] ; then
+# Attempt to download and install a copy of library 
+if [ -z "$SRCTAR" -o -z "$SRCDIR" -o -z "$URL" -o -z "$LIBNAME" ] ; then
   echo "Error: Script variables are empty."
   exit 1
 fi
 
-# Get netcdf if necessary
+# Get configure options
+CONFIGOPTS=''
+while [ ! -z "$1" ] ; do
+  CONFIGOPTS="$CONFIGOPTS $1"
+  shift
+done
+
+echo "CONFIGOPTS: $CONFIGOPTS"
+
+CONFIGURE_LOG=$WORKDIR/$LIBNAME"_config.log"
+COMPILE_LOG=$WORKDIR/$LIBNAME"_compile.log"
+
+# Get library if necessary
 if [ ! -f "$SRCTAR" ] ; then
   WGET=`which wget`
 
   if [ -z "$WGET" ] ; then
-    echo "Error: 'wget' not found. Cannot download NetCDF"
+    echo "Error: 'wget' not found. Cannot download $LIBNAME"
     exit 1
   fi
 
@@ -38,33 +50,31 @@ cd $SRCDIR
 #echo "CC=$CC"
 #echo "CFLAGS=$CFLAGS"
 #echo "PREFIX=$PREFIX"
-echo -n "Configuring NetCDF... "
-./configure CC="$CC" CFLAGS="$CFLAGS" \
-  --prefix=$PREFIX --disable-netcdf-4 --disable-dap $windows_hostflag \
-  --disable-shared --disable-doxygen > ../netcdf_config.log 2>&1
+echo -n "Configuring $LIBNAME... "
+./configure CC="$CC" CFLAGS="$CFLAGS" --prefix=$PREFIX $CONFIGOPTS > $CONFIGURE_LOG 2>&1
 if [ $? -ne 0 ] ; then
   echo "Failed."
-  echo "Check $WORKDIR/netcdf_config.log for errors."
+  echo "Check $CONFIGURE_LOG for errors."
   exit 1
 else
   echo "Success."
 fi
 
 # Build
-echo -n "Compiling NetCDF... "
-make clean > ../netcdf_compile.log 2>&1
-make > ../netcdf_compile.log 2>&1
+echo -n "Compiling $LIBNAME... "
+make clean > $COMPILE_LOG 2>&1
+make > $COMPILE_LOG 2>&1
 if [ $? -ne 0 ] ; then
   echo "Build failed."
-  echo "Check $WORKDIR/netcdf_compile.log for errors."
+  echo "Check $COMPILE_LOG for errors."
   exit 1
 fi
 
 # Install
-make install >> ../netcdf_compile.log 2>&1
+make install >> $COMPILE_LOG 2>&1
 if [ $? -ne 0 ] ; then
   echo "Install failed."
-  echo "Check $WORKDIR/netcdf_compile.log for errors."
+  echo "Check $COMPILE_LOG for errors."
   exit 1
 fi
 echo "Success."
