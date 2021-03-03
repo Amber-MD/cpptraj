@@ -166,6 +166,7 @@ LFS='-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64'
 CPPTRAJHOME=''
 CPPTRAJBIN=''
 CPPTRAJLIB=''
+CPPTRAJINC=''
 
 # ----- External Libraries -----------------------
 # Library indices
@@ -1653,6 +1654,7 @@ BasicChecks() {
     CPPTRAJHOME=`pwd`
     CPPTRAJBIN=$CPPTRAJHOME/bin
     CPPTRAJLIB=$CPPTRAJHOME/lib
+    CPPTRAJINC=$CPPTRAJHOM/include
   elif [ ! -d "$CPPTRAJHOME" ] ; then
     Err "Install directory '$CPPTRAJHOME' does not exist."
   fi
@@ -2109,6 +2111,7 @@ while [ ! -z "$1" ] ; do
       CPPTRAJHOME=$VALUE
       CPPTRAJBIN=$VALUE/bin
       CPPTRAJLIB=$VALUE/lib
+      CPPTRAJINC=$VALUE/include
       ;;
     # Hidden debug options
     '--debug-parallel'  ) DIRECTIVES="$DIRECTIVES -DPARALLEL_DEBUG_VERBOSE" ;;
@@ -2343,6 +2346,7 @@ cat >> config.h <<EOF
 CPPTRAJHOME="$CPPTRAJHOME"
 CPPTRAJBIN="$CPPTRAJBIN"
 CPPTRAJLIB="$CPPTRAJLIB"
+CPPTRAJINC="$CPPTRAJINC"
 
 INSTALL_TARGETS=$INSTALL_TARGETS
 
