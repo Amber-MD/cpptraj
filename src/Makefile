@@ -117,7 +117,15 @@ clean:
 	cd cuda_kernels && $(MAKE) clean
 	cd tng && $(MAKE) clean
 
-uninstall:
+uninstall_lib:
+	$(DEL_FILE) $(CPPTRAJLIB)/*.a
+	$(DEL_FILE) $(CPPTRAJLIB)/*.la
+	$(DEL_FILE) $(CPPTRAJLIB)/*.so*
+	$(DEL_FILE) $(CPPTRAJLIB)/*.settings
+	$(DEL_FILE) -r $(CPPTRAJLIB)/cmake
+	$(DEL_FILE) -r $(CPPTRAJLIB)/pkgconfig
+
+uninstall: uninstall_lib
 	$(DEL_FILE) $(CPPTRAJBIN)/cpptraj$(SFX)$(EXE)
 	$(DEL_FILE) $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX)
 	cd readline && make uninstall
