@@ -125,7 +125,10 @@ uninstall_lib:
 	$(DEL_FILE) -r $(CPPTRAJLIB)/cmake
 	$(DEL_FILE) -r $(CPPTRAJLIB)/pkgconfig
 
-uninstall: uninstall_lib
+uninstall_inc:
+	$(DEL_FILE) $(CPPTRAJINC)/*.h
+
+uninstall: uninstall_lib uninstall_inc
 	$(DEL_FILE) $(CPPTRAJBIN)/cpptraj$(SFX)$(EXE)
 	$(DEL_FILE) $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX)
 	cd readline && make uninstall
