@@ -142,7 +142,7 @@ LAPACK_OPTS=''
 PNETCDF_SRCTAR='pnetcdf-1.12.2.tar.gz'
 PNETCDF_SRCDIR=''
 PNETCDF_URL="https://parallel-netcdf.github.io/Release/$PNETCDF_SRCTAR"
-PNETCDF_OPTS=''
+PNETCDF_OPTS='--disable-fortran --disable-cxx'
 
 # ----- Configure options ------------------------
 USE_CMAKE=0       # 1 = use cmake for build
