@@ -192,7 +192,7 @@ if [ -z "$MAKE_COMMAND" ] ; then
 fi
 
 # Build
-echo -n "    Compiling $LIBNAME... "
+echo -n "    Compiling $LIBNAME (may be time-consuming)... "
 make clean > $COMPILE_LOG 2>&1
 $MAKE_COMMAND $MAKE_TARGET > $COMPILE_LOG 2>&1
 if [ $? -ne 0 ] ; then
