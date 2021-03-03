@@ -1663,7 +1663,7 @@ BasicChecks() {
     CPPTRAJHOME=`pwd`
     CPPTRAJBIN=$CPPTRAJHOME/bin
     CPPTRAJLIB=$CPPTRAJHOME/lib
-    CPPTRAJINC=$CPPTRAJHOM/include
+    CPPTRAJINC=$CPPTRAJHOME/include
   elif [ ! -d "$CPPTRAJHOME" ] ; then
     Err "Install directory '$CPPTRAJHOME' does not exist."
   fi
