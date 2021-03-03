@@ -144,6 +144,11 @@ PNETCDF_SRCDIR=''
 PNETCDF_URL="https://parallel-netcdf.github.io/Release/$PNETCDF_SRCTAR"
 PNETCDF_OPTS='--disable-fortran --disable-cxx'
 
+FFTW_SRCTAR='fftw-3.3.9.tar.gz'
+FFTW_SRCDIR='fftw-3.3.9'
+FFTW_URL="ftp://ftp.fftw.org/pub/fftw/$FFTW_SRCTAR"
+FFTW_OPTS='--enable-threads --with-combined-threads --with-pic'
+
 # ----- Configure options ------------------------
 USE_CMAKE=0       # 1 = use cmake for build
 COMPILE_VERBOSE=0 # 1 = show details during compile
@@ -784,6 +789,7 @@ int main() {
 }
 EOF
    if [ "${LIB_STAT[$LFFTW3]}" = 'amberopt' ] ; then
+    # Using FFTW from AMBER
     TestProgram silent "  Checking for FFTW3 from AMBERHOME" "$CXX" "$CXXFLAGS ${LIB_INCL[$LFFTW3]}" testp.cpp "${LIB_FLAG[$LFFTW3]}"
     if [ $? -eq 1 ] ; then
       WrnMsg "FFTW3 test failed. CPPTRAJ will be built without FFTW3."
@@ -793,7 +799,32 @@ EOF
     # Using FFTW from MKL
     TestProgram "  Checking FFTW3" "$CXX" "$CXXFLAGS ${LIB_INCL[$LBLAS]}" testp.cpp "${LIB_FLAG[$LBLAS]}"
   else
-    TestProgram "  Checking FFTW3" "$CXX" "$CXXFLAGS ${LIB_INCL[$LFFTW3]}" testp.cpp "${LIB_FLAG[$LFFTW3]}"
+    TestProgram silent "  Checking FFTW3" "$CXX" "$CXXFLAGS ${LIB_INCL[$LFFTW3]}" testp.cpp "${LIB_FLAG[$LFFTW3]}"
+    if [ $? -ne 0 ] ; then
+      if [ "${LIB_STAT[$LFFTW3]}" = 'enabled' ] ; then
+        # See if there is already a version of FFTW in CPPTRAJHOME
+        LIB_STAT[$LFFTW3]='specified'
+        LIB_HOME[$LFFTW3]=$CPPTRAJHOME
+        LIB_FLAG[$LFFTW3]=$CPPTRAJHOME/lib/${LIB_STTC[$LFFTW3]}
+        LIB_INCL[$LFFTW3]="-I$CPPTRAJHOME/include"
+        TestProgram silent "  Checking for bundled FFTW" "$CXX" "$CXXFLAGS ${LIB_INCL[$LFFTW3]}" testp.cpp "${LIB_FLAG[$LFFTW3]}"
+        if [ $? -ne 0 ] ; then
+          CheckRebuild "FFTW" "${LIB_FLAG[$LFFTW3]}"
+          # See if user would like to get FFTW
+          PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS LIBNAME='fftw' \
+              SRCDIR=$FFTW_SRCDIR SRCTAR=$FFTW_SRCTAR URL=$FFTW_URL ./get_library.sh $REBUILDOPT $FFTW_OPTS
+          if [ $? -ne 0 ] ; then
+            ErrMsg "Building FFTW failed."
+            exit 1
+          fi
+          # Test the built FFTW
+          TestProgram "  Checking built FFTW" "$CXX" "$CXXFLAGS ${LIB_INCL[$LFFTW3]}" testp.cpp "${LIB_FLAG[$LFFTW3]}"
+        fi
+      else
+        # FFTW specified but failed.
+        TestProgErr "FFTW"
+      fi
+    fi
   fi
 }
 

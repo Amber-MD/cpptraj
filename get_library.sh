@@ -188,7 +188,7 @@ if [ -z "$MAKE_COMMAND" ] ; then
     HALF=`echo "$NPROC / 2" | bc`
     MAKE_COMMAND="make -j$HALF"
   fi
-  echo "    Make: $MAKE_COMMAND"
+  echo "    MAKE_COMMAND is not set; set to '$MAKE_COMMAND'"
 fi
 
 # Build
