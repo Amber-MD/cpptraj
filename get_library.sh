@@ -94,7 +94,7 @@ fi
 echo -n "    Configuring $LIBNAME... "
 if [ -f 'configure' ] ; then
   # Run configure
-  CC="$CC" CFLAGS="$CFLAGS" ./configure --prefix=$PREFIX $CONFIGOPTS > $CONFIGURE_LOG 2>&1
+  CC="$CC" CFLAGS="$CFLAGS" FC="$FC" FFLAGS="$FFLAGS" ./configure --prefix=$PREFIX $CONFIGOPTS > $CONFIGURE_LOG 2>&1
   if [ $? -ne 0 ] ; then
     echo "Failed."
     echo "Check $CONFIGURE_LOG for errors."
@@ -105,11 +105,15 @@ elif [ -f 'Makefile' ] ; then
   if [ ! -f 'Makefile.original' ] ; then
     cp Makefile Makefile.original
   fi
-  awk -v cc="$CC" -v cflags="$CFLAGS" -v prefix="$PREFIX" '{
+  awk -v cc="$CC" -v cflags="$CFLAGS" -v fc="$FC" -v fflags="$FFLAGS" -v prefix="$PREFIX" '{
     if (index($1,"CC=")!=0)
       printf("CC=%s\n", cc);
+    else if (index($1,"FC=")!=0)
+      printf("FC=%s\n", fc);
     else if (index($1,"CFLAGS=")!=0)
       printf("CFLAGS=%s\n", cflags);
+    eles if (index($1,"FFLAGS=")!=0)
+      printf("FFLAGS=%s\n", fflags);
     else if (index($1,"PREFIX=")!=0)
       printf("PREFIX=%s\n", prefix);
     else

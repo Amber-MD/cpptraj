@@ -669,7 +669,7 @@ EOF
         # Check if lib present but needs to be rebuilt
         CheckRebuild "OpenBLAS" "${LIB_FLAG[$LBLAS]}"
         # See if user would like to get openblas
-        PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS LIBNAME='openblas' \
+        PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS FC=$FC FFLAGS=$FFLAGS LIBNAME='openblas' \
             SRCDIR=$MATH_SRCDIR SRCTAR=$MATH_SRCTAR URL=$MATH_URL ./get_library.sh $REBUILDOPT $MATH_OPTS
         if [ $? -ne 0 ] ; then
           ErrMsg "Building OpenBLAS failed."
