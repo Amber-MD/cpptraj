@@ -121,12 +121,12 @@ EOF
 fi
 
 # Configure
-echo ""
-echo "    CC=$CC"
-echo "    CFLAGS=$CFLAGS"
-echo "    PREFIX=$PREFIX"
-echo "    FC=$FC"
-echo "    FFLAGS=$FFLAGS"
+#echo ""
+#echo "    CC=$CC"
+#echo "    CFLAGS=$CFLAGS"
+#echo "    PREFIX=$PREFIX"
+#echo "    FC=$FC"
+#echo "    FFLAGS=$FFLAGS"
 echo -n "    Configuring $LIBNAME... "
 if [ "$LIBNAME" = 'lapack' ] ; then
   echo -n "(using generated make.inc) "

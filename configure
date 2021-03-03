@@ -45,6 +45,7 @@ UsageFull() {
   echo "    --with-<lib>=<DIR> : Use library in specified directory."
   echo "    -l<lib>=<FILE>     : Use specified library file."
   echo "    -no<lib>           : Disable library."
+  echo "    --buildlibs        : Attempt to build enabled libraries if they are not present."
   echo "    Libraries: netcdf pnetcdf zlib bzlib blas lapack arpack fftw3 readline sanderlib xdrfile tng openmm"
   echo "    Note: pnetcdf is needed for writing NetCDF trajectories with MPI."
   echo "  LINKING OPTIONS"
@@ -152,6 +153,7 @@ USE_STATIC=0      # 0 = dynamic linking, 1 = static linking, 2 = static link for
 USE_SHARED=0      # 1 = Use flag for position-independent code (required for libcpptraj)
 USE_PROFILE=0     # 0 = no profiling, 1 = C++ profiling, 2 = GLIBC profiling, 3 = Intel Vtune
 USE_AMBERLIB=0    # 1 = Use AMBERHOME to fill in NetCDF/BLAS/LAPACK/ARPACK as needed
+BUILD_LIBS=0      # 1 = Means automatically say yes to building enabled libs when not present.
 
 USE_SINGLEENSEMBLE=0 # Enable support for single ensemble trajectories
 USE_CPPTRAJDEBUG=0   # Enable internal cpptraj debug flags
@@ -396,7 +398,11 @@ CheckLibraryKeys() {
 # Test compile and run a program.
 # ARGS: [noexe|silent|quiet] <description> <compiler> <args> <file> [<link>]
 TestProgram() {
-  REBUILDOPT=''
+  if [ $BUILD_LIBS -eq 0 ] ; then
+    REBUILDOPT=''
+  else
+    REBUILDOPT='--rebuild'
+  fi
   if [ "$1" = 'noexe' ] ; then
     # Output messages, do not execute compiled binary
     silent=3
@@ -463,7 +469,7 @@ TestProgErr() {
 CheckRebuild() {
   desc=$1
   libfile=$2
-  if [ -f "$libfile" ] ; then
+  if [ -z "$REBUILDOPT" -a -f "$libfile" ] ; then
     echo "Bundled $desc present but needs to be rebuilt."
     REBUILDOPT='--rebuild'
   fi
@@ -872,6 +878,9 @@ EOF
 #-------------------------------------------------------------------------------
 # Test external libraries
 TestLibraries() {
+  if [ $BUILD_LIBS -eq 1 ] ; then
+    echo "Enabled libraries will be built if not present."
+  fi
   if [ "${LIB_TEST[$LBZIP]}" = 'yes'     ] ; then TestBzlib ; fi
   if [ "${LIB_TEST[$LZIP]}" = 'yes'      ] ; then TestZlib ; fi
   if [ "${LIB_TEST[$LNETCDF]}" = 'yes'   ] ; then TestNetcdf ; fi
@@ -2103,6 +2112,7 @@ while [ ! -z "$1" ] ; do
     '-nomathlib'        ) BLAS_TYPE='none' ;;
     '--requires-flink'  ) REQUIRES_FLINK=1 ;;
     '--requires-pthread') REQUIRES_PTHREAD=1 ;;
+    '--buildlibs'       ) BUILD_LIBS=1 ;;
     # Install options
     '--compile-verbose' ) COMPILE_VERBOSE=1 ;;
     '-noclean'          ) CLEAN='no' ;;
