@@ -3,6 +3,7 @@
 # Daniel R. Roe
 # 2010-11-18
 # Rewritten 2018-01-25 (getting old...)
+# Support for getting and building external libraries added 2021-03-03
 # This script will determine compiler and linker flags based on
 # desired user-specified options. Generates config.h, which is
 # used by src/Makefile.
