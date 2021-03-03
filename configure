@@ -147,7 +147,7 @@ PNETCDF_OPTS='--disable-fortran --disable-cxx'
 FFTW_SRCTAR='fftw-3.3.9.tar.gz'
 FFTW_SRCDIR='fftw-3.3.9'
 FFTW_URL="ftp://ftp.fftw.org/pub/fftw/$FFTW_SRCTAR"
-FFTW_OPTS='--enable-threads --with-combined-threads --with-pic'
+FFTW_OPTS='--enable-threads --with-combined-threads --with-pic --disable-fortran'
 
 # ----- Configure options ------------------------
 USE_CMAKE=0       # 1 = use cmake for build
@@ -221,7 +221,7 @@ LIB_DOFF[$LNETCDF]=''                # Directive if library off
 LIB_LINK[$LNETCDF]='dynamic'         # How to link the library
 LIB_TYPE[$LNETCDF]='ld'              # ld = LDFLAGS, cpp = cpptraj, blank = special
 
-LIB_STAT[$LPARANC]='enabled'
+LIB_STAT[$LPARANC]='off'
 LIB_CKEY[$LPARANC]='pnetcdf'
 LIB_HOME[$LPARANC]=''
 LIB_FLAG[$LPARANC]='-lpnetcdf'
@@ -1744,6 +1744,8 @@ BasicChecks() {
   if [ "${LIB_STAT[$LPARANC]}" != 'off' -a $USE_MPI -eq 0 ] ; then
     WrnMsg "Parallel NetCDF enabled but MPI not specified. Assuming '-mpi'."
     USE_MPI=1
+  elif [ $USE_MPI -ne 0 -a "${LIB_STAT[$LPARANC]}" = 'off' ] ; then
+    LIB_STAT[$LPARANC]='enabled'
   fi
   # If we are using the bundled ARPACK then we will need C++/Fortran linking.
   if [ "${LIB_STAT[$LARPACK]}" = 'bundled' ] ; then
