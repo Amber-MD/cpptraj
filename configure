@@ -3,7 +3,7 @@
 # Daniel R. Roe
 # 2010-11-18
 # Rewritten 2018-01-25 (getting old...)
-# Support for getting and building external libraries added 2021-03-03
+# Support for getting and building external libraries (get_library.sh) added 2021-03-03
 # This script will determine compiler and linker flags based on
 # desired user-specified options. Generates config.h, which is
 # used by src/Makefile.
@@ -139,6 +139,11 @@ LAPACK_SRCDIR='lapack-3.9.0'
 LAPACK_URL="https://github.com/Reference-LAPACK/lapack/archive/$LAPACK_SRCTAR"
 LAPACK_OPTS=''
 
+PNETCDF_SRCTAR='pnetcdf-1.12.2.tar.gz'
+PNETCDF_SRCDIR=''
+PNETCDF_URL="https://parallel-netcdf.github.io/Release/$PNETCDF_SRCTAR"
+PNETCDF_OPTS=''
+
 # ----- Configure options ------------------------
 USE_CMAKE=0       # 1 = use cmake for build
 COMPILE_VERBOSE=0 # 1 = show details during compile
@@ -211,7 +216,7 @@ LIB_DOFF[$LNETCDF]=''                # Directive if library off
 LIB_LINK[$LNETCDF]='dynamic'         # How to link the library
 LIB_TYPE[$LNETCDF]='ld'              # ld = LDFLAGS, cpp = cpptraj, blank = special
 
-LIB_STAT[$LPARANC]='off'
+LIB_STAT[$LPARANC]='enabled'
 LIB_CKEY[$LPARANC]='pnetcdf'
 LIB_HOME[$LPARANC]=''
 LIB_FLAG[$LPARANC]='-lpnetcdf'
@@ -588,7 +593,33 @@ TestPnetcdf() {
 void unused() {int ncid; ncmpi_open(MPI_COMM_WORLD, "foo.nc", NC_NOWRITE, MPI_INFO_NULL, &ncid);}
 int main() { printf("Testing\n"); printf("%s\n",ncmpi_strerror(0)); return 0; }
 EOF
-  TestProgram "  Checking Parallel NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LPARANC]}" testp.cpp "${LIB_FLAG[$LPARANC]}"
+  TestProgram silent "  Checking Parallel NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LPARANC]}" testp.cpp "${LIB_FLAG[$LPARANC]}"
+  if [ $? -ne 0 ] ; then
+    if [ "${LIB_STAT[$LPARANC]}" = 'enabled' ] ; then
+      # See if there is already a version of parallel netcdf in CPPTRAJHOME
+      LIB_STAT[$LPARANC]='specified'
+      LIB_HOME[$LPARANC]=$CPPTRAJHOME
+      LIB_FLAG[$LPARANC]=$CPPTRAJHOME/lib/${LIB_STTC[$LPARANC]}
+      LIB_INCL[$LPARANC]="-I$CPPTRAJHOME/include"
+      TestProgram silent "  Checking for bundled parallel NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LPARANC]}" testp.cpp "${LIB_FLAG[$LPARANC]}"
+      if [ $? -ne 0 ] ; then
+        CheckRebuild "Pnetcdf" "${LIB_FLAG[$LPARANC]}"
+        # See if user would like to get parallel netcdf
+        PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS LIBNAME='pnetcdf' \
+            SRCDIR=$PNETCDF_SRCDIR SRCTAR=$PNETCDF_SRCTAR URL=$PNETCDF_URL ./get_library.sh $REBUILDOPT $PNETCDF_OPTS
+        if [ $? -ne 0 ] ; then
+          echo "Disabling parallel NetCDF support."
+          LIB_STAT[$LPARANC]='off'
+        else
+          # Test the built parallel netcdf
+          TestProgram "  Checking built parallel NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LPARANC]}" testp.cpp "${LIB_FLAG[$LPARANC]}"
+        fi
+      fi
+    else
+      # Parallel NetCDF specified but failed.
+      TestProgErr "Pnetcdf"
+    fi
+  fi
 }
 
 DetermineFlink() {
