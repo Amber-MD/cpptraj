@@ -17,10 +17,10 @@ fi
 
 # First ask if we want to get the library
 if [ $REBUILD -eq 0 ] ; then
-  echo "Should CPPTRAJ attempt to build its own $LIBNAME? {y|n}: "
+  echo -n "Should CPPTRAJ attempt to build its own $LIBNAME? {y|n}: "
   read yesno
   while [ "$yesno" != 'y' -a "$yesno" != 'n' ] ; do
-    echo "    Please enter 'y' or 'n': "
+    echo -n "    Please enter 'y' or 'n': "
     read yesno
   done
   if [ "$yesno" = 'n' ] ; then
@@ -35,7 +35,7 @@ while [ ! -z "$1" ] ; do
   shift
 done
 
-echo "    CONFIGOPTS: $CONFIGOPTS"
+#echo "    CONFIGOPTS: $CONFIGOPTS"
 
 CONFIGURE_LOG=$WORKDIR/$LIBNAME"_config.log"
 COMPILE_LOG=$WORKDIR/$LIBNAME"_compile.log"
