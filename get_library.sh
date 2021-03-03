@@ -1,4 +1,8 @@
 #!/bin/bash
+# Companion script to CPPTRAJ 'configure' script.
+# Responsible for downloading, unpacking, configuring, and compiling external libraries.
+# Daniel R. Roe
+# 2021-03-03
 
 WORKDIR=`pwd`
 
@@ -62,6 +66,9 @@ if [ -z "$SRCDIR" ] ; then
   FIRSTFILE=`tar -tzf $SRCTAR | head -1`
   if [ ! -z "$FIRSTFILE" ] ; then
     SRCDIR=`dirname $FIRSTFILE`
+    if [ "$SRCDIR" = '.' ] ; then
+      SRCDIR=$FIRSTFILE
+    fi
   fi
 fi
 
@@ -77,6 +84,10 @@ if [ ! -d "$SRCDIR" ] ; then
     echo "Error: Could not unpack $SRCTAR"
     exit 1
   fi
+fi
+if [ "$SRCDIR" = '.' -o ! -d "$SRCDIR" ] ; then
+  echo "Error: $SRCDIR is not a directory."
+  exit 1
 fi
 cd $SRCDIR
 
