@@ -124,10 +124,24 @@ else
 fi
 echo "Success."
 
+# Determine make command
+if [ -z "$MAKE_COMMAND" ] ; then
+  NPROC=`nproc`
+  if [ -z "$NPROC" ] ; then
+    MAKE_COMMAND='make'
+  elif [ $NPROC -le 2 ] ; then
+    MAKE_COMMAND='make'
+  else
+    HALF=`echo "$NPROC / 2" | bc`
+    MAKE_COMMAND="make -j$HALF"
+  fi
+  echo "    Make: $MAKE_COMMAND"
+fi
+
 # Build
 echo -n "    Compiling $LIBNAME... "
 make clean > $COMPILE_LOG 2>&1
-make > $COMPILE_LOG 2>&1
+$MAKE_COMMAND > $COMPILE_LOG 2>&1
 if [ $? -ne 0 ] ; then
   echo "Build failed."
   echo "Check $COMPILE_LOG for errors."
