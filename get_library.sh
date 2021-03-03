@@ -112,7 +112,7 @@ elif [ -f 'Makefile' ] ; then
       printf("FC=%s\n", fc);
     else if (index($1,"CFLAGS=")!=0)
       printf("CFLAGS=%s\n", cflags);
-    eles if (index($1,"FFLAGS=")!=0)
+    else if (index($1,"FFLAGS=")!=0)
       printf("FFLAGS=%s\n", fflags);
     else if (index($1,"PREFIX=")!=0)
       printf("PREFIX=%s\n", prefix);
