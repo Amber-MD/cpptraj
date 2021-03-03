@@ -81,9 +81,43 @@ fi
 cd $SRCDIR
 
 # Compiler/library-specific modifications
+MAKE_TARGET=''
 if [ "$CC" = 'icc' ] ; then
   # Avoids 'error: identifier "_LIB_VERSION_TYPE" is undefined'
   CFLAGS="-D__PURE_INTEL_C99_HEADERS__ $CFLAGS"
+fi
+if [ -f 'make.inc' ] ; then
+  rm 'make.inc'
+fi
+if [ "$LIBNAME" = 'lapack' ] ; then
+  MAKE_TARGET='blaslib lapacklib'
+  lapackflags=''
+  if [ "$FC" = 'gfortran' ] ; then
+    lapackflags='-frecursive'
+  fi
+  # LAPACK has no configure; requires make.inc
+  cat > make.inc <<EOF
+SHELL = /bin/sh
+FORTRAN  = $FC
+OPTS     = -O2 $lapackflags
+DRVOPTS  = \$(OPTS)
+NOOPT    = -O0 $lapackflags
+LOADER   = $FC
+LOADOPTS =
+#TIMER    = INT_ETIME
+TIMER    = INT_CPU_TIME
+CC           = $CC
+CFLAGS       = $CFLAGS 
+ARCH         = ar
+ARCHFLAGS    = cr
+RANLIB       = ranlib
+XBLASLIB     =
+BLASLIB      = libblas.a
+CBLASLIB     = 
+LAPACKLIB    = liblapack.a
+TMGLIB       = libtmglib.a
+LAPACKELIB   = liblapacke.a
+EOF
 fi
 
 # Configure
@@ -94,7 +128,9 @@ echo "    PREFIX=$PREFIX"
 echo "    FC=$FC"
 echo "    FFLAGS=$FFLAGS"
 echo -n "    Configuring $LIBNAME... "
-if [ -f 'configure' ] ; then
+if [ "$LIBNAME" = 'lapack' ] ; then
+  echo -n "(using generated make.inc) "
+elif [ -f 'configure' ] ; then
   # Run configure
   CC="$CC" CFLAGS="$CFLAGS" FC="$FC" FFLAGS="$FFLAGS" ./configure --prefix=$PREFIX $CONFIGOPTS > $CONFIGURE_LOG 2>&1
   if [ $? -ne 0 ] ; then
@@ -147,7 +183,7 @@ fi
 # Build
 echo -n "    Compiling $LIBNAME... "
 make clean > $COMPILE_LOG 2>&1
-$MAKE_COMMAND > $COMPILE_LOG 2>&1
+$MAKE_COMMAND $MAKE_TARGET > $COMPILE_LOG 2>&1
 if [ $? -ne 0 ] ; then
   echo "Build failed."
   echo "Check $COMPILE_LOG for errors."
@@ -155,12 +191,32 @@ if [ $? -ne 0 ] ; then
 fi
 
 # Install
-make install >> $COMPILE_LOG 2>&1
+if [ "$LIBNAME" = 'lapack' ] ; then
+  # Only made blas and lapack libraries; need to move them manually
+  if [ -f 'BLAS/SRC/libblas.a' ] ; then
+    blaslib=BLAS/SRC/libblas.a
+  else
+    echo "Error: BLAS not made."
+    exit 1
+  fi
+  if [ -f 'liblapack.a' ] ; then
+    lapacklib=liblapack.a
+  elif [ -f 'SRC/liblapack.a' ] ; then
+    lapacklib=SRC/liblapack.a
+  else
+    echo "Error: LAPACK not made."
+    exit 1
+  fi
+  mv $blaslib $lapacklib $PREFIX/lib/
+else
+  make install >> $COMPILE_LOG 2>&1
+fi
 if [ $? -ne 0 ] ; then
   echo "Install failed."
   echo "Check $COMPILE_LOG for errors."
   exit 1
 fi
+
 echo "Success."
 
 exit 0

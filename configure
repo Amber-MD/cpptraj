@@ -132,6 +132,11 @@ OPENBLAS_SRCDIR='OpenBLAS-0.3.13'
 OPENBLAS_URL="https://github.com/xianyi/OpenBLAS/releases/download/v0.3.13/$OPENBLAS_SRCTAR"
 OPENBLAS_OPTS=''
 
+LAPACK_SRCTAR='v3.9.0.tar.gz'
+LAPACK_SRCDIR='lapack-3.9.0'
+LAPACK_URL="https://github.com/Reference-LAPACK/lapack/archive/$LAPACK_SRCTAR"
+LAPACK_OPTS=''
+
 # ----- Configure options ------------------------
 USE_CMAKE=0       # 1 = use cmake for build
 COMPILE_VERBOSE=0 # 1 = show details during compile
@@ -662,31 +667,39 @@ EOF
         MATH_URL=$OPENBLAS_URL
         MATH_OPTS=$OPENBLAS_OPTS
         MATH_LIBNAME='openblas'
+      elif [ "$BLAS_TYPE" = 'other' ] ; then
+        MATH_SRCDIR=$LAPACK_SRCDIR
+        MATH_SRCTAR=$LAPACK_SRCTAR
+        MATH_URL=$LAPACK_URL
+        MATH_OPTS=$LAPACK_OPTS
+        MATH_LIBNAME='lapack'
+        LIB_STAT[$LLAPACK]='specified'
+        LIB_HOME[$LLAPACK]=$CPPTRAJHOME
+        LIB_FLAG[$LLAPACK]=$CPPTRAJHOME/lib/${LIB_STTC[$LLAPACK]}
+        LIB_INCL[$LLAPACK]="-I$CPPTRAJHOME/include"
       else
         # Bundle not supported for this BLAS type
         TestProgErr "LAPACK/BLAS"
       fi
-      # See if there is already a version of OpenBLAS in CPPTRAJHOME
+      # See if there is already a version of BLAS in CPPTRAJHOME
       LIB_STAT[$LBLAS]='specified'
       LIB_HOME[$LBLAS]=$CPPTRAJHOME
       LIB_FLAG[$LBLAS]=$CPPTRAJHOME/lib/${LIB_STTC[$LBLAS]}
       LIB_INCL[$LBLAS]="-I$CPPTRAJHOME/include"
-      LIB_STAT[$LLAPACK]='off'
-      LIB_FLAG[$LLAPACK]=''
-      DetermineFlink "  Checking for bundled OpenBLAS" "${LIB_FLAG[$LLAPACK]} ${LIB_FLAG[$LBLAS]}"
+      DetermineFlink "  Checking for bundled BLAS" "${LIB_FLAG[$LLAPACK]} ${LIB_FLAG[$LBLAS]}"
       #TestProgram silent "  Checking for bundled OpenBLAS" "$CXX" "$CXXFLAGS ${LIB_INCL[$LBLAS]}" testp.cpp "${LIB_FLAG[$LBLAS]}"
       if [ $? -ne 0 ] ; then
         # Check if lib present but needs to be rebuilt
-        CheckRebuild "OpenBLAS" "${LIB_FLAG[$LBLAS]}"
-        # See if user would like to get openblas
+        CheckRebuild "BLAS" "${LIB_FLAG[$LBLAS]}"
+        # See if user would like to get blas
         PREFIX=$CPPTRAJHOME CC="$CC" CFLAGS="$CFLAGS" FC="$FC" LIBNAME="$MATH_LIBNAME" \
             SRCDIR=$MATH_SRCDIR SRCTAR=$MATH_SRCTAR URL=$MATH_URL ./get_library.sh $REBUILDOPT $MATH_OPTS
         if [ $? -ne 0 ] ; then
-          ErrMsg "Building OpenBLAS failed."
+          ErrMsg "Building BLAS failed."
           exit 1
         fi
         # Test the built openblas
-        DetermineFlink "  Checking built OpenBLAS" "${LIB_FLAG[$LLAPACK]} ${LIB_FLAG[$LBLAS]}"
+        DetermineFlink "  Checking built BLAS" "${LIB_FLAG[$LLAPACK]} ${LIB_FLAG[$LBLAS]}"
         #TestProgram "  Checking built OpenBLAS" "$CXX" "$CXXFLAGS ${LIB_INCL[$LBLAS]}" testp.cpp "${LIB_FLAG[$LBLAS]}"
       fi
     else
