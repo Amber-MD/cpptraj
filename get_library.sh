@@ -87,10 +87,12 @@ if [ "$CC" = 'icc' ] ; then
 fi
 
 # Configure
-#echo ""
-#echo "CC=$CC"
-#echo "CFLAGS=$CFLAGS"
-#echo "PREFIX=$PREFIX"
+echo ""
+echo "    CC=$CC"
+echo "    CFLAGS=$CFLAGS"
+echo "    PREFIX=$PREFIX"
+echo "    FC=$FC"
+echo "    FFLAGS=$FFLAGS"
 echo -n "    Configuring $LIBNAME... "
 if [ -f 'configure' ] ; then
   # Run configure

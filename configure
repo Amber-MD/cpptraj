@@ -127,10 +127,10 @@ ZLIB_SRCDIR='zlib-1.2.11'
 ZLIB_URL="https://zlib.net/$ZLIB_SRCTAR"
 ZLIB_OPTS=''
 
-MATH_SRCTAR='OpenBLAS-0.3.13.tar.gz'
-MATH_SRCDIR='OpenBLAS-0.3.13'
-MATH_URL="https://github.com/xianyi/OpenBLAS/releases/download/v0.3.13/$MATH_SRCTAR"
-MATH_OPTS=''
+OPENBLAS_SRCTAR='OpenBLAS-0.3.13.tar.gz'
+OPENBLAS_SRCDIR='OpenBLAS-0.3.13'
+OPENBLAS_URL="https://github.com/xianyi/OpenBLAS/releases/download/v0.3.13/$OPENBLAS_SRCTAR"
+OPENBLAS_OPTS=''
 
 # ----- Configure options ------------------------
 USE_CMAKE=0       # 1 = use cmake for build
@@ -139,7 +139,7 @@ USE_MPI=0         # 0 = no MPI, 1 = mpicc etc, 2 = mpiicc etc
 USE_OPENMP=0      # 0 = no OpenMP, 1 = OpenMP
 USE_CUDA=0        # 0 = no CUDA, 1 = CUDA
 USE_OPT=1         # 0 = no optimization, 1 = use compiler optimizations, 2 = optimize/tune.
-BLAS_TYPE='other' # other=normal BLAS, mkl, libsci (cray) etc
+BLAS_TYPE='other' # none|mkl|libsci(cray)|openblas|macAccelerate|other=normal BLAS
 MKL_TYPE='mkl'    # mkl = -mkl for Intel compilers, line = link-line advisor style
 MKL_FFTW=''       # If yes, use FFTW from MKL if not otherwise specified. If 'no' prevent this.
 USE_DEBUG=0       # 0 = no debug info, 1 = enable compiler debug info
@@ -656,10 +656,20 @@ EOF
   DetermineFlink "  Checking LAPACK/BLAS" "${LIB_FLAG[$LLAPACK]} ${LIB_FLAG[$LBLAS]}"
   if [ $? -ne 0 ] ; then
     if [ "${LIB_STAT[$LBLAS]}" = 'enabled' ] ; then
+      if [ "$BLAS_TYPE" = 'openblas' ] ; then
+        MATH_SRCDIR=$OPENBLAS_SRCDIR
+        MATH_SRCTAR=$OPENBLAS_SRCTAR
+        MATH_URL=$OPENBLAS_URL
+        MATH_OPTS=$OPENBLAS_OPTS
+        MATH_LIBNAME='openblas'
+      else
+        # Bundle not supported for this BLAS type
+        TestProgErr "LAPACK/BLAS"
+      fi
       # See if there is already a version of OpenBLAS in CPPTRAJHOME
       LIB_STAT[$LBLAS]='specified'
       LIB_HOME[$LBLAS]=$CPPTRAJHOME
-      LIB_FLAG[$LBLAS]=$CPPTRAJHOME/lib/libopenblas.a
+      LIB_FLAG[$LBLAS]=$CPPTRAJHOME/lib/${LIB_STTC[$LBLAS]}
       LIB_INCL[$LBLAS]="-I$CPPTRAJHOME/include"
       LIB_STAT[$LLAPACK]='off'
       LIB_FLAG[$LLAPACK]=''
@@ -669,7 +679,7 @@ EOF
         # Check if lib present but needs to be rebuilt
         CheckRebuild "OpenBLAS" "${LIB_FLAG[$LBLAS]}"
         # See if user would like to get openblas
-        PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS FC=$FC FFLAGS=$FFLAGS LIBNAME='openblas' \
+        PREFIX=$CPPTRAJHOME CC="$CC" CFLAGS="$CFLAGS" FC="$FC" LIBNAME="$MATH_LIBNAME" \
             SRCDIR=$MATH_SRCDIR SRCTAR=$MATH_SRCTAR URL=$MATH_URL ./get_library.sh $REBUILDOPT $MATH_OPTS
         if [ $? -ne 0 ] ; then
           ErrMsg "Building OpenBLAS failed."
@@ -1002,6 +1012,7 @@ SetupLibraries() {
     if [ "${LIB_STAT[$LBLAS]}" != 'direct' ] ; then
       LIB_FLAG[$LBLAS]='-lopenblas'
     fi
+    LIB_STTC[$LBLAS]='libopenblas.a'
     if [ -z "${LIB_HOME[$LBLAS]}" -a "${LIB_STAT[$LBLAS]}" != 'direct' ] ; then
       WrnMsg "'-openblas' may require specifying location with '--with-blas=<DIR>' or '-lblas='"
     fi
