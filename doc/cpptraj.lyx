@@ -320,6 +320,26 @@ Everything else is as printed.
  
 \end_layout
 
+\begin_layout Subsection
+Installation
+\end_layout
+
+\begin_layout Standard
+See instructions in the CPPTRAJ GitHub repository README.md file under 'Installat
+ion & Testing': 
+\begin_inset Flex URL
+status open
+
+\begin_layout Plain Layout
+
+https://github.com/Amber-MD/cpptraj
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
 \begin_layout Section
 Running Cpptraj
 \end_layout
@@ -379,6 +399,10 @@ cpptraj [-p <Top0>] [-i <Input0>] [-y <trajin>] [-x <trajout>]
 \end_inset
 
 
+\end_layout
+
+\begin_layout LyX-Code
+        [--rng {marsaglia|stdlib|mt|pcg32|xo128}]
 \end_layout
 
 \begin_deeper
@@ -553,6 +577,10 @@ cpptraj [-p <Top0>] [-i <Input0>] [-y <trajin>] [-x <trajout>]
 
 \begin_layout Description
 –resmask <mask> : Print detailed residue selection to STDOUT.
+\end_layout
+
+\begin_layout Description
+--rng <type> : Change default random number generator.
 \end_layout
 
 \end_deeper
@@ -41610,6 +41638,7 @@ key "Roe2020"
 literal "true"
 
 \end_inset
+
 
 \end_layout
 
