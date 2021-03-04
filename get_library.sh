@@ -93,10 +93,6 @@ cd $SRCDIR
 
 # Compiler/library-specific modifications
 MAKE_TARGET=''
-if [ "$CC" = 'icc' ] ; then
-  # Avoids 'error: identifier "_LIB_VERSION_TYPE" is undefined'
-  CFLAGS="-D__PURE_INTEL_C99_HEADERS__ $CFLAGS"
-fi
 if [ -f 'make.inc' ] ; then
   rm 'make.inc'
 fi

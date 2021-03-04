@@ -1363,6 +1363,16 @@ SetupCompilers() {
       FLINK='-lifport -lifcore'
       picflag="-fpic"
       C11FLAG='-std=c++11'
+      # Check for 'error: identifier "_LIB_VERSION_TYPE" is undefined'
+      cat > testp.cpp <<EOF
+#include <math.h>
+int main() { double x; x = sqrt(2); return 0; }
+EOF
+      TestProgram quiet "  Testing Intel compatibility with C headers" "$CXX" "$CXXFLAGS" testp.cpp
+      if [ $? -ne 0 ] ; then
+        CFLAGS="-D__PURE_INTEL_C99_HEADERS__ $CFLAGS"
+        CXXFLAGS="-D__PURE_INTEL_C99_HEADERS__ $CXXFLAGS"
+      fi
       ;;
     "pgi" )
       if [ -z "$CC" ]; then CC=pgcc; fi
@@ -2470,6 +2480,7 @@ EOF
 BuildRules $external_config nvcc cc f77
 if [ "${LIB_STAT[$LZIP]}" != 'off' ] ; then
   echo "ZLIB_FLAG=${LIB_FLAG[$LZIP]}" >> $external_config
+  echo "ZLIB_INCL=${LIB_INCL[$LZIP]}" >> $external_config
 fi
 
 # ----- Create directories if necessary ----------
