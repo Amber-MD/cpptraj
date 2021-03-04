@@ -889,8 +889,8 @@ SetBinaries() {
   # directories the path needs to be incremented one dir up.
   if [ "$PATH_TYPE" = 'relative' -a "$CPPTRAJ_TEST_MODE" = 'master' ] ; then
     CPPTRAJ="../$CPPTRAJ"
-    CPPTRAJ_NDIFF="../$CPPTRAJ_NDIFF"
-    CPPTRAJ_NPROC="../$CPPTRAJ_NPROC"
+  #  CPPTRAJ_NDIFF="../$CPPTRAJ_NDIFF"
+  #  CPPTRAJ_NPROC="../$CPPTRAJ_NPROC"
   fi
 }
 
