@@ -838,7 +838,7 @@ SetBinaries() {
     if [ $STANDALONE -eq 0 ] ; then
       CPPTRAJ_NDIFF=$DIRPREFIX/test/ndiff.awk
     else
-      CPPTRAJ_NDIFF=$DIRPREFIX/util/ndiff/ndiff.awk
+      CPPTRAJ_NDIFF=$CPPTRAJ_TEST_ROOT/../util/ndiff/ndiff.awk
     fi
     if [ ! -f "$CPPTRAJ_NDIFF" ] ; then
       ErrMsg "'ndiff.awk' not present: $CPPTRAJ_NDIFF"
@@ -852,7 +852,7 @@ SetBinaries() {
       if [ $STANDALONE -eq 0 ] ; then
         CPPTRAJ_NPROC=$DIRPREFIX/AmberTools/test/numprocs
       else
-        CPPTRAJ_NPROC=$DIRPREFIX/test/nproc
+        CPPTRAJ_NPROC=$CPPTRAJ_TEST_ROOT/nproc
       fi
       if [ -z "$CPPTRAJ_NPROC" ] ; then
         ErrMsg "Error: nproc $CPPTRAJ_NPROC not found."
@@ -1205,6 +1205,14 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
   #echo "DEBUG: Initial test setup."
   # MasterTest.sh has not been called yet; set up test environment.
   export CPPTRAJ_TEST_ROOT=`pwd`
+  # If invocation is "./RunTest.sh", individual test dir. If "./CpptrajTest.sh", all tests.
+  if [ "$0" = './RunTest.sh' ] ; then
+    CPPTRAJ_TEST_ROOT=`dirname $CPPTRAJ_TEST_ROOT`
+  elif [ "$0" != './CpptrajTest.sh' ] ; then
+    ErrMsg "Unknown test invocation. Expected RunTest.sh or CpptrajTest.sh, got $0"
+    exit 1
+  fi
+  #echo "DEBUG: CPPTRAJ_TEST_ROOT= $CPPTRAJ_TEST_ROOT $0"
   # If CPPTRAJ_TEST_OS is not set, try to determine.
   if [ -z "$CPPTRAJ_TEST_OS" ] ; then
     export CPPTRAJ_TEST_OS=`uname -s | awk '{print $1}'`
