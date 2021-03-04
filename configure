@@ -98,6 +98,7 @@ UsageFull() {
 
 # ----- Script variables -------------------------------------------------------
 WORKDIR=`dirname $0`      # Working directory of the configure script
+CURRENTDIR=`pwd`          # Directory configure is being executed in
 COMPILERS=''              # User-specified compiler suite to use.
 FLINK=''                  # Flag for linking in Fortran code
 REQUIRES_FLINK=0          # If 1 FLINK flag required during link phase
@@ -113,6 +114,7 @@ EXE=''                    # Binary executable suffix
 REBUILDOPT=''             # Can be set to --rebuild and passed to get_library.sh
 BUILDTESTOPT='silent'     # Set to blank to avoid asking about building libraries
 INSTALL_DAT='install_dat' # Target for installing data directory
+CPPTRAJSRC=''             # CPPTRAJ source directory
 COMPERR='cpptrajcfg.compile.err'
 COMPOUT='cpptrajcfg.compile.out'
 
@@ -2029,7 +2031,7 @@ SetupCmake() {
     ErrMsg "            $ ../configure -cmake <options>"
     exit 1
   fi
-  # Ensure cmake bnuild system exists
+  # Ensure cmake build system exists
   if [ ! -f "$WORKDIR/cmake/AmberBuildSystemInit.cmake" ] ; then
     ErrMsg "Error: cmake build system is not present."
     ErrMsg "       If this is a GIT repostitory, you may need to initialize the"
@@ -2107,6 +2109,9 @@ fi
 if [ -z "`which grep`" ] ; then
   Err "CPPTRAJ configure requires 'grep'."
 fi
+
+#echo "Path to configure: $WORKDIR"
+#echo "Current dir      : $CURRENTDIR"
 
 CONFIGURECMD="./configure $*"
 
@@ -2250,6 +2255,12 @@ fi
 if [ $USE_CMAKE -eq 1 ] ; then
   SetupCmake
 fi
+
+# Currently need to execute configure in source directory
+if [ "$WORKDIR" != '.' ] ; then
+  Err "CPPTRAJ configure must be executed from the source directory."
+fi
+CPPTRAJSRC=$CURRENTDIR
 
 # Basic checks and directives
 BasicChecks
@@ -2521,6 +2532,7 @@ if [ "$PERFORM_CHECKS" = 'yes' ] ; then
     RFILE=$CPPTRAJHOME/cpptraj.sh
     cat > $RFILE <<EOF
 export CPPTRAJHOME="$CPPTRAJHOME"
+export CPPTRAJSRC="$CPPTRAJSRC"
 export PATH=$CPPTRAJBIN:\${PATH}
 EOF
     if [ "$PLATFORM" != "Darwin" ] ; then
@@ -2531,6 +2543,7 @@ EOF
     RFILE=$CPPTRAJHOME/cpptraj.csh
     cat > $RFILE <<EOF
 setenv CPPTRAJHOME "$CPPTRAJHOME"
+setenv CPPTRAJSRC "$CPPTRAJSRC"
 setenv PATH "$CPPTRAJBIN:\${PATH}"
 EOF
     if [ "$PLATFORM" != "Darwin" ] ; then
