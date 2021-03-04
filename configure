@@ -47,6 +47,7 @@ UsageFull() {
   echo "    -l<lib>=<FILE>     : Use specified library file."
   echo "    -no<lib>           : Disable library."
   echo "    --buildlibs        : Attempt to build enabled libraries if they are not present."
+  echo "    --nobuildlibs      : Do not asking about building enabled libraries."
   echo "    Libraries: netcdf pnetcdf zlib bzlib blas lapack arpack fftw3 readline sanderlib xdrfile tng openmm"
   echo "    Note: pnetcdf is needed for writing NetCDF trajectories with MPI."
   echo "  LINKING OPTIONS"
@@ -96,20 +97,21 @@ UsageFull() {
 }
 
 # ----- Script variables -------------------------------------------------------
-WORKDIR=`dirname $0` # Working directory of the configure script
-COMPILERS=''       # User-specified compiler suite to use.
-FLINK=''           # Flag for linking in Fortran code
-REQUIRES_FLINK=0   # If 1 FLINK flag required during link phase
-REQUIRES_PTHREAD=0 # If 1 -lpthread required during link phase
-C11FLAG=''        # Flag for compiling C++11 code
-C11_SUPPORT='yes' # Support C++11 code
-SHARED_SUFFIX=''  # Suffix for shared libraries
-DBFLAG=''         # Flag for turning on compiler debug symbols
-DIRECTIVES=''     # Common compiler directives
-INCLUDE=''        # Library header include line
-SFX=''            # Binary suffix
-EXE=''            # Binary executable suffix
-REBUILDOPT=''     # Can be set to --rebuild and passed to get_library.sh
+WORKDIR=`dirname $0`  # Working directory of the configure script
+COMPILERS=''          # User-specified compiler suite to use.
+FLINK=''              # Flag for linking in Fortran code
+REQUIRES_FLINK=0      # If 1 FLINK flag required during link phase
+REQUIRES_PTHREAD=0    # If 1 -lpthread required during link phase
+C11FLAG=''            # Flag for compiling C++11 code
+C11_SUPPORT='yes'     # Support C++11 code
+SHARED_SUFFIX=''      # Suffix for shared libraries
+DBFLAG=''             # Flag for turning on compiler debug symbols
+DIRECTIVES=''         # Common compiler directives
+INCLUDE=''            # Library header include line
+SFX=''                # Binary suffix
+EXE=''                # Binary executable suffix
+REBUILDOPT=''         # Can be set to --rebuild and passed to get_library.sh
+BUILDTESTOPT='silent' # Set to blank to avoid asking about building libraries
 COMPERR='cpptrajcfg.compile.err'
 COMPOUT='cpptrajcfg.compile.out'
 
@@ -501,7 +503,7 @@ EOF
       LIB_HOME[$LBZIP]=$CPPTRAJHOME
       LIB_FLAG[$LBZIP]=$CPPTRAJHOME/lib/${LIB_STTC[$LBZIP]}
       LIB_INCL[$LBZIP]="-I$CPPTRAJHOME/include"
-      TestProgram silent "  Checking for bundled Bzip2" "$CXX" "$CXXFLAGS ${LIB_INCL[$LBZIP]}" testp.cpp "${LIB_FLAG[$LBZIP]}"
+      TestProgram $BUILDTESTOPT "  Checking for bundled Bzip2" "$CXX" "$CXXFLAGS ${LIB_INCL[$LBZIP]}" testp.cpp "${LIB_FLAG[$LBZIP]}"
       if [ $? -ne 0 ] ; then
         CheckRebuild "Bzip2" "${LIB_FLAG[$LBZIP]}"
         # See if user would like to get Bzip2 
@@ -535,7 +537,7 @@ EOF
       LIB_HOME[$LZIP]=$CPPTRAJHOME
       LIB_FLAG[$LZIP]=$CPPTRAJHOME/lib/${LIB_STTC[$LZIP]}
       LIB_INCL[$LZIP]="-I$CPPTRAJHOME/include"
-      TestProgram silent "  Checking for bundled ZLIB" "$CXX" "$CXXFLAGS ${LIB_INCL[$LZIP]}" testp.cpp "${LIB_FLAG[$LZIP]}"
+      TestProgram $BUILDTESTOPT "  Checking for bundled ZLIB" "$CXX" "$CXXFLAGS ${LIB_INCL[$LZIP]}" testp.cpp "${LIB_FLAG[$LZIP]}"
       if [ $? -ne 0 ] ; then
         CheckRebuild "ZLIB" "${LIB_FLAG[$LZIP]}"
         # See if user would like to get ZLIB
@@ -570,7 +572,7 @@ EOF
       LIB_HOME[$LNETCDF]=$CPPTRAJHOME
       LIB_FLAG[$LNETCDF]=$CPPTRAJHOME/lib/${LIB_STTC[$LNETCDF]}
       LIB_INCL[$LNETCDF]="-I$CPPTRAJHOME/include"
-      TestProgram silent "  Checking for bundled NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]}"
+      TestProgram $BUILDTESTOPT "  Checking for bundled NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]}"
       if [ $? -ne 0 ] ; then
         # Check if lib present but needs to be rebuilt
         CheckRebuild "NetCDF" "${LIB_FLAG[$LNETCDF]}"
@@ -606,7 +608,7 @@ EOF
       LIB_HOME[$LPARANC]=$CPPTRAJHOME
       LIB_FLAG[$LPARANC]=$CPPTRAJHOME/lib/${LIB_STTC[$LPARANC]}
       LIB_INCL[$LPARANC]="-I$CPPTRAJHOME/include"
-      TestProgram silent "  Checking for bundled parallel NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LPARANC]}" testp.cpp "${LIB_FLAG[$LPARANC]}"
+      TestProgram $BUILDTESTOPT "  Checking for bundled parallel NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LPARANC]}" testp.cpp "${LIB_FLAG[$LPARANC]}"
       if [ $? -ne 0 ] ; then
         CheckRebuild "Pnetcdf" "${LIB_FLAG[$LPARANC]}"
         # See if user would like to get parallel netcdf
@@ -628,6 +630,12 @@ EOF
 }
 
 DetermineFlink() {
+  if [ "$1" = 'silent' ] ; then
+    final_opt='silent'
+    shift
+  else
+    final_opt=''
+  fi
   desc="$1"
   flibs="$2"
   # Do we already need FLINK?
@@ -649,7 +657,7 @@ DetermineFlink() {
       fi
       if [ "$use_flink" = 'yes' -a "$use_pthread" = 'yes' ] ; then
         # Final try. Report errors here
-        report='silent'
+        report=$final_opt
       else
         report='quiet'
       fi
@@ -702,7 +710,7 @@ int main() {
   printf("Testing\n"); return 0;
 }
 EOF
-  DetermineFlink "  Checking LAPACK/BLAS" "${LIB_FLAG[$LLAPACK]} ${LIB_FLAG[$LBLAS]}"
+  DetermineFlink silent "  Checking LAPACK/BLAS" "${LIB_FLAG[$LLAPACK]} ${LIB_FLAG[$LBLAS]}"
   if [ $? -ne 0 ] ; then
     if [ "${LIB_STAT[$LBLAS]}" = 'enabled' ] ; then
       if [ "$BLAS_TYPE" = 'openblas' ] ; then
@@ -730,20 +738,20 @@ EOF
       LIB_HOME[$LBLAS]=$CPPTRAJHOME
       LIB_FLAG[$LBLAS]=$CPPTRAJHOME/lib/${LIB_STTC[$LBLAS]}
       LIB_INCL[$LBLAS]="-I$CPPTRAJHOME/include"
-      DetermineFlink "  Checking for bundled BLAS" "${LIB_FLAG[$LLAPACK]} ${LIB_FLAG[$LBLAS]}"
+      DetermineFlink $BUILDTESTOPT "  Checking for bundled LAPACK/BLAS" "${LIB_FLAG[$LLAPACK]} ${LIB_FLAG[$LBLAS]}"
       #TestProgram silent "  Checking for bundled OpenBLAS" "$CXX" "$CXXFLAGS ${LIB_INCL[$LBLAS]}" testp.cpp "${LIB_FLAG[$LBLAS]}"
       if [ $? -ne 0 ] ; then
         # Check if lib present but needs to be rebuilt
-        CheckRebuild "BLAS" "${LIB_FLAG[$LBLAS]}"
+        CheckRebuild "LAPACK/BLAS" "${LIB_FLAG[$LBLAS]}"
         # See if user would like to get blas
         PREFIX=$CPPTRAJHOME CC="$CC" CFLAGS="$CFLAGS" FC="$FC" LIBNAME="$MATH_LIBNAME" \
             SRCDIR=$MATH_SRCDIR SRCTAR=$MATH_SRCTAR URL=$MATH_URL ./get_library.sh $REBUILDOPT $MATH_OPTS
         if [ $? -ne 0 ] ; then
-          ErrMsg "Building BLAS failed."
+          ErrMsg "Building LAPACK/BLAS failed."
           exit 1
         fi
         # Test the built openblas
-        DetermineFlink "  Checking built BLAS" "${LIB_FLAG[$LLAPACK]} ${LIB_FLAG[$LBLAS]}"
+        DetermineFlink "  Checking built LAPACK/BLAS" "${LIB_FLAG[$LLAPACK]} ${LIB_FLAG[$LBLAS]}"
         #TestProgram "  Checking built OpenBLAS" "$CXX" "$CXXFLAGS ${LIB_INCL[$LBLAS]}" testp.cpp "${LIB_FLAG[$LBLAS]}"
       fi
     else
@@ -807,7 +815,7 @@ EOF
         LIB_HOME[$LFFTW3]=$CPPTRAJHOME
         LIB_FLAG[$LFFTW3]=$CPPTRAJHOME/lib/${LIB_STTC[$LFFTW3]}
         LIB_INCL[$LFFTW3]="-I$CPPTRAJHOME/include"
-        TestProgram silent "  Checking for bundled FFTW" "$CXX" "$CXXFLAGS ${LIB_INCL[$LFFTW3]}" testp.cpp "${LIB_FLAG[$LFFTW3]}"
+        TestProgram $BUILDTESTOPT "  Checking for bundled FFTW" "$CXX" "$CXXFLAGS ${LIB_INCL[$LFFTW3]}" testp.cpp "${LIB_FLAG[$LFFTW3]}"
         if [ $? -ne 0 ] ; then
           CheckRebuild "FFTW" "${LIB_FLAG[$LFFTW3]}"
           # See if user would like to get FFTW
@@ -943,6 +951,8 @@ EOF
 TestLibraries() {
   if [ $BUILD_LIBS -eq 1 ] ; then
     echo "Enabled libraries will be built if not present."
+  elif [ -z "$BUILDTESTOPT" ] ; then
+    echo "CPPTRAJ will not ask to build libraries if not present."
   fi
   if [ "${LIB_TEST[$LBZIP]}" = 'yes'     ] ; then TestBzlib ; fi
   if [ "${LIB_TEST[$LZIP]}" = 'yes'      ] ; then TestZlib ; fi
@@ -2188,6 +2198,7 @@ while [ ! -z "$1" ] ; do
     '--requires-flink'  ) REQUIRES_FLINK=1 ;;
     '--requires-pthread') REQUIRES_PTHREAD=1 ;;
     '--buildlibs'       ) BUILD_LIBS=1 ;;
+    '--nobuildlibs'     ) BUILD_LIBS=0 ; BUILDTESTOPT='' ;;
     # Install options
     '--compile-verbose' ) COMPILE_VERBOSE=1 ;;
     '-noclean'          ) CLEAN='no' ;;
