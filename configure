@@ -3,6 +3,7 @@
 # Daniel R. Roe
 # 2010-11-18
 # Rewritten 2018-01-25 (getting old...)
+# Support for getting and building external libraries (get_library.sh) added 2021-03-03
 # This script will determine compiler and linker flags based on
 # desired user-specified options. Generates config.h, which is
 # used by src/Makefile.
@@ -45,6 +46,8 @@ UsageFull() {
   echo "    --with-<lib>=<DIR> : Use library in specified directory."
   echo "    -l<lib>=<FILE>     : Use specified library file."
   echo "    -no<lib>           : Disable library."
+  echo "    --buildlibs        : Attempt to build enabled libraries if they are not present."
+  echo "    --nobuildlibs      : Do not asking about building enabled libraries."
   echo "    Libraries: netcdf pnetcdf zlib bzlib blas lapack arpack fftw3 readline sanderlib xdrfile tng openmm"
   echo "    Note: pnetcdf is needed for writing NetCDF trajectories with MPI."
   echo "  LINKING OPTIONS"
@@ -94,21 +97,60 @@ UsageFull() {
 }
 
 # ----- Script variables -------------------------------------------------------
-WORKDIR=`dirname $0` # Working directory of the configure script
-COMPILERS=''       # User-specified compiler suite to use.
-FLINK=''           # Flag for linking in Fortran code
-REQUIRES_FLINK=0   # If 1 FLINK flag required during link phase
-REQUIRES_PTHREAD=0 # If 1 -lpthread required during link phase
-C11FLAG=''        # Flag for compiling C++11 code
-C11_SUPPORT='yes' # Support C++11 code
-SHARED_SUFFIX=''  # Suffix for shared libraries
-DBFLAG=''         # Flag for turning on compiler debug symbols
-DIRECTIVES=''     # Common compiler directives
-INCLUDE=''        # Library header include line
-SFX=''            # Binary suffix
-EXE=''            # Binary executable suffix
+WORKDIR=`dirname $0`      # Working directory of the configure script
+COMPILERS=''              # User-specified compiler suite to use.
+FLINK=''                  # Flag for linking in Fortran code
+REQUIRES_FLINK=0          # If 1 FLINK flag required during link phase
+REQUIRES_PTHREAD=0        # If 1 -lpthread required during link phase
+C11FLAG=''                # Flag for compiling C++11 code
+C11_SUPPORT='yes'         # Support C++11 code
+SHARED_SUFFIX=''          # Suffix for shared libraries
+DBFLAG=''                 # Flag for turning on compiler debug symbols
+DIRECTIVES=''             # Common compiler directives
+INCLUDE=''                # Library header include line
+SFX=''                    # Binary suffix
+EXE=''                    # Binary executable suffix
+REBUILDOPT=''             # Can be set to --rebuild and passed to get_library.sh
+BUILDTESTOPT='silent'     # Set to blank to avoid asking about building libraries
+INSTALL_DAT='install_dat' # Target for installing data directory
 COMPERR='cpptrajcfg.compile.err'
 COMPOUT='cpptrajcfg.compile.out'
+
+# ----- Variables for downloading libraries ------
+NETCDF_SRCTAR='netcdf-4.6.1.tar.gz'
+NETCDF_SRCDIR='netcdf-4.6.1'
+NETCDF_URL="ftp://ftp.unidata.ucar.edu/pub/netcdf/$NETCDF_SRCTAR"
+NETCDF_OPTS=" --disable-netcdf-4 --disable-dap $windows_hostflag --disable-shared --disable-doxygen"
+
+BZIP2_SRCTAR='bzip2-latest.tar.gz'
+BZIP2_SRCDIR=''
+BZIP2_URL="https://www.sourceware.org/pub/bzip2/$BZIP2_SRCTAR"
+BZIP2_OPTS=''
+
+ZLIB_SRCTAR='zlib-1.2.11.tar.gz'
+ZLIB_SRCDIR='zlib-1.2.11'
+ZLIB_URL="https://zlib.net/$ZLIB_SRCTAR"
+ZLIB_OPTS=''
+
+OPENBLAS_SRCTAR='OpenBLAS-0.3.13.tar.gz'
+OPENBLAS_SRCDIR='OpenBLAS-0.3.13'
+OPENBLAS_URL="https://github.com/xianyi/OpenBLAS/releases/download/v0.3.13/$OPENBLAS_SRCTAR"
+OPENBLAS_OPTS=''
+
+LAPACK_SRCTAR='v3.9.0.tar.gz'
+LAPACK_SRCDIR='lapack-3.9.0'
+LAPACK_URL="https://github.com/Reference-LAPACK/lapack/archive/$LAPACK_SRCTAR"
+LAPACK_OPTS=''
+
+PNETCDF_SRCTAR='pnetcdf-1.12.2.tar.gz'
+PNETCDF_SRCDIR=''
+PNETCDF_URL="https://parallel-netcdf.github.io/Release/$PNETCDF_SRCTAR"
+PNETCDF_OPTS='--disable-fortran --disable-cxx'
+
+FFTW_SRCTAR='fftw-3.3.9.tar.gz'
+FFTW_SRCDIR='fftw-3.3.9'
+FFTW_URL="ftp://ftp.fftw.org/pub/fftw/$FFTW_SRCTAR"
+FFTW_OPTS='--enable-threads --with-combined-threads --with-pic --disable-fortran'
 
 # ----- Configure options ------------------------
 USE_CMAKE=0       # 1 = use cmake for build
@@ -117,7 +159,7 @@ USE_MPI=0         # 0 = no MPI, 1 = mpicc etc, 2 = mpiicc etc
 USE_OPENMP=0      # 0 = no OpenMP, 1 = OpenMP
 USE_CUDA=0        # 0 = no CUDA, 1 = CUDA
 USE_OPT=1         # 0 = no optimization, 1 = use compiler optimizations, 2 = optimize/tune.
-BLAS_TYPE='other' # other=normal BLAS, mkl, libsci (cray) etc
+BLAS_TYPE='other' # none|mkl|libsci(cray)|openblas|macAccelerate|other=normal BLAS
 MKL_TYPE='mkl'    # mkl = -mkl for Intel compilers, line = link-line advisor style
 MKL_FFTW=''       # If yes, use FFTW from MKL if not otherwise specified. If 'no' prevent this.
 USE_DEBUG=0       # 0 = no debug info, 1 = enable compiler debug info
@@ -125,6 +167,7 @@ USE_STATIC=0      # 0 = dynamic linking, 1 = static linking, 2 = static link for
 USE_SHARED=0      # 1 = Use flag for position-independent code (required for libcpptraj)
 USE_PROFILE=0     # 0 = no profiling, 1 = C++ profiling, 2 = GLIBC profiling, 3 = Intel Vtune
 USE_AMBERLIB=0    # 1 = Use AMBERHOME to fill in NetCDF/BLAS/LAPACK/ARPACK as needed
+BUILD_LIBS=0      # 1 = Means automatically say yes to building enabled libs when not present.
 
 USE_SINGLEENSEMBLE=0 # Enable support for single ensemble trajectories
 USE_CPPTRAJDEBUG=0   # Enable internal cpptraj debug flags
@@ -139,6 +182,8 @@ LFS='-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64'
 CPPTRAJHOME=''
 CPPTRAJBIN=''
 CPPTRAJLIB=''
+CPPTRAJINC=''
+CPPTRAJDAT=''
 
 # ----- External Libraries -----------------------
 # Library indices
@@ -368,16 +413,25 @@ CheckLibraryKeys() {
 # Test compile and run a program.
 # ARGS: [noexe|silent|quiet] <description> <compiler> <args> <file> [<link>]
 TestProgram() {
+  if [ $BUILD_LIBS -eq 0 ] ; then
+    REBUILDOPT=''
+  else
+    REBUILDOPT='--rebuild'
+  fi
   if [ "$1" = 'noexe' ] ; then
+    # Output messages, do not execute compiled binary
     silent=3
     shift
   elif [ "$1" = 'quiet' ] ; then
+    # Output nothing.
     silent=2
     shift
   elif [ "$1" = 'silent' ] ; then
+    # Output messages but return 1 instead of exit 1
     silent=1
     shift
   else
+    # Output message; exit on error
     silent=0
   fi
   desc="$1"
@@ -397,6 +451,8 @@ TestProgram() {
       cat $COMPERR >&2
       exit 1
     else
+      COMPILE_ERROR_LINE=$COMPILELINE
+      COMPILE_ERROR_MESSAGE=`cat $COMPERR`
       rm $COMPERR $COMPOUT
       return 1
     fi
@@ -414,6 +470,26 @@ TestProgram() {
   return 0
 }
 
+# Error message for TestProgram silent
+TestProgErr() {
+  desc=$1
+  echo "Failed."
+  ErrMsg "$1 build/link failed: $COMPILE_ERROR_LINE"
+  ErrMsg "Error message follows:"
+  ErrMsg "$COMPILE_ERROR_MESSAGE"
+  exit 1
+}
+
+# This is invoked if linking a bundled library fails.
+CheckRebuild() {
+  desc=$1
+  libfile=$2
+  if [ -z "$REBUILDOPT" -a -f "$libfile" ] ; then
+    echo "Bundled $desc present but needs to be rebuilt."
+    REBUILDOPT='--rebuild'
+  fi
+}
+
 # ===== LIBRARY TESTS ==========================================================
 TestBzlib() {
   cat > testp.cpp <<EOF
@@ -421,7 +497,32 @@ TestBzlib() {
 #include "bzlib.h"
 int main() { BZFILE *bfile; bfile=NULL; printf("Testing\n"); return 0; }
 EOF
-  TestProgram "  Checking BZLIB" "$CXX" "$CXXFLAGS ${LIB_INCL[$LBZIP]}" testp.cpp "${LIB_FLAG[$LBZIP]}"
+  TestProgram silent "  Checking BZLIB" "$CXX" "$CXXFLAGS ${LIB_INCL[$LBZIP]}" testp.cpp "${LIB_FLAG[$LBZIP]}"
+  if [ $? -ne 0 ] ; then
+    if [ "${LIB_STAT[$LBZIP]}" = 'enabled' ] ; then
+      # See if there is already a version of BZIP2 in CPPTRAJHOME
+      LIB_STAT[$LBZIP]='specified'
+      LIB_HOME[$LBZIP]=$CPPTRAJHOME
+      LIB_FLAG[$LBZIP]=$CPPTRAJHOME/lib/${LIB_STTC[$LBZIP]}
+      LIB_INCL[$LBZIP]="-I$CPPTRAJHOME/include"
+      TestProgram $BUILDTESTOPT "  Checking for bundled Bzip2" "$CXX" "$CXXFLAGS ${LIB_INCL[$LBZIP]}" testp.cpp "${LIB_FLAG[$LBZIP]}"
+      if [ $? -ne 0 ] ; then
+        CheckRebuild "Bzip2" "${LIB_FLAG[$LBZIP]}"
+        # See if user would like to get Bzip2 
+        PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS LIBNAME='bzip2' \
+            SRCDIR=$BZIP2_SRCDIR SRCTAR=$BZIP2_SRCTAR URL=$BZIP2_URL ./get_library.sh $REBUILDOPT $BZIP2_OPTS
+        if [ $? -ne 0 ] ; then
+          ErrMsg "Building Bzip2 failed."
+          exit 1
+        fi
+        # Test the built Bzip2 
+        TestProgram "  Checking built Bzip2" "$CXX" "$CXXFLAGS ${LIB_INCL[$LBZIP]}" testp.cpp "${LIB_FLAG[$LBZIP]}"
+      fi
+    else
+      # Bzip2 specified but failed.
+      TestProgErr "Bzip2"
+    fi
+  fi
 }
 
 TestZlib() {
@@ -430,7 +531,32 @@ TestZlib() {
 #include "zlib.h"
 int main() { gzFile gfile; gfile=NULL; printf("Testing\n"); return 0; }
 EOF
-  TestProgram "  Checking ZLIB" "$CXX" "$CXXFLAGS ${LIB_INCL[$LZIP]}" testp.cpp "${LIB_FLAG[$LZIP]}"
+  TestProgram silent "  Checking ZLIB" "$CXX" "$CXXFLAGS ${LIB_INCL[$LZIP]}" testp.cpp "${LIB_FLAG[$LZIP]}"
+  if [ $? -ne 0 ] ; then
+    if [ "${LIB_STAT[$LZIP]}" = 'enabled' ] ; then
+      # See if there is already a version of ZLIB in CPPTRAJHOME
+      LIB_STAT[$LZIP]='specified'
+      LIB_HOME[$LZIP]=$CPPTRAJHOME
+      LIB_FLAG[$LZIP]=$CPPTRAJHOME/lib/${LIB_STTC[$LZIP]}
+      LIB_INCL[$LZIP]="-I$CPPTRAJHOME/include"
+      TestProgram $BUILDTESTOPT "  Checking for bundled ZLIB" "$CXX" "$CXXFLAGS ${LIB_INCL[$LZIP]}" testp.cpp "${LIB_FLAG[$LZIP]}"
+      if [ $? -ne 0 ] ; then
+        CheckRebuild "ZLIB" "${LIB_FLAG[$LZIP]}"
+        # See if user would like to get ZLIB
+        PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS LIBNAME='zlib' \
+            SRCDIR=$ZLIB_SRCDIR SRCTAR=$ZLIB_SRCTAR URL=$ZLIB_URL ./get_library.sh $REBUILDOPT $ZLIB_OPTS
+        if [ $? -ne 0 ] ; then
+          ErrMsg "Building ZLIB failed."
+          exit 1
+        fi
+        # Test the built ZLIB
+        TestProgram "  Checking built ZLIB" "$CXX" "$CXXFLAGS ${LIB_INCL[$LZIP]}" testp.cpp "${LIB_FLAG[$LZIP]}"
+      fi
+    else
+      # ZLIB specified but failed.
+      TestProgErr "ZLIB"
+    fi
+  fi
 }
 
 TestNetcdf() {
@@ -440,7 +566,33 @@ TestNetcdf() {
 void unused() {int ncid; nc_open("foo.nc", 0, &ncid);}
 int main() { printf("Testing\n"); printf("%s\n",nc_strerror(0)); return 0; }
 EOF
-  TestProgram "  Checking NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]}"
+  TestProgram silent "  Checking NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]}"
+  if [ $? -ne 0 ] ; then
+    if [ "${LIB_STAT[$LNETCDF]}" = 'enabled' ] ; then
+      # See if there is already a version of NetCDF in CPPTRAJHOME
+      LIB_STAT[$LNETCDF]='specified'
+      LIB_HOME[$LNETCDF]=$CPPTRAJHOME
+      LIB_FLAG[$LNETCDF]=$CPPTRAJHOME/lib/${LIB_STTC[$LNETCDF]}
+      LIB_INCL[$LNETCDF]="-I$CPPTRAJHOME/include"
+      TestProgram $BUILDTESTOPT "  Checking for bundled NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]}"
+      if [ $? -ne 0 ] ; then
+        # Check if lib present but needs to be rebuilt
+        CheckRebuild "NetCDF" "${LIB_FLAG[$LNETCDF]}"
+        # See if user would like to get netcdf
+        PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS LIBNAME='netcdf' \
+            SRCDIR=$NETCDF_SRCDIR SRCTAR=$NETCDF_SRCTAR URL=$NETCDF_URL ./get_library.sh $REBUILDOPT $NETCDF_OPTS
+        if [ $? -ne 0 ] ; then
+          ErrMsg "Building NetCDF failed."
+          exit 1
+        fi
+        # Test the built netcdf
+        TestProgram "  Checking built NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]}"
+      fi
+    else
+      # NetCDF specified but failed.
+      TestProgErr "NetCDF"
+    fi
+  fi
 }
 
 TestPnetcdf() {
@@ -450,10 +602,42 @@ TestPnetcdf() {
 void unused() {int ncid; ncmpi_open(MPI_COMM_WORLD, "foo.nc", NC_NOWRITE, MPI_INFO_NULL, &ncid);}
 int main() { printf("Testing\n"); printf("%s\n",ncmpi_strerror(0)); return 0; }
 EOF
-  TestProgram "  Checking Parallel NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LPARANC]}" testp.cpp "${LIB_FLAG[$LPARANC]}"
+  TestProgram silent "  Checking Parallel NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LPARANC]}" testp.cpp "${LIB_FLAG[$LPARANC]}"
+  if [ $? -ne 0 ] ; then
+    if [ "${LIB_STAT[$LPARANC]}" = 'enabled' ] ; then
+      # See if there is already a version of parallel netcdf in CPPTRAJHOME
+      LIB_STAT[$LPARANC]='specified'
+      LIB_HOME[$LPARANC]=$CPPTRAJHOME
+      LIB_FLAG[$LPARANC]=$CPPTRAJHOME/lib/${LIB_STTC[$LPARANC]}
+      LIB_INCL[$LPARANC]="-I$CPPTRAJHOME/include"
+      TestProgram $BUILDTESTOPT "  Checking for bundled parallel NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LPARANC]}" testp.cpp "${LIB_FLAG[$LPARANC]}"
+      if [ $? -ne 0 ] ; then
+        CheckRebuild "Pnetcdf" "${LIB_FLAG[$LPARANC]}"
+        # See if user would like to get parallel netcdf
+        PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS LIBNAME='pnetcdf' \
+            SRCDIR=$PNETCDF_SRCDIR SRCTAR=$PNETCDF_SRCTAR URL=$PNETCDF_URL ./get_library.sh $REBUILDOPT $PNETCDF_OPTS
+        if [ $? -ne 0 ] ; then
+          echo "Disabling parallel NetCDF support."
+          LIB_STAT[$LPARANC]='off'
+        else
+          # Test the built parallel netcdf
+          TestProgram "  Checking built parallel NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LPARANC]}" testp.cpp "${LIB_FLAG[$LPARANC]}"
+        fi
+      fi
+    else
+      # Parallel NetCDF specified but failed.
+      TestProgErr "Pnetcdf"
+    fi
+  fi
 }
 
 DetermineFlink() {
+  if [ "$1" = 'silent' ] ; then
+    final_opt='silent'
+    shift
+  else
+    final_opt=''
+  fi
   desc="$1"
   flibs="$2"
   # Do we already need FLINK?
@@ -475,7 +659,7 @@ DetermineFlink() {
       fi
       if [ "$use_flink" = 'yes' -a "$use_pthread" = 'yes' ] ; then
         # Final try. Report errors here
-        report=''
+        report=$final_opt
       else
         report='quiet'
       fi
@@ -494,11 +678,15 @@ DetermineFlink() {
           echo "$desc: OK"
         fi
         return 0
+      elif [ "$report" = 'silent' ] ; then
+        # Final iteration failed
+        return 1
       fi
     done
   done
   if [ $flink_success -eq 0 ] ; then
     # Sanity check. Should not make it here.
+    echo "Error: Unexpected error in DetermineFlink()."
     exit 1
   fi
   return 0
@@ -524,7 +712,55 @@ int main() {
   printf("Testing\n"); return 0;
 }
 EOF
-  DetermineFlink "  Checking LAPACK/BLAS" "${LIB_FLAG[$LLAPACK]} ${LIB_FLAG[$LBLAS]}"
+  DetermineFlink silent "  Checking LAPACK/BLAS" "${LIB_FLAG[$LLAPACK]} ${LIB_FLAG[$LBLAS]}"
+  if [ $? -ne 0 ] ; then
+    if [ "${LIB_STAT[$LBLAS]}" = 'enabled' ] ; then
+      if [ "$BLAS_TYPE" = 'openblas' ] ; then
+        MATH_SRCDIR=$OPENBLAS_SRCDIR
+        MATH_SRCTAR=$OPENBLAS_SRCTAR
+        MATH_URL=$OPENBLAS_URL
+        MATH_OPTS=$OPENBLAS_OPTS
+        MATH_LIBNAME='openblas'
+      elif [ "$BLAS_TYPE" = 'other' ] ; then
+        MATH_SRCDIR=$LAPACK_SRCDIR
+        MATH_SRCTAR=$LAPACK_SRCTAR
+        MATH_URL=$LAPACK_URL
+        MATH_OPTS=$LAPACK_OPTS
+        MATH_LIBNAME='lapack'
+        LIB_STAT[$LLAPACK]='specified'
+        LIB_HOME[$LLAPACK]=$CPPTRAJHOME
+        LIB_FLAG[$LLAPACK]=$CPPTRAJHOME/lib/${LIB_STTC[$LLAPACK]}
+        LIB_INCL[$LLAPACK]="-I$CPPTRAJHOME/include"
+      else
+        # Bundle not supported for this BLAS type
+        TestProgErr "LAPACK/BLAS"
+      fi
+      # See if there is already a version of BLAS in CPPTRAJHOME
+      LIB_STAT[$LBLAS]='specified'
+      LIB_HOME[$LBLAS]=$CPPTRAJHOME
+      LIB_FLAG[$LBLAS]=$CPPTRAJHOME/lib/${LIB_STTC[$LBLAS]}
+      LIB_INCL[$LBLAS]="-I$CPPTRAJHOME/include"
+      DetermineFlink $BUILDTESTOPT "  Checking for bundled LAPACK/BLAS" "${LIB_FLAG[$LLAPACK]} ${LIB_FLAG[$LBLAS]}"
+      #TestProgram silent "  Checking for bundled OpenBLAS" "$CXX" "$CXXFLAGS ${LIB_INCL[$LBLAS]}" testp.cpp "${LIB_FLAG[$LBLAS]}"
+      if [ $? -ne 0 ] ; then
+        # Check if lib present but needs to be rebuilt
+        CheckRebuild "LAPACK/BLAS" "${LIB_FLAG[$LBLAS]}"
+        # See if user would like to get blas
+        PREFIX=$CPPTRAJHOME CC="$CC" CFLAGS="$CFLAGS" FC="$FC" LIBNAME="$MATH_LIBNAME" \
+            SRCDIR=$MATH_SRCDIR SRCTAR=$MATH_SRCTAR URL=$MATH_URL ./get_library.sh $REBUILDOPT $MATH_OPTS
+        if [ $? -ne 0 ] ; then
+          ErrMsg "Building LAPACK/BLAS failed."
+          exit 1
+        fi
+        # Test the built openblas
+        DetermineFlink "  Checking built LAPACK/BLAS" "${LIB_FLAG[$LLAPACK]} ${LIB_FLAG[$LBLAS]}"
+        #TestProgram "  Checking built OpenBLAS" "$CXX" "$CXXFLAGS ${LIB_INCL[$LBLAS]}" testp.cpp "${LIB_FLAG[$LBLAS]}"
+      fi
+    else
+      # BLAS specified but failed.
+      TestProgErr "LAPACK/BLAS"
+    fi
+  fi
 }
 
 TestArpack() {
@@ -546,6 +782,9 @@ int main() {
 }
 EOF
   DetermineFlink "  Checking ARPACK" "${LIB_FLAG[$LARPACK]} ${LIB_FLAG[$LLAPACK]} ${LIB_FLAG[$LBLAS]}"
+  if [ $? -ne 0 ] ; then
+    TestProgErr "ARPACK"
+  fi
 }
 
 TestFFTW3() {
@@ -560,6 +799,7 @@ int main() {
 }
 EOF
    if [ "${LIB_STAT[$LFFTW3]}" = 'amberopt' ] ; then
+    # Using FFTW from AMBER
     TestProgram silent "  Checking for FFTW3 from AMBERHOME" "$CXX" "$CXXFLAGS ${LIB_INCL[$LFFTW3]}" testp.cpp "${LIB_FLAG[$LFFTW3]}"
     if [ $? -eq 1 ] ; then
       WrnMsg "FFTW3 test failed. CPPTRAJ will be built without FFTW3."
@@ -569,7 +809,32 @@ EOF
     # Using FFTW from MKL
     TestProgram "  Checking FFTW3" "$CXX" "$CXXFLAGS ${LIB_INCL[$LBLAS]}" testp.cpp "${LIB_FLAG[$LBLAS]}"
   else
-    TestProgram "  Checking FFTW3" "$CXX" "$CXXFLAGS ${LIB_INCL[$LFFTW3]}" testp.cpp "${LIB_FLAG[$LFFTW3]}"
+    TestProgram silent "  Checking FFTW3" "$CXX" "$CXXFLAGS ${LIB_INCL[$LFFTW3]}" testp.cpp "${LIB_FLAG[$LFFTW3]}"
+    if [ $? -ne 0 ] ; then
+      if [ "${LIB_STAT[$LFFTW3]}" = 'enabled' ] ; then
+        # See if there is already a version of FFTW in CPPTRAJHOME
+        LIB_STAT[$LFFTW3]='specified'
+        LIB_HOME[$LFFTW3]=$CPPTRAJHOME
+        LIB_FLAG[$LFFTW3]=$CPPTRAJHOME/lib/${LIB_STTC[$LFFTW3]}
+        LIB_INCL[$LFFTW3]="-I$CPPTRAJHOME/include"
+        TestProgram $BUILDTESTOPT "  Checking for bundled FFTW" "$CXX" "$CXXFLAGS ${LIB_INCL[$LFFTW3]}" testp.cpp "${LIB_FLAG[$LFFTW3]}"
+        if [ $? -ne 0 ] ; then
+          CheckRebuild "FFTW" "${LIB_FLAG[$LFFTW3]}"
+          # See if user would like to get FFTW
+          PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS LIBNAME='fftw' \
+              SRCDIR=$FFTW_SRCDIR SRCTAR=$FFTW_SRCTAR URL=$FFTW_URL ./get_library.sh $REBUILDOPT $FFTW_OPTS
+          if [ $? -ne 0 ] ; then
+            ErrMsg "Building FFTW failed."
+            exit 1
+          fi
+          # Test the built FFTW
+          TestProgram "  Checking built FFTW" "$CXX" "$CXXFLAGS ${LIB_INCL[$LFFTW3]}" testp.cpp "${LIB_FLAG[$LFFTW3]}"
+        fi
+      else
+        # FFTW specified but failed.
+        TestProgErr "FFTW"
+      fi
+    fi
   fi
 }
 
@@ -686,6 +951,11 @@ EOF
 #-------------------------------------------------------------------------------
 # Test external libraries
 TestLibraries() {
+  if [ $BUILD_LIBS -eq 1 ] ; then
+    echo "Enabled libraries will be built if not present."
+  elif [ -z "$BUILDTESTOPT" ] ; then
+    echo "CPPTRAJ will not ask to build libraries if not present."
+  fi
   if [ "${LIB_TEST[$LBZIP]}" = 'yes'     ] ; then TestBzlib ; fi
   if [ "${LIB_TEST[$LZIP]}" = 'yes'      ] ; then TestZlib ; fi
   if [ "${LIB_TEST[$LNETCDF]}" = 'yes'   ] ; then TestNetcdf ; fi
@@ -840,6 +1110,7 @@ SetupLibraries() {
     if [ "${LIB_STAT[$LBLAS]}" != 'direct' ] ; then
       LIB_FLAG[$LBLAS]='-lopenblas'
     fi
+    LIB_STTC[$LBLAS]='libopenblas.a'
     if [ -z "${LIB_HOME[$LBLAS]}" -a "${LIB_STAT[$LBLAS]}" != 'direct' ] ; then
       WrnMsg "'-openblas' may require specifying location with '--with-blas=<DIR>' or '-lblas='"
     fi
@@ -1104,6 +1375,16 @@ SetupCompilers() {
       FLINK='-lifport -lifcore'
       picflag="-fpic"
       C11FLAG='-std=c++11'
+      # Check for 'error: identifier "_LIB_VERSION_TYPE" is undefined'
+      cat > testp.cpp <<EOF
+#include <math.h>
+int main() { double x; x = sqrt(2); return 0; }
+EOF
+      TestProgram quiet "  Testing Intel compatibility with C headers" "$CXX" "$CXXFLAGS" testp.cpp
+      if [ $? -ne 0 ] ; then
+        CFLAGS="-D__PURE_INTEL_C99_HEADERS__ $CFLAGS"
+        CXXFLAGS="-D__PURE_INTEL_C99_HEADERS__ $CXXFLAGS"
+      fi
       ;;
     "pgi" )
       if [ -z "$CC" ]; then CC=pgcc; fi
@@ -1467,6 +1748,10 @@ BasicChecks() {
     CPPTRAJHOME=`pwd`
     CPPTRAJBIN=$CPPTRAJHOME/bin
     CPPTRAJLIB=$CPPTRAJHOME/lib
+    CPPTRAJINC=$CPPTRAJHOME/include
+    CPPTRAJDAT=$CPPTRAJHOME/dat
+    # No need to install data directory
+    INSTALL_DAT=''
   elif [ ! -d "$CPPTRAJHOME" ] ; then
     Err "Install directory '$CPPTRAJHOME' does not exist."
   fi
@@ -1484,6 +1769,8 @@ BasicChecks() {
   if [ "${LIB_STAT[$LPARANC]}" != 'off' -a $USE_MPI -eq 0 ] ; then
     WrnMsg "Parallel NetCDF enabled but MPI not specified. Assuming '-mpi'."
     USE_MPI=1
+  elif [ $USE_MPI -ne 0 -a "${LIB_STAT[$LPARANC]}" = 'off' ] ; then
+    LIB_STAT[$LPARANC]='enabled'
   fi
   # If we are using the bundled ARPACK then we will need C++/Fortran linking.
   if [ "${LIB_STAT[$LARPACK]}" = 'bundled' ] ; then
@@ -1915,6 +2202,8 @@ while [ ! -z "$1" ] ; do
     '-nomathlib'        ) BLAS_TYPE='none' ;;
     '--requires-flink'  ) REQUIRES_FLINK=1 ;;
     '--requires-pthread') REQUIRES_PTHREAD=1 ;;
+    '--buildlibs'       ) BUILD_LIBS=1 ;;
+    '--nobuildlibs'     ) BUILD_LIBS=0 ; BUILDTESTOPT='' ;;
     # Install options
     '--compile-verbose' ) COMPILE_VERBOSE=1 ;;
     '-noclean'          ) CLEAN='no' ;;
@@ -1923,6 +2212,8 @@ while [ ! -z "$1" ] ; do
       CPPTRAJHOME=$VALUE
       CPPTRAJBIN=$VALUE/bin
       CPPTRAJLIB=$VALUE/lib
+      CPPTRAJINC=$VALUE/include
+      CPPTRAJDAT=$VALUE/dat
       ;;
     # Hidden debug options
     '--debug-parallel'  ) DIRECTIVES="$DIRECTIVES -DPARALLEL_DEBUG_VERBOSE" ;;
@@ -2094,7 +2385,7 @@ fi
 CPPTRAJ_TARGET=""
 LIBCPPTRAJ_TARGET=""
 NPROC_TARGET=""
-INSTALL_TARGETS=""
+INSTALL_TARGETS="$INSTALL_DAT"
 # Always build cpptraj
 CPPTRAJ_TARGET=cpptraj$SFX$EXE
 INSTALL_TARGETS=$INSTALL_TARGETS" install_cpptraj"
@@ -2157,6 +2448,8 @@ cat >> config.h <<EOF
 CPPTRAJHOME="$CPPTRAJHOME"
 CPPTRAJBIN="$CPPTRAJBIN"
 CPPTRAJLIB="$CPPTRAJLIB"
+CPPTRAJINC="$CPPTRAJINC"
+CPPTRAJDAT="$CPPTRAJDAT"
 
 INSTALL_TARGETS=$INSTALL_TARGETS
 
@@ -2205,6 +2498,7 @@ EOF
 BuildRules $external_config nvcc cc f77
 if [ "${LIB_STAT[$LZIP]}" != 'off' ] ; then
   echo "ZLIB_FLAG=${LIB_FLAG[$LZIP]}" >> $external_config
+  echo "ZLIB_INCL=${LIB_INCL[$LZIP]}" >> $external_config
 fi
 
 # ----- Create directories if necessary ----------
@@ -2213,6 +2507,9 @@ if [ ! -e "$CPPTRAJBIN" ] ; then
 fi
 if [ ! -e "$CPPTRAJLIB" ] ; then
   mkdir "$CPPTRAJLIB"
+fi
+if [ ! -e "$CPPTRAJDAT" ] ; then
+  mkdir "$CPPTRAJDAT"
 fi
 
 # ----- Create a resource file. ------------------

@@ -75,6 +75,14 @@ static bool badversion(const std::string& version) {
     return version != SERIALIZED_VERSION;
 }
 
+#ifndef M_PI
+#define M_PI (3.1415926535897932385)
+#endif
+
+#ifndef M_PI_2
+#define M_PI_2 (1.5707963267948966192)
+#endif
+
 #ifndef _WIN32
 static const char s_sep = '/';
 #include <sys/mman.h>
@@ -95,8 +103,6 @@ static const char s_sep = '/';
 #else
 /// windows version
 
-#define M_PI (3.1415926535897932385)
-#define M_PI_2 (1.5707963267948966192)
 
 #ifndef S_ISREG
 #define S_ISREG(x) (((x) & S_IFMT) == S_IFREG)

@@ -92,11 +92,16 @@ CPPTRAJ also makes use of the following libraries that are bundled with CPPTRAJ.
 CPPTRAJ also uses the PCG32 and Xoshiro 128++ pseudo-random number generators.
 
 `./configure gnu` should be adequate to set up compilation for most systems.
-For systems without BLAS/LAPACK/ARPACK and/or NetCDF libraries installed,
+For systems without BLAS/LAPACK, FFTW, and/or NetCDF libraries installed,
 the `-amberlib` flag can be specified to use the ones already compiled in
 an AmberTools installation (`$AMBERHOME` must be set), e.g.
-`./configure -amberlib gnu`. C++11 support is required to enable particle mesh
-Ewald (PME) calculation support.
+`./configure -amberlib gnu`. If enabled libraries are not present, CPPTRAJ's
+configure can attempt to download and install them into $CPPTRAJHOME. By default
+CPPTRAJ will ask if these should be installed; the '--buildlibs' option can
+be used to try to automatically install any missing enabled library. To prevent
+CPPTRAJ from asking about building external libraries, use the '--nobuildlibs'
+option.
+C++11 support is required to enable particle mesh Ewald (PME) calculation support.
 
 For multicore systems, the `-openmp` flag can
 be specified to enable OpenMP parallelization, e.g. `./configure -openmp gnu`.
