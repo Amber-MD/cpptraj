@@ -837,6 +837,8 @@ SetBinaries() {
   if [ -z "$CPPTRAJ_NDIFF" ] ; then
     if [ $STANDALONE -eq 0 ] ; then
       CPPTRAJ_NDIFF=$DIRPREFIX/test/ndiff.awk
+    elif [ ! -z "$CPPTRAJSRC" ] ; then
+      CPPTRAJ_NDIFF=$CPPTRAJSRC/util/ndiff/ndiff.awk
     else
       CPPTRAJ_NDIFF=$CPPTRAJ_TEST_ROOT/../util/ndiff/ndiff.awk
     fi
@@ -851,6 +853,8 @@ SetBinaries() {
     if [ ! -z "$DO_PARALLEL" ] ; then
       if [ $STANDALONE -eq 0 ] ; then
         CPPTRAJ_NPROC=$DIRPREFIX/AmberTools/test/numprocs
+      elif [ ! -z "$CPPTRAJSRC" ] ; then
+        CPPTRAJ_NPROC=$CPPTRAJSRC/test/nproc
       else
         CPPTRAJ_NPROC=$CPPTRAJ_TEST_ROOT/nproc
       fi
