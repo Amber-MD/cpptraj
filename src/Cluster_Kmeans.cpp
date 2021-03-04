@@ -89,8 +89,17 @@ int Cluster_Kmeans::Cluster() {
   // shapes, its possible that we will want to reassign it to cluster B.
   for (int iteration = 0; iteration != maxIt_; iteration++)
   {
-    if (mode_ == RANDOM)
-      ShufflePoints( PointIndices );
+    if (mode_ == RANDOM) {
+      RN_.ShufflePoints( PointIndices );
+      if (debug_ > 0) { 
+        mprintf("DEBUG: Shuffled points:");
+        for (Iarray::const_iterator it = PointIndices.begin();
+                                    it != PointIndices.end(); ++it)
+          mprintf(" %i", *it);
+        mprintf("\n");
+      }
+    }
+
     // Add each point to an existing cluster, and recompute centroid
     mprintf("\tRound %i: ", iteration);
     ProgressBar progress( PointIndices.size() );
@@ -263,24 +272,4 @@ int Cluster_Kmeans::FindKmeansSeeds(Iarray const& FramesToCluster) {
     for (unsigned int si = 0; si != SeedIndices_.size(); si++)
       mprintf("DEBUG:\t\tSeedIndices[%u]= %i\n", si, SeedIndices_[si]);
   return 0;
-}
-
-/** Use modern version of the Fisher-Yates shuffle to randomly reorder the
-  * given points.
-  */
-void Cluster_Kmeans::ShufflePoints( Iarray& PointIndices ) {
-  for (unsigned int i = PointIndices.size() - 1; i != 1; i--)
-  { // 0 <= j <= i
-    unsigned int j = (unsigned int)(RN_.rn_gen() * (double)i);
-    int temp = PointIndices[j];
-    PointIndices[j] = PointIndices[i];
-    PointIndices[i] = temp;
-  }
-  if (debug_ > 0) { 
-    mprintf("DEBUG: Shuffled points:");
-    for (Iarray::const_iterator it = PointIndices.begin();
-                                it != PointIndices.end(); ++it)
-      mprintf(" %i", *it);
-    mprintf("\n");
-  }
 }

@@ -46,7 +46,7 @@ int ClusterSieve::SetSieve(int sieveIn, size_t maxFrames, int iseed) {
   else if (type_ == RANDOM)
   { // Random sieving; maxframes / sieve random indices
     frameToIdx_.assign( maxFrames, -1 );
-    double dmax = (double)maxFrames;
+    unsigned int maxidx = maxFrames - 1;
     Random_Number random;
     random.rn_set( iseed );
     for (unsigned int i = 0; i < maxFrames; i -= sieve_)
@@ -54,8 +54,7 @@ int ClusterSieve::SetSieve(int sieveIn, size_t maxFrames, int iseed) {
       bool frame_generated = false;
       // Pick until we pick a frame that has not yet been selected.
       while (!frame_generated) {
-        double dframe = dmax * random.rn_gen();
-        int iframe = (int)dframe;
+        unsigned int iframe = random.rn_num_interval(0, maxidx);
         if (frameToIdx_[iframe] == -1) {
           frameToIdx_[iframe] = 1;
           frame_generated = true;
