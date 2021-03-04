@@ -98,7 +98,9 @@ an AmberTools installation (`$AMBERHOME` must be set), e.g.
 `./configure -amberlib gnu`. If enabled libraries are not present, CPPTRAJ's
 configure can attempt to download and install them into $CPPTRAJHOME. By default
 CPPTRAJ will ask if these should be installed; the '--buildlibs' option can
-be used to try to automatically install any missing enabled library.
+be used to try to automatically install any missing enabled library. To prevent
+CPPTRAJ from asking about building external libraries, use the '--nobuildlibs'
+option.
 C++11 support is required to enable particle mesh Ewald (PME) calculation support.
 
 For multicore systems, the `-openmp` flag can
