@@ -11,7 +11,7 @@ OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o)
 all: cpptraj$(SFX)$(EXE)
 
 # Install all targets
-install: $(INSTALL_TARGETS) 
+install: $(INSTALL_TARGETS)
 
 # Cpptraj ------------------------------
 install_cpptraj: cpptraj$(SFX)$(EXE)
@@ -29,6 +29,13 @@ libcpptraj: $(LIBCPPTRAJ_TARGET)
 
 $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX): $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET) $(XDRFILE_TARGET) $(ARPACK_TARGET) $(TNGFILE_TARGET)
 	$(CXX) -shared -o $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX) $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET) $(CPPTRAJ_LIB) $(LDFLAGS)
+
+# Data directory -----------------------
+install_dat:
+	cp ../dat/ATOMTYPE_CHECK.TAB $(CPPTRAJDAT)/
+	cp ../dat/BONDTYPE_CHECK.TAB $(CPPTRAJDAT)/
+	cp ../dat/Karplus.txt        $(CPPTRAJDAT)/
+	cp ../dat/README             $(CPPTRAJDAT)/
 
 # Static libraries ---------------------
 #$(CPPTRAJLIB)/libcpptraj.a: $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET)

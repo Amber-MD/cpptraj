@@ -97,21 +97,22 @@ UsageFull() {
 }
 
 # ----- Script variables -------------------------------------------------------
-WORKDIR=`dirname $0`  # Working directory of the configure script
-COMPILERS=''          # User-specified compiler suite to use.
-FLINK=''              # Flag for linking in Fortran code
-REQUIRES_FLINK=0      # If 1 FLINK flag required during link phase
-REQUIRES_PTHREAD=0    # If 1 -lpthread required during link phase
-C11FLAG=''            # Flag for compiling C++11 code
-C11_SUPPORT='yes'     # Support C++11 code
-SHARED_SUFFIX=''      # Suffix for shared libraries
-DBFLAG=''             # Flag for turning on compiler debug symbols
-DIRECTIVES=''         # Common compiler directives
-INCLUDE=''            # Library header include line
-SFX=''                # Binary suffix
-EXE=''                # Binary executable suffix
-REBUILDOPT=''         # Can be set to --rebuild and passed to get_library.sh
-BUILDTESTOPT='silent' # Set to blank to avoid asking about building libraries
+WORKDIR=`dirname $0`      # Working directory of the configure script
+COMPILERS=''              # User-specified compiler suite to use.
+FLINK=''                  # Flag for linking in Fortran code
+REQUIRES_FLINK=0          # If 1 FLINK flag required during link phase
+REQUIRES_PTHREAD=0        # If 1 -lpthread required during link phase
+C11FLAG=''                # Flag for compiling C++11 code
+C11_SUPPORT='yes'         # Support C++11 code
+SHARED_SUFFIX=''          # Suffix for shared libraries
+DBFLAG=''                 # Flag for turning on compiler debug symbols
+DIRECTIVES=''             # Common compiler directives
+INCLUDE=''                # Library header include line
+SFX=''                    # Binary suffix
+EXE=''                    # Binary executable suffix
+REBUILDOPT=''             # Can be set to --rebuild and passed to get_library.sh
+BUILDTESTOPT='silent'     # Set to blank to avoid asking about building libraries
+INSTALL_DAT='install_dat' # Target for installing data directory
 COMPERR='cpptrajcfg.compile.err'
 COMPOUT='cpptrajcfg.compile.out'
 
@@ -182,6 +183,7 @@ CPPTRAJHOME=''
 CPPTRAJBIN=''
 CPPTRAJLIB=''
 CPPTRAJINC=''
+CPPTRAJDAT=''
 
 # ----- External Libraries -----------------------
 # Library indices
@@ -1747,6 +1749,9 @@ BasicChecks() {
     CPPTRAJBIN=$CPPTRAJHOME/bin
     CPPTRAJLIB=$CPPTRAJHOME/lib
     CPPTRAJINC=$CPPTRAJHOME/include
+    CPPTRAJDAT=$CPPTRAJHOME/dat
+    # No need to install data directory
+    INSTALL_DAT=''
   elif [ ! -d "$CPPTRAJHOME" ] ; then
     Err "Install directory '$CPPTRAJHOME' does not exist."
   fi
@@ -2208,6 +2213,7 @@ while [ ! -z "$1" ] ; do
       CPPTRAJBIN=$VALUE/bin
       CPPTRAJLIB=$VALUE/lib
       CPPTRAJINC=$VALUE/include
+      CPPTRAJDAT=$VALUE/dat
       ;;
     # Hidden debug options
     '--debug-parallel'  ) DIRECTIVES="$DIRECTIVES -DPARALLEL_DEBUG_VERBOSE" ;;
@@ -2379,7 +2385,7 @@ fi
 CPPTRAJ_TARGET=""
 LIBCPPTRAJ_TARGET=""
 NPROC_TARGET=""
-INSTALL_TARGETS=""
+INSTALL_TARGETS="$INSTALL_DAT"
 # Always build cpptraj
 CPPTRAJ_TARGET=cpptraj$SFX$EXE
 INSTALL_TARGETS=$INSTALL_TARGETS" install_cpptraj"
@@ -2443,6 +2449,7 @@ CPPTRAJHOME="$CPPTRAJHOME"
 CPPTRAJBIN="$CPPTRAJBIN"
 CPPTRAJLIB="$CPPTRAJLIB"
 CPPTRAJINC="$CPPTRAJINC"
+CPPTRAJDAT="$CPPTRAJDAT"
 
 INSTALL_TARGETS=$INSTALL_TARGETS
 
@@ -2500,6 +2507,9 @@ if [ ! -e "$CPPTRAJBIN" ] ; then
 fi
 if [ ! -e "$CPPTRAJLIB" ] ; then
   mkdir "$CPPTRAJLIB"
+fi
+if [ ! -e "$CPPTRAJDAT" ] ; then
+  mkdir "$CPPTRAJDAT"
 fi
 
 # ----- Create a resource file. ------------------
