@@ -127,6 +127,8 @@ uninstall_lib:
 
 uninstall_inc:
 	$(DEL_FILE) $(CPPTRAJINC)/*.h
+	$(DEL_FILE) $(CPPTRAJINC)/*.f
+	$(DEL_FILE) $(CPPTRAJINC)/*.f03
 
 uninstall: uninstall_lib uninstall_inc
 	$(DEL_FILE) $(CPPTRAJBIN)/cpptraj$(SFX)$(EXE)
