@@ -835,13 +835,7 @@ SetBinaries() {
   fi
   # Determine location of ndiff.awk
   if [ -z "$CPPTRAJ_NDIFF" ] ; then
-    if [ $STANDALONE -eq 0 ] ; then
-      CPPTRAJ_NDIFF=$DIRPREFIX/test/ndiff.awk
-    elif [ ! -z "$CPPTRAJSRC" ] ; then
-      CPPTRAJ_NDIFF=$CPPTRAJSRC/util/ndiff/ndiff.awk
-    else
-      CPPTRAJ_NDIFF=$CPPTRAJ_TEST_ROOT/../util/ndiff/ndiff.awk
-    fi
+    CPPTRAJ_NDIFF=$CPPTRAJ_TEST_ROOT/utilities/ndiff/ndiff.awk
     if [ ! -f "$CPPTRAJ_NDIFF" ] ; then
       ErrMsg "'ndiff.awk' not present: $CPPTRAJ_NDIFF"
       exit 1
@@ -851,11 +845,7 @@ SetBinaries() {
   # Determine location of nproc/numprocs
   if [ -z "$CPPTRAJ_NPROC" ] ; then
     if [ ! -z "$DO_PARALLEL" ] ; then
-      if [ ! -z "$CPPTRAJSRC" ] ; then
-        CPPTRAJ_NPROC=$CPPTRAJSRC/test/utilities/nproc.sh
-      else
-        CPPTRAJ_NPROC=$CPPTRAJ_TEST_ROOT/utilities/nproc.sh
-      fi
+      CPPTRAJ_NPROC=$CPPTRAJ_TEST_ROOT/utilities/nproc.sh
       if [ ! -f "$CPPTRAJ_NPROC" ] ; then
         ErrMsg "Error: nproc $CPPTRAJ_NPROC not found."
         exit 1
