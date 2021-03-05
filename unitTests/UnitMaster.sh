@@ -145,6 +145,8 @@ EndTest() {
   fi
   #echo "  $PROGERROR out of $PROGCOUNT executions exited with an error."
   #echo "  $PROGERROR out of $PROGCOUNT executions exited with an error." >> $CPPTRAJ_TEST_RESULTS
+  echo ""
+  exit $PROGERROR
 }
 
 # ------------------------------------------------------------------------------
@@ -212,7 +214,7 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
   # or <dir>/unitTests/<testname>
   CPPTRAJDIR=''
   CURRENTDIR=`pwd`
-  echo "DEBUG : current dir $CURRENTDIR"
+  #echo "DEBUG : current dir $CURRENTDIR"
   if [ "`basename $CURRENTDIR`" = 'unitTests' ] ; then
     # This is <dir>/unitTests
     CPPTRAJDIR=`dirname $CURRENTDIR`
@@ -286,7 +288,6 @@ fi
 # Determine mode of execution: individual test or multiple tests.
 if [ "$CPPTRAJ_TEST_MODE" = 'master' ] ; then
   # Executing multiple tests
-  echo Master Make
   # Probably executed via make.
   # If summary requested just do that and exit.
    if [ $SUMMARY -ne 0 ] ; then
@@ -309,7 +310,6 @@ if [ "$CPPTRAJ_TEST_MODE" = 'master' ] ; then
   fi
 else
   # Executing single test
-  echo non-master make
   if [ $CPPTRAJ_TEST_CLEAN -eq 0 ] ; then
     TEST_WORKDIR=`pwd`
     TestHeader
