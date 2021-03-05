@@ -15,7 +15,7 @@ test.cpptraj: $(COMPLETETESTS)
 
 # ------------------------------------------------
 
-test.complete: CpptrajTest.sh ../MasterTest.sh UnitMaster.sh
+test.complete: CpptrajTest.sh UnitMaster.sh
 	@./CpptrajTest.sh --target test.cpptraj $(OPT)
 
 test.all:
@@ -24,7 +24,7 @@ test.all:
 test.showerrors:
 	$(MAKE) test.complete summary OPT="$(OPT) showerrors"
 
-summary: CpptrajTest.sh ../MasterTest.sh
+summary: CpptrajTest.sh UnitMaster.sh 
 	@./CpptrajTest.sh summary $(OPT)
 
 clean:

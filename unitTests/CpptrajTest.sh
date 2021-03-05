@@ -1,9 +1,9 @@
 #!/bin/bash
 
-if [ ! -f '../MasterTest.sh' ] ; then
-  echo "Fatal Error: MasterTest.sh not present" > /dev/stderr
+if [ ! -f 'UnitMaster.sh' ] ; then
+  echo "Fatal Error: UnitMaster.sh not present" > /dev/stderr
   exit 1
 fi
 CPPTRAJ_TEST_MODE='master'
-. ../MasterTest.sh
+. UnitMaster.sh
 exit 0
