@@ -11,6 +11,9 @@
 
 # ----- Variables local to single test ---------------------
 PROGERROR=0              # Total number of program errors this test
+# ----- Local setup variables ------------------------------
+SUMMARY=0                # If 1 print summary of CPPTRAJ_TEST_RESULTS only
+TARGET=""                # Make target if multiple tests being run
 
 # ==============================================================================
 # TestHeader() <outfile>
@@ -137,6 +140,9 @@ CmdLineOpts() {
   while [ ! -z "$1" ] ; do
     case "$1" in
       "clean"     ) CPPTRAJ_TEST_CLEAN=1 ;;
+      "summary"   ) SUMMARY=1 ;;
+      "--target"  ) shift ; TARGET=$1 ;;
+      * ) ErrMsg "Unknown option: $1" ; exit 1 ;;
     esac
     shift
   done
@@ -209,6 +215,26 @@ fi
 if [ "$CPPTRAJ_TEST_MODE" = 'master' ] ; then
   # Executing multiple tests
   echo Master Make
+  # Probably executed via make.
+  # If summary requested just do that and exit.
+   if [ $SUMMARY -ne 0 ] ; then
+    Summary
+  fi
+  # Need a Makefile.
+  if [ ! -f 'Makefile' ] ; then
+    ErrMsg "test Makefile not found."
+    exit 1
+  fi
+  Required "make"
+  if [ -z "$TARGET" ] ; then
+    # If no target specified, probably not executed via make.
+    ErrMsg "No test directories specified."
+    exit 1
+  fi
+  make $TARGET
+  if [ $? -ne 0 ] ; then
+    exit 1
+  fi
 else
   # Executing single test
   echo non-master make
