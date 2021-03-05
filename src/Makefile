@@ -62,10 +62,6 @@ nolibcpptraj:
 	@echo ""
 	@exit 1
 
-# nproc --------------------------------
-nproc:
-	cd ../util && $(MAKE)
-
 # Internal object/library targets
 pub_fft.o:  pub_fft.F90
 	$(FC) $(FPPFLAGS) -c $(FFLAGS) -o $@ pub_fft.F90

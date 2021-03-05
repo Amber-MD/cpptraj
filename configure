@@ -2406,11 +2406,6 @@ if [ $USE_SHARED -eq 1 ] ; then
 else
   LIBCPPTRAJ_TARGET='nolibcpptraj'
 fi
-# Only build nproc for MPI
-if [ $USE_MPI -ne 0 ] ; then
-  NPROC_TARGET=nproc
-  INSTALL_TARGETS=$INSTALL_TARGETS" $NPROC_TARGET"
-fi
 # CUDA
 if [ $USE_CUDA -eq 1 ] ; then
   CUDA_TARGET='cuda_kernels/libcpptraj_cuda.a'
