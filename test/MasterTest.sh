@@ -553,6 +553,10 @@ EndTest() {
     elif [ $NUMCOMPARISONS -gt 0 ] ; then
       echo "All $NUMCOMPARISONS comparisons passed." 
       OUT  "All $NUMCOMPARISONS comparisons passed."
+    elif [ $PROGERROR -eq 0 ] ; then
+      # If we are here this is likely a unit test.
+      echo "All $PROGCOUNT executions passed."
+      OUT  "All $PROGCOUNT executions passed."
     fi
     if [ $SKIPCOUNT -gt 0 ] ; then
       echo "$SKIPCOUNT comparisons skipped."
