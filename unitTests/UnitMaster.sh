@@ -127,11 +127,24 @@ RunMake() {
 # EndTest()
 #   Print a summary of the current tests results. Should be called at the end of
 #   every test script.
+#   Unit tests either pass or fail.
 EndTest() {
   #echo "DEBUG: EndTest"
+  # Sanity check
+  if [ $PROGCOUNT -gt 1 ] ; then
+    ErrMsg "Too many executions; got $PROGCOUNT, expected 1."
+    exit 1
+  fi
   echo ""
-  echo "  $PROGERROR out of $PROGCOUNT executions exited with an error."
-  echo "  $PROGERROR out of $PROGCOUNT executions exited with an error." >> $CPPTRAJ_TEST_RESULTS
+  if [ $PROGERROR -eq 0 ] ; then
+    echo "  Unit test passed."
+    echo "  Unit test passed." >> $CPPTRAJ_TEST_RESULTS
+  else
+    echo "  Unit test failed."
+    echo "  Unit test failed." >> $CPPTRAJ_TEST_RESULTS
+  fi
+  #echo "  $PROGERROR out of $PROGCOUNT executions exited with an error."
+  #echo "  $PROGERROR out of $PROGCOUNT executions exited with an error." >> $CPPTRAJ_TEST_RESULTS
 }
 
 # ------------------------------------------------------------------------------
@@ -147,19 +160,25 @@ Summary() {
       cat $RESULTSFILES > $CPPTRAJ_TEST_RESULTS
       echo "===================== TEST SUMMARY ======================"
       awk 'BEGIN{
-        program_exe = 0; # Number of unit test executions
-        program_err = 0; # Number of unit test failures
+        program_exe  = 0; # Number of unit test executions
+        program_pass = 0; # Number of unit test pass
+        program_err  = 0; # Number of unit test failures
       }{
         if ($1 == "CPPTRAJ:")
           program_exe++;
-        else if ($5 == "executions" && $6 == "exited")
-          program_err += $1;
+        else if ($1 == "Unit" && $2 == "test") {
+          if ($3 == "passed.")
+            program_pass++;
+          else if ($3 == "failed.")
+            program_err++;
+        }
       }END{
         if (program_exe > 0)
-          printf("  %i out of %i program executions completed.\n",
-                 program_exe - program_err, program_exe);
+          printf("  %i out of %i unit tests passed (%i failed).\n",
+                 program_pass, program_exe, program_err);
         exit program_err;
       }' $CPPTRAJ_TEST_RESULTS
+      echo "========================================================="
       ERR_STATUS=$?
     fi
   fi
