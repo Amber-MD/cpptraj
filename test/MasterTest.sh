@@ -553,10 +553,6 @@ EndTest() {
     elif [ $NUMCOMPARISONS -gt 0 ] ; then
       echo "All $NUMCOMPARISONS comparisons passed." 
       OUT  "All $NUMCOMPARISONS comparisons passed."
-    elif [ $PROGERROR -eq 0 ] ; then
-      # If we are here this is likely a unit test.
-      echo "All $PROGCOUNT executions passed."
-      OUT  "All $PROGCOUNT executions passed."
     fi
     if [ $SKIPCOUNT -gt 0 ] ; then
       echo "$SKIPCOUNT comparisons skipped."
@@ -1201,17 +1197,12 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
   #echo "DEBUG: Initial test setup."
   # MasterTest.sh has not been called yet; set up test environment.
   export CPPTRAJ_TEST_ROOT=`pwd`
-  # If invocation is "./RunTest.sh" or "./UnitTest.sh", individual test dir.
-  # If "./CpptrajTest.sh", all tests.
-  if [ "$0" = './RunTest.sh' -o "$0" = './UnitTest.sh' ] ; then
+  # If invocation is "./RunTest.sh", individual test dir. If "./CpptrajTest.sh", all tests.
+  if [ "$0" = './RunTest.sh' ] ; then
     CPPTRAJ_TEST_ROOT=`dirname $CPPTRAJ_TEST_ROOT`
   elif [ "$0" != './CpptrajTest.sh' ] ; then
-    ErrMsg "Unknown test invocation. Expected RunTest.sh, UnitTest.sh, or CpptrajTest.sh, got $0"
+    ErrMsg "Unknown test invocation. Expected RunTest.sh or CpptrajTest.sh, got $0"
     exit 1
-  fi
-  # Special case: this may be invoked from the unitTests directory.
-  if [ "`basename $CPPTRAJ_TEST_ROOT`" = 'unitTests' ] ; then
-    CPPTRAJ_TEST_ROOT=`dirname $CPPTRAJ_TEST_ROOT`
   fi
   #echo "DEBUG: CPPTRAJ_TEST_ROOT= $CPPTRAJ_TEST_ROOT $0"
   # If CPPTRAJ_TEST_OS is not set, try to determine.
