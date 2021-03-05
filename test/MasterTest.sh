@@ -1213,7 +1213,7 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
   if [ "`basename $CPPTRAJ_TEST_ROOT`" = 'unitTests' ] ; then
     CPPTRAJ_TEST_ROOT=`dirname $CPPTRAJ_TEST_ROOT`
   fi
-  echo "DEBUG: CPPTRAJ_TEST_ROOT= $CPPTRAJ_TEST_ROOT $0"
+  #echo "DEBUG: CPPTRAJ_TEST_ROOT= $CPPTRAJ_TEST_ROOT $0"
   # If CPPTRAJ_TEST_OS is not set, try to determine.
   if [ -z "$CPPTRAJ_TEST_OS" ] ; then
     export CPPTRAJ_TEST_OS=`uname -s | awk '{print $1}'`

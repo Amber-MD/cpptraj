@@ -114,7 +114,7 @@ EXE=''                    # Binary executable suffix
 REBUILDOPT=''             # Can be set to --rebuild and passed to get_library.sh
 BUILDTESTOPT='silent'     # Set to blank to avoid asking about building libraries
 INSTALL_DAT='install_dat' # Target for installing data directory
-CPPTRAJSRC=''             # CPPTRAJ source directory
+#CPPTRAJSRC=''             # CPPTRAJ source directory
 COMPERR='cpptrajcfg.compile.err'
 COMPOUT='cpptrajcfg.compile.out'
 
@@ -2260,7 +2260,7 @@ fi
 if [ "$WORKDIR" != '.' ] ; then
   Err "CPPTRAJ configure must be executed from the source directory."
 fi
-CPPTRAJSRC=$CURRENTDIR
+#CPPTRAJSRC=$CURRENTDIR
 
 # Basic checks and directives
 BasicChecks
@@ -2527,7 +2527,6 @@ if [ "$PERFORM_CHECKS" = 'yes' ] ; then
     RFILE=$CPPTRAJHOME/cpptraj.sh
     cat > $RFILE <<EOF
 export CPPTRAJHOME="$CPPTRAJHOME"
-export CPPTRAJSRC="$CPPTRAJSRC"
 export PATH=$CPPTRAJBIN:\${PATH}
 EOF
     if [ "$PLATFORM" != "Darwin" ] ; then
@@ -2538,7 +2537,6 @@ EOF
     RFILE=$CPPTRAJHOME/cpptraj.csh
     cat > $RFILE <<EOF
 setenv CPPTRAJHOME "$CPPTRAJHOME"
-setenv CPPTRAJSRC "$CPPTRAJSRC"
 setenv PATH "$CPPTRAJBIN:\${PATH}"
 EOF
     if [ "$PLATFORM" != "Darwin" ] ; then
