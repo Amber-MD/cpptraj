@@ -204,15 +204,36 @@ CmdLineOpts() {
 # M A I N
 # ==============================================================================
 if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
-  if [ -z "$CPPTRAJHOME" -o ! -d "$CPPTRAJHOME" ] ; then
-    echo "Cannot find CPPTRAJ home directory, set CPPTRAJHOME."
+  #if [ -z "$CPPTRAJHOME" -o ! -d "$CPPTRAJHOME" ] ; then
+  #  echo "Cannot find CPPTRAJ home directory, set CPPTRAJHOME."
+  #  exit 1
+  #fi
+  # Assume we are in the cpptraj source directory, <dir>/unitTests
+  # or <dir>/unitTests/<testname>
+  CPPTRAJDIR=''
+  CURRENTDIR=`pwd`
+  echo "DEBUG : current dir $CURRENTDIR"
+  if [ "`basename $CURRENTDIR`" = 'unitTests' ] ; then
+    # This is <dir>/unitTests
+    CPPTRAJDIR=`dirname $CURRENTDIR`
+  else
+    ONE_UP=`dirname $CURRENTDIR`
+    if [ "`basename $ONE_UP`" = 'unitTests' ] ; then
+      # This is <dir>/unitTests/<dir>
+      CPPTRAJDIR=`dirname $ONE_UP`
+    else
+      ErrMsg "Could not determine cpptraj source directory location."
+      exit 1
+    fi
+  fi
+  if [ -z "$CPPTRAJDIR" -o ! -d "$CPPTRAJDIR" ] ; then
+    ErrMsg "Cpptraj source directory $CPPTRAJDIR empty or is not a directory."
     exit 1
   fi
 
-  # Determine cpptraj source directory, CPPTRAJ_SRCDIR
+  # Determine cpptraj source file directory, CPPTRAJ_SRCDIR
   if [ -z "$CPPTRAJ_SRCDIR" ] ; then
-
-    CPPTRAJ_SRCDIR=$CPPTRAJHOME/src
+    CPPTRAJ_SRCDIR=$CPPTRAJDIR/src
     echo "  CPPTRAJ source directory: $CPPTRAJ_SRCDIR"
     if [ ! -d "$CPPTRAJ_SRCDIR" ] ; then
       echo "CPPTRAJ source directory not found."
@@ -228,7 +249,7 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
 
   # Determine the config.h file, CPPTRAJ_CONFIGH
   if [ -z "$CPPTRAJ_CONFIGH" ] ; then
-    CPPTRAJ_CONFIGH=$CPPTRAJHOME/config.h
+    CPPTRAJ_CONFIGH=$CPPTRAJDIR/config.h
     echo "  CPPTRAJ config.h file: $CPPTRAJ_CONFIGH"
     if [ ! -f "$CPPTRAJ_CONFIGH" ] ; then
       echo "CPPTRAJ config.h file not found."
