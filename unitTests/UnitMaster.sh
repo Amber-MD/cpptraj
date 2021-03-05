@@ -135,6 +135,38 @@ EndTest() {
 }
 
 # ------------------------------------------------------------------------------
+# Summary()
+#  Print a summary of results in all CPPTRAJ_TEST_RESULTS files and exit.
+#  Optionally print an error summary and/or valgrind summary.
+Summary() {
+  ERR_STATUS=0
+  if [ ! -z "$CPPTRAJ_TEST_RESULTS" ] ; then
+    RESULTSFILES=`ls */$CPPTRAJ_TEST_RESULTS 2> tmp.cpptrajtest.devnull`
+    rm tmp.cpptrajtest.devnull
+    if [ ! -z "$RESULTSFILES" ] ; then
+      cat $RESULTSFILES > $CPPTRAJ_TEST_RESULTS
+      echo "===================== TEST SUMMARY ======================"
+      awk 'BEGIN{
+        program_exe = 0; # Number of unit test executions
+        program_err = 0; # Number of unit test failures
+      }{
+        if ($1 == "CPPTRAJ:")
+          program_exe++;
+        else if ($5 == "executions" && $6 == "exited")
+          program_err += $1;
+      }END{
+        if (program_exe > 0)
+          printf("  %i out of %i program executions completed.\n",
+                 program_exe - program_err, program_exe);
+        exit program_err;
+      }' $CPPTRAJ_TEST_RESULTS
+      ERR_STATUS=$?
+    fi
+  fi
+  exit $ERR_STATUS
+}
+
+# ------------------------------------------------------------------------------
 CmdLineOpts() {
   CPPTRAJ_TEST_CLEAN=0 # Will be exported
   while [ ! -z "$1" ] ; do
@@ -225,7 +257,7 @@ if [ "$CPPTRAJ_TEST_MODE" = 'master' ] ; then
     ErrMsg "test Makefile not found."
     exit 1
   fi
-  Required "make"
+  #Required "make"
   if [ -z "$TARGET" ] ; then
     # If no target specified, probably not executed via make.
     ErrMsg "No test directories specified."
