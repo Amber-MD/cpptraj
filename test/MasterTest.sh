@@ -611,7 +611,7 @@ SetNthreads() {
       export N_THREADS=1
       return 1
     fi
-    export N_THREADS=`$DO_PARALLEL $CPPTRAJ_NPROC`
+    export N_THREADS=`$CPPTRAJ_NPROC`
     echo "  $N_THREADS MPI threads."
   fi
   return 0
@@ -851,14 +851,12 @@ SetBinaries() {
   # Determine location of nproc/numprocs
   if [ -z "$CPPTRAJ_NPROC" ] ; then
     if [ ! -z "$DO_PARALLEL" ] ; then
-      if [ $STANDALONE -eq 0 ] ; then
-        CPPTRAJ_NPROC=$DIRPREFIX/AmberTools/test/numprocs
-      elif [ ! -z "$CPPTRAJSRC" ] ; then
-        CPPTRAJ_NPROC=$CPPTRAJSRC/test/nproc
+      if [ ! -z "$CPPTRAJSRC" ] ; then
+        CPPTRAJ_NPROC=$CPPTRAJSRC/test/utilities/nproc.sh
       else
-        CPPTRAJ_NPROC=$CPPTRAJ_TEST_ROOT/nproc
+        CPPTRAJ_NPROC=$CPPTRAJ_TEST_ROOT/utilities/nproc.sh
       fi
-      if [ -z "$CPPTRAJ_NPROC" ] ; then
+      if [ ! -f "$CPPTRAJ_NPROC" ] ; then
         ErrMsg "Error: nproc $CPPTRAJ_NPROC not found."
         exit 1
       fi
