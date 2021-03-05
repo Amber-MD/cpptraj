@@ -7,9 +7,13 @@ test: test.all
 unit.NameType:
 	@-cd NameType && ./UnitTest.sh $(OPT)
 
+unit.ArgList:
+	@-cd ArgList && ./UnitTest.sh $(OPT)
+
 # ----- Every unit test should go here -----------
 COMPLETETESTS= \
-  unit.NameType
+  unit.NameType \
+  unit.ArgList
 
 test.cpptraj: $(COMPLETETESTS)
 
