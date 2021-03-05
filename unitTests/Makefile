@@ -5,7 +5,7 @@ test: test.all
 # ----- All unit tests go below ------------------
 
 unit.NameType:
-	cd NameType && ./UnitTest.sh
+	@-cd NameType && ./UnitTest.sh $(OPT)
 
 # ----- Every unit test should go here -----------
 COMPLETETESTS= \
