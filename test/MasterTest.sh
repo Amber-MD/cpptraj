@@ -1204,7 +1204,11 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
     ErrMsg "Unknown test invocation. Expected RunTest.sh or CpptrajTest.sh, got $0"
     exit 1
   fi
-  #echo "DEBUG: CPPTRAJ_TEST_ROOT= $CPPTRAJ_TEST_ROOT $0"
+  # Special case: this may be invoked from the unitTests directory.
+  if [ "`basename $CPPTRAJ_TEST_ROOT`" = 'unitTests' ] ; then
+    CPPTRAJ_TEST_ROOT=`dirname $CPPTRAJ_TEST_ROOT`
+  fi
+  echo "DEBUG: CPPTRAJ_TEST_ROOT= $CPPTRAJ_TEST_ROOT $0"
   # If CPPTRAJ_TEST_OS is not set, try to determine.
   if [ -z "$CPPTRAJ_TEST_OS" ] ; then
     export CPPTRAJ_TEST_OS=`uname -s | awk '{print $1}'`
