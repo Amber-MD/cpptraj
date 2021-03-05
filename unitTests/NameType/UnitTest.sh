@@ -11,4 +11,3 @@ CreateMakefile
 RunMake "NameType class unit test."
 
 EndTest
-exit 0
