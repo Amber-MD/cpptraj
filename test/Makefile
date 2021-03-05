@@ -658,6 +658,9 @@ test.cpptraj: $(COMPLETETESTS)
 test.showerrors:
 	$(MAKE) test.complete summary OPT="$(OPT) showerrors long"
 
+unittests:
+	cd unitTests && $(MAKE) test.showerrors OPT="$(OPT)"
+
 summary: CpptrajTest.sh MasterTest.sh
 	@./CpptrajTest.sh summary $(OPT)
 
