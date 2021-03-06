@@ -49,9 +49,8 @@ jobs:
                                libfftw3-dev \
                                netcdf-bin \
                                clang \
-                               openmpi-bin \
-                               openmpi-common \
-                               libopenmpi-dev \
+                               mpich \
+                               libmpich-dev \
                                cmake-data \
                                cmake
 
