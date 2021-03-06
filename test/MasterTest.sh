@@ -611,7 +611,7 @@ SetNthreads() {
       export N_THREADS=1
       return 1
     fi
-    export N_THREADS=`$DO_PARALLEL $CPPTRAJ_NPROC`
+    export N_THREADS=`$CPPTRAJ_NPROC`
     echo "  $N_THREADS MPI threads."
   fi
   return 0
@@ -835,13 +835,7 @@ SetBinaries() {
   fi
   # Determine location of ndiff.awk
   if [ -z "$CPPTRAJ_NDIFF" ] ; then
-    if [ $STANDALONE -eq 0 ] ; then
-      CPPTRAJ_NDIFF=$DIRPREFIX/test/ndiff.awk
-    elif [ ! -z "$CPPTRAJSRC" ] ; then
-      CPPTRAJ_NDIFF=$CPPTRAJSRC/util/ndiff/ndiff.awk
-    else
-      CPPTRAJ_NDIFF=$CPPTRAJ_TEST_ROOT/../util/ndiff/ndiff.awk
-    fi
+    CPPTRAJ_NDIFF=$CPPTRAJ_TEST_ROOT/utilities/ndiff/ndiff.awk
     if [ ! -f "$CPPTRAJ_NDIFF" ] ; then
       ErrMsg "'ndiff.awk' not present: $CPPTRAJ_NDIFF"
       exit 1
@@ -851,14 +845,8 @@ SetBinaries() {
   # Determine location of nproc/numprocs
   if [ -z "$CPPTRAJ_NPROC" ] ; then
     if [ ! -z "$DO_PARALLEL" ] ; then
-      if [ $STANDALONE -eq 0 ] ; then
-        CPPTRAJ_NPROC=$DIRPREFIX/AmberTools/test/numprocs
-      elif [ ! -z "$CPPTRAJSRC" ] ; then
-        CPPTRAJ_NPROC=$CPPTRAJSRC/test/nproc
-      else
-        CPPTRAJ_NPROC=$CPPTRAJ_TEST_ROOT/nproc
-      fi
-      if [ -z "$CPPTRAJ_NPROC" ] ; then
+      CPPTRAJ_NPROC=$CPPTRAJ_TEST_ROOT/utilities/nproc.sh
+      if [ ! -f "$CPPTRAJ_NPROC" ] ; then
         ErrMsg "Error: nproc $CPPTRAJ_NPROC not found."
         exit 1
       fi

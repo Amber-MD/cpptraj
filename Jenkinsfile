@@ -40,6 +40,22 @@ pipeline {
                 }
             }
             parallel {
+              stage("Linux GNU Unit Tests") {
+                    agent {
+                        docker {
+                            image 'ambermd/cpu-build:latest'
+                            alwaysPull true
+                        }
+                    }
+
+                    steps {
+                        unstash "source"
+                        sh "./configure --with-netcdf --with-fftw3 gnu"
+                        sh "cd unitTests && make test.all"
+                    }
+
+                    post { cleanup { deleteDir() } }
+                }
                 stage("Linux GNU serial build") {
                     agent {
                         docker {
