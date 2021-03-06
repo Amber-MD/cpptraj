@@ -41,6 +41,7 @@ jobs:
     steps:
       - name: Install prerequisite packages
         run: |
+          sudo apt update
           sudo apt-get install gfortran \
                                libbz2-dev \
                                libblas-dev \
@@ -49,8 +50,9 @@ jobs:
                                libfftw3-dev \
                                netcdf-bin \
                                clang \
-                               mpich \
-                               libmpich-dev \
+                               openmpi-bin \
+                               openmpi-common \
+                               libopenmpi-dev \
                                cmake-data \
                                cmake
 
