@@ -1197,12 +1197,9 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
   #echo "DEBUG: Initial test setup."
   # MasterTest.sh has not been called yet; set up test environment.
   export CPPTRAJ_TEST_ROOT=`pwd`
-  # If invocation is "./RunTest.sh", individual test dir. If "./CpptrajTest.sh", all tests.
-  if [ "$0" = './RunTest.sh' ] ; then
+  # If invocation is "./CpptrajTest.sh", all tests. Otherwise assume individual test dir.
+  if [ "$0" != './CpptrajTest.sh' ] ; then
     CPPTRAJ_TEST_ROOT=`dirname $CPPTRAJ_TEST_ROOT`
-  elif [ "$0" != './CpptrajTest.sh' ] ; then
-    ErrMsg "Unknown test invocation. Expected RunTest.sh or CpptrajTest.sh, got $0"
-    exit 1
   fi
   #echo "DEBUG: CPPTRAJ_TEST_ROOT= $CPPTRAJ_TEST_ROOT $0"
   # If CPPTRAJ_TEST_OS is not set, try to determine.
