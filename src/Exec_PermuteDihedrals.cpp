@@ -124,12 +124,16 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
     interval_in_deg = argIn.getNextDouble(60.0);
     mprintf("\tDihedrals will be rotated at intervals of %.2f degrees.\n", interval_in_deg);
   } else if (mode_ == RANDOM) {
-    use_random2 = argIn.hasKey("random2");
+    // If back-tracking specified, use original algorithm. Otherwise use the new one.
+    backtrack_ = argIn.getKeyInt("backtrack", -1);
+    if (backtrack_ > 0)
+      use_random2 = false;
+    else
+      use_random2 = true;
     check_for_clashes_ = argIn.hasKey("check");
     checkAllResidues_ = argIn.hasKey("checkallresidues");
     cutoff_ = argIn.getKeyDouble("cutoff",0.8);
     rescutoff_ = argIn.getKeyDouble("rescutoff",10.0);
-    backtrack_ = argIn.getKeyInt("backtrack",4);
     increment_ = argIn.getKeyInt("increment",1);
     max_factor_ = argIn.getKeyInt("maxfactor",2);
     int iseed = argIn.getKeyInt("rseed",-1);
@@ -149,10 +153,6 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
       mprinterr("Error: rescutoff too small.\n");
       return CpptrajState::ERR;
     }
-    if (backtrack_ < 0) {
-      mprinterr("Error: backtrack value must be >= 0\n");
-      return CpptrajState::ERR;
-    }
     if ( increment_<1 || (360 % increment_)!=0 ) {
       mprinterr("Error: increment must be a factor of 360.\n");
       return CpptrajState::ERR;
@@ -163,6 +163,10 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
     RN_.rn_set( iseed );
     // Print info
     mprintf("\tDihedrals will be rotated to random values.\n");
+    if (use_random2)
+      mprintf("\tUsing new simpler algorithm (typically fewer rotations).\n");
+    else
+      mprintf("\tUsing original algorithm with back-tracking (typically more rotations).\n");
     if (iseed==-1)
       mprintf("\tRandom number generator will be seeded using time.\n");
     else
@@ -285,8 +289,10 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
     switch (mode_) {
       case RANDOM:
         if (use_random2)
+          // Use simpler random algorithm
           RandomizeAngles_2(currentFrame, CRD->Top());
         else
+          // Use random algorithm with backtracking (original)
           RandomizeAngles(currentFrame, CRD->Top());
         // Check the resulting structure
         n_problems = checkStructure_.CheckOverlaps( currentFrame );
