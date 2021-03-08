@@ -589,6 +589,14 @@ void Exec_PermuteDihedrals::RandomizeAngles(Frame& currentFrame, Topology const&
 }
 
 // Exec_PermuteDihedrals::RandomizeAngles_2()
+/** This algorithm is a more straightforward one than RandomizeAngles().
+  *  1) Pick a random angle
+  *  2) Rotate dihedral with random angle
+  *  3) Check if any 2 residues are within rescutoff
+  *  4) For residues within rescutoff, see if any atoms are within cutoff
+  *  5) If any clashes pick a new random dihedral and go to 2
+  * Tends to give better structures and is faster, at least in limited testing.
+  */
 void Exec_PermuteDihedrals::RandomizeAngles_2(Frame& currentFrame, Topology const& topIn) {
   Matrix_3x3 rotationMatrix;
   std::vector<double> tmpx(currentFrame.size());
