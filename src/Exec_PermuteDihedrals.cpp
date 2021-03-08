@@ -126,14 +126,18 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
   } else if (mode_ == RANDOM) {
     // If back-tracking specified, use original algorithm. Otherwise use the new one.
     backtrack_ = argIn.getKeyInt("backtrack", -1);
-    if (backtrack_ > 0)
+    double resCutoffDefault;
+    if (backtrack_ > 0) {
+      resCutoffDefault = 10.0;
       use_random2 = false;
-    else
+    } else {
+      resCutoffDefault = 12.0;
       use_random2 = true;
+    }
     check_for_clashes_ = argIn.hasKey("check");
     checkAllResidues_ = argIn.hasKey("checkallresidues");
     cutoff_ = argIn.getKeyDouble("cutoff",0.8);
-    rescutoff_ = argIn.getKeyDouble("rescutoff",10.0);
+    rescutoff_ = argIn.getKeyDouble("rescutoff", resCutoffDefault);
     increment_ = argIn.getKeyInt("increment",1);
     max_factor_ = argIn.getKeyInt("maxfactor",2);
     int iseed = argIn.getKeyInt("rseed",-1);
