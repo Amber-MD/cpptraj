@@ -30,6 +30,7 @@ class Exec_PermuteDihedrals : public Exec {
     int CheckResidue( Frame const&, Topology const&, PermuteDihedralsType const&,int,double&);
     /// Randomly rotate dihedrals
     void RandomizeAngles(Frame&, Topology const&);
+    void RandomizeAngles_2(Frame&, Topology const&);
 
     /// Permute types 
     enum ModeType  { RANDOM = 0, INTERVAL };

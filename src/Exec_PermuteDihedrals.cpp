@@ -1,4 +1,5 @@
 #include <cmath>
+#include <algorithm> // std::copy
 #include "Exec_PermuteDihedrals.h"
 #include "CpptrajStdio.h"
 #include "DihedralSearch.h"
@@ -117,11 +118,13 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
   }
 
   // Get specific mode options.
+  bool use_random2 = false;
   double interval_in_deg = 60.0;
   if ( mode_ == INTERVAL ) {
     interval_in_deg = argIn.getNextDouble(60.0);
     mprintf("\tDihedrals will be rotated at intervals of %.2f degrees.\n", interval_in_deg);
   } else if (mode_ == RANDOM) {
+    use_random2 = argIn.hasKey("random2");
     check_for_clashes_ = argIn.hasKey("check");
     checkAllResidues_ = argIn.hasKey("checkallresidues");
     cutoff_ = argIn.getKeyDouble("cutoff",0.8);
@@ -281,7 +284,10 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
     int n_problems = 0;
     switch (mode_) {
       case RANDOM:
-        RandomizeAngles(currentFrame, CRD->Top());
+        if (use_random2)
+          RandomizeAngles_2(currentFrame, CRD->Top());
+        else
+          RandomizeAngles(currentFrame, CRD->Top());
         // Check the resulting structure
         n_problems = checkStructure_.CheckOverlaps( currentFrame );
         //mprintf("%i\tResulting structure has %i problems.\n",frameNum,n_problems);
@@ -425,8 +431,9 @@ void Exec_PermuteDihedrals::RandomizeAngles(Frame& currentFrame, Topology const&
 # ifdef DEBUG_PERMUTEDIHEDRALS
   // DEBUG
   int debugframenum=0;
+  DataSetList emptydsl;
   Trajout_Single DebugTraj;
-  DebugTraj.PrepareTrajWrite("debugtraj.nc",ArgList(),(Topology*)&topIn,
+  DebugTraj.PrepareTrajWrite("debugtraj.nc",ArgList(),emptydsl, (Topology*)&topIn,
                              CoordinateInfo(), BB_dihedrals_.size()*max_factor_,
                              TrajectoryFile::AMBERNETCDF);
   DebugTraj.WriteSingle(debugframenum++,currentFrame);
@@ -569,4 +576,118 @@ void Exec_PermuteDihedrals::RandomizeAngles(Frame& currentFrame, Topology const&
   DebugTraj.EndTraj();
   mprintf("\tNumber of rotations %i, expected %u\n",number_of_rotations,BB_dihedrals_.size());
 # endif
+}
+
+// Exec_PermuteDihedrals::RandomizeAngles_2()
+void Exec_PermuteDihedrals::RandomizeAngles_2(Frame& currentFrame, Topology const& topIn) {
+  Matrix_3x3 rotationMatrix;
+  std::vector<double> tmpx(currentFrame.size());
+# ifdef DEBUG_PERMUTEDIHEDRALS
+  // DEBUG
+  int debugframenum=0;
+  DataSetList emptydsl;
+  Trajout_Single DebugTraj;
+  DebugTraj.PrepareTrajWrite("debugtraj.nc",ArgList(),emptydsl,(Topology*)&topIn,
+                             CoordinateInfo(), BB_dihedrals_.size()*max_factor_,
+                             TrajectoryFile::AMBERNETCDF);
+  DebugTraj.WriteSingle(debugframenum++,currentFrame);
+# endif
+  unsigned int number_of_rotations = 0;
+  // Set max number of rotations to try.
+  unsigned int max_rotations = (unsigned int)((double)BB_dihedrals_.size() * max_factor_);
+  mprintf("\tMax number of rotations to try: %u\n", max_rotations);
+
+  // Loop over all dihedrals
+  for (std::vector<PermuteDihedralsType>::const_iterator dih = BB_dihedrals_.begin();
+                                                         dih != BB_dihedrals_.end(); 
+                                                       ++dih)
+  {
+    // Set axis of rotation
+    Vec3 axisOfRotation = currentFrame.SetAxisOfRotation(dih->atom1, dih->atom2);
+    // Generate random value to rotate by in radians
+    // NOTE: Should we prevent rotating exactly 360 degrees?
+    double theta_in_radians = RN_.rn_gen() * Constants::TWOPI;
+    double theta_in_degrees = theta_in_radians * Constants::RADDEG;
+    // Save original coords
+    std::copy( currentFrame.xAddress(), currentFrame.xAddress()+currentFrame.size(), tmpx.begin() );
+    if (debug_>0) mprintf("DEBUG: Rotating dihedral %zu res %8i:\n", dih - BB_dihedrals_.begin(),
+                          dih->resnum+1);
+    bool rotate_dihedral = true;
+    while (rotate_dihedral) {
+      // Calculate rotation matrix for random theta
+      rotationMatrix.CalcRotationMatrix(axisOfRotation, theta_in_radians);
+
+      if (debug_>0) {
+        mprintf("\t%8i %12s %12s, +%.2lf degrees (%u).\n",dih->resnum+1,
+                topIn.AtomMaskName(dih->atom1).c_str(),
+                topIn.AtomMaskName(dih->atom2).c_str(),
+                theta_in_degrees, number_of_rotations);
+      }
+      // Rotate around axis
+      currentFrame.Rotate(rotationMatrix, dih->Rmask);
+      ++number_of_rotations;
+#     ifdef DEBUG_PERMUTEDIHEDRALS
+      // DEBUG
+      DebugTraj.WriteSingle(debugframenum++,currentFrame);
+#     endif
+      // If we dont care about sterics exit here
+      if (!check_for_clashes_) break;
+      // If we have exceeded the max number of rotations bail out.
+      if (number_of_rotations > max_rotations) {
+        mprintf("Warning: Max # of rotations has been exceeded.\n");
+        break;
+      }
+      // Check resulting structure for issues.
+      bool clash = false;
+      for (int res0 = 0; res0 != topIn.Nres(); res0++)
+      {
+        Residue const& R0 = topIn.Res(res0);
+        for (int res1 = res0 + 1; res1 != topIn.Nres(); res1++)
+        {
+          Residue const& R1 = topIn.Res(res1);
+          // Check if first atoms are anywhere near each other.
+          double r0r1_at0_dist2 = DIST2_NoImage( currentFrame.XYZ(R0.FirstAtom()),
+                                                 currentFrame.XYZ(R1.FirstAtom()) );
+          if (r0r1_at0_dist2 < rescutoff_) {
+            for (int at0 = R0.FirstAtom(); at0 != R0.LastAtom(); at0++)
+            {
+              const double* xyz0 = currentFrame.XYZ(at0);
+              for (int at1 = R1.FirstAtom(); at1 != R1.LastAtom(); at1++)
+              {
+                const double* xyz1 = currentFrame.XYZ(at1);
+                double d2 = DIST2_NoImage( xyz0, xyz1 );
+                if (d2 < cutoff_) {
+                  mprintf("DEBUG: Clash: %s to %s (%g Ang)\n",
+                          topIn.TruncResAtomNameNum(at0).c_str(),
+                          topIn.TruncResAtomNameNum(at1).c_str(), sqrt(d2));
+                  clash = true;
+                  break;
+                }
+              } // END loop over residue 1 atoms
+              if (clash) break;
+            } // END loop over residue 0 atoms
+          } // END residues within cutoff of each other
+          if (clash) break;
+        } // END inner loop over residues
+        if (clash) break;
+      } // END outer loop over residues
+      if (!clash) {
+        // No clash, all done
+        rotate_dihedral = false;
+      } else {
+        // Clash. Reverse the rotation.
+        std::copy( tmpx.begin(), tmpx.end(), currentFrame.xAddress() );
+        // Generate new random value to rotate by in radians
+        // NOTE: Should we prevent rotating exactly 360 degrees?
+        theta_in_radians = RN_.rn_gen() * Constants::TWOPI;
+        theta_in_degrees = theta_in_radians * Constants::RADDEG;
+      }
+    } // END rotate_dihedral loop
+    if (number_of_rotations > max_rotations) break; 
+
+  } // End loop over dihedrals
+# ifdef DEBUG_PERMUTEDIHEDRALS
+  DebugTraj.EndTraj();
+# endif
+  mprintf("\tNumber of rotations %u, expected %zu\n",number_of_rotations,BB_dihedrals_.size());
 }
