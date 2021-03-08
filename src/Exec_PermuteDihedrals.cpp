@@ -95,7 +95,7 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
       mprinterr("Error: No topology for output traj.\n");
       return CpptrajState::ERR;
     }
-    // Setup output trajectory FIXME: Correct frames for # of rotations
+    // Setup output trajectory TODO: Correct frames for # of rotations
     if (outtraj_.PrepareTrajWrite(outfilename, argIn, State.DSL(), CRD->TopPtr(), CRD->CoordsInfo(),
                                   CRD->Size(), TrajectoryFile::UNKNOWN_TRAJ))
       return CpptrajState::ERR;
@@ -455,11 +455,9 @@ void Exec_PermuteDihedrals::RandomizeAngles(Frame& currentFrame, Topology const&
     // Set axis of rotation
     Vec3 axisOfRotation = currentFrame.SetAxisOfRotation(dih->atom1, dih->atom2);
     // Generate random value to rotate by in radians
-    // Guaranteed to rotate by at least 1 degree.
-    // NOTE: could potentially rotate 360 - prevent?
-    // FIXME: Just use 2PI and rn_gen, get everything in radians
-    double theta_in_degrees = ((int)(RN_.rn_gen()*100000) % 360) + 1;
-    double theta_in_radians = theta_in_degrees * Constants::DEGRAD;
+    // NOTE: Should we prevent rotating exactly 360 degrees?
+    double theta_in_radians = RN_.rn_gen() * Constants::TWOPI;
+    double theta_in_degrees = theta_in_radians * Constants::RADDEG;
     // Calculate rotation matrix for random theta
     rotationMatrix.CalcRotationMatrix(axisOfRotation, theta_in_radians);
     int loop_count = 0;
