@@ -19,7 +19,7 @@ Exec_PermuteDihedrals::Exec_PermuteDihedrals() : Exec(COORDS),
   crdout_(0),
   check_for_clashes_(false),
   checkAllResidues_(false),
-  max_factor_(2),
+  max_factor_(10),
   cutoff_(0.64), // 0.8^2
   rescutoff_(100.0), // 10.0^2
   backtrack_(5),
@@ -139,7 +139,7 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
     cutoff_ = argIn.getKeyDouble("cutoff",0.8);
     rescutoff_ = argIn.getKeyDouble("rescutoff", resCutoffDefault);
     increment_ = argIn.getKeyInt("increment",1);
-    max_factor_ = argIn.getKeyInt("maxfactor",2);
+    max_factor_ = argIn.getKeyDouble("maxfactor", 10);
     int iseed = argIn.getKeyInt("rseed",-1);
     // Output file for # of problems
     DataFile* problemFile = State.DFL().AddDataFile(argIn.GetStringKey("out"), argIn);
@@ -181,10 +181,14 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
         mprintf("\tAll residues will be checked.\n");
       else
         mprintf("\tResidues up to the currenly rotating dihedral will be checked.\n");
-      mprintf("\tAtom cutoff %.2f, residue cutoff %.2f, backtrack = %i\n",
-              cutoff_, rescutoff_, backtrack_);
-      mprintf("\tWhen clashes occur dihedral will be incremented by %i\n",increment_);
-      mprintf("\tMax # attempted rotations = %i times number dihedrals.\n",
+      if (use_random2) {
+        mprintf("\tAtom cutoff, %.2f Ang., residue cutoff %.2f Ang.\n", cutoff_, rescutoff_);
+      } else {
+        mprintf("\tAtom cutoff %.2f Ang., residue cutoff %.2f Ang., backtrack = %i\n",
+                cutoff_, rescutoff_, backtrack_);
+        mprintf("\tWhen clashes occur dihedral will be incremented by %i deg.\n",increment_);
+      }
+      mprintf("\tMax # attempted rotations = %g times number dihedrals.\n",
               max_factor_);
     }
     // Square cutoffs to compare to dist^2 instead of dist
@@ -222,23 +226,24 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
   for (DihedralSearch::mask_it dih = dihSearch.begin();
                                dih != dihSearch.end(); ++dih)
   {
-    dst.checkAtoms.clear();
+    // Since only the second atom and atoms it is bonded to move during 
+    // rotation, base the check on the residue of the second atom.
+    int a1res = CRD->Top()[dih->A1()].ResNum();
+    dst.resnum = a1res;
     // Set mask of atoms that will move during dihedral rotation.
     dst.Rmask = DihedralSearch::MovingAtoms(CRD->Top(), dih->A1(), dih->A2());
     // If randomly rotating angles, check for atoms that are in the same
     // residue as A1 but will not move. They need to be checked for clashes
     // since further rotations will not help them.
-    if (mode_ == RANDOM && check_for_clashes_) {
+    dst.checkAtoms.clear();
+    if (!use_random2 && mode_ == RANDOM && check_for_clashes_) {
       CharMask cMask( dst.Rmask.ConvertToCharMask(), dst.Rmask.Nselected() );
-      int a1res = CRD->Top()[dih->A1()].ResNum();
       for (int maskatom = CRD->Top().Res(a1res).FirstAtom();
                maskatom < CRD->Top().Res(a1res).LastAtom(); ++maskatom)
         if (!cMask.AtomInCharMask(maskatom))
           dst.checkAtoms.push_back( maskatom );
       dst.checkAtoms.push_back(dih->A1()); // TODO: Does this need to be added first?
-      // Since only the second atom and atoms it is bonded to move during 
-      // rotation, base the check on the residue of the second atom.
-      dst.resnum = a1res;
+      
     }
     dst.atom0 = dih->A0(); // FIXME: This duplicates info
     dst.atom1 = dih->A1();
@@ -266,11 +271,12 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
     }
   }
 
+  // NOTE: ResCheck_ is only used by CheckResidue()/RandomizeAngles()
   // Set up simple structure check. First step is coarse; check distances 
   // between a certain atom in each residue (first, COM, CA, some other atom?)
   // to see if residues are in each others neighborhood. Second step is to 
   // check the atoms in each close residue.
-  if (check_for_clashes_) {
+  if (!use_random2 && mode_ == RANDOM && check_for_clashes_) {
     ResidueCheckType rct;
     int res = 0;
     for (Topology::res_iterator residue = CRD->Top().ResStart();
@@ -438,22 +444,21 @@ int Exec_PermuteDihedrals::CheckResidue( Frame const& FrameIn, Topology const& t
 // Exec_PermuteDihedrals::RandomizeAngles()
 void Exec_PermuteDihedrals::RandomizeAngles(Frame& currentFrame, Topology const& topIn) {
   Matrix_3x3 rotationMatrix;
+  // Set max number of rotations to try.
+  unsigned int max_rotations = (unsigned int)((double)BB_dihedrals_.size() * max_factor_);
 # ifdef DEBUG_PERMUTEDIHEDRALS
   // DEBUG
   int debugframenum=0;
   DataSetList emptydsl;
   Trajout_Single DebugTraj;
   DebugTraj.PrepareTrajWrite("debugtraj.nc",ArgList(),emptydsl, (Topology*)&topIn,
-                             CoordinateInfo(), BB_dihedrals_.size()*max_factor_,
+                             CoordinateInfo(), max_rotations,
                              TrajectoryFile::AMBERNETCDF);
   DebugTraj.WriteSingle(debugframenum++,currentFrame);
 # endif
   int next_resnum;
   int bestLoop = 0;
-  int number_of_rotations = 0;
-  // Set max number of rotations to try.
-  int max_rotations = (int)BB_dihedrals_.size();
-  max_rotations *= max_factor_;
+  unsigned int number_of_rotations = 0;
 
   // Loop over all dihedrals
   std::vector<PermuteDihedralsType>::const_iterator next_dih = BB_dihedrals_.begin();
@@ -572,7 +577,7 @@ void Exec_PermuteDihedrals::RandomizeAngles(Frame& currentFrame, Topology const&
     } // End dihedral rotation loop
     // Safety valve - number of defined dihedrals times * maxfactor
     if (number_of_rotations > max_rotations) {
-      mprinterr("Error: # of rotations (%i) exceeds max rotations (%i), exiting.\n",
+      mprinterr("Error: # of rotations (%u) exceeds max rotations (%u), exiting.\n",
                 number_of_rotations, max_rotations);
 //#     ifdef DEBUG_PERMUTEDIHEDRALS
 //      DebugTraj.EndTraj();
@@ -584,8 +589,8 @@ void Exec_PermuteDihedrals::RandomizeAngles(Frame& currentFrame, Topology const&
   } // End loop over dihedrals
 # ifdef DEBUG_PERMUTEDIHEDRALS
   DebugTraj.EndTraj();
-  mprintf("\tNumber of rotations %i, expected %u\n",number_of_rotations,BB_dihedrals_.size());
 # endif
+  mprintf("\tNumber of rotations %u, expected %zu\n",number_of_rotations,BB_dihedrals_.size());
 }
 
 // Exec_PermuteDihedrals::RandomizeAngles_2()
@@ -600,19 +605,20 @@ void Exec_PermuteDihedrals::RandomizeAngles(Frame& currentFrame, Topology const&
 void Exec_PermuteDihedrals::RandomizeAngles_2(Frame& currentFrame, Topology const& topIn) {
   Matrix_3x3 rotationMatrix;
   std::vector<double> tmpx(currentFrame.size());
+  // Set max number of rotations to try.
+  unsigned int max_rotations = (unsigned int)((double)BB_dihedrals_.size() * max_factor_);
 # ifdef DEBUG_PERMUTEDIHEDRALS
   // DEBUG
   int debugframenum=0;
   DataSetList emptydsl;
   Trajout_Single DebugTraj;
   DebugTraj.PrepareTrajWrite("debugtraj.nc",ArgList(),emptydsl,(Topology*)&topIn,
-                             CoordinateInfo(), BB_dihedrals_.size()*max_factor_,
+                             CoordinateInfo(), max_rotations,
                              TrajectoryFile::AMBERNETCDF);
   DebugTraj.WriteSingle(debugframenum++,currentFrame);
 # endif
   unsigned int number_of_rotations = 0;
-  // Set max number of rotations to try.
-  unsigned int max_rotations = (unsigned int)((double)BB_dihedrals_.size() * max_factor_);
+
   mprintf("\tMax number of rotations to try: %u\n", max_rotations);
 
   // Loop over all dihedrals

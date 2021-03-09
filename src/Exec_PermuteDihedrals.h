@@ -52,7 +52,7 @@ class Exec_PermuteDihedrals : public Exec {
     // 'random' options
     bool check_for_clashes_;
     bool checkAllResidues_;
-    int max_factor_;    ///< # of times to randomly rotate each dihedral
+    double max_factor_; ///< Max rotations to attempt will be max_factor_ * #dihedrals
     double cutoff_;     ///< When checking for clashes, atom cutoff
     double rescutoff_;  ///< When checking for clashes, residue cutoff
     int backtrack_;     ///< When a clash cannot be resolved, # of dihedrals to backtrack
