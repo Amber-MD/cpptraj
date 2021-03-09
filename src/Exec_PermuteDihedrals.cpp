@@ -296,7 +296,7 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
   for (unsigned int set = 0; set != CRD->Size(); set++)
   {
     CRD->GetFrame(set, currentFrame);
-    mprintf("DEBUG: Permute frame %u\n", set+1);
+    //mprintf("DEBUG: Permute frame %u\n", set+1);
     int n_problems = 0;
     switch (mode_) {
       case RANDOM:
@@ -685,9 +685,11 @@ void Exec_PermuteDihedrals::RandomizeAngles_2(Frame& currentFrame, Topology cons
                 const double* xyz1 = currentFrame.XYZ(at1);
                 double d2 = DIST2_NoImage( xyz0, xyz1 );
                 if (d2 < cutoff_) {
+#                 ifdef DEBUG_PERMUTEDIHEDRALS
                   mprintf("DEBUG: Clash: %s to %s (%g Ang)\n",
                           topIn.TruncResAtomNameNum(at0).c_str(),
                           topIn.TruncResAtomNameNum(at1).c_str(), sqrt(d2));
+#                 endif
                   clash = true;
                   break;
                 }

@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles ds.in rotations.nc rotations.mdcrd random.mol2.1 RAND.mol2 \
-           rand2.mol2.1
+           rand2.mol2.1 debugtraj.nc
 INPUT="ds.in"
 TOP=../tz2.parm7
 
@@ -29,7 +29,7 @@ permutedihedrals crdset [TZ2] random rseed 1 check maxfactor 10 phi psi \
 #crdaction RAND multidihedral phi psi out mdihedral.dat
 crdout RAND RAND.mol2
 list
-permutedihedrals Nclashes crdset [TZ2] random rseed 1 check maxfactor 10 phi psi \
+permutedihedrals Nclashes crdset [TZ2] random rseed 1 check phi psi \
                  outtraj rand2.mol2 multi crdout RAND2
 #crdout RAND2 RAND2.mol2
 EOF
