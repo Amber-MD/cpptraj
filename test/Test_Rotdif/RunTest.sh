@@ -8,6 +8,7 @@ Requires netcdf mathlib
 
 INPUT="-i rotdif.in"
 cat > rotdif.in <<EOF
+rng setdefault marsaglia
 parm ../tz2.parm7
 reference avgstruct.pdb [tz2avg] 
 trajin ../tz2.nc
