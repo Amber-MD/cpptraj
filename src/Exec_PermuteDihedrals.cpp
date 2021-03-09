@@ -631,7 +631,6 @@ void Exec_PermuteDihedrals::RandomizeAngles_2(Frame& currentFrame, Topology cons
     // Generate random value to rotate by in radians
     // NOTE: Should we prevent rotating exactly 360 degrees?
     double theta_in_radians = RN_.rn_gen() * Constants::TWOPI;
-    double theta_in_degrees = theta_in_radians * Constants::RADDEG;
     // Save original coords
     std::copy( currentFrame.xAddress(), currentFrame.xAddress()+currentFrame.size(), tmpx.begin() );
     if (debug_>0) mprintf("DEBUG: Rotating dihedral %zu res %8i:\n", dih - BB_dihedrals_.begin(),
@@ -645,7 +644,7 @@ void Exec_PermuteDihedrals::RandomizeAngles_2(Frame& currentFrame, Topology cons
         mprintf("\t%8i %12s %12s, +%.2lf degrees (%u).\n",dih->resnum+1,
                 topIn.AtomMaskName(dih->atom1).c_str(),
                 topIn.AtomMaskName(dih->atom2).c_str(),
-                theta_in_degrees, number_of_rotations);
+                theta_in_radians*Constants::RADDEG, number_of_rotations);
       }
       // Rotate around axis
       currentFrame.Rotate(rotationMatrix, dih->Rmask);
@@ -704,7 +703,6 @@ void Exec_PermuteDihedrals::RandomizeAngles_2(Frame& currentFrame, Topology cons
         // Generate new random value to rotate by in radians
         // NOTE: Should we prevent rotating exactly 360 degrees?
         theta_in_radians = RN_.rn_gen() * Constants::TWOPI;
-        theta_in_degrees = theta_in_radians * Constants::RADDEG;
       }
     } // END rotate_dihedral loop
   } // End loop over dihedrals
