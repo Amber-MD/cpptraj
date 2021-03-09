@@ -21,7 +21,7 @@ class Action_RandomizeIons : public Action {
     int RandomizeIons_2(int, ActionFrame&) const;
     int RandomizeIons_1(int, ActionFrame&);
 
-    enum AlgoType { ORIGINAL = 0, V2 };
+    enum AlgoType { ORIGINAL = 0, V2, V3 };
 
     AlgoType algo_;              ///< Algorithm to use
     ImageOption imageOpt_;       ///< Used to determine if imaging should be used.

@@ -27,6 +27,8 @@ Action::RetType Action_RandomizeIons::Init(ArgList& actionArgs, ActionInit& init
     algo_ = ORIGINAL;
   else if (ialgorithm == 2)
     algo_ = V2;
+  else if (ialgorithm == 3)
+    algo_ = V3;
   else {
     mprinterr("Error: Invalid number for 'algo': %i\n", ialgorithm);
     return Action::ERR;
@@ -58,8 +60,10 @@ Action::RetType Action_RandomizeIons::Init(ArgList& actionArgs, ActionInit& init
           ions_.MaskString());
   if (algo_ == ORIGINAL)
     mprintf("\tUsing original algorithm.\n");
-  else
+  else if (algo_ == V2)
     mprintf("\tUsing version 2 of algorithm.\n");
+  else if (algo_ == V3)
+    mprintf("\tUsing version 3 of algorithm.\n");
   mprintf("\tNo ion can get closer than %.2f angstroms to another ion.\n", sqrt( overlap_ ));
   if (around_.MaskStringSet())
     mprintf("\tNo ion can get closer than %.2f angstroms to atoms in mask '%s'\n",
@@ -182,6 +186,8 @@ int Action_RandomizeIons::RandomizeIons_3(int frameNum, ActionFrame& frm) const 
     if (!isClose)
       sMolIndices.push_back( idx );
   }
+  // Shuffle the solvent molecule indices
+  RN_.ShufflePoints( sMolIndices );
 
   return swapIons(frm.ModifyFrm(), sMolIndices);
 }
@@ -311,8 +317,10 @@ Action::RetType Action_RandomizeIons::DoAction(int frameNum, ActionFrame& frm) {
   int err = 0;
   if (algo_ == ORIGINAL)
     err = RandomizeIons_1(frameNum, frm);
-  else
+  else if (algo_ == V2)
     err = RandomizeIons_2(frameNum, frm);
+  else if (algo_ == V3)
+    err = RandomizeIons_3(frameNum, frm);
 
   if (err != 0) return Action::ERR;
   return Action::MODIFY_COORDS;
