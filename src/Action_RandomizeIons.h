@@ -15,6 +15,15 @@ class Action_RandomizeIons : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
+    int swapIons(Frame&, std::vector<int> const&) const;
+
+    int RandomizeIons_3(int, ActionFrame&) const;
+    int RandomizeIons_2(int, ActionFrame&) const;
+    int RandomizeIons_1(int, ActionFrame&);
+
+    enum AlgoType { ORIGINAL = 0, V2 };
+
+    AlgoType algo_;              ///< Algorithm to use
     ImageOption imageOpt_;       ///< Used to determine if imaging should be used.
     Random_Number RN_;           ///< Random number generator.
     AtomMask ions_;              ///< Mask of ions to be moved.
