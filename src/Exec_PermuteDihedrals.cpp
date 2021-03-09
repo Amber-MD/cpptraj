@@ -19,7 +19,7 @@ Exec_PermuteDihedrals::Exec_PermuteDihedrals() : Exec(COORDS),
   crdout_(0),
   check_for_clashes_(false),
   checkAllResidues_(false),
-  max_factor_(10),
+  max_factor_(2),
   cutoff_(0.64), // 0.8^2
   rescutoff_(100.0), // 10.0^2
   backtrack_(5),
@@ -139,7 +139,7 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
     cutoff_ = argIn.getKeyDouble("cutoff",0.8);
     rescutoff_ = argIn.getKeyDouble("rescutoff", resCutoffDefault);
     increment_ = argIn.getKeyInt("increment",1);
-    max_factor_ = argIn.getKeyDouble("maxfactor", 10);
+    max_factor_ = argIn.getKeyDouble("maxfactor", 2);
     int iseed = argIn.getKeyInt("rseed",-1);
     // Output file for # of problems
     DataFile* problemFile = State.DFL().AddDataFile(argIn.GetStringKey("out"), argIn);
@@ -292,9 +292,11 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
 
   // Perform dihedral permute
   Frame currentFrame = CRD->AllocateFrame();
+  // Loop over frames in CRD
   for (unsigned int set = 0; set != CRD->Size(); set++)
   {
     CRD->GetFrame(set, currentFrame);
+    mprintf("DEBUG: Permute frame %u\n", set+1);
     int n_problems = 0;
     switch (mode_) {
       case RANDOM:
@@ -590,7 +592,7 @@ void Exec_PermuteDihedrals::RandomizeAngles(Frame& currentFrame, Topology const&
 # ifdef DEBUG_PERMUTEDIHEDRALS
   DebugTraj.EndTraj();
 # endif
-  mprintf("\tNumber of rotations %u, expected %zu\n",number_of_rotations,BB_dihedrals_.size());
+  mprintf("\tPerformed %u rotations for %zu dihedrals\n", number_of_rotations, BB_dihedrals_.size());
 }
 
 // Exec_PermuteDihedrals::RandomizeAngles_2()
@@ -617,15 +619,16 @@ void Exec_PermuteDihedrals::RandomizeAngles_2(Frame& currentFrame, Topology cons
                              TrajectoryFile::AMBERNETCDF);
   DebugTraj.WriteSingle(debugframenum++,currentFrame);
 # endif
-  unsigned int number_of_rotations = 0;
+  unsigned int total_rotations = 0;
 
-  mprintf("\tMax number of rotations to try: %u\n", max_rotations);
+  mprintf("\tMax number of rotations to try each dihedral: %u\n", max_rotations);
 
   // Loop over all dihedrals
   for (std::vector<PermuteDihedralsType>::const_iterator dih = BB_dihedrals_.begin();
                                                          dih != BB_dihedrals_.end(); 
                                                        ++dih)
   {
+    unsigned int number_of_rotations = 0;
     // Set axis of rotation
     Vec3 axisOfRotation = currentFrame.SetAxisOfRotation(dih->atom1, dih->atom2);
     // Generate random value to rotate by in radians
@@ -633,7 +636,7 @@ void Exec_PermuteDihedrals::RandomizeAngles_2(Frame& currentFrame, Topology cons
     double theta_in_radians = RN_.rn_gen() * Constants::TWOPI;
     // Save original coords
     std::copy( currentFrame.xAddress(), currentFrame.xAddress()+currentFrame.size(), tmpx.begin() );
-    if (debug_>0) mprintf("DEBUG: Rotating dihedral %zu res %8i:\n", dih - BB_dihedrals_.begin(),
+    if (debug_>0) mprintf("DEBUG: Rotating dihedral %li res %8i:\n", dih - BB_dihedrals_.begin(),
                           dih->resnum+1);
     bool rotate_dihedral = true;
     while (rotate_dihedral) {
@@ -644,10 +647,11 @@ void Exec_PermuteDihedrals::RandomizeAngles_2(Frame& currentFrame, Topology cons
         mprintf("\t%8i %12s %12s, +%.2lf degrees (%u).\n",dih->resnum+1,
                 topIn.AtomMaskName(dih->atom1).c_str(),
                 topIn.AtomMaskName(dih->atom2).c_str(),
-                theta_in_radians*Constants::RADDEG, number_of_rotations);
+                theta_in_radians*Constants::RADDEG, total_rotations);
       }
       // Rotate around axis
       currentFrame.Rotate(rotationMatrix, dih->Rmask);
+      ++total_rotations;
       ++number_of_rotations;
 #     ifdef DEBUG_PERMUTEDIHEDRALS
       // DEBUG
@@ -657,7 +661,8 @@ void Exec_PermuteDihedrals::RandomizeAngles_2(Frame& currentFrame, Topology cons
       if (!check_for_clashes_) break;
       // If we have exceeded the max number of rotations bail out.
       if (number_of_rotations > max_rotations) {
-        mprintf("Warning: Max # of rotations has been exceeded.\n");
+        mprintf("Warning: Max # of rotations has been exceeded for dihedral %li res %8i.\n",
+                dih - BB_dihedrals_.begin(), dih->resnum+1);
         break;
       }
       // Check resulting structure for issues.
@@ -709,5 +714,5 @@ void Exec_PermuteDihedrals::RandomizeAngles_2(Frame& currentFrame, Topology cons
 # ifdef DEBUG_PERMUTEDIHEDRALS
   DebugTraj.EndTraj();
 # endif
-  mprintf("\tNumber of rotations %u, expected %zu\n",number_of_rotations,BB_dihedrals_.size());
+  mprintf("\tPerformed %u rotations for %zu dihedrals.\n", total_rotations, BB_dihedrals_.size());
 }
