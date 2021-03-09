@@ -707,8 +707,6 @@ void Exec_PermuteDihedrals::RandomizeAngles_2(Frame& currentFrame, Topology cons
         theta_in_degrees = theta_in_radians * Constants::RADDEG;
       }
     } // END rotate_dihedral loop
-    if (number_of_rotations > max_rotations) break; 
-
   } // End loop over dihedrals
 # ifdef DEBUG_PERMUTEDIHEDRALS
   DebugTraj.EndTraj();
