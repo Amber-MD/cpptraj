@@ -198,7 +198,7 @@ std::vector<int> Action_RandomizeIons::selectAroundIndices(Frame const& frameIn)
 }
 
 /** Third version of randomize ions. Respect the 'around' mask. */
-int Action_RandomizeIons::RandomizeIons_3(int frameNum, ActionFrame& frm) const {
+int Action_RandomizeIons::RandomizeIons_Around(int frameNum, ActionFrame& frm) const {
   std::vector<int> sMolIndices = selectAroundIndices(frm.Frm());
 
   return swapIons(frm.ModifyFrm(), sMolIndices);
@@ -206,17 +206,17 @@ int Action_RandomizeIons::RandomizeIons_3(int frameNum, ActionFrame& frm) const 
 
 /** Fourth version of randomize ions. Respect 'around' and 'overlap'.
   */
-int Action_RandomizeIons::RandomizeIons_4(int frameNum, ActionFrame& frm) const {
-  // Hold coordinates of placed ions to avoid (overlap)
-  std::vector<Vec3> placedIons;
+int Action_RandomizeIons::RandomizeIons_Around_Overlap(int frameNum, ActionFrame& frm) const {
   // Get solvent molecules far away enough from atoms in around_
   std::vector<int> sMolIndices = selectAroundIndices(frm.Frm());
+
   if ((int)sMolIndices.size() < ions_.Nselected()) {
     mprinterr("Error: Fewer eligible solvent molecules (%zu) than ions (%i)\n",
               sMolIndices.size(), ions_.Nselected());
     return 1;
   }
-
+  // Hold coordinates of placed ions to avoid (overlap)
+  std::vector<Vec3> placedIons;
   // Loop over ions
   unsigned int sidx = 0;
   for (AtomMask::const_iterator ion1 = ions_.begin(); ion1 != ions_.end(); ++ion1, ++sidx)
@@ -268,7 +268,7 @@ int Action_RandomizeIons::RandomizeIons_4(int frameNum, ActionFrame& frm) const 
 }
 
 /** Second version of randomize ions. No distance restrictions. */
-int Action_RandomizeIons::RandomizeIons_2(int frameNum, ActionFrame& frm) const {
+int Action_RandomizeIons::RandomizeIons_NoRestrictions(int frameNum, ActionFrame& frm) const {
   std::vector<int> sMolIndices;
   sMolIndices.reserve( solvMols_.size() );
   for (int i = 0; i != (int)solvMols_.size(); i++)
@@ -393,11 +393,11 @@ Action::RetType Action_RandomizeIons::DoAction(int frameNum, ActionFrame& frm) {
   if (algo_ == ORIGINAL)
     err = RandomizeIons_1(frameNum, frm);
   else if (algo_ == V2)
-    err = RandomizeIons_2(frameNum, frm);
+    err = RandomizeIons_NoRestrictions(frameNum, frm);
   else if (algo_ == V3)
-    err = RandomizeIons_3(frameNum, frm);
+    err = RandomizeIons_Around(frameNum, frm);
   else if (algo_ == V4)
-    err = RandomizeIons_4(frameNum, frm);
+    err = RandomizeIons_Around_Overlap(frameNum, frm);
 
   if (err != 0) return Action::ERR;
   return Action::MODIFY_COORDS;

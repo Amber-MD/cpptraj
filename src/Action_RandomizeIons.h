@@ -18,9 +18,9 @@ class Action_RandomizeIons : public Action {
     int swapIons(Frame&, std::vector<int> const&) const;
     std::vector<int> selectAroundIndices(Frame const&) const;
 
-    int RandomizeIons_4(int, ActionFrame&) const;
-    int RandomizeIons_3(int, ActionFrame&) const;
-    int RandomizeIons_2(int, ActionFrame&) const;
+    int RandomizeIons_Around_Overlap(int, ActionFrame&) const;
+    int RandomizeIons_Around(int, ActionFrame&) const;
+    int RandomizeIons_NoRestrictions(int, ActionFrame&) const;
     int RandomizeIons_1(int, ActionFrame&);
 
     enum AlgoType { ORIGINAL = 0, V2, V3, V4 };
