@@ -16,6 +16,7 @@ class Action_RandomizeIons : public Action {
     void Print() {}
 
     int swapIons(Frame&, std::vector<int> const&) const;
+    std::vector<int> selectAroundIndices(Frame const&) const;
 
     int RandomizeIons_3(int, ActionFrame&) const;
     int RandomizeIons_2(int, ActionFrame&) const;

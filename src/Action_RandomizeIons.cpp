@@ -165,19 +165,20 @@ int Action_RandomizeIons::swapIons(Frame& frameIn, std::vector<int> const& sMolI
   return 0;
 }
 
-/** Third version of randomize ions. Respect the 'around' mask. */
-int Action_RandomizeIons::RandomizeIons_3(int frameNum, ActionFrame& frm) const {
+/** \return Array containing indices into solvMols_ of molecules farther away than min_ from around_.
+  */
+std::vector<int> Action_RandomizeIons::selectAroundIndices(Frame const& frameIn) const {
   std::vector<int> sMolIndices;
   sMolIndices.reserve( solvMols_.size() );
   // Determine which solvent molecules are far away enough from atoms in around_
   for (int idx = 0; idx != (int)solvMols_.size(); idx++)
   {
     // Use solvent first atom only
-    const double* watXYZ = frm.Frm().XYZ( solvMols_[idx].Front() );
+    const double* watXYZ = frameIn.XYZ( solvMols_[idx].Front() );
     bool isClose = false;
     for (AtomMask::const_iterator atm = around_.begin(); atm != around_.end(); ++atm)
     {
-      double dist2 = DIST2(imageOpt_.ImagingType(), watXYZ, frm.Frm().XYZ(*atm), frm.Frm().BoxCrd());
+      double dist2 = DIST2(imageOpt_.ImagingType(), watXYZ, frameIn.XYZ(*atm), frameIn.BoxCrd());
       if (dist2 < min_) {
         isClose = true;
         break;
@@ -188,6 +189,13 @@ int Action_RandomizeIons::RandomizeIons_3(int frameNum, ActionFrame& frm) const 
   }
   // Shuffle the solvent molecule indices
   RN_.ShufflePoints( sMolIndices );
+
+  return sMolIndices;
+}
+
+/** Third version of randomize ions. Respect the 'around' mask. */
+int Action_RandomizeIons::RandomizeIons_3(int frameNum, ActionFrame& frm) const {
+  std::vector<int> sMolIndices = selectAroundIndices(frm.Frm());
 
   return swapIons(frm.ModifyFrm(), sMolIndices);
 }
