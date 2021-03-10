@@ -4,6 +4,7 @@
 #include "ArgList.h"
 #include "CpptrajStdio.h"
 #include "DataSet_1D.h"
+#include "DataSet_2D.h"
 #include "DataSet_integer.h"
 
 /** CONSTRUCTOR */
@@ -160,10 +161,12 @@ int DataFilter::InitFilter(ArgList& argIn, DataSetList& DSL, DataFileList& DFL, 
 }
 
 /** Get input value for specified set index. */
-double DataFilter::GetInpValue(int setIdx, int inpIdx) const {
+double DataFilter::GetInpValue(unsigned int setIdx, unsigned int inpIdx) const {
   double dVal = 0;
   if (inpSets_[setIdx]->Group() == DataSet::SCALAR_1D) {
     dVal = ((DataSet_1D*)inpSets_[setIdx])->Dval(inpIdx);
+  } else if (inpSets_[setIdx]->Group() == DataSet::MATRIX_2D) {
+    dVal = ((DataSet_2D*)inpSets_[setIdx])->GetElement(inpIdx);
   } else {
     mprinterr("Error: Unhandled set type in DataFilter::GetInpValue().\n");
   }
@@ -177,9 +180,9 @@ const int DataFilter::ResultValue[2] = {
 };
 
 /** Filter the specified index.
-  * \return 1 if index was filtered, 0 otherwise.
+  * \return 1 if index was filtered, 0 if index passed.
   */
-int DataFilter::FilterIndex(int inpIdx) {
+int DataFilter::FilterIndex(unsigned int inpIdx) {
   ResultType result = PASSED;
   if (!multi_) {
     // Check if frame is within max/min of every data set.

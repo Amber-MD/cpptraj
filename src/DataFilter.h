@@ -16,12 +16,12 @@ class DataFilter {
     /// Process arguments, get sets to filter
     int InitFilter(ArgList&, DataSetList&, DataFileList&, int);
     /// \return 1 if specified index was filtered, 0 otherwise
-    int FilterIndex(int);
+    int FilterIndex(unsigned int);
   private:
     typedef std::vector<double> Darray;
     typedef std::vector<DataSet*> SetArray;
 
-    inline double GetInpValue(int,int) const;
+    inline double GetInpValue(unsigned int, unsigned int) const;
 
     enum ResultType { PASSED = 0, FILTERED };
 
