@@ -3,17 +3,20 @@
 #include "DataFileList.h"
 #include "ArgList.h"
 #include "CpptrajStdio.h"
+#include "DataSet_1D.h"
+#include "DataSet_integer.h"
 
 /** CONSTRUCTOR */
 DataFilter::DataFilter() :
   filterSet_(0),
   SetToBeFiltered_(0),
   FilteredSet_(0),
-  Npassed_(0),
-  Nfiltered_(0),
   debug_(0),
   multi_(false)
-{}
+{
+  Nresult_[PASSED] = 0;
+  Nresult_[FILTERED] = 0;
+}
 
 /** Keywords recognized by InitFilter(). */
 const char* DataFilter::Keywords() {
@@ -23,13 +26,15 @@ const char* DataFilter::Keywords() {
 /** Process arguments, get/set up data sets. */
 int DataFilter::InitFilter(ArgList& argIn, DataSetList& DSL, DataFileList& DFL, int debugIn) {
   filterSet_ = 0;
+  Xvals_.clear();
   Max_.clear();
   Min_.clear();
   inpSets_.clear();
   outSets_.clear();
-  Npassed_ = 0;
-  Nfiltered_ = 0;
+  Nresult_[PASSED] = 0;
+  Nresult_[FILTERED] = 0;
   debug_ = debugIn;
+  outIdx_ = 0;
 
   multi_ = argIn.hasKey("multi");
   std::string dsname = argIn.GetStringKey("name");
@@ -152,4 +157,55 @@ int DataFilter::InitFilter(ArgList& argIn, DataSetList& DSL, DataFileList& DFL, 
   }
 
   return 0;
+}
+
+/** Get input value for specified set index. */
+double DataFilter::GetInpValue(int setIdx, int inpIdx) const {
+  double dVal = 0;
+  if (inpSets_[setIdx]->Group() == DataSet::SCALAR_1D) {
+    dVal = ((DataSet_1D*)inpSets_[setIdx])->Dval(inpIdx);
+  } else {
+    mprinterr("Error: Unhandled set type in DataFilter::GetInpValue().\n");
+  }
+  return dVal;
+}
+
+/** Integer values to be put into result data set(s). */
+const int DataFilter::ResultValue[2] = {
+  1, // PASSED
+  0, // FILTERED
+};
+
+/** Filter the specified index.
+  * \return 1 if index was filtered, 0 otherwise.
+  */
+int DataFilter::FilterIndex(int inpIdx) {
+  ResultType result = PASSED;
+  if (!multi_) {
+    // Check if frame is within max/min of every data set.
+    for (unsigned int idx = 0; idx != inpSets_.size(); ++idx)
+    {
+      double dVal = GetInpValue(idx, inpIdx);
+      //mprintf("DBG: maxmin[%u]: dVal = %f, min = %f, max = %f\n",ds,dVal,Min_[ds],Max_[ds]);
+      // If value from dataset not within min/max, exit now.
+      if (dVal < Min_[idx] || dVal > Max_[idx]) {
+        result = FILTERED; 
+        break;
+      }
+    }
+    filterSet_->Add( outIdx_, ResultValue + (int)result );
+    Nresult_[result]++;
+  } else {
+    // For each data set 1 if within min/max, 0 otherwise.
+    for (unsigned int idx = 0; idx != inpSets_.size(); ++idx)
+    {
+      double dVal = GetInpValue(idx, inpIdx);
+      if (dVal < Min_[idx] || dVal > Max_[idx]) 
+        outSets_[idx]->Add( outIdx_, ResultValue + (int)FILTERED );
+      else
+        outSets_[idx]->Add( outIdx_, ResultValue + (int)PASSED );
+    }
+  }
+  outIdx_++;
+  return (int)result;
 }

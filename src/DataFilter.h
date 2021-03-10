@@ -1,11 +1,11 @@
 #ifndef INC_DATAFILTER_H
 #define INC_DATAFILTER_H
 #include <vector>
-#include "DataSet_double.h"
 class ArgList;
 class DataSetList;
 class DataFileList;
 class DataSet;
+class DataSet_1D;
 class DataSet_integer;
 /// Can be used to count/filter out data set elements based on user-defined criteria.
 class DataFilter {
@@ -21,17 +21,24 @@ class DataFilter {
     typedef std::vector<double> Darray;
     typedef std::vector<DataSet*> SetArray;
 
+    inline double GetInpValue(int,int) const;
+
+    enum ResultType { PASSED = 0, FILTERED };
+
+    // The data set integer value for ResultType; PASSED is 1, FILTERED is 0
+    static const int ResultValue[];
+
     DataSet_integer* filterSet_;  ///< Output DataSet containing for each index 1 for OK, 0 for filtered out (not multi).
     DataSet_1D* SetToBeFiltered_; ///< Optional 1D data set to be filtered.
     DataSet_1D* FilteredSet_;     ///< Output 1D data set resulting from filter.
-    DataSet_double Xvals_;        ///< X values for FilteredSet_.
+    Darray Xvals_;                ///< X values for FilteredSet_.
     Darray Max_;                  ///< Only allow values less than these
     Darray Min_;                  ///< Only allow values greater than these
     SetArray inpSets_;            ///< Sets to base criteria on
     SetArray outSets_;            ///< Sets containing for each index 1 for OK, 0 for filtered out (multi).
-    unsigned int Npassed_;        ///< Number of indices not filtered out.
-    unsigned int Nfiltered_;      ///< Number of indices filtered out.
+    unsigned int Nresult_[2];     ///< Number of indices not filtered/filtered out.
     int debug_;                   ///< Debug level
+    int outIdx_;                  ///< Current output index.
     bool multi_;                  ///< If false, filter based on each set. If true, filter each set.
 };
 #endif
