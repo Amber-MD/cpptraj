@@ -22,21 +22,8 @@ Action::RetType Action_RandomizeIons::Init(ArgList& actionArgs, ActionInit& init
 {
   debug_ = debugIn;
   // Determine algorithm to use
-  int ialgorithm = actionArgs.getKeyInt("algo", 1);
-  if (ialgorithm == 1)
-    algo_ = ORIGINAL;
-  else if (ialgorithm == 2)
-    algo_ = NO_RESTRICTIONS;
-  else if (ialgorithm == 3)
-    algo_ = AROUND;
-  else if (ialgorithm == 4)
-    algo_ = AROUND_OVERLAP;
-  else if (ialgorithm == 5)
-    algo_ = OVERLAP;
-  else {
-    mprinterr("Error: Invalid number for 'algo': %i\n", ialgorithm);
-    return Action::ERR;
-  }
+  int ialgorithm = actionArgs.getKeyInt("algo", -1);
+
   // Get first mask
   std::string ionmask = actionArgs.GetMaskNext();
   if (ionmask.empty()) {
@@ -62,15 +49,38 @@ Action::RetType Action_RandomizeIons::Init(ArgList& actionArgs, ActionInit& init
   bool allow_overlap = actionArgs.hasKey("allowoverlap");
 
   // Determine which version of the algorithm is being used
-  //if (allow_overlap && !around_.MaskStringSet())
-  //  algo_ = NO_RESTRICTIONS;
-  //else if (!allow_overlap && around_.MaskStringSet())
-  //  algo_ =
+  if (allow_overlap) {
+    if (!around_.MaskStringSet())
+      algo_ = NO_RESTRICTIONS;
+    else
+      algo_ = AROUND;
+  } else {
+    if (!around_.MaskStringSet())
+      algo_ = OVERLAP;
+    else
+      algo_ = AROUND_OVERLAP;
+  }
+
+  // TODO deprecate this
+  if (ialgorithm == 1)
+    algo_ = ORIGINAL;
+  /*else if (ialgorithm == 2)
+    algo_ = NO_RESTRICTIONS;
+  else if (ialgorithm == 3)
+    algo_ = AROUND;
+  else if (ialgorithm == 4)
+    algo_ = AROUND_OVERLAP;
+  else if (ialgorithm == 5)
+    algo_ = OVERLAP;*/
+  else if (ialgorithm > 1) {
+    mprinterr("Error: Invalid number for 'algo': %i\n", ialgorithm);
+    return Action::ERR;
+  }
 
   // INFO
   mprintf("    RANDOMIZEIONS: Swapping postions of ions in mask '%s' with solvent.\n",
           ions_.MaskString());
-  if (algo_ == ORIGINAL)
+/*  if (algo_ == ORIGINAL)
     mprintf("\tUsing original algorithm.\n");
   else if (algo_ == NO_RESTRICTIONS)
     mprintf("\tUsing version 2 of algorithm.\n");
@@ -79,8 +89,10 @@ Action::RetType Action_RandomizeIons::Init(ArgList& actionArgs, ActionInit& init
   else if (algo_ == AROUND_OVERLAP)
     mprintf("\tUsing version 4 of algorithm.\n");
   else if (algo_ == OVERLAP)
-    mprintf("\tUsing version 5 of algorithm.\n");
-  if (!allow_overlap)
+    mprintf("\tUsing version 5 of algorithm.\n");*/
+  if (allow_overlap)
+    mprintf("\tIons will not be checked for distance to other ions.\n");
+  else
     mprintf("\tNo ion can get closer than %.2f angstroms to another ion.\n", sqrt( overlap_ ));
   if (around_.MaskStringSet())
     mprintf("\tNo ion can get closer than %.2f angstroms to atoms in mask '%s'\n",
