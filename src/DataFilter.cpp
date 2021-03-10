@@ -5,6 +5,7 @@
 #include "CpptrajStdio.h"
 #include "DataSet_1D.h"
 #include "DataSet_2D.h"
+#include "DataSet_3D.h"
 #include "DataSet_integer.h"
 
 /** CONSTRUCTOR */
@@ -79,7 +80,16 @@ int DataFilter::InitFilter(ArgList& argIn, DataSetList& DSL, DataFileList& DFL, 
       mprintf("Warning: '%s' selects no sets.\n", dsarg.c_str());
     else {
       for (DataSetList::const_iterator ds = sets.begin(); ds != sets.end(); ++ds)
+      {
+        if ((*ds)->Group() != DataSet::SCALAR_1D &&
+            (*ds)->Group() != DataSet::MATRIX_2D &&
+            (*ds)->Group() != DataSet::GRID_3D)
+        {
+          mprinterr("Error: '%s' is not a 1D, 2D, or 3D data set.", (*ds)->legend());
+          return 1;
+        }
         inpSets_.push_back( *ds );
+      }
     }
   }
   if (inpSets_.empty()) {
@@ -167,6 +177,8 @@ double DataFilter::GetInpValue(unsigned int setIdx, unsigned int inpIdx) const {
     dVal = ((DataSet_1D*)inpSets_[setIdx])->Dval(inpIdx);
   } else if (inpSets_[setIdx]->Group() == DataSet::MATRIX_2D) {
     dVal = ((DataSet_2D*)inpSets_[setIdx])->GetElement(inpIdx);
+  } else if (inpSets_[setIdx]->Group() == DataSet::GRID_3D) {
+    dVal = (*((DataSet_3D*)inpSets_[setIdx]))[inpIdx];
   } else {
     mprinterr("Error: Unhandled set type in DataFilter::GetInpValue().\n");
   }
