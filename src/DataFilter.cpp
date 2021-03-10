@@ -7,6 +7,8 @@
 /** CONSTRUCTOR */
 DataFilter::DataFilter() :
   filterSet_(0),
+  SetToBeFiltered_(0),
+  FilteredSet_(0),
   Npassed_(0),
   Nfiltered_(0),
   debug_(0),
@@ -34,6 +36,17 @@ int DataFilter::InitFilter(ArgList& argIn, DataSetList& DSL, DataFileList& DFL, 
   if (dsname.empty())
     dsname = DSL.GenerateDefaultName("Filter");
   DataFile* maxminfile = DFL.AddDataFile( argIn.GetStringKey("out"), argIn );
+  // Get set to be filtered
+  std::string nameOfSetToBeFiltered = argIn.GetStringKey("filterset");
+  std::string resultingSetName;
+  if (!nameOfSetToBeFiltered.empty()) {
+    // Not intended to work with 'multi'
+    if (multi_) {
+      mprinterr("Error: 'filterset' can not be used with 'multi' keyword.\n");
+      return 1;
+    }
+    resultingSetName = argIn.GetStringKey("newset");
+  }
   // Get min and max args.
   while (argIn.Contains("min"))
     Min_.push_back( argIn.getKeyDouble("min", 0.0) );
@@ -52,7 +65,7 @@ int DataFilter::InitFilter(ArgList& argIn, DataSetList& DSL, DataFileList& DFL, 
               Min_.size(), Max_.size());
     return 1;
   }
-  // Get DataSets from remaining arguments
+  // Get input DataSets from remaining arguments
   std::string dsarg = argIn.GetStringNext();
   while (!dsarg.empty()) {
     DataSetList sets = DSL.GetMultipleSets( dsarg );
@@ -92,6 +105,41 @@ int DataFilter::InitFilter(ArgList& argIn, DataSetList& DSL, DataFileList& DFL, 
     if (filterSet_ == 0) return 1;
     if (maxminfile != 0)
       maxminfile->AddDataSet( (DataSet*)filterSet_ );
+    // Get set to be filtered if specified.
+    if (!nameOfSetToBeFiltered.empty()) {
+      DataSet* ds = DSL.GetDataSet( nameOfSetToBeFiltered );
+      if (ds == 0) {
+        mprinterr("Error: Set to be filtered '%s' not found.\n", nameOfSetToBeFiltered.c_str());
+        return 1;
+      }
+      if (ds->Group() != DataSet::SCALAR_1D)
+      {
+        mprinterr("Error: '%s' is not 1D scalar.\n", ds->legend());
+        return 1;
+      }
+      //if (ds->Size() < nframes) { TODO re-enable this check in e.g. Setup
+      //  mprinterr("Error: Set to be filtered size (%zu) is too small (%zu)\n",
+      //            ds->Size(), nframes);
+      //  return 1;
+      //}
+      SetToBeFiltered_ = (DataSet_1D*)ds;
+      // Create new filter set
+      FilteredSet_ = (DataSet_1D*)DataSetList::Allocate(SetToBeFiltered_->Type());
+      MetaData md(SetToBeFiltered_->Meta());
+      if (!resultingSetName.empty()) {
+        md.SetName(resultingSetName);
+        ds = DSL.CheckForSet( md );
+        if (ds != 0) {
+          mprinterr("Error: New set name '%s' already exists.\n", resultingSetName.c_str());
+          return 1;
+        }
+        mprintf("\tA new filtered set will be created from set '%s'\n", SetToBeFiltered_->legend());
+      } else
+        mprintf("\tFiltering set '%s'\n", SetToBeFiltered_->legend());
+      FilteredSet_->SetMeta( md );
+      FilteredSet_->SetDim(0, SetToBeFiltered_->Dim(0));
+      // Do not allocate here to save memory.
+    }
   } else {
     for (unsigned int idx = 0; idx < inpSets_.size(); idx++) {
       DataSet* ds = DSL.AddSet(DataSet::INTEGER, MetaData(dsname, idx));
