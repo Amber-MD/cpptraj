@@ -194,6 +194,10 @@ int DataFilter::FilterIndex(int inpIdx) {
       }
     }
     filterSet_->Add( outIdx_, ResultValue + (int)result );
+    if (SetToBeFiltered_ != 0 && result == PASSED) {
+      Xvals_.push_back( SetToBeFiltered_->Xcrd(inpIdx));
+      FilteredSet_->Add(Nresult_[PASSED], SetToBeFiltered_->VoidPtr(inpIdx));
+    }
     Nresult_[result]++;
   } else {
     // For each data set 1 if within min/max, 0 otherwise.
