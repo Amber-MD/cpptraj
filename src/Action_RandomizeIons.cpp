@@ -21,8 +21,8 @@ void Action_RandomizeIons::Help() const {
 Action::RetType Action_RandomizeIons::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   debug_ = debugIn;
-  // Determine algorithm to use
-  int ialgorithm = actionArgs.getKeyInt("algo", -1);
+  // Determine if the older, less efficient algorithm should be used.
+  bool use_original_algorithm = actionArgs.hasKey("originalalgorithm");
 
   // Get first mask
   std::string ionmask = actionArgs.GetMaskNext();
@@ -61,35 +61,13 @@ Action::RetType Action_RandomizeIons::Init(ArgList& actionArgs, ActionInit& init
       algo_ = AROUND_OVERLAP;
   }
 
-  // TODO deprecate this
-  if (ialgorithm == 1)
+  // Override with original version if specified
+  if (use_original_algorithm)
     algo_ = ORIGINAL;
-  /*else if (ialgorithm == 2)
-    algo_ = NO_RESTRICTIONS;
-  else if (ialgorithm == 3)
-    algo_ = AROUND;
-  else if (ialgorithm == 4)
-    algo_ = AROUND_OVERLAP;
-  else if (ialgorithm == 5)
-    algo_ = OVERLAP;*/
-  else if (ialgorithm > 1) {
-    mprinterr("Error: Invalid number for 'algo': %i\n", ialgorithm);
-    return Action::ERR;
-  }
 
   // INFO
   mprintf("    RANDOMIZEIONS: Swapping postions of ions in mask '%s' with solvent.\n",
           ions_.MaskString());
-/*  if (algo_ == ORIGINAL)
-    mprintf("\tUsing original algorithm.\n");
-  else if (algo_ == NO_RESTRICTIONS)
-    mprintf("\tUsing version 2 of algorithm.\n");
-  else if (algo_ == AROUND)
-    mprintf("\tUsing version 3 of algorithm.\n");
-  else if (algo_ == AROUND_OVERLAP)
-    mprintf("\tUsing version 4 of algorithm.\n");
-  else if (algo_ == OVERLAP)
-    mprintf("\tUsing version 5 of algorithm.\n");*/
   if (allow_overlap)
     mprintf("\tIons will not be checked for distance to other ions.\n");
   else
@@ -102,6 +80,8 @@ Action::RetType Action_RandomizeIons::Init(ArgList& actionArgs, ActionInit& init
   if (seed > 0)
     mprintf("\tRandom number generator seed is %i\n", seed);
   RN_.rn_set( seed );
+  if (use_original_algorithm)
+    mprintf("Warning: 'originalalgorithm': Original algorithm in use.\n");
 
   return Action::OK;
 }
