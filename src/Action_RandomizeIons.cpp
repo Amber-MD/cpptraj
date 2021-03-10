@@ -169,7 +169,7 @@ int Action_RandomizeIons::swapIons(Frame& frameIn, std::vector<int> const& sMolI
   return 0;
 }
 
-/** \return Array containing indices into solvMols_ of molecules farther away than min_ from around_.
+/** \return Array containing shuffled indices into solvMols_ of molecules farther away than min_ from around_.
   */
 std::vector<int> Action_RandomizeIons::selectAroundIndices(Frame const& frameIn) const {
   std::vector<int> sMolIndices;
@@ -196,6 +196,20 @@ std::vector<int> Action_RandomizeIons::selectAroundIndices(Frame const& frameIn)
 
   return sMolIndices;
 }
+
+/** \return Array containing shuffled indices into solvMols_.
+  */
+std::vector<int> Action_RandomizeIons::selectIndices() const {
+  std::vector<int> sMolIndices;
+  sMolIndices.reserve( solvMols_.size() );
+  for (int i = 0; i != (int)solvMols_.size(); i++)
+    sMolIndices.push_back( i );
+  // Shuffle the solvent molecule indices
+  RN_.ShufflePoints( sMolIndices );
+
+  return sMolIndices;
+}
+
 
 /** Third version of randomize ions. Respect the 'around' mask. */
 int Action_RandomizeIons::RandomizeIons_Around(int frameNum, ActionFrame& frm) const {
@@ -269,12 +283,7 @@ int Action_RandomizeIons::RandomizeIons_Around_Overlap(int frameNum, ActionFrame
 
 /** Second version of randomize ions. No distance restrictions. */
 int Action_RandomizeIons::RandomizeIons_NoRestrictions(int frameNum, ActionFrame& frm) const {
-  std::vector<int> sMolIndices;
-  sMolIndices.reserve( solvMols_.size() );
-  for (int i = 0; i != (int)solvMols_.size(); i++)
-    sMolIndices.push_back( i );
-  // Shuffle the solvent molecule indices
-  RN_.ShufflePoints( sMolIndices );
+  std::vector<int> sMolIndices = selectIndices();
 
   return swapIons(frm.ModifyFrm(), sMolIndices);
 }

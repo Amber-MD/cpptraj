@@ -17,6 +17,7 @@ class Action_RandomizeIons : public Action {
 
     int swapIons(Frame&, std::vector<int> const&) const;
     std::vector<int> selectAroundIndices(Frame const&) const;
+    std::vector<int> selectIndices() const;
 
     int RandomizeIons_Around_Overlap(int, ActionFrame&) const;
     int RandomizeIons_Around(int, ActionFrame&) const;
