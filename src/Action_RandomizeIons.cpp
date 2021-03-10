@@ -29,6 +29,8 @@ Action::RetType Action_RandomizeIons::Init(ArgList& actionArgs, ActionInit& init
     algo_ = V2;
   else if (ialgorithm == 3)
     algo_ = V3;
+  else if (ialgorithm == 4)
+    algo_ = V4;
   else {
     mprinterr("Error: Invalid number for 'algo': %i\n", ialgorithm);
     return Action::ERR;
@@ -64,6 +66,8 @@ Action::RetType Action_RandomizeIons::Init(ArgList& actionArgs, ActionInit& init
     mprintf("\tUsing version 2 of algorithm.\n");
   else if (algo_ == V3)
     mprintf("\tUsing version 3 of algorithm.\n");
+  else if (algo_ == V4)
+    mprintf("\tUsing version 4 of algorithm.\n");
   mprintf("\tNo ion can get closer than %.2f angstroms to another ion.\n", sqrt( overlap_ ));
   if (around_.MaskStringSet())
     mprintf("\tNo ion can get closer than %.2f angstroms to atoms in mask '%s'\n",
@@ -392,6 +396,8 @@ Action::RetType Action_RandomizeIons::DoAction(int frameNum, ActionFrame& frm) {
     err = RandomizeIons_2(frameNum, frm);
   else if (algo_ == V3)
     err = RandomizeIons_3(frameNum, frm);
+  else if (algo_ == V4)
+    err = RandomizeIons_4(frameNum, frm);
 
   if (err != 0) return Action::ERR;
   return Action::MODIFY_COORDS;
