@@ -26,11 +26,13 @@ Action::RetType Action_RandomizeIons::Init(ArgList& actionArgs, ActionInit& init
   if (ialgorithm == 1)
     algo_ = ORIGINAL;
   else if (ialgorithm == 2)
-    algo_ = V2;
+    algo_ = NO_RESTRICTIONS;
   else if (ialgorithm == 3)
-    algo_ = V3;
+    algo_ = AROUND;
   else if (ialgorithm == 4)
-    algo_ = V4;
+    algo_ = AROUND_OVERLAP;
+  else if (ialgorithm == 5)
+    algo_ = OVERLAP;
   else {
     mprinterr("Error: Invalid number for 'algo': %i\n", ialgorithm);
     return Action::ERR;
@@ -56,19 +58,30 @@ Action::RetType Action_RandomizeIons::Init(ArgList& actionArgs, ActionInit& init
   if (!aroundmask.empty()) {
     if (around_.SetMaskString( aroundmask )) return Action::ERR;
   }
-  
+  // See if overlaps should be allowed.
+  bool allow_overlap = actionArgs.hasKey("allowoverlap");
+
+  // Determine which version of the algorithm is being used
+  //if (allow_overlap && !around_.MaskStringSet())
+  //  algo_ = NO_RESTRICTIONS;
+  //else if (!allow_overlap && around_.MaskStringSet())
+  //  algo_ =
+
   // INFO
   mprintf("    RANDOMIZEIONS: Swapping postions of ions in mask '%s' with solvent.\n",
           ions_.MaskString());
   if (algo_ == ORIGINAL)
     mprintf("\tUsing original algorithm.\n");
-  else if (algo_ == V2)
+  else if (algo_ == NO_RESTRICTIONS)
     mprintf("\tUsing version 2 of algorithm.\n");
-  else if (algo_ == V3)
+  else if (algo_ == AROUND)
     mprintf("\tUsing version 3 of algorithm.\n");
-  else if (algo_ == V4)
+  else if (algo_ == AROUND_OVERLAP)
     mprintf("\tUsing version 4 of algorithm.\n");
-  mprintf("\tNo ion can get closer than %.2f angstroms to another ion.\n", sqrt( overlap_ ));
+  else if (algo_ == OVERLAP)
+    mprintf("\tUsing version 5 of algorithm.\n");
+  if (!allow_overlap)
+    mprintf("\tNo ion can get closer than %.2f angstroms to another ion.\n", sqrt( overlap_ ));
   if (around_.MaskStringSet())
     mprintf("\tNo ion can get closer than %.2f angstroms to atoms in mask '%s'\n",
             sqrt( min_ ), around_.MaskString());
@@ -288,6 +301,13 @@ int Action_RandomizeIons::RandomizeIons_Around_Overlap(int frameNum, ActionFrame
   return swapIons_NoOverlap(frm.ModifyFrm(), sMolIndices);
 }
 
+/** Fifth version of randomize ions. Respect 'overlap'. */
+int Action_RandomizeIons::RandomizeIons_Overlap(int frameNum, ActionFrame& frm) const {
+  std::vector<int> sMolIndices = selectIndices();
+
+  return swapIons_NoOverlap(frm.ModifyFrm(), sMolIndices);
+}
+
 /** Second version of randomize ions. No distance restrictions. */
 int Action_RandomizeIons::RandomizeIons_NoRestrictions(int frameNum, ActionFrame& frm) const {
   std::vector<int> sMolIndices = selectIndices();
@@ -408,12 +428,14 @@ Action::RetType Action_RandomizeIons::DoAction(int frameNum, ActionFrame& frm) {
   int err = 0;
   if (algo_ == ORIGINAL)
     err = RandomizeIons_1(frameNum, frm);
-  else if (algo_ == V2)
+  else if (algo_ == NO_RESTRICTIONS)
     err = RandomizeIons_NoRestrictions(frameNum, frm);
-  else if (algo_ == V3)
+  else if (algo_ == AROUND)
     err = RandomizeIons_Around(frameNum, frm);
-  else if (algo_ == V4)
+  else if (algo_ == AROUND_OVERLAP)
     err = RandomizeIons_Around_Overlap(frameNum, frm);
+  else if (algo_ == OVERLAP)
+    err = RandomizeIons_Overlap(frameNum, frm);
 
   if (err != 0) return Action::ERR;
   return Action::MODIFY_COORDS;

@@ -20,12 +20,13 @@ class Action_RandomizeIons : public Action {
     std::vector<int> selectAroundIndices(Frame const&) const;
     std::vector<int> selectIndices() const;
 
-    int RandomizeIons_Around_Overlap(int, ActionFrame&) const;
     int RandomizeIons_Around(int, ActionFrame&) const;
+    int RandomizeIons_Around_Overlap(int, ActionFrame&) const;
+    int RandomizeIons_Overlap(int, ActionFrame&) const;
     int RandomizeIons_NoRestrictions(int, ActionFrame&) const;
     int RandomizeIons_1(int, ActionFrame&);
 
-    enum AlgoType { ORIGINAL = 0, V2, V3, V4 };
+    enum AlgoType { ORIGINAL = 0, NO_RESTRICTIONS, AROUND, AROUND_OVERLAP, OVERLAP };
 
     AlgoType algo_;              ///< Algorithm to use
     ImageOption imageOpt_;       ///< Used to determine if imaging should be used.
