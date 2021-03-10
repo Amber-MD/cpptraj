@@ -285,61 +285,7 @@ int Action_RandomizeIons::RandomizeIons_Around_Overlap(int frameNum, ActionFrame
   // Get solvent molecules far away enough from atoms in around_
   std::vector<int> sMolIndices = selectAroundIndices(frm.Frm());
 
-  if ((int)sMolIndices.size() < ions_.Nselected()) {
-    mprinterr("Error: Fewer eligible solvent molecules (%zu) than ions (%i)\n",
-              sMolIndices.size(), ions_.Nselected());
-    return 1;
-  }
-  // Hold coordinates of placed ions to avoid (overlap)
-  std::vector<Vec3> placedIons;
-  // Loop over ions
-  unsigned int sidx = 0;
-  for (AtomMask::const_iterator ion1 = ions_.begin(); ion1 != ions_.end(); ++ion1, ++sidx)
-  {
-    if (sidx >= sMolIndices.size()) {
-      mprinterr("Error: Ran out of solvent indices.\n");
-      return 1;
-    }
-    const double* ionXYZ = frm.Frm().XYZ( *ion1 );
-    // Get the next index into solvMols_
-    int smIdx = sMolIndices[sidx];
-    // Get the XYZ coords of the first atom of the solvent mol
-    const double* watXYZ = frm.Frm().XYZ( solvMols_[smIdx].Front() );
-    // Ensure this solvent molecule is not too close to an already-placed ion.
-    bool tooClose = true;
-    while (tooClose) {
-      tooClose = false;
-      for (std::vector<Vec3>::const_iterator placedIon = placedIons.begin();
-                                             placedIon != placedIons.end();
-                                           ++placedIon)
-      {
-        double d2 = DIST2(imageOpt_.ImagingType(), watXYZ, placedIon->Dptr(), frm.Frm().BoxCrd());
-        if (d2 < overlap_) {
-          tooClose = true;
-          // Advance to next solvent position
-          sidx++;
-          if (sidx == sMolIndices.size()) {
-            mprinterr("Error: Ran out of solvent indices while looking for molecule to swap.\n");
-            return 1;
-          }
-          smIdx = sMolIndices[sidx];
-          watXYZ = frm.Frm().XYZ( solvMols_[smIdx].Front() );
-          break;
-        } // END solvent too close to placed ion
-      } // END loop over placed ions
-    } // END ensure water is not too close to placed ion
-    placedIons.push_back( Vec3(watXYZ[0], watXYZ[1], watXYZ[2]) );
-
-    // Translation vector
-    Vec3 trans( ionXYZ[0] - watXYZ[0],
-                ionXYZ[1] - watXYZ[1],
-                ionXYZ[2] - watXYZ[2]);
-    // Swap
-    frm.ModifyFrm().Translate( trans, solvMols_[smIdx] );
-    trans.Neg();
-    frm.ModifyFrm().Translate( trans, *ion1 );
-  }
-  return 0;
+  return swapIons_NoOverlap(frm.ModifyFrm(), sMolIndices);
 }
 
 /** Second version of randomize ions. No distance restrictions. */
