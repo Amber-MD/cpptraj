@@ -23,7 +23,8 @@ DataFilter::DataFilter() :
 
 /** Keywords recognized by InitFilter(). */
 const char* DataFilter::Keywords() {
-  return "";
+  return "\t{<dataset arg> min <min> max <max> ...} [out <file>] [name <setname>]\n"
+         "\t[multi | filterset <set> [newset <newname>]}]\n";
 }
 
 /** Process arguments, get/set up data sets. */
@@ -255,6 +256,13 @@ int DataFilter::FilterIndex(unsigned int inpIdx) {
 
 /** Perform any actions necessary to finish filtering. */
 int DataFilter::Finalize() const {
+  if (!multi_) {
+    mprintf("    FILTER: %u frames passed through, %u frames were filtered out.\n",
+            Npassed(), Nfiltered());
+    for (unsigned int idx = 0; idx < inpSets_.size(); idx++)
+      mprintf("\t%.4f < '%s' < %.4f\n", Min_[idx], inpSets_[idx]->legend(), Max_[idx]);
+  }
+
   if (SetToBeFiltered_ != 0) {
     if (SetToBeFiltered_->Meta().Match_Exact(FilteredSet_->Meta()))
       masterDSL_->RemoveSet( SetToBeFiltered_ );
