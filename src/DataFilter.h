@@ -1,6 +1,7 @@
 #ifndef INC_DATAFILTER_H
 #define INC_DATAFILTER_H
 #include <vector>
+#include <cstddef> // size_t
 class ArgList;
 class DataSetList;
 class DataFileList;
@@ -17,6 +18,8 @@ class DataFilter {
     int InitFilter(ArgList&, DataSetList&, DataFileList&, int);
     /// \return 1 if specified index was filtered, 0 otherwise
     int FilterIndex(unsigned int);
+    /// \return Minimum number of elements among all input data sets
+    size_t MinNumElements() const;
   private:
     typedef std::vector<double> Darray;
     typedef std::vector<DataSet*> SetArray;

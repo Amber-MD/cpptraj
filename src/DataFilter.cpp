@@ -170,6 +170,26 @@ int DataFilter::InitFilter(ArgList& argIn, DataSetList& DSL, DataFileList& DFL, 
   return 0;
 }
 
+/** \return Minimum number of elements among all input data sets. */
+size_t DataFilter::MinNumElements() const {
+  if (inpSets_.empty()) return 0;
+  size_t nelements = inpSets_[0]->Size();
+  for (SetArray::const_iterator it = inpSets_.begin(); it != inpSets_.end(); ++it)
+  {
+    if ((*it)->Size() < nelements)
+      nelements = (*it)->Size();
+  }
+  // Warn if any datasets are larger.
+  for (SetArray::const_iterator it = inpSets_.begin(); it != inpSets_.end(); ++it)
+  {
+    if ((*it)->Size() > nelements)
+      mprintf("Warning: '%s' size %zu is larger than other sets; only processing %zu\n",
+              (*it)->legend(), (*it)->Size(), nelements);
+  }
+  return nelements;
+}
+
+
 /** Get input value for specified set index. */
 double DataFilter::GetInpValue(unsigned int setIdx, unsigned int inpIdx) const {
   double dVal = 0;
