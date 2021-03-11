@@ -10,6 +10,7 @@ class DataSet_1D;
 class DataSet_integer;
 /// Can be used to count/filter out data set elements based on user-defined criteria.
 class DataFilter {
+    enum ResultType { PASSED = 0, FILTERED };
   public:
     DataFilter();
     /// \return Keywords recognized by InitFilter();
@@ -22,13 +23,14 @@ class DataFilter {
     size_t MinNumElements() const;
     /// Perform any actions necessary to finish filtering.
     int Finalize() const;
+
+    unsigned int Npassed()   const { return Nresult_[PASSED]; }
+    unsigned int Nfiltered() const { return Nresult_[FILTERED]; }
   private:
     typedef std::vector<double> Darray;
     typedef std::vector<DataSet*> SetArray;
 
     inline double GetInpValue(unsigned int, unsigned int) const;
-
-    enum ResultType { PASSED = 0, FILTERED };
 
     // The data set integer value for ResultType; PASSED is 1, FILTERED is 0
     static const int ResultValue[];
