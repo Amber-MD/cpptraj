@@ -10291,7 +10291,11 @@ random [setdefault {marsaglia|stdlib|mt|pcg32|xo128}]
 \end_layout
 
 \begin_layout LyX-Code
-   	[createset <name> count <#> settype {int|float01} [seed <#>]]
+   	[createset <name> count <#> [seed <#>]
+\end_layout
+
+\begin_layout LyX-Code
+        settype {int|float01|gauss [mean <mean>] [sd <SD>]}]
 \end_layout
 
 \begin_deeper
@@ -10362,10 +10366,28 @@ settype
 \begin_inset space ~
 \end_inset
 
-{int|float01} Type of numbers to use; integer or floating point between
- 0 and 1.
+{int|float01|gauss} Type of numbers to use; integer, floating point between
+ 0 and 1, Gaussian distribution.
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+mean
+\begin_inset space ~
+\end_inset
+
+<mean> Mean of distribution for 'gauss'.
+\end_layout
+
+\begin_layout Description
+sd
+\begin_inset space ~
+\end_inset
+
+<SD> Standard deviation of distribution for 'gauss'.
+\end_layout
+
+\end_deeper
 \begin_layout Description
 seed
 \begin_inset space ~
