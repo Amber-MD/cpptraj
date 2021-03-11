@@ -34,6 +34,7 @@ class DataFilter {
     DataSet_integer* filterSet_;  ///< Output DataSet containing for each index 1 for OK, 0 for filtered out (not multi).
     DataSet_1D* SetToBeFiltered_; ///< Optional 1D data set to be filtered.
     DataSet_1D* FilteredSet_;     ///< Output 1D data set resulting from filter.
+    DataSetList* masterDSL_;      ///< Pointer to the master DataSetList.
     Darray Xvals_;                ///< X values for FilteredSet_.
     Darray Max_;                  ///< Only allow values less than these
     Darray Min_;                  ///< Only allow values greater than these

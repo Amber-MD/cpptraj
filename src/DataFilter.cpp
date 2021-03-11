@@ -13,6 +13,7 @@ DataFilter::DataFilter() :
   filterSet_(0),
   SetToBeFiltered_(0),
   FilteredSet_(0),
+  masterDSL_(0),
   debug_(0),
   multi_(false)
 {
@@ -37,6 +38,8 @@ int DataFilter::InitFilter(ArgList& argIn, DataSetList& DSL, DataFileList& DFL, 
   Nresult_[FILTERED] = 0;
   debug_ = debugIn;
   outIdx_ = 0;
+
+  masterDSL_ = &DSL;
 
   multi_ = argIn.hasKey("multi");
   std::string dsname = argIn.GetStringKey("name");
@@ -229,6 +232,7 @@ int DataFilter::FilterIndex(unsigned int inpIdx) {
       }
     }
     filterSet_->Add( outIdx_, ResultValue + (int)result );
+    // If filtering set and element passed, add element to new set (FilteredSet).
     if (SetToBeFiltered_ != 0 && result == PASSED) {
       Xvals_.push_back( SetToBeFiltered_->Xcrd(inpIdx));
       FilteredSet_->Add(Nresult_[PASSED], SetToBeFiltered_->VoidPtr(inpIdx));
