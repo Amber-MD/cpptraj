@@ -19,3 +19,9 @@ double Cpptraj::RNG_Stdlib::Generate() {
 unsigned int Cpptraj::RNG_Stdlib::Number() {
   return rand();
 }
+
+/** Generate a random number between 0 and 1 by dividing by RAND_MAX. 
+  */
+double Cpptraj::RNG_Stdlib::Generate() {
+  return (double)rand() / RAND_MAX;
+}
