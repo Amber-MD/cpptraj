@@ -6,11 +6,14 @@
 void Exec_Random::Help() const
 {
   mprintf("\t[setdefault %s]\n", CpptrajState::RngKeywords());
-  mprintf("\t[createset <name> count <#> settype {int|float01} [seed <#>]]\n");
+  mprintf("\t[createset <name> count <#> [seed <#>]\n"
+          "\t           settype {int|float01|gauss [mean <mean>] [sd <SD>]}]\n");
   mprintf("  If 'setdefault' specified, change the default random number generator used.\n"
           "  If 'createset' specified, create a 1D data set filled with random numbers\n"
           "  of the specified type: 'int' creates a set of integer numbers, 'float01'\n"
-          "  creates a set of floating point numbers between 0 and 1.\n");
+          "  creates a set of floating point numbers between 0 and 1, 'gauss' creates\n"
+          "  a set of floating point numbers in a Gaussian distribution with optional\n"
+          "  mean and standard deviation.\n");
 }
 
 // Exec_Random::Execute()
@@ -36,6 +39,7 @@ Exec::RetType Exec_Random::Execute(CpptrajState& State, ArgList& argIn)
     std::string typestr = argIn.GetStringKey("settype");
     if (typestr == "int") {
       // Create integer set
+      mprintf("\tCreating set of random integers.\n");
       DataSet* ds = State.DSL().AddSet( DataSet::UNSIGNED_INTEGER, MetaData(dsname) );
       if (ds == 0) return CpptrajState::ERR;
       if (outfile != 0) outfile->AddDataSet( ds );
@@ -45,6 +49,7 @@ Exec::RetType Exec_Random::Execute(CpptrajState& State, ArgList& argIn)
       }
     } else if (typestr == "float01") {
       // Create floating point set between 0 and 1
+      mprintf("\tCreating set of random floating point numbers between 0 and 1.\n");
       DataSet* ds = State.DSL().AddSet( DataSet::DOUBLE, MetaData(dsname) );
       if (ds == 0) return CpptrajState::ERR;
       if (outfile != 0) outfile->AddDataSet( ds );
@@ -52,6 +57,19 @@ Exec::RetType Exec_Random::Execute(CpptrajState& State, ArgList& argIn)
         double rn = rng.rn_gen();
         ds->Add(idx, &rn);
       }
+    } else if (typestr == "gauss") {
+      // Create floating point set in Gaussian distribution
+      double mean = argIn.getKeyDouble("mean", 0);
+      double sd   = argIn.getKeyDouble("sd",   1);
+      mprintf("\tCreating set of random floating point numbers in Gaussian distribution.\n");
+      DataSet* ds = State.DSL().AddSet( DataSet::DOUBLE, MetaData(dsname) );
+      if (ds == 0) return CpptrajState::ERR;
+      if (outfile != 0) outfile->AddDataSet( ds );
+      for (int idx = 0; idx != count; idx++) {
+        double rn = rng.GenerateGauss(mean, sd);
+        ds->Add(idx, &rn);
+      }
+
     } else {
       mprinterr("Error: Unrecognized 'settype' for 'createset': %s\n", typestr.c_str());
       return CpptrajState::ERR;
