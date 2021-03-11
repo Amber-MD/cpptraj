@@ -252,3 +252,15 @@ int DataFilter::FilterIndex(unsigned int inpIdx) {
   outIdx_++;
   return (int)result;
 }
+
+/** Perform any actions necessary to finish filtering. */
+int DataFilter::Finalize() const {
+  if (SetToBeFiltered_ != 0) {
+    if (SetToBeFiltered_->Meta().Match_Exact(FilteredSet_->Meta()))
+      masterDSL_->RemoveSet( SetToBeFiltered_ );
+    DataSetList::DataListType inputSets(1);
+    inputSets[0] = FilteredSet_;
+    masterDSL_->AddOrAppendSets( FilteredSet_->Dim(0).Label(), Xvals_, inputSets );
+  }
+  return 0;
+}

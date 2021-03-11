@@ -20,6 +20,8 @@ class DataFilter {
     int FilterIndex(unsigned int);
     /// \return Minimum number of elements among all input data sets
     size_t MinNumElements() const;
+    /// Perform any actions necessary to finish filtering.
+    int Finalize() const;
   private:
     typedef std::vector<double> Darray;
     typedef std::vector<DataSet*> SetArray;
