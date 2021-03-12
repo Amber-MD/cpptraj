@@ -7,12 +7,14 @@
 #include "DataSet_2D.h"
 #include "DataSet_3D.h"
 #include "DataSet_integer.h"
+#include "DataFile.h"
 
 /** CONSTRUCTOR */
 DataFilter::DataFilter() :
   filterSet_(0),
   SetToBeFiltered_(0),
   FilteredSet_(0),
+  maxminfile_(0),
   masterDSL_(0),
   debug_(0),
   multi_(false)
@@ -30,6 +32,9 @@ const char* DataFilter::Keywords() {
 /** Process arguments, get/set up data sets. */
 int DataFilter::InitFilter(ArgList& argIn, DataSetList& DSL, DataFileList& DFL, int debugIn) {
   filterSet_ = 0;
+  SetToBeFiltered_ = 0;
+  FilteredSet_ = 0;
+  maxminfile_ = 0;
   Xvals_.clear();
   Max_.clear();
   Min_.clear();
@@ -43,10 +48,11 @@ int DataFilter::InitFilter(ArgList& argIn, DataSetList& DSL, DataFileList& DFL, 
   masterDSL_ = &DSL;
 
   multi_ = argIn.hasKey("multi");
+
   std::string dsname = argIn.GetStringKey("name");
   if (dsname.empty())
     dsname = DSL.GenerateDefaultName("Filter");
-  DataFile* maxminfile = DFL.AddDataFile( argIn.GetStringKey("out"), argIn );
+  maxminfile_ = DFL.AddDataFile( argIn.GetStringKey("out"), argIn );
   // Get set to be filtered
   std::string nameOfSetToBeFiltered = argIn.GetStringKey("filterset");
   std::string resultingSetName;
@@ -123,8 +129,8 @@ int DataFilter::InitFilter(ArgList& argIn, DataSetList& DSL, DataFileList& DFL, 
   if (!multi_) {
     filterSet_ = (DataSet_integer*)DSL.AddSet( DataSet::INTEGER, dsname );
     if (filterSet_ == 0) return 1;
-    if (maxminfile != 0)
-      maxminfile->AddDataSet( (DataSet*)filterSet_ );
+    if (maxminfile_ != 0)
+      maxminfile_->AddDataSet( (DataSet*)filterSet_ );
     // Get set to be filtered if specified.
     if (!nameOfSetToBeFiltered.empty()) {
       DataSet* ds = DSL.GetDataSet( nameOfSetToBeFiltered );
@@ -166,8 +172,8 @@ int DataFilter::InitFilter(ArgList& argIn, DataSetList& DSL, DataFileList& DFL, 
       if (ds == 0) return 1;
       ds->SetLegend("Filter("+ds->Meta().PrintName()+")");
       outSets_.push_back( ds );
-      if (maxminfile != 0)
-        maxminfile->AddDataSet( ds );
+      if (maxminfile_ != 0)
+        maxminfile_->AddDataSet( ds );
     }
   }
 
@@ -218,7 +224,7 @@ const int DataFilter::ResultValue[2] = {
 /** Filter the specified index.
   * \return 1 if index was filtered, 0 if index passed.
   */
-int DataFilter::FilterIndex(unsigned int inpIdx) {
+DataFilter::ResultType DataFilter::FilterIndex(unsigned int inpIdx) {
   ResultType result = PASSED;
   if (!multi_) {
     // Check if frame is within max/min of every data set.
@@ -251,7 +257,13 @@ int DataFilter::FilterIndex(unsigned int inpIdx) {
     }
   }
   outIdx_++;
-  return (int)result;
+  return result;
+}
+
+/** Print input sets and min/max values to stdout. */
+void DataFilter::PrintInputSets() const {
+  for (unsigned int idx = 0; idx < inpSets_.size(); idx++)
+    mprintf("\t%.4f < '%s' < %.4f\n", Min_[idx], inpSets_[idx]->legend(), Max_[idx]);
 }
 
 /** Perform any actions necessary to finish filtering. */
@@ -259,8 +271,7 @@ int DataFilter::Finalize() const {
   if (!multi_) {
     mprintf("    FILTER: %u frames passed through, %u frames were filtered out.\n",
             Npassed(), Nfiltered());
-    for (unsigned int idx = 0; idx < inpSets_.size(); idx++)
-      mprintf("\t%.4f < '%s' < %.4f\n", Min_[idx], inpSets_[idx]->legend(), Max_[idx]);
+    PrintInputSets();
   }
 
   if (SetToBeFiltered_ != 0) {
@@ -269,6 +280,8 @@ int DataFilter::Finalize() const {
     DataSetList::DataListType inputSets(1);
     inputSets[0] = FilteredSet_;
     masterDSL_->AddOrAppendSets( FilteredSet_->Dim(0).Label(), Xvals_, inputSets );
+    // AddOrAppendSets() will free memory.
+    //FilteredSet_ = 0;
   }
   return 0;
 }

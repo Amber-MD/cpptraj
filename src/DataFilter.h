@@ -8,24 +8,37 @@ class DataFileList;
 class DataSet;
 class DataSet_1D;
 class DataSet_integer;
+class DataFile;
 /// Can be used to count/filter out data set elements based on user-defined criteria.
 class DataFilter {
-    enum ResultType { PASSED = 0, FILTERED };
   public:
+    /// Result of FilterIndex()
+    enum ResultType { PASSED = 0, FILTERED };
+    /// CONSTRUCTOR
     DataFilter();
     /// \return Keywords recognized by InitFilter();
     static const char* Keywords();
     /// Process arguments, get sets to filter
     int InitFilter(ArgList&, DataSetList&, DataFileList&, int);
     /// \return 1 if specified index was filtered, 0 otherwise
-    int FilterIndex(unsigned int);
+    ResultType FilterIndex(unsigned int);
     /// \return Minimum number of elements among all input data sets
     size_t MinNumElements() const;
+    /// Print input sets and min/max values to stdout.
+    void PrintInputSets() const;
     /// Perform any actions necessary to finish filtering.
     int Finalize() const;
 
-    unsigned int Npassed()   const { return Nresult_[PASSED]; }
-    unsigned int Nfiltered() const { return Nresult_[FILTERED]; }
+    /// \return True if only creating output filter sets for multiple input sets.
+    bool IsMulti()            const { return multi_; }
+    /// \return Number of frames passed (not multi only)
+    unsigned int Npassed()    const { return Nresult_[PASSED]; }
+    /// \return Number of frames filtered out (not multi only)
+    unsigned int Nfiltered()  const { return Nresult_[FILTERED]; }
+    /// \return Number of input sets
+    unsigned int NinputSets() const { return inpSets_.size(); }
+    /// \return Pointer to file that filter sets will be written to (0 if no file)
+    DataFile* OutputFile()    const { return maxminfile_; }
   private:
     typedef std::vector<double> Darray;
     typedef std::vector<DataSet*> SetArray;
@@ -38,6 +51,7 @@ class DataFilter {
     DataSet_integer* filterSet_;  ///< Output DataSet containing for each index 1 for OK, 0 for filtered out (not multi).
     DataSet_1D* SetToBeFiltered_; ///< Optional 1D data set to be filtered.
     DataSet_1D* FilteredSet_;     ///< Output 1D data set resulting from filter.
+    DataFile* maxminfile_;        ///< File to write filter (integer) sets to.
     DataSetList* masterDSL_;      ///< Pointer to the master DataSetList.
     Darray Xvals_;                ///< X values for FilteredSet_.
     Darray Max_;                  ///< Only allow values less than these

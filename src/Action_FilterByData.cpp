@@ -19,6 +19,9 @@ void Action_FilterByData::Help() const {
 // Action_FilterByData::Init()
 Action::RetType Action_FilterByData::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+  if (dataFilter_.InitFilter(actionArgs, init.DSL(), init.DFL(), debugIn))
+    return Action::ERR;
+/*
   Npassed_ = 0;
   Nfiltered_ = 0;
   multi_ = actionArgs.hasKey("multi");
@@ -84,18 +87,18 @@ Action::RetType Action_FilterByData::Init(ArgList& actionArgs, ActionInit& init,
         maxminfile->AddDataSet( ds );
     }
   }
-
+*/
   mprintf("    FILTER:");
-  if (!multi_)
-    mprintf(" Filtering out frames using %zu data sets.\n", Dsets_.size());
+  if (!dataFilter_.IsMulti())
+    mprintf(" Filtering out frames using %u data sets.\n", dataFilter_.NinputSets());
   else
-    mprintf(" Creating filter data sets for %zu data sets.\n", Dsets_.size());
-  for (unsigned int ds = 0; ds < Dsets_.size(); ds++)
-    mprintf("\t%.4f < '%s' < %.4f\n", Min_[ds], Dsets_[ds]->legend(), Max_[ds]);
-  if (maxminfile != 0)
-    mprintf("\tFilter frame info will be written to %s\n", maxminfile->DataFilename().full());
+    mprintf(" Creating filter data sets for %zu data sets.\n", dataFilter_.NinputSets());
+  dataFilter_.PrintInputSets();
+  if (dataFilter_.OutputFile() != 0)
+    mprintf("\tFilter frame info will be written to %s\n",
+            dataFilter_.OutputFile()->DataFilename().full());
 # ifdef MPI
-  if (!multi_ && init.TrajComm().Size() > 1)
+  if (!dataFilter_.IsMulti() && init.TrajComm().Size() > 1)
     mprintf("Warning: Trajectories written after 'filter' may have issues if\n"
             "Warning:   the number of processes writing is > 1 (currently %i processes)\n",
             init.TrajComm().Size());
@@ -106,6 +109,11 @@ Action::RetType Action_FilterByData::Init(ArgList& actionArgs, ActionInit& init,
 // Action_FilterByData::DoAction()
 Action::RetType Action_FilterByData::DoAction(int frameNum, ActionFrame& frm)
 {
+  DataFilter::ResultType result = dataFilter_.FilterIndex( frm.TrajoutNum() );
+
+  if (result == DataFilter::FILTERED)
+    return Action::SUPPRESS_COORD_OUTPUT;
+/*
   static int ONE = 1;
   static int ZERO = 0;
   if (!multi_) {
@@ -133,12 +141,12 @@ Action::RetType Action_FilterByData::DoAction(int frameNum, ActionFrame& frm)
       else
         outsets_[ds]->Add( frameNum, &ONE  );
     }
-  }
+  }*/
   return Action::OK;
 }
 
 /** \return Minimum number of frames among all input data sets. */
-size_t Action_FilterByData::DetermineFrames() const {
+/*size_t Action_FilterByData::DetermineFrames() const {
   if (Dsets_.empty()) return 0;
   size_t nframes = Dsets_[0]->Size();
   for (Array1D::const_iterator it = Dsets_.begin(); it != Dsets_.end(); ++it)
@@ -154,14 +162,16 @@ size_t Action_FilterByData::DetermineFrames() const {
               (*it)->legend(), (*it)->Size(), nframes);
   }
   return nframes;
-}
+}*/
 
 // Action_FilterByData::Print()
 void Action_FilterByData::Print() {
+  dataFilter_.Finalize();
+/*
   if (!multi_) {
     mprintf("    FILTER: %i frames passed through, %i frames were filtered out.\n",
             Npassed_, Nfiltered_);
     for (unsigned int ds = 0; ds < Dsets_.size(); ds++)
       mprintf("\t%.4f < '%s' < %.4f\n", Min_[ds], Dsets_[ds]->legend(), Max_[ds]);
-  }
+  }*/
 }
