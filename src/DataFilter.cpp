@@ -101,6 +101,7 @@ int DataFilter::InitFilter(ArgList& argIn, DataSetList& DSL, DataFileList& DFL, 
         inpSets_.push_back( *ds );
       }
     }
+    dsarg = argIn.GetStringNext();
   }
   if (inpSets_.empty()) {
     mprinterr("Error: No data sets specified.\n");
