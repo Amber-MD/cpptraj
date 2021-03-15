@@ -6660,12 +6660,11 @@ permutedihedrals crdset <COORDS set> resrange <range> [{interval | random}]
 \end_layout
 
 \begin_layout LyX-Code
-	[ check [cutoff <cutoff>] [rescutoff <rescutoff>] [checkallresidues]
+	[ check [cutoff <cutoff>] [rescutoff <rescutoff>] [maxfactor <max_factor>]
 \end_layout
 
 \begin_layout LyX-Code
-	  [backtrack <backtrack>] [increment <increment>] [maxfactor <max_factor>]
- ]
+	 [backtrack <backtrack> [checkallresidues] [increment <increment>]] ]
 \end_layout
 
 \begin_layout LyX-Code
@@ -6832,8 +6831,12 @@ name>] Number of problems data set name.
 \end_layout
 
 \begin_layout Description
-[checkallresidues] If specified all residues checked for clashes, otherwise
- only residues up to the currently rotated dihedral check.
+[maxfactor
+\begin_inset space ~
+\end_inset
+
+<max_factor>] The maximum number of total attempted rotations will be <max_facto
+r> * <total # of dihedrals> (default 2).
 \end_layout
 
 \begin_layout Description
@@ -6841,8 +6844,15 @@ name>] Number of problems data set name.
 \begin_inset space ~
 \end_inset
 
-<backtrack>] If a clash is encountered at dihedral N and cannot be resolved,
- go to dihedral N-<backtrack> to try and resolve the clash (default 4).
+<backtrack>] (No longer recommended as of version 5.1.0).
+ If a clash is encountered at dihedral N and cannot be resolved, go to dihedral
+ N-<backtrack> to try and resolve the clash (default is no backtracking).
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[checkallresidues] If specified all residues checked for clashes, otherwise
+ only residues up to the currently rotated dihedral check.
 \end_layout
 
 \begin_layout Description
@@ -6856,15 +6866,7 @@ name>] Number of problems data set name.
  
 \end_layout
 
-\begin_layout Description
-[maxfactor
-\begin_inset space ~
-\end_inset
-
-<max_factor>] The maximum number of total attempted rotations will be <max_facto
-r> * <total # of dihedrals> (default 2).
-\end_layout
-
+\end_deeper
 \end_deeper
 \end_deeper
 \begin_layout Standard
@@ -8098,7 +8100,8 @@ datafilter {<dataset arg> min <min> max <max> ...} [out <file>] [name <setname>]
 \end_layout
 
 \begin_layout LyX-Code
-           [{multi | filterset <set> [newset <newname>]}]
+           {[multi] | [filterset <set> [newset <newname>]] [countout <countfile>
+]}
 \end_layout
 
 \begin_deeper
@@ -8170,6 +8173,57 @@ max
 \end_layout
 
 \end_deeper
+\begin_layout Description
+[countout
+\begin_inset space ~
+\end_inset
+
+<count>] If specified, write number of elements passed and filtered to <countfil
+e>.
+ Cannot be used with 'multi'.
+\end_layout
+
+\begin_layout Standard
+Sets Created (not 'multi')
+\end_layout
+
+\begin_layout Description
+<setname> For each input element contains 1 for elements that 
+\begin_inset Quotes eld
+\end_inset
+
+passed
+\begin_inset Quotes erd
+\end_inset
+
+, 0 otherwise.
+\end_layout
+
+\begin_layout Description
+<setname>[npassed] Number of elements that passed.
+\end_layout
+
+\begin_layout Description
+<setname>[nfiltered] Number of elements filtered out.
+\end_layout
+
+\begin_layout Standard
+Sets Created ('multi')
+\end_layout
+
+\begin_layout Description
+<setname>:<idx> For each input set (number with <idx>, starting from 0)
+ contains 1 for elements that 
+\begin_inset Quotes eld
+\end_inset
+
+passed
+\begin_inset Quotes erd
+\end_inset
+
+, 0 otherwise.
+\end_layout
+
 \end_deeper
 \begin_layout Standard
 Create a data set (optionally named <setname>) containing 1 for data within
@@ -8217,6 +8271,12 @@ Create a data set (optionally named <setname>) containing 1 for data within
  is also specified, a new set will be created containing the '1' frames
  instead.
  The 'filterset' functionality only works for 1D scalar sets.
+ If 
+\series bold
+'countout'
+\series default
+ is specified, the final number of elements passed and filtered out will
+ be written to <countfile>.
 \end_layout
 
 \begin_layout Standard
@@ -10291,7 +10351,11 @@ random [setdefault {marsaglia|stdlib|mt|pcg32|xo128}]
 \end_layout
 
 \begin_layout LyX-Code
-   	[createset <name> count <#> settype {int|float01} [seed <#>]]
+   	[createset <name> count <#> [seed <#>]
+\end_layout
+
+\begin_layout LyX-Code
+        settype {int|float01|gauss [mean <mean>] [sd <SD>]}]
 \end_layout
 
 \begin_deeper
@@ -10362,10 +10426,28 @@ settype
 \begin_inset space ~
 \end_inset
 
-{int|float01} Type of numbers to use; integer or floating point between
- 0 and 1.
+{int|float01|gauss} Type of numbers to use; integer, floating point between
+ 0 and 1, Gaussian distribution.
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+mean
+\begin_inset space ~
+\end_inset
+
+<mean> Mean of distribution for 'gauss'.
+\end_layout
+
+\begin_layout Description
+sd
+\begin_inset space ~
+\end_inset
+
+<SD> Standard deviation of distribution for 'gauss'.
+\end_layout
+
+\end_deeper
 \begin_layout Description
 seed
 \begin_inset space ~
@@ -23911,15 +23993,11 @@ name "subsec:cpptraj-filter"
 \end_layout
 
 \begin_layout LyX-Code
-filter <dataset1 arg> min <min1> max <max1>
+filter {<dataset arg> min <min> max <max> ...} [out <file>] [name <setname>]
 \end_layout
 
 \begin_layout LyX-Code
-       [<dataset2 arg> min <min2> max <max2> ...]
-\end_layout
-
-\begin_layout LyX-Code
-       [out <file> [name <setname>]]
+  	{[multi] | [filterset <set> [newset <newname>]] [countout <countfile>]}
 \begin_inset Separator latexpar
 \end_inset
 
@@ -23928,7 +24006,7 @@ filter <dataset1 arg> min <min1> max <max1>
 
 \begin_deeper
 \begin_layout Description
-<datasetX
+<dataset
 \begin_inset space ~
 \end_inset
 
@@ -23940,7 +24018,7 @@ min
 \begin_inset space ~
 \end_inset
 
-<minX> Allow values greater than <min> in dataset X.
+<min> Allow values greater than <min> in dataset(s).
 \end_layout
 
 \begin_layout Description
@@ -23948,7 +24026,7 @@ max
 \begin_inset space ~
 \end_inset
 
-<maxX> Allow values greater than <max> in dataset X.
+<max> Allow values greater than <max> in dataset(s).
 \end_layout
 
 \begin_layout Description
@@ -23967,6 +24045,84 @@ max
 
 <setname>] Filtered data set name containing 1 for allowed frames, 0 for
  filtered frames.
+\end_layout
+
+\begin_layout Description
+[multi] Filter each set separately instead of all together (creates filter
+ set for each input set).
+ Cannot be used with 'filterset'.
+\end_layout
+
+\begin_layout Description
+[filterset
+\begin_inset space ~
+\end_inset
+
+<set>] If specified, <set> will be filtered to only contain data that satisfies
+ cutoffs.
+ Cannot be used with 'multi'.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[newset
+\begin_inset space ~
+\end_inset
+
+<newname>] If specified a new set will be created from 'filterset' instead
+ of replacing 'filterset'.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[countout
+\begin_inset space ~
+\end_inset
+
+<count>] If specified, write number of elements passed and filtered to <countfil
+e>.
+ Cannot be used with 'multi'.
+\end_layout
+
+\begin_layout Standard
+Sets Created (not 'multi')
+\end_layout
+
+\begin_layout Description
+<setname> For each input element contains 1 for elements that 
+\begin_inset Quotes eld
+\end_inset
+
+passed
+\begin_inset Quotes erd
+\end_inset
+
+, 0 otherwise.
+\end_layout
+
+\begin_layout Description
+<setname>[npassed] Number of elements that passed.
+\end_layout
+
+\begin_layout Description
+<setname>[nfiltered] Number of elements filtered out.
+\end_layout
+
+\begin_layout Standard
+Sets Created ('multi')
+\end_layout
+
+\begin_layout Description
+<setname>:<idx> For each input set (number with <idx>, starting from 0)
+ contains 1 for elements that 
+\begin_inset Quotes eld
+\end_inset
+
+passed
+\begin_inset Quotes erd
+\end_inset
+
+, 0 otherwise.
 \end_layout
 
 \end_deeper
@@ -24001,7 +24157,43 @@ For all following actions, only include frames that are between
 <max>
 \series default
  arguments as there are specified data sets.
- For example, to write only frames in-between an RMSD of 0.7-0.8 Angstroms
+ If 
+\series bold
+'multi'
+\series default
+ is specified then only filter data sets will be created for each data set
+ instead.
+ If 
+\series bold
+'filterset'
+\series default
+ is specified, the specified <set> will be modified to only contain '1'
+ frames; cannot be used with 
+\series bold
+'multi'
+\series default
+.
+ If 
+\series bold
+'newset'
+\series default
+ is also specified, a new set will be created containing the '1' frames
+ instead.
+ The 
+\series bold
+'filterset'
+\series default
+ functionality only works for 1D scalar sets.
+ If 
+\series bold
+'countout'
+\series default
+ is specified, the final number of elements passed and filtered out will
+ be written to <countfile>.
+\end_layout
+
+\begin_layout Standard
+For example, to write only frames in-between an RMSD of 0.7-0.8 Angstroms
  for a given input trajectory:
 \end_layout
 
@@ -32378,13 +32570,67 @@ randomizeions
 \end_layout
 
 \begin_layout LyX-Code
-randomizeions <mask> [around <mask> by <distance>] [overlap <value>]
+randomizeions <mask> [around <ardoundmask> by <distance>] [{allowoverlap|overlap
+ <value>}]
 \end_layout
 
 \begin_layout LyX-Code
-              [noimage] [seed <value>]
+              [noimage] [seed <value>] [originalalgorithm]
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+<mask> Mask of ions to randomize.
+\end_layout
+
+\begin_layout Description
+around
+\begin_inset space ~
+\end_inset
+
+<mask>
+\begin_inset space ~
+\end_inset
+
+by
+\begin_inset space ~
+\end_inset
+
+<distance> Ensure ions come no closer than <distance> Ang.
+ to atoms in <aroundmask>.
+\end_layout
+
+\begin_layout Description
+allowoverlap No restrictions on how close ions can be to each other.
+\end_layout
+
+\begin_layout Description
+overlap
+\begin_inset space ~
+\end_inset
+
+<value> Ions in <mask> can be no closer than <value> Ang.
+ to each other.
+\end_layout
+
+\begin_layout Description
+[noimage] Do not image distances.
+\end_layout
+
+\begin_layout Description
+[seed
+\begin_inset space ~
+\end_inset
+
+<value>] Seed for the random number generator.
+\end_layout
+
+\begin_layout Description
+[originalalgorithm] Use the original, slower algorithm (from versions before
+ 5.1.0).
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 This can be used to randomly swap the positions of solvent and single atom
  ions.

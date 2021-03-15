@@ -175,6 +175,7 @@ COMMON_SOURCES= \
         CurveFit.cpp \
         DataFile.cpp \
         DataFileList.cpp \
+        DataFilter.cpp \
         DataIO.cpp \
         DataIO_CCP4.cpp \
         DataIO_CharmmFastRep.cpp \

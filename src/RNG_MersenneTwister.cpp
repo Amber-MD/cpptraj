@@ -3,7 +3,7 @@
 
 Cpptraj::RNG_MersenneTwister::RNG_MersenneTwister()  
 {}
-
+/*
 double Cpptraj::RNG_MersenneTwister::Generate() {
 # ifdef C11_SUPPORT
   unsigned urn = gen_();
@@ -11,7 +11,7 @@ double Cpptraj::RNG_MersenneTwister::Generate() {
 # else
   return 0;
 # endif
-}
+}*/
 
 unsigned int Cpptraj::RNG_MersenneTwister::Number() {
 # ifdef C11_SUPPORT

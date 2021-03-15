@@ -1,19 +1,18 @@
 include ../../config.h
 
 #OBJECTS=rngtest.o Random.o RNG.o RNG_Stdlib.o RNG_Marsaglia.o CpptrajStdio.o RNG_MersenneTwister.o RNG_PCG32.o xoshiro128plusplus.o RNG_Xoshiro128pp.o
-OBJECTS=xoshiro128plusplus.o
-SOURCES=rngtest.cpp ../../src/RNG_MersenneTwister.cpp ../../src/RNG.cpp ../../src/CpptrajStdio.cpp ../../src/Random.cpp ../../src/RNG_Stdlib.cpp ../../src/RNG_Marsaglia.cpp ../../src/RNG_PCG32.cpp ../../src/RNG_Xoshiro128pp.cpp
+SOURCES=rngtest.cpp ../../src/RNG_MersenneTwister.cpp ../../src/RNG.cpp ../../src/CpptrajStdio.cpp ../../src/Random.cpp ../../src/RNG_Stdlib.cpp ../../src/RNG_Marsaglia.cpp ../../src/RNG_PCG32.cpp ../../src/RNG_Xoshiro128pp.cpp ../../src/xoshiro128plusplus.cpp
 
 all: rngtest
 
 debug:
 	make CXXFLAGS='-O0 -g' CFLAGS='-O0 -g' rngtest
 
-rngtest: $(SOURCES) $(OBJECTS)
-	$(CXX) $(DIRECTIVES) $(CXXFLAGS) -o rngtest $(SOURCES) $(OBJECTS)
+rngtest: $(SOURCES) 
+	$(CXX) $(DIRECTIVES) $(CXXFLAGS) -o rngtest $(SOURCES) 
 
 clean:
-	/bin/rm -f $(OBJECTS) rngtest
+	/bin/rm -f  rngtest
 
 rngtest.o: rngtest.cpp
 	$(CXX) $(CXXFLAGS) -c -o rngtest.o rngtest.cpp
@@ -42,6 +41,6 @@ CpptrajStdio.o: ../../src/CpptrajStdio.cpp
 RNG_Xoshiro128pp.o: ../../src/RNG_Xoshiro128pp.cpp
 	$(CXX) $(CXXFLAGS) -c -o RNG_Xoshiro128pp.o ../../src/RNG_Xoshiro128pp.cpp
 
-xoshiro128plusplus.o: ../../src/xoshiro128plusplus.c
-	$(CC) $(CFLAGS) -c -o xoshiro128plusplus.o ../../src/xoshiro128plusplus.c
+xoshiro128plusplus.o: ../../src/xoshiro128plusplus.cpp
+	$(CXX) $(CXXFLAGS) -c -o xoshiro128plusplus.o ../../src/xoshiro128plusplus.cpp
 	

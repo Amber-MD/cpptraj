@@ -9,7 +9,7 @@ class RNG_MersenneTwister : public RNG {
   public:
     RNG_MersenneTwister();
 
-    double Generate();
+    //double Generate();
     unsigned int Number();
   private:
     int SetupRng();

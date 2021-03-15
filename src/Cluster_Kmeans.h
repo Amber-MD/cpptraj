@@ -19,7 +19,6 @@ class Cluster_Kmeans : public ClusterList {
     enum KmeansModeType { SEQUENTIAL, RANDOM };
 
     int FindKmeansSeeds(Iarray const&);
-    void ShufflePoints(Iarray&);
 
     Random_Number RN_;
     int nclusters_; ///< Target number of clusters.

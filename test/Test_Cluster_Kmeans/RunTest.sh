@@ -33,6 +33,7 @@ EOF
   DoTest cpptraj.crd.c0.save cpptraj.crd.c0
   cat > kmeans.in <<EOF
 trajin ../tz2.nc
+random setdefault marsaglia
 cluster means randompoint kseed 1 clusters 5 rms @CA summary random.dat info rinfo.dat clusterout random.crd
 EOF
   RunCpptraj "Cpptraj Kmeans random"

@@ -7,7 +7,7 @@ on:
 
 jobs:
   linux_build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     name: Build ${{ matrix.compiler }} with CMake ${{ matrix.use_cmake }}
     strategy:
       fail-fast: false
@@ -41,7 +41,6 @@ jobs:
     steps:
       - name: Install prerequisite packages
         run: |
-          sudo apt update
           sudo apt-get install gfortran \
                                libbz2-dev \
                                libblas-dev \

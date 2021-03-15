@@ -11,6 +11,7 @@ Requires maxthreads 1
 
 UNITNAME='Set Velocity test'
 cat > setvel.in <<EOF
+rng setdefault marsaglia
 parm ../tz2.parm7
 trajin ../tz2.rst7
 setvelocity tempi 298.0 ig 10

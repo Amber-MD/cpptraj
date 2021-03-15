@@ -74,6 +74,7 @@ OneDihDSKmeans() {
 trajin ../tz2.nc
 dihedral gly7phi :6@C :7@N :7@CA :7@C
 #debug analysis 1
+random setdefault marsaglia
 cluster c1 kmeans randompoint kseed 10 data gly7phi clusters 5 out onedihds.gnu summary onedihds.summary.dat info onedihds.kmeans.info.dat gracecolor
 create onedihds.d1.c1.dat gly7phi c1
 EOF

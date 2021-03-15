@@ -7,7 +7,7 @@ class RNG_Xoshiro128pp : public RNG {
   public:
     RNG_Xoshiro128pp() {}
 
-    double Generate();
+    //double Generate();
     unsigned int Number();
   private:
     int SetupRng();

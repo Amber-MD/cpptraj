@@ -7,13 +7,23 @@
 #include "../../src/CpptrajStdio.h"
 
 static int DieHard_Tests(Random_Number const& RNG, int itype, int iseed, int icount) {
+  // Different RNGs have different # bits. Marsaglia has 24, stdlib has 31 (signed int)
+  // The rest have 32.
+  unsigned int numbits;
+  if (itype == 0) // MARSAGLIA
+    numbits = 24;
+  else if (itype == 1)
+    numbits = 31;
+  else
+    numbits = 32;
+
   printf("#==================================================================\n");
   printf("# Cpptraj generator %s  seed = %i                                  \n",
          Random_Number::CurrentDefaultRngStr(), iseed);
   printf("#==================================================================\n");
   printf("type: d\n");
   printf("count: %i\n", icount);
-  printf("numbit: 32\n");
+  printf("numbit: %u\n", numbits);
 
 /*
   double d_imax = (double)std::numeric_limits<int>::max();

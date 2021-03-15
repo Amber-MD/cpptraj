@@ -10,8 +10,8 @@ int Cpptraj::RNG_Xoshiro128pp::SetupRng() {
 unsigned int Cpptraj::RNG_Xoshiro128pp::Number() {
   return x128pp_next();
 }
-
+/*
 double Cpptraj::RNG_Xoshiro128pp::Generate() {
   unsigned int rn = Number();
   return (double)rn / (double)std::numeric_limits<unsigned int>::max();
-}
+}*/

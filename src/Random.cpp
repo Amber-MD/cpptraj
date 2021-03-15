@@ -10,12 +10,8 @@
 
 /** Starting default type. */
 Random_Number::RngType Random_Number::defaultType_ = Random_Number::MARSAGLIA;
-// TODO test these, then enable. Should be better RNGs in the long run
-//#ifdef C11_SUPPORT
-//  Random_Number::MERSENNE_TWISTER;
-//#else
-//  Random_Number::STDLIB;
-//#endif
+// TODO Test this generator, then enable. Should be a better RNG than Marsaglia
+//Random_Number::RngType Random_Number::defaultType_ = Random_Number::XOSHIRO128PP;
 
 /** Starting default seed. */
 //int Random_Number::defaultSeed_ = 71277; // AMBER default seed
@@ -113,7 +109,8 @@ int Random_Number::rn_num_interval_signed(int imin, int imax) const {
     return 0;
   }
   unsigned int uwidth = (unsigned int)iwidth + 1;
-  unsigned int umod = (rn_num() % uwidth);
+  //unsigned int umod = (rn_num() % uwidth);
+  unsigned int umod = rng_->Number_UpTo( uwidth );
   return (int)umod + imin;
 }
 
@@ -121,7 +118,8 @@ int Random_Number::rn_num_interval_signed(int imin, int imax) const {
 unsigned int Random_Number::rn_num_interval(unsigned int umin, unsigned int umax) const {
   if (umax > umin) {
    unsigned int uwidth = (umax - umin) + 1;
-   unsigned int umod = (rn_num() % uwidth);
+   //unsigned int umod = (rn_num() % uwidth);
+   unsigned int umod = rng_->Number_UpTo( uwidth );
    return umod + umin; 
   } else {
     mprinterr("Internal Error: Random_Number::rn_num_interval(): Interval max <= interval min.\n");
