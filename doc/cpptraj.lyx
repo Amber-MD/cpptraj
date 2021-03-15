@@ -6660,12 +6660,11 @@ permutedihedrals crdset <COORDS set> resrange <range> [{interval | random}]
 \end_layout
 
 \begin_layout LyX-Code
-	[ check [cutoff <cutoff>] [rescutoff <rescutoff>] [checkallresidues]
+	[ check [cutoff <cutoff>] [rescutoff <rescutoff>] [maxfactor <max_factor>]
 \end_layout
 
 \begin_layout LyX-Code
-	  [backtrack <backtrack>] [increment <increment>] [maxfactor <max_factor>]
- ]
+	 [backtrack <backtrack> [checkallresidues] [increment <increment>]] ]
 \end_layout
 
 \begin_layout LyX-Code
@@ -6832,8 +6831,12 @@ name>] Number of problems data set name.
 \end_layout
 
 \begin_layout Description
-[checkallresidues] If specified all residues checked for clashes, otherwise
- only residues up to the currently rotated dihedral check.
+[maxfactor
+\begin_inset space ~
+\end_inset
+
+<max_factor>] The maximum number of total attempted rotations will be <max_facto
+r> * <total # of dihedrals> (default 2).
 \end_layout
 
 \begin_layout Description
@@ -6841,8 +6844,15 @@ name>] Number of problems data set name.
 \begin_inset space ~
 \end_inset
 
-<backtrack>] If a clash is encountered at dihedral N and cannot be resolved,
- go to dihedral N-<backtrack> to try and resolve the clash (default 4).
+<backtrack>] (No longer recommended as of version 5.1.0).
+ If a clash is encountered at dihedral N and cannot be resolved, go to dihedral
+ N-<backtrack> to try and resolve the clash (default is no backtracking).
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[checkallresidues] If specified all residues checked for clashes, otherwise
+ only residues up to the currently rotated dihedral check.
 \end_layout
 
 \begin_layout Description
@@ -6856,15 +6866,7 @@ name>] Number of problems data set name.
  
 \end_layout
 
-\begin_layout Description
-[maxfactor
-\begin_inset space ~
-\end_inset
-
-<max_factor>] The maximum number of total attempted rotations will be <max_facto
-r> * <total # of dihedrals> (default 2).
-\end_layout
-
+\end_deeper
 \end_deeper
 \end_deeper
 \begin_layout Standard
