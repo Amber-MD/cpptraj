@@ -32568,13 +32568,67 @@ randomizeions
 \end_layout
 
 \begin_layout LyX-Code
-randomizeions <mask> [around <mask> by <distance>] [overlap <value>]
+randomizeions <mask> [around <ardoundmask> by <distance>] [{allowoverlap|overlap
+ <value>}]
 \end_layout
 
 \begin_layout LyX-Code
-              [noimage] [seed <value>]
+              [noimage] [seed <value>] [originalalgorithm]
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+<mask> Mask of ions to randomize.
+\end_layout
+
+\begin_layout Description
+around
+\begin_inset space ~
+\end_inset
+
+<mask>
+\begin_inset space ~
+\end_inset
+
+by
+\begin_inset space ~
+\end_inset
+
+<distance> Ensure ions come no closer than <distance> Ang.
+ to atoms in <aroundmask>.
+\end_layout
+
+\begin_layout Description
+allowoverlap No restrictions on how close ions can be to each other.
+\end_layout
+
+\begin_layout Description
+overlap
+\begin_inset space ~
+\end_inset
+
+<value> Ions in <mask> can be no closer than <value> Ang.
+ to each other.
+\end_layout
+
+\begin_layout Description
+[noimage] Do not image distances.
+\end_layout
+
+\begin_layout Description
+[seed
+\begin_inset space ~
+\end_inset
+
+<value>] Seed for the random number generator.
+\end_layout
+
+\begin_layout Description
+[originalalgorithm] Use the original, slower algorithm (from versions before
+ 5.1.0).
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 This can be used to randomly swap the positions of solvent and single atom
  ions.
