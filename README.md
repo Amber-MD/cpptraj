@@ -136,6 +136,9 @@ and less than the max # cores on your system) will run much faster.
 After installation, It is highly recommended that `make check` be run as
 well to test the basic functionality of CPPTRAJ.
 
+There is an independently-maintained VIM syntax file for CPPTRAJ by Emmett Leddin
+available [here](https://github.com/emleddin/vim-cpptraj).
+
 CPPTRAJ Authors
 ===============
 **Lead Author:** Daniel R. Roe (<daniel.r.roe@gmail.com>)
