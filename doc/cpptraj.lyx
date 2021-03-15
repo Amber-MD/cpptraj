@@ -8098,7 +8098,8 @@ datafilter {<dataset arg> min <min> max <max> ...} [out <file>] [name <setname>]
 \end_layout
 
 \begin_layout LyX-Code
-           [{multi | filterset <set> [newset <newname>]}]
+           {[multi] | [filterset <set> [newset <newname>]] [countout <countfile>
+]}
 \end_layout
 
 \begin_deeper
@@ -8170,6 +8171,57 @@ max
 \end_layout
 
 \end_deeper
+\begin_layout Description
+[countout
+\begin_inset space ~
+\end_inset
+
+<count>] If specified, write number of elements passed and filtered to <countfil
+e>.
+ Cannot be used with 'multi'.
+\end_layout
+
+\begin_layout Standard
+Sets Created (not 'multi')
+\end_layout
+
+\begin_layout Description
+<setname> For each input element contains 1 for elements that 
+\begin_inset Quotes eld
+\end_inset
+
+passed
+\begin_inset Quotes erd
+\end_inset
+
+, 0 otherwise.
+\end_layout
+
+\begin_layout Description
+<setname>[npassed] Number of elements that passed.
+\end_layout
+
+\begin_layout Description
+<setname>[nfiltered] Number of elements filtered out.
+\end_layout
+
+\begin_layout Standard
+Sets Created ('multi')
+\end_layout
+
+\begin_layout Description
+<setname>:<idx> For each input set (number with <idx>, starting from 0)
+ contains 1 for elements that 
+\begin_inset Quotes eld
+\end_inset
+
+passed
+\begin_inset Quotes erd
+\end_inset
+
+, 0 otherwise.
+\end_layout
+
 \end_deeper
 \begin_layout Standard
 Create a data set (optionally named <setname>) containing 1 for data within
@@ -8217,6 +8269,12 @@ Create a data set (optionally named <setname>) containing 1 for data within
  is also specified, a new set will be created containing the '1' frames
  instead.
  The 'filterset' functionality only works for 1D scalar sets.
+ If 
+\series bold
+'countout'
+\series default
+ is specified, the final number of elements passed and filtered out will
+ be written to <countfile>.
 \end_layout
 
 \begin_layout Standard
@@ -23933,15 +23991,11 @@ name "subsec:cpptraj-filter"
 \end_layout
 
 \begin_layout LyX-Code
-filter <dataset1 arg> min <min1> max <max1>
+filter {<dataset arg> min <min> max <max> ...} [out <file>] [name <setname>]
 \end_layout
 
 \begin_layout LyX-Code
-       [<dataset2 arg> min <min2> max <max2> ...]
-\end_layout
-
-\begin_layout LyX-Code
-       [out <file> [name <setname>]]
+  	{[multi] | [filterset <set> [newset <newname>]] [countout <countfile>]}
 \begin_inset Separator latexpar
 \end_inset
 
@@ -23950,7 +24004,7 @@ filter <dataset1 arg> min <min1> max <max1>
 
 \begin_deeper
 \begin_layout Description
-<datasetX
+<dataset
 \begin_inset space ~
 \end_inset
 
@@ -23962,7 +24016,7 @@ min
 \begin_inset space ~
 \end_inset
 
-<minX> Allow values greater than <min> in dataset X.
+<min> Allow values greater than <min> in dataset(s).
 \end_layout
 
 \begin_layout Description
@@ -23970,7 +24024,7 @@ max
 \begin_inset space ~
 \end_inset
 
-<maxX> Allow values greater than <max> in dataset X.
+<max> Allow values greater than <max> in dataset(s).
 \end_layout
 
 \begin_layout Description
@@ -23989,6 +24043,84 @@ max
 
 <setname>] Filtered data set name containing 1 for allowed frames, 0 for
  filtered frames.
+\end_layout
+
+\begin_layout Description
+[multi] Filter each set separately instead of all together (creates filter
+ set for each input set).
+ Cannot be used with 'filterset'.
+\end_layout
+
+\begin_layout Description
+[filterset
+\begin_inset space ~
+\end_inset
+
+<set>] If specified, <set> will be filtered to only contain data that satisfies
+ cutoffs.
+ Cannot be used with 'multi'.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[newset
+\begin_inset space ~
+\end_inset
+
+<newname>] If specified a new set will be created from 'filterset' instead
+ of replacing 'filterset'.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[countout
+\begin_inset space ~
+\end_inset
+
+<count>] If specified, write number of elements passed and filtered to <countfil
+e>.
+ Cannot be used with 'multi'.
+\end_layout
+
+\begin_layout Standard
+Sets Created (not 'multi')
+\end_layout
+
+\begin_layout Description
+<setname> For each input element contains 1 for elements that 
+\begin_inset Quotes eld
+\end_inset
+
+passed
+\begin_inset Quotes erd
+\end_inset
+
+, 0 otherwise.
+\end_layout
+
+\begin_layout Description
+<setname>[npassed] Number of elements that passed.
+\end_layout
+
+\begin_layout Description
+<setname>[nfiltered] Number of elements filtered out.
+\end_layout
+
+\begin_layout Standard
+Sets Created ('multi')
+\end_layout
+
+\begin_layout Description
+<setname>:<idx> For each input set (number with <idx>, starting from 0)
+ contains 1 for elements that 
+\begin_inset Quotes eld
+\end_inset
+
+passed
+\begin_inset Quotes erd
+\end_inset
+
+, 0 otherwise.
 \end_layout
 
 \end_deeper
@@ -24023,7 +24155,43 @@ For all following actions, only include frames that are between
 <max>
 \series default
  arguments as there are specified data sets.
- For example, to write only frames in-between an RMSD of 0.7-0.8 Angstroms
+ If 
+\series bold
+'multi'
+\series default
+ is specified then only filter data sets will be created for each data set
+ instead.
+ If 
+\series bold
+'filterset'
+\series default
+ is specified, the specified <set> will be modified to only contain '1'
+ frames; cannot be used with 
+\series bold
+'multi'
+\series default
+.
+ If 
+\series bold
+'newset'
+\series default
+ is also specified, a new set will be created containing the '1' frames
+ instead.
+ The 
+\series bold
+'filterset'
+\series default
+ functionality only works for 1D scalar sets.
+ If 
+\series bold
+'countout'
+\series default
+ is specified, the final number of elements passed and filtered out will
+ be written to <countfile>.
+\end_layout
+
+\begin_layout Standard
+For example, to write only frames in-between an RMSD of 0.7-0.8 Angstroms
  for a given input trajectory:
 \end_layout
 
