@@ -41,8 +41,8 @@ jobs:
     steps:
       - name: Install prerequisite packages
         run: |
-          sudo apt update
-          sudo apt-get install gfortran \
+          sudo apt-get update && \
+               apt-get install gfortran \
                                libbz2-dev \
                                libblas-dev \
                                liblapack-dev \
