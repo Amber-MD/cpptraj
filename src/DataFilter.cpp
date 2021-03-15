@@ -14,7 +14,10 @@ DataFilter::DataFilter() :
   filterSet_(0),
   SetToBeFiltered_(0),
   FilteredSet_(0),
+  npassedSet_(0),
+  nfilteredSet_(0),
   maxminfile_(0),
+  countFile_(0),
   masterDSL_(0),
   debug_(0),
   multi_(false)
@@ -26,7 +29,7 @@ DataFilter::DataFilter() :
 /** Keywords recognized by InitFilter(). */
 void DataFilter::PrintKeywords() {
   mprintf("\t{<dataset arg> min <min> max <max> ...} [out <file>] [name <setname>]\n"
-          "\t[multi | filterset <set> [newset <newname>]}]\n");
+          "\t{[multi] | [filterset <set> [newset <newname>]] [countout <countfile>]}\n");
 }
 
 /** A more detailed description of some keywords. */
@@ -36,7 +39,9 @@ void DataFilter::PrintKeywordDescriptions() {
           "  If 'filterset' is specified, the specified <set> will be modified\n"
           "  to only contain '1' frames; cannot be used with 'multi'. If 'newset'\n"
           "  is also specified, a new set will be created containing the '1' frames instead.\n"
-          "  The 'filterset' functionality only works for 1D scalar sets.\n");
+          "  The 'filterset' functionality only works for 1D scalar sets.\n"
+          "  If 'countout' is specified, the final number of elements passed and filtered\n"
+          "  out will be written to <countfile>.\n");
 }
 
 /** Process arguments, get/set up data sets. */
@@ -44,7 +49,10 @@ int DataFilter::InitFilter(ArgList& argIn, DataSetList& DSL, DataFileList& DFL, 
   filterSet_ = 0;
   SetToBeFiltered_ = 0;
   FilteredSet_ = 0;
+  npassedSet_ = 0;
+  nfilteredSet_ = 0;
   maxminfile_ = 0;
+  countFile_ = 0;
   Xvals_.clear();
   Max_.clear();
   Min_.clear();
@@ -63,16 +71,21 @@ int DataFilter::InitFilter(ArgList& argIn, DataSetList& DSL, DataFileList& DFL, 
   if (dsname.empty())
     dsname = DSL.GenerateDefaultName("Filter");
   maxminfile_ = DFL.AddDataFile( argIn.GetStringKey("out"), argIn );
+  countFile_ = DFL.AddDataFile( argIn.GetStringKey("countout"), argIn );
   // Get set to be filtered
   std::string nameOfSetToBeFiltered = argIn.GetStringKey("filterset");
-  std::string resultingSetName;
-  if (!nameOfSetToBeFiltered.empty()) {
-    // Not intended to work with 'multi'
-    if (multi_) {
+  std::string resultingSetName = argIn.GetStringKey("newset");
+
+  // Check for options incompatible with 'multi'.
+  if (multi_) {
+    if (!nameOfSetToBeFiltered.empty()) {
       mprinterr("Error: 'filterset' can not be used with 'multi' keyword.\n");
       return 1;
     }
-    resultingSetName = argIn.GetStringKey("newset");
+    if (countFile_ != 0) {
+      mprinterr("Error: 'countout' can not be used with 'multi' keyword.\n");
+      return 1;
+    }
   }
   // Get min and max args.
   while (argIn.Contains("min"))
@@ -142,6 +155,19 @@ int DataFilter::InitFilter(ArgList& argIn, DataSetList& DSL, DataFileList& DFL, 
     if (filterSet_ == 0) return 1;
     if (maxminfile_ != 0)
       maxminfile_->AddDataSet( (DataSet*)filterSet_ );
+    // Create count sets
+    MetaData count_md(dsname, "npassed");
+    npassedSet_ = DSL.AddSet( DataSet::UNSIGNED_INTEGER, count_md );
+    count_md.SetAspect("nfiltered");
+    nfilteredSet_ = DSL.AddSet( DataSet::UNSIGNED_INTEGER, count_md );
+    if (npassedSet_ == 0 || nfilteredSet_ == 0) {
+      mprinterr("Error: Could not set up count sets.\n");
+      return 1;
+    }
+    if (countFile_ != 0) {
+      countFile_->AddDataSet( npassedSet_ );
+      countFile_->AddDataSet( nfilteredSet_ );
+    }
     // Get set to be filtered if specified.
     if (!nameOfSetToBeFiltered.empty()) {
       DataSet* ds = DSL.GetDataSet( nameOfSetToBeFiltered );
@@ -280,6 +306,10 @@ void DataFilter::PrintInputSets() const {
 /** Perform any actions necessary to finish filtering. */
 int DataFilter::Finalize() const {
   if (!multi_) {
+    unsigned int uval = Npassed();
+    npassedSet_->Add(0, &uval);
+    uval = Nfiltered();
+    nfilteredSet_->Add(0, &uval);
     mprintf("    FILTER: %u frames passed through, %u frames were filtered out.\n",
             Npassed(), Nfiltered());
     PrintInputSets();

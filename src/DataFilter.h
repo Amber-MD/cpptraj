@@ -53,7 +53,10 @@ class DataFilter {
     DataSet_integer* filterSet_;  ///< Output DataSet containing for each index 1 for OK, 0 for filtered out (not multi).
     DataSet_1D* SetToBeFiltered_; ///< Optional 1D data set to be filtered.
     DataSet_1D* FilteredSet_;     ///< Output 1D data set resulting from filter.
+    DataSet* npassedSet_;         ///< Output data set holding number of frames passed (!multi)
+    DataSet* nfilteredSet_;       ///< Output data set holding number of frames filtered out (!multi)
     DataFile* maxminfile_;        ///< File to write filter (integer) sets to.
+    DataFile* countFile_;         ///< File to write final counts to.
     DataSetList* masterDSL_;      ///< Pointer to the master DataSetList.
     Darray Xvals_;                ///< X values for FilteredSet_.
     Darray Max_;                  ///< Only allow values less than these
