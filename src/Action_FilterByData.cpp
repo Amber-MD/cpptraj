@@ -5,17 +5,14 @@
 Action_FilterByData::Action_FilterByData() {}
 
 void Action_FilterByData::Help() const {
-  mprintf("\t{<dataset arg> min <min> max <max> ...} [out <file>] [name <setname>]\n"
-          "\t[multi]\n"
-          "  This action has two modes. In the first mode, for all following actions\n"
+  DataFilter::PrintKeywords();
+  mprintf("  This action has two modes. In the first mode, for all following actions\n"
           "  only frames that are between <min> and <max> of all data sets selected\n"
-          "  by each <dataset arg> are allowed to pass. A data set with name <setname>\n"
-          "  will be created containing a 1 if the frame passed and 0 if the frame was\n"
-          "  filtered out.\n"
-          "  If 'multi' is specified then only filter data sets will be created for each\n"
-          "  data set instead.\n"
-          "  There must be at least one <min> and <max> argument, and can be as many as\n"
-          "  there are specified data sets.\n");
+          "  by each <dataset arg> are allowed to pass. There must be at least one\n"
+          "  <min> and <max> argument, and can be as many as there are specified\n"
+          "  data sets. A data set with name <setname>  will be created containing\n"
+          "  a 1 if the frame passed and 0 if the frame was  filtered out.\n");
+  DataFilter::PrintKeywordDescriptions();
 }
 
 // Action_FilterByData::Init()

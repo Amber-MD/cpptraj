@@ -17,9 +17,9 @@ class DataFilter {
     /// CONSTRUCTOR
     DataFilter();
     /// Print keywords recognized by InitFilter();
-    void PrintKeywords();
+    static void PrintKeywords();
     /// Print a more detail description of keywords.
-    void PrintKeywordDescriptions();
+    static void PrintKeywordDescriptions();
     /// Process arguments, get sets to filter
     int InitFilter(ArgList&, DataSetList&, DataFileList&, int);
     /// \return 1 if specified index was filtered, 0 otherwise

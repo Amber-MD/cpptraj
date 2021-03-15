@@ -4,18 +4,12 @@
 #include "ProgressBar.h"
 
 void Exec_DataFilter::Help() const {
-  mprintf("\t{<dataset arg> min <min> max <max> ...} [out <file>] [name <setname>]\n"
-          "\t[{multi | filterset <set> [newset <newname>]}]\n"
-          "  Create a data set (optionally named <setname>) containing 1 for\n"
+  DataFilter::PrintKeywords();
+  mprintf("  Create a data set (optionally named <setname>) containing 1 for\n"
           "  data within given <min> and <max> criteria for each specified\n"
           "  data set. There must be at least one <min> and <max> argument,\n"
-          "  and can be as many as there are specified data sets.\n"
-          "  If 'multi' is specified then only filter data sets will be created for each\n"
-          "  data set instead.\n"
-          "  If 'filterset' is specified, the specified <set> will be modified\n"
-          "  to only contain '1' frames; cannot be used with 'multi'. If 'newset'\n"
-          "  is also specified, a new set will be created containing the '1' frames instead.\n"
-          "  The 'filterset' functionality only works for 1D scalar sets.\n");
+          "  and can be as many as there are specified data sets.\n");
+  DataFilter::PrintKeywordDescriptions();
 }
 
 // Exec_DataFilter::Execute()
