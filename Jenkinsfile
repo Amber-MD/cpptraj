@@ -11,6 +11,7 @@ pipeline {
         skipDefaultCheckout()
         buildDiscarder(logRotator(numToKeepStr: "10"))
         timestamps()
+        timeout time: 2, unit: 'HOURS'
     }
 
     stages {
