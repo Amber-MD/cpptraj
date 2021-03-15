@@ -33,6 +33,9 @@ Exec::RetType Exec_DataFilter::Execute(CpptrajState& State, ArgList& argIn) {
 
   if (dataFilter.Finalize())
     return CpptrajState::ERR;
+  if (!dataFilter.IsMulti())
+    mprintf("\t%u frames passed through, %u frames were filtered out.\n",
+              dataFilter.Npassed(), dataFilter.Nfiltered());
   // Trigger master datafile write just in case
   State.MasterDataFileWrite();
   return CpptrajState::OK;

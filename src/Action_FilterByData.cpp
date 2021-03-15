@@ -53,4 +53,9 @@ Action::RetType Action_FilterByData::DoAction(int frameNum, ActionFrame& frm)
 // Action_FilterByData::Print()
 void Action_FilterByData::Print() {
   dataFilter_.Finalize();
+  if (!dataFilter_.IsMulti()) {
+    mprintf("    FILTER: %u frames passed through, %u frames were filtered out.\n",
+            dataFilter_.Npassed(), dataFilter_.Nfiltered());
+    dataFilter_.PrintInputSets();
+  }
 }

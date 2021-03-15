@@ -310,9 +310,6 @@ int DataFilter::Finalize() const {
     npassedSet_->Add(0, &uval);
     uval = Nfiltered();
     nfilteredSet_->Add(0, &uval);
-    mprintf("    FILTER: %u frames passed through, %u frames were filtered out.\n",
-            Npassed(), Nfiltered());
-    PrintInputSets();
   }
 
   if (SetToBeFiltered_ != 0) {
