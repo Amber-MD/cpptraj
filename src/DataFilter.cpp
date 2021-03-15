@@ -268,7 +268,7 @@ DataFilter::ResultType DataFilter::FilterIndex(unsigned int inpIdx) {
     for (unsigned int idx = 0; idx != inpSets_.size(); ++idx)
     {
       double dVal = GetInpValue(idx, inpIdx);
-      mprintf("DBG: maxmin[%u]: dVal = %f, min = %f, max = %f\n",idx,dVal,Min_[idx],Max_[idx]);
+      //mprintf("DBG: maxmin[%u]: dVal = %f, min = %f, max = %f\n",idx,dVal,Min_[idx],Max_[idx]);
       // If value from dataset not within min/max, exit now.
       if (dVal < Min_[idx] || dVal > Max_[idx]) {
         result = FILTERED; 
