@@ -24,9 +24,19 @@ DataFilter::DataFilter() :
 }
 
 /** Keywords recognized by InitFilter(). */
-const char* DataFilter::Keywords() {
-  return "\t{<dataset arg> min <min> max <max> ...} [out <file>] [name <setname>]\n"
-         "\t[multi | filterset <set> [newset <newname>]}]\n";
+void DataFilter::PrintKeywords() {
+  mprintf("\t{<dataset arg> min <min> max <max> ...} [out <file>] [name <setname>]\n"
+          "\t[multi | filterset <set> [newset <newname>]}]\n");
+}
+
+/** A more detailed description of some keywords. */
+void DataFilter::PrintKeywordDescriptions() {
+  mprintf("  If 'multi' is specified then only filter data sets will be created for each\n"
+          "  data set instead.\n"
+          "  If 'filterset' is specified, the specified <set> will be modified\n"
+          "  to only contain '1' frames; cannot be used with 'multi'. If 'newset'\n"
+          "  is also specified, a new set will be created containing the '1' frames instead.\n"
+          "  The 'filterset' functionality only works for 1D scalar sets.\n");
 }
 
 /** Process arguments, get/set up data sets. */
@@ -232,7 +242,7 @@ DataFilter::ResultType DataFilter::FilterIndex(unsigned int inpIdx) {
     for (unsigned int idx = 0; idx != inpSets_.size(); ++idx)
     {
       double dVal = GetInpValue(idx, inpIdx);
-      //mprintf("DBG: maxmin[%u]: dVal = %f, min = %f, max = %f\n",ds,dVal,Min_[ds],Max_[ds]);
+      mprintf("DBG: maxmin[%u]: dVal = %f, min = %f, max = %f\n",idx,dVal,Min_[idx],Max_[idx]);
       // If value from dataset not within min/max, exit now.
       if (dVal < Min_[idx] || dVal > Max_[idx]) {
         result = FILTERED; 

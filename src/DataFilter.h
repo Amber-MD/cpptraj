@@ -16,8 +16,10 @@ class DataFilter {
     enum ResultType { PASSED = 0, FILTERED };
     /// CONSTRUCTOR
     DataFilter();
-    /// \return Keywords recognized by InitFilter();
-    static const char* Keywords();
+    /// Print keywords recognized by InitFilter();
+    void PrintKeywords();
+    /// Print a more detail description of keywords.
+    void PrintKeywordDescriptions();
     /// Process arguments, get sets to filter
     int InitFilter(ArgList&, DataSetList&, DataFileList&, int);
     /// \return 1 if specified index was filtered, 0 otherwise
