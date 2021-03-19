@@ -658,6 +658,7 @@ CmdLineOpts() {
   CPPTRAJ_PROFILE=0    # Will be exported
   SFX_OMP=0
   SFX_CUDA=0
+  SFX_HIP=0
   SFX_MPI=0
   GET_TIMING=0
   while [ ! -z "$1" ] ; do
@@ -681,7 +682,7 @@ CmdLineOpts() {
       "-nodacdif" ) USE_DACDIF=0 ;;
       "-cpptraj"  ) shift ; export CPPTRAJ=$1 ; echo "Using cpptraj: $CPPTRAJ" ;;
       "--target"  ) shift ; TARGET=$1 ;;
-     "-profile"   ) CPPTRAJ_PROFILE=1 ; echo "Performing gnu profiling during EndTest." ;;
+      "-profile"  ) CPPTRAJ_PROFILE=1 ; echo "Performing gnu profiling during EndTest." ;;
       "-h" | "--help" ) Help ; exit 0 ;;
       "alltests"  )
         echo "Running all tests in Test_* directories."
@@ -725,7 +726,7 @@ CmdLineOpts() {
   if [ "$SFX_MPI"  -eq 1 ] ; then SFX="$SFX.MPI"  ; fi
   if [ "$SFX_OMP"  -eq 1 ] ; then SFX="$SFX.OMP"  ; fi
   if [ "$SFX_CUDA" -eq 1 ] ; then SFX="$SFX.cuda" ; fi
-  if [ "$SFX_HIP" -eq 1 ] ; then SFX="$SFX.hip" ; fi
+  if [ "$SFX_HIP"  -eq 1 ] ; then SFX="$SFX.hip"  ; fi
 }
 
 #-------------------------------------------------------------------------------
