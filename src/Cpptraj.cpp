@@ -15,12 +15,14 @@
 #include "Timer.h"
 #include "StringRoutines.h" // TimeString
 #include "TrajectoryFile.h" // for autodetect
-#if defined(CUDA) && defined(HIP) 
-#  include <hip/hip_runtime.h>
-#  include <hip/hip_runtime_api.h>
-# include "HipDefinitions.h"
-#elif defined(CUDA)
-# include <cuda_runtime_api.h>
+#if defined(CUDA)
+#  if defined(AMBER_PLATFORM_AMD)
+#    include <hip/hip_runtime.h>
+#    include <hip/hip_runtime_api.h>
+#    include "HipDefinitions.h"
+#  else
+#    include <cuda_runtime_api.h>
+#  endif
 #endif
 #ifdef _OPENMP
 # include <omp.h>

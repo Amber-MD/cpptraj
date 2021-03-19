@@ -2,8 +2,8 @@
 #include <cstdio>
 #endif
 #include "../ImageOption.h"
-#if defined(__clang__) && defined(__HIP__)
-#include "hip/hip_runtime.h"
+#if defined(AMBER_PLATFORM_AMD)
+#include <hip/hip_runtime.h>
 #include "../HipDefinitions.h"
 #endif
 

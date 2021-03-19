@@ -161,7 +161,7 @@ COMPILE_VERBOSE=0 # 1 = show details during compile
 USE_MPI=0         # 0 = no MPI, 1 = mpicc etc, 2 = mpiicc etc
 USE_OPENMP=0      # 0 = no OpenMP, 1 = OpenMP
 USE_CUDA=0        # 0 = no CUDA, 1 = CUDA
-USE_HIP=0        # 0 = no HIP, 1 = HIP
+USE_HIP=0         # 0 = no HIP, 1 = HIP
 USE_OPT=1         # 0 = no optimization, 1 = use compiler optimizations, 2 = optimize/tune.
 BLAS_TYPE='other' # none|mkl|libsci(cray)|openblas|macAccelerate|other=normal BLAS
 MKL_TYPE='mkl'    # mkl = -mkl for Intel compilers, line = link-line advisor style
@@ -342,9 +342,9 @@ LIB_FLAG[$LHIP]='-L${HIP_HOME}/lib -lamdhip64'
 LIB_STTC[$LHIP]=''
 if [ "$HIP_PLATFORM" = 'hcc' ]; then
   # TODO: Replace __HIP_PLATFORM_HCC__ after 4.1 rocm release
-  LIB_D_ON[$LHIP]='-DCUDA -DHIP -DAMBER_PLATFORM_AMD -D__HIP_PLATFORM_HCC__'
+  LIB_D_ON[$LHIP]='-DCUDA -DAMBER_PLATFORM_AMD -D__HIP_PLATFORM_HCC__'
 else
-  LIB_D_ON[$LHIP]='-DCUDA -DHIP -D__HIP_PLATFORM_NVCC__'
+  LIB_D_ON[$LHIP]='-DCUDA -D__HIP_PLATFORM_NVCC__'
 fi
 LIB_DOFF[$LHIP]=''
 LIB_TYPE[$LHIP]='cpp'
@@ -1874,10 +1874,10 @@ BasicChecks() {
   fi
   # TODO if we skipped checks we may need the FLINK flag enabled
   # Binary suffix
-  if [ $USE_MPI -ne 0    ] ; then SFX=$SFX".MPI" ; fi
-  if [ $USE_OPENMP -ne 0 ] ; then SFX=$SFX".OMP" ; fi
+  if [ $USE_MPI -ne 0    ] ; then SFX=$SFX".MPI"  ; fi
+  if [ $USE_OPENMP -ne 0 ] ; then SFX=$SFX".OMP"  ; fi
   if [ $USE_CUDA -ne 0   ] ; then SFX=$SFX".cuda" ; fi
-  if [ $USE_HIP -ne 0   ] ; then SFX=$SFX".hip" ; fi
+  if [ $USE_HIP  -ne 0   ] ; then SFX=$SFX".hip"  ; fi
 }
 
 #-------------------------------------------------------------------------------

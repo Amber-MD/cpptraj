@@ -1,4 +1,4 @@
-#if defined(__clang__) && defined(__HIP__)
+#if defined(AMBER_PLATFORM_AMD)
 #include <hip/hip_runtime.h>
 #endif
 #define BLOCKDIM 512
