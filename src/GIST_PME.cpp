@@ -175,7 +175,7 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, AtomMask const& maskI
 
 
 /** Electrostatic self energy. This is the cancelling Gaussian plus the "neutralizing plasma". */
-double GIST_PME::Self_GIST(double volume, std::vector<double>& atom_self) {
+double GIST_PME::Self_GIST(double volume, Darray& atom_self) {
   //t_self_.Start();
   double d0 = -ew_coeff_ * INVSQRTPI_;
   double ene = sumq2_ * d0;
@@ -194,7 +194,7 @@ double GIST_PME::Self_GIST(double volume, std::vector<double>& atom_self) {
 }
 
 /** Lennard-Jones self energy. for GIST */
-double GIST_PME:Self6_GIST(std::vector<double>& atom_vdw_self) {
+double GIST_PME:Self6_GIST(Darray& atom_vdw_self) {
   //t_self_.Start(); // TODO precalc
   double ew2 = lw_coeff_ * lw_coeff_;
   double ew6 = ew2 * ew2 * ew2;
@@ -256,6 +256,70 @@ double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn, helpme::Matrix<double
 
   t_recip_.Stop();
   return erecip;
+}
+
+/** The LJ PME reciprocal term for GIST*/ 
+double GIST_PME::LJ_Recip_ParticleMesh_GIST(Box const& boxIn, helpme::Matrix<double>& potential)
+{
+  t_recip_.Start();
+  int nfft1 = nfft_[0];
+  int nfft2 = nfft_[1];
+  int nfft3 = nfft_[2];
+  if ( DetermineNfft(nfft1, nfft2, nfft3, boxIn) ) {
+    mprinterr("Error: Could not determine grid spacing.\n");
+    return 0.0;
+  }
+
+  Mat coordsD(&coordsD_[0], Charge_.size(), 3);
+  Mat cparamD(&Cparam_[0], Cparam_.size(), 1);
+
+
+  //auto pme_vdw = std::unique_ptr<PMEInstanceD>(new PMEInstanceD());
+  pme_vdw_.setup(6, lw_coeff_, order_, nfft1, nfft2, nfft3, -1.0, 0);
+  pme_vdw_.setLatticeVectors(boxIn.BoxX(), boxIn.BoxY(), boxIn.BoxZ(),
+                             boxIn.Alpha(), boxIn.Beta(), boxIn.Gamma(),
+                             PMEInstanceD::LatticeType::XAligned);
+  double evdwrecip = pme_vdw_.computeERec(0, cparamD, coordsD);
+  pme_vdw_.computePRec(0,cparamD,coordsD,coordsD,1,potential);
+  t_recip_.Stop();
+  return evdwrecip;
+}
+
+/** Calculate full VDW long range correction from volume. */
+double GIST_PME::Vdw_Correction_GIST(double volume, Darray& e_vdw_lr_cor) {
+  double prefac = Constants::TWOPI / (3.0*volume*cutoff_*cutoff_*cutoff_);
+  //mprintf("VDW correction prefac: %.15f \n", prefac);
+  double e_vdwr = -prefac * Vdw_Recip_term_;
+
+  //mprintf("Cparam size: %i \n",Cparam_.size());
+
+  //mprintf("volume of the unit cell: %f", volume);
+
+
+  for ( unsigned int i = 0; i != Cparam_.size(); i++)
+  {
+    double term(0);
+
+    int v_type=vdw_type_[i];
+
+    //v_type is the vdw_type of atom i, each atom has a atom type
+
+    // atype_vdw_recip_terms_[vdw_type[i]] is the total vdw_recep_term for this v_type
+
+    //N_vdw_type_[v_type] is the total atom number belongs to this v_type
+
+
+
+    term = atype_vdw_recip_terms_[v_type] / N_vdw_type_[v_type];
+
+    //mprintf("for i = %i,vdw_type = %i, Number of atoms in this vdw_type_= %i, Total vdw_recip_terms_ for this type= %f,  vdw_recip_term for atom i= %f \n",i,vdw_type_[i],N_vdw_type_[vdw_type_[i]],atype_vdw_recip_terms_[vdw_type_[i]],term);
+
+    e_vdw_lr_cor[i]= -prefac * term ;
+    //mprintf("atom e_vdw_lr_cor: %f \n", -prefac* atom_vdw_recip_terms_[i]);
+  }
+
+  if (debug_ > 0) mprintf("DEBUG: Vdw correction %20.10f\n", e_vdwr);
+  return e_vdwr;
 }
 
 

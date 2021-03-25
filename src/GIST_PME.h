@@ -26,6 +26,10 @@ class GIST_PME : private Ewald_ParticleMesh {
     double Self6_GIST(Darray&);
     /// Reciprocal energy decomposed for every atom.
     double Recip_ParticleMesh_GIST(Box const&, helpme::Matrix<double>&);
+    /// LJ reciprocal term, decomposed for every atom.
+    double LJ_Recip_ParticleMesh_GIST(Box const&, helpme::Matrix<double>&);
+    /// VDW long range correction for GIST
+    double Vdw_Correction_GIST(double, Darray&);
 
 };
 #endif /* LIBPME */
