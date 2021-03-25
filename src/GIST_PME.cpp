@@ -1,7 +1,6 @@
 #ifdef LIBPME
 #include "GIST_PME.h"
 #include "Frame.h"
-#include "helpme_standalone.h"
 #include "CpptrajStdio.h"
 
 /** CONSTRUCTOR */
@@ -21,7 +20,7 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, AtomMask const& maskI
                                       Darray& e_elec_recip,
                                       Iarray const& atom_voxel )
 {
-  //t_total_.Start();
+  t_total_.Start();
   double volume = frameIn.BoxCrd().CellVolume();
 
   //auto step0 = std::chrono::system_clock::now();
@@ -192,6 +191,71 @@ double GIST_PME::Self_GIST(double volume, std::vector<double>& atom_self) {
   ene += ee_plasma;
   //t_self_.Stop();
   return ene;
+}
+
+/** Lennard-Jones self energy. for GIST */
+double GIST_PME:Self6_GIST(std::vector<double>& atom_vdw_self) {
+  //t_self_.Start(); // TODO precalc
+  double ew2 = lw_coeff_ * lw_coeff_;
+  double ew6 = ew2 * ew2 * ew2;
+  double c6sum = 0.0;
+  for (Darray::const_iterator it = Cparam_.begin(); it != Cparam_.end(); ++it)
+  {
+    c6sum += ew6 * (*it * *it);
+
+    atom_vdw_self.push_back(ew6 * (*it * *it)/12.0);
+
+  }
+  //t_self_.Stop();
+  return c6sum / 12.0;
+}
+
+/** PME recip calc for GIST to store decomposed recipical energy for every atom. */
+double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn, helpme::Matrix<double>& potential)
+{
+  //t_recip_.Start();
+  // This essentially makes coordsD and chargesD point to arrays.
+  Mat coordsD(&coordsD_[0], Charge_.size(), 3);
+  Mat chargesD(&Charge_[0], Charge_.size(), 1);
+  int nfft1 = nfft_[0];
+  int nfft2 = nfft_[1];
+  int nfft3 = nfft_[2];
+  if ( DetermineNfft(nfft1, nfft2, nfft3, boxIn) ) {
+    mprinterr("Error: Could not determine grid spacing.\n");
+    return 0.0;
+  }
+  // Instantiate double precision PME object
+  // Args: 1 = Exponent of the distance kernel: 1 for Coulomb
+  //       2 = Kappa
+  //       3 = Spline order
+  //       4 = nfft1
+  //       5 = nfft2
+  //       6 = nfft3
+  //       7 = scale factor to be applied to all computed energies and derivatives thereof
+  //       8 = max # threads to use for each MPI instance; 0 = all available threads used.
+  // NOTE: Scale factor for Charmm is 332.0716
+  // NOTE: The electrostatic constant has been baked into the Charge_ array already.
+  //auto pme_object = std::unique_ptr<PMEInstanceD>(new PMEInstanceD());
+  pme_object_.setup(1, ew_coeff_, order_, nfft1, nfft2, nfft3, 1.0, 0);
+  // Sets the unit cell lattice vectors, with units consistent with those used to specify coordinates.
+  // Args: 1 = the A lattice parameter in units consistent with the coordinates.
+  //       2 = the B lattice parameter in units consistent with the coordinates.
+  //       3 = the C lattice parameter in units consistent with the coordinates.
+  //       4 = the alpha lattice parameter in degrees.
+  //       5 = the beta lattice parameter in degrees.
+  //       6 = the gamma lattice parameter in degrees.
+  //       7 = lattice type
+  pme_object_.setLatticeVectors(boxIn.BoxX(), boxIn.BoxY(), boxIn.BoxZ(),
+                                boxIn.Alpha(), boxIn.Beta(), boxIn.Gamma(),
+                                PMEInstanceD::LatticeType::XAligned);
+  double erecip = pme_object_.computeERec(0, chargesD, coordsD);
+  pme_object_.computePRec(0,chargesD,coordsD,coordsD,1,potential);
+
+
+
+
+  t_recip_.Stop();
+  return erecip;
 }
 
 

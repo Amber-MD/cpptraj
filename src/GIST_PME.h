@@ -5,6 +5,7 @@
 #include "Ewald_ParticleMesh.h"
 class Frame;
 class AtomMask;
+class Box;
 /// Class implementing the PME version of the nonbonded energy calc. for GIST
 class GIST_PME : private Ewald_ParticleMesh {
   public:
@@ -20,7 +21,12 @@ class GIST_PME : private Ewald_ParticleMesh {
                                   Iarray const&);
   private:
     /// Electrostatic self energy, decomposed onto atoms.
-    double Self_GIST(double, Darray&) const;
+    double Self_GIST(double, Darray&);
+    /// Lennard-Jones self energy, decomposed onto atoms.
+    double Self6_GIST(Darray&);
+    /// Reciprocal energy decomposed for every atom.
+    double Recip_ParticleMesh_GIST(Box const&, helpme::Matrix<double>&);
+
 };
 #endif /* LIBPME */
 #endif

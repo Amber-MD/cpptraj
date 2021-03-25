@@ -15,8 +15,12 @@ class Ewald_ParticleMesh : public Ewald {
     // ----- Inherited ---------------------------
     int Setup(Topology const&, AtomMask const&);
     int CalcNonbondEnergy(Frame const&, AtomMask const&, double&, double&);
+
   protected:
     Darray coordsD_;   ///< Hold coordinates for selected atoms
+    PMEInstanceD pme_object_;
+    PMEInstanceD pme_vdw_;
+
   private:
     typedef Ewald::Darray Darray;
     /// Based on given length return number of grid points that is power of 2, 3, or 5
@@ -32,8 +36,6 @@ class Ewald_ParticleMesh : public Ewald {
     int nfft_[3]; ///< Number of FFT grid points in each direction
     int order_;   ///< PME B spline order
 
-    PMEInstanceD pme_object_;
-    PMEInstanceD pme_vdw_;
-};
+  };
 #endif /* LIBPME */
 #endif
