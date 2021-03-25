@@ -69,6 +69,10 @@ class Ewald {
     double SumQ()  const { return sumq_; }
     /// \return VDW recip correction term from # types and B parameters
     double Vdw_Recip_Term() const { return Vdw_Recip_term_; }
+    /// \return Atom exclusion array
+    ExclusionArray const& Excluded() const { return Excluded_; }
+    /// \return Value of Erfc at given value
+    double ErfcFxn(double) const;
 
     // TODO make variables private
     Darray Charge_;       ///< Hold selected atomic charges converted to Amber units.
