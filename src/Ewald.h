@@ -73,6 +73,10 @@ class Ewald {
     ExclusionArray const& Excluded() const { return Excluded_; }
     /// \return Value of Erfc at given value
     double ErfcFxn(double) const;
+    /// \return Nonbond parameters
+    NonbondParmType const& NB() const { return *NB_; }
+    /// \return Type index for given atom
+    int TypeIdx(unsigned int idx) const { return TypeIndices_[idx]; }
 
     // TODO make variables private
     Darray Charge_;       ///< Hold selected atomic charges converted to Amber units.

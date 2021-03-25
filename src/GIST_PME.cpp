@@ -3,6 +3,7 @@
 #include "Frame.h"
 #include "CpptrajStdio.h"
 #include "Constants.h"
+#include "ParameterTypes.h"
 
 /** CONSTRUCTOR */
 GIST_PME::GIST_PME() {}
@@ -63,7 +64,7 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, AtomMask const& maskI
 
  //Potential for each atom
  //helpme::Matrix<double> e_potentialD[atom_num]={0};
-  helpme::Matrix<double> e_potentialD(atom_num,4);
+  MatType e_potentialD(atom_num,4);
 
   e_potentialD.setConstant(0.0);
   //mprintf("The vaule at row 10,col 1: %f \n", e_potentialD(10,1));
@@ -120,7 +121,7 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, AtomMask const& maskI
   // TODO branch
   double e_vdw6self, e_vdw6recip;
   if (lw_coeff_ > 0.0) {
-    helpme::Matrix<double> vdw_potentialD(atom_num,4);
+    MatType vdw_potentialD(atom_num,4);
 
     e_vdw6self = Self6_GIST(e_vdw_self);
 
@@ -182,7 +183,7 @@ double GIST_PME::Self_GIST(double volume, Darray& atom_self) {
   double ene = SumQ2() * d0;
 //  mprintf("DEBUG: d0= %20.10f   ene= %20.10f\n", d0, ene);
   double factor = Constants::PI / (ew_coeff_ * ew_coeff_ * volume);
-  double ee_plasma = -0.5 * factor * sumq_ * sumq_;
+  double ee_plasma = -0.5 * factor * SumQ() * SumQ();
 
   for( unsigned int i=0; i< Charge_.size();i++)
   {
@@ -195,7 +196,7 @@ double GIST_PME::Self_GIST(double volume, Darray& atom_self) {
 }
 
 /** Lennard-Jones self energy. for GIST */
-double GIST_PME:Self6_GIST(Darray& atom_vdw_self) {
+double GIST_PME::Self6_GIST(Darray& atom_vdw_self) {
   //t_self_.Start(); // TODO precalc
   double ew2 = lw_coeff_ * lw_coeff_;
   double ew6 = ew2 * ew2 * ew2;
@@ -212,15 +213,15 @@ double GIST_PME:Self6_GIST(Darray& atom_vdw_self) {
 }
 
 /** PME recip calc for GIST to store decomposed recipical energy for every atom. */
-double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn, helpme::Matrix<double>& potential)
+double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn, MatType& potential)
 {
   //t_recip_.Start();
   // This essentially makes coordsD and chargesD point to arrays.
-  Mat coordsD(&coordsD_[0], Charge_.size(), 3);
-  Mat chargesD(&Charge_[0], Charge_.size(), 1);
-  int nfft1 = nfft_[0];
-  int nfft2 = nfft_[1];
-  int nfft3 = nfft_[2];
+  MatType coordsD(&coordsD_[0], Charge_.size(), 3);
+  MatType chargesD(&Charge_[0], Charge_.size(), 1);
+  int nfft1 = Nfft(0);
+  int nfft2 = Nfft(1);
+  int nfft3 = Nfft(2);
   if ( DetermineNfft(nfft1, nfft2, nfft3, boxIn) ) {
     mprinterr("Error: Could not determine grid spacing.\n");
     return 0.0;
@@ -237,7 +238,7 @@ double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn, helpme::Matrix<double
   // NOTE: Scale factor for Charmm is 332.0716
   // NOTE: The electrostatic constant has been baked into the Charge_ array already.
   //auto pme_object = std::unique_ptr<PMEInstanceD>(new PMEInstanceD());
-  pme_object_.setup(1, ew_coeff_, order_, nfft1, nfft2, nfft3, 1.0, 0);
+  pme_object_.setup(1, ew_coeff_, Order(), nfft1, nfft2, nfft3, 1.0, 0);
   // Sets the unit cell lattice vectors, with units consistent with those used to specify coordinates.
   // Args: 1 = the A lattice parameter in units consistent with the coordinates.
   //       2 = the B lattice parameter in units consistent with the coordinates.
@@ -246,8 +247,8 @@ double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn, helpme::Matrix<double
   //       5 = the beta lattice parameter in degrees.
   //       6 = the gamma lattice parameter in degrees.
   //       7 = lattice type
-  pme_object_.setLatticeVectors(boxIn.BoxX(), boxIn.BoxY(), boxIn.BoxZ(),
-                                boxIn.Alpha(), boxIn.Beta(), boxIn.Gamma(),
+  pme_object_.setLatticeVectors(boxIn.Param(Box::X), boxIn.Param(Box::Y), boxIn.Param(Box::Z),
+                                boxIn.Param(Box::ALPHA), boxIn.Param(Box::BETA), boxIn.Param(Box::GAMMA),
                                 PMEInstanceD::LatticeType::XAligned);
   double erecip = pme_object_.computeERec(0, chargesD, coordsD);
   pme_object_.computePRec(0,chargesD,coordsD,coordsD,1,potential);
@@ -260,25 +261,25 @@ double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn, helpme::Matrix<double
 }
 
 /** The LJ PME reciprocal term for GIST*/ 
-double GIST_PME::LJ_Recip_ParticleMesh_GIST(Box const& boxIn, helpme::Matrix<double>& potential)
+double GIST_PME::LJ_Recip_ParticleMesh_GIST(Box const& boxIn, MatType& potential)
 {
   t_recip_.Start();
-  int nfft1 = nfft_[0];
-  int nfft2 = nfft_[1];
-  int nfft3 = nfft_[2];
+  int nfft1 = Nfft(0);
+  int nfft2 = Nfft(1);
+  int nfft3 = Nfft(2);
   if ( DetermineNfft(nfft1, nfft2, nfft3, boxIn) ) {
     mprinterr("Error: Could not determine grid spacing.\n");
     return 0.0;
   }
 
-  Mat coordsD(&coordsD_[0], Charge_.size(), 3);
-  Mat cparamD(&Cparam_[0], Cparam_.size(), 1);
+  MatType coordsD(&coordsD_[0], Charge_.size(), 3);
+  MatType cparamD(&Cparam_[0], Cparam_.size(), 1);
 
 
   //auto pme_vdw = std::unique_ptr<PMEInstanceD>(new PMEInstanceD());
-  pme_vdw_.setup(6, lw_coeff_, order_, nfft1, nfft2, nfft3, -1.0, 0);
-  pme_vdw_.setLatticeVectors(boxIn.BoxX(), boxIn.BoxY(), boxIn.BoxZ(),
-                             boxIn.Alpha(), boxIn.Beta(), boxIn.Gamma(),
+  pme_vdw_.setup(6, lw_coeff_, Order(), nfft1, nfft2, nfft3, -1.0, 0);
+  pme_vdw_.setLatticeVectors(boxIn.Param(Box::X), boxIn.Param(Box::Y), boxIn.Param(Box::Z),
+                             boxIn.Param(Box::ALPHA), boxIn.Param(Box::BETA), boxIn.Param(Box::GAMMA),
                              PMEInstanceD::LatticeType::XAligned);
   double evdwrecip = pme_vdw_.computeERec(0, cparamD, coordsD);
   pme_vdw_.computePRec(0,cparamD,coordsD,coordsD,1,potential);
@@ -290,7 +291,7 @@ double GIST_PME::LJ_Recip_ParticleMesh_GIST(Box const& boxIn, helpme::Matrix<dou
 double GIST_PME::Vdw_Correction_GIST(double volume, Darray& e_vdw_lr_cor) {
   double prefac = Constants::TWOPI / (3.0*volume*cutoff_*cutoff_*cutoff_);
   //mprintf("VDW correction prefac: %.15f \n", prefac);
-  double e_vdwr = -prefac * Vdw_Recip_term_;
+  double e_vdwr = -prefac * Vdw_Recip_Term();
 
   //mprintf("Cparam size: %i \n",Cparam_.size());
 
@@ -334,7 +335,7 @@ double GIST_PME::Direct_GIST(PairList const& PL, double& evdw_out, Darray& e_vdw
 }
 
 /** Direct space calculation with long range VDW correction for GIST. */
-double Ewald::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double& evdw_out,
+double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double& evdw_out,
                                                   Darray& e_vdw_direct, Darray& e_elec_direct,
                                                   Iarray const& atom_voxel)
 {
@@ -380,7 +381,7 @@ double Ewald::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double& ev
         mprintf("DBG: Cell %6i (%6i atoms):\n", cidx+1, thisCell.NatomsInGrid());
 #       endif
         // Exclusion list for this atom
-        ExclusionArray::ExListType const& excluded = Excluded_[it0->Idx()];
+        ExclusionArray::ExListType const& excluded = Excluded()[it0->Idx()];
         // Calc interaction of atom to all other atoms in thisCell.
         for (PairList::CellType::const_iterator it1 = it0 + 1;
                                                 it1 != thisCell.end(); ++it1)
@@ -405,7 +406,7 @@ double Ewald::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double& ev
                 t_erfc_.Start();
 #               endif
                 //double erfc = erfc_func(ew_coeff_ * rij);
-                double erfc = ERFC(ew_coeff_ * rij);
+                double erfc = ErfcFxn(ew_coeff_ * rij);
 #               ifndef _OPENMP
                 t_erfc_.Stop();
 #               endif
@@ -420,11 +421,11 @@ double Ewald::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double& ev
             
 
 
-                int nbindex = NB_->GetLJindex(TypeIndices_[it0->Idx()],
-                                              TypeIndices_[it1->Idx()]);
+                int nbindex = NB().GetLJindex(TypeIdx(it0->Idx()),
+                                              TypeIdx(it1->Idx()));
                 if (nbindex > -1) {
                   double vswitch = switch_fn(rij2, cut2_0_, cut2_);
-                  NonbondType const& LJ = NB_->NBarray()[ nbindex ];
+                  NonbondType const& LJ = NB().NBarray()[ nbindex ];
                   double r2    = 1.0 / rij2;
                   double r6    = r2 * r2 * r2;
                   double r12   = r6 * r6;
@@ -526,7 +527,7 @@ double Ewald::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double& ev
                 t_erfc_.Start();
 #               endif
                 //double erfc = erfc_func(ew_coeff_ * rij);
-                double erfc = ERFC(ew_coeff_ * rij);
+                double erfc = ErfcFxn(ew_coeff_ * rij);
 #               ifndef _OPENMP
                 t_erfc_.Stop();
 #               endif
@@ -540,11 +541,11 @@ double Ewald::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double& ev
 
 
 
-                int nbindex = NB_->GetLJindex(TypeIndices_[it0->Idx()],
-                                              TypeIndices_[it1->Idx()]);
+                int nbindex = NB().GetLJindex(TypeIdx(it0->Idx()),
+                                              TypeIdx(it1->Idx()));
                 if (nbindex > -1) {
                   double vswitch = switch_fn(rij2, cut2_0_, cut2_);
-                  NonbondType const& LJ = NB_->NBarray()[ nbindex ];
+                  NonbondType const& LJ = NB().NBarray()[ nbindex ];
                   double r2    = 1.0 / rij2;
                   double r6    = r2 * r2 * r2;
                   double r12   = r6 * r6;
@@ -620,6 +621,138 @@ double Ewald::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double& ev
   mprintf("DEBUG: LJ vdw                           = %16.8f\n", Evdw);
 # endif
   evdw_out = Evdw;
+  return Eelec + e_adjust;
+}
+
+/** Direct space calculation with LJ PME for GIST. */
+double GIST_PME::Direct_VDW_LJPME_GIST(PairList const& PL, double& evdw_out, Darray& e_vdw_direct, Darray& e_elec_direct)
+{
+  t_direct_.Start();
+  double Eelec = 0.0;
+  double e_adjust = 0.0;
+  double Evdw = 0.0;
+  double Eljpme_correction = 0.0;
+  double Eljpme_correction_excl = 0.0;
+  int cidx;
+# define CPPTRAJ_EKERNEL_LJPME
+# ifdef _OPENMP
+# pragma omp parallel private(cidx) reduction(+: Eelec, Evdw, e_adjust, Eljpme_correction,Eljpme_correction_excl)
+  {
+# pragma omp for
+# endif
+//# include "PairListLoop.h"
+  double Evdw_temp(0),Eljpme_correction_temp(0), Eljpme_correction_excl_temp(0);
+  double Eelec_temp(0),E_adjust_temp(0);
+  
+  
+  for (cidx = 0; cidx < PL.NGridMax(); cidx++)
+  {
+    PairList::CellType const& thisCell = PL.Cell( cidx );
+    if (thisCell.NatomsInGrid() > 0)
+    {
+      // cellList contains this cell index and all neighbors.
+      PairList::Iarray const& cellList = thisCell.CellList();
+      // transList contains index to translation for the neighbor.
+      PairList::Iarray const& transList = thisCell.TransList();
+      // Loop over all atoms of thisCell.
+      for (PairList::CellType::const_iterator it0 = thisCell.begin();
+                                              it0 != thisCell.end(); ++it0)
+      {
+        Vec3 const& xyz0 = it0->ImageCoords();
+        double q0 = Charge_[it0->Idx()];
+#       ifdef DEBUG_PAIRLIST
+        mprintf("DBG: Cell %6i (%6i atoms):\n", cidx+1, thisCell.NatomsInGrid());
+#       endif
+        // Exclusion list for this atom
+        Iset const& excluded = Excluded()[it0->Idx()];
+        // Calc interaction of atom to all other atoms in thisCell.
+        for (PairList::CellType::const_iterator it1 = it0 + 1;
+                                                it1 != thisCell.end(); ++it1)
+        {
+          Vec3 const& xyz1 = it1->ImageCoords();
+          double q1 = Charge_[it1->Idx()];
+          Vec3 dxyz = xyz1 - xyz0;
+          double rij2 = dxyz.Magnitude2();
+#         ifdef DEBUG_PAIRLIST
+          mprintf("\tAtom %6i to atom %6i (%f)\n", it0->Idx()+1, it1->Idx()+1, sqrt(rij2));
+#         endif
+          // If atom excluded, calc adjustment, otherwise calc elec. energy.
+          if (excluded.find( it1->Idx() ) == excluded.end())
+          {
+            if ( rij2 < cut2_ ) {
+#             include "EnergyKernel_Nonbond.h"
+            }
+          } else {
+#           include "EnergyKernel_Adjust.h"
+          }
+        } // END loop over other atoms in thisCell
+        // Loop over all neighbor cells
+        for (unsigned int nidx = 1; nidx != cellList.size(); nidx++)
+        {
+          PairList::CellType const& nbrCell = PL.Cell( cellList[nidx] );
+#         ifdef DEBUG_PAIRLIST
+          if (nbrCell.NatomsInGrid()>0) mprintf("\tto neighbor cell %6i\n", cellList[nidx]+1);
+#         endif
+          // Translate vector for neighbor cell
+          Vec3 const& tVec = PL.TransVec( transList[nidx] );
+          //mprintf("\tNEIGHBOR %i (idxs %i - %i)\n", nbrCell, beg1, end1);
+          // Loop over every atom in nbrCell
+          for (PairList::CellType::const_iterator it1 = nbrCell.begin();
+                                                  it1 != nbrCell.end(); ++it1)
+          {
+            Vec3 const& xyz1 = it1->ImageCoords();
+            double q1 = Charge_[it1->Idx()];
+            Vec3 dxyz = xyz1 + tVec - xyz0;
+            double rij2 = dxyz.Magnitude2();
+#           ifdef DEBUG_PAIRLIST
+            mprintf("\t\tAtom %6i to atom %6i (%f)\n", it0->Idx()+1, it1->Idx()+1, sqrt(rij2));
+#           endif
+            //mprintf("\t\tNbrAtom %06i\n",atnum1);
+            // If atom excluded, calc adjustment, otherwise calc elec. energy.
+            // TODO Is there better way of checking this?
+            if (excluded.find( it1->Idx() ) == excluded.end())
+            {
+              //mprintf("\t\t\tdist= %f\n", sqrt(rij2));
+              if ( rij2 < cut2_ ) {
+#               include "EnergyKernel_Nonbond.h"
+              }
+            } else {
+#             include "EnergyKernel_Adjust.h"
+            }
+          } // END loop over neighbor cell atoms
+        
+        } // END Loop over neighbor cells
+        
+
+        e_vdw_direct[it0->Idx()]=(Evdw + Eljpme_correction + Eljpme_correction_excl)-(Evdw_temp + Eljpme_correction_temp + Eljpme_correction_excl_temp);
+        
+        e_elec_direct[it0->Idx()]=(Eelec + e_adjust) -(Eelec_temp + E_adjust_temp);
+
+        Evdw_temp=Evdw;
+        Eljpme_correction_temp=Eljpme_correction;
+        Eljpme_correction_excl_temp=Eljpme_correction_excl;
+        Eelec_temp=Eelec;
+        E_adjust_temp=e_adjust;
+      } // Loop over thisCell atoms
+      
+
+
+    } // END if thisCell is not empty
+  } // Loop over cells
+
+# ifdef _OPENMP
+  } // END pragma omp parallel
+# endif
+# undef CPPTRAJ_EKERNEL_LJPME
+  t_direct_.Stop();
+# ifdef DEBUG_PAIRLIST
+  mprintf("DEBUG: Elec                             = %16.8f\n", Eelec);
+  mprintf("DEBUG: Eadjust                          = %16.8f\n", e_adjust);
+  mprintf("DEBUG: LJ vdw                           = %16.8f\n", Evdw);
+  mprintf("DEBUG: LJ vdw PME correction            = %16.8f\n", Eljpme_correction);
+  mprintf("DEBUG: LJ vdw PME correction (excluded) = %16.8f\n", Eljpme_correction_excl);
+# endif
+  evdw_out = Evdw + Eljpme_correction + Eljpme_correction_excl;
   return Eelec + e_adjust;
 }
 
