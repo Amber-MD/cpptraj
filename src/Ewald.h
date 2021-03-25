@@ -65,6 +65,10 @@ class Ewald {
 
     /// \return sum of charges squared
     double SumQ2() const { return sumq2_; }
+    /// \return sum of charges
+    double SumQ()  const { return sumq_; }
+    /// \return VDW recip correction term from # types and B parameters
+    double Vdw_Recip_Term() const { return Vdw_Recip_term_; }
 
     // TODO make variables private
     Darray Charge_;       ///< Hold selected atomic charges converted to Amber units.
