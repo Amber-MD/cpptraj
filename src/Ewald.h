@@ -75,6 +75,10 @@ class Ewald {
     Darray Cparam_;       ///< Hold selected atomic C6 coefficients for LJ PME
     PairList pairList_;   ///< Atom pair list for direct sum.
 
+    Iarray vdw_type_;              ///< Store nonbond vdw type for each atom
+    Iarray N_vdw_type_;            ///< Total number of atoms for each vdw type
+    Darray atype_vdw_recip_terms_; ///< Nonbond PME interaction correction for each vdw type
+
     static const double INVSQRTPI_;
     double ew_coeff_;     ///< Ewald coefficient for electrostatics
     double lw_coeff_;     ///< Ewald coefficient for LJ

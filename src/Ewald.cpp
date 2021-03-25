@@ -413,25 +413,34 @@ void Ewald::Setup_VDW_Correction(Topology const& topIn, AtomMask const& maskIn) 
     return;
   }
   // Count the number of each unique nonbonded type.
-  Iarray N_vdw_type( NB_->Ntypes(), 0 );
+  N_vdw_type_.assign( NB_->Ntypes(), 0 );
+  vdw_type_.clear();
   for (AtomMask::const_iterator atm = maskIn.begin(); atm != maskIn.end(); ++atm)
-    N_vdw_type[ topIn[*atm].TypeIndex() ]++;
+  {
+    N_vdw_type_[ topIn[*atm].TypeIndex() ]++;
+    vdw_type_.push_back( topIn[*atm].TypeIndex() );
+  }
   if (debug_ > 0) {
-    mprintf("DEBUG: %zu VDW types.\n", N_vdw_type.size());
-    for (Iarray::const_iterator it = N_vdw_type.begin(); it != N_vdw_type.end(); ++it)
-      mprintf("\tType %li = %i\n", it-N_vdw_type.begin(), *it);
+    mprintf("DEBUG: %zu VDW types.\n", N_vdw_type_.size());
+    for (Iarray::const_iterator it = N_vdw_type_.begin(); it != N_vdw_type_.end(); ++it)
+      mprintf("\tType %li = %i\n", it-N_vdw_type_.begin(), *it);
   }
   // Determine correction term from types and LJ B parameters
-  for (unsigned int itype = 0; itype != N_vdw_type.size(); itype++)
+  for (unsigned int itype = 0; itype != N_vdw_type_.size(); itype++)
   {
-    unsigned int offset = N_vdw_type.size() * itype;
-    for (unsigned int jtype = 0; jtype != N_vdw_type.size(); jtype++)
+    double atype_vdw_term = 0.0; // term for each nonbond atom type
+    unsigned int offset = N_vdw_type_.size() * itype;
+    for (unsigned int jtype = 0; jtype != N_vdw_type_.size(); jtype++)
     {
       unsigned int idx = offset + jtype;
       int nbidx = NB_->NBindex()[ idx ];
-      if (nbidx > -1)
-        Vdw_Recip_term_ += N_vdw_type[itype] * N_vdw_type[jtype] * NB_->NBarray()[ nbidx ].B();
+      if (nbidx > -1) {
+        atype_vdw_term += N_vdw_type_[itype] * N_vdw_type_[jtype] * NB_->NBarray()[ nbidx ].B();
+
+        Vdw_Recip_term_ += N_vdw_type_[itype] * N_vdw_type_[jtype] * NB_->NBarray()[ nbidx ].B();
+      }
     }
+    atype_vdw_recip_terms_.push_back(atype_vdw_term);  // the nonbond interaction for each atom type
   }
 }
 
