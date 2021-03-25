@@ -664,7 +664,7 @@ double GIST_PME::Direct_VDW_LJPME_GIST(PairList const& PL, double& evdw_out, Dar
         mprintf("DBG: Cell %6i (%6i atoms):\n", cidx+1, thisCell.NatomsInGrid());
 #       endif
         // Exclusion list for this atom
-        Iset const& excluded = Excluded()[it0->Idx()];
+        ExclusionArray::ExListType const& excluded = Excluded()[it0->Idx()];
         // Calc interaction of atom to all other atoms in thisCell.
         for (PairList::CellType::const_iterator it1 = it0 + 1;
                                                 it1 != thisCell.end(); ++it1)
