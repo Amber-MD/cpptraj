@@ -63,6 +63,9 @@ class Ewald {
     inline double Adjust(double,double,double); // Cannot be const bc timers
 #   endif
 
+    /// \return sum of charges squared
+    double SumQ2() const { return sumq2_; }
+
     // TODO make variables private
     Darray Charge_;       ///< Hold selected atomic charges converted to Amber units.
     Darray Cparam_;       ///< Hold selected atomic C6 coefficients for LJ PME

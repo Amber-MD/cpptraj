@@ -2,6 +2,7 @@
 #include "GIST_PME.h"
 #include "Frame.h"
 #include "CpptrajStdio.h"
+#include "Constants.h"
 
 /** CONSTRUCTOR */
 GIST_PME::GIST_PME() {}
@@ -178,7 +179,7 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, AtomMask const& maskI
 double GIST_PME::Self_GIST(double volume, Darray& atom_self) {
   //t_self_.Start();
   double d0 = -ew_coeff_ * INVSQRTPI_;
-  double ene = sumq2_ * d0;
+  double ene = SumQ2() * d0;
 //  mprintf("DEBUG: d0= %20.10f   ene= %20.10f\n", d0, ene);
   double factor = Constants::PI / (ew_coeff_ * ew_coeff_ * volume);
   double ee_plasma = -0.5 * factor * sumq_ * sumq_;
@@ -320,6 +321,306 @@ double GIST_PME::Vdw_Correction_GIST(double volume, Darray& e_vdw_lr_cor) {
 
   if (debug_ > 0) mprintf("DEBUG: Vdw correction %20.10f\n", e_vdwr);
   return e_vdwr;
+}
+
+/** Direct space routine for GIST. */
+double GIST_PME::Direct_GIST(PairList const& PL, double& evdw_out, Darray& e_vdw_direct, Darray& e_elec_direct,
+                             Iarray const& atom_voxel)
+{
+  if (lw_coeff_ > 0.0)
+    return Direct_VDW_LJPME_GIST(PL, evdw_out, e_vdw_direct, e_elec_direct);
+  else
+    return Direct_VDW_LongRangeCorrection_GIST(PL, evdw_out, e_vdw_direct, e_elec_direct, atom_voxel);
+}
+
+/** Direct space calculation with long range VDW correction for GIST. */
+double Ewald::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double& evdw_out,
+                                                  Darray& e_vdw_direct, Darray& e_elec_direct,
+                                                  Iarray const& atom_voxel)
+{
+  // e_vdw_direct only count the interaction water molecule involved( sw, ww)
+  // e_vdw_all_direct, count all interactions( sw, ww, ss)
+
+  t_direct_.Start();
+  double Eelec = 0.0;
+  double e_adjust = 0.0;
+  double Evdw = 0.0;
+  int cidx;
+
+  //mprintf("Entering Direct_VDW_LongrangeCorrection_GIST function \n");
+# ifdef _OPENMP
+# pragma omp parallel private(cidx) reduction(+: Eelec, Evdw, e_adjust)
+  {
+# pragma omp for
+# endif
+//# include "PairListLoop.h"
+  //double Evdw_temp(0);   //Eljpme_correction_temp(0), Eljpme_correction_excl_temp(0);
+  //double Eelec_temp(0),E_adjust_temp(0);
+  
+  
+  for (cidx = 0; cidx < PL.NGridMax(); cidx++)
+  {
+    PairList::CellType const& thisCell = PL.Cell( cidx );
+    if (thisCell.NatomsInGrid() > 0)
+    {
+      // cellList contains this cell index and all neighbors.
+      PairList::Iarray const& cellList = thisCell.CellList();
+      // transList contains index to translation for the neighbor.
+      PairList::Iarray const& transList = thisCell.TransList();
+      // Loop over all atoms of thisCell.
+      for (PairList::CellType::const_iterator it0 = thisCell.begin();
+                                              it0 != thisCell.end(); ++it0)
+      {
+        Vec3 const& xyz0 = it0->ImageCoords();
+        double q0 = Charge_[it0->Idx()];
+        // The voxel # of it0
+        int it0_voxel = atom_voxel[it0->Idx()];
+
+#       ifdef DEBUG_PAIRLIST
+        mprintf("DBG: Cell %6i (%6i atoms):\n", cidx+1, thisCell.NatomsInGrid());
+#       endif
+        // Exclusion list for this atom
+        ExclusionArray::ExListType const& excluded = Excluded_[it0->Idx()];
+        // Calc interaction of atom to all other atoms in thisCell.
+        for (PairList::CellType::const_iterator it1 = it0 + 1;
+                                                it1 != thisCell.end(); ++it1)
+        {
+          int it1_voxel = atom_voxel[it1->Idx()];
+
+          Vec3 const& xyz1 = it1->ImageCoords();
+          double q1 = Charge_[it1->Idx()];
+          Vec3 dxyz = xyz1 - xyz0;
+          double rij2 = dxyz.Magnitude2();
+#         ifdef DEBUG_PAIRLIST
+          mprintf("\tAtom %6i to atom %6i (%f)\n", it0->Idx()+1, it1->Idx()+1, sqrt(rij2));
+#         endif
+          // If atom excluded, calc adjustment, otherwise calc elec. energy.
+          if (excluded.find( it1->Idx() ) == excluded.end())
+          {
+            if ( rij2 < cut2_ ) {
+//#             include "EnergyKernel_Nonbond.h"
+                double rij = sqrt( rij2 );
+                double qiqj = q0 * q1;
+#               ifndef _OPENMP
+                t_erfc_.Start();
+#               endif
+                //double erfc = erfc_func(ew_coeff_ * rij);
+                double erfc = ERFC(ew_coeff_ * rij);
+#               ifndef _OPENMP
+                t_erfc_.Stop();
+#               endif
+                double e_elec = qiqj * erfc / rij;
+                Eelec += e_elec;
+
+                //add the e_elec to E_elec_direct[it0->Idx] and E_elec_direct[it1-> Idx], 0.5 to avoid double counting
+                 
+                e_elec_direct[it0->Idx()] += 0.5 * e_elec;
+                e_elec_direct[it1->Idx()] += 0.5 * e_elec;
+               
+            
+
+
+                int nbindex = NB_->GetLJindex(TypeIndices_[it0->Idx()],
+                                              TypeIndices_[it1->Idx()]);
+                if (nbindex > -1) {
+                  double vswitch = switch_fn(rij2, cut2_0_, cut2_);
+                  NonbondType const& LJ = NB_->NBarray()[ nbindex ];
+                  double r2    = 1.0 / rij2;
+                  double r6    = r2 * r2 * r2;
+                  double r12   = r6 * r6;
+                  double f12   = LJ.A() * r12;  // A/r^12
+                  double f6    = LJ.B() * r6;   // B/r^6
+                  double e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)
+                  Evdw += (e_vdw * vswitch);
+
+              
+                
+
+                // add the vdw energy to e_vdw_direct, divide the energy evenly to each atom
+
+                  e_vdw_direct[it0->Idx()] += 0.5 * e_vdw * vswitch;
+                  e_vdw_direct[it1->Idx()] += 0.5 * e_vdw * vswitch;
+                  
+
+
+
+                  //mprintf("PVDW %8i%8i%20.6f%20.6f\n", ta0+1, ta1+1, e_vdw, r2);
+#                 ifdef CPPTRAJ_EKERNEL_LJPME
+                  // LJ PME direct space correction
+                  double kr2 = lw_coeff_ * lw_coeff_ * rij2;
+                  double kr4 = kr2 * kr2;
+                  //double kr6 = kr2 * kr4;
+                  double expterm = exp(-kr2);
+                  double Cij = Cparam_[it0->Idx()] * Cparam_[it1->Idx()];
+                  Eljpme_correction += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) * r6 * vswitch * Cij;
+#                 endif
+                }
+
+
+
+
+            }
+          } else {
+//#           include "EnergyKernel_Adjust.h"
+
+              double adjust = Adjust(q0,q1,sqrt(rij2));
+
+              e_adjust += adjust;
+
+              //add the e_elec to E_elec_direct[it0->Idx] and E_elec_direct[it1-> Idx], 0.5 to avoid double counting
+
+
+              e_elec_direct[it0->Idx()] += 0.5 * adjust;
+              e_elec_direct[it1->Idx()] += 0.5 * adjust;
+
+
+
+#             ifdef CPPTRAJ_EKERNEL_LJPME
+              // LJ PME direct space correction
+              // NOTE: Assuming excluded pair is within cutoff
+              double kr2 = lw_coeff_ * lw_coeff_ * rij2;
+              double kr4 = kr2 * kr2;
+              //double kr6 = kr2 * kr4;
+              double expterm = exp(-kr2);
+              double r4 = rij2 * rij2;
+              double r6 = rij2 * r4;
+              double Cij = Cparam_[it0->Idx()] * Cparam_[it1->Idx()];
+              Eljpme_correction_excl += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) / r6 * Cij;
+#             endif
+
+          }
+        } // END loop over other atoms in thisCell
+        // Loop over all neighbor cells
+        for (unsigned int nidx = 1; nidx != cellList.size(); nidx++)
+        {
+          PairList::CellType const& nbrCell = PL.Cell( cellList[nidx] );
+#         ifdef DEBUG_PAIRLIST
+          if (nbrCell.NatomsInGrid()>0) mprintf("\tto neighbor cell %6i\n", cellList[nidx]+1);
+#         endif
+          // Translate vector for neighbor cell
+          Vec3 const& tVec = PL.TransVec( transList[nidx] );
+          //mprintf("\tNEIGHBOR %i (idxs %i - %i)\n", nbrCell, beg1, end1);
+          // Loop over every atom in nbrCell
+          for (PairList::CellType::const_iterator it1 = nbrCell.begin();
+                                                  it1 != nbrCell.end(); ++it1)
+          {
+            int it1_voxel = atom_voxel[it1->Idx()];
+            Vec3 const& xyz1 = it1->ImageCoords();
+            double q1 = Charge_[it1->Idx()];
+            Vec3 dxyz = xyz1 + tVec - xyz0;
+            double rij2 = dxyz.Magnitude2();
+#           ifdef DEBUG_PAIRLIST
+            mprintf("\t\tAtom %6i to atom %6i (%f)\n", it0->Idx()+1, it1->Idx()+1, sqrt(rij2));
+#           endif
+            //mprintf("\t\tNbrAtom %06i\n",atnum1);
+            // If atom excluded, calc adjustment, otherwise calc elec. energy.
+            // TODO Is there better way of checking this?
+            if (excluded.find( it1->Idx() ) == excluded.end())
+            {
+              //mprintf("\t\t\tdist= %f\n", sqrt(rij2));
+              if ( rij2 < cut2_ ) {
+//#               include "EnergyKernel_Nonbond.h"
+                double rij = sqrt( rij2 );
+                double qiqj = q0 * q1;
+#               ifndef _OPENMP
+                t_erfc_.Start();
+#               endif
+                //double erfc = erfc_func(ew_coeff_ * rij);
+                double erfc = ERFC(ew_coeff_ * rij);
+#               ifndef _OPENMP
+                t_erfc_.Stop();
+#               endif
+                double e_elec = qiqj * erfc / rij;
+                Eelec += e_elec;
+
+                //add the e_elec to E_elec_direct[it0->Idx] and E_elec_direct[it1-> Idx], 0.5 to avoid double counting
+
+                e_elec_direct[it0->Idx()] += 0.5 * e_elec;
+                e_elec_direct[it1->Idx()] += 0.5 * e_elec;
+
+
+
+                int nbindex = NB_->GetLJindex(TypeIndices_[it0->Idx()],
+                                              TypeIndices_[it1->Idx()]);
+                if (nbindex > -1) {
+                  double vswitch = switch_fn(rij2, cut2_0_, cut2_);
+                  NonbondType const& LJ = NB_->NBarray()[ nbindex ];
+                  double r2    = 1.0 / rij2;
+                  double r6    = r2 * r2 * r2;
+                  double r12   = r6 * r6;
+                  double f12   = LJ.A() * r12;  // A/r^12
+                  double f6    = LJ.B() * r6;   // B/r^6
+                  double e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)
+                  Evdw += (e_vdw * vswitch);
+
+                  // add the vdw energy to e_vdw_direct
+
+                  e_vdw_direct[it0->Idx()] += 0.5 * e_vdw * vswitch;
+                  e_vdw_direct[it1->Idx()] += 0.5 * e_vdw * vswitch;
+
+
+                  //mprintf("PVDW %8i%8i%20.6f%20.6f\n", ta0+1, ta1+1, e_vdw, r2);
+#                 ifdef CPPTRAJ_EKERNEL_LJPME
+                  // LJ PME direct space correction
+                  double kr2 = lw_coeff_ * lw_coeff_ * rij2;
+                  double kr4 = kr2 * kr2;
+                  //double kr6 = kr2 * kr4;
+                  double expterm = exp(-kr2);
+                  double Cij = Cparam_[it0->Idx()] * Cparam_[it1->Idx()];
+                  Eljpme_correction += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) * r6 * vswitch * Cij;
+#                 endif
+                }
+
+
+              }
+            } else {
+//#             include "EnergyKernel_Adjust.h"
+              double adjust = Adjust(q0,q1,sqrt(rij2));
+
+              e_adjust += adjust;
+
+              e_elec_direct[it0->Idx()] += 0.5 * adjust;
+              e_elec_direct[it1->Idx()] += 0.5 * adjust;
+              
+            
+
+
+#             ifdef CPPTRAJ_EKERNEL_LJPME
+              // LJ PME direct space correction
+              // NOTE: Assuming excluded pair is within cutoff
+              double kr2 = lw_coeff_ * lw_coeff_ * rij2;
+              double kr4 = kr2 * kr2;
+              //double kr6 = kr2 * kr4;
+              double expterm = exp(-kr2);
+              double r4 = rij2 * rij2;
+              double r6 = rij2 * r4;
+              double Cij = Cparam_[it0->Idx()] * Cparam_[it1->Idx()];
+              Eljpme_correction_excl += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) / r6 * Cij;
+#             endif
+
+            }
+          } // END loop over neighbor cell atoms
+        
+        } // END Loop over neighbor cells
+        
+      } // Loop over thisCell atoms
+      
+
+
+    } // END if thisCell is not empty
+  } // Loop over cells
+
+# ifdef _OPENMP
+  } // END pragma omp parallel
+# endif
+  t_direct_.Stop();
+# ifdef DEBUG_PAIRLIST
+  mprintf("DEBUG: Elec                             = %16.8f\n", Eelec);
+  mprintf("DEBUG: Eadjust                          = %16.8f\n", e_adjust);
+  mprintf("DEBUG: LJ vdw                           = %16.8f\n", Evdw);
+# endif
+  evdw_out = Evdw;
+  return Eelec + e_adjust;
 }
 
 
