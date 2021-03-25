@@ -95,6 +95,11 @@ double Ewald::ERFC(double xIn) const {
   return table_.Yval( xIn);
 }
 
+/** Non-inlined version of ERFC */
+double Ewald::ErfcFxn(double xIn) const {
+  return table_.Yval( xIn );
+}
+
 /** Determine Ewald coefficient from cutoff and direct sum tolerance.
   * Original Code: SANDER: findewaldcof
   */
