@@ -77,6 +77,8 @@ class Ewald {
     NonbondParmType const& NB() const { return *NB_; }
     /// \return Type index for given atom
     int TypeIdx(unsigned int idx) const { return TypeIndices_[idx]; }
+    /// \return Value of LJ switching function
+    static double SwitchFxn(double, double, double);
 
     // TODO make variables private
     Darray Charge_;       ///< Hold selected atomic charges converted to Amber units.

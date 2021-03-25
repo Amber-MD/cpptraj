@@ -424,7 +424,7 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
                 int nbindex = NB().GetLJindex(TypeIdx(it0->Idx()),
                                               TypeIdx(it1->Idx()));
                 if (nbindex > -1) {
-                  double vswitch = switch_fn(rij2, cut2_0_, cut2_);
+                  double vswitch = SwitchFxn(rij2, cut2_0_, cut2_);
                   NonbondType const& LJ = NB().NBarray()[ nbindex ];
                   double r2    = 1.0 / rij2;
                   double r6    = r2 * r2 * r2;
@@ -544,7 +544,7 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
                 int nbindex = NB().GetLJindex(TypeIdx(it0->Idx()),
                                               TypeIdx(it1->Idx()));
                 if (nbindex > -1) {
-                  double vswitch = switch_fn(rij2, cut2_0_, cut2_);
+                  double vswitch = SwitchFxn(rij2, cut2_0_, cut2_);
                   NonbondType const& LJ = NB().NBarray()[ nbindex ];
                   double r2    = 1.0 / rij2;
                   double r6    = r2 * r2 * r2;

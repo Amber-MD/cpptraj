@@ -326,6 +326,11 @@ static inline double switch_fn(double rij2, double cut2_0, double cut2_1)
   }
 }
 
+/** Switching function for Lennard-Jones, for inheriting classes. */
+double Ewald::SwitchFxn(double rij2, double cut2_0, double cut2_1) {
+  return switch_fn(rij2, cut2_0, cut2_1);
+}
+
 /** Nonbond direct-space calculation for Coulomb electrostatics and Lennard-Jones,
   * intended for use with long-range LJ correction.
   */
