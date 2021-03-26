@@ -44,5 +44,33 @@ DoTest Gist2-order-norm.dx.save Gist2-order-norm.dx
 #       THIS IS THE SAVED OUTPUT FROM THE ORIGINAL GIST COMMAND.
 DoTest gist.out.save Gist2-output.dat -r 0.0001
 
+
+#PME-GIST function test with whole syetem GIST box
+
+# PME-GIST for orthogonal cell
+UNITNAME='PME-GIST test on orthogonal cell'
+cat > gist.in << EOF
+parm ../tz2.ortho.parm7
+trajin ../tz2.ortho.nc 1 10
+autoimage origin
+gist refdens 0.033422885325 gridcntr 17 20 18 griddim 80 90 80 prefix Gist3
+go
+EOF
+RunCpptraj "PME-GIST test on orthogonal cell"
+DoTest Gist3-Solute-Etot-pme-dens.dx.save Gist3-Solute-Etot-pme-dens.dx
+DoTest Gist3-Water-Etot-pme-dens.dx.save Gist3-Water-Etot-pme-dens.dx
+
+UNITNAME='PME-GIST test on non-orthogonal' 
+cat > gist.in << EOF
+parm ../tz2.truncoct.parm7
+trajin ../tz2.truncoct.nc 1 10
+autoimage origin
+gist refdens 0.033422885325 gridcntr 21 21 21 griddim 90 90 90 prefix Gist4
+go
+EOF
+RunCpptraj "PME-GIST test on non-orthogonal cell"
+DoTest Gist4-Solute-Etot-pme-dens.dx.save Gist4-Solute-Etot-pme-dens.dx
+DoTest Gist4-Water-Etot-pme-dens.dx.save Gist4-Water-Etot-pme-dens.dx
+
 EndTest
 exit 0
