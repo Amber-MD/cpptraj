@@ -77,7 +77,7 @@ void Action_GIST::Help() const {
           "\t[prefix <filename prefix>] [ext <grid extension>] [out <output>]\n"
           "\t[info <info>]\n");
 #         ifdef LIBPME
-          mprintf("\t[pme %s\n\t %s\n\t %s]\n", PmeOptions::Keywords1(), PmeOptions::Keywords2(), PmeOptions::Keywords3());
+          mprintf("\t[nopme|pme %s\n\t %s\n\t %s]\n", PmeOptions::Keywords1(), PmeOptions::Keywords2(), PmeOptions::Keywords3());
 #         endif
           mprintf("Perform Grid Inhomogenous Solvation Theory calculation.\n"
 #ifdef CUDA
@@ -150,6 +150,8 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
 # endif
   if (actionArgs.hasKey("pme"))
     usePme_ = true;
+  else if (actionArgs.hasKey("nopme"))
+    usePme_ = false;
   if (usePme_) {
 #   ifdef LIBPME
     pmeOpts_.AllowLjPme(false);
@@ -161,6 +163,12 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     mprinterr("Error: 'pme' with GIST requires compilation with LIBPME.\n");
     return Action::ERR;
 #   endif
+  }
+  DataFile* file_energy_pme = 0;
+  DataFile* file_U_energy_pme = 0;
+  if (usePme_) {
+    file_energy_pme = init.DFL().AddDataFile(prefix_ + "-Water-Etot-pme-dens" + ext);
+    file_U_energy_pme = init.DFL().AddDataFile(prefix_ + "-Solute-Etot-pme-dens"+ ext);
   }
 
   this->skipS_ = actionArgs.hasKey("skipS");
@@ -227,6 +235,12 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
       dipolex_==0 || dipoley_==0 || dipolez_==0)
     return Action::ERR;
 
+  if (usePme_) {
+    PME_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_FLT, MetaData(dsname,"PME"));
+    U_PME_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_FLT,MetaData(dsname,"U_PME"));
+    if (PME_ == 0 || U_PME_ == 0) return Action::ERR;
+  }
+
   if (doEij_) {
     ww_Eij_ = (DataSet_MatrixFlt*)init.DSL().AddSet(DataSet::MATRIX_FLT, MetaData(dsname, "Eij"));
     if (ww_Eij_ == 0) return Action::ERR;
@@ -250,6 +264,11 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   dipoley_->Allocate_N_C_D(nx, ny, nz, gridcntr_, v_spacing);
   dipolez_->Allocate_N_C_D(nx, ny, nz, gridcntr_, v_spacing);
 
+  if (usePme_) {
+    PME_->Allocate_N_C_D(nx,ny,nz,gridcntr_,v_spacing);
+    U_PME_->Allocate_N_C_D(nx,ny,nz,gridcntr_,v_spacing);
+  }
+
   if (ww_Eij_ != 0) {
     if (ww_Eij_->AllocateTriangle( MAX_GRID_PT_ )) {
       mprinterr("Error: Could not allocate memory for water-water Eij matrix.\n");
@@ -271,12 +290,16 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   file_dipolex->AddDataSet( dipolex_ );
   file_dipoley->AddDataSet( dipoley_ );
   file_dipolez->AddDataSet( dipolez_ );
-
+  if (usePme_) {
+    file_energy_pme->AddDataSet(PME_);
+    file_U_energy_pme->AddDataSet(U_PME_);
+  }
   // Set up grid params TODO non-orthogonal as well
   G_max_ = Vec3( (double)nx * gridspacing_ + 1.5,
                  (double)ny * gridspacing_ + 1.5,
                  (double)nz * gridspacing_ + 1.5 );
   N_waters_.assign( MAX_GRID_PT_, 0 );
+  N_solute_atoms_.assign( MAX_GRID_PT_, 0);
   N_hydrogens_.assign( MAX_GRID_PT_, 0 );
   voxel_xyz_.resize( MAX_GRID_PT_ ); // [] = X Y Z
   voxel_Q_.resize( MAX_GRID_PT_ ); // [] = W4 X4 Y4 Z4
@@ -302,6 +325,14 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
       E_VV_VDW_[thread].assign( MAX_GRID_PT_, 0 );
       E_VV_Elec_[thread].assign( MAX_GRID_PT_, 0 );
       neighbor_[thread].assign( MAX_GRID_PT_, 0 );
+    }
+    if (usePme_) {
+      E_pme_.resize( numthreads);
+      U_E_pme_.resize(numthreads);
+      for (int thread = 0; thread != numthreads; thread++) {
+        E_pme_[thread].assign( MAX_GRID_PT_,0);
+        U_E_pme_[thread].assign( MAX_GRID_PT_,0);
+      }
     }
 #   ifdef _OPENMP
     if (doEij_) {
@@ -375,6 +406,10 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
           "#    Crystal N. Nguyen, Tom Kurtzman Young, and Michael K. Gilson,\n"
           "#      J. Chem. Phys. 137, 044101 (2012)\n"
           "#    Lazaridis, J. Phys. Chem. B 102, 3531–3541 (1998)\n"
+#ifdef LIBPME
+          "When using the PME-enhanced version of GIST, please cite:\n"
+          "#    Lieyang Chen, Anthony Cruz, Daniel R. Roe, Andy C. Simmonett, Lauren Wickstrom, Nanjie Deng, Tom Kurtzman. ChemRxiv: 13140011.v1 (2020)\n"
+#endif
 #ifdef CUDA
           "#When using the GPU parallelized version of GIST, please cite:\n"
           "#    Johannes Kraml, Anna S. Kamenik, Franz Waibl, Michael Schauperl, Klaus R. Liedl, JCTC (2019)\n"

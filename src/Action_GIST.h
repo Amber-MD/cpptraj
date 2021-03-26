@@ -117,6 +117,7 @@ class Action_GIST : public Action {
     Iarray atom_voxel_;  ///< Absolute grid voxel for each atom (SOLUTE_ for solute atoms)
     Iarray A_idxs_;      ///< Atom indices for each solute and solvent atom.+ (energy calc only)
     Iarray N_waters_;    ///< Number of waters (oxygen atoms) in each voxel.*
+    Iarray N_solute_atoms_; ///< Number of solute atoms in each voxel.*
     Iarray N_hydrogens_; ///< Number of hydrogen atoms in each voxel.*
 #   ifdef _OPENMP
     std::vector<Iarray> EIJ_V1_; ///< Hold any interaction energy voxel 1 each frame.*
@@ -139,6 +140,9 @@ class Action_GIST : public Action {
     std::vector<Darray> E_UV_Elec_; ///< Solute-solvent electrostatic energy for each voxel.*
     std::vector<Darray> E_VV_VDW_;  ///< Solvent-solvent van der Waals energy for each voxel.*
     std::vector<Darray> E_VV_Elec_; ///< Solvent-solvent electrostatic energy for each voxel.*
+    // PME energy terms
+    std::vector<Darray> E_pme_;     ///< Total nonbond interaction energy(VDW + electrostatic) calculated by PME for water
+    std::vector<Darray> U_E_pme_;   ///< Total nonbond interaction energy(VDW + Elec) calculated by PME for solute
 
     Vec3 G_max_; ///< Grid max + 1.5 Ang.
 
