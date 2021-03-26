@@ -17,6 +17,9 @@ const double Action_GIST::maxD_ = DBL_MAX;
 
 Action_GIST::Action_GIST() :
 #ifdef CUDA
+  numberAtoms_(0),
+  numberAtomTypes_(0),
+  headAtomType_(0),
   solvent_(NULL),
   NBindex_c_(NULL),
   molecule_c_(NULL),
@@ -28,6 +31,9 @@ Action_GIST::Action_GIST() :
   result_O_c_(NULL),
   result_N_c_(NULL),
 #endif
+  gridspacing_(0),
+  gridcntr_(0.0),
+  griddim_(0.0),
   gO_(0),
   gH_(0),
   Esw_(0),
@@ -42,6 +48,7 @@ Action_GIST::Action_GIST() :
   dipoley_(0),
   dipolez_(0),
   ww_Eij_(0),
+  G_max_(0.0),
   CurrentParm_(0),
   datafile_(0),
   eijfile_(0),
@@ -129,6 +136,25 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
       mprinterr("Error: 'doeij' cannot be specified if 'skipE' is specified.\n");
       return Action::ERR;
     }
+  }
+  // Parse PME options
+# ifdef LIBPME
+  usePme_ = true;
+# else
+  usePme_ = false;
+# endif
+  if (actionArgs.hasKey("pme"))
+    usePme_ = true;
+  if (usePme_) {
+#   ifdef LIBPME
+    if (pmeOpts_.GetOptions(actionArgs, "GIST")) {
+      mprinterr("Error: Getting PME options for GIST failed.\n");
+      return Action::ERR;
+    }
+#   else
+    mprinterr("Error: 'pme' with GIST requires compilation with LIBPME.\n");
+    return Action::ERR;
+#   endif
   }
 
   this->skipS_ = actionArgs.hasKey("skipS");
@@ -780,6 +806,7 @@ void Action_GIST::Order(Frame const& frameIn) {
     Vec3 XYZ1( (&OnGrid_XYZ_[0])+gidx*3 );
     // Find coordinates for 4 closest neighbors to this water (on or off grid).
     // TODO set up overall grid in DoAction.
+    // TODO initialize WAT?
     Vec3 WAT[4];
     double d1 = maxD_;
     double d2 = maxD_;

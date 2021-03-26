@@ -312,6 +312,7 @@ COMMON_SOURCES= \
         ForLoop_mask.cpp \
         ForLoop_overSets.cpp \
         Frame.cpp \
+        GIST_PME.cpp \
         GridAction.cpp \
         HistBin.cpp \
         Hungarian.cpp \
