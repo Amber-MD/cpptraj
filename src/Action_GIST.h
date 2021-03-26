@@ -36,6 +36,7 @@ class Action_GIST : public Action {
     void Order(Frame const&);
     void SumEVV();
 
+    int debug_; ///< Action debug level
 #ifdef CUDA
     // Additional data for GPU calculation
 

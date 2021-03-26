@@ -16,6 +16,7 @@
 const double Action_GIST::maxD_ = DBL_MAX;
 
 Action_GIST::Action_GIST() :
+  debug_(0),
 #ifdef CUDA
   numberAtoms_(0),
   numberAtomTypes_(0),
@@ -89,6 +90,7 @@ void Action_GIST::Help() const {
 
 Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+  debug_ = debugIn;
 # ifdef MPI
   if (init.TrajComm().Size() > 1) {
     mprinterr("Error: 'gist' action does not work with > 1 process (%i processes currently).\n",
@@ -438,6 +440,26 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   this->numberAtoms_ = setup.Top().Natom();
   this->solvent_ = new bool[this->numberAtoms_];
   #endif
+
+  // Initialize PME
+  if (usePme_) {
+#   ifdef LIBPME
+    if (gistPme_.Init( setup.CoordInfo().TrajBox(), pmeOpts_, debug_ )) {
+      mprinterr("Error: PME init failed.\n");
+      return Action::ERR;
+    }
+    // Select everything
+    AtomMask allAtoms(0, setup.Top().Natom());
+    // Set up PME
+    if (gistPme_.Setup( setup.Top(), allAtoms )) {
+      mprinterr("Error: PME setup failed.\n");
+      return Action::ERR;
+    }
+#   else
+    mprinterr("Error: GIST PME requires compilation with LIBPME.\n");
+    return Action::ERR;
+#   endif
+  }
 
   // Get molecule number for each solvent molecule
   //mol_nums_.clear();
