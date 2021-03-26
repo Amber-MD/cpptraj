@@ -624,9 +624,12 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
   return Eelec + e_adjust;
 }
 
-/** Direct space calculation with LJ PME for GIST. */
+/** Direct space calculation with LJ PME for GIST. */ // TODO enable
 double GIST_PME::Direct_VDW_LJPME_GIST(PairList const& PL, double& evdw_out, Darray& e_vdw_direct, Darray& e_elec_direct)
 {
+  mprinterr("Error: LJPME does not yet work with GIST.\n");
+  return 0;
+/*
   t_direct_.Start();
   double Eelec = 0.0;
   double e_adjust = 0.0;
@@ -754,6 +757,7 @@ double GIST_PME::Direct_VDW_LJPME_GIST(PairList const& PL, double& evdw_out, Dar
 # endif
   evdw_out = Evdw + Eljpme_correction + Eljpme_correction_excl;
   return Eelec + e_adjust;
+*/
 }
 
 
