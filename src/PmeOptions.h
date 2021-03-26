@@ -5,6 +5,11 @@ class ArgList;
 class PmeOptions {
   public:
     PmeOptions();
+
+    static const char* Keywords1();
+    static const char* Keywords2();
+    static const char* Keywords3();
+
     /// Enable/disable LJ pme option
     void AllowLjPme(bool);
     /// Get options from arglist

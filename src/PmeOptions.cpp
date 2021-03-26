@@ -4,17 +4,18 @@
 
 /** CONSTRUCTOR */
 PmeOptions::PmeOptions() :
-  cutoff_(0),
-  dsumtol_(0),
+  allowLjPme_(true),
+  cutoff_(8),
+  dsumtol_(1E-5),
   ewcoeff_(0),
-  lwcoeff_(0),
+  lwcoeff_(-1),
   ljswidth_(0),
-  skinnb_(0),
+  skinnb_(2),
   erfcDx_(0),
-  npoints_(0),
-  nfft1_(0),
-  nfft2_(0),
-  nfft3_(0)
+  npoints_(6),
+  nfft1_(-1),
+  nfft2_(-1),
+  nfft3_(-1)
 {}
 
 /** Set whether we want to read LJ PME options. */
@@ -22,6 +23,16 @@ void PmeOptions::AllowLjPme(bool allow) {
   allowLjPme_ = allow;
 }
 
+// Keywords lines for help text
+const char* PmeOptions::Keywords1() {
+  return "[cut <cutoff>] [dsumtol <dtol>] [order <order>] [ljswidth <width>]";
+}
+const char* PmeOptions::Keywords2() {
+  return "[ewcoeff <coeff>] [ljpme] [ewcoefflj] [skinnb <skinnb>]";
+}
+const char* PmeOptions::Keywords3() {
+  return "[nfft <nfft1>,<nfft2>,<nfft3>] [erfcdx <dx>]";
+}
 
 /** Parse PME options from ArgList. */
 int PmeOptions::GetOptions(ArgList& actionArgs, const char* desc) {
