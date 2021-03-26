@@ -473,8 +473,9 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   // NOTE: these are just guesses
   O_idxs_.reserve( setup.Top().Nsolvent() );
   A_idxs_.reserve( setup.Top().Natom() );
-  atom_voxel_.reserve( setup.Top().Natom() );
-  atomIsSolute_.reserve(setup.Top().Natom());
+  // atom_voxel_ and atomIsSolute will be indexed by atom #
+  atom_voxel_.assign( setup.Top().Natom(), OFF_GRID_ );
+  atomIsSolute_.assign(setup.Top().Natom(), false);
   U_idxs_.reserve(setup.Top().Natom()-setup.Top().Nsolvent()*nMolAtoms_);
   unsigned int midx = 0;
   unsigned int NsolventAtoms = 0;
@@ -520,8 +521,8 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
       // Save all atom indices for energy calc, including extra points
       for (unsigned int IDX = 0; IDX != nMolAtoms_; IDX++) {
         A_idxs_.push_back( o_idx + IDX );
-        atomIsSolute_.push_back(false); // The identity of the atom is water
-        atom_voxel_.push_back( OFF_GRID_ );
+        atomIsSolute_[A_idxs_.back()] = false; // The identity of the atom is water
+        atom_voxel_[A_idxs_.back()] = OFF_GRID_;
         #ifdef CUDA
         this->molecule_.push_back( setup.Top()[o_idx + IDX ].MolNum() );
         this->charges_.push_back( setup.Top()[o_idx + IDX ].Charge() );
@@ -564,9 +565,9 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
         {
           for (int u_idx = seg->Begin(); u_idx != seg->End(); ++u_idx) {
             A_idxs_.push_back( u_idx );
-            atom_voxel_.push_back( SOLUTE_ );
+            atomIsSolute_[A_idxs_.back()] = true; // the identity of the atom is solute
+            atom_voxel_[A_idxs_.back()] = SOLUTE_;
             NsoluteAtoms++;
-            atomIsSolute_.push_back(true); // the identity of the atom is solute
             U_idxs_.push_back( u_idx ); // store the solute atom index for locating voxel index
             #ifdef CUDA
             this->molecule_.push_back( setup.Top()[ u_idx ].MolNum() );
@@ -842,7 +843,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
   for (aidx = 0; aidx < maxAidx; aidx++)
   {
     int a1 = A_idxs_[aidx];            // Index of atom1
-    int a1_voxel = atom_voxel_[aidx];    // Voxel of atom1
+    int a1_voxel = atom_voxel_[a1];    // Voxel of atom1
     int a1_mol = topIn[ a1 ].MolNum(); // Molecule # of atom 1
     Vec3 A1_XYZ( frameIn.XYZ( a1 ) );  // Coord of atom1
     double qA1 = topIn[ a1 ].Charge(); // Charge of atom1
@@ -872,7 +873,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
       {
         int a2_voxel = atom_voxel_[a2];                  // Voxel of on-grid solvent
         const double* A2_XYZ = (&OnGrid_XYZ_[0])+gidx*3; // Coord of on-grid solvent
-        if (atomIsSolute_[aidx]) {
+        if (atomIsSolute_[a1]) {
           // Solute to on-grid solvent energy
           // Calculate distance
           //gist_nonbond_dist_.Start();
