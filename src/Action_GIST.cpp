@@ -1273,16 +1273,22 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   gist_order_.Start();
   if (doOrder_) Order(frm.Frm());
   gist_order_.Stop();
-# ifndef CUDA
   // Do nonbond energy calc if not skipping energy
   gist_nonbond_.Start();
-  if (!skipE_) NonbondEnergy(frm.Frm(), *CurrentParm_);
+  if (!skipE_) {
+    if (usePme_) {
+      // PME
+      NonbondEnergy_pme( frm.Frm() );
+    } else {
+      // Non-PME
+#     ifdef CUDA
+      NonbondCuda(frm);
+#     else
+      NonbondEnergy(frm.Frm(), *CurrentParm_);
+#     endif
+    }
+  }
   gist_nonbond_.Stop();
-# else /* CUDA */
-  // Do nonbond energy calc on GPU if not skipping energy
-  if (! this->skipE_)
-    NonbondCuda(frm);
-# endif /* CUDA */
 
   gist_action_.Stop();
   return Action::OK;
