@@ -466,10 +466,14 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   O_idxs_.clear();
   A_idxs_.clear();
   atom_voxel_.clear();
+  SW_idxs_.clear();
+  U_idxs_.clear();
   // NOTE: these are just guesses
   O_idxs_.reserve( setup.Top().Nsolvent() );
   A_idxs_.reserve( setup.Top().Natom() );
   atom_voxel_.reserve( setup.Top().Natom() );
+  SW_idxs_.reserve(setup.Top().Natom());
+  U_idxs_.reserve(setup.Top().Natom()-setup.Top().Nsolvent()*nMolAtoms_);
   unsigned int midx = 0;
   unsigned int NsolventAtoms = 0;
   unsigned int NsoluteAtoms = 0;
@@ -514,6 +518,7 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
       // Save all atom indices for energy calc, including extra points
       for (unsigned int IDX = 0; IDX != nMolAtoms_; IDX++) {
         A_idxs_.push_back( o_idx + IDX );
+        SW_idxs_.push_back(0); // The identity of the atom is water
         atom_voxel_.push_back( OFF_GRID_ );
         #ifdef CUDA
         this->molecule_.push_back( setup.Top()[o_idx + IDX ].MolNum() );
@@ -559,6 +564,8 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
             A_idxs_.push_back( u_idx );
             atom_voxel_.push_back( SOLUTE_ );
             NsoluteAtoms++;
+            SW_idxs_.push_back(1); // the identity of the atom is solute
+            U_idxs_.push_back( u_idx ); // store the solute atom index for locating voxel index
             #ifdef CUDA
             this->molecule_.push_back( setup.Top()[ u_idx ].MolNum() );
             this->charges_.push_back( setup.Top()[ u_idx ].Charge() );

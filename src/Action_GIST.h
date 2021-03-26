@@ -117,6 +117,8 @@ class Action_GIST : public Action {
     Iarray OnGrid_idxs_; ///< Indices for each water atom on the grid.*
     Iarray atom_voxel_;  ///< Absolute grid voxel for each atom (SOLUTE_ for solute atoms)
     Iarray A_idxs_;      ///< Atom indices for each solute and solvent atom.+ (energy calc only)
+    Iarray SW_idxs_;     ///< Identity of the atom: 0 for water, 1 for solute.+ TODO bool?
+    Iarray U_idxs_;      ///< Atom indices for solute atoms only.+
     Iarray N_waters_;    ///< Number of waters (oxygen atoms) in each voxel.*
     Iarray N_solute_atoms_; ///< Number of solute atoms in each voxel.*
     Iarray N_hydrogens_; ///< Number of hydrogen atoms in each voxel.*
