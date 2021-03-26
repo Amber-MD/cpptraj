@@ -464,7 +464,7 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
           } else {
 //#           include "EnergyKernel_Adjust.h"
 
-              double adjust = Adjust(q0,q1,sqrt(rij2));
+              double adjust = AdjustFxn(q0,q1,sqrt(rij2));
 
               e_adjust += adjust;
 
@@ -576,7 +576,7 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
               }
             } else {
 //#             include "EnergyKernel_Adjust.h"
-              double adjust = Adjust(q0,q1,sqrt(rij2));
+              double adjust = AdjustFxn(q0,q1,sqrt(rij2));
 
               e_adjust += adjust;
 

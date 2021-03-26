@@ -312,6 +312,17 @@ double Ewald::Adjust(double q0, double q1, double rij) {
 }
 # endif
 
+/** Ewald adjustment, for inheriting classes. */
+#ifdef _OPENMP
+double Ewald::AdjustFxn(double q0, double q1, double rij) const {
+  return Adjust(q0, q1, rij);
+}
+#else
+double Ewald::AdjustFxn(double q0, double q1, double rij) {
+  return Adjust(q0, q1, rij);
+}
+#endif
+
 /** Switching function for Lennard-Jones. */
 static inline double switch_fn(double rij2, double cut2_0, double cut2_1)
 {

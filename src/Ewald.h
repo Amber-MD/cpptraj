@@ -79,6 +79,12 @@ class Ewald {
     int TypeIdx(unsigned int idx) const { return TypeIndices_[idx]; }
     /// \return Value of LJ switching function
     static double SwitchFxn(double, double, double);
+    /// \return Value of Ewald adjustment
+#   ifdef _OPENMP
+    double AdjustFxn(double,double,double) const;
+#   else
+    double AdjustFxn(double,double,double);
+#   endif
 
     // TODO make variables private
     Darray Charge_;       ///< Hold selected atomic charges converted to Amber units.
