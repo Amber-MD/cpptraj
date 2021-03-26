@@ -14,6 +14,18 @@ class PmeOptions {
     void AllowLjPme(bool);
     /// Get options from arglist
     int GetOptions(ArgList&, const char*);
+
+    double Cutoff()     const { return cutoff_; }
+    double DsumTol()    const { return dsumtol_; }
+    double EwCoeff()    const { return ewcoeff_; }
+    double LwCoeff()    const { return lwcoeff_; }
+    double LJ_SwWidth() const { return ljswidth_; }
+    double SkinNB()     const { return skinnb_; }
+    double ErfcDx()     const { return erfcDx_; }
+    int SplineOrder()   const { return npoints_; }
+    int Nfft1()         const { return nfft1_; }
+    int Nfft2()         const { return nfft2_; }
+    int Nfft3()         const { return nfft3_; }
   private:
     bool allowLjPme_; ///< True if LJ pme is allowed.
 
