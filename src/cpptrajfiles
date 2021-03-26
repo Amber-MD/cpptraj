@@ -350,6 +350,7 @@ COMMON_SOURCES= \
         Parm_PDB.cpp \
         Parm_SDF.cpp \
         Parm_Tinker.cpp \
+        PmeOptions.cpp \
         PotentialFunction.cpp \
         PotentialTerm.cpp \
         PotentialTerm_Angle.cpp \
