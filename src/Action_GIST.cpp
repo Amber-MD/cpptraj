@@ -47,6 +47,8 @@ Action_GIST::Action_GIST() :
   dipolex_(0),
   dipoley_(0),
   dipolez_(0),
+  PME_(0),
+  U_PME_(0),
   ww_Eij_(0),
   G_max_(0.0),
   CurrentParm_(0),

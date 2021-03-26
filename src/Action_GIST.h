@@ -104,6 +104,9 @@ class Action_GIST : public Action {
     DataSet_3D* dipolex_;    ///< Water dipole (X)*
     DataSet_3D* dipoley_;    ///< Water dipole (Y)*
     DataSet_3D* dipolez_;    ///< Water dipole (Z)*
+    // PME GIST double grid datasets
+    DataSet_3D* PME_;           ///< The PME nonbond interaction( charge-charge + vdw) cal for water
+    DataSet_3D* U_PME_;         ///< The PME nonbond energy for solute atoms
     // GIST matrix datasets
     DataSet_MatrixFlt* ww_Eij_; ///< Water-water interaction energy matrix.*
 
