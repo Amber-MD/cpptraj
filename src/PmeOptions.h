@@ -9,6 +9,7 @@ class PmeOptions {
     static const char* Keywords1();
     static const char* Keywords2();
     static const char* Keywords3();
+    static const char* KeywordsLjpme();
 
     /// Enable/disable LJ pme option
     void AllowLjPme(bool);

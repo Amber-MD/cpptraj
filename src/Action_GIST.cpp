@@ -73,8 +73,11 @@ void Action_GIST::Help() const {
           "\t[noimage] [gridcntr <xval> <yval> <zval>] [excludeions]\n"
           "\t[griddim <xval> <yval> <zval>] [gridspacn <spaceval>]\n"
           "\t[prefix <filename prefix>] [ext <grid extension>] [out <output>]\n"
-          "\t[info <info>]\n"
-          "Perform Grid Inhomogenous Solvation Theory calculation.\n"
+          "\t[info <info>]\n");
+#         ifdef LIBPME
+          mprintf("\t[pme %s\n\t %s\n\t %s]\n", PmeOptions::Keywords1(), PmeOptions::Keywords2(), PmeOptions::Keywords3());
+#         endif
+          mprintf("Perform Grid Inhomogenous Solvation Theory calculation.\n"
 #ifdef CUDA
           "The option doeij is not available, when using the CUDA accelerated version,\n"
           "as this would need way too much memory."

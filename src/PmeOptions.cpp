@@ -25,13 +25,16 @@ void PmeOptions::AllowLjPme(bool allow) {
 
 // Keywords lines for help text
 const char* PmeOptions::Keywords1() {
-  return "[cut <cutoff>] [dsumtol <dtol>] [order <order>] [ljswidth <width>]";
+  return "[cut <cutoff>] [dsumtol <dtol>] [order <order>] [erfcdx <dx>]";
 }
 const char* PmeOptions::Keywords2() {
-  return "[ewcoeff <coeff>] [ljpme] [ewcoefflj] [skinnb <skinnb>]";
+  return "[ewcoeff <coeff>] [nfft <nfft1>,<nfft2>,<nfft3>]";
 }
 const char* PmeOptions::Keywords3() {
-  return "[nfft <nfft1>,<nfft2>,<nfft3>] [erfcdx <dx>]";
+  return "[ljswidth <width>] [skinnb <skinnb>]" ;
+}
+const char* PmeOptions::KeywordsLjpme() {
+  return "[ljpme [ewcoefflj]]";
 }
 
 /** Parse PME options from ArgList. */
