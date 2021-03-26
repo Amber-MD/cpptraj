@@ -1389,7 +1389,7 @@ void Action_GIST::Print() {
 
       //mprintf("DEBUG1: VV vdw=%f elec=%f\n", E_VV_VDW_[gr_pt], E_VV_Elec_[gr_pt]);
       int nw_total = N_waters_[gr_pt]; // Total number of waters that have been in this voxel.
-      if (nw_total > 1) {
+      if (nw_total > 0) {
         #ifndef CUDA
         Esw_dens[gr_pt] = (E_UV_VDW[gr_pt]  + E_UV_Elec[gr_pt]) / (NFRAME_ * Vvox);
         Esw_norm[gr_pt] = (E_UV_VDW[gr_pt]  + E_UV_Elec[gr_pt]) / nw_total;
