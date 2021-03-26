@@ -1266,7 +1266,6 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
     gist_grid_.Stop();
   }
 
-# ifndef CUDA
   // Do order calculation if requested.
   // NOTE: This has to be done before the nonbond energy calc since
   //       the nonbond calc can modify the on-grid coordinates (for minimum
@@ -1274,6 +1273,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   gist_order_.Start();
   if (doOrder_) Order(frm.Frm());
   gist_order_.Stop();
+# ifndef CUDA
   // Do nonbond energy calc if not skipping energy
   gist_nonbond_.Start();
   if (!skipE_) NonbondEnergy(frm.Frm(), *CurrentParm_);
