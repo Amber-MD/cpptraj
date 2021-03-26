@@ -1235,6 +1235,38 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
     } // END water is within 1.5 Ang of grid
   } // END loop over each solvent molecule
 
+  // Do solute grid assignment for PME
+  if (usePme_) {
+    U_onGrid_idxs_.clear();
+    gist_grid_.Start();
+    for (unsigned int s = 0; s != U_idxs_.size(); s++)
+    {
+      int uidx = U_idxs_[s]; // the solute atom index
+      atom_voxel_[uidx] = SOLUTE_;
+      const double* u_XYZ = frm.Frm().XYZ( uidx );
+      // get the vector of this solute atom to the grid origin
+      Vec3 U_G( u_XYZ[0] - Origin[0],
+                u_XYZ[1] - Origin[1],
+                u_XYZ[2] - Origin[2]);
+      //size_t bin_i, bin_j, bin_k;
+
+      if ( U_G[0] <= G_max_[0] && U_G[0] >= -1.5 &&
+           U_G[1] <= G_max_[1] && U_G[1] >= -1.5 &&
+           U_G[2] <= G_max_[2] && U_G[2] >- -1.5)
+      {
+        if ( gO_->Bin().Calc(u_XYZ[0],u_XYZ[1],u_XYZ[2],bin_i,bin_j,bin_k))  // used the gO class function to calcaute voxel index
+        {
+          int voxel = (int)gO_->CalcIndex(bin_i,bin_j,bin_k);
+          atom_voxel_[uidx] = voxel;   // asign the voxel index to the solute atom
+          //U_ON_GRID_ +=1;           // add +1 to the number of atom on the GIST Grid
+          N_solute_atoms_[voxel] +=1;  // add +1 to the solute atom num in this voxel
+          U_onGrid_idxs_.push_back(uidx); // The index of the solute atom on GIST Grid
+        }
+      }
+    }
+    gist_grid_.Stop();
+  }
+
 # ifndef CUDA
   // Do order calculation if requested.
   // NOTE: This has to be done before the nonbond energy calc since
