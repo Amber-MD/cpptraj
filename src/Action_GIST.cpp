@@ -656,7 +656,6 @@ static inline double SumDarray(std::vector<double> const& arr) {
 /* Calculate the charge-charge, vdw interaction using pme, frame by frame
  * 
  */
-/*
 void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
 {
   // Two energy terms for the whole system
@@ -720,7 +719,7 @@ void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
 
   double solute_on_grid_sum = 0.0; // To sum up the potential energy on solute atoms that on the grid
 
-  for (unsigned int uidx=0; uidx < U_ON_GRID_; uidx++ )
+  for (unsigned int uidx=0; uidx < U_onGrid_idxs_.size(); uidx++ )
   {
     int u = U_onGrid_idxs_[uidx]; // index of the solute atom on the grid
     int u_voxel = atom_voxel_[u];
@@ -732,7 +731,7 @@ void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
 
   double solute_sum = 0.0; // The energy sum of all solute atoms
 
-  for (unsigned int uidx=0; uidx < Uidxs_.size(); uidx++)
+  for (unsigned int uidx=0; uidx < U_idxs_.size(); uidx++)
   {
     int u = U_idxs_[uidx];
     double u_nonbond_energy = E_elec_self[u] + E_elec_direct[u] + E_elec_recip[u] + 
@@ -749,7 +748,7 @@ void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
   E_vdw_self.clear(); 
   E_vdw_recip.clear();
   E_vdw_lr_cor.clear();
-}*/
+}
 
 /** Non-bonded energy calc. */
 void Action_GIST::Ecalc(double rij2, double q1, double q2, NonbondType const& LJ,
