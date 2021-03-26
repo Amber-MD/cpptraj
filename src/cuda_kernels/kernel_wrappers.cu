@@ -199,7 +199,6 @@ void Action_Closest_NoCenter(const double *SolventMols_, double *D_, const doubl
       kClosestDistsToAtoms_Nonortho<<<dimGrid0,dimBlock0>>>(devO1Ptr, devI2Ptr,devI3Ptr, maxD, ucellDev, recipDev,  NMols, NAtoms,NSAtoms,active_size);
     break;
   }
-
   cudaThreadSynchronize();
 
   #ifdef DEBUG_CUDA

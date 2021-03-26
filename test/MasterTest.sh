@@ -627,7 +627,7 @@ Help() {
   echo "  mpi             : Use MPI version of CPPTRAJ (automatically used if DO_PARALLEL set)."
   echo "  openmp          : Use OpenMP version of CPPTRAJ."
   echo "  cuda            : Use CUDA version of CPPTRAJ."
-  echo "  hip             : Use CUDA version of CPPTRAJ."
+  echo "  hip             : Use HIP version of CPPTRAJ."
   echo "  time            : Time the test with 'time'."
   echo "  stdout          : Print CPPTRAJ test output to STDOUT."
   echo "  vg              : Run test with 'valgrind' memcheck."

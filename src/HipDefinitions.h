@@ -20,3 +20,4 @@
 #define cudaMemcpyDeviceToHost hipMemcpyDeviceToHost
 #define cudaMemcpyHostToDevice hipMemcpyHostToDevice
 #define cudaSuccess hipSuccess
+#define cudaThreadSynchronize hipDeviceSynchronize
