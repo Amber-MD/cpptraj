@@ -152,6 +152,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     usePme_ = true;
   if (usePme_) {
 #   ifdef LIBPME
+    pmeOpts_.AllowLjPme(false);
     if (pmeOpts_.GetOptions(actionArgs, "GIST")) {
       mprinterr("Error: Getting PME options for GIST failed.\n");
       return Action::ERR;
