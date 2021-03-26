@@ -59,6 +59,8 @@ Action_GIST::Action_GIST() :
   BULK_DENS_(0.0),
   temperature_(0.0),
   NeighborCut2_(12.25), // 3.5^2
+  system_potential_energy_(0),
+  solute_potential_energy_(0),
   MAX_GRID_PT_(0),
   NSOLVENT_(0),
   N_ON_GRID_(0),
@@ -449,9 +451,9 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
       return Action::ERR;
     }
     // Select everything
-    AtomMask allAtoms(0, setup.Top().Natom());
+    allAtoms_ = AtomMask(0, setup.Top().Natom());
     // Set up PME
-    if (gistPme_.Setup( setup.Top(), allAtoms )) {
+    if (gistPme_.Setup( setup.Top(), allAtoms_ )) {
       mprinterr("Error: PME setup failed.\n");
       return Action::ERR;
     }
@@ -466,13 +468,13 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   O_idxs_.clear();
   A_idxs_.clear();
   atom_voxel_.clear();
-  SW_idxs_.clear();
+  atomIsSolute_.clear();
   U_idxs_.clear();
   // NOTE: these are just guesses
   O_idxs_.reserve( setup.Top().Nsolvent() );
   A_idxs_.reserve( setup.Top().Natom() );
   atom_voxel_.reserve( setup.Top().Natom() );
-  SW_idxs_.reserve(setup.Top().Natom());
+  atomIsSolute_.reserve(setup.Top().Natom());
   U_idxs_.reserve(setup.Top().Natom()-setup.Top().Nsolvent()*nMolAtoms_);
   unsigned int midx = 0;
   unsigned int NsolventAtoms = 0;
@@ -518,7 +520,7 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
       // Save all atom indices for energy calc, including extra points
       for (unsigned int IDX = 0; IDX != nMolAtoms_; IDX++) {
         A_idxs_.push_back( o_idx + IDX );
-        SW_idxs_.push_back(0); // The identity of the atom is water
+        atomIsSolute_.push_back(false); // The identity of the atom is water
         atom_voxel_.push_back( OFF_GRID_ );
         #ifdef CUDA
         this->molecule_.push_back( setup.Top()[o_idx + IDX ].MolNum() );
@@ -564,7 +566,7 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
             A_idxs_.push_back( u_idx );
             atom_voxel_.push_back( SOLUTE_ );
             NsoluteAtoms++;
-            SW_idxs_.push_back(1); // the identity of the atom is solute
+            atomIsSolute_.push_back(true); // the identity of the atom is solute
             U_idxs_.push_back( u_idx ); // store the solute atom index for locating voxel index
             #ifdef CUDA
             this->molecule_.push_back( setup.Top()[ u_idx ].MolNum() );
@@ -641,6 +643,112 @@ const Vec3 Action_GIST::z_lab_ = Vec3(0.0, 0.0, 1.0);
 const double Action_GIST::QFAC_ = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
 const int Action_GIST::SOLUTE_ = -2;
 const int Action_GIST::OFF_GRID_ = -1;
+
+/// \return Sum of elements in given array
+static inline double SumDarray(std::vector<double> const& arr) {
+  double sum = 0.0;
+  for (std::vector<double>::const_iterator it = arr.begin(); it != arr.end(); ++it)
+    sum += *it;
+  return sum;
+}
+
+/* Calculate the charge-charge, vdw interaction using pme, frame by frame
+ * 
+ */
+/*
+void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
+{
+  // Two energy terms for the whole system
+  double ene_pme_all = 0.0;
+  double ene_vdw_all = 0.0;
+  // pointer to the E_pme_, where has the voxel-wise pme energy for water FIXME
+  double* E_pme_grid = &(E_pme_[0][0]);
+  // pointer to U_E_pme_, where has the voxel-wise pme energy for solute FIXME
+  double* U_E_pme_grid = &(U_E_pme_[0][0]); 
+
+  unsigned int size = A_idxs_.size();
+
+  Darray E_vdw_all_direct(size,0.0);
+  Darray E_vdw_direct(size,0.0);
+  Darray E_vdw_self(size,0.0);
+  Darray E_vdw_recip(size,0.0);
+  Darray E_vdw_lr_cor(size,0.0);
+
+  Darray E_elec_self(size,0.0);
+  Darray E_elec_all_direct(size,0.0);
+  Darray E_elec_direct(size,0.0);
+  Darray E_elec_recip(size,0.0);
+
+# ifdef LIBPME
+  gistPme_.CalcNonbondEnergy_GIST(frameIn, allAtoms_,
+                                  ene_pme_all, ene_vdw_all,
+                                  E_vdw_direct, E_vdw_self, E_vdw_recip, E_vdw_lr_cor,
+                                  E_elec_self, E_elec_direct, E_elec_recip, atom_voxel_);
+
+  //mprintf("For this frame, the cpptraj potentail energy: %f, cpptraj_ene: %f, cpptraj_vdw: %f \n", ene_pme_all + ene_vdw_all, ene_pme_all, ene_vdw_all);
+
+  system_potential_energy_ += ene_pme_all + ene_vdw_all;
+# else
+  mprinterr("Error: Compiled without LIBPME\n");
+  return;
+# endif 
+
+  // Calculate the sum of each terms
+  double E_elec_self_sum   = SumDarray( E_elec_self );
+  double E_elec_direct_sum = SumDarray( E_elec_direct );
+  double E_elec_recip_sum  = SumDarray( E_elec_recip );
+
+  double E_vdw_direct_sum = SumDarray( E_vdw_direct );
+  double E_vdw_self_sum   = SumDarray( E_vdw_self );
+  double E_vdw_recip_sum  = SumDarray( E_vdw_recip );
+  double E_vdw_lr_cor_sum = SumDarray( E_vdw_lr_cor );
+  
+  double pme_sum = 0.0;  // water energy in the GIST grid 
+
+  for (unsigned int gidx=0; gidx < N_ON_GRID_; gidx++ ) 
+  {
+    int a = OnGrid_idxs_[gidx]; // index of the atom of on-grid solvent;
+    int a_voxel = atom_voxel_[a]; // index of the voxel 
+    double nonbond_energy = E_elec_self[a]+ E_elec_direct[a] + E_elec_recip[a] + 
+                            E_vdw_direct[a] + E_vdw_self[a] + E_vdw_recip[a] + E_vdw_lr_cor[a];
+    pme_sum += nonbond_energy;
+    E_pme_grid[a_voxel] += nonbond_energy;  
+  }
+
+  // locate the solute energy to the voxel
+
+  double solute_on_grid_sum = 0.0; // To sum up the potential energy on solute atoms that on the grid
+
+  for (unsigned int uidx=0; uidx < U_ON_GRID_; uidx++ )
+  {
+    int u = U_onGrid_idxs_[uidx]; // index of the solute atom on the grid
+    int u_voxel = atom_voxel_[u];
+    double u_nonbond_energy = E_elec_self[u] + E_elec_direct[u] + E_elec_recip[u] +
+                              E_vdw_direct[u] + E_vdw_self[u] + E_vdw_recip[u] + E_vdw_lr_cor[u];
+    solute_on_grid_sum += u_nonbond_energy; 
+    U_E_pme_grid[u_voxel] += u_nonbond_energy;
+  }
+
+  double solute_sum = 0.0; // The energy sum of all solute atoms
+
+  for (unsigned int uidx=0; uidx < Uidxs_.size(); uidx++)
+  {
+    int u = U_idxs_[uidx];
+    double u_nonbond_energy = E_elec_self[u] + E_elec_direct[u] + E_elec_recip[u] + 
+                              E_vdw_direct[u] + E_vdw_self[u] + E_vdw_recip[u] + E_vdw_lr_cor[u];
+    solute_sum += u_nonbond_energy;
+    solute_potential_energy_ += u_nonbond_energy; // used to calculated the emsemble energy for all solute, will print out in terminal
+  }
+
+  //mprintf("The total potential energy on water atoms: %f \n", pme_sum);
+  E_elec_self.clear();
+  E_elec_direct.clear();
+  E_elec_recip.clear();
+  E_vdw_direct.clear();
+  E_vdw_self.clear(); 
+  E_vdw_recip.clear();
+  E_vdw_lr_cor.clear();
+}*/
 
 /** Non-bonded energy calc. */
 void Action_GIST::Ecalc(double rij2, double q1, double q2, NonbondType const& LJ,
@@ -734,7 +842,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
   for (aidx = 0; aidx < maxAidx; aidx++)
   {
     int a1 = A_idxs_[aidx];            // Index of atom1
-    int a1_voxel = atom_voxel_[a1];    // Voxel of atom1
+    int a1_voxel = atom_voxel_[aidx];    // Voxel of atom1
     int a1_mol = topIn[ a1 ].MolNum(); // Molecule # of atom 1
     Vec3 A1_XYZ( frameIn.XYZ( a1 ) );  // Coord of atom1
     double qA1 = topIn[ a1 ].Charge(); // Charge of atom1
@@ -764,7 +872,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
       {
         int a2_voxel = atom_voxel_[a2];                  // Voxel of on-grid solvent
         const double* A2_XYZ = (&OnGrid_XYZ_[0])+gidx*3; // Coord of on-grid solvent
-        if ( a1_voxel == SOLUTE_ ) {
+        if (atomIsSolute_[aidx]) {
           // Solute to on-grid solvent energy
           // Calculate distance
           //gist_nonbond_dist_.Start();

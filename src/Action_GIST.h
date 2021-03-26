@@ -32,6 +32,7 @@ class Action_GIST : public Action {
 
     inline void TransEntropy(float,float,float,float,float,float,float,int,double&,double&) const;
     static inline void Ecalc(double, double, double, NonbondType const&, double&, double&);
+    void NonbondEnergy_pme(Frame const&);
     void NonbondEnergy(Frame const&, Topology const&);
     void Order(Frame const&);
     void SumEVV();
@@ -117,7 +118,7 @@ class Action_GIST : public Action {
     Iarray OnGrid_idxs_; ///< Indices for each water atom on the grid.*
     Iarray atom_voxel_;  ///< Absolute grid voxel for each atom (SOLUTE_ for solute atoms)
     Iarray A_idxs_;      ///< Atom indices for each solute and solvent atom.+ (energy calc only)
-    Iarray SW_idxs_;     ///< Identity of the atom: 0 for water, 1 for solute.+ TODO bool?
+    std::vector<bool> atomIsSolute_; ///< True if atom is solute.+
     Iarray U_idxs_;      ///< Atom indices for solute atoms only.+
     Iarray N_waters_;    ///< Number of waters (oxygen atoms) in each voxel.*
     Iarray N_solute_atoms_; ///< Number of solute atoms in each voxel.*
@@ -168,11 +169,14 @@ class Action_GIST : public Action {
     CpptrajFile* datafile_;    ///< GIST output
     CpptrajFile* eijfile_;     ///< Eij matrix output
     CpptrajFile* infofile_;    ///< GIST info
+    AtomMask allAtoms_;        ///< Mask selecting all atoms, PME only.
     std::string prefix_;       ///< Output file name prefix
     Darray Q_;                 ///< Solvent molecule charges (for dipole calc)
     double BULK_DENS_;         ///< Bulk water density
     double temperature_;       ///< Temperature
     double NeighborCut2_;      ///< Cutoff for determining water neighbors (squared).
+    double system_potential_energy_; ///< the emsemble average potential energy ( Eelec + Vdw ) for the frames (pme only)
+    double solute_potential_energy_; ///< the ensemble average potential energy on solute atoms (pme only)
     unsigned int MAX_GRID_PT_; ///< Max number of grid points (voxels).
     unsigned int NSOLVENT_;    ///< Number of solvent molecules.
     unsigned int N_ON_GRID_;   ///< Number of water atoms on the grid.*
