@@ -12,6 +12,7 @@
 #endif
 class DataSet_3D;
 class DataSet_MatrixFlt;
+class DataSet_GridFlt;
 
 /// Class for applying Grid Inhomogenous Solvation Theory
 /** \author Daniel R. Roe
@@ -30,12 +31,18 @@ class Action_GIST : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print();
 
+    typedef std::vector<float> Farray;
+    typedef std::vector<int> Iarray;
+    typedef std::vector<Farray> Xarray;
+    typedef std::vector<double> Darray;
+
     inline void TransEntropy(float,float,float,float,float,float,float,int,double&,double&) const;
     static inline void Ecalc(double, double, double, NonbondType const&, double&, double&);
     void NonbondEnergy_pme(Frame const&);
     void NonbondEnergy(Frame const&, Topology const&);
     void Order(Frame const&);
     void SumEVV();
+    void CalcAvgVoxelEnergy_PME(double, DataSet_GridFlt&, DataSet_GridFlt&, Farray&);
 
     int debug_; ///< Action debug level
 #ifdef CUDA
@@ -112,7 +119,6 @@ class Action_GIST : public Action {
     // GIST matrix datasets
     DataSet_MatrixFlt* ww_Eij_; ///< Water-water interaction energy matrix.*
 
-    typedef std::vector<int> Iarray;
     //Iarray mol_nums_;    ///< Absolute molecule number of each solvent molecule.+ //TODO needed?
     Iarray O_idxs_;      ///< Oxygen atom indices for each solvent molecule.+
     Iarray OnGrid_idxs_; ///< Indices for each water atom on the grid.*
@@ -129,17 +135,14 @@ class Action_GIST : public Action {
     std::vector<Iarray> EIJ_V2_; ///< Hold any interaction energy voxel 2 each frame.*
 #   endif
 
-    typedef std::vector<float> Farray;
     std::vector<Farray> neighbor_; ///< Number of water neighbors within 3.5 Ang.*
 #   ifdef _OPENMP
     std::vector<Farray> EIJ_EN_;   ///< Hold any interaction energies each frame.*
 #   endif
 
-    typedef std::vector<Farray> Xarray;
     Xarray voxel_xyz_; ///< Coords for all waters in each voxel.*
     Xarray voxel_Q_;   ///< w4, x4, y4, z4 for all waters in each voxel.*
 
-    typedef std::vector<double> Darray;
     Darray OnGrid_XYZ_;             ///< XYZ coordinates for on-grid waters.*
     std::vector<Darray> E_UV_VDW_;  ///< Solute-solvent van der Waals energy for each voxel.*
     std::vector<Darray> E_UV_Elec_; ///< Solute-solvent electrostatic energy for each voxel.*

@@ -1345,6 +1345,49 @@ void Action_GIST::SumEVV() {
   }
 }
 
+void Action_GIST::CalcAvgVoxelEnergy_PME(double Vvox, DataSet_GridFlt& PME_dens, DataSet_GridFlt& U_PME_dens, Farray& PME_norm) {
+  
+
+      Darray const& E_pme = E_pme_[0]; // FIXME
+      Darray const& U_E_pme = U_E_pme_[0]; // FIXME
+      double PME_tot =0.0;
+      double U_PME_tot = 0.0;
+      mprintf("\t Calculating average voxel energies: \n");
+      ProgressBar E_progress(MAX_GRID_PT_);
+      for ( unsigned int gr_pt =0; gr_pt < MAX_GRID_PT_; gr_pt++)
+      {
+        E_progress.Update(gr_pt);
+        int nw_total = N_waters_[gr_pt];
+        if (nw_total >=1)
+        {
+          PME_dens[gr_pt] = E_pme[gr_pt] / (NFRAME_ * Vvox);
+          PME_norm[gr_pt] = E_pme[gr_pt] / nw_total;
+          PME_tot += PME_dens[gr_pt];
+  
+        }else{
+          PME_dens[gr_pt]=0;
+          PME_norm[gr_pt]=0; 
+        }
+        int ns_total = N_solute_atoms_[gr_pt];  
+        if (ns_total >=1)
+        {
+          U_PME_dens[gr_pt] = U_E_pme[gr_pt] / (NFRAME_ * Vvox);
+          U_PME_tot += U_PME_dens[gr_pt];
+   
+        }else{
+          U_PME_dens[gr_pt]=0;
+        }
+      }
+      PME_tot *=Vvox;
+      U_PME_tot *=Vvox;
+
+      infofile_->Printf("Ensemble total water energy on the grid: %9.5f Kcal/mol \n", PME_tot);
+      infofile_->Printf("Ensemble total solute energy on the grid: %9.5f Kcal/mol \n",U_PME_tot);
+
+      infofile_->Printf("Ensemble solute's total potential energy : %9.5f Kcal/mol \n", solute_potential_energy_ / NFRAME_);
+      infofile_->Printf("Ensemble system's total potential energy: %9.5f Kcal/mol \n", system_potential_energy_/NFRAME_);
+}
+
 // Action_GIST::Print()
 void Action_GIST::Print() {
   gist_print_.Start();
@@ -1565,6 +1608,8 @@ void Action_GIST::Print() {
   }
   // Compute average voxel energy. Allocate these sets even if skipping energy
   // to be consistent with previous output.
+  DataSet_GridFlt& PME_dens = static_cast<DataSet_GridFlt&>( *PME_);
+  DataSet_GridFlt& U_PME_dens = static_cast<DataSet_GridFlt&>( *U_PME_);
   DataSet_GridFlt& Esw_dens = static_cast<DataSet_GridFlt&>( *Esw_ );
   DataSet_GridFlt& Eww_dens = static_cast<DataSet_GridFlt&>( *Eww_ );
   DataSet_GridFlt& neighbor_norm = static_cast<DataSet_GridFlt&>( *neighbor_norm_ );
@@ -1575,8 +1620,12 @@ void Action_GIST::Print() {
   DataSet_GridDbl& dipolez = static_cast<DataSet_GridDbl&>( *dipolez_ );
   Farray Esw_norm( MAX_GRID_PT_, 0.0 );
   Farray Eww_norm( MAX_GRID_PT_, 0.0 );
+  Farray PME_norm( MAX_GRID_PT_,0.0);
   Farray neighbor_dens( MAX_GRID_PT_, 0.0 );
   if (!skipE_) {
+    if (usePme_) {
+      CalcAvgVoxelEnergy_PME(Vvox, PME_dens, U_PME_dens, PME_norm);
+    }
     #ifndef CUDA
     Darray const& E_UV_VDW = E_UV_VDW_[0];
     Darray const& E_UV_Elec = E_UV_Elec_[0];
