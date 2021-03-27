@@ -1702,72 +1702,11 @@ void Action_GIST::Print() {
   if (!skipE_) {
     if (usePme_) {
       CalcAvgVoxelEnergy_PME(Vvox, PME_dens, U_PME_dens, PME_norm);
+    } else {
+      CalcAvgVoxelEnergy(Vvox, Eww_dens, Esw_dens, Eww_norm, Esw_norm, qtet,
+                         neighbor_norm, neighbor_dens,
+                         dipolex, dipoley, dipolez, pol);
     }
-    #ifndef CUDA
-    Darray const& E_UV_VDW = E_UV_VDW_[0];
-    Darray const& E_UV_Elec = E_UV_Elec_[0];
-    Darray const& E_VV_VDW = E_VV_VDW_[0];
-    Darray const& E_VV_Elec = E_VV_Elec_[0];
-    #endif
-    Farray const& Neighbor = neighbor_[0];
-    #ifndef CUDA
-    // Sum values from other threads if necessary
-    SumEVV();
-    #endif
-    static const double DEBYE_EA = 0.20822678; // 1 Debye in eA
-    double Eswtot = 0.0;
-    double Ewwtot = 0.0;
-    mprintf("\tCalculating average voxel energies:\n");
-    ProgressBar E_progress( MAX_GRID_PT_ );
-    for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++)
-    {
-      E_progress.Update( gr_pt );
-
-      //mprintf("DEBUG1: VV vdw=%f elec=%f\n", E_VV_VDW_[gr_pt], E_VV_Elec_[gr_pt]);
-      int nw_total = N_waters_[gr_pt]; // Total number of waters that have been in this voxel.
-      if (nw_total > 0) {
-        #ifndef CUDA
-        Esw_dens[gr_pt] = (E_UV_VDW[gr_pt]  + E_UV_Elec[gr_pt]) / (NFRAME_ * Vvox);
-        Esw_norm[gr_pt] = (E_UV_VDW[gr_pt]  + E_UV_Elec[gr_pt]) / nw_total;
-        Eww_dens[gr_pt] = (E_VV_VDW[gr_pt]  + E_VV_Elec[gr_pt]) / (2 * NFRAME_ * Vvox);
-        Eww_norm[gr_pt] = (E_VV_VDW[gr_pt]  + E_VV_Elec[gr_pt]) / (2 * nw_total);
-        #else
-        double esw = this->Esw_->operator[](gr_pt);
-        double eww = this->Eww_->operator[](gr_pt);
-        Esw_dens[gr_pt] = esw / (this->NFRAME_ * Vvox);
-        Esw_norm[gr_pt] = esw / nw_total;
-        Eww_dens[gr_pt] = eww / (this->NFRAME_ * Vvox);
-        Eww_norm[gr_pt] = eww / nw_total;
-        #endif
-        Eswtot += Esw_dens[gr_pt];
-        Ewwtot += Eww_dens[gr_pt];
-
-      } else {
-        Esw_dens[gr_pt]=0;
-        Esw_norm[gr_pt]=0;
-        Eww_norm[gr_pt]=0;
-        Eww_dens[gr_pt]=0;
-      }
-      // Compute the average number of water neighbor, average order parameter,
-      // and average dipole density
-      if (nw_total > 0) {
-        qtet[gr_pt] /= nw_total;
-        //mprintf("DEBUG1: neighbor= %8.1f  nw_total= %8i\n", neighbor[gr_pt], nw_total);
-        neighbor_norm[gr_pt] = (double)Neighbor[gr_pt] / nw_total;
-      }
-      neighbor_dens[gr_pt] = (double)Neighbor[gr_pt] / (NFRAME_ * Vvox);
-      dipolex[gr_pt] /= (DEBYE_EA * NFRAME_ * Vvox);
-      dipoley[gr_pt] /= (DEBYE_EA * NFRAME_ * Vvox);
-      dipolez[gr_pt] /= (DEBYE_EA * NFRAME_ * Vvox);
-      pol[gr_pt] = sqrt( dipolex[gr_pt]*dipolex[gr_pt] +
-                         dipoley[gr_pt]*dipoley[gr_pt] +
-                         dipolez[gr_pt]*dipolez[gr_pt] );
-    } // END loop over all grid points (voxels)
-    Eswtot *= Vvox;
-    Ewwtot *= Vvox;
-    infofile_->Printf("Total water-solute energy of the grid: Esw = %9.5f kcal/mol\n", Eswtot);
-    infofile_->Printf("Total unreferenced water-water energy of the grid: Eww = %9.5f kcal/mol\n",
-                      Ewwtot);
   } else {
     static const double DEBYE_EA = 0.20822678;
     for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++)
