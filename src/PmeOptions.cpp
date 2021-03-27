@@ -42,8 +42,7 @@ int PmeOptions::GetOptions(ArgList& actionArgs, const char* desc) {
   cutoff_ = actionArgs.getKeyDouble("cut", 8.0);
   dsumtol_ = actionArgs.getKeyDouble("dsumtol", 1E-5);
   ewcoeff_ = actionArgs.getKeyDouble("ewcoeff", 0.0);
-  lwcoeff_ = -1.0;
-  lwcoeff_ = 0;
+  lwcoeff_ = -1;
   if (actionArgs.hasKey("ljpme")) {
     if (!allowLjPme_) {
       mprinterr("Error: LJ PME not allowed for '%s'\n", desc);
