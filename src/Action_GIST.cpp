@@ -697,11 +697,13 @@ void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
   double E_elec_self_sum   = SumDarray( E_elec_self );
   double E_elec_direct_sum = SumDarray( E_elec_direct );
   double E_elec_recip_sum  = SumDarray( E_elec_recip );
+  mprintf("DEBUG: E_elec sums: self= %g  direct= %g  recip= %g\n", E_elec_self_sum, E_elec_direct_sum, E_elec_recip_sum);
 
-  double E_vdw_direct_sum = SumDarray( E_vdw_direct );
   double E_vdw_self_sum   = SumDarray( E_vdw_self );
+  double E_vdw_direct_sum = SumDarray( E_vdw_direct );
   double E_vdw_recip_sum  = SumDarray( E_vdw_recip );
   double E_vdw_lr_cor_sum = SumDarray( E_vdw_lr_cor );
+  mprintf("DEBUG: E_vdw sums: self= %g  direct= %g  recip= %g  LR= %g\n", E_vdw_self_sum, E_vdw_direct_sum, E_vdw_recip_sum, E_vdw_lr_cor_sum);
   
   double pme_sum = 0.0;  // water energy in the GIST grid 
 
