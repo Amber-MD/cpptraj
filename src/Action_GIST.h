@@ -13,6 +13,7 @@
 class DataSet_3D;
 class DataSet_MatrixFlt;
 class DataSet_GridFlt;
+class DataSet_GridDbl;
 
 /// Class for applying Grid Inhomogenous Solvation Theory
 /** \author Daniel R. Roe
@@ -43,6 +44,10 @@ class Action_GIST : public Action {
     void Order(Frame const&);
     void SumEVV();
     void CalcAvgVoxelEnergy_PME(double, DataSet_GridFlt&, DataSet_GridFlt&, Farray&);
+    void CalcAvgVoxelEnergy(double, DataSet_GridFlt&, DataSet_GridFlt&, Farray&, Farray&,
+                            DataSet_GridDbl&, DataSet_GridFlt&, Farray&,
+                            DataSet_GridDbl&, DataSet_GridDbl&, DataSet_GridDbl&,
+                            DataSet_GridFlt&);
 
     int debug_; ///< Action debug level
 #ifdef CUDA
