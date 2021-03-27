@@ -4,7 +4,7 @@
 
 CleanFiles gist.in gist.out gist-*.dx ww_Eij.dat Eww_ij.dat \
            Gist1-*.dx Gist1-*.dat Gist2-*.dx Gist2-*.dat \
-           Gist3-*.dx Gist3-*.dat
+           Gist3-*.dx Gist3-*.dat Gist4-*.dx Gist4-*.dat
 INPUT="-i gist.in"
 TESTNAME='GIST tests'
 Requires netcdf notparallel
@@ -72,5 +72,20 @@ DoTest Gist3-order-norm.dx.save Gist3-order-norm.dx
 ### Maximum absolute error in matching lines = 1.10e-05 at line 5484 field 14
 ### Maximum relative error in matching lines = 1.08e-04 at line 5484 field 14
 DoTest Gist3-output.dat.save Gist3-output.dat -a $TEST_TOLERANCE 
+
+CheckFor libpme
+if [ $? -eq 0 ] ; then
+  UNITNAME='PME-GIST test on orthogonal cell'
+  cat > gist.in <<EOF
+parm ../tz2.ortho.parm7
+trajin ../tz2.ortho.nc 1 10
+autoimage origin
+gist refdens 0.033422885325 gridcntr 17 20 18 griddim 80 90 80 prefix Gist4
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest Gist4-Solute-Etot-pme-dens.dx.save Gist4-Solute-Etot-pme-dens.dx
+  DoTest Gist4-Water-Etot-pme-dens.dx.save Gist4-Water-Etot-pme-dens.dx
+fi
+
 EndTest
 exit 0
