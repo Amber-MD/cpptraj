@@ -15,6 +15,10 @@ class PmeOptions {
     void AllowLjPme(bool);
     /// Get options from arglist
     int GetOptions(ArgList&, const char*);
+    /// Print options to stdout
+    void PrintOptions() const;
+    /// Print LJ options to stdout
+    void PrintLjOptions() const;
 
     double Cutoff()     const { return cutoff_; }
     double DsumTol()    const { return dsumtol_; }

@@ -72,3 +72,32 @@ int PmeOptions::GetOptions(ArgList& actionArgs, const char* desc) {
   }
   return 0;
 }
+
+/** Print current options to STDOUT. */
+void PmeOptions::PrintOptions() const {
+  mprintf("\tDirect space cutoff= %.4f\n", cutoff_);
+  if (dsumtol_ != 0.0)
+    mprintf("\tDirect sum tolerance= %g\n", dsumtol_);
+  mprintf("\tSpline order= %i\n", npoints_);
+  if (ewcoeff_ == 0.0)
+    mprintf("\tWill determine Ewald coefficient from cutoff and direct sum tolerance.\n");
+  else
+    mprintf("\tEwald coefficient= %.4f\n", ewcoeff_);
+  if (nfft1_ < 1 && nfft2_ < 1 && nfft3_ < 1)
+    mprintf("\tWill determine number of FFT grid points from box size.\n");
+  else
+    mprintf("\tNumber of FFT grid points in each direction= {%i,%i,%i}\n",
+            nfft1_, nfft2_, nfft3_);
+  if (erfcDx_ > 0.0)
+    mprintf("\tERFC table dx= %g\n", erfcDx_);
+
+}
+
+void PmeOptions::PrintLjOptions() const {
+  if (lwcoeff_ > 0.0)
+    mprintf("\tUsing Lennard-Jones PME with Ewald coefficient %.4f\n", lwcoeff_);
+  else if (lwcoeff_ > -1)
+    mprintf("\tLennard-Jones PME Ewald coefficient will be set to elec. Ewald coefficient.\n");
+  if (ljswidth_ > 0.0)
+    mprintf("\tWidth of LJ switch region: %.4f Ang.\n", ljswidth_);
+}

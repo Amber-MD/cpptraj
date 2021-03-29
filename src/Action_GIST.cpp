@@ -381,6 +381,10 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     mprintf("\tPerforming energy calculation.\n");
     if (numthreads > 1)
       mprintf("\tParallelizing energy calculation with %i threads.\n", numthreads);
+    if (usePme_) {
+      mprintf("\tUsing PME.\n");
+      pmeOpts_.PrintOptions();
+    }
   }
   if (includeIons_)
     mprintf("\tIons will be included in the solute region.\n");
