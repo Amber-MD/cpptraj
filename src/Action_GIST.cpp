@@ -1449,12 +1449,13 @@ void Action_GIST::CalcAvgVoxelEnergy(double Vvox, DataSet_GridFlt& Eww_dens, Dat
         neighbor_norm[gr_pt] = (double)Neighbor[gr_pt] / nw_total;
       }
       neighbor_dens[gr_pt] = (double)Neighbor[gr_pt] / (NFRAME_ * Vvox);
+/*
       dipolex[gr_pt] /= (Constants::DEBYE_EA * NFRAME_ * Vvox);
       dipoley[gr_pt] /= (Constants::DEBYE_EA * NFRAME_ * Vvox);
       dipolez[gr_pt] /= (Constants::DEBYE_EA * NFRAME_ * Vvox);
       pol[gr_pt] = sqrt( dipolex[gr_pt]*dipolex[gr_pt] +
                          dipoley[gr_pt]*dipoley[gr_pt] +
-                         dipolez[gr_pt]*dipolez[gr_pt] );
+                         dipolez[gr_pt]*dipolez[gr_pt] );*/
     } // END loop over all grid points (voxels)
     Eswtot *= Vvox;
     Ewwtot *= Vvox;
@@ -1706,16 +1707,16 @@ void Action_GIST::Print() {
                          neighbor_norm, neighbor_dens,
                          dipolex, dipoley, dipolez, pol);
     }
-  } else {
-    for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++)
-    {
-      dipolex[gr_pt] /= (Constants::DEBYE_EA * NFRAME_ * Vvox);
-      dipoley[gr_pt] /= (Constants::DEBYE_EA * NFRAME_ * Vvox);
-      dipolez[gr_pt] /= (Constants::DEBYE_EA * NFRAME_ * Vvox);
-      pol[gr_pt] = sqrt( dipolex[gr_pt]*dipolex[gr_pt] +
-                         dipoley[gr_pt]*dipoley[gr_pt] +
-                         dipolez[gr_pt]*dipolez[gr_pt] );
-    }
+  }
+  // Do dipole stuff.
+  for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++)
+  {
+    dipolex[gr_pt] /= (Constants::DEBYE_EA * NFRAME_ * Vvox);
+    dipoley[gr_pt] /= (Constants::DEBYE_EA * NFRAME_ * Vvox);
+    dipolez[gr_pt] /= (Constants::DEBYE_EA * NFRAME_ * Vvox);
+    pol[gr_pt] = sqrt( dipolex[gr_pt]*dipolex[gr_pt] +
+                       dipoley[gr_pt]*dipoley[gr_pt] +
+                       dipolez[gr_pt]*dipolez[gr_pt] );
   }
 
   // Write the GIST output file.
