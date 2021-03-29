@@ -81,11 +81,12 @@ if [ $? -eq 0 ] ; then
 parm ../tz2.ortho.parm7
 trajin ../tz2.ortho.nc 1 10
 autoimage origin
-gist refdens 0.033422885325 gridcntr 17 20 18 griddim 80 90 80 prefix Gist4
+gist refdens 0.033422885325 gridcntr 17 20 18 griddim 80 90 80 prefix Gist4 info Info.dat
 EOF
   RunCpptraj "$UNITNAME"
   DoTest Gist4-Solute-Etot-pme-dens.dx.save Gist4-Solute-Etot-pme-dens.dx
   DoTest Gist4-Water-Etot-pme-dens.dx.save Gist4-Water-Etot-pme-dens.dx
+  DoTest Gist4-Info.dat.save Gist4-Info.dat
 fi
 
 UNITNAME='PME-GIST test on non-orthogonal cell'
@@ -95,11 +96,12 @@ if [ $? -eq 0 ] ; then
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.nc 1 10
 autoimage origin
-gist refdens 0.033422885325 gridcntr 21 21 21 griddim 90 90 90 prefix Gist5
+gist refdens 0.033422885325 gridcntr 21 21 21 griddim 90 90 90 prefix Gist5 info Info.dat
 EOF
   RunCpptraj "$UNITNAME"
   DoTest Gist5-Solute-Etot-pme-dens.dx.save Gist5-Solute-Etot-pme-dens.dx
   DoTest Gist5-Water-Etot-pme-dens.dx.save Gist5-Water-Etot-pme-dens.dx
+  DoTest Gist5-Info.dat.save Gist5-Info.dat
 fi
 
 EndTest
