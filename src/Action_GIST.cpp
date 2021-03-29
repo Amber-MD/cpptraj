@@ -1719,7 +1719,7 @@ void Action_GIST::Print() {
   }
 
   // Write the GIST output file.
-  // TODO: Make data sets?
+  // TODO: Make a data file format?
   if (datafile_ != 0) {
     mprintf("\tWriting GIST results for each voxel:\n");
     datafile_->Printf("GIST Output %s "
@@ -1742,17 +1742,40 @@ void Action_GIST::Print() {
       size_t i, j, k;
       gO_->ReverseIndex( gr_pt, i, j, k );
       Vec3 XYZ = gO_->Bin().Center( i, j, k );
-      datafile_->Printf("%d %g %g %g %d %g %g %g %g %g %g %g"
-                        " %g %g %g %g %g %g %g %g %g %g %g %g \n",
-                        gr_pt, XYZ[0], XYZ[1], XYZ[2], N_waters_[gr_pt], gO[gr_pt], gH[gr_pt],
-                        dTStrans[gr_pt], dTStrans_norm[gr_pt],
-                        dTSorient_dens[gr_pt], dTSorient_norm[gr_pt],
-                        dTSsix[gr_pt], dTSsix_norm[gr_pt],
-                        Esw_dens[gr_pt], Esw_norm[gr_pt],
-                        Eww_dens[gr_pt], Eww_norm[gr_pt],
-                        dipolex[gr_pt], dipoley[gr_pt], dipolez[gr_pt],
-                        pol[gr_pt], neighbor_dens[gr_pt], neighbor_norm[gr_pt], qtet[gr_pt]);
-    }
+      // FIXME - better determine what should and should not be printed here.
+      //         Is it necessary to have separate prints for pme/non-pme?
+      if (usePme_) {
+        datafile_->Printf("%d %g %g %g %d %g %g "
+                          "%.7f %.7f "
+                          "%.7f %.7f "
+                          "%.7f %.7f "
+                          "%.7f %.7f "
+                          "%.7f %.7f "
+                          "%.7f %.7f "
+                          "%g %g %g "
+                          "%g %g %g %g \n",
+                          gr_pt, XYZ[0], XYZ[1], XYZ[2], N_waters_[gr_pt], gO[gr_pt], gH[gr_pt],
+                          dTStrans[gr_pt], dTStrans_norm[gr_pt],
+                          dTSorient_dens[gr_pt], dTSorient_norm[gr_pt],
+                          dTSsix[gr_pt], dTSsix_norm[gr_pt],
+                          Esw_dens[gr_pt], Esw_norm[gr_pt],
+                          Eww_dens[gr_pt], Eww_norm[gr_pt],
+                          PME_dens[gr_pt], PME_norm[gr_pt],
+                          dipolex[gr_pt], dipoley[gr_pt], dipolez[gr_pt],
+                          pol[gr_pt], neighbor_dens[gr_pt], neighbor_norm[gr_pt], qtet[gr_pt]);
+      } else {
+        datafile_->Printf("%d %g %g %g %d %g %g %g %g %g %g %g"
+                          " %g %g %g %g %g %g %g %g %g %g %g %g \n",
+                          gr_pt, XYZ[0], XYZ[1], XYZ[2], N_waters_[gr_pt], gO[gr_pt], gH[gr_pt],
+                          dTStrans[gr_pt], dTStrans_norm[gr_pt],
+                          dTSorient_dens[gr_pt], dTSorient_norm[gr_pt],
+                          dTSsix[gr_pt], dTSsix_norm[gr_pt],
+                          Esw_dens[gr_pt], Esw_norm[gr_pt],
+                          Eww_dens[gr_pt], Eww_norm[gr_pt],
+                          dipolex[gr_pt], dipoley[gr_pt], dipolez[gr_pt],
+                          pol[gr_pt], neighbor_dens[gr_pt], neighbor_norm[gr_pt], qtet[gr_pt]);
+      }
+    } // END loop over voxels
   }
 
   // Write water-water interaction energy matrix
