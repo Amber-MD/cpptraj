@@ -1408,7 +1408,6 @@ void Action_GIST::CalcAvgVoxelEnergy(double Vvox, DataSet_GridFlt& Eww_dens, Dat
     // Sum values from other threads if necessary
     SumEVV();
     #endif
-    static const double DEBYE_EA = 0.20822678; // 1 Debye in eA
     double Eswtot = 0.0;
     double Ewwtot = 0.0;
     mprintf("\tCalculating average voxel energies:\n");
@@ -1450,9 +1449,9 @@ void Action_GIST::CalcAvgVoxelEnergy(double Vvox, DataSet_GridFlt& Eww_dens, Dat
         neighbor_norm[gr_pt] = (double)Neighbor[gr_pt] / nw_total;
       }
       neighbor_dens[gr_pt] = (double)Neighbor[gr_pt] / (NFRAME_ * Vvox);
-      dipolex[gr_pt] /= (DEBYE_EA * NFRAME_ * Vvox);
-      dipoley[gr_pt] /= (DEBYE_EA * NFRAME_ * Vvox);
-      dipolez[gr_pt] /= (DEBYE_EA * NFRAME_ * Vvox);
+      dipolex[gr_pt] /= (Constants::DEBYE_EA * NFRAME_ * Vvox);
+      dipoley[gr_pt] /= (Constants::DEBYE_EA * NFRAME_ * Vvox);
+      dipolez[gr_pt] /= (Constants::DEBYE_EA * NFRAME_ * Vvox);
       pol[gr_pt] = sqrt( dipolex[gr_pt]*dipolex[gr_pt] +
                          dipoley[gr_pt]*dipoley[gr_pt] +
                          dipolez[gr_pt]*dipolez[gr_pt] );
@@ -1708,12 +1707,11 @@ void Action_GIST::Print() {
                          dipolex, dipoley, dipolez, pol);
     }
   } else {
-    static const double DEBYE_EA = 0.20822678;
     for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++)
     {
-      dipolex[gr_pt] /= (DEBYE_EA * NFRAME_ * Vvox);
-      dipoley[gr_pt] /= (DEBYE_EA * NFRAME_ * Vvox);
-      dipolez[gr_pt] /= (DEBYE_EA * NFRAME_ * Vvox);
+      dipolex[gr_pt] /= (Constants::DEBYE_EA * NFRAME_ * Vvox);
+      dipoley[gr_pt] /= (Constants::DEBYE_EA * NFRAME_ * Vvox);
+      dipolez[gr_pt] /= (Constants::DEBYE_EA * NFRAME_ * Vvox);
       pol[gr_pt] = sqrt( dipolex[gr_pt]*dipolex[gr_pt] +
                          dipoley[gr_pt]*dipoley[gr_pt] +
                          dipolez[gr_pt]*dipolez[gr_pt] );
