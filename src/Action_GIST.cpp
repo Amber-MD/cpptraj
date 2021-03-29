@@ -1393,9 +1393,7 @@ void Action_GIST::CalcAvgVoxelEnergy_PME(double Vvox, DataSet_GridFlt& PME_dens,
 void Action_GIST::CalcAvgVoxelEnergy(double Vvox, DataSet_GridFlt& Eww_dens, DataSet_GridFlt& Esw_dens,
                                      Farray& Eww_norm, Farray& Esw_norm,
                                      DataSet_GridDbl& qtet,
-                                     DataSet_GridFlt& neighbor_norm, Farray& neighbor_dens,
-                                     DataSet_GridDbl& dipolex, DataSet_GridDbl& dipoley, DataSet_GridDbl& dipolez,
-                                     DataSet_GridFlt& pol)
+                                     DataSet_GridFlt& neighbor_norm, Farray& neighbor_dens)
 {
     #ifndef CUDA
     Darray const& E_UV_VDW = E_UV_VDW_[0];
@@ -1441,21 +1439,13 @@ void Action_GIST::CalcAvgVoxelEnergy(double Vvox, DataSet_GridFlt& Eww_dens, Dat
         Eww_norm[gr_pt]=0;
         Eww_dens[gr_pt]=0;
       }
-      // Compute the average number of water neighbor, average order parameter,
-      // and average dipole density
+      // Compute the average number of water neighbor and average order parameter.
       if (nw_total > 0) {
         qtet[gr_pt] /= nw_total;
         //mprintf("DEBUG1: neighbor= %8.1f  nw_total= %8i\n", neighbor[gr_pt], nw_total);
         neighbor_norm[gr_pt] = (double)Neighbor[gr_pt] / nw_total;
       }
       neighbor_dens[gr_pt] = (double)Neighbor[gr_pt] / (NFRAME_ * Vvox);
-/*
-      dipolex[gr_pt] /= (Constants::DEBYE_EA * NFRAME_ * Vvox);
-      dipoley[gr_pt] /= (Constants::DEBYE_EA * NFRAME_ * Vvox);
-      dipolez[gr_pt] /= (Constants::DEBYE_EA * NFRAME_ * Vvox);
-      pol[gr_pt] = sqrt( dipolex[gr_pt]*dipolex[gr_pt] +
-                         dipoley[gr_pt]*dipoley[gr_pt] +
-                         dipolez[gr_pt]*dipolez[gr_pt] );*/
     } // END loop over all grid points (voxels)
     Eswtot *= Vvox;
     Ewwtot *= Vvox;
@@ -1690,11 +1680,7 @@ void Action_GIST::Print() {
   DataSet_GridFlt& Esw_dens = static_cast<DataSet_GridFlt&>( *Esw_ );
   DataSet_GridFlt& Eww_dens = static_cast<DataSet_GridFlt&>( *Eww_ );
   DataSet_GridFlt& neighbor_norm = static_cast<DataSet_GridFlt&>( *neighbor_norm_ );
-  DataSet_GridFlt& pol = static_cast<DataSet_GridFlt&>( *dipole_ );
   DataSet_GridDbl& qtet = static_cast<DataSet_GridDbl&>( *order_norm_ );
-  DataSet_GridDbl& dipolex = static_cast<DataSet_GridDbl&>( *dipolex_ );
-  DataSet_GridDbl& dipoley = static_cast<DataSet_GridDbl&>( *dipoley_ );
-  DataSet_GridDbl& dipolez = static_cast<DataSet_GridDbl&>( *dipolez_ );
   Farray Esw_norm( MAX_GRID_PT_, 0.0 );
   Farray Eww_norm( MAX_GRID_PT_, 0.0 );
   Farray PME_norm( MAX_GRID_PT_,0.0);
@@ -1704,11 +1690,14 @@ void Action_GIST::Print() {
       CalcAvgVoxelEnergy_PME(Vvox, PME_dens, U_PME_dens, PME_norm);
     } else {
       CalcAvgVoxelEnergy(Vvox, Eww_dens, Esw_dens, Eww_norm, Esw_norm, qtet,
-                         neighbor_norm, neighbor_dens,
-                         dipolex, dipoley, dipolez, pol);
+                         neighbor_norm, neighbor_dens);
     }
   }
-  // Do dipole stuff.
+  // Compute average dipole density.
+  DataSet_GridFlt& pol = static_cast<DataSet_GridFlt&>( *dipole_ );
+  DataSet_GridDbl& dipolex = static_cast<DataSet_GridDbl&>( *dipolex_ );
+  DataSet_GridDbl& dipoley = static_cast<DataSet_GridDbl&>( *dipoley_ );
+  DataSet_GridDbl& dipolez = static_cast<DataSet_GridDbl&>( *dipolez_ );
   for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++)
   {
     dipolex[gr_pt] /= (Constants::DEBYE_EA * NFRAME_ * Vvox);

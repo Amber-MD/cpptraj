@@ -45,9 +45,7 @@ class Action_GIST : public Action {
     void SumEVV();
     void CalcAvgVoxelEnergy_PME(double, DataSet_GridFlt&, DataSet_GridFlt&, Farray&);
     void CalcAvgVoxelEnergy(double, DataSet_GridFlt&, DataSet_GridFlt&, Farray&, Farray&,
-                            DataSet_GridDbl&, DataSet_GridFlt&, Farray&,
-                            DataSet_GridDbl&, DataSet_GridDbl&, DataSet_GridDbl&,
-                            DataSet_GridFlt&);
+                            DataSet_GridDbl&, DataSet_GridFlt&, Farray&);
 
     int debug_; ///< Action debug level
 #ifdef CUDA
