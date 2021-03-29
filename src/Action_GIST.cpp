@@ -1347,6 +1347,7 @@ void Action_GIST::SumEVV() {
   }
 }
 
+/** Calculate average voxel energy for PME grids. */
 void Action_GIST::CalcAvgVoxelEnergy_PME(double Vvox, DataSet_GridFlt& PME_dens, DataSet_GridFlt& U_PME_dens, Farray& PME_norm) {
   
 
@@ -1390,6 +1391,7 @@ void Action_GIST::CalcAvgVoxelEnergy_PME(double Vvox, DataSet_GridFlt& PME_dens,
       infofile_->Printf("Ensemble system's total potential energy: %9.5f Kcal/mol \n", system_potential_energy_/NFRAME_);
 }
 
+/** Calculate average voxel energy for non-PME grids. */
 void Action_GIST::CalcAvgVoxelEnergy(double Vvox, DataSet_GridFlt& Eww_dens, DataSet_GridFlt& Esw_dens,
                                      Farray& Eww_norm, Farray& Esw_norm,
                                      DataSet_GridDbl& qtet,
