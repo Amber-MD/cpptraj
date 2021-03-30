@@ -178,7 +178,7 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, AtomMask const& maskI
 
 /** Electrostatic self energy. This is the cancelling Gaussian plus the "neutralizing plasma". */
 double GIST_PME::Self_GIST(double volume, Darray& atom_self) {
-  //t_self_.Start();
+  t_self_.Start();
   double d0 = -ew_coeff_ * INVSQRTPI_;
   double ene = SumQ2() * d0;
 //  mprintf("DEBUG: d0= %20.10f   ene= %20.10f\n", d0, ene);
@@ -191,13 +191,13 @@ double GIST_PME::Self_GIST(double volume, Darray& atom_self) {
   }
 
   ene += ee_plasma;
-  //t_self_.Stop();
+  t_self_.Stop();
   return ene;
 }
 
 /** Lennard-Jones self energy. for GIST */
 double GIST_PME::Self6_GIST(Darray& atom_vdw_self) {
-  //t_self_.Start(); // TODO precalc
+  t_self_.Start(); // TODO precalc
   double ew2 = lw_coeff_ * lw_coeff_;
   double ew6 = ew2 * ew2 * ew2;
   double c6sum = 0.0;
@@ -208,14 +208,14 @@ double GIST_PME::Self6_GIST(Darray& atom_vdw_self) {
     atom_vdw_self.push_back(ew6 * (*it * *it)/12.0);
 
   }
-  //t_self_.Stop();
+  t_self_.Stop();
   return c6sum / 12.0;
 }
 
 /** PME recip calc for GIST to store decomposed recipical energy for every atom. */
 double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn, MatType& potential)
 {
-  //t_recip_.Start();
+  t_recip_.Start();
   // This essentially makes coordsD and chargesD point to arrays.
   MatType coordsD(&coordsD_[0], Charge_.size(), 3);
   MatType chargesD(&Charge_[0], Charge_.size(), 1);
@@ -759,6 +759,4 @@ double GIST_PME::Direct_VDW_LJPME_GIST(PairList const& PL, double& evdw_out, Dar
   return Eelec + e_adjust;
 */
 }
-
-
 #endif /* LIBPME */
