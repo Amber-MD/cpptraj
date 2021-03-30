@@ -39,9 +39,12 @@ class GIST_PME : private Ewald_ParticleMesh {
     /// Calculate direct space energy for GIST, decomposed for every atom.
     double Direct_GIST(PairList const&, double&, Darray&, Darray&, Iarray const&);
     /// Calcualte direct space energy with long range VDW correction for GIST, decomposed for every atom.
-    double Direct_VDW_LongRangeCorrection_GIST(PairList const&, double&, Darray&, Darray&, Iarray const&);
+    double Direct_VDW_LongRangeCorrection_GIST(PairList const&, double&, Iarray const&);
     /// Calculate direct space energy with LJ PME for GIST, decomposed for every atom.
     double Direct_VDW_LJPME_GIST(PairList const&, double&, Darray&, Darray&);
+
+    std::vector<Darray> E_vdw_direct_;  ///< Only for interaction of water molecules involved in direct (sw, ww)
+    std::vector<Darray> E_elec_direct_; ///< Count all interactions in direct (sw, ww, ss)
 };
 #endif /* LIBPME */
 #endif

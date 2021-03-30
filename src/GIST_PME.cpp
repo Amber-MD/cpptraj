@@ -331,12 +331,11 @@ double GIST_PME::Direct_GIST(PairList const& PL, double& evdw_out, Darray& e_vdw
   if (lw_coeff_ > 0.0)
     return Direct_VDW_LJPME_GIST(PL, evdw_out, e_vdw_direct, e_elec_direct);
   else
-    return Direct_VDW_LongRangeCorrection_GIST(PL, evdw_out, e_vdw_direct, e_elec_direct, atom_voxel);
+    return Direct_VDW_LongRangeCorrection_GIST(PL, evdw_out, atom_voxel);
 }
 
 /** Direct space calculation with long range VDW correction for GIST. */
 double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double& evdw_out,
-                                                  Darray& e_vdw_direct, Darray& e_elec_direct,
                                                   Iarray const& atom_voxel)
 {
   // e_vdw_direct only count the interaction water molecule involved( sw, ww)
@@ -349,9 +348,16 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
   int cidx;
 
   //mprintf("Entering Direct_VDW_LongrangeCorrection_GIST function \n");
+  double* e_vdw_direct  = &(E_vdw_direct_[0][0]);
+  double* e_elec_direct = &(E_elec_direct_[0][0]);
+  // Pair list loop
 # ifdef _OPENMP
-# pragma omp parallel private(cidx) reduction(+: Eelec, Evdw, e_adjust)
+  int mythread;
+# pragma omp parallel private(cidx, mythread, e_vdw_direct, e_elec_direct) reduction(+: Eelec, Evdw, e_adjust)
   {
+  mythread = omp_get_thread_num();
+  e_vdw_direct  = &(E_vdw_direct_[mythread][0]);
+  e_elec_direct = &(E_elec_direct_[mythread][0]);
 # pragma omp for
 # endif
 //# include "PairListLoop.h"
@@ -417,9 +423,6 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
                  
                 e_elec_direct[it0->Idx()] += 0.5 * e_elec;
                 e_elec_direct[it1->Idx()] += 0.5 * e_elec;
-               
-            
-
 
                 int nbindex = NB().GetLJindex(TypeIdx(it0->Idx()),
                                               TypeIdx(it1->Idx()));
@@ -434,16 +437,10 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
                   double e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)
                   Evdw += (e_vdw * vswitch);
 
-              
-                
-
-                // add the vdw energy to e_vdw_direct, divide the energy evenly to each atom
+                  // add the vdw energy to e_vdw_direct, divide the energy evenly to each atom
 
                   e_vdw_direct[it0->Idx()] += 0.5 * e_vdw * vswitch;
                   e_vdw_direct[it1->Idx()] += 0.5 * e_vdw * vswitch;
-                  
-
-
 
                   //mprintf("PVDW %8i%8i%20.6f%20.6f\n", ta0+1, ta1+1, e_vdw, r2);
 #                 ifdef CPPTRAJ_EKERNEL_LJPME
@@ -456,10 +453,6 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
                   Eljpme_correction += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) * r6 * vswitch * Cij;
 #                 endif
                 }
-
-
-
-
             }
           } else {
 //#           include "EnergyKernel_Adjust.h"
@@ -470,11 +463,8 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
 
               //add the e_elec to E_elec_direct[it0->Idx] and E_elec_direct[it1-> Idx], 0.5 to avoid double counting
 
-
               e_elec_direct[it0->Idx()] += 0.5 * adjust;
               e_elec_direct[it1->Idx()] += 0.5 * adjust;
-
-
 
 #             ifdef CPPTRAJ_EKERNEL_LJPME
               // LJ PME direct space correction
@@ -539,8 +529,6 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
                 e_elec_direct[it0->Idx()] += 0.5 * e_elec;
                 e_elec_direct[it1->Idx()] += 0.5 * e_elec;
 
-
-
                 int nbindex = NB().GetLJindex(TypeIdx(it0->Idx()),
                                               TypeIdx(it1->Idx()));
                 if (nbindex > -1) {
@@ -572,7 +560,6 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
 #                 endif
                 }
 
-
               }
             } else {
 //#             include "EnergyKernel_Adjust.h"
@@ -582,9 +569,6 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
 
               e_elec_direct[it0->Idx()] += 0.5 * adjust;
               e_elec_direct[it1->Idx()] += 0.5 * adjust;
-              
-            
-
 
 #             ifdef CPPTRAJ_EKERNEL_LJPME
               // LJ PME direct space correction
