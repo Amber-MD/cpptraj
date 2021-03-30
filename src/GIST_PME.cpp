@@ -136,6 +136,7 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, AtomMask const& maskI
   t_total_.Stop();
   e_elec = e_self + e_recip + e_direct;
 
+  // DEBUG
   // Calculate the sum of each terms
   double E_elec_direct_sum = SumDarray( E_elec_direct_[0] );
   double E_vdw_direct_sum = SumDarray( E_vdw_direct_[0] );
@@ -148,6 +149,8 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, AtomMask const& maskI
   double E_vdw_recip_sum  = SumDarray( E_vdw_recip_ );
   double E_vdw_lr_cor_sum = SumDarray( E_vdw_lr_cor_ );
   mprintf("DEBUG: E_vdw sums: self= %g  direct= %g  recip= %g  LR= %g\n", E_vdw_self_sum, E_vdw_direct_sum, E_vdw_recip_sum, E_vdw_lr_cor_sum);
+
+
 
   return 0;
 }
