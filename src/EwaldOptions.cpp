@@ -80,6 +80,7 @@ int EwaldOptions::GetOptions(OptType typeIn, ArgList& actionArgs, const char* de
   erfcDx_ = actionArgs.getKeyDouble("erfcdx", 0.0);
   skinnb_ = actionArgs.getKeyDouble("skinnb", 2.0);
   // LJ Options
+  // NOTE: lwcoeff_ > 0 is LJPME on. An lwcoeff_ of -1 is off, and 0 is set from ewcoeff_.
   lwcoeff_ = -1;
   if (actionArgs.hasKey("ljpme")) {
     if (!allowLjPme_) {
@@ -146,10 +147,12 @@ void EwaldOptions::PrintOptions() const {
               nfft1_, nfft2_, nfft3_);
   }
   // LJ options
-  if (type_ != REG_EWALD && allowLjPme_) {
-    if (lwcoeff_ > 0.0)
+  if (type_ != REG_EWALD) {
+    if (lwcoeff_ < 0)
+      mprintf("\tUsing long range correction for nonbond VDW calc.\n");
+    else if (lwcoeff_ > 0.0)
       mprintf("\tUsing Lennard-Jones PME with Ewald coefficient %.4f\n", lwcoeff_);
-    else if (lwcoeff_ > -1)
+    else
       mprintf("\tLennard-Jones PME Ewald coefficient will be set to elec. Ewald coefficient.\n");
   }
   if (ljswidth_ > 0.0)

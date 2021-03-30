@@ -172,7 +172,6 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
   if (termEnabled[V14] || termEnabled[Q14])
     Ecalcs_.push_back(C_N14);
   // Determine which nonbonded calc to use if any.
-  bool lj_longrange_correction = false;
   need_lj_params_ = false;
   if (termEnabled[ELEC] || termEnabled[VDW]) {
     // NOTE: if elecType_ is not NO_ELE then ELEC term is enabled by default
@@ -193,19 +192,15 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
       }
     } else if (elecType_ == EWALD) {
       Ecalcs_.push_back(C_EWALD);
-      lj_longrange_correction = true;
       need_lj_params_ = true;
     } else if (elecType_ == PME) {
       Ecalcs_.push_back(C_PME);
-      lj_longrange_correction = true;
       need_lj_params_ = true;
     } else if (elecType_ == NO_ELE) {
       Ecalcs_.push_back(C_LJ);
       need_lj_params_ = true;
     }
   }
-  if (lj_longrange_correction && ewaldOpts_.LwCoeff() >= 0.0)
-    lj_longrange_correction = false;
   // Check if the exclusion list needs to be calculated.
   needs_exclList_ = false;
   for (calc_it calc = Ecalcs_.begin(); calc != Ecalcs_.end(); ++calc) {
@@ -251,19 +246,6 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
               npoints_);
   } else if (elecType_ == EWALD || elecType_ == PME) {
     ewaldOpts_.PrintOptions();
-  }
-
-  if (termEnabled[VDW]) {
-    if (lj_longrange_correction)
-      mprintf("\tUsing long range correction for nonbond VDW calc.\n");
-    else if (ewaldOpts_.LwCoeff() >= 0.0) {
-      if (ewaldOpts_.LwCoeff() > 0.0)
-        mprintf("\tUsing Lennard-Jones PME with Ewald coefficient %.4f\n", ewaldOpts_.LwCoeff());
-      else
-        mprintf("\tLennard-Jones PME Ewald coefficient will be set to elec. Ewald coefficient.\n");
-    }
-    if (ewaldOpts_.LJ_SwWidth() > 0.0)
-      mprintf("\tWidth of LJ switch region: %.4f Ang.\n", ewaldOpts_.LJ_SwWidth());
   }
   if (KEtype_ != KE_NONE) {
     if (KEtype_ == KE_AUTO)
