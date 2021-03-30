@@ -11,7 +11,7 @@ Action_Energy::Action_Energy() :
   npoints_(0),
   debug_(0),
   EW_(0),
-  cutoff_(0),
+/*  cutoff_(0),
   dsumtol_(0),
   rsumtol_(0),
   ewcoeff_(0),
@@ -19,12 +19,12 @@ Action_Energy::Action_Energy() :
   ljswidth_(0),
   maxexp_(0),
   skinnb_(0),
-  erfcDx_(0),
+  erfcDx_(0),*/
   dt_(0),
   need_lj_params_(false),
   needs_exclList_(false)
 {
-  std::fill(mlimits_, mlimits_+3, 0);
+  //std::fill(mlimits_, mlimits_+3, 0);
 }
 
 /// DESTRUCTOR
@@ -131,6 +131,9 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
     } else if (etypearg == "ewald") {
       // Ewald method
       elecType_ = EWALD;
+      if (ewaldOpts_.GetOptions(EwaldOptions::REG_EWALD, actionArgs, "energy"))
+        return Action::ERR;
+/*
       cutoff_ = actionArgs.getKeyDouble("cut", 8.0);
       dsumtol_ = actionArgs.getKeyDouble("dsumtol", 1E-5);
       rsumtol_ = actionArgs.getKeyDouble("rsumtol", 5E-5);
@@ -149,12 +152,15 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
         mlimits_[1] = mlim.getNextInteger(0);
         mlimits_[2] = mlim.getNextInteger(0);
       } else
-        std::fill(mlimits_, mlimits_+3, 0);
+        std::fill(mlimits_, mlimits_+3, 0);*/
       EW_ = (Ewald*)new Ewald_Regular();
     } else if (etypearg == "pme") {
       // particle mesh Ewald method
 #     ifdef LIBPME
       elecType_ = PME;
+      if (ewaldOpts_.GetOptions(EwaldOptions::PME, actionArgs, "energy"))
+        return Action::ERR;
+/*
       cutoff_ = actionArgs.getKeyDouble("cut", 8.0);
       dsumtol_ = actionArgs.getKeyDouble("dsumtol", 1E-5);
       ewcoeff_ = actionArgs.getKeyDouble("ewcoeff", 0.0);
@@ -177,7 +183,7 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
         mlimits_[1] = mlim.getNextInteger(0);
         mlimits_[2] = mlim.getNextInteger(0);
       } else
-        std::fill(mlimits_, mlimits_+3, -1);
+        std::fill(mlimits_, mlimits_+3, -1);*/
       EW_ = (Ewald*)new Ewald_ParticleMesh();
 #     else
       mprinterr("Error: 'pme' requires compiling with FFTW3 and C++11 support.\n");
@@ -244,7 +250,7 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
       need_lj_params_ = true;
     }
   }
-  if (lj_longrange_correction && lwcoeff_ >= 0.0)
+  if (lj_longrange_correction && ewaldOpts_.LwCoeff() >= 0.0)
     lj_longrange_correction = false;
   // Check if the exclusion list needs to be calculated.
   needs_exclList_ = false;
@@ -289,6 +295,10 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
     else
       mprintf("\tDirect sum energy for %i unit cells in each direction will be calculated.\n",
               npoints_);
+  } else if (elecType_ == EWALD || elecType_ == PME) {
+    ewaldOpts_.PrintOptions();
+  }
+/*
   } else if (elecType_ == EWALD) {
     mprintf("\tDirect space cutoff= %.4f\n", cutoff_);
     if (dsumtol_ != 0.0)
@@ -326,18 +336,18 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
               mlimits_[0], mlimits_[1], mlimits_[2]);
     if (erfcDx_ > 0.0)
       mprintf("\tERFC table dx= %g\n", erfcDx_);
-  }
+  }*/
   if (termEnabled[VDW]) {
     if (lj_longrange_correction)
       mprintf("\tUsing long range correction for nonbond VDW calc.\n");
-    else if (lwcoeff_ >= 0.0) {
-      if (lwcoeff_ > 0.0)
-        mprintf("\tUsing Lennard-Jones PME with Ewald coefficient %.4f\n", lwcoeff_);
+    else if (ewaldOpts_.LwCoeff() >= 0.0) {
+      if (ewaldOpts_.LwCoeff() > 0.0)
+        mprintf("\tUsing Lennard-Jones PME with Ewald coefficient %.4f\n", ewaldOpts_.LwCoeff());
       else
         mprintf("\tLennard-Jones PME Ewald coefficient will be set to elec. Ewald coefficient.\n");
     }
-    if (ljswidth_ > 0.0)
-      mprintf("\tWidth of LJ switch region: %.4f Ang.\n", ljswidth_);
+    if (ewaldOpts_.LJ_SwWidth() > 0.0)
+      mprintf("\tWidth of LJ switch region: %.4f Ang.\n", ewaldOpts_.LJ_SwWidth());
   }
   if (KEtype_ != KE_NONE) {
     if (KEtype_ == KE_AUTO)
@@ -384,6 +394,10 @@ Action::RetType Action_Energy::Setup(ActionSetup& setup) {
     }
   }
   // Set up Ewald if necessary.
+  if (elecType_ == EWALD || elecType_ == PME) {
+    if (EW_->Init(setup.CoordInfo().TrajBox(), ewaldOpts_, debug_))
+      return Action::ERR;
+/*
   if (elecType_ == EWALD) {
     if (((Ewald_Regular*)EW_)->Init(setup.CoordInfo().TrajBox(), cutoff_, dsumtol_, rsumtol_,
                                     ewcoeff_, maxexp_, skinnb_, erfcDx_, debug_, mlimits_))
@@ -395,10 +409,10 @@ Action::RetType Action_Energy::Setup(ActionSetup& setup) {
     if (((Ewald_ParticleMesh*)EW_)->Init(setup.CoordInfo().TrajBox(), cutoff_, dsumtol_,
                                          ewcoeff_, lwcoeff_, ljswidth_, skinnb_, erfcDx_, npoints_,
                                          debug_, mlimits_))
-      return Action::ERR;
+      return Action::ERR;*/
     EW_->Setup( setup.Top(), Imask_ );
   }
-# endif
+//# endif
   // For KE, check for velocities/forces
   if (KEtype_ != KE_NONE) {
     if (!setup.CoordInfo().HasVel()) {
