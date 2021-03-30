@@ -1,4 +1,5 @@
 #ifdef LIBPME
+#include <algorithm>
 #include "GIST_PME.h"
 #include "Frame.h"
 #include "CpptrajStdio.h"
@@ -9,155 +10,103 @@
 GIST_PME::GIST_PME() {}
 
 /** Allocate internal arrays. */
-int GIST_PME::AllocateArrays(unsigned int natoms, unsigned int nvoxels, unsigned int nthreads)
+int GIST_PME::AllocateArrays(unsigned int natoms, unsigned int nthreads)
 {
   // Allocate voxel arrays
   E_vdw_direct_.resize( nthreads );
   E_elec_direct_.resize( nthreads );
   for (unsigned int t = 0; t != nthreads; t++)
   {
-    E_vdw_direct_[t].assign(nvoxels, 0);
-    E_elec_direct_[t].assign(nvoxels, 0);
+    E_vdw_direct_[t].assign(natoms, 0);
+    E_elec_direct_[t].assign(natoms, 0);
   }
   if (lw_coeff_ > 0) {
-    E_vdw_self_.assign(nvoxels, 0);
-    E_vdw_recip_.assign(nvoxels, 0);
+    E_vdw_self_.assign(natoms, 0);
+    E_vdw_recip_.assign(natoms, 0);
   } else
-    E_vdw_lr_cor_.assign(nvoxels, 0);
-  E_elec_self_.assign(nvoxels, 0);
-  E_elec_recip_.assign(nvoxels, 0);
+    E_vdw_lr_cor_.assign(natoms, 0);
+  E_elec_self_.assign(natoms, 0);
+  E_elec_recip_.assign(natoms, 0);
 
   e_potentialD_ = MatType(natoms, 4);
   e_potentialD_.setConstant(0.0);
   return 0;
 }
 
+/// \return Sum of elements in given array
+static inline double SumDarray(std::vector<double> const& arr) {
+  double sum = 0.0;
+  for (std::vector<double>::const_iterator it = arr.begin(); it != arr.end(); ++it)
+    sum += *it;
+  return sum;
+}
+
+
 /** Calculate full nonbonded energy with PME Used for GIST, adding 6 arrays to store the
  * decomposed energy terms for every atom
  */
 int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, AtomMask const& maskIn,
                                       double& e_elec, double& e_vdw,
-                                      Darray& e_vdw_direct,
-                                      Darray& e_vdw_self,
-                                      Darray& e_vdw_recip,
-                                      Darray& e_vdw_lr_cor,
-                                      Darray& e_elec_self,
-                                      Darray& e_elec_direct,
-                                      Darray& e_elec_recip,
                                       Iarray const& atom_voxel )
 {
   t_total_.Start();
+
+  // Elec. self
   double volume = frameIn.BoxCrd().CellVolume();
+  std::fill(E_elec_self_.begin(), E_elec_self_.end(), 0);
+  double e_self = Self_GIST( volume, E_elec_self_ ); // decomposed E_elec_self for GIST
 
-  //auto step0 = std::chrono::system_clock::now();
-
-
-  double e_self = Self_GIST( volume, e_elec_self ); // decomposed E_elec_self for GIST
-
-  //auto step1 = std::chrono::system_clock::now();
-
-  //std::chrono::duration<double> d1 = step1 -step0;
-
-  //mprintf("Eelec_self takes: %f seconds\n", d1.count());
-
-
-
+  // Create pairlist
   int retVal = pairList_.CreatePairList(frameIn, frameIn.BoxCrd().UnitCell(), frameIn.BoxCrd().FracCell(), maskIn);
   if (retVal != 0) {
-    mprinterr("Error: Grid setup failed.\n");
+    mprinterr("Error: GIST_PME: Grid setup failed.\n");
     return 1;
   }
 
   // TODO make more efficient
-  int idx = 0;
   coordsD_.clear();
-  
-
-  for (AtomMask::const_iterator atm = maskIn.begin(); atm != maskIn.end(); ++atm, ++idx) {
+  for (AtomMask::const_iterator atm = maskIn.begin(); atm != maskIn.end(); ++atm) {
     const double* XYZ = frameIn.XYZ( *atm );
     coordsD_.push_back( XYZ[0] );
     coordsD_.push_back( XYZ[1] );
     coordsD_.push_back( XYZ[2] );
-    
   }
 
-  const int atom_num = coordsD_.size()/3;
+  //const int atom_num = coordsD_.size()/3; // TODO use something else
+  unsigned int natoms = E_elec_self_.size();
 
   //mprintf("atom_num is %i \n", atom_num);
 
- //Potential for each atom
- //helpme::Matrix<double> e_potentialD[atom_num]={0};
-  MatType e_potentialD(atom_num,4);
+  // Recip Potential for each atom
+  e_potentialD_.setConstant(0.0);
 
-  e_potentialD.setConstant(0.0);
-  //mprintf("The vaule at row 10,col 1: %f \n", e_potentialD(10,1));
-
-  //Mat chargesD(&Charge_[0], Charge_.size(), 1);
-
-  //Mat e_potentialD = chargesD.clone()
-  
-
-//  MapCoords(frameIn, ucell, recip, maskIn);
-  double e_recip = Recip_ParticleMesh_GIST( frameIn.BoxCrd(), e_potentialD );
-
-  //auto step2 = std::chrono::system_clock::now();
-
-
-  //mprintf("e_recip finished, the e_recip value: %f \n", e_recip);
-
-  //std::chrono::duration<double> d2 = step2 - step1;
-
-  //mprintf("Eelec_recip takes: %f seconds \n", d2.count());
-
-
-  //Darray* iterator it;
-  //int atom_num =0;
-
-  //idx=0;
-
-  /**
-  
-  for ( Ewald::Darray *it=Charge_; ++it,++idx)
+  double e_recip = Recip_ParticleMesh_GIST( frameIn.BoxCrd(), e_potentialD_ );
+  std::fill(E_elec_recip_.begin(), E_elec_recip_.end(), 0);
+  for(unsigned int i =0; i < natoms; i++)
   {
-    e_elec_recip.push_back(*it * e_potentialD(idx,1));
-    //atom_num=atom_num+1;
-
+    E_elec_recip_[i]=0.5 * Charge_[i] * e_potentialD_(i,0);
   }
-  **/
-
-  for(int i =0; i < atom_num;i++)
-  {
-    e_elec_recip[i]=0.5 * Charge_[i] * e_potentialD(i,0);
-  }
-
-  //auto step3= std::chrono::system_clock::now();
-
-  //std::chrono::duration<double> d3 = step3 -step2;
-  //mprintf("decompose Eelec_recip takes: %f seconds \n", d3.count());
-
-
-  
 
   // vdw potential for each atom 
-
 
   // TODO branch
   double e_vdw_lr_correction;
   double e_vdw6self, e_vdw6recip;
   if (lw_coeff_ > 0.0) {
-    MatType vdw_potentialD(atom_num,4);
+    std::fill(E_vdw_self_.begin(), E_vdw_self_.end(), 0);
+    e_vdw6self = Self6_GIST(E_vdw_self_);
 
-    e_vdw6self = Self6_GIST(e_vdw_self);
-
-    e_vdw6recip = LJ_Recip_ParticleMesh_GIST( frameIn.BoxCrd(),vdw_potentialD );
+    MatType vdw_potentialD(natoms, 4);
+    vdw_potentialD.setConstant(0.0);
+    e_vdw6recip = LJ_Recip_ParticleMesh_GIST( frameIn.BoxCrd(), vdw_potentialD );
 
     mprintf(" e_vdw6self: %f, e_vdw6recip: %f \n", e_vdw6self, e_vdw6recip);
 
-    for(int j=0; j< atom_num;j++){
+    for(unsigned int j=0; j < natoms; j++){
 
-    e_vdw_recip[j]=0.5 * (Cparam_[j] * vdw_potentialD(j,0)); // Split the energy by half
+      E_vdw_recip_[j] = 0.5 * (Cparam_[j] * vdw_potentialD(j,0)); // Split the energy by half
 
-     // not sure vdw_recip for each atom can be calculated like this?
+      // not sure vdw_recip for each atom can be calculated like this?
  
     } // by default, this block of code will not be excuted since the default lw_coeff_=-1
 
@@ -170,23 +119,13 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, AtomMask const& maskI
   } else {
     e_vdw6self = 0.0;
     e_vdw6recip = 0.0;
-    e_vdw_lr_correction = Vdw_Correction_GIST( volume, e_vdw_lr_cor );
+    std::fill(E_vdw_lr_cor_.begin(), E_vdw_lr_cor_.end(), 0);
+    e_vdw_lr_correction = Vdw_Correction_GIST( volume, E_vdw_lr_cor_ );
     //mprintf("e_vdw_lr_correction: %f \n", e_vdw_lr_correction);
   }
 
-  //auto step4= std::chrono::system_clock::now();
-
-  //mprintf("vdw long range correction takes: %f seconds \n", (step4-step3).count());
-
   e_vdw = 0.0;
-  double e_direct = Direct_GIST( pairList_, e_vdw, e_vdw_direct,e_elec_direct, atom_voxel );
-
-  //auto step5=std::chrono::system_clock::now();
-
-  //std::chrono::duration<double> d4 = step5 -step4;
-
-  //s: %f seconds\n",d4.count());
-
+  double e_direct = Direct_GIST( pairList_, e_vdw, atom_voxel );
 
   //mprintf("e_elec_self: %f , e_elec_direct: %f, e_vdw6direct: %f \n", e_self, e_direct, e_vdw);
 
@@ -196,6 +135,20 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, AtomMask const& maskI
   e_vdw += (e_vdw_lr_correction + e_vdw6self + e_vdw6recip);
   t_total_.Stop();
   e_elec = e_self + e_recip + e_direct;
+
+  // Calculate the sum of each terms
+  double E_elec_direct_sum = SumDarray( E_elec_direct_[0] );
+  double E_vdw_direct_sum = SumDarray( E_vdw_direct_[0] );
+
+  double E_elec_self_sum   = SumDarray( E_elec_self_ );
+  double E_elec_recip_sum  = SumDarray( E_elec_recip_ );
+  mprintf("DEBUG: E_elec sums: self= %g  direct= %g  recip= %g\n", E_elec_self_sum, E_elec_direct_sum, E_elec_recip_sum);
+
+  double E_vdw_self_sum   = SumDarray( E_vdw_self_ );
+  double E_vdw_recip_sum  = SumDarray( E_vdw_recip_ );
+  double E_vdw_lr_cor_sum = SumDarray( E_vdw_lr_cor_ );
+  mprintf("DEBUG: E_vdw sums: self= %g  direct= %g  recip= %g  LR= %g\n", E_vdw_self_sum, E_vdw_direct_sum, E_vdw_recip_sum, E_vdw_lr_cor_sum);
+
   return 0;
 }
 
@@ -349,11 +302,11 @@ double GIST_PME::Vdw_Correction_GIST(double volume, Darray& e_vdw_lr_cor) {
 }
 
 /** Direct space routine for GIST. */
-double GIST_PME::Direct_GIST(PairList const& PL, double& evdw_out, Darray& e_vdw_direct, Darray& e_elec_direct,
+double GIST_PME::Direct_GIST(PairList const& PL, double& evdw_out,
                              Iarray const& atom_voxel)
 {
   if (lw_coeff_ > 0.0)
-    return Direct_VDW_LJPME_GIST(PL, evdw_out, e_vdw_direct, e_elec_direct);
+    return Direct_VDW_LJPME_GIST(PL, evdw_out);
   else
     return Direct_VDW_LongRangeCorrection_GIST(PL, evdw_out, atom_voxel);
 }
@@ -633,7 +586,7 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
 }
 
 /** Direct space calculation with LJ PME for GIST. */ // TODO enable
-double GIST_PME::Direct_VDW_LJPME_GIST(PairList const& PL, double& evdw_out, Darray& e_vdw_direct, Darray& e_elec_direct)
+double GIST_PME::Direct_VDW_LJPME_GIST(PairList const& PL, double& evdw_out)
 {
   mprinterr("Error: LJPME does not yet work with GIST.\n");
   return 0;
