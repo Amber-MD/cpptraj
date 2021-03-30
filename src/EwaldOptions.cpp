@@ -1,9 +1,9 @@
-#include "PmeOptions.h"
+#include "EwaldOptions.h"
 #include "CpptrajStdio.h"
 #include "ArgList.h"
 
 /** CONSTRUCTOR */
-PmeOptions::PmeOptions() :
+EwaldOptions::EwaldOptions() :
   allowLjPme_(true),
   type_(NOT_SET),
   cutoff_(8),
@@ -25,33 +25,33 @@ PmeOptions::PmeOptions() :
 {}
 
 /** Set whether we want to read LJ PME options. */
-void PmeOptions::AllowLjPme(bool allow) {
+void EwaldOptions::AllowLjPme(bool allow) {
   allowLjPme_ = allow;
 }
 
 // Keywords lines for help text
-const char* PmeOptions::KeywordsCommon1() {
+const char* EwaldOptions::KeywordsCommon1() {
   return "[cut <cutoff>] [dsumtol <dtol>] [ewcoeff <coeff>]";
 }
 
-const char* PmeOptions::KeywordsCommon2() {
+const char* EwaldOptions::KeywordsCommon2() {
   return "[erfcdx <dx>] [skinnb <skinnb>] [ljswidth <width>]";
 }
 
-const char* PmeOptions::KeywordsRegEwald() {
+const char* EwaldOptions::KeywordsRegEwald() {
   return "[rsumtol <rtol>] [maxexp <max>] [mlimits <X>,<Y>,<Z>]";
 }
 
-const char* PmeOptions::KeywordsPME() {
+const char* EwaldOptions::KeywordsPME() {
   return "[order <order>] [nfft <nfft1>,<nfft2>,<nfft3>]";
 }
 
-const char* PmeOptions::KeywordsLjpme() {
+const char* EwaldOptions::KeywordsLjpme() {
   return "[ljpme [ewcoefflj <ljcoeff>]]";
 }
 
 /** Get a comma-separated list of 3 integer values after a keyword. */
-int PmeOptions::GetCommaSeparatedArgs(ArgList& argIn, const char* keyword, int& i1, int& i2, int& i3, int defaultVal) {
+int EwaldOptions::GetCommaSeparatedArgs(ArgList& argIn, const char* keyword, int& i1, int& i2, int& i3, int defaultVal) {
   std::string marg = argIn.GetStringKey(keyword);
   if (!marg.empty()) {
     ArgList mlim(marg, ",");
@@ -71,7 +71,7 @@ int PmeOptions::GetCommaSeparatedArgs(ArgList& argIn, const char* keyword, int& 
 }
 
 /** Parse Ewald options from ArgList. */
-int PmeOptions::GetOptions(Type typeIn, ArgList& actionArgs, const char* desc) {
+int EwaldOptions::GetOptions(Type typeIn, ArgList& actionArgs, const char* desc) {
   type_ = typeIn;
   // Common options
   cutoff_ = actionArgs.getKeyDouble("cut", 8.0);
@@ -105,7 +105,7 @@ int PmeOptions::GetOptions(Type typeIn, ArgList& actionArgs, const char* desc) {
 }
 
 /** Print current options to STDOUT. */
-void PmeOptions::PrintOptions() const {
+void EwaldOptions::PrintOptions() const {
   // Common options
   mprintf("\tDirect space cutoff= %.4f\n", cutoff_);
   if (dsumtol_ != 0.0)

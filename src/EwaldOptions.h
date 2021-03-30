@@ -1,10 +1,10 @@
-#ifndef INC_PMEOPTIONS_H
-#define INC_PMEOPTIONS_H
+#ifndef INC_EWALDOPTIONS_H
+#define INC_EWALDOPTIONS_H
 class ArgList;
-/// Class that will hold common PME options for Ewald_ParticleMesh class.
-class PmeOptions {
+/// Class that will hold options for Ewald-derived classes.
+class EwaldOptions {
   public:
-    PmeOptions();
+    EwaldOptions();
     /// Type of options
     enum Type { NOT_SET = 0, REG_EWALD, PME };
 
