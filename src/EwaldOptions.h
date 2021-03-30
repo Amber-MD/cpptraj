@@ -6,7 +6,7 @@ class EwaldOptions {
   public:
     EwaldOptions();
     /// Type of options
-    enum Type { NOT_SET = 0, REG_EWALD, PME };
+    enum OptType { NOT_SET = 0, REG_EWALD, PME };
 
     static const char* KeywordsCommon1();
     static const char* KeywordsCommon2();
@@ -17,9 +17,11 @@ class EwaldOptions {
     /// Enable/disable LJ pme option
     void AllowLjPme(bool);
     /// Get options from arglist
-    int GetOptions(Type, ArgList&, const char*);
+    int GetOptions(OptType, ArgList&, const char*);
     /// Print options to stdout
     void PrintOptions() const;
+
+    OptType Type() const { return type_; }
 
     // Options common to all Ewald
     double Cutoff()     const { return cutoff_; }
@@ -48,7 +50,7 @@ class EwaldOptions {
     static int GetCommaSeparatedArgs(ArgList&, const char*, int&, int&, int&, int);
 
     bool allowLjPme_; ///< True if LJ pme is allowed.
-    Type type_;       ///< Options type (if any)
+    OptType type_;    ///< Options type (if any)
     // Common options
     double cutoff_;   ///< Direct space cutoff
     double dsumtol_;  ///< Direct sum tolerance

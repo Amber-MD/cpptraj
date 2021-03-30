@@ -71,7 +71,7 @@ int EwaldOptions::GetCommaSeparatedArgs(ArgList& argIn, const char* keyword, int
 }
 
 /** Parse Ewald options from ArgList. */
-int EwaldOptions::GetOptions(Type typeIn, ArgList& actionArgs, const char* desc) {
+int EwaldOptions::GetOptions(OptType typeIn, ArgList& actionArgs, const char* desc) {
   type_ = typeIn;
   // Common options
   cutoff_ = actionArgs.getKeyDouble("cut", 8.0);

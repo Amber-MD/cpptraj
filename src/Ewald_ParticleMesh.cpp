@@ -5,7 +5,7 @@
 #include "CpptrajStdio.h"
 #include "AtomMask.h"
 #include "Frame.h"
-#include "PmeOptions.h"
+#include "EwaldOptions.h"
 
 typedef helpme::Matrix<double> Mat;
 
@@ -89,8 +89,13 @@ int Ewald_ParticleMesh::DetermineNfft(int& nfft1, int& nfft2, int& nfft3, Box co
 }
 
 /** Set up PME parameters. */
-int Ewald_ParticleMesh::Init(Box const& boxIn, PmeOptions const& pmeOpts, int debugIn)
+int Ewald_ParticleMesh::Init(Box const& boxIn, EwaldOptions const& pmeOpts, int debugIn)
 {
+  // Sanity check
+  if (pmeOpts.Type() == EwaldOptions::REG_EWALD) {
+    mprinterr("Internal Error: Options were set up for regular Ewald only.\n");
+    return 1;
+  }
   if (CheckInput(boxIn, debugIn, pmeOpts.Cutoff(), pmeOpts.DsumTol(), pmeOpts.EwCoeff(),
                  pmeOpts.LwCoeff(), pmeOpts.LJ_SwWidth(),
                  pmeOpts.ErfcDx(), pmeOpts.SkinNB()))
@@ -127,6 +132,7 @@ int Ewald_ParticleMesh::Init(Box const& boxIn, PmeOptions const& pmeOpts, int de
 }
 
 /** Set up PME parameters. */
+/*
 int Ewald_ParticleMesh::Init(Box const& boxIn, double cutoffIn, double dsumTolIn,
                     double ew_coeffIn, double lw_coeffIn, double switch_widthIn,
                     double skinnbIn, double erfcTableDxIn, 
@@ -165,7 +171,7 @@ int Ewald_ParticleMesh::Init(Box const& boxIn, double cutoffIn, double dsumTolIn
   if (Setup_Pairlist(boxIn, skinnbIn)) return 1;
 
   return 0;
-}
+}*/
 
 /** Setup PME calculation. */
 int Ewald_ParticleMesh::Setup(Topology const& topIn, AtomMask const& maskIn) {

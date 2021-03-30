@@ -3,7 +3,6 @@
 #ifdef LIBPME
 #include "Ewald.h"
 #include "helpme_standalone.h"
-class PmeOptions;
 /// Class for calculating electrostatics with particle mesh Ewald.
 class Ewald_ParticleMesh : public Ewald {
   public:
@@ -11,11 +10,11 @@ class Ewald_ParticleMesh : public Ewald {
     /// Virtual destructor since this can be inherited
     virtual ~Ewald_ParticleMesh() {}
     /// Box, cut, dsum tol, ew coeff, lj ew coeff, switch width, NB skin, erfc dx, order, dbg, nfft
-    int Init(Box const&, double, double, double, double, double, double, double,
-             int, int, const int*);
-    /// Init with Box, PmeOptions and debug level
-    int Init(Box const&, PmeOptions const&, int);
+    //int Init(Box const&, double, double, double, double, double, double, double,
+    //         int, int, const int*);
     // ----- Inherited ---------------------------
+    /// Init with Box, EwaldOptions and debug level
+    int Init(Box const&, EwaldOptions const&, int);
     int Setup(Topology const&, AtomMask const&);
     int CalcNonbondEnergy(Frame const&, AtomMask const&, double&, double&);
 

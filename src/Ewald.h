@@ -4,6 +4,7 @@ class Topology;
 class AtomMask;
 class Frame;
 class NonbondParmType;
+class EwaldOptions;
 #include "Timer.h"
 #include "PairList.h"
 #include "ExclusionArray.h"
@@ -14,6 +15,7 @@ class Ewald {
     Ewald();
     // ----- Virtual functions -------------------
     virtual ~Ewald() {}
+    virtual int Init(Box const&, EwaldOptions const&, int) = 0;
     virtual int Setup(Topology const&, AtomMask const&) = 0;
     /// Calculate electrostatic and van der Waals energy
     virtual int CalcNonbondEnergy(Frame const&, AtomMask const&, double&, double&) = 0;
