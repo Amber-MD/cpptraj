@@ -83,11 +83,15 @@ int EwaldOptions::GetOptions(OptType typeIn, ArgList& actionArgs, const char* de
   lwcoeff_ = -1;
   if (actionArgs.hasKey("ljpme")) {
     if (!allowLjPme_) {
-      mprinterr("Error: LJ PME not allowed for '%s'\n", desc);
+      mprinterr("Error: LJ PME option 'ljpme' not allowed for '%s'\n", desc);
       return 1;
     }
     lwcoeff_ = 0.4;
-    lwcoeff_ = actionArgs.getKeyDouble("ewcoefflj", lwcoeff_);
+  }
+  lwcoeff_ = actionArgs.getKeyDouble("ewcoefflj", lwcoeff_);
+  if (!allowLjPme_ && lwcoeff_ >= 0) {
+    mprinterr("Error: LJ PME option 'ewcoefflj' not allowed for '%s'\n", desc);
+    return 1;
   }
   ljswidth_ = actionArgs.getKeyDouble("ljswidth", 0.0);
   // Regular Ewald options
