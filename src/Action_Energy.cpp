@@ -131,26 +131,6 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
       elecType_ = EWALD;
       if (ewaldOpts_.GetOptions(EwaldOptions::REG_EWALD, actionArgs, "energy"))
         return Action::ERR;
-/*
-      cutoff_ = actionArgs.getKeyDouble("cut", 8.0);
-      dsumtol_ = actionArgs.getKeyDouble("dsumtol", 1E-5);
-      rsumtol_ = actionArgs.getKeyDouble("rsumtol", 5E-5);
-      ewcoeff_ = actionArgs.getKeyDouble("ewcoeff", 0.0);
-      maxexp_ = actionArgs.getKeyDouble("maxexp", 0.0);
-      skinnb_ = actionArgs.getKeyDouble("skinnb", 2.0);
-      erfcDx_ = actionArgs.getKeyDouble("erfcdx", 0.0);
-      std::string marg = actionArgs.GetStringKey("mlimits");
-      if (!marg.empty()) {
-        ArgList mlim(marg, ",");
-        if (mlim.Nargs() != 3) {
-          mprinterr("Error: Need 3 integers in comma-separated list for 'mlimits'\n");
-          return Action::ERR;
-        }
-        mlimits_[0] = mlim.getNextInteger(0);
-        mlimits_[1] = mlim.getNextInteger(0);
-        mlimits_[2] = mlim.getNextInteger(0);
-      } else
-        std::fill(mlimits_, mlimits_+3, 0);*/
       EW_ = (Ewald*)new Ewald_Regular();
     } else if (etypearg == "pme") {
       // particle mesh Ewald method
@@ -158,33 +138,9 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
       elecType_ = PME;
       if (ewaldOpts_.GetOptions(EwaldOptions::PME, actionArgs, "energy"))
         return Action::ERR;
-/*
-      cutoff_ = actionArgs.getKeyDouble("cut", 8.0);
-      dsumtol_ = actionArgs.getKeyDouble("dsumtol", 1E-5);
-      ewcoeff_ = actionArgs.getKeyDouble("ewcoeff", 0.0);
-      lwcoeff_ = -1.0;
-      if (actionArgs.hasKey("ljpme"))
-        lwcoeff_ = 0.4;
-      lwcoeff_ = actionArgs.getKeyDouble("ewcoefflj", lwcoeff_);
-      ljswidth_ = actionArgs.getKeyDouble("ljswidth", 0.0);
-      skinnb_ = actionArgs.getKeyDouble("skinnb", 2.0);
-      erfcDx_ = actionArgs.getKeyDouble("erfcdx", 0.0);
-      npoints_ = actionArgs.getKeyInt("order", 6);
-      std::string marg = actionArgs.GetStringKey("nfft");
-      if (!marg.empty()) {
-        ArgList mlim(marg, ",");
-        if (mlim.Nargs() != 3) {
-          mprinterr("Error: Need 3 integers in comma-separated list for 'nfft'\n");
-          return Action::ERR;
-        }
-        mlimits_[0] = mlim.getNextInteger(0);
-        mlimits_[1] = mlim.getNextInteger(0);
-        mlimits_[2] = mlim.getNextInteger(0);
-      } else
-        std::fill(mlimits_, mlimits_+3, -1);*/
       EW_ = (Ewald*)new Ewald_ParticleMesh();
 #     else
-      mprinterr("Error: 'pme' requires compiling with FFTW3 and C++11 support.\n");
+      mprinterr("Error: 'pme' requires compiling with LIBPME (FFTW3 and C++11 support).\n");
       return Action::ERR;
 #     endif
     } else if (etypearg == "simple") {
@@ -296,45 +252,7 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
   } else if (elecType_ == EWALD || elecType_ == PME) {
     ewaldOpts_.PrintOptions();
   }
-/*
-  } else if (elecType_ == EWALD) {
-    mprintf("\tDirect space cutoff= %.4f\n", cutoff_);
-    if (dsumtol_ != 0.0)
-      mprintf("\tDirect sum tolerance= %g\n", dsumtol_);
-    if (rsumtol_ != 0.0)
-      mprintf("\tReciprocal sum tolerance= %g\n", rsumtol_);
-    if (ewcoeff_ == 0.0)
-      mprintf("\tWill determine Ewald coefficient from cutoff and direct sum tolerance.\n");
-    else
-      mprintf("\tEwald coefficient= %.4f\n", ewcoeff_);
-    if (maxexp_ == 0.0)
-      mprintf("\tWill determine MaxExp from Ewald coefficient and direct sum tolerance.\n");
-    else
-      mprintf("\tMaxExp= %g\n", maxexp_);
-    if (mlimits_[0] < 1 && mlimits_[1] < 1 && mlimits_[2] < 1)
-      mprintf("\tWill determine number of reciprocal vectors from MaxExp.\n");
-    else
-      mprintf("\tNumber of reciprocal vectors in each direction= {%i,%i,%i}\n",
-              mlimits_[0], mlimits_[1], mlimits_[2]);
-    if (erfcDx_ > 0.0)
-      mprintf("\tERFC table dx= %g\n", erfcDx_);
-  } else if (elecType_ == PME) {
-    mprintf("\tDirect space cutoff= %.4f\n", cutoff_);
-    if (dsumtol_ != 0.0)
-      mprintf("\tDirect sum tolerance= %g\n", dsumtol_);
-    mprintf("\tSpline order= %i\n", npoints_);
-    if (ewcoeff_ == 0.0)
-      mprintf("\tWill determine Ewald coefficient from cutoff and direct sum tolerance.\n");
-    else
-      mprintf("\tEwald coefficient= %.4f\n", ewcoeff_);
-    if (mlimits_[0] < 1 && mlimits_[1] < 1 && mlimits_[2] < 1)
-      mprintf("\tWill determine number of FFT grid points from box size.\n");
-    else
-      mprintf("\tNumber of FFT grid points in each direction= {%i,%i,%i}\n",
-              mlimits_[0], mlimits_[1], mlimits_[2]);
-    if (erfcDx_ > 0.0)
-      mprintf("\tERFC table dx= %g\n", erfcDx_);
-  }*/
+
   if (termEnabled[VDW]) {
     if (lj_longrange_correction)
       mprintf("\tUsing long range correction for nonbond VDW calc.\n");
@@ -395,22 +313,8 @@ Action::RetType Action_Energy::Setup(ActionSetup& setup) {
   if (elecType_ == EWALD || elecType_ == PME) {
     if (EW_->Init(setup.CoordInfo().TrajBox(), ewaldOpts_, debug_))
       return Action::ERR;
-/*
-  if (elecType_ == EWALD) {
-    if (((Ewald_Regular*)EW_)->Init(setup.CoordInfo().TrajBox(), cutoff_, dsumtol_, rsumtol_,
-                                    ewcoeff_, maxexp_, skinnb_, erfcDx_, debug_, mlimits_))
-      return Action::ERR;
     EW_->Setup( setup.Top(), Imask_ );
   }
-# ifdef LIBPME
-  else if (elecType_ == PME) {
-    if (((Ewald_ParticleMesh*)EW_)->Init(setup.CoordInfo().TrajBox(), cutoff_, dsumtol_,
-                                         ewcoeff_, lwcoeff_, ljswidth_, skinnb_, erfcDx_, npoints_,
-                                         debug_, mlimits_))
-      return Action::ERR;*/
-    EW_->Setup( setup.Top(), Imask_ );
-  }
-//# endif
   // For KE, check for velocities/forces
   if (KEtype_ != KE_NONE) {
     if (!setup.CoordInfo().HasVel()) {
