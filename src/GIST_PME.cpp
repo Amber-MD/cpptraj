@@ -37,7 +37,6 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, AtomMask const& maskI
   //mprintf("Eelec_self takes: %f seconds\n", d1.count());
 
 
-  double e_vdw_lr_correction;
 
   int retVal = pairList_.CreatePairList(frameIn, frameIn.BoxCrd().UnitCell(), frameIn.BoxCrd().FracCell(), maskIn);
   if (retVal != 0) {
@@ -119,6 +118,7 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, AtomMask const& maskI
 
 
   // TODO branch
+  double e_vdw_lr_correction;
   double e_vdw6self, e_vdw6recip;
   if (lw_coeff_ > 0.0) {
     MatType vdw_potentialD(atom_num,4);
