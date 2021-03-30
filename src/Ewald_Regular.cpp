@@ -108,7 +108,8 @@ int Ewald_Regular::Init(Box const& boxIn, EwaldOptions const& ewOpts, int debugI
     mprinterr("Internal Error: Ewald options set up for PME\n");
     return 1;
   }
-  if (CheckInput(boxIn, debugIn, ewOpts.Cutoff(), ewOpts.DsumTol(), ewOpts.EwCoeff(), -1.0, 0.0,
+  if (CheckInput(boxIn, debugIn, ewOpts.Cutoff(), ewOpts.DsumTol(), ewOpts.EwCoeff(),
+                 -1.0, ewOpts.LJ_SwWidth(),
                  ewOpts.ErfcDx(), ewOpts.SkinNB()))
     return 1;
   rsumTol_ = ewOpts.RsumTol();

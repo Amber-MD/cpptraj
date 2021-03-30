@@ -11,21 +11,10 @@ Action_Energy::Action_Energy() :
   npoints_(0),
   debug_(0),
   EW_(0),
-/*  cutoff_(0),
-  dsumtol_(0),
-  rsumtol_(0),
-  ewcoeff_(0),
-  lwcoeff_(0),
-  ljswidth_(0),
-  maxexp_(0),
-  skinnb_(0),
-  erfcDx_(0),*/
   dt_(0),
   need_lj_params_(false),
   needs_exclList_(false)
-{
-  //std::fill(mlimits_, mlimits_+3, 0);
-}
+{}
 
 /// DESTRUCTOR
 Action_Energy::~Action_Energy() {
@@ -38,14 +27,23 @@ void Action_Energy::Help() const {
           "\t{[nonbond] | [elec] [vdw]} [kinetic [ketype {vel|vv}] [dt <dt>]]\n"
           "\t[ etype { simple |\n"
           "\t          directsum [npoints <N>] |\n"
-          "\t          ewald [cut <cutoff>] [dsumtol <dtol>] [rsumtol <rtol>]\n"
-          "\t                [ewcoeff <coeff>] [maxexp <max>] [skinnb <skinnb>]\n"
-          "\t                [mlimits <X>,<Y>,<Z>] [erfcdx <dx>]\n"
-          "\t          pme [cut <cutoff>] [dsumtol <dtol>] [order <order>] [ljswidth <width>]\n"
-          "\t              [ewcoeff <coeff>] [ljpme] [ewcoefflj] [skinnb <skinnb>]\n"
-          "\t              [nfft <nfft1>,<nfft2>,<nfft3>] [erfcdx <dx>]\n"
+          "\t          ewald %s\n"
+          "\t                %s\n"
+          "\t                %s\n"
+          "\t          pme %s\n"
+          "\t              %s\n"
+          "\t              %s\n"
+          "\t              %s\n"
           "\t        } ]\n"
-          "  Calculate energy for atoms in mask.\n");
+          "  Calculate energy for atoms in mask.\n",
+          EwaldOptions::KeywordsCommon1(),
+          EwaldOptions::KeywordsCommon2(),
+          EwaldOptions::KeywordsRegEwald(),
+          EwaldOptions::KeywordsCommon1(),
+          EwaldOptions::KeywordsCommon2(),
+          EwaldOptions::KeywordsPME(),
+          EwaldOptions::KeywordsLjpme()
+         );
 }
 
 /// Corresponds to Etype 
