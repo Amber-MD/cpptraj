@@ -8,6 +8,30 @@
 /** CONSTRUCTOR */
 GIST_PME::GIST_PME() {}
 
+/** Allocate internal arrays. */
+int GIST_PME::AllocateArrays(unsigned int natoms, unsigned int nvoxels, unsigned int nthreads)
+{
+  // Allocate voxel arrays
+  E_vdw_direct_.resize( nthreads );
+  E_elec_direct_.resize( nthreads );
+  for (unsigned int t = 0; t != nthreads; t++)
+  {
+    E_vdw_direct_[t].assign(nvoxels, 0);
+    E_elec_direct_[t].assign(nvoxels, 0);
+  }
+  if (lw_coeff_ > 0) {
+    E_vdw_self_.assign(nvoxels, 0);
+    E_vdw_recip_.assign(nvoxels, 0);
+  } else
+    E_vdw_lr_cor_.assign(nvoxels, 0);
+  E_elec_self_.assign(nvoxels, 0);
+  E_elec_recip_.assign(nvoxels, 0);
+
+  e_potentialD_ = MatType(natoms, 4);
+  e_potentialD_.setConstant(0.0);
+  return 0;
+}
+
 /** Calculate full nonbonded energy with PME Used for GIST, adding 6 arrays to store the
  * decomposed energy terms for every atom
  */

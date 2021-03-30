@@ -672,14 +672,14 @@ void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
 
   unsigned int size = A_idxs_.size();
 
-  Darray E_vdw_all_direct(size,0.0);
+  //Darray E_vdw_all_direct(size,0.0);
   Darray E_vdw_direct(size,0.0);
   Darray E_vdw_self(size,0.0);
   Darray E_vdw_recip(size,0.0);
   Darray E_vdw_lr_cor(size,0.0);
 
   Darray E_elec_self(size,0.0);
-  Darray E_elec_all_direct(size,0.0);
+  //Darray E_elec_all_direct(size,0.0);
   Darray E_elec_direct(size,0.0);
   Darray E_elec_recip(size,0.0);
 

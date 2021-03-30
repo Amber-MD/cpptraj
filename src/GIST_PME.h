@@ -18,6 +18,8 @@ class GIST_PME : private Ewald_ParticleMesh {
     using Ewald_ParticleMesh::Init;
     using Ewald_ParticleMesh::Setup;
 
+    /// Allocate memory for internal arrays
+    int AllocateArrays(unsigned int, unsigned int, unsigned int);
     /// Calculate nonbonded energy with PME for GIST
     int CalcNonbondEnergy_GIST(Frame const&, AtomMask const&,
                                   double&, double&,
@@ -43,8 +45,17 @@ class GIST_PME : private Ewald_ParticleMesh {
     /// Calculate direct space energy with LJ PME for GIST, decomposed for every atom.
     double Direct_VDW_LJPME_GIST(PairList const&, double&, Darray&, Darray&);
 
-    std::vector<Darray> E_vdw_direct_;  ///< Only for interaction of water molecules involved in direct (sw, ww)
-    std::vector<Darray> E_elec_direct_; ///< Count all interactions in direct (sw, ww, ss)
+    std::vector<Darray> E_vdw_direct_;  ///< VDW direct energy for each voxel (sw, ww)
+    std::vector<Darray> E_elec_direct_; ///< Elec. direct energy for each voxel (sw, ww, ss)
+
+    Darray E_vdw_self_;   ///< VDW self energy for each voxel (LJ PME)
+    Darray E_vdw_recip_;  ///< VDW recip energy for each voxel (LJ PME)
+    Darray E_vdw_lr_cor_; ///< VDW long range correction energy for each voxel
+
+    Darray E_elec_self_;  ///< Elec. self energy for each voxel
+    Darray E_elec_recip_; ///< Elec. recip energy for each voxel
+
+    MatType e_potentialD_; ///< Hold recip contributions for each atom
 };
 #endif /* LIBPME */
 #endif
