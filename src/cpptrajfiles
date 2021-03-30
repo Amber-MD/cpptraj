@@ -247,6 +247,7 @@ COMMON_SOURCES= \
         Ewald.cpp \
         Ewald_ParticleMesh.cpp \
         Ewald_Regular.cpp \
+        EwaldOptions.cpp \
         ExclusionArray.cpp \
         Exec_AddMissingRes.cpp \
         Exec_Analyze.cpp \
@@ -351,7 +352,6 @@ COMMON_SOURCES= \
         Parm_PDB.cpp \
         Parm_SDF.cpp \
         Parm_Tinker.cpp \
-        PmeOptions.cpp \
         PotentialFunction.cpp \
         PotentialTerm.cpp \
         PotentialTerm_Angle.cpp \

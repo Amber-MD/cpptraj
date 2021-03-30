@@ -80,7 +80,7 @@ void Action_GIST::Help() const {
           "\t[prefix <filename prefix>] [ext <grid extension>] [out <output>]\n"
           "\t[info <info>]\n");
 #         ifdef LIBPME
-          mprintf("\t[nopme|pme %s\n\t %s\n\t %s]\n", PmeOptions::Keywords1(), PmeOptions::Keywords2(), PmeOptions::Keywords3());
+          mprintf("\t[nopme|pme %s\n\t %s\n\t %s]\n", EwaldOptions::KeywordsCommon1(), EwaldOptions::KeywordsCommon2(), EwaldOptions::KeywordsPME());
 #         endif
           mprintf("Perform Grid Inhomogenous Solvation Theory calculation.\n"
 #ifdef CUDA
@@ -159,7 +159,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   if (usePme_) {
 #   ifdef LIBPME
     pmeOpts_.AllowLjPme(false);
-    if (pmeOpts_.GetOptions(actionArgs, "GIST")) {
+    if (pmeOpts_.GetOptions(EwaldOptions::PME, actionArgs, "GIST")) {
       mprinterr("Error: Getting PME options for GIST failed.\n");
       return Action::ERR;
     }

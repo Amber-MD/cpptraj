@@ -3,7 +3,7 @@
 #include "Action.h"
 #include "ImageOption.h"
 #include "Timer.h"
-#include "PmeOptions.h"
+#include "EwaldOptions.h"
 #ifdef CUDA
 #include "cuda_kernels/GistCudaSetup.cuh"
 #endif
@@ -82,10 +82,10 @@ class Action_GIST : public Action {
 #endif
 
 #   ifdef LIBPME
-    GIST_PME gistPme_;   ///< Holds GIST PME functionality
+    GIST_PME gistPme_;     ///< Holds GIST PME functionality
 #   endif
-    bool usePme_;        ///< If true, try to use GIST PME
-    PmeOptions pmeOpts_; ///< Hold PME options for GIST PME
+    bool usePme_;          ///< If true, try to use GIST PME
+    EwaldOptions pmeOpts_; ///< Hold PME options for GIST PME
 
     static const Vec3 x_lab_;
     static const Vec3 y_lab_;
