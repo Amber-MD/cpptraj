@@ -580,6 +580,13 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
 
 # ifdef _OPENMP
   } // END pragma omp parallel
+  // Sum up contributions from individual threads into array 0
+  for (unsigned int t = 1; t < E_vdw_direct_.size(); t++) {
+    for (unsigned int i = 0; i != E_vdw_direct_[t].size(); i++) {
+      E_vdw_direct_[0][i] += E_vdw_direct_[t][i];
+      E_elec_direct_[0][i] += E_elec_direct_[t][i];
+    }
+  }
 # endif
   t_direct_.Stop();
 # ifdef DEBUG_PAIRLIST
