@@ -153,8 +153,8 @@ class Action_GIST : public Action {
     std::vector<Darray> E_VV_VDW_;  ///< Solvent-solvent van der Waals energy for each voxel.*
     std::vector<Darray> E_VV_Elec_; ///< Solvent-solvent electrostatic energy for each voxel.*
     // PME energy terms
-    std::vector<Darray> E_pme_;     ///< Total nonbond interaction energy(VDW + electrostatic) calculated by PME for water
-    std::vector<Darray> U_E_pme_;   ///< Total nonbond interaction energy(VDW + Elec) calculated by PME for solute
+    Darray E_pme_;     ///< Total nonbond interaction energy(VDW + electrostatic) calculated by PME for water TODO grid?
+    Darray U_E_pme_;   ///< Total nonbond interaction energy(VDW + Elec) calculated by PME for solute TODO grid?
 
     Vec3 G_max_; ///< Grid max + 1.5 Ang.
 

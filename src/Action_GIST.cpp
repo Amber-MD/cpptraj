@@ -332,12 +332,14 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
       neighbor_[thread].assign( MAX_GRID_PT_, 0 );
     }
     if (usePme_) {
-      E_pme_.resize( numthreads_);
-      U_E_pme_.resize(numthreads_);
-      for (int thread = 0; thread != numthreads_; thread++) {
-        E_pme_[thread].assign( MAX_GRID_PT_,0);
-        U_E_pme_[thread].assign( MAX_GRID_PT_,0);
-      }
+      E_pme_.assign( MAX_GRID_PT_, 0 );
+      U_E_pme_.assign( MAX_GRID_PT_, 0 );
+      //E_pme_.resize( numthreads_);
+      //U_E_pme_.resize(numthreads_);
+      //for (int thread = 0; thread != numthreads_; thread++) {
+      //  E_pme_[thread].assign( MAX_GRID_PT_,0);
+      //  U_E_pme_[thread].assign( MAX_GRID_PT_,0);
+      //}
     }
 #   ifdef _OPENMP
     if (doEij_) {
@@ -672,10 +674,10 @@ void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
   // Two energy terms for the whole system
   double ene_pme_all = 0.0;
   double ene_vdw_all = 0.0;
-  // pointer to the E_pme_, where has the voxel-wise pme energy for water FIXME
-  double* E_pme_grid = &(E_pme_[0][0]);
-  // pointer to U_E_pme_, where has the voxel-wise pme energy for solute FIXME
-  double* U_E_pme_grid = &(U_E_pme_[0][0]); 
+  // pointer to the E_pme_, where has the voxel-wise pme energy for water
+  double* E_pme_grid = &E_pme_[0];
+  // pointer to U_E_pme_, where has the voxel-wise pme energy for solute
+  double* U_E_pme_grid = &U_E_pme_[0]; 
 
 # ifdef LIBPME
   gistPme_.CalcNonbondEnergy_GIST(frameIn, allAtoms_, ene_pme_all, ene_vdw_all );
@@ -1330,8 +1332,6 @@ void Action_GIST::SumEVV() {
 void Action_GIST::CalcAvgVoxelEnergy_PME(double Vvox, DataSet_GridFlt& PME_dens, DataSet_GridFlt& U_PME_dens, Farray& PME_norm) {
   
 
-      Darray const& E_pme = E_pme_[0]; // FIXME
-      Darray const& U_E_pme = U_E_pme_[0]; // FIXME
       double PME_tot =0.0;
       double U_PME_tot = 0.0;
       mprintf("\t Calculating average voxel energies: \n");
@@ -1342,8 +1342,8 @@ void Action_GIST::CalcAvgVoxelEnergy_PME(double Vvox, DataSet_GridFlt& PME_dens,
         int nw_total = N_waters_[gr_pt];
         if (nw_total >=1)
         {
-          PME_dens[gr_pt] = E_pme[gr_pt] / (NFRAME_ * Vvox);
-          PME_norm[gr_pt] = E_pme[gr_pt] / nw_total;
+          PME_dens[gr_pt] = E_pme_[gr_pt] / (NFRAME_ * Vvox);
+          PME_norm[gr_pt] = E_pme_[gr_pt] / nw_total;
           PME_tot += PME_dens[gr_pt];
   
         }else{
@@ -1353,7 +1353,7 @@ void Action_GIST::CalcAvgVoxelEnergy_PME(double Vvox, DataSet_GridFlt& PME_dens,
         int ns_total = N_solute_atoms_[gr_pt];  
         if (ns_total >=1)
         {
-          U_PME_dens[gr_pt] = U_E_pme[gr_pt] / (NFRAME_ * Vvox);
+          U_PME_dens[gr_pt] = U_E_pme_[gr_pt] / (NFRAME_ * Vvox);
           U_PME_tot += U_PME_dens[gr_pt];
    
         }else{
