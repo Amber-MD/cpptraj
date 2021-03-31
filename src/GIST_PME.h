@@ -23,6 +23,17 @@ class GIST_PME : private Ewald_ParticleMesh {
     /// Calculate nonbonded energy with PME for GIST
     int CalcNonbondEnergy_GIST(Frame const&, AtomMask const&,
                                   double&, double&);
+
+    // Internal arrays
+    Darray const& E_Vdw_Direct()  const { return E_vdw_direct_[0]; }
+    Darray const& E_Elec_Direct() const { return E_elec_direct_[0]; }
+
+    Darray const& E_Vdw_Self()    const { return E_vdw_self_; }
+    Darray const& E_Vdw_Recip()   const { return E_vdw_recip_; }
+    Darray const& E_Vdw_LR_Corr() const { return E_vdw_lr_cor_; }
+
+    Darray const& E_Elec_Self()   const { return E_elec_self_; }
+    Darray const& E_Elec_Recip()  const { return E_elec_recip_; }
   private:
     typedef helpme::Matrix<double> MatType;
 
