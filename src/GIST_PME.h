@@ -14,7 +14,7 @@ class GIST_PME : private Ewald_ParticleMesh {
 
     // Expose definitions/functions from Ewald_ParticleMesh
     using Ewald::Darray;
-    using Ewald::Iarray;
+    //using Ewald::Iarray;
     using Ewald_ParticleMesh::Init;
     using Ewald_ParticleMesh::Setup;
 
@@ -22,8 +22,7 @@ class GIST_PME : private Ewald_ParticleMesh {
     int AllocateArrays(unsigned int, unsigned int);
     /// Calculate nonbonded energy with PME for GIST
     int CalcNonbondEnergy_GIST(Frame const&, AtomMask const&,
-                                  double&, double&,
-                                  Iarray const&);
+                                  double&, double&);
   private:
     typedef helpme::Matrix<double> MatType;
 
@@ -38,9 +37,9 @@ class GIST_PME : private Ewald_ParticleMesh {
     /// VDW long range correction for GIST
     double Vdw_Correction_GIST(double, Darray&);
     /// Calculate direct space energy for GIST, decomposed for every atom.
-    double Direct_GIST(PairList const&, double&, Iarray const&);
+    double Direct_GIST(PairList const&, double&);
     /// Calcualte direct space energy with long range VDW correction for GIST, decomposed for every atom.
-    double Direct_VDW_LongRangeCorrection_GIST(PairList const&, double&, Iarray const&);
+    double Direct_VDW_LongRangeCorrection_GIST(PairList const&, double&);
     /// Calculate direct space energy with LJ PME for GIST, decomposed for every atom.
     double Direct_VDW_LJPME_GIST(PairList const&, double&);
 

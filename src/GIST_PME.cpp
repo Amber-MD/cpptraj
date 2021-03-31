@@ -46,8 +46,8 @@ static inline double SumDarray(std::vector<double> const& arr) {
  * decomposed energy terms for every atom
  */
 int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, AtomMask const& maskIn,
-                                      double& e_elec, double& e_vdw,
-                                      Iarray const& atom_voxel )
+                                      double& e_elec, double& e_vdw)
+//                                      Iarray const& atom_voxel )
 {
   t_total_.Start();
 
@@ -125,7 +125,7 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, AtomMask const& maskI
   }
 
   e_vdw = 0.0;
-  double e_direct = Direct_GIST( pairList_, e_vdw, atom_voxel );
+  double e_direct = Direct_GIST( pairList_, e_vdw ); //, atom_voxel );
 
   //mprintf("e_elec_self: %f , e_elec_direct: %f, e_vdw6direct: %f \n", e_self, e_direct, e_vdw);
 
@@ -305,18 +305,18 @@ double GIST_PME::Vdw_Correction_GIST(double volume, Darray& e_vdw_lr_cor) {
 }
 
 /** Direct space routine for GIST. */
-double GIST_PME::Direct_GIST(PairList const& PL, double& evdw_out,
-                             Iarray const& atom_voxel)
+double GIST_PME::Direct_GIST(PairList const& PL, double& evdw_out)
+                             //Iarray const& atom_voxel)
 {
   if (lw_coeff_ > 0.0)
     return Direct_VDW_LJPME_GIST(PL, evdw_out);
   else
-    return Direct_VDW_LongRangeCorrection_GIST(PL, evdw_out, atom_voxel);
+    return Direct_VDW_LongRangeCorrection_GIST(PL, evdw_out); //, atom_voxel);
 }
 
 /** Direct space calculation with long range VDW correction for GIST. */
-double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double& evdw_out,
-                                                  Iarray const& atom_voxel)
+double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double& evdw_out)
+//                                                  Iarray const& atom_voxel)
 {
   // e_vdw_direct only count the interaction water molecule involved( sw, ww)
   // e_vdw_all_direct, count all interactions( sw, ww, ss)
@@ -364,7 +364,7 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
         Vec3 const& xyz0 = it0->ImageCoords();
         double q0 = Charge_[it0->Idx()];
         // The voxel # of it0
-        int it0_voxel = atom_voxel[it0->Idx()];
+        //int it0_voxel = atom_voxel[it0->Idx()];
 
 #       ifdef DEBUG_PAIRLIST
         mprintf("DBG: Cell %6i (%6i atoms):\n", cidx+1, thisCell.NatomsInGrid());
@@ -375,7 +375,7 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
         for (PairList::CellType::const_iterator it1 = it0 + 1;
                                                 it1 != thisCell.end(); ++it1)
         {
-          int it1_voxel = atom_voxel[it1->Idx()];
+          //int it1_voxel = atom_voxel[it1->Idx()];
 
           Vec3 const& xyz1 = it1->ImageCoords();
           double q1 = Charge_[it1->Idx()];
@@ -478,7 +478,7 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
           for (PairList::CellType::const_iterator it1 = nbrCell.begin();
                                                   it1 != nbrCell.end(); ++it1)
           {
-            int it1_voxel = atom_voxel[it1->Idx()];
+            //int it1_voxel = atom_voxel[it1->Idx()];
             Vec3 const& xyz1 = it1->ImageCoords();
             double q1 = Charge_[it1->Idx()];
             Vec3 dxyz = xyz1 + tVec - xyz0;
