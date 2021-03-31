@@ -18,11 +18,17 @@ class GIST_PME : private Ewald_ParticleMesh {
     using Ewald_ParticleMesh::Init;
     using Ewald_ParticleMesh::Setup;
 
-    /// Allocate memory for internal arrays
+    /// Allocate memory for internal arrays (# atoms, # threads)
     int AllocateArrays(unsigned int, unsigned int);
     /// Calculate nonbonded energy with PME for GIST
     int CalcNonbondEnergy_GIST(Frame const&, AtomMask const&,
                                   double&, double&);
+    /// \return Total energy of specified atom
+    double E_of_atom(unsigned int idx) const {
+      return (E_elec_self_[idx] + E_elec_direct_[0][idx] + E_elec_recip_[idx] +
+              E_vdw_self_[idx]  + E_vdw_direct_[0][idx] +
+              E_vdw_recip_[idx] + E_vdw_lr_cor_[idx]);
+    }
 
     // Internal arrays
     Darray const& E_Vdw_Direct()  const { return E_vdw_direct_[0]; }

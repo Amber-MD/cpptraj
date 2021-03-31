@@ -20,10 +20,12 @@ int GIST_PME::AllocateArrays(unsigned int natoms, unsigned int nthreads)
     E_vdw_direct_[t].assign(natoms, 0);
     E_elec_direct_[t].assign(natoms, 0);
   }
-  if (lw_coeff_ > 0) {
+  // NOTE: Always allocate these arrays even if not using. This allows
+  //       E_of_atom() function to work in all cases.
+  //if (lw_coeff_ > 0) {
     E_vdw_self_.assign(natoms, 0);
     E_vdw_recip_.assign(natoms, 0);
-  } else
+  //} else
     E_vdw_lr_cor_.assign(natoms, 0);
   E_elec_self_.assign(natoms, 0);
   E_elec_recip_.assign(natoms, 0);
