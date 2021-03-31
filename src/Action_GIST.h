@@ -47,7 +47,8 @@ class Action_GIST : public Action {
     void CalcAvgVoxelEnergy(double, DataSet_GridFlt&, DataSet_GridFlt&, Farray&, Farray&,
                             DataSet_GridDbl&, DataSet_GridFlt&, Farray&);
 
-    int debug_; ///< Action debug level
+    int debug_;      ///< Action debug level
+    int numthreads_; ///< Number of OpenMP threads
 #ifdef CUDA
     // Additional data for GPU calculation
 

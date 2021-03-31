@@ -17,6 +17,7 @@ const double Action_GIST::maxD_ = DBL_MAX;
 
 Action_GIST::Action_GIST() :
   debug_(0),
+  numthreads_(1),
 #ifdef CUDA
   numberAtoms_(0),
   numberAtomTypes_(0),
@@ -308,22 +309,22 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   voxel_xyz_.resize( MAX_GRID_PT_ ); // [] = X Y Z
   voxel_Q_.resize( MAX_GRID_PT_ ); // [] = W4 X4 Y4 Z4
 
-  int numthreads = 1;
+  numthreads_ = 1;
 # ifdef _OPENMP
 # pragma omp parallel
   {
   if (omp_get_thread_num() == 0)
-    numthreads = omp_get_num_threads();
+    numthreads_ = omp_get_num_threads();
   }
 # endif
 
   if (!skipE_) {
-    E_UV_VDW_.resize( numthreads );
-    E_UV_Elec_.resize( numthreads );
-    E_VV_VDW_.resize( numthreads );
-    E_VV_Elec_.resize( numthreads );
-    neighbor_.resize( numthreads );
-    for (int thread = 0; thread != numthreads; thread++) {
+    E_UV_VDW_.resize( numthreads_ );
+    E_UV_Elec_.resize( numthreads_ );
+    E_VV_VDW_.resize( numthreads_ );
+    E_VV_Elec_.resize( numthreads_ );
+    neighbor_.resize( numthreads_ );
+    for (int thread = 0; thread != numthreads_; thread++) {
       E_UV_VDW_[thread].assign( MAX_GRID_PT_, 0 );
       E_UV_Elec_[thread].assign( MAX_GRID_PT_, 0 );
       E_VV_VDW_[thread].assign( MAX_GRID_PT_, 0 );
@@ -331,9 +332,9 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
       neighbor_[thread].assign( MAX_GRID_PT_, 0 );
     }
     if (usePme_) {
-      E_pme_.resize( numthreads);
-      U_E_pme_.resize(numthreads);
-      for (int thread = 0; thread != numthreads; thread++) {
+      E_pme_.resize( numthreads_);
+      U_E_pme_.resize(numthreads_);
+      for (int thread = 0; thread != numthreads_; thread++) {
         E_pme_[thread].assign( MAX_GRID_PT_,0);
         U_E_pme_[thread].assign( MAX_GRID_PT_,0);
       }
@@ -345,9 +346,9 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
       // often present, each thread will record any interaction energies they
       // calculate separately and add to the Eij matrix afterwards to avoid
       // memory clashes. Probably not ideal if the bulk of the grid is water however.
-      EIJ_V1_.resize( numthreads );
-      EIJ_V2_.resize( numthreads );
-      EIJ_EN_.resize( numthreads );
+      EIJ_V1_.resize( numthreads_ );
+      EIJ_V2_.resize( numthreads_ );
+      EIJ_EN_.resize( numthreads_ );
     }
 #   endif
 
@@ -379,8 +380,8 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     mprintf("\tSkipping energy calculation.\n");
   else {
     mprintf("\tPerforming energy calculation.\n");
-    if (numthreads > 1)
-      mprintf("\tParallelizing energy calculation with %i threads.\n", numthreads);
+    if (numthreads_ > 1)
+      mprintf("\tParallelizing energy calculation with %i threads.\n", numthreads_);
     if (usePme_) {
       mprintf("\tUsing PME.\n");
       pmeOpts_.PrintOptions();
@@ -451,14 +452,19 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   if (usePme_) {
 #   ifdef LIBPME
     if (gistPme_.Init( setup.CoordInfo().TrajBox(), pmeOpts_, debug_ )) {
-      mprinterr("Error: PME init failed.\n");
+      mprinterr("Error: GIST PME init failed.\n");
       return Action::ERR;
     }
     // Select everything
     allAtoms_ = AtomMask(0, setup.Top().Natom());
     // Set up PME
     if (gistPme_.Setup( setup.Top(), allAtoms_ )) {
-      mprinterr("Error: PME setup failed.\n");
+      mprinterr("Error: GIST PME setup failed.\n");
+      return Action::ERR;
+    }
+    // Allocate GIST PME internal arrays
+    if (gistPme_.AllocateArrays( setup.Top().Natom(), numthreads_ )) {
+      mprinterr("Error: GIST PME array allocation failed.\n");
       return Action::ERR;
     }
 #   else
@@ -649,13 +655,14 @@ const double Action_GIST::QFAC_ = Constants::ELECTOAMBER * Constants::ELECTOAMBE
 const int Action_GIST::SOLUTE_ = -2;
 const int Action_GIST::OFF_GRID_ = -1;
 
+/*
 /// \return Sum of elements in given array
 static inline double SumDarray(std::vector<double> const& arr) {
   double sum = 0.0;
   for (std::vector<double>::const_iterator it = arr.begin(); it != arr.end(); ++it)
     sum += *it;
   return sum;
-}
+}*/
 
 /* Calculate the charge-charge, vdw interaction using pme, frame by frame
  * 
@@ -672,7 +679,7 @@ void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
 
   unsigned int size = A_idxs_.size();
 
-  //Darray E_vdw_all_direct(size,0.0);
+/*  //Darray E_vdw_all_direct(size,0.0);
   Darray E_vdw_direct(size,0.0);
   Darray E_vdw_self(size,0.0);
   Darray E_vdw_recip(size,0.0);
@@ -681,13 +688,13 @@ void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
   Darray E_elec_self(size,0.0);
   //Darray E_elec_all_direct(size,0.0);
   Darray E_elec_direct(size,0.0);
-  Darray E_elec_recip(size,0.0);
+  Darray E_elec_recip(size,0.0);*/
 
 # ifdef LIBPME
   gistPme_.CalcNonbondEnergy_GIST(frameIn, allAtoms_,
-                                  ene_pme_all, ene_vdw_all,
-                                  E_vdw_direct, E_vdw_self, E_vdw_recip, E_vdw_lr_cor,
-                                  E_elec_self, E_elec_direct, E_elec_recip, atom_voxel_);
+                                  ene_pme_all, ene_vdw_all );
+                                  //E_vdw_direct, E_vdw_self, E_vdw_recip, E_vdw_lr_cor,
+                                  //E_elec_self, E_elec_direct, E_elec_recip, atom_voxel_);
 
   //mprintf("For this frame, the cpptraj potentail energy: %f, cpptraj_ene: %f, cpptraj_vdw: %f \n", ene_pme_all + ene_vdw_all, ene_pme_all, ene_vdw_all);
 
@@ -696,7 +703,7 @@ void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
   mprinterr("Error: Compiled without LIBPME\n");
   return;
 # endif 
-
+/*
   // Calculate the sum of each terms
   double E_elec_self_sum   = SumDarray( E_elec_self );
   double E_elec_direct_sum = SumDarray( E_elec_direct );
@@ -707,53 +714,60 @@ void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
   double E_vdw_direct_sum = SumDarray( E_vdw_direct );
   double E_vdw_recip_sum  = SumDarray( E_vdw_recip );
   double E_vdw_lr_cor_sum = SumDarray( E_vdw_lr_cor );
-  mprintf("DEBUG: E_vdw sums: self= %g  direct= %g  recip= %g  LR= %g\n", E_vdw_self_sum, E_vdw_direct_sum, E_vdw_recip_sum, E_vdw_lr_cor_sum);
-  
-  double pme_sum = 0.0;  // water energy in the GIST grid 
+  mprintf("DEBUG: E_vdw sums: self= %g  direct= %g  recip= %g  LR= %g\n", E_vdw_self_sum, E_vdw_direct_sum, E_vdw_recip_sum, E_vdw_lr_cor_sum);*/
+
+  // Water energy on the GIST grid
+  double pme_sum = 0.0;
 
   for (unsigned int gidx=0; gidx < N_ON_GRID_; gidx++ ) 
   {
     int a = OnGrid_idxs_[gidx]; // index of the atom of on-grid solvent;
-    int a_voxel = atom_voxel_[a]; // index of the voxel 
-    double nonbond_energy = E_elec_self[a]+ E_elec_direct[a] + E_elec_recip[a] + 
-                            E_vdw_direct[a] + E_vdw_self[a] + E_vdw_recip[a] + E_vdw_lr_cor[a];
+    int a_voxel = atom_voxel_[a]; // index of the voxel
+    double nonbond_energy = gistPme_.E_of_atom(a);
+    //double nonbond_energy = gistPme_.E_Elec_Self()[a] + gistPme_.E_Elec_Direct()[a] + gistPme_.E_Elec_Recip()[a] +
+    //                        gistPme_.E_Vdw_Self()[a] + gistPme_.E_Vdw_Direct()[a] +
+    //                        gistPme_.E_Vdw_Recip()[a] + gistPme_.E_Vdw_LR_Corr()[a]; 
+    //double nonbond_energy = E_elec_self[a]+ E_elec_direct[a] + E_elec_recip[a] + 
+    //                        E_vdw_direct[a] + E_vdw_self[a] + E_vdw_recip[a] + E_vdw_lr_cor[a];
     pme_sum += nonbond_energy;
     E_pme_grid[a_voxel] += nonbond_energy;  
   }
 
-  // locate the solute energy to the voxel
-
+  // Solute energy on the GIST grid
   double solute_on_grid_sum = 0.0; // To sum up the potential energy on solute atoms that on the grid
 
   for (unsigned int uidx=0; uidx < U_onGrid_idxs_.size(); uidx++ )
   {
     int u = U_onGrid_idxs_[uidx]; // index of the solute atom on the grid
     int u_voxel = atom_voxel_[u];
-    double u_nonbond_energy = E_elec_self[u] + E_elec_direct[u] + E_elec_recip[u] +
-                              E_vdw_direct[u] + E_vdw_self[u] + E_vdw_recip[u] + E_vdw_lr_cor[u];
+    double u_nonbond_energy = gistPme_.E_of_atom(u);
+    //double u_nonbond_energy = E_elec_self[u] + E_elec_direct[u] + E_elec_recip[u] +
+    //                          E_vdw_direct[u] + E_vdw_self[u] + E_vdw_recip[u] + E_vdw_lr_cor[u];
     solute_on_grid_sum += u_nonbond_energy; 
     U_E_pme_grid[u_voxel] += u_nonbond_energy;
   }
 
-  double solute_sum = 0.0; // The energy sum of all solute atoms
+  // Total solute energy
+  double solute_sum = 0.0;
 
   for (unsigned int uidx=0; uidx < U_idxs_.size(); uidx++)
   {
     int u = U_idxs_[uidx];
-    double u_nonbond_energy = E_elec_self[u] + E_elec_direct[u] + E_elec_recip[u] + 
-                              E_vdw_direct[u] + E_vdw_self[u] + E_vdw_recip[u] + E_vdw_lr_cor[u];
+    double u_nonbond_energy = gistPme_.E_of_atom(u);
+    //double u_nonbond_energy = E_elec_self[u] + E_elec_direct[u] + E_elec_recip[u] + 
+    //                          E_vdw_direct[u] + E_vdw_self[u] + E_vdw_recip[u] + E_vdw_lr_cor[u];
     solute_sum += u_nonbond_energy;
     solute_potential_energy_ += u_nonbond_energy; // used to calculated the emsemble energy for all solute, will print out in terminal
   }
 
   //mprintf("The total potential energy on water atoms: %f \n", pme_sum);
-  E_elec_self.clear();
+  /*E_elec_self.clear();
   E_elec_direct.clear();
   E_elec_recip.clear();
   E_vdw_direct.clear();
   E_vdw_self.clear(); 
   E_vdw_recip.clear();
-  E_vdw_lr_cor.clear();
+  E_vdw_lr_cor.clear();*/
 }
 
 /** Non-bonded energy calc. */
