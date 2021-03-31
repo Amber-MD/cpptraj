@@ -328,6 +328,11 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
   int cidx;
 
   //mprintf("Entering Direct_VDW_LongrangeCorrection_GIST function \n");
+# ifndef _OPENMP
+  // Zero when not openmp
+  std::fill(E_vdw_direct_[0].begin(), E_vdw_direct_[0].end(), 0);
+  std::fill(E_elec_direct_[0].begin(), E_elec_direct_[0].end(), 0);
+# endif
   double* e_vdw_direct  = &(E_vdw_direct_[0][0]);
   double* e_elec_direct = &(E_elec_direct_[0][0]);
   // Pair list loop
@@ -336,15 +341,13 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
 # pragma omp parallel private(cidx, mythread, e_vdw_direct, e_elec_direct) reduction(+: Eelec, Evdw, e_adjust)
   {
   mythread = omp_get_thread_num();
+  std::fill(E_vdw_direct_[mythread].begin(), E_vdw_direct_[mythread].end(), 0);
+  std::fill(E_elec_direct_[mythread].begin(), E_elec_direct_[mythread].end(), 0);
   e_vdw_direct  = &(E_vdw_direct_[mythread][0]);
   e_elec_direct = &(E_elec_direct_[mythread][0]);
 # pragma omp for
 # endif
 //# include "PairListLoop.h"
-  //double Evdw_temp(0);   //Eljpme_correction_temp(0), Eljpme_correction_excl_temp(0);
-  //double Eelec_temp(0),E_adjust_temp(0);
-  
-  
   for (cidx = 0; cidx < PL.NGridMax(); cidx++)
   {
     PairList::CellType const& thisCell = PL.Cell( cidx );
