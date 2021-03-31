@@ -31,6 +31,7 @@ class GIST_PME : private Ewald_ParticleMesh {
     }
 
     // Internal arrays
+/*
     Darray const& E_Vdw_Direct()  const { return E_vdw_direct_[0]; }
     Darray const& E_Elec_Direct() const { return E_elec_direct_[0]; }
 
@@ -40,6 +41,7 @@ class GIST_PME : private Ewald_ParticleMesh {
 
     Darray const& E_Elec_Self()   const { return E_elec_self_; }
     Darray const& E_Elec_Recip()  const { return E_elec_recip_; }
+*/
   private:
     typedef helpme::Matrix<double> MatType;
 

@@ -677,7 +677,7 @@ void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
   // pointer to U_E_pme_, where has the voxel-wise pme energy for solute FIXME
   double* U_E_pme_grid = &(U_E_pme_[0][0]); 
 
-  unsigned int size = A_idxs_.size();
+  //unsigned int size = A_idxs_.size();
 
 /*  //Darray E_vdw_all_direct(size,0.0);
   Darray E_vdw_direct(size,0.0);
