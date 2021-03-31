@@ -1338,45 +1338,44 @@ void Action_GIST::SumEVV() {
 }
 
 /** Calculate average voxel energy for PME grids. */
-void Action_GIST::CalcAvgVoxelEnergy_PME(double Vvox, DataSet_GridFlt& PME_dens, DataSet_GridFlt& U_PME_dens, Farray& PME_norm) {
-  
+void Action_GIST::CalcAvgVoxelEnergy_PME(double Vvox, DataSet_GridFlt& PME_dens, DataSet_GridFlt& U_PME_dens, Farray& PME_norm)
+{
+  double PME_tot =0.0;
+  double U_PME_tot = 0.0;
+  mprintf("\t Calculating average voxel energies: \n");
+  ProgressBar E_progress(MAX_GRID_PT_);
+  for ( unsigned int gr_pt =0; gr_pt < MAX_GRID_PT_; gr_pt++)
+  {
+    E_progress.Update(gr_pt);
+    int nw_total = N_waters_[gr_pt];
+    if (nw_total >=1)
+    {
+      PME_dens[gr_pt] = E_pme_[gr_pt] / (NFRAME_ * Vvox);
+      PME_norm[gr_pt] = E_pme_[gr_pt] / nw_total;
+      PME_tot += PME_dens[gr_pt];
 
-      double PME_tot =0.0;
-      double U_PME_tot = 0.0;
-      mprintf("\t Calculating average voxel energies: \n");
-      ProgressBar E_progress(MAX_GRID_PT_);
-      for ( unsigned int gr_pt =0; gr_pt < MAX_GRID_PT_; gr_pt++)
-      {
-        E_progress.Update(gr_pt);
-        int nw_total = N_waters_[gr_pt];
-        if (nw_total >=1)
-        {
-          PME_dens[gr_pt] = E_pme_[gr_pt] / (NFRAME_ * Vvox);
-          PME_norm[gr_pt] = E_pme_[gr_pt] / nw_total;
-          PME_tot += PME_dens[gr_pt];
-  
-        }else{
-          PME_dens[gr_pt]=0;
-          PME_norm[gr_pt]=0; 
-        }
-        int ns_total = N_solute_atoms_[gr_pt];  
-        if (ns_total >=1)
-        {
-          U_PME_dens[gr_pt] = U_E_pme_[gr_pt] / (NFRAME_ * Vvox);
-          U_PME_tot += U_PME_dens[gr_pt];
-   
-        }else{
-          U_PME_dens[gr_pt]=0;
-        }
-      }
-      PME_tot *=Vvox;
-      U_PME_tot *=Vvox;
+    }else{
+      PME_dens[gr_pt]=0;
+      PME_norm[gr_pt]=0; 
+    }
+    int ns_total = N_solute_atoms_[gr_pt];  
+    if (ns_total >=1)
+    {
+      U_PME_dens[gr_pt] = U_E_pme_[gr_pt] / (NFRAME_ * Vvox);
+      U_PME_tot += U_PME_dens[gr_pt];
 
-      infofile_->Printf("Ensemble total water energy on the grid: %9.5f Kcal/mol \n", PME_tot);
-      infofile_->Printf("Ensemble total solute energy on the grid: %9.5f Kcal/mol \n",U_PME_tot);
+    }else{
+      U_PME_dens[gr_pt]=0;
+    }
+  }
+  PME_tot *=Vvox;
+  U_PME_tot *=Vvox;
 
-      infofile_->Printf("Ensemble solute's total potential energy : %9.5f Kcal/mol \n", solute_potential_energy_ / NFRAME_);
-      infofile_->Printf("Ensemble system's total potential energy: %9.5f Kcal/mol \n", system_potential_energy_/NFRAME_);
+  infofile_->Printf("Ensemble total water energy on the grid: %9.5f Kcal/mol \n", PME_tot);
+  infofile_->Printf("Ensemble total solute energy on the grid: %9.5f Kcal/mol \n",U_PME_tot);
+
+  infofile_->Printf("Ensemble solute's total potential energy : %9.5f Kcal/mol \n", solute_potential_energy_ / NFRAME_);
+  infofile_->Printf("Ensemble system's total potential energy: %9.5f Kcal/mol \n", system_potential_energy_/NFRAME_);
 }
 
 /** Calculate average voxel energy for non-PME grids. */
