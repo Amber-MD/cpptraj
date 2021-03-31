@@ -136,8 +136,8 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   doEij_ = actionArgs.hasKey("doeij");
 #ifdef CUDA
   if (this->doEij_) {
-    mprintf("Warning: 'doeij' cannot be specified when using CUDA. Setting is ignored");
-    this->doEij_ = false;
+    mprinterr("Error: 'doeij' cannot be specified when using CUDA.\n");
+    return Action::ERR;
   }
 #endif
   skipE_ = actionArgs.hasKey("skipE");
@@ -153,10 +153,19 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
 # else
   usePme_ = false;
 # endif
+# ifdef CUDA
+  // Disable PME for CUDA
+  usePme_ = false;
+# endif
   if (actionArgs.hasKey("pme"))
     usePme_ = true;
   else if (actionArgs.hasKey("nopme"))
     usePme_ = false;
+  // PME and doeij are not compatible
+  if (usePme_ && doEij_) {
+    mprinterr("Error: 'doeij' cannot be used with PME. Specify 'nopme' to use 'doeij'\n");
+    return Action::ERR;
+  }
   if (usePme_) {
 #   ifdef LIBPME
     pmeOpts_.AllowLjPme(false);
