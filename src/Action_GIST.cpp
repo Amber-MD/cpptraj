@@ -418,7 +418,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
           "#      J. Chem. Phys. 137, 044101 (2012)\n"
           "#    Lazaridis, J. Phys. Chem. B 102, 3531–3541 (1998)\n"
 #ifdef LIBPME
-          "When using the PME-enhanced version of GIST, please cite:\n"
+          "#When using the PME-enhanced version of GIST, please cite:\n"
           "#    Lieyang Chen, Anthony Cruz, Daniel R. Roe, Andy C. Simmonett, Lauren Wickstrom, Nanjie Deng, Tom Kurtzman. ChemRxiv: 13140011.v1 (2020)\n"
 #endif
 #ifdef CUDA

@@ -100,8 +100,6 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, AtomMask const& maskI
     vdw_potentialD.setConstant(0.0);
     e_vdw6recip = LJ_Recip_ParticleMesh_GIST( frameIn.BoxCrd(), vdw_potentialD );
 
-    mprintf(" e_vdw6self: %f, e_vdw6recip: %f \n", e_vdw6self, e_vdw6recip);
-
     for(unsigned int j=0; j < natoms; j++){
 
       E_vdw_recip_[j] = 0.5 * (Cparam_[j] * vdw_potentialD(j,0)); // Split the energy by half
@@ -132,25 +130,27 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, AtomMask const& maskI
   if (debug_ > 0)
     mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f  Evdw= %20.10f\n",
             e_self, e_recip, e_direct, e_vdw);
+
   e_vdw += (e_vdw_lr_correction + e_vdw6self + e_vdw6recip);
-  t_total_.Stop();
   e_elec = e_self + e_recip + e_direct;
 
   // DEBUG
-  // Calculate the sum of each terms
-  double E_elec_direct_sum = SumDarray( E_elec_direct_[0] );
-  double E_vdw_direct_sum = SumDarray( E_vdw_direct_[0] );
+  if (debug_ > 0) {
+    // Calculate the sum of each terms
+    double E_elec_direct_sum = SumDarray( E_elec_direct_[0] );
+    double E_vdw_direct_sum = SumDarray( E_vdw_direct_[0] );
 
-  double E_elec_self_sum   = SumDarray( E_elec_self_ );
-  double E_elec_recip_sum  = SumDarray( E_elec_recip_ );
-  mprintf("DEBUG: E_elec sums: self= %g  direct= %g  recip= %g\n", E_elec_self_sum, E_elec_direct_sum, E_elec_recip_sum);
+    double E_elec_self_sum   = SumDarray( E_elec_self_ );
+    double E_elec_recip_sum  = SumDarray( E_elec_recip_ );
+    mprintf("DEBUG: E_elec sums: self= %g  direct= %g  recip= %g\n", E_elec_self_sum, E_elec_direct_sum, E_elec_recip_sum);
 
-  double E_vdw_self_sum   = SumDarray( E_vdw_self_ );
-  double E_vdw_recip_sum  = SumDarray( E_vdw_recip_ );
-  double E_vdw_lr_cor_sum = SumDarray( E_vdw_lr_cor_ );
-  mprintf("DEBUG: E_vdw sums: self= %g  direct= %g  recip= %g  LR= %g\n", E_vdw_self_sum, E_vdw_direct_sum, E_vdw_recip_sum, E_vdw_lr_cor_sum);
+    double E_vdw_self_sum   = SumDarray( E_vdw_self_ );
+    double E_vdw_recip_sum  = SumDarray( E_vdw_recip_ );
+    double E_vdw_lr_cor_sum = SumDarray( E_vdw_lr_cor_ );
+    mprintf("DEBUG: E_vdw sums: self= %g  direct= %g  recip= %g  LR= %g\n", E_vdw_self_sum, E_vdw_direct_sum, E_vdw_recip_sum, E_vdw_lr_cor_sum);
+  }
 
-
+  t_total_.Stop();
 
   return 0;
 }
