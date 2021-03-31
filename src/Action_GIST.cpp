@@ -1339,6 +1339,7 @@ void Action_GIST::SumEVV() {
 
 /** Calculate average voxel energy for PME grids. */
 void Action_GIST::CalcAvgVoxelEnergy_PME(double Vvox, DataSet_GridFlt& PME_dens, DataSet_GridFlt& U_PME_dens, Farray& PME_norm)
+const
 {
   double PME_tot =0.0;
   double U_PME_tot = 0.0;

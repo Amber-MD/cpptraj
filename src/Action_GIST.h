@@ -43,7 +43,7 @@ class Action_GIST : public Action {
     void NonbondEnergy(Frame const&, Topology const&);
     void Order(Frame const&);
     void SumEVV();
-    void CalcAvgVoxelEnergy_PME(double, DataSet_GridFlt&, DataSet_GridFlt&, Farray&);
+    void CalcAvgVoxelEnergy_PME(double, DataSet_GridFlt&, DataSet_GridFlt&, Farray&) const;
     void CalcAvgVoxelEnergy(double, DataSet_GridFlt&, DataSet_GridFlt&, Farray&, Farray&,
                             DataSet_GridDbl&, DataSet_GridFlt&, Farray&);
 
