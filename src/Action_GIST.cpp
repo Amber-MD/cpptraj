@@ -677,24 +677,8 @@ void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
   // pointer to U_E_pme_, where has the voxel-wise pme energy for solute FIXME
   double* U_E_pme_grid = &(U_E_pme_[0][0]); 
 
-  //unsigned int size = A_idxs_.size();
-
-/*  //Darray E_vdw_all_direct(size,0.0);
-  Darray E_vdw_direct(size,0.0);
-  Darray E_vdw_self(size,0.0);
-  Darray E_vdw_recip(size,0.0);
-  Darray E_vdw_lr_cor(size,0.0);
-
-  Darray E_elec_self(size,0.0);
-  //Darray E_elec_all_direct(size,0.0);
-  Darray E_elec_direct(size,0.0);
-  Darray E_elec_recip(size,0.0);*/
-
 # ifdef LIBPME
-  gistPme_.CalcNonbondEnergy_GIST(frameIn, allAtoms_,
-                                  ene_pme_all, ene_vdw_all );
-                                  //E_vdw_direct, E_vdw_self, E_vdw_recip, E_vdw_lr_cor,
-                                  //E_elec_self, E_elec_direct, E_elec_recip, atom_voxel_);
+  gistPme_.CalcNonbondEnergy_GIST(frameIn, allAtoms_, ene_pme_all, ene_vdw_all );
 
   //mprintf("For this frame, the cpptraj potentail energy: %f, cpptraj_ene: %f, cpptraj_vdw: %f \n", ene_pme_all + ene_vdw_all, ene_pme_all, ene_vdw_all);
 
@@ -703,18 +687,6 @@ void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
   mprinterr("Error: Compiled without LIBPME\n");
   return;
 # endif 
-/*
-  // Calculate the sum of each terms
-  double E_elec_self_sum   = SumDarray( E_elec_self );
-  double E_elec_direct_sum = SumDarray( E_elec_direct );
-  double E_elec_recip_sum  = SumDarray( E_elec_recip );
-  mprintf("DEBUG: E_elec sums: self= %g  direct= %g  recip= %g\n", E_elec_self_sum, E_elec_direct_sum, E_elec_recip_sum);
-
-  double E_vdw_self_sum   = SumDarray( E_vdw_self );
-  double E_vdw_direct_sum = SumDarray( E_vdw_direct );
-  double E_vdw_recip_sum  = SumDarray( E_vdw_recip );
-  double E_vdw_lr_cor_sum = SumDarray( E_vdw_lr_cor );
-  mprintf("DEBUG: E_vdw sums: self= %g  direct= %g  recip= %g  LR= %g\n", E_vdw_self_sum, E_vdw_direct_sum, E_vdw_recip_sum, E_vdw_lr_cor_sum);*/
 
   // Water energy on the GIST grid
   double pme_sum = 0.0;
@@ -741,8 +713,6 @@ void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
     int u = U_onGrid_idxs_[uidx]; // index of the solute atom on the grid
     int u_voxel = atom_voxel_[u];
     double u_nonbond_energy = gistPme_.E_of_atom(u);
-    //double u_nonbond_energy = E_elec_self[u] + E_elec_direct[u] + E_elec_recip[u] +
-    //                          E_vdw_direct[u] + E_vdw_self[u] + E_vdw_recip[u] + E_vdw_lr_cor[u];
     solute_on_grid_sum += u_nonbond_energy; 
     U_E_pme_grid[u_voxel] += u_nonbond_energy;
   }
@@ -754,20 +724,11 @@ void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
   {
     int u = U_idxs_[uidx];
     double u_nonbond_energy = gistPme_.E_of_atom(u);
-    //double u_nonbond_energy = E_elec_self[u] + E_elec_direct[u] + E_elec_recip[u] + 
-    //                          E_vdw_direct[u] + E_vdw_self[u] + E_vdw_recip[u] + E_vdw_lr_cor[u];
     solute_sum += u_nonbond_energy;
-    solute_potential_energy_ += u_nonbond_energy; // used to calculated the emsemble energy for all solute, will print out in terminal
+    solute_potential_energy_ += u_nonbond_energy; // used to calculated the ensemble energy for all solute, will print out in terminal
   }
 
   //mprintf("The total potential energy on water atoms: %f \n", pme_sum);
-  /*E_elec_self.clear();
-  E_elec_direct.clear();
-  E_elec_recip.clear();
-  E_vdw_direct.clear();
-  E_vdw_self.clear(); 
-  E_vdw_recip.clear();
-  E_vdw_lr_cor.clear();*/
 }
 
 /** Non-bonded energy calc. */
@@ -1837,6 +1798,10 @@ void Action_GIST::Print() {
   gist_action_.WriteTiming(1,  "Action:", total);
   gist_grid_.WriteTiming(2,    "Grid:   ", gist_action_.Total());
   gist_nonbond_.WriteTiming(2, "Nonbond:", gist_action_.Total());
+# ifdef LIBPME
+  if (usePme_)
+    gistPme_.Timing( gist_nonbond_.Total() );
+# endif
   //gist_nonbond_dist_.WriteTiming(3, "Dist2:", gist_nonbond_.Total());
   //gist_nonbond_UV_.WriteTiming(3, "UV:", gist_nonbond_.Total());
   //gist_nonbond_VV_.WriteTiming(3, "VV:", gist_nonbond_.Total());

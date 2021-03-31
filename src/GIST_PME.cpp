@@ -49,7 +49,6 @@ static inline double SumDarray(std::vector<double> const& arr) {
  */
 int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, AtomMask const& maskIn,
                                       double& e_elec, double& e_vdw)
-//                                      Iarray const& atom_voxel )
 {
   t_total_.Start();
 
@@ -74,7 +73,6 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, AtomMask const& maskI
     coordsD_.push_back( XYZ[2] );
   }
 
-  //const int atom_num = coordsD_.size()/3; // TODO use something else
   unsigned int natoms = E_elec_self_.size();
 
   //mprintf("atom_num is %i \n", atom_num);
@@ -127,7 +125,7 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, AtomMask const& maskI
   }
 
   e_vdw = 0.0;
-  double e_direct = Direct_GIST( pairList_, e_vdw ); //, atom_voxel );
+  double e_direct = Direct_GIST( pairList_, e_vdw );
 
   //mprintf("e_elec_self: %f , e_elec_direct: %f, e_vdw6direct: %f \n", e_self, e_direct, e_vdw);
 
@@ -308,17 +306,15 @@ double GIST_PME::Vdw_Correction_GIST(double volume, Darray& e_vdw_lr_cor) {
 
 /** Direct space routine for GIST. */
 double GIST_PME::Direct_GIST(PairList const& PL, double& evdw_out)
-                             //Iarray const& atom_voxel)
 {
   if (lw_coeff_ > 0.0)
     return Direct_VDW_LJPME_GIST(PL, evdw_out);
   else
-    return Direct_VDW_LongRangeCorrection_GIST(PL, evdw_out); //, atom_voxel);
+    return Direct_VDW_LongRangeCorrection_GIST(PL, evdw_out);
 }
 
 /** Direct space calculation with long range VDW correction for GIST. */
 double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double& evdw_out)
-//                                                  Iarray const& atom_voxel)
 {
   // e_vdw_direct only count the interaction water molecule involved( sw, ww)
   // e_vdw_all_direct, count all interactions( sw, ww, ss)

@@ -14,9 +14,9 @@ class GIST_PME : private Ewald_ParticleMesh {
 
     // Expose definitions/functions from Ewald_ParticleMesh
     using Ewald::Darray;
-    //using Ewald::Iarray;
     using Ewald_ParticleMesh::Init;
     using Ewald_ParticleMesh::Setup;
+    using Ewald::Timing;
 
     /// Allocate memory for internal arrays (# atoms, # threads)
     int AllocateArrays(unsigned int, unsigned int);
