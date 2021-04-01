@@ -28,7 +28,7 @@ EOF
   DoTest Gist1-Eww_ij.dat.save Gist1-Eww_ij.dat
 else
   # GPU test tolerance
-  TEST_TOLERANCE='0.0002'
+  TEST_TOLERANCE='0.0003'
 fi
 
 # GIST test with finer grid for everything else
@@ -72,16 +72,18 @@ DoTest Gist3-order-norm.dx.save Gist3-order-norm.dx
 # The CUDA code requires slightly bigger relative error:
 ### Maximum absolute error in matching lines = 1.10e-05 at line 5484 field 14
 ### Maximum relative error in matching lines = 1.08e-04 at line 5484 field 14
+### Maximum absolute error in matching lines = 2.00e-04 at line 8015 field 17
+### Maximum relative error in matching lines = 1.83e-05 at line 35522 field 17
 DoTest Gist3-output.dat.save Gist3-output.dat -a $TEST_TOLERANCE 
 
 UNITNAME='PME-GIST test on orthogonal cell'
-CheckFor libpme
+CheckFor libpme notcuda
 if [ $? -eq 0 ] ; then
   cat > gist.in <<EOF
 parm ../tz2.ortho.parm7
 trajin ../tz2.ortho.nc 1 10
 autoimage origin
-gist refdens 0.033422885325 gridcntr 17 20 18 griddim 80 90 80 prefix Gist4 info Info.dat
+gist pme refdens 0.033422885325 gridcntr 17 20 18 griddim 80 90 80 prefix Gist4 info Info.dat
 EOF
   RunCpptraj "$UNITNAME"
   DoTest Gist4-Solute-Etot-pme-dens.dx.save Gist4-Solute-Etot-pme-dens.dx
@@ -90,13 +92,13 @@ EOF
 fi
 
 UNITNAME='PME-GIST test on non-orthogonal cell'
-CheckFor libpme
+CheckFor libpme notcuda
 if [ $? -eq 0 ] ; then
   cat > gist.in <<EOF
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.nc 1 10
 autoimage origin
-gist refdens 0.033422885325 gridcntr 21 21 21 griddim 90 90 90 prefix Gist5 info Info.dat
+gist pme refdens 0.033422885325 gridcntr 21 21 21 griddim 90 90 90 prefix Gist5 info Info.dat
 EOF
   RunCpptraj "$UNITNAME"
   DoTest Gist5-Solute-Etot-pme-dens.dx.save Gist5-Solute-Etot-pme-dens.dx
