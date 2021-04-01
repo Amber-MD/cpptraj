@@ -75,19 +75,21 @@ UsageFull() {
   echo "    NVCCFLAGS    : Flags to pass to the nvcc compiler."
   echo "    DBGFLAGS     : Any additional flags to pass to all compilers."
   echo "    SHADER_MODEL : (-cuda) Should be set to 'sm_XX', where XX is CUDA compute architecture."
-  echo "                   SM8.0 = A100"
-  echo "                   SM7.5 = RTX20xx, Tesla T4, Quadro RTX, RTX Titan"
-  echo "                   SM7.0 = V100, Titan V"
-  echo "                   SM6.2 = GP10B"
-  echo "                   SM6.1 = GP106 = GTX-1070, GP104 = GTX-1080, GP102 = Titan-X[P]"
-  echo "                   SM6.0 = GP100 / P100 = DGX-1"
-  echo "                   SM5.3 = GM200 [Grid] = M60, M40?"
-  echo "                   SM5.2 = GM200 = GTX-Titan-X, M6000 etc."
-  echo "                   SM5.0 = GM204 = GTX980, 970 etc"
-  echo "                   SM3.7 = GK210 = K80"
-  echo "                   SM3.5 = GK110 = K20[x], K40, GTX780, GTX-Titan, GTX-Titan-Black, GTX-Titan-Z"
-  echo "                   SM3.0 = GK104 = K10, GTX680, 690 etc."
-  echo "                   SM2.0 = All GF variants = C2050, 2075, M2090, GTX480, GTX580 etc."
+  echo "                   sm_86 = GA102, 104, 106, 107"
+  echo "                   sm_80 = GA100"
+  echo "                   sm_75 = Turing"
+  echo "                   sm_72 = GV10B"
+  echo "                   sm_70 = GV100"
+  echo "                   sm_62 = GP10B"
+  echo "                   sm_61 = GP106 = GTX-1070, GP104 = GTX-1080, GP102 = Titan-X[P]"
+  echo "                   sm_60 = GP100 / P100 = DGX-1"
+  echo "                   sm_53 = GM200 [Grid] = M60, M40?"
+  echo "                   sm_52 = GM200 = GTX-Titan-X, M6000 etc."
+  echo "                   sm_50 = GM204 = GTX980, 970 etc"
+  echo "                   sm_37 = GK210 = K80"
+  echo "                   sm_35 = GK110 = K20[x], K40, GTX780, GTX-Titan, GTX-Titan-Black, GTX-Titan-Z"
+  echo "                   sm_30 = GK104 = K10, GTX680, 690 etc."
+  echo "                   sm_20 = All GF variants = C2050, 2075, M2090, GTX480, GTX580 etc."
   echo "  EXPERIMENTAL OPTIONS:"
   echo "    --compile-verbose : Turn on compile details."
   echo "    -profile          : Use Gnu compiler profiling (>= V4.5)*"
@@ -1701,6 +1703,20 @@ SetupMKL() {
     fi
   fi
 }
+# ------------------------------------------------------------------------------
+# Define different shader models/compute architectures and their CUDA limits
+# CUDA version
+#  3.0-3.1    ...
+#  3.2        .........
+#  4.0-4.2    .........
+#  5.X        ...........................
+#  6.0        ...........................
+#  7.X        ...................................................
+#  8.X        .....................................................................
+#  9.X        .................................................................................
+# 10.X        .......................................................................................
+# 11.X        ...................................................................................................
+CUDA_SM_LIST='sm_20 sm_21 sm_30 sm_32 sm_35 sm_37 sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80 sm_86'
 
 # ------------------------------------------------------------------------------
 # Check that CUDA_HOME is defined and set up flags for nvcc
