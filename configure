@@ -1711,12 +1711,57 @@ SetupMKL() {
 #  4.0-4.2    .........
 #  5.X        ...........................
 #  6.0        ...........................
+#  6.5        ...................................................
 #  7.X        ...................................................
 #  8.X        .....................................................................
-#  9.X        .................................................................................
-# 10.X        .......................................................................................
-# 11.X        ...................................................................................................
+#  9.X                    .....................................................................
+# 10.X                    ...........................................................................
+# 11.X                                ...........................................................................
 CUDA_SM_LIST='sm_20 sm_21 sm_30 sm_32 sm_35 sm_37 sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80 sm_86'
+
+# SetSupportedSM <major v> <minor v>
+# Set Shader models supported by current cuda version
+SetSupportedSM() {
+  if [ $1 -lt 3 ] ; then
+    Err "CUDA < 3 not supported."
+  fi
+  if [ $1 -eq 3 ] ; then
+    if [ $2 -ge 2 ] ; then
+      CUDA_SM_LIST='sm_20 sm_21'
+    else
+      CUDA_SM_LIST='sm_20'
+    fi
+  elif [ $1 -eq 4 ] ; then
+    CUDA_SM_LIST='sm_20 sm_21'
+  elif [ $1 -eq 5 ] ; then
+    CUDA_SM_LIST='sm_20 sm_21 sm_30 sm_32 sm_35'
+  elif [ $1 -eq 6 ] ; then
+    if [ $2 -ge 5 ] ; then
+      CUDA_SM_LIST='sm_20 sm_21 sm_30 sm_32 sm_35 sm_37 sm_50 sm_52 sm_53'
+    else
+      CUDA_SM_LIST='sm_20 sm_21 sm_30 sm_32 sm_35'
+    fi
+  elif [ $1 -eq 7 ] ; then
+    CUDA_SM_LIST='sm_20 sm_21 sm_30 sm_32 sm_35 sm_37 sm_50 sm_52 sm_53'
+  elif [ $1 -eq 8 ] ; then
+    CUDA_SM_LIST='sm_20 sm_21 sm_30 sm_32 sm_35 sm_37 sm_50 sm_52 sm_53 sm_60 sm_61 sm_62'
+  elif [ $1 -eq 9 ] ; then
+    CUDA_SM_LIST='sm_30 sm_32 sm_35 sm_37 sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72'
+  elif [ $1 -eq 10 ] ; then
+    CUDA_SM_LIST='sm_30 sm_32 sm_35 sm_37 sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75'
+  else # >= 11
+    CUDA_SM_LIST='sm_35 sm_37 sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80 sm_86'
+  fi
+  echo "Supported shader models: $CUDA_SM_LIST"
+}
+
+# SetCudaArch <sm>
+# Set CUDA_ARCH variable with compute_XX value for given SM
+SetCudaArch() {
+  smversion=${1#sm_}
+  CUDA_ARCH="compute_$smversion"
+  echo "$1 $CUDA_ARCH"
+}
 
 # ------------------------------------------------------------------------------
 # Check that CUDA_HOME is defined and set up flags for nvcc
@@ -1736,58 +1781,76 @@ SetupCUDA() {
   if [ $cuda_major_version -lt 1 ] ; then
     Err "CUDA version detection failed."
   fi
-  SM_CONFIG="Configuring for $SHADER_MODEL"
+  SetSupportedSM $cuda_major_version $cuda_minor_version
+
   if [ -z "$NVCCFLAGS" -a -z "$SHADER_MODEL" ] ; then
     WrnMsg "SHADER_MODEL not set. Compiling for multiple architectures."
     WrnMsg "To compile for a specific architecture set SHADER_MODEL"
     WrnMsg "to 'sm_XX', where XX is the shader model version."
-    # NOTE: These flags are from AmberTools configure2, except for 75 and 70
     # TODO determine why Amber has arch=compute_60 for 70 and 75
-    sm80flags='-gencode arch=compute_80,code=sm_80'
-    sm75flags='-gencode arch=compute_75,code=sm_75'
-    #sm75flags='-gencode arch=compute_60,code=sm_75'
-    sm70flags='-gencode arch=compute_70,code=sm_70'
-    #sm70flags='-gencode arch=compute_60,code=sm_70'
-    sm62flags='-gencode arch=compute_62,code=sm_62'
-    sm61flags='-gencode arch=compute_61,code=sm_61'
-    sm60flags='-gencode arch=compute_60,code=sm_60'
-    sm53flags='-gencode arch=compute_53,code=sm_53'
-    sm52flags='-gencode arch=compute_52,code=sm_52'
-    sm50flags='-gencode arch=compute_50,code=sm_50'
-    sm37flags='-gencode arch=compute_37,code=sm_37'
-    sm35flags='-gencode arch=compute_35,code=sm_35'
-    sm30flags='-gencode arch=compute_30,code=sm_30'
-    sm20flags='-gencode arch=compute_20,code=sm_20'
-    if [ $cuda_major_version -ge 11 ] ; then
-      # Version 11 and up
-      # The commented-out flags implement the standard, not warp synchronous, compilation TODO appropriate for cpptraj?
-      #sm75flags='-gencode arch=compute_75,code=sm_75'
-      #sm70flags='-gencode arch=compute_70,code=sm_70'
-      SM_CONFIG="Configuring for SM3.5, SM3.7, SM5.0, SM5.2, SM5.3, SM6.0, SM6.1, SM7.0, SM7.5 and SM8.0"
-      NVCCFLAGS="$sm35flags $sm37flags $sm50flags $sm52flags $sm53flags $sm60flags $sm61flags $sm70flags $sm75flags $sm80flags"
-    elif [ $cuda_major_version -ge 10 ] ; then
-      # Version 10
-      SM_CONFIG="Configuring for SM3.0, SM3.5, SM3.7, SM5.0, SM5.2, SM5.3, SM6.0, SM6.1, SM7.0 and SM7.5"
-      echo "BE AWARE: CUDA 10 does not support A100 or later GPUs."
-      NVCCFLAGS="$sm30flags $sm35flags $sm37flags $sm50flags $sm52flags $sm53flags $sm60flags $sm61flags $sm70flags $sm75flags"
-    elif [ $cuda_major_version -ge 9 ] ; then
-      # Version 9
-      SM_CONFIG="Configuring for SM3.0, SM3.5, SM3.7, SM5.0, SM5.2, SM5.3, SM6.0, SM6.1 and SM7.0"
-      echo "BE AWARE: CUDA 9 does not support Turing, A100 or later GPUs."
-      NVCCFLAGS="$sm30flags $sm35flags $sm37flags $sm50flags $sm52flags $sm53flags $sm60flags $sm61flags $sm70flags"
-    elif [ $cuda_major_version -eq 8 ] ; then
-      # Version 8
-      SM_CONFIG="Configuring for SM2.0, SM3.0, SM3.5, SM3.7, SM5.0, SM5.2, SM5.3, SM6.0 and SM6.1"
-      echo "BE AWARE: CUDA 8.0 does not support V100, GV100, Titan-V or later GPUs."
-      NVCCFLAGS="$sm20flags $sm30flags $sm35flags $sm37flags $sm50flags $sm52flags $sm53flags $sm60flags $sm61flags"
-    else
-      # Less than 8
-      SM_CONFIG="Configuring for SM2.0, SM3.0, SM3.5, SM3.7, SM5.0, SM5.2 and SM5.3"
-      echo "BE AWARE: CUDA < 8.0 does not support GTX-1080, Titan-XP, DGX-1 or other Pascal based GPUs."
-      NVCCFLAGS="$sm20flags $sm30flags $sm35flags $sm37flags $sm50flags $sm52flags $sm53flags"
-    fi
+    SM_CONFIG="Configuring for"
+    NVCCFLAGS="$DBFLAG"
+    # Loop over supported shader models for this CUDA
+    for sm in $CUDA_SM_LIST ; do
+      SetCudaArch $sm
+      SM_CONFIG="$SM_CONFIG $sm"
+      NVCCFLAGS="$NVCCFLAGS -gencode arch=$CUDA_ARCH,code=$sm"
+    done
+#  if [ -z "$NVCCFLAGS" -a -z "$SHADER_MODEL" ] ; then
+#    WrnMsg "SHADER_MODEL not set. Compiling for multiple architectures."
+#    WrnMsg "To compile for a specific architecture set SHADER_MODEL"
+#    WrnMsg "to 'sm_XX', where XX is the shader model version."
+#    # NOTE: These flags are from AmberTools configure2, except for 75 and 70
+#    # TODO determine why Amber has arch=compute_60 for 70 and 75
+#    sm80flags='-gencode arch=compute_80,code=sm_80'
+#    sm75flags='-gencode arch=compute_75,code=sm_75'
+#    #sm75flags='-gencode arch=compute_60,code=sm_75'
+#    sm70flags='-gencode arch=compute_70,code=sm_70'
+#    #sm70flags='-gencode arch=compute_60,code=sm_70'
+#    sm62flags='-gencode arch=compute_62,code=sm_62'
+#    sm61flags='-gencode arch=compute_61,code=sm_61'
+#    sm60flags='-gencode arch=compute_60,code=sm_60'
+#    sm53flags='-gencode arch=compute_53,code=sm_53'
+#    sm52flags='-gencode arch=compute_52,code=sm_52'
+#    sm50flags='-gencode arch=compute_50,code=sm_50'
+#    sm37flags='-gencode arch=compute_37,code=sm_37'
+#    sm35flags='-gencode arch=compute_35,code=sm_35'
+#    sm30flags='-gencode arch=compute_30,code=sm_30'
+#    sm20flags='-gencode arch=compute_20,code=sm_20'
+#    if [ $cuda_major_version -ge 11 ] ; then
+#      # Version 11 and up
+#      # The commented-out flags implement the standard, not warp synchronous, compilation TODO appropriate for cpptraj?
+#      #sm75flags='-gencode arch=compute_75,code=sm_75'
+#      #sm70flags='-gencode arch=compute_70,code=sm_70'
+#      SM_CONFIG="Configuring for SM3.5, SM3.7, SM5.0, SM5.2, SM5.3, SM6.0, SM6.1, SM7.0, SM7.5 and SM8.0"
+#      NVCCFLAGS="$sm35flags $sm37flags $sm50flags $sm52flags $sm53flags $sm60flags $sm61flags $sm70flags $sm75flags $sm80flags"
+#    elif [ $cuda_major_version -ge 10 ] ; then
+#      # Version 10
+#      SM_CONFIG="Configuring for SM3.0, SM3.5, SM3.7, SM5.0, SM5.2, SM5.3, SM6.0, SM6.1, SM7.0 and SM7.5"
+#      echo "BE AWARE: CUDA 10 does not support A100 or later GPUs."
+#      NVCCFLAGS="$sm30flags $sm35flags $sm37flags $sm50flags $sm52flags $sm53flags $sm60flags $sm61flags $sm70flags $sm75flags"
+#    elif [ $cuda_major_version -ge 9 ] ; then
+#      # Version 9
+#      SM_CONFIG="Configuring for SM3.0, SM3.5, SM3.7, SM5.0, SM5.2, SM5.3, SM6.0, SM6.1 and SM7.0"
+#      echo "BE AWARE: CUDA 9 does not support Turing, A100 or later GPUs."
+#      NVCCFLAGS="$sm30flags $sm35flags $sm37flags $sm50flags $sm52flags $sm53flags $sm60flags $sm61flags $sm70flags"
+#    elif [ $cuda_major_version -eq 8 ] ; then
+#      # Version 8
+#      SM_CONFIG="Configuring for SM2.0, SM3.0, SM3.5, SM3.7, SM5.0, SM5.2, SM5.3, SM6.0 and SM6.1"
+#      echo "BE AWARE: CUDA 8.0 does not support V100, GV100, Titan-V or later GPUs."
+#      NVCCFLAGS="$sm20flags $sm30flags $sm35flags $sm37flags $sm50flags $sm52flags $sm53flags $sm60flags $sm61flags"
+#    else
+#      # Less than 8
+#      SM_CONFIG="Configuring for SM2.0, SM3.0, SM3.5, SM3.7, SM5.0, SM5.2 and SM5.3"
+#      echo "BE AWARE: CUDA < 8.0 does not support GTX-1080, Titan-XP, DGX-1 or other Pascal based GPUs."
+#      NVCCFLAGS="$sm20flags $sm30flags $sm35flags $sm37flags $sm50flags $sm52flags $sm53flags"
+#    fi
+  elif [ -z "$NVCCFLAGS" -a ! -z "$SHADER_MODEL" ] ; then
+    SM_CONFIG="Configuring for $SHADER_MODEL"
+    NVCCFLAGS="$DBFLAG -arch=$SHADER_MODEL"
+  else
+    SM_CONFIG="Using NVCCFLAGS: $NVCCFLAGS"
   fi
-  if [ -z "$NVCCFLAGS" ]; then NVCCFLAGS="$DBFLAG -arch=$SHADER_MODEL"; fi
   if [ ! -z "$picflag" ] ; then
     NVCCFLAGS="--compiler-options $picflag $NVCCFLAGS"
   fi
