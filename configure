@@ -1752,7 +1752,7 @@ SetSupportedSM() {
   else # >= 11
     CUDA_SM_LIST='sm_35 sm_37 sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80 sm_86'
   fi
-  echo "Supported shader models: $CUDA_SM_LIST"
+  echo "  Supported shader models: $CUDA_SM_LIST"
 }
 
 # SetCudaArch <sm>
@@ -1760,7 +1760,7 @@ SetSupportedSM() {
 SetCudaArch() {
   smversion=${1#sm_}
   CUDA_ARCH="compute_$smversion"
-  echo "$1 $CUDA_ARCH"
+  #echo "$1 $CUDA_ARCH"
 }
 
 # ------------------------------------------------------------------------------
@@ -1847,6 +1847,17 @@ SetupCUDA() {
 #    fi
   elif [ -z "$NVCCFLAGS" -a ! -z "$SHADER_MODEL" ] ; then
     SM_CONFIG="Configuring for $SHADER_MODEL"
+    # See if it is supported.
+    sm_is_supported=0
+    for sm in $CUDA_SM_LIST ; do
+      if [ "$sm" = "$SHADER_MODEL" ] ; then
+        sm_is_supported=1
+        break
+      fi
+    done
+    if [ $sm_is_supported -eq 0 ] ; then
+      Err "Shader model $SHADER_MODEL is not supported by CUDA $cuda_version"
+    fi
     NVCCFLAGS="$DBFLAG -arch=$SHADER_MODEL"
   else
     SM_CONFIG="Using NVCCFLAGS: $NVCCFLAGS"
