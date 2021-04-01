@@ -1258,13 +1258,16 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
     gist_grid_.Stop();
   }
 
+# ifndef CUDA
   // Do order calculation if requested.
+  // Do not do this for CUDA since CUDA nonbond routine handles the order calc.
   // NOTE: This has to be done before the nonbond energy calc since
   //       the nonbond calc can modify the on-grid coordinates (for minimum
   //       image convention when cell is non-orthogonal).
   gist_order_.Start();
   if (doOrder_) Order(frm.Frm());
   gist_order_.Stop();
+# endif
   // Do nonbond energy calc if not skipping energy
   gist_nonbond_.Start();
   if (!skipE_) {
