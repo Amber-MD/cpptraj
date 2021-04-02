@@ -89,6 +89,10 @@ EOF
   DoTest Gist4-Solute-Etot-pme-dens.dx.save Gist4-Solute-Etot-pme-dens.dx
   DoTest Gist4-Water-Etot-pme-dens.dx.save Gist4-Water-Etot-pme-dens.dx
   DoTest Gist4-Info.dat.save Gist4-Info.dat
+  # Not including this save on the remote repo bc it is too big.
+  if [ -f 'Gist4-output.dat.save' ] ; then
+    DoTest Gist4-output.dat.save Gist4-output.dat
+  fi
 fi
 
 UNITNAME='PME-GIST test on non-orthogonal cell'
@@ -104,6 +108,10 @@ EOF
   DoTest Gist5-Solute-Etot-pme-dens.dx.save Gist5-Solute-Etot-pme-dens.dx
   DoTest Gist5-Water-Etot-pme-dens.dx.save Gist5-Water-Etot-pme-dens.dx
   DoTest Gist5-Info.dat.save Gist5-Info.dat
+  # Not including this save on the remote repo bc it is too big.
+  if [ -f 'Gist5-output.dat.save' ] ; then
+    DoTest Gist5-output.dat.save Gist5-output.dat
+  fi
 fi
 
 EndTest
