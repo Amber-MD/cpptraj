@@ -30,8 +30,8 @@ EOF
 fi
 
 UNITNAME='Test Stdlib RNG'
-# Stdlib rand implementation is different on windows
-CheckFor notos windows
+# Stdlib rand implementation is different on windows/osx
+CheckFor testos Linux
 if [ $? -eq 0 ] ; then
   cat > rng.in <<EOF
 rng setdefault stdlib    createset Stdlib       settype int count 10 seed 10 out stdlib.dat
