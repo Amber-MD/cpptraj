@@ -45,6 +45,11 @@ class GIST_PME : private Ewald_ParticleMesh {
   private:
     typedef helpme::Matrix<double> MatType;
 
+    /// Nonbond energy kernel
+    inline void Ekernel_NB(double&, double&, double, double, double, int, int, double*, double*);
+    // Adjust energy kernel
+    inline void Ekernel_Adjust(double&, double, double, double, int, int, double*);
+
     /// Electrostatic self energy, decomposed onto atoms.
     double Self_GIST(double, Darray&);
     /// Lennard-Jones self energy, decomposed onto atoms.

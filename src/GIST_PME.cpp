@@ -313,6 +313,94 @@ double GIST_PME::Direct_GIST(PairList const& PL, double& evdw_out)
     return Direct_VDW_LongRangeCorrection_GIST(PL, evdw_out);
 }
 
+/** Nonbond energy kernel. */
+void GIST_PME::Ekernel_NB(double& Eelec, double& Evdw,
+                          double rij2,
+                          double q0, double q1,
+                          int idx0, int idx1,
+                          double* e_elec_direct, double* e_vdw_direct)
+//const Cannot be const because of the timer
+{
+                double rij = sqrt( rij2 );
+                double qiqj = q0 * q1;
+#               ifndef _OPENMP
+                t_erfc_.Start();
+#               endif
+                //double erfc = erfc_func(ew_coeff_ * rij);
+                double erfc = ErfcFxn(ew_coeff_ * rij);
+#               ifndef _OPENMP
+                t_erfc_.Stop();
+#               endif
+                double e_elec = qiqj * erfc / rij;
+                Eelec += e_elec;
+
+                //add the e_elec to E_elec_direct[it0->Idx] and E_elec_direct[it1-> Idx], 0.5 to avoid double counting
+                 
+                e_elec_direct[idx0] += 0.5 * e_elec;
+                e_elec_direct[idx1] += 0.5 * e_elec;
+
+                int nbindex = NB().GetLJindex(TypeIdx(idx0),
+                                              TypeIdx(idx1));
+                if (nbindex > -1) {
+                  double vswitch = SwitchFxn(rij2, cut2_0_, cut2_);
+                  NonbondType const& LJ = NB().NBarray()[ nbindex ];
+                  double r2    = 1.0 / rij2;
+                  double r6    = r2 * r2 * r2;
+                  double r12   = r6 * r6;
+                  double f12   = LJ.A() * r12;  // A/r^12
+                  double f6    = LJ.B() * r6;   // B/r^6
+                  double e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)
+                  Evdw += (e_vdw * vswitch);
+
+                  // add the vdw energy to e_vdw_direct, divide the energy evenly to each atom
+
+                  e_vdw_direct[idx0] += 0.5 * e_vdw * vswitch;
+                  e_vdw_direct[idx1] += 0.5 * e_vdw * vswitch;
+
+                  //mprintf("PVDW %8i%8i%20.6f%20.6f\n", ta0+1, ta1+1, e_vdw, r2);
+#                 ifdef CPPTRAJ_EKERNEL_LJPME
+                  // LJ PME direct space correction
+                  double kr2 = lw_coeff_ * lw_coeff_ * rij2;
+                  double kr4 = kr2 * kr2;
+                  //double kr6 = kr2 * kr4;
+                  double expterm = exp(-kr2);
+                  double Cij = Cparam_[idx0] * Cparam_[idx1];
+                  Eljpme_correction += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) * r6 * vswitch * Cij;
+#                 endif
+                }
+}
+
+/** Adjust energy kernel. */
+void GIST_PME::Ekernel_Adjust(double& e_adjust,
+                              double rij2,
+                              double q0, double q1,
+                              int idx0, int idx1,
+                              double* e_elec_direct)
+{
+
+              double adjust = AdjustFxn(q0,q1,sqrt(rij2));
+
+              e_adjust += adjust;
+
+              //add the e_elec to E_elec_direct[it0->Idx] and E_elec_direct[it1-> Idx], 0.5 to avoid double counting
+
+              e_elec_direct[idx0] += 0.5 * adjust;
+              e_elec_direct[idx1] += 0.5 * adjust;
+
+#             ifdef CPPTRAJ_EKERNEL_LJPME
+              // LJ PME direct space correction
+              // NOTE: Assuming excluded pair is within cutoff
+              double kr2 = lw_coeff_ * lw_coeff_ * rij2;
+              double kr4 = kr2 * kr2;
+              //double kr6 = kr2 * kr4;
+              double expterm = exp(-kr2);
+              double r4 = rij2 * rij2;
+              double r6 = rij2 * r4;
+              double Cij = Cparam_[it0->Idx()] * Cparam_[it1->Idx()];
+              Eljpme_correction_excl += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) / r6 * Cij;
+#             endif
+}
+
 /** Direct space calculation with long range VDW correction for GIST. */
 double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double& evdw_out)
 {
@@ -386,80 +474,10 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
           if (excluded.find( it1->Idx() ) == excluded.end())
           {
             if ( rij2 < cut2_ ) {
-//#             include "EnergyKernel_Nonbond.h"
-                double rij = sqrt( rij2 );
-                double qiqj = q0 * q1;
-#               ifndef _OPENMP
-                t_erfc_.Start();
-#               endif
-                //double erfc = erfc_func(ew_coeff_ * rij);
-                double erfc = ErfcFxn(ew_coeff_ * rij);
-#               ifndef _OPENMP
-                t_erfc_.Stop();
-#               endif
-                double e_elec = qiqj * erfc / rij;
-                Eelec += e_elec;
-
-                //add the e_elec to E_elec_direct[it0->Idx] and E_elec_direct[it1-> Idx], 0.5 to avoid double counting
-                 
-                e_elec_direct[it0->Idx()] += 0.5 * e_elec;
-                e_elec_direct[it1->Idx()] += 0.5 * e_elec;
-
-                int nbindex = NB().GetLJindex(TypeIdx(it0->Idx()),
-                                              TypeIdx(it1->Idx()));
-                if (nbindex > -1) {
-                  double vswitch = SwitchFxn(rij2, cut2_0_, cut2_);
-                  NonbondType const& LJ = NB().NBarray()[ nbindex ];
-                  double r2    = 1.0 / rij2;
-                  double r6    = r2 * r2 * r2;
-                  double r12   = r6 * r6;
-                  double f12   = LJ.A() * r12;  // A/r^12
-                  double f6    = LJ.B() * r6;   // B/r^6
-                  double e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)
-                  Evdw += (e_vdw * vswitch);
-
-                  // add the vdw energy to e_vdw_direct, divide the energy evenly to each atom
-
-                  e_vdw_direct[it0->Idx()] += 0.5 * e_vdw * vswitch;
-                  e_vdw_direct[it1->Idx()] += 0.5 * e_vdw * vswitch;
-
-                  //mprintf("PVDW %8i%8i%20.6f%20.6f\n", ta0+1, ta1+1, e_vdw, r2);
-#                 ifdef CPPTRAJ_EKERNEL_LJPME
-                  // LJ PME direct space correction
-                  double kr2 = lw_coeff_ * lw_coeff_ * rij2;
-                  double kr4 = kr2 * kr2;
-                  //double kr6 = kr2 * kr4;
-                  double expterm = exp(-kr2);
-                  double Cij = Cparam_[it0->Idx()] * Cparam_[it1->Idx()];
-                  Eljpme_correction += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) * r6 * vswitch * Cij;
-#                 endif
-                }
+                Ekernel_NB(Eelec, Evdw, rij2, q0, q1, it0->Idx(), it1->Idx(), e_elec_direct, e_vdw_direct);
             }
           } else {
-//#           include "EnergyKernel_Adjust.h"
-
-              double adjust = AdjustFxn(q0,q1,sqrt(rij2));
-
-              e_adjust += adjust;
-
-              //add the e_elec to E_elec_direct[it0->Idx] and E_elec_direct[it1-> Idx], 0.5 to avoid double counting
-
-              e_elec_direct[it0->Idx()] += 0.5 * adjust;
-              e_elec_direct[it1->Idx()] += 0.5 * adjust;
-
-#             ifdef CPPTRAJ_EKERNEL_LJPME
-              // LJ PME direct space correction
-              // NOTE: Assuming excluded pair is within cutoff
-              double kr2 = lw_coeff_ * lw_coeff_ * rij2;
-              double kr4 = kr2 * kr2;
-              //double kr6 = kr2 * kr4;
-              double expterm = exp(-kr2);
-              double r4 = rij2 * rij2;
-              double r6 = rij2 * r4;
-              double Cij = Cparam_[it0->Idx()] * Cparam_[it1->Idx()];
-              Eljpme_correction_excl += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) / r6 * Cij;
-#             endif
-
+              Ekernel_Adjust(e_adjust, rij2, q0, q1, it0->Idx(), it1->Idx(), e_elec_direct);
           }
         } // END loop over other atoms in thisCell
         // Loop over all neighbor cells
@@ -491,79 +509,10 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
             {
               //mprintf("\t\t\tdist= %f\n", sqrt(rij2));
               if ( rij2 < cut2_ ) {
-//#               include "EnergyKernel_Nonbond.h"
-                double rij = sqrt( rij2 );
-                double qiqj = q0 * q1;
-#               ifndef _OPENMP
-                t_erfc_.Start();
-#               endif
-                //double erfc = erfc_func(ew_coeff_ * rij);
-                double erfc = ErfcFxn(ew_coeff_ * rij);
-#               ifndef _OPENMP
-                t_erfc_.Stop();
-#               endif
-                double e_elec = qiqj * erfc / rij;
-                Eelec += e_elec;
-
-                //add the e_elec to E_elec_direct[it0->Idx] and E_elec_direct[it1-> Idx], 0.5 to avoid double counting
-
-                e_elec_direct[it0->Idx()] += 0.5 * e_elec;
-                e_elec_direct[it1->Idx()] += 0.5 * e_elec;
-
-                int nbindex = NB().GetLJindex(TypeIdx(it0->Idx()),
-                                              TypeIdx(it1->Idx()));
-                if (nbindex > -1) {
-                  double vswitch = SwitchFxn(rij2, cut2_0_, cut2_);
-                  NonbondType const& LJ = NB().NBarray()[ nbindex ];
-                  double r2    = 1.0 / rij2;
-                  double r6    = r2 * r2 * r2;
-                  double r12   = r6 * r6;
-                  double f12   = LJ.A() * r12;  // A/r^12
-                  double f6    = LJ.B() * r6;   // B/r^6
-                  double e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)
-                  Evdw += (e_vdw * vswitch);
-
-                  // add the vdw energy to e_vdw_direct
-
-                  e_vdw_direct[it0->Idx()] += 0.5 * e_vdw * vswitch;
-                  e_vdw_direct[it1->Idx()] += 0.5 * e_vdw * vswitch;
-
-
-                  //mprintf("PVDW %8i%8i%20.6f%20.6f\n", ta0+1, ta1+1, e_vdw, r2);
-#                 ifdef CPPTRAJ_EKERNEL_LJPME
-                  // LJ PME direct space correction
-                  double kr2 = lw_coeff_ * lw_coeff_ * rij2;
-                  double kr4 = kr2 * kr2;
-                  //double kr6 = kr2 * kr4;
-                  double expterm = exp(-kr2);
-                  double Cij = Cparam_[it0->Idx()] * Cparam_[it1->Idx()];
-                  Eljpme_correction += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) * r6 * vswitch * Cij;
-#                 endif
-                }
-
+                Ekernel_NB(Eelec, Evdw, rij2, q0, q1, it0->Idx(), it1->Idx(), e_elec_direct, e_vdw_direct);
               }
             } else {
-//#             include "EnergyKernel_Adjust.h"
-              double adjust = AdjustFxn(q0,q1,sqrt(rij2));
-
-              e_adjust += adjust;
-
-              e_elec_direct[it0->Idx()] += 0.5 * adjust;
-              e_elec_direct[it1->Idx()] += 0.5 * adjust;
-
-#             ifdef CPPTRAJ_EKERNEL_LJPME
-              // LJ PME direct space correction
-              // NOTE: Assuming excluded pair is within cutoff
-              double kr2 = lw_coeff_ * lw_coeff_ * rij2;
-              double kr4 = kr2 * kr2;
-              //double kr6 = kr2 * kr4;
-              double expterm = exp(-kr2);
-              double r4 = rij2 * rij2;
-              double r6 = rij2 * r4;
-              double Cij = Cparam_[it0->Idx()] * Cparam_[it1->Idx()];
-              Eljpme_correction_excl += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) / r6 * Cij;
-#             endif
-
+              Ekernel_Adjust(e_adjust, rij2, q0, q1, it0->Idx(), it1->Idx(), e_elec_direct);
             }
           } // END loop over neighbor cell atoms
         

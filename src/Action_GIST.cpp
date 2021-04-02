@@ -1719,7 +1719,7 @@ void Action_GIST::Print() {
                       " PME-dens(kcal/mol/A^3) PME-norm(kcal/mol)"
                       " Dipole_x-dens(D/A^3) Dipole_y-dens(D/A^3) Dipole_z-dens(D/A^3)"
                       " Dipole-dens(D/A^3) neighbor-dens(1/A^3) neighbor-norm order-norm\n",
-                      "v2", gridspacing_,
+                      "v3", gridspacing_,
                       gridcntr_[0], gridcntr_[1], gridcntr_[2],
                       (int)griddim_[0], (int)griddim_[1], (int)griddim_[2]);
     } else {
