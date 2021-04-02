@@ -29,7 +29,7 @@ void Action_Energy::Help() const {
           "\t          directsum [npoints <N>] |\n"
           "\t          ewald %s\n"
           "\t                %s\n"
-          "\t                %s\n"
+          "\t                %s |\n"
           "\t          pme %s\n"
           "\t              %s\n"
           "\t              %s\n"
