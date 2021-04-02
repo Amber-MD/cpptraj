@@ -148,11 +148,12 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     }
   }
   // Parse PME options
-# ifdef LIBPME
-  usePme_ = true;
-# else
+  // TODO once PME output is stable, make pme true the default when LIBPME present.
+//# ifdef LIBPME
+//  usePme_ = true;
+//# else
   usePme_ = false;
-# endif
+//# endif
 # ifdef CUDA
   // Disable PME for CUDA
   usePme_ = false;
