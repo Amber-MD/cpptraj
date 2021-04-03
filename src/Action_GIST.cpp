@@ -681,6 +681,7 @@ static inline double SumDarray(std::vector<double> const& arr) {
  */
 void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
 {
+# ifdef LIBPME
   // Two energy terms for the whole system
   double ene_pme_all = 0.0;
   double ene_vdw_all = 0.0;
@@ -689,16 +690,11 @@ void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
   // pointer to U_E_pme_, where has the voxel-wise pme energy for solute
   double* U_E_pme_grid = &U_E_pme_[0]; 
 
-# ifdef LIBPME
   gistPme_.CalcNonbondEnergy_GIST(frameIn, allAtoms_, ene_pme_all, ene_vdw_all );
 
   //mprintf("For this frame, the cpptraj potentail energy: %f, cpptraj_ene: %f, cpptraj_vdw: %f \n", ene_pme_all + ene_vdw_all, ene_pme_all, ene_vdw_all);
 
   system_potential_energy_ += ene_pme_all + ene_vdw_all;
-# else
-  mprinterr("Error: Compiled without LIBPME\n");
-  return;
-# endif 
 
   // Water energy on the GIST grid
   double pme_sum = 0.0;
@@ -741,6 +737,10 @@ void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
   }
 
   //mprintf("The total potential energy on water atoms: %f \n", pme_sum);
+# else /*LIBPME */
+  mprinterr("Error: Compiled without LIBPME\n");
+  return;
+# endif /*LIBPME */
 }
 
 /** Non-bonded energy calc. */
