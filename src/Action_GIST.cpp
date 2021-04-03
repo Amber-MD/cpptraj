@@ -1706,7 +1706,7 @@ void Action_GIST::Print() {
   // TODO: Make a data file format?
   if (datafile_ != 0) {
     mprintf("\tWriting GIST results for each voxel:\n");
-    // FIXME - better determine what should and should not be printed here.
+    // TODO - better determine what should and should not be printed here.
     //         Is it necessary to have separate prints for pme/non-pme?
     if (usePme_) {
       datafile_->Printf("GIST Output %s "
@@ -1745,7 +1745,7 @@ void Action_GIST::Print() {
       size_t i, j, k;
       gO_->ReverseIndex( gr_pt, i, j, k );
       Vec3 XYZ = gO_->Bin().Center( i, j, k );
-      // FIXME - better determine what should and should not be printed here.
+      // TODO - better determine what should and should not be printed here.
       //         Is it necessary to have separate prints for pme/non-pme?
       if (usePme_) {
         datafile_->Printf("%d %g %g %g %d %g %g "
