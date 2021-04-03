@@ -69,6 +69,7 @@ jobs:
           make -j2
           make install
           cd ..
+          export PATH=$HOME/bin:$PATH
 
           if [ $USE_OPENMP = "yes" ]; then
             export OPT="openmp"
@@ -94,8 +95,8 @@ jobs:
             cd build
             cmake .. $BUILD_FLAGS -DCOMPILER=${COMPILER^^} -DINSTALL_HEADERS=FALSE \
                      -DCMAKE_INSTALL_PREFIX=$installdir -DCMAKE_LIBRARY_PATH=$HOME/lib \
-                     -DPRINT_PACKAGING_REPORT=TRUE -DNETCDF_LIBRARIES_C=$HOME/lib \
-                     -DNETCDF_INCLUDES=$HOME/include
+                     -DPRINT_PACKAGING_REPORT=TRUE -DNetCDF_LIBRARIES_C=$HOME/lib \
+                     -DNetCDF_INCLUDES=$HOME/include
             make -j2 install
             cd ..
             export PATH=$installdir/bin:$PATH
