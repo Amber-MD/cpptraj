@@ -5,6 +5,7 @@
 #include "CpptrajStdio.h"
 #include "AtomMask.h"
 #include "Frame.h"
+#include "EwaldOptions.h"
 
 typedef helpme::Matrix<double> Mat;
 
@@ -88,6 +89,50 @@ int Ewald_ParticleMesh::DetermineNfft(int& nfft1, int& nfft2, int& nfft3, Box co
 }
 
 /** Set up PME parameters. */
+int Ewald_ParticleMesh::Init(Box const& boxIn, EwaldOptions const& pmeOpts, int debugIn)
+{
+  // Sanity check
+  if (pmeOpts.Type() == EwaldOptions::REG_EWALD) {
+    mprinterr("Internal Error: Options were set up for regular Ewald only.\n");
+    return 1;
+  }
+  if (CheckInput(boxIn, debugIn, pmeOpts.Cutoff(), pmeOpts.DsumTol(), pmeOpts.EwCoeff(),
+                 pmeOpts.LwCoeff(), pmeOpts.LJ_SwWidth(),
+                 pmeOpts.ErfcDx(), pmeOpts.SkinNB()))
+    return 1;
+  nfft_[0] = pmeOpts.Nfft1();
+  nfft_[1] = pmeOpts.Nfft2();
+  nfft_[2] = pmeOpts.Nfft3();
+  order_ = pmeOpts.SplineOrder();
+
+  // Set defaults if necessary
+  if (order_ < 1) order_ = 6;
+
+  mprintf("\tParticle Mesh Ewald params:\n");
+  mprintf("\t  Cutoff= %g   Direct Sum Tol= %g   Ewald coeff.= %g  NB skin= %g\n",
+          cutoff_, dsumTol_, ew_coeff_, pmeOpts.SkinNB());
+  if (lw_coeff_ > 0.0)
+    mprintf("\t  LJ Ewald coeff.= %g\n", lw_coeff_);
+  if (switch_width_ > 0.0)
+    mprintf("\t  LJ switch width= %g\n", switch_width_);
+  mprintf("\t  Bspline order= %i\n", order_);
+  //mprintf("\t  Erfc table dx= %g, size= %zu\n", erfcTableDx_, erfc_table_.size()/4);
+  mprintf("\t ");
+  for (int i = 0; i != 3; i++)
+    if (nfft_[i] == -1)
+      mprintf(" NFFT%i=auto", i+1);
+    else
+      mprintf(" NFFT%i=%i", i+1, nfft_[i]);
+  mprintf("\n");
+
+  // Set up pair list
+  if (Setup_Pairlist(boxIn, pmeOpts.SkinNB())) return 1;
+
+  return 0;
+}
+
+/** Set up PME parameters. */
+/*
 int Ewald_ParticleMesh::Init(Box const& boxIn, double cutoffIn, double dsumTolIn,
                     double ew_coeffIn, double lw_coeffIn, double switch_widthIn,
                     double skinnbIn, double erfcTableDxIn, 
@@ -126,7 +171,7 @@ int Ewald_ParticleMesh::Init(Box const& boxIn, double cutoffIn, double dsumTolIn
   if (Setup_Pairlist(boxIn, skinnbIn)) return 1;
 
   return 0;
-}
+}*/
 
 /** Setup PME calculation. */
 int Ewald_ParticleMesh::Setup(Topology const& topIn, AtomMask const& maskIn) {

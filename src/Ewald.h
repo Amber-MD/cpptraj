@@ -4,6 +4,7 @@ class Topology;
 class AtomMask;
 class Frame;
 class NonbondParmType;
+class EwaldOptions;
 #include "Timer.h"
 #include "PairList.h"
 #include "ExclusionArray.h"
@@ -14,6 +15,7 @@ class Ewald {
     Ewald();
     // ----- Virtual functions -------------------
     virtual ~Ewald() {}
+    virtual int Init(Box const&, EwaldOptions const&, int) = 0;
     virtual int Setup(Topology const&, AtomMask const&) = 0;
     /// Calculate electrostatic and van der Waals energy
     virtual int CalcNonbondEnergy(Frame const&, AtomMask const&, double&, double&) = 0;
@@ -63,10 +65,37 @@ class Ewald {
     inline double Adjust(double,double,double); // Cannot be const bc timers
 #   endif
 
+    /// \return sum of charges squared
+    double SumQ2() const { return sumq2_; }
+    /// \return sum of charges
+    double SumQ()  const { return sumq_; }
+    /// \return VDW recip correction term from # types and B parameters
+    double Vdw_Recip_Term() const { return Vdw_Recip_term_; }
+    /// \return Atom exclusion array
+    ExclusionArray const& Excluded() const { return Excluded_; }
+    /// \return Value of Erfc at given value
+    double ErfcFxn(double) const;
+    /// \return Nonbond parameters
+    NonbondParmType const& NB() const { return *NB_; }
+    /// \return Type index for given atom
+    int TypeIdx(unsigned int idx) const { return TypeIndices_[idx]; }
+    /// \return Value of LJ switching function
+    static double SwitchFxn(double, double, double);
+    /// \return Value of Ewald adjustment
+#   ifdef _OPENMP
+    double AdjustFxn(double,double,double) const;
+#   else
+    double AdjustFxn(double,double,double);
+#   endif
+
     // TODO make variables private
     Darray Charge_;       ///< Hold selected atomic charges converted to Amber units.
     Darray Cparam_;       ///< Hold selected atomic C6 coefficients for LJ PME
     PairList pairList_;   ///< Atom pair list for direct sum.
+
+    Iarray vdw_type_;              ///< Store nonbond vdw type for each atom
+    Iarray N_vdw_type_;            ///< Total number of atoms for each vdw type
+    Darray atype_vdw_recip_terms_; ///< Nonbond PME interaction correction for each vdw type
 
     static const double INVSQRTPI_;
     double ew_coeff_;     ///< Ewald coefficient for electrostatics

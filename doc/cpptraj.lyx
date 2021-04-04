@@ -23454,28 +23454,32 @@ energy [<name>] [<mask1>] [out <filename>]
 \end_layout
 
 \begin_layout LyX-Code
-   	          ewald [cut <cutoff>] [dsumtol <dtol>] [rsumtol <rtol>]
+   	          ewald [cut <cutoff>] [dsumtol <dtol>] [ewcoeff <coeff>]
 \end_layout
 
 \begin_layout LyX-Code
-   	                [ewcoeff <coeff>] [maxexp <max>] [skinnb <skinnb>]
+   	                [erfcdx <dx>] [skinnb <skinnb>] [ljswidth <width>]
 \end_layout
 
 \begin_layout LyX-Code
-   	                [mlimits <X>,<Y>,<Z>] [erfcdx <dx>]
+   	                [rsumtol <rtol>] [maxexp <max>] [mlimits <X>,<Y>,<Z>]
+ |
 \end_layout
 
 \begin_layout LyX-Code
-   	          pme [cut <cutoff>] [dsumtol <dtol>] [order <order>] [ljswidth
- <width>]
+   	          pme [cut <cutoff>] [dsumtol <dtol>] [ewcoeff <coeff>]
 \end_layout
 
 \begin_layout LyX-Code
-   	              [ewcoeff <coeff>] [ljpme] [ewcoefflj] [skinnb <skinnb>]
+   	              [erfcdx <dx>] [skinnb <skinnb>] [ljswidth <width>]
 \end_layout
 
 \begin_layout LyX-Code
-   	              [nfft <nfft1>,<nfft2>,<nfft3>] [erfcdx <dx>]
+   	              [order <order>] [nfft <nfft1>,<nfft2>,<nfft3>]
+\end_layout
+
+\begin_layout LyX-Code
+   	              [ljpme [ewcoefflj <ljcoeff>]]
 \end_layout
 
 \begin_layout LyX-Code
@@ -23590,20 +23594,19 @@ dsumtol
 \end_layout
 
 \begin_layout Description
-rsumtol
-\begin_inset space ~
-\end_inset
-
-<rtol> Reciprocal sum tolerance (default 0.00005).
- Used to determine number of reciprocal space vectors.
-\end_layout
-
-\begin_layout Description
 ewcoeff
 \begin_inset space ~
 \end_inset
 
 <coeff> Ewald coefficient in 1/Ang.
+\end_layout
+
+\begin_layout Description
+erfcdx
+\begin_inset space ~
+\end_inset
+
+<dx> Spacing to use for the ERFC splines (default 0.0002 Ang.).
 \end_layout
 
 \begin_layout Description
@@ -23620,6 +23623,24 @@ skinnb
 \end_layout
 
 \begin_layout Description
+ljswidth
+\begin_inset space ~
+\end_inset
+
+<width> If specified, use a force-switching form for the Lennard-Jones calculati
+on from <cutoff>-<width> to <cutoff>.
+\end_layout
+
+\begin_layout Description
+rsumtol
+\begin_inset space ~
+\end_inset
+
+<rtol> Reciprocal sum tolerance (default 0.00005).
+ Used to determine number of reciprocal space vectors.
+\end_layout
+
+\begin_layout Description
 mlimits
 \begin_inset space ~
 \end_inset
@@ -23627,14 +23648,6 @@ mlimits
 <X>,<Y>,<Z> Explicitly set the number of reciprocal space vectors in each
  dimension.
  Will be determined automatically if not specified.
-\end_layout
-
-\begin_layout Description
-erfcdx
-\begin_inset space ~
-\end_inset
-
-<dx> Spacing to use for the ERFC splines (default 0.0002 Ang.).
 \end_layout
 
 \end_deeper
@@ -23663,23 +23676,6 @@ dsumtol
 \end_layout
 
 \begin_layout Description
-order
-\begin_inset space ~
-\end_inset
-
-<order> Spline order for charges.
-\end_layout
-
-\begin_layout Description
-ljswidth
-\begin_inset space ~
-\end_inset
-
-<width> If specified, use a force-switching form for the Lennard-Jones calculati
-on from <cutoff>-<width> to <cutoff>.
-\end_layout
-
-\begin_layout Description
 ewcoeff
 \begin_inset space ~
 \end_inset
@@ -23688,12 +23684,11 @@ ewcoeff
 \end_layout
 
 \begin_layout Description
-ljpme If specified use particle mesh Ewald for calculating Lennard-Jones
- interactions.
-\end_layout
+erfcdx
+\begin_inset space ~
+\end_inset
 
-\begin_layout Description
-ewcoefflj Ewald coefficient for Lennard-Jones PME.
+<dx> Spacing to use for the ERFC splines (default 0.0002 Ang.).
 \end_layout
 
 \begin_layout Description
@@ -23710,6 +23705,23 @@ skinnb
 \end_layout
 
 \begin_layout Description
+ljswidth
+\begin_inset space ~
+\end_inset
+
+<width> If specified, use a force-switching form for the Lennard-Jones calculati
+on from <cutoff>-<width> to <cutoff>.
+\end_layout
+
+\begin_layout Description
+order
+\begin_inset space ~
+\end_inset
+
+<order> Spline order for charges.
+\end_layout
+
+\begin_layout Description
 nfft
 \begin_inset space ~
 \end_inset
@@ -23720,11 +23732,16 @@ nfft
 \end_layout
 
 \begin_layout Description
-erfcdx
-\begin_inset space ~
-\end_inset
+ljpme If specified use particle mesh Ewald for calculating Lennard-Jones
+ interactions.
+\end_layout
 
-<dx> Spacing to use for the ERFC splines (default 0.0002 Ang.).
+\begin_layout Description
+ewcoefflj Ewald coefficient for Lennard-Jones PME (implies 
+\series bold
+ljpme
+\series default
+).
 \end_layout
 
 \end_deeper
@@ -24440,6 +24457,18 @@ gist
      [info <info>]
 \end_layout
 
+\begin_layout LyX-Code
+     [nopme|pme [cut <cutoff>] [dsumtol <dtol>] [ewcoeff <coeff>]
+\end_layout
+
+\begin_layout LyX-Code
+ 	 [erfcdx <dx>] [skinnb <skinnb>] [ljswidth <width>]
+\end_layout
+
+\begin_layout LyX-Code
+ 	 [order <order>] [nfft <nfft1>,<nfft2>,<nfft3>]]
+\end_layout
+
 \begin_deeper
 \begin_layout Description
 
@@ -24634,6 +24663,96 @@ extension>] Output grid file name extension (default
  If not specified info is written to standard output.
 \end_layout
 
+\begin_layout Description
+[nopme] Do not use particle mesh Ewald for the non-bonded calculation (default).
+\end_layout
+
+\begin_layout Description
+[pme] Use particle mesh Ewald for the non-bonded electrostatics calculation.
+ The van der Waals energy will be calculated using a long-range correction
+ for periodicity.
+ Does not support 
+\series bold
+doeij
+\series default
+.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+cut
+\begin_inset space ~
+\end_inset
+
+<cutoff> Direct space cutoff in Angstroms (default 8.0).
+\end_layout
+
+\begin_layout Description
+dsumtol
+\begin_inset space ~
+\end_inset
+
+<dtol> Direct sum tolerance (default 0.00001).
+ Used to determine Ewald coefficient.
+\end_layout
+
+\begin_layout Description
+ewcoeff
+\begin_inset space ~
+\end_inset
+
+<coeff> Ewald coefficient in 1/Ang.
+\end_layout
+
+\begin_layout Description
+erfcdx
+\begin_inset space ~
+\end_inset
+
+<dx> Spacing to use for the ERFC splines (default 0.0002 Ang.).
+\end_layout
+
+\begin_layout Description
+skinnb Used to determine pairlist atoms (added to cut, so pairlist cutoff
+ is 
+\series bold
+cut
+\series default
+ + 
+\series bold
+skinnb
+\series default
+); included in order to maintain consistency with results from sander.
+\end_layout
+
+\begin_layout Description
+ljswidth
+\begin_inset space ~
+\end_inset
+
+<width> If specified, use a force-switching form for the Lennard-Jones calculati
+on from <cutoff>-<width> to <cutoff>.
+\end_layout
+
+\begin_layout Description
+order
+\begin_inset space ~
+\end_inset
+
+<order> Spline order for charges.
+\end_layout
+
+\begin_layout Description
+nfft
+\begin_inset space ~
+\end_inset
+
+<nfft1>,<nfft2>,<nfft3> Explicitly set the number of FFT grid points in
+ each dimension.
+ Will be determined automatically if not specified.
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 DataSet Aspects:
 \end_layout
@@ -24691,6 +24810,14 @@ DataSet Aspects:
 
 \begin_layout Description
 [Eij] Water-water interaction matrix.
+\end_layout
+
+\begin_layout Description
+[PME] (pme only) Mean water energy on the GIST grid.
+\end_layout
+
+\begin_layout Description
+[U_PME] (pme only) Mean solute energy on the GIST grid.
 \end_layout
 
 \end_deeper
@@ -24876,6 +25003,19 @@ keyword is not available.
 doorder
 \series default
 ) is negligible.
+\end_layout
+
+\begin_layout Standard
+The nonbonded energy calculation can also be accelerated using particle
+ mesh Ewald via the pme keyword (CPU only).
+ The details are in the following reference: 
+\begin_inset CommandInset href
+LatexCommand href
+target "https://doi.org/10.26434/chemrxiv.13140011.v2"
+
+\end_inset
+
+.
 \end_layout
 
 \begin_layout Subsubsection*
