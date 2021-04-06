@@ -648,6 +648,8 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
 {
   ArgList cmdArg( commandIn );
   cmdArg.MarkArg(0); // Always mark the first arg as the command
+  if (State.Debug() > 0)
+    cmdArg.PrintDebug();
   // Check for control block
   if (!control_.empty()) {
     mprintf("  [%s]\n", cmdArg.ArgLine());
