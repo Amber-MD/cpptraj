@@ -154,9 +154,8 @@ void ArgList::CheckArgLineForNonASCII() const {
   std::vector<unsigned int> badChars;
   for (std::string::const_iterator pch = argline_.begin(); pch != argline_.end(); ++pch)
   {
-    int charCode = (int)*pch;
     // Extended ASCII check
-    if (charCode < 0 || charCode > 127) {
+    if (static_cast<unsigned char>( *pch ) > 127) {
       mprintf("Warning: Non-ASCII character '%c' (%x) detected in input.\n", *pch, (unsigned int)*pch);
       //mprintf("Warning: Non-ASCII character '%x' detected in input at position %li.\n", (unsigned int)*pch, pch - argline_.begin() + 1);
       badChars.push_back( (unsigned int)(pch - argline_.begin()) );
