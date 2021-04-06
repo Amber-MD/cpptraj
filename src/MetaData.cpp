@@ -1,5 +1,5 @@
 #include "MetaData.h"
-#include "CpptrajStdio.h" // FIXME remove dependency
+#include "CpptrajStdio.h"
 #include "StringRoutines.h"
 
 const char* MetaData::Smodes[] = {"distance","angle","torsion","pucker","rms","matrix","vector","none"};

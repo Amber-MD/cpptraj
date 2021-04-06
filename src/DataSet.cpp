@@ -105,7 +105,7 @@ DataSet& DataSet::operator=(const DataSet& rhs) {
 int DataSet::SetMeta(MetaData const& In) {
   // Dataset name
   if (In.Name().empty()) {
-    mprinterr("Internal Error: DataSet has no name.\n"); //FIXME allow?
+    mprinterr("Internal Error: DataSet has no name.\n");
     return 1;
   }
   meta_ = In;

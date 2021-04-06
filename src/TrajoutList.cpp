@@ -3,7 +3,7 @@
 #include "Topology.h"
 #include "CpptrajStdio.h"
 #include "ArgList.h"
-// FIXME for pytraj compatibility
+// NOTE for AddTrajout(), pytraj compatibility
 #include "DataSetList.h"
 
 /// CONSTRUCTOR
@@ -25,7 +25,7 @@ void TrajoutList::Clear() {
   open_.clear();
 }
 
-// FIXME legacy function to maintain pytraj compatibility
+// NOTE This is a legacy function to maintain pytraj compatibility
 int TrajoutList::AddTrajout(std::string const& filename, ArgList const& argIn, Topology* tParm)
 {
   DataSetList blank;
