@@ -102,10 +102,17 @@ int ArgList::SetList(std::string const& inputString, const char *separator) {
   marked_.clear();
   // Store inputString
   argline_.assign(inputString);
+  // Store positions of bad characters
+  std::vector<unsigned int> badChars;
   // Begin tokenization
   char* pch = strtok(tempString, separator);
   if (pch != 0) {
     while (pch != 0) {
+      // Extended ASCII check
+      if (*pch < 0 || *pch > 127) {
+        //mprintf("Warning: Non-ASCII character '%x' detected in input at position %li: '%s'.\n", (unsigned int)*pch, pch - tempString, argline_.c_str());
+        badChars.push_back( (unsigned int)(pch - tempString) );
+      }
       // If the argument is not quoted add it to the list
       if (pch[0] != '\"' && pch[0] != '\'') 
         arglist_.push_back( std::string(pch) );
@@ -141,6 +148,15 @@ int ArgList::SetList(std::string const& inputString, const char *separator) {
     } // END while loop
     // Set up marked array
     marked_.resize( arglist_.size(), false );
+  }
+  if (!badChars.empty()) {
+    std::string caratStr(argline_.size(), ' ');
+    for (std::vector<unsigned int>::const_iterator it = badChars.begin(); it != badChars.end(); ++it)
+      caratStr[*it] = '^';
+    mprintf("Warning: Non-ASCII character(s) detected in input (at '^'):\n");
+    mprintf("Warning: [%s]\n", argline_.c_str());
+    mprintf("Warning:  %s \n", caratStr.c_str());
+    mprintf("Warning: These characters may need to be removed.\n");
   }
   delete[] tempString;
   return 0;
