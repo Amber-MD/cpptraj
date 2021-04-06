@@ -49,6 +49,8 @@ class ArgList {
     void ClearList();
     /// Set up argument list from string and given separators
     int SetList(std::string const&, const char *);
+    /// Check for and report non-ASCII characters in argline_
+    void CheckArgLineForNonASCII() const;
     /// \return an argument list of remaining unmarked args (and mark them here).
     ArgList RemainingArgs();
     /// \return number of unmarked arguments

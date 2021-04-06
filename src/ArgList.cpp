@@ -146,6 +146,33 @@ int ArgList::SetList(std::string const& inputString, const char *separator) {
   return 0;
 }
 
+/** Check the current argline_ for non-ASCII characters; report
+  * if found.
+  */
+void ArgList::CheckArgLineForNonASCII() const {
+  // Store positions of bad characters
+  std::vector<unsigned int> badChars;
+  for (std::string::const_iterator pch = argline_.begin(); pch != argline_.end(); ++pch)
+  {
+    int charCode = (int)*pch;
+    // Extended ASCII check
+    if (charCode < 0 || charCode > 127) {
+      mprintf("Warning: Non-ASCII character '%c' (%x) detected in input.\n", *pch, (unsigned int)*pch);
+      //mprintf("Warning: Non-ASCII character '%x' detected in input at position %li.\n", (unsigned int)*pch, pch - argline_.begin() + 1);
+      badChars.push_back( (unsigned int)(pch - argline_.begin()) );
+    }
+  }
+  if (!badChars.empty()) {
+    std::string caratStr(argline_.size(), ' ');
+    for (std::vector<unsigned int>::const_iterator it = badChars.begin(); it != badChars.end(); ++it)
+      caratStr[*it] = '^';
+    mprintf("Warning: Non-ASCII character(s) detected in input (at '^'):\n");
+    mprintf("Warning: [%s]\n", argline_.c_str());
+    mprintf("Warning:  %s \n", caratStr.c_str());
+    mprintf("Warning: These characters may need to be removed.\n");
+  }
+}
+
 // ArgList::RemainingArgs()
 ArgList ArgList::RemainingArgs() {
   ArgList remain;

@@ -647,7 +647,10 @@ int Command::ExecuteControlBlock(int block, CpptrajState& State)
 CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& commandIn)
 {
   ArgList cmdArg( commandIn );
+  cmdArg.CheckArgLineForNonASCII();
   cmdArg.MarkArg(0); // Always mark the first arg as the command
+  if (State.Debug() > 0)
+    cmdArg.PrintDebug();
   // Check for control block
   if (!control_.empty()) {
     mprintf("  [%s]\n", cmdArg.ArgLine());
