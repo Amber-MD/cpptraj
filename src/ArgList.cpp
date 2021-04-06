@@ -102,17 +102,10 @@ int ArgList::SetList(std::string const& inputString, const char *separator) {
   marked_.clear();
   // Store inputString
   argline_.assign(inputString);
-  // Store positions of bad characters
-  std::vector<unsigned int> badChars;
   // Begin tokenization
   char* pch = strtok(tempString, separator);
   if (pch != 0) {
     while (pch != 0) {
-      // Extended ASCII check
-      if (*pch < 0 || *pch > 127) {
-        //mprintf("Warning: Non-ASCII character '%x' detected in input at position %li: '%s'.\n", (unsigned int)*pch, pch - tempString, argline_.c_str());
-        badChars.push_back( (unsigned int)(pch - tempString) );
-      }
       // If the argument is not quoted add it to the list
       if (pch[0] != '\"' && pch[0] != '\'') 
         arglist_.push_back( std::string(pch) );
@@ -149,6 +142,26 @@ int ArgList::SetList(std::string const& inputString, const char *separator) {
     // Set up marked array
     marked_.resize( arglist_.size(), false );
   }
+  delete[] tempString;
+  return 0;
+}
+
+/** Check the current argline_ for non-ASCII characters; report
+  * if found.
+  */
+void ArgList::CheckArgLineForNonASCII() const {
+  // Store positions of bad characters
+  std::vector<unsigned int> badChars;
+  for (std::string::const_iterator pch = argline_.begin(); pch != argline_.end(); ++pch)
+  {
+    int charCode = (int)*pch;
+    // Extended ASCII check
+    if (charCode < 0 || charCode > 127) {
+      mprintf("Warning: Non-ASCII character '%c' (%x) detected in input.\n", *pch, (unsigned int)*pch);
+      //mprintf("Warning: Non-ASCII character '%x' detected in input at position %li.\n", (unsigned int)*pch, pch - argline_.begin() + 1);
+      badChars.push_back( (unsigned int)(pch - argline_.begin()) );
+    }
+  }
   if (!badChars.empty()) {
     std::string caratStr(argline_.size(), ' ');
     for (std::vector<unsigned int>::const_iterator it = badChars.begin(); it != badChars.end(); ++it)
@@ -158,8 +171,6 @@ int ArgList::SetList(std::string const& inputString, const char *separator) {
     mprintf("Warning:  %s \n", caratStr.c_str());
     mprintf("Warning: These characters may need to be removed.\n");
   }
-  delete[] tempString;
-  return 0;
 }
 
 // ArgList::RemainingArgs()
