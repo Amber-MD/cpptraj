@@ -62,7 +62,7 @@ class Action_GIST : public Action {
     unsigned int numberAtoms_;
     int numberAtomTypes_;
     int headAtomType_;
-    bool *solvent_;
+    bool *solvent_; // TODO just use atomIsSolute_ array
 
     // Arrays on GPU
     int *NBindex_c_;
