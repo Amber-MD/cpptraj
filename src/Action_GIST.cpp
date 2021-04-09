@@ -588,7 +588,6 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
           for (int u_idx = seg->Begin(); u_idx != seg->End(); ++u_idx) {
             A_idxs_.push_back( u_idx );
             atomIsSolute_[A_idxs_.back()] = true; // the identity of the atom is solute
-            atom_voxel_[A_idxs_.back()] = SOLUTE_;
             NsoluteAtoms++;
             U_idxs_.push_back( u_idx ); // store the solute atom index for locating voxel index
             #ifdef CUDA
@@ -664,7 +663,6 @@ const Vec3 Action_GIST::x_lab_ = Vec3(1.0, 0.0, 0.0);
 const Vec3 Action_GIST::y_lab_ = Vec3(0.0, 1.0, 0.0);
 const Vec3 Action_GIST::z_lab_ = Vec3(0.0, 0.0, 1.0);
 const double Action_GIST::QFAC_ = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
-const int Action_GIST::SOLUTE_ = -2;
 const int Action_GIST::OFF_GRID_ = -1;
 
 /*
@@ -1234,7 +1232,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
     for (unsigned int s = 0; s != U_idxs_.size(); s++)
     {
       int uidx = U_idxs_[s]; // the solute atom index
-      atom_voxel_[uidx] = SOLUTE_;
+      atom_voxel_[uidx] = OFF_GRID_;
       const double* u_XYZ = frm.Frm().XYZ( uidx );
       // get the vector of this solute atom to the grid origin
       Vec3 U_G( u_XYZ[0] - Origin[0],
