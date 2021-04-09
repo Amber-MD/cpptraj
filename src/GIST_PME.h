@@ -20,7 +20,8 @@ class GIST_PME : private Ewald_ParticleMesh {
     /// Setup PME calc. for top, all atoms. Allocate memory for internal arrays (# threads)
     int Setup_PME_GIST(Topology const&, unsigned int);
     /// Calculate nonbonded energy with PME for GIST
-    int CalcNonbondEnergy_GIST(Frame const&, double&, double&, std::vector<int> const&);
+    int CalcNonbondEnergy_GIST(Frame const&, double&, double&, std::vector<int> const&,
+                               std::vector<bool> const&);
     /// \return Total energy of specified atom
     double E_of_atom(unsigned int idx) const {
       return (E_elec_self_[idx] + E_elec_direct_[0][idx] + E_elec_recip_[idx] +
@@ -59,9 +60,10 @@ class GIST_PME : private Ewald_ParticleMesh {
     /// VDW long range correction for GIST
     double Vdw_Correction_GIST(double, Darray&);
     /// Calculate direct space energy for GIST, decomposed for every atom.
-    double Direct_GIST(PairList const&, double&, std::vector<int> const&);
+    double Direct_GIST(PairList const&, double&, std::vector<int> const&, std::vector<bool> const&);
     /// Calcualte direct space energy with long range VDW correction for GIST, decomposed for every atom.
-    double Direct_VDW_LongRangeCorrection_GIST(PairList const&, double&, std::vector<int> const&);
+    double Direct_VDW_LongRangeCorrection_GIST(PairList const&, double&, std::vector<int> const&,
+                                               std::vector<bool> const&);
     /// Calculate direct space energy with LJ PME for GIST, decomposed for every atom.
     double Direct_VDW_LJPME_GIST(PairList const&, double&);
 

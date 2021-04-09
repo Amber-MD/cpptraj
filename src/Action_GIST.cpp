@@ -681,7 +681,7 @@ void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
   // pointer to U_E_pme_, where has the voxel-wise pme energy for solute
   double* U_E_pme_grid = &U_E_pme_[0]; 
 
-  gistPme_.CalcNonbondEnergy_GIST(frameIn, ene_pme_all, ene_vdw_all, atom_voxel_ );
+  gistPme_.CalcNonbondEnergy_GIST(frameIn, ene_pme_all, ene_vdw_all, atom_voxel_, atomIsSolute_ );
 
   //mprintf("For this frame, the cpptraj potentail energy: %f, cpptraj_ene: %f, cpptraj_vdw: %f \n", ene_pme_all + ene_vdw_all, ene_pme_all, ene_vdw_all);
 
