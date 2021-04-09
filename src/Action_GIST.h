@@ -176,7 +176,6 @@ class Action_GIST : public Action {
     CpptrajFile* datafile_;    ///< GIST output
     CpptrajFile* eijfile_;     ///< Eij matrix output
     CpptrajFile* infofile_;    ///< GIST info
-    AtomMask allAtoms_;        ///< Mask selecting all atoms, PME only.
     std::string prefix_;       ///< Output file name prefix
     Darray Q_;                 ///< Solvent molecule charges (for dipole calc)
     double BULK_DENS_;         ///< Bulk water density

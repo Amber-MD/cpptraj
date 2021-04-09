@@ -467,16 +467,9 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
       mprinterr("Error: GIST PME init failed.\n");
       return Action::ERR;
     }
-    // Select everything
-    allAtoms_ = AtomMask(0, setup.Top().Natom());
-    // Set up PME
-    if (gistPme_.Setup( setup.Top(), allAtoms_ )) {
-      mprinterr("Error: GIST PME setup failed.\n");
-      return Action::ERR;
-    }
-    // Allocate GIST PME internal arrays
-    if (gistPme_.AllocateArrays( setup.Top().Natom(), numthreads_ )) {
-      mprinterr("Error: GIST PME array allocation failed.\n");
+    // By default all atoms are selected for GIST PME to match up with atom_voxel_ array.
+    if (gistPme_.Setup_PME_GIST( setup.Top(), numthreads_ )) {
+      mprinterr("Error: GIST PME setup/array allocation failed.\n");
       return Action::ERR;
     }
 #   else
@@ -688,7 +681,7 @@ void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
   // pointer to U_E_pme_, where has the voxel-wise pme energy for solute
   double* U_E_pme_grid = &U_E_pme_[0]; 
 
-  gistPme_.CalcNonbondEnergy_GIST(frameIn, allAtoms_, ene_pme_all, ene_vdw_all );
+  gistPme_.CalcNonbondEnergy_GIST(frameIn, ene_pme_all, ene_vdw_all );
 
   //mprintf("For this frame, the cpptraj potentail energy: %f, cpptraj_ene: %f, cpptraj_vdw: %f \n", ene_pme_all + ene_vdw_all, ene_pme_all, ene_vdw_all);
 

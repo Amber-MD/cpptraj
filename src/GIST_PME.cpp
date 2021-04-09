@@ -5,14 +5,24 @@
 #include "CpptrajStdio.h"
 #include "Constants.h"
 #include "ParameterTypes.h"
+#include "Topology.h"
 
 /** CONSTRUCTOR */
 GIST_PME::GIST_PME() {}
 
-/** Allocate internal arrays. */
-int GIST_PME::AllocateArrays(unsigned int natoms, unsigned int nthreads)
+/** Setup up GIST PME calculation. Currently must be run on all atoms. */
+int GIST_PME::Setup_PME_GIST(Topology const& topIn, unsigned int nthreads)
 {
+  // Select everything
+  allAtoms_ = AtomMask(0, topIn.Natom());
+  // Set up PME
+  if (Setup( topIn, allAtoms_ )) {
+    mprinterr("Error: GIST PME setup failed.\n");
+    return 1;
+  }
+
   // Allocate voxel arrays
+  int natoms = topIn.Natom(); // TODO unsigned int?
   E_vdw_direct_.resize( nthreads );
   E_elec_direct_.resize( nthreads );
   for (unsigned int t = 0; t != nthreads; t++)
@@ -47,8 +57,7 @@ static inline double SumDarray(std::vector<double> const& arr) {
 /** Calculate full nonbonded energy with PME Used for GIST, adding 6 arrays to store the
  * decomposed energy terms for every atom
  */
-int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, AtomMask const& maskIn,
-                                      double& e_elec, double& e_vdw)
+int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, double& e_elec, double& e_vdw)
 {
   t_total_.Start();
 
@@ -58,7 +67,7 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, AtomMask const& maskI
   double e_self = Self_GIST( volume, E_elec_self_ ); // decomposed E_elec_self for GIST
 
   // Create pairlist
-  int retVal = pairList_.CreatePairList(frameIn, frameIn.BoxCrd().UnitCell(), frameIn.BoxCrd().FracCell(), maskIn);
+  int retVal = pairList_.CreatePairList(frameIn, frameIn.BoxCrd().UnitCell(), frameIn.BoxCrd().FracCell(), allAtoms_);
   if (retVal != 0) {
     mprinterr("Error: GIST_PME: Grid setup failed.\n");
     return 1;
@@ -66,7 +75,7 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, AtomMask const& maskI
 
   // TODO make more efficient
   coordsD_.clear();
-  for (AtomMask::const_iterator atm = maskIn.begin(); atm != maskIn.end(); ++atm) {
+  for (AtomMask::const_iterator atm = allAtoms_.begin(); atm != allAtoms_.end(); ++atm) {
     const double* XYZ = frameIn.XYZ( *atm );
     coordsD_.push_back( XYZ[0] );
     coordsD_.push_back( XYZ[1] );

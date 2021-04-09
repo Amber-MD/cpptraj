@@ -3,8 +3,8 @@
 #ifdef LIBPME
 #include <vector>
 #include "Ewald_ParticleMesh.h"
+#include "AtomMask.h"
 class Frame;
-class AtomMask;
 class Box;
 class Topology;
 /// Class implementing the PME version of the nonbonded energy calc. for GIST
@@ -15,14 +15,12 @@ class GIST_PME : private Ewald_ParticleMesh {
     // Expose definitions/functions from Ewald_ParticleMesh
     using Ewald::Darray;
     using Ewald_ParticleMesh::Init;
-    using Ewald_ParticleMesh::Setup;
     using Ewald::Timing;
 
-    /// Allocate memory for internal arrays (# atoms, # threads)
-    int AllocateArrays(unsigned int, unsigned int);
+    /// Setup PME calc. for top, all atoms. Allocate memory for internal arrays (# threads)
+    int Setup_PME_GIST(Topology const&, unsigned int);
     /// Calculate nonbonded energy with PME for GIST
-    int CalcNonbondEnergy_GIST(Frame const&, AtomMask const&,
-                                  double&, double&);
+    int CalcNonbondEnergy_GIST(Frame const&, double&, double&);
     /// \return Total energy of specified atom
     double E_of_atom(unsigned int idx) const {
       return (E_elec_self_[idx] + E_elec_direct_[0][idx] + E_elec_recip_[idx] +
@@ -78,6 +76,8 @@ class GIST_PME : private Ewald_ParticleMesh {
     Darray E_elec_recip_; ///< Elec. recip energy for each atom
 
     MatType e_potentialD_; ///< Hold recip contributions for each atom
+
+    AtomMask allAtoms_;    ///< Select all atoms
 };
 #endif /* LIBPME */
 #endif
