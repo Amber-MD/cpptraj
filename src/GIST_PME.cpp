@@ -490,7 +490,9 @@ void GIST_PME::Ekernel_Adjust(double& e_adjust,
                               double rij2,
                               double q0, double q1,
                               int idx0, int idx1,
-                              double* e_elec_direct)
+                              double* e_elec_direct,
+                              int interactionType, int onGridVoxelIdx,
+                              double* e_uv_elec, double* e_vv_elec)
 {
 
               double adjust = AdjustFxn(q0,q1,sqrt(rij2));
@@ -501,6 +503,11 @@ void GIST_PME::Ekernel_Adjust(double& e_adjust,
 
               e_elec_direct[idx0] += 0.5 * adjust;
               e_elec_direct[idx1] += 0.5 * adjust;
+
+              if (interactionType == 1)
+                e_uv_elec[onGridVoxelIdx] += adjust;
+              else if (interactionType == 2)
+                e_vv_elec[onGridVoxelIdx] += adjust;
 
 #             ifdef CPPTRAJ_EKERNEL_LJPME
               // LJ PME direct space correction
@@ -612,7 +619,8 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
                            e_uv_vdw, e_uv_elec, e_vv_vdw, e_vv_elec);
             }
           } else {
-              Ekernel_Adjust(e_adjust, rij2, q0, q1, it0->Idx(), it1->Idx(), e_elec_direct);
+              Ekernel_Adjust(e_adjust, rij2, q0, q1, it0->Idx(), it1->Idx(), e_elec_direct,
+                             interactionType, onGridVoxelIdx, e_uv_elec, e_vv_elec);
           }
         } // END loop over other atoms in thisCell
         // Loop over all neighbor cells
@@ -652,7 +660,8 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
                            e_uv_vdw, e_uv_elec, e_vv_vdw, e_vv_elec);
               }
             } else {
-              Ekernel_Adjust(e_adjust, rij2, q0, q1, it0->Idx(), it1->Idx(), e_elec_direct);
+              Ekernel_Adjust(e_adjust, rij2, q0, q1, it0->Idx(), it1->Idx(), e_elec_direct,
+                             interactionType, onGridVoxelIdx, e_uv_elec, e_vv_elec);
             }
           } // END loop over neighbor cell atoms
         

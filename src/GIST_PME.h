@@ -50,7 +50,8 @@ class GIST_PME : private Ewald_ParticleMesh {
     inline void Ekernel_NB(double&, double&, double, double, double, int, int, double*, double*,
                            int, int, double*, double*, double*, double*);
     // Adjust energy kernel
-    inline void Ekernel_Adjust(double&, double, double, double, int, int, double*);
+    inline void Ekernel_Adjust(double&, double, double, double, int, int, double*,
+                               int, int, double*, double*);
 
     /// Electrostatic self energy, decomposed onto atoms.
     double Self_GIST(double, Darray&);
