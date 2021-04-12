@@ -48,7 +48,7 @@ class GIST_PME : private Ewald_ParticleMesh {
 
     /// Nonbond energy kernel
     inline void Ekernel_NB(double&, double&, double, double, double, int, int, double*, double*,
-                           int, bool, int, bool, double*, double*, double*, double*);
+                           int, int, double*, double*, double*, double*);
     // Adjust energy kernel
     inline void Ekernel_Adjust(double&, double, double, double, int, int, double*);
 

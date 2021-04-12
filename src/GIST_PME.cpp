@@ -338,6 +338,37 @@ double GIST_PME::Direct_GIST(PairList const& PL, double& evdw_out,
                                                E_VV_VDW_in, E_VV_Elec_in);
 }
 
+/** Set interaction type and optionally on-grid solvent voxel index.
+  * Interaction type: 0=other, 1=solute to on-grid solvent, 2=any solvent to on-grid solvent.
+  */
+static inline void determineInteractionType(int& interactionType, int& onGridVoxelIdx,
+                                            int voxel0, bool isSolute0,
+                                            int voxel1, bool isSolute1)
+{
+  interactionType = 0;
+  onGridVoxelIdx = -1;
+  bool onGridSolvent0 = (voxel0 > -1 && !isSolute0);
+  bool onGridSolvent1 = (voxel1 > -1 && !isSolute1);
+  // We only care if at least 1 atom corresponds to an on-grid solvent molecule
+  if (onGridSolvent1) {
+    onGridVoxelIdx = voxel1;
+    if (isSolute0)
+      // Solute0 to on-grid solvent 1
+      interactionType = 1;
+    else
+      // Solvent0 to on-grid solvent 1
+      interactionType = 2;
+  } else if (onGridSolvent0) {
+    onGridVoxelIdx = voxel0;
+    if (isSolute1)
+      // Solute1 to on-grid solvent 0
+      interactionType = 1;
+    else
+      // Solvent1 to on-grid solvent 0
+      interactionType = 2;
+  }
+}
+
 /** Nonbond energy kernel.
   * \param Eelec Total electrostatic energy; will be incremented.
   * \param Evdw Total van der Waals energy; will be incremented.
@@ -346,11 +377,8 @@ double GIST_PME::Direct_GIST(PairList const& PL, double& evdw_out,
   * \param idx1 Index of the second atom.
   * \param e_elec_direct Direct space electrostatic energy array (natoms).
   * \param e_vdw_direct Direct space van der Waals energy array (natoms).
-  * \param voxel0 Voxel corresponding to first atom if on grid.
-  * \param isSolute0 True if first atom is a solute atom.
-  * \param voxel1 Voxel corresponding to second atom if on grid.
-  * \param isSolute1 True if second atom is a solute atom.
-  * \param onGridVoxelIdx Voxel index of on-grid solvent for interactionType != 0.
+  * \param interactionType 0=other, 1=solute to on-grid solvent, 2=any solvent to on-grid solvent.
+  * \param onGridVoxelIdx Index of on-grid solvent for e_??_X arrays for interactionType > 0.
   * \param e_uv_vdw Solute to on-grid solvent van der Waals array (nvoxels).
   * \param e_uv_elec Solute to on-grid solvent electrostatics array (nvoxels).
   * \param e_vv_vdw Any solvent to on-grid solvent var der Waals array (nvoxels).
@@ -361,13 +389,12 @@ void GIST_PME::Ekernel_NB(double& Eelec, double& Evdw,
                           double q0, double q1,
                           int idx0, int idx1,
                           double* e_elec_direct, double* e_vdw_direct,
-                          int voxel0, bool isSolute0,
-                          int voxel1, bool isSolute1,
+                          int interactionType, int onGridVoxelIdx,
                           double* e_uv_vdw, double* e_uv_elec,
                           double* e_vv_vdw, double* e_vv_elec)
 //const Cannot be const because of the timer
 {
-  // Interaction type: 0=other, 1=solute to on-grid solvent, 2=any solvent to on-grid solvent.
+/*  // Interaction type: 0=other, 1=solute to on-grid solvent, 2=any solvent to on-grid solvent.
   int interactionType = 0;
   int onGridVoxelIdx = -1;
   bool onGridSolvent0 = (voxel0 > -1 && !isSolute0);
@@ -393,7 +420,7 @@ void GIST_PME::Ekernel_NB(double& Eelec, double& Evdw,
   mprintf("DEBUG: GIST-PME direct: at0= %i vox0= %i solute0= %i  at1= %i vox1= %i solute1= %i  int= %i gridvox= %i\n",
           idx0, voxel0, (int)isSolute0,
           idx1, voxel1, (int)isSolute1,
-          interactionType, onGridVoxelIdx);
+          interactionType, onGridVoxelIdx);*/
   
                 double rij = sqrt( rij2 );
                 double qiqj = q0 * q1;
@@ -574,12 +601,14 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
 #         ifdef DEBUG_PAIRLIST
           mprintf("\tAtom %6i to atom %6i (%f)\n", it0->Idx()+1, it1->Idx()+1, sqrt(rij2));
 #         endif
+          int interactionType, onGridVoxelIdx;
+          determineInteractionType(interactionType, onGridVoxelIdx, it0_voxel, it0_solute, it1_voxel, it1_solute);
           // If atom excluded, calc adjustment, otherwise calc elec. energy.
           if (excluded.find( it1->Idx() ) == excluded.end())
           {
             if ( rij2 < cut2_ ) {
-                Ekernel_NB(Eelec, Evdw, rij2, q0, q1, it0->Idx(), it1->Idx(), e_elec_direct, e_vdw_direct,
-                           it0_voxel, it0_solute, it1_voxel, it1_solute,
+              Ekernel_NB(Eelec, Evdw, rij2, q0, q1, it0->Idx(), it1->Idx(), e_elec_direct, e_vdw_direct,
+                           interactionType, onGridVoxelIdx, 
                            e_uv_vdw, e_uv_elec, e_vv_vdw, e_vv_elec);
             }
           } else {
@@ -610,6 +639,8 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
             mprintf("\t\tAtom %6i to atom %6i (%f)\n", it0->Idx()+1, it1->Idx()+1, sqrt(rij2));
 #           endif
             //mprintf("\t\tNbrAtom %06i\n",atnum1);
+            int interactionType, onGridVoxelIdx;
+            determineInteractionType(interactionType, onGridVoxelIdx, it0_voxel, it0_solute, it1_voxel, it1_solute);
             // If atom excluded, calc adjustment, otherwise calc elec. energy.
             // TODO Is there better way of checking this?
             if (excluded.find( it1->Idx() ) == excluded.end())
@@ -617,7 +648,7 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
               //mprintf("\t\t\tdist= %f\n", sqrt(rij2));
               if ( rij2 < cut2_ ) {
                 Ekernel_NB(Eelec, Evdw, rij2, q0, q1, it0->Idx(), it1->Idx(), e_elec_direct, e_vdw_direct,
-                           it0_voxel, it0_solute, it1_voxel, it1_solute,
+                           interactionType, onGridVoxelIdx, 
                            e_uv_vdw, e_uv_elec, e_vv_vdw, e_vv_elec);
               }
             } else {
