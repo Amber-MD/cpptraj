@@ -326,7 +326,15 @@ double GIST_PME::Direct_GIST(PairList const& PL, double& evdw_out,
     return Direct_VDW_LongRangeCorrection_GIST(PL, evdw_out, atom_voxel, atomIsSolute);
 }
 
-/** Nonbond energy kernel. */
+/** Nonbond energy kernel.
+  * \param Eelec Total electrostatic energy; will be incremented.
+  * \param Evdw Total van der Waals energy; will be incremented.
+  * \param rij2 Distance between the atoms squared.
+  * \param idx0 Index of the first atom.
+  * \param idx1 Index of the second atom.
+  * \param e_elec_direct Direct space electrostatic energy array (natoms).
+  * \param e_vdw_direct Direct space van der Waals energy array (natoms).
+  */
 void GIST_PME::Ekernel_NB(double& Eelec, double& Evdw,
                           double rij2,
                           double q0, double q1,
