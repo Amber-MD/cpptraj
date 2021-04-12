@@ -59,7 +59,11 @@ static inline double SumDarray(std::vector<double> const& arr) {
  */
 int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, double& e_elec, double& e_vdw,
                                      std::vector<int> const& atom_voxel,
-                                     std::vector<bool> const& atomIsSolute)
+                                     std::vector<bool> const& atomIsSolute,
+                                     std::vector<Darray>& E_UV_VDW_in,
+                                     std::vector<Darray>& E_UV_Elec_in,
+                                     std::vector<Darray>& E_VV_VDW_in,
+                                     std::vector<Darray>& E_VV_Elec_in)
 {
   t_total_.Start();
 
@@ -134,7 +138,8 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, double& e_elec, doubl
   }
 
   e_vdw = 0.0;
-  double e_direct = Direct_GIST( pairList_, e_vdw, atom_voxel, atomIsSolute );
+  double e_direct = Direct_GIST( pairList_, e_vdw, atom_voxel, atomIsSolute,
+                                 E_UV_VDW_in, E_UV_Elec_in, E_VV_VDW_in, E_VV_Elec_in);
 
   //mprintf("e_elec_self: %f , e_elec_direct: %f, e_vdw6direct: %f \n", e_self, e_direct, e_vdw);
 
@@ -318,12 +323,19 @@ double GIST_PME::Vdw_Correction_GIST(double volume, Darray& e_vdw_lr_cor) {
 /** Direct space routine for GIST. */
 double GIST_PME::Direct_GIST(PairList const& PL, double& evdw_out,
                              std::vector<int> const& atom_voxel,
-                             std::vector<bool> const& atomIsSolute)
+                             std::vector<bool> const& atomIsSolute,
+                             std::vector<Darray>& E_UV_VDW_in,
+                             std::vector<Darray>& E_UV_Elec_in,
+                             std::vector<Darray>& E_VV_VDW_in,
+                             std::vector<Darray>& E_VV_Elec_in)
+            
 {
   if (lw_coeff_ > 0.0)
     return Direct_VDW_LJPME_GIST(PL, evdw_out);
   else
-    return Direct_VDW_LongRangeCorrection_GIST(PL, evdw_out, atom_voxel, atomIsSolute);
+    return Direct_VDW_LongRangeCorrection_GIST(PL, evdw_out, atom_voxel, atomIsSolute,
+                                               E_UV_VDW_in, E_UV_Elec_in,
+                                               E_VV_VDW_in, E_VV_Elec_in);
 }
 
 /** Nonbond energy kernel.
@@ -334,14 +346,55 @@ double GIST_PME::Direct_GIST(PairList const& PL, double& evdw_out,
   * \param idx1 Index of the second atom.
   * \param e_elec_direct Direct space electrostatic energy array (natoms).
   * \param e_vdw_direct Direct space van der Waals energy array (natoms).
+  * \param voxel0 Voxel corresponding to first atom if on grid.
+  * \param isSolute0 True if first atom is a solute atom.
+  * \param voxel1 Voxel corresponding to second atom if on grid.
+  * \param isSolute1 True if second atom is a solute atom.
+  * \param onGridVoxelIdx Voxel index of on-grid solvent for interactionType != 0.
+  * \param e_uv_vdw Solute to on-grid solvent van der Waals array (nvoxels).
+  * \param e_uv_elec Solute to on-grid solvent electrostatics array (nvoxels).
+  * \param e_vv_vdw Any solvent to on-grid solvent var der Waals array (nvoxels).
+  * \param e_vv_elec Any solvent to on-grid solvent electrostatics array (nvoxels).
   */
 void GIST_PME::Ekernel_NB(double& Eelec, double& Evdw,
                           double rij2,
                           double q0, double q1,
                           int idx0, int idx1,
-                          double* e_elec_direct, double* e_vdw_direct)
+                          double* e_elec_direct, double* e_vdw_direct,
+                          int voxel0, bool isSolute0,
+                          int voxel1, bool isSolute1,
+                          double* e_uv_vdw, double* e_uv_elec,
+                          double* e_vv_vdw, double* e_vv_elec)
 //const Cannot be const because of the timer
 {
+  // Interaction type: 0=other, 1=solute to on-grid solvent, 2=any solvent to on-grid solvent.
+  int interactionType = 0;
+  int onGridVoxelIdx = -1;
+  bool onGridSolvent0 = (voxel0 > -1 && !isSolute0);
+  bool onGridSolvent1 = (voxel1 > -1 && !isSolute1);
+  // We only care if at least 1 atom corresponds to an on-grid solvent molecule
+  if (onGridSolvent1) {
+    onGridVoxelIdx = voxel1;
+    if (isSolute0)
+      // Solute0 to on-grid solvent 1
+      interactionType = 1;
+    else
+      // Solvent0 to on-grid solvent 1
+      interactionType = 2;
+  } else if (onGridSolvent0) {
+    onGridVoxelIdx = voxel0;
+    if (isSolute1)
+      // Solute1 to on-grid solvent 0
+      interactionType = 1;
+    else
+      // Solvent1 to on-grid solvent 0
+      interactionType = 2;
+  }
+  mprintf("DEBUG: GIST-PME direct: at0= %i vox0= %i solute0= %i  at1= %i vox1= %i solute1= %i  int= %i gridvox= %i\n",
+          idx0, voxel0, (int)isSolute0,
+          idx1, voxel1, (int)isSolute1,
+          interactionType, onGridVoxelIdx);
+  
                 double rij = sqrt( rij2 );
                 double qiqj = q0 * q1;
 #               ifndef _OPENMP
@@ -360,6 +413,13 @@ void GIST_PME::Ekernel_NB(double& Eelec, double& Evdw,
                 e_elec_direct[idx0] += 0.5 * e_elec;
                 e_elec_direct[idx1] += 0.5 * e_elec;
 
+                if (interactionType == 1)
+                  // Solute to on-grid solvent
+                  e_uv_elec[onGridVoxelIdx] += e_elec;
+                else if (interactionType == 2)
+                  // Any solvent to on-grid solvent
+                  e_vv_elec[onGridVoxelIdx] += e_elec;
+
                 int nbindex = NB().GetLJindex(TypeIdx(idx0),
                                               TypeIdx(idx1));
                 if (nbindex > -1) {
@@ -377,6 +437,13 @@ void GIST_PME::Ekernel_NB(double& Eelec, double& Evdw,
 
                   e_vdw_direct[idx0] += 0.5 * e_vdw * vswitch;
                   e_vdw_direct[idx1] += 0.5 * e_vdw * vswitch;
+
+                  if (interactionType == 1)
+                    // Solute to on-grid solvent
+                    e_uv_vdw[onGridVoxelIdx] += e_vdw;
+                  else if (interactionType == 2)
+                    // Any solvent to on-grid solvent
+                    e_vv_vdw[onGridVoxelIdx] += e_vdw;
 
                   //mprintf("PVDW %8i%8i%20.6f%20.6f\n", ta0+1, ta1+1, e_vdw, r2);
 #                 ifdef CPPTRAJ_EKERNEL_LJPME
@@ -425,7 +492,11 @@ void GIST_PME::Ekernel_Adjust(double& e_adjust,
 /** Direct space calculation with long range VDW correction for GIST. */
 double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double& evdw_out,
                                                      std::vector<int> const& atom_voxel,
-                                                     std::vector<bool> const& atomIsSolute)
+                                                     std::vector<bool> const& atomIsSolute,
+                                                     std::vector<Darray>& E_UV_VDW_in,
+                                                     std::vector<Darray>& E_UV_Elec_in,
+                                                     std::vector<Darray>& E_VV_VDW_in,
+                                                     std::vector<Darray>& E_VV_Elec_in)
 {
   // e_vdw_direct only count the interaction water molecule involved( sw, ww)
   // e_vdw_all_direct, count all interactions( sw, ww, ss)
@@ -444,6 +515,10 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
 # endif
   double* e_vdw_direct  = &(E_vdw_direct_[0][0]);
   double* e_elec_direct = &(E_elec_direct_[0][0]);
+  double* e_uv_vdw  = &(E_UV_VDW_in[0][0]);
+  double* e_uv_elec = &(E_UV_Elec_in[0][0]);
+  double* e_vv_vdw  = &(E_VV_VDW_in[0][0]);
+  double* e_vv_elec = &(E_VV_Elec_in[0][0]);
   // Pair list loop
 # ifdef _OPENMP
   int mythread;
@@ -454,6 +529,10 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
   std::fill(E_elec_direct_[mythread].begin(), E_elec_direct_[mythread].end(), 0);
   e_vdw_direct  = &(E_vdw_direct_[mythread][0]);
   e_elec_direct = &(E_elec_direct_[mythread][0]);
+  e_uv_vdw = &(E_UV_VDW_in[mythread][0]);
+  e_uv_elec = &(E_UV_Elec_in[mythread][0]);
+  e_vv_vdw = &(E_VV_VDW_in[mythread][0]);
+  e_vv_elec = &(E_VV_Elec_in[mythread][0]);
 # pragma omp for
 # endif
 //# include "PairListLoop.h"
@@ -499,7 +578,9 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
           if (excluded.find( it1->Idx() ) == excluded.end())
           {
             if ( rij2 < cut2_ ) {
-                Ekernel_NB(Eelec, Evdw, rij2, q0, q1, it0->Idx(), it1->Idx(), e_elec_direct, e_vdw_direct);
+                Ekernel_NB(Eelec, Evdw, rij2, q0, q1, it0->Idx(), it1->Idx(), e_elec_direct, e_vdw_direct,
+                           it0_voxel, it0_solute, it1_voxel, it1_solute,
+                           e_uv_vdw, e_uv_elec, e_vv_vdw, e_vv_elec);
             }
           } else {
               Ekernel_Adjust(e_adjust, rij2, q0, q1, it0->Idx(), it1->Idx(), e_elec_direct);
@@ -535,7 +616,9 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
             {
               //mprintf("\t\t\tdist= %f\n", sqrt(rij2));
               if ( rij2 < cut2_ ) {
-                Ekernel_NB(Eelec, Evdw, rij2, q0, q1, it0->Idx(), it1->Idx(), e_elec_direct, e_vdw_direct);
+                Ekernel_NB(Eelec, Evdw, rij2, q0, q1, it0->Idx(), it1->Idx(), e_elec_direct, e_vdw_direct,
+                           it0_voxel, it0_solute, it1_voxel, it1_solute,
+                           e_uv_vdw, e_uv_elec, e_vv_vdw, e_vv_elec);
               }
             } else {
               Ekernel_Adjust(e_adjust, rij2, q0, q1, it0->Idx(), it1->Idx(), e_elec_direct);

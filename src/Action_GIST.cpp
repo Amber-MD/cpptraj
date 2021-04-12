@@ -681,7 +681,8 @@ void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
   // pointer to U_E_pme_, where has the voxel-wise pme energy for solute
   double* U_E_pme_grid = &U_E_pme_[0]; 
 
-  gistPme_.CalcNonbondEnergy_GIST(frameIn, ene_pme_all, ene_vdw_all, atom_voxel_, atomIsSolute_ );
+  gistPme_.CalcNonbondEnergy_GIST(frameIn, ene_pme_all, ene_vdw_all, atom_voxel_, atomIsSolute_,
+                                  E_UV_VDW_, E_UV_Elec_, E_VV_VDW_, E_VV_Elec_);
 
   //mprintf("For this frame, the cpptraj potentail energy: %f, cpptraj_ene: %f, cpptraj_vdw: %f \n", ene_pme_all + ene_vdw_all, ene_pme_all, ene_vdw_all);
 
@@ -1673,10 +1674,10 @@ void Action_GIST::Print() {
   if (!skipE_) {
     if (usePme_) {
       CalcAvgVoxelEnergy_PME(Vvox, PME_dens, U_PME_dens, PME_norm);
-    } else {
+    }// else {
       CalcAvgVoxelEnergy(Vvox, Eww_dens, Esw_dens, Eww_norm, Esw_norm, qtet,
                          neighbor_norm, neighbor_dens);
-    }
+    //}
   }
   // Compute average dipole density.
   DataSet_GridFlt& pol = static_cast<DataSet_GridFlt&>( *dipole_ );

@@ -21,7 +21,9 @@ class GIST_PME : private Ewald_ParticleMesh {
     int Setup_PME_GIST(Topology const&, unsigned int);
     /// Calculate nonbonded energy with PME for GIST
     int CalcNonbondEnergy_GIST(Frame const&, double&, double&, std::vector<int> const&,
-                               std::vector<bool> const&);
+                               std::vector<bool> const&,
+                               std::vector<Darray>&, std::vector<Darray>&,
+                               std::vector<Darray>&, std::vector<Darray>&);
     /// \return Total energy of specified atom
     double E_of_atom(unsigned int idx) const {
       return (E_elec_self_[idx] + E_elec_direct_[0][idx] + E_elec_recip_[idx] +
@@ -45,7 +47,8 @@ class GIST_PME : private Ewald_ParticleMesh {
     typedef helpme::Matrix<double> MatType;
 
     /// Nonbond energy kernel
-    inline void Ekernel_NB(double&, double&, double, double, double, int, int, double*, double*);
+    inline void Ekernel_NB(double&, double&, double, double, double, int, int, double*, double*,
+                           int, bool, int, bool, double*, double*, double*, double*);
     // Adjust energy kernel
     inline void Ekernel_Adjust(double&, double, double, double, int, int, double*);
 
@@ -60,10 +63,14 @@ class GIST_PME : private Ewald_ParticleMesh {
     /// VDW long range correction for GIST
     double Vdw_Correction_GIST(double, Darray&);
     /// Calculate direct space energy for GIST, decomposed for every atom.
-    double Direct_GIST(PairList const&, double&, std::vector<int> const&, std::vector<bool> const&);
+    double Direct_GIST(PairList const&, double&, std::vector<int> const&, std::vector<bool> const&,
+                       std::vector<Darray>&, std::vector<Darray>&,
+                       std::vector<Darray>&, std::vector<Darray>&);
     /// Calcualte direct space energy with long range VDW correction for GIST, decomposed for every atom.
     double Direct_VDW_LongRangeCorrection_GIST(PairList const&, double&, std::vector<int> const&,
-                                               std::vector<bool> const&);
+                                               std::vector<bool> const&,
+                                               std::vector<Darray>&, std::vector<Darray>&,
+                                               std::vector<Darray>&, std::vector<Darray>&);
     /// Calculate direct space energy with LJ PME for GIST, decomposed for every atom.
     double Direct_VDW_LJPME_GIST(PairList const&, double&);
 
