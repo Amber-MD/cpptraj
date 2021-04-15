@@ -44,14 +44,26 @@ class GIST_PME : private Ewald_ParticleMesh {
     Darray const& E_Elec_Recip()  const { return E_elec_recip_; }
 */
   private:
+    /// Atom to atom interaction type
+    enum InteractionType { OTHER = 0,        ///< Interaction we do not care about
+                           SOLUTE0_ONGRID1,  ///< Solute 0, on-grid solvent 1
+                           SOLVENT0_ONGRID1, ///< Off-grid solvent 0, on-grid solvent 1
+                           SOLUTE1_ONGRID0,  ///< Solute 1, on-grid solvent 0
+                           SOLVENT1_ONGRID0, ///< Off-grid solvent 1, on-grid solvent 0
+                           BOTH_ONGRID       ///< Both 0 and 1 on-grid solvent
+                         };
+
     typedef helpme::Matrix<double> MatType;
+
+    /// Determine the interaction type between two atoms given grid voxels and solute status
+    static inline InteractionType determineInteractionType(int, bool, int, bool);
 
     /// Nonbond energy kernel
     inline void Ekernel_NB(double&, double&, double, double, double, int, int, double*, double*,
-                           int, int, double*, double*, double*, double*);
+                           InteractionType, int, int, double*, double*, double*, double*);
     // Adjust energy kernel
     inline void Ekernel_Adjust(double&, double, double, double, int, int, double*,
-                               int, int, double*, double*);
+                               InteractionType, int, int, double*, double*);
 
     /// Electrostatic self energy, decomposed onto atoms.
     double Self_GIST(double, Darray&);

@@ -369,6 +369,38 @@ static inline void determineInteractionType(int& interactionType, int& onGridVox
   }
 }
 
+/** \return Interaction type between atoms given grid voxels and solute status. */
+GIST_PME::InteractionType GIST_PME::determineInteractionType(int voxel0, bool isSolute0,
+                                                             int voxel1, bool isSolute1)
+{
+  InteractionType interactionType = OTHER;
+  bool onGridSolvent0 = (voxel0 > -1 && !isSolute0);
+  bool onGridSolvent1 = (voxel1 > -1 && !isSolute1);
+  
+  if (onGridSolvent1) {
+    if (onGridSolvent0)
+      // Both are on the grid
+      interactionType = BOTH_ONGRID;
+    else if (isSolute0)
+      // Solute0 to on-grid solvent 1
+      interactionType = SOLUTE0_ONGRID1;
+    else
+      // Solvent0 to on-grid solvent 1
+      interactionType = SOLVENT0_ONGRID1;
+  } else if (onGridSolvent0) {
+    if (onGridSolvent1)
+      // Both are on the grid
+      interactionType = BOTH_ONGRID;
+    else if (isSolute1)
+      // Solute1 to on-grid solvent 0
+      interactionType = SOLUTE1_ONGRID0;
+    else
+      // Solvent1 to on-grid solvent 0
+      interactionType = SOLVENT1_ONGRID0;
+  }
+  return interactionType;
+}
+
 /** Nonbond energy kernel.
   * \param Eelec Total electrostatic energy; will be incremented.
   * \param Evdw Total van der Waals energy; will be incremented.
@@ -389,39 +421,11 @@ void GIST_PME::Ekernel_NB(double& Eelec, double& Evdw,
                           double q0, double q1,
                           int idx0, int idx1,
                           double* e_elec_direct, double* e_vdw_direct,
-                          int interactionType, int onGridVoxelIdx,
+                          InteractionType interactionType, int voxel0, int voxel1,
                           double* e_uv_vdw, double* e_uv_elec,
                           double* e_vv_vdw, double* e_vv_elec)
 //const Cannot be const because of the timer
 {
-/*  // Interaction type: 0=other, 1=solute to on-grid solvent, 2=any solvent to on-grid solvent.
-  int interactionType = 0;
-  int onGridVoxelIdx = -1;
-  bool onGridSolvent0 = (voxel0 > -1 && !isSolute0);
-  bool onGridSolvent1 = (voxel1 > -1 && !isSolute1);
-  // We only care if at least 1 atom corresponds to an on-grid solvent molecule
-  if (onGridSolvent1) {
-    onGridVoxelIdx = voxel1;
-    if (isSolute0)
-      // Solute0 to on-grid solvent 1
-      interactionType = 1;
-    else
-      // Solvent0 to on-grid solvent 1
-      interactionType = 2;
-  } else if (onGridSolvent0) {
-    onGridVoxelIdx = voxel0;
-    if (isSolute1)
-      // Solute1 to on-grid solvent 0
-      interactionType = 1;
-    else
-      // Solvent1 to on-grid solvent 0
-      interactionType = 2;
-  }
-  mprintf("DEBUG: GIST-PME direct: at0= %i vox0= %i solute0= %i  at1= %i vox1= %i solute1= %i  int= %i gridvox= %i\n",
-          idx0, voxel0, (int)isSolute0,
-          idx1, voxel1, (int)isSolute1,
-          interactionType, onGridVoxelIdx);*/
-  
                 double rij = sqrt( rij2 );
                 double qiqj = q0 * q1;
 #               ifndef _OPENMP
@@ -439,13 +443,19 @@ void GIST_PME::Ekernel_NB(double& Eelec, double& Evdw,
                  
                 e_elec_direct[idx0] += 0.5 * e_elec;
                 e_elec_direct[idx1] += 0.5 * e_elec;
-
-                if (interactionType == 1)
-                  // Solute to on-grid solvent
-                  e_uv_elec[onGridVoxelIdx] += e_elec;
-                else if (interactionType == 2)
-                  // Any solvent to on-grid solvent
-                  e_vv_elec[onGridVoxelIdx] += e_elec;
+                
+                if (interactionType == SOLUTE0_ONGRID1)
+                  e_uv_elec[voxel1] += e_elec;
+                else if (interactionType == SOLVENT0_ONGRID1)
+                  e_vv_elec[voxel1] += e_elec;
+                else if (interactionType == SOLUTE1_ONGRID0)
+                  e_uv_elec[voxel0] += e_elec;
+                else if (interactionType == SOLVENT1_ONGRID0)
+                  e_vv_elec[voxel0] += e_elec;
+                else if (interactionType == BOTH_ONGRID) {
+                  e_vv_elec[voxel0] += e_elec;
+                  e_vv_elec[voxel1] += e_elec;
+                }
 
                 int nbindex = NB().GetLJindex(TypeIdx(idx0),
                                               TypeIdx(idx1));
@@ -465,12 +475,18 @@ void GIST_PME::Ekernel_NB(double& Eelec, double& Evdw,
                   e_vdw_direct[idx0] += 0.5 * e_vdw * vswitch;
                   e_vdw_direct[idx1] += 0.5 * e_vdw * vswitch;
 
-                  if (interactionType == 1)
-                    // Solute to on-grid solvent
-                    e_uv_vdw[onGridVoxelIdx] += e_vdw;
-                  else if (interactionType == 2)
-                    // Any solvent to on-grid solvent
-                    e_vv_vdw[onGridVoxelIdx] += e_vdw;
+                  if (interactionType == SOLUTE0_ONGRID1)
+                    e_uv_vdw[voxel1] += e_vdw;
+                  else if (interactionType == SOLVENT0_ONGRID1)
+                    e_vv_vdw[voxel1] += e_vdw;
+                  else if (interactionType == SOLUTE1_ONGRID0)
+                    e_uv_vdw[voxel0] += e_vdw;
+                  else if (interactionType == SOLVENT1_ONGRID0)
+                    e_vv_vdw[voxel0] += e_vdw;
+                  else if (interactionType == BOTH_ONGRID) {
+                    e_vv_vdw[voxel0] += e_vdw;
+                    e_vv_vdw[voxel1] += e_vdw;
+                  }
 
                   //mprintf("PVDW %8i%8i%20.6f%20.6f\n", ta0+1, ta1+1, e_vdw, r2);
 #                 ifdef CPPTRAJ_EKERNEL_LJPME
@@ -491,7 +507,7 @@ void GIST_PME::Ekernel_Adjust(double& e_adjust,
                               double q0, double q1,
                               int idx0, int idx1,
                               double* e_elec_direct,
-                              int interactionType, int onGridVoxelIdx,
+                              InteractionType interactionType, int voxel0, int voxel1,
                               double* e_uv_elec, double* e_vv_elec)
 {
 
@@ -504,10 +520,18 @@ void GIST_PME::Ekernel_Adjust(double& e_adjust,
               e_elec_direct[idx0] += 0.5 * adjust;
               e_elec_direct[idx1] += 0.5 * adjust;
 
-              if (interactionType == 1)
-                e_uv_elec[onGridVoxelIdx] += adjust;
-              else if (interactionType == 2)
-                e_vv_elec[onGridVoxelIdx] += adjust;
+              if (interactionType == SOLUTE0_ONGRID1)
+                e_uv_elec[voxel1] += adjust;
+              else if (interactionType == SOLVENT0_ONGRID1)
+                e_vv_elec[voxel1] += adjust;
+              else if (interactionType == SOLUTE1_ONGRID0)
+                e_uv_elec[voxel0] += adjust;
+              else if (interactionType == SOLVENT1_ONGRID0)
+                e_vv_elec[voxel0] += adjust;
+              else if (interactionType == BOTH_ONGRID) {
+                e_vv_elec[voxel0] += adjust;
+                e_vv_elec[voxel1] += adjust;
+              }
 
 #             ifdef CPPTRAJ_EKERNEL_LJPME
               // LJ PME direct space correction
@@ -608,19 +632,18 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
 #         ifdef DEBUG_PAIRLIST
           mprintf("\tAtom %6i to atom %6i (%f)\n", it0->Idx()+1, it1->Idx()+1, sqrt(rij2));
 #         endif
-          int interactionType, onGridVoxelIdx;
-          determineInteractionType(interactionType, onGridVoxelIdx, it0_voxel, it0_solute, it1_voxel, it1_solute);
+          InteractionType interactionType = determineInteractionType(it0_voxel, it0_solute, it1_voxel, it1_solute);
           // If atom excluded, calc adjustment, otherwise calc elec. energy.
           if (excluded.find( it1->Idx() ) == excluded.end())
           {
             if ( rij2 < cut2_ ) {
               Ekernel_NB(Eelec, Evdw, rij2, q0, q1, it0->Idx(), it1->Idx(), e_elec_direct, e_vdw_direct,
-                           interactionType, onGridVoxelIdx, 
+                           interactionType, it0_voxel, it1_voxel, 
                            e_uv_vdw, e_uv_elec, e_vv_vdw, e_vv_elec);
             }
           } else {
               Ekernel_Adjust(e_adjust, rij2, q0, q1, it0->Idx(), it1->Idx(), e_elec_direct,
-                             interactionType, onGridVoxelIdx, e_uv_elec, e_vv_elec);
+                             interactionType, it0_voxel, it1_voxel, e_uv_elec, e_vv_elec);
           }
         } // END loop over other atoms in thisCell
         // Loop over all neighbor cells
@@ -647,8 +670,7 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
             mprintf("\t\tAtom %6i to atom %6i (%f)\n", it0->Idx()+1, it1->Idx()+1, sqrt(rij2));
 #           endif
             //mprintf("\t\tNbrAtom %06i\n",atnum1);
-            int interactionType, onGridVoxelIdx;
-            determineInteractionType(interactionType, onGridVoxelIdx, it0_voxel, it0_solute, it1_voxel, it1_solute);
+            InteractionType interactionType = determineInteractionType(it0_voxel, it0_solute, it1_voxel, it1_solute);
             // If atom excluded, calc adjustment, otherwise calc elec. energy.
             // TODO Is there better way of checking this?
             if (excluded.find( it1->Idx() ) == excluded.end())
@@ -656,12 +678,12 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
               //mprintf("\t\t\tdist= %f\n", sqrt(rij2));
               if ( rij2 < cut2_ ) {
                 Ekernel_NB(Eelec, Evdw, rij2, q0, q1, it0->Idx(), it1->Idx(), e_elec_direct, e_vdw_direct,
-                           interactionType, onGridVoxelIdx, 
+                           interactionType, it0_voxel, it1_voxel, 
                            e_uv_vdw, e_uv_elec, e_vv_vdw, e_vv_elec);
               }
             } else {
               Ekernel_Adjust(e_adjust, rij2, q0, q1, it0->Idx(), it1->Idx(), e_elec_direct,
-                             interactionType, onGridVoxelIdx, e_uv_elec, e_vv_elec);
+                             interactionType, it0_voxel, it1_voxel, e_uv_elec, e_vv_elec);
             }
           } // END loop over neighbor cell atoms
         
