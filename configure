@@ -434,7 +434,7 @@ TestProgram() {
     REBUILDOPT='--rebuild'
   fi
   if [ "$1" = 'noexe' ] ; then
-    # Output messages, do not execute compiled binary
+    # Output messages, do not execute compiled binary; exit on error
     silent=3
     shift
   elif [ "$1" = 'quiet' ] ; then
@@ -459,7 +459,7 @@ TestProgram() {
   #echo "COMPILE: $COMPILELINE" #DEBUG
   $COMPILELINE > $COMPOUT 2> $COMPERR
   if [ $? -ne 0 -o ! -f 'testp' ] ; then
-    if [ $silent -eq 0 ] ; then
+    if [ $silent -eq 0 -o $silent -eq 3 ] ; then
       echo ""
       ErrMsg "Test compile failed: $COMPILELINE"
       ErrMsg "Check the output below for error messages:"
@@ -952,14 +952,14 @@ TestHip() {
 int main() {
   int device;
   if ( hipGetDevice( &device ) == hipSuccess ) {
-    hipDeviceProp deviceProp;
+    hipDeviceProp_t deviceProp;
     if ( hipGetDeviceProperties( &deviceProp, device ) == hipSuccess )
       printf("| HIP device: %s\n", deviceProp.name);
   }
   return 0;
 }
 EOF
-  TestProgram noexe "  Checking HIP" "$CXX" "$CXXFLAGS ${LIB_INCL[$LHIP]}" testp.cpp "${LIB_FLAG[$LHIP]}"
+  TestProgram noexe "  Checking HIP" "$CXX" "$CXXFLAGS ${LIB_INCL[$LHIP]} ${LIB_D_ON[$LHIP]}" testp.cpp "${LIB_FLAG[$LHIP]}"
 }
 
 TestOpenMM() {
