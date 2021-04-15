@@ -2,7 +2,7 @@
 #include <cstdio>
 #endif
 #include "../ImageOption.h"
-#if defined(AMBER_PLATFORM_AMD)
+#if defined(__HIP_PLATFORM_HCC__)
 #include <hip/hip_runtime.h>
 #include "../HipDefinitions.h"
 #endif

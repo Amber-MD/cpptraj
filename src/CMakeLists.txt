@@ -231,7 +231,7 @@ endif()
 if(CUDA)
 	if(HIP)
 		# TODO: Replace __HIP_PLATFORM_HCC__ after 4.1 rocm release
-		add_compile_definitions(AMBER_PLATFORM_AMD __HIP_PLATFORM_HCC__)
+		add_compile_definitions(__HIP_PLATFORM_HCC__)
 		add_compile_options(-fPIC)
 		include_directories(${CUDA_TOOLKIT_ROOT_DIR}/include)
 	endif()

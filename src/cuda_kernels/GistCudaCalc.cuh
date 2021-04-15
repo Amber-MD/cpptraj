@@ -1,6 +1,6 @@
 #ifndef GIST_CUDA_CALC_CUH
 #define GIST_CUDA_CALC_CUH
-#if defined(AMBER_PLATFORM_AMD)
+#if defined(__HIP_PLATFORM_HCC__)
 #include <hip/hip_runtime.h>
 #endif
 

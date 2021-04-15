@@ -341,7 +341,7 @@ LIB_HOME[$LHIP]=''
 LIB_FLAG[$LHIP]='-L${HIP_HOME}/lib -lamdhip64'
 LIB_STTC[$LHIP]=''
 # TODO: Replace __HIP_PLATFORM_HCC__ after 4.1 rocm release
-LIB_D_ON[$LHIP]='-DCUDA -DAMBER_PLATFORM_AMD -D__HIP_PLATFORM_HCC__'
+LIB_D_ON[$LHIP]='-DCUDA -D__HIP_PLATFORM_HCC__'
 LIB_DOFF[$LHIP]=''
 LIB_TYPE[$LHIP]='cpp'
 
@@ -1783,6 +1783,10 @@ SetupHIP() {
     Err "Error: hipcc hip compiler not found in $HIP_HOME/bin"
   fi
   if [ -z "$NVCC" ]; then NVCC="$HIP_HOME/bin/hipcc"; fi
+  if [ -z "$NVCCFLAGS" ] ; then
+    NVCCFLAGS="-fPIC $NVCCFLAGS"
+  fi
+  NVCCFLAGS="${LIB_D_ON[$LHIP]} $NVCCFLAGS"
   if [ ! -z "$picflag" ] ; then
     NVCCFLAGS="$picflag $NVCCFLAGS"
   fi
