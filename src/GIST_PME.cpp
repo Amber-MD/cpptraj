@@ -96,7 +96,8 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, double& e_elec, doubl
   // Recip Potential for each atom
   e_potentialD_.setConstant(0.0);
 
-  double e_recip = Recip_ParticleMesh_GIST( frameIn.BoxCrd(), atom_voxel, atomIsSolute );
+  double e_recip = Recip_ParticleMesh_GIST( frameIn.BoxCrd(), atom_voxel, atomIsSolute,
+                                            E_UV_Elec_in[0], E_VV_Elec_in[0] );
   //std::fill(E_elec_recip_.begin(), E_elec_recip_.end(), 0);
   //for(unsigned int i =0; i < natoms; i++)
   //{
@@ -221,7 +222,8 @@ double GIST_PME::Self6_GIST(Darray& atom_vdw_self) {
 /** PME recip calc for GIST to store decomposed recipical energy for every atom. */
 double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn,
                                          std::vector<int> const& atom_voxel,
-                                         std::vector<bool> const& atomIsSolute)
+                                         std::vector<bool> const& atomIsSolute,
+                                         Darray& e_uv_elec, Darray& e_vv_elec)
 {
   t_recip_.Start();
   // This essentially makes coordsD and chargesD point to arrays.
@@ -269,6 +271,7 @@ double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn,
   // For VV interaction, we need all solvent charges + positions and on-grid solvent positions.
   Darray Ucoords, Ucharges;
   Darray onGridCoords;
+  std::vector<int> onGridAt;
   Darray Vcoords, Vcharges;
   unsigned int xidx = 0; // Index into coordsD_
   unsigned int n_on_grid = 0; // Number of solvent atoms on grid
@@ -289,6 +292,7 @@ double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn,
         onGridCoords.push_back( coordsD_[xidx+1] );
         onGridCoords.push_back( coordsD_[xidx+2] );
         n_on_grid++;
+        onGridAt.push_back( atidx );
       }
     }
   }
@@ -301,9 +305,14 @@ double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn,
   // UV recip
   ongrid_potentialD.setZero();
   pme_object_.computePRec(0, m_uq, m_ux, m_ox, 1, ongrid_potentialD);
+  for (unsigned int i = 0; i != onGridAt.size(); i++)
+    e_uv_elec[atom_voxel[onGridAt[i]]] += Charge_[onGridAt[i]] * ongrid_potentialD(i, 0);
   // VV recip.
-  // NOTE: Do not zero the potential matrix, will be summed into
+  // NOTE: If we do not zero the potential matrix, it will be summed into
+  ongrid_potentialD.setZero();
   pme_object_.computePRec(0, m_vq, m_vx, m_ox, 1, ongrid_potentialD);
+  for (unsigned int i = 0; i != onGridAt.size(); i++)
+    e_vv_elec[atom_voxel[onGridAt[i]]] += Charge_[onGridAt[i]] * ongrid_potentialD(i, 0);
 
 
   t_recip_.Stop();

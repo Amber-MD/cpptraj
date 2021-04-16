@@ -70,7 +70,8 @@ class GIST_PME : private Ewald_ParticleMesh {
     /// Lennard-Jones self energy, decomposed onto atoms.
     double Self6_GIST(Darray&);
     /// Reciprocal energy decomposed for every atom.
-    double Recip_ParticleMesh_GIST(Box const&, std::vector<int> const&, std::vector<bool> const&);
+    double Recip_ParticleMesh_GIST(Box const&, std::vector<int> const&, std::vector<bool> const&,
+                                   Darray&, Darray&);
     /// LJ reciprocal term, decomposed for every atom.
     double LJ_Recip_ParticleMesh_GIST(Box const&, MatType&);
     /// VDW long range correction for GIST
