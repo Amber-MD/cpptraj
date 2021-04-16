@@ -531,24 +531,25 @@ void GIST_PME::Ekernel_NB(double& Eelec, double& Evdw,
                   double f12   = LJ.A() * r12;  // A/r^12
                   double f6    = LJ.B() * r6;   // B/r^6
                   double e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)
-                  Evdw += (e_vdw * vswitch);
+                  double e_vdw_term = e_vdw * vswitch;
+                  Evdw += e_vdw_term;
 
                   // add the vdw energy to e_vdw_direct, divide the energy evenly to each atom
 
-                  e_vdw_direct[idx0] += 0.5 * e_vdw * vswitch;
-                  e_vdw_direct[idx1] += 0.5 * e_vdw * vswitch;
+                  e_vdw_direct[idx0] += 0.5 * e_vdw_term;
+                  e_vdw_direct[idx1] += 0.5 * e_vdw_term;
 
                   if (interactionType == SOLUTE0_ONGRID1)
-                    e_uv_vdw[voxel1] += e_vdw;
+                    e_uv_vdw[voxel1] += e_vdw_term;
                   else if (interactionType == SOLVENT0_ONGRID1)
-                    e_vv_vdw[voxel1] += e_vdw;
+                    e_vv_vdw[voxel1] += e_vdw_term;
                   else if (interactionType == SOLUTE1_ONGRID0)
-                    e_uv_vdw[voxel0] += e_vdw;
+                    e_uv_vdw[voxel0] += e_vdw_term;
                   else if (interactionType == SOLVENT1_ONGRID0)
-                    e_vv_vdw[voxel0] += e_vdw;
+                    e_vv_vdw[voxel0] += e_vdw_term;
                   else if (interactionType == BOTH_ONGRID) {
-                    e_vv_vdw[voxel0] += e_vdw;
-                    e_vv_vdw[voxel1] += e_vdw;
+                    e_vv_vdw[voxel0] += e_vdw_term;
+                    e_vv_vdw[voxel1] += e_vdw_term;
                   }
 
                   //mprintf("PVDW %8i%8i%20.6f%20.6f\n", ta0+1, ta1+1, e_vdw, r2);
