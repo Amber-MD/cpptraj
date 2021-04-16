@@ -96,12 +96,12 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, double& e_elec, doubl
   // Recip Potential for each atom
   e_potentialD_.setConstant(0.0);
 
-  double e_recip = Recip_ParticleMesh_GIST( frameIn.BoxCrd(), e_potentialD_ );
-  std::fill(E_elec_recip_.begin(), E_elec_recip_.end(), 0);
-  for(unsigned int i =0; i < natoms; i++)
-  {
-    E_elec_recip_[i]=0.5 * Charge_[i] * e_potentialD_(i,0);
-  }
+  double e_recip = Recip_ParticleMesh_GIST( frameIn.BoxCrd(), e_potentialD_, atom_voxel, atomIsSolute );
+  //std::fill(E_elec_recip_.begin(), E_elec_recip_.end(), 0);
+  //for(unsigned int i =0; i < natoms; i++)
+  //{
+  //  E_elec_recip_[i]=0.5 * Charge_[i] * e_potentialD_(i,0);
+  //}
 
   // vdw potential for each atom 
 
@@ -219,7 +219,9 @@ double GIST_PME::Self6_GIST(Darray& atom_vdw_self) {
 }
 
 /** PME recip calc for GIST to store decomposed recipical energy for every atom. */
-double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn, MatType& potential)
+double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn, MatType& potential,
+                                         std::vector<int> const& atom_voxel,
+                                         std::vector<bool> const& atomIsSolute)
 {
   t_recip_.Start();
   // This essentially makes coordsD and chargesD point to arrays.
@@ -258,8 +260,36 @@ double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn, MatType& potential)
                                 PMEInstanceD::LatticeType::XAligned);
   double erecip = pme_object_.computeERec(0, chargesD, coordsD);
   pme_object_.computePRec(0,chargesD,coordsD,coordsD,1,potential);
+  for(unsigned int i =0; i < Charge_.size(); i++)
+  {
+    E_elec_recip_[i]=0.5 * Charge_[i] * e_potentialD_(i,0);
+  }
 
-
+  // For UV interaction, we need solute charges + positions and on-grid solvent positions.
+  // For VV interaction, we need all solvent charges + positions and on-grid solvent positions.
+  Darray Ucoords, Ucharges;
+  Darray onGridCoords;
+  Darray Vcoords, Vcharges;
+  unsigned int xidx = 0; // Index into coordsD_
+  for (unsigned int atidx = 0; atidx != Charge_.size(); atidx++, xidx += 3)
+  {
+    if (atomIsSolute[atidx]) {
+      Ucoords.push_back( coordsD_[xidx  ] );
+      Ucoords.push_back( coordsD_[xidx+1] );
+      Ucoords.push_back( coordsD_[xidx+2] );
+      Ucharges.push_back( Charge_[atidx] );
+    } else {
+      Vcoords.push_back( coordsD_[xidx  ] );
+      Vcoords.push_back( coordsD_[xidx+1] );
+      Vcoords.push_back( coordsD_[xidx+2] );
+      Vcharges.push_back( Charge_[atidx] );
+      if (atom_voxel[atidx] > -1) {
+        onGridCoords.push_back( coordsD_[xidx  ] );
+        onGridCoords.push_back( coordsD_[xidx+1] );
+        onGridCoords.push_back( coordsD_[xidx+2] );
+      }
+    }
+  }
 
 
   t_recip_.Stop();
