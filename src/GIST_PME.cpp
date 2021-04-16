@@ -70,7 +70,8 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, double& e_elec, doubl
   // Elec. self
   double volume = frameIn.BoxCrd().CellVolume();
   std::fill(E_elec_self_.begin(), E_elec_self_.end(), 0);
-  double e_self = Self_GIST( volume, E_elec_self_ ); // decomposed E_elec_self for GIST
+  // decomposed E_elec_self for GIST
+  double e_self = Self_GIST( volume, E_elec_self_, atom_voxel, atomIsSolute, E_VV_Elec_in[0] );
 
   // Create pairlist
   int retVal = pairList_.CreatePairList(frameIn, frameIn.BoxCrd().UnitCell(), frameIn.BoxCrd().FracCell(), allAtoms_);
@@ -173,7 +174,11 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, double& e_elec, doubl
 
 
 /** Electrostatic self energy. This is the cancelling Gaussian plus the "neutralizing plasma". */
-double GIST_PME::Self_GIST(double volume, Darray& atom_self) {
+double GIST_PME::Self_GIST(double volume, Darray& atom_self,
+                           std::vector<int> const& atom_voxel,
+                           std::vector<bool> const& atomIsSolute,
+                           Darray& e_vv_elec)
+{
   t_self_.Start();
   double d0 = -ew_coeff_ * INVSQRTPI_;
   double ene = SumQ2() * d0;
@@ -183,7 +188,12 @@ double GIST_PME::Self_GIST(double volume, Darray& atom_self) {
 
   for( unsigned int i=0; i< Charge_.size();i++)
   {
-    atom_self[i]=Charge_[i]*Charge_[i]*d0 + ee_plasma/Charge_.size(); // distribute the "neutrilizing plasma" to atoms equally
+    // distribute the "neutrilizing plasma" to atoms equally
+    atom_self[i]=Charge_[i]*Charge_[i]*d0 + ee_plasma/Charge_.size();
+    if (atom_voxel[i] > -1 && !atomIsSolute[i]) {
+      // Only do the self-terms for on-grid water; no exclusions for solute to on-grid solvent
+      e_vv_elec[atom_voxel[i]] += atom_self[i];
+    }
   }
 
   ene += ee_plasma;

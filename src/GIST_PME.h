@@ -66,7 +66,7 @@ class GIST_PME : private Ewald_ParticleMesh {
                                InteractionType, int, int, double*, double*);
 
     /// Electrostatic self energy, decomposed onto atoms.
-    double Self_GIST(double, Darray&);
+    double Self_GIST(double, Darray&, std::vector<int> const&, std::vector<bool> const&, Darray&);
     /// Lennard-Jones self energy, decomposed onto atoms.
     double Self6_GIST(Darray&);
     /// Reciprocal energy decomposed for every atom.
