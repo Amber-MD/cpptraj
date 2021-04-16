@@ -96,7 +96,7 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, double& e_elec, doubl
   // Recip Potential for each atom
   e_potentialD_.setConstant(0.0);
 
-  double e_recip = Recip_ParticleMesh_GIST( frameIn.BoxCrd(), e_potentialD_, atom_voxel, atomIsSolute );
+  double e_recip = Recip_ParticleMesh_GIST( frameIn.BoxCrd(), atom_voxel, atomIsSolute );
   //std::fill(E_elec_recip_.begin(), E_elec_recip_.end(), 0);
   //for(unsigned int i =0; i < natoms; i++)
   //{
@@ -219,7 +219,7 @@ double GIST_PME::Self6_GIST(Darray& atom_vdw_self) {
 }
 
 /** PME recip calc for GIST to store decomposed recipical energy for every atom. */
-double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn, MatType& potential,
+double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn,
                                          std::vector<int> const& atom_voxel,
                                          std::vector<bool> const& atomIsSolute)
 {
@@ -259,7 +259,7 @@ double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn, MatType& potential,
                                 boxIn.Param(Box::ALPHA), boxIn.Param(Box::BETA), boxIn.Param(Box::GAMMA),
                                 PMEInstanceD::LatticeType::XAligned);
   double erecip = pme_object_.computeERec(0, chargesD, coordsD);
-  pme_object_.computePRec(0,chargesD,coordsD,coordsD,1,potential);
+  pme_object_.computePRec(0,chargesD,coordsD,coordsD,1,e_potentialD_);
   for(unsigned int i =0; i < Charge_.size(); i++)
   {
     E_elec_recip_[i]=0.5 * Charge_[i] * e_potentialD_(i,0);
@@ -271,6 +271,7 @@ double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn, MatType& potential,
   Darray onGridCoords;
   Darray Vcoords, Vcharges;
   unsigned int xidx = 0; // Index into coordsD_
+  unsigned int n_on_grid = 0; // Number of solvent atoms on grid
   for (unsigned int atidx = 0; atidx != Charge_.size(); atidx++, xidx += 3)
   {
     if (atomIsSolute[atidx]) {
@@ -287,9 +288,22 @@ double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn, MatType& potential,
         onGridCoords.push_back( coordsD_[xidx  ] );
         onGridCoords.push_back( coordsD_[xidx+1] );
         onGridCoords.push_back( coordsD_[xidx+2] );
+        n_on_grid++;
       }
     }
   }
+  MatType m_ux( &Ucoords[0],      Ucharges.size(),     3 );
+  MatType m_uq( &Ucharges[0],     Ucharges.size(),     1 );
+  MatType m_ox( &onGridCoords[0], n_on_grid,           3 );
+  MatType m_vx( &Vcoords[0],      Vcharges.size(),     3 );
+  MatType m_vq( &Vcharges[0],     Vcharges.size(),     1 );
+  MatType ongrid_potentialD(n_on_grid, 4);
+  // UV recip
+  ongrid_potentialD.setZero();
+  pme_object_.computePRec(0, m_uq, m_ux, m_ox, 1, ongrid_potentialD);
+  // VV recip.
+  // NOTE: Do not zero the potential matrix, will be summed into
+  pme_object_.computePRec(0, m_vq, m_vx, m_ox, 1, ongrid_potentialD);
 
 
   t_recip_.Stop();
