@@ -44,6 +44,8 @@ namespace Constants {
   const double CAL_TO_J = 4.184;
   /// Convert Joules to calories
   const double J_TO_CAL = 1.0 / CAL_TO_J;
+  /// One Debye in units of electron charge times Angstroms
+  const double DEBYE_EA = 0.20822678;
   /// Convert electron charge to Amber units (w/ prefactor)
   /** NOTE: This value is actually very low precision, but is used since this
     *       is the value used by LEaP. The actual conversion of Coulomb's

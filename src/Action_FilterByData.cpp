@@ -25,7 +25,7 @@ Action::RetType Action_FilterByData::Init(ArgList& actionArgs, ActionInit& init,
   if (!dataFilter_.IsMulti())
     mprintf(" Filtering out frames using %u data sets.\n", dataFilter_.NinputSets());
   else
-    mprintf(" Creating filter data sets for %zu data sets.\n", dataFilter_.NinputSets());
+    mprintf(" Creating filter data sets for %u data sets.\n", dataFilter_.NinputSets());
   dataFilter_.PrintInputSets();
   if (dataFilter_.OutputFile() != 0)
     mprintf("\tFilter frame info will be written to %s\n",

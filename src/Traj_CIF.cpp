@@ -10,8 +10,8 @@ bool Traj_CIF::ID_TrajFormat(CpptrajFile& fileIn) {
 }
 
 // Traj_CIF::openTrajin()
-// FIXME: Currently CIF files are always read in and stored in memory.
-//        No write. Everything handled by setupTrajin and readFrame.
+// NOTE: Currently CIF files are always read in and stored in memory.
+//       No write. Everything handled by setupTrajin and readFrame.
 int Traj_CIF::openTrajin() {
   return 0;
 }

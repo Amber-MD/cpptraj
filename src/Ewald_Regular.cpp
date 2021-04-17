@@ -6,6 +6,7 @@
 #include "StringRoutines.h" // ByteString
 #include "AtomMask.h"
 #include "Frame.h"
+#include "EwaldOptions.h"
 #ifdef _OPENMP
 # include <omp.h>
 #endif
@@ -98,18 +99,24 @@ void Ewald_Regular::GetMlimits(int* mlimit, double maxexp, double eigmin,
 }
 
 /** Init regular Ewald calculation. */
-int Ewald_Regular::Init(Box const& boxIn, double cutoffIn, double dsumTolIn, double rsumTolIn,
-                     double ew_coeffIn, double maxexpIn, double skinnbIn,
-                     double erfcTableDxIn, int debugIn, const int* mlimitsIn)
+int Ewald_Regular::Init(Box const& boxIn, EwaldOptions const& ewOpts, int debugIn)
+//double cutoffIn, double dsumTolIn, double rsumTolIn,
+//                     double ew_coeffIn, double maxexpIn, double skinnbIn,
+//                     double erfcTableDxIn, int debugIn, const int* mlimitsIn)
 {
-  if (CheckInput(boxIn, debugIn, cutoffIn, dsumTolIn, ew_coeffIn, -1.0, 0.0, erfcTableDxIn, skinnbIn))
+  if (ewOpts.Type() == EwaldOptions::PME) {
+    mprinterr("Internal Error: Ewald options set up for PME\n");
     return 1;
-  rsumTol_ = rsumTolIn;
-  maxexp_ = maxexpIn;
-  if (mlimitsIn != 0)
-    std::copy(mlimitsIn, mlimitsIn+3, mlimit_);
-  else
-    std::fill(mlimit_, mlimit_+3, 0);
+  }
+  if (CheckInput(boxIn, debugIn, ewOpts.Cutoff(), ewOpts.DsumTol(), ewOpts.EwCoeff(),
+                 -1.0, ewOpts.LJ_SwWidth(),
+                 ewOpts.ErfcDx(), ewOpts.SkinNB()))
+    return 1;
+  rsumTol_ = ewOpts.RsumTol();
+  maxexp_ = ewOpts.MaxExp();
+  mlimit_[0] = ewOpts.Mlimits1();
+  mlimit_[1] = ewOpts.Mlimits2();
+  mlimit_[2] = ewOpts.Mlimits3();
 
   // Check input
   if (mlimit_[0] < 0 || mlimit_[1] < 0 || mlimit_[2] < 0) {
@@ -145,11 +152,11 @@ int Ewald_Regular::Init(Box const& boxIn, double cutoffIn, double dsumTolIn, dou
   mprintf("\t  Cutoff= %g   Direct Sum Tol= %g   Ewald coeff.= %g\n",
           cutoff_, dsumTol_, ew_coeff_);
   mprintf("\t  MaxExp= %g   Recip. Sum Tol= %g   NB skin= %g\n",
-          maxexp_, rsumTol_, skinnbIn);
+          maxexp_, rsumTol_, ewOpts.SkinNB());
   //mprintf("\t  Erfc table dx= %g, size= %zu\n", erfcTableDx_, erfc_table_.size()/4);
   mprintf("\t  mlimits= {%i,%i,%i} Max=%i\n", mlimit_[0], mlimit_[1], mlimit_[2], maxmlim_);
   // Set up pair list
-  if (Setup_Pairlist(boxIn, skinnbIn)) return 1;
+  if (Setup_Pairlist(boxIn, ewOpts.SkinNB())) return 1;
 
   return 0;
 }

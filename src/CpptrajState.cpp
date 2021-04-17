@@ -169,7 +169,7 @@ int CpptrajState::AddOutputTrajectory( ArgList& argIn ) {
 
 // CpptrajState::AddOutputTrajectory()
 int CpptrajState::AddOutputTrajectory( std::string const& fname ) {
-  // FIXME Should this use the last Topology instead?
+  // TODO Should this use the last Topology instead?
   ArgList tmpArg(fname);
   return AddOutputTrajectory( tmpArg );
 }
@@ -629,7 +629,7 @@ int CpptrajState::RunEnsemble() {
     // Set current parm from current ensemble.
     Topology* currentTop = (*ens)->Traj().Parm();
     CoordinateInfo const& currentCoordInfo = (*ens)->EnsembleCoordInfo();
-    currentTop->SetBoxFromTraj( currentCoordInfo.TrajBox() ); // FIXME necessary?
+    currentTop->SetBoxFromTraj( currentCoordInfo.TrajBox() );
     int topFrames = trajinList_.TopFrames( currentTop->Pindex() );
     for (int member = 0; member < ensembleSize; ++member)
       EnsembleParm[member].Set( currentTop, currentCoordInfo, topFrames );
@@ -877,7 +877,7 @@ int CpptrajState::RunParaEnsemble() {
   DSL_.SetNewSetsNeedSync( true );
 
   // ----- SETUP PHASE ---------------------------
-  NAV.FirstParm()->SetBoxFromTraj( NAV.EnsCoordInfo().TrajBox() ); // FIXME necessary?
+  NAV.FirstParm()->SetBoxFromTraj( NAV.EnsCoordInfo().TrajBox() );
   ActionSetup currentParm( NAV.FirstParm(), NAV.EnsCoordInfo(), NAV.IDX().MaxFrames() );
   err = actionList_.SetupActions( currentParm, exitOnError_ );
   if (Parallel::World().CheckError( err )) {
@@ -1015,7 +1015,6 @@ int CpptrajState::RunParallel() {
   }
 
   // Put all trajectories into a DataSet_Coords_TRJ for random access.
-  // FIXME error check above goes here instead?
   DataSet_Coords_TRJ input_traj;
   for ( TrajinList::trajin_it traj = trajinList_.trajin_begin();
                               traj != trajinList_.trajin_end(); ++traj)
@@ -1042,7 +1041,7 @@ int CpptrajState::RunParallel() {
   // ----- SETUP PHASE ---------------------------
   CoordinateInfo const& currentCoordInfo = input_traj.CoordsInfo();
   Topology* top = input_traj.TopPtr();
-  top->SetBoxFromTraj( currentCoordInfo.TrajBox() ); // FIXME necessary?
+  top->SetBoxFromTraj( currentCoordInfo.TrajBox() );
   int topFrames = trajinList_.TopFrames( top->Pindex() );
   ActionSetup currentParm( top, currentCoordInfo, topFrames );
   err = actionList_.SetupActions( currentParm, exitOnError_ );
@@ -1195,7 +1194,7 @@ int CpptrajState::RunSingleTrajParallel() {
   // ----- SETUP PHASE ---------------------------
   CoordinateInfo const& currentCoordInfo = trajin->TrajCoordInfo();
   Topology* top = trajin->Traj().Parm();
-  top->SetBoxFromTraj( currentCoordInfo.TrajBox() ); // FIXME necessary?
+  top->SetBoxFromTraj( currentCoordInfo.TrajBox() );
   int topFrames = trajinList_.TopFrames( top->Pindex() );
   ActionSetup currentParm( top, currentCoordInfo, topFrames );
   int err = actionList_.SetupActions( currentParm, exitOnError_ );
@@ -1301,7 +1300,7 @@ int CpptrajState::RunNormal() {
     }
     // Set current parm from current traj.
     Topology* top = (*traj)->Traj().Parm();
-    top->SetBoxFromTraj( (*traj)->TrajCoordInfo().TrajBox() ); // FIXME necessary?
+    top->SetBoxFromTraj( (*traj)->TrajCoordInfo().TrajBox() );
     ActionSetup currentSetup( top, (*traj)->TrajCoordInfo(),
                              trajinList_.TopFrames( top->Pindex() ) );
     // Check if parm has changed
@@ -1505,7 +1504,7 @@ int CpptrajState::AddReference( std::string const& fname, ArgList const& args ) 
   std::string tag = argIn.GetStringKey("name");
   // Determine if there is a mask expression for stripping reference. // TODO: Remove?
   std::string maskexpr = argIn.GetMaskNext();
-  // Check for tag. FIXME: need to do after SetupTrajRead?
+  // Check for tag.
   if (tag.empty()) tag = argIn.getNextTag();
   // Set up reference DataSet from file or COORDS set.
   DataSet_Coords_REF* ref = new DataSet_Coords_REF();
