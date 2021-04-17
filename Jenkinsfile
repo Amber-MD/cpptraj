@@ -75,6 +75,7 @@ pipeline {
                     post { cleanup { deleteDir() } }
                 }
                 stage("Linux Intel Serial Build") {
+                    when { expression { return false } }
                     agent {
                         docker {
                             image 'ambermd/cpu-build:latest'
