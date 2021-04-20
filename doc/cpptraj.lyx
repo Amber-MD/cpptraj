@@ -24446,7 +24446,7 @@ gist
 \end_layout
 
 \begin_layout LyX-Code
-     [griddim <xval> <yval> <zval>] [gridspacn <spaceval>]
+     [griddim <nx> <ny> <nz>] [gridspacn <spaceval>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -24575,17 +24575,18 @@ rdval>]
 \begin_inset space ~
 \end_inset
 
-<xval>
+<nx>
 \begin_inset space ~
 \end_inset
 
-<yval>
+<ny>
 \begin_inset space ~
 \end_inset
 
-<zval>]
+<nz>]
 \series default
- Grid dimensions along each coordinate axis (default 40, 40, 40).
+ Grid dimensions (number of bins/voxels) along each coordinate axis (default
+ 40, 40, 40).
 \end_layout
 
 \begin_layout Description
