@@ -24450,11 +24450,11 @@ gist
 \end_layout
 
 \begin_layout LyX-Code
-     [prefix <filename prefix>] [ext <grid extension>] [out <output>]
+     [prefix <filename prefix>] [ext <grid extension>] [out <output suffix>]
 \end_layout
 
 \begin_layout LyX-Code
-     [info <info>]
+     [info <info suffix>]
 \end_layout
 
 \begin_layout LyX-Code
