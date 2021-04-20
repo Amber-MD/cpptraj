@@ -24648,10 +24648,10 @@ extension>] Output grid file name extension (default
 \begin_inset space ~
 \end_inset
 
-<output>]
+<output suffix>]
 \series default
- Name of the main GIST output file.
- If not specified set to '<prefix>-output.dat'.
+ Suffix for main GIST output file name.
+ If not specified, output file will be set to '<prefix>-output.dat'.
 \end_layout
 
 \begin_layout Description
@@ -24659,8 +24659,12 @@ extension>] Output grid file name extension (default
 \begin_inset space ~
 \end_inset
 
-<info>] Name of main GIST info file.
- If not specified info is written to standard output.
+<info
+\begin_inset space ~
+\end_inset
+
+suffix>] Suffix for main GIST info file name.
+ If not specified, info will be written to standard output.
 \end_layout
 
 \begin_layout Description
