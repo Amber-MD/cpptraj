@@ -145,7 +145,7 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, double& e_elec, doubl
     e_vdw6self = 0.0;
     e_vdw6recip = 0.0;
     std::fill(E_vdw_lr_cor_.begin(), E_vdw_lr_cor_.end(), 0);
-    e_vdw_lr_correction = Vdw_Correction_GIST( volume, E_vdw_lr_cor_ );
+    e_vdw_lr_correction = Vdw_Correction_GIST( volume );
     //mprintf("e_vdw_lr_correction: %f \n", e_vdw_lr_correction);
   }
 
@@ -370,7 +370,7 @@ double GIST_PME::LJ_Recip_ParticleMesh_GIST(Box const& boxIn, MatType& potential
 }
 
 /** Calculate full VDW long range correction from volume. */
-double GIST_PME::Vdw_Correction_GIST(double volume, Darray& e_vdw_lr_cor) {
+double GIST_PME::Vdw_Correction_GIST(double volume) {
   double prefac = Constants::TWOPI / (3.0*volume*cutoff_*cutoff_*cutoff_);
   //mprintf("VDW correction prefac: %.15f \n", prefac);
   double e_vdwr = -prefac * Vdw_Recip_Term();
@@ -398,7 +398,7 @@ double GIST_PME::Vdw_Correction_GIST(double volume, Darray& e_vdw_lr_cor) {
 
     //mprintf("for i = %i,vdw_type = %i, Number of atoms in this vdw_type_= %i, Total vdw_recip_terms_ for this type= %f,  vdw_recip_term for atom i= %f \n",i,vdw_type_[i],N_vdw_type_[vdw_type_[i]],atype_vdw_recip_terms_[vdw_type_[i]],term);
 
-    e_vdw_lr_cor[i]= -prefac * term ;
+    E_vdw_lr_cor_[i]= -prefac * term ;
     //mprintf("atom e_vdw_lr_cor: %f \n", -prefac* atom_vdw_recip_terms_[i]);
   }
 
