@@ -647,6 +647,9 @@ test.openmp:
 test.cuda:
 	$(MAKE) test.complete summary OPT="$(OPT) cuda"
 
+test.hip:
+	$(MAKE) test.complete summary OPT="$(OPT) hip"
+
 test.libcpptraj:
 	@cd Test_Libcpptraj && ./RunTest.sh $(OPT)
 
