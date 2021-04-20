@@ -77,6 +77,11 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, double& e_elec, doubl
 {
   t_total_.Start();
 
+  mprintf("DEBUG: Beginning GIST PME nonbonded energy calculation for %zu atoms.\n", atom_voxel.size());
+  for (unsigned int ii = 0; ii != atom_voxel.size(); ii++) {
+    mprintf("\tAt %10u  voxel= %10i  isSolute= %1i\n", ii, atom_voxel[ii], (int)atomIsSolute[ii]);
+  }
+
   // Elec. self
   double volume = frameIn.BoxCrd().CellVolume();
   std::fill(E_elec_self_.begin(), E_elec_self_.end(), 0);
@@ -387,7 +392,7 @@ double GIST_PME::Vdw_Correction_GIST(double volume,
   //mprintf("volume of the unit cell: %f", volume);
 
 
-  for ( unsigned int i = 0; i != Cparam_.size(); i++)
+  for ( unsigned int i = 0; i != vdw_type_.size(); i++)
   {
     double term(0);
 
@@ -408,7 +413,7 @@ double GIST_PME::Vdw_Correction_GIST(double volume,
     E_vdw_lr_cor_[i]= -prefac * term ;
     //mprintf("atom e_vdw_lr_cor: %f \n", -prefac* atom_vdw_recip_terms_[i]);
     int at_voxel = atom_voxel[i];
-    if (at_voxel > 0) {
+    if (at_voxel > -1) {
       // NOTE: Multiply by 2 since other terms (direct/recip) are the 'full'
       //       terms (i.e. not divided between atoms) and the Action_GIST::CalcAvgVoxelEnergy()
       //       function will divide the voxels by a factor of 2.
