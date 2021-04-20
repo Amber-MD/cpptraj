@@ -212,7 +212,10 @@ double GIST_PME::Self_GIST(double volume, Darray& atom_self,
     atom_self[i]=Charge_[i]*Charge_[i]*d0 + ee_plasma/Charge_.size();
     if (atom_voxel[i] > -1 && !atomIsSolute[i]) {
       // Only do the self-terms for on-grid water; no exclusions for solute to on-grid solvent
-      e_vv_elec[atom_voxel[i]] += atom_self[i];
+      // NOTE: Multiply by 2 since other terms (direct/recip) are the 'full'
+      //       terms (i.e. not divided between atoms) and the Action_GIST::CalcAvgVoxelEnergy()
+      //       function will divide the voxels by a factor of 2.
+      e_vv_elec[atom_voxel[i]] += (atom_self[i] * 2);
       mprintf("DEBUG: gistpme vv self at %u eself= %20.10g\n", i,atom_self[i] );
     }
   }
@@ -406,11 +409,14 @@ double GIST_PME::Vdw_Correction_GIST(double volume,
     //mprintf("atom e_vdw_lr_cor: %f \n", -prefac* atom_vdw_recip_terms_[i]);
     int at_voxel = atom_voxel[i];
     if (at_voxel > 0) {
+      // NOTE: Multiply by 2 since other terms (direct/recip) are the 'full'
+      //       terms (i.e. not divided between atoms) and the Action_GIST::CalcAvgVoxelEnergy()
+      //       function will divide the voxels by a factor of 2.
       if (atomIsSolute[i]) {
-        e_uv_vdw[at_voxel] += E_vdw_lr_cor_[i];
+        e_uv_vdw[at_voxel] += (E_vdw_lr_cor_[i]*2);
         mprintf("DEBUG: gistpme uv vdwLR at %u elr= %20.10g\n", i, E_vdw_lr_cor_[i]);
       } else {
-        e_vv_vdw[at_voxel] += E_vdw_lr_cor_[i];
+        e_vv_vdw[at_voxel] += (E_vdw_lr_cor_[i]*2);
         mprintf("DEBUG: gistpme vv vdwLR at %u elr= %20.10g\n", i, E_vdw_lr_cor_[i]);
       }
     }
