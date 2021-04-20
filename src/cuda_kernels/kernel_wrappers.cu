@@ -2,6 +2,10 @@
 #include <cstdio>
 #endif
 #include "../ImageOption.h"
+#if defined(__HIP_PLATFORM_HCC__)
+#include <hip/hip_runtime.h>
+#include "../HipDefinitions.h"
+#endif
 
 #define BLOCKDIM 512
 
@@ -17,7 +21,7 @@ __global__ void kClosestDistsToPt_Nonortho(double*,const double*,const double*,d
 __global__ void kClosestDistsToAtoms_Nonortho(double*,const double*,const double*,double,const double*,const double*,int,int,int,int);
 // -----------------------------------------------------------------------------
 
-/** Calculate the closest distances between atoms in solvent molecules and 
+/** Calculate the closest distances between atoms in solvent molecules and
   * the given point.
   * \param SolventMols_ Coordinates for each atom of each solvent molecule.
   * \param D_ Output distances for each molecule.
@@ -45,10 +49,10 @@ void Action_Closest_Center(const double *SolventMols_, double *D_, const double*
   double *ucellDev, *recipDev;
 
   cudaMalloc(((void **)(&devO1Ptr)),NMols * sizeof(double ));
-  
+
   cudaMalloc(((void **)(&devI1Ptr)),3 * sizeof(double ));
   cudaMemcpy(devI1Ptr,maskCenter,3 * sizeof(double ),cudaMemcpyHostToDevice);
-  
+
   cudaMalloc(((void **)(&devI2Ptr)),NMols * NAtoms * 3 * sizeof(double ));
   cudaMemcpy(devI2Ptr,SolventMols_,NMols * NAtoms * 3 * sizeof(double ),cudaMemcpyHostToDevice);
 
@@ -72,7 +76,7 @@ void Action_Closest_Center(const double *SolventMols_, double *D_, const double*
   dim3 dimBlock0 = dim3(BLOCKDIM,1);
 
   #ifdef DEBUG_CUDA
-  printf("NMols =  %d, NAtoms = %d\n", NMols, NAtoms); 
+  printf("NMols =  %d, NAtoms = %d\n", NMols, NAtoms);
   printf("active_size =  %d\n", active_size);
   printf("NBlocks =  %d\n", NBlocks);
   printf("sizeof(double) = %d\n", sizeof(double));
@@ -103,7 +107,7 @@ void Action_Closest_Center(const double *SolventMols_, double *D_, const double*
 
   printf("Done with kernel CUDA Kernel Time: %.2f\n", time_gpu);
   #endif
-  
+
   cudaMemcpy(D_,devO1Ptr,NMols * sizeof(double ),cudaMemcpyDeviceToHost);
   cudaFree(devO1Ptr);
   cudaFree(devI1Ptr);
@@ -149,7 +153,7 @@ void Action_Closest_NoCenter(const double *SolventMols_, double *D_, const doubl
 
   cudaMalloc(((void **)(&devI2Ptr)),NMols * NAtoms * 3 * sizeof(double ));
   cudaMemcpy(devI2Ptr,SolventMols_,NMols * NAtoms * 3 * sizeof(double ),cudaMemcpyHostToDevice);
-  
+
   cudaMalloc(((void **)(&devI3Ptr)), NSAtoms * 3 * sizeof(double ));
   cudaMemcpy(devI3Ptr,Solute_atoms,NSAtoms * 3 * sizeof(double ),cudaMemcpyHostToDevice);
 
@@ -173,7 +177,7 @@ void Action_Closest_NoCenter(const double *SolventMols_, double *D_, const doubl
   dim3 dimBlock0 = dim3(BLOCKDIM,1);
 
   #ifdef DEBUG_CUDA
-  printf("NMols =  %d, NAtoms = %d\n", NMols, NAtoms); 
+  printf("NMols =  %d, NAtoms = %d\n", NMols, NAtoms);
   printf("active_size =  %d\n", active_size);
   printf("NBlocks =  %d\n", NBlocks);
   printf("sizeof(double) = %d\n", sizeof(double));
@@ -195,7 +199,6 @@ void Action_Closest_NoCenter(const double *SolventMols_, double *D_, const doubl
       kClosestDistsToAtoms_Nonortho<<<dimGrid0,dimBlock0>>>(devO1Ptr, devI2Ptr,devI3Ptr, maxD, ucellDev, recipDev,  NMols, NAtoms,NSAtoms,active_size);
     break;
   }
-  
   cudaThreadSynchronize();
 
   #ifdef DEBUG_CUDA
@@ -205,7 +208,7 @@ void Action_Closest_NoCenter(const double *SolventMols_, double *D_, const doubl
 
   printf("Done with kernel CUDA Kernel Time: %.2f\n", time_gpu);
   #endif
-  
+
   cudaMemcpy(D_,devO1Ptr,NMols * sizeof(double ),cudaMemcpyDeviceToHost);
   cudaFree(devO1Ptr);
   cudaFree(devI2Ptr);

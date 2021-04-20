@@ -1,3 +1,6 @@
+#if defined(__HIP_PLATFORM_HCC__)
+#include <hip/hip_runtime.h>
+#endif
 #define BLOCKDIM 512
 #define RSIZE 512
 

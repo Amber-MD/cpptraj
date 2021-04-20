@@ -15,8 +15,14 @@
 #include "Timer.h"
 #include "StringRoutines.h" // TimeString
 #include "TrajectoryFile.h" // for autodetect
-#ifdef CUDA
-# include <cuda_runtime_api.h>
+#if defined(CUDA)
+#  if defined(__HIP_PLATFORM_HCC__)
+#    include <hip/hip_runtime.h>
+#    include <hip/hip_runtime_api.h>
+#    include "HipDefinitions.h"
+#  else
+#    include <cuda_runtime_api.h>
+#  endif
 #endif
 #ifdef _OPENMP
 # include <omp.h>
@@ -600,7 +606,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       return INTERACTIVE;
     else {
       // "" means read from STDIN
-      CpptrajState::RetType c_err = Command::ProcessInput( State_, "" ); 
+      CpptrajState::RetType c_err = Command::ProcessInput( State_, "" );
       if (c_err == CpptrajState::ERR && State_.ExitOnError()) return ERROR;
       if (Command::UnterminatedControl()) return ERROR;
       if (c_err == CpptrajState::QUIT) return QUIT;

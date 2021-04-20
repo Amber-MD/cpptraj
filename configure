@@ -19,6 +19,7 @@ UsageSimple() {
   echo "    -mpi           : Use mpicc/mpicxx to compile."
   echo "    -intelmpi      : Use mpiicc/mpiicpc to compile."
   echo "    -cuda          : Enable CUDA support. See SHADER_MODEL in --full-help for more info."
+  echo "    -hip           : Enable HIP support."
   echo "    -cray          : Use cray compiler wrappers (cc/CC/ftn)."
   echo "    -amberlib      : Use BLAS/ARPACK/LAPACK/NetCDF libraries from \$AMBERHOME"
   echo "    --full-help    : Display additional options."
@@ -71,9 +72,11 @@ UsageFull() {
   echo "    FFLAGS       : Flags to pass to the Fortran compiler."
   echo "    LDFLAGS      : Flags to pass to the linker."
   echo "    TUNEFLAGS    : Host-specific tuning flags. Will override '-tune'."
-  echo "    NVCC         : Name of the nvcc compiler."
-  echo "    NVCCFLAGS    : Flags to pass to the nvcc compiler."
+  echo "    NVCC         : Name of the nvcc/hipcc compiler."
+  echo "    NVCCFLAGS    : Flags to pass to the nvcc/hipcc compiler."
   echo "    DBGFLAGS     : Any additional flags to pass to all compilers."
+  echo "    CUDA_HOME    : (-cuda) Path to CUDA installation."
+  echo "    HIP_HOME     : (-hip) Path to ROCm installation (default is '/opt/rocm')."
   echo "    SHADER_MODEL : (-cuda) Should be set to 'sm_XX', where XX is CUDA compute architecture."
   echo "                   sm_86 = GA102, 104, 106, 107"
   echo "                   sm_80 = GA100"
@@ -165,6 +168,7 @@ COMPILE_VERBOSE=0 # 1 = show details during compile
 USE_MPI=0         # 0 = no MPI, 1 = mpicc etc, 2 = mpiicc etc
 USE_OPENMP=0      # 0 = no OpenMP, 1 = OpenMP
 USE_CUDA=0        # 0 = no CUDA, 1 = CUDA
+USE_HIP=0         # 0 = no HIP, 1 = HIP
 USE_OPT=1         # 0 = no optimization, 1 = use compiler optimizations, 2 = optimize/tune.
 BLAS_TYPE='other' # none|mkl|libsci(cray)|openblas|macAccelerate|other=normal BLAS
 MKL_TYPE='mkl'    # mkl = -mkl for Intel compilers, line = link-line advisor style
@@ -211,9 +215,10 @@ LXDRFILE=10
 LSANDER=11
 LTIMER=12
 LCUDA=13
-LOPENMM=14
+LHIP=14
+LOPENMM=15
 # Total number of external libraries
-NLIB=15
+NLIB=16
 
 # LIB_STAT = Library status:
 #   off       : Do not use library.
@@ -337,6 +342,16 @@ LIB_D_ON[$LCUDA]='-DCUDA'
 LIB_DOFF[$LCUDA]=''
 LIB_TYPE[$LCUDA]='cpp'
 
+LIB_STAT[$LHIP]='off'
+LIB_CKEY[$LHIP]='hip'
+LIB_HOME[$LHIP]=''
+LIB_FLAG[$LHIP]='-lamdhip64'
+LIB_STTC[$LHIP]=''
+# TODO: Replace __HIP_PLATFORM_HCC__ after 4.1 rocm release
+LIB_D_ON[$LHIP]='-DCUDA -D__HIP_PLATFORM_HCC__'
+LIB_DOFF[$LHIP]=''
+LIB_TYPE[$LHIP]='cpp'
+
 LIB_STAT[$LTNGFILE]='bundled'
 LIB_CKEY[$LTNGFILE]='tng'
 LIB_HOME[$LTNGFILE]='tng'
@@ -426,7 +441,7 @@ TestProgram() {
     REBUILDOPT='--rebuild'
   fi
   if [ "$1" = 'noexe' ] ; then
-    # Output messages, do not execute compiled binary
+    # Output messages, do not execute compiled binary; exit on error
     silent=3
     shift
   elif [ "$1" = 'quiet' ] ; then
@@ -451,7 +466,7 @@ TestProgram() {
   #echo "COMPILE: $COMPILELINE" #DEBUG
   $COMPILELINE > $COMPOUT 2> $COMPERR
   if [ $? -ne 0 -o ! -f 'testp' ] ; then
-    if [ $silent -eq 0 ] ; then
+    if [ $silent -eq 0 -o $silent -eq 3 ] ; then
       echo ""
       ErrMsg "Test compile failed: $COMPILELINE"
       ErrMsg "Check the output below for error messages:"
@@ -515,14 +530,14 @@ EOF
       TestProgram $BUILDTESTOPT "  Checking for bundled Bzip2" "$CXX" "$CXXFLAGS ${LIB_INCL[$LBZIP]}" testp.cpp "${LIB_FLAG[$LBZIP]}"
       if [ $? -ne 0 ] ; then
         CheckRebuild "Bzip2" "${LIB_FLAG[$LBZIP]}"
-        # See if user would like to get Bzip2 
+        # See if user would like to get Bzip2
         PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS LIBNAME='bzip2' \
             SRCDIR=$BZIP2_SRCDIR SRCTAR=$BZIP2_SRCTAR URL=$BZIP2_URL ./get_library.sh $REBUILDOPT $BZIP2_OPTS
         if [ $? -ne 0 ] ; then
           ErrMsg "Building Bzip2 failed."
           exit 1
         fi
-        # Test the built Bzip2 
+        # Test the built Bzip2
         TestProgram "  Checking built Bzip2" "$CXX" "$CXXFLAGS ${LIB_INCL[$LBZIP]}" testp.cpp "${LIB_FLAG[$LBZIP]}"
       fi
     else
@@ -698,7 +713,7 @@ DetermineFlink() {
   fi
   return 0
 }
-    
+
 TestMathlib() {
   cat > testp.cpp <<EOF
 #include <cstdio>
@@ -936,6 +951,24 @@ EOF
   TestProgram noexe "  Checking CUDA" "$CXX" "$CXXFLAGS ${LIB_INCL[$LCUDA]}" testp.cpp "${LIB_FLAG[$LCUDA]}"
 }
 
+TestHip() {
+  cat > testp.cpp <<EOF
+#include <cstdio>
+#include <hip/hip_runtime_api.h>
+
+int main() {
+  int device;
+  if ( hipGetDevice( &device ) == hipSuccess ) {
+    hipDeviceProp_t deviceProp;
+    if ( hipGetDeviceProperties( &deviceProp, device ) == hipSuccess )
+      printf("| HIP device: %s\n", deviceProp.name);
+  }
+  return 0;
+}
+EOF
+  TestProgram noexe "  Checking HIP" "$CXX" "$CXXFLAGS ${LIB_INCL[$LHIP]} ${LIB_D_ON[$LHIP]}" testp.cpp "${LIB_FLAG[$LHIP]}"
+}
+
 TestOpenMM() {
   cat > testp.cpp <<EOF
 #include <cstdio>
@@ -975,6 +1008,7 @@ TestLibraries() {
   if [ "${LIB_TEST[$LTNGFILE]}" = 'yes'  ] ; then TestTngfile ; fi
   if [ "${LIB_TEST[$LSANDER]}" = 'yes'   ] ; then TestSanderlib ; fi
   if [ "${LIB_TEST[$LCUDA]}" = 'yes'     ] ; then TestCuda ; fi
+  if [ "${LIB_TEST[$LHIP]}" = 'yes'      ] ; then TestHip ; fi
   if [ "${LIB_TEST[$LOPENMM]}" = 'yes'   ] ; then TestOpenMM ; fi
 }
 
@@ -1824,6 +1858,28 @@ SetupCUDA() {
 }
 
 # ------------------------------------------------------------------------------
+# Check that HIP_HOME is defined and set up flags for nvcc
+SetupHIP() {
+  if [ -z "$HIP_HOME" ] ; then
+    HIP_HOME="/opt/rocm"
+    echo "HIP_HOME not set, '$HIP_HOME' will be used"
+  fi
+  if [ ! -x "$HIP_HOME/bin/hipcc" ]; then
+    Err "Error: hipcc HIP compiler not found in $HIP_HOME/bin"
+  fi
+  if [ -z "$NVCC" ]; then NVCC="$HIP_HOME/bin/hipcc"; fi
+  if [ -z "$NVCCFLAGS" ] ; then
+    NVCCFLAGS="-fPIC $NVCCFLAGS"
+  fi
+  NVCCFLAGS="${LIB_D_ON[$LHIP]} $NVCCFLAGS"
+  if [ ! -z "$picflag" ] ; then
+    NVCCFLAGS="$picflag $NVCCFLAGS"
+  fi
+  LIB_STAT[$LHIP]='specified'
+  LIB_HOME[$LHIP]=$HIP_HOME
+}
+
+# ------------------------------------------------------------------------------
 # Basic checks, set up some directives
 BasicChecks() {
   # Check install directory
@@ -1862,13 +1918,14 @@ BasicChecks() {
   fi
   # TODO if we skipped checks we may need the FLINK flag enabled
   # Binary suffix
-  if [ $USE_MPI -ne 0    ] ; then SFX=$SFX".MPI" ; fi
-  if [ $USE_OPENMP -ne 0 ] ; then SFX=$SFX".OMP" ; fi
+  if [ $USE_MPI -ne 0    ] ; then SFX=$SFX".MPI"  ; fi
+  if [ $USE_OPENMP -ne 0 ] ; then SFX=$SFX".OMP"  ; fi
   if [ $USE_CUDA -ne 0   ] ; then SFX=$SFX".cuda" ; fi
+  if [ $USE_HIP  -ne 0   ] ; then SFX=$SFX".hip"  ; fi
 }
 
 #-------------------------------------------------------------------------------
-# Platform-specific tests 
+# Platform-specific tests
 PlatformTests() {
   # C++11 support
   if [ "$C11_SUPPORT" = 'yes' ] ; then
@@ -2176,11 +2233,11 @@ SetupCmake() {
     cmake_options="$cmake_options -DCMAKE_VERBOSE_MAKEFILE=TRUE"
   fi
   echo "  Cmake options: $WORKDIR $cmake_options"
-  # Run cmake 
+  # Run cmake
   $CMAKE $WORKDIR $cmake_options
   exit $?
 }
- 
+
 # ==============================================================================
 # MAIN SCRIPT
 
@@ -2246,6 +2303,8 @@ while [ ! -z "$1" ] ; do
     'DBGFLAGS'   ) DBGFLAGS="$VALUE" ;;
     'NVCC'       ) NVCC="$VALUE" ;;
     'NVCCFLAGS'  ) NVCCFLAGS="$VALUE" ;;
+    'CUDA_HOME'  ) CUDA_HOME="$VALUE" ;;
+    'HIP_HOME'   ) HIP_HOME="$VALUE" ;;
     'SHADER_MODEL') SHADER_MODEL="$VALUE" ;;
     # Build options
     '-cmake'         ) USE_CMAKE=1 ;;
@@ -2253,6 +2312,7 @@ while [ ! -z "$1" ] ; do
     '-intelmpi'      ) USE_MPI=2 ;;
     '-openmp'        ) USE_OPENMP=1 ;;
     '-cuda'          ) USE_CUDA=1 ;;
+    '-hip'           ) USE_HIP=1 ;;
     '-cray'          ) PLATFORM='cray' ;;
     '-mkl'           ) BLAS_TYPE='mkl' ;;
     '-nomklfftw'     ) MKL_FFTW='no' ;;
@@ -2350,9 +2410,18 @@ BasicChecks
 # Set up compilers and compiler options
 SetupCompilers
 
+if [ "$USE_CUDA" -eq 1 -a "$USE_HIP" -eq 1 ] ; then
+  Err "-cuda and -hip are mutually exclusive."
+fi
+
 # Set up CUDA if needed
 if [ "$USE_CUDA" -eq 1 ] ; then
   SetupCUDA
+fi
+
+# Set up HIP if needed
+if [ "$USE_HIP" -eq 1 ] ; then
+  SetupHIP
 fi
 
 # Set up profiling if specified
@@ -2379,9 +2448,11 @@ SetupFinalFlags
 echo ""
 echo "Configuration summary:"
 echo -n "  Build type:"
-if [ $USE_MPI -eq 0 -a $USE_OPENMP -eq 0 -a $USE_CUDA -eq 0 ] ; then
+if [ $USE_MPI -eq 0 -a $USE_OPENMP -eq 0 -a $USE_CUDA -eq 0 -a $USE_HIP -eq 0 ] ; then
   echo " Serial"
-elif [ $USE_MPI -eq 0 -a $USE_OPENMP -eq 0 -a $USE_CUDA -ne 0 ] ; then
+elif [ $USE_MPI -eq 0 -a $USE_OPENMP -eq 0 -a $USE_CUDA -eq 0 -a $USE_HIP -ne 0 ] ; then
+  echo " HIP"
+elif [ $USE_MPI -eq 0 -a $USE_OPENMP -eq 0 -a $USE_CUDA -ne 0 -a $USE_HIP -eq 0 ] ; then
   echo " CUDA"
 else
   if [ $USE_MPI -ne 0 -a $USE_OPENMP -ne 0 ] ; then
@@ -2393,6 +2464,8 @@ else
   fi
   if [ $USE_CUDA -ne 0 ] ; then
     echo " + CUDA"
+  elif [ $USE_HIP -ne 0 ] ; then
+    echo " + HIP"
   else
     echo ""
   fi
@@ -2489,7 +2562,7 @@ else
   LIBCPPTRAJ_TARGET='nolibcpptraj'
 fi
 # CUDA
-if [ $USE_CUDA -eq 1 ] ; then
+if [ $USE_CUDA -ne 0 -o $USE_HIP -ne 0 ] ; then
   CUDA_TARGET='cuda_kernels/libcpptraj_cuda.a'
 fi
 # Readline

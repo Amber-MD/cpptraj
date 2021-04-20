@@ -262,7 +262,7 @@ NcTest() {
       $CPPTRAJ_NCDUMP -n nctest $FNC1 | grep -v "==>\|:program" > nc0.save
       $CPPTRAJ_NCDUMP -n nctest $FNC2 | grep -v "==>\|:program" > nc0
     fi
-    DoTest $DIFFARGS 
+    DoTest $DIFFARGS
     $CPPTRAJ_RM nc0.save nc0
   fi
 }
@@ -551,7 +551,7 @@ EndTest() {
       echo "  $PASSCOUNT out of $NUMCOMPARISONS passing comparisons. $WARNCOUNT warnings."
       OUT  "  $PASSCOUNT out of $NUMCOMPARISONS passing comparisons. $WARNCOUNT warnings."
     elif [ $NUMCOMPARISONS -gt 0 ] ; then
-      echo "All $NUMCOMPARISONS comparisons passed." 
+      echo "All $NUMCOMPARISONS comparisons passed."
       OUT  "All $NUMCOMPARISONS comparisons passed."
     fi
     if [ $SKIPCOUNT -gt 0 ] ; then
@@ -627,6 +627,7 @@ Help() {
   echo "  mpi             : Use MPI version of CPPTRAJ (automatically used if DO_PARALLEL set)."
   echo "  openmp          : Use OpenMP version of CPPTRAJ."
   echo "  cuda            : Use CUDA version of CPPTRAJ."
+  echo "  hip             : Use HIP version of CPPTRAJ."
   echo "  time            : Time the test with 'time'."
   echo "  stdout          : Print CPPTRAJ test output to STDOUT."
   echo "  vg              : Run test with 'valgrind' memcheck."
@@ -657,6 +658,7 @@ CmdLineOpts() {
   CPPTRAJ_PROFILE=0    # Will be exported
   SFX_OMP=0
   SFX_CUDA=0
+  SFX_HIP=0
   SFX_MPI=0
   GET_TIMING=0
   while [ ! -z "$1" ] ; do
@@ -668,6 +670,7 @@ CmdLineOpts() {
       "stdout"    ) CPPTRAJ_OUTPUT='' ;;
       "openmp"    ) SFX_OMP=1 ;;
       "cuda"      ) SFX_CUDA=1 ;;
+      "hip"       ) SFX_HIP=1 ;;
       "mpi"       ) SFX_MPI=1 ;;
       "vg"        ) VGMODE=1 ;;
       "vgh"       ) VGMODE=2 ;;
@@ -679,7 +682,7 @@ CmdLineOpts() {
       "-nodacdif" ) USE_DACDIF=0 ;;
       "-cpptraj"  ) shift ; export CPPTRAJ=$1 ; echo "Using cpptraj: $CPPTRAJ" ;;
       "--target"  ) shift ; TARGET=$1 ;;
-     "-profile"   ) CPPTRAJ_PROFILE=1 ; echo "Performing gnu profiling during EndTest." ;;
+      "-profile"  ) CPPTRAJ_PROFILE=1 ; echo "Performing gnu profiling during EndTest." ;;
       "-h" | "--help" ) Help ; exit 0 ;;
       "alltests"  )
         echo "Running all tests in Test_* directories."
@@ -723,6 +726,7 @@ CmdLineOpts() {
   if [ "$SFX_MPI"  -eq 1 ] ; then SFX="$SFX.MPI"  ; fi
   if [ "$SFX_OMP"  -eq 1 ] ; then SFX="$SFX.OMP"  ; fi
   if [ "$SFX_CUDA" -eq 1 ] ; then SFX="$SFX.cuda" ; fi
+  if [ "$SFX_HIP"  -eq 1 ] ; then SFX="$SFX.hip"  ; fi
 }
 
 #-------------------------------------------------------------------------------
@@ -770,7 +774,7 @@ CheckDefines() {
   export CPPTRAJ_XDRFILE
   export CPPTRAJ_TNGFILE
   export CPPTRAJ_MATHLIB
-  #echo "DEBUG: $ZLIB $BZLIB $NETCDFLIB $MPILIB $NOMATHLIB $OPENMP $PNETCDFLIB $SANDERLIB $CUDA $XDRFILE"
+  #echo "DEBUG: $ZLIB $BZLIB $NETCDFLIB $MPILIB $NOMATHLIB $OPENMP $PNETCDFLIB $SANDERLIB $CUDA $HIP $XDRFILE"
 }
 
 #-------------------------------------------------------------------------------
@@ -818,6 +822,14 @@ SetBinaries() {
         VALGRIND='cuda-memcheck'
       else
         ErrMsg "'helgrind' not supported for CUDA."
+        exit 1
+      fi
+    elif [ ! -z "$CPPTRAJ_HIP" ] ; then
+      if [ $VGMODE -eq 1 ] ; then
+        Required "hip-memcheck"
+        VALGRIND='hip-memcheck'
+      else
+        ErrMsg "'helgrind' not supported for HIP."
         exit 1
       fi
     else
@@ -973,6 +985,7 @@ CheckEnv() {
       'openmp'    ) TestLibrary "OpenMP"             "$CPPTRAJ_OPENMP" ;;
       'singleensemble' ) TestLibrary "Single ensemble support" "$CPPTRAJ_SINGLE_ENS" ;;
       'cuda'      ) TestLibrary "CUDA"               "$CPPTRAJ_CUDA" ;;
+      'hip'       ) TestLibrary "HIP"                "$CPPTRAJ_HIP" ;;
       'openmm'    ) TestLibrary "OpenMM"             "$CPPTRAJ_OPENMM" ;;
       'notcuda'   )
 	if [ ! -z "$CPPTRAJ_CUDA" ]; then
@@ -1296,7 +1309,7 @@ if [ "$CPPTRAJ_TEST_MODE" = 'master' ] ; then
       for DIR in $TEST_DIRS ; do
         cd $CPPTRAJ_TEST_ROOT/$DIR
         $CPPTRAJ_TIME -f "%e" -o testtime ./RunTest.sh
-        printf "%.2f %s\n" `cat testtime` $DIR >> $TIMING_FILE 
+        printf "%.2f %s\n" `cat testtime` $DIR >> $TIMING_FILE
         $CPPTRAJ_RM testtime
       done
       echo "Test timing data written to $TIMING_FILE"
