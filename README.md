@@ -80,6 +80,7 @@ the following libraries:
 * Bzip2
 * Parallel NetCDF (-mpi build only, for NetCDF trajectory output in parallel)
 * CUDA (-cuda build only)
+* HIP (-hip build only)
 * FFTW (mostly optional; required for PME functionality and very large FFTs)
 
 CPPTRAJ also makes use of the following libraries that are bundled with CPPTRAJ. External ones can be used in place of these if desired.
@@ -111,12 +112,13 @@ should take care to properly set OMP_NUM_THREADS if using more than 1 MPI
 process per node (the number of processes * threads should not be greater than
 the number of physical cores on the machine).
 
-A CUDA build is now also available via the `-cuda` configure flag. However, currently
+A CUDA build is now also available via the `-cuda` configure flag,
+a HIP build is available via the `-hip` flag, they are mutually exclusive. However, currently
 only a few commands benefit from this (see the manual for details). By default CPPTRAJ
 will be configured for multiple shader models; to restrict the CUDA build to a single
 shader model set the SHADER_MODEL environment variable before running `configure`.
 
-Any combination of `-cuda`, `-mpi`, and `-openmp` may be used. The configure script by
+Any combination of `-cuda` (or `-hip`), `-mpi`, and `-openmp` may be used. The configure script by
 default sets everything up to link dynamically. The `-static` flag can be used to force
 static linking. If linking errors are encountered you may need to specify library locations
 using the `--with-LIB=` options. For example, to use NetCDF compiled in `/opt/netcdf`

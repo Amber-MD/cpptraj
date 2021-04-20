@@ -25,11 +25,10 @@ build:rocm:
   extends: .rocm
   stage: build
   script:
-      - export HIP_HOME=/opt/rocm
       - export FC=gfortran-8
       - export CC=gcc-8
       - export CXX=g++-8
-      - ./configure --buildlibs -hip gnu
+      - ./configure --buildlibs -fftw3 -hip gnu
       - source cpptraj.sh
       - make install -j
   artifacts:
@@ -70,7 +69,7 @@ build:nvcc:
     - export FC=gfortran-8
     - export CC=gcc-8
     - export CXX=g++-8
-    - ./configure --buildlibs -cuda gnu
+    - ./configure --buildlibs -fftw3 -cuda gnu
     - source cpptraj.sh
     - make install -j
   artifacts:

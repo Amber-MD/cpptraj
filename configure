@@ -19,7 +19,7 @@ UsageSimple() {
   echo "    -mpi           : Use mpicc/mpicxx to compile."
   echo "    -intelmpi      : Use mpiicc/mpiicpc to compile."
   echo "    -cuda          : Enable CUDA support. See SHADER_MODEL in --full-help for more info."
-  echo "    -hip           : Enable HIP support. See SHADER_MODEL in --full-help for more info."
+  echo "    -hip           : Enable HIP support."
   echo "    -cray          : Use cray compiler wrappers (cc/CC/ftn)."
   echo "    -amberlib      : Use BLAS/ARPACK/LAPACK/NetCDF libraries from \$AMBERHOME"
   echo "    --full-help    : Display additional options."
@@ -75,6 +75,8 @@ UsageFull() {
   echo "    NVCC         : Name of the nvcc/hipcc compiler."
   echo "    NVCCFLAGS    : Flags to pass to the nvcc/hipcc compiler."
   echo "    DBGFLAGS     : Any additional flags to pass to all compilers."
+  echo "    CUDA_HOME    : (-cuda) Path to CUDA installation."
+  echo "    HIP_HOME     : (-hip) Path to ROCm installation (default is '/opt/rocm')."
   echo "    SHADER_MODEL : (-cuda) Should be set to 'sm_XX', where XX is CUDA compute architecture."
   echo "                   sm_86 = GA102, 104, 106, 107"
   echo "                   sm_80 = GA100"
@@ -343,7 +345,7 @@ LIB_TYPE[$LCUDA]='cpp'
 LIB_STAT[$LHIP]='off'
 LIB_CKEY[$LHIP]='hip'
 LIB_HOME[$LHIP]=''
-LIB_FLAG[$LHIP]='-L${HIP_HOME}/lib -lamdhip64'
+LIB_FLAG[$LHIP]='-lamdhip64'
 LIB_STTC[$LHIP]=''
 # TODO: Replace __HIP_PLATFORM_HCC__ after 4.1 rocm release
 LIB_D_ON[$LHIP]='-DCUDA -D__HIP_PLATFORM_HCC__'
@@ -1859,10 +1861,11 @@ SetupCUDA() {
 # Check that HIP_HOME is defined and set up flags for nvcc
 SetupHIP() {
   if [ -z "$HIP_HOME" ] ; then
-    Err "HIP_HOME not set. Set HIP_HOME to point to your AMD ROCm platform installation."
+    HIP_HOME="/opt/rocm"
+    echo "HIP_HOME not set, '$HIP_HOME' will be used"
   fi
   if [ ! -x "$HIP_HOME/bin/hipcc" ]; then
-    Err "Error: hipcc hip compiler not found in $HIP_HOME/bin"
+    Err "Error: hipcc HIP compiler not found in $HIP_HOME/bin"
   fi
   if [ -z "$NVCC" ]; then NVCC="$HIP_HOME/bin/hipcc"; fi
   if [ -z "$NVCCFLAGS" ] ; then
@@ -2300,6 +2303,8 @@ while [ ! -z "$1" ] ; do
     'DBGFLAGS'   ) DBGFLAGS="$VALUE" ;;
     'NVCC'       ) NVCC="$VALUE" ;;
     'NVCCFLAGS'  ) NVCCFLAGS="$VALUE" ;;
+    'CUDA_HOME'  ) CUDA_HOME="$VALUE" ;;
+    'HIP_HOME'   ) HIP_HOME="$VALUE" ;;
     'SHADER_MODEL') SHADER_MODEL="$VALUE" ;;
     # Build options
     '-cmake'         ) USE_CMAKE=1 ;;
@@ -2404,6 +2409,10 @@ BasicChecks
 
 # Set up compilers and compiler options
 SetupCompilers
+
+if [ "$USE_CUDA" -eq 1 -a "$USE_HIP" -eq 1 ] ; then
+  Err "-cuda and -hip are mutually exclusive."
+fi
 
 # Set up CUDA if needed
 if [ "$USE_CUDA" -eq 1 ] ; then
