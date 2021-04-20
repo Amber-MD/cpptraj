@@ -78,8 +78,8 @@ void Action_GIST::Help() const {
   mprintf("\t[doorder] [doeij] [skipE] [skipS] [refdens <rdval>] [temp <tval>]\n"
           "\t[noimage] [gridcntr <xval> <yval> <zval>] [excludeions]\n"
           "\t[griddim <xval> <yval> <zval>] [gridspacn <spaceval>]\n"
-          "\t[prefix <filename prefix>] [ext <grid extension>] [out <output>]\n"
-          "\t[info <info>]\n");
+          "\t[prefix <filename prefix>] [ext <grid extension>] [out <output suffix>]\n"
+          "\t[info <info suffix>]\n");
 #         ifdef LIBPME
           mprintf("\t[nopme|pme %s\n\t %s\n\t %s]\n", EwaldOptions::KeywordsCommon1(), EwaldOptions::KeywordsCommon2(), EwaldOptions::KeywordsPME());
 #         endif
