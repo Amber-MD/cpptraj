@@ -77,7 +77,8 @@ class GIST_PME : private Ewald_ParticleMesh {
     /// LJ reciprocal term, decomposed for every atom.
     double LJ_Recip_ParticleMesh_GIST(Box const&, MatType&);
     /// VDW long range correction for GIST
-    double Vdw_Correction_GIST(double);
+    double Vdw_Correction_GIST(double, std::vector<int> const&, std::vector<bool> const&,
+                               Darray&, Darray&);
     /// Calculate direct space energy for GIST, decomposed for every atom.
     double Direct_GIST(PairList const&, double&, std::vector<int> const&, std::vector<bool> const&,
                        std::vector<Darray>&, std::vector<Darray>&,

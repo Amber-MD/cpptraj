@@ -145,7 +145,7 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, double& e_elec, doubl
     e_vdw6self = 0.0;
     e_vdw6recip = 0.0;
     std::fill(E_vdw_lr_cor_.begin(), E_vdw_lr_cor_.end(), 0);
-    e_vdw_lr_correction = Vdw_Correction_GIST( volume );
+    e_vdw_lr_correction = Vdw_Correction_GIST( volume, atom_voxel, atomIsSolute, E_UV_VDW_in[0], E_VV_VDW_in[0] );
     //mprintf("e_vdw_lr_correction: %f \n", e_vdw_lr_correction);
   }
 
@@ -370,7 +370,11 @@ double GIST_PME::LJ_Recip_ParticleMesh_GIST(Box const& boxIn, MatType& potential
 }
 
 /** Calculate full VDW long range correction from volume. */
-double GIST_PME::Vdw_Correction_GIST(double volume) {
+double GIST_PME::Vdw_Correction_GIST(double volume,
+                                     std::vector<int> const& atom_voxel,
+                                     std::vector<bool> const& atomIsSolute,
+                                     Darray& e_uv_vdw, Darray& e_vv_vdw)
+{
   double prefac = Constants::TWOPI / (3.0*volume*cutoff_*cutoff_*cutoff_);
   //mprintf("VDW correction prefac: %.15f \n", prefac);
   double e_vdwr = -prefac * Vdw_Recip_Term();
@@ -400,6 +404,16 @@ double GIST_PME::Vdw_Correction_GIST(double volume) {
 
     E_vdw_lr_cor_[i]= -prefac * term ;
     //mprintf("atom e_vdw_lr_cor: %f \n", -prefac* atom_vdw_recip_terms_[i]);
+    int at_voxel = atom_voxel[i];
+    if (at_voxel > 0) {
+      if (atomIsSolute[i]) {
+        e_uv_vdw[at_voxel] += E_vdw_lr_cor_[i];
+        mprintf("DEBUG: gistpme uv vdwLR at %u elr= %20.10g\n", i, E_vdw_lr_cor_[i]);
+      } else {
+        e_vv_vdw[at_voxel] += E_vdw_lr_cor_[i];
+        mprintf("DEBUG: gistpme vv vdwLR at %u elr= %20.10g\n", i, E_vdw_lr_cor_[i]);
+      }
+    }
   }
 
   if (debug_ > 0) mprintf("DEBUG: gistpme Vdw correction %20.10f\n", e_vdwr);
