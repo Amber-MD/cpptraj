@@ -35775,9 +35775,59 @@ trans | translate
 \end_layout
 
 \begin_layout LyX-Code
-translate [<mask>] [x <dx>] [y <dy>] [z <dz>]
+translate [<mask>] {[x <dx>] [y <dy>] [z <dz>] | topoint <x>,<y>,<z> [mass]}
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+<mask> Mask of atoms to translate (all atoms if not specified).
+\end_layout
+
+\begin_layout Description
+x
+\begin_inset space ~
+\end_inset
+
+<dx> Translation (delta) in the X direction (Å).
+\end_layout
+
+\begin_layout Description
+y
+\begin_inset space ~
+\end_inset
+
+<dx> Translation (delta) in the Y direction (Å).
+\end_layout
+
+\begin_layout Description
+z
+\begin_inset space ~
+\end_inset
+
+<dx> Translation (delta) in the Z direction (Å).
+\end_layout
+
+\begin_layout Description
+topoint
+\begin_inset space ~
+\end_inset
+
+<x>,<y>,<z> If specified, translate center of specified atoms to a specific
+ point defined by <x>, <y>, and <z> in the given comma-separated list instead
+ of by deltas.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+mass If specified, translate center of mass of specified atoms (
+\series bold
+topoint
+\series default
+ only).
+\end_layout
+
+\end_deeper
+\end_deeper
 \begin_layout Standard
 Translate atoms in 
 \series bold
@@ -35796,6 +35846,12 @@ Translate atoms in
 <dz>
 \series default
  Å in the Z direction.
+ If 
+\series bold
+'topoint
+\series default
+' is specified, translate atoms in <mask> to the specified coordinates (also
+ in Å).
 \end_layout
 
 \begin_layout Subsection

@@ -9,7 +9,7 @@ Action_Translate::Action_Translate() :
 { }
 
 void Action_Translate::Help() const {
-  mprintf("\t[<mask>] {[x <dx>] [y <dy>] [z <dz>] | topoint <x> <y> <z> [mass]}\n"
+  mprintf("\t[<mask>] {[x <dx>] [y <dy>] [z <dz>] | topoint <x>,<y>,<z> [mass]}\n"
           "  Translate atoms in <mask> by <dx>, <dy>, and/or <dz> Ang.\n"
           "  If 'topoint' is specified, translate atoms in <mask> to\n"
           "  the specified coordinates (also in Ang.).\n");
