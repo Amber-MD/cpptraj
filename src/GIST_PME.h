@@ -52,6 +52,8 @@ class GIST_PME : private Ewald_ParticleMesh {
                            SOLVENT1_ONGRID0, ///< Off-grid solvent 1, on-grid solvent 0
                            BOTH_ONGRID       ///< Both 0 and 1 on-grid solvent
                          };
+    /// Strings corresponding to InteractionType
+    static const char* InteractionTypeStr_[];
 
     typedef helpme::Matrix<double> MatType;
 

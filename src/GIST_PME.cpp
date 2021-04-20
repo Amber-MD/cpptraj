@@ -10,6 +10,16 @@
 /** CONSTRUCTOR */
 GIST_PME::GIST_PME() {}
 
+/** Strings corresponding to interaction type. */
+const char* GIST_PME::InteractionTypeStr_[] = {
+  "Other",
+  "Solute0_Ongrid1",
+  "Solvent0_Ongrid1",
+  "Solute1_Ongrid0",
+  "Solvent1_Ongrid0",
+  "Both_Ongrid"
+};
+
 /** Setup up GIST PME calculation. Currently must be run on all atoms. */
 int GIST_PME::Setup_PME_GIST(Topology const& topIn, unsigned int nthreads)
 {
@@ -153,6 +163,15 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, double& e_elec, doubl
   e_elec = e_self + e_recip + e_direct;
 
   // DEBUG
+  mprintf("DEBUG: gistpme voxel energies:\n");
+  mprintf("\t%20s %20s %20s %20s\n", "E_UV_VDW", "E_UV_Elec", "E_VV_VDW", "E_VV_Elec");
+  for (unsigned int vidx = 0; vidx != E_UV_VDW_in[0].size(); vidx++)
+  {
+    mprintf("\t%20.10g %20.10g %20.10g %20.10g\n",
+            E_UV_VDW_in[0][vidx], E_UV_Elec_in[0][vidx], E_VV_VDW_in[0][vidx], E_VV_Elec_in[0][vidx]);
+  }
+
+  // DEBUG
   if (debug_ > 0) {
     // Calculate the sum of each terms
     double E_elec_direct_sum = SumDarray( E_elec_direct_[0] );
@@ -194,6 +213,7 @@ double GIST_PME::Self_GIST(double volume, Darray& atom_self,
     if (atom_voxel[i] > -1 && !atomIsSolute[i]) {
       // Only do the self-terms for on-grid water; no exclusions for solute to on-grid solvent
       e_vv_elec[atom_voxel[i]] += atom_self[i];
+      mprintf("DEBUG: gistpme vv self at %u eself= %20.10g\n", i,atom_self[i] );
     }
   }
 
@@ -305,15 +325,18 @@ double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn,
   // UV recip
   ongrid_potentialD.setZero();
   pme_object_.computePRec(0, m_uq, m_ux, m_ox, 1, ongrid_potentialD);
-  for (unsigned int i = 0; i != onGridAt.size(); i++)
+  for (unsigned int i = 0; i != onGridAt.size(); i++) {
+    mprintf("DEBUG: gistpme uv recip at %i erecip= %20.10g\n", onGridAt[i], Charge_[onGridAt[i]] * ongrid_potentialD(i, 0));
     e_uv_elec[atom_voxel[onGridAt[i]]] += Charge_[onGridAt[i]] * ongrid_potentialD(i, 0);
+  }
   // VV recip.
   // NOTE: If we do not zero the potential matrix, it will be summed into
   ongrid_potentialD.setZero();
   pme_object_.computePRec(0, m_vq, m_vx, m_ox, 1, ongrid_potentialD);
-  for (unsigned int i = 0; i != onGridAt.size(); i++)
+  for (unsigned int i = 0; i != onGridAt.size(); i++) {
+    mprintf("DEBUG: gistpme vv recip at %i erecip= %20.10g\n", onGridAt[i], Charge_[onGridAt[i]] * ongrid_potentialD(i, 0));
     e_vv_elec[atom_voxel[onGridAt[i]]] += Charge_[onGridAt[i]] * ongrid_potentialD(i, 0);
-
+  }
 
   t_recip_.Stop();
   return erecip;
@@ -506,6 +529,9 @@ void GIST_PME::Ekernel_NB(double& Eelec, double& Evdw,
                  
                 e_elec_direct[idx0] += 0.5 * e_elec;
                 e_elec_direct[idx1] += 0.5 * e_elec;
+
+                // DEBUG
+                mprintf("DEBUG: gistpme direct itype='%s' e_elec= %20.10f\n", InteractionTypeStr_[interactionType], e_elec);
                 
                 if (interactionType == SOLUTE0_ONGRID1)
                   e_uv_elec[voxel1] += e_elec;
@@ -538,6 +564,8 @@ void GIST_PME::Ekernel_NB(double& Eelec, double& Evdw,
 
                   e_vdw_direct[idx0] += 0.5 * e_vdw_term;
                   e_vdw_direct[idx1] += 0.5 * e_vdw_term;
+
+                  mprintf("DEBUG: gistpme direct itype='%s' e_vdw_term= %20.10f\n", InteractionTypeStr_[interactionType], e_vdw_term);
 
                   if (interactionType == SOLUTE0_ONGRID1)
                     e_uv_vdw[voxel1] += e_vdw_term;
@@ -583,6 +611,8 @@ void GIST_PME::Ekernel_Adjust(double& e_adjust,
 
               e_elec_direct[idx0] += 0.5 * adjust;
               e_elec_direct[idx1] += 0.5 * adjust;
+
+              mprintf("DEBUG: gistpme adjust itype='%s' adjust= %20.10f\n", InteractionTypeStr_[interactionType], adjust);
 
               if (interactionType == SOLUTE0_ONGRID1)
                 e_uv_elec[voxel1] += adjust;
