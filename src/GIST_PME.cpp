@@ -127,8 +127,8 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, double& e_elec, doubl
 
 
     if (debug_ > 0) {
-      mprintf("DEBUG: e_vdw6self = %16.8f\n", e_vdw6self);
-      mprintf("DEBUG: Evdwrecip = %16.8f\n", e_vdw6recip);
+      mprintf("DEBUG: gistpme e_vdw6self = %16.8f\n", e_vdw6self);
+      mprintf("DEBUG: gistpme Evdwrecip = %16.8f\n", e_vdw6recip);
     }
     e_vdw_lr_correction = 0.0;
   } else {
@@ -146,7 +146,7 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, double& e_elec, doubl
   //mprintf("e_elec_self: %f , e_elec_direct: %f, e_vdw6direct: %f \n", e_self, e_direct, e_vdw);
 
   if (debug_ > 0)
-    mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f  Evdw= %20.10f\n",
+    mprintf("DEBUG: gistpme Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f  Evdw= %20.10f\n",
             e_self, e_recip, e_direct, e_vdw);
 
   e_vdw += (e_vdw_lr_correction + e_vdw6self + e_vdw6recip);
@@ -379,7 +379,7 @@ double GIST_PME::Vdw_Correction_GIST(double volume, Darray& e_vdw_lr_cor) {
     //mprintf("atom e_vdw_lr_cor: %f \n", -prefac* atom_vdw_recip_terms_[i]);
   }
 
-  if (debug_ > 0) mprintf("DEBUG: Vdw correction %20.10f\n", e_vdwr);
+  if (debug_ > 0) mprintf("DEBUG: gistpme Vdw correction %20.10f\n", e_vdwr);
   return e_vdwr;
 }
 
@@ -772,9 +772,9 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
 # endif
   t_direct_.Stop();
 # ifdef DEBUG_PAIRLIST
-  mprintf("DEBUG: Elec                             = %16.8f\n", Eelec);
-  mprintf("DEBUG: Eadjust                          = %16.8f\n", e_adjust);
-  mprintf("DEBUG: LJ vdw                           = %16.8f\n", Evdw);
+  mprintf("DEBUG: gpme Elec                             = %16.8f\n", Eelec);
+  mprintf("DEBUG: gpme Eadjust                          = %16.8f\n", e_adjust);
+  mprintf("DEBUG: gpme LJ vdw                           = %16.8f\n", Evdw);
 # endif
   evdw_out = Evdw;
   return Eelec + e_adjust;
