@@ -24454,6 +24454,15 @@ gist
 \end_layout
 
 \begin_layout LyX-Code
+     [floatfmt {double|scientific|general}] [floatwidth <fw>] [floatprec
+ <fp>]
+\end_layout
+
+\begin_layout LyX-Code
+ 	[intwidth <iw>]
+\end_layout
+
+\begin_layout LyX-Code
      [info <info suffix>]
 \end_layout
 
@@ -24653,6 +24662,43 @@ extension>] Output grid file name extension (default
 \series default
  Suffix for main GIST output file name.
  If not specified, output file will be set to '<prefix>-output.dat'.
+\end_layout
+
+\begin_layout Description
+[floatfmt
+\begin_inset space ~
+\end_inset
+
+{double|scientific|general}] Format for floating point values in GIST output
+ file: double (regular fixed decimal point), scientific, or general (default,
+ chooses fixed or scientific, whichever fits better).
+\end_layout
+
+\begin_layout Description
+[floatwidth
+\begin_inset space ~
+\end_inset
+
+<fw>] Changes width of floating point values in GIST output file.
+ Default is no width restriction.
+\end_layout
+
+\begin_layout Description
+[floatprec
+\begin_inset space ~
+\end_inset
+
+<fp>] Changes precision of floating point values in GIST output file.
+ Default is to use whatever the system default is.
+\end_layout
+
+\begin_layout Description
+[intwidth
+\begin_inset space ~
+\end_inset
+
+<iw>] Changes width of integer values in GIST output file.
+ Default is no width restriction.
 \end_layout
 
 \begin_layout Description
