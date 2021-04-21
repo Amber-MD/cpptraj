@@ -113,6 +113,8 @@ EOF
   RunCpptraj "$UNITNAME"
   DoTest Gist5-Solute-Etot-pme-dens.dx.save Gist5-Solute-Etot-pme-dens.dx
   DoTest Gist5-Water-Etot-pme-dens.dx.save Gist5-Water-Etot-pme-dens.dx
+  DoTest Gist5-Esw-dens.dx.save Gist5-Esw-dens.dx
+  DoTest Gist5-Eww-dens.dx.save Gist5-Eww-dens.dx
   DoTest Gist5-Info.dat.save Gist5-Info.dat -a $TEST_TOLERANCE
   # Not including this save on the remote repo bc it is too big.
   #if [ -f 'Gist5-output.dat.save' ] ; then
