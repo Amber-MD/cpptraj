@@ -177,6 +177,8 @@ class Action_GIST : public Action {
     CpptrajFile* eijfile_;     ///< Eij matrix output
     CpptrajFile* infofile_;    ///< GIST info
     std::string prefix_;       ///< Output file name prefix
+    TextFormat fltFmt_;        ///< Output file format for floating point values
+    TextFormat intFmt_;        ///< Output file format for integer values.
     Darray Q_;                 ///< Solvent molecule charges (for dipole calc)
     double BULK_DENS_;         ///< Bulk water density
     double temperature_;       ///< Temperature

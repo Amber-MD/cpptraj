@@ -57,6 +57,8 @@ Action_GIST::Action_GIST() :
   datafile_(0),
   eijfile_(0),
   infofile_(0),
+  fltFmt_(TextFormat::GDOUBLE),
+  intFmt_(TextFormat::INTEGER),
   BULK_DENS_(0.0),
   temperature_(0.0),
   NeighborCut2_(12.25), // 3.5^2
@@ -1698,6 +1700,7 @@ void Action_GIST::Print() {
   // TODO: Make a data file format?
   if (datafile_ != 0) {
     mprintf("\tWriting GIST results for each voxel:\n");
+    mprintf("DEBUG: Float format= '%s'  int format= '%s'\n", fltFmt_.fmt(), intFmt_.fmt());
     // TODO - better determine what should and should not be printed here.
     //         Is it necessary to have separate prints for pme/non-pme?
     if (usePme_) {
@@ -1737,6 +1740,40 @@ void Action_GIST::Print() {
       size_t i, j, k;
       gO_->ReverseIndex( gr_pt, i, j, k );
       Vec3 XYZ = gO_->Bin().Center( i, j, k );
+      // Create the format string.
+      std::string fmtstr =
+                  intFmt_.Fmt() + // grid point
+            " " + fltFmt_.Fmt() + // grid X
+            " " + fltFmt_.Fmt() + // grid Y
+            " " + fltFmt_.Fmt() + // grid Z
+            " " + intFmt_.Fmt() + // # waters
+            " " + fltFmt_.Fmt() + // gO
+            " " + fltFmt_.Fmt() + // gH
+            " " + fltFmt_.Fmt() + // dTStrans
+            " " + fltFmt_.Fmt() + // dTStrans_norm
+            " " + fltFmt_.Fmt() + // dTSorient_dens
+            " " + fltFmt_.Fmt() + // dTSorient_norm
+            " " + fltFmt_.Fmt() + // dTSsix
+            " " + fltFmt_.Fmt() + // dTSsix_norm
+            " " + fltFmt_.Fmt() + // Esw_dens
+            " " + fltFmt_.Fmt() + // Esw_norm
+            " " + fltFmt_.Fmt() + // Eww_dens
+            " " + fltFmt_.Fmt();   // EWW_norm
+      if (usePme_) {
+        fmtstr +=
+            " " + fltFmt_.Fmt() + // PME_dens
+          + " " + fltFmt_.Fmt();  // PME_norm
+      }
+      fmtstr +=
+            " " + fltFmt_.Fmt() + // dipolex
+            " " + fltFmt_.Fmt() + // dipoley
+            " " + fltFmt_.Fmt() + // dipolez
+            " " + fltFmt_.Fmt() + // pol
+            " " + fltFmt_.Fmt() + // neighbor_dens
+            " " + fltFmt_.Fmt() + // neighbor_norm
+            " " + fltFmt_.Fmt() + // qtet
+            " \n";                // NEWLINE
+      mprintf("DEBUG: Fmt='%s'\n", fmtstr.c_str());
       // TODO - better determine what should and should not be printed here.
       //         Is it necessary to have separate prints for pme/non-pme?
       if (usePme_) {
@@ -1759,8 +1796,7 @@ void Action_GIST::Print() {
                           dipolex[gr_pt], dipoley[gr_pt], dipolez[gr_pt],
                           pol[gr_pt], neighbor_dens[gr_pt], neighbor_norm[gr_pt], qtet[gr_pt]);
       } else {
-        datafile_->Printf("%d %g %g %g %d %g %g %g %g %g %g %g"
-                          " %g %g %g %g %g %g %g %g %g %g %g %g \n",
+        datafile_->Printf(fmtstr.c_str(),
                           gr_pt, XYZ[0], XYZ[1], XYZ[2], N_waters_[gr_pt], gO[gr_pt], gH[gr_pt],
                           dTStrans[gr_pt], dTStrans_norm[gr_pt],
                           dTSorient_dens[gr_pt], dTSorient_norm[gr_pt],
