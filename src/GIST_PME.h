@@ -8,6 +8,10 @@ class Frame;
 class Box;
 class Topology;
 /// Class implementing the PME version of the nonbonded energy calc. for GIST
+/** For more debug info, compile with:
+  *  -DDEBUG_GIST_PME : Details on breakdown of PME calculation for the UV/VV grids.
+  *  -DDEBUG_PAIRLIST : Details on the use of the pair list in the direct space calc.
+  */
 class GIST_PME : private Ewald_ParticleMesh {
   public:
     GIST_PME();

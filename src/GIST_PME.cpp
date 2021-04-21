@@ -76,12 +76,12 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, double& e_elec, doubl
                                      std::vector<Darray>& E_VV_Elec_in)
 {
   t_total_.Start();
-
+# ifdef DEBUG_GIST_PME
   mprintf("DEBUG: Beginning GIST PME nonbonded energy calculation for %zu atoms.\n", atom_voxel.size());
   for (unsigned int ii = 0; ii != atom_voxel.size(); ii++) {
     mprintf("\tAt %10u  voxel= %10i  isSolute= %1i\n", ii, atom_voxel[ii], (int)atomIsSolute[ii]);
   }
-
+# endif
   // Elec. self
   double volume = frameIn.BoxCrd().CellVolume();
   std::fill(E_elec_self_.begin(), E_elec_self_.end(), 0);
@@ -106,18 +106,11 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, double& e_elec, doubl
 
   unsigned int natoms = E_elec_self_.size();
 
-  //mprintf("atom_num is %i \n", atom_num);
-
   // Recip Potential for each atom
   e_potentialD_.setConstant(0.0);
 
   double e_recip = Recip_ParticleMesh_GIST( frameIn.BoxCrd(), atom_voxel, atomIsSolute,
                                             E_UV_Elec_in[0], E_VV_Elec_in[0] );
-  //std::fill(E_elec_recip_.begin(), E_elec_recip_.end(), 0);
-  //for(unsigned int i =0; i < natoms; i++)
-  //{
-  //  E_elec_recip_[i]=0.5 * Charge_[i] * e_potentialD_(i,0);
-  //}
 
   // vdw potential for each atom 
 
@@ -167,6 +160,7 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, double& e_elec, doubl
   e_vdw += (e_vdw_lr_correction + e_vdw6self + e_vdw6recip);
   e_elec = e_self + e_recip + e_direct;
 
+# ifdef DEBUG_GIST_PME
   // DEBUG
   mprintf("DEBUG: gistpme voxel energies:\n");
   mprintf("\t%20s %20s %20s %20s\n", "E_UV_VDW", "E_UV_Elec", "E_VV_VDW", "E_VV_Elec");
@@ -190,6 +184,7 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, double& e_elec, doubl
   mprintf("DEBUG: Sums: UV_V= %20.10g  UV_E= %20.10g  VV_V= %20.10g  VV_E= %20.10g  Total= %20.10g\n",
            sum_uv_vdw, sum_uv_elec, sum_vv_vdw, sum_vv_elec,
            sum_uv_vdw + sum_uv_elec + sum_vv_vdw + sum_vv_elec);
+# endif
 
   // DEBUG
   if (debug_ > 0) {
@@ -236,7 +231,9 @@ double GIST_PME::Self_GIST(double volume, Darray& atom_self,
       //       terms (i.e. not divided between atoms) and the Action_GIST::CalcAvgVoxelEnergy()
       //       function will divide the voxels by a factor of 2.
       e_vv_elec[atom_voxel[i]] += (atom_self[i] * 2);
+#     ifdef DEBUG_GIST_PME
       mprintf("DEBUG: gistpme vv self at %u eself= %20.10g\n", i,atom_self[i] );
+#     endif
     }
   }
 
@@ -349,7 +346,9 @@ double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn,
   ongrid_potentialD.setZero();
   pme_object_.computePRec(0, m_uq, m_ux, m_ox, 1, ongrid_potentialD);
   for (unsigned int i = 0; i != onGridAt.size(); i++) {
+#   ifdef DEBUG_GIST_PME
     mprintf("DEBUG: gistpme uv recip at %i erecip= %20.10g\n", onGridAt[i], Charge_[onGridAt[i]] * ongrid_potentialD(i, 0));
+#   endif
     e_uv_elec[atom_voxel[onGridAt[i]]] += Charge_[onGridAt[i]] * ongrid_potentialD(i, 0);
   }
   // VV recip.
@@ -357,7 +356,9 @@ double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn,
   ongrid_potentialD.setZero();
   pme_object_.computePRec(0, m_vq, m_vx, m_ox, 1, ongrid_potentialD);
   for (unsigned int i = 0; i != onGridAt.size(); i++) {
+#   ifdef DEBUG_GIST_PME
     mprintf("DEBUG: gistpme vv recip at %i erecip= %20.10g\n", onGridAt[i], Charge_[onGridAt[i]] * ongrid_potentialD(i, 0));
+#   endif
     e_vv_elec[atom_voxel[onGridAt[i]]] += Charge_[onGridAt[i]] * ongrid_potentialD(i, 0);
   }
 
@@ -434,10 +435,14 @@ double GIST_PME::Vdw_Correction_GIST(double volume,
       //       function will divide the voxels by a factor of 2.
       if (atomIsSolute[i]) {
         e_uv_vdw[at_voxel] += (E_vdw_lr_cor_[i]*2);
+#       ifdef DEBUG_GIST_PME
         mprintf("DEBUG: gistpme uv vdwLR at %u elr= %20.10g\n", i, E_vdw_lr_cor_[i]);
+#       endif
       } else {
         e_vv_vdw[at_voxel] += (E_vdw_lr_cor_[i]*2);
+#       ifdef DEBUG_GIST_PME
         mprintf("DEBUG: gistpme vv vdwLR at %u elr= %20.10g\n", i, E_vdw_lr_cor_[i]);
+#       endif
       }
     }
   }
@@ -571,8 +576,9 @@ void GIST_PME::Ekernel_NB(double& Eelec, double& Evdw,
                 e_elec_direct[idx1] += 0.5 * e_elec;
 
                 // DEBUG
+#               ifdef DEBUG_GIST_PME
                 mprintf("DEBUG: gistpme direct itype='%s' e_elec= %20.10f\n", InteractionTypeStr_[interactionType], e_elec);
-                
+#               endif
                 if (interactionType == SOLUTE0_ONGRID1)
                   e_uv_elec[voxel1] += e_elec;
                 else if (interactionType == SOLVENT0_ONGRID1)
@@ -604,9 +610,9 @@ void GIST_PME::Ekernel_NB(double& Eelec, double& Evdw,
 
                   e_vdw_direct[idx0] += 0.5 * e_vdw_term;
                   e_vdw_direct[idx1] += 0.5 * e_vdw_term;
-
+#                 ifdef DEBUG_GIST_PME
                   mprintf("DEBUG: gistpme direct itype='%s' e_vdw_term= %20.10f\n", InteractionTypeStr_[interactionType], e_vdw_term);
-
+#                 endif
                   if (interactionType == SOLUTE0_ONGRID1)
                     e_uv_vdw[voxel1] += e_vdw_term;
                   else if (interactionType == SOLVENT0_ONGRID1)
@@ -651,9 +657,9 @@ void GIST_PME::Ekernel_Adjust(double& e_adjust,
 
               e_elec_direct[idx0] += 0.5 * adjust;
               e_elec_direct[idx1] += 0.5 * adjust;
-
+#             ifdef DEBUG_GIST_PME
               mprintf("DEBUG: gistpme adjust itype='%s' adjust= %20.10f\n", InteractionTypeStr_[interactionType], adjust);
-
+#             endif
               if (interactionType == SOLUTE0_ONGRID1)
                 e_uv_elec[voxel1] += adjust;
               else if (interactionType == SOLVENT0_ONGRID1)
