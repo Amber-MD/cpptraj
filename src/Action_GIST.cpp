@@ -81,6 +81,8 @@ void Action_GIST::Help() const {
           "\t[noimage] [gridcntr <xval> <yval> <zval>] [excludeions]\n"
           "\t[griddim <nx> <ny> <nz>] [gridspacn <spaceval>]\n"
           "\t[prefix <filename prefix>] [ext <grid extension>] [out <output suffix>]\n"
+          "\t[floatfmt {double|scientific|general}] [floatwidth <fw>] [floatprec <fp>]\n"
+          "\t[intwidth <iw>]\n"
           "\t[info <info suffix>]\n");
 #         ifdef LIBPME
           mprintf("\t[nopme|pme %s\n\t %s\n\t %s]\n", EwaldOptions::KeywordsCommon1(), EwaldOptions::KeywordsCommon2(), EwaldOptions::KeywordsPME());
@@ -147,6 +149,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   }
   fltFmt_.SetFormatWidthPrecision( actionArgs.getKeyInt("floatwidth", 0),
                                    actionArgs.getKeyInt("floatprec", -1) );
+  intFmt_.SetFormatWidth( actionArgs.getKeyInt("intwidth", 0) );
   // Other keywords
   includeIons_ = !actionArgs.hasKey("excludeions");
   imageOpt_.InitImaging( !(actionArgs.hasKey("noimage")), actionArgs.hasKey("nonortho") );
