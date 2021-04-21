@@ -1720,7 +1720,7 @@ void Action_GIST::Print() {
   if (datafile_ != 0) {
     mprintf("\tWriting GIST results for each voxel:\n");
     mprintf("DEBUG: Float format= '%s'  int format= '%s'\n", fltFmt_.fmt(), intFmt_.fmt());
-    // Create the format string.
+    // Create the format strings.
     std::string fmtstr =
                 intFmt_.Fmt() + // grid point
           " " + fltFmt_.Fmt() + // grid X
@@ -1783,18 +1783,9 @@ void Action_GIST::Print() {
       gO_->ReverseIndex( gr_pt, i, j, k );
       Vec3 XYZ = gO_->Bin().Center( i, j, k );
       
-      // TODO - better determine what should and should not be printed here.
-      //         Is it necessary to have separate prints for pme/non-pme?
+      
       if (usePme_) {
-        datafile_->Printf("%d %g %g %g %d %g %g "
-                          "%.7f %.7f "
-                          "%.7f %.7f "
-                          "%.7f %.7f "
-                          "%.7f %.7f "
-                          "%.7f %.7f "
-                          "%.7f %.7f "
-                          "%g %g %g "
-                          "%g %g %g %g \n",
+        datafile_->Printf(fmtstr.c_str(),
                           gr_pt, XYZ[0], XYZ[1], XYZ[2], N_waters_[gr_pt], gO[gr_pt], gH[gr_pt],
                           dTStrans[gr_pt], dTStrans_norm[gr_pt],
                           dTSorient_dens[gr_pt], dTSorient_norm[gr_pt],
@@ -1816,7 +1807,7 @@ void Action_GIST::Print() {
                           pol[gr_pt], neighbor_dens[gr_pt], neighbor_norm[gr_pt], qtet[gr_pt]);
       }
     } // END loop over voxels
-  }
+  } // END datafile_ not null
 
   // Write water-water interaction energy matrix
   if (ww_Eij_ != 0) {
