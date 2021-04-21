@@ -90,6 +90,8 @@ EOF
   RunCpptraj "$UNITNAME"
   DoTest Gist4-Solute-Etot-pme-dens.dx.save Gist4-Solute-Etot-pme-dens.dx
   DoTest Gist4-Water-Etot-pme-dens.dx.save Gist4-Water-Etot-pme-dens.dx
+  DoTest Gist4-Esw-dens.dx.save Gist4-Esw-dens.dx
+  DoTest Gist4-Eww-dens.dx.save Gist4-Eww-dens.dx
   DoTest Gist4-Info.dat.save Gist4-Info.dat -a $TEST_TOLERANCE
   ## Not including this save on the remote repo bc it is too big.
   #if [ -f 'Gist4-output.dat.save' ] ; then
@@ -109,9 +111,9 @@ gist pme refdens 0.033422885325 gridcntr 0.81 -1.0 0.08 \
   griddim 42 36 40 gridspacn 0.50 prefix Gist5 info Info.dat
 EOF
   RunCpptraj "$UNITNAME"
-  #DoTest Gist5-Solute-Etot-pme-dens.dx.save Gist5-Solute-Etot-pme-dens.dx
-  #DoTest Gist5-Water-Etot-pme-dens.dx.save Gist5-Water-Etot-pme-dens.dx
-  #DoTest Gist5-Info.dat.save Gist5-Info.dat -a $TEST_TOLERANCE
+  DoTest Gist5-Solute-Etot-pme-dens.dx.save Gist5-Solute-Etot-pme-dens.dx
+  DoTest Gist5-Water-Etot-pme-dens.dx.save Gist5-Water-Etot-pme-dens.dx
+  DoTest Gist5-Info.dat.save Gist5-Info.dat -a $TEST_TOLERANCE
   # Not including this save on the remote repo bc it is too big.
   #if [ -f 'Gist5-output.dat.save' ] ; then
   #  DoTest Gist5-output.dat.save Gist5-output.dat
