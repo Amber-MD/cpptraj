@@ -1754,39 +1754,28 @@ void Action_GIST::Print() {
           " " + fltFmt_.Fmt() + // qtet
           " \n";                // NEWLINE
     mprintf("DEBUG: Fmt='%s'\n", fmtstr.c_str());
-    // TODO - better determine what should and should not be printed here.
-    //         Is it necessary to have separate prints for pme/non-pme?
-    if (usePme_) {
-      datafile_->Printf("GIST Output %s "
+    const char* gistOutputVersion;
+    if (usePme_)
+      gistOutputVersion = "v3";
+    else
+      gistOutputVersion = "v2";
+    // Do the header
+    datafile_->Printf("GIST Output %s "
                       "spacing=%.4f center=%.6f,%.6f,%.6f dims=%i,%i,%i \n"
                       "voxel xcoord ycoord zcoord population g_O g_H"
                       " dTStrans-dens(kcal/mol/A^3) dTStrans-norm(kcal/mol)"
                       " dTSorient-dens(kcal/mol/A^3) dTSorient-norm(kcal/mol)"
                       " dTSsix-dens(kcal/mol/A^3) dTSsix-norm(kcal/mol)"
                       " Esw-dens(kcal/mol/A^3) Esw-norm(kcal/mol)"
-                      " Eww-dens(kcal/mol/A^3) Eww-norm-unref(kcal/mol)"
-                      " PME-dens(kcal/mol/A^3) PME-norm(kcal/mol)"
-                      " Dipole_x-dens(D/A^3) Dipole_y-dens(D/A^3) Dipole_z-dens(D/A^3)"
-                      " Dipole-dens(D/A^3) neighbor-dens(1/A^3) neighbor-norm order-norm\n",
-                      "v3", gridspacing_,
+                      " Eww-dens(kcal/mol/A^3) Eww-norm-unref(kcal/mol)",
+                      gistOutputVersion, gridspacing_,
                       gridcntr_[0], gridcntr_[1], gridcntr_[2],
                       (int)griddim_[0], (int)griddim_[1], (int)griddim_[2]);
-    } else {
-      datafile_->Printf("GIST Output %s "
-                        "spacing=%.4f center=%.6f,%.6f,%.6f dims=%i,%i,%i \n"
-                        "voxel xcoord ycoord zcoord population g_O g_H"
-                        " dTStrans-dens(kcal/mol/A^3) dTStrans-norm(kcal/mol)"
-                        " dTSorient-dens(kcal/mol/A^3) dTSorient-norm(kcal/mol)"
-                        " dTSsix-dens(kcal/mol/A^3) dTSsix-norm(kcal/mol)"
-                        " Esw-dens(kcal/mol/A^3) Esw-norm(kcal/mol)"
-                        " Eww-dens(kcal/mol/A^3) Eww-norm-unref(kcal/mol)"
-                        " Dipole_x-dens(D/A^3) Dipole_y-dens(D/A^3) Dipole_z-dens(D/A^3)"
-                        " Dipole-dens(D/A^3) neighbor-dens(1/A^3) neighbor-norm order-norm\n",
-                        "v2", gridspacing_,
-                        gridcntr_[0], gridcntr_[1], gridcntr_[2],
-                        (int)griddim_[0], (int)griddim_[1], (int)griddim_[2]
-                       );
-    }
+    if (usePme_)
+      datafile_->Printf(" PME-dens(kcal/mol/A^3) PME-norm(kcal/mol)");
+    datafile_->Printf(" Dipole_x-dens(D/A^3) Dipole_y-dens(D/A^3) Dipole_z-dens(D/A^3)"
+                      " Dipole-dens(D/A^3) neighbor-dens(1/A^3) neighbor-norm order-norm\n");
+    // Loop over voxels
     ProgressBar O_progress( MAX_GRID_PT_ );
     for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++) {
       O_progress.Update( gr_pt );
