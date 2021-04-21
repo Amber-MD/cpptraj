@@ -131,6 +131,22 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   DataFile* file_dipolex = init.DFL().AddDataFile(prefix_ + "-dipolex-dens" + ext);
   DataFile* file_dipoley = init.DFL().AddDataFile(prefix_ + "-dipoley-dens" + ext);
   DataFile* file_dipolez = init.DFL().AddDataFile(prefix_ + "-dipolez-dens" + ext);
+  // Output format keywords
+  std::string floatfmt = actionArgs.GetStringKey("floatfmt");
+  if (!floatfmt.empty()) {
+    if (floatfmt == "double")
+      fltFmt_.SetFormatType(TextFormat::DOUBLE);
+    else if (floatfmt == "scientific")
+      fltFmt_.SetFormatType(TextFormat::SCIENTIFIC);
+    else if (floatfmt == "general")
+      fltFmt_.SetFormatType(TextFormat::GDOUBLE);
+    else {
+      mprinterr("Error: Unrecognized format type for 'floatfmt': %s\n", floatfmt.c_str());
+      return Action::ERR;
+    }
+  }
+  fltFmt_.SetFormatWidthPrecision( actionArgs.getKeyInt("floatwidth", 0),
+                                   actionArgs.getKeyInt("floatprec", -1) );
   // Other keywords
   includeIons_ = !actionArgs.hasKey("excludeions");
   imageOpt_.InitImaging( !(actionArgs.hasKey("noimage")), actionArgs.hasKey("nonortho") );
@@ -1701,6 +1717,40 @@ void Action_GIST::Print() {
   if (datafile_ != 0) {
     mprintf("\tWriting GIST results for each voxel:\n");
     mprintf("DEBUG: Float format= '%s'  int format= '%s'\n", fltFmt_.fmt(), intFmt_.fmt());
+    // Create the format string.
+    std::string fmtstr =
+                intFmt_.Fmt() + // grid point
+          " " + fltFmt_.Fmt() + // grid X
+          " " + fltFmt_.Fmt() + // grid Y
+          " " + fltFmt_.Fmt() + // grid Z
+          " " + intFmt_.Fmt() + // # waters
+          " " + fltFmt_.Fmt() + // gO
+          " " + fltFmt_.Fmt() + // gH
+          " " + fltFmt_.Fmt() + // dTStrans
+          " " + fltFmt_.Fmt() + // dTStrans_norm
+          " " + fltFmt_.Fmt() + // dTSorient_dens
+          " " + fltFmt_.Fmt() + // dTSorient_norm
+          " " + fltFmt_.Fmt() + // dTSsix
+          " " + fltFmt_.Fmt() + // dTSsix_norm
+          " " + fltFmt_.Fmt() + // Esw_dens
+          " " + fltFmt_.Fmt() + // Esw_norm
+          " " + fltFmt_.Fmt() + // Eww_dens
+          " " + fltFmt_.Fmt();  // EWW_norm
+    if (usePme_) {
+      fmtstr +=
+          " " + fltFmt_.Fmt() + // PME_dens
+        + " " + fltFmt_.Fmt();  // PME_norm
+    }
+    fmtstr +=
+          " " + fltFmt_.Fmt() + // dipolex
+          " " + fltFmt_.Fmt() + // dipoley
+          " " + fltFmt_.Fmt() + // dipolez
+          " " + fltFmt_.Fmt() + // pol
+          " " + fltFmt_.Fmt() + // neighbor_dens
+          " " + fltFmt_.Fmt() + // neighbor_norm
+          " " + fltFmt_.Fmt() + // qtet
+          " \n";                // NEWLINE
+    mprintf("DEBUG: Fmt='%s'\n", fmtstr.c_str());
     // TODO - better determine what should and should not be printed here.
     //         Is it necessary to have separate prints for pme/non-pme?
     if (usePme_) {
@@ -1740,40 +1790,7 @@ void Action_GIST::Print() {
       size_t i, j, k;
       gO_->ReverseIndex( gr_pt, i, j, k );
       Vec3 XYZ = gO_->Bin().Center( i, j, k );
-      // Create the format string.
-      std::string fmtstr =
-                  intFmt_.Fmt() + // grid point
-            " " + fltFmt_.Fmt() + // grid X
-            " " + fltFmt_.Fmt() + // grid Y
-            " " + fltFmt_.Fmt() + // grid Z
-            " " + intFmt_.Fmt() + // # waters
-            " " + fltFmt_.Fmt() + // gO
-            " " + fltFmt_.Fmt() + // gH
-            " " + fltFmt_.Fmt() + // dTStrans
-            " " + fltFmt_.Fmt() + // dTStrans_norm
-            " " + fltFmt_.Fmt() + // dTSorient_dens
-            " " + fltFmt_.Fmt() + // dTSorient_norm
-            " " + fltFmt_.Fmt() + // dTSsix
-            " " + fltFmt_.Fmt() + // dTSsix_norm
-            " " + fltFmt_.Fmt() + // Esw_dens
-            " " + fltFmt_.Fmt() + // Esw_norm
-            " " + fltFmt_.Fmt() + // Eww_dens
-            " " + fltFmt_.Fmt();   // EWW_norm
-      if (usePme_) {
-        fmtstr +=
-            " " + fltFmt_.Fmt() + // PME_dens
-          + " " + fltFmt_.Fmt();  // PME_norm
-      }
-      fmtstr +=
-            " " + fltFmt_.Fmt() + // dipolex
-            " " + fltFmt_.Fmt() + // dipoley
-            " " + fltFmt_.Fmt() + // dipolez
-            " " + fltFmt_.Fmt() + // pol
-            " " + fltFmt_.Fmt() + // neighbor_dens
-            " " + fltFmt_.Fmt() + // neighbor_norm
-            " " + fltFmt_.Fmt() + // qtet
-            " \n";                // NEWLINE
-      mprintf("DEBUG: Fmt='%s'\n", fmtstr.c_str());
+      
       // TODO - better determine what should and should not be printed here.
       //         Is it necessary to have separate prints for pme/non-pme?
       if (usePme_) {
