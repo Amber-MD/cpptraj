@@ -170,11 +170,26 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, double& e_elec, doubl
   // DEBUG
   mprintf("DEBUG: gistpme voxel energies:\n");
   mprintf("\t%20s %20s %20s %20s\n", "E_UV_VDW", "E_UV_Elec", "E_VV_VDW", "E_VV_Elec");
+  double sum_uv_vdw = 0;
+  double sum_uv_elec = 0;
+  double sum_vv_vdw = 0;
+  double sum_vv_elec = 0;
   for (unsigned int vidx = 0; vidx != E_UV_VDW_in[0].size(); vidx++)
   {
     mprintf("\t%20.10g %20.10g %20.10g %20.10g\n",
             E_UV_VDW_in[0][vidx], E_UV_Elec_in[0][vidx], E_VV_VDW_in[0][vidx], E_VV_Elec_in[0][vidx]);
+    sum_uv_vdw += E_UV_VDW_in[0][vidx];
+    sum_uv_elec += E_UV_Elec_in[0][vidx];
+    sum_vv_vdw += E_VV_VDW_in[0][vidx];
+    sum_vv_elec += E_VV_Elec_in[0][vidx];
   }
+  sum_uv_vdw /= 2.0;
+  sum_uv_elec /= 2.0;
+  sum_vv_vdw /= 2.0;
+  sum_vv_elec /= 2.0;
+  mprintf("DEBUG: Sums: UV_V= %20.10g  UV_E= %20.10g  VV_V= %20.10g  VV_E= %20.10g  Total= %20.10g\n",
+           sum_uv_vdw, sum_uv_elec, sum_vv_vdw, sum_vv_elec,
+           sum_uv_vdw + sum_uv_elec + sum_vv_vdw + sum_vv_elec);
 
   // DEBUG
   if (debug_ > 0) {
