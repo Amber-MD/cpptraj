@@ -696,14 +696,14 @@ void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
 {
 # ifdef LIBPME
   // Two energy terms for the whole system
-  double ene_pme_all = 0.0;
-  double ene_vdw_all = 0.0;
+  //double ene_pme_all = 0.0;
+  //double ene_vdw_all = 0.0;
   // pointer to the E_pme_, where has the voxel-wise pme energy for water
   double* E_pme_grid = &E_pme_[0];
   // pointer to U_E_pme_, where has the voxel-wise pme energy for solute
   double* U_E_pme_grid = &U_E_pme_[0]; 
 
-  gistPme_.CalcNonbondEnergy_GIST(frameIn, ene_pme_all, ene_vdw_all, atom_voxel_, atomIsSolute_,
+  gistPme_.CalcNonbondEnergy_GIST(frameIn, atom_voxel_, atomIsSolute_,
                                   E_UV_VDW_, E_UV_Elec_, E_VV_VDW_, E_VV_Elec_);
 
   //mprintf("For this frame, the cpptraj potentail energy: %f, cpptraj_ene: %f, cpptraj_vdw: %f \n", ene_pme_all + ene_vdw_all, ene_pme_all, ene_vdw_all);

@@ -24,7 +24,7 @@ class GIST_PME : private Ewald_ParticleMesh {
     /// Setup PME calc. for top, all atoms. Allocate memory for internal arrays (# threads)
     int Setup_PME_GIST(Topology const&, unsigned int);
     /// Calculate nonbonded energy with PME for GIST
-    int CalcNonbondEnergy_GIST(Frame const&, double&, double&, std::vector<int> const&,
+    int CalcNonbondEnergy_GIST(Frame const&, std::vector<int> const&,
                                std::vector<bool> const&,
                                std::vector<Darray>&, std::vector<Darray>&,
                                std::vector<Darray>&, std::vector<Darray>&);

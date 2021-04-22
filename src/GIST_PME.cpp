@@ -67,7 +67,7 @@ static inline double SumDarray(std::vector<double> const& arr) {
 /** Calculate full nonbonded energy with PME Used for GIST, adding 6 arrays to store the
  * decomposed energy terms for every atom
  */
-int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, double& e_elec, double& e_vdw,
+int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn,
                                      std::vector<int> const& atom_voxel,
                                      std::vector<bool> const& atomIsSolute,
                                      std::vector<Darray>& E_UV_VDW_in,
@@ -147,7 +147,7 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, double& e_elec, doubl
     //mprintf("e_vdw_lr_correction: %f \n", e_vdw_lr_correction);
   }
 
-  e_vdw = 0.0;
+  double e_vdw = 0.0;
   double e_direct = Direct_GIST( pairList_, e_vdw, atom_voxel, atomIsSolute,
                                  E_UV_VDW_in, E_UV_Elec_in, E_VV_VDW_in, E_VV_Elec_in);
 
@@ -157,8 +157,8 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn, double& e_elec, doubl
     mprintf("DEBUG: gistpme Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f  Evdw= %20.10f\n",
             e_self, e_recip, e_direct, e_vdw);
 
-  e_vdw += (e_vdw_lr_correction + e_vdw6self + e_vdw6recip);
-  e_elec = e_self + e_recip + e_direct;
+  //e_vdw += (e_vdw_lr_correction + e_vdw6self + e_vdw6recip);
+  //e_elec = e_self + e_recip + e_direct;
 
 # ifdef DEBUG_GIST_PME
   // DEBUG
