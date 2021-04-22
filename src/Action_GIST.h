@@ -183,8 +183,8 @@ class Action_GIST : public Action {
     double BULK_DENS_;         ///< Bulk water density
     double temperature_;       ///< Temperature
     double NeighborCut2_;      ///< Cutoff for determining water neighbors (squared).
-    double system_potential_energy_; ///< the emsemble average potential energy ( Eelec + Vdw ) for the frames (pme only)
-    double solute_potential_energy_; ///< the ensemble average potential energy on solute atoms (pme only)
+//    double system_potential_energy_; ///< the emsemble average potential energy ( Eelec + Vdw ) for the frames (pme only)
+//    double solute_potential_energy_; ///< the ensemble average potential energy on solute atoms (pme only)
     unsigned int MAX_GRID_PT_; ///< Max number of grid points (voxels).
     unsigned int NSOLVENT_;    ///< Number of solvent molecules.
     unsigned int N_ON_GRID_;   ///< Number of water atoms on the grid.*

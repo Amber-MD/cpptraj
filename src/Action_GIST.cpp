@@ -62,8 +62,8 @@ Action_GIST::Action_GIST() :
   BULK_DENS_(0.0),
   temperature_(0.0),
   NeighborCut2_(12.25), // 3.5^2
-  system_potential_energy_(0),
-  solute_potential_energy_(0),
+//  system_potential_energy_(0),
+//  solute_potential_energy_(0),
   MAX_GRID_PT_(0),
   NSOLVENT_(0),
   N_ON_GRID_(0),
@@ -708,7 +708,7 @@ void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
 
   //mprintf("For this frame, the cpptraj potentail energy: %f, cpptraj_ene: %f, cpptraj_vdw: %f \n", ene_pme_all + ene_vdw_all, ene_pme_all, ene_vdw_all);
 
-  system_potential_energy_ += ene_pme_all + ene_vdw_all;
+//  system_potential_energy_ += ene_pme_all + ene_vdw_all;
 
   // Water energy on the GIST grid
   double pme_sum = 0.0;
@@ -739,6 +739,7 @@ void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
     U_E_pme_grid[u_voxel] += u_nonbond_energy;
   }
 
+/*
   // Total solute energy
   double solute_sum = 0.0;
 
@@ -749,7 +750,7 @@ void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
     solute_sum += u_nonbond_energy;
     solute_potential_energy_ += u_nonbond_energy; // used to calculated the ensemble energy for all solute, will print out in terminal
   }
-
+*/
   //mprintf("The total potential energy on water atoms: %f \n", pme_sum);
 # else /*LIBPME */
   mprinterr("Error: Compiled without LIBPME\n");
@@ -1393,8 +1394,8 @@ const
   infofile_->Printf("Ensemble total water energy on the grid: %9.5f Kcal/mol \n", PME_tot);
   infofile_->Printf("Ensemble total solute energy on the grid: %9.5f Kcal/mol \n",U_PME_tot);
 
-  infofile_->Printf("Ensemble solute's total potential energy : %9.5f Kcal/mol \n", solute_potential_energy_ / NFRAME_);
-  infofile_->Printf("Ensemble system's total potential energy: %9.5f Kcal/mol \n", system_potential_energy_/NFRAME_);
+//  infofile_->Printf("Ensemble solute's total potential energy : %9.5f Kcal/mol \n", solute_potential_energy_ / NFRAME_);
+//  infofile_->Printf("Ensemble system's total potential energy: %9.5f Kcal/mol \n", system_potential_energy_/NFRAME_);
 }
 
 /** Calculate average voxel energy for non-PME grids. */
