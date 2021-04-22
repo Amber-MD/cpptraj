@@ -680,15 +680,6 @@ const Vec3 Action_GIST::z_lab_ = Vec3(0.0, 0.0, 1.0);
 const double Action_GIST::QFAC_ = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
 const int Action_GIST::OFF_GRID_ = -1;
 
-/*
-/// \return Sum of elements in given array
-static inline double SumDarray(std::vector<double> const& arr) {
-  double sum = 0.0;
-  for (std::vector<double>::const_iterator it = arr.begin(); it != arr.end(); ++it)
-    sum += *it;
-  return sum;
-}*/
-
 /* Calculate the charge-charge, vdw interaction using pme, frame by frame
  * 
  */
@@ -706,8 +697,6 @@ void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
   gistPme_.CalcNonbondEnergy_GIST(frameIn, atom_voxel_, atomIsSolute_,
                                   E_UV_VDW_, E_UV_Elec_, E_VV_VDW_, E_VV_Elec_);
 
-  //mprintf("For this frame, the cpptraj potentail energy: %f, cpptraj_ene: %f, cpptraj_vdw: %f \n", ene_pme_all + ene_vdw_all, ene_pme_all, ene_vdw_all);
-
 //  system_potential_energy_ += ene_pme_all + ene_vdw_all;
 
   // Water energy on the GIST grid
@@ -718,11 +707,6 @@ void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
     int a = OnGrid_idxs_[gidx]; // index of the atom of on-grid solvent;
     int a_voxel = atom_voxel_[a]; // index of the voxel
     double nonbond_energy = gistPme_.E_of_atom(a);
-    //double nonbond_energy = gistPme_.E_Elec_Self()[a] + gistPme_.E_Elec_Direct()[a] + gistPme_.E_Elec_Recip()[a] +
-    //                        gistPme_.E_Vdw_Self()[a] + gistPme_.E_Vdw_Direct()[a] +
-    //                        gistPme_.E_Vdw_Recip()[a] + gistPme_.E_Vdw_LR_Corr()[a]; 
-    //double nonbond_energy = E_elec_self[a]+ E_elec_direct[a] + E_elec_recip[a] + 
-    //                        E_vdw_direct[a] + E_vdw_self[a] + E_vdw_recip[a] + E_vdw_lr_cor[a];
     pme_sum += nonbond_energy;
     E_pme_grid[a_voxel] += nonbond_energy;  
   }
