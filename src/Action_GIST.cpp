@@ -403,6 +403,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
 
   mprintf("    GIST:\n");
   mprintf("\tOutput prefix= '%s', grid output extension= '%s'\n", prefix_.c_str(), ext.c_str());
+  mprintf("\tOutput float format string= '%s', output integer format string= '%s'\n", fltFmt_.fmt(), intFmt_.fmt());
   mprintf("\tGIST info written to '%s'\n", infofile_->Filename().full());
   mprintf("\tName for data sets: %s\n", dsname.c_str());
   if (doOrder_)
@@ -1719,7 +1720,6 @@ void Action_GIST::Print() {
   // TODO: Make a data file format?
   if (datafile_ != 0) {
     mprintf("\tWriting GIST results for each voxel:\n");
-    mprintf("DEBUG: Float format= '%s'  int format= '%s'\n", fltFmt_.fmt(), intFmt_.fmt());
     // Create the format strings.
     std::string fmtstr =
                 intFmt_.Fmt() + // grid point
@@ -1753,7 +1753,7 @@ void Action_GIST::Print() {
           " " + fltFmt_.Fmt() + // neighbor_norm
           " " + fltFmt_.Fmt() + // qtet
           " \n";                // NEWLINE
-    mprintf("DEBUG: Fmt='%s'\n", fmtstr.c_str());
+    if (debug_ > 0) mprintf("DEBUG: Fmt='%s'\n", fmtstr.c_str());
     const char* gistOutputVersion;
     if (usePme_)
       gistOutputVersion = "v3";
