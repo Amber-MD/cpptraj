@@ -764,27 +764,28 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
         {
           int it1_voxel = atom_voxel[it1->Idx()];
           bool it1_solute = atomIsSolute[it1->Idx()];
-
-          Vec3 const& xyz1 = it1->ImageCoords();
-          double q1 = Charge_[it1->Idx()];
-          Vec3 dxyz = xyz1 - xyz0;
-          double rij2 = dxyz.Magnitude2();
-#         ifdef DEBUG_PAIRLIST
-          mprintf("\tAtom %6i to atom %6i (%f)\n", it0->Idx()+1, it1->Idx()+1, sqrt(rij2));
-#         endif
-          InteractionType interactionType = determineInteractionType(it0_voxel, it0_solute, it1_voxel, it1_solute);
-          // If atom excluded, calc adjustment, otherwise calc elec. energy.
-          if (excluded.find( it1->Idx() ) == excluded.end())
-          {
-            if ( rij2 < cut2_ ) {
-              Ekernel_NB(Eelec, Evdw, rij2, q0, q1, it0->Idx(), it1->Idx(), e_elec_direct, e_vdw_direct,
-                           interactionType, it0_voxel, it1_voxel, 
-                           e_uv_vdw, e_uv_elec, e_vv_vdw, e_vv_elec);
+          if (it0_voxel > -1 || it1_voxel > -1) {
+            Vec3 const& xyz1 = it1->ImageCoords();
+            double q1 = Charge_[it1->Idx()];
+            Vec3 dxyz = xyz1 - xyz0;
+            double rij2 = dxyz.Magnitude2();
+#           ifdef DEBUG_PAIRLIST
+            mprintf("\tAtom %6i to atom %6i (%f)\n", it0->Idx()+1, it1->Idx()+1, sqrt(rij2));
+#           endif
+            InteractionType interactionType = determineInteractionType(it0_voxel, it0_solute, it1_voxel, it1_solute);
+            // If atom excluded, calc adjustment, otherwise calc elec. energy.
+            if (excluded.find( it1->Idx() ) == excluded.end())
+            {
+              if ( rij2 < cut2_ ) {
+                Ekernel_NB(Eelec, Evdw, rij2, q0, q1, it0->Idx(), it1->Idx(), e_elec_direct, e_vdw_direct,
+                             interactionType, it0_voxel, it1_voxel, 
+                             e_uv_vdw, e_uv_elec, e_vv_vdw, e_vv_elec);
+              }
+            } else {
+                Ekernel_Adjust(e_adjust, rij2, q0, q1, it0->Idx(), it1->Idx(), e_elec_direct,
+                               interactionType, it0_voxel, it1_voxel, e_uv_elec, e_vv_elec);
             }
-          } else {
-              Ekernel_Adjust(e_adjust, rij2, q0, q1, it0->Idx(), it1->Idx(), e_elec_direct,
-                             interactionType, it0_voxel, it1_voxel, e_uv_elec, e_vv_elec);
-          }
+          } // END at least 1 voxel on grid
         } // END loop over other atoms in thisCell
         // Loop over all neighbor cells
         for (unsigned int nidx = 1; nidx != cellList.size(); nidx++)
@@ -802,36 +803,36 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
           {
             int it1_voxel = atom_voxel[it1->Idx()];
             bool it1_solute = atomIsSolute[it1->Idx()];
-            Vec3 const& xyz1 = it1->ImageCoords();
-            double q1 = Charge_[it1->Idx()];
-            Vec3 dxyz = xyz1 + tVec - xyz0;
-            double rij2 = dxyz.Magnitude2();
-#           ifdef DEBUG_PAIRLIST
-            mprintf("\t\tAtom %6i to atom %6i (%f)\n", it0->Idx()+1, it1->Idx()+1, sqrt(rij2));
-#           endif
-            //mprintf("\t\tNbrAtom %06i\n",atnum1);
-            InteractionType interactionType = determineInteractionType(it0_voxel, it0_solute, it1_voxel, it1_solute);
-            // If atom excluded, calc adjustment, otherwise calc elec. energy.
-            // TODO Is there better way of checking this?
-            if (excluded.find( it1->Idx() ) == excluded.end())
-            {
-              //mprintf("\t\t\tdist= %f\n", sqrt(rij2));
-              if ( rij2 < cut2_ ) {
-                Ekernel_NB(Eelec, Evdw, rij2, q0, q1, it0->Idx(), it1->Idx(), e_elec_direct, e_vdw_direct,
-                           interactionType, it0_voxel, it1_voxel, 
-                           e_uv_vdw, e_uv_elec, e_vv_vdw, e_vv_elec);
+            if (it0_voxel > -1 || it1_voxel > -1) {
+              Vec3 const& xyz1 = it1->ImageCoords();
+              double q1 = Charge_[it1->Idx()];
+              Vec3 dxyz = xyz1 + tVec - xyz0;
+              double rij2 = dxyz.Magnitude2();
+#             ifdef DEBUG_PAIRLIST
+              mprintf("\t\tAtom %6i to atom %6i (%f)\n", it0->Idx()+1, it1->Idx()+1, sqrt(rij2));
+#             endif
+              //mprintf("\t\tNbrAtom %06i\n",atnum1);
+              InteractionType interactionType = determineInteractionType(it0_voxel, it0_solute, it1_voxel, it1_solute);
+              // If atom excluded, calc adjustment, otherwise calc elec. energy.
+              // TODO Is there better way of checking this?
+              if (excluded.find( it1->Idx() ) == excluded.end())
+              {
+                //mprintf("\t\t\tdist= %f\n", sqrt(rij2));
+                if ( rij2 < cut2_ ) {
+                  Ekernel_NB(Eelec, Evdw, rij2, q0, q1, it0->Idx(), it1->Idx(), e_elec_direct, e_vdw_direct,
+                             interactionType, it0_voxel, it1_voxel, 
+                             e_uv_vdw, e_uv_elec, e_vv_vdw, e_vv_elec);
+                }
+              } else {
+                Ekernel_Adjust(e_adjust, rij2, q0, q1, it0->Idx(), it1->Idx(), e_elec_direct,
+                               interactionType, it0_voxel, it1_voxel, e_uv_elec, e_vv_elec);
               }
-            } else {
-              Ekernel_Adjust(e_adjust, rij2, q0, q1, it0->Idx(), it1->Idx(), e_elec_direct,
-                             interactionType, it0_voxel, it1_voxel, e_uv_elec, e_vv_elec);
-            }
+            } // END at least 1 voxel on the grid
           } // END loop over neighbor cell atoms
         
         } // END Loop over neighbor cells
         
       } // Loop over thisCell atoms
-      
-
 
     } // END if thisCell is not empty
   } // Loop over cells
