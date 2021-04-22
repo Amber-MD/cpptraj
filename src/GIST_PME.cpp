@@ -720,7 +720,7 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
   // Pair list loop
 # ifdef _OPENMP
   int mythread;
-# pragma omp parallel private(cidx, mythread, e_vdw_direct, e_elec_direct) reduction(+: Eelec, Evdw, e_adjust)
+# pragma omp parallel private(cidx, mythread, e_vdw_direct, e_elec_direct, e_uv_vdw, e_uv_elec, e_vv_vdw, e_vv_elec) reduction(+: Eelec, Evdw, e_adjust)
   {
   mythread = omp_get_thread_num();
   std::fill(E_vdw_direct_[mythread].begin(), E_vdw_direct_[mythread].end(), 0);
