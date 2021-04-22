@@ -300,7 +300,8 @@ double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn,
   pme_object_.setLatticeVectors(boxIn.Param(Box::X), boxIn.Param(Box::Y), boxIn.Param(Box::Z),
                                 boxIn.Param(Box::ALPHA), boxIn.Param(Box::BETA), boxIn.Param(Box::GAMMA),
                                 PMEInstanceD::LatticeType::XAligned);
-  double erecip = pme_object_.computeERec(0, chargesD, coordsD);
+  //double erecip = pme_object_.computeERec(0, chargesD, coordsD);
+  double erecip = 0;
   pme_object_.computePRec(0,chargesD,coordsD,coordsD,1,e_potentialD_);
   for(unsigned int i =0; i < Charge_.size(); i++)
   {
