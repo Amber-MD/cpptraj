@@ -73,7 +73,8 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn,
                                      std::vector<Darray>& E_UV_VDW_in,
                                      std::vector<Darray>& E_UV_Elec_in,
                                      std::vector<Darray>& E_VV_VDW_in,
-                                     std::vector<Darray>& E_VV_Elec_in)
+                                     std::vector<Darray>& E_VV_Elec_in,
+                                     std::vector<Farray>& Neighbor_in)
 {
   t_total_.Start();
 # ifdef DEBUG_GIST_PME
@@ -149,7 +150,8 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn,
 
   double e_vdw = 0.0;
   double e_direct = Direct_GIST( pairList_, e_vdw, atom_voxel, atomIsSolute,
-                                 E_UV_VDW_in, E_UV_Elec_in, E_VV_VDW_in, E_VV_Elec_in);
+                                 E_UV_VDW_in, E_UV_Elec_in, E_VV_VDW_in, E_VV_Elec_in,
+                                 Neighbor_in);
 
   //mprintf("e_elec_self: %f , e_elec_direct: %f, e_vdw6direct: %f \n", e_self, e_direct, e_vdw);
 
@@ -459,7 +461,8 @@ double GIST_PME::Direct_GIST(PairList const& PL, double& evdw_out,
                              std::vector<Darray>& E_UV_VDW_in,
                              std::vector<Darray>& E_UV_Elec_in,
                              std::vector<Darray>& E_VV_VDW_in,
-                             std::vector<Darray>& E_VV_Elec_in)
+                             std::vector<Darray>& E_VV_Elec_in,
+                             std::vector<Farray>& Neighbor_in)
             
 {
   if (lw_coeff_ > 0.0)
@@ -467,7 +470,8 @@ double GIST_PME::Direct_GIST(PairList const& PL, double& evdw_out,
   else
     return Direct_VDW_LongRangeCorrection_GIST(PL, evdw_out, atom_voxel, atomIsSolute,
                                                E_UV_VDW_in, E_UV_Elec_in,
-                                               E_VV_VDW_in, E_VV_Elec_in);
+                                               E_VV_VDW_in, E_VV_Elec_in,
+                                               Neighbor_in);
 }
 
 /** Set interaction type and optionally on-grid solvent voxel index.
@@ -695,7 +699,8 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
                                                      std::vector<Darray>& E_UV_VDW_in,
                                                      std::vector<Darray>& E_UV_Elec_in,
                                                      std::vector<Darray>& E_VV_VDW_in,
-                                                     std::vector<Darray>& E_VV_Elec_in)
+                                                     std::vector<Darray>& E_VV_Elec_in,
+                                                     std::vector<Farray>& Neighbor_in)
 {
   // e_vdw_direct only count the interaction water molecule involved( sw, ww)
   // e_vdw_all_direct, count all interactions( sw, ww, ss)
@@ -718,10 +723,11 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
   double* e_uv_elec = &(E_UV_Elec_in[0][0]);
   double* e_vv_vdw  = &(E_VV_VDW_in[0][0]);
   double* e_vv_elec = &(E_VV_Elec_in[0][0]);
+  float*  neighbor  = &(Neighbor_in[0][0]);
   // Pair list loop
 # ifdef _OPENMP
   int mythread;
-# pragma omp parallel private(cidx, mythread, e_vdw_direct, e_elec_direct, e_uv_vdw, e_uv_elec, e_vv_vdw, e_vv_elec) reduction(+: Eelec, Evdw, e_adjust)
+# pragma omp parallel private(cidx, mythread, e_vdw_direct, e_elec_direct, e_uv_vdw, e_uv_elec, e_vv_vdw, e_vv_elec, neighbor) reduction(+: Eelec, Evdw, e_adjust)
   {
   mythread = omp_get_thread_num();
   std::fill(E_vdw_direct_[mythread].begin(), E_vdw_direct_[mythread].end(), 0);
@@ -732,6 +738,7 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
   e_uv_elec = &(E_UV_Elec_in[mythread][0]);
   e_vv_vdw = &(E_VV_VDW_in[mythread][0]);
   e_vv_elec = &(E_VV_Elec_in[mythread][0]);
+  neighbor = &(Neighbor_in[mythread][0]);
 # pragma omp for
 # endif
 //# include "PairListLoop.h"
