@@ -8,7 +8,5 @@ Total t if all one vox:  -0.60468 kcal/mol
 Total o if all one vox:   0.18218 kcal/mol
 Ensemble total water energy on the grid: -1542.80745 Kcal/mol 
 Ensemble total solute energy on the grid: -1254.32084 Kcal/mol 
-Ensemble solute's total potential energy : -1270.79410 Kcal/mol 
-Ensemble system's total potential energy: -17470.55323 Kcal/mol 
 Total water-solute energy of the grid: Esw = -379.83753 kcal/mol
 Total unreferenced water-water energy of the grid: Eww = -1352.88868 kcal/mol
