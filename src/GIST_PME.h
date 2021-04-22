@@ -95,6 +95,10 @@ class GIST_PME : private Ewald_ParticleMesh {
     /// Calculate direct space energy with LJ PME for GIST, decomposed for every atom.
     double Direct_VDW_LJPME_GIST(PairList const&, double&);
 
+    // TODO could potentially make the calculation more efficient by skipping
+    //      the per-atom arrays below and just passing in the GIST PME
+    //      energy grids and summing into them directly.
+
     std::vector<Darray> E_vdw_direct_;  ///< VDW direct energy for each atom (sw, ww)
     std::vector<Darray> E_elec_direct_; ///< Elec. direct energy for each atom (sw, ww, ss)
 
