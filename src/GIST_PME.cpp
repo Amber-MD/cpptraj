@@ -70,6 +70,7 @@ static inline double SumDarray(std::vector<double> const& arr) {
 int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn,
                                      std::vector<int> const& atom_voxel,
                                      std::vector<bool> const& atomIsSolute,
+                                     std::vector<bool> const& atomIsSolventO,
                                      std::vector<Darray>& E_UV_VDW_in,
                                      std::vector<Darray>& E_UV_Elec_in,
                                      std::vector<Darray>& E_VV_VDW_in,
@@ -149,7 +150,7 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn,
   }
 
   double e_vdw = 0.0;
-  double e_direct = Direct_GIST( pairList_, e_vdw, atom_voxel, atomIsSolute,
+  double e_direct = Direct_GIST( pairList_, e_vdw, atom_voxel, atomIsSolute, atomIsSolventO,
                                  E_UV_VDW_in, E_UV_Elec_in, E_VV_VDW_in, E_VV_Elec_in,
                                  Neighbor_in);
 
@@ -458,6 +459,7 @@ double GIST_PME::Vdw_Correction_GIST(double volume,
 double GIST_PME::Direct_GIST(PairList const& PL, double& evdw_out,
                              std::vector<int> const& atom_voxel,
                              std::vector<bool> const& atomIsSolute,
+                             std::vector<bool> const& atomIsSolventO,
                              std::vector<Darray>& E_UV_VDW_in,
                              std::vector<Darray>& E_UV_Elec_in,
                              std::vector<Darray>& E_VV_VDW_in,
@@ -468,7 +470,7 @@ double GIST_PME::Direct_GIST(PairList const& PL, double& evdw_out,
   if (lw_coeff_ > 0.0)
     return Direct_VDW_LJPME_GIST(PL, evdw_out);
   else
-    return Direct_VDW_LongRangeCorrection_GIST(PL, evdw_out, atom_voxel, atomIsSolute,
+    return Direct_VDW_LongRangeCorrection_GIST(PL, evdw_out, atom_voxel, atomIsSolute, atomIsSolventO,
                                                E_UV_VDW_in, E_UV_Elec_in,
                                                E_VV_VDW_in, E_VV_Elec_in,
                                                Neighbor_in);
@@ -696,6 +698,7 @@ void GIST_PME::Ekernel_Adjust(double& e_adjust,
 double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double& evdw_out,
                                                      std::vector<int> const& atom_voxel,
                                                      std::vector<bool> const& atomIsSolute,
+                                                     std::vector<bool> const& atomIsSolventO,
                                                      std::vector<Darray>& E_UV_VDW_in,
                                                      std::vector<Darray>& E_UV_Elec_in,
                                                      std::vector<Darray>& E_VV_VDW_in,

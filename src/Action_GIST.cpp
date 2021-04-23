@@ -506,6 +506,7 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   A_idxs_.clear();
   atom_voxel_.clear();
   atomIsSolute_.clear();
+  atomIsSolventO_.clear();
   U_idxs_.clear();
   // NOTE: these are just guesses
   O_idxs_.reserve( setup.Top().Nsolvent() );
@@ -513,6 +514,7 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   // atom_voxel_ and atomIsSolute will be indexed by atom #
   atom_voxel_.assign( setup.Top().Natom(), OFF_GRID_ );
   atomIsSolute_.assign(setup.Top().Natom(), false);
+  atomIsSolventO_.assign(setup.Top().Natom(), false);
   U_idxs_.reserve(setup.Top().Natom()-setup.Top().Nsolvent()*nMolAtoms_);
   unsigned int midx = 0;
   unsigned int NsolventAtoms = 0;
@@ -547,6 +549,7 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
         return Action::ERR;
       }
       O_idxs_.push_back( o_idx );
+      atomIsSolventO_[o_idx] = true;
       // Check that the next two atoms are Hydrogens
       if (setup.Top()[o_idx+1].Element() != Atom::HYDROGEN ||
           setup.Top()[o_idx+2].Element() != Atom::HYDROGEN)
@@ -688,13 +691,13 @@ void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
 # ifdef LIBPME
   // Two energy terms for the whole system
   //double ene_pme_all = 0.0;
-  //double ene_vdw_all = 0.0;
+  //double ene_vdw_all = 0.0 atomIsSolventO_,;
   // pointer to the E_pme_, where has the voxel-wise pme energy for water
   double* E_pme_grid = &E_pme_[0];
   // pointer to U_E_pme_, where has the voxel-wise pme energy for solute
   double* U_E_pme_grid = &U_E_pme_[0]; 
 
-  gistPme_.CalcNonbondEnergy_GIST(frameIn, atom_voxel_, atomIsSolute_,
+  gistPme_.CalcNonbondEnergy_GIST(frameIn, atom_voxel_, atomIsSolute_, atomIsSolventO_,
                                   E_UV_VDW_, E_UV_Elec_, E_VV_VDW_, E_VV_Elec_,
                                   neighbor_);
 
@@ -839,7 +842,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
     int a1_mol = topIn[ a1 ].MolNum(); // Molecule # of atom 1
     Vec3 A1_XYZ( frameIn.XYZ( a1 ) );  // Coord of atom1
     double qA1 = topIn[ a1 ].Charge(); // Charge of atom1
-    bool a1IsO = (topIn[ a1 ].Element() == Atom::OXYGEN);
+    bool a1IsO = atomIsSolventO_[a1];
     std::vector<Vec3> vImages;
     if (imageOpt_.ImagingType() == ImageOption::NONORTHO) {
       // Convert to frac coords
@@ -929,7 +932,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
             E_VV_VDW[a2_voxel] += Evdw;
             E_VV_Elec[a2_voxel] += Eelec;
             // Store water neighbor using only O-O distance
-            bool is_O_O = (a1IsO && (topIn[ a2 ].Element() == Atom::OXYGEN));
+            bool is_O_O = (a1IsO && atomIsSolventO_[a2]);
             if (is_O_O && rij2 < NeighborCut2_)
               Neighbor[a2_voxel] += 1.0;
             // If water atom1 was also on the grid update its energy as well.

@@ -128,6 +128,7 @@ class Action_GIST : public Action {
     Iarray atom_voxel_;     ///< Absolute grid voxel for each atom (OFF_GRID_ if atom not on grid).*
     Iarray A_idxs_;         ///< Atom indices for each solute and solvent atom (energy calc only).+
     std::vector<bool> atomIsSolute_; ///< True if atom is solute.+
+    std::vector<bool> atomIsSolventO_; ///< True if atom is sovent O.+
     Iarray U_idxs_;         ///< Atom indices for solute atoms only.+
     Iarray U_onGrid_idxs_;  ///< Indices for each solute atom on the grid.*
     Iarray N_waters_;       ///< Number of waters (oxygen atoms) in each voxel.*

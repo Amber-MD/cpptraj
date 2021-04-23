@@ -28,6 +28,7 @@ class GIST_PME : private Ewald_ParticleMesh {
     /// Calculate nonbonded energy with PME for GIST
     int CalcNonbondEnergy_GIST(Frame const&, std::vector<int> const&,
                                std::vector<bool> const&,
+                               std::vector<bool> const&,
                                std::vector<Darray>&, std::vector<Darray>&,
                                std::vector<Darray>&, std::vector<Darray>&,
                                std::vector<Farray>&);
@@ -87,12 +88,15 @@ class GIST_PME : private Ewald_ParticleMesh {
     double Vdw_Correction_GIST(double, std::vector<int> const&, std::vector<bool> const&,
                                Darray&, Darray&);
     /// Calculate direct space energy for GIST, decomposed for every atom.
-    double Direct_GIST(PairList const&, double&, std::vector<int> const&, std::vector<bool> const&,
+    double Direct_GIST(PairList const&, double&, std::vector<int> const&,
+                       std::vector<bool> const&,
+                       std::vector<bool> const&,
                        std::vector<Darray>&, std::vector<Darray>&,
                        std::vector<Darray>&, std::vector<Darray>&,
                        std::vector<Farray>&);
     /// Calcualte direct space energy with long range VDW correction for GIST, decomposed for every atom.
     double Direct_VDW_LongRangeCorrection_GIST(PairList const&, double&, std::vector<int> const&,
+                                               std::vector<bool> const&,
                                                std::vector<bool> const&,
                                                std::vector<Darray>&, std::vector<Darray>&,
                                                std::vector<Darray>&, std::vector<Darray>&,
