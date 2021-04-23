@@ -24438,7 +24438,7 @@ gist
 
 \end_inset
 
- [doorder] [doeij] [skipS] [skipE] [refdens <rdval>] [temp <tval>]
+ [doorder] [doeij] [skipE] [skipS] [refdens <rdval>] [temp <tval>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -25059,14 +25059,14 @@ doorder
 \begin_layout Standard
 The nonbonded energy calculation can also be accelerated using particle
  mesh Ewald via the pme keyword (CPU only).
- The details are in the following reference: 
-\begin_inset CommandInset href
-LatexCommand href
-target "https://doi.org/10.26434/chemrxiv.13140011.v2"
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Chen2021"
+literal "true"
 
 \end_inset
 
-.
+
 \end_layout
 
 \begin_layout Subsubsection*
