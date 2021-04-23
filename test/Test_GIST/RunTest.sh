@@ -90,6 +90,7 @@ EOF
   RunCpptraj "$UNITNAME"
   DoTest Gist4-Solute-Etot-pme-dens.dx.save Gist4-Solute-Etot-pme-dens.dx
   DoTest Gist4-Water-Etot-pme-dens.dx.save Gist4-Water-Etot-pme-dens.dx
+  DoTest Gist2-neighbor-norm.dx.save Gist4-neighbor-norm.dx
   DoTest Gist4-Esw-dens.dx.save Gist4-Esw-dens.dx
   DoTest Gist4-Eww-dens.dx.save Gist4-Eww-dens.dx
   DoTest Gist4-Info.dat.save Gist4-Info.dat -a $TEST_TOLERANCE
@@ -113,6 +114,7 @@ EOF
   RunCpptraj "$UNITNAME"
   DoTest Gist5-Solute-Etot-pme-dens.dx.save Gist5-Solute-Etot-pme-dens.dx
   DoTest Gist5-Water-Etot-pme-dens.dx.save Gist5-Water-Etot-pme-dens.dx
+  DoTest Gist3-neighbor-norm.dx.save Gist5-neighbor-norm.dx
   DoTest Gist5-Esw-dens.dx.save Gist5-Esw-dens.dx
   DoTest Gist5-Eww-dens.dx.save Gist5-Eww-dens.dx
   DoTest Gist5-Info.dat.save Gist5-Info.dat -a $TEST_TOLERANCE
