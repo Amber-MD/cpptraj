@@ -90,6 +90,8 @@ EOF
   RunCpptraj "$UNITNAME"
   DoTest Gist4-Solute-Etot-pme-dens.dx.save Gist4-Solute-Etot-pme-dens.dx
   DoTest Gist4-Water-Etot-pme-dens.dx.save Gist4-Water-Etot-pme-dens.dx
+  DoTest Gist2-gH.dx.save Gist4-gH.dx
+  DoTest Gist2-gO.dx.save Gist4-gO.dx
   DoTest Gist2-neighbor-norm.dx.save Gist4-neighbor-norm.dx
   DoTest Gist4-Esw-dens.dx.save Gist4-Esw-dens.dx
   DoTest Gist4-Eww-dens.dx.save Gist4-Eww-dens.dx
@@ -114,6 +116,8 @@ EOF
   RunCpptraj "$UNITNAME"
   DoTest Gist5-Solute-Etot-pme-dens.dx.save Gist5-Solute-Etot-pme-dens.dx
   DoTest Gist5-Water-Etot-pme-dens.dx.save Gist5-Water-Etot-pme-dens.dx
+  DoTest Gist3-gH.dx.save Gist5-gH.dx
+  DoTest Gist3-gO.dx.save Gist5-gO.dx
   DoTest Gist3-neighbor-norm.dx.save Gist5-neighbor-norm.dx
   DoTest Gist5-Esw-dens.dx.save Gist5-Esw-dens.dx
   DoTest Gist5-Eww-dens.dx.save Gist5-Eww-dens.dx
