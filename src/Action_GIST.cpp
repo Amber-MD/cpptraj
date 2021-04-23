@@ -695,7 +695,8 @@ void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
   double* U_E_pme_grid = &U_E_pme_[0]; 
 
   gistPme_.CalcNonbondEnergy_GIST(frameIn, atom_voxel_, atomIsSolute_,
-                                  E_UV_VDW_, E_UV_Elec_, E_VV_VDW_, E_VV_Elec_);
+                                  E_UV_VDW_, E_UV_Elec_, E_VV_VDW_, E_VV_Elec_,
+                                  neighbor_);
 
 //  system_potential_energy_ += ene_pme_all + ene_vdw_all;
 
