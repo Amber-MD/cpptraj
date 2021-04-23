@@ -80,7 +80,7 @@ Action_GIST::Action_GIST() :
 void Action_GIST::Help() const {
   mprintf("\t[doorder] [doeij] [skipE] [skipS] [refdens <rdval>] [temp <tval>]\n"
           "\t[noimage] [gridcntr <xval> <yval> <zval>] [excludeions]\n"
-          "\t[griddim <nx> <ny> <nz>] [gridspacn <spaceval>]\n"
+          "\t[griddim <nx> <ny> <nz>] [gridspacn <spaceval>] [neighborcut <ncut>]\n"
           "\t[prefix <filename prefix>] [ext <grid extension>] [out <output suffix>]\n"
           "\t[floatfmt {double|scientific|general}] [floatwidth <fw>] [floatprec <fp>]\n"
           "\t[intwidth <iw>]\n"
@@ -153,6 +153,8 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
                                    actionArgs.getKeyInt("floatprec", -1) );
   intFmt_.SetFormatWidth( actionArgs.getKeyInt("intwidth", 0) );
   // Other keywords
+  double neighborCut = actionArgs.getKeyDouble("neighborcut", 3.5);
+  NeighborCut2_ = neighborCut * neighborCut;
   includeIons_ = !actionArgs.hasKey("excludeions");
   imageOpt_.InitImaging( !(actionArgs.hasKey("noimage")), actionArgs.hasKey("nonortho") );
   doOrder_ = actionArgs.hasKey("doorder");
@@ -423,6 +425,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
       pmeOpts_.PrintOptions();
     }
   }
+  mprintf("\tCut off for determining solvent O-O neighbors is %f Ang\n", sqrt(NeighborCut2_));
   if (includeIons_)
     mprintf("\tIons will be included in the solute region.\n");
   else

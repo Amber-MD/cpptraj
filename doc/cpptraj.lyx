@@ -24446,7 +24446,7 @@ gist
 \end_layout
 
 \begin_layout LyX-Code
-     [griddim <nx> <ny> <nz>] [gridspacn <spaceval>]
+     [griddim <nx> <ny> <nz>] [gridspacn <spaceval>] [neighborcut <ncut>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -24609,6 +24609,14 @@ rdval>]
 \series default
  Grid spacing (linear dimension of each voxel) in Angstroms.
  Values greater than 0.75 Å are not recommended (default 0.5 Å).
+\end_layout
+
+\begin_layout Description
+[neighborcut
+\begin_inset space ~
+\end_inset
+
+<ncut>] Cutoff in Å for determining solvent O-O neighbors (default 3.5 Å).
 \end_layout
 
 \begin_layout Description
