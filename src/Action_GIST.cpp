@@ -76,6 +76,7 @@ Action_GIST::Action_GIST() :
   includeIons_(true)
 {}
 
+/** GIST help */
 void Action_GIST::Help() const {
   mprintf("\t[doorder] [doeij] [skipE] [skipS] [refdens <rdval>] [temp <tval>]\n"
           "\t[noimage] [gridcntr <xval> <yval> <zval>] [excludeions]\n"
@@ -95,6 +96,7 @@ void Action_GIST::Help() const {
           );
 }
 
+/** Init GIST action. */
 Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   debug_ = debugIn;
@@ -465,9 +467,10 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   return Action::OK;
 }
 
+/// \return True if given floating point values are not equal within a tolerance
 static inline bool NotEqual(double v1, double v2) { return ( fabs(v1 - v2) > Constants::SMALL ); }
 
-// Action_GIST::Setup()
+/** Set up GIST action. */
 Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   gist_setup_.Start();
   CurrentParm_ = setup.TopAddress();
@@ -970,7 +973,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
 # endif
 }
 
-// Action_GIST::Order()
+/** GIST order calculation. */
 void Action_GIST::Order(Frame const& frameIn) {
   // Loop over all solvent molecules that are on the grid
   for (unsigned int gidx = 0; gidx < N_ON_GRID_; gidx += nMolAtoms_)
@@ -1025,7 +1028,7 @@ void Action_GIST::Order(Frame const& frameIn) {
   } // END loop over all solvent molecules
 }
 
-// Action_GIST::DoAction()
+/** GIST action */
 Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   gist_action_.Start();
   NFRAME_++;
@@ -1386,7 +1389,7 @@ const
 //  infofile_->Printf("Ensemble system's total potential energy: %9.5f Kcal/mol \n", system_potential_energy_/NFRAME_);
 }
 
-/** Calculate average voxel energy for non-PME grids. */
+/** Calculate average voxel energy for GIST grids. */
 void Action_GIST::CalcAvgVoxelEnergy(double Vvox, DataSet_GridFlt& Eww_dens, DataSet_GridFlt& Esw_dens,
                                      Farray& Eww_norm, Farray& Esw_norm,
                                      DataSet_GridDbl& qtet,
@@ -1451,8 +1454,7 @@ void Action_GIST::CalcAvgVoxelEnergy(double Vvox, DataSet_GridFlt& Eww_dens, Dat
                       Ewwtot);
 }
 
-
-// Action_GIST::Print()
+/** Handle averaging for grids and output from GIST. */
 void Action_GIST::Print() {
   gist_print_.Start();
   double Vvox = gO_->Bin().VoxelVolume();
