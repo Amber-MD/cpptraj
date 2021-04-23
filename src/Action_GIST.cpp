@@ -490,7 +490,7 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
       return Action::ERR;
     }
     // By default all atoms are selected for GIST PME to match up with atom_voxel_ array.
-    if (gistPme_.Setup_PME_GIST( setup.Top(), numthreads_ )) {
+    if (gistPme_.Setup_PME_GIST( setup.Top(), numthreads_, NeighborCut2_ )) {
       mprinterr("Error: GIST PME setup/array allocation failed.\n");
       return Action::ERR;
     }
@@ -691,7 +691,7 @@ void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
 # ifdef LIBPME
   // Two energy terms for the whole system
   //double ene_pme_all = 0.0;
-  //double ene_vdw_all = 0.0 atomIsSolventO_,;
+  //double ene_vdw_all = 0.0;
   // pointer to the E_pme_, where has the voxel-wise pme energy for water
   double* E_pme_grid = &E_pme_[0];
   // pointer to U_E_pme_, where has the voxel-wise pme energy for solute

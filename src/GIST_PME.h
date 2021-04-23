@@ -24,7 +24,7 @@ class GIST_PME : private Ewald_ParticleMesh {
     typedef std::vector<float> Farray;
 
     /// Setup PME calc. for top, all atoms. Allocate memory for internal arrays (# threads)
-    int Setup_PME_GIST(Topology const&, unsigned int);
+    int Setup_PME_GIST(Topology const&, unsigned int, double);
     /// Calculate nonbonded energy with PME for GIST
     int CalcNonbondEnergy_GIST(Frame const&, std::vector<int> const&,
                                std::vector<bool> const&,
@@ -121,6 +121,8 @@ class GIST_PME : private Ewald_ParticleMesh {
     MatType e_potentialD_; ///< Hold recip contributions for each atom
 
     AtomMask allAtoms_;    ///< Select all atoms
+
+    double NeighborCut2_; ///< Cutoff for the O-O neighbor calculation
 };
 #endif /* LIBPME */
 #endif

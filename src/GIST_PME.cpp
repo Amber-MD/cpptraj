@@ -8,7 +8,9 @@
 #include "Topology.h"
 
 /** CONSTRUCTOR */
-GIST_PME::GIST_PME() {}
+GIST_PME::GIST_PME() :
+  NeighborCut2_(0)
+{}
 
 /** Strings corresponding to interaction type. */
 const char* GIST_PME::InteractionTypeStr_[] = {
@@ -21,8 +23,9 @@ const char* GIST_PME::InteractionTypeStr_[] = {
 };
 
 /** Setup up GIST PME calculation. Currently must be run on all atoms. */
-int GIST_PME::Setup_PME_GIST(Topology const& topIn, unsigned int nthreads)
+int GIST_PME::Setup_PME_GIST(Topology const& topIn, unsigned int nthreads, double NeighborCut2_in)
 {
+  NeighborCut2_ = NeighborCut2_in;
   // Select everything
   allAtoms_ = AtomMask(0, topIn.Natom());
   // Set up PME
@@ -694,6 +697,14 @@ void GIST_PME::Ekernel_Adjust(double& e_adjust,
 #             endif
 }
 
+static inline void neighborCalc(float* neighbor, double rij2, double NeighborCut2, int a1_voxel, int a2_voxel)
+{
+  if (rij2 < NeighborCut2) {
+    if (a1_voxel > -1) neighbor[a1_voxel] += 1.0;
+    if (a2_voxel > -1) neighbor[a2_voxel] += 1.0;
+  }
+}
+
 /** Direct space calculation with long range VDW correction for GIST. */
 double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double& evdw_out,
                                                      std::vector<int> const& atom_voxel,
@@ -763,6 +774,7 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
         // The voxel # of it0
         int it0_voxel = atom_voxel[it0->Idx()];
         bool it0_solute = atomIsSolute[it0->Idx()];
+        bool it0_solventO = atomIsSolventO[it0->Idx()];
 
 #       ifdef DEBUG_PAIRLIST
         mprintf("DBG: Cell %6i (%6i atoms):\n", cidx+1, thisCell.NatomsInGrid());
@@ -775,6 +787,7 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
         {
           int it1_voxel = atom_voxel[it1->Idx()];
           bool it1_solute = atomIsSolute[it1->Idx()];
+          bool it1_solventO = atomIsSolventO[it1->Idx()];
           if (it0_voxel > -1 || it1_voxel > -1) {
             Vec3 const& xyz1 = it1->ImageCoords();
             double q1 = Charge_[it1->Idx()];
@@ -796,6 +809,9 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
                 Ekernel_Adjust(e_adjust, rij2, q0, q1, it0->Idx(), it1->Idx(), e_elec_direct,
                                interactionType, it0_voxel, it1_voxel, e_uv_elec, e_vv_elec);
             }
+            if (it0_solventO && it1_solventO) {
+              neighborCalc(neighbor, rij2, NeighborCut2_, it0_voxel, it1_voxel);
+            }
           } // END at least 1 voxel on grid
         } // END loop over other atoms in thisCell
         // Loop over all neighbor cells
@@ -814,6 +830,7 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
           {
             int it1_voxel = atom_voxel[it1->Idx()];
             bool it1_solute = atomIsSolute[it1->Idx()];
+            bool it1_solventO = atomIsSolventO[it1->Idx()];
             if (it0_voxel > -1 || it1_voxel > -1) {
               Vec3 const& xyz1 = it1->ImageCoords();
               double q1 = Charge_[it1->Idx()];
@@ -837,6 +854,9 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
               } else {
                 Ekernel_Adjust(e_adjust, rij2, q0, q1, it0->Idx(), it1->Idx(), e_elec_direct,
                                interactionType, it0_voxel, it1_voxel, e_uv_elec, e_vv_elec);
+              }
+              if (it0_solventO && it1_solventO) {
+                neighborCalc(neighbor, rij2, NeighborCut2_, it0_voxel, it1_voxel);
               }
             } // END at least 1 voxel on the grid
           } // END loop over neighbor cell atoms
