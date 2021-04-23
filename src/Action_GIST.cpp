@@ -586,7 +586,8 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
           q_sum += Q_.back();
           //mprintf("DEBUG: Q= %20.10E  q_sum= %20.10E\n", setup.Top()[o_idx+IDX].Charge(), q_sum);
         }
-        // Sanity checks. FIXME Assuming H1 and H2 are indices 1 and 2
+        // Sanity checks.
+        // NOTE: We know indices 1 and 2 are hydrogens (with 0 being oxygen); this is checked above.
         if (NotEqual(Q_[1], Q_[2]))
           mprintf("Warning: Charges on water hydrogens do not match (%g, %g).\n", Q_[1], Q_[2]);
         if (fabs( q_sum ) > 0.0)
