@@ -62,7 +62,7 @@ class Action_GIST : public Action {
     unsigned int numberAtoms_;
     int numberAtomTypes_;
     int headAtomType_;
-    bool *solvent_;
+    bool *solvent_; // TODO just use atomIsSolute_ array
 
     // Arrays on GPU
     int *NBindex_c_;
@@ -93,8 +93,7 @@ class Action_GIST : public Action {
     static const Vec3 z_lab_;
     static const double maxD_;
     static const double QFAC_;
-    static const int SOLUTE_;
-    static const int OFF_GRID_;
+    static const int OFF_GRID_; ///< Value in atom_voxel_ that indicates atom is off the grid
 
     double gridspacing_;
     Vec3 gridcntr_;
@@ -123,17 +122,18 @@ class Action_GIST : public Action {
     // GIST matrix datasets
     DataSet_MatrixFlt* ww_Eij_; ///< Water-water interaction energy matrix.*
 
-    //Iarray mol_nums_;    ///< Absolute molecule number of each solvent molecule.+ //TODO needed?
-    Iarray O_idxs_;      ///< Oxygen atom indices for each solvent molecule.+
-    Iarray OnGrid_idxs_; ///< Indices for each water atom on the grid.*
-    Iarray atom_voxel_;  ///< Absolute grid voxel for each atom (SOLUTE_ for solute atoms)
-    Iarray A_idxs_;      ///< Atom indices for each solute and solvent atom.+ (energy calc only)
+    //Iarray mol_nums_;     ///< Absolute molecule number of each solvent molecule.+ //TODO needed?
+    Iarray O_idxs_;         ///< Oxygen atom indices for each solvent molecule.+
+    Iarray OnGrid_idxs_;    ///< Indices for each water atom on the grid.*
+    Iarray atom_voxel_;     ///< Absolute grid voxel for each atom (OFF_GRID_ if atom not on grid).*
+    Iarray A_idxs_;         ///< Atom indices for each solute and solvent atom (energy calc only).+
     std::vector<bool> atomIsSolute_; ///< True if atom is solute.+
-    Iarray U_idxs_;      ///< Atom indices for solute atoms only.+
-    Iarray U_onGrid_idxs_; ///< Indices for each solute atom on the grid.*
-    Iarray N_waters_;    ///< Number of waters (oxygen atoms) in each voxel.*
+    std::vector<bool> atomIsSolventO_; ///< True if atom is sovent O.+
+    Iarray U_idxs_;         ///< Atom indices for solute atoms only.+
+    Iarray U_onGrid_idxs_;  ///< Indices for each solute atom on the grid.*
+    Iarray N_waters_;       ///< Number of waters (oxygen atoms) in each voxel.*
     Iarray N_solute_atoms_; ///< Number of solute atoms in each voxel.*
-    Iarray N_hydrogens_; ///< Number of hydrogen atoms in each voxel.*
+    Iarray N_hydrogens_;    ///< Number of hydrogen atoms in each voxel.*
 #   ifdef _OPENMP
     std::vector<Iarray> EIJ_V1_; ///< Hold any interaction energy voxel 1 each frame.*
     std::vector<Iarray> EIJ_V2_; ///< Hold any interaction energy voxel 2 each frame.*
@@ -177,14 +177,15 @@ class Action_GIST : public Action {
     CpptrajFile* datafile_;    ///< GIST output
     CpptrajFile* eijfile_;     ///< Eij matrix output
     CpptrajFile* infofile_;    ///< GIST info
-    AtomMask allAtoms_;        ///< Mask selecting all atoms, PME only.
     std::string prefix_;       ///< Output file name prefix
+    TextFormat fltFmt_;        ///< Output file format for floating point values
+    TextFormat intFmt_;        ///< Output file format for integer values.
     Darray Q_;                 ///< Solvent molecule charges (for dipole calc)
     double BULK_DENS_;         ///< Bulk water density
     double temperature_;       ///< Temperature
     double NeighborCut2_;      ///< Cutoff for determining water neighbors (squared).
-    double system_potential_energy_; ///< the emsemble average potential energy ( Eelec + Vdw ) for the frames (pme only)
-    double solute_potential_energy_; ///< the ensemble average potential energy on solute atoms (pme only)
+//    double system_potential_energy_; ///< the emsemble average potential energy ( Eelec + Vdw ) for the frames (pme only)
+//    double solute_potential_energy_; ///< the ensemble average potential energy on solute atoms (pme only)
     unsigned int MAX_GRID_PT_; ///< Max number of grid points (voxels).
     unsigned int NSOLVENT_;    ///< Number of solvent molecules.
     unsigned int N_ON_GRID_;   ///< Number of water atoms on the grid.*

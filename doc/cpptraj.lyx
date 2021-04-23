@@ -24438,7 +24438,7 @@ gist
 
 \end_inset
 
- [doorder] [doeij] [skipS] [skipE] [refdens <rdval>] [temp <tval>]
+ [doorder] [doeij] [skipE] [skipS] [refdens <rdval>] [temp <tval>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -24446,15 +24446,24 @@ gist
 \end_layout
 
 \begin_layout LyX-Code
-     [griddim <xval> <yval> <zval>] [gridspacn <spaceval>]
+     [griddim <nx> <ny> <nz>] [gridspacn <spaceval>] [neighborcut <ncut>]
 \end_layout
 
 \begin_layout LyX-Code
-     [prefix <filename prefix>] [ext <grid extension>] [out <output>]
+     [prefix <filename prefix>] [ext <grid extension>] [out <output suffix>]
 \end_layout
 
 \begin_layout LyX-Code
-     [info <info>]
+     [floatfmt {double|scientific|general}] [floatwidth <fw>] [floatprec
+ <fp>]
+\end_layout
+
+\begin_layout LyX-Code
+ 	[intwidth <iw>]
+\end_layout
+
+\begin_layout LyX-Code
+     [info <info suffix>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -24575,17 +24584,18 @@ rdval>]
 \begin_inset space ~
 \end_inset
 
-<xval>
+<nx>
 \begin_inset space ~
 \end_inset
 
-<yval>
+<ny>
 \begin_inset space ~
 \end_inset
 
-<zval>]
+<nz>]
 \series default
- Grid dimensions along each coordinate axis (default 40, 40, 40).
+ Grid dimensions (number of bins/voxels) along each coordinate axis (default
+ 40, 40, 40).
 \end_layout
 
 \begin_layout Description
@@ -24599,6 +24609,14 @@ rdval>]
 \series default
  Grid spacing (linear dimension of each voxel) in Angstroms.
  Values greater than 0.75 Å are not recommended (default 0.5 Å).
+\end_layout
+
+\begin_layout Description
+[neighborcut
+\begin_inset space ~
+\end_inset
+
+<ncut>] Cutoff in Å for determining solvent O-O neighbors (default 3.5 Å).
 \end_layout
 
 \begin_layout Description
@@ -24648,10 +24666,47 @@ extension>] Output grid file name extension (default
 \begin_inset space ~
 \end_inset
 
-<output>]
+<output suffix>]
 \series default
- Name of the main GIST output file.
- If not specified set to '<prefix>-output.dat'.
+ Suffix for main GIST output file name.
+ If not specified, output file will be set to '<prefix>-output.dat'.
+\end_layout
+
+\begin_layout Description
+[floatfmt
+\begin_inset space ~
+\end_inset
+
+{double|scientific|general}] Format for floating point values in GIST output
+ file: double (regular fixed decimal point), scientific, or general (default,
+ chooses fixed or scientific, whichever fits better).
+\end_layout
+
+\begin_layout Description
+[floatwidth
+\begin_inset space ~
+\end_inset
+
+<fw>] Changes width of floating point values in GIST output file.
+ Default is no width restriction.
+\end_layout
+
+\begin_layout Description
+[floatprec
+\begin_inset space ~
+\end_inset
+
+<fp>] Changes precision of floating point values in GIST output file.
+ Default is to use whatever the system default is.
+\end_layout
+
+\begin_layout Description
+[intwidth
+\begin_inset space ~
+\end_inset
+
+<iw>] Changes width of integer values in GIST output file.
+ Default is no width restriction.
 \end_layout
 
 \begin_layout Description
@@ -24659,8 +24714,12 @@ extension>] Output grid file name extension (default
 \begin_inset space ~
 \end_inset
 
-<info>] Name of main GIST info file.
- If not specified info is written to standard output.
+<info
+\begin_inset space ~
+\end_inset
+
+suffix>] Suffix for main GIST info file name.
+ If not specified, info will be written to standard output.
 \end_layout
 
 \begin_layout Description
@@ -25008,14 +25067,14 @@ doorder
 \begin_layout Standard
 The nonbonded energy calculation can also be accelerated using particle
  mesh Ewald via the pme keyword (CPU only).
- The details are in the following reference: 
-\begin_inset CommandInset href
-LatexCommand href
-target "https://doi.org/10.26434/chemrxiv.13140011.v2"
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Chen2021"
+literal "true"
 
 \end_inset
 
-.
+
 \end_layout
 
 \begin_layout Subsubsection*
@@ -35770,9 +35829,59 @@ trans | translate
 \end_layout
 
 \begin_layout LyX-Code
-translate [<mask>] [x <dx>] [y <dy>] [z <dz>]
+translate [<mask>] {[x <dx>] [y <dy>] [z <dz>] | topoint <x>,<y>,<z> [mass]}
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+<mask> Mask of atoms to translate (all atoms if not specified).
+\end_layout
+
+\begin_layout Description
+x
+\begin_inset space ~
+\end_inset
+
+<dx> Translation (delta) in the X direction (Å).
+\end_layout
+
+\begin_layout Description
+y
+\begin_inset space ~
+\end_inset
+
+<dx> Translation (delta) in the Y direction (Å).
+\end_layout
+
+\begin_layout Description
+z
+\begin_inset space ~
+\end_inset
+
+<dx> Translation (delta) in the Z direction (Å).
+\end_layout
+
+\begin_layout Description
+topoint
+\begin_inset space ~
+\end_inset
+
+<x>,<y>,<z> If specified, translate center of specified atoms to a specific
+ point defined by <x>, <y>, and <z> in the given comma-separated list instead
+ of by deltas.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+mass If specified, translate center of mass of specified atoms (
+\series bold
+topoint
+\series default
+ only).
+\end_layout
+
+\end_deeper
+\end_deeper
 \begin_layout Standard
 Translate atoms in 
 \series bold
@@ -35791,6 +35900,12 @@ Translate atoms in
 <dz>
 \series default
  Å in the Z direction.
+ If 
+\series bold
+'topoint
+\series default
+' is specified, translate atoms in <mask> to the specified coordinates (also
+ in Å).
 \end_layout
 
 \begin_layout Subsection
