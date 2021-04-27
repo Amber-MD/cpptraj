@@ -87,7 +87,7 @@ void Action_Closest_Center(const double *SolventMols_, double *D_, const double*
       kClosestDistsToPt_Nonortho<<<dimGrid0,dimBlock0>>>(devO1Ptr,devI1Ptr, devI2Ptr, maxD,ucellDev, recipDev, NMols, NAtoms,active_size);
   }
 
-  cudaThreadSynchronize();
+  //cudaThreadSynchronize();
 
   #ifdef DEBUG_CUDA
   cudaEventRecord(stop_event, 0);
@@ -188,7 +188,7 @@ void Action_Closest_NoCenter(const double *SolventMols_, double *D_, const doubl
       kClosestDistsToAtoms_Nonortho<<<dimGrid0,dimBlock0>>>(devO1Ptr, devI2Ptr,devI3Ptr, maxD, ucellDev, recipDev,  NMols, NAtoms,NSAtoms,active_size);
     break;
   }
-  cudaThreadSynchronize();
+  //cudaThreadSynchronize();
 
   #ifdef DEBUG_CUDA
   cudaEventRecord(stop_event, 0);
