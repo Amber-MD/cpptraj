@@ -10,7 +10,7 @@ __device__ double NonOrtho_dist(double a0, double a1, double a2,
                                 double b0, double b1, double b2,
                                 const double *ucell)
 {
-  int ixyz[3];
+  //int ixyz[3];
   double minIn  = -1.0;
 
    //double closest2
@@ -74,169 +74,195 @@ __device__ double NonOrtho_dist(double a0, double a1, double a2,
 
   if (minIn > 0.0 && minIn < min) min = minIn;
 
-  ixyz[0] = 0;
-  ixyz[1] = 0;
-  ixyz[2] = 0;
+  //ixyz[0] = 0;
+  //ixyz[1] = 0;
+  //ixyz[2] = 0;
 
   // -1 -1 -1
   x = (fxm1u0 + fym1u3 + fzm1u6) - X_factor;
   y = (fxm1u1 + fym1u4 + fzm1u7) - Y_factor;
   z = (fxm1u2 + fym1u5 + fzm1u8) - Z_factor;
   double D = (x*x) + (y*y) + (z*z);
-  if (D < min) { min = D; ixyz[0] = -1; ixyz[1] = -1; ixyz[2] = -1; }
+  //if (D < min) { min = D; ixyz[0] = -1; ixyz[1] = -1; ixyz[2] = -1; }
+  if (D < min) min = D;
   // -1 -1  0
   x = (fxm1u0 + fym1u3 + fzu6  ) - X_factor;
   y = (fxm1u1 + fym1u4 + fzu7  ) - Y_factor;
   z = (fxm1u2 + fym1u5 + fzu8  ) - Z_factor;
   D = (x*x) + (y*y) + (z*z);
-  if (D < min) { min = D; ixyz[0] = -1; ixyz[1] = -1; ixyz[2] =  0; }
+  //if (D < min) { min = D; ixyz[0] = -1; ixyz[1] = -1; ixyz[2] =  0; }
+  if (D < min) min = D;
   // -1 -1 +1
   x = (fxm1u0 + fym1u3 + fzp1u6) - X_factor;
   y = (fxm1u1 + fym1u4 + fzp1u7) - Y_factor;
   z = (fxm1u2 + fym1u5 + fzp1u8) - Z_factor;
   D = (x*x) + (y*y) + (z*z);
-  if (D < min) { min = D; ixyz[0] = -1; ixyz[1] = -1; ixyz[2] =  1; }
+  //if (D < min) { min = D; ixyz[0] = -1; ixyz[1] = -1; ixyz[2] =  1; }
+  if (D < min) min = D;
   // -1  0 -1
   x = (fxm1u0 + fyu3   + fzm1u6) - X_factor;
   y = (fxm1u1 + fyu4   + fzm1u7) - Y_factor;
   z = (fxm1u2 + fyu5   + fzm1u8) - Z_factor;
   D = (x*x) + (y*y) + (z*z);
-  if (D < min) { min = D; ixyz[0] = -1; ixyz[1] =  0; ixyz[2] = -1; }
+  //if (D < min) { min = D; ixyz[0] = -1; ixyz[1] =  0; ixyz[2] = -1; }
+  if (D < min) min = D;
   // -1  0  0
   x = (fxm1u0 + fyu3   + fzu6  ) - X_factor;
   y = (fxm1u1 + fyu4   + fzu7  ) - Y_factor;
   z = (fxm1u2 + fyu5   + fzu8  ) - Z_factor;
   D = (x*x) + (y*y) + (z*z);
-  if (D < min) { min = D; ixyz[0] = -1; ixyz[1] =  0; ixyz[2] =  0; }
+  //if (D < min) { min = D; ixyz[0] = -1; ixyz[1] =  0; ixyz[2] =  0; }
+  if (D < min) min = D;
   // -1  0 +1
   x = (fxm1u0 + fyu3   + fzp1u6) - X_factor;
   y = (fxm1u1 + fyu4   + fzp1u7) - Y_factor;
   z = (fxm1u2 + fyu5   + fzp1u8) - Z_factor;
   D = (x*x) + (y*y) + (z*z);
-  if (D < min) { min = D; ixyz[0] = -1; ixyz[1] =  0; ixyz[2] =  1; }
+  //if (D < min) { min = D; ixyz[0] = -1; ixyz[1] =  0; ixyz[2] =  1; }
+  if (D < min) min = D;
   // -1 +1 -1
   x = (fxm1u0 + fyp1u3 + fzm1u6) - X_factor;
   y = (fxm1u1 + fyp1u4 + fzm1u7) - Y_factor;
   z = (fxm1u2 + fyp1u5 + fzm1u8) - Z_factor;
   D = (x*x) + (y*y) + (z*z);
-  if (D < min) { min = D; ixyz[0] = -1; ixyz[1] =  1; ixyz[2] = -1; }
+  //if (D < min) { min = D; ixyz[0] = -1; ixyz[1] =  1; ixyz[2] = -1; }
+  if (D < min) min = D;
   // -1 +1  0
   x = (fxm1u0 + fyp1u3 + fzu6  ) - X_factor;
   y = (fxm1u1 + fyp1u4 + fzu7  ) - Y_factor;
   z = (fxm1u2 + fyp1u5 + fzu8  ) - Z_factor;
   D = (x*x) + (y*y) + (z*z);
-  if (D < min) { min = D; ixyz[0] = -1; ixyz[1] =  1; ixyz[2] =  0; }
+  //if (D < min) { min = D; ixyz[0] = -1; ixyz[1] =  1; ixyz[2] =  0; }
+  if (D < min) min = D;
   // -1 +1 +1
   x = (fxm1u0 + fyp1u3 + fzp1u6) - X_factor;
   y = (fxm1u1 + fyp1u4 + fzp1u7) - Y_factor;
   z = (fxm1u2 + fyp1u5 + fzp1u8) - Z_factor;
   D = (x*x) + (y*y) + (z*z);
-  if (D < min) { min = D; ixyz[0] = -1; ixyz[1] =  1; ixyz[2] =  1; }
+  //if (D < min) { min = D; ixyz[0] = -1; ixyz[1] =  1; ixyz[2] =  1; }
+  if (D < min) min = D;
 
   //  0 -1 -1
   x = (fxu0   + fym1u3 + fzm1u6) - X_factor;
   y = (fxu1   + fym1u4 + fzm1u7) - Y_factor;
   z = (fxu2   + fym1u5 + fzm1u8) - Z_factor;
   D = (x*x) + (y*y) + (z*z);
-  if (D < min) { min = D; ixyz[0] =  0; ixyz[1] = -1; ixyz[2] = -1; }
+  //if (D < min) { min = D; ixyz[0] =  0; ixyz[1] = -1; ixyz[2] = -1; }
+  if (D < min) min = D;
   //  0 -1  0
   x = (fxu0   + fym1u3 + fzu6  ) - X_factor;
   y = (fxu1   + fym1u4 + fzu7  ) - Y_factor;
   z = (fxu2   + fym1u5 + fzu8  ) - Z_factor;
   D = (x*x) + (y*y) + (z*z);
-  if (D < min) { min = D; ixyz[0] =  0; ixyz[1] = -1; ixyz[2] =  0; }
+  //if (D < min) { min = D; ixyz[0] =  0; ixyz[1] = -1; ixyz[2] =  0; }
+  if (D < min) min = D;
   //  0 -1 +1
   x = (fxu0   + fym1u3 + fzp1u6) - X_factor;
   y = (fxu1   + fym1u4 + fzp1u7) - Y_factor;
   z = (fxu2   + fym1u5 + fzp1u8) - Z_factor;
   D = (x*x) + (y*y) + (z*z);
-  if (D < min) { min = D; ixyz[0] =  0; ixyz[1] = -1; ixyz[2] =  1; }
+  //if (D < min) { min = D; ixyz[0] =  0; ixyz[1] = -1; ixyz[2] =  1; }
+  if (D < min) min = D;
   //  0  0 -1
   x = (fxu0   + fyu3   + fzm1u6) - X_factor;
   y = (fxu1   + fyu4   + fzm1u7) - Y_factor;
   z = (fxu2   + fyu5   + fzm1u8) - Z_factor;
   D = (x*x) + (y*y) + (z*z);
-  if (D < min) { min = D; ixyz[0] =  0; ixyz[1] =  0; ixyz[2] = -1; }
+  //if (D < min) { min = D; ixyz[0] =  0; ixyz[1] =  0; ixyz[2] = -1; }
+  if (D < min) min = D;
   //  0  0  0
   //  0  0 +1
   x = (fxu0   + fyu3   + fzp1u6) - X_factor;
   y = (fxu1   + fyu4   + fzp1u7) - Y_factor;
   z = (fxu2   + fyu5   + fzp1u8) - Z_factor;
   D = (x*x) + (y*y) + (z*z);
-  if (D < min) { min = D; ixyz[0] =  0; ixyz[1] =  0; ixyz[2] =  1; }
+  //if (D < min) { min = D; ixyz[0] =  0; ixyz[1] =  0; ixyz[2] =  1; }
+  if (D < min) min = D;
   //  0 +1 -1
   x = (fxu0   + fyp1u3 + fzm1u6) - X_factor;
   y = (fxu1   + fyp1u4 + fzm1u7) - Y_factor;
   z = (fxu2   + fyp1u5 + fzm1u8) - Z_factor;
   D = (x*x) + (y*y) + (z*z);
-  if (D < min) { min = D; ixyz[0] =  0; ixyz[1] =  1; ixyz[2] = -1; }
+  //if (D < min) { min = D; ixyz[0] =  0; ixyz[1] =  1; ixyz[2] = -1; }
+  if (D < min) min = D;
   //  0 +1  0
   x = (fxu0   + fyp1u3 + fzu6  ) - X_factor;
   y = (fxu1   + fyp1u4 + fzu7  ) - Y_factor;
   z = (fxu2   + fyp1u5 + fzu8  ) - Z_factor;
   D = (x*x) + (y*y) + (z*z);
-  if (D < min) { min = D; ixyz[0] =  0; ixyz[1] =  1; ixyz[2] =  0; }
+  //if (D < min) { min = D; ixyz[0] =  0; ixyz[1] =  1; ixyz[2] =  0; }
+  if (D < min) min = D;
   //  0 +1 +1
   x = (fxu0   + fyp1u3 + fzp1u6) - X_factor;
   y = (fxu1   + fyp1u4 + fzp1u7) - Y_factor;
   z = (fxu2   + fyp1u5 + fzp1u8) - Z_factor;
   D = (x*x) + (y*y) + (z*z);
-  if (D < min) { min = D; ixyz[0] =  0; ixyz[1] =  1; ixyz[2] =  1; }
+  //if (D < min) { min = D; ixyz[0] =  0; ixyz[1] =  1; ixyz[2] =  1; }
+  if (D < min) min = D;
 
   // +1 -1 -1
   x = (fxp1u0 + fym1u3 + fzm1u6) - X_factor;
   y = (fxp1u1 + fym1u4 + fzm1u7) - Y_factor;
   z = (fxp1u2 + fym1u5 + fzm1u8) - Z_factor;
   D = (x*x) + (y*y) + (z*z);
-  if (D < min) { min = D; ixyz[0] =  1; ixyz[1] = -1; ixyz[2] = -1; }
+  //if (D < min) { min = D; ixyz[0] =  1; ixyz[1] = -1; ixyz[2] = -1; }
+  if (D < min) min = D;
   // +1 -1  0
   x = (fxp1u0 + fym1u3 + fzu6  ) - X_factor;
   y = (fxp1u1 + fym1u4 + fzu7  ) - Y_factor;
   z = (fxp1u2 + fym1u5 + fzu8  ) - Z_factor;
   D = (x*x) + (y*y) + (z*z);
-  if (D < min) { min = D; ixyz[0] =  1; ixyz[1] = -1; ixyz[2] =  0; }
+  //if (D < min) { min = D; ixyz[0] =  1; ixyz[1] = -1; ixyz[2] =  0; }
+  if (D < min) min = D;
   // +1 -1 +1
   x = (fxp1u0 + fym1u3 + fzp1u6) - X_factor;
   y = (fxp1u1 + fym1u4 + fzp1u7) - Y_factor;
   z = (fxp1u2 + fym1u5 + fzp1u8) - Z_factor;
   D = (x*x) + (y*y) + (z*z);
-  if (D < min) { min = D; ixyz[0] =  1; ixyz[1] = -1; ixyz[2] =  1; }
+  //if (D < min) { min = D; ixyz[0] =  1; ixyz[1] = -1; ixyz[2] =  1; }
+  if (D < min) min = D;
   // +1  0 -1
   x = (fxp1u0 + fyu3   + fzm1u6) - X_factor;
   y = (fxp1u1 + fyu4   + fzm1u7) - Y_factor;
   z = (fxp1u2 + fyu5   + fzm1u8) - Z_factor;
   D = (x*x) + (y*y) + (z*z);
-  if (D < min) { min = D; ixyz[0] =  1; ixyz[1] =  0; ixyz[2] = -1; }
+  //if (D < min) { min = D; ixyz[0] =  1; ixyz[1] =  0; ixyz[2] = -1; }
+  if (D < min) min = D;
   // +1  0  0
   x = (fxp1u0 + fyu3   + fzu6  ) - X_factor;
   y = (fxp1u1 + fyu4   + fzu7  ) - Y_factor;
   z = (fxp1u2 + fyu5   + fzu8  ) - Z_factor;
   D = (x*x) + (y*y) + (z*z);
-  if (D < min) { min = D; ixyz[0] =  1; ixyz[1] =  0; ixyz[2] =  0; }
+  //if (D < min) { min = D; ixyz[0] =  1; ixyz[1] =  0; ixyz[2] =  0; }
+  if (D < min) min = D;
   // +1  0 +1
   x = (fxp1u0 + fyu3   + fzp1u6) - X_factor;
   y = (fxp1u1 + fyu4   + fzp1u7) - Y_factor;
   z = (fxp1u2 + fyu5   + fzp1u8) - Z_factor;
   D = (x*x) + (y*y) + (z*z);
-  if (D < min) { min = D; ixyz[0] =  1; ixyz[1] =  0; ixyz[2] =  1; }
+  //if (D < min) { min = D; ixyz[0] =  1; ixyz[1] =  0; ixyz[2] =  1; }
+  if (D < min) min = D;
   // +1 +1 -1
   x = (fxp1u0 + fyp1u3 + fzm1u6) - X_factor;
   y = (fxp1u1 + fyp1u4 + fzm1u7) - Y_factor;
   z = (fxp1u2 + fyp1u5 + fzm1u8) - Z_factor;
   D = (x*x) + (y*y) + (z*z);
-  if (D < min) { min = D; ixyz[0] =  1; ixyz[1] =  1; ixyz[2] = -1; }
+  //if (D < min) { min = D; ixyz[0] =  1; ixyz[1] =  1; ixyz[2] = -1; }
+  if (D < min) min = D;
   // +1 +1  0
   x = (fxp1u0 + fyp1u3 + fzu6  ) - X_factor;
   y = (fxp1u1 + fyp1u4 + fzu7  ) - Y_factor;
   z = (fxp1u2 + fyp1u5 + fzu8  ) - Z_factor;
   D = (x*x) + (y*y) + (z*z);
-  if (D < min) { min = D; ixyz[0] =  1; ixyz[1] =  1; ixyz[2] =  0; }
+  //if (D < min) { min = D; ixyz[0] =  1; ixyz[1] =  1; ixyz[2] =  0; }
+  if (D < min) min = D;
   // +1 +1 +1
   x = (fxp1u0 + fyp1u3 + fzp1u6) - X_factor;
   y = (fxp1u1 + fyp1u4 + fzp1u7) - Y_factor;
   z = (fxp1u2 + fyp1u5 + fzp1u8) - Z_factor;
   D = (x*x) + (y*y) + (z*z);
-  if (D < min) { min = D; ixyz[0] =  1; ixyz[1] =  1; ixyz[2] =  1; }
+  //if (D < min) { min = D; ixyz[0] =  1; ixyz[1] =  1; ixyz[2] =  1; }
+  if (D < min) min = D;
 
   //if (closest2 != 0.0 && min < closest2) return (min);
 //  this->ClosestImage(a1, a2, ixyz);
