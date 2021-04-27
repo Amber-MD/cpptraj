@@ -30,6 +30,6 @@ clean:
 uninstall: clean
 
 # Dependencies
-core_kernels.o: core_kernels.cu
+core_kernels.o: core_kernels.cu core_kernels.cuh
 
-kernel_wrappers.o: kernel_wrappers.cu
+kernel_wrappers.o: kernel_wrappers.cu core_kernels.cuh
