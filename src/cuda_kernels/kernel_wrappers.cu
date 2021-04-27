@@ -1,7 +1,7 @@
+#include "kernel_wrappers.cuh"
 #ifdef DEBUG_CUDA
 #include <cstdio>
 #endif
-#include "../ImageOption.h"
 #if defined(__HIP_PLATFORM_HCC__)
 #include <hip/hip_runtime.h>
 #include "../HipDefinitions.h"
