@@ -34,11 +34,13 @@ UNITNAME='Atom XYZ format read'
 N=1
 for FILE in tz2.xyz tz2.st.xyz tz2.nt.at.xyz tz2.nt.xyz tz2.mt.at.xyz tz2.mt.xyz ; do
   if [ $N -eq 6 ] ; then
-    AS='as xyz'
+    as_arg='as xyz'
+  else
+    as_arg=''
   fi
   cat > xyz.in <<EOF
 parm ../tz2.parm7
-trajin $FILE $AS
+trajin $FILE $as_arg
 trajout test$N.crd
 EOF
   RunCpptraj "$UNITNAME, test $N"

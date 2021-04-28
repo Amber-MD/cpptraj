@@ -1,0 +1,4 @@
+GistCudaCalc.o : GistCudaCalc.cu GistCudaCalc.cuh
+GistCudaSetup.o : GistCudaSetup.cu ../HipDefinitions.h GistCudaCalc.cuh GistCudaSetup.cuh
+core_kernels.o : core_kernels.cu core_kernels.cuh
+kernel_wrappers.o : kernel_wrappers.cu ../HipDefinitions.h ../ImageOption.h core_kernels.cuh kernel_wrappers.cuh

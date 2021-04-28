@@ -611,7 +611,9 @@ bool Action_XtalSymm::OriginsAlign(XtalDock* leads, std::vector<int> const& HowT
 const
 {
   int i;
-  double origx, origy, origz;
+  double origx=0;
+  double origy=0;
+  double origz=0;
   
   // First, find a symmetry operation that involves an
   // actual rotation, where the origin would matter

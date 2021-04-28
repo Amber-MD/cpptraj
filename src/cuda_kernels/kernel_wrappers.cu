@@ -1,25 +1,14 @@
+#include "kernel_wrappers.cuh"
 #ifdef DEBUG_CUDA
 #include <cstdio>
 #endif
-#include "../ImageOption.h"
 #if defined(__HIP_PLATFORM_HCC__)
 #include <hip/hip_runtime.h>
 #include "../HipDefinitions.h"
 #endif
+#include "core_kernels.cuh"
 
 #define BLOCKDIM 512
-
-// ----- Device kernel definitions ---------------------------------------------
-// No imaging
-__global__ void kClosestDistsToPt_NoImage(double*,const double *,const double*,double,int,int,int);
-__global__ void kClosestDistsToAtoms_NoImage(double*,const double*,const double *,double,int,int,int,int);
-// Orthorhombic imaging
-__global__ void kClosestDistsToPt_Ortho(double*,const double*,const double*,double,const double*,int,int,int);
-__global__ void kClosestDistsToAtoms_Ortho(double*,const double*,const double*,double,const double*,int,int,int,int);
-// Non-orthorhombic imaging
-__global__ void kClosestDistsToPt_Nonortho(double*,const double*,const double*,double,const double*,const double*,int,int,int);
-__global__ void kClosestDistsToAtoms_Nonortho(double*,const double*,const double*,double,const double*,const double*,int,int,int,int);
-// -----------------------------------------------------------------------------
 
 /** Calculate the closest distances between atoms in solvent molecules and
   * the given point.
@@ -98,7 +87,7 @@ void Action_Closest_Center(const double *SolventMols_, double *D_, const double*
       kClosestDistsToPt_Nonortho<<<dimGrid0,dimBlock0>>>(devO1Ptr,devI1Ptr, devI2Ptr, maxD,ucellDev, recipDev, NMols, NAtoms,active_size);
   }
 
-  cudaThreadSynchronize();
+  //cudaThreadSynchronize();
 
   #ifdef DEBUG_CUDA
   cudaEventRecord(stop_event, 0);
@@ -199,7 +188,7 @@ void Action_Closest_NoCenter(const double *SolventMols_, double *D_, const doubl
       kClosestDistsToAtoms_Nonortho<<<dimGrid0,dimBlock0>>>(devO1Ptr, devI2Ptr,devI3Ptr, maxD, ucellDev, recipDev,  NMols, NAtoms,NSAtoms,active_size);
     break;
   }
-  cudaThreadSynchronize();
+  //cudaThreadSynchronize();
 
   #ifdef DEBUG_CUDA
   cudaEventRecord(stop_event, 0);
