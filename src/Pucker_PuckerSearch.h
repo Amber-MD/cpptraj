@@ -1,5 +1,10 @@
 #ifndef INC_PUCKER_PUCKERSEARCH_H
 #define INC_PUCKER_PUCKERSEARCH_H
+#include <vector>
+#include "Pucker_PuckerToken.h"
+#include "Pucker_PuckerMask.h"
+class Range;
+class Topology;
 namespace Cpptraj {
 namespace Pucker {
 // Forward declares
