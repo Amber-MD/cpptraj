@@ -7,6 +7,8 @@ namespace Pucker {
 class PuckerMask {
   public:
     PuckerMask();
+
+    PuckerMask(std::vector<int> const&);
   private:
     std::vector<int> atoms_; ///< Hold atom indices defining pucker
 };
