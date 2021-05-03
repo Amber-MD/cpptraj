@@ -9,8 +9,9 @@ class PuckerToken {
   public:
     PuckerToken();
 
+    typedef std::vector<NameType> NameArray;
   private:
-    typedef std::vector<NameType> atomNames_; ///< Atoms that define the pucker.
+    NameArray atomNames_; ///< Atoms that define the pucker.
 };
 
 }
