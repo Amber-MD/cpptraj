@@ -4,7 +4,7 @@
 #include "NameType.h"
 namespace Cpptraj {
 namespace Pucker {
-/// Used to search for atoms involved in puckering in a Topology
+/// Used to define atoms involved in puckering
 class PuckerToken {
   public:
     PuckerToken();
