@@ -8,8 +8,8 @@ namespace Pucker {
 class PuckerToken {
   public:
     PuckerToken();
-
     typedef std::vector<NameType> NameArray;
+    PuckerToken(NameArray const&);
   private:
     NameArray atomNames_; ///< Atoms that define the pucker.
 };
