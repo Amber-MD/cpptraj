@@ -96,3 +96,10 @@ int Pucker::PuckerSearch::SearchForAll() {
     SearchFor( (Type)ptype );
   return 0;
 }
+
+/** Print all set up types to stdout. */
+void Pucker::PuckerSearch::PrintTypes() const {
+  for (std::vector<PuckerToken>::const_iterator it = puckersToSearchFor_.begin();
+                                                it != puckersToSearchFor_.end(); ++it)
+    mprintf(" %s", it->Name().c_str());
+}
