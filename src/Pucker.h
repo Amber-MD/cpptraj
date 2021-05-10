@@ -3,7 +3,7 @@
 namespace Cpptraj {
 namespace Pucker {
 
-enum Type { NUCLEIC = 0, FURANOSE, PYRANOSE };
+enum Type { NUCLEIC = 0, FURANOSE, PYRANOSE, NTYPES };
 
 enum Method { ALTONA_SUNDARALINGAM = 0, CREMER_POPLE };
 

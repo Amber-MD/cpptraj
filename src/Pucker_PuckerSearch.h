@@ -6,6 +6,7 @@
 #include "Pucker.h"
 class Range;
 class Topology;
+class ArgList;
 namespace Cpptraj {
 namespace Pucker {
 // Forward declares
@@ -18,7 +19,15 @@ class PuckerSearch {
     int FindPuckers(Topology const&, Range const&);
     /// Indicate we want to search for the given pre-defined type
     int SearchFor(Type);
+    /// Look at ArgList for recognized pucker keywords
+    int SearchForArgs(ArgList&);
+    /// Search for new types defined in ArgList
+    int SearchForNewTypeArgs(ArgList&);
   private:
+    static const char* Keywords_[];               ///< Keywords corresponding to Pucker::Type
+    /// Define a new custom pucker type
+    int SearchForNewType(std::string const&, PuckerToken::NameArray const&);
+
     std::vector<PuckerToken> puckersToSearchFor_; ///< List of puckers to search for
     std::vector<PuckerMask> foundPuckers_;        ///< List of found puckers
 };

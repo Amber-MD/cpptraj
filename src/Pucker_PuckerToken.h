@@ -14,6 +14,8 @@ class PuckerToken {
     typedef std::vector<NameType> NameArray;
     /// CONSTRUCTOR - take name and array of atom names
     PuckerToken(std::string const&, NameArray const&);
+    /// \return pucker token name
+    std::string const& Name() const { return name_; }
 
     PuckerMask FindPuckerAtoms(Topology const&, int) const;
   private:
