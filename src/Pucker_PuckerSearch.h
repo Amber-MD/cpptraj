@@ -23,6 +23,8 @@ class PuckerSearch {
     int SearchForArgs(ArgList&);
     /// Search for new types defined in ArgList
     int SearchForNewTypeArgs(ArgList&);
+    /// Search for all types if no types yet defined
+    int SearchForAll();
   private:
     static const char* Keywords_[];               ///< Keywords corresponding to Pucker::Type
     /// Define a new custom pucker type

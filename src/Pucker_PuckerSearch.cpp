@@ -88,3 +88,11 @@ int Pucker::PuckerSearch::SearchForNewType(std::string const& name, PuckerToken:
   puckersToSearchFor_.push_back( PuckerToken(name, atomNames) );
   return 0;
 }
+
+/** If no puckers selected yet, select all. */
+int Pucker::PuckerSearch::SearchForAll() {
+  if (!puckersToSearchFor_.empty()) return 0;
+  for (int ptype = 0; ptype != (int)NTYPES; ptype++)
+    SearchFor( (Type)ptype );
+  return 0;
+}
