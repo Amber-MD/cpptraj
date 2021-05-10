@@ -1,6 +1,7 @@
 #include "Pucker_PuckerToken.h"
 #include "Topology.h"
 #include "Pucker_PuckerMask.h"
+#include "CpptrajStdio.h"
 
 using namespace Cpptraj;
 
@@ -15,7 +16,17 @@ void Pucker::PuckerToken::FindAtoms(Topology const& topIn, int at,
                                     unsigned int idx, unsigned int maxidx, std::vector<int>& indices)
 const
 {
-  if (idx >= maxidx) return;
+  if (idx >= maxidx) {
+    // Make sure this is a cycle (i.e. this should be first atom detected)
+    if (idx > maxidx) {
+      // Sanity check
+      mprinterr("Internal Error: PuckerToken::FindAtoms: Index out of range.\n");
+      return;
+    }
+    if (at == indices[0])
+      indices[idx] = at;
+    return;
+  }
 
   for (Atom::bond_iterator it = topIn[at].bondbegin(); it != topIn[at].bondend(); ++it)
   {
@@ -34,7 +45,7 @@ const
 {
   Residue const& currentRes = topIn.Res( resnum );
 
-  std::vector<int> indices(atomNames_.size(), -1);
+  std::vector<int> indices(atomNames_.size()+1, -1);
 
   // Find the first atom
   for (int at = currentRes.FirstAtom(); at != currentRes.LastAtom(); ++at)
@@ -46,5 +57,24 @@ const
       break;
     }
   }
-  return PuckerMask( indices );
+  // DEBUG
+  mprintf("DEBUG: Results for pucker '%s', residue %i:", name_.c_str(), resnum+1);
+  for (std::vector<int>::const_iterator it = indices.begin(); it != indices.end(); ++it)
+    mprintf(" %i", *it);
+  mprintf("\n");
+  // Check if the entire pucker was found.
+  std::vector<int> actualIndices;
+  actualIndices.reserve(atomNames_.size());
+  if (indices.back() == -1) {
+    // This means a cycle was not found.
+    return PuckerMask();
+  }
+  for (unsigned int idx = 0; idx != atomNames_.size(); idx++)
+  {
+    if (indices[idx] == -1) {
+      return PuckerMask();
+    }
+    actualIndices.push_back( indices[idx] );
+  }
+  return PuckerMask( actualIndices );
 }
