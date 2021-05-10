@@ -6,8 +6,8 @@ using namespace Cpptraj;
 
 Pucker::PuckerToken::PuckerToken() {}
 
-Pucker::PuckerToken::PuckerToken(NameArray const& namesIn) :
-  atomNames_(namesIn)
+Pucker::PuckerToken::PuckerToken(std::string const& nameIn, NameArray const& anamesIn) :
+  name_(nameIn), atomNames_(anamesIn)
 {}
 
 /** Recursive function for finding pucker atoms. */

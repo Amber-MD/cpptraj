@@ -12,12 +12,14 @@ class PuckerToken {
   public:
     PuckerToken();
     typedef std::vector<NameType> NameArray;
-    PuckerToken(NameArray const&);
+    /// CONSTRUCTOR - take name and array of atom names
+    PuckerToken(std::string const&, NameArray const&);
 
     PuckerMask FindPuckerAtoms(Topology const&, int) const;
   private:
     void FindAtoms(Topology const&, int, unsigned int, unsigned int, std::vector<int>&) const;
 
+    std::string name_;    ///< Pucker name.
     NameArray atomNames_; ///< Atoms that define the pucker.
 };
 
