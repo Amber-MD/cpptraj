@@ -50,7 +50,25 @@ Action::RetType Action_MultiPucker::Init(ArgList& actionArgs, ActionInit& init, 
 // Action_MultiPucker::Setup()
 Action::RetType Action_MultiPucker::Setup(ActionSetup& setup)
 {
-
+  Range actualRange;
+  // If range is empty (i.e. no resrange arg given) look through all 
+  // solute residues.
+  if (resRange_.Empty())
+    actualRange = setup.Top().SoluteResidues();
+  else {
+    // If user range specified, create new range shifted by -1 since internal
+    // resnums start from 0.
+    actualRange = resRange_;
+    actualRange.ShiftBy(-1);
+  }
+  // Exit if no residues specified
+  if (actualRange.Empty()) {
+    mprinterr("Error: No residues specified for %s\n",setup.Top().c_str());
+    return Action::ERR;
+  }
+  // Search for specified dihedrals in each residue in the range
+  if (puckerSearch_.FindDihedrals(setup.Top(), actualRange))
+    return Action::SKIP;
 }
 
 // Action_MultiPucker::DoAction()

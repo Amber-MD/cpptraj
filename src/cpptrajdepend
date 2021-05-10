@@ -365,8 +365,8 @@ ProgressBar.o : ProgressBar.cpp CpptrajStdio.h ProgressBar.h
 ProgressTimer.o : ProgressTimer.cpp CpptrajStdio.h ProgressTimer.h Timer.h
 PubFFT.o : PubFFT.cpp ArrayIterator.h ComplexArray.h CpptrajStdio.h PubFFT.h
 Pucker_PuckerMask.o : Pucker_PuckerMask.cpp Pucker_PuckerMask.h
-Pucker_PuckerSearch.o : Pucker_PuckerSearch.cpp ArgList.h CpptrajStdio.h NameType.h Pucker.h Pucker_PuckerMask.h Pucker_PuckerSearch.h Pucker_PuckerToken.h
-Pucker_PuckerToken.o : Pucker_PuckerToken.cpp Atom.h AtomMask.h AtomType.h Box.h Constants.h CoordinateInfo.h FileName.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Parallel.h ParameterHolders.h ParameterSet.h ParameterTypes.h Pucker_PuckerMask.h Pucker_PuckerToken.h Range.h ReplicaDimArray.h Residue.h Segment.h SymbolExporting.h Topology.h TypeNameHolder.h Unit.h Vec3.h
+Pucker_PuckerSearch.o : Pucker_PuckerSearch.cpp ArgList.h Atom.h AtomMask.h AtomType.h Box.h Constants.h CoordinateInfo.h CpptrajStdio.h FileName.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Parallel.h ParameterHolders.h ParameterSet.h ParameterTypes.h Pucker.h Pucker_PuckerMask.h Pucker_PuckerSearch.h Pucker_PuckerToken.h Range.h ReplicaDimArray.h Residue.h Segment.h SymbolExporting.h Topology.h TypeNameHolder.h Unit.h Vec3.h
+Pucker_PuckerToken.o : Pucker_PuckerToken.cpp Atom.h AtomMask.h AtomType.h Box.h Constants.h CoordinateInfo.h CpptrajStdio.h FileName.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Parallel.h ParameterHolders.h ParameterSet.h ParameterTypes.h Pucker_PuckerMask.h Pucker_PuckerToken.h Range.h ReplicaDimArray.h Residue.h Segment.h SymbolExporting.h Topology.h TypeNameHolder.h Unit.h Vec3.h
 RNG.o : RNG.cpp CpptrajStdio.h RNG.h
 RNG_Marsaglia.o : RNG_Marsaglia.cpp CpptrajStdio.h RNG.h RNG_Marsaglia.h
 RNG_MersenneTwister.o : RNG_MersenneTwister.cpp CpptrajStdio.h RNG.h RNG_MersenneTwister.h

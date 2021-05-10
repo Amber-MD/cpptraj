@@ -9,6 +9,8 @@ class PuckerMask {
     PuckerMask();
 
     PuckerMask(std::vector<int> const&);
+
+    bool None() const { return atoms_.empty(); }
   private:
     std::vector<int> atoms_; ///< Hold atom indices defining pucker
 };

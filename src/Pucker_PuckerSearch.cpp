@@ -1,6 +1,8 @@
 #include "Pucker_PuckerSearch.h"
 #include "CpptrajStdio.h"
 #include "ArgList.h"
+#include "Range.h"
+#include "Topology.h"
 
 using namespace Cpptraj;
 
@@ -102,4 +104,26 @@ void Pucker::PuckerSearch::PrintTypes() const {
   for (std::vector<PuckerToken>::const_iterator it = puckersToSearchFor_.begin();
                                                 it != puckersToSearchFor_.end(); ++it)
     mprintf(" %s", it->Name().c_str());
+}
+
+/** Find all defined puckers in a residue range */
+int Pucker::PuckerSearch::FindPuckers(Topology const& currentParm, Range const& rangeIn)
+{
+  foundPuckers_.clear();
+  for (Range::const_iterator res = rangeIn.begin(); res != rangeIn.end(); ++res)
+  {
+    for (std::vector<PuckerToken>::const_iterator tkn = puckersToSearchFor_.begin();
+                                                  tkn != puckersToSearchFor_.end(); ++tkn)
+    {
+      PuckerMask puckerMask = tkn->FindPuckerAtoms(currentParm, *res);
+      if (!puckerMask.None()) {
+        foundPuckers_.push_back( puckerMask );
+      }
+    }
+  }
+  if (foundPuckers_.empty()) {
+    mprintf("Warning: No puckers selected for topology %s\n", currentParm.c_str());
+    return 1;
+  }
+  return 0;
 }
