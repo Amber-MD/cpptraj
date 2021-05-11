@@ -15,10 +15,11 @@ class Action_MultiPucker : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
-    Cpptraj::Pucker::PuckerSearch puckerSearch_;
-    Range resRange_;
-    std::string dsetname_;
-    DataFile* outfile_;
-    DataSetList* masterDSL_;
+    Cpptraj::Pucker::PuckerSearch puckerSearch_; ///< Used to search for puckers
+    std::vector<DataSet*> data_;                 ///< Output DataSets, 1 per pucker
+    Range resRange_;                             ///< Residue range to search
+    std::string dsetname_;                       ///< Output data set(s) name
+    DataFile* outfile_;                          ///< File to write sets to
+    DataSetList* masterDSL_;                     ///< Pointer to master DataSetList
 };
 #endif

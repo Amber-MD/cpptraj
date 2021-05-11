@@ -1,6 +1,8 @@
 #include "Action_MultiPucker.h"
 #include "CpptrajStdio.h"
 
+using namespace Cpptraj;
+
 Action_MultiPucker::Action_MultiPucker() :
   outfile_(0),
   masterDSL_(0)
@@ -66,9 +68,40 @@ Action::RetType Action_MultiPucker::Setup(ActionSetup& setup)
     mprinterr("Error: No residues specified for %s\n",setup.Top().c_str());
     return Action::ERR;
   }
-  // Search for specified dihedrals in each residue in the range
-  if (puckerSearch_.FindDihedrals(setup.Top(), actualRange))
+  // Search for specified puckers in each residue in the range
+  if (puckerSearch_.FindPuckers(setup.Top(), actualRange))
     return Action::SKIP;
+  mprintf("\tResRange=[%s]", resRange_.RangeArg());
+  puckerSearch_.PrintTypes();
+  mprintf(", %u puckers.\n", puckerSearch_.Npuckers());
+
+  // Print selected puckers, set up DataSets
+  data_.clear();
+  if (dsetname_.empty())
+    dsetname_ = masterDSL_->GenerateDefaultName("MPUCKER");
+  for (Pucker::PuckerSearch::mask_it pucker = puckerSearch_.begin();
+                                     pucker != puckerSearch_.end(); ++pucker)
+  {
+    int resNum = pucker->ResNum() + 1;
+    // See if Dataset already present. FIXME should AddSet do this?
+    MetaData md( dsetname_, pucker->Name(), resNum );
+    DataSet* ds = masterDSL_->CheckForSet(md);
+    if (ds == 0) {
+      // Create new DataSet
+      md.SetScalarMode( MetaData::M_PUCKER );
+      md.SetScalarType( MetaData::PUCKER   ); // TODO pucker types
+      ds = masterDSL_->AddSet( DataSet::DOUBLE, md );
+      if (ds == 0) return Action::ERR;
+      // Add to outfile
+      if (outfile_ != 0)
+        outfile_->AddDataSet( ds );
+    }
+    data_.push_back( ds ); 
+    //if (debug_ > 0) {
+      mprintf("\tPUCKER [%s]: %s", ds->legend(), pucker->PuckerMaskString(setup.Top()).c_str());
+    //}
+  }
+  return Action::OK;
 }
 
 // Action_MultiPucker::DoAction()
