@@ -251,7 +251,9 @@ void DihedralSearch::SearchForArgs(ArgList& argIn) {
   }
 }
 
-const char* DihedralSearch::newTypeArgsHelp_ = "dihtype <name>:<a0>:<a1>:<a2>:<a3>[:<offset>] ...";
+const char* DihedralSearch::newTypeArgsHelp() {
+  return "dihtype <name>:<a0>:<a1>:<a2>:<a3>[:<offset>] ...";
+}
 
 /** Get custom dihedral arguments: 
   *   'dihtype <name>:<a0>:<a1>:<a2>:<a3>[:<offset>]'

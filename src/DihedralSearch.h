@@ -31,7 +31,7 @@ class DihedralSearch {
     /// Search for known dihedral type keywords.
     void SearchForArgs(ArgList&);
     /// Contains keywords for SearchNewTypeArgs()
-    static const char* newTypeArgsHelp_;
+    static const char* newTypeArgsHelp();
     /// Search for new type via args
     int SearchForNewTypeArgs(ArgList&);
     /// Add a new dihedral type to be searched for.

@@ -15,6 +15,13 @@ const char* Pucker::PuckerSearch::Keywords_[] = {
   "pyranose"  // PYRANOSE
 };
 
+/** Print known types to stdout. */
+void Pucker::PuckerSearch::ListKnownTypes() {
+  for (int i = 0; i != (int)NTYPES; i++)
+    mprintf(" %s", Keywords_[i]);
+  mprintf("\n");
+}
+
 /** Indicate we want to search for the specified pre-defined pucker. */
 int Pucker::PuckerSearch::SearchFor(Type ptype) {
   PuckerToken::NameArray names;
@@ -54,6 +61,11 @@ int Pucker::PuckerSearch::SearchForArgs(ArgList& argIn) {
       SearchFor( (Type)i );
   }
   return 0;
+}
+
+/** New type arg help */
+const char* Pucker::PuckerSearch::newTypeArgsHelp() {
+  return "puckertype <name>:<a0>:<a1>:<a2>:<a3>:<a4>[:<a5>] ...";
 }
 
 /** Define a custom pucker argument from ArgList:

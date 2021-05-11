@@ -15,6 +15,12 @@ class PuckerToken;
 class PuckerSearch {
   public:
     PuckerSearch();
+
+    /// Print known type keywords to stdout
+    static void ListKnownTypes();
+    /// Print help for new type args
+    static const char* newTypeArgsHelp();
+
     /// Search for any defined puckers in residue range in given Topology
     int FindPuckers(Topology const&, Range const&);
     /// Indicate we want to search for the given pre-defined type

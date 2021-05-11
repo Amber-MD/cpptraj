@@ -22,9 +22,14 @@ Action_MultiPucker::Action_MultiPucker() :
 
 // Action_MultiPucker::Help()
 void Action_MultiPucker::Help() const {
-  mprintf("\t[<name>] [<type> ...] [out <filename>] [altona|cremer]\n"
+  mprintf("\t[<name>] [<pucker types>] [out <filename>] [altona|cremer]\n"
+          "\t[%s]\n"
           "\t[amplitude [ampout <ampfile>]] [theta [thetaout <thetafile>]]\n"
-          "\t[range360] [offset <offset>]\n");
+          "\t[range360] [offset <offset>]\n",
+          Pucker::PuckerSearch::newTypeArgsHelp());
+  mprintf("\t<pucker types> = ");
+  Pucker::PuckerSearch::ListKnownTypes();
+  mprintf("  Calculate specified pucker types for residues in given <range>.\n");
 }
 
 // Action_MultiPucker::Init()

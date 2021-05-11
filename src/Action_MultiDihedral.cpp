@@ -13,10 +13,9 @@ Action_MultiDihedral::Action_MultiDihedral() :
 {}
 
 void Action_MultiDihedral::Help() const {
-  mprintf("\t[<name>] <dihedral types> [resrange <range>] [out <filename>] [range360]\n");
-  mprintf("\t[dihtype <name>:<a0>:<a1>:<a2>:<a3>[:<offset>] ...]\n");
+  mprintf("\t[<name>] [<dihedral types>] [resrange <range>] [out <filename>] [range360]\n");
+  mprintf("\t[%s]\n", DihedralSearch::newTypeArgsHelp());
   DihedralSearch::OffsetHelp();
-  //mprintf("\t[range360]\n");
   mprintf("\t<dihedral types> = ");
   DihedralSearch::ListKnownTypes();
   mprintf("  Calculate specified dihedral angle types for residues in given <range>.\n");
