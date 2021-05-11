@@ -18,10 +18,10 @@ const
 {
   if (idx >= maxidx) {
     // Make sure this is a cycle (i.e. this should be bonded to the first atom detected)
-    mprintf("DEBUG: Checking for cycle at=%i idx=%u maxidx=%u indices=", at, idx, maxidx);
-    for (std::vector<int>::const_iterator it = indices.begin(); it != indices.end(); ++it)
-      mprintf(" %i", *it);
-    mprintf("\n");
+    //mprintf("DEBUG: Checking for cycle at=%i idx=%u maxidx=%u indices=", at, idx, maxidx);
+    //for (std::vector<int>::const_iterator it = indices.begin(); it != indices.end(); ++it)
+    //  mprintf(" %i", *it);
+    //mprintf("\n");
     if (idx > maxidx) {
       // Sanity check
       mprinterr("Internal Error: PuckerToken::FindAtoms: Index out of range.\n");
@@ -67,10 +67,10 @@ const
     }
   }
   // DEBUG
-  mprintf("DEBUG: Results for pucker '%s', residue %i:", name_.c_str(), resnum+1);
-  for (std::vector<int>::const_iterator it = indices.begin(); it != indices.end(); ++it)
-    mprintf(" %i", *it);
-  mprintf("\n");
+  //mprintf("DEBUG: Results for pucker '%s', residue %i:", name_.c_str(), resnum+1);
+  //for (std::vector<int>::const_iterator it = indices.begin(); it != indices.end(); ++it)
+  //  mprintf(" %i", *it);
+  //mprintf("\n");
   // Check if the entire pucker was found.
   std::vector<int> actualIndices;
   actualIndices.reserve(atomNames_.size());

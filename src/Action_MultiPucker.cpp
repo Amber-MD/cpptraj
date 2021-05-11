@@ -73,6 +73,9 @@ Action::RetType Action_MultiPucker::Init(ArgList& actionArgs, ActionInit& init, 
     mprintf("\tUsing Altona & Sundaralingam method.\n");
   else if (defaultMethod_ == Pucker::CREMER_POPLE)
     mprintf("\tUsing Cremer & Pople method.\n");
+  else
+    mprintf("\tAltona & Sundaralingam method will be used for 5 atom puckers.\n"
+            "\tCremer & Pople method will be used for 6 atom puckers.\n");
   if (offset_!=0)
     mprintf("\tOffset: %f degrees will be added to values.\n", offset_);
   if (puckerMin_ > -180.0)
