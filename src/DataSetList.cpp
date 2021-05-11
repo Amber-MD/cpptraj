@@ -1086,8 +1086,12 @@ Topology* DataSetList::GetTopByIndex(ArgList& argIn) const {
       return 0;
     }
   }
-  if (top == 0) // By default return first parm if nothing else specified.
+  if (top == 0) {
+    // By default return first parm if nothing else specified.
+    if (TopList_.empty())
+      return 0;
     top = TopList_.front();
+  }
   return ((DataSet_Topology*)top)->TopPtr();
 }
 

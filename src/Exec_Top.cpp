@@ -29,7 +29,10 @@ static int CommonSetup(TopInfo& info, CpptrajState& State, ArgList& argIn, const
   if (REF.error()) return 1;
   if (REF.empty()) {
     parm = State.DSL().GetTopByIndex( argIn );
-    if (parm == 0) return 1;
+    if (parm == 0) {
+      mprinterr("Error: No topologies loaded.\n");
+      return 1;
+    }
   } else
     mprintf("\tUsing '%s'\n", REF.refName());
   std::string outname = argIn.GetStringKey("out");
