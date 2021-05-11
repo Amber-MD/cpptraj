@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 # Clean
-CleanFiles pucker.in nucleic.dat furanoid.dat 
+CleanFiles pucker.in nucleic.dat furanoid.dat pyranoid.type.dat pyranoid.auto.dat
 
 TESTNAME='MultiPucker tests'
 Requires maxthreads 3
@@ -45,24 +45,32 @@ EOF
 }
 
 Pyranoid() {
-  UNITNAME='6-member ring pucker, Cremer & Pople Pyranoid test'
+  UNITNAME='MultiPucker 6-member ring pucker, Cremer & Pople Pyranoid test'
   CheckFor maxthreads 1
   if [ $? -eq 0 ] ; then
     TOP=""
     INPUT="-i Ptest.in"
     cat > Ptest.in <<EOF
-parm Pyranoid.mol2
-trajin Pyranoid.mol2
-pucker Pyranoid @C1 @C2 @C3 @C4 @C5 @O5 cremer out CremerP.dat amplitude theta range360
+parm ../Test_Pucker/Pyranoid.mol2
+trajin ../Test_Pucker/Pyranoid.mol2
+multipucker Pyranoid puckertype pyranoid:C1:C2:C3:C4:C5:O5 cremer \
+  out pyranoid.type.dat \
+  amplitude ampout pyranoid.type.dat\
+  theta thetaout pyranoid.type.dat range360
+multipucker Pyr pyranose cremer \
+  out pyranoid.auto.dat \
+  amplitude ampout pyranoid.auto.dat \
+  theta thetaout pyranoid.auto.dat range360
 EOF
     RunCpptraj "6-member ring pucker, Cremer & Pople Pyranoid test."
-    DoTest CremerP.dat.save CremerP.dat
+    DoTest pyranoid.type.dat.save pyranoid.type.dat
+    DoTest pyranoid.auto.dat.save pyranoid.auto.dat
   fi
 }
 
 Nucleic
 Furanoid
-#Pyranoid
+Pyranoid
 
 EndTest
 
