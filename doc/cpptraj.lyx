@@ -13382,6 +13382,17 @@ Charmm PSF:
 \end_layout
 
 \end_deeper
+\begin_layout Subsubsection
+Gromacs Top
+\end_layout
+
+\begin_layout Standard
+By default cpptraj will look for Gromacs topology data (that is not in the
+ same directory) in the directory defined by the GMXDATA environment variable;
+ specifically, it expects things to be in the "$GMXDATA/top" directory.
+ 
+\end_layout
+
 \begin_layout Subsection
 parmbox
 \end_layout
