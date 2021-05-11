@@ -121,7 +121,7 @@ Action::RetType Action_MultiPucker::Setup(ActionSetup& setup)
     data_.push_back( ds ); 
     //if (debug_ > 0) {
       static const char* methodStr[] = { "Altona", "Cremer", "Unspecified" };
-      mprintf("\tPUCKER [%s]: %s (%s)", ds->legend(), pucker->PuckerMaskString(setup.Top()).c_str(),
+      mprintf("\tPUCKER [%s]: %s (%s)\n", ds->legend(), pucker->PuckerMaskString(setup.Top()).c_str(),
               methodStr[puckerMethods_.back()]);
     //}
   }

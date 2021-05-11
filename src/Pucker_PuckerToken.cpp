@@ -17,23 +17,32 @@ void Pucker::PuckerToken::FindAtoms(Topology const& topIn, int at,
 const
 {
   if (idx >= maxidx) {
-    // Make sure this is a cycle (i.e. this should be first atom detected)
+    // Make sure this is a cycle (i.e. this should be bonded to the first atom detected)
+    mprintf("DEBUG: Checking for cycle at=%i idx=%u maxidx=%u indices=", at, idx, maxidx);
+    for (std::vector<int>::const_iterator it = indices.begin(); it != indices.end(); ++it)
+      mprintf(" %i", *it);
+    mprintf("\n");
     if (idx > maxidx) {
       // Sanity check
       mprinterr("Internal Error: PuckerToken::FindAtoms: Index out of range.\n");
       return;
     }
-    if (at == indices[0])
-      indices[idx] = at;
-    return;
-  }
+    for (Atom::bond_iterator it = topIn[at].bondbegin(); it != topIn[at].bondend(); ++it)
+    {
+      if (*it == indices[0]) {
+        indices[idx] = *it;
+        return;
+      }
+    }
+  } else {
+    // Check that this atom is bonded to the next one expected in the sequence.
+    for (Atom::bond_iterator it = topIn[at].bondbegin(); it != topIn[at].bondend(); ++it)
+    {
+      if (topIn[*it].Name() == atomNames_[idx]) {
+        indices[idx] = *it;
 
-  for (Atom::bond_iterator it = topIn[at].bondbegin(); it != topIn[at].bondend(); ++it)
-  {
-    if (topIn[*it].Name() == atomNames_[idx]) {
-      indices[idx] = *it;
-
-      FindAtoms( topIn, *it, idx+1, maxidx, indices );
+        FindAtoms( topIn, *it, idx+1, maxidx, indices );
+      }
     }
   }
 }
