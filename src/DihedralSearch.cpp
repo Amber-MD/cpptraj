@@ -324,9 +324,9 @@ void DihedralSearch::Clear() {
 }
 
 // DihedralSearch::PrintTypes()
-void DihedralSearch::PrintTypes() {
-  for (std::vector<DihedralToken>::iterator tkn = dihedralTokens_.begin();
-                                            tkn != dihedralTokens_.end(); ++tkn)
+void DihedralSearch::PrintTypes() const {
+  for (std::vector<DihedralToken>::const_iterator tkn = dihedralTokens_.begin();
+                                                  tkn != dihedralTokens_.end(); ++tkn)
     mprintf(" %s", tkn->Name().c_str());
 }
 

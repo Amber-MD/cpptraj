@@ -48,7 +48,7 @@ class DihedralSearch {
     /// Clear found dihedrals only.
     void ClearFound() { dihedrals_.clear(); }
     /// Print dihedrals currently being searched for.
-    void PrintTypes();
+    void PrintTypes() const;
     /// \return Mask of atoms that will move upon rotation.
     static AtomMask MovingAtoms(Topology const&, int, int);
   private:
