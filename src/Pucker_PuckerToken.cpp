@@ -76,5 +76,5 @@ const
     }
     actualIndices.push_back( indices[idx] );
   }
-  return PuckerMask( actualIndices );
+  return PuckerMask( resnum, Name(), actualIndices );
 }
