@@ -4,15 +4,22 @@
 
 using namespace Cpptraj;
 
+const double Action_MultiPucker::PERIOD_ = 360.0;
+
+/** CONSTRUCTOR */
 Action_MultiPucker::Action_MultiPucker() :
   outfile_(0),
   masterDSL_(0),
-  defaultMethod_(Pucker::ALTONA_SUNDARALINGAM)
+  defaultMethod_(Pucker::ALTONA_SUNDARALINGAM),
+  puckerMin_(0),
+  puckerMax_(0),
+  offset_(0)
 {}
 
 // Action_MultiPucker::Help()
 void Action_MultiPucker::Help() const {
-
+  mprintf("\t[<name>] [<type> ...] [out <filename>] [altona|cremer]\n"
+          "\t[range360] [offset <offset>]\n");
 }
 
 // Action_MultiPucker::Init()
@@ -23,6 +30,12 @@ Action::RetType Action_MultiPucker::Init(ArgList& actionArgs, ActionInit& init, 
   if      (actionArgs.hasKey("altona")) defaultMethod_ = Pucker::ALTONA_SUNDARALINGAM;
   else if (actionArgs.hasKey("cremer")) defaultMethod_ = Pucker::CREMER_POPLE;
   else                                  defaultMethod_ = Pucker::UNSPECIFIED;
+  offset_ = actionArgs.getKeyDouble("offset",0.0);
+  if (actionArgs.hasKey("range360"))
+    puckerMin_ = 0.0;
+  else
+    puckerMin_ = -180.0;
+  puckerMax_ = puckerMin_ + PERIOD_;
   std::string resrange_arg = actionArgs.GetStringKey("resrange");
   if (!resrange_arg.empty())
     if (resRange_.SetRange( resrange_arg )) return Action::ERR;
@@ -42,13 +55,20 @@ Action::RetType Action_MultiPucker::Init(ArgList& actionArgs, ActionInit& init, 
     mprintf(" puckers for residues in range %s\n", resRange_.RangeArg());
   else
     mprintf(" puckers for all solute residues.\n");
+  if (defaultMethod_ == Pucker::ALTONA_SUNDARALINGAM) 
+    mprintf("\tUsing Altona & Sundaralingam method.\n");
+  else if (defaultMethod_ == Pucker::CREMER_POPLE)
+    mprintf("\tUsing Cremer & Pople method.\n");
+  if (offset_!=0)
+    mprintf("\tOffset: %f degrees will be added to values.\n", offset_);
+  if (puckerMin_ > -180.0)
+    mprintf("\tOutput range is 0 to 360 degrees.\n");
+  else
+    mprintf("\tOutput range is -180 to 180 degrees.\n");
   if (!dsetname_.empty())
     mprintf("\tDataSet name: %s\n", dsetname_.c_str());
   if (outfile_ != 0) mprintf("\tOutput to %s\n", outfile_->DataFilename().base());
-  //if (minTorsion_ > -180.0) 
-  //  mprintf("\tOutput range is 0 to 360 degrees.\n");
-  //else
-  //  mprintf("\tOutput range is -180 to 180 degrees.\n");
+
   init.DSL().SetDataSetsPending(true);
   masterDSL_ = init.DslPtr();
   return Action::OK;
@@ -160,9 +180,11 @@ Action::RetType Action_MultiPucker::DoAction(int frameNum, ActionFrame& frm)
         return Action::ERR;
     }
     
-    pval *= Constants::RADDEG;
-    //if (torsion < minTorsion_)
-    //  torsion += 360.0;
+    pval = (pval * Constants::RADDEG) + offset_;
+    if (pval > puckerMax_)
+      pval -= PERIOD_;
+    else if (pval < puckerMin_)
+      pval += PERIOD_;
     (*ds)->Add(frameNum, &pval);
   }
   return Action::OK;

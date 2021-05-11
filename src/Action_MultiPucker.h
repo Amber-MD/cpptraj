@@ -16,6 +16,8 @@ class Action_MultiPucker : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
+    static const double PERIOD_;                 ///< Pucker period in degrees (360)
+
     Cpptraj::Pucker::PuckerSearch puckerSearch_; ///< Used to search for puckers
     std::vector<DataSet*> data_;                 ///< Output DataSets, 1 per pucker
     std::vector<Cpptraj::Pucker::Method> puckerMethods_; ///< Method to use for each pucker
@@ -24,5 +26,8 @@ class Action_MultiPucker : public Action {
     DataFile* outfile_;                          ///< File to write sets to
     DataSetList* masterDSL_;                     ///< Pointer to master DataSetList
     Cpptraj::Pucker::Method defaultMethod_;      ///< Which calculation method to use.
+    double puckerMin_;                           ///< Min pucker value; set to 0 or -180
+    double puckerMax_;                           ///< Max pucker value; set to 360 or 180
+    double offset_;                              ///< Offset to add to pucker values.
 };
 #endif
