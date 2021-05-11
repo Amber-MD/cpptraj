@@ -96,9 +96,9 @@ Action::RetType Action_MultiPucker::Setup(ActionSetup& setup)
   // Search for specified puckers in each residue in the range
   if (puckerSearch_.FindPuckers(setup.Top(), actualRange))
     return Action::SKIP;
-  mprintf("\tResRange=[%s]", resRange_.RangeArg());
+  mprintf("\tResults of search in residue range [%s] for types", resRange_.RangeArg());
   puckerSearch_.PrintTypes();
-  mprintf(", %u puckers.\n", puckerSearch_.Npuckers());
+  mprintf(", %u puckers found.\n", puckerSearch_.Npuckers());
 
   // Print selected puckers, set up DataSets
   data_.clear();
