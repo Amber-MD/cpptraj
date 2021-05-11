@@ -10,7 +10,7 @@ Pucker::PuckerSearch::PuckerSearch() {}
 
 /** Recognized pucker keywords. */
 const char* Pucker::PuckerSearch::Keywords_[] = {
-  "nucleic",  // NUCLEIC
+  "nucleic",  // NUCLEIC RIBOSE
   "furanose", // FURANOSE
   "pyranose"  // PYRANOSE
 };
@@ -19,7 +19,7 @@ const char* Pucker::PuckerSearch::Keywords_[] = {
 int Pucker::PuckerSearch::SearchFor(Type ptype) {
   PuckerToken::NameArray names;
   if (ptype == NUCLEIC) {
-    // Amber nucleic acid
+    // Amber nucleic acid ribose
     names.push_back("C1'");
     names.push_back("C2'");
     names.push_back("C3'");
@@ -68,11 +68,15 @@ int Pucker::PuckerSearch::SearchForNewTypeArgs(ArgList& argIn) {
                 puckertype_arg.c_str(), puckertype.Nargs());
       return 1;
     }
+    if (puckertype.Nargs() > 7) {
+      mprinterr("Error: Can only handle puckers with 5 or 6 atoms, got %i\n", puckertype.Nargs()-1);
+      return 1;
+    }
     PuckerToken::NameArray atomNames;
     atomNames.reserve(puckertype.Nargs()-1);
     for (int iarg = 1; iarg != puckertype.Nargs(); iarg++)
       atomNames.push_back( puckertype[iarg] );
-    SearchForNewType(puckertype[0], atomNames);
+    if (SearchForNewType(puckertype[0], atomNames)) return 1;
     puckertype_arg = argIn.GetStringKey("puckertype");
   }
   return 0;
@@ -81,11 +85,15 @@ int Pucker::PuckerSearch::SearchForNewTypeArgs(ArgList& argIn) {
 /** Define a custom pucker */
 int Pucker::PuckerSearch::SearchForNewType(std::string const& name, PuckerToken::NameArray const& atomNames)
 {
+  if (atomNames.size() < 5 || atomNames.size() > 6) {
+    mprinterr("Error: Can only handle puckers with 5 or 6 atoms. New type has %zu\n", atomNames.size());
+    return 1;
+  }
   for (std::vector<PuckerToken>::const_iterator tkn = puckersToSearchFor_.begin();
                                                 tkn != puckersToSearchFor_.end(); ++tkn)
     if (tkn->Name() == name) {
       mprintf("Warning: Pucker type %s already defined.\n", name.c_str());
-      return 1;
+      return 0;
     }
   puckersToSearchFor_.push_back( PuckerToken(name, atomNames) );
   return 0;
