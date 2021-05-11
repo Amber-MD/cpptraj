@@ -62,7 +62,7 @@ multipucker Pyr pyranose cremer \
   amplitude ampout pyranoid.auto.dat \
   theta thetaout pyranoid.auto.dat range360
 EOF
-    RunCpptraj "6-member ring pucker, Cremer & Pople Pyranoid test."
+    RunCpptraj "$UNITNAME"
     DoTest pyranoid.type.dat.save pyranoid.type.dat
     DoTest pyranoid.auto.dat.save pyranoid.auto.dat
   fi
