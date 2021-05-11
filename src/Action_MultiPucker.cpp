@@ -1,11 +1,13 @@
 #include "Action_MultiPucker.h"
 #include "CpptrajStdio.h"
+#include "TorsionRoutines.h"
 
 using namespace Cpptraj;
 
 Action_MultiPucker::Action_MultiPucker() :
   outfile_(0),
-  masterDSL_(0)
+  masterDSL_(0),
+  defaultMethod_(Pucker::ALTONA_SUNDARALINGAM)
 {}
 
 // Action_MultiPucker::Help()
@@ -18,6 +20,9 @@ Action::RetType Action_MultiPucker::Init(ArgList& actionArgs, ActionInit& init, 
 {
   // Get Keywords
   outfile_ = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs);
+  if      (actionArgs.hasKey("altona")) defaultMethod_ = Pucker::ALTONA_SUNDARALINGAM;
+  else if (actionArgs.hasKey("cremer")) defaultMethod_ = Pucker::CREMER_POPLE;
+  else                                  defaultMethod_ = Pucker::UNSPECIFIED;
   std::string resrange_arg = actionArgs.GetStringKey("resrange");
   if (!resrange_arg.empty())
     if (resRange_.SetRange( resrange_arg )) return Action::ERR;
@@ -77,11 +82,28 @@ Action::RetType Action_MultiPucker::Setup(ActionSetup& setup)
 
   // Print selected puckers, set up DataSets
   data_.clear();
+  puckerMethods_.clear();
+
   if (dsetname_.empty())
     dsetname_ = masterDSL_->GenerateDefaultName("MPUCKER");
   for (Pucker::PuckerSearch::mask_it pucker = puckerSearch_.begin();
                                      pucker != puckerSearch_.end(); ++pucker)
   {
+    // setup/check the method
+    Pucker::Method methodToUse = defaultMethod_;
+    if (methodToUse == Pucker::UNSPECIFIED) {
+      if (pucker->Natoms() > 5)
+        methodToUse = Pucker::CREMER_POPLE;
+      else
+        methodToUse = Pucker::ALTONA_SUNDARALINGAM;
+    } else if (methodToUse == Pucker::ALTONA_SUNDARALINGAM) {
+      if (pucker->Natoms() > 5) {
+        mprinterr("Error: Pucker '%s' has too many atoms for Altona-Sundaralingam method.\n");
+        return Action::ERR;
+      }
+    }
+    puckerMethods_.push_back( methodToUse );
+
     int resNum = pucker->ResNum() + 1;
     // See if Dataset already present. FIXME should AddSet do this?
     MetaData md( dsetname_, pucker->Name(), resNum );
@@ -98,7 +120,9 @@ Action::RetType Action_MultiPucker::Setup(ActionSetup& setup)
     }
     data_.push_back( ds ); 
     //if (debug_ > 0) {
-      mprintf("\tPUCKER [%s]: %s", ds->legend(), pucker->PuckerMaskString(setup.Top()).c_str());
+      static const char* methodStr[] = { "Altona", "Cremer", "Unspecified" };
+      mprintf("\tPUCKER [%s]: %s (%s)", ds->legend(), pucker->PuckerMaskString(setup.Top()).c_str(),
+              methodStr[puckerMethods_.back()]);
     //}
   }
   return Action::OK;
@@ -107,5 +131,39 @@ Action::RetType Action_MultiPucker::Setup(ActionSetup& setup)
 // Action_MultiPucker::DoAction()
 Action::RetType Action_MultiPucker::DoAction(int frameNum, ActionFrame& frm)
 {
+  const double* XYZ[6];
+  for (int i = 0; i != 6; i++)
+    XYZ[i] = 0;
+  double pval, aval, tval;
 
+  std::vector<DataSet*>::const_iterator ds = data_.begin();
+  std::vector<Pucker::Method>::const_iterator method = puckerMethods_.begin();
+  for (Pucker::PuckerSearch::mask_it pucker = puckerSearch_.begin();
+                                     pucker != puckerSearch_.end(); ++pucker, ++ds)
+  {
+    // Since puckers are always at least 5 atoms, just reinit the 6th coord
+    XYZ[5] = 0;
+    // Get pucker coordinates
+    unsigned int idx = 0;
+    for (Pucker::PuckerMask::atom_it atm = pucker->begin(); atm != pucker->end(); ++atm, ++idx)
+      XYZ[idx] = frm.Frm().XYZ( *atm );
+    // Do pucker calculation
+    switch (*method) {
+      case Pucker::ALTONA_SUNDARALINGAM:
+        pval = Pucker_AS( XYZ[0], XYZ[1], XYZ[2], XYZ[3], XYZ[4], aval );
+        break;
+      case Pucker::CREMER_POPLE:
+        pval = Pucker_CP( XYZ[0], XYZ[1], XYZ[2], XYZ[3], XYZ[4], XYZ[5],
+                          pucker->Natoms(), aval, tval );
+        break;
+      case Pucker::UNSPECIFIED : // Sanity check
+        return Action::ERR;
+    }
+    
+    pval *= Constants::RADDEG;
+    //if (torsion < minTorsion_)
+    //  torsion += 360.0;
+    (*ds)->Add(frameNum, &pval);
+  }
+  return Action::OK;
 }
