@@ -150,7 +150,8 @@ Action::RetType Action_MultiPucker::Setup(ActionSetup& setup)
         methodToUse = Pucker::ALTONA_SUNDARALINGAM;
     } else if (methodToUse == Pucker::ALTONA_SUNDARALINGAM) {
       if (pucker->Natoms() > 5) {
-        mprinterr("Error: Pucker '%s' has too many atoms for Altona-Sundaralingam method.\n");
+        mprinterr("Error: Pucker '%s' res %i has too many atoms for Altona-Sundaralingam method.\n",
+                  pucker->Name().c_str(), pucker->ResNum());
         return Action::ERR;
       }
     }
