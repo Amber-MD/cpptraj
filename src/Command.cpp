@@ -150,6 +150,7 @@
 #include "Action_XtalSymm.h"
 #include "Action_Time.h"
 #include "Action_DihedralRMS.h"
+#include "Action_MultiPucker.h"
 // ----- ANALYSIS --------------------------------------------------------------
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
@@ -341,6 +342,7 @@ void Command::Init() {
   Command::AddCmd( new Action_MinImage(),      Cmd::ACT, 1, "minimage" );
   Command::AddCmd( new Action_Molsurf(),       Cmd::ACT, 1, "molsurf" );
   Command::AddCmd( new Action_MultiDihedral(), Cmd::ACT, 1, "multidihedral" );
+  Command::AddCmd( new Action_MultiPucker(),   Cmd::ACT, 1, "multipucker" );
   Command::AddCmd( new Action_MultiVector(),   Cmd::ACT, 1, "multivector" );
   Command::AddCmd( new Action_NAstruct(),      Cmd::ACT, 1, "nastruct" );
   Command::AddCmd( new Action_NativeContacts(),Cmd::ACT, 1, "nativecontacts" );
