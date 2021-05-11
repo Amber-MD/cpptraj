@@ -24,7 +24,7 @@ multipucker ADHcp resrange 1-3 cremer out nucleic.dat
 #pucker p3-cp :3@C1' :3@C2' :3@C3' :3@C4' :3@O4' out pucker.dat cremer
 EOF
   RunCpptraj "MultiPucker command test"
-  #DoTest pucker.dat.save pucker.dat
+  DoTest nucleic.dat.save nucleic.dat
 }
 
 Furanoid() {
