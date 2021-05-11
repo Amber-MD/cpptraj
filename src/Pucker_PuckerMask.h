@@ -19,6 +19,13 @@ class PuckerMask {
     int ResNum() const { return resnum_; }
     /// \return Name of pucker
     std::string const& Name() const { return aspect_; }
+
+    /// Const iterator over pucker atoms
+    typedef std::vector<int>::const_iterator atom_it;
+    /// \return iterator to beginning of pucker atoms
+    atom_it begin() const { return atoms_.begin(); }
+    /// \return iterator to end of pucker atoms
+    atom_it end()   const { return atoms_.end(); }
   private:
     std::vector<int> atoms_; ///< Hold atom indices defining pucker
     std::string aspect_;     ///< DataSet aspect
