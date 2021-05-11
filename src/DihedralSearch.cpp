@@ -93,6 +93,15 @@ DihedralSearch::DihedralMask::DihedralMask(int a0, int a1, int a2, int a3,
                                            DihedralType t) :
   a0_(a0), a1_(a1), a2_(a2), a3_(a3), res_(res), name_(n), type_(t) {}
 
+/** \return string based on atoms in mask. */
+std::string DihedralSearch::DihedralMask::DihedralMaskString(Topology const& topIn) const {
+  std::string out( topIn.TruncResNameAtomName( a0_ ));
+  out.append(" " + topIn.TruncResNameAtomName( a1_ ));
+  out.append(" " + topIn.TruncResNameAtomName( a2_ ));
+  out.append(" " + topIn.TruncResNameAtomName( a3_ ));
+  return out;
+}
+
 // -----------------------------------------------------------------------------
 // CONSTRUCTOR - Custom type 
 DihedralSearch::DihedralToken::DihedralToken(int off, 

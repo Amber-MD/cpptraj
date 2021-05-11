@@ -95,6 +95,7 @@ class DihedralSearch::DihedralMask {
     std::string const& Name() const { return name_;       }
     bool None()               const { return (a0_ == -1); }
     DihedralType Type()       const { return type_;       }
+    std::string DihedralMaskString(Topology const&) const;
   private:
     int a0_, a1_, a2_, a3_, res_;
     std::string name_;

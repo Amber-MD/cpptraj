@@ -109,13 +109,9 @@ Action::RetType Action_MultiDihedral::Setup(ActionSetup& setup) {
         outfile_->AddDataSet( ds );
     }
     data_.push_back( ds ); 
-    if (debug_ > 0) {
-      mprintf("\tDIH [%s]:", ds->legend());
-      mprintf(" :%i@%i",   setup.Top()[dih->A0()].ResNum()+1, dih->A0() + 1);
-      mprintf(" :%i@%i",   setup.Top()[dih->A1()].ResNum()+1, dih->A1() + 1);
-      mprintf(" :%i@%i",   setup.Top()[dih->A2()].ResNum()+1, dih->A2() + 1);
-      mprintf(" :%i@%i\n", setup.Top()[dih->A3()].ResNum()+1, dih->A3() + 1);
-    }
+    //if (debug_ > 0) {
+      mprintf("\t%zu [%s]: %s\n", data_.size(), ds->legend(), dih->DihedralMaskString(setup.Top()).c_str());
+    //}
   }
   return Action::OK;
 }
