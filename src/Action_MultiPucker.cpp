@@ -152,7 +152,7 @@ Action::RetType Action_MultiPucker::Setup(ActionSetup& setup)
     puckerMethods_.push_back( methodToUse );
 
     int resNum = pucker->ResNum() + 1;
-    // See if Dataset already present. FIXME should AddSet do this?
+    // See if Dataset already present.
     MetaData md( dsetname_, pucker->Name(), resNum );
     DataSet* ds = masterDSL_->CheckForSet(md);
     if (ds == 0) {
