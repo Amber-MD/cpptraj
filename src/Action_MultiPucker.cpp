@@ -9,6 +9,8 @@ const double Action_MultiPucker::PERIOD_ = 360.0;
 /** CONSTRUCTOR */
 Action_MultiPucker::Action_MultiPucker() :
   outfile_(0),
+  ampfile_(0),
+  thetafile_(0),
   masterDSL_(0),
   defaultMethod_(Pucker::ALTONA_SUNDARALINGAM),
   puckerMin_(0),
@@ -21,6 +23,7 @@ Action_MultiPucker::Action_MultiPucker() :
 // Action_MultiPucker::Help()
 void Action_MultiPucker::Help() const {
   mprintf("\t[<name>] [<type> ...] [out <filename>] [altona|cremer]\n"
+          "\t[amplitude [ampout <ampfile>]] [theta [thetaout <thetafile>]]\n"
           "\t[range360] [offset <offset>]\n");
 }
 
@@ -32,6 +35,15 @@ Action::RetType Action_MultiPucker::Init(ArgList& actionArgs, ActionInit& init, 
   if      (actionArgs.hasKey("altona")) defaultMethod_ = Pucker::ALTONA_SUNDARALINGAM;
   else if (actionArgs.hasKey("cremer")) defaultMethod_ = Pucker::CREMER_POPLE;
   else                                  defaultMethod_ = Pucker::UNSPECIFIED;
+  ampfile_ = 0;
+  calc_amp_ = actionArgs.hasKey("amplitude");
+  if (calc_amp_) {
+    ampfile_ = init.DFL().AddDataFile( actionArgs.GetStringKey("ampout"), actionArgs);
+  }
+  calc_theta_ = actionArgs.hasKey("theta");
+  if (calc_theta_) {
+    thetafile_ = init.DFL().AddDataFile( actionArgs.GetStringKey("thetaout"), actionArgs);
+  }
   offset_ = actionArgs.getKeyDouble("offset",0.0);
   if (actionArgs.hasKey("range360"))
     puckerMin_ = 0.0;
@@ -152,6 +164,7 @@ Action::RetType Action_MultiPucker::Setup(ActionSetup& setup)
         md.SetScalarMode(MetaData::M_PUCKER);
         ds = masterDSL_->AddSet(DataSet::DOUBLE, amp_md);
         if (ds == 0) return Action::ERR;
+        if (ampfile_ != 0) ampfile_->AddDataSet( ds );
       }
       amp_.push_back( ds );
     } else
@@ -169,6 +182,7 @@ Action::RetType Action_MultiPucker::Setup(ActionSetup& setup)
           md.SetScalarMode(MetaData::M_PUCKER);
           ds = masterDSL_->AddSet(DataSet::DOUBLE, theta_md);
           if (ds == 0) return Action::ERR;
+          if (thetafile_ != 0) thetafile_->AddDataSet( ds );
         }
         theta_.push_back( ds );
       }

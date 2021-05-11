@@ -26,6 +26,8 @@ class Action_MultiPucker : public Action {
     Range resRange_;                             ///< Residue range to search
     std::string dsetname_;                       ///< Output data set(s) name
     DataFile* outfile_;                          ///< File to write sets to
+    DataFile* ampfile_;                          ///< File to write amplitude sets to
+    DataFile* thetafile_;                        ///< File to write theta sets to
     DataSetList* masterDSL_;                     ///< Pointer to master DataSetList
     Cpptraj::Pucker::Method defaultMethod_;      ///< Which calculation method to use.
     double puckerMin_;                           ///< Min pucker value; set to 0 or -180
