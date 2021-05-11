@@ -22,8 +22,8 @@ Action_MultiPucker::Action_MultiPucker() :
 
 // Action_MultiPucker::Help()
 void Action_MultiPucker::Help() const {
-  mprintf("\t[<name>] [<pucker types>] [out <filename>] [altona|cremer]\n"
-          "\t[%s]\n"
+  mprintf("\t[<name>] [<pucker types>] [resrange <range>] [out <filename>]\n"
+          "\t[altona|cremer] [%s]\n"
           "\t[amplitude [ampout <ampfile>]] [theta [thetaout <thetafile>]]\n"
           "\t[range360] [offset <offset>]\n",
           Pucker::PuckerSearch::newTypeArgsHelp());
