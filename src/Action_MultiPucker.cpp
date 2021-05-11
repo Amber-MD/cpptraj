@@ -167,7 +167,7 @@ Action::RetType Action_MultiPucker::Setup(ActionSetup& setup)
     // Set up amplitude
     if (calc_amp_) {
       MetaData amp_md(dsetname_, pucker->Name() + "Amp", resNum);
-      ds = masterDSL_->CheckForSet(md);
+      ds = masterDSL_->CheckForSet(amp_md);
       if (ds == 0) {
         md.SetScalarMode(MetaData::M_PUCKER);
         ds = masterDSL_->AddSet(DataSet::DOUBLE, amp_md);
@@ -185,7 +185,7 @@ Action::RetType Action_MultiPucker::Setup(ActionSetup& setup)
         theta_.push_back( 0 );
       } else {
         MetaData theta_md(dsetname_, pucker->Name() + "Theta", resNum);
-        ds = masterDSL_->CheckForSet(md);
+        ds = masterDSL_->CheckForSet(theta_md);
         if (ds == 0) {
           md.SetScalarMode(MetaData::M_PUCKER);
           ds = masterDSL_->AddSet(DataSet::DOUBLE, theta_md);
