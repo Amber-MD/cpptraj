@@ -27,6 +27,15 @@ class PuckerSearch {
     int SearchForAll();
     /// Print types to search for to stdout
     void PrintTypes() const;
+    /// \return Number of found puckers
+    unsigned int Npuckers() const { return foundPuckers_.size(); }
+
+    /// Const iterator over found puckers
+    typedef std::vector<PuckerMask>::const_iterator mask_it;
+    /// \return iterator to beginning of found puckers list
+    mask_it begin() const { return foundPuckers_.begin(); }
+    /// \return iterator to end of found puckers list
+    mask_it end()   const { return foundPuckers_.end();   }
   private:
     static const char* Keywords_[];               ///< Keywords corresponding to Pucker::Type
     /// Define a new custom pucker type
