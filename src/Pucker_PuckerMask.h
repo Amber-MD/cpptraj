@@ -19,6 +19,8 @@ class PuckerMask {
     int ResNum() const { return resnum_; }
     /// \return Name of pucker
     std::string const& Name() const { return aspect_; }
+    /// \return Number of atoms in pucker
+    unsigned int Natoms() const { return atoms_.size(); }
 
     /// Const iterator over pucker atoms
     typedef std::vector<int>::const_iterator atom_it;
