@@ -81,7 +81,15 @@ Action::RetType Action_MultiPucker::Init(ArgList& actionArgs, ActionInit& init, 
     mprintf("\tOutput range is -180 to 180 degrees.\n");
   if (!dsetname_.empty())
     mprintf("\tDataSet name: %s\n", dsetname_.c_str());
-  if (outfile_ != 0) mprintf("\tOutput to %s\n", outfile_->DataFilename().base());
+  if (outfile_ != 0) mprintf("\tOutput to %s\n", outfile_->DataFilename().full());
+  if (calc_amp_) {
+    mprintf("\tAmplitudes (in degrees) will be calculated.\n");
+    if (ampfile_ != 0) mprintf("\tAmplitudes output to %s\n", ampfile_->DataFilename().full());
+  }
+  if (calc_theta_) {
+    mprintf("\tThetas (in degrees) will be calculated.\n");
+    if (thetafile_ != 0) mprintf("\tThetas output to %s\n", thetafile_->DataFilename().full());
+  }
 
   init.DSL().SetDataSetsPending(true);
   masterDSL_ = init.DslPtr();
