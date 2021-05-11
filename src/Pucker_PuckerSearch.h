@@ -29,6 +29,8 @@ class PuckerSearch {
     void PrintTypes() const;
     /// \return Number of found puckers
     unsigned int Npuckers() const { return foundPuckers_.size(); }
+    /// \return Specified found pucker mask
+    PuckerMask const& FoundPucker(unsigned int idx) const { return foundPuckers_[idx]; }
 
     /// Const iterator over found puckers
     typedef std::vector<PuckerMask>::const_iterator mask_it;

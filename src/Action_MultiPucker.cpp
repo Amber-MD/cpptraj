@@ -13,7 +13,9 @@ Action_MultiPucker::Action_MultiPucker() :
   defaultMethod_(Pucker::ALTONA_SUNDARALINGAM),
   puckerMin_(0),
   puckerMax_(0),
-  offset_(0)
+  offset_(0),
+  calc_amp_(false),
+  calc_theta_(false)
 {}
 
 // Action_MultiPucker::Help()
@@ -102,6 +104,8 @@ Action::RetType Action_MultiPucker::Setup(ActionSetup& setup)
 
   // Print selected puckers, set up DataSets
   data_.clear();
+  amp_.clear();
+  theta_.clear();
   puckerMethods_.clear();
 
   if (dsetname_.empty())
@@ -138,7 +142,39 @@ Action::RetType Action_MultiPucker::Setup(ActionSetup& setup)
       if (outfile_ != 0)
         outfile_->AddDataSet( ds );
     }
-    data_.push_back( ds ); 
+    data_.push_back( ds );
+
+    // Set up amplitude
+    if (calc_amp_) {
+      MetaData amp_md(dsetname_, pucker->Name() + "Amp", resNum);
+      ds = masterDSL_->CheckForSet(md);
+      if (ds == 0) {
+        md.SetScalarMode(MetaData::M_PUCKER);
+        ds = masterDSL_->AddSet(DataSet::DOUBLE, amp_md);
+        if (ds == 0) return Action::ERR;
+      }
+      amp_.push_back( ds );
+    } else
+      amp_.push_back( 0 );
+
+    // Set up theta (> 5 atoms only)
+    if (calc_theta_) {
+      if (pucker->Natoms() < 6) {
+        mprintf("Warning: 'theta' calc. not supported for < 6 atoms.\n");
+        theta_.push_back( 0 );
+      } else {
+        MetaData theta_md(dsetname_, pucker->Name() + "Theta", resNum);
+        ds = masterDSL_->CheckForSet(md);
+        if (ds == 0) {
+          md.SetScalarMode(MetaData::M_PUCKER);
+          ds = masterDSL_->AddSet(DataSet::DOUBLE, theta_md);
+          if (ds == 0) return Action::ERR;
+        }
+        theta_.push_back( ds );
+      }
+    } else
+      theta_.push_back( 0 );
+
     //if (debug_ > 0) {
       static const char* methodStr[] = { "Altona", "Cremer", "Unspecified" };
       mprintf("\tPUCKER [%s]: %s (%s)\n", ds->legend(), pucker->PuckerMaskString(setup.Top()).c_str(),
@@ -156,36 +192,46 @@ Action::RetType Action_MultiPucker::DoAction(int frameNum, ActionFrame& frm)
     XYZ[i] = 0;
   double pval, aval, tval;
 
-  std::vector<DataSet*>::const_iterator ds = data_.begin();
-  std::vector<Pucker::Method>::const_iterator method = puckerMethods_.begin();
-  for (Pucker::PuckerSearch::mask_it pucker = puckerSearch_.begin();
-                                     pucker != puckerSearch_.end(); ++pucker, ++ds)
+  //std::vector<DataSet*>::const_iterator ds = data_.begin();
+  //std::vector<Pucker::Method>::const_iterator method = puckerMethods_.begin();
+  for (unsigned int idx = 0; idx != puckerSearch_.Npuckers(); idx++)
   {
+    Pucker::PuckerMask const& pucker = puckerSearch_.FoundPucker(idx);
     // Since puckers are always at least 5 atoms, just reinit the 6th coord
     XYZ[5] = 0;
     // Get pucker coordinates
-    unsigned int idx = 0;
-    for (Pucker::PuckerMask::atom_it atm = pucker->begin(); atm != pucker->end(); ++atm, ++idx)
-      XYZ[idx] = frm.Frm().XYZ( *atm );
+    unsigned int jdx = 0;
+    for (Pucker::PuckerMask::atom_it atm = pucker.begin(); atm != pucker.end(); ++atm, ++jdx)
+      XYZ[jdx] = frm.Frm().XYZ( *atm );
     // Do pucker calculation
-    switch (*method) {
+    switch (puckerMethods_[idx]) {
       case Pucker::ALTONA_SUNDARALINGAM:
         pval = Pucker_AS( XYZ[0], XYZ[1], XYZ[2], XYZ[3], XYZ[4], aval );
         break;
       case Pucker::CREMER_POPLE:
         pval = Pucker_CP( XYZ[0], XYZ[1], XYZ[2], XYZ[3], XYZ[4], XYZ[5],
-                          pucker->Natoms(), aval, tval );
+                          pucker.Natoms(), aval, tval );
         break;
       case Pucker::UNSPECIFIED : // Sanity check
         return Action::ERR;
     }
-    
+
+    if (amp_[idx] != 0) {
+      aval *= Constants::RADDEG;
+      amp_[idx]->Add(frameNum, &aval);
+    }
+
+    if (theta_[idx] != 0) {
+      tval *= Constants::RADDEG;
+      theta_[idx]->Add(frameNum, &tval);
+    }
+
     pval = (pval * Constants::RADDEG) + offset_;
     if (pval > puckerMax_)
       pval -= PERIOD_;
     else if (pval < puckerMin_)
       pval += PERIOD_;
-    (*ds)->Add(frameNum, &pval);
+    data_[idx]->Add(frameNum, &pval);
   }
   return Action::OK;
 }

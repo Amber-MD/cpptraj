@@ -20,6 +20,8 @@ class Action_MultiPucker : public Action {
 
     Cpptraj::Pucker::PuckerSearch puckerSearch_; ///< Used to search for puckers
     std::vector<DataSet*> data_;                 ///< Output DataSets, 1 per pucker
+    std::vector<DataSet*> amp_;                  ///< Output amplitude DataSets, 1 per pucker
+    std::vector<DataSet*> theta_;                ///< Output theta DataSets, 1 per pucker
     std::vector<Cpptraj::Pucker::Method> puckerMethods_; ///< Method to use for each pucker
     Range resRange_;                             ///< Residue range to search
     std::string dsetname_;                       ///< Output data set(s) name
@@ -29,5 +31,7 @@ class Action_MultiPucker : public Action {
     double puckerMin_;                           ///< Min pucker value; set to 0 or -180
     double puckerMax_;                           ///< Max pucker value; set to 360 or 180
     double offset_;                              ///< Offset to add to pucker values.
+    bool calc_amp_;                              ///< If true save amplitude as well
+    bool calc_theta_;                            ///< If true save theta as well
 };
 #endif
