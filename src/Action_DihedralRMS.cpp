@@ -18,7 +18,7 @@ void Action_DihedralRMS::Help() const {
           "\t[tgtrange <range> [refrange <range>]]\n"
           "  Calculate RMSD of selected dihedrals to dihedrals in a\n"
           "  reference structure.\n",
-           ReferenceAction::Help(), DihedralSearch::newTypeArgsHelp_);
+           ReferenceAction::Help(), DihedralSearch::newTypeArgsHelp());
 }
 
 // Action_DihedralRMS::Init()

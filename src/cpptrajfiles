@@ -53,6 +53,7 @@ COMMON_SOURCES= \
         Action_MinImage.cpp \
         Action_Molsurf.cpp \
         Action_MultiDihedral.cpp \
+        Action_MultiPucker.cpp \
         Action_MultiVector.cpp \
         Action_NAstruct.cpp \
         Action_NativeContacts.cpp \
@@ -362,6 +363,9 @@ COMMON_SOURCES= \
         ProgressBar.cpp \
         ProgressTimer.cpp \
         PubFFT.cpp \
+        Pucker_PuckerMask.cpp \
+        Pucker_PuckerSearch.cpp \
+        Pucker_PuckerToken.cpp \
         ExternalFxn.cpp \
         Random.cpp \
         Range.cpp \

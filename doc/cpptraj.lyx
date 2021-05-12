@@ -13382,6 +13382,17 @@ Charmm PSF:
 \end_layout
 
 \end_deeper
+\begin_layout Subsubsection
+Gromacs Top
+\end_layout
+
+\begin_layout Standard
+By default cpptraj will look for Gromacs topology data (that is not in the
+ same directory) in the directory defined by the GMXDATA environment variable;
+ specifically, it expects things to be in the "$GMXDATA/top" directory.
+ 
+\end_layout
+
 \begin_layout Subsection
 parmbox
 \end_layout
@@ -29967,11 +29978,11 @@ Offset: -2=<a0><a1> in previous res, -1=<a0> in previous res, 0=All <aX>
 
 \end_deeper
 \begin_layout Standard
-DataSet Aspects:
+DataSets Generated:
 \end_layout
 
 \begin_layout Description
-[<dihedral
+<name>[<dihedral
 \begin_inset space ~
 \end_inset
 
@@ -30025,6 +30036,218 @@ dihtype
 
 \begin_layout LyX-Code
 multidihedral dihtype chi1:N:CA:CB:CG out custom.dat
+\end_layout
+
+\begin_layout Subsection
+multipucker
+\end_layout
+
+\begin_layout LyX-Code
+multipucker [<name>] [<pucker types>] [out <filename>] [resrange <range>]
+\end_layout
+
+\begin_layout LyX-Code
+            [altona|cremer] [puckertype <name>:<a0>:<a1>:<a2>:<a3>:<a4>[:<a5>]
+ ...]
+\end_layout
+
+\begin_layout LyX-Code
+        	[amplitude [ampout <ampfile>]] [theta [thetaout <thetafile>]]
+\end_layout
+
+\begin_layout LyX-Code
+        	[range360] [offset <offset>]
+\end_layout
+
+\begin_layout LyX-Code
+        	<pucker types> =  nucleic furanose pyranose
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[<name>] Output data set name.
+\end_layout
+
+\begin_layout Description
+<pucker
+\begin_inset space ~
+\end_inset
+
+types> Pucker types to look for.
+ 
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<filename>] Output file name to write pucker data to.
+\end_layout
+
+\begin_layout Description
+[resrange
+\begin_inset space ~
+\end_inset
+
+<range>] Residue range to look for puckers in.
+ Default is all solute residues.
+\end_layout
+
+\begin_layout Description
+[puckertype
+\begin_inset space ~
+\end_inset
+
+<name>:<a0>:<a1>:<a2>:<a3>:<a4>[:<a5>] Search for a custom pucker type called
+ <name> using atom names <a0>, <a1>, <a2>, <a3>, and <a4> (also <a5> for
+ 6 atom puckers).
+\end_layout
+
+\begin_layout Description
+[altona] Use method of Altona & Sundaralingam (5 atoms only).
+ This is the default when pucker has 5 atoms.
+\end_layout
+
+\begin_layout Description
+[cremer] Use method of Cremer and Pople (5 or 6 atoms).
+ This is the default when pucker has 6 atoms.
+\end_layout
+
+\begin_layout Description
+[amplitude] Also calculate amplitude (in degrees).
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+ampout
+\begin_inset space ~
+\end_inset
+
+<ampfile> File to write amplitude sets to.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[theta] (Valid for 6 atoms only) Also calculate theta (in degrees).
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+thetaout
+\begin_inset space ~
+\end_inset
+
+<thetafile> File to write theta sets to.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[range360] Wrap pucker values from 0.0 to 360.0 (default is -180.0 to 180.0).
+\end_layout
+
+\begin_layout Description
+[offset
+\begin_inset space ~
+\end_inset
+
+<offset>] Add <offset> to pucker values.
+\end_layout
+
+\begin_layout Standard
+DataSets Generated:
+\end_layout
+
+\begin_layout Description
+<name>[<pucker
+\begin_inset space ~
+\end_inset
+
+type>]:<#> Aspect corresponds to the pucker type name (e.g.
+ [nucleic], [furanose], etc).
+ The index is the residue number.
+\end_layout
+
+\begin_layout Description
+<name>[<pucker
+\begin_inset space ~
+\end_inset
+
+type>Amp]:<#> 
+\series bold
+amplitude
+\series default
+ only.
+ Data set for pucker amplitude.
+\end_layout
+
+\begin_layout Description
+<name>[<pucker
+\begin_inset space ~
+\end_inset
+
+type>Theta]:<#> 
+\series bold
+theta
+\series default
+ only.
+ Data set for pucker theta.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+
+\shape italic
+Note data sets are not generated until 
+\series bold
+run
+\series default
+ is called.
+\end_layout
+
+\begin_layout Standard
+Calculate specified pucker types for residues in given range.
+ By default, puckers are identified based on standard Amber atom names.
+ The resulting data sets will have aspect equal to [<pucker type>] and index
+ equal to residue #.
+ In order to be identified as a pucker, all consecutive atoms in the pucker
+ must be bonded, and the last atom of the pucker must be bonded to the first.
+\end_layout
+
+\begin_layout Standard
+For example, to calculate all nucleic acid ribose puckers for residues 6
+ to 9:
+\end_layout
+
+\begin_layout LyX-Code
+multipucker MyPuckers nucleic resrange 6-9 out Pucker_6-9.dat
+\end_layout
+
+\begin_layout Standard
+This will generate data sets named MyPuckers[nucleic]:6, MyPuckers[nucleic]:7,
+ etc.
+ Puckers other than those defined in 
+\series bold
+<pucker types>
+\series default
+ can be searched for using 
+\series bold
+puckertype
+\series default
+.
+ For example to create a custom pucker type called furanoid using atoms
+ C2, C3, C4, C5, and O2, then search for and calculate that pucker (with
+ amplitudes) using the method of Cremer and Pople in all residues:
+\end_layout
+
+\begin_layout LyX-Code
+multipucker Furanoid puckertype furanoid:C2:C3:C4:C5:O2 cremer 
+\backslash
+
+\end_layout
+
+\begin_layout LyX-Code
+  out furanoid.dat amplitude ampout furanoid.dat
 \end_layout
 
 \begin_layout Subsection

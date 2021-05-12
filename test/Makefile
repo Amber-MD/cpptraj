@@ -480,6 +480,9 @@ test.flatten:
 test.random:
 	@-cd Test_Random && ./RunTest.sh $(OPT)
 
+test.multipucker:
+	@-cd Test_MultiPucker && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -633,7 +636,8 @@ COMPLETETESTS=test.general \
               test.evalplateau \
               test.graft \
               test.flatten \
-              test.random
+              test.random \
+              test.multipucker
 
 test.all:
 	$(MAKE) test.complete summary

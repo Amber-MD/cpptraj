@@ -731,7 +731,10 @@ void Action_NativeContacts::WriteContactPDB( contactListType& ContactsIn, Cpptra
     }
     // Normalize so the strongest contact value is 100.00
     norm = (double)*std::max_element(atomContactFrac.begin(), atomContactFrac.end());
-    norm = 100.00 / norm;
+    if (norm > 0)
+      norm = 100.00 / norm;
+    else
+      norm = 1.0;
     PDBfile& contactPDB = static_cast<PDBfile&>( *fileIn );
     mprintf("\tWriting contacts PDB to '%s'\n", fileIn->Filename().full());
     contactPDB.WriteTITLE( numnative_->Meta().Name() + " " + Mask1_.MaskExpression() + " " +
