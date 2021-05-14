@@ -1329,7 +1329,7 @@ SetupCompilers() {
   if [ ! -z "$CC"  ] ; then echo "C compiler (CC) set to $CC" ; fi
   if [ ! -z "$FC"  ] ; then echo "Fortran compiler (FC) set to $FC" ; fi
   # If no compiler type specified try to guess
-  if [ -z "$COMPILERS" -o ! -z "$CXX" ] ; then
+  if [ -z "$COMPILERS" ] ; then
     if [ ! -z "$CXX" ] ; then
       SPECIFIED_COMPILER=$COMPILERS
       echo "Determining compilers from CXX ($CXX)"
