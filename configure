@@ -11,7 +11,7 @@
 #-------------------------------------------------------------------------------
 # Print simple help message
 UsageSimple() {
-  echo "Usage: ./configure <OPTIONS> [gnu | intel | pgi | clang | cray]"
+  echo "Usage: ./configure <OPTIONS> [gnu | intel | pgi | clang | cray | oneapi]"
   echo "  OPTIONS:"
   echo "    --help         : Display this message."
   echo "    --prefix <dir> : Install CPPTRAJ to specified directory (default is this directory)."
@@ -1338,6 +1338,7 @@ SetupCompilers() {
         *clang++* ) COMPILERS='clang' ;;
         *g++*     ) COMPILERS='gnu' ;;
         *icpc*    ) COMPILERS='intel' ;;
+        *icpx*    ) COMPILERS='oneapi' ;;
         *pgc++*   ) COMPILERS='pgi' ;;
         *CC*      ) COMPILERS='cray' ;;
         * ) WrnMsg "Could not detect compiler type ($CXX); assuming GNU" ;;
@@ -1399,6 +1400,20 @@ SetupCompilers() {
       foptflags='-O3'
       FLINK='-lgfortran'
       picflag='-fPIC'
+      C11FLAG='-std=c++11'
+      ;;
+   'oneapi' )
+      if [ -z "$CC" ]; then CC=icx; fi
+      if [ -z "$CXX" ]; then CXX=icpx; fi
+      if [ -z "$FC" ]; then FC=gfortran; fi
+      CXXFLAGS="-fp-model precise $CXXFLAGS"
+      hostflags=''
+      optflags=''
+      ompflag='-fopenmp'
+      freefmtflag='-ffree-form'
+      foptflags='-O3'
+      FLINK='-lgfortran'
+      picflag='-fpic'
       C11FLAG='-std=c++11'
       ;;
     'intel' )
@@ -2287,6 +2302,7 @@ while [ ! -z "$1" ] ; do
     'gnu'        ) COMPILERS=$KEY ;;
     'clang'      ) COMPILERS=$KEY ;;
     'intel'      ) COMPILERS=$KEY ;;
+    'oneapi'     ) COMPILERS=$KEY ;;
     'pgi'        ) COMPILERS=$KEY ;;
     'cray'       ) COMPILERS=$KEY ;;
     'CXX'        ) CXX="$VALUE" ;;
