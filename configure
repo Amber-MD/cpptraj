@@ -11,7 +11,7 @@
 #-------------------------------------------------------------------------------
 # Print simple help message
 UsageSimple() {
-  echo "Usage: ./configure <OPTIONS> [gnu | intel | pgi | clang | cray]"
+  echo "Usage: ./configure <OPTIONS> [gnu | intel | pgi | clang | cray | oneapi]"
   echo "  OPTIONS:"
   echo "    --help         : Display this message."
   echo "    --prefix <dir> : Install CPPTRAJ to specified directory (default is this directory)."
@@ -1329,7 +1329,7 @@ SetupCompilers() {
   if [ ! -z "$CC"  ] ; then echo "C compiler (CC) set to $CC" ; fi
   if [ ! -z "$FC"  ] ; then echo "Fortran compiler (FC) set to $FC" ; fi
   # If no compiler type specified try to guess
-  if [ -z "$COMPILERS" -o ! -z "$CXX" ] ; then
+  if [ -z "$COMPILERS" ] ; then
     if [ ! -z "$CXX" ] ; then
       SPECIFIED_COMPILER=$COMPILERS
       echo "Determining compilers from CXX ($CXX)"
@@ -1338,6 +1338,7 @@ SetupCompilers() {
         *clang++* ) COMPILERS='clang' ;;
         *g++*     ) COMPILERS='gnu' ;;
         *icpc*    ) COMPILERS='intel' ;;
+        *icpx*    ) COMPILERS='oneapi' ;;
         *pgc++*   ) COMPILERS='pgi' ;;
         *CC*      ) COMPILERS='cray' ;;
         * ) WrnMsg "Could not detect compiler type ($CXX); assuming GNU" ;;
@@ -1400,6 +1401,40 @@ SetupCompilers() {
       FLINK='-lgfortran'
       picflag='-fPIC'
       C11FLAG='-std=c++11'
+      ;;
+   'oneapi' )
+      if [ -z "$CC" ]; then CC=icx; fi
+      if [ -z "$CXX" ]; then CXX=icpx; fi
+      CXXFLAGS="-fp-model precise $CXXFLAGS"
+      hostflags=''
+      optflags=''
+      ompflag='-fopenmp'
+      picflag='-fpic'
+      C11FLAG='-std=c++11'
+      # May be several fortran compiler options
+      if [ -z "$FC" ]; then
+        if [ ! -z "`which ifx`" ] ; then
+          FC=ifx
+        elif [ ! -z "`which ifort`" ] ; then
+          FC=ifort
+        else
+          FC=gfortran
+        fi
+      fi
+      # Determine flags based on what fortran we have
+      if [ "$FC" = 'gfortran' ] ; then
+        freefmtflag='-ffree-form'
+        foptflags='-O3'
+        FLINK='-lgfortran'
+      elif [ "$FC" = 'ifort' ] ; then
+        freefmtflag='-FR'
+        foptflags='-ip -O3'
+        fwarnflag='-warn all'
+        FLINK='-lifport -lifcore'
+      elif [ "$FC" = 'ifx' ] ; then
+        fwarnflag='-warn all'
+        FLINK='-lifport -lifcore'
+      fi
       ;;
     'intel' )
       if [ -z "$CC" ]; then CC=icc; fi
@@ -1639,6 +1674,22 @@ EOF
       end program testf
 EOF
     TestProgram "  Testing Fortran compiler" "$FC" "$FFLAGS" testp.f
+#    # Test C++/Fortran linking
+#    cat > testp.cpp <<EOF
+#extern "C" { void printmessage(int&); }
+#int main() { int ival = 1; printmessage( ival ); return 0; }
+#EOF
+#    cat > testp.f <<EOF
+#      subroutine printmessage(ival)
+#      integer ival
+#      write(6,'(a,i6)') "Ival is ", ival
+#      end subroutine printmessage
+#EOF
+#    echo "  Testing C++/Fortran linking"
+#    echo "$CXX $CXXFLAGS -c -o testp.cpp.o testp.cpp"
+##    $CXX $CXXFLAGS -c -o testp.cpp.o testp.cpp
+#    echo "$FC $FFLAGS -c -o testp.f.o testp.f"
+#    $FC $FFLAGS -c -o testp.f.o testp.f
   fi
 }
 
@@ -2287,6 +2338,7 @@ while [ ! -z "$1" ] ; do
     'gnu'        ) COMPILERS=$KEY ;;
     'clang'      ) COMPILERS=$KEY ;;
     'intel'      ) COMPILERS=$KEY ;;
+    'oneapi'     ) COMPILERS=$KEY ;;
     'pgi'        ) COMPILERS=$KEY ;;
     'cray'       ) COMPILERS=$KEY ;;
     'CXX'        ) CXX="$VALUE" ;;

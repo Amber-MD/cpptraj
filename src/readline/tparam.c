@@ -38,6 +38,10 @@ char *realloc ();
 #define bcopy(s, d, n) memcpy ((d), (s), (n))
 #endif
 
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+
 #endif /* not emacs */
 
 #ifndef NULL
