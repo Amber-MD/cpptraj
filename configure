@@ -1405,7 +1405,6 @@ SetupCompilers() {
    'oneapi' )
       if [ -z "$CC" ]; then CC=icx; fi
       if [ -z "$CXX" ]; then CXX=icpx; fi
-      if [ -z "$FC" ]; then FC=gfortran; fi
       CXXFLAGS="-fp-model precise $CXXFLAGS"
       hostflags=''
       optflags=''
@@ -1430,6 +1429,9 @@ SetupCompilers() {
       elif [ "$FC" = 'ifort' ] ; then
         freefmtflag='-FR'
         foptflags='-ip -O3'
+        fwarnflag='-warn all'
+        FLINK='-lifport -lifcore'
+      elif [ "$FC" = 'ifx' ] ; then
         fwarnflag='-warn all'
         FLINK='-lifport -lifcore'
       fi
@@ -1672,6 +1674,22 @@ EOF
       end program testf
 EOF
     TestProgram "  Testing Fortran compiler" "$FC" "$FFLAGS" testp.f
+#    # Test C++/Fortran linking
+#    cat > testp.cpp <<EOF
+#extern "C" { void printmessage(int&); }
+#int main() { int ival = 1; printmessage( ival ); return 0; }
+#EOF
+#    cat > testp.f <<EOF
+#      subroutine printmessage(ival)
+#      integer ival
+#      write(6,'(a,i6)') "Ival is ", ival
+#      end subroutine printmessage
+#EOF
+#    echo "  Testing C++/Fortran linking"
+#    echo "$CXX $CXXFLAGS -c -o testp.cpp.o testp.cpp"
+##    $CXX $CXXFLAGS -c -o testp.cpp.o testp.cpp
+#    echo "$FC $FFLAGS -c -o testp.f.o testp.f"
+#    $FC $FFLAGS -c -o testp.f.o testp.f
   fi
 }
 
