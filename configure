@@ -1410,11 +1410,29 @@ SetupCompilers() {
       hostflags=''
       optflags=''
       ompflag='-fopenmp'
-      freefmtflag='-ffree-form'
-      foptflags='-O3'
-      FLINK='-lgfortran'
       picflag='-fpic'
       C11FLAG='-std=c++11'
+      # May be several fortran compiler options
+      if [ -z "$FC" ]; then
+        if [ ! -z "`which ifx`" ] ; then
+          FC=ifx
+        elif [ ! -z "`which ifort`" ] ; then
+          FC=ifort
+        else
+          FC=gfortran
+        fi
+      fi
+      # Determine flags based on what fortran we have
+      if [ "$FC" = 'gfortran' ] ; then
+        freefmtflag='-ffree-form'
+        foptflags='-O3'
+        FLINK='-lgfortran'
+      elif [ "$FC" = 'ifort' ] ; then
+        freefmtflag='-FR'
+        foptflags='-ip -O3'
+        fwarnflag='-warn all'
+        FLINK='-lifport -lifcore'
+      fi
       ;;
     'intel' )
       if [ -z "$CC" ]; then CC=icc; fi
