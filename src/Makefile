@@ -11,7 +11,7 @@ OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o)
 all: cpptraj$(SFX)$(EXE)
 
 # Install all targets
-install: $(INSTALL_TARGETS) 
+install: $(INSTALL_TARGETS)
 
 # Cpptraj ------------------------------
 install_cpptraj: cpptraj$(SFX)$(EXE)
@@ -29,6 +29,13 @@ libcpptraj: $(LIBCPPTRAJ_TARGET)
 
 $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX): $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET) $(XDRFILE_TARGET) $(ARPACK_TARGET) $(TNGFILE_TARGET)
 	$(CXX) -shared -o $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX) $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET) $(CPPTRAJ_LIB) $(LDFLAGS)
+
+# Data directory -----------------------
+install_dat:
+	cp ../dat/ATOMTYPE_CHECK.TAB $(CPPTRAJDAT)/
+	cp ../dat/BONDTYPE_CHECK.TAB $(CPPTRAJDAT)/
+	cp ../dat/Karplus.txt        $(CPPTRAJDAT)/
+	cp ../dat/README             $(CPPTRAJDAT)/
 
 # Static libraries ---------------------
 #$(CPPTRAJLIB)/libcpptraj.a: $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET)
@@ -54,10 +61,6 @@ nolibcpptraj:
 	@echo "Error: Cannot build libcpptraj; re-configure with '-shared'"
 	@echo ""
 	@exit 1
-
-# nproc --------------------------------
-nproc:
-	cd ../util && $(MAKE)
 
 # Internal object/library targets
 pub_fft.o:  pub_fft.F90
@@ -117,7 +120,20 @@ clean:
 	cd cuda_kernels && $(MAKE) clean
 	cd tng && $(MAKE) clean
 
-uninstall:
+uninstall_lib:
+	$(DEL_FILE) $(CPPTRAJLIB)/*.a
+	$(DEL_FILE) $(CPPTRAJLIB)/*.la
+	$(DEL_FILE) $(CPPTRAJLIB)/*.so*
+	$(DEL_FILE) $(CPPTRAJLIB)/*.settings
+	$(DEL_FILE) -r $(CPPTRAJLIB)/cmake
+	$(DEL_FILE) -r $(CPPTRAJLIB)/pkgconfig
+
+uninstall_inc:
+	$(DEL_FILE) $(CPPTRAJINC)/*.h
+	$(DEL_FILE) $(CPPTRAJINC)/*.f
+	$(DEL_FILE) $(CPPTRAJINC)/*.f03
+
+uninstall: uninstall_lib uninstall_inc
 	$(DEL_FILE) $(CPPTRAJBIN)/cpptraj$(SFX)$(EXE)
 	$(DEL_FILE) $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX)
 	cd readline && make uninstall

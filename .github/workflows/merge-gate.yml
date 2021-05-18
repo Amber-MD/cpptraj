@@ -7,7 +7,7 @@ on:
 
 jobs:
   linux_build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     name: Build ${{ matrix.compiler }} with CMake ${{ matrix.use_cmake }}
     strategy:
       fail-fast: false
@@ -41,19 +41,13 @@ jobs:
     steps:
       - name: Install prerequisite packages
         run: |
-          sudo apt-get install gfortran \
-                               libbz2-dev \
-                               libblas-dev \
-                               liblapack-dev \
-                               libnetcdf-dev \
-                               libfftw3-dev \
-                               netcdf-bin \
-                               clang \
-                               openmpi-bin \
-                               openmpi-common \
-                               libopenmpi-dev \
-                               cmake-data \
-                               cmake
+          sudo apt-get install gfortran
+          sudo apt-get install libbz2-dev
+          sudo apt-get install libblas-dev liblapack-dev
+          sudo apt-get install libfftw3-dev
+          sudo apt-get install clang
+          sudo apt-get install openmpi-bin openmpi-common libopenmpi-dev
+          sudo apt-get install cmake-data cmake
 
       - name: Checkout source code
         uses: actions/checkout@v2
@@ -67,6 +61,15 @@ jobs:
           tar jxf amber_phenix-0.9.6-0.tar.bz2 lib/libsander.so AmberTools/src/sander/sander.h
           mkdir -p include && mv AmberTools/src/sander/sander.h include
           mv lib include $HOME
+
+          curl -OL ftp://ftp.unidata.ucar.edu/pub/netcdf/netcdf-4.6.1.tar.gz
+          tar -zxf netcdf-4.6.1.tar.gz
+          cd netcdf-4.6.1
+          ./configure --disable-netcdf-4 --disable-dap --disable-doxygen --prefix=$HOME
+          make -j2
+          make install
+          cd ..
+          export PATH=$HOME/bin:$PATH
 
           if [ $USE_OPENMP = "yes" ]; then
             export OPT="openmp"
@@ -92,13 +95,14 @@ jobs:
             cd build
             cmake .. $BUILD_FLAGS -DCOMPILER=${COMPILER^^} -DINSTALL_HEADERS=FALSE \
                      -DCMAKE_INSTALL_PREFIX=$installdir -DCMAKE_LIBRARY_PATH=$HOME/lib \
-                     -DPRINT_PACKAGING_REPORT=TRUE
+                     -DPRINT_PACKAGING_REPORT=TRUE -DNetCDF_LIBRARIES_C=$HOME/lib/libnetcdf.so \
+                     -DNetCDF_INCLUDES=$HOME/include
             make -j2 install
             cd ..
             export PATH=$installdir/bin:$PATH
           else
             export LD_LIBRARY_PATH=$HOME/lib:${LD_LIBRARY_PATH}
-            ./configure ${BUILD_FLAGS} ${COMPILER}
+            ./configure --with-netcdf=$HOME ${BUILD_FLAGS} ${COMPILER}
             make -j2 install
           fi
           cd test && make $TEST_TYPE

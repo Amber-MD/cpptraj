@@ -133,16 +133,16 @@ static inline void ArrayToFrame(int idx, Frame& fOut, CompactFrameArray const& f
 /** Get a frame from specified position in array. */
 void DataSet_Coords_CRD::GetFrame(int idx, Frame& fOut) {
   if (frames_.HasComponent(CoordinateInfo::POSITION)) frames_.GetToDblPtr(fOut.xAddress(), idx, CoordinateInfo::POSITION);
-  if (frames_.HasComponent(CoordinateInfo::VELOCITY)) frames_.GetToDblPtr(fOut.vAddress(), idx, CoordinateInfo::VELOCITY);
-  if (frames_.HasComponent(CoordinateInfo::FORCE)) frames_.GetToDblPtr(fOut.fAddress(), idx, CoordinateInfo::FORCE);
+  if (frames_.HasComponent(CoordinateInfo::VELOCITY) && fOut.HasVelocity()) frames_.GetToDblPtr(fOut.vAddress(), idx, CoordinateInfo::VELOCITY);
+  if (frames_.HasComponent(CoordinateInfo::FORCE) && fOut.HasForce()) frames_.GetToDblPtr(fOut.fAddress(), idx, CoordinateInfo::FORCE);
   ArrayToFrame(idx, fOut, frames_);
 }
 
 /** Get selected atoms from a frame from specified position in array. */
 void DataSet_Coords_CRD::GetFrame(int idx, Frame& fOut, AtomMask const& mask) {
   if (frames_.HasComponent(CoordinateInfo::POSITION)) frames_.GetToMaskDblPtr(fOut.xAddress(), mask.Selected(), idx, CoordinateInfo::POSITION);
-  if (frames_.HasComponent(CoordinateInfo::VELOCITY)) frames_.GetToMaskDblPtr(fOut.vAddress(), mask.Selected(), idx, CoordinateInfo::VELOCITY);
-  if (frames_.HasComponent(CoordinateInfo::FORCE)) frames_.GetToMaskDblPtr(fOut.fAddress(), mask.Selected(), idx, CoordinateInfo::FORCE);
+  if (frames_.HasComponent(CoordinateInfo::VELOCITY) && fOut.HasVelocity()) frames_.GetToMaskDblPtr(fOut.vAddress(), mask.Selected(), idx, CoordinateInfo::VELOCITY);
+  if (frames_.HasComponent(CoordinateInfo::FORCE) && fOut.HasForce()) frames_.GetToMaskDblPtr(fOut.fAddress(), mask.Selected(), idx, CoordinateInfo::FORCE);
   ArrayToFrame(idx, fOut, frames_);
 }
 

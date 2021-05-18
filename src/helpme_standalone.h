@@ -579,7 +579,7 @@ class Matrix {
             ptr_ += stride_;
             return *this;
         }
-        const Real& operator[](size_t index) { return *(begin_ + index); }
+        const Real& operator[](size_t index) const { return *(begin_ + index); }
         size_t size() const { return std::distance(begin_, end_) / stride_; }
         void assertSameSize(const sliceIterator& other) const {
             if (size() != other.size())
@@ -896,6 +896,23 @@ class Matrix {
     Matrix operator+=(const Matrix& other) { return this->incrementWith(other); }
 
     /*!
+     * \brief increment every element of this matrix by a constant another, returning a new matrix containing the sum.
+     * \param other the right hand side of the matrix sum.
+     * \return the sum of this matrix and the matrix other.
+     */
+    Matrix incrementWith(const Real& shift) {
+        std::for_each(begin(), end(), [shift](Real& a) { a += shift; });
+        return *this;
+    }
+
+    /*!
+     * \brief a wrapper around the incrementWith() function.
+     * \param shift the scalar to increment each value by
+     * \return the sum of this matrix and the matrix other.
+     */
+    Matrix operator+=(const Real& shift) { return this->incrementWith(shift); }
+
+    /*!
      * \brief almostEquals checks that two matrices have all elements the same, within some specificied tolerance.
      * \param other the matrix against which we're comparing.
      * \param tol the amount that each element is allowed to deviate by.
@@ -1176,13 +1193,16 @@ namespace helpme {
  */
 template <typename Real>
 struct FFTWTypes {
+    // This is just a default implementation that does nothing - we just need to be able to instantiate something
+    // in order to query the isImplemented member at runtime to check if the desired precision model was compiled in.
     struct EmptyPlan {
         int unused;
     };
-    using Plan = int;
+    using Plan = void *;
     using Complex = std::complex<int>;
     static Plan makePlan4(size_t, void *, void *, int) { return 0; };
     static Plan makePlan5(size_t, void *, void *, int, int) { return 0; };
+    static void cleanFFTW(){};
     static void execPlan1(Plan){};
     static void execPlan3(Plan, void *, void *){};
     static constexpr bool isImplemented = false;
@@ -1193,7 +1213,7 @@ struct FFTWTypes {
     static constexpr decltype(&execPlan3) ExecuteComplexToRealPlan = &execPlan3;
     static constexpr decltype(&execPlan3) ExecuteComplexToComplexPlan = &execPlan3;
     static constexpr decltype(&execPlan1) DestroyPlan = &execPlan1;
-    static constexpr decltype(&execPlan1) CleanupFFTW = &execPlan1;
+    static constexpr decltype(&cleanFFTW) CleanupFFTW = nullptr;
 };
 
 #if HAVE_FFTWF == 1
@@ -1259,17 +1279,17 @@ class FFTWWrapper {
 
    protected:
     /// An FFTW plan object, describing out of place complex to complex forward transforms.
-    typename typeinfo::Plan forwardPlan_;
+    typename typeinfo::Plan forwardPlan_ = nullptr;
     /// An FFTW plan object, describing out of place complex to complex inverse transforms.
-    typename typeinfo::Plan inversePlan_;
+    typename typeinfo::Plan inversePlan_ = nullptr;
     /// An FFTW plan object, describing in place complex to complex forward transforms.
-    typename typeinfo::Plan forwardInPlacePlan_;
+    typename typeinfo::Plan forwardInPlacePlan_ = nullptr;
     /// An FFTW plan object, describing in place complex to complex inverse transforms.
-    typename typeinfo::Plan inverseInPlacePlan_;
+    typename typeinfo::Plan inverseInPlacePlan_ = nullptr;
     /// An FFTW plan object, describing out of place real to complex forward transforms.
-    typename typeinfo::Plan realToComplexPlan_;
+    typename typeinfo::Plan realToComplexPlan_ = nullptr;
     /// An FFTW plan object, describing out of place complex to real inverse transforms.
-    typename typeinfo::Plan complexToRealPlan_;
+    typename typeinfo::Plan complexToRealPlan_ = nullptr;
     /// The size of the real data.
     size_t fftDimension_;
     /// The flags to be passed to the FFTW plan creator, to determine startup cost.
@@ -1300,6 +1320,33 @@ class FFTWWrapper {
             typeinfo::MakeComplexToComplexPlan(fftDimension_, complexPtr1, complexPtr1, FFTW_BACKWARD, transformFlags_);
         realToComplexPlan_ = typeinfo::MakeRealToComplexPlan(fftDimension_, realPtr, complexPtr1, transformFlags_);
         complexToRealPlan_ = typeinfo::MakeComplexToRealPlan(fftDimension_, complexPtr1, realPtr, transformFlags_);
+    }
+
+    FFTWWrapper(const FFTWWrapper &other) = delete;
+
+    FFTWWrapper(FFTWWrapper &&other) = delete;
+
+    FFTWWrapper &operator=(const FFTWWrapper &other) = delete;
+
+    FFTWWrapper &operator=(FFTWWrapper &&other) {
+        std::swap(forwardPlan_, other.forwardPlan_);
+        std::swap(forwardInPlacePlan_, other.forwardInPlacePlan_);
+        std::swap(inversePlan_, other.inversePlan_);
+        std::swap(inverseInPlacePlan_, other.inverseInPlacePlan_);
+        std::swap(realToComplexPlan_, other.realToComplexPlan_);
+        std::swap(complexToRealPlan_, other.complexToRealPlan_);
+        std::swap(fftDimension_, other.fftDimension_);
+        std::swap(transformFlags_, other.transformFlags_);
+        return *this;
+    }
+
+    ~FFTWWrapper() {
+        if (forwardPlan_) typeinfo::DestroyPlan(forwardPlan_);
+        if (inversePlan_) typeinfo::DestroyPlan(inversePlan_);
+        if (forwardInPlacePlan_) typeinfo::DestroyPlan(forwardInPlacePlan_);
+        if (inverseInPlacePlan_) typeinfo::DestroyPlan(inverseInPlacePlan_);
+        if (realToComplexPlan_) typeinfo::DestroyPlan(realToComplexPlan_);
+        if (complexToRealPlan_) typeinfo::DestroyPlan(complexToRealPlan_);
     }
 
     /*!
@@ -1386,9 +1433,9 @@ class FFTWWrapper {
 
 namespace helpme {
 
-#define SQRTTWO std::sqrt(static_cast<Real>(2))
-#define SQRTPI static_cast<Real>(1.77245385090551602729816748334114518279754945612238712821381L)
-#define PI static_cast<Real>(3.14159265358979323846264338327950288419716939937510582097494L)
+#define HELPME_SQRTTWO std::sqrt(static_cast<Real>(2))
+#define HELPME_SQRTPI static_cast<Real>(1.77245385090551602729816748334114518279754945612238712821381L)
+#define HELPME_PI static_cast<Real>(3.14159265358979323846264338327950288419716939937510582097494L)
 
 /*!
  * Compute upper incomplete gamma functions for positive half-integral s values using the recursion
@@ -1424,13 +1471,13 @@ struct incompleteGammaRecursion<Real, 2, true> {
 /// Specific value of incomplete gamma function.
 template <typename Real>
 struct incompleteGammaRecursion<Real, 1, false> {
-    static Real compute(Real x) { return SQRTPI * erfc(std::sqrt(x)); }
+    static Real compute(Real x) { return HELPME_SQRTPI * erfc(std::sqrt(x)); }
 };
 
 /// Specific value of incomplete gamma function.
 template <typename Real>
 struct incompleteGammaRecursion<Real, 1, true> {
-    static Real compute(Real x) { return SQRTPI * erfc(std::sqrt(x)); }
+    static Real compute(Real x) { return HELPME_SQRTPI * erfc(std::sqrt(x)); }
 };
 
 /// Specific value of incomplete gamma function.
@@ -1636,13 +1683,13 @@ struct gammaRecursion<Real, 0, false> {
 /// Specific value of the Gamma function.
 template <typename Real>
 struct gammaRecursion<Real, 1, true> {
-    static constexpr Real value = SQRTPI;
+    static constexpr Real value = HELPME_SQRTPI;
 };
 
 /// Specific value of the Gamma function.
 template <typename Real>
 struct gammaRecursion<Real, 1, false> {
-    static constexpr Real value = SQRTPI;
+    static constexpr Real value = HELPME_SQRTPI;
 };
 
 /// Specific value of the Gamma function.
@@ -1746,7 +1793,7 @@ struct gammaComputer {
 template <typename Real>
 Real nonTemplateGammaComputer(int twoS) {
     if (twoS == 1) {
-        return SQRTPI;
+        return HELPME_SQRTPI;
     } else if (twoS == 2) {
         return 1;
     } else if (twoS <= 0 && twoS % 2 == 0) {
@@ -2549,7 +2596,7 @@ class PMEInstance {
                        const Real *, const Real *, const int *, const int *, const int *, int)>
         cacheInfluenceFunctionFxn_;
     /// A function pointer to call the approprate function to compute self energy, templated to the rPower value.
-    std::function<Real(int, const RealMat &, Real, Real)> slfEFxn_;
+    std::function<Real(int, Real, Real)> slfEFxn_;
     /// A function pointer to call the approprate function to compute the direct energy, templated to the rPower value.
     std::function<Real(Real, Real)> dirEFxn_;
     /// A function pointer to call the approprate function to compute the adjusted energy, templated to the rPower
@@ -2995,15 +3042,16 @@ class PMEInstance {
         if (rPower > 3 && nodeZero) {
             // Kernels with rPower>3 are absolutely convergent and should have the m=0 term present.
             // To compute it we need sum_ij c(i)c(j), which can be obtained from the structure factor norm.
-            Real prefac = 2 * scaleFactor * PI * SQRTPI * pow(kappa, rPower - 3) /
+            Real prefac = 2 * scaleFactor * HELPME_PI * HELPME_SQRTPI * pow(kappa, rPower - 3) /
                           ((rPower - 3) * gammaComputer<Real, rPower>::value * volume);
             energy += prefac * (gridPtr[0].real() * gridPtr[0].real() + gridPtr[0].imag() * gridPtr[0].imag());
         }
         // Ensure the m=0 term convolution product is zeroed for the backtransform; it's been accounted for above.
         if (nodeZero) gridPtr[0] = Complex(0, 0);
 
-        Real bPrefac = PI * PI / (kappa * kappa);
-        Real volPrefac = scaleFactor * pow(PI, rPower - 1) / (SQRTPI * gammaComputer<Real, rPower>::value * volume);
+        Real bPrefac = HELPME_PI * HELPME_PI / (kappa * kappa);
+        Real volPrefac =
+            scaleFactor * pow(HELPME_PI, rPower - 1) / (HELPME_SQRTPI * gammaComputer<Real, rPower>::value * volume);
         size_t nxz = (size_t)myNx * myNz;
         Real Vxx = 0, Vxy = 0, Vyy = 0, Vxz = 0, Vyz = 0, Vzz = 0;
         const Real *boxPtr = boxInv[0];
@@ -3101,15 +3149,16 @@ class PMEInstance {
         if (rPower > 3 && nodeZero) {
             // Kernels with rPower>3 are absolutely convergent and should have the m=0 term present.
             // To compute it we need sum_ij c(i)c(j), which can be obtained from the structure factor norm.
-            Real prefac = 2 * scaleFactor * PI * SQRTPI * pow(kappa, rPower - 3) /
+            Real prefac = 2 * scaleFactor * HELPME_PI * HELPME_SQRTPI * pow(kappa, rPower - 3) /
                           ((rPower - 3) * gammaComputer<Real, rPower>::value * volume);
             energy += prefac * gridPtrIn[0] * gridPtrIn[0];
         }
         // Ensure the m=0 term convolution product is zeroed for the backtransform; it's been accounted for above.
         if (nodeZero) gridPtrOut[0] = 0;
 
-        Real bPrefac = PI * PI / (kappa * kappa);
-        Real volPrefac = scaleFactor * pow(PI, rPower - 1) / (SQRTPI * gammaComputer<Real, rPower>::value * volume);
+        Real bPrefac = HELPME_PI * HELPME_PI / (kappa * kappa);
+        Real volPrefac =
+            scaleFactor * pow(HELPME_PI, rPower - 1) / (HELPME_SQRTPI * gammaComputer<Real, rPower>::value * volume);
         size_t nxz = (size_t)myNx * myNz;
         size_t nyxz = myNy * nxz;
         Real Vxx = 0, Vxy = 0, Vyy = 0, Vxz = 0, Vyz = 0, Vzz = 0;
@@ -3172,6 +3221,37 @@ class PMEInstance {
         virial[0][5] -= Vzz - energy;
 
         return energy;
+    }
+
+    /*!
+     * \brief checkMinimumImageCutoff ensure that the box dimensions satisfy the condition
+     *       sphericalCutoff < MIN(W_A, W_B, W_C)/2
+     *
+     *       where
+     *
+     *       W_A = |A.(B x C)| / |B x C|
+     *       W_B = |B.(C x A)| / |C x A|
+     *       W_C = |C.(A x B)| / |A x B|
+     *
+     * \param sphericalCutoff the spherical nonbonded cutoff in Angstrom
+     */
+    void checkMinimumImageCutoff(int sphericalCutoff) {
+        Real V = cellVolume();
+        Real ABx = boxVecs_(0, 1) * boxVecs_(1, 2) - boxVecs_(0, 2) * boxVecs_(1, 1);
+        Real ABy = boxVecs_(0, 0) * boxVecs_(1, 2) - boxVecs_(0, 2) * boxVecs_(1, 0);
+        Real ABz = boxVecs_(0, 0) * boxVecs_(1, 1) - boxVecs_(0, 1) * boxVecs_(1, 0);
+        Real ACx = boxVecs_(0, 1) * boxVecs_(2, 2) - boxVecs_(0, 2) * boxVecs_(2, 1);
+        Real ACy = boxVecs_(0, 0) * boxVecs_(2, 2) - boxVecs_(0, 2) * boxVecs_(2, 0);
+        Real ACz = boxVecs_(0, 0) * boxVecs_(2, 1) - boxVecs_(0, 1) * boxVecs_(2, 0);
+        Real BCx = boxVecs_(1, 1) * boxVecs_(2, 2) - boxVecs_(1, 2) * boxVecs_(2, 1);
+        Real BCy = boxVecs_(1, 0) * boxVecs_(2, 2) - boxVecs_(1, 2) * boxVecs_(2, 0);
+        Real BCz = boxVecs_(1, 0) * boxVecs_(2, 1) - boxVecs_(1, 1) * boxVecs_(2, 0);
+        Real AxBnorm = std::sqrt(ABx * ABx + ABy * ABy + ABz * ABz);
+        Real AxCnorm = std::sqrt(ACx * ACx + ACy * ACy + ACz * ACz);
+        Real BxCnorm = std::sqrt(BCx * BCx + BCy * BCy + BCz * BCz);
+        Real minDim = 2 * sphericalCutoff;
+        if (V / AxBnorm < minDim || V / AxCnorm < minDim || V / BxCnorm < minDim)
+            throw std::runtime_error("The cutoff used must be less than half of the minimum of three box widths");
     }
 
     /*!
@@ -3238,8 +3318,9 @@ class PMEInstance {
         Real *gridPtr = influenceFunction.data();
         if (nodeZero) gridPtr[0] = 0;
 
-        Real bPrefac = PI * PI / (kappa * kappa);
-        Real volPrefac = scaleFactor * pow(PI, rPower - 1) / (SQRTPI * gammaComputer<Real, rPower>::value * volume);
+        Real bPrefac = HELPME_PI * HELPME_PI / (kappa * kappa);
+        Real volPrefac =
+            scaleFactor * pow(HELPME_PI, rPower - 1) / (HELPME_SQRTPI * gammaComputer<Real, rPower>::value * volume);
         const Real *boxPtr = boxInv[0];
         // Exclude m=0 cell.
         int start = (nodeZero ? 1 : 0);
@@ -3339,7 +3420,8 @@ class PMEInstance {
     }
 
     /*!
-     * \brief slfEImpl computes the self energy due to particles feeling their own potential.
+     * \brief slfEImpl computes the coefficient to be applied to the sum of squared parameters for the self energy
+     *                 due to particles feeling their own potential.
      * \tparam rPower the exponent of the (inverse) distance kernel (e.g. 1 for Coulomb, 6 for attractive dispersion).
      * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for quadrupoles,
      * etc.).
@@ -3359,19 +3441,13 @@ class PMEInstance {
      * \param kappa the attenuation parameter in units inverse of those used to specify coordinates.
      * \param scaleFactor a scale factor to be applied to all computed energies and derivatives thereof
      *        (e.g. the 1 / [4 pi epslion0] for Coulomb calculations).
-     * \return the self energy.  N.B. there is no self force associated with this term.
+     * \return the coefficient for the sum of squared parameters in the self energy.  N.B. there is no self force
+     * associated with this term.
      */
     template <int rPower>
-    static Real slfEImpl(int parameterAngMom, const RealMat &parameters, Real kappa, Real scaleFactor) {
+    static Real slfEImpl(int parameterAngMom, Real kappa, Real scaleFactor) {
         if (parameterAngMom) throw std::runtime_error("Multipole self terms have not been coded yet.");
-
-        size_t nAtoms = parameters.nRows();
-        Real prefac = -scaleFactor * std::pow(kappa, rPower) / (rPower * gammaComputer<Real, rPower>::value);
-        Real sumCoefs = 0;
-        for (size_t atom = 0; atom < nAtoms; ++atom) {
-            sumCoefs += parameters(atom, 0) * parameters(atom, 0);
-        }
-        return prefac * sumCoefs;
+        return -scaleFactor * std::pow(kappa, rPower) / (rPower * gammaComputer<Real, rPower>::value);
     }
 
     /*!
@@ -3404,7 +3480,7 @@ class PMEInstance {
             myNodeRankA_ = myNodeRankB_ = myNodeRankC_ = 0;
 #if HAVE_MPI == 1
             if (commPtrIn) {
-                MPI_Comm const &communicator = *((MPI_Comm*)(commPtrIn));
+                MPI_Comm const &communicator = *((MPI_Comm *)(commPtrIn));
                 mpiCommunicator_ = std::unique_ptr<MPIWrapper<Real>>(
                     new MPIWrapper<Real>(communicator, numNodesA, numNodesB, numNodesC));
                 switch (nodeOrder) {
@@ -3467,9 +3543,9 @@ class PMEInstance {
                 firstKSumTermA_ = myNodeRankA_ * myNumKSumTermsA_;
                 firstKSumTermB_ = myNodeRankB_ * myNumKSumTermsB_;
                 firstKSumTermC_ = myNodeRankC_ * myNumKSumTermsC_;
-                fftHelperA_ = FFTWWrapper<Real>();
-                fftHelperB_ = FFTWWrapper<Real>();
-                fftHelperC_ = FFTWWrapper<Real>();
+                fftHelperA_ = std::move(FFTWWrapper<Real>());
+                fftHelperB_ = std::move(FFTWWrapper<Real>());
+                fftHelperC_ = std::move(FFTWWrapper<Real>());
                 compressionCoefficientsA_ = RealMat(numKSumTermsA_, myGridDimensionA_);
                 compressionCoefficientsB_ = RealMat(numKSumTermsB_, myGridDimensionB_);
                 compressionCoefficientsC_ = RealMat(numKSumTermsC_, myGridDimensionC_);
@@ -3497,9 +3573,9 @@ class PMEInstance {
                 firstKSumTermA_ = myNodeRankA_ * myComplexGridDimensionA_;
                 firstKSumTermB_ = myNodeRankB_ * myGridDimensionB_ + myNodeRankC_ * myGridDimensionB_ / numNodesC_;
                 firstKSumTermC_ = 0;
-                fftHelperA_ = FFTWWrapper<Real>(gridDimensionA_);
-                fftHelperB_ = FFTWWrapper<Real>(gridDimensionB_);
-                fftHelperC_ = FFTWWrapper<Real>(gridDimensionC_);
+                fftHelperA_ = std::move(FFTWWrapper<Real>(gridDimensionA_));
+                fftHelperB_ = std::move(FFTWWrapper<Real>(gridDimensionB_));
+                fftHelperC_ = std::move(FFTWWrapper<Real>(gridDimensionC_));
                 compressionCoefficientsA_ = RealMat();
                 compressionCoefficientsB_ = RealMat();
                 compressionCoefficientsC_ = RealMat();
@@ -3569,7 +3645,7 @@ class PMEInstance {
                         int fullM = m + node * myNumKSumTermsA_ / 2;
                         Real *rowPtr = compressionCoefficientsA_[offset + 2 * (fullM - offset)];
                         for (int n = 0; n < myGridDimensionA_; ++n) {
-                            Real exponent = 2 * PI * fullM * (n + myFirstGridPointA_) / gridDimensionA_;
+                            Real exponent = 2 * HELPME_PI * fullM * (n + myFirstGridPointA_) / gridDimensionA_;
                             rowPtr[n] = std::sqrt(2) * std::cos(exponent);
                             rowPtr[n + myGridDimensionA_] = std::sqrt(2) * std::sin(exponent);
                         }
@@ -3582,7 +3658,7 @@ class PMEInstance {
                         int fullM = m + node * myNumKSumTermsB_ / 2;
                         Real *rowPtr = compressionCoefficientsB_[offset + 2 * (fullM - offset)];
                         for (int n = 0; n < myGridDimensionB_; ++n) {
-                            Real exponent = 2 * PI * fullM * (n + myFirstGridPointB_) / gridDimensionB_;
+                            Real exponent = 2 * HELPME_PI * fullM * (n + myFirstGridPointB_) / gridDimensionB_;
                             rowPtr[n] = std::sqrt(2) * std::cos(exponent);
                             rowPtr[n + myGridDimensionB_] = std::sqrt(2) * std::sin(exponent);
                         }
@@ -3595,7 +3671,7 @@ class PMEInstance {
                         int fullM = m + node * myNumKSumTermsC_ / 2;
                         Real *rowPtr = compressionCoefficientsC_[offset + 2 * (fullM - offset)];
                         for (int n = 0; n < myGridDimensionC_; ++n) {
-                            Real exponent = 2 * PI * fullM * (n + myFirstGridPointC_) / gridDimensionC_;
+                            Real exponent = 2 * HELPME_PI * fullM * (n + myFirstGridPointC_) / gridDimensionC_;
                             rowPtr[n] = std::sqrt(2) * std::cos(exponent);
                             rowPtr[n + myGridDimensionC_] = std::sqrt(2) * std::sin(exponent);
                         }
@@ -3868,6 +3944,33 @@ class PMEInstance {
     }
 
     /*!
+     * \brief minimumImageDeltaR Computes deltaR = positionJ - positionI, applying the minimum image convention to the
+     * result \param positionI \param positionJ \return minimum image deltaR
+     */
+    std::array<Real, 3> minimumImageDeltaR(const typename helpme::Matrix<Real>::sliceIterator &positionI,
+                                           const typename helpme::Matrix<Real>::sliceIterator &positionJ) {
+        // This implementation could be specialized for orthorhombic unit cells, but we stick with a general
+        // implementation for now. The difference in real (R) space
+        Real dxR = positionJ[0] - positionI[0];
+        Real dyR = positionJ[1] - positionI[1];
+        Real dzR = positionJ[2] - positionI[2];
+        // Convert to fractional coordinate (S) space
+        Real dxS = recVecs_[0][0] * dxR + recVecs_[0][1] * dyR + recVecs_[0][2] * dzR;
+        Real dyS = recVecs_[1][0] * dxR + recVecs_[1][1] * dyR + recVecs_[1][2] * dzR;
+        Real dzS = recVecs_[2][0] * dxR + recVecs_[2][1] * dyR + recVecs_[2][2] * dzR;
+        // Apply translations in fractional coordinates to find the shift vectors
+        Real sxS = std::floor(dxS + 0.5f);
+        Real syS = std::floor(dyS + 0.5f);
+        Real szS = std::floor(dzS + 0.5f);
+        // Convert fractional coordinate shifts to real space
+        Real sxR = boxVecs_[0][0] * sxS + boxVecs_[0][1] * syS + boxVecs_[0][2] * szS;
+        Real syR = boxVecs_[1][0] * sxS + boxVecs_[1][1] * syS + boxVecs_[1][2] * szS;
+        Real szR = boxVecs_[2][0] * sxS + boxVecs_[2][1] * syS + boxVecs_[2][2] * szS;
+        // Shift the difference vector to find the minimum image
+        return {dxR - sxR, dyR - syR, dzR - szR};
+    }
+
+    /*!
      * \brief Sets the unit cell lattice vectors, with units consistent with those used to specify coordinates.
      * \param A the A lattice parameter in units consistent with the coordinates.
      * \param B the B lattice parameter in units consistent with the coordinates.
@@ -3891,9 +3994,9 @@ class PMEInstance {
                 HtH(2, 2) = C * C;
                 const float TOL = 1e-4f;
                 // Check for angles very close to 90, to avoid noise from the eigensolver later on.
-                HtH(0, 1) = HtH(1, 0) = std::abs(gamma - 90) < TOL ? 0 : A * B * std::cos(PI * gamma / 180);
-                HtH(0, 2) = HtH(2, 0) = std::abs(beta - 90) < TOL ? 0 : A * C * std::cos(PI * beta / 180);
-                HtH(1, 2) = HtH(2, 1) = std::abs(alpha - 90) < TOL ? 0 : B * C * std::cos(PI * alpha / 180);
+                HtH(0, 1) = HtH(1, 0) = std::abs(gamma - 90) < TOL ? 0 : A * B * std::cos(HELPME_PI * gamma / 180);
+                HtH(0, 2) = HtH(2, 0) = std::abs(beta - 90) < TOL ? 0 : A * C * std::cos(HELPME_PI * beta / 180);
+                HtH(1, 2) = HtH(2, 1) = std::abs(alpha - 90) < TOL ? 0 : B * C * std::cos(HELPME_PI * alpha / 180);
 
                 auto eigenTuple = HtH.diagonalize();
                 RealMat evalsReal = std::get<0>(eigenTuple);
@@ -3912,11 +4015,12 @@ class PMEInstance {
                 boxVecs_(0, 0) = A;
                 boxVecs_(0, 1) = 0;
                 boxVecs_(0, 2) = 0;
-                boxVecs_(1, 0) = B * std::cos(PI / 180 * gamma);
-                boxVecs_(1, 1) = B * std::sin(PI / 180 * gamma);
+                boxVecs_(1, 0) = B * std::cos(HELPME_PI / 180 * gamma);
+                boxVecs_(1, 1) = B * std::sin(HELPME_PI / 180 * gamma);
                 boxVecs_(1, 2) = 0;
-                boxVecs_(2, 0) = C * std::cos(PI / 180 * beta);
-                boxVecs_(2, 1) = (B * C * cos(PI / 180 * alpha) - boxVecs_(2, 0) * boxVecs_(1, 0)) / boxVecs_(1, 1);
+                boxVecs_(2, 0) = C * std::cos(HELPME_PI / 180 * beta);
+                boxVecs_(2, 1) =
+                    (B * C * cos(HELPME_PI / 180 * alpha) - boxVecs_(2, 0) * boxVecs_(1, 0)) / boxVecs_(1, 1);
                 boxVecs_(2, 2) = std::sqrt(C * C - boxVecs_(2, 0) * boxVecs_(2, 0) - boxVecs_(2, 1) * boxVecs_(2, 1));
             } else {
                 throw std::runtime_error("Unknown lattice type in setLatticeVectors");
@@ -4379,7 +4483,7 @@ class PMEInstance {
         if (rPower_ > 3 && iAmNodeZero) {
             // Kernels with rPower>3 are absolutely convergent and should have the m=0 term present.
             // To compute it we need sum_ij c(i)c(j), which can be obtained from the structure factor norm.
-            Real prefac = 2 * scaleFactor_ * PI * SQRTPI * pow(kappa_, rPower_ - 3) /
+            Real prefac = 2 * scaleFactor_ * HELPME_PI * HELPME_SQRTPI * pow(kappa_, rPower_ - 3) /
                           ((rPower_ - 3) * nonTemplateGammaComputer<Real>(rPower_) * cellVolume());
             energy += prefac * transformedGrid[0] * transformedGrid[0];
         }
@@ -4410,7 +4514,7 @@ class PMEInstance {
         if (rPower_ > 3 && iAmNodeZero) {
             // Kernels with rPower>3 are absolutely convergent and should have the m=0 term present.
             // To compute it we need sum_ij c(i)c(j), which can be obtained from the structure factor norm.
-            Real prefac = 2 * scaleFactor_ * PI * SQRTPI * pow(kappa_, rPower_ - 3) /
+            Real prefac = 2 * scaleFactor_ * HELPME_PI * HELPME_SQRTPI * pow(kappa_, rPower_ - 3) /
                           ((rPower_ - 3) * nonTemplateGammaComputer<Real>(rPower_) * cellVolume());
             energy += prefac * std::norm(transformedGrid[0]);
         }
@@ -4545,7 +4649,13 @@ class PMEInstance {
      */
     Real computeESlf(int parameterAngMom, const RealMat &parameters) {
         assertInitialized();
-        return slfEFxn_(parameterAngMom, parameters, kappa_, scaleFactor_);
+        auto prefac = slfEFxn_(parameterAngMom, kappa_, scaleFactor_);
+        size_t nAtoms = parameters.nRows();
+        Real sumCoefs = 0;
+        for (size_t atom = 0; atom < nAtoms; ++atom) {
+            sumCoefs += parameters(atom, 0) * parameters(atom, 0);
+        }
+        return prefac * sumCoefs;
     }
 
     /*!
@@ -4852,6 +4962,72 @@ class PMEInstance {
     }
 
     /*!
+     * \brief Computes the full electrostatic potential at atomic sites due to point charges located at those same
+     * sites. The site located at each probe location is neglected, to avoid the resulting singularity \param charges
+     * the list of point charges (in e) associated with each particle. \param coordinates the cartesian coordinates,
+     * ordered in memory as {x1,y1,z1,x2,y2,z2,....xN,yN,zN}. \param potential the array holding the potential.  This is
+     * a matrix of dimensions  nAtoms x 1 \param sphericalCutoff the cutoff (in A) applied to the real space summations,
+     * which must be no more than half of the box dimensions
+     */
+
+    void computePAtAtomicSites(const RealMat &charges, const RealMat &coordinates, RealMat &potential,
+                               Real sphericalCutoff) {
+        sanityChecks(0, charges, coordinates);
+        // The minumum image convention requires that the cutoff be less than half the minumum box width
+        checkMinimumImageCutoff(sphericalCutoff);
+        size_t nAtoms = coordinates.nRows();
+
+        // Direct space, using simple O(N^2) algorithm.  This can be improved using a nonbonded list if needed.
+        Real cutoffSquared = sphericalCutoff * sphericalCutoff;
+        Real kappaSquared = kappa_ * kappa_;
+#pragma omp parallel for num_threads(nThreads_)
+        for (size_t i = 0; i < nAtoms; ++i) {
+            const auto &coordsI = coordinates.row(i);
+            Real *phiPtr = potential[i];
+            for (size_t j = 0; j < nAtoms; ++j) {
+                // No self interactions are included, to remove the singularity
+                if (i == j) continue;
+                Real qJ = charges[j][0];
+                const auto &coordsJ = coordinates.row(j);
+                auto RIJ = minimumImageDeltaR(coordsI, coordsJ);
+                Real rSquared = RIJ[0] * RIJ[0] + RIJ[1] * RIJ[1] + RIJ[2] * RIJ[2];
+                if (rSquared < cutoffSquared) {
+                    *phiPtr += scaleFactor_ * qJ * dirEFxn_(rSquared, kappaSquared);
+                }
+            }
+        }
+
+        // Reciprocal space term
+        filterAtomsAndBuildSplineCache(0, coordinates);
+        auto realGrid = spreadParameters(0, charges);
+        Real *potentialGrid;
+        if (algorithmType_ == AlgorithmType::PME) {
+            auto gridAddress = forwardTransform(realGrid);
+            convolveE(gridAddress);
+            potentialGrid = inverseTransform(gridAddress);
+        } else if (algorithmType_ == AlgorithmType::CompressedPME) {
+            auto gridAddress = compressedForwardTransform(realGrid);
+            convolveE(gridAddress);
+            potentialGrid = compressedInverseTransform(gridAddress);
+        } else {
+            std::logic_error("Unknown algorithm in helpme::computePAtAtomicSites");
+        }
+#pragma omp parallel for num_threads(nThreads_)
+        for (size_t atom = 0; atom < nAtoms; ++atom) {
+            const auto &cacheEntry = splineCache_[atom];
+            const auto &absAtom = cacheEntry.absoluteAtomNumber;
+            probeGridImpl(potentialGrid, 1, cacheEntry.aSpline, cacheEntry.bSpline, cacheEntry.cSpline,
+                          potential[absAtom]);
+        }
+
+        // Self term - back out the contribution from the atoms at each probe site
+        Real prefac = slfEFxn_(0, kappa_, scaleFactor_);
+        for (size_t atom = 0; atom < nAtoms; ++atom) {
+            potential[atom][0] += 2 * prefac * charges[atom][0];
+        }
+    }
+
+    /*!
      * \brief Runs a PME reciprocal space calculation, computing the potential and, optionally, its derivatives.
      * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for
      * quadrupoles, etc.).  A negative value indicates that only the shell with |parameterAngMom| is to be considered,
@@ -5124,7 +5300,7 @@ class PMEInstance {
             auto potentialGrid = compressedInverseTransform(convolvedGrid);
             probeGrid(potentialGrid, parameterAngMom, parameters, forces);
         } else {
-            std::logic_error("Unknown algorithm in helpme::computeEFRec");
+            std::logic_error("Unknown algorithm in helpme::computeEFVRec");
         }
 
         return energy;
@@ -5211,7 +5387,8 @@ class PMEInstance {
      * \param includedList dense list of included atom pairs, ordered like i1, j1, i2, j2, i3, j3, ... iN, jN.
      * \param excludedList dense list of excluded atom pairs, ordered like i1, j1, i2, j2, i3, j3, ... iN, jN.
      * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for
-     * quadrupoles, etc.). \param parameters the list of parameters associated with each atom (charges, C6
+     * quadrupoles, etc.).
+     * \param parameters the list of parameters associated with each atom (charges, C6
      * coefficients, multipoles, etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL
      * is expected, where nL = (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
      *
@@ -5247,7 +5424,8 @@ class PMEInstance {
      * \brief setup initializes this object for a PME calculation using only threading.
      *        This may be called repeatedly without compromising performance.
      * \param rPower the exponent of the (inverse) distance kernel (e.g. 1 for Coulomb, 6 for attractive
-     * dispersion). \param kappa the attenuation parameter in units inverse of those used to specify coordinates.
+     * dispersion).
+     * \param kappa the attenuation parameter in units inverse of those used to specify coordinates.
      * \param splineOrder the order of B-spline; must be at least (2 + max. multipole order + deriv. level needed).
      * \param dimA the dimension of the FFT grid along the A axis.
      * \param dimB the dimension of the FFT grid along the B axis.

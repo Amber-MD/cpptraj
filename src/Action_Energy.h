@@ -5,6 +5,7 @@
 #include "CharMask.h"
 #include "Timer.h"
 #include "ExclusionArray.h"
+#include "EwaldOptions.h"
 class Ewald;
 /// Calculate energy 
 class Action_Energy: public Action {
@@ -45,20 +46,12 @@ class Action_Energy: public Action {
     AtomMask Imask_;               ///< Int mask for NB calc
     Energy_Amber ENE_;             ///< Energy calc class.
     std::string setname_;          ///< Output DataSet name
-    int npoints_;                  ///< # cells in each direction (DIRECT) or spline order (PME)
+    int npoints_;                  ///< # cells in each direction (DIRECT)
     int debug_;
     Ewald* EW_;                    ///< Ewald energy class.
-    double cutoff_;                ///< Ewald direct space cutoff.
-    double dsumtol_;               ///< Ewald direct sum tolerance.
-    double rsumtol_;               ///< Regular Ewald reciprocal sum tolerance.
-    double ewcoeff_;               ///< Ewald coefficient.
-    double lwcoeff_;               ///< LJ Ewald coefficient.
-    double ljswidth_;              ///< Size of LJ switch region
-    double maxexp_;
-    double skinnb_;                ///< Size of non-bonded "skin"
-    double erfcDx_;                ///< Spacing for ERFC table (default 1/5000)
+    EwaldOptions ewaldOpts_;       ///< Ewald options
+
     double dt_;                    ///< Time step for estimating kinetic energy (leapfrog)
-    int mlimits_[3];               ///< mlimits (reg. Ewald) or nfft (PME)
     bool need_lj_params_;          ///< True if LJ parameters needed.
     bool needs_exclList_;          ///< True if Excluded_ needs to be set up.
     Timer time_total_;

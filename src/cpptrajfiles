@@ -53,6 +53,7 @@ COMMON_SOURCES= \
         Action_MinImage.cpp \
         Action_Molsurf.cpp \
         Action_MultiDihedral.cpp \
+        Action_MultiPucker.cpp \
         Action_MultiVector.cpp \
         Action_NAstruct.cpp \
         Action_NativeContacts.cpp \
@@ -175,6 +176,7 @@ COMMON_SOURCES= \
         CurveFit.cpp \
         DataFile.cpp \
         DataFileList.cpp \
+        DataFilter.cpp \
         DataIO.cpp \
         DataIO_CCP4.cpp \
         DataIO_CharmmFastRep.cpp \
@@ -229,6 +231,7 @@ COMMON_SOURCES= \
         DataSet_string.cpp \
         DataSet_StringVar.cpp \
         DataSet_Tensor.cpp \
+        DataSet_unsignedInt.cpp \
         Deprecated.cpp \
         DihedralSearch.cpp \
         DistRoutines.cpp \
@@ -245,6 +248,7 @@ COMMON_SOURCES= \
         Ewald.cpp \
         Ewald_ParticleMesh.cpp \
         Ewald_Regular.cpp \
+        EwaldOptions.cpp \
         ExclusionArray.cpp \
         Exec_AddMissingRes.cpp \
         Exec_Analyze.cpp \
@@ -277,6 +281,7 @@ COMMON_SOURCES= \
         Exec_Precision.cpp \
         Exec_PrepareForLeap.cpp \
         Exec_PrintData.cpp \
+        Exec_Random.cpp \
         Exec_ReadData.cpp \
         Exec_ReadEnsembleData.cpp \
         Exec_ReadInput.cpp \
@@ -309,6 +314,7 @@ COMMON_SOURCES= \
         ForLoop_mask.cpp \
         ForLoop_overSets.cpp \
         Frame.cpp \
+        GIST_PME.cpp \
         GridAction.cpp \
         HistBin.cpp \
         Hungarian.cpp \
@@ -357,8 +363,18 @@ COMMON_SOURCES= \
         ProgressBar.cpp \
         ProgressTimer.cpp \
         PubFFT.cpp \
+        Pucker_PuckerMask.cpp \
+        Pucker_PuckerSearch.cpp \
+        Pucker_PuckerToken.cpp \
+        ExternalFxn.cpp \
         Random.cpp \
         Range.cpp \
+        RNG.cpp \
+        RNG_Marsaglia.cpp \
+        RNG_MersenneTwister.cpp \
+        RNG_PCG32.cpp \
+        RNG_Stdlib.cpp \
+        RNG_Xoshiro128pp.cpp \
         RPNcalc.cpp \
         ReferenceAction.cpp \
         RemdReservoirNC.cpp \
@@ -411,9 +427,10 @@ COMMON_SOURCES= \
         TrajoutList.cpp \
         Vec3.cpp \
         ViewRst.cpp \
-        vmdplugin/dtrplugin.cpp
+        vmdplugin/dtrplugin.cpp \
+        xoshiro128plusplus.cpp
 
-CSOURCES= molsurf.c
+CSOURCES= molsurf.c 
 
 # The files below are used by cpptraj and libcpptraj but must be compiled
 # differently for libcpptraj.

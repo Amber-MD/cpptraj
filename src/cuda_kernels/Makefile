@@ -29,7 +29,14 @@ clean:
 
 uninstall: clean
 
-# Dependencies
-core_kernels.o: core_kernels.cu
+# Dependency targets
+../findDepend:
+	cd ../ && $(MAKE) findDepend
 
-kernel_wrappers.o: kernel_wrappers.cu
+depend: ../findDepend
+	../findDepend $(CUDA_SOURCES) > cudadepend
+
+#dependclean:
+#	$(DEL_FILE) FindDepend.o findDepend
+
+include cudadepend

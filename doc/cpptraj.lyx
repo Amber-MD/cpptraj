@@ -320,6 +320,26 @@ Everything else is as printed.
  
 \end_layout
 
+\begin_layout Subsection
+Installation
+\end_layout
+
+\begin_layout Standard
+See instructions in the CPPTRAJ GitHub repository README.md file under 'Installat
+ion & Testing': 
+\begin_inset Flex URL
+status open
+
+\begin_layout Plain Layout
+
+https://github.com/Amber-MD/cpptraj
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
 \begin_layout Section
 Running Cpptraj
 \end_layout
@@ -379,6 +399,10 @@ cpptraj [-p <Top0>] [-i <Input0>] [-y <trajin>] [-x <trajout>]
 \end_inset
 
 
+\end_layout
+
+\begin_layout LyX-Code
+        [--rng {marsaglia|stdlib|mt|pcg32|xo128}]
 \end_layout
 
 \begin_deeper
@@ -553,6 +577,10 @@ cpptraj [-p <Top0>] [-i <Input0>] [-y <trajin>] [-x <trajout>]
 
 \begin_layout Description
 –resmask <mask> : Print detailed residue selection to STDOUT.
+\end_layout
+
+\begin_layout Description
+--rng <type> : Change default random number generator.
 \end_layout
 
 \end_deeper
@@ -6632,12 +6660,11 @@ permutedihedrals crdset <COORDS set> resrange <range> [{interval | random}]
 \end_layout
 
 \begin_layout LyX-Code
-	[ check [cutoff <cutoff>] [rescutoff <rescutoff>] [checkallresidues]
+	[ check [cutoff <cutoff>] [rescutoff <rescutoff>] [maxfactor <max_factor>]
 \end_layout
 
 \begin_layout LyX-Code
-	  [backtrack <backtrack>] [increment <increment>] [maxfactor <max_factor>]
- ]
+	 [backtrack <backtrack> [checkallresidues] [increment <increment>]] ]
 \end_layout
 
 \begin_layout LyX-Code
@@ -6804,8 +6831,12 @@ name>] Number of problems data set name.
 \end_layout
 
 \begin_layout Description
-[checkallresidues] If specified all residues checked for clashes, otherwise
- only residues up to the currently rotated dihedral check.
+[maxfactor
+\begin_inset space ~
+\end_inset
+
+<max_factor>] The maximum number of total attempted rotations will be <max_facto
+r> * <total # of dihedrals> (default 2).
 \end_layout
 
 \begin_layout Description
@@ -6813,8 +6844,15 @@ name>] Number of problems data set name.
 \begin_inset space ~
 \end_inset
 
-<backtrack>] If a clash is encountered at dihedral N and cannot be resolved,
- go to dihedral N-<backtrack> to try and resolve the clash (default 4).
+<backtrack>] (No longer recommended as of version 5.1.0).
+ If a clash is encountered at dihedral N and cannot be resolved, go to dihedral
+ N-<backtrack> to try and resolve the clash (default is no backtracking).
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[checkallresidues] If specified all residues checked for clashes, otherwise
+ only residues up to the currently rotated dihedral check.
 \end_layout
 
 \begin_layout Description
@@ -6828,15 +6866,7 @@ name>] Number of problems data set name.
  
 \end_layout
 
-\begin_layout Description
-[maxfactor
-\begin_inset space ~
-\end_inset
-
-<max_factor>] The maximum number of total attempted rotations will be <max_facto
-r> * <total # of dihedrals> (default 2).
-\end_layout
-
+\end_deeper
 \end_deeper
 \end_deeper
 \begin_layout Standard
@@ -7136,7 +7166,7 @@ The following general commands are available:
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="33" columns="2">
+<lyxtabular version="3" rows="34" columns="2">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top">
 <column alignment="center" valignment="top">
@@ -7560,6 +7590,26 @@ printdata
 
 \begin_layout Plain Layout
 Print data set to screen.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+random
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Change default random number generator, create random sets.
 \end_layout
 
 \end_inset
@@ -8050,7 +8100,8 @@ datafilter {<dataset arg> min <min> max <max> ...} [out <file>] [name <setname>]
 \end_layout
 
 \begin_layout LyX-Code
-           [{multi | filterset <set> [newset <newname>]}]
+           {[multi] | [filterset <set> [newset <newname>]] [countout <countfile>
+]}
 \end_layout
 
 \begin_deeper
@@ -8122,6 +8173,57 @@ max
 \end_layout
 
 \end_deeper
+\begin_layout Description
+[countout
+\begin_inset space ~
+\end_inset
+
+<count>] If specified, write number of elements passed and filtered to <countfil
+e>.
+ Cannot be used with 'multi'.
+\end_layout
+
+\begin_layout Standard
+Sets Created (not 'multi')
+\end_layout
+
+\begin_layout Description
+<setname> For each input element contains 1 for elements that 
+\begin_inset Quotes eld
+\end_inset
+
+passed
+\begin_inset Quotes erd
+\end_inset
+
+, 0 otherwise.
+\end_layout
+
+\begin_layout Description
+<setname>[npassed] Number of elements that passed.
+\end_layout
+
+\begin_layout Description
+<setname>[nfiltered] Number of elements filtered out.
+\end_layout
+
+\begin_layout Standard
+Sets Created ('multi')
+\end_layout
+
+\begin_layout Description
+<setname>:<idx> For each input set (number with <idx>, starting from 0)
+ contains 1 for elements that 
+\begin_inset Quotes eld
+\end_inset
+
+passed
+\begin_inset Quotes erd
+\end_inset
+
+, 0 otherwise.
+\end_layout
+
 \end_deeper
 \begin_layout Standard
 Create a data set (optionally named <setname>) containing 1 for data within
@@ -8169,6 +8271,12 @@ Create a data set (optionally named <setname>) containing 1 for data within
  is also specified, a new set will be created containing the '1' frames
  instead.
  The 'filterset' functionality only works for 1D scalar sets.
+ If 
+\series bold
+'countout'
+\series default
+ is specified, the final number of elements passed and filtered out will
+ be written to <countfile>.
 \end_layout
 
 \begin_layout Standard
@@ -10232,6 +10340,127 @@ and the output would look like:
 
 \begin_layout LyX-Code
 2 0.630
+\end_layout
+
+\begin_layout Subsection
+random
+\end_layout
+
+\begin_layout LyX-Code
+random [setdefault {marsaglia|stdlib|mt|pcg32|xo128}]
+\end_layout
+
+\begin_layout LyX-Code
+   	[createset <name> count <#> [seed <#>]
+\end_layout
+
+\begin_layout LyX-Code
+        settype {int|float01|gauss [mean <mean>] [sd <SD>]}]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+setdefault If specified, change the default random number generator (RNG).
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+marsaglia Use the Marsaglia RNG that is used in the Amber MD programs sander/pme
+md.
+\end_layout
+
+\begin_layout Description
+stdlib Use the C standard library RNG.
+\end_layout
+
+\begin_layout Description
+mt Use the C++11 implementation of the Mersenne twister (mt19937); only
+ available with C++11 support.
+\end_layout
+
+\begin_layout Description
+pcg32 Use the 32 bit version of the Permuted Congruential Generator.
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Oneill2014"
+literal "true"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Description
+xo128 Use the Xoshiro128++ RNG.
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Vigna2017"
+literal "true"
+
+\end_inset
+
+
+\end_layout
+
+\end_deeper
+\begin_layout Description
+createset If specified, create a 1D data set filled with random numbers
+ of the specified type.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+<name> Name of created set.
+\end_layout
+
+\begin_layout Description
+count
+\begin_inset space ~
+\end_inset
+
+<#> The number of elements to put into the set.
+\end_layout
+
+\begin_layout Description
+settype
+\begin_inset space ~
+\end_inset
+
+{int|float01|gauss} Type of numbers to use; integer, floating point between
+ 0 and 1, Gaussian distribution.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+mean
+\begin_inset space ~
+\end_inset
+
+<mean> Mean of distribution for 'gauss'.
+\end_layout
+
+\begin_layout Description
+sd
+\begin_inset space ~
+\end_inset
+
+<SD> Standard deviation of distribution for 'gauss'.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+seed
+\begin_inset space ~
+\end_inset
+
+<#> Optional seed for the RNG.
+\end_layout
+
+\end_deeper
+\end_deeper
+\begin_layout Standard
+This command can be used to set the default random number generator used
+ in CPPTRAJ, and/or create a 1D data set filled with random values.
 \end_layout
 
 \begin_layout Subsection
@@ -13153,6 +13382,17 @@ Charmm PSF:
 \end_layout
 
 \end_deeper
+\begin_layout Subsubsection
+Gromacs Top
+\end_layout
+
+\begin_layout Standard
+By default cpptraj will look for Gromacs topology data (that is not in the
+ same directory) in the directory defined by the GMXDATA environment variable;
+ specifically, it expects things to be in the "$GMXDATA/top" directory.
+ 
+\end_layout
+
 \begin_layout Subsection
 parmbox
 \end_layout
@@ -23225,28 +23465,32 @@ energy [<name>] [<mask1>] [out <filename>]
 \end_layout
 
 \begin_layout LyX-Code
-   	          ewald [cut <cutoff>] [dsumtol <dtol>] [rsumtol <rtol>]
+   	          ewald [cut <cutoff>] [dsumtol <dtol>] [ewcoeff <coeff>]
 \end_layout
 
 \begin_layout LyX-Code
-   	                [ewcoeff <coeff>] [maxexp <max>] [skinnb <skinnb>]
+   	                [erfcdx <dx>] [skinnb <skinnb>] [ljswidth <width>]
 \end_layout
 
 \begin_layout LyX-Code
-   	                [mlimits <X>,<Y>,<Z>] [erfcdx <dx>]
+   	                [rsumtol <rtol>] [maxexp <max>] [mlimits <X>,<Y>,<Z>]
+ |
 \end_layout
 
 \begin_layout LyX-Code
-   	          pme [cut <cutoff>] [dsumtol <dtol>] [order <order>] [ljswidth
- <width>]
+   	          pme [cut <cutoff>] [dsumtol <dtol>] [ewcoeff <coeff>]
 \end_layout
 
 \begin_layout LyX-Code
-   	              [ewcoeff <coeff>] [ljpme] [ewcoefflj] [skinnb <skinnb>]
+   	              [erfcdx <dx>] [skinnb <skinnb>] [ljswidth <width>]
 \end_layout
 
 \begin_layout LyX-Code
-   	              [nfft <nfft1>,<nfft2>,<nfft3>] [erfcdx <dx>]
+   	              [order <order>] [nfft <nfft1>,<nfft2>,<nfft3>]
+\end_layout
+
+\begin_layout LyX-Code
+   	              [ljpme [ewcoefflj <ljcoeff>]]
 \end_layout
 
 \begin_layout LyX-Code
@@ -23361,20 +23605,19 @@ dsumtol
 \end_layout
 
 \begin_layout Description
-rsumtol
-\begin_inset space ~
-\end_inset
-
-<rtol> Reciprocal sum tolerance (default 0.00005).
- Used to determine number of reciprocal space vectors.
-\end_layout
-
-\begin_layout Description
 ewcoeff
 \begin_inset space ~
 \end_inset
 
 <coeff> Ewald coefficient in 1/Ang.
+\end_layout
+
+\begin_layout Description
+erfcdx
+\begin_inset space ~
+\end_inset
+
+<dx> Spacing to use for the ERFC splines (default 0.0002 Ang.).
 \end_layout
 
 \begin_layout Description
@@ -23391,6 +23634,24 @@ skinnb
 \end_layout
 
 \begin_layout Description
+ljswidth
+\begin_inset space ~
+\end_inset
+
+<width> If specified, use a force-switching form for the Lennard-Jones calculati
+on from <cutoff>-<width> to <cutoff>.
+\end_layout
+
+\begin_layout Description
+rsumtol
+\begin_inset space ~
+\end_inset
+
+<rtol> Reciprocal sum tolerance (default 0.00005).
+ Used to determine number of reciprocal space vectors.
+\end_layout
+
+\begin_layout Description
 mlimits
 \begin_inset space ~
 \end_inset
@@ -23398,14 +23659,6 @@ mlimits
 <X>,<Y>,<Z> Explicitly set the number of reciprocal space vectors in each
  dimension.
  Will be determined automatically if not specified.
-\end_layout
-
-\begin_layout Description
-erfcdx
-\begin_inset space ~
-\end_inset
-
-<dx> Spacing to use for the ERFC splines (default 0.0002 Ang.).
 \end_layout
 
 \end_deeper
@@ -23434,23 +23687,6 @@ dsumtol
 \end_layout
 
 \begin_layout Description
-order
-\begin_inset space ~
-\end_inset
-
-<order> Spline order for charges.
-\end_layout
-
-\begin_layout Description
-ljswidth
-\begin_inset space ~
-\end_inset
-
-<width> If specified, use a force-switching form for the Lennard-Jones calculati
-on from <cutoff>-<width> to <cutoff>.
-\end_layout
-
-\begin_layout Description
 ewcoeff
 \begin_inset space ~
 \end_inset
@@ -23459,12 +23695,11 @@ ewcoeff
 \end_layout
 
 \begin_layout Description
-ljpme If specified use particle mesh Ewald for calculating Lennard-Jones
- interactions.
-\end_layout
+erfcdx
+\begin_inset space ~
+\end_inset
 
-\begin_layout Description
-ewcoefflj Ewald coefficient for Lennard-Jones PME.
+<dx> Spacing to use for the ERFC splines (default 0.0002 Ang.).
 \end_layout
 
 \begin_layout Description
@@ -23481,6 +23716,23 @@ skinnb
 \end_layout
 
 \begin_layout Description
+ljswidth
+\begin_inset space ~
+\end_inset
+
+<width> If specified, use a force-switching form for the Lennard-Jones calculati
+on from <cutoff>-<width> to <cutoff>.
+\end_layout
+
+\begin_layout Description
+order
+\begin_inset space ~
+\end_inset
+
+<order> Spline order for charges.
+\end_layout
+
+\begin_layout Description
 nfft
 \begin_inset space ~
 \end_inset
@@ -23491,11 +23743,16 @@ nfft
 \end_layout
 
 \begin_layout Description
-erfcdx
-\begin_inset space ~
-\end_inset
+ljpme If specified use particle mesh Ewald for calculating Lennard-Jones
+ interactions.
+\end_layout
 
-<dx> Spacing to use for the ERFC splines (default 0.0002 Ang.).
+\begin_layout Description
+ewcoefflj Ewald coefficient for Lennard-Jones PME (implies 
+\series bold
+ljpme
+\series default
+).
 \end_layout
 
 \end_deeper
@@ -23764,15 +24021,11 @@ name "subsec:cpptraj-filter"
 \end_layout
 
 \begin_layout LyX-Code
-filter <dataset1 arg> min <min1> max <max1>
+filter {<dataset arg> min <min> max <max> ...} [out <file>] [name <setname>]
 \end_layout
 
 \begin_layout LyX-Code
-       [<dataset2 arg> min <min2> max <max2> ...]
-\end_layout
-
-\begin_layout LyX-Code
-       [out <file> [name <setname>]]
+  	{[multi] | [filterset <set> [newset <newname>]] [countout <countfile>]}
 \begin_inset Separator latexpar
 \end_inset
 
@@ -23781,7 +24034,7 @@ filter <dataset1 arg> min <min1> max <max1>
 
 \begin_deeper
 \begin_layout Description
-<datasetX
+<dataset
 \begin_inset space ~
 \end_inset
 
@@ -23793,7 +24046,7 @@ min
 \begin_inset space ~
 \end_inset
 
-<minX> Allow values greater than <min> in dataset X.
+<min> Allow values greater than <min> in dataset(s).
 \end_layout
 
 \begin_layout Description
@@ -23801,7 +24054,7 @@ max
 \begin_inset space ~
 \end_inset
 
-<maxX> Allow values greater than <max> in dataset X.
+<max> Allow values greater than <max> in dataset(s).
 \end_layout
 
 \begin_layout Description
@@ -23820,6 +24073,84 @@ max
 
 <setname>] Filtered data set name containing 1 for allowed frames, 0 for
  filtered frames.
+\end_layout
+
+\begin_layout Description
+[multi] Filter each set separately instead of all together (creates filter
+ set for each input set).
+ Cannot be used with 'filterset'.
+\end_layout
+
+\begin_layout Description
+[filterset
+\begin_inset space ~
+\end_inset
+
+<set>] If specified, <set> will be filtered to only contain data that satisfies
+ cutoffs.
+ Cannot be used with 'multi'.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[newset
+\begin_inset space ~
+\end_inset
+
+<newname>] If specified a new set will be created from 'filterset' instead
+ of replacing 'filterset'.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[countout
+\begin_inset space ~
+\end_inset
+
+<count>] If specified, write number of elements passed and filtered to <countfil
+e>.
+ Cannot be used with 'multi'.
+\end_layout
+
+\begin_layout Standard
+Sets Created (not 'multi')
+\end_layout
+
+\begin_layout Description
+<setname> For each input element contains 1 for elements that 
+\begin_inset Quotes eld
+\end_inset
+
+passed
+\begin_inset Quotes erd
+\end_inset
+
+, 0 otherwise.
+\end_layout
+
+\begin_layout Description
+<setname>[npassed] Number of elements that passed.
+\end_layout
+
+\begin_layout Description
+<setname>[nfiltered] Number of elements filtered out.
+\end_layout
+
+\begin_layout Standard
+Sets Created ('multi')
+\end_layout
+
+\begin_layout Description
+<setname>:<idx> For each input set (number with <idx>, starting from 0)
+ contains 1 for elements that 
+\begin_inset Quotes eld
+\end_inset
+
+passed
+\begin_inset Quotes erd
+\end_inset
+
+, 0 otherwise.
 \end_layout
 
 \end_deeper
@@ -23854,7 +24185,43 @@ For all following actions, only include frames that are between
 <max>
 \series default
  arguments as there are specified data sets.
- For example, to write only frames in-between an RMSD of 0.7-0.8 Angstroms
+ If 
+\series bold
+'multi'
+\series default
+ is specified then only filter data sets will be created for each data set
+ instead.
+ If 
+\series bold
+'filterset'
+\series default
+ is specified, the specified <set> will be modified to only contain '1'
+ frames; cannot be used with 
+\series bold
+'multi'
+\series default
+.
+ If 
+\series bold
+'newset'
+\series default
+ is also specified, a new set will be created containing the '1' frames
+ instead.
+ The 
+\series bold
+'filterset'
+\series default
+ functionality only works for 1D scalar sets.
+ If 
+\series bold
+'countout'
+\series default
+ is specified, the final number of elements passed and filtered out will
+ be written to <countfile>.
+\end_layout
+
+\begin_layout Standard
+For example, to write only frames in-between an RMSD of 0.7-0.8 Angstroms
  for a given input trajectory:
 \end_layout
 
@@ -24082,7 +24449,7 @@ gist
 
 \end_inset
 
- [doorder] [doeij] [skipS] [skipE] [refdens <rdval>] [temp <tval>]
+ [doorder] [doeij] [skipE] [skipS] [refdens <rdval>] [temp <tval>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -24090,15 +24457,36 @@ gist
 \end_layout
 
 \begin_layout LyX-Code
-     [griddim <xval> <yval> <zval>] [gridspacn <spaceval>]
+     [griddim <nx> <ny> <nz>] [gridspacn <spaceval>] [neighborcut <ncut>]
 \end_layout
 
 \begin_layout LyX-Code
-     [prefix <filename prefix>] [ext <grid extension>] [out <output>]
+     [prefix <filename prefix>] [ext <grid extension>] [out <output suffix>]
 \end_layout
 
 \begin_layout LyX-Code
-     [info <info>]
+     [floatfmt {double|scientific|general}] [floatwidth <fw>] [floatprec
+ <fp>]
+\end_layout
+
+\begin_layout LyX-Code
+ 	[intwidth <iw>]
+\end_layout
+
+\begin_layout LyX-Code
+     [info <info suffix>]
+\end_layout
+
+\begin_layout LyX-Code
+     [nopme|pme [cut <cutoff>] [dsumtol <dtol>] [ewcoeff <coeff>]
+\end_layout
+
+\begin_layout LyX-Code
+ 	 [erfcdx <dx>] [skinnb <skinnb>] [ljswidth <width>]
+\end_layout
+
+\begin_layout LyX-Code
+ 	 [order <order>] [nfft <nfft1>,<nfft2>,<nfft3>]]
 \end_layout
 
 \begin_deeper
@@ -24207,17 +24595,18 @@ rdval>]
 \begin_inset space ~
 \end_inset
 
-<xval>
+<nx>
 \begin_inset space ~
 \end_inset
 
-<yval>
+<ny>
 \begin_inset space ~
 \end_inset
 
-<zval>]
+<nz>]
 \series default
- Grid dimensions along each coordinate axis (default 40, 40, 40).
+ Grid dimensions (number of bins/voxels) along each coordinate axis (default
+ 40, 40, 40).
 \end_layout
 
 \begin_layout Description
@@ -24231,6 +24620,14 @@ rdval>]
 \series default
  Grid spacing (linear dimension of each voxel) in Angstroms.
  Values greater than 0.75 Å are not recommended (default 0.5 Å).
+\end_layout
+
+\begin_layout Description
+[neighborcut
+\begin_inset space ~
+\end_inset
+
+<ncut>] Cutoff in Å for determining solvent O-O neighbors (default 3.5 Å).
 \end_layout
 
 \begin_layout Description
@@ -24280,10 +24677,47 @@ extension>] Output grid file name extension (default
 \begin_inset space ~
 \end_inset
 
-<output>]
+<output suffix>]
 \series default
- Name of the main GIST output file.
- If not specified set to '<prefix>-output.dat'.
+ Suffix for main GIST output file name.
+ If not specified, output file will be set to '<prefix>-output.dat'.
+\end_layout
+
+\begin_layout Description
+[floatfmt
+\begin_inset space ~
+\end_inset
+
+{double|scientific|general}] Format for floating point values in GIST output
+ file: double (regular fixed decimal point), scientific, or general (default,
+ chooses fixed or scientific, whichever fits better).
+\end_layout
+
+\begin_layout Description
+[floatwidth
+\begin_inset space ~
+\end_inset
+
+<fw>] Changes width of floating point values in GIST output file.
+ Default is no width restriction.
+\end_layout
+
+\begin_layout Description
+[floatprec
+\begin_inset space ~
+\end_inset
+
+<fp>] Changes precision of floating point values in GIST output file.
+ Default is to use whatever the system default is.
+\end_layout
+
+\begin_layout Description
+[intwidth
+\begin_inset space ~
+\end_inset
+
+<iw>] Changes width of integer values in GIST output file.
+ Default is no width restriction.
 \end_layout
 
 \begin_layout Description
@@ -24291,10 +24725,104 @@ extension>] Output grid file name extension (default
 \begin_inset space ~
 \end_inset
 
-<info>] Name of main GIST info file.
- If not specified info is written to standard output.
+<info
+\begin_inset space ~
+\end_inset
+
+suffix>] Suffix for main GIST info file name.
+ If not specified, info will be written to standard output.
 \end_layout
 
+\begin_layout Description
+[nopme] Do not use particle mesh Ewald for the non-bonded calculation (default).
+\end_layout
+
+\begin_layout Description
+[pme] Use particle mesh Ewald for the non-bonded electrostatics calculation.
+ The van der Waals energy will be calculated using a long-range correction
+ for periodicity.
+ Does not support 
+\series bold
+doeij
+\series default
+.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+cut
+\begin_inset space ~
+\end_inset
+
+<cutoff> Direct space cutoff in Angstroms (default 8.0).
+\end_layout
+
+\begin_layout Description
+dsumtol
+\begin_inset space ~
+\end_inset
+
+<dtol> Direct sum tolerance (default 0.00001).
+ Used to determine Ewald coefficient.
+\end_layout
+
+\begin_layout Description
+ewcoeff
+\begin_inset space ~
+\end_inset
+
+<coeff> Ewald coefficient in 1/Ang.
+\end_layout
+
+\begin_layout Description
+erfcdx
+\begin_inset space ~
+\end_inset
+
+<dx> Spacing to use for the ERFC splines (default 0.0002 Ang.).
+\end_layout
+
+\begin_layout Description
+skinnb Used to determine pairlist atoms (added to cut, so pairlist cutoff
+ is 
+\series bold
+cut
+\series default
+ + 
+\series bold
+skinnb
+\series default
+); included in order to maintain consistency with results from sander.
+\end_layout
+
+\begin_layout Description
+ljswidth
+\begin_inset space ~
+\end_inset
+
+<width> If specified, use a force-switching form for the Lennard-Jones calculati
+on from <cutoff>-<width> to <cutoff>.
+\end_layout
+
+\begin_layout Description
+order
+\begin_inset space ~
+\end_inset
+
+<order> Spline order for charges.
+\end_layout
+
+\begin_layout Description
+nfft
+\begin_inset space ~
+\end_inset
+
+<nfft1>,<nfft2>,<nfft3> Explicitly set the number of FFT grid points in
+ each dimension.
+ Will be determined automatically if not specified.
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 DataSet Aspects:
 \end_layout
@@ -24352,6 +24880,14 @@ DataSet Aspects:
 
 \begin_layout Description
 [Eij] Water-water interaction matrix.
+\end_layout
+
+\begin_layout Description
+[PME] (pme only) Mean water energy on the GIST grid.
+\end_layout
+
+\begin_layout Description
+[U_PME] (pme only) Mean solute energy on the GIST grid.
 \end_layout
 
 \end_deeper
@@ -24537,6 +25073,19 @@ keyword is not available.
 doorder
 \series default
 ) is negligible.
+\end_layout
+
+\begin_layout Standard
+The nonbonded energy calculation can also be accelerated using particle
+ mesh Ewald via the pme keyword (CPU only).
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Chen2021"
+literal "true"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Subsubsection*
@@ -29429,11 +29978,11 @@ Offset: -2=<a0><a1> in previous res, -1=<a0> in previous res, 0=All <aX>
 
 \end_deeper
 \begin_layout Standard
-DataSet Aspects:
+DataSets Generated:
 \end_layout
 
 \begin_layout Description
-[<dihedral
+<name>[<dihedral
 \begin_inset space ~
 \end_inset
 
@@ -29487,6 +30036,218 @@ dihtype
 
 \begin_layout LyX-Code
 multidihedral dihtype chi1:N:CA:CB:CG out custom.dat
+\end_layout
+
+\begin_layout Subsection
+multipucker
+\end_layout
+
+\begin_layout LyX-Code
+multipucker [<name>] [<pucker types>] [out <filename>] [resrange <range>]
+\end_layout
+
+\begin_layout LyX-Code
+            [altona|cremer] [puckertype <name>:<a0>:<a1>:<a2>:<a3>:<a4>[:<a5>]
+ ...]
+\end_layout
+
+\begin_layout LyX-Code
+        	[amplitude [ampout <ampfile>]] [theta [thetaout <thetafile>]]
+\end_layout
+
+\begin_layout LyX-Code
+        	[range360] [offset <offset>]
+\end_layout
+
+\begin_layout LyX-Code
+        	<pucker types> =  nucleic furanose pyranose
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[<name>] Output data set name.
+\end_layout
+
+\begin_layout Description
+<pucker
+\begin_inset space ~
+\end_inset
+
+types> Pucker types to look for.
+ 
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<filename>] Output file name to write pucker data to.
+\end_layout
+
+\begin_layout Description
+[resrange
+\begin_inset space ~
+\end_inset
+
+<range>] Residue range to look for puckers in.
+ Default is all solute residues.
+\end_layout
+
+\begin_layout Description
+[puckertype
+\begin_inset space ~
+\end_inset
+
+<name>:<a0>:<a1>:<a2>:<a3>:<a4>[:<a5>] Search for a custom pucker type called
+ <name> using atom names <a0>, <a1>, <a2>, <a3>, and <a4> (also <a5> for
+ 6 atom puckers).
+\end_layout
+
+\begin_layout Description
+[altona] Use method of Altona & Sundaralingam (5 atoms only).
+ This is the default when pucker has 5 atoms.
+\end_layout
+
+\begin_layout Description
+[cremer] Use method of Cremer and Pople (5 or 6 atoms).
+ This is the default when pucker has 6 atoms.
+\end_layout
+
+\begin_layout Description
+[amplitude] Also calculate amplitude (in degrees).
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+ampout
+\begin_inset space ~
+\end_inset
+
+<ampfile> File to write amplitude sets to.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[theta] (Valid for 6 atoms only) Also calculate theta (in degrees).
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+thetaout
+\begin_inset space ~
+\end_inset
+
+<thetafile> File to write theta sets to.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[range360] Wrap pucker values from 0.0 to 360.0 (default is -180.0 to 180.0).
+\end_layout
+
+\begin_layout Description
+[offset
+\begin_inset space ~
+\end_inset
+
+<offset>] Add <offset> to pucker values.
+\end_layout
+
+\begin_layout Standard
+DataSets Generated:
+\end_layout
+
+\begin_layout Description
+<name>[<pucker
+\begin_inset space ~
+\end_inset
+
+type>]:<#> Aspect corresponds to the pucker type name (e.g.
+ [nucleic], [furanose], etc).
+ The index is the residue number.
+\end_layout
+
+\begin_layout Description
+<name>[<pucker
+\begin_inset space ~
+\end_inset
+
+type>Amp]:<#> 
+\series bold
+amplitude
+\series default
+ only.
+ Data set for pucker amplitude.
+\end_layout
+
+\begin_layout Description
+<name>[<pucker
+\begin_inset space ~
+\end_inset
+
+type>Theta]:<#> 
+\series bold
+theta
+\series default
+ only.
+ Data set for pucker theta.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+
+\shape italic
+Note data sets are not generated until 
+\series bold
+run
+\series default
+ is called.
+\end_layout
+
+\begin_layout Standard
+Calculate specified pucker types for residues in given range.
+ By default, puckers are identified based on standard Amber atom names.
+ The resulting data sets will have aspect equal to [<pucker type>] and index
+ equal to residue #.
+ In order to be identified as a pucker, all consecutive atoms in the pucker
+ must be bonded, and the last atom of the pucker must be bonded to the first.
+\end_layout
+
+\begin_layout Standard
+For example, to calculate all nucleic acid ribose puckers for residues 6
+ to 9:
+\end_layout
+
+\begin_layout LyX-Code
+multipucker MyPuckers nucleic resrange 6-9 out Pucker_6-9.dat
+\end_layout
+
+\begin_layout Standard
+This will generate data sets named MyPuckers[nucleic]:6, MyPuckers[nucleic]:7,
+ etc.
+ Puckers other than those defined in 
+\series bold
+<pucker types>
+\series default
+ can be searched for using 
+\series bold
+puckertype
+\series default
+.
+ For example to create a custom pucker type called furanoid using atoms
+ C2, C3, C4, C5, and O2, then search for and calculate that pucker (with
+ amplitudes) using the method of Cremer and Pople in all residues:
+\end_layout
+
+\begin_layout LyX-Code
+multipucker Furanoid puckertype furanoid:C2:C3:C4:C5:O2 cremer 
+\backslash
+
+\end_layout
+
+\begin_layout LyX-Code
+  out furanoid.dat amplitude ampout furanoid.dat
 \end_layout
 
 \begin_layout Subsection
@@ -32231,13 +32992,67 @@ randomizeions
 \end_layout
 
 \begin_layout LyX-Code
-randomizeions <mask> [around <mask> by <distance>] [overlap <value>]
+randomizeions <mask> [around <ardoundmask> by <distance>] [{allowoverlap|overlap
+ <value>}]
 \end_layout
 
 \begin_layout LyX-Code
-              [noimage] [seed <value>]
+              [noimage] [seed <value>] [originalalgorithm]
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+<mask> Mask of ions to randomize.
+\end_layout
+
+\begin_layout Description
+around
+\begin_inset space ~
+\end_inset
+
+<mask>
+\begin_inset space ~
+\end_inset
+
+by
+\begin_inset space ~
+\end_inset
+
+<distance> Ensure ions come no closer than <distance> Ang.
+ to atoms in <aroundmask>.
+\end_layout
+
+\begin_layout Description
+allowoverlap No restrictions on how close ions can be to each other.
+\end_layout
+
+\begin_layout Description
+overlap
+\begin_inset space ~
+\end_inset
+
+<value> Ions in <mask> can be no closer than <value> Ang.
+ to each other.
+\end_layout
+
+\begin_layout Description
+[noimage] Do not image distances.
+\end_layout
+
+\begin_layout Description
+[seed
+\begin_inset space ~
+\end_inset
+
+<value>] Seed for the random number generator.
+\end_layout
+
+\begin_layout Description
+[originalalgorithm] Use the original, slower algorithm (from versions before
+ 5.1.0).
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 This can be used to randomly swap the positions of solvent and single atom
  ions.
@@ -35237,9 +36052,59 @@ trans | translate
 \end_layout
 
 \begin_layout LyX-Code
-translate [<mask>] [x <dx>] [y <dy>] [z <dz>]
+translate [<mask>] {[x <dx>] [y <dy>] [z <dz>] | topoint <x>,<y>,<z> [mass]}
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+<mask> Mask of atoms to translate (all atoms if not specified).
+\end_layout
+
+\begin_layout Description
+x
+\begin_inset space ~
+\end_inset
+
+<dx> Translation (delta) in the X direction (Å).
+\end_layout
+
+\begin_layout Description
+y
+\begin_inset space ~
+\end_inset
+
+<dx> Translation (delta) in the Y direction (Å).
+\end_layout
+
+\begin_layout Description
+z
+\begin_inset space ~
+\end_inset
+
+<dx> Translation (delta) in the Z direction (Å).
+\end_layout
+
+\begin_layout Description
+topoint
+\begin_inset space ~
+\end_inset
+
+<x>,<y>,<z> If specified, translate center of specified atoms to a specific
+ point defined by <x>, <y>, and <z> in the given comma-separated list instead
+ of by deltas.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+mass If specified, translate center of mass of specified atoms (
+\series bold
+topoint
+\series default
+ only).
+\end_layout
+
+\end_deeper
+\end_deeper
 \begin_layout Standard
 Translate atoms in 
 \series bold
@@ -35258,6 +36123,12 @@ Translate atoms in
 <dz>
 \series default
  Å in the Z direction.
+ If 
+\series bold
+'topoint
+\series default
+' is specified, translate atoms in <mask> to the specified coordinates (also
+ in Å).
 \end_layout
 
 \begin_layout Subsection
@@ -36271,20 +37142,14 @@ buffer
 \begin_layout Standard
 The calculation is sped up by using cubic splines to interpolate the exponential
  function when calculating the Gaussians.
- The details are in Roe & Brooks, 
-\begin_inset Quotes eld
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Roe2021"
+literal "true"
+
 \end_inset
 
-Improving the Speed of Volumetric Density Map Generation via Cubic Spline
- Interpolation
-\begin_inset Quotes erd
-\end_inset
 
-, J.
- Mol.
- Graph.
- Model.
- (2021).
 \end_layout
 
 \begin_layout Subsection
@@ -36684,7 +37549,7 @@ trajin
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="46" columns="3">
+<lyxtabular version="3" rows="47" columns="3">
 <features islongtable="true" longtabularalignment="center">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="50text%">
@@ -37154,6 +38019,35 @@ Calculate Kullback-Leibler divergence between two data sets.
 
 \begin_layout Plain Layout
 2 1D scalar
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+evalplateau
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Evaluate whether the data in a 1D set has reached a single exponential plateau.
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
 \end_layout
 
 \end_inset
@@ -41242,6 +42136,234 @@ divergence ds1 <ds1> ds2 <ds2>
 
 \begin_layout Standard
 Calculate Kullback-Leibler divergence between specified data sets.
+\end_layout
+
+\begin_layout Subsection
+evalplateau
+\end_layout
+
+\begin_layout LyX-Code
+evalplateau [name <set out name>] [tol <tol>] [valacut <valacut>]
+\end_layout
+
+\begin_layout LyX-Code
+        	[initpct <initial pct>] [finalpct <final pct>]
+\end_layout
+
+\begin_layout LyX-Code
+        	[chisqcut <chisqcut>] [slopecut <slopecut>] [maxit <maxit>]
+\end_layout
+
+\begin_layout LyX-Code
+        	[out <outfile>] [resultsout <resultsfile>] [statsout <statsfile>]
+\end_layout
+
+\begin_layout LyX-Code
+        	<input set args> ...
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+name
+\begin_inset space ~
+\end_inset
+
+<set
+\begin_inset space ~
+\end_inset
+
+out
+\begin_inset space ~
+\end_inset
+
+name>] Name for output data sets.
+\end_layout
+
+\begin_layout Description
+tol
+\begin_inset space ~
+\end_inset
+
+<tol> Curve fitting tolerance.
+ Default 0.00001.
+\end_layout
+
+\begin_layout Description
+valacut
+\begin_inset space ~
+\end_inset
+
+<valacut> (
+\begin_inset Quotes eld
+\end_inset
+
+Value A cutoff
+\begin_inset Quotes erd
+\end_inset
+
+) Cutoff for last half average vs estimated long term value.
+ Default 0.01.
+\end_layout
+
+\begin_layout Description
+initpct
+\begin_inset space ~
+\end_inset
+
+<initial
+\begin_inset space ~
+\end_inset
+
+pct> The initial percentage of data to use for the initial density guess.
+ Default 1%.
+\end_layout
+
+\begin_layout Description
+finalpct
+\begin_inset space ~
+\end_inset
+
+<final
+\begin_inset space ~
+\end_inset
+
+pct> The final percentatge of data to use for the final density guess.
+ Default 50%.
+\end_layout
+
+\begin_layout Description
+chisqcut
+\begin_inset space ~
+\end_inset
+
+<chisqcut> Curve fit chi-squared cutoff.
+ Defualt 0.5.
+\end_layout
+
+\begin_layout Description
+slopecut
+\begin_inset space ~
+\end_inset
+
+<slopecut> Final slope of fitted curve cutoff.
+ Default 0.000001.
+\end_layout
+
+\begin_layout Description
+maxit
+\begin_inset space ~
+\end_inset
+
+<maxit> Maximum number of iterations to perform during curve fit.
+\end_layout
+
+\begin_layout Description
+out
+\begin_inset space ~
+\end_inset
+
+<outfile> File to write data and fitted curve to.
+\end_layout
+
+\begin_layout Description
+resultsout
+\begin_inset space ~
+\end_inset
+
+<resultsfile> File to write plateau results to.
+\end_layout
+
+\begin_layout Description
+statsout
+\begin_inset space ~
+\end_inset
+
+<statsfile> File to write curve fitting stats to.
+\end_layout
+
+\begin_layout Description
+<input
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+args> Data sets to evaluate plateau for.
+\end_layout
+
+\begin_layout Standard
+Data Sets Created
+\end_layout
+
+\begin_layout Description
+<name>[A0] The A0 (initial density) values.
+\end_layout
+
+\begin_layout Description
+<name>[A1] The A1 (rate constant) values.
+\end_layout
+
+\begin_layout Description
+<name>[A2] The A2 (final density) values.
+\end_layout
+
+\begin_layout Description
+<name>[OneA1] One over the A1 (rate constant) values.
+\end_layout
+
+\begin_layout Description
+<name>[corr] Curve fit correlation.
+\end_layout
+
+\begin_layout Description
+<name>[vala] Difference between last half average of data vs final density
+ (A2).
+\end_layout
+
+\begin_layout Description
+<name>[chisq] Chi-squared of the curve fit.
+\end_layout
+
+\begin_layout Description
+<name>[pltime] Plateau time (time at which all cutoffs satisfied).
+\end_layout
+
+\begin_layout Description
+<name>[fslope] Final slope of fitted curve.
+\end_layout
+
+\begin_layout Description
+<name>[name] Input set legend.
+\end_layout
+
+\begin_layout Description
+<name>[result] Final result: yes, no, err (error).
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Attempt to determine if data has 
+\begin_inset Quotes eld
+\end_inset
+
+plateaued
+\begin_inset Quotes erd
+\end_inset
+
+, i.e.
+ stopped changing significantly by the end of the set.
+ Currently the defaults are set up to evaluate density data as part of the
+ system preparation protocol described by Roe & Brooks.
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Roe2020"
+literal "true"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Subsection

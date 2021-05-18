@@ -6,9 +6,10 @@ class Ewald_Regular : public Ewald {
   public:
     Ewald_Regular();
     /// Box, cutoff, dsum tol, rsum tol, ew coeff, maxexp, nb skin, erfc dx, debug, mlimits
-    int Init(Box const&, double, double, double, double, double, double,
-             double, int, const int*);
+    /*int Init(Box const&, double, double, double, double, double, double,
+             double, int, const int*);*/
     // ----- Inherited ---------------------------
+    int Init(Box const&, EwaldOptions const&, int);
     int Setup(Topology const&, AtomMask const&);
     int CalcNonbondEnergy(Frame const&, AtomMask const&, double&, double&);
   private:

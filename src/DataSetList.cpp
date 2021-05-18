@@ -34,6 +34,7 @@
 #include "DataSet_Tensor.h"
 #include "DataSet_StringVar.h"
 #include "DataSet_Vector_Scalar.h"
+#include "DataSet_unsignedInt.h"
 
 bool DataSetList::useDiskCache_ = false;
 
@@ -59,6 +60,7 @@ DataSet* DataSetList::NewSet(DataSet::DataType typeIn) {
       ds = DataSet_integer_mem::Alloc();
 #     endif
       break;
+    case DataSet::UNSIGNED_INTEGER : ds = DataSet_unsignedInt::Alloc(); break;
     case DataSet::STRING  : ds = DataSet_string::Alloc(); break;
     case DataSet::MATRIX_DBL : ds = DataSet_MatrixDbl::Alloc(); break;
     case DataSet::MATRIX_FLT : ds = DataSet_MatrixFlt::Alloc(); break;
@@ -1084,8 +1086,12 @@ Topology* DataSetList::GetTopByIndex(ArgList& argIn) const {
       return 0;
     }
   }
-  if (top == 0) // By default return first parm if nothing else specified.
+  if (top == 0) {
+    // By default return first parm if nothing else specified.
+    if (TopList_.empty())
+      return 0;
     top = TopList_.front();
+  }
   return ((DataSet_Topology*)top)->TopPtr();
 }
 

@@ -477,6 +477,12 @@ test.graft:
 test.flatten:
 	@-cd Test_Flatten && ./RunTest.sh $(OPT)
 
+test.random:
+	@-cd Test_Random && ./RunTest.sh $(OPT)
+
+test.multipucker:
+	@-cd Test_MultiPucker && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -629,7 +635,9 @@ COMPLETETESTS=test.general \
               test.emin \
               test.evalplateau \
               test.graft \
-              test.flatten
+              test.flatten \
+              test.random \
+              test.multipucker
 
 test.all:
 	$(MAKE) test.complete summary
@@ -642,6 +650,9 @@ test.openmp:
 
 test.cuda:
 	$(MAKE) test.complete summary OPT="$(OPT) cuda"
+
+test.hip:
+	$(MAKE) test.complete summary OPT="$(OPT) hip"
 
 test.libcpptraj:
 	@cd Test_Libcpptraj && ./RunTest.sh $(OPT)

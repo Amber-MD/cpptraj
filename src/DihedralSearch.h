@@ -31,7 +31,7 @@ class DihedralSearch {
     /// Search for known dihedral type keywords.
     void SearchForArgs(ArgList&);
     /// Contains keywords for SearchNewTypeArgs()
-    static const char* newTypeArgsHelp_;
+    static const char* newTypeArgsHelp();
     /// Search for new type via args
     int SearchForNewTypeArgs(ArgList&);
     /// Add a new dihedral type to be searched for.
@@ -48,7 +48,7 @@ class DihedralSearch {
     /// Clear found dihedrals only.
     void ClearFound() { dihedrals_.clear(); }
     /// Print dihedrals currently being searched for.
-    void PrintTypes();
+    void PrintTypes() const;
     /// \return Mask of atoms that will move upon rotation.
     static AtomMask MovingAtoms(Topology const&, int, int);
   private:
@@ -95,6 +95,7 @@ class DihedralSearch::DihedralMask {
     std::string const& Name() const { return name_;       }
     bool None()               const { return (a0_ == -1); }
     DihedralType Type()       const { return type_;       }
+    std::string DihedralMaskString(Topology const&) const;
   private:
     int a0_, a1_, a2_, a3_, res_;
     std::string name_;

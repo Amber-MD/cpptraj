@@ -58,6 +58,7 @@ class Energy_Sander {
     bool specified_igb_;         ///< 'igb' was specified.
     bool specified_ntb_;         ///< 'ntb' was specified.
     bool keepFiles_;             ///< If true keep any temporary files.
+    bool hasTempTopName_;        ///< If true top file name generated with File::GenTempName()
 };
 #endif /* USE_SANDERLIB and not LIBCPPTRAJ */
 #endif

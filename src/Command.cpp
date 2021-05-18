@@ -36,6 +36,7 @@
 #include "Exec_ViewRst.h"
 #include "Exec_Set.h"
 #include "Exec_Show.h"
+#include "Exec_Random.h"
 // ----- SYSTEM ----------------------------------------------------------------
 #include "Exec_System.h"
 // ----- COORDS ----------------------------------------------------------------
@@ -149,6 +150,7 @@
 #include "Action_XtalSymm.h"
 #include "Action_Time.h"
 #include "Action_DihedralRMS.h"
+#include "Action_MultiPucker.h"
 // ----- ANALYSIS --------------------------------------------------------------
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
@@ -228,6 +230,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_PrintData(),       Cmd::EXE, 1, "printdata" );
   Command::AddCmd( new Exec_QuietBlocks(),     Cmd::EXE, 1, "quietblocks" );
   Command::AddCmd( new Exec_Quit(),            Cmd::EXE, 2, "exit", "quit" );
+  Command::AddCmd( new Exec_Random(),          Cmd::EXE, 2, "random", "rng" );
   Command::AddCmd( new Exec_ReadData(),        Cmd::EXE, 1, "readdata" );
   Command::AddCmd( new Exec_ReadEnsembleData(),Cmd::EXE, 1, "readensembledata" );
   Command::AddCmd( new Exec_ReadInput(),       Cmd::EXE, 1, "readinput" );
@@ -339,6 +342,7 @@ void Command::Init() {
   Command::AddCmd( new Action_MinImage(),      Cmd::ACT, 1, "minimage" );
   Command::AddCmd( new Action_Molsurf(),       Cmd::ACT, 1, "molsurf" );
   Command::AddCmd( new Action_MultiDihedral(), Cmd::ACT, 1, "multidihedral" );
+  Command::AddCmd( new Action_MultiPucker(),   Cmd::ACT, 1, "multipucker" );
   Command::AddCmd( new Action_MultiVector(),   Cmd::ACT, 1, "multivector" );
   Command::AddCmd( new Action_NAstruct(),      Cmd::ACT, 1, "nastruct" );
   Command::AddCmd( new Action_NativeContacts(),Cmd::ACT, 1, "nativecontacts" );
@@ -389,7 +393,7 @@ void Command::Init() {
   Command::AddCmd( new Analysis_CurveFit(),    Cmd::ANA, 1, "curvefit" );
   Command::AddCmd( new Analysis_Matrix(),      Cmd::ANA, 2, "diagmatrix", "matrix" );
   Command::AddCmd( new Analysis_Divergence(),  Cmd::ANA, 1, "divergence" );
-  Command::AddCmd( new Analysis_EvalPlateau(), Cmd::ANA, 1, "evalplateau" ); // hidden
+  Command::AddCmd( new Analysis_EvalPlateau(), Cmd::ANA, 1, "evalplateau" );
   Command::AddCmd( new Analysis_FFT(),         Cmd::ANA, 1, "fft" );
   Command::AddCmd( new Analysis_HausdorffDistance,Cmd::ANA,1,"hausdorff" );
   Command::AddCmd( new Analysis_Hist(),        Cmd::ANA, 2, "hist", "histogram" );
@@ -645,7 +649,10 @@ int Command::ExecuteControlBlock(int block, CpptrajState& State)
 CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& commandIn)
 {
   ArgList cmdArg( commandIn );
+  cmdArg.CheckArgLineForNonASCII();
   cmdArg.MarkArg(0); // Always mark the first arg as the command
+  if (State.Debug() > 0)
+    cmdArg.PrintDebug();
   // Check for control block
   if (!control_.empty()) {
     mprintf("  [%s]\n", cmdArg.ArgLine());

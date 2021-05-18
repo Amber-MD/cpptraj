@@ -12,7 +12,7 @@
  * Whenever a number that precedes <revision> is incremented, all subsequent
  * numbers should be reset to 0.
  */
-#define CPPTRAJ_INTERNAL_VERSION "V5.0.5"
+#define CPPTRAJ_INTERNAL_VERSION "V5.3.3"
 /// PYTRAJ relies on this
 #define CPPTRAJ_VERSION_STRING CPPTRAJ_INTERNAL_VERSION
 #endif

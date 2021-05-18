@@ -11,6 +11,7 @@ pipeline {
         skipDefaultCheckout()
         buildDiscarder(logRotator(numToKeepStr: "10"))
         timestamps()
+        timeout time: 2, unit: 'HOURS'
     }
 
     stages {
@@ -40,6 +41,22 @@ pipeline {
                 }
             }
             parallel {
+              stage("Linux GNU Unit Tests") {
+                    agent {
+                        docker {
+                            image 'ambermd/cpu-build:latest'
+                            alwaysPull true
+                        }
+                    }
+
+                    steps {
+                        unstash "source"
+                        sh "./configure --with-netcdf --with-fftw3 gnu"
+                        sh "cd unitTests && make test.all"
+                    }
+
+                    post { cleanup { deleteDir() } }
+                }
                 stage("Linux GNU serial build") {
                     agent {
                         docker {
@@ -58,6 +75,7 @@ pipeline {
                     post { cleanup { deleteDir() } }
                 }
                 stage("Linux Intel Serial Build") {
+                    when { expression { return false } }
                     agent {
                         docker {
                             image 'ambermd/cpu-build:latest'
@@ -129,7 +147,7 @@ pipeline {
 
                     steps {
                         unstash "source"
-                        sh "./configure --with-netcdf --with-fftw3 -mpi gnu"
+                        sh "./configure --with-netcdf --with-fftw3 -mpi --buildlibs gnu"
                         sh "make -j4 install"
                         sh "make -e DO_PARALLEL='mpiexec -n 2' check"
                         sh "make -e DO_PARALLEL='mpiexec -n 4' check"
