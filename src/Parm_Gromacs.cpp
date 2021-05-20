@@ -405,6 +405,7 @@ int Parm_Gromacs::ReadParm(FileName const& fname, Topology &TopIn) {
       }
     if (tgtmol == -1) {
       mprinterr("Error: Molecule %s is not defined in gromacs topology.\n", mols_[m].c_str());
+      mprinterr("Error:   Ensure the GMXDATA environment variable is correctly set.\n");
       return 1;
     }
     AtomArray const& Mol = gmx_molecules_[tgtmol].atoms_;
