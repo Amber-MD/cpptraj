@@ -23449,11 +23449,12 @@ energy [<name>] [<mask1>] [out <filename>]
 \end_layout
 
 \begin_layout LyX-Code
-   	[bond] [angle] [dihedral] {[nb14] | [e14] | [v14]}
+   	[bond] [angle] [dihedral] {[nb14]|[e14]|[v14]} {[nonbond]|[elec] [vdw]}
+ 
 \end_layout
 
 \begin_layout LyX-Code
-   	{[nonbond] | [elec] [vdw]} [kinetic [ketype {vel|vv}] [dt <dt>]]
+   	[{nokinetic|kinetic [ketype {vel|vv}] [dt <dt>]}]
 \end_layout
 
 \begin_layout LyX-Code
@@ -23554,6 +23555,51 @@ energy [<name>] [<mask1>] [out <filename>]
 [vdw] Calculate van der Waals energy (Lennard-Jones 6-12 potential).
 \end_layout
 
+\begin_layout Description
+[nokinetic] Do not calculate kinetic energy even if velocity/force information
+ present.
+\end_layout
+
+\begin_layout Description
+[kinetic] Attempt to calculate kinetic energy.
+ Requires force and/or velocity information.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+ketype
+\begin_inset space ~
+\end_inset
+
+{vel|vv} Specify kinetic energy type.
+ If not specified, if velocity and force information use a velocity verlet-type
+ calculation (
+\series bold
+vv
+\series default
+), i.e.
+ assume velocities are a half-step ahead of the forces.
+ If only velocity information is present, calculate from on-step velocities
+ (
+\series bold
+vel
+\series default
+).
+\end_layout
+
+\begin_layout Description
+dt
+\begin_inset space ~
+\end_inset
+
+<dt> Time step for 
+\series bold
+vv
+\series default
+ calculation in ps.
+\end_layout
+
+\end_deeper
 \begin_layout Description
 [etype
 \begin_inset space ~
@@ -23786,6 +23832,10 @@ DataSet Aspects:
 
 \begin_layout Description
 [elec] Electrostatic energy.
+\end_layout
+
+\begin_layout Description
+[kinetic] Kinetic energy.
 \end_layout
 
 \begin_layout Description
