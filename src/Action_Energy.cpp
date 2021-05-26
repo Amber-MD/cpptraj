@@ -23,8 +23,8 @@ Action_Energy::~Action_Energy() {
 
 void Action_Energy::Help() const {
   mprintf("\t[<name>] [<mask1>] [out <filename>]\n"
-          "\t[bond] [angle] [dihedral] {[nb14] | [e14] | [v14]}\n"
-          "\t{[nonbond] | [elec] [vdw]} [kinetic [ketype {vel|vv}] [dt <dt>]]\n"
+          "\t[bond] [angle] [dihedral] {[nb14]|[e14]|[v14]} {[nonbond]|[elec] [vdw]}\n"
+          "\t[{nokinetic|kinetic [ketype {vel|vv}] [dt <dt>]}]\n"
           "\t[ etype { simple |\n"
           "\t          directsum [npoints <N>] |\n"
           "\t          ewald %s\n"
@@ -97,6 +97,14 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
     if (*it) ++nactive;
   // If no terms specified, enabled everything. TODO disable KE?
   if (nactive == 0) termEnabled.assign((int)TOTAL+1, true);
+  // Check if KE should be disabled
+  if (actionArgs.hasKey("nokinetic"))
+    termEnabled[KE] = false;
+  // Re-count the number of active terms if necessary.
+  if (nactive == 0) {
+    for (std::vector<bool>::const_iterator it = termEnabled.begin(); it != termEnabled.end(); ++it)
+      if (*it) ++nactive;
+  }
   // If more than one term enabled ensure total will be calculated.
   if (nactive > 1) termEnabled[TOTAL] = true;
   // If KE enabled get type, time step, etc
