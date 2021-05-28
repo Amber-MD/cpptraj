@@ -28,7 +28,7 @@ void Exec_DataSetCmd::Help(ArgList& argIn) const {
             "    Extract X, Y, or Z component of vector data into new set.\n");
   } else if (argIn.hasKey("cat")) {
     mprintf("  cat <set0> <set1> ... [name <name>] [nooffset]\n"
-            "    Concatenate 2 or more data sets.\n");
+            "    Concatenate 2 or more data sets. Currently only scalar 1D and string sets are supported.\n");
   } else if (argIn.hasKey("make2d")) {
     mprintf("  make2d <1D set> cols <ncols> rows <nrows> [name <name>]\n"
             "    Create new 2D data set from 1D data set, assumes row-major ordering.\n");
@@ -678,37 +678,85 @@ Exec::RetType Exec_DataSetCmd::Filter(CpptrajState& State, ArgList& argIn) {
 Exec::RetType Exec_DataSetCmd::Concatenate(CpptrajState& State, ArgList& argIn) {
   std::string name = argIn.GetStringKey("name");
   bool use_offset = !argIn.hasKey("nooffset");
-  DataSet* ds3 = State.DSL().AddSet( DataSet::XYMESH, name, "CAT" );
-  if (ds3 == 0) return CpptrajState::ERR;
-  DataSet_1D& out = static_cast<DataSet_1D&>( *ds3 );
-  mprintf("\tConcatenating sets into '%s'\n", out.legend());
-  if (use_offset)
-    mprintf("\tX values will be offset.\n");
-  else
-    mprintf("\tX values will not be offset.\n");
+
+  std::vector<DataSet*> setsToCat;
+  enum OutputSetTypeEnum { UNKNOWN = 0, SCALAR_1D, STRING };
+  static const char* OutputSetTypeStr[] = { 0, "scalar 1D", "string" };
+  OutputSetTypeEnum outputSetType = UNKNOWN;
   std::string dsarg = argIn.GetStringNext();
-  double offset = 0.0;
+  
   while (!dsarg.empty()) {
     DataSetList dsl = State.DSL().GetMultipleSets( dsarg );
-    double XY[2];
-    for (DataSetList::const_iterator ds = dsl.begin(); ds != dsl.end(); ++ds)
-    {
-      if ( (*ds)->Group() != DataSet::SCALAR_1D )
-      {
-        mprintf("Warning: '%s': Concatenation only supported for 1D scalar data sets.\n",
-                (*ds)->legend());
-      } else {
-        DataSet_1D const& set = static_cast<DataSet_1D const&>( *(*ds) );
-        mprintf("\t\t'%s'\n", set.legend());
-        for (size_t i = 0; i != set.Size(); i++) {
-          XY[0] = set.Xcrd( i ) + offset;
-          XY[1] = set.Dval( i );
-          out.Add( i, XY ); // NOTE: value of i does not matter for mesh
+    for (DataSetList::const_iterator ds = dsl.begin(); ds != dsl.end(); ++ds) {
+      // Check the type
+      OutputSetTypeEnum currentType = UNKNOWN;
+      if ( (*ds)->Group() == DataSet::SCALAR_1D )
+        currentType = SCALAR_1D;
+      else if ( (*ds)->Type() == DataSet::STRING )
+        currentType = STRING;
+      if (outputSetType == UNKNOWN) {
+        if (currentType == UNKNOWN) {
+          mprinterr("Error: '%s' concatenation only supported for scalar 1D or string sets.\n", (*ds)->legend());
+          return CpptrajState::ERR;
         }
-        if (use_offset) offset = XY[0];
+        outputSetType = currentType;
+      } else {
+        // Type must match
+        if (outputSetType != currentType) {
+          mprinterr("Error: '%s' all sets must be of the same type.\n", (*ds)->legend());
+          return CpptrajState::ERR;
+        }
       }
+      setsToCat.push_back( *ds );
     }
     dsarg = argIn.GetStringNext();
+  } // END loop over data set arguments from argument list
+
+  DataSet* ds3 = 0;
+  if (outputSetType == SCALAR_1D)
+    ds3 = State.DSL().AddSet( DataSet::XYMESH, name, "CAT" );
+  else if (outputSetType == STRING)
+    ds3 = State.DSL().AddSet( DataSet::STRING, name, "CAT" );
+  else {
+    mprinterr("Error: No valid sets to concatenate.\n");
+    return CpptrajState::ERR;
+  }
+  if (ds3 == 0) return CpptrajState::ERR;
+  mprintf("\tConcatenating %zu sets into %s set '%s'\n", setsToCat.size(), OutputSetTypeStr[outputSetType], ds3->legend());
+
+  if (outputSetType == SCALAR_1D) {
+    DataSet_1D& out = static_cast<DataSet_1D&>( *ds3 );
+
+    if (use_offset)
+      mprintf("\tX values will be offset.\n");
+    else
+      mprintf("\tX values will not be offset.\n");
+    double offset = 0.0;
+    double XY[2];
+    for (std::vector<DataSet*>::const_iterator ds = setsToCat.begin(); ds != setsToCat.end(); ++ds)
+    {
+      DataSet_1D const& set = static_cast<DataSet_1D const&>( *(*ds) );
+      mprintf("\t\t'%s'\n", set.legend());
+      for (size_t i = 0; i != set.Size(); i++) {
+        XY[0] = set.Xcrd( i ) + offset;
+        XY[1] = set.Dval( i );
+        out.Add( i, XY ); // NOTE: value of i does not matter for mesh
+      }
+      if (use_offset) offset = XY[0];
+    } // END loop over input 1D scalar sets
+  } else if (outputSetType == STRING) {
+    DataSet_string& out = static_cast<DataSet_string&>( *ds3 );
+    for (std::vector<DataSet*>::const_iterator ds = setsToCat.begin(); ds != setsToCat.end(); ++ds)
+    {
+      DataSet_string const& set = static_cast<DataSet_string const&>( *(*ds) );
+      mprintf("\t\t'%s'\n", set.legend());
+      for (size_t i = 0; i != set.Size(); i++)
+        out.AddElement( set[i] );
+    } // END loop over input string sets
+  } else {
+    // Sanity check
+    mprinterr("Internal Error: Unhandled set type in data set concatenation.\n");
+    return CpptrajState::ERR;
   }
   return CpptrajState::OK;
 }
