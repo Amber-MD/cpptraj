@@ -16,6 +16,9 @@ class Constraints {
     static const char* rattleArgs;
     int InitRattle(ArgList&);
     int SetupConstraints(AtomMask const&, Topology const&);
+    /// Version of rattle that adjusts positions and velocities
+    int Rattle(Frame&, Frame const&) const;
+    /// Version of rattle that adjusts velocities only
     int Rattle2(Frame&) const;
     ShakeType Type()       const { return shakeType_;          }
     int DegreesOfFreedom() const { return degrees_of_freedom_; }
@@ -49,5 +52,7 @@ class Constraints {
     double EPS_;             ///< Hold epsilon / dt
     ShakeType shakeType_;    ///< What bonds constraints being applied to.
     int degrees_of_freedom_; ///< Unconstrained deg. of freedom.
+
+    static const int maxIterations_;      ///< Maximum iterations for rattle loop
 };
 #endif
