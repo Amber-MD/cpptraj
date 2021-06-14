@@ -1788,12 +1788,14 @@ SetupMKL() {
   LIB_STAT[$LLAPACK]='off'
   LIB_FLAG[$LLAPACK]=''
   # If no FFTW, try using MKL
-  if [ "${LIB_STAT[$LFFTW3]}" = 'off' -a "$MKL_FFTW" != 'no' ] ; then
-    MKL_FFTW='yes'
-    LIB_STAT[$LFFTW3]='enabled'
-    LIB_FLAG[$LFFTW3]=''
-    if [ ! -z "$mklroot" ] ; then
-      LIB_INCL[$LBLAS]="-I$mklroot/include/fftw"
+  if [ "$MKL_FFTW" != 'no' ] ; then
+    if [ "${LIB_STAT[$LFFTW3]}" = 'off' -o "${LIB_STAT[$LFFTW3]}" = 'optional' ] ; then
+      MKL_FFTW='yes'
+      LIB_STAT[$LFFTW3]='enabled'
+      LIB_FLAG[$LFFTW3]=''
+      if [ ! -z "$mklroot" ] ; then
+        LIB_INCL[$LBLAS]="-I$mklroot/include/fftw"
+      fi
     fi
   fi
 }
