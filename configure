@@ -292,7 +292,7 @@ LIB_D_ON[$LARPACK]=''
 LIB_DOFF[$LARPACK]='-DNO_ARPACK'
 LIB_TYPE[$LARPACK]='cpp'
 
-LIB_STAT[$LFFTW3]='off'
+LIB_STAT[$LFFTW3]='optional'
 LIB_CKEY[$LFFTW3]='fftw3'
 LIB_HOME[$LFFTW3]=''
 LIB_FLAG[$LFFTW3]='-lfftw3'
@@ -373,6 +373,7 @@ LIB_TYPE[$LOPENMM]='cpp'
 
 for ((i=0; i < $NLIB; i++)) ; do
   LIB_LINK[$i]='dynamic'
+  LIB_DISABLED[$i]='false'
 done
 
 #-------------------------------------------------------------------------------
@@ -418,6 +419,7 @@ CheckLibraryKeys() {
     LKEY="-no"${LIB_CKEY[$i]}
     if [ "$1" = "$LKEY" ] ; then
       LIB_STAT[$i]='off'
+      LIB_DISABLED[$i]='true'
       echo "  ${LIB_CKEY[$i]} disabled."
       return 0
     fi
@@ -837,7 +839,10 @@ EOF
   else
     TestProgram silent "  Checking FFTW3" "$CXX" "$CXXFLAGS ${LIB_INCL[$LFFTW3]}" testp.cpp "${LIB_FLAG[$LFFTW3]}"
     if [ $? -ne 0 ] ; then
-      if [ "${LIB_STAT[$LFFTW3]}" = 'enabled' ] ; then
+      if [ "${LIB_STAT[$LFFTW3]}" = 'optional' ] ; then
+        WrnMsg "FFTW test failed. CPPTRAJ will use the built-in PubFFT routines."
+        LIB_STAT[$LFFTW3]='off'
+      elif [ "${LIB_STAT[$LFFTW3]}" = 'enabled' ] ; then
         # See if there is already a version of FFTW in CPPTRAJHOME
         LIB_STAT[$LFFTW3]='specified'
         LIB_HOME[$LFFTW3]=$CPPTRAJHOME
@@ -1961,10 +1966,11 @@ BasicChecks() {
     #echo "WINDOWS support requested. Implies '-static'."
     #USE_STATIC=1
   fi
+  # Decide what to do about parallel netcdf
   if [ "${LIB_STAT[$LPARANC]}" != 'off' -a $USE_MPI -eq 0 ] ; then
     WrnMsg "Parallel NetCDF enabled but MPI not specified. Assuming '-mpi'."
     USE_MPI=1
-  elif [ $USE_MPI -ne 0 -a "${LIB_STAT[$LPARANC]}" = 'off' ] ; then
+  elif [ $USE_MPI -ne 0 -a "${LIB_STAT[$LPARANC]}" = 'off' -a "${LIB_DISABLED[$LPARANC]}" = 'false' ] ; then
     # If automatically building libs, enabled parallel netcdf for MPI.
     # Otherwise make it optional by specifying 'optional'
     if [ $BUILD_LIBS -eq 1 ] ; then
@@ -1973,7 +1979,6 @@ BasicChecks() {
       # The 'optional' option only works if checks are enabled.
       if [ "$PERFORM_CHECKS" = 'yes' ] ; then
         LIB_STAT[$LPARANC]='optional'
-        echo DEBUG optional
       fi
     fi
   fi
