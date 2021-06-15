@@ -20,15 +20,15 @@ jobs:
           - use_openmp: "yes"
             compiler: "gnu"
             use_mpi: "no"
-            use_cmake: "1"
+            use_cmake: "0"
           - use_openmp: "no"
             compiler: "gnu"
             use_mpi: "yes"
-            use_cmake: "1"
+            use_cmake: "0"
           - use_openmp: "yes"
             compiler: "gnu"
             use_mpi: "yes"
-            use_cmake: "1"
+            use_cmake: "0"
 
     env:
       COMPILER: ${{ matrix.compiler }}
@@ -91,6 +91,9 @@ jobs:
             export PATH=$HOME/bin:$PATH
             export LD_LIBRARY_PATH=$HOME/lib:$PATH
             export DO_PARALLEL="mpirun -n 2"
+            if [ $USE_OPENMP = "yes" ]; then
+              export OMP_NUM_THREADS=1
+            fi
             if [ "$USE_CMAKE" = "1" ]; then
               export BUILD_FLAGS="-DMPI=TRUE ${BUILD_FLAGS}"
             else
