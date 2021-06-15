@@ -90,6 +90,7 @@ jobs:
             cd ..
             export PATH=$HOME/bin:$PATH
             export LD_LIBRARY_PATH=$HOME/lib:$PATH
+            export DO_PARALLEL="mpirun -n 2"
             if [ "$USE_CMAKE" = "1" ]; then
               export BUILD_FLAGS="-DMPI=TRUE ${BUILD_FLAGS}"
             else
