@@ -46,7 +46,6 @@ jobs:
           sudo apt-get install libblas-dev liblapack-dev
           sudo apt-get install libfftw3-dev
           sudo apt-get install clang
-          sudo apt-get install openmpi-bin openmpi-common libopenmpi-dev
           sudo apt-get install cmake-data cmake
 
       - name: Checkout source code
@@ -82,6 +81,15 @@ jobs:
           fi
 
           if [ $USE_MPI = "yes" ]; then
+            curl -OL http://www.mpich.org/static/downloads/3.4.2/mpich-3.4.2.tar.gz
+            tar -zxf mpich-3.4.2.tar.gz
+            cd mpich-3.4.2
+            ./configure --with-device=ch3 --prefix=$HOME
+            make -j2
+            make install
+            cd ..
+            export PATH=$HOME/bin:$PATH
+            export LD_LIBRARY_PATH=$HOME/lib:$PATH
             if [ "$USE_CMAKE" = "1" ]; then
               export BUILD_FLAGS="-DMPI=TRUE ${BUILD_FLAGS}"
             else
