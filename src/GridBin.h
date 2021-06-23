@@ -27,6 +27,10 @@ class GridBin {
     //virtual GridBin* Copy() const = 0;
     /// \return Grid origin.
     Vec3 const& GridOrigin() const { return OXYZ_; }
+
+    // Set up routines.
+    /// Set up for orthogonal X-aligned grid with given origin and spacing; calculate maximum.
+    void Setup_O_D(size_t, size_t, size_t, Vec3 const&, Vec3 const&);
   protected:
     Vec3 OXYZ_;           ///< Grid origin.
     double dx_, dy_, dz_; ///< Grid spacing (Ang., Cartesian, orthogonal).
@@ -119,4 +123,36 @@ Vec3 GridBin::Center(long int i, long int j, long int k) const
   }
 }
 
+/** Set up for orthogonal X-aligned grid with given origin and spacing; calculate maximum. */
+void GridBin::Setup_O_D(size_t nx, size_t ny, size_t nz,
+                   Vec3 const& oxyzIn, Vec3 const& dxyz)
+{
+  OXYZ_ = oxyzIn;
+  dx_ = dxyz[0];
+  dy_ = dxyz[1];
+  dz_ = dxyz[2];
+  mx_ = OXYZ_[0] + ((double)nx * dx_);
+  my_ = OXYZ_[1] + ((double)ny * dy_);
+  mz_ = OXYZ_[2] + ((double)nz * dz_);
+  nx_ = (double)nx;
+  ny_ = (double)ny;
+  nz_ = (double)nz;
+  voxelvolume_ = dx_ * dy_ * dz_;
+  // Set orthogonal unit cell vectors. TODO should these be w.r.t. the offset?
+  double ucell[9];
+  ucell[0] = (double)nx * dx_;
+  ucell[1] = 0;
+  ucell[2] = 0;
+
+  ucell[3] = 0;
+  ucell[4] = (double)ny * dy_;
+  ucell[5] = 0;
+
+  ucell[6] = 0;
+  ucell[7] = 0;
+  ucell[8] = (double)nz * dz_;
+
+  box_.SetupFromUcell(ucell);
+  box_.PrintDebug("GridBin::Setup_O_D");
+}
 #endif
