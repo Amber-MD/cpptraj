@@ -7,12 +7,16 @@ class Box;
 // TODO: Use DataSet Dims?
 class DataSet_3D : public DataSet {
   public:
-    DataSet_3D() : gridBin_(0) {}
+    /// CONSTRUCTOR
+    DataSet_3D();
     virtual ~DataSet_3D(); // Virtual since this class is inherited.
+    /// COPY CONSTRUCTOR
     DataSet_3D(DataSet_3D const&);
+    /// ASSIGNMENT
     DataSet_3D& operator=(DataSet_3D const&);
+    /// CONSTRUCTOR - type, format
     DataSet_3D(DataSet::DataType tIn, TextFormat const& fIn) :
-      DataSet(tIn, GRID_3D, fIn, 3), gridBin_(0) {}
+      DataSet(tIn, GRID_3D, fIn, 3) {}
     // TODO enable append?
     int Append(DataSet*) { return 1; }
     int Allocate(SizeArray const&) { return 1; } // TODO enable?
@@ -61,7 +65,7 @@ class DataSet_3D : public DataSet {
     /// Print grid info.
     void GridInfo() const;
     // -------------------------------------------
-    GridBin const& Bin() const { return *gridBin_; }
+    GridBin const& Bin() const { return gridBin_; }
   private:
     /// Check if grid dimension is even; if not, increment it by 1.
     static void CheckEven(size_t&, char);
@@ -69,6 +73,6 @@ class DataSet_3D : public DataSet {
     // TODO: Make public if grids will be used for other than binning.
     virtual int Allocate3D(size_t, size_t, size_t) = 0;
 
-    GridBin* gridBin_; ///< Used to calculate bins/coords depending on grid type.
+    GridBin gridBin_; ///< Used to calculate bins/coords depending on grid type.
 };
 #endif

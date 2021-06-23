@@ -2,21 +2,24 @@
 #include "DataSet_3D.h"
 #include "CpptrajStdio.h"
 
-// DESTRUCTOR
-DataSet_3D::~DataSet_3D() { if (gridBin_ != 0) delete gridBin_; }
+/** CONSTRUCTOR */
+DataSet_3D::DataSet_3D() {}
 
-// COPY CONSTRUCTOR
-DataSet_3D::DataSet_3D(DataSet_3D const& rhs) : DataSet(rhs), gridBin_(0) {
-  if (rhs.gridBin_ != 0) gridBin_ = rhs.gridBin_->Copy();
-}
+/** DESTRUCTOR */
+DataSet_3D::~DataSet_3D() {}
 
-// ASSIGNMENT
-DataSet_3D& DataSet_3D::operator=(DataSet_3D const& rhs) {
+/** COPY CONSTRUCTOR */
+DataSet_3D::DataSet_3D(DataSet_3D const& rhs) :
+  DataSet(rhs),
+  gridBin_(rhs.gridBin_)
+{}
+
+/** ASSIGNMENT */
+DataSet_3D& DataSet_3D::operator=(DataSet_3D const& rhs)
+{
   if (this == &rhs) return *this;
   DataSet::operator=(rhs);
-  if (gridBin_ != 0) delete gridBin_;
-  gridBin_ = 0;
-  if (rhs.gridBin_ != 0) gridBin_ = rhs.gridBin_->Copy();
+  gridBin_ = rhs.gridBin_;
   return *this;
 }
 
@@ -28,11 +31,8 @@ int DataSet_3D::Allocate_N_O_Box(size_t nx, size_t ny, size_t nz,
     mprinterr("Error: One or more grid sizes are 0: %zu %zu %zu\n", nx, ny, nz);
     return 1;
   }
-  if (gridBin_ != 0) delete gridBin_;
-  GridBin_Nonortho* gb = new GridBin_Nonortho();
   // Set origin and unit cell params.
-  gb->Setup_O_Box(nx, ny, nz, oxyz, boxIn);
-  gridBin_ = (GridBin*)gb;
+  gridBin_.Setup_O_Box(nx, ny, nz, oxyz, boxIn);
   return Allocate3D(nx, ny, nz);
 }
 
@@ -44,11 +44,8 @@ int DataSet_3D::Allocate_N_O_D(size_t nx, size_t ny, size_t nz,
     mprinterr("Error: One or more grid sizes are 0: %zu %zu %zu\n", nx, ny, nz);
     return 1;
   }
-  if (gridBin_ != 0) delete gridBin_;
-  GridBin_Ortho* gb = new GridBin_Ortho();
   // Set origin and spacing, calculate maximum (for binning).
-  gb->Setup_O_D(nx, ny, nz, oxyz, dxyz);
-  gridBin_ = (GridBin*)gb;
+  gridBin_.Setup_O_D(nx, ny, nz, oxyz, dxyz);
   return Allocate3D(nx, ny, nz);
 }
 
@@ -88,24 +85,21 @@ int DataSet_3D::Allocate_X_C_D(Vec3 const& sizes, Vec3 const& center, Vec3 const
 
 // DataSet_3D::GridInfo()
 void DataSet_3D::GridInfo() const {
-  if (gridBin_ == 0) return;
-  Vec3 const& oxyz = gridBin_->GridOrigin();
+  Vec3 const& oxyz = gridBin_.GridOrigin();
   mprintf("\t\t-=Grid Dims=- %8s %8s %8s\n", "X", "Y", "Z");
   mprintf("\t\t        Bins: %8zu %8zu %8zu\n", NX(), NY(), NZ());
   mprintf("\t\t      Origin: %8g %8g %8g\n", oxyz[0], oxyz[1], oxyz[2]);
-  if (gridBin_->IsOrthoGrid()) {
-    GridBin_Ortho const& gb = static_cast<GridBin_Ortho const&>( *gridBin_ );
-    mprintf("\t\t     Spacing: %8g %8g %8g\n", gb.DX(), gb.DY(), gb.DZ());
+  //if (gridBin_.IsOrthoGrid()) {
+    mprintf("\t\t     Spacing: %8g %8g %8g\n", gridBin_.DX(), gridBin_.DY(), gridBin_.DZ());
     mprintf("\t\t      Center: %8g %8g %8g\n",
-            oxyz[0] + (NX()/2)*gb.DX(),
-            oxyz[1] + (NY()/2)*gb.DY(),
-            oxyz[2] + (NZ()/2)*gb.DZ());
+            oxyz[0] + (NX()/2)*gridBin_.DX(),
+            oxyz[1] + (NY()/2)*gridBin_.DY(),
+            oxyz[2] + (NZ()/2)*gridBin_.DZ());
     //mprintf("\tGrid max    : %8.3f %8.3f %8.3f\n", grid.MX(), grid.MY(), grid.MZ());
-  } else {
-    Box box;
-    box.SetupFromUcell(gridBin_->Ucell());
+  //} else {
+    Box const& box = gridBin_.GridBox();
     mprintf("\t\tBox: %s ABC={%g %g %g} abg={%g %g %g}\n", box.CellShapeName(),
             box.Param(Box::X), box.Param(Box::Y), box.Param(Box::Z),
             box.Param(Box::ALPHA), box.Param(Box::BETA), box.Param(Box::GAMMA));
-  }
+  //}
 }
