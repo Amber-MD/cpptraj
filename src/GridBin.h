@@ -11,36 +11,36 @@ class GridBin {
                 nx_(0), ny_(0), nz_(0), voxelvolume_(0)
                 {}
     /// \return true if given coordinates are on grid; set corresponding bin indices.
-    bool Calc(double, double, double, size_t&, size_t&, size_t&) const;
+    inline bool Calc(double, double, double, size_t&, size_t&, size_t&) const;
     /// Given coordinates, set corresponding bin indices; no bounds check.
-    void Indices(double, double, double, long int&, long int&, long int&) const;
+    inline void Indices(double, double, double, long int&, long int&, long int&) const;
     /// \return coordinates of bin for given indices; no bound check.
-    Vec3 Corner(long int, long int, long int) const;
+    inline Vec3 Corner(long int, long int, long int) const;
     /// \return coordinates of bin center for given indices; no bounds check.
-    Vec3 Center(long int, long int, long int) const;
+    inline Vec3 Center(long int, long int, long int) const;
     /// \return Grid unit cell matrix. TODO just use GridBox?
-    Matrix_3x3 const& Ucell() const { return box_.UnitCell(); }
+    inline Matrix_3x3 const& Ucell() const { return box_.UnitCell(); }
     /// \return Grid box
-    Box const& GridBox() const { return box_; }
+    inline Box const& GridBox() const { return box_; }
     /// \return true if Grid is X-aligned and orthogonal. TODO this may not be necessary
-    bool IsOrthoGrid() const { return box_.Is_X_Aligned_Ortho(); }
+    inline bool IsOrthoGrid() const { return box_.Is_X_Aligned_Ortho(); }
     /// \return Voxel volume.
-    double VoxelVolume() const { return voxelvolume_; }
+    inline double VoxelVolume() const { return voxelvolume_; }
     /// \return a copy of this GridBin.
     //virtual GridBin* Copy() const = 0;
     /// \return Grid origin.
-    Vec3 const& GridOrigin() const { return OXYZ_; }
+    inline Vec3 const& GridOrigin() const { return OXYZ_; }
 
     // TODO are these spacing routines needed?
-    double DX() const { return dx_; }
-    double DY() const { return dy_; }
-    double DZ() const { return dz_; }
+    inline double DX() const { return dx_; }
+    inline double DY() const { return dy_; }
+    inline double DZ() const { return dz_; }
 
     // Set up routines.
     /// Set up for orthogonal X-aligned grid with given origin and spacing; calculate maximum.
-    void Setup_O_D(size_t, size_t, size_t, Vec3 const&, Vec3 const&);
+    inline void Setup_O_D(size_t, size_t, size_t, Vec3 const&, Vec3 const&);
     /// Set up for grid with given bins, origin, and box.
-    void Setup_O_Box(size_t, size_t, size_t, Vec3 const&, Box const&);
+    inline void Setup_O_Box(size_t, size_t, size_t, Vec3 const&, Box const&);
   protected:
     Vec3 OXYZ_;           ///< Grid origin.
     double dx_, dy_, dz_; ///< Grid spacing (Ang., Cartesian, orthogonal).
