@@ -176,6 +176,7 @@ void GridBin::Setup_O_Box(size_t nxIn, size_t nyIn, size_t nzIn,
   nz_ = (double)nzIn;
   OXYZ_ = oxyzIn;
   box_ = boxIn;
+  box_.PrintDebug("GridBin::Setup_O_Box");
   // Get the 3 individual unit cell vector lengths
   double l_Avec = box_.UnitCell().Row1().Length();
   double l_Bvec = box_.UnitCell().Row2().Length();
