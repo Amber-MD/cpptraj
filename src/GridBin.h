@@ -1,5 +1,6 @@
 #ifndef INC_GRIDBIN_H
 #define INC_GRIDBIN_H
+#include <cstddef> // size_t
 #include "Box.h"
 /// Class used to perform binning on/get voxel coords of 3D grids.
 class GridBin {
@@ -31,6 +32,8 @@ class GridBin {
     // Set up routines.
     /// Set up for orthogonal X-aligned grid with given origin and spacing; calculate maximum.
     void Setup_O_D(size_t, size_t, size_t, Vec3 const&, Vec3 const&);
+    /// Set up for grid with given bins, origin, and box.
+    void Setup_O_Box(size_t, size_t, size_t, Vec3 const&, Box const&);
   protected:
     Vec3 OXYZ_;           ///< Grid origin.
     double dx_, dy_, dz_; ///< Grid spacing (Ang., Cartesian, orthogonal).
@@ -155,4 +158,31 @@ void GridBin::Setup_O_D(size_t nx, size_t ny, size_t nz,
   box_.SetupFromUcell(ucell);
   box_.PrintDebug("GridBin::Setup_O_D");
 }
+
+
+/** Set up for grid with given bins, origin, and box.*/
+void GridBin::Setup_O_Box(size_t nxIn, size_t nyIn, size_t nzIn,
+                     Vec3 const& oxyzIn, Box const& boxIn)
+{
+  nx_ = (double)nxIn;
+  ny_ = (double)nyIn;
+  nz_ = (double)nzIn;
+  OXYZ_ = oxyzIn;
+  box_ = boxIn;
+  // Get the 3 individual unit cell vector lengths
+  double l_Avec = box_.UnitCell().Row1().Length();
+  double l_Bvec = box_.UnitCell().Row2().Length();
+  double l_Cvec = box_.UnitCell().Row3().Length();
+  // Get spacing from vector length over bins
+  dx_ = l_Avec / nx_;
+  dy_ = l_Bvec / ny_;
+  dz_ = l_Cvec / nz_;
+  // Get max from origin plus vector length
+  mx_ = OXYZ_[0] + l_Avec;
+  my_ = OXYZ_[1] + l_Bvec;
+  mz_ = OXYZ_[2] + l_Cvec;
+  // Get voxel volume from total grid volume over number of bins.
+  voxelvolume_ = boxIn.CellVolume() / (nx_ * ny_ * nz_);
+}
+
 #endif
