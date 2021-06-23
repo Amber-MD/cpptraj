@@ -11,13 +11,13 @@ class GridBin {
                 {}
     /// \return true if given coordinates are on grid; set corresponding bin indices.
     bool Calc(double, double, double, size_t&, size_t&, size_t&) const;
-
     /// Given coordinates, set corresponding bin indices; no bounds check.
-    virtual void Indices(double, double, double, long int&, long int&, long int&) const = 0;
+    void Indices(double, double, double, long int&, long int&, long int&) const;
     /// \return coordinates of bin for given indices; no bound check.
-    virtual Vec3 Corner(long int, long int, long int) const = 0;
+    Vec3 Corner(long int, long int, long int) const;
     /// \return coordinates of bin center for given indices; no bounds check.
-    virtual Vec3 Center(long int, long int, long int) const = 0;
+    Vec3 Center(long int, long int, long int) const;
+
     /// \return unit cell matrix. // TODO: Make const&?
     virtual Matrix_3x3 Ucell() const = 0;
     /// \return true if GridBin type is orthogonal.
@@ -68,6 +68,56 @@ bool GridBin::Calc(double x, double y, double z, size_t& i, size_t& j, size_t& k
     }
   }
   return false;
+}
+
+/** Given coordinates, set corresponding bin indices; no bounds check. */
+void GridBin::Indices(double x, double y, double z, long int& i, long int& j, long int& k) const
+{
+  if (box_.Is_X_Aligned_Ortho()) {
+    // X-aligned and orthogonal
+    i = (long int)((x-OXYZ_[0]) / dx_);
+    j = (long int)((y-OXYZ_[1]) / dy_);
+    k = (long int)((z-OXYZ_[2]) / dz_);
+  } else {
+    // Not X-aligned or non-orthogonal
+    Vec3 frac = box_.FracCell() * Vec3(x - OXYZ_[0], y - OXYZ_[1], z - OXYZ_[2]);
+    i = (long int)(frac[0] * nx_);
+    j = (long int)(frac[1] * ny_);
+    k = (long int)(frac[2] * nz_);
+  }
+}
+
+
+/** \return coordinates of bin for given indices; no bound check. */
+Vec3 GridBin::Corner(long int i, long int j, long int k) const
+{
+  if (box_.Is_X_Aligned_Ortho()) {
+    // X-aligned and orthogonal
+    return Vec3((double)i*dx_+OXYZ_[0],
+                (double)j*dy_+OXYZ_[1],
+                (double)k*dz_+OXYZ_[2]);
+  } else {
+    // Not X-aligned or non-orthogonal
+    Vec3 frac( (double)i / nx_, (double)j / ny_, (double)k / nz_ );
+    return box_.UnitCell().TransposeMult( frac ) + OXYZ_;
+  }
+}
+
+/** \return coordinates of bin center for given indices; no bounds check. */
+Vec3 GridBin::Center(long int i, long int j, long int k) const
+{
+  if (box_.Is_X_Aligned_Ortho()) {
+    // X-aligned and orthogonal
+    return Vec3((double)i*dx_+OXYZ_[0]+0.5*dx_,
+                (double)j*dy_+OXYZ_[1]+0.5*dy_,
+                (double)k*dz_+OXYZ_[2]+0.5*dz_);
+  } else {
+    // Not X-aligned or non-orthogonal
+    Vec3 frac_half((1.0 + 2.0 * (double)i) / (2.0 * nx_),  //(0.5 * (1.0 / nx_)) + ((double)i / nx_),
+                   (1.0 + 2.0 * (double)j) / (2.0 * ny_), 
+                   (1.0 + 2.0 * (double)k) / (2.0 * nz_));
+    return box_.UnitCell().TransposeMult( frac_half ) + OXYZ_;
+  }
 }
 
 #endif
