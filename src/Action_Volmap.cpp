@@ -214,7 +214,7 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
       mprinterr("Error: Currently only works with orthogonal grids.\n");
       return Action::ERR;
     }
-    GridBin_Ortho const& gbo = static_cast<GridBin_Ortho const&>( grid_->Bin() );
+    GridBin const& gbo = static_cast<GridBin const&>( grid_->Bin() );
     dx_ = gbo.DX();
     dy_ = gbo.DY();
     dz_ = gbo.DZ();
