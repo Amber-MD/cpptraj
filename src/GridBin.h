@@ -17,15 +17,14 @@ class GridBin {
     Vec3 Corner(long int, long int, long int) const;
     /// \return coordinates of bin center for given indices; no bounds check.
     Vec3 Center(long int, long int, long int) const;
-
-    /// \return unit cell matrix. // TODO: Make const&?
-    virtual Matrix_3x3 Ucell() const = 0;
-    /// \return true if GridBin type is orthogonal.
-    virtual bool IsOrthoGrid() const = 0;
+    /// \return unit cell matrix.
+    Matrix_3x3 const& Ucell() const { return box_.UnitCell(); }
+    /// \return true if Grid is X-aligned and orthogonal.
+    bool IsOrthoGrid() const { return box_.Is_X_Aligned_Ortho(); }
     /// \return Voxel volume.
-    virtual double VoxelVolume() const = 0;
+    double VoxelVolume() const { return voxelvolume_; }
     /// \return a copy of this GridBin.
-    virtual GridBin* Copy() const = 0;
+    //virtual GridBin* Copy() const = 0;
     /// \return Grid origin.
     Vec3 const& GridOrigin() const { return OXYZ_; }
   protected:
