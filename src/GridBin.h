@@ -47,6 +47,10 @@ class GridBin {
     inline bool Calc_nonortho(double, double, double, size_t&, size_t&, size_t&) const;
     inline void Indices_ortho(double, double, double, long int&, long int&, long int&) const;
     inline void Indices_nonortho(double, double, double, long int&, long int&, long int&) const;
+    inline Vec3 Corner_ortho(long int, long int, long int) const;
+    inline Vec3 Corner_nonortho(long int, long int, long int) const;
+    inline Vec3 Center_ortho(long int, long int, long int) const;
+    inline Vec3 Center_nonortho(long int, long int, long int) const;
     inline void SetupInternalPointers();
 
     Vec3 OXYZ_;           ///< Grid origin.
@@ -55,9 +59,14 @@ class GridBin {
     double nx_, ny_, nz_; ///< Number of bins in double precision (nonortho).
     double voxelvolume_;  ///< Volume of a single voxel (Ang^3).
     Box box_;             ///< Contain grid unit cell vectors, frac. vectors, volume.
-
+    /// Internal pointer to the correct Calc routine
     bool (GridBin::*CalcPtr_)(double, double, double, size_t&, size_t&, size_t&) const;
+    /// Internal pointer to the correct Indices routine
     void (GridBin::*IndicesPtr_)(double, double, double, long int&, long int&, long int&) const;
+    /// Internal pointer to the correct Corner routine
+    Vec3 (GridBin::*CornerPtr_)(long int, long int, long int) const;
+    /// Internal pointer to the correct Center routine
+    Vec3 (GridBin::*CenterPtr_)(long int, long int, long int) const;
 };
 // -----------------------------------------------------------------------------
 
@@ -70,6 +79,18 @@ bool GridBin::Calc(double x, double y, double z, size_t& i, size_t& j, size_t& k
 void GridBin::Indices(double x, double y, double z, long int& i, long int& j, long int& k) const
 {
   ((*this).*(IndicesPtr_))(x, y, z, i, j, k);
+}
+
+/** Interface to the Corner routine appropriate for the grid type. */
+Vec3 GridBin::Corner(long int i, long int j, long int k) const
+{
+  return ((*this).*(CornerPtr_))(i, j, k);
+}
+
+/** Interface to the Center routine appropriate for the grid type. */
+Vec3 GridBin::Center(long int i, long int j, long int k) const
+{
+  return ((*this).*(CenterPtr_))(i, j, k);
 }
 
 /** \return true if given coordinates are on grid; set corresponding bin indices. */
@@ -135,35 +156,45 @@ void GridBin::Indices_nonortho(double x, double y, double z, long int& i, long i
 
 
 /** \return coordinates of bin for given indices; no bound check. */
-Vec3 GridBin::Corner(long int i, long int j, long int k) const
+Vec3 GridBin::Corner_ortho(long int i, long int j, long int k) const
 {
-  if (box_.Is_X_Aligned_Ortho()) {
+  //if (box_.Is_X_Aligned_Ortho()) {
     // X-aligned and orthogonal
     return Vec3((double)i*dx_+OXYZ_[0],
                 (double)j*dy_+OXYZ_[1],
                 (double)k*dz_+OXYZ_[2]);
-  } else {
+  //} else {
+}
+
+/** \return coordinates of bin for given indices; no bound check. */
+Vec3 GridBin::Corner_nonortho(long int i, long int j, long int k) const
+{
     // Not X-aligned or non-orthogonal
     Vec3 frac( (double)i / nx_, (double)j / ny_, (double)k / nz_ );
     return box_.UnitCell().TransposeMult( frac ) + OXYZ_;
-  }
+  //}
 }
 
 /** \return coordinates of bin center for given indices; no bounds check. */
-Vec3 GridBin::Center(long int i, long int j, long int k) const
+Vec3 GridBin::Center_ortho(long int i, long int j, long int k) const
 {
-  if (box_.Is_X_Aligned_Ortho()) {
+  //if (box_.Is_X_Aligned_Ortho()) {
     // X-aligned and orthogonal
     return Vec3((double)i*dx_+OXYZ_[0]+0.5*dx_,
                 (double)j*dy_+OXYZ_[1]+0.5*dy_,
                 (double)k*dz_+OXYZ_[2]+0.5*dz_);
-  } else {
+  //} else {
+}
+
+/** \return coordinates of bin center for given indices; no bounds check. */
+Vec3 GridBin::Center_nonortho(long int i, long int j, long int k) const
+{
     // Not X-aligned or non-orthogonal
     Vec3 frac_half((1.0 + 2.0 * (double)i) / (2.0 * nx_),  //(0.5 * (1.0 / nx_)) + ((double)i / nx_),
                    (1.0 + 2.0 * (double)j) / (2.0 * ny_), 
                    (1.0 + 2.0 * (double)k) / (2.0 * nz_));
     return box_.UnitCell().TransposeMult( frac_half ) + OXYZ_;
-  }
+  //}
 }
 
 /** Set up function internal pointers. */
@@ -171,9 +202,13 @@ void GridBin::SetupInternalPointers() {
   if (box_.Is_X_Aligned_Ortho()) {
     CalcPtr_ = &GridBin::Calc_ortho;
     IndicesPtr_ = &GridBin::Indices_ortho;
+    CornerPtr_ = &GridBin::Corner_ortho;
+    CenterPtr_ = &GridBin::Center_ortho;
   } else {
     CalcPtr_ = &GridBin::Calc_nonortho;
     IndicesPtr_ = &GridBin::Indices_nonortho;
+    CornerPtr_ = &GridBin::Corner_nonortho;
+    CenterPtr_ = &GridBin::Center_nonortho;
   }
 }
 
