@@ -42,20 +42,40 @@ class GridBin {
     inline void Setup_O_D(size_t, size_t, size_t, Vec3 const&, Vec3 const&);
     /// Set up for grid with given bins, origin, and box.
     inline void Setup_O_Box(size_t, size_t, size_t, Vec3 const&, Box const&);
-  protected:
+  private:
+    inline bool Calc_ortho(double, double, double, size_t&, size_t&, size_t&) const;
+    inline bool Calc_nonortho(double, double, double, size_t&, size_t&, size_t&) const;
+    inline void Indices_ortho(double, double, double, long int&, long int&, long int&) const;
+    inline void Indices_nonortho(double, double, double, long int&, long int&, long int&) const;
+    inline void SetupInternalPointers();
+
     Vec3 OXYZ_;           ///< Grid origin.
     double dx_, dy_, dz_; ///< Grid spacing (Ang., Cartesian, orthogonal).
     double mx_, my_, mz_; ///< Grid max (Ang., Cartesian, orthogonal).
     double nx_, ny_, nz_; ///< Number of bins in double precision (nonortho).
     double voxelvolume_;  ///< Volume of a single voxel (Ang^3).
     Box box_;             ///< Contain grid unit cell vectors, frac. vectors, volume.
+
+    bool (GridBin::*CalcPtr_)(double, double, double, size_t&, size_t&, size_t&) const;
+    void (GridBin::*IndicesPtr_)(double, double, double, long int&, long int&, long int&) const;
 };
 // -----------------------------------------------------------------------------
 
-/** \return true if given coordinates are on grid; set corresponding bin indices. */
-bool GridBin::Calc(double x, double y, double z, size_t& i, size_t& j, size_t& k) const
+/** Interface to the Calc routine appropriate for the grid type. */
+bool GridBin::Calc(double x, double y, double z, size_t& i, size_t& j, size_t& k) const {
+  return ((*this).*(CalcPtr_))(x, y, z, i, j, k);
+}
+
+/** Interface to the Indices routine appropriate for the grid type. */
+void GridBin::Indices(double x, double y, double z, long int& i, long int& j, long int& k) const
 {
-  if (box_.Is_X_Aligned_Ortho()) {
+  ((*this).*(IndicesPtr_))(x, y, z, i, j, k);
+}
+
+/** \return true if given coordinates are on grid; set corresponding bin indices. */
+bool GridBin::Calc_ortho(double x, double y, double z, size_t& i, size_t& j, size_t& k) const
+{
+  //if (box_.Is_X_Aligned_Ortho()) {
     //mprintf("DEBUG: X-aligned Calc\n");
     // X-aligned and orthogonal
     if (x >= OXYZ_[0] && x < mx_) { // X
@@ -68,7 +88,13 @@ bool GridBin::Calc(double x, double y, double z, size_t& i, size_t& j, size_t& k
         }
       }
     }
-  } else {
+  //} else {
+  return false;
+}
+
+/** \return true if given coordinates are on grid; set corresponding bin indices. */
+bool GridBin::Calc_nonortho(double x, double y, double z, size_t& i, size_t& j, size_t& k) const
+{
     // Not X-aligned or non-orthogonal
     Vec3 frac = box_.FracCell() * Vec3(x - OXYZ_[0], y - OXYZ_[1], z - OXYZ_[2]);
     if (frac[0] >= 0.0 && frac[0] < 1.0) {
@@ -81,25 +107,30 @@ bool GridBin::Calc(double x, double y, double z, size_t& i, size_t& j, size_t& k
         }
       }
     }
-  }
+  //}
   return false;
 }
 
 /** Given coordinates, set corresponding bin indices; no bounds check. */
-void GridBin::Indices(double x, double y, double z, long int& i, long int& j, long int& k) const
+void GridBin::Indices_ortho(double x, double y, double z, long int& i, long int& j, long int& k) const
 {
-  if (box_.Is_X_Aligned_Ortho()) {
+  //if (box_.Is_X_Aligned_Ortho()) {
     // X-aligned and orthogonal
     i = (long int)((x-OXYZ_[0]) / dx_);
     j = (long int)((y-OXYZ_[1]) / dy_);
     k = (long int)((z-OXYZ_[2]) / dz_);
-  } else {
+  //} else {
+}
+
+/** Given coordinates, set corresponding bin indices; no bounds check. */
+void GridBin::Indices_nonortho(double x, double y, double z, long int& i, long int& j, long int& k) const
+{
     // Not X-aligned or non-orthogonal
     Vec3 frac = box_.FracCell() * Vec3(x - OXYZ_[0], y - OXYZ_[1], z - OXYZ_[2]);
     i = (long int)(frac[0] * nx_);
     j = (long int)(frac[1] * ny_);
     k = (long int)(frac[2] * nz_);
-  }
+  //}
 }
 
 
@@ -135,6 +166,17 @@ Vec3 GridBin::Center(long int i, long int j, long int k) const
   }
 }
 
+/** Set up function internal pointers. */
+void GridBin::SetupInternalPointers() {
+  if (box_.Is_X_Aligned_Ortho()) {
+    CalcPtr_ = &GridBin::Calc_ortho;
+    IndicesPtr_ = &GridBin::Indices_ortho;
+  } else {
+    CalcPtr_ = &GridBin::Calc_nonortho;
+    IndicesPtr_ = &GridBin::Indices_nonortho;
+  }
+}
+
 /** Set up for orthogonal X-aligned grid with given origin and spacing; calculate maximum. */
 void GridBin::Setup_O_D(size_t nx, size_t ny, size_t nz,
                    Vec3 const& oxyzIn, Vec3 const& dxyz)
@@ -166,6 +208,7 @@ void GridBin::Setup_O_D(size_t nx, size_t ny, size_t nz,
 
   box_.SetupFromUcell(ucell);
   box_.PrintDebug("GridBin::Setup_O_D");
+  SetupInternalPointers();
 }
 
 
@@ -193,6 +236,7 @@ void GridBin::Setup_O_Box(size_t nxIn, size_t nyIn, size_t nzIn,
   mz_ = OXYZ_[2] + l_Cvec;
   // Get voxel volume from total grid volume over number of bins.
   voxelvolume_ = boxIn.CellVolume() / (nx_ * ny_ * nz_);
+  SetupInternalPointers();
 }
 
 #endif
