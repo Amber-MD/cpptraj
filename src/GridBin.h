@@ -2,6 +2,7 @@
 #define INC_GRIDBIN_H
 #include <cstddef> // size_t
 #include "Box.h"
+//#inc lude "CpptrajStdio.h" // DEBUG
 /// Class used to perform binning on/get voxel coords of 3D grids.
 class GridBin {
   public:
@@ -55,6 +56,7 @@ class GridBin {
 bool GridBin::Calc(double x, double y, double z, size_t& i, size_t& j, size_t& k) const
 {
   if (box_.Is_X_Aligned_Ortho()) {
+    //mprintf("DEBUG: X-aligned Calc\n");
     // X-aligned and orthogonal
     if (x >= OXYZ_[0] && x < mx_) { // X
       if (y >= OXYZ_[1] && y < my_) { // Y
