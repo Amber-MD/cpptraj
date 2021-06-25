@@ -485,11 +485,21 @@ Action::RetType Action_Vector::DoAction(int frameNum, ActionFrame& frm) {
     case PRINCIPAL_Y :
     case PRINCIPAL_Z : Principal(frm.Frm()); break;
     case CORRPLANE   : CorrPlane(frm.Frm()); break;
-    case BOX         : BoxLengths( frm.Frm().BoxCrd() ); break;
+    case BOX         :
+      if (gridSet_ != 0)
+        BoxLengths( gridSet_->Bin().GridBox() );
+      else
+        BoxLengths( frm.Frm().BoxCrd() );
+      break;
     case BOX_X       : 
     case BOX_Y       : 
     case BOX_Z       : 
-    case BOX_CTR     : UnitCell( frm.Frm().BoxCrd() ); break;
+    case BOX_CTR     :
+      if (gridSet_ != 0)
+        UnitCell( gridSet_->Bin().GridBox() );
+      else
+        UnitCell( frm.Frm().BoxCrd() );
+      break;
     case MINIMAGE    : MinImage( frm.Frm() ); break; 
     default          : return Action::ERR; // NO_OP
   } // END switch over vectorMode
