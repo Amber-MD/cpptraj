@@ -22,12 +22,12 @@ Action_Vector::Action_Vector() :
 // Action_Vector::Help()
 void Action_Vector::Help() const {
   mprintf("\t[<name>] <Type> [out <filename> [ptrajoutput]] [<mask1>] [<mask2>]\n"
-          "\t[magnitude] [ired]\n"
+          "\t[magnitude] [ired] [gridset <grid>]\n"
           "\t<Type> = { mask     | minimage  | dipole | center   | corrplane | \n"
           "\t           box      | boxcenter | ucellx | ucelly   | ucellz    | \n"
           "\t           momentum | principal [x|y|z]  | velocity | force       }\n" 
-          "  Calculate the specified coordinate vector.\n"
-          "    mask: (Default) Vector from <mask1> to <mask2>.\n"
+          "  Calculate the vector of specified <Type>:\n"
+          "    mask             : (Default) Vector from <mask1> to <mask2>.\n"
           "    minimage         : Store the minimum image vector between atoms in <mask1> and <mask2>.\n"
           "    dipole           : Dipole and center of mass of the atoms specified in <mask1>\n"
           "    center           : Store the center of mass of atoms in <mask1>.\n"
@@ -445,6 +445,11 @@ void Action_Vector::UnitCell(Box const& box) {
     case BOX_CTR : Vec_->AddVxyz( box.UnitCell().TransposeMult(Vec3(0.5)) ); break;
     default: return;
   }
+}
+
+/** Store box vector (A, B, C) lengths as a single vector (|A|, |B|, |C|). */
+void Action_Vector::BoxLengths(Box const& box) {
+  Vec_->AddVxyz( box.Lengths() );
 }
 
 // Action_Vector::MinImage()

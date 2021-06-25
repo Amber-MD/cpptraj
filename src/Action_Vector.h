@@ -31,6 +31,7 @@ class Action_Vector : public Action {
     void Principal(Frame const&);
     void CorrPlane(Frame const&);
     void UnitCell(Box const&);
+    void BoxLengths(Box const&);
     void MinImage(Frame const&);
 
     DataSet_Vector* Vec_;   ///< Hold vector values
