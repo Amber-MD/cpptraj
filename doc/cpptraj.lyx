@@ -36386,7 +36386,7 @@ vector [<name>] <Type> [out <filename> [ptrajoutput]] [<mask1>] [<mask2>]
 \end_layout
 
 \begin_layout LyX-Code
-   	[magnitude] [ired]
+   	[magnitude] [ired] [gridset <grid>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -36467,6 +36467,27 @@ ptraj
 \begin_layout Description
 [ired] Mark this vector for subsequent IRED analysis with commands 'matrix
  ired' and 'ired'.
+\end_layout
+
+\begin_layout Description
+[gridset
+\begin_inset space ~
+\end_inset
+
+<grid>] Name of grid data set to get box info from instead of frame for
+ 
+\series bold
+box
+\series default
+, 
+\series bold
+boxcenter
+\series default
+, and 
+\series bold
+ucell[x|y|z]
+\series default
+.
 \end_layout
 
 \begin_layout Standard
