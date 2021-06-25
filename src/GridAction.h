@@ -14,7 +14,7 @@ class GridAction {
     /// Indicate whether to apply an offset to coords before gridding.
     enum OffsetType { NO_OFFSET = 0, BOX_CENTER, MASK_CENTER };
     /// CONSTRUCTOR
-    GridAction() : increment_(1.0) {}
+    GridAction();
     /// \return List of keywords recognized by GridInit.
     static const char* HelpText;
     /// \return Set-up grid (added to given DataSetList) after processing keywords.
@@ -29,6 +29,8 @@ class GridAction {
     int GridSetup(Topology const&, CoordinateInfo const&);
     /// Place atoms selected by given mask in given Frame on the given grid.
     inline void GridFrame(Frame const&, AtomMask const&, DataSet_GridFlt&);
+    /// Move grid if necessary
+    inline void MoveGrid(Frame const&, DataSet_GridFlt&);
     /// \return Type of offset to apply to coords before gridding.
     OffsetType GridOffsetType()  const { return gridOffsetType_;       }
     /// \return Mask to use for centering grid
@@ -37,6 +39,7 @@ class GridAction {
     float Increment()            const { return increment_;  }
   private:
     OffsetType gridOffsetType_;
+    OffsetType gridMoveType_;
     AtomMask centerMask_;
     float increment_;     ///< Set to -1 if negative, 1 if not.
 };
@@ -56,5 +59,14 @@ void GridAction::GridFrame(Frame const& currentFrame, AtomMask const& mask,
     for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom)
       grid.Increment( currentFrame.XYZ(*atom), increment_ );
   }
+}
+
+/** Move grid if necessary. */
+void GridAction::MoveGrid(Frame const& currentFrame, DataSet_GridFlt& grid)
+{
+  if (gridMoveType_ == BOX_CENTER)
+    grid.SetGridCenter( currentFrame.BoxCrd().Center() );
+  else if (gridMoveType_ == MASK_CENTER)
+    grid.SetGridCenter( currentFrame.VGeometricCenter( centerMask_ ) );
 }
 #endif

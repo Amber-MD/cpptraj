@@ -53,9 +53,9 @@ int DataSet_3D::Allocate_N_O_D(size_t nx, size_t ny, size_t nz,
 /** For even-spaced grids, origin is center - (N/2)*spacing.
   * For odd-spaced grids, origin is center - ((N-1/2)*spacing)+half_spacing
   */
-static double Calc_Origin(int N, double D) {
-  int odd = N % 2;
-  int half = (N - odd) / 2;
+static double Calc_Origin(size_t N, double D) {
+  size_t odd = N % 2;
+  size_t half = (N - odd) / 2;
   if (odd)
     return -(((double)half * D) + (D * 0.5));
   else
@@ -63,12 +63,13 @@ static double Calc_Origin(int N, double D) {
 }
 
 /** \return Origin coords calculated from given center coords, spacings, and # of bins. */
-Vec3 DataSet_3D::calcOriginFromCenter(Vec3 const& cxyz, Vec3 const& dxyz,
+Vec3 DataSet_3D::calcOriginFromCenter(Vec3 const& cxyz,
+                                      double dx, double dy, double dz,
                                       size_t nx, size_t ny, size_t nz)
 {
-  return Vec3( cxyz[0] + Calc_Origin(nx, dxyz[0]),
-               cxyz[1] + Calc_Origin(ny, dxyz[1]),
-               cxyz[2] + Calc_Origin(nz, dxyz[2]) );
+  return Vec3( cxyz[0] + Calc_Origin(nx, dx),
+               cxyz[1] + Calc_Origin(ny, dy),
+               cxyz[2] + Calc_Origin(nz, dz) );
 }
 
 // DataSet_3D::Allocate_N_C_D()
@@ -77,7 +78,7 @@ int DataSet_3D::Allocate_N_C_D(size_t nx, size_t ny, size_t nz,
 {
   // Calculate origin from center coordinates.
   return Allocate_N_O_D(nx, ny, nz,
-                        calcOriginFromCenter(cxyz, dxyz, nx, ny, nz),
+                        calcOriginFromCenter(cxyz, dxyz[0], dxyz[1], dxyz[2], nx, ny, nz),
                         dxyz);
 /*
   Vec3 oxyz( cxyz[0] + Calc_Origin(nx, dxyz[0]),
@@ -94,6 +95,14 @@ int DataSet_3D::Allocate_X_C_D(Vec3 const& sizes, Vec3 const& center, Vec3 const
   size_t ny = (size_t)ceil(sizes[1] / dxyz[1]);
   size_t nz = (size_t)ceil(sizes[2] / dxyz[2]);
   return Allocate_N_C_D( nx, ny, nz, center, dxyz );
+}
+
+/** Set the center of the grid to given coords via moving the grid origin. */
+void DataSet_3D::SetGridCenter(Vec3 const& cxyz) {
+  gridBin_.SetOrigin( calcOriginFromCenter(cxyz,
+                                           gridBin_.DX(), gridBin_.DY(), gridBin_.DZ(),
+                                           NX(), NY(), NZ())
+                    );
 }
 
 // DataSet_3D::GridInfo()

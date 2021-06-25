@@ -63,6 +63,8 @@ class DataSet_3D : public DataSet {
     int Allocate_X_C_D(Vec3 const&,Vec3 const&,Vec3 const&);
     /// Set up grid from dims, origin, and box.
     int Allocate_N_O_Box(size_t,size_t,size_t, Vec3 const&, Box const&);
+    /// Move grid center
+    void SetGridCenter(Vec3 const&);
     /// Print grid info.
     void GridInfo() const;
     // -------------------------------------------
@@ -74,7 +76,7 @@ class DataSet_3D : public DataSet {
     // TODO: Make public if grids will be used for other than binning.
     virtual int Allocate3D(size_t, size_t, size_t) = 0;
     /// \return Origin coords from center, spacing, and sizes
-    static Vec3 calcOriginFromCenter(Vec3 const&, Vec3 const&, size_t, size_t, size_t);
+    static Vec3 calcOriginFromCenter(Vec3 const&, double, double, double, size_t, size_t, size_t);
 
     GridBin gridBin_; ///< Used to calculate bins/coords depending on grid type.
 };

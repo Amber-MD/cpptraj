@@ -2,6 +2,13 @@
 #include "CpptrajStdio.h"
 #include "ArgList.h"
 
+/** CONSTRUCTOR */
+GridAction::GridAction() :
+  gridOffsetType_(NO_OFFSET),
+  gridMoveType_(NO_OFFSET),
+  increment_(1.0)
+{}
+
 // GridAction::HelpText
 const char* GridAction::HelpText =
   "\t{ data <dsname> | boxref <ref name/tag> <nx> <ny> <nz> |\n"
