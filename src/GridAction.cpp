@@ -177,7 +177,9 @@ int GridAction::GridSetup(Topology const& currentParm, CoordinateInfo const& cIn
       mprintf("Warning: No offset will be used.\n");
       gridOffsetType_ = NO_OFFSET; // TODO Error?
     }
-  } else if (gridOffsetType_ == MASK_CENTER) {
+  }
+  // Set up mask
+  if (centerMask_.MaskStringSet()) {
     if ( currentParm.SetupIntegerMask( centerMask_ ) ) return 1;
     centerMask_.MaskInfo();
     if ( centerMask_.None() ) {

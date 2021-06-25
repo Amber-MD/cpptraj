@@ -128,6 +128,8 @@ Action::RetType Action_Grid::Setup(ActionSetup& setup) {
 
 // Action_Grid::DoAction()
 Action::RetType Action_Grid::DoAction(int frameNum, ActionFrame& frm) {
+  // Move grid if necessary
+  MoveGrid( frm.Frm(), *grid_ );
   if (useMaskArray_) {
     Vec3 offset(0.0);
     if (GridOffsetType() == BOX_CENTER)

@@ -104,6 +104,9 @@ Action::RetType Action_Dipole::Setup(ActionSetup& setup) {
 Action::RetType Action_Dipole::DoAction(int frameNum, ActionFrame& frm) {
   Vec3 cXYZ, dipolar_vector, COM;
 
+  // Move grid if necessary
+  MoveGrid( frm.Frm(), *grid_ );
+
   // Set up center to origin or box center
   if (GridOffsetType() == GridAction::BOX_CENTER) 
     cXYZ = frm.Frm().BoxCrd().Center();

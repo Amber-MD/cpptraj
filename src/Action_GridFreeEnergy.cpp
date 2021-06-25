@@ -82,6 +82,8 @@ Action::RetType Action_GridFreeEnergy::Setup(ActionSetup& setup) {
 
 // Action_GridFreeEnergy::action()
 Action::RetType Action_GridFreeEnergy::DoAction(int frameNum, ActionFrame& frm) {
+  // Move grid if necessary
+  MoveGrid( frm.Frm(), *grid_ );
   GridFrame( frm.Frm(), mask_, *grid_ );
   return Action::OK;
 }
