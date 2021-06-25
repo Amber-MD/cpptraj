@@ -1,6 +1,7 @@
 #include "GridAction.h"
 #include "CpptrajStdio.h"
 #include "ArgList.h"
+#include "StringRoutines.h"
 
 /** CONSTRUCTOR */
 GridAction::GridAction() :
@@ -12,7 +13,10 @@ GridAction::GridAction() :
 // GridAction::HelpText
 const char* GridAction::HelpText =
   "\t{ data <dsname> | boxref <ref name/tag> <nx> <ny> <nz> |\n"
-  "\t  <nx> <dx> <ny> <dy> <nz> <dz> [gridcenter <cx> <cy> <cz>] }\n"
+  "\t  <nx> <dx> <ny> <dy> <nz> <dz>\n"
+  "\t  [ { gridcenter <cx> <cy> <cz> |\n"
+  "\t      boxcenter |\n"
+  "\t      maskcenter <mask> } ]\n"
   "\t[box|origin|center <mask>] [negative] [name <gridname>]";
 
 static inline void CheckEven(int& N, char dir) {
@@ -82,12 +86,24 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn
     // For backwards compat., enforce even grid spacing.
     CheckEven( nx, 'X' ); CheckEven( ny, 'Y' ); CheckEven( nz, 'Z' );
     Vec3 gridctr(0.0, 0.0, 0.0);
+    // Check if we want to specifically re-center the grid during DoAction
+    gridMoveType_ = NO_OFFSET;
     if (argIn.hasKey("gridcenter")) {
       double cx = argIn.getNextDouble(0.0);
       double cy = argIn.getNextDouble(0.0);
       double cz = argIn.getNextDouble(0.0);
       gridctr.SetVec(cx, cy, cz);
       specifiedCenter = true;
+    } else if (argIn.hasKey("boxcenter")) {
+      specifiedCenter = true;
+      gridMoveType_ = BOX_CENTER;
+    } else {
+      std::string maskCenterArg = argIn.GetStringKey("maskcenter");
+      if (!maskCenterArg.empty()) {
+        specifiedCenter = true;
+        gridMoveType_ = MASK_CENTER;
+        if (centerMask_.SetMaskString( maskCenterArg )) return 0;
+      }
     }
     Grid = (DataSet_GridFlt*)DSL.AddSet( DataSet::GRID_FLT, argIn.GetStringKey("name"), "GRID" );
     if (Grid == 0) return 0;
