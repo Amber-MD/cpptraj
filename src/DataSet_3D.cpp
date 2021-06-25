@@ -62,15 +62,28 @@ static double Calc_Origin(int N, double D) {
     return -((double)half * D);
 }
 
+/** \return Origin coords calculated from given center coords, spacings, and # of bins. */
+Vec3 DataSet_3D::calcOriginFromCenter(Vec3 const& cxyz, Vec3 const& dxyz,
+                                      size_t nx, size_t ny, size_t nz)
+{
+  return Vec3( cxyz[0] + Calc_Origin(nx, dxyz[0]),
+               cxyz[1] + Calc_Origin(ny, dxyz[1]),
+               cxyz[2] + Calc_Origin(nz, dxyz[2]) );
+}
+
 // DataSet_3D::Allocate_N_C_D()
 int DataSet_3D::Allocate_N_C_D(size_t nx, size_t ny, size_t nz,
                                Vec3 const& cxyz, Vec3 const& dxyz)
 {
   // Calculate origin from center coordinates.
+  return Allocate_N_O_D(nx, ny, nz,
+                        calcOriginFromCenter(cxyz, dxyz, nx, ny, nz),
+                        dxyz);
+/*
   Vec3 oxyz( cxyz[0] + Calc_Origin(nx, dxyz[0]),
              cxyz[1] + Calc_Origin(ny, dxyz[1]),
              cxyz[2] + Calc_Origin(nz, dxyz[2]) );
-  return Allocate_N_O_D(nx,ny,nz,oxyz,dxyz);
+  return Allocate_N_O_D(nx,ny,nz,oxyz,dxyz);*/
 }
 
 // DataSet_3D::Allocate_X_C_D()

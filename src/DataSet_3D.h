@@ -1,5 +1,6 @@
 #ifndef INC_DATASET_3D_H
 #define INC_DATASET_3D_H
+#include <cstddef> // size_t
 #include "DataSet.h"
 #include "GridBin.h"
 class Box;
@@ -72,6 +73,8 @@ class DataSet_3D : public DataSet {
     /// Set up grid for given # x, y, and z points.
     // TODO: Make public if grids will be used for other than binning.
     virtual int Allocate3D(size_t, size_t, size_t) = 0;
+    /// \return Origin coords from center, spacing, and sizes
+    static Vec3 calcOriginFromCenter(Vec3 const&, Vec3 const&, size_t, size_t, size_t);
 
     GridBin gridBin_; ///< Used to calculate bins/coords depending on grid type.
 };
