@@ -38,6 +38,7 @@ class GridBin {
     inline double DZ() const { return dz_; }
 
     // Set up routines.
+    inline void SetOrigin(Vec3 const&);
     /// Set up for orthogonal X-aligned grid with given origin and spacing; calculate maximum.
     inline void Setup_O_D(size_t, size_t, size_t, Vec3 const&, Vec3 const&);
     /// Set up for grid with given bins, origin, and box.
@@ -209,6 +210,24 @@ void GridBin::SetupInternalPointers() {
     IndicesPtr_ = &GridBin::Indices_nonortho;
     CornerPtr_ = &GridBin::Corner_nonortho;
     CenterPtr_ = &GridBin::Center_nonortho;
+  }
+}
+
+/** Set new origin for grid, update max. */
+void GridBin::SetOrigin(Vec3 const& newOxyz) {
+  OXYZ_ = newOxyz;
+  if (box_.Is_X_Aligned_Ortho()) {
+    mx_ = OXYZ_[0] + (nx_ * dx_);
+    my_ = OXYZ_[1] + (ny_ * dy_);
+    mz_ = OXYZ_[2] + (nz_ * dz_);
+  } else {
+    double l_Avec = box_.UnitCell().Row1().Length();
+    double l_Bvec = box_.UnitCell().Row2().Length();
+    double l_Cvec = box_.UnitCell().Row3().Length();
+    // Get max from origin plus vector length
+    mx_ = OXYZ_[0] + l_Avec;
+    my_ = OXYZ_[1] + l_Bvec;
+    mz_ = OXYZ_[2] + l_Cvec;
   }
 }
 
