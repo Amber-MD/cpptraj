@@ -5,11 +5,13 @@
 #include "CpptrajStdio.h"
 #include "DistRoutines.h" // MinImagedVec, includes Matrix_3x3 for principal
 #include "DataSet_Vector.h"
+#include "DataSet_3D.h"
 
 // CONSTRUCTOR
 Action_Vector::Action_Vector() :
   Vec_(0),
   Magnitude_(0),
+  gridSet_(0),
   vcorr_(0),
   ptrajoutput_(false),
   needBoxInfo_(false),
@@ -137,6 +139,21 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, ActionInit& init, int d
   if (mode_ == BOX || mode_ == BOX_X || mode_ == BOX_Y || mode_ == BOX_Z ||
       mode_ == BOX_CTR || mode_ == MINIMAGE)
     needBoxInfo_ = true;
+  gridSet_ = 0;
+  if (needBoxInfo_) {
+    std::string gridSetArg = actionArgs.GetStringKey("gridset");
+    if (!gridSetArg.empty()) {
+      DataSetList gridSetList = init.DSL().SelectGroupSets( gridSetArg, DataSet::GRID_3D );
+      if (gridSetList.empty()) {
+        mprinterr("Error: %s does not select any grid data set.\n", gridSetArg.c_str());
+        return Action::ERR;
+      }
+      if (gridSetList.size() > 1) {
+        mprintf("Warning: %s selects more than 1 grid data set. Only using the first set.\n", gridSetArg.c_str());
+      }
+      gridSet_ = (DataSet_3D*)gridSetList[0];
+    }
+  }
   // Check if IRED vector
   bool isIred = actionArgs.hasKey("ired"); 
   // Vector Mask
@@ -190,6 +207,8 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, ActionInit& init, int d
     mprintf(" %s", filename.c_str());
   }
   mprintf("\n");
+  if (gridSet_ != 0)
+    mprintf("\tExtracting box vectors from grid set '%s'\n", gridSet_->legend());
 
   return Action::OK;
 }
