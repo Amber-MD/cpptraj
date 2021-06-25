@@ -160,6 +160,11 @@ void GridAction::GridInfo(DataSet_GridFlt const& grid) {
   else if (gridOffsetType_ == MASK_CENTER)
     mprintf("\tOffset for points is center of atoms in mask [%s]\n",
             centerMask_.MaskString());
+  if (gridMoveType_ == BOX_CENTER)
+    mprintf("\tGrid will be kept centered at the box center.\n");
+  else
+    mprintf("\tGrid will be kept centered on atoms in mask [%s]\n",
+            centerMask_.MaskString());
   if (increment_ > 0)
     mprintf("\tCalculating positive density.\n");
   else
