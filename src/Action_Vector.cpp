@@ -437,11 +437,11 @@ void Action_Vector::CorrPlane(Frame const& currentFrame) {
 }
 
 //  Action_Vector::UnitCell()
-void Action_Vector::UnitCell(Box const& box) {
+void Action_Vector::UnitCell(Box const& box, Vec3 const& oxyz) {
   switch ( mode_ ) {
-    case BOX_X   : Vec_->AddVxyzo( box.UnitCell().Row1(), Vec3(0.0) ); break;
-    case BOX_Y   : Vec_->AddVxyzo( box.UnitCell().Row2(), Vec3(0.0) ); break;
-    case BOX_Z   : Vec_->AddVxyzo( box.UnitCell().Row3(), Vec3(0.0) ); break;
+    case BOX_X   : Vec_->AddVxyzo( box.UnitCell().Row1(), oxyz ); break;
+    case BOX_Y   : Vec_->AddVxyzo( box.UnitCell().Row2(), oxyz ); break;
+    case BOX_Z   : Vec_->AddVxyzo( box.UnitCell().Row3(), oxyz ); break;
     case BOX_CTR : Vec_->AddVxyz( box.UnitCell().TransposeMult(Vec3(0.5)) ); break;
     default: return;
   }
@@ -496,9 +496,9 @@ Action::RetType Action_Vector::DoAction(int frameNum, ActionFrame& frm) {
     case BOX_Z       : 
     case BOX_CTR     :
       if (gridSet_ != 0)
-        UnitCell( gridSet_->Bin().GridBox() );
+        UnitCell( gridSet_->Bin().GridBox(), gridSet_->Bin().GridOrigin() );
       else
-        UnitCell( frm.Frm().BoxCrd() );
+        UnitCell( frm.Frm().BoxCrd(), Vec3(0.0) );
       break;
     case MINIMAGE    : MinImage( frm.Frm() ); break; 
     default          : return Action::ERR; // NO_OP

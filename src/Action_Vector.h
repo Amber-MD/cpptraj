@@ -30,7 +30,7 @@ class Action_Vector : public Action {
     void Dipole(Frame const&);
     void Principal(Frame const&);
     void CorrPlane(Frame const&);
-    void UnitCell(Box const&);
+    void UnitCell(Box const&, Vec3 const&);
     void BoxLengths(Box const&);
     void MinImage(Frame const&);
 
