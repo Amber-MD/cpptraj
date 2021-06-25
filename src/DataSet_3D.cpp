@@ -95,7 +95,7 @@ void DataSet_3D::GridInfo() const {
             oxyz[0] + (NX()/2)*gridBin_.DX(),
             oxyz[1] + (NY()/2)*gridBin_.DY(),
             oxyz[2] + (NZ()/2)*gridBin_.DZ());
-    //mprintf("\tGrid max    : %8.3f %8.3f %8.3f\n", grid.MX(), grid.MY(), grid.MZ());
+    //mprintf("\tGrid max    : %8.3f %8.3f %8.3f\n", gridBin_.MX(), gridBin_.MY(), gridBin_.MZ());
   //} else {
     Box const& box = gridBin_.GridBox();
     mprintf("\t\tBox: %s ABC={%g %g %g} abg={%g %g %g}\n", box.CellShapeName(),

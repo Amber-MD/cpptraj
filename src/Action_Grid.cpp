@@ -130,9 +130,9 @@ Action::RetType Action_Grid::Setup(ActionSetup& setup) {
 Action::RetType Action_Grid::DoAction(int frameNum, ActionFrame& frm) {
   if (useMaskArray_) {
     Vec3 offset(0.0);
-    if (GridMode() == BOX)
+    if (GridOffsetType() == BOX_CENTER)
       offset = frm.Frm().BoxCrd().Center();
-    else if (GridMode() == MASKCENTER)
+    else if (GridOffsetType() == MASK_CENTER)
       offset = frm.Frm().VGeometricCenter( CenterMask() );
     for (Cpptraj::MaskArray::const_iterator mask = mArray_.begin();
                                             mask != mArray_.end(); ++mask)

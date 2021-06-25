@@ -105,11 +105,11 @@ Action::RetType Action_Dipole::DoAction(int frameNum, ActionFrame& frm) {
   Vec3 cXYZ, dipolar_vector, COM;
 
   // Set up center to origin or box center
-  if (GridMode() == GridAction::BOX) 
+  if (GridOffsetType() == GridAction::BOX_CENTER) 
     cXYZ = frm.Frm().BoxCrd().Center();
-  else if (GridMode() == GridAction::MASKCENTER)
+  else if (GridOffsetType() == GridAction::MASK_CENTER)
     cXYZ = frm.Frm().VGeometricCenter( CenterMask() );
-  else // GridAction::ORIGIN/SPECIFIEDCENTER
+  else // GridAction::NO_OFFSET
     cXYZ.Zero();
 
   // Traverse over solvent molecules.

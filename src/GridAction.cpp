@@ -89,11 +89,11 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn
     if (Grid->Allocate_N_C_D(nx, ny, nz, gridctr, Vec3(dx,dy,dz))) return 0;
   }
   // Determine offset, Box/origin/center
-  mode_ = ORIGIN;
+  gridOffsetType_ = NO_OFFSET;
   if (argIn.hasKey("box"))
-    mode_ = BOX;
+    gridOffsetType_ = BOX_CENTER;
   else if (argIn.hasKey("origin"))
-    mode_ = ORIGIN;
+    gridOffsetType_ = NO_OFFSET;
   else if (argIn.Contains("center")) {
     std::string maskexpr = argIn.GetStringKey("center");
     if (maskexpr.empty()) {
@@ -101,14 +101,14 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn
       return 0;
     }
     if (centerMask_.SetMaskString( maskexpr )) return 0;
-    mode_ = MASKCENTER;
+    gridOffsetType_ = MASK_CENTER;
   }
   if (specifiedCenter) {
     // If center was specified, do not allow an offset
-    if (mode_ != ORIGIN)
+    if (gridOffsetType_ != NO_OFFSET)
       mprintf("Warning: Grid offset args (box/center) not allowed with 'gridcenter'.\n"
               "Warning: No offset will be used.\n");
-    mode_ = SPECIFIEDCENTER;
+    gridOffsetType_ = NO_OFFSET;
   }
   // Negative
   if (argIn.hasKey("negative"))
@@ -132,9 +132,9 @@ int GridAction::ParallelGridInit(Parallel::Comm const& commIn, DataSet_GridFlt* 
 
 // GridAction::GridInfo() 
 void GridAction::GridInfo(DataSet_GridFlt const& grid) {
-  if (mode_ == BOX)
+  if (gridOffsetType_ == BOX_CENTER)
     mprintf("\tOffset for points is box center.\n");
-  else if (mode_ == MASKCENTER)
+  else if (gridOffsetType_ == MASK_CENTER)
     mprintf("\tOffset for points is center of atoms in mask [%s]\n",
             centerMask_.MaskString());
   if (increment_ > 0)
@@ -147,14 +147,14 @@ void GridAction::GridInfo(DataSet_GridFlt const& grid) {
 // GridAction::GridSetup()
 int GridAction::GridSetup(Topology const& currentParm, CoordinateInfo const& cInfo) {
   // Check box
-  if (mode_ == BOX) {
+  if (gridOffsetType_ == BOX_CENTER) {
     if (!cInfo.TrajBox().Is_X_Aligned_Ortho()) {
       mprintf("Warning: Code to shift to the box center is not yet\n");
       mprintf("Warning: implemented for non-orthorhombic unit cells.\n");
-      mprintf("Warning: Shifting to the origin instead.\n");
-      mode_ = ORIGIN;
+      mprintf("Warning: No offset will be used.\n");
+      gridOffsetType_ = NO_OFFSET; // TODO Error?
     }
-  } else if (mode_ == MASKCENTER) {
+  } else if (gridOffsetType_ == MASK_CENTER) {
     if ( currentParm.SetupIntegerMask( centerMask_ ) ) return 1;
     centerMask_.MaskInfo();
     if ( centerMask_.None() ) {
