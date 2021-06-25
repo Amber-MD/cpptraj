@@ -485,7 +485,7 @@ Action::RetType Action_Vector::DoAction(int frameNum, ActionFrame& frm) {
     case PRINCIPAL_Y :
     case PRINCIPAL_Z : Principal(frm.Frm()); break;
     case CORRPLANE   : CorrPlane(frm.Frm()); break;
-    case BOX         : Vec_->AddVxyz( frm.Frm().BoxCrd().Lengths() ); break;
+    case BOX         : BoxLengths( frm.Frm().BoxCrd() ); break;
     case BOX_X       : 
     case BOX_Y       : 
     case BOX_Z       : 
