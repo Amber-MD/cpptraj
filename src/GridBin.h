@@ -221,13 +221,12 @@ void GridBin::SetOrigin(Vec3 const& newOxyz) {
     my_ = OXYZ_[1] + (ny_ * dy_);
     mz_ = OXYZ_[2] + (nz_ * dz_);
   } else {
-    double l_Avec = box_.UnitCell().Row1().Length();
-    double l_Bvec = box_.UnitCell().Row2().Length();
-    double l_Cvec = box_.UnitCell().Row3().Length();
-    // Get max from origin plus vector length
-    mx_ = OXYZ_[0] + l_Avec;
-    my_ = OXYZ_[1] + l_Bvec;
-    mz_ = OXYZ_[2] + l_Cvec;
+    // Get vector pointing from coord origin to max grid
+    // TODO is this necessary? mx etc not used unless X aligned...
+    Vec3 maxVec = box_.UnitCell().TransposeMult( Vec3(1.0, 1.0, 1.0) );
+    mx_ = OXYZ_[0] + maxVec[0];
+    my_ = OXYZ_[1] + maxVec[1];
+    mz_ = OXYZ_[2] + maxVec[2];
   }
 }
 
