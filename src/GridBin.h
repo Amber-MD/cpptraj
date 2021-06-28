@@ -39,6 +39,7 @@ class GridBin {
 
     // Set up routines.
     inline void SetOrigin(Vec3 const&);
+    inline void SetOriginFromCenter(Vec3 const&);
     /// Set up for orthogonal X-aligned grid with given origin and spacing; calculate maximum.
     void Setup_O_D(size_t, size_t, size_t, Vec3 const&, Vec3 const&);
     /// Set up for grid with given bins, origin, and box.
@@ -228,6 +229,16 @@ void GridBin::SetOrigin(Vec3 const& newOxyz) {
     my_ = OXYZ_[1] + maxVec[1];
     mz_ = OXYZ_[2] + maxVec[2];
   }
+}
+
+/** Set new origin for grid based on location of center, update max. */
+void GridBin::SetOriginFromCenter(Vec3 const& newCxyz) {
+  // Get vector pointing from coord origin to center
+  Vec3 centerVec = box_.UnitCell().TransposeMult( Vec3(0.5, 0.5, 0.5) );
+  OXYZ_ = newCxyz - centerVec;
+  mx_ = newCxyz[0] + centerVec[0];
+  my_ = newCxyz[1] + centerVec[1];
+  mz_ = newCxyz[2] + centerVec[2];
 }
 
 #endif
