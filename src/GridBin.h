@@ -234,7 +234,12 @@ void GridBin::SetOrigin(Vec3 const& newOxyz) {
 /** Set new origin for grid based on location of center, update max. */
 void GridBin::SetOriginFromCenter(Vec3 const& newCxyz) {
   // Get vector pointing from coord origin to center
-  Vec3 centerVec = box_.UnitCell().TransposeMult( Vec3(0.5, 0.5, 0.5) );
+  Vec3 centerVec;
+  if (box_.Is_X_Aligned_Ortho()) {
+    centerVec = Vec3(box_.Param(Box::X)/2.0, box_.Param(Box::Y)/2.0, box_.Param(Box::Z)/2.0);
+  } else {
+    centerVec = box_.UnitCell().TransposeMult( Vec3(0.5, 0.5, 0.5) );
+  }
   OXYZ_ = newCxyz - centerVec;
   mx_ = newCxyz[0] + centerVec[0];
   my_ = newCxyz[1] + centerVec[1];
