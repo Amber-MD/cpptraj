@@ -69,10 +69,10 @@ class GridBin {
     inline void SetupInternalPointers();
     void set_voxel_volume();
 
-    Vec3 OXYZ_;           ///< Grid origin.
-    double dx_, dy_, dz_; ///< Grid spacing (Ang., Cartesian, orthogonal).
-    double mx_, my_, mz_; ///< Grid max (Ang., Cartesian, orthogonal).
-    double nx_, ny_, nz_; ///< Number of bins in double precision (nonortho).
+    Vec3 OXYZ_;           ///< Grid origin in Cartesian coordinates.
+    double dx_, dy_, dz_; ///< Grid spacing for binning (Ang., Cartesian).
+    double mx_, my_, mz_; ///< Grid max for binning (Ang., Cartesian, orthogonal).
+    double nx_, ny_, nz_; ///< Number of bins in double precision (for nonortho binning).
     double voxelvolume_;  ///< Volume of a single voxel (Ang^3).
     Box box_;             ///< Contain grid unit cell vectors, frac. vectors, volume.
     /// Internal pointer to the correct Calc routine
