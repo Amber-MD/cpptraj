@@ -6,7 +6,7 @@
 /** CONSTRUCTOR */
 GridAction::GridAction() :
   gridOffsetType_(NO_OFFSET),
-  gridMoveType_(NO_OFFSET),
+  gridMoveType_(NO_MOVE),
   increment_(1.0)
 {}
 
@@ -87,7 +87,7 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn
     CheckEven( nx, 'X' ); CheckEven( ny, 'Y' ); CheckEven( nz, 'Z' );
     Vec3 gridctr(0.0, 0.0, 0.0);
     // Check if we want to specifically re-center the grid during DoAction
-    gridMoveType_ = NO_OFFSET;
+    gridMoveType_ = NO_MOVE;
     if (argIn.hasKey("gridcenter")) {
       double cx = argIn.getNextDouble(0.0);
       double cy = argIn.getNextDouble(0.0);
@@ -96,12 +96,12 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn
       specifiedCenter = true;
     } else if (argIn.hasKey("boxcenter")) {
       specifiedCenter = true;
-      gridMoveType_ = BOX_CENTER;
+      gridMoveType_ = TO_BOX_CTR;
     } else {
       std::string maskCenterArg = argIn.GetStringKey("maskcenter");
       if (!maskCenterArg.empty()) {
         specifiedCenter = true;
-        gridMoveType_ = MASK_CENTER;
+        gridMoveType_ = TO_MASK_CTR;
         if (centerMask_.SetMaskString( maskCenterArg )) return 0;
       }
     }
@@ -155,14 +155,18 @@ int GridAction::ParallelGridInit(Parallel::Comm const& commIn, DataSet_GridFlt* 
 
 // GridAction::GridInfo() 
 void GridAction::GridInfo(DataSet_GridFlt const& grid) {
-  if (gridOffsetType_ == BOX_CENTER)
+  if (gridOffsetType_ == NO_OFFSET)
+    mprintf("\tNo offset will be applied to points.\n");
+  else if (gridOffsetType_ == BOX_CENTER)
     mprintf("\tOffset for points is box center.\n");
   else if (gridOffsetType_ == MASK_CENTER)
     mprintf("\tOffset for points is center of atoms in mask [%s]\n",
             centerMask_.MaskString());
-  if (gridMoveType_ == BOX_CENTER)
+  if (gridMoveType_ == NO_MOVE)
+    mprintf("\tGrid will not move.\n");
+  else if (gridMoveType_ == TO_BOX_CTR)
     mprintf("\tGrid will be kept centered at the box center.\n");
-  else if (gridMoveType_ == MASK_CENTER)
+  else if (gridMoveType_ == TO_MASK_CTR)
     mprintf("\tGrid will be kept centered on atoms in mask [%s]\n",
             centerMask_.MaskString());
   if (increment_ > 0)

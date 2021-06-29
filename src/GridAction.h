@@ -13,6 +13,8 @@ class GridAction {
   public:
     /// Indicate whether to apply an offset to coords before gridding.
     enum OffsetType { NO_OFFSET = 0, BOX_CENTER, MASK_CENTER };
+    /// Indicate where grid should be located
+    enum MoveType { NO_MOVE = 0, TO_BOX_CTR, TO_MASK_CTR, RMS_FIT };
     /// CONSTRUCTOR
     GridAction();
     /// \return List of keywords recognized by GridInit.
@@ -39,7 +41,7 @@ class GridAction {
     float Increment()            const { return increment_;  }
   private:
     OffsetType gridOffsetType_;
-    OffsetType gridMoveType_;
+    MoveType gridMoveType_;
     AtomMask centerMask_;
     float increment_;     ///< Set to -1 if negative, 1 if not.
 };
@@ -64,9 +66,9 @@ void GridAction::GridFrame(Frame const& currentFrame, AtomMask const& mask,
 /** Move grid if necessary. */
 void GridAction::MoveGrid(Frame const& currentFrame, DataSet_GridFlt& grid)
 {
-  if (gridMoveType_ == BOX_CENTER)
+  if (gridMoveType_ == TO_BOX_CTR)
     grid.SetGridCenter( currentFrame.BoxCrd().Center() );
-  else if (gridMoveType_ == MASK_CENTER)
+  else if (gridMoveType_ == TO_MASK_CTR)
     grid.SetGridCenter( currentFrame.VGeometricCenter( centerMask_ ) );
 }
 #endif
