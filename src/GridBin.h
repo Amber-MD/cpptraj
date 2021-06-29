@@ -3,7 +3,6 @@
 #include <cstddef> // size_t
 #include <vector>
 #include "Box.h"
-//#inc lude "CpptrajStdio.h" // DEBUG
 /// Class used to perform binning on/get voxel coords of 3D grids.
 class GridBin {
   public:
@@ -37,6 +36,9 @@ class GridBin {
     inline double DX() const { return dx_; }
     inline double DY() const { return dy_; }
     inline double DZ() const { return dz_; }
+
+    /// Print debug info
+    void PrintDebug(const char*) const;
 
     // Set up routines.
     /// Set grid origin

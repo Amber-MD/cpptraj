@@ -1,4 +1,5 @@
 #include "GridBin.h"
+#include "CpptrajStdio.h"
 #include <cmath> // ceil
 
 /** Set voxel volume from total grid volume over number of bins. */
@@ -27,7 +28,6 @@ GridBin::SizeArray GridBin::Setup_Sizes_Origin_Box(size_t nxIn, size_t nyIn, siz
   OXYZ_ = oxyzIn;
   // Set grid box and internal pointers based on box.
   box_ = boxIn;
-  box_.PrintDebug("GridBin::Setup_Sizes_Origin_Box");
   SetupInternalPointers();
   set_voxel_volume();
   // Get the 3 individual unit cell vector lengths
@@ -58,7 +58,6 @@ GridBin::SizeArray GridBin::Setup_Sizes_Origin_Spacing(size_t nx, size_t ny, siz
   dz_ = dxyz[2];
   // Set grid box and internal pointers based on box.
   box_.SetupFromXyzAbg( nx_ * dx_, ny_ * dy_, nz_ * dz_, 90.0, 90.0, 90.0 );
-  box_.PrintDebug("GridBin::Setup_Sizes_Origin_Spacing");
   SetupInternalPointers();
   set_voxel_volume();
   // Set origin and max
@@ -81,7 +80,6 @@ GridBin::SizeArray GridBin::Setup_Sizes_Center_Spacing(size_t nx, size_t ny, siz
   dz_ = dxyz[2];
   // Set grid box and internal pointers based on box.
   box_.SetupFromXyzAbg( nx_ * dx_, ny_ * dy_, nz_ * dz_, 90.0, 90.0, 90.0 );
-  box_.PrintDebug("GridBin::Setup_Sizes_Center_Spacing");
   SetupInternalPointers();
   set_voxel_volume();
   // Set origin and max
@@ -99,4 +97,15 @@ GridBin::SizeArray GridBin::Setup_Lengths_Center_Spacing(Vec3 const& lengths, Ve
   size_t ny = (size_t)ceil(lengths[1] / dxyz[1]);
   size_t nz = (size_t)ceil(lengths[2] / dxyz[2]);
   return Setup_Sizes_Center_Spacing(nx, ny, nz, center, dxyz);
+}
+
+/** Print debug info. */
+void GridBin::PrintDebug(const char* title) const
+{
+  box_.PrintDebug(title);
+  mprintf("DEBUG: %s: origin xyz : %12.4f %12.4f %12.4f\n", title, OXYZ_[0], OXYZ_[1], OXYZ_[2]);
+  mprintf("DEBUG: %s: spacings   : %12.4f %12.4f %12.4f\n", title, dx_, dy_, dz_);
+  mprintf("DEBUG: %s: max xyz    : %12.4f %12.4f %12.4f\n", title, mz_, my_, mz_);
+  mprintf("DEBUG: %s: sizes      : %12.0f %12.0f %12.0f\n", title, nx_, ny_, nz_);
+  mprintf("DEBUG: %s: voxel vol. : %12.4f\n", voxelvolume_);
 }
