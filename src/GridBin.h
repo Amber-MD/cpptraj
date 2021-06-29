@@ -29,8 +29,10 @@ class GridBin {
     inline double VoxelVolume() const { return voxelvolume_; }
     /// \return a copy of this GridBin.
     //virtual GridBin* Copy() const = 0;
-    /// \return Grid origin.
+    /// \return Grid origin coordinates.
     inline Vec3 const& GridOrigin() const { return OXYZ_; }
+    /// \return Grid center coordinates.
+    inline Vec3 GridCenter() const;
 
     // TODO are these spacing routines needed?
     inline double DX() const { return dx_; }
@@ -258,4 +260,15 @@ void GridBin::SetOriginFromCenter(Vec3 const& newCxyz) {
   mz_ = newCxyz[2] + centerVec[2];
 }
 
+/** \return Grid center coordinates. */
+Vec3 GridBin::GridCenter() const {
+  // Get vector pointing from coord origin to center
+  Vec3 centerVec;
+  if (box_.Is_X_Aligned_Ortho()) {
+    centerVec = Vec3(box_.Param(Box::X)/2.0, box_.Param(Box::Y)/2.0, box_.Param(Box::Z)/2.0);
+  } else {
+    centerVec = box_.UnitCell().TransposeMult( Vec3(0.5, 0.5, 0.5) );
+  }
+  return OXYZ_ + centerVec;
+}
 #endif

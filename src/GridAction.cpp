@@ -162,7 +162,7 @@ void GridAction::GridInfo(DataSet_GridFlt const& grid) {
             centerMask_.MaskString());
   if (gridMoveType_ == BOX_CENTER)
     mprintf("\tGrid will be kept centered at the box center.\n");
-  else
+  else if (gridMoveType_ == MASK_CENTER)
     mprintf("\tGrid will be kept centered on atoms in mask [%s]\n",
             centerMask_.MaskString());
   if (increment_ > 0)

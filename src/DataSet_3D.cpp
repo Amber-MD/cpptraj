@@ -119,15 +119,13 @@ int DataSet_3D::Allocate_X_C_D(Vec3 const& sizes, Vec3 const& center, Vec3 const
 // DataSet_3D::GridInfo()
 void DataSet_3D::GridInfo() const {
   Vec3 const& oxyz = gridBin_.GridOrigin();
+  Vec3 cxyz = gridBin_.GridCenter();
   mprintf("\t\t-=Grid Dims=- %8s %8s %8s\n", "X", "Y", "Z");
   mprintf("\t\t        Bins: %8zu %8zu %8zu\n", NX(), NY(), NZ());
   mprintf("\t\t      Origin: %8g %8g %8g\n", oxyz[0], oxyz[1], oxyz[2]);
   //if (gridBin_.IsOrthoGrid()) {
     mprintf("\t\t     Spacing: %8g %8g %8g\n", gridBin_.DX(), gridBin_.DY(), gridBin_.DZ());
-    mprintf("\t\t      Center: %8g %8g %8g\n",
-            oxyz[0] + (NX()/2)*gridBin_.DX(),
-            oxyz[1] + (NY()/2)*gridBin_.DY(),
-            oxyz[2] + (NZ()/2)*gridBin_.DZ());
+    mprintf("\t\t      Center: %8g %8g %8g\n", cxyz[0], cxyz[1], cxyz[2]);
     //mprintf("\tGrid max    : %8.3f %8.3f %8.3f\n", gridBin_.MX(), gridBin_.MY(), gridBin_.MZ());
   //} else {
     Box const& box = gridBin_.GridBox();
