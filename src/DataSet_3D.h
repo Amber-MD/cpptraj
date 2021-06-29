@@ -64,19 +64,19 @@ class DataSet_3D : public DataSet {
     /// Set up grid from dims, origin, and box.
     int Allocate_N_O_Box(size_t,size_t,size_t, Vec3 const&, Box const&);
     /// Move grid center
-    void SetGridCenter(Vec3 const&);
+    void SetGridCenter(Vec3 const& cxyz) { gridBin_.SetOriginFromCenter( cxyz); }
     /// Print grid info.
     void GridInfo() const;
     // -------------------------------------------
     GridBin const& Bin() const { return gridBin_; }
   private:
     /// Check if grid dimension is even; if not, increment it by 1.
-    static void CheckEven(size_t&, char);
+    //static void CheckEven(size_t&, char);
     /// Set up grid for given # x, y, and z points.
     // TODO: Make public if grids will be used for other than binning.
     virtual int Allocate3D(size_t, size_t, size_t) = 0;
     /// \return Origin coords from center, spacing, and sizes
-    static Vec3 calcOriginFromCenter(Vec3 const&, double, double, double, size_t, size_t, size_t);
+    //static Vec3 calcOriginFromCenter(Vec3 const&, double, double, double, size_t, size_t, size_t);
 
     GridBin gridBin_; ///< Used to calculate bins/coords depending on grid type.
 };
