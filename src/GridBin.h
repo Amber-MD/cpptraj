@@ -45,10 +45,12 @@ class GridBin {
     inline void SetOriginFromCenter(Vec3 const&);
     /// Type for returning grid dimensions in terms of bins from setup routines
     typedef std::vector<size_t> SizeArray;
+    /// Set up for grid with given bins, origin, and box.
+    SizeArray Setup_Sizes_Origin_Box(size_t, size_t, size_t, Vec3 const&, Box const&);
     /// Set up for orthogonal X-aligned grid with given origin and spacing; calculate maximum.
     SizeArray Setup_Sizes_Origin_Spacing(size_t, size_t, size_t, Vec3 const&, Vec3 const&);
-    /// Set up for grid with given bins, origin, and box.
-    SizeArray Setup_O_Box(size_t, size_t, size_t, Vec3 const&, Box const&);
+    /// Set up for orthogonal X-aligned grid with given center and spacing; calculate maximum.
+    SizeArray Setup_Sizes_Center_Spacing(size_t, size_t, size_t, Vec3 const&, Vec3 const&);
   private:
     inline bool Calc_ortho(double, double, double, size_t&, size_t&, size_t&) const;
     inline bool Calc_nonortho(double, double, double, size_t&, size_t&, size_t&) const;

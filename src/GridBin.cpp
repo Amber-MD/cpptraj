@@ -8,7 +8,7 @@ void GridBin::set_voxel_volume() {
 /** Put given grid sizes into an array. */
 static inline GridBin::SizeArray getGridSizes(size_t nx, size_t ny, size_t nz)
 {
-  SizeArray gridSizes(3);
+  GridBin::SizeArray gridSizes(3);
   gridSizes[0] = nx;
   gridSizes[1] = ny;
   gridSizes[2] = nz;
@@ -56,12 +56,35 @@ GridBin::SizeArray GridBin::Setup_Sizes_Origin_Spacing(size_t nx, size_t ny, siz
   dy_ = dxyz[1];
   dz_ = dxyz[2];
   // Set grid box and internal pointers based on box.
-  box_.SetupFromXyzAbg( nx_ * dx_, ny_ * dy_, nz_ * dz, 90.0, 90.0, 90.0 );
+  box_.SetupFromXyzAbg( nx_ * dx_, ny_ * dy_, nz_ * dz_, 90.0, 90.0, 90.0 );
   box_.PrintDebug("GridBin::Setup_Sizes_Origin_Spacing");
   SetupInternalPointers();
   set_voxel_volume();
   // Set origin and max
   SetOrigin( oxyzIn );
+
+  return getGridSizes(nx, ny, nz);
+}
+
+/** Set up for orthogonal X-aligned grid with given center and spacing; calculate maximum. */
+GridBin::SizeArray GridBin::Setup_Sizes_Center_Spacing(size_t nx, size_t ny, size_t nz,
+                                                       Vec3 const& cxyzIn, Vec3 const& dxyz)
+{
+  // Set grid dimensions
+  nx_ = (double)nx;
+  ny_ = (double)ny;
+  nz_ = (double)nz;
+  // Set grid spacings
+  dx_ = dxyz[0];
+  dy_ = dxyz[1];
+  dz_ = dxyz[2];
+  // Set grid box and internal pointers based on box.
+  box_.SetupFromXyzAbg( nx_ * dx_, ny_ * dy_, nz_ * dz_, 90.0, 90.0, 90.0 );
+  box_.PrintDebug("GridBin::Setup_Sizes_Center_Spacing");
+  SetupInternalPointers();
+  set_voxel_volume();
+  // Set origin and max
+  SetOriginFromCenter( cxyzIn );
 
   return getGridSizes(nx, ny, nz);
 }
