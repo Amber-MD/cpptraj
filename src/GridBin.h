@@ -1,6 +1,7 @@
 #ifndef INC_GRIDBIN_H
 #define INC_GRIDBIN_H
 #include <cstddef> // size_t
+#include <vector>
 #include "Box.h"
 //#inc lude "CpptrajStdio.h" // DEBUG
 /// Class used to perform binning on/get voxel coords of 3D grids.
@@ -38,12 +39,16 @@ class GridBin {
     inline double DZ() const { return dz_; }
 
     // Set up routines.
+    /// Set grid origin
     inline void SetOrigin(Vec3 const&);
+    /// Set grid origin via given center point.
     inline void SetOriginFromCenter(Vec3 const&);
+    /// Type for returning grid dimensions in terms of bins from setup routines
+    typedef std::vector<size_t> SizeArray;
     /// Set up for orthogonal X-aligned grid with given origin and spacing; calculate maximum.
-    void Setup_O_D(size_t, size_t, size_t, Vec3 const&, Vec3 const&);
+    SizeArray Setup_Sizes_Origin_Spacing(size_t, size_t, size_t, Vec3 const&, Vec3 const&);
     /// Set up for grid with given bins, origin, and box.
-    void Setup_O_Box(size_t, size_t, size_t, Vec3 const&, Box const&);
+    SizeArray Setup_O_Box(size_t, size_t, size_t, Vec3 const&, Box const&);
   private:
     inline bool Calc_ortho(double, double, double, size_t&, size_t&, size_t&) const;
     inline bool Calc_nonortho(double, double, double, size_t&, size_t&, size_t&) const;
@@ -54,6 +59,7 @@ class GridBin {
     inline Vec3 Center_ortho(long int, long int, long int) const;
     inline Vec3 Center_nonortho(long int, long int, long int) const;
     inline void SetupInternalPointers();
+    void set_voxel_volume();
 
     Vec3 OXYZ_;           ///< Grid origin.
     double dx_, dy_, dz_; ///< Grid spacing (Ang., Cartesian, orthogonal).
