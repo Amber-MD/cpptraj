@@ -539,6 +539,26 @@ int Box::SetupFromUcell(const double* ucell) {
   return 0;
 }
 
+/** Set up Xyz Abg array and frac cell from 3 vectors describing unit cell. */
+int Box::SetupFromUcell(Vec3 const& row1, Vec3 const& row2, Vec3 const& row3) {
+  std::copy(row1.Dptr(), row1.Dptr()+3, unitCell_.Dptr()  );
+  std::copy(row2.Dptr(), row2.Dptr()+3, unitCell_.Dptr()+3);
+  std::copy(row3.Dptr(), row3.Dptr()+3, unitCell_.Dptr()+6);
+
+  CalcXyzAbgFromUcell(box_, unitCell_);
+
+  cellVolume_ = CalcFracFromUcell(fracCell_, unitCell_);
+
+# ifdef DEBUG_BOX
+  printBoxStatus("SetupFromUcell(vecs)");
+# endif
+  if (CheckBox()) {
+    SetNoBox();
+    return 1;
+  }
+  return 0;
+}
+
 /** Set unit cell and fractional cell from XYZ ABG parameters. */
 int Box::SetupFromXyzAbg(double bx, double by, double bz, double ba, double bb, double bg) {
   box_[0] = bx;
