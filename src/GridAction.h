@@ -44,6 +44,9 @@ class GridAction {
     MoveType gridMoveType_;
     AtomMask centerMask_;
     float increment_;     ///< Set to -1 if negative, 1 if not.
+    Frame tgt_;           ///< For MoveType RMS_FIT, previous frames selected coordinates
+    Frame ref_;           ///< For MoveType RMS_FIT, current frames selected coordinates
+    bool firstFrame_;     ///< For MoveType RMS_FIT, true if this is the first frame (no fit needed)
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
 void GridAction::GridFrame(Frame const& currentFrame, AtomMask const& mask, 
@@ -70,5 +73,19 @@ void GridAction::MoveGrid(Frame const& currentFrame, DataSet_GridFlt& grid)
     grid.SetGridCenter( currentFrame.BoxCrd().Center() );
   else if (gridMoveType_ == TO_MASK_CTR)
     grid.SetGridCenter( currentFrame.VGeometricCenter( centerMask_ ) );
+  else if (gridMoveType_ == RMS_FIT) {
+    grid.SetGridCenter( currentFrame.VGeometricCenter( centerMask_ ) );
+    if (firstFrame_) {
+      tgt_.SetFrame( currentFrame, centerMask_ );
+      firstFrame_ = false;
+    } else {
+      ref_.SetFrame( currentFrame, centerMask_ );
+      Matrix_3x3 Rot;
+      Vec3 T1, T2;
+      tgt_.RMSD( ref_, Rot, T1, T2, false );
+      grid.RotateGrid( T1, Rot, T2 );
+      tgt_.SetFrame( currentFrame, centerMask_ );
+    }
+  }
 }
 #endif

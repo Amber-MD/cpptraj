@@ -7,7 +7,8 @@
 GridAction::GridAction() :
   gridOffsetType_(NO_OFFSET),
   gridMoveType_(NO_MOVE),
-  increment_(1.0)
+  increment_(1.0),
+  firstFrame_(false)
 {}
 
 // GridAction::HelpText
@@ -16,7 +17,8 @@ const char* GridAction::HelpText =
   "\t  <nx> <dx> <ny> <dy> <nz> <dz>\n"
   "\t  [ { gridcenter <cx> <cy> <cz> |\n"
   "\t      boxcenter |\n"
-  "\t      maskcenter <mask> } ]\n"
+  "\t      maskcenter <mask> |\n"
+  "\t      rmsfit <mask> } ]\n"
   "\t[box|origin|center <mask>] [negative] [name <gridname>]";
 
 static inline void CheckEven(int& N, char dir) {
@@ -99,10 +101,15 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn
       gridMoveType_ = TO_BOX_CTR;
     } else {
       std::string maskCenterArg = argIn.GetStringKey("maskcenter");
+      std::string rmsFitArg = argIn.GetStringKey("rmsfit");
       if (!maskCenterArg.empty()) {
         specifiedCenter = true;
         gridMoveType_ = TO_MASK_CTR;
         if (centerMask_.SetMaskString( maskCenterArg )) return 0;
+      } else if (!rmsFitArg.empty()) {
+        specifiedCenter = true;
+        gridMoveType_ = RMS_FIT;
+        if (centerMask_.SetMaskString( rmsFitArg )) return 0;
       }
     }
     Grid = (DataSet_GridFlt*)DSL.AddSet( DataSet::GRID_FLT, argIn.GetStringKey("name"), "GRID" );
@@ -169,6 +176,9 @@ void GridAction::GridInfo(DataSet_GridFlt const& grid) {
   else if (gridMoveType_ == TO_MASK_CTR)
     mprintf("\tGrid will be kept centered on atoms in mask [%s]\n",
             centerMask_.MaskString());
+  else if (gridMoveType_ == RMS_FIT)
+    mprintf("\tGrid will be RMS-fit using atoms in mask [%s]\n",
+            centerMask_.MaskString());
   if (increment_ > 0)
     mprintf("\tCalculating positive density.\n");
   else
@@ -192,9 +202,15 @@ int GridAction::GridSetup(Topology const& currentParm, CoordinateInfo const& cIn
     if ( currentParm.SetupIntegerMask( centerMask_ ) ) return 1;
     centerMask_.MaskInfo();
     if ( centerMask_.None() ) {
-      mprinterr("Error: No atoms selected for grid center mask [%s]\n", centerMask_.MaskString());
+      mprinterr("Error: No atoms selected for grid mask [%s]\n", centerMask_.MaskString());
       return 1;
     }
+  }
+  // Set up frames if needed
+  if (gridMoveType_ == RMS_FIT) {
+    tgt_.SetupFrameFromMask(centerMask_, currentParm.Atoms());
+    ref_ = tgt_;
+    firstFrame_ = true;
   }
   return 0;
 }
