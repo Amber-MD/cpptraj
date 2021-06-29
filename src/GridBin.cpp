@@ -109,3 +109,17 @@ void GridBin::PrintDebug(const char* title) const
   mprintf("DEBUG: %s: sizes      : %12.0f %12.0f %12.0f\n", title, nx_, ny_, nz_);
   mprintf("DEBUG: %s: voxel vol. : %12.4f\n", title, voxelvolume_);
 }
+
+/** Apply translation, rotation, translation to unit cell vectors and origin. */
+void GridBin::RotateGrid(Vec3 const& T1, Matrix_3x3 const& Rot, Vec3 const& T2)
+{
+  Vec3 newOxyz = Rot.Translate_Rotate_Translate(OXYZ_,                  T1, T2);
+  Vec3 newRow1 = Rot.Translate_Rotate_Translate(box_.UnitCell().Row1(), T1, T2);
+  Vec3 newRow2 = Rot.Translate_Rotate_Translate(box_.UnitCell().Row2(), T1, T2);
+  Vec3 newRow3 = Rot.Translate_Rotate_Translate(box_.UnitCell().Row3(), T2, T2);
+  // Set grid box and internal pointers based on box. TODO do not need full setup here...
+  box_.SetupFromUcell( newRow1, newRow2, newRow3 );
+  SetupInternalPointers();
+  //set_voxel_volume(); // Voxel volume should be unchanged
+  SetOrigin( newOxyz );
+}
