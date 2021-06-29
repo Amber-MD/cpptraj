@@ -92,6 +92,8 @@ class Matrix_3x3 {
     Matrix_3x3 operator*(Matrix_3x3 const&) const;
     /// Multiply this times transpose of 3x3 matrix
     Matrix_3x3 TransposeMult(Matrix_3x3 const&) const;
+    /// Calculate (Matrix * (point+T1)) + T2
+    inline void Translate_Rotate_Translate(Vec3&, Vec3 const&, Vec3 const&) const; 
     // TODO: Get rid of this
     const double* Dptr() const { return M_; }
     double* Dptr() { return M_; }
@@ -118,5 +120,16 @@ Matrix_3x3 Matrix_3x3::Transposed() const {
   return Matrix_3x3( M_[0], M_[3], M_[6],
                      M_[1], M_[4], M_[7],
                      M_[2], M_[5], M_[8] );
+}
+
+/** Calculate (Matrix * (point+T1)) + T2 */
+void Matrix_3x3::Translate_Rotate_Translate(Vec3& point, Vec3 const& T1, Vec3 const& T2) const
+{
+  double x = point[0] + T1[0];
+  double y = point[1] + T1[1];
+  double z = point[2] + T1[2];
+  point[0] = x*M_[0] + y*M_[1] + z*M_[2] + T2[0];
+  point[1] = x*M_[3] + y*M_[4] + z*M_[5] + T2[1];
+  point[2] = x*M_[6] + y*M_[7] + z*M_[8] + T2[2];
 }
 #endif
