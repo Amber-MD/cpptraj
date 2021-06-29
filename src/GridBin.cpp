@@ -107,5 +107,5 @@ void GridBin::PrintDebug(const char* title) const
   mprintf("DEBUG: %s: spacings   : %12.4f %12.4f %12.4f\n", title, dx_, dy_, dz_);
   mprintf("DEBUG: %s: max xyz    : %12.4f %12.4f %12.4f\n", title, mz_, my_, mz_);
   mprintf("DEBUG: %s: sizes      : %12.0f %12.0f %12.0f\n", title, nx_, ny_, nz_);
-  mprintf("DEBUG: %s: voxel vol. : %12.4f\n", voxelvolume_);
+  mprintf("DEBUG: %s: voxel vol. : %12.4f\n", title, voxelvolume_);
 }
