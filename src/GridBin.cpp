@@ -1,4 +1,5 @@
 #include "GridBin.h"
+#include <cmath> // ceil
 
 /** Set voxel volume from total grid volume over number of bins. */
 void GridBin::set_voxel_volume() {
@@ -89,4 +90,13 @@ GridBin::SizeArray GridBin::Setup_Sizes_Center_Spacing(size_t nx, size_t ny, siz
   return getGridSizes(nx, ny, nz);
 }
 
-
+/** Set up for orthogonal X-aligned grid with given lengths, center and spacing. */
+GridBin::SizeArray GridBin::Setup_Lengths_Center_Spacing(Vec3 const& lengths, Vec3 const& center,
+                                                         Vec3 const& dxyz)
+{
+  // Calculate bin counts
+  size_t nx = (size_t)ceil(lengths[0] / dxyz[0]);
+  size_t ny = (size_t)ceil(lengths[1] / dxyz[1]);
+  size_t nz = (size_t)ceil(lengths[2] / dxyz[2]);
+  return Setup_Sizes_Center_Spacing(nx, ny, nz, center, dxyz);
+}
