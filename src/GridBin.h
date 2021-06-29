@@ -3,7 +3,7 @@
 #include <cstddef> // size_t
 #include <vector>
 #include "Box.h"
-/// Class used to perform binning on/get voxel coords of 3D grids.
+/// Class used to describe 3D grid spatial orientation, as well as perform binning on/get voxel coords.
 class GridBin {
   public:
     /// CONSTRUCTOR
