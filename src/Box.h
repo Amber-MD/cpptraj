@@ -44,8 +44,6 @@ class Box {
 
     int SetupFromUcell(Matrix_3x3 const& ucell) { return SetupFromUcell(ucell.Dptr()); }
 
-    int SetupFromUcell(Vec3 const&, Vec3 const&, Vec3 const&);
-
     int SetupFromXyzAbg(double,double,double,double,double,double);
 
     int SetupFromXyzAbg(const double*);
