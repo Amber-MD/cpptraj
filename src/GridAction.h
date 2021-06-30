@@ -83,7 +83,7 @@ void GridAction::MoveGrid(Frame const& currentFrame, DataSet_GridFlt& grid)
       Matrix_3x3 Rot;
       Vec3 T1, T2;
       tgt_.RMSD( ref_, Rot, T1, T2, false );
-      grid.RotateGrid( T1, Rot, T2 );
+      grid.Rotate_3D_Grid( Rot );
       tgt_.SetFrame( currentFrame, centerMask_ );
     }
   }
