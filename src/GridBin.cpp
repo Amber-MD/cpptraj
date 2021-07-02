@@ -139,3 +139,23 @@ void GridBin::RotateGrid(Matrix_3x3 const& Rot)
   SetOriginFromCenter( gridCtrXyz );
   //mprintf("DEBUG: New oxyz= %f %f %f\n", OXYZ_[0], OXYZ_[1], OXYZ_[2]);
 }
+
+/** X-align the current grid. */
+void GridBin::X_align_grid() {
+  // Save the grid center coords
+  Vec3 gridCtrXyz = GridCenter();
+  // Create X-aligned box based on current xyz abg.
+  double newbox[6];
+  newbox[Box::X] = box_.Param(Box::X);
+  newbox[Box::Y] = box_.Param(Box::Y);
+  newbox[Box::Z] = box_.Param(Box::Z);
+  newbox[Box::ALPHA] = box_.Param(Box::ALPHA);
+  newbox[Box::BETA] = box_.Param(Box::BETA);
+  newbox[Box::GAMMA] = box_.Param(Box::GAMMA);
+  box_.AssignFromXyzAbg( newbox );
+  // Update internal pointers based on new cell orientation
+  SetupInternalPointers();
+  // Update origin by setting the grid back at the original center 
+  // with the new grid unit cell.
+  SetOriginFromCenter( gridCtrXyz );
+}

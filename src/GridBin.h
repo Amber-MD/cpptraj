@@ -49,6 +49,8 @@ class GridBin {
     inline void SetOriginFromCenter(Vec3 const&);
     /// Apply rotation matrix to grid unit cell vectors.
     void RotateGrid(Matrix_3x3 const&);
+    /// Make the grid X-aligned
+    void X_align_grid();
     /// Type for returning grid dimensions in terms of bins from setup routines
     typedef std::vector<size_t> SizeArray;
     /// Set up for grid with given bins, origin, and box.
