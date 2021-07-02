@@ -8,7 +8,8 @@ GridAction::GridAction() :
   gridOffsetType_(NO_OFFSET),
   gridMoveType_(NO_MOVE),
   increment_(1.0),
-  firstFrame_(false)
+  firstFrame_(false),
+  x_align_(true)
 {}
 
 // GridAction::HelpText
@@ -213,4 +214,10 @@ int GridAction::GridSetup(Topology const& currentParm, CoordinateInfo const& cIn
     firstFrame_ = true;
   }
   return 0;
+}
+
+/** Any final actions to grid. */
+void GridAction::FinishGrid(DataSet_GridFlt& grid) const {
+  if (x_align_)
+    grid.Xalign_3D_Grid();
 }

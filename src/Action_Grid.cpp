@@ -149,6 +149,7 @@ Action::RetType Action_Grid::DoAction(int frameNum, ActionFrame& frm) {
 // Action_Grid::print()
 void Action_Grid::Print() {
   if (nframes_ < 1) return;
+  FinishGrid( *grid_ );
   // Perform normalization and find max.
   double gridMax = 0.0;
   if (normalize_ == NONE) {

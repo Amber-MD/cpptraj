@@ -30,9 +30,11 @@ class GridAction {
     /// Perform any setup necessary for given Topology/CoordinateInfo
     int GridSetup(Topology const&, CoordinateInfo const&);
     /// Place atoms selected by given mask in given Frame on the given grid.
-    inline void GridFrame(Frame const&, AtomMask const&, DataSet_GridFlt&);
+    inline void GridFrame(Frame const&, AtomMask const&, DataSet_GridFlt&) const;
     /// Move grid if necessary
     inline void MoveGrid(Frame const&, DataSet_GridFlt&);
+    /// Anything needed to finalize the grid
+    void FinishGrid(DataSet_GridFlt&) const;
     /// \return Type of offset to apply to coords before gridding.
     OffsetType GridOffsetType()  const { return gridOffsetType_;       }
     /// \return Mask to use for centering grid
@@ -47,10 +49,12 @@ class GridAction {
     Frame tgt_;           ///< For MoveType RMS_FIT, previous frames selected coordinates
     Frame ref_;           ///< For MoveType RMS_FIT, current frames selected coordinates
     bool firstFrame_;     ///< For MoveType RMS_FIT, true if this is the first frame (no fit needed)
+    bool x_align_;        ///< For MoveType RMS_FIT, if true ensure grid is X-aligned in FinishGrid();
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
 void GridAction::GridFrame(Frame const& currentFrame, AtomMask const& mask, 
-                           DataSet_GridFlt& grid) 
+                           DataSet_GridFlt& grid)
+const
 {
   if (gridOffsetType_ == BOX_CENTER) {
     Vec3 offset = currentFrame.BoxCrd().Center();
