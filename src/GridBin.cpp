@@ -110,11 +110,46 @@ void GridBin::PrintDebug(const char* title) const
   mprintf("DEBUG: %s: voxel vol. : %12.4f\n", title, voxelvolume_);
 }
 
+/// Apply translation, rotation, translation
+static inline void T_R_T(double* point, Vec3 const& t1, Matrix_3x3 const& R, Vec3 const& t2)
+{
+  double x = point[0] + t1[0];
+  double y = point[1] + t1[1];
+  double z = point[2] + t1[2];
+  point[0] = x*R[0] + y*R[1] + z*R[2] + t2[0];
+  point[1] = x*R[3] + y*R[4] + z*R[5] + t2[1];
+  point[2] = x*R[6] + y*R[7] + z*R[8] + t2[2];
+}
+
 /** Apply rotation to grid unit cell vectors. */
 void GridBin::RotateGrid(Matrix_3x3 const& Rot)
 {
+  Vec3 gridCtrXyz = GridCenter();
+  mprintf("DEBUG: Original oxyz= %f %f %f\n", OXYZ_[0], OXYZ_[1], OXYZ_[2]);
   box_.RotateUcell(Rot);
 
+/*
+  // Get grid unit cell center vector.
+  Vec3 centerVec = box_.UnitCell().TransposeMult( Vec3(0.5, 0.5, 0.5) );
+  Vec3 minus_centerVec( -centerVec[0], -centerVec[1], -centerVec[2] );
+  Vec3 gridCtrXyz = OXYZ_ + centerVec;
+
+  // DEBUG
+  centerVec.Zero();
+  minus_centerVec.Zero();
+
+  // Rotate those unit cell vectors
+  Matrix_3x3 new_ucell = box_.UnitCell();
+  T_R_T( new_ucell.Dptr(),   minus_centerVec, Rot, centerVec );
+  T_R_T( new_ucell.Dptr()+3, minus_centerVec, Rot, centerVec );
+  T_R_T( new_ucell.Dptr()+6, minus_centerVec, Rot, centerVec );
+
+  // Set up the box from rotated cell
+  box_.SetupFromUcell( new_ucell );*/
   SetupInternalPointers();
   //set_voxel_volume(); // Voxel volume should be unchanged
+
+  // Set the grid back at the original center
+  SetOriginFromCenter( gridCtrXyz );
+  mprintf("DEBUG: New oxyz= %f %f %f\n", OXYZ_[0], OXYZ_[1], OXYZ_[2]);
 }
