@@ -124,32 +124,16 @@ static inline void T_R_T(double* point, Vec3 const& t1, Matrix_3x3 const& R, Vec
 /** Apply rotation to grid unit cell vectors. */
 void GridBin::RotateGrid(Matrix_3x3 const& Rot)
 {
+  // Save the grid center coords TODO should this just always be saved?
   Vec3 gridCtrXyz = GridCenter();
-  mprintf("DEBUG: Original oxyz= %f %f %f\n", OXYZ_[0], OXYZ_[1], OXYZ_[2]);
+  //mprintf("DEBUG: Original oxyz= %f %f %f\n", OXYZ_[0], OXYZ_[1], OXYZ_[2]);
+  // Rotate grid unit cell
   box_.RotateUcell(Rot);
-
-/*
-  // Get grid unit cell center vector.
-  Vec3 centerVec = box_.UnitCell().TransposeMult( Vec3(0.5, 0.5, 0.5) );
-  Vec3 minus_centerVec( -centerVec[0], -centerVec[1], -centerVec[2] );
-  Vec3 gridCtrXyz = OXYZ_ + centerVec;
-
-  // DEBUG
-  centerVec.Zero();
-  minus_centerVec.Zero();
-
-  // Rotate those unit cell vectors
-  Matrix_3x3 new_ucell = box_.UnitCell();
-  T_R_T( new_ucell.Dptr(),   minus_centerVec, Rot, centerVec );
-  T_R_T( new_ucell.Dptr()+3, minus_centerVec, Rot, centerVec );
-  T_R_T( new_ucell.Dptr()+6, minus_centerVec, Rot, centerVec );
-
-  // Set up the box from rotated cell
-  box_.SetupFromUcell( new_ucell );*/
+  // Update internal pointers based on new cell orientation
   SetupInternalPointers();
   //set_voxel_volume(); // Voxel volume should be unchanged
-
-  // Set the grid back at the original center
+  // Update origin by setting the grid back at the original center 
+  // with the new grid unit cell.
   SetOriginFromCenter( gridCtrXyz );
-  mprintf("DEBUG: New oxyz= %f %f %f\n", OXYZ_[0], OXYZ_[1], OXYZ_[2]);
+  //mprintf("DEBUG: New oxyz= %f %f %f\n", OXYZ_[0], OXYZ_[1], OXYZ_[2]);
 }
