@@ -190,6 +190,8 @@ int Action_Dipole::SyncAction() {
   * comes with Midas/Plus.
   */
 void Action_Dipole::Print() {
+  if (grid_ == 0) return
+  FinishGrid( *grid_ );
   double max_density;
 
   // Write header

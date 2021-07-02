@@ -90,6 +90,8 @@ Action::RetType Action_GridFreeEnergy::DoAction(int frameNum, ActionFrame& frm) 
 
 // Action_GridFreeEnergy::print()
 void Action_GridFreeEnergy::Print() {
+  if (grid_ == 0) return;
+  FinishGrid( *grid_ );
   /* How times does this occupancy count value arise?
    *    i.e. if  
    *                 voxelOccupancyCount[50] = 10 
