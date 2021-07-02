@@ -111,6 +111,7 @@ void GridBin::PrintDebug(const char* title) const
 }
 
 /// Apply translation, rotation, translation
+/*
 static inline void T_R_T(double* point, Vec3 const& t1, Matrix_3x3 const& R, Vec3 const& t2)
 {
   double x = point[0] + t1[0];
@@ -120,6 +121,7 @@ static inline void T_R_T(double* point, Vec3 const& t1, Matrix_3x3 const& R, Vec
   point[1] = x*R[3] + y*R[4] + z*R[5] + t2[1];
   point[2] = x*R[6] + y*R[7] + z*R[8] + t2[2];
 }
+*/
 
 /** Apply rotation to grid unit cell vectors. */
 void GridBin::RotateGrid(Matrix_3x3 const& Rot)
