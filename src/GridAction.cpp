@@ -219,7 +219,7 @@ int GridAction::GridSetup(Topology const& currentParm, CoordinateInfo const& cIn
 /** Any final actions to grid. */
 void GridAction::FinishGrid(DataSet_GridFlt& grid) const {
   if (x_align_) {
-    if (!grid.Bin().IsOrthoGrid()) {
+    if (!grid.Bin().IsXalignedGrid()) {
       mprintf("\tEnsuring grid '%s' is X-aligned.\n", grid.legend());
       grid.Xalign_3D_Grid();
     }

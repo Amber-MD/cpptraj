@@ -25,6 +25,8 @@ class GridBin {
     inline Box const& GridBox() const { return box_; }
     /// \return true if Grid is X-aligned and orthogonal. TODO this may not be necessary
     inline bool IsOrthoGrid() const { return box_.Is_X_Aligned_Ortho(); }
+    /// \return true if Grid is X-aligned
+    inline bool IsXalignedGrid() const { return box_.Is_X_Aligned(); }
     /// \return Voxel volume.
     inline double VoxelVolume() const { return voxelvolume_; }
     /// \return a copy of this GridBin.
