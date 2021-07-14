@@ -1685,9 +1685,12 @@ void Analysis_Rotdif::PrintDeffs(std::string const& nameIn) const {
   *   minimizer to optimize Q in full anisotropic limit
   */
 Analysis::RetType Analysis_Rotdif::Analyze() {
+  t_total_.Start();
   mprintf("    ROTDIF:\n");
   // Read/Generate nvecs random vectors
+  t_rvec_.Start();
   random_vectors_ = RandomVectors();
+  t_rvec_.Stop();
   if (random_vectors_.Size() < 1) return Analysis::ERR;
   // ---------------------------------------------
   // If no rotation matrices generated, exit
@@ -1695,6 +1698,7 @@ Analysis::RetType Analysis_Rotdif::Analyze() {
   // HACK: To match results from rmscorr.f (where rotation matrices are
   //       implicitly transposed), transpose each rotation matrix.
   // NOTE: Is this actually correct? Want inverse rotation?
+  t_transposeRmat_.Start();
   for (DataSet_Mat3x3::iterator rmatrix = Rmatrices_->begin();
                                 rmatrix != Rmatrices_->end(); ++rmatrix)
     rmatrix->Transpose();
@@ -1721,19 +1725,25 @@ Analysis::RetType Analysis_Rotdif::Analyze() {
   }
   mprintf("\t%zu vectors, %zu rotation matrices.\n",
           random_vectors_.Size(), Rmatrices_->Size());
+  t_transposeRmat_.Stop();
   if (usefft_) {
     // ---------------------------------------------
     // Test calculation; determine constants directly with SH and curve fitting.
+    t_determineDeffs_.Start();
     DetermineDeffsAlt();
+    t_determineDeffs_.Stop();
     //PrintDeffs( deffOut_ );
   } else {
     // ---------------------------------------------
     // Original Wong & Case method using Legendre polynomial Ct and SVD.
     // Determine effective D for each vector.
+    t_determineDeffs_.Start();
     DetermineDeffs( );
+    t_determineDeffs_.Stop();
     PrintDeffs( deffOut_ );
     // All remaining functions require LAPACK
 #   ifndef NO_MATHLIB
+    t_tensorFit_.Start();
     SimplexMin::Darray Q_isotropic(6);
     if (Tensor_Fit( Q_isotropic )) return Analysis::ERR;
     // Using Q (small anisotropy) as a guess, calculate Q with full anisotropy
@@ -1754,9 +1764,12 @@ Analysis::RetType Analysis_Rotdif::Analyze() {
     outfile_->Printf("\nSame diffusion tensor, but full anisotropy:\n");
     outfile_->Printf("  chi_squared for SVD tensor is %15.5g\n", initial_chisq);
     PrintTau( Tau );
+    t_tensorFit_.Stop();
     // Use the SVD solution as one of the initial points for the minimizer.
+    t_minimize_.Start();
     minimizer.Minimize(fxn, Q_anisotropic, &random_vectors_, D_eff_, delqfrac_,
                        amoeba_itmax_, amoeba_ftol_, amoeba_nsearch_, RNgen_);
+    t_minimize_.Stop();
     outfile_->Printf("\nOutput from amoeba:\n");
     // Print Q vector
     PrintVec6(*outfile_,"Qxx Qyy Qzz Qxy Qyz Qxz", Q_anisotropic);
@@ -1773,6 +1786,7 @@ Analysis::RetType Analysis_Rotdif::Analyze() {
     PrintTau( Tau );
     // Brute force grid search
     if (do_gridsearch_) {
+      t_gridSearch_.Start();
       // Store initial solution
       SimplexMin::Darray best = Q_anisotropic;
       SimplexMin::Darray xsearch(6);
@@ -1822,8 +1836,18 @@ Analysis::RetType Analysis_Rotdif::Analyze() {
         PrintVec6(*outfile_,"Qxx Qyy Qzz Qxy Qyz Qxz", Q_anisotropic);
       } else
         mprintf("  Grid search could not find a better solution.\n");
+      t_gridSearch_.Stop();
     } // END grid search
 #   endif
   }
+  t_total_.Stop();
+  // Timing
+  t_rvec_.WriteTiming(          1, "  Generate Random Vecs :", t_total_.Total());
+  t_transposeRmat_.WriteTiming( 1, "  Transpose Rot. Mats. :", t_total_.Total());
+  t_determineDeffs_.WriteTiming(1, "  Determine Deffs      :", t_total_.Total());
+  t_tensorFit_.WriteTiming(     1, "  Tensor fit           :", t_total_.Total());
+  t_minimize_.WriteTiming(      1, "  Minimizer            :", t_total_.Total());
+  t_gridSearch_.WriteTiming(    1, "  Grid search          :", t_total_.Total());
+  t_total_.WriteTiming(         1, "Total:");
   return Analysis::OK;
 }
