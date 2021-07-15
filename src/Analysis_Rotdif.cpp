@@ -12,6 +12,9 @@
 #include "CurveFit.h"
 #include "SimplexMin.h"
 #include "DataSet_Mat3x3.h"
+#ifdef _OPENMP
+#  include <omp.h>
+#endif
 // DEBUG
 //#inc lude "DataIO_Grace.h"
 
@@ -1660,7 +1663,7 @@ int Analysis_Rotdif::DetermineDeffs_Threaded() {
   int meshSize;                   // Total mesh size, maxdat * NmeshPoints
 
   mprintf("\tDetermining local diffusion constants for each vector.\n");
-  ProgressBar progress( random_vectors_.Size() );
+  ParallelProgress progress( random_vectors_.Size() );
   // Total number of frames (rotation matrices) 
   int itotframes = (int) Rmatrices_->Size();
   if (ncorr_ == 0) ncorr_ = itotframes;
@@ -1679,8 +1682,18 @@ int Analysis_Rotdif::DetermineDeffs_Threaded() {
     meshSize = maxdat * 2;
   else
     meshSize = maxdat * NmeshPoints_;
+
   // LOOP OVER RANDOM VECTORS
-  for (unsigned int nvec = 0; nvec < random_vectors_.Size(); nvec++)
+  int nvec;
+  int rvecsize = random_vectors_.Size();
+# ifdef _OPENMP
+# pragma omp parallel private(nvec)
+{
+  int mythread = omp_get_thread_num();
+  progress.SetThread( mythread );
+# pragma omp for
+# endif
+  for (nvec = 0; nvec < rvecsize; nvec++)
   {
     Vec3 const& rndvec = random_vectors_[nvec];
     progress.Update( nvec );
@@ -1730,7 +1743,7 @@ int Analysis_Rotdif::DetermineDeffs_Threaded() {
     // Integrate
     double integral = spline.Integrate( DataSet_1D::TRAPEZOID );
     if (debug_ > 1)
-      mprintf("DEBUG: Vec %u Spline integral= %12.4g\n",nvec,integral);
+      mprintf("DEBUG: Vec %i Spline integral= %12.4g\n",nvec,integral);
     if ( integral > 0 ) {
       isGoodVec[nvec] = true;
       // Solve for deff
@@ -1765,6 +1778,9 @@ int Analysis_Rotdif::DetermineDeffs_Threaded() {
     }
     // END DEBUG -----------------------------------------------------
   }
+# ifdef _OPENMP
+} // END pragma omp parallel
+# endif
 
   // Count the number of "good" vectors
   unsigned int nGoodVecs = 0;
