@@ -1658,7 +1658,6 @@ int Analysis_Rotdif::DetermineDeffs_Threaded() {
   int maxdat;                     // Length of C(t) 
   std::vector<double> pX;         // Hold X values of C(t)
   int meshSize;                   // Total mesh size, maxdat * NmeshPoints
-  DataSet_Vector goodRvecs;       // Hold vectors with "good" Deff values
 
   mprintf("\tDetermining local diffusion constants for each vector.\n");
   ProgressBar progress( random_vectors_.Size() );
@@ -1667,7 +1666,9 @@ int Analysis_Rotdif::DetermineDeffs_Threaded() {
   if (ncorr_ == 0) ncorr_ = itotframes;
   maxdat = ncorr_ + 1;
   // Allocate memory to hold calcd effective D values
-  D_eff_.reserve( random_vectors_.Size() );
+  D_eff_.assign( random_vectors_.Size(), 0.0 );
+  // Array for marking which vectors result in non-negative integrals (and i.e. "good" Deff vals)
+  std::vector<bool> isGoodVec( random_vectors_.Size(), false );
   // Allocate memory for C(t)
   pX.reserve( maxdat );
   // Set X values of C(t) based on tfac
@@ -1679,11 +1680,9 @@ int Analysis_Rotdif::DetermineDeffs_Threaded() {
   else
     meshSize = maxdat * NmeshPoints_;
   // LOOP OVER RANDOM VECTORS
-  int nvec = 0;
-  for (DataSet_Vector::const_iterator rndvec = random_vectors_.begin();
-                                      rndvec != random_vectors_.end();
-                                    ++rndvec, ++nvec)
+  for (unsigned int nvec = 0; nvec < random_vectors_.Size(); nvec++)
   {
+    Vec3 const& rndvec = random_vectors_[nvec];
     progress.Update( nvec );
 
     // Hold vectors after rotation with Rmatrices
@@ -1695,14 +1694,14 @@ int Analysis_Rotdif::DetermineDeffs_Threaded() {
     // Normalize vector
     //rndvec->Normalize(); // FIXME: Should already be normalized
     // Assign normalized vector to rotated_vectors position 0
-    rotated_vectors.AddVxyz( *rndvec );
+    rotated_vectors.AddVxyz( rndvec );
     // Loop over rotation matrices
     for (DataSet_Mat3x3::const_iterator rmatrix = Rmatrices_->begin();
                                         rmatrix != Rmatrices_->end();
                                       ++rmatrix)
     {
       // Rotate normalized vector
-      rotated_vectors.AddVxyz( *rmatrix * (*rndvec) );
+      rotated_vectors.AddVxyz( *rmatrix * rndvec );
       // DEBUG
       //Vec3 current = rotated_vectors.CurrentVec();
       //mprintf("DBG:Rotated %6u: %15.8f%15.8f%15.8f\n", rmatrix - Rmatrices_->begin(),
@@ -1731,13 +1730,13 @@ int Analysis_Rotdif::DetermineDeffs_Threaded() {
     // Integrate
     double integral = spline.Integrate( DataSet_1D::TRAPEZOID );
     if (debug_ > 1)
-      mprintf("DEBUG: Vec %i Spline integral= %12.4g\n",nvec,integral);
+      mprintf("DEBUG: Vec %u Spline integral= %12.4g\n",nvec,integral);
     if ( integral > 0 ) {
-      goodRvecs.AddVxyz( *rndvec );
+      isGoodVec[nvec] = true;
       // Solve for deff
-      D_eff_.push_back( calcEffectiveDiffusionConst(integral) );
+      D_eff_[nvec] = calcEffectiveDiffusionConst(integral);
       if (debug_ > 1)
-        mprintf("DBG: deff is %g\n",D_eff_.back());
+        mprintf("DBG: deff is %g\n", D_eff_[nvec]);
     }
     // DEBUG: Write out p1 and p2 ------------------------------------
     if (!corrOut_.empty() || debug_ > 3) {
@@ -1766,14 +1765,24 @@ int Analysis_Rotdif::DetermineDeffs_Threaded() {
     }
     // END DEBUG -----------------------------------------------------
   }
-  mprintf("\t%zu vectors, %zu with corr. function integral > 0.\n", random_vectors_.Size(), goodRvecs.Size());
+
+  // Count the number of "good" vectors
+  unsigned int nGoodVecs = 0;
+  for (std::vector<bool>::const_iterator it = isGoodVec.begin(); it != isGoodVec.end(); ++it)
+    if (*it) nGoodVecs++;
+  mprintf("\t%zu vectors, %u with corr. function integral > 0.\n", random_vectors_.Size(), nGoodVecs);
   // Get rid of any vectors with "bad" integrals
-  if (goodRvecs.Size() < 1) {
+  if (nGoodVecs < 1) {
     mprinterr("Error: No random vectors had corr. function with integral > 0. Cannot continue.\n");
     return 1;
   }
-  if (goodRvecs.Size() < random_vectors_.Size()) {
+  if (nGoodVecs < random_vectors_.Size()) {
+    DataSet_Vector goodRvecs;       // Hold vectors with "good" Deff values
     mprintf("\tVectors with corr. function integral <= 0 will not be used in further calcs.\n");
+    for (unsigned int nvec = 0; nvec < random_vectors_.Size(); nvec++) {
+      if (isGoodVec[nvec])
+        goodRvecs.AddVxyz( random_vectors_[nvec] );
+    }
     random_vectors_ = goodRvecs;
   }
   return 0;
