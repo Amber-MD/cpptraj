@@ -40,6 +40,7 @@ class Analysis_Rotdif: public Analysis {
     void PrintTau( std::vector<double> const& );
     int Tensor_Fit(std::vector<double>&);
     int DetermineDeffs();
+    int DetermineDeffs_Threaded();
     void PrintDeffs(std::string const&) const;
 
     int DetermineDeffsAlt();

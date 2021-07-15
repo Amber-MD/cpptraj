@@ -1653,6 +1653,132 @@ int Analysis_Rotdif::DetermineDeffs() {
   return 0;
 }
 
+/** Threaded version of DetermineDeffs */
+int Analysis_Rotdif::DetermineDeffs_Threaded() {
+  int maxdat;                     // Length of C(t) 
+  std::vector<double> pX;         // Hold X values of C(t)
+  int meshSize;                   // Total mesh size, maxdat * NmeshPoints
+  DataSet_Vector goodRvecs;       // Hold vectors with "good" Deff values
+
+  mprintf("\tDetermining local diffusion constants for each vector.\n");
+  ProgressBar progress( random_vectors_.Size() );
+  // Total number of frames (rotation matrices) 
+  int itotframes = (int) Rmatrices_->Size();
+  if (ncorr_ == 0) ncorr_ = itotframes;
+  maxdat = ncorr_ + 1;
+  // Allocate memory to hold calcd effective D values
+  D_eff_.reserve( random_vectors_.Size() );
+  // Allocate memory for C(t)
+  pX.reserve( maxdat );
+  // Set X values of C(t) based on tfac
+  for (int i = 0; i < maxdat; i++)
+    pX.push_back( (double)i * tfac_ );
+  // Allocate mesh to hold interpolated C(t)
+  if (NmeshPoints_ < 1)
+    meshSize = maxdat * 2;
+  else
+    meshSize = maxdat * NmeshPoints_;
+  // LOOP OVER RANDOM VECTORS
+  int nvec = 0;
+  for (DataSet_Vector::const_iterator rndvec = random_vectors_.begin();
+                                      rndvec != random_vectors_.end();
+                                    ++rndvec, ++nvec)
+  {
+    progress.Update( nvec );
+
+    // Hold vectors after rotation with Rmatrices
+    DataSet_Vector rotated_vectors;
+    // Allocate memory to hold rotated vectors. Need +1 since the original
+    // vector is stored at position 0. 
+    rotated_vectors.Allocate( DataSet::SizeArray(1, itotframes + 1) );
+
+    // Normalize vector
+    //rndvec->Normalize(); // FIXME: Should already be normalized
+    // Assign normalized vector to rotated_vectors position 0
+    rotated_vectors.AddVxyz( *rndvec );
+    // Loop over rotation matrices
+    for (DataSet_Mat3x3::const_iterator rmatrix = Rmatrices_->begin();
+                                        rmatrix != Rmatrices_->end();
+                                      ++rmatrix)
+    {
+      // Rotate normalized vector
+      rotated_vectors.AddVxyz( *rmatrix * (*rndvec) );
+      // DEBUG
+      //Vec3 current = rotated_vectors.CurrentVec();
+      //mprintf("DBG:Rotated %6u: %15.8f%15.8f%15.8f\n", rmatrix - Rmatrices_->begin(),
+      //        current[0], current[1], current[2]); 
+    }
+    // Calculate time correlation function for this vector
+    // Hold Y values of C(t) for p(olegendre_)
+    std::vector<double> pY;
+    pY.reserve( maxdat );
+//    if (usefft_) {
+//      // Calculate spherical harmonics for each vector.
+//      rotated_vectors.CalcSphericalHarmonics( olegendre_ );
+//      fft_compute_corr(rotated_vectors, maxdat, pY);
+//    } else
+      direct_compute_corr(rotated_vectors, maxdat, pY);
+    // Cubic splines will be used to interpolate C(t) for smoother integration.
+    DataSet_Mesh spline( meshSize, ti_, tf_ );
+
+    // Calculate mesh Y values
+    spline.SetSplinedMeshY(pX, pY);
+    // DEBUG - Write splined mesh to file
+    //DataIO_Grace tmpGraceOut;
+    //DataSetList tmpGraceDsl;
+    //tmpGraceDsl.AddCopyOfSet(&spline);
+    //tmpGraceOut.WriteData(AppendNumber("tmpspline.agr",nvec), tmpGraceDsl);
+    // Integrate
+    double integral = spline.Integrate( DataSet_1D::TRAPEZOID );
+    if (debug_ > 1)
+      mprintf("DEBUG: Vec %i Spline integral= %12.4g\n",nvec,integral);
+    if ( integral > 0 ) {
+      goodRvecs.AddVxyz( *rndvec );
+      // Solve for deff
+      D_eff_.push_back( calcEffectiveDiffusionConst(integral) );
+      if (debug_ > 1)
+        mprintf("DBG: deff is %g\n",D_eff_.back());
+    }
+    // DEBUG: Write out p1 and p2 ------------------------------------
+    if (!corrOut_.empty() || debug_ > 3) {
+      CpptrajFile outfile;
+      std::string namebuffer;
+      if (!corrOut_.empty())
+        namebuffer = AppendNumber( corrOut_, nvec );
+      else
+        namebuffer = AppendNumber( "p1p2.dat", nvec );
+      if (outfile.OpenWrite(namebuffer))
+        mprinterr("Error: Could not write PX to file.\n");
+      else {
+        for (int i = 0; i < maxdat; i++) 
+          //outfile.Printf("%lf %lf %lf\n",pX[i], p2[i], p1[i]);
+          outfile.Printf("%12.6g %20.8e\n",pX[i], pY[i]);
+        outfile.CloseFile();
+      }
+      //    Write Mesh
+      if (debug_>3) {
+        namebuffer = AppendNumber( "mesh.dat", nvec );
+        outfile.OpenWrite(namebuffer);
+        for (int i=0; i < (int)spline.Size(); i++)
+          outfile.Printf("%12.6g %20.8e\n", spline.X(i), spline.Y(i));
+        outfile.CloseFile();
+      }
+    }
+    // END DEBUG -----------------------------------------------------
+  }
+  mprintf("\t%zu vectors, %zu with corr. function integral > 0.\n", random_vectors_.Size(), goodRvecs.Size());
+  // Get rid of any vectors with "bad" integrals
+  if (goodRvecs.Size() < 1) {
+    mprinterr("Error: No random vectors had corr. function with integral > 0. Cannot continue.\n");
+    return 1;
+  }
+  if (goodRvecs.Size() < random_vectors_.Size()) {
+    mprintf("\tVectors with corr. function integral <= 0 will not be used in further calcs.\n");
+    random_vectors_ = goodRvecs;
+  }
+  return 0;
+}
+
 // =============================================================================
 void Analysis_Rotdif::PrintDeffs(std::string const& nameIn) const {
   // Print deffs
@@ -1738,7 +1864,8 @@ Analysis::RetType Analysis_Rotdif::Analyze() {
     // Original Wong & Case method using Legendre polynomial Ct and SVD.
     // Determine effective D for each vector.
     t_determineDeffs_.Start();
-    DetermineDeffs( );
+    //DetermineDeffs( );
+    DetermineDeffs_Threaded( );
     t_determineDeffs_.Stop();
     PrintDeffs( deffOut_ );
     // All remaining functions require LAPACK
