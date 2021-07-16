@@ -12,6 +12,9 @@
 #include "CurveFit.h"
 #include "SimplexMin.h"
 #include "DataSet_Mat3x3.h"
+#ifdef _OPENMP
+#  include <omp.h>
+#endif
 // DEBUG
 //#inc lude "DataIO_Grace.h"
 
@@ -132,7 +135,7 @@ Analysis::RetType Analysis_Rotdif::Setup(ArgList& analyzeArgs, AnalysisSetup& se
     amoeba_ftol_ = analyzeArgs.getKeyDouble("fit_tol", amoeba_ftol_);
     amoeba_itmax_ = analyzeArgs.getKeyInt("fit_itmax", amoeba_itmax_);
   }
-  // Rotation matrices data set. TODO: Make optional
+  // Rotation matrices data set.
   std::string rm_name = analyzeArgs.GetStringKey("rmatrix");
   Rmatrices_ = (DataSet_Mat3x3*)setup.DSL().FindSetOfType( rm_name, DataSet::MAT3X3 );
   if (Rmatrices_ == 0) {
@@ -191,6 +194,18 @@ Analysis::RetType Analysis_Rotdif::Setup(ArgList& analyzeArgs, AnalysisSetup& se
       mprintf("\tDiffusion constants output to STDOUT\n");
   } else {
     mprintf("\tVector time correlation functions will be calculated directly.\n");
+#   ifdef _OPENMP
+    int nthreads = 1;
+#   pragma omp parallel
+    {
+#     pragma omp master
+      {
+        nthreads = omp_get_num_threads();
+      }
+    }
+    if (nthreads > 1)
+      mprintf("\tCalculation of time correlation functions will be parallelized using %i threads.\n", nthreads);
+#   endif
     if (!corrOut_.empty())
       mprintf("\tVector time correlation functions will be written to '%s.X'\n",
               corrOut_.c_str());
@@ -1264,7 +1279,7 @@ int Analysis_Rotdif::DetermineDeffsAlt() {
     // Reset rotated_vectors to the beginning and clear spherical harmonics 
     rotated_vectors.reset();
     // Normalize vector
-    //rndvec->Normalize(); // FIXME: Should already be normalized
+    //rndvec->Normalize(); // NOTE: Should already be normalized
     // Assign normalized vector to rotated_vectors position 0
     rotated_vectors.AddVxyz( *rndvec );
     // Loop over rotation matrices
@@ -1426,7 +1441,6 @@ int Analysis_Rotdif::DetermineDeffsAlt() {
   * \param maxdat Maximum length to compute time correlation functions (units of 'frames')
   * \param pY Will be set with values for correlation function, l=olegendre_
   */
-// TODO: Make rotated_vectors const&
 int Analysis_Rotdif::direct_compute_corr(DataSet_Vector const& rotated_vectors, int maxdat,
                                        std::vector<double>& pY)
 {
@@ -1529,7 +1543,7 @@ double Analysis_Rotdif::calcEffectiveDiffusionConst(double f ) {
   * time correlation function curve and estimate the diffusion constant.
   * Sets D_Eff, normalizes random_vectors.
   */
-// TODO: OpenMP Parallelize
+/*
 int Analysis_Rotdif::DetermineDeffs() {
   int itotframes;                 // Total number of frames (rotation matrices) 
   DataSet_Vector rotated_vectors; // Hold vectors after rotation with Rmatrices
@@ -1573,7 +1587,7 @@ int Analysis_Rotdif::DetermineDeffs() {
     // Reset rotated_vectors to the beginning 
     rotated_vectors.reset();
     // Normalize vector
-    //rndvec->Normalize(); // FIXME: Should already be normalized
+    //rndvec->Normalize(); // NOTE: Should already be normalized
     // Assign normalized vector to rotated_vectors position 0
     rotated_vectors.AddVxyz( *rndvec );
     // Loop over rotation matrices
@@ -1652,6 +1666,155 @@ int Analysis_Rotdif::DetermineDeffs() {
   }
   return 0;
 }
+*/
+
+/** Threaded version of DetermineDeffs */
+int Analysis_Rotdif::DetermineDeffs_Threaded() {
+  int maxdat;                     // Length of C(t) 
+  std::vector<double> pX;         // Hold X values of C(t)
+  int meshSize;                   // Total mesh size, maxdat * NmeshPoints
+
+  mprintf("\tDetermining local diffusion constants for each vector.\n");
+  ParallelProgress progress( random_vectors_.Size() );
+  // Total number of frames (rotation matrices) 
+  int itotframes = (int) Rmatrices_->Size();
+  if (ncorr_ == 0) ncorr_ = itotframes;
+  maxdat = ncorr_ + 1;
+  // Allocate memory to hold calcd effective D values
+  D_eff_.assign( random_vectors_.Size(), 0.0 );
+  // Array for marking which vectors result in non-negative integrals (and i.e. "good" Deff vals)
+  std::vector<bool> isGoodVec( random_vectors_.Size(), false );
+  // Allocate memory for C(t)
+  pX.reserve( maxdat );
+  // Set X values of C(t) based on tfac
+  for (int i = 0; i < maxdat; i++)
+    pX.push_back( (double)i * tfac_ );
+  // Allocate mesh to hold interpolated C(t)
+  if (NmeshPoints_ < 1)
+    meshSize = maxdat * 2;
+  else
+    meshSize = maxdat * NmeshPoints_;
+
+  // LOOP OVER RANDOM VECTORS
+  int nvec;
+  int rvecsize = random_vectors_.Size();
+# ifdef _OPENMP
+# pragma omp parallel private(nvec)
+{
+  int mythread = omp_get_thread_num();
+  progress.SetThread( mythread );
+# pragma omp for
+# endif
+  for (nvec = 0; nvec < rvecsize; nvec++)
+  {
+    Vec3 const& rndvec = random_vectors_[nvec];
+    progress.Update( nvec );
+
+    // Hold vectors after rotation with Rmatrices
+    DataSet_Vector rotated_vectors;
+    // Allocate memory to hold rotated vectors. Need +1 since the original
+    // vector is stored at position 0. 
+    rotated_vectors.Allocate( DataSet::SizeArray(1, itotframes + 1) );
+
+    // Normalize vector
+    //rndvec->Normalize(); // FIXME: Should already be normalized
+    // Assign normalized vector to rotated_vectors position 0
+    rotated_vectors.AddVxyz( rndvec );
+    // Loop over rotation matrices
+    for (DataSet_Mat3x3::const_iterator rmatrix = Rmatrices_->begin();
+                                        rmatrix != Rmatrices_->end();
+                                      ++rmatrix)
+    {
+      // Rotate normalized vector
+      rotated_vectors.AddVxyz( *rmatrix * rndvec );
+      // DEBUG
+      //Vec3 current = rotated_vectors.CurrentVec();
+      //mprintf("DBG:Rotated %6u: %15.8f%15.8f%15.8f\n", rmatrix - Rmatrices_->begin(),
+      //        current[0], current[1], current[2]); 
+    }
+    // Calculate time correlation function for this vector
+    // Hold Y values of C(t) for p(olegendre_)
+    std::vector<double> pY;
+    pY.reserve( maxdat );
+//    if (usefft_) {
+//      // Calculate spherical harmonics for each vector.
+//      rotated_vectors.CalcSphericalHarmonics( olegendre_ );
+//      fft_compute_corr(rotated_vectors, maxdat, pY);
+//    } else
+      direct_compute_corr(rotated_vectors, maxdat, pY);
+    // Cubic splines will be used to interpolate C(t) for smoother integration.
+    DataSet_Mesh spline( meshSize, ti_, tf_ );
+
+    // Calculate mesh Y values
+    spline.SetSplinedMeshY(pX, pY);
+    // DEBUG - Write splined mesh to file
+    //DataIO_Grace tmpGraceOut;
+    //DataSetList tmpGraceDsl;
+    //tmpGraceDsl.AddCopyOfSet(&spline);
+    //tmpGraceOut.WriteData(AppendNumber("tmpspline.agr",nvec), tmpGraceDsl);
+    // Integrate
+    double integral = spline.Integrate( DataSet_1D::TRAPEZOID );
+    if (debug_ > 1)
+      mprintf("DEBUG: Vec %i Spline integral= %12.4g\n",nvec,integral);
+    if ( integral > 0 ) {
+      isGoodVec[nvec] = true;
+      // Solve for deff
+      D_eff_[nvec] = calcEffectiveDiffusionConst(integral);
+      if (debug_ > 1)
+        mprintf("DBG: deff is %g\n", D_eff_[nvec]);
+    }
+    // DEBUG: Write out p1 and p2 ------------------------------------
+    if (!corrOut_.empty() || debug_ > 3) {
+      CpptrajFile outfile;
+      std::string namebuffer;
+      if (!corrOut_.empty())
+        namebuffer = AppendNumber( corrOut_, nvec );
+      else
+        namebuffer = AppendNumber( "p1p2.dat", nvec );
+      if (outfile.OpenWrite(namebuffer))
+        mprinterr("Error: Could not write PX to file.\n");
+      else {
+        for (int i = 0; i < maxdat; i++) 
+          //outfile.Printf("%lf %lf %lf\n",pX[i], p2[i], p1[i]);
+          outfile.Printf("%12.6g %20.8e\n",pX[i], pY[i]);
+        outfile.CloseFile();
+      }
+      //    Write Mesh
+      if (debug_>3) {
+        namebuffer = AppendNumber( "mesh.dat", nvec );
+        outfile.OpenWrite(namebuffer);
+        for (int i=0; i < (int)spline.Size(); i++)
+          outfile.Printf("%12.6g %20.8e\n", spline.X(i), spline.Y(i));
+        outfile.CloseFile();
+      }
+    }
+    // END DEBUG -----------------------------------------------------
+  }
+# ifdef _OPENMP
+} // END pragma omp parallel
+# endif
+
+  // Count the number of "good" vectors
+  unsigned int nGoodVecs = 0;
+  for (std::vector<bool>::const_iterator it = isGoodVec.begin(); it != isGoodVec.end(); ++it)
+    if (*it) nGoodVecs++;
+  mprintf("\t%zu vectors, %u with corr. function integral > 0.\n", random_vectors_.Size(), nGoodVecs);
+  // Get rid of any vectors with "bad" integrals
+  if (nGoodVecs < 1) {
+    mprinterr("Error: No random vectors had corr. function with integral > 0. Cannot continue.\n");
+    return 1;
+  }
+  if (nGoodVecs < random_vectors_.Size()) {
+    DataSet_Vector goodRvecs;       // Hold vectors with "good" Deff values
+    mprintf("\tVectors with corr. function integral <= 0 will not be used in further calcs.\n");
+    for (unsigned int nvec = 0; nvec < random_vectors_.Size(); nvec++) {
+      if (isGoodVec[nvec])
+        goodRvecs.AddVxyz( random_vectors_[nvec] );
+    }
+    random_vectors_ = goodRvecs;
+  }
+  return 0;
+}
 
 // =============================================================================
 void Analysis_Rotdif::PrintDeffs(std::string const& nameIn) const {
@@ -1685,9 +1848,12 @@ void Analysis_Rotdif::PrintDeffs(std::string const& nameIn) const {
   *   minimizer to optimize Q in full anisotropic limit
   */
 Analysis::RetType Analysis_Rotdif::Analyze() {
+  t_total_.Start();
   mprintf("    ROTDIF:\n");
   // Read/Generate nvecs random vectors
+  t_rvec_.Start();
   random_vectors_ = RandomVectors();
+  t_rvec_.Stop();
   if (random_vectors_.Size() < 1) return Analysis::ERR;
   // ---------------------------------------------
   // If no rotation matrices generated, exit
@@ -1695,6 +1861,7 @@ Analysis::RetType Analysis_Rotdif::Analyze() {
   // HACK: To match results from rmscorr.f (where rotation matrices are
   //       implicitly transposed), transpose each rotation matrix.
   // NOTE: Is this actually correct? Want inverse rotation?
+  t_transposeRmat_.Start();
   for (DataSet_Mat3x3::iterator rmatrix = Rmatrices_->begin();
                                 rmatrix != Rmatrices_->end(); ++rmatrix)
     rmatrix->Transpose();
@@ -1721,19 +1888,26 @@ Analysis::RetType Analysis_Rotdif::Analyze() {
   }
   mprintf("\t%zu vectors, %zu rotation matrices.\n",
           random_vectors_.Size(), Rmatrices_->Size());
+  t_transposeRmat_.Stop();
   if (usefft_) {
     // ---------------------------------------------
     // Test calculation; determine constants directly with SH and curve fitting.
+    t_determineDeffs_.Start();
     DetermineDeffsAlt();
+    t_determineDeffs_.Stop();
     //PrintDeffs( deffOut_ );
   } else {
     // ---------------------------------------------
     // Original Wong & Case method using Legendre polynomial Ct and SVD.
     // Determine effective D for each vector.
-    DetermineDeffs( );
+    t_determineDeffs_.Start();
+    //DetermineDeffs( );
+    DetermineDeffs_Threaded( );
+    t_determineDeffs_.Stop();
     PrintDeffs( deffOut_ );
     // All remaining functions require LAPACK
 #   ifndef NO_MATHLIB
+    t_tensorFit_.Start();
     SimplexMin::Darray Q_isotropic(6);
     if (Tensor_Fit( Q_isotropic )) return Analysis::ERR;
     // Using Q (small anisotropy) as a guess, calculate Q with full anisotropy
@@ -1754,9 +1928,12 @@ Analysis::RetType Analysis_Rotdif::Analyze() {
     outfile_->Printf("\nSame diffusion tensor, but full anisotropy:\n");
     outfile_->Printf("  chi_squared for SVD tensor is %15.5g\n", initial_chisq);
     PrintTau( Tau );
+    t_tensorFit_.Stop();
     // Use the SVD solution as one of the initial points for the minimizer.
+    t_minimize_.Start();
     minimizer.Minimize(fxn, Q_anisotropic, &random_vectors_, D_eff_, delqfrac_,
                        amoeba_itmax_, amoeba_ftol_, amoeba_nsearch_, RNgen_);
+    t_minimize_.Stop();
     outfile_->Printf("\nOutput from amoeba:\n");
     // Print Q vector
     PrintVec6(*outfile_,"Qxx Qyy Qzz Qxy Qyz Qxz", Q_anisotropic);
@@ -1773,6 +1950,7 @@ Analysis::RetType Analysis_Rotdif::Analyze() {
     PrintTau( Tau );
     // Brute force grid search
     if (do_gridsearch_) {
+      t_gridSearch_.Start();
       // Store initial solution
       SimplexMin::Darray best = Q_anisotropic;
       SimplexMin::Darray xsearch(6);
@@ -1822,8 +2000,18 @@ Analysis::RetType Analysis_Rotdif::Analyze() {
         PrintVec6(*outfile_,"Qxx Qyy Qzz Qxy Qyz Qxz", Q_anisotropic);
       } else
         mprintf("  Grid search could not find a better solution.\n");
+      t_gridSearch_.Stop();
     } // END grid search
 #   endif
   }
+  t_total_.Stop();
+  // Timing
+  t_rvec_.WriteTiming(          1, "  Generate Random Vecs :", t_total_.Total());
+  t_transposeRmat_.WriteTiming( 1, "  Transpose Rot. Mats. :", t_total_.Total());
+  t_determineDeffs_.WriteTiming(1, "  Determine Deffs      :", t_total_.Total());
+  t_tensorFit_.WriteTiming(     1, "  Tensor fit           :", t_total_.Total());
+  t_minimize_.WriteTiming(      1, "  Minimizer            :", t_total_.Total());
+  t_gridSearch_.WriteTiming(    1, "  Grid search          :", t_total_.Total());
+  t_total_.WriteTiming(         1, "Total:");
   return Analysis::OK;
 }

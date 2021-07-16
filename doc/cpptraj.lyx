@@ -1142,6 +1142,10 @@ replicatecell
 \end_layout
 
 \begin_layout LyX-Code
+rotdif
+\end_layout
+
+\begin_layout LyX-Code
 rmsavgcorr
 \end_layout
 
@@ -46339,6 +46343,8 @@ reference "subsec:cpptraj-average"
  random vector.
  The time correlation functions are calculated for each random vector time
  series using Legendre polynomials of the specified order (default 2).
+ Calculation of time correlation functions can be sped up by using the OpenMP
+ version of CPPTRAJ.
  The maximum length of the correlation function (or lag) can be specified
  by 
 \series bold
