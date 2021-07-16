@@ -135,7 +135,7 @@ Analysis::RetType Analysis_Rotdif::Setup(ArgList& analyzeArgs, AnalysisSetup& se
     amoeba_ftol_ = analyzeArgs.getKeyDouble("fit_tol", amoeba_ftol_);
     amoeba_itmax_ = analyzeArgs.getKeyInt("fit_itmax", amoeba_itmax_);
   }
-  // Rotation matrices data set. TODO: Make optional
+  // Rotation matrices data set.
   std::string rm_name = analyzeArgs.GetStringKey("rmatrix");
   Rmatrices_ = (DataSet_Mat3x3*)setup.DSL().FindSetOfType( rm_name, DataSet::MAT3X3 );
   if (Rmatrices_ == 0) {
@@ -1267,7 +1267,7 @@ int Analysis_Rotdif::DetermineDeffsAlt() {
     // Reset rotated_vectors to the beginning and clear spherical harmonics 
     rotated_vectors.reset();
     // Normalize vector
-    //rndvec->Normalize(); // FIXME: Should already be normalized
+    //rndvec->Normalize(); // NOTE: Should already be normalized
     // Assign normalized vector to rotated_vectors position 0
     rotated_vectors.AddVxyz( *rndvec );
     // Loop over rotation matrices
@@ -1429,7 +1429,6 @@ int Analysis_Rotdif::DetermineDeffsAlt() {
   * \param maxdat Maximum length to compute time correlation functions (units of 'frames')
   * \param pY Will be set with values for correlation function, l=olegendre_
   */
-// TODO: Make rotated_vectors const&
 int Analysis_Rotdif::direct_compute_corr(DataSet_Vector const& rotated_vectors, int maxdat,
                                        std::vector<double>& pY)
 {
@@ -1532,7 +1531,7 @@ double Analysis_Rotdif::calcEffectiveDiffusionConst(double f ) {
   * time correlation function curve and estimate the diffusion constant.
   * Sets D_Eff, normalizes random_vectors.
   */
-// TODO: OpenMP Parallelize
+/*
 int Analysis_Rotdif::DetermineDeffs() {
   int itotframes;                 // Total number of frames (rotation matrices) 
   DataSet_Vector rotated_vectors; // Hold vectors after rotation with Rmatrices
@@ -1576,7 +1575,7 @@ int Analysis_Rotdif::DetermineDeffs() {
     // Reset rotated_vectors to the beginning 
     rotated_vectors.reset();
     // Normalize vector
-    //rndvec->Normalize(); // FIXME: Should already be normalized
+    //rndvec->Normalize(); // NOTE: Should already be normalized
     // Assign normalized vector to rotated_vectors position 0
     rotated_vectors.AddVxyz( *rndvec );
     // Loop over rotation matrices
@@ -1655,6 +1654,7 @@ int Analysis_Rotdif::DetermineDeffs() {
   }
   return 0;
 }
+*/
 
 /** Threaded version of DetermineDeffs */
 int Analysis_Rotdif::DetermineDeffs_Threaded() {

@@ -39,7 +39,7 @@ class Analysis_Rotdif: public Analysis {
     static void PrintVec6(CpptrajFile&, const char*, std::vector<double> const&);
     void PrintTau( std::vector<double> const& );
     int Tensor_Fit(std::vector<double>&);
-    int DetermineDeffs();
+    //int DetermineDeffs();
     int DetermineDeffs_Threaded();
     void PrintDeffs(std::string const&) const;
 
