@@ -194,6 +194,18 @@ Analysis::RetType Analysis_Rotdif::Setup(ArgList& analyzeArgs, AnalysisSetup& se
       mprintf("\tDiffusion constants output to STDOUT\n");
   } else {
     mprintf("\tVector time correlation functions will be calculated directly.\n");
+#   ifdef _OPENMP
+    int nthreads = 1;
+#   pragma omp parallel
+    {
+#     pragma omp master
+      {
+        nthreads = omp_get_num_threads();
+      }
+    }
+    if (nthreads > 1)
+      mprintf("\tCalculation of time correlation functions will be parallelized using %i threads.\n", nthreads);
+#   endif
     if (!corrOut_.empty())
       mprintf("\tVector time correlation functions will be written to '%s.X'\n",
               corrOut_.c_str());
