@@ -314,8 +314,11 @@ Exec::RetType Exec_DataSetCmd::VectorCoord(CpptrajState& State, ArgList& argIn) 
   // Data set(s)
   typedef std::vector<DataSet_Vector*> DVarray;
   DVarray inputSets;
-  DataSetList dsl1 = State.DSL().GetMultipleSets( argIn.GetStringNext() );
-  while (!dsl1.empty()) {
+  std::string vecsetarg = argIn.GetStringNext();
+  if (vecsetarg.empty())
+    mprintf("Warning: No data set arguments specified.\n");
+  while (!vecsetarg.empty()) {
+    DataSetList dsl1 = State.DSL().GetMultipleSets( vecsetarg );
     for (DataSetList::const_iterator it = dsl1.begin(); it != dsl1.end(); ++it)
     {
       if ( (*it)->Group() != DataSet::VECTOR_1D) {
@@ -326,7 +329,7 @@ Exec::RetType Exec_DataSetCmd::VectorCoord(CpptrajState& State, ArgList& argIn) 
         inputSets.push_back( static_cast<DataSet_Vector*>( *it ) );
       }
     }
-    dsl1 = State.DSL().GetMultipleSets( argIn.GetStringNext() );
+    vecsetarg = argIn.GetStringNext();
   }
   if (inputSets.empty()) {
     mprinterr("Error: 'vectorcoord': No data sets selected.\n");
