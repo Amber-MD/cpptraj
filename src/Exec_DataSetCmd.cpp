@@ -211,15 +211,17 @@ Exec::RetType Exec_DataSetCmd::ModifyPoints(CpptrajState& State, ArgList& argIn,
       }
       // Restrict to 1D sets for now TODO more types
       KeepFxnType keepFxn;
+      DataSet::DataType outType;
       if (DS->Group() == DataSet::SCALAR_1D) {
         keepFxn = KeepPoint_1D;
+        outType = DataSet::XYMESH;
       } else if (DS->Type() == DataSet::MAT3X3) {
         keepFxn = KeepPoint_Mat3x3;
+        outType = DataSet::MAT3X3;
       } else {
-        mprinterr("Error: Currently only works for 1D scalar data sets.\n");
+        mprinterr("Error: Currently only works for 1D scalar or 3x3 matrix data sets.\n");
         return CpptrajState::ERR;
       }
-      DataSet_1D* ds1 = (DataSet_1D*)DS;
       // Output data set.
       // NOTE: We want to preserve the original X values. The easiest way
       //       to do this is to always make the output set an XY mesh
@@ -231,24 +233,25 @@ Exec::RetType Exec_DataSetCmd::ModifyPoints(CpptrajState& State, ArgList& argIn,
       DataSet* out = 0;
       if (name.empty()) {
         // Modifying this set. Create new temporary set.
-        out = State.DSL().Allocate( DataSet::XYMESH );
+        out = State.DSL().Allocate( outType );
         if (out == 0) return CpptrajState::ERR;
         // This gives the new set same MetaData, format etc as the original.
-        *out = *ds1;
-        mprintf("\tOverwriting set '%s'\n", ds1->legend());
+        *out = *DS;
+        mprintf("\tOverwriting set '%s'\n", DS->legend());
       } else {
         // Write to new set
-        MetaData md = ds1->Meta();
+        MetaData md = DS->Meta();
         md.SetName( name );
-        out = State.DSL().AddSet(DataSet::XYMESH, md);
+        out = State.DSL().AddSet(outType, md);
         if (out == 0) return CpptrajState::ERR;
         mprintf("\tNew set is '%s'\n", out->Meta().PrintName().c_str());
       }
-      out->Allocate(DataSet::SizeArray(1, ds1->Size()));
+      // NOTE: Allocate() must be valid for the set type!
+      out->Allocate(DataSet::SizeArray(1, DS->Size()));
       if (points.Empty()) {
         // Drop by start/stop/offset. Set defaults if needed
         if (start < 0)  start = 0;
-        if (stop < 0)   stop = ds1->Size();
+        if (stop < 0)   stop = DS->Size();
         if (offset < 0) offset = 1;
         mprintf("\t%sping points from %i to %i, step %i\n", mode, start+1, stop, offset);
         for (int idx = start; idx < stop; idx += offset)
@@ -258,32 +261,32 @@ Exec::RetType Exec_DataSetCmd::ModifyPoints(CpptrajState& State, ArgList& argIn,
       Range::const_iterator pt = points.begin();
       int idx = 0;
       if (drop) {
-        // Drop points
-        for (; idx < (int)ds1->Size(); idx++) {
+        // Drop points TODO should idx be unsigned?
+        for (; idx < (int)DS->Size(); idx++) {
           if (pt == points.end()) break;
           if (*pt != idx) {
             if (State.Debug() > 0) mprintf(" %i", idx + 1);
-            keepFxn(ds1, out, idx);
+            keepFxn(DS, out, idx);
           } else
             ++pt;
         }
         // Keep all remaining points
-        for (; idx < (int)ds1->Size(); idx++) {
+        for (; idx < (int)DS->Size(); idx++) {
           if (State.Debug() > 0) mprintf(" %i", idx + 1);
-          keepFxn(ds1, out, idx);
+          keepFxn(DS, out, idx);
         }
       } else {
         // Keep points
         for (; pt != points.end(); pt++) {
-          if (*pt >= (int)ds1->Size()) break;
+          if (*pt >= (int)DS->Size()) break;
           if (State.Debug() > 0) mprintf(" %i", *pt + 1);
-          keepFxn(ds1, out, *pt);
+          keepFxn(DS, out, *pt);
         }
       }
       if (State.Debug() > 0) mprintf("\n");
       if (name.empty()) {
         // Replace old set with new set
-        State.DSL().RemoveSet( ds1 );
+        State.DSL().RemoveSet( DS );
         State.DSL().AddSet( out );
       }
     } // END loop over sets
