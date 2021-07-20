@@ -153,9 +153,10 @@ void Exec_DataSetCmd::Help_ModifyPoints() {
 }
 
 /** Add the X and Y values from set in at idx to set out. */
-static inline void KeepPoint(DataSet_1D* in, DataSet* out, int idx) {
+static void KeepPoint(const DataSet* in, DataSet* out, int idx) {
+  DataSet_1D const& set1d = static_cast<DataSet_1D const&>( *in );
   DataSet_Mesh& mesh = static_cast<DataSet_Mesh&>( *out );
-  mesh.AddXY( in->Xcrd(idx), in->Dval(idx) );
+  mesh.AddXY( set1d.Xcrd(idx), set1d.Dval(idx) );
 }
 
 // Exec_DataSetCmd::ModifyPoints()
@@ -165,6 +166,9 @@ Exec::RetType Exec_DataSetCmd::ModifyPoints(CpptrajState& State, ArgList& argIn,
     mode = "Drop";
   else
     mode = "Kee";
+  // Hold pointer to function used to Keep points for data set type.
+  typedef void (*KeepFxnType)(const DataSet*, DataSet*, int);
+  KeepFxnType keepFxn = KeepPoint;
   // Keywords
   std::string name = argIn.GetStringKey("name");
   int start = argIn.getKeyInt("start", 0) - 1;
@@ -247,21 +251,21 @@ Exec::RetType Exec_DataSetCmd::ModifyPoints(CpptrajState& State, ArgList& argIn,
           if (pt == points.end()) break;
           if (*pt != idx) {
             if (State.Debug() > 0) mprintf(" %i", idx + 1);
-            KeepPoint(ds1, out, idx);
+            keepFxn(ds1, out, idx);
           } else
             ++pt;
         }
         // Keep all remaining points
         for (; idx < (int)ds1->Size(); idx++) {
           if (State.Debug() > 0) mprintf(" %i", idx + 1);
-          KeepPoint(ds1, out, idx);
+          keepFxn(ds1, out, idx);
         }
       } else {
         // Keep points
         for (; pt != points.end(); pt++) {
           if (*pt >= (int)ds1->Size()) break;
           if (State.Debug() > 0) mprintf(" %i", *pt + 1);
-          KeepPoint(ds1, out, *pt);
+          keepFxn(ds1, out, *pt);
         }
       }
       if (State.Debug() > 0) mprintf("\n");
