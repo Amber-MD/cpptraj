@@ -6,6 +6,7 @@
 #include "DataSet_Vector.h"
 #include "DataSet_string.h"
 #include "DataSet_Mesh.h"
+#include "DataSet_Mat3x3.h"
 #include "StringRoutines.h"
 
 // Exec_DataSetCmd::Help()
@@ -153,10 +154,17 @@ void Exec_DataSetCmd::Help_ModifyPoints() {
 }
 
 /** Add the X and Y values from set in at idx to set out. */
-static void KeepPoint(const DataSet* in, DataSet* out, int idx) {
+static void KeepPoint_1D(const DataSet* in, DataSet* out, int idx) {
   DataSet_1D const& set1d = static_cast<DataSet_1D const&>( *in );
   DataSet_Mesh& mesh = static_cast<DataSet_Mesh&>( *out );
   mesh.AddXY( set1d.Xcrd(idx), set1d.Dval(idx) );
+}
+
+/** Add matrix from set in at idx to set out. */
+static void KeepPoint_Mat3x3(const DataSet* in, DataSet* out, int idx) {
+  DataSet_Mat3x3 const& setmat = static_cast<DataSet_Mat3x3 const&>( *in );
+  DataSet_Mat3x3& mat = static_cast<DataSet_Mat3x3&>( *out );
+  mat.AddMat3x3( setmat[idx] );
 }
 
 // Exec_DataSetCmd::ModifyPoints()
@@ -204,7 +212,9 @@ Exec::RetType Exec_DataSetCmd::ModifyPoints(CpptrajState& State, ArgList& argIn,
       // Restrict to 1D sets for now TODO more types
       KeepFxnType keepFxn;
       if (DS->Group() == DataSet::SCALAR_1D) {
-        keepFxn = KeepPoint;
+        keepFxn = KeepPoint_1D;
+      } else if (DS->Type() == DataSet::MAT3X3) {
+        keepFxn = KeepPoint_Mat3x3;
       } else {
         mprinterr("Error: Currently only works for 1D scalar data sets.\n");
         return CpptrajState::ERR;

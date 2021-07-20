@@ -27,7 +27,7 @@ class DataSet_Mat3x3 : public DataSet {
     typedef Marray::iterator iterator;
     iterator begin() { return data_.begin(); }
     iterator end()   { return data_.end();   }
-    Matrix_3x3 const& operator[](int i) { return data_[i]; }
+    Matrix_3x3 const& operator[](int i) const { return data_[i]; }
   private:
     Marray data_;
 };
