@@ -150,7 +150,8 @@ Exec_DataSetCmd::SelectPairType Exec_DataSetCmd::SelectKeys[] = {
 void Exec_DataSetCmd::Help_ModifyPoints() {
   mprintf("  drop|keep}points {range <range arg> | [start <#>] [stop <#>] [offset <#>]}\n"
           "                   [name <output set>] <set arg1> ...\n"
-          "    Drop specified points from or keep specified points in data set(s).\n");
+          "    Drop specified points from or keep specified points in data set(s).\n"
+          "    This command currently only sowrks for 1D scalar and 3x3 matrix sets.\n");
 }
 
 /** Add the X and Y values from set in at idx to set out. */
