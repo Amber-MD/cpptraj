@@ -168,7 +168,6 @@ Exec::RetType Exec_DataSetCmd::ModifyPoints(CpptrajState& State, ArgList& argIn,
     mode = "Kee";
   // Hold pointer to function used to Keep points for data set type.
   typedef void (*KeepFxnType)(const DataSet*, DataSet*, int);
-  KeepFxnType keepFxn = KeepPoint;
   // Keywords
   std::string name = argIn.GetStringKey("name");
   int start = argIn.getKeyInt("start", 0) - 1;
@@ -203,7 +202,10 @@ Exec::RetType Exec_DataSetCmd::ModifyPoints(CpptrajState& State, ArgList& argIn,
         return CpptrajState::ERR;
       }
       // Restrict to 1D sets for now TODO more types
-      if (DS->Group() != DataSet::SCALAR_1D) {
+      KeepFxnType keepFxn;
+      if (DS->Group() == DataSet::SCALAR_1D) {
+        keepFxn = KeepPoint;
+      } else {
         mprinterr("Error: Currently only works for 1D scalar data sets.\n");
         return CpptrajState::ERR;
       }
