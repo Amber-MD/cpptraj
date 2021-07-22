@@ -443,6 +443,7 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             case F_SOLTY: ptr = SkipToNextFlag(); break;
             case F_LJ_A:      err = ReadLJA(TopIn, FMT); break;
             case F_LJ_B:      err = ReadLJB(TopIn, FMT); break;
+            case F_LJ_C:      err = ReadLJC(TopIn, FMT); break;
             case F_BONDSH:    err = ReadBondsH(TopIn, FMT); break;
             case F_BONDS:     err = ReadBonds(TopIn, FMT); break;
             case F_ANGLESH:   err = ReadAnglesH(TopIn, FMT); break;

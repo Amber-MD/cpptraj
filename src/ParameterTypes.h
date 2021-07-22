@@ -377,6 +377,7 @@ class NonbondParmType {
 //                      ntypes_(n), nbindex_(nbi), nbarray_(nba), hbarray_(hba) {}
     inline bool HasNonbond()             const { return ntypes_ > 0; }
     inline int Ntypes()                  const { return ntypes_;     }
+    bool Has_C_Coeff()                   const { return !ccoef_.empty(); }
     std::vector<int> const& NBindex()    const { return nbindex_;    }
     NonbondArray     const& NBarray()    const { return nbarray_;    }
     HB_ParmArray     const& HBarray()    const { return hbarray_;    }
