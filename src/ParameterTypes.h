@@ -399,6 +399,8 @@ class NonbondParmType {
     void SetNHBterms(int n)   { hbarray_.assign( n, HB_ParmType() ); }
     /// Set specified HB term
     HB_ParmType& SetHB(int i) { return hbarray_[i];                  }
+    /// Add a LJ C parameter
+    void AddLJC(double c) { ccoef_.push_back( c ); }
     /// Set specified nbindex location to given value.
     void SetNbIdx(int idx, int nbidx) { nbindex_[idx] = nbidx; }
     /// Add given LJ term to nonbond array and update nonbond index array.
@@ -436,6 +438,7 @@ class NonbondParmType {
     std::vector<int> nbindex_; ///< Hold indices into arrays nbarray/hbarray for atom type pairs
     NonbondArray nbarray_;     ///< Hold Lennard-Jones 6-12 A and B parameters for all pairs.
     HB_ParmArray hbarray_;     ///< Hold 10-12 Amber HBond params for all pairs.
+    std::vector<double> ccoef_; ///< Hold Lennard-Jones C parameters for 12-6-4 LJ potential.
 };
 // ----- LES PARAMETERS --------------------------------------------------------
 /// Hold LES atom parameters
