@@ -379,9 +379,15 @@ class NonbondParmType {
     inline int Ntypes()                  const { return ntypes_;     }
     bool Has_C_Coeff()                   const { return !ccoef_.empty(); }
     std::vector<int> const& NBindex()    const { return nbindex_;    }
+    /// \return Array of LJ 12-6 A and B parameters
     NonbondArray     const& NBarray()    const { return nbarray_;    }
+    /// \return Array of LJ 10-12 (hbond) parameters
     HB_ParmArray     const& HBarray()    const { return hbarray_;    }
+    /// \return Array of LJ 12-6-4 C parameters
+    std::vector<double> const& LJC_Array() const { return ccoef_; }
+    /// \return LJ 6-12 A and B parameter at specified index
     NonbondType const& NBarray(int i)    const { return nbarray_[i]; }
+    /// \return LJ 10-12 (hbond) parameter at specified index
     HB_ParmType const& HBarray(int i)    const { return hbarray_[i]; }
     /// In Amber, index < 0 means HB, otherwise LJ 6-12
     int GetLJindex(int type1, int type2) const {

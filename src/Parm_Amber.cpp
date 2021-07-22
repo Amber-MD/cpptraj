@@ -2465,6 +2465,17 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
       file_.IntToBuffer( *it );
     file_.FlushBuffer();
   }
+
+  // LJ C terms.
+  // NOTE: I put this at the very end to match behavior of parmed add_12_6_4
+  if (TopOut.Nonbond().Has_C_Coeff()) {
+    std::vector<double> const& ccoef = TopOut.Nonbond().LJC_Array();
+    if (BufferAlloc(F_LJ_C, ccoef.size())) return 1;
+    for (std::vector<double>::const_iterator it = ccoef.begin(); it != ccoef.end(); ++it)
+      file_.DblToBuffer( *it );
+    file_.FlushBuffer();
+  }
+
   return 0;
 }
 
