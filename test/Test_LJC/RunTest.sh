@@ -4,7 +4,7 @@
 
 TESTNAME='Test support for Lennard-Jones C coefficients'
 
-CleanFiles ljc.in
+CleanFiles ljc.in cpptraj.znf_1264.parm7
 
 INPUT='-i ljc.in'
 
@@ -15,5 +15,6 @@ parmwrite out cpptraj.znf_1264.parm7
 quit
 EOF
 RunCpptraj "Test writing topology with LJ C coefficients"
+DoTest cpptraj.znf_1264.parm7.save cpptraj.znf_1264.parm7 -I %VERSION
 
 EndTest
