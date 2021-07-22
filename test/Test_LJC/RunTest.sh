@@ -10,6 +10,7 @@ INPUT='-i ljc.in'
 
 cat > ljc.in <<EOF
 parm znf_1264.prmtop.save
+parminfo
 parmwrite out cpptraj.znf_1264.parm7
 quit
 EOF
