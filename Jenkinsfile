@@ -149,8 +149,8 @@ pipeline {
                         unstash "source"
                         sh "./configure --with-netcdf --with-fftw3 -mpi --buildlibs gnu"
                         sh "make -j4 install"
-                        sh "make -e DO_PARALLEL='mpiexec -n 2' check"
-                        sh "make -e DO_PARALLEL='mpiexec -n 4' check"
+                        sh "make -e DO_PARALLEL='mpiexec -n 2' verbosecheck"
+                        sh "make -e DO_PARALLEL='mpiexec -n 4' verbosecheck"
                     }
                     post { cleanup { deleteDir() } }
                 }
@@ -168,7 +168,7 @@ pipeline {
                         unstash "source"
                         sh "./configure --with-netcdf --with-fftw3 -cuda gnu"
                         sh "make -j4 install"
-                        sh "make -e OPT=cuda check"
+                        sh "make -e OPT=cuda verbosecheck"
                     }
                     post { cleanup { deleteDir() } }
                 }
@@ -184,7 +184,7 @@ pipeline {
                         unstash "source"
                         sh "./configure --with-netcdf --with-fftw3 -openmp gnu"
                         sh "make -j4 install"
-                        sh "make -e OPT=openmp check"
+                        sh "make -e OPT=openmp verbosecheck"
                     }
                     post { cleanup { deleteDir() } }
                 }
