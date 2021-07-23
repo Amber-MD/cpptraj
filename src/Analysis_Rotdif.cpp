@@ -1682,8 +1682,8 @@ int Analysis_Rotdif::DetermineDeffs_Threaded() {
   maxdat = ncorr_ + 1;
   // Allocate memory to hold calcd effective D values
   D_eff_.assign( random_vectors_.Size(), 0.0 );
-  // Array for marking which vectors result in non-negative integrals (and i.e. "good" Deff vals)
-  std::vector<bool> isGoodVec( random_vectors_.Size(), false );
+  // Array for storing correlation function integrals.
+  std::vector<double> Integrals( random_vectors_.Size(), -1.0 );
   // Allocate memory for C(t)
   pX.reserve( maxdat );
   // Set X values of C(t) based on tfac
@@ -1753,16 +1753,8 @@ int Analysis_Rotdif::DetermineDeffs_Threaded() {
     //tmpGraceDsl.AddCopyOfSet(&spline);
     //tmpGraceOut.WriteData(AppendNumber("tmpspline.agr",nvec), tmpGraceDsl);
     // Integrate
-    double integral = spline.Integrate( DataSet_1D::TRAPEZOID );
-    if (debug_ > 1)
-      mprintf("DEBUG: Vec %i Spline integral= %12.4g\n",nvec,integral);
-    if ( integral > 0 ) {
-      isGoodVec[nvec] = true;
-      // Solve for deff
-      D_eff_[nvec] = calcEffectiveDiffusionConst(integral);
-      if (debug_ > 1)
-        mprintf("DBG: deff is %g\n", D_eff_[nvec]);
-    }
+    Integrals[nvec] = spline.Integrate( DataSet_1D::TRAPEZOID );
+
     // DEBUG: Write out p1 and p2 ------------------------------------
     if (!corrOut_.empty() || debug_ > 3) {
       CpptrajFile outfile;
@@ -1780,7 +1772,7 @@ int Analysis_Rotdif::DetermineDeffs_Threaded() {
         outfile.CloseFile();
       }
       //    Write Mesh
-      if (debug_>3) {
+      if (debug_ > 3) {
         namebuffer = AppendNumber( "mesh.dat", nvec );
         outfile.OpenWrite(namebuffer);
         for (int i=0; i < (int)spline.Size(); i++)
@@ -1793,11 +1785,25 @@ int Analysis_Rotdif::DetermineDeffs_Threaded() {
 # ifdef _OPENMP
 } // END pragma omp parallel
 # endif
+  progress.Finish();
 
-  // Count the number of "good" vectors
+  // Using integral values as a starting point, calculate the effective
+  // diffusion constant for each vector. Count the number of
+  // "good" vectors (i.e. those with integral > 0).
   unsigned int nGoodVecs = 0;
-  for (std::vector<bool>::const_iterator it = isGoodVec.begin(); it != isGoodVec.end(); ++it)
-    if (*it) nGoodVecs++;
+  for (nvec = 0; nvec < rvecsize; nvec++)
+  {
+    double integral = Integrals[nvec];
+    if (debug_ > 1)
+      mprintf("DEBUG: Vec %i Spline integral= %12.4g\n",nvec,integral);
+    if ( integral > 0.0 ) {
+      nGoodVecs++;
+      // Solve for deff
+      D_eff_[nvec] = calcEffectiveDiffusionConst(integral);
+      if (debug_ > 1)
+        mprintf("DBG: deff is %g\n", D_eff_[nvec]);
+    }
+  }
   mprintf("\t%zu vectors, %u with corr. function integral > 0.\n", random_vectors_.Size(), nGoodVecs);
   // Get rid of any vectors with "bad" integrals
   if (nGoodVecs < 1) {
@@ -1808,7 +1814,7 @@ int Analysis_Rotdif::DetermineDeffs_Threaded() {
     DataSet_Vector goodRvecs;       // Hold vectors with "good" Deff values
     mprintf("\tVectors with corr. function integral <= 0 will not be used in further calcs.\n");
     for (unsigned int nvec = 0; nvec < random_vectors_.Size(); nvec++) {
-      if (isGoodVec[nvec])
+      if (Integrals[nvec] > 0.0)
         goodRvecs.AddVxyz( random_vectors_[nvec] );
     }
     random_vectors_ = goodRvecs;

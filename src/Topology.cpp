@@ -297,6 +297,11 @@ void Topology::Summary() const {
   }
   if (!radius_set_.empty())
     mprintf("\t\tGB radii set: %s\n", radius_set_.c_str());
+  if (nonbond_.HasNonbond()) {
+    mprintf("\t\tNon-bonded parameters are present.\n");
+    if (nonbond_.Has_C_Coeff())
+      mprintf("\t\t\tLJ 12-6-4 C coefficients are present.\n");
+  }
   if (chamber_.HasChamber()) {
     mprintf("\t\tCHAMBER: %zu Urey-Bradley terms, %zu Impropers\n",
             chamber_.UB().size(), chamber_.Impropers().size());
