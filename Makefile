@@ -21,6 +21,10 @@ libstatic: config.h
 check: config.h
 	cd test && $(MAKE) test.complete summary
 
+# Run Tests, print errors to STDOUT
+verbosecheck: config.h
+	cd test &&$(MAKE) test.showerrors
+
 unittest: config.h
 	cd unitTests && $(MAKE) test.complete summary
 

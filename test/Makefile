@@ -483,6 +483,9 @@ test.random:
 test.multipucker:
 	@-cd Test_MultiPucker && ./RunTest.sh $(OPT)
 
+test.ljc:
+	@-cd Test_LJC && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -637,7 +640,8 @@ COMPLETETESTS=test.general \
               test.graft \
               test.flatten \
               test.random \
-              test.multipucker
+              test.multipucker \
+              test.ljc
 
 test.all:
 	$(MAKE) test.complete summary

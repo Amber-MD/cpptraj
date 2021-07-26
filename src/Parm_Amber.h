@@ -20,24 +20,25 @@ class Parm_Amber : public ParmIO {
     class FortranData;
     /// Enumerated type for Fortran data type
     enum Type { UNKNOWN_FTYPE=0, FINT, FDOUBLE, FCHAR, FFLOAT };
-    /// Enumerated type for Amber Parmtop Flags. KEEP IN SYNC WITH FLAG_ ARRAY
+    /// Enumerated type for Amber Parmtop Flags. KEEP IN SYNC WITH FLAGS_ ARRAY
     enum FlagType {
-      F_POINTERS = 0, F_NAMES,     F_CHARGE,    F_MASS,     F_RESNAMES,
-      F_RESNUMS,      F_TYPES,     F_BONDSH,    F_BONDS,    F_SOLVENT_POINTER,
-      F_ATOMSPERMOL,  F_PARMBOX,   F_ATYPEIDX,  F_NUMEX,    F_NB_INDEX,
-      F_LJ_A,         F_LJ_B,      F_EXCLUDE,   F_RADII,    F_SCREEN,
-      F_BONDRK,       F_BONDREQ,   F_ANGLETK,   F_ANGLETEQ, F_DIHPK,
-      F_DIHPN,        F_DIHPHASE,  F_SCEE,      F_SCNB,     F_SOLTY,
-      F_ANGLESH,      F_ANGLES,    F_DIHH,      F_DIH,      F_ASOL,
-      F_BSOL,         F_HBCUT,     F_ITREE,     F_JOIN,     F_IROTAT,
-      F_ATOMICNUM,    F_TITLE,     F_RADSET,    F_LES_NTYP, F_LES_TYPE,
-      F_LES_FAC,      F_LES_CNUM,  F_LES_ID,    F_CAP_INFO, F_CAP_INFO2,
-      F_IPOL,         F_POLAR,     F_CTITLE,    F_CHM_UBC,  F_CHM_UB,
-      F_CHM_UBFC,     F_CHM_UBEQ,  F_CHM_NIMP,  F_CHM_IMP,  F_CHM_NIMPT,
-      F_CHM_IMPFC,    F_CHM_IMPP,  F_LJ14A,     F_LJ14B,    F_CHM_CMAPC,
-      F_CHM_CMAPR,    F_CHM_CMAPP, F_CHM_CMAPI, F_FF_TYPE,  F_PDB_RES,
-      F_PDB_CHAIN,    F_PDB_ICODE, F_PDB_ALT,   F_PDB_BFAC, F_PDB_OCC,
-      F_PDB_NUM,      F_CMAPC,     F_CMAPR,     F_CMAPP,    F_CMAPI
+      F_POINTERS = 0, F_NAMES,     F_CHARGE,    F_MASS,      F_RESNAMES,
+      F_RESNUMS,      F_TYPES,     F_BONDSH,    F_BONDS,     F_SOLVENT_POINTER,
+      F_ATOMSPERMOL,  F_PARMBOX,   F_ATYPEIDX,  F_NUMEX,     F_NB_INDEX,
+      F_LJ_A,         F_LJ_B,      F_LJ_C,      F_EXCLUDE,   F_RADII,
+      F_SCREEN,       F_BONDRK,    F_BONDREQ,   F_ANGLETK,   F_ANGLETEQ,
+      F_DIHPK,        F_DIHPN,     F_DIHPHASE,  F_SCEE,      F_SCNB,
+      F_SOLTY,        F_ANGLESH,   F_ANGLES,    F_DIHH,      F_DIH,
+      F_ASOL,         F_BSOL,      F_HBCUT,     F_ITREE,     F_JOIN,
+      F_IROTAT,       F_ATOMICNUM, F_TITLE,     F_RADSET,    F_LES_NTYP,
+      F_LES_TYPE,     F_LES_FAC,   F_LES_CNUM,  F_LES_ID,    F_CAP_INFO,
+      F_CAP_INFO2,    F_IPOL,      F_POLAR,     F_CTITLE,    F_CHM_UBC,
+      F_CHM_UB,       F_CHM_UBFC,  F_CHM_UBEQ,  F_CHM_NIMP,  F_CHM_IMP,
+      F_CHM_NIMPT,    F_CHM_IMPFC, F_CHM_IMPP,  F_LJ14A,     F_LJ14B,
+      F_CHM_CMAPC,    F_CHM_CMAPR, F_CHM_CMAPP, F_CHM_CMAPI, F_FF_TYPE,
+      F_PDB_RES,      F_PDB_CHAIN, F_PDB_ICODE, F_PDB_ALT,   F_PDB_BFAC,
+      F_PDB_OCC,      F_PDB_NUM,   F_CMAPC,     F_CMAPR,     F_CMAPP,
+      F_CMAPI
     };
     /// Used to hold %FLAG/FORMAT string pairs. Corresponds to FlagType.
     struct ParmFlag {
@@ -83,6 +84,7 @@ class Parm_Amber : public ParmIO {
     int ReadDihedralSCNB(Topology&, FortranData const&);
     int ReadLJA(Topology&, FortranData const&);
     int ReadLJB(Topology&, FortranData const&);
+    int ReadLJC(Topology&, FortranData const&);
     inline BondType GetBond();
     int ReadBondsH(Topology&, FortranData const&);
     int ReadBonds(Topology&, FortranData const&);
