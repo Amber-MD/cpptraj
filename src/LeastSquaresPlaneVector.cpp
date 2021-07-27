@@ -120,3 +120,20 @@ Vec3 LeastSquaresPlaneVector::leastSquaresPlane(int n, const double* vcorr) {
   return Vec3(Xout * dnorm, Yout * dnorm, Zout * dnorm);
 }
 
+/** \return vector perpendicular to the plane passing through selected atoms. */
+Vec3 LeastSquaresPlaneVector::CalcLSPvec(Frame const& currentFrame, AtomMask const& maskIn)
+{
+  CXYZ_ = currentFrame.VCenterOfMass(maskIn);
+  vcorr_.clear();
+  for (AtomMask::const_iterator atom = maskIn.begin();
+                                atom != maskIn.end(); ++atom)
+  {
+    Vec3 XYZ = currentFrame.XYZ( *atom );
+    XYZ -= CXYZ_;
+    vcorr_.push_back(XYZ[0]);
+    vcorr_.push_back(XYZ[1]);
+    vcorr_.push_back(XYZ[2]);
+  }
+  Vec3 VXYZ = leastSquaresPlane(vcorr_.size(), &vcorr_[0]);
+  return VXYZ;
+}
