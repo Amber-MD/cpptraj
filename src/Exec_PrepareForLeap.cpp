@@ -57,6 +57,7 @@ static std::string LinkageCode(char glycamChar, std::set<NameType> const& linkag
 //  switch (glycamChar) {
 //    case 'Y':
       if      (linkstr == "C1") linkcode = "0";
+      else if (linkstr == "C1O2") linkcode = "2";
       else if (linkstr == "C1O4") linkcode = "4";
       else if (linkstr == "C1O4O6") linkcode = "U";
       else if (linkstr == "C1O3O6") linkcode = "V";
@@ -83,12 +84,14 @@ const
   char resChar = ' ';
   if (res.Name() == "NAG") {
     resChar = 'Y';
-  } else if (res.Name() == "BMA" || res.Name() == "MAN") {
-    resChar = 'M';
   } else if (res.Name() == "FUC") {
     resChar = 'F';
+  } else if (res.Name() == "GAL") {
+    resChar = 'L';
+  } else if (res.Name() == "BMA" || res.Name() == "MAN") {
+    resChar = 'M';
   } else {
-    mprintf("Warning: Could not identify sugar from residue name '%s'\n", *res.Name());
+    mprinterr("Error: Could not identify sugar from residue name '%s'\n", *res.Name());
     return 1;
   }
   mprintf("\tSugar %s %i glycam name: %c\n", *res.Name(), rnum+1, resChar);
