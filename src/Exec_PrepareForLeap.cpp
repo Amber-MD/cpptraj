@@ -56,6 +56,7 @@ static std::string LinkageCode(char glycamChar, std::set<NameType> const& linkag
     case 'Y':
       if      (linkstr == "C1") linkcode = "0";
       else if (linkstr == "C1O4") linkcode = "4";
+      else if (linkstr == "C1O4O6") linkcode = "U";
       break;
     default:
       mprintf("Warning: Unrecognized glycam residue char: %c\n", glycamChar);
@@ -80,7 +81,7 @@ const
     mprintf("Warning: Could not identify sugar from residue name '%s'\n", *res.Name());
     return 1;
   }
-  mprintf("\tSugar %s glycam name: %c\n", *res.Name(), resChar);
+  mprintf("\tSugar %s %i glycam name: %c\n", *res.Name(), rnum+1, resChar);
   // Try to identify the form
   /* The alpha form has the CH2OH substituent (C5-C6 etc in Glycam) on the 
    * opposite side of the OH on the anomeric carbon (C1 in Glycam), while
@@ -185,7 +186,10 @@ const
   mprintf("\n");
   std::string linkcode = LinkageCode(resChar, linkages);
   mprintf("\t  Linkage code: %s\n", linkcode.c_str());
-  if (linkcode.empty()) return 1;
+  if (linkcode.empty()) {
+    mprinterr("Error: Unrecognized sugar linkage.\n");
+    return 1;
+  }
   // Remove bonds to non-sugar
   for (BondArray::const_iterator bnd = bondsToRemove.begin();
                                  bnd != bondsToRemove.end(); ++bnd)
