@@ -8,6 +8,7 @@
 #include <set>
 #include <stack>
 #include <cctype> // tolower
+#include "LeastSquaresPlaneVector.h"
 
 // Exec_PrepareForLeap::Help()
 void Exec_PrepareForLeap::Help() const
@@ -53,15 +54,19 @@ static std::string LinkageCode(char glycamChar, std::set<NameType> const& linkag
   for (std::set<NameType>::const_iterator it = linkages.begin(); it != linkages.end(); ++it)
     linkstr.append( it->Truncated() );
   mprintf("\t  linkstr= '%s'\n", linkstr.c_str());
-  switch (glycamChar) {
-    case 'Y':
+//  switch (glycamChar) {
+//    case 'Y':
       if      (linkstr == "C1") linkcode = "0";
       else if (linkstr == "C1O4") linkcode = "4";
       else if (linkstr == "C1O4O6") linkcode = "U";
-      break;
-    default:
-      mprintf("Warning: Unrecognized glycam residue char: %c\n", glycamChar);
-  }
+      else if (linkstr == "C1O3O6") linkcode = "V";
+//      break;
+//    case 'M':
+//      if      (linkstr == "C1O3O6") linkcode = "V";
+//      break;
+//    default:
+//      mprintf("Warning: Unrecognized glycam residue char: %c\n", glycamChar);
+//  }
   if (linkcode.empty())
     mprintf("Warning: Could not determine link code.\n");
   return linkcode;
@@ -106,6 +111,7 @@ const
   // Bonds to non sugars to be removed since these will confuse tleap
   BondArray bondsToRemove;
   // Loop over sugar atoms
+  AtomMask sugarCycle;
   for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
   {
     // Rename some common atoms TODO need to check glycam residue char?
@@ -118,16 +124,23 @@ const
     // Identify atoms for torsion
     if ( (*topIn)[at].Name() == "C6" )
       C6idx = at;
-    else if ( (*topIn)[at].Name() == "C5" )
+    else if ( (*topIn)[at].Name() == "C5" ) {
       C5idx = at;
-    else if ( (*topIn)[at].Name() == "O5" )
+      sugarCycle.AddAtom( at );
+    } else if ( (*topIn)[at].Name() == "O5" ) {
       O5idx = at;
-    else if ( (*topIn)[at].Name() == "C4" )
+      sugarCycle.AddAtom( at );
+    } else if ( (*topIn)[at].Name() == "C4" ) {
       C4idx = at;
-    else if ( (*topIn)[at].Name() == "H5" )
+      sugarCycle.AddAtom( at );
+    } else if ( (*topIn)[at].Name() == "H5" )
       H5idx = at;
+    else if ( (*topIn)[at].Name() == "C2" ||
+              (*topIn)[at].Name() == "C3")
+      sugarCycle.AddAtom( at );
     else if ( (*topIn)[at].Name() == "C1" ) {
       C1idx = at;
+      sugarCycle.AddAtom( at );
       // Check substituent of C1 (non ring atom, non hydrogen)
       for (Atom::bond_iterator bat = (*topIn)[at].bondbegin();
                                bat != (*topIn)[at].bondend(); ++bat)
@@ -178,7 +191,9 @@ const
       }
     } // END loop over bonded atoms
   } // END loop over residue atoms
-  mprintf("\t  C5= %i C6= %i C1= %i Cx= %i O5= %i C4= %i H5= %i\n", C6idx, C5idx, C1idx, Cxidx, O5idx, C4idx, H5idx);
+  mprintf("\t  C6= %i C5= %i C1= %i Cx= %i O5= %i C4= %i H5= %i\n",
+          C6idx+1, C5idx+1, C1idx+1, Cxidx+1, O5idx+1, C4idx+1, H5idx+1);
+  sugarCycle.PrintMaskAtoms("\t  Sugar cycle:");
   if (C6idx == -1) { mprintf("Warning: C6 index not found.\n"); return 1; }
   if (C5idx == -1) { mprintf("Warning: C5 index not found.\n"); return 1; }
   if (C1idx == -1) { mprintf("Warning: C1 index not found.\n"); return 1; }
@@ -187,10 +202,22 @@ const
   if (C4idx == -1) { mprintf("Warning: C4 index not found.\n"); return 1; }
   if (H5idx == -1) { mprintf("Warning: H5 index not found.\n"); return 1; }
   // Determine alpha/beta
-  double torsion = Torsion( frameIn.XYZ(C6idx), frameIn.XYZ(C5idx),
-                            frameIn.XYZ(C1idx), frameIn.XYZ(Cxidx) );
-  mprintf("\t  alpha/beta Torsion= %f deg\n", torsion * Constants::RADDEG);
-  if (torsion < Constants::PI && torsion > -Constants::PI) {
+  LeastSquaresPlaneVector LSPV;
+  LSPV.ReserveForNumAtoms( sugarCycle.Nselected() );
+  Vec3 sugarVec = LSPV.CalcLSPvec(frameIn, sugarCycle);
+  Vec3 VC5C6 = Vec3(frameIn.XYZ(C6idx)) - Vec3(frameIn.XYZ(C5idx));
+  VC5C6.Normalize();
+  Vec3 VC1Cx = Vec3(frameIn.XYZ(Cxidx)) - Vec3(frameIn.XYZ(C1idx));
+  VC1Cx.Normalize();
+  sugarVec.Print("sugarVec");
+  VC5C6.Print("C5C6");
+  VC1Cx.Print("C1Cx");
+  double theta1 = sugarVec.Angle( VC5C6 );
+  double theta2 = sugarVec.Angle( VC1Cx );
+  mprintf("\t  Angle between C5C6 and sugar= %f  between C1Cx and sugar= %f\n", theta1*Constants::RADDEG, theta2*Constants::RADDEG);
+  bool C5C6_oppDir_sugarVec = (theta1 > Constants::PIOVER2);
+  bool C1Cx_oppDir_sugarVec = (theta2 > Constants::PIOVER2);
+  if (C5C6_oppDir_sugarVec == C1Cx_oppDir_sugarVec) {
     mprintf("\t  Beta form\n");
     formStr = "B";
   } else {
@@ -198,19 +225,20 @@ const
     formStr = "A";
   }
   // Determine D/L
+  bool isDform = true;
   // DEBUG
-  frameIn.printAtomCoord(O5idx);
-  frameIn.printAtomCoord(C4idx);
-  frameIn.printAtomCoord(C6idx);
-  frameIn.printAtomCoord(H5idx);
-  torsion = Torsion( frameIn.XYZ(O5idx), frameIn.XYZ(C4idx),
-                     frameIn.XYZ(C6idx), frameIn.XYZ(H5idx) );
+  //frameIn.printAtomCoord(O5idx);
+  //frameIn.printAtomCoord(C4idx);
+  //frameIn.printAtomCoord(C6idx);
+  //frameIn.printAtomCoord(H5idx);
+  double torsion = Torsion( frameIn.XYZ(O5idx), frameIn.XYZ(C4idx),
+                            frameIn.XYZ(C6idx), frameIn.XYZ(H5idx) );
   mprintf("\t  D/L Torsion= %f deg\n", torsion * Constants::RADDEG);
   if (torsion > 0) {
     mprintf("\t  D form\n");
   } else {
     mprintf("\t  L form\n");
-    resChar = tolower( resChar );
+    isDform = false;
   }
   // Determine linkage
   mprintf("\t  Link atoms:");
@@ -224,6 +252,9 @@ const
     mprinterr("Error: Unrecognized sugar linkage.\n");
     return 1;
   }
+  // Modify residue char to indicate D form if necessary
+  if (!isDform)
+    resChar = tolower( resChar );
   // Remove bonds to non-sugar
   for (BondArray::const_iterator bnd = bondsToRemove.begin();
                                  bnd != bondsToRemove.end(); ++bnd)
