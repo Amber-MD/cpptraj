@@ -119,7 +119,6 @@ const
   // Additional atoms for determining D vs L
   int O5idx = -1;
   int C4idx = -1;
-  int H5idx = -1;
   // Use a set to store linkages so they are in alphabetical order for easier identification
   std::set<NameType> linkages;
   // Bonds to non sugars to be removed since these will confuse tleap
@@ -147,9 +146,7 @@ const
     } else if ( (*topIn)[at].Name() == "C4" ) {
       C4idx = at;
       sugarCycle.AddAtom( at );
-    } else if ( (*topIn)[at].Name() == "H5" )
-      H5idx = at;
-    else if ( (*topIn)[at].Name() == "C2" ||
+    } else if ( (*topIn)[at].Name() == "C2" ||
               (*topIn)[at].Name() == "C3")
       sugarCycle.AddAtom( at );
     else if ( (*topIn)[at].Name() == "C1" ) {
@@ -210,8 +207,8 @@ const
       }
     } // END loop over bonded atoms
   } // END loop over residue atoms
-  mprintf("\t  C6= %i C5= %i C1= %i Cx= %i O5= %i C4= %i H5= %i\n",
-          C6idx+1, C5idx+1, C1idx+1, Cxidx+1, O5idx+1, C4idx+1, H5idx+1);
+  mprintf("\t  C6= %i C5= %i C1= %i Cx= %i O5= %i C4= %i\n",
+          C6idx+1, C5idx+1, C1idx+1, Cxidx+1, O5idx+1, C4idx+1);
   sugarCycle.PrintMaskAtoms("\t  Sugar cycle:");
   if (C6idx == -1) { mprintf("Warning: C6 index not found.\n"); return 1; }
   if (C5idx == -1) { mprintf("Warning: C5 index not found.\n"); return 1; }
@@ -219,7 +216,6 @@ const
   if (Cxidx == -1) { mprintf("Warning: Cx index not found.\n"); return 1; }
   if (O5idx == -1) { mprintf("Warning: O5 index not found.\n"); return 1; }
   if (C4idx == -1) { mprintf("Warning: C4 index not found.\n"); return 1; }
-  if (H5idx == -1) { mprintf("Warning: H5 index not found.\n"); return 1; }
   // Determine alpha/beta
   LeastSquaresPlaneVector LSPV;
   LSPV.ReserveForNumAtoms( sugarCycle.Nselected() );
@@ -249,9 +245,8 @@ const
   //frameIn.printAtomCoord(O5idx);
   //frameIn.printAtomCoord(C4idx);
   //frameIn.printAtomCoord(C6idx);
-  //frameIn.printAtomCoord(H5idx);
-  double torsion = Torsion( frameIn.XYZ(O5idx), frameIn.XYZ(C4idx),
-                            frameIn.XYZ(C6idx), frameIn.XYZ(H5idx) );
+  double torsion = Torsion( frameIn.XYZ(C4idx), frameIn.XYZ(C5idx),
+                            frameIn.XYZ(C6idx), frameIn.XYZ(O5idx) );
   mprintf("\t  D/L Torsion= %f deg\n", torsion * Constants::RADDEG);
   if (torsion > 0) {
     mprintf("\t  D form\n");
