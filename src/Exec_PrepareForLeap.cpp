@@ -77,6 +77,10 @@ const
   char resChar = ' ';
   if (res.Name() == "NAG") {
     resChar = 'Y';
+  } else if (res.Name() == "BMA" || res.Name() == "MAN") {
+    resChar = 'M';
+  } else if (res.Name() == "FUC") {
+    resChar = 'F';
   } else {
     mprintf("Warning: Could not identify sugar from residue name '%s'\n", *res.Name());
     return 1;
@@ -113,7 +117,7 @@ const
       C5idx = at;
     else if ( (*topIn)[at].Name() == "C1" ) {
       C1idx = at;
-      // Check substituent of C1
+      // Check substituent of C1 (non ring atom, non hydrogen)
       for (Atom::bond_iterator bat = (*topIn)[at].bondbegin();
                                bat != (*topIn)[at].bondend(); ++bat)
       {
