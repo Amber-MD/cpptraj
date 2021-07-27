@@ -7,6 +7,7 @@
 #include "CpptrajFile.h"
 #include <set>
 #include <stack>
+#include <cctype> // tolower
 
 // Exec_PrepareForLeap::Help()
 void Exec_PrepareForLeap::Help() const
@@ -96,6 +97,10 @@ const
   int C5idx = -1;
   int C1idx = -1;
   int Cxidx = -1; // Non-H1, O5, C2 substituent of C1
+  // Additional atoms for determining D vs L
+  int O5idx = -1;
+  int C4idx = -1;
+  int H5idx = -1;
   // Use a set to store linkages so they are in alphabetical order for easier identification
   std::set<NameType> linkages;
   // Bonds to non sugars to be removed since these will confuse tleap
@@ -115,6 +120,12 @@ const
       C6idx = at;
     else if ( (*topIn)[at].Name() == "C5" )
       C5idx = at;
+    else if ( (*topIn)[at].Name() == "O5" )
+      O5idx = at;
+    else if ( (*topIn)[at].Name() == "C4" )
+      C4idx = at;
+    else if ( (*topIn)[at].Name() == "H5" )
+      H5idx = at;
     else if ( (*topIn)[at].Name() == "C1" ) {
       C1idx = at;
       // Check substituent of C1 (non ring atom, non hydrogen)
@@ -167,20 +178,39 @@ const
       }
     } // END loop over bonded atoms
   } // END loop over residue atoms
-  mprintf("\t  C5= %i C6= %i C1= %i Cx= %i\n", C6idx, C5idx, C1idx, Cxidx);
+  mprintf("\t  C5= %i C6= %i C1= %i Cx= %i O5= %i C4= %i H5= %i\n", C6idx, C5idx, C1idx, Cxidx, O5idx, C4idx, H5idx);
   if (C6idx == -1) { mprintf("Warning: C6 index not found.\n"); return 1; }
   if (C5idx == -1) { mprintf("Warning: C5 index not found.\n"); return 1; }
   if (C1idx == -1) { mprintf("Warning: C1 index not found.\n"); return 1; }
   if (Cxidx == -1) { mprintf("Warning: Cx index not found.\n"); return 1; }
+  if (O5idx == -1) { mprintf("Warning: O5 index not found.\n"); return 1; }
+  if (C4idx == -1) { mprintf("Warning: C4 index not found.\n"); return 1; }
+  if (H5idx == -1) { mprintf("Warning: H5 index not found.\n"); return 1; }
+  // Determine alpha/beta
   double torsion = Torsion( frameIn.XYZ(C6idx), frameIn.XYZ(C5idx),
                             frameIn.XYZ(C1idx), frameIn.XYZ(Cxidx) );
-  mprintf("\t  Torsion= %f deg\n", torsion * Constants::RADDEG);
+  mprintf("\t  alpha/beta Torsion= %f deg\n", torsion * Constants::RADDEG);
   if (torsion < Constants::PI && torsion > -Constants::PI) {
     mprintf("\t  Beta form\n");
     formStr = "B";
   } else {
     mprintf("\t  Alpha form\n");
     formStr = "A";
+  }
+  // Determine D/L
+  // DEBUG
+  frameIn.printAtomCoord(O5idx);
+  frameIn.printAtomCoord(C4idx);
+  frameIn.printAtomCoord(C6idx);
+  frameIn.printAtomCoord(H5idx);
+  torsion = Torsion( frameIn.XYZ(O5idx), frameIn.XYZ(C4idx),
+                     frameIn.XYZ(C6idx), frameIn.XYZ(H5idx) );
+  mprintf("\t  D/L Torsion= %f deg\n", torsion * Constants::RADDEG);
+  if (torsion > 0) {
+    mprintf("\t  D form\n");
+  } else {
+    mprintf("\t  L form\n");
+    resChar = tolower( resChar );
   }
   // Determine linkage
   mprintf("\t  Link atoms:");
