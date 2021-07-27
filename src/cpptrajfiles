@@ -324,6 +324,7 @@ COMMON_SOURCES= \
         Image_List_Unit.cpp \
         InputTrajCommon.cpp \
         KDE.cpp \
+        LeastSquaresPlaneVector.cpp \
         MapAtom.cpp \
         MaskArray.cpp \
         MaskToken.cpp \
