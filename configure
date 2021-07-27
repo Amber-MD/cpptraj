@@ -162,6 +162,12 @@ FFTW_SRCDIR='fftw-3.3.9'
 FFTW_URL="ftp://ftp.fftw.org/pub/fftw/$FFTW_SRCTAR"
 FFTW_OPTS='--enable-threads --with-combined-threads --with-pic --disable-fortran'
 
+# ----- Variables for downloading MPI ------------
+MPI_MPICH_SRCTAR='mpich-3.4.2.tar.gz'
+MPI_MPICH_SRCDIR='mpich-3.4.2'
+MPI_MPICH_URL="http://www.mpich.org/static/downloads/3.4.2/$MPI_MPICH_SRCTAR"
+MPI_MPICH_OPTS='--with-device=ch3'
+
 # ----- Configure options ------------------------
 USE_CMAKE=0       # 1 = use cmake for build
 COMPILE_VERBOSE=0 # 1 = show details during compile
@@ -179,6 +185,7 @@ USE_SHARED=0      # 1 = Use flag for position-independent code (required for lib
 USE_PROFILE=0     # 0 = no profiling, 1 = C++ profiling, 2 = GLIBC profiling, 3 = Intel Vtune
 USE_AMBERLIB=0    # 1 = Use AMBERHOME to fill in NetCDF/BLAS/LAPACK/ARPACK as needed
 BUILD_LIBS=0      # 1 = Means automatically say yes to building enabled libs when not present.
+BUILD_MPI=''      # If not empty, attempt to download and build specified mpi dist.
 
 USE_SINGLEENSEMBLE=0 # Enable support for single ensemble trajectories
 USE_CPPTRAJDEBUG=0   # Enable internal cpptraj debug flags
@@ -226,9 +233,10 @@ NLIB=17
 #   enabled   : Try to use library.
 #   specified : Library directory has been specified.
 #   amberopt  : Use library from AMBERHOME - optional.
+#   optional  : Enabled if found, disabled if not.
 #   bundled   : Use bundled version of library.
 #   direct    : Library location directly specified.
-LIB_STAT[$LNETCDF]='enabled'         # off, enabled, specified, amberopt, bundled, direct
+LIB_STAT[$LNETCDF]='enabled'         # off, enabled, specified, amberopt, optional, bundled, direct
 LIB_CKEY[$LNETCDF]='netcdf'          # Command-line key for '-', '--with-' and '-no'
 LIB_HOME[$LNETCDF]=''                # Library home directory (-L<home>)
 LIB_FLAG[$LNETCDF]='-lnetcdf'        # Library linker flag
@@ -292,7 +300,7 @@ LIB_D_ON[$LARPACK]=''
 LIB_DOFF[$LARPACK]='-DNO_ARPACK'
 LIB_TYPE[$LARPACK]='cpp'
 
-LIB_STAT[$LFFTW3]='off'
+LIB_STAT[$LFFTW3]='optional'
 LIB_CKEY[$LFFTW3]='fftw3'
 LIB_HOME[$LFFTW3]=''
 LIB_FLAG[$LFFTW3]='-lfftw3'
@@ -383,6 +391,7 @@ LIB_TYPE[$LOPENMM]='cpp'
 
 for ((i=0; i < $NLIB; i++)) ; do
   LIB_LINK[$i]='dynamic'
+  LIB_DISABLED[$i]='false'
 done
 
 #-------------------------------------------------------------------------------
@@ -428,6 +437,7 @@ CheckLibraryKeys() {
     LKEY="-no"${LIB_CKEY[$i]}
     if [ "$1" = "$LKEY" ] ; then
       LIB_STAT[$i]='off'
+      LIB_DISABLED[$i]='true'
       echo "  ${LIB_CKEY[$i]} disabled."
       return 0
     fi
@@ -440,6 +450,38 @@ CheckLibraryKeys() {
     fi
   done
   return 1
+}
+#-------------------------------------------------------------------------------
+# Download and build an MPI implementation
+# ARGS: <implementation>
+BuildMPI() {
+  echo "Attempting to download and build MPI $1 (may be time-consuming)..."
+  case "$1" in
+    'mpich' )
+      mpi_libname='mpich'
+      mpi_srcdir=$MPI_MPICH_SRCDIR
+      mpi_srctar=$MPI_MPICH_SRCTAR
+      mpi_url=$MPI_MPICH_URL
+      mpi_opts=$MPI_MPICH_OPTS
+      if [ "$COMPILERS" = 'gnu' ] ; then
+        fc_version=`$FC --version | awk '{print $4; exit 0;}' | cut -d'.' -f1`
+        echo "DEBUG: major version $fc_version"
+        if [ "$fc_version" -ge 10 ] ; then
+          mpi_fflags='-fallow-argument-mismatch'
+        fi
+      fi
+      ;;
+    * )
+      Err "Unrecognized MPI: $1"
+      ;;
+  esac
+
+  # Build specified MPI 
+  PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS FC=$FC FFLAGS="$FFLAGS $mpi_fflags" LIBNAME=$mpi_libname \
+              SRCDIR=$mpi_srcdir SRCTAR=$mpi_srctar URL=$mpi_url ./get_library.sh --rebuild $mpi_opts
+  if [ $? -ne 0 ] ; then
+    Err "MPI $1 build failed."
+  fi
 }
 
 #-------------------------------------------------------------------------------
@@ -661,7 +703,10 @@ int main() { printf("Testing\n"); printf("%s\n",ncmpi_strerror(0)); return 0; }
 EOF
   TestProgram silent "  Checking Parallel NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LPARANC]}" testp.cpp "${LIB_FLAG[$LPARANC]}"
   if [ $? -ne 0 ] ; then
-    if [ "${LIB_STAT[$LPARANC]}" = 'enabled' ] ; then
+    if [ "${LIB_STAT[$LPARANC]}" = 'optional' ] ; then
+      WrnMsg "Parallel NetCDF test failed. CPPTRAJ will be built without parallel NetCDF."
+      LIB_STAT[$LPARANC]='off'
+    elif [ "${LIB_STAT[$LPARANC]}" = 'enabled' ] ; then
       # See if there is already a version of parallel netcdf in CPPTRAJHOME
       LIB_STAT[$LPARANC]='specified'
       LIB_HOME[$LPARANC]=$CPPTRAJHOME
@@ -868,7 +913,10 @@ EOF
   else
     TestProgram silent "  Checking FFTW3" "$CXX" "$CXXFLAGS ${LIB_INCL[$LFFTW3]}" testp.cpp "${LIB_FLAG[$LFFTW3]}"
     if [ $? -ne 0 ] ; then
-      if [ "${LIB_STAT[$LFFTW3]}" = 'enabled' ] ; then
+      if [ "${LIB_STAT[$LFFTW3]}" = 'optional' ] ; then
+        WrnMsg "FFTW test failed. CPPTRAJ will use the built-in PubFFT routines."
+        LIB_STAT[$LFFTW3]='off'
+      elif [ "${LIB_STAT[$LFFTW3]}" = 'enabled' ] ; then
         # See if there is already a version of FFTW in CPPTRAJHOME
         LIB_STAT[$LFFTW3]='specified'
         LIB_HOME[$LFFTW3]=$CPPTRAJHOME
@@ -1557,6 +1605,54 @@ EOF
   esac
   # Unless specified fortran warnflag is same as C/C++
   if [ -z "$fwarnflag" ] ; then fwarnflag=$warnflag ; fi
+
+  # Turn off/on optimizations if necessary
+  if [ ! -z "$TUNEFLAGS" ] ; then
+    USE_OPT=2
+    hostflags=$TUNEFLAGS
+  fi
+  if [ $USE_OPT -eq 0 ] ; then
+    optflags='-O0'
+    foptflags='-O0'
+    hostflags=''
+  elif [ $USE_OPT -eq 2 ] ; then
+    optflags="$optflags $hostflags"
+    foptflags="$foptflags $hostflags"
+  fi
+  # Turn off PI code if necessary
+  if [ $USE_SHARED -eq 0 ] ; then
+    picflag=''
+  fi
+  # Turn off debug flags if necessary
+  if [ $USE_DEBUG -eq 0 ] ; then
+    DBFLAG=''
+    noinlineflag=''
+  fi
+  # Turn off static flag if necessary
+  if [ $USE_STATIC -ne 1 ] ; then
+    staticflag=''
+    staticlink=''
+  fi
+  # Turn off openmp flag if necessary
+  if [ $USE_OPENMP -eq 0 ] ; then
+    ompflag=''
+  fi
+  # Set compiler flags
+  CXXFLAGS="$DBFLAG $warnflag $ompflag $optflags $noinlineflag $picflag $commonflags $CXXFLAGS"
+  CFLAGS="$DBFLAG $warnflag $ompflag $optflags $picflag $commonflags $CFLAGS"
+  F77FLAGS="$DBFLAG $fwarnflag $ompflag $foptflags $picflag $commonflags $FFLAGS"
+  FFLAGS="$DBFLAG $fwarnflag $ompflag $foptflags $picflag $freefmtflag $commonflags $FFLAGS"
+  LDFLAGS="$LDFLAGS $ompflag $staticflag $staticlink"
+  # DEBUG
+  #echo $CXX $CXXFLAGS
+  #echo $CC $CFLAGS
+  #echo $FC $FFLAGS
+
+  # Build MPI if requested
+  if [ ! -z "$BUILD_MPI" ] ; then
+    BuildMPI $BUILD_MPI
+  fi
+
   # Change to MPI compiler wrappers if specified. Not needed for cray.
   if [ $USE_MPI -ne 0 -a "$COMPILERS" != 'cray' ] ; then
     if [ $USE_MPI -eq 1 ] ; then
@@ -1599,47 +1695,6 @@ EOF
     UsageSimple
     exit 1
   fi
-  # Turn off/on optimizations if necessary
-  if [ ! -z "$TUNEFLAGS" ] ; then
-    USE_OPT=2
-    hostflags=$TUNEFLAGS
-  fi
-  if [ $USE_OPT -eq 0 ] ; then
-    optflags='-O0'
-    foptflags='-O0'
-    hostflags=''
-  elif [ $USE_OPT -eq 2 ] ; then
-    optflags="$optflags $hostflags"
-    foptflags="$foptflags $hostflags"
-  fi
-  # Turn off PI code if necessary
-  if [ $USE_SHARED -eq 0 ] ; then
-    picflag=''
-  fi
-  # Turn off debug flags if necessary
-  if [ $USE_DEBUG -eq 0 ] ; then
-    DBFLAG=''
-    noinlineflag=''
-  fi
-  # Turn off static flag if necessary
-  if [ $USE_STATIC -ne 1 ] ; then
-    staticflag=''
-    staticlink=''
-  fi
-  # Turn off openmp flag if necessary
-  if [ $USE_OPENMP -eq 0 ] ; then
-    ompflag=''
-  fi
-  # Set compiler flags
-  CXXFLAGS="$DBFLAG $warnflag $ompflag $optflags $noinlineflag $picflag $commonflags $CXXFLAGS"
-  CFLAGS="$DBFLAG $warnflag $ompflag $optflags $picflag $commonflags $CFLAGS"
-  F77FLAGS="$DBFLAG $fwarnflag $ompflag $foptflags $picflag $commonflags $FFLAGS"
-  FFLAGS="$DBFLAG $fwarnflag $ompflag $foptflags $picflag $freefmtflag $commonflags $FFLAGS"
-  LDFLAGS="$LDFLAGS $ompflag $staticflag $staticlink"
-  # DEBUG
-  #echo $CXX $CXXFLAGS
-  #echo $CC $CFLAGS
-  #echo $FC $FFLAGS
 }
 
 #-------------------------------------------------------------------------------
@@ -1819,12 +1874,14 @@ SetupMKL() {
   LIB_STAT[$LLAPACK]='off'
   LIB_FLAG[$LLAPACK]=''
   # If no FFTW, try using MKL
-  if [ "${LIB_STAT[$LFFTW3]}" = 'off' -a "$MKL_FFTW" != 'no' ] ; then
-    MKL_FFTW='yes'
-    LIB_STAT[$LFFTW3]='enabled'
-    LIB_FLAG[$LFFTW3]=''
-    if [ ! -z "$mklroot" ] ; then
-      LIB_INCL[$LBLAS]="-I$mklroot/include/fftw"
+  if [ "$MKL_FFTW" != 'no' ] ; then
+    if [ "${LIB_STAT[$LFFTW3]}" = 'off' -o "${LIB_STAT[$LFFTW3]}" = 'optional' ] ; then
+      MKL_FFTW='yes'
+      LIB_STAT[$LFFTW3]='enabled'
+      LIB_FLAG[$LFFTW3]=''
+      if [ ! -z "$mklroot" ] ; then
+        LIB_INCL[$LBLAS]="-I$mklroot/include/fftw"
+      fi
     fi
   fi
 }
@@ -1997,11 +2054,21 @@ BasicChecks() {
     #echo "WINDOWS support requested. Implies '-static'."
     #USE_STATIC=1
   fi
+  # Decide what to do about parallel netcdf
   if [ "${LIB_STAT[$LPARANC]}" != 'off' -a $USE_MPI -eq 0 ] ; then
     WrnMsg "Parallel NetCDF enabled but MPI not specified. Assuming '-mpi'."
     USE_MPI=1
-  elif [ $USE_MPI -ne 0 -a "${LIB_STAT[$LPARANC]}" = 'off' ] ; then
-    LIB_STAT[$LPARANC]='enabled'
+  elif [ $USE_MPI -ne 0 -a "${LIB_STAT[$LPARANC]}" = 'off' -a "${LIB_DISABLED[$LPARANC]}" = 'false' ] ; then
+    # If automatically building libs, enabled parallel netcdf for MPI.
+    # Otherwise make it optional by specifying 'optional'
+    if [ $BUILD_LIBS -eq 1 ] ; then
+      LIB_STAT[$LPARANC]='enabled'
+    else
+      # The 'optional' option only works if checks are enabled.
+      if [ "$PERFORM_CHECKS" = 'yes' ] ; then
+        LIB_STAT[$LPARANC]='optional'
+      fi
+    fi
   fi
   # If we are using the bundled ARPACK then we will need C++/Fortran linking.
   if [ "${LIB_STAT[$LARPACK]}" = 'bundled' ] ; then
@@ -2453,6 +2520,9 @@ while [ ! -z "$1" ] ; do
       CPPTRAJLIB=$VALUE/lib
       CPPTRAJINC=$VALUE/include
       CPPTRAJDAT=$VALUE/dat
+      ;;
+    '--build-mpi'        )
+      BUILD_MPI=$VALUE
       ;;
     # Hidden debug options
     '--debug-parallel'  ) DIRECTIVES="$DIRECTIVES -DPARALLEL_DEBUG_VERBOSE" ;;

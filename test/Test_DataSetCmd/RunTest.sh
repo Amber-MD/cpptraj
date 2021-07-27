@@ -14,6 +14,7 @@ readdata data2.dat name D2
 readdata data3.dat name D3
 readdata data3.dat name D4
 readdata ../Test_Vector/vtest.dat.6.save name Vec vector
+readdata ../Test_RMSD/rmatrices.dat.save name RM mat3x3
 
 dataset invert D1 D2 name Invert out Invert.dat
 
@@ -46,6 +47,10 @@ writedata Drop1.dat Drop1
 dataset droppoints D3 start 2 stop 10 offset 2
 dataset droppoints D3 range 4,5
 writedata Drop2.dat D3 xprec 8.3
+dataset droppoints RM start 1 stop 10 offset 2 name Drop3
+writedata Drop3.dat Drop3
+dataset keeppoints RM range 4-6,10
+writedata Keep3.dat RM 
 
 # Test extraction of vector coords
 dataset vectorcoord Vec name VX X
@@ -75,5 +80,7 @@ DoTest Keep1.dat.save Drop1.dat
 DoTest Keep2.dat.save Drop2.dat
 DoTest VXYZ.dat.save VXYZ.dat
 DoTest Invert.dat.save Invert.dat
+DoTest Drop3.dat.save Drop3.dat
+DoTest Keep3.dat.save Keep3.dat
 
 EndTest

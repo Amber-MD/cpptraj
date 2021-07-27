@@ -377,10 +377,17 @@ class NonbondParmType {
 //                      ntypes_(n), nbindex_(nbi), nbarray_(nba), hbarray_(hba) {}
     inline bool HasNonbond()             const { return ntypes_ > 0; }
     inline int Ntypes()                  const { return ntypes_;     }
+    bool Has_C_Coeff()                   const { return !ccoef_.empty(); }
     std::vector<int> const& NBindex()    const { return nbindex_;    }
+    /// \return Array of LJ 12-6 A and B parameters
     NonbondArray     const& NBarray()    const { return nbarray_;    }
+    /// \return Array of LJ 10-12 (hbond) parameters
     HB_ParmArray     const& HBarray()    const { return hbarray_;    }
+    /// \return Array of LJ 12-6-4 C parameters
+    std::vector<double> const& LJC_Array() const { return ccoef_; }
+    /// \return LJ 6-12 A and B parameter at specified index
     NonbondType const& NBarray(int i)    const { return nbarray_[i]; }
+    /// \return LJ 10-12 (hbond) parameter at specified index
     HB_ParmType const& HBarray(int i)    const { return hbarray_[i]; }
     /// In Amber, index < 0 means HB, otherwise LJ 6-12
     int GetLJindex(int type1, int type2) const {
@@ -399,6 +406,8 @@ class NonbondParmType {
     void SetNHBterms(int n)   { hbarray_.assign( n, HB_ParmType() ); }
     /// Set specified HB term
     HB_ParmType& SetHB(int i) { return hbarray_[i];                  }
+    /// Add a LJ C parameter
+    void AddLJC(double c) { ccoef_.push_back( c ); }
     /// Set specified nbindex location to given value.
     void SetNbIdx(int idx, int nbidx) { nbindex_[idx] = nbidx; }
     /// Add given LJ term to nonbond array and update nonbond index array.
@@ -436,6 +445,7 @@ class NonbondParmType {
     std::vector<int> nbindex_; ///< Hold indices into arrays nbarray/hbarray for atom type pairs
     NonbondArray nbarray_;     ///< Hold Lennard-Jones 6-12 A and B parameters for all pairs.
     HB_ParmArray hbarray_;     ///< Hold 10-12 Amber HBond params for all pairs.
+    std::vector<double> ccoef_; ///< Hold Lennard-Jones C parameters for 12-6-4 LJ potential.
 };
 // ----- LES PARAMETERS --------------------------------------------------------
 /// Hold LES atom parameters

@@ -6,6 +6,7 @@
 #include "DataSet_Vector.h"
 #include "DataSet_string.h"
 #include "DataSet_Mesh.h"
+#include "DataSet_Mat3x3.h"
 #include "StringRoutines.h"
 
 // Exec_DataSetCmd::Help()
@@ -149,13 +150,22 @@ Exec_DataSetCmd::SelectPairType Exec_DataSetCmd::SelectKeys[] = {
 void Exec_DataSetCmd::Help_ModifyPoints() {
   mprintf("  drop|keep}points {range <range arg> | [start <#>] [stop <#>] [offset <#>]}\n"
           "                   [name <output set>] <set arg1> ...\n"
-          "    Drop specified points from or keep specified points in data set(s).\n");
+          "    Drop specified points from or keep specified points in data set(s).\n"
+          "    This command currently only sowrks for 1D scalar and 3x3 matrix sets.\n");
 }
 
 /** Add the X and Y values from set in at idx to set out. */
-static inline void KeepPoint(DataSet_1D* in, DataSet* out, int idx) {
+static void KeepPoint_1D(const DataSet* in, DataSet* out, int idx) {
+  DataSet_1D const& set1d = static_cast<DataSet_1D const&>( *in );
   DataSet_Mesh& mesh = static_cast<DataSet_Mesh&>( *out );
-  mesh.AddXY( in->Xcrd(idx), in->Dval(idx) );
+  mesh.AddXY( set1d.Xcrd(idx), set1d.Dval(idx) );
+}
+
+/** Add matrix from set in at idx to set out. */
+static void KeepPoint_Mat3x3(const DataSet* in, DataSet* out, int idx) {
+  DataSet_Mat3x3 const& setmat = static_cast<DataSet_Mat3x3 const&>( *in );
+  DataSet_Mat3x3& mat = static_cast<DataSet_Mat3x3&>( *out );
+  mat.AddMat3x3( setmat[idx] );
 }
 
 // Exec_DataSetCmd::ModifyPoints()
@@ -165,6 +175,8 @@ Exec::RetType Exec_DataSetCmd::ModifyPoints(CpptrajState& State, ArgList& argIn,
     mode = "Drop";
   else
     mode = "Kee";
+  // Hold pointer to function used to Keep points for data set type.
+  typedef void (*KeepFxnType)(const DataSet*, DataSet*, int);
   // Keywords
   std::string name = argIn.GetStringKey("name");
   int start = argIn.getKeyInt("start", 0) - 1;
@@ -199,11 +211,18 @@ Exec::RetType Exec_DataSetCmd::ModifyPoints(CpptrajState& State, ArgList& argIn,
         return CpptrajState::ERR;
       }
       // Restrict to 1D sets for now TODO more types
-      if (DS->Group() != DataSet::SCALAR_1D) {
-        mprinterr("Error: Currently only works for 1D scalar data sets.\n");
+      KeepFxnType keepFxn;
+      DataSet::DataType outType;
+      if (DS->Group() == DataSet::SCALAR_1D) {
+        keepFxn = KeepPoint_1D;
+        outType = DataSet::XYMESH;
+      } else if (DS->Type() == DataSet::MAT3X3) {
+        keepFxn = KeepPoint_Mat3x3;
+        outType = DataSet::MAT3X3;
+      } else {
+        mprinterr("Error: Currently only works for 1D scalar or 3x3 matrix data sets.\n");
         return CpptrajState::ERR;
       }
-      DataSet_1D* ds1 = (DataSet_1D*)DS;
       // Output data set.
       // NOTE: We want to preserve the original X values. The easiest way
       //       to do this is to always make the output set an XY mesh
@@ -215,24 +234,25 @@ Exec::RetType Exec_DataSetCmd::ModifyPoints(CpptrajState& State, ArgList& argIn,
       DataSet* out = 0;
       if (name.empty()) {
         // Modifying this set. Create new temporary set.
-        out = State.DSL().Allocate( DataSet::XYMESH );
+        out = State.DSL().Allocate( outType );
         if (out == 0) return CpptrajState::ERR;
         // This gives the new set same MetaData, format etc as the original.
-        *out = *ds1;
-        mprintf("\tOverwriting set '%s'\n", ds1->legend());
+        *out = *DS;
+        mprintf("\tOverwriting set '%s'\n", DS->legend());
       } else {
         // Write to new set
-        MetaData md = ds1->Meta();
+        MetaData md = DS->Meta();
         md.SetName( name );
-        out = State.DSL().AddSet(DataSet::XYMESH, md);
+        out = State.DSL().AddSet(outType, md);
         if (out == 0) return CpptrajState::ERR;
         mprintf("\tNew set is '%s'\n", out->Meta().PrintName().c_str());
       }
-      out->Allocate(DataSet::SizeArray(1, ds1->Size()));
+      // NOTE: Allocate() must be valid for the set type!
+      out->Allocate(DataSet::SizeArray(1, DS->Size()));
       if (points.Empty()) {
         // Drop by start/stop/offset. Set defaults if needed
         if (start < 0)  start = 0;
-        if (stop < 0)   stop = ds1->Size();
+        if (stop < 0)   stop = DS->Size();
         if (offset < 0) offset = 1;
         mprintf("\t%sping points from %i to %i, step %i\n", mode, start+1, stop, offset);
         for (int idx = start; idx < stop; idx += offset)
@@ -242,32 +262,32 @@ Exec::RetType Exec_DataSetCmd::ModifyPoints(CpptrajState& State, ArgList& argIn,
       Range::const_iterator pt = points.begin();
       int idx = 0;
       if (drop) {
-        // Drop points
-        for (; idx < (int)ds1->Size(); idx++) {
+        // Drop points TODO should idx be unsigned?
+        for (; idx < (int)DS->Size(); idx++) {
           if (pt == points.end()) break;
           if (*pt != idx) {
             if (State.Debug() > 0) mprintf(" %i", idx + 1);
-            KeepPoint(ds1, out, idx);
+            keepFxn(DS, out, idx);
           } else
             ++pt;
         }
         // Keep all remaining points
-        for (; idx < (int)ds1->Size(); idx++) {
+        for (; idx < (int)DS->Size(); idx++) {
           if (State.Debug() > 0) mprintf(" %i", idx + 1);
-          KeepPoint(ds1, out, idx);
+          keepFxn(DS, out, idx);
         }
       } else {
         // Keep points
         for (; pt != points.end(); pt++) {
-          if (*pt >= (int)ds1->Size()) break;
+          if (*pt >= (int)DS->Size()) break;
           if (State.Debug() > 0) mprintf(" %i", *pt + 1);
-          KeepPoint(ds1, out, *pt);
+          keepFxn(DS, out, *pt);
         }
       }
       if (State.Debug() > 0) mprintf("\n");
       if (name.empty()) {
         // Replace old set with new set
-        State.DSL().RemoveSet( ds1 );
+        State.DSL().RemoveSet( DS );
         State.DSL().AddSet( out );
       }
     } // END loop over sets
@@ -294,8 +314,11 @@ Exec::RetType Exec_DataSetCmd::VectorCoord(CpptrajState& State, ArgList& argIn) 
   // Data set(s)
   typedef std::vector<DataSet_Vector*> DVarray;
   DVarray inputSets;
-  DataSetList dsl1 = State.DSL().GetMultipleSets( argIn.GetStringNext() );
-  while (!dsl1.empty()) {
+  std::string vecsetarg = argIn.GetStringNext();
+  if (vecsetarg.empty())
+    mprintf("Warning: No data set arguments specified.\n");
+  while (!vecsetarg.empty()) {
+    DataSetList dsl1 = State.DSL().GetMultipleSets( vecsetarg );
     for (DataSetList::const_iterator it = dsl1.begin(); it != dsl1.end(); ++it)
     {
       if ( (*it)->Group() != DataSet::VECTOR_1D) {
@@ -306,7 +329,7 @@ Exec::RetType Exec_DataSetCmd::VectorCoord(CpptrajState& State, ArgList& argIn) 
         inputSets.push_back( static_cast<DataSet_Vector*>( *it ) );
       }
     }
-    dsl1 = State.DSL().GetMultipleSets( argIn.GetStringNext() );
+    vecsetarg = argIn.GetStringNext();
   }
   if (inputSets.empty()) {
     mprinterr("Error: 'vectorcoord': No data sets selected.\n");

@@ -79,6 +79,7 @@ const Parm_Amber::ParmFlag Parm_Amber::FLAGS_[] = {
   { "NONBONDED_PARM_INDEX",       F10I8 },
   { "LENNARD_JONES_ACOEF",        F5E16 },
   { "LENNARD_JONES_BCOEF",        F5E16 },
+  { "LENNARD_JONES_CCOEF",        F5E16 },
   { "EXCLUDED_ATOMS_LIST",        F10I8 },
   { "RADII",                      F5E16 },
   { "SCREEN",                     F5E16 },
@@ -442,6 +443,7 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             case F_SOLTY: ptr = SkipToNextFlag(); break;
             case F_LJ_A:      err = ReadLJA(TopIn, FMT); break;
             case F_LJ_B:      err = ReadLJB(TopIn, FMT); break;
+            case F_LJ_C:      err = ReadLJC(TopIn, FMT); break;
             case F_BONDSH:    err = ReadBondsH(TopIn, FMT); break;
             case F_BONDS:     err = ReadBonds(TopIn, FMT); break;
             case F_ANGLESH:   err = ReadAnglesH(TopIn, FMT); break;
@@ -878,6 +880,17 @@ int Parm_Amber::ReadLJB(Topology& TopIn, FortranData const& FMT) {
   for (int idx = 0; idx != numLJparm_; idx++)
   {
     TopIn.SetNonbond().SetLJ(idx).SetB( FileBufferToDouble(F_LJ_B, idx, numLJparm_) );
+    if (atProblemFlag_) break;
+  }
+  return 0;
+}
+
+// Parm_Amber::ReadLJC()
+int Parm_Amber::ReadLJC(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_LJ_C, numLJparm_, FMT)) return 1;
+  for (int idx = 0; idx != numLJparm_; idx++)
+  {
+    TopIn.SetNonbond().AddLJC( FileBufferToDouble(F_LJ_C, idx, numLJparm_) );
     if (atProblemFlag_) break;
   }
   return 0;
@@ -2452,6 +2465,17 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
       file_.IntToBuffer( *it );
     file_.FlushBuffer();
   }
+
+  // LJ C terms.
+  // NOTE: I put this at the very end to match behavior of parmed add_12_6_4
+  if (TopOut.Nonbond().Has_C_Coeff()) {
+    std::vector<double> const& ccoef = TopOut.Nonbond().LJC_Array();
+    if (BufferAlloc(F_LJ_C, ccoef.size())) return 1;
+    for (std::vector<double>::const_iterator it = ccoef.begin(); it != ccoef.end(); ++it)
+      file_.DblToBuffer( *it );
+    file_.FlushBuffer();
+  }
+
   return 0;
 }
 
