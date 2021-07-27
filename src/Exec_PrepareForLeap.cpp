@@ -76,7 +76,7 @@ static std::string LinkageCode(char glycamChar, std::set<NameType> const& linkag
 /** Attempt to identify sugar residue, form, and linkages. */
 int Exec_PrepareForLeap::IdentifySugar(int rnum, Topology* topIn,
                                        Frame const& frameIn, CharMask const& cmask,
-                                       CpptrajFile* outfile)
+                                       CpptrajFile* outfile, std::set<BondType>& sugarBondsToRemove)
 const
 {
   Residue& res = topIn->SetRes(rnum);
@@ -190,6 +190,11 @@ const
                   topIn->ResNameNumAtomNameNum(at).c_str(),
                   topIn->ResNameNumAtomNameNum(*bat).c_str());
           linkages.insert( (*topIn)[at].Name() );
+          // Also remove inter-sugar bonds since leap cant handle branching
+          if (at < *bat)
+            sugarBondsToRemove.insert( BondType(at, *bat, -1) );
+          else
+            sugarBondsToRemove.insert( BondType(*bat, at, -1) );
         }
       }
     } // END loop over bonded atoms
@@ -469,6 +474,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 
   // Prepare sugars
   if (sugarMask.MaskStringSet()) {
+    std::set<BondType> sugarBondsToRemove;
     mprintf("\tPreparing sugars selected by '%s'\n", sugarMask.MaskString());
     if (coords.Top().SetupIntegerMask( sugarMask )) return CpptrajState::ERR;
     sugarMask.MaskInfo();
@@ -485,9 +491,16 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       {
         //Residue const& Res = coords.Top().Res(*rnum);
         // See if we recognize this sugar.
-        if (IdentifySugar(*rnum, coords.TopPtr(), frameIn, cmask, outfile))
+        if (IdentifySugar(*rnum, coords.TopPtr(), frameIn, cmask, outfile, sugarBondsToRemove))
           return CpptrajState::ERR;
       } // END loop over sugar residues
+      // Remove bonds between sugars
+      for (std::set<BondType>::const_iterator bnd = sugarBondsToRemove.begin();
+                                              bnd != sugarBondsToRemove.end(); ++bnd)
+      {
+        LeapBond(bnd->A1(), bnd->A2(), *(coords.TopPtr()), outfile);
+        coords.TopPtr()->RemoveBond(bnd->A1(), bnd->A2());
+      }
     }
     // Bonds to sugars have been removed, so regenerate molecule info
     coords.TopPtr()->DetermineMolecules();

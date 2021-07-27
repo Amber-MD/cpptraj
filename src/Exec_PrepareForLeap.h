@@ -1,6 +1,7 @@
 #ifndef INC_EXEC_PREPAREFORLEAP_H
 #define INC_EXEC_PREPAREFORLEAP_H
 #include "Exec.h"
+#include <set>
 class CharMask;
 class CpptrajFile;
 /// Do common tasks to prepare a structure to be loaded into tleap 
@@ -12,7 +13,7 @@ class Exec_PrepareForLeap : public Exec {
     RetType Execute(CpptrajState&, ArgList&);
   private:
     void LeapBond(int,int,Topology const&, CpptrajFile*) const;
-    int IdentifySugar(int, Topology*, Frame const&, CharMask const&, CpptrajFile*) const;
+    int IdentifySugar(int, Topology*, Frame const&, CharMask const&, CpptrajFile*, std::set<BondType>&) const;
     int FindTerByBonds(Topology*, CharMask const&) const;
 
     std::string leapunitname_;
