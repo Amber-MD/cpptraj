@@ -58,9 +58,20 @@ static std::string LinkageCode(char glycamChar, std::set<NameType> const& linkag
 //    case 'Y':
       if      (linkstr == "C1") linkcode = "0";
       else if (linkstr == "C1O2") linkcode = "2";
+      else if (linkstr == "C1O3") linkcode = "3";
       else if (linkstr == "C1O4") linkcode = "4";
-      else if (linkstr == "C1O4O6") linkcode = "U";
+      else if (linkstr == "C1O6") linkcode = "6";
+      else if (linkstr == "C1O2O3") linkcode = "Z";
+      else if (linkstr == "C1O2O4") linkcode = "Y";
+      else if (linkstr == "C1O2O6") linkcode = "X";
+      else if (linkstr == "C1O3O4") linkcode = "W";
       else if (linkstr == "C1O3O6") linkcode = "V";
+      else if (linkstr == "C1O4O6") linkcode = "U";
+      else if (linkstr == "C1O2O3O4") linkcode = "T";
+      else if (linkstr == "C1O2O3O6") linkcode = "S";
+      else if (linkstr == "C1O2O4O6") linkcode = "R";
+      else if (linkstr == "C1O3O4O6") linkcode = "Q";
+      else if (linkstr == "C1O2O3O4O6") linkcode = "P";
 //      break;
 //    case 'M':
 //      if      (linkstr == "C1O3O6") linkcode = "V";
