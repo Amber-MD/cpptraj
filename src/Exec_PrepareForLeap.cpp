@@ -85,6 +85,10 @@ static std::string LinkageCode(char glycamChar, std::set<NameType> const& linkag
 /** Load reduced interal PDB to Glycam map. */
 void Exec_PrepareForLeap::SetGlycamPdbResMap() {
   pdb_to_glycam_.insert( PairType("NAG", 'Y') );
+  pdb_to_glycam_.insert( PairType("FUC", 'F') );
+  pdb_to_glycam_.insert( PairType("GAL", 'L') );
+  pdb_to_glycam_.insert( PairType("BMA", 'M') );
+  pdb_to_glycam_.insert( PairType("MAN", 'M') );
 }
 
 /** Load PDB to Glycam residue map from file. */
@@ -125,6 +129,14 @@ const
   Residue& res = topIn->SetRes(rnum);
   // Try to ID the base sugar type from the input name.
   char resChar = ' ';
+
+  MapType::const_iterator pdb_glycam = pdb_to_glycam_.find( res.Name() );
+  if ( pdb_glycam == pdb_to_glycam_.end() ) { 
+    mprinterr("Error: Could not identify sugar from residue name '%s'\n", *res.Name());
+    return 1;
+  }
+  resChar = pdb_glycam->second;
+/*
   if (res.Name() == "NAG") {
     resChar = 'Y';
   } else if (res.Name() == "FUC") {
@@ -136,7 +148,7 @@ const
   } else {
     mprinterr("Error: Could not identify sugar from residue name '%s'\n", *res.Name());
     return 1;
-  }
+  }*/
   mprintf("\tSugar %s %i glycam name: %c\n", *res.Name(), rnum+1, resChar);
   // Try to identify the form
   /* The alpha form has the CH2OH substituent (C5-C6 etc in Glycam) on the 
@@ -408,6 +420,9 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   }
   Frame frameIn = coords.AllocateFrame();
   coords.GetFrame(tgtframe, frameIn);
+
+  // Load PDB to glycam residue name map
+  SetGlycamPdbResMap(); // DEBUG
 
   leapunitname_ = argIn.GetStringKey("leapunitname", "m");
   mprintf("\tUsing leap unit name: %s\n", leapunitname_.c_str());
