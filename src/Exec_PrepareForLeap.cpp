@@ -424,6 +424,8 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   CpptrajFile* outfile = State.DFL().AddCpptrajFile(argIn.GetStringKey("out"),
                                                     "LEaP Input", DataFileList::TEXT, true);
   if (outfile == 0) return CpptrajState::ERR;
+  mprintf("\tLEaP input containing bonds for disulfides, sugars, etc\n"
+          "\t  will be written to '%s'\n", outfile->Filename().full());
 
   // Disulfide search
   double disulfidecut = argIn.getKeyDouble("disulfidecut", 2.5);
