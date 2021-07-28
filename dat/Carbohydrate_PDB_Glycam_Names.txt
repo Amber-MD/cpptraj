@@ -1,0 +1,31 @@
+# This file contains the mapping from common PDB names to Glycam residue codes.
+# Information largely obtained from http://glycam.org/docs/othertoolsservice/2016/06/09/3d-snfg-list-of-residue-names/#PDB
+# Last updated 07/28/21 10:42:50
+"Glucose"                        G GLC,MAL,BGC
+"N-Acetyl Glucosamine"           Y NAG,4YS,SGN,BGLN,NDG
+"Glucosamine"                    Y GCS
+"Glucuronic Acid"                Z GCU
+"Quinovose"                      Q QUI
+"Mannose"                        M MAN,BMA
+"Rhamnose"                       H RAM
+"Tyvelose"                       T TYV
+"Arabinose"                      A ARA,AHR
+"Galactose"                      L GAL,GLA
+"N-Acetyl Galactosamine"         V NGA
+"Galacturonic Acid"              O ADA
+"Gulose"                         K GUL,GUP,GL0
+"Altrose"                        E ALT
+"Allose"                         N ALL,WOO
+"Talose"                         T TAL
+"Iduronic Acid"                  U IDS
+"Fucose"                         F FUC,FUL
+"Lyxose"                         D LYX
+"Abequose"                       A ABE
+"Xylose"                         X XYL,XYS,LXC,XYP
+"Ribose"                         R RIB
+"Bacillosamine"                  B BAC
+"Fructose"                       C FRU
+"Tagatose"                       J TAG
+"Sorbose"                        B SOR
+"Psicose"                        P PSI
+"N-Acetyl Neuraminic Acid"       S SIA
