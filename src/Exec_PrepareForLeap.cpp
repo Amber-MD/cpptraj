@@ -282,6 +282,8 @@ const
                                frameIn.XYZ(O5idx), frameIn.XYZ(C6idx) );
   double t_o5c1c2cx = Torsion( frameIn.XYZ(O5idx), frameIn.XYZ(C1idx),
                                frameIn.XYZ(C2idx), frameIn.XYZ(Cxidx) );
+  mprintf("\t  A/B torsion of C5 substituent= %f deg\n", t_c4c5o5c6 * Constants::RADDEG);
+  mprintf("\t  A/B torsion of C1 substituent= %f deg\n", t_o5c1c2cx * Constants::RADDEG);
   bool c5up = (t_c4c5o5c6 > 0);
   bool c1up = (t_o5c1c2cx > 0);
   if (c1up == c5up) {
@@ -300,7 +302,7 @@ const
   //frameIn.printAtomCoord(C6idx);
   double torsion = Torsion( frameIn.XYZ(C4idx), frameIn.XYZ(C5idx),
                             frameIn.XYZ(C6idx), frameIn.XYZ(O5idx) );
-  mprintf("\t  D/L Torsion= %f deg\n", torsion * Constants::RADDEG);
+  mprintf("\t  D/L Torsion around C5= %f deg\n", torsion * Constants::RADDEG);
   if (torsion > 0) {
     mprintf("\t  D form\n");
   } else {
