@@ -14,8 +14,17 @@ void Exec_PrepareForLeap::Help() const
   mprintf("\tcrdset <coords set> [frame <#>] [out <file>]\n"
           "\t[cysmask <cysmask>] [disulfidecut <cut>] [newcysname <name>]\n"
           "\t[sugarmask <sugarmask>] [resmapfile <file>]\n"
-          "\t[leapunitname <name>]\n"
+          "\t[leapunitname <unit>]\n"
           "\t[molmask <molmask> ...] [determinemolmask <mask>]\n"
+          "  Prepare the structure in the given coords set for easier processing\n"
+          "  with the LEaP program from AmberTools. Any existing/potential\n"
+          "  disulfide bonds will be identified and the residue names changed\n"
+          "  to <name> (CYX by default), and if specified any sugars\n"
+          "  recognized in the <sugarmask> region will be identified and have\n"
+          "  their names changed to Glycam names. Disulfides and sugars will\n"
+          "  have any inter-residue bonds removed, and the appropriate LEaP\n"
+          "  input to add the bonds back once the structure has been loaded\n"
+          "  into LEaP will be written to <file>.\n"
          );
 }
 
