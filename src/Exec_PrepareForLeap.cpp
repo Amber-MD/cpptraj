@@ -13,7 +13,7 @@ void Exec_PrepareForLeap::Help() const
 {
   mprintf("\tcrdset <coords set> [frame <#>] out <file>\n"
           "\t[cysmask <mask>] [disulfidecut <cut>] [newcysname <name>]\n"
-          "\t[sugarmask <mask>]\n"
+          "\t[sugarmask <mask>] [resmapfile <file>]\n"
           "\t[leapunitname <name>]\n"
          );
 }
@@ -110,12 +110,35 @@ int Exec_PrepareForLeap::LoadGlycamPdbResMap(std::string const& fnameIn)
     SetGlycamPdbResMap();
     return 0;
   }
+  mprintf("\tReading PDB residue name -> Glycam name map from '%s'\n", fname.c_str());
 
   CpptrajFile infile;
   if (infile.OpenRead(fname)) {
     mprinterr("Error: Could not open Glycam residue map file.\n");
     return 1;
   }
+  const char* ptr = 0;
+  while ( (ptr = infile.NextLine()) != 0 ) {
+    ArgList argline( ptr, " " );
+    if (argline[0][0] != '#') {
+      if (argline.Nargs() != 3) {
+        mprinterr("Error: Expected only 3 data columns in '%s', got %i\n",
+                  infile.Filename().full(), argline.Nargs());
+        mprinterr("Error: %s\n", ptr);
+        return 1;
+      }
+      ArgList pdbnames( argline[2], "," );
+      if (pdbnames.Nargs() < 1) {
+        mprinterr("Error: No pdb names found.\n");
+        mprinterr("Error: %s\n", ptr);
+        return 1;
+      }
+      // TODO handle glycam res names with > 1 char
+      for (int n = 0; n < pdbnames.Nargs(); n++)
+        pdb_to_glycam_.insert( PairType(pdbnames[n], argline[1][0]) );
+    }
+  } // END loop over file
+  infile.CloseFile();
 
   return 0;
 }
@@ -136,19 +159,7 @@ const
     return 1;
   }
   resChar = pdb_glycam->second;
-/*
-  if (res.Name() == "NAG") {
-    resChar = 'Y';
-  } else if (res.Name() == "FUC") {
-    resChar = 'F';
-  } else if (res.Name() == "GAL") {
-    resChar = 'L';
-  } else if (res.Name() == "BMA" || res.Name() == "MAN") {
-    resChar = 'M';
-  } else {
-    mprinterr("Error: Could not identify sugar from residue name '%s'\n", *res.Name());
-    return 1;
-  }*/
+
   mprintf("\tSugar %s %i glycam name: %c\n", *res.Name(), rnum+1, resChar);
   // Try to identify the form
   /* The alpha form has the CH2OH substituent (C5-C6 etc in Glycam) on the 
@@ -422,7 +433,14 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   coords.GetFrame(tgtframe, frameIn);
 
   // Load PDB to glycam residue name map
-  SetGlycamPdbResMap(); // DEBUG
+  if (LoadGlycamPdbResMap( argIn.GetStringKey("resmapfile" ) )) {
+    mprinterr("Error: PDB to glycam name map load failed.\n");
+    return CpptrajState::ERR;
+  }
+  // DEBUG - print residue name map
+  mprintf("\tResidue name map:\n");
+  for (MapType::const_iterator mit = pdb_to_glycam_.begin(); mit != pdb_to_glycam_.end(); ++mit)
+    mprintf("\t  %4s -> %c\n", *(mit->first), mit->second);
 
   leapunitname_ = argIn.GetStringKey("leapunitname", "m");
   mprintf("\tUsing leap unit name: %s\n", leapunitname_.c_str());
