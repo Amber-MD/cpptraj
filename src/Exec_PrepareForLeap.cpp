@@ -5,6 +5,7 @@
 #include "TorsionRoutines.h"
 #include "Constants.h"
 #include "CpptrajFile.h"
+#include "Trajout_Single.h"
 #include <stack>
 #include <cctype> // tolower
 
@@ -14,7 +15,7 @@ void Exec_PrepareForLeap::Help() const
   mprintf("\tcrdset <coords set> [frame <#>] [out <file>]\n"
           "\t[cysmask <cysmask>] [disulfidecut <cut>] [newcysname <name>]\n"
           "\t[sugarmask <sugarmask>] [resmapfile <file>]\n"
-          "\t[leapunitname <unit>]\n"
+          "\t[leapunitname <unit>] [pdbout <pdbout>]\n"
           "\t[molmask <molmask> ...] [determinemolmask <mask>]\n"
           "  Prepare the structure in the given coords set for easier processing\n"
           "  with the LEaP program from AmberTools. Any existing/potential\n"
@@ -444,6 +445,10 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   Frame frameIn = coords.AllocateFrame();
   coords.GetFrame(tgtframe, frameIn);
 
+  std::string pdbout = argIn.GetStringKey("pdbout");
+  if (!pdbout.empty())
+    mprintf("\tPDB will be written to %s\n", pdbout.c_str());
+
   // Load PDB to glycam residue name map
   if (LoadGlycamPdbResMap( argIn.GetStringKey("resmapfile" ) )) {
     mprinterr("Error: PDB to glycam name map load failed.\n");
@@ -614,7 +619,20 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     }
   }
 
-
+  if (!pdbout.empty()) {
+    Trajout_Single PDB;
+    if (PDB.InitTrajWrite( pdbout, "topresnum", State.DSL(), TrajectoryFile::PDBFILE)) {
+      mprinterr("Error: Could not initialize output PDB\n");
+      return CpptrajState::ERR;
+    }
+    if (PDB.SetupTrajWrite(coords.TopPtr(), coords.CoordsInfo(), 1)) {
+      mprinterr("Error: Could not set up output PDB\n");
+      return CpptrajState::ERR;
+    }
+    PDB.PrintInfo(1);
+    PDB.WriteSingle(0, frameIn);
+    PDB.EndTraj();
+  }
 
   return CpptrajState::OK;
 }
