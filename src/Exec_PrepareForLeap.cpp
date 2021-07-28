@@ -8,7 +8,6 @@
 #include <set>
 #include <stack>
 #include <cctype> // tolower
-#include "LeastSquaresPlaneVector.h"
 
 // Exec_PrepareForLeap::Help()
 void Exec_PrepareForLeap::Help() const
@@ -125,7 +124,7 @@ const
   // Bonds to non sugars to be removed since these will confuse tleap
   BondArray bondsToRemove;
   // Loop over sugar atoms
-  AtomMask sugarCycle;
+  //AtomMask sugarCycle;
   for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
   {
     // Rename some common atoms TODO need to check glycam residue char?
@@ -140,21 +139,21 @@ const
       C6idx = at;
     else if ( (*topIn)[at].Name() == "C5" ) {
       C5idx = at;
-      sugarCycle.AddAtom( at );
+      //sugarCycle.AddAtom( at );
     } else if ( (*topIn)[at].Name() == "O5" ) {
       O5idx = at;
-      sugarCycle.AddAtom( at );
+      //sugarCycle.AddAtom( at );
     } else if ( (*topIn)[at].Name() == "C4" ) {
       C4idx = at;
-      sugarCycle.AddAtom( at );
+      //sugarCycle.AddAtom( at );
     } else if ( (*topIn)[at].Name() == "C2") {
       C2idx = at;
-      sugarCycle.AddAtom( at );
+      //sugarCycle.AddAtom( at );
     } else if ( (*topIn)[at].Name() == "C3") {
-      sugarCycle.AddAtom( at );
+      //sugarCycle.AddAtom( at );
     } else if ( (*topIn)[at].Name() == "C1" ) {
       C1idx = at;
-      sugarCycle.AddAtom( at );
+      //sugarCycle.AddAtom( at );
       // Check substituent of C1 (non ring atom, non hydrogen)
       for (Atom::bond_iterator bat = (*topIn)[at].bondbegin();
                                bat != (*topIn)[at].bondend(); ++bat)
@@ -212,7 +211,7 @@ const
   } // END loop over residue atoms
   mprintf("\t  C6= %i C5= %i C1= %i Cx= %i O5= %i C4= %i C2= %i\n",
           C6idx+1, C5idx+1, C1idx+1, Cxidx+1, O5idx+1, C4idx+1, C2idx+1);
-  sugarCycle.PrintMaskAtoms("\t  Sugar cycle:");
+  //sugarCycle.PrintMaskAtoms("\t  Sugar cycle:");
   if (C6idx == -1) { mprintf("Warning: C6 index not found.\n"); return 1; }
   if (C5idx == -1) { mprintf("Warning: C5 index not found.\n"); return 1; }
   if (C1idx == -1) { mprintf("Warning: C1 index not found.\n"); return 1; }
@@ -221,22 +220,8 @@ const
   if (C4idx == -1) { mprintf("Warning: C4 index not found.\n"); return 1; }
   if (C2idx == -1) { mprintf("Warning: C2 index not found.\n"); return 1; }
   // Determine alpha/beta
-/*  LeastSquaresPlaneVector LSPV;
-  LSPV.ReserveForNumAtoms( sugarCycle.Nselected() );
-  Vec3 sugarVec = LSPV.CalcLSPvec(frameIn, sugarCycle);
-  Vec3 VC5C6 = Vec3(frameIn.XYZ(C6idx)) - Vec3(frameIn.XYZ(C5idx));
-  VC5C6.Normalize();
-  Vec3 VC1Cx = Vec3(frameIn.XYZ(Cxidx)) - Vec3(frameIn.XYZ(C1idx));
-  VC1Cx.Normalize();
-  sugarVec.Print("sugarVec");
-  VC5C6.Print("C5C6");
-  VC1Cx.Print("C1Cx");
-  double theta1 = sugarVec.Angle( VC5C6 );
-  double theta2 = sugarVec.Angle( VC1Cx );
-  mprintf("\t  Angle between C5C6 and sugar= %f  between C1Cx and sugar= %f\n", theta1*Constants::RADDEG, theta2*Constants::RADDEG);
-  bool C5C6_oppDir_sugarVec = (theta1 > Constants::PIOVER2);
-  bool C1Cx_oppDir_sugarVec = (theta2 > Constants::PIOVER2);
-  if (C5C6_oppDir_sugarVec == C1Cx_oppDir_sugarVec) {*/
+  // Alpha - C1 and C5 substituents are on opposite sides.
+  // Beta  - C1 and C5 substituents are on the same side.
   double t_c4c5o5c6 = Torsion( frameIn.XYZ(C4idx), frameIn.XYZ(C5idx),
                                frameIn.XYZ(O5idx), frameIn.XYZ(C6idx) );
   double t_o5c1c2cx = Torsion( frameIn.XYZ(O5idx), frameIn.XYZ(C1idx),
@@ -251,6 +236,7 @@ const
     formStr = "A";
   }
   // Determine D/L
+  // Check the chirality around the C5 atom.
   bool isDform = true;
   // DEBUG
   //frameIn.printAtomCoord(O5idx);
