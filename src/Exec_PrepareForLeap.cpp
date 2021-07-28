@@ -23,7 +23,7 @@ void Exec_PrepareForLeap::Help() const
 /// Used to change residue name to nameIn
 static inline void ChangeResName(Residue& res, NameType const& nameIn) {
   if (res.Name() != nameIn) {
-    mprintf("\tChanging residue %s to %s\n", *(res.Name()), *nameIn);
+    mprintf("\t    Changing residue %s to %s\n", *(res.Name()), *nameIn);
     res.SetName( nameIn );
   }
 }
@@ -31,7 +31,7 @@ static inline void ChangeResName(Residue& res, NameType const& nameIn) {
 /// Used to change atom name to nameIn
 static inline void ChangeAtomName(Atom& atm, NameType const& nameIn) {
   if (atm.Name() != nameIn) {
-    mprintf("\tChanging atom %s to %s\n", *(atm.Name()), *nameIn);
+    mprintf("\t    Changing atom %s to %s\n", *(atm.Name()), *nameIn);
     atm.SetName( nameIn );
   }
 }
@@ -178,7 +178,7 @@ const
     {
       if ((*topIn)[*bat].ResNum() != rnum) {
         if (!cmask.AtomInCharMask(*bat)) {
-          mprintf("\tSugar %s bonded to non-sugar %s\n",
+          mprintf("\t  Sugar %s bonded to non-sugar %s\n",
                   topIn->ResNameNumAtomNameNum(at).c_str(),
                   topIn->ResNameNumAtomNameNum(*bat).c_str());
           linkages.insert( (*topIn)[at].Name() );
@@ -197,7 +197,7 @@ const
             mprintf("Warning: Unrecognized link residue %s, not modifying name.\n", *pres.Name());
           }
         } else {
-          mprintf("\tSugar %s bonded to sugar %s\n",
+          mprintf("\t  Sugar %s bonded to sugar %s\n",
                   topIn->ResNameNumAtomNameNum(at).c_str(),
                   topIn->ResNameNumAtomNameNum(*bat).c_str());
           linkages.insert( (*topIn)[at].Name() );
@@ -472,7 +472,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
           // TODO imaging?
           double r2 = DIST2_NoImage(frameIn.XYZ(*at1), frameIn.XYZ(*at2));
           if (r2 < cut2) {
-            mprintf("\tPotential disulfide: %s to %s (%g Ang.)\n",
+            mprintf("\t  Potential disulfide: %s to %s (%g Ang.)\n",
                     coords.Top().ResNameNumAtomNameNum(*at1).c_str(),
                     coords.Top().ResNameNumAtomNameNum(*at2).c_str(), sqrt(r2));
             isBonded = true;
