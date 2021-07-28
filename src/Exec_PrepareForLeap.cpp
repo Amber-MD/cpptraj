@@ -11,10 +11,11 @@
 // Exec_PrepareForLeap::Help()
 void Exec_PrepareForLeap::Help() const
 {
-  mprintf("\tcrdset <coords set> [frame <#>] out <file>\n"
-          "\t[cysmask <mask>] [disulfidecut <cut>] [newcysname <name>]\n"
-          "\t[sugarmask <mask>] [resmapfile <file>]\n"
+  mprintf("\tcrdset <coords set> [frame <#>] [out <file>]\n"
+          "\t[cysmask <cysmask>] [disulfidecut <cut>] [newcysname <name>]\n"
+          "\t[sugarmask <sugarmask>] [resmapfile <file>]\n"
           "\t[leapunitname <name>]\n"
+          "\t[molmask <molmask> ...] [determinemolmask <mask>]\n"
          );
 }
 
@@ -238,7 +239,7 @@ const
                   topIn->ResNameNumAtomNameNum(*bat).c_str());
           linkages.insert( (*topIn)[at].Name() );
           bondsToRemove.push_back( BondType(at, *bat, -1) );
-          // Check if this is a recognized linkage TODO put in another file?
+          // Check if this is a recognized linkage to non-sugar TODO put in another file?
           Residue& pres = topIn->SetRes( (*topIn)[*bat].ResNum() );
           if ( pres.Name() == "SER" ) {
             ChangeResName( pres, "OLS" );
@@ -603,7 +604,8 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       }
     }
   }
-      
+
+
 
   return CpptrajState::OK;
 }
