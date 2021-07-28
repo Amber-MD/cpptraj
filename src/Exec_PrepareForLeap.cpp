@@ -5,7 +5,6 @@
 #include "TorsionRoutines.h"
 #include "Constants.h"
 #include "CpptrajFile.h"
-#include <set>
 #include <stack>
 #include <cctype> // tolower
 
@@ -81,6 +80,40 @@ static std::string LinkageCode(char glycamChar, std::set<NameType> const& linkag
   if (linkcode.empty())
     mprintf("Warning: Could not determine link code.\n");
   return linkcode;
+}
+
+/** Load reduced interal PDB to Glycam map. */
+void Exec_PrepareForLeap::SetGlycamPdbResMap() {
+  pdb_to_glycam_.insert( PairType("NAG", 'Y') );
+}
+
+/** Load PDB to Glycam residue map from file. */
+int Exec_PrepareForLeap::LoadGlycamPdbResMap(std::string const& fnameIn)
+{
+  std::string fname;
+  if (fnameIn.empty()) {
+    // Check CPPTRAJHOME
+    const char* env = getenv("CPPTRAJHOME");
+    if (env != 0) {
+      fname.assign(env);
+      fname += "/dat/Carbohydrate_PDB_Glycam_Names.txt";
+    }
+    mprintf("Info: Parameter file path from CPPTRAJHOME variable: '%s'\n", fname.c_str());
+  }
+  if (fname.empty()) {
+    mprintf("Warning: No PDB->Glycam file specified and/or CPPTRAJHOME not set.\n"
+            "Warning: Using only basic PDB residue name recognition.\n");
+    SetGlycamPdbResMap();
+    return 0;
+  }
+
+  CpptrajFile infile;
+  if (infile.OpenRead(fname)) {
+    mprinterr("Error: Could not open Glycam residue map file.\n");
+    return 1;
+  }
+
+  return 0;
 }
 
 /** Attempt to identify sugar residue, form, and linkages. */
