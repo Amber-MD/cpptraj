@@ -14,6 +14,7 @@ void Exec_PrepareForLeap::Help() const
 {
   mprintf("\tcrdset <coords set> [frame <#>] [out <file>]\n"
           "\t[{nodisulfides |\n"
+          "\t  existingdisulfides |\n"
           "\t  [cysmask <cysmask>] [disulfidecut <cut>] [newcysname <name>]}]\n"
           "\t[{nosugars | sugarmask <sugarmask>}] [resmapfile <file>]\n"
           "\t[leapunitname <unit>] [pdbout <pdbout>]\n"
@@ -471,7 +472,7 @@ const
 
 /** Search for disulfide bonds. */
 int Exec_PrepareForLeap::SearchForDisulfides(double disulfidecut, std::string const& newcysnamestr,
-                                             std::string const& cysmaskstr,
+                                             std::string const& cysmaskstr, bool searchForNewDisulfides,
                                              DataSet_Coords& coords, Frame const& frameIn,
                                              CpptrajFile* outfile)
 const
@@ -479,7 +480,10 @@ const
   // Disulfide search
   NameType newcysname(newcysnamestr);
   mprintf("\tCysteine residues involved in disulfide bonds will be changed to: %s\n", *newcysname);
-  mprintf("\tSearching for disulfide bonds with a cutoff of %g Ang.\n", disulfidecut);
+  if (searchForNewDisulfides)
+    mprintf("\tSearching for disulfide bonds with a cutoff of %g Ang.\n", disulfidecut);
+  else
+    mprintf("\tOnly using existing disulfide bonds, will not search for new ones.\n");
 
   AtomMask cysmask;
   if (cysmask.SetMaskString( cysmaskstr )) {
@@ -503,7 +507,7 @@ const
                   coords.Top().ResNameNumAtomNameNum(*at1).c_str(),
                   coords.Top().ResNameNumAtomNameNum(*at2).c_str());
           isBonded = true;
-        } else {
+        } else if (searchForNewDisulfides) {
           // TODO imaging?
           double r2 = DIST2_NoImage(frameIn.XYZ(*at1), frameIn.XYZ(*at2));
           if (r2 < cut2) {
@@ -670,6 +674,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     if (SearchForDisulfides( argIn.getKeyDouble("disulfidecut", 2.5),
                              argIn.GetStringKey("newcysname", "CYX"),
                              argIn.GetStringKey("cysmask", ":CYS@SG"),
+                            !argIn.hasKey("existingdisulfides"),
                              coords, frameIn, outfile ))
     {
       mprinterr("Error: Disulfide search failed.\n");

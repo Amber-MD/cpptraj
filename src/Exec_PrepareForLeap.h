@@ -24,7 +24,7 @@ class Exec_PrepareForLeap : public Exec {
     int IdentifySugar(int, Topology*, Frame const&, CharMask const&, CpptrajFile*, std::set<BondType>&) const;
     int PrepareSugars(AtomMask&, DataSet_Coords&, Frame const&, CpptrajFile*) const;
     int FindTerByBonds(Topology*, CharMask const&) const;
-    int SearchForDisulfides(double, std::string const&, std::string const&,
+    int SearchForDisulfides(double, std::string const&, std::string const&, bool,
                             DataSet_Coords&, Frame const&, CpptrajFile*) const;
 
     std::string leapunitname_;
