@@ -13,8 +13,9 @@
 void Exec_PrepareForLeap::Help() const
 {
   mprintf("\tcrdset <coords set> [frame <#>] [out <file>]\n"
-          "\t[cysmask <cysmask>] [disulfidecut <cut>] [newcysname <name>]\n"
-          "\t[{nosugars|sugarmask <sugarmask>}] [resmapfile <file>]\n"
+          "\t[{nodisulfide |\n"
+          "\t  [cysmask <cysmask>] [disulfidecut <cut>] [newcysname <name>]}]\n"
+          "\t[{nosugars | sugarmask <sugarmask>}] [resmapfile <file>]\n"
           "\t[leapunitname <unit>] [pdbout <pdbout>]\n"
           "\t[molmask <molmask> ...] [determinemolmask <mask>]\n"
           "  Prepare the structure in the given coords set for easier processing\n"
@@ -665,13 +666,17 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     outfile->Printf("%s = loadpdb %s\n", leapunitname_.c_str(), pdbout.c_str());
 
   // Disulfide search
-  if (SearchForDisulfides( argIn.getKeyDouble("disulfidecut", 2.5),
-                           argIn.GetStringKey("newcysname", "CYX"),
-                           argIn.GetStringKey("cysmask", ":CYS@SG"),
-                           coords, frameIn, outfile ))
-  {
-    mprinterr("Error: Disulfide search failed.\n");
-    return CpptrajState::ERR;
+  if (!argIn.hasKey("nodisulfide")) {
+    if (SearchForDisulfides( argIn.getKeyDouble("disulfidecut", 2.5),
+                             argIn.GetStringKey("newcysname", "CYX"),
+                             argIn.GetStringKey("cysmask", ":CYS@SG"),
+                             coords, frameIn, outfile ))
+    {
+      mprinterr("Error: Disulfide search failed.\n");
+      return CpptrajState::ERR;
+    }
+  } else {
+    mprintf("\tNot searching for disulfides.\n");
   }
 
   // Prepare sugars
