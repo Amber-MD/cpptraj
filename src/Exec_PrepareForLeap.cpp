@@ -282,10 +282,18 @@ const
   if (C6idx == -1) { mprintf("Warning: C6 index not found.\n"); return 1; }
   if (C5idx == -1) { mprintf("Warning: C5 index not found.\n"); return 1; }
   if (C1idx == -1) { mprintf("Warning: C1 index not found.\n"); return 1; }
-  if (Cxidx == -1) { mprintf("Warning: Cx index not found.\n"); return 1; }
   if (O5idx == -1) { mprintf("Warning: O5 index not found.\n"); return 1; }
   if (C4idx == -1) { mprintf("Warning: C4 index not found.\n"); return 1; }
   if (C2idx == -1) { mprintf("Warning: C2 index not found.\n"); return 1; }
+  // If the Cx (C1 substituent, usually a different residue) index is
+  // not found this usually means missing inter-residue bond.
+  if (Cxidx == -1) {
+    mprintf("Warning: Cx index not found.\n"
+            "Warning:   If '%s' is from a topology without complete bonding information\n"
+            "Warning:   (e.g. a PDB file), try loading the topology with the\n"
+            "Warning:   'searchtype grid' keywords instead.\n", topIn->c_str());
+    return 1;
+  }
   // Determine alpha/beta
   // Alpha - C1 and C5 substituents are on opposite sides.
   // Beta  - C1 and C5 substituents are on the same side.
