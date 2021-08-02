@@ -357,6 +357,44 @@ const
   return 0;
 }
 
+/** Prepare sugars for leap. */
+int Exec_PrepareForLeap::PrepareSugars(AtomMask& sugarMask, DataSet_Coords& coords,
+                                       Frame const& frameIn, CpptrajFile* outfile)
+const
+{
+  std::set<BondType> sugarBondsToRemove;
+  mprintf("\tPreparing sugars selected by '%s'\n", sugarMask.MaskString());
+  if (coords.Top().SetupIntegerMask( sugarMask )) return 1;
+  sugarMask.MaskInfo();
+  if (sugarMask.None())
+    mprintf("Warning: No sugar atoms selected by %s\n", sugarMask.MaskString());
+  else {
+    CharMask cmask( sugarMask.ConvertToCharMask(), sugarMask.Nselected() );
+    // Get sugar residue numbers
+    std::vector<int> sugarResNums = coords.Top().ResnumsSelectedBy( sugarMask );
+    // For each sugar residue, see if it is bonded to a non-sugar residue.
+    // If it is, remove that bond but record it.
+    for (std::vector<int>::const_iterator rnum = sugarResNums.begin();
+                                          rnum != sugarResNums.end(); ++rnum)
+    {
+      //Residue const& Res = coords.Top().Res(*rnum);
+      // See if we recognize this sugar.
+      if (IdentifySugar(*rnum, coords.TopPtr(), frameIn, cmask, outfile, sugarBondsToRemove))
+        return 1;
+    } // END loop over sugar residues
+    // Remove bonds between sugars
+    for (std::set<BondType>::const_iterator bnd = sugarBondsToRemove.begin();
+                                            bnd != sugarBondsToRemove.end(); ++bnd)
+    {
+      LeapBond(bnd->A1(), bnd->A2(), *(coords.TopPtr()), outfile);
+      coords.TopPtr()->RemoveBond(bnd->A1(), bnd->A2());
+    }
+  }
+  // Bonds to sugars have been removed, so regenerate molecule info
+  coords.TopPtr()->DetermineMolecules();
+  return 0;
+}
+
 /** Determine where molecules end based on connectivity. */
 int Exec_PrepareForLeap::FindTerByBonds(Topology* topIn, CharMask const& maskIn)
 const
@@ -638,36 +676,10 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 
   // Prepare sugars
   if (prepare_sugars) {
-    std::set<BondType> sugarBondsToRemove;
-    mprintf("\tPreparing sugars selected by '%s'\n", sugarMask.MaskString());
-    if (coords.Top().SetupIntegerMask( sugarMask )) return CpptrajState::ERR;
-    sugarMask.MaskInfo();
-    if (sugarMask.None())
-      mprintf("Warning: No sugar atoms selected by %s\n", sugarMask.MaskString());
-    else {
-      CharMask cmask( sugarMask.ConvertToCharMask(), sugarMask.Nselected() );
-      // Get sugar residue numbers
-      std::vector<int> sugarResNums = coords.Top().ResnumsSelectedBy( sugarMask );
-      // For each sugar residue, see if it is bonded to a non-sugar residue.
-      // If it is, remove that bond but record it.
-      for (std::vector<int>::const_iterator rnum = sugarResNums.begin();
-                                            rnum != sugarResNums.end(); ++rnum)
-      {
-        //Residue const& Res = coords.Top().Res(*rnum);
-        // See if we recognize this sugar.
-        if (IdentifySugar(*rnum, coords.TopPtr(), frameIn, cmask, outfile, sugarBondsToRemove))
-          return CpptrajState::ERR;
-      } // END loop over sugar residues
-      // Remove bonds between sugars
-      for (std::set<BondType>::const_iterator bnd = sugarBondsToRemove.begin();
-                                              bnd != sugarBondsToRemove.end(); ++bnd)
-      {
-        LeapBond(bnd->A1(), bnd->A2(), *(coords.TopPtr()), outfile);
-        coords.TopPtr()->RemoveBond(bnd->A1(), bnd->A2());
-      }
+    if (PrepareSugars(sugarMask, coords, frameIn, outfile)) {
+      mprinterr("Error: Sugar preparation failed.\n");
+      return CpptrajState::ERR;
     }
-    // Bonds to sugars have been removed, so regenerate molecule info
-    coords.TopPtr()->DetermineMolecules();
   }
 
   // Try to set terminal residues

@@ -3,6 +3,7 @@
 #include "Exec.h"
 #include <set>
 #include <map>
+class AtomMask;
 class CharMask;
 class CpptrajFile;
 class DataSet_Coords;
@@ -21,6 +22,7 @@ class Exec_PrepareForLeap : public Exec {
 
     void LeapBond(int,int,Topology const&, CpptrajFile*) const;
     int IdentifySugar(int, Topology*, Frame const&, CharMask const&, CpptrajFile*, std::set<BondType>&) const;
+    int PrepareSugars(AtomMask&, DataSet_Coords&, Frame const&, CpptrajFile*) const;
     int FindTerByBonds(Topology*, CharMask const&) const;
     int SearchForDisulfides(double, std::string const&, std::string const&,
                             DataSet_Coords&, Frame const&, CpptrajFile*) const;
