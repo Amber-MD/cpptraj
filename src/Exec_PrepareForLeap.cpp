@@ -14,7 +14,7 @@ void Exec_PrepareForLeap::Help() const
 {
   mprintf("\tcrdset <coords set> [frame <#>] [out <file>]\n"
           "\t[cysmask <cysmask>] [disulfidecut <cut>] [newcysname <name>]\n"
-          "\t[sugarmask <sugarmask>] [resmapfile <file>]\n"
+          "\t[{nosugars|sugarmask <sugarmask>}] [resmapfile <file>]\n"
           "\t[leapunitname <unit>] [pdbout <pdbout>]\n"
           "\t[molmask <molmask> ...] [determinemolmask <mask>]\n"
           "  Prepare the structure in the given coords set for easier processing\n"
@@ -551,14 +551,38 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   leapunitname_ = argIn.GetStringKey("leapunitname", "m");
   mprintf("\tUsing leap unit name: %s\n", leapunitname_.c_str());
 
+  bool prepare_sugars = !argIn.hasKey("nosugars");
+  if (!prepare_sugars)
+    mprintf("\tNot attempting to prepare sugars.\n");
+  else
+    mprintf("\tWill attempt to prepare sugars.\n");
+
   AtomMask sugarMask;
   std::string sugarmaskstr = argIn.GetStringKey("sugarmask");
   if (!sugarmaskstr.empty()) {
+    if (!prepare_sugars) {
+      mprinterr("Error: Cannot specify 'nosugars' and 'sugarmask'\n");
+      return CpptrajState::ERR;
+    }
+    if (sugarMask.SetMaskString(sugarmaskstr)) {
+      mprinterr("Error: Setting sugar mask string.\n");
+      return CpptrajState::ERR;
+    }
+  } else if (prepare_sugars) {
+    // No sugar mask specified; create one from names in pdb_to_glycam_ map.
+    sugarmaskstr.assign(":");
+    for (MapType::const_iterator mit = pdb_to_glycam_.begin(); mit != pdb_to_glycam_.end(); ++mit)
+    {
+      if (mit != pdb_to_glycam_.begin())
+        sugarmaskstr.append(",");
+      sugarmaskstr.append( mit->first.Truncated() );
+    }
     if (sugarMask.SetMaskString(sugarmaskstr)) {
       mprinterr("Error: Setting sugar mask string.\n");
       return CpptrajState::ERR;
     }
   }
+
   // Get masks for molecules now since topology may be modified later.
   std::vector<AtomMask> molMasks;
   std::string mstr = argIn.GetStringKey("molmask");
@@ -613,7 +637,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   // Prepare sugars
-  if (sugarMask.MaskStringSet()) {
+  if (prepare_sugars) {
     std::set<BondType> sugarBondsToRemove;
     mprintf("\tPreparing sugars selected by '%s'\n", sugarMask.MaskString());
     if (coords.Top().SetupIntegerMask( sugarMask )) return CpptrajState::ERR;
