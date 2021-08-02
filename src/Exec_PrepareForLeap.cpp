@@ -444,6 +444,30 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
   DataSet_Coords& coords = static_cast<DataSet_Coords&>( *((DataSet_Coords*)ds) );
+
+  // Check that coords has no issues
+  if (!coords.Top().AtomAltLoc().empty()) {
+    // Must have only 1 atom alternate location
+    char firstAltLoc = ' ';
+    for (std::vector<char>::const_iterator altLocId = coords.Top().AtomAltLoc().begin();
+                                           altLocId != coords.Top().AtomAltLoc().end();
+                                         ++altLocId)
+    {
+      if (firstAltLoc == ' ') {
+        // Find first non-blank alternate location ID
+        if (*altLocId != ' ')
+          firstAltLoc = *altLocId;
+      } else if (*altLocId != ' ' && *altLocId != firstAltLoc) {
+        mprinterr("Error: '%s' has atoms with multiple alternate location IDs, which\n"
+                  "Error:  are not supported by LEaP. Use the 'keepaltloc <char>'\n"
+                  "Error:  keyword for parm/trajin etc. to select which alternate\n"
+                  "Error:  atom locations to keep.\n", coords.legend());
+        return CpptrajState::ERR;
+      }
+    }
+    mprintf("\t'%s' only contains atoms from alternate location ID '%c'\n", coords.legend(), firstAltLoc);
+  }
+
   int tgtframe = argIn.getKeyInt("frame", 1) - 1;
   mprintf("\tUsing frame %i from COORDS set %s\n", tgtframe+1, coords.legend());
   if (tgtframe < 0 || tgtframe >= (int)coords.Size()) {
