@@ -5,6 +5,7 @@
 #include <map>
 class CharMask;
 class CpptrajFile;
+class DataSet_Coords;
 /// Do common tasks to prepare a structure to be loaded into tleap 
 class Exec_PrepareForLeap : public Exec {
   public:
@@ -21,6 +22,8 @@ class Exec_PrepareForLeap : public Exec {
     void LeapBond(int,int,Topology const&, CpptrajFile*) const;
     int IdentifySugar(int, Topology*, Frame const&, CharMask const&, CpptrajFile*, std::set<BondType>&) const;
     int FindTerByBonds(Topology*, CharMask const&) const;
+    int SearchForDisulfides(double, std::string const&, std::string const&,
+                            DataSet_Coords&, Frame const&, CpptrajFile*) const;
 
     std::string leapunitname_;
     typedef std::pair<NameType, char> PairType;

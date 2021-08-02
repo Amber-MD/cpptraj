@@ -430,6 +430,63 @@ const
   return 0;
 }
 
+/** Search for disulfide bonds. */
+int Exec_PrepareForLeap::SearchForDisulfides(double disulfidecut, std::string const& newcysnamestr,
+                                             std::string const& cysmaskstr,
+                                             DataSet_Coords& coords, Frame const& frameIn,
+                                             CpptrajFile* outfile)
+const
+{
+  // Disulfide search
+  NameType newcysname(newcysnamestr);
+  mprintf("\tCysteine residues involved in disulfide bonds will be changed to: %s\n", *newcysname);
+  mprintf("\tSearching for disulfide bonds with a cutoff of %g Ang.\n", disulfidecut);
+
+  AtomMask cysmask;
+  if (cysmask.SetMaskString( cysmaskstr )) {
+    mprinterr("Error: Could not set up CYS mask string %s\n", cysmaskstr.c_str());
+    return 1;
+  }
+  if (coords.Top().SetupIntegerMask( cysmask )) return 1; 
+  cysmask.MaskInfo();
+  if (cysmask.None())
+    mprintf("Warning: No cysteine sulfur atoms selected by %s\n", cysmaskstr.c_str());
+  else {
+    int nDisulfides = 0;
+    double cut2 = disulfidecut * disulfidecut;
+    // Try to find potential disulfide sites.
+    for (AtomMask::const_iterator at1 = cysmask.begin(); at1 != cysmask.end(); ++at1) {
+      for (AtomMask::const_iterator at2 = at1 + 1; at2 != cysmask.end(); ++at2) {
+        bool isBonded = false;
+        // Check if the bond already exists
+        if (coords.Top()[*at1].IsBondedTo(*at2)) {
+          mprintf("\tExisting disulfide: %s to %s\n",
+                  coords.Top().ResNameNumAtomNameNum(*at1).c_str(),
+                  coords.Top().ResNameNumAtomNameNum(*at2).c_str());
+          isBonded = true;
+        } else {
+          // TODO imaging?
+          double r2 = DIST2_NoImage(frameIn.XYZ(*at1), frameIn.XYZ(*at2));
+          if (r2 < cut2) {
+            mprintf("\t  Potential disulfide: %s to %s (%g Ang.)\n",
+                    coords.Top().ResNameNumAtomNameNum(*at1).c_str(),
+                    coords.Top().ResNameNumAtomNameNum(*at2).c_str(), sqrt(r2));
+            isBonded = true;
+          }
+        }
+        if (isBonded) {
+          nDisulfides++;
+          LeapBond(*at1, *at2, coords.Top(), outfile);
+          ChangeResName(coords.TopPtr()->SetRes(coords.Top()[*at1].ResNum()), newcysname);
+          ChangeResName(coords.TopPtr()->SetRes(coords.Top()[*at2].ResNum()), newcysname);
+        }
+      }
+    }
+    mprintf("\tDetected %i disulfide bonds.\n", nDisulfides);
+  }
+  return 0;
+}
+
 // Exec_PrepareForLeap::Execute()
 Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 {
@@ -546,53 +603,13 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     outfile->Printf("%s = loadpdb %s\n", leapunitname_.c_str(), pdbout.c_str());
 
   // Disulfide search
-  double disulfidecut = argIn.getKeyDouble("disulfidecut", 2.5);
-  std::string newcysnamestr = argIn.GetStringKey("newcysname", "CYX");
-  NameType newcysname(newcysnamestr);
-  mprintf("\tCysteine residues involved in disulfide bonds will be changed to: %s\n", *newcysname);
-  std::string cysmaskstr = argIn.GetStringKey("cysmask", ":CYS@SG");
-  mprintf("\tSearching for disulfide bonds with a cutoff of %g Ang.\n", disulfidecut);
-  AtomMask cysmask;
-  if (cysmask.SetMaskString( cysmaskstr )) {
-    mprinterr("Error: Could not set up CYS mask string %s\n", cysmaskstr.c_str());
+  if (SearchForDisulfides( argIn.getKeyDouble("disulfidecut", 2.5),
+                           argIn.GetStringKey("newcysname", "CYX"),
+                           argIn.GetStringKey("cysmask", ":CYS@SG"),
+                           coords, frameIn, outfile ))
+  {
+    mprinterr("Error: Disulfide search failed.\n");
     return CpptrajState::ERR;
-  }
-  if (coords.Top().SetupIntegerMask( cysmask )) return CpptrajState::ERR;
-  cysmask.MaskInfo();
-  if (cysmask.None())
-    mprintf("Warning: No cysteine sulfur atoms selected by %s\n", cysmaskstr.c_str());
-  else {
-    int nDisulfides = 0;
-    double cut2 = disulfidecut * disulfidecut;
-    // Try to find potential disulfide sites.
-    for (AtomMask::const_iterator at1 = cysmask.begin(); at1 != cysmask.end(); ++at1) {
-      for (AtomMask::const_iterator at2 = at1 + 1; at2 != cysmask.end(); ++at2) {
-        bool isBonded = false;
-        // Check if the bond already exists
-        if (coords.Top()[*at1].IsBondedTo(*at2)) {
-          mprintf("\tExisting disulfide: %s to %s\n",
-                  coords.Top().ResNameNumAtomNameNum(*at1).c_str(),
-                  coords.Top().ResNameNumAtomNameNum(*at2).c_str());
-          isBonded = true;
-        } else {
-          // TODO imaging?
-          double r2 = DIST2_NoImage(frameIn.XYZ(*at1), frameIn.XYZ(*at2));
-          if (r2 < cut2) {
-            mprintf("\t  Potential disulfide: %s to %s (%g Ang.)\n",
-                    coords.Top().ResNameNumAtomNameNum(*at1).c_str(),
-                    coords.Top().ResNameNumAtomNameNum(*at2).c_str(), sqrt(r2));
-            isBonded = true;
-          }
-        }
-        if (isBonded) {
-          nDisulfides++;
-          LeapBond(*at1, *at2, coords.Top(), outfile);
-          ChangeResName(coords.TopPtr()->SetRes(coords.Top()[*at1].ResNum()), newcysname);
-          ChangeResName(coords.TopPtr()->SetRes(coords.Top()[*at2].ResNum()), newcysname);
-        }
-      }
-    }
-    mprintf("\tDetected %i disulfide bonds.\n", nDisulfides);
   }
 
   // Prepare sugars
