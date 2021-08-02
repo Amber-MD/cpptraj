@@ -13,7 +13,7 @@
 void Exec_PrepareForLeap::Help() const
 {
   mprintf("\tcrdset <coords set> [frame <#>] [out <file>]\n"
-          "\t[{nodisulfide |\n"
+          "\t[{nodisulfides |\n"
           "\t  [cysmask <cysmask>] [disulfidecut <cut>] [newcysname <name>]}]\n"
           "\t[{nosugars | sugarmask <sugarmask>}] [resmapfile <file>]\n"
           "\t[leapunitname <unit>] [pdbout <pdbout>]\n"
@@ -666,7 +666,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     outfile->Printf("%s = loadpdb %s\n", leapunitname_.c_str(), pdbout.c_str());
 
   // Disulfide search
-  if (!argIn.hasKey("nodisulfide")) {
+  if (!argIn.hasKey("nodisulfides")) {
     if (SearchForDisulfides( argIn.getKeyDouble("disulfidecut", 2.5),
                              argIn.GetStringKey("newcysname", "CYX"),
                              argIn.GetStringKey("cysmask", ":CYS@SG"),
