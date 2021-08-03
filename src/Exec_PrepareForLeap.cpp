@@ -535,52 +535,54 @@ const
         if (disulfidePartner[idx] == -1)
           s_idxs.push_back( idx );
       mprintf("\t%zu sulfur atoms do not have a partner.\n", s_idxs.size());
-      // In some structures, there may be 2 potential disulfide partners
-      // within the cutoff. In that case, only choose the shortest.
-      // To try to do this as directly as possible, calculate all possible S-S
-      // distances, save the ones below the cutoff, sort them from shortest to
-      // longest, then assign each that to a disulfide if not already assigned.
-      // In this way, shorter S-S distances will be prioritized.
-      typedef std::pair<int,int> IdxPair;
-      typedef std::pair<double, IdxPair> D2Pair;
-      typedef std::vector<D2Pair> D2Array;
-      D2Array D2;
+      if (!s_idxs.empty()) {
+        // In some structures, there may be 2 potential disulfide partners
+        // within the cutoff. In that case, only choose the shortest.
+        // To try to do this as directly as possible, calculate all possible S-S
+        // distances, save the ones below the cutoff, sort them from shortest to
+        // longest, then assign each that to a disulfide if not already assigned.
+        // In this way, shorter S-S distances will be prioritized.
+        typedef std::pair<int,int> IdxPair;
+        typedef std::pair<double, IdxPair> D2Pair;
+        typedef std::vector<D2Pair> D2Array;
+        D2Array D2;
 
-      for (std::vector<int>::const_iterator it1 = s_idxs.begin(); it1 != s_idxs.end(); ++it1)
-      {
-        int at1 = cysmask[*it1];
-        for (std::vector<int>::const_iterator it2 = it1 + 1; it2 != s_idxs.end(); ++it2)
+        for (std::vector<int>::const_iterator it1 = s_idxs.begin(); it1 != s_idxs.end(); ++it1)
         {
-          int at2 = cysmask[*it2];
-          double r2 = DIST2_NoImage(frameIn.XYZ(at1), frameIn.XYZ(at2));
-          if (r2 < cut2)
-            D2.push_back( D2Pair(r2, IdxPair(*it1, *it2)) );
+          int at1 = cysmask[*it1];
+          for (std::vector<int>::const_iterator it2 = it1 + 1; it2 != s_idxs.end(); ++it2)
+          {
+            int at2 = cysmask[*it2];
+            double r2 = DIST2_NoImage(frameIn.XYZ(at1), frameIn.XYZ(at2));
+            if (r2 < cut2)
+              D2.push_back( D2Pair(r2, IdxPair(*it1, *it2)) );
+          }
         }
-      }
-      std::sort(D2.begin(), D2.end());
-      mprintf("DEBUG: Sorted S-S array:\n");
-      for (D2Array::const_iterator it = D2.begin(); it != D2.end(); ++it)
-      {
-        int at1 = cysmask[it->second.first];
-        int at2 = cysmask[it->second.second];
-        mprintf("  %8i - %8i = %g Ang.\n", at1+1, at2+2, sqrt(it->first));
-      }
-      // All distances in D2 are below the cutoff
-      for (D2Array::const_iterator it = D2.begin(); it != D2.end(); ++it)
-      {
-        if (disulfidePartner[it->second.first] == -1 &&
-            disulfidePartner[it->second.second] == -1)
+        std::sort(D2.begin(), D2.end());
+        mprintf("DEBUG: Sorted S-S array:\n");
+        for (D2Array::const_iterator it = D2.begin(); it != D2.end(); ++it)
         {
-          // Neither index has a partner yet
           int at1 = cysmask[it->second.first];
           int at2 = cysmask[it->second.second];
-          mprintf("\t  Potential disulfide: %s to %s (%g Ang.)\n",
-                  coords.Top().ResNameNumAtomNameNum(at1).c_str(),
-                  coords.Top().ResNameNumAtomNameNum(at2).c_str(), sqrt(it->first));
-          disulfidePartner[it->second.first ] = it->second.second;
-          disulfidePartner[it->second.second] = it->second.first;
+          mprintf("  %8i - %8i = %g Ang.\n", at1+1, at2+2, sqrt(it->first));
         }
-      } // END loop over sorted distances
+        // All distances in D2 are below the cutoff
+        for (D2Array::const_iterator it = D2.begin(); it != D2.end(); ++it)
+        {
+          if (disulfidePartner[it->second.first] == -1 &&
+              disulfidePartner[it->second.second] == -1)
+          {
+            // Neither index has a partner yet
+            int at1 = cysmask[it->second.first];
+            int at2 = cysmask[it->second.second];
+            mprintf("\t  Potential disulfide: %s to %s (%g Ang.)\n",
+                    coords.Top().ResNameNumAtomNameNum(at1).c_str(),
+                    coords.Top().ResNameNumAtomNameNum(at2).c_str(), sqrt(it->first));
+            disulfidePartner[it->second.first ] = it->second.second;
+            disulfidePartner[it->second.second] = it->second.first;
+          }
+        } // END loop over sorted distances
+      } // END s_idxs not empty()
     } // END search for new disulfides
     // For each sulfur that has a disulfide partner, generate a bond command
     // and change residue name.
