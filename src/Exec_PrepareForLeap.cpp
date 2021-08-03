@@ -157,6 +157,28 @@ int Exec_PrepareForLeap::LoadGlycamPdbResMap(std::string const& fnameIn)
   return 0;
 }
 
+/// Recursive function for following bonds of an atom to a target atom
+static void FollowBonds(int atm, Topology const& topIn, int idx, std::vector<int>& ring_atoms, int tgt_atom, std::vector<bool>& Visited, bool& found)
+{
+  Visited[atm] = true;
+  for (int i = 0; i != idx; i++)
+    mprintf("\t");
+  mprintf("At atom %s\n", topIn.ResNameNumAtomNameNum(atm).c_str());
+  ring_atoms[idx] = atm;
+  if (atm == tgt_atom) {
+    found = true;
+    return;
+  }
+  // Follow all atoms bonded to this atom
+  for (Atom::bond_iterator bat = topIn[atm].bondbegin(); bat != topIn[atm].bondend(); ++bat)
+  {
+    if (!Visited[*bat]) {
+      FollowBonds( *bat, topIn, idx+1, ring_atoms, tgt_atom, Visited, found );
+      if (found) return;
+    }
+  }
+}
+
 /** Attempt to identify sugar residue, form, and linkages. */
 int Exec_PrepareForLeap::IdentifySugar(int rnum, Topology* topIn,
                                        Frame const& frameIn, CharMask const& cmask,
@@ -175,6 +197,94 @@ const
   resChar = pdb_glycam->second;
 
   mprintf("\tSugar %s %i glycam name: %c\n", *res.Name(), rnum+1, resChar);
+
+  // Change PDB names to Glycam ones
+  // TODO need to check glycam residue char?
+  for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
+  {
+    if ( (*topIn)[at].Name() == "C7" )
+      ChangeAtomName(topIn->SetAtom(at), "C2N");
+    else if ( (*topIn)[at].Name() == "O7" )
+      ChangeAtomName(topIn->SetAtom(at), "O2N");
+    else if ( (*topIn)[at].Name() == "C8" )
+      ChangeAtomName(topIn->SetAtom(at), "CME");
+  }
+
+  // Try to identify the ring oxygen. Should be bonded to 2 carbons
+  // in the same residue.
+  int ring_oxygen_atom = -1; // e.g. O5
+  int ring_o_sub0      = -1; // e.g. C1
+  int ring_o_sub0_C    = -1; // e.g. C2, from sub0 to same residue
+  int ring_o_sub0_X    = -1; // from sub0 to another residue
+  int ring_o_sub1      = -1; // e.g. C5
+  int ring_o_sub1_C    = -1; // e.g. C6, from sub1 to same residue
+  for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
+  {
+    Atom const& currentAtom = (*topIn)[at];
+    if (currentAtom.Element() == Atom::OXYGEN)
+    {
+      if (currentAtom.Nbonds() == 2) {
+        if ( (*topIn)[currentAtom.Bond(0)].Element() == Atom::CARBON &&
+             (*topIn)[currentAtom.Bond(0)].ResNum() == rnum &&
+             (*topIn)[currentAtom.Bond(1)].Element() == Atom::CARBON &&
+             (*topIn)[currentAtom.Bond(1)].ResNum() == rnum )
+        {
+          if (ring_oxygen_atom != -1) {
+            mprinterr("Error: Two potential ring oxygen atoms: %i and %i\n",
+                      at+1, ring_oxygen_atom+1);
+            return 1;
+          }
+          ring_oxygen_atom = at;
+          if (currentAtom.Bond(0) < currentAtom.Bond(1)) {
+            ring_o_sub0 = currentAtom.Bond(0);
+            ring_o_sub1 = currentAtom.Bond(1);
+          } else {
+            ring_o_sub0 = currentAtom.Bond(1);
+            ring_o_sub1 = currentAtom.Bond(0);
+          }
+        }
+      }
+    }
+  }
+  mprintf("\t  Ring oxygen atom: %s-%s-%s\n",
+          topIn->ResNameNumAtomNameNum(ring_o_sub0).c_str(),
+          topIn->ResNameNumAtomNameNum(ring_oxygen_atom).c_str(),
+          topIn->ResNameNumAtomNameNum(ring_o_sub1).c_str());
+
+  // Try to identify the ring atoms. Start from ring_o_sub0, get to ring_o_sub1
+  std::vector<bool> Visited( topIn->Natom(), true );
+  for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
+    if (at != ring_oxygen_atom)
+      Visited[at] = false;
+  std::vector<int> ring_atoms( topIn->Res(rnum).NumAtoms(), -1 );
+  bool ring_complete = false;
+  FollowBonds( ring_o_sub0, *topIn, 0, ring_atoms, ring_o_sub1, Visited, ring_complete );
+  mprintf("DEBUG: Ring %i:", (int)ring_complete);
+  for (std::vector<int>::const_iterator it = ring_atoms.begin(); it != ring_atoms.end(); ++it)
+  {
+    mprintf(" %i", *it + 1);
+    if (*it == -1) break;
+  }
+
+  // Get the substituent of sub0 (e.g. C1) that is part of the ring (e.g. C2)
+  for ( Atom::bond_iterator bat = (*topIn)[ring_o_sub0].bondbegin();
+                            bat != (*topIn)[ring_o_sub0].bondend();
+                          ++bat )
+  {
+    if ( (*topIn)[*bat].Element() == Atom::CARBON &&
+         (*topIn)[*bat].ResNum() == rnum )
+    {
+      if (ring_o_sub0_C != -1) {
+        mprinterr("Error: Two potential ring carbons bonded to O-C1 substituent atom: %i and %i\n",
+                  *bat + 1, ring_o_sub0_C + 1);
+        return 1;
+      }
+      ring_o_sub0_C = *bat;
+    }
+  }
+  mprintf("\t  C1 C substituent: %s\n",
+          topIn->ResNameNumAtomNameNum(ring_o_sub0_C).c_str());
+
   // Try to identify the form
   /* The alpha form has the CH2OH substituent (C5-C6 etc in Glycam) on the 
    * opposite side of the OH on the anomeric carbon (C1 in Glycam), while
@@ -197,13 +307,6 @@ const
   //AtomMask sugarCycle;
   for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
   {
-    // Rename some common atoms TODO need to check glycam residue char?
-    if ( (*topIn)[at].Name() == "C7" )
-      ChangeAtomName(topIn->SetAtom(at), "C2N");
-    else if ( (*topIn)[at].Name() == "O7" )
-      ChangeAtomName(topIn->SetAtom(at), "O2N");
-    else if ( (*topIn)[at].Name() == "C8" )
-      ChangeAtomName(topIn->SetAtom(at), "CME");
     // Identify atoms for torsion
     if ( (*topIn)[at].Name() == "C6" )
       C6idx = at;
@@ -290,12 +393,17 @@ const
   if (C2idx == -1) { mprintf("Warning: C2 index not found.\n"); return 1; }
   // If the Cx (C1 substituent, usually a different residue) index is
   // not found this usually means missing inter-residue bond.
+  // Alternatively, this could be an isolated sugar missing an -OH
+  // group, so make this non-fatal.
   if (Cxidx == -1) {
     mprintf("Warning: Cx index not found.\n"
             "Warning:   If '%s' is from a topology without complete bonding information\n"
             "Warning:   (e.g. a PDB file), try loading the topology with the\n"
             "Warning:   'searchtype grid' keywords instead.\n", topIn->c_str());
-    return 1;
+    mprintf("Warning: This can also happen for isolated sugars missing e.g. a -OH\n"
+            "Warning:   group. In that case coordinates for the missing sugar\n"
+            "Warning:   may need to be generated.\n");
+    return 0;
   }
   // Determine alpha/beta
   // Alpha - C1 and C5 substituents are on opposite sides.
