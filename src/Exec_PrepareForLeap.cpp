@@ -215,7 +215,7 @@ const
   int ring_oxygen_atom = -1; // e.g. O5
   int ring_o_sub0      = -1; // e.g. C1
   int ring_o_sub0_C    = -1; // e.g. C2, from sub0 to same residue
-  int ring_o_sub0_X    = -1; // from sub0 to another residue
+  int ring_o_sub0_X    = -1; // from sub0 to non ring atom, non hydrogen 
   int ring_o_sub1      = -1; // e.g. C5
   int ring_o_sub1_C    = -1; // e.g. C6, from sub1 to same residue
   for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
@@ -260,11 +260,35 @@ const
   bool ring_complete = false;
   FollowBonds( ring_o_sub0, *topIn, 0, ring_atoms, ring_o_sub1, Visited, ring_complete );
   mprintf("DEBUG: Ring %i:", (int)ring_complete);
+  // Use Visited as a mask with ring atoms
+  Visited.assign( topIn->Natom(), false );
+  Visited[ring_oxygen_atom] = true;
   for (std::vector<int>::const_iterator it = ring_atoms.begin(); it != ring_atoms.end(); ++it)
   {
     mprintf(" %i", *it + 1);
     if (*it == -1) break;
+    Visited[*it] = true;
   }
+  mprintf("\n");
+
+  // Get the substituent of sub1 (e.g. C1) that is to a non-ring atom, non hydrogen 
+  for ( Atom::bond_iterator bat = (*topIn)[ring_o_sub0].bondbegin();
+                            bat != (*topIn)[ring_o_sub0].bondend();
+                          ++bat )
+  {
+    if ( (*topIn)[*bat].Element() != Atom::HYDROGEN &&
+         !Visited[*bat] )
+    {
+      if (ring_o_sub0_X != -1) {
+        mprinterr("Error: Two potential substituents for O-C1 substituent atom: %i and %i\n",
+                  *bat + 1, ring_o_sub0_X + 1);
+        return 1;
+      }
+      ring_o_sub0_X = *bat;
+    }
+  }
+  mprintf("\t  C1 X substituent: %s\n",
+          topIn->ResNameNumAtomNameNum(ring_o_sub0_X).c_str());
 
   // Get the substituent of sub0 (e.g. C1) that is part of the ring (e.g. C2)
   for ( Atom::bond_iterator bat = (*topIn)[ring_o_sub0].bondbegin();
@@ -272,7 +296,8 @@ const
                           ++bat )
   {
     if ( (*topIn)[*bat].Element() == Atom::CARBON &&
-         (*topIn)[*bat].ResNum() == rnum )
+         (*topIn)[*bat].ResNum() == rnum &&
+         Visited[*bat] )
     {
       if (ring_o_sub0_C != -1) {
         mprinterr("Error: Two potential ring carbons bonded to O-C1 substituent atom: %i and %i\n",
@@ -284,6 +309,8 @@ const
   }
   mprintf("\t  C1 C substituent: %s\n",
           topIn->ResNameNumAtomNameNum(ring_o_sub0_C).c_str());
+
+  
 
   // Try to identify the form
   /* The alpha form has the CH2OH substituent (C5-C6 etc in Glycam) on the 
