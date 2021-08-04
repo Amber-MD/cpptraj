@@ -213,7 +213,7 @@ const
   // Try to identify the ring oxygen. Should be bonded to 2 carbons
   // in the same residue.
   int ring_oxygen_atom = -1; // e.g. O5
-  int ring_o_sub0      = -1; // e.g. C1
+  int ring_c_beg       = -1; // e.g. C1, "lowest" ring C, anomeric carbon
   int ring_o_sub0_C    = -1; // e.g. C2, from sub0 to same residue
   int ring_o_sub0_X    = -1; // from sub0 to non ring atom, non hydrogen 
   int ring_o_sub1      = -1; // e.g. C5
@@ -236,29 +236,29 @@ const
           }
           ring_oxygen_atom = at;
           if (currentAtom.Bond(0) < currentAtom.Bond(1)) {
-            ring_o_sub0 = currentAtom.Bond(0);
+            ring_c_beg = currentAtom.Bond(0);
             ring_o_sub1 = currentAtom.Bond(1);
           } else {
-            ring_o_sub0 = currentAtom.Bond(1);
+            ring_c_beg = currentAtom.Bond(1);
             ring_o_sub1 = currentAtom.Bond(0);
           }
         }
       }
     }
   }
-  mprintf("\t  Ring oxygen atom: %s-%s-%s\n",
-          topIn->ResNameNumAtomNameNum(ring_o_sub0).c_str(),
+  mprintf("\t  Ring Cbeg-O-Cend atoms: %s-%s-%s\n",
+          topIn->ResNameNumAtomNameNum(ring_c_beg).c_str(),
           topIn->ResNameNumAtomNameNum(ring_oxygen_atom).c_str(),
           topIn->ResNameNumAtomNameNum(ring_o_sub1).c_str());
 
-  // Try to identify the ring atoms. Start from ring_o_sub0, get to ring_o_sub1
+  // Try to identify the ring atoms. Start from ring_c_beg, get to ring_o_sub1
   std::vector<bool> Visited( topIn->Natom(), true );
   for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
     if (at != ring_oxygen_atom)
       Visited[at] = false;
   std::vector<int> ring_atoms( topIn->Res(rnum).NumAtoms(), -1 );
   bool ring_complete = false;
-  FollowBonds( ring_o_sub0, *topIn, 0, ring_atoms, ring_o_sub1, Visited, ring_complete );
+  FollowBonds( ring_c_beg, *topIn, 0, ring_atoms, ring_o_sub1, Visited, ring_complete );
   mprintf("DEBUG: Ring %i:", (int)ring_complete);
   // Use Visited as a mask with ring atoms
   Visited.assign( topIn->Natom(), false );
@@ -278,9 +278,9 @@ const
     return 1;
   }
 
-  // Get the substituent of sub1 (e.g. C1) that is to a non-ring atom, non hydrogen 
-  for ( Atom::bond_iterator bat = (*topIn)[ring_o_sub0].bondbegin();
-                            bat != (*topIn)[ring_o_sub0].bondend();
+  // Get the substituent of first ring C (e.g. C1) that is to a non-ring atom, non hydrogen 
+  for ( Atom::bond_iterator bat = (*topIn)[ring_c_beg].bondbegin();
+                            bat != (*topIn)[ring_c_beg].bondend();
                           ++bat )
   {
     if ( (*topIn)[*bat].Element() != Atom::HYDROGEN &&
@@ -298,9 +298,9 @@ const
   mprintf("\t  C1 X substituent: %s\n",
           topIn->ResNameNumAtomNameNum(ring_o_sub0_X).c_str());
 
-  // Get the substituent of sub0 (e.g. C1) that is part of the ring (e.g. C2)
-  for ( Atom::bond_iterator bat = (*topIn)[ring_o_sub0].bondbegin();
-                            bat != (*topIn)[ring_o_sub0].bondend();
+  // Get the substituent of first ring C (e.g. C1) that is part of the ring (e.g. C2)
+  for ( Atom::bond_iterator bat = (*topIn)[ring_c_beg].bondbegin();
+                            bat != (*topIn)[ring_c_beg].bondend();
                           ++bat )
   {
     if ( (*topIn)[*bat].Element() == Atom::CARBON &&
