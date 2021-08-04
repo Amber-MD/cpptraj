@@ -287,7 +287,7 @@ const
          !Visited[*bat] )
     {
       if (ring_o_sub0_X != -1) {
-        mprinterr("Error: Two potential substituents for O-C1 substituent atom: %s and %s\n",
+        mprinterr("Error: Two potential substituents for anomeric carbon: %s and %s\n",
                   topIn->ResNameNumAtomNameNum(*bat).c_str(),
                   topIn->ResNameNumAtomNameNum(ring_o_sub0_X).c_str());
         return 1;
@@ -308,8 +308,9 @@ const
          Visited[*bat] )
     {
       if (ring_o_sub0_C != -1) {
-        mprinterr("Error: Two potential ring carbons bonded to O-C1 substituent atom: %i and %i\n",
-                  *bat + 1, ring_o_sub0_C + 1);
+        mprinterr("Error: Two potential ring carbons bonded to anomeric carbon: %s and %s\n",
+                  topIn->ResNameNumAtomNameNum(*bat).c_str(),
+                  topIn->ResNameNumAtomNameNum(ring_o_sub0_C).c_str());
         return 1;
       }
       ring_o_sub0_C = *bat;
