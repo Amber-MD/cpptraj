@@ -214,8 +214,8 @@ const
   // in the same residue.
   int ring_oxygen_atom = -1; // e.g. O5
   int ring_c_beg       = -1; // e.g. C1, "lowest" ring C, anomeric carbon
-  int ring_o_sub0_C    = -1; // e.g. C2, from sub0 to same residue
-  int ring_o_sub0_X    = -1; // from sub0 to non ring atom, non hydrogen 
+  int ring_c_beg_C     = -1; // e.g. C2, next C in ring bonded to anomeric carbon
+  int ring_c_beg_X     = -1; // from anomeric C to non ring atom, non hydrogen 
   int ring_c_end       = -1; // e.g. C5, "highest" ring C, a chiral center
   int ring_o_sub1_C    = -1; // e.g. C6, from sub1 to same residue
   for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
@@ -286,25 +286,25 @@ const
     if ( (*topIn)[*bat].Element() != Atom::HYDROGEN &&
          !Visited[*bat] )
     {
-      if (ring_o_sub0_X != -1) {
+      if (ring_c_beg_X != -1) {
         // If there are two non-ring, non-hydrogen substituents, prioritize
         // the one that is part of this residue.
         bool bat_in_res = ((*topIn)[*bat].ResNum() == rnum);
-        bool X_in_res   = ((*topIn)[ring_o_sub0_X].ResNum() == rnum);
+        bool X_in_res   = ((*topIn)[ring_c_beg_X].ResNum() == rnum);
         if ( (bat_in_res && X_in_res) || (!bat_in_res && !X_in_res) ) {
           mprinterr("Error: Two potential substituents for anomeric carbon: %s and %s\n",
                     topIn->ResNameNumAtomNameNum(*bat).c_str(),
-                    topIn->ResNameNumAtomNameNum(ring_o_sub0_X).c_str());
+                    topIn->ResNameNumAtomNameNum(ring_c_beg_X).c_str());
           return 1;
         } else if (bat_in_res) {
-          ring_o_sub0_X = *bat;
+          ring_c_beg_X = *bat;
         }
       } else
-        ring_o_sub0_X = *bat;
+        ring_c_beg_X = *bat;
     }
   }
   mprintf("\t  C1 X substituent: %s\n",
-          topIn->ResNameNumAtomNameNum(ring_o_sub0_X).c_str());
+          topIn->ResNameNumAtomNameNum(ring_c_beg_X).c_str());
 
   // Get the substituent of first ring C (e.g. C1) that is part of the ring (e.g. C2)
   for ( Atom::bond_iterator bat = (*topIn)[ring_c_beg].bondbegin();
@@ -315,17 +315,17 @@ const
          (*topIn)[*bat].ResNum() == rnum &&
          Visited[*bat] )
     {
-      if (ring_o_sub0_C != -1) {
+      if (ring_c_beg_C != -1) {
         mprinterr("Error: Two potential ring carbons bonded to anomeric carbon: %s and %s\n",
                   topIn->ResNameNumAtomNameNum(*bat).c_str(),
-                  topIn->ResNameNumAtomNameNum(ring_o_sub0_C).c_str());
+                  topIn->ResNameNumAtomNameNum(ring_c_beg_C).c_str());
         return 1;
       }
-      ring_o_sub0_C = *bat;
+      ring_c_beg_C = *bat;
     }
   }
   mprintf("\t  C1 C substituent: %s\n",
-          topIn->ResNameNumAtomNameNum(ring_o_sub0_C).c_str());
+          topIn->ResNameNumAtomNameNum(ring_c_beg_C).c_str());
 
   
 
