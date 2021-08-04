@@ -247,6 +247,18 @@ const
       }
     }
   }
+  if (ring_oxygen_atom == -1) {
+    mprinterr("Error: Ring oxygen atom could not be identified.\n");
+    return 1;
+  }
+  if (ring_c_beg == -1) {
+    mprinterr("Error: Lowest ring C could not be identified.\n");
+    return 1;
+  }
+  if (ring_c_end == -1) {
+    mprinterr("Error: Highest ring C could not be identified.\n");
+    return 1;
+  }
   mprintf("\t  Ring Cbeg-O-Cend atoms: %s-%s-%s\n",
           topIn->ResNameNumAtomNameNum(ring_c_beg).c_str(),
           topIn->ResNameNumAtomNameNum(ring_oxygen_atom).c_str(),
@@ -304,6 +316,10 @@ const
         ring_c_beg_X = *bat;
     }
   }
+  if (ring_c_beg_X == -1) {
+    mprinterr("Error: Ring C1 substituent could not be identified.\n");
+    return 1;
+  }
   mprintf("\t  C1 X substituent: %s\n",
           topIn->ResNameNumAtomNameNum(ring_c_beg_X).c_str());
 
@@ -325,6 +341,10 @@ const
       ring_c_beg_C = *bat;
     }
   }
+  if (ring_c_beg_C == -1) {
+    mprinterr("Error: Next ring atom after C1 could not be identified.\n");
+    return 1;
+  }
   mprintf("\t  C1 C ring substituent: %s\n",
           topIn->ResNameNumAtomNameNum(ring_c_beg_C).c_str());
 
@@ -344,6 +364,10 @@ const
       }
       ring_c_end_X = *bat;
     }
+  }
+  if (ring_c_end_X == -1) {
+    mprinterr("Error: Highest ring C substituent could not be identified.\n");
+    return 1;
   }
   mprintf("\t  C5 non-ring substituent: %s\n",
           topIn->ResNameNumAtomNameNum(ring_c_end_X).c_str());
