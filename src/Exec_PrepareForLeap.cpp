@@ -421,8 +421,8 @@ const
                          frameIn.XYZ(ring_oxygen_atom), frameIn.XYZ(ring_c_end_X) );
   double t_c1 = Torsion( frameIn.XYZ(ring_oxygen_atom), frameIn.XYZ(ring_c_beg),
                          frameIn.XYZ(ring_c_beg_C),     frameIn.XYZ(ring_c_beg_X) );
-  mprintf("\t  A/B torsion of C5 substituent= %f deg\n", t_c5 * Constants::RADDEG);
-  mprintf("\t  A/B torsion of C1 substituent= %f deg\n", t_c1 * Constants::RADDEG);
+  mprintf("\t  A/B torsion around C5 = %f deg\n", t_c5 * Constants::RADDEG);
+  mprintf("\t  A/B torsion around C1 = %f deg\n", t_c1 * Constants::RADDEG);
   bool c5up = (t_c5 > 0);
   bool c1up = (t_c1 > 0);
   if (c1up == c5up) {
@@ -432,6 +432,19 @@ const
     mprintf("\t  Alpha form\n");
     formStr = "A";
   }
+  // Determine D/L
+  // Check the chirality around the C5 atom.
+  bool isDform = true;
+  double torsion = Torsion( frameIn.XYZ(ring_c_end_C), frameIn.XYZ(ring_c_end),
+                            frameIn.XYZ(ring_c_end_X), frameIn.XYZ(ring_oxygen_atom) );
+  mprintf("\t  D/L Torsion around C5= %f deg\n", torsion * Constants::RADDEG);
+  if (torsion > 0) {
+    mprintf("\t  D form\n");
+  } else {
+    mprintf("\t  L form\n");
+    isDform = false;
+  }
+
 
  
   int C6idx = -1;
@@ -568,6 +581,8 @@ const
     formStr = "A";
   }
 */
+
+/*
   // Determine D/L
   // Check the chirality around the C5 atom.
   bool isDform = true;
@@ -584,6 +599,7 @@ const
     mprintf("\t  L form\n");
     isDform = false;
   }
+*/
   // Determine linkage
   mprintf("\t  Link atoms:");
   for (std::set<NameType>::const_iterator it = linkages.begin();
