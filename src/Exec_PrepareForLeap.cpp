@@ -218,6 +218,7 @@ const
   int ring_c_beg_C     = -1; // e.g. C2, next C in ring bonded to anomeric carbon
   int ring_c_beg_X     = -1; // from anomeric C to non ring atom, non hydrogen 
   int ring_c_end       = -1; // e.g. C5, "highest" ring C, a chiral center
+  int ring_c_end_C     = -1; // e.g. C4, from c_end to previous C in ring
   int ring_c_end_X     = -1; // e.g. C6, from c_end to non ring atom in same residue
   for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
   {
@@ -292,6 +293,7 @@ const
   }
 
   // Get the substituent of first ring C (e.g. C1) that is to a non-ring atom, non hydrogen 
+  // Get the substituent of first ring C (e.g. C1) that is part of the ring (e.g. C2)
   for ( Atom::bond_iterator bat = (*topIn)[ring_c_beg].bondbegin();
                             bat != (*topIn)[ring_c_beg].bondend();
                           ++bat )
@@ -314,17 +316,37 @@ const
         }
       } else
         ring_c_beg_X = *bat;
+    } else if ( (*topIn)[*bat].Element() == Atom::CARBON &&
+                Visited[*bat] )
+    {
+      if (ring_c_beg_C != -1) {
+        mprinterr("Error: Two potential ring carbons bonded to anomeric carbon: %s and %s\n",
+                  topIn->ResNameNumAtomNameNum(*bat).c_str(),
+                  topIn->ResNameNumAtomNameNum(ring_c_beg_C).c_str());
+        return 1;
+      }
+      ring_c_beg_C = *bat;
     }
   }
   if (ring_c_beg_X == -1) {
-    mprinterr("Error: Ring C1 substituent could not be identified.\n");
-    return 1;
+    // If the Cx (C1 substituent, usually a different residue) index is
+    // not found this usually means missing inter-residue bond.
+    // Alternatively, this could be an isolated sugar missing an -OH
+    // group, so make this non-fatal.
+    mprintf("Warning: Ring C1 substituent could not be identified.\n"
+            "Warning:   If '%s' is from a topology without complete bonding information\n"
+            "Warning:   (e.g. a PDB file), try loading the topology with the\n"
+            "Warning:   'searchtype grid' keywords instead.\n", topIn->c_str());
+    mprintf("Warning: This can also happen for isolated sugars missing e.g. a -OH\n"
+            "Warning:   group. In that case coordinates for the missing sugar atoms\n"
+            "Warning:   may need to be generated.\n");
+    return 0;
   }
   mprintf("\t  C1 X substituent: %s\n",
           topIn->ResNameNumAtomNameNum(ring_c_beg_X).c_str());
 
   // Get the substituent of first ring C (e.g. C1) that is part of the ring (e.g. C2)
-  for ( Atom::bond_iterator bat = (*topIn)[ring_c_beg].bondbegin();
+/*  for ( Atom::bond_iterator bat = (*topIn)[ring_c_beg].bondbegin();
                             bat != (*topIn)[ring_c_beg].bondend();
                           ++bat )
   {
@@ -340,7 +362,7 @@ const
       }
       ring_c_beg_C = *bat;
     }
-  }
+  }*/
   if (ring_c_beg_C == -1) {
     mprinterr("Error: Next ring atom after C1 could not be identified.\n");
     return 1;
@@ -349,6 +371,7 @@ const
           topIn->ResNameNumAtomNameNum(ring_c_beg_C).c_str());
 
   // Get substituent of last ring C (e.g. C5) that is not part of the ring (e.g. C6)
+  // Get substituent of last ring C (e.g. C5) that is part of the ring (e.g. C4)
   for ( Atom::bond_iterator bat = (*topIn)[ring_c_end].bondbegin();
                             bat != (*topIn)[ring_c_end].bondend();
                           ++bat )
@@ -363,6 +386,16 @@ const
         return 1;
       }
       ring_c_end_X = *bat;
+    } else if ( (*topIn)[*bat].Element() == Atom::CARBON &&
+      Visited[*bat] )
+    {
+      if (ring_c_end_C != -1) {
+        mprinterr("Error: Two potential ring atoms bonded to ring end C: %s and %s\n",
+                  topIn->ResNameNumAtomNameNum(*bat).c_str(),
+                  topIn->ResNameNumAtomNameNum(ring_c_end_C).c_str());
+        return 1;
+      }
+      ring_c_end_C = *bat;
     }
   }
   if (ring_c_end_X == -1) {
@@ -371,13 +404,36 @@ const
   }
   mprintf("\t  C5 non-ring substituent: %s\n",
           topIn->ResNameNumAtomNameNum(ring_c_end_X).c_str());
+  if (ring_c_end_C == -1) {
+    mprinterr("Error: Highest ring C previous ring atom could not be identified.\n");
+    return 1;
+  }
 
-  // Try to identify the form
-  /* The alpha form has the CH2OH substituent (C5-C6 etc in Glycam) on the 
-   * opposite side of the OH on the anomeric carbon (C1 in Glycam), while
-   * in the beta form it is on the same side.
-   */ 
-  std::string formStr; 
+  // Try to identify alpha/beta.
+  // The alpha form has the CH2OH substituent (C5-C6 etc in Glycam) on the 
+  // opposite side of the OH on the anomeric carbon (C1 in Glycam), while
+  // in the beta form it is on the same side, i.e.
+  // Alpha - C1 and C5 substituents are on opposite sides.
+  // Beta  - C1 and C5 substituents are on the same side.
+  std::string formStr;
+  // Determine alpha/beta
+  double t_c5 = Torsion( frameIn.XYZ(ring_c_end_C),     frameIn.XYZ(ring_c_end),
+                         frameIn.XYZ(ring_oxygen_atom), frameIn.XYZ(ring_c_end_X) );
+  double t_c1 = Torsion( frameIn.XYZ(ring_oxygen_atom), frameIn.XYZ(ring_c_beg),
+                         frameIn.XYZ(ring_c_beg_C),     frameIn.XYZ(ring_c_beg_X) );
+  mprintf("\t  A/B torsion of C5 substituent= %f deg\n", t_c5 * Constants::RADDEG);
+  mprintf("\t  A/B torsion of C1 substituent= %f deg\n", t_c1 * Constants::RADDEG);
+  bool c5up = (t_c5 > 0);
+  bool c1up = (t_c1 > 0);
+  if (c1up == c5up) {
+    mprintf("\t  Beta form\n");
+    formStr = "B";
+  } else {
+    mprintf("\t  Alpha form\n");
+    formStr = "A";
+  }
+
+ 
   int C6idx = -1;
   int C5idx = -1;
   int C1idx = -1;
@@ -492,6 +548,7 @@ const
             "Warning:   may need to be generated.\n");
     return 0;
   }
+/*
   // Determine alpha/beta
   // Alpha - C1 and C5 substituents are on opposite sides.
   // Beta  - C1 and C5 substituents are on the same side.
@@ -510,6 +567,7 @@ const
     mprintf("\t  Alpha form\n");
     formStr = "A";
   }
+*/
   // Determine D/L
   // Check the chirality around the C5 atom.
   bool isDform = true;
