@@ -206,6 +206,13 @@ const
         ChangeAtomName(topIn->SetAtom(at), "O2N");
       else if ( (*topIn)[at].Name() == "C8" )
         ChangeAtomName(topIn->SetAtom(at), "CME");
+    } else if (resChar == 'S') {
+      if ( (*topIn)[at].Name() == "C10" )
+        ChangeAtomName(topIn->SetAtom(at), "C5N");
+      else if ( (*topIn)[at].Name() == "O10" )
+        ChangeAtomName(topIn->SetAtom(at), "O5N");
+      else if ( (*topIn)[at].Name() == "C11" )
+        ChangeAtomName(topIn->SetAtom(at), "CME");
     }
   }
 
