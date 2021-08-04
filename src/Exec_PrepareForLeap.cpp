@@ -199,15 +199,16 @@ const
   mprintf("\tSugar %s %i glycam name: %c\n", *res.Name(), rnum+1, resChar);
 
   // Change PDB names to Glycam ones
-  // TODO need to check glycam residue char?
   for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
   {
-    if ( (*topIn)[at].Name() == "C7" )
-      ChangeAtomName(topIn->SetAtom(at), "C2N");
-    else if ( (*topIn)[at].Name() == "O7" )
-      ChangeAtomName(topIn->SetAtom(at), "O2N");
-    else if ( (*topIn)[at].Name() == "C8" )
-      ChangeAtomName(topIn->SetAtom(at), "CME");
+    if (resChar == 'Y') {
+      if ( (*topIn)[at].Name() == "C7" )
+        ChangeAtomName(topIn->SetAtom(at), "C2N");
+      else if ( (*topIn)[at].Name() == "O7" )
+        ChangeAtomName(topIn->SetAtom(at), "O2N");
+      else if ( (*topIn)[at].Name() == "C8" )
+        ChangeAtomName(topIn->SetAtom(at), "CME");
+    }
   }
 
   // Try to identify the ring oxygen. Should be bonded to 2 carbons
@@ -217,7 +218,7 @@ const
   int ring_c_beg_C     = -1; // e.g. C2, next C in ring bonded to anomeric carbon
   int ring_c_beg_X     = -1; // from anomeric C to non ring atom, non hydrogen 
   int ring_c_end       = -1; // e.g. C5, "highest" ring C, a chiral center
-  int ring_o_sub1_C    = -1; // e.g. C6, from sub1 to same residue
+  int ring_c_end_X     = -1; // e.g. C6, from c_end to non ring atom in same residue
   for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
   {
     Atom const& currentAtom = (*topIn)[at];
@@ -324,10 +325,28 @@ const
       ring_c_beg_C = *bat;
     }
   }
-  mprintf("\t  C1 C substituent: %s\n",
+  mprintf("\t  C1 C ring substituent: %s\n",
           topIn->ResNameNumAtomNameNum(ring_c_beg_C).c_str());
 
-  
+  // Get substituent of last ring C (e.g. C5) that is not part of the ring (e.g. C6)
+  for ( Atom::bond_iterator bat = (*topIn)[ring_c_end].bondbegin();
+                            bat != (*topIn)[ring_c_end].bondend();
+                          ++bat )
+  {
+    if ( (*topIn)[*bat].Element() == Atom::CARBON &&
+         !Visited[*bat] )
+    {
+      if (ring_c_end_X != -1) {
+        mprinterr("Error: Two potential substituents for ring end C: %s and %s\n",
+                  topIn->ResNameNumAtomNameNum(*bat).c_str(),
+                  topIn->ResNameNumAtomNameNum(ring_c_end_X).c_str());
+        return 1;
+      }
+      ring_c_end_X = *bat;
+    }
+  }
+  mprintf("\t  C5 non-ring substituent: %s\n",
+          topIn->ResNameNumAtomNameNum(ring_c_end_X).c_str());
 
   // Try to identify the form
   /* The alpha form has the CH2OH substituent (C5-C6 etc in Glycam) on the 
