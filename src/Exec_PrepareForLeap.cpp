@@ -216,7 +216,7 @@ const
   int ring_c_beg       = -1; // e.g. C1, "lowest" ring C, anomeric carbon
   int ring_o_sub0_C    = -1; // e.g. C2, from sub0 to same residue
   int ring_o_sub0_X    = -1; // from sub0 to non ring atom, non hydrogen 
-  int ring_o_sub1      = -1; // e.g. C5
+  int ring_c_end       = -1; // e.g. C5, "highest" ring C, a chiral center
   int ring_o_sub1_C    = -1; // e.g. C6, from sub1 to same residue
   for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
   {
@@ -237,10 +237,10 @@ const
           ring_oxygen_atom = at;
           if (currentAtom.Bond(0) < currentAtom.Bond(1)) {
             ring_c_beg = currentAtom.Bond(0);
-            ring_o_sub1 = currentAtom.Bond(1);
+            ring_c_end = currentAtom.Bond(1);
           } else {
             ring_c_beg = currentAtom.Bond(1);
-            ring_o_sub1 = currentAtom.Bond(0);
+            ring_c_end = currentAtom.Bond(0);
           }
         }
       }
@@ -249,16 +249,16 @@ const
   mprintf("\t  Ring Cbeg-O-Cend atoms: %s-%s-%s\n",
           topIn->ResNameNumAtomNameNum(ring_c_beg).c_str(),
           topIn->ResNameNumAtomNameNum(ring_oxygen_atom).c_str(),
-          topIn->ResNameNumAtomNameNum(ring_o_sub1).c_str());
+          topIn->ResNameNumAtomNameNum(ring_c_end).c_str());
 
-  // Try to identify the ring atoms. Start from ring_c_beg, get to ring_o_sub1
+  // Try to identify the ring atoms. Start from ring_c_beg, get to ring_c_end
   std::vector<bool> Visited( topIn->Natom(), true );
   for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
     if (at != ring_oxygen_atom)
       Visited[at] = false;
   std::vector<int> ring_atoms( topIn->Res(rnum).NumAtoms(), -1 );
   bool ring_complete = false;
-  FollowBonds( ring_c_beg, *topIn, 0, ring_atoms, ring_o_sub1, Visited, ring_complete );
+  FollowBonds( ring_c_beg, *topIn, 0, ring_atoms, ring_c_end, Visited, ring_complete );
   mprintf("DEBUG: Ring %i:", (int)ring_complete);
   // Use Visited as a mask with ring atoms
   Visited.assign( topIn->Natom(), false );
@@ -274,7 +274,7 @@ const
   mprintf("\n");
   mprintf("\t  Number of ring atoms= %i\n", n_ring_atoms);
   if (!ring_complete) {
-    mprinterr("Error: Sugar ring could not be identified.\n");
+    mprinterr("Error: Sugar ring atoms could not be identified.\n");
     return 1;
   }
 
