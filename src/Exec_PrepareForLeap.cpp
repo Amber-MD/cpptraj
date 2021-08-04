@@ -263,13 +263,20 @@ const
   // Use Visited as a mask with ring atoms
   Visited.assign( topIn->Natom(), false );
   Visited[ring_oxygen_atom] = true;
+  int n_ring_atoms = 1;
   for (std::vector<int>::const_iterator it = ring_atoms.begin(); it != ring_atoms.end(); ++it)
   {
     mprintf(" %i", *it + 1);
     if (*it == -1) break;
     Visited[*it] = true;
+    ++n_ring_atoms;
   }
   mprintf("\n");
+  mprintf("\t  Number of ring atoms= %i\n", n_ring_atoms);
+  if (!ring_complete) {
+    mprinterr("Error: Sugar ring could not be identified.\n");
+    return 1;
+  }
 
   // Get the substituent of sub1 (e.g. C1) that is to a non-ring atom, non hydrogen 
   for ( Atom::bond_iterator bat = (*topIn)[ring_o_sub0].bondbegin();
@@ -280,8 +287,9 @@ const
          !Visited[*bat] )
     {
       if (ring_o_sub0_X != -1) {
-        mprinterr("Error: Two potential substituents for O-C1 substituent atom: %i and %i\n",
-                  *bat + 1, ring_o_sub0_X + 1);
+        mprinterr("Error: Two potential substituents for O-C1 substituent atom: %s and %s\n",
+                  topIn->ResNameNumAtomNameNum(*bat).c_str(),
+                  topIn->ResNameNumAtomNameNum(ring_o_sub0_X).c_str());
         return 1;
       }
       ring_o_sub0_X = *bat;
