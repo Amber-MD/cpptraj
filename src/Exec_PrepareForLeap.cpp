@@ -66,8 +66,11 @@ static std::string LinkageCode(char glycamChar, std::set<NameType> const& linkag
   for (std::set<NameType>::const_iterator it = linkages.begin(); it != linkages.end(); ++it)
     linkstr.append( it->Truncated() );
   mprintf("\t  linkstr= '%s'\n", linkstr.c_str());
-//  switch (glycamChar) {
-//    case 'Y':
+  switch (glycamChar) {
+    case 'S':
+      if      (linkstr == "C2") linkcode = "0";
+      break;
+    default:
       if      (linkstr == "C1") linkcode = "0";
       else if (linkstr == "C1O2") linkcode = "2";
       else if (linkstr == "C1O3") linkcode = "3";
@@ -84,13 +87,8 @@ static std::string LinkageCode(char glycamChar, std::set<NameType> const& linkag
       else if (linkstr == "C1O2O4O6") linkcode = "R";
       else if (linkstr == "C1O3O4O6") linkcode = "Q";
       else if (linkstr == "C1O2O3O4O6") linkcode = "P";
-//      break;
-//    case 'M':
-//      if      (linkstr == "C1O3O6") linkcode = "V";
-//      break;
-//    default:
-//      mprintf("Warning: Unrecognized glycam residue char: %c\n", glycamChar);
-//  }
+      break;
+  }
   if (linkcode.empty())
     mprintf("Warning: Could not determine link code.\n");
   return linkcode;
@@ -344,25 +342,6 @@ const
   }
   mprintf("\t  C1 X substituent: %s\n",
           topIn->ResNameNumAtomNameNum(ring_c_beg_X).c_str());
-
-  // Get the substituent of first ring C (e.g. C1) that is part of the ring (e.g. C2)
-/*  for ( Atom::bond_iterator bat = (*topIn)[ring_c_beg].bondbegin();
-                            bat != (*topIn)[ring_c_beg].bondend();
-                          ++bat )
-  {
-    if ( (*topIn)[*bat].Element() == Atom::CARBON &&
-         (*topIn)[*bat].ResNum() == rnum &&
-         Visited[*bat] )
-    {
-      if (ring_c_beg_C != -1) {
-        mprinterr("Error: Two potential ring carbons bonded to anomeric carbon: %s and %s\n",
-                  topIn->ResNameNumAtomNameNum(*bat).c_str(),
-                  topIn->ResNameNumAtomNameNum(ring_c_beg_C).c_str());
-        return 1;
-      }
-      ring_c_beg_C = *bat;
-    }
-  }*/
   if (ring_c_beg_C == -1) {
     mprinterr("Error: Next ring atom after C1 could not be identified.\n");
     return 1;
@@ -408,6 +387,8 @@ const
     mprinterr("Error: Highest ring C previous ring atom could not be identified.\n");
     return 1;
   }
+  mprintf("\t  C5 previous ring atom: %s\n",
+          topIn->ResNameNumAtomNameNum(ring_c_end_C).c_str());
 
   // Try to identify alpha/beta.
   // The alpha form has the CH2OH substituent (C5-C6 etc in Glycam) on the 
@@ -445,61 +426,14 @@ const
     isDform = false;
   }
 
-
- 
-  int C6idx = -1;
-  int C5idx = -1;
-  int C1idx = -1;
-  int Cxidx = -1; // Non-H1, O5, C2 substituent of C1
-  int C2idx = -1;
-  // Additional atoms for determining D vs L
-  int O5idx = -1;
-  int C4idx = -1;
-  // Use a set to store linkages so they are in alphabetical order for easier identification
+  // Identify linkages to other residues.
+  // Use a set to store linkages so they are in alphabetical order for easier identification.
   std::set<NameType> linkages;
   // Bonds to non sugars to be removed since these will confuse tleap
   BondArray bondsToRemove;
   // Loop over sugar atoms
-  //AtomMask sugarCycle;
   for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
   {
-    // Identify atoms for torsion
-    if ( (*topIn)[at].Name() == "C6" )
-      C6idx = at;
-    else if ( (*topIn)[at].Name() == "C5" ) {
-      C5idx = at;
-      //sugarCycle.AddAtom( at );
-    } else if ( (*topIn)[at].Name() == "O5" ) {
-      O5idx = at;
-      //sugarCycle.AddAtom( at );
-    } else if ( (*topIn)[at].Name() == "C4" ) {
-      C4idx = at;
-      //sugarCycle.AddAtom( at );
-    } else if ( (*topIn)[at].Name() == "C2") {
-      C2idx = at;
-      //sugarCycle.AddAtom( at );
-    } else if ( (*topIn)[at].Name() == "C3") {
-      //sugarCycle.AddAtom( at );
-    } else if ( (*topIn)[at].Name() == "C1" ) {
-      C1idx = at;
-      //sugarCycle.AddAtom( at );
-      // Check substituent of C1 (non ring atom, non hydrogen)
-      for (Atom::bond_iterator bat = (*topIn)[at].bondbegin();
-                               bat != (*topIn)[at].bondend(); ++bat)
-      {
-        if ( (*topIn)[*bat].Element() != Atom::HYDROGEN &&
-             (*topIn)[*bat].Name() != "O5" &&
-             (*topIn)[*bat].Name() != "C2" )
-        {
-          if (Cxidx != -1) {
-            mprintf("Warning: Multiple substituents for C1: %s %s\n",
-                    *(*topIn)[*bat].Name(), *(*topIn)[Cxidx].Name());
-            return 1;
-          } else
-            Cxidx = *bat;
-        }
-      }
-    }
     // Check for bonds to other residues
     for (Atom::bond_iterator bat = (*topIn)[at].bondbegin();
                              bat != (*topIn)[at].bondend(); ++bat)
@@ -538,68 +472,7 @@ const
       }
     } // END loop over bonded atoms
   } // END loop over residue atoms
-  mprintf("\t  C6= %i C5= %i C1= %i Cx= %i O5= %i C4= %i C2= %i\n",
-          C6idx+1, C5idx+1, C1idx+1, Cxidx+1, O5idx+1, C4idx+1, C2idx+1);
-  //sugarCycle.PrintMaskAtoms("\t  Sugar cycle:");
-  if (C6idx == -1) { mprintf("Warning: C6 index not found.\n"); return 1; }
-  if (C5idx == -1) { mprintf("Warning: C5 index not found.\n"); return 1; }
-  if (C1idx == -1) { mprintf("Warning: C1 index not found.\n"); return 1; }
-  if (O5idx == -1) { mprintf("Warning: O5 index not found.\n"); return 1; }
-  if (C4idx == -1) { mprintf("Warning: C4 index not found.\n"); return 1; }
-  if (C2idx == -1) { mprintf("Warning: C2 index not found.\n"); return 1; }
-  // If the Cx (C1 substituent, usually a different residue) index is
-  // not found this usually means missing inter-residue bond.
-  // Alternatively, this could be an isolated sugar missing an -OH
-  // group, so make this non-fatal.
-  if (Cxidx == -1) {
-    mprintf("Warning: Cx index not found.\n"
-            "Warning:   If '%s' is from a topology without complete bonding information\n"
-            "Warning:   (e.g. a PDB file), try loading the topology with the\n"
-            "Warning:   'searchtype grid' keywords instead.\n", topIn->c_str());
-    mprintf("Warning: This can also happen for isolated sugars missing e.g. a -OH\n"
-            "Warning:   group. In that case coordinates for the missing sugar\n"
-            "Warning:   may need to be generated.\n");
-    return 0;
-  }
-/*
-  // Determine alpha/beta
-  // Alpha - C1 and C5 substituents are on opposite sides.
-  // Beta  - C1 and C5 substituents are on the same side.
-  double t_c4c5o5c6 = Torsion( frameIn.XYZ(C4idx), frameIn.XYZ(C5idx),
-                               frameIn.XYZ(O5idx), frameIn.XYZ(C6idx) );
-  double t_o5c1c2cx = Torsion( frameIn.XYZ(O5idx), frameIn.XYZ(C1idx),
-                               frameIn.XYZ(C2idx), frameIn.XYZ(Cxidx) );
-  mprintf("\t  A/B torsion of C5 substituent= %f deg\n", t_c4c5o5c6 * Constants::RADDEG);
-  mprintf("\t  A/B torsion of C1 substituent= %f deg\n", t_o5c1c2cx * Constants::RADDEG);
-  bool c5up = (t_c4c5o5c6 > 0);
-  bool c1up = (t_o5c1c2cx > 0);
-  if (c1up == c5up) {
-    mprintf("\t  Beta form\n");
-    formStr = "B";
-  } else {
-    mprintf("\t  Alpha form\n");
-    formStr = "A";
-  }
-*/
 
-/*
-  // Determine D/L
-  // Check the chirality around the C5 atom.
-  bool isDform = true;
-  // DEBUG
-  //frameIn.printAtomCoord(O5idx);
-  //frameIn.printAtomCoord(C4idx);
-  //frameIn.printAtomCoord(C6idx);
-  double torsion = Torsion( frameIn.XYZ(C4idx), frameIn.XYZ(C5idx),
-                            frameIn.XYZ(C6idx), frameIn.XYZ(O5idx) );
-  mprintf("\t  D/L Torsion around C5= %f deg\n", torsion * Constants::RADDEG);
-  if (torsion > 0) {
-    mprintf("\t  D form\n");
-  } else {
-    mprintf("\t  L form\n");
-    isDform = false;
-  }
-*/
   // Determine linkage
   mprintf("\t  Link atoms:");
   for (std::set<NameType>::const_iterator it = linkages.begin();
@@ -612,7 +485,9 @@ const
     mprinterr("Error: Unrecognized sugar linkage.\n");
     return 1;
   }
-  // Modify residue char to indicate D form if necessary
+  // Modify residue char to indicate D form if necessary.
+  // We do this here and not above so as not to mess with the
+  // linkage determination.
   if (!isDform)
     resChar = tolower( resChar );
   // Remove bonds to non-sugar
