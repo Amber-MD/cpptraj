@@ -422,15 +422,15 @@ const
   }
   // Determine D/L
   // Check the chirality around the C5 atom.
-  bool isDform = true;
-  double torsion = Torsion( frameIn.XYZ(ring_c_end_C), frameIn.XYZ(ring_c_end),
+  bool isDform = !c5up;
+  /*double torsion = Torsion( frameIn.XYZ(ring_c_end_C), frameIn.XYZ(ring_c_end),
                             frameIn.XYZ(ring_c_end_X), frameIn.XYZ(ring_oxygen_atom) );
-  mprintf("\t  D/L Torsion around C5= %f deg\n", torsion * Constants::RADDEG);
-  if (torsion > 0) {
+  mprintf("\t  D/L Torsion around C5= %f deg\n", torsion * Constants::RADDEG);*/
+  if (isDform) {
     mprintf("\t  D form\n");
   } else {
     mprintf("\t  L form\n");
-    isDform = false;
+    //isDform = false;
   }
 
   // Identify linkages to other residues.
