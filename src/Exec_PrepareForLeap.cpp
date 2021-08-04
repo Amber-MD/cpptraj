@@ -287,12 +287,20 @@ const
          !Visited[*bat] )
     {
       if (ring_o_sub0_X != -1) {
-        mprinterr("Error: Two potential substituents for anomeric carbon: %s and %s\n",
-                  topIn->ResNameNumAtomNameNum(*bat).c_str(),
-                  topIn->ResNameNumAtomNameNum(ring_o_sub0_X).c_str());
-        return 1;
-      }
-      ring_o_sub0_X = *bat;
+        // If there are two non-ring, non-hydrogen substituents, prioritize
+        // the one that is part of this residue.
+        bool bat_in_res = ((*topIn)[*bat].ResNum() == rnum);
+        bool X_in_res   = ((*topIn)[ring_o_sub0_X].ResNum() == rnum);
+        if ( (bat_in_res && X_in_res) || (!bat_in_res && !X_in_res) ) {
+          mprinterr("Error: Two potential substituents for anomeric carbon: %s and %s\n",
+                    topIn->ResNameNumAtomNameNum(*bat).c_str(),
+                    topIn->ResNameNumAtomNameNum(ring_o_sub0_X).c_str());
+          return 1;
+        } else if (bat_in_res) {
+          ring_o_sub0_X = *bat;
+        }
+      } else
+        ring_o_sub0_X = *bat;
     }
   }
   mprintf("\t  C1 X substituent: %s\n",
