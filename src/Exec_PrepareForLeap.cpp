@@ -219,7 +219,9 @@ const
 
   // Try to identify the sugar ring. Potential starting atoms are oxygens
   // bonded to two carbon atoms. Also save potential stereocenter indices
-  // (i.e. carbons bonded to 4 other atoms).
+  // (i.e. carbons bonded to 4 other atoms). Since input structure may not
+  // have any hydrogens, count bonds to heavy atoms only, must make at
+  // least 3 bonds (otherwise e.g. likely 2 hydrogens).
   std::vector<int> potentialRingStartAtoms;
   std::vector<int> carbon_indices;
   for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
@@ -236,7 +238,12 @@ const
         }
       }
     } else if (currentAtom.Element() == Atom::CARBON) {
-      if (currentAtom.Nbonds() == 4) {
+      // Count number of bonds to heavy atoms.
+      int n_heavyat_bonds = 0;
+      for (Atom::bond_iterator bat = currentAtom.bondbegin(); bat != currentAtom.bondend(); ++bat)
+        if ( (*topIn)[*bat].Element() != Atom::HYDROGEN )
+          ++n_heavyat_bonds;
+      if (n_heavyat_bonds == 3) {
         carbon_indices.push_back( at );
         mprintf("\t  Potential stereocenter: %s\n", topIn->ResNameNumAtomNameNum(at).c_str());
       }
@@ -309,6 +316,10 @@ const
   }
   mprintf("\t  Ring oxygen     : %s\n", topIn->ResNameNumAtomNameNum(ring_oxygen_atom).c_str());
   mprintf("\t  Anomeric carbon : %s\n", topIn->ResNameNumAtomNameNum(anomeric_atom).c_str());
+
+
+  // The anomeric reference carbon is the stereocenter farthest from the
+  // anomeric carbon in the ring.
 
 
   // Try to identify the ring oxygen. Should be bonded to 2 carbons
