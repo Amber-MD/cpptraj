@@ -155,6 +155,61 @@ int Exec_PrepareForLeap::LoadGlycamPdbResMap(std::string const& fnameIn)
   return 0;
 }
 
+/** Determine torsion around non-ring stereocenter. */
+int Exec_PrepareForLeap::CalcStereocenterTorsion(double& torsion,
+                                                 int idx,
+                                                 Topology const& topIn, Frame const& frameIn)
+const
+{
+  // Assume part of a carbon chain, e.g.
+  //      X
+  //      |
+  // C0 - C - C1
+  //      |
+  //      Y
+  // where X is heavy atom and Y may or may not exist if it is hydrogen.
+  // Try to order like so:
+  // C0 - C - C1 - X
+  int i0 = -1;
+  int i1 = -1;
+  int ix = -1;
+  //int iy = -1;
+
+  for (Atom::bond_iterator bat = topIn[idx].bondbegin(); bat != topIn[idx].bondend(); ++bat)
+  {
+    if ( topIn[*bat].Element() == Atom::CARBON ) {
+      if (i0 == -1) {
+        i0 = *bat;
+      } else if (i1 == -1) {
+        i1 = *bat;
+      } else {
+        mprinterr("Error: Too many carbons around stereocenter %s\n",
+                  topIn.ResNameNumAtomNameNum(idx).c_str());
+        return 1;
+      }
+    } else {
+      if (ix == -1) {
+        ix = *bat;
+      } else {
+        if ( topIn[*bat].Element() > topIn[ix].Element() ) {
+          //iy = ix;
+          ix = *bat;
+        } //else
+          //iy = ix;
+      }
+    }
+  }
+  if (i0 == -1) {mprinterr("Error: CalcStereocenterTorsion: Lower C is empty.\n"); return 1;}
+  if (i1 == -1) {mprinterr("Error: CalcStereocenterTorsion: Higher C is empty.\n"); return 1;}
+  if (ix == -1) {mprinterr("Error: CalcStereocenterTorsion: X substituent is empty.\n"); return 1;}
+  torsion = Torsion(frameIn.XYZ(i0), frameIn.XYZ(idx), frameIn.XYZ(i1), frameIn.XYZ(ix));
+  mprintf("\t  Stereocenter torsion: %s-%s-%s-%s = %f\n",
+          *(topIn[i0].Name()), *(topIn[idx].Name()), *(topIn[i1].Name()), *(topIn[ix].Name()),
+          torsion * Constants::RADDEG);
+  return 0;
+}
+         
+
 /** Determine torsion around anomeric reference carbon. */
 int Exec_PrepareForLeap::CalcAnomericRefTorsion(double& torsion,
                                                 int ano_ref_atom, int ring_oxygen_atom,
@@ -527,7 +582,11 @@ const
     highest_stereocenter = ano_ref_atom;
   }
   mprintf("\t  Highest stereocenter: %s\n", topIn->ResNameNumAtomNameNum(highest_stereocenter).c_str());
-
+  if (highest_stereocenter != ano_ref_atom) {
+    double stereo_t = 0;
+    if (CalcStereocenterTorsion(stereo_t, highest_stereocenter, *topIn, frameIn))
+      return 1;
+  }
   
 /*
   // Try to identify the ring oxygen. Should be bonded to 2 carbons
