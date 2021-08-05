@@ -218,13 +218,14 @@ const
   }
 
   // Try to identify the sugar ring. Potential starting atoms are oxygens
-  // bonded to two carbon atoms.
+  // bonded to two carbon atoms. Also save potential stereocenter indices
+  // (i.e. carbons bonded to 4 other atoms).
   std::vector<int> potentialRingStartAtoms;
+  std::vector<int> carbon_indices;
   for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
   {
     Atom const& currentAtom = (*topIn)[at];
-    if (currentAtom.Element() == Atom::OXYGEN)
-    {
+    if (currentAtom.Element() == Atom::OXYGEN) {
       if (currentAtom.Nbonds() == 2) {
         if ( (*topIn)[currentAtom.Bond(0)].Element() == Atom::CARBON &&
              (*topIn)[currentAtom.Bond(0)].ResNum() == rnum &&
@@ -233,6 +234,11 @@ const
         {
           potentialRingStartAtoms.push_back( at );
         }
+      }
+    } else if (currentAtom.Element() == Atom::CARBON) {
+      if (currentAtom.Nbonds() == 4) {
+        carbon_indices.push_back( at );
+        mprintf("\t  Potential stereocenter: %s\n", topIn->ResNameNumAtomNameNum(at).c_str());
       }
     }
   }
@@ -249,6 +255,10 @@ const
     return 1;
   }
 
+  // The anomeric carbon is the carbon that was part of the carbonyl group
+  // in the straight chain. It is therefore typically the carbon bonded
+  // to the ring oxygen with the lower index.
+  int anomeric_atom = -1;    // e.g. C1
   // Out of the potential ring start atoms, see which ones are actually
   // part of a ring. Potential ring start atoms only have 2 bonds,
   // each one to a carbon.
@@ -276,7 +286,8 @@ const
     // TODO handle the case where multiple potential ring start atoms exist
     if (ring_complete) {
       ring_oxygen_atom = *ringat;
-      // Use Visited as a mask with ring atoms
+      anomeric_atom = (*topIn)[*ringat].Bond(0);
+      // Use Visited as a mask with ring atoms set to true
       Visited.assign( topIn->Natom(), false );
       Visited[ring_oxygen_atom] = true;
       n_ring_atoms = 1;
@@ -296,7 +307,8 @@ const
     mprinterr("Error: Sugar ring atoms could not be identified.\n");
     return 1;
   }
-
+  mprintf("\t  Ring oxygen     : %s\n", topIn->ResNameNumAtomNameNum(ring_oxygen_atom).c_str());
+  mprintf("\t  Anomeric carbon : %s\n", topIn->ResNameNumAtomNameNum(anomeric_atom).c_str());
 
 
   // Try to identify the ring oxygen. Should be bonded to 2 carbons
