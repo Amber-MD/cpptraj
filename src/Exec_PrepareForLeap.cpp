@@ -204,7 +204,7 @@ const
   mprintf("\t  Anomeric reference previous ring atom : %s\n",
           topIn.ResNameNumAtomNameNum(ano_ref_atom_C).c_str());
   torsion = Torsion( frameIn.XYZ(ano_ref_atom_C),   frameIn.XYZ(ano_ref_atom),
-                            frameIn.XYZ(ring_oxygen_atom), frameIn.XYZ(ano_ref_atom_Y) );
+                     frameIn.XYZ(ano_ref_atom_Y),   frameIn.XYZ(ring_oxygen_atom) );
   mprintf("\t  Anomeric reference torsion            = %f\n", torsion * Constants::RADDEG);
   return 0;
 }
@@ -274,8 +274,8 @@ const
   }
   mprintf("\t  Anomeric C ring substituent : %s\n",
           topIn.ResNameNumAtomNameNum(anomeric_atom_C).c_str());
-  torsion = Torsion( frameIn.XYZ(ring_oxygen_atom), frameIn.XYZ(anomeric_atom),
-                            frameIn.XYZ(anomeric_atom_C),  frameIn.XYZ(anomeric_atom_X) );
+  torsion = Torsion( frameIn.XYZ(anomeric_atom_X), frameIn.XYZ(anomeric_atom),
+                     frameIn.XYZ(anomeric_atom_C), frameIn.XYZ(ring_oxygen_atom) );
   mprintf("\t  Anomeric torsion            = %f\n", torsion * Constants::RADDEG);
   return 0;
 }
@@ -483,7 +483,6 @@ const
   double t_c5 = 0;
 
   // Calculate torsion around anomeric carbon:
-  // ring O - anomeric C - ring C - X, where X is anomeric C substituent
   int ret = CalcAnomericTorsion(t_c1, ring_oxygen_atom, anomeric_atom, rnum, *topIn, frameIn, IsRingAtom);
   if (ret < 0) {
     // This means C1 X substituent missing; non-fatal.
@@ -494,7 +493,6 @@ const
   }
 
   // Calculate torsion around anomeric reference:
-  // ring C - anomeric ref - ring O - Y, where Y is anomeric ref substituent
   if (CalcAnomericRefTorsion(t_c5, ano_ref_atom, ring_oxygen_atom, rnum, *topIn, frameIn, IsRingAtom))
     return 1;
 
@@ -743,7 +741,7 @@ const
   }
   // Determine D/L
   // Check the chirality around the C5 atom.
-  bool isDform = !c5up;
+  bool isDform = c5up;
   /*double torsion = Torsion( frameIn.XYZ(ring_c_end_C), frameIn.XYZ(ring_c_end),
                             frameIn.XYZ(ring_c_end_X), frameIn.XYZ(ring_oxygen_atom) );
   mprintf("\t  D/L Torsion around C5= %f deg\n", torsion * Constants::RADDEG);*/
