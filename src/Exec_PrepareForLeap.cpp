@@ -264,7 +264,7 @@ const
     mprintf("Warning: This can also happen for isolated sugars missing e.g. a -OH\n"
             "Warning:   group. In that case coordinates for the missing sugar atoms\n"
             "Warning:   may need to be generated.\n");
-    return 0;
+    return -1;
   }
   mprintf("\t  Anomeric X substituent      : %s\n",
           topIn.ResNameNumAtomNameNum(anomeric_atom_X).c_str());
@@ -277,6 +277,43 @@ const
   torsion = Torsion( frameIn.XYZ(ring_oxygen_atom), frameIn.XYZ(anomeric_atom),
                             frameIn.XYZ(anomeric_atom_C),  frameIn.XYZ(anomeric_atom_X) );
   mprintf("\t  Anomeric torsion            = %f\n", torsion * Constants::RADDEG);
+  return 0;
+}
+
+/// Recursive function for finding and recording all carbons
+static void Find_Carbons(int atm, Topology const& topIn, std::vector<bool>& Visited,
+                         std::vector<int>& remainingChainCarbons)
+{
+  remainingChainCarbons.push_back( atm );
+  Visited[atm] = true;
+  // Follow all carbons bonded to this atom
+  for (Atom::bond_iterator bat = topIn[atm].bondbegin(); bat != topIn[atm].bondend(); ++bat)
+  {
+    if (topIn[*bat].Element() == Atom::CARBON && !Visited[*bat]) {
+      Find_Carbons( *bat, topIn, Visited, remainingChainCarbons );
+    }
+  }
+}
+
+/** Find remaining non-ring carbons in chain starting from ring end atom. */
+int Exec_PrepareForLeap::FindRemainingChainCarbons(std::vector<int>& remainingChainCarbons,
+                                                   int start_c, Topology const& topIn, int rnum,
+                                                   std::vector<bool> const& IsRingAtom)
+const
+{
+  Residue const& res = topIn.Res(rnum);
+  std::vector<bool> Visited(topIn.Natom(), true);
+  for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
+    if (!IsRingAtom[at])
+      Visited[at] = false;
+
+  for (Atom::bond_iterator bat = topIn[start_c].bondbegin();
+                           bat != topIn[start_c].bondend();
+                         ++bat)
+  {
+    if ( !Visited[*bat] && topIn[*bat].Element() == Atom::CARBON )
+      Find_Carbons(*bat, topIn, Visited, remainingChainCarbons);
+  }
   return 0;
 }
 
@@ -348,7 +385,6 @@ const
   // have any hydrogens, count bonds to heavy atoms only, must make at
   // least 3 bonds (otherwise e.g. likely 2 hydrogens).
   std::vector<int> potentialRingStartAtoms;
-  std::vector<int> carbon_indices;
   for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
   {
     Atom const& currentAtom = (*topIn)[at];
@@ -361,16 +397,6 @@ const
         {
           potentialRingStartAtoms.push_back( at );
         }
-      }
-    } else if (currentAtom.Element() == Atom::CARBON) {
-      // Count number of bonds to heavy atoms.
-      int n_heavyat_bonds = 0;
-      for (Atom::bond_iterator bat = currentAtom.bondbegin(); bat != currentAtom.bondend(); ++bat)
-        if ( (*topIn)[*bat].Element() != Atom::HYDROGEN )
-          ++n_heavyat_bonds;
-      if (n_heavyat_bonds == 3) {
-        carbon_indices.push_back( at );
-        mprintf("\t  Potential stereocenter: %s\n", topIn->ResNameNumAtomNameNum(at).c_str());
       }
     }
   }
@@ -458,16 +484,52 @@ const
 
   // Calculate torsion around anomeric carbon:
   // ring O - anomeric C - ring C - X, where X is anomeric C substituent
-  if (CalcAnomericTorsion(t_c1, ring_oxygen_atom, anomeric_atom, rnum, *topIn, frameIn, IsRingAtom))
+  int ret = CalcAnomericTorsion(t_c1, ring_oxygen_atom, anomeric_atom, rnum, *topIn, frameIn, IsRingAtom);
+  if (ret < 0) {
+    // This means C1 X substituent missing; non-fatal.
+    return 0;
+  } else if (ret > 0) {
+    // Error
     return 1;
+  }
 
   // Calculate torsion around anomeric reference:
   // ring C - anomeric ref - ring O - Y, where Y is anomeric ref substituent
   if (CalcAnomericRefTorsion(t_c5, ano_ref_atom, ring_oxygen_atom, rnum, *topIn, frameIn, IsRingAtom))
     return 1;
 
-  // Find the rest of the carbons in the chain. Start from final ring carbon
+  // Find the rest of the carbons in the chain in order to find the
+  // stereocenter with the highest index. Start from final ring carbon.
+  int highest_stereocenter = -1;
   std::vector<int> remainingChainCarbons;
+  if (FindRemainingChainCarbons(remainingChainCarbons, ano_ref_atom, *topIn, rnum, IsRingAtom))
+    return 1;
+  mprintf("\t  Remaining chain carbons:\n");
+  for (std::vector<int>::const_iterator it = remainingChainCarbons.begin();
+                                        it != remainingChainCarbons.end();
+                                      ++it)
+  {
+    mprintf("\t\t%s", topIn->ResNameNumAtomNameNum(*it).c_str());
+    // Count number of bonds to heavy atoms.
+    Atom const& currentAtom = (*topIn)[*it];
+    int n_heavyat_bonds = 0;
+    for (Atom::bond_iterator bat = currentAtom.bondbegin(); bat != currentAtom.bondend(); ++bat)
+    {
+      if ( (*topIn)[*bat].Element() != Atom::HYDROGEN )
+        ++n_heavyat_bonds;
+    }
+    if (n_heavyat_bonds == 3) {
+      mprintf(" Potential stereocenter");
+      if (*it > highest_stereocenter) // Is absolute index the best way to do this?
+        highest_stereocenter = *it;
+    }
+    mprintf("\n");
+  }
+  if (highest_stereocenter == -1) {
+    // This means that ano_ref_atom is the highest stereocenter.
+    highest_stereocenter = ano_ref_atom;
+  }
+  mprintf("\t  Highest stereocenter: %s\n", topIn->ResNameNumAtomNameNum(highest_stereocenter).c_str());
 
   
 /*

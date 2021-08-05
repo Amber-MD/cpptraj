@@ -3,6 +3,7 @@
 #include "Exec.h"
 #include <set>
 #include <map>
+#include <vector>
 class AtomMask;
 class CharMask;
 class CpptrajFile;
@@ -23,6 +24,8 @@ class Exec_PrepareForLeap : public Exec {
     void LeapBond(int,int,Topology const&, CpptrajFile*) const;
     int CalcAnomericRefTorsion(double&, int, int, int, Topology const&, Frame const&, std::vector<bool> const&) const;
     int CalcAnomericTorsion(double&, int, int, int, Topology const&, Frame const&, std::vector<bool> const&) const;
+    int FindRemainingChainCarbons(std::vector<int>&, int, Topology const&, int,
+                                  std::vector<bool> const&) const;
     int IdentifySugar(int, Topology*, Frame const&, CharMask const&, CpptrajFile*, std::set<BondType>&) const;
     int PrepareSugars(AtomMask&, DataSet_Coords&, Frame const&, CpptrajFile*) const;
     int FindTerByBonds(Topology*, CharMask const&) const;
