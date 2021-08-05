@@ -21,6 +21,8 @@ class Exec_PrepareForLeap : public Exec {
     int LoadGlycamPdbResMap(std::string const&);
 
     void LeapBond(int,int,Topology const&, CpptrajFile*) const;
+    int CalcAnomericRefTorsion(double&, int, int, int, Topology const&, Frame const&, std::vector<bool> const&) const;
+    int CalcAnomericTorsion(double&, int, int, int, Topology const&, Frame const&, std::vector<bool> const&) const;
     int IdentifySugar(int, Topology*, Frame const&, CharMask const&, CpptrajFile*, std::set<BondType>&) const;
     int PrepareSugars(AtomMask&, DataSet_Coords&, Frame const&, CpptrajFile*) const;
     int FindTerByBonds(Topology*, CharMask const&) const;
