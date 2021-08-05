@@ -158,7 +158,6 @@ int Exec_PrepareForLeap::LoadGlycamPdbResMap(std::string const& fnameIn)
 /** Determine torsion around anomeric reference carbon. */
 int Exec_PrepareForLeap::CalcAnomericRefTorsion(double& torsion,
                                                 int ano_ref_atom, int ring_oxygen_atom,
-                                                int rnum,
                                                 Topology const& topIn, Frame const& frameIn,
                                                 std::vector<bool> const& IsRingAtom)
 const
@@ -493,7 +492,7 @@ const
   }
 
   // Calculate torsion around anomeric reference:
-  if (CalcAnomericRefTorsion(t_c5, ano_ref_atom, ring_oxygen_atom, rnum, *topIn, frameIn, IsRingAtom))
+  if (CalcAnomericRefTorsion(t_c5, ano_ref_atom, ring_oxygen_atom, *topIn, frameIn, IsRingAtom))
     return 1;
 
   // Find the rest of the carbons in the chain in order to find the

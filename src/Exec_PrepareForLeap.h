@@ -22,7 +22,7 @@ class Exec_PrepareForLeap : public Exec {
     int LoadGlycamPdbResMap(std::string const&);
 
     void LeapBond(int,int,Topology const&, CpptrajFile*) const;
-    int CalcAnomericRefTorsion(double&, int, int, int, Topology const&, Frame const&, std::vector<bool> const&) const;
+    int CalcAnomericRefTorsion(double&, int, int, Topology const&, Frame const&, std::vector<bool> const&) const;
     int CalcAnomericTorsion(double&, int, int, int, Topology const&, Frame const&, std::vector<bool> const&) const;
     int FindRemainingChainCarbons(std::vector<int>&, int, Topology const&, int,
                                   std::vector<bool> const&) const;
