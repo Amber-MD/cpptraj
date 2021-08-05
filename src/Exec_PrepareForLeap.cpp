@@ -171,7 +171,7 @@ static void FollowBonds(int atm, Topology const& topIn, int idx, std::vector<int
   // Follow all atoms bonded to this atom
   for (Atom::bond_iterator bat = topIn[atm].bondbegin(); bat != topIn[atm].bondend(); ++bat)
   {
-    if (!Visited[*bat]) {
+    if (topIn[*bat].Element() == Atom::CARBON && !Visited[*bat]) {
       FollowBonds( *bat, topIn, idx+1, ring_atoms, tgt_atom, Visited, found );
       if (found) return;
     }
