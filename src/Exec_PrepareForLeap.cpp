@@ -189,21 +189,23 @@ const
       ano_ref_atom_C = *bat;
     }
   }
+  mprintf("\t  Anomeric ref carbon                   : %s\n",
+          topIn.ResNameNumAtomNameNum(ano_ref_atom).c_str());
   if (ano_ref_atom_Y == -1) {
     mprinterr("Error: Anomeric reference Y substituent could not be identified.\n");
     return 1;
   }
-  mprintf("\t  Anomeric reference substituent: %s\n",
+  mprintf("\t  Anomeric reference substituent        : %s\n",
           topIn.ResNameNumAtomNameNum(ano_ref_atom_Y).c_str());
   if (ano_ref_atom_C == -1) {
     mprinterr("Error: Anomeric reference ring C previous ring atom could not be identified.\n");
     return 1;
   }
-  mprintf("\t  Anomeric reference previous ring atom: %s\n",
+  mprintf("\t  Anomeric reference previous ring atom : %s\n",
           topIn.ResNameNumAtomNameNum(ano_ref_atom_C).c_str());
   torsion = Torsion( frameIn.XYZ(ano_ref_atom_C),   frameIn.XYZ(ano_ref_atom),
                             frameIn.XYZ(ring_oxygen_atom), frameIn.XYZ(ano_ref_atom_Y) );
-  mprintf("\t  Anomeric reference torsion: %f\n", torsion * Constants::RADDEG);
+  mprintf("\t  Anomeric reference torsion            = %f\n", torsion * Constants::RADDEG);
   return 0;
 }
 
@@ -249,6 +251,7 @@ const
       anomeric_atom_C = *bat;
     }
   }
+  mprintf("\t  Anomeric carbon             : %s\n", topIn.ResNameNumAtomNameNum(anomeric_atom).c_str());
   if (anomeric_atom_X == -1) {
     // If the Cx (C1 substituent, usually a different residue) index is
     // not found this usually means missing inter-residue bond.
@@ -263,17 +266,17 @@ const
             "Warning:   may need to be generated.\n");
     return 0;
   }
-  mprintf("\t  Anomeric X substituent: %s\n",
+  mprintf("\t  Anomeric X substituent      : %s\n",
           topIn.ResNameNumAtomNameNum(anomeric_atom_X).c_str());
   if (anomeric_atom_C == -1) {
     mprinterr("Error: Next ring atom after anomeric C could not be identified.\n");
     return 1;
   }
-  mprintf("\t  Anomeric C ring substituent: %s\n",
+  mprintf("\t  Anomeric C ring substituent : %s\n",
           topIn.ResNameNumAtomNameNum(anomeric_atom_C).c_str());
   torsion = Torsion( frameIn.XYZ(ring_oxygen_atom), frameIn.XYZ(anomeric_atom),
                             frameIn.XYZ(anomeric_atom_C),  frameIn.XYZ(anomeric_atom_X) );
-  mprintf("\t  Anomeric torsion = %f\n", torsion * Constants::RADDEG);
+  mprintf("\t  Anomeric torsion            = %f\n", torsion * Constants::RADDEG);
   return 0;
 }
 
@@ -396,13 +399,13 @@ const
   // each one to a carbon.
   int n_ring_atoms = 0;
   int ring_oxygen_atom = -1; // e.g. O5
-  std::vector<bool> Visited;
-  Visited.reserve( topIn->Natom() );
+  std::vector<bool> IsRingAtom;
+  //Visited.reserve( topIn->Natom() );
   for (std::vector<int>::const_iterator ringat = potentialRingStartAtoms.begin();
                                         ringat != potentialRingStartAtoms.end();
                                       ++ringat)
   {
-    Visited.assign( topIn->Natom(), true );
+    std::vector<bool> Visited( topIn->Natom(), true );
     for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
       if (at != *ringat)
         Visited[at] = false;
@@ -428,16 +431,16 @@ const
       ring_oxygen_atom = *ringat;
       anomeric_atom = c_beg;
       ano_ref_atom  = c_end;
-      // Use Visited as a mask with ring atoms set to true
-      Visited.assign( topIn->Natom(), false );
-      Visited[ring_oxygen_atom] = true;
+      // Use IsRingAtom as a mask with ring atoms set to true
+      IsRingAtom.assign( topIn->Natom(), false );
+      IsRingAtom[ring_oxygen_atom] = true;
       n_ring_atoms = 1;
       mprintf(" :"); // DEBUG
       for (std::vector<int>::const_iterator it = ring_atoms.begin(); it != ring_atoms.end(); ++it)
       {
         mprintf(" %i", *it + 1);
         if (*it == -1) break;
-        Visited[*it] = true;
+        IsRingAtom[*it] = true;
         ++n_ring_atoms;
       }
       mprintf("\n"); // DEBUG
@@ -449,23 +452,22 @@ const
     return 1;
   }
   mprintf("\t  Ring oxygen         : %s\n", topIn->ResNameNumAtomNameNum(ring_oxygen_atom).c_str());
-  mprintf("\t  Anomeric carbon     : %s\n", topIn->ResNameNumAtomNameNum(anomeric_atom).c_str());
-  mprintf("\t  Anomeric ref carbon : %s\n", topIn->ResNameNumAtomNameNum(ano_ref_atom).c_str());
 
   double t_c1 = 0;
   double t_c5 = 0;
 
   // Calculate torsion around anomeric carbon:
   // ring O - anomeric C - ring C - X, where X is anomeric C substituent
-  if (CalcAnomericTorsion(t_c1, ring_oxygen_atom, anomeric_atom, rnum, *topIn, frameIn, Visited))
+  if (CalcAnomericTorsion(t_c1, ring_oxygen_atom, anomeric_atom, rnum, *topIn, frameIn, IsRingAtom))
     return 1;
 
   // Calculate torsion around anomeric reference:
   // ring C - anomeric ref - ring O - Y, where Y is anomeric ref substituent
-  if (CalcAnomericRefTorsion(t_c5, ano_ref_atom, ring_oxygen_atom, rnum, *topIn, frameIn, Visited))
+  if (CalcAnomericRefTorsion(t_c5, ano_ref_atom, ring_oxygen_atom, rnum, *topIn, frameIn, IsRingAtom))
     return 1;
 
   // Find the rest of the carbons in the chain. Start from final ring carbon
+  std::vector<int> remainingChainCarbons;
 
   
 /*
