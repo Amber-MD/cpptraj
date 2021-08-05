@@ -163,7 +163,8 @@ static void FollowBonds(int atm, Topology const& topIn, int idx, std::vector<int
     mprintf("\t");
   mprintf("At atom %s\n", topIn.ResNameNumAtomNameNum(atm).c_str());
   ring_atoms[idx] = atm;
-  if (atm == tgt_atom) {
+  // Assume we have started at the target atom
+  if (idx > 0 && atm == tgt_atom) {
     found = true;
     return;
   }
@@ -216,16 +217,110 @@ const
     }
   }
 
+  // Try to identify the sugar ring. Potential starting atoms are oxygens
+  // bonded to two carbon atoms.
+  std::vector<int> potentialRingStartAtoms;
+  for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
+  {
+    Atom const& currentAtom = (*topIn)[at];
+    if (currentAtom.Element() == Atom::OXYGEN)
+    {
+      if (currentAtom.Nbonds() == 2) {
+        if ( (*topIn)[currentAtom.Bond(0)].Element() == Atom::CARBON &&
+             (*topIn)[currentAtom.Bond(0)].ResNum() == rnum &&
+             (*topIn)[currentAtom.Bond(1)].Element() == Atom::CARBON &&
+             (*topIn)[currentAtom.Bond(1)].ResNum() == rnum )
+        {
+          potentialRingStartAtoms.push_back( at );
+        }
+      }
+    }
+  }
+  // TODO handle case where multiple potential ring start atoms exist
+  if (potentialRingStartAtoms.empty()) {
+    mprinterr("Error: Ring oxygen could not be identified\n");
+    return 1;
+  } else if (potentialRingStartAtoms.size() > 1) {
+    mprinterr("Error: Multiple potential ring start atoms:\n");
+    for (std::vector<int>::const_iterator it = potentialRingStartAtoms.begin();
+                                          it != potentialRingStartAtoms.end();
+                                         ++it)
+      mprinterr("Error:   %s\n", topIn->ResNameNumAtomNameNum(*it).c_str());
+    return 1;
+  }
+
+  // Out of the potential ring start atoms, see which ones are actually
+  // part of a ring. Potential ring start atoms only have 2 bonds,
+  // each one to a carbon.
+  int n_ring_atoms = 0;
+  int ring_oxygen_atom = -1; // e.g. O5
+  std::vector<bool> Visited;
+  Visited.reserve( topIn->Natom() );
+  for (std::vector<int>::const_iterator ringat = potentialRingStartAtoms.begin();
+                                        ringat != potentialRingStartAtoms.end();
+                                      ++ringat)
+  {
+    Visited.assign( topIn->Natom(), true );
+    for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
+      if (at != *ringat)
+        Visited[at] = false;
+    std::vector<int> ring_atoms( topIn->Res(rnum).NumAtoms(), -1 );
+    bool ring_complete = false;
+    // Since we have already established that *ringat is an oxygen bonded
+    // to two carbons, just start at the first carbon to see if we can
+    // get to the second carbon.
+    FollowBonds((*topIn)[*ringat].Bond(0), *topIn, 0, ring_atoms,
+                (*topIn)[*ringat].Bond(1), Visited, ring_complete);
+    mprintf("DEBUG: Potential ring start atom %s, Ring complete = %i",
+            topIn->ResNameNumAtomNameNum(*ringat).c_str(), (int)ring_complete);
+    // TODO handle the case where multiple potential ring start atoms exist
+    if (ring_complete) {
+      ring_oxygen_atom = *ringat;
+      // Use Visited as a mask with ring atoms
+      Visited.assign( topIn->Natom(), false );
+      Visited[ring_oxygen_atom] = true;
+      n_ring_atoms = 1;
+      mprintf(" :"); // DEBUG
+      for (std::vector<int>::const_iterator it = ring_atoms.begin(); it != ring_atoms.end(); ++it)
+      {
+        mprintf(" %i", *it + 1);
+        if (*it == -1) break;
+        Visited[*it] = true;
+        ++n_ring_atoms;
+      }
+      mprintf("\n"); // DEBUG
+    }
+  }
+  mprintf("\t  Number of ring atoms= %i\n", n_ring_atoms);
+  if (n_ring_atoms == 0 || ring_oxygen_atom == -1) {
+    mprinterr("Error: Sugar ring atoms could not be identified.\n");
+    return 1;
+  }
+
+
+
   // Try to identify the ring oxygen. Should be bonded to 2 carbons
   // in the same residue.
-  int ring_oxygen_atom = -1; // e.g. O5
   int ring_c_beg       = -1; // e.g. C1, "lowest" ring C, anomeric carbon
   int ring_c_beg_C     = -1; // e.g. C2, next C in ring bonded to anomeric carbon
   int ring_c_beg_X     = -1; // from anomeric C to non ring atom, non hydrogen 
   int ring_c_end       = -1; // e.g. C5, "highest" ring C, a chiral center
   int ring_c_end_C     = -1; // e.g. C4, from c_end to previous C in ring
   int ring_c_end_X     = -1; // e.g. C6, from c_end to non ring atom in same residue
-  for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
+
+  // TODO this is temporary
+  if (ring_oxygen_atom != -1) {
+    Atom const& currentAtom = (*topIn)[ring_oxygen_atom];
+    if (currentAtom.Bond(0) < currentAtom.Bond(1)) {
+      ring_c_beg = currentAtom.Bond(0);
+      ring_c_end = currentAtom.Bond(1);
+    } else {
+      ring_c_beg = currentAtom.Bond(1);
+      ring_c_end = currentAtom.Bond(0);
+    }
+  }
+
+/*  for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
   {
     Atom const& currentAtom = (*topIn)[at];
     if (currentAtom.Element() == Atom::OXYGEN)
@@ -252,7 +347,7 @@ const
         }
       }
     }
-  }
+  }*/
   if (ring_oxygen_atom == -1) {
     mprinterr("Error: Ring oxygen atom could not be identified.\n");
     return 1;
@@ -271,7 +366,7 @@ const
           topIn->ResNameNumAtomNameNum(ring_c_end).c_str());
 
   // Try to identify the ring atoms. Start from ring_c_beg, get to ring_c_end
-  std::vector<bool> Visited( topIn->Natom(), true );
+/*  std::vector<bool> Visited( topIn->Natom(), true );
   for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
     if (at != ring_oxygen_atom)
       Visited[at] = false;
@@ -295,7 +390,7 @@ const
   if (!ring_complete) {
     mprinterr("Error: Sugar ring atoms could not be identified.\n");
     return 1;
-  }
+  }*/
 
   // Get the substituent of first ring C (e.g. C1) that is to a non-ring atom, non hydrogen 
   // Get the substituent of first ring C (e.g. C1) that is part of the ring (e.g. C2)
