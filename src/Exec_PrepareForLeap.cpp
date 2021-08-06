@@ -311,7 +311,7 @@ const
     // not found this usually means missing inter-residue bond.
     // Alternatively, this could be an isolated sugar missing an -OH
     // group, so make this non-fatal.
-    mprintf("Warning: Ring anomeric substituent could not be identified.\n"
+    mprintf("Warning: Anomeric C non-ring substituent could not be identified.\n"
             "Warning:   If '%s' is from a topology without complete bonding information\n"
             "Warning:   (e.g. a PDB file), try loading the topology with the\n"
             "Warning:   'searchtype grid' keywords instead.\n", topIn.c_str());
