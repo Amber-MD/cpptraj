@@ -23,6 +23,7 @@ void Exec_PrepareForLeap::Help() const
 {
   mprintf("\tcrdset <coords set> [frame <#>] name <out coords set> [pdbout <pdbfile>]\n"
           "\t[leapunitname <unit>] [out <leap input file> [skiperrors]\n"
+          "\t[nowat] [noh] [keepaltloc <alt loc ID>] [stripmask <stripmask>]\n"
           "\t[{nodisulfides |\n"
           "\t  existingdisulfides |\n"
           "\t  [cysmask <cysmask>] [disulfidecut <cut>] [newcysname <name>]}]\n"
