@@ -944,6 +944,90 @@ const
   return 0;
 }
 
+/** Modify coords according to user wishes. */
+int Exec_PrepareForLeap::ModifyCoords( Topology& topIn, Frame& frameIn,
+                                       bool remove_water, bool remove_h,
+                                       char altLocChar, std::string const& stripMask )
+const
+{
+  // Create a mask denoting which atoms will be kept.
+  std::vector<bool> atomsToKeep( topIn.Natom(), true );
+  // User-specified strip mask
+  if (!stripMask.empty()) {
+    AtomMask mask;
+    if (mask.SetMaskString( stripMask )) {
+      mprinterr("Error: Invalid mask string '%s'\n", stripMask.c_str());
+      return 1;
+    }
+    if (topIn.SetupIntegerMask( mask )) return 1;
+    mask.MaskInfo();
+    if (!mask.None()) {
+      for (AtomMask::const_iterator atm = mask.begin(); atm != mask.end(); ++atm)
+        atomsToKeep[*atm] = false;
+    }
+  }
+  if (remove_water) {
+    unsigned int nRemoved = 0;
+    for (Topology::mol_iterator mol = topIn.MolStart(); mol != topIn.MolEnd(); ++mol) {
+      if (mol->IsSolvent()) {
+        for (Unit::const_iterator seg = mol->MolUnit().segBegin();
+                                  seg != mol->MolUnit().segEnd();
+                                ++seg)
+          for (int satm = seg->Begin(); satm < seg->End(); ++satm)
+            atomsToKeep[satm] = false;
+      }
+    }
+    if (nRemoved == 0)
+      mprintf("\tNo solvent to remove.\n");
+    else
+      mprintf("\t# solvent removed: %u\n", nRemoved);
+  }
+  if (remove_h) {
+    for (Topology::atom_iterator atom = topIn.begin(); atom != topIn.end(); ++atom) {
+      if (atom->Element() == Atom::HYDROGEN)
+        atomsToKeep[atom - topIn.begin()] = false;
+    }
+  }
+  if (altLocChar != '\0') {
+    if (topIn.AtomAltLoc().empty()) {
+      mprintf("\tNo alternate atom locations.\n");
+    } else {
+      for (int idx = 0; idx != topIn.Natom(); idx++) {
+        if (topIn.AtomAltLoc()[idx] != ' ' &&
+            topIn.AtomAltLoc()[idx] != altLocChar)
+          atomsToKeep[idx] = false;
+      }
+    }
+  }
+
+  // Set up mask of only kept atoms.
+  AtomMask keptAtoms;
+  keptAtoms.SetNatoms( topIn.Natom() );
+  for (int idx = 0; idx != topIn.Natom(); idx++) {
+    if (atomsToKeep[idx])
+      keptAtoms.AddSelectedAtom(idx);
+  }
+  if (keptAtoms.Nselected() == topIn.Natom())
+    // Keeping everything, no modifications
+    return 0;
+  // Modify top/frame
+  Topology* newTop = topIn.modifyStateByMask( keptAtoms );
+  if (newTop == 0) {
+    mprinterr("Error: Could not create new topology.\n");
+    return 1;
+  }
+  newTop->Brief("After removing atoms:");
+  Frame newFrame;
+  newFrame.SetupFrameV(newTop->Atoms(), frameIn.CoordsInfo());
+  newFrame.SetFrame(frameIn, keptAtoms);
+
+  topIn = *newTop;
+  frameIn = newFrame;
+  delete newTop;
+
+  return 0;
+}
+
 // Exec_PrepareForLeap::Execute()
 Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 {
@@ -969,6 +1053,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   }
   Frame frameIn = coords.AllocateFrame();
   coords.GetFrame(tgtframe, frameIn);
+
   // Check that coords has no issues
   if (!coords.Top().AtomAltLoc().empty()) {
     // Must have only 1 atom alternate location
@@ -1020,6 +1105,28 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     mprintf("\tNot attempting to prepare sugars.\n");
   else
     mprintf("\tWill attempt to prepare sugars.\n");
+
+  // Deal with any coordinate modifications
+  bool remove_water = argIn.hasKey("nowat");
+  bool remove_h     = argIn.hasKey("noh");
+  std::string altLocArg = argIn.GetStringKey("keepaltloc");
+  char altLocChar = '\0';
+  if (!altLocArg.empty())
+    altLocChar = altLocArg[0];
+  std::string stripMask = argIn.GetStringKey("stripmask");
+  if (remove_water)
+    mprintf("\tRemoving solvent.\n");
+  if (remove_h)
+    mprintf("\tRemoving hydrogens.\n");
+  if (altLocChar != '\0')
+    mprintf("\tIf present, keeping only alternate atom locations denoted by '%c'\n", altLocChar);
+  if (!stripMask.empty())
+    mprintf("\tRemoving atoms in mask '%s'\n", stripMask.c_str());
+  if (ModifyCoords( topIn, frameIn, remove_water, remove_h, altLocChar, stripMask ))
+  {
+    mprinterr("Error: Modification of '%s' failed.\n", coords.legend());
+    return CpptrajState::ERR;
+  }
 
   // Load PDB to glycam residue name map
   if (prepare_sugars) {
