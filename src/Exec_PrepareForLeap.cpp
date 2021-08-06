@@ -6,6 +6,7 @@
 #include "Constants.h"
 #include "CpptrajFile.h"
 #include "Trajout_Single.h"
+#include "DataSet_Coords_CRD.h"
 #include <stack>
 #include <cctype> // tolower
 #include <algorithm> // sort
@@ -20,12 +21,12 @@ Exec_PrepareForLeap::Exec_PrepareForLeap() : Exec(COORDS),
 // Exec_PrepareForLeap::Help()
 void Exec_PrepareForLeap::Help() const
 {
-  mprintf("\tcrdset <coords set> [frame <#>] [out <file>] [skiperrors]\n"
+  mprintf("\tcrdset <coords set> [frame <#>] name <out coords set> [pdbout <pdbfile>]\n"
+          "\t[leapunitname <unit>] [out <leap input file> [skiperrors]\n"
           "\t[{nodisulfides |\n"
           "\t  existingdisulfides |\n"
           "\t  [cysmask <cysmask>] [disulfidecut <cut>] [newcysname <name>]}]\n"
           "\t[{nosugars | sugarmask <sugarmask>}] [resmapfile <file>]\n"
-          "\t[leapunitname <unit>] [pdbout <pdbout>]\n"
           "\t[molmask <molmask> ...] [determinemolmask <mask>]\n"
           "  Prepare the structure in the given coords set for easier processing\n"
           "  with the LEaP program from AmberTools. Any existing/potential\n"
@@ -35,7 +36,7 @@ void Exec_PrepareForLeap::Help() const
           "  their names changed to Glycam names. Disulfides and sugars will\n"
           "  have any inter-residue bonds removed, and the appropriate LEaP\n"
           "  input to add the bonds back once the structure has been loaded\n"
-          "  into LEaP will be written to <file>.\n"
+          "  into LEaP will be written to <leap input file>.\n"
          );
 }
 
@@ -402,12 +403,12 @@ static void FollowBonds(int atm, Topology const& topIn, int idx, std::vector<int
 }
 
 /** Attempt to identify sugar residue, form, and linkages. */
-int Exec_PrepareForLeap::IdentifySugar(int rnum, Topology* topIn,
+int Exec_PrepareForLeap::IdentifySugar(int rnum, Topology& topIn,
                                        Frame const& frameIn, CharMask const& cmask,
                                        CpptrajFile* outfile, std::set<BondType>& sugarBondsToRemove)
 const
 {
-  Residue& res = topIn->SetRes(rnum);
+  Residue& res = topIn.SetRes(rnum);
   // Try to ID the base sugar type from the input name.
   char resChar = ' ';
 
@@ -424,19 +425,19 @@ const
   for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
   {
     if (resChar == 'Y') {
-      if ( (*topIn)[at].Name() == "C7" )
-        ChangeAtomName(topIn->SetAtom(at), "C2N");
-      else if ( (*topIn)[at].Name() == "O7" )
-        ChangeAtomName(topIn->SetAtom(at), "O2N");
-      else if ( (*topIn)[at].Name() == "C8" )
-        ChangeAtomName(topIn->SetAtom(at), "CME");
+      if ( topIn[at].Name() == "C7" )
+        ChangeAtomName(topIn.SetAtom(at), "C2N");
+      else if ( topIn[at].Name() == "O7" )
+        ChangeAtomName(topIn.SetAtom(at), "O2N");
+      else if ( topIn[at].Name() == "C8" )
+        ChangeAtomName(topIn.SetAtom(at), "CME");
     } else if (resChar == 'S') {
-      if ( (*topIn)[at].Name() == "C10" )
-        ChangeAtomName(topIn->SetAtom(at), "C5N");
-      else if ( (*topIn)[at].Name() == "O10" )
-        ChangeAtomName(topIn->SetAtom(at), "O5N");
-      else if ( (*topIn)[at].Name() == "C11" )
-        ChangeAtomName(topIn->SetAtom(at), "CME");
+      if ( topIn[at].Name() == "C10" )
+        ChangeAtomName(topIn.SetAtom(at), "C5N");
+      else if ( topIn[at].Name() == "O10" )
+        ChangeAtomName(topIn.SetAtom(at), "O5N");
+      else if ( topIn[at].Name() == "C11" )
+        ChangeAtomName(topIn.SetAtom(at), "CME");
     }
   }
 
@@ -448,13 +449,13 @@ const
   std::vector<int> potentialRingStartAtoms;
   for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
   {
-    Atom const& currentAtom = (*topIn)[at];
+    Atom const& currentAtom = topIn[at];
     if (currentAtom.Element() == Atom::OXYGEN) {
       if (currentAtom.Nbonds() == 2) {
-        if ( (*topIn)[currentAtom.Bond(0)].Element() == Atom::CARBON &&
-             (*topIn)[currentAtom.Bond(0)].ResNum() == rnum &&
-             (*topIn)[currentAtom.Bond(1)].Element() == Atom::CARBON &&
-             (*topIn)[currentAtom.Bond(1)].ResNum() == rnum )
+        if ( topIn[currentAtom.Bond(0)].Element() == Atom::CARBON &&
+             topIn[currentAtom.Bond(0)].ResNum() == rnum &&
+             topIn[currentAtom.Bond(1)].Element() == Atom::CARBON &&
+             topIn[currentAtom.Bond(1)].ResNum() == rnum )
         {
           potentialRingStartAtoms.push_back( at );
         }
@@ -470,7 +471,7 @@ const
     for (std::vector<int>::const_iterator it = potentialRingStartAtoms.begin();
                                           it != potentialRingStartAtoms.end();
                                          ++it)
-      mprinterr("Error:   %s\n", topIn->ResNameNumAtomNameNum(*it).c_str());
+      mprinterr("Error:   %s\n", topIn.ResNameNumAtomNameNum(*it).c_str());
     return 1;
   }
 
@@ -487,39 +488,38 @@ const
   int n_ring_atoms = 0;
   int ring_oxygen_atom = -1; // e.g. O5
   std::vector<bool> IsRingAtom;
-  //Visited.reserve( topIn->Natom() );
   for (std::vector<int>::const_iterator ringat = potentialRingStartAtoms.begin();
                                         ringat != potentialRingStartAtoms.end();
                                       ++ringat)
   {
-    std::vector<bool> Visited( topIn->Natom(), true );
+    std::vector<bool> Visited( topIn.Natom(), true );
     for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
       if (at != *ringat)
         Visited[at] = false;
-    std::vector<int> ring_atoms( topIn->Res(rnum).NumAtoms(), -1 );
+    std::vector<int> ring_atoms( topIn.Res(rnum).NumAtoms(), -1 );
     bool ring_complete = false;
     // Since we have already established that *ringat is an oxygen bonded
     // to two carbons, just start at the first carbon to see if we can
     // get to the second carbon.
     int c_beg, c_end;
-    if ((*topIn)[*ringat].Bond(0) < (*topIn)[*ringat].Bond(1)) {
-      c_beg = (*topIn)[*ringat].Bond(0);
-      c_end = (*topIn)[*ringat].Bond(1);
+    if (topIn[*ringat].Bond(0) < topIn[*ringat].Bond(1)) {
+      c_beg = topIn[*ringat].Bond(0);
+      c_end = topIn[*ringat].Bond(1);
     } else {
-      c_beg = (*topIn)[*ringat].Bond(1);
-      c_end = (*topIn)[*ringat].Bond(0);
+      c_beg = topIn[*ringat].Bond(1);
+      c_end = topIn[*ringat].Bond(0);
     }
-    FollowBonds(c_beg, *topIn, 0, ring_atoms,
+    FollowBonds(c_beg, topIn, 0, ring_atoms,
                 c_end, Visited, ring_complete);
     mprintf("DEBUG: Potential ring start atom %s, Ring complete = %i",
-            topIn->ResNameNumAtomNameNum(*ringat).c_str(), (int)ring_complete);
+            topIn.ResNameNumAtomNameNum(*ringat).c_str(), (int)ring_complete);
     // TODO handle the case where multiple potential ring start atoms exist
     if (ring_complete) {
       ring_oxygen_atom = *ringat;
       anomeric_atom = c_beg;
       ano_ref_atom  = c_end;
       // Use IsRingAtom as a mask with ring atoms set to true
-      IsRingAtom.assign( topIn->Natom(), false );
+      IsRingAtom.assign( topIn.Natom(), false );
       IsRingAtom[ring_oxygen_atom] = true;
       n_ring_atoms = 1;
       mprintf(" :"); // DEBUG
@@ -538,13 +538,13 @@ const
     mprinterr("Error: Sugar ring atoms could not be identified.\n");
     return 1;
   }
-  mprintf("\t  Ring oxygen         : %s\n", topIn->ResNameNumAtomNameNum(ring_oxygen_atom).c_str());
+  mprintf("\t  Ring oxygen         : %s\n", topIn.ResNameNumAtomNameNum(ring_oxygen_atom).c_str());
 
   double t_c1 = 0;
   double t_c5 = 0;
 
   // Calculate torsion around anomeric carbon:
-  int ret = CalcAnomericTorsion(t_c1, ring_oxygen_atom, anomeric_atom, rnum, *topIn, frameIn, IsRingAtom);
+  int ret = CalcAnomericTorsion(t_c1, ring_oxygen_atom, anomeric_atom, rnum, topIn, frameIn, IsRingAtom);
   if (ret < 0) {
     // This means C1 X substituent missing; non-fatal.
     return 0;
@@ -554,7 +554,7 @@ const
   }
 
   // Calculate torsion around anomeric reference:
-  if (CalcAnomericRefTorsion(t_c5, ano_ref_atom, ring_oxygen_atom, *topIn, frameIn, IsRingAtom))
+  if (CalcAnomericRefTorsion(t_c5, ano_ref_atom, ring_oxygen_atom, topIn, frameIn, IsRingAtom))
     return 1;
 
   // Determine alpha/beta 
@@ -573,20 +573,20 @@ const
   // stereocenter with the highest index. Start from final ring carbon.
   int highest_stereocenter = -1;
   std::vector<int> remainingChainCarbons;
-  if (FindRemainingChainCarbons(remainingChainCarbons, ano_ref_atom, *topIn, rnum, IsRingAtom))
+  if (FindRemainingChainCarbons(remainingChainCarbons, ano_ref_atom, topIn, rnum, IsRingAtom))
     return 1;
   mprintf("\t  Remaining chain carbons:\n");
   for (std::vector<int>::const_iterator it = remainingChainCarbons.begin();
                                         it != remainingChainCarbons.end();
                                       ++it)
   {
-    mprintf("\t\t%s", topIn->ResNameNumAtomNameNum(*it).c_str());
+    mprintf("\t\t%s", topIn.ResNameNumAtomNameNum(*it).c_str());
     // Count number of bonds to heavy atoms.
-    Atom const& currentAtom = (*topIn)[*it];
+    Atom const& currentAtom = topIn[*it];
     int n_heavyat_bonds = 0;
     for (Atom::bond_iterator bat = currentAtom.bondbegin(); bat != currentAtom.bondend(); ++bat)
     {
-      if ( (*topIn)[*bat].Element() != Atom::HYDROGEN )
+      if ( topIn[*bat].Element() != Atom::HYDROGEN )
         ++n_heavyat_bonds;
     }
     if (n_heavyat_bonds == 3) {
@@ -600,12 +600,12 @@ const
     // This means that ano_ref_atom is the highest stereocenter.
     highest_stereocenter = ano_ref_atom;
   }
-  mprintf("\t  Highest stereocenter: %s\n", topIn->ResNameNumAtomNameNum(highest_stereocenter).c_str());
+  mprintf("\t  Highest stereocenter: %s\n", topIn.ResNameNumAtomNameNum(highest_stereocenter).c_str());
   // Determine D/L
   bool isDform;
   if (highest_stereocenter != ano_ref_atom) {
     double stereo_t = 0;
-    if (CalcStereocenterTorsion(stereo_t, highest_stereocenter, *topIn, frameIn))
+    if (CalcStereocenterTorsion(stereo_t, highest_stereocenter, topIn, frameIn))
       return 1;
     isDform = (stereo_t > 0);
   } else {
@@ -626,18 +626,18 @@ const
   for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
   {
     // Check for bonds to other residues
-    for (Atom::bond_iterator bat = (*topIn)[at].bondbegin();
-                             bat != (*topIn)[at].bondend(); ++bat)
+    for (Atom::bond_iterator bat = topIn[at].bondbegin();
+                             bat != topIn[at].bondend(); ++bat)
     {
-      if ((*topIn)[*bat].ResNum() != rnum) {
+      if (topIn[*bat].ResNum() != rnum) {
         if (!cmask.AtomInCharMask(*bat)) {
           mprintf("\t  Sugar %s bonded to non-sugar %s\n",
-                  topIn->ResNameNumAtomNameNum(at).c_str(),
-                  topIn->ResNameNumAtomNameNum(*bat).c_str());
-          linkages.insert( (*topIn)[at].Name() );
+                  topIn.ResNameNumAtomNameNum(at).c_str(),
+                  topIn.ResNameNumAtomNameNum(*bat).c_str());
+          linkages.insert( topIn[at].Name() );
           bondsToRemove.push_back( BondType(at, *bat, -1) );
           // Check if this is a recognized linkage to non-sugar TODO put in another file?
-          Residue& pres = topIn->SetRes( (*topIn)[*bat].ResNum() );
+          Residue& pres = topIn.SetRes( topIn[*bat].ResNum() );
           if ( pres.Name() == "SER" ) {
             ChangeResName( pres, "OLS" );
           } else if ( pres.Name() == "THR" ) {
@@ -651,9 +651,9 @@ const
           }
         } else {
           mprintf("\t  Sugar %s bonded to sugar %s\n",
-                  topIn->ResNameNumAtomNameNum(at).c_str(),
-                  topIn->ResNameNumAtomNameNum(*bat).c_str());
-          linkages.insert( (*topIn)[at].Name() );
+                  topIn.ResNameNumAtomNameNum(at).c_str(),
+                  topIn.ResNameNumAtomNameNum(*bat).c_str());
+          linkages.insert( topIn[at].Name() );
           // Also remove inter-sugar bonds since leap cant handle branching
           if (at < *bat)
             sugarBondsToRemove.insert( BondType(at, *bat, -1) );
@@ -685,8 +685,8 @@ const
   for (BondArray::const_iterator bnd = bondsToRemove.begin();
                                  bnd != bondsToRemove.end(); ++bnd)
   {
-    LeapBond(bnd->A1(), bnd->A2(), *topIn, outfile);
-    topIn->RemoveBond(bnd->A1(), bnd->A2());
+    LeapBond(bnd->A1(), bnd->A2(), topIn, outfile);
+    topIn.RemoveBond(bnd->A1(), bnd->A2());
   }
   // Set new residue name
   NameType newResName( linkcode + std::string(1,resChar) + formStr );
@@ -696,20 +696,20 @@ const
 }
 
 /** Prepare sugars for leap. */
-int Exec_PrepareForLeap::PrepareSugars(AtomMask& sugarMask, DataSet_Coords& coords,
+int Exec_PrepareForLeap::PrepareSugars(AtomMask& sugarMask, Topology& topIn,
                                        Frame const& frameIn, CpptrajFile* outfile)
 const
 {
   std::set<BondType> sugarBondsToRemove;
   mprintf("\tPreparing sugars selected by '%s'\n", sugarMask.MaskString());
-  if (coords.Top().SetupIntegerMask( sugarMask )) return 1;
+  if (topIn.SetupIntegerMask( sugarMask )) return 1;
   sugarMask.MaskInfo();
   if (sugarMask.None())
     mprintf("Warning: No sugar atoms selected by %s\n", sugarMask.MaskString());
   else {
     CharMask cmask( sugarMask.ConvertToCharMask(), sugarMask.Nselected() );
     // Get sugar residue numbers
-    std::vector<int> sugarResNums = coords.Top().ResnumsSelectedBy( sugarMask );
+    std::vector<int> sugarResNums = topIn.ResnumsSelectedBy( sugarMask );
     // For each sugar residue, see if it is bonded to a non-sugar residue.
     // If it is, remove that bond but record it.
     for (std::vector<int>::const_iterator rnum = sugarResNums.begin();
@@ -717,30 +717,30 @@ const
     {
       //Residue const& Res = coords.Top().Res(*rnum);
       // See if we recognize this sugar.
-      if (IdentifySugar(*rnum, coords.TopPtr(), frameIn, cmask, outfile, sugarBondsToRemove))
+      if (IdentifySugar(*rnum, topIn, frameIn, cmask, outfile, sugarBondsToRemove))
       {
         if (errorsAreFatal_)
           return 1;
         else
           mprintf("Warning: Preparation of sugar %s failed, skipping.\n",
-                  coords.Top().TruncResNameNum( *rnum ).c_str());
+                  topIn.TruncResNameNum( *rnum ).c_str());
       }
     } // END loop over sugar residues
     // Remove bonds between sugars
     for (std::set<BondType>::const_iterator bnd = sugarBondsToRemove.begin();
                                             bnd != sugarBondsToRemove.end(); ++bnd)
     {
-      LeapBond(bnd->A1(), bnd->A2(), *(coords.TopPtr()), outfile);
-      coords.TopPtr()->RemoveBond(bnd->A1(), bnd->A2());
+      LeapBond(bnd->A1(), bnd->A2(), topIn, outfile);
+      topIn.RemoveBond(bnd->A1(), bnd->A2());
     }
   }
   // Bonds to sugars have been removed, so regenerate molecule info
-  coords.TopPtr()->DetermineMolecules();
+  topIn.DetermineMolecules();
   return 0;
 }
 
 /** Determine where molecules end based on connectivity. */
-int Exec_PrepareForLeap::FindTerByBonds(Topology* topIn, CharMask const& maskIn)
+int Exec_PrepareForLeap::FindTerByBonds(Topology& topIn, CharMask const& maskIn)
 const
 {
   // NOTE: this code is the same algorithm from Topology::NonrecursiveMolSearch
@@ -750,17 +750,17 @@ const
   unsigned int currentAtom = 0;
   unsigned int currentMol = 0;
   unsigned int lowestUnassignedAtom = 0;
-  std::vector<int> atomMolNum( topIn->Natom(), -1 );
+  std::vector<int> atomMolNum( topIn.Natom(), -1 );
   while (unassignedAtomsRemain) {
     // This atom is in molecule.
     atomMolNum[currentAtom] = currentMol;
     //mprintf("DEBUG:\tAssigned atom %u to mol %u\n", currentAtom, currentMol);
     // All atoms bonded to this one are in molecule.
-    for (Atom::bond_iterator batom = (*topIn)[currentAtom].bondbegin();
-                             batom != (*topIn)[currentAtom].bondend(); ++batom)
+    for (Atom::bond_iterator batom = topIn[currentAtom].bondbegin();
+                             batom != topIn[currentAtom].bondend(); ++batom)
     {
       if (atomMolNum[*batom] == -1) { // -1 is no molecule
-        if ((*topIn)[*batom].Nbonds() > 1)
+        if (topIn[*batom].Nbonds() > 1)
           // Bonded atom has more than 1 bond; needs to be searched.
           nextAtomToSearch.push( *batom );
         else {
@@ -795,18 +795,18 @@ const
   // For each selected atom, find last atom in corresponding molecule,
   // set corresponding residue as TER.
   int at = 0;
-  while (at < topIn->Natom()) {
+  while (at < topIn.Natom()) {
     // Find the next selected atom
-    while (at < topIn->Natom() && !maskIn.AtomInCharMask(at)) at++;
-    if (at < topIn->Natom()) {
+    while (at < topIn.Natom() && !maskIn.AtomInCharMask(at)) at++;
+    if (at < topIn.Natom()) {
       int currentMol = atomMolNum[at];
       // Seek to end of molecule
-      while (at < topIn->Natom() && currentMol == atomMolNum[at]) at++;
+      while (at < topIn.Natom() && currentMol == atomMolNum[at]) at++;
       // The previous atom is the end
-      int lastRes = (*topIn)[at-1].ResNum();
+      int lastRes = topIn[at-1].ResNum();
       mprintf("\tSetting residue %s as terminal.\n",
-              topIn->TruncResNameNum(lastRes).c_str());
-      topIn->SetRes(lastRes).SetTerminal( true );
+              topIn.TruncResNameNum(lastRes).c_str());
+      topIn.SetRes(lastRes).SetTerminal( true );
     }
   }
   return 0;
@@ -815,7 +815,7 @@ const
 /** Search for disulfide bonds. */
 int Exec_PrepareForLeap::SearchForDisulfides(double disulfidecut, std::string const& newcysnamestr,
                                              std::string const& cysmaskstr, bool searchForNewDisulfides,
-                                             DataSet_Coords& coords, Frame const& frameIn,
+                                             Topology& topIn, Frame const& frameIn,
                                              CpptrajFile* outfile)
 const
 {
@@ -832,7 +832,7 @@ const
     mprinterr("Error: Could not set up CYS mask string %s\n", cysmaskstr.c_str());
     return 1;
   }
-  if (coords.Top().SetupIntegerMask( cysmask )) return 1; 
+  if (topIn.SetupIntegerMask( cysmask )) return 1; 
   cysmask.MaskInfo();
   if (cysmask.None())
     mprintf("Warning: No cysteine sulfur atoms selected by %s\n", cysmaskstr.c_str());
@@ -847,10 +847,10 @@ const
     {
       for (AtomMask::const_iterator at2 = at1 + 1; at2 != cysmask.end(); ++at2)
       {
-        if (coords.Top()[*at1].IsBondedTo(*at2)) {
+        if (topIn[*at1].IsBondedTo(*at2)) {
           mprintf("\tExisting disulfide: %s to %s\n",
-                  coords.Top().ResNameNumAtomNameNum(*at1).c_str(),
-                  coords.Top().ResNameNumAtomNameNum(*at2).c_str());
+                  topIn.ResNameNumAtomNameNum(*at1).c_str(),
+                  topIn.ResNameNumAtomNameNum(*at2).c_str());
           int idx1 = (int)(at1 - cysmask.begin());
           int idx2 = (int)(at2 - cysmask.begin());
           disulfidePartner[idx1] = idx2;
@@ -917,8 +917,8 @@ const
             int at1 = cysmask[it->second.first];
             int at2 = cysmask[it->second.second];
             mprintf("\t  Potential disulfide: %s to %s (%g Ang.)\n",
-                    coords.Top().ResNameNumAtomNameNum(at1).c_str(),
-                    coords.Top().ResNameNumAtomNameNum(at2).c_str(), sqrt(it->first));
+                    topIn.ResNameNumAtomNameNum(at1).c_str(),
+                    topIn.ResNameNumAtomNameNum(at2).c_str(), sqrt(it->first));
             disulfidePartner[it->second.first ] = it->second.second;
             disulfidePartner[it->second.second] = it->second.first;
           }
@@ -934,9 +934,9 @@ const
         int at2 = cysmask[*idx1];
         if (at1 < at2) {
           nDisulfides++;
-          LeapBond(at1, at2, coords.Top(), outfile);
+          LeapBond(at1, at2, topIn, outfile);
         }
-        ChangeResName(coords.TopPtr()->SetRes(coords.Top()[at1].ResNum()), newcysname);
+        ChangeResName(topIn.SetRes(topIn[at1].ResNum()), newcysname);
       }
     }
     mprintf("\tDetected %i disulfide bonds.\n", nDisulfides);
@@ -948,9 +948,10 @@ const
 Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 {
   errorsAreFatal_ = !argIn.hasKey("skiperrors");
+  // Get input coords
   std::string crdset = argIn.GetStringKey("crdset");
   if (crdset.empty()) {
-    mprinterr("Error: Must specify COORDS set with 'crdset'\n");
+    mprinterr("Error: Must specify input COORDS set with 'crdset'\n");
     return CpptrajState::ERR;
   }
   DataSet* ds = State.DSL().FindSetOfGroup( crdset, DataSet::COORDINATES );
@@ -959,7 +960,15 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
   DataSet_Coords& coords = static_cast<DataSet_Coords&>( *((DataSet_Coords*)ds) );
-
+  // Get frame from input coords
+  int tgtframe = argIn.getKeyInt("frame", 1) - 1;
+  mprintf("\tUsing frame %i from COORDS set %s\n", tgtframe+1, coords.legend());
+  if (tgtframe < 0 || tgtframe >= (int)coords.Size()) {
+    mprinterr("Error: Frame is out of range.\n");
+    return CpptrajState::ERR;
+  }
+  Frame frameIn = coords.AllocateFrame();
+  coords.GetFrame(tgtframe, frameIn);
   // Check that coords has no issues
   if (!coords.Top().AtomAltLoc().empty()) {
     // Must have only 1 atom alternate location
@@ -983,28 +992,25 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     mprintf("\t'%s' only contains atoms from alternate location ID '%c'\n", coords.legend(), firstAltLoc);
   }
 
-  int tgtframe = argIn.getKeyInt("frame", 1) - 1;
-  mprintf("\tUsing frame %i from COORDS set %s\n", tgtframe+1, coords.legend());
-  if (tgtframe < 0 || tgtframe >= (int)coords.Size()) {
-    mprinterr("Error: Frame is out of range.\n");
+  // Copy input topology, may be modified.
+  Topology topIn = coords.Top();
+
+  // Allocate output COORDS data set
+  std::string outname = argIn.GetStringKey("name");
+  if (outname.empty()) {
+    mprinterr("Error: Must specify output COORDS set with 'name'\n");
     return CpptrajState::ERR;
   }
-  Frame frameIn = coords.AllocateFrame();
-  coords.GetFrame(tgtframe, frameIn);
+  DataSet_Coords_CRD* outCoords = (DataSet_Coords_CRD*)State.DSL().AddSet( DataSet::COORDS, outname );
+  if (outCoords == 0) {
+    mprinterr("Error: Could not allocate output COORDS set.\n");
+    return CpptrajState::ERR;
+  }
+  mprintf("\tPrepared system will be saved to COORDS set '%s'\n", outCoords->legend());
 
   std::string pdbout = argIn.GetStringKey("pdbout");
   if (!pdbout.empty())
     mprintf("\tPDB will be written to %s\n", pdbout.c_str());
-
-  // Load PDB to glycam residue name map
-  if (LoadGlycamPdbResMap( argIn.GetStringKey("resmapfile" ) )) {
-    mprinterr("Error: PDB to glycam name map load failed.\n");
-    return CpptrajState::ERR;
-  }
-  // DEBUG - print residue name map
-  mprintf("\tResidue name map:\n");
-  for (MapType::const_iterator mit = pdb_to_glycam_.begin(); mit != pdb_to_glycam_.end(); ++mit)
-    mprintf("\t  %4s -> %c\n", *(mit->first), mit->second);
 
   leapunitname_ = argIn.GetStringKey("leapunitname", "m");
   mprintf("\tUsing leap unit name: %s\n", leapunitname_.c_str());
@@ -1015,6 +1021,19 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   else
     mprintf("\tWill attempt to prepare sugars.\n");
 
+  // Load PDB to glycam residue name map
+  if (prepare_sugars) {
+    if (LoadGlycamPdbResMap( argIn.GetStringKey("resmapfile" ) )) {
+      mprinterr("Error: PDB to glycam name map load failed.\n");
+      return CpptrajState::ERR;
+    }
+    // DEBUG - print residue name map
+    mprintf("\tResidue name map:\n");
+    for (MapType::const_iterator mit = pdb_to_glycam_.begin(); mit != pdb_to_glycam_.end(); ++mit)
+      mprintf("\t  %4s -> %c\n", *(mit->first), mit->second);
+  }
+
+  // Get sugar mask or default sugar mask
   AtomMask sugarMask;
   std::string sugarmaskstr = argIn.GetStringKey("sugarmask");
   if (!sugarmaskstr.empty()) {
@@ -1051,7 +1070,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       mprinterr("Error: Invalid mask.\n");
       return CpptrajState::ERR;
     }
-    if (coords.Top().SetupIntegerMask( molMasks.back() )) return CpptrajState::ERR;
+    if (topIn.SetupIntegerMask( molMasks.back() )) return CpptrajState::ERR;
     molMasks.back().MaskInfo();
     if (molMasks.back().None()) {
       mprinterr("Error: Nothing selected by mask.\n");
@@ -1067,7 +1086,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       mprinterr("Error: Invalid mask.\n");
       return CpptrajState::ERR;
     }
-    if (coords.Top().SetupCharMask( determineMolMask )) return CpptrajState::ERR;
+    if (topIn.SetupCharMask( determineMolMask )) return CpptrajState::ERR;
     determineMolMask.MaskInfo();
     if (determineMolMask.None()) {
       mprinterr("Error: Nothing selected by mask.\n");
@@ -1090,7 +1109,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
                              argIn.GetStringKey("newcysname", "CYX"),
                              argIn.GetStringKey("cysmask", ":CYS@SG"),
                             !argIn.hasKey("existingdisulfides"),
-                             coords, frameIn, outfile ))
+                             topIn, frameIn, outfile ))
     {
       mprinterr("Error: Disulfide search failed.\n");
       return CpptrajState::ERR;
@@ -1101,7 +1120,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 
   // Prepare sugars
   if (prepare_sugars) {
-    if (PrepareSugars(sugarMask, coords, frameIn, outfile)) {
+    if (PrepareSugars(sugarMask, topIn, frameIn, outfile)) {
       mprinterr("Error: Sugar preparation failed.\n");
       return CpptrajState::ERR;
     }
@@ -1110,27 +1129,31 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   // Try to set terminal residues
   if (!molMasks.empty() || determineMolMask.MaskStringSet()) {
     // Reset terminal status
-    for (int rnum = 0; rnum != coords.Top().Nres(); rnum++)
-      coords.TopPtr()->SetRes(rnum).SetTerminal(false);
+    for (int rnum = 0; rnum != topIn.Nres(); rnum++)
+      topIn.SetRes(rnum).SetTerminal(false);
     // The final residue of each molMask is terminal
     for (std::vector<AtomMask>::const_iterator mask = molMasks.begin();
                                                mask != molMasks.end(); ++mask)
     {
       //std::vector<int> Rnums = coords.Top().ResnumsSelectedBy( *mask );
       int lastAtom = mask->back();
-      int lastRes = coords.Top()[lastAtom].ResNum();
+      int lastRes = topIn[lastAtom].ResNum();
       mprintf("\tSetting residue %s as terminal.\n",
-        coords.Top().TruncResNameNum(lastRes).c_str());
-      coords.TopPtr()->SetRes(lastRes).SetTerminal( true );
+        topIn.TruncResNameNum(lastRes).c_str());
+      topIn.SetRes(lastRes).SetTerminal( true );
     }
     // Set ter based on connectivity
     if (determineMolMask.MaskStringSet()) {
-      if (FindTerByBonds(coords.TopPtr(), determineMolMask)) {
+      if (FindTerByBonds(topIn, determineMolMask)) {
         mprinterr("Error: Could not set TER by connectivity.\n");
         return CpptrajState::ERR;
       }
     }
   }
+
+  // Setup output COORDS
+  outCoords->CoordsSetup( topIn, coords.CoordsInfo() );
+  outCoords->AddFrame( frameIn );
 
   if (!pdbout.empty()) {
     Trajout_Single PDB;
@@ -1138,7 +1161,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       mprinterr("Error: Could not initialize output PDB\n");
       return CpptrajState::ERR;
     }
-    if (PDB.SetupTrajWrite(coords.TopPtr(), coords.CoordsInfo(), 1)) {
+    if (PDB.SetupTrajWrite(outCoords->TopPtr(), outCoords->CoordsInfo(), 1)) {
       mprinterr("Error: Could not set up output PDB\n");
       return CpptrajState::ERR;
     }

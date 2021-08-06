@@ -7,7 +7,6 @@
 class AtomMask;
 class CharMask;
 class CpptrajFile;
-class DataSet_Coords;
 /// Do common tasks to prepare a structure to be loaded into tleap 
 class Exec_PrepareForLeap : public Exec {
   public:
@@ -27,11 +26,11 @@ class Exec_PrepareForLeap : public Exec {
     int CalcAnomericTorsion(double&, int, int, int, Topology const&, Frame const&, std::vector<bool> const&) const;
     int FindRemainingChainCarbons(std::vector<int>&, int, Topology const&, int,
                                   std::vector<bool> const&) const;
-    int IdentifySugar(int, Topology*, Frame const&, CharMask const&, CpptrajFile*, std::set<BondType>&) const;
-    int PrepareSugars(AtomMask&, DataSet_Coords&, Frame const&, CpptrajFile*) const;
-    int FindTerByBonds(Topology*, CharMask const&) const;
+    int IdentifySugar(int, Topology&, Frame const&, CharMask const&, CpptrajFile*, std::set<BondType>&) const;
+    int PrepareSugars(AtomMask&, Topology&, Frame const&, CpptrajFile*) const;
+    int FindTerByBonds(Topology&, CharMask const&) const;
     int SearchForDisulfides(double, std::string const&, std::string const&, bool,
-                            DataSet_Coords&, Frame const&, CpptrajFile*) const;
+                            Topology&, Frame const&, CpptrajFile*) const;
 
     std::string leapunitname_;
     typedef std::pair<NameType, char> PairType;
