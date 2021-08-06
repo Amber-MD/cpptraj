@@ -1055,28 +1055,6 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   Frame frameIn = coords.AllocateFrame();
   coords.GetFrame(tgtframe, frameIn);
 
-  // Check that coords has no issues
-  if (!coords.Top().AtomAltLoc().empty()) {
-    // Must have only 1 atom alternate location
-    char firstAltLoc = ' ';
-    for (std::vector<char>::const_iterator altLocId = coords.Top().AtomAltLoc().begin();
-                                           altLocId != coords.Top().AtomAltLoc().end();
-                                         ++altLocId)
-    {
-      if (firstAltLoc == ' ') {
-        // Find first non-blank alternate location ID
-        if (*altLocId != ' ')
-          firstAltLoc = *altLocId;
-      } else if (*altLocId != ' ' && *altLocId != firstAltLoc) {
-        mprinterr("Error: '%s' has atoms with multiple alternate location IDs, which\n"
-                  "Error:  are not supported by LEaP. Use the 'keepaltloc <char>'\n"
-                  "Error:  keyword for parm/trajin etc. to select which alternate\n"
-                  "Error:  atom locations to keep.\n", coords.legend());
-        return CpptrajState::ERR;
-      }
-    }
-    mprintf("\t'%s' only contains atoms from alternate location ID '%c'\n", coords.legend(), firstAltLoc);
-  }
 
   // Copy input topology, may be modified.
   Topology topIn = coords.Top();
@@ -1115,6 +1093,32 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   if (!altLocArg.empty())
     altLocChar = altLocArg[0];
   std::string stripMask = argIn.GetStringKey("stripmask");
+
+  // Check if alternate atom location IDs are present 
+  if (!coords.Top().AtomAltLoc().empty()) {
+    // For LEaP, must have only 1 atom alternate location
+    char firstAltLoc = ' ';
+    for (std::vector<char>::const_iterator altLocId = coords.Top().AtomAltLoc().begin();
+                                           altLocId != coords.Top().AtomAltLoc().end();
+                                         ++altLocId)
+    {
+      if (firstAltLoc == ' ') {
+        // Find first non-blank alternate location ID
+        if (*altLocId != ' ')
+          firstAltLoc = *altLocId;
+      } else if (*altLocId != ' ' && *altLocId != firstAltLoc) {
+        if (altLocChar == '\0') {
+          altLocChar = firstAltLoc;
+          mprintf("Warning: '%s' has atoms with multiple alternate location IDs, which\n"
+                  "Warning:  are not supported by LEaP. Keeping only '%c'.\n"
+                  "Warning: To choose a specific location to keep use the 'keepaltloc <char>'\n"
+                  "Warning:  keyword.\n", coords.legend(), altLocChar);
+         }
+         break;
+      }
+    }
+  }
+
   if (remove_water)
     mprintf("\tRemoving solvent.\n");
   if (remove_h)
