@@ -10,10 +10,17 @@
 #include <cctype> // tolower
 #include <algorithm> // sort
 
+/** CONSTRUCTOR */
+Exec_PrepareForLeap::Exec_PrepareForLeap() : Exec(COORDS),
+  errorsAreFatal_(true)
+{
+  SetHidden(true);
+}
+
 // Exec_PrepareForLeap::Help()
 void Exec_PrepareForLeap::Help() const
 {
-  mprintf("\tcrdset <coords set> [frame <#>] [out <file>]\n"
+  mprintf("\tcrdset <coords set> [frame <#>] [out <file>] [skiperrors]\n"
           "\t[{nodisulfides |\n"
           "\t  existingdisulfides |\n"
           "\t  [cysmask <cysmask>] [disulfidecut <cut>] [newcysname <name>]}]\n"
@@ -711,7 +718,13 @@ const
       //Residue const& Res = coords.Top().Res(*rnum);
       // See if we recognize this sugar.
       if (IdentifySugar(*rnum, coords.TopPtr(), frameIn, cmask, outfile, sugarBondsToRemove))
-        return 1;
+      {
+        if (errorsAreFatal_)
+          return 1;
+        else
+          mprintf("Warning: Preparation of sugar %s failed, skipping.\n",
+                  coords.Top().TruncResNameNum( *rnum ).c_str());
+      }
     } // END loop over sugar residues
     // Remove bonds between sugars
     for (std::set<BondType>::const_iterator bnd = sugarBondsToRemove.begin();
@@ -934,6 +947,7 @@ const
 // Exec_PrepareForLeap::Execute()
 Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 {
+  errorsAreFatal_ = !argIn.hasKey("skiperrors");
   std::string crdset = argIn.GetStringKey("crdset");
   if (crdset.empty()) {
     mprinterr("Error: Must specify COORDS set with 'crdset'\n");

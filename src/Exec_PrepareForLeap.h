@@ -11,7 +11,7 @@ class DataSet_Coords;
 /// Do common tasks to prepare a structure to be loaded into tleap 
 class Exec_PrepareForLeap : public Exec {
   public:
-    Exec_PrepareForLeap() : Exec(COORDS) { SetHidden(true); }
+    Exec_PrepareForLeap();
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_PrepareForLeap(); }
     RetType Execute(CpptrajState&, ArgList&);
@@ -37,5 +37,6 @@ class Exec_PrepareForLeap : public Exec {
     typedef std::pair<NameType, char> PairType;
     typedef std::map<NameType, char> MapType;
     MapType pdb_to_glycam_; ///< Map PDB residue names to Glycam 1 char names
+    bool errorsAreFatal_;   ///< If false, try to skip errors.
 };
 #endif
