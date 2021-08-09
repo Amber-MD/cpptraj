@@ -78,7 +78,7 @@ PDBfile::SymOp::SymOp(const char* ptr) : idx_(1), ix_(5), iy_(5), iz_(5)
   iy_ = (Itype)atoi(numstr);
   numstr[0] = ptr[5];
   iz_ = (Itype)atoi(numstr);
-  mprintf("DEBUG: idx= %hu  ix= %hu  iy= %hu  iz= %hu\n", idx_, ix_, iy_, iz_);
+  //mprintf("DEBUG: idx= %hu  ix= %hu  iy= %hu  iz= %hu\n", idx_, ix_, iy_, iz_);
 }
 
 /** \return String containing NNNMMM code. */
@@ -485,7 +485,7 @@ PDBfile::Link PDBfile::pdb_Link() {
     // Symmetry ops
     std::copy(linebuffer_+59, linebuffer_+65, sym1);
     std::copy(linebuffer_+66, linebuffer_+72, sym2);
-    mprintf("DEBUG: Sym1: %s  Sym2: %s\n", sym1, sym2);
+    //mprintf("DEBUG: Sym1: %s  Sym2: %s\n", sym1, sym2);
   } else
     code2 = ' ';
   // Residue numbers TODO restore nulled chars?

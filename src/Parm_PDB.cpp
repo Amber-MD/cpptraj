@@ -186,8 +186,8 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
   if (!links.empty()) {
     for (Larray::const_iterator link = links.begin(); link != links.end(); ++link) {
       // LINK records that require symmetry operations are not yet supported.
-      mprintf("DEBUG: LINK1 %s %s %i %c (%i) %s\n", link->aname1(), link->rname1(), link->Rnum1(), link->Chain1(), (int)link->Sym1().NoOp(), link->Sym1().OpString().c_str());
-      mprintf("DEBUG: LINK2 %s %s %i %c (%i) %s\n", link->aname2(), link->rname2(), link->Rnum2(), link->Chain2(), (int)link->Sym2().NoOp(), link->Sym2().OpString().c_str());
+      //mprintf("DEBUG: LINK1 %s %s %i %c (%i) %s\n", link->aname1(), link->rname1(), link->Rnum1(), link->Chain1(), (int)link->Sym1().NoOp(), link->Sym1().OpString().c_str());
+      //mprintf("DEBUG: LINK2 %s %s %i %c (%i) %s\n", link->aname2(), link->rname2(), link->Rnum2(), link->Chain2(), (int)link->Sym2().NoOp(), link->Sym2().OpString().c_str());
       if (!link->Sym1().NoOp() || !link->Sym2().NoOp()) {
         mprintf("Warning: LINK between atom %s res %s %i %c and atom %s res %s %i %c requires\n"
                 "Warning:   symmetry operations, which is not yet supported. Skipping.\n",
