@@ -23,7 +23,8 @@ void Exec_PrepareForLeap::Help() const
 {
   mprintf("\tcrdset <coords set> [frame <#>] name <out coords set> [pdbout <pdbfile>]\n"
           "\t[leapunitname <unit>] [out <leap input file> [skiperrors]\n"
-          "\t[nowat] [noh] [keepaltloc <alt loc ID>] [stripmask <stripmask>]\n"
+          "\t[nowat [watermask <watermask>] [noh] [keepaltloc <alt loc ID>]\n"
+          "\t[stripmask <stripmask>]\n"
           "\t[{nodisulfides |\n"
           "\t  existingdisulfides |\n"
           "\t  [cysmask <cysmask>] [disulfidecut <cut>] [newcysname <name>]}]\n"
@@ -948,7 +949,8 @@ const
 /** Modify coords according to user wishes. */
 int Exec_PrepareForLeap::ModifyCoords( Topology& topIn, Frame& frameIn,
                                        bool remove_water, bool remove_h,
-                                       char altLocChar, std::string const& stripMask )
+                                       char altLocChar, std::string const& stripMask,
+                                       std::string const& waterMask )
 const
 {
   // Create a mask denoting which atoms will be kept.
@@ -968,6 +970,19 @@ const
     }
   }
   if (remove_water) {
+    // Do not use cpptraj definition of solvent in case we have e.g. bound HOH
+    AtomMask mask;
+    if (mask.SetMaskString( waterMask )) {
+      mprinterr("Error: Invalid solvent mask string '%s'\n", waterMask.c_str());
+      return 1;
+    }
+    if (topIn.SetupIntegerMask( mask )) return 1;
+    mask.MaskInfo();
+    if (!mask.None()) {
+      for (AtomMask::const_iterator atm = mask.begin(); atm != mask.end(); ++atm)
+        atomsToKeep[*atm] = false;
+    }
+/*
     unsigned int nRemoved = 0;
     for (Topology::mol_iterator mol = topIn.MolStart(); mol != topIn.MolEnd(); ++mol) {
       if (mol->IsSolvent()) {
@@ -985,6 +1000,7 @@ const
       mprintf("\tNo solvent to remove.\n");
     else
       mprintf("\t# solvent removed: %u\n", nRemoved);
+*/
   }
   if (remove_h) {
     for (Topology::atom_iterator atom = topIn.begin(); atom != topIn.end(); ++atom) {
@@ -1089,8 +1105,9 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     mprintf("\tWill attempt to prepare sugars.\n");
 
   // Deal with any coordinate modifications
-  bool remove_water = argIn.hasKey("nowat");
-  bool remove_h     = argIn.hasKey("noh");
+  bool remove_water     = argIn.hasKey("nowat");
+  std::string waterMask = argIn.GetStringKey("watermask", ":HOH");
+  bool remove_h         = argIn.hasKey("noh");
   std::string altLocArg = argIn.GetStringKey("keepaltloc");
   char altLocChar = '\0';
   if (!altLocArg.empty())
@@ -1123,14 +1140,14 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   if (remove_water)
-    mprintf("\tRemoving solvent.\n");
+    mprintf("\tRemoving solvent. Solvent mask= '%s'\n", waterMask.c_str());
   if (remove_h)
     mprintf("\tRemoving hydrogens.\n");
   if (altLocChar != '\0')
     mprintf("\tIf present, keeping only alternate atom locations denoted by '%c'\n", altLocChar);
   if (!stripMask.empty())
     mprintf("\tRemoving atoms in mask '%s'\n", stripMask.c_str());
-  if (ModifyCoords( topIn, frameIn, remove_water, remove_h, altLocChar, stripMask ))
+  if (ModifyCoords( topIn, frameIn, remove_water, remove_h, altLocChar, stripMask, waterMask ))
   {
     mprinterr("Error: Modification of '%s' failed.\n", coords.legend());
     return CpptrajState::ERR;

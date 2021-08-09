@@ -31,7 +31,7 @@ class Exec_PrepareForLeap : public Exec {
     int FindTerByBonds(Topology&, CharMask const&) const;
     int SearchForDisulfides(double, std::string const&, std::string const&, bool,
                             Topology&, Frame const&, CpptrajFile*) const;
-    int ModifyCoords(Topology&, Frame&, bool, bool, char, std::string const&) const;
+    int ModifyCoords(Topology&, Frame&, bool, bool, char, std::string const&, std::string const&) const;
 
     std::string leapunitname_;
     typedef std::pair<NameType, char> PairType;
