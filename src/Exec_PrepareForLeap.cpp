@@ -25,6 +25,9 @@ void Exec_PrepareForLeap::Help() const
           "\t[leapunitname <unit>] [out <leap input file> [skiperrors]\n"
           "\t[nowat [watermask <watermask>] [noh] [keepaltloc <alt loc ID>]\n"
           "\t[stripmask <stripmask>]\n"
+          "\t[{nohisdetect |\n"
+          "\t  [nd1 <nd1>] [ne2 <ne2] [hisname <his>] [hiename <hie>]\n"
+          "\t  [hidname <hid>] [hipname <hip]}]\n"
           "\t[{nodisulfides |\n"
           "\t  existingdisulfides |\n"
           "\t  [cysmask <cysmask>] [disulfidecut <cut>] [newcysname <name>]}]\n"
@@ -1160,8 +1163,22 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   std::vector<int> HisResIdxs;
   std::vector<NameType> HisResNames;
   if (!argIn.hasKey("nohisdetect")) {
+    std::string nd1name = argIn.GetStringKey("nd1", "ND1");
+    std::string ne2name = argIn.GetStringKey("ne2", "NE2");
+    std::string hisname = argIn.GetStringKey("hisname", "HIS");
+    std::string hiename = argIn.GetStringKey("hiename", "HIE");
+    std::string hidname = argIn.GetStringKey("hidname", "HID");
+    std::string hipname = argIn.GetStringKey("hipname", "HIP");
+    mprintf("\tHistidine protonation detection:\n");
+    mprintf("\t\tND1 atom name                   : %s\n", nd1name.c_str());
+    mprintf("\t\tNE2 atom name                   : %s\n", ne2name.c_str());
+    mprintf("\t\tHistidine original residue name : %s\n", hisname.c_str());
+    mprintf("\t\tEpsilon-protonated residue name : %s\n", hiename.c_str());
+    mprintf("\t\tDelta-protonated residue name   : %s\n", hidname.c_str());
+    mprintf("\t\tDoubly-protonated residue name  : %s\n", hipname.c_str());
     if (DetermineHisProt( HisResNames, HisResIdxs, topIn,
-                          "ND1", "NE2", "HIS", "HIE", "HID", "HIP")) {
+                          nd1name, ne2name,
+                          hisname, hiename, hidname, hipname)) {
       mprinterr("Error: HIS protonation detection failed.\n");
       return CpptrajState::ERR;
     }
