@@ -1129,6 +1129,11 @@ const
       HisResNames.push_back( HidName );
     else if (ne2h > 0)
       HisResNames.push_back( HieName );
+    else {
+      // Default to epsilon
+      mprintf("\tUsing default name '%s' for %s\n", *HieName, topIn.TruncResNameNum(*rnum).c_str());
+      HisResNames.push_back( HieName );
+    }
   }
   mprintf("\tFinal names:\n");
   for (unsigned int idx = 0; idx < HisResIdxs.size(); idx++)
