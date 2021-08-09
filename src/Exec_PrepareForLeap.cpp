@@ -975,7 +975,10 @@ const
                                   seg != mol->MolUnit().segEnd();
                                 ++seg)
           for (int satm = seg->Begin(); satm < seg->End(); ++satm)
+          {
             atomsToKeep[satm] = false;
+            ++nRemoved;
+          }
       }
     }
     if (nRemoved == 0)
