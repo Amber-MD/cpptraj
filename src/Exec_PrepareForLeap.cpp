@@ -1048,6 +1048,58 @@ const
   return 0;
 }
 
+/** Try to determine histidine protonation.
+  * \param HisResNames Array containing final histidine residue names.
+  * \param HisResIdxs Array containing residue indices of histidine residues (correspond to HisResNames).
+  * \param topIn Input topology.
+  * \param ND1 ND1 atom name.
+  * \param NE2 NE2 atom name.
+  * \param HisName PDB histidine name.
+  * \param HieName Name for epsilon-protonated His.
+  * \param HidName Name for delta-protonated His.
+  * \param HipName Name for doubly-protonated His.
+  */
+int Exec_PrepareForLeap::DetermineHisProt( std::vector<NameType>& HisResNames,
+                                           std::vector<int>& HisResIdxs,
+                                           Topology const& topIn,
+                                           NameType const& ND1,
+                                           NameType const& NE2,
+                                           NameType const& HisName,
+                                           NameType const& HieName,
+                                           NameType const& HidName,
+                                           NameType const& HipName )
+const
+{
+  std::string hisMaskStr = ":" + HisName.Truncated();
+  AtomMask mask;
+  if (mask.SetMaskString( hisMaskStr )) {
+    mprinterr("Error: Invalid His mask string: %s\n", hisMaskStr.c_str());
+    return 1;
+  }
+  if ( topIn.SetupIntegerMask( mask )) return 1;
+  mask.MaskInfo();
+  HisResIdxs = topIn.ResnumsSelectedBy( mask );
+
+  for (std::vector<int>::const_iterator rnum = HisResIdxs.begin();
+                                        rnum != HisResIdxs.end(); ++rnum)
+  {
+    int nd1idx = -1;
+    int ne2idx = -1;
+    Residue const& hisRes = topIn.Res( *rnum );
+    for (int at = hisRes.FirstAtom(); at < hisRes.LastAtom(); ++at)
+    {
+      if ( (topIn[at].Name() == ND1 ) )
+        nd1idx = at;
+      else if ( (topIn[at].Name() == NE2 ) )
+        ne2idx = at;
+    }
+    mprintf("DEBUG: %s nd1idx= %i ne2idx= %i\n",
+            topIn.TruncResNameNum( *rnum ).c_str(), nd1idx+1, ne2idx+1);
+  }
+
+  return 0;
+}
+
 // Exec_PrepareForLeap::Execute()
 Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 {
@@ -1104,6 +1156,17 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   else
     mprintf("\tWill attempt to prepare sugars.\n");
 
+  // Do histidine detection before any atoms are removed so we keep H if present
+  std::vector<int> HisResIdxs;
+  std::vector<NameType> HisResNames;
+  if (!argIn.hasKey("nohisdetect")) {
+    if (DetermineHisProt( HisResNames, HisResIdxs, topIn,
+                          "ND1", "NE2", "HIS", "HIE", "HID", "HIP")) {
+      mprinterr("Error: HIS protonation detection failed.\n");
+      return CpptrajState::ERR;
+    }
+  }
+
   // Deal with any coordinate modifications
   bool remove_water     = argIn.hasKey("nowat");
   std::string waterMask = argIn.GetStringKey("watermask", ":HOH");
@@ -1115,11 +1178,11 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   std::string stripMask = argIn.GetStringKey("stripmask");
 
   // Check if alternate atom location IDs are present 
-  if (!coords.Top().AtomAltLoc().empty()) {
+  if (!topIn.AtomAltLoc().empty()) {
     // For LEaP, must have only 1 atom alternate location
     char firstAltLoc = ' ';
-    for (std::vector<char>::const_iterator altLocId = coords.Top().AtomAltLoc().begin();
-                                           altLocId != coords.Top().AtomAltLoc().end();
+    for (std::vector<char>::const_iterator altLocId = topIn.AtomAltLoc().begin();
+                                           altLocId != topIn.AtomAltLoc().end();
                                          ++altLocId)
     {
       if (firstAltLoc == ' ') {

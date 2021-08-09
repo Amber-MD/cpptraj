@@ -32,6 +32,9 @@ class Exec_PrepareForLeap : public Exec {
     int SearchForDisulfides(double, std::string const&, std::string const&, bool,
                             Topology&, Frame const&, CpptrajFile*) const;
     int ModifyCoords(Topology&, Frame&, bool, bool, char, std::string const&, std::string const&) const;
+    int DetermineHisProt(std::vector<NameType>&, std::vector<int>&, Topology const&,
+                         NameType const&, NameType const&,
+                         NameType const&, NameType const&, NameType const&, NameType const&) const;
 
     std::string leapunitname_;
     typedef std::pair<NameType, char> PairType;
