@@ -1372,6 +1372,10 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     }
   }
 
+  // Change HIS res names
+  for (unsigned int idx = 0; idx != HisResIdxs.size(); idx++)
+    ChangeResName( topIn.SetRes(HisResIdxs[idx]), HisResNames[idx] );
+
   // Try to set terminal residues
   if (!molMasks.empty() || determineMolMask.MaskStringSet()) {
     // Reset terminal status
