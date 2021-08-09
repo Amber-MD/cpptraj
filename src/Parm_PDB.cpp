@@ -111,9 +111,9 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
       links.push_back( infile.pdb_Link() );
       if (debug_ > 0) {
         PDBfile::Link const& lr = links.back();
-        mprintf("DEBUG: Link record: %s %s %i to %s %s %i\n",
-                lr.aname1(), lr.rname1(), lr.Rnum1(),
-                lr.aname2(), lr.rname2(), lr.Rnum2());
+        mprintf("DEBUG: Link record: %s %s %i %c to %s %s %i %c\n",
+                lr.aname1(), lr.rname1(), lr.Rnum1(), lr.Chain1(),
+                lr.aname2(), lr.rname2(), lr.Rnum2(), lr.Chain2());
       }
     } else if (infile.RecType() == PDBfile::ATOM) {
 #     ifdef TIMER
@@ -185,6 +185,16 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
   // Add LINK bonds. Need to search for original residue numbers here.
   if (!links.empty()) {
     for (Larray::const_iterator link = links.begin(); link != links.end(); ++link) {
+      // LINK records that require symmetry operations are not yet supported.
+      mprintf("DEBUG: LINK1 %s %s %i %c (%i) %s\n", link->aname1(), link->rname1(), link->Rnum1(), link->Chain1(), (int)link->Sym1().NoOp(), link->Sym1().OpString().c_str());
+      mprintf("DEBUG: LINK2 %s %s %i %c (%i) %s\n", link->aname2(), link->rname2(), link->Rnum2(), link->Chain2(), (int)link->Sym2().NoOp(), link->Sym2().OpString().c_str());
+      if (!link->Sym1().NoOp() || !link->Sym2().NoOp()) {
+        mprintf("Warning: LINK between atom %s res %s %i %c and atom %s res %s %i %c requires\n"
+                "Warning:   symmetry operations, which is not yet supported. Skipping.\n",
+                link->aname1(), link->rname1(), link->Rnum1(), link->Chain1(),
+                link->aname2(), link->rname2(), link->Rnum2(), link->Chain2());
+        continue;
+      }
       Topology::res_iterator r1 = TopIn.ResEnd();
       Topology::res_iterator r2 = TopIn.ResEnd();
       for (Topology::res_iterator res = TopIn.ResStart(); res != TopIn.ResEnd(); ++res) {

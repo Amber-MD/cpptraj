@@ -1,9 +1,159 @@
 #include <cstdio>  // sscanf
 #include <cstdlib> // atoi, atof
 #include <cstring> // strncmp
+#include <algorithm> // std::copy
 #include "PDBfile.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // integerToString
 
+// ----- SSBOND Class ---------------------------------------------------------- 
+PDBfile::SSBOND::SSBOND() :
+  idx1_(-1), idx2_(-1), rnum1_(-1), rnum2_(-1), 
+  chain1_(' '), chain2_(' '), icode1_(' '), icode2_(' ')
+{
+  std::fill(name1_, name1_+4, '\0');
+  std::fill(name2_, name1_+4, '\0');
+}
+
+PDBfile::SSBOND::SSBOND(int idx1, int idx2, Residue const& r1, Residue const& r2) :
+  idx1_(  idx1),                idx2_(  idx2),
+  rnum1_( r1.OriginalResNum()), rnum2_( r2.OriginalResNum()),
+  chain1_(r1.ChainId()),        chain2_(r2.ChainId()),
+  icode1_(r1.Icode()),          icode2_(r2.Icode())
+{
+  std::copy(r1.c_str(), r1.c_str()+3, name1_);
+  name1_[3] = '\0';
+  std::copy(r2.c_str(), r2.c_str()+3, name2_);
+  name2_[3] = '\0';
+}
+
+PDBfile::SSBOND::SSBOND(SSBOND const& rhs) :
+  idx1_(  rhs.idx1_),   idx2_(  rhs.idx2_),
+  rnum1_( rhs.rnum1_),  rnum2_( rhs.rnum2_),
+  chain1_(rhs.chain1_), chain2_(rhs.chain2_),
+  icode1_(rhs.icode1_), icode2_(rhs.icode2_)
+{
+  std::copy(rhs.name1_, rhs.name1_+4, name1_);
+  std::copy(rhs.name2_, rhs.name2_+4, name2_);
+}
+
+PDBfile::SSBOND& PDBfile::SSBOND::operator=(SSBOND const& rhs) {
+  if (this != &rhs) {
+    idx1_ = rhs.idx1_;
+    idx2_ = rhs.idx2_;
+    rnum1_ = rhs.rnum1_;
+    rnum2_ = rhs.rnum2_;
+    chain1_ = rhs.chain1_;
+    chain2_ = rhs.chain2_;
+    icode1_ = rhs.icode1_;
+    icode2_ = rhs.icode2_;
+    std::copy(rhs.name1_, rhs.name1_+3, name1_);
+    std::copy(rhs.name2_, rhs.name2_+3, name2_);
+  }
+  return *this;
+}
+
+// ----- SymOp Class -----------------------------------------------------------
+/** CONSTRUCTOR - no op. */
+PDBfile::SymOp::SymOp() : idx_(1), ix_(5), iy_(5), iz_(5)
+{}
+
+/** CONSTRUCTOR - construct from NNNMMM character string. */
+PDBfile::SymOp::SymOp(const char* ptr) : idx_(1), ix_(5), iy_(5), iz_(5)
+{
+  if (ptr == 0) return;
+  // DO NNN
+  char numstr[4];
+  numstr[0] = ptr[0];
+  numstr[1] = ptr[1];
+  numstr[2] = ptr[2];
+  numstr[3] = '\0';
+  // TODO check for overflow? Shouldnt be possible with a 3 digit number
+  idx_ = (Itype)atoi( numstr );
+  // DO MMM
+  numstr[1] = '\0';
+  numstr[0] = ptr[3];
+  ix_ = (Itype)atoi(numstr);
+  numstr[0] = ptr[4];
+  iy_ = (Itype)atoi(numstr);
+  numstr[0] = ptr[5];
+  iz_ = (Itype)atoi(numstr);
+  mprintf("DEBUG: idx= %hu  ix= %hu  iy= %hu  iz= %hu\n", idx_, ix_, iy_, iz_);
+}
+
+/** \return String containing NNNMMM code. */
+std::string PDBfile::SymOp::OpString() const {
+  std::string out;
+  std::string nstr = integerToString( (int)idx_ );
+  if (idx_ > 99)
+    out.assign( nstr );
+  else if (idx_ > 9)
+    out = " " + nstr;
+  else
+    out = "  " + nstr;
+  out.append( integerToString( ix_ ) );
+  out.append( integerToString( iy_ ) );
+  out.append( integerToString( iz_ ) );
+  return out;
+}
+
+// ----- Link Class ------------------------------------------------------------
+PDBfile::Link::Link() : rnum1_(-1), rnum2_(-1), altloc1_(' '), altloc2_(' '),
+                        chain1_(' '), chain2_(' '), icode1_(' '), icode2_(' ')
+{
+  std::fill(aname1_, aname1_+5, '\0');
+  std::fill(aname2_, aname2_+5, '\0');
+  std::fill(rname1_, rname1_+4, '\0');
+  std::fill(rname2_, rname2_+4, '\0');
+}
+
+PDBfile::Link::Link(const char* a1, char alt1, const char* r1, char ch1, int rnum1, char code1,
+                    const char* a2, char alt2, const char* r2, char ch2, int rnum2, char code2,
+                    SymOp const& S1, SymOp const& S2) :
+  rnum1_(rnum1), rnum2_(rnum2), altloc1_(alt1), altloc2_(alt2), chain1_(ch1), chain2_(ch2),
+  icode1_(code1), icode2_(code2), sym1_(S1), sym2_(S2)
+{
+  std::copy(a1, a1+4, aname1_); aname1_[4] = '\0'; 
+  std::copy(a2, a2+4, aname2_); aname2_[4] = '\0'; 
+  std::copy(r1, r1+3, rname1_); rname1_[3] = '\0'; 
+  std::copy(r2, r2+3, rname2_); rname2_[3] = '\0';
+} 
+
+/** Link COPY CONSTRUCTOR */
+PDBfile::Link::Link(Link const& rhs) : rnum1_(rhs.rnum1_), rnum2_(rhs.rnum2_),
+                                       altloc1_(rhs.altloc1_), altloc2_(rhs.altloc2_),
+                                       chain1_(rhs.chain1_), chain2_(rhs.chain2_),
+                                       icode1_(rhs.icode1_), icode2_(rhs.icode2_),
+                                       sym1_(rhs.sym1_), sym2_(rhs.sym2_)
+{
+  std::copy(rhs.aname1_, rhs.aname1_+5, aname1_);
+  std::copy(rhs.aname2_, rhs.aname2_+5, aname2_);
+  std::copy(rhs.rname1_, rhs.rname1_+4, rname1_);
+  std::copy(rhs.rname2_, rhs.rname2_+4, rname2_);
+}
+
+/** Link ASSIGNMENT */
+PDBfile::Link& PDBfile::Link::operator=(Link const& rhs) {
+  if (this != &rhs) {
+    rnum1_ = rhs.rnum1_;
+    rnum2_ = rhs.rnum2_;
+    altloc1_ = rhs.altloc1_;
+    altloc2_ = rhs.altloc2_;
+    chain1_ = rhs.chain1_;
+    chain2_ = rhs.chain2_;
+    icode1_ = rhs.icode1_;
+    icode2_ = rhs.icode2_;
+    sym1_   = rhs.sym1_;
+    sym2_   = rhs.sym2_;
+    std::copy(rhs.aname1_, rhs.aname1_+4, aname1_);
+    std::copy(rhs.aname2_, rhs.aname2_+4, aname2_);
+    std::copy(rhs.rname1_, rhs.rname1_+3, rname1_);
+    std::copy(rhs.rname2_, rhs.rname2_+3, rname2_);
+  }
+  return *this;
+}
+
+// ===== PDBfile class =========================================================
 /// PDB record types
 // NOTE: Must correspond with PDB_RECTYPE
 const char* PDBfile::PDB_RECNAME[] = { 
@@ -313,6 +463,11 @@ PDBfile::Link PDBfile::pdb_Link() {
       lb_size = 56;
   }
   char a1[4], a2[4], r1[3], r2[3], alt1, alt2, ch1, ch2, code1, code2;
+  char sym1[7], sym2[7];
+  std::fill(sym1, sym1+6, ' ');
+  std::fill(sym2, sym2+6, ' ');
+  sym1[6] = '\0';
+  sym2[6] = '\0';
   int rnum1, rnum2;
   // Site 1
   std::copy(linebuffer_+12, linebuffer_+16, a1);
@@ -325,9 +480,13 @@ PDBfile::Link PDBfile::pdb_Link() {
   alt2 = linebuffer_[46];
   std::copy(linebuffer_+47, linebuffer_+50, r2);
   ch2 = linebuffer_[51];
-  if (lb_size > 56)
+  if (lb_size > 56) {
     code2 = linebuffer_[56];
-  else
+    // Symmetry ops
+    std::copy(linebuffer_+59, linebuffer_+65, sym1);
+    std::copy(linebuffer_+66, linebuffer_+72, sym2);
+    mprintf("DEBUG: Sym1: %s  Sym2: %s\n", sym1, sym2);
+  } else
     code2 = ' ';
   // Residue numbers TODO restore nulled chars?
   linebuffer_[26] = '\0';
@@ -350,7 +509,8 @@ PDBfile::Link PDBfile::pdb_Link() {
   }
 */
   return Link( a1, alt1, r1, ch1, rnum1, code1,
-               a2, alt2, r2, ch2, rnum2, code2 );
+               a2, alt2, r2, ch2, rnum2, code2,
+               SymOp(sym1), SymOp(sym2) );
 }
 
 // -----------------------------------------------------------------------------
@@ -609,98 +769,4 @@ void PDBfile::WriteSSBOND(int num, SSBOND const& ss, float distIn) {
 void PDBfile::WriteENDMDL() { Printf("ENDMDL\n"); }
 
 void PDBfile::WriteEND()    { Printf("END   \n"); }
-// -----------------------------------------------------------------------------
-PDBfile::SSBOND::SSBOND() :
-  idx1_(-1), idx2_(-1), rnum1_(-1), rnum2_(-1), 
-  chain1_(' '), chain2_(' '), icode1_(' '), icode2_(' ')
-{
-  std::fill(name1_, name1_+4, '\0');
-  std::fill(name2_, name1_+4, '\0');
-}
 
-PDBfile::SSBOND::SSBOND(int idx1, int idx2, Residue const& r1, Residue const& r2) :
-  idx1_(  idx1),                idx2_(  idx2),
-  rnum1_( r1.OriginalResNum()), rnum2_( r2.OriginalResNum()),
-  chain1_(r1.ChainId()),        chain2_(r2.ChainId()),
-  icode1_(r1.Icode()),          icode2_(r2.Icode())
-{
-  std::copy(r1.c_str(), r1.c_str()+3, name1_);
-  name1_[3] = '\0';
-  std::copy(r2.c_str(), r2.c_str()+3, name2_);
-  name2_[3] = '\0';
-}
-
-PDBfile::SSBOND::SSBOND(SSBOND const& rhs) :
-  idx1_(  rhs.idx1_),   idx2_(  rhs.idx2_),
-  rnum1_( rhs.rnum1_),  rnum2_( rhs.rnum2_),
-  chain1_(rhs.chain1_), chain2_(rhs.chain2_),
-  icode1_(rhs.icode1_), icode2_(rhs.icode2_)
-{
-  std::copy(rhs.name1_, rhs.name1_+4, name1_);
-  std::copy(rhs.name2_, rhs.name2_+4, name2_);
-}
-
-PDBfile::SSBOND& PDBfile::SSBOND::operator=(SSBOND const& rhs) {
-  if (this != &rhs) {
-    idx1_ = rhs.idx1_;
-    idx2_ = rhs.idx2_;
-    rnum1_ = rhs.rnum1_;
-    rnum2_ = rhs.rnum2_;
-    chain1_ = rhs.chain1_;
-    chain2_ = rhs.chain2_;
-    icode1_ = rhs.icode1_;
-    icode2_ = rhs.icode2_;
-    std::copy(rhs.name1_, rhs.name1_+3, name1_);
-    std::copy(rhs.name2_, rhs.name2_+3, name2_);
-  }
-  return *this;
-}
-// -----------------------------------------------------------------------------
-PDBfile::Link::Link() : rnum1_(-1), rnum2_(-1), altloc1_(' '), altloc2_(' '),
-                        chain1_(' '), chain2_(' '), icode1_(' '), icode2_(' ')
-{
-  std::fill(aname1_, aname1_+5, '\0');
-  std::fill(aname2_, aname2_+5, '\0');
-  std::fill(rname1_, rname1_+4, '\0');
-  std::fill(rname2_, rname2_+4, '\0');
-}
-
-PDBfile::Link::Link(const char* a1, char alt1, const char* r1, char ch1, int rnum1, char code1,
-                    const char* a2, char alt2, const char* r2, char ch2, int rnum2, char code2) :
-  rnum1_(rnum1), rnum2_(rnum2), altloc1_(alt1), altloc2_(alt2), chain1_(ch1), chain2_(ch2),
-  icode1_(code1), icode2_(code2)
-{
-  std::copy(a1, a1+4, aname1_); aname1_[4] = '\0'; 
-  std::copy(a2, a2+4, aname2_); aname2_[4] = '\0'; 
-  std::copy(r1, r1+3, rname1_); rname1_[3] = '\0'; 
-  std::copy(r2, r2+3, rname2_); rname2_[3] = '\0';
-} 
-
-PDBfile::Link::Link(Link const& rhs) : rnum1_(rhs.rnum1_), rnum2_(rhs.rnum2_),
-                                       altloc1_(rhs.altloc1_), altloc2_(rhs.altloc2_),
-                                       chain1_(rhs.chain1_), chain2_(rhs.chain2_),
-                                       icode1_(rhs.icode1_), icode2_(rhs.icode2_)
-{
-  std::copy(rhs.aname1_, rhs.aname1_+5, aname1_);
-  std::copy(rhs.aname2_, rhs.aname2_+5, aname2_);
-  std::copy(rhs.rname1_, rhs.rname1_+4, rname1_);
-  std::copy(rhs.rname2_, rhs.rname2_+4, rname2_);
-}
-
-PDBfile::Link& PDBfile::Link::operator=(Link const& rhs) {
-  if (this != &rhs) {
-    rnum1_ = rhs.rnum1_;
-    rnum2_ = rhs.rnum2_;
-    altloc1_ = rhs.altloc1_;
-    altloc2_ = rhs.altloc2_;
-    chain1_ = rhs.chain1_;
-    chain2_ = rhs.chain2_;
-    icode1_ = rhs.icode1_;
-    icode2_ = rhs.icode2_;
-    std::copy(rhs.aname1_, rhs.aname1_+4, aname1_);
-    std::copy(rhs.aname2_, rhs.aname2_+4, aname2_);
-    std::copy(rhs.rname1_, rhs.rname1_+3, rname1_);
-    std::copy(rhs.rname2_, rhs.rname2_+3, rname2_);
-  }
-  return *this;
-}

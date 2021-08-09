@@ -341,7 +341,7 @@ NameType.o : NameType.cpp CpptrajStdio.h NameType.h
 NetcdfFile.o : NetcdfFile.cpp Atom.h AtomMask.h Box.h Constants.h CoordinateInfo.h CpptrajStdio.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NC_Routines.h NameType.h NetcdfFile.h Parallel.h ParallelNetcdf.h ReplicaDimArray.h Residue.h Segment.h SymbolExporting.h Unit.h Vec3.h Version.h
 OMM_helpers.o : OMM_helpers.cpp Constants.h OMM_helpers.h ParameterTypes.h
 OutputTrajCommon.o : OutputTrajCommon.cpp ActionFrameCounter.h ArgList.h Atom.h AtomMask.h AtomType.h BaseIOtype.h Box.h Constants.h CoordinateInfo.h CpptrajStdio.h FileName.h FileTypes.h Frame.h FramePtrArray.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h OutputTrajCommon.h Parallel.h ParameterHolders.h ParameterSet.h ParameterTypes.h Range.h ReplicaDimArray.h Residue.h Segment.h StringRoutines.h SymbolExporting.h Topology.h TrajectoryFile.h TrajectoryIO.h TypeNameHolder.h Unit.h Vec3.h
-PDBfile.o : PDBfile.cpp Atom.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h NameType.h PDBfile.h Parallel.h Residue.h SymbolExporting.h
+PDBfile.o : PDBfile.cpp Atom.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h NameType.h PDBfile.h Parallel.h Residue.h StringRoutines.h SymbolExporting.h
 PairList.o : PairList.cpp Atom.h AtomMask.h Box.h CoordinateInfo.h CpptrajStdio.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h PairList.h Parallel.h ReplicaDimArray.h Residue.h Segment.h StringRoutines.h SymbolExporting.h Timer.h Unit.h Vec3.h
 Parallel.o : Parallel.cpp Parallel.h
 ParallelNetcdf.o : ParallelNetcdf.cpp CpptrajStdio.h Parallel.h ParallelNetcdf.h
