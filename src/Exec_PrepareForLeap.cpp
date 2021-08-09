@@ -1083,6 +1083,8 @@ const
   mask.MaskInfo();
   HisResIdxs = topIn.ResnumsSelectedBy( mask );
 
+  HisResNames.clear();
+  HisResNames.reserve( HisResIdxs.size() );
   for (std::vector<int>::const_iterator rnum = HisResIdxs.begin();
                                         rnum != HisResIdxs.end(); ++rnum)
   {
@@ -1098,7 +1100,39 @@ const
     }
     mprintf("DEBUG: %s nd1idx= %i ne2idx= %i\n",
             topIn.TruncResNameNum( *rnum ).c_str(), nd1idx+1, ne2idx+1);
+    // Check for H bonded to nd1/ne2
+    int nd1h = 0;
+    for (Atom::bond_iterator bat = topIn[nd1idx].bondbegin();
+                             bat != topIn[nd1idx].bondend();
+                           ++bat)
+      if ( topIn[*bat].Element() == Atom::HYDROGEN)
+        ++nd1h;
+    if (nd1h > 1) {
+      mprinterr("Error: More than 1 hydrogen bonded to %s\n",
+                topIn.ResNameNumAtomNameNum(nd1idx).c_str());
+      return 1;
+    }
+    int ne2h = 0;
+    for (Atom::bond_iterator bat = topIn[ne2idx].bondbegin();
+                             bat != topIn[ne2idx].bondend();
+                           ++bat)
+      if ( topIn[*bat].Element() == Atom::HYDROGEN)
+        ++ne2h;
+    if (ne2h > 1) {
+      mprinterr("Error: More than 1 hydrogen bonded to %s\n",
+                topIn.ResNameNumAtomNameNum(ne2idx).c_str());
+      return 1;
+    }
+    if (nd1h > 0 && ne2h > 0)
+      HisResNames.push_back( HipName );
+    else if (nd1h > 0)
+      HisResNames.push_back( HidName );
+    else if (ne2h > 0)
+      HisResNames.push_back( HieName );
   }
+  mprintf("\tFinal names:\n");
+  for (unsigned int idx = 0; idx < HisResIdxs.size(); idx++)
+    mprintf("\t\t%i %s\n", HisResIdxs[idx]+1, *HisResNames[idx]);
 
   return 0;
 }
