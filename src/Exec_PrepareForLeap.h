@@ -15,6 +15,9 @@ class Exec_PrepareForLeap : public Exec {
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_PrepareForLeap(); }
     RetType Execute(CpptrajState&, ArgList&);
   private:
+    inline void ChangeResName(Residue&, NameType const&) const;
+    inline void ChangeAtomName(Atom&, NameType const&) const;
+
     /// Set a reduced PDB res to glycam map when dat file not found.
     void SetGlycamPdbResMap();
     /// Load PDB res to glycam map from dat file

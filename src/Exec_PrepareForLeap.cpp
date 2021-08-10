@@ -46,17 +46,17 @@ void Exec_PrepareForLeap::Help() const
 }
 
 /// Used to change residue name to nameIn
-static inline void ChangeResName(Residue& res, NameType const& nameIn) {
+void Exec_PrepareForLeap::ChangeResName(Residue& res, NameType const& nameIn) const {
   if (res.Name() != nameIn) {
-    mprintf("\t    Changing residue %s to %s\n", *(res.Name()), *nameIn);
+    if (debug_ > 0) mprintf("\t    Changing residue %s to %s\n", *(res.Name()), *nameIn);
     res.SetName( nameIn );
   }
 }
 
 /// Used to change atom name to nameIn
-static inline void ChangeAtomName(Atom& atm, NameType const& nameIn) {
+void Exec_PrepareForLeap::ChangeAtomName(Atom& atm, NameType const& nameIn) const {
   if (atm.Name() != nameIn) {
-    mprintf("\t    Changing atom %s to %s\n", *(atm.Name()), *nameIn);
+    if (debug_ > 0) mprintf("\t    Changing atom %s to %s\n", *(atm.Name()), *nameIn);
     atm.SetName( nameIn );
   }
 }
@@ -78,7 +78,7 @@ static std::string LinkageCode(char glycamChar, std::set<NameType> const& linkag
   std::string linkstr;
   for (std::set<NameType>::const_iterator it = linkages.begin(); it != linkages.end(); ++it)
     linkstr.append( it->Truncated() );
-  mprintf("\t  linkstr= '%s'\n", linkstr.c_str());
+  //mprintf("\t  linkstr= '%s'\n", linkstr.c_str());
   switch (glycamChar) {
     case 'S':
       if      (linkstr == "C2") linkcode = "0";
@@ -340,23 +340,27 @@ const
       ano_ref_atom_C = *bat;
     }
   }
-  mprintf("\t  Anomeric ref carbon                   : %s\n",
-          topIn.ResNameNumAtomNameNum(ano_ref_atom).c_str());
+  if (debug_ > 0)
+    mprintf("\t  Anomeric ref carbon                   : %s\n",
+            topIn.ResNameNumAtomNameNum(ano_ref_atom).c_str());
   if (ano_ref_atom_Y == -1) {
     mprinterr("Error: Anomeric reference Y substituent could not be identified.\n");
     return 1;
   }
-  mprintf("\t  Anomeric reference substituent        : %s\n",
-          topIn.ResNameNumAtomNameNum(ano_ref_atom_Y).c_str());
+  if (debug_ > 0)
+    mprintf("\t  Anomeric reference substituent        : %s\n",
+            topIn.ResNameNumAtomNameNum(ano_ref_atom_Y).c_str());
   if (ano_ref_atom_C == -1) {
     mprinterr("Error: Anomeric reference ring C previous ring atom could not be identified.\n");
     return 1;
   }
-  mprintf("\t  Anomeric reference previous ring atom : %s\n",
-          topIn.ResNameNumAtomNameNum(ano_ref_atom_C).c_str());
+  if (debug_ > 0)
+    mprintf("\t  Anomeric reference previous ring atom : %s\n",
+            topIn.ResNameNumAtomNameNum(ano_ref_atom_C).c_str());
   torsion = Torsion( frameIn.XYZ(ano_ref_atom_C),   frameIn.XYZ(ano_ref_atom),
                      frameIn.XYZ(ano_ref_atom_Y),   frameIn.XYZ(ring_oxygen_atom) );
-  mprintf("\t  Anomeric reference torsion            = %f\n", torsion * Constants::RADDEG);
+  if (debug_ > 0)
+    mprintf("\t  Anomeric reference torsion            = %f\n", torsion * Constants::RADDEG);
   return 0;
 }
 
@@ -402,7 +406,8 @@ const
       anomeric_atom_C = *bat;
     }
   }
-  mprintf("\t  Anomeric carbon             : %s\n", topIn.ResNameNumAtomNameNum(anomeric_atom).c_str());
+  if (debug_ > 0)
+    mprintf("\t  Anomeric carbon             : %s\n", topIn.ResNameNumAtomNameNum(anomeric_atom).c_str());
   if (anomeric_atom_X == -1) {
     // If the Cx (C1 substituent, usually a different residue) index is
     // not found this usually means missing inter-residue bond.
@@ -417,17 +422,20 @@ const
             "Warning:   may need to be generated.\n");
     return -1;
   }
-  mprintf("\t  Anomeric X substituent      : %s\n",
-          topIn.ResNameNumAtomNameNum(anomeric_atom_X).c_str());
+  if (debug_ > 0)
+    mprintf("\t  Anomeric X substituent      : %s\n",
+            topIn.ResNameNumAtomNameNum(anomeric_atom_X).c_str());
   if (anomeric_atom_C == -1) {
     mprinterr("Error: Next ring atom after anomeric C could not be identified.\n");
     return 1;
   }
-  mprintf("\t  Anomeric C ring substituent : %s\n",
-          topIn.ResNameNumAtomNameNum(anomeric_atom_C).c_str());
+  if (debug_ > 0)
+    mprintf("\t  Anomeric C ring substituent : %s\n",
+            topIn.ResNameNumAtomNameNum(anomeric_atom_C).c_str());
   torsion = Torsion( frameIn.XYZ(anomeric_atom_X), frameIn.XYZ(anomeric_atom),
                      frameIn.XYZ(anomeric_atom_C), frameIn.XYZ(ring_oxygen_atom) );
-  mprintf("\t  Anomeric torsion            = %f\n", torsion * Constants::RADDEG);
+  if (debug_ > 0)
+    mprintf("\t  Anomeric torsion            = %f\n", torsion * Constants::RADDEG);
   return 0;
 }
 
@@ -472,9 +480,9 @@ const
 static void FollowBonds(int atm, Topology const& topIn, int idx, std::vector<int>& ring_atoms, int tgt_atom, std::vector<bool>& Visited, bool& found)
 {
   Visited[atm] = true;
-  for (int i = 0; i != idx; i++)
-    mprintf("\t");
-  mprintf("At atom %s\n", topIn.ResNameNumAtomNameNum(atm).c_str());
+  //for (int i = 0; i != idx; i++)
+  //  mprintf("\t");
+  //mprintf("At atom %s\n", topIn.ResNameNumAtomNameNum(atm).c_str());
   ring_atoms[idx] = atm;
   // Assume we have started at the target atom
   if (idx > 0 && atm == tgt_atom) {
@@ -601,8 +609,9 @@ int Exec_PrepareForLeap::IdentifySugar(int rnum, Topology& topIn,
     }
     FollowBonds(c_beg, topIn, 0, ring_atoms,
                 c_end, Visited, ring_complete);
-    mprintf("DEBUG: Potential ring start atom %s, Ring complete = %i",
-            topIn.ResNameNumAtomNameNum(*ringat).c_str(), (int)ring_complete);
+    if (debug_ > 0)
+      mprintf("DEBUG: Potential ring start atom %s, Ring complete = %i",
+              topIn.ResNameNumAtomNameNum(*ringat).c_str(), (int)ring_complete);
     // TODO handle the case where multiple potential ring start atoms exist
     if (ring_complete) {
       ring_oxygen_atom = *ringat;
@@ -612,15 +621,15 @@ int Exec_PrepareForLeap::IdentifySugar(int rnum, Topology& topIn,
       IsRingAtom.assign( topIn.Natom(), false );
       IsRingAtom[ring_oxygen_atom] = true;
       n_ring_atoms = 1;
-      mprintf(" :"); // DEBUG
+      if (debug_ > 0) mprintf(" :"); // DEBUG
       for (std::vector<int>::const_iterator it = ring_atoms.begin(); it != ring_atoms.end(); ++it)
       {
-        mprintf(" %i", *it + 1);
+        if (debug_ > 0) mprintf(" %i", *it + 1);
         if (*it == -1) break;
         IsRingAtom[*it] = true;
         ++n_ring_atoms;
       }
-      mprintf("\n"); // DEBUG
+      if (debug_ > 0) mprintf("\n"); // DEBUG
     }
   }
   mprintf("\t  Number of ring atoms= %i\n", n_ring_atoms);
@@ -628,7 +637,8 @@ int Exec_PrepareForLeap::IdentifySugar(int rnum, Topology& topIn,
     mprinterr("Error: Sugar ring atoms could not be identified.\n");
     return 1;
   }
-  mprintf("\t  Ring oxygen         : %s\n", topIn.ResNameNumAtomNameNum(ring_oxygen_atom).c_str());
+  if (debug_ > 0)
+    mprintf("\t  Ring oxygen         : %s\n", topIn.ResNameNumAtomNameNum(ring_oxygen_atom).c_str());
 
   double t_c1 = 0;
   double t_c5 = 0;
@@ -666,12 +676,12 @@ int Exec_PrepareForLeap::IdentifySugar(int rnum, Topology& topIn,
   std::vector<int> remainingChainCarbons;
   if (FindRemainingChainCarbons(remainingChainCarbons, ano_ref_atom, topIn, rnum, IsRingAtom))
     return 1;
-  mprintf("\t  Remaining chain carbons:\n");
+  if (debug_ > 0) mprintf("\t  Remaining chain carbons:\n");
   for (std::vector<int>::const_iterator it = remainingChainCarbons.begin();
                                         it != remainingChainCarbons.end();
                                       ++it)
   {
-    mprintf("\t\t%s", topIn.ResNameNumAtomNameNum(*it).c_str());
+    if (debug_ > 0) mprintf("\t\t%s", topIn.ResNameNumAtomNameNum(*it).c_str());
     // Count number of bonds to heavy atoms.
     Atom const& currentAtom = topIn[*it];
     int n_heavyat_bonds = 0;
@@ -681,11 +691,11 @@ int Exec_PrepareForLeap::IdentifySugar(int rnum, Topology& topIn,
         ++n_heavyat_bonds;
     }
     if (n_heavyat_bonds == 3) {
-      mprintf(" Potential stereocenter");
+      if (debug_ > 0) mprintf(" Potential stereocenter");
       if (*it > highest_stereocenter) // Is absolute index the best way to do this?
         highest_stereocenter = *it;
     }
-    mprintf("\n");
+    if (debug_ > 0) mprintf("\n");
   }
   if (highest_stereocenter == -1) {
     // This means that ano_ref_atom is the highest stereocenter.
@@ -761,13 +771,15 @@ int Exec_PrepareForLeap::IdentifySugar(int rnum, Topology& topIn,
   } // END loop over residue atoms
 
   // Determine linkage
-  mprintf("\t  Link atoms:");
-  for (std::set<NameType>::const_iterator it = linkages.begin();
-                                          it != linkages.end(); ++it)
-    mprintf(" %4s", *(*it));
-  mprintf("\n");
+  if (debug_ > 0) {
+    mprintf("\t  Link atoms:");
+    for (std::set<NameType>::const_iterator it = linkages.begin();
+                                            it != linkages.end(); ++it)
+      mprintf(" %4s", *(*it));
+    mprintf("\n");
+  }
   std::string linkcode = LinkageCode(resChar, linkages);
-  mprintf("\t  Linkage code: %s\n", linkcode.c_str());
+  if (debug_ > 0) mprintf("\t  Linkage code: %s\n", linkcode.c_str());
   if (linkcode.empty()) {
     mprinterr("Error: Unrecognized sugar linkage.\n");
     return 1;
@@ -786,7 +798,7 @@ int Exec_PrepareForLeap::IdentifySugar(int rnum, Topology& topIn,
   }
   // Set new residue name
   NameType newResName( linkcode + std::string(1,resChar) + formStr );
-  mprintf("\t  Glycam resname: %s\n", *newResName);
+  mprintf("\t  Changing %s to Glycam resname: %s\n", topIn.TruncResNameNum(rnum).c_str(), *newResName);
   ChangeResName(res, newResName);
   resStat_[rnum] = VALIDATED;
   return 0;
@@ -954,14 +966,16 @@ int Exec_PrepareForLeap::SearchForDisulfides(double disulfidecut, std::string co
       }
     }
     // DEBUG - Print current array
-    mprintf("DEBUG: Disulfide partner array after existing:\n");
-    for (std::vector<int>::const_iterator it = disulfidePartner.begin(); it != disulfidePartner.end(); ++it)
-    {
-      mprintf("  S %i [%li]", cysmask[it-disulfidePartner.begin()]+1, it-disulfidePartner.begin());
-      if (*it == -1)
-        mprintf(" None.\n");
-      else
-        mprintf(" to S %i [%i]\n", cysmask[*it]+1, *it);
+    if (debug_ > 1) {
+      mprintf("DEBUG: Disulfide partner array after existing:\n");
+      for (std::vector<int>::const_iterator it = disulfidePartner.begin(); it != disulfidePartner.end(); ++it)
+      {
+        mprintf("  S %i [%li]", cysmask[it-disulfidePartner.begin()]+1, it-disulfidePartner.begin());
+        if (*it == -1)
+          mprintf(" None.\n");
+        else
+          mprintf(" to S %i [%i]\n", cysmask[*it]+1, *it);
+      }
     }
     // Second, search for new disulfides from remaining sulfurs.
     if (searchForNewDisulfides) {
@@ -995,12 +1009,14 @@ int Exec_PrepareForLeap::SearchForDisulfides(double disulfidecut, std::string co
           }
         }
         std::sort(D2.begin(), D2.end());
-        mprintf("DEBUG: Sorted S-S array:\n");
-        for (D2Array::const_iterator it = D2.begin(); it != D2.end(); ++it)
-        {
-          int at1 = cysmask[it->second.first];
-          int at2 = cysmask[it->second.second];
-          mprintf("  %8i - %8i = %g Ang.\n", at1+1, at2+2, sqrt(it->first));
+        if (debug_ > 1) {
+          mprintf("DEBUG: Sorted S-S array:\n");
+          for (D2Array::const_iterator it = D2.begin(); it != D2.end(); ++it)
+          {
+            int at1 = cysmask[it->second.first];
+            int at2 = cysmask[it->second.second];
+            mprintf("  %8i - %8i = %g Ang.\n", at1+1, at2+2, sqrt(it->first));
+          }
         }
         // All distances in D2 are below the cutoff
         for (D2Array::const_iterator it = D2.begin(); it != D2.end(); ++it)
