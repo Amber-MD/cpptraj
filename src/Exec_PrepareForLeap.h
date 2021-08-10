@@ -19,6 +19,8 @@ class Exec_PrepareForLeap : public Exec {
     void SetGlycamPdbResMap();
     /// Load PDB res to glycam map from dat file
     int LoadGlycamPdbResMap(std::string const&);
+    // Load PDB residue names recognized by Amber FFs from dat file
+    int LoadPdbResNames(std::string const&);
 
     void LeapBond(int,int,Topology const&, CpptrajFile*) const;
     int CalcStereocenterTorsion(double&, int, Topology const&, Frame const&) const;
@@ -26,11 +28,11 @@ class Exec_PrepareForLeap : public Exec {
     int CalcAnomericTorsion(double&, int, int, int, Topology const&, Frame const&, std::vector<bool> const&) const;
     int FindRemainingChainCarbons(std::vector<int>&, int, Topology const&, int,
                                   std::vector<bool> const&) const;
-    int IdentifySugar(int, Topology&, Frame const&, CharMask const&, CpptrajFile*, std::set<BondType>&) const;
-    int PrepareSugars(AtomMask&, Topology&, Frame const&, CpptrajFile*) const;
+    int IdentifySugar(int, Topology&, Frame const&, CharMask const&, CpptrajFile*, std::set<BondType>&);
+    int PrepareSugars(AtomMask&, Topology&, Frame const&, CpptrajFile*);
     int FindTerByBonds(Topology&, CharMask const&) const;
     int SearchForDisulfides(double, std::string const&, std::string const&, bool,
-                            Topology&, Frame const&, CpptrajFile*) const;
+                            Topology&, Frame const&, CpptrajFile*);
     int ModifyCoords(Topology&, Frame&, bool, bool, char, std::string const&, std::string const&) const;
     int DetermineHisProt(std::vector<NameType>&, std::vector<int>&, Topology const&,
                          NameType const&, NameType const&,
@@ -40,6 +42,11 @@ class Exec_PrepareForLeap : public Exec {
     typedef std::pair<NameType, char> PairType;
     typedef std::map<NameType, char> MapType;
     MapType pdb_to_glycam_; ///< Map PDB residue names to Glycam 1 char names
+    typedef std::set<NameType> SetType;
+    SetType pdb_res_names_; ///< PDB residue names recognized by Amber FFs
     bool errorsAreFatal_;   ///< If false, try to skip errors.
+    enum ResStatType { UNKNOWN = 0, VALIDATED };
+    typedef std::vector<ResStatType> ResStatArray;
+    ResStatArray resStat_;  ///< Contain status of each residue
 };
 #endif

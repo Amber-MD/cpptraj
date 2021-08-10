@@ -116,6 +116,50 @@ void Exec_PrepareForLeap::SetGlycamPdbResMap() {
   pdb_to_glycam_.insert( PairType("MAN", 'M') );
 }
 
+/** Load PDB residue names recognized by Amber FFs from file. */
+int Exec_PrepareForLeap::LoadPdbResNames(std::string const& fnameIn)
+{
+  std::string fname;
+  if (fnameIn.empty()) {
+    // Check CPPTRAJHOME
+    const char* env = getenv("CPPTRAJHOME");
+    if (env != 0) {
+      fname.assign(env);
+      fname += "/dat/PDB_ResidueNames.txt";
+    }
+    mprintf("Info: Parameter file path from CPPTRAJHOME variable: '%s'\n", fname.c_str());
+  }
+  if (fname.empty()) {
+    mprintf("Warning: No PDB residue name file specified and/or CPPTRAJHOME not set.\n");
+    //SetGlycamPdbResMap();
+    return 0;
+  }
+  mprintf("\tReading PDB residue names from '%s'\n", fname.c_str());
+
+  CpptrajFile infile;
+  if (infile.OpenRead(fname)) {
+    mprinterr("Error: Could not open PDB residue name file.\n");
+    return 1;
+  }
+  const char* ptr = 0;
+  while ( (ptr = infile.NextLine()) != 0 ) {
+    ArgList argline( ptr, " " );
+    if (argline.Nargs() > 0) {
+      if (argline[0][0] != '#') {
+        pdb_res_names_.insert( argline[0] );
+      }
+    }
+  }
+  infile.CloseFile();
+
+  // DEBUG
+  mprintf("\tPDB residue names recognized by Amber FF:\n");
+  for (SetType::const_iterator it = pdb_res_names_.begin(); it != pdb_res_names_.end(); ++it)
+    mprintf("\t  %s\n", *(*it));
+
+  return 0;
+}
+
 /** Load PDB to Glycam residue map from file. */
 int Exec_PrepareForLeap::LoadGlycamPdbResMap(std::string const& fnameIn)
 {
@@ -411,7 +455,6 @@ static void FollowBonds(int atm, Topology const& topIn, int idx, std::vector<int
 int Exec_PrepareForLeap::IdentifySugar(int rnum, Topology& topIn,
                                        Frame const& frameIn, CharMask const& cmask,
                                        CpptrajFile* outfile, std::set<BondType>& sugarBondsToRemove)
-const
 {
   Residue& res = topIn.SetRes(rnum);
   // Try to ID the base sugar type from the input name.
@@ -645,12 +688,16 @@ const
           Residue& pres = topIn.SetRes( topIn[*bat].ResNum() );
           if ( pres.Name() == "SER" ) {
             ChangeResName( pres, "OLS" );
+            resStat_[topIn[*bat].ResNum()] = VALIDATED;
           } else if ( pres.Name() == "THR" ) {
             ChangeResName( pres, "OLT" );
+            resStat_[topIn[*bat].ResNum()] = VALIDATED;
           } else if ( pres.Name() == "HYP" ) {
             ChangeResName( pres, "OLP" );
+            resStat_[topIn[*bat].ResNum()] = VALIDATED;
           } else if ( pres.Name() == "ASN" ) {
             ChangeResName( pres, "NLN" );
+            resStat_[topIn[*bat].ResNum()] = VALIDATED;
           } else {
             mprintf("Warning: Unrecognized link residue %s, not modifying name.\n", *pres.Name());
           }
@@ -697,13 +744,13 @@ const
   NameType newResName( linkcode + std::string(1,resChar) + formStr );
   mprintf("\t  Glycam resname: %s\n", *newResName);
   ChangeResName(res, newResName);
+  resStat_[rnum] = VALIDATED;
   return 0;
 }
 
 /** Prepare sugars for leap. */
 int Exec_PrepareForLeap::PrepareSugars(AtomMask& sugarMask, Topology& topIn,
                                        Frame const& frameIn, CpptrajFile* outfile)
-const
 {
   std::set<BondType> sugarBondsToRemove;
   mprintf("\tPreparing sugars selected by '%s'\n", sugarMask.MaskString());
@@ -822,7 +869,6 @@ int Exec_PrepareForLeap::SearchForDisulfides(double disulfidecut, std::string co
                                              std::string const& cysmaskstr, bool searchForNewDisulfides,
                                              Topology& topIn, Frame const& frameIn,
                                              CpptrajFile* outfile)
-const
 {
   // Disulfide search
   NameType newcysname(newcysnamestr);
@@ -942,6 +988,7 @@ const
           LeapBond(at1, at2, topIn, outfile);
         }
         ChangeResName(topIn.SetRes(topIn[at1].ResNum()), newcysname);
+        resStat_[topIn[at1].ResNum()] = VALIDATED;
       }
     }
     mprintf("\tDetected %i disulfide bonds.\n", nDisulfides);
@@ -1081,12 +1128,14 @@ const
   }
   if ( topIn.SetupIntegerMask( mask )) return 1;
   mask.MaskInfo();
-  HisResIdxs = topIn.ResnumsSelectedBy( mask );
+  std::vector<int> resIdxs = topIn.ResnumsSelectedBy( mask );
 
+  HisResIdxs.clear();
+  HisResIdxs.reserve( resIdxs.size() );
   HisResNames.clear();
-  HisResNames.reserve( HisResIdxs.size() );
-  for (std::vector<int>::const_iterator rnum = HisResIdxs.begin();
-                                        rnum != HisResIdxs.end(); ++rnum)
+  HisResNames.reserve( resIdxs.size() );
+  for (std::vector<int>::const_iterator rnum = resIdxs.begin();
+                                        rnum != resIdxs.end(); ++rnum)
   {
     int nd1idx = -1;
     int ne2idx = -1;
@@ -1123,17 +1172,21 @@ const
                 topIn.ResNameNumAtomNameNum(ne2idx).c_str());
       return 1;
     }
-    if (nd1h > 0 && ne2h > 0)
+    if (nd1h > 0 && ne2h > 0) {
       HisResNames.push_back( HipName );
-    else if (nd1h > 0)
+      HisResIdxs.push_back( *rnum );
+    } else if (nd1h > 0) {
       HisResNames.push_back( HidName );
-    else if (ne2h > 0)
+      HisResIdxs.push_back( *rnum );
+    } else if (ne2h > 0) {
       HisResNames.push_back( HieName );
-    else {
-      // Default to epsilon
-      mprintf("\tUsing default name '%s' for %s\n", *HieName, topIn.TruncResNameNum(*rnum).c_str());
-      HisResNames.push_back( HieName );
+      HisResIdxs.push_back( *rnum );
     }
+    //else {
+    //  // Default to epsilon
+    //  mprintf("\tUsing default name '%s' for %s\n", *HieName, topIn.TruncResNameNum(*rnum).c_str());
+    //  HisResNames.push_back( HieName );
+    //}
   }
   mprintf("\tFinal names:\n");
   for (unsigned int idx = 0; idx < HisResIdxs.size(); idx++)
@@ -1272,6 +1325,15 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
 
+  // Each residue starts out unknown.
+  resStat_.assign( topIn.Nres(), UNKNOWN );
+
+  // Load PDB residue names recognized by amber
+  if (LoadPdbResNames( argIn.GetStringKey("resnamefile" ) )) {
+    mprinterr("Error: PDB residue name file load failed.\n");
+    return CpptrajState::ERR;
+  }
+
   // Load PDB to glycam residue name map
   if (prepare_sugars) {
     if (LoadGlycamPdbResMap( argIn.GetStringKey("resmapfile" ) )) {
@@ -1374,6 +1436,23 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     if (PrepareSugars(sugarMask, topIn, frameIn, outfile)) {
       mprinterr("Error: Sugar preparation failed.\n");
       return CpptrajState::ERR;
+    }
+  }
+
+  // Residue validation.
+  mprintf("\tResidue status:\n");
+  for (ResStatArray::iterator it = resStat_.begin(); it != resStat_.end(); ++it)
+  {
+    //if ( *it == VALIDATED )
+    //  mprintf("\t\t%s VALIDATED\n", topIn.TruncResNameNum(it-resStat_.begin()).c_str());
+    //else
+    //  mprintf("\t\t%s UNKNOWN\n", topIn.TruncResNameNum(it-resStat_.begin()).c_str());
+    if ( *it != VALIDATED ) {
+      SetType::const_iterator pname = pdb_res_names_.find( topIn.Res(it-resStat_.begin()).Name() );
+      if (pname == pdb_res_names_.end())
+        mprintf("\t\t%s UNKNOWN\n", topIn.TruncResNameNum(it-resStat_.begin()).c_str());
+      else
+        *it = VALIDATED;
     }
   }
 
