@@ -512,8 +512,10 @@ int Exec_PrepareForLeap::IdentifySugar(int rnum, Topology& topIn,
   }
   // TODO handle case where multiple potential ring start atoms exist
   if (potentialRingStartAtoms.empty()) {
-    mprinterr("Error: Ring oxygen could not be identified\n");
-    return 1;
+    mprintf("Warning: Ring oxygen could not be identified for %s\n",
+            topIn.TruncResNameNum(rnum).c_str());
+    resStat_[rnum] = SUGAR_MISSING_RING_O;
+    return 0;
   } else if (potentialRingStartAtoms.size() > 1) {
     mprinterr("Error: Multiple potential ring start atoms:\n");
     for (std::vector<int>::const_iterator it = potentialRingStartAtoms.begin();
@@ -1463,6 +1465,9 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
                 topIn.TruncResNameNum(it-resStat_.begin()).c_str());
     } else if ( *it == SUGAR_MISSING_C1X ) {
         mprintf("\t\t%s Sugar is missing anomeric carbon substituent and cannot be identified.\n",
+                topIn.TruncResNameNum(it-resStat_.begin()).c_str());
+    } else if ( *it == SUGAR_MISSING_RING_O ) {
+        mprintf("\t\t%s Sugar is missing ring oxygen and cannot be identified.\n",
                 topIn.TruncResNameNum(it-resStat_.begin()).c_str());
     }
   }
