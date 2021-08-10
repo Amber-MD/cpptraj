@@ -45,7 +45,7 @@ class Exec_PrepareForLeap : public Exec {
     typedef std::set<NameType> SetType;
     SetType pdb_res_names_; ///< PDB residue names recognized by Amber FFs
     bool errorsAreFatal_;   ///< If false, try to skip errors.
-    enum ResStatType { UNKNOWN = 0, VALIDATED, UNRECOGNIZED_SUGAR_LINKAGE };
+    enum ResStatType { UNKNOWN = 0, VALIDATED, UNRECOGNIZED_SUGAR_LINKAGE, SUGAR_MISSING_C1X };
     typedef std::vector<ResStatType> ResStatArray;
     ResStatArray resStat_;  ///< Contain status of each residue
 };

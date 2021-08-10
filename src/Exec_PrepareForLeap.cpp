@@ -595,6 +595,7 @@ int Exec_PrepareForLeap::IdentifySugar(int rnum, Topology& topIn,
   int ret = CalcAnomericTorsion(t_c1, ring_oxygen_atom, anomeric_atom, rnum, topIn, frameIn, IsRingAtom);
   if (ret < 0) {
     // This means C1 X substituent missing; non-fatal.
+    resStat_[rnum] = SUGAR_MISSING_C1X;
     return 0;
   } else if (ret > 0) {
     // Error
@@ -1441,7 +1442,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   // Residue validation.
-  mprintf("\tResidue status:\n");
+  mprintf("\tResidues with potential problems:\n");
   for (ResStatArray::iterator it = resStat_.begin(); it != resStat_.end(); ++it)
   {
     //if ( *it == VALIDATED )
@@ -1456,6 +1457,9 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
         *it = VALIDATED;
     } else if ( *it == UNRECOGNIZED_SUGAR_LINKAGE ) {
         mprintf("\t\t%s is linked to a sugar but has no sugar-linkage form.\n",
+                topIn.TruncResNameNum(it-resStat_.begin()).c_str());
+    } else if ( *it == SUGAR_MISSING_C1X ) {
+        mprintf("\t\t%s Sugar is missing anomeric carbon substituent and cannot be identified.\n",
                 topIn.TruncResNameNum(it-resStat_.begin()).c_str());
     }
   }
