@@ -415,12 +415,9 @@ const
     // Alternatively, this could be an isolated sugar missing an -OH
     // group, so make this non-fatal.
     mprintf("Warning: Anomeric C non-ring substituent could not be identified.\n"
-            "Warning:   If '%s' is from a topology without complete bonding information\n"
-            "Warning:   (e.g. a PDB file), try loading the topology with the\n"
-            "Warning:   'searchtype grid' keywords instead.\n", topIn.c_str());
-    mprintf("Warning: This can also happen for isolated sugars missing e.g. a -OH\n"
-            "Warning:   group. In that case coordinates for the missing sugar atoms\n"
-            "Warning:   may need to be generated.\n");
+            "Warning: This can happen if the sugar is bonded to something that\n"
+            "Warning:  is missing, e.g. a -OH group. In that case the coordinates\n"
+            "Warning   for the missing atoms may need to be generated.\n");
     return -1;
   }
   if (debug_ > 0)
