@@ -700,6 +700,7 @@ int Exec_PrepareForLeap::IdentifySugar(int rnum, Topology& topIn,
             resStat_[topIn[*bat].ResNum()] = VALIDATED;
           } else {
             mprintf("Warning: Unrecognized link residue %s, not modifying name.\n", *pres.Name());
+            resStat_[topIn[*bat].ResNum()] = UNRECOGNIZED_SUGAR_LINKAGE;
           }
         } else {
           mprintf("\t  Sugar %s bonded to sugar %s\n",
@@ -1447,12 +1448,15 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     //  mprintf("\t\t%s VALIDATED\n", topIn.TruncResNameNum(it-resStat_.begin()).c_str());
     //else
     //  mprintf("\t\t%s UNKNOWN\n", topIn.TruncResNameNum(it-resStat_.begin()).c_str());
-    if ( *it != VALIDATED ) {
+    if ( *it == UNKNOWN ) {
       SetType::const_iterator pname = pdb_res_names_.find( topIn.Res(it-resStat_.begin()).Name() );
       if (pname == pdb_res_names_.end())
         mprintf("\t\t%s UNKNOWN\n", topIn.TruncResNameNum(it-resStat_.begin()).c_str());
       else
         *it = VALIDATED;
+    } else if ( *it == UNRECOGNIZED_SUGAR_LINKAGE ) {
+        mprintf("\t\t%s is linked to a sugar but has no sugar-linkage form.\n",
+                topIn.TruncResNameNum(it-resStat_.begin()).c_str());
     }
   }
 
