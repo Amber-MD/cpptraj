@@ -19,7 +19,9 @@ class Exec_PrepareForLeap : public Exec {
     void SetGlycamPdbResMap();
     /// Load PDB res to glycam map from dat file
     int LoadGlycamPdbResMap(std::string const&);
-    // Load PDB residue names recognized by Amber FFs from dat file
+    /// Set PDB residue names recognized by Amber FFs
+    void SetPdbResNames();
+    /// Load PDB residue names recognized by Amber FFs from dat file
     int LoadPdbResNames(std::string const&);
 
     void LeapBond(int,int,Topology const&, CpptrajFile*) const;

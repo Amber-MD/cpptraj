@@ -107,13 +107,48 @@ static std::string LinkageCode(char glycamChar, std::set<NameType> const& linkag
   return linkcode;
 }
 
-/** Load reduced interal PDB to Glycam map. */
-void Exec_PrepareForLeap::SetGlycamPdbResMap() {
-  pdb_to_glycam_.insert( PairType("NAG", 'Y') );
-  pdb_to_glycam_.insert( PairType("FUC", 'F') );
-  pdb_to_glycam_.insert( PairType("GAL", 'L') );
-  pdb_to_glycam_.insert( PairType("BMA", 'M') );
-  pdb_to_glycam_.insert( PairType("MAN", 'M') );
+/** If file not present, use a default set of residue names. */
+void Exec_PrepareForLeap::SetPdbResNames() {
+  //Protein
+  pdb_res_names_.insert("ACE");
+  pdb_res_names_.insert("ALA");
+  pdb_res_names_.insert("ARG");
+  pdb_res_names_.insert("ASH");
+  pdb_res_names_.insert("ASN");
+  pdb_res_names_.insert("ASP");
+  pdb_res_names_.insert("CYM");
+  pdb_res_names_.insert("CYS");
+  pdb_res_names_.insert("CYX");
+  pdb_res_names_.insert("GLH");
+  pdb_res_names_.insert("GLN");
+  pdb_res_names_.insert("GLU");
+  pdb_res_names_.insert("GLY");
+  pdb_res_names_.insert("HIE");
+  pdb_res_names_.insert("HIP");
+  pdb_res_names_.insert("HIS");
+  pdb_res_names_.insert("ILE");
+  pdb_res_names_.insert("LEU");
+  pdb_res_names_.insert("LYN");
+  pdb_res_names_.insert("LYS");
+  pdb_res_names_.insert("MET");
+  pdb_res_names_.insert("NME");
+  pdb_res_names_.insert("PHE");
+  pdb_res_names_.insert("PRO");
+  pdb_res_names_.insert("SER");
+  pdb_res_names_.insert("THR");
+  pdb_res_names_.insert("TRP");
+  pdb_res_names_.insert("TYR");
+  pdb_res_names_.insert("VAL");
+  // DNA
+  pdb_res_names_.insert("DA");
+  pdb_res_names_.insert("DC");
+  pdb_res_names_.insert("DG");
+  pdb_res_names_.insert("DT");
+  // RNA
+  pdb_res_names_.insert("A");
+  pdb_res_names_.insert("C");
+  pdb_res_names_.insert("G");
+  pdb_res_names_.insert("U");
 }
 
 /** Load PDB residue names recognized by Amber FFs from file. */
@@ -130,8 +165,9 @@ int Exec_PrepareForLeap::LoadPdbResNames(std::string const& fnameIn)
     mprintf("Info: Parameter file path from CPPTRAJHOME variable: '%s'\n", fname.c_str());
   }
   if (fname.empty()) {
-    mprintf("Warning: No PDB residue name file specified and/or CPPTRAJHOME not set.\n");
-    //SetGlycamPdbResMap();
+    mprintf("Warning: No PDB residue name file specified and/or CPPTRAJHOME not set.\n"
+            "Warning: Using standard set of PDB residue names.\n");
+    SetPdbResNames();
     return 0;
   }
   mprintf("\tReading PDB residue names from '%s'\n", fname.c_str());
@@ -158,6 +194,15 @@ int Exec_PrepareForLeap::LoadPdbResNames(std::string const& fnameIn)
     mprintf("\t  %s\n", *(*it));
 
   return 0;
+}
+
+/** Load reduced interal PDB to Glycam map. */
+void Exec_PrepareForLeap::SetGlycamPdbResMap() {
+  pdb_to_glycam_.insert( PairType("NAG", 'Y') );
+  pdb_to_glycam_.insert( PairType("FUC", 'F') );
+  pdb_to_glycam_.insert( PairType("GAL", 'L') );
+  pdb_to_glycam_.insert( PairType("BMA", 'M') );
+  pdb_to_glycam_.insert( PairType("MAN", 'M') );
 }
 
 /** Load PDB to Glycam residue map from file. */
@@ -1261,6 +1306,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     mprintf("\tWill attempt to prepare sugars.\n");
 
   // Do histidine detection before any atoms are removed so we keep H if present
+  // TODO if any histidines are removed, this will fail.
   std::vector<int> HisResIdxs;
   std::vector<NameType> HisResNames;
   if (!argIn.hasKey("nohisdetect")) {
