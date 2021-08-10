@@ -1327,6 +1327,8 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
 
+  // TODO new bond grid search?
+
   // Each residue starts out unknown.
   resStat_.assign( topIn.Nres(), UNKNOWN );
 
@@ -1452,7 +1454,8 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     if ( *it == UNKNOWN ) {
       SetType::const_iterator pname = pdb_res_names_.find( topIn.Res(it-resStat_.begin()).Name() );
       if (pname == pdb_res_names_.end())
-        mprintf("\t\t%s UNKNOWN\n", topIn.TruncResNameNum(it-resStat_.begin()).c_str());
+        mprintf("\t\t%s is an unrecognized name and may not have parameters.\n",
+                topIn.TruncResNameNum(it-resStat_.begin()).c_str());
       else
         *it = VALIDATED;
     } else if ( *it == UNRECOGNIZED_SUGAR_LINKAGE ) {
