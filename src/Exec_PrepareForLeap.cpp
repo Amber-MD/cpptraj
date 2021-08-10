@@ -188,11 +188,6 @@ int Exec_PrepareForLeap::LoadPdbResNames(std::string const& fnameIn)
   }
   infile.CloseFile();
 
-  // DEBUG
-  mprintf("\tPDB residue names recognized by Amber FF:\n");
-  for (SetType::const_iterator it = pdb_res_names_.begin(); it != pdb_res_names_.end(); ++it)
-    mprintf("\t  %s\n", *(*it));
-
   return 0;
 }
 
@@ -1390,6 +1385,13 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: PDB residue name file load failed.\n");
     return CpptrajState::ERR;
   }
+  mprintf("\t%zu PDB residue names recognized by Amber FFs.\n", pdb_res_names_.size());
+  // DEBUG
+  if (debug_ > 0) {
+    mprintf("\tPDB residue names recognized by Amber FFs:\n");
+    for (SetType::const_iterator it = pdb_res_names_.begin(); it != pdb_res_names_.end(); ++it)
+      mprintf("\t  %s\n", *(*it));
+  }
 
   // Load PDB to glycam residue name map
   if (prepare_sugars) {
@@ -1397,10 +1399,13 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       mprinterr("Error: PDB to glycam name map load failed.\n");
       return CpptrajState::ERR;
     }
+    mprintf("\t%zu entries in PDB to glycam name map.\n", pdb_to_glycam_.size());
     // DEBUG - print residue name map
-    mprintf("\tResidue name map:\n");
-    for (MapType::const_iterator mit = pdb_to_glycam_.begin(); mit != pdb_to_glycam_.end(); ++mit)
-      mprintf("\t  %4s -> %c\n", *(mit->first), mit->second);
+    if (debug_ > 0) {
+      mprintf("\tResidue name map:\n");
+      for (MapType::const_iterator mit = pdb_to_glycam_.begin(); mit != pdb_to_glycam_.end(); ++mit)
+        mprintf("\t  %4s -> %c\n", *(mit->first), mit->second);
+    }
   }
 
   // Get sugar mask or default sugar mask
