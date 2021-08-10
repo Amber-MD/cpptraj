@@ -7,6 +7,7 @@
 #include "CpptrajFile.h"
 #include "Trajout_Single.h"
 #include "DataSet_Coords_CRD.h"
+#include "BondSearch.h"
 #include <stack>
 #include <cctype> // tolower
 #include <algorithm> // sort
@@ -1391,7 +1392,11 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
 
-  // TODO new bond grid search?
+  // new bond grid search
+  mprintf("\tUpdating bond information using grid search.\n");
+  // NOTE: Using default offset of 0.2 Ang
+  if (BondSearch(topIn, SEARCH_GRID, frameIn, 0.2, debug_))
+    return CpptrajState::ERR;
 
   // Each residue starts out unknown.
   resStat_.assign( topIn.Nres(), UNKNOWN );
