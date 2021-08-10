@@ -49,5 +49,6 @@ class Exec_PrepareForLeap : public Exec {
                        SUGAR_MISSING_RING_O };
     typedef std::vector<ResStatType> ResStatArray;
     ResStatArray resStat_;  ///< Contain status of each residue
+    int debug_; ///< Debug level
 };
 #endif

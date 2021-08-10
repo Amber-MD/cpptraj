@@ -1124,6 +1124,7 @@ int Exec_PrepareForLeap::DetermineHisProt( std::vector<NameType>& HisResNames,
                                            NameType const& HipName )
 const
 {
+  mprintf("\tAttempting to determine histidine form from any existing H atoms.\n");
   std::string hisMaskStr = ":" + HisName.Truncated();
   AtomMask mask;
   if (mask.SetMaskString( hisMaskStr )) {
@@ -1151,8 +1152,9 @@ const
       else if ( (topIn[at].Name() == NE2 ) )
         ne2idx = at;
     }
-    mprintf("DEBUG: %s nd1idx= %i ne2idx= %i\n",
-            topIn.TruncResNameNum( *rnum ).c_str(), nd1idx+1, ne2idx+1);
+    if (debug_ > 1)
+      mprintf("DEBUG: %s nd1idx= %i ne2idx= %i\n",
+              topIn.TruncResNameNum( *rnum ).c_str(), nd1idx+1, ne2idx+1);
     // Check for H bonded to nd1/ne2
     int nd1h = 0;
     for (Atom::bond_iterator bat = topIn[nd1idx].bondbegin();
@@ -1192,16 +1194,19 @@ const
     //  HisResNames.push_back( HieName );
     //}
   }
-  mprintf("\tFinal names:\n");
-  for (unsigned int idx = 0; idx < HisResIdxs.size(); idx++)
-    mprintf("\t\t%i %s\n", HisResIdxs[idx]+1, *HisResNames[idx]);
-
+  if (!HisResIdxs.empty()) {
+    mprintf("\tChanged histidine names:\n");
+    for (unsigned int idx = 0; idx < HisResIdxs.size(); idx++)
+      mprintf("\t\t%i %s\n", HisResIdxs[idx]+1, *HisResNames[idx]);
+  } else
+    mprintf("\tNo histidine names were changed.\n");
   return 0;
 }
 
 // Exec_PrepareForLeap::Execute()
 Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 {
+  debug_ = State.Debug();
   errorsAreFatal_ = !argIn.hasKey("skiperrors");
   // Get input coords
   std::string crdset = argIn.GetStringKey("crdset");
