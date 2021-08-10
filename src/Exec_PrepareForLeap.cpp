@@ -1056,7 +1056,7 @@ int Exec_PrepareForLeap::SearchForDisulfides(double disulfidecut, std::string co
 
 /** Modify coords according to user wishes. */
 int Exec_PrepareForLeap::ModifyCoords( Topology& topIn, Frame& frameIn,
-                                       bool remove_water, bool remove_h,
+                                       bool remove_water,
                                        char altLocChar, std::string const& stripMask,
                                        std::string const& waterMask )
 const
@@ -1110,12 +1110,12 @@ const
       mprintf("\t# solvent removed: %u\n", nRemoved);
 */
   }
-  if (remove_h) {
-    for (Topology::atom_iterator atom = topIn.begin(); atom != topIn.end(); ++atom) {
-      if (atom->Element() == Atom::HYDROGEN)
-        atomsToKeep[atom - topIn.begin()] = false;
-    }
-  }
+  //if (remove_h) {
+  //  for (Topology::atom_iterator atom = topIn.begin(); atom != topIn.end(); ++atom) {
+  //    if (atom->Element() == Atom::HYDROGEN)
+  //      atomsToKeep[atom - topIn.begin()] = false;
+  //  }
+  //}
   if (altLocChar != '\0') {
     if (topIn.AtomAltLoc().empty()) {
       mprintf("\tNo alternate atom locations.\n");
@@ -1145,6 +1145,39 @@ const
     return 1;
   }
   newTop->Brief("After removing atoms:");
+  Frame newFrame;
+  newFrame.SetupFrameV(newTop->Atoms(), frameIn.CoordsInfo());
+  newFrame.SetFrame(frameIn, keptAtoms);
+
+  topIn = *newTop;
+  frameIn = newFrame;
+  delete newTop;
+
+  return 0;
+}
+
+/** Remove any hydrogen atoms. This is done separately from ModifyCoords
+  * so that hydrogen atom info can be used to e.g. ID histidine
+  * protonation.
+  */
+int Exec_PrepareForLeap::RemoveHydrogens(Topology& topIn, Frame& frameIn) const {
+  AtomMask keptAtoms;
+  keptAtoms.SetNatoms( topIn.Natom() );
+  for (int idx = 0; idx != topIn.Natom(); idx++)
+  {
+    if (topIn[idx].Element() != Atom::HYDROGEN)
+      keptAtoms.AddSelectedAtom(idx);
+  }
+  if (keptAtoms.Nselected() == topIn.Natom())
+    // Keeping everything, no modification
+    return 0;
+  // Modify top/frame
+  Topology* newTop = topIn.modifyStateByMask( keptAtoms );
+  if (newTop == 0) {
+    mprinterr("Error: Could not create new topology with no hydrogens.\n");
+    return 1;
+  }
+  newTop->Brief("After removing hydrogen atoms:");
   Frame newFrame;
   newFrame.SetupFrameV(newTop->Atoms(), frameIn.CoordsInfo());
   newFrame.SetFrame(frameIn, keptAtoms);
@@ -1196,6 +1229,8 @@ const
   for (std::vector<int>::const_iterator rnum = resIdxs.begin();
                                         rnum != resIdxs.end(); ++rnum)
   {
+    if (debug_ > 1)
+      mprintf("DEBUG: %s (%i) (%c)\n", topIn.TruncResNameNum(*rnum).c_str(), topIn.Res(*rnum).OriginalResNum(), topIn.Res(*rnum).ChainId());
     int nd1idx = -1;
     int ne2idx = -1;
     Residue const& hisRes = topIn.Res( *rnum );
@@ -1314,32 +1349,6 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   else
     mprintf("\tWill attempt to prepare sugars.\n");
 
-  // Do histidine detection before any atoms are removed so we keep H if present
-  // TODO if any histidines are removed, this will fail.
-  std::vector<int> HisResIdxs;
-  std::vector<NameType> HisResNames;
-  if (!argIn.hasKey("nohisdetect")) {
-    std::string nd1name = argIn.GetStringKey("nd1", "ND1");
-    std::string ne2name = argIn.GetStringKey("ne2", "NE2");
-    std::string hisname = argIn.GetStringKey("hisname", "HIS");
-    std::string hiename = argIn.GetStringKey("hiename", "HIE");
-    std::string hidname = argIn.GetStringKey("hidname", "HID");
-    std::string hipname = argIn.GetStringKey("hipname", "HIP");
-    mprintf("\tHistidine protonation detection:\n");
-    mprintf("\t\tND1 atom name                   : %s\n", nd1name.c_str());
-    mprintf("\t\tNE2 atom name                   : %s\n", ne2name.c_str());
-    mprintf("\t\tHistidine original residue name : %s\n", hisname.c_str());
-    mprintf("\t\tEpsilon-protonated residue name : %s\n", hiename.c_str());
-    mprintf("\t\tDelta-protonated residue name   : %s\n", hidname.c_str());
-    mprintf("\t\tDoubly-protonated residue name  : %s\n", hipname.c_str());
-    if (DetermineHisProt( HisResNames, HisResIdxs, topIn,
-                          nd1name, ne2name,
-                          hisname, hiename, hidname, hipname)) {
-      mprinterr("Error: HIS protonation detection failed.\n");
-      return CpptrajState::ERR;
-    }
-  }
-
   // Deal with any coordinate modifications
   bool remove_water     = argIn.hasKey("nowat");
   std::string waterMask = argIn.GetStringKey("watermask", ":HOH");
@@ -1383,10 +1392,40 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     mprintf("\tIf present, keeping only alternate atom locations denoted by '%c'\n", altLocChar);
   if (!stripMask.empty())
     mprintf("\tRemoving atoms in mask '%s'\n", stripMask.c_str());
-  if (ModifyCoords( topIn, frameIn, remove_water, remove_h, altLocChar, stripMask, waterMask ))
+  if (ModifyCoords( topIn, frameIn, remove_water, altLocChar, stripMask, waterMask ))
   {
     mprinterr("Error: Modification of '%s' failed.\n", coords.legend());
     return CpptrajState::ERR;
+  }
+
+  // Do histidine detection before H atoms are removed
+  std::vector<int> HisResIdxs;
+  std::vector<NameType> HisResNames;
+  if (!argIn.hasKey("nohisdetect")) {
+    std::string nd1name = argIn.GetStringKey("nd1", "ND1");
+    std::string ne2name = argIn.GetStringKey("ne2", "NE2");
+    std::string hisname = argIn.GetStringKey("hisname", "HIS");
+    std::string hiename = argIn.GetStringKey("hiename", "HIE");
+    std::string hidname = argIn.GetStringKey("hidname", "HID");
+    std::string hipname = argIn.GetStringKey("hipname", "HIP");
+    mprintf("\tHistidine protonation detection:\n");
+    mprintf("\t\tND1 atom name                   : %s\n", nd1name.c_str());
+    mprintf("\t\tNE2 atom name                   : %s\n", ne2name.c_str());
+    mprintf("\t\tHistidine original residue name : %s\n", hisname.c_str());
+    mprintf("\t\tEpsilon-protonated residue name : %s\n", hiename.c_str());
+    mprintf("\t\tDelta-protonated residue name   : %s\n", hidname.c_str());
+    mprintf("\t\tDoubly-protonated residue name  : %s\n", hipname.c_str());
+    if (DetermineHisProt( HisResNames, HisResIdxs, topIn,
+                          nd1name, ne2name,
+                          hisname, hiename, hidname, hipname)) {
+      mprinterr("Error: HIS protonation detection failed.\n");
+      return CpptrajState::ERR;
+    }
+  }
+
+  // Remove hydrogens
+  if (remove_h) {
+    if (RemoveHydrogens(topIn, frameIn)) return CpptrajState::ERR;
   }
 
   // new bond grid search

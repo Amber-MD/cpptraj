@@ -38,7 +38,8 @@ class Exec_PrepareForLeap : public Exec {
     int FindTerByBonds(Topology&, CharMask const&) const;
     int SearchForDisulfides(double, std::string const&, std::string const&, bool,
                             Topology&, Frame const&, CpptrajFile*);
-    int ModifyCoords(Topology&, Frame&, bool, bool, char, std::string const&, std::string const&) const;
+    int ModifyCoords(Topology&, Frame&, bool, char, std::string const&, std::string const&) const;
+    int RemoveHydrogens(Topology&, Frame&) const;
     int DetermineHisProt(std::vector<NameType>&, std::vector<int>&, Topology const&,
                          NameType const&, NameType const&,
                          NameType const&, NameType const&, NameType const&, NameType const&) const;
