@@ -62,6 +62,15 @@ PDBfile::SymOp::SymOp() : idx_(1), ix_(5), iy_(5), iz_(5)
 PDBfile::SymOp::SymOp(const char* ptr) : idx_(1), ix_(5), iy_(5), iz_(5)
 {
   if (ptr == 0) return;
+  if (ptr[0] == ' ' && ptr[1] == ' ' && ptr[2] == ' ' &&
+      ptr[3] == ' ' && ptr[4] == ' ' && ptr[5] == ' ')
+  {
+    idx_ = 1;
+    ix_ = 5;
+    iy_ = 5;
+    iz_ = 5;
+    return;
+  }
   // DO NNN
   char numstr[4];
   numstr[0] = ptr[0];
@@ -445,6 +454,17 @@ int PDBfile::pdb_Bonds(int* bnd) {
   return Nscan;
 }
 
+/// Set with default no sym op link string
+static inline void NoSymOp(char* ptr) {
+  ptr[0] = ' ';
+  ptr[1] = ' ';
+  ptr[2] = '1';
+  ptr[3] = '5';
+  ptr[4] = '5';
+  ptr[5] = '5';
+  ptr[6] = '\0';
+}
+
 /** \return PDB LINK record. */
 PDBfile::Link PDBfile::pdb_Link() {
 //         1         2         3         4         5         6         7         8
@@ -464,10 +484,8 @@ PDBfile::Link PDBfile::pdb_Link() {
   }
   char a1[4], a2[4], r1[3], r2[3], alt1, alt2, ch1, ch2, code1, code2;
   char sym1[7], sym2[7];
-  std::fill(sym1, sym1+6, ' ');
-  std::fill(sym2, sym2+6, ' ');
-  sym1[6] = '\0';
-  sym2[6] = '\0';
+  NoSymOp( sym1 );
+  NoSymOp( sym2 );
   int rnum1, rnum2;
   // Site 1
   std::copy(linebuffer_+12, linebuffer_+16, a1);

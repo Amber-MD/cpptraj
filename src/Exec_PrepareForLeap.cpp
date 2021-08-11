@@ -25,7 +25,7 @@ void Exec_PrepareForLeap::Help() const
   mprintf("\tcrdset <coords set> [frame <#>] name <out coords set> [pdbout <pdbfile>]\n"
           "\t[leapunitname <unit>] [out <leap input file> [skiperrors]\n"
           "\t[nowat [watermask <watermask>] [noh] [keepaltloc <alt loc ID>]\n"
-          "\t[stripmask <stripmask>]\n"
+          "\t[stripmask <stripmask>] [nobondsearch]\n"
           "\t[{nohisdetect |\n"
           "\t  [nd1 <nd1>] [ne2 <ne2] [hisname <his>] [hiename <hie>]\n"
           "\t  [hidname <hid>] [hipname <hip]}]\n"
@@ -104,7 +104,7 @@ static std::string LinkageCode(char glycamChar, std::set<NameType> const& linkag
       break;
   }
   if (linkcode.empty())
-    mprintf("Warning: Could not determine link code.\n");
+    mprintf("Warning: Could not determine link code for link atoms '%s'.\n", linkstr.c_str());
   return linkcode;
 }
 
@@ -1241,6 +1241,14 @@ const
       else if ( (topIn[at].Name() == NE2 ) )
         ne2idx = at;
     }
+    if (nd1idx == -1) {
+      mprintf("Warning: Atom %s not found for %s; skipping residue.\n", *ND1, topIn.TruncResNameNum(*rnum).c_str());
+      continue;
+    }
+    if (ne2idx == -1) {
+      mprintf("Warning: Atom %s not found for %s; skipping residue,\n", *NE2, topIn.TruncResNameNum(*rnum).c_str());
+      continue;
+    }
     if (debug_ > 1)
       mprintf("DEBUG: %s nd1idx= %i ne2idx= %i\n",
               topIn.TruncResNameNum( *rnum ).c_str(), nd1idx+1, ne2idx+1);
@@ -1428,11 +1436,15 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     if (RemoveHydrogens(topIn, frameIn)) return CpptrajState::ERR;
   }
 
-  // new bond grid search
-  mprintf("\tUpdating bond information using grid search.\n");
-  // NOTE: Using default offset of 0.2 Ang
-  if (BondSearch(topIn, SEARCH_GRID, frameIn, 0.2, debug_))
-    return CpptrajState::ERR;
+  // See if we want to search for potential bonds.
+  if (!argIn.hasKey("nobondsearch")) {
+    mprintf("\tUpdating bond information using grid search.\n");
+    // NOTE: Using default offset of 0.2 Ang
+    if (BondSearch(topIn, SEARCH_GRID, frameIn, 0.2, debug_))
+      return CpptrajState::ERR;
+  } else {
+    mprintf("\tNot searching for new bonds; using existing bond information.\n");
+  }
 
   // Each residue starts out unknown.
   resStat_.assign( topIn.Nres(), UNKNOWN );
