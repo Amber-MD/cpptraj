@@ -33,8 +33,9 @@ class Exec_PrepareForLeap : public Exec {
     int CalcAnomericTorsion(double&, int, int, int, Topology const&, Frame const&, std::vector<bool> const&) const;
     int FindRemainingChainCarbons(std::vector<int>&, int, Topology const&, int,
                                   std::vector<bool> const&) const;
+    int FindSugarC1Linkages(int, Topology&, Frame const&) const;
     int IdentifySugar(int, Topology&, Frame const&, CharMask const&, CpptrajFile*, std::set<BondType>&);
-    int PrepareSugars(AtomMask&, Topology&, Frame const&, CpptrajFile*);
+    int PrepareSugars(AtomMask&, Topology&, Frame const&, CpptrajFile*, bool);
     int FindTerByBonds(Topology&, CharMask const&) const;
     int SearchForDisulfides(double, std::string const&, std::string const&, bool,
                             Topology&, Frame const&, CpptrajFile*);
@@ -56,5 +57,6 @@ class Exec_PrepareForLeap : public Exec {
     typedef std::vector<ResStatType> ResStatArray;
     ResStatArray resStat_;  ///< Contain status of each residue
     int debug_; ///< Debug level
+    std::string solventResName_; ///< Solvent residue name
 };
 #endif

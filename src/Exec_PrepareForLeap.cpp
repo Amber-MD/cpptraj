@@ -7,14 +7,14 @@
 #include "CpptrajFile.h"
 #include "Trajout_Single.h"
 #include "DataSet_Coords_CRD.h"
-#include "BondSearch.h"
 #include <stack>
 #include <cctype> // tolower
 #include <algorithm> // sort
 
 /** CONSTRUCTOR */
 Exec_PrepareForLeap::Exec_PrepareForLeap() : Exec(COORDS),
-  errorsAreFatal_(true)
+  errorsAreFatal_(true),
+  debug_(0)
 {
   SetHidden(true);
 }
@@ -25,14 +25,14 @@ void Exec_PrepareForLeap::Help() const
   mprintf("\tcrdset <coords set> [frame <#>] name <out coords set> [pdbout <pdbfile>]\n"
           "\t[leapunitname <unit>] [out <leap input file> [skiperrors]\n"
           "\t[nowat [watermask <watermask>] [noh] [keepaltloc <alt loc ID>]\n"
-          "\t[stripmask <stripmask>] [nobondsearch]\n"
+          "\t[stripmask <stripmask>] [solventresname <solventresname>]\n"
           "\t[{nohisdetect |\n"
           "\t  [nd1 <nd1>] [ne2 <ne2] [hisname <his>] [hiename <hie>]\n"
           "\t  [hidname <hid>] [hipname <hip]}]\n"
           "\t[{nodisulfides |\n"
           "\t  existingdisulfides |\n"
           "\t  [cysmask <cysmask>] [disulfidecut <cut>] [newcysname <name>]}]\n"
-          "\t[{nosugars | sugarmask <sugarmask>}] [resmapfile <file>]\n"
+          "\t[{nosugars | sugarmask <sugarmask> [noc1search]}] [resmapfile <file>]\n"
           "\t[molmask <molmask> ...] [determinemolmask <mask>]\n"
           "  Prepare the structure in the given coords set for easier processing\n"
           "  with the LEaP program from AmberTools. Any existing/potential\n"
@@ -497,6 +497,98 @@ static void FollowBonds(int atm, Topology const& topIn, int idx, std::vector<int
   }
 }
 
+/** Attempt to find any missing linkages to the anomeric carbon in sugar. */
+int Exec_PrepareForLeap::FindSugarC1Linkages(int rnum1, Topology& topIn, Frame const& frameIn)
+const
+{
+  Residue const& res1 = topIn.SetRes(rnum1);
+
+  // residue first atom to residue first atom cutoff^2
+  const double rescut2 = 64.0;
+  // bond cutoff offset
+  const double offset = 0.2;
+
+
+  // First identify the anomeric carbon TODO do not duplicate in IdentifySugar
+  int ringat = -1;
+  int c_beg = -1;
+//  int c_end = -1;
+  for (int at = res1.FirstAtom(); at != res1.LastAtom(); at++)
+  {
+    Atom const& currentAtom = topIn[at];
+    if (currentAtom.Element() == Atom::OXYGEN) {
+      if (currentAtom.Nbonds() == 2) {
+        if ( topIn[currentAtom.Bond(0)].Element() == Atom::CARBON &&
+             topIn[currentAtom.Bond(0)].ResNum() == rnum1 &&
+             topIn[currentAtom.Bond(1)].Element() == Atom::CARBON &&
+             topIn[currentAtom.Bond(1)].ResNum() == rnum1 )
+        {
+          if (ringat != -1) {
+            mprinterr("Error: Multiple potential ring atoms found for residue: %s and %s\n",
+                      topIn.ResNameNumAtomNameNum(ringat).c_str(),
+                      topIn.ResNameNumAtomNameNum(at).c_str());
+            return 1;
+          }
+          ringat = ( at );
+          if (topIn[ringat].Bond(0) < topIn[ringat].Bond(1)) {
+            c_beg = topIn[ringat].Bond(0);
+            //c_end = topIn[ringat].Bond(1);
+          } else {
+            c_beg = topIn[ringat].Bond(1);
+            //c_end = topIn[ringat].Bond(0);
+          }
+        }
+      }
+    }
+  }
+  if (c_beg == -1) {
+    mprintf("Warning: Could not identify anomeric ring carbon for %s; skipping.\n",
+            topIn.TruncResNameNum(rnum1).c_str());
+    return 0;
+  }
+  Atom::AtomicElementType a1Elt = topIn[c_beg].Element(); // Should always be C
+  if (debug_ > 0)
+    mprintf("DEBUG: Anomeric ring carbon: %s\n", topIn.ResNameNumAtomNameNum(c_beg).c_str());
+  // Loop over other residues
+  for (int rnum2 = 0; rnum2 < topIn.Nres(); rnum2++)
+  {
+    if (rnum2 != rnum1) {
+      Residue const& res2 = topIn.Res(rnum2);
+      // Ignore solvent residues
+      if (res2.Name() != solventResName_) {
+        int at1 = res1.FirstAtom();
+        int at2 = res2.FirstAtom();
+        // Initial residue-residue distance based on first atoms in each residue
+        double dist2_1 = DIST2_NoImage( frameIn.XYZ(at1), frameIn.XYZ(at2) );
+        if (dist2_1 < rescut2) {
+          if (debug_ > 1)
+            mprintf("DEBUG: %s to %s = %f\n",
+                    topIn.TruncResNameNum(rnum1).c_str(), topIn.TruncResNameNum(rnum2).c_str(),
+                    sqrt(dist2_1));
+          // Do the rest of the atoms in res2 to the anomeric carbon
+          for (; at2 != res2.LastAtom(); ++at2)
+          {
+            if (!topIn[c_beg].IsBondedTo(at2)) {
+              double D2 = DIST2_NoImage( frameIn.XYZ(c_beg), frameIn.XYZ(at2) );
+              Atom::AtomicElementType a2Elt = topIn[at2].Element();
+              double cutoff2 = Atom::GetBondLength(a1Elt, a2Elt) + offset;
+              cutoff2 *= cutoff2;
+              if (D2 < cutoff2) {
+                mprintf("\t  Adding bond between %s and %s\n",
+                        topIn.ResNameNumAtomNameNum(c_beg).c_str(),
+                        topIn.ResNameNumAtomNameNum(at2).c_str());
+                topIn.AddBond(c_beg, at2);
+              }
+            }
+          } // END loop over res2 atoms
+        } // END res1-res2 distance cutoff
+      } // END res2 is not solvent
+    } // END res1 != res2
+  } // END res2 loop over other residues
+
+  return 0;
+}
+
 /** Attempt to identify sugar residue, form, and linkages. */
 int Exec_PrepareForLeap::IdentifySugar(int rnum, Topology& topIn,
                                        Frame const& frameIn, CharMask const& cmask,
@@ -804,7 +896,8 @@ int Exec_PrepareForLeap::IdentifySugar(int rnum, Topology& topIn,
 
 /** Prepare sugars for leap. */
 int Exec_PrepareForLeap::PrepareSugars(AtomMask& sugarMask, Topology& topIn,
-                                       Frame const& frameIn, CpptrajFile* outfile)
+                                       Frame const& frameIn, CpptrajFile* outfile,
+                                       bool findC1linkages)
 {
   std::set<BondType> sugarBondsToRemove;
   mprintf("\tPreparing sugars selected by '%s'\n", sugarMask.MaskString());
@@ -816,6 +909,23 @@ int Exec_PrepareForLeap::PrepareSugars(AtomMask& sugarMask, Topology& topIn,
     CharMask cmask( sugarMask.ConvertToCharMask(), sugarMask.Nselected() );
     // Get sugar residue numbers
     std::vector<int> sugarResNums = topIn.ResnumsSelectedBy( sugarMask );
+    // For each sugar residue, try to fill in missing linkages
+    if (findC1linkages) {
+      mprintf("\tAttempting to identify missing linkages to sugar anomeric carbons.\n");
+      for (std::vector<int>::const_iterator rnum = sugarResNums.begin();
+                                            rnum != sugarResNums.end(); ++rnum)
+      {
+        if (FindSugarC1Linkages(*rnum, topIn, frameIn)) {
+          if (errorsAreFatal_)
+            return 1;
+          else
+            mprintf("Warning: Finding anomeric C linkages for %s failed, skipping.\n",
+                    topIn.TruncResNameNum( *rnum ).c_str());
+        }
+      }
+    } else {
+      mprintf("\tNot attempting to identify missing linkages to sugar anomeric carbons.\n");
+    }
     // For each sugar residue, see if it is bonded to a non-sugar residue.
     // If it is, remove that bond but record it.
     for (std::vector<int>::const_iterator rnum = sugarResNums.begin();
@@ -1350,6 +1460,8 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 
   leapunitname_ = argIn.GetStringKey("leapunitname", "m");
   mprintf("\tUsing leap unit name: %s\n", leapunitname_.c_str());
+  solventResName_ = argIn.GetStringKey("solventresname", "HOH");
+  mprintf("\tSolvent residue name: %s\n", solventResName_.c_str());
 
   bool prepare_sugars = !argIn.hasKey("nosugars");
   if (!prepare_sugars)
@@ -1359,7 +1471,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 
   // Deal with any coordinate modifications
   bool remove_water     = argIn.hasKey("nowat");
-  std::string waterMask = argIn.GetStringKey("watermask", ":HOH");
+  std::string waterMask = argIn.GetStringKey("watermask", ":" + solventResName_);
   bool remove_h         = argIn.hasKey("noh");
   std::string altLocArg = argIn.GetStringKey("keepaltloc");
   char altLocChar = '\0';
@@ -1434,16 +1546,6 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   // Remove hydrogens
   if (remove_h) {
     if (RemoveHydrogens(topIn, frameIn)) return CpptrajState::ERR;
-  }
-
-  // See if we want to search for potential bonds.
-  if (!argIn.hasKey("nobondsearch")) {
-    mprintf("\tUpdating bond information using grid search.\n");
-    // NOTE: Using default offset of 0.2 Ang
-    if (BondSearch(topIn, SEARCH_GRID, frameIn, 0.2, debug_))
-      return CpptrajState::ERR;
-  } else {
-    mprintf("\tNot searching for new bonds; using existing bond information.\n");
   }
 
   // Each residue starts out unknown.
@@ -1564,7 +1666,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 
   // Prepare sugars
   if (prepare_sugars) {
-    if (PrepareSugars(sugarMask, topIn, frameIn, outfile)) {
+    if (PrepareSugars(sugarMask, topIn, frameIn, outfile, !argIn.hasKey("noc1search"))) {
       mprinterr("Error: Sugar preparation failed.\n");
       return CpptrajState::ERR;
     }
