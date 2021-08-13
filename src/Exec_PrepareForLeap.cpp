@@ -650,11 +650,9 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
   // Out of the potential ring start atoms, see which ones are actually
   // part of a ring. Potential ring start atoms only have 2 bonds,
   // each one to a carbon.
-//  int n_ring_atoms = 0;
   int ring_oxygen_atom = -1; // e.g. O5
   // This will hold ring atoms, not including the ring oxygen
   std::vector<int> RA;
-//  std::vector<bool> IsRingAtom;
   for (std::vector<int>::const_iterator ringat = potentialRingStartAtoms.begin();
                                         ringat != potentialRingStartAtoms.end();
                                       ++ringat)
@@ -686,24 +684,17 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
       ring_oxygen_atom = *ringat;
       anomeric_atom = c_beg;
       ano_ref_atom  = c_end;
-//      // Use IsRingAtom as a mask with ring atoms set to true
-//      IsRingAtom.assign( topIn.Natom(), false );
-//      IsRingAtom[ring_oxygen_atom] = true;
-//      n_ring_atoms = 1;
       RA.clear();
       if (debug_ > 0) mprintf(" :"); // DEBUG
       for (std::vector<int>::const_iterator it = ring_atoms.begin(); it != ring_atoms.end(); ++it)
       {
         if (debug_ > 0) mprintf(" %i", *it + 1);
         if (*it == -1) break;
-//        IsRingAtom[*it] = true;
         RA.push_back( *it );
-//        ++n_ring_atoms;
       }
       if (debug_ > 0) mprintf("\n"); // DEBUG
     }
   }
-  //mprintf("\t  Number of ring atoms= %i\n", n_ring_atoms);
   if (RA.empty() || ring_oxygen_atom == -1) {
     mprinterr("Error: Sugar ring atoms could not be identified.\n");
     err = 1;
@@ -758,110 +749,7 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
         ChangeAtomName(topIn.SetAtom(at), "CME");
     }
   }
-/*
-  // Try to identify the sugar ring. Potential starting atoms are oxygens
-  // bonded to two carbon atoms. Also save potential stereocenter indices
-  // (i.e. carbons bonded to 4 other atoms). Since input structure may not
-  // have any hydrogens, count bonds to heavy atoms only, must make at
-  // least 3 bonds (otherwise e.g. likely 2 hydrogens).
-  std::vector<int> potentialRingStartAtoms;
-  for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
-  {
-    Atom const& currentAtom = topIn[at];
-    if (currentAtom.Element() == Atom::OXYGEN) {
-      if (currentAtom.Nbonds() == 2) {
-        if ( topIn[currentAtom.Bond(0)].Element() == Atom::CARBON &&
-             topIn[currentAtom.Bond(0)].ResNum() == rnum &&
-             topIn[currentAtom.Bond(1)].Element() == Atom::CARBON &&
-             topIn[currentAtom.Bond(1)].ResNum() == rnum )
-        {
-          potentialRingStartAtoms.push_back( at );
-        }
-      }
-    }
-  }
-  // TODO handle case where multiple potential ring start atoms exist
-  if (potentialRingStartAtoms.empty()) {
-    mprintf("Warning: Ring oxygen could not be identified for %s\n",
-            topIn.TruncResNameNum(rnum).c_str());
-    resStat_[rnum] = SUGAR_MISSING_RING_O;
-    return 0;
-  } else if (potentialRingStartAtoms.size() > 1) {
-    mprinterr("Error: Multiple potential ring start atoms:\n");
-    for (std::vector<int>::const_iterator it = potentialRingStartAtoms.begin();
-                                          it != potentialRingStartAtoms.end();
-                                         ++it)
-      mprinterr("Error:   %s\n", topIn.ResNameNumAtomNameNum(*it).c_str());
-    return 1;
-  }
 
-  // The anomeric carbon is the carbon that was part of the carbonyl group
-  // in the straight chain. It is therefore typically the carbon bonded
-  // to the ring oxygen with the lower index.
-  int anomeric_atom = -1;    // e.g. C1
-  // The anomeric reference carbon is the stereocenter farthest from the
-  // anomeric carbon in the ring.
-  int ano_ref_atom = -1;     // e.g. C5
-  // Out of the potential ring start atoms, see which ones are actually
-  // part of a ring. Potential ring start atoms only have 2 bonds,
-  // each one to a carbon.
-  int n_ring_atoms = 0;
-  int ring_oxygen_atom = -1; // e.g. O5
-  std::vector<bool> IsRingAtom;
-  for (std::vector<int>::const_iterator ringat = potentialRingStartAtoms.begin();
-                                        ringat != potentialRingStartAtoms.end();
-                                      ++ringat)
-  {
-    std::vector<bool> Visited( topIn.Natom(), true );
-    for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
-      if (at != *ringat)
-        Visited[at] = false;
-    std::vector<int> ring_atoms( topIn.Res(rnum).NumAtoms(), -1 );
-    bool ring_complete = false;
-    // Since we have already established that *ringat is an oxygen bonded
-    // to two carbons, just start at the first carbon to see if we can
-    // get to the second carbon.
-    int c_beg, c_end;
-    if (topIn[*ringat].Bond(0) < topIn[*ringat].Bond(1)) {
-      c_beg = topIn[*ringat].Bond(0);
-      c_end = topIn[*ringat].Bond(1);
-    } else {
-      c_beg = topIn[*ringat].Bond(1);
-      c_end = topIn[*ringat].Bond(0);
-    }
-    FollowBonds(c_beg, topIn, 0, ring_atoms,
-                c_end, Visited, ring_complete);
-    if (debug_ > 0)
-      mprintf("DEBUG: Potential ring start atom %s, Ring complete = %i",
-              topIn.ResNameNumAtomNameNum(*ringat).c_str(), (int)ring_complete);
-    // TODO handle the case where multiple potential ring start atoms exist
-    if (ring_complete) {
-      ring_oxygen_atom = *ringat;
-      anomeric_atom = c_beg;
-      ano_ref_atom  = c_end;
-      // Use IsRingAtom as a mask with ring atoms set to true
-      IsRingAtom.assign( topIn.Natom(), false );
-      IsRingAtom[ring_oxygen_atom] = true;
-      n_ring_atoms = 1;
-      if (debug_ > 0) mprintf(" :"); // DEBUG
-      for (std::vector<int>::const_iterator it = ring_atoms.begin(); it != ring_atoms.end(); ++it)
-      {
-        if (debug_ > 0) mprintf(" %i", *it + 1);
-        if (*it == -1) break;
-        IsRingAtom[*it] = true;
-        ++n_ring_atoms;
-      }
-      if (debug_ > 0) mprintf("\n"); // DEBUG
-    }
-  }
-  mprintf("\t  Number of ring atoms= %i\n", n_ring_atoms);
-  if (n_ring_atoms == 0 || ring_oxygen_atom == -1) {
-    mprinterr("Error: Sugar ring atoms could not be identified.\n");
-    return 1;
-  }
-  if (debug_ > 0)
-    mprintf("\t  Ring oxygen         : %s\n", topIn.ResNameNumAtomNameNum(ring_oxygen_atom).c_str());
-*/
   // Create an array with all ring atoms set to true
   std::vector<bool> IsRingAtom;
   IsRingAtom.assign( topIn.Natom(), false );
