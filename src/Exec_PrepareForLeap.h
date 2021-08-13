@@ -15,6 +15,9 @@ class Exec_PrepareForLeap : public Exec {
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_PrepareForLeap(); }
     RetType Execute(CpptrajState&, ArgList&);
   private:
+    /// Hold indices for sugar
+    class Sugar;
+
     inline void ChangeResName(Residue&, NameType const&) const;
     inline void ChangeAtomName(Atom&, NameType const&) const;
 
@@ -34,6 +37,7 @@ class Exec_PrepareForLeap : public Exec {
     int FindRemainingChainCarbons(std::vector<int>&, int, Topology const&, int,
                                   std::vector<bool> const&) const;
     int FindSugarC1Linkages(int, Topology&, Frame const&) const;
+    Sugar IdSugarRing(int, Topology const&, int&);
     int IdentifySugar(int, Topology&, Frame const&, CharMask const&, CpptrajFile*, std::set<BondType>&);
     int PrepareSugars(AtomMask&, Topology&, Frame const&, CpptrajFile*, bool);
     int FindTerByBonds(Topology&, CharMask const&) const;
@@ -58,5 +62,20 @@ class Exec_PrepareForLeap : public Exec {
     ResStatArray resStat_;  ///< Contain status of each residue
     int debug_; ///< Debug level
     std::string solventResName_; ///< Solvent residue name
+};
+// ----- Sugar class ----------------------------------------------------------
+class Exec_PrepareForLeap::Sugar {
+  public:
+    Sugar(int);
+    Sugar(int,int,int,int,std::vector<int> const&);
+
+    bool NotSet() const { return (ring_oxygen_atom_ == -1); }
+    void PrintInfo(Topology const&) const;
+  private:
+    int rnum_;             ///< Residue index
+    int ring_oxygen_atom_; ///< Index of the ring oxygen atom
+    int anomeric_atom_;    ///< Index of the anomeric C atom
+    int ano_ref_atom_;     ///< Index of the anomeric reference C atom
+    std::vector<int> ring_atoms_; ///< Index of all non-oxygen ring atoms
 };
 #endif
