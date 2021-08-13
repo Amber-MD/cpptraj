@@ -70,6 +70,8 @@ class Exec_PrepareForLeap::Sugar {
     Sugar(int,int,int,int,std::vector<int> const&);
 
     bool NotSet() const { return (ring_oxygen_atom_ == -1); }
+    /// \return Number of ring atoms
+    unsigned int NumRingAtoms() const;
     void PrintInfo(Topology const&) const;
   private:
     int rnum_;             ///< Residue index

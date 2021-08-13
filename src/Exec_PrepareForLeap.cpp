@@ -32,14 +32,20 @@ void Exec_PrepareForLeap::Sugar::PrintInfo(Topology const& topIn) const {
     mprintf("\t%s : Not Set.\n", topIn.TruncResNameNum(rnum_).c_str());
   } else {
     mprintf("\t%s :\n", topIn.TruncResNameNum(rnum_).c_str());
-    mprintf("\t\tRing O          : %s\n", topIn.TruncAtomNameNum(ring_oxygen_atom_).c_str());
-    mprintf("\t\tAnomeric C      : %s\n", topIn.TruncAtomNameNum(anomeric_atom_).c_str());
-    mprintf("\t\tAnomeric ref. C : %s\n", topIn.TruncAtomNameNum(ano_ref_atom_).c_str());
-    mprintf("\t\tRing atoms      :");
+    mprintf("\t\tRing O           : %s\n", topIn.TruncAtomNameNum(ring_oxygen_atom_).c_str());
+    mprintf("\t\tAnomeric C       : %s\n", topIn.TruncAtomNameNum(anomeric_atom_).c_str());
+    mprintf("\t\tAnomeric ref. C  : %s\n", topIn.TruncAtomNameNum(ano_ref_atom_).c_str());
+    mprintf("\t\tNum ring atoms   : %u\n", NumRingAtoms());
+    mprintf("\t\tNon-O Ring atoms :");
     for (std::vector<int>::const_iterator it = ring_atoms_.begin(); it != ring_atoms_.end(); ++it)
       mprintf(" %s", topIn.TruncAtomNameNum(*it).c_str());
     mprintf("\n");
   }
+}
+
+unsigned int Exec_PrepareForLeap::Sugar::NumRingAtoms() const {
+  if (NotSet()) return 0;
+  return ring_atoms_.size() + 1;
 }
 
 // -----------------------------------------------------------------------------
@@ -675,11 +681,11 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
   // Out of the potential ring start atoms, see which ones are actually
   // part of a ring. Potential ring start atoms only have 2 bonds,
   // each one to a carbon.
-  int n_ring_atoms = 0;
+//  int n_ring_atoms = 0;
   int ring_oxygen_atom = -1; // e.g. O5
   // This will hold ring atoms, not including the ring oxygen
   std::vector<int> RA;
-  std::vector<bool> IsRingAtom;
+//  std::vector<bool> IsRingAtom;
   for (std::vector<int>::const_iterator ringat = potentialRingStartAtoms.begin();
                                         ringat != potentialRingStartAtoms.end();
                                       ++ringat)
@@ -711,25 +717,25 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
       ring_oxygen_atom = *ringat;
       anomeric_atom = c_beg;
       ano_ref_atom  = c_end;
-      // Use IsRingAtom as a mask with ring atoms set to true
-      IsRingAtom.assign( topIn.Natom(), false );
-      IsRingAtom[ring_oxygen_atom] = true;
-      n_ring_atoms = 1;
+//      // Use IsRingAtom as a mask with ring atoms set to true
+//      IsRingAtom.assign( topIn.Natom(), false );
+//      IsRingAtom[ring_oxygen_atom] = true;
+//      n_ring_atoms = 1;
       RA.clear();
       if (debug_ > 0) mprintf(" :"); // DEBUG
       for (std::vector<int>::const_iterator it = ring_atoms.begin(); it != ring_atoms.end(); ++it)
       {
         if (debug_ > 0) mprintf(" %i", *it + 1);
         if (*it == -1) break;
-        IsRingAtom[*it] = true;
+//        IsRingAtom[*it] = true;
         RA.push_back( *it );
-        ++n_ring_atoms;
+//        ++n_ring_atoms;
       }
       if (debug_ > 0) mprintf("\n"); // DEBUG
     }
   }
-  mprintf("\t  Number of ring atoms= %i\n", n_ring_atoms);
-  if (n_ring_atoms == 0 || ring_oxygen_atom == -1) {
+  //mprintf("\t  Number of ring atoms= %i\n", n_ring_atoms);
+  if (RA.empty() || ring_oxygen_atom == -1) {
     mprinterr("Error: Sugar ring atoms could not be identified.\n");
     err = 1;
     return Sugar(rnum);
