@@ -36,7 +36,7 @@ class Exec_PrepareForLeap : public Exec {
     int CalcAnomericTorsion(double&, int, int, int, Topology const&, Frame const&, std::vector<bool> const&) const;
     int FindRemainingChainCarbons(std::vector<int>&, int, Topology const&, int,
                                   std::vector<bool> const&) const;
-    int FindSugarC1Linkages(int, Topology&, Frame const&) const;
+    int FindSugarC1Linkages(Sugar const&, Topology&, Frame const&) const;
     Sugar IdSugarRing(int, Topology const&, int&);
     int IdentifySugar(int, Topology&, Frame const&, CharMask const&, CpptrajFile*, std::set<BondType>&);
     int PrepareSugars(AtomMask&, Topology&, Frame const&, CpptrajFile*, bool);
@@ -68,6 +68,15 @@ class Exec_PrepareForLeap::Sugar {
   public:
     Sugar(int);
     Sugar(int,int,int,int,std::vector<int> const&);
+
+    int ResNum()          const { return rnum_; }
+    int RingOxygenAtom()  const { return ring_oxygen_atom_; }
+    int AnomericAtom()    const { return anomeric_atom_; }
+    int AnomericRefAtom() const { return ano_ref_atom_; }
+
+    typedef std::vector<int>::const_iterator const_iterator;
+    const_iterator ringbegin() const { return ring_atoms_.begin(); }
+    const_iterator ringend()   const { return ring_atoms_.end(); }
 
     bool NotSet() const { return (ring_oxygen_atom_ == -1); }
     /// \return Number of ring atoms

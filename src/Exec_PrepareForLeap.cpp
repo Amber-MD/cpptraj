@@ -537,9 +537,16 @@ static void FollowBonds(int atm, Topology const& topIn, int idx, std::vector<int
 }
 
 /** Attempt to find any missing linkages to the anomeric carbon in sugar. */
-int Exec_PrepareForLeap::FindSugarC1Linkages(int rnum1, Topology& topIn, Frame const& frameIn)
+int Exec_PrepareForLeap::FindSugarC1Linkages(Sugar const& sugar, Topology& topIn, Frame const& frameIn)
 const
 {
+  if (sugar.NotSet()) {
+    mprintf("Warning: Sugar %s is not set up. Skipping linkage detection.\n",
+            topIn.TruncResNameNum(sugar.ResNum()).c_str());
+    return 0; // TODO return 1?
+  }
+  int rnum1 = sugar.ResNum();
+  int c_beg = sugar.AnomericAtom();
   Residue const& res1 = topIn.SetRes(rnum1);
 
   // residue first atom to residue first atom cutoff^2
@@ -547,44 +554,6 @@ const
   // bond cutoff offset
   const double offset = 0.2;
 
-
-  // First identify the anomeric carbon TODO do not duplicate in IdentifySugar
-  int ringat = -1;
-  int c_beg = -1;
-//  int c_end = -1;
-  for (int at = res1.FirstAtom(); at != res1.LastAtom(); at++)
-  {
-    Atom const& currentAtom = topIn[at];
-    if (currentAtom.Element() == Atom::OXYGEN) {
-      if (currentAtom.Nbonds() == 2) {
-        if ( topIn[currentAtom.Bond(0)].Element() == Atom::CARBON &&
-             topIn[currentAtom.Bond(0)].ResNum() == rnum1 &&
-             topIn[currentAtom.Bond(1)].Element() == Atom::CARBON &&
-             topIn[currentAtom.Bond(1)].ResNum() == rnum1 )
-        {
-          if (ringat != -1) {
-            mprinterr("Error: Multiple potential ring atoms found for residue: %s and %s\n",
-                      topIn.ResNameNumAtomNameNum(ringat).c_str(),
-                      topIn.ResNameNumAtomNameNum(at).c_str());
-            return 1;
-          }
-          ringat = ( at );
-          if (topIn[ringat].Bond(0) < topIn[ringat].Bond(1)) {
-            c_beg = topIn[ringat].Bond(0);
-            //c_end = topIn[ringat].Bond(1);
-          } else {
-            c_beg = topIn[ringat].Bond(1);
-            //c_end = topIn[ringat].Bond(0);
-          }
-        }
-      }
-    }
-  }
-  if (c_beg == -1) {
-    mprintf("Warning: Could not identify anomeric ring carbon for %s; skipping.\n",
-            topIn.TruncResNameNum(rnum1).c_str());
-    return 0;
-  }
   Atom::AtomicElementType a1Elt = topIn[c_beg].Element(); // Should always be C
   if (debug_ > 0)
     mprintf("DEBUG: Anomeric ring carbon: %s\n", topIn.ResNameNumAtomNameNum(c_beg).c_str());
@@ -1087,15 +1056,15 @@ int Exec_PrepareForLeap::PrepareSugars(AtomMask& sugarMask, Topology& topIn,
     // For each sugar residue, try to fill in missing linkages
     if (findC1linkages) {
       mprintf("\tAttempting to identify missing linkages to sugar anomeric carbons.\n");
-      for (std::vector<int>::const_iterator rnum = sugarResNums.begin();
-                                            rnum != sugarResNums.end(); ++rnum)
+      for (std::vector<Sugar>::const_iterator sugar = Sugars.begin();
+                                              sugar != Sugars.end(); ++sugar)
       {
-        if (FindSugarC1Linkages(*rnum, topIn, frameIn)) {
+        if (FindSugarC1Linkages(*sugar, topIn, frameIn)) {
           if (errorsAreFatal_)
             return 1;
           else
             mprintf("Warning: Finding anomeric C linkages for %s failed, skipping.\n",
-                    topIn.TruncResNameNum( *rnum ).c_str());
+                    topIn.TruncResNameNum( sugar->ResNum() ).c_str());
         }
       }
     } else {
