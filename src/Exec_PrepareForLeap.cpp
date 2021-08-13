@@ -1722,7 +1722,8 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   // Residue validation.
-  mprintf("\tResidues with potential problems:\n");
+  //mprintf("\tResidues with potential problems:\n");
+  static const char* msg = "Potential problem: ";
   for (ResStatArray::iterator it = resStat_.begin(); it != resStat_.end(); ++it)
   {
     //if ( *it == VALIDATED )
@@ -1732,19 +1733,19 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     if ( *it == UNKNOWN ) {
       SetType::const_iterator pname = pdb_res_names_.find( topIn.Res(it-resStat_.begin()).Name() );
       if (pname == pdb_res_names_.end())
-        mprintf("\t\t%s is an unrecognized name and may not have parameters.\n",
-                topIn.TruncResNameNum(it-resStat_.begin()).c_str());
+        mprintf("\t%s%s is an unrecognized name and may not have parameters.\n",
+                msg, topIn.TruncResNameNum(it-resStat_.begin()).c_str());
       else
         *it = VALIDATED;
     } else if ( *it == UNRECOGNIZED_SUGAR_LINKAGE ) {
-        mprintf("\t\t%s is linked to a sugar but has no sugar-linkage form.\n",
-                topIn.TruncResNameNum(it-resStat_.begin()).c_str());
+        mprintf("\t%s%s is linked to a sugar but has no sugar-linkage form.\n",
+                msg, topIn.TruncResNameNum(it-resStat_.begin()).c_str());
     } else if ( *it == SUGAR_MISSING_C1X ) {
-        mprintf("\t\t%s Sugar is missing anomeric carbon substituent and cannot be identified.\n",
-                topIn.TruncResNameNum(it-resStat_.begin()).c_str());
+        mprintf("\t%s%s Sugar is missing anomeric carbon substituent and cannot be identified.\n",
+                msg, topIn.TruncResNameNum(it-resStat_.begin()).c_str());
     } else if ( *it == SUGAR_MISSING_RING_O ) {
-        mprintf("\t\t%s Sugar is missing ring oxygen and cannot be identified.\n",
-                topIn.TruncResNameNum(it-resStat_.begin()).c_str());
+        mprintf("\t%s%s Sugar is missing ring oxygen and cannot be identified.\n",
+                msg, topIn.TruncResNameNum(it-resStat_.begin()).c_str());
     }
   }
 
