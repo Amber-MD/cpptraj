@@ -715,10 +715,17 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
 }
 
 /** Attempt to identify sugar residue, form, and linkages. */
-int Exec_PrepareForLeap::IdentifySugar(int rnum, Topology& topIn,
+int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
                                        Frame const& frameIn, CharMask const& cmask,
                                        CpptrajFile* outfile, std::set<BondType>& sugarBondsToRemove)
 {
+  if (sugar.NotSet()) {
+    mprintf("Warning: Sugar %s is not set up. Skipping sugar identification.\n",
+            topIn.TruncResNameNum(sugar.ResNum()).c_str());
+    return 0; // TODO return 1?
+  }
+
+  int rnum = sugar.ResNum();
   Residue& res = topIn.SetRes(rnum);
   // Try to ID the base sugar type from the input name.
   char resChar = ' ';
@@ -751,7 +758,7 @@ int Exec_PrepareForLeap::IdentifySugar(int rnum, Topology& topIn,
         ChangeAtomName(topIn.SetAtom(at), "CME");
     }
   }
-
+/*
   // Try to identify the sugar ring. Potential starting atoms are oxygens
   // bonded to two carbon atoms. Also save potential stereocenter indices
   // (i.e. carbons bonded to 4 other atoms). Since input structure may not
@@ -854,12 +861,20 @@ int Exec_PrepareForLeap::IdentifySugar(int rnum, Topology& topIn,
   }
   if (debug_ > 0)
     mprintf("\t  Ring oxygen         : %s\n", topIn.ResNameNumAtomNameNum(ring_oxygen_atom).c_str());
+*/
+  // Create an array with all ring atoms set to true
+  std::vector<bool> IsRingAtom;
+  IsRingAtom.assign( topIn.Natom(), false );
+  IsRingAtom[sugar.RingOxygenAtom()] = true;
+  for (Sugar::const_iterator it = sugar.ringbegin(); it != sugar.ringend(); ++it)
+    IsRingAtom[ *it ] = true;
 
   double t_c1 = 0;
   double t_c5 = 0;
 
   // Calculate torsion around anomeric carbon:
-  int ret = CalcAnomericTorsion(t_c1, ring_oxygen_atom, anomeric_atom, rnum, topIn, frameIn, IsRingAtom);
+  int ret = CalcAnomericTorsion(t_c1, sugar.RingOxygenAtom(), sugar.AnomericAtom(),
+                                rnum, topIn, frameIn, IsRingAtom);
   if (ret < 0) {
     // This means C1 X substituent missing; non-fatal.
     resStat_[rnum] = SUGAR_MISSING_C1X;
@@ -870,7 +885,8 @@ int Exec_PrepareForLeap::IdentifySugar(int rnum, Topology& topIn,
   }
 
   // Calculate torsion around anomeric reference:
-  if (CalcAnomericRefTorsion(t_c5, ano_ref_atom, ring_oxygen_atom, topIn, frameIn, IsRingAtom))
+  if (CalcAnomericRefTorsion(t_c5, sugar.AnomericRefAtom(), sugar.RingOxygenAtom(),
+                             topIn, frameIn, IsRingAtom))
     return 1;
 
   // Determine alpha/beta 
@@ -889,7 +905,8 @@ int Exec_PrepareForLeap::IdentifySugar(int rnum, Topology& topIn,
   // stereocenter with the highest index. Start from final ring carbon.
   int highest_stereocenter = -1;
   std::vector<int> remainingChainCarbons;
-  if (FindRemainingChainCarbons(remainingChainCarbons, ano_ref_atom, topIn, rnum, IsRingAtom))
+  if (FindRemainingChainCarbons(remainingChainCarbons, sugar.AnomericRefAtom(),
+                                topIn, rnum, IsRingAtom))
     return 1;
   if (debug_ > 0) mprintf("\t  Remaining chain carbons:\n");
   for (std::vector<int>::const_iterator it = remainingChainCarbons.begin();
@@ -914,12 +931,12 @@ int Exec_PrepareForLeap::IdentifySugar(int rnum, Topology& topIn,
   }
   if (highest_stereocenter == -1) {
     // This means that ano_ref_atom is the highest stereocenter.
-    highest_stereocenter = ano_ref_atom;
+    highest_stereocenter = sugar.AnomericRefAtom();
   }
   mprintf("\t  Highest stereocenter: %s\n", topIn.ResNameNumAtomNameNum(highest_stereocenter).c_str());
   // Determine D/L
   bool isDform;
-  if (highest_stereocenter != ano_ref_atom) {
+  if (highest_stereocenter != sugar.AnomericRefAtom()) {
     double stereo_t = 0;
     if (CalcStereocenterTorsion(stereo_t, highest_stereocenter, topIn, frameIn))
       return 1;
@@ -1072,18 +1089,18 @@ int Exec_PrepareForLeap::PrepareSugars(AtomMask& sugarMask, Topology& topIn,
     }
     // For each sugar residue, see if it is bonded to a non-sugar residue.
     // If it is, remove that bond but record it.
-    for (std::vector<int>::const_iterator rnum = sugarResNums.begin();
-                                          rnum != sugarResNums.end(); ++rnum)
+    for (std::vector<Sugar>::const_iterator sugar = Sugars.begin();
+                                            sugar != Sugars.end(); ++sugar)
     {
       //Residue const& Res = coords.Top().Res(*rnum);
       // See if we recognize this sugar.
-      if (IdentifySugar(*rnum, topIn, frameIn, cmask, outfile, sugarBondsToRemove))
+      if (IdentifySugar(*sugar, topIn, frameIn, cmask, outfile, sugarBondsToRemove))
       {
         if (errorsAreFatal_)
           return 1;
         else
           mprintf("Warning: Preparation of sugar %s failed, skipping.\n",
-                  topIn.TruncResNameNum( *rnum ).c_str());
+                  topIn.TruncResNameNum( sugar->ResNum() ).c_str());
       }
     } // END loop over sugar residues
     // Remove bonds between sugars

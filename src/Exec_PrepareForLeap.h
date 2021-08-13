@@ -38,7 +38,7 @@ class Exec_PrepareForLeap : public Exec {
                                   std::vector<bool> const&) const;
     int FindSugarC1Linkages(Sugar const&, Topology&, Frame const&) const;
     Sugar IdSugarRing(int, Topology const&, int&);
-    int IdentifySugar(int, Topology&, Frame const&, CharMask const&, CpptrajFile*, std::set<BondType>&);
+    int IdentifySugar(Sugar const&, Topology&, Frame const&, CharMask const&, CpptrajFile*, std::set<BondType>&);
     int PrepareSugars(AtomMask&, Topology&, Frame const&, CpptrajFile*, bool);
     int FindTerByBonds(Topology&, CharMask const&) const;
     int SearchForDisulfides(double, std::string const&, std::string const&, bool,
