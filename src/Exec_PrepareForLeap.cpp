@@ -1721,6 +1721,19 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     }
   }
 
+  // Count any solvent molecules
+  if (!remove_water) {
+    NameType solvName(solventResName_);
+    unsigned int nsolvent = 0;
+    for (Topology::res_iterator res = topIn.ResStart(); res != topIn.ResEnd(); ++res) {
+      if ( res->Name() == solvName) {
+        nsolvent++;
+        resStat_[res-topIn.ResStart()] = VALIDATED;
+      }
+    }
+    if (nsolvent > 0) mprintf("\t%u solvent residues.\n", nsolvent);
+  }
+
   // Residue validation.
   //mprintf("\tResidues with potential problems:\n");
   static const char* msg = "Potential problem: ";
