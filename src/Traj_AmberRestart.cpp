@@ -157,7 +157,10 @@ int Traj_AmberRestart::processReadArgs(ArgList& argIn) {
 int Traj_AmberRestart::setupTrajin(FileName const& fname, Topology* trajParm)
 {
   TextBlockBuffer tfile;
-  if (tfile.OpenFileRead( fname, trajParm->Natom()*3, 12, 6, 160 )) return TRAJIN_ERR;
+  // In addition to the space needed to buffer the block of coordinates,
+  // set up for 3 additional lines of 80 bytes: title, natoms etc, and
+  // potential velocities/box.
+  if (tfile.OpenFileRead( fname, trajParm->Natom()*3, 12, 6, 240 )) return TRAJIN_ERR;
   readAccess_ = true;
 
   // Read in title
@@ -215,37 +218,47 @@ int Traj_AmberRestart::setupTrajin(FileName const& fname, Topology* trajParm)
     return TRAJIN_ERR;
   }
 
-  // Attempt a second read to get velocities or box coords TODO lookahead
+  // Attempt a second read to get velocities or box coords.
+  // In order for this to be a valid read we need at least 36 characters
+  // (3 cols * 12 chars, minimum 1 atom case) remaining.
+  //mprintf("DEBUG: Characters remaining in buffer= %li\n", tfile.Nremaining());
+  //mprintf("DEBUG: [");
+  //const char* c = tfile.CurrentLine();
+  //for (long int ic = 0; ic < tfile.Nremaining(); ic++)
+  //  mprintf("%c", *(c+ic));
+  //mprintf("]\n");
   bool hasVel = false;
   boxInfo_.SetNoBox();
-  VEL_.resize( natom3_ );
-  eltsRead = tfile.BlockToDoubles( &VEL_[0] );
-  mprintf("DEBUG: VEL: %i elts read\n", eltsRead);
-  if (eltsRead == natom3_) {
-    // Velocity info present
-    hasVel = true;
-    // Check for box
-    tfile.SetupTextBlock(6, 12, 6);
-    double xyzabg[6];
-    eltsRead = tfile.BlockToDoubles( xyzabg );
-    if (eltsRead == 6) {
+  if (tfile.Nremaining() > 35) {
+    VEL_.resize( natom3_ );
+    eltsRead = tfile.BlockToDoubles( &VEL_[0] );
+    mprintf("DEBUG: VEL: %i elts read\n", eltsRead);
+    if (eltsRead == natom3_) {
+      // Velocity info present
+      hasVel = true;
+      // Check for box
+      tfile.SetupTextBlock(6, 12, 6);
+      double xyzabg[6];
+      eltsRead = tfile.BlockToDoubles( xyzabg );
+      if (eltsRead == 6) {
+        boxInfo_.SetupFromXyzAbg(xyzabg);
+      } else if (eltsRead != 0) {
+        mprinterr("Error: When checking if box info present, expected 6 elements,\n"
+                  "Error:  got %i\n", eltsRead);
+        return TRAJIN_ERR;
+      }
+    } else if (eltsRead == 6) {
+      // Only box info present
+      double xyzabg[6];
+      for (unsigned int ii = 0; ii != 6; ii++)
+        xyzabg[ii] = VEL_[ii];
+      VEL_.clear();
       boxInfo_.SetupFromXyzAbg(xyzabg);
     } else if (eltsRead != 0) {
-      mprinterr("Error: When checking if box info present, expected 6 elements,\n"
-                "Error:  got %i\n", eltsRead);
+      mprinterr("Error: When checking if velocity/box info present, expected either\n"
+                "Error:  %i or 6 elements, got %i\n", natom3_, eltsRead);
       return TRAJIN_ERR;
     }
-  } else if (eltsRead == 6) {
-    // Only box info present
-    double xyzabg[6];
-    for (unsigned int ii = 0; ii != 6; ii++)
-      xyzabg[ii] = VEL_[ii];
-    VEL_.clear();
-    boxInfo_.SetupFromXyzAbg(xyzabg);
-  } else if (eltsRead != 0) {
-    mprinterr("Error: When checking if velocity/box info present, expected either\n"
-              "Error:  %i or 6 elements, got %i\n", natom3_, eltsRead);
-    return TRAJIN_ERR;
   }
   if (boxInfo_.HasBox())
     numBoxCoords_ = 6;
