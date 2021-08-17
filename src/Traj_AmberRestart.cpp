@@ -213,7 +213,8 @@ int Traj_AmberRestart::setupTrajin(FileName const& fname, Topology* trajParm)
   // Attemp to read coordinates from restart
   CRD_.resize( natom3_ );
   int eltsRead = tfile.BlockToDoubles( &CRD_[0] );
-  mprintf("DEBUG: CRD: %i elts read\n", eltsRead);
+  if (debug_ > 0)
+    mprintf("DEBUG: CRD: %i elts read\n", eltsRead);
   if (eltsRead != natom3_) {
     mprinterr("Error: Could not read coordinates from Amber restart.\n");
     return TRAJIN_ERR;
@@ -233,7 +234,8 @@ int Traj_AmberRestart::setupTrajin(FileName const& fname, Topology* trajParm)
   if (tfile.Nremaining() > 35) {
     VEL_.resize( natom3_ );
     eltsRead = tfile.BlockToDoubles( &VEL_[0] );
-    mprintf("DEBUG: VEL: %i elts read\n", eltsRead);
+    if (debug_ > 0)
+      mprintf("DEBUG: VEL: %i elts read\n", eltsRead);
     if (eltsRead == natom3_) {
       // Velocity info present
       hasVel = true;
