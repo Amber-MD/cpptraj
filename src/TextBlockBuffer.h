@@ -16,6 +16,8 @@ class TextBlockBuffer : private BufferedLine {
     using BufferedLine::Filename;
     using BufferedLine::CloseFile;
     using BufferedLine::Line;
+    using BufferedLine::CurrentLine;
+    using BufferedLine::Nremaining;
   private:
     using BufferedLine::IsDos;
 

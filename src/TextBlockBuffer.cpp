@@ -61,6 +61,7 @@ int TextBlockBuffer::SetupTextBlock(unsigned int nelts,
 int TextBlockBuffer::BlockToDoubles(double* darray) {
   unsigned int elt = 0;
   // Loop over lines in block
+  char* ptrend = 0;
   for (unsigned int line = 0; line != linesPerBlock_; line++)
   {
     Line();
@@ -71,7 +72,7 @@ int TextBlockBuffer::BlockToDoubles(double* darray) {
     // Loop over columns in line
     for (unsigned int col = 0; col < maxcol; col++)
     {
-      char* ptrend = ptr + eltWidth_;
+      ptrend = ptr + eltWidth_;
       char lastchar = *ptrend;
       *ptrend = '\0';
       //mprintf("DEBUG: %12u : '%s'\n", elt+1, ptr);
@@ -80,5 +81,7 @@ int TextBlockBuffer::BlockToDoubles(double* darray) {
       ptr = ptrend;
     }
   }
+  // Update buffer position with final position
+  if (ptrend != 0) SetBufferPosition(ptrend);
   return (int)elt;
 }
