@@ -15,6 +15,8 @@ class TextBlockBuffer : private BufferedLine {
     using BufferedLine::CloseFile;
     using BufferedLine::Line;
   private:
+    using BufferedLine::IsDos;
+
     unsigned int Nelts_;         ///< Number of elements in a block
     unsigned int Ncols_;         ///< Max number of elements on a line
     unsigned int eltWidth_;      ///< Width of each element

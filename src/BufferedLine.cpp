@@ -28,6 +28,13 @@ int BufferedLine::ResetBuffer() {
   return 0;
 } 
 
+/** Open file for reading with given buffer size. */
+int BufferedLine::OpenFileRead(FileName const& fnameIn, size_t bufsize) {
+  currentBufSize_ = bufsize;
+  if (OpenRead( fnameIn )) return 1;
+  return ResetBuffer();
+}
+
 // BufferedLine::Line()
 const char* BufferedLine::Line() {
   bufferPosition_ = lineEnd_;

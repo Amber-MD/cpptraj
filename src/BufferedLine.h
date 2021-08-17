@@ -6,7 +6,7 @@
 class BufferedLine : private CpptrajFile {
   public:
     BufferedLine();
-    ~BufferedLine();
+    virtual ~BufferedLine(); // virtual bc inherited
     /// Get the next line in the buffer (no newline).
     const char* Line();
     /// Convert current line into tokens
@@ -36,7 +36,13 @@ class BufferedLine : private CpptrajFile {
     using CpptrajFile::CloseFile;
     using CpptrajFile::OpenWrite;
     using CpptrajFile::Printf;
+  protected:
+    using CpptrajFile::IsDos;
+
+    /// Open the file for reading with specified buffer size.
+    int OpenFileRead(FileName const&, size_t);
   private:
+
     int ResetBuffer();
     static const size_t DEFAULT_BUFFERSIZE = 16384;
 

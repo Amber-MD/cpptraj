@@ -29,10 +29,10 @@ int TextBlockBuffer::OpenFileRead(FileName const& fnameIn, unsigned int nelts,
   else
     nEndChars = 1;
 
-  unsigned int fsize = (Nelts_ * eltWidth_) + (linesPerBlock_ * nEndChars) + additonalBytes;
+  unsigned int fsize = (Nelts_ * eltWidth_) + (linesPerBlock_ * nEndChars) + additionalBytes;
 
   mprintf("DEBUG: '%s' %u elts, %u chars wide, %u elts per line, %u lines per block, fsize= %u\n",
           fnameIn.full(), Nelts_, eltWidth_, Ncols_, linesPerBlock_, fsize);
 
-  return 0;
+  return BufferedLine::OpenFileRead(fnameIn, fsize);
 }
