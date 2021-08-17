@@ -37,8 +37,27 @@ int TextBlockBuffer::OpenFileRead(FileName const& fnameIn, unsigned int nelts,
   return BufferedLine::OpenFileRead(fnameIn, fsize);
 }
 
+/** Set up size of text block. */
+int TextBlockBuffer::SetupTextBlock(unsigned int nelts,
+                                    unsigned int eltwidth, unsigned int eltsPerLine)
+{
+  Nelts_ = nelts;
+  Ncols_ = eltsPerLine;
+  eltWidth_ = eltwidth;
+
+  linesPerBlock_ = Nelts_ / Ncols_;
+  if ((Nelts_ % Ncols_) > 0)
+    ++linesPerBlock_;
+
+  mprintf("DEBUG: '%s' %u elts, %u chars wide, %u elts per line, %u lines per block\n",
+          Filename().full(), Nelts_, eltWidth_, Ncols_, linesPerBlock_);
+
+  return 0;
+}
+
 /** Read block into double array.
-  * \return Number of elements actually read. */
+  * \return Number of elements actually read.
+  */
 int TextBlockBuffer::BlockToDoubles(double* darray) {
   unsigned int elt = 0;
   // Loop over lines in block
@@ -55,7 +74,7 @@ int TextBlockBuffer::BlockToDoubles(double* darray) {
       char* ptrend = ptr + eltWidth_;
       char lastchar = *ptrend;
       *ptrend = '\0';
-      mprintf("DEBUG: %12u : '%s'\n", elt+1, ptr);
+      //mprintf("DEBUG: %12u : '%s'\n", elt+1, ptr);
       darray[elt++] = atof(ptr);
       *ptrend = lastchar;
       ptr = ptrend;

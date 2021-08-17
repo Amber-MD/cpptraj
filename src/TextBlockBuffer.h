@@ -6,8 +6,10 @@ class TextBlockBuffer : private BufferedLine {
   public:
     /// CONSTRUCTOR
     TextBlockBuffer();
-    /// Open file for reading and set up block buffer for # elts, elt width, elts per line
+    /// Open file for reading and set up block buffer for # elts, elt width, elts per line, additional bytes
     int OpenFileRead(FileName const&, unsigned int, unsigned int, unsigned int, unsigned int);
+    /// Set up text block for given # elts, elt width, elts per line
+    int SetupTextBlock(unsigned int, unsigned int, unsigned int);
     /// Read block into double array
     int BlockToDoubles(double*);
     // Members of BufferedLine that should be public
