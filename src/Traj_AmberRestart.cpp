@@ -157,6 +157,7 @@ int Traj_AmberRestart::processReadArgs(ArgList& argIn) {
 int Traj_AmberRestart::setupTrajin(FileName const& fname, Topology* trajParm)
 {
   TextBlockBuffer tfile;
+  tfile.SetDebug( debug_ );
   // In addition to the space needed to buffer the block of coordinates,
   // set up for 3 additional lines of 80 bytes: title, natoms etc, and
   // potential velocities/box.

@@ -44,8 +44,10 @@ class BufferedLine : private CpptrajFile {
     using CpptrajFile::CloseFile;
     using CpptrajFile::OpenWrite;
     using CpptrajFile::Printf;
+    using CpptrajFile::SetDebug;
   protected:
     using CpptrajFile::IsDos;
+    using CpptrajFile::Debug;
 
     /// Open the file for reading with specified buffer size.
     int OpenFileRead(FileName const&, size_t);

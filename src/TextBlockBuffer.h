@@ -18,8 +18,10 @@ class TextBlockBuffer : private BufferedLine {
     using BufferedLine::Line;
     using BufferedLine::CurrentLine;
     using BufferedLine::Nremaining;
+    using BufferedLine::SetDebug;
   private:
     using BufferedLine::IsDos;
+    using BufferedLine::Debug;
 
     unsigned int Nelts_;         ///< Number of elements in a block
     unsigned int Ncols_;         ///< Max number of elements on a line
