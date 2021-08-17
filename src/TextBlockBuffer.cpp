@@ -36,3 +36,30 @@ int TextBlockBuffer::OpenFileRead(FileName const& fnameIn, unsigned int nelts,
 
   return BufferedLine::OpenFileRead(fnameIn, fsize);
 }
+
+/** Read block into double array.
+  * \return Number of elements actually read. */
+int TextBlockBuffer::BlockToDoubles(double* darray) {
+  unsigned int elt = 0;
+  // Loop over lines in block
+  for (unsigned int line = 0; line != linesPerBlock_; line++)
+  {
+    Line();
+    char* ptr = BufferPosition();
+    if (ptr == 0) return (int)elt;
+    unsigned int nRemaining = Nelts_ - elt;
+    unsigned int maxcol = std::min(Ncols_, nRemaining);
+    // Loop over columns in line
+    for (unsigned int col = 0; col < maxcol; col++)
+    {
+      char* ptrend = ptr + eltWidth_;
+      char lastchar = *ptrend;
+      *ptrend = '\0';
+      mprintf("DEBUG: %12u : '%s'\n", elt+1, ptr);
+      darray[elt++] = atof(ptr);
+      *ptrend = lastchar;
+      ptr = ptrend;
+    }
+  }
+  return (int)elt;
+}

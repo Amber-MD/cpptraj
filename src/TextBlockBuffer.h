@@ -9,7 +9,7 @@ class TextBlockBuffer : private BufferedLine {
     /// Open file for reading and set up block buffer for # elts, elt width, elts per line
     int OpenFileRead(FileName const&, unsigned int, unsigned int, unsigned int, unsigned int);
     /// Read block into double array
-    int BlockToDoubles(std::vector<double>&);
+    int BlockToDoubles(double*);
     // Members of BufferedLine that should be public
     using BufferedLine::Filename;
     using BufferedLine::CloseFile;

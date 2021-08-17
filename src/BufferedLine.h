@@ -41,6 +41,8 @@ class BufferedLine : private CpptrajFile {
 
     /// Open the file for reading with specified buffer size.
     int OpenFileRead(FileName const&, size_t);
+    /// \return current buffer position, modifiable
+    char* BufferPosition() { return bufferPosition_; }
   private:
 
     int ResetBuffer();
