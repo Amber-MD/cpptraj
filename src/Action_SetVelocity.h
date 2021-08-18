@@ -15,7 +15,7 @@ class Action_SetVelocity : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
-    enum ModeType { SET = 0, ZERO, MODIFY, SCALE };
+    enum ModeType { SET = 0, ZERO, MODIFY, SCALE, ADD };
 
     typedef std::vector<double> Darray;
 

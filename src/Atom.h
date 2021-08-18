@@ -68,9 +68,9 @@ class Atom {
     inline const char *c_str()         const { return *aname_; }
     inline int ResNum()                const { return resnum_; }
     inline AtomicElementType Element() const { return element_; }
-    inline int AtomicNumber()          const { return AtomicElementNum[element_];  }
-    inline const char* ElementName()   const { return AtomicElementName[element_]; }
-    inline double ElementRadius()      const { return AtomicElementRadius[element_]; }
+    inline int AtomicNumber()          const { return AtomicElementNum_[element_];  }
+    inline const char* ElementName()   const { return AtomicElementName_[element_]; }
+    inline double ElementRadius()      const { return AtomicElementRadius_[element_]; }
     inline const NameType& Name()      const { return aname_; }
     inline const NameType& Type()      const { return atype_; }
     inline int TypeIndex()             const { return atype_index_; }
@@ -88,12 +88,12 @@ class Atom {
     /// Determine element from given atomic number. Use mass/name if number < 1.
     void DetermineElement(int);
   protected:
-    static const size_t NUMELEMENTS = 76;
+    static const size_t NUMELEMENTS_ = 76;
   private:
-    static CPPTRAJ_EXPORT const int AtomicElementNum[];
-    static CPPTRAJ_EXPORT const char* AtomicElementName[];
-    static CPPTRAJ_EXPORT const double AtomicElementMass[];
-    static CPPTRAJ_EXPORT const double AtomicElementRadius[];
+    static CPPTRAJ_EXPORT const int AtomicElementNum_[];
+    static CPPTRAJ_EXPORT const char* AtomicElementName_[];
+    static CPPTRAJ_EXPORT const double AtomicElementMass_[];
+    static CPPTRAJ_EXPORT const double AtomicElementRadius_[];
     double charge_;    ///< Charge in e-
     double polar_;     ///< Atomic polarizability in Ang^3
     double mass_;      ///< mass in amu

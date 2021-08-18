@@ -34980,6 +34980,10 @@ setvelocity [<mask>]
 \end_layout
 
 \begin_layout LyX-Code
+               add [value <val>] [vx <xval>] [vy <yval>] [vz <zval>] |
+\end_layout
+
+\begin_layout LyX-Code
                none |
 \end_layout
 
@@ -35047,6 +35051,44 @@ scale Scale existing velocities
 
 \end_deeper
 \begin_layout Description
+add Add to existing velocities
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[value
+\begin_inset space ~
+\end_inset
+
+<val>] Value to add to velocities.
+\end_layout
+
+\begin_layout Description
+[vx
+\begin_inset space ~
+\end_inset
+
+<xval>] Value to add to X component of velocities.
+\end_layout
+
+\begin_layout Description
+[vy
+\begin_inset space ~
+\end_inset
+
+<yval>] Value to add to Y component of velocities.
+\end_layout
+
+\begin_layout Description
+[vz
+\begin_inset space ~
+\end_inset
+
+<zval>] Value to add to Z component of velocities.
+\end_layout
+
+\end_deeper
+\begin_layout Description
 none Remove any velocities.
 \end_layout
 
@@ -35101,7 +35143,10 @@ zeromomentum If specified adjust velocities so the total momentum of atoms
 \end_deeper
 \begin_layout Standard
 Set velocities in frame for atoms in <mask> using Maxwellian distribution
- based on given temperature.
+ based on given temperature, optionally adjusted for SHAKE constraints.
+ Can also be used to modify existing velocity information or remove it entirely.
+ The total momentum of the system can be set to zero as well, which can
+ be useful for NVE simulations.
 \end_layout
 
 \begin_layout Subsection

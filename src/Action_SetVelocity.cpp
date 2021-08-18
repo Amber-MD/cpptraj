@@ -8,6 +8,7 @@ Action_SetVelocity::Action_SetVelocity() : tempi_(0.0), zeroMomentum_(false) {}
 void Action_SetVelocity::Help() const {
   mprintf("\t[<mask>] [{ tempi <temperature> |\n"
           "\t            scale [factor <fac>] [sx <xfac>] [sy <yfac>] [sz <zfac>] |\n"
+          "\t            add [value <val>] [vx <velx>] [vy <vely>] [vz <velz>] |\n"
           "\t            none | \n"
           "\t            modify}]\n"
           "\t[%s] [%s]\n", Constraints::constraintArgs, Constraints::rattleArgs);
@@ -39,6 +40,12 @@ Action::RetType Action_SetVelocity::Init(ArgList& actionArgs, ActionInit& init, 
     scaleFac_[1] = actionArgs.getKeyDouble("sy", sf);
     scaleFac_[2] = actionArgs.getKeyDouble("sz", sf);
     mode_ = SCALE;
+  } else if (actionArgs.hasKey("add")) {
+    double sf = actionArgs.getKeyDouble("value", 0.0);
+    scaleFac_[0] = actionArgs.getKeyDouble("vx", sf);
+    scaleFac_[1] = actionArgs.getKeyDouble("vy", sf);
+    scaleFac_[2] = actionArgs.getKeyDouble("vz", sf);
+    mode_ = ADD;
   } else
     mode_ = SET;
   int ig_ = actionArgs.getKeyInt("ig", -1);
@@ -69,6 +76,9 @@ Action::RetType Action_SetVelocity::Init(ArgList& actionArgs, ActionInit& init, 
     mprintf(" Modifying any existing velocities for atoms in mask '%s'\n", Mask_.MaskString());
   else if (mode_ == SCALE)
     mprintf(" Scaling velocities by X= %g, Y= %g, Z= %g\n",
+            scaleFac_[0], scaleFac_[1], scaleFac_[2]);
+  else if (mode_ == ADD)
+    mprintf(" adding to velocities by X= %g, Y= %g, Z= %g\n",
             scaleFac_[0], scaleFac_[1], scaleFac_[2]);
   else if (mode_ == ZERO)
     mprintf(" Zeroing velocities for atoms in mask '%s'\n", Mask_.MaskString());
@@ -158,6 +168,14 @@ Action::RetType Action_SetVelocity::DoAction(int frameNum, ActionFrame& frm) {
       V[0] *= scaleFac_[0];
       V[1] *= scaleFac_[1];
       V[2] *= scaleFac_[2];
+    }
+  } else if (mode_ == ADD) {
+    for (AtomMask::const_iterator atom = Mask_.begin(); atom != Mask_.end(); ++atom)
+    {
+      double* V = newFrame_.vAddress() + (*atom * 3);
+      V[0] += scaleFac_[0];
+      V[1] += scaleFac_[1];
+      V[2] += scaleFac_[2];
     }
   }
   // Correct velocities for constraints
