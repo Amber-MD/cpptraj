@@ -11,6 +11,10 @@
 # include "Timer.h"
 #endif
 
+/** CONSTRUCTOR */
+BondSearch::BondSearch()
+{}
+
 /** Create a bounding box around atoms in frameIn. */
 Box BondSearch::CreateBoundingBox(Frame const& frameIn, Vec3& min)
 {

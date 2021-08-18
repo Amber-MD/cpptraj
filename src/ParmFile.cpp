@@ -118,21 +118,21 @@ int ParmFile::ReadTopology(Topology& Top, FileName const& fnameIn,
   ParmFormatType pfType;
   ParmIO* parmio = 0;
   Top.SetDebug( debugIn );
-  BondSearchType bstype;
+  BondSearch::Type bstype;
   if (argIn.hasKey("nobondsearch"))
-    bstype = SEARCH_NONE;
+    bstype = BondSearch::SEARCH_NONE;
   else {
-    bstype = SEARCH_REGULAR;
+    bstype = BondSearch::SEARCH_REGULAR;
     std::string bsarg = argIn.GetStringKey("searchtype");
     if (!bsarg.empty()) {
       if (bsarg == "pairlist") {
         mprintf("\tWill use pair list to search for bonds between atoms.\n");
         mprintf("Warning: Searching for bonds via pair list is still experimental.\n");
-        bstype = SEARCH_PAIRLIST;
+        bstype = BondSearch::SEARCH_PAIRLIST;
       } else if (bsarg == "grid") {
         mprintf("\tWill use grid to search for bonds between residues.\n");
         mprintf("Warning: Searching for bonds via grid is still experimental.\n");
-        bstype = SEARCH_GRID;
+        bstype = BondSearch::SEARCH_GRID;
       } else
         mprintf("Warning: Unrecognized search type '%s'. Ignoring.\n", bsarg.c_str());
     }
