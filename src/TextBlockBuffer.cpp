@@ -1,3 +1,4 @@
+#include <algorithm> // std::min
 #include "TextBlockBuffer.h"
 #include "CpptrajStdio.h"
 
