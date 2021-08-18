@@ -646,7 +646,7 @@ void Topology::AddBondParam(BondType& bnd, BP_mapType& bpMap)
 
 // Topology::AssignBondParameters()
 void Topology::AssignBondParameters() {
-  mprintf("Warning: %s: Determining default bond distances from element types.\n", c_str());
+  mprintf("Warning: Determining bond length parameters from element types for '%s'.\n", c_str());
   bondparm_.clear();
   // Hold indices into bondparm for unique element pairs
   BP_mapType bpMap;
