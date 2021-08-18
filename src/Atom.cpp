@@ -322,6 +322,7 @@ void Atom::SetElementFromSymbol(char c1, char c2) {
   * in '$AMBERHOME/AmberTools/src/sqm/qmmm_module'.
   */
 void Atom::SetElementFromMass() {
+  element_ = UNKNOWN_ELEMENT;
   char c1 = aname_[0];
   switch (c1) {
     case 'a':
@@ -559,9 +560,23 @@ void Atom::SetElementFromMass() {
        else if(mass_ > 89.0 && mass_ <= 93.0) 
           element_ = ZIRCONIUM; //40 !Zirconium
        break;
-
-    default:
-      mprintf("Warning: Could not determine atomic number from mass (%lf) [%s]\n", 
+  }
+  if (element_ == UNKNOWN_ELEMENT) {
+    // Try to determine element solely from mass. The largest delta between
+    // two masses in AtomicElementMass_ is 0.01960 amu, so look within
+    // mass +/- (0.01960/2).
+    const double moffset = 0.0098;
+    // For obvious reasons, skip UNKNOWN_ELEMENT (start at index 1).
+    for (int ii = 1; ii < (int)NUMELEMENTS_; ++ii) {
+      double mmax = AtomicElementMass_[ii] + moffset;
+      double mmin = AtomicElementMass_[ii] - moffset;
+      if (mass_ > mmin && mass_ < mmax) {
+        element_ = (AtomicElementType)ii;
+        break;
+      }
+    }
+    if (element_ == UNKNOWN_ELEMENT)
+      mprintf("Warning: Could not determine element from either mass (%f) or name '%s'.\n",
               mass_, *aname_);
   }
 }
