@@ -387,6 +387,7 @@ COMMON_SOURCES= \
         StructureCheck.cpp \
         StructureMapper.cpp \
         SymmetricRmsdCalc.cpp \
+        TextBlockBuffer.cpp \
         TextFormat.cpp \
         Timer.cpp \
         TinkerFile.cpp \

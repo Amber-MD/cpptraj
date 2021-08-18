@@ -41,7 +41,8 @@ int Parm_Mol2::ReadParm(FileName const& fname, Topology &parmOut) {
     }
   } else {
     mprintf("      Mol2 file does not contain bond information.\n");
-    BondSearch( parmOut, searchType_, Coords, Offset_, debug_ );
+    BondSearch bondSearch;
+    bondSearch.FindBonds( parmOut, searchType_, Coords, Offset_, debug_ );
   }
 
   // No box
