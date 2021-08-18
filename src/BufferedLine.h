@@ -6,15 +6,19 @@
 class BufferedLine : private CpptrajFile {
   public:
     BufferedLine();
-    ~BufferedLine();
-    /// Get the next line in the buffer (no newline).
+    virtual ~BufferedLine(); // virtual bc inherited
+    /// \return pointer to the next line in the buffer (no newline).
     const char* Line();
+    /// \return Next line as a string
+    inline std::string GetLine();
+
     /// Convert current line into tokens
     int TokenizeLine(const char*);
     /// \return next token, null-delimited.
     const char* NextToken();
     /// \return specified token, not null-delimited.
     inline const char* Token(int);
+
     /// Open file for reading, set up buffer.
     int OpenFileRead( FileName const& fname ) {
       if ( OpenRead( fname ) ) return 1;
@@ -26,17 +30,33 @@ class BufferedLine : private CpptrajFile {
       if ( CpptrajFile::OpenFile() ) return 1;
       return ResetBuffer();
     }
+
+    /// \return current line number
     int LineNumber()          const { return nline_;          }
+    /// \return pointer to beginning of buffer.
     const char* Buffer()      const { return buffer_;         }
     /// \return Pointer to current buffer position.
     const char* CurrentLine() const { return bufferPosition_; }
-    inline std::string GetLine();
+    /// \return Number of characters left in the buffer
+    long int Nremaining()     const { return (endBuffer_ - bufferPosition_); }
     // Members of CpptrajFile that should be public
     using CpptrajFile::Filename;
     using CpptrajFile::CloseFile;
     using CpptrajFile::OpenWrite;
     using CpptrajFile::Printf;
+    using CpptrajFile::SetDebug;
+  protected:
+    using CpptrajFile::IsDos;
+    using CpptrajFile::Debug;
+
+    /// Open the file for reading with specified buffer size.
+    int OpenFileRead(FileName const&, size_t);
+    /// \return current buffer position, modifiable
+    char* BufferPosition() { return bufferPosition_; }
+    /// Set current buffer position
+    void SetBufferPosition(char* ptr) { bufferPosition_ = ptr; }
   private:
+
     int ResetBuffer();
     static const size_t DEFAULT_BUFFERSIZE = 16384;
 
@@ -52,11 +72,13 @@ class BufferedLine : private CpptrajFile {
     size_t nline_;         ///< Current line number.
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
+/** \return token at specified position. */
 const char* BufferedLine::Token(int idx) {
   if (idx < 0 || idx >= (int)tokens_.size()) return 0;
   return tokens_[idx];
 }
 
+/** \return Next line in buffer as a string. */
 std::string BufferedLine::GetLine() {
   const char* ptr = Line();
   if (ptr == 0) return std::string();
