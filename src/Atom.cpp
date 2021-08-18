@@ -3,7 +3,7 @@
 #include "Atom.h"
 #include "CpptrajStdio.h"
 
-const int Atom::AtomicElementNum[NUMELEMENTS_] = { 0,
+const int Atom::AtomicElementNum_[NUMELEMENTS_] = { 0,
  1,  5,  6,  7,  8,  9,  
  15, 16, 17, 35, 26, 20, 
  53, 12, 29, 3,  19, 37, 
@@ -22,7 +22,7 @@ const int Atom::AtomicElementNum[NUMELEMENTS_] = { 0,
 
 /// Atom names corresponding to AtomicElementType.
 // 2 chars + null.
-const char* Atom::AtomicElementName[NUMELEMENTS_] = { "??",
+const char* Atom::AtomicElementName_[NUMELEMENTS_] = { "??",
   "H",  "B",  "C",  "N",  "O",   "F",  
   "P",  "S",  "CL", "BR", "FE", "CA",
   "I",  "MG", "CU", "LI", "K",  "RB", 
@@ -40,7 +40,7 @@ const char* Atom::AtomicElementName[NUMELEMENTS_] = { "??",
 };
 
 /** Values taken from 'http://www.webelements.com/' */
-const double Atom::AtomicElementMass[NUMELEMENTS_] = { 1.0,
+const double Atom::AtomicElementMass_[NUMELEMENTS_] = { 1.0,
     1.00794,   10.811,     12.0107,     14.0067,    15.9994,   18.9984032,
    30.973762,  32.065,     35.453,      79.904,     55.845,    40.078,
   126.90447,   24.3050,    63.546,       6.941,     39.0983,   85.4678,
@@ -63,7 +63,7 @@ const double Atom::AtomicElementMass[NUMELEMENTS_] = { 1.0,
   *
   * Silicon radius taken from http://www.chem.hope.edu/~krieg/shorb/ (2.419)
   */
-const double Atom::AtomicElementRadius[NUMELEMENTS_] = { 1.0,
+const double Atom::AtomicElementRadius_[NUMELEMENTS_] = { 1.0,
   1.212, 1.000, 1.908, 1.824, 1.724, 1.750, 2.100, 2.000, 1.948, 2.220,
   1.353, 1.649, 2.860, 1.360, 1.218, 1.025, 1.705, 1.813, 1.976, 1.271,
   1.369, 1.297, 1.000, 1.000, 1.500, 1.000, 1.000, 0.956, 2.019, 1.000,
@@ -91,7 +91,7 @@ Atom::Atom(NameType const& aname, const char* elt) :
     SetElementFromName();
   else
     SetElementFromSymbol(elt[0], elt[1]);
-  mass_ = AtomicElementMass[ element_ ];
+  mass_ = AtomicElementMass_[ element_ ];
 }
 
 /** Attempt to guess element from atom name. */ 
@@ -101,7 +101,7 @@ Atom::Atom( NameType const& aname, NameType const& atype, double q ) :
   resnum_(0), mol_(0)
 {
   SetElementFromName();
-  mass_ = AtomicElementMass[ element_ ];
+  mass_ = AtomicElementMass_[ element_ ];
 }
 
 /** Set type and type index. Attempt to guess element from atom name. */
@@ -111,7 +111,7 @@ Atom::Atom( NameType const& aname, NameType const& atype, int atidx ) :
   resnum_(0), mol_(0)
 {
   SetElementFromName();
-  mass_ = AtomicElementMass[ element_ ];
+  mass_ = AtomicElementMass_[ element_ ];
 }
 
 // Atom::DetermineElement()
@@ -120,7 +120,7 @@ void Atom::DetermineElement(int atomicnum) {
   if (atomicnum>0) {
     // Determine element from atomic number
     for (int i = 1; i < (int)NUMELEMENTS_; i++)
-      if (AtomicElementNum[i] == atomicnum) {
+      if (AtomicElementNum_[i] == atomicnum) {
         element_ = (AtomicElementType) i;
         break;
       }
@@ -298,17 +298,17 @@ void Atom::SetElementFromSymbol(char c1, char c2) {
     return; // sanity check, both blank
   if (oneChar) {
     for (int i = 1; i < (int)NUMELEMENTS_; i++)
-      if (AtomicElementName[i][1]=='\0' && // 1 char
-          en[0] == AtomicElementName[i][0])
+      if (AtomicElementName_[i][1]=='\0' && // 1 char
+          en[0] == AtomicElementName_[i][0])
       {
         element_ = (AtomicElementType)i;
         break;
       }
   } else {
     for (int i = 1; i < (int)NUMELEMENTS_; i++)
-      if (AtomicElementName[i][1]!='\0' && // 2 char
-          en[0] == AtomicElementName[i][0] &&
-          en[1] == AtomicElementName[i][1])
+      if (AtomicElementName_[i][1]!='\0' && // 2 char
+          en[0] == AtomicElementName_[i][0] &&
+          en[1] == AtomicElementName_[i][1])
       {
         element_ = (AtomicElementType)i;
         break;
@@ -569,7 +569,7 @@ void Atom::SetElementFromMass() {
 // WarnBondLengthDefault()
 void Atom::WarnBondLengthDefault(AtomicElementType atom1, AtomicElementType atom2, double cut) {
   mprintf("Warning: Bond length not found for %s - %s, using default= %f\n",
-          AtomicElementName[atom1], AtomicElementName[atom2], cut);
+          AtomicElementName_[atom1], AtomicElementName_[atom2], cut);
 }
 
 /** Return optimal covalent bond distance based on the element types of atom1 
@@ -683,8 +683,8 @@ double Atom::GetBondLength(AtomicElementType atom1, AtomicElementType atom2) {
       default: WarnBondLengthDefault(e1,e2,cut);
     } // END switch(e1)
   }
-  //mprintf("\t\tCUTOFF: [%s] -- [%s] = %lf\n",AtomicElementName[atom1],
-  //        AtomicElementName[atom2],cut);
+  //mprintf("\t\tCUTOFF: [%s] -- [%s] = %lf\n",AtomicElementName_[atom1],
+  //        AtomicElementName_[atom2],cut);
   return cut;
 }
 
