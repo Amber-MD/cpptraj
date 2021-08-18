@@ -242,7 +242,8 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
     } // END loop over Link records
   } // END PDB has link records.
   // Fill in bonds
-  BondSearch( TopIn, searchType_, Coords, Offset_, debug_ );
+  BondSearch bondSearch;
+  bondSearch.FindBonds( TopIn, searchType_, Coords, Offset_, debug_ );
   // If Topology name not set with TITLE etc, use base filename.
   // TODO: Read in title.
   std::string pdbtitle;

@@ -1,6 +1,8 @@
 #include <algorithm> // std::min,max
 #include <cmath> // ceil
 #include "BondSearch.h"
+#include "Topology.h"
+#include "Frame.h"
 #include "DistRoutines.h"
 #include "CpptrajStdio.h"
 #include "PairList.h"
@@ -9,8 +11,12 @@
 # include "Timer.h"
 #endif
 
+/** CONSTRUCTOR */
+BondSearch::BondSearch()
+{}
+
 /** Create a bounding box around atoms in frameIn. */
-Box CreateBoundingBox(Frame const& frameIn, Vec3& min)
+Box BondSearch::CreateBoundingBox(Frame const& frameIn, Vec3& min)
 {
   Box box;
   mprintf("\tCreating bounding box.\n");
@@ -43,13 +49,40 @@ Box CreateBoundingBox(Frame const& frameIn, Vec3& min)
 }
 
 // CreateBoundingBox()
-Box CreateBoundingBox(Frame const& frameIn) {
+Box BondSearch::CreateBoundingBox(Frame const& frameIn) {
   Vec3 min;
   return CreateBoundingBox(frameIn, min);
 }
 
+/** Find bond length squared for atom pair within cache. If not present,
+  * determine and store it.
+  */
+double BondSearch::GetBondLengthSquared(Atom::AtomicElementType e1,
+                                        Atom::AtomicElementType e2,
+                                        double offset)
+{
+  EltPair ep;
+  if (e1 < e2)
+    ep = EltPair(e1, e2);
+  else
+    ep = EltPair(e2, e1);
+
+  // See if length^2 is already cached.
+  BondMap::const_iterator it = bond2Map_.lower_bound( ep );
+  if (it == bond2Map_.end() || it->first != ep)
+  {
+    // New distance
+    double bondLength = Atom::GetBondLength(e1, e2) + offset;
+    double cutoff2 = bondLength * bondLength;
+    bond2Map_.insert(it, MapPair(ep, cutoff2));
+    return cutoff2;
+  } else
+    return it->second;
+}
+
 /** Add bonds within residues to top using coords in frameIn. */
-void BondsWithinResidues(Topology& top, Frame const& frameIn, double offset) {
+void BondSearch::BondsWithinResidues(Topology& top, Frame const& frameIn, double offset)
+{
   // ----- STEP 1: Determine bonds within residues
   std::vector<char> const& AtomAltLoc = top.AtomAltLoc();
   for (Topology::res_iterator res = top.ResStart(); res != top.ResEnd(); ++res)
@@ -74,8 +107,7 @@ void BondsWithinResidues(Topology& top, Frame const& frameIn, double offset) {
         }
         Atom::AtomicElementType a2Elt = top[atom2].Element();
         double D2 = DIST2_NoImage(frameIn.XYZ(atom1), frameIn.XYZ(atom2) );
-        double cutoff2 = Atom::GetBondLength(a1Elt, a2Elt) + offset;
-        cutoff2 *= cutoff2;
+        double cutoff2 = GetBondLengthSquared(a1Elt, a2Elt, offset);
         if (D2 < cutoff2) {
           top.AddBond(atom1, atom2);
           // Once a bond has been made to hydrogen move on.
@@ -87,7 +119,7 @@ void BondsWithinResidues(Topology& top, Frame const& frameIn, double offset) {
 }
 
 /** \return what seems to be a reasonable number of max bonds based on element. */
-int MaxBonds(Atom::AtomicElementType elt) {
+int BondSearch::MaxBonds(Atom::AtomicElementType elt) {
   switch (elt) {
     case Atom::HYDROGEN   :
     case Atom::HELIUM     :
@@ -109,7 +141,7 @@ int MaxBonds(Atom::AtomicElementType elt) {
 }
 
 /** Search for bonds within residues, then bonds between residues using a Grid. */
-int BondSearch_Grid(Topology& top, Frame const& frameIn, double offset, int debug) {
+int BondSearch::GridSearch(Topology& top, Frame const& frameIn, double offset, int debug) {
   mprintf("\tDetermining bond info from distances using grid search.\n");
   if (frameIn.empty()) {
     mprinterr("Internal Error: No coordinates set; cannot search for bonds.\n");
@@ -235,8 +267,7 @@ int BondSearch_Grid(Topology& top, Frame const& frameIn, double offset, int debu
             if (a1res != a2res) { // *at1 != *at2
               Atom::AtomicElementType a2Elt = top[*at2].Element();
               double D2 = DIST2_NoImage(frameIn.XYZ(*at1), frameIn.XYZ(*at2) );
-              double cutoff2 = Atom::GetBondLength(a1Elt, a2Elt) + offset;
-              cutoff2 *= cutoff2;
+              double cutoff2 = GetBondLengthSquared(a1Elt, a2Elt, offset);
               // TODO instead of creating the bond here put it as a potential
               // bond between the two residues and evaluate how good the bond
               // seems later.
@@ -269,7 +300,7 @@ int BondSearch_Grid(Topology& top, Frame const& frameIn, double offset, int debu
   * \param offset Offset to add when determining if a bond is present.
   * \param debug If > 0 print extra info.
   */
-int BondSearch_ByResidue( Topology& top, Frame const& frameIn, double offset, int debug) {
+int BondSearch::ByResidueSearch(Topology& top, Frame const& frameIn, double offset, int debug) {
   mprintf("\tDetermining bond info from distances.\n");
   if (frameIn.empty()) {
     mprinterr("Internal Error: No coordinates set; cannot search for bonds.\n");
@@ -328,8 +359,7 @@ int BondSearch_ByResidue( Topology& top, Frame const& frameIn, double offset, in
         if (a2Elt==Atom::HYDROGEN) continue;
         if (a2Elt == Atom::OXYGEN && top[atom2].Nbonds() > 1) continue;
         double D2 = DIST2_NoImage(frameIn.XYZ(atom1), frameIn.XYZ(atom2) );
-        double cutoff2 = Atom::GetBondLength(a1Elt, a2Elt) + offset;
-        cutoff2 *= cutoff2;
+        double cutoff2 = GetBondLengthSquared(a1Elt, a2Elt, offset);
         if (D2 < cutoff2)
           top.AddBond(atom1, atom2);
       }
@@ -351,7 +381,7 @@ int BondSearch_ByResidue( Topology& top, Frame const& frameIn, double offset, in
 /** Bond search with pair list. Can potentially find bonds across periodic
   * boundaries.
   */
-int BondSearch_PL( Topology& top, Frame const& frameIn, double offset, int debug) {
+int BondSearch::PairListSearch(Topology& top, Frame const& frameIn, double offset, int debug) {
   mprintf("\tDetermining bond info from distances using pair list.\n");
   if (frameIn.empty()) {
     mprinterr("Internal Error: No coordinates set; cannot search for bonds.\n");
@@ -408,8 +438,7 @@ int BondSearch_PL( Topology& top, Frame const& frameIn, double offset, int debug
           if (a1Elt == Atom::HYDROGEN && top[it1->Idx()].Nbonds() > 0) continue;
           Vec3 dxyz = xyz1 - xyz0;
           double rij2 = dxyz.Magnitude2();
-          double cutoff2 = Atom::GetBondLength(a0Elt, a1Elt) + offset;
-          cutoff2 *= cutoff2;
+          double cutoff2 = GetBondLengthSquared(a0Elt, a1Elt, offset);
           if (rij2 < cutoff2) {
             //mprintf("DEBUG: IN CELL BOND: %s - %s\n",
             //  top.TruncResAtomNameNum(it0->Idx()).c_str(),
@@ -436,8 +465,7 @@ int BondSearch_PL( Topology& top, Frame const& frameIn, double offset, int debug
             if (a1Elt == Atom::HYDROGEN && top[it1->Idx()].Nbonds() > 0) continue;
             Vec3 dxyz = xyz1 + tVec - xyz0;
             double rij2 = dxyz.Magnitude2();
-            double cutoff2 = Atom::GetBondLength(a0Elt, a1Elt) + offset;
-            cutoff2 *= cutoff2;
+            double cutoff2 = GetBondLengthSquared(a0Elt, a1Elt, offset);
             if (rij2 < cutoff2) {
               //mprintf("DEBUG: BETWEEN CELL BOND: %s - %s\n",
               //  top.TruncResAtomNameNum(it0->Idx()).c_str(),
@@ -458,14 +486,15 @@ int BondSearch_PL( Topology& top, Frame const& frameIn, double offset, int debug
   return 0;
 }
 
-// BondSearch()
-int BondSearch(Topology& top, BondSearchType type, Frame const& frameIn, double offset, int debug)
+/** Main search routine. */
+int BondSearch::FindBonds(Topology& top, Type type, Frame const& frameIn,
+                          double offset, int debug)
 {
   int err = 0;
   switch (type) {
-    case SEARCH_REGULAR  : err = BondSearch_ByResidue(top, frameIn, offset, debug); break;
-    case SEARCH_PAIRLIST : err = BondSearch_PL(top, frameIn, offset, debug); break;
-    case SEARCH_GRID     : err = BondSearch_Grid(top, frameIn, offset, debug); break;
+    case SEARCH_REGULAR  : err = ByResidueSearch(top, frameIn, offset, debug); break;
+    case SEARCH_PAIRLIST : err = PairListSearch(top, frameIn, offset, debug); break;
+    case SEARCH_GRID     : err = GridSearch(top, frameIn, offset, debug); break;
     case SEARCH_NONE:
       mprintf("Warning: Skipping bond search.\n");
       break;
