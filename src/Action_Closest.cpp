@@ -104,8 +104,12 @@ Action::RetType Action_Closest::Init(ArgList& actionArgs, ActionInit& init, int 
 
   // Get Masks
   std::string mask1 = actionArgs.GetStringKey("solventmask");
-  if (!mask1.empty())
-    solventMask_.SetMaskString( mask1 );
+  if (!mask1.empty()) {
+    if (solventMask_.SetMaskString( mask1 )) {
+      mprinterr("Error: Could not set solvent mask string.\n");
+      return Action::ERR;
+    }
+  }
   mask1 = actionArgs.GetMaskNext();
   if (mask1.empty()) {
     mprinterr("Error: No mask specified.\n");

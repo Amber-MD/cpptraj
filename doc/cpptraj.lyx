@@ -12104,7 +12104,7 @@ atominfo | atoms | printatoms
 \end_layout
 
 \begin_layout LyX-Code
-atominfo [parm <name> | parmindex <#> | <#>] [<mask>] [out <file>]
+atominfo [parm <name> | parmindex <#> | <#>] <mask> [out <file>]
 \end_layout
 
 \begin_deeper
@@ -12138,7 +12138,7 @@ parmindex
 \end_layout
 
 \begin_layout Description
-[<mask>] Mask selecting atoms to print info for.
+<mask> Mask selecting atoms to print info for.
 \end_layout
 
 \begin_layout Description
@@ -12624,7 +12624,7 @@ charge
 \end_layout
 
 \begin_layout LyX-Code
-charge [parm <name> | parmindex <#> | <#>] [<mask>] [out <file>] [name <set>]
+charge [parm <name> | parmindex <#> | <#>] <mask> [out <file>] [name <set>]
 \end_layout
 
 \begin_deeper
@@ -12649,7 +12649,7 @@ parmindex
 \end_layout
 
 \begin_layout Description
-[<mask>] Atom(s) to calculate total charge for (default all).
+<mask> Atom(s) to calculate total charge for (default all).
 \end_layout
 
 \begin_layout Description
@@ -12955,8 +12955,8 @@ mass
 \end_layout
 
 \begin_layout LyX-Code
-[<parmindex>] [parm <name> | parmindex <#> | <#>] [<mask>] [out <file>]
- [name <set>]
+[<parmindex>] [parm <name> | parmindex <#> | <#>] <mask> [out <file>] [name
+ <set>]
 \end_layout
 
 \begin_deeper
@@ -12981,7 +12981,7 @@ parmindex
 \end_layout
 
 \begin_layout Description
-[<mask>] Atom(s) to calculate total mass for (default all).
+<mask> Atom(s) to calculate total mass for (default all).
 \end_layout
 
 \begin_layout Description
@@ -13012,7 +13012,7 @@ molinfo
 \end_layout
 
 \begin_layout LyX-Code
-molinfo [parm <name> | parmindex <#> | <#>] [<mask>] [out <file>]
+molinfo [parm <name> | parmindex <#> | <#>] <mask> [out <file>]
 \end_layout
 
 \begin_deeper
@@ -13046,7 +13046,7 @@ parmindex
 \end_layout
 
 \begin_layout Description
-[<mask>] Mask selecting molecules to print info for.
+<mask> Mask selecting molecules to print info for.
 \end_layout
 
 \begin_layout Description
@@ -13085,7 +13085,24 @@ Natom
 Name
 \family default
  are the residue number and residue name of the first residue in the molecule
- respectively, and C is the chain ID of the first residue.
+ respectively, and 
+\family typewriter
+C
+\family default
+ is the chain ID of the first residue.
+ If the molecule is composed on non-consecutive fragments, 
+\family typewriter
+#Res
+\family default
+, 
+\family typewriter
+Name
+\family default
+, and 
+\family typewriter
+C
+\family default
+ will be printed for each fragment.
  
 \family typewriter
 SOLVENT
@@ -13840,7 +13857,7 @@ parmresinfo
 
 \end_inset
 
- [parm <name> | parmindex <#> | <#>] [<mask>] [short [maxwidth <#res>]]
+ [parm <name> | parmindex <#> | <#>] <mask> [short [maxwidth <#res>]]
 \end_layout
 
 \begin_layout LyX-Code
@@ -13878,7 +13895,7 @@ parmindex
 \end_layout
 
 \begin_layout Description
-[<mask>] Mask selecting residues to print info for.
+<mask> Mask selecting residues to print info for.
 \end_layout
 
 \begin_layout Description
