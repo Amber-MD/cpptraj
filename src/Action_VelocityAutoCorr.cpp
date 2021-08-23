@@ -130,7 +130,7 @@ Action::RetType Action_VelocityAutoCorr::DoAction(int frameNum, ActionFrame& frm
     previousFrame_ = frm.Frm();
   } else {
     // Use velocity information in the frame.
-    // FIXME: Eventually dont assume V is in Amber units.
+    // Assume V is in Amber units.
     VelArray::iterator vel = Vel_.begin();
     for (AtomMask::const_iterator atom = mask_.begin();
                                   atom != mask_.end(); 
