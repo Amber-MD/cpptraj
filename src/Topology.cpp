@@ -57,10 +57,6 @@ void Topology::ResetPDBinfo() {
 }
 
 /** Used to set box info from currently associated trajectory. */
-// FIXME: This routine is here for potential backwards compatibility issues
-//        since the topology box information was previously modified by
-//        trajectory box information, but may no longer be necessary or
-//        desirable.
 void Topology::SetBoxFromTraj(Box const& boxIn) {
   if (!boxIn.HasBox()) {
     // No incoming box.
@@ -248,8 +244,8 @@ std::string Topology::TruncAtomNameNum(int atom) const {
   * "<resname>:<resnum>", e.g. "ARG:11".
   * Truncate residue name so there are no blanks.
   */
-// FIXME: Add residue bounds check.
 std::string Topology::TruncResNameNum(int res) const {
+  if (res < 0 || res >= (int)residues_.size()) return std::string("");
   // Residue name with no trailing spaces.
   return residues_[res].Name().Truncated() + ":" + integerToString( res+1 );
 }

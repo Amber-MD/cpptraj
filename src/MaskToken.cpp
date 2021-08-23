@@ -301,13 +301,16 @@ int MaskTokenArray::Tokenize() {
           return 1;
         }
       }
-      if (*p == '=') { // The AMBER9 definition of wildcard '=' is equivalent to '*'.
-        if (flag > 0)
+      if (*p == '=') {
+        // The AMBER >= 9 definition of wildcard '=' is equivalent to '*', but
+        // only after @ etc.
+        //if (flag > 0)
+        // NOTE: If flag was zero it will have been set to 1 up above anyway.
           *p = '*';
-        else {
-          mprinterr("Error: Tokenize: '=' not in name list syntax\n");
-          return 1;
-        }
+        //else {
+        //  mprinterr("Error: Tokenize: '=' not in name list syntax\n");
+        //  return 1;
+        //}
       }
       buffer += *p;
     } else if ( *p == ':' ) {
