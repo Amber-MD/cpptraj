@@ -497,6 +497,7 @@ LIBCPPTRAJ_FILE_OBJECTS= \
   Mol2File.o \
   PDBfile.o \
   SDFfile.o \
+  TextBlockBuffer.o \
   TinkerFile.o
 
 # These objects are required for Gromacs XTC support in libcpptraj_traj.a
