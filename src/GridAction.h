@@ -42,6 +42,9 @@ class GridAction {
     /// \return Amount voxels should be incremented by
     float Increment()            const { return increment_;  }
   private:
+    /// Set first frame selected coords (tgt_) and original grid unit cell vectors (tgtUcell_).
+    int SetTgt(Frame const&, Matrix_3x3 const&);
+
     OffsetType gridOffsetType_;
     MoveType gridMoveType_;
     AtomMask centerMask_;
@@ -50,7 +53,10 @@ class GridAction {
     Matrix_3x3 tgtUcell_; ///< For MoveType RMS_FIT, original grid unit cell vectors
     Frame ref_;           ///< For MoveType RMS_FIT, current frames selected coordinates
     bool firstFrame_;     ///< For MoveType RMS_FIT, true if this is the first frame (no fit needed)
-    bool x_align_;        ///< For MoveType RMS_FIT, if true ensure grid is X-aligned in FinishGrid();
+    bool x_align_;        ///< For MoveType RMS_FIT, if true ensure grid is X-aligned in FinishGrid().
+#   ifdef MPI
+    Parallel::Comm trajComm_;
+#   endif
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
 void GridAction::GridFrame(Frame const& currentFrame, AtomMask const& mask, 
@@ -80,11 +86,30 @@ void GridAction::MoveGrid(Frame const& currentFrame, DataSet_GridFlt& grid)
     grid.SetGridCenter( currentFrame.VGeometricCenter( centerMask_ ) );
   else if (gridMoveType_ == RMS_FIT) {
     grid.SetGridCenter( currentFrame.VGeometricCenter( centerMask_ ) );
+#   ifdef MPI
+    bool doRotate = true;
     if (firstFrame_) {
-      tgt_.SetFrame( currentFrame, centerMask_ );
-      tgtUcell_ = grid.Bin().Ucell();
+      SetTgt(currentFrame, grid.Bin().Ucell());
+      if (trajComm_.Rank() == 0)
+        doRotate = false;
+      firstFrame_ = false;
+    }
+    if (doRotate) {
+      ref_.SetFrame( currentFrame, centerMask_ );
+      grid.Assign_Grid_UnitCell( tgtUcell_ );
+      Frame tmpTgt( tgt_ );
+      Matrix_3x3 Rot;
+      Vec3 T1, T2;
+      tmpTgt.RMSD( ref_, Rot, T1, T2, false );
+      grid.Rotate_3D_Grid( Rot );
+    }
+#   else
+    if (firstFrame_) {
+      SetTgt(currentFrame, grid.Bin().Ucell());
+      //grid.SetGridCenter( tgt_.VGeometricCenter( 0, tgt_.Natom() ) );
       firstFrame_ = false;
     } else {
+      //grid.SetGridCenter( currentFrame.VGeometricCenter( centerMask_ ) );
       // Want to rotate to coordinates in current frame. Make them the ref.
       ref_.SetFrame( currentFrame, centerMask_ );
       // Reset to original grid.
@@ -98,6 +123,7 @@ void GridAction::MoveGrid(Frame const& currentFrame, DataSet_GridFlt& grid)
       grid.Rotate_3D_Grid( Rot );
       //tgt_.SetFrame( currentFrame, centerMask_ );
     }
+#   endif
   }
 }
 #endif

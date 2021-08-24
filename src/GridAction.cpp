@@ -157,6 +157,7 @@ int GridAction::ParallelGridInit(Parallel::Comm const& commIn, DataSet_GridFlt* 
     // zero it out on all non-master threads to avoid overcounting.
     std::fill( Grid->begin(), Grid->end(), 0.0 );
   }
+  trajComm_ = commIn;
   return 0;
 }
 #endif
@@ -216,8 +217,24 @@ int GridAction::GridSetup(Topology const& currentParm, CoordinateInfo const& cIn
   return 0;
 }
 
+/** Set the coordinates of the first frame. Set original grid unit cell vectors. */
+int GridAction::SetTgt(Frame const& frameIn, Matrix_3x3 const& gridUcell)
+{
+  tgt_.SetFrame( frameIn, centerMask_ );
+  tgtUcell_ = gridUcell;
+# ifdef MPI
+  // Ensure all threads are using the same reference. Just broadcast the coords.
+  trajComm_.MasterBcast( tgt_.xAddress(), tgt_.size(), MPI_DOUBLE );
+  // Ensure all threads have the same unit cell vecs
+  trajComm_.MasterBcast( tgtUcell_.Dptr(), 9, MPI_DOUBLE );
+  rprintf("DEBUG: Ucell0: %f %f %f %f %f %f %f %f %f\n", tgtUcell_[0], tgtUcell_[1], tgtUcell_[2], tgtUcell_[3], tgtUcell_[4], tgtUcell_[5], tgtUcell_[6], tgtUcell_[7], tgtUcell_[8]);
+# endif
+  return 0;
+}
+
 /** Any final actions to grid. */
 void GridAction::FinishGrid(DataSet_GridFlt& grid) const {
+  rprintf("DEBUG: Final Grid origin: %f %f %f\n", grid.Bin().GridOrigin()[0], grid.Bin().GridOrigin()[1], grid.Bin().GridOrigin()[2]);
   if (x_align_) {
     if (!grid.Bin().IsXalignedGrid()) {
       mprintf("\tEnsuring grid '%s' is X-aligned.\n", grid.legend());
