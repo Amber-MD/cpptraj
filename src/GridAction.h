@@ -46,7 +46,8 @@ class GridAction {
     MoveType gridMoveType_;
     AtomMask centerMask_;
     float increment_;     ///< Set to -1 if negative, 1 if not.
-    Frame tgt_;           ///< For MoveType RMS_FIT, previous frames selected coordinates
+    Frame tgt_;           ///< For MoveType RMS_FIT, first frames selected coordinates
+    Matrix_3x3 tgtUcell_; ///< For MoveType RMS_FIT, original grid unit cell vectors
     Frame ref_;           ///< For MoveType RMS_FIT, current frames selected coordinates
     bool firstFrame_;     ///< For MoveType RMS_FIT, true if this is the first frame (no fit needed)
     bool x_align_;        ///< For MoveType RMS_FIT, if true ensure grid is X-aligned in FinishGrid();
@@ -81,14 +82,21 @@ void GridAction::MoveGrid(Frame const& currentFrame, DataSet_GridFlt& grid)
     grid.SetGridCenter( currentFrame.VGeometricCenter( centerMask_ ) );
     if (firstFrame_) {
       tgt_.SetFrame( currentFrame, centerMask_ );
+      tgtUcell_ = grid.Bin().Ucell();
       firstFrame_ = false;
     } else {
+      // Want to rotate to coordinates in current frame. Make them the ref.
       ref_.SetFrame( currentFrame, centerMask_ );
+      // Reset to original grid.
+      grid.Assign_Grid_UnitCell( tgtUcell_ );
+      // Do not want to modify original coords. Make a copy.
+      Frame tmpTgt( tgt_ );
+      // Rot will contain rotation from original grid to current frame.
       Matrix_3x3 Rot;
       Vec3 T1, T2;
-      tgt_.RMSD( ref_, Rot, T1, T2, false );
+      tmpTgt.RMSD( ref_, Rot, T1, T2, false );
       grid.Rotate_3D_Grid( Rot );
-      tgt_.SetFrame( currentFrame, centerMask_ );
+      //tgt_.SetFrame( currentFrame, centerMask_ );
     }
   }
 }

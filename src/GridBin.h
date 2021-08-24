@@ -63,6 +63,8 @@ class GridBin {
     SizeArray Setup_Sizes_Center_Spacing(size_t, size_t, size_t, Vec3 const&, Vec3 const&);
     /// Set up for orthogonal X-aligned grid with given lengths, center, and spacing.
     SizeArray Setup_Lengths_Center_Spacing(Vec3 const&, Vec3 const&, Vec3 const&);
+    /// Assign new unit cell vectors to grid
+    void Assign_UnitCell( Matrix_3x3 const& );
   private:
     inline bool Calc_ortho(double, double, double, size_t&, size_t&, size_t&) const;
     inline bool Calc_nonortho(double, double, double, size_t&, size_t&, size_t&) const;

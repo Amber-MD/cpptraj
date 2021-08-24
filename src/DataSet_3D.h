@@ -65,6 +65,8 @@ class DataSet_3D : public DataSet {
     int Allocate_N_O_Box(size_t,size_t,size_t, Vec3 const&, Box const&);
     /// Move grid center
     void SetGridCenter(Vec3 const& cxyz) { gridBin_.SetOriginFromCenter( cxyz); }
+    /// Set the grid unit cell
+    void Assign_Grid_UnitCell(Matrix_3x3 const& ucell) { gridBin_.Assign_UnitCell(ucell); }
     /// Rotate the grid using the given rotation matrix.
     void Rotate_3D_Grid(Matrix_3x3 const& Rot) { gridBin_.RotateGrid(Rot); }
     /// X-align the grid
