@@ -9,6 +9,7 @@ RunTyr() {
   INPUT='-i grid.in'
   cat > grid.in <<EOF
 parm dry.tyr.opc3.parm7
+noprogress
 trajin dry.tyr.nc
 
 set DX = 0.1
