@@ -26626,7 +26626,9 @@ Examples
 \end_layout
 
 \begin_layout Standard
-Grid water density around a solute.
+Example 1: Grid water density around a solute.
+ The solute is imaged to the origin and rms fit to the first frame.
+ The grid will be centered on the origin as well.
 \end_layout
 
 \begin_layout LyX-Code
@@ -26654,7 +26656,42 @@ grid out.dx 20 0.5 20 0.5 20 0.5 :WAT@O
 \end_layout
 
 \begin_layout Standard
-Generate grid from bounds command.
+Example 2: Grid water density around a solute.
+ The grid is centered on the solute.
+\end_layout
+
+\begin_layout LyX-Code
+trajin tz2.truncoct.nc
+\end_layout
+
+\begin_layout LyX-Code
+autoimage
+\end_layout
+
+\begin_layout LyX-Code
+grid out.dx 20 0.5 20 0.5 20 0.5 :WAT@O maskcenter :1-13
+\end_layout
+
+\begin_layout Standard
+Example 3: Grid water density around a solute.
+ The grid is centered on the solute and rms-fit.
+ The density obtained should be equivalent to the first example.
+\end_layout
+
+\begin_layout LyX-Code
+trajin tz2.truncoct.nc
+\end_layout
+
+\begin_layout LyX-Code
+image :WAT
+\end_layout
+
+\begin_layout LyX-Code
+grid out.dx 20 0.5 20 0.5 20 0.5 :WAT@O rmsfit :1-13
+\end_layout
+
+\begin_layout Standard
+Example 4: Generate grid from bounds command.
 \end_layout
 
 \begin_layout LyX-Code
@@ -26698,7 +26735,7 @@ crdaction MyCoords grid bounds.xplor data MyGrid :WAT@O
 \end_layout
 
 \begin_layout Standard
-Create non-orthogonal grid:
+Example 5: Create non-orthogonal grid based on the box.
 \end_layout
 
 \begin_layout LyX-Code
