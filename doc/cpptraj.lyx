@@ -22983,19 +22983,39 @@ dipole
 \end_layout
 
 \begin_layout LyX-Code
-dipole <filename> {data <dsname> | <nx> <dx> <ny> <dy> <nz> <dz> 
+dipole <filename>
 \end_layout
 
 \begin_layout LyX-Code
-       [gridcenter <cx> <cy> <cz>]}
+   	{ data <dsname> | boxref <ref name/tag> <nx> <ny> <nz> |
 \end_layout
 
 \begin_layout LyX-Code
-   	[box|origin|center <mask>] [negative] [name <gridname>]
+   	  <nx> <dx> <ny> <dy> <nz> <dz>
 \end_layout
 
 \begin_layout LyX-Code
-       <mask1> {origin | box} [max <max_percent>]
+   	  [ { gridcenter <cx> <cy> <cz> | 
+\end_layout
+
+\begin_layout LyX-Code
+   	      boxcenter |
+\end_layout
+
+\begin_layout LyX-Code
+   	      maskcenter <mask> | 
+\end_layout
+
+\begin_layout LyX-Code
+   	      rmsfit <mask> } ]
+\end_layout
+
+\begin_layout LyX-Code
+   	[box|origin|center <mask>] [negative] [name <gridname>] 
+\end_layout
+
+\begin_layout LyX-Code
+   	<mask1> {origin | box} [max <max_percent>]
 \end_layout
 
 \begin_layout Standard
@@ -26230,7 +26250,23 @@ grid <filename>
 \end_layout
 
 \begin_layout LyX-Code
- 	  <nx> <dx> <ny> <dy> <nz> <dz> [gridcenter <cx> <cy> <cz>] }
+ 	  <nx> <dx> <ny> <dy> <nz> <dz>
+\end_layout
+
+\begin_layout LyX-Code
+       [ { gridcenter <cx> <cy> <cz> |
+\end_layout
+
+\begin_layout LyX-Code
+ 	      boxcenter | 
+\end_layout
+
+\begin_layout LyX-Code
+ 	      maskcenter <mask> |
+\end_layout
+
+\begin_layout LyX-Code
+ 	      rmsfit <mask> } ]
 \end_layout
 
 \begin_layout LyX-Code
@@ -26360,6 +26396,27 @@ name/tag>
 \end_inset
 
 <cz>] Location of grid center, default is origin (0.0, 0.0, 0.0).
+\end_layout
+
+\begin_layout Description
+[boxcenter] Center grid on box center.
+\end_layout
+
+\begin_layout Description
+[maskcenter
+\begin_inset space ~
+\end_inset
+
+<mask>] Center the grid on the atoms selected by <mask>.
+\end_layout
+
+\begin_layout Description
+[rmsfit
+\begin_inset space ~
+\end_inset
+
+<mask>] Perform a best-fit rotation of the grid using the coordinates selected
+ by <mask>.
 \end_layout
 
 \begin_layout Standard
