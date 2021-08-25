@@ -183,6 +183,9 @@ void GridBin::X_align_grid() {
   * spacing, bin sizes, and volume.
   */
 int GridBin::Sync(Parallel::Comm const& commIn) {
+  // If only 1 rank no need for this.
+  if (commIn.Size() < 2) return 0;
+  // Determine final rank
   int finalRank = commIn.Size() - 1;
   if (commIn.Master()) {
     commIn.Recv( OXYZ_.Dptr(), 3, MPI_DOUBLE, finalRank, 2000 );
