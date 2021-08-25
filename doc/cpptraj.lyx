@@ -22983,11 +22983,11 @@ dipole
 \end_layout
 
 \begin_layout LyX-Code
-dipole <filename>
+dipole [out <filename>]
 \end_layout
 
 \begin_layout LyX-Code
-   	{ data <dsname> | boxref <ref name/tag> <nx> <ny> <nz> |
+ 	  { data <dsname> | boxref <ref name/tag> <nx> <ny> <nz> |
 \end_layout
 
 \begin_layout LyX-Code
@@ -22995,19 +22995,19 @@ dipole <filename>
 \end_layout
 
 \begin_layout LyX-Code
-   	  [ { gridcenter <cx> <cy> <cz> | 
+         [ { gridcenter <cx> <cy> <cz> |
 \end_layout
 
 \begin_layout LyX-Code
-   	      boxcenter |
+ 	        boxcenter | 
 \end_layout
 
 \begin_layout LyX-Code
-   	      maskcenter <mask> | 
+ 	        maskcenter <mask> |
 \end_layout
 
 \begin_layout LyX-Code
-   	      rmsfit <mask> } ]
+ 	        rmsfit <mask> [noxalign]} ]
 \end_layout
 
 \begin_layout LyX-Code
@@ -23015,15 +23015,213 @@ dipole <filename>
 \end_layout
 
 \begin_layout LyX-Code
-   	<mask1> {origin | box} [max <max_percent>]
+       <mask1> [max <max_percent>]
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<filename>] File to write out grid to.
+ Use 
+\begin_inset Quotes eld
+\end_inset
+
+.grid
+\begin_inset Quotes erd
+\end_inset
+
+ or 
+\begin_inset Quotes eld
+\end_inset
+
+.xplor
+\begin_inset Quotes erd
+\end_inset
+
+ extension for XPLOR format, 
+\begin_inset Quotes eld
+\end_inset
+
+.dx
+\begin_inset Quotes erd
+\end_inset
+
+ for OpenDX format.
+\end_layout
+
+\begin_layout Standard
+Options for setting up grid:
+\end_layout
+
+\begin_layout Description
+data
+\begin_inset space ~
+\end_inset
+
+<dsname> Use previously calculated/loaded grid data set named <dsname>.
+ When using this option there is no need to specify grid bins/spacing/center.
+\end_layout
+
+\begin_layout Description
+boxref
+\begin_inset space ~
+\end_inset
+
+<ref
+\begin_inset space ~
+\end_inset
+
+name/tag>
+\begin_inset space ~
+\end_inset
+
+<nx>
+\begin_inset space ~
+\end_inset
+
+<ny>
+\begin_inset space ~
+\end_inset
+
+<nz> Set up grid using box information from a previously loaded reference
+ structure.
+ Currently the only way to set up non-orthogonal grids.
+\end_layout
+
+\begin_layout Description
+<nx>
+\begin_inset space ~
+\end_inset
+
+<dx>
+\begin_inset space ~
+\end_inset
+
+<ny>
+\begin_inset space ~
+\end_inset
+
+<dy>
+\begin_inset space ~
+\end_inset
+
+<nz>
+\begin_inset space ~
+\end_inset
+
+<dz> Number of grid bins and spacing in the X/Y/Z directions.
+\end_layout
+
+\begin_layout Description
+[gridcenter
+\begin_inset space ~
+\end_inset
+
+<cx>
+\begin_inset space ~
+\end_inset
+
+<cy>
+\begin_inset space ~
+\end_inset
+
+<cz>] Location of grid center, default is origin (0.0, 0.0, 0.0).
+\end_layout
+
+\begin_layout Description
+[boxcenter] Center grid on box center.
+\end_layout
+
+\begin_layout Description
+[maskcenter
+\begin_inset space ~
+\end_inset
+
+<mask>] Center the grid on the atoms selected by <mask>.
+\end_layout
+
+\begin_layout Description
+[rmsfit
+\begin_inset space ~
+\end_inset
+
+<mask>] Perform a best-fit rotation of the grid using the coordinates selected
+ by <mask>.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[noxalign] If specified, grid will not be re-oriented to align with Cartesian
+ axes once binning is finished.
+ Will affect file formats that do not store full unit cell vectors (like
+ Xplor).
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Options for offset during grid binning (must center grid at origin):
+\end_layout
+
+\begin_layout Description
+[box] Offset each point by location of box center prior to gridding.
+ Cannot be used with 'gridcenter'.
+\end_layout
+
+\begin_layout Description
+[origin] No offset (default)
+\end_layout
+
+\begin_layout Description
+[center
+\begin_inset space ~
+\end_inset
+
+<mask>] Offset each point by center of atoms in <mask> prior to gridding.
+ Cannot be used with 'gridcenter'.
+\end_layout
+
+\begin_layout Standard
+Other options:
+\end_layout
+
+\begin_layout Description
+[negative] Grid negative density instead of positive density.
+\end_layout
+
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<gridname>] Grid data set name.
+\end_layout
+
+\begin_layout Description
+<mask1> Mask selecting solvent atoms to bin.
+\end_layout
+
+\begin_layout Description
+[max
+\begin_inset space ~
+\end_inset
+
+<max
+\begin_inset space ~
+\end_inset
+
+percent>] Only keep density >= to <max_percent> of the maximum density.
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 NOTE: This command is not well-tested and may be obsolete.
 \end_layout
 
 \begin_layout Standard
-Same as 
+Similar to 
 \family sans
 \series bold
 grid
@@ -26242,7 +26440,7 @@ name "subsec:cpptraj_grid"
 \end_layout
 
 \begin_layout LyX-Code
-grid <filename>
+grid [out <filename>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -26266,7 +26464,7 @@ grid <filename>
 \end_layout
 
 \begin_layout LyX-Code
- 	      rmsfit <mask> } ]
+ 	      rmsfit <mask> [noxalign]} ]
 \end_layout
 
 \begin_layout LyX-Code
@@ -26291,7 +26489,11 @@ grid <filename>
 
 \begin_deeper
 \begin_layout Description
-<filename> File to write out grid to.
+[out
+\begin_inset space ~
+\end_inset
+
+<filename>] File to write out grid to.
  Use 
 \begin_inset Quotes eld
 \end_inset
@@ -26419,6 +26621,15 @@ name/tag>
  by <mask>.
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+[noxalign] If specified, grid will not be re-oriented to align with Cartesian
+ axes once binning is finished.
+ Will affect file formats that do not store full unit cell vectors (like
+ Xplor).
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 Options for offset during grid binning (must center grid at origin):
 \end_layout

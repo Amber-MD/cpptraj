@@ -59,7 +59,7 @@ Action::RetType Action_Dipole::Init(ArgList& actionArgs, ActionInit& init, int d
   mprintf("\tGrid will be printed to file %s\n",outfile_->Filename().full());
   mprintf("\tMask expression: [%s]\n",mask_.MaskString());
   if (max_ > 0)
-    mprintf("\tOnly keeping density >= to %.0lf%% of the maximum density\n", max_);
+    mprintf("\tOnly keeping density >= to %.0f%% of the maximum density\n", max_);
 
   return Action::OK;
 }
