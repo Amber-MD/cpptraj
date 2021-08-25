@@ -96,7 +96,7 @@ class Matrix_3x3 {
     const double* Dptr() const { return M_; }
     double* Dptr() { return M_; }
 #   ifdef MPI
-    void SyncMatrix(Parallel::Comm const&);
+    void BroadcastMatrix(Parallel::Comm const&);
     int SendMatrix(int, Parallel::Comm const&) const;
     int RecvMatrix(int, Parallel::Comm const&);
 #   endif
