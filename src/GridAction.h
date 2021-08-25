@@ -87,6 +87,7 @@ void GridAction::MoveGrid(Frame const& currentFrame, DataSet_GridFlt& grid)
   else if (gridMoveType_ == RMS_FIT) {
     grid.SetGridCenter( currentFrame.VGeometricCenter( centerMask_ ) );
 #   ifdef MPI
+    // Ranks > 0 still need to do the rotation on the first frame.
     bool doRotate = true;
     if (firstFrame_) {
       SetTgt(currentFrame, grid.Bin().Ucell());
@@ -95,9 +96,13 @@ void GridAction::MoveGrid(Frame const& currentFrame, DataSet_GridFlt& grid)
       firstFrame_ = false;
     }
     if (doRotate) {
+      // Want to rotate to coordinates in current frame. Make them the ref.
       ref_.SetFrame( currentFrame, centerMask_ );
+      // Reset to original grid.
       grid.Assign_Grid_UnitCell( tgtUcell_ );
+      // Do not want to modify original coords. Make a copy.
       Frame tmpTgt( tgt_ );
+      // Rot will contain rotation from original grid to current frame.
       Matrix_3x3 Rot;
       Vec3 T1, T2;
       tmpTgt.RMSD( ref_, Rot, T1, T2, false );

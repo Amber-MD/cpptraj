@@ -99,16 +99,19 @@ GridBin::SizeArray GridBin::Setup_Lengths_Center_Spacing(Vec3 const& lengths, Ve
   return Setup_Sizes_Center_Spacing(nx, ny, nz, center, dxyz);
 }
 
-/** Assign grid unit cell vectors. */
+/** Apply given unit cell vectors to this grid, keeping the current center
+  * location. Internal pointers are reset for the new orientation, and the
+  * potentially new volume and origin coordinates are calculated.
+  */
 void GridBin::Assign_UnitCell( Matrix_3x3 const& unitCell ) {
   // Save the grid center coords TODO should this just always be saved? Can we skip?
   Vec3 gridCtrXyz = GridCenter();
 
   box_.SetupFromUcell( unitCell.Dptr() );
   SetupInternalPointers();
-  set_voxel_volume(); // TODO can we skip this?
+  set_voxel_volume();
 
-  // Set origin and max // TODO can we skip this?
+  // Set origin and max
   SetOriginFromCenter( gridCtrXyz );
 }
 
