@@ -77,7 +77,7 @@ const
   }
 }
 
-/** Move grid if necessary. */
+/** Move/reorient grid if necessary. */
 void GridAction::MoveGrid(Frame const& currentFrame, DataSet_GridFlt& grid)
 {
   if (gridMoveType_ == TO_BOX_CTR)
