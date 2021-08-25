@@ -18,9 +18,17 @@ class DataSet_3D : public DataSet {
     /// CONSTRUCTOR - type, format
     DataSet_3D(DataSet::DataType tIn, TextFormat const& fIn) :
       DataSet(tIn, GRID_3D, fIn, 3) {}
+    // ----- DataSet -----------------------------
     // TODO enable append?
     int Append(DataSet*) { return 1; }
     int Allocate(SizeArray const&) { return 1; } // TODO enable?
+    // TODO: Remove this. Only needed by DataSet.h
+    void Add(size_t,const void*) { }
+#   ifdef MPI
+    /// Sum grid across ranks to master, ensure orientation from final rank is sent to master.
+    int Sync(size_t, std::vector<int> const&, Parallel::Comm const&);
+#   endif
+    // -------------------------------------------
     /// \return Data from grid at x/y/z point.
     virtual double GetElement(size_t, size_t, size_t) const = 0;
     /// Set grid to value
@@ -44,8 +52,6 @@ class DataSet_3D : public DataSet {
     /// Divide all elements by the given scalar
     virtual void operator/=(double) = 0;
     // -------------------------------------------
-    // TODO: Remove this. Only needed by DataSet_1D.h
-    void Add(size_t,const void*) { }
     /*
     double Coord(unsigned int d, size_t p) const {
       long int idx[3];
@@ -63,6 +69,7 @@ class DataSet_3D : public DataSet {
     int Allocate_X_C_D(Vec3 const&,Vec3 const&,Vec3 const&);
     /// Set up grid from dims, origin, and box.
     int Allocate_N_O_Box(size_t,size_t,size_t, Vec3 const&, Box const&);
+
     /// Move grid center
     void SetGridCenter(Vec3 const& cxyz) { gridBin_.SetOriginFromCenter( cxyz); }
     /// Set the grid unit cell
@@ -73,8 +80,14 @@ class DataSet_3D : public DataSet {
     void Xalign_3D_Grid() { gridBin_.X_align_grid(); }
     /// Print grid info.
     void GridInfo() const;
-    // -------------------------------------------
+    /// \return GridBin interface
     GridBin const& Bin() const { return gridBin_; }
+    // -------------------------------------------
+  protected:
+#   ifdef MPI
+    /** Used by inheriting class to sum grid across ranks to master. */
+    virtual int SyncGrid(size_t, std::vector<int> const&, Parallel::Comm const&) = 0;
+#   endif
   private:
     /// Check if grid dimension is even; if not, increment it by 1.
     //static void CheckEven(size_t&, char);
@@ -84,6 +97,6 @@ class DataSet_3D : public DataSet {
     /// \return Origin coords from center, spacing, and sizes
     //static Vec3 calcOriginFromCenter(Vec3 const&, double, double, double, size_t, size_t, size_t);
 
-    GridBin gridBin_; ///< Used to calculate bins/coords depending on grid type.
+    GridBin gridBin_; ///< Used to calculate bins/coords depending on grid orientation.
 };
 #endif

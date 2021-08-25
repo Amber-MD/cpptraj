@@ -134,3 +134,13 @@ void DataSet_3D::GridInfo() const {
             box.Param(Box::ALPHA), box.Param(Box::BETA), box.Param(Box::GAMMA));
   //}
 }
+
+#ifdef MPI
+/** Sum grid across ranks to master, ensure master has same orientation as final rank. */
+int DataSet_3D::Sync(size_t total, std::vector<int> const& rank_frames, Parallel::Comm const& commIn)
+{
+  SyncGrid(total, rank_frames, commIn);
+  gridBin_.Sync( commIn );
+  return 0;
+}
+#endif
