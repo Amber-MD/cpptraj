@@ -19,7 +19,7 @@ const char* GridAction::HelpText =
   "\t  [ { gridcenter <cx> <cy> <cz> |\n"
   "\t      boxcenter |\n"
   "\t      maskcenter <mask> |\n"
-  "\t      rmsfit <mask> } ]\n"
+  "\t      rmsfit <mask> [noxalign]} ]\n"
   "\t[box|origin|center <mask>] [negative] [name <gridname>]";
 
 static inline void CheckEven(int& N, char dir) {
@@ -34,6 +34,7 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn
 {
   DataSet_GridFlt* Grid = 0; 
   bool specifiedCenter = false;
+  x_align_ = !argIn.hasKey("noxalign");
   std::string dsname = argIn.GetStringKey("data");
   std::string refname = argIn.GetStringKey("boxref");
   if (!dsname.empty()) { 
@@ -178,9 +179,14 @@ void GridAction::GridInfo(DataSet_GridFlt const& grid) {
   else if (gridMoveType_ == TO_MASK_CTR)
     mprintf("\tGrid will be kept centered on atoms in mask [%s]\n",
             centerMask_.MaskString());
-  else if (gridMoveType_ == RMS_FIT)
+  else if (gridMoveType_ == RMS_FIT) {
     mprintf("\tGrid will be RMS-fit using atoms in mask [%s]\n",
             centerMask_.MaskString());
+    if (x_align_)
+      mprintf("\tGrid will be realigned with Cartesian axes after binning is complete.\n");
+    else
+      mprintf("\tGrid will not be realigned with Cartesian axes after binning is complete.\n");
+  }
   if (increment_ > 0)
     mprintf("\tCalculating positive density.\n");
   else
@@ -227,14 +233,14 @@ int GridAction::SetTgt(Frame const& frameIn, Matrix_3x3 const& gridUcell)
   trajComm_.MasterBcast( tgt_.xAddress(), tgt_.size(), MPI_DOUBLE );
   // Ensure all threads have the same unit cell vecs
   trajComm_.MasterBcast( tgtUcell_.Dptr(), 9, MPI_DOUBLE );
-  rprintf("DEBUG: Ucell0: %f %f %f %f %f %f %f %f %f\n", tgtUcell_[0], tgtUcell_[1], tgtUcell_[2], tgtUcell_[3], tgtUcell_[4], tgtUcell_[5], tgtUcell_[6], tgtUcell_[7], tgtUcell_[8]);
+  //rprintf("DEBUG: Ucell0: %f %f %f %f %f %f %f %f %f\n", tgtUcell_[0], tgtUcell_[1], tgtUcell_[2], tgtUcell_[3], tgtUcell_[4], tgtUcell_[5], tgtUcell_[6], tgtUcell_[7], tgtUcell_[8]);
 # endif
   return 0;
 }
 
 /** Any final actions to grid. */
 void GridAction::FinishGrid(DataSet_GridFlt& grid) const {
-  rprintf("DEBUG: Final Grid origin: %f %f %f\n", grid.Bin().GridOrigin()[0], grid.Bin().GridOrigin()[1], grid.Bin().GridOrigin()[2]);
+  //rprintf("DEBUG: Final Grid origin: %f %f %f\n", grid.Bin().GridOrigin()[0], grid.Bin().GridOrigin()[1], grid.Bin().GridOrigin()[2]);
   if (x_align_) {
     if (!grid.Bin().IsXalignedGrid()) {
       mprintf("\tEnsuring grid '%s' is X-aligned.\n", grid.legend());
