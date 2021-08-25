@@ -181,7 +181,7 @@ int CoordinateInfo::SyncCoordInfo(Parallel::Comm const& commIn) {
       remdDim_.AddRemdDimension( iArray[ii] );
   }
   delete[] iArray;
-  box_.SyncBox( commIn );
+  box_.BroadcastBox( commIn );
   return 0;
 }
 #undef CINFOMPISIZE
