@@ -175,3 +175,31 @@ void GridBin::X_align_grid() {
   // with the new grid unit cell.
   SetOriginFromCenter( gridCtrXyz );
 }
+
+#ifdef MPI
+/** Assuming the dataset was split across given comm and that the
+  * final rank has the final orientation, ensure master rank
+  * has that orientation/location. Should already have same
+  * spacing, bin sizes, and volume.
+  */
+int GridBin::Sync(Parallel::Comm const& commIn) {
+  int finalRank = commIn.Size() - 1;
+  if (commIn.Master()) {
+    commIn.Recv( OXYZ_.Dptr(), 3, MPI_DOUBLE, finalRank, 2000 );
+    commIn.Recv( &mx_,         1, MPI_DOUBLE, finalRank, 2001 );
+    commIn.Recv( &my_,         1, MPI_DOUBLE, finalRank, 2002 );
+    commIn.Recv( &mz_,         1, MPI_DOUBLE, finalRank, 2003 );
+    box_.RecvBox( finalRank, commIn );
+    // Update internal pointers based on new cell orientation
+    SetupInternalPointers();
+  } else if (commIn.Rank() == finalRank) {
+    commIn.Send( OXYZ_.Dptr(), 3, MPI_DOUBLE, 0,         2000 );
+    commIn.Send( &mx_,         1, MPI_DOUBLE, 0,         2001 );
+    commIn.Send( &my_,         1, MPI_DOUBLE, 0,         2002 );
+    commIn.Send( &mz_,         1, MPI_DOUBLE, 0,         2003 );
+    box_.SendBox( 0, commIn );
+  }
+  commIn.Barrier();
+  return 0;
+}
+#endif
