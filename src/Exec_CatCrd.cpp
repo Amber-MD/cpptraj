@@ -83,7 +83,8 @@ Exec::RetType Exec_CatCrd::Execute(CpptrajState& State, ArgList& argIn)
   {
     mprintf("\t'%s'\n", (*in)->legend());
     Frame frameIn = (*in)->AllocateFrame();
-    for (unsigned int frm = 0; frm != (*in)->Size(); frm++) {
+    unsigned int nFrames = (*in)->Size();
+    for (unsigned int frm = 0; frm != nFrames; frm++) {
       (*in)->GetFrame(frm, frameIn);
       coordsOut->AddFrame( frameIn );
     }

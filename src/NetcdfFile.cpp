@@ -1159,7 +1159,7 @@ void NetcdfFile::DebugVIDs() const {
 }
 
 #ifdef MPI
-void NetcdfFile::Sync(Parallel::Comm const& commIn) {
+void NetcdfFile::Broadcast(Parallel::Comm const& commIn) {
   static const unsigned int NCVARS_SIZE = 29;
   int nc_vars[NCVARS_SIZE];
   if (commIn.Master()) {

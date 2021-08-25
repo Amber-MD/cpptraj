@@ -316,6 +316,7 @@ COMMON_SOURCES= \
         Frame.cpp \
         GIST_PME.cpp \
         GridAction.cpp \
+        GridBin.cpp \
         HistBin.cpp \
         Hungarian.cpp \
         ImageRoutines.cpp \
