@@ -33,7 +33,9 @@ int DataSet_3D::Allocate_N_O_Box(size_t nx, size_t ny, size_t nz,
   }
   // Set origin and unit cell params.
   gridBin_.Setup_Sizes_Origin_Box(nx, ny, nz, oxyz, boxIn);
+# ifdef DEBUG_DATASET_3D
   gridBin_.PrintDebug("Allocate_N_O_Box");
+# endif
   return Allocate3D(nx, ny, nz);
 }
 
@@ -47,7 +49,9 @@ int DataSet_3D::Allocate_N_O_D(size_t nx, size_t ny, size_t nz,
   }
   // Set origin and spacing, calculate maximum (for binning).
   gridBin_.Setup_Sizes_Origin_Spacing(nx, ny, nz, oxyz, dxyz);
+# ifdef DEBUG_DATASET_3D
   gridBin_.PrintDebug("Allocate_N_O_D");
+# endif
   return Allocate3D(nx, ny, nz);
 }
 
@@ -83,7 +87,9 @@ int DataSet_3D::Allocate_N_C_D(size_t nx, size_t ny, size_t nz,
 {
   // Calculate origin from center coordinates.
   gridBin_.Setup_Sizes_Center_Spacing(nx, ny, nz, cxyz, dxyz);
+# ifdef DEBUG_DATASET_3D
   gridBin_.PrintDebug("Allocate_N_C_D");
+# endif
   return Allocate3D(nx, ny, nz);
 /*  return Allocate_N_O_D(nx, ny, nz,
                         calcOriginFromCenter(cxyz, dxyz[0], dxyz[1], dxyz[2], nx, ny, nz),
@@ -104,7 +110,9 @@ int DataSet_3D::Allocate_X_C_D(Vec3 const& sizes, Vec3 const& center, Vec3 const
   size_t nz = (size_t)ceil(sizes[2] / dxyz[2]);
   return Allocate_N_C_D( nx, ny, nz, center, dxyz );*/
   GridBin::SizeArray gridSizes = gridBin_.Setup_Lengths_Center_Spacing(sizes, center, dxyz);
+# ifdef DEBUG_DATASET_3D
   gridBin_.PrintDebug("Allocate_X_C_D");
+# endif
   return Allocate3D(gridSizes[0], gridSizes[1], gridSizes[2]);
 }
 

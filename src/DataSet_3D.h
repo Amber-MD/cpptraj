@@ -5,6 +5,7 @@
 #include "GridBin.h"
 class Box;
 /// Interface for 3D DataSets.
+/** Compile with -DDEBUG_DATASET_3D to print debug info during allocation. */
 // TODO: Use DataSet Dims?
 class DataSet_3D : public DataSet {
   public:
