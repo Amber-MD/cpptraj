@@ -12,10 +12,10 @@ parm ../tz2.parm7
 atoms :3
 atoms :3 out atoms.dat
 
-resinfo
-resinfo out residues.dat
-resinfo short
-resinfo short out residues.dat
+resinfo *
+resinfo out residues.dat *
+resinfo short *
+resinfo short out residues.dat *
 
 bonds :1
 bonds :1 out bonds.dat
@@ -32,15 +32,15 @@ dihedralinfo @1 out dihedrals.dat
 dihedralinfo @N @CA @CB @%H1
 dihedralinfo @N @CA @CB @%H1 out dihedrals.dat
 
-mass out masscharge.dat name Mass
-charge out masscharge.dat name Charge
+mass out masscharge.dat name Mass *
+charge out masscharge.dat name Charge *
 writedata ChargeMass.dat Charge Mass noheader noxcol
 
 parm ../dna30.parm7
 molinfo !:WAT 1
 molinfo !:WAT out molecules.dat 1
-molinfo short 1
-molinfo short out molshort.dat 1
+molinfo short 1 *
+molinfo short out molshort.dat 1 *
 resinfo ^2,5-7,100 out molselect.dat parm dna30.parm7
 atoms ^1:DC@P,O?P out molselect2.dat parmindex 1
 quit

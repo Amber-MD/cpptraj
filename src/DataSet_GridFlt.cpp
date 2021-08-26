@@ -22,7 +22,7 @@ void DataSet_GridFlt::WriteBuffer(CpptrajFile& outfile, SizeArray const& pIn) co
 }
 
 #ifdef MPI
-int DataSet_GridFlt::Sync(size_t total, std::vector<int> const& rank_frames,
+int DataSet_GridFlt::SyncGrid(size_t total, std::vector<int> const& rank_frames,
                           Parallel::Comm const& commIn)
 {
   if (commIn.Master()) {

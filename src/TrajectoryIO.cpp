@@ -1,7 +1,8 @@
 #include "TrajectoryIO.h"
 #ifdef MPI
-int TrajectoryIO::SyncTrajIO(Parallel::Comm const& commIn) {
-  if (coordInfo_.SyncCoordInfo(commIn)) return 1;
+/** Broadcast trajectory IO info from master. */
+int TrajectoryIO::BroadcastTrajIO(Parallel::Comm const& commIn) {
+  if (coordInfo_.BroadcastCoordInfo(commIn)) return 1;
   int tSize = (int)title_.size();
   commIn.MasterBcast( &tSize, 1, MPI_INT );
   if (commIn.Master())

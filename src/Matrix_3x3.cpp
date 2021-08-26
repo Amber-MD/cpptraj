@@ -533,7 +533,8 @@ Vec3 Matrix_3x3::AxisOfRotation(double theta) {
 }
 
 #ifdef MPI
-void Matrix_3x3::SyncMatrix(Parallel::Comm const& commIn) {
+/** Broadcast matrix from master to other ranks. */
+void Matrix_3x3::BroadcastMatrix(Parallel::Comm const& commIn) {
   commIn.MasterBcast( M_, 9, MPI_DOUBLE );
 }
 

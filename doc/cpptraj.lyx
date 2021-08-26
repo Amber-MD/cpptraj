@@ -12104,7 +12104,7 @@ atominfo | atoms | printatoms
 \end_layout
 
 \begin_layout LyX-Code
-atominfo [parm <name> | parmindex <#> | <#>] [<mask>] [out <file>]
+atominfo [parm <name> | parmindex <#> | <#>] <mask> [out <file>]
 \end_layout
 
 \begin_deeper
@@ -12138,7 +12138,7 @@ parmindex
 \end_layout
 
 \begin_layout Description
-[<mask>] Mask selecting atoms to print info for.
+<mask> Mask selecting atoms to print info for.
 \end_layout
 
 \begin_layout Description
@@ -12624,7 +12624,7 @@ charge
 \end_layout
 
 \begin_layout LyX-Code
-charge [parm <name> | parmindex <#> | <#>] [<mask>] [out <file>] [name <set>]
+charge [parm <name> | parmindex <#> | <#>] <mask> [out <file>] [name <set>]
 \end_layout
 
 \begin_deeper
@@ -12649,7 +12649,7 @@ parmindex
 \end_layout
 
 \begin_layout Description
-[<mask>] Atom(s) to calculate total charge for (default all).
+<mask> Atom(s) to calculate total charge for (default all).
 \end_layout
 
 \begin_layout Description
@@ -12955,8 +12955,8 @@ mass
 \end_layout
 
 \begin_layout LyX-Code
-[<parmindex>] [parm <name> | parmindex <#> | <#>] [<mask>] [out <file>]
- [name <set>]
+[<parmindex>] [parm <name> | parmindex <#> | <#>] <mask> [out <file>] [name
+ <set>]
 \end_layout
 
 \begin_deeper
@@ -12981,7 +12981,7 @@ parmindex
 \end_layout
 
 \begin_layout Description
-[<mask>] Atom(s) to calculate total mass for (default all).
+<mask> Atom(s) to calculate total mass for (default all).
 \end_layout
 
 \begin_layout Description
@@ -13012,7 +13012,7 @@ molinfo
 \end_layout
 
 \begin_layout LyX-Code
-molinfo [parm <name> | parmindex <#> | <#>] [<mask>] [out <file>]
+molinfo [parm <name> | parmindex <#> | <#>] <mask> [out <file>]
 \end_layout
 
 \begin_deeper
@@ -13046,7 +13046,7 @@ parmindex
 \end_layout
 
 \begin_layout Description
-[<mask>] Mask selecting molecules to print info for.
+<mask> Mask selecting molecules to print info for.
 \end_layout
 
 \begin_layout Description
@@ -13085,7 +13085,24 @@ Natom
 Name
 \family default
  are the residue number and residue name of the first residue in the molecule
- respectively, and C is the chain ID of the first residue.
+ respectively, and 
+\family typewriter
+C
+\family default
+ is the chain ID of the first residue.
+ If the molecule is composed on non-consecutive fragments, 
+\family typewriter
+#Res
+\family default
+, 
+\family typewriter
+Name
+\family default
+, and 
+\family typewriter
+C
+\family default
+ will be printed for each fragment.
  
 \family typewriter
 SOLVENT
@@ -13840,7 +13857,7 @@ parmresinfo
 
 \end_inset
 
- [parm <name> | parmindex <#> | <#>] [<mask>] [short [maxwidth <#res>]]
+ [parm <name> | parmindex <#> | <#>] <mask> [short [maxwidth <#res>]]
 \end_layout
 
 \begin_layout LyX-Code
@@ -13878,7 +13895,7 @@ parmindex
 \end_layout
 
 \begin_layout Description
-[<mask>] Mask selecting residues to print info for.
+<mask> Mask selecting residues to print info for.
 \end_layout
 
 \begin_layout Description
@@ -22966,27 +22983,245 @@ dipole
 \end_layout
 
 \begin_layout LyX-Code
-dipole <filename> {data <dsname> | <nx> <dx> <ny> <dy> <nz> <dz> 
+dipole [out <filename>]
 \end_layout
 
 \begin_layout LyX-Code
-       [gridcenter <cx> <cy> <cz>]}
+ 	  { data <dsname> | boxref <ref name/tag> <nx> <ny> <nz> |
 \end_layout
 
 \begin_layout LyX-Code
-   	[box|origin|center <mask>] [negative] [name <gridname>]
+   	  <nx> <dx> <ny> <dy> <nz> <dz>
 \end_layout
 
 \begin_layout LyX-Code
-       <mask1> {origin | box} [max <max_percent>]
+         [ { gridcenter <cx> <cy> <cz> |
 \end_layout
 
+\begin_layout LyX-Code
+ 	        boxcenter | 
+\end_layout
+
+\begin_layout LyX-Code
+ 	        maskcenter <mask> |
+\end_layout
+
+\begin_layout LyX-Code
+ 	        rmsfit <mask> [noxalign]} ]
+\end_layout
+
+\begin_layout LyX-Code
+   	[box|origin|center <mask>] [negative] [name <gridname>] 
+\end_layout
+
+\begin_layout LyX-Code
+       <mask1> [max <max_percent>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<filename>] File to write out grid to.
+ Use 
+\begin_inset Quotes eld
+\end_inset
+
+.grid
+\begin_inset Quotes erd
+\end_inset
+
+ or 
+\begin_inset Quotes eld
+\end_inset
+
+.xplor
+\begin_inset Quotes erd
+\end_inset
+
+ extension for XPLOR format, 
+\begin_inset Quotes eld
+\end_inset
+
+.dx
+\begin_inset Quotes erd
+\end_inset
+
+ for OpenDX format.
+\end_layout
+
+\begin_layout Standard
+Options for setting up grid:
+\end_layout
+
+\begin_layout Description
+data
+\begin_inset space ~
+\end_inset
+
+<dsname> Use previously calculated/loaded grid data set named <dsname>.
+ When using this option there is no need to specify grid bins/spacing/center.
+\end_layout
+
+\begin_layout Description
+boxref
+\begin_inset space ~
+\end_inset
+
+<ref
+\begin_inset space ~
+\end_inset
+
+name/tag>
+\begin_inset space ~
+\end_inset
+
+<nx>
+\begin_inset space ~
+\end_inset
+
+<ny>
+\begin_inset space ~
+\end_inset
+
+<nz> Set up grid using box information from a previously loaded reference
+ structure.
+ Currently the only way to set up non-orthogonal grids.
+\end_layout
+
+\begin_layout Description
+<nx>
+\begin_inset space ~
+\end_inset
+
+<dx>
+\begin_inset space ~
+\end_inset
+
+<ny>
+\begin_inset space ~
+\end_inset
+
+<dy>
+\begin_inset space ~
+\end_inset
+
+<nz>
+\begin_inset space ~
+\end_inset
+
+<dz> Number of grid bins and spacing in the X/Y/Z directions.
+\end_layout
+
+\begin_layout Description
+[gridcenter
+\begin_inset space ~
+\end_inset
+
+<cx>
+\begin_inset space ~
+\end_inset
+
+<cy>
+\begin_inset space ~
+\end_inset
+
+<cz>] Location of grid center, default is origin (0.0, 0.0, 0.0).
+\end_layout
+
+\begin_layout Description
+[boxcenter] Center grid on box center.
+\end_layout
+
+\begin_layout Description
+[maskcenter
+\begin_inset space ~
+\end_inset
+
+<mask>] Center the grid on the atoms selected by <mask>.
+\end_layout
+
+\begin_layout Description
+[rmsfit
+\begin_inset space ~
+\end_inset
+
+<mask>] Perform a best-fit rotation of the grid using the coordinates selected
+ by <mask>.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[noxalign] If specified, grid will not be re-oriented to align with Cartesian
+ axes once binning is finished.
+ Will affect file formats that do not store full unit cell vectors (like
+ Xplor).
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Options for offset during grid binning (must center grid at origin):
+\end_layout
+
+\begin_layout Description
+[box] Offset each point by location of box center prior to gridding.
+ Cannot be used with 'gridcenter'.
+\end_layout
+
+\begin_layout Description
+[origin] No offset (default)
+\end_layout
+
+\begin_layout Description
+[center
+\begin_inset space ~
+\end_inset
+
+<mask>] Offset each point by center of atoms in <mask> prior to gridding.
+ Cannot be used with 'gridcenter'.
+\end_layout
+
+\begin_layout Standard
+Other options:
+\end_layout
+
+\begin_layout Description
+[negative] Grid negative density instead of positive density.
+\end_layout
+
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<gridname>] Grid data set name.
+\end_layout
+
+\begin_layout Description
+<mask1> Mask selecting solvent atoms to bin.
+\end_layout
+
+\begin_layout Description
+[max
+\begin_inset space ~
+\end_inset
+
+<max
+\begin_inset space ~
+\end_inset
+
+percent>] Only keep density >= to <max_percent> of the maximum density.
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 NOTE: This command is not well-tested and may be obsolete.
 \end_layout
 
 \begin_layout Standard
-Same as 
+Similar to 
 \family sans
 \series bold
 grid
@@ -26255,7 +26490,7 @@ name "subsec:cpptraj_grid"
 \end_layout
 
 \begin_layout LyX-Code
-grid <filename>
+grid [out <filename>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -26263,7 +26498,23 @@ grid <filename>
 \end_layout
 
 \begin_layout LyX-Code
- 	  <nx> <dx> <ny> <dy> <nz> <dz> [gridcenter <cx> <cy> <cz>] }
+ 	  <nx> <dx> <ny> <dy> <nz> <dz>
+\end_layout
+
+\begin_layout LyX-Code
+       [ { gridcenter <cx> <cy> <cz> |
+\end_layout
+
+\begin_layout LyX-Code
+ 	      boxcenter | 
+\end_layout
+
+\begin_layout LyX-Code
+ 	      maskcenter <mask> |
+\end_layout
+
+\begin_layout LyX-Code
+ 	      rmsfit <mask> [noxalign]} ]
 \end_layout
 
 \begin_layout LyX-Code
@@ -26288,7 +26539,11 @@ grid <filename>
 
 \begin_deeper
 \begin_layout Description
-<filename> File to write out grid to.
+[out
+\begin_inset space ~
+\end_inset
+
+<filename>] File to write out grid to.
  Use 
 \begin_inset Quotes eld
 \end_inset
@@ -26395,6 +26650,36 @@ name/tag>
 <cz>] Location of grid center, default is origin (0.0, 0.0, 0.0).
 \end_layout
 
+\begin_layout Description
+[boxcenter] Center grid on box center.
+\end_layout
+
+\begin_layout Description
+[maskcenter
+\begin_inset space ~
+\end_inset
+
+<mask>] Center the grid on the atoms selected by <mask>.
+\end_layout
+
+\begin_layout Description
+[rmsfit
+\begin_inset space ~
+\end_inset
+
+<mask>] Perform a best-fit rotation of the grid using the coordinates selected
+ by <mask>.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[noxalign] If specified, grid will not be re-oriented to align with Cartesian
+ axes once binning is finished.
+ Will affect file formats that do not store full unit cell vectors (like
+ Xplor).
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 Options for offset during grid binning (must center grid at origin):
 \end_layout
@@ -26602,7 +26887,9 @@ Examples
 \end_layout
 
 \begin_layout Standard
-Grid water density around a solute.
+Example 1: Grid water density around a solute.
+ The solute is imaged to the origin and rms fit to the first frame.
+ The grid will be centered on the origin as well.
 \end_layout
 
 \begin_layout LyX-Code
@@ -26630,7 +26917,42 @@ grid out.dx 20 0.5 20 0.5 20 0.5 :WAT@O
 \end_layout
 
 \begin_layout Standard
-Generate grid from bounds command.
+Example 2: Grid water density around a solute.
+ The grid is centered on the solute.
+\end_layout
+
+\begin_layout LyX-Code
+trajin tz2.truncoct.nc
+\end_layout
+
+\begin_layout LyX-Code
+autoimage
+\end_layout
+
+\begin_layout LyX-Code
+grid out.dx 20 0.5 20 0.5 20 0.5 :WAT@O maskcenter :1-13
+\end_layout
+
+\begin_layout Standard
+Example 3: Grid water density around a solute.
+ The grid is centered on the solute and rms-fit.
+ The density obtained should be equivalent to the first example.
+\end_layout
+
+\begin_layout LyX-Code
+trajin tz2.truncoct.nc
+\end_layout
+
+\begin_layout LyX-Code
+image :WAT
+\end_layout
+
+\begin_layout LyX-Code
+grid out.dx 20 0.5 20 0.5 20 0.5 :WAT@O rmsfit :1-13
+\end_layout
+
+\begin_layout Standard
+Example 4: Generate grid from bounds command.
 \end_layout
 
 \begin_layout LyX-Code
@@ -26674,7 +26996,7 @@ crdaction MyCoords grid bounds.xplor data MyGrid :WAT@O
 \end_layout
 
 \begin_layout Standard
-Create non-orthogonal grid:
+Example 5: Create non-orthogonal grid based on the box.
 \end_layout
 
 \begin_layout LyX-Code
@@ -36485,7 +36807,7 @@ vector [<name>] <Type> [out <filename> [ptrajoutput]] [<mask1>] [<mask2>]
 \end_layout
 
 \begin_layout LyX-Code
-   	[magnitude] [ired]
+   	[magnitude] [ired] [gridset <grid>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -36566,6 +36888,27 @@ ptraj
 \begin_layout Description
 [ired] Mark this vector for subsequent IRED analysis with commands 'matrix
  ired' and 'ired'.
+\end_layout
+
+\begin_layout Description
+[gridset
+\begin_inset space ~
+\end_inset
+
+<grid>] Name of grid data set to get box info from instead of frame for
+ 
+\series bold
+box
+\series default
+, 
+\series bold
+boxcenter
+\series default
+, and 
+\series bold
+ucell[x|y|z]
+\series default
+.
 \end_layout
 
 \begin_layout Standard

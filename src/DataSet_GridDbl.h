@@ -25,10 +25,6 @@ class DataSet_GridDbl : public DataSet_3D {
     double GridVal(size_t x,size_t y,size_t z)        const { return grid_.element(x,y,z);   }
     // ----- DataSet functions -------------------
     size_t Size()                        const { return grid_.size();        }
-#   ifdef MPI
-    // TODO: Currently just sums up. Should this be a separate Sync function?
-    int Sync(size_t, std::vector<int> const&, Parallel::Comm const&);
-#   endif
     void Info()                          const { return; }
     void WriteBuffer(CpptrajFile&,SizeArray const&) const;
     size_t MemUsageInBytes() const { return grid_.DataSize(); }
@@ -52,6 +48,11 @@ class DataSet_GridDbl : public DataSet_3D {
         (*it) /= val;
     }
   private:
+#   ifdef MPI
+    // TODO: Currently just sums up. Should this be a separate Sync function?
+    int SyncGrid(size_t, std::vector<int> const&, Parallel::Comm const&);
+#   endif
+
     Grid<double> grid_;
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------

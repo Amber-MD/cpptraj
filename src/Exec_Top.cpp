@@ -148,7 +148,7 @@ Exec::RetType Exec_ImproperInfo::Execute(CpptrajState& State, ArgList& argIn) {
 
 // -----------------------------------------------------------------------------
 void Exec_AtomInfo::Help() const {
-  mprintf("\t[%s] [<mask>] [out <file>]\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s] <mask> [out <file>]\n", DataSetList::TopIdxArgs);
   mprintf("  Print information on atoms in <mask> for specified topology (first by default).\n");
 }
 
@@ -161,7 +161,7 @@ Exec::RetType Exec_AtomInfo::Execute(CpptrajState& State, ArgList& argIn) {
 
 // -----------------------------------------------------------------------------
 void Exec_ResInfo::Help() const {
-  mprintf("\t[%s] [<mask>] [short [maxwidth <#res>]]\n\t[out <file>]\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s] <mask> [short [maxwidth <#res>]]\n\t[out <file>]\n", DataSetList::TopIdxArgs);
   mprintf("  Print info for residues in <mask> for specified topology (first by default).\n"
           "  If 'short' is specified print residue info in shorter form.\n");
 }
@@ -180,7 +180,7 @@ Exec::RetType Exec_ResInfo::Execute(CpptrajState& State, ArgList& argIn) {
 }
 // -----------------------------------------------------------------------------
 void Exec_MolInfo::Help() const {
-  mprintf("\t[%s] [<mask>] [short] [out <file>]\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s] <mask> [short] [out <file>]\n", DataSetList::TopIdxArgs);
   mprintf("  Print info for molecules in <mask> for specfied topology (first by default).\n"
           "  If 'short' is specified print counts of each unique molecule.\n");
 }
@@ -199,7 +199,7 @@ Exec::RetType Exec_MolInfo::Execute(CpptrajState& State, ArgList& argIn) {
 }
 // -----------------------------------------------------------------------------
 void Exec_ChargeInfo::Help() const {
-  mprintf("\t[%s] [<mask>] [out <file>] [name <set>]\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s] <mask> [out <file>] [name <set>]\n", DataSetList::TopIdxArgs);
   mprintf("  Print total charge of atoms in <mask> for specified topology (first by default).\n");
 }
 
@@ -221,7 +221,7 @@ Exec::RetType Exec_ChargeInfo::Execute(CpptrajState& State, ArgList& argIn) {
 }
 // -----------------------------------------------------------------------------
 void Exec_MassInfo::Help() const {
-  mprintf("\t[%s] [<mask>] [out <file>] [name <set>]\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s] <mask> [out <file>] [name <set>]\n", DataSetList::TopIdxArgs);
   mprintf("  Print total mass of atoms in <mask> for specified topology (first by default).\n");
 }
 

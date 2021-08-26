@@ -316,6 +316,7 @@ COMMON_SOURCES= \
         Frame.cpp \
         GIST_PME.cpp \
         GridAction.cpp \
+        GridBin.cpp \
         HistBin.cpp \
         Hungarian.cpp \
         ImageRoutines.cpp \
@@ -497,6 +498,7 @@ LIBCPPTRAJ_FILE_OBJECTS= \
   Mol2File.o \
   PDBfile.o \
   SDFfile.o \
+  TextBlockBuffer.o \
   TinkerFile.o
 
 # These objects are required for Gromacs XTC support in libcpptraj_traj.a

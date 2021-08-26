@@ -51,7 +51,7 @@ class CoordinateInfo {
     /// \return string containing info on present metadata
     std::string InfoString() const;
 #   ifdef MPI
-    int SyncCoordInfo(Parallel::Comm const&);
+    int BroadcastCoordInfo(Parallel::Comm const&);
 #   endif
     /// \return True if Frame would need to be re-setup based on CoordinateInfo
     bool operator !=(CoordinateInfo const& rhs) const {

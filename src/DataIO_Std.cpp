@@ -795,13 +795,11 @@ int DataIO_Std::Read_3D(std::string const& fname,
     // Assume XYZ coords are of bin corners. Need to offset coords by half
     // the voxel size.
     if (!ds->Bin().IsOrthoGrid()) {
-      GridBin_Nonortho const& b = static_cast<GridBin_Nonortho const&>( ds->Bin() );
-      offset = b.Ucell().TransposeMult(Vec3( 1/(2*(double)ds->NX()),
-                                             1/(2*(double)ds->NY()),
-                                             1/(2*(double)ds->NZ()) ));
+      offset = ds->Bin().Ucell().TransposeMult(Vec3( 1/(2*(double)ds->NX()),
+                                                     1/(2*(double)ds->NY()),
+                                                     1/(2*(double)ds->NZ()) ));
     } else {
-      GridBin_Ortho const& b = static_cast<GridBin_Ortho const&>( ds->Bin() );
-      offset = Vec3(b.DX()/2, b.DY()/2, b.DZ()/2);
+      offset = Vec3(ds->Bin().DX()/2, ds->Bin().DY()/2, ds->Bin().DZ()/2);
     }
   }
   if (debug_ > 0)
@@ -1456,20 +1454,18 @@ int DataIO_Std::WriteSet3D( DataSet const& setIn, CpptrajFile& file ) {
                 set.Bin().GridOrigin()[1],
                 set.Bin().GridOrigin()[2]);
     if (set.Bin().IsOrthoGrid()) {
-      GridBin_Ortho const& b = static_cast<GridBin_Ortho const&>( set.Bin() );
-      file.Printf("#delta %12.7f %12.7f %12.7f\n", b.DX(), b.DY(), b.DZ());
+      file.Printf("#delta %12.7f %12.7f %12.7f\n", set.Bin().DX(), set.Bin().DY(), set.Bin().DZ());
     } else {
-      GridBin_Nonortho const& b = static_cast<GridBin_Nonortho const&>( set.Bin() );
       file.Printf("#delta %12.7f %12.7f %12.7f %12.7f %12.7f %12.7f %12.7f %12.7f %12.7f\n",
-                  b.Ucell()[0]/set.NX(),
-                  b.Ucell()[1]/set.NX(),
-                  b.Ucell()[2]/set.NX(),
-                  b.Ucell()[3]/set.NY(),
-                  b.Ucell()[4]/set.NY(),
-                  b.Ucell()[5]/set.NY(),
-                  b.Ucell()[6]/set.NZ(),
-                  b.Ucell()[7]/set.NZ(),
-                  b.Ucell()[8]/set.NZ());
+                  set.Bin().Ucell()[0]/set.NX(),
+                  set.Bin().Ucell()[1]/set.NX(),
+                  set.Bin().Ucell()[2]/set.NX(),
+                  set.Bin().Ucell()[3]/set.NY(),
+                  set.Bin().Ucell()[4]/set.NY(),
+                  set.Bin().Ucell()[5]/set.NY(),
+                  set.Bin().Ucell()[6]/set.NZ(),
+                  set.Bin().Ucell()[7]/set.NZ(),
+                  set.Bin().Ucell()[8]/set.NZ());
     }
     file.Printf("#%s %s %s %s\n", Xdim.Label().c_str(), 
                 Ydim.Label().c_str(), Zdim.Label().c_str(), set.legend());

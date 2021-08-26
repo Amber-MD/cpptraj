@@ -87,7 +87,7 @@ class NetcdfFile {
     int NC_readIntCompressed(int, Frame& frmIn);
 #   endif
 #   ifdef MPI
-    void Sync(Parallel::Comm const&);
+    void Broadcast(Parallel::Comm const&);
 #   endif
 
 #   ifdef HAS_HDF5

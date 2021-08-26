@@ -156,6 +156,7 @@ test.atomicfluct:
 
 test.grid:
 	@-cd Test_Grid && ./RunTest.sh $(OPT)
+	@-cd Test_Grid_Rotate_Simple && ./RunTest.sh $(OPT)
 
 test.unwrap:
 	@-cd Test_Unwrap && ./RunTest.sh $(OPT)
