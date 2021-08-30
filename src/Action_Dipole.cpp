@@ -59,7 +59,7 @@ Action::RetType Action_Dipole::Init(ArgList& actionArgs, ActionInit& init, int d
   mprintf("\tGrid will be printed to file %s\n",outfile_->Filename().full());
   mprintf("\tMask expression: [%s]\n",mask_.MaskString());
   if (max_ > 0)
-    mprintf("\tOnly keeping density >= to %.0lf%% of the maximum density\n", max_);
+    mprintf("\tOnly keeping density >= to %.0f%% of the maximum density\n", max_);
 
   return Action::OK;
 }
@@ -104,12 +104,15 @@ Action::RetType Action_Dipole::Setup(ActionSetup& setup) {
 Action::RetType Action_Dipole::DoAction(int frameNum, ActionFrame& frm) {
   Vec3 cXYZ, dipolar_vector, COM;
 
+  // Move grid if necessary
+  MoveGrid( frm.Frm(), *grid_ );
+
   // Set up center to origin or box center
-  if (GridMode() == GridAction::BOX) 
+  if (GridOffsetType() == GridAction::BOX_CENTER) 
     cXYZ = frm.Frm().BoxCrd().Center();
-  else if (GridMode() == GridAction::MASKCENTER)
+  else if (GridOffsetType() == GridAction::MASK_CENTER)
     cXYZ = frm.Frm().VGeometricCenter( CenterMask() );
-  else // GridAction::ORIGIN/SPECIFIEDCENTER
+  else // GridAction::NO_OFFSET
     cXYZ.Zero();
 
   // Traverse over solvent molecules.
@@ -187,6 +190,8 @@ int Action_Dipole::SyncAction() {
   * comes with Midas/Plus.
   */
 void Action_Dipole::Print() {
+  if (grid_ == 0) return
+  FinishGrid( *grid_ );
   double max_density;
 
   // Write header

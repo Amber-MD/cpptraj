@@ -444,8 +444,6 @@ Analysis::RetType Analysis_EvalPlateau::Analyze() {
     data_[ONEA1]->Add(oidx, &onea1);
     //data_[FVAL]->Add(oidx, &Fval);
     data_[CORR]->Add(oidx, &corr_coeff);
-    // FIXME hijacking ValA temporarily
-    //ValA = Params[2]-Params[0];
     //if (ValA < 0.0) ValA = -ValA;
     data_[VALA]->Add(oidx, &ValA);
     //data_[LCHISQ]->Add(oidx, &linChiSq);

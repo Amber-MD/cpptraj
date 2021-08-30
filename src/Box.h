@@ -24,7 +24,7 @@ class Box {
     /// SWAP
     void swap(Box&);
 #   ifdef MPI
-    int SyncBox(Parallel::Comm const&);
+    int BroadcastBox(Parallel::Comm const&);
     int SendBox(int, Parallel::Comm const&) const;
     int RecvBox(int, Parallel::Comm const&);
 #   endif

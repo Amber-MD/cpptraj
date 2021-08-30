@@ -29,14 +29,14 @@ DoTest test1.crd.save test1.crd
 cat > cmd.in <<EOF
 parm ../tz2.parm7
 parm ../tz2.pdb
-resinfo out res.save parmindex 0
-resinfo out res.save parmindex 1
+resinfo out res.save parmindex 0 *
+resinfo out res.save parmindex 1 *
 EOF
 INPUT='-i cmd.in'
 RunCpptraj "Command line wildcard test, part 1"
 cat > cmd.in <<EOF
-resinfo out res parmindex 0
-resinfo out res parmindex 1
+resinfo out res parmindex 0 *
+resinfo out res parmindex 1 *
 EOF
 INPUT='../tz2.p* cmd.in'
 RunCpptraj "Command line wildcard test, part 2"
