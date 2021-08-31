@@ -272,8 +272,14 @@ int Exec_PrepareForLeap::LoadGlycamPdbResMap(std::string const& fnameIn)
   SectionType section = PDB_RESMAP_SECTION;
   while ( (ptr = infile.NextLine()) != 0 ) {
     ArgList argline( ptr, " " );
-    if (argline[0][0] != '#') {
-
+    // Check for section change first
+    if (argline.Nargs() < 1) {
+      if (section == PDB_RESMAP_SECTION) {
+        mprintf("DEBUG: Section change.\n");
+        section = PDB_ATOMMAP_SECTION;
+       }
+    } else if (argline[0][0] != '#') {
+      // Skipping comments, read sections
       if (section == PDB_RESMAP_SECTION) {
         // "<Name>" <glycam reschar> <pdb resname list>
         if (argline.Nargs() != 3) {
@@ -292,6 +298,7 @@ int Exec_PrepareForLeap::LoadGlycamPdbResMap(std::string const& fnameIn)
         for (int n = 0; n < pdbnames.Nargs(); n++)
           pdb_to_glycam_.insert( PairType(pdbnames[n], argline[1][0]) );
       } else if (section == PDB_ATOMMAP_SECTION) {
+        mprintf("DEBUG: line %s\n", ptr);
         // <glycam reschar list> <PDB atomname to glycam atomname pair> ...
         if (argline.Nargs() < 2) {
           mprinterr("Error: Expected at least 2 columns in '%s' atom map section, got %i\n",
@@ -1661,6 +1668,18 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       mprintf("\tResidue name map:\n");
       for (MapType::const_iterator mit = pdb_to_glycam_.begin(); mit != pdb_to_glycam_.end(); ++mit)
         mprintf("\t  %4s -> %c\n", *(mit->first), mit->second);
+    }
+    // DEBUG - print atom name map
+    mprintf("\tRes char to atom map index map:\n");
+    for (ResIdxMapType::const_iterator mit = glycam_res_idx_map_.begin(); mit != glycam_res_idx_map_.end(); ++mit)
+      mprintf("\t  %c -> %i\n", mit->first, mit->second);
+    mprintf("\tAtom name maps:\n");
+    for (std::vector<NameMapType>::const_iterator it = pdb_glycam_name_maps_.begin(); it != pdb_glycam_name_maps_.end(); ++it)
+    {
+      mprintf("  %li)", it - pdb_glycam_name_maps_.begin());
+      for (NameMapType::const_iterator mit = it->begin(); mit != it->end(); ++mit)
+        mprintf(" %s:%s", *(mit->first), *(mit->second));
+      mprintf("\n");
     }
   }
 

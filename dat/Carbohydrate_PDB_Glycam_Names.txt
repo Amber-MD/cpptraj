@@ -29,3 +29,7 @@
 "Sorbose"                        B SOR
 "Psicose"                        P PSI
 "N-Acetyl Neuraminic Acid"       S SIA
+
+# PDB to glycam atom name maps
+V,W,Y C7,C2N  O7,O2N  C8,CME
+S     C10,C5N O10,O5N C11,CME

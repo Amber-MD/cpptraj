@@ -63,6 +63,12 @@ int main(int argc, char** argv) {
     }
     lineNum++;
   }
+
+  // Add name map section manually
+  fprintf(outfile, "\n# PDB to glycam atom name maps\n");
+  fprintf(outfile, "V,W,Y C7,C2N  O7,O2N  C8,CME\n");
+  fprintf(outfile, "S     C10,C5N O10,O5N C11,CME\n");
+
   fclose( infile );
 
   return err;
