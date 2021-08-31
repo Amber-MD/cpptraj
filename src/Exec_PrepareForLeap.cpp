@@ -63,7 +63,7 @@ void Exec_PrepareForLeap::Help() const
 {
   mprintf("\tcrdset <coords set> [frame <#>] name <out coords set> [pdbout <pdbfile>]\n"
           "\t[leapunitname <unit>] [out <leap input file> [skiperrors]\n"
-          "\t[nowat [watermask <watermask>] [noh] [keepaltloc <alt loc ID>]\n"
+          "\t[nowat [watername <watername>] [noh] [keepaltloc <alt loc ID>]\n"
           "\t[stripmask <stripmask>] [solventresname <solventresname>]\n"
           "\t[{nohisdetect |\n"
           "\t  [nd1 <nd1>] [ne2 <ne2] [hisname <his>] [hiename <hie>]\n"
@@ -1520,7 +1520,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 
   // Deal with any coordinate modifications
   bool remove_water     = argIn.hasKey("nowat");
-  std::string waterMask = argIn.GetStringKey("watermask", ":" + solventResName_);
+  std::string waterMask = argIn.GetStringKey("watername", ":" + solventResName_);
   bool remove_h         = argIn.hasKey("noh");
   std::string altLocArg = argIn.GetStringKey("keepaltloc");
   char altLocChar = '\0';
