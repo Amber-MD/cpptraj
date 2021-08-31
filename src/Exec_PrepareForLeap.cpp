@@ -238,6 +238,7 @@ void Exec_PrepareForLeap::SetGlycamPdbResMap() {
   pdb_to_glycam_.insert( PairType("GAL", 'L') );
   pdb_to_glycam_.insert( PairType("BMA", 'M') );
   pdb_to_glycam_.insert( PairType("MAN", 'M') );
+  // TODO internal atom name map
 }
 
 /** Load PDB to Glycam residue map from file. */
@@ -800,25 +801,6 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
     mprinterr("Error: Changing PDB atom names to Glycam failed.\n");
     return 1;
   }
-/*
-  for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
-  {
-    if (resChar == 'Y') {
-      if ( topIn[at].Name() == "C7" )
-        ChangeAtomName(topIn.SetAtom(at), "C2N");
-      else if ( topIn[at].Name() == "O7" )
-        ChangeAtomName(topIn.SetAtom(at), "O2N");
-      else if ( topIn[at].Name() == "C8" )
-        ChangeAtomName(topIn.SetAtom(at), "CME");
-    } else if (resChar == 'S') {
-      if ( topIn[at].Name() == "C10" )
-        ChangeAtomName(topIn.SetAtom(at), "C5N");
-      else if ( topIn[at].Name() == "O10" )
-        ChangeAtomName(topIn.SetAtom(at), "O5N");
-      else if ( topIn[at].Name() == "C11" )
-        ChangeAtomName(topIn.SetAtom(at), "CME");
-    }
-  }*/
 
   // Create an array with all ring atoms set to true
   std::vector<bool> IsRingAtom;
