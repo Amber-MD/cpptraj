@@ -49,17 +49,31 @@ class Exec_PrepareForLeap : public Exec {
                          NameType const&, NameType const&,
                          NameType const&, NameType const&, NameType const&, NameType const&) const;
 
-    std::string leapunitname_;
+
     typedef std::pair<NameType, char> PairType;
     typedef std::map<NameType, char> MapType;
     MapType pdb_to_glycam_; ///< Map PDB residue names to Glycam 1 char names
+
     typedef std::set<NameType> SetType;
     SetType pdb_res_names_; ///< PDB residue names recognized by Amber FFs
-    bool errorsAreFatal_;   ///< If false, try to skip errors.
+
     enum ResStatType { UNKNOWN = 0, VALIDATED, UNRECOGNIZED_SUGAR_LINKAGE, SUGAR_MISSING_C1X,
                        SUGAR_MISSING_RING_O };
     typedef std::vector<ResStatType> ResStatArray;
     ResStatArray resStat_;  ///< Contain status of each residue
+
+    typedef std::pair<NameType, NameType> NamePairType;
+    typedef std::map<NameType, NameType> NameMapType;
+    /// Hold maps of pdb atom names to glycam atom names
+    std::vector<NameMapType> pdb_glycam_name_maps_;
+
+    typedef std::pair<char, int> ResIdxPairType;
+    typedef std::map<char, int> ResIdxMapType;
+    /// Map glycam residue chars to pdb-glycam atom name maps
+    ResIdxMapType glycam_res_idx_map_;
+
+    std::string leapunitname_;
+    bool errorsAreFatal_;   ///< If false, try to skip errors.
     int debug_; ///< Debug level
     std::string solventResName_; ///< Solvent residue name
 };

@@ -267,25 +267,61 @@ int Exec_PrepareForLeap::LoadGlycamPdbResMap(std::string const& fnameIn)
     return 1;
   }
   const char* ptr = 0;
+  // Describe which section of the file we are in
+  enum SectionType { PDB_RESMAP_SECTION = 0, PDB_ATOMMAP_SECTION };
+  SectionType section = PDB_RESMAP_SECTION;
   while ( (ptr = infile.NextLine()) != 0 ) {
     ArgList argline( ptr, " " );
     if (argline[0][0] != '#') {
-      if (argline.Nargs() != 3) {
-        mprinterr("Error: Expected only 3 data columns in '%s', got %i\n",
-                  infile.Filename().full(), argline.Nargs());
-        mprinterr("Error: %s\n", ptr);
-        return 1;
+
+      if (section == PDB_RESMAP_SECTION) {
+        // "<Name>" <glycam reschar> <pdb resname list>
+        if (argline.Nargs() != 3) {
+          mprinterr("Error: Expected only 3 columns in '%s' res map section, got %i\n",
+                    infile.Filename().full(), argline.Nargs());
+          mprinterr("Error: %s\n", ptr);
+          return 1;
+        }
+        ArgList pdbnames( argline[2], "," );
+        if (pdbnames.Nargs() < 1) {
+          mprinterr("Error: No pdb names found.\n");
+          mprinterr("Error: %s\n", ptr);
+          return 1;
+        }
+        // TODO handle glycam res names with > 1 char
+        for (int n = 0; n < pdbnames.Nargs(); n++)
+          pdb_to_glycam_.insert( PairType(pdbnames[n], argline[1][0]) );
+      } else if (section == PDB_ATOMMAP_SECTION) {
+        // <glycam reschar list> <PDB atomname to glycam atomname pair> ...
+        if (argline.Nargs() < 2) {
+          mprinterr("Error: Expected at least 2 columns in '%s' atom map section, got %i\n",
+                    infile.Filename().full(), argline.Nargs());
+          mprinterr("Error: %s\n", ptr);
+          return 1;
+        }
+        // TODO handle glycam res names with > 1 char
+        ArgList glycamnames( argline[0], "," );
+        if (glycamnames.Nargs() < 1) {
+          mprinterr("Error: No Glycam names found.\n");
+          mprinterr("Error: %s\n", ptr);
+          return 1;
+        }
+        int glycam_map_idx = (int)pdb_glycam_name_maps_.size();
+        pdb_glycam_name_maps_.push_back(NameMapType());
+        NameMapType& currentMap = pdb_glycam_name_maps_.back();
+        for (int col = 1; col < argline.Nargs(); col++) {
+          ArgList namepair( argline[col], "," );
+          if (namepair.Nargs() != 2) {
+            mprinterr("Error: Expected only 2 names for name pair, got %i\n", namepair.Nargs());
+            mprinterr("Error: %s\n", ptr);
+          }
+          currentMap.insert( NamePairType(NameType(namepair[0]), NameType(namepair[1])) );
+        } // END loop over name pair columns
+        // Map will be for each glycam res
+        for (ArgList::const_iterator gres = glycamnames.begin(); gres != glycamnames.end(); ++gres)
+          glycam_res_idx_map_.insert( ResIdxPairType( (*gres)[0], glycam_map_idx ) );
       }
-      ArgList pdbnames( argline[2], "," );
-      if (pdbnames.Nargs() < 1) {
-        mprinterr("Error: No pdb names found.\n");
-        mprinterr("Error: %s\n", ptr);
-        return 1;
-      }
-      // TODO handle glycam res names with > 1 char
-      for (int n = 0; n < pdbnames.Nargs(); n++)
-        pdb_to_glycam_.insert( PairType(pdbnames[n], argline[1][0]) );
-    }
+    } // END not comment
   } // END loop over file
   infile.CloseFile();
 
