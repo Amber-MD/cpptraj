@@ -748,6 +748,28 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
   return Sugar(rnum, ring_oxygen_atom, anomeric_atom, ano_ref_atom, RA);
 }
 
+/** Change PDB atom names in residue to glycam ones. */
+int Exec_PrepareForLeap::ChangePdbAtomNamesToGlycam(char resChar, Residue const& res, Topology& topIn)
+const
+{
+  // Get the appropriate map
+  ResIdxMapType::const_iterator resIdxPair = glycam_res_idx_map_.find( resChar );
+  if (resIdxPair == glycam_res_idx_map_.end()) {
+    // No map needed for this residue
+    mprintf("DEBUG: No atom map for residue '%c'.\n", resChar);
+    return 0;
+  }
+  NameMapType const& currentMap = pdb_glycam_name_maps_[resIdxPair->second];
+  // Change PDB names to Glycam ones
+  for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
+  {
+    NameMapType::const_iterator namePair = currentMap.find( topIn[at].Name() );
+    if (namePair != currentMap.end())
+      ChangeAtomName( topIn.SetAtom(at), namePair->second );
+  }
+  return 0;
+}
+
 /** Attempt to identify sugar residue, form, and linkages. */
 int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
                                        Frame const& frameIn, CharMask const& cmask,
@@ -774,6 +796,11 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
   mprintf("\tSugar %s %i glycam name: %c\n", *res.Name(), rnum+1, resChar);
 
   // Change PDB names to Glycam ones
+  if (ChangePdbAtomNamesToGlycam(resChar, res, topIn)) {
+    mprinterr("Error: Changing PDB atom names to Glycam failed.\n");
+    return 1;
+  }
+/*
   for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
   {
     if (resChar == 'Y') {
@@ -791,7 +818,7 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
       else if ( topIn[at].Name() == "C11" )
         ChangeAtomName(topIn.SetAtom(at), "CME");
     }
-  }
+  }*/
 
   // Create an array with all ring atoms set to true
   std::vector<bool> IsRingAtom;
