@@ -768,7 +768,7 @@ const
   ResIdxMapType::const_iterator resIdxPair = glycam_res_idx_map_.find( resChar );
   if (resIdxPair == glycam_res_idx_map_.end()) {
     // No map needed for this residue
-    mprintf("DEBUG: No atom map for residue '%c'.\n", resChar);
+    //mprintf("DEBUG: No atom map for residue '%c'.\n", resChar);
     return 0;
   }
   NameMapType const& currentMap = pdb_glycam_name_maps_[resIdxPair->second];
@@ -920,19 +920,12 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
                   topIn.ResNameNumAtomNameNum(*bat).c_str());
           linkages.insert( topIn[at].Name() );
           bondsToRemove.push_back( BondType(at, *bat, -1) );
-          // Check if this is a recognized linkage to non-sugar TODO put in another file?
+          // Check if this is a recognized linkage to non-sugar
           Residue& pres = topIn.SetRes( topIn[*bat].ResNum() );
-          if ( pres.Name() == "SER" ) {
-            ChangeResName( pres, "OLS" );
-            resStat_[topIn[*bat].ResNum()] = VALIDATED;
-          } else if ( pres.Name() == "THR" ) {
-            ChangeResName( pres, "OLT" );
-            resStat_[topIn[*bat].ResNum()] = VALIDATED;
-          } else if ( pres.Name() == "HYP" ) {
-            ChangeResName( pres, "OLP" );
-            resStat_[topIn[*bat].ResNum()] = VALIDATED;
-          } else if ( pres.Name() == "ASN" ) {
-            ChangeResName( pres, "NLN" );
+          NameMapType::const_iterator lname = pdb_glycam_linkageRes_map_.find( pres.Name() );
+          if (lname != pdb_glycam_linkageRes_map_.end()) {
+            mprintf("DEBUG: Link residue name for %s found: %s\n", *(lname->first), *(lname->second));
+            ChangeResName( pres, lname->second );
             resStat_[topIn[*bat].ResNum()] = VALIDATED;
           } else {
             mprintf("Warning: Unrecognized link residue %s, not modifying name.\n", *pres.Name());
