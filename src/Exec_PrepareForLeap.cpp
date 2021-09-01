@@ -269,16 +269,18 @@ int Exec_PrepareForLeap::LoadGlycamPdbResMap(std::string const& fnameIn)
   }
   const char* ptr = 0;
   // Describe which section of the file we are in
-  enum SectionType { PDB_RESMAP_SECTION = 0, PDB_ATOMMAP_SECTION };
+  enum SectionType { PDB_RESMAP_SECTION = 0, PDB_ATOMMAP_SECTION, PDB_LINKAGE_RES_SECTION };
   SectionType section = PDB_RESMAP_SECTION;
   while ( (ptr = infile.NextLine()) != 0 ) {
     ArgList argline( ptr, " " );
     // Check for section change first
     if (argline.Nargs() < 1) {
       if (section == PDB_RESMAP_SECTION) {
-        mprintf("DEBUG: Section change.\n");
+        //mprintf("DEBUG: Section change.\n");
         section = PDB_ATOMMAP_SECTION;
-       }
+      } else if (section == PDB_ATOMMAP_SECTION) {
+        section = PDB_LINKAGE_RES_SECTION;
+      }
     } else if (argline[0][0] != '#') {
       // Skipping comments, read sections
       if (section == PDB_RESMAP_SECTION) {
@@ -328,6 +330,15 @@ int Exec_PrepareForLeap::LoadGlycamPdbResMap(std::string const& fnameIn)
         // Map will be for each glycam res
         for (ArgList::const_iterator gres = glycamnames.begin(); gres != glycamnames.end(); ++gres)
           glycam_res_idx_map_.insert( ResIdxPairType( (*gres)[0], glycam_map_idx ) );
+      } else if (section == PDB_LINKAGE_RES_SECTION) {
+        // <pdb linkage res name> <glycam linkage res name>
+        if (argline.Nargs() != 2) {
+          mprinterr("Error: Expected only 2 columns in '%s' linkage res map section, got %i\n",
+                    infile.Filename().full(), argline.Nargs());
+          mprinterr("Error: %s\n", ptr);
+        }
+        pdb_glycam_linkageRes_map_.insert( NamePairType(NameType(argline[0]),
+                                                        NameType(argline[1])) );
       }
     } // END not comment
   } // END loop over file
@@ -1685,11 +1696,15 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     mprintf("\tAtom name maps:\n");
     for (std::vector<NameMapType>::const_iterator it = pdb_glycam_name_maps_.begin(); it != pdb_glycam_name_maps_.end(); ++it)
     {
-      mprintf("  %li)", it - pdb_glycam_name_maps_.begin());
+      mprintf("\t  %li)", it - pdb_glycam_name_maps_.begin());
       for (NameMapType::const_iterator mit = it->begin(); mit != it->end(); ++mit)
         mprintf(" %s:%s", *(mit->first), *(mit->second));
       mprintf("\n");
     }
+    // DEBUG - print linkage res map
+    mprintf("\tLinkage res name map:\n");
+    for (NameMapType::const_iterator mit = pdb_glycam_linkageRes_map_.begin(); mit != pdb_glycam_linkageRes_map_.end(); ++mit)
+      mprintf("\t  %s -> %s\n", *(mit->first), *(mit->second));
   }
 
   // Get sugar mask or default sugar mask

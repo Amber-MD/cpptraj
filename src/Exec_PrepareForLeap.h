@@ -73,6 +73,9 @@ class Exec_PrepareForLeap : public Exec {
     /// Map glycam residue chars to pdb-glycam atom name maps
     ResIdxMapType glycam_res_idx_map_;
 
+    /// Map pdb residue names to glycam linkage residue names
+    NameMapType pdb_glycam_linkageRes_map_;
+
     std::string leapunitname_;
     bool errorsAreFatal_;   ///< If false, try to skip errors.
     int debug_; ///< Debug level
