@@ -69,6 +69,13 @@ int main(int argc, char** argv) {
   fprintf(outfile, "V,W,Y C7,C2N  O7,O2N  C8,CME\n");
   fprintf(outfile, "S     C10,C5N O10,O5N C11,CME\n");
 
+  // Add linkage res name map section manually
+  fprintf(outfile, "\n# PDB to glycame linkage residue name maps\n");
+  fprintf(outfile, "SER OLS\n");
+  fprintf(outfile, "THR OLT\n");
+  fprintf(outfile, "HYP OLP\n");
+  fprintf(outfile, "ASN NLN\n");
+
   fclose( infile );
 
   return err;
