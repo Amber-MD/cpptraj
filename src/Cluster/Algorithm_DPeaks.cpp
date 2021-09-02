@@ -1,6 +1,7 @@
 #include <cmath> // fabs
 #include <algorithm> // sort
 #include "Algorithm_DPeaks.h"
+#include "List.h"
 #include "../CpptrajStdio.h"
 #include "../ArgList.h"
 #include "../DataSet_Mesh.h"

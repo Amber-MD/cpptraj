@@ -1,5 +1,8 @@
 #include "Algorithm_Kmeans.h"
+#include "Cframes.h"
+#include "List.h"
 #include "../ArgList.h"
+#include "../CpptrajFile.h"
 #include "../CpptrajStdio.h"
 #include "../ProgressBar.h"
 

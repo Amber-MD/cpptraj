@@ -1,6 +1,8 @@
 #ifndef INC_CLUSTER_ALGORITHM_DPEAKS_H
 #define INC_CLUSTER_ALGORITHM_DPEAKS_H
 #include "Algorithm.h"
+#include <string>
+#include <vector>
 namespace Cpptraj {
 namespace Cluster {
 
