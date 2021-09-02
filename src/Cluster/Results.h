@@ -1,10 +1,9 @@
 #ifndef INC_CLUSTER_RESULTS_H
 #define INC_CLUSTER_RESULTS_H
-#include "../ArgList.h"
-#include "List.h"
+class ArgList;
 namespace Cpptraj {
 namespace Cluster {
-
+class List;
 //FIXME Should this be allocated and kept inside the Metric?
 
 /// Abstract base class for handling results specific to input data type.

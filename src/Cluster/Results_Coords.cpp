@@ -1,8 +1,12 @@
 #include "Results_Coords.h"
+#include "List.h"
+#include "Node.h"
+#include "../ArgList.h"
 #include "../CpptrajStdio.h"
+#include "../DataSet_Coords.h"
+#include "../DataSetList.h" // For PrepareTrajWrite
 #include "../StringRoutines.h"
 #include "../Trajout_Single.h"
-#include "../DataSetList.h" // For PrepareTrajWrite
 
 /** The default output trajectory format. */
 const TrajectoryFile::TrajFormatType Cpptraj::Cluster::Results_Coords::DEF_TRAJ_FMT_ =

@@ -1,10 +1,12 @@
 #ifndef INC_CLUSTER_PAIRWISE_MATRIX_H
 #define INC_CLUSTER_PAIRWISE_MATRIX_H
-#include "../DataSet_PairwiseCache.h"
-#include "Metric.h"
+//#inc lude "../DataSet_PairwiseCache.h"
+//#inc lude "Metric.h"
+class DataSet_PairwiseCache;
 namespace Cpptraj {
 namespace Cluster {
-
+class Cframes;
+class Metric;
 /// Used to calculate/caching pairwise distances according to a given metric.
 class PairwiseMatrix {
   public:

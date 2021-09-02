@@ -1,4 +1,5 @@
 #include "Sieve.h"
+#include "../DataSet_PairwiseCache.h"
 #include "../Random.h"
 
 void Cpptraj::Cluster::Sieve::DetermineTypeFromSieve( int sieveIn ) {

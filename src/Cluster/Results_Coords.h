@@ -2,7 +2,7 @@
 #define INC_CLUSTER_RESULTS_COORDS_H
 #include "Results.h"
 #include "../TrajectoryFile.h"
-#include "../DataSet_Coords.h"
+class DataSet_Coords;
 namespace Cpptraj {
 namespace Cluster {
 

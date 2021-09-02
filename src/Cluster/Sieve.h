@@ -1,7 +1,7 @@
 #ifndef INC_CLUSTER_SIEVE_H
 #define INC_CLUSTER_SIEVE_H
 #include "Cframes.h"
-#include "../DataSet_PairwiseCache.h"
+class DataSet_PairwiseCache;
 namespace Cpptraj {
 namespace Cluster {
 

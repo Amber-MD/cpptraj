@@ -2,8 +2,10 @@
 #ifdef _OPENMP
 #include <omp.h>
 #endif
-#include "../ProgressBar.h"
+#include "Metric.h"
 #include "../CpptrajStdio.h"
+#include "../DataSet_PairwiseCache.h"
+#include "../ProgressBar.h"
 
 /** Set up PairwiseMatrix with Metric and optional cache. */
 int Cpptraj::Cluster::PairwiseMatrix::Setup(Metric* metric, DataSet_PairwiseCache* cache)
