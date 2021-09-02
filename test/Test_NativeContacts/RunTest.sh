@@ -6,7 +6,8 @@ CleanFiles nc.in nc.hp1.ca.dat nc.hp2.ca.dat nc.all.res.dat cmap.dat \
   native.cmap.gnu nonnative.cmap.gnu native.resmap.gnu nonnative.resmap.gnu \
   nc1.pdb nc2.contacts.dat nc2.res.dat NC2.series.dat \
   nc4.dat nc4.nn.dat nc4.res.dat nc4.contacts.dat nc4.nn.pdb \
-  NC5.series.dat NC5.respresent.dat NC5.nnseries.dat NC6.ressum.dat
+  NC5.series.dat NC5.respresent.dat NC5.nnseries.dat NC6.ressum.dat \
+  nc7.dat
 
 TESTNAME='Nativecontacts tests'
 Requires netcdf
@@ -62,5 +63,19 @@ EOF
   DoTest NC5.respresent.dat.save NC5.respresent.dat
   DoTest NC6.ressum.dat.save NC6.ressum.dat
 fi
+
+UNITNAME='NativeContacts test, orthorhombic imaging.'
+CheckFor maxthreads 2
+if [ $? -eq 0 ] ; then
+  cat > nc.in <<EOF
+parm ../dna30.parm7
+trajin ../Test_AutoImage/split.duplex.nc
+reference ../Test_AutoImage/split.duplex.nc 1
+nativecontacts name NC7 @N= @O= out nc7.dat distance 3.0
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest nc7.dat.save nc7.dat
+fi
+
 EndTest
 exit 0 

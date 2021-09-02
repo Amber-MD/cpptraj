@@ -141,13 +141,11 @@ int Traj_CharmmRestart::setupTrajin(FileName const& fname, Topology* trajParm)
     if (debug_ > 0)
       mprintf("DEBUG: Shape Matrix: %g %g %g %g %g %g\n",
               bs[0], bs[1], bs[2], bs[3], bs[4], bs[5]);
-    double bp[6];
-    Box::ShapeToUcell( bp, bs );
-    cbox_.SetBox( bp );
+    cbox_.SetupFromShapeMatrix( bs );
     if (debug_ > 0)
       mprintf("DEBUG: Unit cell: %g %g %g %g %g %g\n",
-              cbox_.BoxX(), cbox_.BoxY(), cbox_.BoxZ(),
-              cbox_.Alpha(), cbox_.Beta(), cbox_.Gamma());
+              cbox_.Param(Box::X), cbox_.Param(Box::Y), cbox_.Param(Box::Z),
+              cbox_.Param(Box::ALPHA), cbox_.Param(Box::BETA), cbox_.Param(Box::GAMMA));
     // Seek down to !NATOM
     while (ptr != 0 && ptr[1] != '!')
       ptr = infile.Line();

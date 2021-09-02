@@ -1,20 +1,12 @@
 #include "Exec_Top.h"
 #include "CpptrajStdio.h"
 #include "TopInfo.h"
+#include "ParmFile.h"
 
 void Exec_LoadParm::Help() const {
-  mprintf("\t<filename> [{[TAG] | name <setname>}]\n"
-          "\t [{ nobondsearch |\n"
-          "\t    [bondsearch <offset>] [searchtype {grid|pairlist}]\n"
-          "\t  }]\n"
-          "  Add <filename> to the topology list.\n"
-          "  For topologies that may not have bond information, 'bondsearch <offset>'\n"
-          "  controls the offset that will be added to atom-atom distances when\n"
-          "  searching for bonds (default 0.2 Ang), and 'searchtype' specifies\n"
-          "  different algorithms that can be used for searching bonds (still\n"
-          "  experimental. Bond searching can be skipped via 'nobondsearch' (not\n"
-          "  recommended).\n"
-          "  Use 'help Formats parm' for format-specific options.\n");
+  mprintf("\t<filename> [{[TAG] | name <setname>}]\n%s", ParmFile::ReadTopologyKeywords());
+  mprintf("  Add <filename> to the topology list.\n%s", ParmFile::ReadTopologyHelp());
+  mprintf("  Use 'help Formats parm' for format-specific options.\n");
 }
 // -----------------------------------------------------------------------------
 void Exec_ParmInfo::Help() const {
@@ -37,7 +29,10 @@ static int CommonSetup(TopInfo& info, CpptrajState& State, ArgList& argIn, const
   if (REF.error()) return 1;
   if (REF.empty()) {
     parm = State.DSL().GetTopByIndex( argIn );
-    if (parm == 0) return 1;
+    if (parm == 0) {
+      mprinterr("Error: No topologies loaded.\n");
+      return 1;
+    }
   } else
     mprintf("\tUsing '%s'\n", REF.refName());
   std::string outname = argIn.GetStringKey("out");
@@ -153,7 +148,7 @@ Exec::RetType Exec_ImproperInfo::Execute(CpptrajState& State, ArgList& argIn) {
 
 // -----------------------------------------------------------------------------
 void Exec_AtomInfo::Help() const {
-  mprintf("\t[%s] [<mask>] [out <file>]\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s] <mask> [out <file>]\n", DataSetList::TopIdxArgs);
   mprintf("  Print information on atoms in <mask> for specified topology (first by default).\n");
 }
 
@@ -166,7 +161,7 @@ Exec::RetType Exec_AtomInfo::Execute(CpptrajState& State, ArgList& argIn) {
 
 // -----------------------------------------------------------------------------
 void Exec_ResInfo::Help() const {
-  mprintf("\t[%s] [<mask>] [short [maxwidth <#res>]]\n\t[out <file>]\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s] <mask> [short [maxwidth <#res>]]\n\t[out <file>]\n", DataSetList::TopIdxArgs);
   mprintf("  Print info for residues in <mask> for specified topology (first by default).\n"
           "  If 'short' is specified print residue info in shorter form.\n");
 }
@@ -185,7 +180,7 @@ Exec::RetType Exec_ResInfo::Execute(CpptrajState& State, ArgList& argIn) {
 }
 // -----------------------------------------------------------------------------
 void Exec_MolInfo::Help() const {
-  mprintf("\t[%s] [<mask>] [short] [out <file>]\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s] <mask> [short] [out <file>]\n", DataSetList::TopIdxArgs);
   mprintf("  Print info for molecules in <mask> for specfied topology (first by default).\n"
           "  If 'short' is specified print counts of each unique molecule.\n");
 }
@@ -204,7 +199,7 @@ Exec::RetType Exec_MolInfo::Execute(CpptrajState& State, ArgList& argIn) {
 }
 // -----------------------------------------------------------------------------
 void Exec_ChargeInfo::Help() const {
-  mprintf("\t[%s] [<mask>] [out <file>] [name <set>]\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s] <mask> [out <file>] [name <set>]\n", DataSetList::TopIdxArgs);
   mprintf("  Print total charge of atoms in <mask> for specified topology (first by default).\n");
 }
 
@@ -226,7 +221,7 @@ Exec::RetType Exec_ChargeInfo::Execute(CpptrajState& State, ArgList& argIn) {
 }
 // -----------------------------------------------------------------------------
 void Exec_MassInfo::Help() const {
-  mprintf("\t[%s] [<mask>] [out <file>] [name <set>]\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s] <mask> [out <file>] [name <set>]\n", DataSetList::TopIdxArgs);
   mprintf("  Print total mass of atoms in <mask> for specified topology (first by default).\n");
 }
 

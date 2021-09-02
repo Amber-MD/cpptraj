@@ -6,9 +6,10 @@ class Ewald_Regular : public Ewald {
   public:
     Ewald_Regular();
     /// Box, cutoff, dsum tol, rsum tol, ew coeff, maxexp, nb skin, erfc dx, debug, mlimits
-    int Init(Box const&, double, double, double, double, double, double,
-             double, int, const int*);
+    /*int Init(Box const&, double, double, double, double, double, double,
+             double, int, const int*);*/
     // ----- Inherited ---------------------------
+    int Init(Box const&, EwaldOptions const&, int);
     int Setup(Topology const&, AtomMask const&);
     int CalcNonbondEnergy(Frame const&, AtomMask const&, double&, double&);
   private:
@@ -39,7 +40,7 @@ class Ewald_Regular : public Ewald {
     Iarray mlim2_;        ///< Hold m2 reciprocal indices
     int multCut_;         ///< Hold index after which multiplier should be 2.0.
 #   endif
-    double maxexp_;       ///< Determines how far out recip vectors go? FIXME check!
+    double maxexp_;       ///< Determines how far out recip vectors go? TODO check!
     double rsumTol_;      ///< Reciprocal space sum tolerance.
     int mlimit_[3];       ///< Number of units in each direction to calc recip. sum. / nfft
     int maxmlim_;         ///< The max of the three mlimit_ values. / pme spline order

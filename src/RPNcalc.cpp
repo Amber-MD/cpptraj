@@ -6,6 +6,7 @@
 #include "DataSetList.h"
 #include "DataSet_Vector.h"
 #include "DataSet_double.h"
+#include "DataSet_Mesh.h"
 #include "DataSet_MatrixDbl.h"
 #include "DataSet_GridFlt.h"
 #include "CpptrajStdio.h"
@@ -679,13 +680,26 @@ int RPNcalc::TokenLoop(DataSetList& DSL) const {
                           ds1->legend(), ds2->legend(), T->name());
                 return 1;
               }
-              tempDS = LocalList.AddSet(DataSet::DOUBLE, MetaData("TEMP", T-tokens_.begin()));
-              DataSet_double& D0 = static_cast<DataSet_double&>( *tempDS );
-              D0.Allocate( DataSet::SizeArray(1, ds1->Size()) );
-              DataSet_1D const& D1 = static_cast<DataSet_1D const&>( *ds1 );
-              DataSet_1D const& D2 = static_cast<DataSet_1D const&>( *ds2 );
-              for (unsigned int n = 0; n != D1.Size(); n++)
-                D0.AddElement( DoOperation(D1.Dval(n), D2.Dval(n), T->Type()) );
+              // Determine how X values will be handled. Default to using X values from D1.
+              // For mesh need to AddXY. For all others just set the dimension.
+              if (ds1->Type() == DataSet::XYMESH) {
+                tempDS = LocalList.AddSet(DataSet::XYMESH, MetaData("TEMP", T-tokens_.begin()));
+                DataSet_Mesh& D0 = static_cast<DataSet_Mesh&>( *tempDS );
+                D0.Allocate( DataSet::SizeArray(1, ds1->Size()) );
+                DataSet_1D const& D1 = static_cast<DataSet_1D const&>( *ds1 );
+                DataSet_1D const& D2 = static_cast<DataSet_1D const&>( *ds2 );
+                for (unsigned int n = 0; n != D1.Size(); n++)
+                  D0.AddXY( D1.Xcrd(n), DoOperation(D1.Dval(n), D2.Dval(n), T->Type()) );
+              } else {
+                tempDS = LocalList.AddSet(DataSet::DOUBLE, MetaData("TEMP", T-tokens_.begin()));
+                tempDS->SetDim(Dimension::X, ds1->Dim(0));
+                DataSet_double& D0 = static_cast<DataSet_double&>( *tempDS );
+                D0.Allocate( DataSet::SizeArray(1, ds1->Size()) );
+                DataSet_1D const& D1 = static_cast<DataSet_1D const&>( *ds1 );
+                DataSet_1D const& D2 = static_cast<DataSet_1D const&>( *ds2 );
+                for (unsigned int n = 0; n != D1.Size(); n++)
+                  D0.AddElement( DoOperation(D1.Dval(n), D2.Dval(n), T->Type()) );
+              }
             }
             else if (ds1->Group() == DataSet::VECTOR_1D && ds2->Group() == DataSet::VECTOR_1D)
             {
@@ -784,8 +798,9 @@ int RPNcalc::TokenLoop(DataSetList& DSL) const {
                         G1.Bin().GridOrigin()[2]);
               tempDS = LocalList.AddSet(DataSet::GRID_FLT, MetaData("TEMP", T-tokens_.begin()));
               DataSet_GridFlt& G0 = static_cast<DataSet_GridFlt&>( *tempDS );
-              G0.Allocate_N_O_Box(G1.NX(), G1.NY(), G1.NZ(), G1.Bin().GridOrigin(),
-                                  Box(G1.Bin().Ucell()));
+              Box tempBox;
+              tempBox.SetupFromUcell( G1.Bin().Ucell() );
+              G0.Allocate_N_O_Box(G1.NX(), G1.NY(), G1.NZ(), G1.Bin().GridOrigin(), tempBox);
               G1.GridInfo();
               G0.GridInfo();
               for (unsigned int n = 0; n != G1.Size(); n++)
@@ -806,12 +821,25 @@ int RPNcalc::TokenLoop(DataSetList& DSL) const {
                         ds2->legend(), T-tokens_.begin());
               if (ScalarTimeSeries( ds2 ))
               {
-                tempDS = LocalList.AddSet(DataSet::DOUBLE, MetaData("TEMP", T-tokens_.begin()));
-                DataSet_double& D0 = static_cast<DataSet_double&>( *tempDS );
-                D0.Allocate( DataSet::SizeArray(1,ds2->Size()) );
-                DataSet_1D const& D2 = static_cast<DataSet_1D const&>( *ds2 );
-                for (unsigned int n = 0; n != D2.Size(); n++)
-                  D0.AddElement( DoOperation(D2.Dval(n), d1, T->Type()) );
+                // Determine how X values will be handled. Default to using X values from D2.
+                // For mesh need to AddXY. For all others just set the dimension.
+                // TODO does the order of D2 and d1 matter here?
+                if ( ds2->Type() == DataSet::XYMESH ) {
+                  tempDS = LocalList.AddSet(DataSet::XYMESH, MetaData("TEMP", T-tokens_.begin()));
+                  DataSet_Mesh& D0 = static_cast<DataSet_Mesh&>( *tempDS );
+                  D0.Allocate( DataSet::SizeArray(1, ds2->Size()) );
+                  DataSet_1D const& D2 = static_cast<DataSet_1D const&>( *ds2 );
+                  for (unsigned int n = 0; n != D2.Size(); n++)
+                    D0.AddXY( D2.Xcrd(n), DoOperation(D2.Dval(n), d1, T->Type()) );
+                } else {
+                  tempDS = LocalList.AddSet(DataSet::DOUBLE, MetaData("TEMP", T-tokens_.begin()));
+                  tempDS->SetDim(Dimension::X, ds2->Dim(0));
+                  DataSet_double& D0 = static_cast<DataSet_double&>( *tempDS );
+                  D0.Allocate( DataSet::SizeArray(1,ds2->Size()) );
+                  DataSet_1D const& D2 = static_cast<DataSet_1D const&>( *ds2 );
+                  for (unsigned int n = 0; n != D2.Size(); n++)
+                    D0.AddElement( DoOperation(D2.Dval(n), d1, T->Type()) );
+                }
               } else {
                 mprinterr("Error: Operation '%s' between value and set %s not yet permitted.\n",
                           T->Description(), ds2->legend());
@@ -826,12 +854,24 @@ int RPNcalc::TokenLoop(DataSetList& DSL) const {
                         d2, T-tokens_.begin());
               if (ScalarTimeSeries( ds1 ))
               {
-                tempDS = LocalList.AddSet(DataSet::DOUBLE, MetaData("TEMP", T-tokens_.begin()));
-                DataSet_double& D0 = static_cast<DataSet_double&>( *tempDS );
-                D0.Allocate( DataSet::SizeArray(1, ds1->Size()) );
-                DataSet_1D const& D1 = static_cast<DataSet_1D const&>( *ds1 );
-                for (unsigned int n = 0; n != D1.Size(); n++)
-                  D0.AddElement( DoOperation(d2, D1.Dval(n), T->Type()) );
+                // Determine how X values will be handled. Default to using X values from D1.
+                // For mesh need to AddXY. For all others just set the dimension.
+                if ( ds1->Type() == DataSet::XYMESH ) {
+                  tempDS = LocalList.AddSet(DataSet::XYMESH, MetaData("TEMP", T-tokens_.begin()));
+                  DataSet_Mesh& D0 = static_cast<DataSet_Mesh&>( *tempDS );
+                  D0.Allocate( DataSet::SizeArray(1, ds1->Size()) );
+                  DataSet_1D const& D1 = static_cast<DataSet_1D const&>( *ds1 );
+                  for (unsigned int n = 0; n != D1.Size(); n++)
+                    D0.AddXY( D1.Xcrd(n), DoOperation(d2, D1.Dval(n), T->Type()) );
+                } else {
+                  tempDS = LocalList.AddSet(DataSet::DOUBLE, MetaData("TEMP", T-tokens_.begin()));
+                  tempDS->SetDim(Dimension::X, ds1->Dim(0));
+                  DataSet_double& D0 = static_cast<DataSet_double&>( *tempDS );
+                  D0.Allocate( DataSet::SizeArray(1, ds1->Size()) );
+                  DataSet_1D const& D1 = static_cast<DataSet_1D const&>( *ds1 );
+                  for (unsigned int n = 0; n != D1.Size(); n++)
+                    D0.AddElement( DoOperation(d2, D1.Dval(n), T->Type()) );
+                }
               }
               else if ( ds1->Group() == DataSet::VECTOR_1D )
               {

@@ -55,7 +55,10 @@ int FileIO_Std::Read(void *buffer, size_t num_bytes) {
 int FileIO_Std::Write(const void *buffer, size_t num_bytes) {
   size_t numwrite = fwrite(buffer, 1, num_bytes, fp_);
   // NOTE: Check for errors here.
-  if (numwrite != num_bytes) return 1;
+  if (numwrite != num_bytes) {
+    perror("Error during FileIO_Std::Write");
+    return 1;
+  }
   return 0;
 }
 

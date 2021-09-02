@@ -20,7 +20,6 @@ class Algorithm_Kmeans : public Algorithm {
     enum KmeansModeType { SEQUENTIAL, RANDOM };
 
     int FindKmeansSeeds(Cframes const&, PairwiseMatrix const&);
-    void ShufflePoints(Iarray&);
 
     Random_Number RN_;
     int nclusters_; ///< Target number of clusters.

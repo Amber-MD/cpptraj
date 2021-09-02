@@ -2,6 +2,7 @@ path_classifiers:
   test:
     - "src/readline/*"
     - "src/tng/*"
+    - "unitTests/*/*"
 extraction:
   cpp:
     prepare:

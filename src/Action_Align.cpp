@@ -84,9 +84,6 @@ Action::RetType Action_Align::Setup(ActionSetup& setup) {
   if (REF_.SetupRef(setup.Top(), tgtMask_.Nselected()))
     return Action::SKIP;
  
-  // Warn if PBC and rotating
-  Action::CheckImageRotationWarning(setup, "the alignment");
-
   return Action::OK;
 }
 
@@ -98,6 +95,7 @@ Action::RetType Action_Align::DoAction(int frameNum, ActionFrame& frm) {
   tgtFrame_.SetCoordinates(frm.Frm(), tgtMask_);
   tgtFrame_.RMSD_CenteredRef(REF_.SelectedRef(), rot_, tgtTrans_, useMass_);
   frm.ModifyFrm().Trans_Rot_Trans(movMask_, tgtTrans_, rot_, REF_.RefTrans());
+  frm.ModifyFrm().ModifyBox().RotateUcell( rot_ );
   REF_.PreviousRef( frm.Frm() );
   return Action::MODIFY_COORDS;
 }

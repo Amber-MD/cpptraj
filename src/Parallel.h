@@ -8,7 +8,7 @@
 # undef MPI
 # define CPPTRAJ_MPI
 # include <mpi.h>
-# include <sys/types.h> // off_t FIXME necessary?
+# include <sys/types.h> // off_t 
 # ifdef PARALLEL_DEBUG_VERBOSE
 #   include <cstdio> // for FILE
 # endif
@@ -19,7 +19,6 @@
   *       necessary.
   * Send/Receive Tags: All Comm Send()/Recv() tags should be noted here in order.
   *     1212  : Frame::X_
-  *     1213  : Frame::box_
   *     1214  : Frame::T_
   *     1215  : Frame::V_
   *     1216  : Frame::remd_indices_
@@ -37,6 +36,14 @@
   *     1600+X: Ensemble sort
   *     1700  : DataSet_MatrixFlt size
   *     1701  : DataSet_MatrixFlt buffer
+  *     1800  : Box::btype_
+  *     1801  : Box::box_
+  *     1802  : Box::cellVolume_
+  *     1900  : Matrix_3x3::M_
+  *     2000  : GridBin::OXYZ_
+  *     2001  : GridBin::mx_
+  *     2002  : GridBin::my_
+  *     2003  : GridBin::mz_
   */
 class Parallel {
   public:
@@ -139,7 +146,7 @@ class Parallel::Comm {
     /// SendBuffer, Count, DataType, RecvBuffer
     int AllGather(void*, int, MPI_Datatype, void*) const;
     /// Buffer, Count, DataType, Destination Rank, Tag
-    int Send(void*, int, MPI_Datatype, int, int) const;
+    int Send(const void*, int, MPI_Datatype, int, int) const;
     /// Buffer, Count, DataType, Source Rank, Tag
     int Recv(void*, int, MPI_Datatype, int, int) const;
     /// Buffer, Count, DataType

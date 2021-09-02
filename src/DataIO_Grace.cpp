@@ -14,10 +14,10 @@ int DataIO_Grace::ReadData(FileName const& fname,
   ArgList dataline;
   int setnum = 0;
   std::vector<std::string> labels;
-  double XY[2];
+  double XY[4];
   const char* linebuffer;
   DataSetList::Darray Xvals;
-  DataSetList::DataListType inputSets(1);
+  std::string xlabel;
   
   // Allocate and set up read buffer
   BufferedLine buffer;
@@ -39,24 +39,59 @@ int DataIO_Grace::ReadData(FileName const& fname,
         if (linebuffer == 0) return 1; // TODO: Better error
         if (linebuffer[0] != '@') return 1; // TODO: Check type
         linebuffer = buffer.Line(); // Should be first line of data.
-        DataSet_double* Yvals = new DataSet_double();
-        MetaData md(dsname, setnum);
-        if ((int)labels.size() > setnum)
-          md.SetLegend( labels[setnum] );
-        Yvals->SetMeta( md );
+        if (debug_ > 1) mprintf("DEBUG: First line of data: '%s'\n", linebuffer);
+        // Detect how many columns needed 
+        int ncols = sscanf(linebuffer, "%lf %lf %lf %lf", XY, XY+1, XY+2, XY+3);
+        if (debug_ > 1) mprintf("DEBUG: Set has %i columns.\n", ncols);
+        if (ncols < 2) {
+          mprinterr("Error: Expected at least 2 columns, got only %i\n", ncols);
+          return 1;
+        }
+        // Allocate a set for each column
+        DataSetList::DataListType inputSets;
+        inputSets.reserve(ncols-1);
+        for (int col = 1; col < ncols; col++) {
+          DataSet_double* ds = new DataSet_double();
+          inputSets.push_back( ds ); // TODO use DataSetList::Allocate()?
+          MetaData md(dsname, setnum);
+          std::string aspect;
+          if (ncols > 2) {
+            if (col == 1) aspect.assign("Y");
+            else if (col == 2) aspect.assign("Y1");
+            else if (col == 3) aspect.assign("Y2");
+          }
+          if (!aspect.empty())
+            md.SetAspect( aspect );
+          if ((int)labels.size() > setnum) {
+            std::string legend = labels[setnum];
+            if (!aspect.empty())
+              legend.append("." + aspect);
+            md.SetLegend( legend );
+          }
+          ds->SetMeta( md );
+          //if (!xlabel.empty()) {
+          //  mprintf("DEBUG: Set x dim label to %s\n", xlabel.c_str());
+          //  ds->ModifyDim(Dimension::X).SetLabel( xlabel );
+          //}
+        }
         Xvals.clear();
+        // Scan in data
         while (linebuffer != 0 && linebuffer[0] != '@' && 
                linebuffer[0] != '&' && linebuffer[0] != '#')
         {
-          if (sscanf(linebuffer, "%lf %lf", XY, XY+1) != 2) break;
-          Xvals.push_back(   XY[0] );
-          Yvals->AddElement( XY[1] );
+          if (sscanf(linebuffer, "%lf %lf %lf %lf", XY, XY+1, XY+2, XY+3) != ncols) break;
+          Xvals.push_back( XY[0] );
+          for (int col = 1; col < ncols; col++)
+            ((DataSet_double*)inputSets[col-1])->AddElement(XY[col]);
           linebuffer = buffer.Line();
         }
         // Should now be positioned 1 line after last data line.
-        inputSets[0] = (DataSet*)Yvals;
-        if (datasetlist.AddOrAppendSets("", Xvals, inputSets)) return 1;
+        if (datasetlist.AddOrAppendSets(xlabel, Xvals, inputSets)) return 1;
+        xlabel.clear();
         ++setnum;
+      } else if (dataline.CommandIs("xaxis")) {
+        xlabel = dataline.GetStringKey("label");
+        linebuffer = buffer.Line();
       } else if (dataline[0][0] == 's' || dataline[0][0] == 'S') {
         // Set command
         if (dataline.Nargs() == 3 && dataline[1] == "legend" && !dataline[2].empty())
@@ -85,14 +120,18 @@ int DataIO_Grace::ReadData(FileName const& fname,
 // -----------------------------------------------------------------------------
 void DataIO_Grace::WriteHelp() {
   mprintf("\tinvert      : Flip X/Y axes.\n"
+          "\tnoinvert    : Do not flip X/Y axes.\n"
           "\txydy        : Make consecutive sets into XYDY sets.\n"
+          "\tnoxydy      : Do not make consecutive sets into XYDY sets.\n"
           "\t<label set> : If a string dataset is specified, assume it has data point labels.\n");
 }
 
 // DataIO_Grace::processWriteArgs()
 int DataIO_Grace::processWriteArgs(ArgList &argIn) {
   if (argIn.hasKey("invert")) isInverted_ = true;
+  if (argIn.hasKey("noinvert")) isInverted_ = false;
   if (argIn.hasKey("xydy")) isXYDY_ = true;
+  if (argIn.hasKey("noxydy")) isXYDY_ = false;
   if (isInverted_ && isXYDY_) {
     mprinterr("Error: 'invert' not compatible with 'xydy'\n");
     return 1;

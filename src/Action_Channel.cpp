@@ -52,11 +52,11 @@ Action::RetType Action_Channel::Setup(ActionSetup& setup) {
   if (grid_->Size() == 0) {
     DataSet_3D& GRID = static_cast<DataSet_3D&>( *grid_ );
     Box const& box = setup.CoordInfo().TrajBox();
-    if (box.Type() == Box::NOBOX) {
+    if (!box.HasBox()) {
       mprinterr("Error: No box information to set up grid.\n");
       return Action::ERR;
-    } else if (box.Type() == Box::ORTHO) {
-      // FIXME: May need to update parm box info or set up on first frame.
+    } else if (box.Is_X_Aligned_Ortho()) {
+      // TODO: May need to update parm box info or set up on first frame.
       if (GRID.Allocate_X_C_D(box.Lengths(), box.Center(), dxyz_)) return Action::ERR; 
     } else {
       Vec3 nxyz = box.Lengths() / dxyz_;

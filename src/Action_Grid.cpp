@@ -128,11 +128,13 @@ Action::RetType Action_Grid::Setup(ActionSetup& setup) {
 
 // Action_Grid::DoAction()
 Action::RetType Action_Grid::DoAction(int frameNum, ActionFrame& frm) {
+  // Move grid if necessary
+  MoveGrid( frm.Frm(), *grid_ );
   if (useMaskArray_) {
     Vec3 offset(0.0);
-    if (GridMode() == BOX)
+    if (GridOffsetType() == BOX_CENTER)
       offset = frm.Frm().BoxCrd().Center();
-    else if (GridMode() == MASKCENTER)
+    else if (GridOffsetType() == MASK_CENTER)
       offset = frm.Frm().VGeometricCenter( CenterMask() );
     for (Cpptraj::MaskArray::const_iterator mask = mArray_.begin();
                                             mask != mArray_.end(); ++mask)
@@ -146,7 +148,8 @@ Action::RetType Action_Grid::DoAction(int frameNum, ActionFrame& frm) {
 
 // Action_Grid::print()
 void Action_Grid::Print() {
-  if (nframes_ < 1) return;
+  if (nframes_ < 1 || grid_ == 0) return;
+  FinishGrid( *grid_ );
   // Perform normalization and find max.
   double gridMax = 0.0;
   if (normalize_ == NONE) {

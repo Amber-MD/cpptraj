@@ -20,7 +20,7 @@ class DataIO_RemLog : public DataIO {
     enum LogType { UNKNOWN = 0, TREMD, HREMD, MREMD, RXSGLD, PHREMD };
     static const char* LogDescription[];
     typedef std::vector<std::string> Sarray; // TODO FileName array?
-    typedef std::map<double,int> TmapType; // FIXME: Use ReplicaMap
+    typedef std::map<double,int> TmapType; // TODO: Use ReplicaMap
     typedef DataSet_RemLog::IdxArray IdxArray;
 
     /// Read remlog header

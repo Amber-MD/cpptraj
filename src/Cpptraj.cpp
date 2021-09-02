@@ -15,8 +15,14 @@
 #include "Timer.h"
 #include "StringRoutines.h" // TimeString
 #include "TrajectoryFile.h" // for autodetect
-#ifdef CUDA
-# include <cuda_runtime_api.h>
+#if defined(CUDA)
+#  if defined(__HIP_PLATFORM_HCC__)
+#    include <hip/hip_runtime.h>
+#    include <hip/hip_runtime_api.h>
+#    include "HipDefinitions.h"
+#  else
+#    include <cuda_runtime_api.h>
+#  endif
 #endif
 #ifdef _OPENMP
 # include <omp.h>
@@ -65,6 +71,7 @@ void Cpptraj::Usage() {
             "               [-h | --help] [-V | --version] [--defines] [-debug <#>]\n"
             "               [--interactive] [--log <logfile>] [-tl]\n"
             "               [-ms <mask>] [-mr <mask>] [--mask <mask>] [--resmask <mask>]\n"
+            "               [--rng %s]\n"
             "\t-p <Top0>        : * Load <Top0> as a topology file.\n"
             "\t-i <Input0>      : * Read input from file <Input0>.\n"
             "\t-y <trajin>      : * Read from trajectory file <trajin>; same as input 'trajin <trajin>'.\n"
@@ -87,8 +94,9 @@ void Cpptraj::Usage() {
             "\t-mr <mask>       : Print selected residue numbers to STDOUT.\n"
             "\t--mask <mask>    : Print detailed atom selection to STDOUT.\n"
             "\t--resmask <mask> : Print detailed residue selection to STDOUT.\n"
+            "\t--rng <type>     : Change default random number generator.\n"
             "      * Denotes flag may be specified multiple times.\n"
-            "\n");
+            "\n", CpptrajState::RngKeywords());
 }
 
 void Cpptraj::Intro() const {
@@ -232,8 +240,14 @@ std::string Cpptraj::Defines() {
 #ifdef FFTW_FFT
   defined_str.append(" -DFFTW_FFT");
 #endif
+#ifdef C11_SUPPORT
+  defined_str.append(" -DC11_SUPPORT");
+#endif
 #ifdef LIBPME
   defined_str.append(" -DLIBPME");
+#endif
+#ifdef HAS_OPENMM
+  defined_str.append(" -DHAS_OPENMM");
 #endif
   return defined_str;
 }
@@ -476,6 +490,9 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       // --resmask: Parse mask string, print selected residue details
       if (ProcessMask( topFiles, refFiles, cmdLineArgs[++iarg], true, true )) return ERROR;
       return QUIT;
+    } else if ( NotFinalArg(cmdLineArgs, "--rng", iarg) ) {
+      // --rng: Change default RNG
+      if (State_.ChangeDefaultRng( cmdLineArgs[++iarg] )) return ERROR;
     } else {
       // Check if this is a file.
 #     ifdef MPI
@@ -589,7 +606,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       return INTERACTIVE;
     else {
       // "" means read from STDIN
-      CpptrajState::RetType c_err = Command::ProcessInput( State_, "" ); 
+      CpptrajState::RetType c_err = Command::ProcessInput( State_, "" );
       if (c_err == CpptrajState::ERR && State_.ExitOnError()) return ERROR;
       if (Command::UnterminatedControl()) return ERROR;
       if (c_err == CpptrajState::QUIT) return QUIT;

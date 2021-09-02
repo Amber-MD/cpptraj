@@ -7,11 +7,10 @@
 #include "Action_Closest.h"
 #include "CpptrajStdio.h"
 #include "ImageRoutines.h"
-
 #ifdef CUDA
-// CUDA kernel wrappers
-extern void Action_Closest_Center(const double*,double*,const double*,double,int,int,ImagingType,const double*,const double*,const double*);
-extern void Action_Closest_NoCenter(const double*,double*,const double*,double,int,int,int,ImagingType,const double*,const double*,const double*);
+#include "cuda_kernels/kernel_wrappers.cuh"
+#else
+#include "DistRoutines.h"
 #endif
 
 // CONSTRUCTOR
@@ -72,7 +71,7 @@ Action::RetType Action_Closest::Init(ArgList& actionArgs, ActionInit& init, int 
   if ( actionArgs.hasKey("oxygen") || actionArgs.hasKey("first") )
     firstAtom_=true;
   useMaskCenter_ = actionArgs.hasKey("center");
-  image_.InitImaging( !(actionArgs.hasKey("noimage")) );
+  imageOpt_.InitImaging( !(actionArgs.hasKey("noimage")) );
   topWriter_.InitTopWriter(actionArgs, "closest", debugIn);
   // Setup output file and sets if requested.
   // Will keep track of Frame, Mol#, Distance, and first solvent atom
@@ -105,8 +104,12 @@ Action::RetType Action_Closest::Init(ArgList& actionArgs, ActionInit& init, int 
 
   // Get Masks
   std::string mask1 = actionArgs.GetStringKey("solventmask");
-  if (!mask1.empty())
-    solventMask_.SetMaskString( mask1 );
+  if (!mask1.empty()) {
+    if (solventMask_.SetMaskString( mask1 )) {
+      mprinterr("Error: Could not set solvent mask string.\n");
+      return Action::ERR;
+    }
+  }
   mask1 = actionArgs.GetMaskNext();
   if (mask1.empty()) {
     mprinterr("Error: No mask specified.\n");
@@ -118,7 +121,7 @@ Action::RetType Action_Closest::Init(ArgList& actionArgs, ActionInit& init, int 
           closestWaters_, distanceMask_.MaskString());
   if (useMaskCenter_)
     mprintf("\tGeometric center of atoms in mask will be used.\n");
-  if (!image_.UseImage()) 
+  if (!imageOpt_.UseImage()) 
     mprintf("\tImaging will be turned off.\n");
   if (solventMask_.MaskStringSet())
     mprintf("\tSolvent will be selected by mask '%s'\n", solventMask_.MaskString());
@@ -160,7 +163,7 @@ Action::RetType Action_Closest::Setup(ActionSetup& setup) {
     for (Topology::mol_iterator Mol = setup.Top().MolStart();
                                 Mol != setup.Top().MolEnd(); ++Mol)
     {
-      if ( solventMask_.AtomsInCharMask(Mol->BeginAtom(), Mol->EndAtom()) ) {
+      if ( solventMask_.AtomsInCharMask(Mol->MolUnit()) ) {
         IsSolventMol.push_back( true );
         nSolvent++;
       } else
@@ -191,8 +194,8 @@ Action::RetType Action_Closest::Setup(ActionSetup& setup) {
     closestWaters_ = nSolvent;
     mprintf("Warning:  Keeping %i solvent molecules.\n", closestWaters_);
   }
-  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
-  if (image_.ImagingEnabled())
+  imageOpt_.SetupImaging( setup.CoordInfo().TrajBox().HasBox() );
+  if (imageOpt_.ImagingEnabled())
     mprintf("\tDistances will be imaged.\n");
   else
     mprintf("\tImaging off.\n"); 
@@ -214,44 +217,46 @@ Action::RetType Action_Closest::Setup(ActionSetup& setup) {
   int molnum = 1;
   int newnatom = 0;
   int nclosest = 0;
-  int NsolventAtoms = -1;
+  unsigned int NsolventAtoms = 0;
   keptWaterAtomNum_.resize(closestWaters_);
   for (Topology::mol_iterator Mol = setup.Top().MolStart();
                               Mol != setup.Top().MolEnd(); ++Mol, ++isSolvent)
   {
     if ( !(*isSolvent) ) {
       // Not solvent, add to solute mask.
-      stripMask_.AddAtomRange( Mol->BeginAtom(), Mol->EndAtom() );
+      stripMask_.AddUnit( Mol->MolUnit() );
       newnatom += Mol->NumAtoms();
     } else {
       // Solvent, check for same # of atoms.
-      if (NsolventAtoms == -1)
+      if (NsolventAtoms == 0)
         NsolventAtoms = Mol->NumAtoms();
       else if ( NsolventAtoms != Mol->NumAtoms() ) {
         mprinterr("Error: Solvent molecules in '%s' are not of uniform size.\n"
-                  "Error:   First solvent mol = %i atoms, solvent mol %i = %i atoms.\n",
-                  setup.Top().c_str(), NsolventAtoms, molnum, (*Mol).NumAtoms());
+                  "Error:   First solvent mol = %u atoms, solvent mol %i = %u atoms.\n",
+                  setup.Top().c_str(), NsolventAtoms, molnum, Mol->NumAtoms());
         return Action::ERR;
       }
       // mol here is the output molecule number which is why it starts from 1.
       mdist->mol = molnum;
       // Entire solvent molecule mask
-      mdist->mask.AddAtomRange( Mol->BeginAtom(), Mol->EndAtom() );
+      mdist->mask.AddUnit( Mol->MolUnit() );
       // Atoms in the solvent molecule to actually calculate distances to.
       if (firstAtom_) {
-        mdist->solventAtoms.assign(1, Mol->BeginAtom() );
+        mdist->solventAtoms.assign(1, Mol->MolUnit().Front() );
       } else {
         mdist->solventAtoms.clear();
         mdist->solventAtoms.reserve( Mol->NumAtoms() );
-        for (int svatom = Mol->BeginAtom(); svatom < Mol->EndAtom(); svatom++)
-          if (solventMask_.AtomInCharMask(svatom))
-            mdist->solventAtoms.push_back( svatom );
+        for (Unit::const_iterator seg = Mol->MolUnit().segBegin();
+                                  seg != Mol->MolUnit().segEnd(); ++seg)
+          for (int svatom = seg->Begin(); svatom < seg->End(); svatom++)
+            if (solventMask_.AtomInCharMask(svatom))
+              mdist->solventAtoms.push_back( svatom );
       }
       // For solvent molecules that will be kept, record what the atom number
       // will be in the new stripped parm.
       if (nclosest < closestWaters_) {
         keptWaterAtomNum_[nclosest] = newnatom;
-        stripMask_.AddAtomRange( Mol->BeginAtom(), Mol->EndAtom() );
+        stripMask_.AddUnit( Mol->MolUnit() );
         newnatom += Mol->NumAtoms();
         ++nclosest;
       }
@@ -330,11 +335,12 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
   double maxD, Dist2;
   Iarray::const_iterator solvent_atom;
 
-  if (image_.ImagingEnabled()) {
+  if (imageOpt_.ImagingEnabled()) {
     // Calculate max possible imaged distance
-    maxD = frm.Frm().BoxCrd().BoxX() + frm.Frm().BoxCrd().BoxY() + 
-           frm.Frm().BoxCrd().BoxZ();
+    maxD = frm.Frm().BoxCrd().Param(Box::X) + frm.Frm().BoxCrd().Param(Box::Y) + 
+           frm.Frm().BoxCrd().Param(Box::Z);
     maxD *= maxD;
+    imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
   } else {
     // If not imaging, set max distance to an arbitrarily large number
     maxD = DBL_MAX;
@@ -353,15 +359,13 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
     }
   }
   
-  Matrix_3x3 ucell, recip;
-  if (image_.ImageType() == NONORTHO)
-    frm.Frm().BoxCrd().ToRecip(ucell, recip);
-
   if (useMaskCenter_) {
     Vec3 maskCenter = frm.Frm().VGeometricCenter( distanceMask_ );
     Action_Closest_Center( V_atom_coords_, V_distances_, maskCenter.Dptr(),
-                           maxD, NsolventMolecules_, NAtoms, image_.ImageType(),
-                           frm.Frm().BoxCrd().boxPtr(), ucell.Dptr(), recip.Dptr() );
+                           maxD, NsolventMolecules_, NAtoms, imageOpt_.ImagingType(),
+                           frm.Frm().BoxCrd().XyzPtr(),
+                           frm.Frm().BoxCrd().UnitCell().Dptr(),
+                           frm.Frm().BoxCrd().FracCell().Dptr() );
   } else {
     int NSAtoms = distanceMask_.Nselected();
     for (int nsAtom = 0; nsAtom < NSAtoms; ++nsAtom) {
@@ -372,8 +376,10 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
     }
 
     Action_Closest_NoCenter( V_atom_coords_, V_distances_, U_atom_coords_,
-                             maxD, NsolventMolecules_, NAtoms, NSAtoms, image_.ImageType(),
-                             frm.Frm().BoxCrd().boxPtr(), ucell.Dptr(), recip.Dptr() );
+                             maxD, NsolventMolecules_, NAtoms, NSAtoms, imageOpt_.ImagingType(),
+                             frm.Frm().BoxCrd().XyzPtr(),
+                             frm.Frm().BoxCrd().UnitCell().Dptr(),
+                             frm.Frm().BoxCrd().FracCell().Dptr() );
   }
   // Copy distances back into SolventMols_
   for (int sMol = 0; sMol < NsolventMolecules_; sMol++)
@@ -381,23 +387,21 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
 
 #else /* Not CUDA */
 // -----------------------------------------------------------------------------
-  if (image_.ImageType() == NONORTHO) {
+  if (imageOpt_.ImagingType() == ImageOption::NONORTHO) {
     // ----- NON-ORTHORHOMBIC IMAGING ------------
-    Matrix_3x3 ucell, recip;
-    frm.Frm().BoxCrd().ToRecip(ucell, recip);
     // Wrap all solute atoms back into primary cell and save coords
     if (useMaskCenter_) {
       double* uFrac = &U_cell0_coords_[0];
       //  Calc COM and convert to frac coords
-      Vec3 center = recip * frm.Frm().VGeometricCenter( distanceMask_ );
+      Vec3 center = frm.Frm().BoxCrd().FracCell() * frm.Frm().VGeometricCenter( distanceMask_ );
       // Wrap to primary unit cell
       center[0] = center[0] - floor(center[0]);
       center[1] = center[1] - floor(center[1]);
       center[2] = center[2] - floor(center[2]);
       // Convert back to Cartesian
-      ucell.TransposeMult( uFrac, center.Dptr() );
+      frm.Frm().BoxCrd().UnitCell().TransposeMult( uFrac, center.Dptr() );
     } else {
-      Image::WrapToCell0( U_cell0_coords_, frm.Frm(), distanceMask_, ucell, recip );
+      Image::WrapToCell0( U_cell0_coords_, frm.Frm(), distanceMask_, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell() );
     }
     // Calculate closest distance of every solvent image to solute
     int mnum;
@@ -414,7 +418,7 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
            solvent_atom != Mol.solventAtoms.end(); ++solvent_atom)
       {
         // Convert to frac coords
-        Vec3 vFrac = recip * Vec3( frm.Frm().XYZ( *solvent_atom ) );
+        Vec3 vFrac = frm.Frm().BoxCrd().FracCell() * Vec3( frm.Frm().XYZ( *solvent_atom ) );
         // Wrap to primary unit cell
         vFrac[0] = vFrac[0] - floor(vFrac[0]);
         vFrac[1] = vFrac[1] - floor(vFrac[1]);
@@ -425,7 +429,7 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
             for (int iz = -1; iz != 2; iz++)
             {
               // Convert image back to Cartesian
-              Vec3 vCart = ucell.TransposeMult( vFrac + Vec3(ix, iy, iz) );
+              Vec3 vCart = frm.Frm().BoxCrd().UnitCell().TransposeMult( vFrac + Vec3(ix, iy, iz) );
               // Loop over all solute atoms
               for (unsigned int idx = 0; idx < U_cell0_coords_.size(); idx += 3)
               {
@@ -480,7 +484,7 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
         for (unsigned int idx = 0; idx < U_cell0_coords_.size(); idx += 3)
         {
           Vec3 Ucoord( U_cell0_coords_[idx], U_cell0_coords_[idx+1], U_cell0_coords_[idx+2] );
-          if (image_.ImageType() == ORTHO)
+          if (imageOpt_.ImagingType() == ImageOption::ORTHO)
             Dist2 = DIST2_ImageOrtho( Vcoord, Ucoord, frm.Frm().BoxCrd() );
           else
             Dist2 = DIST2_NoImage( Vcoord, Ucoord );

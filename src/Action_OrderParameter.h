@@ -4,7 +4,6 @@
 #define INC_ACTION_ORDERPARAMETER_H
 
 #include "Action.h"
-#include "ImagedAction.h"
 #include "OnlineVarT.h"
 
 
@@ -12,7 +11,7 @@
 /** \author Hannes H. Loeffler
   */
 
-class Action_OrderParameter : public Action, ImagedAction {
+class Action_OrderParameter : public Action {
 public:
   Action_OrderParameter();
 
@@ -42,12 +41,12 @@ private:
   AtomMask tailend_mask_;
   AtomMask unsat_mask_;
 
-  // FIXME:
   // std::vector<std::pair<AtomMask, bool> > masks_;
   std::vector<AtomMask> masks_;
   std::vector<std::vector<int> > dbonds_;
 
   bool scd_;
+  //ImageOption imageOpt_; ///< Used to decide if imaging should be used.
 
   unsigned long maxbin_;
   std::vector<Stats<double> > tailhist_;

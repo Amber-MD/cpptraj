@@ -323,7 +323,7 @@ int Analysis_TI::Calc_Bootstrap() {
     mprintf("Warning: Bootstrap # resamples (%i) > data size (%zu) - sample size (%i)\n",
             n_bootstrap_samples_, ds.Size(), n_bootstrap_pts_);
     // Loop over resamples
-    double d_ndata = (double)ds.Size();
+    unsigned int maxidx = ds.Size() - 1;
     for (int nsample = 0; nsample != n_bootstrap_samples_; nsample++)
     {
       chosen.assign(ds.Size(), false);
@@ -334,7 +334,7 @@ int Analysis_TI::Calc_Bootstrap() {
         unsigned int pt = 0;
         while (!pointOK)
         {
-          pt = (unsigned int)(RN.rn_gen() * d_ndata);
+          pt = RN.rn_num_interval(0, maxidx);
           pointOK = (chosen[pt] == false);
         }
         chosen[pt] = true;

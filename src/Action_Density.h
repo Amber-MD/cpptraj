@@ -8,9 +8,9 @@
 
 #include "Action.h"
 #include "OnlineVarT.h"
-#include "ImagedAction.h"
 
-#define ROUTINE_VERSION_STRING "1.0.2"
+#define ROUTINE_VERSION_STRING "1.0.3"
+// 1.0.3 - DRR Add 'restrict'
 
 /** Calculate density along a coordinate.
   * \author Hannes H. Loeffler.
@@ -54,10 +54,11 @@ private:
   static const char* PropertyStr_[];
   static const char* AxisStr_[];
   static const double AMU_ANG_TO_G_CM3;
-
+  // NOTE: DirectionType XYZ corresponds to XYZ in Box::ParamType
   enum DirectionType {DX = 0, DY, DZ};
   enum PropertyType {NUMBER = 0, MASS, CHARGE, ELECTRON};
   enum BinCoordType {CENTER = 0, EDGE};
+  enum RestrictType { NONE=0, CYLINDER, SQUARE };
 
   DirectionType axis_;          ///< Which axis to bin along.
   DirectionType area_coord_[2]; ///< Hold which two axes used to calc. area
@@ -76,7 +77,8 @@ private:
   PropArray properties_;        ///< Hold properties for each mask.
   
   DataSet* density_;            ///< Hold total system density (if not binning)
-  ImagedAction image_;          ///< Used to calculate system volume for total density.
+  RestrictType restrictType_;   ///< Used to restrict calculation to a certain shape.
+  double cutVal_;               ///< Cutoff to use if shape restriction in use.
 # ifdef MPI
   Parallel::Comm trajComm_;
 # endif

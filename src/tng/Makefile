@@ -1,7 +1,7 @@
 # Makefile for TNG bundled with cpptraj
 include ../../external.config.h
 
-CFLAGS += -I .
+CFLAGS += -I . $(ZLIB_INCL)
 
 # Variables
 DEL_FILE      = /bin/rm -f

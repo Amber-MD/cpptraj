@@ -361,6 +361,21 @@ void Matrix_3x3::Transpose() {
   M_[7] = U5;
 }
 
+/** Multiply all elements by scalar. */
+Matrix_3x3& Matrix_3x3::operator*=(double fac) {
+  for (int i = 0; i < 9; i++)
+    M_[i] *= fac;
+  return *this;
+}
+
+/** \return Matrix with all elements multiplied by a scalar. */
+Matrix_3x3 Matrix_3x3::operator*(double fac) const {
+  Matrix_3x3 result;
+  for (int i = 0; i < 9; i++)
+    result[i] = M_[i] * fac;
+  return result;
+}
+
 // Matrix_3x3::operator*=()
 Matrix_3x3& Matrix_3x3::operator*=(const Matrix_3x3& rhs) {
   double Row[9];
@@ -516,3 +531,20 @@ Vec3 Matrix_3x3::AxisOfRotation(double theta) {
   }
   return Vec3(0.0, 0.0, 0.0);
 }
+
+#ifdef MPI
+/** Broadcast matrix from master to other ranks. */
+void Matrix_3x3::BroadcastMatrix(Parallel::Comm const& commIn) {
+  commIn.MasterBcast( M_, 9, MPI_DOUBLE );
+}
+
+int Matrix_3x3::SendMatrix(int recvrank, Parallel::Comm const& commIn) const {
+  commIn.Send( M_, 9, MPI_DOUBLE, recvrank, 1900 );
+  return 0;
+}
+
+int Matrix_3x3::RecvMatrix(int sendrank, Parallel::Comm const& commIn) {
+  commIn.Recv( M_, 9, MPI_DOUBLE, sendrank, 1900 );
+  return 0;
+}
+#endif

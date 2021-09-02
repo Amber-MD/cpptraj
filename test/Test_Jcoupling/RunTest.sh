@@ -10,7 +10,7 @@ Requires netcdf
 INPUT="-i jcoupling.in"
 # Test 1
 UNITNAME='J-Coupling single frame test'
-CheckFor maxthreads 1
+CheckFor maxthreads 1 file ../../dat/Karplus.txt
 if [ $? -eq 0 ] ; then
   cat > jcoupling.in <<EOF
 noprogress

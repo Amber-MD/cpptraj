@@ -74,10 +74,11 @@ int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetLis
 
   // Determine if we are saving/loading pairwise distances
   std::string pairdistname = analyzeArgs.GetStringKey("pairdist");
+  DataFile::DataFormatType pairdisttype = DataFile::UNKNOWN_DATA;
   bool load_pair = analyzeArgs.hasKey("loadpairdist");
   bool save_pair = analyzeArgs.hasKey("savepairdist");
   // Check if we need to set a default file name
-  std::string fname;
+/*  std::string fname;
   if (pairdistname.empty())
     fname = DEFAULT_PAIRDIST_NAME_;
   else {
@@ -89,45 +90,61 @@ int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetLis
               "Warning: Assuming 'loadpairdist'.\n");
       load_pair = true;
     }
-  }
+  }*/
 
   cache_ = 0;
-  if (load_pair) {
-    DataSetList selected;
-    // If specified, check if the pairdistname refers to a DataSet
-    if (!pairdistname.empty())
-      selected = DSL.SelectGroupSets( pairdistname, DataSet::PWCACHE );
-    if (selected.empty()) {
-      // No DataSet; check if we can load from a file.
-      if (File::Exists( fname )) {
-        DataFile dfIn;
-        if (dfIn.ReadDataIn( fname, ArgList(), DSL )) return 1;
-        DataSet* ds = DSL.GetDataSet( fname );
-        if (ds == 0) return 1;
-        if (ds->Group() != DataSet::PWCACHE) {
-          mprinterr("Internal Error: AllocatePairwise(): Set is not a pairwise cache.\n");
-          return 1;
-        }
-        cache_ = (DataSet_PairwiseCache*)ds;
-        mprintf("DEBUG: Loaded cache set '%s' from file: %s\n",
-                cache_->legend(), dfIn.DataFilename().full());
-        // No need to save pw cache if we just loaded one.
-        if (save_pair) {
-          mprintf("Warning: 'savepairdist' specified but pairwise cache loaded from file.\n"
-                  "Warning: Disabling 'savepairdist'.\n");
-          save_pair = false;
-        }
-      }
-    } else {
+  if (load_pair ||
+      (!save_pair && !pairdistname.empty()))
+  {
+    // If 'loadpairdist' specified or 'pairdist' specified and 'savepairdist'
+    // not specified, we either want to load from file or use an existing
+    // data set.
+    if (pairdistname.empty()) {
+      pairdistname = DEFAULT_PAIRDIST_NAME_;
+      pairdisttype = DEFAULT_PAIRDIST_TYPE_;
+    }
+    // First check if pairwise data exists
+    DataSetList selected = DSL.SelectGroupSets( pairdistname, DataSet::PWCACHE );
+    if (!selected.empty()) {
       if (selected.size() > 1)
         mprintf("Warning: '%s' matches multiple sets; only using '%s'\n",
                 pairdistname.c_str(), selected[0]->legend());
       cache_ = (DataSet_PairwiseCache*)selected[0];
+      mprintf("\tUsing existing pairwise set '%s'\n", cache_->legend());
+    // Next check if file exists
+    } else if (File::Exists( pairdistname )) {
+      mprintf("\tLoading pairwise distances from file '%s'\n", pairdistname.c_str());
+      DataFile dfIn;
+      // TODO set data set name with ArgList?
+      if (dfIn.ReadDataIn( pairdistname, ArgList(), DSL )) return 1;
+      DataSet* ds = DSL.GetDataSet( pairdistname );
+      if (ds == 0) return 1;
+      if (ds->Group() != DataSet::PWCACHE) {
+        mprinterr("Internal Error: AllocatePairwise(): Set is not a pairwise cache.\n");
+        return 1;
+      }
+      cache_ = (DataSet_PairwiseCache*)ds;
+      if (cache_ != 0 && save_pair) {
+        mprintf("Warning: 'savepairdist' specified but pairwise cache loaded from file.\n"
+                "Warning: Disabling 'savepairdist'.\n");
+        save_pair = false;
+      }
+    } else
+      pairdisttype = DEFAULT_PAIRDIST_TYPE_;
+
+    if (cache_ == 0) {
+      // Just 'pairdist' specified or loadpairdist specified and set/file not found.
+      // Warn the user.
+      mprintf("Warning: Pairwise distance matrix specified but cache/file '%s' not found.\n", pairdistname.c_str());
+      if (!save_pair) {
+        // If the file (or dataset) does not yet exist we will assume we want to save.
+        mprintf("Warning: Pairwise distance matrix specified but not found; will save distances.\n");
+        save_pair = true;
+      }
     }
-    if (cache_ == 0)
-      mprintf("Warning: 'loadpairdist' specified but cache set/file not found.\n");
   } // END if load_pair
 
+  // Create a pairwise cache if necessary
   if (cache_ == 0) {
     // Process DataSet type arguments
     DataSet::DataType pw_type = DataSet::PMATRIX_MEM;
@@ -149,7 +166,7 @@ int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetLis
       MetaData meta( pairdistname );
       // Cache-specific setup.
       if (pw_type == DataSet::PMATRIX_NC)
-        meta.SetFileName( fname );
+        meta.SetFileName( pairdistname ); // TODO separate file name?
       cache_ = (DataSet_PairwiseCache*)DSL.AddSet( pw_type, meta, "CMATRIX" );
       if (cache_ == 0) {
         mprinterr("Error: Could not allocate pairwise cache.\n");
@@ -166,12 +183,13 @@ int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetLis
     if (cache_ == 0) {
       mprintf("Warning: Not caching distances; ignoring 'savepairdist'\n");
     } else {
-      DataFile::DataFormatType pw_file_type = DataFile::UNKNOWN_DATA;
       if (pairdistname.empty())
-        pw_file_type = DEFAULT_PAIRDIST_TYPE_;
+        pairdistname = DEFAULT_PAIRDIST_NAME_;
+      if (pairdisttype == DataFile::UNKNOWN_DATA)
+        pairdisttype = DEFAULT_PAIRDIST_TYPE_;
       // TODO enable saving for other set types?
       if (cache_->Type() == DataSet::PMATRIX_MEM) {
-        DataFile* pwd_file = DFL.AddDataFile( fname, pw_file_type, ArgList() );
+        DataFile* pwd_file = DFL.AddDataFile( pairdistname, pairdisttype, ArgList() );
         if (pwd_file == 0) return 1;
         pwd_file->AddDataSet( cache_ );
         mprintf("DEBUG: Saving pw distance cache '%s' to file '%s'\n", cache_->legend(),

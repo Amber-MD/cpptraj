@@ -93,6 +93,15 @@ DihedralSearch::DihedralMask::DihedralMask(int a0, int a1, int a2, int a3,
                                            DihedralType t) :
   a0_(a0), a1_(a1), a2_(a2), a3_(a3), res_(res), name_(n), type_(t) {}
 
+/** \return string based on atoms in mask. */
+std::string DihedralSearch::DihedralMask::DihedralMaskString(Topology const& topIn) const {
+  std::string out( topIn.TruncResNameAtomName( a0_ ));
+  out.append(" " + topIn.TruncResNameAtomName( a1_ ));
+  out.append(" " + topIn.TruncResNameAtomName( a2_ ));
+  out.append(" " + topIn.TruncResNameAtomName( a3_ ));
+  return out;
+}
+
 // -----------------------------------------------------------------------------
 // CONSTRUCTOR - Custom type 
 DihedralSearch::DihedralToken::DihedralToken(int off, 
@@ -242,7 +251,9 @@ void DihedralSearch::SearchForArgs(ArgList& argIn) {
   }
 }
 
-const char* DihedralSearch::newTypeArgsHelp_ = "dihtype <name>:<a0>:<a1>:<a2>:<a3>[:<offset>] ...";
+const char* DihedralSearch::newTypeArgsHelp() {
+  return "dihtype <name>:<a0>:<a1>:<a2>:<a3>[:<offset>] ...";
+}
 
 /** Get custom dihedral arguments: 
   *   'dihtype <name>:<a0>:<a1>:<a2>:<a3>[:<offset>]'
@@ -324,9 +335,9 @@ void DihedralSearch::Clear() {
 }
 
 // DihedralSearch::PrintTypes()
-void DihedralSearch::PrintTypes() {
-  for (std::vector<DihedralToken>::iterator tkn = dihedralTokens_.begin();
-                                            tkn != dihedralTokens_.end(); ++tkn)
+void DihedralSearch::PrintTypes() const {
+  for (std::vector<DihedralToken>::const_iterator tkn = dihedralTokens_.begin();
+                                                  tkn != dihedralTokens_.end(); ++tkn)
     mprintf(" %s", tkn->Name().c_str());
 }
 

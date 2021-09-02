@@ -78,6 +78,29 @@ int ParmFile::ReadTopology(Topology& t, FileName const& n, int d) {
   return ReadTopology(t, n, ArgList(), d);
 }
 
+/** Keywords for ReadTopology() */
+const char* ParmFile::ReadTopologyKeywords() {
+  return
+  "\t [{ nobondsearch |\n"
+  "\t    [bondsearch <offset>] [searchtype {grid|pairlist}]\n"
+  "\t  }] [nomolsearch] [renumresidues]\n";
+}
+
+/** More detailed help for ReadTopology() */
+const char* ParmFile::ReadTopologyHelp() {
+  return
+  "  For topologies that may not have bond information, 'bondsearch <offset>'\n"
+  "  controls the offset that will be added to atom-atom distances when\n"
+  "  searching for bonds (default 0.2 Ang), and 'searchtype' specifies\n"
+  "  alternative (and still experimental) algorithms that can be used in\n"
+  "  place of the usual bond search algorithm.\n"
+  "  ** ADVANCED OPTIONS - NOT RECOMMENDED FOR GENERAL USE. **\n"
+  "  The 'nobondsearch' keyword can be specified to skip searching for bonds.\n"
+  "  The 'nomolsearch' keyword can be specified to skip molecule determintation via bonds.\n"
+  "  The 'renumresidues' keyword can be specified to ensure that any residue cannot\n"
+  "  be part of more than 1 molecule (can occur with e.g. alternate sites).\n";
+}
+
 // ParmFile::ReadTopology()
 int ParmFile::ReadTopology(Topology& Top, FileName const& fnameIn, 
                            ArgList const& argListIn, int debugIn) 
@@ -95,29 +118,33 @@ int ParmFile::ReadTopology(Topology& Top, FileName const& fnameIn,
   ParmFormatType pfType;
   ParmIO* parmio = 0;
   Top.SetDebug( debugIn );
-  BondSearchType bstype;
+  BondSearch::Type bstype;
   if (argIn.hasKey("nobondsearch"))
-    bstype = SEARCH_NONE;
+    bstype = BondSearch::SEARCH_NONE;
   else {
-    bstype = SEARCH_REGULAR;
+    bstype = BondSearch::SEARCH_REGULAR;
     std::string bsarg = argIn.GetStringKey("searchtype");
     if (!bsarg.empty()) {
       if (bsarg == "pairlist") {
         mprintf("\tWill use pair list to search for bonds between atoms.\n");
         mprintf("Warning: Searching for bonds via pair list is still experimental.\n");
-        bstype = SEARCH_PAIRLIST;
+        bstype = BondSearch::SEARCH_PAIRLIST;
       } else if (bsarg == "grid") {
         mprintf("\tWill use grid to search for bonds between residues.\n");
         mprintf("Warning: Searching for bonds via grid is still experimental.\n");
-        bstype = SEARCH_GRID;
+        bstype = BondSearch::SEARCH_GRID;
       } else
         mprintf("Warning: Unrecognized search type '%s'. Ignoring.\n", bsarg.c_str());
     }
   }
   double bondoffset = argIn.getKeyDouble("bondsearch", -1.0);
   bool molsearch = !argIn.hasKey("nomolsearch");
+  bool renumberResidues = argIn.hasKey("renumresidues");
   if (!molsearch)
     mprintf("\tDisabling molecule search. Topology will have no molecule info.\n");
+  if (renumberResidues)
+    mprintf("\tIf any residue corresponds to more than 1 molecule, residues will be renumbered\n"
+            "\t  according to molecule information.\n");
   // Only force bond search when 'bondsearch' is specified.
 //  bool bondsearch = false;
 //  if (argIn.Contains("bondsearch")) {
@@ -148,7 +175,7 @@ int ParmFile::ReadTopology(Topology& Top, FileName const& fnameIn,
   int err = parmio->ReadParm( parmName_.Full(), Top);
   // Perform setup common to all parm files.
   if (err == 0) 
-    err = Top.CommonSetup( molsearch );
+    err = Top.CommonSetup( molsearch, renumberResidues );
   else
     mprinterr("Error reading topology file '%s'\n", parmName_.full());
   delete parmio;

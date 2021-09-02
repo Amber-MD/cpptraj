@@ -114,8 +114,8 @@ class TrajectoryIO : public BaseIOtype {
     void SetCoordInfo(CoordinateInfo const& cIn) { coordInfo_ = cIn; }
     int debug_;               ///< Trajectory debug level.
 #   ifdef MPI
-    /// Sync up coordinate info etc.
-    int SyncTrajIO(Parallel::Comm const&);
+    /// Broadcast coordinate info etc. to non-master processes
+    int BroadcastTrajIO(Parallel::Comm const&);
 #   endif
   private:
     CoordinateInfo coordInfo_; ///< Metadata associated with coordinate Frame

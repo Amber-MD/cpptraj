@@ -1,0 +1,102 @@
+stages:
+  - build
+  - test
+
+variables:
+  SUDO_CMD: "" # Must be "sudo" on images which don't use root user
+  DEPS_DIR: "$CI_PROJECT_DIR/__dependencies"
+
+.rocm:
+  variables:
+    SUDO_CMD: "sudo -E"
+  tags:
+    - rocm
+  image: rocm/rocm-terminal:latest
+  before_script:
+    - $SUDO_CMD apt-get update -qq
+    - $SUDO_CMD apt-get install -y -qq libnuma-dev libunwind-dev git wget tar xz-utils bzip2 build-essential pkg-config bc flex bison
+    - $SUDO_CMD apt-get install -y -qq gcc-8 g++-8 gfortran-8 libfftw3-dev
+    - $SUDO_CMD sh -c 'echo -e "gfx803\ngfx900\ngfx906" >> /opt/rocm/bin/target.lst'
+    - hipconfig
+    - rocm-smi -i
+    - export PATH=/opt/rocm/bin:$PATH
+
+build:rocm:
+  extends: .rocm
+  stage: build
+  script:
+      - export FC=gfortran-8
+      - export CC=gcc-8
+      - export CXX=g++-8
+      - ./configure --buildlibs -fftw3 -hip gnu
+      - source cpptraj.sh
+      - make install -j
+  artifacts:
+    paths:
+      - bin/*
+      - lib/*
+      - cpptraj.sh
+    expire_in: 2 weeks
+
+test:rocm_mi25:
+  extends: .rocm
+  stage: test
+  needs:
+    - build:rocm
+  tags:
+    - mi25
+    - rocm
+  script:
+    - source $CI_PROJECT_DIR/cpptraj.sh
+    - cd test
+    - make test.hip
+
+.nvcc:
+  tags:
+    - nvcc
+  image: nvidia/cuda:10.1-devel-ubuntu18.04
+  before_script:
+    - nvidia-smi
+    - $SUDO_CMD apt-get update -qq
+    - $SUDO_CMD apt-get install -y -qq libnuma-dev libunwind-dev git wget tar xz-utils bzip2 build-essential pkg-config bc flex bison
+    - $SUDO_CMD apt-get install -y -qq gcc-8 g++-8 gfortran-8 libfftw3-dev
+
+build:nvcc:
+  extends: .nvcc
+  stage: build
+  script:
+    - export CUDA_HOME=/usr/local/cuda/
+    - export FC=gfortran-8
+    - export CC=gcc-8
+    - export CXX=g++-8
+    - ./configure --buildlibs -fftw3 -cuda gnu
+    - source cpptraj.sh
+    - make install -j
+  artifacts:
+    paths:
+      - bin/*
+      - lib/*
+      - cpptraj.sh
+    expire_in: 2 weeks
+
+test:nvcc_titanv:
+  extends: .nvcc
+  stage: test
+  needs:
+    - build:nvcc
+  script:
+    - CUDA_VISIBLE_DEVICES=0
+    - source $CI_PROJECT_DIR/cpptraj.sh
+    - cd test
+    - make test.cuda
+
+test:nvcc_980:
+  extends: .nvcc
+  stage: test
+  needs:
+    - build:nvcc
+  script:
+    - CUDA_VISIBLE_DEVICES=1
+    - source $CI_PROJECT_DIR/cpptraj.sh
+    - cd test
+    - make test.cuda

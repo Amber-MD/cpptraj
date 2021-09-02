@@ -320,6 +320,26 @@ Everything else is as printed.
  
 \end_layout
 
+\begin_layout Subsection
+Installation
+\end_layout
+
+\begin_layout Standard
+See instructions in the CPPTRAJ GitHub repository README.md file under 'Installat
+ion & Testing': 
+\begin_inset Flex URL
+status open
+
+\begin_layout Plain Layout
+
+https://github.com/Amber-MD/cpptraj
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
 \begin_layout Section
 Running Cpptraj
 \end_layout
@@ -379,6 +399,10 @@ cpptraj [-p <Top0>] [-i <Input0>] [-y <trajin>] [-x <trajout>]
 \end_inset
 
 
+\end_layout
+
+\begin_layout LyX-Code
+        [--rng {marsaglia|stdlib|mt|pcg32|xo128}]
 \end_layout
 
 \begin_deeper
@@ -553,6 +577,10 @@ cpptraj [-p <Top0>] [-i <Input0>] [-y <trajin>] [-x <trajout>]
 
 \begin_layout Description
 –resmask <mask> : Print detailed residue selection to STDOUT.
+\end_layout
+
+\begin_layout Description
+--rng <type> : Change default random number generator.
 \end_layout
 
 \end_deeper
@@ -1111,6 +1139,10 @@ radial
 
 \begin_layout LyX-Code
 replicatecell
+\end_layout
+
+\begin_layout LyX-Code
+rotdif
 \end_layout
 
 \begin_layout LyX-Code
@@ -4926,11 +4958,27 @@ Read
 \end_layout
 
 \begin_layout LyX-Code
-[ read1d [index <col>] [onlycols <range>] ]
+[prec {flt|dbl}]
 \end_layout
 
 \begin_layout LyX-Code
-[read2d] [vector] [mat3x3]
+{[read1d [index <col>] [onlycols <range>] [floatcols <range>]
+\end_layout
+
+\begin_layout LyX-Code
+         [intcols <range>] [stringcols <range>]] |
+\end_layout
+
+\begin_layout LyX-Code
+ [read2d [{square2d|nosquare2d}]] |
+\end_layout
+
+\begin_layout LyX-Code
+ [vector] |
+\end_layout
+
+\begin_layout LyX-Code
+ [mat3x3] |
 \begin_inset Separator latexpar
 \end_inset
 
@@ -4938,20 +4986,24 @@ Read
 \end_layout
 
 \begin_layout LyX-Code
-[ read3d [dims <nx>,<ny>,<nz>] [origin <ox>,<oy>,<oz>]
+ [read3d [dims <nx>,<ny>,<nz>] [origin <ox>,<oy>,<oz>]
 \end_layout
 
 \begin_layout LyX-Code
-  [delta <dx>,<dy>,dz>] [prec {dbl|flt}] [bin {center|corner} ]
+         [delta <dx>,<dy>,dz>] [prec {dbl|flt}] [bin {center|corner} ]
+\end_layout
+
+\begin_layout LyX-Code
+}
 \end_layout
 
 \begin_deeper
 \begin_layout Description
-index
+prec
 \begin_inset space ~
 \end_inset
 
-<col> Use column <col> (starting from 1) as index column (1D data only).
+{flt|dbl} Read 2d/3d data as single (flt) or double (dbl, default) precision.
 \end_layout
 
 \begin_layout Description
@@ -5001,9 +5053,20 @@ stringcols
 
 \end_deeper
 \begin_layout Description
-read2d Read data as 2D square matrix.
+read2d Read data as 2D matrix.
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+square2d Read data as square matrix (default).
+\end_layout
+
+\begin_layout Description
+nosquare2d Read data as XYZ matrix (i.e.
+ each line contains '<column> <row> <data>').
+\end_layout
+
+\end_deeper
 \begin_layout Description
 vector Read data as vector.
  If indices are present they will be skipped.
@@ -5107,7 +5170,7 @@ Write
 \end_layout
 
 \begin_layout LyX-Code
-[invert] [xydy] [<label set>]
+[{invert|noinvert}] [{xydy|noxydy}] [<label set>]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -5123,7 +5186,15 @@ invert Normally, data is written out with X-values pertaining to frames
 \end_layout
 
 \begin_layout Description
+noinvert Do not flip X-Y axes (default).
+\end_layout
+
+\begin_layout Description
 xydy Combine consecutive pairs of sets into XYDY sets.
+\end_layout
+
+\begin_layout Description
+noxydy Do not combine consecutuve pairs of sets into XYDY sets (default).
 \end_layout
 
 \begin_layout Description
@@ -5174,7 +5245,7 @@ Write
 \end_layout
 
 \begin_layout LyX-Code
-[nolabels] [usemap] [pm3d] [nopm3d] [title <title>]
+[{nolabels|labels}] [{usemap|pm3d|nopm3d}] [title <title>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -5188,6 +5259,10 @@ Write
 \begin_deeper
 \begin_layout Description
 nolabels Do not print axis labels.
+\end_layout
+
+\begin_layout Description
+labels Print axis labels.
 \end_layout
 
 \begin_layout Description
@@ -5766,7 +5841,7 @@ The following COORDS data set commands are available:
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="13" columns="2">
+<lyxtabular version="3" rows="14" columns="2">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="75text%">
@@ -5889,6 +5964,26 @@ createcrd
 
 \begin_layout Plain Layout
 (Action) Create a COORDS set during a Run.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+emin
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Run simple energy minimization on a frame of a COORDS set.
 \end_layout
 
 \end_inset
@@ -6215,6 +6310,128 @@ reference "subsec:cpptraj_createcrd"
 \end_layout
 
 \begin_layout Subsection
+emin
+\end_layout
+
+\begin_layout LyX-Code
+emin crdset <name> [trajoutname <name>] [rmstol <tol>] [nsteps <#>]
+\end_layout
+
+\begin_layout LyX-Code
+ 	[<mask>] [frame <#>] [dx0 <step0>] [out <file>]
+\end_layout
+
+\begin_layout LyX-Code
+ 	[{nonbond|openmm}] [<potential options>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+crdset
+\begin_inset space ~
+\end_inset
+
+<name> COORDS set to use.
+\end_layout
+
+\begin_layout Description
+[trajoutname
+\begin_inset space ~
+\end_inset
+
+<name>] Optional output trajectory for minimization steps.
+\end_layout
+
+\begin_layout Description
+[rmstol
+\begin_inset space ~
+\end_inset
+
+<tol>] Minimum RMS tolerance (default 1E-4).
+\end_layout
+
+\begin_layout Description
+[nsteps
+\begin_inset space ~
+\end_inset
+
+<#>] Number of minimization steps (default 1).
+\end_layout
+
+\begin_layout Description
+[<mask>] Atoms to minimize (default all).
+\end_layout
+
+\begin_layout Description
+[frame
+\begin_inset space ~
+\end_inset
+
+<#>] Frame from COORDS set to minimize (default 1).
+\end_layout
+
+\begin_layout Description
+[dx0
+\begin_inset space ~
+\end_inset
+
+<step0>] Size of initial minimization step (default 0.01).
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<file>] File to write energies to.
+\end_layout
+
+\begin_layout Description
+[nonbond] If specified, use simple nonbonded potential term in additon to
+ bonded terms.
+\end_layout
+
+\begin_layout Description
+[openmm] If specified and if CPPTRAJ was compiled with OpenMM support, use
+ OpenMM to calculate the forces.
+\end_layout
+
+\begin_layout Standard
+<potential options>
+\end_layout
+
+\begin_layout Description
+cut
+\begin_inset space ~
+\end_inset
+
+<cutoff> Set nonbonded interaction cutoff in Ang.
+ (electrostatics and vdW).
+ Default 8.0.
+ 
+\end_layout
+
+\begin_layout Description
+nexclude
+\begin_inset space ~
+\end_inset
+
+<#> Number of bonded atoms within which nonbonded interactions are excluded.
+ Default 4.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+THIS COMMAND IS STILL IN DEVELOPMENT AS OF VERSION 5.0.2.
+\end_layout
+
+\begin_layout Standard
+Perform steepest descent minimization on a frame in a COORDS set using a
+ very basic force field (bonds, angles, dihedrals).
+ A simple nonbonded term can be added as well if desired.
+\end_layout
+
+\begin_layout Subsection
 graft
 \end_layout
 
@@ -6447,12 +6664,11 @@ permutedihedrals crdset <COORDS set> resrange <range> [{interval | random}]
 \end_layout
 
 \begin_layout LyX-Code
-	[ check [cutoff <cutoff>] [rescutoff <rescutoff>] [checkallresidues]
+	[ check [cutoff <cutoff>] [rescutoff <rescutoff>] [maxfactor <max_factor>]
 \end_layout
 
 \begin_layout LyX-Code
-	  [backtrack <backtrack>] [increment <increment>] [maxfactor <max_factor>]
- ]
+	 [backtrack <backtrack> [checkallresidues] [increment <increment>]] ]
 \end_layout
 
 \begin_layout LyX-Code
@@ -6619,8 +6835,12 @@ name>] Number of problems data set name.
 \end_layout
 
 \begin_layout Description
-[checkallresidues] If specified all residues checked for clashes, otherwise
- only residues up to the currently rotated dihedral check.
+[maxfactor
+\begin_inset space ~
+\end_inset
+
+<max_factor>] The maximum number of total attempted rotations will be <max_facto
+r> * <total # of dihedrals> (default 2).
 \end_layout
 
 \begin_layout Description
@@ -6628,8 +6848,15 @@ name>] Number of problems data set name.
 \begin_inset space ~
 \end_inset
 
-<backtrack>] If a clash is encountered at dihedral N and cannot be resolved,
- go to dihedral N-<backtrack> to try and resolve the clash (default 4).
+<backtrack>] (No longer recommended as of version 5.1.0).
+ If a clash is encountered at dihedral N and cannot be resolved, go to dihedral
+ N-<backtrack> to try and resolve the clash (default is no backtracking).
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[checkallresidues] If specified all residues checked for clashes, otherwise
+ only residues up to the currently rotated dihedral check.
 \end_layout
 
 \begin_layout Description
@@ -6643,15 +6870,7 @@ name>] Number of problems data set name.
  
 \end_layout
 
-\begin_layout Description
-[maxfactor
-\begin_inset space ~
-\end_inset
-
-<max_factor>] The maximum number of total attempted rotations will be <max_facto
-r> * <total # of dihedrals> (default 2).
-\end_layout
-
+\end_deeper
 \end_deeper
 \end_deeper
 \begin_layout Standard
@@ -6951,7 +7170,7 @@ The following general commands are available:
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="32" columns="2">
+<lyxtabular version="3" rows="34" columns="2">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top">
 <column alignment="center" valignment="top">
@@ -7205,6 +7424,26 @@ Quit cpptraj.
 \begin_inset Text
 
 \begin_layout Plain Layout
+flatten
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Distribute elements of 2d matrix across 1d array.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
 go | run
 \end_layout
 
@@ -7355,6 +7594,26 @@ printdata
 
 \begin_layout Plain Layout
 Print data set to screen.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+random
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Change default random number generator, create random sets.
 \end_layout
 
 \end_inset
@@ -7845,7 +8104,8 @@ datafilter {<dataset arg> min <min> max <max> ...} [out <file>] [name <setname>]
 \end_layout
 
 \begin_layout LyX-Code
-           [{multi | filterset <set> [newset <newname>]}]
+           {[multi] | [filterset <set> [newset <newname>]] [countout <countfile>
+]}
 \end_layout
 
 \begin_deeper
@@ -7917,6 +8177,57 @@ max
 \end_layout
 
 \end_deeper
+\begin_layout Description
+[countout
+\begin_inset space ~
+\end_inset
+
+<count>] If specified, write number of elements passed and filtered to <countfil
+e>.
+ Cannot be used with 'multi'.
+\end_layout
+
+\begin_layout Standard
+Sets Created (not 'multi')
+\end_layout
+
+\begin_layout Description
+<setname> For each input element contains 1 for elements that 
+\begin_inset Quotes eld
+\end_inset
+
+passed
+\begin_inset Quotes erd
+\end_inset
+
+, 0 otherwise.
+\end_layout
+
+\begin_layout Description
+<setname>[npassed] Number of elements that passed.
+\end_layout
+
+\begin_layout Description
+<setname>[nfiltered] Number of elements filtered out.
+\end_layout
+
+\begin_layout Standard
+Sets Created ('multi')
+\end_layout
+
+\begin_layout Description
+<setname>:<idx> For each input set (number with <idx>, starting from 0)
+ contains 1 for elements that 
+\begin_inset Quotes eld
+\end_inset
+
+passed
+\begin_inset Quotes erd
+\end_inset
+
+, 0 otherwise.
+\end_layout
+
 \end_deeper
 \begin_layout Standard
 Create a data set (optionally named <setname>) containing 1 for data within
@@ -7964,6 +8275,12 @@ Create a data set (optionally named <setname>) containing 1 for data within
  is also specified, a new set will be created containing the '1' frames
  instead.
  The 'filterset' functionality only works for 1D scalar sets.
+ If 
+\series bold
+'countout'
+\series default
+ is specified, the final number of elements passed and filtered out will
+ be written to <countfile>.
 \end_layout
 
 \begin_layout Standard
@@ -9606,6 +9923,171 @@ Exit normally.
 \end_layout
 
 \begin_layout Subsection
+flatten
+\end_layout
+
+\begin_layout LyX-Code
+flatten name <output set name> [mode {sum|avg}] <input set args>
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+name
+\begin_inset space ~
+\end_inset
+
+<output
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name> Name of 
+\begin_inset Quotes eld
+\end_inset
+
+flattened
+\begin_inset Quotes erd
+\end_inset
+
+ 1D output set(s).
+\end_layout
+
+\begin_layout Description
+mode
+\begin_inset space ~
+\end_inset
+
+{sum|avg} If sum, matrix elements will be summed.
+ If avg, matrix elements will be averaged.
+\end_layout
+
+\begin_layout Description
+<input
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+args> Specify matrices to 
+\begin_inset Quotes eld
+\end_inset
+
+flatten
+\begin_inset Quotes erd
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+DataSets Created
+\end_layout
+
+\begin_layout Description
+<output
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name> Flattened 1D set if only one input matrix.
+\end_layout
+
+\begin_layout Description
+<output
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name>:<idx> Flattened 1D sets when more than one input matrix; index starts
+ from 1.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Flatten 1 or more matrices into 1D array(s) by summing or averaging elements.
+ For example, given a matrix with values like this:
+\end_layout
+
+\begin_layout LyX-Code
+X Y Value
+\end_layout
+
+\begin_layout LyX-Code
+1 3 5.0
+\end_layout
+
+\begin_layout LyX-Code
+1 4 4.0
+\end_layout
+
+\begin_layout LyX-Code
+2 3 2.0
+\end_layout
+
+\begin_layout Standard
+The 
+\begin_inset Quotes eld
+\end_inset
+
+flattened
+\begin_inset Quotes erd
+\end_inset
+
+ 1D array with mode SUM would be determined as follows:
+\end_layout
+
+\begin_layout LyX-Code
+Element 1 = (5.0/2) + (4.0/2) = 4.5
+\end_layout
+
+\begin_layout LyX-Code
+Element 2 = (2.0/2) = 1.0
+\end_layout
+
+\begin_layout LyX-Code
+Element 3 = (5.0/2) + (2.0/2) = 3.5
+\end_layout
+
+\begin_layout LyX-Code
+Element 4 = (4.0/2) = 2.0
+\end_layout
+
+\begin_layout Standard
+And the final 1D array would look like so:
+\end_layout
+
+\begin_layout LyX-Code
+Index Value
+\end_layout
+
+\begin_layout LyX-Code
+1     4.5
+\end_layout
+
+\begin_layout LyX-Code
+2     1.0
+\end_layout
+
+\begin_layout LyX-Code
+3     3.5
+\end_layout
+
+\begin_layout LyX-Code
+4     2.0 
+\end_layout
+
+\begin_layout Subsection
 go | run
 \end_layout
 
@@ -9862,6 +10344,127 @@ and the output would look like:
 
 \begin_layout LyX-Code
 2 0.630
+\end_layout
+
+\begin_layout Subsection
+random
+\end_layout
+
+\begin_layout LyX-Code
+random [setdefault {marsaglia|stdlib|mt|pcg32|xo128}]
+\end_layout
+
+\begin_layout LyX-Code
+   	[createset <name> count <#> [seed <#>]
+\end_layout
+
+\begin_layout LyX-Code
+        settype {int|float01|gauss [mean <mean>] [sd <SD>]}]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+setdefault If specified, change the default random number generator (RNG).
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+marsaglia Use the Marsaglia RNG that is used in the Amber MD programs sander/pme
+md.
+\end_layout
+
+\begin_layout Description
+stdlib Use the C standard library RNG.
+\end_layout
+
+\begin_layout Description
+mt Use the C++11 implementation of the Mersenne twister (mt19937); only
+ available with C++11 support.
+\end_layout
+
+\begin_layout Description
+pcg32 Use the 32 bit version of the Permuted Congruential Generator.
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Oneill2014"
+literal "true"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Description
+xo128 Use the Xoshiro128++ RNG.
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Vigna2017"
+literal "true"
+
+\end_inset
+
+
+\end_layout
+
+\end_deeper
+\begin_layout Description
+createset If specified, create a 1D data set filled with random numbers
+ of the specified type.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+<name> Name of created set.
+\end_layout
+
+\begin_layout Description
+count
+\begin_inset space ~
+\end_inset
+
+<#> The number of elements to put into the set.
+\end_layout
+
+\begin_layout Description
+settype
+\begin_inset space ~
+\end_inset
+
+{int|float01|gauss} Type of numbers to use; integer, floating point between
+ 0 and 1, Gaussian distribution.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+mean
+\begin_inset space ~
+\end_inset
+
+<mean> Mean of distribution for 'gauss'.
+\end_layout
+
+\begin_layout Description
+sd
+\begin_inset space ~
+\end_inset
+
+<SD> Standard deviation of distribution for 'gauss'.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+seed
+\begin_inset space ~
+\end_inset
+
+<#> Optional seed for the RNG.
+\end_layout
+
+\end_deeper
+\end_deeper
+\begin_layout Standard
+This command can be used to set the default random number generator used
+ in CPPTRAJ, and/or create a 1D data set filled with random values.
 \end_layout
 
 \begin_layout Subsection
@@ -11501,7 +12104,7 @@ atominfo | atoms | printatoms
 \end_layout
 
 \begin_layout LyX-Code
-atominfo [parm <name> | parmindex <#> | <#>] [<mask>] [out <file>]
+atominfo [parm <name> | parmindex <#> | <#>] <mask> [out <file>]
 \end_layout
 
 \begin_deeper
@@ -11535,7 +12138,7 @@ parmindex
 \end_layout
 
 \begin_layout Description
-[<mask>] Mask selecting atoms to print info for.
+<mask> Mask selecting atoms to print info for.
 \end_layout
 
 \begin_layout Description
@@ -12021,7 +12624,7 @@ charge
 \end_layout
 
 \begin_layout LyX-Code
-charge [parm <name> | parmindex <#> | <#>] [<mask>] [out <file>] [name <set>]
+charge [parm <name> | parmindex <#> | <#>] <mask> [out <file>] [name <set>]
 \end_layout
 
 \begin_deeper
@@ -12046,7 +12649,7 @@ parmindex
 \end_layout
 
 \begin_layout Description
-[<mask>] Atom(s) to calculate total charge for (default all).
+<mask> Atom(s) to calculate total charge for (default all).
 \end_layout
 
 \begin_layout Description
@@ -12352,8 +12955,8 @@ mass
 \end_layout
 
 \begin_layout LyX-Code
-[<parmindex>] [parm <name> | parmindex <#> | <#>] [<mask>] [out <file>]
- [name <set>]
+[<parmindex>] [parm <name> | parmindex <#> | <#>] <mask> [out <file>] [name
+ <set>]
 \end_layout
 
 \begin_deeper
@@ -12378,7 +12981,7 @@ parmindex
 \end_layout
 
 \begin_layout Description
-[<mask>] Atom(s) to calculate total mass for (default all).
+<mask> Atom(s) to calculate total mass for (default all).
 \end_layout
 
 \begin_layout Description
@@ -12409,7 +13012,7 @@ molinfo
 \end_layout
 
 \begin_layout LyX-Code
-molinfo [parm <name> | parmindex <#> | <#>] [<mask>] [out <file>]
+molinfo [parm <name> | parmindex <#> | <#>] <mask> [out <file>]
 \end_layout
 
 \begin_deeper
@@ -12443,7 +13046,7 @@ parmindex
 \end_layout
 
 \begin_layout Description
-[<mask>] Mask selecting molecules to print info for.
+<mask> Mask selecting molecules to print info for.
 \end_layout
 
 \begin_layout Description
@@ -12482,7 +13085,24 @@ Natom
 Name
 \family default
  are the residue number and residue name of the first residue in the molecule
- respectively, and C is the chain ID of the first residue.
+ respectively, and 
+\family typewriter
+C
+\family default
+ is the chain ID of the first residue.
+ If the molecule is composed on non-consecutive fragments, 
+\family typewriter
+#Res
+\family default
+, 
+\family typewriter
+Name
+\family default
+, and 
+\family typewriter
+C
+\family default
+ will be printed for each fragment.
  
 \family typewriter
 SOLVENT
@@ -12521,7 +13141,7 @@ parm
 \end_layout
 
 \begin_layout LyX-Code
-      }]
+      }] [nomolsearch] [renumresidues]
 \end_layout
 
 \begin_deeper
@@ -12561,16 +13181,6 @@ reference "subsec:Parameter/Reference-Tagging"
 \begin_layout Description
 
 \series bold
-[nobondsearch]
-\series default
- Optional; if specified do not search for bonds via geometry if Topology
- does not include bond information.
- May cause some Actions to fail.
-\end_layout
-
-\begin_layout Description
-
-\series bold
 [bondsearch <offset>]
 \series default
  Optional; when searching for bonds via geometry search (default for Topologies
@@ -12601,6 +13211,34 @@ pairlist Uses a pair list to search for bonds between atoms.
 \end_layout
 
 \end_deeper
+\begin_layout Standard
+
+\series bold
+Advanced Options - Not recommended for general use
+\end_layout
+
+\begin_layout Description
+
+\series bold
+[nobondsearch]
+\series default
+ If specified do not search for bonds via geometry if Topology does not
+ include bond information.
+ May cause some Actions to fail.
+\end_layout
+
+\begin_layout Description
+[nomolsearch] If specified do not search for molecule information.
+ May cause some Actions to fail.
+\end_layout
+
+\begin_layout Description
+[renumresidues] If specified, ensure that any residue cannot be part of
+ more than 1 molecule (can occur with e.g.
+ alternate sites).
+ Residues will be renumbered according to molecule information in that case.
+\end_layout
+
 \end_deeper
 \begin_layout Standard
 Read in parameter file.
@@ -12765,6 +13403,17 @@ Charmm PSF:
 \end_layout
 
 \end_deeper
+\begin_layout Subsubsection
+Gromacs Top
+\end_layout
+
+\begin_layout Standard
+By default cpptraj will look for Gromacs topology data (that is not in the
+ same directory) in the directory defined by the GMXDATA environment variable;
+ specifically, it expects things to be in the "$GMXDATA/top" directory.
+ 
+\end_layout
+
 \begin_layout Subsection
 parmbox
 \end_layout
@@ -13208,7 +13857,7 @@ parmresinfo
 
 \end_inset
 
- [parm <name> | parmindex <#> | <#>] [<mask>] [short [maxwidth <#res>]]
+ [parm <name> | parmindex <#> | <#>] <mask> [short [maxwidth <#res>]]
 \end_layout
 
 \begin_layout LyX-Code
@@ -13246,7 +13895,7 @@ parmindex
 \end_layout
 
 \begin_layout Description
-[<mask>] Mask selecting residues to print info for.
+<mask> Mask selecting residues to print info for.
 \end_layout
 
 \begin_layout Description
@@ -15577,6 +16226,100 @@ trajout output.crd onlyframes 2,5-7
 only frames 2, 5, 6, and 7 from input.crd will be written to output.crd.
 \end_layout
 
+\begin_layout Subsubsection*
+Cell not X-aligned Warning
+\end_layout
+
+\begin_layout Standard
+Certain Actions (e.g.
+ 
+\series bold
+\emph on
+align
+\series default
+\emph default
+, 
+\series bold
+\emph on
+rms
+\series default
+\emph default
+, 
+\series bold
+\emph on
+principal
+\series default
+\emph default
+, etc.) can rotate the unit cell vectors (i.e.
+ the box) if they are present.
+ Some trajectory formats do not support writing out box coordinates if the
+ unit cell is not 
+\begin_inset Quotes eld
+\end_inset
+
+X-aligned
+\begin_inset Quotes erd
+\end_inset
+
+; in other words, if the unit cell 
+\begin_inset Quotes eld
+\end_inset
+
+A
+\begin_inset Quotes erd
+\end_inset
+
+ vector is not aligned with the coordinate X-axis and the 
+\begin_inset Quotes eld
+\end_inset
+
+B
+\begin_inset Quotes erd
+\end_inset
+
+ vector is not in the X-Y plane.
+ If this is the case, the following warnings may appear:
+\end_layout
+
+\begin_layout LyX-Code
+Warning: Unit cell is not X-aligned.
+ Box cannot be properly stored as <format>.
+\end_layout
+
+\begin_layout LyX-Code
+Warning: Set <#>; unit cell is not X-aligned.
+ Box cannot be properly stored as <format>.
+\end_layout
+
+\begin_layout Standard
+This means that the frame will be written with the X-aligned unit cell instead
+ of the actual unit cell.
+ Imaging will not be possible with a trajectory written this way.
+ Currently the only trajectory formats that support writing non-X-aligned
+ cells are the Gromacs TRR and XTC formats.
+\end_layout
+
+\begin_layout Standard
+If unit cell information is no longer needed, it can be removed (via e.g.
+ the 
+\series bold
+\emph on
+box
+\series default
+\emph default
+ action, the 
+\series bold
+\emph on
+strip
+\series default
+\emph default
+ action with the 
+\series bold
+'nobox'
+\series default
+ keyword, etc.) to prevent these warnings from triggering.
+\end_layout
+
 \begin_layout Subsubsection
 
 \shape italic
@@ -16002,6 +16745,13 @@ veltraj Write velocity trajectory instead of coordinates.
 \end_layout
 
 \end_deeper
+\begin_layout Standard
+Note that by default CPPTRAJ will try to write the symmetric shape matrix
+ if box information is present.
+ If this is not possible, CPPTRAJ will fall back to writing unit cell parameters
+ (lengths and angles) as long as the cell is X-aligned.
+\end_layout
+
 \begin_layout Subsubsection
 
 \emph on
@@ -16019,6 +16769,11 @@ dt Time step tp multiply set numbers by (default 1.0).
 \end_layout
 
 \end_deeper
+\begin_layout Standard
+Note: these formats can write rotated (i.e.
+ non-X-aligned) unit cells.
+\end_layout
+
 \begin_layout Subsubsection
 
 \shape italic
@@ -20494,11 +21249,15 @@ check
 
 \end_inset
 
- [<mask>] [around <mask2>] [reportfile <report>] [noimage] [skipbadframes]
+ [<mask>] [around <mask2>] [reportfile <report>] [noimage]
 \end_layout
 
 \begin_layout LyX-Code
-      [offset <offset>] [cut <cut>] [nobondcheck] [silent]
+      [skipbadframes] [offset <offset>] [minoffset <minoffset>]
+\end_layout
+
+\begin_layout LyX-Code
+      [cut <cut>] [nobondcheck] [silent] [plcut <cut>]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -20542,7 +21301,16 @@ tory output will be skipped.
 \end_inset
 
 <offset>] Report bond lengths greater than the equilibrium value plus <offset>
- (default 1.0 Å)
+ (default 1.15 Å).
+\end_layout
+
+\begin_layout Description
+[minoffset
+\begin_inset space ~
+\end_inset
+
+<minoffset>] Report bond lengths less than the equilibrium value minus <minoffse
+t> (default 0.5 Å).
 \end_layout
 
 \begin_layout Description
@@ -20566,23 +21334,63 @@ skipbadframes
  option.
 \end_layout
 
+\begin_layout Description
+[plcut
+\begin_inset space ~
+\end_inset
+
+<cut>] Pair list cutoff (default 4.0 Å); only matters if box is present.
+\end_layout
+
 \end_deeper
 \begin_layout Standard
 Check the structure and report problems related to atomic overlap/unusual
  bond length.
- Problems are reported when any two atoms in the mask are closer than 
+ Problems are reported when any two atoms in 
+\series bold
+<mask>
+\series default
+ (or between 
+\series bold
+<mask>
+\series default
+ and 
+\series bold
+<mask2>
+\series default
+ if using 
+\series bold
+'around'
+\series default
+) are closer than 
 \series bold
 <cut>
 \series default
-.
+; atoms that are bonded to each other are ignored (except if using the 
+\series bold
+'around'
+\series default
+ mask).
  If bonds are being checked then bond lengths greater than their equilibrium
- value + 
+ value plus 
 \series bold
 <offset>
 \series default
+ and less than their equilibrium value minus 
+\series bold
+<minoffset>
+\series default
  are reported as well.
- This command can also be used to skip corrupted frames in a trajectory
- during processing.
+ If box information is present and not using the 
+\series bold
+'around'
+\series default
+ mask, a pairlist will be used to speed up the calculation.
+\end_layout
+
+\begin_layout Standard
+This command can also be used to skip corrupted frames in a trajectory during
+ processing.
  For example, if this message is encountered:
 \end_layout
 
@@ -21429,20 +22237,24 @@ density
 \end_layout
 
 \begin_layout LyX-Code
-density [out <filename>] 
+density [out <filename>] [name <set name>]
 \end_layout
 
 \begin_layout LyX-Code
         [ <mask1> ...
- <maskN> [name <set name>] [delta <resolution>] [{x|y|z}]
+ <maskN> [delta <resolution>] [{x|y|z}]
 \end_layout
 
 \begin_layout LyX-Code
-          [{number|mass|charge|electron}] [{bincenter|binedge}] ]
+          [{number|mass|charge|electron}] [{bincenter|binedge}]
 \begin_inset Separator latexpar
 \end_inset
 
 
+\end_layout
+
+\begin_layout LyX-Code
+          [restrict {cylinder|square} cutoff <cut>] ]
 \end_layout
 
 \begin_deeper
@@ -21451,7 +22263,7 @@ density [out <filename>]
 \begin_inset space ~
 \end_inset
 
-<filename>] Output file for histogram (relative distances vs.
+<filename>] Output file for histogram(s) (relative distances vs.
  densities for each mask) or total density.
 \end_layout
 
@@ -21493,7 +22305,7 @@ name>] Output data set name.
 \end_layout
 
 \begin_layout Description
-[{x|y|z}] Coordinate for density calculation.
+[{x|y|z}] Coordinate (axis) for density calculation.
  (default z)
 \end_layout
 
@@ -21510,22 +22322,70 @@ name>] Output data set name.
  based on bin center (default) or bin edges.
 \end_layout
 
+\begin_layout Description
+[restrict
+\begin_inset space ~
+\end_inset
+
+{cylinder|square}] If 
+\series bold
+'restrict'
+\series default
+ is specified, only calculate the density that is within a cylinder or square
+ shape from the specified axis as defined by a distance cutoff.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+cutoff
+\begin_inset space ~
+\end_inset
+
+<cut> The distance cutoff for 
+\series bold
+'restrict'
+\series default
+.
+\end_layout
+
+\end_deeper
 \end_deeper
 \begin_layout Standard
-DataSet Aspects:
+DataSets Created if masks specified:
 \end_layout
 
 \begin_layout Description
-[avg] Average density over coordinate.
+<set
+\begin_inset space ~
+\end_inset
+
+name>[avg]:<idx> Average density over coordinate for mask number <idx>.
 \end_layout
 
 \begin_layout Description
-[sd] Standard deviation of density over coordinate.
+<set
+\begin_inset space ~
+\end_inset
+
+name>[sd]:<idx> Standard deviation of density over coordinate for mask number
+ <idx>.
+\end_layout
+
+\begin_layout Standard
+DataSets Created if no masks specified:
+\end_layout
+
+\begin_layout Description
+<set
+\begin_inset space ~
+\end_inset
+
+name> Total system density each frame.
 \end_layout
 
 \end_deeper
 \begin_layout Standard
-If no arguments are specified, calculate the total system density.
+If no atom masks are specified, calculate the total system density.
  Otherwise, calculate specified density along the given axis for atoms in
  specified mask(s).
  Defaults are shown in parentheses above.
@@ -21589,6 +22449,15 @@ density out ion_density.dat number delta 0.25 ":SOD" ":CLA"
 
 \begin_layout Standard
 See also $AMBERHOME/AmberTools/test/cpptraj/Test_Density.
+\end_layout
+
+\begin_layout Standard
+It can be useful to write out the average and standard deviation as an XYDY
+ set to a Grace data file, e.g.
+\end_layout
+
+\begin_layout LyX-Code
+density :WAT@O out wato.agr xydy
 \end_layout
 
 \begin_layout Subsection
@@ -22114,27 +22983,245 @@ dipole
 \end_layout
 
 \begin_layout LyX-Code
-dipole <filename> {data <dsname> | <nx> <dx> <ny> <dy> <nz> <dz> 
+dipole [out <filename>]
 \end_layout
 
 \begin_layout LyX-Code
-       [gridcenter <cx> <cy> <cz>]}
+ 	  { data <dsname> | boxref <ref name/tag> <nx> <ny> <nz> |
 \end_layout
 
 \begin_layout LyX-Code
-   	[box|origin|center <mask>] [negative] [name <gridname>]
+   	  <nx> <dx> <ny> <dy> <nz> <dz>
 \end_layout
 
 \begin_layout LyX-Code
-       <mask1> {origin | box} [max <max_percent>]
+         [ { gridcenter <cx> <cy> <cz> |
 \end_layout
 
+\begin_layout LyX-Code
+ 	        boxcenter | 
+\end_layout
+
+\begin_layout LyX-Code
+ 	        maskcenter <mask> |
+\end_layout
+
+\begin_layout LyX-Code
+ 	        rmsfit <mask> [noxalign]} ]
+\end_layout
+
+\begin_layout LyX-Code
+   	[box|origin|center <mask>] [negative] [name <gridname>] 
+\end_layout
+
+\begin_layout LyX-Code
+       <mask1> [max <max_percent>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<filename>] File to write out grid to.
+ Use 
+\begin_inset Quotes eld
+\end_inset
+
+.grid
+\begin_inset Quotes erd
+\end_inset
+
+ or 
+\begin_inset Quotes eld
+\end_inset
+
+.xplor
+\begin_inset Quotes erd
+\end_inset
+
+ extension for XPLOR format, 
+\begin_inset Quotes eld
+\end_inset
+
+.dx
+\begin_inset Quotes erd
+\end_inset
+
+ for OpenDX format.
+\end_layout
+
+\begin_layout Standard
+Options for setting up grid:
+\end_layout
+
+\begin_layout Description
+data
+\begin_inset space ~
+\end_inset
+
+<dsname> Use previously calculated/loaded grid data set named <dsname>.
+ When using this option there is no need to specify grid bins/spacing/center.
+\end_layout
+
+\begin_layout Description
+boxref
+\begin_inset space ~
+\end_inset
+
+<ref
+\begin_inset space ~
+\end_inset
+
+name/tag>
+\begin_inset space ~
+\end_inset
+
+<nx>
+\begin_inset space ~
+\end_inset
+
+<ny>
+\begin_inset space ~
+\end_inset
+
+<nz> Set up grid using box information from a previously loaded reference
+ structure.
+ Currently the only way to set up non-orthogonal grids.
+\end_layout
+
+\begin_layout Description
+<nx>
+\begin_inset space ~
+\end_inset
+
+<dx>
+\begin_inset space ~
+\end_inset
+
+<ny>
+\begin_inset space ~
+\end_inset
+
+<dy>
+\begin_inset space ~
+\end_inset
+
+<nz>
+\begin_inset space ~
+\end_inset
+
+<dz> Number of grid bins and spacing in the X/Y/Z directions.
+\end_layout
+
+\begin_layout Description
+[gridcenter
+\begin_inset space ~
+\end_inset
+
+<cx>
+\begin_inset space ~
+\end_inset
+
+<cy>
+\begin_inset space ~
+\end_inset
+
+<cz>] Location of grid center, default is origin (0.0, 0.0, 0.0).
+\end_layout
+
+\begin_layout Description
+[boxcenter] Center grid on box center.
+\end_layout
+
+\begin_layout Description
+[maskcenter
+\begin_inset space ~
+\end_inset
+
+<mask>] Center the grid on the atoms selected by <mask>.
+\end_layout
+
+\begin_layout Description
+[rmsfit
+\begin_inset space ~
+\end_inset
+
+<mask>] Perform a best-fit rotation of the grid using the coordinates selected
+ by <mask>.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[noxalign] If specified, grid will not be re-oriented to align with Cartesian
+ axes once binning is finished.
+ Will affect file formats that do not store full unit cell vectors (like
+ Xplor).
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Options for offset during grid binning (must center grid at origin):
+\end_layout
+
+\begin_layout Description
+[box] Offset each point by location of box center prior to gridding.
+ Cannot be used with 'gridcenter'.
+\end_layout
+
+\begin_layout Description
+[origin] No offset (default)
+\end_layout
+
+\begin_layout Description
+[center
+\begin_inset space ~
+\end_inset
+
+<mask>] Offset each point by center of atoms in <mask> prior to gridding.
+ Cannot be used with 'gridcenter'.
+\end_layout
+
+\begin_layout Standard
+Other options:
+\end_layout
+
+\begin_layout Description
+[negative] Grid negative density instead of positive density.
+\end_layout
+
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<gridname>] Grid data set name.
+\end_layout
+
+\begin_layout Description
+<mask1> Mask selecting solvent atoms to bin.
+\end_layout
+
+\begin_layout Description
+[max
+\begin_inset space ~
+\end_inset
+
+<max
+\begin_inset space ~
+\end_inset
+
+percent>] Only keep density >= to <max_percent> of the maximum density.
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 NOTE: This command is not well-tested and may be obsolete.
 \end_layout
 
 \begin_layout Standard
-Same as 
+Similar to 
 \family sans
 \series bold
 grid
@@ -22617,28 +23704,32 @@ energy [<name>] [<mask1>] [out <filename>]
 \end_layout
 
 \begin_layout LyX-Code
-   	          ewald [cut <cutoff>] [dsumtol <dtol>] [rsumtol <rtol>]
+   	          ewald [cut <cutoff>] [dsumtol <dtol>] [ewcoeff <coeff>]
 \end_layout
 
 \begin_layout LyX-Code
-   	                [ewcoeff <coeff>] [maxexp <max>] [skinnb <skinnb>]
+   	                [erfcdx <dx>] [skinnb <skinnb>] [ljswidth <width>]
 \end_layout
 
 \begin_layout LyX-Code
-   	                [mlimits <X>,<Y>,<Z>] [erfcdx <dx>]
+   	                [rsumtol <rtol>] [maxexp <max>] [mlimits <X>,<Y>,<Z>]
+ |
 \end_layout
 
 \begin_layout LyX-Code
-   	          pme [cut <cutoff>] [dsumtol <dtol>] [order <order>] [ljswidth
- <width>]
+   	          pme [cut <cutoff>] [dsumtol <dtol>] [ewcoeff <coeff>]
 \end_layout
 
 \begin_layout LyX-Code
-   	              [ewcoeff <coeff>] [ljpme] [ewcoefflj] [skinnb <skinnb>]
+   	              [erfcdx <dx>] [skinnb <skinnb>] [ljswidth <width>]
 \end_layout
 
 \begin_layout LyX-Code
-   	              [nfft <nfft1>,<nfft2>,<nfft3>] [erfcdx <dx>]
+   	              [order <order>] [nfft <nfft1>,<nfft2>,<nfft3>]
+\end_layout
+
+\begin_layout LyX-Code
+   	              [ljpme [ewcoefflj <ljcoeff>]]
 \end_layout
 
 \begin_layout LyX-Code
@@ -22753,20 +23844,19 @@ dsumtol
 \end_layout
 
 \begin_layout Description
-rsumtol
-\begin_inset space ~
-\end_inset
-
-<rtol> Reciprocal sum tolerance (default 0.00005).
- Used to determine number of reciprocal space vectors.
-\end_layout
-
-\begin_layout Description
 ewcoeff
 \begin_inset space ~
 \end_inset
 
 <coeff> Ewald coefficient in 1/Ang.
+\end_layout
+
+\begin_layout Description
+erfcdx
+\begin_inset space ~
+\end_inset
+
+<dx> Spacing to use for the ERFC splines (default 0.0002 Ang.).
 \end_layout
 
 \begin_layout Description
@@ -22783,6 +23873,24 @@ skinnb
 \end_layout
 
 \begin_layout Description
+ljswidth
+\begin_inset space ~
+\end_inset
+
+<width> If specified, use a force-switching form for the Lennard-Jones calculati
+on from <cutoff>-<width> to <cutoff>.
+\end_layout
+
+\begin_layout Description
+rsumtol
+\begin_inset space ~
+\end_inset
+
+<rtol> Reciprocal sum tolerance (default 0.00005).
+ Used to determine number of reciprocal space vectors.
+\end_layout
+
+\begin_layout Description
 mlimits
 \begin_inset space ~
 \end_inset
@@ -22790,14 +23898,6 @@ mlimits
 <X>,<Y>,<Z> Explicitly set the number of reciprocal space vectors in each
  dimension.
  Will be determined automatically if not specified.
-\end_layout
-
-\begin_layout Description
-erfcdx
-\begin_inset space ~
-\end_inset
-
-<dx> Spacing to use for the ERFC splines (default 0.0002 Ang.).
 \end_layout
 
 \end_deeper
@@ -22826,23 +23926,6 @@ dsumtol
 \end_layout
 
 \begin_layout Description
-order
-\begin_inset space ~
-\end_inset
-
-<order> Spline order for charges.
-\end_layout
-
-\begin_layout Description
-ljswidth
-\begin_inset space ~
-\end_inset
-
-<width> If specified, use a force-switching form for the Lennard-Jones calculati
-on from <cutoff>-<width> to <cutoff>.
-\end_layout
-
-\begin_layout Description
 ewcoeff
 \begin_inset space ~
 \end_inset
@@ -22851,12 +23934,11 @@ ewcoeff
 \end_layout
 
 \begin_layout Description
-ljpme If specified use particle mesh Ewald for calculating Lennard-Jones
- interactions.
-\end_layout
+erfcdx
+\begin_inset space ~
+\end_inset
 
-\begin_layout Description
-ewcoefflj Ewald coefficient for Lennard-Jones PME.
+<dx> Spacing to use for the ERFC splines (default 0.0002 Ang.).
 \end_layout
 
 \begin_layout Description
@@ -22873,6 +23955,23 @@ skinnb
 \end_layout
 
 \begin_layout Description
+ljswidth
+\begin_inset space ~
+\end_inset
+
+<width> If specified, use a force-switching form for the Lennard-Jones calculati
+on from <cutoff>-<width> to <cutoff>.
+\end_layout
+
+\begin_layout Description
+order
+\begin_inset space ~
+\end_inset
+
+<order> Spline order for charges.
+\end_layout
+
+\begin_layout Description
 nfft
 \begin_inset space ~
 \end_inset
@@ -22883,11 +23982,16 @@ nfft
 \end_layout
 
 \begin_layout Description
-erfcdx
-\begin_inset space ~
-\end_inset
+ljpme If specified use particle mesh Ewald for calculating Lennard-Jones
+ interactions.
+\end_layout
 
-<dx> Spacing to use for the ERFC splines (default 0.0002 Ang.).
+\begin_layout Description
+ewcoefflj Ewald coefficient for Lennard-Jones PME (implies 
+\series bold
+ljpme
+\series default
+).
 \end_layout
 
 \end_deeper
@@ -23156,15 +24260,11 @@ name "subsec:cpptraj-filter"
 \end_layout
 
 \begin_layout LyX-Code
-filter <dataset1 arg> min <min1> max <max1>
+filter {<dataset arg> min <min> max <max> ...} [out <file>] [name <setname>]
 \end_layout
 
 \begin_layout LyX-Code
-       [<dataset2 arg> min <min2> max <max2> ...]
-\end_layout
-
-\begin_layout LyX-Code
-       [out <file> [name <setname>]]
+  	{[multi] | [filterset <set> [newset <newname>]] [countout <countfile>]}
 \begin_inset Separator latexpar
 \end_inset
 
@@ -23173,7 +24273,7 @@ filter <dataset1 arg> min <min1> max <max1>
 
 \begin_deeper
 \begin_layout Description
-<datasetX
+<dataset
 \begin_inset space ~
 \end_inset
 
@@ -23185,7 +24285,7 @@ min
 \begin_inset space ~
 \end_inset
 
-<minX> Allow values greater than <min> in dataset X.
+<min> Allow values greater than <min> in dataset(s).
 \end_layout
 
 \begin_layout Description
@@ -23193,7 +24293,7 @@ max
 \begin_inset space ~
 \end_inset
 
-<maxX> Allow values greater than <max> in dataset X.
+<max> Allow values greater than <max> in dataset(s).
 \end_layout
 
 \begin_layout Description
@@ -23212,6 +24312,84 @@ max
 
 <setname>] Filtered data set name containing 1 for allowed frames, 0 for
  filtered frames.
+\end_layout
+
+\begin_layout Description
+[multi] Filter each set separately instead of all together (creates filter
+ set for each input set).
+ Cannot be used with 'filterset'.
+\end_layout
+
+\begin_layout Description
+[filterset
+\begin_inset space ~
+\end_inset
+
+<set>] If specified, <set> will be filtered to only contain data that satisfies
+ cutoffs.
+ Cannot be used with 'multi'.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[newset
+\begin_inset space ~
+\end_inset
+
+<newname>] If specified a new set will be created from 'filterset' instead
+ of replacing 'filterset'.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[countout
+\begin_inset space ~
+\end_inset
+
+<count>] If specified, write number of elements passed and filtered to <countfil
+e>.
+ Cannot be used with 'multi'.
+\end_layout
+
+\begin_layout Standard
+Sets Created (not 'multi')
+\end_layout
+
+\begin_layout Description
+<setname> For each input element contains 1 for elements that 
+\begin_inset Quotes eld
+\end_inset
+
+passed
+\begin_inset Quotes erd
+\end_inset
+
+, 0 otherwise.
+\end_layout
+
+\begin_layout Description
+<setname>[npassed] Number of elements that passed.
+\end_layout
+
+\begin_layout Description
+<setname>[nfiltered] Number of elements filtered out.
+\end_layout
+
+\begin_layout Standard
+Sets Created ('multi')
+\end_layout
+
+\begin_layout Description
+<setname>:<idx> For each input set (number with <idx>, starting from 0)
+ contains 1 for elements that 
+\begin_inset Quotes eld
+\end_inset
+
+passed
+\begin_inset Quotes erd
+\end_inset
+
+, 0 otherwise.
 \end_layout
 
 \end_deeper
@@ -23246,7 +24424,43 @@ For all following actions, only include frames that are between
 <max>
 \series default
  arguments as there are specified data sets.
- For example, to write only frames in-between an RMSD of 0.7-0.8 Angstroms
+ If 
+\series bold
+'multi'
+\series default
+ is specified then only filter data sets will be created for each data set
+ instead.
+ If 
+\series bold
+'filterset'
+\series default
+ is specified, the specified <set> will be modified to only contain '1'
+ frames; cannot be used with 
+\series bold
+'multi'
+\series default
+.
+ If 
+\series bold
+'newset'
+\series default
+ is also specified, a new set will be created containing the '1' frames
+ instead.
+ The 
+\series bold
+'filterset'
+\series default
+ functionality only works for 1D scalar sets.
+ If 
+\series bold
+'countout'
+\series default
+ is specified, the final number of elements passed and filtered out will
+ be written to <countfile>.
+\end_layout
+
+\begin_layout Standard
+For example, to write only frames in-between an RMSD of 0.7-0.8 Angstroms
  for a given input trajectory:
 \end_layout
 
@@ -23474,7 +24688,7 @@ gist
 
 \end_inset
 
- [doorder] [doeij] [skipS] [skipE] [refdens <rdval>] [temp <tval>]
+ [doorder] [doeij] [skipE] [skipS] [refdens <rdval>] [temp <tval>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -23482,15 +24696,36 @@ gist
 \end_layout
 
 \begin_layout LyX-Code
-     [griddim <xval> <yval> <zval>] [gridspacn <spaceval>]
+     [griddim <nx> <ny> <nz>] [gridspacn <spaceval>] [neighborcut <ncut>]
 \end_layout
 
 \begin_layout LyX-Code
-     [prefix <filename prefix>] [ext <grid extension>] [out <output>]
+     [prefix <filename prefix>] [ext <grid extension>] [out <output suffix>]
 \end_layout
 
 \begin_layout LyX-Code
-     [info <info>]
+     [floatfmt {double|scientific|general}] [floatwidth <fw>] [floatprec
+ <fp>]
+\end_layout
+
+\begin_layout LyX-Code
+ 	[intwidth <iw>]
+\end_layout
+
+\begin_layout LyX-Code
+     [info <info suffix>]
+\end_layout
+
+\begin_layout LyX-Code
+     [nopme|pme [cut <cutoff>] [dsumtol <dtol>] [ewcoeff <coeff>]
+\end_layout
+
+\begin_layout LyX-Code
+ 	 [erfcdx <dx>] [skinnb <skinnb>] [ljswidth <width>]
+\end_layout
+
+\begin_layout LyX-Code
+ 	 [order <order>] [nfft <nfft1>,<nfft2>,<nfft3>]]
 \end_layout
 
 \begin_deeper
@@ -23599,17 +24834,18 @@ rdval>]
 \begin_inset space ~
 \end_inset
 
-<xval>
+<nx>
 \begin_inset space ~
 \end_inset
 
-<yval>
+<ny>
 \begin_inset space ~
 \end_inset
 
-<zval>]
+<nz>]
 \series default
- Grid dimensions along each coordinate axis (default 40, 40, 40).
+ Grid dimensions (number of bins/voxels) along each coordinate axis (default
+ 40, 40, 40).
 \end_layout
 
 \begin_layout Description
@@ -23623,6 +24859,14 @@ rdval>]
 \series default
  Grid spacing (linear dimension of each voxel) in Angstroms.
  Values greater than 0.75 Å are not recommended (default 0.5 Å).
+\end_layout
+
+\begin_layout Description
+[neighborcut
+\begin_inset space ~
+\end_inset
+
+<ncut>] Cutoff in Å for determining solvent O-O neighbors (default 3.5 Å).
 \end_layout
 
 \begin_layout Description
@@ -23672,10 +24916,47 @@ extension>] Output grid file name extension (default
 \begin_inset space ~
 \end_inset
 
-<output>]
+<output suffix>]
 \series default
- Name of the main GIST output file.
- If not specified set to '<prefix>-output.dat'.
+ Suffix for main GIST output file name.
+ If not specified, output file will be set to '<prefix>-output.dat'.
+\end_layout
+
+\begin_layout Description
+[floatfmt
+\begin_inset space ~
+\end_inset
+
+{double|scientific|general}] Format for floating point values in GIST output
+ file: double (regular fixed decimal point), scientific, or general (default,
+ chooses fixed or scientific, whichever fits better).
+\end_layout
+
+\begin_layout Description
+[floatwidth
+\begin_inset space ~
+\end_inset
+
+<fw>] Changes width of floating point values in GIST output file.
+ Default is no width restriction.
+\end_layout
+
+\begin_layout Description
+[floatprec
+\begin_inset space ~
+\end_inset
+
+<fp>] Changes precision of floating point values in GIST output file.
+ Default is to use whatever the system default is.
+\end_layout
+
+\begin_layout Description
+[intwidth
+\begin_inset space ~
+\end_inset
+
+<iw>] Changes width of integer values in GIST output file.
+ Default is no width restriction.
 \end_layout
 
 \begin_layout Description
@@ -23683,10 +24964,104 @@ extension>] Output grid file name extension (default
 \begin_inset space ~
 \end_inset
 
-<info>] Name of main GIST info file.
- If not specified info is written to standard output.
+<info
+\begin_inset space ~
+\end_inset
+
+suffix>] Suffix for main GIST info file name.
+ If not specified, info will be written to standard output.
 \end_layout
 
+\begin_layout Description
+[nopme] Do not use particle mesh Ewald for the non-bonded calculation (default).
+\end_layout
+
+\begin_layout Description
+[pme] Use particle mesh Ewald for the non-bonded electrostatics calculation.
+ The van der Waals energy will be calculated using a long-range correction
+ for periodicity.
+ Does not support 
+\series bold
+doeij
+\series default
+.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+cut
+\begin_inset space ~
+\end_inset
+
+<cutoff> Direct space cutoff in Angstroms (default 8.0).
+\end_layout
+
+\begin_layout Description
+dsumtol
+\begin_inset space ~
+\end_inset
+
+<dtol> Direct sum tolerance (default 0.00001).
+ Used to determine Ewald coefficient.
+\end_layout
+
+\begin_layout Description
+ewcoeff
+\begin_inset space ~
+\end_inset
+
+<coeff> Ewald coefficient in 1/Ang.
+\end_layout
+
+\begin_layout Description
+erfcdx
+\begin_inset space ~
+\end_inset
+
+<dx> Spacing to use for the ERFC splines (default 0.0002 Ang.).
+\end_layout
+
+\begin_layout Description
+skinnb Used to determine pairlist atoms (added to cut, so pairlist cutoff
+ is 
+\series bold
+cut
+\series default
+ + 
+\series bold
+skinnb
+\series default
+); included in order to maintain consistency with results from sander.
+\end_layout
+
+\begin_layout Description
+ljswidth
+\begin_inset space ~
+\end_inset
+
+<width> If specified, use a force-switching form for the Lennard-Jones calculati
+on from <cutoff>-<width> to <cutoff>.
+\end_layout
+
+\begin_layout Description
+order
+\begin_inset space ~
+\end_inset
+
+<order> Spline order for charges.
+\end_layout
+
+\begin_layout Description
+nfft
+\begin_inset space ~
+\end_inset
+
+<nfft1>,<nfft2>,<nfft3> Explicitly set the number of FFT grid points in
+ each dimension.
+ Will be determined automatically if not specified.
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 DataSet Aspects:
 \end_layout
@@ -23744,6 +25119,14 @@ DataSet Aspects:
 
 \begin_layout Description
 [Eij] Water-water interaction matrix.
+\end_layout
+
+\begin_layout Description
+[PME] (pme only) Mean water energy on the GIST grid.
+\end_layout
+
+\begin_layout Description
+[U_PME] (pme only) Mean solute energy on the GIST grid.
 \end_layout
 
 \end_deeper
@@ -23929,6 +25312,19 @@ keyword is not available.
 doorder
 \series default
 ) is negligible.
+\end_layout
+
+\begin_layout Standard
+The nonbonded energy calculation can also be accelerated using particle
+ mesh Ewald via the pme keyword (CPU only).
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Chen2021"
+literal "true"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Subsubsection*
@@ -25044,7 +26440,7 @@ name "subsec:cpptraj_grid"
 \end_layout
 
 \begin_layout LyX-Code
-grid <filename>
+grid [out <filename>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -25052,7 +26448,23 @@ grid <filename>
 \end_layout
 
 \begin_layout LyX-Code
- 	  <nx> <dx> <ny> <dy> <nz> <dz> [gridcenter <cx> <cy> <cz>] }
+ 	  <nx> <dx> <ny> <dy> <nz> <dz>
+\end_layout
+
+\begin_layout LyX-Code
+       [ { gridcenter <cx> <cy> <cz> |
+\end_layout
+
+\begin_layout LyX-Code
+ 	      boxcenter | 
+\end_layout
+
+\begin_layout LyX-Code
+ 	      maskcenter <mask> |
+\end_layout
+
+\begin_layout LyX-Code
+ 	      rmsfit <mask> [noxalign]} ]
 \end_layout
 
 \begin_layout LyX-Code
@@ -25077,7 +26489,11 @@ grid <filename>
 
 \begin_deeper
 \begin_layout Description
-<filename> File to write out grid to.
+[out
+\begin_inset space ~
+\end_inset
+
+<filename>] File to write out grid to.
  Use 
 \begin_inset Quotes eld
 \end_inset
@@ -25184,6 +26600,36 @@ name/tag>
 <cz>] Location of grid center, default is origin (0.0, 0.0, 0.0).
 \end_layout
 
+\begin_layout Description
+[boxcenter] Center grid on box center.
+\end_layout
+
+\begin_layout Description
+[maskcenter
+\begin_inset space ~
+\end_inset
+
+<mask>] Center the grid on the atoms selected by <mask>.
+\end_layout
+
+\begin_layout Description
+[rmsfit
+\begin_inset space ~
+\end_inset
+
+<mask>] Perform a best-fit rotation of the grid using the coordinates selected
+ by <mask>.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[noxalign] If specified, grid will not be re-oriented to align with Cartesian
+ axes once binning is finished.
+ Will affect file formats that do not store full unit cell vectors (like
+ Xplor).
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 Options for offset during grid binning (must center grid at origin):
 \end_layout
@@ -25391,7 +26837,9 @@ Examples
 \end_layout
 
 \begin_layout Standard
-Grid water density around a solute.
+Example 1: Grid water density around a solute.
+ The solute is imaged to the origin and rms fit to the first frame.
+ The grid will be centered on the origin as well.
 \end_layout
 
 \begin_layout LyX-Code
@@ -25419,7 +26867,42 @@ grid out.dx 20 0.5 20 0.5 20 0.5 :WAT@O
 \end_layout
 
 \begin_layout Standard
-Generate grid from bounds command.
+Example 2: Grid water density around a solute.
+ The grid is centered on the solute.
+\end_layout
+
+\begin_layout LyX-Code
+trajin tz2.truncoct.nc
+\end_layout
+
+\begin_layout LyX-Code
+autoimage
+\end_layout
+
+\begin_layout LyX-Code
+grid out.dx 20 0.5 20 0.5 20 0.5 :WAT@O maskcenter :1-13
+\end_layout
+
+\begin_layout Standard
+Example 3: Grid water density around a solute.
+ The grid is centered on the solute and rms-fit.
+ The density obtained should be equivalent to the first example.
+\end_layout
+
+\begin_layout LyX-Code
+trajin tz2.truncoct.nc
+\end_layout
+
+\begin_layout LyX-Code
+image :WAT
+\end_layout
+
+\begin_layout LyX-Code
+grid out.dx 20 0.5 20 0.5 20 0.5 :WAT@O rmsfit :1-13
+\end_layout
+
+\begin_layout Standard
+Example 4: Generate grid from bounds command.
 \end_layout
 
 \begin_layout LyX-Code
@@ -25463,7 +26946,7 @@ crdaction MyCoords grid bounds.xplor data MyGrid :WAT@O
 \end_layout
 
 \begin_layout Standard
-Create non-orthogonal grid:
+Example 5: Create non-orthogonal grid based on the box.
 \end_layout
 
 \begin_layout LyX-Code
@@ -27806,15 +29289,15 @@ mask
 
 \end_inset
 
- <mask> [maskout <filename>]
+ <mask> [maskout <filename>] [out <filename>] [nselectedout <filename>]
 \end_layout
 
 \begin_layout LyX-Code
-     [ {maskpdb <filename> | maskmol2 <filename>}
+     [name <setname>] [ {maskpdb <filename> | maskmol2 <filename>}
 \end_layout
 
 \begin_layout LyX-Code
-       [trajargs <comma-separated args>] ]
+                        [trajargs <comma-separated args>] ]
 \end_layout
 
 \begin_deeper
@@ -27828,6 +29311,31 @@ maskout
 \end_inset
 
 <filename> Write information on atoms in <mask> to <filename>.
+\end_layout
+
+\begin_layout Description
+out
+\begin_inset space ~
+\end_inset
+
+<filename> Write the frame, atom number, atom name, residue number, residue
+ name, and molecule number for each selected atom to file.
+\end_layout
+
+\begin_layout Description
+nselectedout
+\begin_inset space ~
+\end_inset
+
+<filename> Write the total number of selected atoms to file.
+\end_layout
+
+\begin_layout Description
+name
+\begin_inset space ~
+\end_inset
+
+<setname> Name for output data sets.
 \end_layout
 
 \begin_layout Description
@@ -27857,6 +29365,38 @@ trajargs
 
 args> When writing output PDB/Mol2, additional trajectory arguments to pass
  to the output trajectory.
+\end_layout
+
+\begin_layout Standard
+DataSets Created
+\end_layout
+
+\begin_layout Description
+<name> Number of atoms selected each frame.
+\end_layout
+
+\begin_layout Description
+<name>[Frm] Frame number for each selected atom.
+\end_layout
+
+\begin_layout Description
+<name>[AtNum] Atom number for each selected atom.
+\end_layout
+
+\begin_layout Description
+<name>[Aname] Atom name for each selected atom.
+\end_layout
+
+\begin_layout Description
+<name>[Rnum] Residue number for each selected atom.
+\end_layout
+
+\begin_layout Description
+<name>[Rname] Residue name for each selected atom.
+\end_layout
+
+\begin_layout Description
+<name>[Mnum] Molecule number for each selected atom.
 \end_layout
 
 \end_deeper
@@ -28764,11 +30304,11 @@ Offset: -2=<a0><a1> in previous res, -1=<a0> in previous res, 0=All <aX>
 
 \end_deeper
 \begin_layout Standard
-DataSet Aspects:
+DataSets Generated:
 \end_layout
 
 \begin_layout Description
-[<dihedral
+<name>[<dihedral
 \begin_inset space ~
 \end_inset
 
@@ -28822,6 +30362,218 @@ dihtype
 
 \begin_layout LyX-Code
 multidihedral dihtype chi1:N:CA:CB:CG out custom.dat
+\end_layout
+
+\begin_layout Subsection
+multipucker
+\end_layout
+
+\begin_layout LyX-Code
+multipucker [<name>] [<pucker types>] [out <filename>] [resrange <range>]
+\end_layout
+
+\begin_layout LyX-Code
+            [altona|cremer] [puckertype <name>:<a0>:<a1>:<a2>:<a3>:<a4>[:<a5>]
+ ...]
+\end_layout
+
+\begin_layout LyX-Code
+        	[amplitude [ampout <ampfile>]] [theta [thetaout <thetafile>]]
+\end_layout
+
+\begin_layout LyX-Code
+        	[range360] [offset <offset>]
+\end_layout
+
+\begin_layout LyX-Code
+        	<pucker types> =  nucleic furanose pyranose
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[<name>] Output data set name.
+\end_layout
+
+\begin_layout Description
+<pucker
+\begin_inset space ~
+\end_inset
+
+types> Pucker types to look for.
+ 
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<filename>] Output file name to write pucker data to.
+\end_layout
+
+\begin_layout Description
+[resrange
+\begin_inset space ~
+\end_inset
+
+<range>] Residue range to look for puckers in.
+ Default is all solute residues.
+\end_layout
+
+\begin_layout Description
+[puckertype
+\begin_inset space ~
+\end_inset
+
+<name>:<a0>:<a1>:<a2>:<a3>:<a4>[:<a5>] Search for a custom pucker type called
+ <name> using atom names <a0>, <a1>, <a2>, <a3>, and <a4> (also <a5> for
+ 6 atom puckers).
+\end_layout
+
+\begin_layout Description
+[altona] Use method of Altona & Sundaralingam (5 atoms only).
+ This is the default when pucker has 5 atoms.
+\end_layout
+
+\begin_layout Description
+[cremer] Use method of Cremer and Pople (5 or 6 atoms).
+ This is the default when pucker has 6 atoms.
+\end_layout
+
+\begin_layout Description
+[amplitude] Also calculate amplitude (in degrees).
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+ampout
+\begin_inset space ~
+\end_inset
+
+<ampfile> File to write amplitude sets to.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[theta] (Valid for 6 atoms only) Also calculate theta (in degrees).
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+thetaout
+\begin_inset space ~
+\end_inset
+
+<thetafile> File to write theta sets to.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[range360] Wrap pucker values from 0.0 to 360.0 (default is -180.0 to 180.0).
+\end_layout
+
+\begin_layout Description
+[offset
+\begin_inset space ~
+\end_inset
+
+<offset>] Add <offset> to pucker values.
+\end_layout
+
+\begin_layout Standard
+DataSets Generated:
+\end_layout
+
+\begin_layout Description
+<name>[<pucker
+\begin_inset space ~
+\end_inset
+
+type>]:<#> Aspect corresponds to the pucker type name (e.g.
+ [nucleic], [furanose], etc).
+ The index is the residue number.
+\end_layout
+
+\begin_layout Description
+<name>[<pucker
+\begin_inset space ~
+\end_inset
+
+type>Amp]:<#> 
+\series bold
+amplitude
+\series default
+ only.
+ Data set for pucker amplitude.
+\end_layout
+
+\begin_layout Description
+<name>[<pucker
+\begin_inset space ~
+\end_inset
+
+type>Theta]:<#> 
+\series bold
+theta
+\series default
+ only.
+ Data set for pucker theta.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+
+\shape italic
+Note data sets are not generated until 
+\series bold
+run
+\series default
+ is called.
+\end_layout
+
+\begin_layout Standard
+Calculate specified pucker types for residues in given range.
+ By default, puckers are identified based on standard Amber atom names.
+ The resulting data sets will have aspect equal to [<pucker type>] and index
+ equal to residue #.
+ In order to be identified as a pucker, all consecutive atoms in the pucker
+ must be bonded, and the last atom of the pucker must be bonded to the first.
+\end_layout
+
+\begin_layout Standard
+For example, to calculate all nucleic acid ribose puckers for residues 6
+ to 9:
+\end_layout
+
+\begin_layout LyX-Code
+multipucker MyPuckers nucleic resrange 6-9 out Pucker_6-9.dat
+\end_layout
+
+\begin_layout Standard
+This will generate data sets named MyPuckers[nucleic]:6, MyPuckers[nucleic]:7,
+ etc.
+ Puckers other than those defined in 
+\series bold
+<pucker types>
+\series default
+ can be searched for using 
+\series bold
+puckertype
+\series default
+.
+ For example to create a custom pucker type called furanoid using atoms
+ C2, C3, C4, C5, and O2, then search for and calculate that pucker (with
+ amplitudes) using the method of Cremer and Pople in all residues:
+\end_layout
+
+\begin_layout LyX-Code
+multipucker Furanoid puckertype furanoid:C2:C3:C4:C5:O2 cremer 
+\backslash
+
+\end_layout
+
+\begin_layout LyX-Code
+  out furanoid.dat amplitude ampout furanoid.dat
 \end_layout
 
 \begin_layout Subsection
@@ -28914,7 +30666,7 @@ nastruct
 
 \end_inset
 
- [<dataset name>] [resrange <range>] [naout <suffix>]
+ [<dataset name>] [resrange <range>] [sscalc] [naout <suffix>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -28963,6 +30715,10 @@ name>] Output data set name.
 \end_layout
 
 \begin_layout Description
+[sscalc] Calculate parameters between consectuive bases in strands.
+\end_layout
+
+\begin_layout Description
 [naout
 \begin_inset space ~
 \end_inset
@@ -28970,6 +30726,11 @@ name>] Output data set name.
 <suffix>] File name suffix for output files; BP.<suffix> for base pair parameters
 , BPstep.<suffix> for base pair step parameters, and Helix.<suffix> for base
  pair step helical parameters.
+ If 
+\series bold
+sscalc
+\series default
+ is specified, also SS.<suffix> for parameters of consecutive bases in strands.
 \end_layout
 
 \begin_layout Description
@@ -29264,11 +31025,39 @@ Helical steps:
 <name>[htwist]:X Helical twist.
 \end_layout
 
+\begin_layout Standard
+Strands (sscalc only):
+\end_layout
+
+\begin_layout Description
+<name>[dx]:X Strand pair X (starting from 1) X displacement.
+\end_layout
+
+\begin_layout Description
+<name>[dy]:X Y displacement.
+\end_layout
+
+\begin_layout Description
+<name>[dz]:X Z displacement.
+\end_layout
+
+\begin_layout Description
+<name>[rx]:X Relative rotation around X axis.
+\end_layout
+
+\begin_layout Description
+<name>[ry]:X Relative rotation around Y axis.
+\end_layout
+
+\begin_layout Description
+<name>[rz]:X Relateive rotation around Z axis.
+\end_layout
+
 \end_deeper
 \begin_layout Standard
 
 \shape italic
-Note that data sets are not created until base pairing is determined.
+Note that base pair data sets are not created until base pairing is determined.
 \end_layout
 
 \begin_layout Standard
@@ -29399,6 +31188,16 @@ run
 
 \begin_layout LyX-Code
 writedata NApucker.dat NA[pucker]
+\end_layout
+
+\begin_layout Standard
+Note that while the underlying procedure is geared towards calculating parameter
+s for base pairs, the code can be made to calculate parameters between consecuti
+ve bases in single strands by specifying 
+\series bold
+sscalc
+\series default
+.
 \end_layout
 
 \begin_layout Subsubsection*
@@ -31519,13 +33318,67 @@ randomizeions
 \end_layout
 
 \begin_layout LyX-Code
-randomizeions <mask> [around <mask> by <distance>] [overlap <value>]
+randomizeions <mask> [around <ardoundmask> by <distance>] [{allowoverlap|overlap
+ <value>}]
 \end_layout
 
 \begin_layout LyX-Code
-              [noimage] [seed <value>]
+              [noimage] [seed <value>] [originalalgorithm]
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+<mask> Mask of ions to randomize.
+\end_layout
+
+\begin_layout Description
+around
+\begin_inset space ~
+\end_inset
+
+<mask>
+\begin_inset space ~
+\end_inset
+
+by
+\begin_inset space ~
+\end_inset
+
+<distance> Ensure ions come no closer than <distance> Ang.
+ to atoms in <aroundmask>.
+\end_layout
+
+\begin_layout Description
+allowoverlap No restrictions on how close ions can be to each other.
+\end_layout
+
+\begin_layout Description
+overlap
+\begin_inset space ~
+\end_inset
+
+<value> Ions in <mask> can be no closer than <value> Ang.
+ to each other.
+\end_layout
+
+\begin_layout Description
+[noimage] Do not image distances.
+\end_layout
+
+\begin_layout Description
+[seed
+\begin_inset space ~
+\end_inset
+
+<value>] Seed for the random number generator.
+\end_layout
+
+\begin_layout Description
+[originalalgorithm] Use the original, slower algorithm (from versions before
+ 5.1.0).
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 This can be used to randomly swap the positions of solvent and single atom
  ions.
@@ -33449,6 +35302,10 @@ setvelocity [<mask>]
 \end_layout
 
 \begin_layout LyX-Code
+               add [value <val>] [vx <xval>] [vy <yval>] [vz <zval>] |
+\end_layout
+
+\begin_layout LyX-Code
                none |
 \end_layout
 
@@ -33516,6 +35373,44 @@ scale Scale existing velocities
 
 \end_deeper
 \begin_layout Description
+add Add to existing velocities
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[value
+\begin_inset space ~
+\end_inset
+
+<val>] Value to add to velocities.
+\end_layout
+
+\begin_layout Description
+[vx
+\begin_inset space ~
+\end_inset
+
+<xval>] Value to add to X component of velocities.
+\end_layout
+
+\begin_layout Description
+[vy
+\begin_inset space ~
+\end_inset
+
+<yval>] Value to add to Y component of velocities.
+\end_layout
+
+\begin_layout Description
+[vz
+\begin_inset space ~
+\end_inset
+
+<zval>] Value to add to Z component of velocities.
+\end_layout
+
+\end_deeper
+\begin_layout Description
 none Remove any velocities.
 \end_layout
 
@@ -33570,7 +35465,10 @@ zeromomentum If specified adjust velocities so the total momentum of atoms
 \end_deeper
 \begin_layout Standard
 Set velocities in frame for atoms in <mask> using Maxwellian distribution
- based on given temperature.
+ based on given temperature, optionally adjusted for SHAKE constraints.
+ Can also be used to modify existing velocity information or remove it entirely.
+ The total momentum of the system can be set to zero as well, which can
+ be useful for NVE simulations.
 \end_layout
 
 \begin_layout Subsection
@@ -34525,9 +36423,59 @@ trans | translate
 \end_layout
 
 \begin_layout LyX-Code
-translate [<mask>] [x <dx>] [y <dy>] [z <dz>]
+translate [<mask>] {[x <dx>] [y <dy>] [z <dz>] | topoint <x>,<y>,<z> [mass]}
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+<mask> Mask of atoms to translate (all atoms if not specified).
+\end_layout
+
+\begin_layout Description
+x
+\begin_inset space ~
+\end_inset
+
+<dx> Translation (delta) in the X direction (Å).
+\end_layout
+
+\begin_layout Description
+y
+\begin_inset space ~
+\end_inset
+
+<dx> Translation (delta) in the Y direction (Å).
+\end_layout
+
+\begin_layout Description
+z
+\begin_inset space ~
+\end_inset
+
+<dx> Translation (delta) in the Z direction (Å).
+\end_layout
+
+\begin_layout Description
+topoint
+\begin_inset space ~
+\end_inset
+
+<x>,<y>,<z> If specified, translate center of specified atoms to a specific
+ point defined by <x>, <y>, and <z> in the given comma-separated list instead
+ of by deltas.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+mass If specified, translate center of mass of specified atoms (
+\series bold
+topoint
+\series default
+ only).
+\end_layout
+
+\end_deeper
+\end_deeper
 \begin_layout Standard
 Translate atoms in 
 \series bold
@@ -34546,6 +36494,12 @@ Translate atoms in
 <dz>
 \series default
  Å in the Z direction.
+ If 
+\series bold
+'topoint
+\series default
+' is specified, translate atoms in <mask> to the specified coordinates (also
+ in Å).
 \end_layout
 
 \begin_layout Subsection
@@ -34803,7 +36757,7 @@ vector [<name>] <Type> [out <filename> [ptrajoutput]] [<mask1>] [<mask2>]
 \end_layout
 
 \begin_layout LyX-Code
-   	[magnitude] [ired]
+   	[magnitude] [ired] [gridset <grid>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -34884,6 +36838,27 @@ ptraj
 \begin_layout Description
 [ired] Mark this vector for subsequent IRED analysis with commands 'matrix
  ired' and 'ired'.
+\end_layout
+
+\begin_layout Description
+[gridset
+\begin_inset space ~
+\end_inset
+
+<grid>] Name of grid data set to get box info from instead of frame for
+ 
+\series bold
+box
+\series default
+, 
+\series bold
+boxcenter
+\series default
+, and 
+\series bold
+ucell[x|y|z]
+\series default
+.
 \end_layout
 
 \begin_layout Standard
@@ -35246,7 +37221,7 @@ volmap [out <filename>] <mask> [radscale <factor>] [stepfac <fac>]
 \end_layout
 
 \begin_layout LyX-Code
-   	[sphere] [radii {vdw | element}]
+   	[sphere] [radii {vdw | element}] [splinedx <spacing>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -35337,6 +37312,14 @@ radii
 
 {vdw|element} Specify either van der Waals radii (default) or elemental
  radii.
+\end_layout
+
+\begin_layout Description
+splinedx
+\begin_inset space ~
+\end_inset
+
+<spacing> Spacing to use for cubic spline interpolation (default 0.01 Ang.).
 \end_layout
 
 \begin_layout Description
@@ -35546,6 +37529,19 @@ centermask
 buffer
 \series default
 .
+\end_layout
+
+\begin_layout Standard
+The calculation is sped up by using cubic splines to interpolate the exponential
+ function when calculating the Gaussians.
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Roe2021"
+literal "true"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Subsection
@@ -35945,7 +37941,7 @@ trajin
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="46" columns="3">
+<lyxtabular version="3" rows="47" columns="3">
 <features islongtable="true" longtabularalignment="center">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="50text%">
@@ -36415,6 +38411,35 @@ Calculate Kullback-Leibler divergence between two data sets.
 
 \begin_layout Plain Layout
 2 1D scalar
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+evalplateau
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Evaluate whether the data in a 1D set has reached a single exponential plateau.
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
 \end_layout
 
 \end_inset
@@ -40506,6 +42531,234 @@ Calculate Kullback-Leibler divergence between specified data sets.
 \end_layout
 
 \begin_layout Subsection
+evalplateau
+\end_layout
+
+\begin_layout LyX-Code
+evalplateau [name <set out name>] [tol <tol>] [valacut <valacut>]
+\end_layout
+
+\begin_layout LyX-Code
+        	[initpct <initial pct>] [finalpct <final pct>]
+\end_layout
+
+\begin_layout LyX-Code
+        	[chisqcut <chisqcut>] [slopecut <slopecut>] [maxit <maxit>]
+\end_layout
+
+\begin_layout LyX-Code
+        	[out <outfile>] [resultsout <resultsfile>] [statsout <statsfile>]
+\end_layout
+
+\begin_layout LyX-Code
+        	<input set args> ...
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+name
+\begin_inset space ~
+\end_inset
+
+<set
+\begin_inset space ~
+\end_inset
+
+out
+\begin_inset space ~
+\end_inset
+
+name>] Name for output data sets.
+\end_layout
+
+\begin_layout Description
+tol
+\begin_inset space ~
+\end_inset
+
+<tol> Curve fitting tolerance.
+ Default 0.00001.
+\end_layout
+
+\begin_layout Description
+valacut
+\begin_inset space ~
+\end_inset
+
+<valacut> (
+\begin_inset Quotes eld
+\end_inset
+
+Value A cutoff
+\begin_inset Quotes erd
+\end_inset
+
+) Cutoff for last half average vs estimated long term value.
+ Default 0.01.
+\end_layout
+
+\begin_layout Description
+initpct
+\begin_inset space ~
+\end_inset
+
+<initial
+\begin_inset space ~
+\end_inset
+
+pct> The initial percentage of data to use for the initial density guess.
+ Default 1%.
+\end_layout
+
+\begin_layout Description
+finalpct
+\begin_inset space ~
+\end_inset
+
+<final
+\begin_inset space ~
+\end_inset
+
+pct> The final percentatge of data to use for the final density guess.
+ Default 50%.
+\end_layout
+
+\begin_layout Description
+chisqcut
+\begin_inset space ~
+\end_inset
+
+<chisqcut> Curve fit chi-squared cutoff.
+ Defualt 0.5.
+\end_layout
+
+\begin_layout Description
+slopecut
+\begin_inset space ~
+\end_inset
+
+<slopecut> Final slope of fitted curve cutoff.
+ Default 0.000001.
+\end_layout
+
+\begin_layout Description
+maxit
+\begin_inset space ~
+\end_inset
+
+<maxit> Maximum number of iterations to perform during curve fit.
+\end_layout
+
+\begin_layout Description
+out
+\begin_inset space ~
+\end_inset
+
+<outfile> File to write data and fitted curve to.
+\end_layout
+
+\begin_layout Description
+resultsout
+\begin_inset space ~
+\end_inset
+
+<resultsfile> File to write plateau results to.
+\end_layout
+
+\begin_layout Description
+statsout
+\begin_inset space ~
+\end_inset
+
+<statsfile> File to write curve fitting stats to.
+\end_layout
+
+\begin_layout Description
+<input
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+args> Data sets to evaluate plateau for.
+\end_layout
+
+\begin_layout Standard
+Data Sets Created
+\end_layout
+
+\begin_layout Description
+<name>[A0] The A0 (initial density) values.
+\end_layout
+
+\begin_layout Description
+<name>[A1] The A1 (rate constant) values.
+\end_layout
+
+\begin_layout Description
+<name>[A2] The A2 (final density) values.
+\end_layout
+
+\begin_layout Description
+<name>[OneA1] One over the A1 (rate constant) values.
+\end_layout
+
+\begin_layout Description
+<name>[corr] Curve fit correlation.
+\end_layout
+
+\begin_layout Description
+<name>[vala] Difference between last half average of data vs final density
+ (A2).
+\end_layout
+
+\begin_layout Description
+<name>[chisq] Chi-squared of the curve fit.
+\end_layout
+
+\begin_layout Description
+<name>[pltime] Plateau time (time at which all cutoffs satisfied).
+\end_layout
+
+\begin_layout Description
+<name>[fslope] Final slope of fitted curve.
+\end_layout
+
+\begin_layout Description
+<name>[name] Input set legend.
+\end_layout
+
+\begin_layout Description
+<name>[result] Final result: yes, no, err (error).
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Attempt to determine if data has 
+\begin_inset Quotes eld
+\end_inset
+
+plateaued
+\begin_inset Quotes erd
+\end_inset
+
+, i.e.
+ stopped changing significantly by the end of the set.
+ Currently the defaults are set up to evaluate density data as part of the
+ system preparation protocol described by Roe & Brooks.
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Roe2020"
+literal "true"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
 fft
 \end_layout
 
@@ -41269,7 +43522,11 @@ ired
 \end_layout
 
 \begin_layout LyX-Code
-ired [relax freq <MHz> [NHdist <distnh>]] [order <order>]
+ired [relax freq <MHz> [NHdist <distnh>] [noefile <noefilename>]]
+\end_layout
+
+\begin_layout LyX-Code
+     [order <order>] [orderparamfile <orderfilename>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -41296,15 +43553,7 @@ freq
 \begin_inset space ~
 \end_inset
 
-<MHz>
-\begin_inset space ~
-\end_inset
-
-[NHdist
-\begin_inset space ~
-\end_inset
-
-<distnh>]]
+<MHz>]
 \series default
  Should only be used when ired vectors represent N-H bonds; calculate correlatio
 n times 
@@ -41330,29 +43579,55 @@ n times
 \noun default
 \color inherit
 \lang american
- for each eigenmode and relaxation rates and NOEs for each N-H vector.
+ 
+\lang english
+for each eigenmode and relaxation rates and NOEs for each N-H vector.
  'freq <MHz>' (required) is the Lamor frequency of the measurement.
- 'NHdist <distnh>' specifies the length of the NH bond in Angstroms (default
- is 1.02).
 \end_layout
 
+\begin_deeper
 \begin_layout Description
-order
+[NHdist
 \begin_inset space ~
 \end_inset
 
-<order> Order of the Legendre polynomials to use when calculating spherical
+<distnh>] Specifies the length of the NH bond in Angstroms (default is 1.02).
+\end_layout
+
+\begin_layout Description
+[noefile
+\begin_inset space ~
+\end_inset
+
+<noefilename>] File to write the T1, T2, and NOE data to.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[order
+\begin_inset space ~
+\end_inset
+
+<order>] Order of the Legendre polynomials to use when calculating spherical
  harmonics (default 2).
+\end_layout
+
+\begin_layout Description
+[orderparamfile
+\begin_inset space ~
+\end_inset
+
+<orderfilename>] File to write the S2 data to.
 \end_layout
 
 \begin_layout Description
 
 \series bold
-tstep
+[tstep
 \begin_inset space ~
 \end_inset
 
-<tstep>
+<tstep>]
 \series default
  Time between snapshots in ps (default 1.0).
 \end_layout
@@ -41360,11 +43635,11 @@ tstep
 \begin_layout Description
 
 \series bold
-tcorr
+[tcorr
 \begin_inset space ~
 \end_inset
 
-<tcorr>
+<tcorr>]
 \series default
  Maximum time to calculate correlation functions for in ps (default 10000.0).
 \end_layout
@@ -41372,13 +43647,14 @@ tcorr
 \begin_layout Description
 
 \series bold
-out
+[out
 \begin_inset space ~
 \end_inset
 
 <filename>
 \series default
- Name of file to write output to.
+ Name of file to write plateau and TauM data.
+ Also the prefix for the .cmt and .cjt files (see below).
 \end_layout
 
 \begin_layout Description
@@ -41509,19 +43785,15 @@ literal "true"
 \noun default
 \color inherit
 \lang american
- will be written to 
-\shape italic
-filename.cmt
-\shape default
-.
- Autocorrelation functions for each vector will be written to 
-\shape italic
-filename.cjt
-\shape default
-.
+ 
+\lang english
+will be written to <filename>.cmt.
+ Autocorrelation functions for each vector will be written to <filename>.cjt.
  Relaxation rates and NOEs for each N-H vector will be written to <filename>
  or added to the the end of the standard output.
- For the calculation of 
+ For the calculation of
+\lang american
+ 
 \family roman
 \series medium
 \shape up
@@ -41545,16 +43817,18 @@ filename.cjt
 \noun default
 \color inherit
 \lang american
- the normalized correlation functions and only the first third of the analyzed
+ 
+\lang english
+the normalized correlation functions and only the first third of the analyzed
  time steps will be used.
  For further information on the convergence of correlation functions see
  [Schneider, Brünger, Nilges, 
-\shape italic
+\emph on
 J.
  Mol.
  Biol.
 
-\shape default
+\emph default
  
 \series bold
 285
@@ -44457,6 +46731,8 @@ reference "subsec:cpptraj-average"
  random vector.
  The time correlation functions are calculated for each random vector time
  series using Legendre polynomials of the specified order (default 2).
+ Calculation of time correlation functions can be sped up by using the OpenMP
+ version of CPPTRAJ.
  The maximum length of the correlation function (or lag) can be specified
  by 
 \series bold

@@ -43,6 +43,7 @@ bool IgnoreHeader(const char* headername) {
   if (strcmp(headername,"pnetcdf.h")==0) return true;
   if (strcmp(headername,"sander.h")==0) return true;
   if (strcmp(headername,"omp.h")==0) return true;
+  if (strcmp(headername,"OpenMM.h")==0) return true;
   if (strncmp(headername,"readline",8)==0) return true;
   if (strncmp(headername,"xdrfile",7)==0) return true;
   if (strncmp(headername,"lisp",4)==0) return true; // for readline
@@ -72,7 +73,7 @@ void GetDependencies(string const& filename) {
     ext = filename.substr(found);
 
   //printf("FILE: %s  EXT: %s\n", filename.c_str(), ext.c_str());
-  if (ext == ".cpp" || ext == ".c") {
+  if (ext == ".cpp" || ext == ".c" || ext == ".cu") {
     type = SOURCE;
     // Each source file should only be accessed once
     Smap::iterator it = Sources.find( filename );
@@ -80,7 +81,7 @@ void GetDependencies(string const& filename) {
       fprintf(stderr,"Error: Source '%s' is being looked at more than once.\n", filename.c_str());
       return;
     }
-  } else if (ext == ".h") {
+  } else if (ext == ".h" || ext == ".cuh") {
     type = HEADER;
     // If this header was already looked at return
     Smap::iterator it = Headers.find( filename );

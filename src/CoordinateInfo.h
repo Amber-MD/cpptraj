@@ -14,6 +14,13 @@ class CoordinateInfo {
     CoordinateInfo(Box const&, bool, bool, bool, bool);
     /// CONSTRUCTOR - ensemble size, remd dims, box, coords, velocity, force, temp., pH, redox, time, step, has repidx, has crdidx, use remd values
     CoordinateInfo(int, ReplicaDimArray const&, Box const&, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool);
+    /// Enumerate the various information that can be part of a Frame.
+    enum Component { POSITION=0, VELOCITY, FORCE, BOX,  TEMPERATURE,
+                     PH,         REDOX,    TIME,  STEP, REMD_INDICES,
+                     REPIDX,     CRDIDX,
+                     NCOMPONENTS };
+    static const char* ComponentStr(Component);
+
     bool HasBox()              const { return box_.HasBox();            }
     const Box& TrajBox()       const { return box_;                     }
     int EnsembleSize()         const { return ensembleSize_;            }
@@ -44,7 +51,7 @@ class CoordinateInfo {
     /// \return string containing info on present metadata
     std::string InfoString() const;
 #   ifdef MPI
-    int SyncCoordInfo(Parallel::Comm const&);
+    int BroadcastCoordInfo(Parallel::Comm const&);
 #   endif
     /// \return True if Frame would need to be re-setup based on CoordinateInfo
     bool operator !=(CoordinateInfo const& rhs) const {

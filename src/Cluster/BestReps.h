@@ -7,7 +7,7 @@
 namespace Cpptraj {
 namespace Cluster {
 
-/// Used to find best representative structures for a cluster.
+/// Used to find best representative structures for a cluster. TODO not static class
 class BestReps {
   public:
     enum RepMethodType { NO_REPS = 0, CUMULATIVE, CENTROID, CUMULATIVE_NOSIEVE };
@@ -31,6 +31,8 @@ class BestReps {
                                                         Cframes const&);
     /// Find best representative frames by shortest distance to centroid.
     static int FindBestRepFrames_Centroid(int, List&, PairwiseMatrix const&);
+
+    static int debug_; ///< Debug level, set in call to FindBestRepFrames
 };
 
 }

@@ -21,10 +21,18 @@ libstatic: config.h
 check: config.h
 	cd test && $(MAKE) test.complete summary
 
+# Run Tests, print errors to STDOUT
+verbosecheck: config.h
+	cd test &&$(MAKE) test.showerrors
+
+unittest: config.h
+	cd unitTests && $(MAKE) test.complete summary
+
 # Clean up
 clean: config.h
 	cd src && $(MAKE) clean
 	cd test && $(MAKE) clean
+	cd unitTests && $(MAKE) clean
 
 docs: src/cpptraj.Doxyfile
 	cd src && doxygen cpptraj.Doxyfile

@@ -5,7 +5,7 @@ Fast, parallelized molecular dynamics trajectory data analysis.
 
 Build Status
 =============
-* Travis-CI: [![Travis Build Status](https://travis-ci.org/Amber-MD/cpptraj.svg?branch=master)](https://travis-ci.org/Amber-MD/cpptraj)
+* GitHub Actions: [![GitHub Actions Status](https://github.com/Amber-MD/cpptraj/actions/workflows/merge-gate.yml/badge.svg)](https://github.com/Amber-MD/cpptraj/actions)
 * AppVeyor: [![Windows Build Status](https://ci.appveyor.com/api/projects/status/github/Amber-MD/cpptraj?branch=master&svg=true&retina=true)](https://ci.appveyor.com/project/drroe/cpptraj-aof9y/branch/master)
 * Jenkins: [![Jenkins Build Status](https://jenkins.jasonswails.com/buildStatus/icon?job=amber-github%2Fcpptraj%2Fmaster&style=plastic)](https://jenkins.jasonswails.com/job/amber-github/job/cpptraj/job/master/)
 * LGTM: [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/Amber-MD/cpptraj.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Amber-MD/cpptraj/context:cpp)
@@ -46,7 +46,7 @@ CPPTRAJ see the following publication:
 Disclaimer and Copyright
 ========================
 
-CPPTRAJ is Copyright (c) 2010-2020 Daniel R. Roe.
+CPPTRAJ is Copyright (c) 2010-2021 Daniel R. Roe.
 The terms for using, copying, modifying, and distributing CPPTRAJ are
 specified in the file LICENSE.
 
@@ -80,21 +80,29 @@ the following libraries:
 * Bzip2
 * Parallel NetCDF (-mpi build only, for NetCDF trajectory output in parallel)
 * CUDA (-cuda build only)
+* HIP (-hip build only)
 * FFTW (mostly optional; required for PME functionality and very large FFTs)
 
 CPPTRAJ also makes use of the following libraries that are bundled with CPPTRAJ. External ones can be used in place of these if desired.
 
-* ARPACK; without this diagonalization of sparse matrices in `diagmatrix` will be slow
-* [helPME](https://github.com/andysim/helpme), required for PME functionality
-* XDR for reading GROMACS XTC trajectories
-* TNG for reading GROMACS TNG trajectories
+* ARPACK; without this diagonalization of sparse matrices in `diagmatrix` will be slow.
+* [helPME](https://github.com/andysim/helpme) by Andy Simmonett, required for PME functionality.
+* XDR for reading GROMACS XTC trajectories.
+* TNG for reading GROMACS TNG trajectories.
+
+CPPTRAJ also uses the PCG32 and Xoshiro 128++ pseudo-random number generators.
 
 `./configure gnu` should be adequate to set up compilation for most systems.
-For systems without BLAS/LAPACK/ARPACK and/or NetCDF libraries installed,
+For systems without BLAS/LAPACK, FFTW, and/or NetCDF libraries installed,
 the `-amberlib` flag can be specified to use the ones already compiled in
 an AmberTools installation (`$AMBERHOME` must be set), e.g.
-`./configure -amberlib gnu`. C++11 support is required to enable particle mesh
-Ewald (PME) calculation support.
+`./configure -amberlib gnu`. If enabled libraries are not present, CPPTRAJ's
+configure can attempt to download and install them into $CPPTRAJHOME. By default
+CPPTRAJ will ask if these should be installed; the '--buildlibs' option can
+be used to try to automatically install any missing enabled library. To prevent
+CPPTRAJ from asking about building external libraries, use the '--nobuildlibs'
+option.
+C++11 support is required to enable particle mesh Ewald (PME) calculation support.
 
 For multicore systems, the `-openmp` flag can
 be specified to enable OpenMP parallelization, e.g. `./configure -openmp gnu`.
@@ -104,12 +112,13 @@ should take care to properly set OMP_NUM_THREADS if using more than 1 MPI
 process per node (the number of processes * threads should not be greater than
 the number of physical cores on the machine).
 
-A CUDA build is now also available via the `-cuda` configure flag. However, currently
+A CUDA build is now also available via the `-cuda` configure flag,
+a HIP build is available via the `-hip` flag, they are mutually exclusive. However, currently
 only a few commands benefit from this (see the manual for details). By default CPPTRAJ
 will be configured for multiple shader models; to restrict the CUDA build to a single
 shader model set the SHADER_MODEL environment variable before running `configure`.
 
-Any combination of `-cuda`, `-mpi`, and `-openmp` may be used. The configure script by
+Any combination of `-cuda` (or `-hip`), `-mpi`, and `-openmp` may be used. The configure script by
 default sets everything up to link dynamically. The `-static` flag can be used to force
 static linking. If linking errors are encountered you may need to specify library locations
 using the `--with-LIB=` options. For example, to use NetCDF compiled in `/opt/netcdf`
@@ -117,12 +126,20 @@ use the option `--with-netcdf=/opt/netcdf`. Alternatively, individual libraries 
 disabled with the `-no<LIB>` options. The `-libstatic` flag can be used to static link
 only libraries that have been specified.
 
+CPPTRAJ can also be built with support for [OpenMM](http://openmm.org) by specifying
+'--with-openmm=PATH', where PATH is the OpenMM directory containing
+the OpenMM library, i.e. PATH/lib/libOpenMM.so. Currently the only command that uses OpenMM
+is emin, so compiling with OpenMM is typically not required at this time.
+
 After `configure` has been successfully run, `make install` will
 compile and place the cpptraj binary in the `$CPPTRAJHOME/bin` subdirectory. Note that
 on multithreaded systems `make -j X install` (where X is an integer > 1
 and less than the max # cores on your system) will run much faster.
 After installation, It is highly recommended that `make check` be run as
 well to test the basic functionality of CPPTRAJ.
+
+There is an independently-maintained VIM syntax file for CPPTRAJ by Emmett Leddin
+available [here](https://github.com/emleddin/vim-cpptraj).
 
 CPPTRAJ Authors
 ===============
@@ -208,8 +225,8 @@ Original implementation of the Amber NetCDF trajectory format.
 * Hannes H. Loeffler (STFC Daresbury, Scientific Computing Department, Warrington, WA4 4AD, UK)
 Diffusion calculation code adapted for use in Action\_STFC\_Diffusion.
 
-External libraries bundled with CPPTRAJ
-=======================================
+External code/libraries bundled with CPPTRAJ
+============================================
 
 * CPPTRAJ makes use of the [GNU readline](https://tiswww.case.edu/php/chet/readline/rltop.html) library for the interactive command line.
 
@@ -222,3 +239,5 @@ External libraries bundled with CPPTRAJ
 * The reciprocal part of the PME calculation is handled by the [helPME](https://github.com/andysim/helpme) library by Andy Simmonett.
 
 * Support for reading DTR trajectories uses the VMD DTR plugin.
+
+* CPPTRAJ uses code for the [permuted congruent pseudo-random number generator](https://www.pcg-random.org/index.html) PCG32 by Melissa O'Neill and the [Xoshiro 128++ pseudo-random number generator](http://prng.di.unimi.it) by David Blackman and Sebastino Vigna.

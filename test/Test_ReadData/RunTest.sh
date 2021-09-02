@@ -5,7 +5,8 @@
 CleanFiles vector.in v6and7.dat rex-d.dat MD.ene.dat out.dx out.dat \
            truncoct.dat out?.dx append.dx append.dat temp.dat \
            truncsparse.dat temp2.dat truncoct.dat.save sparse.dat \
-           xyz.dat v7and6.dat
+           xyz.dat v7and6.dat matrix.dat cpptraj.matrix.dat \
+           square.matrix.dat
 
 TESTNAME='Read data tests'
 
@@ -133,6 +134,37 @@ writedata xyz.dat XYZ
 EOF
 RunCpptraj "$UNITNAME"
 DoTest xyz.dat.save xyz.dat
+
+# Non-square matrix write
+UNITNAME='Write non-square matrix'
+cat > vector.in <<EOF
+parm ../tz2.parm7
+trajin ../tz2.crd
+matrix name CA @CA byatom out matrix.dat nosquare2d 
+run
+EOF
+RunCpptraj "$UNITNAME"
+DoTest matrix.dat.save matrix.dat
+
+# Non-square matrix read
+UNITNAME='Read non-square matrix'
+cat > vector.in <<EOF
+readdata matrix.dat read2d name MyMatrix nosquare2d
+list dataset
+writedata cpptraj.matrix.dat nosquare2d MyMatrix prec 6.3 noheader
+EOF
+RunCpptraj "$UNITNAME"
+DoTest matrix.dat.save cpptraj.matrix.dat
+
+# Square matrix read/write
+UNITNAME='Read square matrix'
+cat > vector.in <<EOF
+readdata ../Test_Matrix/mtest.dat.13.save name MyMatrix read2d 
+list dataset
+writedata square.matrix.dat MyMatrix prec 6.3 noheader
+EOF
+RunCpptraj "$UNITNAME"
+DoTest ../Test_Matrix/mtest.dat.13.save square.matrix.dat
 
 EndTest
   

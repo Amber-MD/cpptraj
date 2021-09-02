@@ -32,10 +32,12 @@
 #   DIFFOPTS             : Additional options to pass to CPPTRAJ_DIFF
 #   CPPTRAJ_PROFILE      : If 1, end of test profiling with gprof performed.
 #   CPPTRAJ_LONG_TEST    : If 1, enable long tests
+#   CPPTRAJ_RNG          : Hold the --rng arg for CPPTRAJ.
 # Cpptraj binary characteristics
 #   CPPTRAJ_ZLIB         : If set CPPTRAJ has zlib support.
 #   CPPTRAJ_BZLIB        : If set CPPTRAJ has bzip support.
 #   CPPTRAJ_NETCDFLIB    : If set CPPTRAJ has NetCDF support.
+#   CPPTRAJ_C11_SUPPORT  : If set CPPTRAJ has C++11 support.
 #   CPPTRAJ_LIBPME       : If set CPPTRAJ was compiled with libPME.
 #   CPPTRAJ_MPILIB       : If set CPPTRAJ has MPI support.
 #   CPPTRAJ_MATHLIB      : If set CPPTRAJ was compiled with math libraries.
@@ -47,6 +49,7 @@
 #   CPPTRAJ_XDRFILE      : If set CPPTRAJ has XDR file support.
 #   CPPTRAJ_TNGFILE      : If set CPPTRAJ has TNG file support.
 #   CPPTRAJ_SINGLE_ENS   : If set CPPTRAJ has single ensemble support.
+#   CPPTRAJ_OPENMM       : If set CPPTRAJ has OpenMM support.
 # ----- Variables that can be set by individual scripts ----
 #   TOP                  : Topology file for cpptraj
 #   INPUT                : Input file for cpptraj
@@ -75,6 +78,8 @@ CHECKERR=0               # Total errors this test from CheckEnv routine.
 TESTNAME=''              # Current test name for Requires routine.
 UNITNAME=''              # Current unit name for CheckFor routine.
 DESCRIP=''               # Current test/unit name for CheckEnv routine.
+FNC1=''                  # First file to NcTest(); for output in DoTest()
+FNC2=''                  # Second file to NcTest(); for output in DoTest()
 
 # ==============================================================================
 # TestHeader() <outfile>
@@ -155,6 +160,14 @@ DoTest() {
   # First two arguments are files to compare.
   F1=$1 ; shift
   F2=$1 ; shift
+  # Names for output
+  if [ "$F1" = 'nc0.save' -a "$F2" = 'nc0' ] ; then
+    FNAME1=$FNC1
+    FNAME2=$FNC2
+  else
+    FNAME1=$F1
+    FNAME2=$F2
+  fi
   # Process remaining arguments.
   USE_NDIFF=0
   while [ ! -z "$1" ] ; do
@@ -171,7 +184,7 @@ DoTest() {
   else
     if [ ! -z "$CPPTRAJ_DACDIF" ] ; then
       # Print AT test header.
-      echo "diffing $F1 with $F2"
+      echo "diffing $FNAME1 with $FNAME2"
     fi
     if [ $USE_NDIFF -eq 0 ] ; then
       $CPPTRAJ_DIFF $DIFFARGS $DIFFOPTS $F1 $F2 > temp.diff 2>&1
@@ -180,21 +193,21 @@ DoTest() {
     fi
     if [ -s 'temp.diff' ] ; then
       if [ -z "$CPPTRAJ_DACDIF" ] ; then
-        OutBoth "  $F1 $F2 are different."
+        OutBoth "  $FNAME1 $FNAME2 are different."
         cat temp.diff >> $CPPTRAJ_TEST_ERROR
       else
-        mv temp.diff $F2.dif
-        echo "possible FAILURE:  check $F2.dif"
-        echo "possible FAILURE:  check $F2.dif" >> $CPPTRAJ_TEST_ERROR
+        mv temp.diff $FNAME2.dif
+        echo "possible FAILURE:  check $FNAME2.dif"
+        echo "possible FAILURE:  check $FNAME2.dif" >> $CPPTRAJ_TEST_ERROR
         echo "$TEST_WORKDIR" >> $CPPTRAJ_TEST_ERROR
-        cat $F2.dif >> $CPPTRAJ_TEST_ERROR
+        cat $FNAME2.dif >> $CPPTRAJ_TEST_ERROR
         echo "---------------------------------------" >> $CPPTRAJ_TEST_ERROR
       fi
       ((ERRCOUNT++))
     else
       if [ -z "$CPPTRAJ_DACDIF" ] ; then
         # Standalone pass.
-        OUT  "  $F2 OK."
+        OUT  "  $FNAME2 OK."
       else
         # AmberTools pass.
         echo "PASSED"
@@ -219,8 +232,8 @@ NcTest() {
     exit 1
   fi
   # Save remaining args for DoTest
-  F1=$1
-  F2=$2
+  FNC1=$1
+  FNC2=$2
   shift
   shift
   DIFFARGS="nc0.save nc0"
@@ -232,7 +245,7 @@ NcTest() {
     DIFFARGS=$DIFFARGS" $1"
     shift
   done
-  CheckTestFiles $F1 $F2
+  CheckTestFiles $FNC1 $FNC2
   if [ $? -ne 0 ] ; then
     ((NUMCOMPARISONS++))
     ((ERRCOUNT++))
@@ -243,13 +256,13 @@ NcTest() {
       # the regular expression to ndiff.awk FS without the interpreter giving
       # this error for FS='[ \t,()]':
       # awk: fatal: Invalid regular expression: /'[/
-      $CPPTRAJ_NCDUMP -n nctest $F1 | grep -v "==>\|:program" | sed 's/,/ /g' > nc0.save
-      $CPPTRAJ_NCDUMP -n nctest $F2 | grep -v "==>\|:program" | sed 's/,/ /g' > nc0
+      $CPPTRAJ_NCDUMP -n nctest $FNC1 | grep -v "==>\|:program" | sed 's/,/ /g' > nc0.save
+      $CPPTRAJ_NCDUMP -n nctest $FNC2 | grep -v "==>\|:program" | sed 's/,/ /g' > nc0
     else
-      $CPPTRAJ_NCDUMP -n nctest $F1 | grep -v "==>\|:program" > nc0.save
-      $CPPTRAJ_NCDUMP -n nctest $F2 | grep -v "==>\|:program" > nc0
+      $CPPTRAJ_NCDUMP -n nctest $FNC1 | grep -v "==>\|:program" > nc0.save
+      $CPPTRAJ_NCDUMP -n nctest $FNC2 | grep -v "==>\|:program" > nc0
     fi
-    DoTest $DIFFARGS 
+    DoTest $DIFFARGS
     $CPPTRAJ_RM nc0.save nc0
   fi
 }
@@ -490,7 +503,7 @@ RunCpptraj() {
   if [ -z "$CPPTRAJ_DACDIF" ] ; then
     OUT "  CPPTRAJ: $1"
   fi
-  cpptraj_cmd="$CPPTRAJ_TIME $DO_PARALLEL $VALGRIND $CPPTRAJ $TOP $INPUT $CPPTRAJ_DEBUG"
+  cpptraj_cmd="$CPPTRAJ_TIME $DO_PARALLEL $VALGRIND $CPPTRAJ $TOP $INPUT $CPPTRAJ_RNG $CPPTRAJ_DEBUG"
   if [ ! -z "$CPPTRAJ_DEBUG" ] ; then
     echo "$cpptraj_cmd >> $CPPTRAJ_OUTPUT 2>>$CPPTRAJ_ERROR"
   fi
@@ -538,7 +551,7 @@ EndTest() {
       echo "  $PASSCOUNT out of $NUMCOMPARISONS passing comparisons. $WARNCOUNT warnings."
       OUT  "  $PASSCOUNT out of $NUMCOMPARISONS passing comparisons. $WARNCOUNT warnings."
     elif [ $NUMCOMPARISONS -gt 0 ] ; then
-      echo "All $NUMCOMPARISONS comparisons passed." 
+      echo "All $NUMCOMPARISONS comparisons passed."
       OUT  "All $NUMCOMPARISONS comparisons passed."
     fi
     if [ $SKIPCOUNT -gt 0 ] ; then
@@ -598,7 +611,7 @@ SetNthreads() {
       export N_THREADS=1
       return 1
     fi
-    export N_THREADS=`$DO_PARALLEL $CPPTRAJ_NPROC`
+    export N_THREADS=`$CPPTRAJ_NPROC`
     echo "  $N_THREADS MPI threads."
   fi
   return 0
@@ -614,6 +627,7 @@ Help() {
   echo "  mpi             : Use MPI version of CPPTRAJ (automatically used if DO_PARALLEL set)."
   echo "  openmp          : Use OpenMP version of CPPTRAJ."
   echo "  cuda            : Use CUDA version of CPPTRAJ."
+  echo "  hip             : Use HIP version of CPPTRAJ."
   echo "  time            : Time the test with 'time'."
   echo "  stdout          : Print CPPTRAJ test output to STDOUT."
   echo "  vg              : Run test with 'valgrind' memcheck."
@@ -644,6 +658,7 @@ CmdLineOpts() {
   CPPTRAJ_PROFILE=0    # Will be exported
   SFX_OMP=0
   SFX_CUDA=0
+  SFX_HIP=0
   SFX_MPI=0
   GET_TIMING=0
   while [ ! -z "$1" ] ; do
@@ -655,6 +670,7 @@ CmdLineOpts() {
       "stdout"    ) CPPTRAJ_OUTPUT='' ;;
       "openmp"    ) SFX_OMP=1 ;;
       "cuda"      ) SFX_CUDA=1 ;;
+      "hip"       ) SFX_HIP=1 ;;
       "mpi"       ) SFX_MPI=1 ;;
       "vg"        ) VGMODE=1 ;;
       "vgh"       ) VGMODE=2 ;;
@@ -666,7 +682,7 @@ CmdLineOpts() {
       "-nodacdif" ) USE_DACDIF=0 ;;
       "-cpptraj"  ) shift ; export CPPTRAJ=$1 ; echo "Using cpptraj: $CPPTRAJ" ;;
       "--target"  ) shift ; TARGET=$1 ;;
-     "-profile"   ) CPPTRAJ_PROFILE=1 ; echo "Performing gnu profiling during EndTest." ;;
+      "-profile"  ) CPPTRAJ_PROFILE=1 ; echo "Performing gnu profiling during EndTest." ;;
       "-h" | "--help" ) Help ; exit 0 ;;
       "alltests"  )
         echo "Running all tests in Test_* directories."
@@ -710,6 +726,7 @@ CmdLineOpts() {
   if [ "$SFX_MPI"  -eq 1 ] ; then SFX="$SFX.MPI"  ; fi
   if [ "$SFX_OMP"  -eq 1 ] ; then SFX="$SFX.OMP"  ; fi
   if [ "$SFX_CUDA" -eq 1 ] ; then SFX="$SFX.cuda" ; fi
+  if [ "$SFX_HIP"  -eq 1 ] ; then SFX="$SFX.hip"  ; fi
 }
 
 #-------------------------------------------------------------------------------
@@ -739,6 +756,7 @@ CheckDefines() {
       '-DHASGZ'         ) export CPPTRAJ_ZLIB=$DEFINE ;;
       '-DHASBZ2'        ) export CPPTRAJ_BZLIB=$DEFINE ;;
       '-DBINTRAJ'       ) export CPPTRAJ_NETCDFLIB=$DEFINE ;;
+      '-DC11_SUPPORT'   ) export CPPTRAJ_C11_SUPPORT=$DEFINE ;;
       '-DLIBPME'        ) export CPPTRAJ_LIBPME=$DEFINE ;;
       '-DMPI'           ) export CPPTRAJ_MPILIB=$DEFINE ;;
       '-DNO_MATHLIB'    ) CPPTRAJ_MATHLIB='' ;;
@@ -750,12 +768,13 @@ CheckDefines() {
       '-DNO_XDRFILE'    ) CPPTRAJ_XDRFILE='' ;;
       '-DHAS_TNGFILE'   ) CPPTRAJ_TNGFILE='$DEFINE' ;;
       '-DENABLE_SINGLE_ENSEMBLE' ) export CPPTRAJ_SINGLE_ENS=$DEFINE ;;
+      '-DHAS_OPENMM'    ) export CPPTRAJ_OPENMM=$DEFINE ;;
     esac
   done
   export CPPTRAJ_XDRFILE
   export CPPTRAJ_TNGFILE
   export CPPTRAJ_MATHLIB
-  #echo "DEBUG: $ZLIB $BZLIB $NETCDFLIB $MPILIB $NOMATHLIB $OPENMP $PNETCDFLIB $SANDERLIB $CUDA $XDRFILE"
+  #echo "DEBUG: $ZLIB $BZLIB $NETCDFLIB $MPILIB $NOMATHLIB $OPENMP $PNETCDFLIB $SANDERLIB $CUDA $HIP $XDRFILE"
 }
 
 #-------------------------------------------------------------------------------
@@ -805,6 +824,14 @@ SetBinaries() {
         ErrMsg "'helgrind' not supported for CUDA."
         exit 1
       fi
+    elif [ ! -z "$CPPTRAJ_HIP" ] ; then
+      if [ $VGMODE -eq 1 ] ; then
+        Required "hip-memcheck"
+        VALGRIND='hip-memcheck'
+      else
+        ErrMsg "'helgrind' not supported for HIP."
+        exit 1
+      fi
     else
       Required "valgrind"
       if [ $VGMODE -eq 1 ] ; then
@@ -820,11 +847,7 @@ SetBinaries() {
   fi
   # Determine location of ndiff.awk
   if [ -z "$CPPTRAJ_NDIFF" ] ; then
-    if [ $STANDALONE -eq 0 ] ; then
-      CPPTRAJ_NDIFF=$DIRPREFIX/test/ndiff.awk
-    else
-      CPPTRAJ_NDIFF=$DIRPREFIX/util/ndiff/ndiff.awk
-    fi
+    CPPTRAJ_NDIFF=$CPPTRAJ_TEST_ROOT/utilities/ndiff/ndiff.awk
     if [ ! -f "$CPPTRAJ_NDIFF" ] ; then
       ErrMsg "'ndiff.awk' not present: $CPPTRAJ_NDIFF"
       exit 1
@@ -834,12 +857,8 @@ SetBinaries() {
   # Determine location of nproc/numprocs
   if [ -z "$CPPTRAJ_NPROC" ] ; then
     if [ ! -z "$DO_PARALLEL" ] ; then
-      if [ $STANDALONE -eq 0 ] ; then
-        CPPTRAJ_NPROC=$DIRPREFIX/AmberTools/test/numprocs
-      else
-        CPPTRAJ_NPROC=$DIRPREFIX/test/nproc
-      fi
-      if [ -z "$CPPTRAJ_NPROC" ] ; then
+      CPPTRAJ_NPROC=$CPPTRAJ_TEST_ROOT/utilities/nproc.sh
+      if [ ! -f "$CPPTRAJ_NPROC" ] ; then
         ErrMsg "Error: nproc $CPPTRAJ_NPROC not found."
         exit 1
       fi
@@ -874,8 +893,8 @@ SetBinaries() {
   # directories the path needs to be incremented one dir up.
   if [ "$PATH_TYPE" = 'relative' -a "$CPPTRAJ_TEST_MODE" = 'master' ] ; then
     CPPTRAJ="../$CPPTRAJ"
-    CPPTRAJ_NDIFF="../$CPPTRAJ_NDIFF"
-    CPPTRAJ_NPROC="../$CPPTRAJ_NPROC"
+  #  CPPTRAJ_NDIFF="../$CPPTRAJ_NDIFF"
+  #  CPPTRAJ_NPROC="../$CPPTRAJ_NPROC"
   fi
 }
 
@@ -954,6 +973,7 @@ CheckEnv() {
     #echo "DEBUG: $DESCRIP: Checking requirement: $1"
     case "$1" in
       'netcdf'    ) TestLibrary "NetCDF"             "$CPPTRAJ_NETCDFLIB" ;;
+      'c++11'     ) TestLibrary "C++11"              "$CPPTRAJ_C11_SUPPORT" ;;
       'libpme'    ) TestLibrary "libPME"             "$CPPTRAJ_LIBPME" ;;
       'zlib'      ) TestLibrary "Zlib"               "$CPPTRAJ_ZLIB" ;;
       'bzlib'     ) TestLibrary "Bzlib"              "$CPPTRAJ_BZLIB" ;;
@@ -965,6 +985,8 @@ CheckEnv() {
       'openmp'    ) TestLibrary "OpenMP"             "$CPPTRAJ_OPENMP" ;;
       'singleensemble' ) TestLibrary "Single ensemble support" "$CPPTRAJ_SINGLE_ENS" ;;
       'cuda'      ) TestLibrary "CUDA"               "$CPPTRAJ_CUDA" ;;
+      'hip'       ) TestLibrary "HIP"                "$CPPTRAJ_HIP" ;;
+      'openmm'    ) TestLibrary "OpenMM"             "$CPPTRAJ_OPENMM" ;;
       'notcuda'   )
 	if [ ! -z "$CPPTRAJ_CUDA" ]; then
           echo "  $DESCRIP cannot be run on CUDA."
@@ -1188,6 +1210,11 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
   #echo "DEBUG: Initial test setup."
   # MasterTest.sh has not been called yet; set up test environment.
   export CPPTRAJ_TEST_ROOT=`pwd`
+  # If invocation is "./CpptrajTest.sh", all tests. Otherwise assume individual test dir.
+  if [ "$0" != './CpptrajTest.sh' ] ; then
+    CPPTRAJ_TEST_ROOT=`dirname $CPPTRAJ_TEST_ROOT`
+  fi
+  #echo "DEBUG: CPPTRAJ_TEST_ROOT= $CPPTRAJ_TEST_ROOT $0"
   # If CPPTRAJ_TEST_OS is not set, try to determine.
   if [ -z "$CPPTRAJ_TEST_OS" ] ; then
     export CPPTRAJ_TEST_OS=`uname -s | awk '{print $1}'`
@@ -1210,6 +1237,8 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
   export CPPTRAJ_TEST_ERROR='Test_Error.dat'
   CPPTRAJ_OUTPUT='test.out'
   CPPTRAJ_ERROR=''
+  #export CPPTRAJ_RNG='--rng marsaglia'
+  CPPTRAJ_RNG='' # Placeholder
   # Process command line options
   CmdLineOpts $*
   # Determine standalone or AmberTools
@@ -1280,7 +1309,7 @@ if [ "$CPPTRAJ_TEST_MODE" = 'master' ] ; then
       for DIR in $TEST_DIRS ; do
         cd $CPPTRAJ_TEST_ROOT/$DIR
         $CPPTRAJ_TIME -f "%e" -o testtime ./RunTest.sh
-        printf "%.2f %s\n" `cat testtime` $DIR >> $TIMING_FILE 
+        printf "%.2f %s\n" `cat testtime` $DIR >> $TIMING_FILE
         $CPPTRAJ_RM testtime
       done
       echo "Test timing data written to $TIMING_FILE"

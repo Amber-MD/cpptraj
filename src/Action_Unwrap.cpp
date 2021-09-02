@@ -1,14 +1,20 @@
 #include "Action_Unwrap.h"
 #include "CpptrajStdio.h"
 #include "ImageRoutines.h"
+#include "Image_List.h"
 
 // CONSTRUCTOR
 Action_Unwrap::Action_Unwrap() :
+  imageList_(0),
   imageMode_(Image::BYATOM),
   RefParm_(0),
-  orthogonal_(false),
   center_(false)
 { }
+
+/** DESTRUCTOR */
+Action_Unwrap::~Action_Unwrap() {
+  if (imageList_ != 0) delete imageList_;
+}
 
 void Action_Unwrap::Help() const {
   mprintf("\t[center] [{bymol | byres | byatom}]\n"
@@ -83,23 +89,28 @@ Action::RetType Action_Unwrap::Setup(ActionSetup& setup) {
     }
   }
   // Check box type
-  if (setup.CoordInfo().TrajBox().Type()==Box::NOBOX) {
+  if (!setup.CoordInfo().TrajBox().HasBox()) {
     mprintf("Error: unwrap: Parm %s does not contain box information.\n",
             setup.Top().c_str());
     return Action::ERR;
   }
-  orthogonal_ = false;
-  if (setup.CoordInfo().TrajBox().Type()==Box::ORTHO)
-    orthogonal_ = true;
 
-  // Setup atom pairs to be unwrapped.
-  imageList_ = Image::CreateAtomPairList(setup.Top(), imageMode_, maskExpression_);
-  if (imageList_.empty()) {
+  // Setup atom pairs to be unwrapped. Always use CoM TODO why?
+  if (imageList_ != 0) delete imageList_;
+  imageList_ = Image::CreateImageList(setup.Top(), imageMode_, maskExpression_,
+                                      true, center_);
+  if (imageList_ == 0) {
+    mprinterr("Internal Error: Could not allocate unwrap list.\n");
+    return Action::ERR;
+  }
+  if (imageList_->nEntities() < 1) {
     mprintf("Warning: Mask selects no atoms for topology '%s'.\n", setup.Top().c_str());
     return Action::SKIP;
   }
-  mprintf("\tNumber of %ss to be unwrapped is %zu\n",
-          Image::ModeString(imageMode_), imageList_.size()/2);
+  mprintf("\tNumber of %ss to be unwrapped is %u\n",
+          Image::ModeString(imageMode_), imageList_->nEntities());
+  // Get entities that need to be updated in reference
+  allEntities_ = imageList_->AllEntities();
 
   // Use current parm as reference if not already set
   if (RefParm_ == 0)
@@ -109,18 +120,16 @@ Action::RetType Action_Unwrap::Setup(ActionSetup& setup) {
 
 // Action_Unwrap::DoAction()
 Action::RetType Action_Unwrap::DoAction(int frameNum, ActionFrame& frm) {
-  Matrix_3x3 ucell, recip;
   if (RefFrame_.empty()) {
     // Set reference structure if not already set
     RefFrame_ = frm.Frm();
     return Action::OK;
   }
  
-  if (orthogonal_)
-    Image::UnwrapOrtho( frm.ModifyFrm(), RefFrame_, imageList_, center_, true );
+  if (frm.Frm().BoxCrd().Is_X_Aligned_Ortho())
+    Image::UnwrapOrtho( frm.ModifyFrm(), RefFrame_, *imageList_, allEntities_ );
   else {
-    frm.Frm().BoxCrd().ToRecip( ucell, recip );
-    Image::UnwrapNonortho( frm.ModifyFrm(), RefFrame_, imageList_, ucell, recip, center_, true );
+    Image::UnwrapNonortho( frm.ModifyFrm(), RefFrame_, *imageList_, allEntities_, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell() );
   }
 
   return Action::MODIFY_COORDS;

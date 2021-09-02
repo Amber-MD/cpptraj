@@ -38,7 +38,7 @@ Action::RetType Action_LIE::Init(ArgList& actionArgs, ActionInit& init, int debu
   bool has_mask2 = false;
 
   // Use imaged distances unless requested otherwise
-  InitImaging(usepbc_);
+  imageOpt_.InitImaging(usepbc_);
 
   if (!doelec_ && !dovdw_) {
     mprinterr("Error: LIE: Cannot skip both ELEC and VDW calcs\n");
@@ -103,10 +103,11 @@ Action::RetType Action_LIE::Setup(ActionSetup& setup) {
   mprintf("\tLIE: %i Ligand Atoms, %i Surrounding Atoms\n",
           Mask1_.Nselected(), Mask2_.Nselected());
 
-  if (setup.CoordInfo().TrajBox().Type() == Box::NOBOX) {
+  if (!setup.CoordInfo().TrajBox().HasBox()) {
     mprinterr("Error: LIE: Must have explicit solvent system with box info\n");
     return Action::ERR;
   }
+  imageOpt_.SetupImaging( setup.CoordInfo().TrajBox().HasBox() );
 
   if (Mask1_.None() || Mask2_.None()) {
     mprintf("Warning: LIE: One or both masks have no atoms.\n");
@@ -149,28 +150,16 @@ double Action_LIE::Calculate_LJ(Frame const& frameIn, Topology const& parmIn) co
        maskatom1 != mask1_end; maskatom1++) {
 
     int crdidx1 = (*maskatom1) * 3; // index into coordinate array
-    Vec3 atm1 = Vec3(frameIn.CRD(crdidx1));
+    const double* atm1 = frameIn.CRD(crdidx1);
 
     for (AtomMask::const_iterator maskatom2 = Mask2_.begin();
          maskatom2 != mask2_end; maskatom2++) {
 
       int crdidx2 = (*maskatom2) * 3; // index into coordinate array
-      Vec3 atm2 = Vec3(frameIn.CRD(crdidx2));
+      const double* atm2 = frameIn.CRD(crdidx2);
 
-      double dist2;
       // Get imaged distance
-      Matrix_3x3 ucell, recip;
-      switch( ImageType() ) {
-        case NONORTHO:
-          frameIn.BoxCrd().ToRecip(ucell, recip);
-          dist2 = DIST2_ImageNonOrtho(atm1, atm2, ucell, recip);
-          break;
-        case ORTHO:
-          dist2 = DIST2_ImageOrtho(atm1, atm2, frameIn.BoxCrd());
-          break;
-        default:
-          dist2 = DIST2_NoImage(atm1, atm2);
-      }
+      double dist2 = DIST2(imageOpt_.ImagingType(), atm1, atm2, frameIn.BoxCrd());
 
       if (dist2 > cut2vdw_) continue;
       // Here we add to our nonbonded (VDW) energy
@@ -193,28 +182,16 @@ double Action_LIE::Calculate_Elec(Frame const& frameIn) const {
        maskatom1 != mask1_end; maskatom1++) {
 
     int crdidx1 = (*maskatom1) * 3; // index into coordinate array
-    Vec3 atm1 = Vec3(frameIn.CRD(crdidx1));
+    const double* atm1 = frameIn.CRD(crdidx1);
 
     for (AtomMask::const_iterator maskatom2 = Mask2_.begin();
          maskatom2 != mask2_end; maskatom2++) {
 
       int crdidx2 = (*maskatom2) * 3; // index into coordinate array
-      Vec3 atm2 = Vec3(frameIn.CRD(crdidx2));
+      const double* atm2 = frameIn.CRD(crdidx2);
 
-      double dist2;
       // Get imaged distance
-      Matrix_3x3 ucell, recip;
-      switch( ImageType() ) {
-        case NONORTHO:
-          frameIn.BoxCrd().ToRecip(ucell, recip);
-          dist2 = DIST2_ImageNonOrtho(atm1, atm2, ucell, recip);
-          break;
-        case ORTHO:
-          dist2 = DIST2_ImageOrtho(atm1, atm2, frameIn.BoxCrd());
-          break;
-        default:
-          dist2 = DIST2_NoImage(atm1, atm2);
-      }
+      double dist2 = DIST2(imageOpt_.ImagingType(), atm1, atm2, frameIn.BoxCrd());
 
       if (dist2 > cut2elec_) continue;
       // Here we add to our electrostatic energy
@@ -229,7 +206,10 @@ double Action_LIE::Calculate_Elec(Frame const& frameIn) const {
 
 // Action_LIE::action()
 Action::RetType Action_LIE::DoAction(int frameNum, ActionFrame& frm) {
-
+  if (imageOpt_.ImagingEnabled()) {
+    imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
+    //mprintf("DEBUG: Image type is %i\n", (int)imageOpt_.ImagingType());
+  }
   if (doelec_) {
     double e = Calculate_Elec(frm.Frm());
     elec_->Add(frameNum, &e);

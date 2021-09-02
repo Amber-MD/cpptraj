@@ -301,13 +301,16 @@ int MaskTokenArray::Tokenize() {
           return 1;
         }
       }
-      if (*p == '=') { // The AMBER9 definition of wildcard '=' is equivalent to '*'.
-        if (flag > 0)
+      if (*p == '=') {
+        // The AMBER >= 9 definition of wildcard '=' is equivalent to '*', but
+        // only after @ etc.
+        //if (flag > 0)
+        // NOTE: If flag was zero it will have been set to 1 up above anyway.
           *p = '*';
-        else {
-          mprinterr("Error: Tokenize: '=' not in name list syntax\n");
-          return 1;
-        }
+        //else {
+        //  mprinterr("Error: Tokenize: '=' not in name list syntax\n");
+        //  return 1;
+        //}
       }
       buffer += *p;
     } else if ( *p == ':' ) {
@@ -852,25 +855,32 @@ int MaskTokenArray::SelectDistance(const double* REF, char *mask,
     for (moli = 0; moli < n_of_mol; moli++) {
       // Initial state
       char schar = char0;
-      int atomi = molecules[moli].BeginAtom();
-      const double* i_crd = REF + (atomi * 3);
-      // Loop over molecule atoms
-      for (; atomi != molecules[moli].EndAtom(); atomi++, i_crd += 3) {
-        // Loop over initially selected atoms
-        for (Uarray::const_iterator idx = Idx.begin(); idx != Idx.end(); ++idx) {
-          double d2 = DIST2_NoImage(i_crd, REF + *idx);
-          if (d2 < dcut2) {
-            // State changes
-            schar = char1;
-            break;
-          }
-        } // END loop over initially selected atoms
-        if (schar == char1) break;
-      } // END loop over molecule atoms
+      // Loop over molecule segments
+      for (Unit::const_iterator seg = molecules[moli].MolUnit().segBegin();
+                                seg != molecules[moli].MolUnit().segEnd(); ++seg)
+      {
+        int atomi = seg->Begin();
+        const double* i_crd = REF + (atomi * 3);
+        // Loop over segment atoms
+        for (; atomi != seg->End(); atomi++, i_crd += 3)
+        {
+          // Loop over initially selected atoms
+          for (Uarray::const_iterator idx = Idx.begin(); idx != Idx.end(); ++idx) {
+            double d2 = DIST2_NoImage(i_crd, REF + *idx);
+            if (d2 < dcut2) {
+              // State changes
+              schar = char1;
+              break;
+            }
+          } // END loop over initially selected atoms
+          if (schar == char1) break;
+        } // END loop over segment atoms
+      } // END loop over molecule segments
       // Set molecule selection status
-      for (atomi = molecules[moli].BeginAtom();
-           atomi != molecules[moli].EndAtom(); atomi++)
-        mask[atomi] = schar;
+      for (Unit::const_iterator seg = molecules[moli].MolUnit().segBegin();
+                                seg != molecules[moli].MolUnit().segEnd(); ++seg)
+        for (int atomi = seg->Begin(); atomi != seg->End(); atomi++)
+          mask[atomi] = schar;
     } // END loop over all molecules
 #   ifdef _OPENMP
     } // END pragma omp parallel
@@ -968,7 +978,12 @@ void MaskTokenArray::SelectChainID(ResArrayT const& residues, NameType const& na
       std::fill(mask + res->FirstAtom(), mask + res->LastAtom(), SelectedChar_);
 }
 
-/** Select by molecule number. */
+/** Select by molecule number.
+  * \param molecules The array of molecules
+  * \param mol1 Start molecule arg (from 1)
+  * \param mol2 End molecule arg (from 1)
+  * \param mask The output mask
+  */
 void MaskTokenArray::SelectMolNum(MolArrayT const& molecules, int mol1, int mol2,
                                   char* mask) const
 {
@@ -976,20 +991,25 @@ void MaskTokenArray::SelectMolNum(MolArrayT const& molecules, int mol1, int mol2
     mprintf("Warning: No molecule information, cannot select by molecule.\n");
     return;
   }
-  int endatom;
-  int nmol = (int)molecules.size();
-  // Mask args expected to start from 1
-  if (mol1 > nmol) {
-    mprintf("Warning: Select molecules: mol 1 out of range (%i > %i)\n", mol1, nmol);
+  // Check start molecule arg.
+  unsigned int molStart = mol1 - 1;
+  if (molStart >= molecules.size()) {
+    mprintf("Warning: Select molecules: molecule start arg %i out of range (1-%zu)\n",
+            mol1, molecules.size());
     return;
   }
-  // If last mol > nmol, make it nmol
-  if ( mol2 >= nmol )
-    endatom = molecules.back().EndAtom();
-  else
-    endatom = molecules[mol2-1].EndAtom();
-  // Select atoms
-  std::fill(mask + molecules[mol1-1].BeginAtom(), mask + endatom, SelectedChar_);
+  // Check end molecule arg. If beyond last molecule, make it the last molecule
+  unsigned int molEnd = mol2;
+  if (molEnd > molecules.size())
+    molEnd = molecules.size();
+  // Loop over molecules
+  for (unsigned int midx = molStart; midx < molEnd; midx++)
+  {
+    // Loop over segments
+    for (Unit::const_iterator seg = molecules[midx].MolUnit().segBegin();
+                              seg != molecules[midx].MolUnit().segEnd(); ++seg)
+      std::fill(mask + seg->Begin(), mask + seg->End(), SelectedChar_);
+  }
 }
 
 /** Select by atomic element. */

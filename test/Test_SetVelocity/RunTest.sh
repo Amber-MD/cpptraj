@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles setvel.in tz2.vel.rst7 V1.dat tz2.scale.rst7
+CleanFiles setvel.in tz2.vel.rst7 V1.dat tz2.scale.rst7 tz2.add.rst7
 
 INPUT='-i setvel.in'
 
@@ -11,6 +11,7 @@ Requires maxthreads 1
 
 UNITNAME='Set Velocity test'
 cat > setvel.in <<EOF
+rng setdefault marsaglia
 parm ../tz2.parm7
 trajin ../tz2.rst7
 setvelocity tempi 298.0 ig 10
@@ -41,6 +42,18 @@ trajout tz2.scale.rst7
 EOF
 RunCpptraj "$UNITNAME"
 DoTest tz2.scale.rst7.save tz2.scale.rst7
+
+UNITNAME='Add velocity test'
+cat > setvel.in <<EOF
+parm ../tz2.parm7
+trajin tz2.vel.rst7.save
+strip !:13
+outtraj temp.rst7
+setvelocity add value 2.0 vz 0
+trajout tz2.add.rst7
+EOF
+RunCpptraj "$UNITNAME"
+DoTest tz2.add.rst7.save tz2.add.rst7
 
 EndTest
 exit 0

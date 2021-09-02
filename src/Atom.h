@@ -1,7 +1,6 @@
 #ifndef INC_ATOM_H
 #define INC_ATOM_H
 #include <vector>
-#include <set> // For excluded 
 #include "NameType.h"
 #include "SymbolExporting.h"
 /// Hold information for an atom
@@ -53,12 +52,6 @@ class Atom {
     // TODO: Use this routine in AtomMap etc
     /// \return true if this atom is bonded to given atom index 
     bool IsBondedTo(int) const;
-    // Excluded atoms ----------------------------
-    typedef std::vector<int>::const_iterator excluded_iterator;
-    inline excluded_iterator excludedbegin() const { return excluded_.begin(); }
-    inline excluded_iterator excludedend()   const { return excluded_.end();   }
-    /// Create exclusion list from input set.
-    void AddExclusionList(std::set<int> const&);
     // Functions that set internal vars ----------
     void SetResNum(int resnumIn)             { resnum_ = resnumIn;  }
     void SetMol(int molIn)                   { mol_ = molIn;        }
@@ -75,15 +68,14 @@ class Atom {
     inline const char *c_str()         const { return *aname_; }
     inline int ResNum()                const { return resnum_; }
     inline AtomicElementType Element() const { return element_; }
-    inline int AtomicNumber()          const { return AtomicElementNum[element_];  }
-    inline const char* ElementName()   const { return AtomicElementName[element_]; }
-    inline double ElementRadius()      const { return AtomicElementRadius[element_]; }
+    inline int AtomicNumber()          const { return AtomicElementNum_[element_];  }
+    inline const char* ElementName()   const { return AtomicElementName_[element_]; }
+    inline double ElementRadius()      const { return AtomicElementRadius_[element_]; }
     inline const NameType& Name()      const { return aname_; }
     inline const NameType& Type()      const { return atype_; }
     inline int TypeIndex()             const { return atype_index_; }
     inline int MolNum()                const { return mol_; }
     inline int Nbonds()                const { return (int)bonds_.size(); }
-    inline int Nexcluded()             const { return (int)excluded_.size(); }
     inline double Mass()               const { return mass_; }
     inline double Charge()             const { return charge_; }
     inline double Polar()              const { return polar_; }
@@ -96,12 +88,12 @@ class Atom {
     /// Determine element from given atomic number. Use mass/name if number < 1.
     void DetermineElement(int);
   protected:
-    static const size_t NUMELEMENTS = 76;
+    static const size_t NUMELEMENTS_ = 76;
   private:
-    static CPPTRAJ_EXPORT const int AtomicElementNum[];
-    static CPPTRAJ_EXPORT const char* AtomicElementName[];
-    static CPPTRAJ_EXPORT const double AtomicElementMass[];
-    static CPPTRAJ_EXPORT const double AtomicElementRadius[];
+    static CPPTRAJ_EXPORT const int AtomicElementNum_[];
+    static CPPTRAJ_EXPORT const char* AtomicElementName_[];
+    static CPPTRAJ_EXPORT const double AtomicElementMass_[];
+    static CPPTRAJ_EXPORT const double AtomicElementRadius_[];
     double charge_;    ///< Charge in e-
     double polar_;     ///< Atomic polarizability in Ang^3
     double mass_;      ///< mass in amu
@@ -114,7 +106,6 @@ class Atom {
     int resnum_;       ///< Index into residues array.
     int mol_;          ///< Index into molecules array.
     std::vector<int> bonds_; ///< Indices of atoms bonded to this one.
-    std::vector<int> excluded_; ///< Indices of atoms excluded from nonbonded calc with this one.
 
     static void WarnBondLengthDefault(AtomicElementType, AtomicElementType, double);
     void SetElementFromName();

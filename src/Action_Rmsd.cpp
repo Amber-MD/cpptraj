@@ -354,10 +354,6 @@ Action::RetType Action_Rmsd::Setup(ActionSetup& setup) {
     else if (err == 2) return Action::ERR;
   }
 
-  // Warn if PBC and rotating
-  if (fit_ && mode_ == ROT_AND_TRANS)
-    Action::CheckImageRotationWarning(setup, "the RMS-fit");
-
   return Action::OK;
 }
 
@@ -382,6 +378,7 @@ Action::RetType Action_Rmsd::DoAction(int frameNum, ActionFrame& frm) {
     switch (mode_) {
       case ROT_AND_TRANS:
         frm.ModifyFrm().Trans_Rot_Trans(tgtTrans_, rot_, REF_.RefTrans());
+        frm.ModifyFrm().ModifyBox().RotateUcell( rot_ );
         err = Action::MODIFY_COORDS;
         break;
       case TRANS_ONLY:

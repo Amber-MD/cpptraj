@@ -217,6 +217,7 @@ DataIO_Gnuplot::LabelArray DataIO_Gnuplot::LabelArg( std::string const& labelarg
 
 void DataIO_Gnuplot::WriteHelp() {
   mprintf("\tnolabels       : Do not print axis labels.\n"
+          "\tlabels         : Print axis labels.\n"
           "\tusemap         : pm3d output with 1 extra empty row/col (may improve look).\n"
           "\tpm3d           : Normal pm3d map output.\n"
           "\tnopm3d         : Turn off pm3d\n"
@@ -239,6 +240,7 @@ void DataIO_Gnuplot::WriteHelp() {
 
 // DataIO_Gnuplot::processWriteArgs()
 int DataIO_Gnuplot::processWriteArgs(ArgList &argIn) {
+  if (argIn.hasKey("labels")) printLabels_ = true;
   if (argIn.hasKey("nolabels")) printLabels_ = false;
   if (argIn.hasKey("usemap")) pm3d_ = MAP;
   if (argIn.hasKey("pm3d")) pm3d_ = ON;

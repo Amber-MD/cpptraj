@@ -55,7 +55,12 @@ int Traj_GmxXtc::setupTrajin(FileName const& fnameIn, Topology* trajParm)
   Frame tmp( natoms_ );
   // First frame offset is always zero
   frameOffsets_.push_back( 0 );
-  if (readFrame(0, tmp)) return TRAJIN_ERR;
+  double ucell[9];
+  for (int i = 0; i < 9; i++) ucell[i] = 0;
+  if (readXtcFrame(0, tmp, ucell)) return TRAJIN_ERR;
+  // Set system box
+  Box xtcBox;
+  xtcBox.SetupFromUcell( ucell );
   // Determine total number of frames
   // FIXME in parallel every thread is doing this which is unnecessary.
   int nframes = TRAJIN_UNK;
@@ -121,7 +126,7 @@ int Traj_GmxXtc::setupTrajin(FileName const& fnameIn, Topology* trajParm)
 */
   closeTraj();
   // Box, coords, no velocity, no force, yes time
-  SetCoordInfo( CoordinateInfo(tmp.BoxCrd(), true, false, false, true) );
+  SetCoordInfo( CoordinateInfo(xtcBox, true, false, false, true) );
   return nframes;
 }
 
@@ -189,6 +194,19 @@ void Traj_GmxXtc::closeTraj() {
 
 // Traj_GmxXtc::readFrame()
 int Traj_GmxXtc::readFrame(int set, Frame& frameIn) {
+  double ucell[9];
+  int err = readXtcFrame(set, frameIn, ucell);
+  if (err == 0)
+    frameIn.ModifyBox().AssignFromUcell( ucell );
+  return err;
+}
+
+/** Read coordinates and box info from specified frame from XTC file.
+  * \param set Frame number to read.
+  * \param frameIn Frame to read coords (in Ang.) into.
+  * \param ucell Array of length 9, will be set with X{xyz} Y{xyz} Z{xyz} in Ang.
+  */
+int Traj_GmxXtc::readXtcFrame(int set, Frame& frameIn, double* ucell) {
   if (xdr_seek(xd_, frameOffsets_[set], SEEK_SET) != 0) {
     mprinterr("Error: Could not seek in XTC file, frame %i\n", set+1);
     return 1;
@@ -204,11 +222,10 @@ int Traj_GmxXtc::readFrame(int set, Frame& frameIn) {
     for (int kx = 0; kx < DIM; kx++)
       frameIn[idx++] = (double)vec_[ix][kx] * Constants::NM_TO_ANG;
   idx = 0;
-  Matrix_3x3 ucell;
   for (int ii = 0; ii < DIM; ii++)
     for (int ij = 0; ij < DIM; ij++)
       ucell[idx++] = (double)box_[ii][ij] * Constants::NM_TO_ANG;
-  frameIn.SetBox( Box(ucell) );
+  //ucell.Print("GmxRead");
   return 0;
 }
 
@@ -219,7 +236,9 @@ int Traj_GmxXtc::writeFrame(int set, Frame const& frameOut) {
     time = (float)frameOut.Time();
   else
     time = (float)(dt_ * (double)set);
-  Matrix_3x3 Ucell = frameOut.BoxCrd().UnitCell( Constants::ANG_TO_NM );
+  //Matrix_3x3 Ucell = frameOut.BoxCrd().UnitCell( Constants::ANG_TO_NM );
+  Matrix_3x3 Ucell = frameOut.BoxCrd().UnitCell() * Constants::ANG_TO_NM;
+  //Ucell *= Constants::ANG_TO_NM;
   int idx = 0;
   for (int ii = 0; ii < DIM; ii++)
     for (int ij = 0; ij < DIM; ij++)

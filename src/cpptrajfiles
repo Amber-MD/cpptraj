@@ -29,7 +29,6 @@ CLUSTER_SOURCES= \
 # differently for each will go into SOURCES/LIBCPPTRAJ_OBJECTS respectively.
 COMMON_SOURCES= $(CLUSTER_SOURCES) \
         SpaceGroup.cpp \
-        Action.cpp \
         ActionFrameCounter.cpp \
         ActionList.cpp \
         ActionTopWriter.cpp \
@@ -81,6 +80,7 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         Action_MinImage.cpp \
         Action_Molsurf.cpp \
         Action_MultiDihedral.cpp \
+        Action_MultiPucker.cpp \
         Action_MultiVector.cpp \
         Action_NAstruct.cpp \
         Action_NativeContacts.cpp \
@@ -169,6 +169,7 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         AxisType.cpp \
         BondSearch.cpp \
         Box.cpp \
+        BoxArgs.cpp \
         BufferedFrame.cpp \
         BufferedLine.cpp \
         ByteRoutines.cpp \
@@ -179,6 +180,7 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         Cmd.cpp \
         CmdInput.cpp \
         CmdList.cpp \
+        CompactFrameArray.cpp \
         ComplexArray.cpp \
         Constraints.cpp \
         ControlBlock_For.cpp \
@@ -191,6 +193,7 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         CurveFit.cpp \
         DataFile.cpp \
         DataFileList.cpp \
+        DataFilter.cpp \
         DataIO.cpp \
         DataIO_CCP4.cpp \
         DataIO_CharmmFastRep.cpp \
@@ -244,6 +247,7 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         DataSet_string.cpp \
         DataSet_StringVar.cpp \
         DataSet_Tensor.cpp \
+        DataSet_unsignedInt.cpp \
         Deprecated.cpp \
         DihedralSearch.cpp \
         DistRoutines.cpp \
@@ -260,6 +264,8 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         Ewald.cpp \
         Ewald_ParticleMesh.cpp \
         Ewald_Regular.cpp \
+        EwaldOptions.cpp \
+        ExclusionArray.cpp \
         Exec_AddMissingRes.cpp \
         Exec_Analyze.cpp \
         Exec_Calc.cpp \
@@ -276,6 +282,7 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         Exec_DataFilter.cpp \
         Exec_DataSetCmd.cpp \
         Exec_Emin.cpp \
+        Exec_Flatten.cpp \
         Exec_GenerateAmberRst.cpp \
         Exec_Graft.cpp \
         Exec_Help.cpp \
@@ -290,6 +297,7 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         Exec_Precision.cpp \
         Exec_PrepareForLeap.cpp \
         Exec_PrintData.cpp \
+        Exec_Random.cpp \
         Exec_ReadData.cpp \
         Exec_ReadEnsembleData.cpp \
         Exec_ReadInput.cpp \
@@ -322,16 +330,22 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         ForLoop_mask.cpp \
         ForLoop_overSets.cpp \
         Frame.cpp \
+        GIST_PME.cpp \
         GridAction.cpp \
+        GridBin.cpp \
         HistBin.cpp \
         Hungarian.cpp \
         ImageRoutines.cpp \
+        Image_List_Mask.cpp \
+        Image_List_Pair.cpp \
+        Image_List_Unit.cpp \
         InputTrajCommon.cpp \
         KDE.cpp \
         MapAtom.cpp \
         MaskArray.cpp \
         MaskToken.cpp \
         Matrix_3x3.cpp \
+        MdOpts.cpp \
         MetaData.cpp \
         Minimize_SteepestDescent.cpp \
         Mol.cpp \
@@ -339,6 +353,7 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         NameType.cpp \
         NC_Routines.cpp \
         NetcdfFile.cpp \
+        OMM_helpers.cpp \
         OutputTrajCommon.cpp \
         ParameterSet.cpp \
         PDBfile.cpp \
@@ -355,13 +370,27 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         Parm_SDF.cpp \
         Parm_Tinker.cpp \
         PotentialFunction.cpp \
+        PotentialTerm.cpp \
+        PotentialTerm_Angle.cpp \
         PotentialTerm_Bond.cpp \
+        PotentialTerm_Dihedral.cpp \
         PotentialTerm_LJ_Coulomb.cpp \
+        PotentialTerm_OpenMM.cpp \
         ProgressBar.cpp \
         ProgressTimer.cpp \
         PubFFT.cpp \
+        Pucker_PuckerMask.cpp \
+        Pucker_PuckerSearch.cpp \
+        Pucker_PuckerToken.cpp \
+        ExternalFxn.cpp \
         Random.cpp \
         Range.cpp \
+        RNG.cpp \
+        RNG_Marsaglia.cpp \
+        RNG_MersenneTwister.cpp \
+        RNG_PCG32.cpp \
+        RNG_Stdlib.cpp \
+        RNG_Xoshiro128pp.cpp \
         RPNcalc.cpp \
         ReferenceAction.cpp \
         RemdReservoirNC.cpp \
@@ -369,10 +398,12 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         SDFfile.cpp \
         SimplexMin.cpp \
         Spline.cpp \
+        SplineFxnTable.cpp \
         StringRoutines.cpp \
         StructureCheck.cpp \
         StructureMapper.cpp \
         SymmetricRmsdCalc.cpp \
+        TextBlockBuffer.cpp \
         TextFormat.cpp \
         Timer.cpp \
         TinkerFile.cpp \
@@ -413,9 +444,10 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         TrajoutList.cpp \
         Vec3.cpp \
         ViewRst.cpp \
-        vmdplugin/dtrplugin.cpp
+        vmdplugin/dtrplugin.cpp \
+        xoshiro128plusplus.cpp
 
-CSOURCES= molsurf.c
+CSOURCES= molsurf.c 
 
 # The files below are used by cpptraj and libcpptraj but must be compiled
 # differently for libcpptraj.
@@ -481,6 +513,7 @@ LIBCPPTRAJ_FILE_OBJECTS= \
   Mol2File.o \
   PDBfile.o \
   SDFfile.o \
+  TextBlockBuffer.o \
   TinkerFile.o
 
 # These objects are required for Gromacs XTC support in libcpptraj_traj.a
@@ -554,6 +587,7 @@ LIBCPPTRAJ_TRAJ_OBJECTS= \
 LIBCPPTRAJ_PARM_OBJECTS= \
   BondSearch.o \
   CharmmParamFile.o \
+  ExclusionArray.o \
   Mol.o \
   ParameterSet.o \
   ParmFile.o \

@@ -54,8 +54,7 @@ int DataIO_XVG::ReadData(FileName const& fname,
     ptr = infile.Line();
   }
   if (Legends.empty()) {
-    mprinterr("Error: No set legends found in XVG file.\n");
-    return 1;
+    mprintf("Warning: No set legends found in XVG file, assuming only one data set.\n");
   }
   if (ptr == 0) {
     mprinterr("Error: No data in XVG file.\n");
@@ -63,9 +62,17 @@ int DataIO_XVG::ReadData(FileName const& fname,
   }
   // Create 1 data set for each legend
   DataSetList::DataListType inputSets;
-  for (unsigned int i = 0; i != Legends.size(); i++) {
-    MetaData md( dsname, i );
-    md.SetLegend( Legends[i] );
+  if (!Legends.empty()) {
+    for (unsigned int i = 0; i != Legends.size(); i++) {
+      MetaData md( dsname, i );
+      md.SetLegend( Legends[i] );
+      DataSet_double* ds = new DataSet_double();
+      if (ds == 0) return 1;
+      ds->SetMeta( md );
+      inputSets.push_back( ds );
+    }
+  } else {
+    MetaData md(dsname);
     DataSet_double* ds = new DataSet_double();
     if (ds == 0) return 1;
     ds->SetMeta( md );

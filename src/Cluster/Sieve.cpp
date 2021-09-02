@@ -51,7 +51,7 @@ int Cpptraj::Cluster::Sieve::SetFramesToCluster(int sieveIn, std::size_t maxFram
     Cframes frameToIdx( maxFrames, -1 );
     framesToCluster_.reserve( maxFrames / sieve_ + 1 );
     sievedOut_.reserve( maxFrames - (maxFrames / sieve_) );
-    double dmax = (double)maxFrames;
+    unsigned int maxidx = maxFrames - 1;
     Random_Number random;
     random.rn_set( iseed );
     for (unsigned int i = 0; i < maxFrames; i -= sieve_)
@@ -59,8 +59,7 @@ int Cpptraj::Cluster::Sieve::SetFramesToCluster(int sieveIn, std::size_t maxFram
       bool frame_generated = false;
       // Pick until we pick a frame that has not yet been selected.
       while (!frame_generated) {
-        double dframe = dmax * random.rn_gen();
-        int iframe = (int)dframe;
+        unsigned int iframe = random.rn_num_interval(0, maxidx);
         if (frameToIdx[iframe] == -1) {
           frameToIdx[iframe] = 1;
           frame_generated = true;

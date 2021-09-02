@@ -160,7 +160,7 @@ void Trajin_Single::PrintInfo(int showExtended) const {
   trajio_->Info();
   mprintf(", Parm %s",Traj().Parm()->c_str());
   if (trajio_->CoordInfo().HasBox())
-    mprintf(" (%s box)", trajio_->CoordInfo().TrajBox().TypeName());
+    mprintf(" (%s box)", trajio_->CoordInfo().TrajBox().CellShapeName());
   if (showExtended==1) Traj().Counter().PrintFrameInfo(); 
   if (debug_>0)
     mprintf(", %i atoms, Box %i",Traj().Parm()->Natom(),(int)trajio_->CoordInfo().HasBox());

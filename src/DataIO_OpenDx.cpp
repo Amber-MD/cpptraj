@@ -155,7 +155,9 @@ int DataIO_OpenDx::LoadGrid(const char* filename, DataSet& ds)
     delta[0] *= (double)nx; delta[1] *= (double)nx; delta[2] *= (double)nx;
     delta[3] *= (double)ny; delta[4] *= (double)ny; delta[5] *= (double)ny;
     delta[6] *= (double)nz; delta[7] *= (double)nz; delta[8] *= (double)nz;
-    err = grid.Allocate_N_O_Box(nx,ny,nz, Vec3(oxyz), Box(delta));
+    Box dxBox;
+    dxBox.SetupFromUcell(delta);
+    err = grid.Allocate_N_O_Box(nx,ny,nz, Vec3(oxyz), dxBox);
   } else
     err = grid.Allocate_N_O_D(nx,ny,nz, Vec3(oxyz), Vec3(delta[0],delta[4],delta[8]));
   if (err != 0) { 

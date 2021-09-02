@@ -103,6 +103,10 @@ int TopInfo::maxAtomNamesWidth(AtomMask const& mask) const {
 
 // TopInfo::PrintAtomInfo()
 int TopInfo::PrintAtomInfo(std::string const& maskExpression) const {
+  if (maskExpression.empty()) {
+    mprinterr("Error: No valid mask given to select atoms.\n");
+    return 1;
+  }
   AtomMask mask( maskExpression );
   if (parm_->SetupIntegerMask( mask )) return 1;
   if ( mask.None() )
@@ -156,6 +160,10 @@ int TopInfo::maxResNameWidth(std::vector<int> const& resNums) const {
 
 // TopInfo::PrintResidueInfo()
 int TopInfo::PrintResidueInfo(std::string const& maskExpression) const {
+  if (maskExpression.empty()) {
+    mprinterr("Error: No valid mask given to select residues.\n");
+    return 1;
+  }
   AtomMask mask( maskExpression );
   if (parm_->SetupIntegerMask( mask )) return 1;
   if ( mask.None() )
@@ -196,6 +204,10 @@ int TopInfo::PrintResidueInfo(std::string const& maskExpression) const {
 
 /** Print residue info using single char names. */ // TODO use Topology::ResnumsSelectedBy
 int TopInfo::PrintShortResInfo(std::string const& maskString, int maxChar) const {
+  if (maskString.empty()) {
+    mprinterr("Error: No valid mask given for short residue info.\n");
+    return 1;
+  }
   AtomMask mask( maskString );
   if (parm_->SetupIntegerMask( mask )) return 1;
   if ( mask.None() )
@@ -248,7 +260,7 @@ int TopInfo::maxMolNameWidth(std::vector<int> const& molNums) const {
   int nWidth = 4;
   for (std::vector<int>::const_iterator mnum = molNums.begin(); mnum != molNums.end(); ++mnum)
   {
-    int molAtom0 = parm_->Mol( *mnum ).BeginAtom();
+    int molAtom0 = parm_->Mol( *mnum ).MolUnit().Front();
     int firstres = (*parm_)[ molAtom0 ].ResNum();
     int mn_size = parm_->Res(firstres).Name().len();
     if (mn_size > nWidth)
@@ -259,6 +271,10 @@ int TopInfo::maxMolNameWidth(std::vector<int> const& molNums) const {
 
 // TopInfo::PrintMoleculeInfo()
 int TopInfo::PrintMoleculeInfo(std::string const& maskString) const {
+  if (maskString.empty()) {
+    mprinterr("Error: No valid mask given to select molecules.\n");
+    return 1;
+  }
   if (parm_->Nmol() < 1)
     mprintf("\t'%s' No molecule info.\n", parm_->c_str());
   else {
@@ -269,6 +285,7 @@ int TopInfo::PrintMoleculeInfo(std::string const& maskString) const {
     else {
       std::vector<int> molNums = parm_->MolnumsSelectedBy( mask );
       mprintf("%zu molecules.\n", molNums.size());
+      // TODO determine max segments
       int mn_width = maxMolNameWidth( molNums );
       int awidth = std::max(5, DigitWidth(parm_->Natom()));
       int rwidth = std::max(5, DigitWidth(parm_->Nres()));
@@ -285,16 +302,20 @@ int TopInfo::PrintMoleculeInfo(std::string const& maskString) const {
                                             mnum != molNums.end(); ++mnum)
       {
         Molecule const& Mol = parm_->Mol(*mnum);
-        int firstres = (*parm_)[ Mol.BeginAtom() ].ResNum();
-        int lastres  = (*parm_)[ Mol.EndAtom()-1 ].ResNum();
-        outfile_->Printf("%*u %*i %*i %*i %*i %-*s %c",
-                         mwidth, *mnum+1,
-                         awidth, Mol.NumAtoms(),
-                         rwidth, lastres-firstres+1,
-                         rwidth, firstres+1,
-                         rwidth, lastres+1,
-                         mn_width, parm_->Res(firstres).c_str(),
-                         parm_->Res(firstres).ChainId());
+        outfile_->Printf("%*u %*i", mwidth, *mnum+1, awidth, Mol.NumAtoms());
+        // Loop over segments
+        for (Unit::const_iterator seg = Mol.MolUnit().segBegin();
+                                  seg != Mol.MolUnit().segEnd(); ++seg)
+        {
+          int firstres = (*parm_)[ seg->Begin() ].ResNum();
+          int lastres  = (*parm_)[ seg->End()-1 ].ResNum();
+          outfile_->Printf(" %*i %*i %*i %-*s %c",
+                           rwidth, lastres-firstres+1,
+                           rwidth, firstres+1,
+                           rwidth, lastres+1,
+                           mn_width, parm_->Res(firstres).c_str(),
+                           parm_->Res(firstres).ChainId());
+        } // END loop over segments
         if ( Mol.IsSolvent() ) outfile_->Printf(" SOLVENT");
         outfile_->Printf("\n");
       }
@@ -305,6 +326,10 @@ int TopInfo::PrintMoleculeInfo(std::string const& maskString) const {
 
 // TopInfo::PrintShortMolInfo()
 int TopInfo::PrintShortMolInfo(std::string const& maskString) const {
+  if (maskString.empty()) {
+    mprinterr("Error: No valid mask given for short molecule info.\n");
+    return 1;
+  }
   if (parm_->Nmol() < 1)
     mprintf("\t'%s' No molecule info.\n", parm_->c_str());
   else {
@@ -347,6 +372,10 @@ int TopInfo::PrintShortMolInfo(std::string const& maskString) const {
 
 // TopInfo::PrintChargeInfo()
 int TopInfo::PrintChargeInfo(std::string const& maskExpression, double& sumQ) const {
+  if (maskExpression.empty()) {
+    mprinterr("Error: No valid mask given to calculate charge.\n");
+    return 1;
+  }
   AtomMask mask( maskExpression );
   if (parm_->SetupIntegerMask( mask )) return 1;
   sumQ = 0.0;
@@ -359,6 +388,10 @@ int TopInfo::PrintChargeInfo(std::string const& maskExpression, double& sumQ) co
 
 // TopInfo::PrintMassInfo()
 int TopInfo::PrintMassInfo(std::string const& maskExpression, double& sumM) const {
+  if (maskExpression.empty()) {
+    mprinterr("Error: No valid mask given to calculate mass.\n");
+    return 1;
+  }
   AtomMask mask( maskExpression );
   if (parm_->SetupIntegerMask( mask )) return 1;
   sumM = 0.0;

@@ -1912,6 +1912,73 @@ selectedTgt.SetCoordinates( Tgt2, mask );
 rmsd = selectedTgt.RMSD_CenteredRef( selectedRef, ...
 \end_layout
 
+\begin_layout Subsection
+Box
+\end_layout
+
+\begin_layout Standard
+The Box class holds all unit cell information.
+ It has the unit cell vectors (stored in a Matrix_3x3 class in row-major
+ order), as well as the fractional cell matrix (for converting from Cartesian
+ to fractional coordinates), the box lengths and angles, and the unit cell
+ volume.
+ There are in general two ways to set up Box with unit cell information:
+ the SetupX routines (e.g.
+ SetupFromXyzAbg()) and AssignX routines (e.g.
+ AssignFromXyzAbg()).
+ The SetupX routines perform some extra checks and will return 1 if something
+ is wrong with the box.
+ The AssignX routines do not perform these checks and so should be used
+ where performance is needed (or the state of the box doesn't matter).
+\end_layout
+
+\begin_layout Standard
+Both the SetupX and AssignX will set the unit and fractional cell matrices,
+ the box lengths and angles, and the cell volume each time they are called.
+ The ImageOption class can then be used to determine what kind of imaging
+ can be performed on the unit cell using the distance calculation routines
+ (DIST2(), DIST()) found in DistRoutines.h.
+ For example, this is how distances are calculated using ImageOption imageOpt_
+ in the distance action.
+\end_layout
+
+\begin_layout Standard
+1.
+ In Init(), determine if imaging should be used if possible:
+\end_layout
+
+\begin_layout LyX-Code
+imageOpt_.InitImaging( !(actionArgs.hasKey("noimage")) );
+\end_layout
+
+\begin_layout Standard
+2.
+ In Setup(), determine if imaging will be possible based on if box info
+ is present:
+\end_layout
+
+\begin_layout LyX-Code
+imageOpt_.SetupImaging( setup.CoordInfo().TrajBox().HasBox() );
+\end_layout
+
+\begin_layout Standard
+3.
+ In DoAction(), determine what imaging to use and then calculate distance
+ using DIST() from DistRoutines.h:
+\end_layout
+
+\begin_layout LyX-Code
+if (imageOpt_.ImagingEnabled())
+\end_layout
+
+\begin_layout LyX-Code
+  imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
+\end_layout
+
+\begin_layout LyX-Code
+double Dist = DIST(imageOpt_.ImagingType(), a1, a2_, frm.Frm().BoxCrd());
+\end_layout
+
 \begin_layout Section
 Console and File Input/Output
 \end_layout

@@ -93,7 +93,9 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
     if (readBox_ && infile.RecType() == PDBfile::CRYST1) {
       // Box info from CRYST1 record.
       infile.pdb_Box_verbose( XYZ );
-      TopIn.SetParmBox( XYZ );
+      Box pbox;
+      pbox.SetupFromXyzAbg( XYZ );
+      TopIn.SetParmBox( pbox );
     } else if (infile.RecType() == PDBfile::CONECT && readConect) {
       // BOND - first element will be atom, next few are bonded atoms.
       // To avoid duplicates only add the bond if atom2 > atom1
@@ -125,6 +127,7 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
         nAltLocSkipped++;
         continue;
       }
+      TopIn.AddAtomAltLoc( altLoc );
       if (atnum >= (int)serial.size())
         serial.resize( atnum+1, -1 );
       serial[atnum] = TopIn.Natom();
@@ -134,7 +137,8 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
         pdbAtom.SetGBradius( bfactor );
       } else {
         infile.pdb_OccupancyAndBfactor(occupancy, bfactor);
-        TopIn.AddExtraAtomInfo( AtomExtra(occupancy, bfactor, altLoc) );
+        TopIn.AddOccupancy( occupancy );
+        TopIn.AddBfactor( bfactor );
       }
       TopIn.AddTopAtom(pdbAtom, infile.pdb_Residue());
       if (altLoc != ' ' && keepAltLoc_ == ' ') {
@@ -151,15 +155,16 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
                 infile.RecType() == PDBfile::END )
     {
       // Indicate end of molecule for TER/END. Finish if END.
-      TopIn.StartNewMol();
+      //TopIn.StartNewMol();
+      TopIn.SetRes( TopIn.Nres()-1 ).SetTerminal( true );
       if (infile.RecType() == PDBfile::END) break;
     } else if ( !missingResidues && infile.RecType() == PDBfile::MISSING_RES ) {
       missingResidues = true;
       mprintf("Warning: PDB file has MISSING RESIDUES section.\n");
-      if (readConect)
+      /*if (readConect)
         mprintf("Warning: If molecule determination fails try specifying 'noconect' instead.\n");
       if (readLink)
-        mprintf("Warning: If molecule determination fails try not specifying 'link' instead.\n");
+        mprintf("Warning: If molecule determination fails try not specifying 'link' instead.\n");*/
     }
   } // END loop over PDB records
   if (nAltLocSkipped > 0)
@@ -227,7 +232,8 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
     } // END loop over Link records
   } // END PDB has link records.
   // Fill in bonds
-  BondSearch( TopIn, searchType_, Coords, Offset_, debug_ );
+  BondSearch bondSearch;
+  bondSearch.FindBonds( TopIn, searchType_, Coords, Offset_, debug_ );
   // If Topology name not set with TITLE etc, use base filename.
   // TODO: Read in title.
   std::string pdbtitle;

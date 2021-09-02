@@ -89,6 +89,7 @@ class CpptrajFile {
     off_t Tell()                           { return IO_->Tell();          }
     static const size_t BUF_SIZE = 1024;
   protected: // Protected for PDBfile/Mol2File
+    int Debug() const { return debug_; }
     char linebuffer_[BUF_SIZE]; ///< Used in Printf/GetLine functions
   private:
     static const char* FileTypeName[];

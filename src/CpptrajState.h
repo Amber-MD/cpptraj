@@ -21,6 +21,10 @@ class CpptrajState {
     void SetNoProgress()     { showProgress_ = false; }
     void SetQuietBlocks(bool b)    { quietBlocks_ = b;         }
     void SetActionSilence(bool b)  { actionList_.SetSilent(b); }
+    /// \return Keywords recognized by ChangeDefaultRng
+    static const char* RngKeywords();
+    /// Change the default RNG according to given keyword.
+    int ChangeDefaultRng(std::string const&) const;
 #   ifdef MPI
     void SetForceParaEnsemble(bool b) { forceParallelEnsemble_ = b; }
 #   endif

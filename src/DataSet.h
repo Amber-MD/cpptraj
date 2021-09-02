@@ -28,7 +28,7 @@ class DataSet {
       UNKNOWN_DATA=0, DOUBLE, FLOAT, INTEGER, STRING, MATRIX_DBL, MATRIX_FLT, 
       COORDS, VECTOR, MODES, GRID_FLT, GRID_DBL, REMLOG, XYMESH, TRAJ, REF_FRAME,
       MAT3X3, TOPOLOGY, PH, PH_EXPL, PH_IMPL,
-      PARAMETERS, PMATRIX_MEM, PMATRIX_NC, TENSOR, STRINGVAR, VECTOR_SCALAR
+      PARAMETERS, PMATRIX_MEM, PMATRIX_NC, TENSOR, STRINGVAR, VECTOR_SCALAR, UNSIGNED_INTEGER
     };
     /// Group DataSet belongs to.
     enum DataGroup {
@@ -49,7 +49,7 @@ class DataSet {
     virtual SizeArray DimSizes() const { return SizeArray(); }
     /// Print DataSet information //TODO return string instead?
     virtual void Info() const = 0;
-    /// Write data to file given start indices. FIXME Buffer? Should this function take number of elements as well?
+    /// Write data to file given start indices.
     virtual void WriteBuffer(CpptrajFile&, SizeArray const&) const = 0;
     /// \return value of coordinate for specified dimension d and position p.
     /** NOTE: It is assumed this can ALWAYS be represented as double precision. */

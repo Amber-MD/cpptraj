@@ -6,7 +6,7 @@
 class TextFormat {
   public:
     /// Formats: f, E, g, i, s
-    enum FmtType { DOUBLE = 0, SCIENTIFIC, GDOUBLE, INTEGER, STRING };
+    enum FmtType { DOUBLE = 0, SCIENTIFIC, GDOUBLE, INTEGER, UNSIGNED, STRING };
     /// Alignment type: Right, Left, Right with leading space.
     enum AlignType { RIGHT = 0, LEFT, LEADING_SPACE };
     /// CONSTRUCTOR - default 8.3f format

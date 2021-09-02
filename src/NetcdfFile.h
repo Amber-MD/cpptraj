@@ -55,7 +55,7 @@ class NetcdfFile {
     inline int CoordVID()  const { return coordVID_;            }
   protected: // TODO: Make all private
 #   ifdef MPI
-    void Sync(Parallel::Comm const&);
+    void Broadcast(Parallel::Comm const&);
 #   endif
     size_t start_[4];    ///< Array starting indices
     size_t count_[4];    ///< Array counts

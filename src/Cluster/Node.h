@@ -29,11 +29,11 @@ class Node {
     enum CnormType { NONE = 0, CLUSTERPOP, FRAME };
 
     /// Used to pair a representative frame number with a score.
-    typedef std::pair<int,float> RepPair;
+    typedef std::pair<int,double> RepPair;
     /// Used to hold a list of representative frames/scores
     typedef std::vector<RepPair> RepPairArray;
     /// Used to pair frame numbers with silhouette values.
-    typedef std::pair<int,float> SilPair;
+    typedef std::pair<int,double> SilPair;
     /// Used to hold list of frame numbers/silhouette values.
     typedef std::vector<SilPair> SilPairArray;
 
@@ -81,7 +81,6 @@ class Node {
 
     /// Calculate centroid of members of this cluster.
     void CalculateCentroid(Metric* Cdist) {
-      // FIXME: Could potentially get rid of this branch.
       if (centroid_ == 0)
         centroid_ = Cdist->NewCentroid( frameList_ );
       else

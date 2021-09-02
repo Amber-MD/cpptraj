@@ -3,6 +3,8 @@
 #include "PairList.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // ByteString()
+#include "Frame.h"
+#include "AtomMask.h"
 
 PairList::PairList() :
   cutList_(0.0),
@@ -32,23 +34,17 @@ int PairList::InitPairList(double cutIn, double skinNBin, int debugIn) {
   return 0;
 }
 
-int PairList::SetupPairList(Box const& boxIn) {
-  Matrix_3x3 ucell, recip;
-  boxIn.ToRecip(ucell, recip);
-  return SetupPairList( boxIn.Type(), boxIn.RecipLengths(recip) );
-}
-
 // PairList::SetupPairList()
-int PairList::SetupPairList(Box::BoxType typeIn, Vec3 const& recipLengthsIn) {
+int PairList::SetupPairList(Box const& boxIn) {
   Timer t_setup;
   t_setup.Start();
-  if (typeIn == Box::NOBOX) {
-    mprinterr("Error: Pair list code currently requires box coordinates.\n");
+  if (!boxIn.HasBox()) {
+    mprinterr("Error: Pair list code currently requires box information.\n");
     return 1;
   }
 
   // Allocate/reallocate memory
-  if (SetupGrids(recipLengthsIn)) return 1;
+  if (SetupGrids(boxIn.RecipLengths())) return 1;
   t_setup.Stop();
   t_setup.WriteTiming(1, "Pair List Setup:");
   mprintf("\tGrid dimensions: %i %i %i (%zu total).\n", nGridX_, nGridY_, nGridZ_, cells_.size());
@@ -81,7 +77,7 @@ int PairList::CreatePairList(Frame const& frmIn, Matrix_3x3 const& ucell,
   FillTranslateVec(ucell);
   // If box size has changed a lot this will reallocate grid
   t_gridpointers_.Start();
-  if (SetupGrids(frmIn.BoxCrd().RecipLengths(recip))) return -1;
+  if (SetupGrids(frmIn.BoxCrd().RecipLengths())) return -1;
   t_gridpointers_.Stop();
   // Place atoms in grid cells
   t_map_.Start();
@@ -127,7 +123,7 @@ int PairList::GridUnitCell(Frame const& frmIn, Matrix_3x3 const& ucell,
   Frac_.clear();
   Frac_.reserve( maskIn.Nselected() );
   int nOffGrid = 0;
-  if (frmIn.BoxCrd().Type() == Box::ORTHO) {
+  if (frmIn.BoxCrd().Is_X_Aligned_Ortho()) {
     // Orthogonal imaging
     for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
     {

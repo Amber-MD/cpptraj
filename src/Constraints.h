@@ -22,6 +22,7 @@ class Constraints {
     double DT()            const { return dt_;                 }
     double Epsilon()       const { return epsilon_;            }
     const char* shakeString() const;
+    static const char* shakeString(ShakeType);
   private:
     int AddBonds(BondArray const&, Topology const&, CharMask const&);
 

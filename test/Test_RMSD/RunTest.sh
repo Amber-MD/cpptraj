@@ -6,7 +6,7 @@
 CleanFiles rms.in rmsd.dat rms.mass.in rmsd.mass.dat rms.reftraj.in \
            rmsd.reftraj.dat tz2.norotate.crd tz2.rotate.crd rmatrices.dat \
            rmsd.refcoords.dat rms.dat NoMod.dat NoMod.crd.save NoMod.crd \
-           vecs.dat Previous.dat
+           vecs.dat Previous.dat distances.agr
 
 TESTNAME='RMSD tests'
 Requires netcdf
@@ -89,6 +89,22 @@ EOF
   RunCpptraj "$UNITNAME"
   DoTest Previous.dat.save Previous.dat
 fi
+
+# Test imaging after unit cell rotation
+UNITNAME='RMS: imaging after unit cell rotation'
+TOP='-p ../tz2.ortho.parm7'
+INPUT='-i rms.in'
+cat > rms.in <<EOF
+noprogress
+trajin ../tz2.ortho.nc
+rms :1-13 first
+distance NoImage :559 :1412 noimage out distances.agr
+distance Image   :559 :1412         out distances.agr
+run
+EOF
+RunCpptraj "$UNITNAME"
+DoTest distances.agr.save distances.agr
+
 
 EndTest
 

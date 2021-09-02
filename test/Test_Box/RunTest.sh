@@ -17,7 +17,7 @@ parm ../tz2.parm7
 trajin ../tz2.nc 1 10 
 strip !(:1)
 box x 42.428  y 42.428  z 42.428 alpha 109.471 beta 109.471 gamma 109.471
-trajout addbox.rst7
+trajout addbox.rst7 time0 0
 go
 EOF
 RunCpptraj "$UNITNAME"
@@ -44,7 +44,7 @@ parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.nc 1 10
 strip !(:1)
 box x 45.0
-trajout modX.rst7
+trajout modX.rst7 time0 0
 go
 EOF
 RunCpptraj "$UNITNAME"
@@ -58,7 +58,7 @@ if [ $? -eq 0 ] ; then
 parm ../tz2.parm7
 trajin ../tz2.nc 1 1
 box auto offset 3.0 radii none
-trajout tz2.box.rst7
+trajout tz2.box.rst7 time0 0
 run
 EOF
   RunCpptraj "$UNITNAME"
@@ -72,7 +72,7 @@ if [ $? -eq 0 ] ; then
 parm ../tz2.parm7
 trajin ../tz2.nc 1 1
 box auto radii vdw
-trajout tz2.vdw.rst7
+trajout tz2.vdw.rst7 time0 0
 run
 EOF
   RunCpptraj "$UNITNAME"

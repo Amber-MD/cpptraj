@@ -17,42 +17,23 @@ float dist2_imageOrtho(float *vec1, float *vec2, BoxInfo box) {
   if (box[0] == 0 || box[1] == 0 || box[2] == 0) {
     return -1;
   }
-  float x = vec1[0] - vec2[0];
-  float y = vec1[1] - vec2[1];
-  float z = vec1[2] - vec2[2];
+  float x = abs(vec1[0] - vec2[0]);
+  float y = abs(vec1[1] - vec2[1]);
+  float z = abs(vec1[2] - vec2[2]);
 
-  if (x < 0) {
-    x *= -1;
-  }
-  if (y < 0) {
-    y *= -1;
-  }
-  if (z < 0) {
-    z *= -1;
-  }
-
-  while ( x > box[0] ) {
+  while (x > box[0]) {
     x -= box[0];
   }
-  while ( y > box[1] ) {
+  while (y > box[1]) {
     y -= box[1];
   }
-  while ( z > box[2] ) {
+  while (z > box[2]) {
     z -= box[2];
   }
 
-  float dist = box[0] - x;
-  if ( dist < x ) {
-    x = dist;
-  }
-  dist = box[1] - y;
-  if  ( dist < y ) {
-    y = dist;
-  }
-  dist = box[2] - z;
-  if ( dist < z ) {
-    z = dist;
-  }
+  x = min(x, box[0] - x);
+  y = min(y, box[1] - y);
+  z = min(z, box[2] - z);
 
   return x * x + y * y + z * z;
 }
@@ -364,8 +345,8 @@ void cudaCalcEnergy(Coordinates *coords, int *NBindex, int ntypes, ParamsLJ *par
     float r_2 = calcDist(vec1, vec2, recip_o_box, ucell);
     float energy = calcTotalEnergy(atom1.charge, atom2.charge, lj.A, lj.B, r_2);
     
-    if (atom2.solvent != 0) {
-      atomicAdd(&(result_ww[a1]), energy * 0.5);
+    if (atom2.solvent) {
+      atomicAdd(&(result_ww[a1]), energy * 0.5f);
     } else {
       atomicAdd(&(result_sw[a1]), energy);
     }
@@ -403,7 +384,7 @@ void cudaCalcEnergySlow(Coordinates *coords, int *NBindex, int ntypes, ParamsLJ 
   int a1 = blockIdx.x * blockDim.x + threadIdx.x;
   
   if (a1 >= maxAtoms) {
-  return;
+    return;
   }
   
   AtomProperties atom1 = atomProps[a1];
@@ -413,10 +394,12 @@ void cudaCalcEnergySlow(Coordinates *coords, int *NBindex, int ntypes, ParamsLJ 
   result_O[4 * a1 + 2] = 0;
   result_O[4 * a1 + 1] = 0;
   result_O[4 * a1    ] = 0;
+  float energy_ww = 0.0f;
+  float energy_sw = 0.0f;
   for (int a2 = 0; a2 < maxAtoms; ++a2) {
-     AtomProperties atom2 = atomProps[a2];
+    AtomProperties atom2 = atomProps[a2];
     // Do not calculate if the two values are the same or they belong to the same molecule.
-    if ( (a1 != a2) && (atom1.molecule != atom2.molecule)) {
+    if ((a1 != a2) && (atom1.molecule != atom2.molecule)) {
       Coordinates t1 = coords[a1];
       Coordinates t2 = coords[a2];
       ParamsLJ lj = getLJParam(atom1.atomType, atom2.atomType, NBindex, ntypes, parameterLJ);
@@ -454,11 +437,13 @@ void cudaCalcEnergySlow(Coordinates *coords, int *NBindex, int ntypes, ParamsLJ 
           result_N[a1] += 1;
         }
       }
-      if (atom2.solvent != 0) {
-        result_ww[a1] += energy / 2.0;
+      if (atom2.solvent) {
+        energy_ww += energy * 0.5f;
       } else {
-        result_sw[a1] += energy;
+        energy_sw += energy;
       }
     }
   }
+  result_ww[a1] = energy_ww;
+  result_sw[a1] = energy_sw;
 }

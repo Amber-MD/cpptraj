@@ -3,6 +3,7 @@
 #include <cstring> // strchr
 #include <cctype>  // isdigit, isalpha
 #include <algorithm> // std::max
+#include <map>     // For reading in potentially sparse matrix
 #include <cmath>   // modf TODO put function in StringRoutines?
 #include "DataIO_Std.h"
 #include "CpptrajStdio.h" 
@@ -17,6 +18,8 @@
 #include "DataSet_Mat3x3.h" // For reading TODO remove dependency?
 #include "DataSet_PairwiseCache_MEM.h" // For reading
 #include "DataSet_2D.h"
+#include "DataSet_MatrixFlt.h"
+#include "DataSet_MatrixDbl.h"
 #include "DataSet_3D.h"
 
 // CONSTRUCTOR
@@ -29,7 +32,7 @@ DataIO_Std::DataIO_Std() :
   isInverted_(false), 
   hasXcolumn_(true), 
   writeHeader_(true), 
-  square2d_(false),
+  square2d_(true),
   sparse_(false),
   originSpecified_(false),
   deltaSpecified_(false),
@@ -45,26 +48,6 @@ DataIO_Std::DataIO_Std() :
 
 static void PrintColumnError(int idx) {
   mprinterr("Error: Number of columns in file changes at line %i.\n", idx);
-}
-
-void DataIO_Std::ReadHelp() {
-  mprintf("\tread1d:      Read data as 1D data sets (default).\n"
-          "\t\tindex <col>        : (1D) Use column # (starting from 1) as index (X) column.\n"
-          "\t\tonlycols <range>   : Only read columns in range.\n"
-          "\t\tfloatcols <range>  : Force specified columns to be read as single-precision floats.\n"
-          "\t\tintcols <range>    : Force specified columns to be read as integers.\n"
-          "\t\tstringcols <range> : Force specified columns to be read as strings.\n"
-          "\tread2d:      Read data as 2D square matrix.\n"
-          "\tread3d:      Read data as 3D grid. If no dimension data in file must also\n"
-          "\t             specify 'dims'; can also specify 'origin' and 'delta'.\n"
-          "\t\tdims <nx>,<ny>,<nz>   : Grid dimensions.\n"
-          "\t\torigin <ox>,<oy>,<oz> : Grid origins (0,0,0).\n"
-          "\t\tdelta <dx>,<dy>,<dz>  : Grid spacing (1,1,1).\n"
-          "\t\tprec {dbl|flt*}       : Grid precision; double or float (default float).\n"
-          "\t\tbin {center|corner*}  : Coords specify bin centers or corners (default corners).\n"
-          "\tvector:      Read data as vector: VX VY VZ [OX OY OZ]\n"
-          "\tmat3x3:      Read data as 3x3 matrices: M(1,1) M(1,2) ... M(3,2) M(3,3)\n");
-
 }
 
 const char* DataIO_Std::SEPARATORS = " ,\t"; // whitespace, comma, or tab-delimited
@@ -86,6 +69,31 @@ int DataIO_Std::Get3Double(std::string const& key, Vec3& vec, bool& specified)
   }
   return 0;
 }
+
+/** Data read options. */
+void DataIO_Std::ReadHelp() {
+  mprintf("\tprec {flt|dbl} : Read 2d/3d data as single (flt) or double (dbl, default) precision.\n"
+          "\tread1d         : Read data as 1D data sets (default).\n"
+          "\t\tindex <col>        : (1D) Use column # (starting from 1) as index (X) column.\n"
+          "\t\tonlycols <range>   : Only read columns in range.\n"
+          "\t\tfloatcols <range>  : Force specified columns to be read as single-precision floats.\n"
+          "\t\tintcols <range>    : Force specified columns to be read as integers.\n"
+          "\t\tstringcols <range> : Force specified columns to be read as strings.\n"
+          "\tread2d         : Read data as 2D matrix.\n"
+          "\t\tsquare2d   : Read data as square matrix (default).\n"
+          "\t\tnosquare2d : Read data as XYZ matrix (i.e. each line contains '<column> <row> <data>').\n"
+          "\tread3d         : Read data as 3D grid. If no dimension data in file must also\n"
+          "\t                 specify 'dims'; can also specify 'origin' and 'delta'.\n"
+          "\t\tdims <nx>,<ny>,<nz>   : Grid dimensions.\n"
+          "\t\torigin <ox>,<oy>,<oz> : Grid origins (0,0,0).\n"
+          "\t\tdelta <dx>,<dy>,<dz>  : Grid spacing (1,1,1).\n"
+          "\t\tprec {dbl|flt*}       : Grid precision; double or float (default float).\n"
+          "\t\tbin {center|corner*}  : Coords specify bin centers or corners (default corners).\n"
+          "\tvector         : Read data as vector: VX VY VZ [OX OY OZ]\n"
+          "\tmat3x3         : Read data as 3x3 matrices: M(1,1) M(1,2) ... M(3,2) M(3,3)\n");
+
+}
+
 
 // DataIO_Std::processReadArgs()
 int DataIO_Std::processReadArgs(ArgList& argIn) {
@@ -135,6 +143,24 @@ int DataIO_Std::processReadArgs(ArgList& argIn) {
     // Column user args start from 1
     strCols_.ShiftBy(-1);
   }
+  // Precision
+  // TODO precision for 1d too
+  if (mode_ == READ2D || mode_ == READ3D) {
+    std::string precKey = argIn.GetStringKey("prec");
+    if (!precKey.empty()) {
+      if (precKey == "flt") prec_ = FLOAT;
+      else if (precKey == "dbl") prec_ = DOUBLE;
+      else {
+        mprinterr("Error: Expected only 'flt' or 'dbl' for keyword 'prec'\n");
+        return 1;
+      }
+    }
+  }
+  // Options for 2d
+  if (mode_ == READ2D) {
+    if (argIn.hasKey("square2d")) square2d_ = true;
+    if (argIn.hasKey("nosquare2d")) square2d_ = false;
+  }
   // Options for 3d
   if (mode_ == READ3D) {
     if (Get3Double(argIn.GetStringKey("origin"), origin_, originSpecified_)) return 1;
@@ -151,16 +177,7 @@ int DataIO_Std::processReadArgs(ArgList& argIn) {
       dims_[1] = oArg.getNextInteger(dims_[1]);
       dims_[2] = oArg.getNextInteger(dims_[2]);
     }
-    // TODO precision for 1d and 2d too
-    std::string precKey = argIn.GetStringKey("prec");
-    if (!precKey.empty()) {
-      if (precKey == "flt") prec_ = FLOAT;
-      else if (precKey == "dbl") prec_ = DOUBLE;
-      else {
-        mprinterr("Error: Expected only 'flt' or 'dbl' for keyword 'prec'\n");
-        return 1;
-      }
-    }
+    
     std::string binKey = argIn.GetStringKey("bin");
     if (!binKey.empty()) {
       if (binKey == "center") binCorners_ = false;
@@ -188,7 +205,12 @@ int DataIO_Std::ReadData(FileName const& fname,
       if (err == IS_ASCII_CMATRIX)
         err = ReadCmatrix(fname, dsl, dsname);
       break;
-    case READ2D: err = Read_2D(fname.Full(), dsl, dsname); break;
+    case READ2D:
+      if (square2d_)
+        err = Read_2D(fname.Full(), dsl, dsname);
+      else
+        err = Read_2D_XYZ(fname, dsl, dsname);
+      break;
     case READ3D: err = Read_3D(fname.Full(), dsl, dsname); break;
     case READVEC: err = Read_Vector(fname.Full(), dsl, dsname); break;
     case READMAT3X3: err = Read_Mat3x3(fname.Full(), dsl, dsname); break;
@@ -527,6 +549,138 @@ int DataIO_Std::Read_2D(std::string const& fname,
   return 0;
 }
 
+// DataIO_Std::Read_2D_XYZ()
+/* Read matrix of format <X> <Y> <VAL> */
+int DataIO_Std::Read_2D_XYZ(FileName const& fname, 
+                            DataSetList& datasetlist, std::string const& dsname)
+{
+  // Buffer file
+  BufferedLine buffer;
+  if (buffer.OpenFileRead( fname )) return 1;
+  mprintf("\tData will be read as a 2D XYZ matrix.\n");
+  // Skip comments
+  const char* linebuffer = buffer.Line();
+  while (linebuffer != 0 && linebuffer[0] == '#')
+    linebuffer = buffer.Line();
+  // To allow for sparse matrix, read in indices and values first. Then
+  // put into a matrix.
+  int maxcol = -1;
+  int maxrow = -1;
+  typedef std::pair<int,int> Ipair;
+  typedef std::map<Ipair, double> MatrixMap;
+  MatrixMap matrixMap;
+
+  int err = 0;
+  bool hasDiagonal = false;
+  while (linebuffer != 0) {
+    // Skip comments
+    if (linebuffer[0] != '#') {
+      int ntokens = buffer.TokenizeLine( SEPARATORS );
+      if (ntokens < 3) {
+        mprintf("Warning: In 2D file, less than 3 columns at line %i, skipping.\n", buffer.LineNumber());
+      } else {
+        int ix = -1;
+        int iy = -1;
+        double dval = 0;
+        // X
+        std::string Str( buffer.NextToken() );
+        if (validInteger( Str ))
+          ix = convertToInteger( Str );
+        else if (validDouble( Str )) {
+          mprintf("Warning: Line %i X value %s is not an integer.\n", buffer.LineNumber(), Str.c_str());
+          ix = (int)convertToDouble( Str );
+        } else {
+          mprinterr("Error: Line %i X value %s does not appear to be a valid number.\n", buffer.LineNumber(), Str.c_str());
+          err = 1;
+          break;
+        }
+        maxcol = std::max(ix, maxcol);
+        // Y
+        Str = std::string( buffer.NextToken() );
+        if (validInteger( Str ))
+          iy = convertToInteger( Str );
+        else if (validDouble( Str )) {
+          mprintf("Warning: Line %i Y value %s is not an integer.\n", buffer.LineNumber(), Str.c_str());
+          iy = (int)convertToDouble( Str );
+        } else {
+          mprinterr("Error: Line %i Y value %s does not appear to be a valid number.\n", buffer.LineNumber(), Str.c_str());
+          err = 1;
+          break;
+        }
+        maxrow = std::max(iy, maxrow);
+        // Check diagonal
+        if (ix == iy) hasDiagonal = true;
+        // Value
+        Str = std::string( buffer.NextToken() );
+        if (validDouble( Str )) {
+          dval = convertToDouble( Str );
+          //mprintf("DBG: %i %i %s\n", ix, iy, Str.c_str());
+        } else {
+          mprinterr("Error: Line %i Z value does not appear to be a valid number.\n", buffer.LineNumber(), Str.c_str());
+          err = 1;
+          break;
+        }
+        // Add to map
+        Ipair idx(ix, iy);
+        MatrixMap::iterator it = matrixMap.lower_bound( idx );
+        if (it == matrixMap.end() || it->first != idx) {
+          matrixMap.insert(it, std::pair<Ipair, double>(idx, dval));
+        } else {
+          mprinterr("Error: Line %i duplicate matrix indices found: %i %i\n", buffer.LineNumber(), ix, iy);
+        }
+      } // END if ntokens < 3
+    } // END if linebuffer[0] != #
+    linebuffer = buffer.Line();
+  } // END loop over file
+  if (err != 0) {
+    mprinterr("Error: Could not read matrix from %s\n", fname.full());
+    return 1;
+  }
+  mprintf("\tRead in %zu values for matrix.\n", matrixMap.size());
+  mprintf("\tMax col = %i, max row = %i\n", maxcol, maxrow);
+  if (maxcol < 1 || maxrow < 1) {
+    mprinterr("Error: One or more dimensions is empty.\n");
+    return 1;
+  }
+  if (hasDiagonal)
+    mprintf("\tMatrix has diagonal elements.\n");
+
+  // Allocate set
+  DataSet::DataType dtype;
+  if (prec_ == FLOAT) {
+    mprintf("\tMatrix is single precision.\n");
+    dtype = DataSet::MATRIX_FLT;
+  } else {
+    mprintf("\tMatrix is double precision.\n");
+    dtype = DataSet::MATRIX_DBL;
+  }
+  DataSet* ds = datasetlist.AddSet(dtype, dsname, "Mat");
+  if (ds == 0) {
+    mprinterr("Error: Could not allocate dataset for 2D xyz matrix.\n");
+    return 1;
+  }
+  // TODO check symmetric, upper triangle, etc
+  DataSet_2D& mat = static_cast<DataSet_2D&>( *ds );
+  if (mat.Allocate2D(maxcol, maxrow)) {
+    mprinterr("Error: Could not allocate memory for 2D xyz matrix.\n");
+    return 1;
+  }
+  if (dtype == DataSet::MATRIX_FLT) {
+    DataSet_MatrixFlt& fmat =  static_cast<DataSet_MatrixFlt&>( *ds );
+    for (MatrixMap::const_iterator it = matrixMap.begin(); it != matrixMap.end(); ++it)
+      fmat.SetElement( it->first.first-1, it->first.second-1, it->second );
+  } else if (dtype == DataSet::MATRIX_DBL) {
+    DataSet_MatrixDbl& dmat =  static_cast<DataSet_MatrixDbl&>( *ds );
+    for (MatrixMap::const_iterator it = matrixMap.begin(); it != matrixMap.end(); ++it)
+      dmat.SetElement( it->first.first-1, it->first.second-1, it->second );
+  } else {
+    mprinterr("Internal Error: Unhandled matrix type during 2D xyz matrix read.\n");
+    return 1;
+  }
+
+  return 0;
+}
+
 // DataIO_Std::Read_3D()
 int DataIO_Std::Read_3D(std::string const& fname, 
                         DataSetList& datasetlist, std::string const& dsname)
@@ -593,7 +747,7 @@ int DataIO_Std::Read_3D(std::string const& fname,
       dvals[0] *= (double)dims_[0]; dvals[1] *= (double)dims_[0]; dvals[2] *= (double)dims_[0];
       dvals[3] *= (double)dims_[1]; dvals[4] *= (double)dims_[1]; dvals[5] *= (double)dims_[1];
       dvals[6] *= (double)dims_[2]; dvals[7] *= (double)dims_[2]; dvals[8] *= (double)dims_[2];
-      gridBox = Box(Matrix_3x3(dvals));
+      gridBox.SetupFromUcell(dvals);
     }
     ptr = buffer.Line();
   }
@@ -642,13 +796,11 @@ int DataIO_Std::Read_3D(std::string const& fname,
     // Assume XYZ coords are of bin corners. Need to offset coords by half
     // the voxel size.
     if (!ds->Bin().IsOrthoGrid()) {
-      GridBin_Nonortho const& b = static_cast<GridBin_Nonortho const&>( ds->Bin() );
-      offset = b.Ucell().TransposeMult(Vec3( 1/(2*(double)ds->NX()),
-                                             1/(2*(double)ds->NY()),
-                                             1/(2*(double)ds->NZ()) ));
+      offset = ds->Bin().Ucell().TransposeMult(Vec3( 1/(2*(double)ds->NX()),
+                                                     1/(2*(double)ds->NY()),
+                                                     1/(2*(double)ds->NZ()) ));
     } else {
-      GridBin_Ortho const& b = static_cast<GridBin_Ortho const&>( ds->Bin() );
-      offset = Vec3(b.DX()/2, b.DY()/2, b.DZ()/2);
+      offset = Vec3(ds->Bin().DX()/2, ds->Bin().DY()/2, ds->Bin().DZ()/2);
     }
   }
   if (debug_ > 0)
@@ -852,6 +1004,7 @@ void DataIO_Std::WriteHelp() {
   mprintf("\theader         : Print header line.\n"
           "\tnoheader       : Do not print header line.\n"
           "\tinvert         : Flip X/Y axes (1D).\n"
+          "\tnoinvert       : Do not flip X/Y axes(1D).\n"
           "\tgroupby <type> : (1D) group data sets by <type>.\n"
           "\t\tname   : Group by name.\n"
           "\t\taspect : Group by aspect.\n"
@@ -869,8 +1022,6 @@ void DataIO_Std::WriteHelp() {
 
 // DataIO_Std::processWriteArgs()
 int DataIO_Std::processWriteArgs(ArgList &argIn) {
-  if (!isInverted_ && argIn.hasKey("invert"))
-    isInverted_ = true;
   std::string grouparg = argIn.GetStringKey("groupby");
   if (!grouparg.empty()) {
     if (group_ != BY_NAME && grouparg == "name")
@@ -887,22 +1038,18 @@ int DataIO_Std::processWriteArgs(ArgList &argIn) {
       mprintf("Warning: Unrecognized arg for 'groupby' (%s), ignoring.\n", grouparg.c_str());
     }
   }
-  if (hasXcolumn_ && argIn.hasKey("noxcol"))
-    hasXcolumn_ = false;
-  if (!hasXcolumn_ && argIn.hasKey("xcol"))
-    hasXcolumn_ = true;
-  if (writeHeader_ && argIn.hasKey("noheader"))
-    writeHeader_ = false;
-  if (!writeHeader_ && argIn.hasKey("header"))
-    writeHeader_ = true;
-  if (!square2d_ && argIn.hasKey("square2d"))
-    square2d_ = true;
-  else if (square2d_ && argIn.hasKey("nosquare2d"))
-    square2d_ = false;
-  if (!sparse_ && argIn.hasKey("sparse"))
-    sparse_ = true;
-  else if (sparse_ && argIn.hasKey("nosparse"))
-    sparse_ = false;
+
+  if (argIn.hasKey("invert")) isInverted_ = true;
+  if (argIn.hasKey("noinvert")) isInverted_ = false;
+  if (argIn.hasKey("xcol")) hasXcolumn_ = true;
+  if (argIn.hasKey("noxcol")) hasXcolumn_ = false;
+  if (argIn.hasKey("header")) writeHeader_ = true;
+  if (argIn.hasKey("noheader")) writeHeader_ = false;
+  if (argIn.hasKey("square2d")) square2d_ = true;
+  if (argIn.hasKey("nosquare2d")) square2d_ = false;
+  if (argIn.hasKey("sparse")) sparse_ = true;
+  if (argIn.hasKey("nosparse")) sparse_ = false; 
+
   if (sparse_)
     cut_ = argIn.getKeyDouble("cut", cut_);
   return 0;
@@ -1308,20 +1455,18 @@ int DataIO_Std::WriteSet3D( DataSet const& setIn, CpptrajFile& file ) {
                 set.Bin().GridOrigin()[1],
                 set.Bin().GridOrigin()[2]);
     if (set.Bin().IsOrthoGrid()) {
-      GridBin_Ortho const& b = static_cast<GridBin_Ortho const&>( set.Bin() );
-      file.Printf("#delta %12.7f %12.7f %12.7f\n", b.DX(), b.DY(), b.DZ());
+      file.Printf("#delta %12.7f %12.7f %12.7f\n", set.Bin().DX(), set.Bin().DY(), set.Bin().DZ());
     } else {
-      GridBin_Nonortho const& b = static_cast<GridBin_Nonortho const&>( set.Bin() );
       file.Printf("#delta %12.7f %12.7f %12.7f %12.7f %12.7f %12.7f %12.7f %12.7f %12.7f\n",
-                  b.Ucell()[0]/set.NX(),
-                  b.Ucell()[1]/set.NX(),
-                  b.Ucell()[2]/set.NX(),
-                  b.Ucell()[3]/set.NY(),
-                  b.Ucell()[4]/set.NY(),
-                  b.Ucell()[5]/set.NY(),
-                  b.Ucell()[6]/set.NZ(),
-                  b.Ucell()[7]/set.NZ(),
-                  b.Ucell()[8]/set.NZ());
+                  set.Bin().Ucell()[0]/set.NX(),
+                  set.Bin().Ucell()[1]/set.NX(),
+                  set.Bin().Ucell()[2]/set.NX(),
+                  set.Bin().Ucell()[3]/set.NY(),
+                  set.Bin().Ucell()[4]/set.NY(),
+                  set.Bin().Ucell()[5]/set.NY(),
+                  set.Bin().Ucell()[6]/set.NZ(),
+                  set.Bin().Ucell()[7]/set.NZ(),
+                  set.Bin().Ucell()[8]/set.NZ());
     }
     file.Printf("#%s %s %s %s\n", Xdim.Label().c_str(), 
                 Ydim.Label().c_str(), Zdim.Label().c_str(), set.legend());

@@ -78,7 +78,9 @@ int Parm_CIF::ReadParm(FileName const& fname, Topology &TopIn) {
     }
     // '.' altloc means blank?
     if (altloc == '.') altloc = ' ';
-    TopIn.AddExtraAtomInfo( AtomExtra(occupancy, bfactor, altloc) );
+    TopIn.AddAtomAltLoc( altloc );
+    TopIn.AddOccupancy( occupancy );
+    TopIn.AddBfactor( bfactor );
     if (icode_col != -1) {
       icode = (*line)[ icode_col ][0];
       // '?' icode means blank
@@ -103,8 +105,9 @@ int Parm_CIF::ReadParm(FileName const& fname, Topology &TopIn) {
                               (*line)[ COL[CHAINID] ][0]) );
     Coords.AddXYZ( XYZ );
   }
-  // Search for bonds // FIXME nobondsearch?
-  BondSearch( TopIn, searchType_, Coords, Offset_, debug_ );
+  // Search for bonds
+  BondSearch bondSearch;
+  bondSearch.FindBonds( TopIn, searchType_, Coords, Offset_, debug_ );
   // Get title. 
   CIFfile::DataBlock const& entryblock = infile.GetDataBlock("_entry");
   std::string ciftitle;
@@ -123,7 +126,9 @@ int Parm_CIF::ReadParm(FileName const& fname, Topology &TopIn) {
     cif_box[5] = convertToDouble( cellblock.Data("angle_gamma") );
     mprintf("\tRead cell info from CIF: a=%g b=%g c=%g alpha=%g beta=%g gamma=%g\n",
               cif_box[0], cif_box[1], cif_box[2], cif_box[3], cif_box[4], cif_box[5]);
-    TopIn.SetParmBox( Box(cif_box) ); 
+    Box parmBox;
+    parmBox.SetupFromXyzAbg( cif_box );
+    TopIn.SetParmBox( parmBox ); 
   }
   
   return 0;
