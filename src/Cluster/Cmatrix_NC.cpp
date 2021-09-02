@@ -2,10 +2,13 @@
 # include <netcdf.h>
 # include "../NC_Routines.h"
 #endif
+#include "Cframes.h"
 #include "Cmatrix_NC.h"
 #include "../CpptrajStdio.h"
+#include "../FileName.h"
 
 #ifdef BINTRAJ
+
 /// CONSTRUCTOR
 Cpptraj::Cluster::Cmatrix_NC::Cmatrix_NC() :
   ncid_(-1),

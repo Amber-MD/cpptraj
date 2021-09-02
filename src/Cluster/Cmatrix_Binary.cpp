@@ -1,4 +1,5 @@
 #include "Cmatrix_Binary.h"
+#include "Cframes.h"
 #include "../CpptrajStdio.h"
 
 Cpptraj::Cluster::Cmatrix_Binary::Cmatrix_Binary() :

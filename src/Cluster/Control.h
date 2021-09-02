@@ -1,21 +1,22 @@
 #ifndef INC_CLUSTER_CONTROL_H
 #define INC_CLUSTER_CONTROL_H
-#include "List.h"
-#include "Sieve.h"
-#include "PairwiseMatrix.h"
-#include "Algorithm.h"
-#include "Metric.h"
-#include "Results.h"
+#include "Algorithm.h" // Algorithm::AType
 #include "BestReps.h"
+#include "List.h"
 #include "Metric_Data.h"
+#include "PairwiseMatrix.h"
+#include "Sieve.h"
+#include "../DataFile.h" // DataFile::DataFormatType
 #include "../Timer.h"
-#include "../DataSetList.h"
-#include "../DataFileList.h"
-#include "../DataSet_Coords.h"
-#include "../DataSet_PairwiseCache.h"
+class DataSet_Coords;
+class DataSet_PairwiseCache;
+class DataFileList;
+class DataSetList;
 namespace Cpptraj {
 namespace Cluster {
-
+class Algorithm;
+class Metric;
+class Results;
 /// Hold clusters, algorithm, and pairwise matrix.
 class Control {
   public:
@@ -31,6 +32,8 @@ class Control {
     enum SieveRestoreType { NO_RESTORE = 0, CLOSEST_CENTROID, EPSILON_CENTROID, EPSILON_FRAME };
     /// For determining how frames to cluster will be determined.
     enum FrameSelectType { UNSPECIFIED = 0, FROM_CACHE };
+
+    // TODO ONE setup routine
 
     int SetupForDataSets(Metric_Data::DsArray const&, DataSet_Coords*, ArgList&, DataSetList&, DataFileList&, int);
 

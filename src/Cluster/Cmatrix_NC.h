@@ -1,10 +1,10 @@
 #ifndef INC_CLUSTER_CMATRIX_NC_H
 #define INC_CLUSTER_CMATRIX_NC_H
-#include "../FileName.h"
-#include "Cframes.h"
+#include <vector>
+class FileName;
 namespace Cpptraj {
 namespace Cluster {
-
+class Cframes;
 /// NetCDF cluster matrix file.
 class Cmatrix_NC {
   public:

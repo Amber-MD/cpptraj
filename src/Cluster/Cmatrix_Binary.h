@@ -2,12 +2,10 @@
 #define INC_CLUSTER_CMATRIX_BINARY_H
 #include <cstddef> // size_t
 #include "../CpptrajFile.h" 
-#include "../FileName.h"
-#include "Cframes.h"
-
+class FileName;
 namespace Cpptraj {
 namespace Cluster {
-
+class Cframes;
 /// Used to read pairwise distance cache files in cpptraj binary format.
 class Cmatrix_Binary {
   public:

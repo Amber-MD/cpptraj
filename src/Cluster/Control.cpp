@@ -1,5 +1,6 @@
 #include "Control.h"
 #include "../CpptrajStdio.h"
+#include "../DataFileList.h"
 #include "../DataSet_Coords.h"
 #include "Output.h"
 #include "../DataFile.h" // For loading pairwise cache
