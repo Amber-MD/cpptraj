@@ -1,5 +1,10 @@
 //#include <cfloat> // DBL_MAX
 #include "Node.h"
+#include "Centroid.h"
+#include "Metric.h"
+#include "PairwiseMatrix.h"
+#include "../DataSet_float.h"
+#include "../DataSet_integer.h"
 
 // CONSTRUCTOR
 Cpptraj::Cluster::Node::Node() :
@@ -56,6 +61,14 @@ Cpptraj::Cluster::Node& Cpptraj::Cluster::Node::operator=(const Node& rhs) {
     centroid_ = 0;
   needsUpdate_ = rhs.needsUpdate_;
   return *this;
+}
+
+/** Calculate centroid of frames in this Node using given metric. */
+void Cpptraj::Cluster::Node::CalculateCentroid(Metric* Cdist) {
+  if (centroid_ == 0)
+    centroid_ = Cdist->NewCentroid( frameList_ );
+  else
+    Cdist->CalculateCentroid( centroid_, frameList_ );
 }
 
 /** Find the frame in the given cluster that is the best representative via

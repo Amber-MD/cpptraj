@@ -3,7 +3,6 @@
 #include "../AtomMask.h"
 #include "../DataSet_Coords.h"
 #include "Metric.h"
-class AtomMask;
 namespace Cpptraj {
 namespace Cluster {
 

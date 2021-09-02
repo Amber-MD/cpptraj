@@ -1,7 +1,7 @@
 #ifndef INC_CLUSTER_METRIC_MATRIX2D_H
 #define INC_CLUSTER_METRIC_MATRIX2D_H
 #include "Metric.h"
-#include "../DataSet_2D.h"
+class DataSet_2D;
 namespace Cpptraj {
 namespace Cluster {
 
@@ -19,7 +19,7 @@ class Metric_Matrix2D : public Metric {
     void FrameOpCentroid(int, Centroid*, double, CentOpType);
     std::string Description() const;
     void Info() const;
-    unsigned int Ntotal() const { return (unsigned int)matrix_->Size(); }
+    unsigned int Ntotal() const;
     // -------------------------------------------
     int Init(DataSet_2D*);
   private:

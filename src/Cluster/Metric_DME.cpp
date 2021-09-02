@@ -1,5 +1,6 @@
 #include "Metric_DME.h"
 #include "Centroid_Coord.h"
+#include "Cframes.h"
 #include "../CpptrajStdio.h"
 
 /** Initialize the metric. */

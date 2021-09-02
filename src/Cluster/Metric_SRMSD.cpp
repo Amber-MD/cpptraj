@@ -1,5 +1,6 @@
 #include "Metric_SRMSD.h"
 #include "Centroid_Coord.h"
+#include "Cframes.h"
 #include "../CpptrajStdio.h"
 
 int Cpptraj::Cluster::Metric_SRMSD::Init(DataSet_Coords* dIn, AtomMask const& maskIn, 

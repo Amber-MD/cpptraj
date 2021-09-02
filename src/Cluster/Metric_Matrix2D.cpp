@@ -1,4 +1,9 @@
 #include "Metric_Matrix2D.h"
+#include "../DataSet_2D.h"
+
+unsigned int Cpptraj::Cluster::Metric_Matrix2D::Ntotal() const {
+  return (unsigned int)matrix_->Size();
+}
 
 static inline void idxToColRow(int idx, int Ncols, int& col, int& row)
 {

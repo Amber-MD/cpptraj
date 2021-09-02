@@ -1,6 +1,7 @@
 #include <cmath> // fabs, atan2, sin, cos
 #include "Metric_Data.h"
 #include "Centroid_Multi.h"
+#include "Cframes.h"
 #include "../Constants.h" // RADDEG, DEGRAD
 #include "../CpptrajStdio.h"
 #include "../DataSet_1D.h"

@@ -1,8 +1,9 @@
 #ifndef INC_CLUSTER_METRIC_RMS_H
 #define INC_CLUSTER_METRIC_RMS_H
+#include "Metric.h"
 #include "../AtomMask.h"
 #include "../DataSet_Coords.h"
-#include "Metric.h"
+#include "../Frame.h"
 namespace Cpptraj {
 namespace Cluster {
 

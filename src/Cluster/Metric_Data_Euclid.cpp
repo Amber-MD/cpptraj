@@ -2,6 +2,7 @@
 #include "Metric_Data_Euclid.h"
 #include "Centroid_Multi.h"
 #include "../CpptrajStdio.h"
+#include "../DataSet_1D.h"
 
 double Cpptraj::Cluster::Metric_Data_Euclid::FrameDist(int f1, int f2) {
   double dist = 0.0;

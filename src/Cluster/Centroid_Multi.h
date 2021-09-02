@@ -1,5 +1,6 @@
 #ifndef INC_CLUSTER_CENTROID_MULTI_H
 #define INC_CLUSTER_CENTROID_MULTI_H
+#include "Centroid.h"
 #include <vector>
 namespace Cpptraj {
 namespace Cluster {

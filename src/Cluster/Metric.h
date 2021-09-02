@@ -1,12 +1,11 @@
 #ifndef INC_CLUSTER_METRIC_H
 #define INC_CLUSTER_METRIC_H
+#include <string>
 #include <vector>
-#include "../DataSet.h"
-#include "Cframes.h"
-#include "Centroid.h"
 namespace Cpptraj {
 namespace Cluster {
-
+class Centroid;
+class Cframes;
 /// Definition of a noise point.
 const int NOISE = -1;
 /// Definition of an unclassified point.

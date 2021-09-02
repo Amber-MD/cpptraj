@@ -1,11 +1,16 @@
 #ifndef INC_CLUSTER_NODE_H
 #define INC_CLUSTER_NODE_H
-#include "PairwiseMatrix.h"
-#include "../DataSet_float.h"
-#include "../DataSet_integer.h"
+#include <string>
+#include <utility> // std::pair
+#include <vector>
+#include "Cframes.h" // Cframes::const_iterator
+class DataSet_integer;
+class DataSet_float;
 namespace Cpptraj {
 namespace Cluster {
-
+class Centroid;
+class Metric;
+class PairwiseMatrix;
 // TODO implement needsUpdate_
 
 /// Hold frame indices for a given cluster.
@@ -80,12 +85,7 @@ class Node {
     double Silhouette()            const { return avgSil_;                }
 
     /// Calculate centroid of members of this cluster.
-    void CalculateCentroid(Metric* Cdist) {
-      if (centroid_ == 0)
-        centroid_ = Cdist->NewCentroid( frameList_ );
-      else
-        Cdist->CalculateCentroid( centroid_, frameList_ );
-    }
+    void CalculateCentroid(Metric*);
     /// Add frame to cluster
     void AddFrameToCluster(int fnum)   { frameList_.push_back( fnum );  }
     /// Set cluster number (for bookkeeping).

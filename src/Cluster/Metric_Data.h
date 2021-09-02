@@ -2,6 +2,7 @@
 #define INC_CLUSTER_METRIC_DATA_H
 #include <vector>
 #include "Metric.h"
+class DataSet;
 class DataSet_1D;
 namespace Cpptraj {
 namespace Cluster {

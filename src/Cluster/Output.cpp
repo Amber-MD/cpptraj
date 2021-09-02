@@ -1,7 +1,13 @@
 #include <cmath> // sqrt
 #include <algorithm> // sort, max
 #include "Output.h"
+#include "Algorithm.h"
+#include "List.h"
+#include "Metric.h"
+#include "Node.h"
+#include "PairwiseMatrix.h"
 #include "../Matrix.h"
+#include "../CpptrajFile.h"
 #include "../CpptrajStdio.h"
 
 // XMGRACE colors

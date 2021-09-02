@@ -1,15 +1,13 @@
 #ifndef INC_CLUSTER_OUTPUT_H
 #define INC_CLUSTER_OUTPUT_H
-#include "../CpptrajFile.h"
-#include "List.h"
-#include "Algorithm.h"
-#include "Metric.h"
-#include "Cframes.h"
-#include "PairwiseMatrix.h" // TODO anything that needs this calcd outside here?
-
+class CpptrajFile;
 namespace Cpptraj {
 namespace Cluster {
-
+class Algorithm;
+class Cframes;
+class List;
+class Metric;
+class PairwiseMatrix; // TODO anything that needs this calcd outside here?
 /// Cluster output routines.
 class Output {
   public:
