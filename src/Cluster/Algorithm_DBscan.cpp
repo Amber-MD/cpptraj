@@ -1,6 +1,9 @@
 #include <limits> // double max 
 #include <algorithm> // sort
 #include "Algorithm_DBscan.h"
+#include "Cframes.h"
+#include "List.h"
+#include "Metric.h"
 #include "../CpptrajStdio.h"
 #include "../ArgList.h"
 #include "../ProgressBar.h"

@@ -2,10 +2,12 @@
 #define INC_CLUSTER_ALGORITHM_HIERAGGLO_H
 #include "Algorithm.h"
 #include "DynamicMatrix.h"
+#include "List.h"
+#include "../CpptrajFile.h"
 #include "../Timer.h"
 namespace Cpptraj {
 namespace Cluster {
-
+class Metric;
 /// Implement hierarchical agglomerative clustering
 class Algorithm_HierAgglo : public Algorithm {
   public:
@@ -25,6 +27,7 @@ class Algorithm_HierAgglo : public Algorithm {
     static inline double minDist(Node const&, Node const&, PairwiseMatrix const&);
     static inline double maxDist(Node const&, Node const&, PairwiseMatrix const&);
     static inline double avgDist(Node const&, Node const&, PairwiseMatrix const&);
+    // TODO: Node instead of cluster_it?
     void calcMinDist(List::cluster_it&, List&, PairwiseMatrix const&);
     void calcMaxDist(List::cluster_it&, List&, PairwiseMatrix const&);
     void calcAvgDist(List::cluster_it&, List&, PairwiseMatrix const&);

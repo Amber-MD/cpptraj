@@ -1,6 +1,8 @@
 #ifndef INC_CLUSTER_ALGORITHM_DBSCAN_H
 #define INC_CLUSTER_ALGORITHM_DBSCAN_H
 #include "Algorithm.h"
+#include "../Range.h"
+#include <vector>
 namespace Cpptraj {
 namespace Cluster {
 
