@@ -1,11 +1,13 @@
 #ifndef INC_CLUSTER_ALGORITHM_H
 #define INC_CLUSTER_ALGORITHM_H
-#include "PairwiseMatrix.h"
-#include "List.h"
-#include "../CpptrajFile.h"
+class ArgList;
+class CpptrajFile;
 namespace Cpptraj {
 namespace Cluster {
-
+class Cframes;
+class List;
+class Node;
+class PairwiseMatrix;
 /// Abstract base class for implementing clustering algorithms.
 class Algorithm {
   public:
