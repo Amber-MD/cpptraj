@@ -1,7 +1,9 @@
 #include <algorithm> // std::max
 #include <limits> // double max
 #include "List.h"
+#include "Node.h"
 #include "../CpptrajStdio.h"
+#include "../DataSet_integer.h"
 #include "../ProgressBar.h"
 #include "../Constants.h" // SMALL TODO use limits?
 

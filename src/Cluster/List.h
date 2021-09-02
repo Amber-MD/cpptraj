@@ -1,11 +1,13 @@
 #ifndef INC_CLUSTER_LIST_H
 #define INC_CLUSTER_LIST_H
 #include <list>
-#include "Node.h"
-#include "../DataSet_integer.h"
+#include "Cframes.h"
+class DataSet_integer;
 namespace Cpptraj {
 namespace Cluster {
-
+class Metric;
+class Node;
+class PairwiseMatrix;
 /// Hold all individual clusters.
 /** Currently implemented as an STL list since sorting and erasing are more
   * efficient.

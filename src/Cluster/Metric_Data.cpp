@@ -3,6 +3,7 @@
 #include "Centroid_Multi.h"
 #include "../Constants.h" // RADDEG, DEGRAD
 #include "../CpptrajStdio.h"
+#include "../DataSet_1D.h"
 
 int Cpptraj::Cluster::Metric_Data::Init(DsArray const& dsIn)
 {
