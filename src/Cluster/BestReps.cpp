@@ -1,6 +1,8 @@
 #include "BestReps.h"
 #include "../CpptrajStdio.h"
 
+int Cpptraj::Cluster::BestReps::debug_ = 0;
+
 /// Save up to maxSize of the best (lowest) representative scores/frames.
 void Cpptraj::Cluster::BestReps::SaveBestRep(RepMap& reps, RepPair const& Dist_Num,
                                              unsigned int maxSize)
