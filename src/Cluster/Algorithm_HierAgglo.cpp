@@ -1,5 +1,7 @@
 #include <limits> // double max
 #include "Algorithm_HierAgglo.h"
+#include "Node.h"
+#include "PairwiseMatrix.h"
 #include "../CpptrajStdio.h"
 #include "../ArgList.h"
 #include "../ProgressBar.h"

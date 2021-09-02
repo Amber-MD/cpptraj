@@ -4,6 +4,7 @@
 #include "BestReps.h"
 #include "List.h"
 #include "Metric_Data.h"
+#include "Node.h" // Node::CnormType
 #include "PairwiseMatrix.h"
 #include "Sieve.h"
 #include "../DataFile.h" // DataFile::DataFormatType

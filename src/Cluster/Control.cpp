@@ -1,10 +1,14 @@
 #include "Control.h"
+#include "Output.h"
+#include "../ArgList.h"
+#include "../BufferedLine.h" // For loading info file
 #include "../CpptrajStdio.h"
+#include "../DataFile.h" // For loading pairwise cache
 #include "../DataFileList.h"
 #include "../DataSet_Coords.h"
-#include "Output.h"
-#include "../DataFile.h" // For loading pairwise cache
-#include "../BufferedLine.h" // For loading info file
+#include "../DataSet_float.h"
+#include "../DataSet_integer.h"
+#include "../DataSet_PairwiseCache.h"
 // Metric classes
 #include "Metric_RMS.h"
 #include "Metric_DME.h"

@@ -2,6 +2,8 @@
 #include <algorithm> // sort
 #include "Algorithm_DPeaks.h"
 #include "List.h"
+#include "Node.h"
+#include "PairwiseMatrix.h"
 #include "../CpptrajStdio.h"
 #include "../ArgList.h"
 #include "../DataSet_Mesh.h"

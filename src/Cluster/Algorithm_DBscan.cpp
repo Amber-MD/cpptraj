@@ -4,6 +4,8 @@
 #include "Cframes.h"
 #include "List.h"
 #include "Metric.h"
+#include "Node.h"
+#include "PairwiseMatrix.h"
 #include "../CpptrajStdio.h"
 #include "../ArgList.h"
 #include "../ProgressBar.h"

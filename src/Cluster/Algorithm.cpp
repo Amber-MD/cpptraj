@@ -1,7 +1,8 @@
 #include "Algorithm.h"
-#include "../CpptrajStdio.h"
+#include "Metric.h"
 #include "Node.h"
 #include "PairwiseMatrix.h"
+#include "../CpptrajStdio.h"
 
 double Cpptraj::Cluster::Algorithm::ClusterDistance(Node const& C1, Node const& C2,
                                                     PairwiseMatrix const& pmatrix,

@@ -1,6 +1,8 @@
 #include "BestReps.h"
 #include "List.h"
+#include "Metric.h"
 #include "Node.h"
+#include "PairwiseMatrix.h"
 #include "../CpptrajStdio.h"
 
 /** CONSTRUCTOR */
