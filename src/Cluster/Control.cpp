@@ -813,9 +813,12 @@ int Cpptraj::Cluster::Control::Run() {
     timer_post_bestrep_.Start();
 
     // Find best representative frames for each cluster.
-    if (BestReps::FindBestRepFrames(bestRep_, nRepsToSave_, clusters_, pmatrix_,
-                                    frameSieve_.SievedOut(), verbose_))
-    {
+    BestReps findBestReps;
+    if (findBestReps.InitBestReps(bestRep_, nRepsToSave_, verbose_)) {
+      mprinterr("Error: Initializing best representative frames search failed.\n");
+      return 1;
+    }
+    if (findBestReps.FindBestRepFrames(clusters_, pmatrix_, frameSieve_.SievedOut())) {
       mprinterr("Error: Finding best representative frames for clusters failed.\n");
       return 1;
     }
