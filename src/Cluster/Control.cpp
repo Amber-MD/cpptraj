@@ -505,7 +505,9 @@ int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL, Da
     if (algorithm_->Type() == Algorithm::DBSCAN ||
         algorithm_->Type() == Algorithm::DPEAKS)
     {
-      if (!analyzeArgs.hasKey("sievetoframe"))
+      if (analyzeArgs.hasKey("nosieverestore")) // Hidden option, currently for testing only
+        sieveRestore_ = NO_RESTORE;
+      else if (!analyzeArgs.hasKey("sievetoframe"))
         sieveRestore_ = EPSILON_CENTROID;
       else
         sieveRestore_ = EPSILON_FRAME;
@@ -636,9 +638,9 @@ void Cpptraj::Cluster::Control::Info() const {
     if (sieveRestore_ == CLOSEST_CENTROID)
       mprintf(" by closest distance to centroid.\n");
     else if (sieveRestore_ == EPSILON_CENTROID)
-      mprintf(" if within epsilon %f of a centroid.\n", restoreEpsilon_);
+      mprintf(" if within epsilon %f of a centroid (less accurate but faster).\n", restoreEpsilon_);
     else if (sieveRestore_ == EPSILON_FRAME)
-      mprintf(" if within epsilon %f of a frame.\n", restoreEpsilon_);
+      mprintf(" if within epsilon %f of a frame (more accurate and identifies noise but slower).\n", restoreEpsilon_);
   }
 
   mprintf("\tRepresentative frames will be chosen by");

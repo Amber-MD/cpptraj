@@ -45,7 +45,10 @@ int Cpptraj::Cluster::Algorithm_DBscan::Setup(ArgList& analyzeArgs) {
                 "Error: Use 'epsilon <e>'\n");
       return 1;
     }
-    sieveToCentroid_ = !analyzeArgs.hasKey("sievetoframe");
+    // NOTE: For backwards compatibility check if sievetoframe is here
+    //       so it can be reported in info file, but do not mark
+    //       it so that Control can pick it up.
+    sieveToCentroid_ = !analyzeArgs.Contains("sievetoframe");
   } else {
     k_prefix_ = analyzeArgs.GetStringKey("kfile");
     if (!k_prefix_.empty() && k_prefix_.at(k_prefix_.size()-1) != '/')
@@ -63,7 +66,7 @@ void Cpptraj::Cluster::Algorithm_DBscan::Info() const {
   } else {
     mprintf("\t\tMinimum pts to form cluster= %i\n", minPoints_);
     mprintf("\t\tCluster distance criterion= %.3f\n", epsilon_);
-    if (sieveToCentroid_)
+/*    if (sieveToCentroid_)
       mprintf("\t\tSieved frames will be added back solely based on their\n"
               "\t\t  closeness to cluster centroids.\n"
               "\t\t  (This option is less accurate but faster.)\n");
@@ -71,7 +74,7 @@ void Cpptraj::Cluster::Algorithm_DBscan::Info() const {
       mprintf("\t\tSieved frames will only be added back if they are within\n"
               "\t\t  %.3f of a frame in an existing cluster.\n"
               "\t\t  (This option is more accurate and will identify sieved\n"
-              "\t\t  frames as noise but is slower.)\n", epsilon_);
+              "\t\t  frames as noise but is slower.)\n", epsilon_);*/
   }
 }
 
