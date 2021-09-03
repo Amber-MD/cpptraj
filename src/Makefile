@@ -107,7 +107,7 @@ $(CLUSTER_TARGET):
 	cd Cluster && $(MAKE) all
 
 # Dependency targets
-findDepend: FindDepend.o 
+findDepend: FindDepend.cpp FindDepend.o 
 	$(CXX) -o findDepend FindDepend.o
 
 depend: findDepend
