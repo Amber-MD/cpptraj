@@ -125,6 +125,10 @@ int Cpptraj::Cluster::Algorithm_DPeaks::DoClustering(List& clusters,
     nclusters = ChoosePointsAutomatically(); 
       
   mprintf("\tIdentified %i cluster centers from density vs distance peaks.\n", nclusters);
+
+  // If no clusters found, no need to continue.
+  if (nclusters < 1) return 0;
+
   // Each remaining point is assigned to the same cluster as its nearest
   // neighbor of higher density. Do this recursively until a cluster
   // center is found.
