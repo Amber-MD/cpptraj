@@ -226,7 +226,15 @@ int Cpptraj::Cluster::Algorithm_DPeaks::DoClustering(List& clusters,
         }
       }
     }
-  }
+    // Ensure noise frames are sorted
+    std::vector<int> noiseFrames;
+    for (Carray::const_iterator point = Points_.begin();
+                                point != Points_.end(); ++point)
+      if (point->Cnum() == -1) noiseFrames.push_back( point->Fnum() );
+    std::sort( noiseFrames.begin(), noiseFrames.end() );
+    for (std::vector<int>::const_iterator f = noiseFrames.begin(); f != noiseFrames.end(); ++f)
+      clusters.AddNoise( *f );
+  } // END noise calc
   // Add the clusters.
   for (Parray::const_iterator idx = C_start_stop.begin();
                               idx != C_start_stop.end(); idx += 2)
@@ -868,18 +876,7 @@ void Cpptraj::Cluster::Algorithm_DPeaks::AssignClusterNum(int idx, int& cnum) {
   Points_[idx].SetCluster( cnum );
 }
 
+/** Write results to file. */
 void Cpptraj::Cluster::Algorithm_DPeaks::Results(CpptrajFile& outfile) const {
    outfile.Printf("#Algorithm: DPeaks epsilon %g\n", epsilon_);
-   if (calc_noise_) {
-     outfile.Printf("#NOISE_FRAMES:");
-     std::vector<int> noiseFrames;
-     for (Carray::const_iterator point = Points_.begin();
-                                 point != Points_.end(); ++point)
-       if (point->Cnum() == -1) noiseFrames.push_back( point->Fnum()+1 );
-    std::sort( noiseFrames.begin(), noiseFrames.end() );
-    for (std::vector<int>::const_iterator f = noiseFrames.begin(); f != noiseFrames.end(); ++f)
-      outfile.Printf(" %i", *f); 
-    outfile.Printf("\n");
-    outfile.Printf("#Number_of_noise_frames: %zu\n", noiseFrames.size());
-  }
 }
