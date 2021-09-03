@@ -1,33 +1,6 @@
-# Files related to new clustering code
-CLUSTER_SOURCES= \
-  Cluster/Algorithm.cpp \
-  Cluster/Algorithm_DBscan.cpp \
-  Cluster/Algorithm_DPeaks.cpp \
-  Cluster/Algorithm_HierAgglo.cpp \
-  Cluster/Algorithm_Kmeans.cpp \
-  Cluster/BestReps.cpp \
-  Cluster/Centroid_Coord.cpp \
-  Cluster/Cframes.cpp \
-  Cluster/Cmatrix_Binary.cpp \
-  Cluster/Cmatrix_NC.cpp \
-  Cluster/Control.cpp \
-  Cluster/DynamicMatrix.cpp \
-  Cluster/List.cpp \
-  Cluster/Metric_Data.cpp \
-  Cluster/Metric_Data_Euclid.cpp \
-  Cluster/Metric_Data_Manhattan.cpp \
-  Cluster/Metric_DME.cpp \
-  Cluster/Metric_RMS.cpp \
-  Cluster/Metric_SRMSD.cpp \
-  Cluster/Node.cpp \
-  Cluster/Output.cpp \
-  Cluster/PairwiseMatrix.cpp \
-  Cluster/Results_Coords.cpp \
-  Cluster/Sieve.cpp
-
 # These files are common to cpptraj/libcpptraj. Files that need to be built
 # differently for each will go into SOURCES/LIBCPPTRAJ_OBJECTS respectively.
-COMMON_SOURCES= $(CLUSTER_SOURCES) \
+COMMON_SOURCES= \
         SpaceGroup.cpp \
         ActionFrameCounter.cpp \
         ActionList.cpp \
