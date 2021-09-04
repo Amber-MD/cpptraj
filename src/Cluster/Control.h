@@ -2,6 +2,7 @@
 #define INC_CLUSTER_CONTROL_H
 #include "Algorithm.h" // Algorithm::AType
 #include "BestReps.h"
+#include "DrawGraph.h" // GraphType
 #include "List.h"
 #include "Metric_Data.h"
 #include "Node.h" // Node::CnormType
@@ -24,6 +25,10 @@ class Control {
     Control();
     ~Control();
 
+    /// Set debug level
+    void SetDebug(int d) { debug_ = d; }
+
+    // Help keywords
     static const char* PairwiseArgs_;
     static const char* AlgorithmArgs_;
     static const char* CoordsDataSetArgs_;
@@ -102,6 +107,12 @@ class Control {
 
     std::string splitfile_;           ///< Output file for splitting cluster results
     Cframes splitFrames_;             ///< Frames at which to split
+
+    GraphType drawGraph_;             ///< Indicate whether a cluster graph should be drawn
+    double draw_tol_;                 ///< Graph draw tolerance for min
+    int draw_maxit_;                  ///< Graph draw max iterations for min
+
+    int debug_;                       ///< Cluster debug level
 
     // Timers
     Timer timer_setup_;          ///< Run - metric, frames to cluster setup 

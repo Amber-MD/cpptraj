@@ -14,7 +14,9 @@ void Cpptraj::Cluster::DrawGraph(Cframes const& framesToCluster, PairwiseMatrix 
                                  double min_tol, int max_iteration, int debug)
 {
   bool use_z;
-  if (graphTypeIn == THREED)
+  if (graphTypeIn == NO_DRAWGRAPH)
+    return;
+  else if (graphTypeIn == THREED)
     use_z = true;
   else
     use_z = false;

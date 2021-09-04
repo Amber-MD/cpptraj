@@ -44,7 +44,11 @@ Cpptraj::Cluster::Control::Control() :
   windowSize_(0),
   cpopvtimefile_(0),
   norm_pop_(Node::NONE),
-  calc_lifetimes_(false)
+  calc_lifetimes_(false),
+  drawGraph_(NO_DRAWGRAPH),
+  draw_tol_(0),
+  draw_maxit_(0),
+  debug_(0)
 {}
 
 Cpptraj::Cluster::Control::~Control() {
@@ -909,7 +913,10 @@ int Cpptraj::Cluster::Control::Output(DataSetList& DSL) {
     }
   }
 
-  // TODO DrawGraph
+  // Draw cluster Graph
+  if (drawGraph_ != NO_DRAWGRAPH) {
+    DrawGraph( frameSieve_.FramesToCluster(), pmatrix_, drawGraph_, cnumvtime_, draw_tol_, draw_maxit_, debug_ );
+  }
 
   // # unique clusters vs time
   if (clustersVtime_ != 0) {

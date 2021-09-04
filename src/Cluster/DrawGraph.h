@@ -6,7 +6,7 @@ namespace Cluster {
 class Cframes;
 class PairwiseMatrix;
 
-enum GraphType { TWOD = 0, THREED };
+enum GraphType { NO_DRAWGRAPH = 0, TWOD, THREED };
 
 void DrawGraph(Cframes const&, PairwiseMatrix const&, GraphType, DataSet*, double, int, int);
 

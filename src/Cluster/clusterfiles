@@ -11,6 +11,7 @@ CLUSTER_SOURCES= \
   Cmatrix_Binary.cpp \
   Cmatrix_NC.cpp \
   Control.cpp \
+  DrawGraph.cpp \
   DynamicMatrix.cpp \
   List.cpp \
   Metric_Data.cpp \
