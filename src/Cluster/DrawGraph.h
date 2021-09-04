@@ -5,7 +5,10 @@ namespace Cpptraj {
 namespace Cluster {
 class Cframes;
 class PairwiseMatrix;
-void DrawGraph(Cframes const&, PairwiseMatrix const&, bool, DataSet*, double, int, int);
+
+enum GraphType { TWOD = 0, THREED };
+
+void DrawGraph(Cframes const&, PairwiseMatrix const&, GraphType, DataSet*, double, int, int);
 
 }
 }

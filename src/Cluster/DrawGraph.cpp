@@ -10,9 +10,14 @@
 #include <cmath>
 
 void Cpptraj::Cluster::DrawGraph(Cframes const& framesToCluster, PairwiseMatrix const& pmatrix,
-                                 bool use_z, DataSet* cnumvtime,
+                                 GraphType graphTypeIn, DataSet* cnumvtime,
                                  double min_tol, int max_iteration, int debug)
 {
+  bool use_z;
+  if (graphTypeIn == THREED)
+    use_z = true;
+  else
+    use_z = false;
   if (use_z)
     mprintf("\tCreating PDB of graph points based on pairwise distances. B-factor = cluster #.\n");
   else
