@@ -13,6 +13,7 @@ void Analysis_Cluster::Help() const {
 // Analysis_Cluster::Setup()
 Analysis::RetType Analysis_Cluster::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
+  control_.SetDebug( debugIn );
   Cpptraj::Cluster::Metric_Data::DsArray cluster_dataset;
   DataSet_Coords* coords = 0;
   // First check for data
