@@ -3,8 +3,9 @@
 class DataSet;
 namespace Cpptraj {
 namespace Cluster {
-
-void DrawGraph(bool, DataSet*, double, int, int);
+class Cframes;
+class PairwiseMatrix;
+void DrawGraph(Cframes const&, PairwiseMatrix const&, bool, DataSet*, double, int, int);
 
 }
 }

@@ -1,4 +1,6 @@
 #include "DrawGraph.h"
+#include "Cframes.h"
+#include "PairwiseMatrix.h"
 #include "../Constants.h"
 #include "../CpptrajStdio.h"
 #include "../DataSet_1D.h"
@@ -7,14 +9,15 @@
 #include <vector>
 #include <cmath>
 
-void Cpptraj::Cluster::DrawGraph(bool use_z, DataSet* cnumvtime,
+void Cpptraj::Cluster::DrawGraph(Cframes const& framesToCluster, PairwiseMatrix const& pmatrix,
+                                 bool use_z, DataSet* cnumvtime,
                                  double min_tol, int max_iteration, int debug)
 {
   if (use_z)
     mprintf("\tCreating PDB of graph points based on pairwise distances. B-factor = cluster #.\n");
   else
     mprintf("\tAttempting to draw graph based on pairwise distances.\n");
-  unsigned int nframes = FrameDistances().Nrows();
+  unsigned int nframes = framesToCluster.size();
   std::vector<Vec3> Xarray; // Coords
   std::vector<Vec3> Farray; // Forces
   Xarray.reserve( nframes );
@@ -53,7 +56,7 @@ void Cpptraj::Cluster::DrawGraph(bool use_z, DataSet* cnumvtime,
   mprintf("          \t%8s %12s %12s\n", " ", "ENE", "RMS");
   while (rms > min_tol && iteration < max_iteration) {
     double e_total = 0.0;
-    unsigned int idx = 0; // Index into FrameDistances
+    //unsigned int idx = 0; // Index into FrameDistances
     for (unsigned int f1 = 0; f1 != nframes; f1++)
     {
       for (unsigned int f2 = f1 + 1; f2 != nframes; f2++)
@@ -63,7 +66,7 @@ void Cpptraj::Cluster::DrawGraph(bool use_z, DataSet* cnumvtime,
         double r2 = V1_2.Magnitude2();
         double s = sqrt(r2);
         double r = 2.0 / s;
-        double db = s - FrameDistances().GetElement(idx++);
+        double db = s - pmatrix.Frame_Distance(framesToCluster[f1], framesToCluster[f2]);//FrameDistances().GetElement(idx++);
         double df = Rk * db;
         double e = df * db;
         e_total += e;
@@ -98,7 +101,7 @@ void Cpptraj::Cluster::DrawGraph(bool use_z, DataSet* cnumvtime,
     iteration++;
   }
   // RMS error 
-  unsigned int idx = 0; // Index into FrameDistances
+  //unsigned int idx = 0; // Index into FrameDistances
   double sumdiff2 = 0.0;
   for (unsigned int f1 = 0; f1 != nframes; f1++)
   {
@@ -106,25 +109,26 @@ void Cpptraj::Cluster::DrawGraph(bool use_z, DataSet* cnumvtime,
     {
       Vec3 V1_2 = Xarray[f1] - Xarray[f2];
       double r1_2 = sqrt( V1_2.Magnitude2() );
-      double Req = FrameDistances().GetElement(idx);
+      double Req = pmatrix.Frame_Distance(framesToCluster[f1], framesToCluster[f2]);//FrameDistances().GetElement(idx);
       double diff = r1_2 - Req;
       sumdiff2 += (diff * diff);
       if (debug > 0)
         mprintf("\t\t%u to %u: D= %g  Eq= %g  Delta= %g\n",
                 f1+1, f2+1, r1_2, Req, fabs(diff));
-      ++idx;
+      //++idx;
     }
   }
-  double rms_err = sqrt( sumdiff2 / (double)FrameDistances().Nelements() );
+  unsigned int Nelements = nframes * (nframes-1)/2;
+  double rms_err = sqrt( sumdiff2 / (double)Nelements );
   mprintf("\tRMS error of final graph positions: %g\n", rms_err);
   // Write out final graph with cluster numbers.
   std::vector<int> Nums;
   Nums.reserve( nframes );
   if (cnumvtime != 0) {
-    ClusterSieve::SievedFrames const& sievedFrames = FrameDistances().FramesToCluster();
+    //ClusterSieve::SievedFrames const& sievedFrames = FrameDistances().FramesToCluster();
     DataSet_1D const& CVT = static_cast<DataSet_1D const&>( *cnumvtime );
     for (unsigned int n = 0; n != nframes; n++)
-      Nums.push_back( (int)CVT.Dval(sievedFrames[n]) );
+      Nums.push_back( (int)CVT.Dval(framesToCluster[n]) );
   } else
     for (int n = 1; n <= (int)nframes; n++)
       Nums.push_back( n );
