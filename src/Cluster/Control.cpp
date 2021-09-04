@@ -545,6 +545,16 @@ int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL, Da
     return 1;
   }
 
+  // Draw graph
+  if (analyzeArgs.hasKey("drawgraph"))
+    drawGraph_ = TWOD;
+  else if (analyzeArgs.hasKey("drawgraph3d"))
+    drawGraph_ = THREED;
+  else
+    drawGraph_ = NO_DRAWGRAPH;
+  draw_maxit_ = analyzeArgs.getKeyInt("draw_maxit", 1000);
+  draw_tol_ = analyzeArgs.getKeyDouble("draw_tol", 1.0E-5);
+
   // Cluster info output
   suppressInfo_ = analyzeArgs.hasKey("noinfo");
   if (!suppressInfo_)
@@ -716,8 +726,11 @@ void Cpptraj::Cluster::Control::Info() const {
     } else
       mprintf("\t\tFrames will be split at the halfway point.\n");
   }
-
-
+  // TODO loaded refs_
+  if (drawGraph_ != NO_DRAWGRAPH)
+    mprintf("\tEXPERIMENTAL: Force-directed graph will be drawn from pairwise distances.\n"
+            "\t              Max iterations= %i, min tolerance= %g\n",
+                             draw_maxit_, draw_tol_);
 }
 
 /** Figure out which frames to cluster, cache distances if necessary, then
