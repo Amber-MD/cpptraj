@@ -20,7 +20,7 @@ for i=0;i<5;i++
 done
 cluster Kmeans data D1 kmeans clusters 5 summary ksummary.dat assignrefs refcut 3.0 refmask :1-12&!@H=
 EOF
-RunCpptraj "Test1"
-
+RunCpptraj "$TESTNAME"
+DoTest ksummary.dat.save ksummary.dat
 
 EndTest
