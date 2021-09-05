@@ -103,7 +103,7 @@ noarpack:
 cuda_kernels/libcpptraj_cuda.a: ../external.config.h
 	cd cuda_kernels && $(MAKE) all
 
-$(CLUSTER_TARGET):
+$(CLUSTER_TARGET)::
 	cd Cluster && $(MAKE) all
 
 # Dependency targets
