@@ -264,10 +264,8 @@ Cpptraj::Cluster::Metric* Cpptraj::Cluster::Control::AllocateMetric(Metric::Type
   return met;
 }
 
-const char* Cpptraj::Cluster::Control::CoordsDataSetArgs_ =
-  "{dme|rms|srmsd} [mass] [nofit] [<mask>]";
-
 /** Set up clustering for 1D scalar sets. */
+/*
 int Cpptraj::Cluster::Control::SetupForDataSets(Metric_Data::DsArray const& inputSets,
                                                 DataSet_Coords* ds,
                                                 ArgList& analyzeArgs,
@@ -303,9 +301,10 @@ int Cpptraj::Cluster::Control::SetupForDataSets(Metric_Data::DsArray const& inpu
   }
 
   return Common(analyzeArgs, DSL, DFL);
-}
+}*/
 
 /** Set up clustering for a COORDS DataSet.*/
+/*
 int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
                                                      ArgList& analyzeArgs,
                                                      DataSetList& DSL,
@@ -338,14 +337,6 @@ int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
   bool nofit   = analyzeArgs.hasKey("nofit");
   // Get the mask string 
   std::string maskExpr = analyzeArgs.GetMaskNext();
-  /*if (!refs_.empty() && refmaskexpr_.empty()) { TODO enable
-    refmaskexpr_ = maskexpr_;
-    if (refmaskexpr_.empty()) {
-      refmaskexpr_.assign("!@H=");
-      mprintf("Warning: 'assignrefs' specified but no 'refmask' given.\n"
-              "Warning:   Using default mask expression: '%s'\n", refmaskexpr_.c_str());
-    }
-  }*/
 
   int err = 0;
   switch (mtype) {
@@ -371,7 +362,7 @@ int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
   if (results_ == 0) return 1;
 
   return Common(analyzeArgs, DSL, DFL);
-}
+}*/
 
 // -----------------------------------------------------------------------------
 static int Err(int code) {
@@ -442,10 +433,112 @@ const char* Cpptraj::Cluster::Control::CommonArgs_ =
   "[out <cnumvtime file> [gracecolor]] [<ds name>] "
   "[clustersvtime <file> cvtwindow <#> ";
 
+const char* Cpptraj::Cluster::Control::CoordsDataSetArgs_ =
+  "{dme|rms|srmsd} [mass] [nofit] [<mask>]";
+
+
 /** Common setup. */
-int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL, DataFileList& DFL)
+//int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL, DataFileList& DFL)
+int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
+                                               DataSet* coordsSet,
+                                               ArgList& analyzeArgs,
+                                               DataSetList& DSL,
+                                               DataFileList& DFL,
+                                               int verboseIn)
 {
+  verbose_ = verboseIn;
   clusters_.SetDebug( verbose_ );
+
+  // Determine if clustering on COORDS set or scalar sets
+  // TODO separate Metric from Euclid/Manhattan to allow COORDS/1D combos
+  if (setsToCluster.empty()) {
+    mprinterr("Error: No sets to cluster.\n");
+    return 1;
+  }
+  
+  // Determine the metric type based on what sets we are clustering on
+  if (setsToCluster.size() == 1 && setsToCluster[0]->Group() == DataSet::COORDINATES) {
+    // Clustering on coords
+    mprintf("\tClustering on coordinates: '%s'\n", setsToCluster[0]->legend());
+    // Determine Metric. Valid ones for COORDS are RMS, DME, SRMSD
+    int usedme = (int)analyzeArgs.hasKey("dme");
+    int userms = (int)analyzeArgs.hasKey("rms");
+    int usesrms = (int)analyzeArgs.hasKey("srmsd");
+    if (usedme + userms + usesrms > 1) {
+      mprinterr("Error: Specify either 'dme', 'rms', or 'srmsd'.\n");
+      return 1;
+    }
+    Metric::Type mtype = Metric::RMS; // Default
+    if      (usedme)  mtype = Metric::DME;
+    else if (userms)  mtype = Metric::RMS;
+    else if (usesrms) mtype = Metric::SRMSD;
+    if (metric_ != 0) delete metric_;
+    metric_ = 0;
+    metric_ = AllocateMetric( mtype );
+    if (metric_ == 0) return 1;
+    // COORDS Metric init.
+    bool useMass = analyzeArgs.hasKey("mass");
+    bool nofit   = analyzeArgs.hasKey("nofit");
+    // Get the mask string 
+    std::string maskExpr = analyzeArgs.GetMaskNext();
+    int err = 0;
+    DataSet_Coords* ds = static_cast<DataSet_Coords*>( setsToCluster[0] );
+    switch (mtype) {
+      case Metric::RMS :
+        err = ((Metric_RMS*)metric_)->Init(ds, AtomMask(maskExpr), nofit, useMass); break;
+      case Metric::DME :
+        err = ((Metric_DME*)metric_)->Init(ds, AtomMask(maskExpr)); break;
+      case Metric::SRMSD :
+      err = ((Metric_SRMSD*)metric_)->Init(ds, AtomMask(maskExpr), nofit, useMass, verbose_);
+      break;
+      default:
+        mprinterr("Error: Unhandled Metric setup.\n");
+        err = 1;
+    }
+    if (err != 0) {
+      mprinterr("Error: Metric setup failed.\n");
+      return 1;
+    }
+  } else {
+    mprintf("\tClustering on %zu data set(s).\n", setsToCluster.size());
+    // Clustering on data
+    Metric_Data::DsArray cluster_datasets;
+    for (DataSetList::const_iterator ds = setsToCluster.begin(); ds != setsToCluster.end(); ++ds)
+    {
+      // Clustering only allowed on 1D data sets.
+      if ( (*ds)->Group() != DataSet::SCALAR_1D ) {
+        mprinterr("Error: Clustering only allowed on 1D scalar data sets, %s is %zuD.\n",
+                  (*ds)->legend(), (*ds)->Ndim());
+        return 1;
+      }
+      cluster_datasets.push_back( *ds );
+    }
+    if (cluster_datasets.empty()) {
+      mprinterr("Error: No valid data sets to cluster on.\n");
+      return 1;
+    }
+    // Choose metric for 'data'
+    Metric::Type mtype = Metric::EUCLID; // Default
+    if (analyzeArgs.hasKey("euclid"))
+      mtype = Metric::EUCLID;
+    else if (analyzeArgs.hasKey("manhattan"))
+      mtype = Metric::MANHATTAN;
+    if (metric_ != 0) delete metric_;
+    metric_ = 0;
+    metric_ = AllocateMetric( mtype );
+    if (metric_ == 0) return 1;
+    // Metric init.
+    int err = ((Metric_Data*)metric_)->Init( cluster_datasets );
+    if (err != 0) return 1;
+  }
+
+  // Set up results for COORDS DataSet
+  if (coordsSet != 0) {
+    mprintf("\tCoordinates set for cluster results: %s\n", coordsSet->legend());
+    if (results_ != 0) delete results_;
+    results_ = (Results*)new Results_Coords( static_cast<DataSet_Coords*>( coordsSet ) );
+    if (results_ == 0) return 1;
+  }
 
   // Initialize clusters from existing info file. Metric must already be set up.
   if (analyzeArgs.hasKey("readinfo") ||

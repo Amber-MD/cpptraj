@@ -1,10 +1,10 @@
 #ifndef INC_CLUSTER_CONTROL_H
 #define INC_CLUSTER_CONTROL_H
 #include "Algorithm.h" // Algorithm::AType
-#include "BestReps.h"
+#include "BestReps.h"  // BestReps::RepMethodType
 #include "DrawGraph.h" // GraphType
 #include "List.h"
-#include "Metric_Data.h"
+#include "Metric.h" // Metric::Type
 #include "Node.h" // Node::CnormType
 #include "PairwiseMatrix.h"
 #include "Sieve.h"
@@ -41,9 +41,11 @@ class Control {
 
     // TODO ONE setup routine
 
-    int SetupForDataSets(Metric_Data::DsArray const&, DataSet_Coords*, ArgList&, DataSetList&, DataFileList&, int);
+    //int SetupForDataSets(Metric_Data::DsArray const&, DataSet_Coords*, ArgList&, DataSetList&, DataFileList&, int);
 
-    int SetupForCoordsDataSet(DataSet_Coords*, ArgList&, DataSetList&, DataFileList&, int);
+    //int SetupForCoordsDataSet(DataSet_Coords*, ArgList&, DataSetList&, DataFileList&, int);
+    /// Setup clustering
+    int SetupClustering(DataSetList const&, DataSet*, ArgList&, DataSetList&, DataFileList&, int);
     /// Provide information on how clustering calculation is currently set up.
     void Info() const;
     /// Perform clustering.
@@ -62,7 +64,7 @@ class Control {
 
     int ReadInfo(std::string const&);
 
-    int Common(ArgList&, DataSetList&, DataFileList&);
+    //int Common(ArgList&, DataSetList&, DataFileList&);
 
     static const char* DEFAULT_PAIRDIST_NAME_;
 
