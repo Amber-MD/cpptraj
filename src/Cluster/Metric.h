@@ -43,6 +43,9 @@ class Metric {
     virtual void Info() const = 0;
     /// \return total number of frames.
     virtual unsigned int Ntotal() const = 0;
+
+    /// \return Metric type
+    Type MetricType() const { return type_; }
   private:
     Type type_;
 };

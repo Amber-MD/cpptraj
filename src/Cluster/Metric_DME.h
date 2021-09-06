@@ -23,6 +23,8 @@ class Metric_DME : public Metric {
     unsigned int Ntotal() const { return (unsigned int)coords_->Size(); }
     // -------------------------------------------
     int Init(DataSet_Coords*, AtomMask const&);
+    /// \return Atom mask
+    AtomMask const& Mask() const { return mask_; }
   private:
     DataSet_Coords* coords_;
     AtomMask mask_;

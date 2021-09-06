@@ -24,6 +24,10 @@ class Metric_RMS : public Metric {
     unsigned int Ntotal() const { return (unsigned int)coords_->Size(); }
     // -------------------------------------------
     int Init(DataSet_Coords*, AtomMask const&, bool, bool);
+    /// \return whether RMS is mass-weighted
+    bool UseMass() const { return useMass_; }
+    /// \return Atom mask
+    AtomMask const& Mask() const { return mask_; }
   private:
     DataSet_Coords* coords_;
     AtomMask mask_;

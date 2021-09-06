@@ -12,6 +12,10 @@ class Metric_SRMSD : public Metric {
   public:
     Metric_SRMSD() : Metric(SRMSD) {}
     int Init(DataSet_Coords*,AtomMask const&,bool,bool,int);
+    /// \return whether RMSD is mass-weighted
+    bool UseMass() const { return SRMSD_.UseMass(); }
+    /// \return Atom mask
+    AtomMask const& Mask() const { return mask_; }
     // ----- Metric ------------------------------
     int Setup();
     double FrameDist(int, int);
