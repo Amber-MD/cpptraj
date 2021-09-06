@@ -1,7 +1,6 @@
 #include "Analysis_Cluster.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Coords.h"
-#include "Cluster/Metric_Data.h"
 
 using namespace Cpptraj::Cluster;
 
@@ -14,13 +13,13 @@ void Analysis_Cluster::Help() const {
 Analysis::RetType Analysis_Cluster::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
   control_.SetDebug( debugIn );
-  Cpptraj::Cluster::Metric_Data::DsArray cluster_dataset;
+  DataSetList inputDsets;
   DataSet_Coords* coords = 0;
   // First check for data
   std::string dataSetname = analyzeArgs.GetStringKey("data");
   if (!dataSetname.empty()) {
+    // Get data sets for clustering
     ArgList dsnames(dataSetname, ",");
-    DataSetList inputDsets;
     for (ArgList::const_iterator name = dsnames.begin(); name != dsnames.end(); ++name) {
       DataSetList tempDSL = setup.DSL().GetMultipleSets( *name );
       if (tempDSL.empty()) {
@@ -29,36 +28,24 @@ Analysis::RetType Analysis_Cluster::Setup(ArgList& analyzeArgs, AnalysisSetup& s
       }
       inputDsets += tempDSL;
     }
-    for (DataSetList::const_iterator ds = inputDsets.begin(); ds != inputDsets.end(); ++ds) {
-      // Clustering only allowed on 1D data sets.
-      if ( (*ds)->Group() != DataSet::SCALAR_1D ) {
-        mprinterr("Error: Clustering only allowed on 1D scalar data sets, %s is %zuD.\n",
-                  (*ds)->legend(), (*ds)->Ndim());
-        return Analysis::ERR;
-      }
-      cluster_dataset.push_back( *ds );
-    }
-
   }
-  // Attempt to get coords DataSet from datasetlist. Do this
-  // if crdset is specified or no other DataSets specified.
+  // If 'crdset' specified or if 'nocoords' *not* specified, attempt to get
+  // COORDS DataSet from master DataSetList.
   std::string setname = analyzeArgs.GetStringKey("crdset");
-  if (!setname.empty() || cluster_dataset.empty()) {
+  if (!setname.empty() || !analyzeArgs.hasKey("nocoords")) {
     coords = (DataSet_Coords*)setup.DSL().FindCoordsSet( setname );
     if (coords == 0) {
       mprinterr("Error: Could not locate COORDS set corresponding to %s\n",
                 setname.c_str());
       return Analysis::ERR;
     }
+    // If 'data' was not specified, this is the set we will cluster on.
+    if (dataSetname.empty())
+      inputDsets.AddCopyOfSet( coords );
   }
 
-  if (!cluster_dataset.empty()) {
-    if (control_.SetupForDataSets(cluster_dataset, coords, analyzeArgs, setup.DSL(), setup.DFL(), debugIn))
+  if (control_.SetupClustering(inputDsets, coords, analyzeArgs, setup.DSL(), setup.DFL(), debugIn))
       return Analysis::ERR;
-  } else {
-    if (control_.SetupForCoordsDataSet(coords, analyzeArgs, setup.DSL(), setup.DFL(), debugIn))
-      return Analysis::ERR;
-  }
 
   control_.Info();
 
