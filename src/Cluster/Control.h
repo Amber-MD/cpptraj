@@ -107,7 +107,7 @@ class Control {
 
     std::string splitfile_;           ///< Output file for splitting cluster results
     Cframes splitFrames_;             ///< Frames at which to split
-
+    // TODO make class vars in DrawGraph.cpp
     GraphType drawGraph_;             ///< Indicate whether a cluster graph should be drawn
     double draw_tol_;                 ///< Graph draw tolerance for min
     int draw_maxit_;                  ///< Graph draw max iterations for min

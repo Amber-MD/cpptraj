@@ -36,12 +36,25 @@ void Cpptraj::Cluster::Results_Coords::GetClusterTrajArgs(ArgList& argIn,
     fmt = TrajectoryFile::WriteFormatFromFname( trajName, DEF_TRAJ_FMT_ );
 }
 
-int Cpptraj::Cluster::Results_Coords::GetOptions(ArgList& analyzeArgs) {
+/** Get user specified options. */
+int Cpptraj::Cluster::Results_Coords::GetOptions(ArgList& analyzeArgs, DataSetList const& DSL)
+{
   writeRepFrameNum_ = analyzeArgs.hasKey("repframe");
   GetClusterTrajArgs(analyzeArgs, "clusterout",   "clusterfmt",   clusterfile_,   clusterfmt_);
   GetClusterTrajArgs(analyzeArgs, "singlerepout", "singlerepfmt", singlerepfile_, singlerepfmt_);
   GetClusterTrajArgs(analyzeArgs, "repout",       "repfmt",       reptrajfile_,   reptrajfmt_);
   GetClusterTrajArgs(analyzeArgs, "avgout",       "avgfmt",       avgfile_,       avgfmt_);
+
+  if (analyzeArgs.hasKey("assignrefs")) {
+    refSets_ = DSL.GetSetsOfType("*", DataSet::REF_FRAME);
+    if (refSets_.empty()) {
+      mprinterr("Error: 'assignrefs' specified but no references loaded.\n");
+      return 1;
+    }
+    refCut_ = analyzeArgs.getKeyDouble("refcut", 1.0);
+    refmaskexpr_ = analyzeArgs.GetStringKey("refmask");
+    useMass_ = analyzeArgs.hasKey("userefmass");
+  }
 
   return 0;
 }

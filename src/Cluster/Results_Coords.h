@@ -1,6 +1,7 @@
 #ifndef INC_CLUSTER_RESULTS_COORDS_H
 #define INC_CLUSTER_RESULTS_COORDS_H
 #include "Results.h"
+#include "../DataSetList.h" // for assignrefs
 #include "../TrajectoryFile.h"
 class DataSet_Coords;
 namespace Cpptraj {
@@ -11,7 +12,7 @@ class Results_Coords : public Results {
   public:
     Results_Coords(DataSet_Coords*);
     // ----- Results functions -------------------
-    int GetOptions(ArgList&);
+    int GetOptions(ArgList&, DataSetList const&);
     void Info() const;
     int DoOutput(List const&) const;
   private:
@@ -35,6 +36,10 @@ class Results_Coords : public Results {
     std::string reptrajfile_;   ///< Cluster rep to separate trajectory filename.
     std::string avgfile_;       ///< Cluster traj average structure filename.
 
+    DataSetList refSets_;       ///< Hold reference frames to compare to
+    std::string refmaskexpr_;   ///< Select atoms to compare in ref frames and cluster reps
+    double refCut_;             ///< RMSD cutoff for assigning refs in Ang.
+    bool useMass_;              ///< Whether to mass-weight RMS or not, based on metric
 };
 
 }
