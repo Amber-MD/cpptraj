@@ -958,6 +958,14 @@ int Cpptraj::Cluster::Control::Run() {
 int Cpptraj::Cluster::Control::Output(DataSetList& DSL) {
   if (clusters_.Nclusters() == 0) return 0;
   timer_output_.Start();
+
+  // Results that require additional calculations
+  if (results_ != 0) {
+    timer_output_results_.Start();
+    results_->CalcResults( clusters_ );
+    timer_output_results_.Stop();
+  }
+
   // Info
   if (!suppressInfo_) {
     CpptrajFile outfile;
@@ -1074,7 +1082,6 @@ int Cpptraj::Cluster::Control::Output(DataSetList& DSL) {
   // Any other results
   if (results_ != 0) {
     timer_output_results_.Start();
-    results_->CalcResults( clusters_ );
     results_->DoOutput( clusters_ );
     timer_output_results_.Stop();
   }
