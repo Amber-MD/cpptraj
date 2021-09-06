@@ -15,6 +15,7 @@ class Results_Coords : public Results {
     int GetOptions(ArgList&, DataSetList const&, Metric const&);
     void Info() const;
     int DoOutput(List const&) const;
+    int CalcResults(List&) const;
   private:
     void GetClusterTrajArgs(ArgList&, const char*, const char*, std::string&,
                             TrajectoryFile::TrajFormatType&) const;
@@ -22,6 +23,8 @@ class Results_Coords : public Results {
     void WriteAvgStruct( List const& ) const;
     void WriteSingleRepTraj( List const& ) const;
     void WriteRepTraj( List const& ) const;
+
+    int AssignRefsToClusters(List&) const;
 
     static const TrajectoryFile::TrajFormatType DEF_TRAJ_FMT_;
 

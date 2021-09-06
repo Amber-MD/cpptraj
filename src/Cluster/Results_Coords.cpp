@@ -100,9 +100,16 @@ void Cpptraj::Cluster::Results_Coords::Info() const {
   if (!avgfile_.empty())
     mprintf("\tAverage structures for clusters will be written to %s, format %s\n",
             avgfile_.c_str(), TrajectoryFile::FormatString(avgfmt_));
+
+  if (!refSets_.empty())
+    mprintf("\tClusters will be identified with loaded reference structures if RMSD\n"
+            "\t  (mask '%s') to representative frame is < %g Ang.\n",
+            refmaskexpr_.c_str(), refCut_);
 }
 
+/** Do any output needed. */
 int Cpptraj::Cluster::Results_Coords::DoOutput(List const& CList) const {
+  int err = 0;
   // Write clusters to trajectories
   if (!clusterfile_.empty())
     WriteClusterTraj( CList ); 
@@ -115,7 +122,16 @@ int Cpptraj::Cluster::Results_Coords::DoOutput(List const& CList) const {
   // Write average structures for each cluster to separate files.
   if (!avgfile_.empty())
     WriteAvgStruct( CList );
-  return 0;
+  return err;
+}
+
+/** Calculate any results that belong in clusters. */
+int Cpptraj::Cluster::Results_Coords::CalcResults(List& CList) const {
+  int err = 0;
+  // Assign reference structures to clusters
+  if (!refSets_.empty())
+    err += AssignRefsToClusters( CList );
+  return err;
 }
 
 /** Write frames in each cluster to a trajectory file.  */
@@ -290,4 +306,56 @@ void Cpptraj::Cluster::Results_Coords::WriteRepTraj( List const& CList ) const {
       clusterout.EndTraj();
     }
   }
+}
+
+/** Assign reference frames to clusters via closest RMSD. */
+int Cpptraj::Cluster::Results_Coords::AssignRefsToClusters( List& CList )
+const
+{
+  // Pre-center all reference coords at the origin. No need to store trans vectors.
+  std::vector<Frame> refFrames;
+  refFrames.reserve( refSets_.size() );
+  for (unsigned int idx = 0; idx != refSets_.size(); idx++) {
+    AtomMask rMask( refmaskexpr_ );
+    DataSet_Coords_REF* REF_ds = (DataSet_Coords_REF*)refSets_[idx];
+    if ( REF_ds->Top().SetupIntegerMask( rMask, REF_ds->RefFrame() ) ) {
+      mprintf("Warning: Could not set up mask for reference '%s'\n", REF_ds->legend());
+      continue;
+    }
+    refFrames.push_back( Frame(REF_ds->RefFrame(), rMask) );
+    refFrames.back().CenterOnOrigin( useMass_ );
+  }
+  // For each cluster, assign the reference name with the lowest RMSD
+  // to the representative frame that is below the cutoff.
+  AtomMask tMask( refmaskexpr_ );
+  if (coords_->Top().SetupIntegerMask( tMask )) {
+    mprinterr("Error: Could not set up mask for assigning references.\n");
+    return 1;
+  }
+  Frame TGT( coords_->AllocateFrame(), tMask );
+  unsigned int cidx = 0;
+  for (List::cluster_it cluster = CList.begin();
+                        cluster != CList.end(); ++cluster, ++cidx)
+  {
+    coords_->GetFrame( cluster->BestRepFrame(), TGT, tMask );
+    double minRms = TGT.RMSD_CenteredRef( refFrames[0], useMass_ );
+    unsigned int minIdx = 0;
+    for (unsigned int idx = 1; idx < refSets_.size(); idx++) {
+      double rms = TGT.RMSD_CenteredRef( refFrames[idx], useMass_ );
+      if (rms < minRms) {
+        minRms = rms;
+        minIdx = idx;
+      }
+    }
+    if (minRms < refCut_) {
+      //mprintf("DEBUG: Assigned cluster %i to reference \"%s\" (%g)\n", cidx,
+      //        refSets_[minIdx]->Meta().Name().c_str(), minRms);
+      cluster->SetNameAndRms( refSets_[minIdx]->Meta().Name(), minRms );
+    } else {
+      //mprintf("DEBUG: Cluster %i was closest to reference \"(%s)\" (%g)\n", cidx,
+      //        refSets_[minIdx]->Meta().Name().c_str(), minRms);
+      cluster->SetNameAndRms( "(" + refSets_[minIdx]->Meta().Name() + ")", minRms );
+    }
+  }
+  return 0;
 }

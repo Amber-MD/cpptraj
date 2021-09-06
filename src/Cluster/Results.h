@@ -18,6 +18,7 @@ class Results {
     virtual int GetOptions(ArgList&, DataSetList const&, Metric const&) = 0;
     virtual void Info() const = 0;
     virtual int DoOutput(List const&) const = 0;
+    virtual int CalcResults(List&) const = 0;
   private:
     Type type_;
 };
