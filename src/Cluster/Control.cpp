@@ -455,7 +455,7 @@ int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL, Da
   }
 
   if (results_ != 0) {
-    if (results_->GetOptions(analyzeArgs)) return 1;
+    if (results_->GetOptions(analyzeArgs, DSL, *metric_)) return 1;
   }
 
   // Allocate PairwiseMatrix (and optionally a cache). Metric must already be set up.
@@ -981,6 +981,7 @@ int Cpptraj::Cluster::Control::Output(DataSetList& DSL) {
   // Any other results
   if (results_ != 0) {
     timer_output_results_.Start();
+    results_->CalcResults( clusters_ );
     results_->DoOutput( clusters_ );
     timer_output_results_.Stop();
   }
