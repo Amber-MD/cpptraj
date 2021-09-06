@@ -12,7 +12,7 @@ class Results_Coords : public Results {
   public:
     Results_Coords(DataSet_Coords*);
     // ----- Results functions -------------------
-    int GetOptions(ArgList&, DataSetList const&);
+    int GetOptions(ArgList&, DataSetList const&, Metric const&);
     void Info() const;
     int DoOutput(List const&) const;
   private:

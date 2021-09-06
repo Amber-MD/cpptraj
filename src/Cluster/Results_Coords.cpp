@@ -1,5 +1,8 @@
 #include "Results_Coords.h"
 #include "List.h"
+#include "Metric_DME.h"
+#include "Metric_RMS.h"
+#include "Metric_SRMSD.h"
 #include "Node.h"
 #include "../ArgList.h"
 #include "../CpptrajStdio.h"
@@ -23,7 +26,7 @@ Cpptraj::Cluster::Results_Coords::Results_Coords(DataSet_Coords* ds) :
   avgfmt_(TrajectoryFile::UNKNOWN_TRAJ)
 {}
 
-
+/** Get arguments related to writing cluster data to trajectories. */
 void Cpptraj::Cluster::Results_Coords::GetClusterTrajArgs(ArgList& argIn,
                                              const char* trajKey, const char* fmtKey,
                                              std::string& trajName,
@@ -37,7 +40,8 @@ void Cpptraj::Cluster::Results_Coords::GetClusterTrajArgs(ArgList& argIn,
 }
 
 /** Get user specified options. */
-int Cpptraj::Cluster::Results_Coords::GetOptions(ArgList& analyzeArgs, DataSetList const& DSL)
+int Cpptraj::Cluster::Results_Coords::GetOptions(ArgList& analyzeArgs, DataSetList const& DSL,
+                                                 Metric const& metricIn)
 {
   writeRepFrameNum_ = analyzeArgs.hasKey("repframe");
   GetClusterTrajArgs(analyzeArgs, "clusterout",   "clusterfmt",   clusterfile_,   clusterfmt_);
@@ -53,12 +57,32 @@ int Cpptraj::Cluster::Results_Coords::GetOptions(ArgList& analyzeArgs, DataSetLi
     }
     refCut_ = analyzeArgs.getKeyDouble("refcut", 1.0);
     refmaskexpr_ = analyzeArgs.GetStringKey("refmask");
-    useMass_ = analyzeArgs.hasKey("userefmass");
+    useMass_ = false;
+    // Attempt to set defaults from Metric if applicable
+    if (metricIn.MetricType() == Metric::RMS) {
+      Metric_RMS const& met = static_cast<Metric_RMS const&>( metricIn );
+      useMass_ = met.UseMass();
+      if (refmaskexpr_.empty()) refmaskexpr_ = met.Mask().MaskString();
+    } else if (metricIn.MetricType() == Metric::SRMSD) {
+      Metric_SRMSD const& met = static_cast<Metric_SRMSD const&>( metricIn );
+      useMass_ = met.UseMass();
+      if (refmaskexpr_.empty()) refmaskexpr_ = met.Mask().MaskString();
+    } else if (metricIn.MetricType() == Metric::DME) {
+      Metric_DME const& met = static_cast<Metric_DME const&>( metricIn );
+      if (refmaskexpr_.empty()) refmaskexpr_ = met.Mask().MaskString();
+    }
+    // Set a default mask if needed
+    if (refmaskexpr_.empty()) {
+      refmaskexpr_.assign("!@H=");
+      mprintf("Warning: 'assignrefs' specified but no 'refmask' given.\n"
+              "Warning:   Using default mask expression: '%s'\n", refmaskexpr_.c_str());
+    }
   }
 
   return 0;
 }
 
+/** Write info on what results will be calculated/written. */
 void Cpptraj::Cluster::Results_Coords::Info() const {
     if (!clusterfile_.empty())
     mprintf("\tCluster trajectories will be written to %s, format %s\n",
