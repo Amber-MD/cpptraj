@@ -3,15 +3,14 @@
 . ../MasterTest.sh
 
 CleanFiles cluster.in 2drms.gnu clusters.*.dat summary.*.dat singlerep.nc \
-           Rep.c*.nc PD
+           Rep.c*.nc PD cumulative
 
-TESTNAME='Clustering with specified # reps'
-Requires netcdf
+TESTNAME='Cluster representative frames tests'
+INPUT='-i cluster.in'
 
+UNITNAME='Test saving 5 best reps'
+CheckFor netcdf
 if [ $? -eq 0 ] ; then
-
-  INPUT='-i cluster.in'
-
   cat > cluster.in <<EOF
 parm ../DPDP.parm7
 trajin ../DPDP.nc
@@ -24,6 +23,15 @@ EOF
   DoTest clusters.2.dat.save clusters.2.dat
   DoTest summary.2.dat.save summary.2.dat
 fi
+
+UNITNAME='Test cumulative best rep'
+cat > cluster.in <<EOF
+parm ../tz2.parm7
+trajin ../tz2.crd
+cluster hieragglo clusters 5 rms @CA bestrep cumulative singlerepout cumulative
+EOF
+RunCpptraj "$UNITNAME"
+DoTest cumulative.save cumulative
 
 EndTest
 exit 0
