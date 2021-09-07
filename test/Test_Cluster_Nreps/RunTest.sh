@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles cluster.in 2drms.gnu clusters.*.dat summary.*.dat singlerep.nc \
-           Rep.c*.nc PD cumulative
+           Rep.c*.nc PD cumulative centroid cumulative_nosieve
 
 TESTNAME='Cluster representative frames tests'
 INPUT='-i cluster.in'
@@ -32,6 +32,24 @@ cluster hieragglo clusters 5 rms @CA bestrep cumulative singlerepout cumulative
 EOF
 RunCpptraj "$UNITNAME"
 DoTest cumulative.save cumulative
+
+UNITNAME='Test centroid best rep'
+cat > cluster.in <<EOF
+parm ../tz2.parm7
+trajin ../tz2.crd
+cluster hieragglo clusters 5 rms @CA bestrep centroid singlerepout centroid
+EOF
+RunCpptraj "$UNITNAME"
+DoTest centroid.save centroid
+
+UNITNAME='Test cumulative, no sieve best rep'
+cat > cluster.in <<EOF
+parm ../tz2.parm7
+trajin ../tz2.crd
+cluster hieragglo clusters 5 rms @CA sieve 5 bestrep cumulative_nosieve singlerepout cumulative_nosieve
+EOF
+RunCpptraj "$UNITNAME"
+DoTest cumulative_nosieve.save cumulative_nosieve
 
 EndTest
 exit 0
