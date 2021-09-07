@@ -11,8 +11,10 @@ int Cpptraj::Cluster::Metric_DME::Init(DataSet_Coords* dIn, AtomMask const& mask
     mprinterr("Internal Error: Metric_DME::Init() called with null data set.\n");
     return 1;
   }
+# ifdef DEBUG_CLUSTER
   mprintf("DEBUG: Init DME metric for '%s', mask '%s'\n",
           dIn->legend(), maskIn.MaskString());
+# endif
   coords_ = dIn;
   mask_ = maskIn;
 
@@ -22,11 +24,15 @@ int Cpptraj::Cluster::Metric_DME::Init(DataSet_Coords* dIn, AtomMask const& mask
 /** Set up the metric. */
 int Cpptraj::Cluster::Metric_DME::Setup() {
   if (coords_->Top().SetupIntegerMask( mask_ )) return 1;
+# ifdef DEBUG_CLUSTER
   mprintf("DEBUG: DME metric topology: %s %s %i\n", coords_->legend(),
           coords_->Top().c_str(), coords_->Top().Natom());
+# endif
   if (frm1_.SetupFrameFromMask(mask_, coords_->Top().Atoms())) return 1;
   frm2_ = frm1_;
+# ifdef DEBUG_CLUSTER
   mprintf("DEBUG: Setup DME metric for %i atoms, %zu frames.\n", frm1_.Natom(), coords_->Size());
+# endif
   return 0;
 }
 

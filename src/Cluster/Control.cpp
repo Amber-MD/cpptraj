@@ -182,7 +182,8 @@ int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetLis
         mprinterr("Error: Could not allocate pairwise cache.\n");
         return 1;
       }
-      mprintf("DEBUG: Allocated pairwise distance cache: %s\n", cache_->legend());
+      if (debug_ > 0)
+        mprintf("DEBUG: Allocated pairwise distance cache: %s\n", cache_->legend());
     }
   }
 
@@ -202,8 +203,9 @@ int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetLis
         DataFile* pwd_file = DFL.AddDataFile( pairdistname, pairdisttype, ArgList() );
         if (pwd_file == 0) return 1;
         pwd_file->AddDataSet( cache_ );
-        mprintf("DEBUG: Saving pw distance cache '%s' to file '%s'\n", cache_->legend(),
-                pwd_file->DataFilename().full());
+        if (debug_ > 0)
+          mprintf("DEBUG: Saving pw distance cache '%s' to file '%s'\n", cache_->legend(),
+                  pwd_file->DataFilename().full());
       } else
         mprintf("Warning: Can only save pairwise distance cache for in-memory caches.\n");
     }

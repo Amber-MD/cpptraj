@@ -12,8 +12,10 @@ int Cpptraj::Cluster::Metric_RMS::Init(DataSet_Coords* dIn, AtomMask const& mask
     mprinterr("Internal Error: Metric_RMS::Init() called with null data set.\n");
     return 1;
   }
+# ifdef DEBUG_CLUSTER
   mprintf("DEBUG: Init RMS metric for '%s', mask '%s', nofit=%i, usemass=%i\n",
           dIn->legend(), maskIn.MaskString(), (int)nofit, (int)useMass);
+# endif
   coords_ = dIn;
   mask_ = maskIn;
   nofit_ = nofit;
@@ -25,11 +27,15 @@ int Cpptraj::Cluster::Metric_RMS::Init(DataSet_Coords* dIn, AtomMask const& mask
 /** Set up the metric. */
 int Cpptraj::Cluster::Metric_RMS::Setup() {
   if (coords_->Top().SetupIntegerMask( mask_ )) return 1;
+# ifdef DEBUG_CLUSTER
   mprintf("DEBUG: RMS metric topology: %s %s %i\n", coords_->legend(),
           coords_->Top().c_str(), coords_->Top().Natom());
+# endif
   if (frm1_.SetupFrameFromMask(mask_, coords_->Top().Atoms())) return 1;
   frm2_ = frm1_;
+# ifdef DEBUG_CLUSTER
   mprintf("DEBUG: Setup RMS metric for %i atoms, %zu frames.\n", frm1_.Natom(), coords_->Size());
+# endif
   return 0;
 }
 

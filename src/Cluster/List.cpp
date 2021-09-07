@@ -79,7 +79,8 @@ const
   // Determine number of windows
   int nwindows = (int)maxFrames / windowSize;
   if (((int)maxFrames % windowSize) != 0) nwindows++;
-  mprintf("DEBUG: %u frames, %i windows, window size %i.\n", maxFrames, nwindows, windowSize);
+  if (debug_ > 0)
+    mprintf("DEBUG: %u frames, %i windows, window size %i.\n", maxFrames, nwindows, windowSize);
 
   // Create a bool array for each window that will record if cluster is present
   // during that window.
@@ -487,10 +488,12 @@ int Cpptraj::Cluster::List::CalcSilhouette(PairwiseMatrix const& pmatrix,
     } // END loop over cluster frames
     //std::sort( SiVals.begin(), SiVals.end() );
     // DEBUG
-    mprintf("DEBUG: Cluster frame silhouette values for cluster %i\n", Ci->Num());
-    for (Node::SilPairArray::const_iterator it = Ci->FrameSilhouettes().begin();
-                                            it != Ci->FrameSilhouettes().end(); ++it)
-      mprintf("\t%8i %g\n", it->first+1, it->second);
+    if (debug_ > 1) {
+      mprintf("DEBUG: Cluster frame silhouette values for cluster %i\n", Ci->Num());
+      for (Node::SilPairArray::const_iterator it = Ci->FrameSilhouettes().begin();
+                                              it != Ci->FrameSilhouettes().end(); ++it)
+        mprintf("\t%8i %g\n", it->first+1, it->second);
+    }
     if (ci_frames > 0)
       avg_si /= (double)ci_frames;
     //mprintf("DEBUG: Cluster silhouette: %8i %g\n", Ci->Num(), avg_si);
