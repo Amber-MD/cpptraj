@@ -11,6 +11,8 @@ class Cmatrix_NC {
     enum ModeType { READ=0, WRITE };
     Cmatrix_NC();
     ~Cmatrix_NC();
+    /// \return Estimated disk usage in bytes for given # rows
+    static size_t EstimatedDiskUsageInBytes(size_t);
     /// \return true if file is NetCDF cluster matrix file.
     static bool ID_Cmatrix(FileName const&);
     /// Open cluster matrix file for reading. Set sieve ID.

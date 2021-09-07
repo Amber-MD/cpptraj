@@ -47,6 +47,11 @@ bool Cpptraj::Cluster::Cmatrix_NC::ID_Cmatrix(FileName const& fname) {
 # endif
 }
 
+/** \return estimated matrix disk usage in bytes for given number of rows. */
+size_t Cpptraj::Cluster::Cmatrix_NC::EstimatedDiskUsageInBytes(size_t sizeIn) {
+  return ((sizeIn*(sizeIn-1))/2)*sizeof(float);
+} 
+
 #ifdef BINTRAJ
 // DEFINES
 #define NC_CMATRIX_NFRAMES "n_original_frames"
