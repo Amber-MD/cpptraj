@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles cluster.in *.cnumvtime.dat *.info.dat *.summary.dat PW0
+CleanFiles cluster.in *.cnumvtime.dat *.info.dat *.summary.dat PW0 PW1
 
 INPUT="-i cluster.in"
 TESTNAME='Cluster pairwise cache tests'
@@ -44,6 +44,14 @@ DoTest nosieve.mem.save.info.dat.save nosieve.mem.save.info.dat
 DoTest nosieve.mem.save.cnumvtime.dat nosieve.mem.load.cnumvtime.dat
 DoTest nosieve.mem.save.info.dat      nosieve.mem.load.info.dat
 DoTest nosieve.mem.save.summary.dat   nosieve.mem.load.summary.dat
+
+# Test on-disk cache with no sieve
+Cluster nosieve.disk.save " " "savepairdist pairdist PW1 pairwisecache disk"
+DoTest nosieve.mem.save.info.dat.save nosieve.disk.save.info.dat
+
+# Test no cache, no sieve
+Cluster nosieve.nocache.save " " "pairwisecache none"
+DoTest nosieve.mem.save.info.dat.save nosieve.nocache.save.info.dat
 
 # Test sieving
 #Cluster nosieve
