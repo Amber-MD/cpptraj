@@ -27,7 +27,7 @@ const char* DataSet::Descriptions_[] = {
   "pH REMD (implicit)",         // PH_IMPL
   "parameters",                 // PARAMETERS
   "pairwise matrix (mem)",      // PMATRIX_MEM
-  "pairwise matrix (NetCDF)"    // PMATRIX_NC
+  "pairwise matrix (NetCDF)",   // PMATRIX_NC
   "tensor",                     // TENSOR
   "string variable",            // STRINGVAR
   "vector with scalar",         // VECTOR_SCALAR
