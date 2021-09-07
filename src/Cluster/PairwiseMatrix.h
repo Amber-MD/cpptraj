@@ -19,7 +19,7 @@ class PairwiseMatrix {
     /// \return distance between given frames.
     double Frame_Distance(int, int) const;
     /// Request that distances for the specified frames be cached.
-    int CacheDistances(Cframes const&, int);
+    int CacheDistances(Cframes const&, int, bool);
 
     // -------------------------------------------
     //bool HasMetric()           const { return (metric_ != 0); }

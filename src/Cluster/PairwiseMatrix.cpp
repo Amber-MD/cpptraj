@@ -36,23 +36,37 @@ double Cpptraj::Cluster::PairwiseMatrix::Frame_Distance(int f1, int f2) const {
   * \param framesToCache the frames to cache.
   * \param sieveIn Sieve value (if any) used to generate framesToCache. This is
   *        purely for bookkeeping inside DataSet_PairwiseCache.
+  * \param mismatch_fatal When true, if a cache is present but the frames to
+  *        cache do not match what is in the cache, exit with an error;
+  *        otherwise recalculate the cache.
   */
-int Cpptraj::Cluster::PairwiseMatrix::CacheDistances(Cframes const& framesToCache, int sieveIn)
+int Cpptraj::Cluster::PairwiseMatrix::CacheDistances(Cframes const& framesToCache, int sieveIn,
+                                                     bool mismatch_fatal)
 {
   if (framesToCache.size() < 1) return 0;
   // If no cache we can leave.
   if (cache_ == 0) return 0;
 
+  bool do_cache = true;
   if (cache_->Size() > 0) {
+    do_cache = false;
     mprintf("\tUsing existing cache '%s'\n", cache_->legend());
     // If cache is already populated, check that it is valid.
     // The frames to cache must match cached frames.
     if (!cache_->CachedFramesMatch( framesToCache )) {
-      mprinterr("Error: Frames to cache do not match those in existing cache.\n");
-      return 1;
+      if (mismatch_fatal) {
+        mprinterr("Error: Frames to cache do not match those in existing cache.\n");
+        return 1;
+      } else {
+        mprintf("Warning: Frames to cache do not match those in existing cache.\n"
+                "Warning: Re-calculating pairwise cache.\n");
+        do_cache = true;
+      }
     }
     // TODO Check metric? Total frames?
-  } else {
+  }
+
+  if (do_cache) {
     // Sanity check
     if (metric_ == 0) {
       mprinterr("Internal Error: PairwiseMatrix::CacheDistances(): Metric is null.\n");

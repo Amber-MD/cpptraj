@@ -882,7 +882,7 @@ int Cpptraj::Cluster::Control::Run() {
   timer_pairwise_.Start();
 
   // Cache distances if necessary
-  if (pmatrix_.CacheDistances( framesToCluster, sieve_ )) return 1;
+  if (pmatrix_.CacheDistances( framesToCluster, sieve_, true )) return 1;
   if (pmatrix_.HasCache() && verbose_ > 1)
     pmatrix_.Cache().PrintCached();
 
