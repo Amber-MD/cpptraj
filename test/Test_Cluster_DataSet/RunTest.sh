@@ -14,9 +14,9 @@ OneDS() {
   cat > ds.in <<EOF
 trajin ../tz2.nc
 distance d1 :1 :13
-createcrd crd1
+#createcrd crd1
 #debug analysis 2
-cluster crdset crd1 c1 data d1 clusters 5 epsilon 4.0 out oneds.gnu summary oneds.summary.dat info oneds.info.dat gracecolor epsilonplot eps_v_n.dat \
+cluster nocoords c1 data d1 clusters 5 epsilon 4.0 out oneds.gnu summary oneds.summary.dat info oneds.info.dat gracecolor epsilonplot eps_v_n.dat \
         clustersvtime cvt.dat cvtwindow 10
 create oneds.d1.c1.dat d1 c1
 EOF
@@ -33,7 +33,7 @@ trajin ../tz2.nc
 distance d1 :1 :13
 hbond hb1
 #debug analysis 2
-cluster c1 data d1,hb1[UU] clusters 5 epsilon 4.0 out twods.gnu summary twods.summary.dat info twods.info.dat gracecolor
+cluster nocoords c1 data d1,hb1[UU] clusters 5 epsilon 4.0 out twods.gnu summary twods.summary.dat info twods.info.dat gracecolor
 create twods.d1.c1.dat d1 hb1[UU] c1
 EOF
   RunCpptraj "Clustering, Two DataSets"
