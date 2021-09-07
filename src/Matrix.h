@@ -26,10 +26,8 @@ template <class T> class Matrix {
     size_t size()                        const { return nelements_;      }
     /// \return current matrix type.
     MType Type()                         const { return type_;           }
-    /// \return estimated size in bytes.
+    /// \return estimated size in bytes for given number of columns and rows.
     static size_t sizeInBytes(size_t,size_t);
-    /// \return current size in bytes.
-    size_t sizeInBytes() const { return sizeInBytes(Ncols(), Nrows()); }
     /// Set up matrix for given number of cols and rows.
     int resize(size_t,size_t);
     /// \return element at specified col and row.
@@ -60,9 +58,12 @@ template <class T> class Matrix {
     iterator end()   const { return elements_ + nelements_; }
     /// \return memory used by matrix in bytes.
     size_t DataSize() const {
-      return (nelements_*sizeof(T)) + sizeof(T) +
-             (5 * sizeof(size_t) + sizeof(MType) +
-             sizeof(long int(*)()));
+      return (nelements_*sizeof(T)) + // elements_ array
+              sizeof(T*) +            // elements_
+              sizeof(T) +             // diagElt_
+             (5 * sizeof(size_t)) +   // ncols_, nrows_, nelements_, maxElements_, currentElement_
+             sizeof(MType) +          // type_
+             sizeof(long int(*)());   // indexFxn_
     }
     /// Clear matrix
     void clear() {
