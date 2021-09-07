@@ -68,6 +68,10 @@ DoTest sieve5.mem.save.info.dat.save sieve5.disk.save.info.dat
 Cluster sieve5.nocache.save "$SIEVEARGS" "pairwisecache none"
 DoTest sieve5.mem.save.info.dat.save sieve5.nocache.save.info.dat
 
+# Test loading pairwise cache with different sieve
+Cluster sieve3.mem.load "sieve 3" "loadpairdist pairdist PW1 pwrecalc"
+DoTest sieve3.mem.load.info.dat.save sieve3.mem.load.info.dat
+
 # Test sieving
 #Cluster nosieve
 #Cluster sieve5 "$SIEVEARGS"
