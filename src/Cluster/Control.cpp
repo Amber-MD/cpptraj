@@ -48,7 +48,8 @@ Cpptraj::Cluster::Control::Control() :
   drawGraph_(NO_DRAWGRAPH),
   draw_tol_(0),
   draw_maxit_(0),
-  debug_(0)
+  debug_(0),
+  pw_mismatch_fatal_(true)
 {}
 
 Cpptraj::Cluster::Control::~Control() {
@@ -557,6 +558,7 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
     mprinterr("Error: PairwiseMatrix setup failed.\n");
     return 1;
   }
+  pw_mismatch_fatal_ = !analyzeArgs.hasKey("pwrecalc");
 
   // Allocate algorithm
   if (AllocateAlgorithm( analyzeArgs )) {
@@ -701,7 +703,7 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
     if (clustersVtime_ == 0) return 1;
     clustersvtimefile->AddDataSet( clustersVtime_ );
   }
-  
+ 
   // Cluster split analysis
   splitfile_ = analyzeArgs.GetStringKey("summarysplit");
   if (splitfile_.empty()) // For backwards compat.
@@ -753,8 +755,13 @@ void Cpptraj::Cluster::Control::Info() const {
 
   if (cache_ == 0)
     mprintf("\tPairwise distances will not be cached.\n");
-  else
+  else {
     mprintf("\tPairwise distances will be cached: %s\n", cache_->legend());
+    if (pw_mismatch_fatal_)
+      mprintf("\tPairwise distance calculation will be halted if frames in cache do not match.\n");
+    else
+      mprintf("\tPairwise distances will be recalculated if frames in cache do not match.\n");
+  }
 
   mprintf("\tRepresentative frames will be chosen by");
   switch (bestRep_) {
@@ -882,7 +889,7 @@ int Cpptraj::Cluster::Control::Run() {
   timer_pairwise_.Start();
 
   // Cache distances if necessary
-  if (pmatrix_.CacheDistances( framesToCluster, sieve_, true )) return 1;
+  if (pmatrix_.CacheDistances( framesToCluster, sieve_, pw_mismatch_fatal_ )) return 1;
   if (pmatrix_.HasCache() && verbose_ > 1)
     pmatrix_.Cache().PrintCached();
 

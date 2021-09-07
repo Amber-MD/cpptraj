@@ -116,6 +116,8 @@ class Control {
 
     int debug_;                       ///< Cluster debug level
 
+    bool pw_mismatch_fatal_;          ///< Controls if PW distances should be recalculated
+
     // Timers
     Timer timer_setup_;          ///< Run - metric, frames to cluster setup 
     Timer timer_pairwise_;       ///< Run - pairwise caching
