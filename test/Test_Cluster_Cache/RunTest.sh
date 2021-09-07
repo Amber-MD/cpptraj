@@ -52,13 +52,21 @@ Cluster nosieve.nocache.save " " "pairwisecache none"
 DoTest nosieve.mem.save.info.dat.save nosieve.nocache.save.info.dat
 
 SIEVEARGS="sieve 5"
-# Test in-memory cache save/load with no sieve
+# Test in-memory cache save/load with sieve
 Cluster sieve5.mem.save "$SIEVEARGS" "savepairdist pairdist PW0 pairwisecache mem"
 Cluster sieve5.mem.load "$SIEVEARGS" "loadpairdist pairdist PW0"
 DoTest sieve5.mem.save.info.dat.save sieve5.mem.save.info.dat
 DoTest sieve5.mem.save.cnumvtime.dat sieve5.mem.load.cnumvtime.dat
 DoTest sieve5.mem.save.info.dat      sieve5.mem.load.info.dat
 DoTest sieve5.mem.save.summary.dat   sieve5.mem.load.summary.dat
+
+# Test on-disk cache with sieve
+Cluster sieve5.disk.save "$SIEVEARGS" "savepairdist pairdist PW1 pairwisecache disk"
+DoTest sieve5.mem.save.info.dat.save sieve5.disk.save.info.dat
+
+# Test no cache, with sieve
+Cluster sieve5.nocache.save "$SIEVEARGS" "pairwisecache none"
+DoTest sieve5.mem.save.info.dat.save sieve5.nocache.save.info.dat
 
 # Test sieving
 #Cluster nosieve
