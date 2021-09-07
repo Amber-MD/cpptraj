@@ -8,6 +8,8 @@ INPUT='-i cluster.in'
 
 TESTNAME='Clustering, assign reference names'
 
+Requires netcdf
+
 cat > cluster.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.nc

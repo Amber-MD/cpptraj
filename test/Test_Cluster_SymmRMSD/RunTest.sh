@@ -5,7 +5,8 @@
 CleanFiles cluster.in symmrmsd.*.dat rms*.dat srmsd*.dat 2drms.gnu
 
 INPUT="-i cluster.in"
-
+TESTNAME='Clustering with symmetry-corrected RMSD metric'
+Requires netcdf
 # Run Clustering
 RunCluster() {
   cat > cluster.in <<EOF
@@ -20,7 +21,7 @@ cluster cluster2 hieragglo epsilon 0.8 averagelinkage \
         srmsd !@H= \
         out srmsd.dat summary srmsd.summary.dat info srmsd.info.dat
 EOF
-  RunCpptraj "Clustering with symmetry-corrected RMSD metric (also 2D SRMSD)"
+  RunCpptraj "$TESTNAME (also 2D SRMSD)"
   DoTest rms.summary.dat.save rms.summary.dat
   DoTest rms.info.dat.save rms.info.dat
   DoTest srmsd.summary.dat.save srmsd.summary.dat
