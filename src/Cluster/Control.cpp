@@ -538,7 +538,8 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
     if (results_ != 0) delete results_;
     results_ = (Results*)new Results_Coords( static_cast<DataSet_Coords*>( coordsSet ) );
     if (results_ == 0) return 1;
-  }
+  } else
+    mprintf("\tNo coordinates set provided for cluster results.\n");
 
   // Initialize clusters from existing info file. Metric must already be set up.
   if (analyzeArgs.hasKey("readinfo") ||
