@@ -751,6 +751,11 @@ void Cpptraj::Cluster::Control::Info() const {
       mprintf(" if within epsilon %f of a frame (more accurate and identifies noise but slower).\n", restoreEpsilon_);
   }
 
+  if (cache_ == 0)
+    mprintf("\tPairwise distances will not be cached.\n");
+  else
+    mprintf("\tPairwise distances will be cached: %s\n", cache_->legend());
+
   mprintf("\tRepresentative frames will be chosen by");
   switch (bestRep_) {
     case BestReps::CUMULATIVE: mprintf(" lowest cumulative distance to all other frames.\n"); break;
