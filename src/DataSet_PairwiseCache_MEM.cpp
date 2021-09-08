@@ -22,7 +22,7 @@ int DataSet_PairwiseCache_MEM::SetupCache(unsigned int Ntotal, Cframes const& fr
 {
   unsigned int sizeIn = framesToCache.size();
   if (sizeIn > 0) {
-    mprintf("\tEstimated pair-wise matrix memory usage: > %s\n",
+    mprintf("\tEstimated pair-wise matrix memory usage: >= %s\n",
             ByteString(Mat_.sizeInBytes( 0L, sizeIn ), BYTE_DECIMAL).c_str());
     try { Mat_.resize(0, sizeIn); } // Upper triangle
     catch (const std::bad_alloc&) {

@@ -11,8 +11,8 @@ int DataSet_PairwiseCache_NC::SetupCache(unsigned int Ntotal, Cframes const& fra
   }
   unsigned int sizeIn = framesToCache.size();
   mprintf("\tPairwise cache file: '%s'\n", Meta().Fname().full());
-  mprintf("\tEstimated pair-wise matrix disk usage: > %s\n",
-          ByteString( ((sizeIn*(sizeIn-1))/2)*sizeof(float), BYTE_DECIMAL).c_str());
+  mprintf("\tEstimated pair-wise matrix disk usage: >= %s\n",
+          ByteString( file_.EstimatedDiskUsageInBytes(sizeIn), BYTE_DECIMAL ).c_str());
     if (file_.CreateCmatrix(Meta().Fname(), Ntotal, sizeIn, sieve, metricDescription))
       return 1;
   // Write actual frames array if necessary
