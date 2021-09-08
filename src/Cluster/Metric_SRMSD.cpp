@@ -19,6 +19,7 @@ int Cpptraj::Cluster::Metric_SRMSD::Init(DataSet_Coords* dIn, AtomMask const& ma
 
 int Cpptraj::Cluster::Metric_SRMSD::Setup() {
   if (coords_->Top().SetupIntegerMask( mask_ )) return 1;
+  mask_.MaskInfo();
 # ifdef DEBUG_CLUSTER
   mprintf("DEBUG: SRMSD metric topology: %s %s %i\n", coords_->legend(),
           coords_->Top().c_str(), coords_->Top().Natom());

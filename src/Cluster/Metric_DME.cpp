@@ -24,6 +24,7 @@ int Cpptraj::Cluster::Metric_DME::Init(DataSet_Coords* dIn, AtomMask const& mask
 /** Set up the metric. */
 int Cpptraj::Cluster::Metric_DME::Setup() {
   if (coords_->Top().SetupIntegerMask( mask_ )) return 1;
+  mask_.MaskInfo();
 # ifdef DEBUG_CLUSTER
   mprintf("DEBUG: DME metric topology: %s %s %i\n", coords_->legend(),
           coords_->Top().c_str(), coords_->Top().Natom());
