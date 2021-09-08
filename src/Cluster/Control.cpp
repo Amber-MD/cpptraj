@@ -534,14 +534,12 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
     if (err != 0) return 1;
   }
 
-  // Set up results for COORDS DataSet
+  // Set up results that depend on COORDS DataSet
   if (coordsSet != 0) {
-    mprintf("\tCoordinates set for cluster results: %s\n", coordsSet->legend());
     if (results_ != 0) delete results_;
     results_ = (Results*)new Results_Coords( static_cast<DataSet_Coords*>( coordsSet ) );
     if (results_ == 0) return 1;
-  } else
-    mprintf("\tNo coordinates set provided for cluster results.\n");
+  }
 
   // Initialize clusters from existing info file. Metric must already be set up.
   if (analyzeArgs.hasKey("readinfo") ||
@@ -734,7 +732,11 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
 void Cpptraj::Cluster::Control::Info() const {
   if (metric_    != 0) metric_->Info();
   if (algorithm_ != 0) algorithm_->Info();
-  if (results_   != 0) results_->Info();
+
+  if (results_   != 0)
+    results_->Info();
+  else
+    mprintf("\tNo coordinates set provided for cluster results.\n");
 
   // TODO frameSelect
   if (sieve_ > 1)

@@ -84,7 +84,13 @@ int Cpptraj::Cluster::Results_Coords::GetOptions(ArgList& analyzeArgs, DataSetLi
 
 /** Write info on what results will be calculated/written. */
 void Cpptraj::Cluster::Results_Coords::Info() const {
-    if (!clusterfile_.empty())
+  if (coords_ == 0) {
+    mprintf("\tNo coordinates set provided for cluster results.\n");
+    return;
+  }
+
+  mprintf("\tCoordinates set for cluster results: %s\n", coords_->legend());
+  if (!clusterfile_.empty())
     mprintf("\tCluster trajectories will be written to %s, format %s\n",
             clusterfile_.c_str(), TrajectoryFile::FormatString(clusterfmt_));
   if (!singlerepfile_.empty())
