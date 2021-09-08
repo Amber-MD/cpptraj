@@ -6,7 +6,7 @@ using namespace Cpptraj::Cluster;
 
 // Analysis_Cluster::Help()
 void Analysis_Cluster::Help() const {
-  mprintf("\t[{crdset <crd set | data <dset0>[,<dset1>...] [nocoords]\n");
+  mprintf("\t[{crdset <crd set | data <dset0>[,<dset1>...] [nocoords]}]\n");
   Control::Help();
 }
 

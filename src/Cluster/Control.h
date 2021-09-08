@@ -54,6 +54,7 @@ class Control {
     // Help keywords
     static const char* PairwiseArgs_;
     static const char* AlgorithmArgs_;
+    static const char* MetricArgs_;
     static const char* CoordsDataSetArgs_;
     static const char* CommonArgs_;
 

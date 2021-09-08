@@ -338,6 +338,8 @@ const char* Cpptraj::Cluster::Control::CommonArgs_ =
 const char* Cpptraj::Cluster::Control::CoordsDataSetArgs_ =
   "{dme|rms|srmsd} [mass] [nofit] [<mask>]";
 
+const char* Cpptraj::Cluster::Control::MetricArgs_ =
+  "{rms|srmsd|dme|euclid|manhattan}";
 
 /** Common setup. */
 //int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL, DataFileList& DFL)
@@ -630,11 +632,15 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
 
 /** Print help text to STDOUT. */
 void Cpptraj::Cluster::Control::Help() {
-  mprintf("  Algorithms: %s\n", AlgorithmArgs_);
+  mprintf("\t[<Algorithm>] [<Metric>] [readinfo infofile <info file>]\n");
+  mprintf("  Algorithms: [%s]\n", AlgorithmArgs_);
   Algorithm_HierAgglo::Help();
   Algorithm_DBscan::Help();
   Algorithm_Kmeans::Help();
   Algorithm_DPeaks::Help();
+  mprintf("  Metrics: [%s]\n", MetricArgs_);
+  mprintf("    ('euclid' and 'manhattan' only work with 'data')\n");
+  mprintf("\t%s\n", CoordsDataSetArgs_);
 }
 
 // -----------------------------------------------------------------------------
