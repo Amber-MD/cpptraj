@@ -28,12 +28,6 @@ class Control {
     /// Set debug level
     void SetDebug(int d) { debug_ = d; }
 
-    // Help keywords
-    static const char* PairwiseArgs_;
-    static const char* AlgorithmArgs_;
-    static const char* CoordsDataSetArgs_;
-    static const char* CommonArgs_;
-
     /// For determining how any sieved frames should be restored.
     enum SieveRestoreType { NO_RESTORE = 0, CLOSEST_CENTROID, EPSILON_CENTROID, EPSILON_FRAME };
     /// For determining how frames to cluster will be determined.
@@ -54,7 +48,15 @@ class Control {
     int Output(DataSetList&);
     /// Print timing data
     void Timing(double) const;
+    /// Print help text to STDOUT
+    static void Help();
   private:
+    // Help keywords
+    static const char* PairwiseArgs_;
+    static const char* AlgorithmArgs_;
+    static const char* CoordsDataSetArgs_;
+    static const char* CommonArgs_;
+
     int AllocatePairwise(ArgList&, DataSetList&, DataFileList&);
 
     static Metric* AllocateMetric(Metric::Type);

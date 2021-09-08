@@ -628,6 +628,15 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
   return 0;
 }
 
+/** Print help text to STDOUT. */
+void Cpptraj::Cluster::Control::Help() {
+  mprintf("  Algorithms: %s\n", AlgorithmArgs_);
+  Algorithm_HierAgglo::Help();
+  Algorithm_DBscan::Help();
+  Algorithm_Kmeans::Help();
+  Algorithm_DPeaks::Help();
+}
+
 // -----------------------------------------------------------------------------
 void Cpptraj::Cluster::Control::Info() const {
   if (metric_    != 0) metric_->Info();
