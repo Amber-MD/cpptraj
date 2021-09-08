@@ -130,8 +130,10 @@ class DataSet {
         return *first < *second;
       }
     };
-    /// \return Text description based on DataType
+    /// \return Text description based on given DataType
     static const char* description(DataType t) { return Descriptions_[t]; }
+    /// \return Text description based on current DataType
+    const char* description() const            { return Descriptions_[dType_]; }
   protected:
     TextFormat format_;         ///< Text output data format.
   private:

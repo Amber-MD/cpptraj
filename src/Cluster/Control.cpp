@@ -206,8 +206,7 @@ int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetLis
         if (debug_ > 0)
           mprintf("DEBUG: Saving pw distance cache '%s' to file '%s'\n", cache_->legend(),
                   pwd_file->DataFilename().full());
-      } else
-        mprintf("Warning: Can only save pairwise distance cache for in-memory caches.\n");
+      }
     }
   }
 
@@ -758,9 +757,14 @@ void Cpptraj::Cluster::Control::Info() const {
   if (cache_ == 0)
     mprintf("\tPairwise distances will not be cached.\n");
   else {
-    mprintf("\tPairwise distances will be cached: %s\n", cache_->legend());
+    if (cache_->Size() > 0)
+      mprintf("\tUsing existing pairwise cache: %s (%s)\n",
+              cache_->legend(), cache_->description());
+    else
+      mprintf("\tPairwise distances will be cached: %s (%s)\n",
+              cache_->legend(), cache_->description());
     if (pw_mismatch_fatal_)
-      mprintf("\tPairwise distance calculation will be halted if frames in cache do not match.\n");
+      mprintf("\tCalculation will be halted if frames in cache do not match.\n");
     else
       mprintf("\tPairwise distances will be recalculated if frames in cache do not match.\n");
   }
