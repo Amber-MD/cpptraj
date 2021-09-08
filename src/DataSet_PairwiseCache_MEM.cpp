@@ -1,5 +1,6 @@
 #include "DataSet_PairwiseCache_MEM.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h"
 
 int DataSet_PairwiseCache_MEM::Allocate(SizeArray const& sizeIn) {
   int err = 0;
@@ -21,12 +22,18 @@ int DataSet_PairwiseCache_MEM::SetupCache(unsigned int Ntotal, Cframes const& fr
 {
   unsigned int sizeIn = framesToCache.size();
   if (sizeIn > 0) {
-    if (Mat_.resize(0, sizeIn)) return 1; // Upper triangle
+    mprintf("\tEstimated pair-wise matrix memory usage: > %s\n",
+            ByteString(Mat_.sizeInBytes( 0L, sizeIn ), BYTE_DECIMAL).c_str());
+    try { Mat_.resize(0, sizeIn); } // Upper triangle
+    catch (const std::bad_alloc&) {
+      mprinterr("Error: Not enough memory to allocate pair-wise matrix.\n"
+                "Error: Consider using the 'sieve' keyword to reduce memory usage.\n");
+      return 1;
+    }
 #   ifdef DEBUG_CLUSTER
     mprintf("DEBUG: PairwiseMatrix_MEM set up for %i rows, size= %zu bytes.\n",
             Mat_.Nrows(), Mat_.sizeInBytes());
 #   endif
-    // TODO probably need to save metricDescription and sieve here for potential file write.
   } else
     Mat_.clear();
   SetSieveVal( sieve );
