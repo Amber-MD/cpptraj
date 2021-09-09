@@ -32,8 +32,11 @@ class Algorithm_HierAgglo : public Algorithm {
     void calcMaxDist(List::cluster_it&, List&, PairwiseMatrix const&);
     void calcAvgDist(List::cluster_it&, List&, PairwiseMatrix const&);
 
-    /// Type of distance calculation between clusters.
+    /// Type of distance calculation between clusters; corresponds to LinkageString_.
     enum LINKAGETYPE  { SINGLELINK = 0, AVERAGELINK, COMPLETELINK };
+    /// Describe LINKAGETYPE
+    static const char* LinkageString_[];
+
     int nclusters_;       ///< Target # of clusters.
     double epsilon_;      ///< Once the min distance between clusters is > epsilon, stop.
     LINKAGETYPE linkage_; ///< Cluster Linkage type.

@@ -6,23 +6,21 @@
 #include "../ArgList.h"
 #include "../ProgressBar.h"
 
+/** CONSTRUCTOR */
 Cpptraj::Cluster::Algorithm_HierAgglo::Algorithm_HierAgglo() :
   Algorithm(HIERAGGLO),
   nclusters_(-1),
   epsilon_(-1.0),
-  linkage_(AVERAGELINK)//,
-//  includeSievedFrames_(false)
+  linkage_(AVERAGELINK)
 {}
 
+/** Print keywords to STDOUT */
 void Cpptraj::Cluster::Algorithm_HierAgglo::Help() {
   mprintf("\t[hieragglo [epsilon <e>] [clusters <n>] [linkage|averagelinkage|complete]\n"
-          "\t  [epsilonplot <file>] [includesieved_cdist]]\n");
+          "\t           [epsilonplot <file>]\n");
 }
 
-static const char* LinkageString[] = {
-  "single-linkage", "average-linkage", "complete-linkage"
-};
-
+/** Process user args */
 int Cpptraj::Cluster::Algorithm_HierAgglo::Setup(ArgList& analyzeArgs) {
   nclusters_ = analyzeArgs.getKeyInt("clusters", -1);
   epsilon_ = analyzeArgs.getKeyDouble("epsilon", -1.0);
@@ -30,7 +28,6 @@ int Cpptraj::Cluster::Algorithm_HierAgglo::Setup(ArgList& analyzeArgs) {
   else if (analyzeArgs.hasKey("averagelinkage")) linkage_ = AVERAGELINK;
   else if (analyzeArgs.hasKey("complete"))       linkage_ = COMPLETELINK;
   else linkage_ = AVERAGELINK; // DEFAULT linkage
-//  includeSievedFrames_ = analyzeArgs.hasKey("includesieved_cdist");
   std::string epsilonPlot = analyzeArgs.GetStringKey("epsilonplot");
   if (!epsilonPlot.empty()) {
     if (eps_v_n_.OpenWrite( epsilonPlot )) return 1;
@@ -45,27 +42,30 @@ int Cpptraj::Cluster::Algorithm_HierAgglo::Setup(ArgList& analyzeArgs) {
   return 0;
 }
 
+/** Strings corresponding to LINKAGETYPE */
+const char* Cpptraj::Cluster::Algorithm_HierAgglo::LinkageString_[] = {
+  "single-linkage", "average-linkage", "complete-linkage"
+};
+
+/** Print info */
 void Cpptraj::Cluster::Algorithm_HierAgglo::Info() const {
     mprintf("\tHierarchical Agglomerative:");
   if (nclusters_ != -1)
     mprintf(" %i clusters,",nclusters_);
   if (epsilon_ != -1.0)
     mprintf(" epsilon %.3f,",epsilon_);
-  mprintf(" %s.\n", LinkageString[linkage_]);
+  mprintf(" %s.\n", LinkageString_[linkage_]);
   if (eps_v_n_.IsOpen())
     mprintf("\tWriting epsilon vs # clusters to '%s'\n", eps_v_n_.Filename().full());
-  /*if (includeSievedFrames_)
-    mprintf("\tSieved frames will be included in final cluster distance calculation.\n"
-            "Warning: 'includesieved_cdist' may be very slow.\n");
-  else
-    mprintf("\tSieved frames will not be included in final cluster distance calculation.\n");*/
 }
 
+/** Write info on clustering to info file. */
 void Cpptraj::Cluster::Algorithm_HierAgglo::Results(CpptrajFile& outfile) const {
   outfile.Printf("#Algorithm: HierAgglo linkage %s nclusters %i epsilon %g\n",
-                 LinkageString[linkage_], nclusters_, epsilon_);
+                 LinkageString_[linkage_], nclusters_, epsilon_);
 }
 
+/** Print clustering timing. */
 void Cpptraj::Cluster::Algorithm_HierAgglo::Timing(double total) const {
 # ifdef TIMER
   time_findMin_.WriteTiming(2, "Find min distance", total);
@@ -342,6 +342,7 @@ void Cpptraj::Cluster::Algorithm_HierAgglo::calcAvgDist(List::cluster_it& C1_it,
   }
 }
 
+/** \return the Distance between the two given cluster Nodes. */
 double Cpptraj::Cluster::Algorithm_HierAgglo::ClusterDistance(Node const& C1, Node const& C2,
                                                               PairwiseMatrix const& pmatrix,
                                                               bool includeSieved,

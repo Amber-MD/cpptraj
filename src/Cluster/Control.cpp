@@ -328,7 +328,6 @@ int Cpptraj::Cluster::Control::ReadInfo(std::string const& fname) {
 
 // -----------------------------------------------------------------------------
 const char* Cpptraj::Cluster::Control::CommonArgs_ =
-  "[sieve <#> [sieveseed <#>] [random] [includesieveincalc] [includesieved_cdist] [sievetoframe]] "
   "[bestrep {cumulative|centroid|cumulative_nosieve} [savenreps <#>]] "
   "[noinfo|info <file>] [summary <file>] [sil <prefix>] "
   "[cpopvtime <file> [{normpop|normframe}]] "
@@ -340,6 +339,9 @@ const char* Cpptraj::Cluster::Control::CoordsDataSetArgs_ =
 
 const char* Cpptraj::Cluster::Control::MetricArgs_ =
   "{rms|srmsd|dme|euclid|manhattan}";
+
+const char* Cpptraj::Cluster::Control::SieveArgs_ =
+  "[sieve <#> [sieveseed <#>] [random] [includesieveincalc] [includesieved_cdist] [sievetoframe]]";
 
 /** Common setup. */
 //int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL, DataFileList& DFL)
@@ -483,6 +485,8 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
   if (includeSieveInCalc_)
     mprintf("Warning: 'includesieveincalc' may be very slow.\n");
   includeSieveCdist_ = analyzeArgs.hasKey("includesieved_cdist");
+  if (includeSieveCdist_)
+    mprintf("Warning: 'includesieved_cdist' may be very slow.\n");
 
   // Determine how frames to cluster will be chosen
   if (frameSelect_ == UNSPECIFIED) {
