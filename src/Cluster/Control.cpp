@@ -182,13 +182,33 @@ int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetLis
     }
     // Allocate cache if necessary
     if (pw_type != DataSet::UNKNOWN_DATA) {
-      MetaData meta( pairdistname );
+      MetaData meta;
+      if (!pairdistname.empty())
+        meta.SetName( pairdistname );
+      else
+        meta.SetName( DSL.GenerateDefaultName("CMATRIX") );
       // Cache-specific setup.
       if (pw_type == DataSet::PMATRIX_NC)
         meta.SetFileName( pairdistname ); // TODO separate file name?
-      cache_ = (DataSet_PairwiseCache*)DSL.AddSet( pw_type, meta, "CMATRIX" );
+      //cache_ = (DataSet_PairwiseCache*)DSL.AddSet( pw_type, meta, "CMATRIX" );
+      // To maintain compatibility with pytraj, the cluster number vs time
+      // set **MUST** be allocated before the cache. Set up outside the
+      // DataSetList here and set up; add to DataSetList later in Setup.
+      // TODO should this be inside DataSetList?
+      meta.SetEnsembleNum( DSL.EnsembleNum() );
+      DataSet* pwset = DSL.CheckForSet(meta);
+      // NOTE: This should never happen since we already checked for cache above
+      if (pwset != 0) {
+        mprinterr("Internal Error: Pairwise cache '%s' already exists.\n", meta.Name().c_str());
+        return 1;
+      }
+      cache_ = (DataSet_PairwiseCache*)DSL.Allocate(pw_type);
       if (cache_ == 0) {
         mprinterr("Error: Could not allocate pairwise cache.\n");
+        return 1;
+      }
+      if (cache_->SetMeta( meta )) {
+        mprinterr("Internal Error: Could not set pairwise cache metadata.\n");
         return 1;
       }
       if (debug_ > 0)
@@ -661,12 +681,18 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
 
   // Overall set name extracted here. All other arguments should already be processed. 
   dsname_ = analyzeArgs.GetStringNext();
+  if (dsname_.empty())
+    dsname_ = DSL.GenerateDefaultName("CLUSTER");
   // ---------------------------------------------
 
   // Cluster number vs time data set
   cnumvtime_ = DSL.AddSet(DataSet::INTEGER, dsname_, "Cnum");
   if (cnumvtime_ == 0) return 1;
   if (cnumvtimefile != 0) cnumvtimefile->AddDataSet( cnumvtime_ );
+
+  // Add pairwise cache to the DataSetList so it is after cnumvtime for pytraj
+  if (cache_ != 0)
+    DSL.AddSet( cache_ );
 
   // Set up number of unique clusters vs time DataSet
   if (clustersvtimefile != 0) {
