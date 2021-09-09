@@ -194,7 +194,8 @@ int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetLis
       // To maintain compatibility with pytraj, the cluster number vs time
       // set **MUST** be allocated before the cache. Set up outside the
       // DataSetList here and set up; add to DataSetList later in Setup.
-      // TODO should this be inside DataSetList?
+      cache_ = (DataSet_PairwiseCache*)DSL.AllocateSet( pw_type, meta );
+     /* // TODO should this be inside DataSetList?
       meta.SetEnsembleNum( DSL.EnsembleNum() );
       DataSet* pwset = DSL.CheckForSet(meta);
       // NOTE: This should never happen since we already checked for cache above
@@ -202,15 +203,15 @@ int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetLis
         mprinterr("Internal Error: Pairwise cache '%s' already exists.\n", meta.Name().c_str());
         return 1;
       }
-      cache_ = (DataSet_PairwiseCache*)DSL.Allocate(pw_type);
+      cache_ = (DataSet_PairwiseCache*)DSL.Allocate(pw_type);*/
       if (cache_ == 0) {
         mprinterr("Error: Could not allocate pairwise cache.\n");
         return 1;
       }
-      if (cache_->SetMeta( meta )) {
+/*      if (cache_->SetMeta( meta )) {
         mprinterr("Internal Error: Could not set pairwise cache metadata.\n");
         return 1;
-      }
+      }*/
       if (debug_ > 0)
         mprintf("DEBUG: Allocated pairwise distance cache: %s\n", cache_->legend());
     }

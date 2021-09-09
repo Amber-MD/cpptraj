@@ -428,12 +428,14 @@ DataSet* DataSetList::AddSet( DataSet::DataType inType, MetaData const& metaIn,
   return AddSet( inType, meta );
 }
 
-/** Add a DataSet of specified type, set it up and return pointer to it. 
+/** Allocate a DataSet of specified type, set it up and return pointer to it.
+  * It will not be added to the list. 
   * \param inType type of DataSet to add.
   * \param metaIn DataSet MetaData.
   * \return pointer to successfully set-up DataSet or 0 if error.
   */ 
-DataSet* DataSetList::AddSet(DataSet::DataType inType, MetaData const& metaIn)
+DataSet* DataSetList::AllocateSet(DataSet::DataType inType, MetaData const& metaIn)
+const
 { // TODO Always generate default name if empty?
 # ifdef TIMER
   time_total_.Start();
@@ -488,13 +490,29 @@ DataSet* DataSetList::AddSet(DataSet::DataType inType, MetaData const& metaIn)
 # endif
 # ifdef TIMER
   time_setup_.Stop();
-  time_push_.Start();
 # endif
-  Push_Back(DS);
-# ifdef TIMER
-  time_push_.Stop();
-# endif
-  //fprintf(stderr,"ADDED dataset %s\n",dsetName);
+  //fprintf(stderr,"ALLOCATED dataset %s\n",dsetName);
+  return DS;
+}
+
+/** Add a DataSet of specified type, set it up and return pointer to it. 
+  * \param inType type of DataSet to add.
+  * \param metaIn DataSet MetaData.
+  * \return pointer to successfully set-up DataSet or 0 if error.
+  */ 
+DataSet* DataSetList::AddSet(DataSet::DataType inType, MetaData const& metaIn)
+{
+  DataSet* DS = AllocateSet(inType, metaIn);
+  if (DS != 0) {
+#   ifdef TIMER
+    time_push_.Start();
+#   endif
+    Push_Back(DS);
+#   ifdef TIMER
+    time_push_.Stop();
+#   endif
+    //fprintf(stderr,"ADDED dataset %s\n",dsetName);
+  }
   return DS;
 }
 
