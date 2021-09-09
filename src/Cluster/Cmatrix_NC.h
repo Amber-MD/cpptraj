@@ -15,6 +15,8 @@ class Cmatrix_NC {
     static size_t EstimatedDiskUsageInBytes(size_t);
     /// \return true if file is NetCDF cluster matrix file.
     static bool ID_Cmatrix(FileName const&);
+
+#   ifdef BINTRAJ
     /// Open cluster matrix file for reading. Set sieve ID.
     int OpenCmatrixRead(FileName const&, int&);
     /// Get cluster matrix element (col, row)
@@ -40,18 +42,14 @@ class Cmatrix_NC {
     int WriteCmatrix(const float*) const;
     /// Close cluster matrix file.
     void CloseCmatrix();
-#   ifdef BINTRAJ
+
     /// \return Matrix size
     unsigned int MatrixSize() const { return mSize_; }
     /// \return Matrix rows.
     unsigned int MatrixRows() const { return nRows_; }
     /// \return Current access mode
     ModeType Mode()           const { return mode_;  }
-#   else
-    unsigned int MatrixSize() const { return 0; }
-    unsigned int MatrixRows() const { return 0; }
-    ModeType Mode()           const { return READ; }
-#   endif
+#   endif /* BINTRAJ */
   private:
 #   ifdef BINTRAJ
     static inline bool IsCpptrajCmatrix(int);
@@ -67,7 +65,7 @@ class Cmatrix_NC {
     unsigned int nRows_;        ///< Number of rows (actual frames, N) in matrix dimension.
     unsigned int mSize_;        ///< Actual matrix size.
     ModeType mode_;             ///< Access mode.
-#   endif
+#   endif /* BINTRAJ */
 };
 
 }

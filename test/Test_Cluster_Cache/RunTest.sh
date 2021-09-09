@@ -7,6 +7,7 @@ CleanFiles cluster.in *.cnumvtime.dat *.info.dat *.summary.dat PW0 PW1 \
 
 INPUT="-i cluster.in"
 TESTNAME='Cluster pairwise cache tests'
+Requires netcdf
 
 # <prefix> <sieve> <save>
 Cluster() {

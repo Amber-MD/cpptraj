@@ -165,9 +165,15 @@ int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetLis
     if (!pw_typeString.empty()) {
       if (pw_typeString == "mem")
         pw_type = DataSet::PMATRIX_MEM; 
-      else if (pw_typeString == "disk")
+      else if (pw_typeString == "disk") {
+#       ifdef BINTRAJ
         pw_type = DataSet::PMATRIX_NC;
-      else if (pw_typeString == "none")
+#       else
+        // TODO regular disk file option
+        mprinterr("Error: Pairwise disk cache requires NetCDF.\n");
+        return 1;
+#       endif
+      } else if (pw_typeString == "none")
         pw_type = DataSet::UNKNOWN_DATA;
       else {
         mprinterr("Error: Unrecognized option for 'pairwisecache' ('%s')\n", pw_typeString.c_str());

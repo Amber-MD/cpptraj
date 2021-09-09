@@ -1,5 +1,6 @@
 #ifndef INC_DATAIO_CMATRIX_NC_H
 #define INC_DATAIO_CMATRIX_NC_H
+#ifdef BINTRAJ
 #include "DataIO.h"
 #include "Cluster/Cmatrix_NC.h"
 /// Read/write NetCDF pairwise matrix files.
@@ -20,4 +21,5 @@ class DataIO_Cmatrix_NC : public DataIO {
   private:
     Cpptraj::Cluster::Cmatrix_NC file_;
 };
+#endif /* BINTRAJ */
 #endif

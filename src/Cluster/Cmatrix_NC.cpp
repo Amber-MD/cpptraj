@@ -1,14 +1,13 @@
+#include "Cmatrix_NC.h"
 #ifdef BINTRAJ
 # include <netcdf.h>
 # include "../NC_Routines.h"
+# include "Cframes.h"
 #endif
-#include "Cframes.h"
-#include "Cmatrix_NC.h"
 #include "../CpptrajStdio.h"
 #include "../FileName.h"
 
 #ifdef BINTRAJ
-
 /// CONSTRUCTOR
 Cpptraj::Cluster::Cmatrix_NC::Cmatrix_NC() :
   ncid_(-1),
@@ -23,16 +22,23 @@ Cpptraj::Cluster::Cmatrix_NC::Cmatrix_NC() :
   mode_(READ)
 {}
 
+/// DESTRUCTOR
 Cpptraj::Cluster::Cmatrix_NC::~Cmatrix_NC() {
   CloseCmatrix();
 }
 
+/** \return true if NetCDF file has CPPTRAJ_CMATRIX conventions. */
 bool Cpptraj::Cluster::Cmatrix_NC::IsCpptrajCmatrix(int NCID) {
   return (NC::GetAttrText(NCID, "Conventions") == "CPPTRAJ_CMATRIX");
 }
+
+#else /* BINTRAJ */
+Cpptraj::Cluster::Cmatrix_NC::Cmatrix_NC() {}
+Cpptraj::Cluster::Cmatrix_NC::~Cmatrix_NC() {}
 #endif
 
 // NC_Cmatrix::ID_Cmatrix()
+/** \return True if the file specified by name is a NetCDF cluxtre matrix file. */
 bool Cpptraj::Cluster::Cmatrix_NC::ID_Cmatrix(FileName const& fname) {
 # ifdef BINTRAJ
   int NCID;
@@ -353,23 +359,4 @@ void Cpptraj::Cluster::Cmatrix_NC::CloseCmatrix() {
     // TODO: Set all IDs to -1 too?
   }
 }
-#else
-Cpptraj::Cluster::Cmatrix_NC::NC_Cmatrix() {}
-Cpptraj::Cluster::Cmatrix_NC::~NC_Cmatrix() {}
-int Cpptraj::Cluster::Cmatrix_NC::OpenCmatrixRead(FileName const&, int&) { return 1; }
-double Cpptraj::Cluster::Cmatrix_NC::GetCmatrixElement(unsigned int, unsigned int) const { return 0.0; }
-double Cpptraj::Cluster::Cmatrix_NC::GetCmatrixElement(unsigned int) const { return 0.0; }
-std::vector<char> Cpptraj::Cluster::Cmatrix_NC::GetSieveStatus() const { return std::vector<char>(); }
-int Cpptraj::Cluster::Cmatrix_NC::GetCmatrix(float*) const { return 1; }
-int Cpptraj::Cluster::Cmatrix_NC::CreateCmatrix(FileName const&, unsigned int, unsigned int, int, std::string const&)
-{
-  mprinterr("Error: Cpptraj was compiled without NetCDF. Cannot create NetCDF matrix file.\n");
-  return 1;
-}
-int Cpptraj::Cluster::Cmatrix_NC::WriteFramesArray(std::vector<int> const&) const { return 1; }
-int Cpptraj::Cluster::Cmatrix_NC::WriteCmatrixElement(unsigned int, unsigned int, double) const { return 1; }
-int Cpptraj::Cluster::Cmatrix_NC::WriteCmatrix(const float*) const { return 1; }
-void Cpptraj::Cluster::Cmatrix_NC::CloseCmatrix() {}
-void Cpptraj::Cluster::Cmatrix_NC::Sync() const {}
-int Cpptraj::Cluster::Cmatrix_NC::ReopenSharedWrite(FileName const&) { return 1; }
-#endif
+#endif /* BINTRAJ */

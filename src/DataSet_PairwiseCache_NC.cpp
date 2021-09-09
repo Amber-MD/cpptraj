@@ -1,3 +1,4 @@
+#ifdef BINTRAJ
 #include "DataSet_PairwiseCache_NC.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // ByteString
@@ -28,3 +29,4 @@ int DataSet_PairwiseCache_NC::SetupCache(unsigned int Ntotal, Cframes const& fra
 
   return SetupFrameToIdx(framesToCache, Ntotal);
 }
+#endif /* BINTRAJ */

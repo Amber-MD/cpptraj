@@ -1,3 +1,4 @@
+#ifdef BINTRAJ
 #include "DataIO_Cmatrix_NC.h"
 #include "DataSet_PairwiseCache_MEM.h" // TODO just pairwisecache
 #include "CpptrajStdio.h"
@@ -51,3 +52,4 @@ int DataIO_Cmatrix_NC::WriteData(FileName const& fname, DataSetList const& SetLi
   file_.CloseCmatrix();
   return 0;
 }
+#endif /* BINTRAJ */

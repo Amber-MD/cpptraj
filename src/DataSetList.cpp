@@ -80,7 +80,14 @@ DataSet* DataSetList::NewSet(DataSet::DataType typeIn) {
     case DataSet::PARAMETERS    : ds = DataSet_Parameters::Alloc(); break;
     // TODO useDiskCache
     case DataSet::PMATRIX_MEM   : ds = DataSet_PairwiseCache_MEM::Alloc(); break;
-    case DataSet::PMATRIX_NC    : ds = DataSet_PairwiseCache_NC::Alloc(); break;
+    case DataSet::PMATRIX_NC    :
+#     ifdef BINTRAJ
+      ds = DataSet_PairwiseCache_NC::Alloc();
+#     else
+      mprinterr("Error: NetCDF pairwise disk cache requires NetCDF.\n");
+      ds = 0;
+#     endif
+      break;
     case DataSet::TENSOR        : ds = DataSet_Tensor::Alloc(); break;
     case DataSet::STRINGVAR     : ds = DataSet_StringVar::Alloc(); break;
     case DataSet::VECTOR_SCALAR : ds = DataSet_Vector_Scalar::Alloc(); break;

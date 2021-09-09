@@ -1,5 +1,6 @@
 #ifndef INC_DATASET_PAIRWISECACHE_NC_H
 #define INC_DATASET_PAIRWISECACHE_NC_H
+#ifdef BINTRAJ
 #include "DataSet_PairwiseCache.h"
 #include "Cluster/Cmatrix_NC.h"
 /// Cache pairwise distances in NetCDF file. 
@@ -29,4 +30,5 @@ class DataSet_PairwiseCache_NC : public DataSet_PairwiseCache {
   private:
     Cpptraj::Cluster::Cmatrix_NC file_;  ///< Hold cached distances on disk
 };
+#endif /* BINTRAJ */
 #endif
