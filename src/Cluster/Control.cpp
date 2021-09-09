@@ -728,6 +728,12 @@ void Cpptraj::Cluster::Control::Help() {
   Results_Coords::Help();
   mprintf("  Graph Args:\n");
   mprintf("\t%s\n", GraphArgs_);
+  mprintf("  Cluster input frames using the specified clustering algorithm\n"
+          "  and distance metric. In order to speed up clustering of large\n"
+          "  trajectories, the 'sieve' keyword can be used. In addition,\n"
+          "  subsequent clustering calculations can be sped up by\n"
+          "  writing/reading calculated pair distances between each frame\n"
+          "  to/from a file/DataSet specified by 'pairdist'.\n");
 }
 
 // -----------------------------------------------------------------------------
