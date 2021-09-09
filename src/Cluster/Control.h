@@ -52,7 +52,8 @@ class Control {
     static void Help();
   private:
     // Help keywords
-    static const char* PairwiseArgs_;
+    static const char* PairwiseArgs1_;
+    static const char* PairwiseArgs2_;
     static const char* AlgorithmArgs_;
     static const char* MetricArgs_;
     static const char* CoordsDataSetArgs_;
@@ -62,6 +63,7 @@ class Control {
     static const char* OutputArgs1_;
     static const char* OutputArgs2_;
     static const char* OutputArgs3_;
+    static const char* OutputArgs4_;
     static const char* GraphArgs_;
 
     int AllocatePairwise(ArgList&, DataSetList&, DataFileList&);

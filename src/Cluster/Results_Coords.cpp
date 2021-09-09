@@ -28,10 +28,10 @@ Cpptraj::Cluster::Results_Coords::Results_Coords(DataSet_Coords* ds) :
 
 /** Help for Results_Coords keywords. */
 void Cpptraj::Cluster::Results_Coords::Help() {
-  mprintf("\t[clusterout <cfile> [clusterfmt <cfmt>]]\n"
-          "\t[singlerepout <sfile> [singlerepfmt <sfmt>]]\n"
-          "\t[repout <rprefix> [repfmt <rfmt>] [repframe]]\n"
-          "\t[avgout <aprefix> [avgfmt <afmt>]]\n"
+  mprintf("\t[clusterout <trajfileprefix> [clusterfmt <trajformat>]]\n"
+          "\t[singlerepout <trajfilename> [singlerepfmt <trajformat>]]\n"
+          "\t[repout <repprefix> [repfmt <trajformat>] [repframe]]\n"
+          "\t[avgout <avgprefix> [avgfmt <trajformat>]]\n"
           "\t[assignrefs [refcut <rms>] [refmask <mask>]]\n");
 }
 

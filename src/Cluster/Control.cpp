@@ -70,8 +70,11 @@ DataFile::DataFormatType Cpptraj::Cluster::Control::DEFAULT_PAIRDIST_TYPE_ =
   DataFile::CMATRIX_BINARY;
 # endif
 
-const char* Cpptraj::Cluster::Control::PairwiseArgs_ =
-  "[pairdist <name>] [loadpairdist] [savepairdist] [pairwisecache {mem|disk|none}]";
+const char* Cpptraj::Cluster::Control::PairwiseArgs1_ =
+  "[pairdist <name>] [pwrecalc]";
+
+const char* Cpptraj::Cluster::Control::PairwiseArgs2_ =
+  "[loadpairdist] [savepairdist] [pairwisecache {mem|disk|none}]";
 
 /** Set up PairwiseMatrix from arguments. */
 int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetList& DSL,
@@ -209,6 +212,7 @@ int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetLis
       }
     }
   }
+  pw_mismatch_fatal_ = !analyzeArgs.hasKey("pwrecalc");
 
   return 0;
 }
@@ -347,10 +351,13 @@ const char* Cpptraj::Cluster::Control::OutputArgs1_ =
   "[out <cnumvtime> [gracecolor]] [noinfo|info <file>] [summary <file>]";
 
 const char* Cpptraj::Cluster::Control::OutputArgs2_ =
-  "[clustersvtime <file> [cvtwindow <#>]] [sil <prefix>]";
+  "[summarysplit <splitfile>] [splitframe <comma-separated frame list>]";
 
 const char* Cpptraj::Cluster::Control::OutputArgs3_ =
-  "[cpopvtime <file> [{normpop|normframe}]]";
+  "[clustersvtime <file> [cvtwindow <#>]] [sil <prefix>]";
+
+const char* Cpptraj::Cluster::Control::OutputArgs4_ =
+  "[cpopvtime <file> [{normpop|normframe}]] [lifetime]";
 
 const char* Cpptraj::Cluster::Control::GraphArgs_ =
   "[{drawgraph|drawgraph3d} [draw_tol <tolerance>] [draw_maxit <iterations]]";
@@ -473,7 +480,6 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
     mprinterr("Error: PairwiseMatrix setup failed.\n");
     return 1;
   }
-  pw_mismatch_fatal_ = !analyzeArgs.hasKey("pwrecalc");
 
   // Allocate algorithm
   if (AllocateAlgorithm( analyzeArgs )) {
@@ -672,8 +678,8 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
 
 /** Print help text to STDOUT. */
 void Cpptraj::Cluster::Control::Help() {
-  mprintf("\t[<name>] [<Algorithm>] [<Metric>] [<Sieve>] [<BestRep>] [<Output>]\n"
-          "\t[<Coord. Output>] [<Graph>] [readinfo infofile <info file>]\n");
+  mprintf("\t[<name>] [<Algorithm>] [<Metric>] [<Pairwise>] [<Sieve>] [<BestRep>]\n"
+          "\t[<Output>] [<Coord. Output>] [<Graph>] [readinfo infofile <info file>]\n");
   mprintf("  Algorithm Args: [%s]\n", AlgorithmArgs_);
   Algorithm_HierAgglo::Help();
   Algorithm_DBscan::Help();
@@ -681,7 +687,10 @@ void Cpptraj::Cluster::Control::Help() {
   Algorithm_DPeaks::Help();
   mprintf("  Metric Args: [%s]\n", MetricArgs_);
   mprintf("    ('euclid' and 'manhattan' only work with 'data')\n");
-  mprintf("\t%s\n", CoordsDataSetArgs_);
+  mprintf("\t{%s | [{euclid|manhattan}]}\n", CoordsDataSetArgs_);
+  mprintf("  Pairwise Args:\n");
+  mprintf("\t%s\n", PairwiseArgs1_);
+  mprintf("\t%s\n", PairwiseArgs2_);
   mprintf("  Sieve Args:\n");
   mprintf("\t%s\n", SieveArgs1_);
   mprintf("\t%s\n", SieveArgs2_);
@@ -691,6 +700,7 @@ void Cpptraj::Cluster::Control::Help() {
   mprintf("\t%s\n", OutputArgs1_);
   mprintf("\t%s\n", OutputArgs2_);
   mprintf("\t%s\n", OutputArgs3_);
+  mprintf("\t%s\n", OutputArgs4_);
   mprintf("  Coordinate Output Args:\n");
   Results_Coords::Help();
   mprintf("  Graph Args:\n");
