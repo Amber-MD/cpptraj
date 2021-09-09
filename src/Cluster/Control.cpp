@@ -27,6 +27,7 @@ Cpptraj::Cluster::Control::Control() :
   metric_(0),
   algorithm_(0),
   results_(0),
+  cache_was_allocated_(false),
   verbose_(0),
   frameSelect_(UNSPECIFIED),
   sieve_(1),
@@ -84,6 +85,7 @@ int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetLis
     mprinterr("Internal Error: AllocatePairwise(): Metric is null.\n");
     return 1;
   }
+  cache_was_allocated_ = false;
 
   // Determine if we are saving/loading pairwise distances
   std::string pairdistname = analyzeArgs.GetStringKey("pairdist");
@@ -195,23 +197,11 @@ int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetLis
       // set **MUST** be allocated before the cache. Set up outside the
       // DataSetList here and set up; add to DataSetList later in Setup.
       cache_ = (DataSet_PairwiseCache*)DSL.AllocateSet( pw_type, meta );
-     /* // TODO should this be inside DataSetList?
-      meta.SetEnsembleNum( DSL.EnsembleNum() );
-      DataSet* pwset = DSL.CheckForSet(meta);
-      // NOTE: This should never happen since we already checked for cache above
-      if (pwset != 0) {
-        mprinterr("Internal Error: Pairwise cache '%s' already exists.\n", meta.Name().c_str());
-        return 1;
-      }
-      cache_ = (DataSet_PairwiseCache*)DSL.Allocate(pw_type);*/
       if (cache_ == 0) {
         mprinterr("Error: Could not allocate pairwise cache.\n");
         return 1;
       }
-/*      if (cache_->SetMeta( meta )) {
-        mprinterr("Internal Error: Could not set pairwise cache metadata.\n");
-        return 1;
-      }*/
+      cache_was_allocated_ = true;
       if (debug_ > 0)
         mprintf("DEBUG: Allocated pairwise distance cache: %s\n", cache_->legend());
     }
@@ -691,8 +681,8 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
   if (cnumvtime_ == 0) return 1;
   if (cnumvtimefile != 0) cnumvtimefile->AddDataSet( cnumvtime_ );
 
-  // Add pairwise cache to the DataSetList so it is after cnumvtime for pytraj
-  if (cache_ != 0)
+  // If cache was alloaced, add to the DataSetList so it is after cnumvtime for pytraj
+  if (cache_was_allocated_)
     DSL.AddSet( cache_ );
 
   // Set up number of unique clusters vs time DataSet

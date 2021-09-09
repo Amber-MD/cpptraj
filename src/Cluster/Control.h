@@ -89,6 +89,7 @@ class Control {
     Algorithm* algorithm_;         ///< Hold the clustering algorithm.
     Results* results_;             ///< Hold output routines specific to data being clustered.
     std::string dsname_;           ///< Name for output data sets.
+    bool cache_was_allocated_;     ///< True if cache was allocated and needs to be added to DSL
     int verbose_;
 
     FrameSelectType frameSelect_;    ///< How frames to cluster should be determined.
