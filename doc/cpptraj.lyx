@@ -2791,7 +2791,7 @@ status open
 \begin_layout Plain Layout
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="16" columns="5">
+<lyxtabular version="3" rows="18" columns="5">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top" width="20text%">
 <column alignment="center" valignment="top" width="20text%">
@@ -3514,7 +3514,7 @@ Read Only
 </cell>
 </row>
 <row>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -3523,7 +3523,7 @@ Charmm Output
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -3532,7 +3532,7 @@ Charmm Output
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -3541,7 +3541,7 @@ charmmout
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -3550,11 +3550,105 @@ charmmout
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
 Energy information, Read Only
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Pairwise Cache (binary)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+.cmatrix
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+cmatrix
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+pairwise distances
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Used for cluster analysis.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Pairwise Cache (NetCDF)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+.nccmatrix
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+nccmatrix
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+pairwise distances
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Used for cluster analysis.
 \end_layout
 
 \end_inset
@@ -5146,6 +5240,20 @@ Cpptraj
  assumes the data increases monotonically and will automatically attempt
  to determine the dimensions of the data set(s); a warning will be printed
  if this is not successful.
+\end_layout
+
+\begin_layout Standard
+If a file contains the header:
+\end_layout
+
+\begin_layout LyX-Code
+#F1 F2 <name>
+\end_layout
+
+\begin_layout Standard
+CPPTRAJ will assume the file contains pairwise distances for clustering,
+ where the F1 and F2 columns contain the frame numbers, and the <name> column
+ contains the distance.
 \end_layout
 
 \begin_layout Subsection
@@ -41421,9 +41529,11 @@ cluster data endToEnd clusters 10 epsilon 3.0 summary summary.dat info info.dat
 \end_layout
 
 \begin_layout Standard
-Example: cluster on the CA atoms of residues 2-10 using average-linkage,
- stopping when either 3 clusters are reached or the minimum distance between
- clusters is 4.0, writing the cluster number vs time to 
+Example: two clustering commands on the CA atoms of residues 2-10 using
+ average-linkage, stopping when either 3 clusters are reached or the minimum
+ distance between clusters is 4.0 for the first, and 8 clusters or minimum
+ distance 2.0 for the second.
+ The first command will write the cluster number vs time to 
 \begin_inset Quotes eld
 \end_inset
 
@@ -41439,11 +41549,18 @@ avg.summary.dat
 \begin_inset Quotes erd
 \end_inset
 
-:
+.
+ The second clustering command will use the pairwise distance matrix from
+ the first to speed things up:
 \end_layout
 
 \begin_layout LyX-Code
-cluster C1 :2-10 clusters 3 epsilon 4.0 out cnumvtime.dat summary avg.summary.dat
+cluster C1 :2-10 clusters 3 epsilon 4.0 info C1.info out cnumvtime.dat summary
+ avg.summary.dat pairdist PW
+\end_layout
+
+\begin_layout LyX-Code
+cluster C2 :2-10 clusters 8 epsilon 2.0 info C2.info pairdist PW
 \end_layout
 
 \begin_layout Subsubsection*
