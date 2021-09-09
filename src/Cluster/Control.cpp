@@ -637,26 +637,7 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
   // Cluster number vs time
   grace_color_ = analyzeArgs.hasKey("gracecolor"); 
   DataFile* cnumvtimefile = DFL.AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
-  // NOTE overall set name extracted here. This should be the last thing done.
-  dsname_ = analyzeArgs.GetStringNext();
-  // ---------------------------------------------
 
-  // Cluster number vs time data set
-  cnumvtime_ = DSL.AddSet(DataSet::INTEGER, dsname_, "Cnum");
-  if (cnumvtime_ == 0) return 1;
-  if (cnumvtimefile != 0) cnumvtimefile->AddDataSet( cnumvtime_ );
-
-  // Set up number of unique clusters vs time DataSet
-  if (clustersvtimefile != 0) {
-    if (windowSize_ < 2) {
-      mprinterr("Error: For # clusters seen vs time, cvtwindow must be specified and > 1\n");
-      return 1;
-    }
-    clustersVtime_ = DSL.AddSet(DataSet::INTEGER, MetaData(cnumvtime_->Meta().Name(), "NCVT"));
-    if (clustersVtime_ == 0) return 1;
-    clustersvtimefile->AddDataSet( clustersVtime_ );
-  }
- 
   // Cluster split analysis
   splitfile_ = analyzeArgs.GetStringKey("summarysplit");
   if (splitfile_.empty()) // For backwards compat.
@@ -678,6 +659,25 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
     }
   }
 
+  // Overall set name extracted here. All other arguments should already be processed. 
+  dsname_ = analyzeArgs.GetStringNext();
+  // ---------------------------------------------
+
+  // Cluster number vs time data set
+  cnumvtime_ = DSL.AddSet(DataSet::INTEGER, dsname_, "Cnum");
+  if (cnumvtime_ == 0) return 1;
+  if (cnumvtimefile != 0) cnumvtimefile->AddDataSet( cnumvtime_ );
+
+  // Set up number of unique clusters vs time DataSet
+  if (clustersvtimefile != 0) {
+    if (windowSize_ < 2) {
+      mprinterr("Error: For # clusters seen vs time, cvtwindow must be specified and > 1\n");
+      return 1;
+    }
+    clustersVtime_ = DSL.AddSet(DataSet::INTEGER, MetaData(cnumvtime_->Meta().Name(), "NCVT"));
+    if (clustersVtime_ == 0) return 1;
+    clustersvtimefile->AddDataSet( clustersVtime_ );
+  }
 
   return 0;
 }
