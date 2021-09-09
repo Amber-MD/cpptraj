@@ -1,6 +1,7 @@
 #ifndef INC_CLUSTER_CMATRIX_NC_H
 #define INC_CLUSTER_CMATRIX_NC_H
 #include <vector>
+#include <string>
 class FileName;
 namespace Cpptraj {
 namespace Cluster {
