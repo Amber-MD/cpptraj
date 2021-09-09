@@ -55,10 +55,13 @@ class Control {
     static const char* PairwiseArgs_;
     static const char* AlgorithmArgs_;
     static const char* MetricArgs_;
+    static const char* CoordsDataSetArgs_;
     static const char* SieveArgs1_;
     static const char* SieveArgs2_;
-    static const char* CoordsDataSetArgs_;
-    static const char* CommonArgs_;
+    static const char* BestRepArgs_;
+    static const char* OutputArgs1_;
+    static const char* OutputArgs2_;
+    static const char* OutputArgs3_;
 
     int AllocatePairwise(ArgList&, DataSetList&, DataFileList&);
 

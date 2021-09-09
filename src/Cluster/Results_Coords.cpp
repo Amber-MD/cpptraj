@@ -26,6 +26,15 @@ Cpptraj::Cluster::Results_Coords::Results_Coords(DataSet_Coords* ds) :
   avgfmt_(TrajectoryFile::UNKNOWN_TRAJ)
 {}
 
+/** Help for Results_Coords keywords. */
+void Cpptraj::Cluster::Results_Coords::Help() {
+  mprintf("\t[clusterout <cfile> [clusterfmt <cfmt>]]\n"
+          "\t[singlerepout <sfile> [singlerepfmt <sfmt>]]\n"
+          "\t[repout <rprefix> [repfmt <rfmt>] [repframe]]\n"
+          "\t[avgout <aprefix> [avgfmt <afmt>]]\n"
+          "\t[assignrefs [refcut <rms>] [refmask <mask>]]\n");
+}
+
 /** Get arguments related to writing cluster data to trajectories. */
 void Cpptraj::Cluster::Results_Coords::GetClusterTrajArgs(ArgList& argIn,
                                              const char* trajKey, const char* fmtKey,

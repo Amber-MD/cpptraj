@@ -327,12 +327,6 @@ int Cpptraj::Cluster::Control::ReadInfo(std::string const& fname) {
 }
 
 // -----------------------------------------------------------------------------
-const char* Cpptraj::Cluster::Control::CommonArgs_ =
-  "[bestrep {cumulative|centroid|cumulative_nosieve} [savenreps <#>]] "
-  "[noinfo|info <file>] [summary <file>] [sil <prefix>] "
-  "[cpopvtime <file> [{normpop|normframe}]] "
-  "[out <cnumvtime file> [gracecolor]] [<ds name>] "
-  "[clustersvtime <file> cvtwindow <#> ";
 
 const char* Cpptraj::Cluster::Control::MetricArgs_ =
   "{rms|srmsd|dme|euclid|manhattan}";
@@ -345,6 +339,18 @@ const char* Cpptraj::Cluster::Control::SieveArgs1_ =
 
 const char* Cpptraj::Cluster::Control::SieveArgs2_ =
   " [{sievetoframe|sievetocentroid|closestcentroid}] [repsilon <restore epsilon>]]";
+
+const char* Cpptraj::Cluster::Control::BestRepArgs_ =
+  "[bestrep {cumulative|centroid|cumulative_nosieve}] [savenreps <#>]";
+
+const char* Cpptraj::Cluster::Control::OutputArgs1_ =
+  "[out <cnumvtime> [gracecolor]] [noinfo|info <file>] [summary <file>]";
+
+const char* Cpptraj::Cluster::Control::OutputArgs2_ =
+  "[clustersvtime <file> [cvtwindow <#>]] [sil <prefix>]";
+
+const char* Cpptraj::Cluster::Control::OutputArgs3_ =
+  "[cpopvtime <file> [{normpop|normframe}]]";
 
 /** Common setup. */
 //int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL, DataFileList& DFL)
@@ -663,7 +669,8 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
 
 /** Print help text to STDOUT. */
 void Cpptraj::Cluster::Control::Help() {
-  mprintf("\t[<Algorithm>] [<Metric>] [<Sieve>] [readinfo infofile <info file>]\n");
+  mprintf("\t[<name>] [<Algorithm>] [<Metric>] [<Sieve>] [<BestRep>] [<Output>]\n"
+          "\t[<Coord. Output>] [readinfo infofile <info file>]\n");
   mprintf("  Algorithm Args: [%s]\n", AlgorithmArgs_);
   Algorithm_HierAgglo::Help();
   Algorithm_DBscan::Help();
@@ -675,6 +682,14 @@ void Cpptraj::Cluster::Control::Help() {
   mprintf("  Sieve Args:\n");
   mprintf("\t%s\n", SieveArgs1_);
   mprintf("\t%s\n", SieveArgs2_);
+  mprintf("  BestRep Args:\n");
+  mprintf("\t%s\n", BestRepArgs_);
+  mprintf("  Output Args:\n");
+  mprintf("\t%s\n", OutputArgs1_);
+  mprintf("\t%s\n", OutputArgs2_);
+  mprintf("\t%s\n", OutputArgs3_);
+  mprintf("  Coordinate Output Args:\n");
+  Results_Coords::Help();
 }
 
 // -----------------------------------------------------------------------------

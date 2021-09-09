@@ -11,6 +11,7 @@ namespace Cluster {
 class Results_Coords : public Results {
   public:
     Results_Coords(DataSet_Coords*);
+    static void Help();
     // ----- Results functions -------------------
     int GetOptions(ArgList&, DataSetList const&, Metric const&);
     void Info() const;
