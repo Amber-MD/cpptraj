@@ -17,7 +17,7 @@ Cpptraj::Cluster::Algorithm_HierAgglo::Algorithm_HierAgglo() :
 /** Print keywords to STDOUT */
 void Cpptraj::Cluster::Algorithm_HierAgglo::Help() {
   mprintf("\t[hieragglo [epsilon <e>] [clusters <n>] [linkage|averagelinkage|complete]\n"
-          "\t           [epsilonplot <file>]\n");
+          "\t           [epsilonplot <file>]]\n");
 }
 
 /** Process user args */

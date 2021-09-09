@@ -20,9 +20,9 @@ Cpptraj::Cluster::Algorithm_DPeaks::Algorithm_DPeaks() :
 
 void Cpptraj::Cluster::Algorithm_DPeaks::Help() {
   mprintf("\t[dpeaks epsilon <e> [noise] [dvdfile <density_vs_dist_file>]\n"
-          "\t  [choosepoints {manual | auto}]\n"
-          "\t  [distancecut <distcut>] [densitycut <densitycut>]\n"
-          "\t  [runavg <runavg_file>] [deltafile <file>] [gauss]]\n");
+          "\t        [choosepoints {manual | auto}]\n"
+          "\t        [distancecut <distcut>] [densitycut <densitycut>]\n"
+          "\t        [runavg <runavg_file>] [deltafile <file>] [gauss]]\n");
 }
 
 int Cpptraj::Cluster::Algorithm_DPeaks::Setup(ArgList& analyzeArgs) {

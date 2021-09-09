@@ -19,7 +19,7 @@ Cpptraj::Cluster::Algorithm_Kmeans::Algorithm_Kmeans() :
 {}
 
 void Cpptraj::Cluster::Algorithm_Kmeans::Help() {
-  mprintf("\t[kmeans clusters <n> [randompoint [kseed <seed>]] [maxit <iterations>]\n");
+  mprintf("\t[kmeans clusters <n> [randompoint [kseed <seed>]] [maxit <iterations>]]\n");
 }
 
 // SetupCluster()

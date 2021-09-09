@@ -26,7 +26,7 @@ Cpptraj::Cluster::Algorithm_DBscan::Algorithm_DBscan() :
 
 // Algorithm_DBscan::Help()
 void Cpptraj::Cluster::Algorithm_DBscan::Help() {
-  mprintf("\t[dbscan minpoints <n> epsilon <e> [sievetoframe] [kdist <k> [kfile <prefix>]]]\n");
+  mprintf("\t[dbscan minpoints <n> epsilon <e> [kdist <k> [kfile <prefix>]]]\n");
 }
 
 // Cluster_DBSCAN::SetupCluster()

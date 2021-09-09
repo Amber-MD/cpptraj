@@ -334,14 +334,17 @@ const char* Cpptraj::Cluster::Control::CommonArgs_ =
   "[out <cnumvtime file> [gracecolor]] [<ds name>] "
   "[clustersvtime <file> cvtwindow <#> ";
 
-const char* Cpptraj::Cluster::Control::CoordsDataSetArgs_ =
-  "{dme|rms|srmsd} [mass] [nofit] [<mask>]";
-
 const char* Cpptraj::Cluster::Control::MetricArgs_ =
   "{rms|srmsd|dme|euclid|manhattan}";
 
-const char* Cpptraj::Cluster::Control::SieveArgs_ =
-  "[sieve <#> [sieveseed <#>] [random] [includesieveincalc] [includesieved_cdist] [sievetoframe]]";
+const char* Cpptraj::Cluster::Control::CoordsDataSetArgs_ =
+  "[{dme|rms|srmsd} [mass] [nofit] [<mask>]]";
+
+const char* Cpptraj::Cluster::Control::SieveArgs1_ =
+  "[sieve <#> [sieveseed <#>] [random] [includesieveincalc] [includesieved_cdist]";
+
+const char* Cpptraj::Cluster::Control::SieveArgs2_ =
+  " [{sievetoframe|sievetocentroid|closestcentroid}] [repsilon <restore epsilon>]]";
 
 /** Common setup. */
 //int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL, DataFileList& DFL)
@@ -503,21 +506,45 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
     }
   }
 
-  // Choose sieve restore option based on algorithm and frames to cluster.
+  // Choose sieve restore options
   if (sieve_ != 1)
   {
-    sieveRestore_ = CLOSEST_CENTROID;
-    if (algorithm_->Type() == Algorithm::DBSCAN ||
-        algorithm_->Type() == Algorithm::DPEAKS)
-    {
+    // Determine sieve restore type
+    if (sieveRestore_ == NO_RESTORE) {
+      // No option set yet. See if a keyword has been specified.
       if (analyzeArgs.hasKey("nosieverestore")) // Hidden option, currently for testing only
         sieveRestore_ = NO_RESTORE;
-      else if (!analyzeArgs.hasKey("sievetoframe"))
-        sieveRestore_ = EPSILON_CENTROID;
-      else
+      else if (analyzeArgs.hasKey("sievetoframe"))
         sieveRestore_ = EPSILON_FRAME;
-      restoreEpsilon_ = algorithm_->Epsilon();
+      else if (analyzeArgs.hasKey("sievetocentroid"))
+        sieveRestore_ = EPSILON_CENTROID;
+      else if (analyzeArgs.hasKey("closestcentroid"))
+        sieveRestore_ = CLOSEST_CENTROID;
+      else {
+        // Nothing specified yet. Choose restore option based on algorithm.
+        if (algorithm_->Type() == Algorithm::DBSCAN ||
+            algorithm_->Type() == Algorithm::DPEAKS)
+          sieveRestore_ = EPSILON_CENTROID;
+        else
+          sieveRestore_ = CLOSEST_CENTROID;
+      }
     }
+    // Determine sieve restore epsilon
+    if (sieveRestore_ == EPSILON_FRAME ||
+        sieveRestore_ == EPSILON_CENTROID)
+    {
+      // Epsilon-based sieve restore
+      if (algorithm_->Type() == Algorithm::DBSCAN ||
+          algorithm_->Type() == Algorithm::DPEAKS)
+      {
+        // Using a density-based algorithm with epsilon-based restore;
+        // use restore epsilon from algorithm.
+        restoreEpsilon_ = algorithm_->Epsilon();
+      }
+    }
+    double rEps = analyzeArgs.getKeyDouble("repsilon", -1.0);
+    if (rEps > 0)
+      restoreEpsilon_ = rEps;
   }
 
   // Best rep options
@@ -636,15 +663,18 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
 
 /** Print help text to STDOUT. */
 void Cpptraj::Cluster::Control::Help() {
-  mprintf("\t[<Algorithm>] [<Metric>] [readinfo infofile <info file>]\n");
-  mprintf("  Algorithms: [%s]\n", AlgorithmArgs_);
+  mprintf("\t[<Algorithm>] [<Metric>] [<Sieve>] [readinfo infofile <info file>]\n");
+  mprintf("  Algorithm Args: [%s]\n", AlgorithmArgs_);
   Algorithm_HierAgglo::Help();
   Algorithm_DBscan::Help();
   Algorithm_Kmeans::Help();
   Algorithm_DPeaks::Help();
-  mprintf("  Metrics: [%s]\n", MetricArgs_);
+  mprintf("  Metric Args: [%s]\n", MetricArgs_);
   mprintf("    ('euclid' and 'manhattan' only work with 'data')\n");
   mprintf("\t%s\n", CoordsDataSetArgs_);
+  mprintf("  Sieve Args:\n");
+  mprintf("\t%s\n", SieveArgs1_);
+  mprintf("\t%s\n", SieveArgs2_);
 }
 
 // -----------------------------------------------------------------------------
