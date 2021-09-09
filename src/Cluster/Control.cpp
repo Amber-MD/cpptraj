@@ -352,6 +352,9 @@ const char* Cpptraj::Cluster::Control::OutputArgs2_ =
 const char* Cpptraj::Cluster::Control::OutputArgs3_ =
   "[cpopvtime <file> [{normpop|normframe}]]";
 
+const char* Cpptraj::Cluster::Control::GraphArgs_ =
+  "[{drawgraph|drawgraph3d} [draw_tol <tolerance>] [draw_maxit <iterations]]";
+
 /** Common setup. */
 //int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL, DataFileList& DFL)
 int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
@@ -670,7 +673,7 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
 /** Print help text to STDOUT. */
 void Cpptraj::Cluster::Control::Help() {
   mprintf("\t[<name>] [<Algorithm>] [<Metric>] [<Sieve>] [<BestRep>] [<Output>]\n"
-          "\t[<Coord. Output>] [readinfo infofile <info file>]\n");
+          "\t[<Coord. Output>] [<Graph>] [readinfo infofile <info file>]\n");
   mprintf("  Algorithm Args: [%s]\n", AlgorithmArgs_);
   Algorithm_HierAgglo::Help();
   Algorithm_DBscan::Help();
@@ -690,6 +693,8 @@ void Cpptraj::Cluster::Control::Help() {
   mprintf("\t%s\n", OutputArgs3_);
   mprintf("  Coordinate Output Args:\n");
   Results_Coords::Help();
+  mprintf("  Graph Args:\n");
+  mprintf("\t%s\n", GraphArgs_);
 }
 
 // -----------------------------------------------------------------------------

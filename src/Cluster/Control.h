@@ -62,6 +62,7 @@ class Control {
     static const char* OutputArgs1_;
     static const char* OutputArgs2_;
     static const char* OutputArgs3_;
+    static const char* GraphArgs_;
 
     int AllocatePairwise(ArgList&, DataSetList&, DataFileList&);
 
