@@ -8,6 +8,9 @@
 #include "../DataSet_integer.h"
 #include "../ProgressBar.h"
 #include "../Constants.h" // SMALL TODO use limits?
+#ifdef _OPENMP
+# include <omp.h>
+#endif
 
 void Cpptraj::Cluster::List::PrintClusters() const {
   //mprintf("CLUSTER: %u clusters, %u frames.\n", clusters_.size(),
@@ -232,9 +235,9 @@ void Cpptraj::Cluster::List::AddFramesByCentroid(Cframes const& framesIn, Metric
   progress.SetThread( mythread );
   if (mythread == 0) {
     mprintf("\tParallelizing calculation with %i threads\n", omp_get_num_threads());
-    MyCdist = Cdist_;
+    MyCdist = metricIn;
   } else
-    MyCdist = Cdist_->Copy();
+    MyCdist = metricIn->Copy();
 # pragma omp for
 # endif
   for (idx = 0; idx < nframes; ++idx) {

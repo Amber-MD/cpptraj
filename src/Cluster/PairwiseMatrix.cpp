@@ -112,7 +112,7 @@ int Cpptraj::Cluster::PairwiseMatrix::CalcFrameDistances(Cframes const& framesTo
   }
 # ifdef _OPENMP
   if (mythread > 0)
-    delete MyCdist;
+    delete MyMetric;
   } // END omp parallel
 # endif
   progress.Finish();
