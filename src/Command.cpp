@@ -189,7 +189,7 @@
 #include "Analysis_Multicurve.h"
 #include "Analysis_TI.h"
 #include "Analysis_ConstantPHStats.h"
-#include "Analysis_Cluster.h"
+#include "Analysis_Clustering.h"
 #include "Analysis_HausdorffDistance.h"
 #include "Analysis_Slope.h"
 #include "Analysis_EvalPlateau.h"
@@ -384,7 +384,7 @@ void Command::Init() {
   Command::AddCmd( new Analysis_AutoCorr(),    Cmd::ANA, 1, "autocorr" );
   Command::AddCmd( new Analysis_Average(),     Cmd::ANA, 1, "avg" );
   Command::AddCmd( new Analysis_State(),       Cmd::ANA, 1, "calcstate" );
-  Command::AddCmd( new Analysis_Cluster(),     Cmd::ANA, 1, "cluster" );
+  Command::AddCmd( new Analysis_Clustering(),  Cmd::ANA, 1, "cluster" );
   Command::AddCmd( new Analysis_Corr(),        Cmd::ANA, 2, "corr", "correlationcoe" );
   Command::AddCmd( new Analysis_ConstantPHStats,Cmd::ANA,1, "cphstats" );
   Command::AddCmd( new Analysis_CrankShaft(),  Cmd::ANA, 2, "crank", "crankshaft" );

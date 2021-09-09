@@ -1,17 +1,17 @@
-#include "Analysis_Cluster.h"
+#include "Analysis_Clustering.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Coords.h"
 
 using namespace Cpptraj::Cluster;
 
-// Analysis_Cluster::Help()
-void Analysis_Cluster::Help() const {
+// Analysis_Clustering::Help()
+void Analysis_Clustering::Help() const {
   mprintf("\t[{crdset <crd set> | data <dset0>[,<dset1>...] [nocoords]}]\n");
   Control::Help();
 }
 
-// Analysis_Cluster::Setup()
-Analysis::RetType Analysis_Cluster::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
+// Analysis_Clustering::Setup()
+Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
   control_.SetDebug( debugIn );
   DataSetList inputDsets;
@@ -56,8 +56,8 @@ Analysis::RetType Analysis_Cluster::Setup(ArgList& analyzeArgs, AnalysisSetup& s
 
 }
 
-// Analysis_Cluster::Analyze()
-Analysis::RetType Analysis_Cluster::Analyze() {
+// Analysis_Clustering::Analyze()
+Analysis::RetType Analysis_Clustering::Analyze() {
   Timer t_total;
   t_total.Start();
   if (control_.Run() != 0) {
