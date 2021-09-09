@@ -4,6 +4,7 @@
 #include "PairwiseMatrix.h"
 #include "../CpptrajStdio.h"
 
+/** \return Distance between given cluster centroids. */
 double Cpptraj::Cluster::Algorithm::ClusterDistance(Node const& C1, Node const& C2,
                                                     PairwiseMatrix const& pmatrix,
                                                     bool includeSieved,

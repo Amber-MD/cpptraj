@@ -9,6 +9,7 @@
 #include "../DataSet_Mesh.h"
 #include "../ProgressBar.h"
 
+/** CONSTRUCTOR */
 Cpptraj::Cluster::Algorithm_DPeaks::Algorithm_DPeaks() :
    Algorithm(DPEAKS),
    densityCut_(-1.0),
@@ -18,6 +19,7 @@ Cpptraj::Cluster::Algorithm_DPeaks::Algorithm_DPeaks() :
    calc_noise_(false),
    useGaussianKernel_(false) {}
 
+/** Print help to STDOUT. */
 void Cpptraj::Cluster::Algorithm_DPeaks::Help() {
   mprintf("\t[dpeaks epsilon <e> [noise] [dvdfile <density_vs_dist_file>]\n"
           "\t        [choosepoints {manual | auto}]\n"
@@ -25,6 +27,7 @@ void Cpptraj::Cluster::Algorithm_DPeaks::Help() {
           "\t        [runavg <runavg_file>] [deltafile <file>] [gauss]]\n");
 }
 
+/** Set up density peaks algorithm. */
 int Cpptraj::Cluster::Algorithm_DPeaks::Setup(ArgList& analyzeArgs) {
   epsilon_ = analyzeArgs.getKeyDouble("epsilon", -1.0);
   if (epsilon_ <= 0.0) {
@@ -67,6 +70,7 @@ int Cpptraj::Cluster::Algorithm_DPeaks::Setup(ArgList& analyzeArgs) {
   return 0;
 }
 
+/** Print dpeaks algorithm info. */
 void Cpptraj::Cluster::Algorithm_DPeaks::Info() const {
   mprintf("---------------------------------------------------------------------------\n"
           "Warning: The dpeaks algorithm is still under development. USE WITH CAUTION!\n"
@@ -96,6 +100,7 @@ void Cpptraj::Cluster::Algorithm_DPeaks::Info() const {
     mprintf("\t\tNo clustering, only writing density versus distance file.\n");
 }
 
+/** Perform density peaks clustering. */
 int Cpptraj::Cluster::Algorithm_DPeaks::DoClustering(List& clusters,
                                                      Cframes const& framesToCluster,
                                                      PairwiseMatrix const& pmatrix)
@@ -255,6 +260,7 @@ int Cpptraj::Cluster::Algorithm_DPeaks::DoClustering(List& clusters,
 }
 
 // -----------------------------------------------------------------------------
+/** Gaussian kernel for density peaks. */
 int Cpptraj::Cluster::Algorithm_DPeaks::Cluster_GaussianKernel(Cframes const& framesToCluster,
                                                                PairwiseMatrix const& pmatrix)
 {
@@ -339,6 +345,7 @@ int Cpptraj::Cluster::Algorithm_DPeaks::Cluster_GaussianKernel(Cframes const& fr
 }
 
 // -----------------------------------------------------------------------------
+/** Discrete density. */
 int Cpptraj::Cluster::Algorithm_DPeaks::Cluster_DiscreteDensity(Cframes const& framesToCluster,
                                                                 PairwiseMatrix const& pmatrix)
 {
@@ -440,6 +447,7 @@ int Cpptraj::Cluster::Algorithm_DPeaks::Cluster_DiscreteDensity(Cframes const& f
   return 0;
 }
 
+/** Choose points from clusters. */
 int Cpptraj::Cluster::Algorithm_DPeaks::ChoosePointsFromClusters(List const& clusters,
                                                                  Cframes const& framesToCluster)
 {
@@ -453,6 +461,7 @@ int Cpptraj::Cluster::Algorithm_DPeaks::ChoosePointsFromClusters(List const& clu
   return 0;
 }
 
+/** Choose points based on user specified cutoffs. */
 int Cpptraj::Cluster::Algorithm_DPeaks::ChoosePointsManually() {
   int cnum = 0;
   for (Carray::iterator point = Points_.begin(); point != Points_.end(); ++point) {

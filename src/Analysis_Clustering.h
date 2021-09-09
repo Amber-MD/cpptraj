@@ -2,7 +2,7 @@
 #define INC_ANALYSIS_CLUSTERING_H
 #include "Analysis.h"
 #include "Cluster/Control.h"
-/// <Enter description of Analysis_Clustering here>
+/// Perform cluster analysis on DataSets 
 class Analysis_Clustering : public Analysis {
   public:
     Analysis_Clustering() : masterDSL_(0) {}

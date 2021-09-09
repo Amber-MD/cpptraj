@@ -9,6 +9,7 @@
 #include "../CpptrajStdio.h"
 #include "../ProgressBar.h"
 
+/** CONSTRUCTOR */
 Cpptraj::Cluster::Algorithm_Kmeans::Algorithm_Kmeans() :
   Algorithm(KMEANS),
   nclusters_(0),
@@ -18,11 +19,13 @@ Cpptraj::Cluster::Algorithm_Kmeans::Algorithm_Kmeans() :
   clusterToClusterCentroid_(false)
 {}
 
+/** Print help to stdout. */
 void Cpptraj::Cluster::Algorithm_Kmeans::Help() {
   mprintf("\t[kmeans clusters <n> [randompoint [kseed <seed>]] [maxit <iterations>]]\n");
 }
 
 // SetupCluster()
+/** Set up kmeans clustering. */
 int Cpptraj::Cluster::Algorithm_Kmeans::Setup(ArgList& analyzeArgs) {
   nclusters_ = analyzeArgs.getKeyInt("clusters", -1);
   if (nclusters_ < 2) {
@@ -39,6 +42,7 @@ int Cpptraj::Cluster::Algorithm_Kmeans::Setup(ArgList& analyzeArgs) {
 }
 
 // ClusteringInfo()
+/** Print kmeans clustering info. */
 void Cpptraj::Cluster::Algorithm_Kmeans::Info() const {
   mprintf("\tK-MEANS: Looking for %i clusters.\n", nclusters_);
   if (mode_ == SEQUENTIAL)
@@ -55,11 +59,13 @@ void Cpptraj::Cluster::Algorithm_Kmeans::Info() const {
 }
 
 // ClusterResults()
+/** Write kemans info to info file. */
 void Cpptraj::Cluster::Algorithm_Kmeans::Results(CpptrajFile& outfile) const {
   outfile.Printf("#Algorithm: Kmeans nclusters %i maxit %i\n", nclusters_, maxIt_);
 }
 
 // Cpptraj::Cluster::Algorithm_Kmeans::Cluster()
+/** Perform kmeans clustering. */
 int Cpptraj::Cluster::Algorithm_Kmeans::DoClustering(List& clusters,
                                                      Cframes const& framesToCluster,
                                                      PairwiseMatrix const& pmatrix)
