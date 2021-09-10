@@ -19,6 +19,7 @@ class Algorithm_Kmeans : public Algorithm {
     typedef std::vector<int> Iarray;
     enum KmeansModeType { SEQUENTIAL, RANDOM };
 
+    int FindSeedsFromClusters(List&, Cframes const&, PairwiseMatrix const&);
     int FindKmeansSeeds(Cframes const&, PairwiseMatrix const&);
 
     Random_Number RN_;

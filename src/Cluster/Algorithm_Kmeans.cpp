@@ -249,6 +249,72 @@ int Cpptraj::Cluster::Algorithm_Kmeans::DoClustering(List& clusters,
   return 0;
 }
 
+// FindSeedsFromClusters
+/** Given current clusters, find points that are far away from centroids
+  * that can be used as new cluster seeds.
+  */
+int Cpptraj::Cluster::Algorithm_Kmeans::FindSeedsFromClusters(List& clusters,
+                                                              Cframes const& FramesToCluster,
+                                                              PairwiseMatrix const& pmatrix)
+{
+  int nSeedsToFind = nclusters_ - clusters.Nclusters();
+  mprintf("\tTarget # seeds= %i\n", nSeedsToFind);
+  if (nSeedsToFind < 1) return 0;
+  // Ensure centroids are up to date
+  clusters.UpdateCentroids( pmatrix.MetricPtr() );
+  SeedIndices_.resize( nSeedsToFind, -1 );
+  int nSeedsFound = 0;
+  while (nSeedsFound < nSeedsToFind)
+  {
+    // Find the farthest point in each cluster.
+    std::vector<double> MaxDst;
+    std::vector<int> MaxFrame;
+    for (List::cluster_it node = clusters.begin(); node != clusters.end(); ++node)
+    {
+      double maxdist = 0;
+      int maxframe = -1;
+
+      for (Node::frame_iterator frm = node->beginframe(); frm != node->endframe(); ++frm)
+      {
+        double dist = pmatrix.MetricPtr()->FrameCentroidDist(*frm, node->Cent());
+        if (dist > maxdist) {
+          maxdist = dist;
+          maxframe = *frm;
+        }
+      }
+      mprintf("DEBUG: seed %i maxdist= %f maxframe= %i\n",
+              nSeedsFound, maxdist, maxframe);
+      MaxDst.push_back( maxdist );
+      MaxFrame.push_back( maxframe );
+    }
+    if (nSeedsFound == 0) {
+      // For the first seed, just choose the one with the largest distance to centroid.
+      int maxi = -1;
+      double maxd = 0;
+      List::cluster_it maxclust = clusters.end();
+      int idx = 0;
+      for (List::cluster_it node = clusters.begin(); node != clusters.end(); ++node, idx++)
+      {
+        if (MaxDst[idx] > maxd) {
+          maxd = MaxDst[idx];
+          maxi = idx;
+          maxclust = node;
+        }
+      }
+      maxclust->RemoveFrameUpdateCentroid( pmatrix.MetricPtr(), MaxFrame[maxi] );
+      SeedIndices_[nSeedsFound] = MaxFrame[maxi];
+      mprintf("DEBUG: Frame %i from cluster %i (%f) chosen as first seed.\n",
+              MaxFrame[maxi], maxi, MaxDst[maxi]);
+    } else {
+    // Out of the list of farthest points, choose the one with the largest
+    // cumulative distance to existing seeds.
+    }
+
+  }
+
+  return 0;
+}
+
 // FindKmeansSeeds()
 /** Find some seed-points for K-means clustering. Take the first point as an 
   * arbitrary first choice.  Then, at each iteration, add the point whose total
