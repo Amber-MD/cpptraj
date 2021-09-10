@@ -93,6 +93,37 @@ const
   return err;
 }
 
+/** Find best representative frames for given node. */
+int Cpptraj::Cluster::BestReps::FindBestRepFrames(Node& node, PairwiseMatrix const& pmatrix,
+                                                  Cframes const& sievedFrames)
+const
+{
+  int err = 0;
+  switch (type_) {
+    case CUMULATIVE:
+      err = FindBestRepFrames_CumulativeDist(node, pmatrix);
+      break;
+    case CENTROID:
+      err = FindBestRepFrames_Centroid(node, pmatrix);
+      break;
+    case CUMULATIVE_NOSIEVE:
+      err = FindBestRepFrames_NoSieve_CumulativeDist(node, pmatrix, sievedFrames);
+      break;
+    case NO_REPS:
+      mprintf("Warning: Skipping best representative frame calc.\n");
+      break;
+    default:
+      mprinterr("Internal Error: BestReps::FindBestRepFrames: Unhandled type.\n");
+      err = 1;
+  }
+
+  // DEBUG
+  if (debug_ > 0)
+    PrintBestReps(node);
+
+  return err;
+}
+
 /** Find the frame(s) in the node that is best representative by
   * having the lowest cumulative distance to every other point in the cluster.
   */
