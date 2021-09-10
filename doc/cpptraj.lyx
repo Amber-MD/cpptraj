@@ -41110,6 +41110,9 @@ Stdev Standard deviation of points in the cluster.
 \begin_layout Description
 Centroid Frame # of structure in cluster that has the lowest cumulative
  distance to every other point.
+ If multiple representatives are being saved this column is replaced with
+ two columns for each representative, 'Rep' (representative frame #) and
+ 'RepScore' (score according to current best representative metric).
 \end_layout
 
 \begin_layout Description
@@ -41190,7 +41193,8 @@ Where <X> is the number of clusters, <N> is the number of frames clustered,
  portions of the trajectory specified by splitframe with format '#Cluster
  Total Frac C# Color NumInX ...
  FracX ...
- FirstX':
+ FirstX ...
+ RepX':
 \begin_inset Separator latexpar
 \end_inset
 
@@ -41229,6 +41233,11 @@ FracX Fraction of frames in Xth portion of the trajectory.
 \begin_layout Description
 FirstX Frame in the Xth portion of the trajectory where the cluster is first
  observed.
+\end_layout
+
+\begin_layout Description
+RepX Best representative frame in the Xth portion of the trajectory for
+ that cluster.
 \end_layout
 
 \end_deeper
@@ -41435,8 +41444,18 @@ summary
 \series bold
 summarysplit
 \series default
-, assign clusters to loaded representative structures if RMSD to that reference
+, assign clusters to loaded reference structures if RMSD to that reference
  is less than specified cutoff.
+ This will be printed in 
+\series bold
+summary
+\series default
+ and 
+\series bold
+summarysplit
+\series default
+ files as 2 extra columns: 'Name' (reference name) and 'RMS' (RMS to cluster
+ centroid).
 \end_layout
 
 \begin_deeper
