@@ -148,6 +148,12 @@ void Cpptraj::Cluster::List::RemoveEmptyClusters() {
   }
 }
 
+/** Clear everything. */
+void Cpptraj::Cluster::List::Clear() {
+  clusters_.clear();
+  noise_.clear();
+}
+
 // -----------------------------------------------------------------------------
 void Cpptraj::Cluster::List::AddFramesByCentroid(Cframes const& framesIn, Metric* metricIn)
 {

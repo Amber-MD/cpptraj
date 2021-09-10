@@ -47,6 +47,8 @@ class List {
     void RemoveCluster( cluster_it& it ) { clusters_.erase( it ); }
     /// Remove clusters with no population
     void RemoveEmptyClusters();
+    /// Remove all clusters
+    void Clear();
     /// Generate cluster number vs time data set
     int CreateCnumVsTime(DataSet_integer&, unsigned int, int, int) const;
     /// Generate number unique clusters vs time data set
