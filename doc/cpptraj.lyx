@@ -41154,6 +41154,10 @@ AvgCDist Average distance of this cluster to every other cluster.
 \begin_inset Newline newline
 \end_inset
 
+#SSR/SST: <SSR/SST>
+\begin_inset Newline newline
+\end_inset
+
 #Algorithm: <algorithm-specific info>
 \begin_inset Newline newline
 \end_inset
@@ -41173,8 +41177,8 @@ AvgCDist Average distance of this cluster to every other cluster.
 Where <X> is the number of clusters, <N> is the number of frames clustered,
  <I> ranges from 0 to <X>-1, <AVG> is the average distance of all frames
  in that cluster to the centroid, <DBI> is the Davies-Bouldin Index, <pSF>
- is the pseudo-F statistic, and <representative frame list> contains the
- frame # of the representative frame (i.e.
+ is the pseudo-F statistic, <SSR/SST> is the SSR/SST ratio, and <representative
+ frame list> contains the frame # of the representative frame (i.e.
  closest to the centroid) for each cluster.
  Each cluster has a line made up of characters (one for each frame) where
  '.' means 'not in cluster' and 'X' means 'in cluster'.
@@ -41631,6 +41635,26 @@ Higher values of pseudo-F are good
  distance from the all-data centroid, and P is the sum (for all clusters)
  of the distances from the cluster centroid.
  
+\end_layout
+
+\begin_layout Standard
+The SSR/SST is the ratio of the sum of squares regression (SSR or between
+ sum of squares) and the total sum of squares (SST).
+ The SSR is calculated via the sum of the squared distances of all points
+ within a given cluster to its centroid, and summed together for all clusters.
+ The total sum of squares is the sum of squared distances for all frames
+ to the overall mean.
+ The ratio lies between 0 and 1 and is supposed to give the fraction of
+ explained variance by the data.
+ The ratio should increase with cluster count.
+ 
+\series bold
+There should be a point at which adding more clusters does not substantially
+ increase SSR/SST
+\series default
+, i.e.
+ the point where increasing the cluster count does not add new information
+ and should not increase further.
 \end_layout
 
 \begin_layout Standard
