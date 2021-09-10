@@ -53,7 +53,7 @@ cat > cluster.in <<EOF
 noprogress
 parm ../tz2.parm7
 loadcrd ../tz2.crd name MyCrd
-debug 10
+#debug 10
 # Cluster to 3 clusters, start from existing info with 8 clusters
 cluster crdset MyCrd C6 :2-10 kmeans clusters 3 \
   readinfo infofile C5.info.dat \
