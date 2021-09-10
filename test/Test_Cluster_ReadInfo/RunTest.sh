@@ -63,6 +63,20 @@ EOF
 RunCpptraj "K-means cluster restart test, part 2"
 DoTest C4.info.dat C6.info.dat
 
+# K-means, try to cluster to more clusters from fewer clusters.
+cat > cluster.in <<EOF
+noprogress
+parm ../tz2.parm7
+loadcrd ../tz2.crd name MyCrd
+
+cluster crdset MyCrd C7 :2-10 kmeans clusters 8 \
+  readinfo infofile C4.info.dat \
+  info C7.info.dat \
+  loadpairdist pairdist PW
+EOF
+RunCpptraj "K-means cluster restart, 3 to 8 clusters."
+DoTest C7.info.dat.save C7.info.dat
+
 EndTest
 
 exit 0
