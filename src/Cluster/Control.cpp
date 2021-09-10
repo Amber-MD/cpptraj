@@ -1095,7 +1095,14 @@ int Cpptraj::Cluster::Control::Output(DataSetList& DSL) {
       mprinterr("Error: Could not set up summary split file.\n");
       return 1;
     }
-    Output::Summary_Part(outfile, metric_->Ntotal(), splitFrames_, clusters_);
+    BestReps findBestReps;
+    // TODO support > 1 best rep?
+    if (findBestReps.InitBestReps(bestRep_, 1, verbose_)) {
+      mprinterr("Error: Init of best reps calc for summary by parts failed.\n");
+      return 1;
+    }
+    Output::Summary_Part(outfile, metric_->Ntotal(), splitFrames_, clusters_,
+                         findBestReps, pmatrix_, frameSieve_.SievedOut());
   }
 
   // Cluster number vs time

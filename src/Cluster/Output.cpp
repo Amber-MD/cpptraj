@@ -2,6 +2,7 @@
 #include <algorithm> // sort, max
 #include "Output.h"
 #include "Algorithm.h"
+#include "BestReps.h"
 #include "List.h"
 #include "Metric.h"
 #include "Node.h"
@@ -289,7 +290,10 @@ int Cpptraj::Cluster::Output::Summary(CpptrajFile& outfile, List const& clusters
 void Cpptraj::Cluster::Output::Summary_Part(CpptrajFile& outfile,
                                             unsigned int clusterDataSetSize,
                                             Cframes const& splitFrames,
-                                            List const& clusters)
+                                            List const& clusters,
+                                            BestReps const& findBestReps,
+                                            PairwiseMatrix const& pmatrix,
+                                            Cframes const& framesToCluster)
 {
   // If no split frames were specified, use halfway point.
   Cframes actualSplitFrames;
@@ -364,7 +368,12 @@ void Cpptraj::Cluster::Output::Summary_Part(CpptrajFile& outfile,
     if (nWidth < 8) nWidth = 8;
     outfile.Printf(" %*s %6s", nWidth, "Name", "RMS");
   }
+  // Best reps header
+  for (unsigned int pm = 1; pm <= partMax.size(); ++pm)
+    outfile.Printf(" %7s%u", "Rep", pm);
+  // END HEADER
   outfile.Printf("\n");
+
   // LOOP OVER CLUSTERS
   int color = 1; // xmgrace color, 1-15
   for (List::cluster_iterator node = clusters.begincluster();
@@ -375,6 +384,7 @@ void Cpptraj::Cluster::Output::Summary_Part(CpptrajFile& outfile,
     double frac = (double)numframes / fmax;
     std::fill( numInPart.begin(), numInPart.end(), 0 );
     std::fill( firstFrame.begin(), firstFrame.end(), -1 );
+    std::vector<Node> clusterPart(actualSplitFrames.size() + 1);
     // DEBUG
     //mprintf("\tCluster %i\n",node->num);
     // Count how many frames are in each part. 
@@ -392,6 +402,7 @@ void Cpptraj::Cluster::Output::Summary_Part(CpptrajFile& outfile,
       if (numInPart[ bin ] == 0)
         firstFrame[ bin ] = *frame1 - trajOffset[ bin ] + 1;
       ++numInPart[ bin ];
+      clusterPart[bin].AddFrameToCluster(*frame1);
     }
     outfile.Printf("%-8i %8i %8.4f %2i %10s", node->Num(), numframes, frac,
                    color, XMGRACE_COLOR[color]);
@@ -405,6 +416,26 @@ void Cpptraj::Cluster::Output::Summary_Part(CpptrajFile& outfile,
       outfile.Printf(" %8i", *ff);
     if (nWidth > 0)
       outfile.Printf(" %*s %6.2f", nWidth, node->Cname().c_str(), node->RefRms());
+    // Print best reps for each part.
+    // TODO handle case when clusters dont have same number best reps
+    for (std::vector<Node>::iterator node = clusterPart.begin();
+                                     node != clusterPart.end(); ++node)
+    {
+      if (node->Nframes() == 0) {
+        outfile.Printf(" %8i", -1);
+      } else {
+        findBestReps.FindBestRepFrames(*node, pmatrix, framesToCluster);
+        // TODO handle multiple best reps?
+        //if (node->BestReps().size() < 2)
+          outfile.Printf(" %8i", node->BestRepFrame()+1);
+        //else {
+        //  for (Node::RepPairArray::const_iterator rep = node->BestReps().begin();
+        //                                          rep != node->BestReps().end(); ++rep)
+        //    outfile.Printf(" %8i %8.3f", rep->first+1, rep->second);
+        //}
+      }
+    }
+    // END LINE
     outfile.Printf("\n");
     if (color<15) ++color;
   }

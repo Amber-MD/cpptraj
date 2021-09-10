@@ -8,6 +8,7 @@ class Cframes;
 class List;
 class Metric;
 class PairwiseMatrix; // TODO anything that needs this calcd outside here?
+class BestReps;
 /// Cluster output routines.
 class Output {
   public:
@@ -17,7 +18,8 @@ class Output {
     static int PrintSilhouettes(CpptrajFile&, List const&);
     static int Summary(CpptrajFile&, List const&, Algorithm const&, PairwiseMatrix const&,
                         bool, bool, Cframes const&);
-    static void Summary_Part(CpptrajFile&, unsigned int, Cframes const&, List const&);
+    static void Summary_Part(CpptrajFile&, unsigned int, Cframes const&, List const&,
+                             BestReps const&, PairwiseMatrix const&, Cframes const&);
   private:
     static unsigned int DetermineNameWidth(List const&);
 };
