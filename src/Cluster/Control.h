@@ -72,8 +72,10 @@ class Control {
 
     static Algorithm* AllocateAlgorithm(Algorithm::AType);
     int AllocateAlgorithm(ArgList&);    
-
+    /// Initialize clusters from Info file
     int ReadInfo(std::string const&);
+    /// Initialize clusters from cluster number vs time DataSet
+    int InitClustersFromSet(DataSet*);
 
     //int Common(ArgList&, DataSetList&, DataFileList&);
 

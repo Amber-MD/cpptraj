@@ -304,6 +304,7 @@ int Cpptraj::Cluster::Control::ReadInfo(std::string const& fname) {
     mprinterr("Error: No cluster info filename given.\n");
     return 1;
   }
+  mprintf("\tReading clusters from info file '%s'\n", fname.c_str());
   BufferedLine infile;
   if (infile.OpenFileRead( fname )) return Err(0);
   const char* ptr = infile.Line();
@@ -344,6 +345,43 @@ int Cpptraj::Cluster::Control::ReadInfo(std::string const& fname) {
     ptr = infile.Line();
   }
   infile.CloseFile();
+  return 0;
+}
+
+/** Set up clusters from a cluster number vs time data set. */
+int Cpptraj::Cluster::Control::InitClustersFromSet(DataSet* cnvt) {
+  if (cnvt == 0) {
+    mprinterr("Internal Error: InitClustersFromSet: Null set.\n");
+    return 1;
+  }
+  mprintf("\tReading clusters from cluster num vs time set '%s'\n", cnvt->legend());
+  if (cnvt->Group() != DataSet::SCALAR_1D) {
+    mprinterr("Error: Set '%s' is not a scalar 1D set.\n", cnvt->legend());
+    return 1;
+  }
+  if (cnvt->Type() != DataSet::INTEGER) {
+    mprintf("Warning: Set '%s' is not an integer set. Floating point values\n"
+            "Warning:  will be rounded to integer values.\n", cnvt->legend());
+  }
+  // Hold frames for each cluster
+  std::vector<Cframes> clusterFrames;
+  DataSet_1D const& ds = static_cast<DataSet_1D const&>( *cnvt );
+  for (unsigned int idx = 0; idx != cnvt->Size(); idx++)
+  {
+    int cnum = ds.Dval(idx);
+    if (cnum > -1) {
+      if (cnum >= (int)clusterFrames.size()) {
+        while ((int)clusterFrames.size() <= cnum)
+          clusterFrames.push_back( Cframes() );
+      }
+      clusterFrames[cnum].push_back( (int)idx );
+    }
+  }
+  int clusterNum = 0;
+  for (std::vector<Cframes>::const_iterator frames = clusterFrames.begin();
+                                            frames != clusterFrames.end();
+                                          ++frames, ++clusterNum)
+    clusters_.AddCluster( Node(metric_, *frames, clusterNum) );
   return 0;
 }
 
@@ -485,7 +523,23 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
   if (analyzeArgs.hasKey("readinfo") ||
       analyzeArgs.hasKey("readtxt"))
   {
-    if (ReadInfo( analyzeArgs.GetStringKey("infofile") )) return 1;
+    std::string iname = analyzeArgs.GetStringKey("infofile");
+    if (!iname.empty()) {
+      if (ReadInfo( iname )) return 1;
+    } else {
+      iname = analyzeArgs.GetStringKey("cnvtset");
+      if (!iname.empty()) {
+        DataSet* cnvt = DSL.GetDataSet( iname );
+        if (cnvt == 0) {
+          mprinterr("Error: Input cluster num vs time set '%s' not found.\n", iname.c_str());
+          return 1;
+        }
+        if (InitClustersFromSet( cnvt )) return 1;
+      } else {
+        mprinterr("Error: Must specify either 'infofile' or 'cnvtset' with 'readinfo'\n");
+        return 1;
+      }
+    }
   }
 
   if (results_ != 0) {
@@ -702,7 +756,8 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
 /** Print help text to STDOUT. */
 void Cpptraj::Cluster::Control::Help() {
   mprintf("\t[<name>] [<Algorithm>] [<Metric>] [<Pairwise>] [<Sieve>] [<BestRep>]\n"
-          "\t[<Output>] [<Coord. Output>] [<Graph>] [readinfo infofile <info file>]\n");
+          "\t[<Output>] [<Coord. Output>] [<Graph>]\n"
+          "\t[readinfo {infofile <info file> | cnvtset <dataset>}]\n");
   mprintf("  Algorithm Args: [%s]\n", AlgorithmArgs_);
   Algorithm_HierAgglo::Help();
   Algorithm_DBscan::Help();
