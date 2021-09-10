@@ -105,7 +105,7 @@ int Cpptraj::Cluster::Algorithm_Kmeans::DoClustering(List& clusters,
     if (clusters.Nclusters() > nclusters_) {
       // We currently have more clusters than target clusters.
       // Keep the top nclusters_ clusters and break up the rest.
-      mprintf("\t# of input clusters %i larger than target # clusters %i.\n"
+      mprintf("\tNumber of input clusters %i larger than target number of clusters %i.\n"
               "\tRemoving low-population clusters.\n", clusters.Nclusters(),
               nclusters_);
       clusters.Sort();
@@ -118,7 +118,7 @@ int Cpptraj::Cluster::Algorithm_Kmeans::DoClustering(List& clusters,
     } else if (clusters.Nclusters() < nclusters_) {
       // We have fewer clusters than target clusters.
       // Try to find new seeds to make up the difference.
-      mprintf("\t# of input clusters %i smaller than target # clusters %i.\n",
+      mprintf("\tNumber of input clusters %i smaller than target number of clusters %i.\n",
               clusters.Nclusters(), nclusters_);
       mprintf("\tWill attempt to find seeds from existing clusters.\n");
       Iarray Seeds = FindSeedsFromClusters(clusters, pmatrix);
