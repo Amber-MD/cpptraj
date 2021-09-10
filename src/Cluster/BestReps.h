@@ -30,6 +30,8 @@ class BestReps {
     /// Set given cluster node with best representative frames/scores in reps
     static inline void SetBestRepFrame(Node& node, RepMap const&);
 
+    /// Find best rep frames in node by shortest distance to all other frames.
+    int FindBestRepFrames_CumulativeDist(Node&, PairwiseMatrix const&) const;
     /// Find best representative frames by shortest distance to all other frames.
     int FindBestRepFrames_CumulativeDist(List&, PairwiseMatrix const&) const;
     /// Find best representative frames by shortest distance, ignoring sieved frames.
