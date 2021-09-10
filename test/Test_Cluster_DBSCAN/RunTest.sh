@@ -20,6 +20,7 @@ create rvc.dat R0 C0
 EOF
 RunCpptraj "DBSCAN test"
 DoTest rvc.dat.save rvc.dat
+DoTest info.dat.save info.dat
 
 # Test 4-dist plot generation 
 cat > dbscan.in <<EOF
