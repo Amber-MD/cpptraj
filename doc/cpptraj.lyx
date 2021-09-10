@@ -40217,7 +40217,11 @@ cluster
 
 \begin_layout LyX-Code
 	[<Output>] [<Coord.
- Output>] [<Graph>] [readinfo infofile <info file>]
+ Output>] [<Graph>]
+\end_layout
+
+\begin_layout LyX-Code
+    [readinfo {infofile <info file> | cnvtset <dataset>}]
 \end_layout
 
 \begin_layout LyX-Code
@@ -40396,12 +40400,9 @@ es and coordiante output will be disabled.
 \end_layout
 
 \begin_layout Description
-[readinfo] Read in previous cluster results from 
-\series bold
-info
-\series default
-.
- Clustering will continue if possible (can be used to restart clustering).
+[readinfo] Use previous cluster results to set up initial clusters.
+ Clustering will continue if possible (i.e.
+ this can be used to restart clustering).
 \begin_inset Separator latexpar
 \end_inset
 
@@ -40414,7 +40415,19 @@ infofile
 \begin_inset space ~
 \end_inset
 
-<file> Cluster info file to read.
+<file> Cluster 
+\series bold
+info
+\series default
+ file to read.
+\end_layout
+
+\begin_layout Description
+cnvtset
+\begin_inset space ~
+\end_inset
+
+<dataset> Cluster number vs time data set to use.
 \end_layout
 
 \end_deeper
@@ -40830,7 +40843,8 @@ Pairwise Distance Matrix Options:
 \begin_inset space ~
 \end_inset
 
-<name>] DataSet/File to use for loading/saving pairwise distances.
+<name>] Pairwise cache DataSet/File name to use for loading/saving pairwise
+ distances.
 \end_layout
 
 \begin_layout Description
@@ -40839,9 +40853,9 @@ Pairwise Distance Matrix Options:
 \end_layout
 
 \begin_layout Description
-[loadpairdist] Load pairwise distances from file/DataSet 
+[loadpairdist] Load pairwise distances from file specified by 
 \series bold
-<name>
+pairdist
 \series default
  (CpptrajPairDist if 
 \series bold
@@ -40851,9 +40865,9 @@ pairdist
 \end_layout
 
 \begin_layout Description
-[savepairdist] Save pairwise distances from file/DataSet 
+[savepairdist] Save pairwise distances to file specified by 
 \series bold
-<name>
+pairdist
 \series default
  (CpptrajPairDist if 
 \series bold
