@@ -17,7 +17,7 @@ loadcrd ../tz2.crd name MyCrd
 # Cluster to 3 clusters
 cluster crdset MyCrd C1 :2-10 hieragglo clusters 3 info C1.info.dat savepairdist pairdist PW
 # Cluster to 8 clusters, use existing PW
-cluster crdset MyCrd C2 :2-10 hieragglo clusters 8 info C2.info.dat loadpairdist pairdist PW
+cluster crdset MyCrd C2 :2-10 hieragglo clusters 8 info C2.info.dat pairdist PW
 EOF
 RunCpptraj "Cluster restart test, part 1"
 
