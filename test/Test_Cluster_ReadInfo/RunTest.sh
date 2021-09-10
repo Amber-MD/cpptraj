@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 # Clean
-CleanFiles cluster.in C?.info.dat PW
+CleanFiles cluster.in C?.info.dat PW C2.dat C??.info.dat
 
 TESTNAME='Cluster read info tests'
 #Requires netcdf
@@ -18,7 +18,7 @@ loadcrd ../tz2.crd name MyCrd
 # Cluster to 3 clusters
 cluster crdset MyCrd C1 :2-10 hieragglo clusters 3 info C1.info.dat savepairdist pairdist PW
 # Cluster to 8 clusters, use existing PW
-cluster crdset MyCrd C2 :2-10 hieragglo clusters 8 info C2.info.dat pairdist PW
+cluster crdset MyCrd C2 :2-10 hieragglo clusters 8 info C2.info.dat pairdist PW out C2.dat
 EOF
 RunCpptraj "Hierarchical aggolmerative cluster restart test, part 1"
 
@@ -32,9 +32,17 @@ cluster crdset MyCrd C3 :2-10 hieragglo clusters 3 \
   readinfo infofile C2.info.dat \
   info C3.info.dat \
   loadpairdist pairdist PW
+
+# Same but use cnumvime set
+readdata C2.dat name MyClusters
+cluster crdset MyCrd C10 :2-10 hieragglo clusters 3 \
+  readinfo cnvtset MyClusters \
+  info C10.info.dat \
+  pairdist PW
 EOF
 RunCpptraj "Hierarchical agglomerative cluster restart test, part 2"
 DoTest C1.info.dat C3.info.dat
+DoTest C1.info.dat C10.info.dat
 
 # K-means
 cat > cluster.in <<EOF
