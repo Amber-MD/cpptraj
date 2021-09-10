@@ -116,9 +116,25 @@ int Cpptraj::Cluster::Algorithm_Kmeans::DoClustering(List& clusters,
       }
       mprintf("\tNow %i existing clusters.\n", clusters.Nclusters());
     } else if (clusters.Nclusters() < nclusters_) {
+      // We have fewer clusters than target clusters.
+      // Try to find new seeds to make up the difference.
       mprintf("\t# of input clusters %i smaller than target # clusters %i.\n",
               clusters.Nclusters(), nclusters_);
-      return 1; // FIXME
+      mprintf("\tWill attempt to find seeds from existing clusters.\n");
+      Iarray Seeds = FindSeedsFromClusters(clusters, pmatrix);
+      if (Seeds.empty()) {
+        mprinterr("Error: Finding seeds from existing clusters failed.\n");
+        return 1;
+      }
+      // Add the seed clusters
+      for (Iarray::const_iterator seed = Seeds.begin(); seed != Seeds.end(); ++seed)
+      {
+        // A centroid is created for new clusters.
+        clusters.AddCluster( Node(pmatrix.MetricPtr(), Cframes(1, *seed), clusters.Nclusters()) );
+        // NOTE: No need to calc best rep frame, only 1 frame.
+        if (debug_ > 0)
+          mprintf("Put frame %i in cluster %i.\n", *seed, clusters.back().Num());
+      }
     }
 
     // Ensure centroids are up to date.
@@ -252,17 +268,19 @@ int Cpptraj::Cluster::Algorithm_Kmeans::DoClustering(List& clusters,
 // FindSeedsFromClusters
 /** Given current clusters, find points that are far away from centroids
   * that can be used as new cluster seeds.
+  * \return Array containing frame numbers to be used as seeds.
   */
-int Cpptraj::Cluster::Algorithm_Kmeans::FindSeedsFromClusters(List& clusters,
-                                                              Cframes const& FramesToCluster,
-                                                              PairwiseMatrix const& pmatrix)
+Cpptraj::Cluster::Algorithm_Kmeans::Iarray
+  Cpptraj::Cluster::Algorithm_Kmeans::FindSeedsFromClusters(List& clusters,
+                                                            PairwiseMatrix const& pmatrix)
+const
 {
   int nSeedsToFind = nclusters_ - clusters.Nclusters();
   mprintf("\tTarget # seeds= %i\n", nSeedsToFind);
-  if (nSeedsToFind < 1) return 0;
+  if (nSeedsToFind < 1) return Iarray();
   // Ensure centroids are up to date
   clusters.UpdateCentroids( pmatrix.MetricPtr() );
-  SeedIndices_.resize( nSeedsToFind, -1 );
+  Iarray Seeds( nSeedsToFind, -1 );
   int nSeedsFound = 0;
   while (nSeedsFound < nSeedsToFind)
   {
@@ -302,17 +320,38 @@ int Cpptraj::Cluster::Algorithm_Kmeans::FindSeedsFromClusters(List& clusters,
         }
       }
       maxclust->RemoveFrameUpdateCentroid( pmatrix.MetricPtr(), MaxFrame[maxi] );
-      SeedIndices_[nSeedsFound] = MaxFrame[maxi];
+      Seeds[nSeedsFound++] = MaxFrame[maxi];
       mprintf("DEBUG: Frame %i from cluster %i (%f) chosen as first seed.\n",
               MaxFrame[maxi], maxi, MaxDst[maxi]);
     } else {
-    // Out of the list of farthest points, choose the one with the largest
-    // cumulative distance to existing seeds.
+      // Out of the list of farthest points, choose the one with the largest
+      // cumulative distance to existing seeds.
+      std::vector<double> cumulativeDist;
+      int maxi = -1;
+      double maxd = 0;
+      List::cluster_it maxclust = clusters.end();
+      int idx = 0;
+      for (List::cluster_it node = clusters.begin(); node != clusters.end(); ++node, idx++)
+      {
+        double cdist = 0;
+        int frm1 = MaxFrame[idx];
+        for (int is = 0; is < nSeedsFound; is++)
+          cdist += pmatrix.Frame_Distance(frm1, Seeds[is]);
+        if (cdist > maxd) {
+          maxd = cdist;
+          maxi = idx;
+          maxclust = node;
+        }
+      }
+      mprintf("DEBUG: Frame %i from cluster %i (%f, %f) chosen as seed %i.\n",
+              MaxFrame[maxi], maxi, MaxDst[maxi], maxd, nSeedsFound);
+      maxclust->RemoveFrameUpdateCentroid( pmatrix.MetricPtr(), MaxFrame[maxi] );
+      Seeds[nSeedsFound++] = MaxFrame[maxi];
     }
 
   }
 
-  return 0;
+  return Seeds;
 }
 
 // FindKmeansSeeds()

@@ -19,14 +19,14 @@ class Algorithm_Kmeans : public Algorithm {
     typedef std::vector<int> Iarray;
     enum KmeansModeType { SEQUENTIAL, RANDOM };
 
-    int FindSeedsFromClusters(List&, Cframes const&, PairwiseMatrix const&);
+    Iarray FindSeedsFromClusters(List&, PairwiseMatrix const&) const;
     int FindKmeansSeeds(Cframes const&, PairwiseMatrix const&);
 
     Random_Number RN_;
     int nclusters_; ///< Target number of clusters.
     int kseed_;
     int maxIt_;
-    Iarray SeedIndices_;
+    Iarray SeedIndices_; ///< Hold indices into framesToCluster of seed frames
     KmeansModeType mode_;
     bool clusterToClusterCentroid_;
 };
