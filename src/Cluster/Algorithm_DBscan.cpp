@@ -113,9 +113,11 @@ int Cpptraj::Cluster::Algorithm_DBscan::DoClustering(List& clusters,
           Status_[it-framesToCluster.begin()] = node->Num();
       }
     }
-    mprintf("DEBUG: Status based on existing clusters:\n");
-    for (Iarray::const_iterator stat = Status_.begin(); stat != Status_.end(); ++stat)
-      mprintf("\t%10li %i\n", stat-Status_.begin(), *stat);
+    if (debug_ > 0) {
+      mprintf("DEBUG: Status based on existing clusters:\n");
+      for (Iarray::const_iterator stat = Status_.begin(); stat != Status_.end(); ++stat)
+        mprintf("\t%10li %i\n", stat-Status_.begin(), *stat);
+    }
     // Blow away existing clusters
     clusters.Clear();
   }

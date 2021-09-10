@@ -275,6 +275,8 @@ Cpptraj::Cluster::Algorithm_Kmeans::Iarray
                                                             PairwiseMatrix const& pmatrix)
 const
 {
+  // TODO change algorithm to do normal seed choice, then pick seeds that are
+  // far away from existing centroids.
   int nSeedsToFind = nclusters_ - clusters.Nclusters();
   mprintf("\tTarget # seeds= %i\n", nSeedsToFind);
   if (nSeedsToFind < 1) return Iarray();
@@ -300,8 +302,9 @@ const
           maxframe = *frm;
         }
       }
-      mprintf("DEBUG: seed %i maxdist= %f maxframe= %i\n",
-              nSeedsFound, maxdist, maxframe);
+      if (debug_ > 0)
+        mprintf("DEBUG: cluster %i seed %i maxdist= %f maxframe= %i\n",
+                node->Num(), nSeedsFound, maxdist, maxframe);
       MaxDst.push_back( maxdist );
       MaxFrame.push_back( maxframe );
     }
@@ -321,8 +324,9 @@ const
       }
       maxclust->RemoveFrameUpdateCentroid( pmatrix.MetricPtr(), MaxFrame[maxi] );
       Seeds[nSeedsFound++] = MaxFrame[maxi];
-      mprintf("DEBUG: Frame %i from cluster %i (%f) chosen as first seed.\n",
-              MaxFrame[maxi], maxi, MaxDst[maxi]);
+      if (debug_ > 0)
+        mprintf("DEBUG: Frame %i from cluster %i (%f) chosen as first seed.\n",
+                MaxFrame[maxi], maxi, MaxDst[maxi]);
     } else {
       // Out of the list of farthest points, choose the one with the largest
       // cumulative distance to existing seeds.
@@ -343,8 +347,9 @@ const
           maxclust = node;
         }
       }
-      mprintf("DEBUG: Frame %i from cluster %i (%f, %f) chosen as seed %i.\n",
-              MaxFrame[maxi], maxi, MaxDst[maxi], maxd, nSeedsFound);
+      if (debug_ > 0)
+        mprintf("DEBUG: Frame %i from cluster %i (%f, %f) chosen as seed %i.\n",
+                MaxFrame[maxi], maxi, MaxDst[maxi], maxd, nSeedsFound);
       maxclust->RemoveFrameUpdateCentroid( pmatrix.MetricPtr(), MaxFrame[maxi] );
       Seeds[nSeedsFound++] = MaxFrame[maxi];
     }
