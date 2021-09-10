@@ -53,14 +53,11 @@ int Cpptraj::Cluster::BestReps::InitBestReps(RepMethodType typeIn, int nToSaveIn
 }
 
 /** Print best reps to stdout. */
-void Cpptraj::Cluster::BestReps::PrintBestReps(List& clusters) {
-  for (List::cluster_iterator node = clusters.begin(); node != clusters.end(); ++node)
-  {
-    mprintf("DEBUG: Cluster %i best reps:\n", node->Num());
-    for (Node::RepPairArray::const_iterator it = node->BestReps().begin();
-                                            it != node->BestReps().end(); ++it)
-      mprintf("\t%i (%g)\n", it->second, it->first);
-  }
+void Cpptraj::Cluster::BestReps::PrintBestReps(Node const& node) {
+  mprintf("DEBUG: Cluster %i best reps:\n", node.Num());
+  for (Node::RepPairArray::const_iterator it = node.BestReps().begin();
+                                          it != node.BestReps().end(); ++it)
+    mprintf("\t%i (%g)\n", it->second, it->first);
 }
 
 /** Find best representative frames for each cluster. */
@@ -88,8 +85,10 @@ const
   }
 
   // DEBUG
-  if (debug_ > 0)
-    PrintBestReps(clusters);
+  if (debug_ > 0) {
+    for (List::cluster_iterator node = clusters.begin(); node != clusters.end(); ++node)
+      PrintBestReps(*node);
+  }
 
   return err;
 }

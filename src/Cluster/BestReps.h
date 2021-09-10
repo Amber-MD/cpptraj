@@ -23,7 +23,7 @@ class BestReps {
     int FindBestRepFrames(Node&, PairwiseMatrix const&, Cframes const&) const;
   private:
     /// Print best reps to stdout
-    static void PrintBestReps(List&);
+    static void PrintBestReps(Node const&);
 
     /// Used to pair representative score with frame number.
     typedef std::pair<double, int> RepPair;
