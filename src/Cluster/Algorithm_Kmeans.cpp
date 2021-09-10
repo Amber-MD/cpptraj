@@ -85,7 +85,7 @@ int Cpptraj::Cluster::Algorithm_Kmeans::DoClustering(List& clusters,
 
   int startIteration = 0;
   if (clusters.empty()) {
-    // Determine seeds
+    // Determine seeds TODO have FindKmeansSeeds return Iarray with frame #s?
     FindKmeansSeeds( framesToCluster, pmatrix );
     // Add the seed clusters
     for (Iarray::const_iterator seedIdx = SeedIndices_.begin();
