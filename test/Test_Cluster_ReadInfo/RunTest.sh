@@ -77,6 +77,29 @@ EOF
 RunCpptraj "K-means cluster restart, 3 to 8 clusters."
 DoTest C7.info.dat.save C7.info.dat
 
+# DBscan
+cat > cluster.in <<EOF
+noprogress
+parm ../tz2.parm7
+loadcrd ../tz2.crd name MyCrd
+
+cluster crdset MyCrd C8 @CA dbscan epsilon 1.0 minpoints 5 info C8.info.dat \
+  pairdist PW.CA savepairdist
+EOF
+RunCpptraj "DBscan cluster restart, part 1"
+
+cat > cluster.in <<EOF
+noprogress
+parm ../tz2.parm7
+loadcrd ../tz2.crd name MyCrd
+
+cluster crdset MyCrd C9 @CA dbscan epsilon 1.7 minpoints 5 info C9.info.dat \
+  readinfo infofile C8.info.dat \
+  pairdist PW.CA loadpairdist
+EOF
+RunCpptraj "DBscan cluster restart, part 2"
+DoTest C9.info.dat.save C9.info.dat
+
 EndTest
 
 exit 0
