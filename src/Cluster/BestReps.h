@@ -19,7 +19,12 @@ class BestReps {
     int InitBestReps(RepMethodType, int, int);
     /// Find best rep frames for each cluster in given list
     int FindBestRepFrames(List&, PairwiseMatrix const&, Cframes const&) const;
+    /// Find the best rep frames for given node
+    int FindBestRepFrames(Node&, PairwiseMatrix const&, Cframes const&) const;
   private:
+    /// Print best reps to stdout
+    static void PrintBestReps(List&);
+
     /// Used to pair representative score with frame number.
     typedef std::pair<double, int> RepPair;
     /// Used to hold pairs of representative scores to frames.
