@@ -83,6 +83,7 @@ int Cpptraj::Cluster::Algorithm_Kmeans::DoClustering(List& clusters,
   for (int processIdx = 0; processIdx != pointCount; processIdx++)
     PointIndices.push_back( processIdx );
 
+  int startIteration = 0;
   if (clusters.empty()) {
     // Determine seeds
     FindKmeansSeeds( framesToCluster, pmatrix );
@@ -99,14 +100,37 @@ int Cpptraj::Cluster::Algorithm_Kmeans::DoClustering(List& clusters,
                 seedFrame, clusters.back().Num(), *seedIdx);
     }
   } else {
+    // Clusters already exist.
+    mprintf("\t%i existing clusters.\n", clusters.Nclusters());
+    if (clusters.Nclusters() > nclusters_) {
+      // We currently have more clusters than target clusters.
+      // Keep the top nclusters_ clusters and break up the rest.
+      mprintf("\t# of input clusters %i larger than target # clusters %i.\n"
+              "\tRemoving low-population clusters.\n", clusters.Nclusters(),
+              nclusters_);
+      clusters.Sort();
+      while (clusters.Nclusters() > nclusters_) {
+        List::cluster_it lastCluster = clusters.end();
+        --lastCluster;
+        clusters.RemoveCluster( lastCluster );
+      }
+      mprintf("\tNow %i existing clusters.\n", clusters.Nclusters());
+    } else if (clusters.Nclusters() < nclusters_) {
+      mprintf("\t# of input clusters %i smaller than target # clusters %i.\n",
+              clusters.Nclusters(), nclusters_);
+      return 1; // FIXME
+    }
+
     // Ensure centroids are up to date.
     clusters.UpdateCentroids( pmatrix.MetricPtr() );
+    // Since clusters already exist, go beyond the initial pass.
+    startIteration = 1;
   }
 
   // Assign points in 3 passes. If a point looked like it belonged to cluster A
   // at first, but then we added many other points and altered our cluster 
   // shapes, its possible that we will want to reassign it to cluster B.
-  for (int iteration = 0; iteration != maxIt_; iteration++)
+  for (int iteration = startIteration; iteration != maxIt_; iteration++)
   {
     if (mode_ == RANDOM) {
       RN_.ShufflePoints( PointIndices );
@@ -200,14 +224,15 @@ int Cpptraj::Cluster::Algorithm_Kmeans::DoClustering(List& clusters,
                       pointFrame, oldClusterIdx, closestCluster->Num(), closestDist);
           } else {
             if (debug_ > 0)
-              mprintf("Frame %i staying in cluster %i\n", pointFrame, closestCluster->Num());
+              mprintf("Frame %i staying in cluster %i (dist= %f)\n",
+                      pointFrame, closestCluster->Num(), closestDist);
           }
-          if (clusterToClusterCentroid_) {
+          //if (clusterToClusterCentroid_) {
             //if (oldBestRep != NewBestRep) {
             //    C1->AlignToBestRep( pmatrix.MetricPtr() ); // FIXME: Only relevant for COORDS dist?
             //  C1->CalculateCentroid( pmatrix.MetricPtr() ); // FIXME: Seems unnessecary to align prior
             //}
-          }
+          //}
         }
 //      }
     } // END loop over points to cluster
