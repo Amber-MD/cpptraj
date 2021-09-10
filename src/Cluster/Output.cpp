@@ -362,15 +362,15 @@ void Cpptraj::Cluster::Output::Summary_Part(CpptrajFile& outfile,
     outfile.Printf(" %7s%u", "Frac", pm);
   for (unsigned int pm = 1; pm <= partMax.size(); ++pm)
     outfile.Printf(" %7s%u", "First", pm);
+  // Best reps header
+  for (unsigned int pm = 1; pm <= partMax.size(); ++pm)
+    outfile.Printf(" %7s%u", "Rep", pm);
   // Determine if cluster names will be output.
   unsigned int nWidth = DetermineNameWidth(clusters);
   if (nWidth > 0) {
     if (nWidth < 8) nWidth = 8;
     outfile.Printf(" %*s %6s", nWidth, "Name", "RMS");
   }
-  // Best reps header
-  for (unsigned int pm = 1; pm <= partMax.size(); ++pm)
-    outfile.Printf(" %7s%u", "Rep", pm);
   // END HEADER
   outfile.Printf("\n");
 
@@ -414,8 +414,6 @@ void Cpptraj::Cluster::Output::Summary_Part(CpptrajFile& outfile,
     for (std::vector<int>::const_iterator ff = firstFrame.begin();
                                           ff != firstFrame.end(); ++ff)
       outfile.Printf(" %8i", *ff);
-    if (nWidth > 0)
-      outfile.Printf(" %*s %6.2f", nWidth, node->Cname().c_str(), node->RefRms());
     // Print best reps for each part.
     // TODO handle case when clusters dont have same number best reps
     for (std::vector<Node>::iterator node = clusterPart.begin();
@@ -435,6 +433,9 @@ void Cpptraj::Cluster::Output::Summary_Part(CpptrajFile& outfile,
         //}
       }
     }
+    // Cluster name from assignrefs
+    if (nWidth > 0)
+      outfile.Printf(" %*s %6.2f", nWidth, node->Cname().c_str(), node->RefRms());
     // END LINE
     outfile.Printf("\n");
     if (color<15) ++color;
