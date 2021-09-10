@@ -34,8 +34,12 @@ class BestReps {
     int FindBestRepFrames_CumulativeDist(Node&, PairwiseMatrix const&) const;
     /// Find best representative frames by shortest distance to all other frames.
     int FindBestRepFrames_CumulativeDist(List&, PairwiseMatrix const&) const;
+    /// Find best rep frames in node by shortest distance, ignoring sieved frames.
+    int FindBestRepFrames_NoSieve_CumulativeDist(Node&, PairwiseMatrix const&, Cframes const&) const;
     /// Find best representative frames by shortest distance, ignoring sieved frames.
     int FindBestRepFrames_NoSieve_CumulativeDist(List&, PairwiseMatrix const&, Cframes const&) const;
+    /// Find best rep frames in node by shortest distance to centroid.
+    int FindBestRepFrames_Centroid(Node&, PairwiseMatrix const&) const;
     /// Find best representative frames by shortest distance to centroid.
     int FindBestRepFrames_Centroid(List&, PairwiseMatrix const&) const;
 
