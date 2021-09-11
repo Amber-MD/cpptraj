@@ -169,7 +169,7 @@ int Cpptraj::Cluster::Algorithm_Kmeans::DoClustering(List& clusters,
     {
       if (debug_ < 1) progress.Update( prog );
       int oldClusterIdx = -1;
-//      if ( iteration != 0 || mode_ != SEQUENTIAL) // FIXME: Should this really happen for RANDOM
+//      if ( iteration != 0 || mode_ != SEQUENTIAL)
 //      {
         int pointFrame = framesToCluster[ *pointIdx ];
         if (debug_ > 0)
@@ -184,7 +184,7 @@ int Cpptraj::Cluster::Algorithm_Kmeans::DoClustering(List& clusters,
               // If this point is alone in its cluster its in the right place
               if (C1->Nframes() == 1) {
                 pointWasYanked = false;
-                continue; // FIXME: should this be a break?
+                break;
               }
               //oldBestRep = C1->BestRepFrame(); 
               oldClusterIdx = C1->Num();
@@ -196,8 +196,8 @@ int Cpptraj::Cluster::Algorithm_Kmeans::DoClustering(List& clusters,
                 mprintf("Remove Frame %i from cluster %i\n", pointFrame, C1->Num());
               //if (clusterToClusterCentroid_) {
               //  if (oldBestRep != NewBestRep)
-              //    C1->AlignToBestRep( pmatrix.MetricPtr() ); // FIXME: Only relevant for COORDS dist?
-              //  C1->CalculateCentroid( pmatrix.MetricPtr() ); // FIXME: Seems unnessecary to align prior
+              //    C1->AlignToBestRep( pmatrix.MetricPtr() ); // Only relevant for COORDS dist?
+              //  C1->CalculateCentroid( pmatrix.MetricPtr() ); // TODO Seems unnessecary to align prior
               //} 
             }
           }
@@ -210,7 +210,7 @@ int Cpptraj::Cluster::Algorithm_Kmeans::DoClustering(List& clusters,
               if (debug_ > 0)
                 mprintf("Frame %i was already used to seed cluster %i\n", 
                         pointFrame, C1->Num());
-              continue; // FIXME break?
+              break;
             }
           }
         }
@@ -245,8 +245,8 @@ int Cpptraj::Cluster::Algorithm_Kmeans::DoClustering(List& clusters,
           }
           //if (clusterToClusterCentroid_) {
             //if (oldBestRep != NewBestRep) {
-            //    C1->AlignToBestRep( pmatrix.MetricPtr() ); // FIXME: Only relevant for COORDS dist?
-            //  C1->CalculateCentroid( pmatrix.MetricPtr() ); // FIXME: Seems unnessecary to align prior
+            //    C1->AlignToBestRep( pmatrix.MetricPtr() ); // Only relevant for COORDS dist?
+            //  C1->CalculateCentroid( pmatrix.MetricPtr() ); // TODO Seems unnessecary to align prior
             //}
           //}
         }
@@ -259,7 +259,6 @@ int Cpptraj::Cluster::Algorithm_Kmeans::DoClustering(List& clusters,
       mprintf("\tK-means round %i: %i points changed cluster assignment.\n", iteration, Nchanged);
   } // END k-means iterations
   // Remove any empty clusters
-  // FIXME: Will there ever be empty clusters?
   clusters.RemoveEmptyClusters();
   // NOTE in PTRAJ here align all frames to best rep 
   return 0;
