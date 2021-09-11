@@ -6,7 +6,6 @@ namespace Cpptraj {
 namespace Cluster {
 class List;
 class Metric;
-//FIXME Should this be allocated and kept inside the Metric?
 /// Abstract base class for handling results specific to input data type.
 class Results {
   public:

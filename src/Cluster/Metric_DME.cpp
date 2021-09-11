@@ -91,8 +91,8 @@ Cpptraj::Cluster::Centroid* Cpptraj::Cluster::Metric_DME::NewCentroid( Cframes c
 }
 
 // Subtract Notes
-// FIXME: Handle single frame
-// FIXME: Check if frame is in cluster?
+// TODO: Handle single frame
+// TODO: Check if frame is in cluster?
 void Cpptraj::Cluster::Metric_DME::FrameOpCentroid(int frame, Centroid* centIn, double oldSize,
                                       CentOpType OP)
 {
