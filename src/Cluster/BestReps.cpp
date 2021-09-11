@@ -57,7 +57,7 @@ void Cpptraj::Cluster::BestReps::PrintBestReps(Node const& node) {
   mprintf("DEBUG: Cluster %i best reps:\n", node.Num());
   for (Node::RepPairArray::const_iterator it = node.BestReps().begin();
                                           it != node.BestReps().end(); ++it)
-    mprintf("\t%i (%g)\n", it->second, it->first);
+    mprintf("\t%i (%g)\n", it->first, it->second);
 }
 
 /** Find best representative frames for each cluster. */
