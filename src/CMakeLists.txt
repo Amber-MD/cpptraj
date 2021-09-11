@@ -114,7 +114,7 @@ target_include_directories(cpptraj_common_obj PRIVATE $<TARGET_PROPERTY:xdrfile,
 
 add_executable(cpptraj $<TARGET_OBJECTS:cpptraj_common_obj> ${SOURCES})
 
-target_link_libraries(cpptraj netcdf netlib xdrfile cpptraj_cluster)
+target_link_libraries(cpptraj cpptraj_cluster netcdf netlib xdrfile)
 
 install(TARGETS cpptraj DESTINATION ${BINDIR})
 #------------------------------------------------------------------------------------------
@@ -123,7 +123,7 @@ install(TARGETS cpptraj DESTINATION ${BINDIR})
 add_library(libcpptraj $<TARGET_OBJECTS:cpptraj_common_obj> ${LIBCPPTRAJ_OBJECTS})
 set_property(TARGET libcpptraj PROPERTY COMPILE_DEFINITIONS LIBCPPTRAJ)
 
-target_link_libraries(libcpptraj netlib netcdf xdrfile cpptraj_cluster)
+target_link_libraries(libcpptraj cpptraj_cluster netlib netcdf xdrfile)
 remove_prefix(libcpptraj)
 install_libraries(libcpptraj)
 
