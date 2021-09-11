@@ -84,7 +84,7 @@ void DataSet_PairwiseCache::PrintCached() const {
       for (Cframes::const_iterator it2 = it1 + 1; it2 != FrameToIdx().end(); ++it2)
       {
         if (*it2 != -1)
-          mprintf("\t%zu %i %f\n", it1-FrameToIdx().begin()+1, it2-FrameToIdx().begin()+1,
+          mprintf("\t%li %li %f\n", it1-FrameToIdx().begin()+1, it2-FrameToIdx().begin()+1,
                   CachedDistance(*it1, *it2));
       }
     }
