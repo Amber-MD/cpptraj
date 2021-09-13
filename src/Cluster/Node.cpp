@@ -61,34 +61,6 @@ void Cpptraj::Cluster::Node::CalculateCentroid(MetricArray& Cdist) {
     Cdist.CalculateCentroid( centroids_, frameList_ );
 }
 
-/** Find the frame in the given cluster that is the best representative via
-  * having the lowest cumulative distance to every other point in the cluster.
-  * Should NOT be used if cluster contains sieved frames.
-  * \return best representative frame number, or -1 on error.
-  */
-/*
-int Cpptraj::Cluster::Node::SetBestRep_CumulativeDist(DataSet_Cmatrix const& FrameDistancesIn) {
-  double mindist = DBL_MAX;
-  int minframe = -1;
-  for (frame_iterator frm1 = frameList_.begin(); frm1 != frameList_.end(); ++frm1)
-  {
-    double cdist = 0.0;
-    for (frame_iterator frm2 = frameList_.begin(); frm2 != frameList_.end(); ++frm2)
-    {
-      if (frm1 != frm2)
-        cdist += FrameDistancesIn.GetFdist(*frm1, *frm2);
-    }
-    if (cdist < mindist) {
-      mindist = cdist;
-      minframe = *frm1;
-    }
-  }
-  if (minframe == -1) 
-    return -1;
-  repFrame_ = minframe;
-  return minframe;
-}*/
-
 /** Calculate the eccentricity of this cluster (i.e. the largest distance
   * between any two points in the cluster).
   */

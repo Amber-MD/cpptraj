@@ -18,7 +18,7 @@ class Node {
   public:
     Node();
     ~Node();
-    // NOTE: Taking a pointer to Metric here instead of a reference allows
+    // NOTE: Taking a non-const reference to Metric here allows
     //       PairwiseMatrix to be passed in as const to routines while still
     //       allowing Metric to be used. Metric needs to be non-const because
     //       things like calculating RMSD modify Metric itself to avoid
