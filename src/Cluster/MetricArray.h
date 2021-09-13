@@ -40,15 +40,24 @@ class MetricArray {
     void NewCentroid(CentroidArray&, Cframes const&);
     /// Calculate centroids for each metric
     void CalculateCentroid(CentroidArray&, Cframes const&);
+    /// Update centroids by performing given operation between given frame and centroids.
+    void FrameOpCentroid(int, CentroidArray&, double, Metric::CentOpType);
   private:
     /// Clear array
     void Clear();
     /// Allocate metric of given type
     Metric* AllocateMetric(Metric::Type);
+    /// Manhattan distance
+    double Dist_Manhattan() const;
+    /// Euclidean distance
+    double Dist_Euclidean() const;
+    /// Distance based on type_
+    double DistCalc() const;
 
     std::vector<Metric*> metrics_; ///< Hold each Metric TODO deal with OpenMP
     std::vector<DataSet*> sets_;   ///< Sets corresponding to each Metric
     std::vector<double> weights_;  ///< Weight of each metric
+    std::vector<double> temp_;     ///< For calculations; hold distances from each metric.
     DistanceType type_;            ///< Type of distance calc to perform
     unsigned int ntotal_;          ///< Total number of points covered by any Metric
 };

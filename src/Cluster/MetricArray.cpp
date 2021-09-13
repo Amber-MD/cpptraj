@@ -1,4 +1,5 @@
 #include "MetricArray.h"
+#include <cmath> //sqrt
 #include "CentroidArray.h"
 #include "Metric.h"
 #include "../ArgList.h"
@@ -27,6 +28,7 @@ Cpptraj::Cluster::MetricArray::~MetricArray() {
 Cpptraj::Cluster::MetricArray::MetricArray(MetricArray const& rhs) :
   sets_(rhs.sets_),
   weights_(rhs.weights_),
+  temp_(rhs.temp_),
   type_(rhs.type_),
   ntotal_(rhs.ntotal_)
 {
@@ -46,6 +48,7 @@ Cpptraj::Cluster::MetricArray&
     metrics_.push_back( (*it)->Copy() );
   sets_ = rhs.sets_;
   weights_ = rhs.weights_;
+  temp_ = rhs.temp_;
   type_ = rhs.type_;
   ntotal_ = rhs.ntotal_;
   return *this;
@@ -57,6 +60,7 @@ void Cpptraj::Cluster::MetricArray::Clear() {
     delete *it;
   sets_.clear();
   weights_.clear();
+  temp_.clear();
 }
 
 /** /return Pointer to Metric of given type. */
@@ -183,6 +187,8 @@ int Cpptraj::Cluster::MetricArray::InitMetricArray(DataSetList const& dslIn, Arg
     // Default weights are 1
     weights_.assign(metrics_.size(), 1.0);
   }
+  // Temp space for calcs
+  temp_.assign(metrics_.size(), 0.0);
 
   return 0;
 }
@@ -217,6 +223,8 @@ int Cpptraj::Cluster::MetricArray::Setup() {
 
 /** Call the Info function for all metrics. */
 void Cpptraj::Cluster::MetricArray::Info() const {
+  static const char* DistanceTypeStr[] = { "Manhattan", "Euclidean" };
+  mprintf("\tUsing %s distance.\n", DistanceTypeStr[type_]);
   for (unsigned int idx = 0; idx != metrics_.size(); idx++)
   {
     mprintf("\tMetric %u for '%s', weight factor %g\n",
@@ -247,3 +255,46 @@ void Cpptraj::Cluster::MetricArray::CalculateCentroid(CentroidArray& centroids, 
   for (unsigned int idx = 0; idx != metrics_.size(); idx++)
     metrics_[idx]->CalculateCentroid( centroids[idx], framesIn );
 }
+
+/** Update centroids by performing given operation between given frame and centroids. */
+void Cpptraj::Cluster::MetricArray::FrameOpCentroid(int f1, CentroidArray& centroids,
+                                                    double oldSize, Metric::CentOpType OP)
+{
+  if (centroids.size() != metrics_.size()) {
+    mprinterr("Internal Error: MetricArray::FrameOpCentroid: centroids and metrics_ sizes do not match.\n");
+    return;
+  }
+  for (unsigned int idx = 0; idx != metrics_.size(); idx++)
+    metrics_[idx]->FrameOpCentroid( f1, centroids[idx], oldSize, OP );
+}
+
+/** Manhattan distance. */
+double Cpptraj::Cluster::MetricArray::Dist_Manhattan() const {
+  double dist = 0.0;
+  for (unsigned int idx = 0; idx != temp_.size(); idx++)
+    dist += (weights_[idx] * temp_[idx]);
+  return dist;
+}
+
+/** Euclidean distance. */
+double Cpptraj::Cluster::MetricArray::Dist_Euclidean() const {
+  double sumdist2 = 0.0;
+  for (unsigned int idx = 0; idx != temp_.size(); idx++) {
+    double dist2 = temp_[idx] * temp_[idx];
+    sumdist2 += (weights_[idx] * dist2);
+  }
+  return sqrt(sumdist2);
+} 
+
+/** Perform distance calc according to current type. */
+double Cpptraj::Cluster::MetricArray::DistCalc() const {
+  double dist = 0;
+  switch (type_) {
+    case MANHATTAN : dist = Dist_Manhattan(); break;
+    case EUCLID    : dist = Dist_Euclidean(); break;
+  }
+  return dist;
+}
+
+/** Calculate distance between given frame and centroids. */
+
