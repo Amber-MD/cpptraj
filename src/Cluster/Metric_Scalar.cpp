@@ -49,3 +49,44 @@ void Cpptraj::Cluster::Metric_Scalar::CalculateCentroid(Centroid* centIn, Cframe
     val += data_->Dval( *frm );
   ((Centroid_Num*)centIn)->SetCval( val / (double)cframesIn.size() );
 }
+
+/** \return New centroid from specified frames. */
+Cpptraj::Cluster::Centroid*
+  Cpptraj::Cluster::Metric_Scalar::NewCentroid(Cframes const& cframesIn)
+{
+  Centroid_Num* cent = new Centroid_Num();
+  CalculateCentroid(cent, cframesIn);
+  return cent;
+}
+
+/** Perform given operation between frame and centroid. */
+void Cpptraj::Cluster::Metric_Scalar::FrameOpCentroid(int frame, Centroid* centIn,
+                                                      double oldSize, CentOpType OP)
+{
+  Centroid_Num* cent = (Centroid_Num*)centIn;
+
+  double newcval = cent->Cval() * oldSize;
+  double fval = data_->Dval(frame);
+  if (OP == ADDFRAME) {
+    newcval += fval;
+    newcval /= ( oldSize + 1 );
+  } else { // SUBTRACTFRAME
+    newcval -= fval;
+    newcval /= ( oldSize - 1 );
+  }
+
+  cent->SetCval( newcval );
+}
+
+/** \return 1 line description */
+std::string Cpptraj::Cluster::Metric_Scalar::Description() const {
+  return "Data set " + data_->Meta().Legend();
+}
+
+/** Print info to STDOUT. */
+void Cpptraj::Cluster::Metric_Scalar::Info() const {
+  mprintf("\tMetric: Data set '%s'\n", data_->legend());
+}
+
+/** \return DataSet size */
+unsigned int Cpptraj::Cluster::Metric_Scalar::Ntotal() const { return data_->Size(); }
