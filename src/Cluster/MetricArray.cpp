@@ -173,3 +173,13 @@ int Cpptraj::Cluster::MetricArray::InitMetricArray(DataSetList const& dslIn, Arg
 
   return 0;
 }
+
+/** Call the info array for all metrics.*/
+void Cpptraj::Cluster::MetricArray::Info() const {
+  for (unsigned int idx = 0; idx != metrics_.size(); idx++)
+  {
+    mprintf("\tMetric %u for '%s', weight factor %g\n",
+            idx, sets_[idx]->legend(), weights_[idx]);
+    metrics_[idx]->Info();
+  }
+}
