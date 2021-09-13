@@ -72,6 +72,19 @@ int Cpptraj::Cluster::MetricArray::InitMetricArray(DataSetList const& dslIn, Arg
   bool useMass = analyzeArgs.hasKey("mass");
   bool nofit   = analyzeArgs.hasKey("nofit");
   std::string maskExpr = analyzeArgs.GetMaskNext();
+  // Get other args
+  if (analyzeArgs.hasKey("euclid"))
+    type_ = EUCLID;
+  else if (analyzeArgs.hasKey("manhattan"))
+    type_ = MANHATTAN;
+  else {
+    // Default
+    if (dslIn.size() > 1)
+      type_ = EUCLID;
+    else
+      type_ = MANHATTAN;
+  }
+
   // Check args
   if (usedme + userms + usesrms > 1) {
     mprinterr("Error: Specify either 'dme', 'rms', or 'srmsd'.\n");
