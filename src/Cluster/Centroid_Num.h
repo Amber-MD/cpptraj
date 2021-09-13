@@ -14,8 +14,16 @@ class Centroid_Num : public Centroid {
     /// \return Current value of average.
     double Cval() const { return cval_; }
 
+    /// \return Sum of cos(theta); for periodic average
+    double SumX() const { return sumx_; }
+    /// \return Sum of sin(theta); for periodic average
+    double SumY() const { return sumy_; }
+
     /// Set average value.
     void SetCval(double c) { cval_ = c; }
+
+    /// For periodic average; set sum of cos(theta) and sum of sin(theta)
+    void SetPeriodicSums(double x, double y) { sumx_ = x; sumy_ = y; }
   private:
     double cval_;
     double sumx_; // For storing periodic average
