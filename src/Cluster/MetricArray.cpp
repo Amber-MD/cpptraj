@@ -297,4 +297,13 @@ double Cpptraj::Cluster::MetricArray::DistCalc() const {
 }
 
 /** Calculate distance between given frame and centroids. */
-
+double Cpptraj::Cluster::MetricArray::FrameCentroidDist(int frame, CentroidArray const& centroids )
+{
+  if (centroids.size() != metrics_.size()) {
+    mprinterr("Internal Error: MetricArray::FrameOpCentroid: centroids and metrics_ sizes do not match.\n");
+    return -1.0;
+  }
+  for (unsigned int idx = 0; idx != metrics_.size(); idx++)
+    temp_[idx] = metrics_[idx]->FrameCentroidDist( frame, centroids[idx] );
+  return DistCalc();
+}

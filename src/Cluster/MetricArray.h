@@ -42,6 +42,8 @@ class MetricArray {
     void CalculateCentroid(CentroidArray&, Cframes const&);
     /// Update centroids by performing given operation between given frame and centroids.
     void FrameOpCentroid(int, CentroidArray&, double, Metric::CentOpType);
+    /// \return distance between given frame and centroids
+    double FrameCentroidDist(int, CentroidArray const&);
   private:
     /// Clear array
     void Clear();
