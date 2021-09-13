@@ -14,12 +14,12 @@ set(CLUSTER_SOURCES
   DrawGraph.cpp
   DynamicMatrix.cpp
   List.cpp
-  Metric_Data.cpp
-  Metric_Data_Euclid.cpp
-  Metric_Data_Manhattan.cpp
+  MetricArray.cpp
   Metric_DME.cpp
   Metric_RMS.cpp
+  Metric_Scalar.cpp
   Metric_SRMSD.cpp
+  Metric_Torsion.cpp
   Node.cpp
   Output.cpp
   PairwiseMatrix.cpp

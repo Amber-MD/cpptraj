@@ -41,7 +41,7 @@ class MetricArray {
     /// Allocate metric of given type
     Metric* AllocateMetric(Metric::Type);
 
-    std::vector<Metric*> metrics_; ///< Hold each Metric
+    std::vector<Metric*> metrics_; ///< Hold each Metric TODO deal with OpenMP
     std::vector<DataSet*> sets_;   ///< Sets corresponding to each Metric
     std::vector<double> weights_;  ///< Weight of each metric
     DistanceType type_;            ///< Type of distance calc to perform
