@@ -26,6 +26,8 @@ class MetricArray {
     static const char* MetricArgs_;
     /// Initialize with data sets and user arguments
     int InitMetricArray(DataSetList const&, ArgList&, int);
+    /// Set up all metrics
+    int Setup();
 
     /// \return True if no metrics have been initialized
     bool empty() const { return metrics_.empty(); }

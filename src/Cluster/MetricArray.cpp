@@ -174,7 +174,21 @@ int Cpptraj::Cluster::MetricArray::InitMetricArray(DataSetList const& dslIn, Arg
   return 0;
 }
 
-/** Call the info array for all metrics.*/
+/** Call the Setup function for all metrics. */
+int Cpptraj::Cluster::MetricArray::Setup() {
+  int err = 0;
+  for (std::vector<Metric*>::const_iterator it = metrics_.begin();
+                                            it != metrics_.end(); ++it)
+  {
+    if ((*it)->Setup()) {
+      mprinterr("Error: Metric '%s' setup failed.\n", (*it)->Description().c_str());
+      err++;
+    }
+  }
+  return err;
+}
+
+/** Call the Info function for all metrics. */
 void Cpptraj::Cluster::MetricArray::Info() const {
   for (unsigned int idx = 0; idx != metrics_.size(); idx++)
   {
