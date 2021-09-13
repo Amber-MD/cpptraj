@@ -12,7 +12,10 @@
 #include "Metric_Torsion.h"
 
 /** CONSTRUCTOR */
-Cpptraj::Cluster::MetricArray::MetricArray() {}
+Cpptraj::Cluster::MetricArray::MetricArray() :
+  type_(MANHATTAN),
+  ntotal_(0)
+{}
 
 /** DESTRUCTOR */
 Cpptraj::Cluster::MetricArray::~MetricArray() {
@@ -174,15 +177,29 @@ int Cpptraj::Cluster::MetricArray::InitMetricArray(DataSetList const& dslIn, Arg
   return 0;
 }
 
-/** Call the Setup function for all metrics. */
+/** Call the Setup function for all metrics. Check that size of each Metric
+  * is the same.
+  */
 int Cpptraj::Cluster::MetricArray::Setup() {
   int err = 0;
+  ntotal_ = 0;
   for (std::vector<Metric*>::const_iterator it = metrics_.begin();
                                             it != metrics_.end(); ++it)
   {
     if ((*it)->Setup()) {
       mprinterr("Error: Metric '%s' setup failed.\n", (*it)->Description().c_str());
       err++;
+    }
+    if (ntotal_ == 0)
+      ntotal_ = (*it)->Ntotal();
+    else {
+      if ( (*it)->Ntotal() != ntotal_ ) {
+        mprinterr("Error: Number of points covered by metric '%s' (%u) is not equal\n"
+                  "Error:  to number of points covered by metric '%s' (%u)\n",
+                  (*it)->Description().c_str(), (*it)->Ntotal(),
+                  metrics_.front()->Description().c_str(), metrics_.front()->Ntotal());
+        return 1;
+      }
     }
   }
   return err;

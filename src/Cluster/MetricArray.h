@@ -33,6 +33,8 @@ class MetricArray {
     bool empty() const { return metrics_.empty(); }
     /// Call Info() routines for all metrics
     void Info() const;
+    /// \return Number of points covered by each Metric
+    unsigned int Ntotal() const { return ntotal_; }
   private:
     /// Clear array
     void Clear();
@@ -43,6 +45,7 @@ class MetricArray {
     std::vector<DataSet*> sets_;   ///< Sets corresponding to each Metric
     std::vector<double> weights_;  ///< Weight of each metric
     DistanceType type_;            ///< Type of distance calc to perform
+    unsigned int ntotal_;          ///< Total number of points covered by any Metric
 };
 
 }
