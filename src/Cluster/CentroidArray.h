@@ -17,6 +17,9 @@ class CentroidArray {
     CentroidArray& operator=(CentroidArray const&);
     /// Clear the centroid array
     void Clear();
+
+    /// Add given centroid to array
+    void push_back( Centroid* c) { centroids_.push_back( c ); }
   private:
     std::vector<Centroid*> centroids_;
 };

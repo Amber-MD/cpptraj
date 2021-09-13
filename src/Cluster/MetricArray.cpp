@@ -1,4 +1,5 @@
 #include "MetricArray.h"
+#include "CentroidArray.h"
 #include "Metric.h"
 #include "../ArgList.h"
 #include "../CpptrajStdio.h"
@@ -221,5 +222,16 @@ void Cpptraj::Cluster::MetricArray::Info() const {
     mprintf("\tMetric %u for '%s', weight factor %g\n",
             idx, sets_[idx]->legend(), weights_[idx]);
     metrics_[idx]->Info();
+  }
+}
+
+// -----------------------------------------------
+void Cpptraj::Cluster::MetricArray::NewCentroid(CentroidArray& centroids, Cframes const& framesIn)
+// TODO const?
+{
+  centroids.Clear();
+  for (std::vector<Metric*>::iterator it = metrics_.begin(); it != metrics_.end(); ++it)
+  {
+    centroids.push_back( (*it)->NewCentroid( framesIn ) );
   }
 }

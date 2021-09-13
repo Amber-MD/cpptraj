@@ -7,7 +7,7 @@ class DataSet;
 class DataSetList;
 namespace Cpptraj {
 namespace Cluster {
-
+class CentroidArray;
 /// Hold Metrics of various types
 class MetricArray {
   public:
@@ -35,6 +35,9 @@ class MetricArray {
     void Info() const;
     /// \return Number of points covered by each Metric
     unsigned int Ntotal() const { return ntotal_; }
+
+    /// Calculate new centroid for each metric
+    void NewCentroid(CentroidArray&, Cframes const&);
   private:
     /// Clear array
     void Clear();
