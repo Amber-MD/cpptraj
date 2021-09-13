@@ -34,6 +34,7 @@ class MetricArray {
 
     std::vector<Metric*> metrics_; ///< Hold each Metric
     std::vector<DataSet*> sets_;   ///< Sets corresponding to each Metric
+    std::vector<double> weights_;  ///< Weight of each metric
     DistanceType type_;            ///< Type of distance calc to perform
 };
 

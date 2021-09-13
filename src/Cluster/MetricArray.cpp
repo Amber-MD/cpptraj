@@ -3,6 +3,7 @@
 #include "../ArgList.h"
 #include "../CpptrajStdio.h"
 #include "../DataSetList.h"
+#include "../StringRoutines.h"
 // Metric classes
 #include "Metric_RMS.h"
 #include "Metric_DME.h"
@@ -42,6 +43,7 @@ void Cpptraj::Cluster::MetricArray::Clear() {
   for (std::vector<Metric*>::iterator it = metrics_.begin(); it != metrics_.end(); ++it)
     delete *it;
   sets_.clear();
+  weights_.clear();
 }
 
 /** /return Pointer to Metric of given type. */
@@ -61,7 +63,7 @@ Cpptraj::Cluster::Metric* Cpptraj::Cluster::MetricArray::AllocateMetric(Metric::
 
 /** Recognized args. */
 const char* Cpptraj::Cluster::MetricArray::MetricArgs_ =
-  "[{dme|rms|srmsd} [mass] [nofit] [<mask>]] [{euclid|manhattan}]";
+  "[{dme|rms|srmsd} [mass] [nofit] [<mask>]] [{euclid|manhattan}] [wgt <list>]";
 
 /** Initialize with given sets and arguments. */
 int Cpptraj::Cluster::MetricArray::InitMetricArray(DataSetList const& dslIn, ArgList& analyzeArgs,
@@ -88,6 +90,7 @@ int Cpptraj::Cluster::MetricArray::InitMetricArray(DataSetList const& dslIn, Arg
     else
       type_ = MANHATTAN;
   }
+  std::string wgtArgStr = analyzeArgs.GetStringKey("wgt");
 
   // Check args
   if (usedme + userms + usesrms > 1) {
@@ -147,8 +150,26 @@ int Cpptraj::Cluster::MetricArray::InitMetricArray(DataSetList const& dslIn, Arg
       return 1;
     }
     metrics_.push_back( met );
+    sets_.push_back( *ds );
 
   } // END loop over input data sets
 
+  // Process weight args if needed
+  if (!wgtArgStr.empty()) {
+    ArgList wgtArgs(wgtArgStr, ",");
+    // Need 1 arg for every set 
+    if (wgtArgs.Nargs() != (int)metrics_.size()) {
+      mprinterr("Error: Expected %zu comma-separated args for wgt, got %i\n",
+                metrics_.size(), wgtArgs.Nargs());
+      return 1;
+    }
+    weights_.reserve( wgtArgs.Nargs() );
+    for (int arg = 0; arg != wgtArgs.Nargs(); arg++)
+      weights_.push_back( convertToDouble( wgtArgs[arg] ) );
+  } else {
+    // Default weights are 1
+    weights_.assign(metrics_.size(), 1.0);
+  }
+
   return 0;
-} 
+}
