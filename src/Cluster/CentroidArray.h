@@ -18,8 +18,13 @@ class CentroidArray {
     /// Clear the centroid array
     void Clear();
 
-    /// Add given centroid to array
+    /// \return number of centroids
+    unsigned int size() const { return centroids_.size(); }
+
+    /// Add given centroid pointer to array
     void push_back( Centroid* c) { centroids_.push_back( c ); }
+    /// \return Centroid pointer at given position
+    Centroid* operator[](int idx) const { return centroids_[idx]; }
   private:
     std::vector<Centroid*> centroids_;
 };

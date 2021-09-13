@@ -38,6 +38,8 @@ class MetricArray {
 
     /// Calculate new centroid for each metric
     void NewCentroid(CentroidArray&, Cframes const&);
+    /// Calculate centroids for each metric
+    void CalculateCentroid(CentroidArray&, Cframes const&);
   private:
     /// Clear array
     void Clear();

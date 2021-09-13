@@ -226,6 +226,7 @@ void Cpptraj::Cluster::MetricArray::Info() const {
 }
 
 // -----------------------------------------------
+/** Calculate new centroids for given list. */
 void Cpptraj::Cluster::MetricArray::NewCentroid(CentroidArray& centroids, Cframes const& framesIn)
 // TODO const?
 {
@@ -234,4 +235,15 @@ void Cpptraj::Cluster::MetricArray::NewCentroid(CentroidArray& centroids, Cframe
   {
     centroids.push_back( (*it)->NewCentroid( framesIn ) );
   }
+}
+
+/** Calculate centroids in given list. */
+void Cpptraj::Cluster::MetricArray::CalculateCentroid(CentroidArray& centroids, Cframes const& framesIn)
+{
+  if (centroids.size() != metrics_.size()) {
+    mprinterr("Internal Error: MetricArray::CalculateCentroid: centroids and metrics_ sizes do not match.\n");
+    return;
+  }
+  for (unsigned int idx = 0; idx != metrics_.size(); idx++)
+    metrics_[idx]->CalculateCentroid( centroids[idx], framesIn );
 }
