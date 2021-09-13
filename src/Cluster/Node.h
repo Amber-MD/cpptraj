@@ -3,13 +3,13 @@
 #include <string>
 #include <utility> // std::pair
 #include <vector>
+#include "CentroidArray.h"
 #include "Cframes.h" // Cframes::const_iterator
 class DataSet_integer;
 class DataSet_float;
 namespace Cpptraj {
 namespace Cluster {
-class Centroid;
-class Metric;
+class MetricArray;
 class PairwiseMatrix;
 // TODO implement needsUpdate_
 
@@ -24,7 +24,7 @@ class Node {
     //       things like calculating RMSD modify Metric itself to avoid
     //       always reallocating Frames.
     /// CONSTRUCTOR - Take Metric for calculating centroid, frames, and cluster index.
-    Node(Metric*, Cframes const&, int);
+    Node(MetricArray&, Cframes const&, int);
     /// COPY CONSTRUCTOR
     Node(const Node&);
     /// ASSIGNMENT
@@ -47,7 +47,7 @@ class Node {
     /// Find and set frame in the cluster that has lowest distance to all other frames.
 //    int SetBestRep_CumulativeDist(DataSet_Cmatrix const&);
     /// Calculate average distance of all members to centroid
-    double CalcAvgToCentroid( Metric*) const;
+    double CalcAvgToCentroid(MetricArray&) const;
     /// Const iterator over frame numbers
     typedef Cframes::const_iterator frame_iterator;
     /// Const iterator to beginning of frames
@@ -69,8 +69,8 @@ class Node {
       else
         return bestReps_.front().first;
     }
-    /// \return Cluster centroid.
-    Centroid* Cent()               const { return centroid_;              }
+    /// \return Cluster centroid array.
+    CentroidArray const& Cent()    const { return centroids_;             }
     /// \return name assigned via reference
     std::string const& Cname()     const { return name_;                  }
     /// \return RMS to reference
@@ -85,7 +85,7 @@ class Node {
     double Silhouette()            const { return avgSil_;                }
 
     /// Calculate centroid of members of this cluster.
-    void CalculateCentroid(Metric*);
+    void CalculateCentroid(MetricArray&);
     /// Add frame to cluster
     void AddFrameToCluster(int fnum)   { frameList_.push_back( fnum );  }
     /// Set cluster number (for bookkeeping).
@@ -107,25 +107,25 @@ class Node {
     /// Calculate eccentricity for frames in this cluster.
     void CalcEccentricity(PairwiseMatrix const&);
     /// Remove specified frame from cluster and update centroid.
-    void RemoveFrameUpdateCentroid(Metric*, int);
+    void RemoveFrameUpdateCentroid(MetricArray&, int);
     /// Add specified frame to cluster and update centroid.
-    void AddFrameUpdateCentroid(Metric*, int);
+    void AddFrameUpdateCentroid(MetricArray&, int);
 
     /// Calculate cluster population vs time.
     void CalcCpopVsTime(DataSet_float&, unsigned int, CnormType) const;
     /// Create cluster lifetime set.
     void CreateLifetimeSet(DataSet_integer&, unsigned int) const;
   private:
-    Cframes frameList_;     ///< List of frames belonging to this cluster.
-    Centroid* centroid_;    ///< Centroid of all frames in this cluster.
-    std::string name_;      ///< Cluster name assigned from reference.
-    RepPairArray bestReps_; ///< Hold best representative frames and their score.
-    SilPairArray frameSil_; ///< Frame silhouette values.
-    double avgSil_;         ///< Average silhouette value for cluster TODO s.d. as well?
-    double eccentricity_;   ///< Maximum distance between any 2 frames.
-    double refRms_;         ///< Cluster rms to reference (if assigned).
-    int num_;               ///< Cluster number, used for bookkeeping.
-    bool needsUpdate_;      ///< True if internal metrics need updating (e.g. after frames added).
+    Cframes frameList_;       ///< List of frames belonging to this cluster.
+    CentroidArray centroids_; ///< Centroids (1 for each metric) for all frames in this cluster.
+    std::string name_;        ///< Cluster name assigned from reference.
+    RepPairArray bestReps_;   ///< Hold best representative frames and their score.
+    SilPairArray frameSil_;   ///< Frame silhouette values.
+    double avgSil_;           ///< Average silhouette value for cluster TODO s.d. as well?
+    double eccentricity_;     ///< Maximum distance between any 2 frames.
+    double refRms_;           ///< Cluster rms to reference (if assigned).
+    int num_;                 ///< Cluster number, used for bookkeeping.
+    bool needsUpdate_;        ///< True if internal metrics need updating (e.g. after frames added).
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
 /** Use > since we give higher priority to larger clusters. */

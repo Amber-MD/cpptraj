@@ -1,14 +1,12 @@
 //#include <cfloat> // DBL_MAX
 #include "Node.h"
-#include "Centroid.h"
-#include "Metric.h"
+#include "MetricArray.h"
 #include "PairwiseMatrix.h"
 #include "../DataSet_float.h"
 #include "../DataSet_integer.h"
 
 // CONSTRUCTOR
 Cpptraj::Cluster::Node::Node() :
-  centroid_(0),
   avgSil_(0),
   eccentricity_(0),
   refRms_(0),
@@ -17,35 +15,31 @@ Cpptraj::Cluster::Node::Node() :
 {}
 
 // DESTRUCTOR
-Cpptraj::Cluster::Node::~Node() {
-  if (centroid_ != 0) delete centroid_;
-}
+Cpptraj::Cluster::Node::~Node() { }
 
 /** Create new cluster with given number containing given frames. Calculate
   * initial centroid and set initial best rep frame to front, even though 
   * that will probably be wrong when number of frames in the list > 1.
   */
-Cpptraj::Cluster::Node::Node(Metric* Cdist, Cframes const& frameListIn, int numIn) :
+Cpptraj::Cluster::Node::Node(MetricArray& Cdist, Cframes const& frameListIn, int numIn) :
   frameList_(frameListIn),
-  centroid_(Cdist->NewCentroid(frameList_)),
   bestReps_(1, RepPair(frameListIn.front(), 0.0)),
   eccentricity_(0.0),
   num_(numIn),
   needsUpdate_(true)
-{}
+{
+  Cdist.NewCentroid( centroids_, frameListIn );
+}
 
 // COPY CONSTRUCTOR
 Cpptraj::Cluster::Node::Node(const Node& rhs) :
   frameList_( rhs.frameList_ ),
-  centroid_(0),
+  centroids_(rhs.centroids_),
   bestReps_( rhs.bestReps_ ),
   eccentricity_( rhs.eccentricity_ ),
   num_( rhs.num_ ),
   needsUpdate_( rhs.needsUpdate_ )
-{
-  if (rhs.centroid_ != 0)
-    centroid_ = rhs.centroid_->Copy();
-}
+{ }
 
 // ASSIGNMENT
 Cpptraj::Cluster::Node& Cpptraj::Cluster::Node::operator=(const Node& rhs) {
@@ -54,21 +48,17 @@ Cpptraj::Cluster::Node& Cpptraj::Cluster::Node::operator=(const Node& rhs) {
   num_ = rhs.num_;
   bestReps_ = rhs.bestReps_;
   frameList_ = rhs.frameList_;
-  if (centroid_ != 0) delete centroid_;
-  if (rhs.centroid_ != 0)
-    centroid_ = rhs.centroid_->Copy();
-  else
-    centroid_ = 0;
+  centroids_ = rhs.centroids_;
   needsUpdate_ = rhs.needsUpdate_;
   return *this;
 }
 
 /** Calculate centroid of frames in this Node using given metric. */
-void Cpptraj::Cluster::Node::CalculateCentroid(Metric* Cdist) {
-  if (centroid_ == 0)
-    centroid_ = Cdist->NewCentroid( frameList_ );
+void Cpptraj::Cluster::Node::CalculateCentroid(MetricArray& Cdist) {
+  if (centroids_.empty())
+    Cdist.NewCentroid( centroids_, frameList_ );
   else
-    Cdist->CalculateCentroid( centroid_, frameList_ );
+    Cdist.CalculateCentroid( centroids_, frameList_ );
 }
 
 /** Find the frame in the given cluster that is the best representative via
@@ -122,29 +112,31 @@ void Cpptraj::Cluster::Node::CalcEccentricity(PairwiseMatrix const& FrameDistanc
 /** Calculate average distance between all members in cluster and
   * the centroid. 
   */
-double Cpptraj::Cluster::Node::CalcAvgToCentroid( Metric* Cdist ) const
+double Cpptraj::Cluster::Node::CalcAvgToCentroid( MetricArray& Cdist ) const
 {
   double avgdist = 0.0;
   //int idx = 0; // DEBUG
   //mprintf("AVG DISTANCES FOR CLUSTER %d:\n", Num()); // DEBUG
   for (frame_iterator frm = frameList_.begin(); frm != frameList_.end(); ++frm)
   {
-    double dist = Cdist->FrameCentroidDist( *frm, centroid_ );
+    double dist = Cdist.FrameCentroidDist( *frm, centroids_ );
     //mprintf("\tDist to %i is %f\n", idx++, dist); // DEBUG
     avgdist += dist;
   }
   return ( avgdist / (double)frameList_.size() );
 }
 
-void Cpptraj::Cluster::Node::RemoveFrameUpdateCentroid(Metric* Cdist, int frame) {
-  Cdist->FrameOpCentroid(frame, centroid_, (double)frameList_.size(),
-                         Metric::SUBTRACTFRAME);
+/** Remove specified frame, update the centroid. */
+void Cpptraj::Cluster::Node::RemoveFrameUpdateCentroid(MetricArray& Cdist, int frame) {
+  Cdist.FrameOpCentroid(frame, centroids_, (double)frameList_.size(),
+                        Metric::SUBTRACTFRAME);
   RemoveFrameFromCluster( frame );
 }
 
-void Cpptraj::Cluster::Node::AddFrameUpdateCentroid(Metric* Cdist, int frame) {
-  Cdist->FrameOpCentroid(frame, centroid_, (double)frameList_.size(),
-                         Metric::ADDFRAME);
+/** Add specified frame, update the centroid. */
+void Cpptraj::Cluster::Node::AddFrameUpdateCentroid(MetricArray& Cdist, int frame) {
+  Cdist.FrameOpCentroid(frame, centroids_, (double)frameList_.size(),
+                        Metric::ADDFRAME);
   AddFrameToCluster( frame );
 }
 
