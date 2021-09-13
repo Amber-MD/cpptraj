@@ -23,7 +23,12 @@ Cpptraj::Cluster::MetricArray::~MetricArray() {
 }
 
 /** COPY CONSTRUCTOR */
-Cpptraj::Cluster::MetricArray::MetricArray(MetricArray const& rhs) {
+Cpptraj::Cluster::MetricArray::MetricArray(MetricArray const& rhs) :
+  sets_(rhs.sets_),
+  weights_(rhs.weights_),
+  type_(rhs.type_),
+  ntotal_(rhs.ntotal_)
+{
   metrics_.reserve( rhs.metrics_.size() );
   for (std::vector<Metric*>::const_iterator it = rhs.metrics_.begin(); it != rhs.metrics_.end(); ++it)
     metrics_.push_back( (*it)->Copy() );
@@ -38,6 +43,10 @@ Cpptraj::Cluster::MetricArray&
   metrics_.reserve( rhs.metrics_.size() );
   for (std::vector<Metric*>::const_iterator it = rhs.metrics_.begin(); it != rhs.metrics_.end(); ++it)
     metrics_.push_back( (*it)->Copy() );
+  sets_ = rhs.sets_;
+  weights_ = rhs.weights_;
+  type_ = rhs.type_;
+  ntotal_ = rhs.ntotal_;
   return *this;
 }
 
