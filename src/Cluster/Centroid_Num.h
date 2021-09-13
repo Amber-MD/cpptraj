@@ -13,6 +13,9 @@ class Centroid_Num : public Centroid {
     Centroid* Copy() { return (Centroid*)new Centroid_Num(cval_, sumx_, sumy_); }
     /// \return Current value of average.
     double Cval() const { return cval_; }
+
+    /// Set average value.
+    void SetCval(double c) { cval_ = c; }
   private:
     double cval_;
     double sumx_; // For storing periodic average
