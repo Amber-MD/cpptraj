@@ -7,6 +7,7 @@ set(CLUSTER_SOURCES
   Algorithm_Kmeans.cpp
   BestReps.cpp
   Centroid_Coord.cpp
+  CentroidArray.cpp
   Cframes.cpp
   Cmatrix_Binary.cpp
   Cmatrix_NC.cpp
