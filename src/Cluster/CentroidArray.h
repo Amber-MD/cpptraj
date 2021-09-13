@@ -20,6 +20,8 @@ class CentroidArray {
 
     /// \return number of centroids
     unsigned int size() const { return centroids_.size(); }
+    /// \return true if no centroids
+    bool empty() const { return centroids_.empty(); }
 
     /// Add given centroid pointer to array
     void push_back( Centroid* c) { centroids_.push_back( c ); }
