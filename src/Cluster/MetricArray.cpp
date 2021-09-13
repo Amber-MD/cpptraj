@@ -59,6 +59,10 @@ Cpptraj::Cluster::Metric* Cpptraj::Cluster::MetricArray::AllocateMetric(Metric::
   return met;
 }
 
+/** Recognized args. */
+const char* Cpptraj::Cluster::MetricArray::MetricArgs_ =
+  "[{dme|rms|srmsd} [mass] [nofit] [<mask>]] [{euclid|manhattan}]";
+
 /** Initialize with given sets and arguments. */
 int Cpptraj::Cluster::MetricArray::InitMetricArray(DataSetList const& dslIn, ArgList& analyzeArgs,
                                                    int debugIn)

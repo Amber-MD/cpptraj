@@ -19,8 +19,11 @@ class MetricArray {
     MetricArray(MetricArray const&);
     /// ASSIGN
     MetricArray& operator=(MetricArray const&);
+
     /// Types of distance calculation
     enum DistanceType { MANHATTAN = 0, EUCLID };
+    /// Recognized keywords
+    static const char* MetricArgs_;
     /// Initialize with data sets and user arguments
     int InitMetricArray(DataSetList const&, ArgList&, int);
   private:
