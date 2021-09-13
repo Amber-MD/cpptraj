@@ -1,5 +1,6 @@
 #ifndef INC_CLUSTER_CENTROID_NUM_H
 #define INC_CLUSTER_CENTROID_NUM_H
+#include "Centroid.h"
 namespace Cpptraj {
 namespace Cluster {
 
@@ -10,6 +11,8 @@ class Centroid_Num : public Centroid {
     Centroid_Num(double val, double x, double y) : cval_(val), sumx_(x), sumy_(y) {}
 
     Centroid* Copy() { return (Centroid*)new Centroid_Num(cval_, sumx_, sumy_); }
+    /// \return Current value of average.
+    double Cval() const { return cval_; }
   private:
     double cval_;
     double sumx_; // For storing periodic average

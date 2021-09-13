@@ -1,4 +1,5 @@
 #include "Metric_Scalar.h"
+#include "Centroid_Num.h"
 #include "../CpptrajStdio.h"
 #include "../DataSet_1D.h"
 #include <cmath> // fabs
@@ -27,4 +28,9 @@ int Cpptraj::Cluster::Metric_Scalar::Setup() {
 /** \return Absolute difference between points */
 double Cpptraj::Cluster::Metric_Scalar::FrameDist(int f1, int f2) {
   return fabs( data_->Dval(f1) - data_->Dval(f2) );
+}
+
+/** \return Absolute difference between centroids. */
+double Cpptraj::Cluster::Metric_Scalar::CentroidDist(Centroid* c1, Centroid* c2) {
+  return fabs( ((Centroid_Num*)c1)->Cval() - ((Centroid_Num*)c2)->Cval() );
 }
