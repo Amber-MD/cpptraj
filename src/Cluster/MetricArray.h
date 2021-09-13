@@ -22,7 +22,7 @@ class MetricArray {
     /// Types of distance calculation
     enum DistanceType { MANHATTAN = 0, EUCLID };
     /// Initialize with data sets and user arguments
-    int InitMetricArray(DataSetList const&, ArgList&);
+    int InitMetricArray(DataSetList const&, ArgList&, int);
   private:
     /// Clear array
     void Clear();

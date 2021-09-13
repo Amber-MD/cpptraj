@@ -60,7 +60,8 @@ Cpptraj::Cluster::Metric* Cpptraj::Cluster::MetricArray::AllocateMetric(Metric::
 }
 
 /** Initialize with given sets and arguments. */
-int Cpptraj::Cluster::MetricArray::InitMetricArray(DataSetList const& dslIn, ArgList& analyzeArgs)
+int Cpptraj::Cluster::MetricArray::InitMetricArray(DataSetList const& dslIn, ArgList& analyzeArgs,
+                                                   int debugIn)
 {
   // Get rid of any previous metrics
   Clear();
@@ -107,7 +108,30 @@ int Cpptraj::Cluster::MetricArray::InitMetricArray(DataSetList const& dslIn, Arg
       return 1;
     }
 
-  }
+    // Initialize the metric
+    int err = 0;
+    switch (mtype) {
+      case Metric::RMS :
+        err = ((Metric_RMS*)met)->Init((DataSet_Coords*)*ds, AtomMask(maskExpr), nofit, useMass); break;
+      case Metric::DME :
+        err = ((Metric_DME*)met)->Init((DataSet_Coords*)*ds, AtomMask(maskExpr)); break;
+      case Metric::SRMSD :
+        err = ((Metric_SRMSD*)met)->Init((DataSet_Coords*)*ds, AtomMask(maskExpr), nofit, useMass, debugIn); break;
+      case Metric::SCALAR :
+        err = ((Metric_Scalar*)met)->Init((DataSet_1D*)*ds); break;
+      case Metric::TORSION :
+        err = ((Metric_Torsion*)met)->Init((DataSet_1D*)*ds); break;
+      default:
+        mprinterr("Error: Unhandled Metric setup.\n");
+        err = 1;
+    }
+    if (err != 0) {
+      mprinterr("Error: Metric setup failed.\n");
+      return 1;
+    }
+    metrics_.push_back( met );
+
+  } // END loop over input data sets
 
   return 0;
 } 
