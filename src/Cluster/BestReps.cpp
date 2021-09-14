@@ -1,8 +1,7 @@
 #include "BestReps.h"
 #include "List.h"
-#include "Metric.h"
+#include "MetricArray.h"
 #include "Node.h"
-#include "PairwiseMatrix.h"
 #include "../CpptrajStdio.h"
 
 /** CONSTRUCTOR */
@@ -61,7 +60,7 @@ void Cpptraj::Cluster::BestReps::PrintBestReps(Node const& node) {
 }
 
 /** Find best representative frames for each cluster. */
-int Cpptraj::Cluster::BestReps::FindBestRepFrames(List& clusters, PairwiseMatrix const& pmatrix,
+int Cpptraj::Cluster::BestReps::FindBestRepFrames(List& clusters, MetricArray& pmatrix,
                                                   Cframes const& sievedFrames)
 const
 {
@@ -94,7 +93,7 @@ const
 }
 
 /** Find best representative frames for given node. */
-int Cpptraj::Cluster::BestReps::FindBestRepFrames(Node& node, PairwiseMatrix const& pmatrix,
+int Cpptraj::Cluster::BestReps::FindBestRepFrames(Node& node, MetricArray& pmatrix,
                                                   Cframes const& sievedFrames)
 const
 {
@@ -128,7 +127,7 @@ const
   * having the lowest cumulative distance to every other point in the cluster.
   */
 int Cpptraj::Cluster::BestReps::FindBestRepFrames_CumulativeDist(Node& node,
-                                                                 PairwiseMatrix const& pmatrix)
+                                                                 MetricArray& pmatrix)
 const
 {
   int err = 0;
@@ -186,7 +185,7 @@ const
   * having the lowest cumulative distance to every other point in the cluster.
   */
 int Cpptraj::Cluster::BestReps::FindBestRepFrames_CumulativeDist(List& clusters,
-                                                                 PairwiseMatrix const& pmatrix)
+                                                                 MetricArray& pmatrix)
 const
 {
   int err = 0; 
@@ -229,7 +228,7 @@ const
   * ignoring sieved frames.
   */
 int Cpptraj::Cluster::BestReps::
-    FindBestRepFrames_NoSieve_CumulativeDist(Node& node, PairwiseMatrix const& pmatrix,
+    FindBestRepFrames_NoSieve_CumulativeDist(Node& node, MetricArray& pmatrix,
                                              Cframes const& sievedFrames)
 const
 {
@@ -262,7 +261,7 @@ const
   * ignoring sieved frames.
   */
 int Cpptraj::Cluster::BestReps::
-    FindBestRepFrames_NoSieve_CumulativeDist(List& clusters, PairwiseMatrix const& pmatrix,
+    FindBestRepFrames_NoSieve_CumulativeDist(List& clusters, MetricArray& pmatrix,
                                              Cframes const& sievedFrames)
 const
 {
@@ -279,7 +278,7 @@ const
   * having the lowest distance to the cluster centroid.
   */
 int Cpptraj::Cluster::BestReps::FindBestRepFrames_Centroid(Node& node,
-                                                           PairwiseMatrix const& pmatrix)
+                                                           MetricArray& pmatrix)
 const
 {
   int err = 0;
@@ -288,7 +287,7 @@ const
   //node.Cent()->Print("centroid." + integerToString(node.Num())); // DEBUG
   for (Node::frame_iterator f1 = node.beginframe(); f1 != node.endframe(); ++f1)
   {
-    double dist = pmatrix.MetricPtr()->FrameCentroidDist(*f1, node.Cent());
+    double dist = pmatrix.FrameCentroidDist(*f1, node.Cent());
     //mprintf("\t%8i %10.4g %10.4g %i\n", *f1+1, dist, mindist, minframe+1);
     SaveBestRep(bestReps, RepPair(dist, *f1), nToSave_);
   }
@@ -305,7 +304,7 @@ const
   * having the lowest distance to the cluster centroid.
   */
 int Cpptraj::Cluster::BestReps::FindBestRepFrames_Centroid(List& clusters,
-                                                           PairwiseMatrix const& pmatrix)
+                                                           MetricArray& pmatrix)
 const
 {
   int err = 0;

@@ -5,8 +5,8 @@ namespace Cpptraj {
 namespace Cluster {
 class Cframes;
 class List;
+class MetricArray;
 class Node;
-class PairwiseMatrix;
 /// Used to find best representative structures for a cluster.
 class BestReps {
   public:
@@ -18,9 +18,9 @@ class BestReps {
     /// Initialize best rep frames search with method type, # to save, and debug level
     int InitBestReps(RepMethodType, int, int);
     /// Find best rep frames for each cluster in given list
-    int FindBestRepFrames(List&, PairwiseMatrix const&, Cframes const&) const;
+    int FindBestRepFrames(List&, MetricArray&, Cframes const&) const;
     /// Find the best rep frames for given node
-    int FindBestRepFrames(Node&, PairwiseMatrix const&, Cframes const&) const;
+    int FindBestRepFrames(Node&, MetricArray&, Cframes const&) const;
   private:
     /// Print best reps to stdout
     static void PrintBestReps(Node const&);
@@ -36,17 +36,17 @@ class BestReps {
     static inline void SetBestRepFrame(Node& node, RepMap const&);
 
     /// Find best rep frames in node by shortest distance to all other frames.
-    int FindBestRepFrames_CumulativeDist(Node&, PairwiseMatrix const&) const;
+    int FindBestRepFrames_CumulativeDist(Node&, MetricArray&) const;
     /// Find best representative frames by shortest distance to all other frames.
-    int FindBestRepFrames_CumulativeDist(List&, PairwiseMatrix const&) const;
+    int FindBestRepFrames_CumulativeDist(List&, MetricArray&) const;
     /// Find best rep frames in node by shortest distance, ignoring sieved frames.
-    int FindBestRepFrames_NoSieve_CumulativeDist(Node&, PairwiseMatrix const&, Cframes const&) const;
+    int FindBestRepFrames_NoSieve_CumulativeDist(Node&, MetricArray&, Cframes const&) const;
     /// Find best representative frames by shortest distance, ignoring sieved frames.
-    int FindBestRepFrames_NoSieve_CumulativeDist(List&, PairwiseMatrix const&, Cframes const&) const;
+    int FindBestRepFrames_NoSieve_CumulativeDist(List&, MetricArray&, Cframes const&) const;
     /// Find best rep frames in node by shortest distance to centroid.
-    int FindBestRepFrames_Centroid(Node&, PairwiseMatrix const&) const;
+    int FindBestRepFrames_Centroid(Node&, MetricArray&) const;
     /// Find best representative frames by shortest distance to centroid.
-    int FindBestRepFrames_Centroid(List&, PairwiseMatrix const&) const;
+    int FindBestRepFrames_Centroid(List&, MetricArray&) const;
 
     int debug_;   ///< Debug level, set in call to FindBestRepFrames
     int nToSave_; ///< Number of representatives to find
