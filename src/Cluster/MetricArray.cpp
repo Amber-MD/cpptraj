@@ -86,6 +86,15 @@ void Cpptraj::Cluster::MetricArray::Clear() {
   pw_mismatch_fatal_ = true;
 }
 
+/** Pairwise args 1 */
+const char* Cpptraj::Cluster::MetricArray::PairwiseArgs1_ =
+  "[pairdist <name>] [pwrecalc]";
+
+/** Pairwise args 2 */
+const char* Cpptraj::Cluster::MetricArray::PairwiseArgs2_ =
+  "[loadpairdist] [savepairdist] [pairwisecache {mem|disk|none}]";
+
+
 /** Set up pairwise cache from arguments. */
 int Cpptraj::Cluster::MetricArray::setupPairwiseCache(ArgList& analyzeArgs,
                                                       DataSetList& DSL,

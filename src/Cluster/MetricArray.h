@@ -26,10 +26,17 @@ class MetricArray {
     enum DistanceType { MANHATTAN = 0, EUCLID };
     /// Recognized metric keywords
     static const char* MetricArgs_;
+    /// Recognized pairwise keywords 1
+    static const char* PairwiseArgs1_;
+    /// Recognized pairwise keywords 2
+    static const char* PairwiseArgs2_;
+
     /// Initialize with data sets and user arguments
     int Initialize(DataSetList&, DataFileList&, ArgList&, int);
     /// Set up all metrics
     int Setup();
+    /// Request that the pairwise cache be filled with distances for specified frames.
+    int CacheDistances(Cframes const&, int);
 
     /// \return True if no metrics have been initialized
     bool empty() const { return metrics_.empty(); }
@@ -63,8 +70,6 @@ class MetricArray {
     /// \return distance between frames (cached or uncached)
     double Frame_Distance(int, int);
 
-    /// Request that the pairwise cache be filled with distances for specified frames.
-    int CacheDistances(Cframes const&, int);
   private:
     /// Clear array
     void Clear();
