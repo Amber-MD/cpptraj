@@ -5,7 +5,7 @@
 class DataSet_integer;
 namespace Cpptraj {
 namespace Cluster {
-class Metric;
+class MetricArray;
 class Node;
 class PairwiseMatrix;
 /// Hold all individual clusters.
@@ -58,7 +58,7 @@ class List {
     /// Add given frame as noise.
     void AddNoise(int f) { noise_.push_back( f ); }
     /// Update centroids TODO check if they need updating
-    void UpdateCentroids(Metric*);
+    void UpdateCentroids(MetricArray&);
     /// Add given frames to clusters based on distance to centroid. TODO save original frames
     void AddFramesByCentroid(Cframes const&, Metric*);
     /// Add given frames to clusters based on distance to centroid and cutoff.

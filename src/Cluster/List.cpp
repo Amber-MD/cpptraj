@@ -1,7 +1,7 @@
 #include <algorithm> // std::max
 #include <limits> // double max
 #include "List.h"
-#include "Metric.h"
+#include "MetricArray.h"
 #include "Node.h"
 #include "PairwiseMatrix.h"
 #include "../CpptrajStdio.h"
@@ -130,7 +130,7 @@ int Cpptraj::Cluster::List::Sort() {
 }
 
 /** Update centroids. */
-void Cpptraj::Cluster::List::UpdateCentroids( Metric* metric ) {
+void Cpptraj::Cluster::List::UpdateCentroids( MetricArray& metric ) {
   for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node) {
     node->SortFrameList();
     node->CalculateCentroid( metric );
