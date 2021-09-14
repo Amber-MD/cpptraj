@@ -7,7 +7,6 @@ namespace Cpptraj {
 namespace Cluster {
 class MetricArray;
 class Node;
-class PairwiseMatrix;
 /// Hold all individual clusters.
 /** Currently implemented as an STL list since sorting and erasing are more
   * efficient.
@@ -60,16 +59,16 @@ class List {
     /// Update centroids TODO check if they need updating
     void UpdateCentroids(MetricArray&);
     /// Add given frames to clusters based on distance to centroid. TODO save original frames
-    void AddFramesByCentroid(Cframes const&, Metric*);
+    void AddFramesByCentroid(Cframes const&, MetricArray&);
     /// Add given frames to clusters based on distance to centroid and cutoff.
-    void AddFramesByCentroid(Cframes const&, Metric*, bool, double);
+    void AddFramesByCentroid(Cframes const&, MetricArray&, bool, double);
 
     /// Calculate the Davies-Bouldin index.
-    double ComputeDBI(std::vector<double>&, Metric*) const;
+    double ComputeDBI(std::vector<double>&, MetricArray&) const;
     /// Calculate pseudo-F
-    double ComputePseudoF(double&, Metric*) const;
+    double ComputePseudoF(double&, MetricArray&) const;
     /// Calculate cluster and cluster frame silhouettes TODO data sets
-    int CalcSilhouette(PairwiseMatrix const&, Cframes const&, bool);
+    int CalcSilhouette(MetricArray&, Cframes const&, bool);
   private:
     typedef std::list<Node> Narray;
     Narray clusters_; ///< Hold all clusters.

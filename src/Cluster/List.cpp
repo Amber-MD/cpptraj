@@ -3,7 +3,6 @@
 #include "List.h"
 #include "MetricArray.h"
 #include "Node.h"
-#include "PairwiseMatrix.h"
 #include "../CpptrajStdio.h"
 #include "../DataSet_integer.h"
 #include "../ProgressBar.h"
@@ -155,7 +154,7 @@ void Cpptraj::Cluster::List::Clear() {
 }
 
 // -----------------------------------------------------------------------------
-void Cpptraj::Cluster::List::AddFramesByCentroid(Cframes const& framesIn, Metric* metricIn)
+void Cpptraj::Cluster::List::AddFramesByCentroid(Cframes const& framesIn, MetricArray& metricIn)
 {
   // NOTE: All cluster centroids must be up to date.
   int idx;
@@ -164,7 +163,7 @@ void Cpptraj::Cluster::List::AddFramesByCentroid(Cframes const& framesIn, Metric
   cluster_it minNode, Cnode;
   ParallelProgress progress( nframes );
   // For OMP, every other thread will need its own Cdist.
-  Metric* MyCdist = metricIn;
+  MetricArray* MyCdist = &metricIn;
 # ifdef _OPENMP
   // For OMP need a temp. array to hold which frame goes to which cluster to avoid clashes
   std::vector<cluster_it> idxToCluster( nframes, clusters_.end() );
@@ -174,9 +173,9 @@ void Cpptraj::Cluster::List::AddFramesByCentroid(Cframes const& framesIn, Metric
   progress.SetThread( mythread );
   if (mythread == 0) {
     mprintf("\tParallelizing sieve restore calc with %i threads\n", omp_get_num_threads());
-    MyCdist = metricIn;
+    MyCdist = &metricIn;
   } else
-    MyCdist = metricIn->Copy();
+    MyCdist = new MetricArray(metricIn);
 # pragma omp for
 # endif
   for (idx = 0; idx < nframes; ++idx) {
@@ -214,7 +213,7 @@ void Cpptraj::Cluster::List::AddFramesByCentroid(Cframes const& framesIn, Metric
 /** Add frames to clusters that are within epsilon of a cluster centroid (if
   * sieveToCentroid) or epsilon of any frame in a cluster otherwise.
   */
-void Cpptraj::Cluster::List::AddFramesByCentroid(Cframes const& framesIn, Metric* metricIn,
+void Cpptraj::Cluster::List::AddFramesByCentroid(Cframes const& framesIn, MetricArray& metricIn,
                                                  bool sieveToCentroid, double epsilon)
 {
   // NOTE: All cluster centroids must be up to date!
@@ -233,7 +232,7 @@ void Cpptraj::Cluster::List::AddFramesByCentroid(Cframes const& framesIn, Metric
   // Otherwise we could be comparoing sieved frames to other sieved frames.
   std::vector<cluster_it> idxToCluster( nframes, clusters_.end() );
   // For OMP, every other thread will need its own Cdist.
-  Metric* MyCdist = metricIn;
+  MetricArray* MyCdist = &metricIn;
 # ifdef _OPENMP
 # pragma omp parallel private(MyCdist, idx) firstprivate(progress) reduction(+ : Nsieved, n_sieved_noise)
   {
@@ -241,9 +240,9 @@ void Cpptraj::Cluster::List::AddFramesByCentroid(Cframes const& framesIn, Metric
   progress.SetThread( mythread );
   if (mythread == 0) {
     mprintf("\tParallelizing calculation with %i threads\n", omp_get_num_threads());
-    MyCdist = metricIn;
+    MyCdist = &metricIn;
   } else
-    MyCdist = metricIn->Copy();
+    MyCdist = new MetricArray(metricIn);
 # pragma omp for
 # endif
   for (idx = 0; idx < nframes; ++idx) {
@@ -267,7 +266,7 @@ void Cpptraj::Cluster::List::AddFramesByCentroid(Cframes const& framesIn, Metric
       // Check if any frames in the cluster are closer than epsilon to sieved frame.
       for (int cidx=0; cidx < minNode->Nframes(); cidx++)
       { //TODO just use PairwiseMatrix::Frame_Distance here?
-        if ( MyCdist->FrameDist(frame, minNode->ClusterFrame(cidx)) < epsilon )
+        if ( MyCdist->Frame_Distance(frame, minNode->ClusterFrame(cidx)) < epsilon )
         {
           goodFrame = true;
           break;
@@ -305,7 +304,7 @@ void Cpptraj::Cluster::List::AddFramesByCentroid(Cframes const& framesIn, Metric
   * between cluster centroids.
   * NOTE: To use this, cluster centroids should be fully up-to-date.
   */
-double Cpptraj::Cluster::List::ComputeDBI(std::vector<double>& averageDist, Metric* metricIn)
+double Cpptraj::Cluster::List::ComputeDBI(std::vector<double>& averageDist, MetricArray& metricIn)
 const
 {
   averageDist.clear();
@@ -325,7 +324,7 @@ const
     for (cluster_iterator c2 = begincluster(); c2 != endcluster(); ++c2, ++nc2) {
       if (c1 != c2) {
         double Fred = averageDist[nc1] + averageDist[nc2];
-        Fred /= metricIn->CentroidDist( c1->Cent(), c2->Cent() );
+        Fred /= metricIn.CentroidDist( c1->Cent(), c2->Cent() );
         if (Fred > MaxFred)
           MaxFred = Fred;
       }
@@ -351,7 +350,7 @@ const
   * NOTE: This calc differs slightly from PTRAJ in that real centroids are used
   *       instead of representative structures.
   */
-double Cpptraj::Cluster::List::ComputePseudoF(double& SSRSST, Metric* metricIn) const
+double Cpptraj::Cluster::List::ComputePseudoF(double& SSRSST, MetricArray& metricIn) const
 {
   // Calculation makes no sense with fewer than 2 clusters.
   if (Nclusters() < 2) {
@@ -383,9 +382,9 @@ double Cpptraj::Cluster::List::ComputePseudoF(double& SSRSST, Metric* metricIn) 
   {
     for (Node::frame_iterator f1 = C1->beginframe(); f1 != C1->endframe(); ++f1)
     {
-      double dist = metricIn->FrameCentroidDist(*f1, c_all.Cent());
+      double dist = metricIn.FrameCentroidDist(*f1, c_all.Cent());
       gss += (dist * dist);
-      dist = metricIn->FrameCentroidDist(*f1, C1->Cent());
+      dist = metricIn.FrameCentroidDist(*f1, C1->Cent());
       wss += (dist * dist);
     }
   }
@@ -417,7 +416,7 @@ double Cpptraj::Cluster::List::ComputePseudoF(double& SSRSST, Metric* metricIn) 
   * is dissimilar and may fit better in a neighboring cluster. Values of 0
   * indicate the point is on a border between two clusters. 
   */
-int Cpptraj::Cluster::List::CalcSilhouette(PairwiseMatrix const& pmatrix,
+int Cpptraj::Cluster::List::CalcSilhouette(MetricArray& metrics,
                                             Cframes const& sievedFrames,
                                             bool includeSieved)
 {
@@ -439,7 +438,7 @@ int Cpptraj::Cluster::List::CalcSilhouette(PairwiseMatrix const& pmatrix,
           for (Node::frame_iterator f2 = Ci->beginframe(); f2 != Ci->endframe(); ++f2)
           {
             if (f1 != f2) {
-              ai += pmatrix.Frame_Distance(*f1, *f2);
+              ai += metrics.Frame_Distance(*f1, *f2);
               ++self_frames;
             }
           }
@@ -447,7 +446,7 @@ int Cpptraj::Cluster::List::CalcSilhouette(PairwiseMatrix const& pmatrix,
           for (Node::frame_iterator f2 = Ci->beginframe(); f2 != Ci->endframe(); ++f2)
           {
             if (f1 != f2 && !sievedFrames.HasFrame(*f2)) {
-              ai += pmatrix.Frame_Distance(*f1, *f2); // TODO any benefit from GetFdist vs Frame_Distance
+              ai += metrics.Frame_Distance(*f1, *f2);
               ++self_frames;
             }
           }
@@ -466,14 +465,14 @@ int Cpptraj::Cluster::List::CalcSilhouette(PairwiseMatrix const& pmatrix,
             // NOTE: ASSUMING NO EMPTY CLUSTERS
             if (includeSieved) {
               for (Node::frame_iterator f2 = Cj->beginframe(); f2 != Cj->endframe(); ++f2)
-                bi += pmatrix.Frame_Distance(*f1, *f2);
+                bi += metrics.Frame_Distance(*f1, *f2);
               bi /= (double)Cj->Nframes();
             } else {
               int cj_frames = 0;
               for (Node::frame_iterator f2 = Cj->beginframe(); f2 != Cj->endframe(); ++f2)
               {
                 if (!sievedFrames.HasFrame(*f2)) {
-                  bi += pmatrix.Frame_Distance(*f1, *f2);
+                  bi += metrics.Frame_Distance(*f1, *f2);
                   ++cj_frames;
                 }
               }
