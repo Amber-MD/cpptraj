@@ -4,9 +4,8 @@
 #include "Algorithm.h"
 #include "BestReps.h"
 #include "List.h"
-#include "Metric.h"
+#include "MetricArray.h"
 #include "Node.h"
-#include "PairwiseMatrix.h"
 #include "../Matrix.h"
 #include "../CpptrajFile.h"
 #include "../CpptrajStdio.h"
@@ -26,9 +25,8 @@ const char* XMGRACE_COLOR[] = {
   */
 void Cpptraj::Cluster::Output::PrintClustersToFile(CpptrajFile& outfile,
                                                    List const& clusters,
-//std::string const& filename,
                                                    Algorithm const& algorithmIn,
-                                                   Metric* metricIn, int sieve,
+                                                   MetricArray& metricIn, int sieve,
                                                    Cframes const& sievedFrames)
 {
   //CpptrajFile outfile;
@@ -40,7 +38,7 @@ void Cpptraj::Cluster::Output::PrintClustersToFile(CpptrajFile& outfile,
     return;
   }*/
   outfile.Printf("#Clustering: %i clusters %u frames\n",
-                 clusters.Nclusters(), metricIn->Ntotal());
+                 clusters.Nclusters(), metricIn.Ntotal());
   // DBI
   std::vector<double> averageDist;
   double DBITotal = clusters.ComputeDBI( averageDist, metricIn );
@@ -79,7 +77,7 @@ void Cpptraj::Cluster::Output::PrintClustersToFile(CpptrajFile& outfile,
     for (List::cluster_iterator C1 = clusters.begincluster(); C1 != clusters.endcluster(); ++C1)
     {
       buffer.clear();
-      buffer.resize(metricIn->Ntotal(), '.');
+      buffer.resize(metricIn.Ntotal(), '.');
       for (Node::frame_iterator f1 = C1->beginframe(); f1 != C1->endframe(); ++f1)
         buffer[ *f1 ] = 'X';
       buffer += '\n';
@@ -168,11 +166,11 @@ unsigned int Cpptraj::Cluster::Output::DetermineNameWidth(List const& clusters)
 /** Print a summary of clusters. */
 int Cpptraj::Cluster::Output::Summary(CpptrajFile& outfile, List const& clusters,
                                       Algorithm const& algorithm,
-                                      PairwiseMatrix const& pmatrix,
+                                      MetricArray& pmatrix,
                                       bool includeSieved, bool includeSieveCdist,
                                       Cframes const& sievedOut)
 {
-  double fmax = (double)pmatrix.DistMetric().Ntotal();
+  double fmax = (double)pmatrix.Ntotal();
   //if (FrameDistances().SieveValue() != 1 && !includeSieveInAvg)
   //  mprintf("Warning: Within cluster average distance (AvgDist) does not include sieved frames.\n");
   outfile.Printf("%-8s %8s %8s %8s %8s","#Cluster","Frames","Frac", "AvgDist","Stdev");
@@ -292,7 +290,7 @@ void Cpptraj::Cluster::Output::Summary_Part(CpptrajFile& outfile,
                                             Cframes const& splitFrames,
                                             List const& clusters,
                                             BestReps const& findBestReps,
-                                            PairwiseMatrix const& pmatrix,
+                                            MetricArray& pmatrix,
                                             Cframes const& framesToCluster)
 {
   // If no split frames were specified, use halfway point.
