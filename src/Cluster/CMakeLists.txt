@@ -23,7 +23,6 @@ set(CLUSTER_SOURCES
   Metric_Torsion.cpp
   Node.cpp
   Output.cpp
-  PairwiseMatrix.cpp
   Results_Coords.cpp
   Sieve.cpp
 )
