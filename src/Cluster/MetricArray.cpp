@@ -1,10 +1,18 @@
 #include "MetricArray.h"
 #include <cmath> //sqrt
+// For filling the pairwise cache
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 #include "CentroidArray.h"
 #include "Metric.h"
 #include "../ArgList.h"
 #include "../CpptrajStdio.h"
+#include "../DataFile.h"
+#include "../DataFileList.h"
+#include "../DataSet_PairwiseCache.h"
 #include "../DataSetList.h"
+#include "../ProgressBar.h"
 #include "../StringRoutines.h"
 // Metric classes
 #include "Metric_RMS.h"
@@ -15,8 +23,12 @@
 
 /** CONSTRUCTOR */
 Cpptraj::Cluster::MetricArray::MetricArray() :
+  debug_(0),
   type_(MANHATTAN),
-  ntotal_(0)
+  ntotal_(0),
+  cache_(0),
+  cacheWasAllocated_(false),
+  pw_mismatch_fatal_(true)
 {}
 
 /** DESTRUCTOR */
@@ -29,8 +41,12 @@ Cpptraj::Cluster::MetricArray::MetricArray(MetricArray const& rhs) :
   sets_(rhs.sets_),
   weights_(rhs.weights_),
   temp_(rhs.temp_),
+  debug_(rhs.debug_),
   type_(rhs.type_),
-  ntotal_(rhs.ntotal_)
+  ntotal_(rhs.ntotal_),
+  cache_(rhs.cache_),
+  cacheWasAllocated_(rhs.cacheWasAllocated_),
+  pw_mismatch_fatal_(rhs.pw_mismatch_fatal_)
 {
   metrics_.reserve( rhs.metrics_.size() );
   for (std::vector<Metric*>::const_iterator it = rhs.metrics_.begin(); it != rhs.metrics_.end(); ++it)
@@ -49,8 +65,12 @@ Cpptraj::Cluster::MetricArray&
   sets_ = rhs.sets_;
   weights_ = rhs.weights_;
   temp_ = rhs.temp_;
+  debug_ = rhs.debug_;
   type_ = rhs.type_;
   ntotal_ = rhs.ntotal_;
+  cache_ = rhs.cache_;
+  cacheWasAllocated_ = rhs.cacheWasAllocated_;
+  pw_mismatch_fatal_ = rhs.pw_mismatch_fatal_;
   return *this;
 }
 
@@ -61,6 +81,176 @@ void Cpptraj::Cluster::MetricArray::Clear() {
   sets_.clear();
   weights_.clear();
   temp_.clear();
+  cache_ = 0;
+  cacheWasAllocated_ = false;
+  pw_mismatch_fatal_ = true;
+}
+
+/** Set up pairwise cache from arguments. */
+int Cpptraj::Cluster::MetricArray::setupPairwiseCache(ArgList& analyzeArgs,
+                                                      DataSetList& DSL,
+                                                      DataFileList& DFL)
+{
+  if (metrics_.empty()) {
+    mprinterr("Internal Error: allocatePairwise(): No Metrics.\n");
+    return 1;
+  }
+  cacheWasAllocated_ = false;
+  // The default pairwise cache file/dataset name
+  const char* DEFAULT_PAIRDIST_NAME_ = "CpptrajPairDist";
+  // The default pairwise cache file type
+  DataFile::DataFormatType DEFAULT_PAIRDIST_TYPE_ =
+#   ifdef BINTRAJ
+    DataFile::CMATRIX_NETCDF;
+#   else
+    DataFile::CMATRIX_BINARY;
+#   endif
+
+  // Determine if we are saving/loading pairwise distances
+  std::string pairdistname = analyzeArgs.GetStringKey("pairdist");
+  DataFile::DataFormatType pairdisttype = DataFile::UNKNOWN_DATA;
+  bool load_pair = analyzeArgs.hasKey("loadpairdist");
+  bool save_pair = analyzeArgs.hasKey("savepairdist");
+  // Check if we need to set a default file name
+/*  std::string fname;
+  if (pairdistname.empty())
+    fname = DEFAULT_PAIRDIST_NAME_;
+  else {
+    fname = pairdistname;
+    // To remain backwards compatible, assume we want to load if
+    // a pairdist name was specified.
+    if (!load_pair && !save_pair) {
+      mprintf("Warning: 'pairdist' specified but 'loadpairdist'/'savepairdist' not specified."
+              "Warning: Assuming 'loadpairdist'.\n");
+      load_pair = true;
+    }
+  }*/
+
+  cache_ = 0;
+  if (load_pair ||
+      (!save_pair && !pairdistname.empty()))
+  {
+    // If 'loadpairdist' specified or 'pairdist' specified and 'savepairdist'
+    // not specified, we either want to load from file or use an existing
+    // data set.
+    if (pairdistname.empty()) {
+      pairdistname = DEFAULT_PAIRDIST_NAME_;
+      pairdisttype = DEFAULT_PAIRDIST_TYPE_;
+    }
+    // First check if pairwise data exists
+    DataSetList selected = DSL.SelectGroupSets( pairdistname, DataSet::PWCACHE );
+    if (!selected.empty()) {
+      if (selected.size() > 1)
+        mprintf("Warning: '%s' matches multiple sets; only using '%s'\n",
+                pairdistname.c_str(), selected[0]->legend());
+      cache_ = (DataSet_PairwiseCache*)selected[0];
+      mprintf("\tUsing existing pairwise set '%s'\n", cache_->legend());
+    // Next check if file exists
+    } else if (File::Exists( pairdistname )) {
+      mprintf("\tLoading pairwise distances from file '%s'\n", pairdistname.c_str());
+      DataFile dfIn;
+      // TODO set data set name with ArgList?
+      if (dfIn.ReadDataIn( pairdistname, ArgList(), DSL )) return 1;
+      DataSet* ds = DSL.GetDataSet( pairdistname );
+      if (ds == 0) return 1;
+      if (ds->Group() != DataSet::PWCACHE) {
+        mprinterr("Internal Error: AllocatePairwise(): Set is not a pairwise cache.\n");
+        return 1;
+      }
+      cache_ = (DataSet_PairwiseCache*)ds;
+      if (cache_ != 0 && save_pair) {
+        mprintf("Warning: 'savepairdist' specified but pairwise cache loaded from file.\n"
+                "Warning: Disabling 'savepairdist'.\n");
+        save_pair = false;
+      }
+    } else
+      pairdisttype = DEFAULT_PAIRDIST_TYPE_;
+
+    if (cache_ == 0) {
+      // Just 'pairdist' specified or loadpairdist specified and set/file not found.
+      // Warn the user.
+      mprintf("Warning: Pairwise distance matrix specified but cache/file '%s' not found.\n", pairdistname.c_str());
+      if (!save_pair) {
+        // If the file (or dataset) does not yet exist we will assume we want to save.
+        mprintf("Warning: Pairwise distance matrix specified but not found; will save distances.\n");
+        save_pair = true;
+      }
+    }
+  } // END if load_pair
+
+  // Create a pairwise cache if necessary
+  if (cache_ == 0) {
+    // Process DataSet type arguments
+    DataSet::DataType pw_type = DataSet::PMATRIX_MEM;
+    std::string pw_typeString = analyzeArgs.GetStringKey("pairwisecache");
+    if (!pw_typeString.empty()) {
+      if (pw_typeString == "mem")
+        pw_type = DataSet::PMATRIX_MEM; 
+      else if (pw_typeString == "disk") {
+#       ifdef BINTRAJ
+        pw_type = DataSet::PMATRIX_NC;
+#       else
+        // TODO regular disk file option
+        mprinterr("Error: Pairwise disk cache requires NetCDF.\n");
+        return 1;
+#       endif
+      } else if (pw_typeString == "none")
+        pw_type = DataSet::UNKNOWN_DATA;
+      else {
+        mprinterr("Error: Unrecognized option for 'pairwisecache' ('%s')\n", pw_typeString.c_str());
+        return 1;
+      }
+    }
+    // Allocate cache if necessary
+    if (pw_type != DataSet::UNKNOWN_DATA) {
+      MetaData meta;
+      if (!pairdistname.empty())
+        meta.SetName( pairdistname );
+      else
+        meta.SetName( DSL.GenerateDefaultName("CMATRIX") );
+      // Cache-specific setup.
+      if (pw_type == DataSet::PMATRIX_NC)
+        meta.SetFileName( pairdistname ); // TODO separate file name?
+      //cache_ = (DataSet_PairwiseCache*)DSL.AddSet( pw_type, meta, "CMATRIX" );
+      // To maintain compatibility with pytraj, the cluster number vs time
+      // set **MUST** be allocated before the cache. Set up outside the
+      // DataSetList here and set up; add to DataSetList later in Setup.
+      cache_ = (DataSet_PairwiseCache*)DSL.AllocateSet( pw_type, meta );
+      if (cache_ == 0) {
+        mprinterr("Error: Could not allocate pairwise cache.\n");
+        return 1;
+      }
+      cacheWasAllocated_ = true;
+      if (debug_ > 0)
+        mprintf("DEBUG: Allocated pairwise distance cache: %s\n", cache_->legend());
+    }
+  }
+
+  // Setup pairwise matrix
+  //if (pmatrix_.Setup(metric_, cache_)) return 1;
+
+  if (save_pair) {
+    if (cache_ == 0) {
+      mprintf("Warning: Not caching distances; ignoring 'savepairdist'\n");
+    } else {
+      if (pairdistname.empty())
+        pairdistname = DEFAULT_PAIRDIST_NAME_;
+      if (pairdisttype == DataFile::UNKNOWN_DATA)
+        pairdisttype = DEFAULT_PAIRDIST_TYPE_;
+      // TODO enable saving for other set types?
+      if (cache_->Type() == DataSet::PMATRIX_MEM) {
+        DataFile* pwd_file = DFL.AddDataFile( pairdistname, pairdisttype, ArgList() );
+        if (pwd_file == 0) return 1;
+        pwd_file->AddDataSet( cache_ );
+        if (debug_ > 0)
+          mprintf("DEBUG: Saving pw distance cache '%s' to file '%s'\n", cache_->legend(),
+                  pwd_file->DataFilename().full());
+      }
+    }
+  }
+  pw_mismatch_fatal_ = !analyzeArgs.hasKey("pwrecalc");
+
+  return 0;
 }
 
 /** /return Pointer to Metric of given type. */
@@ -78,13 +268,12 @@ Cpptraj::Cluster::Metric* Cpptraj::Cluster::MetricArray::AllocateMetric(Metric::
   return met;
 }
 
-/** Recognized args. */
+/** Recognized metric args. */
 const char* Cpptraj::Cluster::MetricArray::MetricArgs_ =
   "[{dme|rms|srmsd} [mass] [nofit] [<mask>]] [{euclid|manhattan}] [wgt <list>]";
 
 /** Initialize with given sets and arguments. */
-int Cpptraj::Cluster::MetricArray::InitMetricArray(DataSetList const& dslIn, ArgList& analyzeArgs,
-                                                   int debugIn)
+int Cpptraj::Cluster::MetricArray::initMetricArray(DataSetList const& dslIn, ArgList& analyzeArgs)
 {
   // Get rid of any previous metrics
   Clear();
@@ -153,7 +342,7 @@ int Cpptraj::Cluster::MetricArray::InitMetricArray(DataSetList const& dslIn, Arg
       case Metric::DME :
         err = ((Metric_DME*)met)->Init((DataSet_Coords*)*ds, AtomMask(maskExpr)); break;
       case Metric::SRMSD :
-        err = ((Metric_SRMSD*)met)->Init((DataSet_Coords*)*ds, AtomMask(maskExpr), nofit, useMass, debugIn); break;
+        err = ((Metric_SRMSD*)met)->Init((DataSet_Coords*)*ds, AtomMask(maskExpr), nofit, useMass, debug_); break;
       case Metric::SCALAR :
         err = ((Metric_Scalar*)met)->Init((DataSet_1D*)*ds); break;
       case Metric::TORSION :
@@ -190,6 +379,22 @@ int Cpptraj::Cluster::MetricArray::InitMetricArray(DataSetList const& dslIn, Arg
   // Temp space for calcs
   temp_.assign(metrics_.size(), 0.0);
 
+  return 0;
+}
+
+/** Initialize metrics and pairwise cache (if needed). */
+int Cpptraj::Cluster::MetricArray::Initialize(DataSetList& dslIn, DataFileList& dflIn,
+                                              ArgList& analyzeArgs, int debugIn)
+{
+  debug_ = debugIn;
+  if (initMetricArray(dslIn, analyzeArgs)) {
+    mprinterr("Error: Metric initialization failed.\n");
+    return 1;
+  }
+  if (setupPairwiseCache(analyzeArgs, dslIn, dflIn)) {
+    mprinterr("Error: Pairwise cache initialization failed.\n");
+    return 1;
+  }
   return 0;
 }
 
@@ -269,33 +474,42 @@ void Cpptraj::Cluster::MetricArray::FrameOpCentroid(int f1, CentroidArray& centr
 }
 
 /** Manhattan distance. */
-double Cpptraj::Cluster::MetricArray::Dist_Manhattan() const {
+double Cpptraj::Cluster::MetricArray::Dist_Manhattan(const double* arrayIn, unsigned int length) const {
   double dist = 0.0;
-  for (unsigned int idx = 0; idx != temp_.size(); idx++)
-    dist += (weights_[idx] * temp_[idx]);
+  for (unsigned int idx = 0; idx != length; idx++)
+    dist += (weights_[idx] * arrayIn[idx]);
   return dist;
 }
 
 /** Euclidean distance. */
-double Cpptraj::Cluster::MetricArray::Dist_Euclidean() const {
+double Cpptraj::Cluster::MetricArray::Dist_Euclidean(const double* arrayIn, unsigned int length) const {
   double sumdist2 = 0.0;
-  for (unsigned int idx = 0; idx != temp_.size(); idx++) {
-    double dist2 = temp_[idx] * temp_[idx];
+  for (unsigned int idx = 0; idx != length; idx++) {
+    double dist2 = arrayIn[idx] * arrayIn[idx];
     sumdist2 += (weights_[idx] * dist2);
   }
   return sqrt(sumdist2);
 } 
 
 /** Perform distance calc according to current type. */
-double Cpptraj::Cluster::MetricArray::DistCalc() const {
+double Cpptraj::Cluster::MetricArray::DistCalc(std::vector<double> const& arrayIn) const {
   double dist = 0;
   switch (type_) {
-    case MANHATTAN : dist = Dist_Manhattan(); break;
-    case EUCLID    : dist = Dist_Euclidean(); break;
+    case MANHATTAN : dist = Dist_Manhattan(&arrayIn[0], arrayIn.size()); break;
+    case EUCLID    : dist = Dist_Euclidean(&arrayIn[0], arrayIn.size()); break;
   }
   return dist;
 }
 
+/** Perform distance calc according to current type. */
+double Cpptraj::Cluster::MetricArray::DistCalc(const double* arrayIn, unsigned int length) const {
+  double dist = 0;
+  switch (type_) {
+    case MANHATTAN : dist = Dist_Manhattan(arrayIn, length); break;
+    case EUCLID    : dist = Dist_Euclidean(arrayIn, length); break;
+  }
+  return dist;
+}
 /** Calculate distance between given frame and centroids. */
 double Cpptraj::Cluster::MetricArray::FrameCentroidDist(int frame, CentroidArray const& centroids )
 {
@@ -305,5 +519,143 @@ double Cpptraj::Cluster::MetricArray::FrameCentroidDist(int frame, CentroidArray
   }
   for (unsigned int idx = 0; idx != metrics_.size(); idx++)
     temp_[idx] = metrics_[idx]->FrameCentroidDist( frame, centroids[idx] );
-  return DistCalc();
+  return DistCalc(temp_);
+}
+
+/** \return distance between frames (uncached). */
+double Cpptraj::Cluster::MetricArray::Uncached_Frame_Distance(int f1, int f2)
+{
+  for (unsigned int idx = 0; idx != metrics_.size(); idx++)
+    temp_[idx] = metrics_[idx]->FrameDist(f1, f2);
+  return DistCalc(temp_);
+}
+
+/** \return distance between frames (cached or uncached). */
+double Cpptraj::Cluster::MetricArray::Frame_Distance(int f1, int f2) {
+  if (cache_ != 0)
+  {
+    // TODO protect against f1/f2 out of bounds.
+    int idx1 = cache_->FrameToIdx()[f1];
+    if (idx1 != -1) {
+      int idx2 = cache_->FrameToIdx()[f2];
+      if (idx2 != -1)
+        return cache_->CachedDistance(idx1, idx2);
+    }
+  }
+  // If here, distance was not cached or no cache.
+  return Uncached_Frame_Distance(f1, f2); 
+}
+
+// -----------------------------------------------
+/** \return A string containing the description of all metrics. */
+std::string Cpptraj::Cluster::MetricArray::descriptionOfMetrics() const {
+  std::string out;
+  for (std::vector<Metric*>::const_iterator it = metrics_.begin();
+                                            it != metrics_.end(); ++it)
+  {
+    if (it != metrics_.begin())
+      out.append(",");
+    out.append( (*it)->Description() );
+  }
+  return out;
+}
+
+/** Request that distances for frames in given array be cached.
+  * \param framesToCache the frames to cache.
+  * \param sieveIn Sieve value (if any) used to generate framesToCache. This is
+  *        purely for bookkeeping inside DataSet_PairwiseCache.
+  * When pw_mismatch_fatal_ is true, if a cache is present but the frames to
+  * cache do not match what is in the cache, exit with an error;
+  * otherwise recalculate the cache.
+  */
+int Cpptraj::Cluster::MetricArray::CacheDistances(Cframes const& framesToCache, int sieveIn)
+{
+  if (framesToCache.size() < 1) return 0;
+  // If no cache we can leave.
+  if (cache_ == 0) return 0;
+
+  bool do_cache = true;
+  if (cache_->Size() > 0) {
+    do_cache = false;
+    mprintf("\tUsing existing cache '%s'\n", cache_->legend());
+    // If cache is already populated, check that it is valid.
+    // The frames to cache must match cached frames.
+    if (!cache_->CachedFramesMatch( framesToCache )) {
+      if (pw_mismatch_fatal_) {
+        mprinterr("Error: Frames to cache do not match those in existing cache.\n");
+        return 1;
+      } else {
+        mprintf("Warning: Frames to cache do not match those in existing cache.\n"
+                "Warning: Re-calculating pairwise cache.\n");
+        do_cache = true;
+      }
+    }
+    // TODO Check metric? Total frames?
+  }
+
+  if (do_cache) {
+    // Sanity check
+    if (metrics_.empty()) {
+      mprinterr("Internal Error: MetricArray::CacheDistances(): Metric is null.\n");
+      return 1;
+    }
+    // Cache setup
+    if (cache_->SetupCache( Ntotal(), framesToCache, sieveIn, descriptionOfMetrics() ))
+      return 1;
+    // Fill cache
+    if (calcFrameDistances(framesToCache))
+      return 1;
+  }
+  return 0;
+}
+
+/** Cache distances between given frames using SetElement(). */
+int Cpptraj::Cluster::MetricArray::calcFrameDistances(Cframes const& framesToCache)
+{
+  mprintf("\tCaching distances for %zu frames.\n", framesToCache.size());
+
+  int f2end = (int)framesToCache.size();
+  int f1end = f2end - 1;
+  ParallelProgress progress(f1end);
+  int f1, f2;
+  // For OMP, every other thread will need its own Cdist.
+  Metric** MyMetrics = &metrics_[0];
+  double* MyTemp = &temp_[0];
+# ifdef _OPENMP
+# pragma omp parallel private(MyMetrics, f1, f2) firstprivate(progress)
+  {
+  int mythread = omp_get_thread_num();
+  progress.SetThread( mythread );
+  if (mythread == 0) {
+    mprintf("\tParallelizing pairwise distance calc with %i threads\n", omp_get_num_threads());
+    MyMetrics = &metrics_[0];
+  } else {
+    // Copy every Metric in metrics_
+    MyMetrics = new Metric*[metrics_.size()];
+    for (unsigned int idx = 0; idx != metrics_.size(); idx++)
+      MyMetrics[idx] = metrics_[idx]->Copy();
+    MyTemp = new double[metrics_.size()];
+  }
+# pragma omp for schedule(dynamic)
+# endif
+  for (f1 = 0; f1 < f1end; f1++) {
+    progress.Update(f1);
+    for (f2 = f1 + 1; f2 < f2end; f2++) {
+      //cache_->SetElement( f1, f2, MyMetric->FrameDist(framesToCache[f1], framesToCache[f2]) );
+      for (unsigned int idx = 0; idx != metrics_.size(); idx++)
+        MyTemp[idx] = MyMetrics[idx]->FrameDist(framesToCache[f1], framesToCache[f2]);
+      cache_->SetElement( f1, f2, DistCalc(MyTemp, metrics_.size()) );
+    }
+  }
+# ifdef _OPENMP
+  if (mythread > 0) {
+    for (unsigned int idx = 0; idx != metrics_.size(); idx++)
+      delete MyMetrics[idx];
+    delete[] MyMetrics;
+    delete[] MyTemp;
+  }
+  } // END omp parallel
+# endif
+  progress.Finish();
+  return 0;
 }
