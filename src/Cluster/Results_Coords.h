@@ -13,7 +13,7 @@ class Results_Coords : public Results {
     Results_Coords(DataSet_Coords*);
     static void Help();
     // ----- Results functions -------------------
-    int GetOptions(ArgList&, DataSetList const&, Metric const&);
+    int GetOptions(ArgList&, DataSetList const&, MetricArray const&);
     void Info() const;
     int DoOutput(List const&) const;
     int CalcResults(List&) const;
