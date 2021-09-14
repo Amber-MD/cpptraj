@@ -89,13 +89,11 @@ class MetricArray {
     /// Initialize with data sets and user arguments
     int initMetricArray(DataSetList const&, ArgList&);
     /// Manhattan distance
-    double Dist_Manhattan(const double*, unsigned int) const;
+    double Dist_Manhattan(std::vector<double> const&) const;
     /// Euclidean distance
-    double Dist_Euclidean(const double*, unsigned int) const;
+    double Dist_Euclidean(std::vector<double> const&) const;
     /// Distance based on type_
     double DistCalc(std::vector<double> const&) const;
-    /// Distance based on type_
-    double DistCalc(const double*, unsigned int) const;
 
     /// \return a string containing description of all metrics
     std::string descriptionOfMetrics() const;

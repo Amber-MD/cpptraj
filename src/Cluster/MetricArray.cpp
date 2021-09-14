@@ -513,17 +513,17 @@ void Cpptraj::Cluster::MetricArray::FrameOpCentroid(int f1, CentroidArray& centr
 }
 
 /** Manhattan distance. */
-double Cpptraj::Cluster::MetricArray::Dist_Manhattan(const double* arrayIn, unsigned int length) const {
+double Cpptraj::Cluster::MetricArray::Dist_Manhattan(std::vector<double> const& arrayIn) const {
   double dist = 0.0;
-  for (unsigned int idx = 0; idx != length; idx++)
+  for (unsigned int idx = 0; idx != arrayIn.size(); idx++)
     dist += (weights_[idx] * arrayIn[idx]);
   return dist;
 }
 
 /** Euclidean distance. */
-double Cpptraj::Cluster::MetricArray::Dist_Euclidean(const double* arrayIn, unsigned int length) const {
+double Cpptraj::Cluster::MetricArray::Dist_Euclidean(std::vector<double> const& arrayIn) const {
   double sumdist2 = 0.0;
-  for (unsigned int idx = 0; idx != length; idx++) {
+  for (unsigned int idx = 0; idx != arrayIn.size(); idx++) {
     double dist2 = arrayIn[idx] * arrayIn[idx];
     sumdist2 += (weights_[idx] * dist2);
   }
@@ -534,22 +534,12 @@ double Cpptraj::Cluster::MetricArray::Dist_Euclidean(const double* arrayIn, unsi
 double Cpptraj::Cluster::MetricArray::DistCalc(std::vector<double> const& arrayIn) const {
   double dist = 0;
   switch (type_) {
-    case MANHATTAN : dist = Dist_Manhattan(&arrayIn[0], arrayIn.size()); break;
-    case EUCLID    : dist = Dist_Euclidean(&arrayIn[0], arrayIn.size()); break;
+    case MANHATTAN : dist = Dist_Manhattan(arrayIn); break;
+    case EUCLID    : dist = Dist_Euclidean(arrayIn); break;
   }
   return dist;
 }
 
-// FIXME deprecate
-/** Perform distance calc according to current type. */
-double Cpptraj::Cluster::MetricArray::DistCalc(const double* arrayIn, unsigned int length) const {
-  double dist = 0;
-  switch (type_) {
-    case MANHATTAN : dist = Dist_Manhattan(arrayIn, length); break;
-    case EUCLID    : dist = Dist_Euclidean(arrayIn, length); break;
-  }
-  return dist;
-}
 /** Calculate distance between given frame and centroids. */
 double Cpptraj::Cluster::MetricArray::FrameCentroidDist(int frame, CentroidArray const& centroids )
 {
