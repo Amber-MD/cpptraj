@@ -16,7 +16,6 @@ class DataSetList;
 namespace Cpptraj {
 namespace Cluster {
 class Algorithm;
-class Metric;
 class Results;
 /// Hold clusters, algorithm, and pairwise matrix.
 class Control {
