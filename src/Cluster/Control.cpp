@@ -596,8 +596,6 @@ void Cpptraj::Cluster::Control::Info() const {
   metrics_.Info();
   if (algorithm_ != 0) algorithm_->Info();
 
-  metrics_.Info();
-
   if (results_   != 0)
     results_->Info();
   else
