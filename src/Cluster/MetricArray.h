@@ -47,16 +47,16 @@ class MetricArray {
     /// \return First Metric (if any) having to do with a COORDS set
     Metric const* CoordsMetric() const;
 
-    // TODO: The Cache() and CacheWasAllocated() routines are only needed
+    // TODO: The CachePtr() and CacheWasAllocated() routines are only needed
     //       because pytraj expects the cluster # vs time set to be
     //       allocated *before* the cache. So it is potentially
     //       allocated via InitMetricArray(), but added to the master
     //       DataSetList later. If/when pytraj is modified to change
     //       this dependency, these two routines can be retired.
     /// \return Pointer to internal pairwise cache.
-    DataSet_PairwiseCache* Cache() const { return cache_; }
+    DataSet_PairwiseCache* CachePtr() const { return cache_; }
     /// \return true if cache was allocated by MetricArray
-    bool CacheWasAllocated()       const { return cacheWasAllocated_; }
+    bool CacheWasAllocated()          const { return cacheWasAllocated_; }
 
     /// Calculate new centroid for each metric
     void NewCentroid(CentroidArray&, Cframes const&);
