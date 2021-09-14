@@ -700,7 +700,7 @@ void Cpptraj::Cluster::Control::Info() const {
   * and representative frames will be determined.
   */
 int Cpptraj::Cluster::Control::Run() {
-  if (metrics_.empty() || algorithm_ == 0) { // TODO check pmatrix_?
+  if (metrics_.empty() || algorithm_ == 0) {
     mprinterr("Internal Error: Cluster::Control is not set up.\n");
     return 1;
   }
