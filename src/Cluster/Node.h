@@ -10,7 +10,6 @@ class DataSet_float;
 namespace Cpptraj {
 namespace Cluster {
 class MetricArray;
-class PairwiseMatrix;
 // TODO implement needsUpdate_
 
 /// Hold frame indices for a given cluster.
@@ -19,7 +18,7 @@ class Node {
     Node();
     ~Node();
     // NOTE: Taking a non-const reference to Metric here allows
-    //       PairwiseMatrix to be passed in as const to routines while still
+    //       MetricArray to be passed in as const to routines while still
     //       allowing Metric to be used. Metric needs to be non-const because
     //       things like calculating RMSD modify Metric itself to avoid
     //       always reallocating Frames.
@@ -105,7 +104,7 @@ class Node {
     /// Set cluster name and RMS to reference
     inline void SetNameAndRms(std::string const&, double);
     /// Calculate eccentricity for frames in this cluster.
-    void CalcEccentricity(PairwiseMatrix const&);
+    void CalcEccentricity(MetricArray&);
     /// Remove specified frame from cluster and update centroid.
     void RemoveFrameUpdateCentroid(MetricArray&, int);
     /// Add specified frame to cluster and update centroid.

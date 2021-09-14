@@ -1,7 +1,6 @@
 //#include <cfloat> // DBL_MAX
 #include "Node.h"
 #include "MetricArray.h"
-#include "PairwiseMatrix.h"
 #include "../DataSet_float.h"
 #include "../DataSet_integer.h"
 
@@ -64,7 +63,7 @@ void Cpptraj::Cluster::Node::CalculateCentroid(MetricArray& Cdist) {
 /** Calculate the eccentricity of this cluster (i.e. the largest distance
   * between any two points in the cluster).
   */
-void Cpptraj::Cluster::Node::CalcEccentricity(PairwiseMatrix const& FrameDistancesIn) {
+void Cpptraj::Cluster::Node::CalcEccentricity(MetricArray& FrameDistancesIn) {
   double maxdist = 0.0;
   frame_iterator frame1_end = frameList_.end();
   --frame1_end;
