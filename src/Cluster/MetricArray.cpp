@@ -446,6 +446,21 @@ void Cpptraj::Cluster::MetricArray::Info() const {
             idx, sets_[idx]->legend(), weights_[idx]);
     metrics_[idx]->Info();
   }
+
+  if (cache_ == 0)
+    mprintf("\tPairwise distances will not be cached.\n");
+  else {
+    if (cache_->Size() > 0)
+      mprintf("\tUsing existing pairwise cache: %s (%s)\n",
+              cache_->legend(), cache_->description());
+    else
+      mprintf("\tPairwise distances will be cached: %s (%s)\n",
+              cache_->legend(), cache_->description());
+    if (pw_mismatch_fatal_)
+      mprintf("\tCalculation will be halted if frames in cache do not match.\n");
+    else
+      mprintf("\tPairwise distances will be recalculated if frames in cache do not match.\n");
+  }
 }
 
 // -----------------------------------------------
