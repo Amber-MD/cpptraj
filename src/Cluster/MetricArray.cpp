@@ -282,7 +282,7 @@ const char* Cpptraj::Cluster::MetricArray::MetricArgs_ =
   "[{dme|rms|srmsd} [mass] [nofit] [<mask>]] [{euclid|manhattan}] [wgt <list>]";
 
 /** Initialize with given sets and arguments. */
-int Cpptraj::Cluster::MetricArray::initMetricArray(DataSetList const& dslIn, ArgList& analyzeArgs)
+int Cpptraj::Cluster::MetricArray::initMetricArray(DataSetList const& setsToCluster, ArgList& analyzeArgs)
 {
   // Get rid of any previous metrics
   Clear();
@@ -300,7 +300,7 @@ int Cpptraj::Cluster::MetricArray::initMetricArray(DataSetList const& dslIn, Arg
     type_ = MANHATTAN;
   else {
     // Default
-    if (dslIn.size() > 1)
+    if (setsToCluster.size() > 1)
       type_ = EUCLID;
     else
       type_ = MANHATTAN;
@@ -319,7 +319,7 @@ int Cpptraj::Cluster::MetricArray::initMetricArray(DataSetList const& dslIn, Arg
   else coordsMetricType = Metric::RMS; // default
 
   // For each input set, set up the appropriate metric
-  for (DataSetList::const_iterator ds = dslIn.begin(); ds != dslIn.end(); ++ds)
+  for (DataSetList::const_iterator ds = setsToCluster.begin(); ds != setsToCluster.end(); ++ds)
   {
     Metric::Type mtype = Metric::UNKNOWN_METRIC;
     if ( (*ds)->Group() == DataSet::COORDINATES )
@@ -392,11 +392,12 @@ int Cpptraj::Cluster::MetricArray::initMetricArray(DataSetList const& dslIn, Arg
 }
 
 /** Initialize metrics and pairwise cache (if needed). */
-int Cpptraj::Cluster::MetricArray::Initialize(DataSetList& dslIn, DataFileList& dflIn,
+int Cpptraj::Cluster::MetricArray::Initialize(DataSetList const& setsToCluster,
+                                              DataSetList& dslIn, DataFileList& dflIn,
                                               ArgList& analyzeArgs, int debugIn)
 {
   debug_ = debugIn;
-  if (initMetricArray(dslIn, analyzeArgs)) {
+  if (initMetricArray(setsToCluster, analyzeArgs)) {
     mprinterr("Error: Metric initialization failed.\n");
     return 1;
   }

@@ -31,8 +31,8 @@ class MetricArray {
     /// Recognized pairwise keywords 2
     static const char* PairwiseArgs2_;
 
-    /// Initialize with data sets and user arguments
-    int Initialize(DataSetList&, DataFileList&, ArgList&, int);
+    /// Initialize with sets to cluster, master data set/file lists (for cache), and user arguments
+    int Initialize(DataSetList const&, DataSetList&, DataFileList&, ArgList&, int);
     /// Set up all metrics
     int Setup();
     /// Request that the pairwise cache be filled with distances for specified frames.
