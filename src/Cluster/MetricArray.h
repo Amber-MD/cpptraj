@@ -58,6 +58,11 @@ class MetricArray {
     /// \return true if cache was allocated by MetricArray
     bool CacheWasAllocated()          const { return cacheWasAllocated_; }
 
+    /// \return true if there is a distance cache.
+    bool HasCache()                      const { return (cache_ != 0); }
+    /// \return internal cache, const.
+    DataSet_PairwiseCache const& Cache() const { return *cache_; }
+
     /// Calculate new centroid for each metric
     void NewCentroid(CentroidArray&, Cframes const&);
     /// Calculate centroids for each metric
