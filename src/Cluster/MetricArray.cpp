@@ -540,6 +540,7 @@ double Cpptraj::Cluster::MetricArray::DistCalc(std::vector<double> const& arrayI
   return dist;
 }
 
+// FIXME deprecate
 /** Perform distance calc according to current type. */
 double Cpptraj::Cluster::MetricArray::DistCalc(const double* arrayIn, unsigned int length) const {
   double dist = 0;
@@ -553,11 +554,23 @@ double Cpptraj::Cluster::MetricArray::DistCalc(const double* arrayIn, unsigned i
 double Cpptraj::Cluster::MetricArray::FrameCentroidDist(int frame, CentroidArray const& centroids )
 {
   if (centroids.size() != metrics_.size()) {
-    mprinterr("Internal Error: MetricArray::FrameOpCentroid: centroids and metrics_ sizes do not match.\n");
+    mprinterr("Internal Error: MetricArray::FrameCentroidDist: centroids and metrics_ sizes do not match.\n");
     return -1.0;
   }
   for (unsigned int idx = 0; idx != metrics_.size(); idx++)
     temp_[idx] = metrics_[idx]->FrameCentroidDist( frame, centroids[idx] );
+  return DistCalc(temp_);
+}
+
+/** Calculate distance between given centroids. */
+double Cpptraj::Cluster::MetricArray::CentroidDist(CentroidArray const& C1, CentroidArray const& C2)
+{
+  if (C1.size() != metrics_.size() || C2.size() != metrics_.size()) {
+    mprinterr("Internal Error: MetricArray::CentroidDist: centroids and metrics_ sizes do not match.\n");
+    return -1.0;
+  }
+  for (unsigned int idx = 0; idx != metrics_.size(); idx++)
+    temp_[idx] = metrics_[idx]->CentroidDist( C1[idx], C2[idx] );
   return DistCalc(temp_);
 }
 

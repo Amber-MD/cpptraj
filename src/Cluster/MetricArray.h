@@ -71,6 +71,8 @@ class MetricArray {
     void FrameOpCentroid(int, CentroidArray&, double, Metric::CentOpType);
     /// \return distance between given frame and centroids
     double FrameCentroidDist(int, CentroidArray const&);
+    /// \return distance between given centroids
+    double CentroidDist(CentroidArray const&, CentroidArray const&);
 
     /// \return distance between frames (uncached)
     double Uncached_Frame_Distance(int, int);
