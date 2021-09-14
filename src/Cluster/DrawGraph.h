@@ -4,11 +4,11 @@ class DataSet;
 namespace Cpptraj {
 namespace Cluster {
 class Cframes;
-class PairwiseMatrix;
+class MetricArray; 
 
 enum GraphType { NO_DRAWGRAPH = 0, TWOD, THREED };
 
-void DrawGraph(Cframes const&, PairwiseMatrix const&, GraphType, DataSet*, double, int, int);
+void DrawGraph(Cframes const&, MetricArray&, GraphType, DataSet*, double, int, int);
 
 }
 }

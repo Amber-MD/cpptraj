@@ -9,12 +9,6 @@
 #include "../DataSet_float.h"
 #include "../DataSet_integer.h"
 #include "../DataSet_PairwiseCache.h"
-// Metric classes
-#include "Metric_RMS.h"
-#include "Metric_DME.h"
-#include "Metric_Data_Euclid.h"
-#include "Metric_Data_Manhattan.h"
-#include "Metric_SRMSD.h"
 // Algorithms
 #include "Algorithm_HierAgglo.h"
 #include "Algorithm_DBscan.h"
@@ -24,10 +18,8 @@
 #include "Results_Coords.h"
 
 Cpptraj::Cluster::Control::Control() :
-  metric_(0),
   algorithm_(0),
   results_(0),
-  cache_was_allocated_(false),
   verbose_(0),
   frameSelect_(UNSPECIFIED),
   sieve_(1),
@@ -49,189 +41,12 @@ Cpptraj::Cluster::Control::Control() :
   drawGraph_(NO_DRAWGRAPH),
   draw_tol_(0),
   draw_maxit_(0),
-  debug_(0),
-  pw_mismatch_fatal_(true)
+  debug_(0)
 {}
 
 Cpptraj::Cluster::Control::~Control() {
   if (algorithm_ != 0) delete algorithm_;
-  if (metric_ != 0   ) delete metric_;
   if (results_ != 0  ) delete results_;
-}
-
-// -----------------------------------------------------------------------------
-/** The default pairwise cache file name. */
-const char* Cpptraj::Cluster::Control::DEFAULT_PAIRDIST_NAME_ = "CpptrajPairDist";
-
-/** The default pairwise distance file type. */
-DataFile::DataFormatType Cpptraj::Cluster::Control::DEFAULT_PAIRDIST_TYPE_ =
-# ifdef BINTRAJ
-  DataFile::CMATRIX_NETCDF;
-# else
-  DataFile::CMATRIX_BINARY;
-# endif
-
-const char* Cpptraj::Cluster::Control::PairwiseArgs1_ =
-  "[pairdist <name>] [pwrecalc]";
-
-const char* Cpptraj::Cluster::Control::PairwiseArgs2_ =
-  "[loadpairdist] [savepairdist] [pairwisecache {mem|disk|none}]";
-
-/** Set up PairwiseMatrix from arguments. */
-int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetList& DSL,
-                                                DataFileList& DFL)
-{
-  if (metric_ == 0) {
-    mprinterr("Internal Error: AllocatePairwise(): Metric is null.\n");
-    return 1;
-  }
-  cache_was_allocated_ = false;
-
-  // Determine if we are saving/loading pairwise distances
-  std::string pairdistname = analyzeArgs.GetStringKey("pairdist");
-  DataFile::DataFormatType pairdisttype = DataFile::UNKNOWN_DATA;
-  bool load_pair = analyzeArgs.hasKey("loadpairdist");
-  bool save_pair = analyzeArgs.hasKey("savepairdist");
-  // Check if we need to set a default file name
-/*  std::string fname;
-  if (pairdistname.empty())
-    fname = DEFAULT_PAIRDIST_NAME_;
-  else {
-    fname = pairdistname;
-    // To remain backwards compatible, assume we want to load if
-    // a pairdist name was specified.
-    if (!load_pair && !save_pair) {
-      mprintf("Warning: 'pairdist' specified but 'loadpairdist'/'savepairdist' not specified."
-              "Warning: Assuming 'loadpairdist'.\n");
-      load_pair = true;
-    }
-  }*/
-
-  cache_ = 0;
-  if (load_pair ||
-      (!save_pair && !pairdistname.empty()))
-  {
-    // If 'loadpairdist' specified or 'pairdist' specified and 'savepairdist'
-    // not specified, we either want to load from file or use an existing
-    // data set.
-    if (pairdistname.empty()) {
-      pairdistname = DEFAULT_PAIRDIST_NAME_;
-      pairdisttype = DEFAULT_PAIRDIST_TYPE_;
-    }
-    // First check if pairwise data exists
-    DataSetList selected = DSL.SelectGroupSets( pairdistname, DataSet::PWCACHE );
-    if (!selected.empty()) {
-      if (selected.size() > 1)
-        mprintf("Warning: '%s' matches multiple sets; only using '%s'\n",
-                pairdistname.c_str(), selected[0]->legend());
-      cache_ = (DataSet_PairwiseCache*)selected[0];
-      mprintf("\tUsing existing pairwise set '%s'\n", cache_->legend());
-    // Next check if file exists
-    } else if (File::Exists( pairdistname )) {
-      mprintf("\tLoading pairwise distances from file '%s'\n", pairdistname.c_str());
-      DataFile dfIn;
-      // TODO set data set name with ArgList?
-      if (dfIn.ReadDataIn( pairdistname, ArgList(), DSL )) return 1;
-      DataSet* ds = DSL.GetDataSet( pairdistname );
-      if (ds == 0) return 1;
-      if (ds->Group() != DataSet::PWCACHE) {
-        mprinterr("Internal Error: AllocatePairwise(): Set is not a pairwise cache.\n");
-        return 1;
-      }
-      cache_ = (DataSet_PairwiseCache*)ds;
-      if (cache_ != 0 && save_pair) {
-        mprintf("Warning: 'savepairdist' specified but pairwise cache loaded from file.\n"
-                "Warning: Disabling 'savepairdist'.\n");
-        save_pair = false;
-      }
-    } else
-      pairdisttype = DEFAULT_PAIRDIST_TYPE_;
-
-    if (cache_ == 0) {
-      // Just 'pairdist' specified or loadpairdist specified and set/file not found.
-      // Warn the user.
-      mprintf("Warning: Pairwise distance matrix specified but cache/file '%s' not found.\n", pairdistname.c_str());
-      if (!save_pair) {
-        // If the file (or dataset) does not yet exist we will assume we want to save.
-        mprintf("Warning: Pairwise distance matrix specified but not found; will save distances.\n");
-        save_pair = true;
-      }
-    }
-  } // END if load_pair
-
-  // Create a pairwise cache if necessary
-  if (cache_ == 0) {
-    // Process DataSet type arguments
-    DataSet::DataType pw_type = DataSet::PMATRIX_MEM;
-    std::string pw_typeString = analyzeArgs.GetStringKey("pairwisecache");
-    if (!pw_typeString.empty()) {
-      if (pw_typeString == "mem")
-        pw_type = DataSet::PMATRIX_MEM; 
-      else if (pw_typeString == "disk") {
-#       ifdef BINTRAJ
-        pw_type = DataSet::PMATRIX_NC;
-#       else
-        // TODO regular disk file option
-        mprinterr("Error: Pairwise disk cache requires NetCDF.\n");
-        return 1;
-#       endif
-      } else if (pw_typeString == "none")
-        pw_type = DataSet::UNKNOWN_DATA;
-      else {
-        mprinterr("Error: Unrecognized option for 'pairwisecache' ('%s')\n", pw_typeString.c_str());
-        return 1;
-      }
-    }
-    // Allocate cache if necessary
-    if (pw_type != DataSet::UNKNOWN_DATA) {
-      MetaData meta;
-      if (!pairdistname.empty())
-        meta.SetName( pairdistname );
-      else
-        meta.SetName( DSL.GenerateDefaultName("CMATRIX") );
-      // Cache-specific setup.
-      if (pw_type == DataSet::PMATRIX_NC)
-        meta.SetFileName( pairdistname ); // TODO separate file name?
-      //cache_ = (DataSet_PairwiseCache*)DSL.AddSet( pw_type, meta, "CMATRIX" );
-      // To maintain compatibility with pytraj, the cluster number vs time
-      // set **MUST** be allocated before the cache. Set up outside the
-      // DataSetList here and set up; add to DataSetList later in Setup.
-      cache_ = (DataSet_PairwiseCache*)DSL.AllocateSet( pw_type, meta );
-      if (cache_ == 0) {
-        mprinterr("Error: Could not allocate pairwise cache.\n");
-        return 1;
-      }
-      cache_was_allocated_ = true;
-      if (debug_ > 0)
-        mprintf("DEBUG: Allocated pairwise distance cache: %s\n", cache_->legend());
-    }
-  }
-
-  // Setup pairwise matrix
-  if (pmatrix_.Setup(metric_, cache_)) return 1;
-
-  if (save_pair) {
-    if (cache_ == 0) {
-      mprintf("Warning: Not caching distances; ignoring 'savepairdist'\n");
-    } else {
-      if (pairdistname.empty())
-        pairdistname = DEFAULT_PAIRDIST_NAME_;
-      if (pairdisttype == DataFile::UNKNOWN_DATA)
-        pairdisttype = DEFAULT_PAIRDIST_TYPE_;
-      // TODO enable saving for other set types?
-      if (cache_->Type() == DataSet::PMATRIX_MEM) {
-        DataFile* pwd_file = DFL.AddDataFile( pairdistname, pairdisttype, ArgList() );
-        if (pwd_file == 0) return 1;
-        pwd_file->AddDataSet( cache_ );
-        if (debug_ > 0)
-          mprintf("DEBUG: Saving pw distance cache '%s' to file '%s'\n", cache_->legend(),
-                  pwd_file->DataFilename().full());
-      }
-    }
-  }
-  pw_mismatch_fatal_ = !analyzeArgs.hasKey("pwrecalc");
-
-  return 0;
 }
 
 // -----------------------------------------------------------------------------
@@ -249,6 +64,7 @@ Cpptraj::Cluster::Algorithm* Cpptraj::Cluster::Control::AllocateAlgorithm(Algori
   return alg;
 }
 
+/** Recognized algorithm keywords. */
 const char* Cpptraj::Cluster::Control::AlgorithmArgs_ =
   "{hieragglo|dbscan|kmeans|dpeaks}";
 
@@ -269,22 +85,6 @@ int Cpptraj::Cluster::Control::AllocateAlgorithm(ArgList& analyzeArgs) {
   if (algorithm_ == 0) return 1;
   if (algorithm_->Setup( analyzeArgs )) return 1;
   return 0;
-}
-
-// -----------------------------------------------------------------------------
-/** /return Pointer to Metric of given type. */
-Cpptraj::Cluster::Metric* Cpptraj::Cluster::Control::AllocateMetric(Metric::Type mtype)
-{
-  Metric* met = 0;
-  switch (mtype) {
-    case Metric::RMS       : met = new Metric_RMS(); break;
-    case Metric::DME       : met = new Metric_DME(); break;
-    case Metric::SRMSD     : met = new Metric_SRMSD(); break;
-    case Metric::EUCLID    : met = new Metric_Data_Euclid(); break;
-    case Metric::MANHATTAN : met = new Metric_Data_Manhattan(); break;
-    default: mprinterr("Error: Unhandled Metric in AllocateMetric.\n");
-  }
-  return met;
 }
 
 // -----------------------------------------------------------------------------
@@ -340,7 +140,7 @@ int Cpptraj::Cluster::Control::ReadInfo(std::string const& fname) {
       if (ptr[fidx] == 'X')
         frames.push_back( fidx );
     }
-    clusters_.AddCluster( Node(metric_, frames, cnum) );
+    clusters_.AddCluster( Node(metrics_, frames, cnum) );
     mprintf("\tRead cluster %i, %zu frames.\n", cnum, frames.size());
     ptr = infile.Line();
   }
@@ -381,17 +181,11 @@ int Cpptraj::Cluster::Control::InitClustersFromSet(DataSet* cnvt) {
   for (std::vector<Cframes>::const_iterator frames = clusterFrames.begin();
                                             frames != clusterFrames.end();
                                           ++frames, ++clusterNum)
-    clusters_.AddCluster( Node(metric_, *frames, clusterNum) );
+    clusters_.AddCluster( Node(metrics_, *frames, clusterNum) );
   return 0;
 }
 
 // -----------------------------------------------------------------------------
-
-const char* Cpptraj::Cluster::Control::MetricArgs_ =
-  "{rms|srmsd|dme|euclid|manhattan}";
-
-const char* Cpptraj::Cluster::Control::CoordsDataSetArgs_ =
-  "[{dme|rms|srmsd} [mass] [nofit] [<mask>]]";
 
 const char* Cpptraj::Cluster::Control::SieveArgs1_ =
   "[sieve <#> [sieveseed <#>] [random] [includesieveincalc] [includesieved_cdist]";
@@ -435,7 +229,12 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
     mprinterr("Error: No sets to cluster.\n");
     return 1;
   }
-  
+
+  if (metrics_.Initialize( setsToCluster, DSL, DFL, analyzeArgs, verbose_ )) {
+    mprinterr("Error: Could not initialize distance metrics/cache.\n");
+    return 1;
+  }
+/*
   // Determine the metric type based on what sets we are clustering on
   if (setsToCluster.size() == 1 && setsToCluster[0]->Group() == DataSet::COORDINATES) {
     // Clustering on coords
@@ -511,6 +310,7 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
     int err = ((Metric_Data*)metric_)->Init( cluster_datasets );
     if (err != 0) return 1;
   }
+*/
 
   // Set up results that depend on COORDS DataSet
   if (coordsSet != 0) {
@@ -543,14 +343,15 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
   }
 
   if (results_ != 0) {
-    if (results_->GetOptions(analyzeArgs, DSL, *metric_)) return 1;
+    if (results_->GetOptions(analyzeArgs, DSL, metrics_)) return 1;
   }
 
+/*
   // Allocate PairwiseMatrix (and optionally a cache). Metric must already be set up.
   if (AllocatePairwise( analyzeArgs, DSL, DFL )) {
     mprinterr("Error: PairwiseMatrix setup failed.\n");
     return 1;
-  }
+  }*/
 
   // Allocate algorithm
   if (AllocateAlgorithm( analyzeArgs )) {
@@ -581,13 +382,13 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
   if (frameSelect_ == UNSPECIFIED) {
     // If no other frame selection option like sieve provided and an already
     // set up cache is present, use the cached frames.
-    if (sieve_ == 1 && pmatrix_.HasCache() && pmatrix_.Cache().Size() > 0)
+    if (sieve_ == 1 && metrics_.HasCache() && metrics_.Cache().Size() > 0)
     {
       frameSelect_ = FROM_CACHE;
-      if (pmatrix_.Cache().SieveVal() != 1) {
-        sieve_ = pmatrix_.Cache().SieveVal();
+      if (metrics_.Cache().SieveVal() != 1) {
+        sieve_ = metrics_.Cache().SieveVal();
         mprintf("Warning: No sieve specified; using sieve value from cache '%s': %i\n",
-                pmatrix_.Cache().legend(), sieve_);
+                metrics_.Cache().legend(), sieve_);
       }
     }
   }
@@ -736,8 +537,8 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
   if (cnumvtimefile != 0) cnumvtimefile->AddDataSet( cnumvtime_ );
 
   // If cache was alloaced, add to the DataSetList so it is after cnumvtime for pytraj
-  if (cache_was_allocated_)
-    DSL.AddSet( cache_ );
+  if (metrics_.CacheWasAllocated())
+    DSL.AddSet( metrics_.CachePtr() );
 
   // Set up number of unique clusters vs time DataSet
   if (clustersvtimefile != 0) {
@@ -763,12 +564,11 @@ void Cpptraj::Cluster::Control::Help() {
   Algorithm_DBscan::Help();
   Algorithm_Kmeans::Help();
   Algorithm_DPeaks::Help();
-  mprintf("  Metric Args: [%s]\n", MetricArgs_);
-  mprintf("    ('euclid' and 'manhattan' only work with 'data')\n");
-  mprintf("\t{%s | [{euclid|manhattan}]}\n", CoordsDataSetArgs_);
+  mprintf("  Metric Args:\n");
+  mprintf("\t%s\n", MetricArray::MetricArgs_);
   mprintf("  Pairwise Args:\n");
-  mprintf("\t%s\n", PairwiseArgs1_);
-  mprintf("\t%s\n", PairwiseArgs2_);
+  mprintf("\t%s\n", MetricArray::PairwiseArgs1_);
+  mprintf("\t%s\n", MetricArray::PairwiseArgs2_);
   mprintf("  Sieve Args:\n");
   mprintf("\t%s\n", SieveArgs1_);
   mprintf("\t%s\n", SieveArgs2_);
@@ -793,8 +593,10 @@ void Cpptraj::Cluster::Control::Help() {
 
 // -----------------------------------------------------------------------------
 void Cpptraj::Cluster::Control::Info() const {
-  if (metric_    != 0) metric_->Info();
+  metrics_.Info();
   if (algorithm_ != 0) algorithm_->Info();
+
+  metrics_.Info();
 
   if (results_   != 0)
     results_->Info();
@@ -817,21 +619,6 @@ void Cpptraj::Cluster::Control::Info() const {
       mprintf(" if within epsilon %f of a centroid (less accurate but faster).\n", restoreEpsilon_);
     else if (sieveRestore_ == EPSILON_FRAME)
       mprintf(" if within epsilon %f of a frame (more accurate and identifies noise but slower).\n", restoreEpsilon_);
-  }
-
-  if (cache_ == 0)
-    mprintf("\tPairwise distances will not be cached.\n");
-  else {
-    if (cache_->Size() > 0)
-      mprintf("\tUsing existing pairwise cache: %s (%s)\n",
-              cache_->legend(), cache_->description());
-    else
-      mprintf("\tPairwise distances will be cached: %s (%s)\n",
-              cache_->legend(), cache_->description());
-    if (pw_mismatch_fatal_)
-      mprintf("\tCalculation will be halted if frames in cache do not match.\n");
-    else
-      mprintf("\tPairwise distances will be recalculated if frames in cache do not match.\n");
   }
 
   mprintf("\tRepresentative frames will be chosen by");
@@ -915,7 +702,7 @@ void Cpptraj::Cluster::Control::Info() const {
   * and representative frames will be determined.
   */
 int Cpptraj::Cluster::Control::Run() {
-  if (metric_ == 0 || algorithm_ == 0) { // TODO check pmatrix_?
+  if (metrics_.empty() || algorithm_ == 0) { // TODO check pmatrix_?
     mprinterr("Internal Error: Cluster::Control is not set up.\n");
     return 1;
   }
@@ -924,7 +711,7 @@ int Cpptraj::Cluster::Control::Run() {
   timer_run_.Start();
   timer_setup_.Start();
   // Set up the Metric
-  if (metric_->Setup()) {
+  if (metrics_.Setup()) {
     mprinterr("Error: Metric setup failed.\n");
     return 1;
   }
@@ -934,11 +721,11 @@ int Cpptraj::Cluster::Control::Run() {
   int frameSelectErr = 1;
   switch ( frameSelect_ ) {
     case UNSPECIFIED:
-      frameSelectErr = frameSieve_.SetFramesToCluster(sieve_, metric_->Ntotal(), sieveSeed_);
+      frameSelectErr = frameSieve_.SetFramesToCluster(sieve_, metrics_.Ntotal(), sieveSeed_);
       break;
     case FROM_CACHE :
-      mprintf("\tClustering frames present in pairwise cache '%s'\n", pmatrix_.Cache().legend());
-      frameSelectErr = frameSieve_.SetupFromCache( pmatrix_.Cache(), metric_->Ntotal() );
+      mprintf("\tClustering frames present in pairwise cache '%s'\n", metrics_.Cache().legend());
+      frameSelectErr = frameSieve_.SetupFromCache( metrics_.Cache(), metrics_.Ntotal() );
       break;
     default :
       mprinterr("Internal Error: Cluster::Control::Run(): Unhandled frame selection type.\n");
@@ -948,11 +735,11 @@ int Cpptraj::Cluster::Control::Run() {
     return 1;
   } 
   if (verbose_ >= 0) {
-    if (frameSieve_.FramesToCluster().size() < metric_->Ntotal())
+    if (frameSieve_.FramesToCluster().size() < metrics_.Ntotal())
       mprintf("\tClustering %zu of %u points.\n", frameSieve_.FramesToCluster().size(),
-              metric_->Ntotal());
+              metrics_.Ntotal());
     else
-      mprintf("\tClustering %u points.\n", metric_->Ntotal());
+      mprintf("\tClustering %u points.\n", metrics_.Ntotal());
   }
   Cframes const& framesToCluster = frameSieve_.FramesToCluster();
 
@@ -960,15 +747,15 @@ int Cpptraj::Cluster::Control::Run() {
   timer_pairwise_.Start();
 
   // Cache distances if necessary
-  if (pmatrix_.CacheDistances( framesToCluster, sieve_, pw_mismatch_fatal_ )) return 1;
-  if (pmatrix_.HasCache() && verbose_ > 1)
-    pmatrix_.Cache().PrintCached();
+  if (metrics_.CacheDistances( framesToCluster, sieve_ )) return 1;
+  if (metrics_.HasCache() && verbose_ > 1)
+    metrics_.Cache().PrintCached();
 
   timer_pairwise_.Stop();
   timer_cluster_.Start();
 
   // Cluster
-  if (algorithm_->DoClustering(clusters_, framesToCluster, pmatrix_) != 0) {
+  if (algorithm_->DoClustering(clusters_, framesToCluster, metrics_) != 0) {
     mprinterr("Error: Clustering failed.\n");
     return 1;
   }
@@ -984,7 +771,7 @@ int Cpptraj::Cluster::Control::Run() {
     timer_post_renumber_.Start();
     // Update cluster centroids here in case they need to be used to 
     // restore sieved frames
-    clusters_.UpdateCentroids( metric_ );
+    clusters_.UpdateCentroids( metrics_ );
 
     // Add sieved frames to existing clusters.
     if ( sieveRestore_ != NO_RESTORE ) {
@@ -992,10 +779,10 @@ int Cpptraj::Cluster::Control::Run() {
       mprintf("\tRestoring sieved frames.\n");
       switch (sieveRestore_) {
         case CLOSEST_CENTROID :
-          clusters_.AddFramesByCentroid( frameSieve_.SievedOut(), metric_ ); break;
+          clusters_.AddFramesByCentroid( frameSieve_.SievedOut(), metrics_ ); break;
         case EPSILON_CENTROID :
         case EPSILON_FRAME    :
-          clusters_.AddFramesByCentroid( frameSieve_.SievedOut(), metric_,
+          clusters_.AddFramesByCentroid( frameSieve_.SievedOut(), metrics_,
                                          (sieveRestore_ == EPSILON_CENTROID),
                                          restoreEpsilon_ );
           break;
@@ -1004,7 +791,7 @@ int Cpptraj::Cluster::Control::Run() {
           return 1;
       }
       // Re-calculate the cluster centroids
-      clusters_.UpdateCentroids( metric_ );
+      clusters_.UpdateCentroids( metrics_ );
     }
 
     // Sort by population and renumber
@@ -1019,7 +806,7 @@ int Cpptraj::Cluster::Control::Run() {
       mprinterr("Error: Initializing best representative frames search failed.\n");
       return 1;
     }
-    if (findBestReps.FindBestRepFrames(clusters_, pmatrix_, frameSieve_.SievedOut())) {
+    if (findBestReps.FindBestRepFrames(clusters_, metrics_, frameSieve_.SievedOut())) {
       mprinterr("Error: Finding best representative frames for clusters failed.\n");
       return 1;
     }
@@ -1055,7 +842,7 @@ int Cpptraj::Cluster::Control::Output(DataSetList& DSL) {
     CpptrajFile outfile;
     if (outfile.OpenWrite( clusterinfo_ )) return 1;
     timer_output_info_.Start();
-    Output::PrintClustersToFile(outfile, clusters_, *algorithm_, metric_, 
+    Output::PrintClustersToFile(outfile, clusters_, *algorithm_, metrics_, 
                                 frameSieve_.SieveValue(), frameSieve_.FramesToCluster());
     timer_output_info_.Stop();
     outfile.CloseFile();
@@ -1065,7 +852,7 @@ int Cpptraj::Cluster::Control::Output(DataSetList& DSL) {
   if (!sil_file_.empty()) {
     if (frameSieve_.SieveValue() != 1 && !includeSieveInCalc_)
       mprintf("Warning: Silhouettes do not include sieved frames.\n");
-    clusters_.CalcSilhouette(pmatrix_, frameSieve_.SievedOut(), includeSieveInCalc_);
+    clusters_.CalcSilhouette(metrics_, frameSieve_.SievedOut(), includeSieveInCalc_);
     CpptrajFile Ffile, Cfile;
     if (Ffile.OpenWrite(sil_file_ + ".frame.dat")) return 1;
     Output::PrintSilhouetteFrames(Ffile, clusters_);
@@ -1083,7 +870,7 @@ int Cpptraj::Cluster::Control::Output(DataSetList& DSL) {
       mprinterr("Error: Could not set up cluster summary file.\n");
       return 1;
     }
-    Output::Summary(outfile, clusters_, *algorithm_, pmatrix_, includeSieveInCalc_,
+    Output::Summary(outfile, clusters_, *algorithm_, metrics_, includeSieveInCalc_,
                     includeSieveCdist_, frameSieve_.SievedOut());
     timer_output_summary_.Stop();
   }
@@ -1101,17 +888,18 @@ int Cpptraj::Cluster::Control::Output(DataSetList& DSL) {
       mprinterr("Error: Init of best reps calc for summary by parts failed.\n");
       return 1;
     }
-    Output::Summary_Part(outfile, metric_->Ntotal(), splitFrames_, clusters_,
-                         findBestReps, pmatrix_, frameSieve_.SievedOut());
+    // TODO just pass in metrics_
+    Output::Summary_Part(outfile, metrics_.Ntotal(), splitFrames_, clusters_,
+                         findBestReps, metrics_, frameSieve_.SievedOut());
   }
 
   // Cluster number vs time
   if (cnumvtime_ != 0) {
     int err = 0;
     if (grace_color_)
-      err = clusters_.CreateCnumVsTime(*((DataSet_integer*)cnumvtime_), metric_->Ntotal(), 1, 15);
+      err = clusters_.CreateCnumVsTime(*((DataSet_integer*)cnumvtime_), metrics_.Ntotal(), 1, 15);
     else
-      err = clusters_.CreateCnumVsTime(*((DataSet_integer*)cnumvtime_), metric_->Ntotal(), 0, -1);
+      err = clusters_.CreateCnumVsTime(*((DataSet_integer*)cnumvtime_), metrics_.Ntotal(), 0, -1);
     if (err != 0) {
       mprinterr("Error: Creation of cluster num vs time data set failed.\n");
       return 1;
@@ -1120,12 +908,12 @@ int Cpptraj::Cluster::Control::Output(DataSetList& DSL) {
 
   // Draw cluster Graph
   if (drawGraph_ != NO_DRAWGRAPH) {
-    DrawGraph( frameSieve_.FramesToCluster(), pmatrix_, drawGraph_, cnumvtime_, draw_tol_, draw_maxit_, debug_ );
+    DrawGraph( frameSieve_.FramesToCluster(), metrics_, drawGraph_, cnumvtime_, draw_tol_, draw_maxit_, debug_ );
   }
 
   // # unique clusters vs time
   if (clustersVtime_ != 0) {
-    if (clusters_.NclustersObserved(*((DataSet_integer*)clustersVtime_), metric_->Ntotal(),
+    if (clusters_.NclustersObserved(*((DataSet_integer*)clustersVtime_), metrics_.Ntotal(),
                                     windowSize_))
     {
       mprinterr("Error: Creation of # unique clusters vs time data set failed.\n");
@@ -1136,7 +924,7 @@ int Cpptraj::Cluster::Control::Output(DataSetList& DSL) {
   // Cluster population vs time
   if (cpopvtimefile_ != 0) {
     MetaData md( dsname_, "Pop" );
-    DataSet::SizeArray setsize(1, metric_->Ntotal());
+    DataSet::SizeArray setsize(1, metrics_.Ntotal());
     for (List::cluster_iterator node = clusters_.begin();
                                 node != clusters_.end(); ++node)
     {
@@ -1148,14 +936,14 @@ int Cpptraj::Cluster::Control::Output(DataSetList& DSL) {
       }
       ds->Allocate( setsize );
       if (cpopvtimefile_ != 0) cpopvtimefile_->AddDataSet( ds );
-      node->CalcCpopVsTime( *ds, metric_->Ntotal(), norm_pop_ );
+      node->CalcCpopVsTime( *ds, metrics_.Ntotal(), norm_pop_ );
     }
   }
 
   // Cluster lifetime sets
   if (calc_lifetimes_) {
     MetaData md( dsname_, "Lifetime" );
-    DataSet::SizeArray setsize(1, metric_->Ntotal());
+    DataSet::SizeArray setsize(1, metrics_.Ntotal());
     for (List::cluster_iterator node = clusters_.begin();
                                 node != clusters_.end(); ++node)
     {
@@ -1166,7 +954,7 @@ int Cpptraj::Cluster::Control::Output(DataSetList& DSL) {
         return 1;
       }
       ds->Allocate( setsize );
-      node->CreateLifetimeSet( *ds, metric_->Ntotal() );
+      node->CreateLifetimeSet( *ds, metrics_.Ntotal() );
     }
   }
 

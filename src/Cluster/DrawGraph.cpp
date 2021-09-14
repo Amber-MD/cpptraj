@@ -1,6 +1,6 @@
 #include "DrawGraph.h"
 #include "Cframes.h"
-#include "PairwiseMatrix.h"
+#include "MetricArray.h"
 #include "../Constants.h"
 #include "../CpptrajStdio.h"
 #include "../DataSet_1D.h"
@@ -9,7 +9,7 @@
 #include <vector>
 #include <cmath>
 
-void Cpptraj::Cluster::DrawGraph(Cframes const& framesToCluster, PairwiseMatrix const& pmatrix,
+void Cpptraj::Cluster::DrawGraph(Cframes const& framesToCluster, MetricArray& pmatrix,
                                  GraphType graphTypeIn, DataSet* cnumvtime,
                                  double min_tol, int max_iteration, int debug)
 {

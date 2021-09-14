@@ -4,14 +4,13 @@
 #include "BestReps.h"  // BestReps::RepMethodType
 #include "DrawGraph.h" // GraphType
 #include "List.h"
-#include "Metric.h" // Metric::Type
+#include "MetricArray.h"
 #include "Node.h" // Node::CnormType
-#include "PairwiseMatrix.h"
 #include "Sieve.h"
-#include "../DataFile.h" // DataFile::DataFormatType
 #include "../Timer.h"
 class DataSet_Coords;
 class DataSet_PairwiseCache;
+class DataFile;
 class DataFileList;
 class DataSetList;
 namespace Cpptraj {
@@ -33,11 +32,6 @@ class Control {
     /// For determining how frames to cluster will be determined.
     enum FrameSelectType { UNSPECIFIED = 0, FROM_CACHE };
 
-    // TODO ONE setup routine
-
-    //int SetupForDataSets(Metric_Data::DsArray const&, DataSet_Coords*, ArgList&, DataSetList&, DataFileList&, int);
-
-    //int SetupForCoordsDataSet(DataSet_Coords*, ArgList&, DataSetList&, DataFileList&, int);
     /// Setup clustering
     int SetupClustering(DataSetList const&, DataSet*, ArgList&, DataSetList&, DataFileList&, int);
     /// Provide information on how clustering calculation is currently set up.
@@ -52,10 +46,7 @@ class Control {
     static void Help();
   private:
     // Help keywords
-    static const char* PairwiseArgs1_;
-    static const char* PairwiseArgs2_;
     static const char* AlgorithmArgs_;
-    static const char* MetricArgs_;
     static const char* CoordsDataSetArgs_;
     static const char* SieveArgs1_;
     static const char* SieveArgs2_;
@@ -66,32 +57,21 @@ class Control {
     static const char* OutputArgs4_;
     static const char* GraphArgs_;
 
-    int AllocatePairwise(ArgList&, DataSetList&, DataFileList&);
-
-    static Metric* AllocateMetric(Metric::Type);
-
+    /// \return Algorithm of given type
     static Algorithm* AllocateAlgorithm(Algorithm::AType);
+    /// Allocate algorithm from keywords
     int AllocateAlgorithm(ArgList&);    
     /// Initialize clusters from Info file
     int ReadInfo(std::string const&);
     /// Initialize clusters from cluster number vs time DataSet
     int InitClustersFromSet(DataSet*);
 
-    //int Common(ArgList&, DataSetList&, DataFileList&);
-
-    static const char* DEFAULT_PAIRDIST_NAME_;
-
-    static DataFile::DataFormatType DEFAULT_PAIRDIST_TYPE_;
-
     List clusters_;                ///< Hold cluster results.
     Sieve frameSieve_;             ///< Hold frames to cluster, frames to "sieve" out.
-    Metric* metric_;               ///< Hold the distance metric.
-    DataSet_PairwiseCache* cache_; ///< Hold any cached pairwise distances.
-    PairwiseMatrix pmatrix_;       ///< Encapsulates the metric and any cached distances.
+    MetricArray metrics_;          ///< Hold the distance metrics and any cached distances.
     Algorithm* algorithm_;         ///< Hold the clustering algorithm.
     Results* results_;             ///< Hold output routines specific to data being clustered.
     std::string dsname_;           ///< Name for output data sets.
-    bool cache_was_allocated_;     ///< True if cache was allocated and needs to be added to DSL
     int verbose_;
 
     FrameSelectType frameSelect_;    ///< How frames to cluster should be determined.
@@ -129,8 +109,6 @@ class Control {
     int draw_maxit_;                  ///< Graph draw max iterations for min
 
     int debug_;                       ///< Cluster debug level
-
-    bool pw_mismatch_fatal_;          ///< Controls if PW distances should be recalculated
 
     // Timers
     Timer timer_setup_;          ///< Run - metric, frames to cluster setup 
