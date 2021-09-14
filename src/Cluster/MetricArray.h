@@ -44,8 +44,8 @@ class MetricArray {
     void Info() const;
     /// \return Number of points covered by each Metric
     unsigned int Ntotal() const { return ntotal_; }
-    /// \return Metric type that will be used for any COORDS sets
-    Metric::Type CoordsMetricType() const { return coordsMetricType_; }
+    /// \return First Metric (if any) having to do with a COORDS set
+    Metric const* CoordsMetric() const;
 
     // TODO: The Cache() and CacheWasAllocated() routines are only needed
     //       because pytraj expects the cluster # vs time set to be
@@ -101,7 +101,6 @@ class MetricArray {
     std::vector<double> temp_;      ///< For calculations; hold distances from each metric.
     int debug_;                     ///< Debug level
     DistanceType type_;             ///< Type of distance calc to perform
-    Metric::Type coordsMetricType_; ///< The metric type for any COORDS data sets.
     unsigned int ntotal_;           ///< Total number of points covered by any Metric
     DataSet_PairwiseCache* cache_;  ///< Optional cache for frame-frame distances.
     bool cacheWasAllocated_;        ///< True is cache was allocated by InitMetricArray()
