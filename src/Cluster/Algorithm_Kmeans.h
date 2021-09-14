@@ -13,14 +13,14 @@ class Algorithm_Kmeans : public Algorithm {
     int Setup(ArgList&);
     void Info() const;
     void Results(CpptrajFile&) const;
-    int DoClustering(List&, Cframes const&, PairwiseMatrix const&);
+    int DoClustering(List&, Cframes const&, MetricArray&);
     void Timing(double) const {}
   private:
     typedef std::vector<int> Iarray;
     enum KmeansModeType { SEQUENTIAL, RANDOM };
 
-    Iarray FindSeedsFromClusters(List&, PairwiseMatrix const&) const;
-    int FindKmeansSeeds(Cframes const&, PairwiseMatrix const&);
+    Iarray FindSeedsFromClusters(List&, MetricArray&) const;
+    int FindKmeansSeeds(Cframes const&, MetricArray&);
 
     Random_Number RN_;
     int nclusters_; ///< Target number of clusters.

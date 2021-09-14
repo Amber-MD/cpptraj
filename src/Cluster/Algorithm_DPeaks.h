@@ -14,13 +14,13 @@ class Algorithm_DPeaks : public Algorithm {
     int Setup(ArgList&);
     void Info() const;
     void Results(CpptrajFile&) const;
-    int DoClustering(List&, Cframes const&, PairwiseMatrix const&);
+    int DoClustering(List&, Cframes const&, MetricArray&);
     void Timing(double) const {}
     double Epsilon() const { return epsilon_; }
   private:
     void AssignClusterNum(int, int&);
-    int Cluster_GaussianKernel(Cframes const&, PairwiseMatrix const&);
-    int Cluster_DiscreteDensity(Cframes const&, PairwiseMatrix const&);
+    int Cluster_GaussianKernel(Cframes const&, MetricArray&);
+    int Cluster_DiscreteDensity(Cframes const&, MetricArray&);
     int ChoosePointsAutomatically();
     int ChoosePointsManually();
     int ChoosePointsFromClusters(List const&, Cframes const&);

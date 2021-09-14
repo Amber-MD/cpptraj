@@ -1,9 +1,8 @@
 #include "Algorithm_Kmeans.h"
 #include "Cframes.h"
 #include "List.h"
-#include "Metric.h"
+#include "MetricArray.h"
 #include "Node.h"
-#include "PairwiseMatrix.h"
 #include "../ArgList.h"
 #include "../CpptrajFile.h"
 #include "../CpptrajStdio.h"
@@ -68,7 +67,7 @@ void Cpptraj::Cluster::Algorithm_Kmeans::Results(CpptrajFile& outfile) const {
 /** Perform kmeans clustering. */
 int Cpptraj::Cluster::Algorithm_Kmeans::DoClustering(List& clusters,
                                                      Cframes const& framesToCluster,
-                                                     PairwiseMatrix const& pmatrix)
+                                                     MetricArray& pmatrix)
 {
   if (mode_ == RANDOM)
     RN_.rn_set( kseed_ );
@@ -93,7 +92,7 @@ int Cpptraj::Cluster::Algorithm_Kmeans::DoClustering(List& clusters,
     {
       int seedFrame = framesToCluster[ *seedIdx ];
       // A centroid is created for new clusters.
-      clusters.AddCluster( Node(pmatrix.MetricPtr(), Cframes(1, seedFrame), clusters.Nclusters()) );
+      clusters.AddCluster( Node(pmatrix, Cframes(1, seedFrame), clusters.Nclusters()) );
       // NOTE: No need to calc best rep frame, only 1 frame.
       if (debug_ > 0)
         mprintf("Put frame %i in cluster %i (seed index=%i).\n", 
@@ -130,7 +129,7 @@ int Cpptraj::Cluster::Algorithm_Kmeans::DoClustering(List& clusters,
       for (Iarray::const_iterator seed = Seeds.begin(); seed != Seeds.end(); ++seed)
       {
         // A centroid is created for new clusters.
-        clusters.AddCluster( Node(pmatrix.MetricPtr(), Cframes(1, *seed), clusters.Nclusters()) );
+        clusters.AddCluster( Node(pmatrix, Cframes(1, *seed), clusters.Nclusters()) );
         // NOTE: No need to calc best rep frame, only 1 frame.
         if (debug_ > 0)
           mprintf("Put frame %i in cluster %i.\n", *seed, clusters.back().Num());
@@ -138,7 +137,7 @@ int Cpptraj::Cluster::Algorithm_Kmeans::DoClustering(List& clusters,
     }
 
     // Ensure centroids are up to date.
-    clusters.UpdateCentroids( pmatrix.MetricPtr() );
+    clusters.UpdateCentroids( pmatrix );
     // Since clusters already exist, go beyond the initial pass.
     startIteration = 1;
   }
@@ -188,7 +187,7 @@ int Cpptraj::Cluster::Algorithm_Kmeans::DoClustering(List& clusters,
               }
               //oldBestRep = C1->BestRepFrame(); 
               oldClusterIdx = C1->Num();
-              C1->RemoveFrameUpdateCentroid( pmatrix.MetricPtr(), pointFrame ); // TEST
+              C1->RemoveFrameUpdateCentroid( pmatrix, pointFrame ); // TEST
 //              C1->RemoveFrameFromCluster( pointFrame );
               //newBestRep = C1->FindBestRepFrame();
 //              C1->CalculateCentroid( pmatrix.MetricPtr() );
@@ -220,7 +219,7 @@ int Cpptraj::Cluster::Algorithm_Kmeans::DoClustering(List& clusters,
           List::cluster_it closestCluster = clusters.begin();
           for (List::cluster_it C1 = clusters.begin(); C1 != clusters.end(); ++C1)
           {
-            double dist = pmatrix.MetricPtr()->FrameCentroidDist(pointFrame, C1->Cent());
+            double dist = pmatrix.FrameCentroidDist(pointFrame, C1->Cent());
             if (closestDist < 0.0 || dist < closestDist)
             {
               closestDist = dist;
@@ -228,7 +227,7 @@ int Cpptraj::Cluster::Algorithm_Kmeans::DoClustering(List& clusters,
             }
           }
           //oldBestRep = closestCluster->BestRepFrame();
-          closestCluster->AddFrameUpdateCentroid( pmatrix.MetricPtr(), pointFrame ); // TEST
+          closestCluster->AddFrameUpdateCentroid( pmatrix, pointFrame ); // TEST
 //          closestCluster->AddFrameToCluster( pointFrame );
           //newBestRep = closestCluster->FindBestFrameFrame();
 //          closestCluster->CalculateCentroid( pmatrix.MetricPtr() );
@@ -271,7 +270,7 @@ int Cpptraj::Cluster::Algorithm_Kmeans::DoClustering(List& clusters,
   */
 Cpptraj::Cluster::Algorithm_Kmeans::Iarray
   Cpptraj::Cluster::Algorithm_Kmeans::FindSeedsFromClusters(List& clusters,
-                                                            PairwiseMatrix const& pmatrix)
+                                                            MetricArray& pmatrix)
 const
 {
   // TODO change algorithm to do normal seed choice, then pick seeds that are
@@ -280,7 +279,7 @@ const
   mprintf("\tTarget # seeds= %i\n", nSeedsToFind);
   if (nSeedsToFind < 1) return Iarray();
   // Ensure centroids are up to date
-  clusters.UpdateCentroids( pmatrix.MetricPtr() );
+  clusters.UpdateCentroids( pmatrix );
   Iarray Seeds( nSeedsToFind, -1 );
   int nSeedsFound = 0;
   while (nSeedsFound < nSeedsToFind)
@@ -295,7 +294,7 @@ const
 
       for (Node::frame_iterator frm = node->beginframe(); frm != node->endframe(); ++frm)
       {
-        double dist = pmatrix.MetricPtr()->FrameCentroidDist(*frm, node->Cent());
+        double dist = pmatrix.FrameCentroidDist(*frm, node->Cent());
         if (dist > maxdist) {
           maxdist = dist;
           maxframe = *frm;
@@ -321,7 +320,7 @@ const
           maxclust = node;
         }
       }
-      maxclust->RemoveFrameUpdateCentroid( pmatrix.MetricPtr(), MaxFrame[maxi] );
+      maxclust->RemoveFrameUpdateCentroid( pmatrix, MaxFrame[maxi] );
       Seeds[nSeedsFound++] = MaxFrame[maxi];
       if (debug_ > 0)
         mprintf("DEBUG: Frame %i from cluster %i (%f) chosen as first seed.\n",
@@ -349,7 +348,7 @@ const
       if (debug_ > 0)
         mprintf("DEBUG: Frame %i from cluster %i (%f, %f) chosen as seed %i.\n",
                 MaxFrame[maxi], maxi, MaxDst[maxi], maxd, nSeedsFound);
-      maxclust->RemoveFrameUpdateCentroid( pmatrix.MetricPtr(), MaxFrame[maxi] );
+      maxclust->RemoveFrameUpdateCentroid( pmatrix, MaxFrame[maxi] );
       Seeds[nSeedsFound++] = MaxFrame[maxi];
     }
 
@@ -364,7 +363,7 @@ const
   * distance from our set of seeds is as large as possible.
   */
 int Cpptraj::Cluster::Algorithm_Kmeans::FindKmeansSeeds(Cframes const& FramesToCluster,
-                                                        PairwiseMatrix const& pmatrix)
+                                                        MetricArray& pmatrix)
 {
   // SeedIndices will hold indices into FramesToCluster
   SeedIndices_.resize( nclusters_, 1 ); // 1 used to be consistent with ptraj

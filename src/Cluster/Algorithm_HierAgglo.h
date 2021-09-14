@@ -16,21 +16,21 @@ class Algorithm_HierAgglo : public Algorithm {
     int Setup(ArgList&);
     void Info() const;
     void Results(CpptrajFile&) const;
-    int DoClustering(List&, Cframes const&, PairwiseMatrix const&);
+    int DoClustering(List&, Cframes const&, MetricArray&);
     void Timing(double) const;
-    double ClusterDistance(Node const&, Node const&, PairwiseMatrix const&,
+    double ClusterDistance(Node const&, Node const&, MetricArray&,
                            bool, Cframes const&) const;
   private:
-    void buildInitialClusters(List&, Cframes const&, Metric*);
+    void buildInitialClusters(List&, Cframes const&, MetricArray&);
     //void InitializeClusterDistances();
-    int MergeClosest(List&, PairwiseMatrix const&);
-    static inline double minDist(Node const&, Node const&, PairwiseMatrix const&);
-    static inline double maxDist(Node const&, Node const&, PairwiseMatrix const&);
-    static inline double avgDist(Node const&, Node const&, PairwiseMatrix const&);
+    int MergeClosest(List&, MetricArray&);
+    static inline double minDist(Node const&, Node const&, MetricArray&);
+    static inline double maxDist(Node const&, Node const&, MetricArray&);
+    static inline double avgDist(Node const&, Node const&, MetricArray&);
     // TODO: Node instead of cluster_it?
-    void calcMinDist(List::cluster_it&, List&, PairwiseMatrix const&);
-    void calcMaxDist(List::cluster_it&, List&, PairwiseMatrix const&);
-    void calcAvgDist(List::cluster_it&, List&, PairwiseMatrix const&);
+    void calcMinDist(List::cluster_it&, List&, MetricArray&);
+    void calcMaxDist(List::cluster_it&, List&, MetricArray&);
+    void calcAvgDist(List::cluster_it&, List&, MetricArray&);
 
     /// Type of distance calculation between clusters; corresponds to LinkageString_.
     enum LINKAGETYPE  { SINGLELINK = 0, AVERAGELINK, COMPLETELINK };

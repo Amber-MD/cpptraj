@@ -16,16 +16,16 @@ class Algorithm_DBscan : public Algorithm {
     int Setup(ArgList&);
     void Info() const;
     void Results(CpptrajFile&) const;
-    int DoClustering(List&, Cframes const&, PairwiseMatrix const&);
+    int DoClustering(List&, Cframes const&, MetricArray&);
     void Timing(double) const {}
     double Epsilon() const { return epsilon_; }
   private:
     typedef std::vector<int> Iarray;
 
-    bool ExpandCluster(Cframes const&, PairwiseMatrix const&, unsigned int, int);
-    void RegionQuery(Iarray&, Cframes const&, PairwiseMatrix const&, int) const;
-    void ComputeKdist( int, Cframes const&, PairwiseMatrix const&) const ;
-    void ComputeKdistMap( Range const&, Cframes const&, PairwiseMatrix const& ) const ;
+    bool ExpandCluster(Cframes const&, MetricArray&, unsigned int, int);
+    void RegionQuery(Iarray&, Cframes const&, MetricArray&, int) const;
+    void ComputeKdist( int, Cframes const&, MetricArray&) const ;
+    void ComputeKdistMap( Range const&, Cframes const&, MetricArray& ) const ;
 
     Iarray Status_;        ///< Status of each point: unclassified, noise, or in cluster
     Iarray seeds_;         ///< Results from first RegionQuery

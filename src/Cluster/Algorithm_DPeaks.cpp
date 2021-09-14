@@ -2,8 +2,8 @@
 #include <algorithm> // sort
 #include "Algorithm_DPeaks.h"
 #include "List.h"
+#include "MetricArray.h"
 #include "Node.h"
-#include "PairwiseMatrix.h"
 #include "../CpptrajStdio.h"
 #include "../ArgList.h"
 #include "../DataSet_Mesh.h"
@@ -103,7 +103,7 @@ void Cpptraj::Cluster::Algorithm_DPeaks::Info() const {
 /** Perform density peaks clustering. */
 int Cpptraj::Cluster::Algorithm_DPeaks::DoClustering(List& clusters,
                                                      Cframes const& framesToCluster,
-                                                     PairwiseMatrix const& pmatrix)
+                                                     MetricArray& pmatrix)
 {
   int err = 0;
   // Calculate local densities
@@ -254,7 +254,7 @@ int Cpptraj::Cluster::Algorithm_DPeaks::DoClustering(List& clusters,
         frames.push_back( Points_[i].Fnum() );
     }
     if (!frames.empty())
-      clusters.AddCluster( Node(pmatrix.MetricPtr(), frames, clusters.Nclusters()) );
+      clusters.AddCluster( Node(pmatrix, frames, clusters.Nclusters()) );
   }
   return 0;
 }
@@ -262,7 +262,7 @@ int Cpptraj::Cluster::Algorithm_DPeaks::DoClustering(List& clusters,
 // -----------------------------------------------------------------------------
 /** Gaussian kernel for density peaks. */
 int Cpptraj::Cluster::Algorithm_DPeaks::Cluster_GaussianKernel(Cframes const& framesToCluster,
-                                                               PairwiseMatrix const& pmatrix)
+                                                               MetricArray& pmatrix)
 {
   mprintf("\tStarting DPeaks clustering. Using Gaussian kernel to calculate density.\n");
   // First determine which frames are being clustered.
@@ -347,7 +347,7 @@ int Cpptraj::Cluster::Algorithm_DPeaks::Cluster_GaussianKernel(Cframes const& fr
 // -----------------------------------------------------------------------------
 /** Discrete density. */
 int Cpptraj::Cluster::Algorithm_DPeaks::Cluster_DiscreteDensity(Cframes const& framesToCluster,
-                                                                PairwiseMatrix const& pmatrix)
+                                                                MetricArray& pmatrix)
 {
   mprintf("\tStarting DPeaks clustering, discrete density calculation.\n");
   Points_.clear();

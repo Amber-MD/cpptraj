@@ -1,7 +1,7 @@
 #include <limits> // double max
 #include "Algorithm_HierAgglo.h"
+#include "MetricArray.h"
 #include "Node.h"
-#include "PairwiseMatrix.h"
 #include "../CpptrajStdio.h"
 #include "../ArgList.h"
 #include "../ProgressBar.h"
@@ -77,7 +77,7 @@ void Cpptraj::Cluster::Algorithm_HierAgglo::Timing(double total) const {
 /** Default: put all frames in their own starting cluster. */
 void Cpptraj::Cluster::Algorithm_HierAgglo::buildInitialClusters(List& clusters,
                                                                  Cframes const& framesToCluster,
-                                                                 Metric* metric)
+                                                                 MetricArray& metric)
 {
   int num = 0;
   for (Cframes_it frm = framesToCluster.begin(); frm != framesToCluster.end(); ++frm)
@@ -97,7 +97,7 @@ void Cpptraj::Cluster::Algorithm_HierAgglo::buildInitialClusters(List& clusters,
   */
 int Cpptraj::Cluster::Algorithm_HierAgglo::DoClustering(List& clusters,
                                                         Cframes const& framesToCluster,
-                                                        PairwiseMatrix const& pmatrix)
+                                                        MetricArray& pmatrix)
 {
   // If epsilon not given make it huge
   if (epsilon_ == -1.0) epsilon_ = std::numeric_limits<double>::max();
@@ -107,7 +107,7 @@ int Cpptraj::Cluster::Algorithm_HierAgglo::DoClustering(List& clusters,
   ProgressBar cluster_progress(-10);
   // Build initial clusters.
   if (clusters.empty())
-    buildInitialClusters(clusters, framesToCluster, pmatrix.MetricPtr());
+    buildInitialClusters(clusters, framesToCluster, pmatrix);
   else if (clusters.Nclusters() <= nclusters_) {
     mprintf("\tTarget number of clusters (%i) already reached (%i).\n",
             nclusters_, clusters.Nclusters());
@@ -157,7 +157,7 @@ int Cpptraj::Cluster::Algorithm_HierAgglo::DoClustering(List& clusters,
 /** Find and merge the two closest clusters.
   * \return 1 if clustering is complete, 0 otherwise.
   */
-int Cpptraj::Cluster::Algorithm_HierAgglo::MergeClosest(List& clusters, PairwiseMatrix const& pmatrix)
+int Cpptraj::Cluster::Algorithm_HierAgglo::MergeClosest(List& clusters, MetricArray& pmatrix)
 {
   int C1, C2;
   // Find the minimum distance between clusters. C1 will be lower than C2.
@@ -237,7 +237,7 @@ int Cpptraj::Cluster::Algorithm_HierAgglo::MergeClosest(List& clusters, Pairwise
 /** \return The shortest distance between any two points in C1 and C2. */
 double Cpptraj::Cluster::Algorithm_HierAgglo::minDist(Node const& C1,
                                                       Node const& C2,
-                                                      PairwiseMatrix const& pmatrix)
+                                                      MetricArray& pmatrix)
 {
   double min = std::numeric_limits<double>::max();
   for (Node::frame_iterator c1frames = C1.beginframe(); c1frames != C1.endframe(); ++c1frames)
@@ -255,7 +255,7 @@ double Cpptraj::Cluster::Algorithm_HierAgglo::minDist(Node const& C1,
 /** \return The longest distance between any two points in C1 and C2. */
 double Cpptraj::Cluster::Algorithm_HierAgglo::maxDist(Node const& C1,
                                                       Node const& C2,
-                                                      PairwiseMatrix const& pmatrix)
+                                                      MetricArray& pmatrix)
 {
   double max = -1.0; 
   for (Node::frame_iterator c1frames = C1.beginframe(); c1frames != C1.endframe(); ++c1frames)
@@ -273,7 +273,7 @@ double Cpptraj::Cluster::Algorithm_HierAgglo::maxDist(Node const& C1,
 /** \return The average distance between points in C1 and C2. */
 double Cpptraj::Cluster::Algorithm_HierAgglo::avgDist(Node const& C1,
                                                       Node const& C2,
-                                                      PairwiseMatrix const& pmatrix)
+                                                      MetricArray& pmatrix)
 {
   double sum = 0.0; 
   for (Node::frame_iterator c1frames = C1.beginframe(); c1frames != C1.endframe(); ++c1frames)
@@ -292,7 +292,7 @@ double Cpptraj::Cluster::Algorithm_HierAgglo::avgDist(Node const& C1,
   * iterator C1 and frames in all other clusters.
   */
 void Cpptraj::Cluster::Algorithm_HierAgglo::calcMinDist(List::cluster_it& C1_it, List& clusters,
-                                                        PairwiseMatrix const& pmatrix)
+                                                        MetricArray& pmatrix)
 {
   // All cluster distances to C1 must be recalcd.
   for (List::cluster_it C2_it = clusters.begin();
@@ -310,7 +310,7 @@ void Cpptraj::Cluster::Algorithm_HierAgglo::calcMinDist(List::cluster_it& C1_it,
   * iterator C1 and frames in all other clusters.
   */
 void Cpptraj::Cluster::Algorithm_HierAgglo::calcMaxDist(List::cluster_it& C1_it, List& clusters,
-                                                        PairwiseMatrix const& pmatrix)
+                                                        MetricArray& pmatrix)
 {
   // All cluster distances to C1 must be recalcd.
   for (List::cluster_it C2_it = clusters.begin();
@@ -328,7 +328,7 @@ void Cpptraj::Cluster::Algorithm_HierAgglo::calcMaxDist(List::cluster_it& C1_it,
   * iterator C1 and frames in all other clusters.
   */
 void Cpptraj::Cluster::Algorithm_HierAgglo::calcAvgDist(List::cluster_it& C1_it, List& clusters,
-                                                        PairwiseMatrix const& pmatrix)
+                                                        MetricArray& pmatrix)
 {
   // All cluster distances to C1 must be recalcd.
   for (List::cluster_it C2_it = clusters.begin();
@@ -344,7 +344,7 @@ void Cpptraj::Cluster::Algorithm_HierAgglo::calcAvgDist(List::cluster_it& C1_it,
 
 /** \return the Distance between the two given cluster Nodes. */
 double Cpptraj::Cluster::Algorithm_HierAgglo::ClusterDistance(Node const& C1, Node const& C2,
-                                                              PairwiseMatrix const& pmatrix,
+                                                              MetricArray& pmatrix,
                                                               bool includeSieved,
                                                               Cframes const& sievedOut)
 const

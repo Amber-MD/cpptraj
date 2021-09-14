@@ -3,9 +3,8 @@
 #include "Algorithm_DBscan.h"
 #include "Cframes.h"
 #include "List.h"
-#include "Metric.h"
+#include "MetricArray.h"
 #include "Node.h"
-#include "PairwiseMatrix.h"
 #include "../CpptrajStdio.h"
 #include "../ArgList.h"
 #include "../ProgressBar.h"
@@ -81,7 +80,7 @@ void Cpptraj::Cluster::Algorithm_DBscan::Info() const {
 // Cluster_DBSCAN::Cluster()
 int Cpptraj::Cluster::Algorithm_DBscan::DoClustering(List& clusters,
                                                      Cframes const& framesToCluster,
-                                                     PairwiseMatrix const& pmatrix)
+                                                     MetricArray& pmatrix)
 {
   // Check if only need to calculate Kdist function(s)
   if (!kdist_.Empty()) {
@@ -151,14 +150,14 @@ int Cpptraj::Cluster::Algorithm_DBscan::DoClustering(List& clusters,
     }
     // Add clusters. 
     for (unsigned int cnum = 0; cnum != C0.size(); cnum++)
-      clusters.AddCluster( Node(pmatrix.MetricPtr(), C0[cnum], cnum) );
+      clusters.AddCluster( Node(pmatrix, C0[cnum], cnum) );
   }
   return 0;
 }
 
 // Cluster_DBSCAN::ExpandCluster()
 bool Cpptraj::Cluster::Algorithm_DBscan::ExpandCluster(Cframes const& framesToCluster,
-                                                       PairwiseMatrix const& pmatrix,
+                                                       MetricArray& pmatrix,
                                                        unsigned int point, int ClusterId)
 {
   //seeds:=SetOfPoints.regionQuery(Point,Eps);
@@ -224,7 +223,7 @@ bool Cpptraj::Cluster::Algorithm_DBscan::ExpandCluster(Cframes const& framesToCl
 // Cluster_DBSCAN::RegionQuery()
 void Cpptraj::Cluster::Algorithm_DBscan::RegionQuery(Iarray& NeighborPts,
                                                      Cframes const& framesToCluster,
-                                                     PairwiseMatrix const& pmatrix,
+                                                     MetricArray& pmatrix,
                                                      int point) const
 {
   NeighborPts.clear();
@@ -251,7 +250,7 @@ void Cpptraj::Cluster::Algorithm_DBscan::Results(CpptrajFile& outfile) const {
   */
 void Cpptraj::Cluster::Algorithm_DBscan::ComputeKdist( int Kval,
                                                        Cframes const& FramesToCluster,
-                                                       PairwiseMatrix const& pmatrix )
+                                                       MetricArray& pmatrix )
 const
 {
   std::vector<double> dists;
@@ -289,7 +288,7 @@ const
 // Cluster_DBSCAN::ComputeKdistMap()
 void Cpptraj::Cluster::Algorithm_DBscan::ComputeKdistMap( Range const& Kvals, 
                                                           Cframes const& FramesToCluster,
-                                                          PairwiseMatrix const& pmatrix )
+                                                          MetricArray& pmatrix )
 const
 {
   int pt1_idx, pt2_idx, d_idx, point;
