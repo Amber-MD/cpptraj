@@ -25,6 +25,7 @@
 Cpptraj::Cluster::MetricArray::MetricArray() :
   debug_(0),
   type_(MANHATTAN),
+  coordsMetricType_(Metric::RMS),
   ntotal_(0),
   cache_(0),
   cacheWasAllocated_(false),
@@ -43,6 +44,7 @@ Cpptraj::Cluster::MetricArray::MetricArray(MetricArray const& rhs) :
   temp_(rhs.temp_),
   debug_(rhs.debug_),
   type_(rhs.type_),
+  coordsMetricType_(rhs.coordsMetricType_),
   ntotal_(rhs.ntotal_),
   cache_(rhs.cache_),
   cacheWasAllocated_(rhs.cacheWasAllocated_),
@@ -67,6 +69,7 @@ Cpptraj::Cluster::MetricArray&
   temp_ = rhs.temp_;
   debug_ = rhs.debug_;
   type_ = rhs.type_;
+  coordsMetricType_ = rhs.coordsMetricType_;
   ntotal_ = rhs.ntotal_;
   cache_ = rhs.cache_;
   cacheWasAllocated_ = rhs.cacheWasAllocated_;
@@ -312,11 +315,10 @@ int Cpptraj::Cluster::MetricArray::initMetricArray(DataSetList const& setsToClus
     mprinterr("Error: Specify either 'dme', 'rms', or 'srmsd'.\n");
     return 1;
   }
-  Metric::Type coordsMetricType;
-  if      (usedme)  coordsMetricType = Metric::DME;
-  else if (userms)  coordsMetricType = Metric::RMS;
-  else if (usesrms) coordsMetricType = Metric::SRMSD;
-  else coordsMetricType = Metric::RMS; // default
+  if      (usedme)  coordsMetricType_ = Metric::DME;
+  else if (userms)  coordsMetricType_ = Metric::RMS;
+  else if (usesrms) coordsMetricType_ = Metric::SRMSD;
+  else coordsMetricType_ = Metric::RMS; // default
 
   // For each input set, set up the appropriate metric
   for (DataSetList::const_iterator ds = setsToCluster.begin(); ds != setsToCluster.end(); ++ds)
@@ -324,7 +326,7 @@ int Cpptraj::Cluster::MetricArray::initMetricArray(DataSetList const& setsToClus
     Metric::Type mtype = Metric::UNKNOWN_METRIC;
     if ( (*ds)->Group() == DataSet::COORDINATES )
     {
-      mtype = coordsMetricType;
+      mtype = coordsMetricType_;
     } else if ((*ds)->Group() == DataSet::SCALAR_1D) {
       if ( (*ds)->Meta().IsTorsionArray() )
         mtype = Metric::TORSION;
