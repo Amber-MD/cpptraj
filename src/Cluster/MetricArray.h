@@ -11,6 +11,10 @@ namespace Cpptraj {
 namespace Cluster {
 class CentroidArray;
 /// Hold Metrics of various types
+/** This serves as the main interface for all distance calculations related
+  * to clustering. If using more than one metric, the total distanace will
+  * be accumulated as Euclidean (sqrt(SUM(d^2))) or Manhattan (SUM(d)).
+  */
 class MetricArray {
   public:
     /// CONSTRUCTOR
@@ -100,7 +104,7 @@ class MetricArray {
     /// Fill the pairwise cache with distances for specified frames.
     int calcFrameDistances(Cframes const&);
 
-    std::vector<Metric*> metrics_;  ///< Hold each Metric TODO deal with OpenMP
+    std::vector<Metric*> metrics_;  ///< Hold each Metric
     std::vector<DataSet*> sets_;    ///< Sets corresponding to each Metric
     std::vector<double> weights_;   ///< Weight of each metric
     std::vector<double> temp_;      ///< For calculations; hold distances from each metric.
