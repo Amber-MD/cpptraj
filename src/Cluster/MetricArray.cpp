@@ -658,8 +658,7 @@ int Cpptraj::Cluster::MetricArray::calcFrameDistances(Cframes const& framesToCac
   ParallelProgress progress(f1end);
   int f1, f2;
   // For OMP, every other thread will need its own Cdist.
-  Metric** MyMetrics = &metrics_[0];
-  double* MyTemp = &temp_[0];
+  MetricArray* MyMetrics = this;
 # ifdef _OPENMP
 # pragma omp parallel private(MyMetrics, f1, f2) firstprivate(progress)
   {
@@ -667,32 +666,20 @@ int Cpptraj::Cluster::MetricArray::calcFrameDistances(Cframes const& framesToCac
   progress.SetThread( mythread );
   if (mythread == 0) {
     mprintf("\tParallelizing pairwise distance calc with %i threads\n", omp_get_num_threads());
-    MyMetrics = &metrics_[0];
-  } else {
-    // Copy every Metric in metrics_
-    MyMetrics = new Metric*[metrics_.size()];
-    for (unsigned int idx = 0; idx != metrics_.size(); idx++)
-      MyMetrics[idx] = metrics_[idx]->Copy();
-    MyTemp = new double[metrics_.size()];
-  }
+    MyMetrics = this;
+  } else
+    MyMetrics = new MetricArray(*this);
 # pragma omp for schedule(dynamic)
 # endif
   for (f1 = 0; f1 < f1end; f1++) {
     progress.Update(f1);
     for (f2 = f1 + 1; f2 < f2end; f2++) {
-      //cache_->SetElement( f1, f2, MyMetric->FrameDist(framesToCache[f1], framesToCache[f2]) );
-      for (unsigned int idx = 0; idx != metrics_.size(); idx++)
-        MyTemp[idx] = MyMetrics[idx]->FrameDist(framesToCache[f1], framesToCache[f2]);
-      cache_->SetElement( f1, f2, DistCalc(MyTemp, metrics_.size()) );
+      cache_->SetElement( f1, f2, MyMetrics->Uncached_Frame_Distance(framesToCache[f1], framesToCache[f2]) );
     }
   }
 # ifdef _OPENMP
-  if (mythread > 0) {
-    for (unsigned int idx = 0; idx != metrics_.size(); idx++)
-      delete MyMetrics[idx];
-    delete[] MyMetrics;
-    delete[] MyTemp;
-  }
+  if (mythread > 0)
+    delete MyMetrics;
   } // END omp parallel
 # endif
   progress.Finish();
