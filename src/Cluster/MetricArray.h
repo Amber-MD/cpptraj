@@ -78,8 +78,6 @@ class MetricArray {
     /// \return distance between given centroids
     double CentroidDist(CentroidArray const&, CentroidArray const&);
 
-    /// \return distance between frames (uncached)
-    double Uncached_Frame_Distance(int, int);
     /// \return distance between frames (cached or uncached)
     double Frame_Distance(int, int);
 
@@ -98,6 +96,8 @@ class MetricArray {
     double Dist_Euclidean(std::vector<double> const&) const;
     /// Distance based on type_
     double DistCalc(std::vector<double> const&) const;
+    /// \return distance between frames (uncached)
+    double Uncached_Frame_Distance(int, int);
 
     /// \return a string containing description of all metrics
     std::string descriptionOfMetrics() const;
