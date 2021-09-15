@@ -40828,6 +40828,17 @@ manhatttan Use Manhattan distance (SUM(distance)) when more than one data
  set has been specified.
 \end_layout
 
+\begin_layout Description
+wgt
+\begin_inset space ~
+\end_inset
+
+<list> Factor to multiply distances from each metric by in a comma-separated
+ list.
+ Can be used to adjust the contribution from each metric.
+ Default is 1 for each metric.
+\end_layout
+
 \begin_layout Standard
 Pairwise Distance Matrix Options:
 \end_layout
