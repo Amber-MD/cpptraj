@@ -596,7 +596,7 @@ void Cpptraj::Cluster::MetricArray::CalculateMetricContributions(Cframes const& 
     mprintf("\tLess than 2 metrics; skipping metric contribution calculation.\n");
     return;
   }
-  mprintf("\tCalculating metric contributions:\n");
+  mprintf("\tCalculating metric contributions to total distance:\n");
   std::vector<double> mfrac( metrics_.size(), 0 );
   unsigned int ndist = 0;
   for (Cframes_it frm1 = framesToCluster.begin(); frm1 != framesToCluster.end(); ++frm1)
