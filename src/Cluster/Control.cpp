@@ -745,6 +745,9 @@ int Cpptraj::Cluster::Control::Run() {
   }
   Cframes const& framesToCluster = frameSieve_.FramesToCluster();
 
+  // Calculate contribution to total for each metric
+  metrics_.CalculateMetricContributions(framesToCluster);
+
   timer_setup_.Stop();
   timer_pairwise_.Start();
 

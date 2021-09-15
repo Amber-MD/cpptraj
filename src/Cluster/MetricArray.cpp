@@ -588,6 +588,40 @@ double Cpptraj::Cluster::MetricArray::Frame_Distance(int f1, int f2) {
   return Uncached_Frame_Distance(f1, f2); 
 }
 
+/** Loop over all pairs. For each distance, evaluate the contribution
+  * of each metric to the total distance (Manhattan).
+  */
+void Cpptraj::Cluster::MetricArray::CalculateMetricContributions(Cframes const& framesToCluster) {
+  if (metrics_.size() < 2) {
+    mprintf("\tLess than 2 metrics; skipping metric contribution calculation.\n");
+    return;
+  }
+  mprintf("\tCalculating metric contributions:\n");
+  std::vector<double> mfrac( metrics_.size(), 0 );
+  unsigned int ndist = 0;
+  for (Cframes_it frm1 = framesToCluster.begin(); frm1 != framesToCluster.end(); ++frm1)
+  {
+    for (Cframes_it frm2 = frm1 + 1; frm2 != framesToCluster.end(); ++frm2)
+    {
+      ndist++;
+      // Populate the temp array
+      Uncached_Frame_Distance(*frm1, *frm2);
+      double sum = 0;
+      for (std::vector<double>::const_iterator it = temp_.begin(); it != temp_.end(); ++it)
+        sum += *it;
+      for (unsigned int idx = 0; idx != temp_.size(); idx++)
+        mfrac[idx] += temp_[idx] / sum;
+    }
+  }
+  mprintf("\t");
+  for (unsigned int idx = 0; idx != mfrac.size(); idx++)
+    mprintf(" %1s%05i", "M", idx);
+  mprintf("\n\t");
+  for (std::vector<double>::const_iterator it = mfrac.begin(); it != mfrac.end(); ++it)
+    mprintf(" %6.4f", *it / (double)ndist);
+  mprintf("\n");
+}
+
 // -----------------------------------------------
 /** \return A string containing the description of all metrics. */
 std::string Cpptraj::Cluster::MetricArray::descriptionOfMetrics() const {

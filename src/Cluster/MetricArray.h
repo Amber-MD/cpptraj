@@ -81,6 +81,8 @@ class MetricArray {
     /// \return distance between frames (cached or uncached)
     double Frame_Distance(int, int);
 
+    /// Calculate contributions of each metric to total distance, print to stdout
+    void CalculateMetricContributions(Cframes const&);
   private:
     /// Clear array
     void Clear();
