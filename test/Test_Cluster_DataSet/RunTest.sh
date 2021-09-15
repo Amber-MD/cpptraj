@@ -4,7 +4,7 @@
 
 CleanFiles ds.in *.summary.dat *.info.dat *.gnu *.d1.c1.dat \
            eps_v_n.dat twodihds.kmeans.info.dat onedihds.kmeans.info.dat \
-           cvt.dat
+           cvt.dat twodswgt.info.dat
 
 INPUT="-i ds.in"
 TESTNAME='Clustering via datasets tests'
@@ -33,11 +33,26 @@ trajin ../tz2.nc
 distance d1 :1 :13
 hbond hb1
 #debug analysis 2
-cluster nocoords c1 data d1,hb1[UU] clusters 5 epsilon 4.0 out twods.gnu summary twods.summary.dat info twods.info.dat gracecolor
+cluster nocoords c1 data d1,hb1[UU] metricstats \
+  clusters 5 epsilon 4.0 out twods.gnu summary twods.summary.dat info twods.info.dat gracecolor
 create twods.d1.c1.dat d1 hb1[UU] c1
 EOF
   RunCpptraj "Clustering, Two DataSets"
   DoTest twods.info.dat.save twods.info.dat
+}
+
+TwoDSwgt() {
+  TOP=../tz2.parm7
+  cat > ds.in <<EOF
+trajin ../tz2.nc
+distance d1 :1 :13
+hbond hb1
+#debug analysis 2
+cluster nocoords c1 data d1,hb1[UU] metricstats wgt 1,9 \
+  clusters 5 epsilon 4.0 info twodswgt.info.dat
+EOF
+  RunCpptraj "Clustering, Two DataSets with specified weights"
+  DoTest twodswgt.info.dat.save twodswgt.info.dat
 }
 
 OneDihDS() {
@@ -98,6 +113,7 @@ EOF
 
 OneDS
 TwoDS
+TwoDSwgt
 OneDihDS
 TwoDihDS
 OneDihDSKmeans
