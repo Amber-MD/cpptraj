@@ -40208,7 +40208,7 @@ cluster
 
 \end_inset
 
- [{crdset <crd set> | data <dset0>[,<dset1>...] [nocoords]}]
+ [crdset <crd set>] [data <dset0>[,<dset1>...]] [nocoords]
 \end_layout
 
 \begin_layout LyX-Code
@@ -40261,15 +40261,11 @@ cluster
 \end_layout
 
 \begin_layout LyX-Code
-  Metric Args: [{rms|srmsd|dme|euclid|manhattan}]
+  Metric Args:
 \end_layout
 
 \begin_layout LyX-Code
-    ('euclid' and 'manhattan' only work with 'data')
-\end_layout
-
-\begin_layout LyX-Code
-	{[{dme|rms|srmsd} [mass] [nofit] [<mask>]] | [{euclid|manhattan}]}
+	[{dme|rms|srmsd} [mass] [nofit] [<mask>]] [{euclid|manhattan}] [wgt <list>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -40317,7 +40313,7 @@ cluster
 \end_layout
 
 \begin_layout LyX-Code
-	[clustersvtime <file> [cvtwindow <#>]] [sil <prefix>]
+	[clustersvtime <file> [cvtwindow <#>]] [sil <prefix>] [metricstats]
 \end_layout
 
 \begin_layout LyX-Code
@@ -40370,7 +40366,7 @@ cluster
 \begin_inset space ~
 \end_inset
 
-set>] Name of COORDS data set to cluster on/use for coordinate output.
+set>] Name of COORDS data set to cluster on and/or use for coordinate output.
  If not specified the default COORDS set will be generated and used unless
  
 \series bold
@@ -40385,18 +40381,19 @@ nocoords
 \end_inset
 
 <dset0>[,<dset1>,...] Distance between frames calculated using specified data
- set(s) (Euclidean distance).
+ set(s).
+ Currently 1D scalar sets and COORDS sets are supported.
 \end_layout
 
 \begin_deeper
 \begin_layout Description
 [nocoords] Do not use a COORDS data set; distance metrics that require coordinat
-es and coordiante output will be disabled.
+es and coordinate output will be disabled.
 \end_layout
 
 \end_deeper
 \begin_layout Description
-[<name>] Name for generated cluster DataSets.
+[<name>] Data set Name for generated cluster data sets.
 \end_layout
 
 \begin_layout Description
@@ -40419,7 +40416,7 @@ infofile
 \series bold
 info
 \series default
- file to read.
+ file to read clusters from.
 \end_layout
 
 \begin_layout Description
@@ -40427,7 +40424,7 @@ cnvtset
 \begin_inset space ~
 \end_inset
 
-<dataset> Cluster number vs time data set to use.
+<dataset> Cluster number vs time data set to use to generate initial clusters.
 \end_layout
 
 \end_deeper
@@ -40768,8 +40765,8 @@ srmsd}
 \series bold
 rms
 \series default
-) Distance between coordinate frames calculated via best-fit coordinate
- RMSD using atoms in 
+) For COORDS data, distance between coordinate frames calculated via best-fit
+ coordinate RMSD using atoms in 
 \series bold
 <mask>
 \series default
@@ -40807,8 +40804,8 @@ dme
 \begin_inset space ~
 \end_inset
 
-[<mask>] Distance between coordinate frames calculated using distance-RMSD
- (aka DME, 
+[<mask>] For COORDS data, distance between coordinate frames calculated
+ using distance-RMSD (aka DME, 
 \series bold
 \emph on
 distrmsd
@@ -40822,16 +40819,13 @@ distrmsd
 \end_layout
 
 \begin_layout Description
-euclid Use Euclidean distance between scalar 1D data set(s) (default when
- 
-\series bold
-data
-\series default
- has been specified).
+euclid Use Euclidean distance (sqrt(SUM(distance^2))) when more than one
+ data set has been specified (default).
 \end_layout
 
 \begin_layout Description
-manhatttan Use Manhattan distance between scalar 1D data set(s).
+manhatttan Use Manhattan distance (SUM(distance)) when more than one data
+ set has been specified.
 \end_layout
 
 \begin_layout Standard
@@ -41292,6 +41286,21 @@ me.dat'.
 \end_layout
 
 \begin_layout Description
+[metricstats] When more than one metric in use, print the fraction contribution
+ of each metric to the total distance to output with format:
+\begin_inset Newline newline
+\end_inset
+
+<M00000> <M00001>
+\begin_inset Newline newline
+\end_inset
+
+The output will occur just after clustering has started but before any pairwise
+ distances are cached.
+ This may be slow for large numbers of frames.
+\end_layout
+
+\begin_layout Description
 [cpopvtime
 \begin_inset space ~
 \end_inset
@@ -41525,8 +41534,11 @@ Note cluster population vs time data sets are not generated until the analysis
 \end_layout
 
 \begin_layout Standard
-Cluster input frames using the specified clustering algorithm and distance
- metric.
+Cluster input frames using the specified input data sets (can be any combination
+ of coordinates/COORDS and/or 1D scalar data) with the specified clustering
+ algorithm.
+ For COORDS sets, the distance metric can be RMSD, symmetry-corrected RMSD,
+ or DME.
  In order to speed up clustering of large trajectories, the 
 \series bold
 sieve
