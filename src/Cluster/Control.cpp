@@ -17,6 +17,7 @@
 // Results
 #include "Results_Coords.h"
 
+/** CONSTRUCTOR */
 Cpptraj::Cluster::Control::Control() :
   algorithm_(0),
   results_(0),
@@ -41,9 +42,11 @@ Cpptraj::Cluster::Control::Control() :
   drawGraph_(NO_DRAWGRAPH),
   draw_tol_(0),
   draw_maxit_(0),
-  debug_(0)
+  debug_(0),
+  calcMetricContributions_(false)
 {}
 
+/** DESTRUCTOR */
 Cpptraj::Cluster::Control::~Control() {
   if (algorithm_ != 0) delete algorithm_;
   if (results_ != 0  ) delete results_;
@@ -203,7 +206,7 @@ const char* Cpptraj::Cluster::Control::OutputArgs2_ =
   "[summarysplit <splitfile>] [splitframe <comma-separated frame list>]";
 
 const char* Cpptraj::Cluster::Control::OutputArgs3_ =
-  "[clustersvtime <file> [cvtwindow <#>]] [sil <prefix>]";
+  "[clustersvtime <file> [cvtwindow <#>]] [sil <prefix>] [metricstats]";
 
 const char* Cpptraj::Cluster::Control::OutputArgs4_ =
   "[cpopvtime <file> [{normpop|normframe}]] [lifetime]";
@@ -223,94 +226,21 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
   verbose_ = verboseIn;
   clusters_.SetDebug( verbose_ );
 
-  // Determine if clustering on COORDS set or scalar sets
-  // TODO separate Metric from Euclid/Manhattan to allow COORDS/1D combos
   if (setsToCluster.empty()) {
     mprinterr("Error: No sets to cluster.\n");
     return 1;
   }
 
+  // Initialize metrics based on set types. Also initializes the pairwise cache.
   if (metrics_.Initialize( setsToCluster, DSL, DFL, analyzeArgs, verbose_ )) {
     mprinterr("Error: Could not initialize distance metrics/cache.\n");
     return 1;
   }
-/*
-  // Determine the metric type based on what sets we are clustering on
-  if (setsToCluster.size() == 1 && setsToCluster[0]->Group() == DataSet::COORDINATES) {
-    // Clustering on coords
-    mprintf("\tClustering on coordinates: '%s'\n", setsToCluster[0]->legend());
-    // Determine Metric. Valid ones for COORDS are RMS, DME, SRMSD
-    int usedme = (int)analyzeArgs.hasKey("dme");
-    int userms = (int)analyzeArgs.hasKey("rms");
-    int usesrms = (int)analyzeArgs.hasKey("srmsd");
-    if (usedme + userms + usesrms > 1) {
-      mprinterr("Error: Specify either 'dme', 'rms', or 'srmsd'.\n");
-      return 1;
-    }
-    Metric::Type mtype = Metric::RMS; // Default
-    if      (usedme)  mtype = Metric::DME;
-    else if (userms)  mtype = Metric::RMS;
-    else if (usesrms) mtype = Metric::SRMSD;
-    if (metric_ != 0) delete metric_;
-    metric_ = 0;
-    metric_ = AllocateMetric( mtype );
-    if (metric_ == 0) return 1;
-    // COORDS Metric init.
-    bool useMass = analyzeArgs.hasKey("mass");
-    bool nofit   = analyzeArgs.hasKey("nofit");
-    // Get the mask string 
-    std::string maskExpr = analyzeArgs.GetMaskNext();
-    int err = 0;
-    DataSet_Coords* ds = static_cast<DataSet_Coords*>( setsToCluster[0] );
-    switch (mtype) {
-      case Metric::RMS :
-        err = ((Metric_RMS*)metric_)->Init(ds, AtomMask(maskExpr), nofit, useMass); break;
-      case Metric::DME :
-        err = ((Metric_DME*)metric_)->Init(ds, AtomMask(maskExpr)); break;
-      case Metric::SRMSD :
-      err = ((Metric_SRMSD*)metric_)->Init(ds, AtomMask(maskExpr), nofit, useMass, verbose_);
-      break;
-      default:
-        mprinterr("Error: Unhandled Metric setup.\n");
-        err = 1;
-    }
-    if (err != 0) {
-      mprinterr("Error: Metric setup failed.\n");
-      return 1;
-    }
-  } else {
-    mprintf("\tClustering on %zu data set(s).\n", setsToCluster.size());
-    // Clustering on data
-    Metric_Data::DsArray cluster_datasets;
-    for (DataSetList::const_iterator ds = setsToCluster.begin(); ds != setsToCluster.end(); ++ds)
-    {
-      // Clustering only allowed on 1D data sets.
-      if ( (*ds)->Group() != DataSet::SCALAR_1D ) {
-        mprinterr("Error: Clustering only allowed on 1D scalar data sets, %s is %zuD.\n",
-                  (*ds)->legend(), (*ds)->Ndim());
-        return 1;
-      }
-      cluster_datasets.push_back( *ds );
-    }
-    if (cluster_datasets.empty()) {
-      mprinterr("Error: No valid data sets to cluster on.\n");
-      return 1;
-    }
-    // Choose metric for 'data'
-    Metric::Type mtype = Metric::EUCLID; // Default
-    if (analyzeArgs.hasKey("euclid"))
-      mtype = Metric::EUCLID;
-    else if (analyzeArgs.hasKey("manhattan"))
-      mtype = Metric::MANHATTAN;
-    if (metric_ != 0) delete metric_;
-    metric_ = 0;
-    metric_ = AllocateMetric( mtype );
-    if (metric_ == 0) return 1;
-    // Metric init.
-    int err = ((Metric_Data*)metric_)->Init( cluster_datasets );
-    if (err != 0) return 1;
+  calcMetricContributions_ = analyzeArgs.hasKey("metricstats");
+  if (calcMetricContributions_ && setsToCluster.size() < 2) {
+    mprintf("Warning: 'metricstats' is only relevant with 2 or more input data sets. Disabling.\n");
+    calcMetricContributions_ = false;
   }
-*/
 
   // Set up results that depend on COORDS DataSet
   if (coordsSet != 0) {
@@ -594,6 +524,9 @@ void Cpptraj::Cluster::Control::Help() {
 // -----------------------------------------------------------------------------
 void Cpptraj::Cluster::Control::Info() const {
   metrics_.Info();
+  if (calcMetricContributions_)
+    mprintf("\tContributions of each metric to the total distance will be printed to STDOUT.\n");
+
   if (algorithm_ != 0) algorithm_->Info();
 
   if (results_   != 0)
@@ -746,7 +679,8 @@ int Cpptraj::Cluster::Control::Run() {
   Cframes const& framesToCluster = frameSieve_.FramesToCluster();
 
   // Calculate contribution to total for each metric
-  metrics_.CalculateMetricContributions(framesToCluster);
+  if (calcMetricContributions_)
+    metrics_.CalculateMetricContributions(framesToCluster);
 
   timer_setup_.Stop();
   timer_pairwise_.Start();
