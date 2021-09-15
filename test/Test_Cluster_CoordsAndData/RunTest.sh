@@ -20,7 +20,7 @@ runanalysis cluster c1 \
   rms :1-12&!@H= \
   out c1.cnvt.dat \
   info c1.info.dat \
-  summary c1.summary.dat
+  summary c1.summary.dat metricstats
 EOF
 RunCpptraj "$TESTNAME"
 DoTest c1.info.dat.save c1.info.dat
