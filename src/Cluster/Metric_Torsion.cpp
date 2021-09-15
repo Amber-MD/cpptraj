@@ -109,7 +109,7 @@ std::string Cpptraj::Cluster::Metric_Torsion::Description() const {
 
 /** Print info to STDOUT. */
 void Cpptraj::Cluster::Metric_Torsion::Info() const {
-  mprintf("\tMetric: Torsion data set '%s'\n", data_->legend());
+  mprintf("\tMetric: Torsion set type: '%s'\n", data_->description());
 }
 
 /** \return DataSet size */

@@ -85,7 +85,7 @@ std::string Cpptraj::Cluster::Metric_Scalar::Description() const {
 
 /** Print info to STDOUT. */
 void Cpptraj::Cluster::Metric_Scalar::Info() const {
-  mprintf("\tMetric: Data set '%s'\n", data_->legend());
+  mprintf("\tMetric: Data set type: '%s'\n", data_->description());
 }
 
 /** \return DataSet size */
