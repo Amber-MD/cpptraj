@@ -713,6 +713,10 @@ int Cpptraj::Cluster::Control::Run() {
     mprinterr("Error: Metric setup failed.\n");
     return 1;
   }
+  if (metrics_.Ntotal() < 1) {
+    mprinterr("Error: No frames to cluster; all input sets are empty.\n");
+    return 1;
+  }
 
   // Figure out which frames to cluster
   frameSieve_.Clear();

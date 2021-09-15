@@ -1,5 +1,4 @@
 #include "Sieve.h"
-#include "../CpptrajStdio.h"
 #include "../DataSet_PairwiseCache.h"
 #include "../Random.h"
 
@@ -18,10 +17,8 @@ void Cpptraj::Cluster::Sieve::DetermineTypeFromSieve( int sieveIn ) {
 /** Setup which frames should be clustered.*/
 int Cpptraj::Cluster::Sieve::SetFramesToCluster(int sieveIn, std::size_t maxFrames, int iseed)
 {
-  if (maxFrames < 1) {
-    mprinterr("Error: No frames to cluster.\n");
-    return 1;
-  }
+  // Sanity check. Should never be called with maxFrames < 1
+  if (maxFrames < 1) return 1;
   DetermineTypeFromSieve( sieveIn );
   framesToCluster_.clear();
   sievedOut_.clear();
