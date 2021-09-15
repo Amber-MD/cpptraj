@@ -607,10 +607,10 @@ void Cpptraj::Cluster::MetricArray::CalculateMetricContributions(Cframes const& 
       // Populate the temp array
       Uncached_Frame_Distance(*frm1, *frm2);
       double sum = 0;
-      for (std::vector<double>::const_iterator it = temp_.begin(); it != temp_.end(); ++it)
-        sum += *it;
       for (unsigned int idx = 0; idx != temp_.size(); idx++)
-        mfrac[idx] += temp_[idx] / sum;
+        sum += (weights_[idx] * temp_[idx]);
+      for (unsigned int idx = 0; idx != temp_.size(); idx++)
+        mfrac[idx] += (weights_[idx]*temp_[idx]) / sum;
     }
   }
   mprintf("\t");
