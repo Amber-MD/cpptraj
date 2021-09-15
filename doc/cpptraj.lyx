@@ -40837,6 +40837,12 @@ wgt
  list.
  Can be used to adjust the contribution from each metric.
  Default is 1 for each metric.
+ The 
+\series bold
+metricstats
+\series default
+ keyword can be used to determine the relative contribution of each metric
+ to the distance.
 \end_layout
 
 \begin_layout Standard
@@ -41298,7 +41304,13 @@ me.dat'.
 
 \begin_layout Description
 [metricstats] When more than one metric in use, print the fraction contribution
- of each metric to the total distance to output with format:
+ of each metric to the total distance.
+ This information can be used in conjunction with the 
+\series bold
+wgt
+\series default
+ keyword to adjust the contribution of each metric to the total distance.
+ It is written to output with format:
 \begin_inset Newline newline
 \end_inset
 
