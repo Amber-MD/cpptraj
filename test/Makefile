@@ -110,6 +110,7 @@ test.cluster:
 	@-cd Test_Cluster_AssignRefs && ./RunTest.sh $(OPT)
 	@-cd Test_Cluster_Cache && ./RunTest.sh $(OPT)
 	@-cd Test_Cluster_ReadInfo && ./RunTest.sh $(OPT)
+	@-cd Test_Cluster_CoordsAndData && ./RunTest.sh $(OPT)
 
 test.ired:
 	@-cd Test_IRED && ./RunTest.sh $(OPT)
