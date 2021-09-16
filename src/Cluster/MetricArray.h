@@ -3,6 +3,7 @@
 #include <vector>
 #include "Metric.h" // Metric::Type
 class ArgList;
+class CpptrajFile;
 class DataFileList;
 class DataSet;
 class DataSet_PairwiseCache;
@@ -81,8 +82,8 @@ class MetricArray {
     /// \return distance between frames (cached or uncached)
     double Frame_Distance(int, int);
 
-    /// Calculate contributions of each metric to total distance, print to stdout
-    void CalculateMetricContributions(Cframes const&);
+    /// Calculate contributions of each metric to total distance, print to given file 
+    void CalculateMetricContributions(Cframes const&, CpptrajFile&);
   private:
     /// Clear array
     void Clear();

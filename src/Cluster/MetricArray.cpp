@@ -7,6 +7,7 @@
 #include "CentroidArray.h"
 #include "Metric.h"
 #include "../ArgList.h"
+#include "../CpptrajFile.h"
 #include "../CpptrajStdio.h"
 #include "../DataFile.h"
 #include "../DataFileList.h"
@@ -591,7 +592,9 @@ double Cpptraj::Cluster::MetricArray::Frame_Distance(int f1, int f2) {
 /** Loop over all pairs. For each distance, evaluate the contribution
   * of each metric to the total distance (Manhattan).
   */
-void Cpptraj::Cluster::MetricArray::CalculateMetricContributions(Cframes const& framesToCluster) {
+void Cpptraj::Cluster::MetricArray::CalculateMetricContributions(Cframes const& framesToCluster,
+                                                                 CpptrajFile& outfile)
+{
   if (metrics_.size() < 2) {
     mprintf("\tLess than 2 metrics; skipping metric contribution calculation.\n");
     return;
@@ -613,13 +616,13 @@ void Cpptraj::Cluster::MetricArray::CalculateMetricContributions(Cframes const& 
         mfrac[idx] += (weights_[idx]*temp_[idx]) / sum;
     }
   }
-  mprintf("\t");
+  outfile.Printf("#");
   for (unsigned int idx = 0; idx != mfrac.size(); idx++)
-    mprintf(" %1s%05i", "M", idx);
-  mprintf("\n\t");
+    outfile.Printf(" %1s%05i", "M", idx);
+  outfile.Printf("\n ");
   for (std::vector<double>::const_iterator it = mfrac.begin(); it != mfrac.end(); ++it)
-    mprintf(" %6.4f", *it / (double)ndist);
-  mprintf("\n");
+    outfile.Printf(" %6.4f", *it / (double)ndist);
+  outfile.Printf("\n");
 }
 
 // -----------------------------------------------

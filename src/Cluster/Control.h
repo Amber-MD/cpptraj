@@ -108,7 +108,8 @@ class Control {
     int draw_maxit_;                  ///< Graph draw max iterations for min
 
     int debug_;                       ///< Cluster debug level
-    bool calcMetricContributions_;    ///< If true, determine how much each metric contributes to total distance
+
+    CpptrajFile* metricContribFile_;  ///< If not null, determine how much each metric contributes to total distance
 
     // Timers
     Timer timer_setup_;          ///< Run - metric, frames to cluster setup 

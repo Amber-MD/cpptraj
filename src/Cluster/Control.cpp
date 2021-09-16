@@ -43,7 +43,7 @@ Cpptraj::Cluster::Control::Control() :
   draw_tol_(0),
   draw_maxit_(0),
   debug_(0),
-  calcMetricContributions_(false)
+  metricContribFile_(0)
 {}
 
 /** DESTRUCTOR */
@@ -236,10 +236,21 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
     mprinterr("Error: Could not initialize distance metrics/cache.\n");
     return 1;
   }
-  calcMetricContributions_ = analyzeArgs.hasKey("metricstats");
-  if (calcMetricContributions_ && setsToCluster.size() < 2) {
-    mprintf("Warning: 'metricstats' is only relevant with 2 or more input data sets. Disabling.\n");
-    calcMetricContributions_ = false;
+
+  // Determine if metric contributions should be determined
+  metricContribFile_ = 0;
+  std::string metricContribArg = analyzeArgs.GetStringKey("metricstats");
+  if (!metricContribArg.empty()) {
+    if (setsToCluster.size() < 2) {
+      mprintf("Warning: 'metricstats' is only relevant with 2 or more input data sets. Skipping.\n");
+    } else {
+      metricContribFile_ = DFL.AddCpptrajFile(metricContribArg, "Metric Contributions",
+                                              DataFileList::TEXT);
+      if (metricContribFile_ == 0) {
+        mprinterr("Error: Could not set up 'metricstats' file.\n");
+        return 1;
+      }
+    }
   }
 
   // Initialize clusters from existing info file. Metric must already be set up.
@@ -514,8 +525,9 @@ void Cpptraj::Cluster::Control::Help() {
 // -----------------------------------------------------------------------------
 void Cpptraj::Cluster::Control::Info() const {
   metrics_.Info();
-  if (calcMetricContributions_)
-    mprintf("\tContributions of each metric to the total distance will be printed to STDOUT.\n");
+  if (metricContribFile_ != 0)
+    mprintf("\tContributions of each metric to the total distance will be printed to '%s'.\n",
+            metricContribFile_->Filename().full());
 
   if (algorithm_ != 0) algorithm_->Info();
 
@@ -669,8 +681,8 @@ int Cpptraj::Cluster::Control::Run() {
   Cframes const& framesToCluster = frameSieve_.FramesToCluster();
 
   // Calculate contribution to total for each metric
-  if (calcMetricContributions_)
-    metrics_.CalculateMetricContributions(framesToCluster);
+  if (metricContribFile_ != 0)
+    metrics_.CalculateMetricContributions(framesToCluster, *metricContribFile_);
 
   timer_setup_.Stop();
   timer_pairwise_.Start();
