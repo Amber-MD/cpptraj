@@ -482,10 +482,10 @@ void Cpptraj::Cluster::MetricArray::Info() const {
 // -----------------------------------------------
 /** Calculate new centroids for given list. */
 void Cpptraj::Cluster::MetricArray::NewCentroid(CentroidArray& centroids, Cframes const& framesIn)
-// TODO const?
+const
 {
   centroids.Clear();
-  for (std::vector<Metric*>::iterator it = metrics_.begin(); it != metrics_.end(); ++it)
+  for (std::vector<Metric*>::const_iterator it = metrics_.begin(); it != metrics_.end(); ++it)
   {
     centroids.push_back( (*it)->NewCentroid( framesIn ) );
   }
@@ -493,6 +493,7 @@ void Cpptraj::Cluster::MetricArray::NewCentroid(CentroidArray& centroids, Cframe
 
 /** Calculate centroids in given list. */
 void Cpptraj::Cluster::MetricArray::CalculateCentroid(CentroidArray& centroids, Cframes const& framesIn)
+const
 {
   if (centroids.size() != metrics_.size()) {
     mprinterr("Internal Error: MetricArray::CalculateCentroid: centroids and metrics_ sizes do not match.\n");
@@ -505,6 +506,7 @@ void Cpptraj::Cluster::MetricArray::CalculateCentroid(CentroidArray& centroids, 
 /** Update centroids by performing given operation between given frame and centroids. */
 void Cpptraj::Cluster::MetricArray::FrameOpCentroid(int f1, CentroidArray& centroids,
                                                     double oldSize, Metric::CentOpType OP)
+const
 {
   if (centroids.size() != metrics_.size()) {
     mprinterr("Internal Error: MetricArray::FrameOpCentroid: centroids and metrics_ sizes do not match.\n");
@@ -590,6 +592,7 @@ double Cpptraj::Cluster::MetricArray::Frame_Distance(int f1, int f2) {
   return Uncached_Frame_Distance(f1, f2); 
 }
 
+// -----------------------------------------------
 /** Loop over all pairs. For each distance, evaluate the contribution
   * of each metric to the total distance (Manhattan).
   */

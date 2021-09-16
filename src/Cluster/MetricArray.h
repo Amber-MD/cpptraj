@@ -69,11 +69,11 @@ class MetricArray {
     DataSet_PairwiseCache const& Cache() const { return *cache_; }
 
     /// Calculate new centroid for each metric
-    void NewCentroid(CentroidArray&, Cframes const&);
+    void NewCentroid(CentroidArray&, Cframes const&) const;
     /// Calculate centroids for each metric
-    void CalculateCentroid(CentroidArray&, Cframes const&);
+    void CalculateCentroid(CentroidArray&, Cframes const&) const;
     /// Update centroids by performing given operation between given frame and centroids.
-    void FrameOpCentroid(int, CentroidArray&, double, Metric::CentOpType);
+    void FrameOpCentroid(int, CentroidArray&, double, Metric::CentOpType) const;
     /// \return distance between given frame and centroids
     double FrameCentroidDist(int, CentroidArray const&);
     /// \return distance between given centroids
