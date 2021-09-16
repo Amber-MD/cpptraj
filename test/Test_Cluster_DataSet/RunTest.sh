@@ -4,7 +4,7 @@
 
 CleanFiles ds.in *.summary.dat *.info.dat *.gnu *.d1.c1.dat \
            eps_v_n.dat twodihds.kmeans.info.dat onedihds.kmeans.info.dat \
-           cvt.dat twodswgt.info.dat *.metricstats
+           cvt.dat *.metricstats
 
 INPUT="-i ds.in"
 TESTNAME='Clustering via datasets tests'
@@ -40,6 +40,21 @@ EOF
   RunCpptraj "Clustering, Two DataSets"
   DoTest twods.info.dat.save twods.info.dat
   DoTest twods.metricstats.save twods.metricstats
+}
+
+TwoDSmanhattan() {
+  TOP=../tz2.parm7
+  cat > ds.in <<EOF
+trajin ../tz2.nc
+distance d1 :1 :13
+hbond hb1
+
+cluster nocoords c1 data d1,hb1[UU] manhattan metricstats twodsm.metricstats \
+  clusters 5 epsilon 4.0 info twodsm.info.dat
+EOF
+  RunCpptraj "Clustering, Two DataSets, Manhattan distance"
+  DoTest twodsm.info.dat.save twodsm.info.dat
+  DoTest twodsm.metricstats.save twodsm.metricstats
 }
 
 TwoDSwgt() {
@@ -115,6 +130,7 @@ EOF
 
 OneDS
 TwoDS
+TwoDSmanhattan
 TwoDSwgt
 OneDihDS
 TwoDihDS
