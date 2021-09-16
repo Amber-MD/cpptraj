@@ -601,8 +601,12 @@ void Cpptraj::Cluster::MetricArray::CalculateMetricContributions(Cframes const& 
     return;
   }
   mprintf("\tCalculating metric contributions to total distance:\n");
-  std::vector<double> mfrac( metrics_.size(), 0 );
+  // This array will accumulate contribution fractions
+  std::vector<Stats<double>> mfrac( metrics_.size() );
+  // This array will accumulate contribution averages
   std::vector<Stats<double>> mavg( metrics_.size() );
+  // This array will hold each contribution, adjust for distance type and weight
+  std::vector<double> mcont( metrics_.size() );
   unsigned int ndist = 0;
   for (Cframes_it frm1 = framesToCluster.begin(); frm1 != framesToCluster.end(); ++frm1)
   {
@@ -610,27 +614,36 @@ void Cpptraj::Cluster::MetricArray::CalculateMetricContributions(Cframes const& 
     {
       ndist++;
       // Populate the temp array
+      //double dist = 
       Uncached_Frame_Distance(*frm1, *frm2);
-      // Do averages
-      for (unsigned int idx = 0; idx != temp_.size(); idx++)
-        mavg[idx].accumulate( temp_[idx] );
-      // Do fractions
+      // Do individual contributions, adjusted for weights and distance type
       double sum = 0;
       if (type_ == MANHATTAN) {
-        for (unsigned int idx = 0; idx != temp_.size(); idx++)
-          sum += (weights_[idx] * temp_[idx]);
-        for (unsigned int idx = 0; idx != temp_.size(); idx++)
-          mfrac[idx] += (weights_[idx]*temp_[idx]) / sum;
+        for (unsigned int idx = 0; idx != temp_.size(); idx++) {
+          mcont[idx] = (weights_[idx] * temp_[idx]);
+          sum += mcont[idx];
+        }
       } else if (type_ == EUCLID) {
-        for (unsigned int idx = 0; idx != temp_.size(); idx++)
-          sum += (weights_[idx] * (temp_[idx]*temp_[idx]));
-        for (unsigned int idx = 0; idx != temp_.size(); idx++)
-          mfrac[idx] += (weights_[idx] * (temp_[idx]*temp_[idx])) / sum;
+        for (unsigned int idx = 0; idx != temp_.size(); idx++) {
+          mcont[idx] = (weights_[idx] * (temp_[idx]*temp_[idx]));
+          sum += mcont[idx];
+        }
       } else {
         // Sanity check
         mprinterr("Internal Error: CalculateMetricContributions: Unhandled metric summation.\n");
         return;
       }
+      // Do fractions
+      for (unsigned int idx = 0; idx != temp_.size(); idx++)
+        mfrac[idx].accumulate( mcont[idx] / sum );
+      // Do averages
+      //mprintf("DEBUG: %8i %8i %8.3f", *frm1 + 1, *frm2 + 1, dist); 
+      for (unsigned int idx = 0; idx != temp_.size(); idx++)
+      {
+        mavg[idx].accumulate( temp_[idx] );
+        //mprintf(" {%8.3f %8.3f}=%6.2f", temp_[idx], mcont[idx], mcont[idx] / sum);
+      }
+      //mprintf("\n");
     }
   }
 /*
@@ -642,10 +655,10 @@ void Cpptraj::Cluster::MetricArray::CalculateMetricContributions(Cframes const& 
     outfile.Printf(" %6.4f", *it / (double)ndist);
   outfile.Printf("\n");
 */
-  outfile.Printf("%-7s %6s %12s %12s %s\n", "#Metric", "Frac", "Avg", "SD", "Description");
+  outfile.Printf("%-7s %6s %6s %12s %12s %s\n", "#Metric", "FracAv", "FracSD", "Avg", "SD", "Description");
   for (unsigned int idx = 0; idx != mfrac.size(); idx++) {
-    outfile.Printf("%-7u %6.4f %12.4f %12.4f \"%s\"\n", idx,
-                   mfrac[idx] / (double)ndist,
+    outfile.Printf("%-7u %6.4f %6.4f %12.4f %12.4f \"%s\"\n", idx,
+                   mfrac[idx].mean(), sqrt(mfrac[idx].variance()),
                    mavg[idx].mean(), sqrt(mavg[idx].variance()),
                    metrics_[idx]->Description().c_str());
   }
