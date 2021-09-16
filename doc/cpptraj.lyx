@@ -41570,7 +41570,12 @@ Cluster input frames using the specified input data sets (can be any combination
  algorithm.
  For COORDS sets, the distance metric can be RMSD, symmetry-corrected RMSD,
  or DME.
- In order to speed up clustering of large trajectories, the 
+ When multiple data sets are present, the total distance can be determined
+ either via the Euclidean (default) or Manhattan method.
+\end_layout
+
+\begin_layout Standard
+In order to speed up clustering of large trajectories, the 
 \series bold
 sieve
 \series default
@@ -41887,7 +41892,8 @@ The NetCDF pairwise matrix format
 \end_layout
 
 \begin_layout Standard
-The default way to write pairwise matrix files is now with NetCDF.
+The default way to write pairwise matrix files as of version 6.0.0 is with
+ NetCDF.
  This will be set up with the following parameters:
 \end_layout
 
