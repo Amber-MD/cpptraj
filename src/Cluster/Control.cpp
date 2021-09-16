@@ -467,7 +467,7 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
   if (cnumvtime_ == 0) return 1;
   if (cnumvtimefile != 0) cnumvtimefile->AddDataSet( cnumvtime_ );
 
-  // If cache was alloaced, add to the DataSetList so it is after cnumvtime for pytraj
+  // If cache was allocated, add to the DataSetList so it is after cnumvtime for pytraj
   if (metrics_.CacheWasAllocated())
     DSL.AddSet( metrics_.CachePtr() );
 
@@ -536,14 +536,19 @@ void Cpptraj::Cluster::Control::Info() const {
   else
     mprintf("\tNo coordinates set provided for cluster results.\n");
 
-  // TODO frameSelect
-  if (sieve_ > 1)
-    mprintf("\tInitial clustering sieve value is %i frames.\n", sieve_);
-  else if (sieve_ < -1) {
-    mprintf("\tInitial clustering will be randomly sieved (with value %i)", -sieve_);
-    if (sieveSeed_ > 0) mprintf(" using random seed %i", sieveSeed_);
-    mprintf(".\n");
+  if (frameSelect_ == FROM_CACHE) {
+    mprintf("\tWill cluster frames present in existing pairwise cache '%s'\n",
+            metrics_.Cache().legend());
+  } else {
+    if (sieve_ > 1)
+      mprintf("\tInitial clustering sieve value is %i frames.\n", sieve_);
+    else if (sieve_ < -1) {
+      mprintf("\tInitial clustering will be randomly sieved (with value %i)", -sieve_);
+      if (sieveSeed_ > 0) mprintf(" using random seed %i", sieveSeed_);
+      mprintf(".\n");
+    }
   }
+
   if (sieveRestore_ != NO_RESTORE) {
     mprintf("\tRestoring sieved frames");
     if (sieveRestore_ == CLOSEST_CENTROID)
