@@ -13,6 +13,7 @@
 #include "../DataFileList.h"
 #include "../DataSet_PairwiseCache.h"
 #include "../DataSetList.h"
+#include "../OnlineVarT.h" // for metric stats average
 #include "../ProgressBar.h"
 #include "../StringRoutines.h"
 // Metric classes
@@ -601,6 +602,7 @@ void Cpptraj::Cluster::MetricArray::CalculateMetricContributions(Cframes const& 
   }
   mprintf("\tCalculating metric contributions to total distance:\n");
   std::vector<double> mfrac( metrics_.size(), 0 );
+  std::vector<Stats<double>> mavg( metrics_.size() );
   unsigned int ndist = 0;
   for (Cframes_it frm1 = framesToCluster.begin(); frm1 != framesToCluster.end(); ++frm1)
   {
@@ -609,6 +611,10 @@ void Cpptraj::Cluster::MetricArray::CalculateMetricContributions(Cframes const& 
       ndist++;
       // Populate the temp array
       Uncached_Frame_Distance(*frm1, *frm2);
+      // Do averages
+      for (unsigned int idx = 0; idx != temp_.size(); idx++)
+        mavg[idx].accumulate( temp_[idx] );
+      // Do fractions
       double sum = 0;
       if (type_ == MANHATTAN) {
         for (unsigned int idx = 0; idx != temp_.size(); idx++)
@@ -627,6 +633,7 @@ void Cpptraj::Cluster::MetricArray::CalculateMetricContributions(Cframes const& 
       }
     }
   }
+/*
   outfile.Printf("#");
   for (unsigned int idx = 0; idx != mfrac.size(); idx++)
     outfile.Printf(" %1s%05i", "M", idx);
@@ -634,6 +641,15 @@ void Cpptraj::Cluster::MetricArray::CalculateMetricContributions(Cframes const& 
   for (std::vector<double>::const_iterator it = mfrac.begin(); it != mfrac.end(); ++it)
     outfile.Printf(" %6.4f", *it / (double)ndist);
   outfile.Printf("\n");
+*/
+  outfile.Printf("%-7s %6s %12s %12s %s\n", "#Metric", "Frac", "Avg", "SD", "Description");
+  for (unsigned int idx = 0; idx != mfrac.size(); idx++) {
+    outfile.Printf("%-7u %6.4f %12.4f %12.4f \"%s\"\n", idx,
+                   mfrac[idx] / (double)ndist,
+                   mavg[idx].mean(), sqrt(mavg[idx].variance()),
+                   metrics_[idx]->Description().c_str());
+  }
+  outfile.Flush();
 }
 
 // -----------------------------------------------
