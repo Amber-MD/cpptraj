@@ -206,7 +206,7 @@ const char* Cpptraj::Cluster::Control::OutputArgs2_ =
   "[summarysplit <splitfile>] [splitframe <comma-separated frame list>]";
 
 const char* Cpptraj::Cluster::Control::OutputArgs3_ =
-  "[clustersvtime <file> [cvtwindow <#>]] [sil <prefix>] [metricstats]";
+  "[clustersvtime <file> [cvtwindow <#>]] [sil <prefix>] [metricstats <file>]";
 
 const char* Cpptraj::Cluster::Control::OutputArgs4_ =
   "[cpopvtime <file> [{normpop|normframe}]] [lifetime]";
