@@ -40313,7 +40313,7 @@ cluster
 \end_layout
 
 \begin_layout LyX-Code
-	[clustersvtime <file> [cvtwindow <#>]] [sil <prefix>] [metricstats]
+	[clustersvtime <file> [cvtwindow <#>]] [sil <prefix>] [metricstats <file>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -40837,7 +40837,7 @@ wgt
  list.
  Can be used to adjust the contribution from each metric.
  Default is 1 for each metric.
- The 
+ Output from the 
 \series bold
 metricstats
 \series default
@@ -41303,24 +41303,32 @@ me.dat'.
 \end_layout
 
 \begin_layout Description
-[metricstats] When more than one metric in use, print the fraction contribution
+[metricstats
+\begin_inset space ~
+\end_inset
+
+<file>] When more than one metric in use, print the fraction contribution
  of each metric to the total distance.
  This information can be used in conjunction with the 
 \series bold
 wgt
 \series default
  keyword to adjust the contribution of each metric to the total distance.
- It is written to output with format:
+ It is written to <file> with format:
 \begin_inset Newline newline
 \end_inset
 
-<M00000> <M00001>
+#Metric FracAv FracSD Avg SD Description
 \begin_inset Newline newline
 \end_inset
 
-The output will occur just after clustering has started but before any pairwise
- distances are cached.
- This may be slow for large numbers of frames.
+Where #Metric is the metric number, FracAv and FracSD are the average and
+ standard devation of the fraction contribution of that metric to the total
+ distance (taking into account distance type and weights), Avg and SD are
+ the average and standard devation of the unmodified distance from that
+ metric, and Description is the metric description.
+ This may be slow for large numbers of frames, so it is advisable to run
+ this on a smaller (potentially sieved) number of frames.
 \end_layout
 
 \begin_layout Description
