@@ -610,10 +610,21 @@ void Cpptraj::Cluster::MetricArray::CalculateMetricContributions(Cframes const& 
       // Populate the temp array
       Uncached_Frame_Distance(*frm1, *frm2);
       double sum = 0;
-      for (unsigned int idx = 0; idx != temp_.size(); idx++)
-        sum += (weights_[idx] * temp_[idx]);
-      for (unsigned int idx = 0; idx != temp_.size(); idx++)
-        mfrac[idx] += (weights_[idx]*temp_[idx]) / sum;
+      if (type_ == MANHATTAN) {
+        for (unsigned int idx = 0; idx != temp_.size(); idx++)
+          sum += (weights_[idx] * temp_[idx]);
+        for (unsigned int idx = 0; idx != temp_.size(); idx++)
+          mfrac[idx] += (weights_[idx]*temp_[idx]) / sum;
+      } else if (type_ == EUCLID) {
+        for (unsigned int idx = 0; idx != temp_.size(); idx++)
+          sum += (weights_[idx] * (temp_[idx]*temp_[idx]));
+        for (unsigned int idx = 0; idx != temp_.size(); idx++)
+          mfrac[idx] += (weights_[idx] * (temp_[idx]*temp_[idx])) / sum;
+      } else {
+        // Sanity check
+        mprinterr("Internal Error: CalculateMetricContributions: Unhandled metric summation.\n");
+        return;
+      }
     }
   }
   outfile.Printf("#");
