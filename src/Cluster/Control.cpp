@@ -242,13 +242,6 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
     calcMetricContributions_ = false;
   }
 
-  // Set up results that depend on COORDS DataSet
-  if (coordsSet != 0) {
-    if (results_ != 0) delete results_;
-    results_ = (Results*)new Results_Coords( static_cast<DataSet_Coords*>( coordsSet ) );
-    if (results_ == 0) return 1;
-  }
-
   // Initialize clusters from existing info file. Metric must already be set up.
   if (analyzeArgs.hasKey("readinfo") ||
       analyzeArgs.hasKey("readtxt"))
@@ -272,16 +265,13 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
     }
   }
 
-  if (results_ != 0) {
+  // Set up results that depend on COORDS DataSet
+  if (coordsSet != 0) {
+    if (results_ != 0) delete results_;
+    results_ = (Results*)new Results_Coords( static_cast<DataSet_Coords*>( coordsSet ) );
+    if (results_ == 0) return 1;
     if (results_->GetOptions(analyzeArgs, DSL, metrics_)) return 1;
   }
-
-/*
-  // Allocate PairwiseMatrix (and optionally a cache). Metric must already be set up.
-  if (AllocatePairwise( analyzeArgs, DSL, DFL )) {
-    mprinterr("Error: PairwiseMatrix setup failed.\n");
-    return 1;
-  }*/
 
   // Allocate algorithm
   if (AllocateAlgorithm( analyzeArgs )) {
