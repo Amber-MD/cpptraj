@@ -2791,7 +2791,7 @@ status open
 \begin_layout Plain Layout
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="16" columns="5">
+<lyxtabular version="3" rows="18" columns="5">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top" width="20text%">
 <column alignment="center" valignment="top" width="20text%">
@@ -3514,7 +3514,7 @@ Read Only
 </cell>
 </row>
 <row>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -3523,7 +3523,7 @@ Charmm Output
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -3532,7 +3532,7 @@ Charmm Output
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -3541,7 +3541,7 @@ charmmout
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -3550,11 +3550,105 @@ charmmout
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
 Energy information, Read Only
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Pairwise Cache (binary)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+.cmatrix
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+cmatrix
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+pairwise distances
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Used for cluster analysis.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Pairwise Cache (NetCDF)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+.nccmatrix
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+nccmatrix
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+pairwise distances
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Used for cluster analysis.
 \end_layout
 
 \end_inset
@@ -5146,6 +5240,20 @@ Cpptraj
  assumes the data increases monotonically and will automatically attempt
  to determine the dimensions of the data set(s); a warning will be printed
  if this is not successful.
+\end_layout
+
+\begin_layout Standard
+If a file contains the header:
+\end_layout
+
+\begin_layout LyX-Code
+#F1 F2 <name>
+\end_layout
+
+\begin_layout Standard
+CPPTRAJ will assume the file contains pairwise distances for clustering,
+ where the F1 and F2 columns contain the frame numbers, and the <name> column
+ contains the distance.
 \end_layout
 
 \begin_layout Subsection
@@ -40100,11 +40208,24 @@ cluster
 
 \end_inset
 
- [crdset <crd set> | nocoords]
+ [crdset <crd set>] [data <dset0>[,<dset1>...]] [nocoords]
 \end_layout
 
 \begin_layout LyX-Code
-  Algorithms:
+	[<name>] [<Algorithm>] [<Metric>] [<Pairwise>] [<Sieve>] [<BestRep>]
+\end_layout
+
+\begin_layout LyX-Code
+	[<Output>] [<Coord.
+ Output>] [<Graph>]
+\end_layout
+
+\begin_layout LyX-Code
+    [readinfo {infofile <info file> | cnvtset <dataset>}]
+\end_layout
+
+\begin_layout LyX-Code
+  Algorithm Args: [{hieragglo|dbscan|kmeans|dpeaks}]
 \end_layout
 
 \begin_layout LyX-Code
@@ -40112,64 +40233,79 @@ cluster
 \end_layout
 
 \begin_layout LyX-Code
-      [epsilonplot <file>] [includesieved_cdist]]
+	           [epsilonplot <file>]]
 \end_layout
 
 \begin_layout LyX-Code
-	[dbscan minpoints <n> epsilon <e> [sievetoframe] [kdist <k> [kfile <prefix>]]]
+	[dbscan minpoints <n> epsilon <e> [kdist <k> [kfile <prefix>]]]
 \end_layout
 
 \begin_layout LyX-Code
-    [dpeaks epsilon <e> [noise] [dvdfile <density_vs_dist_file>]
+	[kmeans clusters <n> [randompoint [kseed <seed>]] [maxit <iterations>]]
 \end_layout
 
 \begin_layout LyX-Code
-	  [choosepoints {manual | auto}]
+	[dpeaks epsilon <e> [noise] [dvdfile <density_vs_dist_file>]
 \end_layout
 
 \begin_layout LyX-Code
-	  [distancecut <distcut>] [densitycut <densitycut>]
+	        [choosepoints {manual | auto}]
 \end_layout
 
 \begin_layout LyX-Code
-	  [runavg <runavg_file>] [deltafile <file>] [gauss]]
+	        [distancecut <distcut>] [densitycut <densitycut>]
 \end_layout
 
 \begin_layout LyX-Code
-    [kmeans clusters <n> [randompoint [kseed <seed>]] [maxit <iterations>]
+	        [runavg <runavg_file>] [deltafile <file>] [gauss]]
 \end_layout
 
 \begin_layout LyX-Code
-    [{readtxt|readinfo} infofile <file>]
+  Metric Args:
 \end_layout
 
 \begin_layout LyX-Code
-  Distance options:
+	[{dme|rms|srmsd} [mass] [nofit] [<mask>]] [{euclid|manhattan}] [wgt <list>]
 \end_layout
 
 \begin_layout LyX-Code
-	{[[rms | srmsd] [<mask>] [mass] [nofit]] | [dme [<mask>]] |
+  Pairwise Args:
 \end_layout
 
 \begin_layout LyX-Code
-      [data <dset0>[,<dset1>,...]]}
+	[pairdist <name>] [pwrecalc]
 \end_layout
 
 \begin_layout LyX-Code
-	[sieve <#> [random [sieveseed <#>]]] [loadpairdist] [savepairdist] [pairdist
- <file>]
+	[loadpairdist] [savepairdist] [pairwisecache {mem|disk|none}]
 \end_layout
 
 \begin_layout LyX-Code
-    [pairwisecache {mem | none}] [includesieveincalc] [pwrecalc]
+  Sieve Args:
 \end_layout
 
 \begin_layout LyX-Code
-  Output options:
+	[sieve <#> [sieveseed <#>] [random] [includesieveincalc] [includesieved_cdist]
 \end_layout
 
 \begin_layout LyX-Code
-	[out <cnumvtime>] [gracecolor] [summary <summaryfile>] [info <infofile>]
+	 [{sievetoframe|sievetocentroid|closestcentroid}] [repsilon <restore epsilon>]]
+\end_layout
+
+\begin_layout LyX-Code
+  BestRep Args:
+\end_layout
+
+\begin_layout LyX-Code
+	[bestrep {cumulative|centroid|cumulative_nosieve}] [savenreps <#>]
+\end_layout
+
+\begin_layout LyX-Code
+  Output Args:
+\end_layout
+
+\begin_layout LyX-Code
+	[out <cnumvtime> [gracecolor]] [noinfo|info <file>] [summary <file>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -40177,39 +40313,43 @@ cluster
 \end_layout
 
 \begin_layout LyX-Code
-    [bestrep {cumulative|centroid|cumulative_nosieve}] [savenreps <#>]
+	[clustersvtime <file> [cvtwindow <#>]] [sil <prefix>] [metricstats <file>]
 \end_layout
 
 \begin_layout LyX-Code
-    [clustersvtime <filename> cvtwindow <window size>]
+	[cpopvtime <file> [{normpop|normframe}]] [lifetime]
 \end_layout
 
 \begin_layout LyX-Code
-	[cpopvtime <file> [normpop | normframe] [lifetime]]
+  Coordinate Output Args:
 \end_layout
 
 \begin_layout LyX-Code
-    [sil <silhouette file prefix>] [assignrefs [refcut <rms>] [refmask <mask>]]
+	[clusterout <trajfileprefix> [clusterfmt <trajformat>]]
 \end_layout
 
 \begin_layout LyX-Code
-  Coordinate output options:
+	[singlerepout <trajfilename> [singlerepfmt <trajformat>]]
 \end_layout
 
 \begin_layout LyX-Code
-	[ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]
+	[repout <repprefix> [repfmt <trajformat>] [repframe]]
 \end_layout
 
 \begin_layout LyX-Code
-	[ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]
+	[avgout <avgprefix> [avgfmt <trajformat>]]
 \end_layout
 
 \begin_layout LyX-Code
-	[ repout <repprefix> [repfmt <repfmt>] [repframe] ]
+	[assignrefs [refcut <rms>] [refmask <mask>]]
 \end_layout
 
 \begin_layout LyX-Code
-    [ avgout <avgprefix> [avgfmt <avgfmt>] ]
+  Graph Args:
+\end_layout
+
+\begin_layout LyX-Code
+	[{drawgraph|drawgraph3d} [draw_tol <tolerance>] [draw_maxit <iterations]]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -40226,8 +40366,9 @@ cluster
 \begin_inset space ~
 \end_inset
 
-set>] Name of previously generated COORDS data set.
- If not specified the default COORDS set will be used unless 
+set>] Name of COORDS data set to cluster on and/or use for coordinate output.
+ If not specified the default COORDS set will be generated and used unless
+ 
 \series bold
 nocoords
 \series default
@@ -40235,10 +40376,58 @@ nocoords
 \end_layout
 
 \begin_layout Description
-[nocoords] Do not use a COORDS data set; distance metrics that require coordinat
-es and coordiante output will be disabled.
+[data
+\begin_inset space ~
+\end_inset
+
+<dset0>[,<dset1>,...] Distance between frames calculated using specified data
+ set(s).
+ Currently 1D scalar sets and COORDS sets are supported.
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+[nocoords] Do not use a COORDS data set; distance metrics that require coordinat
+es and coordinate output will be disabled.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[<name>] Data set Name for generated cluster data sets.
+\end_layout
+
+\begin_layout Description
+[readinfo] Use previous cluster results to set up initial clusters.
+ Clustering will continue if possible (i.e.
+ this can be used to restart clustering).
+\begin_inset Separator latexpar
+\end_inset
+
+
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+infofile
+\begin_inset space ~
+\end_inset
+
+<file> Cluster 
+\series bold
+info
+\series default
+ file to read clusters from.
+\end_layout
+
+\begin_layout Description
+cnvtset
+\begin_inset space ~
+\end_inset
+
+<dataset> Cluster number vs time data set to use to generate initial clusters.
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 Algorithms:
 \end_layout
@@ -40314,15 +40503,6 @@ averagelinkage]
 .
 \end_layout
 
-\begin_layout Description
-[includesieved_cdist] Include sieved frames in final cluster distance calculatio
-n (
-\bar under
-may be very slow
-\bar default
-).
-\end_layout
-
 \end_deeper
 \begin_layout Description
 dbscan Use DBSCAN clustering algorithm of Ester et al.
@@ -40355,11 +40535,6 @@ epsilon
 \end_inset
 
 <e> Distance cutoff between points for forming a cluster.
-\end_layout
-
-\begin_layout Description
-[sievetoframe] When restoring sieved frames, compare frame to every frame
- in a cluster instead of the centroid; slower but more accurate.
 \end_layout
 
 \begin_layout Description
@@ -40569,30 +40744,12 @@ randompoint
 \end_layout
 
 \end_deeper
-\begin_layout Description
-readtxt|readinfo No clustering - read in previous cluster results.
-\begin_inset Separator latexpar
-\end_inset
-
-
-\end_layout
-
-\begin_deeper
-\begin_layout Description
-infofile
-\begin_inset space ~
-\end_inset
-
-<file> Cluster info file to read.
-\end_layout
-
-\end_deeper
 \begin_layout Standard
 Distance Metric Options:
 \end_layout
 
 \begin_layout Description
-[rms
+[{rms
 \begin_inset space ~
 \end_inset
 
@@ -40600,12 +40757,16 @@ Distance Metric Options:
 \begin_inset space ~
 \end_inset
 
-srmsd[<mask>]] (Default 
+srmsd}
+\begin_inset space ~
+\end_inset
+
+[<mask>]] (Default 
 \series bold
 rms
 \series default
-) Distance between frames calculated via best-fit coordinate RMSD using
- atoms in 
+) For COORDS data, distance between coordinate frames calculated via best-fit
+ coordinate RMSD using atoms in 
 \series bold
 <mask>
 \series default
@@ -40643,8 +40804,8 @@ dme
 \begin_inset space ~
 \end_inset
 
-[<mask>] Distance between frames calculated using distance-RMSD (aka DME,
- 
+[<mask>] For COORDS data, distance between coordinate frames calculated
+ using distance-RMSD (aka DME, 
 \series bold
 \emph on
 distrmsd
@@ -40658,41 +40819,34 @@ distrmsd
 \end_layout
 
 \begin_layout Description
-[data
-\begin_inset space ~
-\end_inset
-
-<dset0>[,<dset1>,...] Distance between frames calculated using specified data
- set(s) (Euclidean distance).
+euclid Use Euclidean distance (sqrt(SUM(distance^2))) when more than one
+ data set has been specified (default).
 \end_layout
 
 \begin_layout Description
-[sieve
+manhatttan Use Manhattan distance (SUM(distance)) when more than one data
+ set has been specified.
+\end_layout
+
+\begin_layout Description
+wgt
 \begin_inset space ~
 \end_inset
 
-<#>] Perform clustering only for every 
+<list> Factor to multiply distances from each metric by in a comma-separated
+ list.
+ Can be used to adjust the contribution from each metric.
+ Default is 1 for each metric.
+ Output from the 
 \series bold
-<#>
+metricstats
 \series default
- frame.
- After clustering, all other frames will be added to clusters.
+ keyword can be used to determine the relative contribution of each metric
+ to the distance.
 \end_layout
 
-\begin_layout Description
-[random] When 
-\series bold
-sieve
-\series default
- is specified, select initial frames to cluster randomly.
-\end_layout
-
-\begin_layout Description
-[sieveseed
-\begin_inset space ~
-\end_inset
-
-<#>] Seed for random sieving; if not set the wallclock time will be used.
+\begin_layout Standard
+Pairwise Distance Matrix Options:
 \end_layout
 
 \begin_layout Description
@@ -40700,23 +40854,37 @@ sieve
 \begin_inset space ~
 \end_inset
 
-<file>] File to use for loading/saving pairwise distances.
+<name>] Pairwise cache DataSet/File name to use for loading/saving pairwise
+ distances.
 \end_layout
 
 \begin_layout Description
-[loadpairdist] Load pairwise distances from 
-\series bold
-<file>
-\series default
- (CpptrajPairDist if pairdist not specified).
+[pwrecalc] If the loaded pairwise distance matrix does not match the current
+ setup, force recalculation.
 \end_layout
 
 \begin_layout Description
-[savepairdist] Save pairwise distances from 
+[loadpairdist] Load pairwise distances from file specified by 
 \series bold
-<file>
+pairdist
 \series default
- (CpptrajPairDist if pairdist not specified).
+ (CpptrajPairDist if 
+\series bold
+pairdist
+\series default
+ not specified).
+\end_layout
+
+\begin_layout Description
+[savepairdist] Save pairwise distances to file specified by 
+\series bold
+pairdist
+\series default
+ (CpptrajPairDist if 
+\series bold
+pairdist
+\series default
+ not specified).
  NOTE: If sieving was performed only the calculated distances are saved.
 \end_layout
 
@@ -40749,6 +40917,48 @@ none}] Cache pairwise distance data in memory (default), to disk, or disable
  SSD) - data is saved to a file named 'CpptrajPairwiseCache'.
 \end_layout
 
+\begin_layout Standard
+Sieving Options:
+\end_layout
+
+\begin_layout Description
+[sieve
+\begin_inset space ~
+\end_inset
+
+<#>] Perform clustering only for every 
+\series bold
+<#>
+\series default
+ frame.
+ After clustering, all other frames will be added to clusters.
+\end_layout
+
+\begin_layout Description
+[random] When 
+\series bold
+sieve
+\series default
+ is specified, select initial frames to cluster randomly.
+\end_layout
+
+\begin_layout Description
+[sieveseed
+\begin_inset space ~
+\end_inset
+
+<#>] Seed for random sieving; if not set the wallclock time will be used.
+\end_layout
+
+\begin_layout Description
+[includesieved_cdist] Include sieved frames in final cluster distance calculatio
+n (
+\bar under
+may be very slow
+\bar default
+).
+\end_layout
+
 \begin_layout Description
 [includesieveincalc] Include sieved frames when calculating within-cluster
  average (
@@ -40759,8 +40969,91 @@ may be very slow
 \end_layout
 
 \begin_layout Description
-[pwrecalc] If a loaded pairwise distance file does not match the current
- setup, force recalculation.
+[sievetoframe] When restoring sieved frames, compare frame to every frame
+ in a cluster using a cutoff of 
+\series bold
+<restore epsilon>
+\series default
+ (default is algorithm 
+\series bold
+epsilon
+\series default
+ when using DPeaks/DBscan) instead of the centroid; slower but more accurate.
+\end_layout
+
+\begin_layout Description
+[sievetocentroid] When restoring sieved frames, compare frame to cluster
+ centroid using a cutoff of 
+\series bold
+<restore epsilon>
+\series default
+ (default is algorithm 
+\series bold
+epsilon
+\series default
+ when using DPeaks/DBscan).
+ Default method for DPeaks/DBSCAN.
+\end_layout
+
+\begin_layout Description
+[closestcentroid] When restoring sieved frames, add each frame to its closest
+ centroid.
+ Default method for hieragglo/kmeans.
+\end_layout
+
+\begin_layout Description
+[repsilon
+\begin_inset space ~
+\end_inset
+
+<restore
+\begin_inset space ~
+\end_inset
+
+epsilon>] Epsilon to use for sievetoframe/sievetocentroid (default is algorithm
+ 
+\series bold
+epsilon
+\series default
+ when using DPeaks/DBscan).
+\end_layout
+
+\begin_layout Standard
+Best Representative Options:
+\end_layout
+
+\begin_layout Description
+[bestrep
+\begin_inset space ~
+\end_inset
+
+{cumulative|centroid|cumulative_nosieve}] Method for choosing cluster representa
+tive frames.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+cumulative Choose by lowest cumulative distance to all other frames in cluster.
+ Default when not sieving.
+\end_layout
+
+\begin_layout Description
+centroid Choose by lowest distance to cluster centroid.
+ Default when sieving.
+\end_layout
+
+\begin_layout Description
+cumulative_nosieve Choose by lowest cumulative distance to all other frames,
+ ignoring sieved frames.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[savenreps
+\begin_inset space ~
+\end_inset
+
+<#>] Number of best representative frames to choose (default 1).
 \end_layout
 
 \begin_layout Standard
@@ -40781,6 +41074,7 @@ Output Options:
  DBSCAN) will assign noise points a value of -1.
 \end_layout
 
+\begin_deeper
 \begin_layout Description
 [gracecolor] Instead of cluster # vs frame, write cluster# + 1 (corresponding
  to colors used by XMGRACE) vs frame.
@@ -40789,6 +41083,7 @@ Output Options:
  DBSCAN) will assign noise points a color of 0 (blank).
 \end_layout
 
+\end_deeper
 \begin_layout Description
 [summary
 \begin_inset space ~
@@ -40826,6 +41121,9 @@ Stdev Standard deviation of points in the cluster.
 \begin_layout Description
 Centroid Frame # of structure in cluster that has the lowest cumulative
  distance to every other point.
+ If multiple representatives are being saved this column is replaced with
+ two columns for each representative, 'Rep' (representative frame #) and
+ 'RepScore' (score according to current best representative metric).
 \end_layout
 
 \begin_layout Description
@@ -40867,6 +41165,10 @@ AvgCDist Average distance of this cluster to every other cluster.
 \begin_inset Newline newline
 \end_inset
 
+#SSR/SST: <SSR/SST>
+\begin_inset Newline newline
+\end_inset
+
 #Algorithm: <algorithm-specific info>
 \begin_inset Newline newline
 \end_inset
@@ -40886,11 +41188,15 @@ AvgCDist Average distance of this cluster to every other cluster.
 Where <X> is the number of clusters, <N> is the number of frames clustered,
  <I> ranges from 0 to <X>-1, <AVG> is the average distance of all frames
  in that cluster to the centroid, <DBI> is the Davies-Bouldin Index, <pSF>
- is the pseudo-F statistic, and <representative frame list> contains the
- frame # of the representative frame (i.e.
+ is the pseudo-F statistic, <SSR/SST> is the SSR/SST ratio, and <representative
+ frame list> contains the frame # of the representative frame (i.e.
  closest to the centroid) for each cluster.
  Each cluster has a line made up of characters (one for each frame) where
  '.' means 'not in cluster' and 'X' means 'in cluster'.
+\end_layout
+
+\begin_layout Description
+[noinfo] Suppress printing of cluster info.
 \end_layout
 
 \begin_layout Description
@@ -40902,7 +41208,8 @@ Where <X> is the number of clusters, <N> is the number of frames clustered,
  portions of the trajectory specified by splitframe with format '#Cluster
  Total Frac C# Color NumInX ...
  FracX ...
- FirstX':
+ FirstX ...
+ RepX':
 \begin_inset Separator latexpar
 \end_inset
 
@@ -40943,6 +41250,11 @@ FirstX Frame in the Xth portion of the trajectory where the cluster is first
  observed.
 \end_layout
 
+\begin_layout Description
+RepX Best representative frame in the Xth portion of the trajectory for
+ that cluster.
+\end_layout
+
 \end_deeper
 \begin_layout Description
 [splitframe
@@ -40958,40 +41270,6 @@ summarysplit
 \end_layout
 
 \begin_layout Description
-[bestrep
-\begin_inset space ~
-\end_inset
-
-{cumulative|centroid|cumulative_nosieve}] Method for choosing cluster representa
-tive frames.
-\end_layout
-
-\begin_deeper
-\begin_layout Description
-cumulative Choose by lowest cumulative distance to all other frames in cluster.
- Default when not sieving.
-\end_layout
-
-\begin_layout Description
-centroid Choose by lowest distance to cluster centroid.
- Default when sieving.
-\end_layout
-
-\begin_layout Description
-cumulative_nosieve Choose by lowest cumulative distance to all other frames,
- ignoring sieved frames.
-\end_layout
-
-\end_deeper
-\begin_layout Description
-[savenreps
-\begin_inset space ~
-\end_inset
-
-<#>] Number of best representative frames to choose (default 1).
-\end_layout
-
-\begin_layout Description
 [clustersvtime
 \begin_inset space ~
 \end_inset
@@ -41000,6 +41278,7 @@ cumulative_nosieve Choose by lowest cumulative distance to all other frames,
  to <filename>.
 \end_layout
 
+\begin_deeper
 \begin_layout Description
 [cvtwindow
 \begin_inset space ~
@@ -41010,6 +41289,47 @@ cumulative_nosieve Choose by lowest cumulative distance to all other frames,
 clustersvtime
 \series default
  output.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[sil
+\begin_inset space ~
+\end_inset
+
+<prefix>] Write average cluster silhouette value for each cluster to '<prefix>.cl
+uster.dat' and cluster silhouette value for each individual frame to '<prefix>.fra
+me.dat'.
+\end_layout
+
+\begin_layout Description
+[metricstats
+\begin_inset space ~
+\end_inset
+
+<file>] When more than one metric in use, print the fraction contribution
+ of each metric to the total distance.
+ This information can be used in conjunction with the 
+\series bold
+wgt
+\series default
+ keyword to adjust the contribution of each metric to the total distance.
+ It is written to <file> with format:
+\begin_inset Newline newline
+\end_inset
+
+#Metric FracAv FracSD Avg SD Min Max Description
+\begin_inset Newline newline
+\end_inset
+
+Where #Metric is the metric number, FracAv and FracSD are the average and
+ standard devation of the fraction contribution of that metric to the total
+ distance (taking into account distance type and weights), Avg, SD, Min,
+ and Max are the average, standard devation, minimum, and maximum of the
+ unmodified distance contribution from that metric, and Description is the
+ metric description.
+ This may be slow for large numbers of frames, so it is advisable to run
+ this on a smaller (potentially sieved) number of frames.
 \end_layout
 
 \begin_layout Description
@@ -41045,15 +41365,121 @@ normframe
 \end_layout
 
 \begin_layout Description
-[sil
+[lifetime] Create a DataSet with aspect 
+\emph on
+[Lifetime]
+\emph default
+ for each cluster; for each frame, have 1 if the cluster is present and
+ 0 otherwise.
+ Can be used with 
+\series bold
+\emph on
+lifetime
+\series default
+\emph default
+ analysis (
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-lifetime"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+Coordinate Output Options:
+\end_layout
+
+\begin_layout Description
+clusterout
 \begin_inset space ~
 \end_inset
 
-<prefix>] Write average cluster silhouette value for each cluster to '<prefix>.cl
-uster.dat' and cluster silhouette value for each individual frame to '<prefix>.fra
-me.dat'.
+<trajfileprefix> Write frames in each cluster to files named <trajfileprefix>.cX,
+ where X is the cluster number.
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+clusterfmt
+\begin_inset space ~
+\end_inset
+
+<trajformat> Format keyword for clusterout (default Amber Trajectory).
+\end_layout
+
+\end_deeper
+\begin_layout Description
+singlerepout
+\begin_inset space ~
+\end_inset
+
+<trajfilename> Write all representative frames to single trajectory named
+ <trajfilename>.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+singlerepfmt
+\begin_inset space ~
+\end_inset
+
+<trajformat> Format keyword for singlerepout (default Amber Trajectory).
+\end_layout
+
+\end_deeper
+\begin_layout Description
+repout
+\begin_inset space ~
+\end_inset
+
+<repprefix> Write representative frames to separate files named <repprefix>.X.<ext
+>, where X is the cluster number and <ext> is a format-specific filename
+ extension.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+repfmt
+\begin_inset space ~
+\end_inset
+
+<trajformat> Format keyword for repout (default Amber Trajectory).
+\end_layout
+
+\begin_layout Description
+repframe Include representative frame number in 
+\series bold
+repout
+\series default
+ filename.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+avgout
+\begin_inset space ~
+\end_inset
+
+<avgprefix> Write average structure for each cluster to separate files named
+ <avgprefix>.X.<ext>, where X is the cluster number and <ext> is a format-specific
+ filename extension.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+avgfmt
+\begin_inset space ~
+\end_inset
+
+<trajformat> Format keyword for avgout.
+\end_layout
+
+\end_deeper
 \begin_layout Description
 assignrefs In 
 \series bold
@@ -41063,8 +41489,18 @@ summary
 \series bold
 summarysplit
 \series default
-, assign clusters to loaded representative structures if RMSD to that reference
+, assign clusters to loaded reference structures if RMSD to that reference
  is less than specified cutoff.
+ This will be printed in 
+\series bold
+summary
+\series default
+ and 
+\series bold
+summarysplit
+\series default
+ files as 2 extra columns: 'Name' (reference name) and 'RMS' (RMS to cluster
+ centroid).
 \end_layout
 
 \begin_deeper
@@ -41087,93 +41523,38 @@ summarysplit
 
 \end_deeper
 \begin_layout Standard
-Coordinate Output Options:
+DataSets Created:
 \end_layout
 
 \begin_layout Description
-clusterout
-\begin_inset space ~
-\end_inset
-
-<trajfileprefix> Write frames in each cluster to files named <trajfileprefix>.cX,
- where X is the cluster number.
-\end_layout
-
-\begin_layout Description
-clusterfmt
-\begin_inset space ~
-\end_inset
-
-<trajformat> Format keyword for clusterout (default Amber Trajectory).
-\end_layout
-
-\begin_layout Description
-singlerepout
-\begin_inset space ~
-\end_inset
-
-<trajfilename> Write all representative frames to single trajectory named
- <trajfilename>.
-\end_layout
-
-\begin_layout Description
-singlerepfmt
-\begin_inset space ~
-\end_inset
-
-<trajformat> Format keyword for singlerepout (default Amber Trajectory).
-\end_layout
-
-\begin_layout Description
-repout
-\begin_inset space ~
-\end_inset
-
-<repprefix> Write representative frames to separate files named <repprefix>.X.<ext
->, where X is the cluster number and <ext> is a format-specific filename
- extension.
-\end_layout
-
-\begin_layout Description
-repfmt
-\begin_inset space ~
-\end_inset
-
-<trajformat> Format keyword for repout (default Amber Trajectory).
-\end_layout
-
-\begin_layout Description
-repframe Include representative frame number in 
+<name> Cluster number vs time (color number if 
 \series bold
-repout
+gracecolor
 \series default
- filename.
+ specified).
 \end_layout
 
 \begin_layout Description
-avgout
-\begin_inset space ~
-\end_inset
-
-<avgprefix> Write average structure for each cluster to separate files named
- <avgprefix>.X.<ext>, where X is the cluster number and <ext> is a format-specific
- filename extension.
+<name>[NCVT] (
+\series bold
+clustersvtime
+\series default
+ only).
+ Number of unique clusters observed over time.
 \end_layout
 
 \begin_layout Description
-avgfmt
-\begin_inset space ~
-\end_inset
-
-<trajformat> Format keyword for avgout.
-\end_layout
-
-\begin_layout Standard
-DataSet Aspects:
+<name>[Pop]:<X> Cluster X population vs time; index X corresponds to cluster
+ number.
 \end_layout
 
 \begin_layout Description
-[Pop] Cluster population vs time; index corresponds to cluster number.
+<name>[Lifetime]:<X> (
+\series bold
+lifetime
+\series default
+ only).
+ For each cluster X, contain 1 if cluster present that frame, 0 otherwise.
 \end_layout
 
 \end_deeper
@@ -41185,9 +41566,17 @@ Note cluster population vs time data sets are not generated until the analysis
 \end_layout
 
 \begin_layout Standard
-Cluster input frames using the specified clustering algorithm and distance
- metric.
- In order to speed up clustering of large trajectories, the 
+Cluster input frames using the specified input data sets (can be any combination
+ of coordinates/COORDS and/or 1D scalar data) with the specified clustering
+ algorithm.
+ For COORDS sets, the distance metric can be RMSD, symmetry-corrected RMSD,
+ or DME.
+ When multiple data sets are present, the total distance can be determined
+ either via the Euclidean (default) or Manhattan method.
+\end_layout
+
+\begin_layout Standard
+In order to speed up clustering of large trajectories, the 
 \series bold
 sieve
 \series default
@@ -41226,9 +41615,11 @@ cluster data endToEnd clusters 10 epsilon 3.0 summary summary.dat info info.dat
 \end_layout
 
 \begin_layout Standard
-Example: cluster on the CA atoms of residues 2-10 using average-linkage,
- stopping when either 3 clusters are reached or the minimum distance between
- clusters is 4.0, writing the cluster number vs time to 
+Example: two clustering commands on the CA atoms of residues 2-10 using
+ average-linkage, stopping when either 3 clusters are reached or the minimum
+ distance between clusters is 4.0 for the first, and 8 clusters or minimum
+ distance 2.0 for the second.
+ The first command will write the cluster number vs time to 
 \begin_inset Quotes eld
 \end_inset
 
@@ -41244,15 +41635,22 @@ avg.summary.dat
 \begin_inset Quotes erd
 \end_inset
 
-:
+.
+ The second clustering command will use the pairwise distance matrix from
+ the first to speed things up:
 \end_layout
 
 \begin_layout LyX-Code
-cluster C1 :2-10 clusters 3 epsilon 4.0 out cnumvtime.dat summary avg.summary.dat
+cluster C1 :2-10 clusters 3 epsilon 4.0 info C1.info out cnumvtime.dat summary
+ avg.summary.dat pairdist PW
+\end_layout
+
+\begin_layout LyX-Code
+cluster C2 :2-10 clusters 8 epsilon 2.0 info C2.info pairdist PW
 \end_layout
 
 \begin_layout Subsubsection*
-Clustering Metrics
+Clustering Success Metrics (info file)
 \end_layout
 
 \begin_layout Standard
@@ -41276,7 +41674,7 @@ The pseudo-F statistic (pSF) is another measure of clustering goodness.
  within group.
  
 \series bold
-High values are good
+Higher values of pseudo-F are good
 \series default
 .
  Generally, one selects a cluster-count that gives a peak in the pseudo-f
@@ -41286,6 +41684,26 @@ High values are good
  distance from the all-data centroid, and P is the sum (for all clusters)
  of the distances from the cluster centroid.
  
+\end_layout
+
+\begin_layout Standard
+The SSR/SST is the ratio of the sum of squares regression (SSR or between
+ sum of squares) and the total sum of squares (SST).
+ The SSR is calculated via the sum of the squared distances of all points
+ within a given cluster to its centroid, and summed together for all clusters.
+ The total sum of squares is the sum of squared distances for all frames
+ to the overall mean.
+ The ratio lies between 0 and 1 and is supposed to give the fraction of
+ explained variance by the data.
+ The ratio should increase with cluster count.
+ 
+\series bold
+There should be a point at which adding more clusters does not substantially
+ increase SSR/SST
+\series default
+, i.e.
+ the point where increasing the cluster count does not add new information
+ and should not increase further.
 \end_layout
 
 \begin_layout Standard
@@ -41386,13 +41804,14 @@ The second way is automatically; cpptraj will attempt to identify outliers
 \end_layout
 
 \begin_layout Subsubsection*
-The CpptrajPairDist file format
+The Binary pairwise matrix file format
 \end_layout
 
 \begin_layout Standard
-The CpptrajPairDist file is binary; the exact format depends on what version
- of cpptraj generated the file (since earlier versions had no concept of
- 'sieve').
+When NetCDF is not present, the pairwise matrix file will be written in
+ binary.
+ The exact format depends on what version of cpptraj generated the file
+ (since earlier versions had no concept of 'sieve').
  The CpptrajPairDist file starts with a 4 byte header containing the characters
  'C' 'T' 'M' followed by the version number.
  A quick way to figure out the version is to use the linux 'od' command
@@ -41469,6 +41888,88 @@ The code that cpptraj uses to read in CpptrajPairDist files is in ClusterMatrix:
 :LoadFile() (ClusterMatrix.cpp).
 \end_layout
 
+\begin_layout Subsubsection*
+The NetCDF pairwise matrix format
+\end_layout
+
+\begin_layout Standard
+The default way to write pairwise matrix files as of version 6.0.0 is with
+ NetCDF.
+ This will be set up with the following parameters:
+\end_layout
+
+\begin_layout LyX-Code
+Attributes:
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+Conventions 
+\begin_inset Quotes eld
+\end_inset
+
+CPPTRAJ_CMATRIX
+\begin_inset Quotes erd
+\end_inset
+
+
+\end_layout
+
+\begin_layout Description
+Version <version string>
+\end_layout
+
+\begin_layout Description
+MetricDescription <description of the distance metric used to create matrix>
+\end_layout
+
+\end_deeper
+\begin_layout LyX-Code
+Dimensions:
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+n_original_frames Number of frames originally in the set (i.e.
+ before sieving).
+\end_layout
+
+\begin_layout Description
+n_rows Number of rows in the upper-triangle pairwise matrix.
+\end_layout
+
+\begin_layout Description
+msize Actual size of the matrix; should be (nRows_ * (nRows_-1)) / 2;
+\end_layout
+
+\end_deeper
+\begin_layout LyX-Code
+Variables:
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+sieve (integer, no dimension).
+ Sieve value.
+\end_layout
+
+\begin_layout Description
+matrix (float, dimension msize).
+ The pairwise matrix, flattened to 1 dimension.
+ Index calc is: i1 = i + 1; index = (((nRows_ * i) - ((i1 * i) / 2)) + j
+ - i1);
+\end_layout
+
+\begin_layout Description
+actual
+\begin_inset space ~
+\end_inset
+
+frames (integer, dimension n_rows).
+ The actual frame numbers for which pairwise distances were calculated.
+\end_layout
+
+\end_deeper
 \begin_layout Subsection
 cphstats
 \end_layout

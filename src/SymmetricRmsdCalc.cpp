@@ -35,8 +35,13 @@ int SymmetricRmsdCalc::SetupSymmRMSD(Topology const& topIn, AtomMask const& tgtM
   Iarray SelectedIdx( topIn.Natom(), -1 );
   int tgtIdx = 0;
   for (int originalAtom = 0; originalAtom != topIn.Natom(); ++originalAtom)
-    if ( originalAtom == tgtMask[tgtIdx] )
+  {
+    if ( originalAtom == tgtMask[tgtIdx] ) {
       SelectedIdx[originalAtom] = tgtIdx++;
+      if (tgtIdx == tgtMask.Nselected())
+        break;
+    }
+  }
   if (debug_ > 0) {
     mprintf("DEBUG: Original atom -> Selected Index mapping:\n");
     for (int originalAtom = 0; originalAtom != topIn.Natom(); ++originalAtom)
