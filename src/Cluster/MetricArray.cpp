@@ -1,4 +1,5 @@
 #include "MetricArray.h"
+#include <algorithm> // std::min,max
 #include <cmath> //sqrt
 // For filling the pairwise cache
 #ifdef _OPENMP
@@ -610,14 +611,19 @@ void Cpptraj::Cluster::MetricArray::CalculateMetricContributions(Cframes const& 
   std::vector<Stats<double>> mavg( metrics_.size() );
   // This array will hold each contribution, adjust for distance type and weight
   std::vector<double> mcont( metrics_.size() );
-  unsigned int ndist = 0;
+  // These arrays will record the minimum and maximum distance contributions
+  std::vector<double> mmin;
+  std::vector<double> mmax;
+//  mprintf("DEBUG: %8s %8s %8s %8s", "Frame1", "Frame2", "Distance", "Sum"); // DEBUG
+//  for (unsigned int idx = 0; idx != metrics_.size(); idx++) // DEBUG
+//    mprintf(" {%8s %8s %6s}", "Raw", "Adj.", "Frac"); // DEBUG
+//  mprintf("\n"); // DEBUG
   for (Cframes_it frm1 = framesToCluster.begin(); frm1 != framesToCluster.end(); ++frm1)
   {
     for (Cframes_it frm2 = frm1 + 1; frm2 != framesToCluster.end(); ++frm2)
     {
-      ndist++;
       // Populate the temp array
-      //double dist = 
+      //double dist = Uncached_Frame_Distance(*frm1, *frm2); // DEBUG
       Uncached_Frame_Distance(*frm1, *frm2);
       // Do individual contributions, adjusted for weights and distance type
       double sum = 0;
@@ -636,33 +642,38 @@ void Cpptraj::Cluster::MetricArray::CalculateMetricContributions(Cframes const& 
         mprinterr("Internal Error: CalculateMetricContributions: Unhandled metric summation.\n");
         return;
       }
-      // Do fractions
+      // Do fraction contributions
       for (unsigned int idx = 0; idx != temp_.size(); idx++)
         mfrac[idx].accumulate( mcont[idx] / sum );
+      // Set initial min/max values
+      if (mmin.empty()) {
+        mmin.resize( metrics_.size() );
+        mmax.resize( metrics_.size() );
+        for (unsigned int idx = 0; idx != temp_.size(); idx++) {
+          mmin[idx] = temp_[idx];
+          mmax[idx] = temp_[idx];
+        }
+      }
       // Do averages
-      //mprintf("DEBUG: %8i %8i %8.3f", *frm1 + 1, *frm2 + 1, dist); 
+      //mprintf("DEBUG: %8i %8i %8.3f %8.3f", *frm1 + 1, *frm2 + 1, dist, sum); // DEBUG
       for (unsigned int idx = 0; idx != temp_.size(); idx++)
       {
         mavg[idx].accumulate( temp_[idx] );
-        //mprintf(" {%8.3f %8.3f}=%6.2f", temp_[idx], mcont[idx], mcont[idx] / sum);
+        mmin[idx] = std::min( temp_[idx], mmin[idx] );
+        mmax[idx] = std::max( temp_[idx], mmax[idx] );
+        //mprintf(" {%8.3f %8.3f %6.2f}", temp_[idx], mcont[idx], mcont[idx] / sum); // DEBUG
       }
-      //mprintf("\n");
+      //mprintf("\n"); // DEBUG
     }
   }
-/*
-  outfile.Printf("#");
-  for (unsigned int idx = 0; idx != mfrac.size(); idx++)
-    outfile.Printf(" %1s%05i", "M", idx);
-  outfile.Printf("\n ");
-  for (std::vector<double>::const_iterator it = mfrac.begin(); it != mfrac.end(); ++it)
-    outfile.Printf(" %6.4f", *it / (double)ndist);
-  outfile.Printf("\n");
-*/
-  outfile.Printf("%-7s %6s %6s %12s %12s %s\n", "#Metric", "FracAv", "FracSD", "Avg", "SD", "Description");
+  // Output
+  outfile.Printf("%-7s %6s %6s %12s %12s %12s %12s %s\n",
+                 "#Metric", "FracAv", "FracSD", "Avg", "SD", "Min", "Max", "Description");
   for (unsigned int idx = 0; idx != mfrac.size(); idx++) {
-    outfile.Printf("%-7u %6.4f %6.4f %12.4f %12.4f \"%s\"\n", idx,
+    outfile.Printf("%-7u %6.4f %6.4f %12.4f %12.4f %12.4f %12.4f \"%s\"\n", idx,
                    mfrac[idx].mean(), sqrt(mfrac[idx].variance()),
                    mavg[idx].mean(), sqrt(mavg[idx].variance()),
+                   mmin[idx], mmax[idx],
                    metrics_[idx]->Description().c_str());
   }
   outfile.Flush();
