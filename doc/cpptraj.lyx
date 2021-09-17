@@ -41318,15 +41318,16 @@ wgt
 \begin_inset Newline newline
 \end_inset
 
-#Metric FracAv FracSD Avg SD Description
+#Metric FracAv FracSD Avg SD Min Max Description
 \begin_inset Newline newline
 \end_inset
 
 Where #Metric is the metric number, FracAv and FracSD are the average and
  standard devation of the fraction contribution of that metric to the total
- distance (taking into account distance type and weights), Avg and SD are
- the average and standard devation of the unmodified distance from that
- metric, and Description is the metric description.
+ distance (taking into account distance type and weights), Avg, SD, Min,
+ and Max are the average, standard devation, minimum, and maximum of the
+ unmodified distance contribution from that metric, and Description is the
+ metric description.
  This may be slow for large numbers of frames, so it is advisable to run
  this on a smaller (potentially sieved) number of frames.
 \end_layout
