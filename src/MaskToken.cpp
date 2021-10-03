@@ -151,11 +151,13 @@ int MaskToken::SetDistance(std::string const& distop) {
     mprinterr("Error: Malformed distance operator: expected '<' or '>' (%c)\n",distop[0]);
     return 1;
   }
-  // 2nd char indidcates atoms (@), residues (:), or molecules (^)
+  // 2nd char indidcates atoms (@), residues (:), molecules (^), residue centers (;)
   if (distop[1]=='@')
     distOp_ = BY_ATOM;
   else if (distop[1]==':')
     distOp_ = BY_RES;
+  else if (distop[1]==';')
+    distOp_ = BY_RESCENTER;
   else if (distop[1]=='^')
     distOp_ = BY_MOL;
   else {
