@@ -838,6 +838,52 @@ int MaskTokenArray::SelectDistance(const double* REF, char *mask,
 #   ifdef _OPENMP
     } // END pragma omp parallel
 #   endif
+  } else if (token.DistOp() == MaskToken::BY_RESCENTER) {
+    // Select by residue center
+    int n_of_res = (int)residues.size();
+    int resi;
+    // Loop over all residues
+#   ifdef _OPENMP
+#   pragma omp parallel private(resi)
+    {
+#   pragma omp for
+#   endif
+    for (resi = 0; resi < n_of_res; resi++) {
+      // Initial state
+      char schar = char0;
+      int atomi = residues[resi].FirstAtom();
+      const double* i_crd = REF + (atomi * 3);
+      double resxyz[3];
+      resxyz[0] = 0;
+      resxyz[1] = 0;
+      resxyz[2] = 0;
+      // Loop over residue atoms
+      for (; atomi != residues[resi].LastAtom(); atomi++, i_crd += 3) {
+        resxyz[0] += i_crd[0];
+        resxyz[1] += i_crd[1];
+        resxyz[2] += i_crd[2];
+      }
+      double nresatoms = (double)residues[resi].NumAtoms();
+      resxyz[0] /= nresatoms;
+      resxyz[1] /= nresatoms;
+      resxyz[2] /= nresatoms;
+      // Loop over initially selected atoms
+      for (Uarray::const_iterator idx = Idx.begin(); idx != Idx.end(); ++idx) {
+        double d2 = DIST2_NoImage(resxyz, REF + *idx);
+        if (d2 < dcut2) {
+          // State changes
+          schar = char1;
+          break;
+        }
+      } // END loop over initially selected atoms
+      // Set residue selection status
+      for (atomi = residues[resi].FirstAtom();
+           atomi != residues[resi].LastAtom(); atomi++)
+        mask[atomi] = schar;
+    } // END loop over all residues
+#   ifdef _OPENMP
+    } // END pragma omp parallel
+#   endif
   } else {
     // Select by molecule
     if (molecules.empty()) {
