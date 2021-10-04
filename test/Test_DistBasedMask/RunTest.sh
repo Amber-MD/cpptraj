@@ -4,7 +4,7 @@
 
 # Clean
 CleanFiles mask.in First.pdb.1 Second.pdb.1 Third.pdb.1 Fourth.pdb.1 \
-           Fifth.pdb.1 Sixth.pdb.1 Seventh.pdb.1
+           Fifth.pdb.1 Sixth.pdb.1 Seventh.pdb.1 Eighth.pdb.1
 
 # NOTE: This also tests activeref
 TESTNAME='Distance-based atom mask tests'
@@ -74,12 +74,13 @@ outtraj Seventh.pdb.1 pdb noter chainid ' '
 unstrip
 # Residue centers outside 5 Ang from residue 2
 strip !(:2>;5.0)
-outtraj Eigth.pdb.1 pdb noter chainid ' '
+outtraj Eighth.pdb.1 pdb noter chainid ' '
 
 run
 EOF
 RunCpptraj "$TESTNAME (residue center)"
 DoTest Seventh.pdb.1.save Seventh.pdb.1
+DoTest Eighth.pdb.1.save Eighth.pdb.1
 
 EndTest
 
