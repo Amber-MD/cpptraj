@@ -2,14 +2,14 @@
 
 . ../MasterTest.sh
 
-CleanFiles dpeaks.in dpeaks.dat summary.dat info.dat
+CleanFiles dpeaks.in dpeaks.dat summary.dat info.dat MyPairDist
 
 INPUT="-i dpeaks.in"
 TESTNAME='Density peaks clustering test'
-Requires netcdf
+#Requires netcdf
 cat > dpeaks.in <<EOF
 parm ../tz2.parm7
-trajin ../tz2.nc
+trajin ../tz2.crd
 createcrd MyCrd
 run
 
@@ -23,6 +23,7 @@ runanalysis cluster crdset MyCrd C0     @CA dpeaks dvdfile dpeaks.dat epsilon 1.
                     choosepoints manual distancecut 2.4 densitycut 5.0 \
                     summary summary.dat info info.dat
 #  dvdfile dpeaks.dat choosepoints manual distancecut 2.4 densitycut 0.0
+list
 EOF
 RunCpptraj "$TESTNAME"
 DoTest dpeaks.dat.save dpeaks.dat

@@ -1,0 +1,3 @@
+#Metric FracAv FracSD          Avg           SD          Min          Max Description
+0       0.9038 0.1783       7.0594       5.3447       0.0050      20.8420 "Data set d1"
+1       0.0962 0.1783       0.4352       0.6127       0.0000       3.0000 "Data set hb1[UU]"

@@ -1,0 +1,28 @@
+# Files related to new clustering code
+CLUSTER_SOURCES= \
+  Algorithm.cpp \
+  Algorithm_DBscan.cpp \
+  Algorithm_DPeaks.cpp \
+  Algorithm_HierAgglo.cpp \
+  Algorithm_Kmeans.cpp \
+  BestReps.cpp \
+  Centroid_Coord.cpp \
+  CentroidArray.cpp \
+  Cframes.cpp \
+  Cmatrix_Binary.cpp \
+  Cmatrix_NC.cpp \
+  Control.cpp \
+  DrawGraph.cpp \
+  DynamicMatrix.cpp \
+  List.cpp \
+  MetricArray.cpp \
+  Metric_DME.cpp \
+  Metric_RMS.cpp \
+  Metric_Scalar.cpp \
+  Metric_SRMSD.cpp \
+  Metric_Torsion.cpp \
+  Node.cpp \
+  Output.cpp \
+  Results_Coords.cpp \
+  Sieve.cpp
+

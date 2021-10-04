@@ -24,13 +24,12 @@
 #include "DataSet_Mat3x3.h"
 #include "DataSet_Topology.h"
 #include "DataSet_GridDbl.h"
-#include "DataSet_Cmatrix_MEM.h"
-#include "DataSet_Cmatrix_NOMEM.h"
-#include "DataSet_Cmatrix_DISK.h"
 #include "DataSet_pH.h"
 #include "DataSet_PHREMD_Explicit.h"
 #include "DataSet_PHREMD_Implicit.h"
 #include "DataSet_Parameters.h"
+#include "DataSet_PairwiseCache_MEM.h"
+#include "DataSet_PairwiseCache_NC.h"
 #include "DataSet_Tensor.h"
 #include "DataSet_StringVar.h"
 #include "DataSet_Vector_Scalar.h"
@@ -75,13 +74,20 @@ DataSet* DataSetList::NewSet(DataSet::DataType typeIn) {
     case DataSet::REF_FRAME  : ds = DataSet_Coords_REF::Alloc(); break;
     case DataSet::MAT3X3     : ds = DataSet_Mat3x3::Alloc(); break;
     case DataSet::TOPOLOGY   : ds = DataSet_Topology::Alloc(); break;
-    case DataSet::CMATRIX    : ds = DataSet_Cmatrix_MEM::Alloc(); break;
-    case DataSet::CMATRIX_NOMEM : ds = DataSet_Cmatrix_NOMEM::Alloc(); break;
-    case DataSet::CMATRIX_DISK  : ds = DataSet_Cmatrix_DISK::Alloc(); break;
     case DataSet::PH            : ds = DataSet_pH::Alloc(); break;
     case DataSet::PH_EXPL       : ds = DataSet_PHREMD_Explicit::Alloc(); break;
     case DataSet::PH_IMPL       : ds = DataSet_PHREMD_Implicit::Alloc(); break;
     case DataSet::PARAMETERS    : ds = DataSet_Parameters::Alloc(); break;
+    // TODO useDiskCache
+    case DataSet::PMATRIX_MEM   : ds = DataSet_PairwiseCache_MEM::Alloc(); break;
+    case DataSet::PMATRIX_NC    :
+#     ifdef BINTRAJ
+      ds = DataSet_PairwiseCache_NC::Alloc();
+#     else
+      mprinterr("Error: NetCDF pairwise disk cache requires NetCDF.\n");
+      ds = 0;
+#     endif
+      break;
     case DataSet::TENSOR        : ds = DataSet_Tensor::Alloc(); break;
     case DataSet::STRINGVAR     : ds = DataSet_StringVar::Alloc(); break;
     case DataSet::VECTOR_SCALAR : ds = DataSet_Vector_Scalar::Alloc(); break;
@@ -422,12 +428,14 @@ DataSet* DataSetList::AddSet( DataSet::DataType inType, MetaData const& metaIn,
   return AddSet( inType, meta );
 }
 
-/** Add a DataSet of specified type, set it up and return pointer to it. 
+/** Allocate a DataSet of specified type, set it up and return pointer to it.
+  * It will not be added to the list. 
   * \param inType type of DataSet to add.
   * \param metaIn DataSet MetaData.
   * \return pointer to successfully set-up DataSet or 0 if error.
   */ 
-DataSet* DataSetList::AddSet(DataSet::DataType inType, MetaData const& metaIn)
+DataSet* DataSetList::AllocateSet(DataSet::DataType inType, MetaData const& metaIn)
+const
 { // TODO Always generate default name if empty?
 # ifdef TIMER
   time_total_.Start();
@@ -482,13 +490,29 @@ DataSet* DataSetList::AddSet(DataSet::DataType inType, MetaData const& metaIn)
 # endif
 # ifdef TIMER
   time_setup_.Stop();
-  time_push_.Start();
 # endif
-  Push_Back(DS);
-# ifdef TIMER
-  time_push_.Stop();
-# endif
-  //fprintf(stderr,"ADDED dataset %s\n",dsetName);
+  //fprintf(stderr,"ALLOCATED dataset %s\n",dsetName);
+  return DS;
+}
+
+/** Add a DataSet of specified type, set it up and return pointer to it. 
+  * \param inType type of DataSet to add.
+  * \param metaIn DataSet MetaData.
+  * \return pointer to successfully set-up DataSet or 0 if error.
+  */ 
+DataSet* DataSetList::AddSet(DataSet::DataType inType, MetaData const& metaIn)
+{
+  DataSet* DS = AllocateSet(inType, metaIn);
+  if (DS != 0) {
+#   ifdef TIMER
+    time_push_.Start();
+#   endif
+    Push_Back(DS);
+#   ifdef TIMER
+    time_push_.Stop();
+#   endif
+    //fprintf(stderr,"ADDED dataset %s\n",dsetName);
+  }
   return DS;
 }
 

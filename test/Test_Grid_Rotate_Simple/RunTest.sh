@@ -4,6 +4,8 @@
 
 CleanFiles grid.in tyr.rmsfit.dx tyr.rmsfit.dcd tyr.gridfit.dx
 
+TESTNAME='Grid rotation tests.'
+Requires netcdf
 
 RunTyr() {
   INPUT='-i grid.in'

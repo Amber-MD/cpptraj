@@ -125,7 +125,7 @@ static inline void ArrayToFrame(int idx, Frame& fOut, CompactFrameArray const& f
   if (frames_.HasComponent(CoordinateInfo::REDOX)) fOut.SetRedOx(frames_.GetVal(idx, CoordinateInfo::REDOX));
   if (frames_.HasComponent(CoordinateInfo::TIME)) fOut.SetTime(frames_.GetVal(idx, CoordinateInfo::TIME));
   if (frames_.HasComponent(CoordinateInfo::STEP)) fOut.SetStep(frames_.GetVal(idx, CoordinateInfo::STEP));
-  if (frames_.HasComponent(CoordinateInfo::REMD_INDICES)) frames_.GetToIntPtr(fOut.iAddress(), idx, CoordinateInfo::REMD_INDICES);
+  if (frames_.HasComponent(CoordinateInfo::REMD_INDICES) && !fOut.RemdIndices().empty()) frames_.GetToIntPtr(fOut.iAddress(), idx, CoordinateInfo::REMD_INDICES);
   if (frames_.HasComponent(CoordinateInfo::REPIDX)) fOut.SetRepIdx(frames_.GetVal(idx, CoordinateInfo::REPIDX));
   if (frames_.HasComponent(CoordinateInfo::CRDIDX)) fOut.SetCrdIdx(frames_.GetVal(idx, CoordinateInfo::CRDIDX));
 }
