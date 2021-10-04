@@ -132,7 +132,7 @@ int MaskToken::SetToken( MaskTokenType typeIn, std::string const& tokenString ) 
   return 0;
 }
 
-/** Distance by distance. [<|>][@|:|^]<dist> */
+/** Distance by distance. [<|>][@|:|;|^]<dist> */
 int MaskToken::SetDistance(std::string const& distop) {
   if (distop.empty()) return 1;
   type_ = OP_DIST;
@@ -280,14 +280,14 @@ int MaskTokenArray::Tokenize() {
       }
 
       infix += *p;
-
+      // Distance-based masks
       if ( *p == '>' || *p == '<' ) {
         buffer.assign("([");
         buffer += *p;
         ++p;
         buffer += *p;
         flag = 3;
-        if ( *p != ':' && *p != '@' && *p != '^' ) {
+        if ( *p != ':' && *p != '@' && *p != '^' && *p != ';' ) {
           --p;
           mprinterr("Error: Tokenize: Wrong syntax for distance mask [%c]\n",*p);
           return 1;
