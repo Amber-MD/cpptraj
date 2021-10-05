@@ -29,10 +29,9 @@ Exec_PrepareForLeap::Sugar::Sugar(int rn, int roa, int aa, int ara, std::vector<
 
 void Exec_PrepareForLeap::Sugar::PrintInfo(Topology const& topIn) const {
   if (NotSet()) {
-    mprintf("\t%s : Not Set.\n", topIn.TruncResNameNum(rnum_).c_str());
-    //mprintf("DEBUG:\tres=%i %c\n", topIn.Res(rnum_).OriginalResNum(), topIn.Res(rnum_).ChainId());
+    mprintf("\t%s : Not Set.\n", topIn.TruncResNameOnumId(rnum_).c_str());
   } else {
-    mprintf("\t%s :\n", topIn.TruncResNameNum(rnum_).c_str());
+    mprintf("\t%s :\n", topIn.TruncResNameOnumId(rnum_).c_str());
     mprintf("\t\tRing O           : %s\n", topIn.TruncAtomNameNum(ring_oxygen_atom_).c_str());
     mprintf("\t\tAnomeric C       : %s\n", topIn.TruncAtomNameNum(anomeric_atom_).c_str());
     mprintf("\t\tAnomeric ref. C  : %s\n", topIn.TruncAtomNameNum(ano_ref_atom_).c_str());
@@ -597,7 +596,7 @@ const
 {
   if (sugar.NotSet()) {
     mprintf("Warning: Sugar %s is not set up. Skipping linkage detection.\n",
-            topIn.TruncResNameNum(sugar.ResNum()).c_str());
+            topIn.TruncResNameOnumId(sugar.ResNum()).c_str());
     return 0; // TODO return 1?
   }
   int rnum1 = sugar.ResNum();
@@ -626,7 +625,7 @@ const
         if (dist2_1 < rescut2) {
           if (debug_ > 1)
             mprintf("DEBUG: %s to %s = %f\n",
-                    topIn.TruncResNameNum(rnum1).c_str(), topIn.TruncResNameNum(rnum2).c_str(),
+                    topIn.TruncResNameOnumId(rnum1).c_str(), topIn.TruncResNameOnumId(rnum2).c_str(),
                     sqrt(dist2_1));
           // Do the rest of the atoms in res2 to the anomeric carbon
           for (; at2 != res2.LastAtom(); ++at2)
@@ -808,7 +807,7 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
 {
   if (sugar.NotSet()) {
     mprintf("Warning: Sugar %s is not set up. Skipping sugar identification.\n",
-            topIn.TruncResNameNum(sugar.ResNum()).c_str());
+            topIn.TruncResNameOnumId(sugar.ResNum()).c_str());
     return 0; // TODO return 1?
   }
 
@@ -995,7 +994,7 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
   }
   // Set new residue name
   NameType newResName( linkcode + std::string(1,resChar) + formStr );
-  mprintf("\t  Changing %s to Glycam resname: %s\n", topIn.TruncResNameNum(rnum).c_str(), *newResName);
+  mprintf("\t  Changing %s to Glycam resname: %s\n", topIn.TruncResNameOnumId(rnum).c_str(), *newResName);
   ChangeResName(res, newResName);
   resStat_[rnum] = VALIDATED;
   return 0;
@@ -1027,11 +1026,11 @@ int Exec_PrepareForLeap::PrepareSugars(AtomMask& sugarMask, Topology& topIn,
       if (err != 0) {
         if (errorsAreFatal_) {
           mprinterr("Error: Problem identifying sugar ring for %s\n",
-                    topIn.TruncResNameNum(*rnum).c_str());
+                    topIn.TruncResNameOnumId(*rnum).c_str());
           return 1;
         } else
           mprintf("Warning: Problem identifying sugar ring for %s\n",
-                    topIn.TruncResNameNum(*rnum).c_str());
+                    topIn.TruncResNameOnumId(*rnum).c_str());
       }
       Sugars.back().PrintInfo( topIn );
     }
@@ -1046,7 +1045,7 @@ int Exec_PrepareForLeap::PrepareSugars(AtomMask& sugarMask, Topology& topIn,
             return 1;
           else
             mprintf("Warning: Finding anomeric C linkages for %s failed, skipping.\n",
-                    topIn.TruncResNameNum( sugar->ResNum() ).c_str());
+                    topIn.TruncResNameOnumId( sugar->ResNum() ).c_str());
         }
       }
     } else {
@@ -1065,7 +1064,7 @@ int Exec_PrepareForLeap::PrepareSugars(AtomMask& sugarMask, Topology& topIn,
           return 1;
         else
           mprintf("Warning: Preparation of sugar %s failed, skipping.\n",
-                  topIn.TruncResNameNum( sugar->ResNum() ).c_str());
+                  topIn.TruncResNameOnumId( sugar->ResNum() ).c_str());
       }
     } // END loop over sugar residues
     // Remove bonds between sugars
@@ -1147,7 +1146,7 @@ const
       // The previous atom is the end
       int lastRes = topIn[at-1].ResNum();
       mprintf("\tSetting residue %s as terminal.\n",
-              topIn.TruncResNameNum(lastRes).c_str());
+              topIn.TruncResNameOnumId(lastRes).c_str());
       topIn.SetRes(lastRes).SetTerminal( true );
     }
   }
@@ -1466,7 +1465,7 @@ const
                                         rnum != resIdxs.end(); ++rnum)
   {
     if (debug_ > 1)
-      mprintf("DEBUG: %s (%i) (%c)\n", topIn.TruncResNameNum(*rnum).c_str(), topIn.Res(*rnum).OriginalResNum(), topIn.Res(*rnum).ChainId());
+      mprintf("DEBUG: %s (%i) (%c)\n", topIn.TruncResNameOnumId(*rnum).c_str(), topIn.Res(*rnum).OriginalResNum(), topIn.Res(*rnum).ChainId());
     int nd1idx = -1;
     int ne2idx = -1;
     Residue const& hisRes = topIn.Res( *rnum );
@@ -1478,16 +1477,16 @@ const
         ne2idx = at;
     }
     if (nd1idx == -1) {
-      mprintf("Warning: Atom %s not found for %s; skipping residue.\n", *ND1, topIn.TruncResNameNum(*rnum).c_str());
+      mprintf("Warning: Atom %s not found for %s; skipping residue.\n", *ND1, topIn.TruncResNameOnumId(*rnum).c_str());
       continue;
     }
     if (ne2idx == -1) {
-      mprintf("Warning: Atom %s not found for %s; skipping residue,\n", *NE2, topIn.TruncResNameNum(*rnum).c_str());
+      mprintf("Warning: Atom %s not found for %s; skipping residue,\n", *NE2, topIn.TruncResNameOnumId(*rnum).c_str());
       continue;
     }
     if (debug_ > 1)
       mprintf("DEBUG: %s nd1idx= %i ne2idx= %i\n",
-              topIn.TruncResNameNum( *rnum ).c_str(), nd1idx+1, ne2idx+1);
+              topIn.TruncResNameOnumId( *rnum ).c_str(), nd1idx+1, ne2idx+1);
     // Check for H bonded to nd1/ne2
     int nd1h = 0;
     for (Atom::bond_iterator bat = topIn[nd1idx].bondbegin();
@@ -1523,7 +1522,7 @@ const
     }
     //else {
     //  // Default to epsilon
-    //  mprintf("\tUsing default name '%s' for %s\n", *HieName, topIn.TruncResNameNum(*rnum).c_str());
+    //  mprintf("\tUsing default name '%s' for %s\n", *HieName, topIn.TruncResNameOnumId(*rnum).c_str());
     //  HisResNames.push_back( HieName );
     //}
   }
@@ -1833,25 +1832,25 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   for (ResStatArray::iterator it = resStat_.begin(); it != resStat_.end(); ++it)
   {
     //if ( *it == VALIDATED )
-    //  mprintf("\t\t%s VALIDATED\n", topIn.TruncResNameNum(it-resStat_.begin()).c_str());
+    //  mprintf("\t\t%s VALIDATED\n", topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
     //else
-    //  mprintf("\t\t%s UNKNOWN\n", topIn.TruncResNameNum(it-resStat_.begin()).c_str());
+    //  mprintf("\t\t%s UNKNOWN\n", topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
     if ( *it == UNKNOWN ) {
       SetType::const_iterator pname = pdb_res_names_.find( topIn.Res(it-resStat_.begin()).Name() );
       if (pname == pdb_res_names_.end())
         mprintf("\t%s%s is an unrecognized name and may not have parameters.\n",
-                msg, topIn.TruncResNameNum(it-resStat_.begin()).c_str());
+                msg, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
       else
         *it = VALIDATED;
     } else if ( *it == UNRECOGNIZED_SUGAR_LINKAGE ) {
         mprintf("\t%s%s is linked to a sugar but has no sugar-linkage form.\n",
-                msg, topIn.TruncResNameNum(it-resStat_.begin()).c_str());
+                msg, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
     } else if ( *it == SUGAR_MISSING_C1X ) {
         mprintf("\t%s%s Sugar is missing anomeric carbon substituent and cannot be identified.\n",
-                msg, topIn.TruncResNameNum(it-resStat_.begin()).c_str());
+                msg, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
     } else if ( *it == SUGAR_MISSING_RING_O ) {
         mprintf("\t%s%s Sugar is missing ring oxygen and cannot be identified.\n",
-                msg, topIn.TruncResNameNum(it-resStat_.begin()).c_str());
+                msg, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
     }
   }
 
@@ -1872,7 +1871,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       int lastAtom = mask->back();
       int lastRes = topIn[lastAtom].ResNum();
       mprintf("\tSetting residue %s as terminal.\n",
-        topIn.TruncResNameNum(lastRes).c_str());
+        topIn.TruncResNameOnumId(lastRes).c_str());
       topIn.SetRes(lastRes).SetTerminal( true );
     }
     // Set ter based on connectivity
