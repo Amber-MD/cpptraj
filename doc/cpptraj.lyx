@@ -1537,7 +1537,7 @@ numlist} e.g.
 \begin_inset space ~
 \end_inset
 
-op><distance> Selection by distance, see below.
+operator><distance> Selection by distance, see below.
 \end_layout
 
 \begin_layout Standard
@@ -1667,14 +1667,72 @@ More examples:
 Distance-based Masks
 \end_layout
 
+\begin_layout Description
+<mask><distance
+\begin_inset space ~
+\end_inset
+
+operator><distance>
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+<mask> Atoms to consider.
+\end_layout
+
+\begin_layout Description
+<distance
+\begin_inset space ~
+\end_inset
+
+operator> Distance operator.
+ 
+\family typewriter
+{<|>}{@|:|;|^}
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+< Distances less than <distance> will be selected.
+\end_layout
+
+\begin_layout Description
+> Distances greater than or equal to <distance> will be selected.
+\end_layout
+
+\begin_layout Description
+@ Any atom.
+\end_layout
+
+\begin_layout Description
+: Any atom within a residue.
+\end_layout
+
+\begin_layout Description
+; Residue geometric center.
+\end_layout
+
+\begin_layout Description
+^ Any atom within a molecule.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+<distance> The distance criteria in Angstroms.
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 There are two very important things to keep in mind when using distance
  based masks:
 \end_layout
 
 \begin_layout Enumerate
-Distance-based masks that update each frame are currently only supported
- by the 
+Distance-based masks that 
+\bar under
+update each frame
+\bar default
+ are currently only supported by the 
 \series bold
 \shape italic
 mask
@@ -1744,7 +1802,7 @@ The syntax for selection by distance is a
 \series bold
 :
 \series default
-' (residues), or '
+' (residues), ';' (residue centers), or '
 \series bold
 @
 \series default
@@ -1762,9 +1820,11 @@ residues within 3.0 Angstroms
 \end_inset
 
  etc.
- For residue- and molecule-based distance selection, if any atom in that
- residue/molecule matches the given distance criterion, the entire residue/molec
-ule is selected.
+ For ':' residue- and '^' molecule-based distance selection, if any atom
+ in that residue/molecule meets the given distance criterion, the entire
+ residue/molecule is selected.
+ For ';' residue center, the geometric center of the residue must meet the
+ given distance criterion in order to be selected.
 \end_layout
 
 \begin_layout Standard
@@ -27367,8 +27427,9 @@ Determine hydrogen bonds in each coordinate frame using simple geometric
  criteria.
  A hydrogen bond is defined as being between an acceptor heavy atom A, a
  donor hydrogen atom H, and a donor heavy atom D.
- If the A to D distance is less than the distance cutoff and the A-H-D angle
- is greater than the angle cutoff a hydrogen bond is considered formed.
+ If the A to D distance is less than or equal to the distance cutoff and
+ the A-H-D angle is greater than or equal to the angle cutoff a hydrogen
+ bond is considered formed.
  Imaging of distances/angles is not performed by default, but can be turned
  on using the 
 \series bold
