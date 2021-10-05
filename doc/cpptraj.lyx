@@ -27427,8 +27427,9 @@ Determine hydrogen bonds in each coordinate frame using simple geometric
  criteria.
  A hydrogen bond is defined as being between an acceptor heavy atom A, a
  donor hydrogen atom H, and a donor heavy atom D.
- If the A to D distance is less than the distance cutoff and the A-H-D angle
- is greater than the angle cutoff a hydrogen bond is considered formed.
+ If the A to D distance is less than or equal to the distance cutoff and
+ the A-H-D angle is greater than or equal to the angle cutoff a hydrogen
+ bond is considered formed.
  Imaging of distances/angles is not performed by default, but can be turned
  on using the 
 \series bold
