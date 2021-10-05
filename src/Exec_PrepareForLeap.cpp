@@ -695,8 +695,8 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
   }
 
   // The anomeric carbon is the carbon that was part of the carbonyl group
-  // in the straight chain. It is therefore typically the carbon bonded
-  // to the ring oxygen with the lower index.
+  // in the straight chain. It is therefore typically the carbon with fewer
+  // bonds to other carbons.
   int anomeric_atom = -1;    // e.g. C1
   // The anomeric reference carbon is the stereocenter farthest from the
   // anomeric carbon in the ring.
@@ -736,8 +736,27 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
     // TODO handle the case where multiple potential ring start atoms exist
     if (ring_complete) {
       ring_oxygen_atom = *ringat;
-      anomeric_atom = c_beg;
-      ano_ref_atom  = c_end;
+      // Try to ascertain which carbon might be the anomeric carbon (i.e. the
+      // carbon that originally started the chain). Tie goes to lower index.
+      int c_beg_bonds_to_C = 0;
+      for (Atom::bond_iterator bat = topIn[c_beg].bondbegin(); bat != topIn[c_beg].bondend(); ++bat)
+        if (topIn[*bat].Element() == Atom::CARBON)
+          c_beg_bonds_to_C++;
+      int c_end_bonds_to_C = 0;
+      for (Atom::bond_iterator bat = topIn[c_end].bondbegin(); bat != topIn[c_end].bondend(); ++bat)
+        if (topIn[*bat].Element() == Atom::CARBON)
+          c_end_bonds_to_C++;
+      if (debug_ > 0)
+        mprintf("(%s bonds to C= %i, %s bonds to C = %i)", // DEBUG
+                topIn.ResNameNumAtomNameNum(c_beg).c_str(), c_beg_bonds_to_C,
+                topIn.ResNameNumAtomNameNum(c_end).c_str(), c_end_bonds_to_C);
+      if (c_beg_bonds_to_C <= c_end_bonds_to_C) {
+        anomeric_atom = c_beg;
+        ano_ref_atom  = c_end;
+      } else {
+        anomeric_atom = c_end;
+        ano_ref_atom = c_beg;
+      }
       RA.clear();
       if (debug_ > 0) mprintf(" :"); // DEBUG
       for (std::vector<int>::const_iterator it = ring_atoms.begin(); it != ring_atoms.end(); ++it)
