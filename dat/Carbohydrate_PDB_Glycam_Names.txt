@@ -34,7 +34,7 @@
 V,W,Y C7,C2N  O7,O2N  C8,CME
 S     C10,C5N O10,O5N C11,CME
 
-# PDB to glycame linkage residue name maps
+# PDB to glycam linkage residue name maps
 SER OLS
 THR OLT
 HYP OLP
