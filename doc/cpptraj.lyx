@@ -1802,7 +1802,7 @@ The syntax for selection by distance is a
 \series bold
 :
 \series default
-' (residues), or '
+' (residues), ';' (residue centers), or '
 \series bold
 @
 \series default
@@ -1821,10 +1821,10 @@ residues within 3.0 Angstroms
 
  etc.
  For ':' residue- and '^' molecule-based distance selection, if any atom
- in that residue/molecule matches the given distance criterion, the entire
+ in that residue/molecule meets the given distance criterion, the entire
  residue/molecule is selected.
- For ';' residue center, the geometric center of the residue must match
- the given distance criterion in order to be selected.
+ For ';' residue center, the geometric center of the residue must meet the
+ given distance criterion in order to be selected.
 \end_layout
 
 \begin_layout Standard
