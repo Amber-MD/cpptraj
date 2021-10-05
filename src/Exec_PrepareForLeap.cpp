@@ -30,6 +30,7 @@ Exec_PrepareForLeap::Sugar::Sugar(int rn, int roa, int aa, int ara, std::vector<
 void Exec_PrepareForLeap::Sugar::PrintInfo(Topology const& topIn) const {
   if (NotSet()) {
     mprintf("\t%s : Not Set.\n", topIn.TruncResNameNum(rnum_).c_str());
+    //mprintf("DEBUG:\tres=%i %c\n", topIn.Res(rnum_).OriginalResNum(), topIn.Res(rnum_).ChainId());
   } else {
     mprintf("\t%s :\n", topIn.TruncResNameNum(rnum_).c_str());
     mprintf("\t\tRing O           : %s\n", topIn.TruncAtomNameNum(ring_oxygen_atom_).c_str());
