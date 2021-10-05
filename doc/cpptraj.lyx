@@ -1537,7 +1537,7 @@ numlist} e.g.
 \begin_inset space ~
 \end_inset
 
-op><distance> Selection by distance, see below.
+operator><distance> Selection by distance, see below.
 \end_layout
 
 \begin_layout Standard
@@ -1667,14 +1667,72 @@ More examples:
 Distance-based Masks
 \end_layout
 
+\begin_layout Description
+<mask><distance
+\begin_inset space ~
+\end_inset
+
+operator><distance>
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+<mask> Atoms to consider.
+\end_layout
+
+\begin_layout Description
+<distance
+\begin_inset space ~
+\end_inset
+
+operator> Distance operator.
+ 
+\family typewriter
+{<|>}{@|:|;|^}
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+< Distances less than <distance> will be selected.
+\end_layout
+
+\begin_layout Description
+> Distances greater than or equal to <distance> will be selected.
+\end_layout
+
+\begin_layout Description
+@ Any atom.
+\end_layout
+
+\begin_layout Description
+: Any atom within a residue.
+\end_layout
+
+\begin_layout Description
+; Residue geometric center.
+\end_layout
+
+\begin_layout Description
+^ Any atom within a molecule.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+<distance> The distance criteria in Angstroms.
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 There are two very important things to keep in mind when using distance
  based masks:
 \end_layout
 
 \begin_layout Enumerate
-Distance-based masks that update each frame are currently only supported
- by the 
+Distance-based masks that 
+\bar under
+update each frame
+\bar default
+ are currently only supported by the 
 \series bold
 \shape italic
 mask
@@ -1762,9 +1820,11 @@ residues within 3.0 Angstroms
 \end_inset
 
  etc.
- For residue- and molecule-based distance selection, if any atom in that
- residue/molecule matches the given distance criterion, the entire residue/molec
-ule is selected.
+ For ':' residue- and '^' molecule-based distance selection, if any atom
+ in that residue/molecule matches the given distance criterion, the entire
+ residue/molecule is selected.
+ For ';' residue center, the geometric center of the residue must match
+ the given distance criterion in order to be selected.
 \end_layout
 
 \begin_layout Standard
