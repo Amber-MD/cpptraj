@@ -682,7 +682,7 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
   // TODO handle case where multiple potential ring start atoms exist
   if (potentialRingStartAtoms.empty()) {
     mprintf("Warning: Ring oxygen could not be identified for %s\n",
-            topIn.TruncResNameNum(rnum).c_str());
+            topIn.TruncResNameOnumId(rnum).c_str());
     resStat_[rnum] = SUGAR_MISSING_RING_O;
     return Sugar(rnum);
   } else if (potentialRingStartAtoms.size() > 1) {

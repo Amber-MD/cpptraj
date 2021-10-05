@@ -173,6 +173,8 @@ class Topology {
     std::string TruncAtomNameNum(int) const;
     /// Format: <res name>:<res num> 
     std::string TruncResNameNum(int) const;
+    /// Format: <res name>_<onum>[_<id>]
+    std::string TruncResNameOnumId(int) const;
     /// \return index of atom with given name in specified residue.
     int FindAtomInResidue(int, NameType const&) const;
     /// Mark all molecules matching given mask expression as solvent.

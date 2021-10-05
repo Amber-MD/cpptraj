@@ -239,7 +239,7 @@ std::string Topology::TruncAtomNameNum(int atom) const {
 }
 
 // Topology::TruncResNameNum()
-/** Given a residue number (starting from 0), return a string containing 
+/** Given a residue index (starting from 0), return a string containing 
   * residue name and number (starting from 1) with format: 
   * "<resname>:<resnum>", e.g. "ARG:11".
   * Truncate residue name so there are no blanks.
@@ -248,6 +248,20 @@ std::string Topology::TruncResNameNum(int res) const {
   if (res < 0 || res >= (int)residues_.size()) return std::string("");
   // Residue name with no trailing spaces.
   return residues_[res].Name().Truncated() + ":" + integerToString( res+1 );
+}
+
+/** Given a residue index, return a string containing residue name,
+  * original residue number, and (optionally) chain ID with format:
+  * "<resname>_<onum>[_<id>]".
+  * Truncate residue name so there are no blanks.
+  */
+std::string Topology::TruncResNameOnumId(int res) const {
+  if (res < 0 || res >= (int)residues_.size()) return std::string("");
+  std::string name = residues_[res].Name().Truncated() + "_" +
+                     integerToString(residues_[res].OriginalResNum());
+  if (residues_[res].HasChainID())
+    name.append( "_" + std::string(1, residues_[res].ChainId()) );
+  return name;
 }
 
 // Topology::FindAtomInResidue()
