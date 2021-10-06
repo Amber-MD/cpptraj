@@ -39,7 +39,7 @@ class Exec_PrepareForLeap : public Exec {
     int FindRemainingChainCarbons(std::vector<int>&, int, Topology const&, int,
                                   std::vector<bool> const&) const;
     int FindSugarC1Linkages(Sugar const&, Topology&, Frame const&) const;
-    Sugar IdSugarRing(int, Topology const&, int&);
+    Sugar IdSugarRing(int, Topology const&, Frame const&, int&);
     int ChangePdbAtomNamesToGlycam(char, Residue const&, Topology&) const;
     int IdentifySugar(Sugar const&, Topology&, Frame const&, CharMask const&, CpptrajFile*, std::set<BondType>&);
     int PrepareSugars(AtomMask&, Topology&, Frame const&, CpptrajFile*, bool);
@@ -95,7 +95,7 @@ class Exec_PrepareForLeap : public Exec {
 class Exec_PrepareForLeap::Sugar {
   public:
     Sugar(int);
-    Sugar(int,int,int,int,std::vector<int> const&);
+    Sugar(int,int,int,int,std::vector<int> const&,std::vector<bool> const&);
 
     int ResNum()          const { return rnum_; }
     int RingOxygenAtom()  const { return ring_oxygen_atom_; }
@@ -105,6 +105,8 @@ class Exec_PrepareForLeap::Sugar {
     typedef std::vector<int>::const_iterator const_iterator;
     const_iterator ringbegin() const { return ring_atoms_.begin(); }
     const_iterator ringend()   const { return ring_atoms_.end(); }
+
+    bool AtomIsChiral(int idx) const { return atomIsChiral_[idx]; }
 
     bool NotSet() const { return (ring_oxygen_atom_ == -1); }
     /// \return Number of ring atoms
@@ -116,5 +118,6 @@ class Exec_PrepareForLeap::Sugar {
     int anomeric_atom_;    ///< Index of the anomeric C atom
     int ano_ref_atom_;     ///< Index of the anomeric reference C atom
     std::vector<int> ring_atoms_; ///< Index of all non-oxygen ring atoms
+    std::vector<bool> atomIsChiral_; ///< For each sugar residue atom, whether it is chiral or not.
 };
 #endif

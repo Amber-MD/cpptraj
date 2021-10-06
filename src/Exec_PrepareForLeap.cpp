@@ -20,12 +20,14 @@ Exec_PrepareForLeap::Sugar::Sugar(int rn) :
   ano_ref_atom_(-1)
 {}
 
-Exec_PrepareForLeap::Sugar::Sugar(int rn, int roa, int aa, int ara, std::vector<int> const& RA) :
+Exec_PrepareForLeap::Sugar::Sugar(int rn, int roa, int aa, int ara, std::vector<int> const& RA,
+                                  std::vector<bool> const& isChiralIn) :
   rnum_(rn),
   ring_oxygen_atom_(roa),
   anomeric_atom_(aa),
   ano_ref_atom_(ara),
-  ring_atoms_(RA)
+  ring_atoms_(RA),
+  atomIsChiral_(isChiralIn)
 {}
 
 void Exec_PrepareForLeap::Sugar::PrintInfo(Topology const& topIn) const {
@@ -627,7 +629,7 @@ const
 
 /** Identify sugar oxygen, anomeric and ref carbons, and ring atoms. */
 Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology const& topIn,
-                                                            int& err)
+                                                            Frame const& frameIn, int& err)
 {
   err = 0;
   Residue const& res = topIn.Res(rnum);
@@ -749,7 +751,19 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
   }
   if (debug_ > 0)
     mprintf("\t  Ring oxygen         : %s\n", topIn.ResNameNumAtomNameNum(ring_oxygen_atom).c_str());
-  return Sugar(rnum, ring_oxygen_atom, anomeric_atom, ano_ref_atom, RA);
+  // Set up an AtomMap for this residue to help determine stereocenters
+  AtomMap myMap;
+  myMap.SetDebug(debug_);
+  if (myMap.SetupResidue(topIn, frameIn, rnum)) {
+    mprinterr("Error: Atom map setup failed for sugar %s\n", topIn.TruncResNameOnumId(rnum).c_str());
+    return 1;
+  }
+  myMap.DetermineAtomIDs();
+  std::vector<bool> isChiral;
+  for (int iat = 0; iat != myMap.Natom(); iat++)
+    isChiral.push_back( myMap[iat].IsChiral() );
+
+  return Sugar(rnum, ring_oxygen_atom, anomeric_atom, ano_ref_atom, RA, isChiral);
 }
 
 /** Change PDB atom names in residue to glycam ones. */
@@ -828,6 +842,7 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
     // Error
     return 1;
   }
+  mprintf("DEBUG: c1up= %i\n", (int)(t_c1 > 0));
 
   // Calculate torsion around anomeric reference:
   if (CalcAnomericRefTorsion(t_c5, sugar.AnomericRefAtom(), sugar.RingOxygenAtom(),
@@ -838,6 +853,7 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
   std::string formStr;
   bool c5up = (t_c5 > 0);
   bool c1up = (t_c1 > 0);
+  mprintf("DEBUG: c5up= %i\n", (int)c5up);
   if (c1up == c5up) {
     mprintf("\t  Beta form\n");
     formStr = "B";
@@ -845,14 +861,6 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
     mprintf("\t  Alpha form\n");
     formStr = "A";
   }
-  // Set up an AtomMap for this residue to help determine stereocenters
-  AtomMap myMap;
-  myMap.SetDebug(debug_);
-  if (myMap.SetupResidue(topIn, frameIn, rnum)) {
-    mprinterr("Error: Atom map setup failed for sugar %s\n", topIn.TruncResNameOnumId(rnum).c_str());
-    return 1;
-  }
-  myMap.DetermineAtomIDs();
 
   // Find the rest of the carbons in the chain in order to find the
   // stereocenter with the highest index. Start from final ring carbon.
@@ -869,7 +877,7 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
     if (debug_ > 0) mprintf("\t\t%s", topIn.ResNameNumAtomNameNum(*it).c_str());
     //mprintf("DEBUG: '%s' isChiral= %i\n", topIn.ResNameNumAtomNameNum(*it).c_str(),
     //                                 (int)myMap[*it - topIn.Res(rnum).FirstAtom()].IsChiral());
-    if (myMap[*it - topIn.Res(rnum).FirstAtom()].IsChiral()) {
+    if (sugar.AtomIsChiral(*it - topIn.Res(rnum).FirstAtom())) {
       if (debug_ > 0) mprintf(" Potential stereocenter");
       // TODO Is absolute index the best way to do this?
       if (*it > highest_stereocenter)
@@ -1012,7 +1020,7 @@ int Exec_PrepareForLeap::PrepareSugars(AtomMask& sugarMask, Topology& topIn,
                                           rnum != sugarResNums.end(); ++rnum)
     {
       int err = 0;
-      Sugars.push_back( IdSugarRing(*rnum, topIn, err) );
+      Sugars.push_back( IdSugarRing(*rnum, topIn, frameIn, err) );
       if (err != 0) {
         if (errorsAreFatal_) {
           mprinterr("Error: Problem identifying sugar ring for %s\n",
