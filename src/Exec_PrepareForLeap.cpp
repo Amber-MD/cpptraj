@@ -17,10 +17,12 @@ Exec_PrepareForLeap::Sugar::Sugar(int rn) :
   rnum_(rn),
   ring_oxygen_atom_(-1),
   anomeric_atom_(-1),
-  ano_ref_atom_(-1)
+  ano_ref_atom_(-1),
+  ring_end_atom_(-1),
+  highest_stereocenter_(-1)
 {}
 
-Exec_PrepareForLeap::Sugar::Sugar(int rn, int roa, int aa, int ara, int rea,
+Exec_PrepareForLeap::Sugar::Sugar(int rn, int roa, int aa, int ara, int rea, int hs,
                                   std::vector<int> const& RA,
                                   std::vector<bool> const& isChiralIn) :
   rnum_(rn),
@@ -28,6 +30,7 @@ Exec_PrepareForLeap::Sugar::Sugar(int rn, int roa, int aa, int ara, int rea,
   anomeric_atom_(aa),
   ano_ref_atom_(ara),
   ring_end_atom_(rea),
+  highest_stereocenter_(hs),
   ring_atoms_(RA),
   atomIsChiral_(isChiralIn)
 {}
@@ -743,6 +746,8 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
   // part of a ring. Potential ring start atoms only have 2 bonds,
   // each one to a carbon.
   int ring_oxygen_atom = -1; // e.g. O5
+  // This will hold the index of the highest stereocenter, e.g. C5
+  int highest_stereocenter = -1;
   // This will hold ring atoms, not including the ring oxygen
   std::vector<int> RA;
   for (std::vector<int>::const_iterator ringat = potentialRingStartAtoms.begin();
@@ -827,9 +832,16 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
       Iarray carbon_chain = RA;
       if (FindRemainingChainCarbons(carbon_chain, ring_end_atom, topIn, rnum, IsRingAtom))
         return 1;
+      // Get the index of the highest stereocenter
       mprintf("DEBUG: Complete carbon chain:\n");
       for (Iarray::const_iterator it = carbon_chain.begin(); it != carbon_chain.end(); ++it)
-      mprintf("\t\t%s\n", topIn.ResNameNumAtomNameNum(*it).c_str());
+      {
+        mprintf("\t\t%s\n", topIn.ResNameNumAtomNameNum(*it).c_str());
+        if (atomIsChiral[*it - topIn.Res(rnum).FirstAtom()])
+          highest_stereocenter = *it;
+      }
+      mprintf("DEBUG: Highest stereocenter: %s\n",
+              topIn.ResNameNumAtomNameNum(highest_stereocenter).c_str());
     } // END ring_complete
   }
   if (RA.empty() || ring_oxygen_atom == -1) {
@@ -839,7 +851,8 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
   }
   if (debug_ > 0)
     mprintf("\t  Ring oxygen         : %s\n", topIn.ResNameNumAtomNameNum(ring_oxygen_atom).c_str());
-  return Sugar(rnum, ring_oxygen_atom, anomeric_atom, ano_ref_atom, ring_end_atom, RA, atomIsChiral);
+  return Sugar(rnum, ring_oxygen_atom, anomeric_atom, ano_ref_atom, ring_end_atom, 
+               highest_stereocenter, RA, atomIsChiral);
 }
 
 /** Change PDB atom names in residue to glycam ones. */
@@ -940,8 +953,8 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
 
   // Find the rest of the carbons in the chain in order to find the
   // stereocenter with the highest index. Start from final ring carbon.
-  int highest_stereocenter = -1;
-  std::vector<int> remainingChainCarbons;
+  int highest_stereocenter = sugar.HighestStereocenter();
+/*  std::vector<int> remainingChainCarbons;
   if (FindRemainingChainCarbons(remainingChainCarbons, sugar.RingEndAtom(),
                                 topIn, rnum, IsRingAtom))
     return 1;
@@ -959,7 +972,7 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
       if (*it > highest_stereocenter)
         highest_stereocenter = *it;
     }
-/*    // Count number of bonds to heavy atoms.
+*    // Count number of bonds to heavy atoms.
     Atom const& currentAtom = topIn[*it];
     int n_heavyat_bonds = 0;
     for (Atom::bond_iterator bat = currentAtom.bondbegin(); bat != currentAtom.bondend(); ++bat)
@@ -971,13 +984,14 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
       if (debug_ > 0) mprintf(" Potential stereocenter");
       if (*it > highest_stereocenter) // Is absolute index the best way to do this?
         highest_stereocenter = *it;
-    }*/
+    }*
     if (debug_ > 0) mprintf("\n");
   } // END loop over remaining chain carbons
   if (highest_stereocenter == -1) {
     // This means that ano_ref_atom is the highest stereocenter.
     highest_stereocenter = sugar.AnomericRefAtom();
   }
+*/
   mprintf("\t  Highest stereocenter: %s\n", topIn.ResNameNumAtomNameNum(highest_stereocenter).c_str());
   // Determine D/L
   bool isDform;
