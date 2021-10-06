@@ -1594,6 +1594,50 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   else
     mprintf("\tWill attempt to prepare sugars.\n");
 
+  // Load PDB residue names recognized by amber
+  if (LoadPdbResNames( argIn.GetStringKey("resnamefile" ) )) {
+    mprinterr("Error: PDB residue name file load failed.\n");
+    return CpptrajState::ERR;
+  }
+  mprintf("\t%zu PDB residue names recognized by Amber FFs.\n", pdb_res_names_.size());
+  // DEBUG
+  if (debug_ > 0) {
+    mprintf("\tPDB residue names recognized by Amber FFs:\n");
+    for (SetType::const_iterator it = pdb_res_names_.begin(); it != pdb_res_names_.end(); ++it)
+      mprintf("\t  %s\n", *(*it));
+  }
+
+  // Load PDB to glycam residue name map
+  if (prepare_sugars) {
+    if (LoadGlycamPdbResMap( argIn.GetStringKey("resmapfile" ) )) {
+      mprinterr("Error: PDB to glycam name map load failed.\n");
+      return CpptrajState::ERR;
+    }
+    mprintf("\t%zu entries in PDB to glycam name map.\n", pdb_to_glycam_.size());
+    if (debug_ > 0) {
+      // DEBUG - print residue name map
+      mprintf("\tResidue name map:\n");
+      for (MapType::const_iterator mit = pdb_to_glycam_.begin(); mit != pdb_to_glycam_.end(); ++mit)
+        mprintf("\t  %4s -> %c\n", *(mit->first), mit->second);
+      // DEBUG - print atom name maps
+      mprintf("\tRes char to atom map index map:\n");
+      for (ResIdxMapType::const_iterator mit = glycam_res_idx_map_.begin(); mit != glycam_res_idx_map_.end(); ++mit)
+        mprintf("\t  %c -> %i\n", mit->first, mit->second);
+      mprintf("\tAtom name maps:\n");
+      for (std::vector<NameMapType>::const_iterator it = pdb_glycam_name_maps_.begin(); it != pdb_glycam_name_maps_.end(); ++it)
+      {
+        mprintf("\t  %li)", it - pdb_glycam_name_maps_.begin());
+        for (NameMapType::const_iterator mit = it->begin(); mit != it->end(); ++mit)
+          mprintf(" %s:%s", *(mit->first), *(mit->second));
+        mprintf("\n");
+      }
+      // DEBUG - print linkage res map
+      mprintf("\tLinkage res name map:\n");
+      for (NameMapType::const_iterator mit = pdb_glycam_linkageRes_map_.begin(); mit != pdb_glycam_linkageRes_map_.end(); ++mit)
+        mprintf("\t  %s -> %s\n", *(mit->first), *(mit->second));
+    }
+  }
+
   // Deal with any coordinate modifications
   bool remove_water     = argIn.hasKey("nowat");
   std::string waterMask = argIn.GetStringKey("watername", ":" + solventResName_);
@@ -1675,50 +1719,6 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 
   // Each residue starts out unknown.
   resStat_.assign( topIn.Nres(), UNKNOWN );
-
-  // Load PDB residue names recognized by amber
-  if (LoadPdbResNames( argIn.GetStringKey("resnamefile" ) )) {
-    mprinterr("Error: PDB residue name file load failed.\n");
-    return CpptrajState::ERR;
-  }
-  mprintf("\t%zu PDB residue names recognized by Amber FFs.\n", pdb_res_names_.size());
-  // DEBUG
-  if (debug_ > 0) {
-    mprintf("\tPDB residue names recognized by Amber FFs:\n");
-    for (SetType::const_iterator it = pdb_res_names_.begin(); it != pdb_res_names_.end(); ++it)
-      mprintf("\t  %s\n", *(*it));
-  }
-
-  // Load PDB to glycam residue name map
-  if (prepare_sugars) {
-    if (LoadGlycamPdbResMap( argIn.GetStringKey("resmapfile" ) )) {
-      mprinterr("Error: PDB to glycam name map load failed.\n");
-      return CpptrajState::ERR;
-    }
-    mprintf("\t%zu entries in PDB to glycam name map.\n", pdb_to_glycam_.size());
-    if (debug_ > 0) {
-      // DEBUG - print residue name map
-      mprintf("\tResidue name map:\n");
-      for (MapType::const_iterator mit = pdb_to_glycam_.begin(); mit != pdb_to_glycam_.end(); ++mit)
-        mprintf("\t  %4s -> %c\n", *(mit->first), mit->second);
-      // DEBUG - print atom name maps
-      mprintf("\tRes char to atom map index map:\n");
-      for (ResIdxMapType::const_iterator mit = glycam_res_idx_map_.begin(); mit != glycam_res_idx_map_.end(); ++mit)
-        mprintf("\t  %c -> %i\n", mit->first, mit->second);
-      mprintf("\tAtom name maps:\n");
-      for (std::vector<NameMapType>::const_iterator it = pdb_glycam_name_maps_.begin(); it != pdb_glycam_name_maps_.end(); ++it)
-      {
-        mprintf("\t  %li)", it - pdb_glycam_name_maps_.begin());
-        for (NameMapType::const_iterator mit = it->begin(); mit != it->end(); ++mit)
-          mprintf(" %s:%s", *(mit->first), *(mit->second));
-        mprintf("\n");
-      }
-      // DEBUG - print linkage res map
-      mprintf("\tLinkage res name map:\n");
-      for (NameMapType::const_iterator mit = pdb_glycam_linkageRes_map_.begin(); mit != pdb_glycam_linkageRes_map_.end(); ++mit)
-        mprintf("\t  %s -> %s\n", *(mit->first), *(mit->second));
-    }
-  }
 
   // Get sugar mask or default sugar mask
   AtomMask sugarMask;
