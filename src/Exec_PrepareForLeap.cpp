@@ -728,6 +728,8 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
             (int)atomIsChiral.back());
   }
 
+  // This will indicate ring direction
+  int ring_direction = 0;
   // Ring end atom is the last atom in the ring
   int ring_end_atom = -1;
   // The anomeric carbon is the carbon that was part of the carbonyl group
@@ -764,49 +766,40 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
       c_beg = topIn[*ringat].Bond(1);
       c_end = topIn[*ringat].Bond(0);
     }
-    FollowBonds(c_beg, topIn, 0, ring_atoms,
-                c_end, Visited, ring_complete);
+    // Try to ascertain which carbon might be the anomeric carbon (i.e. the
+    // carbon that originally started the chain). Tie goes to lower index.
+    int c_beg_bonds_to_C = 0;
+    for (Atom::bond_iterator bat = topIn[c_beg].bondbegin(); bat != topIn[c_beg].bondend(); ++bat)
+      if (topIn[*bat].Element() == Atom::CARBON)
+        c_beg_bonds_to_C++;
+    int c_end_bonds_to_C = 0;
+    for (Atom::bond_iterator bat = topIn[c_end].bondbegin(); bat != topIn[c_end].bondend(); ++bat)
+      if (topIn[*bat].Element() == Atom::CARBON)
+        c_end_bonds_to_C++;
+    if (debug_ > 0)
+      mprintf("(%s bonds to C= %i, %s bonds to C = %i)", // DEBUG
+              topIn.ResNameNumAtomNameNum(c_beg).c_str(), c_beg_bonds_to_C,
+              topIn.ResNameNumAtomNameNum(c_end).c_str(), c_end_bonds_to_C);
+    if (c_beg_bonds_to_C <= c_end_bonds_to_C) {
+      anomeric_atom = c_beg;
+      ring_end_atom = c_end;
+      ring_direction = 1;
+    } else {
+      anomeric_atom = c_end;
+      ring_end_atom = c_beg;
+      ring_direction = -1;
+    }
+    mprintf("DEBUG: Potential Ring direction= %i\n", ring_direction);
+
+    FollowBonds(anomeric_atom, topIn, 0, ring_atoms,
+                ring_end_atom, Visited, ring_complete);
     if (debug_ > 0)
       mprintf("DEBUG: Potential ring start atom %s, Ring complete = %i",
               topIn.ResNameNumAtomNameNum(*ringat).c_str(), (int)ring_complete);
     // TODO handle the case where multiple potential ring start atoms exist
     if (ring_complete) {
       ring_oxygen_atom = *ringat;
-      // Try to ascertain which carbon might be the anomeric carbon (i.e. the
-      // carbon that originally started the chain). Tie goes to lower index.
-      int c_beg_bonds_to_C = 0;
-      for (Atom::bond_iterator bat = topIn[c_beg].bondbegin(); bat != topIn[c_beg].bondend(); ++bat)
-        if (topIn[*bat].Element() == Atom::CARBON)
-          c_beg_bonds_to_C++;
-      int c_end_bonds_to_C = 0;
-      for (Atom::bond_iterator bat = topIn[c_end].bondbegin(); bat != topIn[c_end].bondend(); ++bat)
-        if (topIn[*bat].Element() == Atom::CARBON)
-          c_end_bonds_to_C++;
-      if (debug_ > 0)
-        mprintf("(%s bonds to C= %i, %s bonds to C = %i)", // DEBUG
-                topIn.ResNameNumAtomNameNum(c_beg).c_str(), c_beg_bonds_to_C,
-                topIn.ResNameNumAtomNameNum(c_end).c_str(), c_end_bonds_to_C);
-      if (c_beg_bonds_to_C <= c_end_bonds_to_C) {
-        anomeric_atom = c_beg;
-        ring_end_atom = c_end;
-        // Find anomeric reference atom. Start at c_end and work down to c_beg
-        for (int arat = c_end; arat != c_beg; arat--)
-          if (atomIsChiral[arat - topIn.Res(rnum).FirstAtom()]) {
-            ano_ref_atom = arat;
-            break;
-          }
-        //ano_ref_atom  = c_end;
-      } else {
-        anomeric_atom = c_end;
-        ring_end_atom = c_beg;
-        // Find anomeric reference atom. Start at c_beg and work up to c_end
-        for (int arat = c_beg; arat != c_end; arat++)
-          if (atomIsChiral[arat - topIn.Res(rnum).FirstAtom()]) {
-            ano_ref_atom = arat;
-            break;
-          }
-        //ano_ref_atom = c_beg;
-      }
+
       // Place the ring atoms into an array without the terminating -1
       RA.clear();
       if (debug_ > 0) mprintf(" :"); // DEBUG
@@ -817,7 +810,27 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
         RA.push_back( *it );
       }
       if (debug_ > 0) mprintf("\n"); // DEBUG
-    }
+      // Find anomeric reference atom. Start at ring end and work down to anomeric atom
+      for (Iarray::const_iterator arat = RA.end() - 1; arat != RA.begin(); --arat)
+        if (atomIsChiral[*arat - topIn.Res(rnum).FirstAtom()]) {
+          ano_ref_atom = *arat;
+          break;
+        }
+
+      // Create an array with all ring atoms set to true
+      std::vector<bool> IsRingAtom;
+      IsRingAtom.assign( topIn.Natom(), false );
+      IsRingAtom[ring_oxygen_atom] = true;
+      for (Iarray::const_iterator it = RA.begin(); it != RA.end(); ++it)
+        IsRingAtom[ *it ] = true;
+      // Get complete chain
+      Iarray carbon_chain = RA;
+      if (FindRemainingChainCarbons(carbon_chain, ring_end_atom, topIn, rnum, IsRingAtom))
+        return 1;
+      mprintf("DEBUG: Complete carbon chain:\n");
+      for (Iarray::const_iterator it = carbon_chain.begin(); it != carbon_chain.end(); ++it)
+      mprintf("\t\t%s\n", topIn.ResNameNumAtomNameNum(*it).c_str());
+    } // END ring_complete
   }
   if (RA.empty() || ring_oxygen_atom == -1) {
     mprinterr("Error: Sugar ring atoms could not be identified.\n");
