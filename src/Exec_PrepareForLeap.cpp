@@ -823,7 +823,7 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
   }
   resChar = pdb_glycam->second;
 
-  mprintf("\tSugar %s %i glycam name: %c\n", *res.Name(), rnum+1, resChar);
+  mprintf("\tSugar %s glycam name: %c\n", topIn.TruncResNameOnumId(rnum).c_str(), resChar);
   if (debug_ > 0)
     mprintf("DEBUG:\tOriginal #= %i chain %c\n", res.OriginalResNum(), res.ChainId());
 
