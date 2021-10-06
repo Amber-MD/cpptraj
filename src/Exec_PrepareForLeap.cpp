@@ -783,11 +783,24 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
                 topIn.ResNameNumAtomNameNum(c_end).c_str(), c_end_bonds_to_C);
       if (c_beg_bonds_to_C <= c_end_bonds_to_C) {
         anomeric_atom = c_beg;
-        ano_ref_atom  = c_end;
+        // Find anomeric reference atom. Start at c_end and work down to c_beg
+        for (int arat = c_end; arat != c_beg; arat--)
+          if (atomIsChiral[arat - topIn.Res(rnum).FirstAtom()]) {
+            ano_ref_atom = arat;
+            break;
+          }
+        //ano_ref_atom  = c_end;
       } else {
         anomeric_atom = c_end;
-        ano_ref_atom = c_beg;
+        // Find anomeric reference atom. Start at c_beg and work up to c_end
+        for (int arat = c_beg; arat != c_end; arat++)
+          if (atomIsChiral[arat - topIn.Res(rnum).FirstAtom()]) {
+            ano_ref_atom = arat;
+            break;
+          }
+        //ano_ref_atom = c_beg;
       }
+      // Place the ring atoms into an array without the terminating -1
       RA.clear();
       if (debug_ > 0) mprintf(" :"); // DEBUG
       for (std::vector<int>::const_iterator it = ring_atoms.begin(); it != ring_atoms.end(); ++it)
