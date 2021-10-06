@@ -1289,6 +1289,17 @@ int Exec_PrepareForLeap::SearchForDisulfides(double disulfidecut, std::string co
   return 0;
 }
 
+/** \return True if residue name is in pdb_to_glycam_ or pdb_res_names_. */
+bool Exec_PrepareForLeap::IsRecognizedPdbRes(NameType const& rname) const {
+  MapType::const_iterator glycamIt = pdb_to_glycam_.find( rname );
+  if (glycamIt != pdb_to_glycam_.end())
+    return true;
+  SetType::const_iterator amberIt = pdb_res_names_.find( rname );
+  if (amberIt != pdb_res_names_.end())
+    return true;
+  return false;
+}
+
 /** Modify coords according to user wishes. */
 int Exec_PrepareForLeap::ModifyCoords( Topology& topIn, Frame& frameIn,
                                        bool remove_water,

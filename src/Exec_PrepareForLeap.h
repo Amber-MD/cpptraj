@@ -44,6 +44,9 @@ class Exec_PrepareForLeap : public Exec {
     int FindTerByBonds(Topology&, CharMask const&) const;
     int SearchForDisulfides(double, std::string const&, std::string const&, bool,
                             Topology&, Frame const&, CpptrajFile*);
+    /// \return true if residue name is recognized
+    bool IsRecognizedPdbRes(NameType const&) const;
+    /// Remove specified atoms
     int ModifyCoords(Topology&, Frame&, bool, char, std::string const&, std::string const&) const;
     int RemoveHydrogens(Topology&, Frame&) const;
     int DetermineHisProt(std::vector<NameType>&, std::vector<int>&, Topology const&,
