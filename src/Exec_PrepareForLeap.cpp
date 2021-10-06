@@ -1289,7 +1289,9 @@ int Exec_PrepareForLeap::SearchForDisulfides(double disulfidecut, std::string co
   return 0;
 }
 
-/** \return True if residue name is in pdb_to_glycam_ or pdb_res_names_. */
+/** \return True if residue name is in pdb_to_glycam_ or pdb_res_names_,
+  *               or is solvent.
+  */
 bool Exec_PrepareForLeap::IsRecognizedPdbRes(NameType const& rname) const {
   MapType::const_iterator glycamIt = pdb_to_glycam_.find( rname );
   if (glycamIt != pdb_to_glycam_.end())
@@ -1297,7 +1299,69 @@ bool Exec_PrepareForLeap::IsRecognizedPdbRes(NameType const& rname) const {
   SetType::const_iterator amberIt = pdb_res_names_.find( rname );
   if (amberIt != pdb_res_names_.end())
     return true;
+  if (rname == solventResName_)
+    return true;
   return false;
+}
+
+/** \return Array of residue numbers with unrecognized PDB res names. */
+Exec_PrepareForLeap::Iarray Exec_PrepareForLeap::GetUnrecognizedPdbResidues(Topology const& topIn)
+const
+{
+  Iarray rnums;
+  for (int ires = 0; ires != topIn.Nres(); ires++)
+  {
+    if (!IsRecognizedPdbRes( topIn.Res(ires).Name() ))
+    {
+      mprintf("\t%s is unrecognized.\n", topIn.TruncResNameOnumId(ires).c_str());
+      rnums.push_back( ires );
+    }
+  }
+  return rnums;
+}
+
+/** Given an array of residue numbers with unrecognized PDB res names,
+  * generate an array with true for unrecognized residues that are
+  * either isolated or only bound to other unrecognized residues.
+  */
+Exec_PrepareForLeap::Iarray
+  Exec_PrepareForLeap::GetIsolatedUnrecognizedResidues(Topology const& topIn,
+                                                       Iarray const& rnums)
+const
+{
+  typedef std::vector<bool> Barray;
+  Barray isRecognized(topIn.Nres(), true);
+  for (Iarray::const_iterator it = rnums.begin(); it != rnums.end(); ++it)
+    isRecognized[ *it ] = false;
+
+  Iarray isolated;
+  for (Iarray::const_iterator it = rnums.begin(); it != rnums.end(); ++it)
+  {
+    bool isIsolated = true;
+    Residue const& res = topIn.Res( *it );
+    for (int at = res.FirstAtom(); at != res.LastAtom(); ++at)
+    {
+      for (Atom::bond_iterator bat = topIn[at].bondbegin(); bat != topIn[at].bondend(); ++bat)
+      {
+        if (topIn[*bat].ResNum() != *it)
+        {
+          // This bonded atom is in another residue. Is that residue recognized?
+          if ( isRecognized[ topIn[*bat].ResNum() ] ) {
+            // Residue *it is bonded to a recognized residue. Not isolated.
+            isIsolated = false;
+            break;
+          }
+        }
+      } // END loop over residue atoms bonded atoms
+      if (!isIsolated) break;
+    } // END loop over residue atoms
+    if (isIsolated) {
+      mprintf("\t%s is isolated and unrecognized.\n", topIn.TruncResNameOnumId(*it).c_str());
+      isolated.push_back( *it );
+    }
+  } // END loop over unrecognized residues
+
+  return isolated;
 }
 
 /** Modify coords according to user wishes. */
@@ -1648,6 +1712,11 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
         mprintf("\t  %s -> %s\n", *(mit->first), *(mit->second));
     }
   }
+
+  /// Get array of residues with unrecognized PDB names.
+  Iarray unrecognizedPdbRes = GetUnrecognizedPdbResidues( topIn );
+  /// Get array of unrecognized residues that are also isolated.
+  Iarray isolatedPdbRes = GetIsolatedUnrecognizedResidues( topIn, unrecognizedPdbRes );
 
   // Deal with any coordinate modifications
   bool remove_water     = argIn.hasKey("nowat");

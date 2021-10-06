@@ -18,6 +18,8 @@ class Exec_PrepareForLeap : public Exec {
     /// Hold indices for sugar
     class Sugar;
 
+    typedef std::vector<int> Iarray;
+
     inline void ChangeResName(Residue&, NameType const&) const;
     inline void ChangeAtomName(Atom&, NameType const&) const;
 
@@ -46,6 +48,10 @@ class Exec_PrepareForLeap : public Exec {
                             Topology&, Frame const&, CpptrajFile*);
     /// \return true if residue name is recognized
     bool IsRecognizedPdbRes(NameType const&) const;
+    /// \return Array of residue nums with unrecognized names
+    Iarray GetUnrecognizedPdbResidues(Topology const&) const;
+    /// \return Array indices of isolated unrecognized residues
+    Iarray GetIsolatedUnrecognizedResidues(Topology const&, Iarray const&) const;
     /// Remove specified atoms
     int ModifyCoords(Topology&, Frame&, bool, char, std::string const&, std::string const&) const;
     int RemoveHydrogens(Topology&, Frame&) const;
