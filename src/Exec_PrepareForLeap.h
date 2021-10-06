@@ -95,12 +95,13 @@ class Exec_PrepareForLeap : public Exec {
 class Exec_PrepareForLeap::Sugar {
   public:
     Sugar(int);
-    Sugar(int,int,int,int,std::vector<int> const&,std::vector<bool> const&);
+    Sugar(int,int,int,int,int,std::vector<int> const&,std::vector<bool> const&);
 
     int ResNum()          const { return rnum_; }
     int RingOxygenAtom()  const { return ring_oxygen_atom_; }
     int AnomericAtom()    const { return anomeric_atom_; }
     int AnomericRefAtom() const { return ano_ref_atom_; }
+    int RingEndAtom()     const { return ring_end_atom_; }
 
     typedef std::vector<int>::const_iterator const_iterator;
     const_iterator ringbegin() const { return ring_atoms_.begin(); }
@@ -115,8 +116,9 @@ class Exec_PrepareForLeap::Sugar {
   private:
     int rnum_;             ///< Residue index
     int ring_oxygen_atom_; ///< Index of the ring oxygen atom
-    int anomeric_atom_;    ///< Index of the anomeric C atom
+    int anomeric_atom_;    ///< Index of the anomeric C atom (ring start)
     int ano_ref_atom_;     ///< Index of the anomeric reference C atom
+    int ring_end_atom_;    ///< Index of the ring end atom
     std::vector<int> ring_atoms_; ///< Index of all non-oxygen ring atoms
     std::vector<bool> atomIsChiral_; ///< For each sugar residue atom, whether it is chiral or not.
 };

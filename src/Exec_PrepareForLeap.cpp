@@ -20,12 +20,14 @@ Exec_PrepareForLeap::Sugar::Sugar(int rn) :
   ano_ref_atom_(-1)
 {}
 
-Exec_PrepareForLeap::Sugar::Sugar(int rn, int roa, int aa, int ara, std::vector<int> const& RA,
+Exec_PrepareForLeap::Sugar::Sugar(int rn, int roa, int aa, int ara, int rea,
+                                  std::vector<int> const& RA,
                                   std::vector<bool> const& isChiralIn) :
   rnum_(rn),
   ring_oxygen_atom_(roa),
   anomeric_atom_(aa),
   ano_ref_atom_(ara),
+  ring_end_atom_(rea),
   ring_atoms_(RA),
   atomIsChiral_(isChiralIn)
 {}
@@ -38,6 +40,7 @@ void Exec_PrepareForLeap::Sugar::PrintInfo(Topology const& topIn) const {
     mprintf("\t\tRing O           : %s\n", topIn.TruncAtomNameNum(ring_oxygen_atom_).c_str());
     mprintf("\t\tAnomeric C       : %s\n", topIn.TruncAtomNameNum(anomeric_atom_).c_str());
     mprintf("\t\tAnomeric ref. C  : %s\n", topIn.TruncAtomNameNum(ano_ref_atom_).c_str());
+    mprintf("\t\tRing end atom    : %s\n", topIn.TruncAtomNameNum(ring_end_atom_).c_str());
     mprintf("\t\tNum ring atoms   : %u\n", NumRingAtoms());
     mprintf("\t\tNon-O Ring atoms :");
     for (std::vector<int>::const_iterator it = ring_atoms_.begin(); it != ring_atoms_.end(); ++it)
@@ -725,6 +728,8 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
             (int)atomIsChiral.back());
   }
 
+  // Ring end atom is the last atom in the ring
+  int ring_end_atom = -1;
   // The anomeric carbon is the carbon that was part of the carbonyl group
   // in the straight chain. It is therefore typically the carbon with fewer
   // bonds to other carbons.
@@ -783,6 +788,7 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
                 topIn.ResNameNumAtomNameNum(c_end).c_str(), c_end_bonds_to_C);
       if (c_beg_bonds_to_C <= c_end_bonds_to_C) {
         anomeric_atom = c_beg;
+        ring_end_atom = c_end;
         // Find anomeric reference atom. Start at c_end and work down to c_beg
         for (int arat = c_end; arat != c_beg; arat--)
           if (atomIsChiral[arat - topIn.Res(rnum).FirstAtom()]) {
@@ -792,6 +798,7 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
         //ano_ref_atom  = c_end;
       } else {
         anomeric_atom = c_end;
+        ring_end_atom = c_beg;
         // Find anomeric reference atom. Start at c_beg and work up to c_end
         for (int arat = c_beg; arat != c_end; arat++)
           if (atomIsChiral[arat - topIn.Res(rnum).FirstAtom()]) {
@@ -819,7 +826,7 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
   }
   if (debug_ > 0)
     mprintf("\t  Ring oxygen         : %s\n", topIn.ResNameNumAtomNameNum(ring_oxygen_atom).c_str());
-  return Sugar(rnum, ring_oxygen_atom, anomeric_atom, ano_ref_atom, RA, atomIsChiral);
+  return Sugar(rnum, ring_oxygen_atom, anomeric_atom, ano_ref_atom, ring_end_atom, RA, atomIsChiral);
 }
 
 /** Change PDB atom names in residue to glycam ones. */
@@ -922,7 +929,7 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
   // stereocenter with the highest index. Start from final ring carbon.
   int highest_stereocenter = -1;
   std::vector<int> remainingChainCarbons;
-  if (FindRemainingChainCarbons(remainingChainCarbons, sugar.AnomericRefAtom(),
+  if (FindRemainingChainCarbons(remainingChainCarbons, sugar.RingEndAtom(),
                                 topIn, rnum, IsRingAtom))
     return 1;
   if (debug_ > 0) mprintf("\t  Remaining chain carbons:\n");
