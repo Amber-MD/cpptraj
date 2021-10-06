@@ -670,6 +670,61 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
     return Sugar(rnum);
   }
 
+  // Set up an AtomMap for this residue to help determine stereocenters
+  AtomMap myMap;
+  myMap.SetDebug(10);
+  if (myMap.SetupResidue(topIn, frameIn, rnum)) {
+    mprinterr("Error: Atom map setup failed for sugar %s\n", topIn.TruncResNameOnumId(rnum).c_str());
+    err = 1;
+    return Sugar(rnum);
+  }
+  myMap.DetermineAtomIDs();
+  std::vector<bool> atomIsChiral;
+  atomIsChiral.reserve( myMap.Natom() );
+  // Since we cant be certain there are hydrogens, cannot rely
+  // on the internal mapping. Make a chiral center a carbon
+  // with at least 3 bonds, all must be unique.
+  int resat = topIn.Res(rnum).FirstAtom();
+  for (int iat = 0; iat != myMap.Natom(); iat++, resat++)
+  {
+    bool chiral = false;
+    if (topIn[resat].Element() == Atom::CARBON && topIn[resat].Nbonds() > 2) {
+      mprintf("DEBUG: Atom '%s' potential chiral\n", topIn.TruncResAtomNameNum(resat).c_str());
+      chiral = true;
+      for (Atom::bond_iterator bat1 = topIn[resat].bondbegin();
+                               bat1 != topIn[resat].bondend(); ++bat1)
+      {
+        std::string unique1;
+        if (*bat1 >= topIn.Res(rnum).FirstAtom() && *bat1 < topIn.Res(rnum).LastAtom())
+           unique1 = myMap[*bat1 - topIn.Res(rnum).FirstAtom()].Unique();
+        else
+           // Always count bonds to external as unique
+           unique1 = "unique1";
+        for (Atom::bond_iterator bat2 = bat1 + 1; bat2 != topIn[resat].bondend(); ++bat2)
+        {
+          std::string unique2;
+          if (*bat2 >= topIn.Res(rnum).FirstAtom() && *bat2 < topIn.Res(rnum).LastAtom())
+            unique2 = myMap[*bat2 - topIn.Res(rnum).FirstAtom()].Unique();
+          else
+            // Always count bonds to external as unique
+            unique2 = "unique2";
+          if (unique1 == unique2) {
+            // At least two of the atoms bonded to this atom look the same. Not chiral.
+            mprintf("DEBUG: unique strings match '%s' '%s'\n", unique1.c_str(), unique2.c_str());
+            chiral = false;
+            break;
+          }
+        } // END inner loop over bonded atoms
+        if (!chiral) break;
+      } // END outer loop over bonded atoms
+    } // END atom is carbon with > 2 bonds
+    
+    atomIsChiral.push_back( chiral );
+    mprintf("DEBUG: Atom '%s' isChiral= %i\n",
+            topIn.TruncResAtomNameNum(resat).c_str(),
+            (int)atomIsChiral.back());
+  }
+
   // The anomeric carbon is the carbon that was part of the carbonyl group
   // in the straight chain. It is therefore typically the carbon with fewer
   // bonds to other carbons.
@@ -751,19 +806,7 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
   }
   if (debug_ > 0)
     mprintf("\t  Ring oxygen         : %s\n", topIn.ResNameNumAtomNameNum(ring_oxygen_atom).c_str());
-  // Set up an AtomMap for this residue to help determine stereocenters
-  AtomMap myMap;
-  myMap.SetDebug(debug_);
-  if (myMap.SetupResidue(topIn, frameIn, rnum)) {
-    mprinterr("Error: Atom map setup failed for sugar %s\n", topIn.TruncResNameOnumId(rnum).c_str());
-    return 1;
-  }
-  myMap.DetermineAtomIDs();
-  std::vector<bool> isChiral;
-  for (int iat = 0; iat != myMap.Natom(); iat++)
-    isChiral.push_back( myMap[iat].IsChiral() );
-
-  return Sugar(rnum, ring_oxygen_atom, anomeric_atom, ano_ref_atom, RA, isChiral);
+  return Sugar(rnum, ring_oxygen_atom, anomeric_atom, ano_ref_atom, RA, atomIsChiral);
 }
 
 /** Change PDB atom names in residue to glycam ones. */
