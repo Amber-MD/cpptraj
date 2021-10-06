@@ -7,6 +7,7 @@
 #include "CpptrajFile.h"
 #include "Trajout_Single.h"
 #include "DataSet_Coords_CRD.h"
+#include "AtomMap.h"
 #include <stack>
 #include <cctype> // tolower
 #include <algorithm> // sort
@@ -56,33 +57,6 @@ Exec_PrepareForLeap::Exec_PrepareForLeap() : Exec(COORDS),
   debug_(0)
 {
   SetHidden(true);
-}
-
-// Exec_PrepareForLeap::Help()
-void Exec_PrepareForLeap::Help() const
-{
-  mprintf("\tcrdset <coords set> [frame <#>] name <out coords set> [pdbout <pdbfile>]\n"
-          "\t[leapunitname <unit>] [out <leap input file> [skiperrors]\n"
-          "\t[nowat [watername <watername>] [noh] [keepaltloc <alt loc ID>]\n"
-          "\t[stripmask <stripmask>] [solventresname <solventresname>]\n"
-          "\t[{nohisdetect |\n"
-          "\t  [nd1 <nd1>] [ne2 <ne2] [hisname <his>] [hiename <hie>]\n"
-          "\t  [hidname <hid>] [hipname <hip]}]\n"
-          "\t[{nodisulfides |\n"
-          "\t  existingdisulfides |\n"
-          "\t  [cysmask <cysmask>] [disulfidecut <cut>] [newcysname <name>]}]\n"
-          "\t[{nosugars | sugarmask <sugarmask> [noc1search]}] [resmapfile <file>]\n"
-          "\t[molmask <molmask> ...] [determinemolmask <mask>]\n"
-          "  Prepare the structure in the given coords set for easier processing\n"
-          "  with the LEaP program from AmberTools. Any existing/potential\n"
-          "  disulfide bonds will be identified and the residue names changed\n"
-          "  to <name> (CYX by default), and if specified any sugars\n"
-          "  recognized in the <sugarmask> region will be identified and have\n"
-          "  their names changed to Glycam names. Disulfides and sugars will\n"
-          "  have any inter-residue bonds removed, and the appropriate LEaP\n"
-          "  input to add the bonds back once the structure has been loaded\n"
-          "  into LEaP will be written to <leap input file>.\n"
-         );
 }
 
 /// Used to change residue name to nameIn
@@ -871,6 +845,14 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
     mprintf("\t  Alpha form\n");
     formStr = "A";
   }
+  // Set up an AtomMap for this residue to help determine stereocenters
+  AtomMap myMap;
+  myMap.SetDebug(debug_);
+  if (myMap.SetupResidue(topIn, frameIn, rnum)) {
+    mprinterr("Error: Atom map setup failed for sugar %s\n", topIn.TruncResNameOnumId(rnum).c_str());
+    return 1;
+  }
+  myMap.DetermineAtomIDs();
 
   // Find the rest of the carbons in the chain in order to find the
   // stereocenter with the highest index. Start from final ring carbon.
@@ -885,7 +867,15 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
                                       ++it)
   {
     if (debug_ > 0) mprintf("\t\t%s", topIn.ResNameNumAtomNameNum(*it).c_str());
-    // Count number of bonds to heavy atoms.
+    //mprintf("DEBUG: '%s' isChiral= %i\n", topIn.ResNameNumAtomNameNum(*it).c_str(),
+    //                                 (int)myMap[*it - topIn.Res(rnum).FirstAtom()].IsChiral());
+    if (myMap[*it - topIn.Res(rnum).FirstAtom()].IsChiral()) {
+      if (debug_ > 0) mprintf(" Potential stereocenter");
+      // TODO Is absolute index the best way to do this?
+      if (*it > highest_stereocenter)
+        highest_stereocenter = *it;
+    }
+/*    // Count number of bonds to heavy atoms.
     Atom const& currentAtom = topIn[*it];
     int n_heavyat_bonds = 0;
     for (Atom::bond_iterator bat = currentAtom.bondbegin(); bat != currentAtom.bondend(); ++bat)
@@ -897,9 +887,9 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
       if (debug_ > 0) mprintf(" Potential stereocenter");
       if (*it > highest_stereocenter) // Is absolute index the best way to do this?
         highest_stereocenter = *it;
-    }
+    }*/
     if (debug_ > 0) mprintf("\n");
-  }
+  } // END loop over remaining chain carbons
   if (highest_stereocenter == -1) {
     // This means that ano_ref_atom is the highest stereocenter.
     highest_stereocenter = sugar.AnomericRefAtom();
@@ -1368,11 +1358,21 @@ const
 int Exec_PrepareForLeap::ModifyCoords( Topology& topIn, Frame& frameIn,
                                        bool remove_water,
                                        char altLocChar, std::string const& stripMask,
-                                       std::string const& waterMask )
+                                       std::string const& waterMask,
+                                       Iarray const& resnumsToRemove )
 const
 {
   // Create a mask denoting which atoms will be kept.
   std::vector<bool> atomsToKeep( topIn.Natom(), true );
+  // Previously-determined array of residues to remove
+  for (Iarray::const_iterator rnum = resnumsToRemove.begin();
+                              rnum != resnumsToRemove.end(); ++rnum)
+  {
+    Residue const& res = topIn.Res( *rnum );
+    mprintf("\tRemoving %s\n", topIn.TruncResNameOnumId( *rnum ).c_str());
+    for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
+      atomsToKeep[at] = false;
+  }
   // User-specified strip mask
   if (!stripMask.empty()) {
     AtomMask mask;
@@ -1610,6 +1610,33 @@ const
   return 0;
 }
 
+// Exec_PrepareForLeap::Help()
+void Exec_PrepareForLeap::Help() const
+{
+  mprintf("\tcrdset <coords set> [frame <#>] name <out coords set> [pdbout <pdbfile>]\n"
+          "\t[leapunitname <unit>] [out <leap input file> [skiperrors]\n"
+          "\t[nowat [watername <watername>] [noh] [keepaltloc <alt loc ID>]\n"
+          "\t[stripmask <stripmask>] [solventresname <solventresname>]\n"
+          "\t[{nohisdetect |\n"
+          "\t  [nd1 <nd1>] [ne2 <ne2] [hisname <his>] [hiename <hie>]\n"
+          "\t  [hidname <hid>] [hipname <hip]}]\n"
+          "\t[{nodisulfides |\n"
+          "\t  existingdisulfides |\n"
+          "\t  [cysmask <cysmask>] [disulfidecut <cut>] [newcysname <name>]}]\n"
+          "\t[{nosugars | sugarmask <sugarmask> [noc1search]}] [resmapfile <file>]\n"
+          "\t[molmask <molmask> ...] [determinemolmask <mask>]\n"
+          "  Prepare the structure in the given coords set for easier processing\n"
+          "  with the LEaP program from AmberTools. Any existing/potential\n"
+          "  disulfide bonds will be identified and the residue names changed\n"
+          "  to <name> (CYX by default), and if specified any sugars\n"
+          "  recognized in the <sugarmask> region will be identified and have\n"
+          "  their names changed to Glycam names. Disulfides and sugars will\n"
+          "  have any inter-residue bonds removed, and the appropriate LEaP\n"
+          "  input to add the bonds back once the structure has been loaded\n"
+          "  into LEaP will be written to <leap input file>.\n"
+         );
+}
+
 // Exec_PrepareForLeap::Execute()
 Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 {
@@ -1713,10 +1740,25 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     }
   }
 
+  Iarray pdbResToRemove;
+  std::string removeArg = argIn.GetStringKey("remove");
+  if (!removeArg.empty()) {
+    if (removeArg == "unrecognized") {
+      mprintf("\tRemoving unrecognized PDB residues.\n");
+      pdbResToRemove = GetUnrecognizedPdbResidues( topIn );
+    } else if (removeArg == "isolated") {
+      mprintf("\tRemoving unrecognized and isolated PDB residues.\n");
+      Iarray unrecognizedPdbRes = GetUnrecognizedPdbResidues( topIn );
+      pdbResToRemove = GetIsolatedUnrecognizedResidues( topIn, unrecognizedPdbRes );
+    } else {
+      mprinterr("Error: Unrecognized keyword for 'remove': %s\n", removeArg.c_str());
+      return CpptrajState::ERR;
+    }
+  }
   /// Get array of residues with unrecognized PDB names.
-  Iarray unrecognizedPdbRes = GetUnrecognizedPdbResidues( topIn );
+  //Iarray unrecognizedPdbRes = GetUnrecognizedPdbResidues( topIn );
   /// Get array of unrecognized residues that are also isolated.
-  Iarray isolatedPdbRes = GetIsolatedUnrecognizedResidues( topIn, unrecognizedPdbRes );
+  //Iarray isolatedPdbRes = GetIsolatedUnrecognizedResidues( topIn, unrecognizedPdbRes );
 
   // Deal with any coordinate modifications
   bool remove_water     = argIn.hasKey("nowat");
@@ -1761,7 +1803,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     mprintf("\tIf present, keeping only alternate atom locations denoted by '%c'\n", altLocChar);
   if (!stripMask.empty())
     mprintf("\tRemoving atoms in mask '%s'\n", stripMask.c_str());
-  if (ModifyCoords( topIn, frameIn, remove_water, altLocChar, stripMask, waterMask ))
+  if (ModifyCoords(topIn, frameIn, remove_water, altLocChar, stripMask, waterMask, pdbResToRemove))
   {
     mprinterr("Error: Modification of '%s' failed.\n", coords.legend());
     return CpptrajState::ERR;

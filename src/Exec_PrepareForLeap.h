@@ -53,7 +53,8 @@ class Exec_PrepareForLeap : public Exec {
     /// \return Array indices of isolated unrecognized residues
     Iarray GetIsolatedUnrecognizedResidues(Topology const&, Iarray const&) const;
     /// Remove specified atoms
-    int ModifyCoords(Topology&, Frame&, bool, char, std::string const&, std::string const&) const;
+    int ModifyCoords(Topology&, Frame&, bool, char, std::string const&,
+                     std::string const&, Iarray const&) const;
     int RemoveHydrogens(Topology&, Frame&) const;
     int DetermineHisProt(std::vector<NameType>&, std::vector<int>&, Topology const&,
                          NameType const&, NameType const&,
