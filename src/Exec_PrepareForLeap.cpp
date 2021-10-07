@@ -633,6 +633,91 @@ const
   return 0;
 }
 
+static inline bool IsRingAtom(std::vector<int> const& RingAtoms, int tgt)
+{
+  for (std::vector<int>::const_iterator it = RingAtoms.begin(); it != RingAtoms.end(); ++it)
+    if (*it == tgt) return true;
+  return false;
+}
+
+/** Determine torsion around anomeric reference carbon. */
+int Exec_PrepareForLeap::CalcAnomericRefTorsion(double& torsion,
+                                                int ano_ref_atom, int ring_oxygen_atom,
+                                                int ring_end_atom, Iarray const& RingAtoms,
+                                                Topology const& topIn, Frame const& frameIn)
+const
+{
+  //if (debug_ > 0)
+    mprintf("\t  Anomeric ref carbon                   : %s\n",
+            topIn.ResNameNumAtomNameNum(ano_ref_atom).c_str());
+  //      ano_ref_atom_Y
+  //           |
+  //      ano_ref_atom
+  //       |        |
+  // ano_ref_atom_0 ano_ref_atom_1
+  int ano_ref_atom_Y = -1;
+  int ano_ref_atom_0 = -1;
+  int ano_ref_atom_1 = -1;
+  // This will be the index of the anomeric atom in the RingAtoms array
+  int ar_index = -1;
+  // Find ring atom that precedes the anomeric reference atom TODO catch size==1?
+  for (unsigned int idx = 1; idx != RingAtoms.size(); idx++) {
+    if (RingAtoms[idx] == ano_ref_atom) {
+        ar_index = (int)idx;
+        ano_ref_atom_0 = RingAtoms[idx-1];
+        break;
+    }
+  }
+  if (ano_ref_atom_0 == -1) {
+    mprinterr("Error: Anomeric reference ring C previous ring atom could not be identified.\n");
+    return 1;
+  }
+  //if (debug_ > 0)
+    mprintf("\t  Anomeric reference previous ring atom : %s\n",
+            topIn.ResNameNumAtomNameNum(ano_ref_atom_0).c_str());
+  // If the anomeric reference atom is the ring end atom then ano_ref_atom_1
+  // is the ring oxygen.
+  if (ano_ref_atom == ring_end_atom) {
+    ano_ref_atom_1 = ring_oxygen_atom;
+  } else {
+    // Anomeric reference atom is somewhere before the ring end atom.
+    ano_ref_atom_1 = RingAtoms[ar_index+1];
+  }
+  //if (debug_ > 0)
+    mprintf("\t  Anomeric reference next atom : %s\n",
+            topIn.ResNameNumAtomNameNum(ano_ref_atom_1).c_str());
+  // Get substituent of anomeric ref (e.g. C5) that is not part of the ring (e.g. C6)
+  for ( Atom::bond_iterator bat = topIn[ano_ref_atom].bondbegin();
+                            bat != topIn[ano_ref_atom].bondend();
+                          ++bat )
+  {
+    if ( *bat != ring_oxygen_atom && !IsRingAtom(RingAtoms, *bat) ) {
+      if (ano_ref_atom_Y != -1) {
+        mprinterr("Error: Two potential non-ring substituents for anomeric ref: %s and %s\n",
+                  topIn.ResNameNumAtomNameNum(*bat).c_str(),
+                  topIn.ResNameNumAtomNameNum(ano_ref_atom_Y).c_str());
+        return 1;
+      }
+      ano_ref_atom_Y = *bat;
+    }
+  }
+  if (ano_ref_atom_Y == -1) {
+    mprinterr("Error: Anomeric reference Y substituent could not be identified.\n");
+    return 1;
+  }
+  //if (debug_ > 0)
+    mprintf("\t  Anomeric reference substituent        : %s\n",
+            topIn.ResNameNumAtomNameNum(ano_ref_atom_Y).c_str());
+
+
+  torsion = Torsion( frameIn.XYZ(ano_ref_atom_0),   frameIn.XYZ(ano_ref_atom),
+                     frameIn.XYZ(ano_ref_atom_Y),   frameIn.XYZ(ano_ref_atom_1) );
+  if (debug_ > 0)
+    mprintf("\t  Anomeric reference torsion            = %f\n", torsion * Constants::RADDEG);
+  return 0;
+}
+
+
 /** Identify sugar oxygen, anomeric and ref carbons, and ring atoms. */
 Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology const& topIn,
                                                             Frame const& frameIn, int& err)
@@ -815,19 +900,27 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
         RA.push_back( *it );
       }
       if (debug_ > 0) mprintf("\n"); // DEBUG
-      // Find anomeric reference atom. Start at ring end and work down to anomeric atom
-      for (Iarray::const_iterator arat = RA.end() - 1; arat != RA.begin(); --arat)
-        if (atomIsChiral[*arat - topIn.Res(rnum).FirstAtom()]) {
-          ano_ref_atom = *arat;
-          break;
-        }
-
       // Create an array with all ring atoms set to true
       std::vector<bool> IsRingAtom;
       IsRingAtom.assign( topIn.Natom(), false );
       IsRingAtom[ring_oxygen_atom] = true;
       for (Iarray::const_iterator it = RA.begin(); it != RA.end(); ++it)
         IsRingAtom[ *it ] = true;
+      // Find anomeric reference atom. Start at ring end and work down to anomeric atom
+      for (Iarray::const_iterator arat = RA.end() - 1; arat != RA.begin(); --arat)
+        if (atomIsChiral[*arat - topIn.Res(rnum).FirstAtom()]) {
+          ano_ref_atom = *arat;
+          break;
+        }
+      // For determining orientation around anomeric reference carbon need
+      // previous carbon in the chain and either next carbon in the chain
+      // or the ring oxygen.
+      double t_ar;
+      CalcAnomericRefTorsion(t_ar, ano_ref_atom, ring_oxygen_atom, ring_end_atom,
+                                 RA, topIn, frameIn);
+
+      mprintf("DEBUG: t_ar= %f\n", t_ar * Constants::RADDEG);
+
       // Get complete chain
       Iarray carbon_chain = RA;
       if (FindRemainingChainCarbons(carbon_chain, ring_end_atom, topIn, rnum, IsRingAtom))

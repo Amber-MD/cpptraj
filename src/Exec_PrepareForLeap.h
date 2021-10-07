@@ -39,6 +39,9 @@ class Exec_PrepareForLeap : public Exec {
     int FindRemainingChainCarbons(std::vector<int>&, int, Topology const&, int,
                                   std::vector<bool> const&) const;
     int FindSugarC1Linkages(Sugar const&, Topology&, Frame const&) const;
+    int CalcAnomericRefTorsion(double&, int, int, int, Iarray const&,
+                               Topology const&, Frame const&) const;
+
     Sugar IdSugarRing(int, Topology const&, Frame const&, int&);
     int ChangePdbAtomNamesToGlycam(char, Residue const&, Topology&) const;
     int IdentifySugar(Sugar const&, Topology&, Frame const&, CharMask const&, CpptrajFile*, std::set<BondType>&);
