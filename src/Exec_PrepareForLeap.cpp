@@ -921,7 +921,16 @@ const
     mprintf(" %s", topIn.AtomMaskName(it->AtNum()).c_str());
   mprintf("\n");
 
-  return 0;
+  double tors = Torsion( frameIn.XYZ(priority[0].AtNum()),
+                         frameIn.XYZ(priority[1].AtNum()),
+                         frameIn.XYZ(priority[2].AtNum()),
+                         frameIn.XYZ(atnum) );
+  mprintf("DEBUG: Torsion around '%s' is %f",  topIn.AtomMaskName(atnum).c_str(), tors*Constants::RADDEG);
+  if (tors < 0)
+    mprintf(" (S)\n");
+  else
+    mprintf(" (R)\n");
+  return tors;
 }
 
 /** Identify sugar oxygen, anomeric and ref carbons, and ring atoms. */
