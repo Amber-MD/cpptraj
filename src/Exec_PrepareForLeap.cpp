@@ -640,6 +640,78 @@ static inline bool IsRingAtom(std::vector<int> const& RingAtoms, int tgt)
   return false;
 }
 
+/** Determine torsion around the anomeric carbon. */
+int Exec_PrepareForLeap::CalcAnomericTorsion(double& torsion,
+                                             int anomeric_atom, int ring_oxygen_atom,
+                                             int rnum,
+                                             Iarray const& RingAtoms,
+                                             Topology const& topIn, Frame const& frameIn)
+const
+{
+  //if (debug_ > 0) {
+    mprintf("\t  Anomeric carbon             : %s\n", topIn.ResNameNumAtomNameNum(anomeric_atom).c_str());
+    mprintf("\t  Ring oxygen atom            : %s\n", topIn.ResNameNumAtomNameNum(ring_oxygen_atom).c_str());
+  //}
+  int anomeric_atom_X = -1;
+  int anomeric_atom_C = -1;
+  // By definition the anomeric atom should be the first ring atom TODO catch size==1?
+  anomeric_atom_C = RingAtoms[1];
+  if (anomeric_atom_C == -1) {
+    mprinterr("Error: Next ring atom after anomeric C could not be identified.\n");
+    return 1;
+  }
+  //if (debug_ > 0)
+    mprintf("\t  Anomeric C ring substituent : %s\n",
+            topIn.ResNameNumAtomNameNum(anomeric_atom_C).c_str());
+  // Get the substituent of the anomeric C (e.g. C1) that is a non-ring atom, non hydrogen 
+  for ( Atom::bond_iterator bat = topIn[anomeric_atom].bondbegin();
+                            bat != topIn[anomeric_atom].bondend();
+                          ++bat )
+  {
+    if ( *bat != ring_oxygen_atom &&
+         topIn[*bat].Element() != Atom::HYDROGEN &&
+         !IsRingAtom(RingAtoms, *bat) )
+    {
+      if (anomeric_atom_X != -1) {
+        // If there are two non-ring, non-hydrogen substituents, prioritize
+        // the one that is part of this residue.
+        bool bat_in_res = (topIn[*bat].ResNum() == rnum);
+        bool X_in_res   = (topIn[anomeric_atom_X].ResNum() == rnum);
+        if ( (bat_in_res && X_in_res) || (!bat_in_res && !X_in_res) ) {
+          mprinterr("Error: Two potential substituents for anomeric carbon: %s and %s\n",
+                    topIn.ResNameNumAtomNameNum(*bat).c_str(),
+                    topIn.ResNameNumAtomNameNum(anomeric_atom_X).c_str());
+          return 1;
+        } else if (bat_in_res) {
+          anomeric_atom_X = *bat;
+        }
+      } else
+        anomeric_atom_X = *bat;
+    }
+  }
+
+  if (anomeric_atom_X == -1) {
+    // If the Cx (C1 substituent, usually a different residue) index is
+    // not found this usually means missing inter-residue bond.
+    // Alternatively, this could be an isolated sugar missing an -OH
+    // group, so make this non-fatal.
+    mprintf("Warning: Anomeric C non-ring substituent could not be identified.\n"
+            "Warning: This can happen if the sugar is bonded to something that\n"
+            "Warning:  is missing, e.g. a -OH group. In that case the coordinates\n"
+            "Warning   for the missing atoms may need to be generated.\n");
+    return -1;
+  }
+  //if (debug_ > 0)
+    mprintf("\t  Anomeric X substituent      : %s\n",
+            topIn.ResNameNumAtomNameNum(anomeric_atom_X).c_str());
+
+  torsion = Torsion( frameIn.XYZ(ring_oxygen_atom), frameIn.XYZ(anomeric_atom),
+                     frameIn.XYZ(anomeric_atom_C), frameIn.XYZ(anomeric_atom_X) );
+  if (debug_ > 0)
+    mprintf("\t  Anomeric torsion            = %f\n", torsion * Constants::RADDEG);
+  return 0;
+}
+
 /** Determine torsion around anomeric reference carbon. */
 int Exec_PrepareForLeap::CalcAnomericRefTorsion(double& torsion,
                                                 int ano_ref_atom, int ring_oxygen_atom,
@@ -686,12 +758,16 @@ const
   //if (debug_ > 0)
     mprintf("\t  Anomeric reference next atom : %s\n",
             topIn.ResNameNumAtomNameNum(ano_ref_atom_1).c_str());
-  // Get substituent of anomeric ref (e.g. C5) that is not part of the ring (e.g. C6)
+  // Get non-hydrogen substituent of anomeric ref (e.g. C5) that 
+  // is not part of the ring (e.g. C6).
   for ( Atom::bond_iterator bat = topIn[ano_ref_atom].bondbegin();
                             bat != topIn[ano_ref_atom].bondend();
                           ++bat )
   {
-    if ( *bat != ring_oxygen_atom && !IsRingAtom(RingAtoms, *bat) ) {
+    if ( *bat != ring_oxygen_atom &&
+         topIn[*bat].Element() != Atom::HYDROGEN &&
+         !IsRingAtom(RingAtoms, *bat) )
+    {
       if (ano_ref_atom_Y != -1) {
         mprinterr("Error: Two potential non-ring substituents for anomeric ref: %s and %s\n",
                   topIn.ResNameNumAtomNameNum(*bat).c_str(),
@@ -711,12 +787,134 @@ const
 
 
   torsion = Torsion( frameIn.XYZ(ano_ref_atom_0),   frameIn.XYZ(ano_ref_atom),
-                     frameIn.XYZ(ano_ref_atom_Y),   frameIn.XYZ(ano_ref_atom_1) );
+                     frameIn.XYZ(ano_ref_atom_1),   frameIn.XYZ(ano_ref_atom_Y) );
   if (debug_ > 0)
     mprintf("\t  Anomeric reference torsion            = %f\n", torsion * Constants::RADDEG);
   return 0;
 }
 
+/// \return Total priority (i.e. sum of atomic numbers) of atoms bonded to given atom.
+int Exec_PrepareForLeap::totalPriority(Topology const& topIn, int atnum,
+                                       int depth, int tgtdepth, std::vector<bool>& Visited)
+{
+  if (Visited[atnum] || depth == tgtdepth) return 0;
+  Visited[atnum] = true;
+  int sum = 0;
+  Atom const& atom = topIn[atnum];
+  for (Atom::bond_iterator bat = atom.bondbegin(); bat != atom.bondend(); ++bat)
+    sum += topIn[*bat].AtomicNumber() + totalPriority(topIn, *bat, depth+1, tgtdepth, Visited);
+  return sum;
+}
+
+class priority_element {
+  public:
+    /// CONSTRUCT from atom number and initial priority
+    priority_element(int a, int p1) : atnum_(a), priority1_(p1), priority2_(-1) {}
+    /// Set priority 2
+    void SetPriority2(int p2) { priority2_ = p2; }
+    /// \return Atom number
+    int AtNum() const { return atnum_; }
+    /// \return Priority 1
+    int Priority1() const { return priority1_; }
+    /// \return Priority 2
+    int Priority2() const { return priority2_; }
+    /// Sort on priority 1, then priority 2
+    bool operator<(const priority_element& rhs) const {
+      if (*this != rhs) {
+        if (priority1_ == rhs.priority1_) {
+          return (priority2_ > rhs.priority2_);
+        } else {
+          return (priority1_ > rhs.priority1_);
+        }
+      } else
+        return false;
+    }
+    /// \return true if priorities are identical
+    bool operator==(const priority_element& rhs) const {
+      return (priority1_ == rhs.priority1_) && (priority2_ == rhs.priority2_);
+    }
+    /// \return true if priorities are not equal
+    bool operator!=(const priority_element& rhs) const {
+      if (priority2_ != rhs.priority2_ ||
+          priority1_ != rhs.priority1_) return true;
+      return false;
+    }
+  private:
+    int atnum_;
+    int priority1_;
+    int priority2_;
+};
+
+/** Given an atom that is a chiral center, attempt to calculate a
+  * torsion that will help determine R vs S. Priorities will be 
+  * assigned to bonded atoms as 1, 2, 3, and optionally 4. The
+  * torsion will then be calculated as
+  *   1-2-3-0
+  * where 0 is the chiral center. Negative is S, positive is R.
+  */
+double Exec_PrepareForLeap::CalcChiralAtomTorsion(int atnum,
+                                                  Topology const& topIn,
+                                                  Frame const& frameIn,
+                                                  int& err)
+const
+{
+  err = 0;
+  Atom const& atom = topIn[atnum];
+  if (atom.Nbonds() < 3) {
+    mprinterr("Error: CalcChiralAtomTorsion called for atom %s with less than 3 bonds.\n",
+              topIn.AtomMaskName(atnum).c_str());
+    err = 1;
+    return 0;
+  }
+  // Calculate a priority score for each bonded atom.
+  // First just use the atomic number.
+  mprintf("DEBUG: Determining priorities around atom %s\n", topIn.AtomMaskName(atnum).c_str());
+  std::vector<priority_element> priority;
+  for (int idx = 0; idx != atom.Nbonds(); idx++) {
+    priority.push_back( priority_element(atom.Bond(idx), topIn[atom.Bond(idx)].AtomicNumber()) );
+    mprintf("DEBUG:\t\t%i Priority for %s is %i\n", idx, topIn.AtomMaskName(atom.Bond(idx)).c_str(), priority.back().Priority1());
+  }
+  // For any identical priorities, need to check who they are bonded to.
+  for (int idx1 = 0; idx1 != atom.Nbonds(); idx1++) {
+    for (int idx2 = idx1+1; idx2 != atom.Nbonds(); idx2++) {
+      if (priority[idx1] == priority[idx2]) {
+        bool identical_priorities = true;
+        int depth = 1;
+        while (identical_priorities) {
+          mprintf("DEBUG: Priority of index %i == %i, depth %i\n", idx1, idx2, depth);
+          std::vector<bool> Visited(topIn.Natom(), false);
+          Visited[atnum] = true;
+          priority[idx1].SetPriority2(totalPriority(topIn, atom.Bond(idx1), 0, depth, Visited));
+          mprintf("DEBUG:\tPriority2 of %i is %i\n", idx1, priority[idx1].Priority2());
+
+          Visited.assign(topIn.Natom(), false);
+          Visited[atnum] = true;
+          priority[idx2].SetPriority2(totalPriority(topIn, atom.Bond(idx2), 0, depth, Visited));
+          mprintf("DEBUG:\tPriority2 of %i is %i\n", idx2, priority[idx2].Priority2());
+          if (priority[idx1] != priority[idx2]) {
+            identical_priorities = false;
+            break;
+          }
+          if (depth == 10) {
+            mprinterr("Error: Could not determine priority around '%s'\n",
+                      topIn.AtomMaskName(atnum).c_str());
+            err = 1;
+            return 0;
+          }
+          depth++;
+        } // END while identical priorities
+      }
+    }
+  }
+  std::sort(priority.begin(), priority.end());
+  mprintf("DEBUG: Sorted by priority:\n");
+  for (std::vector<priority_element>::const_iterator it = priority.begin();
+                                                     it != priority.end(); ++it)
+    mprintf(" %s", topIn.AtomMaskName(it->AtNum()).c_str());
+  mprintf("\n");
+
+  return 0;
+}
 
 /** Identify sugar oxygen, anomeric and ref carbons, and ring atoms. */
 Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology const& topIn,
@@ -763,7 +961,7 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
 
   // Set up an AtomMap for this residue to help determine stereocenters
   AtomMap myMap;
-  myMap.SetDebug(10);
+  myMap.SetDebug(debug_);
   if (myMap.SetupResidue(topIn, frameIn, rnum)) {
     mprinterr("Error: Atom map setup failed for sugar %s\n", topIn.TruncResNameOnumId(rnum).c_str());
     err = 1;
@@ -906,20 +1104,42 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
       IsRingAtom[ring_oxygen_atom] = true;
       for (Iarray::const_iterator it = RA.begin(); it != RA.end(); ++it)
         IsRingAtom[ *it ] = true;
+      // For determining orientation around anomeric carbon need ring
+      // oxygen atom and next carbon in the ring.
+      int err;
+      CalcChiralAtomTorsion(anomeric_atom, topIn, frameIn, err);
+      double t_an;
+      CalcAnomericTorsion(t_an, anomeric_atom, ring_oxygen_atom, rnum,
+                          RA, topIn, frameIn);
+      mprintf("DEBUG: t_an= %f\n", t_an * Constants::RADDEG);
+      bool t_an_up = (t_an > 0);
+      mprintf("DEBUG: Based on t_an %s form is", topIn.TruncResNameOnumId(rnum).c_str());
+      if (t_an_up)
+        mprintf(" alpha\n"); // S
+      else
+        mprintf(" beta\n");
+
       // Find anomeric reference atom. Start at ring end and work down to anomeric atom
       for (Iarray::const_iterator arat = RA.end() - 1; arat != RA.begin(); --arat)
         if (atomIsChiral[*arat - topIn.Res(rnum).FirstAtom()]) {
           ano_ref_atom = *arat;
           break;
         }
-      // For determining orientation around anomeric reference carbon need
-      // previous carbon in the chain and either next carbon in the chain
-      // or the ring oxygen.
-      double t_ar;
-      CalcAnomericRefTorsion(t_ar, ano_ref_atom, ring_oxygen_atom, ring_end_atom,
-                                 RA, topIn, frameIn);
-
-      mprintf("DEBUG: t_ar= %f\n", t_ar * Constants::RADDEG);
+      if (ano_ref_atom == ring_end_atom) {
+        // For determining orientation around anomeric reference carbon when
+        // it is the ring end atom need previous carbon in the chain and
+        // ring oxygen.
+        double t_ar;
+        CalcAnomericRefTorsion(t_ar, ano_ref_atom, ring_oxygen_atom, ring_end_atom,
+                                   RA, topIn, frameIn);
+        mprintf("DEBUG: t_ar= %f\n", t_ar * Constants::RADDEG);
+        bool t_ar_up = (t_ar > 0);
+        mprintf("DEBUG: Based on t_ar and t_an %s form is", topIn.TruncResNameOnumId(rnum).c_str());
+        if (t_an_up == t_ar_up)
+          mprintf(" beta\n");
+        else
+          mprintf(" alpha\n");
+      } 
 
       // Get complete chain
       Iarray carbon_chain = RA;

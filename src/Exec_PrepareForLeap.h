@@ -39,8 +39,16 @@ class Exec_PrepareForLeap : public Exec {
     int FindRemainingChainCarbons(std::vector<int>&, int, Topology const&, int,
                                   std::vector<bool> const&) const;
     int FindSugarC1Linkages(Sugar const&, Topology&, Frame const&) const;
+    /// Determine orientation around anomeric carbon
+    int CalcAnomericTorsion(double&, int, int, int, Iarray const&,
+                            Topology const&, Frame const&) const;
+    /// Determine orientation around anomeric reference carbon
     int CalcAnomericRefTorsion(double&, int, int, int, Iarray const&,
                                Topology const&, Frame const&) const;
+
+    static int totalPriority(Topology const&, int, int, int, std::vector<bool>&);
+
+    double CalcChiralAtomTorsion(int, Topology const&, Frame const&, int&) const;
 
     Sugar IdSugarRing(int, Topology const&, Frame const&, int&);
     int ChangePdbAtomNamesToGlycam(char, Residue const&, Topology&) const;
