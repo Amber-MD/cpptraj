@@ -46,7 +46,7 @@ class Exec_PrepareForLeap : public Exec {
     int CalcAnomericRefTorsion(double&, int, int, int, Iarray const&,
                                Topology const&, Frame const&) const;
 
-    static int totalPriority(Topology const&, int, int, int, std::vector<bool>&);
+    static int totalPriority(Topology const&, int, int, int, int, std::vector<bool>&);
 
     double CalcChiralAtomTorsion(int, Topology const&, Frame const&, int&) const;
 

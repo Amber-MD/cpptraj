@@ -794,15 +794,23 @@ const
 }
 
 /// \return Total priority (i.e. sum of atomic numbers) of atoms bonded to given atom.
-int Exec_PrepareForLeap::totalPriority(Topology const& topIn, int atnum,
+int Exec_PrepareForLeap::totalPriority(Topology const& topIn, int atnum, int rnum,
                                        int depth, int tgtdepth, std::vector<bool>& Visited)
 {
   if (Visited[atnum] || depth == tgtdepth) return 0;
   Visited[atnum] = true;
+  if (topIn[atnum].ResNum() != rnum) {
+    if (depth == 0)
+      // Atom in another residue bonded to chiral atom (e.g. O to C1)
+      return topIn[atnum].AtomicNumber();
+    else
+      // Atom in another residue bonded to atom bonded to chiral atom
+      return 0;
+  }
   int sum = 0;
   Atom const& atom = topIn[atnum];
   for (Atom::bond_iterator bat = atom.bondbegin(); bat != atom.bondend(); ++bat)
-    sum += topIn[*bat].AtomicNumber() + totalPriority(topIn, *bat, depth+1, tgtdepth, Visited);
+    sum += topIn[*bat].AtomicNumber() + totalPriority(topIn, *bat, rnum, depth+1, tgtdepth, Visited);
   return sum;
 }
 
@@ -884,12 +892,12 @@ const
           mprintf("DEBUG: Priority of index %i == %i, depth %i\n", idx1, idx2, depth);
           std::vector<bool> Visited(topIn.Natom(), false);
           Visited[atnum] = true;
-          priority[idx1].SetPriority2(totalPriority(topIn, atom.Bond(idx1), 0, depth, Visited));
+          priority[idx1].SetPriority2(totalPriority(topIn, atom.Bond(idx1), atom.ResNum(), 0, depth, Visited));
           mprintf("DEBUG:\tPriority2 of %i is %i\n", idx1, priority[idx1].Priority2());
 
           Visited.assign(topIn.Natom(), false);
           Visited[atnum] = true;
-          priority[idx2].SetPriority2(totalPriority(topIn, atom.Bond(idx2), 0, depth, Visited));
+          priority[idx2].SetPriority2(totalPriority(topIn, atom.Bond(idx2), atom.ResNum(), 0, depth, Visited));
           mprintf("DEBUG:\tPriority2 of %i is %i\n", idx2, priority[idx2].Priority2());
           if (priority[idx1] != priority[idx2]) {
             identical_priorities = false;
@@ -907,7 +915,7 @@ const
     }
   }
   std::sort(priority.begin(), priority.end());
-  mprintf("DEBUG: Sorted by priority:\n");
+  mprintf("DEBUG: Sorted by priority:");
   for (std::vector<priority_element>::const_iterator it = priority.begin();
                                                      it != priority.end(); ++it)
     mprintf(" %s", topIn.AtomMaskName(it->AtNum()).c_str());
