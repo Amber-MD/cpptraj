@@ -7,7 +7,6 @@
 #include "CpptrajFile.h"
 #include "Trajout_Single.h"
 #include "DataSet_Coords_CRD.h"
-#include "AtomMap.h"
 #include <stack>
 #include <cctype> // tolower
 #include <algorithm> // sort
@@ -860,19 +859,18 @@ class priority_element {
   *   1-2-3-0
   * where 0 is the chiral center. Negative is S, positive is R.
   */
-double Exec_PrepareForLeap::CalcChiralAtomTorsion(int atnum,
-                                                  Topology const& topIn,
-                                                  Frame const& frameIn,
-                                                  int& err)
+Exec_PrepareForLeap::ChiralRetType
+  Exec_PrepareForLeap::CalcChiralAtomTorsion(double& tors, int atnum,
+                                             Topology const& topIn,
+                                             Frame const& frameIn)
 const
 {
-  err = 0;
+  tors = 0.0;
   Atom const& atom = topIn[atnum];
   if (atom.Nbonds() < 3) {
     mprinterr("Error: CalcChiralAtomTorsion called for atom %s with less than 3 bonds.\n",
               topIn.AtomMaskName(atnum).c_str());
-    err = 1;
-    return 0;
+    return ERR;
   }
   // Calculate a priority score for each bonded atom.
   // First just use the atomic number.
@@ -906,8 +904,7 @@ const
           if (depth == 10) {
             mprinterr("Error: Could not determine priority around '%s'\n",
                       topIn.AtomMaskName(atnum).c_str());
-            err = 1;
-            return 0;
+            return ERR;
           }
           depth++;
         } // END while identical priorities
@@ -921,16 +918,35 @@ const
     mprintf(" %s", topIn.AtomMaskName(it->AtNum()).c_str());
   mprintf("\n");
 
-  double tors = Torsion( frameIn.XYZ(priority[0].AtNum()),
-                         frameIn.XYZ(priority[1].AtNum()),
-                         frameIn.XYZ(priority[2].AtNum()),
-                         frameIn.XYZ(atnum) );
+  tors = Torsion( frameIn.XYZ(priority[0].AtNum()),
+                  frameIn.XYZ(priority[1].AtNum()),
+                  frameIn.XYZ(priority[2].AtNum()),
+                  frameIn.XYZ(atnum) );
   mprintf("DEBUG: Torsion around '%s' is %f",  topIn.AtomMaskName(atnum).c_str(), tors*Constants::RADDEG);
-  if (tors < 0)
+  ChiralRetType ret;
+  if (tors < 0) {
+    ret = IS_S;
     mprintf(" (S)\n");
-  else
+  } else {
+    ret = IS_R;
     mprintf(" (R)\n");
-  return tors;
+  }
+  return ret;
+}
+
+static inline void bond_count(int& bonds_to_h,
+                              int& bonds_to_other_res,
+                              int rnum, Topology const& topIn, Atom const& currentAtom)
+{
+  bonds_to_h = 0;
+  bonds_to_other_res = 0;
+  for (Atom::bond_iterator bat = currentAtom.bondbegin(); bat != currentAtom.bondend(); ++bat)
+  {
+    if (topIn[*bat].Element() == Atom::HYDROGEN)
+      bonds_to_h++;
+    else if (topIn[*bat].ResNum() != rnum)
+      bonds_to_other_res++;
+  }
 }
 
 /** Identify sugar oxygen, anomeric and ref carbons, and ring atoms. */
@@ -939,27 +955,48 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
 {
   err = 0;
   Residue const& res = topIn.Res(rnum);
-  // Try to identify the sugar ring. Potential starting atoms are oxygens
-  // bonded to two carbon atoms. Also save potential stereocenter indices
-  // (i.e. carbons bonded to 4 other atoms). Since input structure may not
-  // have any hydrogens, count bonds to heavy atoms only, must make at
-  // least 3 bonds (otherwise e.g. likely 2 hydrogens).
+
+  // Classify sugar residue atom types
+  enum RingAtomType { TERMINAL, LINK, OTHER };
+  static const char* RingAtomStr[] = { "Terminal", "Link", "Other" };
+  std::vector<RingAtomType> ringAtomTypes;
+  ringAtomTypes.reserve( res.NumAtoms() );
   std::vector<int> potentialRingStartAtoms;
+  int bonds_to_h = 0;
+  int bonds_to_other_res = 0;
   for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
   {
     Atom const& currentAtom = topIn[at];
-    if (currentAtom.Element() == Atom::OXYGEN) {
-      if (currentAtom.Nbonds() == 2) {
-        if ( topIn[currentAtom.Bond(0)].Element() == Atom::CARBON &&
-             topIn[currentAtom.Bond(0)].ResNum() == rnum &&
-             topIn[currentAtom.Bond(1)].Element() == Atom::CARBON &&
-             topIn[currentAtom.Bond(1)].ResNum() == rnum )
-        {
-          potentialRingStartAtoms.push_back( at );
+    if ( currentAtom.Element() == Atom::HYDROGEN ) {
+      ringAtomTypes.push_back( TERMINAL );
+    } else {
+      bond_count( bonds_to_h, bonds_to_other_res, rnum, topIn, currentAtom );
+      if (bonds_to_other_res > 0)
+        ringAtomTypes.push_back( LINK );
+      else if (currentAtom.Nbonds() - bonds_to_h < 2)
+        // At most one bond to something that is not hydrogen 
+        ringAtomTypes.push_back( TERMINAL );
+      else {
+        ringAtomTypes.push_back( OTHER );
+        // Try to identify the sugar ring. Potential starting atoms are oxygens
+        // bonded to two carbon atoms. 
+        if (currentAtom.Element() == Atom::OXYGEN) {
+          if (currentAtom.Nbonds() == 2) {
+            if ( topIn[currentAtom.Bond(0)].Element() == Atom::CARBON &&
+                 topIn[currentAtom.Bond(0)].ResNum() == rnum &&
+                 topIn[currentAtom.Bond(1)].Element() == Atom::CARBON &&
+                 topIn[currentAtom.Bond(1)].ResNum() == rnum )
+            {
+              potentialRingStartAtoms.push_back( at );
+            }
+          }
         }
       }
     }
+
+    mprintf("DEBUG: Atom '%s' is %s\n", topIn.AtomMaskName(at).c_str(), RingAtomStr[ringAtomTypes.back()]);
   }
+
   // TODO handle case where multiple potential ring start atoms exist
   if (potentialRingStartAtoms.empty()) {
     mprintf("Warning: Ring oxygen could not be identified for %s\n",
@@ -976,22 +1013,23 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
     return Sugar(rnum);
   }
 
+
   // Set up an AtomMap for this residue to help determine stereocenters
-  AtomMap myMap;
-  myMap.SetDebug(debug_);
-  if (myMap.SetupResidue(topIn, frameIn, rnum)) {
-    mprinterr("Error: Atom map setup failed for sugar %s\n", topIn.TruncResNameOnumId(rnum).c_str());
-    err = 1;
-    return Sugar(rnum);
-  }
-  myMap.DetermineAtomIDs();
+//  AtomMap myMap;
+//  myMap.SetDebug(10);
+//  if (myMap.SetupResidue(topIn, frameIn, rnum)) {
+//    mprinterr("Error: Atom map setup failed for sugar %s\n", topIn.TruncResNameOnumId(rnum).c_str());
+//    err = 1;
+//    return Sugar(rnum);
+//  }
+//  myMap.DetermineAtomIDs();
   std::vector<bool> atomIsChiral;
-  atomIsChiral.reserve( myMap.Natom() );
+  atomIsChiral.reserve( res.NumAtoms() );
   // Since we cant be certain there are hydrogens, cannot rely
   // on the internal mapping. Make a chiral center a carbon
   // with at least 3 bonds, all must be unique.
-  int resat = topIn.Res(rnum).FirstAtom();
-  for (int iat = 0; iat != myMap.Natom(); iat++, resat++)
+  int resat = res.FirstAtom();
+  for (int iat = 0; iat != res.NumAtoms(); iat++, resat++)
   {
     bool chiral = false;
     if (topIn[resat].Element() == Atom::CARBON && topIn[resat].Nbonds() > 2) {
@@ -1000,20 +1038,10 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
       for (Atom::bond_iterator bat1 = topIn[resat].bondbegin();
                                bat1 != topIn[resat].bondend(); ++bat1)
       {
-        std::string unique1;
-        if (*bat1 >= topIn.Res(rnum).FirstAtom() && *bat1 < topIn.Res(rnum).LastAtom())
-           unique1 = myMap[*bat1 - topIn.Res(rnum).FirstAtom()].Unique();
-        else
-           // Always count bonds to external as unique
-           unique1 = "unique1";
+        std::string unique1 = myMap_[*bat1].Unique();
         for (Atom::bond_iterator bat2 = bat1 + 1; bat2 != topIn[resat].bondend(); ++bat2)
         {
-          std::string unique2;
-          if (*bat2 >= topIn.Res(rnum).FirstAtom() && *bat2 < topIn.Res(rnum).LastAtom())
-            unique2 = myMap[*bat2 - topIn.Res(rnum).FirstAtom()].Unique();
-          else
-            // Always count bonds to external as unique
-            unique2 = "unique2";
+          std::string unique2 = myMap_[*bat2].Unique();
           if (unique1 == unique2) {
             // At least two of the atoms bonded to this atom look the same. Not chiral.
             mprintf("DEBUG: unique strings match '%s' '%s'\n", unique1.c_str(), unique2.c_str());
@@ -1123,18 +1151,15 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
         IsRingAtom[ *it ] = true;
       // For determining orientation around anomeric carbon need ring
       // oxygen atom and next carbon in the ring.
-      int err;
-      CalcChiralAtomTorsion(anomeric_atom, topIn, frameIn, err);
+      static const char* chiralStr[] = {0, "S", "R"};
       double t_an;
-      CalcAnomericTorsion(t_an, anomeric_atom, ring_oxygen_atom, rnum,
-                          RA, topIn, frameIn);
+      ChiralRetType ac_chirality = CalcChiralAtomTorsion(t_an, anomeric_atom, topIn, frameIn);
+      //CalcAnomericTorsion(t_an, anomeric_atom, ring_oxygen_atom, rnum,
+      //                    RA, topIn, frameIn);
       mprintf("DEBUG: t_an= %f\n", t_an * Constants::RADDEG);
-      bool t_an_up = (t_an > 0);
-      mprintf("DEBUG: Based on t_an %s form is", topIn.TruncResNameOnumId(rnum).c_str());
-      if (t_an_up)
-        mprintf(" alpha\n"); // S
-      else
-        mprintf(" beta\n");
+      //bool t_an_up = (t_an > 0);
+      mprintf("DEBUG: Based on t_an %s form is %s\n",
+              topIn.TruncResNameOnumId(rnum).c_str(), chiralStr[ac_chirality]);
 
       // Find anomeric reference atom. Start at ring end and work down to anomeric atom
       for (Iarray::const_iterator arat = RA.end() - 1; arat != RA.begin(); --arat)
@@ -1142,21 +1167,23 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
           ano_ref_atom = *arat;
           break;
         }
-      if (ano_ref_atom == ring_end_atom) {
+      //if (ano_ref_atom == ring_end_atom) {
         // For determining orientation around anomeric reference carbon when
         // it is the ring end atom need previous carbon in the chain and
         // ring oxygen.
         double t_ar;
-        CalcAnomericRefTorsion(t_ar, ano_ref_atom, ring_oxygen_atom, ring_end_atom,
-                                   RA, topIn, frameIn);
+        ChiralRetType ar_chirality = CalcChiralAtomTorsion(t_ar, ano_ref_atom, topIn, frameIn);
+        //CalcAnomericRefTorsion(t_ar, ano_ref_atom, ring_oxygen_atom, ring_end_atom,
+        //                           RA, topIn, frameIn);
         mprintf("DEBUG: t_ar= %f\n", t_ar * Constants::RADDEG);
-        bool t_ar_up = (t_ar > 0);
-        mprintf("DEBUG: Based on t_ar and t_an %s form is", topIn.TruncResNameOnumId(rnum).c_str());
-        if (t_an_up == t_ar_up)
-          mprintf(" beta\n");
+        //bool t_ar_up = (t_ar > 0);
+        mprintf("DEBUG: Based on t_ar %s form is %s\n",
+                topIn.TruncResNameOnumId(rnum).c_str(), chiralStr[ar_chirality]);
+        if (ac_chirality == IS_R)
+          mprintf("DEBUG: Overall form is beta\n");
         else
-          mprintf(" alpha\n");
-      } 
+          mprintf("DEBUG: Overall form is alpha\n");
+      //} 
 
       // Get complete chain
       Iarray carbon_chain = RA;
@@ -2357,6 +2384,14 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 
   // Prepare sugars
   if (prepare_sugars) {
+    // Set up an AtomMap for this residue to help determine stereocenters
+    myMap_.SetDebug(debug_);
+    if (myMap_.Setup(topIn, frameIn)) {
+      mprinterr("Error: Atom map setup failed\n");
+      return CpptrajState::ERR;
+    }
+    myMap_.DetermineAtomIDs();
+
     if (PrepareSugars(sugarMask, topIn, frameIn, outfile, !argIn.hasKey("noc1search"))) {
       mprinterr("Error: Sugar preparation failed.\n");
       return CpptrajState::ERR;

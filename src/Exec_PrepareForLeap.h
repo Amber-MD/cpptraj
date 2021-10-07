@@ -1,6 +1,7 @@
 #ifndef INC_EXEC_PREPAREFORLEAP_H
 #define INC_EXEC_PREPAREFORLEAP_H
 #include "Exec.h"
+#include "AtomMap.h"
 #include <set>
 #include <map>
 #include <vector>
@@ -48,7 +49,10 @@ class Exec_PrepareForLeap : public Exec {
 
     static int totalPriority(Topology const&, int, int, int, int, std::vector<bool>&);
 
-    double CalcChiralAtomTorsion(int, Topology const&, Frame const&, int&) const;
+    /// return type for the CalcChiralAtomTorsion routine
+    enum ChiralRetType { ERR = 0, IS_S, IS_R };
+
+    ChiralRetType CalcChiralAtomTorsion(double&, int, Topology const&, Frame const&) const;
 
     Sugar IdSugarRing(int, Topology const&, Frame const&, int&);
     int ChangePdbAtomNamesToGlycam(char, Residue const&, Topology&) const;
@@ -101,6 +105,7 @@ class Exec_PrepareForLeap : public Exec {
     bool errorsAreFatal_;   ///< If false, try to skip errors.
     int debug_; ///< Debug level
     std::string solventResName_; ///< Solvent residue name
+    AtomMap myMap_;
 };
 // ----- Sugar class ----------------------------------------------------------
 class Exec_PrepareForLeap::Sugar {
