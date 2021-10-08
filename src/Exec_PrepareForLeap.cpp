@@ -1105,9 +1105,9 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
                                        Frame const& frameIn, CharMask const& cmask,
                                        CpptrajFile* outfile, std::set<BondType>& sugarBondsToRemove)
 {
+  const std::string sugarName = topIn.TruncResNameOnumId(sugar.ResNum());
   if (sugar.NotSet()) {
-    mprintf("Warning: Sugar %s is not set up. Skipping sugar identification.\n",
-            topIn.TruncResNameOnumId(sugar.ResNum()).c_str());
+    mprintf("Warning: Sugar %s is not set up. Skipping sugar identification.\n", sugarName.c_str());
     return 0; // TODO return 1?
   }
 
@@ -1123,7 +1123,7 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
   }
   resChar = pdb_glycam->second;
 
-  mprintf("\tSugar %s glycam name: %c\n", topIn.TruncResNameOnumId(rnum).c_str(), resChar);
+  mprintf("\tSugar %s glycam name: %c\n", sugarName.c_str(), resChar);
   if (debug_ > 0)
     mprintf("DEBUG:\tOriginal #= %i chain %c\n", res.OriginalResNum(), res.ChainId());
 
@@ -1170,9 +1170,9 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
     isDform = false;*/
 
   if (isDform) {
-    mprintf("\t  Form is %s-D\n", formStr.c_str());
+    mprintf("\t  %s Form is %s-D\n", sugarName.c_str(), formStr.c_str());
   } else {
-    mprintf("\t  Form is %s-L\n", formStr.c_str());
+    mprintf("\t  %s Form is %s-L\n", sugarName.c_str(), formStr.c_str());
   }
 
   // Identify linkages to other residues.
