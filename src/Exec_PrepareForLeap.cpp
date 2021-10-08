@@ -931,8 +931,7 @@ const
 }
 
 /** Identify sugar oxygen, anomeric and ref carbons, and ring atoms. */
-Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology const& topIn,
-                                                            Frame const& frameIn, int& err)
+Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology const& topIn, int& err)
 {
   err = 0;
   Residue const& res = topIn.Res(rnum);
@@ -1487,7 +1486,7 @@ int Exec_PrepareForLeap::PrepareSugars(AtomMask& sugarMask, Topology& topIn,
                                           rnum != sugarResNums.end(); ++rnum)
     {
       int err = 0;
-      Sugars.push_back( IdSugarRing(*rnum, topIn, frameIn, err) );
+      Sugars.push_back( IdSugarRing(*rnum, topIn, err) );
       if (err != 0) {
         if (errorsAreFatal_) {
           mprinterr("Error: Problem identifying sugar ring for %s\n",

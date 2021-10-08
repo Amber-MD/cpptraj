@@ -52,8 +52,8 @@ class Exec_PrepareForLeap : public Exec {
     enum ChiralRetType { ERR = 0, IS_S, IS_R };
 
     ChiralRetType CalcChiralAtomTorsion(double&, int, Topology const&, Frame const&) const;
-
-    Sugar IdSugarRing(int, Topology const&, Frame const&, int&);
+    /// \return Sugar with atom indices set up
+    Sugar IdSugarRing(int, Topology const&, int&);
     int ChangePdbAtomNamesToGlycam(char, Residue const&, Topology&) const;
 
     /// Return type for DetermineAnomericForm
