@@ -55,6 +55,12 @@ class Exec_PrepareForLeap : public Exec {
 
     Sugar IdSugarRing(int, Topology const&, Frame const&, int&);
     int ChangePdbAtomNamesToGlycam(char, Residue const&, Topology&) const;
+
+    /// Return type for DetermineAnomericForm
+    enum AnomerRetType { A_ERR = 0, A_WARNING, IS_ALPHA, IS_BETA };
+    /// \return Anomeric form of the sugar
+    AnomerRetType DetermineAnomericForm(Sugar const&, Topology const&, Frame const&) const;
+
     int IdentifySugar(Sugar const&, Topology&, Frame const&, CharMask const&, CpptrajFile*, std::set<BondType>&);
     int PrepareSugars(AtomMask&, Topology&, Frame const&, CpptrajFile*, bool);
     int FindTerByBonds(Topology&, CharMask const&) const;
@@ -110,19 +116,18 @@ class Exec_PrepareForLeap : public Exec {
 class Exec_PrepareForLeap::Sugar {
   public:
     Sugar(int);
-    enum AnomerType { ALPHA = 0, BETA };
-    Sugar(int,int,int,int,int,AnomerType,std::vector<int> const&);
+    Sugar(int,int,int,int,int,std::vector<int> const&);
 
     int ResNum()          const { return rnum_; }
     int RingOxygenAtom()  const { return ring_oxygen_atom_; }
     int AnomericAtom()    const { return anomeric_atom_; }
     int AnomericRefAtom() const { return ano_ref_atom_; }
     int HighestStereocenter() const { return highest_stereocenter_; }
-    AnomerType Anomer()   const { return anomer_; }
-
-    typedef std::vector<int>::const_iterator const_iterator;
-    const_iterator ringbegin() const { return ring_atoms_.begin(); }
-    const_iterator ringend()   const { return ring_atoms_.end(); }
+    Iarray const& RingAtoms() const { return ring_atoms_; }
+    int RingEndAtom()         const { return ring_atoms_.back(); }
+//    typedef std::vector<int>::const_iterator const_iterator;
+//    const_iterator ringbegin() const { return ring_atoms_.begin(); }
+//    const_iterator ringend()   const { return ring_atoms_.end(); }
 
     bool NotSet() const { return (ring_oxygen_atom_ == -1); }
     /// \return Number of ring atoms
@@ -134,7 +139,6 @@ class Exec_PrepareForLeap::Sugar {
     int anomeric_atom_;    ///< Index of the anomeric C atom (ring start)
     int ano_ref_atom_;     ///< Index of the anomeric reference C atom
     int highest_stereocenter_; ///< Index of the highest stereocenter in the carbon chain
-    AnomerType anomer_;           ///< Anomeric form
     std::vector<int> ring_atoms_; ///< Index of all non-oxygen ring atoms
 };
 #endif
