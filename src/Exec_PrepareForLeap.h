@@ -111,20 +111,19 @@ class Exec_PrepareForLeap : public Exec {
 class Exec_PrepareForLeap::Sugar {
   public:
     Sugar(int);
-    Sugar(int,int,int,int,int,int,std::vector<int> const&,std::vector<bool> const&);
+    enum AnomerType { ALPHA = 0, BETA };
+    Sugar(int,int,int,int,int,AnomerType,std::vector<int> const&);
 
     int ResNum()          const { return rnum_; }
     int RingOxygenAtom()  const { return ring_oxygen_atom_; }
     int AnomericAtom()    const { return anomeric_atom_; }
     int AnomericRefAtom() const { return ano_ref_atom_; }
-    int RingEndAtom()     const { return ring_end_atom_; }
     int HighestStereocenter() const { return highest_stereocenter_; }
+    AnomerType Anomer()   const { return anomer_; }
 
     typedef std::vector<int>::const_iterator const_iterator;
     const_iterator ringbegin() const { return ring_atoms_.begin(); }
     const_iterator ringend()   const { return ring_atoms_.end(); }
-
-    bool AtomIsChiral(int idx) const { return atomIsChiral_[idx]; }
 
     bool NotSet() const { return (ring_oxygen_atom_ == -1); }
     /// \return Number of ring atoms
@@ -135,9 +134,8 @@ class Exec_PrepareForLeap::Sugar {
     int ring_oxygen_atom_; ///< Index of the ring oxygen atom
     int anomeric_atom_;    ///< Index of the anomeric C atom (ring start)
     int ano_ref_atom_;     ///< Index of the anomeric reference C atom
-    int ring_end_atom_;    ///< Index of the ring end atom
     int highest_stereocenter_; ///< Index of the highest stereocenter in the carbon chain
+    AnomerType anomer_;           ///< Anomeric form
     std::vector<int> ring_atoms_; ///< Index of all non-oxygen ring atoms
-    std::vector<bool> atomIsChiral_; ///< For each sugar residue atom, whether it is chiral or not.
 };
 #endif

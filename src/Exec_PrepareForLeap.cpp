@@ -17,21 +17,19 @@ Exec_PrepareForLeap::Sugar::Sugar(int rn) :
   ring_oxygen_atom_(-1),
   anomeric_atom_(-1),
   ano_ref_atom_(-1),
-  ring_end_atom_(-1),
-  highest_stereocenter_(-1)
+  highest_stereocenter_(-1),
+  anomer_(ALPHA)
 {}
 
-Exec_PrepareForLeap::Sugar::Sugar(int rn, int roa, int aa, int ara, int rea, int hs,
-                                  std::vector<int> const& RA,
-                                  std::vector<bool> const& isChiralIn) :
+Exec_PrepareForLeap::Sugar::Sugar(int rn, int roa, int aa, int ara, int hs, AnomerType anomer,
+                                  std::vector<int> const& RA) :
   rnum_(rn),
   ring_oxygen_atom_(roa),
   anomeric_atom_(aa),
   ano_ref_atom_(ara),
-  ring_end_atom_(rea),
   highest_stereocenter_(hs),
-  ring_atoms_(RA),
-  atomIsChiral_(isChiralIn)
+  anomer_(anomer),
+  ring_atoms_(RA)
 {}
 
 void Exec_PrepareForLeap::Sugar::PrintInfo(Topology const& topIn) const {
@@ -42,12 +40,13 @@ void Exec_PrepareForLeap::Sugar::PrintInfo(Topology const& topIn) const {
     mprintf("\t\tRing O           : %s\n", topIn.TruncAtomNameNum(ring_oxygen_atom_).c_str());
     mprintf("\t\tAnomeric C       : %s\n", topIn.TruncAtomNameNum(anomeric_atom_).c_str());
     mprintf("\t\tAnomeric ref. C  : %s\n", topIn.TruncAtomNameNum(ano_ref_atom_).c_str());
-    mprintf("\t\tRing end atom    : %s\n", topIn.TruncAtomNameNum(ring_end_atom_).c_str());
     mprintf("\t\tNum ring atoms   : %u\n", NumRingAtoms());
     mprintf("\t\tNon-O Ring atoms :");
     for (std::vector<int>::const_iterator it = ring_atoms_.begin(); it != ring_atoms_.end(); ++it)
       mprintf(" %s", topIn.TruncAtomNameNum(*it).c_str());
     mprintf("\n");
+    static const char* AnomerStr[] = { "Alpha", "Beta" };
+    mprintf("\t\tForm             : %s\n", AnomerStr[anomer_]);
   }
 }
 
@@ -1034,6 +1033,8 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
   int ring_oxygen_atom = -1; // e.g. O5
   // This will hold the index of the highest stereocenter, e.g. C5
   int highest_stereocenter = -1;
+  // Hold the anomer
+  Sugar::AnomerType anomer = Sugar::ALPHA;
   // This will hold ring atoms, not including the ring oxygen.
   std::vector<int> RA;
   for (std::vector<int>::const_iterator ringat = potentialRingStartAtoms.begin();
@@ -1137,18 +1138,25 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
                                  RA, topIn, frameIn);
       mprintf("DEBUG: t_ar= %f\n", t_ar * Constants::RADDEG);
       bool t_ar_up = (t_ar > 0);
+
       if (ano_ref_atom == ring_end_atom) {
         // Anomeric reference is the ring end, same side is beta, opposite is alpha.
-        if (t_an_up == t_ar_up)
+        if (t_an_up == t_ar_up) {
+          anomer = Sugar::BETA;
           mprintf("DEBUG: Form is Beta\n");
-        else
+        } else {
+          anomer = Sugar::ALPHA;
           mprintf("DEBUG: Form is Alpha\n");
+        }
       } else {
         // Anomeric reference isnt the ring end, definition is reversed.
-        if (t_an_up != t_ar_up)
+        if (t_an_up != t_ar_up) {
+          anomer = Sugar::BETA;
           mprintf("DEBUG: Form is Beta\n");
-        else
+        } else {
+          anomer = Sugar::ALPHA;
           mprintf("DEBUG: Form is Alpha\n");
+        }
       }
 
       // Get complete chain
@@ -1177,8 +1185,8 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
   }
   if (debug_ > 0)
     mprintf("\t  Ring oxygen         : %s\n", topIn.ResNameNumAtomNameNum(ring_oxygen_atom).c_str());
-  return Sugar(rnum, ring_oxygen_atom, anomeric_atom, ano_ref_atom, ring_end_atom, 
-               highest_stereocenter, RA, atomIsChiral);
+  return Sugar(rnum, ring_oxygen_atom, anomeric_atom, ano_ref_atom,
+               highest_stereocenter, anomer, RA);
 }
 
 /** Change PDB atom names in residue to glycam ones. */
