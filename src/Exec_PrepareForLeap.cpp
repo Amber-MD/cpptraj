@@ -38,6 +38,7 @@ void Exec_PrepareForLeap::Sugar::PrintInfo(Topology const& topIn) const {
     mprintf("\t\tRing O           : %s\n", topIn.TruncAtomNameNum(ring_oxygen_atom_).c_str());
     mprintf("\t\tAnomeric C       : %s\n", topIn.TruncAtomNameNum(anomeric_atom_).c_str());
     mprintf("\t\tAnomeric ref. C  : %s\n", topIn.TruncAtomNameNum(ano_ref_atom_).c_str());
+    mprintf("\t\tConfig. C        : %s\n", topIn.TruncAtomNameNum(highest_stereocenter_).c_str());
     mprintf("\t\tNum ring atoms   : %u\n", NumRingAtoms());
     mprintf("\t\tNon-O Ring atoms :");
     for (std::vector<int>::const_iterator it = ring_atoms_.begin(); it != ring_atoms_.end(); ++it)
@@ -513,10 +514,10 @@ int Exec_PrepareForLeap::CalcAnomericTorsion(double& torsion,
                                              Topology const& topIn, Frame const& frameIn)
 const
 {
-  //if (debug_ > 0) {
+  if (debug_ > 0) {
     mprintf("\t  Anomeric carbon             : %s\n", topIn.ResNameNumAtomNameNum(anomeric_atom).c_str());
     mprintf("\t  Ring oxygen atom            : %s\n", topIn.ResNameNumAtomNameNum(ring_oxygen_atom).c_str());
-  //}
+  }
   int anomeric_atom_X = -1;
   int anomeric_atom_C = -1;
   // By definition the anomeric atom should be the first ring atom TODO catch size==1?
@@ -525,7 +526,7 @@ const
     mprinterr("Error: Next ring atom after anomeric C could not be identified.\n");
     return 1;
   }
-  //if (debug_ > 0)
+  if (debug_ > 0)
     mprintf("\t  Anomeric C ring substituent : %s\n",
             topIn.ResNameNumAtomNameNum(anomeric_atom_C).c_str());
   // Get the substituent of the anomeric C (e.g. C1) that is a non-ring atom, non hydrogen 
@@ -566,7 +567,7 @@ const
             "Warning   for the missing atoms may need to be generated.\n");
     return -1;
   }
-  //if (debug_ > 0)
+  if (debug_ > 0)
     mprintf("\t  Anomeric X substituent      : %s\n",
             topIn.ResNameNumAtomNameNum(anomeric_atom_X).c_str());
 
@@ -584,7 +585,7 @@ int Exec_PrepareForLeap::CalcAnomericRefTorsion(double& torsion,
                                                 Topology const& topIn, Frame const& frameIn)
 const
 {
-  //if (debug_ > 0)
+  if (debug_ > 0)
     mprintf("\t  Anomeric ref carbon                   : %s\n",
             topIn.ResNameNumAtomNameNum(ano_ref_atom).c_str());
   //      ano_ref_atom_Y
@@ -609,7 +610,7 @@ const
     mprinterr("Error: Anomeric reference ring C previous ring atom could not be identified.\n");
     return 1;
   }
-  //if (debug_ > 0)
+  if (debug_ > 0)
     mprintf("\t  Anomeric reference previous ring atom : %s\n",
             topIn.ResNameNumAtomNameNum(ano_ref_atom_0).c_str());
   // If the anomeric reference atom is the ring end atom then ano_ref_atom_1
@@ -620,7 +621,7 @@ const
     // Anomeric reference atom is somewhere before the ring end atom.
     ano_ref_atom_1 = RingAtoms[ar_index+1];
   }
-  //if (debug_ > 0)
+  if (debug_ > 0)
     mprintf("\t  Anomeric reference next atom          : %s\n",
             topIn.ResNameNumAtomNameNum(ano_ref_atom_1).c_str());
   // Get non-hydrogen substituent of anomeric ref (e.g. C5) that 
@@ -646,10 +647,9 @@ const
     mprinterr("Error: Anomeric reference Y substituent could not be identified.\n");
     return 1;
   }
-  //if (debug_ > 0)
+  if (debug_ > 0)
     mprintf("\t  Anomeric reference substituent        : %s\n",
             topIn.ResNameNumAtomNameNum(ano_ref_atom_Y).c_str());
-
 
   torsion = Torsion( frameIn.XYZ(ano_ref_atom_0),   frameIn.XYZ(ano_ref_atom),
                      frameIn.XYZ(ano_ref_atom_1),   frameIn.XYZ(ano_ref_atom_Y) );
@@ -854,7 +854,8 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
   {
     bool chiral = false;
     if (topIn[resat].Element() == Atom::CARBON && topIn[resat].Nbonds() > 2) {
-      mprintf("DEBUG: Atom '%s' potential chiral\n", topIn.TruncResAtomNameNum(resat).c_str());
+      if (debug_ > 0)
+        mprintf("DEBUG: Atom '%s' potential chiral\n", topIn.TruncResAtomNameNum(resat).c_str());
       chiral = true;
       for (Atom::bond_iterator bat1 = topIn[resat].bondbegin();
                                bat1 != topIn[resat].bondend(); ++bat1)
@@ -865,7 +866,8 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
           std::string unique2 = myMap_[*bat2].Unique();
           if (unique1 == unique2) {
             // At least two of the atoms bonded to this atom look the same. Not chiral.
-            mprintf("DEBUG: unique strings match '%s' '%s'\n", unique1.c_str(), unique2.c_str());
+            if (debug_ > 1)
+              mprintf("DEBUG: unique strings match '%s' '%s'\n", unique1.c_str(), unique2.c_str());
             chiral = false;
             break;
           }
@@ -875,15 +877,16 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
     } // END atom is carbon with > 2 bonds
     
     atomIsChiral.push_back( chiral );
-    mprintf("DEBUG: Atom '%s' isChiral= %i\n",
-            topIn.TruncResAtomNameNum(resat).c_str(),
-            (int)atomIsChiral.back());
+    if (debug_ > 0)
+      mprintf("DEBUG: Atom '%s' isChiral= %i\n",
+              topIn.TruncResAtomNameNum(resat).c_str(),
+              (int)atomIsChiral.back());
   }
 
   // Using the potential ring start atoms, see if we can actually complete
   // a ring. Identify important atoms as well.
   // This will indicate ring direction
-  int ring_direction = 0;
+//  int ring_direction = 0;
   // Ring end atom is the last atom in the ring
   int ring_end_atom = -1;
   // The anomeric carbon is the carbon that was part of the carbonyl group
@@ -940,13 +943,13 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
     if (c_beg_bonds_to_C <= c_end_bonds_to_C) {
       anomeric_atom = c_beg;
       ring_end_atom = c_end;
-      ring_direction = 1;
+//      ring_direction = 1;
     } else {
       anomeric_atom = c_end;
       ring_end_atom = c_beg;
-      ring_direction = -1;
+//      ring_direction = -1;
     }
-    mprintf("DEBUG: Potential Ring direction= %i\n", ring_direction);
+//    mprintf("DEBUG: Potential Ring direction= %i\n", ring_direction);
 
     FollowBonds(anomeric_atom, topIn, 0, ring_atoms,
                 ring_end_atom, Visited, ring_complete);
@@ -982,16 +985,20 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
         err = 1;
         return Sugar(rnum);
       }
+      if (debug_ > 0) {
+        mprintf("DEBUG: Complete carbon chain:\n");
+        for (Iarray::const_iterator it = carbon_chain.begin(); it != carbon_chain.end(); ++it)
+          mprintf("\t\t%s\n", topIn.ResNameNumAtomNameNum(*it).c_str());
+      }
       // Get the index of the highest stereocenter
-      mprintf("DEBUG: Complete carbon chain:\n");
       for (Iarray::const_iterator it = carbon_chain.begin(); it != carbon_chain.end(); ++it)
       {
-        mprintf("\t\t%s\n", topIn.ResNameNumAtomNameNum(*it).c_str());
         if (atomIsChiral[*it - topIn.Res(rnum).FirstAtom()])
           highest_stereocenter = *it;
       }
-      mprintf("DEBUG: Highest stereocenter: %s\n",
-              topIn.ResNameNumAtomNameNum(highest_stereocenter).c_str());
+      if (debug_ > 0)
+        mprintf("DEBUG: Index of highest stereocenter: %s\n",
+                topIn.ResNameNumAtomNameNum(highest_stereocenter).c_str());
 
     } // END ring_complete
   }
@@ -1049,8 +1056,6 @@ const
     // Error
     return A_ERR; 
   }
-
-  mprintf("DEBUG: t_an= %f\n", t_an * Constants::RADDEG);
   bool t_an_up = (t_an > 0);
 
   // For determining orientation around anomeric reference carbon need
@@ -1064,7 +1069,6 @@ const
   {
     return A_ERR; 
   }
-  mprintf("DEBUG: t_ar= %f\n", t_ar * Constants::RADDEG);
   bool t_ar_up = (t_ar > 0);
 
   AnomerRetType form;
@@ -1198,7 +1202,8 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
           Residue& pres = topIn.SetRes( topIn[*bat].ResNum() );
           NameMapType::const_iterator lname = pdb_glycam_linkageRes_map_.find( pres.Name() );
           if (lname != pdb_glycam_linkageRes_map_.end()) {
-            mprintf("DEBUG: Link residue name for %s found: %s\n", *(lname->first), *(lname->second));
+            if (debug_ > 0)
+              mprintf("DEBUG: Link residue name for %s found: %s\n", *(lname->first), *(lname->second));
             ChangeResName( pres, lname->second );
             resStat_[topIn[*bat].ResNum()] = VALIDATED;
           } else {
