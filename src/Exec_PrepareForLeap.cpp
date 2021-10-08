@@ -525,16 +525,24 @@ static void Find_Carbons(int atm, Topology const& topIn, std::vector<bool>& Visi
   }
 }
 
+static inline bool IsRingAtom(std::vector<int> const& RingAtoms, int tgt)
+{
+  for (std::vector<int>::const_iterator it = RingAtoms.begin(); it != RingAtoms.end(); ++it)
+    if (*it == tgt) return true;
+  return false;
+}
+
+
 /** Find remaining non-ring carbons in chain starting from ring end atom. */
-int Exec_PrepareForLeap::FindRemainingChainCarbons(std::vector<int>& remainingChainCarbons,
+int Exec_PrepareForLeap::FindRemainingChainCarbons(Iarray& remainingChainCarbons,
                                                    int start_c, Topology const& topIn, int rnum,
-                                                   std::vector<bool> const& IsRingAtom)
+                                                   Iarray const& RingAtoms)
 const
 {
   Residue const& res = topIn.Res(rnum);
   std::vector<bool> Visited(topIn.Natom(), true);
   for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
-    if (!IsRingAtom[at])
+    if (!IsRingAtom(RingAtoms, at))
       Visited[at] = false;
 
   for (Atom::bond_iterator bat = topIn[start_c].bondbegin();
@@ -629,13 +637,6 @@ const
   } // END res2 loop over other residues
 
   return 0;
-}
-
-static inline bool IsRingAtom(std::vector<int> const& RingAtoms, int tgt)
-{
-  for (std::vector<int>::const_iterator it = RingAtoms.begin(); it != RingAtoms.end(); ++it)
-    if (*it == tgt) return true;
-  return false;
 }
 
 /** Determine torsion around the anomeric carbon. */
@@ -1161,7 +1162,7 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
 
       // Get complete chain
       Iarray carbon_chain = RA;
-      if (FindRemainingChainCarbons(carbon_chain, ring_end_atom, topIn, rnum, IsRingAtom)) {
+      if (FindRemainingChainCarbons(carbon_chain, ring_end_atom, topIn, rnum, RA)) {
         mprinterr("Error: Could not find remaining chain carbons.\n");
         err = 1;
         return Sugar(rnum);

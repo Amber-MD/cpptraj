@@ -37,8 +37,7 @@ class Exec_PrepareForLeap : public Exec {
     int CalcStereocenterTorsion(double&, int, Topology const&, Frame const&) const;
     int CalcAnomericRefTorsion(double&, int, int, Topology const&, Frame const&, std::vector<bool> const&) const;
     int CalcAnomericTorsion(double&, int, int, int, Topology const&, Frame const&, std::vector<bool> const&) const;
-    int FindRemainingChainCarbons(std::vector<int>&, int, Topology const&, int,
-                                  std::vector<bool> const&) const;
+    int FindRemainingChainCarbons(Iarray&, int, Topology const&, int, Iarray const&) const;
     int FindSugarC1Linkages(Sugar const&, Topology&, Frame const&) const;
     /// Determine orientation around anomeric carbon
     int CalcAnomericTorsion(double&, int, int, int, Iarray const&,
