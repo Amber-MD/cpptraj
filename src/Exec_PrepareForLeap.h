@@ -35,8 +35,6 @@ class Exec_PrepareForLeap : public Exec {
 
     void LeapBond(int,int,Topology const&, CpptrajFile*) const;
     int CalcStereocenterTorsion(double&, int, Topology const&, Frame const&) const;
-    int CalcAnomericRefTorsion(double&, int, int, Topology const&, Frame const&, std::vector<bool> const&) const;
-    int CalcAnomericTorsion(double&, int, int, int, Topology const&, Frame const&, std::vector<bool> const&) const;
     int FindRemainingChainCarbons(Iarray&, int, Topology const&, int, Iarray const&) const;
     int FindSugarC1Linkages(Sugar const&, Topology&, Frame const&) const;
     /// Determine orientation around anomeric carbon
@@ -59,7 +57,7 @@ class Exec_PrepareForLeap : public Exec {
     /// Return type for DetermineAnomericForm
     enum AnomerRetType { A_ERR = 0, A_WARNING, IS_ALPHA, IS_BETA };
     /// \return Anomeric form of the sugar
-    AnomerRetType DetermineAnomericForm(Sugar const&, Topology const&, Frame const&) const;
+    AnomerRetType DetermineAnomericForm(bool&, Sugar const&, Topology const&, Frame const&) const;
 
     int IdentifySugar(Sugar const&, Topology&, Frame const&, CharMask const&, CpptrajFile*, std::set<BondType>&);
     int PrepareSugars(AtomMask&, Topology&, Frame const&, CpptrajFile*, bool);
