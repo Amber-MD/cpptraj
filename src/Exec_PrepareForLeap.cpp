@@ -934,23 +934,6 @@ const
   return ret;
 }
 
-
-
-static inline void bond_count(int& bonds_to_h,
-                              int& bonds_to_other_res,
-                              int rnum, Topology const& topIn, Atom const& currentAtom)
-{
-  bonds_to_h = 0;
-  bonds_to_other_res = 0;
-  for (Atom::bond_iterator bat = currentAtom.bondbegin(); bat != currentAtom.bondend(); ++bat)
-  {
-    if (topIn[*bat].Element() == Atom::HYDROGEN)
-      bonds_to_h++;
-    else if (topIn[*bat].ResNum() != rnum)
-      bonds_to_other_res++;
-  }
-}
-
 /** Identify sugar oxygen, anomeric and ref carbons, and ring atoms. */
 Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology const& topIn,
                                                             Frame const& frameIn, int& err)
@@ -958,45 +941,24 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
   err = 0;
   Residue const& res = topIn.Res(rnum);
 
-  // Classify sugar residue atom types
-  enum RingAtomType { TERMINAL, LINK, OTHER };
-  static const char* RingAtomStr[] = { "Terminal", "Link", "Other" };
-  std::vector<RingAtomType> ringAtomTypes;
-  ringAtomTypes.reserve( res.NumAtoms() );
+  // Determine candidates for ring oxygen atoms. 
   std::vector<int> potentialRingStartAtoms;
-  int bonds_to_h = 0;
-  int bonds_to_other_res = 0;
   for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
   {
     Atom const& currentAtom = topIn[at];
-    if ( currentAtom.Element() == Atom::HYDROGEN ) {
-      ringAtomTypes.push_back( TERMINAL );
-    } else {
-      bond_count( bonds_to_h, bonds_to_other_res, rnum, topIn, currentAtom );
-      if (bonds_to_other_res > 0)
-        ringAtomTypes.push_back( LINK );
-      else if (currentAtom.Nbonds() - bonds_to_h < 2)
-        // At most one bond to something that is not hydrogen 
-        ringAtomTypes.push_back( TERMINAL );
-      else {
-        ringAtomTypes.push_back( OTHER );
-        // Try to identify the sugar ring. Potential starting atoms are oxygens
-        // bonded to two carbon atoms. 
-        if (currentAtom.Element() == Atom::OXYGEN) {
-          if (currentAtom.Nbonds() == 2) {
-            if ( topIn[currentAtom.Bond(0)].Element() == Atom::CARBON &&
-                 topIn[currentAtom.Bond(0)].ResNum() == rnum &&
-                 topIn[currentAtom.Bond(1)].Element() == Atom::CARBON &&
-                 topIn[currentAtom.Bond(1)].ResNum() == rnum )
-            {
-              potentialRingStartAtoms.push_back( at );
-            }
-          }
+    // Try to identify the sugar ring oxygen. Candidate atoms are oxygens
+    // bonded to two carbon atoms in the same residue.
+    if (currentAtom.Element() == Atom::OXYGEN) {
+      if (currentAtom.Nbonds() == 2) {
+        if ( topIn[currentAtom.Bond(0)].Element() == Atom::CARBON &&
+             topIn[currentAtom.Bond(0)].ResNum() == rnum &&
+             topIn[currentAtom.Bond(1)].Element() == Atom::CARBON &&
+             topIn[currentAtom.Bond(1)].ResNum() == rnum )
+        {
+          potentialRingStartAtoms.push_back( at );
         }
       }
     }
-
-    mprintf("DEBUG: Atom '%s' is %s\n", topIn.AtomMaskName(at).c_str(), RingAtomStr[ringAtomTypes.back()]);
   }
 
   // TODO handle case where multiple potential ring start atoms exist
@@ -1015,21 +977,13 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
     return Sugar(rnum);
   }
 
-
-  // Set up an AtomMap for this residue to help determine stereocenters
-//  AtomMap myMap;
-//  myMap.SetDebug(10);
-//  if (myMap.SetupResidue(topIn, frameIn, rnum)) {
-//    mprinterr("Error: Atom map setup failed for sugar %s\n", topIn.TruncResNameOnumId(rnum).c_str());
-//    err = 1;
-//    return Sugar(rnum);
-//  }
-//  myMap.DetermineAtomIDs();
+  // Use the previously-set up AtomMap to help determine stereocenters
   std::vector<bool> atomIsChiral;
   atomIsChiral.reserve( res.NumAtoms() );
-  // Since we cant be certain there are hydrogens, cannot rely
-  // on the internal mapping. Make a chiral center a carbon
-  // with at least 3 bonds, all must be unique.
+  // Since we cannot be certain there will be hydrogens, cannot rely
+  // on the AtomMap chiral designations (which assumes hydrogens).
+  // Make a chiral center a carbon with at least 3 bonds, all must be
+  // to different kinds of atoms.
   int resat = res.FirstAtom();
   for (int iat = 0; iat != res.NumAtoms(); iat++, resat++)
   {
@@ -1061,6 +1015,8 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
             (int)atomIsChiral.back());
   }
 
+  // Using the potential ring start atoms, see if we can actually complete
+  // a ring. Identify important atoms as well.
   // This will indicate ring direction
   int ring_direction = 0;
   // Ring end atom is the last atom in the ring
@@ -1078,12 +1034,13 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
   int ring_oxygen_atom = -1; // e.g. O5
   // This will hold the index of the highest stereocenter, e.g. C5
   int highest_stereocenter = -1;
-  // This will hold ring atoms, not including the ring oxygen
+  // This will hold ring atoms, not including the ring oxygen.
   std::vector<int> RA;
   for (std::vector<int>::const_iterator ringat = potentialRingStartAtoms.begin();
                                         ringat != potentialRingStartAtoms.end();
                                       ++ringat)
   {
+    // Mark all atoms as visited except this residue (minus the ring start).
     std::vector<bool> Visited( topIn.Natom(), true );
     for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
       if (at != *ringat)
@@ -1154,15 +1111,15 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
         IsRingAtom[ *it ] = true;
       // For determining orientation around anomeric carbon need ring
       // oxygen atom and next carbon in the ring.
-      static const char* chiralStr[] = {0, "S", "R"};
       double t_an;
-      ChiralRetType ac_chirality = CalcChiralAtomTorsion(t_an, anomeric_atom, topIn, frameIn);
-      //CalcAnomericTorsion(t_an, anomeric_atom, ring_oxygen_atom, rnum,
-      //                    RA, topIn, frameIn);
+//      ChiralRetType ac_chirality = CalcChiralAtomTorsion(t_an, anomeric_atom, topIn, frameIn);
+//      static const char* chiralStr[] = {0, "S", "R"};
+//      mprintf("DEBUG: Based on t_an %s chirality is %s\n",
+//              topIn.TruncResNameOnumId(rnum).c_str(), chiralStr[ac_chirality]);
+      CalcAnomericTorsion(t_an, anomeric_atom, ring_oxygen_atom, rnum,
+                          RA, topIn, frameIn);
       mprintf("DEBUG: t_an= %f\n", t_an * Constants::RADDEG);
-      //bool t_an_up = (t_an > 0);
-      mprintf("DEBUG: Based on t_an %s chirality is %s\n",
-              topIn.TruncResNameOnumId(rnum).c_str(), chiralStr[ac_chirality]);
+      bool t_an_up = (t_an > 0);
 
       // Find anomeric reference atom. Start at ring end and work down to anomeric atom
       for (Iarray::const_iterator arat = RA.end() - 1; arat != RA.begin(); --arat)
@@ -1170,19 +1127,29 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
           ano_ref_atom = *arat;
           break;
         }
-      //if (ano_ref_atom == ring_end_atom) {
-        // For determining orientation around anomeric reference carbon when
-        // it is the ring end atom need previous carbon in the chain and
-        // ring oxygen.
-        double t_ar;
-        ChiralRetType ar_chirality = CalcChiralAtomTorsion(t_ar, ano_ref_atom, topIn, frameIn);
-        //CalcAnomericRefTorsion(t_ar, ano_ref_atom, ring_oxygen_atom, ring_end_atom,
-        //                           RA, topIn, frameIn);
-        mprintf("DEBUG: t_ar= %f\n", t_ar * Constants::RADDEG);
-        //bool t_ar_up = (t_ar > 0);
-        mprintf("DEBUG: Based on t_ar %s chirality is %s\n",
-                topIn.TruncResNameOnumId(rnum).c_str(), chiralStr[ar_chirality]);
-      //} 
+      // For determining orientation around anomeric reference carbon need
+      // previous carbon in the chain and either next carbon or ring oxygen.
+      double t_ar;
+//        ChiralRetType ar_chirality = CalcChiralAtomTorsion(t_ar, ano_ref_atom, topIn, frameIn);
+//        mprintf("DEBUG: Based on t_ar %s chirality is %s\n",
+//                topIn.TruncResNameOnumId(rnum).c_str(), chiralStr[ar_chirality]);
+      CalcAnomericRefTorsion(t_ar, ano_ref_atom, ring_oxygen_atom, ring_end_atom,
+                                 RA, topIn, frameIn);
+      mprintf("DEBUG: t_ar= %f\n", t_ar * Constants::RADDEG);
+      bool t_ar_up = (t_ar > 0);
+      if (ano_ref_atom == ring_end_atom) {
+        // Anomeric reference is the ring end, same side is beta, opposite is alpha.
+        if (t_an_up == t_ar_up)
+          mprintf("DEBUG: Form is Beta\n");
+        else
+          mprintf("DEBUG: Form is Alpha\n");
+      } else {
+        // Anomeric reference isnt the ring end, definition is reversed.
+        if (t_an_up != t_ar_up)
+          mprintf("DEBUG: Form is Beta\n");
+        else
+          mprintf("DEBUG: Form is Alpha\n");
+      }
 
       // Get complete chain
       Iarray carbon_chain = RA;
