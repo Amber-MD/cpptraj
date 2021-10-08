@@ -934,6 +934,8 @@ const
   return ret;
 }
 
+
+
 static inline void bond_count(int& bonds_to_h,
                               int& bonds_to_other_res,
                               int rnum, Topology const& topIn, Atom const& currentAtom)
@@ -1143,6 +1145,7 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
         RA.push_back( *it );
       }
       if (debug_ > 0) mprintf("\n"); // DEBUG
+
       // Create an array with all ring atoms set to true
       std::vector<bool> IsRingAtom;
       IsRingAtom.assign( topIn.Natom(), false );
@@ -1158,7 +1161,7 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
       //                    RA, topIn, frameIn);
       mprintf("DEBUG: t_an= %f\n", t_an * Constants::RADDEG);
       //bool t_an_up = (t_an > 0);
-      mprintf("DEBUG: Based on t_an %s form is %s\n",
+      mprintf("DEBUG: Based on t_an %s chirality is %s\n",
               topIn.TruncResNameOnumId(rnum).c_str(), chiralStr[ac_chirality]);
 
       // Find anomeric reference atom. Start at ring end and work down to anomeric atom
@@ -1177,18 +1180,17 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
         //                           RA, topIn, frameIn);
         mprintf("DEBUG: t_ar= %f\n", t_ar * Constants::RADDEG);
         //bool t_ar_up = (t_ar > 0);
-        mprintf("DEBUG: Based on t_ar %s form is %s\n",
+        mprintf("DEBUG: Based on t_ar %s chirality is %s\n",
                 topIn.TruncResNameOnumId(rnum).c_str(), chiralStr[ar_chirality]);
-        if (ac_chirality == IS_R)
-          mprintf("DEBUG: Overall form is beta\n");
-        else
-          mprintf("DEBUG: Overall form is alpha\n");
       //} 
 
       // Get complete chain
       Iarray carbon_chain = RA;
-      if (FindRemainingChainCarbons(carbon_chain, ring_end_atom, topIn, rnum, IsRingAtom))
-        return 1;
+      if (FindRemainingChainCarbons(carbon_chain, ring_end_atom, topIn, rnum, IsRingAtom)) {
+        mprinterr("Error: Could not find remaining chain carbons.\n");
+        err = 1;
+        return Sugar(rnum);
+      }
       // Get the index of the highest stereocenter
       mprintf("DEBUG: Complete carbon chain:\n");
       for (Iarray::const_iterator it = carbon_chain.begin(); it != carbon_chain.end(); ++it)
