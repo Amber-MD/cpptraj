@@ -1105,12 +1105,12 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
       }
       if (debug_ > 0) mprintf("\n"); // DEBUG
 
-      // Create an array with all ring atoms set to true
+/*      // Create an array with all ring atoms set to true
       std::vector<bool> IsRingAtom;
       IsRingAtom.assign( topIn.Natom(), false );
       IsRingAtom[ring_oxygen_atom] = true;
       for (Iarray::const_iterator it = RA.begin(); it != RA.end(); ++it)
-        IsRingAtom[ *it ] = true;
+        IsRingAtom[ *it ] = true;*/
       // For determining orientation around anomeric carbon need ring
       // oxygen atom and next carbon in the ring.
       double t_an;
