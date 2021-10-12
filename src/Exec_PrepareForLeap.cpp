@@ -726,7 +726,7 @@ const
                      frameIn.XYZ(config_carbon),
                      frameIn.XYZ(atom_z),
                      frameIn.XYZ(atom_c1) );
-  //if (debug_ > 0)
+  if (debug_ > 0)
     mprintf("DEBUG: Config. C torsion %s-%s-%s-%s= %f\n",
             *(topIn[atom_c0].Name()),
             *(topIn[config_carbon].Name()),
@@ -1169,9 +1169,7 @@ const
   // By definition, anomeric atom is index 0 in the chain.
   // Determine index of the anomeric reference atom in the chain.
   int ar_idx = AtomIdxInArray(sugar.ChainAtoms(), sugar.AnomericRefAtom());
-  mprintf("DEBUG: Index of the anomeric reference atom is %i\n", ar_idx);
   int cc_idx = AtomIdxInArray(sugar.ChainAtoms(), sugar.HighestStereocenter());
-  mprintf("DEBUG: Index of the config. carbon atom is %i\n", cc_idx);
 
   // Determine form and chirality.
   // May need to adjust definitions based on the positions of the anomeric
@@ -1181,13 +1179,15 @@ const
   if ((cc_idx % 2) != 0)
     t_cc_up = !t_cc_up;
 
-  mprintf("DEBUG: t_an_up=%i  t_ar_up=%i  t_cc_up=%i\n",
-          (int)t_an_up, (int)t_ar_up, (int)t_cc_up);
+  if ( debug_ > 0) {
+    mprintf("DEBUG: Index of the anomeric reference atom is %i\n", ar_idx);
+    mprintf("DEBUG: Index of the config. carbon atom is %i\n", cc_idx);
+    mprintf("DEBUG: t_an_up=%i  t_ar_up=%i  t_cc_up=%i\n",
+            (int)t_an_up, (int)t_ar_up, (int)t_cc_up);
+  }
 
   AnomerRetType form;
-  mprintf("DEBUG: t_an_up=%i  t_ar_up=%i  t_cc_up=%i\n",
-          (int)t_an_up, (int)t_ar_up, (int)t_cc_up);;
-    // Same side is beta, opposite is alpha.
+  // Same side is beta, opposite is alpha.
   if (t_an_up == t_ar_up) {
     form = IS_BETA;
     //mprintf("DEBUG: Form is Beta\n");
