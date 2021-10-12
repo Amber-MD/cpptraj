@@ -34,7 +34,7 @@ class Exec_PrepareForLeap : public Exec {
     int LoadPdbResNames(std::string const&);
 
     void LeapBond(int,int,Topology const&, CpptrajFile*) const;
-    int CalcStereocenterTorsion(double&, int, Topology const&, Frame const&) const;
+//    int CalcStereocenterTorsion(double&, int, Topology const&, Frame const&) const;
     int FindRemainingChainCarbons(Iarray&, int, Topology const&, int, Iarray const&) const;
     int FindSugarC1Linkages(Sugar const&, Topology&, Frame const&) const;
     /// Determine orientation around anomeric carbon

@@ -328,6 +328,7 @@ int Exec_PrepareForLeap::LoadGlycamPdbResMap(std::string const& fnameIn)
 }
 
 /** Determine torsion around non-ring stereocenter. */
+/*
 int Exec_PrepareForLeap::CalcStereocenterTorsion(double& torsion,
                                                  int idx,
                                                  Topology const& topIn, Frame const& frameIn)
@@ -379,7 +380,7 @@ const
           *(topIn[i0].Name()), *(topIn[idx].Name()), *(topIn[i1].Name()), *(topIn[ix].Name()),
           torsion * Constants::RADDEG);
   return 0;
-}
+}*/
          
 /// Recursive function for finding and recording all carbons
 static void Find_Carbons(int atm, Topology const& topIn, std::vector<bool>& Visited,
@@ -1184,6 +1185,8 @@ const
           (int)t_an_up, (int)t_ar_up, (int)t_cc_up);
 
   AnomerRetType form;
+  mprintf("DEBUG: t_an_up=%i  t_ar_up=%i  t_cc_up=%i\n",
+          (int)t_an_up, (int)t_ar_up, (int)t_cc_up);;
     // Same side is beta, opposite is alpha.
   if (t_an_up == t_ar_up) {
     form = IS_BETA;
