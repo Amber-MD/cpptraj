@@ -671,6 +671,69 @@ const
   return 0;
 }
 
+/** Determine torsion around the configurational carbon. 
+  * Calculate torsion around config. carbon C as:
+  *   C0-C-C1-Z
+  * where C0 is the carbon preceding C in the chain, C1 is the carbon
+  * after C in the chain, and Z is the non-hydrogen substituent of C
+  * with highest priority.
+  */
+int Exec_PrepareForLeap::CalcConfigCarbonTorsion(double& torsion, int config_carbon,
+                                                 Iarray const& carbon_chain,
+                                                 Topology const& topIn,
+                                                 Frame const& frameIn)
+const
+{
+  int atom_c0 = -1;
+  int atom_c1 = -1;
+  int atom_z  = -1;
+  // Get c0 and c1
+  int c_idx = AtomIdxInArray(carbon_chain, config_carbon);
+  if (c_idx < 1) {
+    mprinterr("Error: Could not determine carbon before config. C '%s'\n",
+              topIn.ResNameNumAtomNameNum(config_carbon).c_str());
+    return 1;
+  }
+  atom_c0 = carbon_chain[c_idx-1];
+  if ((unsigned int)c_idx+1 >= carbon_chain.size()) {
+    mprinterr("Error: Could not determine carbon after config. C '%s'\n",
+              topIn.ResNameNumAtomNameNum(config_carbon).c_str());
+    return 1;
+  }
+  atom_c1 = carbon_chain[c_idx+1];
+
+  for (Atom::bond_iterator bat = topIn[config_carbon].bondbegin();
+                           bat != topIn[config_carbon].bondend(); ++bat)
+  {
+    if (topIn[*bat].Element() != Atom::HYDROGEN &&
+        !AtomIsInArray(carbon_chain, *bat))
+    {
+      if (atom_z == -1)
+        atom_z = *bat;
+      else if (topIn[*bat].AtomicNumber() > topIn[atom_z].AtomicNumber())
+        atom_z = *bat;
+    }
+  }
+  if (atom_z == -1) {
+    mprinterr("Error: Could not determine substituent for config. C '%s'\n",
+              topIn.ResNameNumAtomNameNum(config_carbon).c_str());
+    return 1;
+  }
+
+  torsion = Torsion( frameIn.XYZ(atom_c0),
+                     frameIn.XYZ(config_carbon),
+                     frameIn.XYZ(atom_c1),
+                     frameIn.XYZ(atom_z) );
+  //if (debug_ > 0)
+    mprintf("DEBUG: Config C. torsion %s-%s-%s-%s= %f\n",
+            *(topIn[atom_c0].Name()),
+            *(topIn[config_carbon].Name()),
+            *(topIn[atom_c1].Name()),
+            *(topIn[atom_z].Name()),
+            torsion*Constants::RADDEG);
+  return 0;
+}
+
 /// \return Total priority (i.e. sum of atomic numbers) of atoms bonded to given atom.
 int Exec_PrepareForLeap::totalPriority(Topology const& topIn, int atnum, int rnum,
                                        int depth, int tgtdepth, std::vector<bool>& Visited)
@@ -1117,6 +1180,8 @@ const
 
   if (sugar.HighestStereocenter() != sugar.AnomericRefAtom()) {
     double stereo_t = 0;
+    CalcConfigCarbonTorsion(stereo_t, sugar.HighestStereocenter(),
+                            sugar.ChainAtoms(), topIn, frameIn);
     if (CalcStereocenterTorsion(stereo_t, sugar.HighestStereocenter(), topIn, frameIn))
       return A_ERR;
     isDform = (stereo_t > 0);

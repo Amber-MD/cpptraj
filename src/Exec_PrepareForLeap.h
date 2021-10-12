@@ -43,6 +43,9 @@ class Exec_PrepareForLeap : public Exec {
     /// Determine orientation around anomeric reference carbon
     int CalcAnomericRefTorsion(double&, int, int, int, Iarray const&,
                                Topology const&, Frame const&) const;
+    /// Determine orientation around configurational carbon
+    int CalcConfigCarbonTorsion(double&, int, Iarray const&,
+                                Topology const&, Frame const&) const;
 
     static int totalPriority(Topology const&, int, int, int, int, std::vector<bool>&);
 
