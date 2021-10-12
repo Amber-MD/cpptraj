@@ -1149,8 +1149,6 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
   resChar = pdb_glycam->second;
 
   mprintf("\tSugar %s glycam name: %c\n", sugarName.c_str(), resChar);
-  if (debug_ > 0)
-    mprintf("DEBUG:\tOriginal #= %i chain %c\n", res.OriginalResNum(), res.ChainId());
 
   // Change PDB names to Glycam ones
   if (ChangePdbAtomNamesToGlycam(resChar, res, topIn)) {
