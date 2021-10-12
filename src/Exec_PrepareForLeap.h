@@ -74,7 +74,7 @@ class Exec_PrepareForLeap : public Exec {
     int ModifyCoords(Topology&, Frame&, bool, char, std::string const&,
                      std::string const&, Iarray const&) const;
     int RemoveHydrogens(Topology&, Frame&) const;
-    int DetermineHisProt(std::vector<NameType>&, std::vector<int>&, Topology const&,
+    int DetermineHisProt(std::vector<NameType>&, Iarray&, Topology const&,
                          NameType const&, NameType const&,
                          NameType const&, NameType const&, NameType const&, NameType const&) const;
 
@@ -114,15 +114,16 @@ class Exec_PrepareForLeap : public Exec {
 class Exec_PrepareForLeap::Sugar {
   public:
     Sugar(int);
-    Sugar(int,int,int,int,int,std::vector<int> const&);
+    Sugar(int,int,int,int,int,Iarray const&,Iarray const&);
 
-    int ResNum()          const { return rnum_; }
-    int RingOxygenAtom()  const { return ring_oxygen_atom_; }
-    int AnomericAtom()    const { return anomeric_atom_; }
-    int AnomericRefAtom() const { return ano_ref_atom_; }
-    int HighestStereocenter() const { return highest_stereocenter_; }
-    Iarray const& RingAtoms() const { return ring_atoms_; }
-    int RingEndAtom()         const { return ring_atoms_.back(); }
+    int ResNum()               const { return rnum_; }
+    int RingOxygenAtom()       const { return ring_oxygen_atom_; }
+    int AnomericAtom()         const { return anomeric_atom_; }
+    int AnomericRefAtom()      const { return ano_ref_atom_; }
+    int HighestStereocenter()  const { return highest_stereocenter_; }
+    Iarray const& RingAtoms()  const { return ring_atoms_; }
+    int RingEndAtom()          const { return ring_atoms_.back(); }
+    Iarray const& ChainAtoms() const { return chain_atoms_; }
 //    typedef std::vector<int>::const_iterator const_iterator;
 //    const_iterator ringbegin() const { return ring_atoms_.begin(); }
 //    const_iterator ringend()   const { return ring_atoms_.end(); }
@@ -132,11 +133,12 @@ class Exec_PrepareForLeap::Sugar {
     unsigned int NumRingAtoms() const;
     void PrintInfo(Topology const&) const;
   private:
-    int rnum_;             ///< Residue index
-    int ring_oxygen_atom_; ///< Index of the ring oxygen atom
-    int anomeric_atom_;    ///< Index of the anomeric C atom (ring start)
-    int ano_ref_atom_;     ///< Index of the anomeric reference C atom
+    int rnum_;                 ///< Residue index
+    int ring_oxygen_atom_;     ///< Index of the ring oxygen atom
+    int anomeric_atom_;        ///< Index of the anomeric C atom (ring start)
+    int ano_ref_atom_;         ///< Index of the anomeric reference C atom
     int highest_stereocenter_; ///< Index of the highest stereocenter in the carbon chain
-    std::vector<int> ring_atoms_; ///< Index of all non-oxygen ring atoms
+    Iarray ring_atoms_;        ///< Index of all non-oxygen ring atoms
+    Iarray chain_atoms_;       ///< Index of all chain carbon atoms (from anomeric carbon).
 };
 #endif

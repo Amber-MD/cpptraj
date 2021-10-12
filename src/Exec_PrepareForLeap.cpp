@@ -21,13 +21,14 @@ Exec_PrepareForLeap::Sugar::Sugar(int rn) :
 {}
 
 Exec_PrepareForLeap::Sugar::Sugar(int rn, int roa, int aa, int ara, int hs,
-                                  std::vector<int> const& RA) :
+                                  Iarray const& RA, Iarray const& CA) :
   rnum_(rn),
   ring_oxygen_atom_(roa),
   anomeric_atom_(aa),
   ano_ref_atom_(ara),
   highest_stereocenter_(hs),
-  ring_atoms_(RA)
+  ring_atoms_(RA),
+  chain_atoms_(CA)
 {}
 
 void Exec_PrepareForLeap::Sugar::PrintInfo(Topology const& topIn) const {
@@ -41,7 +42,10 @@ void Exec_PrepareForLeap::Sugar::PrintInfo(Topology const& topIn) const {
     mprintf("\t\tConfig. C        : %s\n", topIn.TruncAtomNameNum(highest_stereocenter_).c_str());
     mprintf("\t\tNum ring atoms   : %u\n", NumRingAtoms());
     mprintf("\t\tNon-O Ring atoms :");
-    for (std::vector<int>::const_iterator it = ring_atoms_.begin(); it != ring_atoms_.end(); ++it)
+    for (Iarray::const_iterator it = ring_atoms_.begin(); it != ring_atoms_.end(); ++it)
+      mprintf(" %s", topIn.TruncAtomNameNum(*it).c_str());
+    mprintf("\n\t\tChain atoms      :");
+    for (Iarray::const_iterator it = chain_atoms_.begin(); it != chain_atoms_.end(); ++it)
       mprintf(" %s", topIn.TruncAtomNameNum(*it).c_str());
     mprintf("\n");
   }
@@ -807,7 +811,7 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
   Residue const& res = topIn.Res(rnum);
 
   // Determine candidates for ring oxygen atoms. 
-  std::vector<int> potentialRingStartAtoms;
+  Iarray potentialRingStartAtoms;
   for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
   {
     Atom const& currentAtom = topIn[at];
@@ -834,9 +838,9 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
     return Sugar(rnum);
   } else if (potentialRingStartAtoms.size() > 1) {
     mprinterr("Error: Multiple potential ring start atoms:\n");
-    for (std::vector<int>::const_iterator it = potentialRingStartAtoms.begin();
-                                          it != potentialRingStartAtoms.end();
-                                         ++it)
+    for (Iarray::const_iterator it = potentialRingStartAtoms.begin();
+                                it != potentialRingStartAtoms.end();
+                              ++it)
       mprinterr("Error:   %s\n", topIn.ResNameNumAtomNameNum(*it).c_str());
     err = 1;
     return Sugar(rnum);
@@ -903,17 +907,19 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
   // This will hold the index of the highest stereocenter, e.g. C5
   int highest_stereocenter = -1;
   // This will hold ring atoms, not including the ring oxygen.
-  std::vector<int> RA;
-  for (std::vector<int>::const_iterator ringat = potentialRingStartAtoms.begin();
-                                        ringat != potentialRingStartAtoms.end();
-                                      ++ringat)
+  Iarray RA;
+  // This will hold carbon chain atoms starting from the anomeric carbon
+  Iarray carbon_chain;
+  for (Iarray::const_iterator ringat = potentialRingStartAtoms.begin();
+                              ringat != potentialRingStartAtoms.end();
+                            ++ringat)
   {
     // Mark all atoms as visited except this residue (minus the ring start).
     std::vector<bool> Visited( topIn.Natom(), true );
     for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
       if (at != *ringat)
         Visited[at] = false;
-    std::vector<int> ring_atoms( topIn.Res(rnum).NumAtoms(), -1 );
+    Iarray ring_atoms( topIn.Res(rnum).NumAtoms(), -1 );
     bool ring_complete = false;
     // Since we have already established that *ringat is an oxygen bonded
     // to two carbons, just start at the first carbon to see if we can
@@ -963,7 +969,7 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
       // Place the ring atoms into an array without the terminating -1
       RA.clear();
       if (debug_ > 0) mprintf(" :"); // DEBUG
-      for (std::vector<int>::const_iterator it = ring_atoms.begin(); it != ring_atoms.end(); ++it)
+      for (Iarray::const_iterator it = ring_atoms.begin(); it != ring_atoms.end(); ++it)
       {
         if (debug_ > 0) mprintf(" %i", *it + 1);
         if (*it == -1) break;
@@ -978,15 +984,15 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
           break;
         }
 
-      // Get complete chain
-      Iarray carbon_chain = RA;
+      // Get complete chain starting from the anomeric carbon
+      carbon_chain = RA;
       if (FindRemainingChainCarbons(carbon_chain, ring_end_atom, topIn, rnum, RA)) {
         mprinterr("Error: Could not find remaining chain carbons.\n");
         err = 1;
         return Sugar(rnum);
       }
       if (debug_ > 0) {
-        mprintf("DEBUG: Complete carbon chain:\n");
+        mprintf("DEBUG: Complete carbon chain (from anomeric carbon):\n");
         for (Iarray::const_iterator it = carbon_chain.begin(); it != carbon_chain.end(); ++it)
           mprintf("\t\t%s\n", topIn.ResNameNumAtomNameNum(*it).c_str());
       }
@@ -1009,7 +1015,8 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
   }
   if (debug_ > 0)
     mprintf("\t  Ring oxygen         : %s\n", topIn.ResNameNumAtomNameNum(ring_oxygen_atom).c_str());
-  return Sugar(rnum, ring_oxygen_atom, anomeric_atom, ano_ref_atom, highest_stereocenter, RA);
+  return Sugar(rnum, ring_oxygen_atom, anomeric_atom, ano_ref_atom, highest_stereocenter,
+               RA, carbon_chain);
 }
 
 /** Change PDB atom names in residue to glycam ones. */
@@ -1273,12 +1280,12 @@ int Exec_PrepareForLeap::PrepareSugars(AtomMask& sugarMask, Topology& topIn,
   else {
     CharMask cmask( sugarMask.ConvertToCharMask(), sugarMask.Nselected() );
     // Get sugar residue numbers
-    std::vector<int> sugarResNums = topIn.ResnumsSelectedBy( sugarMask );
+    Iarray sugarResNums = topIn.ResnumsSelectedBy( sugarMask );
     // Try to identify sugar rings
     std::vector<Sugar> Sugars;
     Sugars.reserve( sugarResNums.size() );
-    for (std::vector<int>::const_iterator rnum = sugarResNums.begin();
-                                          rnum != sugarResNums.end(); ++rnum)
+    for (Iarray::const_iterator rnum = sugarResNums.begin();
+                                rnum != sugarResNums.end(); ++rnum)
     {
       int err = 0;
       Sugars.push_back( IdSugarRing(*rnum, topIn, err) );
@@ -1350,7 +1357,7 @@ const
   unsigned int currentAtom = 0;
   unsigned int currentMol = 0;
   unsigned int lowestUnassignedAtom = 0;
-  std::vector<int> atomMolNum( topIn.Natom(), -1 );
+  Iarray atomMolNum( topIn.Natom(), -1 );
   while (unassignedAtomsRemain) {
     // This atom is in molecule.
     atomMolNum[currentAtom] = currentMol;
@@ -1440,7 +1447,7 @@ int Exec_PrepareForLeap::SearchForDisulfides(double disulfidecut, std::string co
     double cut2 = disulfidecut * disulfidecut;
     // Try to find potential disulfide sites.
     // Keep track of which atoms will be part of disulfide bonds.
-    std::vector<int> disulfidePartner( cysmask.Nselected(), -1 );
+    Iarray disulfidePartner( cysmask.Nselected(), -1 );
     // First, check for existing disulfides.
     for (AtomMask::const_iterator at1 = cysmask.begin(); at1 != cysmask.end(); ++at1)
     {
@@ -1460,7 +1467,7 @@ int Exec_PrepareForLeap::SearchForDisulfides(double disulfidecut, std::string co
     // DEBUG - Print current array
     if (debug_ > 1) {
       mprintf("DEBUG: Disulfide partner array after existing:\n");
-      for (std::vector<int>::const_iterator it = disulfidePartner.begin(); it != disulfidePartner.end(); ++it)
+      for (Iarray::const_iterator it = disulfidePartner.begin(); it != disulfidePartner.end(); ++it)
       {
         mprintf("  S %i [%li]", cysmask[it-disulfidePartner.begin()]+1, it-disulfidePartner.begin());
         if (*it == -1)
@@ -1472,7 +1479,7 @@ int Exec_PrepareForLeap::SearchForDisulfides(double disulfidecut, std::string co
     // Second, search for new disulfides from remaining sulfurs.
     if (searchForNewDisulfides) {
       // Only search with atoms that do not have an existing partner.
-      std::vector<int> s_idxs; // Indices into cysmask/disulfidePartner
+      Iarray s_idxs; // Indices into cysmask/disulfidePartner
       for (int idx = 0; idx != cysmask.Nselected(); idx++)
         if (disulfidePartner[idx] == -1)
           s_idxs.push_back( idx );
@@ -1489,10 +1496,10 @@ int Exec_PrepareForLeap::SearchForDisulfides(double disulfidecut, std::string co
         typedef std::vector<D2Pair> D2Array;
         D2Array D2;
 
-        for (std::vector<int>::const_iterator it1 = s_idxs.begin(); it1 != s_idxs.end(); ++it1)
+        for (Iarray::const_iterator it1 = s_idxs.begin(); it1 != s_idxs.end(); ++it1)
         {
           int at1 = cysmask[*it1];
-          for (std::vector<int>::const_iterator it2 = it1 + 1; it2 != s_idxs.end(); ++it2)
+          for (Iarray::const_iterator it2 = it1 + 1; it2 != s_idxs.end(); ++it2)
           {
             int at2 = cysmask[*it2];
             double r2 = DIST2_NoImage(frameIn.XYZ(at1), frameIn.XYZ(at2));
@@ -1530,7 +1537,7 @@ int Exec_PrepareForLeap::SearchForDisulfides(double disulfidecut, std::string co
     } // END search for new disulfides
     // For each sulfur that has a disulfide partner, generate a bond command
     // and change residue name.
-    for (std::vector<int>::const_iterator idx1 = disulfidePartner.begin(); idx1 != disulfidePartner.end(); ++idx1)
+    for (Iarray::const_iterator idx1 = disulfidePartner.begin(); idx1 != disulfidePartner.end(); ++idx1)
     {
       if (*idx1 != -1) {
         int at1 = cysmask[idx1-disulfidePartner.begin()];
@@ -1780,7 +1787,7 @@ int Exec_PrepareForLeap::RemoveHydrogens(Topology& topIn, Frame& frameIn) const 
   * \param HipName Name for doubly-protonated His.
   */
 int Exec_PrepareForLeap::DetermineHisProt( std::vector<NameType>& HisResNames,
-                                           std::vector<int>& HisResIdxs,
+                                           Iarray& HisResIdxs,
                                            Topology const& topIn,
                                            NameType const& ND1,
                                            NameType const& NE2,
@@ -1799,14 +1806,14 @@ const
   }
   if ( topIn.SetupIntegerMask( mask )) return 1;
   mask.MaskInfo();
-  std::vector<int> resIdxs = topIn.ResnumsSelectedBy( mask );
+  Iarray resIdxs = topIn.ResnumsSelectedBy( mask );
 
   HisResIdxs.clear();
   HisResIdxs.reserve( resIdxs.size() );
   HisResNames.clear();
   HisResNames.reserve( resIdxs.size() );
-  for (std::vector<int>::const_iterator rnum = resIdxs.begin();
-                                        rnum != resIdxs.end(); ++rnum)
+  for (Iarray::const_iterator rnum = resIdxs.begin();
+                              rnum != resIdxs.end(); ++rnum)
   {
     if (debug_ > 1)
       mprintf("DEBUG: %s (%i) (%c)\n", topIn.TruncResNameOnumId(*rnum).c_str(), topIn.Res(*rnum).OriginalResNum(), topIn.Res(*rnum).ChainId());
