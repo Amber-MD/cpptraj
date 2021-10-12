@@ -1,20 +1,24 @@
 #include "MapAtom.h"
-// TODO: Just set the char to whatever the atomic weight is?
+
+/** Try to assign more common elements letters that are like
+  * their names; for less common elements just use whatever
+  * characters are handy. 
+  */
 const char MapAtom::AtomicElementChar[Atom::NUMELEMENTS_] = { 0,
   'H',  'B',  'C',  'N',  'O', 'F',  
   'P',  'S',  'X',  'Y',  'f', 'c',
   'I',  'M',  'U',  'L',  'K', 'R',  
-  'E',  'Z',  'n',    0,    0,   0,
-    0,    0,    0,    0,    0,   0,
-    0,    0,    0,    0,    0,   0,
-    0,    0,    0,    0,    0,   0,
-    0,    0,    0,    0,    0,   0,
-    0,    0,    0,    0,    0,   0,
-    0,    0,    0,    0,    0,   0,
-    0,    0,    0,    0,    0,   0,
-    0,    0,    0,    0,    0,   0,
-    0,    0,
-    0
+  'E',  'Z',  'n',  'A',  'r', 'a',
+  's',  'G',  't',  'b',  '{', 'i',
+  'h',  'o',  'D',  '}',  '|', '~',
+  '!',  '"',  '#',  '$',  '%', '&',
+  '(',  ')',  '*',  '+',  ',', '-',
+  '.',  '/',  '0',  '1',  '2', '3',
+  '4',  '5',  '6',  '7',  '8', '9',
+  ':',  ';',  '<',  '=',  '>', '?',
+  '@',  '[', '\\',  ']',  '^', '_',
+  '\'',  '`',
+  'x'
 };
 
 /// CONSTRUCTOR
