@@ -396,13 +396,22 @@ static void Find_Carbons(int atm, Topology const& topIn, std::vector<bool>& Visi
   }
 }
 
-static inline bool IsRingAtom(std::vector<int> const& RingAtoms, int tgt)
+/// \return True if the given tgt atom is in the given array
+static inline bool AtomIsInArray(std::vector<int> const& RingAtoms, int tgt)
 {
   for (std::vector<int>::const_iterator it = RingAtoms.begin(); it != RingAtoms.end(); ++it)
     if (*it == tgt) return true;
   return false;
 }
 
+/// \return Position of given tgt atom in the array (if it is in the given array)
+static inline int AtomIdxInArray(std::vector<int> const& ChainAtoms, int tgt)
+{
+  for (std::vector<int>::const_iterator it = ChainAtoms.begin(); it != ChainAtoms.end(); ++it)
+    if (*it == tgt)
+      return (int)(it - ChainAtoms.begin());
+  return -1;
+}
 
 /** Find remaining non-ring carbons in chain starting from ring end atom. */
 int Exec_PrepareForLeap::FindRemainingChainCarbons(Iarray& remainingChainCarbons,
@@ -413,7 +422,7 @@ const
   Residue const& res = topIn.Res(rnum);
   std::vector<bool> Visited(topIn.Natom(), true);
   for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
-    if (!IsRingAtom(RingAtoms, at))
+    if (!AtomIsInArray(RingAtoms, at))
       Visited[at] = false;
 
   for (Atom::bond_iterator bat = topIn[start_c].bondbegin();
@@ -540,7 +549,7 @@ const
   {
     if ( *bat != ring_oxygen_atom &&
          topIn[*bat].Element() != Atom::HYDROGEN &&
-         !IsRingAtom(RingAtoms, *bat) )
+         !AtomIsInArray(RingAtoms, *bat) )
     {
       if (anomeric_atom_X != -1) {
         // If there are two non-ring, non-hydrogen substituents, prioritize
@@ -636,7 +645,7 @@ const
   {
     if ( *bat != ring_oxygen_atom &&
          topIn[*bat].Element() != Atom::HYDROGEN &&
-         !IsRingAtom(RingAtoms, *bat) )
+         !AtomIsInArray(RingAtoms, *bat) )
     {
       if (ano_ref_atom_Y != -1) {
         mprinterr("Error: Two potential non-ring substituents for anomeric ref: %s and %s\n",
@@ -1077,6 +1086,11 @@ const
     return A_ERR; 
   }
   bool t_ar_up = (t_ar > 0);
+
+  // By definition, anomeric atom is index 0 in the chain.
+  // Determine index of the anomeric reference atom in the chain.
+  int ar_idx = AtomIdxInArray(sugar.ChainAtoms(), sugar.AnomericRefAtom());
+  mprintf("DEBUG: Index of the anomeric reference atom is %i\n", ar_idx);
 
   AnomerRetType form;
   if (sugar.AnomericRefAtom() == sugar.RingEndAtom()) {
@@ -2086,7 +2100,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   // Do histidine detection before H atoms are removed
-  std::vector<int> HisResIdxs;
+  Iarray HisResIdxs;
   std::vector<NameType> HisResNames;
   if (!argIn.hasKey("nohisdetect")) {
     std::string nd1name = argIn.GetStringKey("nd1", "ND1");
