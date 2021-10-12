@@ -673,10 +673,11 @@ const
 
 /** Determine torsion around the configurational carbon. 
   * Calculate torsion around config. carbon C as:
-  *   C0-C-C1-Z
+  *   C0-C-Z-C1
   * where C0 is the carbon preceding C in the chain, C1 is the carbon
   * after C in the chain, and Z is the non-hydrogen substituent of C
-  * with highest priority.
+  * with highest priority. Do it this way to be consistent with how
+  * CalcAnomericRefTorsion orders the atoms.
   */
 int Exec_PrepareForLeap::CalcConfigCarbonTorsion(double& torsion, int config_carbon,
                                                  Iarray const& carbon_chain,
@@ -722,14 +723,14 @@ const
 
   torsion = Torsion( frameIn.XYZ(atom_c0),
                      frameIn.XYZ(config_carbon),
-                     frameIn.XYZ(atom_c1),
-                     frameIn.XYZ(atom_z) );
+                     frameIn.XYZ(atom_z),
+                     frameIn.XYZ(atom_c1) );
   //if (debug_ > 0)
-    mprintf("DEBUG: Config C. torsion %s-%s-%s-%s= %f\n",
+    mprintf("DEBUG: Config. C torsion %s-%s-%s-%s= %f\n",
             *(topIn[atom_c0].Name()),
             *(topIn[config_carbon].Name()),
-            *(topIn[atom_c1].Name()),
             *(topIn[atom_z].Name()),
+            *(topIn[atom_c1].Name()),
             torsion*Constants::RADDEG);
   return 0;
 }
@@ -1150,6 +1151,18 @@ const
   }
   bool t_ar_up = (t_ar > 0);
 
+  // If config. C is not the anomeric reference, need the previous
+  // carbon in the chain, next carbon in the chain, and config. C
+  // substituent.
+  double t_cc;
+  if (sugar.AnomericRefAtom() != sugar.HighestStereocenter()) {
+    if (CalcConfigCarbonTorsion(t_cc, sugar.HighestStereocenter(),
+                                sugar.ChainAtoms(), topIn, frameIn))
+      return A_ERR;
+  } else
+    t_cc = t_ar;
+  bool t_cc_up = (t_cc > 0);
+
   // By definition, anomeric atom is index 0 in the chain.
   // Determine index of the anomeric reference atom in the chain.
   int ar_idx = AtomIdxInArray(sugar.ChainAtoms(), sugar.AnomericRefAtom());
@@ -1180,8 +1193,6 @@ const
 
   if (sugar.HighestStereocenter() != sugar.AnomericRefAtom()) {
     double stereo_t = 0;
-    CalcConfigCarbonTorsion(stereo_t, sugar.HighestStereocenter(),
-                            sugar.ChainAtoms(), topIn, frameIn);
     if (CalcStereocenterTorsion(stereo_t, sugar.HighestStereocenter(), topIn, frameIn))
       return A_ERR;
     isDform = (stereo_t > 0);
