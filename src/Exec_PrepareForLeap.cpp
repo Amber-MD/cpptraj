@@ -987,6 +987,8 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
                               ringat != potentialRingStartAtoms.end();
                             ++ringat)
   {
+    if (debug_ > 0)
+      mprintf("DEBUG: Ring start '%s'\n", topIn.ResNameNumAtomNameNum(*ringat).c_str());
     // Mark all atoms as visited except this residue (minus the ring start).
     std::vector<bool> Visited( topIn.Natom(), true );
     for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
@@ -1016,7 +1018,7 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
       if (topIn[*bat].Element() == Atom::CARBON)
         c_end_bonds_to_C++;
     if (debug_ > 0)
-      mprintf("(%s bonds to C= %i, %s bonds to C = %i)", // DEBUG
+      mprintf("DEBUG:\t(%s bonds to C= %i, %s bonds to C = %i)\n", // DEBUG
               topIn.ResNameNumAtomNameNum(c_beg).c_str(), c_beg_bonds_to_C,
               topIn.ResNameNumAtomNameNum(c_end).c_str(), c_end_bonds_to_C);
     if (c_beg_bonds_to_C <= c_end_bonds_to_C) {
@@ -1167,8 +1169,34 @@ const
   // Determine index of the anomeric reference atom in the chain.
   int ar_idx = AtomIdxInArray(sugar.ChainAtoms(), sugar.AnomericRefAtom());
   mprintf("DEBUG: Index of the anomeric reference atom is %i\n", ar_idx);
+  int cc_idx = AtomIdxInArray(sugar.ChainAtoms(), sugar.HighestStereocenter());
+  mprintf("DEBUG: Index of the config. carbon atom is %i\n", cc_idx);
+
+  // Determine form and chirality.
+  // May need to adjust definitions based on the positions of the anomeric
+  // reference and config. atoms in the sequence, which alternates.
+  if ((ar_idx % 2) != 0)
+    t_ar_up = !t_ar_up;
+  if ((cc_idx % 2) != 0)
+    t_cc_up = !t_cc_up;
+
+  mprintf("DEBUG: t_an_up=%i  t_ar_up=%i  t_cc_up=%i\n",
+          (int)t_an_up, (int)t_ar_up, (int)t_cc_up);
 
   AnomerRetType form;
+    // Same side is beta, opposite is alpha.
+  if (t_an_up == t_ar_up) {
+    form = IS_BETA;
+    //mprintf("DEBUG: Form is Beta\n");
+  } else {
+    form = IS_ALPHA;
+    //mprintf("DEBUG: Form is Alpha\n");
+  }
+
+  // By the atom ordering used by CalcAnomericRefTorsion and
+  // CalcConfigCarbonTorsion, D is a negative (down) torsion.
+  isDform = !t_cc_up;
+/*
   if (sugar.AnomericRefAtom() == sugar.RingEndAtom()) {
     // Anomeric reference is the ring end, same side is beta, opposite is alpha.
     isDform = !t_ar_up;
@@ -1196,7 +1224,7 @@ const
     if (CalcStereocenterTorsion(stereo_t, sugar.HighestStereocenter(), topIn, frameIn))
       return A_ERR;
     isDform = (stereo_t > 0);
-  }
+  }*/
 
   return form;
 }
