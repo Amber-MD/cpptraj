@@ -1732,9 +1732,9 @@ int Topology::SplitResidue(AtomMask const& maskIn, NameType const& newName)
   mprintf("DEBUG: New res1: Atoms %s to %s\n",
           newTop->AtomMaskName(r1firstAtom).c_str(), newTop->AtomMaskName(r1lastAtom-1).c_str());
   //DEBUG
-  *this = *newTop; // DEBUG
-  delete newTop; // DEBUG
-  return 0; // DEBUG
+//  *this = *newTop; // DEBUG
+//  delete newTop; // DEBUG
+//  return 0; // DEBUG
   // END DEBUG
   // Decide insertion codes.
   char icode0, icode1;
@@ -1754,26 +1754,40 @@ int Topology::SplitResidue(AtomMask const& maskIn, NameType const& newName)
   for (int rnum = 0; rnum < tgtResNum; rnum++)
     newTop->residues_.push_back( residues_[rnum] );
   // Add non-selected part of residue
+  //mprintf("DEBUG: Last residue: %s %i - %i\n", *(newTop->residues_.back().Name()), newTop->residues_.back().FirstAtom()+1, newTop->residues_.back().LastAtom());
   newTop->residues_.push_back( Residue(residues_[tgtResNum], r0firstAtom, r0lastAtom) );
   newTop->residues_.back().SetIcode( icode0 );
+  //mprintf("DEBUG: New R0: %s %i - %i\n", *(newTop->residues_.back().Name()), newTop->residues_.back().FirstAtom()+1, newTop->residues_.back().LastAtom());
   // Update atoms in selected part of residue
-  for (int at = r1firstAtom; at != r1lastAtom; at++)
-    newTop->atoms_[at].SetResNum( residues_.size() );
+  for (int at = r1firstAtom; at != r1lastAtom; at++) {
+    //mprintf("DEBUG: Set atom %i\n", at+1);
+    newTop->atoms_[at].SetResNum( newTop->residues_.size() );
+  }
   // Add selected part of residue
   newTop->residues_.push_back( Residue(residues_[tgtResNum], r1firstAtom, r1lastAtom) );
   newTop->residues_.back().SetIcode( icode1 );
   newTop->residues_.back().SetName( newName );
+  //mprintf("DEBUG: New R1: %s %i - %i\n", *(newTop->residues_.back().Name()), newTop->residues_.back().FirstAtom()+1, newTop->residues_.back().LastAtom());
+  int newResNum = (int)newTop->residues_.size();
   // Add remaining residues
   if (recode) {
-    for (int rnum = tgtResNum+1; rnum < Nres(); rnum++) {
+    for (int rnum = tgtResNum+1; rnum < Nres(); rnum++, newResNum++) {
       newTop->residues_.push_back( residues_[rnum] );
       if (newTop->residues_.back().OriginalResNum() == res.OriginalResNum() &&
           newTop->residues_.back().ChainId() == res.ChainId())
         newTop->residues_.back().SetIcode(++icode1);
+      for (int at = newTop->residues_.back().FirstAtom();
+               at != newTop->residues_.back().LastAtom(); ++at)
+        newTop->atoms_[at].SetResNum( newResNum );
     }
   } else {
-    for (int rnum = tgtResNum+1; rnum < Nres(); rnum++)
+    for (int rnum = tgtResNum+1; rnum < Nres(); rnum++, newResNum++) {
       newTop->residues_.push_back( residues_[rnum] );
+      for (int at = newTop->residues_.back().FirstAtom();
+               at != newTop->residues_.back().LastAtom(); ++at)
+        newTop->atoms_[at].SetResNum( newResNum );
+      //mprintf("DEBUG: Res: %s %i - %i\n", *(newTop->residues_.back().Name()), newTop->residues_.back().FirstAtom()+1, newTop->residues_.back().LastAtom());
+    }
   }
 
   *this = *newTop;
