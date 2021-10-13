@@ -36,6 +36,7 @@ class Exec_PrepareForLeap : public Exec {
     void LeapBond(int,int,Topology const&, CpptrajFile*) const;
 //    int CalcStereocenterTorsion(double&, int, Topology const&, Frame const&) const;
     int FindRemainingChainCarbons(Iarray&, int, Topology const&, int, Iarray const&) const;
+    /// Try to find any missing bonds to C1 atoms
     int FindSugarC1Linkages(Sugar const&, Topology&, Frame const&) const;
     /// Determine orientation around anomeric carbon
     int CalcAnomericTorsion(double&, int, int, int, Iarray const&,
@@ -53,8 +54,10 @@ class Exec_PrepareForLeap : public Exec {
     enum ChiralRetType { ERR = 0, IS_S, IS_R };
 
     ChiralRetType CalcChiralAtomTorsion(double&, int, Topology const&, Frame const&) const;
+    /// Error status for IdSugarRing
+    enum IdSugarRingStatType { ID_OK = 0, ID_ERR, ID_MISSING_O };
     /// \return Sugar with atom indices set up
-    Sugar IdSugarRing(int, Topology const&, int&);
+    Sugar IdSugarRing(int, Topology const&, IdSugarRingStatType&) const;
     int ChangePdbAtomNamesToGlycam(char, Residue const&, Topology&) const;
 
     /// Return type for DetermineAnomericForm
@@ -63,6 +66,9 @@ class Exec_PrepareForLeap : public Exec {
     AnomerRetType DetermineAnomericForm(bool&, Sugar const&, Topology const&, Frame const&) const;
 
     int IdentifySugar(Sugar const&, Topology&, Frame const&, CharMask const&, CpptrajFile*, std::set<BondType>&);
+    /// Determine if sugars are terminal and need an ROH residue
+    int CheckIfSugarsAreTerminal(std::string const&, Topology&) const;
+
     int PrepareSugars(AtomMask&, Topology&, Frame const&, CpptrajFile*, bool);
     int FindTerByBonds(Topology&, CharMask const&) const;
     int SearchForDisulfides(double, std::string const&, std::string const&, bool,
@@ -116,6 +122,7 @@ class Exec_PrepareForLeap : public Exec {
 // ----- Sugar class ----------------------------------------------------------
 class Exec_PrepareForLeap::Sugar {
   public:
+    /// CONSTRUCTOR - residue number, incomplete setup
     Sugar(int);
     Sugar(int,int,int,int,int,Iarray const&,Iarray const&);
 

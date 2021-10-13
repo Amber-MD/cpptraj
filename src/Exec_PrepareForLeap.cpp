@@ -889,9 +889,11 @@ const
 }
 
 /** Identify sugar oxygen, anomeric and ref carbons, and ring atoms. */
-Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology const& topIn, int& err)
+Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology const& topIn,
+                                                            IdSugarRingStatType& stat)
+const
 {
-  err = 0;
+  stat = ID_OK;
   Residue const& res = topIn.Res(rnum);
 
   // Determine candidates for ring oxygen atoms. 
@@ -918,7 +920,8 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
   if (potentialRingStartAtoms.empty()) {
     mprintf("Warning: Ring oxygen could not be identified for %s\n",
             topIn.TruncResNameOnumId(rnum).c_str());
-    resStat_[rnum] = SUGAR_MISSING_RING_O;
+    //resStat_[rnum] = SUGAR_MISSING_RING_O;
+    stat = ID_MISSING_O;
     return Sugar(rnum);
   } else if (potentialRingStartAtoms.size() > 1) {
     mprinterr("Error: Multiple potential ring start atoms:\n");
@@ -926,7 +929,7 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
                                 it != potentialRingStartAtoms.end();
                               ++it)
       mprinterr("Error:   %s\n", topIn.ResNameNumAtomNameNum(*it).c_str());
-    err = 1;
+    stat = ID_ERR;
     return Sugar(rnum);
   }
 
@@ -1074,7 +1077,7 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
       carbon_chain = RA;
       if (FindRemainingChainCarbons(carbon_chain, ring_end_atom, topIn, rnum, RA)) {
         mprinterr("Error: Could not find remaining chain carbons.\n");
-        err = 1;
+        stat = ID_ERR;
         return Sugar(rnum);
       }
       if (debug_ > 0) {
@@ -1096,7 +1099,7 @@ Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology c
   }
   if (RA.empty() || ring_oxygen_atom == -1) {
     mprinterr("Error: Sugar ring atoms could not be identified.\n");
-    err = 1;
+    stat = ID_ERR;
     return Sugar(rnum);
   }
   if (debug_ > 0)
@@ -1395,6 +1398,104 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
   return 0;
 }
 
+/** For each sugar, see if the anomeric carbon is actually terminal and needs
+  * to be a separate ROH residue.
+  */
+int Exec_PrepareForLeap::CheckIfSugarsAreTerminal(std::string const& sugarMaskStr, Topology& topIn)
+const
+{
+  AtomMask sugarMask(sugarMaskStr);
+  mprintf("\tSeaching for terminal sugars selected by '%s'\n", sugarMask.MaskString());
+  if (topIn.SetupIntegerMask( sugarMask )) return 1;
+  sugarMask.MaskInfo();
+  if (sugarMask.None()) {
+    mprintf("Warning: No sugar atoms selected by %s\n", sugarMask.MaskString());
+    return 0;
+  }
+  //CharMask cmask( sugarMask.ConvertToCharMask(), sugarMask.Nselected() );
+  // Get sugar residue numbers. Save atom indices since residue numbers
+  // will become invalidated if we have to split residues.
+  Iarray sugarResNums = topIn.ResnumsSelectedBy( sugarMask );
+  // Try to identify sugar rings.
+  // The SugarIndices array will hold the atom indices for anomeric carbons
+  // and ring oxygens.
+  typedef std::pair<int,int> AtomPair;
+  std::vector<AtomPair> SugarIndices;
+  SugarIndices.reserve( sugarResNums.size() );
+  for (Iarray::const_iterator rnum = sugarResNums.begin();
+                              rnum != sugarResNums.end(); ++rnum)
+  {
+    IdSugarRingStatType stat;
+    Sugar sugar = IdSugarRing(*rnum, topIn, stat);
+    if (stat == ID_ERR) {
+      if (errorsAreFatal_) {
+        mprinterr("Error: During terminal sugar search, problem identifying sugar ring for %s\n",
+                  topIn.TruncResNameOnumId(*rnum).c_str());
+        return 1;
+      } else
+        mprintf("Warning: During terminal sugar search, problem identifying sugar ring for %s\n",
+                topIn.TruncResNameOnumId(*rnum).c_str());
+    }
+    if (!sugar.NotSet()) {
+      mprintf("DEBUG: Sugar: %s\n", topIn.TruncResNameOnumId(sugar.ResNum()).c_str());
+      SugarIndices.push_back( AtomPair(sugar.AnomericAtom(), sugar.RingOxygenAtom()) );
+    }
+  }
+
+  // Loop over sugar indices
+  for (std::vector<AtomPair>::iterator ac_ro = SugarIndices.begin();
+                                       ac_ro != SugarIndices.end(); ++ac_ro)
+  {
+    int anomericAtom = ac_ro->first;
+    int ringOxygen   = ac_ro->second;
+    int rnum = topIn[anomericAtom].ResNum();
+    std::string sugarName = topIn.TruncResNameOnumId(rnum);
+    // Is the anomeric carbon bonded to an oxygen that is part of this residue.
+    int o1_atom = -1;
+    for (Atom::bond_iterator bat = topIn[anomericAtom].bondbegin();
+                             bat != topIn[anomericAtom].bondend(); ++bat)
+    {
+      if (topIn[*bat].ResNum() == rnum &&
+          *bat != ringOxygen &&
+          topIn[*bat].Element() == Atom::OXYGEN) {
+        if (o1_atom != -1) {
+          mprintf("Warning: Anomeric atom '%s %s' bonded to more than 1 oxygen.\n",
+                  sugarName.c_str(), *(topIn[anomericAtom].Name()));
+          o1_atom = -1;
+          break;
+        } else
+          o1_atom = *bat;
+      }
+    }
+    if (o1_atom == -1) continue;
+    Iarray selected(1, o1_atom);
+    // Ensure the oxygen is itself terminal (no other bonds or only H)
+    if (topIn[o1_atom].Nbonds() > 1) {
+      for (Atom::bond_iterator bat = topIn[o1_atom].bondbegin();
+                               bat != topIn[o1_atom].bondend(); ++bat)
+      {
+        if (topIn[*bat].Element() == Atom::HYDROGEN)
+          selected.push_back( *bat );
+        else if (*bat != anomericAtom) {
+          // Bonded to something other than H.
+          continue;
+        }
+      }
+    }
+    mprintf("DEBUG: In-residue oxygen bonded to anomeric carbon: '%s %s'\n",
+            sugarName.c_str(), *(topIn[o1_atom].Name()));
+    AtomMask ROH(selected, topIn.Natom());
+
+    //if (topIn.SplitResidue(ROH, "ROH")) {
+    //  mprinterr("Error: Could not split the residue '%s'.\n", sugarName.c_str());
+    //  return 1;
+    //}
+  } // End loop over sugar indices
+
+  return 0;
+}
+
+
 /** Prepare sugars for leap. */
 int Exec_PrepareForLeap::PrepareSugars(AtomMask& sugarMask, Topology& topIn,
                                        Frame const& frameIn, CpptrajFile* outfile,
@@ -1416,9 +1517,9 @@ int Exec_PrepareForLeap::PrepareSugars(AtomMask& sugarMask, Topology& topIn,
     for (Iarray::const_iterator rnum = sugarResNums.begin();
                                 rnum != sugarResNums.end(); ++rnum)
     {
-      int err = 0;
-      Sugars.push_back( IdSugarRing(*rnum, topIn, err) );
-      if (err != 0) {
+      IdSugarRingStatType stat;
+      Sugars.push_back( IdSugarRing(*rnum, topIn, stat) );
+      if (stat == ID_ERR) {
         if (errorsAreFatal_) {
           mprinterr("Error: Problem identifying sugar ring for %s\n",
                     topIn.TruncResNameOnumId(*rnum).c_str());
@@ -1426,7 +1527,8 @@ int Exec_PrepareForLeap::PrepareSugars(AtomMask& sugarMask, Topology& topIn,
         } else
           mprintf("Warning: Problem identifying sugar ring for %s\n",
                     topIn.TruncResNameOnumId(*rnum).c_str());
-      }
+      } else if (stat == ID_MISSING_O)
+        resStat_[*rnum] = SUGAR_MISSING_RING_O;
       Sugars.back().PrintInfo( topIn );
     }
     // For each sugar residue, try to fill in missing linkages
@@ -1446,6 +1548,7 @@ int Exec_PrepareForLeap::PrepareSugars(AtomMask& sugarMask, Topology& topIn,
     } else {
       mprintf("\tNot attempting to identify missing linkages to sugar anomeric carbons.\n");
     }
+
     // For each sugar residue, see if it is bonded to a non-sugar residue.
     // If it is, remove that bond but record it.
     for (std::vector<Sugar>::const_iterator sugar = Sugars.begin();
