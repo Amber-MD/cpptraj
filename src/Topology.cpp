@@ -1750,6 +1750,7 @@ int Topology::SplitResidue(AtomMask const& maskIn, NameType const& newName)
   // Add selected part of residue
   newTop->residues_.push_back( Residue(residues_[tgtResNum], r1firstAtom, r1lastAtom) );
   newTop->residues_.back().SetIcode( icode1 );
+  newTop->residues_.back().SetName( newName );
   // Add remaining residues
   if (recode) {
     for (int rnum = tgtResNum+1; rnum < Nres(); rnum++) {
