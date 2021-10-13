@@ -1659,7 +1659,8 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
 }
 
 /** Split atoms selected in a single residue into a new residue. */
-int Topology::SplitResidue(AtomMask const& maskIn, NameType const& newName)
+int Topology::SplitResidue(AtomMask const& maskIn, NameType const& newName,
+                           std::vector<int>& atomMap)
 {
   if (maskIn.Nselected() == 0) {
     mprinterr("Error: SplitResidue: No atoms selected.\n");
@@ -1686,7 +1687,7 @@ int Topology::SplitResidue(AtomMask const& maskIn, NameType const& newName)
   }
   // Need to re-order the topology so that selected atoms now come at the
   // end of the residue they are a part of.
-  std::vector<int> atomMap;
+  atomMap.clear();
   atomMap.reserve(Natom());
   int r0firstAtom = -1;
   int r0lastAtom = -1;
