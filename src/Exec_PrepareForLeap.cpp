@@ -588,7 +588,12 @@ const
   torsion = Torsion( frameIn.XYZ(ring_oxygen_atom), frameIn.XYZ(anomeric_atom),
                      frameIn.XYZ(anomeric_atom_C), frameIn.XYZ(anomeric_atom_X) );
   if (debug_ > 0)
-    mprintf("\t  Anomeric torsion            = %f\n", torsion * Constants::RADDEG);
+    mprintf("DEBUG: Anomeric torsion %s-%s-%s-%s= %f\n",
+            *(topIn[ring_oxygen_atom].Name()),
+            *(topIn[anomeric_atom].Name()),
+            *(topIn[anomeric_atom_C].Name()),
+            *(topIn[anomeric_atom_X].Name()),
+            torsion * Constants::RADDEG);
   return 0;
 }
 
@@ -668,7 +673,12 @@ const
   torsion = Torsion( frameIn.XYZ(ano_ref_atom_0),   frameIn.XYZ(ano_ref_atom),
                      frameIn.XYZ(ano_ref_atom_1),   frameIn.XYZ(ano_ref_atom_Y) );
   if (debug_ > 0)
-    mprintf("\t  Anomeric reference torsion            = %f\n", torsion * Constants::RADDEG);
+    mprintf("DEBUG: Anomeric reference torsion %s-%s-%s-%s= %f\n",
+            *(topIn[ano_ref_atom_0].Name()),
+            *(topIn[ano_ref_atom].Name()),
+            *(topIn[ano_ref_atom_1].Name()),
+            *(topIn[ano_ref_atom_Y].Name()),
+            torsion * Constants::RADDEG);
   return 0;
 }
 
