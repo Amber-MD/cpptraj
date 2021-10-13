@@ -10,6 +10,7 @@ class Exec_Change : public Exec {
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_Change(); }
     RetType Execute(CpptrajState&, ArgList&);
   private:
+    int ChangeSplitRes(Topology&, ArgList&) const;
     int ChangeResidueName(Topology&, ArgList&) const;
     int ChangeOresNums(Topology&, ArgList&) const;
     int ChangeIcodes(Topology&, ArgList&) const;
