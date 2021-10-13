@@ -1658,6 +1658,117 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   return newParm;
 }
 
+/** Split atoms selected in a single residue into a new residue. */
+int Topology::SplitResidue(AtomMask const& maskIn, NameType const& newName)
+{
+  if (maskIn.Nselected() == 0) {
+    mprinterr("Error: SplitResidue: No atoms selected.\n");
+    return 1;
+  }
+  int tgtResNum = Atoms()[maskIn[0]].ResNum();
+  Residue const& res = residues_[tgtResNum];
+  // Check that all atoms are consecutive and in the same residue.
+  if (maskIn.Nselected() > 1) {
+    int lastAtom = maskIn[0];
+    for (int idx = 1; idx < maskIn.Nselected(); idx++) {
+      if (maskIn[idx] - lastAtom > 1) {
+        mprinterr("Error: SplitResidue: Atoms '%s' and '%s' are not consecutive.\n",
+                  AtomMaskName(maskIn[idx]).c_str(), AtomMaskName(lastAtom).c_str());
+        return 1;
+      }
+      lastAtom = maskIn[idx];
+      if (Atoms()[maskIn[idx]].ResNum() != tgtResNum) {
+        mprinterr("Error: SplitResidue: Atoms '%s' and '%s' are in different residues.\n",
+                  AtomMaskName(maskIn[idx]).c_str(), AtomMaskName(lastAtom).c_str());
+        return 1;
+      }
+    }
+  }
+  // Need to re-order the topology so that selected atoms now come at the
+  // end of the residue they are a part of.
+  std::vector<int> atomMap;
+  atomMap.reserve(Natom());
+  int r0firstAtom = -1;
+  int r0lastAtom = -1;
+  int r1firstAtom = -1;
+  int r1lastAtom = -1;
+  int newAt = 0;
+  for (int at = 0; at < maskIn[0]; at++, newAt++)
+    atomMap.push_back(at);
+  // Add unselected atoms of residue first
+  for (int at = res.FirstAtom(); at != res.LastAtom(); at++) {
+    if (!maskIn.IsSelected(at)) {
+      if (r0firstAtom == -1)
+        r0firstAtom = newAt;
+      atomMap.push_back(at);
+      newAt++;
+    }
+  }
+  r0lastAtom = newAt;
+  // Now add selected atoms
+  for (AtomMask::const_iterator it = maskIn.begin(); it != maskIn.end(); ++it) {
+    if (r1firstAtom == -1)
+      r1firstAtom = newAt;
+    atomMap.push_back(*it);
+    newAt++;
+  }
+  r1lastAtom = newAt;
+  // Add remaining atoms
+  if (tgtResNum+1 < Nres()) {
+    for (int at = residues_[tgtResNum+1].FirstAtom(); at != Natom(); at++)
+      atomMap.push_back(at);
+  }
+  // Reorder topology
+  Topology* newTop = ModifyByMap( atomMap, true );
+  if (newTop == 0) {
+    mprinterr("Internal Error: SplitResidue: Could not reorder the topology.\n");
+    return 1;
+  }
+  // Decide insertion codes.
+  char icode0, icode1;
+  bool recode = false;
+  if (res.Icode() == ' ') {
+    icode0 = 'A';
+    icode1 = 'B';
+  } else {
+    icode0 = res.Icode();
+    icode1 = icode0 + 1;
+    recode = true;
+  }
+  // Now redo the residue information
+  newTop->residues_.clear();
+  newTop->residues_.reserve(Nres()+1);
+  // First add residues up to this one
+  for (int rnum = 0; rnum < tgtResNum; rnum++)
+    newTop->residues_.push_back( residues_[rnum] );
+  // Add non-selected part of residue
+  newTop->residues_.push_back( Residue(residues_[tgtResNum], r0firstAtom, r0lastAtom) );
+  newTop->residues_.back().SetIcode( icode0 );
+  // Update atoms in selected part of residue
+  for (int at = r1firstAtom; at != r1lastAtom; at++)
+    newTop->atoms_[at].SetResNum( residues_.size() );
+  // Add selected part of residue
+  newTop->residues_.push_back( Residue(residues_[tgtResNum], r1firstAtom, r1lastAtom) );
+  newTop->residues_.back().SetIcode( icode1 );
+  // Add remaining residues
+  if (recode) {
+    for (int rnum = tgtResNum+1; rnum < Nres(); rnum++) {
+      newTop->residues_.push_back( residues_[rnum] );
+      if (newTop->residues_.back().OriginalResNum() == res.OriginalResNum() &&
+          newTop->residues_.back().ChainId() == res.ChainId())
+        newTop->residues_.back().SetIcode(++icode1);
+    }
+  } else {
+    for (int rnum = tgtResNum+1; rnum < Nres(); rnum++)
+      newTop->residues_.push_back( residues_[rnum] );
+  }
+
+  *this = *newTop;
+  delete newTop;
+
+  return 0;
+}
+
 /** \return BondArray with bonds for which both atoms are still present.
   * \param atomMap format Map[oldAtom]=newAtom
   */
