@@ -2144,7 +2144,9 @@ void Exec_PrepareForLeap::Help() const
           "\t[{nodisulfides |\n"
           "\t  existingdisulfides |\n"
           "\t  [cysmask <cysmask>] [disulfidecut <cut>] [newcysname <name>]}]\n"
-          "\t[{nosugars | sugarmask <sugarmask> [noc1search]}] [resmapfile <file>]\n"
+          "\t[{nosugars |\n"
+          "\t  sugarmask <sugarmask> [noc1search] [notermsearch] [resmapfile <file>]\n"
+          "\t }]\n"
           "\t[molmask <molmask> ...] [determinemolmask <mask>]\n"
           "  Prepare the structure in the given coords set for easier processing\n"
           "  with the LEaP program from AmberTools. Any existing/potential\n"
@@ -2367,13 +2369,15 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     }
     myMap_.DetermineAtomIDs();
 
-    // Check if any sugars are in fact terminal and need the C1 oxygen split
-    // into an ROH residue.
-    // This is done before any identification takes places since it may
-    // involve reordering the topology if residues are split.
-    if (CheckIfSugarsAreTerminal(sugarmaskstr, topIn, frameIn)) {
-      mprinterr("Error: Checking for terminal sugars failed.\n");
-      return CpptrajState::ERR;
+    if (!argIn.hasKey("notermsearch")) {
+      // Check if any sugars are in fact terminal and need the C1 oxygen split
+      // into an ROH residue.
+      // This is done before any identification takes places since it may
+      // involve reordering the topology if residues are split.
+      if (CheckIfSugarsAreTerminal(sugarmaskstr, topIn, frameIn)) {
+        mprinterr("Error: Checking for terminal sugars failed.\n");
+        return CpptrajState::ERR;
+      }
     }
   }
 
