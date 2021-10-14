@@ -1797,6 +1797,13 @@ int Topology::SplitResidue(AtomMask const& maskIn, NameType const& newName,
   return 0;
 }
 
+/** Split atoms selected in a single residue into a new residue. */
+int Topology::SplitResidue(AtomMask const& maskIn, NameType const& newName)
+{
+  std::vector<int> atomMap;
+  return SplitResidue(maskIn, newName, atomMap);
+}
+
 /** \return BondArray with bonds for which both atoms are still present.
   * \param atomMap format Map[oldAtom]=newAtom
   */

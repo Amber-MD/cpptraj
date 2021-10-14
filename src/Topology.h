@@ -224,8 +224,10 @@ class Topology {
     Topology* ModifyByMap(std::vector<int> const& m) const {
       return ModifyByMap(m, true);
     }
-    /// Split selected atoms in a residue into a new residue
+    /// Split selected atoms in a residue into a new residue, populate the atom map
     int SplitResidue(AtomMask const&, NameType const&, std::vector<int>&);
+    /// Split selected atoms in a residue into a new residue
+    int SplitResidue(AtomMask const&, NameType const&);
     /// Append topology to this one.
     int AppendTop( Topology const& );
   private:
