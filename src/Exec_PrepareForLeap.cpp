@@ -471,6 +471,17 @@ const
   int rnum1 = sugar.ResNum();
   int c_beg = sugar.AnomericAtom();
   Residue const& res1 = topIn.SetRes(rnum1);
+  // If the anomeric atom is already bonded to another residue, skip this.
+  for (Atom::bond_iterator bat = topIn[c_beg].bondbegin();
+                           bat != topIn[c_beg].bondend(); ++bat)
+  {
+    if (topIn[*bat].ResNum() != rnum1) {
+      if (debug_ > 0)
+        mprintf("\tSugar %s anomeric carbon is already bonded to another residue, skipping.\n",
+                topIn.TruncResNameOnumId(sugar.ResNum()).c_str());
+      return 0;
+    }
+  }
 
   // residue first atom to residue first atom cutoff^2
   const double rescut2 = 64.0;
@@ -2485,6 +2496,8 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       mprinterr("Error: Sugar preparation failed.\n");
       return CpptrajState::ERR;
     }
+  } else {
+    mprintf("\tNot preparing sugars.\n");
   }
 
   // Count any solvent molecules
