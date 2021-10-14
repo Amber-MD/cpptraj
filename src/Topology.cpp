@@ -1668,19 +1668,19 @@ int Topology::SplitResidue(AtomMask const& maskIn, NameType const& newName,
   }
   int tgtResNum = Atoms()[maskIn[0]].ResNum();
   Residue const& res = residues_[tgtResNum];
-  // Check that all atoms are consecutive and in the same residue.
+  // Check that all atoms are in the same residue.
   if (maskIn.Nselected() > 1) {
-    int lastAtom = maskIn[0];
+    //int lastAtom = maskIn[0];
     for (int idx = 1; idx < maskIn.Nselected(); idx++) {
-      if (maskIn[idx] - lastAtom > 1) {
-        mprinterr("Error: SplitResidue: Atoms '%s' and '%s' are not consecutive.\n",
-                  AtomMaskName(maskIn[idx]).c_str(), AtomMaskName(lastAtom).c_str());
-        return 1;
-      }
-      lastAtom = maskIn[idx];
+      //if (maskIn[idx] - lastAtom > 1) {
+      //  mprinterr("Error: SplitResidue: Atoms '%s' and '%s' are not consecutive.\n",
+      //            AtomMaskName(maskIn[idx]).c_str(), AtomMaskName(lastAtom).c_str());
+      //  return 1;
+      //}
+      //lastAtom = maskIn[idx];
       if (Atoms()[maskIn[idx]].ResNum() != tgtResNum) {
         mprinterr("Error: SplitResidue: Atoms '%s' and '%s' are in different residues.\n",
-                  AtomMaskName(maskIn[idx]).c_str(), AtomMaskName(lastAtom).c_str());
+                  AtomMaskName(maskIn[idx]).c_str(), AtomMaskName(maskIn[0]).c_str());
         return 1;
       }
     }
