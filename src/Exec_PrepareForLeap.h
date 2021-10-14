@@ -117,6 +117,7 @@ class Exec_PrepareForLeap : public Exec {
     bool errorsAreFatal_;   ///< If false, try to skip errors.
     int debug_; ///< Debug level
     std::string solventResName_; ///< Solvent residue name
+    std::string terminalHydroxylName_; ///< Terminal hydroxyl name
     AtomMap myMap_;
 };
 // ----- Sugar class ----------------------------------------------------------

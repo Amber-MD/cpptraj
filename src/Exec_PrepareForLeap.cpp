@@ -1345,7 +1345,7 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
               mprintf("DEBUG: Link residue name for %s found: %s\n", *(lname->first), *(lname->second));
             ChangeResName( pres, lname->second );
             resStat_[topIn[*bat].ResNum()] = VALIDATED;
-          } else if (pres.Name() == "ROH") { // ROH is Glycam terminal hydroxyl
+          } else if (pres.Name() == terminalHydroxylName_) {
             if (debug_ > 0)
               mprintf("DEBUG: '%s' is terminal hydroxyl.\n", *(pres.Name()));
             resStat_[topIn[*bat].ResNum()] = VALIDATED;
@@ -1493,14 +1493,14 @@ const
     }
     mprintf("\tIn-residue oxygen bonded to anomeric carbon: '%s %s'\n",
             sugarName.c_str(), *(topIn[o1_atom].Name()));
-    mprintf("\t  Will split into ROH group.\n");
+    mprintf("\t  Will split into %s group.\n", terminalHydroxylName_.c_str());
     AtomMask ROH(selected, topIn.Natom());
 
     // Split the hydroxyl into a new residue named ROH for Glycam.
     // This may involve reordering atoms within the residue, but not
     // any other atoms, so we should not have to update SugarIndices.
     Iarray atomMap;
-    if (topIn.SplitResidue(ROH, "ROH", atomMap)) {
+    if (topIn.SplitResidue(ROH, terminalHydroxylName_, atomMap)) {
       mprinterr("Error: Could not split the residue '%s'.\n", sugarName.c_str());
       return 1;
     }
@@ -2150,6 +2150,7 @@ void Exec_PrepareForLeap::Help() const
           "\t  [cysmask <cysmask>] [disulfidecut <cut>] [newcysname <name>]}]\n"
           "\t[{nosugars |\n"
           "\t  sugarmask <sugarmask> [noc1search] [notermsearch] [resmapfile <file>]\n"
+          "\t  [terminalhydroxylname <resname>]\n"
           "\t }]\n"
           "\t[molmask <molmask> ...] [determinemolmask <mask>]\n"
           "  Prepare the structure in the given coords set for easier processing\n"
@@ -2216,6 +2217,8 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   mprintf("\tUsing leap unit name: %s\n", leapunitname_.c_str());
   solventResName_ = argIn.GetStringKey("solventresname", "HOH");
   mprintf("\tSolvent residue name: %s\n", solventResName_.c_str());
+  terminalHydroxylName_ = argIn.GetStringKey("terminalhydroxylname", "ROH");
+  mprintf("\tTerminal hydroxyl name: %s\n", terminalHydroxylName_.c_str());
 
   bool prepare_sugars = !argIn.hasKey("nosugars");
   if (!prepare_sugars)
