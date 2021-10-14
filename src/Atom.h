@@ -6,20 +6,28 @@
 /// Hold information for an atom
 class Atom {
   public:
+    /** Recognized atomic elements. This must be kept in sync with:
+      *  AtomicElementNum_
+      *  AtomicElementName_
+      *  AtomicElementMass_
+      *  AtomicElementRadius_
+      *  NUMELEMENTS_
+      *  MapAtom::AtomicElementChar
+      */
     enum AtomicElementType { UNKNOWN_ELEMENT = 0,
-      HYDROGEN,   BORON,      CARBON,   NITROGEN,  OXYGEN,     FLUORINE,
-      PHOSPHORUS, SULFUR,     CHLORINE, BROMINE,   IRON,       CALCIUM,
-      IODINE,     MAGNESIUM,  COPPER,   LITHIUM,   POTASSIUM,  RUBIDIUM,
-      CESIUM,     ZINC,       SODIUM,   ALUMINUM,  ARGON,      ARSENIC,
-      SILVER,     GOLD,       ASTATINE, BERYLLIUM, BARIUM,     BISMUTH,
-      CHROMIUM,   COBALT,     CADMIUM,  FRANCIUM,  GALLIUM,    GERMANIUM,
-      HELIUM,     HAFNIUM,    MERCURY,  INDIUM,    IRIDIUM,    KRYPTON,
-      MANGANESE,  MOLYBDENUM, NEON,     NICKEL,    NIOBIUM,    OSMIUM,
-      PALLADIUM,  PLATINUM,   LEAD,     POLONIUM,  RUTHENIUM,  RHODIUM,
-      RHENIUM,    RADON,      RADIUM,   SILICON,   SCANDIUM,   SELENIUM,
-      STRONTIUM,  TIN,        ANTIMONY, TITANIUM,  TECHNETIUM, TELLURIUM,
-      TANTALUM,   THALLIUM,   VANADIUM, TUNGSTEN,  XENON,      ZIRCONIUM,
-      YTTRIUM,    LUTETIUM,
+      HYDROGEN,   BORON,      CARBON,   NITROGEN,  OXYGEN,     FLUORINE,   //  6
+      PHOSPHORUS, SULFUR,     CHLORINE, BROMINE,   IRON,       CALCIUM,    // 12
+      IODINE,     MAGNESIUM,  COPPER,   LITHIUM,   POTASSIUM,  RUBIDIUM,   // 18
+      CESIUM,     ZINC,       SODIUM,   ALUMINUM,  ARGON,      ARSENIC,    // 24
+      SILVER,     GOLD,       ASTATINE, BERYLLIUM, BARIUM,     BISMUTH,    // 30
+      CHROMIUM,   COBALT,     CADMIUM,  FRANCIUM,  GALLIUM,    GERMANIUM,  // 36
+      HELIUM,     HAFNIUM,    MERCURY,  INDIUM,    IRIDIUM,    KRYPTON,    // 42
+      MANGANESE,  MOLYBDENUM, NEON,     NICKEL,    NIOBIUM,    OSMIUM,     // 48
+      PALLADIUM,  PLATINUM,   LEAD,     POLONIUM,  RUTHENIUM,  RHODIUM,    // 54
+      RHENIUM,    RADON,      RADIUM,   SILICON,   SCANDIUM,   SELENIUM,   // 60
+      STRONTIUM,  TIN,        ANTIMONY, TITANIUM,  TECHNETIUM, TELLURIUM,  // 66
+      TANTALUM,   THALLIUM,   VANADIUM, TUNGSTEN,  XENON,      ZIRCONIUM,  // 72
+      YTTRIUM,    LUTETIUM,   SAMARIUM,
       EXTRAPT 
     };
     // Constructors and assignment ---------------
@@ -88,7 +96,7 @@ class Atom {
     /// Determine element from given atomic number. Use mass/name if number < 1.
     void DetermineElement(int);
   protected:
-    static const size_t NUMELEMENTS_ = 76;
+    static const size_t NUMELEMENTS_ = 77;
   private:
     static CPPTRAJ_EXPORT const int AtomicElementNum_[];
     static CPPTRAJ_EXPORT const char* AtomicElementName_[];

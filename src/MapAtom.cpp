@@ -4,7 +4,7 @@
   * their names; for less common elements just use whatever
   * characters are handy. 
   */
-const char MapAtom::AtomicElementChar[Atom::NUMELEMENTS_] = { 0,
+const char MapAtom::AtomicElementChar_[Atom::NUMELEMENTS_] = { 0,
   'H',  'B',  'C',  'N',  'O', 'F',  
   'P',  'S',  'X',  'Y',  'f', 'c',
   'I',  'M',  'U',  'L',  'K', 'R',  
@@ -17,7 +17,7 @@ const char MapAtom::AtomicElementChar[Atom::NUMELEMENTS_] = { 0,
   '4',  '5',  '6',  '7',  '8', '9',
   ':',  ';',  '<',  '=',  '>', '?',
   '@',  '[', '\\',  ']',  '^', '_',
-  '\'',  '`',
+  '\'',  '`', 'm',
   'x'
 };
 
@@ -55,7 +55,7 @@ MapAtom::MapAtom(const Atom& rhs, const double* xyzIn) : Atom(rhs),
   isMapped_(false),
   complete_(false),
   Nduplicated_(0),
-  name_(AtomicElementChar[Element()])
+  name_(AtomicElementChar_[Element()])
 {
   std::copy( xyzIn, xyzIn + 3, xyz_ );
 }
