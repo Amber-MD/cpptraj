@@ -867,6 +867,12 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
   for (int aidx = 0; aidx != pdbTop_->Natom(); aidx++, Xptr += 3) {
     Atom const& atom = (*pdbTop_)[aidx];
     int res = atom.ResNum();
+    char resicode;
+    if (resNumType_ == TOPOLOGY)
+      // With topology residue numbering no need for insertion codes
+      resicode = ' ';
+    else
+      resicode = pdbTop_->Res(res).Icode();
     int resnum;
     if (resNumType_ == ORIGINAL)
       resnum = pdbTop_->Res(res).OriginalResNum();
@@ -909,7 +915,7 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
       // TODO determine formal charges?
       file_.WriteCoord(rectype, anum, atomName, altLoc, resNames_[res],
                        chainID_[res], resnum,
-                       pdbTop_->Res(res).Icode(),
+                       resicode,
                        Xptr[0], Xptr[1], Xptr[2], Occ, Bfac,
                        atom.ElementName(), 0, dumpq_);
       if (adpdata_ != 0 && adpidx < adpdata_->Size()) {
@@ -934,7 +940,7 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
       // FIXME: Should anum not be incremented until after? 
       file_.WriteRecordHeader(PDBfile::TER, anum, "", ' ', resNames_[res],
                               chainID_[res], resnum,
-                              pdbTop_->Res(res).Icode(), atom.ElementName());
+                              resicode, atom.ElementName());
       anum += ter_num_;
       ++terIdx;
     }
