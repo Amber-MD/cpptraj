@@ -89,6 +89,11 @@ void AtomMap::ResetMapping() {
   }
 }
 
+// AtomMap::ClearMap()
+void AtomMap::ClearMap() {
+  mapatoms_.clear();
+}
+
 // AtomMap::BondIsRepeated()
 /** Check if the atomID of the specified atom (bondedAtom) bonded to <atom> 
   * is the same as the atomID of any other non-mapped atom bonded to <atom>.

@@ -969,7 +969,7 @@ const
           if (unique1 == unique2) {
             // At least two of the atoms bonded to this atom look the same. Not chiral.
             if (debug_ > 1)
-              mprintf("DEBUG: unique strings match '%s' '%s'\n", unique1.c_str(), unique2.c_str());
+              mprintf("DEBUG: unique strings match %s='%s' %s='%s'\n", *(topIn[*bat1].Name()), unique1.c_str(), *(topIn[*bat2].Name()), unique2.c_str());
             chiral = false;
             break;
           }
@@ -2350,55 +2350,6 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
 
-  // Get sugar mask or default sugar mask
-  AtomMask sugarMask;
-  std::string sugarmaskstr = argIn.GetStringKey("sugarmask");
-  if (!sugarmaskstr.empty()) {
-    if (!prepare_sugars) {
-      mprinterr("Error: Cannot specify 'nosugars' and 'sugarmask'\n");
-      return CpptrajState::ERR;
-    }
-    if (sugarMask.SetMaskString(sugarmaskstr)) {
-      mprinterr("Error: Setting sugar mask string.\n");
-      return CpptrajState::ERR;
-    }
-  } else if (prepare_sugars) {
-    // No sugar mask specified; create one from names in pdb_to_glycam_ map.
-    sugarmaskstr.assign(":");
-    for (MapType::const_iterator mit = pdb_to_glycam_.begin(); mit != pdb_to_glycam_.end(); ++mit)
-    {
-      if (mit != pdb_to_glycam_.begin())
-        sugarmaskstr.append(",");
-      sugarmaskstr.append( mit->first.Truncated() );
-    }
-    if (sugarMask.SetMaskString(sugarmaskstr)) {
-      mprinterr("Error: Setting sugar mask string.\n");
-      return CpptrajState::ERR;
-    }
-  }
-
-  if (prepare_sugars) {
-    // Set up an AtomMap for this residue to help determine stereocenters.
-    // This is required by the IdSugarRing() function.
-    myMap_.SetDebug(debug_);
-    if (myMap_.Setup(topIn, frameIn)) {
-      mprinterr("Error: Atom map setup failed\n");
-      return CpptrajState::ERR;
-    }
-    myMap_.DetermineAtomIDs();
-
-    if (!argIn.hasKey("notermsearch")) {
-      // Check if any sugars are in fact terminal and need the C1 oxygen split
-      // into an ROH residue.
-      // This is done before any identification takes places since it may
-      // involve reordering the topology if residues are split.
-      if (CheckIfSugarsAreTerminal(sugarmaskstr, topIn, frameIn)) {
-        mprinterr("Error: Checking for terminal sugars failed.\n");
-        return CpptrajState::ERR;
-      }
-    }
-  }
-
   // Do histidine detection before H atoms are removed
   Iarray HisResIdxs;
   std::vector<NameType> HisResNames;
@@ -2427,6 +2378,66 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   // Remove hydrogens
   if (remove_h) {
     if (RemoveHydrogens(topIn, frameIn)) return CpptrajState::ERR;
+  }
+
+  // Get sugar mask or default sugar mask
+  AtomMask sugarMask;
+  std::string sugarmaskstr = argIn.GetStringKey("sugarmask");
+  if (!sugarmaskstr.empty()) {
+    if (!prepare_sugars) {
+      mprinterr("Error: Cannot specify 'nosugars' and 'sugarmask'\n");
+      return CpptrajState::ERR;
+    }
+    if (sugarMask.SetMaskString(sugarmaskstr)) {
+      mprinterr("Error: Setting sugar mask string.\n");
+      return CpptrajState::ERR;
+    }
+  } else if (prepare_sugars) {
+    // No sugar mask specified; create one from names in pdb_to_glycam_ map.
+    sugarmaskstr.assign(":");
+    for (MapType::const_iterator mit = pdb_to_glycam_.begin(); mit != pdb_to_glycam_.end(); ++mit)
+    {
+      if (mit != pdb_to_glycam_.begin())
+        sugarmaskstr.append(",");
+      sugarmaskstr.append( mit->first.Truncated() );
+    }
+    if (sugarMask.SetMaskString(sugarmaskstr)) {
+      mprinterr("Error: Setting sugar mask string.\n");
+      return CpptrajState::ERR;
+    }
+  }
+
+  // If preparing sugars, need to set up an atom map and potentially
+  // search for terminal sugars. Do this here after all atom
+  // modifications have been done.
+  if (prepare_sugars) {
+    // Set up an AtomMap for this residue to help determine stereocenters.
+    // This is required by the IdSugarRing() function.
+    myMap_.SetDebug(debug_);
+    if (myMap_.Setup(topIn, frameIn)) {
+      mprinterr("Error: Atom map setup failed\n");
+      return CpptrajState::ERR;
+    }
+    myMap_.DetermineAtomIDs();
+
+    if (!argIn.hasKey("notermsearch")) {
+      // Check if any sugars are in fact terminal and need the C1 oxygen split
+      // into an ROH residue.
+      // This is done before any identification takes places since it may
+      // involve reordering the topology if residues are split.
+      if (CheckIfSugarsAreTerminal(sugarmaskstr, topIn, frameIn)) {
+        mprinterr("Error: Checking for terminal sugars failed.\n");
+        return CpptrajState::ERR;
+      }
+      // Since CheckIfSugarsAreTerminal() can re-order atoms, need
+      // to recreate the map.
+      myMap_.ClearMap();
+      if (myMap_.Setup(topIn, frameIn)) {
+        mprinterr("Error: Atom map second setup failed\n");
+        return CpptrajState::ERR;
+      }
+      myMap_.DetermineAtomIDs();
+    }
   }
 
   // Each residue starts out unknown.
