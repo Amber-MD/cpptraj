@@ -1438,7 +1438,7 @@ const
                 topIn.TruncResNameOnumId(*rnum).c_str());
     }
     if (!sugar.NotSet()) {
-      mprintf("DEBUG: Sugar: %s\n", topIn.TruncResNameOnumId(sugar.ResNum()).c_str());
+      //mprintf("DEBUG: Sugar: %s\n", topIn.TruncResNameOnumId(sugar.ResNum()).c_str());
       SugarIndices.push_back( AtomPair(sugar.AnomericAtom(), sugar.RingOxygenAtom()) );
     }
   }
@@ -1451,9 +1451,10 @@ const
     int ringOxygen   = ac_ro->second;
     int rnum = topIn[anomericAtom].ResNum();
     std::string sugarName = topIn.TruncResNameOnumId(rnum);
-    mprintf("DEBUG: terminal search %s ano. C= %s  ring O= %s\n",
-            sugarName.c_str(), topIn.AtomMaskName(anomericAtom).c_str(),
-            topIn.AtomMaskName(ringOxygen).c_str());
+    if (debug_ > 0)
+      mprintf("DEBUG: terminal search %s ano. C= %s  ring O= %s\n",
+              sugarName.c_str(), topIn.AtomMaskName(anomericAtom).c_str(),
+              topIn.AtomMaskName(ringOxygen).c_str());
     // Is the anomeric carbon bonded to an oxygen that is part of this residue.
     int o1_atom = -1;
     for (Atom::bond_iterator bat = topIn[anomericAtom].bondbegin();
@@ -1486,8 +1487,9 @@ const
         }
       }
     }
-    mprintf("DEBUG: In-residue oxygen bonded to anomeric carbon: '%s %s'\n",
+    mprintf("\tIn-residue oxygen bonded to anomeric carbon: '%s %s'\n",
             sugarName.c_str(), *(topIn[o1_atom].Name()));
+    mprintf("\t  Will split into ROH group.\n");
     AtomMask ROH(selected, topIn.Natom());
 
     // Split the hydroxyl into a new residue named ROH for Glycam.

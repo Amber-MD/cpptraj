@@ -1719,8 +1719,8 @@ int Topology::SplitResidue(AtomMask const& maskIn, NameType const& newName,
     for (int at = residues_[tgtResNum+1].FirstAtom(); at != Natom(); at++)
       atomMap.push_back(at);
   }
-  mprintf("DEBUG: New res0: index %i to %i\n", r0firstAtom, r0lastAtom);
-  mprintf("DEBUG: New res1: index %i to %i\n", r1firstAtom, r1lastAtom);
+  //mprintf("DEBUG: New res0: index %i to %i\n", r0firstAtom, r0lastAtom);
+  //mprintf("DEBUG: New res1: index %i to %i\n", r1firstAtom, r1lastAtom);
 
   // Reorder topology
   Topology* newTop = ModifyByMap( atomMap, false );
@@ -1728,10 +1728,10 @@ int Topology::SplitResidue(AtomMask const& maskIn, NameType const& newName,
     mprinterr("Internal Error: SplitResidue: Could not reorder the topology.\n");
     return 1;
   }
-  mprintf("DEBUG: New res0: Atoms %s to %s\n",
-          newTop->AtomMaskName(r0firstAtom).c_str(), newTop->AtomMaskName(r0lastAtom-1).c_str());
-  mprintf("DEBUG: New res1: Atoms %s to %s\n",
-          newTop->AtomMaskName(r1firstAtom).c_str(), newTop->AtomMaskName(r1lastAtom-1).c_str());
+  //mprintf("DEBUG: New res0: Atoms %s to %s\n",
+  //        newTop->AtomMaskName(r0firstAtom).c_str(), newTop->AtomMaskName(r0lastAtom-1).c_str());
+  //mprintf("DEBUG: New res1: Atoms %s to %s\n",
+  //        newTop->AtomMaskName(r1firstAtom).c_str(), newTop->AtomMaskName(r1lastAtom-1).c_str());
   //DEBUG
 //  *this = *newTop; // DEBUG
 //  delete newTop; // DEBUG
