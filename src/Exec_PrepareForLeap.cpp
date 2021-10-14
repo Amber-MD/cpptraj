@@ -1443,13 +1443,16 @@ const
   }
 
   // Loop over sugar indices
-  for (std::vector<AtomPair>::iterator ac_ro = SugarIndices.begin();
-                                       ac_ro != SugarIndices.end(); ++ac_ro)
+  for (std::vector<AtomPair>::const_iterator ac_ro = SugarIndices.begin();
+                                             ac_ro != SugarIndices.end(); ++ac_ro)
   {
     int anomericAtom = ac_ro->first;
     int ringOxygen   = ac_ro->second;
     int rnum = topIn[anomericAtom].ResNum();
     std::string sugarName = topIn.TruncResNameOnumId(rnum);
+    mprintf("DEBUG: terminal search %s ano. C= %s  ring O= %s\n",
+            sugarName.c_str(), topIn.AtomMaskName(anomericAtom).c_str(),
+            topIn.AtomMaskName(ringOxygen).c_str());
     // Is the anomeric carbon bonded to an oxygen that is part of this residue.
     int o1_atom = -1;
     for (Atom::bond_iterator bat = topIn[anomericAtom].bondbegin();
@@ -2317,6 +2320,52 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
 
+  // Get sugar mask or default sugar mask
+  AtomMask sugarMask;
+  std::string sugarmaskstr = argIn.GetStringKey("sugarmask");
+  if (!sugarmaskstr.empty()) {
+    if (!prepare_sugars) {
+      mprinterr("Error: Cannot specify 'nosugars' and 'sugarmask'\n");
+      return CpptrajState::ERR;
+    }
+    if (sugarMask.SetMaskString(sugarmaskstr)) {
+      mprinterr("Error: Setting sugar mask string.\n");
+      return CpptrajState::ERR;
+    }
+  } else if (prepare_sugars) {
+    // No sugar mask specified; create one from names in pdb_to_glycam_ map.
+    sugarmaskstr.assign(":");
+    for (MapType::const_iterator mit = pdb_to_glycam_.begin(); mit != pdb_to_glycam_.end(); ++mit)
+    {
+      if (mit != pdb_to_glycam_.begin())
+        sugarmaskstr.append(",");
+      sugarmaskstr.append( mit->first.Truncated() );
+    }
+    if (sugarMask.SetMaskString(sugarmaskstr)) {
+      mprinterr("Error: Setting sugar mask string.\n");
+      return CpptrajState::ERR;
+    }
+  }
+
+  if (prepare_sugars) {
+    // Set up an AtomMap for this residue to help determine stereocenters
+    myMap_.SetDebug(debug_);
+    if (myMap_.Setup(topIn, frameIn)) {
+      mprinterr("Error: Atom map setup failed\n");
+      return CpptrajState::ERR;
+    }
+    myMap_.DetermineAtomIDs();
+
+    // Check if any sugars are in fact terminal and need the C1 oxygen split
+    // into an ROH residue.
+    // This is done before any identification takes places since it may
+    // involve reordering the topology if residues are split.
+    if (CheckIfSugarsAreTerminal(sugarmaskstr, topIn)) {
+      mprinterr("Error: Checking for terminal sugars failed.\n");
+      return CpptrajState::ERR;
+    }
+  }
+
   // Do histidine detection before H atoms are removed
   Iarray HisResIdxs;
   std::vector<NameType> HisResNames;
@@ -2349,33 +2398,6 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 
   // Each residue starts out unknown.
   resStat_.assign( topIn.Nres(), UNKNOWN );
-
-  // Get sugar mask or default sugar mask
-  AtomMask sugarMask;
-  std::string sugarmaskstr = argIn.GetStringKey("sugarmask");
-  if (!sugarmaskstr.empty()) {
-    if (!prepare_sugars) {
-      mprinterr("Error: Cannot specify 'nosugars' and 'sugarmask'\n");
-      return CpptrajState::ERR;
-    }
-    if (sugarMask.SetMaskString(sugarmaskstr)) {
-      mprinterr("Error: Setting sugar mask string.\n");
-      return CpptrajState::ERR;
-    }
-  } else if (prepare_sugars) {
-    // No sugar mask specified; create one from names in pdb_to_glycam_ map.
-    sugarmaskstr.assign(":");
-    for (MapType::const_iterator mit = pdb_to_glycam_.begin(); mit != pdb_to_glycam_.end(); ++mit)
-    {
-      if (mit != pdb_to_glycam_.begin())
-        sugarmaskstr.append(",");
-      sugarmaskstr.append( mit->first.Truncated() );
-    }
-    if (sugarMask.SetMaskString(sugarmaskstr)) {
-      mprinterr("Error: Setting sugar mask string.\n");
-      return CpptrajState::ERR;
-    }
-  }
 
   // Get masks for molecules now since topology may be modified later.
   std::vector<AtomMask> molMasks;
@@ -2437,14 +2459,6 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 
   // Prepare sugars
   if (prepare_sugars) {
-    // Set up an AtomMap for this residue to help determine stereocenters
-    myMap_.SetDebug(debug_);
-    if (myMap_.Setup(topIn, frameIn)) {
-      mprinterr("Error: Atom map setup failed\n");
-      return CpptrajState::ERR;
-    }
-    myMap_.DetermineAtomIDs();
-
     if (PrepareSugars(sugarMask, topIn, frameIn, outfile, !argIn.hasKey("noc1search"))) {
       mprinterr("Error: Sugar preparation failed.\n");
       return CpptrajState::ERR;
