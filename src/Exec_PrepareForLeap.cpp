@@ -147,6 +147,7 @@ void Exec_PrepareForLeap::SetPdbResNames() {
   pdb_res_names_.insert("HIE");
   pdb_res_names_.insert("HIP");
   pdb_res_names_.insert("HIS");
+  pdb_res_names_.insert("HYP"); // Recognized by Glycam
   pdb_res_names_.insert("ILE");
   pdb_res_names_.insert("LEU");
   pdb_res_names_.insert("LYN");
