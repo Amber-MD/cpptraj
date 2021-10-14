@@ -1345,6 +1345,10 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
               mprintf("DEBUG: Link residue name for %s found: %s\n", *(lname->first), *(lname->second));
             ChangeResName( pres, lname->second );
             resStat_[topIn[*bat].ResNum()] = VALIDATED;
+          } else if (pres.Name() == "ROH") { // ROH is Glycam terminal hydroxyl
+            if (debug_ > 0)
+              mprintf("DEBUG: '%s' is terminal hydroxyl.\n", *(pres.Name()));
+            resStat_[topIn[*bat].ResNum()] = VALIDATED;
           } else {
             mprintf("Warning: Unrecognized link residue %s, not modifying name.\n", *pres.Name());
             resStat_[topIn[*bat].ResNum()] = UNRECOGNIZED_SUGAR_LINKAGE;
