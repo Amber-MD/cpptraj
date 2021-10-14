@@ -67,13 +67,13 @@ class Exec_PrepareForLeap : public Exec {
 
     int IdentifySugar(Sugar const&, Topology&, Frame const&, CharMask const&, CpptrajFile*, std::set<BondType>&);
     /// Determine if sugars are terminal and need an ROH residue
-    int CheckIfSugarsAreTerminal(std::string const&, Topology&) const;
+    int CheckIfSugarsAreTerminal(std::string const&, Topology&, Frame&) const;
 
     int PrepareSugars(AtomMask&, Topology&, Frame const&, CpptrajFile*, bool);
     int FindTerByBonds(Topology&, CharMask const&) const;
     int SearchForDisulfides(double, std::string const&, std::string const&, bool,
                             Topology&, Frame const&, CpptrajFile*);
-    /// \return true if residue name is recognized
+    /// \return true if residue name is a recognized PDB name
     bool IsRecognizedPdbRes(NameType const&) const;
     /// \return Array of residue nums with unrecognized names
     Iarray GetUnrecognizedPdbResidues(Topology const&) const;

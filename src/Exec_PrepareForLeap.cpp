@@ -1401,7 +1401,8 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
 /** For each sugar, see if the anomeric carbon is actually terminal and needs
   * to be a separate ROH residue.
   */
-int Exec_PrepareForLeap::CheckIfSugarsAreTerminal(std::string const& sugarMaskStr, Topology& topIn)
+int Exec_PrepareForLeap::CheckIfSugarsAreTerminal(std::string const& sugarMaskStr,
+                                                  Topology& topIn, Frame& frameIn)
 const
 {
   AtomMask sugarMask(sugarMaskStr);
@@ -1489,10 +1490,17 @@ const
             sugarName.c_str(), *(topIn[o1_atom].Name()));
     AtomMask ROH(selected, topIn.Natom());
 
-    //if (topIn.SplitResidue(ROH, "ROH")) {
-    //  mprinterr("Error: Could not split the residue '%s'.\n", sugarName.c_str());
-    //  return 1;
-    //}
+    // Split the hydroxyl into a new residue named ROH for Glycam.
+    // This may involve reordering atoms within the residue, but not
+    // any other atoms, so we should not have to update SugarIndices.
+    Iarray atomMap;
+    if (topIn.SplitResidue(ROH, "ROH", atomMap)) {
+      mprinterr("Error: Could not split the residue '%s'.\n", sugarName.c_str());
+      return 1;
+    }
+    // Reorder the frame to match
+    Frame oldFrame = frameIn;
+    frameIn.SetCoordinatesByMap( oldFrame, atomMap );
   } // End loop over sugar indices
 
   return 0;
@@ -2348,7 +2356,8 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   if (prepare_sugars) {
-    // Set up an AtomMap for this residue to help determine stereocenters
+    // Set up an AtomMap for this residue to help determine stereocenters.
+    // This is required by the IdSugarRing() function.
     myMap_.SetDebug(debug_);
     if (myMap_.Setup(topIn, frameIn)) {
       mprinterr("Error: Atom map setup failed\n");
@@ -2360,7 +2369,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     // into an ROH residue.
     // This is done before any identification takes places since it may
     // involve reordering the topology if residues are split.
-    if (CheckIfSugarsAreTerminal(sugarmaskstr, topIn)) {
+    if (CheckIfSugarsAreTerminal(sugarmaskstr, topIn, frameIn)) {
       mprinterr("Error: Checking for terminal sugars failed.\n");
       return CpptrajState::ERR;
     }
