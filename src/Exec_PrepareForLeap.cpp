@@ -1414,6 +1414,74 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
   return 0;
 }
 
+/** Attempt to find any missing linkages to the anomeric carbon in sugar. */
+int Exec_PrepareForLeap::FindSugarC1Linkages(int rnum1, int c_beg,
+                                             Topology& topIn, Frame const& frameIn)
+const
+{
+  //int rnum1 = sugar.ResNum();
+  //int c_beg = sugar.AnomericAtom();
+  Residue const& res1 = topIn.SetRes(rnum1);
+  // If the anomeric atom is already bonded to another residue, skip this.
+  for (Atom::bond_iterator bat = topIn[c_beg].bondbegin();
+                           bat != topIn[c_beg].bondend(); ++bat)
+  {
+    if (topIn[*bat].ResNum() != rnum1) {
+      if (debug_ > 0)
+        mprintf("\tSugar %s anomeric carbon is already bonded to another residue, skipping.\n",
+                topIn.TruncResNameOnumId(rnum1).c_str());
+      return 0;
+    }
+  }
+
+  // residue first atom to residue first atom cutoff^2
+  const double rescut2 = 64.0;
+  // bond cutoff offset
+  const double offset = 0.2;
+
+  Atom::AtomicElementType a1Elt = topIn[c_beg].Element(); // Should always be C
+  if (debug_ > 0)
+    mprintf("DEBUG: Anomeric ring carbon: %s\n", topIn.ResNameNumAtomNameNum(c_beg).c_str());
+  // Loop over other residues
+  for (int rnum2 = 0; rnum2 < topIn.Nres(); rnum2++)
+  {
+    if (rnum2 != rnum1) {
+      Residue const& res2 = topIn.Res(rnum2);
+      // Ignore solvent residues
+      if (res2.Name() != solventResName_) {
+        int at1 = res1.FirstAtom();
+        int at2 = res2.FirstAtom();
+        // Initial residue-residue distance based on first atoms in each residue
+        double dist2_1 = DIST2_NoImage( frameIn.XYZ(at1), frameIn.XYZ(at2) );
+        if (dist2_1 < rescut2) {
+          if (debug_ > 1)
+            mprintf("DEBUG: %s to %s = %f\n",
+                    topIn.TruncResNameOnumId(rnum1).c_str(), topIn.TruncResNameOnumId(rnum2).c_str(),
+                    sqrt(dist2_1));
+          // Do the rest of the atoms in res2 to the anomeric carbon
+          for (; at2 != res2.LastAtom(); ++at2)
+          {
+            if (!topIn[c_beg].IsBondedTo(at2)) {
+              double D2 = DIST2_NoImage( frameIn.XYZ(c_beg), frameIn.XYZ(at2) );
+              Atom::AtomicElementType a2Elt = topIn[at2].Element();
+              double cutoff2 = Atom::GetBondLength(a1Elt, a2Elt) + offset;
+              cutoff2 *= cutoff2;
+              if (D2 < cutoff2) {
+                mprintf("\t  Adding bond between %s and %s\n",
+                        topIn.ResNameNumAtomNameNum(c_beg).c_str(),
+                        topIn.ResNameNumAtomNameNum(at2).c_str());
+                topIn.AddBond(c_beg, at2);
+              }
+            }
+          } // END loop over res2 atoms
+        } // END res1-res2 distance cutoff
+      } // END res2 is not solvent
+    } // END res1 != res2
+  } // END res2 loop over other residues
+
+  return 0;
+}
+
 /** For each sugar, see if the anomeric carbon is actually terminal and needs
   * to be a separate ROH residue.
   */
@@ -1459,7 +1527,21 @@ const
     }
   }
 
-  // Loop over sugar indices
+  // Loop over sugar indices to see if anomeric C is missing bonds
+  for (std::vector<AtomPair>::const_iterator ac_ro = SugarIndices.begin();
+                                             ac_ro != SugarIndices.end(); ++ac_ro)
+  {
+    int anomericAtom = ac_ro->first;
+    int rnum = topIn[anomericAtom].ResNum();
+    if (FindSugarC1Linkages(rnum, anomericAtom, topIn, frameIn)) {
+      mprinterr("Error: Search for bonds to anomeric carbon '%s' failed.\n",
+                topIn.AtomMaskName(anomericAtom).c_str());
+      return 1;
+    }
+  }
+
+
+  // Loop over sugar indices to see if residues need to be split
   for (std::vector<AtomPair>::const_iterator ac_ro = SugarIndices.begin();
                                              ac_ro != SugarIndices.end(); ++ac_ro)
   {
@@ -1560,7 +1642,7 @@ int Exec_PrepareForLeap::PrepareSugars(AtomMask& sugarMask, Topology& topIn,
         resStat_[*rnum] = SUGAR_MISSING_RING_O;
       Sugars.back().PrintInfo( topIn );
     }
-    // For each sugar residue, try to fill in missing linkages
+/*    // For each sugar residue, try to fill in missing linkages
     if (findC1linkages) {
       mprintf("\tAttempting to identify missing linkages to sugar anomeric carbons.\n");
       for (std::vector<Sugar>::const_iterator sugar = Sugars.begin();
@@ -1576,7 +1658,7 @@ int Exec_PrepareForLeap::PrepareSugars(AtomMask& sugarMask, Topology& topIn,
       }
     } else {
       mprintf("\tNot attempting to identify missing linkages to sugar anomeric carbons.\n");
-    }
+    }*/
 
     // For each sugar residue, see if it is bonded to a non-sugar residue.
     // If it is, remove that bond but record it.
