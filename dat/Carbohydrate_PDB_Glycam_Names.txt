@@ -2,7 +2,7 @@
 # Information largely obtained from http://glycam.org/docs/othertoolsservice/2016/06/09/3d-snfg-list-of-residue-names/#PDB
 # Last updated 09/01/21 10:01:41
 "Glucose"                        G GLC,MAL,BGC
-"N-Acetyl Glucosamine"           Y NAG,4YS,SGN,BGLN,NDG
+"N-Acetyl Glucosamine"           Y NAG,NDG
 "Glucosamine"                    Y GCS
 "Glucuronic Acid"                Z GCU,BDP
 "Quinovose"                      Q QUI
