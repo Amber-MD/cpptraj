@@ -461,6 +461,7 @@ static void FollowBonds(int atm, Topology const& topIn, int idx, std::vector<int
 }
 
 /** Attempt to find any missing linkages to the anomeric carbon in sugar. */
+/*
 int Exec_PrepareForLeap::FindSugarC1Linkages(Sugar const& sugar, Topology& topIn, Frame const& frameIn)
 const
 {
@@ -530,7 +531,7 @@ const
   } // END res2 loop over other residues
 
   return 0;
-}
+}*/
 
 /** Determine torsion around the anomeric carbon. */
 int Exec_PrepareForLeap::CalcAnomericTorsion(double& torsion,
@@ -1482,15 +1483,74 @@ const
   return 0;
 }
 
-/** For each sugar, see if the anomeric carbon is actually terminal and needs
+/** See if the sugar anomeric carbon is actually terminal and needs
   * to be a separate ROH residue.
   */
+int Exec_PrepareForLeap::CheckIfSugarIsTerminal(int rnum, int anomericAtom, int ringOxygen,
+                                                Topology& topIn, Frame& frameIn)
+const
+{
+  std::string sugarName = topIn.TruncResNameOnumId(rnum);
+
+  // Is the anomeric carbon bonded to an oxygen that is part of this residue.
+  int o1_atom = -1;
+  for (Atom::bond_iterator bat = topIn[anomericAtom].bondbegin();
+                           bat != topIn[anomericAtom].bondend(); ++bat)
+  {
+    if (topIn[*bat].ResNum() == rnum &&
+        *bat != ringOxygen &&
+        topIn[*bat].Element() == Atom::OXYGEN) {
+      if (o1_atom != -1) {
+        mprintf("Warning: Anomeric atom '%s %s' bonded to more than 1 oxygen.\n",
+                sugarName.c_str(), *(topIn[anomericAtom].Name()));
+        o1_atom = -1;
+        break;
+      } else
+        o1_atom = *bat;
+    }
+  }
+  if (o1_atom == -1) return 0;
+  Iarray selected(1, o1_atom);
+  // Ensure the oxygen is itself terminal (no other bonds or only H)
+  if (topIn[o1_atom].Nbonds() > 1) {
+    for (Atom::bond_iterator bat = topIn[o1_atom].bondbegin();
+                             bat != topIn[o1_atom].bondend(); ++bat)
+    {
+      if (topIn[*bat].Element() == Atom::HYDROGEN)
+        selected.push_back( *bat );
+      else if (*bat != anomericAtom) {
+        // Bonded to something other than H.
+        return 0;
+      }
+    }
+  }
+  mprintf("\tIn-residue oxygen bonded to anomeric carbon: '%s %s'\n",
+          sugarName.c_str(), *(topIn[o1_atom].Name()));
+  mprintf("\t  Will split into %s group.\n", terminalHydroxylName_.c_str());
+  AtomMask ROH(selected, topIn.Natom());
+
+  // Split the hydroxyl into a new residue named ROH for Glycam.
+  // This may involve reordering atoms within the residue, but not
+  // any other atoms, so we should not have to update SugarIndices.
+  Iarray atomMap;
+  if (topIn.SplitResidue(ROH, terminalHydroxylName_, atomMap)) {
+    mprinterr("Error: Could not split the residue '%s'.\n", sugarName.c_str());
+    return 1;
+  }
+  // Reorder the frame to match
+  Frame oldFrame = frameIn;
+  frameIn.SetCoordinatesByMap( oldFrame, atomMap );
+  return 0;
+}
+
+/** Try to fix issues with sugar structure before trying to identify. */
 int Exec_PrepareForLeap::FixSugarsStructure(std::string const& sugarMaskStr,
-                                                  Topology& topIn, Frame& frameIn)
+                                            Topology& topIn, Frame& frameIn,
+                                            bool c1bondsearch, bool termsearch) 
 const
 {
   AtomMask sugarMask(sugarMaskStr);
-  mprintf("\tSeaching for terminal sugars selected by '%s'\n", sugarMask.MaskString());
+  mprintf("\tAttempting to fix sugars selected by '%s'\n", sugarMask.MaskString());
   if (topIn.SetupIntegerMask( sugarMask )) return 1;
   sugarMask.MaskInfo();
   if (sugarMask.None()) {
@@ -1514,94 +1574,53 @@ const
     Sugar sugar = IdSugarRing(*rnum, topIn, stat);
     if (stat == ID_ERR) {
       if (errorsAreFatal_) {
-        mprinterr("Error: During terminal sugar search, problem identifying sugar ring for %s\n",
+        mprinterr("Error: During sugar fix, problem identifying sugar ring for %s\n",
                   topIn.TruncResNameOnumId(*rnum).c_str());
         return 1;
       } else
-        mprintf("Warning: During terminal sugar search, problem identifying sugar ring for %s\n",
+        mprintf("Warning: During sugar fix, problem identifying sugar ring for %s\n",
                 topIn.TruncResNameOnumId(*rnum).c_str());
     }
     if (!sugar.NotSet()) {
-      //mprintf("DEBUG: Sugar: %s\n", topIn.TruncResNameOnumId(sugar.ResNum()).c_str());
       SugarIndices.push_back( AtomPair(sugar.AnomericAtom(), sugar.RingOxygenAtom()) );
+      if (debug_ > 0)
+        mprintf("DEBUG: fix search %s ano. C= %s  ring O= %s\n",
+                topIn.TruncResNameOnumId(*rnum).c_str(),
+                topIn.AtomMaskName(sugar.AnomericAtom()).c_str(),
+                topIn.AtomMaskName(sugar.RingOxygenAtom()).c_str());
     }
   }
 
-  // Loop over sugar indices to see if anomeric C is missing bonds
-  for (std::vector<AtomPair>::const_iterator ac_ro = SugarIndices.begin();
-                                             ac_ro != SugarIndices.end(); ++ac_ro)
-  {
-    int anomericAtom = ac_ro->first;
-    int rnum = topIn[anomericAtom].ResNum();
-    if (FindSugarC1Linkages(rnum, anomericAtom, topIn, frameIn)) {
-      mprinterr("Error: Search for bonds to anomeric carbon '%s' failed.\n",
-                topIn.AtomMaskName(anomericAtom).c_str());
-      return 1;
-    }
-  }
-
-
-  // Loop over sugar indices to see if residues need to be split
-  for (std::vector<AtomPair>::const_iterator ac_ro = SugarIndices.begin();
-                                             ac_ro != SugarIndices.end(); ++ac_ro)
-  {
-    int anomericAtom = ac_ro->first;
-    int ringOxygen   = ac_ro->second;
-    int rnum = topIn[anomericAtom].ResNum();
-    std::string sugarName = topIn.TruncResNameOnumId(rnum);
-    if (debug_ > 0)
-      mprintf("DEBUG: terminal search %s ano. C= %s  ring O= %s\n",
-              sugarName.c_str(), topIn.AtomMaskName(anomericAtom).c_str(),
-              topIn.AtomMaskName(ringOxygen).c_str());
-    // Is the anomeric carbon bonded to an oxygen that is part of this residue.
-    int o1_atom = -1;
-    for (Atom::bond_iterator bat = topIn[anomericAtom].bondbegin();
-                             bat != topIn[anomericAtom].bondend(); ++bat)
+  if (c1bondsearch) {
+    // Loop over sugar indices to see if anomeric C is missing bonds
+    for (std::vector<AtomPair>::const_iterator ac_ro = SugarIndices.begin();
+                                               ac_ro != SugarIndices.end(); ++ac_ro)
     {
-      if (topIn[*bat].ResNum() == rnum &&
-          *bat != ringOxygen &&
-          topIn[*bat].Element() == Atom::OXYGEN) {
-        if (o1_atom != -1) {
-          mprintf("Warning: Anomeric atom '%s %s' bonded to more than 1 oxygen.\n",
-                  sugarName.c_str(), *(topIn[anomericAtom].Name()));
-          o1_atom = -1;
-          break;
-        } else
-          o1_atom = *bat;
+      int anomericAtom = ac_ro->first;
+      int rnum = topIn[anomericAtom].ResNum();
+      if (FindSugarC1Linkages(rnum, anomericAtom, topIn, frameIn)) {
+        mprinterr("Error: Search for bonds to anomeric carbon '%s' failed.\n",
+                  topIn.AtomMaskName(anomericAtom).c_str());
+        return 1;
       }
     }
-    if (o1_atom == -1) continue;
-    Iarray selected(1, o1_atom);
-    // Ensure the oxygen is itself terminal (no other bonds or only H)
-    if (topIn[o1_atom].Nbonds() > 1) {
-      for (Atom::bond_iterator bat = topIn[o1_atom].bondbegin();
-                               bat != topIn[o1_atom].bondend(); ++bat)
-      {
-        if (topIn[*bat].Element() == Atom::HYDROGEN)
-          selected.push_back( *bat );
-        else if (*bat != anomericAtom) {
-          // Bonded to something other than H.
-          continue;
-        }
-      }
-    }
-    mprintf("\tIn-residue oxygen bonded to anomeric carbon: '%s %s'\n",
-            sugarName.c_str(), *(topIn[o1_atom].Name()));
-    mprintf("\t  Will split into %s group.\n", terminalHydroxylName_.c_str());
-    AtomMask ROH(selected, topIn.Natom());
+  }
 
-    // Split the hydroxyl into a new residue named ROH for Glycam.
-    // This may involve reordering atoms within the residue, but not
-    // any other atoms, so we should not have to update SugarIndices.
-    Iarray atomMap;
-    if (topIn.SplitResidue(ROH, terminalHydroxylName_, atomMap)) {
-      mprinterr("Error: Could not split the residue '%s'.\n", sugarName.c_str());
-      return 1;
-    }
-    // Reorder the frame to match
-    Frame oldFrame = frameIn;
-    frameIn.SetCoordinatesByMap( oldFrame, atomMap );
-  } // End loop over sugar indices
+  if (termsearch) {
+    // Loop over sugar indices to see if residues need to be split
+    for (std::vector<AtomPair>::const_iterator ac_ro = SugarIndices.begin();
+                                               ac_ro != SugarIndices.end(); ++ac_ro)
+    {
+      int anomericAtom = ac_ro->first;
+      int ringOxygen   = ac_ro->second;
+      int rnum = topIn[anomericAtom].ResNum();
+      if (CheckIfSugarIsTerminal(rnum, anomericAtom, ringOxygen, topIn, frameIn)) {
+        mprinterr("Error: Checking if sugar %s is terminal failed.\n",
+                  topIn.TruncResNameOnumId(rnum).c_str());
+        return 1;
+      }
+    } // End loop over sugar indices
+  }
 
   return 0;
 }
@@ -2491,7 +2510,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   // If preparing sugars, need to set up an atom map and potentially
-  // search for terminal sugars. Do this here after all atom
+  // search for terminal sugars/missing bonds. Do this here after all atom
   // modifications have been done.
   if (prepare_sugars) {
     // Set up an AtomMap for this residue to help determine stereocenters.
@@ -2503,13 +2522,25 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     }
     myMap_.DetermineAtomIDs();
 
-    if (!argIn.hasKey("notermsearch")) {
-      // Check if any sugars are in fact terminal and need the C1 oxygen split
-      // into an ROH residue.
-      // This is done before any identification takes places since it may
-      // involve reordering the topology if residues are split.
-      if (FixSugarsStructure(sugarmaskstr, topIn, frameIn)) {
-        mprinterr("Error: Checking for terminal sugars failed.\n");
+    bool termsearch = !argIn.hasKey("notermsearch");
+    if (termsearch)
+      mprintf("\tWill split hydroxyls on anomeric atoms of terminal sugars into separate residues.\n");
+    else
+      mprintf("\tNot splitting hydroxyls on anomeric atoms of terminal sugars into separate residues.\n");
+    bool c1bondsearch = !argIn.hasKey("noc1search");
+    if (c1bondsearch)
+      mprintf("\tWill search for missing bonds to sugar anomeric atoms.\n");
+    else
+      mprintf("\tNot searching for missing bonds to sugar anomeric atoms.\n");
+    if (termsearch || c1bondsearch) {
+      // May need to modify sugar structure/topology, either by splitting
+      // C1 hydroxyls of terminal sugars into ROH residues, and/or by
+      // adding missing bonds to C1 atoms.
+      // This is done before any identification takes place since we want
+      // to identify based on the most up-to-date topology.
+
+      if (FixSugarsStructure(sugarmaskstr, topIn, frameIn, c1bondsearch, termsearch)) {
+        mprinterr("Error: Sugar structure modification failed.\n");
         return CpptrajState::ERR;
       }
       // Since FixSugarsStructure() can re-order atoms, need

@@ -37,7 +37,7 @@ class Exec_PrepareForLeap : public Exec {
 //    int CalcStereocenterTorsion(double&, int, Topology const&, Frame const&) const;
     int FindRemainingChainCarbons(Iarray&, int, Topology const&, int, Iarray const&) const;
     /// Try to find any missing bonds to C1 atoms
-    int FindSugarC1Linkages(Sugar const&, Topology&, Frame const&) const;
+//    int FindSugarC1Linkages(Sugar const&, Topology&, Frame const&) const;
     /// Determine orientation around anomeric carbon
     int CalcAnomericTorsion(double&, int, int, int, Iarray const&,
                             Topology const&, Frame const&) const;
@@ -68,8 +68,10 @@ class Exec_PrepareForLeap : public Exec {
     int IdentifySugar(Sugar const&, Topology&, Frame const&, CharMask const&, CpptrajFile*, std::set<BondType>&);
     /// Try to find missing linkages to anomeric carbon in sugar.
     int FindSugarC1Linkages(int, int, Topology&, Frame const&) const;
-    /// Determine if sugars are terminal and need an ROH residue
-    int FixSugarsStructure(std::string const&, Topology&, Frame&) const;
+    /// Determine if sugar is terminal and need an ROH residue
+    int CheckIfSugarIsTerminal(int, int, int, Topology&, Frame&) const;
+    /// Attempt to fix any issues with sugars
+    int FixSugarsStructure(std::string const&, Topology&, Frame&, bool, bool) const;
 
     int PrepareSugars(AtomMask&, Topology&, Frame const&, CpptrajFile*, bool);
     int FindTerByBonds(Topology&, CharMask const&) const;
