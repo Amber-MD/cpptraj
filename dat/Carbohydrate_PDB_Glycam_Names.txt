@@ -4,7 +4,7 @@
 "Glucose"                        G GLC,MAL,BGC
 "N-Acetyl Glucosamine"           Y NAG,4YS,SGN,BGLN,NDG
 "Glucosamine"                    Y GCS
-"Glucuronic Acid"                Z GCU
+"Glucuronic Acid"                Z GCU,BDP
 "Quinovose"                      Q QUI
 "Mannose"                        M MAN,BMA
 "Rhamnose"                       H RAM
