@@ -1628,8 +1628,8 @@ const
 
 /** Prepare sugars for leap. */
 int Exec_PrepareForLeap::PrepareSugars(AtomMask& sugarMask, Topology& topIn,
-                                       Frame const& frameIn, CpptrajFile* outfile,
-                                       bool findC1linkages)
+                                       Frame const& frameIn, CpptrajFile* outfile)
+                                
 {
   std::set<BondType> sugarBondsToRemove;
   mprintf("\tPreparing sugars selected by '%s'\n", sugarMask.MaskString());
@@ -2617,7 +2617,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 
   // Prepare sugars
   if (prepare_sugars) {
-    if (PrepareSugars(sugarMask, topIn, frameIn, outfile, !argIn.hasKey("noc1search"))) {
+    if (PrepareSugars(sugarMask, topIn, frameIn, outfile)) {
       mprinterr("Error: Sugar preparation failed.\n");
       return CpptrajState::ERR;
     }

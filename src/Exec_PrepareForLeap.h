@@ -73,7 +73,7 @@ class Exec_PrepareForLeap : public Exec {
     /// Attempt to fix any issues with sugars
     int FixSugarsStructure(std::string const&, Topology&, Frame&, bool, bool) const;
 
-    int PrepareSugars(AtomMask&, Topology&, Frame const&, CpptrajFile*, bool);
+    int PrepareSugars(AtomMask&, Topology&, Frame const&, CpptrajFile*);
     int FindTerByBonds(Topology&, CharMask const&) const;
     int SearchForDisulfides(double, std::string const&, std::string const&, bool,
                             Topology&, Frame const&, CpptrajFile*);
