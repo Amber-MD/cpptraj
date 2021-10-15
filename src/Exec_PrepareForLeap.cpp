@@ -1485,7 +1485,7 @@ const
 /** For each sugar, see if the anomeric carbon is actually terminal and needs
   * to be a separate ROH residue.
   */
-int Exec_PrepareForLeap::CheckIfSugarsAreTerminal(std::string const& sugarMaskStr,
+int Exec_PrepareForLeap::FixSugarsStructure(std::string const& sugarMaskStr,
                                                   Topology& topIn, Frame& frameIn)
 const
 {
@@ -2508,11 +2508,11 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       // into an ROH residue.
       // This is done before any identification takes places since it may
       // involve reordering the topology if residues are split.
-      if (CheckIfSugarsAreTerminal(sugarmaskstr, topIn, frameIn)) {
+      if (FixSugarsStructure(sugarmaskstr, topIn, frameIn)) {
         mprinterr("Error: Checking for terminal sugars failed.\n");
         return CpptrajState::ERR;
       }
-      // Since CheckIfSugarsAreTerminal() can re-order atoms, need
+      // Since FixSugarsStructure() can re-order atoms, need
       // to recreate the map.
       myMap_.ClearMap();
       if (myMap_.Setup(topIn, frameIn)) {

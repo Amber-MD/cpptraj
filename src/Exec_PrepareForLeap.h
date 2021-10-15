@@ -69,7 +69,7 @@ class Exec_PrepareForLeap : public Exec {
     /// Try to find missing linkages to anomeric carbon in sugar.
     int FindSugarC1Linkages(int, int, Topology&, Frame const&) const;
     /// Determine if sugars are terminal and need an ROH residue
-    int CheckIfSugarsAreTerminal(std::string const&, Topology&, Frame&) const;
+    int FixSugarsStructure(std::string const&, Topology&, Frame&) const;
 
     int PrepareSugars(AtomMask&, Topology&, Frame const&, CpptrajFile*, bool);
     int FindTerByBonds(Topology&, CharMask const&) const;
