@@ -10,7 +10,7 @@
 "Rhamnose"                       H RAM
 "Tyvelose"                       T TYV
 "Arabinose"                      A ARA,AHR,ARB
-"Galactose"                      L GAL,GLA
+"Galactose"                      L GAL,GLA,GXL
 "N-Acetyl Galactosamine"         V NGA,A2G
 "Galacturonic Acid"              O ADA
 "Gulose"                         K GUL,GUP,GL0
