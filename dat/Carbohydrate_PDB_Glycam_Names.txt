@@ -9,7 +9,7 @@
 "Mannose"                        M MAN,BMA
 "Rhamnose"                       H RAM
 "Tyvelose"                       T TYV
-"Arabinose"                      A ARA,AHR
+"Arabinose"                      A ARA,AHR,ARB
 "Galactose"                      L GAL,GLA
 "N-Acetyl Galactosamine"         V NGA
 "Galacturonic Acid"              O ADA
