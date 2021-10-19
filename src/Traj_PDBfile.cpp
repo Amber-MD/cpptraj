@@ -1,5 +1,5 @@
 #include "Traj_PDBfile.h"
-#include <algorithm> // min, max
+#include <algorithm> // min, max, sort
 #include "Topology.h"
 #include "ArgList.h"
 #include "DataSetList.h"
@@ -712,6 +712,8 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
         TER_idxs_.push_back( mol->MolUnit().Back() - 1 );
     }
   }
+  // Sort the TER indices
+  std::sort( TER_idxs_.begin(), TER_idxs_.end() );
   TER_idxs_.push_back( -1 ); // Indicates that final TER has been written.
   if (debug_ > 0) {
     mprintf("DEBUG: TER indices:");
