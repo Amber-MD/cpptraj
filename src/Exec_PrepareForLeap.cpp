@@ -2884,6 +2884,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 
   if (!pdbout.empty()) {
     Trajout_Single PDB;
+    PDB.SetDebug( debug_ );
     if (PDB.InitTrajWrite( pdbout, "topresnum", State.DSL(), TrajectoryFile::PDBFILE)) {
       mprinterr("Error: Could not initialize output PDB\n");
       return CpptrajState::ERR;
