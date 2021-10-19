@@ -127,8 +127,14 @@ class Exec_PrepareForLeap : public Exec {
 // ----- Sugar class ----------------------------------------------------------
 class Exec_PrepareForLeap::Sugar {
   public:
+    /// Base ring type
+    enum RingTypeEnum { PYRANOSE = 0,  ///< Ring is 5 carbons, 1 oxygen
+                        FURANOSE,      ///< Ring is 4 carbons, 1 oxygen
+                        UNKNOWN_RING   ///< Some unknown ring type
+                  };
     /// CONSTRUCTOR - residue number, incomplete setup
     Sugar(int);
+    /// CONSTRUCTOR - res #, ring O, Anomeric, Anomeric Ref, Highest Sterocenter, ring atoms, chain atoms
     Sugar(int,int,int,int,int,Iarray const&,Iarray const&);
 
     int ResNum()               const { return rnum_; }
@@ -136,6 +142,7 @@ class Exec_PrepareForLeap::Sugar {
     int AnomericAtom()         const { return anomeric_atom_; }
     int AnomericRefAtom()      const { return ano_ref_atom_; }
     int HighestStereocenter()  const { return highest_stereocenter_; }
+    RingTypeEnum RingType()    const { return ringType_; }
     Iarray const& RingAtoms()  const { return ring_atoms_; }
     int RingEndAtom()          const { return ring_atoms_.back(); }
     Iarray const& ChainAtoms() const { return chain_atoms_; }
@@ -153,6 +160,7 @@ class Exec_PrepareForLeap::Sugar {
     int anomeric_atom_;        ///< Index of the anomeric C atom (ring start)
     int ano_ref_atom_;         ///< Index of the anomeric reference C atom
     int highest_stereocenter_; ///< Index of the highest stereocenter in the carbon chain
+    RingTypeEnum ringType_;    ///< Will be set to ring type
     Iarray ring_atoms_;        ///< Index of all non-oxygen ring atoms
     Iarray chain_atoms_;       ///< Index of all chain carbon atoms (from anomeric carbon).
 };

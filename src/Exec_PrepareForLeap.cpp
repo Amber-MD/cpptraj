@@ -17,9 +17,11 @@ Exec_PrepareForLeap::Sugar::Sugar(int rn) :
   ring_oxygen_atom_(-1),
   anomeric_atom_(-1),
   ano_ref_atom_(-1),
-  highest_stereocenter_(-1)
+  highest_stereocenter_(-1),
+  ringType_(UNKNOWN_RING)
 {}
 
+/** CONSTRUCTOR - Set ring atom indices and ring type. */
 Exec_PrepareForLeap::Sugar::Sugar(int rn, int roa, int aa, int ara, int hs,
                                   Iarray const& RA, Iarray const& CA) :
   rnum_(rn),
@@ -27,10 +29,19 @@ Exec_PrepareForLeap::Sugar::Sugar(int rn, int roa, int aa, int ara, int hs,
   anomeric_atom_(aa),
   ano_ref_atom_(ara),
   highest_stereocenter_(hs),
+  ringType_(UNKNOWN_RING),
   ring_atoms_(RA),
   chain_atoms_(CA)
-{}
+{
+  if (ring_oxygen_atom_ != -1) {
+    if (RA.size() == 5)
+      ringType_ = PYRANOSE;
+    else if (RA.size() == 4)
+      ringType_ = FURANOSE;
+  }
+}
 
+/** Print info about the sugar to STDOUT. */
 void Exec_PrepareForLeap::Sugar::PrintInfo(Topology const& topIn) const {
   if (NotSet()) {
     mprintf("\t%s : Not Set.\n", topIn.TruncResNameOnumId(rnum_).c_str());
@@ -41,6 +52,14 @@ void Exec_PrepareForLeap::Sugar::PrintInfo(Topology const& topIn) const {
     mprintf("\t\tAnomeric ref. C  : %s\n", topIn.TruncAtomNameNum(ano_ref_atom_).c_str());
     mprintf("\t\tConfig. C        : %s\n", topIn.TruncAtomNameNum(highest_stereocenter_).c_str());
     mprintf("\t\tNum ring atoms   : %u\n", NumRingAtoms());
+    static const char* RingPrefixStr[] = { "Hexo", "Pento", "Other" };
+    int rpsidx = 2;
+    if (chain_atoms_.size() == 6)
+      rpsidx = 0;
+    else if (chain_atoms_.size() == 5)
+      rpsidx = 1;
+    static const char* RingTypeStr[] = { "Pyranose", "Furanose", "Unknown" };
+    mprintf("\t\tRing Type        : %s%s\n", RingPrefixStr[rpsidx], RingTypeStr[ringType_]);
     mprintf("\t\tNon-O Ring atoms :");
     for (Iarray::const_iterator it = ring_atoms_.begin(); it != ring_atoms_.end(); ++it)
       mprintf(" %s", topIn.TruncAtomNameNum(*it).c_str());
@@ -1395,18 +1414,18 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
     mprinterr("Error: Unrecognized sugar linkage.\n");
     return 1;
   }
-  // Modify residue char to indicate D form if necessary.
-  // We do this here and not above so as not to mess with the
-  // linkage determination.
-  if (!isDform)
-    resChar = tolower( resChar );
-  // Remove bonds to non-sugar
+  // Remove bonds to other residues 
   for (BondArray::const_iterator bnd = bondsToRemove.begin();
                                  bnd != bondsToRemove.end(); ++bnd)
   {
     LeapBond(bnd->A1(), bnd->A2(), topIn, outfile);
     topIn.RemoveBond(bnd->A1(), bnd->A2());
   }
+  // Modify residue char to indicate D form if necessary.
+  // We do this here and not above so as not to mess with the
+  // linkage determination.
+  if (!isDform)
+    resChar = tolower( resChar );
   // Set new residue name
   NameType newResName( linkcode + std::string(1,resChar) + formStr );
   mprintf("\t  Changing %s to Glycam resname: %s\n", topIn.TruncResNameOnumId(rnum).c_str(), *newResName);
