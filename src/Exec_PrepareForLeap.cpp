@@ -6,6 +6,7 @@
 #include "Constants.h"
 #include "CpptrajFile.h"
 #include "Trajout_Single.h"
+#include "StringRoutines.h" // integerToString
 #include "DataSet_Coords_CRD.h"
 #include <stack>
 #include <cctype> // tolower
@@ -111,6 +112,7 @@ const
 }
 
 /// \return Glycam linkage code for given glycam residue name and linked atoms
+/*
 static std::string LinkageCode(char glycamChar, std::set<NameType> const& linkages)
 {
   std::string linkcode;
@@ -145,7 +147,7 @@ static std::string LinkageCode(char glycamChar, std::set<NameType> const& linkag
   if (linkcode.empty())
     mprintf("Warning: Could not determine link code for link atoms '%s'.\n", linkstr.c_str());
   return linkcode;
-}
+}*/
 
 /** If file not present, use a default set of residue names. */
 void Exec_PrepareForLeap::SetPdbResNames() {
@@ -1277,6 +1279,159 @@ const
   return form;
 }
 
+/// \return Glycam linkage code for given linked atoms
+std::string Exec_PrepareForLeap::GlycamLinkageCode(std::set<Link> const& linkages,
+                                                   Topology const& topIn)
+const
+{
+  std::string linkcode;
+
+  // Try to create a link string based on link atom element and position.
+  // Check for any unknown positions.
+  std::string linkstr;
+  for (std::set<Link>::const_iterator it = linkages.begin(); it != linkages.end(); ++it) {
+    if (it->Position() < 1) {
+      mprinterr("Error: Linkage for atom '%s' has undetermined position in sugar.\n",
+                topIn.AtomMaskName(it->Idx()).c_str());
+      return linkcode;
+    }
+    linkstr.append( std::string(topIn[it->Idx()].ElementName()) +
+                    integerToString(it->Position()) );
+  }
+
+  mprintf("DEBUG:\t  linkstr= '%s'\n", linkstr.c_str());
+  if      (linkstr == "C1") linkcode = "0";
+  else if (linkstr == "O1") linkcode = "1";
+  else if (linkstr == "C1O2") linkcode = "2";
+  else if (linkstr == "C1O3") linkcode = "3";
+  else if (linkstr == "C1O4") linkcode = "4";
+  else if (linkstr == "C1O6") linkcode = "6";
+  else if (linkstr == "C1O2O3") linkcode = "Z";
+  else if (linkstr == "C1O2O4") linkcode = "Y";
+  else if (linkstr == "C1O2O6") linkcode = "X";
+  else if (linkstr == "C1O3O4") linkcode = "W";
+  else if (linkstr == "C1O3O6") linkcode = "V";
+  else if (linkstr == "C1O4O6") linkcode = "U";
+  else if (linkstr == "C1O2O3O4") linkcode = "T";
+  else if (linkstr == "C1O2O3O6") linkcode = "S";
+  else if (linkstr == "C1O2O4O6") linkcode = "R";
+  else if (linkstr == "C1O3O4O6") linkcode = "Q";
+  else if (linkstr == "C1O2O3O4O6") linkcode = "P";
+  if (linkcode.empty())
+    mprintf("Warning: Could not determine link code for link atoms '%s'.\n", linkstr.c_str());
+  return linkcode;
+}
+
+/** Determine linkages for the sugar. Non-sugar residues linked to sugars
+  * with a recognized linkage will be marked as valid.
+  */
+std::string Exec_PrepareForLeap::DetermineSugarLinkages(Sugar const& sugar, CharMask const& cmask,
+                                                        Topology& topIn, ResStatArray& resStatIn,
+                                                        CpptrajFile* outfile,
+                                                        std::set<BondType>& sugarBondsToRemove)
+const
+{
+  int rnum = sugar.ResNum();
+  Residue const& res = topIn.SetRes(rnum);
+
+  // Use set to store link atoms so it is ordered by position
+  std::set<Link> linkages;
+
+  // Bonds to non sugars to be removed since these will confuse tleap
+  BondArray bondsToRemove;
+
+  // Loop over sugar atoms
+  for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
+  {
+    // This will be the index of the carbon that is atom is bonded to (or of this atom itself).
+    int atomChainPosition = -1;
+    // Find position in carbon chain
+    if (topIn[at].Element() == Atom::CARBON)
+      atomChainPosition = AtomIdxInArray(sugar.ChainAtoms(), at);
+    if (atomChainPosition == -1) {
+      // Check if any bonded atoms are in carbon chain
+      for (Atom::bond_iterator bat = topIn[at].bondbegin();
+                               bat != topIn[at].bondend(); ++bat)
+      {
+        if (topIn[*bat].Element() == Atom::CARBON) {
+          atomChainPosition = AtomIdxInArray(sugar.ChainAtoms(), *bat);
+          if (atomChainPosition != -1) break;
+        }
+      }
+    }
+
+    // Check for bonds to other residues
+    for (Atom::bond_iterator bat = topIn[at].bondbegin();
+                             bat != topIn[at].bondend(); ++bat)
+    {
+      if (topIn[*bat].ResNum() != rnum) {
+        // This atom is bonded to another residue.
+        linkages.insert(Link(at, atomChainPosition+1));
+        // Check if the other residue is a sugar or not
+        if (!cmask.AtomInCharMask(*bat)) {
+          // Atom is bonded to non-sugar residue.
+          mprintf("\t  Sugar %s bonded to non-sugar %s at position %i\n",
+                  topIn.ResNameNumAtomNameNum(at).c_str(),
+                  topIn.ResNameNumAtomNameNum(*bat).c_str(), atomChainPosition+1);
+          bondsToRemove.push_back( BondType(at, *bat, -1) );
+          // Check if this is a recognized linkage to non-sugar
+          Residue& pres = topIn.SetRes( topIn[*bat].ResNum() );
+          NameMapType::const_iterator lname = pdb_glycam_linkageRes_map_.find( pres.Name() );
+          if (lname != pdb_glycam_linkageRes_map_.end()) {
+            if (debug_ > 0)
+              mprintf("DEBUG: Link residue name for %s found: %s\n", *(lname->first), *(lname->second));
+            ChangeResName( pres, lname->second );
+            resStatIn[topIn[*bat].ResNum()] = VALIDATED;
+          } else if (pres.Name() == terminalHydroxylName_) {
+            if (debug_ > 0)
+              mprintf("DEBUG: '%s' is terminal hydroxyl.\n", *(pres.Name()));
+            resStatIn[topIn[*bat].ResNum()] = VALIDATED;
+          } else {
+            mprintf("Warning: Unrecognized link residue %s, not modifying name.\n", *pres.Name());
+            resStatIn[topIn[*bat].ResNum()] = UNRECOGNIZED_SUGAR_LINKAGE;
+          }
+        } else {
+          // Atom is bonded to sugar residue
+          mprintf("\t  Sugar %s bonded to sugar %s at position %i\n",
+                  topIn.ResNameNumAtomNameNum(at).c_str(),
+                  topIn.ResNameNumAtomNameNum(*bat).c_str(), atomChainPosition+1);
+          // Also remove inter-sugar bonds since leap cant handle branching
+          if (at < *bat)
+            sugarBondsToRemove.insert( BondType(at, *bat, -1) );
+          else
+            sugarBondsToRemove.insert( BondType(*bat, at, -1) );
+        }
+      }
+    } // END loop over bonded atoms
+
+  } // END loop over residue atoms
+
+  // Determine linkage
+  //if (debug_ > 0) {
+    mprintf("\t  Link atoms:");
+    for (std::set<Link>::const_iterator it = linkages.begin();
+                                        it != linkages.end(); ++it)
+      mprintf(" %s(%i)", *(topIn[it->Idx()].Name()), it->Position());
+    mprintf("\n");
+  //}
+
+  std::string linkcode = GlycamLinkageCode(linkages, topIn);
+  if (debug_ > 0) mprintf("\t  Linkage code: %s\n", linkcode.c_str());
+  if (linkcode.empty()) {
+    mprinterr("Error: Unrecognized sugar linkage.\n");
+    return linkcode;
+  }
+  // Remove bonds to other residues 
+  for (BondArray::const_iterator bnd = bondsToRemove.begin();
+                                 bnd != bondsToRemove.end(); ++bnd)
+  {
+    LeapBond(bnd->A1(), bnd->A2(), topIn, outfile);
+    topIn.RemoveBond(bnd->A1(), bnd->A2());
+  }
+
+  return linkcode;
+}
+
 /** Attempt to identify sugar residue, form, and linkages. */
 int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
                                        Frame const& frameIn, CharMask const& cmask,
@@ -1351,6 +1506,13 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
   }
 
   // Identify linkages to other residues.
+  std::string linkcode = DetermineSugarLinkages(sugar, cmask, topIn, resStat_,
+                                                outfile, sugarBondsToRemove);
+  if (linkcode.empty()) {
+    mprinterr("Error: Determination of sugar linkages failed.\n");
+    return 1;
+  }
+/*
   // Use a set to store linkages so they are in alphabetical order for easier identification.
   std::set<NameType> linkages;
   // Bonds to non sugars to be removed since these will confuse tleap
@@ -1363,6 +1525,7 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
                              bat != topIn[at].bondend(); ++bat)
     {
       if (topIn[*bat].ResNum() != rnum) {
+        // This atom is bonded to another residue
         if (!cmask.AtomInCharMask(*bat)) {
           mprintf("\t  Sugar %s bonded to non-sugar %s\n",
                   topIn.ResNameNumAtomNameNum(at).c_str(),
@@ -1420,7 +1583,8 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
   {
     LeapBond(bnd->A1(), bnd->A2(), topIn, outfile);
     topIn.RemoveBond(bnd->A1(), bnd->A2());
-  }
+  }*/
+
   // Modify residue char to indicate D form if necessary.
   // We do this here and not above so as not to mess with the
   // linkage determination.

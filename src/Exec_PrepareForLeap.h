@@ -18,8 +18,13 @@ class Exec_PrepareForLeap : public Exec {
   private:
     /// Hold indices for sugar
     class Sugar;
+    /// Hold indices for sugar link atoms
+    class Link;
 
     typedef std::vector<int> Iarray;
+    enum ResStatType { UNKNOWN = 0, VALIDATED, UNRECOGNIZED_SUGAR_LINKAGE, SUGAR_MISSING_C1X,
+                       SUGAR_MISSING_RING_O };
+    typedef std::vector<ResStatType> ResStatArray;
 
     inline void ChangeResName(Residue&, NameType const&) const;
     inline void ChangeAtomName(Atom&, NameType const&) const;
@@ -64,7 +69,12 @@ class Exec_PrepareForLeap : public Exec {
     enum AnomerRetType { A_ERR = 0, A_WARNING, IS_ALPHA, IS_BETA };
     /// \return Anomeric form of the sugar
     AnomerRetType DetermineAnomericForm(bool&, Sugar const&, Topology const&, Frame const&) const;
-
+    /// \return Glycam linkage code for given link atoms
+    std::string GlycamLinkageCode(std::set<Link> const&, Topology const&) const;
+    /// Determine linkages for the sugar
+    std::string DetermineSugarLinkages(Sugar const&, CharMask const&, Topology&, ResStatArray&,
+                                       CpptrajFile*, std::set<BondType>&) const;
+    /// Try to identify sugar name, form, and linkages
     int IdentifySugar(Sugar const&, Topology&, Frame const&, CharMask const&, CpptrajFile*, std::set<BondType>&);
     /// Try to find missing linkages to anomeric carbon in sugar.
     int FindSugarC1Linkages(int, int, Topology&, Frame const&) const;
@@ -99,9 +109,6 @@ class Exec_PrepareForLeap : public Exec {
     typedef std::set<NameType> SetType;
     SetType pdb_res_names_; ///< PDB residue names recognized by Amber FFs
 
-    enum ResStatType { UNKNOWN = 0, VALIDATED, UNRECOGNIZED_SUGAR_LINKAGE, SUGAR_MISSING_C1X,
-                       SUGAR_MISSING_RING_O };
-    typedef std::vector<ResStatType> ResStatArray;
     ResStatArray resStat_;  ///< Contain status of each residue
 
     typedef std::pair<NameType, NameType> NamePairType;
@@ -163,5 +170,28 @@ class Exec_PrepareForLeap::Sugar {
     RingTypeEnum ringType_;    ///< Will be set to ring type
     Iarray ring_atoms_;        ///< Index of all non-oxygen ring atoms
     Iarray chain_atoms_;       ///< Index of all chain carbon atoms (from anomeric carbon).
+};
+// ----- Link class ------------------------------------------------------------
+class Exec_PrepareForLeap::Link {
+  public:
+    /// CONSTRUCTOR
+    Link() : idx_(-1), position_(-1) {}
+    /// CONSTRUCTOR - index, position (starting from 1 at the anomeric carbon)
+    Link(int i, int p) : idx_(i), position_(p) {}
+    /// \return Index in topology
+    int Idx() const { return idx_; }
+    /// \return Index in carbon chain (starting from 1 at the anomeric carbon)
+    int Position() const { return position_; }
+    /// First sort by position, then absolute index
+    bool operator<(Link const& rhs) const {
+      if (position_ == rhs.position_) {
+        return (idx_ < rhs.idx_);
+      } else {
+        return position_ < rhs.position_;
+      }
+    }
+  private:
+    int idx_;      ///< Atom index in topology
+    int position_; ///< Position in sugar carbon chain, starting from 1 at the anomeric carbon
 };
 #endif
