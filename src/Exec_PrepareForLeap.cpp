@@ -1689,11 +1689,13 @@ const
 }
 
 /** Check for sulfate groups that need to be separate SO3 residues. */
-int Exec_PrepareForLeap::CheckForSugarSulfates(int rnum, Iarray const& chainAtomsIn,
+int Exec_PrepareForLeap::CheckForSugarSulfates(Iarray const& chainAtomsIn,
                                                Topology& topIn, Frame& frameIn)
 const
 {
+  int rnum = topIn[chainAtomsIn.front()].ResNum();
   std::string sugarName = topIn.TruncResNameOnumId(rnum);
+  mprintf("DEBUG: Sulfate check: %s\n", sugarName.c_str());
   // Create copy of the chain atoms array. Original array can become valid
   // during residue splitting.
   Iarray chainAtoms = chainAtomsIn;
@@ -1705,9 +1707,10 @@ const
     // Find an oxygen that is both bound to a chain carbon and an SO3 group
     // in this residue.
     int so3_idx = -1;
-    for (Iarray::const_iterator cat = chainAtoms.begin();
-                                cat != chainAtoms.end(); ++cat)
+    Iarray::const_iterator cat = chainAtoms.begin();
+    for (; cat != chainAtoms.end(); ++cat)
     {
+      mprintf("\t%s\n", *(topIn[*cat].Name()));
       for (Atom::bond_iterator oat = topIn[*cat].bondbegin();
                                oat != topIn[*cat].bondend(); ++oat)
       {
@@ -1737,11 +1740,11 @@ const
           if (so3_idx != -1) break;
         } // END atom is oxygen
       } // END loop over bonds to carbon
-      if (so3_idx == -1) break;
+      if (so3_idx != -1) break;
     } // END loop over chain atoms
+    //atomsRemain = (cat == chainAtoms.end());
+    atomsRemain = false; // DEBUG
 
-    // DEBUG
-    atomsRemain = false;
   } // END while atoms remain
 
   return 0;
@@ -1852,6 +1855,8 @@ const
                 topIn.TruncResNameOnumId(*rnum).c_str(),
                 topIn.AtomMaskName(sugar.AnomericAtom()).c_str(),
                 topIn.AtomMaskName(sugar.RingOxygenAtom()).c_str());
+      // DEBUG
+      CheckForSugarSulfates(sugar.ChainAtoms(), topIn, frameIn);
     }
   }
 
