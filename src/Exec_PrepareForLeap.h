@@ -78,6 +78,8 @@ class Exec_PrepareForLeap : public Exec {
     int IdentifySugar(Sugar const&, Topology&, Frame const&, CharMask const&, CpptrajFile*, std::set<BondType>&);
     /// Try to find missing linkages to anomeric carbon in sugar.
     int FindSugarC1Linkages(int, int, Topology&, Frame const&) const;
+    /// Determine if sugar has sulfates that need SO3 residue(s)
+    int CheckForSugarSulfates(int, Iarray const&, Topology&, Frame&) const;
     /// Determine if sugar is terminal and need an ROH residue
     int CheckIfSugarIsTerminal(int, int, int, Topology&, Frame&) const;
     /// Attempt to fix any issues with sugars

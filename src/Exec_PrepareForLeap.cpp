@@ -1688,6 +1688,65 @@ const
   return 0;
 }
 
+/** Check for sulfate groups that need to be separate SO3 residues. */
+int Exec_PrepareForLeap::CheckForSugarSulfates(int rnum, Iarray const& chainAtomsIn,
+                                               Topology& topIn, Frame& frameIn)
+const
+{
+  std::string sugarName = topIn.TruncResNameOnumId(rnum);
+  // Create copy of the chain atoms array. Original array can become valid
+  // during residue splitting.
+  Iarray chainAtoms = chainAtomsIn;
+
+  bool atomsRemain = true;
+  while (atomsRemain) {
+    // Even if the residue is split, rnum will always refer to the original
+    // sugar since the split SO3 will come AFTER this residue.
+    // Find an oxygen that is both bound to a chain carbon and an SO3 group
+    // in this residue.
+    int so3_idx = -1;
+    for (Iarray::const_iterator cat = chainAtoms.begin();
+                                cat != chainAtoms.end(); ++cat)
+    {
+      for (Atom::bond_iterator oat = topIn[*cat].bondbegin();
+                               oat != topIn[*cat].bondend(); ++oat)
+      {
+        if (topIn[*oat].Element() == Atom::OXYGEN && topIn[*oat].Nbonds() > 1) {
+          // Is this oxygen bound to a sulfur?
+          for (Atom::bond_iterator sat = topIn[*oat].bondbegin();
+                                   sat != topIn[*oat].bondend(); ++sat)
+          {
+            if (topIn[*sat].Element() == Atom::SULFUR && topIn[*sat].Nbonds() == 4) {
+               so3_idx = *sat;
+              // All 4 bonds must be to sulfur
+              for (Atom::bond_iterator bat = topIn[*sat].bondbegin();
+                                       bat != topIn[*sat].bondend(); ++bat)
+              {
+                if (topIn[*bat].Element() != Atom::OXYGEN) {
+                  so3_idx = -1;
+                  break;
+                }
+              } // END loop over bonds to sulfur
+              if (so3_idx != -1) {
+                mprintf("\tFound SO3 group centered on atom '%s'\n",
+                        topIn.AtomMaskName(so3_idx).c_str());
+                break;
+              }
+            } // END atom is sulfur
+          } // END loop over bonds to oxygen
+          if (so3_idx != -1) break;
+        } // END atom is oxygen
+      } // END loop over bonds to carbon
+      if (so3_idx == -1) break;
+    } // END loop over chain atoms
+
+    // DEBUG
+    atomsRemain = false;
+  } // END while atoms remain
+
+  return 0;
+}
+
 /** See if the sugar anomeric carbon is actually terminal and needs
   * to be a separate ROH residue.
   */
