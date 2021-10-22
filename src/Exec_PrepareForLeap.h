@@ -141,12 +141,12 @@ class Exec_PrepareForLeap::Sugar {
                         FURANOSE,      ///< Ring is 4 carbons, 1 oxygen
                         UNKNOWN_RING   ///< Some unknown ring type
                   };
-    /// CONSTRUCTOR - residue number, incomplete setup
+    /// CONSTRUCTOR - residue first atom, incomplete setup
     Sugar(int);
-    /// CONSTRUCTOR - res #, ring O, Anomeric, Anomeric Ref, Highest Sterocenter, ring atoms, chain atoms
-    Sugar(int,int,int,int,int,Iarray const&,Iarray const&);
+    /// CONSTRUCTOR - ring O, Anomeric, Anomeric Ref, Highest Sterocenter, ring atoms, chain atoms
+    Sugar(int,int,int,int,Iarray const&,Iarray const&);
 
-    int ResNum()               const { return rnum_; }
+    inline int ResNum(Topology const&) const;
     int RingOxygenAtom()       const { return ring_oxygen_atom_; }
     int AnomericAtom()         const { return anomeric_atom_; }
     int AnomericRefAtom()      const { return ano_ref_atom_; }
@@ -159,12 +159,11 @@ class Exec_PrepareForLeap::Sugar {
 //    const_iterator ringbegin() const { return ring_atoms_.begin(); }
 //    const_iterator ringend()   const { return ring_atoms_.end(); }
 
-    bool NotSet() const { return (ring_oxygen_atom_ == -1); }
+    bool NotSet() const { return (ring_oxygen_atom_ < 0); }
     /// \return Number of ring atoms
     unsigned int NumRingAtoms() const;
     void PrintInfo(Topology const&) const;
   private:
-    int rnum_;                 ///< Residue index
     int ring_oxygen_atom_;     ///< Index of the ring oxygen atom
     int anomeric_atom_;        ///< Index of the anomeric C atom (ring start)
     int ano_ref_atom_;         ///< Index of the anomeric reference C atom
