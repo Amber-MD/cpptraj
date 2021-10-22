@@ -1834,6 +1834,8 @@ const
   typedef std::pair<int,int> AtomPair;
   std::vector<AtomPair> SugarIndices;
   SugarIndices.reserve( sugarResNums.size() );
+  std::vector<Iarray> ChainIndices;
+  ChainIndices.reserve( sugarResNums.size() );
   for (Iarray::const_iterator rnum = sugarResNums.begin();
                               rnum != sugarResNums.end(); ++rnum)
   {
@@ -1855,8 +1857,7 @@ const
                 topIn.TruncResNameOnumId(*rnum).c_str(),
                 topIn.AtomMaskName(sugar.AnomericAtom()).c_str(),
                 topIn.AtomMaskName(sugar.RingOxygenAtom()).c_str());
-      // DEBUG
-      CheckForSugarSulfates(sugar.ChainAtoms(), topIn, frameIn);
+      ChainIndices.push_back( sugar.ChainAtoms() );
     }
   }
 
@@ -1890,6 +1891,21 @@ const
       }
     } // End loop over sugar indices
   }
+
+  // if (so3search) {
+    // Loop over chain indices to see if residues need to be split
+    for (std::vector<Iarray>::const_iterator it = ChainIndices.begin();
+                                             it != ChainIndices.end(); ++it)
+    {
+      int rnum = topIn[it->front()].ResNum();
+      if (CheckForSugarSulfates(*it, topIn, frameIn)) {
+        mprinterr("Error: Checking if sugar %s has sulfates failed.\n",
+                 topIn.TruncResNameOnumId( rnum ).c_str());
+        return 1;
+      }
+    }
+  //}
+
 
   return 0;
 }
