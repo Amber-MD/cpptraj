@@ -83,7 +83,8 @@ class Exec_PrepareForLeap : public Exec {
     /// Determine if sugar is terminal and need an ROH residue
     int CheckIfSugarIsTerminal(int, int, int, Topology&, Frame&) const;
     /// Attempt to fix any issues with sugars
-    int FixSugarsStructure(std::string const&, Topology&, Frame&, bool, bool) const;
+    int FixSugarsStructure(std::vector<Sugar>&, std::string const&, Topology&, Frame&,
+                           bool, bool) const;
 
     int PrepareSugars(AtomMask&, Topology&, Frame const&, CpptrajFile*);
     int FindTerByBonds(Topology&, CharMask const&) const;

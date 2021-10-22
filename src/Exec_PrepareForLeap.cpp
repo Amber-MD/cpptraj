@@ -1818,13 +1818,15 @@ const
 }
 
 /** Try to fix issues with sugar structure before trying to identify. */
-int Exec_PrepareForLeap::FixSugarsStructure(std::string const& sugarMaskStr,
+int Exec_PrepareForLeap::FixSugarsStructure(std::vector<Sugar>& sugarResidues,
+                                            std::string const& sugarMaskStr,
                                             Topology& topIn, Frame& frameIn,
                                             bool c1bondsearch, bool termsearch) 
 const
 {
+  sugarResidues.clear();
   AtomMask sugarMask(sugarMaskStr);
-  mprintf("\tAttempting to fix sugars selected by '%s'\n", sugarMask.MaskString());
+  mprintf("\tLooking for sugars selected by '%s'\n", sugarMask.MaskString());
   if (topIn.SetupIntegerMask( sugarMask )) return 1;
   sugarMask.MaskInfo();
   if (sugarMask.None()) {
@@ -1832,17 +1834,9 @@ const
     return 0;
   }
   //CharMask cmask( sugarMask.ConvertToCharMask(), sugarMask.Nselected() );
-  // Get sugar residue numbers. Save atom indices since residue numbers
-  // will become invalidated if we have to split residues.
+  // Get sugar residue numbers.
   Iarray sugarResNums = topIn.ResnumsSelectedBy( sugarMask );
   // Try to identify sugar rings.
-  // The SugarIndices array will hold the atom indices for anomeric carbons
-  // and ring oxygens.
-  typedef std::pair<int,int> AtomPair;
-  std::vector<AtomPair> SugarIndices;
-  SugarIndices.reserve( sugarResNums.size() );
-  std::vector<Iarray> ChainIndices;
-  ChainIndices.reserve( sugarResNums.size() );
   for (Iarray::const_iterator rnum = sugarResNums.begin();
                               rnum != sugarResNums.end(); ++rnum)
   {
@@ -1850,31 +1844,24 @@ const
     Sugar sugar = IdSugarRing(*rnum, topIn, stat);
     if (stat == ID_ERR) {
       if (errorsAreFatal_) {
-        mprinterr("Error: During sugar fix, problem identifying sugar ring for %s\n",
+        mprinterr("Error: Problem identifying sugar ring for %s\n",
                   topIn.TruncResNameOnumId(*rnum).c_str());
         return 1;
       } else
-        mprintf("Warning: During sugar fix, problem identifying sugar ring for %s\n",
+        mprintf("Warning: Problem identifying sugar ring for %s\n",
                 topIn.TruncResNameOnumId(*rnum).c_str());
     }
-    if (!sugar.NotSet()) {
-      SugarIndices.push_back( AtomPair(sugar.AnomericAtom(), sugar.RingOxygenAtom()) );
-      if (debug_ > 0)
-        mprintf("DEBUG: fix search %s ano. C= %s  ring O= %s\n",
-                topIn.TruncResNameOnumId(*rnum).c_str(),
-                topIn.AtomMaskName(sugar.AnomericAtom()).c_str(),
-                topIn.AtomMaskName(sugar.RingOxygenAtom()).c_str());
-      ChainIndices.push_back( sugar.ChainAtoms() );
-    }
+    if (!sugar.NotSet())
+      sugarResidues.push_back( sugar );
   }
 
   if (c1bondsearch) {
     // Loop over sugar indices to see if anomeric C is missing bonds
-    for (std::vector<AtomPair>::const_iterator ac_ro = SugarIndices.begin();
-                                               ac_ro != SugarIndices.end(); ++ac_ro)
+    for (std::vector<Sugar>::const_iterator sugar = sugarResidues.begin();
+                                            sugar != sugarResidues.end(); ++sugar)
     {
-      int anomericAtom = ac_ro->first;
-      int rnum = topIn[anomericAtom].ResNum();
+      int anomericAtom = sugar->AnomericAtom();
+      int rnum = sugar->ResNum(topIn);
       if (FindSugarC1Linkages(rnum, anomericAtom, topIn, frameIn)) {
         mprinterr("Error: Search for bonds to anomeric carbon '%s' failed.\n",
                   topIn.AtomMaskName(anomericAtom).c_str());
@@ -1884,13 +1871,13 @@ const
   }
 
   if (termsearch) {
-    // Loop over sugar indices to see if residues need to be split
-    for (std::vector<AtomPair>::const_iterator ac_ro = SugarIndices.begin();
-                                               ac_ro != SugarIndices.end(); ++ac_ro)
+    // Loop over sugar indices to see if residues have ROH that must be split off
+    for (std::vector<Sugar>::const_iterator sugar = sugarResidues.begin();
+                                            sugar != sugarResidues.end(); ++sugar)
     {
-      int anomericAtom = ac_ro->first;
-      int ringOxygen   = ac_ro->second;
-      int rnum = topIn[anomericAtom].ResNum();
+      int anomericAtom = sugar->AnomericAtom();
+      int ringOxygen   = sugar->RingOxygenAtom();
+      int rnum = sugar->ResNum(topIn);
       if (CheckIfSugarIsTerminal(rnum, anomericAtom, ringOxygen, topIn, frameIn)) {
         mprinterr("Error: Checking if sugar %s is terminal failed.\n",
                   topIn.TruncResNameOnumId(rnum).c_str());
@@ -1901,11 +1888,11 @@ const
 
   // if (so3search) {
     // Loop over chain indices to see if residues need to be split
-    for (std::vector<Iarray>::const_iterator it = ChainIndices.begin();
-                                             it != ChainIndices.end(); ++it)
+    for (std::vector<Sugar>::const_iterator sugar = sugarResidues.begin();
+                                            sugar != sugarResidues.end(); ++sugar)
     {
-      int rnum = topIn[it->front()].ResNum();
-      if (CheckForSugarSulfates(*it, topIn, frameIn)) {
+      int rnum = sugar->ResNum(topIn);
+      if (CheckForSugarSulfates(sugar->ChainAtoms(), topIn, frameIn)) {
         mprinterr("Error: Checking if sugar %s has sulfates failed.\n",
                  topIn.TruncResNameOnumId( rnum ).c_str());
         return 1;
@@ -2825,13 +2812,16 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     else
       mprintf("\tNot searching for missing bonds to sugar anomeric atoms.\n");
     if (termsearch || c1bondsearch) {
+      std::vector<Sugar> sugarResidues;
       // May need to modify sugar structure/topology, either by splitting
       // C1 hydroxyls of terminal sugars into ROH residues, and/or by
       // adding missing bonds to C1 atoms.
       // This is done before any identification takes place since we want
       // to identify based on the most up-to-date topology.
 
-      if (FixSugarsStructure(sugarmaskstr, topIn, frameIn, c1bondsearch, termsearch)) {
+      if (FixSugarsStructure(sugarResidues, sugarmaskstr, topIn, frameIn,
+                             c1bondsearch, termsearch))
+      {
         mprinterr("Error: Sugar structure modification failed.\n");
         return CpptrajState::ERR;
       }
