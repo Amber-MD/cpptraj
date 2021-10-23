@@ -1775,10 +1775,12 @@ const
 /** See if the sugar anomeric carbon is actually terminal and needs
   * to be a separate ROH residue.
   */
-int Exec_PrepareForLeap::CheckIfSugarIsTerminal(int rnum, int anomericAtom, int ringOxygen,
-                                                Topology& topIn, Frame& frameIn)
+int Exec_PrepareForLeap::CheckIfSugarIsTerminal(Sugar& sugar, Topology& topIn, Frame& frameIn)
 const
 {
+  int rnum = sugar.ResNum(topIn);
+  int anomericAtom = sugar.AnomericAtom();
+  int ringOxygen = sugar.RingOxygenAtom();
   std::string sugarName = topIn.TruncResNameOnumId(rnum);
 
   // Is the anomeric carbon bonded to an oxygen that is part of this residue.
@@ -1829,6 +1831,8 @@ const
   // Reorder the frame to match
   Frame oldFrame = frameIn;
   frameIn.SetCoordinatesByMap( oldFrame, atomMap );
+  // Remap the sugar indices
+  sugar.RemapIndices( atomMap );
   return 0;
 }
 
@@ -1887,15 +1891,12 @@ const
 
   if (termsearch) {
     // Loop over sugar indices to see if residues have ROH that must be split off
-    for (std::vector<Sugar>::const_iterator sugar = sugarResidues.begin();
-                                            sugar != sugarResidues.end(); ++sugar)
+    for (std::vector<Sugar>::iterator sugar = sugarResidues.begin();
+                                      sugar != sugarResidues.end(); ++sugar)
     {
-      int anomericAtom = sugar->AnomericAtom();
-      int ringOxygen   = sugar->RingOxygenAtom();
-      int rnum = sugar->ResNum(topIn);
-      if (CheckIfSugarIsTerminal(rnum, anomericAtom, ringOxygen, topIn, frameIn)) {
+      if (CheckIfSugarIsTerminal(*sugar, topIn, frameIn)) {
         mprinterr("Error: Checking if sugar %s is terminal failed.\n",
-                  topIn.TruncResNameOnumId(rnum).c_str());
+                  topIn.TruncResNameOnumId(sugar->ResNum(topIn)).c_str());
         return 1;
       }
     } // End loop over sugar indices

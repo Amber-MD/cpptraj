@@ -81,7 +81,7 @@ class Exec_PrepareForLeap : public Exec {
     /// Determine if sugar has sulfates that need SO3 residue(s)
     int CheckForSugarSulfates(Iarray const&, Topology&, Frame&) const;
     /// Determine if sugar is terminal and need an ROH residue
-    int CheckIfSugarIsTerminal(int, int, int, Topology&, Frame&) const;
+    int CheckIfSugarIsTerminal(Sugar&, Topology&, Frame&) const;
     /// Attempt to fix any issues with sugars
     int FixSugarsStructure(std::vector<Sugar>&, std::string const&, Topology&, Frame&,
                            bool, bool) const;
