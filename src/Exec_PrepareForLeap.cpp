@@ -77,9 +77,24 @@ void Exec_PrepareForLeap::Sugar::PrintInfo(Topology const& topIn) const {
   }
 }
 
+/** \return Number of ring atoms (including oxygen) */
 unsigned int Exec_PrepareForLeap::Sugar::NumRingAtoms() const {
   if (NotSet()) return 0;
   return ring_atoms_.size() + 1;
+}
+
+/** Remap internal indices according to given map. */
+void Exec_PrepareForLeap::Sugar::RemapIndices(Iarray const& atomMap) {
+  // Always try the anomeric atom
+  anomeric_atom_ = atomMap[anomeric_atom_];
+  if (NotSet()) return;
+  ring_oxygen_atom_     = atomMap[ring_oxygen_atom_];
+  ano_ref_atom_         = atomMap[ano_ref_atom_];
+  highest_stereocenter_ = atomMap[highest_stereocenter_];
+  for (Iarray::iterator it = ring_atoms_.begin(); it != ring_atoms_.end(); ++it)
+    *it = atomMap[*it];
+  for (Iarray::iterator it = chain_atoms_.begin(); it != chain_atoms_.end(); ++it)
+    *it = atomMap[*it];
 }
 
 // -----------------------------------------------------------------------------

@@ -164,6 +164,8 @@ class Exec_PrepareForLeap::Sugar {
     /// \return Number of ring atoms
     unsigned int NumRingAtoms() const;
     void PrintInfo(Topology const&) const;
+    /// Remap internal indices according to given atom map.
+    void RemapIndices(Iarray const&);
   private:
     int ring_oxygen_atom_;     ///< Index of the ring oxygen atom
     int anomeric_atom_;        ///< Index of the anomeric C atom (ring start)
