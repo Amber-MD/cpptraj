@@ -79,7 +79,7 @@ class Exec_PrepareForLeap : public Exec {
     /// Try to find missing linkages to anomeric carbon in sugar.
     int FindSugarC1Linkages(int, int, Topology&, Frame const&) const;
     /// Determine if sugar has sulfates that need SO3 residue(s)
-    int CheckForSugarSulfates(Iarray const&, Topology&, Frame&) const;
+    int CheckForSugarSulfates(Sugar&, Topology&, Frame&) const;
     /// Determine if sugar is terminal and need an ROH residue
     int CheckIfSugarIsTerminal(Sugar&, Topology&, Frame&) const;
     /// Attempt to fix any issues with sugars

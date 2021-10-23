@@ -1711,16 +1711,13 @@ const
 }
 
 /** Check for sulfate groups that need to be separate SO3 residues. */
-int Exec_PrepareForLeap::CheckForSugarSulfates(Iarray const& chainAtomsIn,
+int Exec_PrepareForLeap::CheckForSugarSulfates(Sugar& sugar,
                                                Topology& topIn, Frame& frameIn)
 const
 {
-  int rnum = topIn[chainAtomsIn.front()].ResNum();
+  int rnum = sugar.ResNum(topIn);
   std::string sugarName = topIn.TruncResNameOnumId(rnum);
   mprintf("DEBUG: Sulfate check: %s\n", sugarName.c_str());
-  // Create copy of the chain atoms array. Original array can become valid
-  // during residue splitting.
-  Iarray chainAtoms = chainAtomsIn;
 
   bool atomsRemain = true;
   while (atomsRemain) {
@@ -1729,25 +1726,30 @@ const
     // Find an oxygen that is both bound to a chain carbon and an SO3 group
     // in this residue.
     int so3_idx = -1;
-    Iarray::const_iterator cat = chainAtoms.begin();
-    for (; cat != chainAtoms.end(); ++cat)
+    Iarray::const_iterator cat = sugar.ChainAtoms().begin();
+    for (; cat != sugar.ChainAtoms().end(); ++cat)
     {
       mprintf("\t%s\n", *(topIn[*cat].Name()));
       for (Atom::bond_iterator oat = topIn[*cat].bondbegin();
                                oat != topIn[*cat].bondend(); ++oat)
       {
-        if (topIn[*oat].Element() == Atom::OXYGEN && topIn[*oat].Nbonds() > 1) {
+        if (topIn[*oat].Element() == Atom::OXYGEN &&
+            topIn[*oat].ResNum() == rnum &&
+            topIn[*oat].Nbonds() > 1) {
           // Is this oxygen bound to a sulfur?
           for (Atom::bond_iterator sat = topIn[*oat].bondbegin();
                                    sat != topIn[*oat].bondend(); ++sat)
           {
-            if (topIn[*sat].Element() == Atom::SULFUR && topIn[*sat].Nbonds() == 4) {
+            if (topIn[*sat].Element() == Atom::SULFUR &&
+                topIn[*sat].ResNum() == rnum &&
+                topIn[*sat].Nbonds() == 4) {
                so3_idx = *sat;
-              // All 4 bonds must be to sulfur
+              // All 4 bonds must be to oxygen 
               for (Atom::bond_iterator bat = topIn[*sat].bondbegin();
                                        bat != topIn[*sat].bondend(); ++bat)
               {
-                if (topIn[*bat].Element() != Atom::OXYGEN) {
+                if (topIn[*bat].Element() != Atom::OXYGEN &&
+                    topIn[*bat].ResNum() == rnum) {
                   so3_idx = -1;
                   break;
                 }
@@ -1904,13 +1906,12 @@ const
 
   // if (so3search) {
     // Loop over chain indices to see if residues need to be split
-    for (std::vector<Sugar>::const_iterator sugar = sugarResidues.begin();
-                                            sugar != sugarResidues.end(); ++sugar)
+    for (std::vector<Sugar>::iterator sugar = sugarResidues.begin();
+                                      sugar != sugarResidues.end(); ++sugar)
     {
-      int rnum = sugar->ResNum(topIn);
-      if (CheckForSugarSulfates(sugar->ChainAtoms(), topIn, frameIn)) {
+      if (CheckForSugarSulfates(*sugar, topIn, frameIn)) {
         mprinterr("Error: Checking if sugar %s has sulfates failed.\n",
-                 topIn.TruncResNameOnumId( rnum ).c_str());
+                 topIn.TruncResNameOnumId( sugar->ResNum(topIn) ).c_str());
         return 1;
       }
     }
