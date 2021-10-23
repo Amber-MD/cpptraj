@@ -1725,6 +1725,7 @@ const
     // sugar since the split SO3 will come AFTER this residue.
     // Find an oxygen that is both bound to a chain carbon and an SO3 group
     // in this residue.
+    int o_idx = -1;
     int so3_idx = -1;
     Iarray::const_iterator cat = sugar.ChainAtoms().begin();
     for (; cat != sugar.ChainAtoms().end(); ++cat)
@@ -1733,9 +1734,11 @@ const
       for (Atom::bond_iterator oat = topIn[*cat].bondbegin();
                                oat != topIn[*cat].bondend(); ++oat)
       {
+        o_idx = -1;
         if (topIn[*oat].Element() == Atom::OXYGEN &&
             topIn[*oat].ResNum() == rnum &&
             topIn[*oat].Nbonds() > 1) {
+          o_idx = *oat;
           // Is this oxygen bound to a sulfur?
           for (Atom::bond_iterator sat = topIn[*oat].bondbegin();
                                    sat != topIn[*oat].bondend(); ++sat)
@@ -1755,8 +1758,9 @@ const
                 }
               } // END loop over bonds to sulfur
               if (so3_idx != -1) {
-                mprintf("\tFound SO3 group centered on atom '%s'\n",
-                        topIn.AtomMaskName(so3_idx).c_str());
+                mprintf("\tFound SO3 group centered on atom '%s' from O '%s'\n",
+                        topIn.AtomMaskName(so3_idx).c_str(),
+                        topIn.AtomMaskName(o_idx).c_str());
                 break;
               }
             } // END atom is sulfur
@@ -1766,9 +1770,36 @@ const
       } // END loop over bonds to carbon
       if (so3_idx != -1) break;
     } // END loop over chain atoms
-    //atomsRemain = (cat == chainAtoms.end());
-    atomsRemain = false; // DEBUG
-
+    if (cat == sugar.ChainAtoms().end())
+      atomsRemain = false;
+    else {
+      // sanity check
+      if (so3_idx == -1 || o_idx == -1) {
+        mprinterr("Internal Error: Sulfate index is negative.\n");
+        return 1;
+      }
+      // Create array with SO3 selected
+      Iarray selected(1, so3_idx);
+      for (Atom::bond_iterator bat = topIn[so3_idx].bondbegin();
+                               bat != topIn[so3_idx].bondend(); ++bat)
+        if (*bat != o_idx)
+          selected.push_back(*bat);
+      AtomMask SO3(selected, topIn.Natom());
+      // Split the sulfate into a new residue named SO3 for Glycam.
+      // This may involve reordering atoms within the residue, but not
+      // any other atoms, so we should not have to update other sugars.
+      Iarray atomMap;
+      if (topIn.SplitResidue(SO3, "SO3", atomMap)) {
+        mprinterr("Error: Could not split sulfate from residue '%s'.\n", sugarName.c_str());
+        return 1;
+      }
+      // Reorder the frame to match
+      Frame oldFrame = frameIn;
+      frameIn.SetCoordinatesByMap( oldFrame, atomMap );
+      // Remap the sugar indices
+      sugar.RemapIndices( atomMap );
+    }
+    //atomsRemain = false; // DEBUG
   } // END while atoms remain
 
   return 0;
