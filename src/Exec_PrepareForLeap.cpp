@@ -1411,7 +1411,11 @@ const
             resStatIn[topIn[*bat].ResNum()] = VALIDATED;
           } else if (pres.Name() == "SO3") {
             if (debug_ > 0)
-              mprintf("DEBUG: '%s' is sulfate group.\n", *(pres.Name()));
+              mprintf("DEBUG: '%s' is a sulfate group.\n", *(pres.Name()));
+            resStatIn[topIn[*bat].ResNum()] = VALIDATED;
+          } else if (pres.Name() == "MEX") {
+            if (debug_ > 0)
+              mprintf("DEBUG: '%s' is a methyl group.\n", *(pres.Name()));
             resStatIn[topIn[*bat].ResNum()] = VALIDATED;
           } else {
             mprintf("Warning: Unrecognized link residue %s, not modifying name.\n", *pres.Name());
@@ -1724,6 +1728,8 @@ const
   std::string sugarName = topIn.TruncResNameOnumId(rnum);
   mprintf("DEBUG: Sulfate check: %s\n", sugarName.c_str());
 
+  enum GroupType { NO_GROUP = 0, G_SO3, G_CH3 };
+
   bool atomsRemain = true;
   while (atomsRemain) {
     // Even if the residue is split, rnum will always refer to the original
@@ -1732,6 +1738,7 @@ const
     // in this residue.
     int o_idx = -1;
     int so3_idx = -1;
+    GroupType groupType = NO_GROUP;
     Iarray::const_iterator cat = sugar.ChainAtoms().begin();
     for (; cat != sugar.ChainAtoms().end(); ++cat)
     {
@@ -1763,7 +1770,33 @@ const
                 }
               } // END loop over bonds to sulfur
               if (so3_idx != -1) {
+                groupType = G_SO3;
                 mprintf("\tFound SO3 group centered on atom '%s' from O '%s'\n",
+                        topIn.AtomMaskName(so3_idx).c_str(),
+                        topIn.AtomMaskName(o_idx).c_str());
+                break;
+              }
+            } else if (topIn[*sat].Element() == Atom::CARBON &&
+                       topIn[*sat].ResNum() == rnum &&
+                       (topIn[*sat].Nbonds() == 4 || topIn[*sat].Nbonds() == 1)) {
+              so3_idx = *sat;
+              // If 4 bonds, 3 must be to hydrogen
+              if (topIn[*sat].Nbonds() == 4) {
+                int bonds_to_h = 0;
+                for (Atom::bond_iterator bat = topIn[*sat].bondbegin();
+                                         bat != topIn[*sat].bondend(); ++bat)
+                {
+                  if (topIn[*bat].Element() == Atom::HYDROGEN)
+                    bonds_to_h++;
+                }
+                if (bonds_to_h < 3) {
+                  so3_idx = -1;
+                  break;
+                }
+              }
+              if (so3_idx != -1) {
+                groupType = G_CH3;
+                mprintf("\tFound CH3 group centered on atom '%s' from O '%s'\n",
                         topIn.AtomMaskName(so3_idx).c_str(),
                         topIn.AtomMaskName(o_idx).c_str());
                 break;
@@ -1785,27 +1818,37 @@ const
       }
       // Select S and other 3 O atoms 
       Iarray selected(1, so3_idx);
-//      Iarray o_atoms;
       for (Atom::bond_iterator bat = topIn[so3_idx].bondbegin();
                                bat != topIn[so3_idx].bondend(); ++bat)
       {
         if (*bat != o_idx) {
           selected.push_back( *bat );
-//          o_atoms.push_back( *bat );
         }
       }
       // Change the atom names
-      ChangeAtomName(topIn.SetAtom(selected[0]), "S1");
-      ChangeAtomName(topIn.SetAtom(selected[1]), "O1");
-      ChangeAtomName(topIn.SetAtom(selected[2]), "O2");
-      ChangeAtomName(topIn.SetAtom(selected[3]), "O3");
+      std::string newResName;
+      if (groupType == G_SO3) {
+        ChangeAtomName(topIn.SetAtom(selected[0]), "S1");
+        ChangeAtomName(topIn.SetAtom(selected[1]), "O1");
+        ChangeAtomName(topIn.SetAtom(selected[2]), "O2");
+        ChangeAtomName(topIn.SetAtom(selected[3]), "O3");
+        newResName = "SO3";
+      } else if (groupType == G_CH3) {
+        ChangeAtomName(topIn.SetAtom(selected[0]), "CH3");
+        if (selected.size() > 1) {
+          ChangeAtomName(topIn.SetAtom(selected[1]), "H1");
+          ChangeAtomName(topIn.SetAtom(selected[2]), "H2");
+          ChangeAtomName(topIn.SetAtom(selected[3]), "H3");
+        }
+        newResName = "MEX";
+      }
       // Create array with SO3 selected
       AtomMask SO3(selected, topIn.Natom());
       // Split the sulfate into a new residue named SO3 for Glycam.
       // This may involve reordering atoms within the residue, but not
       // any other atoms, so we should not have to update other sugars.
       Iarray atomMap;
-      if (topIn.SplitResidue(SO3, "SO3", atomMap)) {
+      if (topIn.SplitResidue(SO3, newResName, atomMap)) {
         mprinterr("Error: Could not split sulfate from residue '%s'.\n", sugarName.c_str());
         return 1;
       }
