@@ -978,7 +978,7 @@ const
     //resStat_[rnum] = SUGAR_MISSING_RING_O;
     stat = ID_MISSING_O;
     return Sugar(res.FirstAtom());
-  } else if (potentialRingStartAtoms.size() > 1) {
+  } /*else if (potentialRingStartAtoms.size() > 1) {
     mprinterr("Error: Multiple potential ring start atoms:\n");
     for (Iarray::const_iterator it = potentialRingStartAtoms.begin();
                                 it != potentialRingStartAtoms.end();
@@ -986,7 +986,7 @@ const
       mprinterr("Error:   %s\n", topIn.ResNameNumAtomNameNum(*it).c_str());
     stat = ID_ERR;
     return Sugar(res.FirstAtom());
-  }
+  }*/
 
   // Use the previously-set up AtomMap to help determine stereocenters
   std::vector<bool> atomIsChiral;
@@ -1052,6 +1052,8 @@ const
   Iarray RA;
   // This will hold carbon chain atoms starting from the anomeric carbon
   Iarray carbon_chain;
+  // Will be set true if complete ring can be found
+  bool ring_complete = false;
   for (Iarray::const_iterator ringat = potentialRingStartAtoms.begin();
                               ringat != potentialRingStartAtoms.end();
                             ++ringat)
@@ -1064,7 +1066,6 @@ const
       if (at != *ringat)
         Visited[at] = false;
     Iarray ring_atoms( topIn.Res(rnum).NumAtoms(), -1 );
-    bool ring_complete = false;
     // Since we have already established that *ringat is an oxygen bonded
     // to two carbons, just start at the first carbon to see if we can
     // get to the second carbon.
@@ -1106,8 +1107,9 @@ const
     if (debug_ > 0)
       mprintf("DEBUG: Potential ring start atom %s, Ring complete = %i",
               topIn.ResNameNumAtomNameNum(*ringat).c_str(), (int)ring_complete);
-    // TODO handle the case where multiple potential ring start atoms exist
-    if (ring_complete) {
+    if (!ring_complete) {
+      continue;
+    } else {
       ring_oxygen_atom = *ringat;
 
       // Place the ring atoms into an array without the terminating -1
@@ -1149,10 +1151,9 @@ const
       if (debug_ > 0)
         mprintf("DEBUG: Index of highest stereocenter: %s\n",
                 topIn.ResNameNumAtomNameNum(highest_stereocenter).c_str());
-
     } // END ring_complete
   }
-  if (RA.empty() || ring_oxygen_atom == -1) {
+  if (!ring_complete || RA.empty() || ring_oxygen_atom == -1) {
     mprinterr("Error: Sugar ring atoms could not be identified.\n");
     stat = ID_ERR;
     return Sugar(res.FirstAtom());
