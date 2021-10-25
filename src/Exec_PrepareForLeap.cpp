@@ -1408,6 +1408,10 @@ const
             if (debug_ > 0)
               mprintf("DEBUG: '%s' is terminal hydroxyl.\n", *(pres.Name()));
             resStatIn[topIn[*bat].ResNum()] = VALIDATED;
+          } else if (pres.Name() == "SO3") {
+            if (debug_ > 0)
+              mprintf("DEBUG: '%s' is sulfate group.\n", *(pres.Name()));
+            resStatIn[topIn[*bat].ResNum()] = VALIDATED;
           } else {
             mprintf("Warning: Unrecognized link residue %s, not modifying name.\n", *pres.Name());
             resStatIn[topIn[*bat].ResNum()] = UNRECOGNIZED_SUGAR_LINKAGE;
