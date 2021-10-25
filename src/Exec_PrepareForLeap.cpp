@@ -1782,12 +1782,23 @@ const
         mprinterr("Internal Error: Sulfate index is negative.\n");
         return 1;
       }
-      // Create array with SO3 selected
+      // Select S and other 3 O atoms 
       Iarray selected(1, so3_idx);
+//      Iarray o_atoms;
       for (Atom::bond_iterator bat = topIn[so3_idx].bondbegin();
                                bat != topIn[so3_idx].bondend(); ++bat)
-        if (*bat != o_idx)
-          selected.push_back(*bat);
+      {
+        if (*bat != o_idx) {
+          selected.push_back( *bat );
+//          o_atoms.push_back( *bat );
+        }
+      }
+      // Change the atom names
+      ChangeAtomName(topIn.SetAtom(selected[0]), "S1");
+      ChangeAtomName(topIn.SetAtom(selected[1]), "O1");
+      ChangeAtomName(topIn.SetAtom(selected[2]), "O2");
+      ChangeAtomName(topIn.SetAtom(selected[3]), "O3");
+      // Create array with SO3 selected
       AtomMask SO3(selected, topIn.Natom());
       // Split the sulfate into a new residue named SO3 for Glycam.
       // This may involve reordering atoms within the residue, but not
@@ -1852,9 +1863,20 @@ const
       }
     }
   }
+  // Sanity check
+  if (selected.size() > 2) {
+    mprintf("Warning: Sugar '%s' appears to have OH2 bound to anomeric oxygen!\n",
+            sugarName.c_str());
+    return 0;
+  }
   mprintf("\tIn-residue oxygen bonded to anomeric carbon: '%s %s'\n",
           sugarName.c_str(), *(topIn[o1_atom].Name()));
   mprintf("\t  Will split into %s group.\n", terminalHydroxylName_.c_str());
+  // Change atom names
+  ChangeAtomName(topIn.SetAtom(selected[0]), "O1");
+  if (selected.size() > 1)
+    ChangeAtomName(topIn.SetAtom(selected[1]), "HO1");
+  // Create atom mask
   AtomMask ROH(selected, topIn.Natom());
 
   // Split the hydroxyl into a new residue named ROH for Glycam.
