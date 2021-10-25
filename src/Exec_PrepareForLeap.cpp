@@ -1865,9 +1865,9 @@ const
   }
   // Sanity check
   if (selected.size() > 2) {
-    mprintf("Warning: Sugar '%s' appears to have OH2 bound to anomeric oxygen!\n",
+    mprintf("Error: Sugar '%s' has unrecognized terminal group.\n",
             sugarName.c_str());
-    return 0;
+    return 1;
   }
   mprintf("\tIn-residue oxygen bonded to anomeric carbon: '%s %s'\n",
           sugarName.c_str(), *(topIn[o1_atom].Name()));
