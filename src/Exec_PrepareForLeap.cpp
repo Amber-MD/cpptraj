@@ -1719,6 +1719,53 @@ const
   return 0;
 }
 
+/** \return Type of group represented by the atom atIdx. */
+Exec_PrepareForLeap::FunctionalGroupType
+  Exec_PrepareForLeap::IdFunctionalGroup(int rnum, int atIdx, int linkAtIdx, Topology const& topIn)
+const
+{
+  if (topIn[atIdx].Element() == Atom::SULFUR &&
+      topIn[atIdx].ResNum() == rnum &&
+      topIn[atIdx].Nbonds() == 4) {
+    //so3_idx = atIdx;
+    // All 4 bonds must be to oxygen 
+    for (Atom::bond_iterator bat = topIn[atIdx].bondbegin();
+                             bat != topIn[atIdx].bondend(); ++bat)
+    {
+      if (topIn[*bat].Element() != Atom::OXYGEN &&
+          topIn[*bat].ResNum() == rnum) {
+        return UNRECOGNIZED_GROUP;
+      }
+    } // END loop over bonds to sulfur
+    mprintf("\tFound SO3 group centered on atom '%s' bonded to '%s'\n",
+            topIn.AtomMaskName(atIdx).c_str(), topIn.AtomMaskName(linkAtIdx).c_str());
+    return G_SO3;
+
+  } else if (topIn[atIdx].Element() == Atom::CARBON &&
+             topIn[atIdx].ResNum() == rnum &&
+             (topIn[atIdx].Nbonds() == 4 || topIn[atIdx].Nbonds() == 1)) {
+    //so3_idx = atIdx;
+    // If 4 bonds, 3 must be to hydrogen
+    if (topIn[atIdx].Nbonds() == 4) {
+      int bonds_to_h = 0;
+      for (Atom::bond_iterator bat = topIn[atIdx].bondbegin();
+                               bat != topIn[atIdx].bondend(); ++bat)
+      {
+        if (topIn[*bat].Element() == Atom::HYDROGEN)
+          bonds_to_h++;
+      }
+      if (bonds_to_h < 3) {
+        return UNRECOGNIZED_GROUP;
+      }
+    }
+    mprintf("\tFound CH3 group centered on atom '%s' bonded to '%s'\n",
+            topIn.AtomMaskName(atIdx).c_str(), topIn.AtomMaskName(linkAtIdx).c_str());
+    return G_CH3;
+
+  }
+  return UNRECOGNIZED_GROUP;
+}
+
 /** Check for sulfate groups that need to be separate SO3 residues. */
 int Exec_PrepareForLeap::CheckForSugarSulfates(Sugar& sugar,
                                                Topology& topIn, Frame& frameIn)
@@ -1728,8 +1775,6 @@ const
   std::string sugarName = topIn.TruncResNameOnumId(rnum);
   mprintf("DEBUG: Sulfate check: %s\n", sugarName.c_str());
 
-  enum GroupType { NO_GROUP = 0, G_SO3, G_CH3 };
-
   bool atomsRemain = true;
   while (atomsRemain) {
     // Even if the residue is split, rnum will always refer to the original
@@ -1738,7 +1783,7 @@ const
     // in this residue.
     int o_idx = -1;
     int so3_idx = -1;
-    GroupType groupType = NO_GROUP;
+    FunctionalGroupType groupType = UNRECOGNIZED_GROUP;
     Iarray::const_iterator cat = sugar.ChainAtoms().begin();
     for (; cat != sugar.ChainAtoms().end(); ++cat)
     {
