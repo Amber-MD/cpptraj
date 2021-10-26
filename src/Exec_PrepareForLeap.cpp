@@ -1721,32 +1721,30 @@ const
 
 /** \return Type of group represented by the atom atIdx. */
 Exec_PrepareForLeap::FunctionalGroupType
-  Exec_PrepareForLeap::IdFunctionalGroup(int rnum, int atIdx, int linkAtIdx, Topology const& topIn)
+  Exec_PrepareForLeap::IdFunctionalGroup_Silent(int rnum, int atIdx, int linkAtIdx, Topology const& topIn)
 const
 {
   if (topIn[atIdx].Element() == Atom::SULFUR &&
       topIn[atIdx].ResNum() == rnum &&
       topIn[atIdx].Nbonds() == 4) {
     //so3_idx = atIdx;
-    // All 4 bonds must be to oxygen 
+    // All 4 bonds must be to oxygen
+    int bonds_to_o = 0;
     for (Atom::bond_iterator bat = topIn[atIdx].bondbegin();
                              bat != topIn[atIdx].bondend(); ++bat)
     {
-      if (topIn[*bat].Element() != Atom::OXYGEN &&
-          topIn[*bat].ResNum() == rnum) {
-        return UNRECOGNIZED_GROUP;
-      }
-    } // END loop over bonds to sulfur
-    mprintf("\tFound SO3 group centered on atom '%s' bonded to '%s'\n",
-            topIn.AtomMaskName(atIdx).c_str(), topIn.AtomMaskName(linkAtIdx).c_str());
-    return G_SO3;
-
+      if (topIn[*bat].Element() == Atom::OXYGEN &&
+          topIn[*bat].ResNum() == rnum)
+        bonds_to_o++;
+    }
+    if (bonds_to_o == 4) {
+      return G_SO3;
+    }
   } else if (topIn[atIdx].Element() == Atom::CARBON &&
-             topIn[atIdx].ResNum() == rnum &&
-             (topIn[atIdx].Nbonds() == 4 || topIn[atIdx].Nbonds() == 1)) {
+             topIn[atIdx].ResNum() == rnum) {
     //so3_idx = atIdx;
-    // If 4 bonds, 3 must be to hydrogen
     if (topIn[atIdx].Nbonds() == 4) {
+      // If 4 bonds, 3 must be to hydrogen for CH3
       int bonds_to_h = 0;
       for (Atom::bond_iterator bat = topIn[atIdx].bondbegin();
                                bat != topIn[atIdx].bondend(); ++bat)
@@ -1754,16 +1752,49 @@ const
         if (topIn[*bat].Element() == Atom::HYDROGEN)
           bonds_to_h++;
       }
-      if (bonds_to_h < 3) {
-        return UNRECOGNIZED_GROUP;
+      if (bonds_to_h == 3) {
+        return G_CH3;
       }
+    } else if (topIn[atIdx].Nbonds() == 1)
+      return G_CH3;
+
+  } else if (topIn[atIdx].Element() == Atom::OXYGEN &&
+             topIn[atIdx].ResNum() == rnum) {
+    // If only 1 bond, -OH
+    if (topIn[atIdx].Nbonds() == 1)
+      return G_OH;
+    else if (topIn[atIdx].Nbonds() == 2) {
+      int bonded_atom;
+      if (topIn[atIdx].Bond(0) == linkAtIdx)
+        bonded_atom = topIn[atIdx].Bond(1);
+      else
+        bonded_atom = topIn[atIdx].Bond(0);
+      if (topIn[bonded_atom].Element() == Atom::HYDROGEN)
+        return G_OH;
     }
-    mprintf("\tFound CH3 group centered on atom '%s' bonded to '%s'\n",
-            topIn.AtomMaskName(atIdx).c_str(), topIn.AtomMaskName(linkAtIdx).c_str());
-    return G_CH3;
 
   }
+             
   return UNRECOGNIZED_GROUP;
+}
+
+/** Identify functional group and print to stdout. */
+Exec_PrepareForLeap::FunctionalGroupType
+  Exec_PrepareForLeap::IdFunctionalGroup(int rnum, int atIdx, int linkAtIdx, Topology const& topIn)
+const
+{
+  FunctionalGroupType groupType = IdFunctionalGroup_Silent(rnum, atIdx, linkAtIdx, topIn);
+  if (groupType == G_SO3) {
+    mprintf("\tFound SO3 group centered on atom '%s' bonded to '%s'\n",
+            topIn.AtomMaskName(atIdx).c_str(), topIn.AtomMaskName(linkAtIdx).c_str());
+  } else if (groupType == G_CH3) {
+    mprintf("\tFound CH3 group centered on atom '%s' bonded to '%s'\n",
+            topIn.AtomMaskName(atIdx).c_str(), topIn.AtomMaskName(linkAtIdx).c_str());
+  } else if (groupType == G_OH) {
+    mprintf("\tFound OH group centered on atom '%s' bonded to '%s'\n",
+            topIn.AtomMaskName(atIdx).c_str(), topIn.AtomMaskName(linkAtIdx).c_str());
+  }
+  return groupType;
 }
 
 /** Check for functional groups that need to be separate residues. */

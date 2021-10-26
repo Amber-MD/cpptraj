@@ -22,7 +22,7 @@ class Exec_PrepareForLeap : public Exec {
     class Link;
 
     typedef std::vector<int> Iarray;
-    enum FunctionalGroupType { G_SO3 = 0, G_CH3, UNRECOGNIZED_GROUP };
+    enum FunctionalGroupType { G_SO3 = 0, G_CH3, G_OH, UNRECOGNIZED_GROUP };
     enum ResStatType { UNKNOWN = 0, VALIDATED, UNRECOGNIZED_SUGAR_LINKAGE, SUGAR_MISSING_C1X,
                        SUGAR_MISSING_RING_O };
     typedef std::vector<ResStatType> ResStatArray;
@@ -80,6 +80,8 @@ class Exec_PrepareForLeap : public Exec {
     /// Try to find missing linkages to anomeric carbon in sugar.
     int FindSugarC1Linkages(int, int, Topology&, Frame const&) const;
     /// \return identity of the group bonded to given atom
+    FunctionalGroupType IdFunctionalGroup_Silent(int, int, int, Topology const&) const;
+    /// \return identity of the group bonded to given atom, print to stdout
     FunctionalGroupType IdFunctionalGroup(int, int, int, Topology const&) const;
     /// Determine if sugar has sulfates that need SO3 residue(s)
     int CheckForFunctionalGroups(Sugar&, Topology&, Frame&) const;
