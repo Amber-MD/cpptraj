@@ -11,14 +11,14 @@
 "Tyvelose"                       T TYV
 "Arabinose"                      A ARA,AHR,ARB
 "Galactose"                      L GAL,GLA,GXL
-"N-Acetyl Galactosamine"         V NGA,A2G
+"N-Acetyl Galactosamine"         V NGA,A2G,NG6
 "Galacturonic Acid"              O ADA
 "Gulose"                         K GUL,GUP,GL0
 "Altrose"                        E ALT
 "Allose"                         N ALL,WOO
 "Talose"                         T TAL
 "Iduronic Acid"                  U IDS
-"Fucose"                         F FUC,FUL
+"Fucose"                         F FUC,FUL,MXY
 "Lyxose"                         D LYX
 "Abequose"                       A ABE
 "Xylose"                         X XYL,XYS,LXC,XYP
