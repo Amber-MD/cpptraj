@@ -4,7 +4,7 @@
 "Glucose"                        G GLC,MAL,BGC
 "N-Acetyl Glucosamine"           Y NAG,NDG
 "Glucosamine"                    Y GCS
-"Glucuronic Acid"                Z GCU,BDP
+"Glucuronic Acid"                Z GCU,BDP,GCV
 "Quinovose"                      Q QUI
 "Mannose"                        M MAN,BMA
 "Rhamnose"                       H RAM
@@ -18,7 +18,7 @@
 "Allose"                         N ALL,WOO
 "Talose"                         T TAL
 "Iduronic Acid"                  U IDS
-"Fucose"                         F FUC,FUL,MXY
+"Fucose"                         F FUC,FUL,MXY,MXZ
 "Lyxose"                         D LYX
 "Abequose"                       A ABE
 "Xylose"                         X XYL,XYS,LXC,XYP
