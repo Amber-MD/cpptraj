@@ -82,7 +82,7 @@ class Exec_PrepareForLeap : public Exec {
     /// \return identity of the group bonded to given atom
     FunctionalGroupType IdFunctionalGroup(int, int, int, Topology const&) const;
     /// Determine if sugar has sulfates that need SO3 residue(s)
-    int CheckForSugarSulfates(Sugar&, Topology&, Frame&) const;
+    int CheckForFunctionalGroups(Sugar&, Topology&, Frame&) const;
     /// Determine if sugar is terminal and need an ROH residue
     int CheckIfSugarIsTerminal(Sugar&, Topology&, Frame&) const;
     /// Attempt to fix any issues with sugars

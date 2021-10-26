@@ -1766,8 +1766,8 @@ const
   return UNRECOGNIZED_GROUP;
 }
 
-/** Check for sulfate groups that need to be separate SO3 residues. */
-int Exec_PrepareForLeap::CheckForSugarSulfates(Sugar& sugar,
+/** Check for functional groups that need to be separate residues. */
+int Exec_PrepareForLeap::CheckForFunctionalGroups(Sugar& sugar,
                                                Topology& topIn, Frame& frameIn)
 const
 {
@@ -1805,54 +1805,6 @@ const
               so3_idx = *sat;
               break;
             }
-/*
-            if (topIn[*sat].Element() == Atom::SULFUR &&
-                topIn[*sat].ResNum() == rnum &&
-                topIn[*sat].Nbonds() == 4) {
-               so3_idx = *sat;
-              // All 4 bonds must be to oxygen 
-              for (Atom::bond_iterator bat = topIn[*sat].bondbegin();
-                                       bat != topIn[*sat].bondend(); ++bat)
-              {
-                if (topIn[*bat].Element() != Atom::OXYGEN &&
-                    topIn[*bat].ResNum() == rnum) {
-                  so3_idx = -1;
-                  break;
-                }
-              } // END loop over bonds to sulfur
-              if (so3_idx != -1) {
-                groupType = G_SO3;
-                mprintf("\tFound SO3 group centered on atom '%s' from O '%s'\n",
-                        topIn.AtomMaskName(so3_idx).c_str(),
-                        topIn.AtomMaskName(o_idx).c_str());
-                break;
-              }
-            } else if (topIn[*sat].Element() == Atom::CARBON &&
-                       topIn[*sat].ResNum() == rnum &&
-                       (topIn[*sat].Nbonds() == 4 || topIn[*sat].Nbonds() == 1)) {
-              so3_idx = *sat;
-              // If 4 bonds, 3 must be to hydrogen
-              if (topIn[*sat].Nbonds() == 4) {
-                int bonds_to_h = 0;
-                for (Atom::bond_iterator bat = topIn[*sat].bondbegin();
-                                         bat != topIn[*sat].bondend(); ++bat)
-                {
-                  if (topIn[*bat].Element() == Atom::HYDROGEN)
-                    bonds_to_h++;
-                }
-                if (bonds_to_h < 3) {
-                  so3_idx = -1;
-                  break;
-                }
-              }
-              if (so3_idx != -1) {
-                groupType = G_CH3;
-                mprintf("\tFound CH3 group centered on atom '%s' from O '%s'\n",
-                        topIn.AtomMaskName(so3_idx).c_str(),
-                        topIn.AtomMaskName(o_idx).c_str());
-                break;
-              }
-            } // END atom is sulfur*/
           } // END loop over bonds to oxygen
           if (so3_idx != -1) break;
         } // END atom is oxygen
@@ -2061,7 +2013,7 @@ const
     for (std::vector<Sugar>::iterator sugar = sugarResidues.begin();
                                       sugar != sugarResidues.end(); ++sugar)
     {
-      if (CheckForSugarSulfates(*sugar, topIn, frameIn)) {
+      if (CheckForFunctionalGroups(*sugar, topIn, frameIn)) {
         mprinterr("Error: Checking if sugar %s has sulfates failed.\n",
                  topIn.TruncResNameOnumId( sugar->ResNum(topIn) ).c_str());
         return 1;
