@@ -1796,10 +1796,16 @@ const
             topIn[*oat].ResNum() == rnum &&
             topIn[*oat].Nbonds() > 1) {
           o_idx = *oat;
-          // Is this oxygen bound to a sulfur?
+          // Is this oxygen bound to a recognized group?
           for (Atom::bond_iterator sat = topIn[*oat].bondbegin();
                                    sat != topIn[*oat].bondend(); ++sat)
           {
+            groupType = IdFunctionalGroup(rnum, *sat, o_idx, topIn);
+            if (groupType != UNRECOGNIZED_GROUP) {
+              so3_idx = *sat;
+              break;
+            }
+/*
             if (topIn[*sat].Element() == Atom::SULFUR &&
                 topIn[*sat].ResNum() == rnum &&
                 topIn[*sat].Nbonds() == 4) {
@@ -1846,7 +1852,7 @@ const
                         topIn.AtomMaskName(o_idx).c_str());
                 break;
               }
-            } // END atom is sulfur
+            } // END atom is sulfur*/
           } // END loop over bonds to oxygen
           if (so3_idx != -1) break;
         } // END atom is oxygen
