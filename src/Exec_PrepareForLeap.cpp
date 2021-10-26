@@ -1927,8 +1927,19 @@ const
     }
   }
   if (o1_atom == -1) return 0;
-  Iarray selected(1, o1_atom);
-  // Ensure the oxygen is itself terminal (no other bonds or only H)
+
+  Iarray selected;
+  FunctionalGroupType groupType = IdFunctionalGroup(rnum, o1_atom, anomericAtom, topIn);
+
+  if (groupType == G_OH) {
+    selected = Iarray(1, o1_atom);
+    mprintf("\t  Will split into %s group.\n", terminalHydroxylName_.c_str());
+    // Change atom names
+    ChangeAtomName(topIn.SetAtom(selected[0]), "O1");
+    if (selected.size() > 1)
+      ChangeAtomName(topIn.SetAtom(selected[1]), "HO1");
+  }
+/*  // Ensure the oxygen is itself terminal (no other bonds or only H)
   if (topIn[o1_atom].Nbonds() > 1) {
     for (Atom::bond_iterator bat = topIn[o1_atom].bondbegin();
                              bat != topIn[o1_atom].bondend(); ++bat)
@@ -1941,19 +1952,13 @@ const
       }
     }
   }
+*/
   // Sanity check
-  if (selected.size() > 2) {
-    mprintf("Error: Sugar '%s' has unrecognized terminal group.\n",
-            sugarName.c_str());
+  if (selected.empty()) {
+    mprintf("Error: Sugar '%s' has unrecognized terminal group.\n", sugarName.c_str());
     return 1;
   }
-  mprintf("\tIn-residue oxygen bonded to anomeric carbon: '%s %s'\n",
-          sugarName.c_str(), *(topIn[o1_atom].Name()));
-  mprintf("\t  Will split into %s group.\n", terminalHydroxylName_.c_str());
-  // Change atom names
-  ChangeAtomName(topIn.SetAtom(selected[0]), "O1");
-  if (selected.size() > 1)
-    ChangeAtomName(topIn.SetAtom(selected[1]), "HO1");
+  
   // Create atom mask
   AtomMask ROH(selected, topIn.Natom());
 
