@@ -1721,21 +1721,26 @@ const
 
 /** \return Type of group represented by the atom atIdx. */
 Exec_PrepareForLeap::FunctionalGroupType
-  Exec_PrepareForLeap::IdFunctionalGroup_Silent(int rnum, int atIdx, int linkAtIdx, Topology const& topIn)
+  Exec_PrepareForLeap::IdFunctionalGroup_Silent(Iarray& selected, int rnum, int atIdx, int linkAtIdx, Topology const& topIn)
 const
 {
+  selected.clear();
   if (topIn[atIdx].Element() == Atom::SULFUR &&
       topIn[atIdx].ResNum() == rnum &&
       topIn[atIdx].Nbonds() == 4) {
     //so3_idx = atIdx;
+    selected.push_back(atIdx);
     // All 4 bonds must be to oxygen
     int bonds_to_o = 0;
     for (Atom::bond_iterator bat = topIn[atIdx].bondbegin();
                              bat != topIn[atIdx].bondend(); ++bat)
     {
       if (topIn[*bat].Element() == Atom::OXYGEN &&
-          topIn[*bat].ResNum() == rnum)
+          topIn[*bat].ResNum() == rnum) {
         bonds_to_o++;
+        if (*bat != linkAtIdx)
+          selected.push_back( *bat );
+      }
     }
     if (bonds_to_o == 4) {
       return G_SO3;
@@ -1743,14 +1748,17 @@ const
   } else if (topIn[atIdx].Element() == Atom::CARBON &&
              topIn[atIdx].ResNum() == rnum) {
     //so3_idx = atIdx;
+    selected.push_back(atIdx);
     if (topIn[atIdx].Nbonds() == 4) {
       // If 4 bonds, 3 must be to hydrogen for CH3
       int bonds_to_h = 0;
       for (Atom::bond_iterator bat = topIn[atIdx].bondbegin();
                                bat != topIn[atIdx].bondend(); ++bat)
       {
-        if (topIn[*bat].Element() == Atom::HYDROGEN)
+        if (topIn[*bat].Element() == Atom::HYDROGEN) {
           bonds_to_h++;
+          selected.push_back(*bat);
+        }
       }
       if (bonds_to_h == 3) {
         return G_CH3;
@@ -1760,6 +1768,7 @@ const
 
   } else if (topIn[atIdx].Element() == Atom::OXYGEN &&
              topIn[atIdx].ResNum() == rnum) {
+    selected.push_back( atIdx );
     // If only 1 bond, -OH
     if (topIn[atIdx].Nbonds() == 1)
       return G_OH;
@@ -1769,21 +1778,23 @@ const
         bonded_atom = topIn[atIdx].Bond(1);
       else
         bonded_atom = topIn[atIdx].Bond(0);
-      if (topIn[bonded_atom].Element() == Atom::HYDROGEN)
+      if (topIn[bonded_atom].Element() == Atom::HYDROGEN) {
+        selected.push_back(bonded_atom);
         return G_OH;
+      }
     }
 
   }
-             
+  selected.clear();      
   return UNRECOGNIZED_GROUP;
 }
 
 /** Identify functional group and print to stdout. */
 Exec_PrepareForLeap::FunctionalGroupType
-  Exec_PrepareForLeap::IdFunctionalGroup(int rnum, int atIdx, int linkAtIdx, Topology const& topIn)
+  Exec_PrepareForLeap::IdFunctionalGroup(Iarray& selected, int rnum, int atIdx, int linkAtIdx, Topology const& topIn)
 const
 {
-  FunctionalGroupType groupType = IdFunctionalGroup_Silent(rnum, atIdx, linkAtIdx, topIn);
+  FunctionalGroupType groupType = IdFunctionalGroup_Silent(selected, rnum, atIdx, linkAtIdx, topIn);
   if (groupType == G_SO3) {
     mprintf("\tFound SO3 group centered on atom '%s' bonded to '%s'\n",
             topIn.AtomMaskName(atIdx).c_str(), topIn.AtomMaskName(linkAtIdx).c_str());
@@ -1814,6 +1825,7 @@ const
     // in this residue.
     int o_idx = -1;
     int so3_idx = -1;
+    Iarray selected;
     FunctionalGroupType groupType = UNRECOGNIZED_GROUP;
     Iarray::const_iterator cat = sugar.ChainAtoms().begin();
     for (; cat != sugar.ChainAtoms().end(); ++cat)
@@ -1831,7 +1843,7 @@ const
           for (Atom::bond_iterator sat = topIn[*oat].bondbegin();
                                    sat != topIn[*oat].bondend(); ++sat)
           {
-            groupType = IdFunctionalGroup(rnum, *sat, o_idx, topIn);
+            groupType = IdFunctionalGroup(selected, rnum, *sat, o_idx, topIn);
             if (groupType != UNRECOGNIZED_GROUP) {
               so3_idx = *sat;
               break;
@@ -1846,11 +1858,11 @@ const
       atomsRemain = false;
     else {
       // sanity check
-      if (so3_idx == -1 || o_idx == -1) {
+      if (so3_idx == -1 || o_idx == -1 || selected.empty()) {
         mprinterr("Internal Error: Sulfate index is negative.\n");
         return 1;
       }
-      // Select S and other 3 O atoms 
+      /*// Select S and other 3 O atoms 
       Iarray selected(1, so3_idx);
       for (Atom::bond_iterator bat = topIn[so3_idx].bondbegin();
                                bat != topIn[so3_idx].bondend(); ++bat)
@@ -1858,7 +1870,7 @@ const
         if (*bat != o_idx) {
           selected.push_back( *bat );
         }
-      }
+      }*/
       // Change the atom names
       std::string newResName;
       if (groupType == G_SO3) {
@@ -1929,10 +1941,9 @@ const
   if (o1_atom == -1) return 0;
 
   Iarray selected;
-  FunctionalGroupType groupType = IdFunctionalGroup(rnum, o1_atom, anomericAtom, topIn);
+  FunctionalGroupType groupType = IdFunctionalGroup(selected, rnum, o1_atom, anomericAtom, topIn);
 
   if (groupType == G_OH) {
-    selected = Iarray(1, o1_atom);
     mprintf("\t  Will split into %s group.\n", terminalHydroxylName_.c_str());
     // Change atom names
     ChangeAtomName(topIn.SetAtom(selected[0]), "O1");

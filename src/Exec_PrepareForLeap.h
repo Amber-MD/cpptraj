@@ -80,9 +80,9 @@ class Exec_PrepareForLeap : public Exec {
     /// Try to find missing linkages to anomeric carbon in sugar.
     int FindSugarC1Linkages(int, int, Topology&, Frame const&) const;
     /// \return identity of the group bonded to given atom
-    FunctionalGroupType IdFunctionalGroup_Silent(int, int, int, Topology const&) const;
+    FunctionalGroupType IdFunctionalGroup_Silent(Iarray&, int, int, int, Topology const&) const;
     /// \return identity of the group bonded to given atom, print to stdout
-    FunctionalGroupType IdFunctionalGroup(int, int, int, Topology const&) const;
+    FunctionalGroupType IdFunctionalGroup(Iarray&, int, int, int, Topology const&) const;
     /// Determine if sugar has sulfates that need SO3 residue(s)
     int CheckForFunctionalGroups(Sugar&, Topology&, Frame&) const;
     /// Determine if sugar is terminal and need an ROH residue
