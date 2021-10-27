@@ -17,7 +17,7 @@
 "Altrose"                        E ALT
 "Allose"                         N ALL,WOO
 "Talose"                         T TAL
-"Iduronic Acid"                  U IDS
+"Iduronic Acid"                  U IDS,IDR
 "Fucose"                         F FUC,FUL,MXY,MXZ
 "Lyxose"                         D LYX
 "Abequose"                       A ABE
