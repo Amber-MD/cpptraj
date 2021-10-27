@@ -22,6 +22,9 @@ class Exec_PrepareForLeap : public Exec {
     class Link;
 
     typedef std::vector<int> Iarray;
+    /// Return type for DetermineAnomericForm
+    enum AnomerRetType { A_ERR = 0, A_WARNING, IS_ALPHA, IS_BETA };
+
     enum FunctionalGroupType { G_SO3 = 0, G_CH3, G_OH, UNRECOGNIZED_GROUP };
     enum ResStatType { UNKNOWN = 0, VALIDATED, UNRECOGNIZED_SUGAR_LINKAGE, SUGAR_MISSING_C1X,
                        SUGAR_MISSING_RING_O };
@@ -64,10 +67,8 @@ class Exec_PrepareForLeap : public Exec {
     enum IdSugarRingStatType { ID_OK = 0, ID_ERR, ID_MISSING_O };
     /// \return Sugar with atom indices set up
     Sugar IdSugarRing(int, Topology const&, IdSugarRingStatType&) const;
-    int ChangePdbAtomNamesToGlycam(char, Residue const&, Topology&) const;
+    int ChangePdbAtomNamesToGlycam(char, Residue const&, Topology&, AnomerRetType) const;
 
-    /// Return type for DetermineAnomericForm
-    enum AnomerRetType { A_ERR = 0, A_WARNING, IS_ALPHA, IS_BETA };
     /// \return Anomeric form of the sugar
     AnomerRetType DetermineAnomericForm(bool&, Sugar const&, Topology const&, Frame const&) const;
     /// \return Glycam linkage code for given link atoms
@@ -121,8 +122,15 @@ class Exec_PrepareForLeap : public Exec {
 
     typedef std::pair<NameType, NameType> NamePairType;
     typedef std::map<NameType, NameType> NameMapType;
-    /// Hold maps of pdb atom names to glycam atom names
+  
+    static void PrintAtomNameMap(const char*, std::vector<NameMapType> const&);
+
+    /// Hold maps of pdb atom names to glycam atom names; multiple residues may share a map
     std::vector<NameMapType> pdb_glycam_name_maps_;
+    /// Hold maps of pdb atom names to glycam atom names (res in alpha form)
+    std::vector<NameMapType> pdb_glycam_name_maps_A_;
+    /// Hold maps of pdb atom names to glycam atom names (res in beta form)
+    std::vector<NameMapType> pdb_glycam_name_maps_B_;
 
     typedef std::pair<char, int> ResIdxPairType;
     typedef std::map<char, int> ResIdxMapType;

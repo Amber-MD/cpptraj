@@ -33,6 +33,7 @@
 # PDB to glycam atom name maps
 V,W,Y C7,C2N  O7,O2N  C8,CME
 S     C10,C5N O10,O5N C11,CME
+H     C6,C6M,B
 
 # PDB to glycam linkage residue name maps
 SER OLS

@@ -341,14 +341,30 @@ int Exec_PrepareForLeap::LoadGlycamPdbResMap(std::string const& fnameIn)
         }
         int glycam_map_idx = (int)pdb_glycam_name_maps_.size();
         pdb_glycam_name_maps_.push_back(NameMapType());
-        NameMapType& currentMap = pdb_glycam_name_maps_.back();
+        pdb_glycam_name_maps_A_.push_back(NameMapType());
+        pdb_glycam_name_maps_B_.push_back(NameMapType());
+        NameMapType& currentMap  = pdb_glycam_name_maps_.back();
+        NameMapType& currentMapA = pdb_glycam_name_maps_A_.back();
+        NameMapType& currentMapB = pdb_glycam_name_maps_B_.back();
         for (int col = 1; col < argline.Nargs(); col++) {
           ArgList namepair( argline[col], "," );
-          if (namepair.Nargs() != 2) {
+          NameMapType* currentMapPtr = &currentMap;
+          if (namepair.Nargs() == 3) {
+            // This name mapping is for a particular anomeric form
+            if (namepair[2] == "A")
+              currentMapPtr = &currentMapA;
+            else if (namepair[2] == "B")
+              currentMapPtr = &currentMapB;
+            else {
+              mprinterr("Error: For name pair, third arg should only be A or B: %s\n", ptr);
+              return 1;
+            }
+          } else if (namepair.Nargs() != 2) {
             mprinterr("Error: Expected only 2 names for name pair, got %i\n", namepair.Nargs());
             mprinterr("Error: %s\n", ptr);
+            return 1;
           }
-          currentMap.insert( NamePairType(NameType(namepair[0]), NameType(namepair[1])) );
+          currentMapPtr->insert( NamePairType(NameType(namepair[0]), NameType(namepair[1])) );
         } // END loop over name pair columns
         // Map will be for each glycam res
         for (ArgList::const_iterator gres = glycamnames.begin(); gres != glycamnames.end(); ++gres)
@@ -1165,7 +1181,8 @@ const
 }
 
 /** Change PDB atom names in residue to glycam ones. */
-int Exec_PrepareForLeap::ChangePdbAtomNamesToGlycam(char resChar, Residue const& res, Topology& topIn)
+int Exec_PrepareForLeap::ChangePdbAtomNamesToGlycam(char resChar, Residue const& res,
+                                                    Topology& topIn, AnomerRetType form)
 const
 {
   // Get the appropriate map
@@ -1176,12 +1193,22 @@ const
     return 0;
   }
   NameMapType const& currentMap = pdb_glycam_name_maps_[resIdxPair->second];
+  NameMapType const* currentMapAB;
+  if (form == IS_ALPHA)
+    currentMapAB = &(pdb_glycam_name_maps_A_[resIdxPair->second]);
+  else
+    currentMapAB = &(pdb_glycam_name_maps_B_[resIdxPair->second]);
   // Change PDB names to Glycam ones
   for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
   {
-    NameMapType::const_iterator namePair = currentMap.find( topIn[at].Name() );
-    if (namePair != currentMap.end())
+    NameMapType::const_iterator namePair = currentMapAB->find( topIn[at].Name() );
+    if (namePair != currentMapAB->end())
       ChangeAtomName( topIn.SetAtom(at), namePair->second );
+    else {
+      namePair = currentMap.find( topIn[at].Name() );
+      if (namePair != currentMap.end())
+        ChangeAtomName( topIn.SetAtom(at), namePair->second );
+    }
   }
   return 0;
 }
@@ -1504,7 +1531,7 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
     return 1;
 
   // Change PDB names to Glycam ones
-  if (ChangePdbAtomNamesToGlycam(resChar, res, topIn)) {
+  if (ChangePdbAtomNamesToGlycam(resChar, res, topIn, form)) {
     mprinterr("Error: Changing PDB atom names to Glycam failed.\n");
     return 1;
   }
@@ -2696,6 +2723,20 @@ const
   return 0;
 }
 
+void Exec_PrepareForLeap::PrintAtomNameMap(const char* title,
+                                           std::vector<NameMapType> const& namemap)
+{
+  mprintf("\t%s:\n", title);
+  for (std::vector<NameMapType>::const_iterator it = namemap.begin();
+                                                it != namemap.end(); ++it)
+  {
+    mprintf("\t  %li)", it - namemap.begin());
+    for (NameMapType::const_iterator mit = it->begin(); mit != it->end(); ++mit)
+      mprintf(" %s:%s", *(mit->first), *(mit->second));
+    mprintf("\n");
+  }
+}
+
 // Exec_PrepareForLeap::Help()
 void Exec_PrepareForLeap::Help() const
 {
@@ -2816,14 +2857,9 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       mprintf("\tRes char to atom map index map:\n");
       for (ResIdxMapType::const_iterator mit = glycam_res_idx_map_.begin(); mit != glycam_res_idx_map_.end(); ++mit)
         mprintf("\t  %c -> %i\n", mit->first, mit->second);
-      mprintf("\tAtom name maps:\n");
-      for (std::vector<NameMapType>::const_iterator it = pdb_glycam_name_maps_.begin(); it != pdb_glycam_name_maps_.end(); ++it)
-      {
-        mprintf("\t  %li)", it - pdb_glycam_name_maps_.begin());
-        for (NameMapType::const_iterator mit = it->begin(); mit != it->end(); ++mit)
-          mprintf(" %s:%s", *(mit->first), *(mit->second));
-        mprintf("\n");
-      }
+      PrintAtomNameMap("Atom name maps", pdb_glycam_name_maps_);
+      PrintAtomNameMap("Atom name maps (alpha)", pdb_glycam_name_maps_A_);
+      PrintAtomNameMap("Atom name maps (beta)", pdb_glycam_name_maps_B_);
       // DEBUG - print linkage res map
       mprintf("\tLinkage res name map:\n");
       for (NameMapType::const_iterator mit = pdb_glycam_linkageRes_map_.begin(); mit != pdb_glycam_linkageRes_map_.end(); ++mit)
