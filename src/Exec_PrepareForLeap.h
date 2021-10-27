@@ -126,7 +126,7 @@ class Exec_PrepareForLeap : public Exec {
 
     typedef std::pair<char, int> ResIdxPairType;
     typedef std::map<char, int> ResIdxMapType;
-    /// Map glycam residue chars to pdb-glycam atom name maps
+    /// Map glycam residue chars to pdb-glycam atom name map index (pdb_glycam_name_maps_)
     ResIdxMapType glycam_res_idx_map_;
 
     /// Map pdb residue names to glycam linkage residue names

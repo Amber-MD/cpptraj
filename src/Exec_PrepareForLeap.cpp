@@ -1488,12 +1488,6 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
 
   mprintf("\tSugar %s glycam name: %c\n", sugarName.c_str(), resChar);
 
-  // Change PDB names to Glycam ones
-  if (ChangePdbAtomNamesToGlycam(resChar, res, topIn)) {
-    mprinterr("Error: Changing PDB atom names to Glycam failed.\n");
-    return 1;
-  }
-
   // Determine alpha or beta and D or L
   bool isDform;
   AnomerRetType form = DetermineAnomericForm(isDform, sugar, topIn, frameIn);
@@ -1508,6 +1502,13 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
     return 0;
   } else
     return 1;
+
+  // Change PDB names to Glycam ones
+  if (ChangePdbAtomNamesToGlycam(resChar, res, topIn)) {
+    mprinterr("Error: Changing PDB atom names to Glycam failed.\n");
+    return 1;
+  }
+
 
   // Find the rest of the carbons in the chain in order to find the
   // stereocenter with the highest index. Start from final ring carbon.
