@@ -975,14 +975,17 @@ const
     // Try to identify the sugar ring oxygen. Candidate atoms are oxygens
     // bonded to two carbon atoms in the same residue.
     if (currentAtom.Element() == Atom::OXYGEN) {
-      if (currentAtom.Nbonds() == 2) {
-        if ( topIn[currentAtom.Bond(0)].Element() == Atom::CARBON &&
-             topIn[currentAtom.Bond(0)].ResNum() == rnum &&
-             topIn[currentAtom.Bond(1)].Element() == Atom::CARBON &&
-             topIn[currentAtom.Bond(1)].ResNum() == rnum )
+      if (currentAtom.Nbonds() > 1) {
+        int bonds_to_c = 0;
+        for (Atom::bond_iterator bat = currentAtom.bondbegin();
+                                 bat != currentAtom.bondend(); ++bat)
         {
-          potentialRingStartAtoms.push_back( at );
+          if (topIn[*bat].Element() == Atom::CARBON &&
+              topIn[*bat].ResNum() == rnum)
+            bonds_to_c++;
         }
+        if ( bonds_to_c == 2 )
+          potentialRingStartAtoms.push_back( at );
       }
     }
   }
