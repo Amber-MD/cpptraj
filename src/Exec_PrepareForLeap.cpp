@@ -1256,7 +1256,9 @@ const
     t_cc = t_ar;
   bool t_cc_up = (t_cc > 0);
 
-  // By definition, anomeric atom is index 0 in the chain.
+  // Determine index of anomeric atom (typically index 0 but not always).
+  int aa_idx =  AtomIdxInArray(sugar.ChainAtoms(), sugar.AnomericAtom());
+  int aa_pos = (aa_idx % 2);
   // Determine index of the anomeric reference atom in the chain.
   int ar_idx = AtomIdxInArray(sugar.ChainAtoms(), sugar.AnomericRefAtom());
   int cc_idx = AtomIdxInArray(sugar.ChainAtoms(), sugar.HighestStereocenter());
@@ -1264,9 +1266,9 @@ const
   // Determine form and chirality.
   // May need to adjust definitions based on the positions of the anomeric
   // reference and config. atoms in the sequence, which alternates.
-  if ((ar_idx % 2) != 0)
+  if ((ar_idx % 2) != aa_pos)
     t_ar_up = !t_ar_up;
-  if ((cc_idx % 2) != 0)
+  if ((cc_idx % 2) != aa_pos)
     t_cc_up = !t_cc_up;
 
   if ( debug_ > 0) {
