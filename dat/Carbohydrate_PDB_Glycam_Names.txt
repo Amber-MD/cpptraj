@@ -24,7 +24,7 @@
 "Xylose"                         X XYL,XYS,LXC,XYP
 "Ribose"                         R RIB
 "Bacillosamine"                  B BAC
-"Fructose"                       C FRU
+"Fructose"                       C FRU,YYJ
 "Tagatose"                       J TAG
 "Sorbose"                        B SOR
 "Psicose"                        P PSI
