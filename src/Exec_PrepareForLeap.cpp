@@ -990,22 +990,12 @@ const
     }
   }
 
-  // TODO handle case where multiple potential ring start atoms exist
   if (potentialRingStartAtoms.empty()) {
     mprintf("Warning: Ring oxygen could not be identified for %s\n",
             topIn.TruncResNameOnumId(rnum).c_str());
-    //resStat_[rnum] = SUGAR_MISSING_RING_O;
     stat = ID_MISSING_O;
     return Sugar(res.FirstAtom());
-  } /*else if (potentialRingStartAtoms.size() > 1) {
-    mprinterr("Error: Multiple potential ring start atoms:\n");
-    for (Iarray::const_iterator it = potentialRingStartAtoms.begin();
-                                it != potentialRingStartAtoms.end();
-                              ++it)
-      mprinterr("Error:   %s\n", topIn.ResNameNumAtomNameNum(*it).c_str());
-    stat = ID_ERR;
-    return Sugar(res.FirstAtom());
-  }*/
+  }
 
   // Use the previously-set up AtomMap to help determine stereocenters
   std::vector<bool> atomIsChiral;
