@@ -1151,6 +1151,28 @@ const
         for (Iarray::const_iterator it = carbon_chain.begin(); it != carbon_chain.end(); ++it)
           mprintf("\t\t%s\n", topIn.ResNameNumAtomNameNum(*it).c_str());
       }
+      // See if there is chain prior to anomeric carbon
+      Iarray previous_chain;
+      if (FindRemainingChainCarbons(previous_chain, anomeric_atom, topIn, rnum, RA)) {
+        mprinterr("Error: Could not find previous chain carbons.\n");
+        stat = ID_ERR;
+        return Sugar(res.FirstAtom());
+      }
+      if (!previous_chain.empty()) {
+        //if (debug_ > 0) {
+          mprintf("DEBUG: Previous carbon chain (from anomeric carbon):\n");
+          for (Iarray::const_iterator it = previous_chain.begin(); it != previous_chain.end(); ++it)
+            mprintf("\t\t%s\n", topIn.ResNameNumAtomNameNum(*it).c_str());
+        //}
+        for (Iarray::const_iterator it = carbon_chain.begin(); it != carbon_chain.end(); ++it)
+          previous_chain.push_back( *it );
+        carbon_chain = previous_chain;
+        //if (debug_ > 0) {
+          mprintf("DEBUG: Complete carbon chain:\n");
+          for (Iarray::const_iterator it = carbon_chain.begin(); it != carbon_chain.end(); ++it)
+            mprintf("\t\t%s\n", topIn.ResNameNumAtomNameNum(*it).c_str());
+        //}
+      } 
       // Get the index of the highest stereocenter
       for (Iarray::const_iterator it = carbon_chain.begin(); it != carbon_chain.end(); ++it)
       {
@@ -1340,28 +1362,32 @@ const
                 topIn.AtomMaskName(it->Idx()).c_str());
       return linkcode;
     }
-    linkstr.append( std::string(topIn[it->Idx()].ElementName()) +
-                    integerToString(it->Position()) );
+    // Carbon is terminal
+    if (topIn[it->Idx()].Element() == Atom::CARBON)
+      linkstr.append("T");
+    else
+      linkstr.append( std::string(topIn[it->Idx()].ElementName()) +
+                      integerToString(it->Position()) );
   }
 
   mprintf("DEBUG:\t  linkstr= '%s'\n", linkstr.c_str());
-  if      (linkstr == "C1") linkcode = "0";
+  if      (linkstr == "T") linkcode = "0";
   else if (linkstr == "O1") linkcode = "1";
-  else if (linkstr == "C1O2") linkcode = "2";
-  else if (linkstr == "C1O3") linkcode = "3";
-  else if (linkstr == "C1O4") linkcode = "4";
-  else if (linkstr == "C1O6") linkcode = "6";
-  else if (linkstr == "C1O2O3") linkcode = "Z";
-  else if (linkstr == "C1O2O4") linkcode = "Y";
-  else if (linkstr == "C1O2O6") linkcode = "X";
-  else if (linkstr == "C1O3O4") linkcode = "W";
-  else if (linkstr == "C1O3O6") linkcode = "V";
-  else if (linkstr == "C1O4O6") linkcode = "U";
-  else if (linkstr == "C1O2O3O4") linkcode = "T";
-  else if (linkstr == "C1O2O3O6") linkcode = "S";
-  else if (linkstr == "C1O2O4O6") linkcode = "R";
-  else if (linkstr == "C1O3O4O6") linkcode = "Q";
-  else if (linkstr == "C1O2O3O4O6") linkcode = "P";
+  else if (linkstr == "TO2") linkcode = "2";
+  else if (linkstr == "TO3") linkcode = "3";
+  else if (linkstr == "TO4") linkcode = "4";
+  else if (linkstr == "TO6") linkcode = "6";
+  else if (linkstr == "TO2O3") linkcode = "Z";
+  else if (linkstr == "TO2O4") linkcode = "Y";
+  else if (linkstr == "TO2O6") linkcode = "X";
+  else if (linkstr == "TO3O4") linkcode = "W";
+  else if (linkstr == "TO3O6") linkcode = "V";
+  else if (linkstr == "TO4O6") linkcode = "U";
+  else if (linkstr == "TO2O3O4") linkcode = "T";
+  else if (linkstr == "TO2O3O6") linkcode = "S";
+  else if (linkstr == "TO2O4O6") linkcode = "R";
+  else if (linkstr == "TO3O4O6") linkcode = "Q";
+  else if (linkstr == "TO2O3O4O6") linkcode = "P";
   if (linkcode.empty())
     mprintf("Warning: Could not determine link code for link atoms '%s'.\n", linkstr.c_str());
   return linkcode;
