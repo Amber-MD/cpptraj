@@ -1447,8 +1447,9 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
   std::string linkcode = DetermineSugarLinkages(sugar, cmask, topIn, resStat_,
                                                 outfile, sugarBondsToRemove);
   if (linkcode.empty()) {
-    mprinterr("Error: Determination of sugar linkages failed.\n");
-    return 1;
+    resStat_[rnum] = UNRECOGNIZED_SUGAR_LINKAGE;
+    mprintf("Warning: Determination of sugar linkages failed.\n");
+    return 0;
   }
 
   // Modify residue char to indicate D form if necessary.
