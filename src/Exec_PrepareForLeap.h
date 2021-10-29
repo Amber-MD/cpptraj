@@ -57,12 +57,6 @@ class Exec_PrepareForLeap : public Exec {
     int CalcConfigCarbonTorsion(double&, int, Iarray const&,
                                 Topology const&, Frame const&) const;
 
-    static int totalPriority(Topology const&, int, int, int, int, std::vector<bool>&);
-
-    /// return type for the CalcChiralAtomTorsion routine
-    enum ChiralRetType { ERR = 0, IS_S, IS_R };
-
-    ChiralRetType CalcChiralAtomTorsion(double&, int, Topology const&, Frame const&) const;
     /// Error status for IdSugarRing
     enum IdSugarRingStatType { ID_OK = 0, ID_ERR, ID_MISSING_O };
     /// \return Sugar with atom indices set up
