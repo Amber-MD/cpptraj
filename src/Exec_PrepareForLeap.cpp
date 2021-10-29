@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
 #include "CharMask.h"
+#include "Chirality.h"
 #include "TorsionRoutines.h"
 #include "Constants.h"
 #include "CpptrajFile.h"
@@ -1091,12 +1092,53 @@ const
   return 0;
 }
 
+/** Determine if anomeric carbon of furanose is up or down. */
+Exec_PrepareForLeap::AnomerRetType
+  Exec_PrepareForLeap::DetermineUpOrDown(bool& isDform, std::string& formStr,
+                                         Sugar const& sugar,
+                                         Topology const& topIn, Frame const& frameIn)
+const
+{
+  formStr.clear();
+  Cpptraj::Chirality::ChiralType ctypeR = Cpptraj::Chirality::
+                                          DetermineChirality(sugar.HighestStereocenter(),
+                                                             topIn, frameIn);
+  if (ctypeR == Cpptraj::Chirality::ERR) {
+    mprinterr("Error: Could not determine chirality for furanose.\n");
+    return A_ERR;
+  }
+  if (ctypeR == Cpptraj::Chirality::IS_R)
+    isDform = true;
+  else
+    isDform = false;
+
+  Cpptraj::Chirality::ChiralType ctypeA = Cpptraj::Chirality::
+                                          DetermineChirality(sugar.AnomericAtom(),
+                                                             topIn, frameIn);
+  if (ctypeA == Cpptraj::Chirality::ERR) {
+    mprinterr("Error: Could not determine chirality around anomeric atom for furanose.\n");
+    return A_ERR;
+  }
+
+  if (ctypeR == ctypeA) {
+    // Up, beta
+    formStr = "U";
+    return IS_BETA;
+  } else {
+    // Down, alpha
+    formStr = "D";
+    return IS_ALPHA;
+  }
+}
+
 /** Determine anomeric form of the sugar. */
 Exec_PrepareForLeap::AnomerRetType
-  Exec_PrepareForLeap::DetermineAnomericForm(bool& isDform, Sugar const& sugar,
+  Exec_PrepareForLeap::DetermineAnomericForm(bool& isDform, std::string& formStr,
+                                             Sugar const& sugar,
                                              Topology const& topIn, Frame const& frameIn)
 const
 {
+  formStr.clear();
   isDform = true;
   // For determining orientation around anomeric carbon need ring
   // oxygen atom and next carbon in the ring.
@@ -1167,44 +1209,17 @@ const
   // Same side is beta, opposite is alpha.
   if (t_an_up == t_ar_up) {
     form = IS_BETA;
+    formStr = "B";
     //mprintf("DEBUG: Form is Beta\n");
   } else {
     form = IS_ALPHA;
+    formStr = "A";
     //mprintf("DEBUG: Form is Alpha\n");
   }
 
   // By the atom ordering used by CalcAnomericRefTorsion and
   // CalcConfigCarbonTorsion, D is a negative (down) torsion.
   isDform = !t_cc_up;
-/*
-  if (sugar.AnomericRefAtom() == sugar.RingEndAtom()) {
-    // Anomeric reference is the ring end, same side is beta, opposite is alpha.
-    isDform = !t_ar_up;
-    if (t_an_up == t_ar_up) {
-      form = IS_BETA;
-      //mprintf("DEBUG: Form is Beta\n");
-    } else {
-      form = IS_ALPHA;
-      //mprintf("DEBUG: Form is Alpha\n");
-    }
-  } else {
-    // Anomeric reference isnt the ring end, definition is reversed.
-    isDform = t_ar_up;
-    if (t_an_up != t_ar_up) {
-      form = IS_BETA;
-      //mprintf("DEBUG: Form is Beta\n");
-    } else {
-      form = IS_ALPHA;
-      //mprintf("DEBUG: Form is Alpha\n");
-    }
-  }
-
-  if (sugar.HighestStereocenter() != sugar.AnomericRefAtom()) {
-    double stereo_t = 0;
-    if (CalcStereocenterTorsion(stereo_t, sugar.HighestStereocenter(), topIn, frameIn))
-      return A_ERR;
-    isDform = (stereo_t > 0);
-  }*/
 
   return form;
 }
@@ -1401,46 +1416,26 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
 
   // Determine alpha or beta and D or L
   bool isDform;
-  AnomerRetType form = DetermineAnomericForm(isDform, sugar, topIn, frameIn);
   std::string formStr;
-  if (form == IS_ALPHA)
-    formStr = "A";
-  else if (form == IS_BETA)
-    formStr = "B";
-  else if (form == A_WARNING) {
+  AnomerRetType form;
+  if (sugar.RingType() == Sugar::FURANOSE)
+    form = DetermineUpOrDown(isDform, formStr, sugar, topIn, frameIn);
+  else
+    form = DetermineAnomericForm(isDform, formStr, sugar, topIn, frameIn);
+  if (form == A_WARNING) {
     // Sugar missing C1-X substituent, non-fatal
     resStat_[rnum] = SUGAR_MISSING_C1X;
     return 0;
-  } else
+  } else if (formStr.empty() || form == A_ERR) {
+    mprinterr("Error: alpha/beta determination failed.\n");
     return 1;
+  }
 
   // Change PDB names to Glycam ones
   if (ChangePdbAtomNamesToGlycam(resChar, res, topIn, form)) {
     mprinterr("Error: Changing PDB atom names to Glycam failed.\n");
     return 1;
   }
-
-
-  // Find the rest of the carbons in the chain in order to find the
-  // stereocenter with the highest index. Start from final ring carbon.
-  //int highest_stereocenter = sugar.HighestStereocenter();
-
-  //mprintf("\t  Highest stereocenter: %s\n", topIn.ResNameNumAtomNameNum(highest_stereocenter).c_str());
-  // Determine D/L
-/*  double t_sc;
-  ChiralRetType sc_chirality = CalcChiralAtomTorsion(t_sc, highest_stereocenter, topIn, frameIn);
-  static const char* chiralStr[] = {0, "S", "R"};
-  mprintf("DEBUG: Based on t_sc %s chirality is %s\n",
-          topIn.TruncResNameOnumId(rnum).c_str(), chiralStr[sc_chirality]);
-  if (sc_chirality == ERR) {
-    mprinterr("Error: Could not determine chirality around stereocenter.\n");
-    return 1;
-  }
-  bool isDform;
-  if (sc_chirality == IS_R)
-    isDform = true;
-  else
-    isDform = false;*/
 
   if (isDform) {
     mprintf("\t  %s Form is %s-D\n", sugarName.c_str(), formStr.c_str());
@@ -1455,78 +1450,6 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
     mprinterr("Error: Determination of sugar linkages failed.\n");
     return 1;
   }
-/*
-  // Use a set to store linkages so they are in alphabetical order for easier identification.
-  std::set<NameType> linkages;
-  // Bonds to non sugars to be removed since these will confuse tleap
-  BondArray bondsToRemove;
-  // Loop over sugar atoms
-  for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
-  {
-    // Check for bonds to other residues
-    for (Atom::bond_iterator bat = topIn[at].bondbegin();
-                             bat != topIn[at].bondend(); ++bat)
-    {
-      if (topIn[*bat].ResNum() != rnum) {
-        // This atom is bonded to another residue
-        if (!cmask.AtomInCharMask(*bat)) {
-          mprintf("\t  Sugar %s bonded to non-sugar %s\n",
-                  topIn.ResNameNumAtomNameNum(at).c_str(),
-                  topIn.ResNameNumAtomNameNum(*bat).c_str());
-          linkages.insert( topIn[at].Name() );
-          bondsToRemove.push_back( BondType(at, *bat, -1) );
-          // Check if this is a recognized linkage to non-sugar
-          Residue& pres = topIn.SetRes( topIn[*bat].ResNum() );
-          NameMapType::const_iterator lname = pdb_glycam_linkageRes_map_.find( pres.Name() );
-          if (lname != pdb_glycam_linkageRes_map_.end()) {
-            if (debug_ > 0)
-              mprintf("DEBUG: Link residue name for %s found: %s\n", *(lname->first), *(lname->second));
-            ChangeResName( pres, lname->second );
-            resStat_[topIn[*bat].ResNum()] = VALIDATED;
-          } else if (pres.Name() == terminalHydroxylName_) {
-            if (debug_ > 0)
-              mprintf("DEBUG: '%s' is terminal hydroxyl.\n", *(pres.Name()));
-            resStat_[topIn[*bat].ResNum()] = VALIDATED;
-          } else {
-            mprintf("Warning: Unrecognized link residue %s, not modifying name.\n", *pres.Name());
-            resStat_[topIn[*bat].ResNum()] = UNRECOGNIZED_SUGAR_LINKAGE;
-          }
-        } else {
-          mprintf("\t  Sugar %s bonded to sugar %s\n",
-                  topIn.ResNameNumAtomNameNum(at).c_str(),
-                  topIn.ResNameNumAtomNameNum(*bat).c_str());
-          linkages.insert( topIn[at].Name() );
-          // Also remove inter-sugar bonds since leap cant handle branching
-          if (at < *bat)
-            sugarBondsToRemove.insert( BondType(at, *bat, -1) );
-          else
-            sugarBondsToRemove.insert( BondType(*bat, at, -1) );
-        }
-      }
-    } // END loop over bonded atoms
-  } // END loop over residue atoms
-
-  // Determine linkage
-  if (debug_ > 0) {
-    mprintf("\t  Link atoms:");
-    for (std::set<NameType>::const_iterator it = linkages.begin();
-                                            it != linkages.end(); ++it)
-      mprintf(" %4s", *(*it));
-    mprintf("\n");
-  }
-  std::string linkcode = LinkageCode(resChar, linkages);
-  if (debug_ > 0) mprintf("\t  Linkage code: %s\n", linkcode.c_str());
-  if (linkcode.empty()) {
-    mprinterr("Error: Unrecognized sugar linkage.\n");
-    return 1;
-  }
-  // Remove bonds to other residues 
-  for (BondArray::const_iterator bnd = bondsToRemove.begin();
-                                 bnd != bondsToRemove.end(); ++bnd)
-  {
-    LeapBond(bnd->A1(), bnd->A2(), topIn, outfile);
-    topIn.RemoveBond(bnd->A1(), bnd->A2());
-  }*/
 
   // Modify residue char to indicate D form if necessary.
   // We do this here and not above so as not to mess with the

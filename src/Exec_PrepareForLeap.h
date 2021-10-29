@@ -62,9 +62,10 @@ class Exec_PrepareForLeap : public Exec {
     /// \return Sugar with atom indices set up
     Sugar IdSugarRing(int, Topology const&, IdSugarRingStatType&) const;
     int ChangePdbAtomNamesToGlycam(char, Residue const&, Topology&, AnomerRetType) const;
-
+    /// \return If furanose is up or down
+    AnomerRetType DetermineUpOrDown(bool&, std::string&, Sugar const&, Topology const&, Frame const&) const;
     /// \return Anomeric form of the sugar
-    AnomerRetType DetermineAnomericForm(bool&, Sugar const&, Topology const&, Frame const&) const;
+    AnomerRetType DetermineAnomericForm(bool&, std::string&, Sugar const&, Topology const&, Frame const&) const;
     /// \return Glycam linkage code for given link atoms
     std::string GlycamLinkageCode(std::set<Link> const&, Topology const&) const;
     /// Determine linkages for the sugar
