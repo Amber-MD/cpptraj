@@ -87,7 +87,7 @@ class Exec_PrepareForLeap : public Exec {
     int FixSugarsStructure(std::vector<Sugar>&, std::string const&, Topology&, Frame&,
                            bool, bool) const;
 
-    int PrepareSugars(AtomMask&, Topology&, Frame const&, CpptrajFile*);
+    int PrepareSugars(std::string const&, std::vector<Sugar> const&, Topology&, Frame const&, CpptrajFile*);
     int FindTerByBonds(Topology&, CharMask const&) const;
     int SearchForDisulfides(double, std::string const&, std::string const&, bool,
                             Topology&, Frame const&, CpptrajFile*);
@@ -173,7 +173,7 @@ class Exec_PrepareForLeap::Sugar {
     unsigned int NumRingAtoms() const;
     void PrintInfo(Topology const&) const;
     /// Remap internal indices according to given atom map.
-    void RemapIndices(Iarray const&);
+    void RemapIndices(Iarray const&, int, int);
   private:
     int ring_oxygen_atom_;     ///< Index of the ring oxygen atom
     int anomeric_atom_;        ///< Index of the anomeric C atom (ring start)

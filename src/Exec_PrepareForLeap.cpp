@@ -84,18 +84,26 @@ unsigned int Exec_PrepareForLeap::Sugar::NumRingAtoms() const {
   return ring_atoms_.size() + 1;
 }
 
+inline static int find_new_idx(int oldidx, std::vector<int> const& atomMap, int at0, int at1) {
+  for (int newidx = at0; newidx != at1; newidx++)
+    if (atomMap[newidx] == oldidx)
+      return newidx;
+  return -1;
+}
+
 /** Remap internal indices according to given map. */
-void Exec_PrepareForLeap::Sugar::RemapIndices(Iarray const& atomMap) {
+void Exec_PrepareForLeap::Sugar::RemapIndices(Iarray const& atomMap, int at0, int at1) {
   // Always try the anomeric atom
-  anomeric_atom_ = atomMap[anomeric_atom_];
+  anomeric_atom_ = find_new_idx(anomeric_atom_, atomMap, at0, at1); //atomMap[anomeric_atom_];
   if (NotSet()) return;
-  ring_oxygen_atom_     = atomMap[ring_oxygen_atom_];
-  ano_ref_atom_         = atomMap[ano_ref_atom_];
-  highest_stereocenter_ = atomMap[highest_stereocenter_];
+  //mprintf("DEBUG: Ring O old = %i ring O new %i\n", ring_oxygen_atom_+1, atomMap[ring_oxygen_atom_]+1);
+  ring_oxygen_atom_     = find_new_idx(ring_oxygen_atom_, atomMap, at0, at1); //atomMap[ring_oxygen_atom_];
+  ano_ref_atom_         = find_new_idx(ano_ref_atom_, atomMap, at0, at1); //atomMap[ano_ref_atom_];
+  highest_stereocenter_ = find_new_idx(highest_stereocenter_, atomMap, at0, at1); //atomMap[highest_stereocenter_];
   for (Iarray::iterator it = ring_atoms_.begin(); it != ring_atoms_.end(); ++it)
-    *it = atomMap[*it];
+    *it = find_new_idx(*it, atomMap, at0, at1); //atomMap[*it];
   for (Iarray::iterator it = chain_atoms_.begin(); it != chain_atoms_.end(); ++it)
-    *it = atomMap[*it];
+    *it = find_new_idx(*it, atomMap, at0, at1); //atomMap[*it];
 }
 
 // -----------------------------------------------------------------------------
@@ -132,44 +140,6 @@ const
                   leapunitname_.c_str(), topIn[at1].ResNum()+1, *(topIn[at1].Name()),
                   leapunitname_.c_str(), topIn[at2].ResNum()+1, *(topIn[at2].Name()));
 }
-
-/// \return Glycam linkage code for given glycam residue name and linked atoms
-/*
-static std::string LinkageCode(char glycamChar, std::set<NameType> const& linkages)
-{
-  std::string linkcode;
-  // NOTE: I dont know if this is the best way to ID linkages. Seems easiest though.
-  std::string linkstr;
-  for (std::set<NameType>::const_iterator it = linkages.begin(); it != linkages.end(); ++it)
-    linkstr.append( it->Truncated() );
-  //mprintf("\t  linkstr= '%s'\n", linkstr.c_str());
-  switch (glycamChar) {
-    case 'S':
-      if      (linkstr == "C2") linkcode = "0";
-      break;
-    default:
-      if      (linkstr == "C1") linkcode = "0";
-      else if (linkstr == "C1O2") linkcode = "2";
-      else if (linkstr == "C1O3") linkcode = "3";
-      else if (linkstr == "C1O4") linkcode = "4";
-      else if (linkstr == "C1O6") linkcode = "6";
-      else if (linkstr == "C1O2O3") linkcode = "Z";
-      else if (linkstr == "C1O2O4") linkcode = "Y";
-      else if (linkstr == "C1O2O6") linkcode = "X";
-      else if (linkstr == "C1O3O4") linkcode = "W";
-      else if (linkstr == "C1O3O6") linkcode = "V";
-      else if (linkstr == "C1O4O6") linkcode = "U";
-      else if (linkstr == "C1O2O3O4") linkcode = "T";
-      else if (linkstr == "C1O2O3O6") linkcode = "S";
-      else if (linkstr == "C1O2O4O6") linkcode = "R";
-      else if (linkstr == "C1O3O4O6") linkcode = "Q";
-      else if (linkstr == "C1O2O3O4O6") linkcode = "P";
-      break;
-  }
-  if (linkcode.empty())
-    mprintf("Warning: Could not determine link code for link atoms '%s'.\n", linkstr.c_str());
-  return linkcode;
-}*/
 
 /** If file not present, use a default set of residue names. */
 void Exec_PrepareForLeap::SetPdbResNames() {
@@ -1650,6 +1620,8 @@ int Exec_PrepareForLeap::CheckForFunctionalGroups(Sugar& sugar,
 const
 {
   int rnum = sugar.ResNum(topIn);
+  int original_at0 = topIn.Res(rnum).FirstAtom();
+  int original_at1 = topIn.Res(rnum).LastAtom();
   std::string sugarName = topIn.TruncResNameOnumId(rnum);
   mprintf("DEBUG: Sulfate check: %s\n", sugarName.c_str());
 
@@ -1729,6 +1701,7 @@ const
       // Split the sulfate into a new residue named SO3 for Glycam.
       // This may involve reordering atoms within the residue, but not
       // any other atoms, so we should not have to update other sugars.
+      mprintf("DEBUG: Before split: %s\n", topIn.AtomMaskName(sugar.RingOxygenAtom()).c_str());
       Iarray atomMap;
       if (topIn.SplitResidue(SO3, newResName, atomMap)) {
         mprinterr("Error: Could not split sulfate from residue '%s'.\n", sugarName.c_str());
@@ -1738,7 +1711,9 @@ const
       Frame oldFrame = frameIn;
       frameIn.SetCoordinatesByMap( oldFrame, atomMap );
       // Remap the sugar indices
-      sugar.RemapIndices( atomMap );
+      mprintf("DEBUG: Before remap: %s\n", topIn.AtomMaskName(sugar.RingOxygenAtom()).c_str());
+      sugar.RemapIndices( atomMap, original_at0, original_at1 );
+      mprintf("DEBUG: After remap: %s\n", topIn.AtomMaskName(sugar.RingOxygenAtom()).c_str());
     }
     //atomsRemain = false; // DEBUG
   } // END while atoms remain
@@ -1775,7 +1750,7 @@ const
     }
   }
   if (o1_atom == -1) return 0;
-  mprintf("DEBUG: Terminal check: O1 atom: '%s'\n", topIn.AtomMaskName(o1_atom).c_str());
+  mprintf("DEBUG: Terminal check: %s O1 atom: '%s'\n", sugarName.c_str(), topIn.AtomMaskName(o1_atom).c_str());
 
   Iarray selected;
   FunctionalGroupType groupType = IdFunctionalGroup(selected, rnum, o1_atom, anomericAtom, topIn);
@@ -1814,18 +1789,24 @@ const
   // Split the hydroxyl into a new residue named ROH for Glycam.
   // This may involve reordering atoms within the residue, but not
   // any other atoms, so we should not have to update SugarIndices.
+  int original_at0 = topIn.Res(rnum).FirstAtom();
+  int original_at1 = topIn.Res(rnum).LastAtom();
   Iarray atomMap;
   if (topIn.SplitResidue(ROH, terminalHydroxylName_, atomMap)) {
     mprinterr("Error: Could not split the residue '%s'.\n", sugarName.c_str());
     return 1;
   }
+  // DEBUG
+  for (int at = original_at0; at != original_at1; at++)
+    mprintf("DEBUG:\t\tAtomMap[%i] = %i\n", at, atomMap[at]);
   // Reorder the frame to match
   Frame oldFrame = frameIn;
   frameIn.SetCoordinatesByMap( oldFrame, atomMap );
   // Remap the sugar indices
-  sugar.RemapIndices( atomMap );
+  sugar.RemapIndices( atomMap, original_at0, original_at1 );
   return 0;
 }
+
 
 /** Try to fix issues with sugar structure before trying to identify. */
 int Exec_PrepareForLeap::FixSugarsStructure(std::vector<Sugar>& sugarResidues,
@@ -1861,8 +1842,10 @@ const
         mprintf("Warning: Problem identifying sugar ring for %s\n",
                 topIn.TruncResNameOnumId(*rnum).c_str());
     }
-    if (!sugar.NotSet())
+    if (!sugar.NotSet()) {
       sugarResidues.push_back( sugar );
+      //sugarResidues.back().PrintInfo(topIn); // FIXME
+    }
   }
 
   if (c1bondsearch) {
@@ -1879,6 +1862,10 @@ const
       }
     }
   }
+  //DEBUG
+  for (std::vector<Sugar>::const_iterator sugar = sugarResidues.begin();
+                                      sugar != sugarResidues.end(); ++sugar)
+    sugar->PrintInfo(topIn);
 
   if (termsearch) {
     // Loop over sugar indices to see if residues have ROH that must be split off
@@ -1892,6 +1879,11 @@ const
       }
     } // End loop over sugar indices
   }
+  //DEBUG
+  //for (std::vector<Sugar>::const_iterator sugar = sugarResidues.begin();
+  //                                    sugar != sugarResidues.end(); ++sugar)
+  //  sugar->PrintInfo(topIn);
+
 
   // if (so3search) {
     // Loop over chain indices to see if residues need to be split
@@ -1912,11 +1904,15 @@ const
 
 
 /** Prepare sugars for leap. */
-int Exec_PrepareForLeap::PrepareSugars(AtomMask& sugarMask, Topology& topIn,
+int Exec_PrepareForLeap::PrepareSugars(std::string const& sugarmaskstr,
+                                       std::vector<Sugar> const& Sugars,
+                                       Topology& topIn,
                                        Frame const& frameIn, CpptrajFile* outfile)
                                 
 {
-  std::set<BondType> sugarBondsToRemove;
+  // Need to set up the mask again since topology may have been modified.
+  AtomMask sugarMask;
+  if (sugarMask.SetMaskString( sugarmaskstr )) return 1;
   mprintf("\tPreparing sugars selected by '%s'\n", sugarMask.MaskString());
   if (topIn.SetupIntegerMask( sugarMask )) return 1;
   sugarMask.MaskInfo();
@@ -1925,45 +1921,34 @@ int Exec_PrepareForLeap::PrepareSugars(AtomMask& sugarMask, Topology& topIn,
   else {
     CharMask cmask( sugarMask.ConvertToCharMask(), sugarMask.Nselected() );
     // Get sugar residue numbers
-    Iarray sugarResNums = topIn.ResnumsSelectedBy( sugarMask );
+    //Iarray sugarResNums = topIn.ResnumsSelectedBy( sugarMask );
     // Try to identify sugar rings
-    std::vector<Sugar> Sugars;
-    Sugars.reserve( sugarResNums.size() );
-    for (Iarray::const_iterator rnum = sugarResNums.begin();
-                                rnum != sugarResNums.end(); ++rnum)
+    //std::vector<Sugar> Sugars;
+    //Sugars.reserve( sugarResNums.size() );
+    //for (Iarray::const_iterator rnum = sugarResNums.begin();
+    //                            rnum != sugarResNums.end(); ++rnum)
+    //{
+    //  IdSugarRingStatType stat;
+    //  Sugars.push_back( IdSugarRing(*rnum, topIn, stat) );
+    //  if (stat == ID_ERR) {
+    //    if (errorsAreFatal_) {
+    //      mprinterr("Error: Problem identifying sugar ring for %s\n",
+    //                topIn.TruncResNameOnumId(*rnum).c_str());
+    //      return 1;
+    //    } else
+    //      mprintf("Warning: Problem identifying sugar ring for %s\n",
+    //                topIn.TruncResNameOnumId(*rnum).c_str());
+    //  } else if (stat == ID_MISSING_O)
+    //    resStat_[*rnum] = SUGAR_MISSING_RING_O;
+    //  Sugars.back().PrintInfo( topIn );
+    //}
+    for (std::vector<Sugar>::const_iterator sugar = Sugars.begin();
+                                            sugar != Sugars.end(); ++sugar)
     {
-      IdSugarRingStatType stat;
-      Sugars.push_back( IdSugarRing(*rnum, topIn, stat) );
-      if (stat == ID_ERR) {
-        if (errorsAreFatal_) {
-          mprinterr("Error: Problem identifying sugar ring for %s\n",
-                    topIn.TruncResNameOnumId(*rnum).c_str());
-          return 1;
-        } else
-          mprintf("Warning: Problem identifying sugar ring for %s\n",
-                    topIn.TruncResNameOnumId(*rnum).c_str());
-      } else if (stat == ID_MISSING_O)
-        resStat_[*rnum] = SUGAR_MISSING_RING_O;
-      Sugars.back().PrintInfo( topIn );
+      sugar->PrintInfo(topIn);
     }
-/*    // For each sugar residue, try to fill in missing linkages
-    if (findC1linkages) {
-      mprintf("\tAttempting to identify missing linkages to sugar anomeric carbons.\n");
-      for (std::vector<Sugar>::const_iterator sugar = Sugars.begin();
-                                              sugar != Sugars.end(); ++sugar)
-      {
-        if (FindSugarC1Linkages(*sugar, topIn, frameIn)) {
-          if (errorsAreFatal_)
-            return 1;
-          else
-            mprintf("Warning: Finding anomeric C linkages for %s failed, skipping.\n",
-                    topIn.TruncResNameOnumId( sugar->ResNum() ).c_str());
-        }
-      }
-    } else {
-      mprintf("\tNot attempting to identify missing linkages to sugar anomeric carbons.\n");
-    }*/
 
+    std::set<BondType> sugarBondsToRemove;
     // For each sugar residue, see if it is bonded to a non-sugar residue.
     // If it is, remove that bond but record it.
     for (std::vector<Sugar>::const_iterator sugar = Sugars.begin();
@@ -1987,9 +1972,9 @@ int Exec_PrepareForLeap::PrepareSugars(AtomMask& sugarMask, Topology& topIn,
       LeapBond(bnd->A1(), bnd->A2(), topIn, outfile);
       topIn.RemoveBond(bnd->A1(), bnd->A2());
     }
+    // Bonds to sugars have been removed, so regenerate molecule info
+    topIn.DetermineMolecules();
   }
-  // Bonds to sugars have been removed, so regenerate molecule info
-  topIn.DetermineMolecules();
   return 0;
 }
 
@@ -2777,17 +2762,17 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   // Get sugar mask or default sugar mask
-  AtomMask sugarMask;
+  //AtomMask sugarMask;
   std::string sugarmaskstr = argIn.GetStringKey("sugarmask");
   if (!sugarmaskstr.empty()) {
     if (!prepare_sugars) {
       mprinterr("Error: Cannot specify 'nosugars' and 'sugarmask'\n");
       return CpptrajState::ERR;
     }
-    if (sugarMask.SetMaskString(sugarmaskstr)) {
-      mprinterr("Error: Setting sugar mask string.\n");
-      return CpptrajState::ERR;
-    }
+    //if (sugarMask.SetMaskString(sugarmaskstr)) {
+    //  mprinterr("Error: Setting sugar mask string.\n");
+    //  return CpptrajState::ERR;
+    //}
   } else if (prepare_sugars) {
     // No sugar mask specified; create one from names in pdb_to_glycam_ map.
     sugarmaskstr.assign(":");
@@ -2797,15 +2782,16 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
         sugarmaskstr.append(",");
       sugarmaskstr.append( mit->first.Truncated() );
     }
-    if (sugarMask.SetMaskString(sugarmaskstr)) {
-      mprinterr("Error: Setting sugar mask string.\n");
-      return CpptrajState::ERR;
-    }
+    //if (sugarMask.SetMaskString(sugarmaskstr)) {
+    //  mprinterr("Error: Setting sugar mask string.\n");
+    //  return CpptrajState::ERR;
+    //}
   }
 
   // If preparing sugars, need to set up an atom map and potentially
   // search for terminal sugars/missing bonds. Do this here after all atom
   // modifications have been done.
+  std::vector<Sugar> sugarResidues;
   if (prepare_sugars) {
     // Set up an AtomMap for this residue to help determine stereocenters.
     // This is required by the IdSugarRing() function.
@@ -2826,29 +2812,25 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       mprintf("\tWill search for missing bonds to sugar anomeric atoms.\n");
     else
       mprintf("\tNot searching for missing bonds to sugar anomeric atoms.\n");
-    if (termsearch || c1bondsearch) {
-      std::vector<Sugar> sugarResidues;
-      // May need to modify sugar structure/topology, either by splitting
-      // C1 hydroxyls of terminal sugars into ROH residues, and/or by
-      // adding missing bonds to C1 atoms.
-      // This is done before any identification takes place since we want
-      // to identify based on the most up-to-date topology.
-
-      if (FixSugarsStructure(sugarResidues, sugarmaskstr, topIn, frameIn,
-                             c1bondsearch, termsearch))
-      {
-        mprinterr("Error: Sugar structure modification failed.\n");
-        return CpptrajState::ERR;
-      }
-      // Since FixSugarsStructure() can re-order atoms, need
-      // to recreate the map.
-      myMap_.ClearMap();
-      if (myMap_.Setup(topIn, frameIn)) {
-        mprinterr("Error: Atom map second setup failed\n");
-        return CpptrajState::ERR;
-      }
-      myMap_.DetermineAtomIDs();
+    // May need to modify sugar structure/topology, either by splitting
+    // C1 hydroxyls of terminal sugars into ROH residues, and/or by
+    // adding missing bonds to C1 atoms.
+    // This is done before any identification takes place since we want
+    // to identify based on the most up-to-date topology.
+    if (FixSugarsStructure(sugarResidues, sugarmaskstr, topIn, frameIn,
+                           c1bondsearch, termsearch))
+    {
+      mprinterr("Error: Sugar structure modification failed.\n");
+      return CpptrajState::ERR;
     }
+    // Since FixSugarsStructure() can re-order atoms, need
+    // to recreate the map.
+    myMap_.ClearMap();
+    if (myMap_.Setup(topIn, frameIn)) {
+      mprinterr("Error: Atom map second setup failed\n");
+      return CpptrajState::ERR;
+    }
+    myMap_.DetermineAtomIDs();
   }
 
   // Each residue starts out unknown.
@@ -2914,7 +2896,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 
   // Prepare sugars
   if (prepare_sugars) {
-    if (PrepareSugars(sugarMask, topIn, frameIn, outfile)) {
+    if (PrepareSugars(sugarmaskstr, sugarResidues, topIn, frameIn, outfile)) {
       mprinterr("Error: Sugar preparation failed.\n");
       return CpptrajState::ERR;
     }
