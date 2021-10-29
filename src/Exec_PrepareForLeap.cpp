@@ -629,10 +629,15 @@ const
         bool bat_in_res = (topIn[*bat].ResNum() == rnum);
         bool X_in_res   = (topIn[anomeric_atom_X].ResNum() == rnum);
         if ( (bat_in_res && X_in_res) || (!bat_in_res && !X_in_res) ) {
-          mprinterr("Error: Two potential substituents for anomeric carbon: %s and %s\n",
-                    topIn.ResNameNumAtomNameNum(*bat).c_str(),
-                    topIn.ResNameNumAtomNameNum(anomeric_atom_X).c_str());
-          return 1;
+          // Both in or both out of residue. Choose based on atomic number.
+          if (topIn[*bat].AtomicNumber() == topIn[anomeric_atom_X].AtomicNumber()) {
+            mprinterr("Error: Two potential substituents for anomeric carbon: %s and %s\n",
+                      topIn.ResNameNumAtomNameNum(*bat).c_str(),
+                      topIn.ResNameNumAtomNameNum(anomeric_atom_X).c_str());
+            return 1;
+          } else if (topIn[*bat].AtomicNumber() > topIn[anomeric_atom_X].AtomicNumber()) {
+            anomeric_atom_X = *bat;
+          }
         } else if (bat_in_res) {
           anomeric_atom_X = *bat;
         }
@@ -1988,6 +1993,7 @@ const
     }
   }
   if (o1_atom == -1) return 0;
+  mprintf("DEBUG: Terminal check: O1 atom: '%s'\n", topIn.AtomMaskName(o1_atom).c_str());
 
   Iarray selected;
   FunctionalGroupType groupType = IdFunctionalGroup(selected, rnum, o1_atom, anomericAtom, topIn);
@@ -2013,10 +2019,11 @@ const
     }
   }
 */
-  // Sanity check
+  // If terminal group is unrecognized, this could just be a regular O1 linkage
   if (selected.empty()) {
-    mprintf("Error: Sugar '%s' has unrecognized terminal group.\n", sugarName.c_str());
-    return 1;
+    if (debug_ > 0)
+      mprintf("DEBUG: Sugar '%s' has unrecognized terminal group.\n", sugarName.c_str());
+    return 0;
   }
   
   // Create atom mask
