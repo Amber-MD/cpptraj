@@ -1711,9 +1711,9 @@ const
       Frame oldFrame = frameIn;
       frameIn.SetCoordinatesByMap( oldFrame, atomMap );
       // Remap the sugar indices
-      mprintf("DEBUG: Before remap: %s\n", topIn.AtomMaskName(sugar.RingOxygenAtom()).c_str());
+      //mprintf("DEBUG: Before remap: %s\n", topIn.AtomMaskName(sugar.RingOxygenAtom()).c_str());
       sugar.RemapIndices( atomMap, original_at0, original_at1 );
-      mprintf("DEBUG: After remap: %s\n", topIn.AtomMaskName(sugar.RingOxygenAtom()).c_str());
+      //mprintf("DEBUG: After remap: %s\n", topIn.AtomMaskName(sugar.RingOxygenAtom()).c_str());
     }
     //atomsRemain = false; // DEBUG
   } // END while atoms remain
@@ -1797,8 +1797,8 @@ const
     return 1;
   }
   // DEBUG
-  for (int at = original_at0; at != original_at1; at++)
-    mprintf("DEBUG:\t\tAtomMap[%i] = %i\n", at, atomMap[at]);
+  //for (int at = original_at0; at != original_at1; at++)
+  //  mprintf("DEBUG:\t\tAtomMap[%i] = %i\n", at, atomMap[at]);
   // Reorder the frame to match
   Frame oldFrame = frameIn;
   frameIn.SetCoordinatesByMap( oldFrame, atomMap );
@@ -1844,7 +1844,8 @@ const
     }
     if (!sugar.NotSet()) {
       sugarResidues.push_back( sugar );
-      //sugarResidues.back().PrintInfo(topIn); // FIXME
+      if (debug_ > 0)
+        sugarResidues.back().PrintInfo(topIn);
     }
   }
 
@@ -1863,9 +1864,9 @@ const
     }
   }
   //DEBUG
-  for (std::vector<Sugar>::const_iterator sugar = sugarResidues.begin();
-                                      sugar != sugarResidues.end(); ++sugar)
-    sugar->PrintInfo(topIn);
+  //for (std::vector<Sugar>::const_iterator sugar = sugarResidues.begin();
+  //                                    sugar != sugarResidues.end(); ++sugar)
+  //  sugar->PrintInfo(topIn);
 
   if (termsearch) {
     // Loop over sugar indices to see if residues have ROH that must be split off
