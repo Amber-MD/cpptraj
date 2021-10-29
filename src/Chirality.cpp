@@ -151,3 +151,11 @@ Chirality::ChiralType Chirality::DetermineChirality(double& tors, int atnum,
   return ret;
 }
 
+/** Determine chirality around specified atom. */
+Chirality::ChiralType Chirality::DetermineChirality(int atnum,
+                                                    Topology const& topIn,
+                                                    Frame const& frameIn)
+{
+  double tors;
+  return DetermineChirality(tors, atnum, topIn, frameIn);
+}
