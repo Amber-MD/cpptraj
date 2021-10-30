@@ -470,6 +470,7 @@ const
 static void FollowBonds(int atm, Topology const& topIn, int idx, std::vector<int>& ring_atoms, int tgt_atom, std::vector<bool>& Visited, bool& found)
 {
   Visited[atm] = true;
+  int rnum = topIn[atm].ResNum();
   //for (int i = 0; i != idx; i++)
   //  mprintf("\t");
   //mprintf("At atom %s\n", topIn.ResNameNumAtomNameNum(atm).c_str());
@@ -482,7 +483,10 @@ static void FollowBonds(int atm, Topology const& topIn, int idx, std::vector<int
   // Follow all atoms bonded to this atom
   for (Atom::bond_iterator bat = topIn[atm].bondbegin(); bat != topIn[atm].bondend(); ++bat)
   {
-    if (topIn[*bat].Element() == Atom::CARBON && !Visited[*bat]) {
+    if (topIn[*bat].ResNum() == rnum &&
+        topIn[*bat].Element() == Atom::CARBON &&
+        !Visited[*bat])
+    {
       FollowBonds( *bat, topIn, idx+1, ring_atoms, tgt_atom, Visited, found );
       if (found) return;
     }
@@ -803,6 +807,8 @@ const
 
   // Determine candidates for ring oxygen atoms. 
   Iarray potentialRingStartAtoms;
+  // This array will hold the 2 flanking carbons for potential ring oxygen atoms.
+  std::vector<std::pair<int,int>> ringAtomCarbons;
   for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
   {
     Atom const& currentAtom = topIn[at];
@@ -810,16 +816,18 @@ const
     // bonded to two carbon atoms in the same residue.
     if (currentAtom.Element() == Atom::OXYGEN) {
       if (currentAtom.Nbonds() > 1) {
-        int bonds_to_c = 0;
+        Iarray c_atoms;
         for (Atom::bond_iterator bat = currentAtom.bondbegin();
                                  bat != currentAtom.bondend(); ++bat)
         {
           if (topIn[*bat].Element() == Atom::CARBON &&
               topIn[*bat].ResNum() == rnum)
-            bonds_to_c++;
+            c_atoms.push_back( *bat );
         }
-        if ( bonds_to_c == 2 )
+        if ( c_atoms.size() == 2 ) {
           potentialRingStartAtoms.push_back( at );
+          ringAtomCarbons.push_back( std::pair<int,int>(c_atoms[0], c_atoms[1]) );
+        }
       }
     }
   }
@@ -897,9 +905,10 @@ const
   Iarray carbon_chain;
   // Will be set true if complete ring can be found
   bool ring_complete = false;
+  std::vector<std::pair<int,int>>::const_iterator catoms = ringAtomCarbons.begin();
   for (Iarray::const_iterator ringat = potentialRingStartAtoms.begin();
                               ringat != potentialRingStartAtoms.end();
-                            ++ringat)
+                            ++ringat, ++catoms)
   {
     if (debug_ > 0)
       mprintf("DEBUG: Ring start '%s'\n", topIn.ResNameNumAtomNameNum(*ringat).c_str());
@@ -913,12 +922,12 @@ const
     // to two carbons, just start at the first carbon to see if we can
     // get to the second carbon.
     int c_beg, c_end;
-    if (topIn[*ringat].Bond(0) < topIn[*ringat].Bond(1)) {
-      c_beg = topIn[*ringat].Bond(0);
-      c_end = topIn[*ringat].Bond(1);
+    if (catoms->first < catoms->second) {
+      c_beg = catoms->first;
+      c_end = catoms->second;
     } else {
-      c_beg = topIn[*ringat].Bond(1);
-      c_end = topIn[*ringat].Bond(0);
+      c_beg = catoms->second;
+      c_end = catoms->first;
     }
     // Try to ascertain which carbon might be the anomeric carbon (i.e. the
     // carbon that originally started the chain). Tie goes to lower index.
