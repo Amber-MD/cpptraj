@@ -1231,6 +1231,7 @@ const
   if      (linkstr == "T") linkcode = "0";
   else if (linkstr == "O1") linkcode = "1";
   else if (linkstr == "TO2") linkcode = "2";
+  else if (linkstr == "O2")  linkcode = "2"; // Furanose C2-O2-X
   else if (linkstr == "TO3") linkcode = "3";
   else if (linkstr == "TO4") linkcode = "4";
   else if (linkstr == "TO6") linkcode = "6";
