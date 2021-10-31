@@ -471,9 +471,9 @@ static void FollowBonds(int atm, Topology const& topIn, int idx, std::vector<int
 {
   Visited[atm] = true;
   int rnum = topIn[atm].ResNum();
-  //for (int i = 0; i != idx; i++)
-  //  mprintf("\t");
-  //mprintf("At atom %s\n", topIn.ResNameNumAtomNameNum(atm).c_str());
+  for (int i = 0; i != idx; i++) // DEBUG
+    mprintf("\t"); // DBEUG
+  mprintf("At atom %s\n", topIn.ResNameNumAtomNameNum(atm).c_str()); // DEBUG
   ring_atoms[idx] = atm;
   // Assume we have started at the target atom
   if (idx > 0 && atm == tgt_atom) {
@@ -893,19 +893,20 @@ const
   // The anomeric reference carbon is the stereocenter farthest from the
   // anomeric carbon in the ring.
   int ano_ref_atom = -1;     // e.g. C5
-  // Out of the potential ring start atoms, see which ones are actually
-  // part of a ring. Potential ring start atoms only have 2 bonds,
-  // each one to a carbon.
+  // Ring oxygen atom
   int ring_oxygen_atom = -1; // e.g. O5
   // This will hold the index of the highest stereocenter, e.g. C5
   int highest_stereocenter = -1;
   // This will hold ring atoms, not including the ring oxygen.
-  Iarray RA;
+  std::vector<Iarray> Ring_Atoms;
   // This will hold carbon chain atoms starting from the anomeric carbon
   Iarray carbon_chain;
-  // Will be set true if complete ring can be found
-  bool ring_complete = false;
-  std::vector<std::pair<int,int>>::const_iterator catoms = ringAtomCarbons.begin();
+
+  // Out of the potential ring start atoms, see which ones are actually
+  // part of a ring. Potential ring start atoms only have 2 bonds,
+  // each one to a carbon.
+  int ring_atom_idx = -1;
+  std::vector<std::pair<int,int>>::iterator catoms = ringAtomCarbons.begin();
   for (Iarray::const_iterator ringat = potentialRingStartAtoms.begin();
                               ringat != potentialRingStartAtoms.end();
                             ++ringat, ++catoms)
@@ -918,6 +919,9 @@ const
       if (at != *ringat)
         Visited[at] = false;
     Iarray ring_atoms( topIn.Res(rnum).NumAtoms(), -1 );
+    // Will be set true if complete ring can be found
+    bool ring_complete = false;
+
     // Since we have already established that *ringat is an oxygen bonded
     // to two carbons, just start at the first carbon to see if we can
     // get to the second carbon.
@@ -953,19 +957,27 @@ const
 //      ring_direction = -1;
     }
 //    mprintf("DEBUG: Potential Ring direction= %i\n", ring_direction);
+    catoms->first = anomeric_atom;
+    catoms->second = ring_end_atom;
 
     FollowBonds(anomeric_atom, topIn, 0, ring_atoms,
                 ring_end_atom, Visited, ring_complete);
     if (debug_ > 0)
       mprintf("DEBUG: Potential ring start atom %s, Ring complete = %i",
               topIn.ResNameNumAtomNameNum(*ringat).c_str(), (int)ring_complete);
-    if (!ring_complete) {
-      continue;
-    } else {
-      ring_oxygen_atom = *ringat;
-
+    if (ring_complete) {
+      // Able to complete the cycle.
+      if (ring_atom_idx == -1)
+        ring_atom_idx = (int)(ringat - potentialRingStartAtoms.begin());
+      else {
+        mprinterr("Error: Multiple potential ring atoms: %s and %s\n",
+                  topIn.ResNameNumAtomNameNum(potentialRingStartAtoms[ring_atom_idx]).c_str(),
+                  topIn.ResNameNumAtomNameNum(*ringat).c_str());
+        return Sugar(res.FirstAtom());
+      }
       // Place the ring atoms into an array without the terminating -1
-      RA.clear();
+      Ring_Atoms.push_back(Iarray());
+      Iarray& RA = Ring_Atoms.back();
       if (debug_ > 0) mprintf(" :"); // DEBUG
       for (Iarray::const_iterator it = ring_atoms.begin(); it != ring_atoms.end(); ++it)
       {
@@ -974,64 +986,86 @@ const
         RA.push_back( *it );
       }
       if (debug_ > 0) mprintf("\n"); // DEBUG
-
-      // Find anomeric reference atom. Start at ring end and work down to anomeric atom
-      for (Iarray::const_iterator arat = RA.end() - 1; arat != RA.begin(); --arat)
-        if (atomIsChiral[*arat - topIn.Res(rnum).FirstAtom()]) {
-          ano_ref_atom = *arat;
-          break;
-        }
-
-      // Get complete chain starting from the anomeric carbon
-      carbon_chain = RA;
-      if (FindRemainingChainCarbons(carbon_chain, ring_end_atom, topIn, rnum, RA)) {
-        mprinterr("Error: Could not find remaining chain carbons.\n");
-        stat = ID_ERR;
-        return Sugar(res.FirstAtom());
-      }
-      if (debug_ > 0) {
-        mprintf("DEBUG: Complete carbon chain (from anomeric carbon):\n");
-        for (Iarray::const_iterator it = carbon_chain.begin(); it != carbon_chain.end(); ++it)
-          mprintf("\t\t%s\n", topIn.ResNameNumAtomNameNum(*it).c_str());
-      }
-      // See if there is chain prior to anomeric carbon
-      Iarray previous_chain;
-      if (FindRemainingChainCarbons(previous_chain, anomeric_atom, topIn, rnum, RA)) {
-        mprinterr("Error: Could not find previous chain carbons.\n");
-        stat = ID_ERR;
-        return Sugar(res.FirstAtom());
-      }
-      if (!previous_chain.empty()) {
-        //if (debug_ > 0) {
-          mprintf("DEBUG: Previous carbon chain (from anomeric carbon):\n");
-          for (Iarray::const_iterator it = previous_chain.begin(); it != previous_chain.end(); ++it)
-            mprintf("\t\t%s\n", topIn.ResNameNumAtomNameNum(*it).c_str());
-        //}
-        for (Iarray::const_iterator it = carbon_chain.begin(); it != carbon_chain.end(); ++it)
-          previous_chain.push_back( *it );
-        carbon_chain = previous_chain;
-        //if (debug_ > 0) {
-          mprintf("DEBUG: Complete carbon chain:\n");
-          for (Iarray::const_iterator it = carbon_chain.begin(); it != carbon_chain.end(); ++it)
-            mprintf("\t\t%s\n", topIn.ResNameNumAtomNameNum(*it).c_str());
-        //}
-      } 
-      // Get the index of the highest stereocenter
-      for (Iarray::const_iterator it = carbon_chain.begin(); it != carbon_chain.end(); ++it)
-      {
-        if (atomIsChiral[*it - topIn.Res(rnum).FirstAtom()])
-          highest_stereocenter = *it;
-      }
-      if (debug_ > 0)
-        mprintf("DEBUG: Index of highest stereocenter: %s\n",
-                topIn.ResNameNumAtomNameNum(highest_stereocenter).c_str());
-    } // END ring_complete
-  }
-  if (!ring_complete || RA.empty() || ring_oxygen_atom == -1) {
-    mprinterr("Error: Sugar ring atoms could not be identified.\n");
+    }
+  } // END loop over potential ring atoms
+  if (ring_atom_idx == -1) {
+    mprinterr("Error: Sugar ring oxygen could not be identified.\n");
     stat = ID_ERR;
     return Sugar(res.FirstAtom());
   }
+
+  ring_oxygen_atom = potentialRingStartAtoms[ring_atom_idx];
+  anomeric_atom = ringAtomCarbons[ring_atom_idx].first;
+  ring_end_atom = ringAtomCarbons[ring_atom_idx].second;
+  Iarray const& RA = Ring_Atoms[ring_atom_idx];
+
+  // Find anomeric reference atom. Start at ring end and work down to anomeric atom
+  for (Iarray::const_iterator arat = RA.end() - 1; arat != RA.begin(); --arat)
+    if (atomIsChiral[*arat - topIn.Res(rnum).FirstAtom()]) {
+      ano_ref_atom = *arat;
+      break;
+    }
+
+  // Get complete chain starting from the anomeric carbon
+  carbon_chain = RA;
+  if (FindRemainingChainCarbons(carbon_chain, ring_end_atom, topIn, rnum, RA)) {
+    mprinterr("Error: Could not find remaining chain carbons.\n");
+    stat = ID_ERR;
+    return Sugar(res.FirstAtom());
+  }
+  if (debug_ > 0) {
+    mprintf("DEBUG: Complete carbon chain (from anomeric carbon):\n");
+    for (Iarray::const_iterator it = carbon_chain.begin(); it != carbon_chain.end(); ++it)
+      mprintf("\t\t%s\n", topIn.ResNameNumAtomNameNum(*it).c_str());
+  }
+  // See if there is chain prior to anomeric carbon
+  Iarray previous_chain;
+  if (FindRemainingChainCarbons(previous_chain, anomeric_atom, topIn, rnum, RA)) {
+    mprinterr("Error: Could not find previous chain carbons.\n");
+    stat = ID_ERR;
+    return Sugar(res.FirstAtom());
+  }
+  if (!previous_chain.empty()) {
+    //if (debug_ > 0) {
+      mprintf("DEBUG: Previous carbon chain (from anomeric carbon):\n");
+      for (Iarray::const_iterator it = previous_chain.begin(); it != previous_chain.end(); ++it)
+        mprintf("\t\t%s\n", topIn.ResNameNumAtomNameNum(*it).c_str());
+    //}
+    for (Iarray::const_iterator it = carbon_chain.begin(); it != carbon_chain.end(); ++it)
+      previous_chain.push_back( *it );
+    carbon_chain = previous_chain;
+    //if (debug_ > 0) {
+      mprintf("DEBUG: Complete carbon chain:\n");
+      for (Iarray::const_iterator it = carbon_chain.begin(); it != carbon_chain.end(); ++it)
+        mprintf("\t\t%s\n", topIn.ResNameNumAtomNameNum(*it).c_str());
+    //}
+  } 
+  // Get the index of the highest stereocenter
+  for (Iarray::const_iterator it = carbon_chain.begin(); it != carbon_chain.end(); ++it)
+  {
+    if (atomIsChiral[*it - topIn.Res(rnum).FirstAtom()])
+      highest_stereocenter = *it;
+  }
+  if (debug_ > 0)
+    mprintf("DEBUG: Index of highest stereocenter: %s\n",
+            topIn.ResNameNumAtomNameNum(highest_stereocenter).c_str());
+
+  if (ano_ref_atom == -1) {
+    mprinterr("Error: Anomeric reference atom could not be identified.\n");
+    stat = ID_ERR;
+    return Sugar(res.FirstAtom());
+  }
+  if (highest_stereocenter == -1) {
+    mprinterr("Error: Highest stereocenter atom could not be identified.\n");
+    stat = ID_ERR;
+    return Sugar(res.FirstAtom());
+  }
+
+//  if (!ring_complete || RA.empty() || ring_oxygen_atom == -1) {
+//    mprinterr("Error: Sugar ring atoms could not be identified.\n");
+//    stat = ID_ERR;
+//    return Sugar(res.FirstAtom());
+//  }
   if (debug_ > 0)
     mprintf("\t  Ring oxygen         : %s\n", topIn.ResNameNumAtomNameNum(ring_oxygen_atom).c_str());
   return Sugar(ring_oxygen_atom, anomeric_atom, ano_ref_atom, highest_stereocenter,
@@ -2806,7 +2840,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   if (prepare_sugars) {
     // Set up an AtomMap for this residue to help determine stereocenters.
     // This is required by the IdSugarRing() function.
-    myMap_.SetDebug(debug_);
+    //myMap_.SetDebug(debug_); // DEBUG
     if (myMap_.Setup(topIn, frameIn)) {
       mprinterr("Error: Atom map setup failed\n");
       return CpptrajState::ERR;
