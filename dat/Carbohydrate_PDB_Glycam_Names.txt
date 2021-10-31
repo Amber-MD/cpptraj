@@ -27,7 +27,7 @@
 "Fructose"                       C FRU,YYJ
 "Tagatose"                       J TAG
 "Sorbose"                        B SOR
-"Psicose"                        P PSI
+"Psicose"                        P PSI,PSV
 "N-Acetyl Neuraminic Acid"       S SIA
 
 # PDB to glycam atom name maps
