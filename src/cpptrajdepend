@@ -143,7 +143,7 @@ BoxArgs.o : BoxArgs.cpp ArgList.h Box.h BoxArgs.h CpptrajStdio.h Matrix_3x3.h Pa
 BufferedFrame.o : BufferedFrame.cpp BufferedFrame.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h Parallel.h TextFormat.h
 BufferedLine.o : BufferedLine.cpp BufferedLine.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h Parallel.h
 ByteRoutines.o : ByteRoutines.cpp
-CIFfile.o : CIFfile.cpp Atom.h BufferedLine.h CIFfile.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h NameType.h Parallel.h SymbolExporting.h
+CIFfile.o : CIFfile.cpp ArgList.h Atom.h BufferedLine.h CIFfile.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h NameType.h Parallel.h SymbolExporting.h
 CharMask.o : CharMask.cpp Atom.h CharMask.h CpptrajStdio.h MaskToken.h Molecule.h NameType.h Residue.h Segment.h SymbolExporting.h Unit.h
 CharmmParamFile.o : CharmmParamFile.cpp ArgList.h AtomType.h BufferedLine.h CharmmParamFile.h Constants.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h NameType.h Parallel.h ParameterHolders.h ParameterSet.h ParameterTypes.h StringRoutines.h TypeNameHolder.h
 Chirality.o : Chirality.cpp Atom.h AtomMask.h AtomType.h Box.h Chirality.h Constants.h CoordinateInfo.h CpptrajStdio.h FileName.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Parallel.h ParameterHolders.h ParameterSet.h ParameterTypes.h Range.h ReplicaDimArray.h Residue.h Segment.h SymbolExporting.h Topology.h TorsionRoutines.h TypeNameHolder.h Unit.h Vec3.h
