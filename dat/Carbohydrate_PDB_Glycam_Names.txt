@@ -1,33 +1,29 @@
 # This file contains the mapping from common PDB names to Glycam residue codes.
 # Information largely obtained from http://glycam.org/docs/othertoolsservice/2016/06/09/3d-snfg-list-of-residue-names/#PDB
 # Last updated 09/01/21 10:01:41
-"Glucose"                        G GLC,MAL,BGC,GU4
-"N-Acetyl Glucosamine"           Y NAG,NDG
-"Glucosamine"                    Y GCS
-"Glucuronic Acid"                Z GCU,BDP,GCV
-"Quinovose"                      Q QUI
-"Mannose"                        M MAN,BMA
-"Rhamnose"                       H RAM
-"Tyvelose"                       T TYV
-"Arabinose"                      A ARA,AHR,ARB
-"Galactose"                      L GAL,GLA,GXL
-"N-Acetyl Galactosamine"         V NGA,A2G,NG6,ASG
-"Galacturonic Acid"              O ADA
-"Gulose"                         K GUL,GUP,GL0
-"Altrose"                        E ALT
-"Allose"                         N ALL,WOO
-"Talose"                         T TAL
-"Iduronic Acid"                  U IDS,IDR
-"Fucose"                         F FUC,FUL,MXY,MXZ
+"Arabinose"                      A ARA,AHR,ARB,AXR,BXY
 "Lyxose"                         D LYX
-"Abequose"                       A ABE
-"Xylose"                         X XYL,XYS,LXC,XYP
 "Ribose"                         R RIB
-"Bacillosamine"                  B BAC
+"Xylose"                         X XYL,XYS,LXC,XYP
+"Allose"                         N ALL,WOO
+"Altrose"                        E ALT
+"Galactose"                      L GAL,GLA,GXL
+"Glucose"                        G GLC,MAL,BGC,GU4
+"Gulose"                         K GUL,GUP,GL0,Z8H
+"Mannose"                        M MAN,BMA
+"Talose"                         T TAL,SDY,ZEE
 "Fructose"                       C FRU,YYJ
-"Tagatose"                       J TAG
-"Sorbose"                        B SOR
 "Psicose"                        P PSI,PSV
+"Sorbose"                        B SOR
+"Tagatose"                       J TAG
+"Fucose"                         F FUC,FUL,MXY,MXZ
+"Quinovose"                      Q QUI
+"Rhamnose"                       H RAM
+"Galacturonic Acid"              O ADA
+"Glucuronic Acid"                Z GCU,BDP,GCV
+"Iduronic Acid"                  U IDS,IDR
+"N-Acetyl Galactosamine"         V NGA,A2G,NG6,ASG
+"N-Acetyl Glucosamine"           Y NAG,NDG
 "N-Acetyl Neuraminic Acid"       S SIA
 
 # PDB to glycam atom name maps
