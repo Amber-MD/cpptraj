@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
     if (argline[2] == ".") {
       printf("\"%s\" has no PDB name(s), skipping.\n", argline[1].c_str());
     } else if (argline[3] == ".") {
-      printf("\"%s\" has no Gycam name, skipping.\n", argline[1].c_str());
+      printf("\"%s\" has no Glycam name, skipping.\n", argline[1].c_str());
     } else {
       // outfile: Name Glycam PDB(commas)
       std::string name_with_commas = "\"" + argline[1] + "\"";
@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
   fprintf(outfile, "H     C6,C6M,B\n");
 
   // Add linkage res name map section manually
-  fprintf(outfile, "\n# PDB to glycame linkage residue name maps\n");
+  fprintf(outfile, "\n# PDB to glycam linkage residue name maps\n");
   fprintf(outfile, "SER OLS\n");
   fprintf(outfile, "THR OLT\n");
   fprintf(outfile, "HYP OLP\n");
