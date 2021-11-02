@@ -13,7 +13,7 @@
 #include <cctype> // tolower
 #include <algorithm> // sort
 
-// ----- Sugar Class -----------------------------------------------------------
+// ===== Sugar Class ===========================================================
 /** CONSTRUCTOR - Incomplete setup; set anomeric atom as residue first atom
   *               so that ResNum() works.
   */
@@ -84,6 +84,7 @@ unsigned int Exec_PrepareForLeap::Sugar::NumRingAtoms() const {
   return ring_atoms_.size() + 1;
 }
 
+/// \return what oldidx should be according to atomMap
 inline static int find_new_idx(int oldidx, std::vector<int> const& atomMap, int at0, int at1) {
   for (int newidx = at0; newidx != at1; newidx++)
     if (atomMap[newidx] == oldidx)
@@ -106,7 +107,7 @@ void Exec_PrepareForLeap::Sugar::RemapIndices(Iarray const& atomMap, int at0, in
     *it = find_new_idx(*it, atomMap, at0, at1); //atomMap[*it];
 }
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 
 /** CONSTRUCTOR */
 Exec_PrepareForLeap::Exec_PrepareForLeap() : Exec(COORDS),
@@ -357,61 +358,7 @@ int Exec_PrepareForLeap::LoadGlycamPdbResMap(std::string const& fnameIn)
   return 0;
 }
 
-/** Determine torsion around non-ring stereocenter. */
-/*
-int Exec_PrepareForLeap::CalcStereocenterTorsion(double& torsion,
-                                                 int idx,
-                                                 Topology const& topIn, Frame const& frameIn)
-const
-{
-  // Assume part of a carbon chain, e.g.
-  //      X
-  //      |
-  // C0 - C - C1
-  //      |
-  //      Y
-  // where X is heavy atom and Y may or may not exist if it is hydrogen.
-  // Try to order like so:
-  // C0 - C - C1 - X
-  int i0 = -1;
-  int i1 = -1;
-  int ix = -1;
-  //int iy = -1;
-
-  for (Atom::bond_iterator bat = topIn[idx].bondbegin(); bat != topIn[idx].bondend(); ++bat)
-  {
-    if ( topIn[*bat].Element() == Atom::CARBON ) {
-      if (i0 == -1) {
-        i0 = *bat;
-      } else if (i1 == -1) {
-        i1 = *bat;
-      } else {
-        mprinterr("Error: Too many carbons around stereocenter %s\n",
-                  topIn.ResNameNumAtomNameNum(idx).c_str());
-        return 1;
-      }
-    } else {
-      if (ix == -1) {
-        ix = *bat;
-      } else {
-        if ( topIn[*bat].Element() > topIn[ix].Element() ) {
-          //iy = ix;
-          ix = *bat;
-        } //else
-          //iy = ix;
-      }
-    }
-  }
-  if (i0 == -1) {mprinterr("Error: CalcStereocenterTorsion: Lower C is empty.\n"); return 1;}
-  if (i1 == -1) {mprinterr("Error: CalcStereocenterTorsion: Higher C is empty.\n"); return 1;}
-  if (ix == -1) {mprinterr("Error: CalcStereocenterTorsion: X substituent is empty.\n"); return 1;}
-  torsion = Torsion(frameIn.XYZ(i0), frameIn.XYZ(idx), frameIn.XYZ(i1), frameIn.XYZ(ix));
-  mprintf("\t  Stereocenter torsion: %s-%s-%s-%s = %f\n",
-          *(topIn[i0].Name()), *(topIn[idx].Name()), *(topIn[i1].Name()), *(topIn[ix].Name()),
-          torsion * Constants::RADDEG);
-  return 0;
-}*/
-         
+// -----------------------------------------------------------------------------
 /// Recursive function for finding and recording all carbons
 static void Find_Carbons(int atm, Topology const& topIn, std::vector<bool>& Visited,
                          std::vector<int>& remainingChainCarbons)
@@ -493,79 +440,7 @@ static void FollowBonds(int atm, Topology const& topIn, int idx, std::vector<int
   }
 }
 
-/** Attempt to find any missing linkages to the anomeric carbon in sugar. */
-/*
-int Exec_PrepareForLeap::FindSugarC1Linkages(Sugar const& sugar, Topology& topIn, Frame const& frameIn)
-const
-{
-  if (sugar.NotSet()) {
-    mprintf("Warning: Sugar %s is not set up. Skipping linkage detection.\n",
-            topIn.TruncResNameOnumId(sugar.ResNum()).c_str());
-    return 0; // TODO return 1?
-  }
-  int rnum1 = sugar.ResNum();
-  int c_beg = sugar.AnomericAtom();
-  Residue const& res1 = topIn.SetRes(rnum1);
-  // If the anomeric atom is already bonded to another residue, skip this.
-  for (Atom::bond_iterator bat = topIn[c_beg].bondbegin();
-                           bat != topIn[c_beg].bondend(); ++bat)
-  {
-    if (topIn[*bat].ResNum() != rnum1) {
-      if (debug_ > 0)
-        mprintf("\tSugar %s anomeric carbon is already bonded to another residue, skipping.\n",
-                topIn.TruncResNameOnumId(sugar.ResNum()).c_str());
-      return 0;
-    }
-  }
-
-  // residue first atom to residue first atom cutoff^2
-  const double rescut2 = 64.0;
-  // bond cutoff offset
-  const double offset = 0.2;
-
-  Atom::AtomicElementType a1Elt = topIn[c_beg].Element(); // Should always be C
-  if (debug_ > 0)
-    mprintf("DEBUG: Anomeric ring carbon: %s\n", topIn.ResNameNumAtomNameNum(c_beg).c_str());
-  // Loop over other residues
-  for (int rnum2 = 0; rnum2 < topIn.Nres(); rnum2++)
-  {
-    if (rnum2 != rnum1) {
-      Residue const& res2 = topIn.Res(rnum2);
-      // Ignore solvent residues
-      if (res2.Name() != solventResName_) {
-        int at1 = res1.FirstAtom();
-        int at2 = res2.FirstAtom();
-        // Initial residue-residue distance based on first atoms in each residue
-        double dist2_1 = DIST2_NoImage( frameIn.XYZ(at1), frameIn.XYZ(at2) );
-        if (dist2_1 < rescut2) {
-          if (debug_ > 1)
-            mprintf("DEBUG: %s to %s = %f\n",
-                    topIn.TruncResNameOnumId(rnum1).c_str(), topIn.TruncResNameOnumId(rnum2).c_str(),
-                    sqrt(dist2_1));
-          // Do the rest of the atoms in res2 to the anomeric carbon
-          for (; at2 != res2.LastAtom(); ++at2)
-          {
-            if (!topIn[c_beg].IsBondedTo(at2)) {
-              double D2 = DIST2_NoImage( frameIn.XYZ(c_beg), frameIn.XYZ(at2) );
-              Atom::AtomicElementType a2Elt = topIn[at2].Element();
-              double cutoff2 = Atom::GetBondLength(a1Elt, a2Elt) + offset;
-              cutoff2 *= cutoff2;
-              if (D2 < cutoff2) {
-                mprintf("\t  Adding bond between %s and %s\n",
-                        topIn.ResNameNumAtomNameNum(c_beg).c_str(),
-                        topIn.ResNameNumAtomNameNum(at2).c_str());
-                topIn.AddBond(c_beg, at2);
-              }
-            }
-          } // END loop over res2 atoms
-        } // END res1-res2 distance cutoff
-      } // END res2 is not solvent
-    } // END res1 != res2
-  } // END res2 loop over other residues
-
-  return 0;
-}*/
-
+// -----------------------------------------------
 /** Determine torsion around the anomeric carbon. */
 int Exec_PrepareForLeap::CalcAnomericTorsion(double& torsion,
                                              int anomeric_atom, int ring_oxygen_atom,
@@ -797,6 +672,7 @@ const
   return 0;
 }
 
+// -----------------------------------------------
 /** Identify sugar oxygen, anomeric and ref carbons, and ring atoms. */
 Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology const& topIn,
                                                             IdSugarRingStatType& stat)
@@ -1715,15 +1591,7 @@ const
         mprinterr("Internal Error: Sulfate index is negative.\n");
         return 1;
       }
-      /*// Select S and other 3 O atoms 
-      Iarray selected(1, so3_idx);
-      for (Atom::bond_iterator bat = topIn[so3_idx].bondbegin();
-                               bat != topIn[so3_idx].bondend(); ++bat)
-      {
-        if (*bat != o_idx) {
-          selected.push_back( *bat );
-        }
-      }*/
+      
       // Change the atom names
       std::string newResName;
       if (groupType == G_SO3) {
@@ -1807,20 +1675,7 @@ const
     if (selected.size() > 1)
       ChangeAtomName(topIn.SetAtom(selected[1]), "HO1");
   }
-/*  // Ensure the oxygen is itself terminal (no other bonds or only H)
-  if (topIn[o1_atom].Nbonds() > 1) {
-    for (Atom::bond_iterator bat = topIn[o1_atom].bondbegin();
-                             bat != topIn[o1_atom].bondend(); ++bat)
-    {
-      if (topIn[*bat].Element() == Atom::HYDROGEN)
-        selected.push_back( *bat );
-      else if (*bat != anomericAtom) {
-        // Bonded to something other than H.
-        return 0;
-      }
-    }
-  }
-*/
+
   // If terminal group is unrecognized, this could just be a regular O1 linkage
   if (selected.empty()) {
     if (debug_ > 0)
@@ -1948,7 +1803,6 @@ const
   return 0;
 }
 
-
 /** Prepare sugars for leap. */
 int Exec_PrepareForLeap::PrepareSugars(std::string const& sugarmaskstr,
                                        std::vector<Sugar> const& Sugars,
@@ -1966,28 +1820,7 @@ int Exec_PrepareForLeap::PrepareSugars(std::string const& sugarmaskstr,
     mprintf("Warning: No sugar atoms selected by %s\n", sugarMask.MaskString());
   else {
     CharMask cmask( sugarMask.ConvertToCharMask(), sugarMask.Nselected() );
-    // Get sugar residue numbers
-    //Iarray sugarResNums = topIn.ResnumsSelectedBy( sugarMask );
-    // Try to identify sugar rings
-    //std::vector<Sugar> Sugars;
-    //Sugars.reserve( sugarResNums.size() );
-    //for (Iarray::const_iterator rnum = sugarResNums.begin();
-    //                            rnum != sugarResNums.end(); ++rnum)
-    //{
-    //  IdSugarRingStatType stat;
-    //  Sugars.push_back( IdSugarRing(*rnum, topIn, stat) );
-    //  if (stat == ID_ERR) {
-    //    if (errorsAreFatal_) {
-    //      mprinterr("Error: Problem identifying sugar ring for %s\n",
-    //                topIn.TruncResNameOnumId(*rnum).c_str());
-    //      return 1;
-    //    } else
-    //      mprintf("Warning: Problem identifying sugar ring for %s\n",
-    //                topIn.TruncResNameOnumId(*rnum).c_str());
-    //  } else if (stat == ID_MISSING_O)
-    //    resStat_[*rnum] = SUGAR_MISSING_RING_O;
-    //  Sugars.back().PrintInfo( topIn );
-    //}
+
     for (std::vector<Sugar>::const_iterator sugar = Sugars.begin();
                                             sugar != Sugars.end(); ++sugar)
     {
@@ -2000,7 +1833,6 @@ int Exec_PrepareForLeap::PrepareSugars(std::string const& sugarmaskstr,
     for (std::vector<Sugar>::const_iterator sugar = Sugars.begin();
                                             sugar != Sugars.end(); ++sugar)
     {
-      //Residue const& Res = coords.Top().Res(*rnum);
       // See if we recognize this sugar.
       if (IdentifySugar(*sugar, topIn, frameIn, cmask, outfile, sugarBondsToRemove))
       {
@@ -2024,6 +1856,7 @@ int Exec_PrepareForLeap::PrepareSugars(std::string const& sugarmaskstr,
   return 0;
 }
 
+// -----------------------------------------------------------------------------
 /** Determine where molecules end based on connectivity. */
 int Exec_PrepareForLeap::FindTerByBonds(Topology& topIn, CharMask const& maskIn)
 const
@@ -2808,17 +2641,12 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   // Get sugar mask or default sugar mask
-  //AtomMask sugarMask;
   std::string sugarmaskstr = argIn.GetStringKey("sugarmask");
   if (!sugarmaskstr.empty()) {
     if (!prepare_sugars) {
       mprinterr("Error: Cannot specify 'nosugars' and 'sugarmask'\n");
       return CpptrajState::ERR;
     }
-    //if (sugarMask.SetMaskString(sugarmaskstr)) {
-    //  mprinterr("Error: Setting sugar mask string.\n");
-    //  return CpptrajState::ERR;
-    //}
   } else if (prepare_sugars) {
     // No sugar mask specified; create one from names in pdb_to_glycam_ map.
     sugarmaskstr.assign(":");
@@ -2828,10 +2656,6 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
         sugarmaskstr.append(",");
       sugarmaskstr.append( mit->first.Truncated() );
     }
-    //if (sugarMask.SetMaskString(sugarmaskstr)) {
-    //  mprinterr("Error: Setting sugar mask string.\n");
-    //  return CpptrajState::ERR;
-    //}
   }
 
   // If preparing sugars, need to set up an atom map and potentially
