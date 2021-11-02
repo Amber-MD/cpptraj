@@ -1,5 +1,5 @@
 Abbreviation,Name,PDB,Glycam
-Ara,Arabinose,64K ARA SEJ ARB BXY AHR BXX FUB,A
+Ara,Arabinose,64K ARA SEJ ARB BXY AHR BXX FUB AXR,A
 Lyx,Lyxose,LDY Z4W,D
 Rib,Ribose,YYM RIP 0MK RIB Z6J BDR 32O,R
 Xyl,Xylose,XYS HSY HSZ XYP LXC XYZ,X
@@ -11,17 +11,17 @@ Gul,Gulose,4GL GUP GL0 Z8H,K
 Ido,Idose,ZCD Z0F 4N2,.
 Man,Mannose,MAN BMA,M
 Tal,Talose,SDY ZEE A5C,T
-Fru,Fructose,BDF Z9N FRU LFR,C
+Fru,Fructose,BDF Z9N FRU LFR YYJ,C
 Psi,Psicose,PSV SF6 TTV SF9,P
 Sor,Sorbose,SOE UEA,B
 Tag,Tagatose,T6T,J
-Fuc,Fucose,FCA FUC FCB FUL GYE,F
+Fuc,Fucose,FCA FUC FCB FUL GYE MXY MXZ,F
 Qui,Quinovose,G6D YYK,Q
 Rha,Rhamnose,XXR RAM RM4,H
 GalA,Galacturonic Acid,ADA GTR,O
-GlcA,Glucuronic Acid,GCU BDP,Z
+GlcA,Glucuronic Acid,GCU BDP GCV,Z
 IdoA,Iduronic Acid,IDR IDS,U
-GalNAc,N-Acetyl Galactosamine,A2G YYQ NGA,V
+GalNAc,N-Acetyl Galactosamine,A2G YYQ NGA NG6 ASG,V
 GlcNAc,N-Acetyl Glucosamine,NDG NGZ NAG,Y
 ManNAc,N-Acetyl Mannosamine,BM3 BM7,W
 Neu5Ac,N-Acetyl Neuraminic Acid,SIA SLB,S
