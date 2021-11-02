@@ -23,7 +23,8 @@ int main(int argc, char** argv) {
     return 1;
   }
   fprintf(outfile,"# This file contains the mapping from common PDB names to Glycam residue codes.\n");
-  fprintf(outfile,"# Information largely obtained from http://glycam.org/docs/othertoolsservice/2016/06/09/3d-snfg-list-of-residue-names/#PDB\n");
+  //fprintf(outfile,"# Information largely obtained from http://glycam.org/docs/othertoolsservice/2016/06/09/3d-snfg-list-of-residue-names/#PDB\n");
+  fprintf(outfile,"# Information obtained from mining the PDB chemical database (components.cif).\n");
   fprintf(outfile,"# Last updated %s\n", TimeString().c_str());
 
   char buffer[1024];
@@ -42,6 +43,7 @@ int main(int argc, char** argv) {
       err = 1;
       break;
     }
+    // Header is: Abbreviation,Name,PDB,Glycam
     if (argline[0] == "Abbreviation") continue;
     //         0            1    2   3
     // infile: Abbreviation Name PDB Glycam
