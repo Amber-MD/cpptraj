@@ -1,0 +1,68 @@
+Abbreviation,Name,PDB,Glycam
+Ara,Arabinose,64K ARA SEJ ARB BXY AHR BXX FUB,A
+Lyx,Lyxose,LDY Z4W,D
+Rib,Ribose,YYM RIP 0MK RIB Z6J BDR 32O,R
+Xyl,Xylose,XYS HSY HSZ XYP LXC XYZ,X
+All,Allose,AFD Z2D ALL WOO VDV VDS,N
+Alt,Altrose,SHD Z6H 3MK,E
+Gal,Galactose,GLA GXL GAL GIV GZL,L
+Glc,Glucose,GLC BGC Z8T,G
+Gul,Gulose,4GL GUP GL0 Z8H,K
+Ido,Idose,ZCD Z0F 4N2,.
+Man,Mannose,MAN BMA,M
+Tal,Talose,SDY ZEE A5C,T
+Fru,Fructose,BDF Z9N FRU LFR,C
+Psi,Psicose,PSV SF6 TTV SF9,P
+Sor,Sorbose,SOE UEA,B
+Tag,Tagatose,T6T,J
+Fuc,Fucose,FCA FUC FCB FUL GYE,F
+Qui,Quinovose,G6D YYK,Q
+Rha,Rhamnose,XXR RAM RM4,H
+GalA,Galacturonic Acid,ADA GTR,O
+GlcA,Glucuronic Acid,GCU BDP,Z
+IdoA,Iduronic Acid,IDR IDS,U
+GalNAc,N-Acetyl Galactosamine,A2G YYQ NGA,V
+GlcNAc,N-Acetyl Glucosamine,NDG NGZ NAG,Y
+ManNAc,N-Acetyl Mannosamine,BM3 BM7,W
+Neu5Ac,N-Acetyl Neuraminic Acid,SIA SLB,S
+GlcN,Glucosamine,GCS,.
+QuiNAc,N-Acetyl Quinovosamine,.,.
+Oli,Olivose,OLI,.
+ManN,Mannosamine,.,.
+ManA,Mannuronic Acid,MAV BEM,.
+RhaNAc,N-Acetyl Rhamnosamine,.,.
+Tyv,Tyvelose,TYV,.
+GalN,Galactosamine,.,.
+GulNAc,N-Acetyl Gulosamine,.,.
+GulN,Gulosamine,.,.
+GulA,Guluronic Acid,LGU,.
+AltNAc,N-Acetyl Altrosamine,.,.
+AltN,Altrosamine,.,.
+AltA,Altruronic Acid,.,.
+6dAlt,6-Deoxy Altrose,.,.
+AllNAc,N-Acetyl Allosamine,.,.
+AllN,Allosamine,.,.
+AllA,Alluronic Acid,.,.
+TalNAc,N-Acetyl Talosamine,.,.
+TalN,Talosamine,.,.
+TalA,Taluronic Acid,.,.
+6dTal,6-Deoxy Talose,.,.
+IdoNAc,N-Acetyl Idosamine,.,.
+IdoN,Idosamine,.,.
+FucNAc,N-Acetyl Fucosamine,.,.
+Abe,Abequose,ABE,.
+Par,Paratose,PAR,.
+Dig,Digitoxose,DIG,.
+Col,Colitose,COL,.
+Bac,Bacillosamine,BAC,.
+Api,Apicose,API,.
+Dha,3-Deoxy Lyxo-Heptulosaric Acid,DHA,.
+Kdn,Keto-Deoxy Nonulonic Acid,KDN,.
+Kdo,Keto-Deoxy Octulonic Acid,KDO,.
+Neu,Neuraminic Acid,NEU,.
+Neu5Gc,N-Glycolyl Neuraminic Acid,.,.
+Mur,Muramic Acid,MUR,.
+MurNAc,N-Acetyl Muramic Acid,.,.
+MurNGc,N-Glycolyl Muramic Acid,.,.
+LDManHep,L-Glycero-D-Manno Heptose,GMH,.
+DDManHep,D-Glycero-D-Manno-Heptose,.,.
