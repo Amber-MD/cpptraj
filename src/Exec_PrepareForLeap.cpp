@@ -965,6 +965,8 @@ const
     if (debug_ > 0)
       mprintf("DEBUG: Potential ring start atom %s, Ring complete = %i",
               topIn.ResNameNumAtomNameNum(*ringat).c_str(), (int)ring_complete);
+    // Create empty array for ring atoms
+    Ring_Atoms.push_back(Iarray());
     if (ring_complete) {
       // Able to complete the cycle.
       if (ring_atom_idx == -1)
@@ -976,7 +978,6 @@ const
         return Sugar(res.FirstAtom());
       }
       // Place the ring atoms into an array without the terminating -1
-      Ring_Atoms.push_back(Iarray());
       Iarray& RA = Ring_Atoms.back();
       if (debug_ > 0) mprintf(" :"); // DEBUG
       for (Iarray::const_iterator it = ring_atoms.begin(); it != ring_atoms.end(); ++it)
@@ -985,8 +986,8 @@ const
         if (*it == -1) break;
         RA.push_back( *it );
       }
-      if (debug_ > 0) mprintf("\n"); // DEBUG
     }
+    if (debug_ > 0) mprintf("\n"); // DEBUG
   } // END loop over potential ring atoms
   if (ring_atom_idx == -1) {
     mprinterr("Error: Sugar ring oxygen could not be identified.\n");
@@ -2868,14 +2869,16 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       mprinterr("Error: Sugar structure modification failed.\n");
       return CpptrajState::ERR;
     }
+    // NOTE: If IdSugarRing() is to be used after this point, the map
+    //       will need to be recreated.
     // Since FixSugarsStructure() can re-order atoms, need
     // to recreate the map.
-    myMap_.ClearMap();
-    if (myMap_.Setup(topIn, frameIn)) {
-      mprinterr("Error: Atom map second setup failed\n");
-      return CpptrajState::ERR;
-    }
-    myMap_.DetermineAtomIDs();
+    //myMap_.ClearMap();
+    //if (myMap_.Setup(topIn, frameIn)) {
+    //  mprinterr("Error: Atom map second setup failed\n");
+    //  return CpptrajState::ERR;
+    //}
+    //myMap_.DetermineAtomIDs();
   }
 
   // Each residue starts out unknown.
