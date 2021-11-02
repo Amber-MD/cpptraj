@@ -418,9 +418,9 @@ static void FollowBonds(int atm, Topology const& topIn, int idx, std::vector<int
 {
   Visited[atm] = true;
   int rnum = topIn[atm].ResNum();
-  for (int i = 0; i != idx; i++) // DEBUG
-    mprintf("\t"); // DBEUG
-  mprintf("At atom %s\n", topIn.ResNameNumAtomNameNum(atm).c_str()); // DEBUG
+  //for (int i = 0; i != idx; i++) // DEBUG
+  //  mprintf("\t"); // DBEUG
+  //mprintf("At atom %s\n", topIn.ResNameNumAtomNameNum(atm).c_str()); // DEBUG
   ring_atoms[idx] = atm;
   // Assume we have started at the target atom
   if (idx > 0 && atm == tgt_atom) {
