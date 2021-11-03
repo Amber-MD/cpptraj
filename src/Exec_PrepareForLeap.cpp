@@ -1145,6 +1145,7 @@ const
   else if (linkstr == "O2")  linkcode = "2"; // Furanose C2-O2-X
   else if (linkstr == "TO3") linkcode = "3";
   else if (linkstr == "TO4") linkcode = "4";
+  else if (linkstr == "TO5") linkcode = "5";
   else if (linkstr == "TO6") linkcode = "6";
   else if (linkstr == "TO2O3") linkcode = "Z";
   else if (linkstr == "TO2O4") linkcode = "Y";
@@ -1496,8 +1497,8 @@ const
   } else if (topIn[atIdx].Element() == Atom::OXYGEN &&
              topIn[atIdx].ResNum() == rnum) {
     selected.push_back( atIdx );
-    // If only 1 bond, -OH
     if (topIn[atIdx].Nbonds() == 1)
+      // If only 1 bond, -OH
       return G_OH;
     else if (topIn[atIdx].Nbonds() == 2) {
       int bonded_atom;
@@ -1506,8 +1507,25 @@ const
       else
         bonded_atom = topIn[atIdx].Bond(0);
       if (topIn[bonded_atom].Element() == Atom::HYDROGEN) {
+        // -OH
         selected.push_back(bonded_atom);
         return G_OH;
+      } else if (topIn[bonded_atom].Element() == Atom::CARBON) {
+        // Might be -OCH3
+        int c_idx = bonded_atom;
+        selected.push_back(c_idx);
+        // Check for only 1 bond or 3 bonds to hydrogen
+        int bonds_to_h = 0;
+        for (Atom::bond_iterator bat = topIn[c_idx].bondbegin();
+                                 bat != topIn[c_idx].bondend(); ++bat)
+        {
+          if (topIn[*bat].Element() == Atom::HYDROGEN) {
+            bonds_to_h++;
+            selected.push_back(*bat);
+          }
+        }
+        if (topIn[c_idx].Nbonds() == 1 || bonds_to_h == 3)
+          return G_OME;
       }
     }
 
@@ -1531,6 +1549,11 @@ const
   } else if (groupType == G_OH) {
     mprintf("\tFound OH group centered on atom '%s' bonded to '%s'\n",
             topIn.AtomMaskName(atIdx).c_str(), topIn.AtomMaskName(linkAtIdx).c_str());
+  } else if (groupType == G_OME) {
+    mprintf("\tFound OCH3 group centered on atom '%s' bonded to '%s'\n",
+            topIn.AtomMaskName(atIdx).c_str(), topIn.AtomMaskName(linkAtIdx).c_str());
+  } else if (groupType != UNRECOGNIZED_GROUP) {
+    mprinterr("Internal Error: Unhandled group from IdFunctionalGroup()\n");
   }
   return groupType;
 }
@@ -1544,7 +1567,7 @@ const
   int original_at0 = topIn.Res(rnum).FirstAtom();
   int original_at1 = topIn.Res(rnum).LastAtom();
   std::string sugarName = topIn.TruncResNameOnumId(rnum);
-  mprintf("DEBUG: Sulfate check: %s\n", sugarName.c_str());
+  mprintf("DEBUG: Functional group check: %s\n", sugarName.c_str());
 
   bool atomsRemain = true;
   while (atomsRemain) {
@@ -1588,7 +1611,7 @@ const
     else {
       // sanity check
       if (so3_idx == -1 || o_idx == -1 || selected.empty()) {
-        mprinterr("Internal Error: Sulfate index is negative.\n");
+        mprinterr("Internal Error: Functional group index is negative.\n");
         return 1;
       }
       
@@ -1608,6 +1631,9 @@ const
           ChangeAtomName(topIn.SetAtom(selected[3]), "H3");
         }
         newResName = "MEX";
+      } else {
+        mprinterr("Internal Error: Unhandled group in CheckForFunctionalGroups()\n");
+        return 1;
       }
       // Create array with SO3 selected
       AtomMask SO3(selected, topIn.Natom());
@@ -1668,13 +1694,28 @@ const
   Iarray selected;
   FunctionalGroupType groupType = IdFunctionalGroup(selected, rnum, o1_atom, anomericAtom, topIn);
 
+  std::string newResName;
   if (groupType == G_OH) {
-    mprintf("\t  Will split into %s group.\n", terminalHydroxylName_.c_str());
+    newResName = terminalHydroxylName_;
     // Change atom names
     ChangeAtomName(topIn.SetAtom(selected[0]), "O1");
     if (selected.size() > 1)
       ChangeAtomName(topIn.SetAtom(selected[1]), "HO1");
+  } else if (groupType == G_OME) {
+    newResName = "OME";
+    // Change atom names
+    ChangeAtomName(topIn.SetAtom(selected[0]), "O");
+    ChangeAtomName(topIn.SetAtom(selected[1]), "CH3");
+    if (selected.size() > 2) {
+      ChangeAtomName(topIn.SetAtom(selected[2]), "H1");
+      ChangeAtomName(topIn.SetAtom(selected[3]), "H2");
+      ChangeAtomName(topIn.SetAtom(selected[4]), "H3");
+    }
+  } else if (groupType != UNRECOGNIZED_GROUP) {
+    mprinterr("Internal Error: Unhandled group in CheckIfSugarIsTerminal\n");
+    return 1;
   }
+  mprintf("\t  Will split into %s group.\n", newResName.c_str());
 
   // If terminal group is unrecognized, this could just be a regular O1 linkage
   if (selected.empty()) {
@@ -1692,7 +1733,7 @@ const
   int original_at0 = topIn.Res(rnum).FirstAtom();
   int original_at1 = topIn.Res(rnum).LastAtom();
   Iarray atomMap;
-  if (topIn.SplitResidue(ROH, terminalHydroxylName_, atomMap)) {
+  if (topIn.SplitResidue(ROH, newResName, atomMap)) {
     mprinterr("Error: Could not split the residue '%s'.\n", sugarName.c_str());
     return 1;
   }
