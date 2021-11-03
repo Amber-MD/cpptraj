@@ -8,7 +8,7 @@
 "Allose"                         N AFD,Z2D,ALL,WOO,VDV,VDS
 "Altrose"                        E SHD,Z6H,3MK
 "Galactose"                      L GLA,GXL,GAL,GIV,GZL
-"Glucose"                        G GLC,BGC,Z8T,GU4
+"Glucose"                        G GLC,BGC,Z8T,GU4,MGL
 "Gulose"                         K 4GL,GUP,GL0,Z8H
 "Mannose"                        M MAN,BMA
 "Talose"                         T SDY,ZEE,A5C
