@@ -1235,6 +1235,10 @@ const
             if (debug_ > 0)
               mprintf("DEBUG: '%s' is a methyl group.\n", *(pres.Name()));
             resStatIn[topIn[*bat].ResNum()] = VALIDATED;
+          } else if (pres.Name() == "OME") {
+            if (debug_ > 0)
+              mprintf("DEBUG: '%s' is an O-methyl group.\n", *(pres.Name()));
+            resStatIn[topIn[*bat].ResNum()] = VALIDATED;
           } else {
             mprintf("Warning: Unrecognized link residue %s, not modifying name.\n", *pres.Name());
             resStatIn[topIn[*bat].ResNum()] = UNRECOGNIZED_SUGAR_LINKAGE;
