@@ -7,6 +7,7 @@
 #include "DataSet_Coords_CRD.h"
 #include "DistRoutines.h"
 #include "LeapInterface.h"
+#include "ParmFile.h"
 #include "TorsionRoutines.h"
 #include "Trajout_Single.h"
 #include "StringRoutines.h" // integerToString
@@ -2484,6 +2485,11 @@ int Exec_PrepareForLeap::RunLeap(std::string const& ff_file,
     mprinterr("Error: Leap failed.\n");
     return 1;
   }
+
+  // Load the leap topology;
+  Topology leaptop;
+  ParmFile parm;
+  if (parm.ReadTopology(leaptop, topname, debug_)) return 1;
 
 
   return 0;
