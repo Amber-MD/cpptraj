@@ -2838,8 +2838,12 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     }
   }
 
-  CpptrajFile* outfile = State.DFL().AddCpptrajFile(leapfilename,
-                                                    "LEaP Input", DataFileList::TEXT, true);
+  //CpptrajFile* outfile = State.DFL().AddCpptrajFile(leapfilename,
+  //                                                  "LEaP Input", DataFileList::TEXT, true);
+  // NOTE: This needs to contain ONLY leap input, so dont put it on the master file list
+  CpptrajFile LEAPOUT;
+  if (LEAPOUT.OpenWrite(leapfilename)) return CpptrajState::ERR;
+  CpptrajFile* outfile = &LEAPOUT;
   if (outfile == 0) return CpptrajState::ERR;
   mprintf("\tLEaP input containing 'loadpdb' and bond commands for disulfides,\n"
           "\t  sugars, etc will be written to '%s'\n", outfile->Filename().full());
