@@ -2962,6 +2962,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     PDB.EndTraj();
   }
 
+  outfile->CloseFile();
   if (!leapffname.empty()) {
     if (RunLeap( leapffname, leapfilename )) {
       mprinterr("Error: Running leap failed.\n");
