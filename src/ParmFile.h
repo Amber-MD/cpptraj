@@ -47,6 +47,7 @@ class ParmFile {
     /// \return Allocated ParmIO if given file matches known type, 0 otherwise.
     static ParmIO* DetectFormat(FileName const&, ParmFormatType&);
 
-    FileName parmName_; ///< Topology input/output file name.
+    FileName parmName_;     ///< Topology input/output file name.
+    ParmFormatType pfType_; ///< Format of topology file.
 };
 #endif
