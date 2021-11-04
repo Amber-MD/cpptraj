@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "File_TempName.h"
 #include <cstdio>
+#include <cstdlib>
 
 using namespace Cpptraj;
 /** CONSTRUCTOR */
@@ -12,6 +13,13 @@ LeapInterface::LeapInterface() {}
 int LeapInterface::AddInputFile(std::string const& fname) {
   if (fname.empty()) return 1;
   input_files_.push_back( fname );
+  return 0;
+}
+
+/** Add command to run after input is sourced. */
+int LeapInterface::AddCommand(std::string const& cmd) {
+  if (cmd.empty()) return 1;
+  commands_.push_back( cmd );
   return 0;
 }
 
@@ -32,17 +40,23 @@ int LeapInterface::execute_leap(FileName const& input) const {
 
   for (Sarray::const_iterator it = input_files_.begin(); it != input_files_.end(); ++it)
     leapin.Printf("source %s\n", it->c_str());
+  for (Sarray::const_iterator it = commands_.begin(); it != commands_.end(); ++it)
+    leapin.Printf("%s\n", it->c_str());
   leapin.Printf("quit\n");
 
   leapin.CloseFile();
 
+  std::string cmd("tleap -f " + input.Full());
+  mprintf("DEBUG: %s\n", cmd.c_str());
+
+  int err = system( cmd.c_str() );
+/*
   CpptrajFile leapout;
   if (leapout.OpenWrite(leapOutName_)) {
     mprinterr("Error: Could not open leap output file '%s'\n", leapOutName_.c_str());
     return 1;
   }
 
-  std::string cmd("tleap -f " + input.Full());
   FILE* file = popen(cmd.c_str(), "r");
   if (file == 0) {
     mprinterr("Error: Could not execute '%s'\n", cmd.c_str());
@@ -59,9 +73,9 @@ int LeapInterface::execute_leap(FileName const& input) const {
   }
 
   leapout.CloseFile();
-  pclose(file);
+  pclose(file);*/
 
-  return 0;
+  return err;
 }
 
 /** Run leap. */

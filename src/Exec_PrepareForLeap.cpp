@@ -1,14 +1,15 @@
 #include "Exec_PrepareForLeap.h"
-#include "CpptrajStdio.h"
-#include "DistRoutines.h"
 #include "CharMask.h"
 #include "Chirality.h"
-#include "TorsionRoutines.h"
 #include "Constants.h"
 #include "CpptrajFile.h"
+#include "CpptrajStdio.h"
+#include "DataSet_Coords_CRD.h"
+#include "DistRoutines.h"
+#include "LeapInterface.h"
+#include "TorsionRoutines.h"
 #include "Trajout_Single.h"
 #include "StringRoutines.h" // integerToString
-#include "DataSet_Coords_CRD.h"
 #include <stack>
 #include <cctype> // tolower
 #include <algorithm> // sort
@@ -2456,11 +2457,41 @@ void Exec_PrepareForLeap::PrintAtomNameMap(const char* title,
   }
 }
 
+/** Run leap to generate topology. Modify the topology if needed. */
+int Exec_PrepareForLeap::RunLeap(std::string const& ff_file,
+                                 std::string const& leapfilename) const
+{
+  if (leapfilename.empty()) {
+    mprintf("Warning: No leap input file name was specified, not running leap.\n");
+    return 0;
+  }
+  if (ff_file.empty()) {
+    mprintf("Warning: No leap input file with force fields was specified, not running leap.\n");
+    return 0;
+  }
+
+  Cpptraj::LeapInterface LEAP;
+  LEAP.AddInputFile( ff_file );
+  LEAP.AddInputFile( leapfilename );
+  LEAP.AddCommand("saveamberparm " + leapunitname_ + " " +
+                  leapunitname_ + ".parm7 " +
+                  leapunitname_ + ".rst7");
+
+  if (LEAP.RunLeap()) {
+    mprinterr("Error: Leap failed.\n");
+    return 1;
+  }
+
+
+  return 0;
+}
+
 // Exec_PrepareForLeap::Help()
 void Exec_PrepareForLeap::Help() const
 {
   mprintf("\tcrdset <coords set> [frame <#>] name <out coords set> [pdbout <pdbfile>]\n"
-          "\t[leapunitname <unit>] [out <leap input file> [skiperrors]\n"
+          "\t[leapunitname <unit>] [out <leap input file> [runleap <ff file>]]\n"
+          "\t[skiperrors]\n"
           "\t[nowat [watername <watername>] [noh] [keepaltloc <alt loc ID>]\n"
           "\t[stripmask <stripmask>] [solventresname <solventresname>]\n"
           "\t[{nohisdetect |\n"
@@ -2530,10 +2561,30 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   }
   mprintf("\tPrepared system will be saved to COORDS set '%s'\n", outCoords->legend());
 
+  std::string leapffname = argIn.GetStringKey("runleap");
+  if (!leapffname.empty())
+    mprintf("\tWill attempt to run leap with force fields specified in file '%s'\n",
+            leapffname.c_str());
+
   std::string pdbout = argIn.GetStringKey("pdbout");
   if (!pdbout.empty())
     mprintf("\tPDB will be written to %s\n", pdbout.c_str());
+  else {
+    if (!leapffname.empty()) {
+      mprinterr("Error: Must specify PDB file name with 'pdbout' if 'runleap' specified.\n");
+      return CpptrajState::ERR;
+    }
+  }
 
+  std::string leapfilename = argIn.GetStringKey("out");
+  if (!leapfilename.empty())
+    mprintf("\tWriting leap input to '%s'\n", leapfilename);
+  else {
+    if (!leapffname.empty()) {
+      mprinterr("Error: Must specify leap input file name with 'out' if 'runleap' specified.\n");
+      return CpptrajState::ERR;
+    }
+  }
   leapunitname_ = argIn.GetStringKey("leapunitname", "m");
   mprintf("\tUsing leap unit name: %s\n", leapunitname_.c_str());
   solventResName_ = argIn.GetStringKey("solventresname", "HOH");
@@ -2787,7 +2838,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     }
   }
 
-  CpptrajFile* outfile = State.DFL().AddCpptrajFile(argIn.GetStringKey("out"),
+  CpptrajFile* outfile = State.DFL().AddCpptrajFile(leapfilename,
                                                     "LEaP Input", DataFileList::TEXT, true);
   if (outfile == 0) return CpptrajState::ERR;
   mprintf("\tLEaP input containing 'loadpdb' and bond commands for disulfides,\n"
@@ -2909,6 +2960,13 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     PDB.PrintInfo(1);
     PDB.WriteSingle(0, frameIn);
     PDB.EndTraj();
+  }
+
+  if (!leapffname.empty()) {
+    if (RunLeap( leapffname, leapfilename )) {
+      mprinterr("Error: Running leap failed.\n");
+      return CpptrajState::ERR;
+    }
   }
 
   return CpptrajState::OK;

@@ -104,6 +104,8 @@ class Exec_PrepareForLeap : public Exec {
     int DetermineHisProt(std::vector<NameType>&, Iarray&, Topology const&,
                          NameType const&, NameType const&,
                          NameType const&, NameType const&, NameType const&, NameType const&) const;
+    /// Run leap to generate topology, perform any modifications
+    int RunLeap(std::string const&, std::string const&) const;
 
 
     typedef std::pair<NameType, char> PairType;

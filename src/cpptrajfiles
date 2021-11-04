@@ -315,6 +315,7 @@ COMMON_SOURCES= \
         Image_List_Unit.cpp \
         InputTrajCommon.cpp \
         KDE.cpp \
+        LeapInterface.cpp \
         LeastSquaresPlaneVector.cpp \
         MapAtom.cpp \
         MaskArray.cpp \
