@@ -2491,6 +2491,15 @@ int Exec_PrepareForLeap::RunLeap(std::string const& ff_file,
   ParmFile parm;
   if (parm.ReadTopology(leaptop, topname, debug_)) return 1;
 
+  // DEBUG: Print out total charge on each residue
+  for (Topology::res_iterator res = leaptop.ResStart(); res != leaptop.ResEnd(); ++res)
+  {
+    double tcharge = 0;
+    for (int at = res->FirstAtom(); at != res->LastAtom(); ++at)
+      tcharge += leaptop[at].Charge();
+    mprintf("\tResidue %10s charge= %12.5f\n",
+      leaptop.TruncResNameOnumId(res-leaptop.ResStart()).c_str(), tcharge);
+  }
 
   return 0;
 }
