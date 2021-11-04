@@ -3,7 +3,7 @@
 #include "CpptrajStdio.h"
 #include "File_TempName.h"
 #include <cstdio>
-#include <cstdlib>
+//#incl ude <cstdlib>
 
 using namespace Cpptraj;
 /** CONSTRUCTOR */
@@ -49,8 +49,8 @@ int LeapInterface::execute_leap(FileName const& input) const {
   std::string cmd("tleap -f " + input.Full());
   mprintf("DEBUG: %s\n", cmd.c_str());
 
-  int err = system( cmd.c_str() );
-/*
+//  int err = system( cmd.c_str() );
+
   CpptrajFile leapout;
   if (leapout.OpenWrite(leapOutName_)) {
     mprinterr("Error: Could not open leap output file '%s'\n", leapOutName_.c_str());
@@ -66,16 +66,25 @@ int LeapInterface::execute_leap(FileName const& input) const {
   static const unsigned int BUFSIZE = 1023;
   char buffer[BUFSIZE+1];
   char* ptr = fgets(buffer, BUFSIZE, file);
+  bool cleanExit = false;
+  std::string exitLine;
   while (ptr != 0) {
     std::string line(ptr);
     leapout.Write(line.c_str(), line.size());
+    std::size_t found = line.find("Exiting LEaP");
+    if (found != std::string::npos) {
+      cleanExit = true;
+      exitLine = line;
+    }
     ptr = fgets(buffer, BUFSIZE, file);
   }
 
   leapout.CloseFile();
-  pclose(file);*/
+  pclose(file);
 
-  return err;
+  if (!cleanExit) return 1;
+  mprintf("DEBUG: Leap Exit line '%s'\n", exitLine.c_str());
+  return 0;
 }
 
 /** Run leap. */
