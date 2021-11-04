@@ -2471,12 +2471,14 @@ int Exec_PrepareForLeap::RunLeap(std::string const& ff_file,
   }
   mprintf("\tExecuting leap.\n");
 
+  std::string topname = leapunitname_ + ".parm7";
+  std::string rstname = leapunitname_ + ".rst7";
+
   Cpptraj::LeapInterface LEAP;
   LEAP.AddInputFile( ff_file );
   LEAP.AddInputFile( leapfilename );
   LEAP.AddCommand("saveamberparm " + leapunitname_ + " " +
-                  leapunitname_ + ".parm7 " +
-                  leapunitname_ + ".rst7");
+                  topname + " " + rstname);
 
   if (LEAP.RunLeap()) {
     mprinterr("Error: Leap failed.\n");
