@@ -2469,6 +2469,7 @@ int Exec_PrepareForLeap::RunLeap(std::string const& ff_file,
     mprintf("Warning: No leap input file with force fields was specified, not running leap.\n");
     return 0;
   }
+  mprintf("\tExecuting leap.\n");
 
   Cpptraj::LeapInterface LEAP;
   LEAP.AddInputFile( ff_file );
@@ -2578,7 +2579,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 
   std::string leapfilename = argIn.GetStringKey("out");
   if (!leapfilename.empty())
-    mprintf("\tWriting leap input to '%s'\n", leapfilename);
+    mprintf("\tWriting leap input to '%s'\n", leapfilename.c_str());
   else {
     if (!leapffname.empty()) {
       mprinterr("Error: Must specify leap input file name with 'out' if 'runleap' specified.\n");

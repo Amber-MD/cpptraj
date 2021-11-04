@@ -26,6 +26,7 @@ class LeapInterface {
     Sarray input_files_; ///< Array of leap input files to source
     Sarray commands_;    ///< Array of leap commands to run after files are sourced
     std::string leapOutName_; ///< Leap output file name
+    int debug_;               ///< Debug level
 };
 }
 #endif

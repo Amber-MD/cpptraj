@@ -1,13 +1,15 @@
 #include "LeapInterface.h"
+#include "ArgList.h"
 #include "CpptrajFile.h"
 #include "CpptrajStdio.h"
 #include "File_TempName.h"
+#include "StringRoutines.h"
 #include <cstdio>
 //#incl ude <cstdlib>
 
 using namespace Cpptraj;
 /** CONSTRUCTOR */
-LeapInterface::LeapInterface() {}
+LeapInterface::LeapInterface() : debug_(0) {}
 
 /** Set up leap to run. */
 int LeapInterface::AddInputFile(std::string const& fname) {
@@ -50,11 +52,14 @@ int LeapInterface::execute_leap(FileName const& input) const {
   mprintf("DEBUG: %s\n", cmd.c_str());
 
 //  int err = system( cmd.c_str() );
+  Sarray errorMessages;
 
   CpptrajFile leapout;
-  if (leapout.OpenWrite(leapOutName_)) {
-    mprinterr("Error: Could not open leap output file '%s'\n", leapOutName_.c_str());
-    return 1;
+  if (debug_ > 0 || !leapOutName_.empty()) {
+    if (leapout.OpenWrite(leapOutName_)) {
+      mprinterr("Error: Could not open leap output file '%s'\n", leapOutName_.c_str());
+      return 1;
+    }
   }
 
   FILE* file = popen(cmd.c_str(), "r");
@@ -70,8 +75,12 @@ int LeapInterface::execute_leap(FileName const& input) const {
   std::string exitLine;
   while (ptr != 0) {
     std::string line(ptr);
-    leapout.Write(line.c_str(), line.size());
-    std::size_t found = line.find("Exiting LEaP");
+    if (leapout.IsOpen())
+      leapout.Write(line.c_str(), line.size());
+    std::size_t found = line.find("FATAL:");
+    if (found != std::string::npos)
+      errorMessages.push_back( NoTrailingWhitespace(line) );
+    found = line.find("Exiting LEaP");
     if (found != std::string::npos) {
       cleanExit = true;
       exitLine = line;
@@ -84,6 +93,16 @@ int LeapInterface::execute_leap(FileName const& input) const {
 
   if (!cleanExit) return 1;
   mprintf("DEBUG: Leap Exit line '%s'\n", exitLine.c_str());
+  ArgList exitArgs(exitLine, " :=;.");
+  int nerr = exitArgs.getKeyInt("Errors", -1);
+  int nwarn = exitArgs.getKeyInt("Warnings", -1);
+  int nnotes = exitArgs.getKeyInt("Notes", -1);
+  mprintf("\tLeap Errors= %i  Warnings= %i  Notes= %i\n", nerr, nwarn, nnotes);
+  if (nerr == -1 || nerr > 0) {
+    for (Sarray::const_iterator it = errorMessages.begin(); it != errorMessages.end(); ++it)
+      mprintf("%s\n", it->c_str());
+    return 1;
+  }
   return 0;
 }
 
