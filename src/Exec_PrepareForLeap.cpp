@@ -2491,6 +2491,34 @@ int Exec_PrepareForLeap::RunLeap(std::string const& ff_file,
   ParmFile parm;
   if (parm.ReadTopology(leaptop, topname, debug_)) return 1;
 
+  // Go through each residue. Find ones that need to be adjusted.
+  for (int rnum = 0; rnum != leaptop.Nres(); rnum++)
+  {
+    Residue const& res = leaptop.Res(rnum);
+    if (res.Name() == "SO3") {
+      // Need to adjust the charge on the bonded oxygen by +0.31
+      int o_idx = -1;
+      for (int at = res.FirstAtom(); at != res.LastAtom(); at++) {
+        if (leaptop[at].Element() == Atom::SULFUR) {
+          for (Atom::bond_iterator bat = leaptop[at].bondbegin();
+                                   bat != leaptop[at].bondend(); ++bat)
+          {
+            if (leaptop[*bat].Element() == Atom::OXYGEN && leaptop[*bat].ResNum() != rnum) {
+              o_idx = *bat;
+              break;
+            }
+          }
+        }
+        if (o_idx != -1) break;
+      }
+      double newcharge = leaptop[o_idx].Charge() + 0.031;
+      mprintf("\tChanging charge on %s from %f to %f\n",
+              leaptop.AtomMaskName(o_idx).c_str(), leaptop[o_idx].Charge(), newcharge);
+      leaptop.SetAtom(o_idx).SetCharge( newcharge );
+    }
+  }
+
+
   // DEBUG: Print out total charge on each residue
   for (Topology::res_iterator res = leaptop.ResStart(); res != leaptop.ResEnd(); ++res)
   {

@@ -20,6 +20,8 @@ class Exec_PrepareForLeap : public Exec {
     class Sugar;
     /// Hold indices for sugar link atoms
     class Link;
+    /// Hold information for the various functional group types (FunctionalGroupType)
+    class FunctionalGroup;
 
     typedef std::vector<int> Iarray;
     /// Return type for DetermineAnomericForm
@@ -107,7 +109,6 @@ class Exec_PrepareForLeap : public Exec {
     /// Run leap to generate topology, perform any modifications
     int RunLeap(std::string const&, std::string const&) const;
 
-
     typedef std::pair<NameType, char> PairType;
     typedef std::map<NameType, char> MapType;
     MapType pdb_to_glycam_; ///< Map PDB residue names to Glycam 1 char names
@@ -143,6 +144,7 @@ class Exec_PrepareForLeap : public Exec {
     std::string solventResName_; ///< Solvent residue name
     std::string terminalHydroxylName_; ///< Terminal hydroxyl name
     AtomMap myMap_;
+    std::vector<FunctionalGroup> functionalGroups_; ///< Recognized functional groups (FunctionalGroupType).
 };
 // ----- Sugar class ----------------------------------------------------------
 class Exec_PrepareForLeap::Sugar {
@@ -207,5 +209,15 @@ class Exec_PrepareForLeap::Link {
   private:
     int idx_;      ///< Atom index in topology
     int position_; ///< Position in sugar carbon chain, starting from 1 at the anomeric carbon
+};
+// ----- FunctionalGroup class -------------------------------------------------
+class Exec_PrepareForLeap::FunctionalGroup {
+  public:
+    FunctionalGroup();
+  private:
+    NameType resname_;                   ///< Functional group residue name.
+    std::vector<NameType> anames_;       ///< Functional group atom names. Heavy atoms first.
+    Atom::AtomicElementType chargeAtom_; ///< Element of atom which needs charge adjusted.
+    double chargeOffset_;                ///< Charge offset for adjusting charge.
 };
 #endif
