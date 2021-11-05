@@ -1,54 +1,6 @@
 #include "ArgList.h"
 #include "CIFfile.h"
 
-int ReadComponents(const char* fname) {
-  FILE* infile = fopen(fname, "rb");
-  if (infile == 0) {
-    fprintf(stderr,"Error: Could not open file.\n");
-    return 1;
-  }
-
-  const int bufsize = 2047;
-  char buffer[bufsize+1];
-
-  while ( (fgets(buffer, bufsize, infile)) != 0)
-  {
-    ArgList line(buffer, " \r\n");
-    if (line.Nargs() > 1) {
-      ArgList flag(line[0], ".");
-      if (flag.Nargs() > 1 &&
-          flag[0] == "_chem_comp" &&
-          flag[1] == "id")
-      {
-        //printf("%s", buffer);
-        // Get name
-        bool hasname = false;
-        fgets(buffer, bufsize, infile);
-        ArgList line2(buffer, " \r\n");
-        if (line2.Nargs() == 1 && line2[0] == "_chem_comp.name") {
-          printf("Warning: semicolon name.\n");
-        } else if (line2.Nargs() > 1) {
-          ArgList flag2(line2[0], ".");
-          if (flag2.Nargs() > 1  &&
-              flag2[0] == "_chem_comp" ||
-              flag2[1] == "name")
-            hasname = true;
-        }
-        if (!hasname) {
-          fprintf(stdout,"Warning: id not followed by name: %s\n", line[1].c_str());
-          fprintf(stdout,"%s", buffer);
-          //fclose(infile);
-          //return 1;
-        }
-      }
-    }
-  }
-
-  fclose(infile);
-
-  return 0;
-}
-
 /** Extract the "id" field from data with given name. */
 std::string ExtractId(CIFfile const& cif, std::string const& name) {
   std::string id;
@@ -177,7 +129,6 @@ int ReadCIF(const char* fname) {
 }
 
 int main(int argc, char** argv) {
-  //if (ReadComponents("components.cif")) return 1;
   if (ReadCIF("components.cif")) return 1;
   return 0;
 }
