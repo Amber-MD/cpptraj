@@ -2522,6 +2522,7 @@ int Exec_PrepareForLeap::RunLeap(std::string const& ff_file,
   ParmFile parm;
   if (parm.ReadTopology(leaptop, topname, debug_)) return 1;
 
+  bool top_is_modified = false;
   // Go through each residue. Find ones that need to be adjusted.
   for (int rnum = 0; rnum != leaptop.Nres(); rnum++)
   {
@@ -2532,15 +2533,6 @@ int Exec_PrepareForLeap::RunLeap(std::string const& ff_file,
       for (int at = res.FirstAtom(); at != res.LastAtom(); at++) {
         if (leaptop[at].Element() == Atom::SULFUR) {
           o_idx = getLinkOxygenIdx( leaptop, at, rnum );
-/*
-          for (Atom::bond_iterator bat = leaptop[at].bondbegin();
-                                   bat != leaptop[at].bondend(); ++bat)
-          {
-            if (leaptop[*bat].Element() == Atom::OXYGEN && leaptop[*bat].ResNum() != rnum) {
-              o_idx = *bat;
-              break;
-            }
-          }*/
           if (o_idx != -1) break;
         }
       }
@@ -2553,6 +2545,7 @@ int Exec_PrepareForLeap::RunLeap(std::string const& ff_file,
       mprintf("\tChanging charge on %s from %f to %f\n",
               leaptop.AtomMaskName(o_idx).c_str(), leaptop[o_idx].Charge(), newcharge);
       leaptop.SetAtom(o_idx).SetCharge( newcharge );
+      top_is_modified = true;
     } else if (res.Name() == "MEX") {
       int c_idx = -1;
       // Need to adjust the charge on the carbon bonded to link oxygen by -0.039
@@ -2571,9 +2564,9 @@ int Exec_PrepareForLeap::RunLeap(std::string const& ff_file,
       mprintf("\tChanging charge on %s from %f to %f\n",
               leaptop.AtomMaskName(c_idx).c_str(), leaptop[c_idx].Charge(), newcharge);
       leaptop.SetAtom(c_idx).SetCharge( newcharge );
+      top_is_modified = true;
     }
   }
-
 
   // DEBUG: Print out total charge on each residue
   for (Topology::res_iterator res = leaptop.ResStart(); res != leaptop.ResEnd(); ++res)
@@ -2583,6 +2576,12 @@ int Exec_PrepareForLeap::RunLeap(std::string const& ff_file,
       tcharge += leaptop[at].Charge();
     mprintf("\tResidue %10s charge= %12.5f\n",
       leaptop.TruncResNameOnumId(res-leaptop.ResStart()).c_str(), tcharge);
+  }
+
+  // If topology was modified, write it back out
+  if (top_is_modified) {
+    mprintf("\tWriting modified topology back to '%s'\n", topname.c_str());
+    parm.WriteTopology(leaptop, topname, parm.CurrentFormat(), debug_);
   }
 
   return 0;
