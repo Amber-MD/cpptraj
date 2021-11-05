@@ -26,10 +26,9 @@ class Exec_PrepareForLeap : public Exec {
     typedef std::vector<int> Iarray;
     /// Return type for DetermineAnomericForm
     enum AnomerRetType { A_ERR = 0, A_WARNING, IS_ALPHA, IS_BETA };
-
     enum FunctionalGroupType { G_SO3 = 0, G_CH3, G_ACX, G_OH, G_OME, UNRECOGNIZED_GROUP };
     enum ResStatType { UNKNOWN = 0, VALIDATED, UNRECOGNIZED_SUGAR_LINKAGE, SUGAR_MISSING_C1X,
-                       SUGAR_MISSING_RING_O };
+                       SUGAR_SETUP_FAILED };
     typedef std::vector<ResStatType> ResStatArray;
 
     inline void ChangeResName(Residue&, NameType const&) const;
@@ -59,10 +58,9 @@ class Exec_PrepareForLeap : public Exec {
     int CalcConfigCarbonTorsion(double&, int, Iarray const&,
                                 Topology const&, Frame const&) const;
 
-    /// Error status for IdSugarRing
-    enum IdSugarRingStatType { ID_OK = 0, ID_ERR, ID_MISSING_O };
     /// \return Sugar with atom indices set up
-    Sugar IdSugarRing(int, Topology const&, IdSugarRingStatType&) const;
+    Sugar IdSugarRing(int, Topology const&) const;
+    /// Change PDB atom names to Glycam names
     int ChangePdbAtomNamesToGlycam(char, Residue const&, Topology&, AnomerRetType) const;
     /// \return If furanose is up or down
     AnomerRetType DetermineUpOrDown(bool&, std::string&, Sugar const&, Topology const&, Frame const&) const;
@@ -154,12 +152,21 @@ class Exec_PrepareForLeap::Sugar {
                         FURANOSE,      ///< Ring is 4 carbons, 1 oxygen
                         UNKNOWN_RING   ///< Some unknown ring type
                   };
-    /// CONSTRUCTOR - residue first atom, incomplete setup
-    Sugar(int);
+    /// Sugar status. Keep synced with StatTypeStr_
+    enum StatType { SETUP_OK = 0,    ///< Regular sugar, setup complete
+                    MISSING_O,       ///< Could not find ring oxygen
+                    MULTIPLE_O,      ///< Multiple potential ring oxygen atoms
+                    MISSING_CHAIN,   ///< Could not find all chain carbons
+                    MISSING_ANO_REF, ///< Missing anomeric reference atom
+                    MISSING_CONFIG   ///< Missing configurational carbon
+                  };
+    /// CONSTRUCTOR - Status and residue first atom, incomplete setup
+    Sugar(StatType, int);
     /// CONSTRUCTOR - ring O, Anomeric, Anomeric Ref, Highest Sterocenter, ring atoms, chain atoms
     Sugar(int,int,int,int,Iarray const&,Iarray const&);
 
     inline int ResNum(Topology const&) const;
+    StatType Status()          const { return stat_; }
     int RingOxygenAtom()       const { return ring_oxygen_atom_; }
     int AnomericAtom()         const { return anomeric_atom_; }
     int AnomericRefAtom()      const { return ano_ref_atom_; }
@@ -179,6 +186,10 @@ class Exec_PrepareForLeap::Sugar {
     /// Remap internal indices according to given atom map.
     void RemapIndices(Iarray const&, int, int);
   private:
+    /// Strings corresponding to StatType
+    static const char* StatTypeStr_[];
+
+    StatType stat_;            ///< Setup status
     int ring_oxygen_atom_;     ///< Index of the ring oxygen atom
     int anomeric_atom_;        ///< Index of the anomeric C atom (ring start)
     int ano_ref_atom_;         ///< Index of the anomeric reference C atom
