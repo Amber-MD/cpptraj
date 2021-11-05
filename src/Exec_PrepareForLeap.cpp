@@ -2565,6 +2565,33 @@ int Exec_PrepareForLeap::RunLeap(std::string const& ff_file,
               leaptop.AtomMaskName(c_idx).c_str(), leaptop[c_idx].Charge(), newcharge);
       leaptop.SetAtom(c_idx).SetCharge( newcharge );
       top_is_modified = true;
+    } else if (res.Name() == "ACX") {
+      int c_idx = -1;
+      // Need to adjust the charge on the carbon bonded to link oxygen by +0.008
+      for (int at = res.FirstAtom(); at != res.LastAtom(); at++) {
+        if (leaptop[at].Element() == Atom::CARBON) {
+          // This needs to be the acetyl carbon, ensure it is bonded to an oxygen
+          for (Atom::bond_iterator bat = leaptop[at].bondbegin();
+                                   bat != leaptop[at].bondend(); ++bat)
+          {
+            if (leaptop[*bat].Element() == Atom::OXYGEN) {
+              c_idx = getLinkCarbonIdx( leaptop, at, rnum );
+              if (c_idx != -1) break;
+            }
+          }
+          if (c_idx != -1) break;
+        }
+      }
+      if (c_idx == -1) {
+        mprinterr("Error: Could not find carbon bonded to oxygen link atom for '%s'\n",
+                  leaptop.TruncResNameOnumId(rnum).c_str());
+        return 1;
+      }
+      double newcharge = leaptop[c_idx].Charge() + 0.008;
+      mprintf("\tChanging charge on %s from %f to %f\n",
+              leaptop.AtomMaskName(c_idx).c_str(), leaptop[c_idx].Charge(), newcharge);
+      leaptop.SetAtom(c_idx).SetCharge( newcharge );
+      top_is_modified = true;
     }
   }
 
