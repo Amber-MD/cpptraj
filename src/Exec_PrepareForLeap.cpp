@@ -2568,6 +2568,8 @@ int Exec_PrepareForLeap::RunLeap(std::string const& ff_file,
 
   bool top_is_modified = false;
   // Go through each residue. Find ones that need to be adjusted.
+  // NOTE: If deoxy carbons are ever handled, need to add H1 hydrogen and
+  //       remove 0.274 from carbon.
   for (int rnum = 0; rnum != leaptop.Nres(); rnum++)
   {
     Residue const& res = leaptop.Res(rnum);
