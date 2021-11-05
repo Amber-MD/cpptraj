@@ -27,7 +27,7 @@ class Exec_PrepareForLeap : public Exec {
     /// Return type for DetermineAnomericForm
     enum AnomerRetType { A_ERR = 0, A_WARNING, IS_ALPHA, IS_BETA };
 
-    enum FunctionalGroupType { G_SO3 = 0, G_CH3, G_OH, G_OME, UNRECOGNIZED_GROUP };
+    enum FunctionalGroupType { G_SO3 = 0, G_CH3, G_ACX, G_OH, G_OME, UNRECOGNIZED_GROUP };
     enum ResStatType { UNKNOWN = 0, VALIDATED, UNRECOGNIZED_SUGAR_LINKAGE, SUGAR_MISSING_C1X,
                        SUGAR_MISSING_RING_O };
     typedef std::vector<ResStatType> ResStatArray;

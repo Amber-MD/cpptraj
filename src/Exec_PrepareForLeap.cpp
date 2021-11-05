@@ -1459,6 +1459,7 @@ Exec_PrepareForLeap::FunctionalGroupType
 const
 {
   selected.clear();
+  // ----- Sulfur ----------------------
   if (topIn[atIdx].Element() == Atom::SULFUR &&
       topIn[atIdx].ResNum() == rnum &&
       topIn[atIdx].Nbonds() == 4) {
@@ -1479,6 +1480,7 @@ const
     if (bonds_to_o == 4) {
       return G_SO3;
     }
+  // ----- Carbon ----------------------
   } else if (topIn[atIdx].Element() == Atom::CARBON &&
              topIn[atIdx].ResNum() == rnum) {
     //so3_idx = atIdx;
@@ -1499,7 +1501,37 @@ const
       }
     } else if (topIn[atIdx].Nbonds() == 1)
       return G_CH3;
-
+    } else if (topIn[atIdx].Nbonds() == 3) {
+      //             O
+      //             ||
+      // Check for - C - CH3
+      bool has_o = false;
+      bool has_ch3 = false;
+      Iarray ch3_atoms;
+      for (Atom::bond_iterator bat = topIn[atIdx].bondbegin();
+                               bat != topIn[atIdx].bondend(); ++bat)
+      {
+        if (*bat != linkAtIdx) {
+          if (topIn[*bat].Element() == Atom::OXYGEN) {
+            has_o = true;
+            selected.push_back(*bat);
+          } else if (topIn[*bat].Element() == Atom::CARBON) {
+            FunctionalGroupType fgt = IdFunctionalGroup_Silent(ch3_atoms, rnum, *bat, atIdx, topIn);
+            has_ch3 = (fgt == G_CH3);
+          } else {
+            // If bonded to anything else, not Acetyl
+            has_o = false;
+            has_ch3 = false;
+            break;
+          }
+        }
+      }
+      if (has_o && has_ch3) {
+        for (Iarray::const_iterator cit = ch3_atoms.begin(); cit != ch3_atoms.end(); ++cit)
+          selected.push_back(*cit);
+        return G_ACX;
+      }
+  // ----- Oxygen ----------------------
   } else if (topIn[atIdx].Element() == Atom::OXYGEN &&
              topIn[atIdx].ResNum() == rnum) {
     selected.push_back( atIdx );
@@ -1551,6 +1583,9 @@ const
             topIn.AtomMaskName(atIdx).c_str(), topIn.AtomMaskName(linkAtIdx).c_str());
   } else if (groupType == G_CH3) {
     mprintf("\tFound CH3 group centered on atom '%s' bonded to '%s'\n",
+            topIn.AtomMaskName(atIdx).c_str(), topIn.AtomMaskName(linkAtIdx).c_str());
+  } else if (groupType == G_ACX) {
+    mprintf("\tFound Acetyl group centered on atom '%s' bonded to '%s'\n",
             topIn.AtomMaskName(atIdx).c_str(), topIn.AtomMaskName(linkAtIdx).c_str());
   } else if (groupType == G_OH) {
     mprintf("\tFound OH group centered on atom '%s' bonded to '%s'\n",
@@ -1637,6 +1672,15 @@ const
           ChangeAtomName(topIn.SetAtom(selected[3]), "H3");
         }
         newResName = "MEX";
+      } else if (groupType == G_ACX) {
+        ChangeAtomName(topIn.SetAtom(selected[0]), "C1A");
+        ChangeAtomName(topIn.SetAtom(selected[1]), "O1A");
+        ChangeAtomName(topIn.SetAtom(selected[2]), "C2A");
+        if (selected.size() > 3) {
+          ChangeAtomName(topIn.SetAtom(selected[3]), "H1A");
+          ChangeAtomName(topIn.SetAtom(selected[4]), "H2A");
+          ChangeAtomName(topIn.SetAtom(selected[5]), "H3A");
+        }
       } else {
         mprinterr("Internal Error: Unhandled group in CheckForFunctionalGroups()\n");
         return 1;
