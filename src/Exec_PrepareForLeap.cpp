@@ -2278,32 +2278,9 @@ const
       for (AtomMask::const_iterator atm = mask.begin(); atm != mask.end(); ++atm)
         atomsToKeep[*atm] = false;
     }
-/*
-    unsigned int nRemoved = 0;
-    for (Topology::mol_iterator mol = topIn.MolStart(); mol != topIn.MolEnd(); ++mol) {
-      if (mol->IsSolvent()) {
-        for (Unit::const_iterator seg = mol->MolUnit().segBegin();
-                                  seg != mol->MolUnit().segEnd();
-                                ++seg)
-          for (int satm = seg->Begin(); satm < seg->End(); ++satm)
-          {
-            atomsToKeep[satm] = false;
-            ++nRemoved;
-          }
-      }
-    }
-    if (nRemoved == 0)
-      mprintf("\tNo solvent to remove.\n");
-    else
-      mprintf("\t# solvent removed: %u\n", nRemoved);
-*/
+
   }
-  //if (remove_h) {
-  //  for (Topology::atom_iterator atom = topIn.begin(); atom != topIn.end(); ++atom) {
-  //    if (atom->Element() == Atom::HYDROGEN)
-  //      atomsToKeep[atom - topIn.begin()] = false;
-  //  }
-  //}
+  // Remove extra alternate atom locations
   if (altLocChar != '\0') {
     if (topIn.AtomAltLoc().empty()) {
       mprintf("\tNo alternate atom locations.\n");
@@ -2974,6 +2951,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     //}
     //myMap_.DetermineAtomIDs();
   }
+  // -----------------------------------
 
   // Each residue starts out unknown.
   resStat_.assign( topIn.Nres(), UNKNOWN );
