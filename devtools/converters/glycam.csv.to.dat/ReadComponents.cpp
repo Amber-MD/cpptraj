@@ -1,6 +1,9 @@
 #include "ArgList.h"
 #include "CIFfile.h"
 
+/// File for direct PDB name to glycam mapping
+static FILE* direct_pdb_to_glycam = 0;
+
 /** Extract the "id" field from data with given name. */
 std::string ExtractId(CIFfile const& cif, std::string const& name) {
   std::string id;
@@ -16,10 +19,50 @@ std::string ExtractId(CIFfile const& cif, std::string const& name) {
   return id;
 }
 
+void NameToForm(std::string const& name, std::string const& glyc,
+                std::string& form, std::string& chirality, std::string& ring)
+{
+  // alpha-L-arabinopyranose
+  ArgList list1(name, "-");
+  if (list1.hasKey("alpha"))
+    form = "A";
+  else if (list1.hasKey("beta"))
+    form = "B";
+  else
+    fprintf(stdout,"ERROR: Could not extract form.\n");
+  if (glyc == "S")
+    // S is always D for glycam
+    chirality = "D";
+  else if (list1.hasKey("D"))
+    chirality = "D";
+  else if (list1.hasKey("L"))
+    chirality = "L";
+  else
+    fprintf(stdout,"ERROR: Could not extract chirality.\n");
+  ArgList remain = list1.RemainingArgs();
+  ring = "P";
+  for (int iarg = 0; iarg != remain.Nargs(); iarg++)
+  {
+    std::size_t found = remain[iarg].find("furanose");
+    if (found != std::string::npos) {
+      ring = "F";
+      break;
+    }
+    //else
+    ////found = list1[2].find("furanose")
+    //// assume P
+    //ring = "P";
+  }
+}
+
 /** Print ID to stdout. */
-void PrintId(std::string const& name, std::string const& id) {
+void PrintId(std::string const& name, std::string const& id, std::string const& glyc) {
   if (!id.empty()) {
-    printf(" %s %s", name.c_str(), id.c_str());
+    printf(" %s %s %s", name.c_str(), id.c_str(), glyc.c_str());
+    std::string form, chirality, ring;
+    NameToForm(name, glyc, form, chirality, ring);
+    fprintf(direct_pdb_to_glycam, "%s %s %s %s %s\n",
+            id.c_str(), glyc.c_str(), form.c_str(), chirality.c_str(), ring.c_str());
   }
   printf("\n\n");
 }
@@ -28,7 +71,7 @@ typedef std::vector<std::string> Sarray;
 
 /** Loop over alpha, beta, D, and L forms. */
 void Loops(CIFfile const& cif, std::string const& lead,
-           Sarray const& prefixes, Sarray const& suffixes)
+           Sarray const& prefixes, Sarray const& suffixes, Sarray const& glycam)
 {
   Sarray forms;
   forms.push_back("alpha");
@@ -38,7 +81,8 @@ void Loops(CIFfile const& cif, std::string const& lead,
   chirality.push_back("D");
   chirality.push_back("L");
 
-  for (Sarray::const_iterator pref = prefixes.begin(); pref != prefixes.end(); ++pref) {
+  Sarray::const_iterator glyc = glycam.begin();
+  for (Sarray::const_iterator pref = prefixes.begin(); pref != prefixes.end(); ++pref, ++glyc) {
     for (Sarray::const_iterator suff = suffixes.begin(); suff != suffixes.end(); ++suff) {
       for (Sarray::const_iterator form = forms.begin(); form != forms.end(); ++form) {
         for (Sarray::const_iterator chir = chirality.begin(); chir != chirality.end(); ++chir) {
@@ -47,7 +91,7 @@ void Loops(CIFfile const& cif, std::string const& lead,
             name.assign( lead + "-" );
           name.append( *form + "-" + *chir + "-" + *pref + *suff );
           std::string id = ExtractId(cif, name);
-          PrintId( name, id );
+          PrintId( name, id, *glyc );
         }
       }
     }
@@ -55,15 +99,23 @@ void Loops(CIFfile const& cif, std::string const& lead,
 }
 
 /** Loops, no lead string. */
-void Loops(CIFfile const& cif, Sarray const& prefixes, Sarray const& suffixes) {
-  Loops(cif, std::string(""), prefixes, suffixes);
+void Loops(CIFfile const& cif, Sarray const& prefixes, Sarray const& suffixes,
+           Sarray const& glycam)
+{
+  Loops(cif, std::string(""), prefixes, suffixes, glycam);
 }
 
 /** Read everything from the given CIF file. */
 int ReadCIF(const char* fname) {
-  CIFfile cif;
+  direct_pdb_to_glycam = fopen("direct_pdb_to_glycam.dat", "wb");
+  if (direct_pdb_to_glycam == 0) {
+    fprintf(stderr,"Error: Could not open direct pdb to glycam file.\n");
+    return 1;
+  }
 
+  CIFfile cif;
   if (cif.Read(fname, 0)) return 1;
+
 
   // DEBUG
 //  //CIFfile::DataBlock lastBlock = cif.GetDataBlock("_chem_comp");
@@ -72,59 +124,60 @@ int ReadCIF(const char* fname) {
 //                                                                "alpha-D-arabinopyranose");
 //  lastBlock.ListData();
 
-  Sarray prefixes;
-  prefixes.push_back("arabino"); // A
-  prefixes.push_back("lyxo"); // D
-  prefixes.push_back("ribo"); // R
-  prefixes.push_back("xylo"); // X
-  prefixes.push_back("allo"); // N
-  prefixes.push_back("altro"); // E
-  prefixes.push_back("galacto"); // L
-  prefixes.push_back("gluco"); // G
-  prefixes.push_back("gulo"); // K
-  prefixes.push_back("ido"); // I (glycam does not have?)
-  prefixes.push_back("manno"); // M
-  prefixes.push_back("talo"); // T
-  prefixes.push_back("fructo"); // C
-  prefixes.push_back("psico"); // P
-  prefixes.push_back("sorbo"); // B
-  prefixes.push_back("tagato"); // J
-  prefixes.push_back("fuco"); // F
-  prefixes.push_back("quinovo"); // Q
-  prefixes.push_back("rhamno"); // H
+  Sarray prefixes; Sarray glycam;
+  prefixes.push_back("arabino"); glycam.push_back("A"); // A
+  prefixes.push_back("lyxo"); glycam.push_back("D"); // D
+  prefixes.push_back("ribo"); glycam.push_back("R"); // R
+  prefixes.push_back("xylo"); glycam.push_back("X"); // X
+  prefixes.push_back("allo"); glycam.push_back("N"); // N
+  prefixes.push_back("altro"); glycam.push_back("E"); // E
+  prefixes.push_back("galacto"); glycam.push_back("L"); // L
+  prefixes.push_back("gluco"); glycam.push_back("G"); // G
+  prefixes.push_back("gulo"); glycam.push_back("K"); // K
+  prefixes.push_back("ido"); glycam.push_back("I"); // I (glycam does not have?)
+  prefixes.push_back("manno"); glycam.push_back("M"); // M
+  prefixes.push_back("talo"); glycam.push_back("T"); // T
+  prefixes.push_back("fructo"); glycam.push_back("C"); // C
+  prefixes.push_back("psico"); glycam.push_back("P"); // P
+  prefixes.push_back("sorbo"); glycam.push_back("B"); // B
+  prefixes.push_back("tagato"); glycam.push_back("J"); // J
+  prefixes.push_back("fuco"); glycam.push_back("F"); // F
+  prefixes.push_back("quinovo"); glycam.push_back("Q"); // Q
+  prefixes.push_back("rhamno"); glycam.push_back("H"); // H
 
   Sarray suffixes;
   suffixes.push_back("pyranose");
   suffixes.push_back("furanose");
 
-  Loops(cif, prefixes, suffixes);
+  Loops(cif, prefixes, suffixes, glycam);
 
   // -----------------------------------
-  Sarray pprefixes;
-  pprefixes.push_back("galacto"); // O
-  pprefixes.push_back("gluco"); // Z
-  pprefixes.push_back("ido"); // U
+  Sarray pprefixes; Sarray pglycam;
+  pprefixes.push_back("galacto"); pglycam.push_back("O"); // O
+  pprefixes.push_back("gluco"); pglycam.push_back("Z"); // Z
+  pprefixes.push_back("ido"); pglycam.push_back("U"); // U
 
   Sarray psuffixes;
   psuffixes.push_back("pyranuronic acid");
 
-  Loops(cif, pprefixes, psuffixes);
+  Loops(cif, pprefixes, psuffixes, pglycam);
 
   // -----------------------------------
   std::string lead("2-acetamido-2-deoxy");
-  Sarray prefixes3;
-  prefixes3.push_back("galacto"); // V
-  prefixes3.push_back("gluco"); // Y
-  prefixes3.push_back("manno"); // W
+  Sarray prefixes3; Sarray glycam3;
+  prefixes3.push_back("galacto"); glycam3.push_back("V"); // V
+  prefixes3.push_back("gluco"); glycam3.push_back("Y"); // Y
+  prefixes3.push_back("manno"); glycam3.push_back("W"); // W
 
   Sarray suffixes3;
   suffixes3.push_back("pyranose");
 
-  Loops(cif, lead, prefixes3, suffixes3);
+  Loops(cif, lead, prefixes3, suffixes3, glycam3);
   // -----------------------------------
-  PrintId("N-acetyl-alpha-neuraminic acid", ExtractId(cif, "N-acetyl-alpha-neuraminic acid")); // SA
-  PrintId("N-acetyl-beta-neuraminic acid", ExtractId(cif, "N-acetyl-beta-neuraminic acid")); // SB
+  PrintId("N-acetyl-alpha-neuraminic acid", ExtractId(cif, "N-acetyl-alpha-neuraminic acid"), "S"); // SA
+  PrintId("N-acetyl-beta-neuraminic acid", ExtractId(cif, "N-acetyl-beta-neuraminic acid"), "S"); // SB
 
+  fclose(direct_pdb_to_glycam);
   return 0;
 }
 
