@@ -2963,12 +2963,13 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     //}
     //myMap_.DetermineAtomIDs();
   }
-  // -----------------------------------
+
+  // ----- Below here, no more removing/reordering atoms. ------------ 
 
   // Each residue starts out unknown.
   resStat_.assign( topIn.Nres(), UNKNOWN );
 
-  // Get masks for molecules now since topology may be modified later.
+  // Get masks for molecules now since bond info in topology may be modified later.
   std::vector<AtomMask> molMasks;
   std::string mstr = argIn.GetStringKey("molmask");
   while (!mstr.empty()) {
