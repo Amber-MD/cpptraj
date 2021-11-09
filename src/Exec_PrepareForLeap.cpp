@@ -1140,7 +1140,8 @@ const
                       integerToString(it->Position()) );
   }
 
-  mprintf("DEBUG:\t  linkstr= '%s'\n", linkstr.c_str());
+  if (debug_ > 0)
+    mprintf("DEBUG:\t  linkstr= '%s'\n", linkstr.c_str());
   if      (linkstr == "T") linkcode = "0";
   else if (linkstr == "O1") linkcode = "1";
   else if (linkstr == "TO2") linkcode = "2";
@@ -1213,9 +1214,10 @@ const
         // Check if the other residue is a sugar or not
         if (!cmask.AtomInCharMask(*bat)) {
           // Atom is bonded to non-sugar residue.
-          mprintf("\t  Sugar %s bonded to non-sugar %s at position %i\n",
-                  topIn.ResNameNumAtomNameNum(at).c_str(),
-                  topIn.ResNameNumAtomNameNum(*bat).c_str(), atomChainPosition+1);
+          mprintf("\t  Sugar %s %s bonded to non-sugar %s %s at position %i\n",
+                  topIn.TruncResNameOnumId(rnum).c_str(), *(topIn[at].Name()),
+                  topIn.TruncResNameOnumId(topIn[*bat].ResNum()).c_str(),
+                  *(topIn[*bat].Name()), atomChainPosition+1);
           bondsToRemove.push_back( BondType(at, *bat, -1) );
           // Check if this is a recognized linkage to non-sugar
           Residue& pres = topIn.SetRes( topIn[*bat].ResNum() );
@@ -1247,9 +1249,10 @@ const
           }
         } else {
           // Atom is bonded to sugar residue
-          mprintf("\t  Sugar %s bonded to sugar %s at position %i\n",
-                  topIn.ResNameNumAtomNameNum(at).c_str(),
-                  topIn.ResNameNumAtomNameNum(*bat).c_str(), atomChainPosition+1);
+          mprintf("\t  Sugar %s %s bonded to sugar %s %s at position %i\n",
+                  topIn.TruncResNameOnumId(rnum).c_str(), *(topIn[at].Name()),
+                  topIn.TruncResNameOnumId(topIn[*bat].ResNum()).c_str(),
+                  *(topIn[*bat].Name()), atomChainPosition+1);
           // Also remove inter-sugar bonds since leap cant handle branching
           if (at < *bat)
             sugarBondsToRemove.insert( BondType(at, *bat, -1) );
@@ -1335,10 +1338,11 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
     return 1;
   }
 
+  static const char* AnomerRetStr[] = { 0, 0, "Alpha", "Beta" };
   if (isDform) {
-    mprintf("\t  %s Form is %s-D\n", sugarName.c_str(), formStr.c_str());
+    mprintf("\t  %s Form is %s(%s)-D\n", sugarName.c_str(), AnomerRetStr[form], formStr.c_str());
   } else {
-    mprintf("\t  %s Form is %s-L\n", sugarName.c_str(), formStr.c_str());
+    mprintf("\t  %s Form is %s(%s)-L\n", sugarName.c_str(), AnomerRetStr[form], formStr.c_str());
   }
 
   // Identify linkages to other residues.
@@ -1608,7 +1612,7 @@ const
   int original_at0 = topIn.Res(rnum).FirstAtom();
   int original_at1 = topIn.Res(rnum).LastAtom();
   std::string sugarName = topIn.TruncResNameOnumId(rnum);
-  mprintf("DEBUG: Functional group check: %s\n", sugarName.c_str());
+  if (debug_ > 0) mprintf("DEBUG: Functional group check: %s\n", sugarName.c_str());
 
   bool atomsRemain = true;
   while (atomsRemain) {
@@ -1623,7 +1627,7 @@ const
     Iarray::const_iterator cat = sugar.ChainAtoms().begin();
     for (; cat != sugar.ChainAtoms().end(); ++cat)
     {
-      mprintf("\t%s\n", *(topIn[*cat].Name()));
+      //mprintf("\t%s\n", *(topIn[*cat].Name())); // DEBUG
       for (Atom::bond_iterator oat = topIn[*cat].bondbegin();
                                oat != topIn[*cat].bondend(); ++oat)
       {
@@ -1690,7 +1694,7 @@ const
       // Split the sulfate into a new residue named SO3 for Glycam.
       // This may involve reordering atoms within the residue, but not
       // any other atoms, so we should not have to update other sugars.
-      mprintf("DEBUG: Before split: %s\n", topIn.AtomMaskName(sugar.RingOxygenAtom()).c_str());
+      //mprintf("DEBUG: Before split: %s\n", topIn.AtomMaskName(sugar.RingOxygenAtom()).c_str());
       Iarray atomMap;
       if (topIn.SplitResidue(SO3, newResName, atomMap)) {
         mprinterr("Error: Could not split sulfate from residue '%s'.\n", sugarName.c_str());
@@ -1739,7 +1743,7 @@ const
     }
   }
   if (o1_atom == -1) return 0;
-  mprintf("DEBUG: Terminal check: %s O1 atom: '%s'\n", sugarName.c_str(), topIn.AtomMaskName(o1_atom).c_str());
+  //mprintf("DEBUG: Terminal check: %s O1 atom: '%s'\n", sugarName.c_str(), topIn.AtomMaskName(o1_atom).c_str());
 
   Iarray selected;
   FunctionalGroupType groupType = IdFunctionalGroup(selected, rnum, o1_atom, anomericAtom, topIn);
@@ -1765,7 +1769,7 @@ const
     mprinterr("Internal Error: Unhandled group in CheckIfSugarIsTerminal\n");
     return 1;
   }
-  mprintf("\t  Will split into %s group.\n", newResName.c_str());
+  //mprintf("\t  Will split into %s group.\n", newResName.c_str());
 
   // If terminal group is unrecognized, this could just be a regular O1 linkage
   if (selected.empty()) {
@@ -1810,7 +1814,8 @@ const
   AtomMask sugarMask(sugarMaskStr);
   mprintf("\tLooking for sugars selected by '%s'\n", sugarMask.MaskString());
   if (topIn.SetupIntegerMask( sugarMask )) return 1;
-  sugarMask.MaskInfo();
+  //sugarMask.MaskInfo();
+  mprintf("\tSelected %i sugar atoms.\n", sugarMask.Nselected());
   if (sugarMask.None()) {
     mprintf("Warning: No sugar atoms selected by %s\n", sugarMask.MaskString());
     return 0;
@@ -1914,18 +1919,16 @@ int Exec_PrepareForLeap::PrepareSugars(std::string const& sugarmaskstr,
   //mprintf("\tPreparing sugars selected by '%s'\n", sugarMask.MaskString());
   if (topIn.SetupIntegerMask( sugarMask )) return 1;
   //sugarMask.MaskInfo();
-  mprintf("\t%i sugar atoms selected.\n", sugarMask.Nselected());
+  mprintf("\t%i sugar atoms selected in %zu residues.\n", sugarMask.Nselected(), Sugars.size());
   if (sugarMask.None())
     mprintf("Warning: No sugar atoms selected by %s\n", sugarMask.MaskString());
   else {
     CharMask cmask( sugarMask.ConvertToCharMask(), sugarMask.Nselected() );
-
-    for (std::vector<Sugar>::const_iterator sugar = Sugars.begin();
-                                            sugar != Sugars.end(); ++sugar)
-    {
-      sugar->PrintInfo(topIn);
+    if (debug_ > 0) {
+      for (std::vector<Sugar>::const_iterator sugar = Sugars.begin();
+                                              sugar != Sugars.end(); ++sugar)
+        sugar->PrintInfo(topIn);
     }
-
     std::set<BondType> sugarBondsToRemove;
     // For each sugar residue, see if it is bonded to a non-sugar residue.
     // If it is, remove that bond but record it.
@@ -2057,6 +2060,7 @@ int Exec_PrepareForLeap::SearchForDisulfides(double disulfidecut, std::string co
   if (cysmask.None())
     mprintf("Warning: No cysteine sulfur atoms selected by %s\n", cysmaskstr.c_str());
   else {
+    int nExistingDisulfides = 0;
     int nDisulfides = 0;
     double cut2 = disulfidecut * disulfidecut;
     // Try to find potential disulfide sites.
@@ -2068,9 +2072,11 @@ int Exec_PrepareForLeap::SearchForDisulfides(double disulfidecut, std::string co
       for (AtomMask::const_iterator at2 = at1 + 1; at2 != cysmask.end(); ++at2)
       {
         if (topIn[*at1].IsBondedTo(*at2)) {
-          mprintf("\tExisting disulfide: %s to %s\n",
-                  topIn.ResNameNumAtomNameNum(*at1).c_str(),
-                  topIn.ResNameNumAtomNameNum(*at2).c_str());
+          if (debug_ > 0)
+            mprintf("\tExisting disulfide: %s to %s\n",
+                    topIn.ResNameNumAtomNameNum(*at1).c_str(),
+                    topIn.ResNameNumAtomNameNum(*at2).c_str());
+          nExistingDisulfides++;
           int idx1 = (int)(at1 - cysmask.begin());
           int idx2 = (int)(at2 - cysmask.begin());
           disulfidePartner[idx1] = idx2;
@@ -2078,6 +2084,7 @@ int Exec_PrepareForLeap::SearchForDisulfides(double disulfidecut, std::string co
         }
       }
     }
+    mprintf("\t%i existing disulfide bonds.\n", nExistingDisulfides);
     // DEBUG - Print current array
     if (debug_ > 1) {
       mprintf("DEBUG: Disulfide partner array after existing:\n");
