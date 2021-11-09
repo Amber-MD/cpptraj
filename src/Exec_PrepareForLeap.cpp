@@ -907,19 +907,19 @@ const
     return Sugar(Sugar::MISSING_CHAIN, res.FirstAtom());
   }
   if (!previous_chain.empty()) {
-    //if (debug_ > 0) {
+    if (debug_ > 0) {
       mprintf("DEBUG: Previous carbon chain (from anomeric carbon):\n");
       for (Iarray::const_iterator it = previous_chain.begin(); it != previous_chain.end(); ++it)
         mprintf("\t\t%s\n", topIn.ResNameNumAtomNameNum(*it).c_str());
-    //}
+    }
     for (Iarray::const_iterator it = carbon_chain.begin(); it != carbon_chain.end(); ++it)
       previous_chain.push_back( *it );
     carbon_chain = previous_chain;
-    //if (debug_ > 0) {
+    if (debug_ > 0) {
       mprintf("DEBUG: Complete carbon chain:\n");
       for (Iarray::const_iterator it = carbon_chain.begin(); it != carbon_chain.end(); ++it)
         mprintf("\t\t%s\n", topIn.ResNameNumAtomNameNum(*it).c_str());
-    //}
+    }
   } 
   // Get the index of the highest stereocenter
   for (Iarray::const_iterator it = carbon_chain.begin(); it != carbon_chain.end(); ++it)
@@ -991,10 +991,15 @@ Exec_PrepareForLeap::AnomerRetType
                                          Topology const& topIn, Frame const& frameIn)
 const
 {
+  int cdebug;
+  if (debug_ > 1)
+    cdebug = 1;
+  else
+    cdebug = 0;
   formStr.clear();
   Cpptraj::Chirality::ChiralType ctypeR = Cpptraj::Chirality::
                                           DetermineChirality(sugar.HighestStereocenter(),
-                                                             topIn, frameIn);
+                                                             topIn, frameIn, cdebug);
   if (ctypeR == Cpptraj::Chirality::ERR) {
     mprinterr("Error: Could not determine chirality for furanose.\n");
     return A_ERR;
@@ -1006,7 +1011,7 @@ const
 
   Cpptraj::Chirality::ChiralType ctypeA = Cpptraj::Chirality::
                                           DetermineChirality(sugar.AnomericAtom(),
-                                                             topIn, frameIn);
+                                                             topIn, frameIn, cdebug);
   if (ctypeA == Cpptraj::Chirality::ERR) {
     mprinterr("Error: Could not determine chirality around anomeric atom for furanose.\n");
     return A_ERR;
@@ -1576,30 +1581,24 @@ const
   return UNRECOGNIZED_GROUP;
 }
 
+/** Corresponds to FunctionalGroupType */
+const char* Exec_PrepareForLeap::FunctionalGroupStr_[] = {
+  "SO3", "CH3", "Acetyl", "OH", "OCH3", "Unrecognized"
+};
+
 /** Identify functional group and print to stdout. */
 Exec_PrepareForLeap::FunctionalGroupType
   Exec_PrepareForLeap::IdFunctionalGroup(Iarray& selected, int rnum, int atIdx, int linkAtIdx, Topology const& topIn)
 const
 {
   FunctionalGroupType groupType = IdFunctionalGroup_Silent(selected, rnum, atIdx, linkAtIdx, topIn);
-  if (groupType == G_SO3) {
-    mprintf("\tFound SO3 group centered on atom '%s' bonded to '%s'\n",
-            topIn.AtomMaskName(atIdx).c_str(), topIn.AtomMaskName(linkAtIdx).c_str());
-  } else if (groupType == G_CH3) {
-    mprintf("\tFound CH3 group centered on atom '%s' bonded to '%s'\n",
-            topIn.AtomMaskName(atIdx).c_str(), topIn.AtomMaskName(linkAtIdx).c_str());
-  } else if (groupType == G_ACX) {
-    mprintf("\tFound Acetyl group centered on atom '%s' bonded to '%s'\n",
-            topIn.AtomMaskName(atIdx).c_str(), topIn.AtomMaskName(linkAtIdx).c_str());
-  } else if (groupType == G_OH) {
-    mprintf("\tFound OH group centered on atom '%s' bonded to '%s'\n",
-            topIn.AtomMaskName(atIdx).c_str(), topIn.AtomMaskName(linkAtIdx).c_str());
-  } else if (groupType == G_OME) {
-    mprintf("\tFound OCH3 group centered on atom '%s' bonded to '%s'\n",
-            topIn.AtomMaskName(atIdx).c_str(), topIn.AtomMaskName(linkAtIdx).c_str());
-  } else if (groupType != UNRECOGNIZED_GROUP) {
-    mprinterr("Internal Error: Unhandled group from IdFunctionalGroup()\n");
+  if (groupType != UNRECOGNIZED_GROUP) {
+    mprintf("\tFound %s group centered on atom '%s %s' bonded to '%s'\n",
+            FunctionalGroupStr_[groupType],
+            topIn.TruncResNameOnumId(rnum).c_str(),
+            *(topIn[atIdx].Name()), *(topIn[linkAtIdx].Name()));
   }
+
   return groupType;
 }
 

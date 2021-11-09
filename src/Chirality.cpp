@@ -80,7 +80,7 @@ class priority_element {
   */
 Chirality::ChiralType Chirality::DetermineChirality(double& tors, int atnum,
                                                     Topology const& topIn,
-                                                    Frame const& frameIn)
+                                                    Frame const& frameIn, int debugIn)
 {
   tors = 0.0;
   Atom const& atom = topIn[atnum];
@@ -91,11 +91,13 @@ Chirality::ChiralType Chirality::DetermineChirality(double& tors, int atnum,
   }
   // Calculate a priority score for each bonded atom.
   // First just use the atomic number.
-  mprintf("DEBUG: Determining priorities around atom %s\n", topIn.AtomMaskName(atnum).c_str());
+  if (debugIn > 0)
+    mprintf("DEBUG: Determining priorities around atom %s\n", topIn.AtomMaskName(atnum).c_str());
   std::vector<priority_element> priority;
   for (int idx = 0; idx != atom.Nbonds(); idx++) {
     priority.push_back( priority_element(atom.Bond(idx), topIn[atom.Bond(idx)].AtomicNumber()) );
-    mprintf("DEBUG:\t\t%i Priority for %s is %i\n", idx, topIn.AtomMaskName(atom.Bond(idx)).c_str(), priority.back().Priority1());
+    if (debugIn > 0)
+      mprintf("DEBUG:\t\t%i Priority for %s is %i\n", idx, topIn.AtomMaskName(atom.Bond(idx)).c_str(), priority.back().Priority1());
   }
   // For any identical priorities, need to check who they are bonded to.
   for (int idx1 = 0; idx1 != atom.Nbonds(); idx1++) {
@@ -104,16 +106,19 @@ Chirality::ChiralType Chirality::DetermineChirality(double& tors, int atnum,
         bool identical_priorities = true;
         int depth = 1;
         while (identical_priorities) {
-          mprintf("DEBUG: Priority of index %i == %i, depth %i\n", idx1, idx2, depth);
+          if (debugIn > 0)
+            mprintf("DEBUG: Priority of index %i == %i, depth %i\n", idx1, idx2, depth);
           std::vector<bool> Visited(topIn.Natom(), false);
           Visited[atnum] = true;
           priority[idx1].SetPriority2(totalPriority(topIn, atom.Bond(idx1), atom.ResNum(), 0, depth, Visited));
-          mprintf("DEBUG:\tPriority2 of %i is %i\n", idx1, priority[idx1].Priority2());
+          if (debugIn > 0)
+            mprintf("DEBUG:\tPriority2 of %i is %i\n", idx1, priority[idx1].Priority2());
 
           Visited.assign(topIn.Natom(), false);
           Visited[atnum] = true;
           priority[idx2].SetPriority2(totalPriority(topIn, atom.Bond(idx2), atom.ResNum(), 0, depth, Visited));
-          mprintf("DEBUG:\tPriority2 of %i is %i\n", idx2, priority[idx2].Priority2());
+          if (debugIn > 0)
+            mprintf("DEBUG:\tPriority2 of %i is %i\n", idx2, priority[idx2].Priority2());
           if (priority[idx1] != priority[idx2]) {
             identical_priorities = false;
             break;
@@ -129,24 +134,27 @@ Chirality::ChiralType Chirality::DetermineChirality(double& tors, int atnum,
     }
   }
   std::sort(priority.begin(), priority.end());
-  mprintf("DEBUG: Sorted by priority:");
-  for (std::vector<priority_element>::const_iterator it = priority.begin();
-                                                     it != priority.end(); ++it)
-    mprintf(" %s", topIn.AtomMaskName(it->AtNum()).c_str());
-  mprintf("\n");
+  if (debugIn > 0) {
+    mprintf("DEBUG: Sorted by priority:");
+    for (std::vector<priority_element>::const_iterator it = priority.begin();
+                                                       it != priority.end(); ++it)
+      mprintf(" %s", topIn.AtomMaskName(it->AtNum()).c_str());
+    mprintf("\n");
+  }
 
   tors = Torsion( frameIn.XYZ(priority[0].AtNum()),
                   frameIn.XYZ(priority[1].AtNum()),
                   frameIn.XYZ(priority[2].AtNum()),
                   frameIn.XYZ(atnum) );
-  mprintf("DEBUG: Torsion around '%s' is %f",  topIn.AtomMaskName(atnum).c_str(), tors*Constants::RADDEG);
+  if (debugIn > 0)
+    mprintf("DEBUG: Torsion around '%s' is %f",  topIn.AtomMaskName(atnum).c_str(), tors*Constants::RADDEG);
   ChiralType ret;
   if (tors < 0) {
     ret = IS_S;
-    mprintf(" (S)\n");
+    if (debugIn > 0) mprintf(" (S)\n");
   } else {
     ret = IS_R;
-    mprintf(" (R)\n");
+    if (debugIn > 0) mprintf(" (R)\n");
   }
   return ret;
 }
@@ -154,8 +162,8 @@ Chirality::ChiralType Chirality::DetermineChirality(double& tors, int atnum,
 /** Determine chirality around specified atom. */
 Chirality::ChiralType Chirality::DetermineChirality(int atnum,
                                                     Topology const& topIn,
-                                                    Frame const& frameIn)
+                                                    Frame const& frameIn, int debugIn)
 {
   double tors;
-  return DetermineChirality(tors, atnum, topIn, frameIn);
+  return DetermineChirality(tors, atnum, topIn, frameIn, debugIn);
 }

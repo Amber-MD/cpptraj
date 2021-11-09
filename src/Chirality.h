@@ -8,9 +8,9 @@ namespace Chirality {
 enum ChiralType { ERR = 0, IS_S, IS_R };
 
 /// \return Chirality at specified atom, set torsion value
-ChiralType DetermineChirality(double&, int, Topology const&, Frame const&);
+ChiralType DetermineChirality(double&, int, Topology const&, Frame const&, int);
 /// \return Chirality at specified atom
-ChiralType DetermineChirality(int, Topology const&, Frame const&);
+ChiralType DetermineChirality(int, Topology const&, Frame const&, int);
 
 }
 }

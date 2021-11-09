@@ -31,6 +31,9 @@ class Exec_PrepareForLeap : public Exec {
                        SUGAR_SETUP_FAILED };
     typedef std::vector<ResStatType> ResStatArray;
 
+    /// Keep synced with FunctionalGroupType
+    static const char* FunctionalGroupStr_[];
+
     inline void ChangeResName(Residue&, NameType const&) const;
     inline void ChangeAtomName(Atom&, NameType const&) const;
 
