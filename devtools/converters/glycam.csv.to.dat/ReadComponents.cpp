@@ -57,15 +57,12 @@ void NameToForm(std::string const& name, char glyc,
   ring = "P";
   for (int iarg = 0; iarg != remain.Nargs(); iarg++)
   {
-    std::size_t found = remain[iarg].find("furanose");
+    // Do furano to catch furanoside as well
+    std::size_t found = remain[iarg].find("furano");
     if (found != std::string::npos) {
       ring = "F";
       break;
     }
-    //else
-    ////found = list1[2].find("furanose")
-    //// assume P
-    //ring = "P";
   }
 }
 
@@ -218,7 +215,7 @@ int ReadCIF(const char* fname) {
 //                                                                "alpha-D-arabinopyranose");
 //  lastBlock.ListData();
 
-  //if (GetPdbCodesFromNames(cif)) return 1;
+  if (GetPdbCodesFromNames(cif)) return 1;
 
   FILE* direct_pdb_to_glycam = fopen("direct_pdb_to_glycam.dat", "wb");
   if (direct_pdb_to_glycam == 0) {
