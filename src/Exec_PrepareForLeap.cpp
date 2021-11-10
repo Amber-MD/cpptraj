@@ -200,7 +200,7 @@ void Exec_PrepareForLeap::SetPdbResNames() {
 /** Load PDB residue names recognized by Amber FFs from file. */
 int Exec_PrepareForLeap::LoadPdbResNames(std::string const& fnameIn)
 {
-  std::string fname;
+  std::string fname = fnameIn;
   if (fnameIn.empty()) {
     // Check CPPTRAJHOME
     const char* env = getenv("CPPTRAJHOME");
@@ -250,7 +250,7 @@ void Exec_PrepareForLeap::SetGlycamPdbResMap() {
 /** Load PDB to Glycam residue map from file. */
 int Exec_PrepareForLeap::LoadGlycamPdbResMap(std::string const& fnameIn)
 {
-  std::string fname;
+  std::string fname = fnameIn;
   if (fnameIn.empty()) {
     // Check CPPTRAJHOME
     const char* env = getenv("CPPTRAJHOME");
