@@ -22,7 +22,7 @@ glycam.csv.to.dat: glycam.csv.to.dat.cpp ../../../src/ArgList.h ../../../src/Str
 LIBS=$(CPPTRAJLIB)/libcpptraj_file.a $(CPPTRAJLIB)/libcpptraj_core.a
 
 ReadComponents: ReadComponents.cpp $(OBJECTS) libs
-	$(CXX) -I../../../src -o ReadComponents ReadComponents.cpp $(LIBS) $(LDFLAGS)
+	$(CXX) -I../../../src -o ReadComponents ReadComponents.cpp GlycamPdbResMap.cpp $(LIBS) $(LDFLAGS)
 
 libs:
 	cd ../../../src && $(MAKE) libstatic 

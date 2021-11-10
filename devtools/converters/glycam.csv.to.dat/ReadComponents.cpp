@@ -1,8 +1,6 @@
 #include "ArgList.h"
 #include "CIFfile.h"
-
-/// File for direct PDB name to glycam mapping
-static FILE* direct_pdb_to_glycam = 0;
+#include "GlycamPdbResMap.h"
 
 /** Extract the "id" field from data with given name. */
 std::string ExtractId(CIFfile const& cif, std::string const& name) {
@@ -59,10 +57,10 @@ void NameToForm(std::string const& name, std::string const& glyc,
 void PrintId(std::string const& name, std::string const& id, std::string const& glyc) {
   if (!id.empty()) {
     printf(" %s %s %s", name.c_str(), id.c_str(), glyc.c_str());
-    std::string form, chirality, ring;
-    NameToForm(name, glyc, form, chirality, ring);
-    fprintf(direct_pdb_to_glycam, "%s %s %s %s %s\n",
-            id.c_str(), glyc.c_str(), form.c_str(), chirality.c_str(), ring.c_str());
+    //std::string form, chirality, ring;
+    //NameToForm(name, glyc, form, chirality, ring);
+    //fprintf(direct_pdb_to_glycam, "%s %s %s %s %s\n",
+    //        id.c_str(), glyc.c_str(), form.c_str(), chirality.c_str(), ring.c_str());
   }
   printf("\n\n");
 }
@@ -105,25 +103,8 @@ void Loops(CIFfile const& cif, Sarray const& prefixes, Sarray const& suffixes,
   Loops(cif, std::string(""), prefixes, suffixes, glycam);
 }
 
-/** Read everything from the given CIF file. */
-int ReadCIF(const char* fname) {
-  direct_pdb_to_glycam = fopen("direct_pdb_to_glycam.dat", "wb");
-  if (direct_pdb_to_glycam == 0) {
-    fprintf(stderr,"Error: Could not open direct pdb to glycam file.\n");
-    return 1;
-  }
-
-  CIFfile cif;
-  if (cif.Read(fname, 0)) return 1;
-
-
-  // DEBUG
-//  //CIFfile::DataBlock lastBlock = cif.GetDataBlock("_chem_comp");
-//  CIFfile::DataBlock const& lastBlock = cif.GetBlockWithColValue("_chem_comp",
-//                                                                "name",
-//                                                                "alpha-D-arabinopyranose");
-//  lastBlock.ListData();
-
+/** Get PDB codes from sugar names */
+int GetPdbCodesFromNames(CIFfile& cif) {
   Sarray prefixes; Sarray glycam;
   prefixes.push_back("arabino"); glycam.push_back("A"); // A
   prefixes.push_back("lyxo"); glycam.push_back("D"); // D
@@ -176,9 +157,50 @@ int ReadCIF(const char* fname) {
   // -----------------------------------
   PrintId("N-acetyl-alpha-neuraminic acid", ExtractId(cif, "N-acetyl-alpha-neuraminic acid"), "S"); // SA
   PrintId("N-acetyl-beta-neuraminic acid", ExtractId(cif, "N-acetyl-beta-neuraminic acid"), "S"); // SB
-
-  fclose(direct_pdb_to_glycam);
   return 0;
+}
+
+/** Get PDB names from current Carbohydrate_PDB_Glycam_Names.txt file,
+  * extract form/chirality.
+  */
+int CreateDirectPdbToGlycam(FILE* direct_pdb_to_glycam) {
+  GlycamPdbResMap pdb_to_glycam;
+  if (pdb_to_glycam.Load("../../../dat/Carbohydrate_PDB_Glycam_Names.txt")) return 1;
+
+  printf("\t%zu entries in PDB to glycam name map.\n", pdb_to_glycam.size());
+  printf("\tResidue name map:\n");
+  for (GlycamPdbResMap::const_iterator mit = pdb_to_glycam.begin();
+                                       mit != pdb_to_glycam.end(); ++mit)
+    printf("\t  %4s -> %c\n", *(mit->first), mit->second);
+
+  return 0;
+}
+
+/** Read everything from the given CIF file. */
+int ReadCIF(const char* fname) {
+
+
+  CIFfile cif;
+  if (cif.Read(fname, 0)) return 1;
+
+
+  // DEBUG
+//  //CIFfile::DataBlock lastBlock = cif.GetDataBlock("_chem_comp");
+//  CIFfile::DataBlock const& lastBlock = cif.GetBlockWithColValue("_chem_comp",
+//                                                                "name",
+//                                                                "alpha-D-arabinopyranose");
+//  lastBlock.ListData();
+
+  if (GetPdbCodesFromNames(cif)) return 1;
+
+  FILE* direct_pdb_to_glycam = fopen("direct_pdb_to_glycam.dat", "wb");
+  if (direct_pdb_to_glycam == 0) {
+    fprintf(stderr,"Error: Could not open direct pdb to glycam file.\n");
+    return 1;
+  }
+  int err = CreateDirectPdbToGlycam(direct_pdb_to_glycam);
+  fclose(direct_pdb_to_glycam);
+  return err;
 }
 
 int main(int argc, char** argv) {
