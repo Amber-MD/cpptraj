@@ -6,7 +6,7 @@
 /** Load PDB to Glycam residue map from file. */
 int GlycamPdbResMap::Load(std::string const& fnameIn)
 {
-  std::string fname;
+  std::string fname = fnameIn;
   if (fnameIn.empty()) {
     // Check CPPTRAJHOME
     const char* env = getenv("CPPTRAJHOME");
