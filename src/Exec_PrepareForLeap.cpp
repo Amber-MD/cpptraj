@@ -125,6 +125,16 @@ Exec_PrepareForLeap::SugarToken::SugarToken() :
   ring_(UNKNOWN_RING)
 {}
 
+/** Print token info to stdout. */
+void Exec_PrepareForLeap::SugarToken::PrintInfo(std::string const& resname) const {
+  static const char* ringstr[] = {"pyranose", "furanose", "?"};
+  static const char* formstr[] = {"alpha", "beta", "?"};
+  static const char* chirstr[] = {"D", "L", "?"};
+  mprintf("\t'%s' \"%s\" %s %s-%s-%s\n",
+          resname.c_str(), name_.c_str(), glycamCode_.c_str(),
+          formstr[form_], chirstr[chir_], ringstr[ring_]);
+}
+
 /** Set up from line: <res> <code> <form> <chir> <ring> <name>
   *                   0     1      2      3      4      5
   * \return Residue name <res>

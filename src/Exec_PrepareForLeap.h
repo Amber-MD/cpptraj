@@ -249,6 +249,8 @@ class Exec_PrepareForLeap::SugarToken {
     SugarToken();
     /// /return <res>, set up from line: '<res> <code> <form> <chir> <ring> <name>'
     std::string SetFromLine(const char*);
+    /// Print token info to stdout
+    void PrintInfo(std::string const&) const;
   private:
     std::string name_;       ///< Full sugar name
     //std::string resname_;    ///< PDB residue name
