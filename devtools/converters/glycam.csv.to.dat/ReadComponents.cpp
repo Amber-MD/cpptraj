@@ -1,6 +1,7 @@
 #include "ArgList.h"
 #include "CIFfile.h"
 #include "GlycamPdbResMap.h"
+#include "StringRoutines.h"
 
 /** Extract the "id" field from data with given name. */
 std::string ExtractId(CIFfile const& cif, std::string const& name) {
@@ -200,9 +201,110 @@ int CreateDirectPdbToGlycam(FILE* direct_pdb_to_glycam, CIFfile const& cif) {
   return 0;
 }
 
+/** Read residue names and glycam codes from file. Write the
+  * Carbohydrate_PDB_Glycam_Names.txt file in the 'dat' directory.
+  */
+int GenerateFile(std::string const& f_glycamnames, std::string const& f_resnames,
+                 std::string const& f_outfile, CIFfile const& cif)
+{
+  typedef std::pair<std::string, std::string> Spair;
+  //typedef std::map<std::string, std::string> Smap;
+  // Use a vector to keep the ordering in the GlycamNames.txt file.
+  typedef std::vector<Spair> SpairArray;
+  // First read sugar names and glycam codes from infile
+  SpairArray GlycamCode_to_sugarName;
+  BufferedLine glycamnames;
+  if (glycamnames.OpenFileRead(f_glycamnames)) return 1;
+  const char* ptr = glycamnames.Line();
+  while (ptr != 0) {
+    if (*ptr != '#') {
+      ArgList line(ptr, " ");
+      if (line.Nargs() != 2) {
+        fprintf(stderr,"Error: Expected only 2 columns in glycam name file.\n");
+        return 1;
+      }
+      //printf("DEBUG: %s %s\n", line[0].c_str(), line[1].c_str());
+      GlycamCode_to_sugarName.push_back(Spair(line[1], line[0]));
+    }
+    ptr = glycamnames.Line();
+  }
+  glycamnames.CloseFile();
+  for (SpairArray::const_iterator it = GlycamCode_to_sugarName.begin();
+                                  it != GlycamCode_to_sugarName.end(); ++it)
+    printf("%s -> %s\n", it->first.c_str(), it->second.c_str());
+
+  // Now read sugar residue names and their glycam codes
+  typedef std::vector<std::string> Sarray;
+  typedef std::pair<std::string, Sarray> CodeSarrayPair;
+  typedef std::map<std::string, Sarray> CodeSarrayMap;
+  CodeSarrayMap GlycamCode_to_resNames;
+  BufferedLine resnames;
+  if (resnames.OpenFileRead(f_resnames)) return 1;
+  ptr = resnames.Line();
+  while (ptr != 0) {
+    if (*ptr != '#') {
+      ArgList line(ptr, " ");
+      if (line.Nargs() != 2) {
+        fprintf(stderr,"Error: Expected only 2 columns in res name file.\n");
+        return 1;
+      }
+      // TODO ensure valid code?
+      CodeSarrayMap::iterator it = GlycamCode_to_resNames.find( line[1] );
+      if (it == GlycamCode_to_resNames.end()) {
+        // New glycam code
+        std::pair<CodeSarrayMap::iterator,bool> ret =
+          GlycamCode_to_resNames.insert( CodeSarrayPair( line[1], Sarray() ) );
+        it = ret.first;
+      }
+      it->second.push_back(line[0]);
+    }
+    ptr = resnames.Line();
+  }
+
+  // Output
+  CpptrajFile outfile;
+  if (outfile.OpenWrite("temp.dat")) return 1;
+  outfile.Printf("# This file contains the mapping from common PDB names to Glycam residue codes.\n");
+  outfile.Printf("# Information obtained from mining the PDB chemical database (components.cif).\n");
+  outfile.Printf("# Last updated %s\n", TimeString().c_str());
+  outfile.Printf("#ResName GlycamCode Form Chirality RingType \"Name\"\n");
+
+  for (SpairArray::const_iterator kt = GlycamCode_to_sugarName.begin();
+                                  kt != GlycamCode_to_sugarName.end(); ++kt)
+  {
+    CodeSarrayMap::const_iterator it = GlycamCode_to_resNames.find( kt->first );
+    if (it == GlycamCode_to_resNames.end()) {
+      fprintf(stderr,"Error: Glycam code '%s' not found in resNames.\n", kt->first.c_str());
+      return 1;
+    }
+    std::string sname = "\"" + kt->second + "\"";
+    printf("%-30s %3s ", sname.c_str(), it->first.c_str());
+    for (Sarray::const_iterator jt = it->second.begin(); jt != it->second.end(); ++jt)
+    {
+      if (jt != it->second.begin()) printf(",");
+      printf("%s", jt->c_str());
+      // Find the name in components
+      std::string fullname = ExtractName(cif, *jt);
+      if (fullname.empty())
+        fullname.assign("EMPTY");
+      //printf(" %s\n", fullname.c_str());
+      std::string form, chirality, ring;
+      NameToForm(fullname, it->first[0], form, chirality, ring);
+      outfile.Printf("%s %s %s %s %s \"%s\"\n",
+                    jt->c_str(), it->first.c_str(),
+                    form.c_str(), chirality.c_str(), ring.c_str(), fullname.c_str());
+    }
+    printf("\n");
+  }
+
+  outfile.CloseFile();
+  return 0;
+}
+    
+
 /** Read everything from the given CIF file. */
 int ReadCIF(const char* fname) {
-
+  int err = 0;
 
   CIFfile cif;
   if (cif.Read(fname, 0)) return 1;
@@ -215,15 +317,18 @@ int ReadCIF(const char* fname) {
 //                                                                "alpha-D-arabinopyranose");
 //  lastBlock.ListData();
 
-  if (GetPdbCodesFromNames(cif)) return 1;
+  //if (GetPdbCodesFromNames(cif)) return 1;
 
-  FILE* direct_pdb_to_glycam = fopen("direct_pdb_to_glycam.dat", "wb");
+  if (GenerateFile("GlycamNames.txt", "../../../dat/ResNames.sugar.dat", "", cif))
+    return 1;
+
+/*  FILE* direct_pdb_to_glycam = fopen("direct_pdb_to_glycam.dat", "wb");
   if (direct_pdb_to_glycam == 0) {
     fprintf(stderr,"Error: Could not open direct pdb to glycam file.\n");
     return 1;
   }
   int err = CreateDirectPdbToGlycam(direct_pdb_to_glycam, cif);
-  fclose(direct_pdb_to_glycam);
+  fclose(direct_pdb_to_glycam);*/
   return err;
 }
 
