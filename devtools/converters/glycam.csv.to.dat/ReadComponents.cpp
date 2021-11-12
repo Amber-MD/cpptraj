@@ -297,6 +297,19 @@ int GenerateFile(std::string const& f_glycamnames, std::string const& f_resnames
     printf("\n");
   }
 
+  // Add name map section manually
+  outfile.Printf("\n# PDB to glycam atom name maps\n");
+  outfile.Printf("V,W,Y C7,C2N  O7,O2N  C8,CME\n");
+  outfile.Printf("S     C10,C5N O10,O5N C11,CME\n");
+  outfile.Printf("H     C6,C6M,B\n");
+
+  // Add linkage res name map section manually
+  outfile.Printf("\n# PDB to glycam linkage residue name maps\n");
+  outfile.Printf("SER OLS\n");
+  outfile.Printf("THR OLT\n");
+  outfile.Printf("HYP OLP\n");
+  outfile.Printf("ASN NLN\n");
+
   outfile.CloseFile();
   return 0;
 }
