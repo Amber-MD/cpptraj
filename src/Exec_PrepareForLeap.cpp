@@ -1415,6 +1415,8 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
   mprintf("\tSugar %s glycam name: %s\n", sugarName.c_str(),
           pdb_glycam->second.GlycamCode().c_str());
 
+  SugarToken sugarInfo;
+
   // Determine alpha or beta and D or L
   bool isDform;
   std::string formStr;
