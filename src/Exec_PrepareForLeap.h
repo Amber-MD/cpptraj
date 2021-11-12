@@ -247,11 +247,11 @@ class Exec_PrepareForLeap::SugarToken {
   public:
     /// CONSTRUCTOR
     SugarToken();
-    /// Construct from line: <res> <code> <form> <chir> <ring> <name>
-    int SetFromLine(const char*);
+    /// /return <res>, set up from line: '<res> <code> <form> <chir> <ring> <name>'
+    std::string SetFromLine(const char*);
   private:
     std::string name_;       ///< Full sugar name
-    std::string resname_;    ///< PDB residue name
+    //std::string resname_;    ///< PDB residue name
     std::string glycamCode_; ///< Glycam residue code
     FormTypeEnum form_;      ///< Sugar form
     ChirTypeEnum chir_;      ///< Sugar chirality

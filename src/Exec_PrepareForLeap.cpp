@@ -125,16 +125,48 @@ Exec_PrepareForLeap::SugarToken::SugarToken() :
   ring_(UNKNOWN_RING)
 {}
 
-/** Set up from line: <res> <code> <form> <chir> <ring> <name> */
-int Exec_PrepareForLeap::SugarToken::SetFromLine(const char* lineIn) {
+/** Set up from line: <res> <code> <form> <chir> <ring> <name>
+  *                   0     1      2      3      4      5
+  * \return Residue name <res>
+  */
+std::string Exec_PrepareForLeap::SugarToken::SetFromLine(const char* lineIn) {
   ArgList line(lineIn, " ");
   if (line.Nargs() != 6) {
     mprinterr("Error: Expected 6 columns, got %i\n"
               "Error: %s\n", line.Nargs(), lineIn);
-    return 1;
+    return std::string("");
+  }
+  name_ = line[5];
+  glycamCode_ = line[1];
+  if (line[2] == "A")
+    form_ = ALPHA;
+  else if (line[2] == "B")
+    form_ = BETA;
+  else {
+    mprinterr("Error: Unrecognized form: %s\n"
+              "Error: Line: %s\n", line[2].c_str(), lineIn);
+    return std::string("");
+  }
+  if (line[3] == "D")
+    chir_ = IS_D;
+  else if (line[3] == "L")
+    chir_ = IS_L;
+  else {
+    mprinterr("Error: Unrecognized chirality: %s\n"
+              "Error: Line: %s\n", line[3].c_str(), lineIn);
+    return std::string("");
+  }
+  if (line[4] == "P")
+    ring_ = PYRANOSE;
+  else if (line[4] == "F")
+    ring_ = FURANOSE;
+  else {
+    mprinterr("Error: Unrecognized ring: %s\n"
+              "Error: Line: %s\n", line[4].c_str(), lineIn);
+    return std::string("");
   }
 
-  return 0;
+  return line[0];
 }
 // =============================================================================
 
