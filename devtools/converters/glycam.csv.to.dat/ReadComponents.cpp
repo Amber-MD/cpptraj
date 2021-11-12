@@ -263,7 +263,7 @@ int GenerateFile(std::string const& f_glycamnames, std::string const& f_resnames
 
   // Output
   CpptrajFile outfile;
-  if (outfile.OpenWrite("temp.dat")) return 1;
+  if (outfile.OpenWrite(f_outfile)) return 1;
   outfile.Printf("# This file contains the mapping from common PDB names to Glycam residue codes.\n");
   outfile.Printf("# Information obtained from mining the PDB chemical database (components.cif).\n");
   outfile.Printf("# Last updated %s\n", TimeString().c_str());
@@ -332,7 +332,7 @@ int ReadCIF(const char* fname) {
 
   //if (GetPdbCodesFromNames(cif)) return 1;
 
-  if (GenerateFile("GlycamNames.txt", "../../../dat/ResNames.sugar.dat", "", cif))
+  if (GenerateFile("GlycamNames.txt", "../../../dat/ResNames.sugar.dat", "temp.dat", cif))
     return 1;
 
 /*  FILE* direct_pdb_to_glycam = fopen("direct_pdb_to_glycam.dat", "wb");
