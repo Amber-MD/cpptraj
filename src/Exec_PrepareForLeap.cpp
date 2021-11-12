@@ -125,6 +125,16 @@ Exec_PrepareForLeap::SugarToken::SugarToken() :
   ring_(UNKNOWN_RING)
 {}
 
+/** CONSTRUCTOR - name, glycam code, form, chirality, ring type */
+Exec_PrepareForLeap::SugarToken::SugarToken(std::string const& fn, std::string const& gc,
+                                            FormTypeEnum ft, ChirTypeEnum ct, RingTypeEnum rt) :
+  name_(fn),
+  glycamCode_(gc),
+  form_(ft),
+  chir_(ct),
+  ring_(rt)
+{}
+
 /** Print token info to stdout. */
 void Exec_PrepareForLeap::SugarToken::PrintInfo(std::string const& resname) const {
   static const char* ringstr[] = {"pyranose", "furanose", "?"};
@@ -139,8 +149,8 @@ void Exec_PrepareForLeap::SugarToken::PrintInfo(std::string const& resname) cons
   *                   0     1      2      3      4      5
   * \return Residue name <res>
   */
-std::string Exec_PrepareForLeap::SugarToken::SetFromLine(const char* lineIn) {
-  ArgList line(lineIn, " ");
+std::string Exec_PrepareForLeap::SugarToken::SetFromLine(ArgList const& line) {
+  const char* lineIn = line.ArgLine();
   if (line.Nargs() != 6) {
     mprinterr("Error: Expected 6 columns, got %i\n"
               "Error: %s\n", line.Nargs(), lineIn);
@@ -300,11 +310,16 @@ int Exec_PrepareForLeap::LoadPdbResNames(std::string const& fnameIn)
 
 /** Load reduced interal PDB to Glycam map. */
 void Exec_PrepareForLeap::SetGlycamPdbResMap() {
-  pdb_to_glycam_.insert( PairType("NAG", 'Y') );
-  pdb_to_glycam_.insert( PairType("FUC", 'F') );
-  pdb_to_glycam_.insert( PairType("GAL", 'L') );
-  pdb_to_glycam_.insert( PairType("BMA", 'M') );
-  pdb_to_glycam_.insert( PairType("MAN", 'M') );
+  pdb_to_glycam_.insert( PairType("NAG",
+    SugarToken("2-acetamido-2-deoxy-beta-D-glucopyranose", "Y", BETA, IS_D, PYRANOSE)) );
+  pdb_to_glycam_.insert( PairType("FUC",
+    SugarToken("alpha-L-fucopyranose", "F", ALPHA, IS_L, FURANOSE)) );
+  pdb_to_glycam_.insert( PairType("GAL",
+    SugarToken("beta-D-galactopyranose", "L", BETA, IS_D, PYRANOSE)) );
+  pdb_to_glycam_.insert( PairType("BMA",
+    SugarToken("beta-D-mannopyranose", "M", BETA, IS_D, PYRANOSE)) );
+  pdb_to_glycam_.insert( PairType("MAN",
+    SugarToken("alpha-D-mannopyranose", "M", ALPHA, IS_D, PYRANOSE)) );
   // TODO internal atom name map
 }
 
@@ -351,7 +366,23 @@ int Exec_PrepareForLeap::LoadGlycamPdbResMap(std::string const& fnameIn)
     } else if (argline[0][0] != '#') {
       // Skipping comments, read sections
       if (section == PDB_RESMAP_SECTION) {
-        // "<Name>" <glycam reschar> <pdb resname list>
+        // OLD: "<Name>" <glycam reschar> <pdb resname list>
+        // NEW: <res> <glycam> <form> <chirality> <ring type> <full name>
+        SugarToken sToken;
+        std::string sResName = sToken.SetFromLine(argline);
+        if (sResName.empty()) {
+          mprinterr("Error: Could not parse residue map section of '%s'\n",
+                    infile.Filename().full());
+          return 1;
+        }
+        std::pair<MapType::iterator,bool> ret =
+          pdb_to_glycam_.insert( PairType(sResName, sToken) );
+        if (!ret.second) {
+          mprinterr("Error: Duplicate residue name '%s' in residue map section of '%s'\n",
+                    sResName.c_str(), infile.Filename().full());
+          return 1;
+        }
+/*
         if (argline.Nargs() != 3) {
           mprinterr("Error: Expected only 3 columns in '%s' res map section, got %i\n",
                     infile.Filename().full(), argline.Nargs());
@@ -366,7 +397,7 @@ int Exec_PrepareForLeap::LoadGlycamPdbResMap(std::string const& fnameIn)
         }
         // TODO handle glycam res names with > 1 char
         for (int n = 0; n < pdbnames.Nargs(); n++)
-          pdb_to_glycam_.insert( PairType(pdbnames[n], argline[1][0]) );
+          pdb_to_glycam_.insert( PairType(pdbnames[n], argline[1][0]) );*/
       } else if (section == PDB_ATOMMAP_SECTION) {
         // <glycam reschar list> <PDB atomname to glycam atomname pair> ...
         if (argline.Nargs() < 2) {
@@ -1370,16 +1401,19 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
   int rnum = sugar.ResNum(topIn);
   Residue& res = topIn.SetRes(rnum);
   // Try to ID the base sugar type from the input name.
-  char resChar = ' ';
+  //char resChar = ' ';
 
   MapType::const_iterator pdb_glycam = pdb_to_glycam_.find( res.Name() );
   if ( pdb_glycam == pdb_to_glycam_.end() ) { 
     mprinterr("Error: Could not identify sugar from residue name '%s'\n", *res.Name());
     return 1;
   }
-  resChar = pdb_glycam->second;
+  //resChar = pdb_glycam->second;
+  mprintf("DEBUG: ");
+  pdb_glycam->second.PrintInfo( pdb_glycam->first.Truncated() );
 
-  mprintf("\tSugar %s glycam name: %c\n", sugarName.c_str(), resChar);
+  mprintf("\tSugar %s glycam name: %s\n", sugarName.c_str(),
+          pdb_glycam->second.GlycamCode().c_str());
 
   // Determine alpha or beta and D or L
   bool isDform;
@@ -1399,6 +1433,8 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
   }
 
   // Change PDB names to Glycam ones
+  // FIXME get rid of resChar
+  char resChar = pdb_glycam->second.GlycamCode()[0];
   if (ChangePdbAtomNamesToGlycam(resChar, res, topIn, form)) {
     mprinterr("Error: Changing PDB atom names to Glycam failed.\n");
     return 1;

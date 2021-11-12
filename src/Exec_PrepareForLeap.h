@@ -122,9 +122,9 @@ class Exec_PrepareForLeap : public Exec {
     /// Run leap to generate topology, perform any modifications
     int RunLeap(std::string const&, std::string const&) const;
 
-    typedef std::pair<NameType, char> PairType;
-    typedef std::map<NameType, char> MapType;
-    MapType pdb_to_glycam_; ///< Map PDB residue names to Glycam 1 char names
+    typedef std::pair<NameType, SugarToken> PairType;
+    typedef std::map<NameType, SugarToken> MapType;
+    MapType pdb_to_glycam_; ///< Map PDB residue names to sugar information tokens
 
     typedef std::set<NameType> SetType;
     SetType pdb_res_names_; ///< PDB residue names recognized by Amber FFs
@@ -247,10 +247,18 @@ class Exec_PrepareForLeap::SugarToken {
   public:
     /// CONSTRUCTOR
     SugarToken();
+    /// CONSTRUCTOR - name, glycam code, form, chirality, ring type
+    SugarToken(std::string const&, std::string const&, FormTypeEnum, ChirTypeEnum, RingTypeEnum);
     /// /return <res>, set up from line: '<res> <code> <form> <chir> <ring> <name>'
-    std::string SetFromLine(const char*);
+    std::string SetFromLine(ArgList const&);
     /// Print token info to stdout
     void PrintInfo(std::string const&) const;
+
+    std::string const& FullName()   const { return name_; }
+    std::string const& GlycamCode() const { return glycamCode_; }
+    FormTypeEnum Form()             const { return form_; }
+    ChirTypeEnum Chirality()        const { return chir_; }
+    RingTypeEnum RingType()         const { return ring_; }
   private:
     std::string name_;       ///< Full sugar name
     //std::string resname_;    ///< PDB residue name
