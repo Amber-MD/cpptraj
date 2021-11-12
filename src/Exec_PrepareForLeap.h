@@ -22,6 +22,8 @@ class Exec_PrepareForLeap : public Exec {
     class Link;
     /// Hold information for the various functional group types (FunctionalGroupType)
     class FunctionalGroup;
+    /// Hold general info for a specific sugar
+    class SugarToken;
 
     typedef std::vector<int> Iarray;
     /// Return type for DetermineAnomericForm
@@ -30,6 +32,16 @@ class Exec_PrepareForLeap : public Exec {
     enum ResStatType { UNKNOWN = 0, VALIDATED, UNRECOGNIZED_SUGAR_LINKAGE, SUGAR_MISSING_C1X,
                        SUGAR_SETUP_FAILED };
     typedef std::vector<ResStatType> ResStatArray;
+
+    /// Base ring type
+    enum RingTypeEnum { PYRANOSE = 0,  ///< Ring is 5 carbons, 1 oxygen
+                        FURANOSE,      ///< Ring is 4 carbons, 1 oxygen
+                        UNKNOWN_RING   ///< Some unknown ring type
+                  };
+    /// Sugar form
+    enum FormTypeEnum { ALPHA = 0, BETA, UNKNOWN_FORM };
+    /// Sugar chirality
+    enum ChirTypeEnum { IS_D, IS_L, UNKNOWN_CHIR };
 
     /// Keep synced with FunctionalGroupType
     static const char* FunctionalGroupStr_[];
@@ -150,11 +162,7 @@ class Exec_PrepareForLeap : public Exec {
 // ----- Sugar class ----------------------------------------------------------
 class Exec_PrepareForLeap::Sugar {
   public:
-    /// Base ring type
-    enum RingTypeEnum { PYRANOSE = 0,  ///< Ring is 5 carbons, 1 oxygen
-                        FURANOSE,      ///< Ring is 4 carbons, 1 oxygen
-                        UNKNOWN_RING   ///< Some unknown ring type
-                  };
+
     /// Sugar status. Keep synced with StatTypeStr_
     enum StatType { SETUP_OK = 0,    ///< Regular sugar, setup complete
                     MISSING_O,       ///< Could not find ring oxygen
@@ -234,4 +242,20 @@ class Exec_PrepareForLeap::FunctionalGroup {
     Atom::AtomicElementType chargeAtom_; ///< Element of atom which needs charge adjusted.
     double chargeOffset_;                ///< Charge offset for adjusting charge.
 };
+// ----- SugarToken class ------------------------------------------------------
+class Exec_PrepareForLeap::SugarToken {
+  public:
+    /// CONSTRUCTOR
+    SugarToken();
+    /// Construct from line: <res> <code> <form> <chir> <ring> <name>
+    int SetFromLine(const char*);
+  private:
+    std::string name_;       ///< Full sugar name
+    std::string resname_;    ///< PDB residue name
+    std::string glycamCode_; ///< Glycam residue code
+    FormTypeEnum form_;      ///< Sugar form
+    ChirTypeEnum chir_;      ///< Sugar chirality
+    RingTypeEnum ring_;      ///< Sugar ring type
+};
+
 #endif

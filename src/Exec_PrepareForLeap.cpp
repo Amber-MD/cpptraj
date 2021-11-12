@@ -117,6 +117,25 @@ void Exec_PrepareForLeap::Sugar::RemapIndices(Iarray const& atomMap, int at0, in
     *it = find_new_idx(*it, atomMap, at0, at1); //atomMap[*it];
 }
 
+// ===== SugarToken class ======================================================
+/** CONSTRUCTOR */
+Exec_PrepareForLeap::SugarToken::SugarToken() :
+  form_(UNKNOWN_FORM),
+  chir_(UNKNOWN_CHIR),
+  ring_(UNKNOWN_RING)
+{}
+
+/** Set up from line: <res> <code> <form> <chir> <ring> <name> */
+int Exec_PrepareForLeap::SugarToken::SetFromLine(const char* lineIn) {
+  ArgList line(lineIn, " ");
+  if (line.Nargs() != 6) {
+    mprinterr("Error: Expected 6 columns, got %i\n"
+              "Error: %s\n", line.Nargs(), lineIn);
+    return 1;
+  }
+
+  return 0;
+}
 // =============================================================================
 
 /** CONSTRUCTOR */
@@ -1324,7 +1343,7 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar const& sugar, Topology& topIn,
   bool isDform;
   std::string formStr;
   AnomerRetType form;
-  if (sugar.RingType() == Sugar::FURANOSE)
+  if (sugar.RingType() == FURANOSE)
     form = DetermineUpOrDown(isDform, formStr, sugar, topIn, frameIn);
   else
     form = DetermineAnomericForm(isDform, formStr, sugar, topIn, frameIn);
