@@ -119,6 +119,7 @@ void Loops(CIFfile const& cif, Sarray const& prefixes, Sarray const& suffixes,
 
 /** Get PDB codes from sugar names */
 int GetPdbCodesFromNames(CIFfile& cif) {
+  printf("Getting PDB codes from sugar names.\n");
   Sarray prefixes; Sarray glycam;
   prefixes.push_back("arabino"); glycam.push_back("A"); // A
   prefixes.push_back("lyxo"); glycam.push_back("D"); // D
@@ -207,6 +208,7 @@ int CreateDirectPdbToGlycam(FILE* direct_pdb_to_glycam, CIFfile const& cif) {
 int GenerateFile(std::string const& f_glycamnames, std::string const& f_resnames,
                  std::string const& f_outfile, CIFfile const& cif)
 {
+  printf("Creating glycam dat file.\n");
   typedef std::pair<std::string, std::string> Spair;
   //typedef std::map<std::string, std::string> Smap;
   // Use a vector to keep the ordering in the GlycamNames.txt file.
@@ -316,12 +318,22 @@ int GenerateFile(std::string const& f_glycamnames, std::string const& f_resnames
     
 
 /** Read everything from the given CIF file. */
-int ReadCIF(const char* fname) {
+int ReadCIF(const char* fname, std::string const& modeStr) {
   int err = 0;
 
+  int mode = -1;
+  if (modeStr == "--generatedat")
+    mode = 0;
+  else if (modeStr == "--generatenames")
+    mode = 1;
+  else {
+    fprintf(stderr,"Error: Specify --generatedat or --generatenames.\n");
+    return 1;
+  }
+
+  printf("Reading CIF file '%s'\n", fname);
   CIFfile cif;
   if (cif.Read(fname, 0)) return 1;
-
 
   // DEBUG
 //  //CIFfile::DataBlock lastBlock = cif.GetDataBlock("_chem_comp");
@@ -329,11 +341,10 @@ int ReadCIF(const char* fname) {
 //                                                                "name",
 //                                                                "alpha-D-arabinopyranose");
 //  lastBlock.ListData();
-
-  //if (GetPdbCodesFromNames(cif)) return 1;
-
-  if (GenerateFile("GlycamNames.txt", "../../../dat/ResNames.sugar.dat", "temp.dat", cif))
-    return 1;
+  if (mode == 1)
+    err = GetPdbCodesFromNames(cif);
+  else if (mode == 0)
+    err = GenerateFile("GlycamNames.txt", "../../../dat/ResNames.sugar.dat", "temp.dat", cif);
 
 /*  FILE* direct_pdb_to_glycam = fopen("direct_pdb_to_glycam.dat", "wb");
   if (direct_pdb_to_glycam == 0) {
@@ -346,6 +357,9 @@ int ReadCIF(const char* fname) {
 }
 
 int main(int argc, char** argv) {
-  if (ReadCIF("components.cif")) return 1;
+  std::string mode = "--generatedat";
+  if (argc > 1)
+    mode.assign(argv[1]);
+  if (ReadCIF("components.cif", mode)) return 1;
   return 0;
 }
