@@ -26,8 +26,6 @@ class Exec_PrepareForLeap : public Exec {
     class SugarToken;
 
     typedef std::vector<int> Iarray;
-    /// Return type for DetermineAnomericForm
-    enum AnomerRetType { A_ERR = 0, A_WARNING, IS_ALPHA, IS_BETA };
     enum FunctionalGroupType { G_SO3 = 0, G_CH3, G_ACX, G_OH, G_OME, UNRECOGNIZED_GROUP };
     enum ResStatType { UNKNOWN = 0, VALIDATED, UNRECOGNIZED_SUGAR_LINKAGE, SUGAR_MISSING_C1X,
                        SUGAR_SETUP_FAILED };
@@ -45,6 +43,12 @@ class Exec_PrepareForLeap : public Exec {
 
     /// Keep synced with FunctionalGroupType
     static const char* FunctionalGroupStr_[];
+    /// Keep synced with RingTypeEnum
+    static const char* ringstr_[];
+    /// Keep synced with FormTypeEnum
+    static const char* formstr_[];
+    /// Keep synced with ChirTypeEnum
+    static const char* chirstr_[];
 
     inline void ChangeResName(Residue&, NameType const&) const;
     inline void ChangeAtomName(Atom&, NameType const&) const;
@@ -76,18 +80,18 @@ class Exec_PrepareForLeap : public Exec {
     /// \return Sugar with atom indices set up
     Sugar IdSugarRing(int, Topology const&) const;
     /// Change PDB atom names to Glycam names
-    int ChangePdbAtomNamesToGlycam(char, Residue const&, Topology&, AnomerRetType) const;
-    /// \return If furanose is up or down
-    AnomerRetType DetermineUpOrDown(bool&, std::string&, Sugar const&, Topology const&, Frame const&) const;
-    /// \return Anomeric form of the sugar
-    AnomerRetType DetermineAnomericForm(bool&, std::string&, Sugar const&, Topology const&, Frame const&) const;
+    int ChangePdbAtomNamesToGlycam(char, Residue const&, Topology&, FormTypeEnum) const;
+    /// Determine form/chirality for furanose
+    int DetermineUpOrDown(SugarToken&, Sugar const&, Topology const&, Frame const&) const;
+    /// Determine form/chirliaty for pyranose 
+    int DetermineAnomericForm(SugarToken&, Sugar&, Topology const&, Frame const&) const;
     /// \return Glycam linkage code for given link atoms
     std::string GlycamLinkageCode(std::set<Link> const&, Topology const&) const;
     /// Determine linkages for the sugar
     std::string DetermineSugarLinkages(Sugar const&, CharMask const&, Topology&, ResStatArray&,
                                        CpptrajFile*, std::set<BondType>&) const;
     /// Try to identify sugar name, form, and linkages
-    int IdentifySugar(Sugar const&, Topology&, Frame const&, CharMask const&, CpptrajFile*, std::set<BondType>&);
+    int IdentifySugar(Sugar&, Topology&, Frame const&, CharMask const&, CpptrajFile*, std::set<BondType>&);
     /// Try to find missing linkages to anomeric carbon in sugar.
     int FindSugarC1Linkages(int, int, Topology&, Frame const&) const;
     /// \return identity of the group bonded to given atom
@@ -102,7 +106,7 @@ class Exec_PrepareForLeap : public Exec {
     int FixSugarsStructure(std::vector<Sugar>&, std::string const&, Topology&, Frame&,
                            bool, bool) const;
 
-    int PrepareSugars(std::string const&, std::vector<Sugar> const&, Topology&, Frame const&, CpptrajFile*);
+    int PrepareSugars(std::string const&, std::vector<Sugar>&, Topology&, Frame const&, CpptrajFile*);
     int FindTerByBonds(Topology&, CharMask const&) const;
     int SearchForDisulfides(double, std::string const&, std::string const&, bool,
                             Topology&, Frame const&, CpptrajFile*);
@@ -169,7 +173,8 @@ class Exec_PrepareForLeap::Sugar {
                     MULTIPLE_O,      ///< Multiple potential ring oxygen atoms
                     MISSING_CHAIN,   ///< Could not find all chain carbons
                     MISSING_ANO_REF, ///< Missing anomeric reference atom
-                    MISSING_CONFIG   ///< Missing configurational carbon
+                    MISSING_CONFIG,  ///< Missing configurational carbon
+                    MISSING_C1X      ///< Missing C1 X substituent
                   };
     /// CONSTRUCTOR - Status and residue first atom, incomplete setup
     Sugar(StatType, int);
@@ -196,6 +201,8 @@ class Exec_PrepareForLeap::Sugar {
     void PrintInfo(Topology const&) const;
     /// Remap internal indices according to given atom map.
     void RemapIndices(Iarray const&, int, int);
+
+    void SetStatus(StatType s) { stat_ = s; }
   private:
     /// Strings corresponding to StatType
     static const char* StatTypeStr_[];
@@ -249,6 +256,8 @@ class Exec_PrepareForLeap::SugarToken {
     SugarToken();
     /// CONSTRUCTOR - name, glycam code, form, chirality, ring type
     SugarToken(std::string const&, std::string const&, FormTypeEnum, ChirTypeEnum, RingTypeEnum);
+    /// CONSTRUCTOR - ring type
+    SugarToken(RingTypeEnum);
     /// /return <res>, set up from line: '<res> <code> <form> <chir> <ring> <name>'
     std::string SetFromLine(ArgList const&);
     /// Print token info to stdout
@@ -259,6 +268,10 @@ class Exec_PrepareForLeap::SugarToken {
     FormTypeEnum Form()             const { return form_; }
     ChirTypeEnum Chirality()        const { return chir_; }
     RingTypeEnum RingType()         const { return ring_; }
+
+    void SetChirality(ChirTypeEnum c) { chir_ = c; }
+    void SetForm(FormTypeEnum f)      { form_ = f; }
+    void SetRingType(RingTypeEnum r)  { ring_ = r; }
   private:
     std::string name_;       ///< Full sugar name
     //std::string resname_;    ///< PDB residue name
