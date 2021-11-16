@@ -27,7 +27,11 @@ class Exec_PrepareForLeap : public Exec {
 
     typedef std::vector<int> Iarray;
     enum FunctionalGroupType { G_SO3 = 0, G_CH3, G_ACX, G_OH, G_OME, UNRECOGNIZED_GROUP };
-    enum ResStatType { UNKNOWN = 0, VALIDATED, UNRECOGNIZED_SUGAR_LINKAGE, SUGAR_MISSING_C1X,
+    enum ResStatType { UNKNOWN = 0,
+                       VALIDATED,
+                       SUGAR_UNRECOGNIZED_LINK_RES,
+                       SUGAR_UNRECOGNIZED_LINKAGE,
+                       SUGAR_MISSING_C1X,
                        SUGAR_SETUP_FAILED };
     typedef std::vector<ResStatType> ResStatArray;
 

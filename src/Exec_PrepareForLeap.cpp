@@ -1350,7 +1350,7 @@ const
             resStatIn[topIn[*bat].ResNum()] = VALIDATED;
           } else {
             mprintf("Warning: Unrecognized link residue %s, not modifying name.\n", *pres.Name());
-            resStatIn[topIn[*bat].ResNum()] = UNRECOGNIZED_SUGAR_LINKAGE;
+            resStatIn[topIn[*bat].ResNum()] = SUGAR_UNRECOGNIZED_LINK_RES;
           }
         } else {
           // Atom is bonded to sugar residue
@@ -1522,7 +1522,7 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar& sugarIn, Topology& topIn,
   std::string linkcode = DetermineSugarLinkages(sugar, cmask, topIn, resStat_,
                                                 outfile, sugarBondsToRemove);
   if (linkcode.empty()) {
-    resStat_[rnum] = UNRECOGNIZED_SUGAR_LINKAGE;
+    resStat_[rnum] = SUGAR_UNRECOGNIZED_LINKAGE;
     mprintf("Warning: Determination of sugar linkages failed.\n");
     return 0;
   }
@@ -3245,8 +3245,11 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
                 msg, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
       else
         *it = VALIDATED;
-    } else if ( *it == UNRECOGNIZED_SUGAR_LINKAGE ) {
+    } else if ( *it == SUGAR_UNRECOGNIZED_LINK_RES ) {
         mprintf("\t%s%s is linked to a sugar but has no sugar-linkage form.\n",
+                msg, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
+    } else if ( *it == SUGAR_UNRECOGNIZED_LINKAGE ) {
+        mprintf("\t%s%s is a sugar with an unrecognized linkage.\n",
                 msg, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
     } else if ( *it == SUGAR_MISSING_C1X ) {
         mprintf("\t%s%s Sugar is missing anomeric carbon substituent and cannot be identified.\n",
