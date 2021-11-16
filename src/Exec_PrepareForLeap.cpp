@@ -1402,10 +1402,10 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar& sugarIn, Topology& topIn,
 {
   Sugar const& sugar = sugarIn;
   const std::string sugarName = topIn.TruncResNameOnumId(sugar.ResNum(topIn));
-  if (sugar.NotSet()) {
-    mprintf("Warning: Sugar %s is not set up. Skipping sugar identification.\n", sugarName.c_str());
-    return 0; // TODO return 1?
-  }
+  //if (sugar.NotSet()) {
+  //  mprintf("Warning: Sugar %s is not set up. Skipping sugar identification.\n", sugarName.c_str());
+  //  return 0; // TODO return 1?
+  //}
 
   int rnum = sugar.ResNum(topIn);
   Residue& res = topIn.SetRes(rnum);
@@ -1424,20 +1424,24 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar& sugarIn, Topology& topIn,
   mprintf("\tSugar %s glycam name: %s\n", sugarName.c_str(),
           pdb_glycam->second.GlycamCode().c_str());
 
-  SugarToken sugarInfo(sugar.RingType());
+  SugarToken sugarInfo;
+  int detect_err = 1;
 
-  // Determine alpha or beta and D or L
-  int detect_err;
-  if (sugarInfo.RingType() == FURANOSE)
-    detect_err = DetermineUpOrDown(sugarInfo, sugar, topIn, frameIn);
-  else if (sugarInfo.RingType() == PYRANOSE)
-    detect_err = DetermineAnomericForm(sugarInfo, sugarIn, topIn, frameIn);
-  else
-    detect_err = 1;
-  // Modify resStat_ based on sugar status
-  if (sugar.Status() == Sugar::MISSING_C1X) {
-    // Sugar missing C1-X substituent, non-fatal
-    resStat_[rnum] = SUGAR_MISSING_C1X;
+  if (!sugar.NotSet()) {
+    sugarInfo = SugarToken(sugar.RingType());
+
+    // Determine alpha or beta and D or L
+    if (sugarInfo.RingType() == FURANOSE)
+      detect_err = DetermineUpOrDown(sugarInfo, sugar, topIn, frameIn);
+    else if (sugarInfo.RingType() == PYRANOSE)
+      detect_err = DetermineAnomericForm(sugarInfo, sugarIn, topIn, frameIn);
+    else
+      detect_err = 1;
+    // Modify resStat_ based on sugar status
+    if (sugar.Status() == Sugar::MISSING_C1X) {
+      // Sugar missing C1-X substituent, non-fatal
+      resStat_[rnum] = SUGAR_MISSING_C1X;
+    }
   }
 
   if (detect_err != 0) {
@@ -2099,10 +2103,10 @@ int Exec_PrepareForLeap::PrepareSugars(std::string const& sugarmaskstr,
     {
       Sugar const& sugar = Sugars[sidx];
       Sugar& sugarIn = Sugars[sidx];
-      if (sugar.NotSet()) {
-        resStat_[sugar.ResNum(topIn)] = SUGAR_SETUP_FAILED;
-        continue;
-      }
+      //if (sugar.NotSet()) {
+      //  resStat_[sugar.ResNum(topIn)] = SUGAR_SETUP_FAILED;
+      //  continue;
+      //}
       // See if we recognize this sugar.
       if (IdentifySugar(sugarIn, topIn, frameIn, cmask, outfile, sugarBondsToRemove))
       {
