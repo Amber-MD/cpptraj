@@ -3237,6 +3237,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   mprintf("\tLEaP input containing 'loadpdb' and bond commands for disulfides,\n"
           "\t  sugars, etc will be written to '%s'\n", outfile->Filename().full());
   // Add the loadpdb command if we are writing a PDB file.
+  // TODO add 'addPdbResMap { { 1 "NH2" "NHE" } }' to recognize NHE?
   if (!pdbout.empty())
     outfile->Printf("%s = loadpdb %s\n", leapunitname_.c_str(), pdbout.c_str());
 
