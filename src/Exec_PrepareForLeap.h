@@ -32,6 +32,7 @@ class Exec_PrepareForLeap : public Exec {
                        SUGAR_UNRECOGNIZED_LINK_RES,
                        SUGAR_UNRECOGNIZED_LINKAGE,
                        SUGAR_NO_LINKAGE,
+                       SUGAR_NO_CHAIN_FOR_LINK,
                        SUGAR_MISSING_C1X,
                        SUGAR_SETUP_FAILED };
     typedef std::vector<ResStatType> ResStatArray;

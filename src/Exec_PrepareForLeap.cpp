@@ -1312,6 +1312,15 @@ const
   int rnum = sugar.ResNum(topIn);
   Residue const& res = topIn.SetRes(rnum);
 
+  // If we haven't identified carbon chain atoms we can't determine their
+  // position and therefore the link code.
+  if (sugar.ChainAtoms().empty()) {
+    mprinterr("Error: No chain atoms determined for '%s', cannot determine link positions.\n",
+              topIn.TruncResNameOnumId(rnum).c_str());
+    resStatIn[rnum] = SUGAR_NO_CHAIN_FOR_LINK;
+    return std::string("");
+  }
+
   // Use set to store link atoms so it is ordered by position
   std::set<Link> linkages;
 
@@ -1527,14 +1536,6 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar& sugarIn, Topology& topIn,
             sugarName.c_str(), ringstr_[sugarInfo.RingType()],
             ringstr_[pdb_glycam->second.RingType()]);
 
-  // Change PDB names to Glycam ones
-  // FIXME get rid of resChar
-  char resChar = pdb_glycam->second.GlycamCode()[0];
-  if (ChangePdbAtomNamesToGlycam(resChar, res, topIn, sugarInfo.Form())) {
-    mprinterr("Error: Changing PDB atom names to Glycam failed.\n");
-    return 1;
-  }
-
   // Get glycam form string
   std::string formStr;
   if (sugarInfo.RingType() == PYRANOSE) {
@@ -1565,6 +1566,14 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar& sugarIn, Topology& topIn,
     //resStat_[rnum] = SUGAR_UNRECOGNIZED_LINKAGE;
     mprintf("Warning: Determination of sugar linkages failed.\n");
     return 0;
+  }
+
+  // Change PDB names to Glycam ones
+  // FIXME get rid of resChar
+  char resChar = pdb_glycam->second.GlycamCode()[0];
+  if (ChangePdbAtomNamesToGlycam(resChar, res, topIn, sugarInfo.Form())) {
+    mprinterr("Error: Changing PDB atom names to Glycam failed.\n");
+    return 1;
   }
 
   // Modify residue char to indicate L form if necessary.
@@ -3297,6 +3306,10 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
         fatal_errors++;
     } else if ( *it == SUGAR_NO_LINKAGE ) {
         mprintf("\t%s%s is a sugar with no linkages.\n",
+                msg2, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
+        fatal_errors++;
+    } else if ( *it == SUGAR_NO_CHAIN_FOR_LINK ) {
+        mprintf("\t%s%s could not identify chain atoms for determining linkages.\n",
                 msg2, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
         fatal_errors++;
     } else if ( *it == SUGAR_MISSING_C1X ) {
