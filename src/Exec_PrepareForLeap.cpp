@@ -3242,7 +3242,9 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 
   // Residue validation.
   //mprintf("\tResidues with potential problems:\n");
-  static const char* msg = "Potential problem: ";
+  int fatal_errors = 0;
+  static const char* msg1 = "Potential problem : ";
+  static const char* msg2 = "Fatal problem     : ";
   for (ResStatArray::iterator it = resStat_.begin(); it != resStat_.end(); ++it)
   {
     //if ( *it == VALIDATED )
@@ -3253,24 +3255,29 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       SetType::const_iterator pname = pdb_res_names_.find( topIn.Res(it-resStat_.begin()).Name() );
       if (pname == pdb_res_names_.end())
         mprintf("\t%s%s is an unrecognized name and may not have parameters.\n",
-                msg, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
+                msg1, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
       else
         *it = VALIDATED;
     } else if ( *it == SUGAR_UNRECOGNIZED_LINK_RES ) {
         mprintf("\t%s%s is linked to a sugar but has no sugar-linkage form.\n",
-                msg, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
+                msg2, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
+        fatal_errors++;
     } else if ( *it == SUGAR_UNRECOGNIZED_LINKAGE ) {
         mprintf("\t%s%s is a sugar with an unrecognized linkage.\n",
-                msg, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
+                msg2, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
+        fatal_errors++;
     } else if ( *it == SUGAR_NO_LINKAGE ) {
         mprintf("\t%s%s is a sugar with no linkages.\n",
-                msg, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
+                msg2, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
+        fatal_errors++;
     } else if ( *it == SUGAR_MISSING_C1X ) {
         mprintf("\t%s%s Sugar is missing anomeric carbon substituent and cannot be identified.\n",
-                msg, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
+                msg2, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
+        fatal_errors++;
     } else if ( *it == SUGAR_SETUP_FAILED ) {
         mprintf("\t%s%s Sugar setup failed and could not be identified.\n",
-                msg, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
+                msg2, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
+        fatal_errors++;
     }
   }
 
@@ -3324,6 +3331,17 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   outfile->CloseFile();
+
+  if (fatal_errors > 0) {
+    if (errorsAreFatal_) {
+      mprinterr("Error: %i errors were encountered that will prevent LEaP from running successfully.\n", fatal_errors);
+      return CpptrajState::ERR;
+    } else {
+      mprintf("Warning: %i errors were encountered that will prevent LEaP from running successfully.\n", fatal_errors);
+      mprintf("Warning: Continuing on anyway, but final structure **NEEDS VALIDATION**.\n");
+    }
+  }
+
   if (!leapffname.empty()) {
     if (RunLeap( leapffname, leapfilename )) {
       mprinterr("Error: Running leap failed.\n");
