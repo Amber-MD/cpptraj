@@ -32,6 +32,26 @@ Exec_PrepareForLeap::Sugar::Sugar(StatType status, int firstat) :
   ringType_(UNKNOWN_RING)
 {}
 
+/** CONSTRUCTOR - Partial setup; ring O, anomeric atom, ring and chain atoms. */
+Exec_PrepareForLeap::Sugar::Sugar(StatType status, int roa, int aa,
+                                  Iarray const& RA, Iarray const& CA) :
+  stat_(status),
+  ring_oxygen_atom_(roa),
+  anomeric_atom_(aa),
+  ano_ref_atom_(-1),
+  highest_stereocenter_(-1),
+  ringType_(UNKNOWN_RING),
+  ring_atoms_(RA),
+  chain_atoms_(CA)
+{
+  if (ring_oxygen_atom_ != -1) {
+    if (RA.size() == 5)
+      ringType_ = PYRANOSE;
+    else if (RA.size() == 4)
+      ringType_ = FURANOSE;
+  }
+}
+
 /** CONSTRUCTOR - Set ring atom indices and ring type. */
 Exec_PrepareForLeap::Sugar::Sugar(int roa, int aa, int ara, int hs,
                                   Iarray const& RA, Iarray const& CA) :
@@ -68,28 +88,34 @@ void Exec_PrepareForLeap::Sugar::PrintInfo(Topology const& topIn) const {
     mprintf("\t%s : Not Set. %s\n", topIn.TruncResNameOnumId(ResNum(topIn)).c_str(),
             StatTypeStr_[stat_]);
   } else {
-    mprintf("\t%s :\n", topIn.TruncResNameOnumId(ResNum(topIn)).c_str());
-    mprintf("\t\tRing O           : %s\n", topIn.TruncAtomNameNum(ring_oxygen_atom_).c_str());
-    mprintf("\t\tAnomeric C       : %s\n", topIn.TruncAtomNameNum(anomeric_atom_).c_str());
-    mprintf("\t\tAnomeric ref. C  : %s\n", topIn.TruncAtomNameNum(ano_ref_atom_).c_str());
-    mprintf("\t\tConfig. C        : %s\n", topIn.TruncAtomNameNum(highest_stereocenter_).c_str());
-    mprintf("\t\tNum ring atoms   : %u\n", NumRingAtoms());
-    static const char* RingPrefixStr[] = { "Hexo", "Pento", "Other" };
-    int rpsidx = 2;
-    if (chain_atoms_.size() == 6)
-      rpsidx = 0;
-    else if (chain_atoms_.size() == 5)
-      rpsidx = 1;
-    static const char* RingTypeStr[] = { "Pyranose", "Furanose", "Unknown" };
-    mprintf("\t\tRing Type        : %s%s\n", RingPrefixStr[rpsidx], RingTypeStr[ringType_]);
-    mprintf("\t\tNon-O Ring atoms :");
-    for (Iarray::const_iterator it = ring_atoms_.begin(); it != ring_atoms_.end(); ++it)
-      mprintf(" %s", topIn.TruncAtomNameNum(*it).c_str());
-    mprintf("\n\t\tChain atoms      :");
-    for (Iarray::const_iterator it = chain_atoms_.begin(); it != chain_atoms_.end(); ++it)
-      mprintf(" %s", topIn.TruncAtomNameNum(*it).c_str());
-    mprintf("\n");
+    mprintf("\t%s : %s\n", topIn.TruncResNameOnumId(ResNum(topIn)).c_str(),
+            StatTypeStr_[stat_]);
   }
+  //mprintf("\t%s :\n", topIn.TruncResNameOnumId(ResNum(topIn)).c_str());
+  if (ring_oxygen_atom_ != -1)
+    mprintf("\t\tRing O           : %s\n", topIn.TruncAtomNameNum(ring_oxygen_atom_).c_str());
+  if (anomeric_atom_ != -1)
+    mprintf("\t\tAnomeric C       : %s\n", topIn.TruncAtomNameNum(anomeric_atom_).c_str());
+  if (ano_ref_atom_ != -1)
+    mprintf("\t\tAnomeric ref. C  : %s\n", topIn.TruncAtomNameNum(ano_ref_atom_).c_str());
+  if (highest_stereocenter_ != -1)
+    mprintf("\t\tConfig. C        : %s\n", topIn.TruncAtomNameNum(highest_stereocenter_).c_str());
+  mprintf("\t\tNum ring atoms   : %u\n", NumRingAtoms());
+  static const char* RingPrefixStr[] = { "Hexo", "Pento", "Other" };
+  int rpsidx = 2;
+  if (chain_atoms_.size() == 6)
+    rpsidx = 0;
+  else if (chain_atoms_.size() == 5)
+    rpsidx = 1;
+  static const char* RingTypeStr[] = { "Pyranose", "Furanose", "Unknown" };
+  mprintf("\t\tRing Type        : %s%s\n", RingPrefixStr[rpsidx], RingTypeStr[ringType_]);
+  mprintf("\t\tNon-O Ring atoms :");
+  for (Iarray::const_iterator it = ring_atoms_.begin(); it != ring_atoms_.end(); ++it)
+    mprintf(" %s", topIn.TruncAtomNameNum(*it).c_str());
+  mprintf("\n\t\tChain atoms      :");
+  for (Iarray::const_iterator it = chain_atoms_.begin(); it != chain_atoms_.end(); ++it)
+    mprintf(" %s", topIn.TruncAtomNameNum(*it).c_str());
+  mprintf("\n");
 }
 
 /** \return Number of ring atoms (including oxygen) */
@@ -110,11 +136,14 @@ inline static int find_new_idx(int oldidx, std::vector<int> const& atomMap, int 
 void Exec_PrepareForLeap::Sugar::RemapIndices(Iarray const& atomMap, int at0, int at1) {
   // Always try the anomeric atom
   anomeric_atom_ = find_new_idx(anomeric_atom_, atomMap, at0, at1); //atomMap[anomeric_atom_];
-  if (NotSet()) return;
+  //if (NotSet()) return;
   //mprintf("DEBUG: Ring O old = %i ring O new %i\n", ring_oxygen_atom_+1, atomMap[ring_oxygen_atom_]+1);
-  ring_oxygen_atom_     = find_new_idx(ring_oxygen_atom_, atomMap, at0, at1); //atomMap[ring_oxygen_atom_];
-  ano_ref_atom_         = find_new_idx(ano_ref_atom_, atomMap, at0, at1); //atomMap[ano_ref_atom_];
-  highest_stereocenter_ = find_new_idx(highest_stereocenter_, atomMap, at0, at1); //atomMap[highest_stereocenter_];
+  if (ring_oxygen_atom_ != -1)
+    ring_oxygen_atom_     = find_new_idx(ring_oxygen_atom_, atomMap, at0, at1); //atomMap[ring_oxygen_atom_];
+  if (ano_ref_atom_ != -1)
+    ano_ref_atom_         = find_new_idx(ano_ref_atom_, atomMap, at0, at1); //atomMap[ano_ref_atom_];
+  if (highest_stereocenter_ != -1)
+    highest_stereocenter_ = find_new_idx(highest_stereocenter_, atomMap, at0, at1); //atomMap[highest_stereocenter_];
   for (Iarray::iterator it = ring_atoms_.begin(); it != ring_atoms_.end(); ++it)
     *it = find_new_idx(*it, atomMap, at0, at1); //atomMap[*it];
   for (Iarray::iterator it = chain_atoms_.begin(); it != chain_atoms_.end(); ++it)
@@ -1033,11 +1062,11 @@ const
 
   if (ano_ref_atom == -1) {
     mprinterr("Error: Anomeric reference atom could not be identified.\n");
-    return Sugar(Sugar::MISSING_ANO_REF, res.FirstAtom());
+    return Sugar(Sugar::MISSING_ANO_REF, ring_oxygen_atom, anomeric_atom, RA, carbon_chain);
   }
   if (highest_stereocenter == -1) {
     mprinterr("Error: Highest stereocenter atom could not be identified.\n");
-    return Sugar(Sugar::MISSING_CONFIG, res.FirstAtom());
+    return Sugar(Sugar::MISSING_CONFIG, ring_oxygen_atom, anomeric_atom, RA, carbon_chain);
   }
 
 //  if (!ring_complete || RA.empty() || ring_oxygen_atom == -1) {
@@ -2971,7 +3000,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       // DEBUG - print residue name map
       mprintf("\tResidue name map:\n");
       for (MapType::const_iterator mit = pdb_to_glycam_.begin(); mit != pdb_to_glycam_.end(); ++mit)
-        mprintf("\t  %4s -> %c\n", *(mit->first), mit->second);
+        mprintf("\t  %4s -> %s\n", *(mit->first), mit->second.GlycamCode().c_str());
       // DEBUG - print atom name maps
       mprintf("\tRes char to atom map index map:\n");
       for (ResIdxMapType::const_iterator mit = glycam_res_idx_map_.begin(); mit != glycam_res_idx_map_.end(); ++mit)

@@ -183,6 +183,8 @@ class Exec_PrepareForLeap::Sugar {
                   };
     /// CONSTRUCTOR - Status and residue first atom, incomplete setup
     Sugar(StatType, int);
+    /// CONSTRUCTOR - Status, ring O, anomeric, ring atoms, chain atoms, incomplete setup
+    Sugar(StatType, int, int, Iarray const&,Iarray const&);
     /// CONSTRUCTOR - ring O, Anomeric, Anomeric Ref, Highest Sterocenter, ring atoms, chain atoms
     Sugar(int,int,int,int,Iarray const&,Iarray const&);
 
@@ -200,7 +202,7 @@ class Exec_PrepareForLeap::Sugar {
 //    const_iterator ringbegin() const { return ring_atoms_.begin(); }
 //    const_iterator ringend()   const { return ring_atoms_.end(); }
 
-    bool NotSet() const { return (ring_oxygen_atom_ < 0); }
+    bool NotSet() const { return (stat_ != SETUP_OK); }
     /// \return Number of ring atoms
     unsigned int NumRingAtoms() const;
     void PrintInfo(Topology const&) const;
