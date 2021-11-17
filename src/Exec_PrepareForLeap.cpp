@@ -1292,8 +1292,10 @@ const
   // Loop over sugar atoms
   for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
   {
-    // Ignore the sugar oxygen
-    if (at == sugar.RingOxygenAtom()) continue;
+    // Ignore the sugar oxygen and any hydrogen atoms
+    if (at == sugar.RingOxygenAtom() ||
+        topIn[at].Element() == Atom::HYDROGEN)
+      continue;
     // This will be the index of the carbon that is atom is bonded to (or of this atom itself).
     int atomChainPosition = -1;
     // Find position in carbon chain
