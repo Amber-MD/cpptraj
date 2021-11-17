@@ -611,10 +611,10 @@ const
     // not found this usually means missing inter-residue bond.
     // Alternatively, this could be an isolated sugar missing an -OH
     // group, so make this non-fatal.
-    mprintf("Warning: Anomeric C non-ring substituent could not be identified.\n"
-            "Warning: This can happen if the sugar is bonded to something that\n"
-            "Warning:  is missing, e.g. a -OH group. In that case the coordinates\n"
-            "Warning   for the missing atoms may need to be generated.\n");
+    mprintf("Warning: Anomeric C non-ring substituent could not be identified.\n");
+    //        "Warning: This can happen if the sugar is bonded to something that\n"
+    //        "Warning:  is missing, e.g. a -OH group. In that case the coordinates\n"
+    //        "Warning   for the missing atoms may need to be generated.\n");
     return -1;
   }
   if (debug_ > 0)
@@ -1292,6 +1292,8 @@ const
   // Loop over sugar atoms
   for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
   {
+    // Ignore the sugar oxygen
+    if (at == sugar.RingOxygenAtom()) continue;
     // This will be the index of the carbon that is atom is bonded to (or of this atom itself).
     int atomChainPosition = -1;
     // Find position in carbon chain
@@ -1367,7 +1369,7 @@ const
       }
     } // END loop over bonded atoms
 
-  } // END loop over residue atoms
+  } // END loop over sugar atoms
 
   // Determine linkage
   //if (debug_ > 0) {
@@ -1377,12 +1379,19 @@ const
       mprintf(" %s(%i)", *(topIn[it->Idx()].Name()), it->Position());
     mprintf("\n");
   //}
-
-  std::string linkcode = GlycamLinkageCode(linkages, topIn);
-  if (debug_ > 0) mprintf("\t  Linkage code: %s\n", linkcode.c_str());
-  if (linkcode.empty()) {
-    mprinterr("Error: Unrecognized sugar linkage.\n");
+  std::string linkcode;
+  if (linkages.empty()) {
+    mprintf("\t  No linkages.\n");
+    resStatIn[rnum] = SUGAR_NO_LINKAGE;
     return linkcode;
+  } else {
+    linkcode = GlycamLinkageCode(linkages, topIn);
+    if (debug_ > 0) mprintf("\t  Linkage code: %s\n", linkcode.c_str());
+    if (linkcode.empty()) {
+      mprinterr("Error: Unrecognized sugar linkage.\n");
+      resStatIn[rnum] = SUGAR_UNRECOGNIZED_LINKAGE;
+      return linkcode;
+    }
   }
   // Remove bonds to other residues 
   for (BondArray::const_iterator bnd = bondsToRemove.begin();
@@ -1522,7 +1531,7 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar& sugarIn, Topology& topIn,
   std::string linkcode = DetermineSugarLinkages(sugar, cmask, topIn, resStat_,
                                                 outfile, sugarBondsToRemove);
   if (linkcode.empty()) {
-    resStat_[rnum] = SUGAR_UNRECOGNIZED_LINKAGE;
+    //resStat_[rnum] = SUGAR_UNRECOGNIZED_LINKAGE;
     mprintf("Warning: Determination of sugar linkages failed.\n");
     return 0;
   }
@@ -3250,6 +3259,9 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
                 msg, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
     } else if ( *it == SUGAR_UNRECOGNIZED_LINKAGE ) {
         mprintf("\t%s%s is a sugar with an unrecognized linkage.\n",
+                msg, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
+    } else if ( *it == SUGAR_NO_LINKAGE ) {
+        mprintf("\t%s%s is a sugar with no linkages.\n",
                 msg, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
     } else if ( *it == SUGAR_MISSING_C1X ) {
         mprintf("\t%s%s Sugar is missing anomeric carbon substituent and cannot be identified.\n",
