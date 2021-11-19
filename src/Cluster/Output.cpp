@@ -420,6 +420,8 @@ void Cpptraj::Cluster::Output::Summary_Part(CpptrajFile& outfile,
       if (node->Nframes() == 0) {
         outfile.Printf(" %8i", -1);
       } else {
+        // Since we just created these clusters, ensure centroid is updated
+        node->CalculateCentroid( pmatrix );
         findBestReps.FindBestRepFrames(*node, pmatrix, framesToCluster);
         // TODO handle multiple best reps?
         //if (node->BestReps().size() < 2)
