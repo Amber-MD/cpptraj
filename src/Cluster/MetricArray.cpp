@@ -499,7 +499,7 @@ void Cpptraj::Cluster::MetricArray::CalculateCentroid(CentroidArray& centroids, 
 const
 {
   if (centroids.size() != metrics_.size()) {
-    mprinterr("Internal Error: MetricArray::CalculateCentroid: centroids (%zu) and metrics_ (%zu) sizes do not match.\n", centroids.size(), metrics_.size());
+    mprinterr("Internal Error: MetricArray::CalculateCentroid: centroids (%u) and metrics_ (%zu) sizes do not match.\n", centroids.size(), metrics_.size());
     return;
   }
   for (unsigned int idx = 0; idx != metrics_.size(); idx++)
@@ -512,7 +512,7 @@ void Cpptraj::Cluster::MetricArray::FrameOpCentroid(int f1, CentroidArray& centr
 const
 {
   if (centroids.size() != metrics_.size()) {
-    mprinterr("Internal Error: MetricArray::FrameOpCentroid: centroids (%zu) and metrics_ (%zu) sizes do not match.\n", centroids.size(), metrics_.size());
+    mprinterr("Internal Error: MetricArray::FrameOpCentroid: centroids (%u) and metrics_ (%zu) sizes do not match.\n", centroids.size(), metrics_.size());
     return;
   }
   for (unsigned int idx = 0; idx != metrics_.size(); idx++)
@@ -551,7 +551,7 @@ double Cpptraj::Cluster::MetricArray::DistCalc(std::vector<double> const& arrayI
 double Cpptraj::Cluster::MetricArray::FrameCentroidDist(int frame, CentroidArray const& centroids )
 {
   if (centroids.size() != metrics_.size()) {
-    mprinterr("Internal Error: MetricArray::FrameCentroidDist: centroids (%zu) and metrics_ (%zu) sizes do not match.\n", centroids.size(), metrics_.size());
+    mprinterr("Internal Error: MetricArray::FrameCentroidDist: centroids (%u) and metrics_ (%zu) sizes do not match.\n", centroids.size(), metrics_.size());
     return -1.0;
   }
   for (unsigned int idx = 0; idx != metrics_.size(); idx++)
@@ -563,7 +563,7 @@ double Cpptraj::Cluster::MetricArray::FrameCentroidDist(int frame, CentroidArray
 double Cpptraj::Cluster::MetricArray::CentroidDist(CentroidArray const& C1, CentroidArray const& C2)
 {
   if (C1.size() != metrics_.size() || C2.size() != metrics_.size()) {
-    mprinterr("Internal Error: MetricArray::CentroidDist: centroids (%zu, %zu) and metrics_ (%zu) sizes do not match.\n", C1.size(), C2.size(), metrics_.size());
+    mprinterr("Internal Error: MetricArray::CentroidDist: centroids (%u, %u) and metrics_ (%zu) sizes do not match.\n", C1.size(), C2.size(), metrics_.size());
     return -1.0;
   }
   for (unsigned int idx = 0; idx != metrics_.size(); idx++)
