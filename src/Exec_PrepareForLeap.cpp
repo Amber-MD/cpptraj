@@ -1522,20 +1522,32 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar& sugarIn, Topology& topIn,
   // Warn about form/chirality mismatches.
   if (pdb_glycam->second.Form() != UNKNOWN_FORM &&
       pdb_glycam->second.Form() != sugarInfo.Form())
+  {
     mprintf("Warning: '%s' detected form is %s but form based on name is %s.\n",
             sugarName.c_str(), formstr_[sugarInfo.Form()],
             formstr_[pdb_glycam->second.Form()]);
+    if (sugarInfo.Form() != UNKNOWN_FORM)
+      resStat_[rnum] = SUGAR_NAME_MISMATCH;
+  }
   if (pdb_glycam->second.Chirality() != UNKNOWN_CHIR &&
       pdb_glycam->second.Chirality() != sugarInfo.Chirality())
+  {
     mprintf("Warning: '%s' detected chirality is %s but chirality based on name is %s.\n",
             sugarName.c_str(), chirstr_[sugarInfo.Form()],
             chirstr_[pdb_glycam->second.Form()]);
+    if (sugarInfo.Chirality() != UNKNOWN_CHIR)
+      resStat_[rnum] = SUGAR_NAME_MISMATCH;
+  }
   if (pdb_glycam->second.RingType() != UNKNOWN_RING &&
       pdb_glycam->second.RingType() != sugarInfo.RingType())
+  {
     mprintf("Warning: '%s' detected ring type is %s but ring type based on name is %s.\n",
             sugarName.c_str(), ringstr_[sugarInfo.RingType()],
             ringstr_[pdb_glycam->second.RingType()]);
-
+    if (sugarInfo.RingType() != UNKNOWN_RING)
+      resStat_[rnum] = SUGAR_NAME_MISMATCH;
+  }
+    
   // Get glycam form string
   std::string formStr;
   if (sugarInfo.RingType() == PYRANOSE) {
@@ -1585,7 +1597,8 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar& sugarIn, Topology& topIn,
   NameType newResName( linkcode + std::string(1,resChar) + formStr );
   mprintf("\t  Changing %s to Glycam resname: %s\n", topIn.TruncResNameOnumId(rnum).c_str(), *newResName);
   ChangeResName(res, newResName);
-  resStat_[rnum] = VALIDATED;
+  if (resStat_[rnum] == UNKNOWN)
+    resStat_[rnum] = VALIDATED;
   return 0;
 }
 
@@ -3297,6 +3310,9 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
                 msg1, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
       else
         *it = VALIDATED;
+    } else if ( *it == SUGAR_NAME_MISMATCH ) {
+        mprintf("\t%s%s sugar form and/or chirality is not consistent with name.\n",
+                msg1, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
     } else if ( *it == SUGAR_UNRECOGNIZED_LINK_RES ) {
         mprintf("\t%s%s is linked to a sugar but has no sugar-linkage form.\n",
                 msg2, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
