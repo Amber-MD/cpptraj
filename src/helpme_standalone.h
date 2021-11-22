@@ -3789,6 +3789,7 @@ class PMEInstance {
         {
             int threadID = omp_get_thread_num();
 #else
+        {
             int threadID = 0;
 #endif
             for (size_t row = threadID; row < myGridDimensionC_; row += nThreads_) {
@@ -3802,9 +3803,7 @@ class PMEInstance {
                 const auto &splineC = cacheEntry.cSpline;
                 spreadParametersImpl(atom, realGrid, nComponents, splineA, splineB, splineC, parameters, threadID);
             }
-#ifdef _OPENMP
         }
-#endif
         return realGrid;
     }
 
@@ -4163,6 +4162,7 @@ class PMEInstance {
         {
             int threadID = omp_get_thread_num();
 #else
+        {
             int threadID = 0;
 #endif
             auto scratch = &buffer[threadID * scratchRowDim];
@@ -4181,9 +4181,7 @@ class PMEInstance {
                     }
                 }
             }
-#ifdef _OPENMP
         }
-#endif
 
 #if HAVE_MPI == 1
         // Communicate A back to blocks
@@ -5014,7 +5012,9 @@ class PMEInstance {
         // Direct space, using simple O(N^2) algorithm.  This can be improved using a nonbonded list if needed.
         Real cutoffSquared = sphericalCutoff * sphericalCutoff;
         Real kappaSquared = kappa_ * kappa_;
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(nThreads_)
+#endif
         for (size_t i = 0; i < nAtoms; ++i) {
             const auto &coordsI = coordinates.row(i);
             Real *phiPtr = potential[i];
@@ -5046,7 +5046,9 @@ class PMEInstance {
         } else {
             std::logic_error("Unknown algorithm in helpme::computePAtAtomicSites");
         }
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(nThreads_)
+#endif
         for (size_t atom = 0; atom < nAtoms; ++atom) {
             const auto &cacheEntry = splineCache_[atom];
             const auto &absAtom = cacheEntry.absoluteAtomNumber;
