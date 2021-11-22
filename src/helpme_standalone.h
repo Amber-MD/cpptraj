@@ -4348,11 +4348,15 @@ class PMEInstance {
 
         // B transform with instant sort of local blocks from CAB -> CBA order
         size_t numCA = (size_t)subsetOfCAlongB_ * myComplexGridDimensionA_;
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(nThreads_)
+#endif
         for (size_t ca = 0; ca < numCA; ++ca) {
             fftHelperB_.transform(buffer1 + ca * gridDimensionB_, FFTW_BACKWARD);
         }
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(nThreads_)
+#endif
         for (int c = 0; c < subsetOfCAlongB_; ++c) {
             for (int a = 0; a < myComplexGridDimensionA_; ++a) {
                 int cx = c * myComplexGridDimensionA_ * gridDimensionB_ + a * gridDimensionB_;
@@ -4399,7 +4403,9 @@ class PMEInstance {
 
         // A transform
         Real *realGrid = reinterpret_cast<Real *>(buffer2);
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(nThreads_)
+#endif
         for (int cb = 0; cb < subsetOfCAlongA_ * myGridDimensionB_; ++cb) {
             fftHelperA_.transform(buffer1 + cb * complexGridDimensionA_, realGrid + cb * gridDimensionA_);
         }
