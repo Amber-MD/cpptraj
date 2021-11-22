@@ -4215,7 +4215,9 @@ class PMEInstance {
 
         // B transform
         size_t numCA = (size_t)subsetOfCAlongB_ * myComplexGridDimensionA_;
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(nThreads_)
+#endif
         for (size_t ca = 0; ca < numCA; ++ca) {
             fftHelperB_.transform(buffer1 + ca * gridDimensionB_, FFTW_FORWARD);
         }
@@ -4263,7 +4265,9 @@ class PMEInstance {
 #endif
         // C transform
         size_t numBA = (size_t)subsetOfBAlongC_ * myComplexGridDimensionA_;
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(nThreads_)
+#endif
         for (size_t ba = 0; ba < numBA; ++ba) {
             fftHelperC_.transform(buffer2 + ba * gridDimensionC_, FFTW_FORWARD);
         }
@@ -4290,7 +4294,9 @@ class PMEInstance {
 
         // C transform
         size_t numYX = (size_t)subsetOfBAlongC_ * myComplexGridDimensionA_;
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(nThreads_)
+#endif
         for (size_t yx = 0; yx < numYX; ++yx) {
             fftHelperC_.transform(convolvedGrid + yx * gridDimensionC_, FFTW_BACKWARD);
         }
