@@ -2367,7 +2367,9 @@ namespace helpme {
 template <typename Real>
 void permuteABCtoCBA(Real const *__restrict__ abcPtr, int const aDimension, int const bDimension, int const cDimension,
                      Real *__restrict__ cbaPtr, size_t nThreads = 1) {
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(nThreads)
+#endif
     for (int C = 0; C <= -1 + cDimension; ++C)
         for (int B = 0; B <= -1 + bDimension; ++B)
             for (int A = 0; A <= -1 + aDimension; ++A)
@@ -2387,7 +2389,9 @@ void permuteABCtoCBA(Real const *__restrict__ abcPtr, int const aDimension, int 
 template <typename Real>
 void permuteABCtoACB(Real const *__restrict__ abcPtr, int const aDimension, int const bDimension, int const cDimension,
                      Real *__restrict__ acbPtr, size_t nThreads = 1) {
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(nThreads)
+#endif
     for (int A = 0; A <= -1 + aDimension; ++A)
         for (int C = 0; C <= -1 + cDimension; ++C)
             for (int B = 0; B <= -1 + bDimension; ++B)
@@ -3059,7 +3063,9 @@ class PMEInstance {
         // Exclude m=0 cell.
         int start = (nodeZero ? 1 : 0);
 // Writing the three nested loops in one allows for better load balancing in parallel.
+#ifdef _OPENMP
 #pragma omp parallel for reduction(+ : energy, Vxx, Vxy, Vyy, Vxz, Vyz, Vzz) num_threads(nThreads)
+#endif
         for (size_t yxz = start; yxz < nyxz; ++yxz) {
             size_t xz = yxz % nxz;
             short ky = yxz / nxz;
@@ -3166,7 +3172,9 @@ class PMEInstance {
         // Exclude m=0 cell.
         int start = (nodeZero ? 1 : 0);
 // Writing the three nested loops in one allows for better load balancing in parallel.
+#ifdef _OPENMP
 #pragma omp parallel for reduction(+ : energy, Vxx, Vxy, Vyy, Vxz, Vyz, Vzz) num_threads(nThreads)
+#endif
         for (size_t yxz = start; yxz < nyxz; ++yxz) {
             size_t xz = yxz % nxz;
             short ky = yxz / nxz;
@@ -3325,7 +3333,9 @@ class PMEInstance {
         // Exclude m=0 cell.
         int start = (nodeZero ? 1 : 0);
 // Writing the three nested loops in one allows for better load balancing in parallel.
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(nThreads)
+#endif
         for (size_t yxz = start; yxz < nyxz; ++yxz) {
             size_t xz = yxz % nxz;
             short ky = yxz / nxz;
@@ -3774,9 +3784,9 @@ class PMEInstance {
 
         int nComponents = nCartesian(parameterAngMom);
         size_t numBA = (size_t)myGridDimensionB_ * myGridDimensionA_;
+#ifdef _OPENMP
 #pragma omp parallel num_threads(nThreads_)
         {
-#ifdef _OPENMP
             int threadID = omp_get_thread_num();
 #else
             int threadID = 0;
@@ -3792,7 +3802,9 @@ class PMEInstance {
                 const auto &splineC = cacheEntry.cSpline;
                 spreadParametersImpl(atom, realGrid, nComponents, splineA, splineB, splineC, parameters, threadID);
             }
+#ifdef _OPENMP
         }
+#endif
         return realGrid;
     }
 
@@ -3812,11 +3824,12 @@ class PMEInstance {
         gridAtomList_.resize(gridDimensionC_);
 
 // Classify atoms to their worker threads first, then construct splines for each thread
+#ifdef _OPENMP
 #pragma omp parallel num_threads(nThreads_)
         {
-#ifdef _OPENMP
             int threadID = omp_get_thread_num();
 #else
+        {
             int threadID = 0;
 #endif
             for (size_t row = threadID; row < gridDimensionC_; row += nThreads_) {
@@ -3856,7 +3869,6 @@ class PMEInstance {
             }
             numAtomsPerThread_[threadID] = myNumAtoms;
         }
-
         // We could intervene here and do some load balancing by inspecting the list.  Currently
         // the lazy approach of just assuming that the atoms are evenly distributed along c is used.
 
@@ -3875,11 +3887,12 @@ class PMEInstance {
             threadOffset[thread] = threadOffset[thread - 1] + numAtomsPerThread_[thread - 1];
         }
 
+#ifdef _OPENMP
 #pragma omp parallel num_threads(nThreads_)
         {
-#ifdef _OPENMP
             int threadID = omp_get_thread_num();
 #else
+        {
             int threadID = 0;
 #endif
             size_t entry = threadOffset[threadID];
@@ -3911,13 +3924,13 @@ class PMEInstance {
                 }
             }
         }
-
 // Finally, find all of the splines that this thread will need to handle
+#ifdef _OPENMP
 #pragma omp parallel num_threads(nThreads_)
         {
-#ifdef _OPENMP
             int threadID = omp_get_thread_num();
 #else
+        {
             int threadID = 0;
 #endif
             auto &mySplineList = splinesPerThread_[threadID];
@@ -4145,15 +4158,17 @@ class PMEInstance {
         helpme::vector<Complex> buffer(nThreads_ * scratchRowDim);
 
 // A transform, with instant sort to CAB ordering for each local block
+#ifdef _OPENMP
 #pragma omp parallel num_threads(nThreads_)
         {
-#ifdef _OPENMP
             int threadID = omp_get_thread_num();
 #else
             int threadID = 0;
 #endif
             auto scratch = &buffer[threadID * scratchRowDim];
+#ifdef _OPENMP
 #pragma omp for
+#endif
             for (int c = 0; c < subsetOfCAlongA_; ++c) {
                 for (int b = 0; b < myGridDimensionB_; ++b) {
                     Real *gridPtr = realGrid + c * myGridDimensionB_ * gridDimensionA_ + b * gridDimensionA_;
@@ -4166,7 +4181,9 @@ class PMEInstance {
                     }
                 }
             }
+#ifdef _OPENMP
         }
+#endif
 
 #if HAVE_MPI == 1
         // Communicate A back to blocks
