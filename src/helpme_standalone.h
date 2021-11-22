@@ -4637,14 +4637,15 @@ class PMEInstance {
             fractionalPhis_ = RealMat(nThreads_, rowSize);
         }
         size_t nAtoms = std::accumulate(numAtomsPerThread_.begin(), numAtomsPerThread_.end(), 0);
+#ifdef _OPENMP
 #pragma omp parallel num_threads(nThreads_)
         {
-#ifdef _OPENMP
             int threadID = omp_get_thread_num();
+#pragma omp for
 #else
+        {
             int threadID = 0;
 #endif
-#pragma omp for
             for (size_t atom = 0; atom < nAtoms; ++atom) {
                 const auto &cacheEntry = splineCache_[atom];
                 const auto &absAtom = cacheEntry.absoluteAtomNumber;
