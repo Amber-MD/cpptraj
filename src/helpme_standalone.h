@@ -3880,7 +3880,7 @@ class PMEInstance {
         // certain scale factor to try and minimize allocations in a not-too-wasteful manner.
         if (splineCache_.size() < numCacheEntries) {
             size_t newSize = static_cast<size_t>(1.2 * numCacheEntries);
-            for (int atom = splineCache_.size(); atom < newSize; ++atom)
+            for (size_t atom = splineCache_.size(); atom < newSize; ++atom)
                 splineCache_.emplace_back(splineOrder_, splineDerivativeLevel);
         }
         std::vector<size_t> threadOffset(nThreads_, 0);
