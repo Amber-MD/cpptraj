@@ -210,7 +210,8 @@ void JacobiCyclicDiagonalization(Real *eigenvalues, Real *eigenvectors, const Re
     Real threshold_norm;
     Real threshold;
     Real tan_phi, sin_phi, cos_phi, tan2_phi, sin2_phi, cos2_phi;
-    Real sin_2phi, cos_2phi, cot_2phi;
+    Real sin_2phi, cot_2phi;
+    //Real cos_2phi;
     Real dum1;
     Real dum2;
     Real dum3;
@@ -263,7 +264,7 @@ void JacobiCyclicDiagonalization(Real *eigenvalues, Real *eigenvectors, const Re
                 if (tan_phi < 0) sin_phi = -sin_phi;
                 cos_phi = sqrt(cos2_phi);
                 sin_2phi = 2 * sin_phi * cos_phi;
-                cos_2phi = cos2_phi - sin2_phi;
+                //cos_2phi = cos2_phi - sin2_phi;
 
                 // Rotate columns k and m for both the matrix A
                 //     and the matrix of eigenvectors.
