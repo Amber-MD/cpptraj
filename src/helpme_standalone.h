@@ -3837,7 +3837,7 @@ class PMEInstance {
                 gridAtomList_[row].clear();
             }
             auto &mySplineList = splinesPerThread_[threadID];
-            const auto &gridIteratorC = threadedGridIteratorC_[threadID];
+            //const auto &gridIteratorC = threadedGridIteratorC_[threadID]; FIXME currently unused
             mySplineList.clear();
             size_t myNumAtoms = 0;
             for (size_t atom = 0; atom < nAtoms; ++atom) {
