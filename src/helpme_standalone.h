@@ -3833,7 +3833,7 @@ class PMEInstance {
         {
             int threadID = 0;
 #endif
-            for (size_t row = threadID; row < gridDimensionC_; row += nThreads_) {
+            for (int row = threadID; row < gridDimensionC_; row += nThreads_) {
                 gridAtomList_[row].clear();
             }
             auto &mySplineList = splinesPerThread_[threadID];
