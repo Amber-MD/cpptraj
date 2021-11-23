@@ -4119,14 +4119,20 @@ class PMEInstance {
      * \return Pointer to the transformed grid, which is stored in one of the buffers in BAC order.
      */
     Complex *forwardTransform(Real *realGrid) {
+#if HAVE_MPI == 1
         Real *__restrict__ realCBA;
+#endif
         Complex *__restrict__ buffer1, *__restrict__ buffer2;
         if (realGrid == reinterpret_cast<Real *>(workSpace1_.data())) {
+#if HAVE_MPI == 1
             realCBA = reinterpret_cast<Real *>(workSpace2_.data());
+#endif
             buffer1 = workSpace2_.data();
             buffer2 = workSpace1_.data();
         } else {
+#if HAVE_MPI == 1
             realCBA = reinterpret_cast<Real *>(workSpace1_.data());
+#endif
             buffer1 = workSpace1_.data();
             buffer2 = workSpace2_.data();
         }
