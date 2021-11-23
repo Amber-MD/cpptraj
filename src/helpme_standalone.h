@@ -3794,7 +3794,7 @@ class PMEInstance {
         {
             int threadID = 0;
 #endif
-            for (size_t row = threadID; row < myGridDimensionC_; row += nThreads_) {
+            for (int row = threadID; row < myGridDimensionC_; row += nThreads_) {
                 std::fill(&realGrid[row * numBA], &realGrid[(row + 1) * numBA], Real(0));
             }
             for (const auto &spline : splinesPerThread_[threadID]) {
