@@ -2253,7 +2253,10 @@ class BSpline {
         derivativeLevel_ = derivativeLevel;
 
         // The +1 is to account for the fact that we need to store entries up to and including the max.
-        if (splines_.nRows() < derivativeLevel + 1 || splines_.nCols() != order)
+        if (derivativeLevel < 0 || order < 0) {
+          throw std::runtime_error("BSpline::update: derivativeLevel and/or order < 0.");
+        }
+        if (splines_.nRows() < (size_t)derivativeLevel + 1 || splines_.nCols() != (size_t)order)
             splines_ = Matrix<Real>(derivativeLevel + 1, order);
 
         splines_.setZero();
