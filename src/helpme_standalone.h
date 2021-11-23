@@ -5242,7 +5242,7 @@ class PMEInstance {
         sanityChecks(parameterAngMom, parameters, coordinates);
         filterAtomsAndBuildSplineCache(parameterAngMom, coordinates);
         auto realGrid = spreadParameters(parameterAngMom, parameters);
-        Real energy;
+        Real energy = 0;
         if (algorithmType_ == AlgorithmType::PME) {
             auto gridAddress = forwardTransform(realGrid);
             energy = convolveE(gridAddress);
