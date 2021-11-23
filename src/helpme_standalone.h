@@ -3897,7 +3897,7 @@ class PMEInstance {
             int threadID = 0;
 #endif
             size_t entry = threadOffset[threadID];
-            for (size_t cRow = threadID; cRow < gridDimensionC_; cRow += nThreads_) {
+            for (int cRow = threadID; cRow < gridDimensionC_; cRow += nThreads_) {
                 for (const auto &gridPointAndAtom : gridAtomList_[cRow]) {
                     size_t atom = gridPointAndAtom.second;
                     const Real *atomCoords = coords[atom];
