@@ -822,7 +822,7 @@ class Matrix {
         Matrix evecs = std::get<1>(eigenPairs);
         evalsReal.applyOperationToEachElement(function);
         Matrix evecsT = evecs.transpose();
-        for (int row = 0; row < nRows_; ++row) {
+        for (size_t row = 0; row < nRows_; ++row) {
             Real transformedEigenvalue = evalsReal[row][0];
             std::for_each(evecsT.data_ + row * nCols_, evecsT.data_ + (row + 1) * nCols_,
                           [&](Real& val) { val *= transformedEigenvalue; });
