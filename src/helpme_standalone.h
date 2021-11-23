@@ -3840,13 +3840,13 @@ class PMEInstance {
             const auto &gridIteratorC = threadedGridIteratorC_[threadID];
             mySplineList.clear();
             size_t myNumAtoms = 0;
-            for (int atom = 0; atom < nAtoms; ++atom) {
+            for (size_t atom = 0; atom < nAtoms; ++atom) {
                 const Real *atomCoords = coords[atom];
                 Real cCoord = atomCoords[0] * recVecs_(0, 2) + atomCoords[1] * recVecs_(1, 2) +
                               atomCoords[2] * recVecs_(2, 2) - EPS;
                 cCoord -= floor(cCoord);
                 short cStartingGridPoint = gridDimensionC_ * cCoord;
-                size_t thisAtomsThread = cStartingGridPoint % nThreads_;
+                int thisAtomsThread = (int)cStartingGridPoint % nThreads_;
                 const auto &cGridIterator = gridIteratorC_[cStartingGridPoint];
                 if (cGridIterator.size() && thisAtomsThread == threadID) {
                     Real aCoord = atomCoords[0] * recVecs_(0, 0) + atomCoords[1] * recVecs_(1, 0) +
