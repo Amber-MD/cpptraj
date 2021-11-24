@@ -211,7 +211,7 @@ void JacobiCyclicDiagonalization(Real *eigenvalues, Real *eigenvectors, const Re
     Real threshold;
     Real tan_phi, sin_phi, cos_phi, tan2_phi, sin2_phi, cos2_phi;
     Real sin_2phi, cot_2phi;
-    //Real cos_2phi;
+    // Real cos_2phi;
     Real dum1;
     Real dum2;
     Real dum3;
@@ -264,7 +264,7 @@ void JacobiCyclicDiagonalization(Real *eigenvalues, Real *eigenvectors, const Re
                 if (tan_phi < 0) sin_phi = -sin_phi;
                 cos_phi = sqrt(cos2_phi);
                 sin_2phi = 2 * sin_phi * cos_phi;
-                //cos_2phi = cos2_phi - sin2_phi;
+                // cos_2phi = cos2_phi - sin2_phi;
 
                 // Rotate columns k and m for both the matrix A
                 //     and the matrix of eigenvectors.
@@ -1036,7 +1036,8 @@ class Matrix {
         unsortedEigenVectors.transposeInPlace();
 
         std::vector<std::pair<Real, const Real*>> eigenPairs;
-        for (size_t val = 0; val < nRows_; ++val) eigenPairs.push_back({eigenValues[val][0], unsortedEigenVectors[val]});
+        for (size_t val = 0; val < nRows_; ++val)
+            eigenPairs.push_back({eigenValues[val][0], unsortedEigenVectors[val]});
         std::sort(eigenPairs.begin(), eigenPairs.end());
         if (order == SortOrder::Descending) std::reverse(eigenPairs.begin(), eigenPairs.end());
         for (size_t val = 0; val < nRows_; ++val) {
@@ -2265,7 +2266,7 @@ class BSpline {
 
         // The +1 is to account for the fact that we need to store entries up to and including the max.
         if (derivativeLevel < 0 || order < 0) {
-          throw std::runtime_error("BSpline::update: derivativeLevel and/or order < 0.");
+            throw std::runtime_error("BSpline::update: derivativeLevel and/or order < 0.");
         }
         if (splines_.nRows() < (size_t)derivativeLevel + 1 || splines_.nCols() != (size_t)order)
             splines_ = Matrix<Real>(derivativeLevel + 1, order);
@@ -3462,8 +3463,7 @@ class PMEInstance {
             throw std::runtime_error(
                 "Inconsistent number of coordinates and parameters; there should be nAtoms of each.");
         int n_param_cols = nCartesian(parameterAngMom) - cartesianOffset;
-        if (n_param_cols < 0 ||
-            parameters.nCols() != (size_t)n_param_cols)
+        if (n_param_cols < 0 || parameters.nCols() != (size_t)n_param_cols)
             throw std::runtime_error(
                 "Mismatch in the number of parameters provided and the parameter angular momentum");
     }
@@ -4024,7 +4024,7 @@ class PMEInstance {
                 gridAtomList_[row].clear();
             }
             auto &mySplineList = splinesPerThread_[threadID];
-            //const auto &gridIteratorC = threadedGridIteratorC_[threadID]; FIXME currently unused
+            // const auto &gridIteratorC = threadedGridIteratorC_[threadID]; FIXME currently unused
             mySplineList.clear();
             size_t myNumAtoms = 0;
             for (size_t atom = 0; atom < nAtoms; ++atom) {
