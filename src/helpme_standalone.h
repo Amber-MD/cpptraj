@@ -2875,7 +2875,7 @@ class PMEInstance {
             }
         }
 
-        Real *potentialGrid;
+        Real *potentialGrid = 0;
         if (algorithmType_ == AlgorithmType::PME) {
             auto gridAddress = forwardTransform(realGrid);
             if (virial.nRows() == 0 && virial.nCols() == 0) {
