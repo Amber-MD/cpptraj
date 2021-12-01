@@ -2941,7 +2941,8 @@ int Exec_PrepareForLeap::RunLeap(std::string const& ff_file,
 // Exec_PrepareForLeap::Help()
 void Exec_PrepareForLeap::Help() const
 {
-  mprintf("\tcrdset <coords set> [frame <#>] name <out coords set> [pdbout <pdbfile>]\n"
+  mprintf("\tcrdset <coords set> [frame <#>] name <out coords set>\n"
+          "\t[pdbout <pdbfile> [terbymol]]\n"
           "\t[leapunitname <unit>] [out <leap input file> [runleap <ff file>]]\n"
           "\t[skiperrors]\n"
           "\t[nowat [watername <watername>] [noh] [keepaltloc <alt loc ID>]\n"
@@ -3027,6 +3028,12 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       return CpptrajState::ERR;
     }
   }
+  std::string pdb_ter_arg;
+  if (!argIn.hasKey("terbymol")) {
+    mprintf("\tUsing original TER cards where possible.\n");
+    pdb_ter_arg.assign("pdbter");
+  } else
+    mprintf("\tGenerating TER cards based on molecular connectivity.\n");
 
   std::string leapfilename = argIn.GetStringKey("out");
   if (!leapfilename.empty())
@@ -3433,7 +3440,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   if (!pdbout.empty()) {
     Trajout_Single PDB;
     PDB.SetDebug( debug_ );
-    if (PDB.InitTrajWrite( pdbout, "topresnum pdbter", State.DSL(), TrajectoryFile::PDBFILE)) {
+    if (PDB.InitTrajWrite( pdbout, "topresnum " + pdb_ter_arg, State.DSL(), TrajectoryFile::PDBFILE)) {
       mprinterr("Error: Could not initialize output PDB\n");
       return CpptrajState::ERR;
     }
