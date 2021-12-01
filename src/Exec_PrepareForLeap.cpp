@@ -1969,6 +1969,8 @@ const
         mprinterr("Error: Could not split sulfate from residue '%s'.\n", sugarName.c_str());
         return 1;
       }
+      // Set the split residue as terminal
+      topIn.SetRes(rnum+1).SetTerminal(true);
       // Reorder the frame to match
       Frame oldFrame = frameIn;
       frameIn.SetCoordinatesByMap( oldFrame, atomMap );
@@ -2060,6 +2062,8 @@ const
     mprinterr("Error: Could not split the residue '%s'.\n", sugarName.c_str());
     return 1;
   }
+  // Set the split residue as terminal
+  topIn.SetRes(rnum+1).SetTerminal(true);
   // DEBUG
   //for (int at = original_at0; at != original_at1; at++)
   //  mprintf("DEBUG:\t\tAtomMap[%i] = %i\n", at, atomMap[at]);
@@ -2229,13 +2233,13 @@ int Exec_PrepareForLeap::PrepareSugars(std::string const& sugarmaskstr,
     // Bonds to sugars have been removed, so regenerate molecule info
     topIn.DetermineMolecules();
     // Set each sugar as terminal
-/*    for (std::vector<Sugar>::const_iterator sugar = Sugars.begin(); sugar != Sugars.end(); ++sugar)
+    for (std::vector<Sugar>::const_iterator sugar = Sugars.begin(); sugar != Sugars.end(); ++sugar)
     {
       int rnum = sugar->ResNum(topIn);
       topIn.SetRes(rnum).SetTerminal(true);
       if (rnum - 1 > -1)
         topIn.SetRes(rnum-1).SetTerminal(true);
-    }*/
+    }
   }
   return 0;
 }
@@ -3427,7 +3431,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   if (!pdbout.empty()) {
     Trajout_Single PDB;
     PDB.SetDebug( debug_ );
-    if (PDB.InitTrajWrite( pdbout, "topresnum", State.DSL(), TrajectoryFile::PDBFILE)) {
+    if (PDB.InitTrajWrite( pdbout, "topresnum pdbter", State.DSL(), TrajectoryFile::PDBFILE)) {
       mprinterr("Error: Could not initialize output PDB\n");
       return CpptrajState::ERR;
     }
