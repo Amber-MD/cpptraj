@@ -230,6 +230,7 @@ std::string Exec_PrepareForLeap::SugarToken::SetFromLine(ArgList const& line) {
 /** CONSTRUCTOR */
 Exec_PrepareForLeap::Exec_PrepareForLeap() : Exec(COORDS),
   errorsAreFatal_(true),
+  hasGlycam_(false),
   debug_(0)
 {
   SetHidden(true);
@@ -1361,10 +1362,10 @@ const
         // Check if the other residue is a sugar or not
         if (!cmask.AtomInCharMask(*bat)) {
           // Atom is bonded to non-sugar residue.
-          mprintf("\t  Sugar %s %s bonded to non-sugar %s %s at position %i\n",
-                  topIn.TruncResNameOnumId(rnum).c_str(), *(topIn[at].Name()),
+          mprintf("\t  Sugar %s %s (%i) bonded to non-sugar %s %s (%i) at position %i\n",
+                  topIn.TruncResNameOnumId(rnum).c_str(), *(topIn[at].Name()), rnum+1,
                   topIn.TruncResNameOnumId(topIn[*bat].ResNum()).c_str(),
-                  *(topIn[*bat].Name()), atomChainPosition+1);
+                  *(topIn[*bat].Name()), topIn[*bat].ResNum()+1, atomChainPosition+1);
           bondsToRemove.push_back( BondType(at, *bat, -1) );
           // Check if this is a recognized linkage to non-sugar
           Residue& pres = topIn.SetRes( topIn[*bat].ResNum() );
@@ -1451,6 +1452,7 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar& sugarIn, Topology& topIn,
 {
   Sugar const& sugar = sugarIn;
   const std::string sugarName = topIn.TruncResNameOnumId(sugar.ResNum(topIn));
+  const std::string resName = topIn.Res(sugar.ResNum(topIn)).Name().Truncated();
   //if (sugar.NotSet()) {
   //  mprintf("Warning: Sugar %s is not set up. Skipping sugar identification.\n", sugarName.c_str());
   //  return 0; // TODO return 1?
@@ -1461,12 +1463,41 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar& sugarIn, Topology& topIn,
   // Try to ID the base sugar type from the input name.
   //char resChar = ' ';
 
-  MapType::const_iterator pdb_glycam = pdb_to_glycam_.find( res.Name() );
+  MapType::const_iterator pdb_glycam;
+  if (!hasGlycam_) {
+    pdb_glycam = pdb_to_glycam_.find( res.Name() );
+    //resChar = pdb_glycam->second;
+  } else {
+    mprintf("\tGlycam res: '%s'\n", resName.c_str());
+    // Assume residue name is already glycam. Find it. Get sugar from 2nd char.
+    std::string rChar(1, resName[1]);
+    // Determine chirality from upper/lowercase
+    ChirTypeEnum cType = UNKNOWN_CHIR;
+    if (islower(rChar.front()))
+      cType = IS_L;
+    else
+      cType = IS_D;
+    // Now force uppercase
+    rChar.assign( 1, toupper(rChar.front()) );
+    std::string fChar(1, resName[2]);
+    mprintf("DEBUG: Searching for glycam char '%s' '%s'\n", rChar.c_str(), fChar.c_str());
+    // Get form from 3rd char
+    FormTypeEnum fType = UNKNOWN_FORM;
+    if (fChar == "U" || fChar == "B")
+      fType = BETA;
+    else if (fChar == "D" || fChar == "A")
+      fType = ALPHA;
+    for (pdb_glycam = pdb_to_glycam_.begin(); pdb_glycam != pdb_to_glycam_.end(); ++pdb_glycam)
+      if (pdb_glycam->second.GlycamCode() == rChar &&
+          pdb_glycam->second.Form() == fType &&
+          pdb_glycam->second.Chirality() == cType)
+        break;
+  }
+
   if ( pdb_glycam == pdb_to_glycam_.end() ) { 
     mprinterr("Error: Could not identify sugar from residue name '%s'\n", *res.Name());
     return 1;
   }
-  //resChar = pdb_glycam->second;
   mprintf("DEBUG: ");
   pdb_glycam->second.PrintInfo( pdb_glycam->first.Truncated() );
 
@@ -1583,9 +1614,11 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar& sugarIn, Topology& topIn,
   // Change PDB names to Glycam ones
   // FIXME get rid of resChar
   char resChar = pdb_glycam->second.GlycamCode()[0];
-  if (ChangePdbAtomNamesToGlycam(resChar, res, topIn, sugarInfo.Form())) {
-    mprinterr("Error: Changing PDB atom names to Glycam failed.\n");
-    return 1;
+  if (!hasGlycam_) {
+    if (ChangePdbAtomNamesToGlycam(resChar, res, topIn, sugarInfo.Form())) {
+      mprinterr("Error: Changing PDB atom names to Glycam failed.\n");
+      return 1;
+    }
   }
 
   // Modify residue char to indicate L form if necessary.
@@ -1595,8 +1628,15 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar& sugarIn, Topology& topIn,
     resChar = tolower( resChar );
   // Set new residue name
   NameType newResName( linkcode + std::string(1,resChar) + formStr );
-  mprintf("\t  Changing %s to Glycam resname: %s\n", topIn.TruncResNameOnumId(rnum).c_str(), *newResName);
-  ChangeResName(res, newResName);
+  if (!hasGlycam_) {
+    mprintf("\t  Changing %s to Glycam resname: %s\n",
+      topIn.TruncResNameOnumId(rnum).c_str(), *newResName);
+    ChangeResName(res, newResName);
+  } else {
+    if (newResName.Truncated() != resName)
+      mprintf("Warning: Detected glycam name '%s' differs from original name '%s'\n",
+              *newResName, resName.c_str());
+  }
   if (resStat_[rnum] == UNKNOWN)
     resStat_[rnum] = VALIDATED;
   return 0;
@@ -2188,6 +2228,14 @@ int Exec_PrepareForLeap::PrepareSugars(std::string const& sugarmaskstr,
     }
     // Bonds to sugars have been removed, so regenerate molecule info
     topIn.DetermineMolecules();
+    // Set each sugar as terminal
+/*    for (std::vector<Sugar>::const_iterator sugar = Sugars.begin(); sugar != Sugars.end(); ++sugar)
+    {
+      int rnum = sugar->ResNum(topIn);
+      topIn.SetRes(rnum).SetTerminal(true);
+      if (rnum - 1 > -1)
+        topIn.SetRes(rnum-1).SetTerminal(true);
+    }*/
   }
   return 0;
 }
@@ -2902,7 +2950,7 @@ void Exec_PrepareForLeap::Help() const
           "\t  [cysmask <cysmask>] [disulfidecut <cut>] [newcysname <name>]}]\n"
           "\t[{nosugars |\n"
           "\t  sugarmask <sugarmask> [noc1search] [notermsearch] [resmapfile <file>]\n"
-          "\t  [terminalhydroxylname <resname>]\n"
+          "\t  [terminalhydroxylname <resname>] [hasglycam]\n"
           "\t }]\n"
           "\t[molmask <molmask> ...] [determinemolmask <mask>]\n"
           "  Prepare the structure in the given coords set for easier processing\n"
@@ -3153,6 +3201,9 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       sugarmaskstr.append( mit->first.Truncated() );
     }
   }
+  hasGlycam_ = argIn.hasKey("hasglycam");
+  if (hasGlycam_)
+    mprintf("\tAssuming sugars already have glycam residue names.\n");
 
   // If preparing sugars, need to set up an atom map and potentially
   // search for terminal sugars/missing bonds. Do this here after all atom
