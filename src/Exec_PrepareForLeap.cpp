@@ -3342,6 +3342,8 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       if ( res->Name() == solvName) {
         nsolvent++;
         resStat_[res-topIn.ResStart()] = VALIDATED;
+        // Set as terminal; TODO is this needed? Leap seems ok with not having TER for HOH
+        topIn.SetRes(res-topIn.ResStart()).SetTerminal(true);
       }
     }
     if (nsolvent > 0) mprintf("\t%u solvent residues.\n", nsolvent);
@@ -3395,7 +3397,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     }
   }
 
-  // Change HIS res names
+  // Change HIS res names FIXME this will have to go before sugar split stuff
   for (unsigned int idx = 0; idx != HisResIdxs.size(); idx++)
     ChangeResName( topIn.SetRes(HisResIdxs[idx]), HisResNames[idx] );
 
