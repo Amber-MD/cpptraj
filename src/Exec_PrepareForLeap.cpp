@@ -1120,6 +1120,54 @@ int Exec_PrepareForLeap::DetermineUpOrDown(SugarToken& stoken,
                                          Topology const& topIn, Frame const& frameIn)
 const
 {
+  /** TEST TEST TEST */
+/*
+  double t_an = 0;
+  int ret1 = CalcAnomericTorsion(t_an, sugar.AnomericAtom(), sugar.RingOxygenAtom(),
+                                 sugar.ResNum(topIn),
+                                 sugar.RingAtoms(), topIn, frameIn);
+  //if (ret < 0) {
+  //  // This means C1 X substituent missing; non-fatal.
+  //  sugarIn.SetStatus( Sugar::MISSING_C1X );
+  //  return 1; // TODO return 0?
+  //} else if (ret > 0) {
+  //  // Error
+  //  return 1; 
+  //}
+  // The definition of 'up' here is reversed compared to pyranose.
+  bool t_an_up = !(t_an > 0);
+
+  double t_cc = 0;
+  int ret2 = CalcConfigCarbonTorsion(t_cc, sugar.HighestStereocenter(),
+                                     sugar.ChainAtoms(), topIn, frameIn);
+  //    return 1;
+  //} else
+  //  t_cc = t_ar;
+  bool t_cc_up = !(t_cc > 0);
+
+  if (t_cc_up) {
+    mprintf("DEBUG: Furanose config carbon is UP (D); torsion: %f deg., ret= %i\n",
+          t_cc*Constants::RADDEG, ret2);
+    if (t_an_up)
+      mprintf("DEBUG: Furanose anomeric carbon is UP (beta-D); torsion: %f deg., ret= %i\n",
+              t_an*Constants::RADDEG, ret1);
+    else
+      mprintf("DEBUG: Furanose anomeric carbon is DOWN (alpha-D); torsion %f deg., ret= %i\n",
+              t_an*Constants::RADDEG, ret2);
+  } else {
+    mprintf("DEBUG: Furanose config carbon is DOWN (L); torsion: %f deg., ret= %i\n",
+          t_cc*Constants::RADDEG, ret2);
+    if (t_an_up)
+      mprintf("DEBUG: Furanose anomeric carbon is UP (alpha-L); torsion: %f deg., ret= %i\n",
+              t_an*Constants::RADDEG, ret1);
+    else
+      mprintf("DEBUG: Furanose anomeric carbon is DOWN (beta-L); torsion %f deg., ret= %i\n",
+              t_an*Constants::RADDEG, ret2);
+  }
+*/
+  /** END TEST TEST TEST */
+
+
   int cdebug;
   if (debug_ > 1)
     cdebug = 1;
