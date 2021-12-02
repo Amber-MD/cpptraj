@@ -1612,8 +1612,8 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar& sugarIn, Topology& topIn,
       pdb_glycam->second.Chirality() != sugarInfo.Chirality())
   {
     mprintf("Warning: '%s' detected chirality is %s but chirality based on name is %s.\n",
-            sugarName.c_str(), chirstr_[sugarInfo.Form()],
-            chirstr_[pdb_glycam->second.Form()]);
+            sugarName.c_str(), chirstr_[sugarInfo.Chirality()],
+            chirstr_[pdb_glycam->second.Chirality()]);
     if (sugarInfo.Chirality() != UNKNOWN_CHIR)
       resStat_[rnum] = SUGAR_NAME_MISMATCH;
   }
