@@ -54,6 +54,16 @@ void Topology::ResetPDBinfo() {
     res->SetIcode(' ');
     res->SetChainID(' ');
   }
+  missingRes_.clear();
+  missingHet_.clear();
+}
+
+/** Set list of missing residues and residues missing heteroatoms */
+void Topology::SetMissingResInfo(std::vector<Residue> const& missingResIn,
+                                 std::vector<Residue> const& missingHetIn)
+{
+  missingRes_ = missingResIn;
+  missingHet_ = missingHetIn;
 }
 
 /** Used to set box info from currently associated trajectory. */
@@ -1471,6 +1481,17 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   newParm->pindex_ = pindex_;
   // Copy box information
   newParm->parmBox_ = parmBox_;
+  // PDB info
+  TopVecStrip<int> stripInt;
+  stripInt.Strip(newParm->pdbSerialNum_, pdbSerialNum_, MapIn);
+  TopVecStrip<char> stripChar;
+  stripChar.Strip(newParm->atom_altloc_, atom_altloc_, MapIn);
+  TopVecStrip<float> stripFloat;
+  stripFloat.Strip(newParm->occupancy_, occupancy_, MapIn);
+  stripFloat.Strip(newParm->bfactor_, bfactor_, MapIn);
+  newParm->missingRes_ = missingRes_;
+  newParm->missingHet_ = missingHet_;
+ 
   // If we dont care about setting up full parm information, exit now.
   if (!setupFullParm) return newParm;
 
@@ -1642,16 +1663,9 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   // Amber extra info.
   TopVecStrip<NameType> stripNameType;
   stripNameType.Strip(newParm->tree_, tree_, MapIn);
-  TopVecStrip<int> stripInt;
   stripInt.Strip(newParm->ijoin_, ijoin_, MapIn);
   stripInt.Strip(newParm->irotat_, irotat_, MapIn);
-  stripInt.Strip(newParm->pdbSerialNum_, pdbSerialNum_, MapIn);
-  TopVecStrip<char> stripChar;
-  stripChar.Strip(newParm->atom_altloc_, atom_altloc_, MapIn);
-  TopVecStrip<float> stripFloat;
-  stripFloat.Strip(newParm->occupancy_, occupancy_, MapIn);
-  stripFloat.Strip(newParm->bfactor_, bfactor_, MapIn);
-  
+ 
   // Determine number of extra points
   newParm->DetermineNumExtraPoints();
 
@@ -2241,6 +2255,8 @@ int Topology::AppendTop(Topology const& NewTop) {
   // DIHEDRALS
   AddDihArray(NewTop.Dihedrals(),  NewTop.DihedralParm(), atomOffset);
   AddDihArray(NewTop.DihedralsH(), NewTop.DihedralParm(), atomOffset);
+
+  // TODO append missing stuff?
 
   // Re-set up this topology
   // TODO: Could get expensive for multiple appends.

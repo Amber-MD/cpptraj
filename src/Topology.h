@@ -76,6 +76,10 @@ class Topology {
     void AddOccupancy(float o)  { occupancy_.push_back( o );    }
     void AddBfactor(float b)    { bfactor_.push_back( b );      }
     void AddPdbSerialNum(int i) { pdbSerialNum_.push_back( i ); }
+    /// Set list of missing residues and residues missing heteroatoms
+    void SetMissingResInfo(std::vector<Residue> const&, std::vector<Residue> const&);
+    /// \return list of residues missing heteroatoms
+    std::vector<Residue> const& MissingHet() const { return missingHet_; }
     // ----- Residue-specific routines -----------
     typedef std::vector<Residue>::const_iterator res_iterator;
     inline res_iterator ResStart() const { return residues_.begin(); }
@@ -307,6 +311,8 @@ class Topology {
     std::vector<float> occupancy_;   ///< Atom occupancy
     std::vector<float> bfactor_;     ///< Atom B-factor
     std::vector<int> pdbSerialNum_;  ///< Atom PDB original serial number
+    std::vector<Residue> missingRes_; ///< List of residues missing from PDB
+    std::vector<Residue> missingHet_; ///< List of residues missing heteroatoms in PDB
 
     Box parmBox_;
     Frame refCoords_;       ///< Internal reference coords for distance-based masks
