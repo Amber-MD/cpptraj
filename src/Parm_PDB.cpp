@@ -194,6 +194,7 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
                                 res->Icode(), res->ChainId());
     mprintf("\n");
   }
+  TopIn.SetMissingResInfo(missingResidues, missingHet);
 
   if (nAltLocSkipped > 0)
     mprintf("\tSkipped %i alternate atom locations.\n", nAltLocSkipped);
