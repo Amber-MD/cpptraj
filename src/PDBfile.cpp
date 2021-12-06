@@ -2,7 +2,6 @@
 #include <cstdlib> // atoi, atof
 #include <cstring> // strncmp
 #include <algorithm> // std::copy
-#include "ArgList.h"
 #include "PDBfile.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString
@@ -295,30 +294,33 @@ PDBfile::PDB_RECTYPE PDBfile::NextRecord() {
   return recType_;
 }
 
-/** Get a list of missing residues from the PDB file. */
+/** Get a list of missing residues from the PDB file. */ // TODO record MODEL
 int PDBfile::Get_Missing_Res(std::vector<Residue>& missingResidues) {
   bool inMissing = false;
   while (recType_ == MISSING_RES) {
     mprintf("DEBUG: rectype=%i %s", (int)recType_, linebuffer_);
-    ArgList line(linebuffer_, " \r\n");
-    if (line.Nargs() > 5) {
-      // Actual missing residues starts after 'REMARK 465   M RES C SSSEQI'
-      if (line[2] == "M" && line[3] == "RES" && line[4] == "C")
+    if (!inMissing) {
+      // Actual missing residues starts after:
+      //           11111111112222222
+      // 012345678901234567890123456
+      // REMARK 465   M RES C SSSEQI
+      if (linebuffer_[13] == 'M' && linebuffer_[15] == 'R' && linebuffer_[19] == 'C')
         inMissing = true;
-    } else if (inMissing && line.Nargs() > 2) {
-      std::string const& currentname = line[2];
+    } else {
+      // parse out res name
+      std::string currentname;// = line[2];
+      currentname.assign(linebuffer_+15, 3);
+      // get chain
       char currentchain = linebuffer_[19];
-      // Need to be able to parse out insertion code
+      // get insertion code
       char currenticode = linebuffer_[26];
-      int currentres;
-      if (currenticode == ' ') {
-        currentres = atoi(line[4].c_str());
-      } else {
-        char numbuf[6];
-        std::copy(linebuffer_+21, linebuffer_+26, numbuf);
-        numbuf[5] = '\0';
-        currentres = atoi(numbuf);
-      }
+      // parse out res number
+      std::string numbuf;
+      numbuf.assign(linebuffer_+21, 5);
+      //char numbuf[6];
+      //std::copy(linebuffer_+21, linebuffer_+26, numbuf);
+      //numbuf[5] = '\0';
+      int currentres = atoi(numbuf.c_str());
       mprintf("DEBUG: Missing residue %s %i icode= %c chain= %c\n",
               currentname.c_str(), currentres, currenticode, currentchain);
       //if (std::find(ignoreseq.begin(), ignoreseq.end(), currentname) == ignoreseq.end())
@@ -329,6 +331,14 @@ int PDBfile::Get_Missing_Res(std::vector<Residue>& missingResidues) {
   }
   return 0;
 }
+
+/** Get a list of residues missing heteroatoms */
+/*
+int PDBfile::Get_Missing_Het(std::vector<Residue>& missingHet) {
+  bool inMissing = false;
+  while (recType_ == MISSING_HET) {
+    if (line.Nargs() > 5) {
+      // Actual missing residues starts after */
 
 /** \return Atom alt. loc. code from PDB ATOM/HETATM line. */
 char PDBfile::pdb_AltLoc() const {
