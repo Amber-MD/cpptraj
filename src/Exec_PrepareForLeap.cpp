@@ -813,11 +813,31 @@ const
 }
 
 // -----------------------------------------------
+/** \return true if residue is on the list of residues with missing heteroatoms. */
+static bool res_missing_het(int rnum, Topology const& topIn) {
+  Residue const& res = topIn.Res(rnum);
+  mprintf("DEBUG: TGT %s %i '%c' '%c'\n", *(res.Name()), res.OriginalResNum(), res.Icode(), res.ChainId());
+  for (std::vector<Residue>::const_iterator het = topIn.MissingHet().begin();
+                                            het != topIn.MissingHet().end(); ++het)
+  {
+    mprintf("DEBUG: HET %s %i '%c' '%c'\n", *(het->Name()), het->OriginalResNum(), het->Icode(), het->ChainId());
+    if ( het->OriginalResNum() == res.OriginalResNum() &&
+         het->Icode()          == res.Icode() &&
+         het->ChainId()        == res.ChainId() &&
+         het->Name()           == res.Name() )
+      return true;
+  }
+  return false;
+}
+
 /** Identify sugar oxygen, anomeric and ref carbons, and ring atoms. */
 Exec_PrepareForLeap::Sugar Exec_PrepareForLeap::IdSugarRing(int rnum, Topology const& topIn)
 const
 {
   Residue const& res = topIn.Res(rnum);
+  bool residue_missing_atoms = res_missing_het(rnum, topIn);
+  if (residue_missing_atoms)
+    mprintf("\tResidue is missing atoms.\n");
 
   // Determine candidates for ring oxygen atoms. 
   Iarray potentialRingStartAtoms;
