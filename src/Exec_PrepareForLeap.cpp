@@ -821,11 +821,11 @@ const
 /** \return true if residue is on the list of residues with missing heteroatoms. */
 static bool res_missing_het(int rnum, Topology const& topIn) {
   Residue const& res = topIn.Res(rnum);
-  mprintf("DEBUG: TGT %s %i '%c' '%c'\n", *(res.Name()), res.OriginalResNum(), res.Icode(), res.ChainId());
+  //mprintf("DEBUG: TGT %s %i '%c' '%c'\n", *(res.Name()), res.OriginalResNum(), res.Icode(), res.ChainId());
   for (std::vector<Residue>::const_iterator het = topIn.MissingHet().begin();
                                             het != topIn.MissingHet().end(); ++het)
   {
-    mprintf("DEBUG: HET %s %i '%c' '%c'\n", *(het->Name()), het->OriginalResNum(), het->Icode(), het->ChainId());
+    //mprintf("DEBUG: HET %s %i '%c' '%c'\n", *(het->Name()), het->OriginalResNum(), het->Icode(), het->ChainId());
     if ( het->OriginalResNum() == res.OriginalResNum() &&
          het->Icode()          == res.Icode() &&
          het->ChainId()        == res.ChainId() &&
@@ -842,7 +842,7 @@ const
   Residue const& res = topIn.Res(rnum);
   bool residue_missing_atoms = res_missing_het(rnum, topIn);
   if (residue_missing_atoms)
-    mprintf("\tResidue is missing atoms.\n");
+    mprintf("\tResidue '%s' is missing atoms.\n", topIn.TruncResNameOnumId(rnum).c_str());
 
   // Determine candidates for ring oxygen atoms. 
   Iarray potentialRingStartAtoms;
@@ -1623,7 +1623,8 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar& sugarIn, Topology& topIn,
       sugarInfo.SetRingType( pdb_glycam->second.RingType() );
     }
   }
-  // Warn about form/chirality mismatches.
+  // Warn about form/chirality mismatches. If a mismatch occurs and the sugar
+  // did not have all atoms present, defer to the name.
   if (pdb_glycam->second.Form() != UNKNOWN_FORM &&
       pdb_glycam->second.Form() != sugarInfo.Form())
   {
@@ -1632,6 +1633,10 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar& sugarIn, Topology& topIn,
             formstr_[pdb_glycam->second.Form()]);
     if (sugarInfo.Form() != UNKNOWN_FORM)
       resStat_[rnum] = SUGAR_NAME_MISMATCH;
+    if (sugar.IsMissingAtoms()) {
+      mprintf("Warning: Residue was missing atoms; setting form based on residue name.\n");
+      sugarInfo.SetForm( pdb_glycam->second.Form() );
+    }
   }
   if (pdb_glycam->second.Chirality() != UNKNOWN_CHIR &&
       pdb_glycam->second.Chirality() != sugarInfo.Chirality())
@@ -1641,6 +1646,10 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar& sugarIn, Topology& topIn,
             chirstr_[pdb_glycam->second.Chirality()]);
     if (sugarInfo.Chirality() != UNKNOWN_CHIR)
       resStat_[rnum] = SUGAR_NAME_MISMATCH;
+    if (sugar.IsMissingAtoms()) {
+      mprintf("Warning: Residue was missing atoms; setting chirality based on residue name.\n");
+      sugarInfo.SetChirality( pdb_glycam->second.Chirality() );
+    }
   }
   if (pdb_glycam->second.RingType() != UNKNOWN_RING &&
       pdb_glycam->second.RingType() != sugarInfo.RingType())
@@ -1650,6 +1659,10 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar& sugarIn, Topology& topIn,
             ringstr_[pdb_glycam->second.RingType()]);
     if (sugarInfo.RingType() != UNKNOWN_RING)
       resStat_[rnum] = SUGAR_NAME_MISMATCH;
+    if (sugar.IsMissingAtoms()) {
+      mprintf("Warning: Residue was missing atoms; setting ring type based on residue name.\n");
+      sugarInfo.SetRingType( pdb_glycam->second.RingType() );
+    }
   }
     
   // Get glycam form string
