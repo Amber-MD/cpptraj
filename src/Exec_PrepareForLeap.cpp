@@ -29,7 +29,8 @@ Exec_PrepareForLeap::Sugar::Sugar(StatType status, int firstat) :
   anomeric_atom_(firstat),
   ano_ref_atom_(-1),
   highest_stereocenter_(-1),
-  ringType_(UNKNOWN_RING)
+  ringType_(UNKNOWN_RING),
+  isMissingAtoms_(false)
 {}
 
 /** CONSTRUCTOR - Partial setup; ring O, anomeric atom, ring and chain atoms. */
@@ -41,6 +42,7 @@ Exec_PrepareForLeap::Sugar::Sugar(StatType status, int roa, int aa,
   ano_ref_atom_(-1),
   highest_stereocenter_(-1),
   ringType_(UNKNOWN_RING),
+  isMissingAtoms_(true),
   ring_atoms_(RA),
   chain_atoms_(CA)
 {
@@ -54,13 +56,14 @@ Exec_PrepareForLeap::Sugar::Sugar(StatType status, int roa, int aa,
 
 /** CONSTRUCTOR - Set ring atom indices and ring type. */
 Exec_PrepareForLeap::Sugar::Sugar(int roa, int aa, int ara, int hs,
-                                  Iarray const& RA, Iarray const& CA) :
+                                  Iarray const& RA, Iarray const& CA, bool isMissing) :
   stat_(SETUP_OK),
   ring_oxygen_atom_(roa),
   anomeric_atom_(aa),
   ano_ref_atom_(ara),
   highest_stereocenter_(hs),
   ringType_(UNKNOWN_RING),
+  isMissingAtoms_(isMissing),
   ring_atoms_(RA),
   chain_atoms_(CA)
 {
@@ -92,6 +95,8 @@ void Exec_PrepareForLeap::Sugar::PrintInfo(Topology const& topIn) const {
             StatTypeStr_[stat_]);
   }
   //mprintf("\t%s :\n", topIn.TruncResNameOnumId(ResNum(topIn)).c_str());
+  if (isMissingAtoms_)
+    mprintf("\t\tIs missing atoms.\n");
   if (ring_oxygen_atom_ != -1)
     mprintf("\t\tRing O           : %s\n", topIn.TruncAtomNameNum(ring_oxygen_atom_).c_str());
   if (anomeric_atom_ != -1)
@@ -1098,7 +1103,7 @@ const
   if (debug_ > 0)
     mprintf("\t  Ring oxygen         : %s\n", topIn.ResNameNumAtomNameNum(ring_oxygen_atom).c_str());
   return Sugar(ring_oxygen_atom, anomeric_atom, ano_ref_atom, highest_stereocenter,
-               RA, carbon_chain);
+               RA, carbon_chain, residue_missing_atoms);
 }
 
 /** Change PDB atom names in residue to glycam ones. */

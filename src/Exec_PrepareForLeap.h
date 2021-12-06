@@ -188,8 +188,8 @@ class Exec_PrepareForLeap::Sugar {
     Sugar(StatType, int);
     /// CONSTRUCTOR - Status, ring O, anomeric, ring atoms, chain atoms, incomplete setup
     Sugar(StatType, int, int, Iarray const&,Iarray const&);
-    /// CONSTRUCTOR - ring O, Anomeric, Anomeric Ref, Highest Sterocenter, ring atoms, chain atoms
-    Sugar(int,int,int,int,Iarray const&,Iarray const&);
+    /// CONSTRUCTOR - ring O, Anomeric, Anomeric Ref, Highest Sterocenter, ring atoms, chain atoms, isMissingAtoms
+    Sugar(int,int,int,int,Iarray const&,Iarray const&, bool);
 
     inline int ResNum(Topology const&) const;
     StatType Status()          const { return stat_; }
@@ -198,6 +198,7 @@ class Exec_PrepareForLeap::Sugar {
     int AnomericRefAtom()      const { return ano_ref_atom_; }
     int HighestStereocenter()  const { return highest_stereocenter_; }
     RingTypeEnum RingType()    const { return ringType_; }
+    bool IsMissingAtoms()      const { return isMissingAtoms_; }
     Iarray const& RingAtoms()  const { return ring_atoms_; }
     int RingEndAtom()          const { return ring_atoms_.back(); }
     Iarray const& ChainAtoms() const { return chain_atoms_; }
@@ -223,6 +224,7 @@ class Exec_PrepareForLeap::Sugar {
     int ano_ref_atom_;         ///< Index of the anomeric reference C atom
     int highest_stereocenter_; ///< Index of the highest stereocenter in the carbon chain
     RingTypeEnum ringType_;    ///< Will be set to ring type
+    bool isMissingAtoms_;      ///< True if original PDB indicates sugar has missing atoms.
     Iarray ring_atoms_;        ///< Index of all non-oxygen ring atoms
     Iarray chain_atoms_;       ///< Index of all chain carbon atoms (from anomeric carbon).
 };
