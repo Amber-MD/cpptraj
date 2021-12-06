@@ -88,6 +88,8 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
 # endif
   bool hasMissingResidues = false;
   std::vector<Residue> missingResidues;
+  bool hasMissingHet = false;
+  std::vector<Residue> missingHet;
   int nAltLocSkipped = 0;
   // Loop over PDB records
   while ( infile.NextRecord() != PDBfile::END_OF_FILE ) {
@@ -168,13 +170,26 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
         mprintf("Warning: If molecule determination fails try specifying 'noconect' instead.\n");
       if (readLink)
         mprintf("Warning: If molecule determination fails try not specifying 'link' instead.\n");*/
+    } else if ( !hasMissingHet && infile.RecType() == PDBfile::MISSING_HET ) {
+      hasMissingHet = true;
+      mprintf("Warning: PDB file has MISSING HETEROATOM section.\n");
+      if (infile.Get_Missing_Het(missingHet))
+        mprintf("Warning: Could not read MISSING HETEROATOM section.\n");
     }
   } // END loop over PDB records
 
   if (hasMissingResidues) {
-    mprintf("DEBUG: MISSING RESIDUES: ");
+    mprintf("DEBUG: Missing Residues: ");
     for (std::vector<Residue>::const_iterator res = missingResidues.begin();
                                               res != missingResidues.end(); ++res)
+      mprintf(" {%s %i %c %c}", *(res->Name()), res->OriginalResNum(),
+                                res->Icode(), res->ChainId());
+    mprintf("\n");
+  }
+  if (hasMissingHet) {
+    mprintf("DEBUG: Residues missing heteroatoms: ");
+    for (std::vector<Residue>::const_iterator res = missingHet.begin();
+                                              res != missingHet.end(); ++res)
       mprintf(" {%s %i %c %c}", *(res->Name()), res->OriginalResNum(),
                                 res->Icode(), res->ChainId());
     mprintf("\n");

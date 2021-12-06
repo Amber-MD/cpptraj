@@ -20,6 +20,8 @@ class PDBfile : public CpptrajFile {
     PDB_RECTYPE NextRecord();
     /// Get a list of missing residues from the PDB file (REMARK 465)
     int Get_Missing_Res(std::vector<Residue>&);
+    /// Get a list of residues missing heteroatoms from PDB file (REMARK 610)
+    int Get_Missing_Het(std::vector<Residue>&);
     /// \return ATOM/HETATM alt. loc ID
     char pdb_AltLoc() const;
     /// \return Atom info with name and element for ATOM/HETATM; set altLoc and #.
@@ -93,6 +95,8 @@ class PDBfile : public CpptrajFile {
     static bool IsPDBkeyword(std::string const&);
     /// Read box info from CRYST1 record
     void readCRYST1(double*);
+    /// Parse a MISSING residue line
+    Residue missing_res() const;
 
     int anum_;               ///< Atom number for writing.
     PDB_RECTYPE recType_;    ///< Current record type.

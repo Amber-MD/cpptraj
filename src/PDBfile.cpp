@@ -294,11 +294,37 @@ PDBfile::PDB_RECTYPE PDBfile::NextRecord() {
   return recType_;
 }
 
+/** Get a residue from line with format:
+  *           1111111111222222
+  * 01234567890123456789012345
+  * REMARK XXX   M RES C SSEQI
+  */
+Residue PDBfile::missing_res() const {
+  // parse out res name
+  std::string currentname;
+  currentname.assign(linebuffer_+15, 3);
+  // get chain
+  char currentchain = linebuffer_[19];
+  // get insertion code
+  char currenticode = linebuffer_[26];
+  // parse out res number
+  std::string numbuf;
+  numbuf.assign(linebuffer_+21, 5);
+  //char numbuf[6];
+  //std::copy(linebuffer_+21, linebuffer_+26, numbuf);
+  //numbuf[5] = '\0';
+  int currentres = atoi(numbuf.c_str());
+  mprintf("DEBUG: Missing residue %s %i icode= %c chain= %c\n",
+          currentname.c_str(), currentres, currenticode, currentchain);
+  return Residue(currentname, currentres, currenticode, currentchain);
+}
+
+
 /** Get a list of missing residues from the PDB file. */ // TODO record MODEL
 int PDBfile::Get_Missing_Res(std::vector<Residue>& missingResidues) {
   bool inMissing = false;
   while (recType_ == MISSING_RES) {
-    mprintf("DEBUG: rectype=%i %s", (int)recType_, linebuffer_);
+    //mprintf("DEBUG: rectype=%i %s", (int)recType_, linebuffer_);
     if (!inMissing) {
       // Actual missing residues starts after:
       //           11111111112222222
@@ -307,38 +333,34 @@ int PDBfile::Get_Missing_Res(std::vector<Residue>& missingResidues) {
       if (linebuffer_[13] == 'M' && linebuffer_[15] == 'R' && linebuffer_[19] == 'C')
         inMissing = true;
     } else {
-      // parse out res name
-      std::string currentname;// = line[2];
-      currentname.assign(linebuffer_+15, 3);
-      // get chain
-      char currentchain = linebuffer_[19];
-      // get insertion code
-      char currenticode = linebuffer_[26];
-      // parse out res number
-      std::string numbuf;
-      numbuf.assign(linebuffer_+21, 5);
-      //char numbuf[6];
-      //std::copy(linebuffer_+21, linebuffer_+26, numbuf);
-      //numbuf[5] = '\0';
-      int currentres = atoi(numbuf.c_str());
-      mprintf("DEBUG: Missing residue %s %i icode= %c chain= %c\n",
-              currentname.c_str(), currentres, currenticode, currentchain);
-      //if (std::find(ignoreseq.begin(), ignoreseq.end(), currentname) == ignoreseq.end())
-        missingResidues.push_back( Residue(currentname, currentres, currenticode, currentchain) );
+      missingResidues.push_back( missing_res() );
     }
     NextRecord();
-    mprintf("DEBUG: rectype=%i\n", (int)recType_);
+    //mprintf("DEBUG: rectype=%i\n", (int)recType_);
   }
   return 0;
 }
 
 /** Get a list of residues missing heteroatoms */
-/*
 int PDBfile::Get_Missing_Het(std::vector<Residue>& missingHet) {
   bool inMissing = false;
   while (recType_ == MISSING_HET) {
-    if (line.Nargs() > 5) {
-      // Actual missing residues starts after */
+    //mprintf("DEBUG: rectype=%i %s", (int)recType_, linebuffer_);
+    if (!inMissing) {
+      // Actual missing residues starts after:
+      //           11111111112222222
+      // 012345678901234567890123456
+      // REMARK 610   M RES C SSEQI
+      if (linebuffer_[13] == 'M' && linebuffer_[15] == 'R' && linebuffer_[19] == 'C')
+        inMissing = true;
+    } else {
+      missingHet.push_back( missing_res() );
+    }
+    NextRecord();
+    //mprintf("DEBUG: rectype=%i\n", (int)recType_);
+  }
+  return 0;
+}
 
 /** \return Atom alt. loc. code from PDB ATOM/HETATM line. */
 char PDBfile::pdb_AltLoc() const {
