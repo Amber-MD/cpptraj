@@ -86,7 +86,8 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
   Timer time_total, time_atom;
   time_total.Start();
 # endif
-  bool missingResidues = false;
+  bool hasMissingResidues = false;
+  std::vector<Residue> missingResidues;
   int nAltLocSkipped = 0;
   // Loop over PDB records
   while ( infile.NextRecord() != PDBfile::END_OF_FILE ) {
@@ -158,15 +159,27 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
       //TopIn.StartNewMol();
       TopIn.SetRes( TopIn.Nres()-1 ).SetTerminal( true );
       if (infile.RecType() == PDBfile::END) break;
-    } else if ( !missingResidues && infile.RecType() == PDBfile::MISSING_RES ) {
-      missingResidues = true;
+    } else if ( !hasMissingResidues && infile.RecType() == PDBfile::MISSING_RES ) {
+      hasMissingResidues = true;
       mprintf("Warning: PDB file has MISSING RESIDUES section.\n");
+      if (infile.Get_Missing_Res(missingResidues))
+        mprintf("Warning: Could not read MISSING RESIDUES section.\n");
       /*if (readConect)
         mprintf("Warning: If molecule determination fails try specifying 'noconect' instead.\n");
       if (readLink)
         mprintf("Warning: If molecule determination fails try not specifying 'link' instead.\n");*/
     }
   } // END loop over PDB records
+
+  if (hasMissingResidues) {
+    mprintf("DEBUG: MISSING RESIDUES: ");
+    for (std::vector<Residue>::const_iterator res = missingResidues.begin();
+                                              res != missingResidues.end(); ++res)
+      mprintf(" {%s %i %c %c}", *(res->Name()), res->OriginalResNum(),
+                                res->Icode(), res->ChainId());
+    mprintf("\n");
+  }
+
   if (nAltLocSkipped > 0)
     mprintf("\tSkipped %i alternate atom locations.\n", nAltLocSkipped);
   // Sanity check

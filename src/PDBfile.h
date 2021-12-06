@@ -9,15 +9,17 @@ class PDBfile : public CpptrajFile {
     class SSBOND;
     class SymOp;
     class Link;
-    // NOTE: PDB_RECNAME must correspond with this.
+    // NOTE: PDB_RECNAME_ must correspond with this.
     enum PDB_RECTYPE {ATOM=0, HETATM, CRYST1, TER, END, ANISOU, END_OF_FILE, 
-                      CONECT, LINK, MISSING_RES, UNKNOWN};
+                      CONECT, LINK, MISSING_RES, MISSING_ATOM, MISSING_HET, UNKNOWN};
     /// CONSTRUCTOR
     PDBfile();
     /// Check if either of the first two lines contain valid PDB records.
     static bool ID_PDB(CpptrajFile&);
     /// \return the type of the next PDB record read.
     PDB_RECTYPE NextRecord();
+    /// Get a list of missing residues from the PDB file (REMARK 465)
+    int Get_Missing_Res(std::vector<Residue>&);
     /// \return ATOM/HETATM alt. loc ID
     char pdb_AltLoc() const;
     /// \return Atom info with name and element for ATOM/HETATM; set altLoc and #.
@@ -98,7 +100,7 @@ class PDBfile : public CpptrajFile {
     bool coordOverflow_;     ///< True if coords on write exceed field width
     bool useCol21_;          ///< If true, use column 21 for 4-char res name
     /// Recognized PDB record types; corresponds to PDB_RECTYPE
-    static const char* PDB_RECNAME[];
+    static const char* PDB_RECNAME_[];
 };
 /// Hold information for an SSBOND record.
 class PDBfile::SSBOND {

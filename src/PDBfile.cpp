@@ -2,6 +2,7 @@
 #include <cstdlib> // atoi, atof
 #include <cstring> // strncmp
 #include <algorithm> // std::copy
+#include "ArgList.h"
 #include "PDBfile.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString
@@ -165,9 +166,9 @@ PDBfile::Link& PDBfile::Link::operator=(Link const& rhs) {
 // ===== PDBfile class =========================================================
 /// PDB record types
 // NOTE: Must correspond with PDB_RECTYPE
-const char* PDBfile::PDB_RECNAME[] = { 
+const char* PDBfile::PDB_RECNAME_[] = { 
   "ATOM  ", "HETATM", "CRYST1", "TER   ", "END   ", "ANISOU", "EndRec",
-  "CONECT", "LINK  ", "REMARK", 0 };
+  "CONECT", "LINK  ", "REMARK", "REMARK", "REMARK", 0 };
 
 /// CONSTRUCTOR
 PDBfile::PDBfile() :
@@ -279,11 +280,54 @@ PDBfile::PDB_RECTYPE PDBfile::NextRecord() {
     recType_ = END;
   else if (strncmp(linebuffer_,"REMARK",6)==0) {
     // REMARK record.
-    if (linebuffer_[7] == '4' && linebuffer_[8] == '6' &&
-        linebuffer_[9] == '5' && linebuffer_[11] == 'M')
+    //           111111111122222222
+    // 0123456789012345678901234567
+    // REMARK 465 MISSING  RESIDUES
+    // REMARK 470 MISSING ATOM
+    // REMARK 610 MISSING HETEROATOM
+    if (linebuffer_[7] == '4' && linebuffer_[8] == '6' && linebuffer_[9] == '5')
       recType_ = MISSING_RES;
+    else if (linebuffer_[7] == '4' && linebuffer_[8] == '7' && linebuffer_[9] == '0')
+      recType_ = MISSING_ATOM;
+    else if (linebuffer_[7] == '6' && linebuffer_[8] == '1' && linebuffer_[9] == '0')
+      recType_ = MISSING_HET;
   }
   return recType_;
+}
+
+/** Get a list of missing residues from the PDB file. */
+int PDBfile::Get_Missing_Res(std::vector<Residue>& missingResidues) {
+  bool inMissing = false;
+  while (recType_ == MISSING_RES) {
+    mprintf("DEBUG: rectype=%i %s", (int)recType_, linebuffer_);
+    ArgList line(linebuffer_, " \r\n");
+    if (line.Nargs() > 5) {
+      // Actual missing residues starts after 'REMARK 465   M RES C SSSEQI'
+      if (line[2] == "M" && line[3] == "RES" && line[4] == "C")
+        inMissing = true;
+    } else if (inMissing && line.Nargs() > 2) {
+      std::string const& currentname = line[2];
+      char currentchain = linebuffer_[19];
+      // Need to be able to parse out insertion code
+      char currenticode = linebuffer_[26];
+      int currentres;
+      if (currenticode == ' ') {
+        currentres = atoi(line[4].c_str());
+      } else {
+        char numbuf[6];
+        std::copy(linebuffer_+21, linebuffer_+26, numbuf);
+        numbuf[5] = '\0';
+        currentres = atoi(numbuf);
+      }
+      mprintf("DEBUG: Missing residue %s %i icode= %c chain= %c\n",
+              currentname.c_str(), currentres, currenticode, currentchain);
+      //if (std::find(ignoreseq.begin(), ignoreseq.end(), currentname) == ignoreseq.end())
+        missingResidues.push_back( Residue(currentname, currentres, currenticode, currentchain) );
+    }
+    NextRecord();
+    mprintf("DEBUG: rectype=%i\n", (int)recType_);
+  }
+  return 0;
 }
 
 /** \return Atom alt. loc. code from PDB ATOM/HETATM line. */
@@ -595,8 +639,8 @@ void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& na
     for (int i = 0; i < an_size; i++)
       atomName[i+1] = name[i];
   }
-
-  Printf("%-6s%5i %-4s%5s%c%4i%c",PDB_RECNAME[Record], anum, atomName,
+  // TODO if REMARK, which #?
+  Printf("%-6s%5i %-4s%5s%c%4i%c",PDB_RECNAME_[Record], anum, atomName,
                resName, chain, resnum, icode);
   if (Record == TER) Printf("\n");
 }
