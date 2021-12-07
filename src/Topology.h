@@ -78,6 +78,8 @@ class Topology {
     void AddPdbSerialNum(int i) { pdbSerialNum_.push_back( i ); }
     /// Set list of missing residues and residues missing heteroatoms
     void SetMissingResInfo(std::vector<Residue> const&, std::vector<Residue> const&);
+    /// \return list of completely missing residues
+    std::vector<Residue> const& MissingRes() const { return missingRes_; }
     /// \return list of residues missing heteroatoms
     std::vector<Residue> const& MissingHet() const { return missingHet_; }
     // ----- Residue-specific routines -----------

@@ -70,6 +70,22 @@ const
     mprintf("\n");
   }
   Rlist missingResidues;
+
+  // Read existing/missing residues from the PDB
+  ParmFile pdbIn;
+  Topology topIn;
+  if (pdbIn.ReadTopology(topIn, pdbname, ArgList(), debug_)) {
+    mprinterr("Error: Read of topology from PDB failed.\n");
+    return CpptrajState::ERR;
+  }
+  topIn.Summary();
+
+  // Place completely missing residues into a list.
+  for (std::vector<Residue>::const_iterator res = topIn.MissingRes().begin();
+                                            res != topIn.MissingRes().end(); ++res)
+    if (std::find(ignoreseq.begin(), ignoreseq.end(), res->Name().Truncated()) == ignoreseq.end())
+              missingResidues.push_back( *res );
+/*
   BufferedLine infile;
   if (infile.OpenFileRead( pdbname )) {
     mprinterr("Error: Could not open '%s' for reading.\n", pdbname.c_str());
@@ -77,7 +93,6 @@ const
   }
   // Loop over lines from PDB
   int inMissing = 0;
-  unsigned int nmissing = 0;
   const char* linePtr = infile.Line();
   while (linePtr != 0) {
     if (strncmp(linePtr, "REMARK", 6) == 0)
@@ -130,20 +145,11 @@ const
     linePtr = infile.Line();
   } // END while linePtr != 0
   infile.CloseFile();
-
+*/
   // DEBUG
   for (Rlist::const_iterator it = missingResidues.begin(); it != missingResidues.end(); ++it)
     mprintf("DEBUG: Missing residue %s %i icode= %c chain= %c\n",
             *(it->Name()), it->OriginalResNum(), it->Icode(), it->ChainId());
-
-  // Read existing residues from the PDB
-  ParmFile pdbIn;
-  Topology topIn;
-  if (pdbIn.ReadTopology(topIn, pdbname, ArgList(), debug_)) {
-    mprinterr("Error: Read of topology from PDB failed.\n");
-    return CpptrajState::ERR;
-  }
-  topIn.Summary();
 
   // Put existing residues into a list
   ResList.clear();
@@ -253,7 +259,7 @@ const
     missingResidues.erase(gapStart, gapEnd);
     gapStart = gapEnd;
   }
-  outfile.Printf("%u missing residues.\n", nmissing);
+  outfile.Printf("%zu missing residues.\n", topIn.MissingRes().size());
  
   mprintf("Final residues:\n");
   for (Rlist::const_iterator it = ResList.begin(); it != ResList.end(); ++it) 
