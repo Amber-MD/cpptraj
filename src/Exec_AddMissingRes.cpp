@@ -85,71 +85,12 @@ const
                                             res != topIn.MissingRes().end(); ++res)
     if (std::find(ignoreseq.begin(), ignoreseq.end(), res->Name().Truncated()) == ignoreseq.end())
               missingResidues.push_back( *res );
-/*
-  BufferedLine infile;
-  if (infile.OpenFileRead( pdbname )) {
-    mprinterr("Error: Could not open '%s' for reading.\n", pdbname.c_str());
-    return 1;
-  }
-  // Loop over lines from PDB
-  int inMissing = 0;
-  const char* linePtr = infile.Line();
-  while (linePtr != 0) {
-    if (strncmp(linePtr, "REMARK", 6) == 0)
-    {
-      ArgList line(linePtr);
-      if (line.Nargs() > 2) {
-        if (inMissing == 0) {
-          // MISSING section not yet encountered.
-          if (line[0] == "REMARK" && line[1] == "465" && line[2] == "MISSING" && line[3] == "RESIDUES") {
-            inMissing = 1;
-          }
-        } else if (inMissing == 1) {
-          // In MISSING, looking for start of missing residues
-          if (line[0] == "REMARK" && line[2] == "M") {
-            inMissing = 2;
-            nmissing = 0;
-          }
-        } else if (inMissing == 2) {
-          // Reading MISSING residues
-          if (line[1] != "465") {
-            //mprinterr("END REACHED.\n"); // DEBUG
-            break; 
-          } else {
-            // This is a missing residue
-            nmissing++;
-            //           11111111112222222
-            // 012345678901234567890123456
-            // REMARK 465   M RES C SSSEQI
-            std::string const& currentname = line[2];
-            char currentchain = linePtr[19];
-            // Need to be able to parse out insertion code
-            char currenticode = linePtr[26];
-            int currentres;
-            if (currenticode == ' ') {
-              currentres = atoi(line[4].c_str());
-            } else {
-              char numbuf[6];
-              std::copy(linePtr+21, linePtr+26, numbuf);
-              numbuf[5] = '\0';
-              currentres = atoi(numbuf);
-            }
-            //mprintf("DEBUG: Missing residue %s %i icode= %c chain= %c\n",
-            //        currentname.c_str(), currentres, currenticode, currentchain);
-            if (std::find(ignoreseq.begin(), ignoreseq.end(), currentname) == ignoreseq.end())
-              missingResidues.push_back( Residue(currentname, currentres, currenticode, currentchain) );
-          } // END missing residue
-        } // END inMissing == 2
-      } // END nargs > 2
-    } // END REMARK
-    linePtr = infile.Line();
-  } // END while linePtr != 0
-  infile.CloseFile();
-*/
+
   // DEBUG
-  for (Rlist::const_iterator it = missingResidues.begin(); it != missingResidues.end(); ++it)
-    mprintf("DEBUG: Missing residue %s %i icode= %c chain= %c\n",
-            *(it->Name()), it->OriginalResNum(), it->Icode(), it->ChainId());
+  if (debug_ > 0)
+    for (Rlist::const_iterator it = missingResidues.begin(); it != missingResidues.end(); ++it)
+      mprintf("DEBUG: Missing residue %s %i icode= %c chain= %c\n",
+              *(it->Name()), it->OriginalResNum(), it->Icode(), it->ChainId());
 
   // Put existing residues into a list
   ResList.clear();
@@ -273,10 +214,33 @@ const
 /** Get missing residues from PDB, organize them into "gaps", i.e.
   * contiguous sequences.
   */
-int Exec_AddMissingRes::FindGaps(Garray& Gaps, CpptrajFile& outfile, std::string const& pdbname)
+int Exec_AddMissingRes::FindGaps(Garray& Gaps, CpptrajFile& outfile, Topology const& topIn)
 const
 {
-  BufferedLine infile;
+  for (std::vector<Residue>::const_iterator res = topIn.MissingRes().begin();
+                                            res != topIn.MissingRes().end(); ++res)
+  {
+    int currentres = res->OriginalResNum();
+    char currentchain = res->ChainId();
+    Pres thisRes(res->Name().Truncated(), currentres, res->Icode(), currentchain);
+    // Is this the first "gap"?
+    if (Gaps.empty())
+      Gaps.push_back( ResArray(1, thisRes) );
+    else {
+      ResArray& currentGap = Gaps.back();
+      if ( currentres - currentGap.back().Onum() > 1 ||
+           currentchain != currentGap.back().Chain() )
+      {
+        // Starting a new "gap"
+        Gaps.push_back( ResArray(1, thisRes) );
+      } else {
+        // Add to existing "gap"
+        currentGap.push_back( thisRes );
+      }
+    }
+  }
+
+/*  BufferedLine infile;
   if (infile.OpenFileRead( pdbname )) {
     mprinterr("Error: Could not open '%s' for reading.\n", pdbname.c_str());
     return 1;
@@ -348,7 +312,7 @@ const
     } // END REMARK
     linePtr = infile.Line();
   } // END while linePtr != 0
-
+*/
   // Printout
   for (Garray::const_iterator it = Gaps.begin(); it != Gaps.end(); ++it) {
     outfile.Printf("  Gap %c %4s %6i to %4s %6i %6zu\n",
@@ -369,7 +333,7 @@ const
     if (col > 1)
       outfile.Printf("\n");
   }
-  outfile.Printf("%i missing residues.\n", nmissing);
+  outfile.Printf("%zu missing residues.\n", topIn.MissingRes().size());
   if (Gaps.empty()) {
     mprintf("Warning: No gaps found.\n");
   }
@@ -1406,14 +1370,6 @@ Exec::RetType Exec_AddMissingRes::Execute(CpptrajState& State, ArgList& argIn)
   }
   mprintf("\tOutput set: %s\n", dataOut->legend());
 
-  // Find missing residues/gaps in the PDB
-  Garray Gaps;
-  if (FindGaps(Gaps, *outfile, pdbname)) {
-    mprinterr("Error: Finding missing residues failed.\n");
-    return CpptrajState::ERR;
-  }
-  mprintf("\tThere are %zu gaps in the PDB.\n", Gaps.size());
-
   // Read in topology
   ParmFile parmIn;
   Topology topIn;
@@ -1422,6 +1378,14 @@ Exec::RetType Exec_AddMissingRes::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
   topIn.Summary();
+
+  // Find missing residues/gaps in the PDB
+  Garray Gaps;
+  if (FindGaps(Gaps, *outfile, topIn)) {
+    mprinterr("Error: Finding missing residues failed.\n");
+    return CpptrajState::ERR;
+  }
+  mprintf("\tThere are %zu gaps in the PDB.\n", Gaps.size());
 
   // Set up input trajectory
   Trajin_Single trajIn;
