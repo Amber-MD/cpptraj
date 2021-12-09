@@ -127,7 +127,8 @@ class Exec_PrepareForLeap : public Exec {
     int ModifyCoords(Topology&, Frame&, bool, char, std::string const&,
                      std::string const&, Iarray const&) const;
     int RemoveHydrogens(Topology&, Frame&) const;
-    int DetermineHisProt(std::vector<NameType>&, Iarray&, Topology const&,
+    /** Try to determine protonation state of histidines from any hydrogens present. */
+    int DetermineHisProt(Topology&,
                          NameType const&, NameType const&,
                          NameType const&, NameType const&, NameType const&, NameType const&) const;
     /// Run leap to generate topology, perform any modifications

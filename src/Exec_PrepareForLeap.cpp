@@ -2741,9 +2741,8 @@ int Exec_PrepareForLeap::RemoveHydrogens(Topology& topIn, Frame& frameIn) const 
   return 0;
 }
 
-/** Try to determine histidine protonation.
-  * \param HisResNames Array containing final histidine residue names.
-  * \param HisResIdxs Array containing residue indices of histidine residues (correspond to HisResNames).
+/** Try to determine histidine protonation from existing hydrogens.
+  * Change residue names as appropriate.
   * \param topIn Input topology.
   * \param ND1 ND1 atom name.
   * \param NE2 NE2 atom name.
@@ -2752,9 +2751,7 @@ int Exec_PrepareForLeap::RemoveHydrogens(Topology& topIn, Frame& frameIn) const 
   * \param HidName Name for delta-protonated His.
   * \param HipName Name for doubly-protonated His.
   */
-int Exec_PrepareForLeap::DetermineHisProt( std::vector<NameType>& HisResNames,
-                                           Iarray& HisResIdxs,
-                                           Topology const& topIn,
+int Exec_PrepareForLeap::DetermineHisProt( Topology& topIn,
                                            NameType const& ND1,
                                            NameType const& NE2,
                                            NameType const& HisName,
@@ -2773,11 +2770,8 @@ const
   if ( topIn.SetupIntegerMask( mask )) return 1;
   mask.MaskInfo();
   Iarray resIdxs = topIn.ResnumsSelectedBy( mask );
-
-  HisResIdxs.clear();
-  HisResIdxs.reserve( resIdxs.size() );
-  HisResNames.clear();
-  HisResNames.reserve( resIdxs.size() );
+  // Loop over selected histidine residues
+  unsigned int nchanged = 0;
   for (Iarray::const_iterator rnum = resIdxs.begin();
                               rnum != resIdxs.end(); ++rnum)
   {
@@ -2828,14 +2822,17 @@ const
       return 1;
     }
     if (nd1h > 0 && ne2h > 0) {
-      HisResNames.push_back( HipName );
-      HisResIdxs.push_back( *rnum );
+      mprintf("\t\t%s => %s\n", topIn.TruncResNameOnumId(*rnum).c_str(), *HipName);
+      ChangeResName( topIn.SetRes(*rnum), HipName );
+      nchanged++;
     } else if (nd1h > 0) {
-      HisResNames.push_back( HidName );
-      HisResIdxs.push_back( *rnum );
+      mprintf("\t\t%s => %s\n", topIn.TruncResNameOnumId(*rnum).c_str(), *HidName);
+      ChangeResName( topIn.SetRes(*rnum), HidName );
+      nchanged++;
     } else if (ne2h > 0) {
-      HisResNames.push_back( HieName );
-      HisResIdxs.push_back( *rnum );
+      mprintf("\t\t%s => %s\n", topIn.TruncResNameOnumId(*rnum).c_str(), *HieName);
+      ChangeResName( topIn.SetRes(*rnum), HieName );
+      nchanged++;
     }
     //else {
     //  // Default to epsilon
@@ -2843,12 +2840,10 @@ const
     //  HisResNames.push_back( HieName );
     //}
   }
-  if (!HisResIdxs.empty()) {
-    mprintf("\tChanged histidine names:\n");
-    for (unsigned int idx = 0; idx < HisResIdxs.size(); idx++)
-      mprintf("\t\t%i %s\n", HisResIdxs[idx]+1, *HisResNames[idx]);
-  } else
+  if (nchanged == 0) 
     mprintf("\tNo histidine names were changed.\n");
+  else
+    mprintf("\t%u histidine names were changed.\n", nchanged);
   return 0;
 }
 
@@ -3252,8 +3247,6 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   // Do histidine detection before H atoms are removed
-  Iarray HisResIdxs;
-  std::vector<NameType> HisResNames;
   if (!argIn.hasKey("nohisdetect")) {
     std::string nd1name = argIn.GetStringKey("nd1", "ND1");
     std::string ne2name = argIn.GetStringKey("ne2", "NE2");
@@ -3268,7 +3261,11 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     mprintf("\t\tEpsilon-protonated residue name : %s\n", hiename.c_str());
     mprintf("\t\tDelta-protonated residue name   : %s\n", hidname.c_str());
     mprintf("\t\tDoubly-protonated residue name  : %s\n", hipname.c_str());
-    if (DetermineHisProt( HisResNames, HisResIdxs, topIn,
+    // Add epsilon, delta, and double-protonated names as recognized.
+    pdb_res_names_.insert( hiename );
+    pdb_res_names_.insert( hidname );
+    pdb_res_names_.insert( hipname );
+    if (DetermineHisProt( topIn,
                           nd1name, ne2name,
                           hisname, hiename, hidname, hipname)) {
       mprinterr("Error: HIS protonation detection failed.\n");
@@ -3489,10 +3486,6 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
         fatal_errors++;
     }
   }
-
-  // Change HIS res names FIXME this will have to go before sugar split stuff
-  for (unsigned int idx = 0; idx != HisResIdxs.size(); idx++)
-    ChangeResName( topIn.SetRes(HisResIdxs[idx]), HisResNames[idx] );
 
   // Try to set terminal residues
   if (!molMasks.empty() || determineMolMask.MaskStringSet()) {
