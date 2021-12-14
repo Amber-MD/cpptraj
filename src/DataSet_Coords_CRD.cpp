@@ -70,9 +70,9 @@ int DataSet_Coords_CRD::CoordsSetup(Topology const& topIn, CoordinateInfo const&
 /** Convert frame to CompactFrame */
 static inline void FrameToArray(CompactFrameArray& frames_, Frame const& fIn) {
   if (frames_.HasComponent(CoordinateInfo::POSITION)) frames_.SetFromDblPtr(fIn.xAddress(), CoordinateInfo::POSITION);
-  if (frames_.HasComponent(CoordinateInfo::VELOCITY)) frames_.SetFromDblPtr(fIn.vAddress(), CoordinateInfo::VELOCITY);
-  if (frames_.HasComponent(CoordinateInfo::FORCE)) frames_.SetFromDblPtr(fIn.fAddress(), CoordinateInfo::FORCE);
-  if (frames_.HasComponent(CoordinateInfo::BOX)) {
+  if (frames_.HasComponent(CoordinateInfo::VELOCITY) && fIn.HasVelocity()) frames_.SetFromDblPtr(fIn.vAddress(), CoordinateInfo::VELOCITY);
+  if (frames_.HasComponent(CoordinateInfo::FORCE) && fIn.HasForce()) frames_.SetFromDblPtr(fIn.fAddress(), CoordinateInfo::FORCE);
+  if (frames_.HasComponent(CoordinateInfo::BOX) && fIn.BoxCrd().HasBox()) {
     // Prefer storing XYZ ABG if possible; loses less info, especially when converting to float.
     if (fIn.BoxCrd().Is_X_Aligned()) {
       double dtmp[9];
@@ -88,7 +88,7 @@ static inline void FrameToArray(CompactFrameArray& frames_, Frame const& fIn) {
   if (frames_.HasComponent(CoordinateInfo::REDOX)) frames_.SetFromDblVal(fIn.RedOx(), CoordinateInfo::REDOX);
   if (frames_.HasComponent(CoordinateInfo::TIME)) frames_.SetFromDblVal(fIn.Time(), CoordinateInfo::TIME);
   if (frames_.HasComponent(CoordinateInfo::STEP)) frames_.SetFromIntVal(fIn.Step(), CoordinateInfo::STEP);
-  if (frames_.HasComponent(CoordinateInfo::REMD_INDICES)) frames_.SetFromIntPtr(fIn.iAddress(), CoordinateInfo::REMD_INDICES);
+  if (frames_.HasComponent(CoordinateInfo::REMD_INDICES) && !fIn.RemdIndices().empty()) frames_.SetFromIntPtr(fIn.iAddress(), CoordinateInfo::REMD_INDICES);
   if (frames_.HasComponent(CoordinateInfo::REPIDX)) frames_.SetFromIntVal(fIn.RepIdx(), CoordinateInfo::REPIDX);
   if (frames_.HasComponent(CoordinateInfo::CRDIDX)) frames_.SetFromIntVal(fIn.CrdIdx(), CoordinateInfo::CRDIDX);
 }
