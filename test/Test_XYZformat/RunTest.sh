@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles xyz.in tz2.xyz test1.crd.save test?.crd tz2.st.xyz tz2.nt.at.xyz \
-           tz2.nt.xyz tz2.mt.at.xyz tz2.mt.xyz
+           tz2.nt.xyz tz2.mt.at.xyz tz2.mt.xyz traj.crd
 
 TESTNAME='XYZ format tests'
 Requires notparallel
@@ -47,6 +47,15 @@ EOF
   DoTest test1.crd.save test$N.crd
   ((N++))
 done
+
+# Read Standard format, With box coords in comments
+cat > xyz.in <<EOF
+parm waters.prmtop
+trajin traj.xyz
+trajout traj.crd
+EOF
+RunCpptraj "Read regular XYZ format with box info in comments."
+DoTest traj.crd.save traj.crd
 
 EndTest
 exit 0
