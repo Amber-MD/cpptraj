@@ -73,13 +73,14 @@ class Traj_XYZ : public TrajectoryIO {
     static const char* FMT_NAME_XYZ_;
 
     BufferedLine file_;
-    std::string ofmt_;
-    TitleType titleType_;
-    Type ftype_;
-    int set_;
-    int width_;
-    int prec_;
-    const char* fmt_; ///< Format for reading
-    bool hasBox_;     ///< True if comment line contains box information
+    std::string ofmt_;               ///< Format for writing
+    TitleType titleType_;            ///< Title type
+    Type ftype_;                     ///< Format type
+    int set_;                        ///< Current set (reading)
+    int width_;                      ///< Floating point width (writing)
+    int prec_;                       ///< Floating point precision (writing)
+    const char* fmt_;                ///< Format for reading
+    bool hasBox_;                    ///< True if comment line contains box information
+    std::vector<std::string> names_; ///< Names for writing NAME_XYZ format
 };
 #endif

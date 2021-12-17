@@ -331,7 +331,7 @@ int Traj_XYZ::readForce(int set, Frame& frameIn) {
 // -----------------------------------------------------------------------------
 /** Write help. */
 void Traj_XYZ::WriteHelp() {
-  mprintf("\tftype {atomxyz|xyz}              : Choose either 'ATOM X Y Z' (default) or 'X Y Z' output format.\n"
+  mprintf("\tftype {namexyz|atomxyz|xyz}      : Choose either 'NAME X Y Z', 'ATOM X Y Z' (default) or 'X Y Z' output format.\n"
           "\ttitletype {none|single|perframe} : No title, one title (default), or title before every frame.\n"
           "\twidth <#>                        : Output format width.\n"
           "\tprec <#>                         : Output format precision.\n");
@@ -345,6 +345,8 @@ int Traj_XYZ::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
       ftype_ = XYZ;
     else if (arg == "atomxyz")
       ftype_ = ATOM_XYZ;
+    else if (arg == "namexyz")
+      ftype_ = NAME_XYZ;
     else {
       mprinterr("Error: Unrecognized key for 'ftype' = '%s'\n", arg.c_str());
       return 1;
@@ -377,11 +379,27 @@ int Traj_XYZ::setupTrajout(FileName const& fname, Topology* trajParm,
     titleType_ = SINGLE;
   if (ftype_ == UNKNOWN)
     ftype_ = ATOM_XYZ;
+
+  if (ftype_ == NAME_XYZ) {
+    if (width_ == 0)
+      width_ = 14;
+    if (prec_ == -1)
+      prec_ = 8;
+  }
   TextFormat ffmt(TextFormat::DOUBLE, width_, prec_, 3);
+
   if (ftype_ == ATOM_XYZ)
     ofmt_ = "%i " + ffmt.Fmt();
   else if (ftype_ == XYZ)
     ofmt_ = ffmt.Fmt();
+  else if (ftype_ == NAME_XYZ) {
+    titleType_ = NATOM_COMMENT;
+    ofmt_ = "%-7s " + ffmt.Fmt();
+    names_.clear();
+    names_.reserve( trajParm->Natom() );
+    for (Topology::atom_iterator at = trajParm->begin(); at != trajParm->end(); ++at)
+      names_.push_back( std::string(at->ElementName()) );
+  }
   ofmt_.append("\n");
   //mprintf("DEBUG: output format string: '%s'\n", ofmt_.c_str()); 
   if (titleType_ != NO_TITLE && Title().empty())
@@ -395,8 +413,12 @@ int Traj_XYZ::writeFrame(int set, Frame const& frameOut) {
   if (titleType_ == SINGLE) {
     file_.Printf("#%s\n", Title().c_str());
     titleType_ = NO_TITLE;
-  } else if (titleType_ == MULTIPLE)
+  } else if (titleType_ == MULTIPLE) {
     file_.Printf("#%s\n", Title().c_str());
+  } else if (titleType_ == NATOM_COMMENT) {
+    file_.Printf("%i\n", frameOut.Natom());
+    file_.Printf("Conf. %i.\n", set+1);
+  }
 
   const double* xyz = frameOut.xAddress();
   if (ftype_ == ATOM_XYZ) {
@@ -405,6 +427,9 @@ int Traj_XYZ::writeFrame(int set, Frame const& frameOut) {
   } else if (ftype_ == XYZ) {
     for (int at = 0; at != frameOut.Natom(); at++, xyz += 3)
       file_.Printf(ofmt_.c_str(), xyz[0], xyz[1], xyz[2]);
+  } else if (ftype_ == NAME_XYZ) {
+    for (int at = 0; at != frameOut.Natom(); at++, xyz += 3)
+      file_.Printf(ofmt_.c_str(), names_[at].c_str(), xyz[0], xyz[1], xyz[2]);
   }
   return 0;
 }
