@@ -59,9 +59,14 @@ class Traj_XYZ : public TrajectoryIO {
     /// \return File format based on first three lines
     static Type DetermineFormat(std::string&, std::string const&, std::string const&,
                                 std::string const&);
-
+    /// Set given box from box line
+    static int parseBoxLine(Box&, ArgList const&);
+    /// Read past header, process box info
+    inline void ReadTitle(Box&);
+    /// Read past header
     inline void ReadTitle();
-    int readXYZ(int, int, double*);
+    /// Read xyz coords
+    int readXYZ(int, int, double*, Box&);
 
     static const char* FMT_XYZ_;
     static const char* FMT_ATOM_XYZ_;
@@ -75,5 +80,6 @@ class Traj_XYZ : public TrajectoryIO {
     int width_;
     int prec_;
     const char* fmt_; ///< Format for reading
+    bool hasBox_;     ///< True if comment line contains box information
 };
 #endif

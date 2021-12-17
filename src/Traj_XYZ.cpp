@@ -15,7 +15,8 @@ Traj_XYZ::Traj_XYZ() :
   set_(0),
   width_(0),
   prec_(-1),
-  fmt_(0)
+  fmt_(0),
+  hasBox_(false)
 {}
 
 /** Parse the given line, try to determine what format it corresponds to. */
@@ -74,37 +75,7 @@ Traj_XYZ::Type Traj_XYZ::DetermineFormat(std::string& title,
     return ATOM_XYZ;
   } else if (l1fmt == THREE_DOUBLES)
     return XYZ;
-  
-/*
-  std::string line = line1;
-  // This line can be a title line, atom XYZ, XYZ, or # atoms
-  RemoveLeadingWhitespace( line );
-  RemoveTrailingWhitespace( line );
-  if (!line.empty() && line[0] == '#') {
-    line1 = line;
-    // Ignore the title. Get the next line, which must be atom XYZ or XYZ
-    line = line2;
-  } else
-    line1.clear();
-  static const unsigned int tkSize = 64;
-  char tk0[tkSize];
-  char tk1[tkSize];
-  char tk2[tkSize];
-  char tk3[tkSize];
-  int nscan = sscanf(line.c_str(), "%s %s %s %s", tk0, tk1, tk2, tk3);
-  //mprintf("DEBUG: '%s' '%s' '%s' '%s'\n", tk0, tk1, tk2, tk3);
-  if (nscan == 4) {
-    if ( validInteger( std::string(tk0) ) &&
-         validDouble( std::string(tk1) ) &&
-         validDouble( std::string(tk2) ) &&
-         validDouble( std::string(tk3) ) )
-      return ATOM_XYZ;
-  } else if (nscan == 3) {
-    if ( validDouble( std::string(tk0) ) &&
-         validDouble( std::string(tk1) ) &&
-         validDouble( std::string(tk2) ) )
-      return XYZ;
-  }*/
+
   return UNKNOWN;
 }
 
@@ -161,6 +132,35 @@ const char* Traj_XYZ::FMT_ATOM_XYZ_ = "%*i %lf %lf %lf";
 
 const char* Traj_XYZ::FMT_NAME_XYZ_ = "%*s %lf %lf %lf";
 
+/** Read box information from given line. */
+int Traj_XYZ::parseBoxLine(Box& xyzbox, ArgList const& boxline)
+{
+  double boxcrd[9];
+  int iarg = 0;
+  while (iarg < boxline.Nargs()) {
+    int incr = 1;
+    if (boxline[iarg] == "X:") {
+      boxcrd[0] = convertToDouble(boxline[iarg+1]);
+      boxcrd[1] = convertToDouble(boxline[iarg+2]);
+      boxcrd[2] = convertToDouble(boxline[iarg+3]);
+      incr = 4;
+    } else if (boxline[iarg] == "Y:") {
+      boxcrd[3] = convertToDouble(boxline[iarg+1]);
+      boxcrd[4] = convertToDouble(boxline[iarg+2]);
+      boxcrd[5] = convertToDouble(boxline[iarg+3]);
+      incr = 4;
+    } else if (boxline[iarg] == "Z:") {
+      boxcrd[6] = convertToDouble(boxline[iarg+1]);
+      boxcrd[7] = convertToDouble(boxline[iarg+2]);
+      boxcrd[8] = convertToDouble(boxline[iarg+3]);
+      incr = 4;
+    }
+    iarg += incr;
+  }
+  xyzbox.SetupFromUcell(boxcrd);
+  return 0;
+}
+
 /** Set up trajectory for reading.
   * \return Number of frames in trajectory.
   */
@@ -192,6 +192,7 @@ int Traj_XYZ::setupTrajin(FileName const& fname, Topology* trajParm)
       return TRAJIN_ERR;
   }
   // Initial header type determination
+  Box xyzbox;
   if (title.empty())
     titleType_ = NO_TITLE;
   else if (ftype_ == NAME_XYZ) {
@@ -201,6 +202,17 @@ int Traj_XYZ::setupTrajin(FileName const& fname, Topology* trajParm)
       mprinterr("Error: # atoms in XYZ (%i) does not match # atoms in topology '%s' (%i)\n",
                 nat, trajParm->c_str(), trajParm->Natom());
       return TRAJIN_ERR;
+    }
+    // Determine if the comment line contains box information
+    // 0    1  2   3  4      5     6
+    // Conf 1. Box X: 19.660 0.000 0.000 Y: 0.000 19.660 0.000 Z: 0.000 0.000 19.660
+    ArgList boxline(line2, " \r\n\t");
+    if (boxline.Nargs() > 12) {
+      if (boxline.hasKey("Box")) {
+        mprintf("\tComment line appears to have box information.\n");
+        hasBox_ = true;
+        parseBoxLine(xyzbox, boxline);
+      }
     }
   } else
     titleType_ = SINGLE;
@@ -223,10 +235,6 @@ int Traj_XYZ::setupTrajin(FileName const& fname, Topology* trajParm)
     if (!line2.empty()) {
       if (DetermineLineFormat(line2) == UNKNOWN_LINE_FORMAT)
         titleType_ = MULTIPLE;
-      //RemoveLeadingWhitespace( line2 );
-      //RemoveTrailingWhitespace( line2 );
-      //if (line2[0] == '#')
-      //  titleType_ = MULTIPLE;
     } else
       nframes = 1;
   }
@@ -240,7 +248,7 @@ int Traj_XYZ::setupTrajin(FileName const& fname, Topology* trajParm)
   }
 
   if (!title.empty()) SetTitle( title );
-  SetCoordInfo( CoordinateInfo(Box(), false, false, false) );
+  SetCoordInfo( CoordinateInfo(xyzbox, false, false, false) );
  
   set_ = 0;
  
@@ -248,6 +256,24 @@ int Traj_XYZ::setupTrajin(FileName const& fname, Topology* trajParm)
 }
 
 /** Read title. */
+void Traj_XYZ::ReadTitle(Box& xyzbox) {
+  if (titleType_ == SINGLE) {
+    file_.Line();
+    titleType_ = NO_TITLE;
+  } else if (titleType_ == MULTIPLE) {
+    file_.Line();
+  } else if (titleType_ == NATOM_COMMENT) {
+    const char* ptr = file_.Line(); // #atoms
+    if (ptr && hasBox_) {
+      std::string line2 = file_.GetLine(); // comment
+      ArgList boxline(line2, " \r\n\t");
+      parseBoxLine(xyzbox, boxline);
+    } else
+      file_.Line(); // comment
+  }
+}
+
+/** Read title. Skip box info */
 void Traj_XYZ::ReadTitle() {
   if (titleType_ == SINGLE) {
     file_.Line();
@@ -261,7 +287,7 @@ void Traj_XYZ::ReadTitle() {
 }
 
 /** Read specified frame into given buffer. */
-int Traj_XYZ::readXYZ(int set, int natom, double* xAddress) {
+int Traj_XYZ::readXYZ(int set, int natom, double* xAddress, Box& xyzbox) {
   // If an earlier set is being requested, reopen the file. 
   if (set < set_) {
     closeTraj();
@@ -274,7 +300,7 @@ int Traj_XYZ::readXYZ(int set, int natom, double* xAddress) {
       file_.Line();
     set_++;
   }
-  ReadTitle(); 
+  ReadTitle(xyzbox); 
   // Read coordinates into frame
   double* xyz = xAddress;
   for (int at = 0; at != natom; at++) {
@@ -289,17 +315,17 @@ int Traj_XYZ::readXYZ(int set, int natom, double* xAddress) {
 
 /** Read specified trajectory frame. */
 int Traj_XYZ::readFrame(int set, Frame& frameIn) {
-  return readXYZ(set, frameIn.Natom(), frameIn.xAddress());
+  return readXYZ(set, frameIn.Natom(), frameIn.xAddress(), frameIn.ModifyBox());
 }
 
 /** Read velocities from specified frame. */
 int Traj_XYZ::readVelocity(int set, Frame& frameIn) {
-  return readXYZ(set, frameIn.Natom(), frameIn.vAddress());
+  return readXYZ(set, frameIn.Natom(), frameIn.vAddress(), frameIn.ModifyBox());
 }
 
 /** Read forces from specified frame. */
 int Traj_XYZ::readForce(int set, Frame& frameIn) {
-  return readXYZ(set, frameIn.Natom(), frameIn.fAddress());
+  return readXYZ(set, frameIn.Natom(), frameIn.fAddress(), frameIn.ModifyBox());
 }
 
 // -----------------------------------------------------------------------------
