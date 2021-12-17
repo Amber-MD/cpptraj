@@ -331,8 +331,8 @@ int Traj_XYZ::readForce(int set, Frame& frameIn) {
 // -----------------------------------------------------------------------------
 /** Write help. */
 void Traj_XYZ::WriteHelp() {
-  mprintf("\tftype {namexyz|atomxyz|xyz}      : Choose either 'NAME X Y Z', 'ATOM X Y Z' (default) or 'X Y Z' output format.\n"
-          "\ttitletype {none|single|perframe} : No title, one title (default), or title before every frame.\n"
+  mprintf("\tftype {namexyz|atomxyz|xyz}      : Choose either 'NAME X Y Z' (default), 'ATOM X Y Z', or 'X Y Z' output format.\n"
+          "\ttitletype {none|single|perframe} : No title, one title (default), or title before every frame. Only applies if not 'namexyz'.\n"
           "\twidth <#>                        : Output format width.\n"
           "\tprec <#>                         : Output format precision.\n");
 }
@@ -379,7 +379,7 @@ int Traj_XYZ::setupTrajout(FileName const& fname, Topology* trajParm,
     titleType_ = SINGLE;
 
   if (ftype_ == UNKNOWN)
-    ftype_ = ATOM_XYZ;
+    ftype_ = NAME_XYZ;
 
   if (ftype_ == NAME_XYZ) {
     if (width_ == 0)

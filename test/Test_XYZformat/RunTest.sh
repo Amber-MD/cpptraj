@@ -61,7 +61,7 @@ DoTest traj.crd.save traj.crd
 cat > xyz.in <<EOF
 parm waters.prmtop
 trajin traj.xyz
-trajout cpptraj.traj.xyz ftype namexyz 
+trajout cpptraj.traj.xyz 
 #trajout cpptraj.nobox.xyz ftype namexyz nobox 
 EOF
 RunCpptraj "Write regular XYZ format with box info in comments."
