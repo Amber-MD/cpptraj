@@ -57,5 +57,14 @@ EOF
 RunCpptraj "Read regular XYZ format with box info in comments."
 DoTest traj.crd.save traj.crd
 
+# Write standard format, with box coords in comments
+cat > xyz.in <<EOF
+parm waters.prmtop
+trajin traj.xyz
+trajout cpptraj.traj.xyz ftype namexyz 
+EOF
+RunCpptraj "Write regular XYZ format with box info in comments."
+DoTest traj.xyz cpptraj.traj.xyz
+
 EndTest
 exit 0
