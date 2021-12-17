@@ -21,6 +21,7 @@ Traj_XYZ::Traj_XYZ() :
 /** Parse the given line, try to determine what format it corresponds to. */
 Traj_XYZ::LineFmtType Traj_XYZ::DetermineLineFormat(std::string const& lineIn)
 {
+  if (lineIn.empty()) return UNKNOWN_LINE_FORMAT;
   ArgList line(lineIn, " \t\r\n");
   if (line.Nargs() == 1 && validInteger(line[0]))
     return SINGLE_INTEGER;
@@ -28,6 +29,11 @@ Traj_XYZ::LineFmtType Traj_XYZ::DetermineLineFormat(std::string const& lineIn)
                                 validDouble(line[1]) &&
                                 validDouble(line[2]))
     return THREE_DOUBLES;
+  else if (line.Nargs() == 4 && validInteger(line[0]) &&
+                                validDouble(line[1]) &&
+                                validDouble(line[2]) &&
+                                validDouble(line[3]))
+    return INTEGER_AND_THREE_DOUBLES;
   else if (line.Nargs() == 4 && !validDouble(line[0]) && // TODO use isalpha(line[0][0])?
                                 validDouble(line[1]) &&
                                 validDouble(line[2]) &&
@@ -37,13 +43,39 @@ Traj_XYZ::LineFmtType Traj_XYZ::DetermineLineFormat(std::string const& lineIn)
     return UNKNOWN_LINE_FORMAT;
 }
 
-/** \param line1 First line. Will be set to title line if title is present, cleared otherwise.
+/** \param title Will be set to title line if title is present, cleared otherwise.
+  * \param line1 First line.
   * \param line2 Second line.
+  * \param line3 Third line.
   */
-Traj_XYZ::Type Traj_XYZ::DetermineFormat(std::string& line1,
-                                         std::string const& line2)
-const
+Traj_XYZ::Type Traj_XYZ::DetermineFormat(std::string& title,
+                                         std::string const& line1,
+                                         std::string const& line2,
+                                         std::string const& line3)
 {
+  title.clear();
+  LineFmtType l1fmt = DetermineLineFormat(line1);
+  LineFmtType l2fmt = DetermineLineFormat(line2);
+  LineFmtType l3fmt = DetermineLineFormat(line3);
+
+  if (l1fmt == SINGLE_INTEGER && l2fmt == UNKNOWN_LINE_FORMAT && l3fmt == STRING_AND_THREE_DOUBLES)
+  {
+    title = line2;
+    return NAME_XYZ;
+  } else if (l1fmt == UNKNOWN_LINE_FORMAT) {
+    if (l2fmt == INTEGER_AND_THREE_DOUBLES) {
+      title = line1;
+      return ATOM_XYZ;
+    } else if (l2fmt == THREE_DOUBLES) {
+      title = line1;
+      return XYZ;
+    }
+  } else if (l1fmt == INTEGER_AND_THREE_DOUBLES) {
+    return ATOM_XYZ;
+  } else if (l1fmt == THREE_DOUBLES)
+    return XYZ;
+  
+/*
   std::string line = line1;
   // This line can be a title line, atom XYZ, XYZ, or # atoms
   RemoveLeadingWhitespace( line );
@@ -72,7 +104,7 @@ const
          validDouble( std::string(tk1) ) &&
          validDouble( std::string(tk2) ) )
       return XYZ;
-  }
+  }*/
   return UNKNOWN;
 }
 
@@ -82,7 +114,9 @@ bool Traj_XYZ::ID_TrajFormat(CpptrajFile& fileIn) {
   if (fileIn.OpenFile()) return false;
   std::string line1 = fileIn.GetLine();
   std::string line2 = fileIn.GetLine();
-  if ( DetermineFormat(line1, line2) == UNKNOWN ) return false;
+  std::string line3 = fileIn.GetLine();
+  std::string title;
+  if ( DetermineFormat(title, line1, line2, line3) == UNKNOWN ) return false;
 
   return true;
 }
@@ -93,6 +127,7 @@ void Traj_XYZ::Info() {
     case UNKNOWN  :
     case XYZ      : mprintf("is an XYZ trajectory"); break;
     case ATOM_XYZ : mprintf("is an Atom-XYZ trajectory"); break;
+    case NAME_XYZ : mprintf("is a regular XYZ trajectory"); break;
   }
 }
 
@@ -124,6 +159,8 @@ const char* Traj_XYZ::FMT_XYZ_ = "%lf %lf %lf";
 
 const char* Traj_XYZ::FMT_ATOM_XYZ_ = "%*i %lf %lf %lf";
 
+const char* Traj_XYZ::FMT_NAME_XYZ_ = "%*s %lf %lf %lf";
+
 /** Set up trajectory for reading.
   * \return Number of frames in trajectory.
   */
@@ -131,49 +168,78 @@ int Traj_XYZ::setupTrajin(FileName const& fname, Topology* trajParm)
 {
   if (file_.OpenFileRead( fname )) return TRAJIN_ERR;
   // Initial format determiniation.
+  std::string title;
   std::string line1 = file_.GetLine();
   std::string line2 = file_.GetLine();
-  ftype_ = DetermineFormat(line1, line2);
+  std::string line3 = file_.GetLine();
+  ftype_ = DetermineFormat(title, line1, line2, line3);
   switch (ftype_) {
-    case XYZ      : fmt_ = FMT_XYZ_; break;
-    case ATOM_XYZ : fmt_ = FMT_ATOM_XYZ_; break;
+    case XYZ      :
+      fmt_ = FMT_XYZ_;
+      mprintf("\tCoordinate lines are <X> <Y> <Z>\n");
+      break;
+    case ATOM_XYZ :
+      fmt_ = FMT_ATOM_XYZ_;
+      mprintf("\tCoordinate lines are <#> <X> <Y> <Z>\n");
+      break;
+    case NAME_XYZ :
+      fmt_ = FMT_NAME_XYZ_;
+      mprintf("\tCoordinate lines are <name> <X> <Y> <Z>\n");
+      break;
     case UNKNOWN  :
       mprinterr("Internal Error: '%s' does not appear to be XYZ format anymore.\n",
                 file_.Filename().full());
       return TRAJIN_ERR;
   }
-  if (line1.empty())
+  // Initial header type determination
+  if (title.empty())
     titleType_ = NO_TITLE;
-  else
-    titleType_ = SINGLE;
-  // Read one frame, see if the header is repeated.
-  closeTraj();
-  int nframes = TRAJIN_UNK;
-  if (openTrajin()) return TRAJIN_ERR;
-  if (titleType_ != NO_TITLE) file_.Line();
-  for (int at = 0; at != trajParm->Natom(); at++) {
-    const char* atline = file_.Line();
-    if (atline == 0) {
-      mprinterr("Error: Unexpected EOF when reading first frame of '%s'\n", atline);
+  else if (ftype_ == NAME_XYZ) {
+    titleType_ = NATOM_COMMENT;
+    int nat = convertToInteger(line1);
+    if (nat != trajParm->Natom()) {
+      mprinterr("Error: # atoms in XYZ (%i) does not match # atoms in topology '%s' (%i)\n",
+                nat, trajParm->c_str(), trajParm->Natom());
       return TRAJIN_ERR;
     }
-  }
-  line2 = file_.GetLine();
-  if (!line2.empty()) {
-    RemoveLeadingWhitespace( line2 );
-    RemoveTrailingWhitespace( line2 );
-    if (line2[0] == '#')
-      titleType_ = MULTIPLE;
   } else
-    nframes = 1;
-  switch (titleType_) {
-    case UNKNOWN_TITLE :
-    case NO_TITLE : mprintf("\tNo title detected.\n"); break;
-    case SINGLE   : mprintf("\tSingle title detected.\n"); break;
-    case MULTIPLE : mprintf("\tTitle before each frame detected.\n"); break;
+    titleType_ = SINGLE;
+  closeTraj();
+  int nframes = TRAJIN_UNK;
+
+  // Read one frame, see if the header is repeated.
+  if (titleType_ == SINGLE) {
+    if (openTrajin()) return TRAJIN_ERR;
+    if (titleType_ == SINGLE)
+      file_.Line();
+    for (int at = 0; at != trajParm->Natom(); at++) {
+      const char* atline = file_.Line();
+      if (atline == 0) {
+        mprinterr("Error: Unexpected EOF when reading first frame of '%s'\n", atline);
+        return TRAJIN_ERR;
+      }
+    }
+    line2 = file_.GetLine();
+    if (!line2.empty()) {
+      if (DetermineLineFormat(line2) == UNKNOWN_LINE_FORMAT)
+        titleType_ = MULTIPLE;
+      //RemoveLeadingWhitespace( line2 );
+      //RemoveTrailingWhitespace( line2 );
+      //if (line2[0] == '#')
+      //  titleType_ = MULTIPLE;
+    } else
+      nframes = 1;
   }
 
-  if (!line1.empty()) SetTitle( line1 );
+  switch (titleType_) {
+    case UNKNOWN_TITLE :
+    case NO_TITLE      : mprintf("\tNo title detected.\n"); break;
+    case SINGLE        : mprintf("\tSingle title detected.\n"); break;
+    case MULTIPLE      : mprintf("\tTitle before each frame detected.\n"); break;
+    case NATOM_COMMENT : mprintf("\tStandard # atoms followed by comment detected.\n"); break;
+  }
+
+  if (!title.empty()) SetTitle( title );
   SetCoordInfo( CoordinateInfo(Box(), false, false, false) );
  
   set_ = 0;
@@ -186,8 +252,12 @@ void Traj_XYZ::ReadTitle() {
   if (titleType_ == SINGLE) {
     file_.Line();
     titleType_ = NO_TITLE;
-  } else if (titleType_ == MULTIPLE)
+  } else if (titleType_ == MULTIPLE) {
     file_.Line();
+  } else if (titleType_ == NATOM_COMMENT) {
+    file_.Line(); // #atoms
+    file_.Line(); // comment
+  }
 }
 
 /** Read specified frame into given buffer. */

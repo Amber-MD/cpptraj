@@ -40,27 +40,32 @@ class Traj_XYZ : public TrajectoryIO {
                 XYZ,       ///< <X> <Y> <Z>
                 ATOM_XYZ,  ///< <#> <X> <Y> <Z>
                 NAME_XYZ,  ///< <Name> <X> <Y> <Z>
-                ELT_XYZ    ///< <Elt> <X> <Y> <Z>
               };
     /// Specify how/when headers should appear
     enum TitleType { NO_TITLE = 0,  ///< Never
                      SINGLE,        ///< First frame only
                      MULTIPLE,      ///< Every frame
+                     NATOM_COMMENT, ///< Every frame has # atoms followed by a comment
                      UNKNOWN_TITLE
                    };
     /// Line format types
     enum LineFmtType { SINGLE_INTEGER,
                        THREE_DOUBLES,
+                       INTEGER_AND_THREE_DOUBLES,
                        STRING_AND_THREE_DOUBLES,
                        UNKNOWN_LINE_FORMAT };
     /// \return Format of given line
     static LineFmtType DetermineLineFormat(std::string const&);
-    Type DetermineFormat(std::string&, std::string const&) const;
+    /// \return File format based on first three lines
+    static Type DetermineFormat(std::string&, std::string const&, std::string const&,
+                                std::string const&);
+
     inline void ReadTitle();
     int readXYZ(int, int, double*);
 
     static const char* FMT_XYZ_;
     static const char* FMT_ATOM_XYZ_;
+    static const char* FMT_NAME_XYZ_;
 
     BufferedLine file_;
     std::string ofmt_;
