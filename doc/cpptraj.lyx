@@ -17014,7 +17014,8 @@ Options for XYZ format:
 \end_layout
 
 \begin_layout LyX-Code
-ftype {atomxyz|xyz} titletype {none|single|perframe} width <#> prec <#>
+[ftype {namexyz|atomxyz|xyz}] [titletype {none|single|perframe}] [width
+ <#>] [prec <#>]
 \end_layout
 
 \begin_deeper
@@ -17023,7 +17024,16 @@ ftype
 \begin_inset space ~
 \end_inset
 
-{atomxyz|xyz} Choose either 'ATOM X Y Z' (default) or 'X Y Z' output format.
+{atomxyz|xyz} Choose either 'NAME X Y Z' (default), 'ATOM X Y Z', or 'X
+ Y Z' output format.
+ 
+\series bold
+'namexyz'
+\series default
+ format is the standard XYZ format, where each frame is preceded by the
+ number of atoms and a comment.
+ The comment written by CPPTRAJ will include the set number and box information
+ (if present).
 \end_layout
 
 \begin_layout Description
@@ -17033,6 +17043,11 @@ titletype
 
 {none|single|perframe} No title, one title (default), or title before every
  frame.
+ Only applies if not 
+\series bold
+'namexyz'
+\series default
+.
 \end_layout
 
 \begin_layout Description
