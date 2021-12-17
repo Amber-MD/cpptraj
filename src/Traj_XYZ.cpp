@@ -377,6 +377,7 @@ int Traj_XYZ::setupTrajout(FileName const& fname, Topology* trajParm,
 {
   if (titleType_ == UNKNOWN_TITLE)
     titleType_ = SINGLE;
+
   if (ftype_ == UNKNOWN)
     ftype_ = ATOM_XYZ;
 
@@ -387,6 +388,11 @@ int Traj_XYZ::setupTrajout(FileName const& fname, Topology* trajParm,
       prec_ = 8;
   }
   TextFormat ffmt(TextFormat::DOUBLE, width_, prec_, 3);
+
+  if (cInfoIn.HasBox() && ftype_ != NAME_XYZ) {
+    mprintf("Warning: Box coordinates present but not using 'namexyz' format.\n"
+            "Warning: Box coordinates will not be written.\n");
+  }
 
   if (ftype_ == ATOM_XYZ)
     ofmt_ = "%i " + ffmt.Fmt();
@@ -417,7 +423,15 @@ int Traj_XYZ::writeFrame(int set, Frame const& frameOut) {
     file_.Printf("#%s\n", Title().c_str());
   } else if (titleType_ == NATOM_COMMENT) {
     file_.Printf("%i\n", frameOut.Natom());
-    file_.Printf("Conf. %i.\n", set+1);
+    file_.Printf("Conf %i.", set+1);
+    if (frameOut.BoxCrd().HasBox()) {
+      Matrix_3x3 const& ucell = frameOut.BoxCrd().UnitCell();
+      file_.Printf(" Box X: %.3f %.3f %.3f Y: %.3f %.3f %.3f Z: %.3f %.3f %.3f",
+                   ucell[0], ucell[1], ucell[2],
+                   ucell[3], ucell[4], ucell[5],
+                   ucell[6], ucell[7], ucell[8]);
+     }
+    file_.Printf("\n");
   }
 
   const double* xyz = frameOut.xAddress();
