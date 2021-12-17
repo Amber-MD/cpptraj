@@ -16,7 +16,7 @@ parm ../tz2.parm7
 trajin ../tz2.crd 1 10
 trajout test1.crd.save crd
 # Single title, atom-xyz
-trajout tz2.xyz
+trajout tz2.xyz                          ftype atomxyz
 # Single title, xyz
 trajout tz2.st.xyz    titletype single   ftype xyz
 # No title, atom-xyz
@@ -62,6 +62,7 @@ cat > xyz.in <<EOF
 parm waters.prmtop
 trajin traj.xyz
 trajout cpptraj.traj.xyz ftype namexyz 
+#trajout cpptraj.nobox.xyz ftype namexyz nobox 
 EOF
 RunCpptraj "Write regular XYZ format with box info in comments."
 DoTest traj.xyz cpptraj.traj.xyz
