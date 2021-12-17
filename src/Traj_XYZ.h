@@ -35,10 +35,26 @@ class Traj_XYZ : public TrajectoryIO {
     void parallelCloseTraj();
     // -------------------------------------------
 #   endif
-
-    enum Type { UNKNOWN=0, XYZ, ATOM_XYZ };
-    enum TitleType { NO_TITLE = 0, SINGLE, MULTIPLE, UNKNOWN_TITLE };
-
+    /// Data line types
+    enum Type { UNKNOWN=0,
+                XYZ,       ///< <X> <Y> <Z>
+                ATOM_XYZ,  ///< <#> <X> <Y> <Z>
+                NAME_XYZ,  ///< <Name> <X> <Y> <Z>
+                ELT_XYZ    ///< <Elt> <X> <Y> <Z>
+              };
+    /// Specify how/when headers should appear
+    enum TitleType { NO_TITLE = 0,  ///< Never
+                     SINGLE,        ///< First frame only
+                     MULTIPLE,      ///< Every frame
+                     UNKNOWN_TITLE
+                   };
+    /// Line format types
+    enum LineFmtType { SINGLE_INTEGER,
+                       THREE_DOUBLES,
+                       STRING_AND_THREE_DOUBLES,
+                       UNKNOWN_LINE_FORMAT };
+    /// \return Format of given line
+    static LineFmtType DetermineLineFormat(std::string const&);
     Type DetermineFormat(std::string&, std::string const&) const;
     inline void ReadTitle();
     int readXYZ(int, int, double*);

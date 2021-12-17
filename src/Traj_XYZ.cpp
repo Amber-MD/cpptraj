@@ -18,6 +18,25 @@ Traj_XYZ::Traj_XYZ() :
   fmt_(0)
 {}
 
+/** Parse the given line, try to determine what format it corresponds to. */
+Traj_XYZ::LineFmtType Traj_XYZ::DetermineLineFormat(std::string const& lineIn)
+{
+  ArgList line(lineIn, " \t\r\n");
+  if (line.Nargs() == 1 && validInteger(line[0]))
+    return SINGLE_INTEGER;
+  else if (line.Nargs() == 3 && validDouble(line[0]) &&
+                                validDouble(line[1]) &&
+                                validDouble(line[2]))
+    return THREE_DOUBLES;
+  else if (line.Nargs() == 4 && !validDouble(line[0]) && // TODO use isalpha(line[0][0])?
+                                validDouble(line[1]) &&
+                                validDouble(line[2]) &&
+                                validDouble(line[3]))
+    return STRING_AND_THREE_DOUBLES;
+  else
+    return UNKNOWN_LINE_FORMAT;
+}
+
 /** \param line1 First line. Will be set to title line if title is present, cleared otherwise.
   * \param line2 Second line.
   */
@@ -26,7 +45,7 @@ Traj_XYZ::Type Traj_XYZ::DetermineFormat(std::string& line1,
 const
 {
   std::string line = line1;
-  // This line will either be a title line, atom XYZ, or XYZ
+  // This line can be a title line, atom XYZ, XYZ, or # atoms
   RemoveLeadingWhitespace( line );
   RemoveTrailingWhitespace( line );
   if (!line.empty() && line[0] == '#') {
