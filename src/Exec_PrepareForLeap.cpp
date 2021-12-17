@@ -3450,6 +3450,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     //  mprintf("\t\t%s VALIDATED\n", topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
     //else
     //  mprintf("\t\t%s UNKNOWN\n", topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
+    // ----- Warnings --------
     if ( *it == UNKNOWN ) {
       SetType::const_iterator pname = pdb_res_names_.find( topIn.Res(it-resStat_.begin()).Name() );
       if (pname == pdb_res_names_.end())
@@ -3460,6 +3461,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     } else if ( *it == SUGAR_NAME_MISMATCH ) {
         mprintf("\t%s%s sugar form and/or chirality is not consistent with name.\n",
                 msg1, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
+    // ----- Fatal Errors ----
     } else if ( *it == SUGAR_UNRECOGNIZED_LINK_RES ) {
         mprintf("\t%s%s is linked to a sugar but has no sugar-linkage form.\n",
                 msg2, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
@@ -3477,7 +3479,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
                 msg2, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
         fatal_errors++;
     } else if ( *it == SUGAR_MISSING_C1X ) {
-        mprintf("\t%s%s Sugar is missing anomeric carbon substituent and cannot be identified.\n",
+        mprintf("\t%s%s Sugar is missing anomeric carbon substituent.\n",
                 msg2, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
         fatal_errors++;
     } else if ( *it == SUGAR_SETUP_FAILED ) {
