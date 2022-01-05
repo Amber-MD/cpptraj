@@ -1590,11 +1590,11 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar& sugarIn, Topology& topIn,
       detect_err = DetermineAnomericForm(sugarInfo, sugarIn, topIn, frameIn);
     else
       detect_err = 1;
-    // Modify resStat_ based on sugar status
+/*    // Modify resStat_ based on sugar status
     if (sugar.Status() == Sugar::MISSING_C1X) {
       // Sugar missing C1-X substituent, non-fatal
       resStat_[rnum] = SUGAR_MISSING_C1X;
-    }
+    }*/
   }
 
   if (detect_err != 0) {
@@ -3478,10 +3478,10 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
         mprintf("\t%s%s could not identify chain atoms for determining linkages.\n",
                 msg2, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
         fatal_errors++;
-    } else if ( *it == SUGAR_MISSING_C1X ) { // TODO should this be a warning
+/*    } else if ( *it == SUGAR_MISSING_C1X ) { // TODO should this be a warning
         mprintf("\t%s%s Sugar is missing anomeric carbon substituent.\n",
                 msg2, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
-        fatal_errors++;
+        fatal_errors++;*/
     } else if ( *it == SUGAR_SETUP_FAILED ) {
         mprintf("\t%s%s Sugar setup failed and could not be identified.\n",
                 msg2, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
