@@ -3127,6 +3127,9 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   }
   leapunitname_ = argIn.GetStringKey("leapunitname", "m");
   mprintf("\tUsing leap unit name: %s\n", leapunitname_.c_str());
+  if (validDouble(leapunitname_))
+    mprintf("Warning: LEaP unit name '%s' is a valid number; this may confuse some LEaP commands.\n",
+             leapunitname_.c_str());
   solventResName_ = argIn.GetStringKey("solventresname", "HOH");
   mprintf("\tSolvent residue name: %s\n", solventResName_.c_str());
   terminalHydroxylName_ = argIn.GetStringKey("terminalhydroxylname", "ROH");
