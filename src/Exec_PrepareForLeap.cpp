@@ -1448,7 +1448,7 @@ const
               mprintf("DEBUG: Link residue name for %s found: %s\n", *(lname->first), *(lname->second));
             ChangeResName( pres, lname->second );
             resStatIn[topIn[*bat].ResNum()] = VALIDATED;
-          } else if (pres.Name() == terminalHydroxylName_) {
+          } else if (pres.Name() == "ROH") {
             if (debug_ > 0)
               mprintf("DEBUG: '%s' is terminal hydroxyl.\n", *(pres.Name()));
             resStatIn[topIn[*bat].ResNum()] = VALIDATED;
@@ -2107,7 +2107,7 @@ const
 
   std::string newResName;
   if (groupType == G_OH) {
-    newResName = terminalHydroxylName_;
+    newResName = "ROH";//terminalHydroxylName_;
     // Change atom names
     ChangeAtomName(topIn.SetAtom(selected[0]), "O1");
     if (selected.size() > 1)
@@ -3036,7 +3036,7 @@ void Exec_PrepareForLeap::Help() const
           "\t  [cysmask <cysmask>] [disulfidecut <cut>] [newcysname <name>]}]\n"
           "\t[{nosugars |\n"
           "\t  sugarmask <sugarmask> [noc1search] [notermsearch] [resmapfile <file>]\n"
-          "\t  [terminalhydroxylname <resname>] [hasglycam]\n"
+          "\t  [hasglycam]\n"
           "\t }]\n"
           "\t[molmask <molmask> ...] [determinemolmask <mask>]\n"
           "  Prepare the structure in the given coords set for easier processing\n"
@@ -3132,8 +3132,9 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
              leapunitname_.c_str());
   solventResName_ = argIn.GetStringKey("solventresname", "HOH");
   mprintf("\tSolvent residue name: %s\n", solventResName_.c_str());
-  terminalHydroxylName_ = argIn.GetStringKey("terminalhydroxylname", "ROH");
-  mprintf("\tTerminal hydroxyl name: %s\n", terminalHydroxylName_.c_str());
+  // FIXME functional group stuff should be in a file
+  //terminalHydroxylName_ = argIn.GetStringKey("terminalhydroxylname", "ROH");
+  //mprintf("\tTerminal hydroxyl name: %s\n", terminalHydroxylName_.c_str());
 
   bool prepare_sugars = !argIn.hasKey("nosugars");
   if (!prepare_sugars)

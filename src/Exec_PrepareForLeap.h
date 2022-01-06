@@ -168,7 +168,7 @@ class Exec_PrepareForLeap : public Exec {
     bool hasGlycam_;        ///< If true, assume sugars already have glycam names
     int debug_;             ///< Debug level
     std::string solventResName_; ///< Solvent residue name
-    std::string terminalHydroxylName_; ///< Terminal hydroxyl name
+    //std::string terminalHydroxylName_; ///< Terminal hydroxyl name FIXME this info should be in a separate file
     AtomMap myMap_;
     std::vector<FunctionalGroup> functionalGroups_; ///< Recognized functional groups (FunctionalGroupType).
 };
