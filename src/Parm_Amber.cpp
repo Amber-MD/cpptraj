@@ -1201,8 +1201,6 @@ static inline int fftype_err(const char* ptr, const char* Flag) {
 // ReadChamberFFtype()
 /** Format should be (nlines, text). Only the first nlines value is used
   * to determine how many lines of text to read.
-  * Also set the number of LJ 1-4 terms.
-  * FIXME Should the LJ setup be somewhere else?
   * NOTE: This fortran format is different than the others since it has
   *       two mixed types. Assume the format is IX,A80-X (currently X=2).
   *       If this fails print a warning and try to continue.
@@ -1240,7 +1238,7 @@ int Parm_Amber::ReadChamberFFtype(Topology& TopIn, FortranData const& FMT) {
       }
     }
   }
-  TopIn.SetChamber().SetNLJ14terms( numLJparm_ );
+
   return 0;
 }
 
@@ -1334,6 +1332,9 @@ int Parm_Amber::ReadChamberImpPHASE(Topology& TopIn, FortranData const& FMT) {
 
 // Parm_Amber::ReadChamberLJ14A()
 int Parm_Amber::ReadChamberLJ14A(Topology& TopIn, FortranData const& FMT) {
+  // Ensure LJ terms are set up
+  if (TopIn.Chamber().LJ14().empty())
+    TopIn.SetChamber().SetNLJ14terms( numLJparm_ );
   if (SetupBuffer(F_LJ14A, numLJparm_, FMT)) return 1;
   for (int idx = 0; idx != numLJparm_; idx++) {
     TopIn.SetChamber().SetLJ14(idx).SetA( FileBufferToDouble(F_LJ14A, idx, numLJparm_) );
@@ -1344,6 +1345,9 @@ int Parm_Amber::ReadChamberLJ14A(Topology& TopIn, FortranData const& FMT) {
 
 // Parm_Amber::ReadChamberLJ14B()
 int Parm_Amber::ReadChamberLJ14B(Topology& TopIn, FortranData const& FMT) {
+  // Ensure LJ terms are set up
+  if (TopIn.Chamber().LJ14().empty())
+    TopIn.SetChamber().SetNLJ14terms( numLJparm_ );
   if (SetupBuffer(F_LJ14B, numLJparm_, FMT)) return 1;
   for (int idx = 0; idx != numLJparm_; idx++) {
     TopIn.SetChamber().SetLJ14(idx).SetB( FileBufferToDouble(F_LJ14B, idx, numLJparm_) );
