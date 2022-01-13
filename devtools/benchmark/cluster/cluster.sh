@@ -43,7 +43,6 @@ EOF
       echo "trajin $TRJ 1 $COUNT 1" >> cpptraj.in
     fi
   fi
-  continue
   
   # Get number of frames we want from any given trajectory
   ((NFRAMES = $TOTAL / 4))
@@ -51,25 +50,17 @@ EOF
   ((SPLIT1 = $NFRAMES * 1))
   ((SPLIT2 = $NFRAMES * 2))
   ((SPLIT3 = $NFRAMES * 3))
-  echo "Total $TOTAL, Each traj $NFRAMES splits $SPLIT1 $SPLIT2 $SPLIT3"
+  echo "Total $TOTAL, Each section $NFRAMES splits $SPLIT1 $SPLIT2 $SPLIT3"
 
-  cat > cpptraj.in <<EOF
-set PREFIX = test1
-
-parm /home/bergonzoc/WORK/HBV_rna/3ANALYSIS/nowat.noions.parm7
-trajin ~/WORK/HBV_rna/2PROD/analysis/nowat.nc.0 1 $NFRAMES 1
-trajin ~/WORK/HBV_rna/2PROD/analysis/nowat.nc.1 1 $NFRAMES 1
-trajin ~/WORK/HBV_rna/2PROD/analysis/nowat.nc.2 1 $NFRAMES 1
-trajin ~/WORK/HBV_rna/2PROD/analysis/nowat.nc.3 1 $NFRAMES 1
-
+  cat >> cpptraj.in <<EOF
 
 cluster \
   kmeans clusters 5 randompoint kseed 42 \
-  rms :2-61@P sieve 20 random sieveseed 23 savepairdist \
+  rms :10-260@CA sieve 20 random sieveseed 23 savepairdist \
   summaryhalf \$PREFIX.split.dat splitframe $SPLIT1,$SPLIT2,$SPLIT3 \
   info \$PREFIX.info.dat \
+  summary \$PREFIX.summary.dat \
   cpopvtime \$PREFIX.cpop.agr normframe
 EOF
-  #summary \$PREFIX.summary.dat \
   $CPPTRAJ -i cpptraj.in -o cpptraj.$TOTAL.out
 done
