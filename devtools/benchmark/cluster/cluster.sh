@@ -24,12 +24,24 @@ set PREFIX = test1
 parm $TOP
 EOF
   # Set trajin
+  echo " ===== $TOTAL ===== "
   if [ $TOTAL -le $COUNT ] ; then
     echo "trajin $TRJ 1 $TOTAL 1" >> cpptraj.in
   else
     ((NTRAJ = $TOTAL / $COUNT))
     ((REM   = $TOTAL % $COUNT))
+    if [ $REM -gt 0 ] ; then
+      ((NTRAJ++))
+    fi
     echo "$NTRAJ $REM"
+    for (( i=1; i < $NTRAJ; i++ )) ; do
+      echo "trajin $TRJ 1 $COUNT 1" >> cpptraj.in
+    done
+    if [ $REM -gt 0 ] ; then
+      echo "trajin $TRJ 1 $REM 1" >> cpptraj.in
+    else
+      echo "trajin $TRJ 1 $COUNT 1" >> cpptraj.in
+    fi
   fi
   continue
   
