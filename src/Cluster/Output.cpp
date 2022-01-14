@@ -6,9 +6,11 @@
 #include "List.h"
 #include "MetricArray.h"
 #include "Node.h"
+#include "Sieve.h"
 #include "../Matrix.h"
 #include "../CpptrajFile.h"
 #include "../CpptrajStdio.h"
+#include "../Timer.h" // DEBUG
 
 // XMGRACE colors
 const char* XMGRACE_COLOR[] = {
@@ -168,8 +170,13 @@ int Cpptraj::Cluster::Output::Summary(CpptrajFile& outfile, List const& clusters
                                       Algorithm const& algorithm,
                                       MetricArray& pmatrix,
                                       bool includeSieved, bool includeSieveCdist,
-                                      Cframes const& sievedOut)
+                                      Sieve const& frameSieve)
 {
+  Timer t_total; // DEBUG
+  Timer t_fdist; // DEBUG
+  Timer t_cdist; // DEBUG
+  t_total.Start(); // DEBUG
+  mprintf("DEBUG:\tincludeSieved=%i includeSieveCdist=%i\n", (int)includeSieved, (int)includeSieveCdist);
   double fmax = (double)pmatrix.Ntotal();
   //if (FrameDistances().SieveValue() != 1 && !includeSieveInAvg)
   //  mprintf("Warning: Within cluster average distance (AvgDist) does not include sieved frames.\n");
@@ -187,9 +194,8 @@ int Cpptraj::Cluster::Output::Summary(CpptrajFile& outfile, List const& clusters
     outfile.Printf(" %*s %8s", nWidth, "Name", "RMS");
   }
   outfile.Printf("\n");
-  //Timer t_fdist; // DEBUG
-  //Timer t_cdist; // DEBUG
-  //t_cdist.Start();
+
+  t_cdist.Start(); // DEBUG
   // Calculate distances between clusters.
   Matrix<double> cluster_distances;
   cluster_distances.resize( 0, clusters.Nclusters() );
@@ -197,9 +203,17 @@ int Cpptraj::Cluster::Output::Summary(CpptrajFile& outfile, List const& clusters
     for (List::cluster_iterator c2 = c1; c2 != clusters.endcluster(); ++c2)
       if (c2 != c1)
         cluster_distances.addElement( algorithm.ClusterDistance( *c1, *c2, pmatrix,
-                                                                includeSieveCdist, sievedOut ) );
-  //t_cdist.Stop();
+                                                                includeSieveCdist,
+                                                                frameSieve.SievedOut() ) ); // TODO replace SievedOut()
+  t_cdist.Stop(); // DEBUG
 
+  // If we are not including sieved frames, generate an array where
+  // sieved frames are 'false'
+  std::vector<bool> frameIsPresent;
+  if (!includeSieved)
+    frameIsPresent = frameSieve.GenerateFrameIsPresentArray();
+
+  t_fdist.Start(); // DEBUG
   unsigned int idx1 = 0;
   for (List::cluster_iterator node = clusters.begincluster();
                               node != clusters.endcluster(); ++node, ++idx1)
@@ -239,9 +253,9 @@ int Cpptraj::Cluster::Output::Summary(CpptrajFile& outfile, List const& clusters
         }
       } else {
         for (Node::frame_iterator f1 = node->beginframe(); f1 != node->endframe(); ++f1) {
-          if (!sievedOut.HasFrame( *f1 )) {
+          if (frameIsPresent[ *f1 ]) {
             for (Node::frame_iterator f2 = f1 + 1; f2 != node->endframe(); ++f2) {
-              if (!sievedOut.HasFrame( *f2 )) {
+              if (frameIsPresent[ *f2 ]) {
                 double dist = pmatrix.Frame_Distance(*f1, *f2);
                 internalAvg += dist;
                 internalSD += (dist * dist);
@@ -279,8 +293,11 @@ int Cpptraj::Cluster::Output::Summary(CpptrajFile& outfile, List const& clusters
       outfile.Printf(" %*s %8.3f", nWidth, node->Cname().c_str(), node->RefRms());
     outfile.Printf("\n");
   } // END loop over clusters
-  //t_cdist.WriteTiming(1, "Between-cluster distance calc.");
-  //t_fdist.WriteTiming(1, "Within-cluster distance calc.");
+  t_fdist.Stop(); // DEBUG
+  t_total.Stop();
+  t_cdist.WriteTiming(1, "Between-cluster distance calc.", t_total.Total());
+  t_fdist.WriteTiming(1, "Within-cluster distance calc.", t_total.Total());
+  t_total.WriteTiming(0, "Calc of summary total");
   return 0;
 }
 

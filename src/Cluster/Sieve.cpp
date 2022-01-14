@@ -104,3 +104,15 @@ int Cpptraj::Cluster::Sieve::SetupFromCache(DataSet_PairwiseCache const& cache,
     sievedOut_.push_back( frm );
   return 0;
 }
+
+/** \return An array containing 'true' for frames that are present, 'false' otherwise.
+  */
+std::vector<bool> Cpptraj::Cluster::Sieve::GenerateFrameIsPresentArray() const {
+  // Start everything out as false TODO search for max val?
+  std::vector<bool> frameIsPresent( framesToCluster_.size() + sievedOut_.size(), false );
+  // Set true for frames to cluster
+  for (Cframes::const_iterator it = framesToCluster_.begin();
+                               it != framesToCluster_.end(); ++it)
+    frameIsPresent[*it] = true;
+  return frameIsPresent;
+}

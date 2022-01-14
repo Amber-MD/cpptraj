@@ -8,6 +8,7 @@ class Cframes;
 class List;
 class MetricArray;
 class BestReps;
+class Sieve;
 /// Cluster output routines.
 class Output {
   public:
@@ -16,7 +17,7 @@ class Output {
     static int PrintSilhouetteFrames(CpptrajFile&, List const&);
     static int PrintSilhouettes(CpptrajFile&, List const&);
     static int Summary(CpptrajFile&, List const&, Algorithm const&, MetricArray&,
-                        bool, bool, Cframes const&);
+                        bool, bool, Sieve const&);
     static void Summary_Part(CpptrajFile&, unsigned int, Cframes const&, List const&,
                              BestReps const&, MetricArray&, Cframes const&);
   private:

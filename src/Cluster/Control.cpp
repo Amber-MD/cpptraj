@@ -820,7 +820,7 @@ int Cpptraj::Cluster::Control::Output(DataSetList& DSL) {
       return 1;
     }
     Output::Summary(outfile, clusters_, *algorithm_, metrics_, includeSieveInCalc_,
-                    includeSieveCdist_, frameSieve_.SievedOut());
+                    includeSieveCdist_, frameSieve_);
     timer_output_summary_.Stop();
   }
 

@@ -19,6 +19,8 @@ class Sieve {
     Cframes const& FramesToCluster() const { return framesToCluster_; }
     Cframes const& SievedOut()       const { return sievedOut_;       }
     int SieveValue()                 const { return sieve_;           }
+    /// \return An array containing true for present frames, false otherwise
+    std::vector<bool> GenerateFrameIsPresentArray() const;
   private:
     void DetermineTypeFromSieve(int);
 
