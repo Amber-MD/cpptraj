@@ -195,6 +195,12 @@ int Cpptraj::Cluster::Output::Summary(CpptrajFile& outfile, List const& clusters
   }
   outfile.Printf("\n");
 
+  // If we are not including sieved frames, generate an array where
+  // sieved frames are 'false'
+  std::vector<bool> frameIsPresent;
+  if (!includeSieved || !includeSieveCdist)
+    frameIsPresent = frameSieve.GenerateFrameIsPresentArray();
+
   t_cdist.Start(); // DEBUG
   // Calculate distances between clusters.
   Matrix<double> cluster_distances;
@@ -204,14 +210,8 @@ int Cpptraj::Cluster::Output::Summary(CpptrajFile& outfile, List const& clusters
       if (c2 != c1)
         cluster_distances.addElement( algorithm.ClusterDistance( *c1, *c2, pmatrix,
                                                                 includeSieveCdist,
-                                                                frameSieve.SievedOut() ) ); // TODO replace SievedOut()
+                                                                frameIsPresent ) );
   t_cdist.Stop(); // DEBUG
-
-  // If we are not including sieved frames, generate an array where
-  // sieved frames are 'false'
-  std::vector<bool> frameIsPresent;
-  if (!includeSieved)
-    frameIsPresent = frameSieve.GenerateFrameIsPresentArray();
 
   t_fdist.Start(); // DEBUG
   unsigned int idx1 = 0;

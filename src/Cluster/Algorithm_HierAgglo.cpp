@@ -346,7 +346,7 @@ void Cpptraj::Cluster::Algorithm_HierAgglo::calcAvgDist(List::cluster_it& C1_it,
 double Cpptraj::Cluster::Algorithm_HierAgglo::ClusterDistance(Node const& C1, Node const& C2,
                                                               MetricArray& pmatrix,
                                                               bool includeSieved,
-                                                              Cframes const& sievedOut)
+                                                          std::vector<bool> const& frameIsPresent)
 const
 {
   double dval = -1.0;
@@ -376,10 +376,10 @@ const
     // No sieved frames included.
     for (Node::frame_iterator f1 = C1.beginframe(); f1 != C1.endframe(); ++f1)
     {
-      if (!sievedOut.HasFrame(*f1)) {
+      if (frameIsPresent[*f1]) {
         for (Node::frame_iterator f2 = C2.beginframe(); f2 != C2.endframe(); ++f2)
         {
-          if (!sievedOut.HasFrame(*f2)) {
+          if (frameIsPresent[*f2]) {
             double Dist = pmatrix.Frame_Distance(*f1, *f2);
             //mprintf("\t\t\tFrame %i to frame %i = %f\n",*c1frames,*c2frames,Dist);
             switch (linkage_) {
