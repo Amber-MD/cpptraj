@@ -17,19 +17,27 @@ class Sieve {
     int SetupFromCache( DataSet_PairwiseCache const&, std::size_t );
     /// Clear the Sieve
     void Clear();
+    /// Create an array containing true for present frames, false otherwise
+    void GenerateFrameIsPresentArray();
+
     /// \return Array of frames to cluster (i.e. are present)
-    Cframes const& FramesToCluster() const { return framesToCluster_; }
+    Cframes const& FramesToCluster()          const { return framesToCluster_; }
     /// \return Array of frames sieved out (i.e. not present)
-    Cframes const& SievedOut()       const { return sievedOut_;       }
+    Cframes const& SievedOut()                const { return sievedOut_;       }
+    /// \return An array containing true for present frames, false otherwise. Empty if not generated.
+    std::vector<bool> const& FrameIsPresent() const { return frameIsPresent_; }
     /// \return Sieve value used to set up sieve
-    int SieveValue()                 const { return sieve_;           }
-    /// \return An array containing true for present frames, false otherwise
-    std::vector<bool> GenerateFrameIsPresentArray() const;
+    int SieveValue()                          const { return sieve_;           }
+    /// \return Sieve type
+    SieveType Type()                          const { return type_; }
   private:
     void DetermineTypeFromSieve(int);
 
+    typedef std::vector<bool> Barray;
+
     Cframes framesToCluster_; ///< Frames to cluster.
     Cframes sievedOut_;       ///< Frames that will not be clustered (i.e. sieved out).
+    Barray frameIsPresent_;   ///< True if frame is present, false otherwise.
     SieveType type_;          ///< Sieveing type.
     int sieve_;               ///< Sieving value.
 };

@@ -1,3 +1,4 @@
+#include <vector>
 #include <cmath> // sqrt
 #include <algorithm> // sort, max
 #include "Output.h"
@@ -6,7 +7,6 @@
 #include "List.h"
 #include "MetricArray.h"
 #include "Node.h"
-#include "Sieve.h"
 #include "../Matrix.h"
 #include "../CpptrajFile.h"
 #include "../CpptrajStdio.h"
@@ -170,7 +170,7 @@ int Cpptraj::Cluster::Output::Summary(CpptrajFile& outfile, List const& clusters
                                       Algorithm const& algorithm,
                                       MetricArray& pmatrix,
                                       bool includeSieved, bool includeSieveCdist,
-                                      Sieve const& frameSieve)
+                                      std::vector<bool> const& frameIsPresent)
 {
 /*  Timer t_total; // DEBUG
   Timer t_fdist; // DEBUG
@@ -194,12 +194,6 @@ int Cpptraj::Cluster::Output::Summary(CpptrajFile& outfile, List const& clusters
     outfile.Printf(" %*s %8s", nWidth, "Name", "RMS");
   }
   outfile.Printf("\n");
-
-  // If we are not including sieved frames, generate an array where
-  // sieved frames are 'false'
-  std::vector<bool> frameIsPresent;
-  if (!includeSieved || !includeSieveCdist)
-    frameIsPresent = frameSieve.GenerateFrameIsPresentArray();
 
 //  t_cdist.Start(); // DEBUG
   // Calculate distances between clusters.

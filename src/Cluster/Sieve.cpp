@@ -27,6 +27,7 @@ int Cpptraj::Cluster::Sieve::SetFramesToCluster(int sieveIn, std::size_t maxFram
   // Sanity check. Should never be called with maxFrames < 1
   if (maxFrames < 1) return 1;
   DetermineTypeFromSieve( sieveIn );
+  frameIsPresent_.clear();
   framesToCluster_.clear();
   sievedOut_.clear();
   // ---------------------------------------------
@@ -95,6 +96,7 @@ int Cpptraj::Cluster::Sieve::SetupFromCache(DataSet_PairwiseCache const& cache,
     //mprinterr("Error: Cannot setup frames to cluster from empty cache.\n");
     return 1;
   }
+  frameIsPresent_.clear();
   framesToCluster_.clear();
   sievedOut_.clear();
   DetermineTypeFromSieve( cache.SieveVal() );
@@ -116,18 +118,20 @@ int Cpptraj::Cluster::Sieve::SetupFromCache(DataSet_PairwiseCache const& cache,
 void Cpptraj::Cluster::Sieve::Clear() {
   framesToCluster_.clear();
   sievedOut_.clear();
+  frameIsPresent_.clear();
   type_ = NONE;
   sieve_ = 1;
 }
 
-/** \return An array containing 'true' for frames that are present, 'false' otherwise.
+/** Create an array containing 'true' for frames that are present, 'false' otherwise.
   */
-std::vector<bool> Cpptraj::Cluster::Sieve::GenerateFrameIsPresentArray() const {
-  // Start everything out as false TODO search for max val?
-  std::vector<bool> frameIsPresent( framesToCluster_.size() + sievedOut_.size(), false );
-  // Set true for frames to cluster
-  for (Cframes::const_iterator it = framesToCluster_.begin();
-                               it != framesToCluster_.end(); ++it)
-    frameIsPresent[*it] = true;
-  return frameIsPresent;
+void Cpptraj::Cluster::Sieve::GenerateFrameIsPresentArray() {
+  if (frameIsPresent_.empty()) {
+    // Start everything out as false TODO search for max val?
+    frameIsPresent_.assign( framesToCluster_.size() + sievedOut_.size(), false );
+    // Set true for frames to cluster
+    for (Cframes::const_iterator it = framesToCluster_.begin();
+                                 it != framesToCluster_.end(); ++it)
+      frameIsPresent_[*it] = true;
+  }
 }

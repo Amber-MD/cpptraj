@@ -797,12 +797,17 @@ int Cpptraj::Cluster::Control::Output(DataSetList& DSL) {
     outfile.CloseFile();
   }
 
+  // Generate the frameIsPresent array if sieved frames should not be included.
+  // TODO should this array always be generated?
+  if (!includeSieveInCalc_ || !includeSieveCdist_)
+    frameSieve_.GenerateFrameIsPresentArray();
+
   // Silhouette
   if (!sil_file_.empty()) {
     if (frameSieve_.SieveValue() != 1 && !includeSieveInCalc_)
       mprintf("Warning: Silhouettes do not include sieved frames.\n");
     // FIXME store this array in Sieve class
-    clusters_.CalcSilhouette(metrics_, frameSieve_.GenerateFrameIsPresentArray(), includeSieveInCalc_);
+    clusters_.CalcSilhouette(metrics_, frameSieve_.FrameIsPresent(), includeSieveInCalc_);
     CpptrajFile Ffile, Cfile;
     if (Ffile.OpenWrite(sil_file_ + ".frame.dat")) return 1;
     Output::PrintSilhouetteFrames(Ffile, clusters_);
@@ -821,7 +826,7 @@ int Cpptraj::Cluster::Control::Output(DataSetList& DSL) {
       return 1;
     }
     Output::Summary(outfile, clusters_, *algorithm_, metrics_, includeSieveInCalc_,
-                    includeSieveCdist_, frameSieve_);
+                    includeSieveCdist_, frameSieve_.FrameIsPresent());
     timer_output_summary_.Stop();
   }
 
