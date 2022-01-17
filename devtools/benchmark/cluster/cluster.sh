@@ -60,6 +60,7 @@ cluster \
   summaryhalf \$PREFIX.split.dat splitframe $SPLIT1,$SPLIT2,$SPLIT3 \
   info \$PREFIX.info.dat \
   summary \$PREFIX.summary.dat \
+  sil \$PREFIX.Sil \
   cpopvtime \$PREFIX.cpop.agr normframe
 EOF
   $CPPTRAJ -i cpptraj.in -o cpptraj.$TOTAL.out
