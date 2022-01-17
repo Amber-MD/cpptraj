@@ -801,7 +801,8 @@ int Cpptraj::Cluster::Control::Output(DataSetList& DSL) {
   if (!sil_file_.empty()) {
     if (frameSieve_.SieveValue() != 1 && !includeSieveInCalc_)
       mprintf("Warning: Silhouettes do not include sieved frames.\n");
-    clusters_.CalcSilhouette(metrics_, frameSieve_.SievedOut(), includeSieveInCalc_);
+    // FIXME store this array in Sieve class
+    clusters_.CalcSilhouette(metrics_, frameSieve_.GenerateFrameIsPresentArray(), includeSieveInCalc_);
     CpptrajFile Ffile, Cfile;
     if (Ffile.OpenWrite(sil_file_ + ".frame.dat")) return 1;
     Output::PrintSilhouetteFrames(Ffile, clusters_);

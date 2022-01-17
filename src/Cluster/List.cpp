@@ -417,8 +417,8 @@ double Cpptraj::Cluster::List::ComputePseudoF(double& SSRSST, MetricArray& metri
   * indicate the point is on a border between two clusters. 
   */
 int Cpptraj::Cluster::List::CalcSilhouette(MetricArray& metrics,
-                                            Cframes const& sievedFrames,
-                                            bool includeSieved)
+                                           std::vector<bool> const& frameIsPresent,
+                                           bool includeSieved)
 {
   for (cluster_it Ci = begin(); Ci != end(); ++Ci)
   {
@@ -429,7 +429,7 @@ int Cpptraj::Cluster::List::CalcSilhouette(MetricArray& metrics,
     int ci_frames = 0;
     for (Node::frame_iterator f1 = Ci->beginframe(); f1 != Ci->endframe(); ++f1)
     {
-      if (includeSieved || !sievedFrames.HasFrame( *f1 )) {
+      if (includeSieved || frameIsPresent[ *f1 ]) {
         // Calculate the average dissimilarity of this frame with all other
         // points in this frames cluster.
         double ai = 0.0;
@@ -445,7 +445,7 @@ int Cpptraj::Cluster::List::CalcSilhouette(MetricArray& metrics,
         } else {
           for (Node::frame_iterator f2 = Ci->beginframe(); f2 != Ci->endframe(); ++f2)
           {
-            if (f1 != f2 && !sievedFrames.HasFrame(*f2)) {
+            if (f1 != f2 && frameIsPresent[ *f2 ]) {
               ai += metrics.Frame_Distance(*f1, *f2);
               ++self_frames;
             }
@@ -471,7 +471,7 @@ int Cpptraj::Cluster::List::CalcSilhouette(MetricArray& metrics,
               int cj_frames = 0;
               for (Node::frame_iterator f2 = Cj->beginframe(); f2 != Cj->endframe(); ++f2)
               {
-                if (!sievedFrames.HasFrame(*f2)) {
+                if (frameIsPresent[ *f2 ]) {
                   bi += metrics.Frame_Distance(*f1, *f2);
                   ++cj_frames;
                 }

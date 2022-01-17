@@ -68,7 +68,7 @@ class List {
     /// Calculate pseudo-F
     double ComputePseudoF(double&, MetricArray&) const;
     /// Calculate cluster and cluster frame silhouettes TODO data sets
-    int CalcSilhouette(MetricArray&, Cframes const&, bool);
+    int CalcSilhouette(MetricArray&, std::vector<bool> const&, bool);
   private:
     typedef std::list<Node> Narray;
     Narray clusters_; ///< Hold all clusters.
