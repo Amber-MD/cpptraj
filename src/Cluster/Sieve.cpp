@@ -2,6 +2,13 @@
 #include "../DataSet_PairwiseCache.h"
 #include "../Random.h"
 
+/** CONSTRUCTOR */
+Cpptraj::Cluster::Sieve::Sieve() :
+  type_(NONE),
+  sieve_(1)
+{}
+
+/** Determine the sieving type based on the given sieve value. */
 void Cpptraj::Cluster::Sieve::DetermineTypeFromSieve( int sieveIn ) {
   sieve_ = sieveIn;
   // Determine sieve type from sieve value.
@@ -103,6 +110,14 @@ int Cpptraj::Cluster::Sieve::SetupFromCache(DataSet_PairwiseCache const& cache,
   for (; frm < maxFrames; frm++)
     sievedOut_.push_back( frm );
   return 0;
+}
+
+/** Clear the sieve. */
+void Cpptraj::Cluster::Sieve::Clear() {
+  framesToCluster_.clear();
+  sievedOut_.clear();
+  type_ = NONE;
+  sieve_ = 1;
 }
 
 /** \return An array containing 'true' for frames that are present, 'false' otherwise.

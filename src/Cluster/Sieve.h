@@ -9,15 +9,19 @@ namespace Cluster {
 class Sieve {
   public:
     enum SieveType { NONE=0, REGULAR, RANDOM };
-
-    Sieve() : type_(NONE), sieve_(1) {}
-
+    /// CONSTRUCTOR - default no sieve
+    Sieve();
+    /// Set which frames to cluster based on given sieve value, max# frames, and seed
     int SetFramesToCluster(int, std::size_t, int);
+    /// Set which frames to cluster based on whats in the given pairwise cache and max# frames
     int SetupFromCache( DataSet_PairwiseCache const&, std::size_t );
-    void Clear() { framesToCluster_.clear(); sievedOut_.clear(); type_ = NONE; sieve_ = 1; }
-
+    /// Clear the Sieve
+    void Clear();
+    /// \return Array of frames to cluster (i.e. are present)
     Cframes const& FramesToCluster() const { return framesToCluster_; }
+    /// \return Array of frames sieved out (i.e. not present)
     Cframes const& SievedOut()       const { return sievedOut_;       }
+    /// \return Sieve value used to set up sieve
     int SieveValue()                 const { return sieve_;           }
     /// \return An array containing true for present frames, false otherwise
     std::vector<bool> GenerateFrameIsPresentArray() const;
