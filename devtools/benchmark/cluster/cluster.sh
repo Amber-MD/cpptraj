@@ -61,7 +61,8 @@ cluster \
   info \$PREFIX.info.dat \
   summary \$PREFIX.summary.dat \
   sil \$PREFIX.Sil \
-  cpopvtime \$PREFIX.cpop.agr normframe
+  cpopvtime \$PREFIX.cpop.agr normframe \
+  bestrep cumulative_nosieve
 EOF
   $CPPTRAJ -i cpptraj.in -o cpptraj.$TOTAL.out
 done
