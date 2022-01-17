@@ -172,11 +172,11 @@ int Cpptraj::Cluster::Output::Summary(CpptrajFile& outfile, List const& clusters
                                       bool includeSieved, bool includeSieveCdist,
                                       Sieve const& frameSieve)
 {
-  Timer t_total; // DEBUG
+/*  Timer t_total; // DEBUG
   Timer t_fdist; // DEBUG
   Timer t_cdist; // DEBUG
   t_total.Start(); // DEBUG
-  mprintf("DEBUG:\tincludeSieved=%i includeSieveCdist=%i\n", (int)includeSieved, (int)includeSieveCdist);
+  mprintf("DEBUG:\tincludeSieved=%i includeSieveCdist=%i\n", (int)includeSieved, (int)includeSieveCdist);*/
   double fmax = (double)pmatrix.Ntotal();
   //if (FrameDistances().SieveValue() != 1 && !includeSieveInAvg)
   //  mprintf("Warning: Within cluster average distance (AvgDist) does not include sieved frames.\n");
@@ -201,7 +201,7 @@ int Cpptraj::Cluster::Output::Summary(CpptrajFile& outfile, List const& clusters
   if (!includeSieved || !includeSieveCdist)
     frameIsPresent = frameSieve.GenerateFrameIsPresentArray();
 
-  t_cdist.Start(); // DEBUG
+//  t_cdist.Start(); // DEBUG
   // Calculate distances between clusters.
   Matrix<double> cluster_distances;
   cluster_distances.resize( 0, clusters.Nclusters() );
@@ -211,9 +211,9 @@ int Cpptraj::Cluster::Output::Summary(CpptrajFile& outfile, List const& clusters
         cluster_distances.addElement( algorithm.ClusterDistance( *c1, *c2, pmatrix,
                                                                 includeSieveCdist,
                                                                 frameIsPresent ) );
-  t_cdist.Stop(); // DEBUG
+//  t_cdist.Stop(); // DEBUG
 
-  t_fdist.Start(); // DEBUG
+//  t_fdist.Start(); // DEBUG
   unsigned int idx1 = 0;
   for (List::cluster_iterator node = clusters.begincluster();
                               node != clusters.endcluster(); ++node, ++idx1)
@@ -293,11 +293,11 @@ int Cpptraj::Cluster::Output::Summary(CpptrajFile& outfile, List const& clusters
       outfile.Printf(" %*s %8.3f", nWidth, node->Cname().c_str(), node->RefRms());
     outfile.Printf("\n");
   } // END loop over clusters
-  t_fdist.Stop(); // DEBUG
-  t_total.Stop();
-  t_cdist.WriteTiming(1, "Between-cluster distance calc.", t_total.Total());
-  t_fdist.WriteTiming(1, "Within-cluster distance calc.", t_total.Total());
-  t_total.WriteTiming(0, "Calc of summary total");
+/*  t_fdist.Stop(); // DEBUG
+  t_total.Stop(); // DEBUG
+  t_cdist.WriteTiming(1, "Between-cluster distance calc.", t_total.Total()); // DEBUG
+  t_fdist.WriteTiming(1, "Within-cluster distance calc.", t_total.Total()); // DEBUG
+  t_total.WriteTiming(0, "Calc of summary total"); // DEBUG */
   return 0;
 }
 
