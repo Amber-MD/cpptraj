@@ -13,12 +13,10 @@ class Output {
   public:
     static void PrintClustersToFile(CpptrajFile&, List const&, Algorithm const&, MetricArray&,
                                     int, Cframes const&);
-    static int PrintSilhouetteFrames(CpptrajFile&, List const&);
-    static int PrintSilhouettes(CpptrajFile&, List const&);
     static int Summary(CpptrajFile&, List const&, Algorithm const&, MetricArray&,
-                        bool, bool, Cframes const&);
+                        bool, bool, std::vector<bool> const&);
     static void Summary_Part(CpptrajFile&, unsigned int, Cframes const&, List const&,
-                             BestReps const&, MetricArray&, Cframes const&);
+                             BestReps const&, MetricArray&, std::vector<bool> const&);
   private:
     static unsigned int DetermineNameWidth(List const&);
 };

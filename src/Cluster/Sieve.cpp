@@ -2,6 +2,13 @@
 #include "../DataSet_PairwiseCache.h"
 #include "../Random.h"
 
+/** CONSTRUCTOR */
+Cpptraj::Cluster::Sieve::Sieve() :
+  type_(NONE),
+  sieve_(1)
+{}
+
+/** Determine the sieving type based on the given sieve value. */
 void Cpptraj::Cluster::Sieve::DetermineTypeFromSieve( int sieveIn ) {
   sieve_ = sieveIn;
   // Determine sieve type from sieve value.
@@ -20,6 +27,7 @@ int Cpptraj::Cluster::Sieve::SetFramesToCluster(int sieveIn, std::size_t maxFram
   // Sanity check. Should never be called with maxFrames < 1
   if (maxFrames < 1) return 1;
   DetermineTypeFromSieve( sieveIn );
+  frameIsPresent_.clear();
   framesToCluster_.clear();
   sievedOut_.clear();
   // ---------------------------------------------
@@ -88,6 +96,7 @@ int Cpptraj::Cluster::Sieve::SetupFromCache(DataSet_PairwiseCache const& cache,
     //mprinterr("Error: Cannot setup frames to cluster from empty cache.\n");
     return 1;
   }
+  frameIsPresent_.clear();
   framesToCluster_.clear();
   sievedOut_.clear();
   DetermineTypeFromSieve( cache.SieveVal() );
@@ -103,4 +112,26 @@ int Cpptraj::Cluster::Sieve::SetupFromCache(DataSet_PairwiseCache const& cache,
   for (; frm < maxFrames; frm++)
     sievedOut_.push_back( frm );
   return 0;
+}
+
+/** Clear the sieve. */
+void Cpptraj::Cluster::Sieve::Clear() {
+  framesToCluster_.clear();
+  sievedOut_.clear();
+  frameIsPresent_.clear();
+  type_ = NONE;
+  sieve_ = 1;
+}
+
+/** Create an array containing 'true' for frames that are present, 'false' otherwise.
+  */
+void Cpptraj::Cluster::Sieve::GenerateFrameIsPresentArray() {
+  if (frameIsPresent_.empty()) {
+    // Start everything out as false TODO search for max val?
+    frameIsPresent_.assign( framesToCluster_.size() + sievedOut_.size(), false );
+    // Set true for frames to cluster
+    for (Cframes::const_iterator it = framesToCluster_.begin();
+                                 it != framesToCluster_.end(); ++it)
+      frameIsPresent_[*it] = true;
+  }
 }

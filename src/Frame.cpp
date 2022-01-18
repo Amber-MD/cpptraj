@@ -896,6 +896,7 @@ int Frame::Divide(Frame const& dividend, double divisor) {
   */
 void Frame::Divide(double divisor) {
   if (divisor < Constants::SMALL) {
+    //mprintf("DEBUG: Frame::Divide(divisor): Detected divide by 0.\n");
     mprinterr("Error: Frame::Divide(divisor): Detected divide by 0.\n");
     return;
   }

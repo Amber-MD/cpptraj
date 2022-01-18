@@ -1,6 +1,6 @@
 #ifndef INC_CLUSTER_LIST_H
 #define INC_CLUSTER_LIST_H
-#include <list>
+//#include <list>
 #include "Cframes.h"
 class DataSet_integer;
 namespace Cpptraj {
@@ -67,8 +67,6 @@ class List {
     double ComputeDBI(std::vector<double>&, MetricArray&) const;
     /// Calculate pseudo-F
     double ComputePseudoF(double&, MetricArray&) const;
-    /// Calculate cluster and cluster frame silhouettes TODO data sets
-    int CalcSilhouette(MetricArray&, Cframes const&, bool);
   private:
     typedef std::list<Node> Narray;
     Narray clusters_; ///< Hold all clusters.

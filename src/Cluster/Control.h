@@ -7,6 +7,7 @@
 #include "MetricArray.h"
 #include "Node.h" // Node::CnormType
 #include "Sieve.h"
+#include "Silhouette.h" // Silhouette::IdxType
 #include "../Timer.h"
 class DataSet_Coords;
 class DataSet_PairwiseCache;
@@ -88,6 +89,7 @@ class Control {
     std::string clusterinfo_;         ///< Cluster info file name.
     std::string summaryfile_;         ///< Cluster summary file name.
     std::string sil_file_;            ///< File prefix for writing silhouette data
+    Silhouette::IdxType silIdxType_;  ///< Control how sil. frame indices are written
 
     DataSet* cnumvtime_;              ///< Cluster number vs time data set.
     bool grace_color_;                ///< If true change cluster number to grace color
