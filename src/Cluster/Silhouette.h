@@ -18,10 +18,16 @@ class Silhouette {
     /// CONSTRUCTOR - set debug level
     Silhouette(int);
 
+    /// Used to determine what indices will be printed out for frame silhouette values
+    enum IdxType { IDX_SORTED = 0, IDX_FRAME, IDX_NOT_SPECIFIED };
+
     /// Used to hold SilPairArray for each cluster
     typedef std::vector<SilPairArray> SilFrameArray;
     /// Generic double array 
     typedef std::vector<double> Darray;
+
+    /// Initialize with frame silhouette index type
+    int Init(IdxType);
 
     /// \return Array containing frame silhouette values of each frame for every cluster
     SilFrameArray const& SilhouetteFrameArray() const { return clusterFrameSil_; }
@@ -56,6 +62,8 @@ class Silhouette {
     Darray clusterAvgSil_;
     /// debug level
     int debug_;
+    /// Control what indices will be used when printing frame silhouette values
+    IdxType silIdxType_;
 };
 }
 }

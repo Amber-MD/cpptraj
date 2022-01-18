@@ -12,8 +12,15 @@ using namespace Cpptraj::Cluster;
 
 /** CONSTRUCTOR - set debug level */
 Silhouette::Silhouette(int dbgIn) :
-  debug_(dbgIn)
+  debug_(dbgIn),
+  silIdxType_(IDX_NOT_SPECIFIED)
 {}
+
+/** Initialize silhouette calc. */
+int Silhouette::Init(IdxType silIdxTypeIn) {
+  silIdxType_ = silIdxTypeIn;
+  return 0;
+}
 
 /** The cluster silhouette is a measure of how well each point fits within
   * a cluster. Values of 1 indicate the point is very similar to other points
@@ -139,7 +146,7 @@ const
 {
   if (numMismatchErr("PrintSilhouetteFrames", clusters.Nclusters())) return 1;
   // TODO different ways of writing out cluster frame silhouettes, like sort index?
-  //unsigned int idx = 0;
+  unsigned int idx = 0;
   List::cluster_iterator Ci = clusters.begincluster();
   for (SilFrameArray::const_iterator it = clusterFrameSil_.begin();
                                      it != clusterFrameSil_.end(); ++it, ++Ci)
@@ -148,8 +155,13 @@ const
     SilPairArray spaTemp = *it;
     std::sort( spaTemp.begin(), spaTemp.end(), sort_by_sil_val() );
     for (SilPairArray::const_iterator jt = spaTemp.begin();
-                                      jt != spaTemp.end(); ++jt)
-      Ffile.Printf("%8u %g\n", jt->first + 1, jt->second);
+                                      jt != spaTemp.end(); ++jt, ++idx)
+    {
+      if (silIdxType_ == IDX_FRAME)
+        Ffile.Printf("%8i %g\n", jt->first + 1, jt->second);
+      else // IDX_SORTED, IDX_NOT_SPECIFIED
+        Ffile.Printf("%8u %g\n", idx, jt->second);
+    }
     Ffile.Printf("\n");
   }
   return 0;

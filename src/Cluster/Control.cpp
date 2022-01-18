@@ -1,7 +1,6 @@
 #include <list>
 #include "Control.h"
 #include "Output.h"
-#include "Silhouette.h"
 #include "../ArgList.h"
 #include "../BufferedLine.h" // For loading info file
 #include "../CpptrajStdio.h"
@@ -208,10 +207,10 @@ const char* Cpptraj::Cluster::Control::OutputArgs2_ =
   "[summarysplit <splitfile>] [splitframe <comma-separated frame list>]";
 
 const char* Cpptraj::Cluster::Control::OutputArgs3_ =
-  "[clustersvtime <file> [cvtwindow <#>]] [sil <prefix>] [metricstats <file>]";
+  "[clustersvtime <file> [cvtwindow <#>]] [sil <prefix> [silidx {idx|frm}]]";
 
 const char* Cpptraj::Cluster::Control::OutputArgs4_ =
-  "[cpopvtime <file> [{normpop|normframe}]] [lifetime]";
+  "[metricstats <file>] [cpopvtime <file> [{normpop|normframe}]] [lifetime]";
 
 const char* Cpptraj::Cluster::Control::GraphArgs_ =
   "[{drawgraph|drawgraph3d} [draw_tol <tolerance>] [draw_maxit <iterations]]";
@@ -413,6 +412,20 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
 
   // Cluster silhouette output
   sil_file_ = analyzeArgs.GetStringKey("sil");
+  silIdxType_ = Silhouette::IDX_NOT_SPECIFIED;
+  if (!sil_file_.empty()) {
+    std::string silIdxArg = analyzeArgs.GetStringKey("silidx");
+    if (!silIdxArg.empty()) {
+      if (silIdxArg == "idx")
+        silIdxType_ = Silhouette::IDX_SORTED;
+      else if (silIdxArg == "frm")
+        silIdxType_ = Silhouette::IDX_FRAME;
+      else {
+        mprinterr("Error: Unrecognized keyword for 'silidx': %s\n", silIdxArg.c_str());
+        return 1;
+      }
+    }
+  }
 
   // Cluster pop v time output
   cpopvtimefile_ = DFL.AddDataFile(analyzeArgs.GetStringKey("cpopvtime"), analyzeArgs);
@@ -596,6 +609,13 @@ void Cpptraj::Cluster::Control::Info() const {
         mprintf("\tSilhouette calculation will use all frames.\n");
       else
         mprintf("\tSilhouette calculation will use non-sieved frames ONLY.\n");
+    }
+    switch (silIdxType_) {
+      case Silhouette::IDX_FRAME:
+        mprintf("\tFrame silhouette indices will be frame #s.\n"); break;
+      case Silhouette::IDX_SORTED: // fallthrough
+      case Silhouette::IDX_NOT_SPECIFIED:
+        mprintf("\tFrame silhouette indices will be sorted indices.\n"); break;
     }
   }
 
@@ -809,6 +829,10 @@ int Cpptraj::Cluster::Control::Output(DataSetList& DSL) {
   // Silhouette
   if (!sil_file_.empty()) {
     Silhouette silCalc( debug_ );
+    if (silCalc.Init( silIdxType_ )) {
+      mprinterr("Error: Silhouette calc. init. failed.\n");
+      return 1;
+    }
     if (frameSieve_.SieveValue() != 1 && !includeSieveInCalc_)
       mprintf("Warning: Silhouettes do not include sieved frames.\n");
     if (silCalc.CalcSilhouette(clusters_, metrics_, frameSieve_.FrameIsPresent(),
