@@ -59,6 +59,8 @@ class Node {
     double Eccentricity()          const { return eccentricity_;          }
     /// \return internal cluster number
     int Num()                      const { return num_;                   }
+    /// \return internal cluster part
+    int Part()                     const { return part_;                  }
     /// \return number of frames in cluster.
     int Nframes()                  const { return (int)frameList_.size(); }
     /// \return best representative frame number, or -1 if no best rep set.
@@ -89,6 +91,8 @@ class Node {
     void AddFrameToCluster(int fnum)   { frameList_.push_back( fnum );  }
     /// Set cluster number (for bookkeeping).
     void SetNum(int numIn)             { num_ = numIn;                  }
+    /// Set cluster part (for bookkeeping).
+    void SetPart(int partIn)           { part_ = partIn;                }
     /// Access representative frame list
     RepPairArray& BestReps()           { return bestReps_;              }
     /// Access frame silhouette list
@@ -124,6 +128,7 @@ class Node {
     double eccentricity_;     ///< Maximum distance between any 2 frames.
     double refRms_;           ///< Cluster rms to reference (if assigned).
     int num_;                 ///< Cluster number, used for bookkeeping.
+    int part_;                ///< What part of trajectory cluster is in (for splitframes)
     bool needsUpdate_;        ///< True if internal metrics need updating (e.g. after frames added).
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------

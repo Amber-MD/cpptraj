@@ -755,7 +755,9 @@ int Cpptraj::Cluster::Control::Run() {
       mprinterr("Error: Initializing best representative frames search failed.\n");
       return 1;
     }
-    if (findBestReps.FindBestRepFrames(clusters_, metrics_, frameSieve_.SievedOut())) {
+    if (bestRep_ == BestReps::CUMULATIVE_NOSIEVE)
+      frameSieve_.GenerateFrameIsPresentArray();
+    if (findBestReps.FindBestRepFrames(clusters_, metrics_, frameSieve_.FrameIsPresent())) {
       mprinterr("Error: Finding best representative frames for clusters failed.\n");
       return 1;
     }
@@ -844,8 +846,9 @@ int Cpptraj::Cluster::Control::Output(DataSetList& DSL) {
       return 1;
     }
     // TODO just pass in metrics_
+    // NOTE if needed, the FrameIsPresent array should already have been generated at the end of Run
     Output::Summary_Part(outfile, metrics_.Ntotal(), splitFrames_, clusters_,
-                         findBestReps, metrics_, frameSieve_.SievedOut());
+                         findBestReps, metrics_, frameSieve_.FrameIsPresent());
   }
 
   // Cluster number vs time

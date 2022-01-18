@@ -302,7 +302,7 @@ void Cpptraj::Cluster::Output::Summary_Part(CpptrajFile& outfile,
                                             List const& clusters,
                                             BestReps const& findBestReps,
                                             MetricArray& pmatrix,
-                                            Cframes const& framesToCluster)
+                                            std::vector<bool> const& frameIsPresent)
 {
   // If no split frames were specified, use halfway point.
   Cframes actualSplitFrames;
@@ -394,12 +394,19 @@ void Cpptraj::Cluster::Output::Summary_Part(CpptrajFile& outfile,
     std::fill( numInPart.begin(), numInPart.end(), 0 );
     std::fill( firstFrame.begin(), firstFrame.end(), -1 );
     std::vector<Node> clusterPart(actualSplitFrames.size() + 1);
+    // Set cluster number for all parts to the overall cluster number
+    for (std::vector<Node>::iterator cpit = clusterPart.begin();
+                                     cpit != clusterPart.end(); ++cpit)
+    {
+      cpit->SetNum( node->Num() );
+      cpit->SetPart( cpit - clusterPart.begin() + 1 );
+    }
     // DEBUG
     //mprintf("\tCluster %i\n",node->num);
     // Count how many frames are in each part. 
     for (Node::frame_iterator frame1 = node->beginframe();
-                                     frame1 != node->endframe();
-                                     frame1++)
+                              frame1 != node->endframe();
+                              frame1++)
     {
       unsigned int bin = actualSplitFrames.size();
       for (unsigned int sf = 0; sf < actualSplitFrames.size(); ++sf) {
@@ -425,21 +432,27 @@ void Cpptraj::Cluster::Output::Summary_Part(CpptrajFile& outfile,
       outfile.Printf(" %8i", *ff);
     // Print best reps for each part.
     // TODO handle case when clusters dont have same number best reps
-    for (std::vector<Node>::iterator node = clusterPart.begin();
-                                     node != clusterPart.end(); ++node)
+    for (std::vector<Node>::iterator partNode = clusterPart.begin();
+                                     partNode != clusterPart.end(); ++partNode)
     {
-      if (node->Nframes() == 0) {
+      //mprintf("\tDetermining best representative frames for cluster %i part %li\n",
+      //        node->Num(), partNode-clusterPart.begin()+1);
+      if (partNode->Nframes() == 0) {
         outfile.Printf(" %8i", -1);
       } else {
         // Since we just created these clusters, ensure centroid is updated
-        node->CalculateCentroid( pmatrix );
-        findBestReps.FindBestRepFrames(*node, pmatrix, framesToCluster);
+        //mprintf("DEBUG: Calc. centroid for cluster %i part %li\n", node->Num(), partNode-clusterPart.begin()+1);
+        partNode->CalculateCentroid( pmatrix );
+        findBestReps.FindBestRepFrames(*partNode, pmatrix, frameIsPresent);
         // TODO handle multiple best reps?
-        //if (node->BestReps().size() < 2)
-          outfile.Printf(" %8i", node->BestRepFrame()+1);
+        int partBestRepFrame = partNode->BestRepFrame();
+        // If a best rep was actually found, increment by 1 for user frame #
+        if (partBestRepFrame > -1)
+          partBestRepFrame++;
+        outfile.Printf(" %8i", partBestRepFrame);
         //else {
-        //  for (Node::RepPairArray::const_iterator rep = node->BestReps().begin();
-        //                                          rep != node->BestReps().end(); ++rep)
+        //  for (Node::RepPairArray::const_iterator rep = partNode->BestReps().begin();
+        //                                          rep != partNode->BestReps().end(); ++rep)
         //    outfile.Printf(" %8i %8.3f", rep->first+1, rep->second);
         //}
       }
