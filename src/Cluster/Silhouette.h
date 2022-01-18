@@ -2,6 +2,7 @@
 #define INC_CLUSTER_SILHOUETTE_H
 #include <vector>
 #include <utility> // std::pair
+class CpptrajFile;
 namespace Cpptraj {
 namespace Cluster {
 class List;
@@ -26,6 +27,11 @@ class Silhouette {
     SilFrameArray const& SilhouetteFrameArray() const { return clusterFrameSil_; }
     /// \return Array containing average silhouette values for every cluster
     Darray const& AvgSilhouetteArray() const { return clusterAvgSil_; }
+
+    /// Print Silhouette frame values to file.
+    void PrintSilhouetteFrames(CpptrajFile&) const;
+    /// Print average Silhouette values to file.
+    void PrintAvgSilhouettes(CpptrajFile&) const;
 
     /// Calculate silhouette values for each cluster
     int CalcSilhouette(List const&, MetricArray&, std::vector<bool> const&, bool);

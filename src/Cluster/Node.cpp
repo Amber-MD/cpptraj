@@ -1,4 +1,5 @@
 //#include <cfloat> // DBL_MAX
+#include <string>
 #include "Node.h"
 #include "MetricArray.h"
 #include "../DataSet_float.h"
@@ -6,7 +7,6 @@
 
 // CONSTRUCTOR
 Cpptraj::Cluster::Node::Node() :
-  avgSil_(0),
   eccentricity_(0),
   refRms_(0),
   num_(-1),

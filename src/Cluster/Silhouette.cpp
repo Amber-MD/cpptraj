@@ -1,9 +1,12 @@
+#include <algorithm> // std::max
 #include <limits> // double max
+#include <list>
 #include "Silhouette.h"
 #include "List.h"
 #include "MetricArray.h"
 #include "Node.h"
 #include "../CpptrajStdio.h"
+#include "../CpptrajFile.h"
 
 using namespace Cpptraj::Cluster;
 
@@ -114,3 +117,45 @@ int Silhouette::CalcSilhouette(List const& clusters,
   } // END outer loop over clusters
   return 0;
 }
+
+/// For sorting cluster frame silhouettes by silhouette value.
+struct sort_by_sil_val {
+  inline bool operator()(SilPair const& p0, SilPair const& p1)
+  {
+    if (p0.second == p1.second)
+      return (p0.first < p1.first);
+    else
+      return (p0.second < p1.second);
+  }
+};
+
+/** Print cluster silhouette frame values, sorted by silhouette. */
+int Cpptraj::Cluster::Output::PrintSilhouetteFrames(CpptrajFile& Ffile, List const& clusters)
+{
+  // TODO different ways of writing out cluster frame silhouettes
+  unsigned int idx = 0;
+  for (List::cluster_iterator Ci = clusters.begincluster();
+                              Ci != clusters.endcluster(); ++Ci, ++idx)
+  {
+    Ffile.Printf("#C%-6i %10s\n", Ci->Num(), "Silhouette");
+    Node::SilPairArray spaTemp = Ci->FrameSilhouettes();
+    std::sort( spaTemp.begin(), spaTemp.end(), sort_by_sil_val() );
+    for (Node::SilPairArray::const_iterator it = spaTemp.begin();
+                                            it != spaTemp.end(); ++it, ++idx)
+      Ffile.Printf("%8u %g\n", idx, it->second);
+    Ffile.Printf("\n");
+  }
+  return 0;
+}
+
+/** Print average cluster silhouette values. */
+int Cpptraj::Cluster::Output::PrintSilhouettes(CpptrajFile& Cfile, List const& clusters)
+{
+  // TODO is it ok to assume clusters are in order?
+  Cfile.Printf("%-8s %10s\n", "#Cluster", "<Si>");
+  for (List::cluster_iterator Ci = clusters.begincluster();
+                              Ci != clusters.endcluster(); ++Ci)
+    Cfile.Printf("%8i %g\n", Ci->Num(), Ci->Silhouette());
+  return 0;
+}
+
