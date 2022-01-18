@@ -138,8 +138,8 @@ int Silhouette::PrintSilhouetteFrames(CpptrajFile& Ffile, List const& clusters)
 const
 {
   if (numMismatchErr("PrintSilhouetteFrames", clusters.Nclusters())) return 1;
-  // TODO different ways of writing out cluster frame silhouettes
-  unsigned int idx = 0;
+  // TODO different ways of writing out cluster frame silhouettes, like sort index?
+  //unsigned int idx = 0;
   List::cluster_iterator Ci = clusters.begincluster();
   for (SilFrameArray::const_iterator it = clusterFrameSil_.begin();
                                      it != clusterFrameSil_.end(); ++it, ++Ci)
@@ -148,8 +148,8 @@ const
     SilPairArray spaTemp = *it;
     std::sort( spaTemp.begin(), spaTemp.end(), sort_by_sil_val() );
     for (SilPairArray::const_iterator jt = spaTemp.begin();
-                                      jt != spaTemp.end(); ++jt, ++idx)
-      Ffile.Printf("%8u %g\n", idx, jt->second);
+                                      jt != spaTemp.end(); ++jt)
+      Ffile.Printf("%8u %g\n", jt->first + 1, jt->second);
     Ffile.Printf("\n");
   }
   return 0;
