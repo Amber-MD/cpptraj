@@ -3,7 +3,6 @@
 #include <map>
 namespace Cpptraj {
 namespace Cluster {
-class Cframes;
 class List;
 class MetricArray;
 class Node;
@@ -18,9 +17,9 @@ class BestReps {
     /// Initialize best rep frames search with method type, # to save, and debug level
     int InitBestReps(RepMethodType, int, int);
     /// Find best rep frames for each cluster in given list
-    int FindBestRepFrames(List&, MetricArray&, Cframes const&) const;
+    int FindBestRepFrames(List&, MetricArray&, std::vector<bool> const&) const;
     /// Find the best rep frames for given node
-    int FindBestRepFrames(Node&, MetricArray&, Cframes const&) const;
+    int FindBestRepFrames(Node&, MetricArray&, std::vector<bool> const&) const;
   private:
     /// Print best reps to stdout
     static void PrintBestReps(Node const&);
@@ -40,9 +39,9 @@ class BestReps {
     /// Find best representative frames by shortest distance to all other frames.
     int FindBestRepFrames_CumulativeDist(List&, MetricArray&) const;
     /// Find best rep frames in node by shortest distance, ignoring sieved frames.
-    int FindBestRepFrames_NoSieve_CumulativeDist(Node&, MetricArray&, Cframes const&) const;
+    int FindBestRepFrames_NoSieve_CumulativeDist(Node&, MetricArray&, std::vector<bool> const&) const;
     /// Find best representative frames by shortest distance, ignoring sieved frames.
-    int FindBestRepFrames_NoSieve_CumulativeDist(List&, MetricArray&, Cframes const&) const;
+    int FindBestRepFrames_NoSieve_CumulativeDist(List&, MetricArray&, std::vector<bool> const&) const;
     /// Find best rep frames in node by shortest distance to centroid.
     int FindBestRepFrames_Centroid(Node&, MetricArray&) const;
     /// Find best representative frames by shortest distance to centroid.
