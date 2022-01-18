@@ -1,4 +1,5 @@
 #include <limits> // double max
+#include <list>
 #include "Algorithm_HierAgglo.h"
 #include "MetricArray.h"
 #include "Node.h"

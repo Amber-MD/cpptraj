@@ -1,3 +1,4 @@
+#include <list>
 #include "Algorithm_Kmeans.h"
 #include "Cframes.h"
 #include "List.h"

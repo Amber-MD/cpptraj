@@ -1,5 +1,6 @@
 #include <cmath> // fabs
 #include <algorithm> // sort
+#include <list>
 #include "Algorithm_DPeaks.h"
 #include "List.h"
 #include "MetricArray.h"

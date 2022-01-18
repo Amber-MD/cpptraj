@@ -1,3 +1,4 @@
+#include <list>
 #include <vector>
 #include "BestReps.h"
 #include "List.h"
