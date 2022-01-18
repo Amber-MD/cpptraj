@@ -1,4 +1,4 @@
-#include <algorithm> // std::max
+#include <algorithm> // std::max, std::sort
 #include <limits> // double max
 #include <list>
 #include "Silhouette.h"
@@ -118,44 +118,54 @@ int Silhouette::CalcSilhouette(List const& clusters,
   return 0;
 }
 
-/// For sorting cluster frame silhouettes by silhouette value.
-struct sort_by_sil_val {
-  inline bool operator()(SilPair const& p0, SilPair const& p1)
-  {
-    if (p0.second == p1.second)
-      return (p0.first < p1.first);
-    else
-      return (p0.second < p1.second);
+/** Print an error message if the number of clusters does not match. */
+int Silhouette::numMismatchErr(const char* desc, unsigned int nclusters) const {
+  if (nclusters != clusterFrameSil_.size()) {
+    mprinterr("Internal Error: During '%s', # given clusters (%u) != clusterFrameSil size (%zu)\n",
+              desc, nclusters, clusterFrameSil_.size());
+    return 1;
   }
-};
+  if (nclusters != clusterAvgSil_.size()) {
+    mprinterr("Internal Error: During '%s', # given clusters (%u) != clusterAvgSil size (%zu)\n",
+              desc, nclusters, clusterAvgSil_.size());
+    return 1;
+  }
+  return 0;
+} 
 
 /** Print cluster silhouette frame values, sorted by silhouette. */
-int Cpptraj::Cluster::Output::PrintSilhouetteFrames(CpptrajFile& Ffile, List const& clusters)
+int Silhouette::PrintSilhouetteFrames(CpptrajFile& Ffile, List const& clusters)
+const
 {
+  if (numMismatchErr("PrintSilhouetteFrames", clusters.Nclusters())) return 1;
   // TODO different ways of writing out cluster frame silhouettes
   unsigned int idx = 0;
-  for (List::cluster_iterator Ci = clusters.begincluster();
-                              Ci != clusters.endcluster(); ++Ci, ++idx)
+  List::cluster_iterator Ci = clusters.begincluster();
+  for (SilFrameArray::const_iterator it = clusterFrameSil_.begin();
+                                     it != clusterFrameSil_.end(); ++it, ++Ci)
   {
     Ffile.Printf("#C%-6i %10s\n", Ci->Num(), "Silhouette");
-    Node::SilPairArray spaTemp = Ci->FrameSilhouettes();
+    SilPairArray spaTemp = *it;
     std::sort( spaTemp.begin(), spaTemp.end(), sort_by_sil_val() );
-    for (Node::SilPairArray::const_iterator it = spaTemp.begin();
-                                            it != spaTemp.end(); ++it, ++idx)
-      Ffile.Printf("%8u %g\n", idx, it->second);
+    for (SilPairArray::const_iterator jt = spaTemp.begin();
+                                      jt != spaTemp.end(); ++jt, ++idx)
+      Ffile.Printf("%8u %g\n", idx, jt->second);
     Ffile.Printf("\n");
   }
   return 0;
 }
 
 /** Print average cluster silhouette values. */
-int Cpptraj::Cluster::Output::PrintSilhouettes(CpptrajFile& Cfile, List const& clusters)
+int Silhouette::PrintAvgSilhouettes(CpptrajFile& Cfile, List const& clusters)
+const
 {
+  if (numMismatchErr("PrintAvgSilhouettes", clusters.Nclusters())) return 1;
   // TODO is it ok to assume clusters are in order?
   Cfile.Printf("%-8s %10s\n", "#Cluster", "<Si>");
-  for (List::cluster_iterator Ci = clusters.begincluster();
-                              Ci != clusters.endcluster(); ++Ci)
-    Cfile.Printf("%8i %g\n", Ci->Num(), Ci->Silhouette());
+  List::cluster_iterator Ci = clusters.begincluster();
+  for (Darray::const_iterator it = clusterAvgSil_.begin();
+                              it != clusterAvgSil_.end(); ++it, ++Ci)
+    Cfile.Printf("%8i %g\n", Ci->Num(), *it);
   return 0;
 }
 

@@ -29,13 +29,27 @@ class Silhouette {
     Darray const& AvgSilhouetteArray() const { return clusterAvgSil_; }
 
     /// Print Silhouette frame values to file.
-    void PrintSilhouetteFrames(CpptrajFile&) const;
+    int PrintSilhouetteFrames(CpptrajFile&, List const&) const;
     /// Print average Silhouette values to file.
-    void PrintAvgSilhouettes(CpptrajFile&) const;
+    int PrintAvgSilhouettes(CpptrajFile&, List const&) const;
 
     /// Calculate silhouette values for each cluster
     int CalcSilhouette(List const&, MetricArray&, std::vector<bool> const&, bool);
   private:
+    /// \return 1 if given # clusters does not match what is in Silhouette
+    int numMismatchErr(const char*, unsigned int) const;
+
+    /// For sorting cluster frame silhouettes by silhouette value.
+    struct sort_by_sil_val {
+      inline bool operator()(SilPair const& p0, SilPair const& p1)
+      {
+        if (p0.second == p1.second)
+          return (p0.first < p1.first);
+        else
+          return (p0.second < p1.second);
+      }
+    };
+
     /// For each cluster, hold silhouette values for each frame in the cluster.
     SilFrameArray clusterFrameSil_;
     /// For each cluster, hold avg. silhouette value for cluster (TODO s.d. as well?)
