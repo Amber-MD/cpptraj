@@ -1,5 +1,7 @@
+#include <list>
 #include "Control.h"
 #include "Output.h"
+#include "Silhouette.h"
 #include "../ArgList.h"
 #include "../BufferedLine.h" // For loading info file
 #include "../CpptrajStdio.h"
@@ -806,15 +808,21 @@ int Cpptraj::Cluster::Control::Output(DataSetList& DSL) {
 
   // Silhouette
   if (!sil_file_.empty()) {
+    Silhouette silCalc( debug_ );
     if (frameSieve_.SieveValue() != 1 && !includeSieveInCalc_)
       mprintf("Warning: Silhouettes do not include sieved frames.\n");
-    clusters_.CalcSilhouette(metrics_, frameSieve_.FrameIsPresent(), includeSieveInCalc_);
+    if (silCalc.CalcSilhouette(clusters_, metrics_, frameSieve_.FrameIsPresent(),
+                               includeSieveInCalc_))
+    {
+      mprinterr("Error: Silhouette calculation failed.\n");
+      return 1;
+    }
     CpptrajFile Ffile, Cfile;
     if (Ffile.OpenWrite(sil_file_ + ".frame.dat")) return 1;
-    Output::PrintSilhouetteFrames(Ffile, clusters_);
+    silCalc.PrintSilhouetteFrames(Ffile, clusters_);
     Ffile.CloseFile();
     if (Cfile.OpenWrite(sil_file_ + ".cluster.dat")) return 1;
-    Output::PrintSilhouettes(Cfile, clusters_);
+    silCalc.PrintAvgSilhouettes(Cfile, clusters_);
     Cfile.CloseFile();
   }
 
