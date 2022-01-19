@@ -25,6 +25,7 @@ set(CLUSTER_SOURCES
   Output.cpp
   Results_Coords.cpp
   Sieve.cpp
+  Silhouette.cpp
 )
 
 #------------------------------------------------------------------------------------------

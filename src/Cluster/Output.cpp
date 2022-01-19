@@ -1,3 +1,5 @@
+#include <list>
+#include <vector>
 #include <cmath> // sqrt
 #include <algorithm> // sort, max
 #include "Output.h"
@@ -9,6 +11,7 @@
 #include "../Matrix.h"
 #include "../CpptrajFile.h"
 #include "../CpptrajStdio.h"
+#include "../Timer.h" // DEBUG
 
 // XMGRACE colors
 const char* XMGRACE_COLOR[] = {
@@ -111,48 +114,6 @@ void Cpptraj::Cluster::Output::PrintClustersToFile(CpptrajFile& outfile,
   outfile.CloseFile();
 }
 
-/// For sorting cluster frame silhouettes by silhouette value.
-struct sort_by_sil_val {
-  typedef Cpptraj::Cluster::Node::SilPair Bpair;
-  inline bool operator()(Bpair const& p0, Bpair const& p1)
-  {
-    if (p0.second == p1.second)
-      return (p0.first < p1.first);
-    else
-      return (p0.second < p1.second);
-  }
-};
-
-/** Print cluster silhouette frame values, sorted by silhouette. */
-int Cpptraj::Cluster::Output::PrintSilhouetteFrames(CpptrajFile& Ffile, List const& clusters)
-{
-  // TODO different ways of writing out cluster frame silhouettes
-  unsigned int idx = 0;
-  for (List::cluster_iterator Ci = clusters.begincluster();
-                              Ci != clusters.endcluster(); ++Ci, ++idx)
-  {
-    Ffile.Printf("#C%-6i %10s\n", Ci->Num(), "Silhouette");
-    Node::SilPairArray spaTemp = Ci->FrameSilhouettes();
-    std::sort( spaTemp.begin(), spaTemp.end(), sort_by_sil_val() );
-    for (Node::SilPairArray::const_iterator it = spaTemp.begin();
-                                            it != spaTemp.end(); ++it, ++idx)
-      Ffile.Printf("%8u %g\n", idx, it->second);
-    Ffile.Printf("\n");
-  }
-  return 0;
-}
-
-/** Print average cluster silhouette values. */
-int Cpptraj::Cluster::Output::PrintSilhouettes(CpptrajFile& Cfile, List const& clusters)
-{
-  // TODO is it ok to assume clusters are in order?
-  Cfile.Printf("%-8s %10s\n", "#Cluster", "<Si>");
-  for (List::cluster_iterator Ci = clusters.begincluster();
-                              Ci != clusters.endcluster(); ++Ci)
-    Cfile.Printf("%8i %g\n", Ci->Num(), Ci->Silhouette());
-  return 0;
-}
-
 /** Quick pass through clusters to determine max width of cluster names. */
 unsigned int Cpptraj::Cluster::Output::DetermineNameWidth(List const& clusters)
 {
@@ -168,8 +129,13 @@ int Cpptraj::Cluster::Output::Summary(CpptrajFile& outfile, List const& clusters
                                       Algorithm const& algorithm,
                                       MetricArray& pmatrix,
                                       bool includeSieved, bool includeSieveCdist,
-                                      Cframes const& sievedOut)
+                                      std::vector<bool> const& frameIsPresent)
 {
+/*  Timer t_total; // DEBUG
+  Timer t_fdist; // DEBUG
+  Timer t_cdist; // DEBUG
+  t_total.Start(); // DEBUG
+  mprintf("DEBUG:\tincludeSieved=%i includeSieveCdist=%i\n", (int)includeSieved, (int)includeSieveCdist);*/
   double fmax = (double)pmatrix.Ntotal();
   //if (FrameDistances().SieveValue() != 1 && !includeSieveInAvg)
   //  mprintf("Warning: Within cluster average distance (AvgDist) does not include sieved frames.\n");
@@ -187,9 +153,8 @@ int Cpptraj::Cluster::Output::Summary(CpptrajFile& outfile, List const& clusters
     outfile.Printf(" %*s %8s", nWidth, "Name", "RMS");
   }
   outfile.Printf("\n");
-  //Timer t_fdist; // DEBUG
-  //Timer t_cdist; // DEBUG
-  //t_cdist.Start();
+
+//  t_cdist.Start(); // DEBUG
   // Calculate distances between clusters.
   Matrix<double> cluster_distances;
   cluster_distances.resize( 0, clusters.Nclusters() );
@@ -197,9 +162,11 @@ int Cpptraj::Cluster::Output::Summary(CpptrajFile& outfile, List const& clusters
     for (List::cluster_iterator c2 = c1; c2 != clusters.endcluster(); ++c2)
       if (c2 != c1)
         cluster_distances.addElement( algorithm.ClusterDistance( *c1, *c2, pmatrix,
-                                                                includeSieveCdist, sievedOut ) );
-  //t_cdist.Stop();
+                                                                includeSieveCdist,
+                                                                frameIsPresent ) );
+//  t_cdist.Stop(); // DEBUG
 
+//  t_fdist.Start(); // DEBUG
   unsigned int idx1 = 0;
   for (List::cluster_iterator node = clusters.begincluster();
                               node != clusters.endcluster(); ++node, ++idx1)
@@ -239,9 +206,9 @@ int Cpptraj::Cluster::Output::Summary(CpptrajFile& outfile, List const& clusters
         }
       } else {
         for (Node::frame_iterator f1 = node->beginframe(); f1 != node->endframe(); ++f1) {
-          if (!sievedOut.HasFrame( *f1 )) {
+          if (frameIsPresent[ *f1 ]) {
             for (Node::frame_iterator f2 = f1 + 1; f2 != node->endframe(); ++f2) {
-              if (!sievedOut.HasFrame( *f2 )) {
+              if (frameIsPresent[ *f2 ]) {
                 double dist = pmatrix.Frame_Distance(*f1, *f2);
                 internalAvg += dist;
                 internalSD += (dist * dist);
@@ -279,8 +246,11 @@ int Cpptraj::Cluster::Output::Summary(CpptrajFile& outfile, List const& clusters
       outfile.Printf(" %*s %8.3f", nWidth, node->Cname().c_str(), node->RefRms());
     outfile.Printf("\n");
   } // END loop over clusters
-  //t_cdist.WriteTiming(1, "Between-cluster distance calc.");
-  //t_fdist.WriteTiming(1, "Within-cluster distance calc.");
+/*  t_fdist.Stop(); // DEBUG
+  t_total.Stop(); // DEBUG
+  t_cdist.WriteTiming(1, "Between-cluster distance calc.", t_total.Total()); // DEBUG
+  t_fdist.WriteTiming(1, "Within-cluster distance calc.", t_total.Total()); // DEBUG
+  t_total.WriteTiming(0, "Calc of summary total"); // DEBUG */
   return 0;
 }
 
@@ -291,7 +261,7 @@ void Cpptraj::Cluster::Output::Summary_Part(CpptrajFile& outfile,
                                             List const& clusters,
                                             BestReps const& findBestReps,
                                             MetricArray& pmatrix,
-                                            Cframes const& framesToCluster)
+                                            std::vector<bool> const& frameIsPresent)
 {
   // If no split frames were specified, use halfway point.
   Cframes actualSplitFrames;
@@ -383,12 +353,19 @@ void Cpptraj::Cluster::Output::Summary_Part(CpptrajFile& outfile,
     std::fill( numInPart.begin(), numInPart.end(), 0 );
     std::fill( firstFrame.begin(), firstFrame.end(), -1 );
     std::vector<Node> clusterPart(actualSplitFrames.size() + 1);
+    // Set cluster number for all parts to the overall cluster number
+    for (std::vector<Node>::iterator cpit = clusterPart.begin();
+                                     cpit != clusterPart.end(); ++cpit)
+    {
+      cpit->SetNum( node->Num() );
+      cpit->SetPart( cpit - clusterPart.begin() + 1 );
+    }
     // DEBUG
     //mprintf("\tCluster %i\n",node->num);
     // Count how many frames are in each part. 
     for (Node::frame_iterator frame1 = node->beginframe();
-                                     frame1 != node->endframe();
-                                     frame1++)
+                              frame1 != node->endframe();
+                              frame1++)
     {
       unsigned int bin = actualSplitFrames.size();
       for (unsigned int sf = 0; sf < actualSplitFrames.size(); ++sf) {
@@ -414,21 +391,27 @@ void Cpptraj::Cluster::Output::Summary_Part(CpptrajFile& outfile,
       outfile.Printf(" %8i", *ff);
     // Print best reps for each part.
     // TODO handle case when clusters dont have same number best reps
-    for (std::vector<Node>::iterator node = clusterPart.begin();
-                                     node != clusterPart.end(); ++node)
+    for (std::vector<Node>::iterator partNode = clusterPart.begin();
+                                     partNode != clusterPart.end(); ++partNode)
     {
-      if (node->Nframes() == 0) {
+      //mprintf("\tDetermining best representative frames for cluster %i part %li\n",
+      //        node->Num(), partNode-clusterPart.begin()+1);
+      if (partNode->Nframes() == 0) {
         outfile.Printf(" %8i", -1);
       } else {
         // Since we just created these clusters, ensure centroid is updated
-        node->CalculateCentroid( pmatrix );
-        findBestReps.FindBestRepFrames(*node, pmatrix, framesToCluster);
+        //mprintf("DEBUG: Calc. centroid for cluster %i part %li\n", node->Num(), partNode-clusterPart.begin()+1);
+        partNode->CalculateCentroid( pmatrix );
+        findBestReps.FindBestRepFrames(*partNode, pmatrix, frameIsPresent);
         // TODO handle multiple best reps?
-        //if (node->BestReps().size() < 2)
-          outfile.Printf(" %8i", node->BestRepFrame()+1);
+        int partBestRepFrame = partNode->BestRepFrame();
+        // If a best rep was actually found, increment by 1 for user frame #
+        if (partBestRepFrame > -1)
+          partBestRepFrame++;
+        outfile.Printf(" %8i", partBestRepFrame);
         //else {
-        //  for (Node::RepPairArray::const_iterator rep = node->BestReps().begin();
-        //                                          rep != node->BestReps().end(); ++rep)
+        //  for (Node::RepPairArray::const_iterator rep = partNode->BestReps().begin();
+        //                                          rep != partNode->BestReps().end(); ++rep)
         //    outfile.Printf(" %8i %8.3f", rep->first+1, rep->second);
         //}
       }

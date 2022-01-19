@@ -1,4 +1,5 @@
 //#include <cfloat> // DBL_MAX
+#include <string>
 #include "Node.h"
 #include "MetricArray.h"
 #include "../DataSet_float.h"
@@ -6,10 +7,10 @@
 
 // CONSTRUCTOR
 Cpptraj::Cluster::Node::Node() :
-  avgSil_(0),
   eccentricity_(0),
   refRms_(0),
   num_(-1),
+  part_(-1),
   needsUpdate_(true)
 {}
 
@@ -25,6 +26,7 @@ Cpptraj::Cluster::Node::Node(MetricArray& Cdist, Cframes const& frameListIn, int
   bestReps_(1, RepPair(frameListIn.front(), 0.0)),
   eccentricity_(0.0),
   num_(numIn),
+  part_(-1),
   needsUpdate_(true)
 {
   Cdist.NewCentroid( centroids_, frameListIn );
@@ -37,6 +39,7 @@ Cpptraj::Cluster::Node::Node(const Node& rhs) :
   bestReps_( rhs.bestReps_ ),
   eccentricity_( rhs.eccentricity_ ),
   num_( rhs.num_ ),
+  part_( rhs.part_ ),
   needsUpdate_( rhs.needsUpdate_ )
 { }
 
@@ -45,6 +48,7 @@ Cpptraj::Cluster::Node& Cpptraj::Cluster::Node::operator=(const Node& rhs) {
   if (&rhs == this) return *this;
   eccentricity_ = rhs.eccentricity_;
   num_ = rhs.num_;
+  part_ = rhs.part_;
   bestReps_ = rhs.bestReps_;
   frameList_ = rhs.frameList_;
   centroids_ = rhs.centroids_;

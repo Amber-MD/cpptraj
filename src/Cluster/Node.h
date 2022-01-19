@@ -1,8 +1,8 @@
 #ifndef INC_CLUSTER_NODE_H
 #define INC_CLUSTER_NODE_H
-#include <string>
-#include <utility> // std::pair
-#include <vector>
+//#include <string>
+//#include <utility> // std::pair
+//#include <vector>
 #include "CentroidArray.h"
 #include "Cframes.h" // Cframes::const_iterator
 class DataSet_integer;
@@ -36,10 +36,6 @@ class Node {
     typedef std::pair<int,double> RepPair;
     /// Used to hold a list of representative frames/scores
     typedef std::vector<RepPair> RepPairArray;
-    /// Used to pair frame numbers with silhouette values.
-    typedef std::pair<int,double> SilPair;
-    /// Used to hold list of frame numbers/silhouette values.
-    typedef std::vector<SilPair> SilPairArray;
 
     /// Used to sort clusters by # of frames in cluster
     inline bool operator<(const Node&) const;
@@ -59,6 +55,8 @@ class Node {
     double Eccentricity()          const { return eccentricity_;          }
     /// \return internal cluster number
     int Num()                      const { return num_;                   }
+    /// \return internal cluster part
+    int Part()                     const { return part_;                  }
     /// \return number of frames in cluster.
     int Nframes()                  const { return (int)frameList_.size(); }
     /// \return best representative frame number, or -1 if no best rep set.
@@ -78,10 +76,6 @@ class Node {
     bool HasFrame(int f)           const { return frameList_.HasFrame(f); }
     /// Access representative frame list, const
     RepPairArray const& BestReps() const { return bestReps_;              }
-    /// Access frame silhouette list
-    SilPairArray const& FrameSilhouettes() const { return frameSil_;      }
-    /// \return cluster silhoueete vaule
-    double Silhouette()            const { return avgSil_;                }
 
     /// Calculate centroid of members of this cluster.
     void CalculateCentroid(MetricArray&);
@@ -89,12 +83,10 @@ class Node {
     void AddFrameToCluster(int fnum)   { frameList_.push_back( fnum );  }
     /// Set cluster number (for bookkeeping).
     void SetNum(int numIn)             { num_ = numIn;                  }
+    /// Set cluster part (for bookkeeping).
+    void SetPart(int partIn)           { part_ = partIn;                }
     /// Access representative frame list
     RepPairArray& BestReps()           { return bestReps_;              }
-    /// Access frame silhouette list
-    SilPairArray& FrameSilhouettes()   { return frameSil_;              }
-    /// Set cluster silhouette value
-    void SetSilhouette(double s)       { avgSil_ = s;                   }
     /// Sort internal frame list
     void SortFrameList()               { frameList_.Sort();             }
     /// Remove specified frame from cluster if present.
@@ -119,11 +111,10 @@ class Node {
     CentroidArray centroids_; ///< Centroids (1 for each metric) for all frames in this cluster.
     std::string name_;        ///< Cluster name assigned from reference.
     RepPairArray bestReps_;   ///< Hold best representative frames and their score.
-    SilPairArray frameSil_;   ///< Frame silhouette values.
-    double avgSil_;           ///< Average silhouette value for cluster TODO s.d. as well?
-    double eccentricity_;     ///< Maximum distance between any 2 frames.
+    double eccentricity_;     ///< Maximum distance between any 2 frames. // TODO does this need to be stored?
     double refRms_;           ///< Cluster rms to reference (if assigned).
     int num_;                 ///< Cluster number, used for bookkeeping.
+    int part_;                ///< What part of trajectory cluster is in (for splitframes)
     bool needsUpdate_;        ///< True if internal metrics need updating (e.g. after frames added).
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------

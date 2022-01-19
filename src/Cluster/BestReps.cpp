@@ -1,3 +1,5 @@
+#include <list>
+#include <vector>
 #include "BestReps.h"
 #include "List.h"
 #include "MetricArray.h"
@@ -61,7 +63,7 @@ void Cpptraj::Cluster::BestReps::PrintBestReps(Node const& node) {
 
 /** Find best representative frames for each cluster. */
 int Cpptraj::Cluster::BestReps::FindBestRepFrames(List& clusters, MetricArray& pmatrix,
-                                                  Cframes const& sievedFrames)
+                                                  std::vector<bool> const& frameIsPresent)
 const
 {
   int err = 0;
@@ -73,7 +75,7 @@ const
       err = FindBestRepFrames_Centroid(clusters, pmatrix);
       break;
     case CUMULATIVE_NOSIEVE:
-      err = FindBestRepFrames_NoSieve_CumulativeDist(clusters, pmatrix, sievedFrames);
+      err = FindBestRepFrames_NoSieve_CumulativeDist(clusters, pmatrix, frameIsPresent);
       break;
     case NO_REPS:
       mprintf("Warning: Skipping best representative frame calc.\n");
@@ -94,7 +96,7 @@ const
 
 /** Find best representative frames for given node. */
 int Cpptraj::Cluster::BestReps::FindBestRepFrames(Node& node, MetricArray& pmatrix,
-                                                  Cframes const& sievedFrames)
+                                                  std::vector<bool> const& frameIsPresent)
 const
 {
   int err = 0;
@@ -106,7 +108,7 @@ const
       err = FindBestRepFrames_Centroid(node, pmatrix);
       break;
     case CUMULATIVE_NOSIEVE:
-      err = FindBestRepFrames_NoSieve_CumulativeDist(node, pmatrix, sievedFrames);
+      err = FindBestRepFrames_NoSieve_CumulativeDist(node, pmatrix, frameIsPresent);
       break;
     case NO_REPS:
       mprintf("Warning: Skipping best representative frame calc.\n");
@@ -229,18 +231,23 @@ const
   */
 int Cpptraj::Cluster::BestReps::
     FindBestRepFrames_NoSieve_CumulativeDist(Node& node, MetricArray& pmatrix,
-                                             Cframes const& sievedFrames)
+                                             std::vector<bool> const& frameIsPresent)
 const
 {
   int err = 0;
   RepMap bestReps;
+  // npresent will be used to count how many frames from 'node' are actually
+  // present. If all frames in node are not present (i.e. were sieved out)
+  // this is not actually an error.
+  int npresent = 0;
   for (Node::frame_iterator f1 = node.beginframe(); f1 != node.endframe(); ++f1)
   {
-    if (!sievedFrames.HasFrame( *f1 )) {
+    if (frameIsPresent[ *f1 ]) {
+      npresent++;
       double cdist = 0.0;
       for (Node::frame_iterator f2 = node.beginframe(); f2 != node.endframe(); ++f2)
       {
-        if (f1 != f2 && !sievedFrames.HasFrame( *f2 ))
+        if (f1 != f2 && frameIsPresent[ *f2 ])
           //cdist += pmatrix.Cache().CachedDistance(*f1, *f2); // TODO benchmark the two ways
           cdist += pmatrix.Frame_Distance(*f1, *f2);
       }
@@ -248,9 +255,18 @@ const
     }
   }
   if (bestReps.empty()) {
-    mprinterr("Error: Could not determine represenative frame for cluster %i\n",
-              node.Num());
-    err++;
+    if (npresent == 0) {
+      if (node.Part() == -1)
+        mprintf("Warning: Could not determine representative frame for cluster %i\n", node.Num());
+      else
+        mprintf("Warning: Could not determine representative frame for cluster %i part %i\n",
+                node.Num(), node.Part());
+      mprintf("Warning:  All frames in cluster were sieved out.\n");
+    } else {
+      mprinterr("Error: Could not determine representative frame by cumulative distance\n"
+                "Error:  (ignoring sieved frames) for cluster %i\n", node.Num());
+      err++;
+    }
   }
   SetBestRepFrame( node, bestReps );
   return err;
@@ -262,14 +278,21 @@ const
   */
 int Cpptraj::Cluster::BestReps::
     FindBestRepFrames_NoSieve_CumulativeDist(List& clusters, MetricArray& pmatrix,
-                                             Cframes const& sievedFrames)
+                                             std::vector<bool> const& frameIsPresent)
 const
 {
-  if (sievedFrames.size() > 0)
-    mprintf("Warning: Ignoring sieved frames while looking for best representative.\n");
   int err = 0;
-  for (List::cluster_it node = clusters.begin(); node != clusters.end(); ++node) {
-    err += FindBestRepFrames_NoSieve_CumulativeDist(*node, pmatrix, sievedFrames);
+  if (frameIsPresent.empty()) {
+    mprinterr("Error: Requested no sieved frames while looking for best representative\n"
+              "Error:  but frameIsPresent array is empty.\n");
+    for (List::cluster_it node = clusters.begin(); node != clusters.end(); ++node) {
+      err += FindBestRepFrames_CumulativeDist(*node, pmatrix);
+    }
+  } else {
+    mprintf("Warning: Ignoring sieved frames while looking for best representative.\n");
+    for (List::cluster_it node = clusters.begin(); node != clusters.end(); ++node) {
+      err += FindBestRepFrames_NoSieve_CumulativeDist(*node, pmatrix, frameIsPresent);
+    }
   }
   return err;
 }
@@ -292,7 +315,7 @@ const
     SaveBestRep(bestReps, RepPair(dist, *f1), nToSave_);
   }
   if (bestReps.empty()) {
-    mprinterr("Error: Could not determine represenative frame for cluster %i\n",
+    mprinterr("Error: Could not determine represenative frame by centroid for cluster %i\n",
               node.Num());
     err++;
   }

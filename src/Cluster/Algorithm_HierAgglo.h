@@ -19,7 +19,7 @@ class Algorithm_HierAgglo : public Algorithm {
     int DoClustering(List&, Cframes const&, MetricArray&);
     void Timing(double) const;
     double ClusterDistance(Node const&, Node const&, MetricArray&,
-                           bool, Cframes const&) const;
+                           bool, std::vector<bool> const&) const;
   private:
     void buildInitialClusters(List&, Cframes const&, MetricArray&);
     //void InitializeClusterDistances();

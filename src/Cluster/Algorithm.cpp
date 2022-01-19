@@ -7,7 +7,8 @@
 double Cpptraj::Cluster::Algorithm::ClusterDistance(Node const& C1, Node const& C2,
                                                     MetricArray& pmatrix,
                                                     bool includeSieved,
-                                                    Cframes const& sievedOut) const
+                                                    std::vector<bool> const& frameIsPresent)
+const
 {
   if (C1.Cent().empty() || C2.Cent().empty()) {
     mprinterr("Internal Error: One or both centroids are null in ClusterDistance().\n");

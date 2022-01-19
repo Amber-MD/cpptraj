@@ -1,5 +1,6 @@
 #ifndef INC_CLUSTER_ALGORITHM_H
 #define INC_CLUSTER_ALGORITHM_H
+#include <vector>
 class ArgList;
 class CpptrajFile;
 namespace Cpptraj {
@@ -27,7 +28,7 @@ class Algorithm {
     virtual void Timing(double) const = 0;
     /// /return Algorithm-specific between-cluster distance. Default to centroid distance.
     virtual double ClusterDistance(Node const&, Node const&, MetricArray&,
-                                   bool, Cframes const&) const;
+                                   bool, std::vector<bool> const&) const;
     /// /return Epsilon for density-based algorithms; intended for use with sieve restore.
     virtual double Epsilon() const { return 0.0; }
     // -------------------------------------------

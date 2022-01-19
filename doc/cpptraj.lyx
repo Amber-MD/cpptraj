@@ -40389,11 +40389,11 @@ cluster
 \end_layout
 
 \begin_layout LyX-Code
-	[clustersvtime <file> [cvtwindow <#>]] [sil <prefix>] [metricstats <file>]
+	[clustersvtime <file> [cvtwindow <#>]] [sil <prefix> [silidx {idx|frm}]]
 \end_layout
 
 \begin_layout LyX-Code
-	[cpopvtime <file> [{normpop|normframe}]] [lifetime]
+	[metricstats <file>] [cpopvtime <file> [{normpop|normframe}]] [lifetime]
 \end_layout
 
 \begin_layout LyX-Code
@@ -41378,6 +41378,25 @@ uster.dat' and cluster silhouette value for each individual frame to '<prefix>.f
 me.dat'.
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+[silidx
+\begin_inset space ~
+\end_inset
+
+{idx|frm}] Choose what indices to write to the cluster silhouette frame
+ file: 
+\series bold
+idx
+\series default
+ (the default) specifies the sorted index (starting from 0), 
+\series bold
+frm
+\series default
+ specifies the actual frame number.
+\end_layout
+
+\end_deeper
 \begin_layout Description
 [metricstats
 \begin_inset space ~
@@ -41791,7 +41810,13 @@ The cluster silhouette is a measure of how well each point fits within a
  Values of -1 indicate the point is dissimilar and may fit better in a neighbori
 ng cluster.
  Values of 0 indicate the point is on a border between two clusters.
- 
+ The file containing the cluster silhouette value for each frame can be
+ viewed directly with the XMGRACE plotting program using the default (sorted
+ by silhouette value) index ('
+\series bold
+silidx idx
+\series default
+').
 \end_layout
 
 \begin_layout Subsubsection*

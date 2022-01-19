@@ -880,6 +880,9 @@ EOF
     if [ $? -ne 0 ] ; then
       if [ "${LIB_STAT[$LFFTW3]}" = 'optional' ] ; then
         WrnMsg "FFTW test failed. CPPTRAJ will use the built-in PubFFT routines."
+        if [ $BUILD_LIBS -eq 1 ] ; then
+          echo "To force CPPTRAJ to build its own FFTW, reconfigure and specify '-fftw3'."
+        fi
         LIB_STAT[$LFFTW3]='off'
       elif [ "${LIB_STAT[$LFFTW3]}" = 'enabled' ] ; then
         # See if there is already a version of FFTW in CPPTRAJHOME
