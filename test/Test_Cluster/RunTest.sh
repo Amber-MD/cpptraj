@@ -6,7 +6,7 @@
 # NOTE: CpptrajPairDist name defined in Action_Clustering.cpp
 CleanFiles cluster.in cnumvtime.dat avg.summary.dat summary.dat CpptrajPairDist \
            cpop.agr summary2.dat Cmatrix.nccmatrix Cmatrix.cmatrix summary3.dat \
-           normpop.agr normframe.agr cascii.dat.save cascii.dat pw.out \
+           normpop.agr normframe.agr cascii.dat.save cascii.dat pw.dat \
            cinfo.dat mysil.cluster.dat mysil.frame.dat cascii?.info
 
 TESTNAME='Hierarchical agglomerative clustering tests'
@@ -69,14 +69,14 @@ fi
 cat > cluster.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.crd
-cluster C1 :2-10 clusters 3 epsilon 4.0 out cascii.dat.save nofit savepairdist pairdist pw.out \
+cluster C1 :2-10 clusters 3 epsilon 4.0 out cascii.dat.save nofit savepairdist pairdist pw.dat \
   sieve 6 random sieveseed 2 info cascii1.info
 EOF
 RunCpptraj "Cluster command test, write ASCII pairwise distances."
 cat > cluster.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.crd
-cluster C1 :2-10 clusters 3 epsilon 4.0 out cascii.dat nofit loadpairdist pairdist pw.out \
+cluster C1 :2-10 clusters 3 epsilon 4.0 out cascii.dat nofit loadpairdist pairdist pw.dat \
   info cascii2.info
 EOF
 RunCpptraj "Cluster command test, read ASCII pairwise distances."

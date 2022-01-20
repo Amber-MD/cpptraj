@@ -32,6 +32,10 @@ class DataFile {
     static DataFormatType WriteFormatFromArg(ArgList& a, DataFormatType def) {
       return (DataFormatType)FileTypes::GetFormatFromArg(DF_WriteKeyArray,a,def);
     }
+    /// \return Write format type from file name extension
+    static DataFormatType WriteFormatFromFname(FileName const& f, DataFormatType def) {
+      return (DataFormatType)FileTypes::GetTypeFromExtension(DF_WriteKeyArray,f.Ext(),def);
+    }
     /// \return string corresponding to format.
     static const char* FormatString(DataFormatType t) {
       return FileTypes::FormatDescription(DF_AllocArray, t);
