@@ -35,20 +35,15 @@ int DataSet_PairwiseCache::SetupFrameToIdx(Cframes const& framesToCache, unsigne
   return 0;
 }
 
-/** Check that the given frames match the already-cached frames. */
+/** Check that the given frames are all present in the cache. */
 bool DataSet_PairwiseCache::CachedFramesMatch(Cframes const& framesIn) const
 {
-  Cframes_it frm0 = framesIn.begin();
-  for (int frm1 = 0; frm1 != (int)frameToIdx_.size(); frm1++)
+  for (Cframes_it frm0 = framesIn.begin(); frm0 != framesIn.end(); ++frm0)
   {
-    if (frameToIdx_[frm1] != -1) {
-      //if (frm0 != framesIn.end()) mprintf("DEBUG frameToCluster= %i cachedFrame= %i\n",
-      //                                    *frm0, frm1);
-      if (frm0 == framesIn.end() || *frm0 != frm1) return false;
-      ++frm0;
-    }
+    if ((unsigned int)*frm0 >= frameToIdx_.size() ||
+        frameToIdx_[*frm0] == -1)
+      return false;
   }
-  if (frm0 != framesIn.end()) return false;
   return true;
 }
 
