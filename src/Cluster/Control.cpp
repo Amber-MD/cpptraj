@@ -705,7 +705,8 @@ int Cpptraj::Cluster::Control::Run() {
       mprinterr("Error: Cluster frame selection failed.\n");
       return 1;
     }
-  } else {
+  } else if (frameSieve_.FramesToCluster().empty()) {
+    // Sanity check
     mprinterr("Internal Error: Cluster::Control::Run(): Unhandled frame selection type.\n");
   }
 
