@@ -717,10 +717,12 @@ int Cpptraj::Cluster::MetricArray::CacheDistances(Cframes const& framesToCache, 
     // The frames to cache must match cached frames.
     if (!cache_->CachedFramesMatch( framesToCache )) {
       if (pw_mismatch_fatal_) {
-        mprinterr("Error: Frames to cache do not match those in existing cache.\n");
+        mprinterr("Error: Frames to cluster do not match those in existing cache.\n"
+                  "Error: To force recalculation specify 'pwrecalc' (and\n"
+                  "Error:  'savepairdist' if the old matrix should be overwritten.\n");
         return 1;
       } else {
-        mprintf("Warning: Frames to cache do not match those in existing cache.\n"
+        mprintf("Warning: Frames to cluster do not match those in existing cache.\n"
                 "Warning: Re-calculating pairwise cache.\n");
         do_cache = true;
       }
