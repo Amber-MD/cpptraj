@@ -96,6 +96,11 @@ int Cpptraj::Cluster::Sieve::SetupFromCache(DataSet_PairwiseCache const& cache,
     //mprinterr("Error: Cannot setup frames to cluster from empty cache.\n");
     return 1;
   }
+  if (cache.Nrows() != maxFrames) {
+    //mprinterr("Error: # frames in cache (%zu) != # frames to cluster (%zu).\n",
+    //          cache.Nrows(), maxFrames);
+    return 2;
+  }
   frameIsPresent_.clear();
   framesToCluster_.clear();
   sievedOut_.clear();

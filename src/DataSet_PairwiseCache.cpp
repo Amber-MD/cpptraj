@@ -42,10 +42,13 @@ bool DataSet_PairwiseCache::CachedFramesMatch(Cframes const& framesIn) const
   for (int frm1 = 0; frm1 != (int)frameToIdx_.size(); frm1++)
   {
     if (frameToIdx_[frm1] != -1) {
+      //if (frm0 != framesIn.end()) mprintf("DEBUG frameToCluster= %i cachedFrame= %i\n",
+      //                                    *frm0, frm1);
       if (frm0 == framesIn.end() || *frm0 != frm1) return false;
       ++frm0;
     }
   }
+  if (frm0 != framesIn.end()) return false;
   return true;
 }
 
