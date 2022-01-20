@@ -138,6 +138,7 @@ int Cpptraj::Cluster::MetricArray::setupPairwiseCache(ArgList& analyzeArgs,
     }
   }*/
 
+  pw_mismatch_fatal_ = !analyzeArgs.hasKey("pwrecalc");
   cache_ = 0;
   if (load_pair ||
       (!save_pair && !pairdistname.empty()))
@@ -170,7 +171,7 @@ int Cpptraj::Cluster::MetricArray::setupPairwiseCache(ArgList& analyzeArgs,
         return 1;
       }
       cache_ = (DataSet_PairwiseCache*)ds;
-      if (cache_ != 0 && save_pair) {
+      if (cache_ != 0 && save_pair && pw_mismatch_fatal_) {
         mprintf("Warning: 'savepairdist' specified but pairwise cache loaded from file.\n"
                 "Warning: Disabling 'savepairdist'.\n");
         save_pair = false;
@@ -264,7 +265,6 @@ int Cpptraj::Cluster::MetricArray::setupPairwiseCache(ArgList& analyzeArgs,
       }
     }
   }
-  pw_mismatch_fatal_ = !analyzeArgs.hasKey("pwrecalc");
 
   return 0;
 }
