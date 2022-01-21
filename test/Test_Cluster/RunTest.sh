@@ -65,7 +65,7 @@ EOF
   DoTest normframe.agr.save normframe.agr
 fi
 
-# Test writing/reading ASCII cluster pairwise file
+# Test writing ASCII cluster pairwise file
 cat > cluster.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.crd
@@ -73,15 +73,28 @@ cluster C1 :2-10 clusters 3 epsilon 4.0 out cascii.dat.save nofit savepairdist p
   sieve 6 random sieveseed 2 info cascii1.info
 EOF
 RunCpptraj "Cluster command test, write ASCII pairwise distances."
+
+# Test reading ASCII cluster pairwise file, using cached frames
 cat > cluster.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.crd
 cluster C1 :2-10 clusters 3 epsilon 4.0 out cascii.dat nofit loadpairdist pairdist pw.dat \
-  info cascii2.info
+  useframesincache info cascii2.info
+EOF
+RunCpptraj "Cluster command test, read ASCII pairwise distances, use cached frames."
+DoTest cascii.dat.save cascii.dat
+DoTest cascii1.info cascii2.info
+
+# Test reading ASCII cluster pairwise file
+cat > cluster.in <<EOF
+parm ../tz2.parm7
+trajin ../tz2.crd
+cluster C1 :2-10 clusters 3 epsilon 4.0 out cascii.dat nofit loadpairdist pairdist pw.dat \
+  sieve 6 random sieveseed 2 info cascii3.info
 EOF
 RunCpptraj "Cluster command test, read ASCII pairwise distances."
 DoTest cascii.dat.save cascii.dat
-DoTest cascii1.info cascii2.info
+DoTest cascii1.info cascii3.info
 
 EndTest
 
