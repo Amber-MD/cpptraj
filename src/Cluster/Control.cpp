@@ -311,7 +311,8 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
     mprintf("Warning: 'includesieved_cdist' may be very slow.\n");
 
   // Determine how frames to cluster will be chosen
-  if (frameSelect_ == UNSPECIFIED) {
+  bool allow_frameSelect_from_cache = analyzeArgs.hasKey("useframesincache");
+  if (allow_frameSelect_from_cache && frameSelect_ == UNSPECIFIED) {
     // If no other frame selection option like sieve provided and an already
     // set up cache is present, use the cached frames.
     if (sieve_ == 1 && metrics_.HasCache() && metrics_.Cache().Size() > 0)
@@ -504,7 +505,8 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
 void Cpptraj::Cluster::Control::Help() {
   mprintf("\t[<name>] [<Algorithm>] [<Metric>] [<Pairwise>] [<Sieve>] [<BestRep>]\n"
           "\t[<Output>] [<Coord. Output>] [<Graph>]\n"
-          "\t[readinfo {infofile <info file> | cnvtset <dataset>}]\n");
+          "\t[readinfo {infofile <info file> | cnvtset <dataset>}]\n"
+          "\t[useframesincache]\n");
   mprintf("  Algorithm Args: [%s]\n", AlgorithmArgs_);
   Algorithm_HierAgglo::Help();
   Algorithm_DBscan::Help();

@@ -40301,6 +40301,10 @@ cluster
 \end_layout
 
 \begin_layout LyX-Code
+    [useframesincache]
+\end_layout
+
+\begin_layout LyX-Code
   Algorithm Args: [{hieragglo|dbscan|kmeans|dpeaks}]
 \end_layout
 
@@ -40504,6 +40508,11 @@ cnvtset
 \end_layout
 
 \end_deeper
+\begin_layout Description
+[useframesincache] If a pairwise cache is specified, cluster on the frames
+ stored in the cache.
+\end_layout
+
 \begin_layout Standard
 Algorithms:
 \end_layout
