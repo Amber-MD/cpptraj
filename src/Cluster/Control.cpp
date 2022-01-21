@@ -311,7 +311,8 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
     mprintf("Warning: 'includesieved_cdist' may be very slow.\n");
 
   // Determine how frames to cluster will be chosen
-  if (frameSelect_ == UNSPECIFIED) {
+  bool allow_frameSelect_from_cache = analyzeArgs.hasKey("useframesincache");
+  if (allow_frameSelect_from_cache && frameSelect_ == UNSPECIFIED) {
     // If no other frame selection option like sieve provided and an already
     // set up cache is present, use the cached frames.
     if (sieve_ == 1 && metrics_.HasCache() && metrics_.Cache().Size() > 0)
@@ -504,7 +505,8 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
 void Cpptraj::Cluster::Control::Help() {
   mprintf("\t[<name>] [<Algorithm>] [<Metric>] [<Pairwise>] [<Sieve>] [<BestRep>]\n"
           "\t[<Output>] [<Coord. Output>] [<Graph>]\n"
-          "\t[readinfo {infofile <info file> | cnvtset <dataset>}]\n");
+          "\t[readinfo {infofile <info file> | cnvtset <dataset>}]\n"
+          "\t[useframesincache]\n");
   mprintf("  Algorithm Args: [%s]\n", AlgorithmArgs_);
   Algorithm_HierAgglo::Help();
   Algorithm_DBscan::Help();
@@ -685,22 +687,31 @@ int Cpptraj::Cluster::Control::Run() {
 
   // Figure out which frames to cluster
   frameSieve_.Clear();
-  int frameSelectErr = 1;
-  switch ( frameSelect_ ) {
-    case UNSPECIFIED:
-      frameSelectErr = frameSieve_.SetFramesToCluster(sieve_, metrics_.Ntotal(), sieveSeed_);
-      break;
-    case FROM_CACHE :
-      mprintf("\tClustering frames present in pairwise cache '%s'\n", metrics_.Cache().legend());
-      frameSelectErr = frameSieve_.SetupFromCache( metrics_.Cache(), metrics_.Ntotal() );
-      break;
-    default :
-      mprinterr("Internal Error: Cluster::Control::Run(): Unhandled frame selection type.\n");
+  if (frameSelect_ == FROM_CACHE) {
+    // Attempt to get the frames to cluster from the cache
+    mprintf("\tClustering frames present in pairwise cache '%s'\n", metrics_.Cache().legend());
+    int frameSelectErr = frameSieve_.SetupFromCache( metrics_.Cache(), metrics_.Ntotal() );
+    if (frameSelectErr == 1) {// TODO enum type?
+      mprinterr("Error: Cluster frame selection from cache failed.\n");
+      return 1;
+    } else if (frameSelectErr == 2) {
+      mprintf("Warning: # frames in cache (%zu) != # frames to cluster (%u).\n",
+              metrics_.Cache().Nrows(), metrics_.Ntotal());
+      mprintf("Warning: Not using frame numbers in cache.\n");
+      frameSelect_ = UNSPECIFIED;
+    }
   }
-  if (frameSelectErr != 0) {
-    mprinterr("Error: Cluster frame selection failed.\n");
-    return 1;
-  } 
+
+  if (frameSelect_ == UNSPECIFIED) {
+    if (frameSieve_.SetFramesToCluster(sieve_, metrics_.Ntotal(), sieveSeed_)) {
+      mprinterr("Error: Cluster frame selection failed.\n");
+      return 1;
+    }
+  } else if (frameSieve_.FramesToCluster().empty()) {
+    // Sanity check
+    mprinterr("Internal Error: Cluster::Control::Run(): Unhandled frame selection type.\n");
+  }
+
   if (verbose_ >= 0) {
     if (frameSieve_.FramesToCluster().size() < metrics_.Ntotal())
       mprintf("\tClustering %zu of %u points.\n", frameSieve_.FramesToCluster().size(),

@@ -138,6 +138,7 @@ int Cpptraj::Cluster::MetricArray::setupPairwiseCache(ArgList& analyzeArgs,
     }
   }*/
 
+  pw_mismatch_fatal_ = !analyzeArgs.hasKey("pwrecalc");
   cache_ = 0;
   if (load_pair ||
       (!save_pair && !pairdistname.empty()))
@@ -170,7 +171,7 @@ int Cpptraj::Cluster::MetricArray::setupPairwiseCache(ArgList& analyzeArgs,
         return 1;
       }
       cache_ = (DataSet_PairwiseCache*)ds;
-      if (cache_ != 0 && save_pair) {
+      if (cache_ != 0 && save_pair && pw_mismatch_fatal_) {
         mprintf("Warning: 'savepairdist' specified but pairwise cache loaded from file.\n"
                 "Warning: Disabling 'savepairdist'.\n");
         save_pair = false;
@@ -245,11 +246,15 @@ int Cpptraj::Cluster::MetricArray::setupPairwiseCache(ArgList& analyzeArgs,
     if (cache_ == 0) {
       mprintf("Warning: Not caching distances; ignoring 'savepairdist'\n");
     } else {
-      if (pairdistname.empty())
+      if (pairdistname.empty()) {
+        // Use default name and type
         pairdistname = DEFAULT_PAIRDIST_NAME_;
-      if (pairdisttype == DataFile::UNKNOWN_DATA)
         pairdisttype = DEFAULT_PAIRDIST_TYPE_;
-      // TODO enable saving for other set types?
+      } else {
+        // pairwise distance name specified. See if the extension is recognized. 
+        if (pairdisttype == DataFile::UNKNOWN_DATA)
+          pairdisttype = DataFile::WriteFormatFromFname( pairdistname, DEFAULT_PAIRDIST_TYPE_ );
+      }
       if (cache_->Type() == DataSet::PMATRIX_MEM) {
         DataFile* pwd_file = DFL.AddDataFile( pairdistname, pairdisttype, ArgList() );
         if (pwd_file == 0) return 1;
@@ -260,7 +265,6 @@ int Cpptraj::Cluster::MetricArray::setupPairwiseCache(ArgList& analyzeArgs,
       }
     }
   }
-  pw_mismatch_fatal_ = !analyzeArgs.hasKey("pwrecalc");
 
   return 0;
 }
@@ -717,10 +721,12 @@ int Cpptraj::Cluster::MetricArray::CacheDistances(Cframes const& framesToCache, 
     // The frames to cache must match cached frames.
     if (!cache_->CachedFramesMatch( framesToCache )) {
       if (pw_mismatch_fatal_) {
-        mprinterr("Error: Frames to cache do not match those in existing cache.\n");
+        mprinterr("Error: Frames to cluster do not match those in existing cache.\n"
+                  "Error: To force recalculation specify 'pwrecalc' (and\n"
+                  "Error:  'savepairdist' if the old matrix should be overwritten).\n");
         return 1;
       } else {
-        mprintf("Warning: Frames to cache do not match those in existing cache.\n"
+        mprintf("Warning: Frames to cluster do not match those in existing cache.\n"
                 "Warning: Re-calculating pairwise cache.\n");
         do_cache = true;
       }

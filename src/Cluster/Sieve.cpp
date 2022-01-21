@@ -96,10 +96,17 @@ int Cpptraj::Cluster::Sieve::SetupFromCache(DataSet_PairwiseCache const& cache,
     //mprinterr("Error: Cannot setup frames to cluster from empty cache.\n");
     return 1;
   }
+
   frameIsPresent_.clear();
   framesToCluster_.clear();
   sievedOut_.clear();
   DetermineTypeFromSieve( cache.SieveVal() );
+
+  if (type_ == NONE && (cache.Nrows() != maxFrames)) {
+    // # of frames in cache does not match frames to cluster
+    return 2;
+  }
+
   unsigned int frm = 0;
   for (; frm != cache.FrameToIdx().size(); frm++)
   {
@@ -107,6 +114,14 @@ int Cpptraj::Cluster::Sieve::SetupFromCache(DataSet_PairwiseCache const& cache,
       sievedOut_.push_back( frm );
     else
       framesToCluster_.push_back( frm );
+  }
+  // Check that # of sieved frames in the cache matches # to cluster
+  if (cache.Nrows() != framesToCluster_.size()) {
+    //mprinterr("Error: # frames in cache (%zu) != # frames to cluster (%zu).\n",
+    //          cache.Nrows(), maxFrames);
+    framesToCluster_.clear();
+    sievedOut_.clear();
+    return 2;
   }
   // Anything left is consiedered sieved out.
   for (; frm < maxFrames; frm++)
