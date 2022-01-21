@@ -20,6 +20,7 @@ class Cframes {
     iterator begin()             { return frames_.begin(); }
     iteratir end() */
     int front()                      const { return frames_.front(); }
+    int back()                       const { return frames_.back();  }
     int operator[](unsigned int idx) const { return frames_[idx];    }
     int& operator[](unsigned int idx)      { return frames_[idx];    }
     void push_back(int i)                  { frames_.push_back( i ); }

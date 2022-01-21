@@ -1186,8 +1186,9 @@ int DataIO_Std::WriteCmatrix(CpptrajFile& file, DataSetList const& Sets) {
       continue;
     }
     DataSet_PairwiseCache const& cm = static_cast<DataSet_PairwiseCache const&>( *(*ds) );
+    DataSet_PairwiseCache::Cframes frames = cm.PresentFrames();
     int nrows = cm.Nrows();
-    int col_width = std::max(3, DigitWidth( nrows ) + 1);
+    int col_width = std::max(3, DigitWidth( frames.back() ) + 1);
     int dat_width = std::max(cm.Format().Width(), (int)cm.Meta().Legend().size()) + 1;
     WriteNameToBuffer(file, "F1",               col_width, true);
     WriteNameToBuffer(file, "F2",               col_width, false);
@@ -1201,7 +1202,6 @@ int DataIO_Std::WriteCmatrix(CpptrajFile& file, DataSetList const& Sets) {
     dat_fmt.SetFormatWidth( dat_width );
     std::string total_fmt = col_fmt.Fmt() + col_fmt.Fmt() + dat_fmt.Fmt() + "\n";
     //mprintf("DEBUG: format '%s'\n", total_fmt.c_str());
-    DataSet_PairwiseCache::Cframes frames = cm.PresentFrames();
     int ntotal = (int)frames.size();
     for (int idx1 = 0; idx1 != ntotal; idx1++) {
       int row = frames[idx1];
