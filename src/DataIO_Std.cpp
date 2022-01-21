@@ -452,9 +452,11 @@ int DataIO_Std::ReadCmatrix(FileName const& fname,
     Vals.push_back( val );
   }
   // DEBUG
-  mprintf("Sieved array:\n");
-  for (unsigned int i = 0; i < sieveStatus.size(); i++)
-    mprintf("\t%6u %c\n", i+1, sieveStatus[i]);
+  if (debug_ > 0) {
+    mprintf("Sieved array:\n");
+    for (unsigned int i = 0; i < sieveStatus.size(); i++)
+      mprintf("\t%6u %c\n", i+1, sieveStatus[i]);
+  }
   // Try to determine if sieve is random or not.
   int sieveDelta = 1;
   f1 = -1;
