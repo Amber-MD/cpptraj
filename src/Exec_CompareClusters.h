@@ -10,5 +10,7 @@ class Exec_CompareClusters : public Exec {
     RetType Execute(CpptrajState&, ArgList&);
   private:
     static DataSet* getClusterSet(std::string const&, DataSetList const&);
+
+    int CompareClusters(DataSet*, DataSet*) const;
 };
 #endif
