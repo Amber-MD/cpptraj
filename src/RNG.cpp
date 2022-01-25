@@ -9,9 +9,15 @@ Cpptraj::RNG::RNG() : iseed_(-1) {}
 int Cpptraj::RNG::Set_Seed(int iseedIn) {
   // If iseed <= 0 set the seed based on wallclock time
   if (iseedIn <= 0 ) {
-    clock_t wallclock = clock();
-    iseed_ = (int)wallclock;
-    mprintf("Random_Number: seed is <= 0, using wallclock time as seed (%i)\n", iseed_);
+    //clock_t wallclock = clock();
+    //iseed_ = (int)wallclock;
+    time_t currentTime = time(0);
+    iseed_ = (int)currentTime;
+    // Since time_t/clock_t are typically something like unsigned long,
+    // need to protect against overflows.
+    if (iseed_ < 0) iseed_ = -iseed_;
+    //mprintf("Random_Number: seed is <= 0, using wallclock time as seed (%i)\n", iseed_);
+    mprintf("Random_Number: seed is <= 0, using time as seed (%i)\n", iseed_);
   } else
     iseed_ = iseedIn;
   // Set up specific to RNG
