@@ -1,8 +1,10 @@
 #!/bin/bash
 
-CPPTRAJ=`which cpptraj`
-#export OMP_NUM_THREADS=12
-#CPPTRAJ=`which cpptraj.OMP`
+if [ -z "$CPPTRAJ" ] ; then
+  CPPTRAJ=`which cpptraj`
+  #export OMP_NUM_THREADS=12
+  #CPPTRAJ=`which cpptraj.OMP`
+fi
 
 TOP=~/Cpptraj/Cpptraj-ExtendedTests/ChainA_1-268_NAD_TCL-gaff.tip3p.parm7
 TRJ=~/Cpptraj/Cpptraj-ExtendedTests/run9.nc # 2000 frames
