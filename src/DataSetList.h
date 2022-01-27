@@ -108,8 +108,13 @@ class DataSetList {
     DataSet* AddSet_NoCheck(DataSet::DataType, MetaData const&);
     /// Add an already set up DataSet to list; memory for DataSet will be freed.
     int AddSet( DataSet* );
-    /// Allocate DataSet but do not add to the list
+#   ifdef TIMER
+    /// Allocate DataSet but do not add to the list. Not const so that Timer can be used.
+    DataSet* AllocateSet(DataSet::DataType, MetaData const&);
+#   else
+    /// Allocate DataSet but do not add to the list.
     DataSet* AllocateSet(DataSet::DataType, MetaData const&) const;
+#   endif
     /// Add new sets or append to existing ones.
     int AddOrAppendSets(std::string const&, Darray const&, DataListType const&);
     /// Add a copy of the DataSet to the list; memory for DataSet will not be freed.
