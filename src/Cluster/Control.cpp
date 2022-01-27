@@ -51,7 +51,8 @@ Cpptraj::Cluster::Control::Control() :
   pseudoF_(0),
   SSRSST_(0),
   dbi_set_(0),
-  psf_set_(0)
+  psf_set_(0),
+  ssrsst_set_(0)
 {}
 
 /** DESTRUCTOR */
@@ -495,6 +496,8 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
   if (dbi_set_ == 0) return 1;
   psf_set_ = DSL.AddSet(DataSet::DOUBLE, MetaData(dsname_, "PSF"));
   if (psf_set_ == 0) return 1;
+  ssrsst_set_ = DSL.AddSet(DataSet::DOUBLE, MetaData(dsname_, "SSRSST"));
+  if (ssrsst_set_ == 0) return 1;
 
   // If cache was allocated, add to the DataSetList so it is after cnumvtime for pytraj
   if (metrics_.CacheWasAllocated())
@@ -823,6 +826,7 @@ int Cpptraj::Cluster::Control::Run() {
     if (clusters_.Nclusters() > 1) {
       pseudoF_ = ComputePseudoF(clusters_, SSRSST_, metrics_, debug_);
       psf_set_->Add(0, &pseudoF_);
+      ssrsst_set_->Add(0, &SSRSST_);
     }
 
     // TODO assign reference names

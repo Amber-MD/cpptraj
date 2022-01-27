@@ -41639,6 +41639,18 @@ gracecolor
 \end_layout
 
 \begin_layout Description
+<name>[DBI] Hold final Davies-Bouldin index.
+\end_layout
+
+\begin_layout Description
+<name>[PSF] Hold final pseudo-F value.
+\end_layout
+
+\begin_layout Description
+<name>[SSRSST] Hold final SSR/SST value.
+\end_layout
+
+\begin_layout Description
 <name>[NCVT] (
 \series bold
 clustersvtime
