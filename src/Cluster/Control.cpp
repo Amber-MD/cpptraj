@@ -49,7 +49,9 @@ Cpptraj::Cluster::Control::Control() :
   metricContribFile_(0),
   DBITotal_(0),
   pseudoF_(0),
-  SSRSST_(0)
+  SSRSST_(0),
+  dbi_set_(0),
+  psf_set_(0)
 {}
 
 /** DESTRUCTOR */
@@ -488,6 +490,12 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
   if (cnumvtime_ == 0) return 1;
   if (cnumvtimefile != 0) cnumvtimefile->AddDataSet( cnumvtime_ );
 
+  // DBI and pSF data sets
+  dbi_set_ = DSL.AddSet(DataSet::DOUBLE, MetaData(dsname_, "DBI"));
+  if (dbi_set_ == 0) return 1;
+  psf_set_ = DSL.AddSet(DataSet::DOUBLE, MetaData(dsname_, "PSF"));
+  if (psf_set_ == 0) return 1;
+
   // If cache was allocated, add to the DataSetList so it is after cnumvtime for pytraj
   if (metrics_.CacheWasAllocated())
     DSL.AddSet( metrics_.CachePtr() );
@@ -810,8 +818,12 @@ int Cpptraj::Cluster::Control::Run() {
 
     // Clustering metrics. Centroids should be up to date.
     DBITotal_ = ComputeDBI(clusters_, averageDist_, metrics_);
-    if (clusters_.Nclusters() > 1)
+    mprintf("DEBUG: DBI %f\n", DBITotal_);
+    dbi_set_->Add(0, &DBITotal_);
+    if (clusters_.Nclusters() > 1) {
       pseudoF_ = ComputePseudoF(clusters_, SSRSST_, metrics_, debug_);
+      psf_set_->Add(0, &pseudoF_);
+    }
 
     // TODO assign reference names
     timer_post_.Stop();
