@@ -16,9 +16,17 @@
   * number of points, G is the number of clusters, T is the total distance from
   * the all-data centroid, and P is the sum (for all clusters) of the distances
   * from the cluster centroid.
+  * This will also calculate SSR (sum of squares regression, between sum of
+  * squares) over the total sum of squares (SST). The SSR/SST ratio value lies
+  * between 0 and 1 and gives the percentage of explained variance by the data,
+  * and is similar to the R 2 value in regression analysis. As the ratio
+  * inherently rises with cluster count, one looks for an “elbow” in the curve
+  * where adding another cluster does not add much new information.
   * NOTE: To use this, cluster centroids should be fully up-to-date.
   * NOTE: This calc differs slightly from PTRAJ in that real centroids are used
   *       instead of representative structures.
+  * \param clusters List of clusters
+  * \param SSRSST sum of squares regression (SSR or between sum of squares) over total sum of squares (SST).
   */
 double Cpptraj::Cluster::ComputePseudoF(List const& clusters, double& SSRSST, MetricArray& metricIn, int debugIn)
 {

@@ -1,6 +1,5 @@
 #ifndef INC_CLUSTER_LIST_H
 #define INC_CLUSTER_LIST_H
-//#include <list>
 #include "Cframes.h"
 class DataSet_integer;
 namespace Cpptraj {
@@ -66,11 +65,6 @@ class List {
     int CreateCnumVsTime(DataSet_integer&, unsigned int, int, int) const;
     /// Generate number unique clusters vs time data set
     int NclustersObserved(DataSet_integer&, unsigned int, int) const;
-
-    /// Calculate the Davies-Bouldin index.
-    double ComputeDBI(std::vector<double>&, MetricArray&) const;
-    /// Calculate pseudo-F
-    double ComputePseudoF(double&, MetricArray&) const;
   private:
     typedef std::list<Node> Narray;
     Narray clusters_; ///< Hold all clusters.

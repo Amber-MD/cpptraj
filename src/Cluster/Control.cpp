@@ -1,6 +1,8 @@
 #include <list>
 #include "Control.h"
+#include "DBI.h"
 #include "Output.h"
+#include "PseudoF.h"
 #include "../ArgList.h"
 #include "../BufferedLine.h" // For loading info file
 #include "../CpptrajStdio.h"
@@ -44,7 +46,10 @@ Cpptraj::Cluster::Control::Control() :
   draw_tol_(0),
   draw_maxit_(0),
   debug_(0),
-  metricContribFile_(0)
+  metricContribFile_(0),
+  DBITotal_(0),
+  pseudoF_(0),
+  SSRSST_(0)
 {}
 
 /** DESTRUCTOR */
@@ -803,7 +808,13 @@ int Cpptraj::Cluster::Control::Run() {
       clusters_.PrintClusters();
     }
 
+    // Clustering metrics. Centroids should be up to date.
+    DBITotal_ = ComputeDBI(clusters_, averageDist_, metrics_);
+    if (clusters_.Nclusters() > 1)
+      pseudoF_ = ComputePseudoF(clusters_, SSRSST_, metrics_, debug_);
+
     // TODO assign reference names
+    timer_post_.Stop();
   }
   timer_run_.Stop();
   return 0;
@@ -822,12 +833,14 @@ int Cpptraj::Cluster::Control::Output(DataSetList& DSL) {
   }
 
   // Info
+
   if (!suppressInfo_) {
     CpptrajFile outfile;
     if (outfile.OpenWrite( clusterinfo_ )) return 1;
     timer_output_info_.Start();
     Output::PrintClustersToFile(outfile, clusters_, *algorithm_, metrics_, 
-                                frameSieve_.SieveValue(), frameSieve_.FramesToCluster());
+                                frameSieve_.SieveValue(), frameSieve_.FramesToCluster(),
+                                DBITotal_, averageDist_, pseudoF_, SSRSST_);
     timer_output_info_.Stop();
     outfile.CloseFile();
   }

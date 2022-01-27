@@ -30,7 +30,9 @@ void Cpptraj::Cluster::Output::PrintClustersToFile(CpptrajFile& outfile,
                                                    List const& clusters,
                                                    Algorithm const& algorithmIn,
                                                    MetricArray& metricIn, int sieve,
-                                                   Cframes const& sievedFrames)
+                                                   Cframes const& sievedFrames,
+                                                   double DBITotal, std::vector<double> const& averageDist,
+                                                   double pseudof, double SSRSST)
 {
   //CpptrajFile outfile;
   std::string buffer;
@@ -43,8 +45,8 @@ void Cpptraj::Cluster::Output::PrintClustersToFile(CpptrajFile& outfile,
   outfile.Printf("#Clustering: %i clusters %u frames\n",
                  clusters.Nclusters(), metricIn.Ntotal());
   // DBI
-  std::vector<double> averageDist;
-  double DBITotal = clusters.ComputeDBI( averageDist, metricIn );
+  //std::vector<double> averageDist;
+  //double DBITotal = clusters.ComputeDBI( averageDist, metricIn );
   std::vector<double>::const_iterator avgd = averageDist.begin();
   for (List::cluster_iterator C = clusters.begincluster();
                               C != clusters.endcluster();
@@ -53,8 +55,8 @@ void Cpptraj::Cluster::Output::PrintClustersToFile(CpptrajFile& outfile,
   outfile.Printf("#DBI: %f\n", DBITotal);
   // Pseudo-F
   if (clusters.Nclusters() > 1) {
-    double SSRSST = 0.0;
-    double pseudof = clusters.ComputePseudoF( SSRSST, metricIn );
+    //double SSRSST = 0.0;
+    //double pseudof = clusters.ComputePseudoF( SSRSST, metricIn );
     outfile.Printf("#pSF: %f\n", pseudof);
     outfile.Printf("#SSR/SST: %f\n", SSRSST);
   } else
