@@ -54,10 +54,11 @@ EOF
   ((SPLIT3 = $NFRAMES * 3))
   echo "Total $TOTAL, Each section $NFRAMES splits $SPLIT1 $SPLIT2 $SPLIT3"
 
+#  kmeans clusters 5 randompoint kseed 42 \
   cat >> cpptraj.in <<EOF
 
 cluster \
-  kmeans clusters 5 randompoint kseed 42 \
+  hieragglo clusters 5 \
   rms :10-260@CA sieve 20 random sieveseed 23 savepairdist \
   summaryhalf \$PREFIX.split.dat splitframe $SPLIT1,$SPLIT2,$SPLIT3 \
   info \$PREFIX.info.dat \
