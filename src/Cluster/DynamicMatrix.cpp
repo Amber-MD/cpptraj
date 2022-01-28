@@ -47,6 +47,7 @@ double Cpptraj::Cluster::DynamicMatrix::FindMin(int& iOut, int& jOut) {
 }
 #else
 double Cpptraj::Cluster::DynamicMatrix::FindMin(int& iOut, int& jOut) const {
+/*
   float min = std::numeric_limits<float>::max();
   for (unsigned int row = 0; row != Mat_.Nrows(); row++) {
     if (!ignore_[row]) {
@@ -61,7 +62,7 @@ double Cpptraj::Cluster::DynamicMatrix::FindMin(int& iOut, int& jOut) const {
       }
     }
   }
-  mprintf("DEBUG: Min found at row %i col %i (%f)\n", iOut, jOut, min);
+  mprintf("DEBUG: Min found at row %i col %i (%f)\n", iOut, jOut, min);*/
 
 
   float currentMin = std::numeric_limits<float>::max();
@@ -79,6 +80,16 @@ double Cpptraj::Cluster::DynamicMatrix::FindMin(int& iOut, int& jOut) const {
       }
     }
   }
+  // Ensure iOut < jOut
+  if (minRow < minCol) {
+    iOut = minRow;
+    jOut = minCol;
+  } else {
+    iOut = minCol;
+    jOut = minRow;
+  }
+  return (double)currentMin;
+/*
   if (minCol < minRow) { //FIXME i think only needed for testing
     int itmp = minCol;
     minCol = minRow;
@@ -89,7 +100,7 @@ double Cpptraj::Cluster::DynamicMatrix::FindMin(int& iOut, int& jOut) const {
   if (iOut != minRow || jOut != minCol)
     mprintf("Error: Column/row mismatch.\n");
 
-  return (double)min;
+  return (double)min;*/
 }
 #endif
 
