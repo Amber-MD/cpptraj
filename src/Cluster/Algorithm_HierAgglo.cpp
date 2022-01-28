@@ -133,8 +133,10 @@ int Cpptraj::Cluster::Algorithm_HierAgglo::DoClustering(List& clusters,
     }
   }
   // DEBUG print closest indices
-  ClusterDistances_.PrintElementsSquare();
-  ClusterDistances_.PrintClosest();
+  if (debug_ > 0) {
+    if (debug_ > 1) ClusterDistances_.PrintElementsSquare();
+    ClusterDistances_.PrintClosest();
+  }
   //InitializeClusterDistances();
   // DEBUG - print initial clusters
   if (debug_ > 1)
@@ -151,10 +153,12 @@ int Cpptraj::Cluster::Algorithm_HierAgglo::DoClustering(List& clusters,
       break;
     }
     if (clusters.Nclusters() == 1) clusteringComplete = true; // Sanity check
-//    cluster_progress.Update( iterations++ ); // FIXME reenable
+    cluster_progress.Update( iterations++ );
     // DEBUG print closest indices
-    ClusterDistances_.PrintElementsSquare();
-    ClusterDistances_.PrintClosest();
+    if (debug_ > 0) {
+      if (debug_ > 1) ClusterDistances_.PrintElementsSquare();
+      ClusterDistances_.PrintClosest();
+    }
   }
   mprintf("\tCompleted after %i iterations, %u clusters.\n",iterations,
           clusters.Nclusters());

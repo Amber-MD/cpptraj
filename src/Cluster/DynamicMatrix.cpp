@@ -104,6 +104,7 @@ double Cpptraj::Cluster::DynamicMatrix::FindMin(int& iOut, int& jOut) const {
 }
 #endif
 
+/** For DEBUG. Print all non-ignored matrix elements. */
 void Cpptraj::Cluster::DynamicMatrix::PrintElements() const {
   unsigned int iVal = 0;
   unsigned int jVal = 1;
@@ -119,7 +120,7 @@ void Cpptraj::Cluster::DynamicMatrix::PrintElements() const {
   }
 }
 
-/** Print elements like a square. */
+/** For DEBUG. Print elements like a square. */
 void Cpptraj::Cluster::DynamicMatrix::PrintElementsSquare() const {
 /*  mprintf("%4s", "");
   for (unsigned int col = 0; col < Mat_.Ncols(); col++)
@@ -149,7 +150,7 @@ void Cpptraj::Cluster::DynamicMatrix::PrintElementsSquare() const {
   }
 }
 
-/** Print closest indices to STDOUT. */
+/** For DEBUG. Print closest indices to STDOUT. */
 void Cpptraj::Cluster::DynamicMatrix::PrintClosest() const {
   for (unsigned int idx = 0; idx != closestIdx_.size(); idx++) {
     if (!ignore_[idx]) {
