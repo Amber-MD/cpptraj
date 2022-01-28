@@ -1,9 +1,9 @@
 #!/bin/bash
 
 if [ -z "$CPPTRAJ" ] ; then
-  CPPTRAJ=`which cpptraj`
-  #export OMP_NUM_THREADS=12
-  #CPPTRAJ=`which cpptraj.OMP`
+  #CPPTRAJ=`which cpptraj`
+  export OMP_NUM_THREADS=4
+  CPPTRAJ=`which cpptraj.OMP`
 fi
 
 TOP=~/Cpptraj/Cpptraj-ExtendedTests/ChainA_1-268_NAD_TCL-gaff.tip3p.parm7
