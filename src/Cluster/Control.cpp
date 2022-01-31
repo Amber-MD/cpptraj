@@ -821,7 +821,6 @@ int Cpptraj::Cluster::Control::Run() {
 
     // Clustering metrics. Centroids should be up to date.
     DBITotal_ = ComputeDBI(clusters_, averageDist_, metrics_);
-    mprintf("DEBUG: DBI %f\n", DBITotal_);
     dbi_set_->Add(0, &DBITotal_);
     if (clusters_.Nclusters() > 1) {
       pseudoF_ = ComputePseudoF(clusters_, SSRSST_, metrics_, debug_);
