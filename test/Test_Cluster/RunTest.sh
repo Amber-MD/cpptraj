@@ -7,7 +7,8 @@
 CleanFiles cluster.in cnumvtime.dat avg.summary.dat summary.dat CpptrajPairDist \
            cpop.agr summary2.dat Cmatrix.nccmatrix Cmatrix.cmatrix summary3.dat \
            normpop.agr normframe.agr cascii.dat.save cascii.dat pw.dat \
-           cinfo.dat mysil.cluster.dat mysil.frame.dat cascii?.info
+           cinfo.dat mysil.cluster.dat mysil.frame.dat cascii?.info \
+           c1.cmetrics.dat
 
 TESTNAME='Hierarchical agglomerative clustering tests'
 #Requires netcdf
@@ -19,6 +20,8 @@ parm ../tz2.parm7
 trajin ../tz2.crd
 cluster C1 :2-10 clusters 3 epsilon 4.0 out cnumvtime.dat info cinfo.dat sil mysil summary avg.summary.dat nofit savepairdist cpopvtime cpop.agr pairdist Cmatrix.cmatrix 
 cluster crd1 :2-10 clusters 3 epsilon 4.0 summary summary.dat complete nofit loadpairdist pairdist Cmatrix.cmatrix
+run
+writedata c1.cmetrics.dat C1[DBI] C1[PSF] C1[SSRSST]
 EOF
 RunCpptraj "Cluster command test, in-memory pairwise distances."
 DoTest cnumvtime.dat.save cnumvtime.dat
@@ -26,6 +29,7 @@ DoTest cinfo.dat.save cinfo.dat
 DoTest mysil.cluster.dat.save mysil.cluster.dat
 DoTest mysil.frame.dat.save mysil.frame.dat
 DoTest avg.summary.dat.save avg.summary.dat 
+DoTest c1.cmetrics.dat.save c1.cmetrics.dat
 DoTest summary.dat.save summary.dat
 DoTest cpop.agr.save cpop.agr
 

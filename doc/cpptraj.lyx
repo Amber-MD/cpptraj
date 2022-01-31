@@ -41639,6 +41639,18 @@ gracecolor
 \end_layout
 
 \begin_layout Description
+<name>[DBI] Hold final Davies-Bouldin index.
+\end_layout
+
+\begin_layout Description
+<name>[PSF] Hold final pseudo-F value.
+\end_layout
+
+\begin_layout Description
+<name>[SSRSST] Hold final SSR/SST value.
+\end_layout
+
+\begin_layout Description
 <name>[NCVT] (
 \series bold
 clustersvtime
@@ -41861,7 +41873,7 @@ The K-dist plot will be named <prefix>.<k>.dat, with the default prefix being
  The K-dist plot usually looks like a curve with an initially steep slope
  that gradually decreases.
  Around where the initial part of the curve starts to flatten out (indicating
- an increas in density) is around where epsilon should be set; minpoints
+ an increase in density) is around where epsilon should be set; minpoints
  is set to whatever <k> was.
  It has been suggested that the shape of the K-dist curve doesn't change
  too much after Kdist=4, but users are encouraged to experiment.

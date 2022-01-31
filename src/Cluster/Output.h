@@ -12,7 +12,8 @@ class BestReps;
 class Output {
   public:
     static void PrintClustersToFile(CpptrajFile&, List const&, Algorithm const&, MetricArray&,
-                                    int, Cframes const&);
+                                    int, Cframes const&, double, std::vector<double> const&,
+                                    double, double);
     static int Summary(CpptrajFile&, List const&, Algorithm const&, MetricArray&,
                         bool, bool, std::vector<bool> const&);
     static void Summary_Part(CpptrajFile&, unsigned int, Cframes const&, List const&,

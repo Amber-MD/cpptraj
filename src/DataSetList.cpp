@@ -435,7 +435,9 @@ DataSet* DataSetList::AddSet( DataSet::DataType inType, MetaData const& metaIn,
   * \return pointer to successfully set-up DataSet or 0 if error.
   */ 
 DataSet* DataSetList::AllocateSet(DataSet::DataType inType, MetaData const& metaIn)
+#ifndef TIMER
 const
+#endif
 { // TODO Always generate default name if empty?
 # ifdef TIMER
   time_total_.Start();

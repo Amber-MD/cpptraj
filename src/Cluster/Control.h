@@ -113,6 +113,15 @@ class Control {
 
     CpptrajFile* metricContribFile_;  ///< If not null, determine how much each metric contributes to total distance
 
+    // Various metrics of clustering "goodness"
+    double DBITotal_;                 ///< Davies-Bouldin index (DBI)
+    std::vector<double> averageDist_; ///< Average distance of each cluster to each other cluster (DBI)
+    double pseudoF_;                  ///< Pseudo-F (pSF)
+    double SSRSST_;                   ///< Sum of squares regression over total sum of squares.
+    DataSet* dbi_set_;                ///< DataSet to store DBI.
+    DataSet* psf_set_;                ///< DataSet to store pseudo-F.
+    DataSet* ssrsst_set_;             ///< DataSet to store SSR/SST.
+
     // Timers
     Timer timer_setup_;          ///< Run - metric, frames to cluster setup 
     Timer timer_pairwise_;       ///< Run - pairwise caching
