@@ -5,7 +5,8 @@
 // Exec_HmassRepartition::Help()
 void Exec_HmassRepartition::Help() const
 {
-  mprintf("\t[%s] [<mask>] [hmass <hydrogen mass>]\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s]\n"
+          "\t[<mask>] [hmass <hydrogen new mass>] [dowater]\n", DataSetList::TopIdxArgs);
   mprintf("  Perform hydrogen mass repartitioning for atoms selected by <mask>\n"
           "  (all solute atoms by default).\n");
 }
