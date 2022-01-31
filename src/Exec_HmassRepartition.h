@@ -9,6 +9,6 @@ class Exec_HmassRepartition : public Exec {
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_HmassRepartition(); }
     RetType Execute(CpptrajState&, ArgList&);
   private:
-    static int repartition(Topology&, double, CharMask const&);
+    static int repartition(Topology&, double, CharMask const&, bool);
 };
 #endif

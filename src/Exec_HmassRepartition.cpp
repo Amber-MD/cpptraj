@@ -14,6 +14,7 @@ void Exec_HmassRepartition::Help() const
 Exec::RetType Exec_HmassRepartition::Execute(CpptrajState& State, ArgList& argIn)
 {
   double hmass = argIn.getKeyDouble("hmass", 3.024);
+  bool do_water = argIn.hasKey("dowater");
 
   std::string maskArg = argIn.GetMaskNext();
   CharMask mask;
@@ -29,6 +30,10 @@ Exec::RetType Exec_HmassRepartition::Execute(CpptrajState& State, ArgList& argIn
           mask.MaskString());
   mprintf("\tTopology is '%s'\n", topIn->c_str());
   mprintf("\tHydrogen masses will be changed to %f amu\n", hmass);
+  if (do_water)
+    mprintf("\tRepartitioning solvent hydrogen masses as well.\n");
+  else
+    mprintf("\tSkipping solvent.\n");
 
   if (topIn->SetupCharMask( mask )) {
     mprinterr("Error: Could not set up atom mask.\n");
@@ -40,7 +45,8 @@ Exec::RetType Exec_HmassRepartition::Execute(CpptrajState& State, ArgList& argIn
     return CpptrajState::OK;
   }
 
-  if (repartition(*topIn, hmass, mask)) return CpptrajState::ERR; 
+  if (repartition(*topIn, hmass, mask, do_water))
+    return CpptrajState::ERR; 
 
   return CpptrajState::OK;
 }
@@ -49,15 +55,18 @@ Exec::RetType Exec_HmassRepartition::Execute(CpptrajState& State, ArgList& argIn
   * the given mass. Adjust mass of bonded heavy atom to maintain the
   * same overall mass.
   */
-int Exec_HmassRepartition::repartition(Topology& topIn, double hmass, CharMask const& cmaskIn)
+int Exec_HmassRepartition::repartition(Topology& topIn, double hmass, CharMask const& cmaskIn,
+                                       bool do_water)
 {
   AtomMask amask( cmaskIn.ConvertToIntMask(), cmaskIn.Natom() );
 
   for (AtomMask::const_iterator at = amask.begin(); at != amask.end(); ++at)
   {
     // Skip solvent
-    int molnum = topIn[*at].MolNum();
-    if (topIn.Mol(molnum).IsSolvent()) continue;
+    if (!do_water) {
+      int molnum = topIn[*at].MolNum();
+      if (topIn.Mol(molnum).IsSolvent()) continue;
+    }
 
     if (topIn[*at].Element() != Atom::HYDROGEN) {
       Atom& heavyAtom = topIn.SetAtom(*at);
