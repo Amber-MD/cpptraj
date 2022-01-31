@@ -12,6 +12,7 @@ CLUSTER_SOURCES= \
   Cmatrix_Binary.cpp \
   Cmatrix_NC.cpp \
   Control.cpp \
+  DBI.cpp \
   DrawGraph.cpp \
   DynamicMatrix.cpp \
   List.cpp \
@@ -23,6 +24,7 @@ CLUSTER_SOURCES= \
   Metric_Torsion.cpp \
   Node.cpp \
   Output.cpp \
+  PseudoF.cpp \
   Results_Coords.cpp \
   Sieve.cpp \
   Silhouette.cpp

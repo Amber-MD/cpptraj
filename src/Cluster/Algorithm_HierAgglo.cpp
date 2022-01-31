@@ -69,9 +69,9 @@ void Cpptraj::Cluster::Algorithm_HierAgglo::Results(CpptrajFile& outfile) const 
 /** Print clustering timing. */
 void Cpptraj::Cluster::Algorithm_HierAgglo::Timing(double total) const {
 # ifdef TIMER
-  time_findMin_.WriteTiming(2, "Find min distance", total);
-  time_mergeFrames_.WriteTiming(2, "Merge cluster frames", total);
-  time_calcLinkage_.WriteTiming(2, "Calculate new linkage", total);
+  time_findMin_.WriteTiming(2,     "Find min distance     :", total);
+  time_mergeFrames_.WriteTiming(2, "Merge cluster frames  :", total);
+  time_calcLinkage_.WriteTiming(2, "Calculate new linkage :", total);
 # endif
 }
 
@@ -132,6 +132,11 @@ int Cpptraj::Cluster::Algorithm_HierAgglo::DoClustering(List& clusters,
       ClusterDistances_.SetCdist( C1_it->Num(), C2_it->Num(), dval );
     }
   }
+  // DEBUG print closest indices
+  if (debug_ > 0) {
+    if (debug_ > 1) ClusterDistances_.PrintElementsSquare();
+    ClusterDistances_.PrintClosest();
+  }
   //InitializeClusterDistances();
   // DEBUG - print initial clusters
   if (debug_ > 1)
@@ -149,6 +154,11 @@ int Cpptraj::Cluster::Algorithm_HierAgglo::DoClustering(List& clusters,
     }
     if (clusters.Nclusters() == 1) clusteringComplete = true; // Sanity check
     cluster_progress.Update( iterations++ );
+    // DEBUG print closest indices
+    if (debug_ > 0) {
+      if (debug_ > 1) ClusterDistances_.PrintElementsSquare();
+      ClusterDistances_.PrintClosest();
+    }
   }
   mprintf("\tCompleted after %i iterations, %u clusters.\n",iterations,
           clusters.Nclusters());
