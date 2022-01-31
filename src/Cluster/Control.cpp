@@ -491,14 +491,6 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
   if (cnumvtime_ == 0) return 1;
   if (cnumvtimefile != 0) cnumvtimefile->AddDataSet( cnumvtime_ );
 
-  // DBI and pSF data sets
-  dbi_set_ = DSL.AddSet(DataSet::DOUBLE, MetaData(dsname_, "DBI"));
-  if (dbi_set_ == 0) return 1;
-  psf_set_ = DSL.AddSet(DataSet::DOUBLE, MetaData(dsname_, "PSF"));
-  if (psf_set_ == 0) return 1;
-  ssrsst_set_ = DSL.AddSet(DataSet::DOUBLE, MetaData(dsname_, "SSRSST"));
-  if (ssrsst_set_ == 0) return 1;
-
   // If cache was allocated, add to the DataSetList so it is after cnumvtime for pytraj
   if (metrics_.CacheWasAllocated())
     DSL.AddSet( metrics_.CachePtr() );
@@ -513,6 +505,14 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
     if (clustersVtime_ == 0) return 1;
     clustersvtimefile->AddDataSet( clustersVtime_ );
   }
+
+  // DBI and pSF data sets
+  dbi_set_ = DSL.AddSet(DataSet::DOUBLE, MetaData(dsname_, "DBI"));
+  if (dbi_set_ == 0) return 1;
+  psf_set_ = DSL.AddSet(DataSet::DOUBLE, MetaData(dsname_, "PSF"));
+  if (psf_set_ == 0) return 1;
+  ssrsst_set_ = DSL.AddSet(DataSet::DOUBLE, MetaData(dsname_, "SSRSST"));
+  if (ssrsst_set_ == 0) return 1;
 
   return 0;
 }
