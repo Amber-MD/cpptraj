@@ -46,7 +46,7 @@ Exec::RetType Exec_HmassRepartition::Execute(CpptrajState& State, ArgList& argIn
     return CpptrajState::OK;
   }
 
-  if (repartition(*topIn, hmass, mask, do_water))
+  if (repartition(*topIn, hmass, mask, do_water, State.Debug()))
     return CpptrajState::ERR; 
 
   return CpptrajState::OK;
@@ -57,10 +57,12 @@ Exec::RetType Exec_HmassRepartition::Execute(CpptrajState& State, ArgList& argIn
   * same overall mass.
   */
 int Exec_HmassRepartition::repartition(Topology& topIn, double hmass, CharMask const& cmaskIn,
-                                       bool do_water)
+                                       bool do_water, int debugIn)
 {
   AtomMask amask( cmaskIn.ConvertToIntMask(), cmaskIn.Natom() );
 
+  unsigned int n_h_changed = 0;
+  unsigned int n_heavy_changed = 0;
   for (AtomMask::const_iterator at = amask.begin(); at != amask.end(); ++at)
   {
     // Skip solvent
@@ -82,13 +84,15 @@ int Exec_HmassRepartition::repartition(Topology& topIn, double hmass, CharMask c
           Atom& hAtom = topIn.SetAtom(*bat);
           double diff = hmass - hAtom.Mass();
           hAtom.SetMass( hmass );
+          n_h_changed++;
           delta += diff;
         }
       }
       if (n_selected_h_atoms > 0) {
-        mprintf("\tHeavy atom %s bonded to %i hydrogens, subtract %f amu.\n",
-                topIn.TruncResAtomNameNum(*at).c_str(),
-                n_selected_h_atoms, delta);
+        if (debugIn > 0)
+          mprintf("\tHeavy atom %s bonded to %i hydrogens, subtract %f amu.\n",
+                  topIn.TruncResAtomNameNum(*at).c_str(),
+                  n_selected_h_atoms, delta);
         double newMass = heavyAtom.Mass() - delta;
         // Sanity check
         if (newMass < 0) {
@@ -97,9 +101,12 @@ int Exec_HmassRepartition::repartition(Topology& topIn, double hmass, CharMask c
           return 1;
         }
         heavyAtom.SetMass( newMass );
+        n_heavy_changed++;
       }
     }
   }
+  mprintf("\t%u hydrogen masses modified.\n", n_h_changed);
+  mprintf("\t%u heavy atom masses modified.\n", n_heavy_changed);
   
   return 0;
 }
