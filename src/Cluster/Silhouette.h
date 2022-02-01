@@ -2,6 +2,7 @@
 #define INC_CLUSTER_SILHOUETTE_H
 #include <vector>
 #include <utility> // std::pair
+#include "../OnlineVarT.h"
 class CpptrajFile;
 namespace Cpptraj {
 namespace Cluster {
@@ -23,8 +24,8 @@ class Silhouette {
 
     /// Used to hold SilPairArray for each cluster
     typedef std::vector<SilPairArray> SilFrameArray;
-    /// Generic double array 
-    typedef std::vector<double> Darray;
+    /// Used to hold average silhouette value for each cluster 
+    typedef std::vector<Stats<double>> Darray;
 
     /// Initialize with frame silhouette index type
     int Init(IdxType);
