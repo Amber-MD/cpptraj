@@ -9,6 +9,7 @@
 #include "ProgressBar.h"
 #include "StringRoutines.h"
 #include "DistRoutines.h"
+#include "GistEntropyUtils.h"
 #ifdef _OPENMP
 # include <omp.h>
 #endif
@@ -73,7 +74,8 @@ Action_GIST::Action_GIST() :
   doOrder_(false),
   doEij_(false),
   skipE_(false),
-  includeIons_(true)
+  includeIons_(true),
+  exactNnVolume_(false)
 {}
 
 /** GIST help */
@@ -83,7 +85,7 @@ void Action_GIST::Help() const {
           "\t[griddim <nx> <ny> <nz>] [gridspacn <spaceval>] [neighborcut <ncut>]\n"
           "\t[prefix <filename prefix>] [ext <grid extension>] [out <output suffix>]\n"
           "\t[floatfmt {double|scientific|general}] [floatwidth <fw>] [floatprec <fp>]\n"
-          "\t[intwidth <iw>]\n"
+          "\t[intwidth <iw>] [oldnnvolume]\n"
           "\t[info <info suffix>]\n");
 #         ifdef LIBPME
           mprintf("\t[nopme|pme %s\n\t %s\n\t %s]\n", EwaldOptions::KeywordsCommon1(), EwaldOptions::KeywordsCommon2(), EwaldOptions::KeywordsPME());
@@ -156,6 +158,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   double neighborCut = actionArgs.getKeyDouble("neighborcut", 3.5);
   NeighborCut2_ = neighborCut * neighborCut;
   includeIons_ = !actionArgs.hasKey("excludeions");
+  exactNnVolume_ = !actionArgs.hasKey("oldnnvolume");
   imageOpt_.InitImaging( !(actionArgs.hasKey("noimage")), actionArgs.hasKey("nonortho") );
   doOrder_ = actionArgs.hasKey("doorder");
   doEij_ = actionArgs.hasKey("doeij");
@@ -1508,7 +1511,12 @@ void Action_GIST::Print() {
           } // END inner loop over all waters for this voxel
 
           if (NNr < 9999 && NNr > 0) {
-            double dbl = log(NNr*NNr*NNr*nw_total / (3.0*Constants::TWOPI));
+            double dbl;
+            if (exactNnVolume_) {
+              dbl = log((NNr - sin(NNr)) * nw_total / Constants::PI);
+            } else {
+              dbl = log(NNr*NNr*NNr*nw_total / (3.0*Constants::TWOPI));
+            }
             //mprintf("DEBUG1: %u  nw_total= %i  NNr= %f  dbl= %f\n", gr_pt, nw_total, NNr, dbl);
             dTSorient_norm[gr_pt] += dbl;
             dTSo += dbl;
@@ -1643,7 +1651,11 @@ void Action_GIST::Print() {
             double dbl = log((NNd*NNd*NNd*NFRAME_*4*Constants::PI*BULK_DENS_)/3);
             dTStrans_norm[gr_pt] += dbl;
             dTSt += dbl;
-            dbl = log((NNs*NNs*NNs*NNs*NNs*NNs*NFRAME_*Constants::PI*BULK_DENS_)/48);
+            double sixDens = (NNs*NNs*NNs*NNs*NNs*NNs*NFRAME_*Constants::PI*BULK_DENS_) / 48;
+            if (exactNnVolume_) {
+              sixDens /= sixVolumeCorrFactor(NNs);
+            }
+            dbl = log(sixDens);
             dTSsix_norm[gr_pt] += dbl;
             dTSs += dbl;
             //mprintf("DEBUG1: dbl=%f NNs=%f\n", dbl, NNs);
