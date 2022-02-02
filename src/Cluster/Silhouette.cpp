@@ -147,9 +147,17 @@ int Silhouette::numMismatchErr(const char* desc, unsigned int nclusters) const {
 int Silhouette::PrintSilhouetteFrames(CpptrajFile& Ffile, List const& clusters)
 const
 {
+  if (clusterFrameSil_.empty()) return 0;
   if (numMismatchErr("PrintSilhouetteFrames", clusters.Nclusters())) return 1;
   // TODO different ways of writing out cluster frame silhouettes, like sort index?
+  Stats<double> overallAvg;
   unsigned int idx = 0;
+  unsigned int minIdx;
+  if (silIdxType_ == IDX_FRAME)
+    minIdx = clusterFrameSil_.front().front().first + 1;
+  else
+    minIdx = 0;
+  unsigned int maxIdx = minIdx;
   List::cluster_iterator Ci = clusters.begincluster();
   for (SilFrameArray::const_iterator it = clusterFrameSil_.begin();
                                      it != clusterFrameSil_.end(); ++it, ++Ci)
@@ -160,13 +168,22 @@ const
     for (SilPairArray::const_iterator jt = spaTemp.begin();
                                       jt != spaTemp.end(); ++jt, ++idx)
     {
+      unsigned int currentIdx;
       if (silIdxType_ == IDX_FRAME)
-        Ffile.Printf("%8i %g\n", jt->first + 1, jt->second);
+        currentIdx = (unsigned int)(jt->first + 1);
+        //Ffile.Printf("%8i %g\n", jt->first + 1, jt->second);
       else // IDX_SORTED, IDX_NOT_SPECIFIED
-        Ffile.Printf("%8u %g\n", idx, jt->second);
+        currentIdx = idx;
+        //Ffile.Printf("%8u %g\n", idx, jt->second);
+      Ffile.Printf("%8u %g\n", currentIdx, jt->second);
+      overallAvg.accumulate( jt->second );
+      minIdx = std::min(minIdx, currentIdx);
+      maxIdx = std::max(maxIdx, currentIdx);
     }
     Ffile.Printf("\n");
   }
+  Ffile.Printf("%8u %g\n", minIdx, overallAvg.mean());
+  Ffile.Printf("%8u %g\n", maxIdx, overallAvg.mean());
   return 0;
 }
 
