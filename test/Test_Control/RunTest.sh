@@ -172,7 +172,7 @@ EOF
   DoTest DataOut.dat.save DataOut.dat
 fi
 
-UNITNAME='Test nested loops and variables in loops, part 2'
+UNITNAME='Test nested mask loops'
 cat > for.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.nc
