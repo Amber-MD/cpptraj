@@ -33,7 +33,7 @@ int ForLoop_integer::SetupFor(CpptrajState& State, ArgList& argIn) {
     mprinterr("Internal Error: Too many arguments for integer for loop.\n");
     return 1;
   }
-  ArgList varArg( argIn.GetStringNext(), ";" );
+  ArgList varArg( argIn.GetStringNext(), "();" );
   //varArg.PrintDebug(); // DEBUG
   if (varArg.Nargs() < 2 || varArg.Nargs() > 3) {
     mprinterr("Error: Malformed 'for' loop variable.\n"
@@ -62,6 +62,7 @@ int ForLoop_integer::SetupFor(CpptrajState& State, ArgList& argIn) {
   // Second argument: <var><OP><end>
   size_t pos0 = VarName().size();
   size_t pos1 = pos0 + 1;
+  //mprintf("DEBUG: VarName='%s' pos0 %zu pos1 %zu\n", VarName().c_str(),pos0, pos1);
   endOp_ = NO_OP;
   int iargIdx = 1;
   if (varArg.Nargs() == 3) {
