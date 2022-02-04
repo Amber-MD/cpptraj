@@ -5,7 +5,7 @@
 CleanFiles for.in TRP.vec.dat TRP.rms.dat TRP.CA.dist.dat TRP.tocenter.dat \
            nh.dat rms.nofit.dat last10.dat distance.dat nested.agr \
            EndToEnd0.dat EndToEnd1.dat EndToEnd2.agr temp.*.dat \
-           DataOut.dat testset.dist.dat
+           DataOut.dat testset.dist.dat nested2.dat
 
 TESTNAME='Loop tests'
 Requires netcdf maxthreads 10
@@ -109,7 +109,7 @@ show
 list
 EOF
 RunCpptraj "$UNITNAME"
-DoTest nested.agr nested.agr.save
+DoTest nested.agr.save nested.agr
 
 UNITNAME='Test loop over data set blocks'
 CheckFor maxthreads 1
@@ -171,6 +171,25 @@ EOF
   RunCpptraj "$UNITNAME"
   DoTest DataOut.dat.save DataOut.dat
 fi
+
+UNITNAME='Test nested loops and variables in loops, part 2'
+cat > for.in <<EOF
+parm ../tz2.parm7
+trajin ../tz2.nc
+reference ../tz2.nc 1 1
+
+for atoms A1 inmask :2-4@N
+  for atoms A2 inmask \$A1<@3.0&!\$A1
+    distance d\$A1.\$A2 \$A1 \$A2 out nested2.dat
+  done
+done
+
+run
+show
+list
+EOF
+RunCpptraj "$UNITNAME"
+DoTest nested2.dat.save nested2.dat
 
 EndTest
 exit 0
