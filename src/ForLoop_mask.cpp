@@ -69,7 +69,7 @@ int ForLoop_mask::BeginFor(DataSetList const& DSL) {
   std::string maskExpr2;
   int nReplaced = DSL.ReplaceVariables( maskExpr2, maskExpr_ );
   if (nReplaced > 0) {
-    mprintf("DEBUG: old mask '%s' new mask '%s'\n", maskExpr_.c_str(), maskExpr2.c_str());
+    //mprintf("DEBUG: old mask '%s' new mask '%s'\n", maskExpr_.c_str(), maskExpr2.c_str());
     if (currentMask.SetMaskString( maskExpr2 )) return LOOP_ERROR;
   } else {
     if (currentMask.SetMaskString( maskExpr_ )) return LOOP_ERROR;
