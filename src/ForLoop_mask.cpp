@@ -77,7 +77,11 @@ int ForLoop_mask::BeginFor(DataSetList const& DSL) {
   // Set up mask
   if (currentTop_->SetupIntegerMask( currentMask )) return LOOP_ERROR;
   currentMask.MaskInfo();
-  if (currentMask.None()) return 0; // No iterations
+  if (currentMask.None()) {
+    // No iterations. Ensure idx_ is set though so EndFor() works.
+    idx_ = Idxs_.end();
+    return 0;
+  }
   // Set up indices
   if (mtype_ == ATOMS)
     Idxs_ = currentMask.Selected();
