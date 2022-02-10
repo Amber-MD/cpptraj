@@ -1,6 +1,5 @@
 #ifndef INC_CLUSTER_LIST_H
 #define INC_CLUSTER_LIST_H
-//#include <list>
 #include "Cframes.h"
 class DataSet_integer;
 namespace Cpptraj {
@@ -16,6 +15,7 @@ class List {
     List() {}
     /// Set debug level
     void SetDebug(int d) { debug_ = d; }
+
     /// Iterator over clusters
     typedef std::list<Node>::iterator cluster_it;
     /// Iterator to beginning
@@ -28,18 +28,20 @@ class List {
     const cluster_iterator begincluster() const { return clusters_.begin(); }
     /// Const iterator to end
     const cluster_iterator endcluster()   const { return clusters_.end();   }
+
     /// \return first cluster
     Node const& front()                   const { return clusters_.front(); }
     /// \return last cluster
     Node const& back()                    const { return clusters_.back();  }
     /// \return current number of clusters.
-    int Nclusters()        const { return (int)clusters_.size(); }
+    int Nclusters()                       const { return (int)clusters_.size(); }
     /// \return true if no clusters
-    bool empty()           const { return clusters_.empty(); }
+    bool empty()                          const { return clusters_.empty(); }
     /// \return Array containing noise points
-    Cframes const& Noise() const { return noise_; }
+    Cframes const& Noise()                const { return noise_; }
     /// Print clusters to stdout
     void PrintClusters() const;
+
     /// Add new cluster
     void AddCluster( Node const& n )     { clusters_.push_back( n ); }
     /// Remove existing cluster via iterator
@@ -48,10 +50,6 @@ class List {
     void RemoveEmptyClusters();
     /// Remove all clusters
     void Clear();
-    /// Generate cluster number vs time data set
-    int CreateCnumVsTime(DataSet_integer&, unsigned int, int, int) const;
-    /// Generate number unique clusters vs time data set
-    int NclustersObserved(DataSet_integer&, unsigned int, int) const;
     /// Sort clusters by population and renumber.
     int Sort();
     /// Add given frame as noise.
@@ -63,10 +61,10 @@ class List {
     /// Add given frames to clusters based on distance to centroid and cutoff.
     void AddFramesByCentroid(Cframes const&, MetricArray&, bool, double);
 
-    /// Calculate the Davies-Bouldin index.
-    double ComputeDBI(std::vector<double>&, MetricArray&) const;
-    /// Calculate pseudo-F
-    double ComputePseudoF(double&, MetricArray&) const;
+    /// Generate cluster number vs time data set
+    int CreateCnumVsTime(DataSet_integer&, unsigned int, int, int) const;
+    /// Generate number unique clusters vs time data set
+    int NclustersObserved(DataSet_integer&, unsigned int, int) const;
   private:
     typedef std::list<Node> Narray;
     Narray clusters_; ///< Hold all clusters.

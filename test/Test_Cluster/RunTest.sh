@@ -6,8 +6,9 @@
 # NOTE: CpptrajPairDist name defined in Action_Clustering.cpp
 CleanFiles cluster.in cnumvtime.dat avg.summary.dat summary.dat CpptrajPairDist \
            cpop.agr summary2.dat Cmatrix.nccmatrix Cmatrix.cmatrix summary3.dat \
-           normpop.agr normframe.agr cascii.dat.save cascii.dat pw.out \
-           cinfo.dat mysil.cluster.dat mysil.frame.dat cascii?.info
+           normpop.agr normframe.agr cascii.dat.save cascii.dat pw.dat \
+           cinfo.dat mysil.cluster.dat mysil.frame.dat cascii?.info \
+           c1.cmetrics.dat
 
 TESTNAME='Hierarchical agglomerative clustering tests'
 #Requires netcdf
@@ -19,6 +20,8 @@ parm ../tz2.parm7
 trajin ../tz2.crd
 cluster C1 :2-10 clusters 3 epsilon 4.0 out cnumvtime.dat info cinfo.dat sil mysil summary avg.summary.dat nofit savepairdist cpopvtime cpop.agr pairdist Cmatrix.cmatrix 
 cluster crd1 :2-10 clusters 3 epsilon 4.0 summary summary.dat complete nofit loadpairdist pairdist Cmatrix.cmatrix
+run
+writedata c1.cmetrics.dat C1[DBI] C1[PSF] C1[SSRSST]
 EOF
 RunCpptraj "Cluster command test, in-memory pairwise distances."
 DoTest cnumvtime.dat.save cnumvtime.dat
@@ -26,6 +29,7 @@ DoTest cinfo.dat.save cinfo.dat
 DoTest mysil.cluster.dat.save mysil.cluster.dat
 DoTest mysil.frame.dat.save mysil.frame.dat
 DoTest avg.summary.dat.save avg.summary.dat 
+DoTest c1.cmetrics.dat.save c1.cmetrics.dat
 DoTest summary.dat.save summary.dat
 DoTest cpop.agr.save cpop.agr
 
@@ -65,23 +69,36 @@ EOF
   DoTest normframe.agr.save normframe.agr
 fi
 
-# Test writing/reading ASCII cluster pairwise file
+# Test writing ASCII cluster pairwise file
 cat > cluster.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.crd
-cluster C1 :2-10 clusters 3 epsilon 4.0 out cascii.dat.save nofit savepairdist pairdist pw.out \
+cluster C1 :2-10 clusters 3 epsilon 4.0 out cascii.dat.save nofit savepairdist pairdist pw.dat \
   sieve 6 random sieveseed 2 info cascii1.info
 EOF
 RunCpptraj "Cluster command test, write ASCII pairwise distances."
+
+# Test reading ASCII cluster pairwise file, using cached frames
 cat > cluster.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.crd
-cluster C1 :2-10 clusters 3 epsilon 4.0 out cascii.dat nofit loadpairdist pairdist pw.out \
-  info cascii2.info
+cluster C1 :2-10 clusters 3 epsilon 4.0 out cascii.dat nofit loadpairdist pairdist pw.dat \
+  useframesincache info cascii2.info
+EOF
+RunCpptraj "Cluster command test, read ASCII pairwise distances, use cached frames."
+DoTest cascii.dat.save cascii.dat
+DoTest cascii1.info cascii2.info
+
+# Test reading ASCII cluster pairwise file
+cat > cluster.in <<EOF
+parm ../tz2.parm7
+trajin ../tz2.crd
+cluster C1 :2-10 clusters 3 epsilon 4.0 out cascii.dat nofit loadpairdist pairdist pw.dat \
+  sieve 6 random sieveseed 2 info cascii3.info
 EOF
 RunCpptraj "Cluster command test, read ASCII pairwise distances."
 DoTest cascii.dat.save cascii.dat
-DoTest cascii1.info cascii2.info
+DoTest cascii1.info cascii3.info
 
 EndTest
 

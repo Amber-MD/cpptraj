@@ -1326,13 +1326,16 @@ void Action_GIST::TransEntropy(float VX, float VY, float VZ,
     double dd = dx*dx+dy*dy+dz*dz;
     if (dd < NNd && dd > 0) { NNd = dd; }
 
-    int q1 = n1 * 4; // index into V_Q for n1
-    double rR = 2.0 * acos( fabs(W4 * V_Q[q1  ] +
-                            X4 * V_Q[q1+1] +
-                            Y4 * V_Q[q1+2] +
-                            Z4 * V_Q[q1+3] )); //add fabs for quaternions distance calculation
-    double ds = rR*rR + dd;
-    if (ds < NNs && ds > 0) { NNs = ds; }
+    if (dd < NNs)
+    {
+      int q1 = n1 * 4; // index into V_Q for n1
+      double rR = 2.0 * acos( fabs(W4 * V_Q[q1  ] +
+                              X4 * V_Q[q1+1] +
+                              Y4 * V_Q[q1+2] +
+                              Z4 * V_Q[q1+3] )); //add fabs for quaternions distance calculation
+      double ds = rR*rR + dd;
+      if (ds < NNs && ds > 0) { NNs = ds; }
+    }
   }
 }
 
@@ -1580,13 +1583,15 @@ void Action_GIST::Print() {
             double dz = (double)(VZ - voxel_xyz_[gr_pt][i1+2]);
             double dd = dx*dx+dy*dy+dz*dz;
             if (dd < NNd && dd > 0) { NNd = dd; }
-            int q1 = n1 * 4; // index into voxel_Q_ for n1
-            double rR = 2 * acos( fabs(W4*voxel_Q_[gr_pt][q1  ] +
-                                  X4*voxel_Q_[gr_pt][q1+1] +
-                                  Y4*voxel_Q_[gr_pt][q1+2] +
-                                  Z4*voxel_Q_[gr_pt][q1+3] )); //add fabs for quaternion distance calculation
-            double ds = rR*rR + dd;
-            if (ds < NNs && ds > 0) { NNs = ds; }
+            if (dd < NNs) {
+              int q1 = n1 * 4; // index into voxel_Q_ for n1
+              double rR = 2 * acos( fabs(W4*voxel_Q_[gr_pt][q1  ] +
+                                    X4*voxel_Q_[gr_pt][q1+1] +
+                                    Y4*voxel_Q_[gr_pt][q1+2] +
+                                    Z4*voxel_Q_[gr_pt][q1+3] )); //add fabs for quaternion distance calculation
+              double ds = rR*rR + dd;
+              if (ds < NNs && ds > 0) { NNs = ds; }
+            }
           }
         } // END self loop over all waters for this voxel
         //mprintf("DEBUG1: self NNd=%f NNs=%f\n", NNd, NNs);
