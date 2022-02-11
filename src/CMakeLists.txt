@@ -1,5 +1,4 @@
 add_subdirectory(xdrfile)
-add_subdirectory(Cluster)
 
 #---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Parse cpptrajfiles
@@ -100,6 +99,7 @@ if(fftw_DISABLED)
 endif()
 
 add_library(cpptraj_common_obj OBJECT ${CPPTRAJ_COMMON_SOURCES})
+add_subdirectory(Cluster)
 make_pic_if_needed(cpptraj_common_obj)
 
 #normally this would be applied by target_link_libraries, but since we use that intermediary object library, we have to apply it manually
@@ -114,7 +114,7 @@ target_include_directories(cpptraj_common_obj PRIVATE $<TARGET_PROPERTY:xdrfile,
 
 add_executable(cpptraj $<TARGET_OBJECTS:cpptraj_common_obj> ${SOURCES})
 
-target_link_libraries(cpptraj cpptraj_cluster netcdf netlib xdrfile)
+target_link_libraries(cpptraj netcdf netlib xdrfile)
 
 install(TARGETS cpptraj DESTINATION ${BINDIR})
 #------------------------------------------------------------------------------------------
@@ -123,7 +123,7 @@ install(TARGETS cpptraj DESTINATION ${BINDIR})
 add_library(libcpptraj $<TARGET_OBJECTS:cpptraj_common_obj> ${LIBCPPTRAJ_OBJECTS})
 set_property(TARGET libcpptraj PROPERTY COMPILE_DEFINITIONS LIBCPPTRAJ)
 
-target_link_libraries(libcpptraj cpptraj_cluster netlib netcdf xdrfile)
+target_link_libraries(libcpptraj netlib netcdf xdrfile)
 remove_prefix(libcpptraj)
 install_libraries(libcpptraj)
 
