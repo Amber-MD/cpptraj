@@ -29,6 +29,10 @@ jobs:
             compiler: "gnu"
             use_mpi: "yes"
             use_cmake: "0"
+          - use_openmp: "no"
+            compiler: "gnu"
+            use_mpi: "yes"
+            use_cmake: "1"
 
     env:
       COMPILER: ${{ matrix.compiler }}
