@@ -41866,12 +41866,16 @@ cluster C2 :2-10 clusters 8 epsilon 2.0 info C2.info pairdist PW
 \end_layout
 
 \begin_layout Subsubsection*
-Clustering Success Metrics (info file)
+Clustering Success Metrics
 \end_layout
 
 \begin_layout Standard
-The Davies-Bouldin Index (DBI) measures sum over all clusters of the within
- cluster scatter to the between cluster separation; 
+The Davies-Bouldin Index (DBI, reported in the 
+\series bold
+info
+\series default
+ file) measures sum over all clusters of the within cluster scatter to the
+ between cluster separation; 
 \series bold
 the smaller the DBI, the better
 \series default
@@ -41884,7 +41888,11 @@ the smaller the DBI, the better
 \end_layout
 
 \begin_layout Standard
-The pseudo-F statistic (pSF) is another measure of clustering goodness.
+The pseudo-F statistic (pSF, reported in the 
+\series bold
+info
+\series default
+ file) is another measure of clustering goodness.
  It is intended to capture the 'tightness' of clusters, and is in essence
  a ratio of the mean sum of squares between groups to the mean sum of squares
  within group.
@@ -41903,8 +41911,12 @@ Higher values of pseudo-F are good
 \end_layout
 
 \begin_layout Standard
-The SSR/SST is the ratio of the sum of squares regression (SSR or between
- sum of squares) and the total sum of squares (SST).
+The SSR/SST (reported in the 
+\series bold
+info
+\series default
+ file) is the ratio of the sum of squares regression (SSR or between sum
+ of squares) and the total sum of squares (SST).
  The SSR is calculated via the sum of the squared distances of all points
  within a given cluster to its centroid, and summed together for all clusters.
  The total sum of squares is the sum of squared distances for all frames
@@ -41923,21 +41935,121 @@ There should be a point at which adding more clusters does not substantially
 \end_layout
 
 \begin_layout Standard
-The cluster silhouette is a measure of how well each point fits within a
- cluster.
+The cluster silhouette (
+\series bold
+sil
+\series default
+/
+\series bold
+silidx
+\series default
+ keywords) is a measure of how well each point fits within a cluster.
  Values of 1 indicate the point is very similar to other points in the cluster,
  i.e.
  it is well-clustered.
  Values of -1 indicate the point is dissimilar and may fit better in a neighbori
 ng cluster.
  Values of 0 indicate the point is on a border between two clusters.
- The file containing the cluster silhouette value for each frame can be
- viewed directly with the XMGRACE plotting program using the default (sorted
- by silhouette value) index ('
+ The 
 \series bold
-silidx idx
+sil <prefix>
 \series default
-').
+ keyword will write two files.
+ The first, <prefix>.cluster.dat, which has the format:
+\end_layout
+
+\begin_layout LyX-Code
+#Cluster <Si> StdDev
+\end_layout
+
+\begin_layout Standard
+Where #Cluster is the cluster number, <Si> is the average silhouette value
+ for all frames in the cluster, and StdDev is the standard deviation of
+ the silhouette value for all frames in the cluster.
+ The second, <prefix>.frame.dat, will contain the silhouette value for each
+ frame grouped by cluster, with indices controlled by the 
+\series bold
+silidx
+\series default
+ keyword (default sorted by ascending silhouette value), e.g.:
+\end_layout
+
+\begin_layout LyX-Code
+#C0 Silhouette
+\end_layout
+
+\begin_layout LyX-Code
+#C0      Silhouette
+\end_layout
+
+\begin_layout LyX-Code
+       0 -0.135988
+\end_layout
+
+\begin_layout LyX-Code
+       1 -0.0266746
+\end_layout
+
+\begin_layout LyX-Code
+       2 -0.0167628
+\end_layout
+
+\begin_layout LyX-Code
+       3 0.0609673
+\end_layout
+
+\begin_layout LyX-Code
+       4 0.0649603
+\end_layout
+
+\begin_layout LyX-Code
+       5 0.0835595
+\end_layout
+
+\begin_layout LyX-Code
+
+\end_layout
+
+\begin_layout LyX-Code
+#C1      Silhouette
+\end_layout
+
+\begin_layout LyX-Code
+       6 0.319039
+\end_layout
+
+\begin_layout LyX-Code
+       7 0.319785
+\end_layout
+
+\begin_layout LyX-Code
+       8 0.348833
+\end_layout
+
+\begin_layout LyX-Code
+       9 0.358286
+\end_layout
+
+\begin_layout LyX-Code
+
+\end_layout
+
+\begin_layout LyX-Code
+       0 0.1376
+\end_layout
+
+\begin_layout LyX-Code
+       9 0.1376
+\end_layout
+
+\begin_layout Standard
+The last two lines will contain the overall average silhouette value twice,
+ one at the lowest index and one at the highest.
+ The file is formatted in this way to make it easy to visualize each cluster
+ silhouette relative to the average value in e.g.
+ the XMGRACE plotting program.
+ If the clustering results in one or more cluster with silhouette values
+ completely below the average line, the clustering is likely poor.
 \end_layout
 
 \begin_layout Subsubsection*
