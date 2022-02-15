@@ -189,7 +189,7 @@ class Action_HydrogenBond::Hbond {
     Stats<double> const& PartAngle(unsigned int idx) const { return partsAng_[idx]; }
 #   ifdef MPI
     DataSet_integer* Data() const { return data_; }
-    /// New hydrogen bond with given # frames
+    /// CONSTRUCTOR - New hydrogen bond with given # frames
     Hbond(double d, double a, DataSet_integer* s, int ia, int ih, int id, int n) :
       dist_(d), angle_(a), data_(s), A_(ia), H_(ih), D_(id), frames_(n) {}
     /// Update distance/angle/number frames
@@ -197,6 +197,27 @@ class Action_HydrogenBond::Hbond {
       dist_ += d;
       angle_ += a;
       frames_ += n;
+    }
+    /// Set up parts with given double array containing N, mean, and M2 for each part
+    void SetupParts(unsigned int nparts, const double* dvals) {
+      if (nparts == 0) return;
+      partsDist_.clear();
+      partsAng_.clear();
+      partsDist_.reserve( nparts );
+      partsAng_.reserve( nparts );
+      const double* dptr = dvals;
+      for (unsigned int idx = 0; idx != nparts; idx++, dptr += 6) {
+        partsDist_.push_back( Stats<double>(dptr[0], dptr[1], dptr[2]) );
+        partsAng_.push_back( Stats<double>(dptr[3], dptr[4], dptr[5]) );
+      }
+    }
+    /// Update parts with given double array containing N, mean, and M2 for each part
+    void CombineParts(unsigned int nparts, const double* dvals) {
+      const double* dptr = dvals;
+      for (unsigned int idx = 0; idx != nparts; idx++, dptr += 6) {
+        partsDist_[idx].Combine( Stats<double>(dptr[0], dptr[1], dptr[2]) );
+        partsAng_[idx].Combine( Stats<double>(dptr[3], dptr[4], dptr[5]) );
+      }
     }
 #   endif
     /// First sort by frames (descending), then distance (ascending).

@@ -1061,10 +1061,14 @@ int Action_HydrogenBond::SyncAction() {
   std::vector<double> Dvals;           // Hold dist_ and angle_ for each hbond, as well as n_/mean_/M2_ for dist/angle each part
   std::vector<int> Ivals;              // Hold A_, H_, D_, and frames_ for each hbond
   unsigned int dvalsPerHbond;
-  if (!splitFrames_.empty())
-    dvalsPerHbond = 2 + ((splitFrames_.size()+1) * 6);
-  else
+  unsigned int nParts;
+  if (!splitFrames_.empty()) {
+    nParts = splitFrames_.size() + 1;
+    dvalsPerHbond = 2 + (nParts * 6);
+  } else {
+    nParts = 0;
     dvalsPerHbond = 2;
+  }
   // Need to know how many hbonds on each thread.
   std::vector<int> nuu_on_rank = GetRankNhbonds( UU_Map_.size(), trajComm_ );
   std::vector<int> nuv_on_rank = GetRankNhbonds( UV_Map_.size(), trajComm_ );
@@ -1097,10 +1101,12 @@ int Action_HydrogenBond::SyncAction() {
             // Hbond on rank that has not been found on master
             if (series_)
               ds = UUset(IV[0], IV[1], IV[2]);
-            UU_Map_.insert(it, std::pair<Hpair,Hbond>(hbidx,Hbond(DV[0],DV[1],ds,IV[0],IV[1],IV[2],IV[3])));
+            it = UU_Map_.insert(it, std::pair<Hpair,Hbond>(hbidx,Hbond(DV[0],DV[1],ds,IV[0],IV[1],IV[2],IV[3])));
+            it->second.SetupParts(nParts, DV+2);
           } else {
             // Hbond on rank and master. Update on master.
             it->second.Combine(DV[0], DV[1], IV[3]);
+            it->second.CombineParts(nParts, DV+2);
             ds = it->second.Data();
           }
           Svals.push_back( ds );
