@@ -4,6 +4,7 @@
 #include "Action.h"
 #include "ImageOption.h"
 #include "DataSet_integer.h"
+#include "OnlineVarT.h"
 #ifdef TIMER
 # include "Timer.h"
 #endif
@@ -77,6 +78,7 @@ class Action_HydrogenBond : public Action {
     AtomMask SolventAcceptorMask_;
     AtomMask Mask_;
     ImageOption imageOpt_;       ///< Used to determine if imaging should be performed
+    Iarray splitFrames_;         ///< For calculating hydrogen bonds by parts
 #   ifdef TIMER
     Timer t_action_;
     Timer t_uu_;
@@ -147,14 +149,22 @@ class Action_HydrogenBond::Site {
     Iarray hlist_; ///< List of hydrogen indices
     int idx_;      ///< Heavy atom index
 };
-
+// -----------------------------------------------------------------------------
 /// Track specific hydrogen bond.
 class Action_HydrogenBond::Hbond {
   public:
     Hbond() : dist_(0.0), angle_(0.0), data_(0), A_(-1), H_(-1), D_(-1), frames_(0) {}
     /// New hydrogen bond
-    Hbond(double d, double a, DataSet_integer* s, int ia, int ih, int id) :
-      dist_(d), angle_(a), data_(s), A_(ia), H_(ih), D_(id), frames_(1) {}
+    Hbond(DataSet_integer* s, int ia, int ih, int id, Iarray const& splits) :
+      dist_(0), angle_(0), data_(s), A_(ia), H_(ih), D_(id), frames_(0)
+    {
+      if (!splits.empty()) {
+        partsDist_.resize(splits.size()+1);
+        partsAng_.resize(splits.size()+1);
+      }
+    }
+//    Hbond(double d, double a, DataSet_integer* s, int ia, int ih, int id) :
+//      dist_(d), angle_(a), data_(s), A_(ia), H_(ih), D_(id), frames_(1) {}
 #   ifdef _OPENMP
     /// Just record that hbond exists
     Hbond(double d, double a, int ia, int ih, int id) :
@@ -189,11 +199,18 @@ class Action_HydrogenBond::Hbond {
         return (frames_ > rhs.frames_);
     }
     /// Update distance/angle/time series
-    void Update(double d, double a, int f) {
-      dist_ += d;
-      angle_ += a;
+    void Update(double distIn, double angIn, int fnum, Iarray const& splitFrames) {
+      dist_ += distIn;
+      angle_ += angIn;
       ++frames_;
-      if (data_ != 0) data_->AddVal(f, 1);
+      if (data_ != 0) data_->AddVal(fnum, 1);
+      if (!splitFrames.empty()) {
+        // Find the correct part NOTE assumes fnum never out of range
+        int part = 0;
+        while (fnum >= splitFrames[part]) part++;
+        partsDist_[part].accumulate( distIn );
+        partsAng_[part].accumulate( angIn );
+      }
     }
     void CalcAvg();
     void FinishSeries(unsigned int);
@@ -206,8 +223,10 @@ class Action_HydrogenBond::Hbond {
     int H_; ///< Hydrogen atom index
     int D_; ///< Donor atom index
     int frames_; ///< # frames this hydrogen bond has been present
+    std::vector<Stats<double>> partsDist_; ///< Hold avg. distance, split by parts
+    std::vector<Stats<double>> partsAng_;  ///< Hold avg. angle, split by parts
 };
-
+// -----------------------------------------------------------------------------
 /// Track solvent bridge between 2 or more solute residues.
 class Action_HydrogenBond::Bridge {
   public:

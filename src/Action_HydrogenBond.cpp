@@ -593,21 +593,21 @@ void Action_HydrogenBond::AddUV(double dist, double angle,int fnum, int a_atom,i
       ds = (DataSet_integer*)
            masterDSL_->AddSet(DataSet::INTEGER,MetaData(hbsetname_,"solventhb",hbidx));
       if (UVseriesout_ != 0) UVseriesout_->AddDataSet( ds );
-      ds->AddVal( fnum, 1 );
+      //ds->AddVal( fnum, 1 );
     }
     Hbond hb;
     if (udonor) { // Do not care about which solvent acceptor
       if (ds != 0) ds->SetLegend( CurrentParm_->TruncResAtomName(h_atom) + "-V" );
-      hb = Hbond(dist,angle,ds,-1,h_atom,d_atom);
+      hb = Hbond(ds, -1, h_atom, d_atom, splitFrames_);
     } else {           // Do not care about which solvent donor
       if (ds != 0) ds->SetLegend( CurrentParm_->TruncResAtomName(a_atom) + "-V" );
-      hb = Hbond(dist,angle,ds,a_atom,-1,-1);
+      hb = Hbond(ds, a_atom, -1, -1, splitFrames_);
     }
-    UV_Map_.insert(it, std::pair<int,Hbond>(hbidx,hb));
+    it = UV_Map_.insert(it, std::pair<int,Hbond>(hbidx,hb));
   } else {
 //      mprintf("DBG1: OLD hbond : %8i .. %8i - %8i\n", a_atom+1,h_atom+1,d_atom+1);
-    it->second.Update(dist,angle,fnum);
   }
+  it->second.Update(dist, angle, fnum, splitFrames_);
 }
 
 //  Action_HydrogenBond::CalcSolvHbonds()
@@ -677,13 +677,13 @@ void Action_HydrogenBond::AddUU(double dist, double angle, int fnum, int a_atom,
     DataSet_integer* ds = 0;
     if (series_) {
       ds = UUset(a_atom, h_atom, d_atom);
-      ds->AddVal( fnum, 1 );
+      //ds->AddVal( fnum, 1 );
     }
-    UU_Map_.insert(it, std::pair<Hpair,Hbond>(hbidx,Hbond(dist,angle,ds,a_atom,h_atom,d_atom)));
+    it = UU_Map_.insert(it, std::pair<Hpair,Hbond>(hbidx,Hbond(ds, a_atom, h_atom, d_atom, splitFrames_)));
   } else {
 //      mprintf("DBG1: OLD hbond : %8i .. %8i - %8i\n", a_atom+1,h_atom+1,d_atom+1);
-    it->second.Update(dist,angle,fnum);
   }
+  it->second.Update(dist, angle, fnum, splitFrames_);
 }
 
 // Action_HydrogenBond::CalcSiteHbonds()
