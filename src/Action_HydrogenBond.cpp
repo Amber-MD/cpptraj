@@ -1330,7 +1330,7 @@ void Action_HydrogenBond::Print() {
         for (unsigned int idx = 0; idx != hbond->Nparts(); idx++)
           avgout_->Printf(" %8i %12.4f %12.4f %12.4f",
                           hbond->PartFrames(idx), hbond->PartFrac(idx, Nframes_),
-                          hbond->PartDist(idx), hbond->PartAngle(idx));
+                          hbond->PartDist(idx), hbond->PartAngle(idx)*Constants::RADDEG);
       }
       avgout_->Printf("\n");
     }
