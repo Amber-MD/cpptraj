@@ -45,6 +45,7 @@ class Action_HydrogenBond : public Action {
     std::string MemoryUsage(size_t, size_t, size_t) const;
 #   ifdef MPI
     static std::vector<int> GetRankNhbonds(int,Parallel::Comm const&);
+    static void HbondToArray(std::vector<double>&, std::vector<int>&, Hbond const&);
 #   endif
 
     typedef std::vector<Site> Sarray;
@@ -184,8 +185,8 @@ class Action_HydrogenBond::Hbond {
     unsigned int Nparts() const { return partsDist_.size(); }
     unsigned int PartFrames(unsigned int idx) const { return (unsigned int)partsDist_[idx].nData(); }
     double PartFrac(unsigned int idx, unsigned int Nframes) const { return partsDist_[idx].nData() / (double)Nframes; }
-    double PartDist(unsigned int idx) const { return partsDist_[idx].mean(); }
-    double PartAngle(unsigned int idx) const { return partsAng_[idx].mean(); }
+    Stats<double> const& PartDist(unsigned int idx)  const { return partsDist_[idx]; }
+    Stats<double> const& PartAngle(unsigned int idx) const { return partsAng_[idx]; }
 #   ifdef MPI
     DataSet_integer* Data() const { return data_; }
     /// New hydrogen bond with given # frames

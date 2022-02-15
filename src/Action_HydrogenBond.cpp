@@ -1012,6 +1012,25 @@ std::vector<int> Action_HydrogenBond::GetRankNhbonds( int num_hb, Parallel::Comm
   return nhb_on_rank;
 }
 
+/** Add Hbond class to flat arrays. */
+void Action_HydrogenBond::HbondToArray(std::vector<double>& Dvals, std::vector<int>& Ivals, Hbond const& hb)
+{
+  Dvals.push_back( hb.Dist() );
+  Dvals.push_back( hb.Angle() );
+  for (unsigned int idx = 0; idx != hb.Nparts(); idx++) {
+    Dvals.push_back( hb.PartDist(idx).nData() );
+    Dvals.push_back( hb.PartDist(idx).mean() );
+    Dvals.push_back( hb.PartDist(idx).M2() );
+    Dvals.push_back( hb.PartAngle(idx).nData() );
+    Dvals.push_back( hb.PartAngle(idx).mean() );
+    Dvals.push_back( hb.PartAngle(idx).M2() );
+  }
+  Ivals.push_back( hb.A() );
+  Ivals.push_back( hb.H() );
+  Ivals.push_back( hb.D() );
+  Ivals.push_back( hb.Frames() );
+}
+
 /** PARALLEL NOTES:
   * The following tags are used for MPI send/receive:
   *   1300  : Array containing hbond double info on rank.
@@ -1039,12 +1058,18 @@ int Action_HydrogenBond::SyncAction() {
   }
 
   // Need to send hbond data from all ranks to master.
-  std::vector<double> Dvals;           // Hold dist_ and angle_ for each hbond
+  std::vector<double> Dvals;           // Hold dist_ and angle_ for each hbond, as well as n_/mean_/M2_ for dist/angle each part
   std::vector<int> Ivals;              // Hold A_, H_, D_, and frames_ for each hbond
+  unsigned int dvalsPerHbond;
+  if (!splitFrames_.empty())
+    dvalsPerHbond = 2 + ((splitFrames_.size()+1) * 6);
+  else
+    dvalsPerHbond = 2;
   // Need to know how many hbonds on each thread.
   std::vector<int> nuu_on_rank = GetRankNhbonds( UU_Map_.size(), trajComm_ );
   std::vector<int> nuv_on_rank = GetRankNhbonds( UV_Map_.size(), trajComm_ );
   if (trajComm_.Master()) {
+    // MASTER RANK
     for (int rank = 1; rank < trajComm_.Size(); rank++)
     {
       int n_total_on_rank = nuu_on_rank[rank] + nuv_on_rank[rank];
@@ -1052,8 +1077,8 @@ int Action_HydrogenBond::SyncAction() {
       {
         std::vector<DataSet_integer*> Svals;
         if (series_) Svals.reserve( n_total_on_rank );
-        Dvals.resize( 2 * n_total_on_rank );
-        Ivals.resize( 4 * n_total_on_rank );
+        Dvals.resize( dvalsPerHbond * n_total_on_rank );
+        Ivals.resize( 4             * n_total_on_rank );
         trajComm_.Recv( &(Dvals[0]), Dvals.size(), MPI_DOUBLE, rank, 1300 );
         trajComm_.Recv( &(Ivals[0]), Ivals.size(), MPI_INT,    rank, 1301 );
         // Loop over all received hydrogen bonds
@@ -1062,7 +1087,7 @@ int Action_HydrogenBond::SyncAction() {
         const int* IV = &Ivals[0];
         const double* DV = &Dvals[0];
         // UU Hbonds
-        for (int in = 0; in != nuu_on_rank[rank]; in++, IV += 4, DV += 2)
+        for (int in = 0; in != nuu_on_rank[rank]; in++, IV += 4, DV += dvalsPerHbond)
         {
           Hpair hbidx(IV[1], IV[0]);
           UUmapType::iterator it = UU_Map_.lower_bound( hbidx );
@@ -1081,7 +1106,7 @@ int Action_HydrogenBond::SyncAction() {
           Svals.push_back( ds );
         }
         // UV Hbonds
-        for (int in = 0; in != nuv_on_rank[rank]; in++, IV += 4, DV += 2)
+        for (int in = 0; in != nuv_on_rank[rank]; in++, IV += 4, DV += dvalsPerHbond)
         {
           int hbidx;
           if (IV[1] != -1)
@@ -1135,27 +1160,30 @@ int Action_HydrogenBond::SyncAction() {
         hb->second.FinishSeries( Nframes_ );
     }
   } else {
+    // NON-MASTER RANK
     if (!UU_Map_.empty()) {
       unsigned int ntotal = UU_Map_.size() + UV_Map_.size();
-      Dvals.reserve( ntotal * 2 );
+      Dvals.reserve( ntotal * dvalsPerHbond );
       Ivals.reserve( ntotal * 4 );
       // Store UU bonds in flat arrays.
       for (UUmapType::const_iterator it = UU_Map_.begin(); it != UU_Map_.end(); ++it) {
-        Dvals.push_back( it->second.Dist() );
+        /*Dvals.push_back( it->second.Dist() );
         Dvals.push_back( it->second.Angle() );
         Ivals.push_back( it->second.A() );
         Ivals.push_back( it->second.H() );
         Ivals.push_back( it->second.D() );
-        Ivals.push_back( it->second.Frames() );
+        Ivals.push_back( it->second.Frames() );*/
+        HbondToArray(Dvals, Ivals, it->second);
       }
       // Store UV bonds in flat arrays
       for (UVmapType::const_iterator it = UV_Map_.begin(); it != UV_Map_.end(); ++it) {
-        Dvals.push_back( it->second.Dist() );
+        /*Dvals.push_back( it->second.Dist() );
         Dvals.push_back( it->second.Angle() );
         Ivals.push_back( it->second.A() );
         Ivals.push_back( it->second.H() );
         Ivals.push_back( it->second.D() );
-        Ivals.push_back( it->second.Frames() );
+        Ivals.push_back( it->second.Frames() );*/
+        HbondToArray(Dvals, Ivals, it->second);
       }
       trajComm_.Send( &(Dvals[0]), Dvals.size(), MPI_DOUBLE, 0, 1300 );
       trajComm_.Send( &(Ivals[0]), Ivals.size(), MPI_INT,    0, 1301 );
@@ -1176,7 +1204,7 @@ int Action_HydrogenBond::SyncAction() {
         }
       }
     }
-  }
+  } // END COMMUNICATING HBOND DATA TO MASTER
 
   if (calcSolvent_) {
     // Sync bridging data
@@ -1330,7 +1358,7 @@ void Action_HydrogenBond::Print() {
         for (unsigned int idx = 0; idx != hbond->Nparts(); idx++)
           avgout_->Printf(" %8i %12.4f %12.4f %12.4f",
                           hbond->PartFrames(idx), hbond->PartFrac(idx, Nframes_),
-                          hbond->PartDist(idx), hbond->PartAngle(idx)*Constants::RADDEG);
+                          hbond->PartDist(idx).mean(), hbond->PartAngle(idx).mean()*Constants::RADDEG);
       }
       avgout_->Printf("\n");
     }
