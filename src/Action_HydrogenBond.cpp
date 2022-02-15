@@ -89,6 +89,25 @@ Action::RetType Action_HydrogenBond::Init(ArgList& actionArgs, ActionInit& init,
   acut_ = actionArgs.getKeyDouble("angle",135.0);
   noIntramol_ = actionArgs.hasKey("nointramol");
   bridgeByAtom_ = actionArgs.hasKey("bridgebyatom");
+  // Hbond split analysis
+  std::string splitarg = actionArgs.GetStringKey("splitframe");
+  if (!splitarg.empty()) {
+    ArgList splits( splitarg, "," );
+    if (splits.Nargs() < 1) {
+      mprinterr("Error: Invalid argument for 'splitframe': %s\n", splitarg.c_str());
+      return Action::ERR;
+    }
+    int sf = splits.getNextInteger(-1); // User frame #s start at 1
+    while (sf > 0) {
+      splitFrames_.push_back( sf - 1 );
+      sf = splits.getNextInteger(-1);
+    }
+    if ((int)splitFrames_.size() < splits.Nargs()) {
+      mprinterr("Error: Invalid split frame arguments.\n");
+      splits.CheckForMoreArgs();
+      return Action::ERR;
+    }
+  }
   // Convert angle cutoff to radians
   acut_ *= Constants::DEGRAD;
   double dcut = actionArgs.getKeyDouble("dist",3.0);
@@ -194,6 +213,12 @@ Action::RetType Action_HydrogenBond::Init(ArgList& actionArgs, ActionInit& init,
     mprintf("\tWriting # Hbond v time results to %s\n", DF->DataFilename().full());
   if (avgout_ != 0)
     mprintf("\tWriting Hbond avgs to %s\n",avgout_->Filename().full());
+  if (!splitFrames_.empty()) {
+    mprintf("\tWill split analysis at frames:");
+    for (Iarray::const_iterator it = splitFrames_.begin(); it != splitFrames_.end(); ++it)
+      mprintf(" %i", *it + 1);
+    mprintf("\n");
+  }
   if (calcSolvent_) {
     if (solvout_ != 0)
       mprintf("\tWriting solute-solvent hbond avgs to %s\n", solvout_->Filename().full());
@@ -1298,9 +1323,16 @@ void Action_HydrogenBond::Print() {
         Hname.append("_" + integerToString(hbond->H()+1));
         Dname.append("_" + integerToString(hbond->D()+1));
       }
-      avgout_->Printf("%-*s %*s %*s %8i %12.4f %12.4f %12.4f\n",
+      avgout_->Printf("%-*s %*s %*s %8i %12.4f %12.4f %12.4f",
                      NUM, Aname.c_str(), NUM, Hname.c_str(), NUM, Dname.c_str(),
                      hbond->Frames(), avg, hbond->Dist(), hbond->Angle());
+      if (!splitFrames_.empty()) {
+        for (unsigned int idx = 0; idx != hbond->Nparts(); idx++)
+          avgout_->Printf(" %8i %12.4f %12.4f %12.4f",
+                          hbond->PartFrames(idx), hbond->PartFrac(idx, Nframes_),
+                          hbond->PartDist(idx), hbond->PartAngle(idx));
+      }
+      avgout_->Printf("\n");
     }
   }
 

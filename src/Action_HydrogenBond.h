@@ -5,6 +5,7 @@
 #include "ImageOption.h"
 #include "DataSet_integer.h"
 #include "OnlineVarT.h"
+//#inc lude "CpptrajStdio.h" // DEBUG
 #ifdef TIMER
 # include "Timer.h"
 #endif
@@ -179,6 +180,12 @@ class Action_HydrogenBond::Hbond {
     int A()        const { return A_;      }
     int H()        const { return H_;      }
     int D()        const { return D_;      }
+    // Summary by parts
+    unsigned int Nparts() const { return partsDist_.size(); }
+    unsigned int PartFrames(unsigned int idx) const { return (unsigned int)partsDist_[idx].nData(); }
+    double PartFrac(unsigned int idx, unsigned int Nframes) const { return partsDist_[idx].nData() / (double)Nframes; }
+    double PartDist(unsigned int idx) const { return partsDist_[idx].mean(); }
+    double PartAngle(unsigned int idx) const { return partsAng_[idx].mean(); }
 #   ifdef MPI
     DataSet_integer* Data() const { return data_; }
     /// New hydrogen bond with given # frames
@@ -205,9 +212,10 @@ class Action_HydrogenBond::Hbond {
       ++frames_;
       if (data_ != 0) data_->AddVal(fnum, 1);
       if (!splitFrames.empty()) {
+        //mprintf("DEBUG: SPLIT: fnum= %i partsDistSize= %zu splitFramesSize= %zu\n", fnum, partsDist_.size(), splitFrames.size());
         // Find the correct part NOTE assumes fnum never out of range
-        int part = 0;
-        while (fnum >= splitFrames[part]) part++;
+        unsigned int part = 0;
+        while (part < splitFrames.size() && fnum >= splitFrames[part]) part++;
         partsDist_[part].accumulate( distIn );
         partsAng_[part].accumulate( angIn );
       }
