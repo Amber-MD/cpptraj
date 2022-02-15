@@ -33,8 +33,8 @@ class Action_HydrogenBond : public Action {
     inline double Angle(const double*, const double*, const double*, Box const&) const;
     inline int UU_Set_Idx(int,int) const;
     inline DataSet_integer* UUset(int,int,int);
-    void AddUU(double,double,int,int,int,int);
-    void AddUV(double,double,int,int,int,int,bool);
+    void AddUU(double,double,int,int,int,int,int);
+    void AddUV(double,double,int,int,int,int,bool,int);
     void CalcSiteHbonds(int,double,Site const&,const double*,int,const double*,
                         Frame const&, int&);
     void CalcSolvHbonds(int,double,Site const&,const double*,int,const double*,
@@ -206,16 +206,16 @@ class Action_HydrogenBond::Hbond {
         return (frames_ > rhs.frames_);
     }
     /// Update distance/angle/time series
-    void Update(double distIn, double angIn, int fnum, Iarray const& splitFrames) {
+    void Update(double distIn, double angIn, int fnum, Iarray const& splitFrames, int onum) {
       dist_ += distIn;
       angle_ += angIn;
       ++frames_;
       if (data_ != 0) data_->AddVal(fnum, 1);
       if (!splitFrames.empty()) {
-        //mprintf("DEBUG: SPLIT: fnum= %i partsDistSize= %zu splitFramesSize= %zu\n", fnum, partsDist_.size(), splitFrames.size());
-        // Find the correct part NOTE assumes fnum never out of range
+        //mprintf("DEBUG: SPLIT: onum= %i partsDistSize= %zu splitFramesSize= %zu\n", onum, partsDist_.size(), splitFrames.size());
+        // Find the correct part NOTE assumes onum never out of range
         unsigned int part = 0;
-        while (part < splitFrames.size() && fnum >= splitFrames[part]) part++;
+        while (part < splitFrames.size() && onum >= splitFrames[part]) part++;
         partsDist_[part].accumulate( distIn );
         partsAng_[part].accumulate( angIn );
       }

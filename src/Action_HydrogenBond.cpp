@@ -587,7 +587,7 @@ double Action_HydrogenBond::Angle(const double* XA, const double* XH, const doub
 }
 
 // Action_HydrogenBond::AddUV()
-void Action_HydrogenBond::AddUV(double dist, double angle,int fnum, int a_atom,int h_atom,int d_atom,bool udonor)
+void Action_HydrogenBond::AddUV(double dist, double angle,int fnum, int a_atom,int h_atom,int d_atom,bool udonor, int onum)
 {
   int hbidx, solventres, soluteres;
   // TODO: Option to use solvent mol num?
@@ -632,7 +632,7 @@ void Action_HydrogenBond::AddUV(double dist, double angle,int fnum, int a_atom,i
   } else {
 //      mprintf("DBG1: OLD hbond : %8i .. %8i - %8i\n", a_atom+1,h_atom+1,d_atom+1);
   }
-  it->second.Update(dist, angle, fnum, splitFrames_);
+  it->second.Update(dist, angle, fnum, splitFrames_, onum);
 }
 
 //  Action_HydrogenBond::CalcSolvHbonds()
@@ -660,7 +660,7 @@ void Action_HydrogenBond::CalcSolvHbonds(int frameNum, double dist2,
       thread_HBs_[numHB].push_back( Hbond(sqrt(dist2), angle, a_atom, *h_atom, d_atom, (int)soluteDonor) );
 #     else
       ++numHB;
-      AddUV(sqrt(dist2), angle, frameNum, a_atom, *h_atom, d_atom, soluteDonor);
+      AddUV(sqrt(dist2), angle, frameNum, a_atom, *h_atom, d_atom, soluteDonor, frmIn.TrajoutNum());
 #     endif
     }
   }
@@ -691,7 +691,7 @@ DataSet_integer* Action_HydrogenBond::UUset(int a_atom, int h_atom, int d_atom) 
 }
 
 // Action_HydrogenBond::AddUU()
-void Action_HydrogenBond::AddUU(double dist, double angle, int fnum, int a_atom, int h_atom, int d_atom)
+void Action_HydrogenBond::AddUU(double dist, double angle, int fnum, int a_atom, int h_atom, int d_atom, int onum)
 {
   // Index UU hydrogen bonds by DonorH-Acceptor
   Hpair hbidx(h_atom, a_atom);
@@ -708,7 +708,7 @@ void Action_HydrogenBond::AddUU(double dist, double angle, int fnum, int a_atom,
   } else {
 //      mprintf("DBG1: OLD hbond : %8i .. %8i - %8i\n", a_atom+1,h_atom+1,d_atom+1);
   }
-  it->second.Update(dist, angle, fnum, splitFrames_);
+  it->second.Update(dist, angle, fnum, splitFrames_, onum);
 }
 
 // Action_HydrogenBond::CalcSiteHbonds()
@@ -730,7 +730,7 @@ void Action_HydrogenBond::CalcSiteHbonds(int frameNum, double dist2,
       thread_HBs_[numHB].push_back( Hbond(sqrt(dist2), angle, a_atom, *h_atom, d_atom) );
 #     else
       ++numHB;
-      AddUU(sqrt(dist2), angle, frameNum, a_atom, *h_atom, d_atom);
+      AddUU(sqrt(dist2), angle, frameNum, a_atom, *h_atom, d_atom, frmIn.TrajoutNum());
 #     endif
     }
   }
@@ -844,7 +844,7 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
   for (std::vector<Harray>::iterator it = thread_HBs_.begin(); it != thread_HBs_.end(); ++it) {
     numHB += (int)it->size();
     for (Harray::const_iterator hb = it->begin(); hb != it->end(); ++hb)
-      AddUU(hb->Dist(), hb->Angle(), frameNum, hb->A(), hb->H(), hb->D());
+      AddUU(hb->Dist(), hb->Angle(), frameNum, hb->A(), hb->H(), hb->D(), frm.TrajoutNum());
     it->clear();
   }
 # endif
@@ -911,7 +911,7 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
     for (std::vector<Harray>::iterator it = thread_HBs_.begin(); it != thread_HBs_.end(); ++it) {
       numHB += (int)it->size();
       for (Harray::const_iterator hb = it->begin(); hb != it->end(); ++hb)
-        AddUV(hb->Dist(), hb->Angle(), frameNum, hb->A(), hb->H(), hb->D(), (bool)hb->Frames());
+        AddUV(hb->Dist(), hb->Angle(), frameNum, hb->A(), hb->H(), hb->D(), (bool)hb->Frames(), frm.TrajoutNum());
       it->clear();
     }
 #   endif
