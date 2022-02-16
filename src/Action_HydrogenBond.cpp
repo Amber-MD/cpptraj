@@ -1305,14 +1305,14 @@ int Action_HydrogenBond::SyncAction() {
             }
             b_it = BridgeMap_.insert( b_it, std::pair<std::set<int>,Bridge>(residues, Bridge(bds, iArray[i2])) );
             b_it->second.SetupParts(nParts, &iArray[0] + i2 + 1);
-            if (bds != 0) mprintf("DEBUG: '%s' was not on master.\n", bds->legend());
+            //if (bds != 0) mprintf("DEBUG: '%s' was not on master.\n", bds->legend());
             if (Bseriesout_ != 0) Bseriesout_->AddDataSet( bds );
           } else {
             // Bridge on master and rank. Increment bridge #frames.
             bds = b_it->second.Data();
             b_it->second.Combine( iArray[i2] );
             b_it->second.CombineParts(nParts, &iArray[0] + i2 + 1);
-            if (bds != 0) mprintf("DEBUG: '%s' was already on master.\n", bds->legend());
+            //if (bds != 0) mprintf("DEBUG: '%s' was already on master.\n", bds->legend());
           }
           Svals.push_back( bds );
           idx = i2 + 1 + nParts;
@@ -1323,8 +1323,8 @@ int Action_HydrogenBond::SyncAction() {
             DataSet_integer* ds = Svals[in]; 
             //ds->Resize( Nframes_ );
             //int* d_beg = ds->Ptr() + rank_offsets[ rank ];
-            rprintf("Receiving %i frames of bridge series data for %s, starting frame %i, # frames %i from rank %i (%i)\n",
-                    Nframes_, ds->legend(), rank_offsets[rank], rank_frames[rank], rank, 1304 + in);
+            //rprintf("Receiving %i frames of bridge series data for %s, starting frame %i, # frames %i from rank %i (%i)\n",
+            //        Nframes_, ds->legend(), rank_offsets[rank], rank_frames[rank], rank, 1304 + in);
             ds->Recv(Nframes_, rank_offsets[ rank ], rank_frames[ rank ],
                      rank, 1304 + in, trajComm_);
             //trajComm_.Recv( d_beg, rank_frames[ rank ], MPI_INT, rank, 1304 + in );
@@ -1362,7 +1362,7 @@ int Action_HydrogenBond::SyncAction() {
       if (Bseries_) {
         int in = 0; // For tag
         for (BmapType::const_iterator b = BridgeMap_.begin(); b != BridgeMap_.end(); ++b, in++) {
-          rprintf("Sending %zu frames of %s to master (%i).\n", b->second.Data()->Size(), b->second.Data()->legend(), 1304+in);
+          //rprintf("Sending %zu frames of %s to master (%i).\n", b->second.Data()->Size(), b->second.Data()->legend(), 1304+in);
           b->second.Data()->Send( 0, 1304 + in, trajComm_ );
           //trajComm_.Send( hb->second.Data()->Ptr(), hb->second.Data()->Size(), MPI_INT, 0, 1304 + in );
           b->second.Data()->SetNeedsSync( false );
