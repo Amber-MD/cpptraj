@@ -1075,7 +1075,7 @@ int Action_HydrogenBond::SyncAction() {
   }
 
   // Need to send hbond data from all ranks to master.
-  std::vector<double> Dvals;           // Hold dist_ and angle_ for each hbond, as well as n_/mean_/M2_ for dist/angle each part
+  std::vector<double> Dvals;           // Hold dist_ and angle_ for each hbond, (as well as n_/mean_/M2_ for dist/angle each part)
   std::vector<int> Ivals;              // Hold A_, H_, D_, and frames_ for each hbond
   unsigned int dvalsPerHbond;
   unsigned int nParts;
@@ -1221,10 +1221,11 @@ int Action_HydrogenBond::SyncAction() {
 
   if (calcSolvent_) {
     // Sync bridging data
-    // iArray will contain for each bridge: Nres, res1, ..., resN, Frames, Npart1, ..., NpartN
+    // iArray will contain for each bridge: Nres, res1, ..., resN, Frames[, Npart1, ..., NpartN]
     std::vector<int> iArray;
     int iSize;
     if (trajComm_.Master()) {
+      // MASTER RANK
       for (int rank = 1; rank < trajComm_.Size(); rank++)
       {
         // Receive size of iArray
@@ -1252,6 +1253,7 @@ int Action_HydrogenBond::SyncAction() {
         }
       }
     } else {
+       // NON-MASTER
        // Construct bridge info array.
        for (BmapType::const_iterator b = BridgeMap_.begin(); b != BridgeMap_.end(); ++b)
        {
@@ -1270,7 +1272,7 @@ int Action_HydrogenBond::SyncAction() {
       trajComm_.Send( &iSize,           1, MPI_INT, 0, 1302 );
       trajComm_.Send( &(iArray[0]), iSize, MPI_INT, 0, 1303 );
     }
-  }
+  } // END COMMUNICATING BRIDGE DATA TO MASTER
   return 0;
 }
 #endif
