@@ -43,6 +43,8 @@ class Action_HydrogenBond : public Action {
     void UpdateSeries();
     /// Determine memory usage from # hbonds and time series
     std::string MemoryUsage(size_t, size_t, size_t) const;
+    /// Print summary of parts for hbond
+    void summary_Parts(CpptrajFile*, Hbond const&) const;
 #   ifdef MPI
     static std::vector<int> GetRankNhbonds(int,Parallel::Comm const&);
     static void HbondToArray(std::vector<double>&, std::vector<int>&, Hbond const&);

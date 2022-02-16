@@ -1132,10 +1132,12 @@ int Action_HydrogenBond::SyncAction() {
               ds->SetLegend( CreateHBlegend(*CurrentParm_, IV[0], IV[1], IV[2]) );
               if (UVseriesout_ != 0) UVseriesout_->AddDataSet( ds );
             }
-            UV_Map_.insert(it, std::pair<int,Hbond>(hbidx,Hbond(DV[0],DV[1],ds,IV[0],IV[1],IV[2],IV[3])));
+            it = UV_Map_.insert(it, std::pair<int,Hbond>(hbidx,Hbond(DV[0],DV[1],ds,IV[0],IV[1],IV[2],IV[3])));
+            it->second.SetupParts(nParts, DV+2);
           } else {
             // Hbond on rank and master. Update on master.
             it->second.Combine(DV[0], DV[1], IV[3]);
+            it->second.CombineParts(nParts, DV+2);
             ds = it->second.Data();
           }
           Svals.push_back( ds );
@@ -1301,6 +1303,14 @@ std::string Action_HydrogenBond::MemoryUsage(size_t n_uu_pairs, size_t n_uv_pair
   return ByteString( memTotal, BYTE_DECIMAL );
 }
 
+/** Print summary by parts for given hbond. */
+void Action_HydrogenBond::summary_Parts(CpptrajFile* avgout, Hbond const& hb) const {
+  for (unsigned int idx = 0; idx != hb.Nparts(); idx++)
+    avgout->Printf(" %8i %12.4f %12.4f %12.4f",
+                   hb.PartFrames(idx), hb.PartFrac(idx, Nframes_),
+                   hb.PartDist(idx).mean(), hb.PartAngle(idx).mean()*Constants::RADDEG);
+}
+
 // Action_HydrogenBond::Print()
 /** Print average occupancies over all frames for all detected Hbonds. */
 void Action_HydrogenBond::Print() {
@@ -1360,12 +1370,8 @@ void Action_HydrogenBond::Print() {
       avgout_->Printf("%-*s %*s %*s %8i %12.4f %12.4f %12.4f",
                      NUM, Aname.c_str(), NUM, Hname.c_str(), NUM, Dname.c_str(),
                      hbond->Frames(), avg, hbond->Dist(), hbond->Angle());
-      if (!splitFrames_.empty()) {
-        for (unsigned int idx = 0; idx != hbond->Nparts(); idx++)
-          avgout_->Printf(" %8i %12.4f %12.4f %12.4f",
-                          hbond->PartFrames(idx), hbond->PartFrac(idx, Nframes_),
-                          hbond->PartDist(idx).mean(), hbond->PartAngle(idx).mean()*Constants::RADDEG);
-      }
+      if (!splitFrames_.empty())
+        summary_Parts(avgout_, *hbond);
       avgout_->Printf("\n");
     }
   }
@@ -1406,9 +1412,12 @@ void Action_HydrogenBond::Print() {
           Hname.append("_" + integerToString(hbond->H()+1));
         }
       }
-      solvout_->Printf("%-*s %*s %*s %8i %12.4f %12.4f %12.4f\n",
+      solvout_->Printf("%-*s %*s %*s %8i %12.4f %12.4f %12.4f",
                      NUM, Aname.c_str(), NUM, Hname.c_str(), NUM, Dname.c_str(),
                      hbond->Frames(), avg, hbond->Dist(), hbond->Angle());
+      if (!splitFrames_.empty())
+        summary_Parts(solvout_, *hbond);
+      solvout_->Printf("\n");
     }
     HbondList.clear();
   }
