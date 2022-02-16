@@ -266,6 +266,19 @@ inline bool IsFON(Atom const& atm) {
           atm.Element() == Atom::NITROGEN);
 }
 
+/** Create legend for hydrogen bond based on given atoms. */
+static inline std::string CreateHBlegend(Topology const& topIn, int a_atom, int h_atom, int d_atom)
+{
+  if (a_atom == -1)
+    return (topIn.TruncResAtomName(h_atom) + "-V");
+  else if (d_atom == -1)
+    return (topIn.TruncResAtomName(a_atom) + "-V");
+  else
+    return (topIn.TruncResAtomName(a_atom) + "-" +
+            topIn.TruncResAtomName(d_atom) + "-" +
+            topIn[h_atom].Name().Truncated());
+}
+
 // Action_HydrogenBond::Setup()
 Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
   CurrentParm_ = setup.TopAddress();
@@ -636,10 +649,10 @@ void Action_HydrogenBond::AddUV(double dist, double angle,int fnum, int a_atom,i
     }
     Hbond hb;
     if (udonor) { // Do not care about which solvent acceptor
-      if (ds != 0) ds->SetLegend( CurrentParm_->TruncResAtomName(h_atom) + "-V" );
+      if (ds != 0) ds->SetLegend( CreateHBlegend(*CurrentParm_, -1, h_atom, d_atom) );
       hb = Hbond(ds, -1, h_atom, d_atom, splitFrames_);
     } else {           // Do not care about which solvent donor
-      if (ds != 0) ds->SetLegend( CurrentParm_->TruncResAtomName(a_atom) + "-V" );
+      if (ds != 0) ds->SetLegend( CreateHBlegend(*CurrentParm_, a_atom, -1, -1) );
       hb = Hbond(ds, a_atom, -1, -1, splitFrames_);
     }
     it = UV_Map_.insert(it, std::pair<int,Hbond>(hbidx,hb));
@@ -698,13 +711,10 @@ int Action_HydrogenBond::UU_Set_Idx(int a_atom, int h_atom) const {
 //  Action_HydrogenBond::UUset()
 /** \return solute-solute hydrogen bond time series set with legend set. */
 DataSet_integer* Action_HydrogenBond::UUset(int a_atom, int h_atom, int d_atom) {
-  std::string hblegend = CurrentParm_->TruncResAtomName(a_atom) + "-" +
-                         CurrentParm_->TruncResAtomName(d_atom) + "-" +
-                         (*CurrentParm_)[h_atom].Name().Truncated();
   DataSet_integer* ds = (DataSet_integer*)
     masterDSL_->AddSet(DataSet::INTEGER,MetaData(hbsetname_,"solutehb",UU_Set_Idx(a_atom,h_atom)));
   if (UUseriesout_ != 0) UUseriesout_->AddDataSet( ds );
-  ds->SetLegend( hblegend );
+  ds->SetLegend( CreateHBlegend(*CurrentParm_, a_atom, h_atom, d_atom) );
   return ds;
 }
 
@@ -1017,19 +1027,6 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
 }
 
 #ifdef MPI
-// TODO Use in other hbond functions
-static inline std::string CreateHBlegend(Topology const& topIn, int a_atom, int h_atom, int d_atom)
-{
-  if (a_atom == -1)
-    return (topIn.TruncResAtomName(h_atom) + "-V");
-  else if (d_atom == -1)
-    return (topIn.TruncResAtomName(a_atom) + "-V");
-  else
-    return (topIn.TruncResAtomName(a_atom) + "-" +
-            topIn.TruncResAtomName(d_atom) + "-" +
-            topIn[h_atom].Name().Truncated());
-}
-
 // Action_HydrogenBond::GetRankNhbonds()
 /** Determine how many hydrogen bonds are on each rank. */
 std::vector<int> Action_HydrogenBond::GetRankNhbonds( int num_hb, Parallel::Comm const& commIn )
