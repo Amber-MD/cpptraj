@@ -52,7 +52,7 @@ void Action_HydrogenBond::Help() const {
           "\t[solvout <filename>] [bridgeout <filename>] [bridgebyatom]\n"
           "\t[series [uuseries <filename>] [uvseries <filename>]]\n"
           "\t[bseries [bseriesfile <filename>]]\n"
-          "\t[splitframe <comma-separated-list>\n"
+          "\t[splitframe <comma-separated-list>]\n"
           "  Hydrogen bond is defined as A-HD, where A is acceptor heavy atom, H is\n"
           "  hydrogen, D is donor heavy atom. Hydrogen bond is formed when\n"
           "  A to D distance < dcut and A-H-D angle > acut; if acut < 0 it is ignored.\n"
