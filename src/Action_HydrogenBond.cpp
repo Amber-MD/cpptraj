@@ -577,6 +577,7 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
 }
 
 // Action_HydrogenBond::Angle()
+/** Calculate angle between 3 atoms, optionally with imaging. */
 double Action_HydrogenBond::Angle(const double* XA, const double* XH, const double* XD, Box const& boxIn) const
 {
   if (imageOpt_.ImagingType() == ImageOption::NO_IMAGE)
@@ -649,6 +650,9 @@ void Action_HydrogenBond::AddUV(double dist, double angle,int fnum, int a_atom,i
 }
 
 //  Action_HydrogenBond::CalcSolvHbonds()
+/** Calculate hydrogen bonds between solute site and solvent acceptor,
+  * or solvent site and solute acceptor.
+  */
 void Action_HydrogenBond::CalcSolvHbonds(int frameNum, double dist2,
                                          Site const& SiteD, const double* XYZD,
                                          int a_atom,        const double* XYZA,
@@ -692,6 +696,7 @@ int Action_HydrogenBond::UU_Set_Idx(int a_atom, int h_atom) const {
 }
 
 //  Action_HydrogenBond::UUset()
+/** \return solute-solute hydrogen bond time series set with legend set. */
 DataSet_integer* Action_HydrogenBond::UUset(int a_atom, int h_atom, int d_atom) {
   std::string hblegend = CurrentParm_->TruncResAtomName(a_atom) + "-" +
                          CurrentParm_->TruncResAtomName(d_atom) + "-" +
@@ -704,6 +709,7 @@ DataSet_integer* Action_HydrogenBond::UUset(int a_atom, int h_atom, int d_atom) 
 }
 
 // Action_HydrogenBond::AddUU()
+/** Add or update a solute-solute hydrogen bond with given angle/distance. */
 void Action_HydrogenBond::AddUU(double dist, double angle, int fnum, int a_atom, int h_atom, int d_atom, int onum)
 {
   // Index UU hydrogen bonds by DonorH-Acceptor
@@ -725,6 +731,11 @@ void Action_HydrogenBond::AddUU(double dist, double angle, int fnum, int a_atom,
 }
 
 // Action_HydrogenBond::CalcSiteHbonds()
+/** Calculate hydrogen bonds between given solute donor site and 
+  * solute acceptor atom.
+  * The distance cutoff should already be satisfied between donor and
+  * acceptor heavy atoms.
+  */
 void Action_HydrogenBond::CalcSiteHbonds(int frameNum, double dist2,
                                          Site const& SiteD, const double* XYZD,
                                          int a_atom,        const double* XYZA,
@@ -1020,6 +1031,7 @@ static inline std::string CreateHBlegend(Topology const& topIn, int a_atom, int 
 }
 
 // Action_HydrogenBond::GetRankNhbonds()
+/** Determine how many hydrogen bonds are on each rank. */
 std::vector<int> Action_HydrogenBond::GetRankNhbonds( int num_hb, Parallel::Comm const& commIn )
 {
   std::vector<int> nhb_on_rank;
@@ -1275,9 +1287,12 @@ int Action_HydrogenBond::SyncAction() {
   } // END COMMUNICATING BRIDGE DATA TO MASTER
   return 0;
 }
-#endif
+#endif /* MPI */
 
 // Action_HydrogenBond::UpdateSeries()
+/** Ensure all time series data is up-to-date with Nframes.
+  * Should only be called once.
+  */
 void Action_HydrogenBond::UpdateSeries() {
   if (seriesUpdated_) return;
   if (series_ && Nframes_ > 0) {
@@ -1286,11 +1301,11 @@ void Action_HydrogenBond::UpdateSeries() {
     for (UVmapType::iterator hb = UV_Map_.begin(); hb != UV_Map_.end(); ++hb)
       hb->second.FinishSeries(Nframes_);
   }
-  // Should only be called once.
   seriesUpdated_ = true;
 }
 
 // Action_Hbond::MemoryUsage()
+/** Estimate the memory usage of the hbond command. */
 std::string Action_HydrogenBond::MemoryUsage(size_t n_uu_pairs, size_t n_uv_pairs, size_t nFrames) const
 {
   static const size_t sizeHbond = sizeof(Hbond);

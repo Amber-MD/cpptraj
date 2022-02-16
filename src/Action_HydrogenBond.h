@@ -30,14 +30,20 @@ class Action_HydrogenBond : public Action {
     class Hbond;
     class Bridge;
     class bridgeSorter;
-
+    /// Calcuate angle with optional imaging.
     inline double Angle(const double*, const double*, const double*, Box const&) const;
+    /// \return solute-solute hydrogen bond index based on donor/acceptor atoms
     inline int UU_Set_Idx(int,int) const;
+    /// \return solute-solute hydrogen bond time series DataSet.
     inline DataSet_integer* UUset(int,int,int);
+    /// Add/update solute-solute hydrogen bond 
     void AddUU(double,double,int,int,int,int,int);
+    /// Add/update solute-solvent hydrogen bond
     void AddUV(double,double,int,int,int,int,bool,int);
+    /// Calculate UU hydrogen bonds between site and acceptor atom.
     void CalcSiteHbonds(int,double,Site const&,const double*,int,const double*,
                         Frame const&, int&);
+    /// Calculate UV hydrogen bonds between solute/solvent site and solute/solvent acceptor atom.
     void CalcSolvHbonds(int,double,Site const&,const double*,int,const double*,
                         Frame const&, int&, bool);
     /// Update all hydrogen bond time series
@@ -49,7 +55,9 @@ class Action_HydrogenBond : public Action {
     /// Print summary of parts for hbond
     void summary_Parts(CpptrajFile*, Hbond const&) const;
 #   ifdef MPI
+    /// \return Array containing # hbonds on each rank
     static std::vector<int> GetRankNhbonds(int,Parallel::Comm const&);
+    /// Flatten given Hbond into arrays
     static void HbondToArray(std::vector<double>&, std::vector<int>&, Hbond const&);
 #   endif
 
