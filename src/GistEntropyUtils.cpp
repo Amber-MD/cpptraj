@@ -1,5 +1,140 @@
 #include "GistEntropyUtils.h"
 #include <algorithm>
+#include <cmath>
+#include <iostream>
+#include <stdexcept>
+
+
+
+/** Compute translational and 6D distances to elements in V_XYZ_vec and V_Q_vec, store the smallest in NNd and NNs;
+  *
+  * For each solvent molecule defined by three elements of V_XYZ_vec (its
+  * position) and four elements of V_Q_vec (its quaternion), computes the 3D
+  * distance to X, Y, Z, as well as the 6D distance to X, Y, Z, W4, X4, Y4, Z4
+  * (also position + quaternion). If the squared 3D distance is < NNd, replaces
+  * the current value. If the squared 6D distance is < NNs, replaces the
+  * current value.
+  *
+  * \param center water X, Y, Z
+  * \param W4 water quaternion W
+  * \param X4 water quaternion X
+  * \param Y4 water quaternion Y
+  * \param Z4 water quaternion Z
+  * \param V_XYZ_vec positions of solvent molecules
+  * \param V_Q_vec quaternions of solvent molecules
+  * \param omit Index of molecule that should be omitted. Set to negative to include all.
+  * \param NNd (IN- and OUTPUT) stores the nearest translational distance found so far.
+  * \param NNs (IN- and OUTPUT) stores the nearest 6D distance found so far.
+  */
+void searchVectorsForNearestNeighbors6D(Vec3 center,
+                               float W4, float X4, float Y4, float Z4,
+                               const Farray& V_XYZ_vec, const Farray& V_Q_vec,
+                               int omit, double& NNd, double& NNs)
+{
+  int nw_tot = V_XYZ_vec.size() / 3;
+  # ifdef DEBUG_GIST
+  if (int(V_Q_vec.size()) != 4 * nw_tot) {
+      throw std::logic_error("Inconsistent size of coordinate and quaternion arrays in TransEntropy");
+  }
+  #endif
+  // This seems a bit hacky, but increases calculation speed by a few percent.
+  // Works because, if nw_tot is zero, the arrays never get dereferenced.
+  const float* V_XYZ = &V_XYZ_vec[0];
+  const float* V_Q = &V_Q_vec[0];
+  for (int n1 = 0; n1 != nw_tot; ++n1)
+  {
+    int i1 = n1 * 3; // index into V_XYZ for n1
+    double dx = (double)(center[0] - V_XYZ[i1  ]);
+    double dy = (double)(center[1] - V_XYZ[i1+1]);
+    double dz = (double)(center[2] - V_XYZ[i1+2]);
+    double dd = dx*dx+dy*dy+dz*dz;
+
+    if (dd < NNs && n1 != omit)
+    {
+      // NNd is always < NNs, therefore we only check dd < NNd if dd < NNs
+      if (dd < NNd) { NNd = dd; }
+      int q1 = n1 * 4; // index into V_Q for n1
+      double rR = 2.0 * acos( fabs(W4 * V_Q[q1  ] +
+                              X4 * V_Q[q1+1] +
+                              Y4 * V_Q[q1+2] +
+                              Z4 * V_Q[q1+3] )); //add fabs for quaternions distance calculation
+      double ds = rR*rR + dd;
+      if (ds < NNs) { NNs = ds; }
+    }
+  }
+}
+
+/**
+ * Search a 3D grid for the nearest neighbor of a molecule in 3D (translation) and 6D (translation+rotation)
+ *
+ * \param center coordinates of the reference molecule
+ * \param W4 molecule orientation (quaternion)
+ * \param X4 molecule orientation (quaternion)
+ * \param Y4 molecule orientation (quaternion)
+ * \param Z4 molecule orientation (quaternion)
+ * \param V_XYZ vector (length N_voxels) of vectors (length N_other*3) of other molecules' positions
+ * \param V_Q vector (length N_voxels) of vectors (length N_other*4) of other molecules' quaternions
+ * \param grid_Nx number of grid voxels in x dimension.
+ * \param grid_Ny number of grid voxels in y dimension.
+ * \param grid_Nz number of grid voxels in z dimension.
+ * \param grid_origin origin (xyz pos of the center of the first voxel) of the grid.
+ * \param grid_spacing spacing of the grid, same in all directions.
+ * \param n_layers maximum number of layers of voxels to search for nearest neighbors
+ * \param omit_in_central_vox index of molecule in the central voxel to omit.
+ * \return std::pair<double, double> SQUARED distances in 3D and 6D.
+ */
+std::pair<double, double> searchGridNearestNeighbors6D(
+    Vec3 center,
+    float W4, float X4, float Y4, float Z4,
+    const std::vector<Farray>& V_XYZ, const std::vector<Farray>& V_Q,
+    int grid_Nx, int grid_Ny, int grid_Nz,
+    Vec3 grid_origin,
+    double grid_spacing,
+    int n_layers, int omit_in_central_vox)
+{
+  // will keep the smallest squared distance. first: trans, second: six
+  std::pair<double, double>nearest(GIST_HUGE, GIST_HUGE);
+  int vox_x = int(floor((center[0] - grid_origin[0]) / grid_spacing + 0.5));
+  int vox_y = int(floor((center[1] - grid_origin[1]) / grid_spacing + 0.5));
+  int vox_z = int(floor((center[2] - grid_origin[2]) / grid_spacing + 0.5));
+
+  // In the innermost voxel, we want to omit the molecule that corresponds to the current center.
+  int omit = omit_in_central_vox;
+  for (int layer=0; layer<=n_layers; ++layer) {
+    int xmin = std::max(vox_x - layer, 0);
+    int xmax = std::min(vox_x + layer, grid_Nx-1);
+    int ymin = std::max(vox_y - layer, 0);
+    int ymax = std::min(vox_y + layer, grid_Ny-1);
+    int zmin = std::max(vox_z - layer, 0);
+    int zmax = std::min(vox_z + layer, grid_Nz-1);
+    for (int x = xmin; x <= xmax; ++x) {
+      // track whether the voxel is on the border (outermost layer) in each dimension
+      bool x_is_border = (x == vox_x-layer || x == vox_x+layer);
+      for (int y = ymin; y <= ymax; ++y) {
+        bool y_is_border = (y == vox_y-layer || y == vox_y+layer);
+        for (int z = zmin; z <= zmax; ++z) {
+          bool z_is_border = (z == vox_z-layer || z == vox_z+layer);
+          // omit voxels that are contained in previous layers, i.e., that are not on the border.
+          if (x_is_border || y_is_border || z_is_border) {
+            int other_vox = voxel_num(x, y, z, grid_Nx, grid_Ny, grid_Nz);
+            searchVectorsForNearestNeighbors6D(
+              center, W4, X4, Y4, Z4, V_XYZ[other_vox], V_Q[other_vox], omit, nearest.first, nearest.second);
+          }
+        }
+      }
+    }
+    // In the first layer there is only one voxel. After that is finished, we set omit to -1 to include all molecules.
+    omit = -1;
+    // If the 6D distance is small enough, we can stop the search early.
+    // No need to check the translational distance, since it is always smaller than the 6D distance.
+    double safe_dist = grid_spacing * layer;
+    safe_dist *= safe_dist;
+    if (nearest.second < safe_dist) {
+      break;
+    }
+  }
+  return nearest;
+}
 
 /**
  * Correction factors of the 6-D volume for NN entropy calculation.
@@ -7,7 +142,7 @@
  * Reference: J. Chem. Theory Comput. 2016, 12, 1, 1–8
  * The values are V_approx(d) / V_exact(d), where V_exact(d) is evaluated by numerically solving
  * Eq. 11 in Python using scipy.integrate.quad, and V_approx is calculated via Eq. 12.
- * The x values are 0.01 times the index.
+ * The x values are 0, 0.01, 0.02, 0.03, ...
  */
 static const double SIX_CORR[] = {
     1.0,
