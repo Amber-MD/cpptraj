@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 # Clean
-CleanFiles hbond.in nhb.dat avghb.dat
+CleanFiles hbond.in nhb.dat avghb.dat solvhb.dat solvavg.dat
 
 INPUT="-i hbond.in"
 
