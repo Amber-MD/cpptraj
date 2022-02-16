@@ -37,6 +37,7 @@
 #include "Exec_Set.h"
 #include "Exec_Show.h"
 #include "Exec_Random.h"
+#include "Exec_CompareClusters.h"
 // ----- SYSTEM ----------------------------------------------------------------
 #include "Exec_System.h"
 // ----- COORDS ----------------------------------------------------------------
@@ -56,6 +57,7 @@
 // ----- TOPOLOGY --------------------------------------------------------------
 #include "Exec_Change.h"
 #include "Exec_CompareTop.h"
+#include "Exec_HmassRepartition.h"
 #include "Exec_ParmBox.h"
 #include "Exec_ParmSolvent.h"
 #include "Exec_ParmStrip.h"
@@ -213,6 +215,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_Calc(),            Cmd::EXE, 1, "calc" );
   Command::AddCmd( new Exec_Clear(),           Cmd::EXE, 1, "clear" );
   Command::AddCmd( new Exec_ClusterMap(),      Cmd::EXE, 1, "clustermap" ); // hidden
+  Command::AddCmd( new Exec_CompareClusters(), Cmd::EXE, 1, "compareclusters" ); //hidden
   Command::AddCmd( new Exec_CreateDataFile(),  Cmd::EXE, 1, "create" );
   Command::AddCmd( new Exec_CreateSet(),       Cmd::EXE, 1, "createset" );
   Command::AddCmd( new Exec_DataFileCmd(),     Cmd::EXE, 1, "datafile" );
@@ -278,6 +281,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_ChargeInfo(),    Cmd::EXE, 1, "charge" );
   Command::AddCmd( new Exec_CompareTop(),    Cmd::EXE, 1, "comparetop" );
   Command::AddCmd( new Exec_DihedralInfo(),Cmd::EXE, 3,"dihedrals","dihedralinfo","printdihedrals");
+  Command::AddCmd( new Exec_HmassRepartition(),Cmd::EXE, 1, "hmassrepartition" );
   Command::AddCmd( new Exec_ImproperInfo(),Cmd::EXE, 3,"impropers","improperinfo","printimpropers");
   Command::AddCmd( new Exec_MassInfo(),      Cmd::EXE, 1, "mass" );
   Command::AddCmd( new Exec_MolInfo(),       Cmd::EXE, 1, "molinfo" );

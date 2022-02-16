@@ -11726,7 +11726,7 @@ The following topology related commands are available:
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="21" columns="2">
+<lyxtabular version="3" rows="22" columns="2">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top">
 <column alignment="center" valignment="top">
@@ -11889,6 +11889,26 @@ dihedralinfo, dihedrals, printdihedrals
 
 \begin_layout Plain Layout
 Print dihedral info for selected atoms.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+hmassrepartition
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Perform hydrogen mass repartitioning.
 \end_layout
 
 \end_inset
@@ -13041,6 +13061,86 @@ B
 If 4 masks are given instead of 1, print info for dihedrals with first atom
  in <mask1>, second atom in <mask2>, third atom in <mask3>, and fourth atom
  in <mask4>.
+\end_layout
+
+\begin_layout Subsection
+hmassrepartition
+\end_layout
+
+\begin_layout LyX-Code
+hmassrepartition [parm <name> | crdset <set> | parmindex <#> | <#>]
+\end_layout
+
+\begin_layout LyX-Code
+             	[<mask>] [hmass <hydrogen new mass>] [dowater]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+parm
+\begin_inset space ~
+\end_inset
+
+<name> Modify topology selected by name.
+\end_layout
+
+\begin_layout Description
+crdset
+\begin_inset space ~
+\end_inset
+
+<set> Modify topology of COORDS set.
+\end_layout
+
+\begin_layout Description
+parmindex
+\begin_inset space ~
+\end_inset
+
+<#>
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+<#> Modify topology selected by index <#> (starting from 0).
+\end_layout
+
+\begin_layout Description
+<mask> Atoms to modify (all solute atoms by default).
+\end_layout
+
+\begin_layout Description
+hmass
+\begin_inset space ~
+\end_inset
+
+<hydrogen
+\begin_inset space ~
+\end_inset
+
+new
+\begin_inset space ~
+\end_inset
+
+mass> Mass to change hydrogens to (3.024 u by default).
+\end_layout
+
+\begin_layout Description
+dowater If specified, modify water hydrogen mass as well.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Perform hydrogen mass repartitioning on the specified topology.
+ Hydrogen mass repartitioning means that for a given heavy atom, the mass
+ of all bonded hydrogens are increased (to 3.024 u by default) and the mass
+ of that heavy atom is decreased so as to maintain the same overall mass.
+ The main use case is to allow longer time steps for molecular dynamics
+ integration due to reduced frequency of vibration of bonds to hydrogen
+ atoms.
 \end_layout
 
 \begin_layout Subsection
@@ -41639,6 +41739,18 @@ gracecolor
 \end_layout
 
 \begin_layout Description
+<name>[DBI] Hold final Davies-Bouldin index.
+\end_layout
+
+\begin_layout Description
+<name>[PSF] Hold final pseudo-F value.
+\end_layout
+
+\begin_layout Description
+<name>[SSRSST] Hold final SSR/SST value.
+\end_layout
+
+\begin_layout Description
 <name>[NCVT] (
 \series bold
 clustersvtime
@@ -41754,12 +41866,16 @@ cluster C2 :2-10 clusters 8 epsilon 2.0 info C2.info pairdist PW
 \end_layout
 
 \begin_layout Subsubsection*
-Clustering Success Metrics (info file)
+Clustering Success Metrics
 \end_layout
 
 \begin_layout Standard
-The Davies-Bouldin Index (DBI) measures sum over all clusters of the within
- cluster scatter to the between cluster separation; 
+The Davies-Bouldin Index (DBI, reported in the 
+\series bold
+info
+\series default
+ file) measures sum over all clusters of the within cluster scatter to the
+ between cluster separation; 
 \series bold
 the smaller the DBI, the better
 \series default
@@ -41772,7 +41888,11 @@ the smaller the DBI, the better
 \end_layout
 
 \begin_layout Standard
-The pseudo-F statistic (pSF) is another measure of clustering goodness.
+The pseudo-F statistic (pSF, reported in the 
+\series bold
+info
+\series default
+ file) is another measure of clustering goodness.
  It is intended to capture the 'tightness' of clusters, and is in essence
  a ratio of the mean sum of squares between groups to the mean sum of squares
  within group.
@@ -41791,8 +41911,12 @@ Higher values of pseudo-F are good
 \end_layout
 
 \begin_layout Standard
-The SSR/SST is the ratio of the sum of squares regression (SSR or between
- sum of squares) and the total sum of squares (SST).
+The SSR/SST (reported in the 
+\series bold
+info
+\series default
+ file) is the ratio of the sum of squares regression (SSR or between sum
+ of squares) and the total sum of squares (SST).
  The SSR is calculated via the sum of the squared distances of all points
  within a given cluster to its centroid, and summed together for all clusters.
  The total sum of squares is the sum of squared distances for all frames
@@ -41811,21 +41935,121 @@ There should be a point at which adding more clusters does not substantially
 \end_layout
 
 \begin_layout Standard
-The cluster silhouette is a measure of how well each point fits within a
- cluster.
+The cluster silhouette (
+\series bold
+sil
+\series default
+/
+\series bold
+silidx
+\series default
+ keywords) is a measure of how well each point fits within a cluster.
  Values of 1 indicate the point is very similar to other points in the cluster,
  i.e.
  it is well-clustered.
  Values of -1 indicate the point is dissimilar and may fit better in a neighbori
 ng cluster.
  Values of 0 indicate the point is on a border between two clusters.
- The file containing the cluster silhouette value for each frame can be
- viewed directly with the XMGRACE plotting program using the default (sorted
- by silhouette value) index ('
+ The 
 \series bold
-silidx idx
+sil <prefix>
 \series default
-').
+ keyword will write two files.
+ The first, <prefix>.cluster.dat, which has the format:
+\end_layout
+
+\begin_layout LyX-Code
+#Cluster <Si> StdDev
+\end_layout
+
+\begin_layout Standard
+Where #Cluster is the cluster number, <Si> is the average silhouette value
+ for all frames in the cluster, and StdDev is the standard deviation of
+ the silhouette value for all frames in the cluster.
+ The second, <prefix>.frame.dat, will contain the silhouette value for each
+ frame grouped by cluster, with indices controlled by the 
+\series bold
+silidx
+\series default
+ keyword (default sorted by ascending silhouette value), e.g.:
+\end_layout
+
+\begin_layout LyX-Code
+#C0 Silhouette
+\end_layout
+
+\begin_layout LyX-Code
+#C0      Silhouette
+\end_layout
+
+\begin_layout LyX-Code
+       0 -0.135988
+\end_layout
+
+\begin_layout LyX-Code
+       1 -0.0266746
+\end_layout
+
+\begin_layout LyX-Code
+       2 -0.0167628
+\end_layout
+
+\begin_layout LyX-Code
+       3 0.0609673
+\end_layout
+
+\begin_layout LyX-Code
+       4 0.0649603
+\end_layout
+
+\begin_layout LyX-Code
+       5 0.0835595
+\end_layout
+
+\begin_layout LyX-Code
+
+\end_layout
+
+\begin_layout LyX-Code
+#C1      Silhouette
+\end_layout
+
+\begin_layout LyX-Code
+       6 0.319039
+\end_layout
+
+\begin_layout LyX-Code
+       7 0.319785
+\end_layout
+
+\begin_layout LyX-Code
+       8 0.348833
+\end_layout
+
+\begin_layout LyX-Code
+       9 0.358286
+\end_layout
+
+\begin_layout LyX-Code
+
+\end_layout
+
+\begin_layout LyX-Code
+       0 0.1376
+\end_layout
+
+\begin_layout LyX-Code
+       9 0.1376
+\end_layout
+
+\begin_layout Standard
+The last two lines will contain the overall average silhouette value twice,
+ one at the lowest index and one at the highest.
+ The file is formatted in this way to make it easy to visualize each cluster
+ silhouette relative to the average value in e.g.
+ the XMGRACE plotting program.
+ If the clustering results in one or more cluster with silhouette values
+ completely below the average line, the clustering is likely poor.
 \end_layout
 
 \begin_layout Subsubsection*
@@ -41861,7 +42085,7 @@ The K-dist plot will be named <prefix>.<k>.dat, with the default prefix being
  The K-dist plot usually looks like a curve with an initially steep slope
  that gradually decreases.
  Around where the initial part of the curve starts to flatten out (indicating
- an increas in density) is around where epsilon should be set; minpoints
+ an increase in density) is around where epsilon should be set; minpoints
  is set to whatever <k> was.
  It has been suggested that the shape of the K-dist curve doesn't change
  too much after Kdist=4, but users are encouraged to experiment.

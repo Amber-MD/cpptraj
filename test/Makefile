@@ -491,6 +491,9 @@ test.multipucker:
 test.ljc:
 	@-cd Test_LJC && ./RunTest.sh $(OPT)
 
+test.hmassrepartition:
+	@-cd Test_HmassRepartition && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -646,7 +649,8 @@ COMPLETETESTS=test.general \
               test.flatten \
               test.random \
               test.multipucker \
-              test.ljc
+              test.ljc \
+              test.hmassrepartition
 
 test.all:
 	$(MAKE) test.complete summary

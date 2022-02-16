@@ -163,8 +163,12 @@ int OutputToFile(const char* fname) {
   FinalizeIO();
   if (fname != 0) {
     mprintf("Info: Redirecting output to file '%s'\n", fname);
+    // Save STDOUT_ in case opening new STDOUT_ fails.
+    FILE* tmp = STDOUT_;
     STDOUT_ = fopen(fname, "wb");
     if (STDOUT_ == 0) {
+      // Restore old STDOUT_
+      STDOUT_ = tmp;
       loudPrinterr("Error: Could not open output file '%s'\n", fname);
       return 1;
     }

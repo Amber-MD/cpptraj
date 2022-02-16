@@ -1,3 +1,4 @@
+#include <cmath>
 #include <algorithm> // std::max, std::sort
 #include <limits> // double max
 #include <list>
@@ -41,7 +42,9 @@ int Silhouette::CalcSilhouette(List const& clusters,
     clusterFrameSil_.push_back( SilPairArray() );
     SilPairArray& SiVals = clusterFrameSil_.back();
     SiVals.reserve( Ci->Nframes() );
-    double avg_si = 0.0;
+    //double avg_si = 0.0;
+    clusterAvgSil_.push_back( Stats<double>() );
+    Stats<double>& avg_si = clusterAvgSil_.back();
     int ci_frames = 0;
     for (Node::frame_iterator f1 = Ci->beginframe(); f1 != Ci->endframe(); ++f1)
     {
@@ -105,7 +108,7 @@ int Silhouette::CalcSilhouette(List const& clusters,
         else {
           double si = (min_bi - ai) / max_ai_bi;
           SiVals.push_back( SilPair(*f1, si) );
-          avg_si += si;
+          avg_si.accumulate( si );
           ++ci_frames;
         }
       } // END if frame should be calcd
@@ -117,10 +120,10 @@ int Silhouette::CalcSilhouette(List const& clusters,
       for (SilPairArray::const_iterator it = SiVals.begin(); it != SiVals.end(); ++it)
         mprintf("\t%8i %g\n", it->first+1, it->second);
     }
-    if (ci_frames > 0)
-      avg_si /= (double)ci_frames;
+    //if (ci_frames > 0)
+    //  avg_si /= (double)ci_frames;
     //mprintf("DEBUG: Cluster silhouette: %8i %g\n", Ci->Num(), avg_si);
-    clusterAvgSil_.push_back( avg_si );
+    //clusterAvgSil_.push_back( avg_si );
   } // END outer loop over clusters
   return 0;
 }
@@ -144,9 +147,17 @@ int Silhouette::numMismatchErr(const char* desc, unsigned int nclusters) const {
 int Silhouette::PrintSilhouetteFrames(CpptrajFile& Ffile, List const& clusters)
 const
 {
+  if (clusterFrameSil_.empty()) return 0;
   if (numMismatchErr("PrintSilhouetteFrames", clusters.Nclusters())) return 1;
   // TODO different ways of writing out cluster frame silhouettes, like sort index?
+  Stats<double> overallAvg;
   unsigned int idx = 0;
+  unsigned int minIdx;
+  if (silIdxType_ == IDX_FRAME)
+    minIdx = clusterFrameSil_.front().front().first + 1;
+  else
+    minIdx = 0;
+  unsigned int maxIdx = minIdx;
   List::cluster_iterator Ci = clusters.begincluster();
   for (SilFrameArray::const_iterator it = clusterFrameSil_.begin();
                                      it != clusterFrameSil_.end(); ++it, ++Ci)
@@ -157,13 +168,22 @@ const
     for (SilPairArray::const_iterator jt = spaTemp.begin();
                                       jt != spaTemp.end(); ++jt, ++idx)
     {
+      unsigned int currentIdx;
       if (silIdxType_ == IDX_FRAME)
-        Ffile.Printf("%8i %g\n", jt->first + 1, jt->second);
+        currentIdx = (unsigned int)(jt->first + 1);
+        //Ffile.Printf("%8i %g\n", jt->first + 1, jt->second);
       else // IDX_SORTED, IDX_NOT_SPECIFIED
-        Ffile.Printf("%8u %g\n", idx, jt->second);
+        currentIdx = idx;
+        //Ffile.Printf("%8u %g\n", idx, jt->second);
+      Ffile.Printf("%8u %g\n", currentIdx, jt->second);
+      overallAvg.accumulate( jt->second );
+      minIdx = std::min(minIdx, currentIdx);
+      maxIdx = std::max(maxIdx, currentIdx);
     }
     Ffile.Printf("\n");
   }
+  Ffile.Printf("%8u %g\n", minIdx, overallAvg.mean());
+  Ffile.Printf("%8u %g\n", maxIdx, overallAvg.mean());
   return 0;
 }
 
@@ -173,11 +193,11 @@ const
 {
   if (numMismatchErr("PrintAvgSilhouettes", clusters.Nclusters())) return 1;
   // TODO is it ok to assume clusters are in order?
-  Cfile.Printf("%-8s %10s\n", "#Cluster", "<Si>");
+  Cfile.Printf("%-8s %10s %10s\n", "#Cluster", "<Si>", "StdDev");
   List::cluster_iterator Ci = clusters.begincluster();
   for (Darray::const_iterator it = clusterAvgSil_.begin();
                               it != clusterAvgSil_.end(); ++it, ++Ci)
-    Cfile.Printf("%8i %g\n", Ci->Num(), *it);
+    Cfile.Printf("%8i %10.6f %10.6f\n", Ci->Num(), it->mean(), sqrt(it->variance()));
   return 0;
 }
 
