@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 # Clean
-CleanFiles hbond.in nhb.dat avghb.dat solvhb.dat solvavg.dat
+CleanFiles hbond.in nhb.dat avghb.dat solvhb.dat solvavg.dat bridges.dat
 
 INPUT="-i hbond.in"
 
@@ -33,10 +33,12 @@ TestUVsplit() {
 parm ../tz2.ortho.parm7
 trajin ../tz2.ortho.nc
 hbond hb out solvhb.dat :1-13 solventacceptor :WAT@O solventdonor :WAT \
-      solvout solvavg.dat bridgeout solvavg.dat splitframe 5
+      solvout solvavg.dat bridgeout solvavg.dat splitframe 5 \
+      bseries bseriesfile bridges.dat
 EOF
     RunCpptraj "$UNITNAME"
     DoTest solvavg.dat.save solvavg.dat
+    DoTest bridges.dat.save bridges.dat
   fi
 }
 
