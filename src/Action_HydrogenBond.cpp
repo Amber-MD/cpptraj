@@ -292,6 +292,15 @@ static inline std::string CreateHBlegend(Topology const& topIn, int a_atom, int 
             topIn[h_atom].Name().Truncated());
 }
 
+/** Create legend for bridge based on given indices. */
+static inline std::string CreateBridgeLegend(std::set<int> indices)
+{
+  std::string blegend("B");
+  for (std::set<int>::const_iterator brs = indices.begin(); brs != indices.end(); ++brs)
+    blegend.append("_" + integerToString(*brs + 1));
+  return blegend;
+}
+
 // Action_HydrogenBond::Setup()
 Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
   CurrentParm_ = setup.TopAddress();
@@ -1022,10 +1031,7 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
               bds = (DataSet_integer*)
                 masterDSL_->AddSet(DataSet::INTEGER,MetaData(hbsetname_,"bridge",BridgeMap_.size()));
               // Create a legend from the indices.
-              std::string blegend("B");
-              for (std::set<int>::const_iterator brs = bridge->second.begin(); brs != bridge->second.end(); ++brs)
-                blegend.append("_" + integerToString(*brs + 1));
-              bds->SetLegend( blegend );
+              bds->SetLegend( CreateBridgeLegend( bridge->second ) );
               if (Bseriesout_ != 0) Bseriesout_->AddDataSet( bds );
             }
             b_it = BridgeMap_.insert( b_it, std::pair<std::set<int>,Bridge>(bridge->second, Bridge(bds, splitFrames_)) );
@@ -1049,6 +1055,19 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
   t_action_.Stop();
 # endif
   return Action::OK;
+}
+
+/** Ensure DataSet time series has at least N frames, fill out if necessary. */
+void Action_HydrogenBond::FinishSeries(DataSet_integer* data, unsigned int N) {
+  static const int ZERO = 0;
+  if (data != 0 && N > 0) {
+    if ( data->Size() < N ) {
+      data->Add( N-1, &ZERO );
+#     ifdef MPI
+      data->SetNeedsSync( false );
+#     endif
+    }
+  }
 }
 
 #ifdef MPI
@@ -1214,9 +1233,9 @@ int Action_HydrogenBond::SyncAction() {
     // updated to reflect overall # frames.
     if (series_) {
       for (UUmapType::iterator hb = UU_Map_.begin(); hb != UU_Map_.end(); ++hb)
-        hb->second.FinishSeries( Nframes_ );
+        FinishSeries( hb->second.Data(), Nframes_ );
       for (UVmapType::iterator hb = UV_Map_.begin(); hb != UV_Map_.end(); ++hb)
-        hb->second.FinishSeries( Nframes_ );
+        FinishSeries( hb->second.Data(), Nframes_ );
     }
   } else {
     // NON-MASTER RANK
@@ -1262,6 +1281,7 @@ int Action_HydrogenBond::SyncAction() {
       // MASTER RANK
       for (int rank = 1; rank < trajComm_.Size(); rank++)
       {
+        std::vector<DataSet_integer*> Svals;
         // Receive size of iArray
         trajComm_.Recv( &iSize,           1, MPI_INT, rank, 1302 );
         //mprintf("DEBUG: Receiving %i bridges from rank %i\n", iSize, rank);
@@ -1274,17 +1294,50 @@ int Action_HydrogenBond::SyncAction() {
           for (int ir = 0; ir != iArray[idx]; ir++, i2++)
             residues.insert( iArray[i2] );
           BmapType::iterator b_it = BridgeMap_.lower_bound( residues );
+          DataSet_integer* bds = 0;
           if (b_it == BridgeMap_.end() || b_it->first != residues ) {
-            // New Bridge 
-            b_it = BridgeMap_.insert( b_it, std::pair<std::set<int>,Bridge>(residues, Bridge(iArray[i2])) );
+            // Bridge not found on master. Create new Bridge.
+            if (Bseries_) {
+              bds = (DataSet_integer*)
+                masterDSL_->AddSet(DataSet::INTEGER,MetaData(hbsetname_,"bridge",BridgeMap_.size()));
+                // Create a legend from the indices.
+                bds->SetLegend( CreateBridgeLegend( residues ) );
+            }
+            b_it = BridgeMap_.insert( b_it, std::pair<std::set<int>,Bridge>(residues, Bridge(bds, iArray[i2])) );
             b_it->second.SetupParts(nParts, &iArray[0] + i2 + 1);
+            if (bds != 0) mprintf("DEBUG: '%s' was not on master.\n", bds->legend());
+            if (Bseriesout_ != 0) Bseriesout_->AddDataSet( bds );
           } else {
-            // Increment bridge #frames
+            // Bridge on master and rank. Increment bridge #frames.
+            bds = b_it->second.Data();
             b_it->second.Combine( iArray[i2] );
             b_it->second.CombineParts(nParts, &iArray[0] + i2 + 1);
+            if (bds != 0) mprintf("DEBUG: '%s' was already on master.\n", bds->legend());
           }
+          Svals.push_back( bds );
           idx = i2 + 1 + nParts;
         }
+        // Update all time series
+        if (Bseries_) {
+          for (unsigned int in = 0; in != Svals.size(); in++) {
+            DataSet_integer* ds = Svals[in]; 
+            //ds->Resize( Nframes_ );
+            //int* d_beg = ds->Ptr() + rank_offsets[ rank ];
+            rprintf("Receiving %i frames of bridge series data for %s, starting frame %i, # frames %i from rank %i (%i)\n",
+                    Nframes_, ds->legend(), rank_offsets[rank], rank_frames[rank], rank, 1304 + in);
+            ds->Recv(Nframes_, rank_offsets[ rank ], rank_frames[ rank ],
+                     rank, 1304 + in, trajComm_);
+            //trajComm_.Recv( d_beg, rank_frames[ rank ], MPI_INT, rank, 1304 + in );
+            ds->SetNeedsSync( false );
+          }
+        }
+      } // END LOOP OVER MASTER RANKS
+      // At this point we have all bridges from all ranks. Mark all bridge sets
+      // smaller than Nframes_ as synced and ensure the time series has been
+      // updated to reflect overall # frames.
+      if (Bseries_) {
+        for (BmapType::iterator b = BridgeMap_.begin(); b != BridgeMap_.end(); ++b)
+          FinishSeries( b->second.Data(), Nframes_ );
       }
     } else {
        // NON-MASTER
@@ -1305,6 +1358,16 @@ int Action_HydrogenBond::SyncAction() {
       iSize = (int)iArray.size();
       trajComm_.Send( &iSize,           1, MPI_INT, 0, 1302 );
       trajComm_.Send( &(iArray[0]), iSize, MPI_INT, 0, 1303 );
+      // Send series data to master
+      if (Bseries_) {
+        int in = 0; // For tag
+        for (BmapType::const_iterator b = BridgeMap_.begin(); b != BridgeMap_.end(); ++b, in++) {
+          rprintf("Sending %zu frames of %s to master (%i).\n", b->second.Data()->Size(), b->second.Data()->legend(), 1304+in);
+          b->second.Data()->Send( 0, 1304 + in, trajComm_ );
+          //trajComm_.Send( hb->second.Data()->Ptr(), hb->second.Data()->Size(), MPI_INT, 0, 1304 + in );
+          b->second.Data()->SetNeedsSync( false );
+        }
+      }
     }
   } // END COMMUNICATING BRIDGE DATA TO MASTER
   return 0;
@@ -1319,9 +1382,13 @@ void Action_HydrogenBond::UpdateSeries() {
   if (seriesUpdated_) return;
   if (series_ && Nframes_ > 0) {
     for (UUmapType::iterator hb = UU_Map_.begin(); hb != UU_Map_.end(); ++hb)
-      hb->second.FinishSeries(Nframes_);
+      FinishSeries(hb->second.Data(), Nframes_);
     for (UVmapType::iterator hb = UV_Map_.begin(); hb != UV_Map_.end(); ++hb)
-      hb->second.FinishSeries(Nframes_);
+      FinishSeries(hb->second.Data(), Nframes_);
+  }
+  if (Bseries_ && Nframes_ > 0) {
+    for (BmapType::iterator b = BridgeMap_.begin(); b != BridgeMap_.end(); ++b)
+      FinishSeries( b->second.Data(), Nframes_ );
   }
   seriesUpdated_ = true;
 }
@@ -1562,17 +1629,3 @@ void Action_HydrogenBond::Hbond::CalcAvg() {
   angle_ *= Constants::RADDEG;
 }
 
-/** For filling in series data. */
-const int Action_HydrogenBond::Hbond::ZERO = 0;
-
-/** Calculate average angle/distance. */
-void Action_HydrogenBond::Hbond::FinishSeries(unsigned int N) {
-  if (data_ != 0 && N > 0) {
-    if ( data_->Size() < N ) {
-      data_->Add( N-1, &ZERO );
-#     ifdef MPI
-      data_->SetNeedsSync( false );
-#     endif
-    }
-  }
-}

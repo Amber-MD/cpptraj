@@ -35,6 +35,7 @@ trajin ../tz2.ortho.nc
 hbond hb out solvhb.dat :1-13 solventacceptor :WAT@O solventdonor :WAT \
       solvout solvavg.dat bridgeout solvavg.dat splitframe 5 \
       bseries bseriesfile bridges.dat
+run
 EOF
     RunCpptraj "$UNITNAME"
     DoTest solvavg.dat.save solvavg.dat

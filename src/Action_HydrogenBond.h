@@ -60,6 +60,8 @@ class Action_HydrogenBond : public Action {
     /// Flatten given Hbond into arrays
     static void HbondToArray(std::vector<double>&, std::vector<int>&, Hbond const&);
 #   endif
+    /// Ensure DataSet time series has at least N frames, fill out if necessary.
+    static inline void FinishSeries(DataSet_integer*, unsigned int);
 
     typedef std::vector<Site> Sarray;
     typedef std::pair<int,int> Hpair;
@@ -168,8 +170,6 @@ class Action_HydrogenBond::Hbond {
         partsAng_.resize(splits.size()+1);
       }
     }
-//    Hbond(double d, double a, DataSet_integer* s, int ia, int ih, int id) :
-//      dist_(d), angle_(a), data_(s), A_(ia), H_(ih), D_(id), frames_(1) {}
 #   ifdef _OPENMP
     /// Just record that hbond exists
     Hbond(double d, double a, int ia, int ih, int id) :
@@ -178,12 +178,13 @@ class Action_HydrogenBond::Hbond {
     Hbond(double d, double a, int ia, int ih, int id, int sd) :
       dist_(d), angle_(a), data_(0), A_(ia), H_(ih), D_(id), frames_(sd) {}
 #   endif
-    double Dist()  const { return dist_;   }
-    double Angle() const { return angle_;  }
-    int Frames()   const { return frames_; }
-    int A()        const { return A_;      }
-    int H()        const { return H_;      }
-    int D()        const { return D_;      }
+    double Dist()           const { return dist_;   }
+    double Angle()          const { return angle_;  }
+    int Frames()            const { return frames_; }
+    int A()                 const { return A_;      }
+    int H()                 const { return H_;      }
+    int D()                 const { return D_;      }
+    DataSet_integer* Data() const { return data_; }
     // Summary by parts
     unsigned int Nparts() const { return partsDist_.size(); }
     unsigned int PartFrames(unsigned int idx) const { return (unsigned int)partsDist_[idx].nData(); }
@@ -191,7 +192,6 @@ class Action_HydrogenBond::Hbond {
     Stats<double> const& PartDist(unsigned int idx)  const { return partsDist_[idx]; }
     Stats<double> const& PartAngle(unsigned int idx) const { return partsAng_[idx]; }
 #   ifdef MPI
-    DataSet_integer* Data() const { return data_; }
     /// CONSTRUCTOR - New hydrogen bond with given # frames
     Hbond(double d, double a, DataSet_integer* s, int ia, int ih, int id, int n) :
       dist_(d), angle_(a), data_(s), A_(ia), H_(ih), D_(id), frames_(n) {}
@@ -246,9 +246,7 @@ class Action_HydrogenBond::Hbond {
       }
     }
     void CalcAvg();
-    void FinishSeries(unsigned int);
   private:
-    static const int ZERO;
     double dist_;  ///< Used to calculate average distance of hydrogen bond
     double angle_; ///< Used to calculate average angle of hydrogen bond
     DataSet_integer* data_; ///< Hold time series data
@@ -270,7 +268,7 @@ class Action_HydrogenBond::Bridge {
     }
 #   ifdef MPI
     /// Constructor - new bridge with given # frames
-    Bridge(int f) : data_(0), frames_(f) {}
+    Bridge(DataSet_integer* bds, int f) : data_(bds), frames_(f) {}
     /// Increment number of frames
     void Combine(int n) { frames_ += n; }
     /// Set up parts with given int array containing # frames for each part
@@ -287,7 +285,9 @@ class Action_HydrogenBond::Bridge {
         partsFrames_[idx] += ivals[idx];
     }
 #   endif
-    int Frames() const { return frames_; }
+    /// \return internal data set
+    DataSet_integer* Data() const { return data_; }
+    int Frames()            const { return frames_; }
     /// Update frames/time series
     void Update(int fnum, Iarray const& splitFrames, int onum) {
       ++frames_;
