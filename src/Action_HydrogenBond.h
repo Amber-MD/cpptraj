@@ -264,8 +264,11 @@ class Action_HydrogenBond::Hbond {
 /// Track solvent bridge between 2 or more solute residues.
 class Action_HydrogenBond::Bridge {
   public:
-    /// Constructor - new bridge
-    Bridge() : data_(0), frames_(1) {}
+    /// CONSTRUCTOR - new bridge
+    Bridge(Iarray const& splits) : data_(0), frames_(0) {
+      if (!splits.empty())
+        partsFrames_.assign(splits.size()+1, 0);
+    }
 #   ifdef MPI
     /// Constructor - new bridge with given # frames
     Bridge(int f) : data_(0), frames_(f) {}
@@ -274,9 +277,15 @@ class Action_HydrogenBond::Bridge {
 #   endif
     int Frames() const { return frames_; }
     /// Update frames/time series
-    void Update(int f) {
+    void Update(int fnum, Iarray const& splitFrames, int onum) {
       ++frames_;
-      if (data_ != 0) data_->AddVal(f, 1);
+      if (data_ != 0) data_->AddVal(fnum, 1);
+      if (!splitFrames.empty()) {
+        // Find the correct part NOTE assumes onum never out of range
+        unsigned int part = 0;
+        while (part < splitFrames.size() && onum >= splitFrames[part]) part++;
+        partsFrames_[part]++;
+      }
     }
     /// \return true if bridge has more frames than rhs.
     bool operator()(Bridge const& rhs) const {
@@ -288,7 +297,8 @@ class Action_HydrogenBond::Bridge {
         return false;
     }
   private:
-    DataSet_integer* data_; ///< Hold time series data
-    int frames_; ///< # frames this bridge has been present.
+    DataSet_integer* data_; ///< Hold time series data TODO
+    int frames_;            ///< # frames this bridge has been present.
+    Iarray partsFrames_;    ///< Hold # frames bridge present for each part.
 };
 #endif

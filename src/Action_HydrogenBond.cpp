@@ -941,7 +941,10 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
     for (RmapType::const_iterator bridge = solvent2solute_.begin();
                                   bridge != solvent2solute_.end(); ++bridge)
     {
-      // If solvent molecule is bound to 2 or more different residues,
+      // bridge->first is solvent residue number.
+      // bridge->second is a set of solute residue numbers the solvent
+      // residue is bound to.
+      // If solvent molecule is bound to 2 or more different solute residues,
       // it is bridging. 
       if ( bridge->second.size() > 1) {
         bool isBridge = true;
@@ -966,25 +969,26 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
           isBridge = (nequal < bridge->second.size());
         }
         if (isBridge) {
+          // numHB is used to track the number of bridges
           ++numHB;
           // Bridging Solvent residue number
           bridgeID.append(integerToString( bridge->first+1 ) + "(");
+          // Loop over solute residues this solvent is bound to.
           for (std::set<int>::const_iterator res = bridge->second.begin();
                                              res != bridge->second.end(); ++res)
             // Solute residue number being bridged
             bridgeID.append( integerToString( *res+1 ) + "+" );
           bridgeID.append("),");
-          // Find bridge in map based on this combo of residues (bridge.second)
+          // Find bridge in map based on this combo of residues (bridge->second)
           BmapType::iterator b_it = BridgeMap_.lower_bound( bridge->second );
           if (b_it == BridgeMap_.end() || b_it->first != bridge->second)
             // New Bridge 
-            BridgeMap_.insert( b_it, std::pair<std::set<int>,Bridge>(bridge->second, Bridge()) );
-          else
-            // Increment bridge #frames
-            b_it->second.Update(frameNum);
+            b_it = BridgeMap_.insert( b_it, std::pair<std::set<int>,Bridge>(bridge->second, Bridge(splitFrames_)) );
+          // Increment bridge #frames
+          b_it->second.Update(frameNum, splitFrames_, frm.TrajoutNum());
         }
       }
-    }
+    } // END LOOP OVER solvent2solute_
     if (bridgeID.empty())
       bridgeID.assign("None");
     NumBridge_->Add(frameNum, &numHB);
