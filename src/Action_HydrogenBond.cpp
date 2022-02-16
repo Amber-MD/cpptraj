@@ -1342,6 +1342,28 @@ void Action_HydrogenBond::summary_Parts(CpptrajFile* avgout, Hbond const& hb) co
                    hb.PartDist(idx).mean(), hb.PartAngle(idx).mean()*Constants::RADDEG);
 }
 
+/** Used to associate Bridge with solute atoms/residues and sort Bridges by frames. */
+class Action_HydrogenBond::bridgeSorter {
+  public:
+    /// CONSTRUCTOR - list of solute atoms/residues, Bridge info
+    bridgeSorter(std::set<int> const& uIdx, Bridge const& bridge) :
+      uIdx_(uIdx), bridge_(bridge) {}
+    /// Used to sort by bridge # frames
+    bool operator<(bridgeSorter const& rhs) const {
+      if (bridge_.Frames() == rhs.bridge_.Frames())
+        return (uIdx_ < rhs.uIdx_);
+      else
+        return (bridge_.Frames() > rhs.bridge_.Frames());
+    }
+    /// \return List of solute atom/residue #s
+    std::set<int> const& Uidx() const { return uIdx_; }
+    /// \return Bridging info
+    Bridge const& Binfo()       const { return bridge_; }
+  private:
+    std::set<int> uIdx_; ///< Hold solute atom/residue #s
+    Bridge bridge_;      ///< Hold bridging info.
+};
+
 // Action_HydrogenBond::Print()
 /** Print average occupancies over all frames for all detected Hbonds. */
 void Action_HydrogenBond::Print() {
@@ -1458,6 +1480,7 @@ void Action_HydrogenBond::Print() {
     }
     HbondList.clear();
   }
+
   // BRIDGING INFO
   if (bridgeout_ != 0 && calcSolvent_) {
     if (bridgeByAtom_)
@@ -1465,26 +1488,33 @@ void Action_HydrogenBond::Print() {
     else
       bridgeout_->Printf("#Bridging Solute Residues:\n");
     // Place bridging values in a vector for sorting
-    typedef std::vector<Bpair> Bvec;
+    typedef std::vector<bridgeSorter> Bvec;
     Bvec bridgevector;
+    bridgevector.reserve( BridgeMap_.size() );
     for (BmapType::const_iterator it = BridgeMap_.begin();
                                   it != BridgeMap_.end(); ++it)
-      bridgevector.push_back( Bpair(it->first, it->second.Frames()) );
-    std::sort( bridgevector.begin(), bridgevector.end(), bridge_cmp() );
+      bridgevector.push_back( bridgeSorter(it->first, it->second) );
+    std::sort( bridgevector.begin(), bridgevector.end() );
     for (Bvec::const_iterator bv = bridgevector.begin(); bv != bridgevector.end(); ++bv)
     {
       if (bridgeByAtom_) {
         bridgeout_->Printf("Bridge Atm");
-        for (std::set<int>::const_iterator atm = bv->first.begin();
-                                           atm != bv->first.end(); ++atm)
+        for (std::set<int>::const_iterator atm = bv->Uidx().begin();
+                                           atm != bv->Uidx().end(); ++atm)
           bridgeout_->Printf(" %s", CurrentParm_->TruncAtomNameNum(*atm).c_str());
       } else {
         bridgeout_->Printf("Bridge Res");
-        for (std::set<int>::const_iterator res = bv->first.begin();
-                                           res != bv->first.end(); ++res)
+        for (std::set<int>::const_iterator res = bv->Uidx().begin();
+                                           res != bv->Uidx().end(); ++res)
           bridgeout_->Printf(" %i:%s", *res+1, CurrentParm_->Res( *res ).Name().Formatted(4).c_str());
       }
-      bridgeout_->Printf(", %i frames.\n", bv->second);
+      bridgeout_->Printf(", %i frames.", bv->Binfo().Frames());
+      if (!splitFrames_.empty()) {
+        bridgeout_->Printf(" Parts:");
+        for (unsigned int idx = 0; idx != bv->Binfo().Nparts(); idx++)
+          bridgeout_->Printf(" %i", bv->Binfo().PartFrames(idx));
+      }
+      bridgeout_->Printf("\n");
     } 
   }
 }

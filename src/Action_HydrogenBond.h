@@ -29,6 +29,7 @@ class Action_HydrogenBond : public Action {
     class Site;
     class Hbond;
     class Bridge;
+    class bridgeSorter;
 
     inline double Angle(const double*, const double*, const double*, Box const&) const;
     inline int UU_Set_Idx(int,int) const;
@@ -118,18 +119,6 @@ class Action_HydrogenBond : public Action {
     bool hasSolventAcceptor_; ///< If true a solvent acceptor mask was specified.
     bool calcSolvent_;        ///< If true solute-solvent hbonds and bridges will be calcd.
     bool bridgeByAtom_;       ///< If true determine bridging by atom.
-    // TODO replace with class
-    typedef std::pair< std::set<int>,int > Bpair;
-    /// \return true if 1) p0 frames > p1 frames, 2) p0 res < p1 res
-    struct bridge_cmp {
-      inline bool operator()(Bpair const& p0, Bpair const& p1) const
-      {
-        if (p0.second == p1.second)
-          return (p0.first < p1.first);
-        else
-          return (p0.second > p1.second);
-      }
-    };
 };
 
 // ----- CLASSES ---------------------------------------------------------------
@@ -296,6 +285,9 @@ class Action_HydrogenBond::Bridge {
       else
         return false;
     }
+    // Summary by parts
+    unsigned int Nparts() const { return partsFrames_.size(); }
+    unsigned int PartFrames(unsigned int idx) const { return (unsigned int)partsFrames_[idx]; }
   private:
     DataSet_integer* data_; ///< Hold time series data TODO
     int frames_;            ///< # frames this bridge has been present.
