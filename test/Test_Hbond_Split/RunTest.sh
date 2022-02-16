@@ -9,7 +9,7 @@ INPUT="-i hbond.in"
 
 # Solute-solute, split by parts
 TestUUsplit() {
-  UNITNAME='Solute Hbond test'
+  UNITNAME='Solute Hbond test with split'
   CheckFor netcdf
   if [ $? -eq 0 ] ; then
     cat > hbond.in <<EOF
@@ -24,8 +24,24 @@ EOF
   fi
 }
 
+# Solute-Solvent test, split by parts
+TestUVsplit() {
+  UNITNAME='Solute-solvent hbond test with split'
+  CheckFor netcdf maxthreads 10
+  if [ $? -eq 0 ] ; then
+    cat > hbond.in <<EOF
+parm ../tz2.ortho.parm7
+trajin ../tz2.ortho.nc
+hbond hb out solvhb.dat :1-13 solventacceptor :WAT@O solventdonor :WAT \
+      solvout solvavg.dat bridgeout solvavg.dat splitframe 5
+EOF
+    RunCpptraj "$UNITNAME"
+    DoTest solvavg.dat.save solvavg.dat
+  fi
+}
 
 TestUUsplit
+TestUVsplit
 
 EndTest
 
