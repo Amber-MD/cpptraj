@@ -1303,6 +1303,20 @@ std::string Action_HydrogenBond::MemoryUsage(size_t n_uu_pairs, size_t n_uv_pair
   return ByteString( memTotal, BYTE_DECIMAL );
 }
 
+/** Print header for summary by parts. */
+void Action_HydrogenBond::summary_Parts_header(CpptrajFile* avgout, unsigned int nParts)
+{
+  if (nParts < 1) return;
+  for (unsigned int idx = 0; idx != nParts; idx++) {
+    std::string spart(integerToString(idx+1));
+    std::string frames( "Frames"  + spart);
+    std::string frac(   "Frac"    + spart);
+    std::string avgdist("AvgDist" + spart);
+    std::string avgang( "AvgAng"  + spart);
+    avgout->Printf(" %8s %12s %12s %12s", frames.c_str(), frac.c_str(), avgdist.c_str(), avgang.c_str());
+  }
+}
+
 /** Print summary by parts for given hbond. */
 void Action_HydrogenBond::summary_Parts(CpptrajFile* avgout, Hbond const& hb) const {
   for (unsigned int idx = 0; idx != hb.Nparts(); idx++)
@@ -1354,8 +1368,11 @@ void Action_HydrogenBond::Print() {
     UU_Map_.clear();
     // Sort and Print 
     sort( HbondList.begin(), HbondList.end() );
-    avgout_->Printf("%-*s %*s %*s %8s %12s %12s %12s\n", NUM, "#Acceptor", 
-                   NUM, "DonorH", NUM, "Donor", "Frames", "Frac", "AvgDist", "AvgAng");
+    avgout_->Printf("%-*s %*s %*s %8s %12s %12s %12s", NUM, "#Acceptor", 
+                    NUM, "DonorH", NUM, "Donor", "Frames", "Frac", "AvgDist", "AvgAng");
+    if (!splitFrames_.empty())
+      summary_Parts_header(avgout_, splitFrames_.size()+1);
+    avgout_->Printf("\n");
     for (Harray::const_iterator hbond = HbondList.begin(); hbond != HbondList.end(); ++hbond ) 
     {
       double avg = ((double)hbond->Frames()) / ((double) Nframes_);
@@ -1388,8 +1405,11 @@ void Action_HydrogenBond::Print() {
     sort( HbondList.begin(), HbondList.end() );
     // Calc averages and print
     solvout_->Printf("#Solute-Solvent Hbonds:\n");
-    solvout_->Printf("%-*s %*s %*s %8s %12s %12s %12s\n", NUM, "#Acceptor", 
-                   NUM, "DonorH", NUM, "Donor", "Count", "Frac", "AvgDist", "AvgAng");
+    solvout_->Printf("%-*s %*s %*s %8s %12s %12s %12s", NUM, "#Acceptor", 
+                     NUM, "DonorH", NUM, "Donor", "Count", "Frac", "AvgDist", "AvgAng");
+    if (!splitFrames_.empty())
+      summary_Parts_header(solvout_, splitFrames_.size()+1);
+    solvout_->Printf("\n");
     for (Harray::const_iterator hbond = HbondList.begin(); hbond != HbondList.end(); ++hbond )
     {
       // Average has slightly diff meaning since for any given frame multiple

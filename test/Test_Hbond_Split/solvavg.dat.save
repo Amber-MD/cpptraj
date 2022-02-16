@@ -1,5 +1,5 @@
 #Solute-Solvent Hbonds:
-#Acceptor              DonorH          Donor    Count         Frac      AvgDist       AvgAng
+#Acceptor              DonorH          Donor    Count         Frac      AvgDist       AvgAng  Frames1        Frac1     AvgDist1      AvgAng1  Frames2        Frac2     AvgDist2      AvgAng2
 GLU_5@OE1            SolventH     SolventDnr       24       2.4000       2.7018     162.8196        8       0.8000       2.7293     160.2363       16       1.6000       2.6881     164.1113
 GLU_5@OE2            SolventH     SolventDnr       17       1.7000       2.6891     158.7293        7       0.7000       2.6849     158.4141       10       1.0000       2.6920     158.9500
 GLY_7@O              SolventH     SolventDnr       15       1.5000       2.7616     157.9700        5       0.5000       2.7877     156.6524       10       1.0000       2.7486     158.6288
