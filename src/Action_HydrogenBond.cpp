@@ -635,7 +635,13 @@ double Action_HydrogenBond::Angle(const double* XA, const double* XH, const doub
   }
 }
 
+/** This version is for when fnum == onum (non-MPI) */
+void Action_HydrogenBond::AddUV(double dist, double angle,int fnum, int a_atom,int h_atom,int d_atom,bool udonor) {
+  AddUV(dist, angle, fnum, a_atom, h_atom, d_atom, udonor, fnum);
+}
+
 // Action_HydrogenBond::AddUV()
+/** Add or update a solute-solvent hydrogen bond with given angle/distance. */
 void Action_HydrogenBond::AddUV(double dist, double angle,int fnum, int a_atom,int h_atom,int d_atom,bool udonor, int onum)
 {
   int hbidx, solventres, soluteres;
@@ -712,7 +718,11 @@ void Action_HydrogenBond::CalcSolvHbonds(int frameNum, double dist2,
       thread_HBs_[numHB].push_back( Hbond(sqrt(dist2), angle, a_atom, *h_atom, d_atom, (int)soluteDonor) );
 #     else
       ++numHB;
-      AddUV(sqrt(dist2), angle, frameNum, a_atom, *h_atom, d_atom, soluteDonor, frmIn.TrajoutNum());
+      AddUV(sqrt(dist2), angle, frameNum, a_atom, *h_atom, d_atom, soluteDonor
+#           ifdef MPI
+            ,frmIn.TrajoutNum()
+#           endif
+           );
 #     endif
     }
   }
@@ -738,6 +748,13 @@ DataSet_integer* Action_HydrogenBond::UUset(int a_atom, int h_atom, int d_atom) 
   if (UUseriesout_ != 0) UUseriesout_->AddDataSet( ds );
   ds->SetLegend( CreateHBlegend(*CurrentParm_, a_atom, h_atom, d_atom) );
   return ds;
+}
+
+/** Add or update a solute-solute hydrogen bond with given angle/distance,
+  * input frame == output frame (non-MPI).
+  */
+void Action_HydrogenBond::AddUU(double dist, double angle, int fnum, int a_atom, int h_atom, int d_atom) {
+  AddUU(dist, angle, fnum, a_atom, h_atom, d_atom, fnum);
 }
 
 // Action_HydrogenBond::AddUU()
@@ -786,7 +803,11 @@ void Action_HydrogenBond::CalcSiteHbonds(int frameNum, double dist2,
       thread_HBs_[numHB].push_back( Hbond(sqrt(dist2), angle, a_atom, *h_atom, d_atom) );
 #     else
       ++numHB;
-      AddUU(sqrt(dist2), angle, frameNum, a_atom, *h_atom, d_atom, frmIn.TrajoutNum());
+      AddUU(sqrt(dist2), angle, frameNum, a_atom, *h_atom, d_atom
+#           ifdef MPI
+            ,frmIn.TrajoutNum()
+#           endif
+           );
 #     endif
     }
   }
@@ -900,7 +921,11 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
   for (std::vector<Harray>::iterator it = thread_HBs_.begin(); it != thread_HBs_.end(); ++it) {
     numHB += (int)it->size();
     for (Harray::const_iterator hb = it->begin(); hb != it->end(); ++hb)
-      AddUU(hb->Dist(), hb->Angle(), frameNum, hb->A(), hb->H(), hb->D(), frm.TrajoutNum());
+      AddUU(hb->Dist(), hb->Angle(), frameNum, hb->A(), hb->H(), hb->D()
+#           ifdef MPI
+            ,frm.TrajoutNum()
+#           endif
+           );
     it->clear();
   }
 # endif
@@ -967,7 +992,11 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
     for (std::vector<Harray>::iterator it = thread_HBs_.begin(); it != thread_HBs_.end(); ++it) {
       numHB += (int)it->size();
       for (Harray::const_iterator hb = it->begin(); hb != it->end(); ++hb)
-        AddUV(hb->Dist(), hb->Angle(), frameNum, hb->A(), hb->H(), hb->D(), (bool)hb->Frames(), frm.TrajoutNum());
+        AddUV(hb->Dist(), hb->Angle(), frameNum, hb->A(), hb->H(), hb->D(), (bool)hb->Frames()
+#             ifdef MPI
+              ,frm.TrajoutNum()
+#             endif
+             );
       it->clear();
     }
 #   endif
