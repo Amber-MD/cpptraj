@@ -117,6 +117,7 @@ class Action_HydrogenBond : public Action {
     int Nframes_;            ///< Number of frames action has been active
     int debug_;
     bool series_;             ///< If true track hbond time series.
+    bool Bseries_;            ///< If true track bridge time series.
     bool seriesUpdated_;      ///< If false hbond time series need to be finished.
     bool useAtomNum_;         ///< If true include atom numbers in labels/legends
     bool noIntramol_;         ///< If true ignore intramolecular hydrogen bonds/bridges.
@@ -262,7 +263,7 @@ class Action_HydrogenBond::Hbond {
 class Action_HydrogenBond::Bridge {
   public:
     /// CONSTRUCTOR - new bridge
-    Bridge(Iarray const& splits) : data_(0), frames_(0) {
+    Bridge(DataSet_integer* bds, Iarray const& splits) : data_(bds), frames_(0) {
       if (!splits.empty())
         partsFrames_.assign(splits.size()+1, 0);
     }

@@ -29,6 +29,7 @@ Action_HydrogenBond::Action_HydrogenBond() :
   Nframes_(0),
   debug_(0),
   series_(false),
+  Bseries_(false),
   seriesUpdated_(false),
   useAtomNum_(false),
   noIntramol_(false),
@@ -1002,9 +1003,16 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
           bridgeID.append("),");
           // Find bridge in map based on this combo of residues (bridge->second)
           BmapType::iterator b_it = BridgeMap_.lower_bound( bridge->second );
-          if (b_it == BridgeMap_.end() || b_it->first != bridge->second)
-            // New Bridge 
-            b_it = BridgeMap_.insert( b_it, std::pair<std::set<int>,Bridge>(bridge->second, Bridge(splitFrames_)) );
+          if (b_it == BridgeMap_.end() || b_it->first != bridge->second) {
+            // New Bridge
+            DataSet_integer* bds = 0; 
+            if (Bseries_) {
+              bds = (DataSet_integer*)
+                masterDSL_->AddSet(DataSet::INTEGER,MetaData(hbsetname_,"bridge",BridgeMap_.size()));
+              //if (Bseriesout_ != 0) Bseriesout_->AddDataSet( bds );
+            }
+            b_it = BridgeMap_.insert( b_it, std::pair<std::set<int>,Bridge>(bridge->second, Bridge(bds, splitFrames_)) );
+          }
           // Increment bridge #frames
           b_it->second.Update(frameNum, splitFrames_, frm.TrajoutNum());
         }
