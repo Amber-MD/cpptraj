@@ -49,6 +49,7 @@ void Action_HydrogenBond::Help() const {
           "\t[solventdonor <sdmask>] [solventacceptor <samask>]\n"
           "\t[solvout <filename>] [bridgeout <filename>] [bridgebyatom]\n"
           "\t[series [uuseries <filename>] [uvseries <filename>]]\n"
+          "\t[splitframe <comma-separated-list>\n"
           "  Hydrogen bond is defined as A-HD, where A is acceptor heavy atom, H is\n"
           "  hydrogen, D is donor heavy atom. Hydrogen bond is formed when\n"
           "  A to D distance < dcut and A-H-D angle > acut; if acut < 0 it is ignored.\n"
@@ -60,7 +61,10 @@ void Action_HydrogenBond::Help() const {
           "  searched for in <mask>.\n"
           "  If both donormask and acceptor mask are specified no automatic searching will occur.\n"
           "  If donorhmask is specified atoms in that mask will be paired with atoms in\n"
-          "  donormask instead of automatically searching for hydrogen atoms.\n");
+          "  donormask instead of automatically searching for hydrogen atoms.\n"
+          "  The 'splitframe' keyword can be used to divide the average hydrogen bond\n"
+          "  analysis into parts, e.g. 'splitframe 250,500,1000' will divide analysis\n"
+          "  into 1-249,250-499,500-999, etc.\n");
 }
 
 // Action_HydrogenBond::Init()
@@ -99,7 +103,16 @@ Action::RetType Action_HydrogenBond::Init(ArgList& actionArgs, ActionInit& init,
     }
     int sf = splits.getNextInteger(-1); // User frame #s start at 1
     while (sf > 0) {
-      splitFrames_.push_back( sf - 1 );
+      // Since user frame #s start at 1, subtract 1 for actual frame index.
+      sf--;
+      // Check that frame arg is valid
+      if (!splitFrames_.empty()) {
+        if (sf <= splitFrames_.back()) {
+          mprinterr("Error: 'splitframe' #s must be in increasing order.\n");
+          return Action::ERR;
+        }
+      }
+      splitFrames_.push_back( sf );
       sf = splits.getNextInteger(-1);
     }
     if ((int)splitFrames_.size() < splits.Nargs()) {
