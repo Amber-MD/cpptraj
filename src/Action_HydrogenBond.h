@@ -263,6 +263,19 @@ class Action_HydrogenBond::Bridge {
     Bridge(int f) : data_(0), frames_(f) {}
     /// Increment number of frames
     void Combine(int n) { frames_ += n; }
+    /// Set up parts with given int array containing # frames for each part
+    void SetupParts(unsigned int nparts, const int* ivals) {
+      if (nparts == 0) return;
+      partsFrames_.clear();
+      partsFrames_.reserve( nparts );
+      for (unsigned int idx = 0; idx != nparts; idx++)
+        partsFrames_.push_back( ivals[idx] );
+    }
+    /// Update parts with given int array containing # frames for each part
+    void CombineParts(unsigned int nparts, const int* ivals) {
+      for (unsigned int idx = 0; idx != nparts; idx++)
+        partsFrames_[idx] += ivals[idx];
+    }
 #   endif
     int Frames() const { return frames_; }
     /// Update frames/time series

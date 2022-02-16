@@ -1192,22 +1192,10 @@ int Action_HydrogenBond::SyncAction() {
       Ivals.reserve( ntotal * 4 );
       // Store UU bonds in flat arrays.
       for (UUmapType::const_iterator it = UU_Map_.begin(); it != UU_Map_.end(); ++it) {
-        /*Dvals.push_back( it->second.Dist() );
-        Dvals.push_back( it->second.Angle() );
-        Ivals.push_back( it->second.A() );
-        Ivals.push_back( it->second.H() );
-        Ivals.push_back( it->second.D() );
-        Ivals.push_back( it->second.Frames() );*/
         HbondToArray(Dvals, Ivals, it->second);
       }
       // Store UV bonds in flat arrays
       for (UVmapType::const_iterator it = UV_Map_.begin(); it != UV_Map_.end(); ++it) {
-        /*Dvals.push_back( it->second.Dist() );
-        Dvals.push_back( it->second.Angle() );
-        Ivals.push_back( it->second.A() );
-        Ivals.push_back( it->second.H() );
-        Ivals.push_back( it->second.D() );
-        Ivals.push_back( it->second.Frames() );*/
         HbondToArray(Dvals, Ivals, it->second);
       }
       trajComm_.Send( &(Dvals[0]), Dvals.size(), MPI_DOUBLE, 0, 1300 );
@@ -1233,7 +1221,7 @@ int Action_HydrogenBond::SyncAction() {
 
   if (calcSolvent_) {
     // Sync bridging data
-    // iArray will contain for each bridge: Nres, res1, ..., resN, Frames
+    // iArray will contain for each bridge: Nres, res1, ..., resN, Frames, Npart1, ..., NpartN
     std::vector<int> iArray;
     int iSize;
     if (trajComm_.Master()) {
@@ -1251,13 +1239,16 @@ int Action_HydrogenBond::SyncAction() {
           for (int ir = 0; ir != iArray[idx]; ir++, i2++)
             residues.insert( iArray[i2] );
           BmapType::iterator b_it = BridgeMap_.lower_bound( residues );
-          if (b_it == BridgeMap_.end() || b_it->first != residues )
+          if (b_it == BridgeMap_.end() || b_it->first != residues ) {
             // New Bridge 
-            BridgeMap_.insert( b_it, std::pair<std::set<int>,Bridge>(residues, Bridge(iArray[i2])) );
-          else
+            b_it = BridgeMap_.insert( b_it, std::pair<std::set<int>,Bridge>(residues, Bridge(iArray[i2])) );
+            b_it->second.SetupParts(nParts, &iArray[0] + i2 + 1);
+          } else {
             // Increment bridge #frames
             b_it->second.Combine( iArray[i2] );
-          idx = i2 + 1;
+            b_it->second.CombineParts(nParts, &iArray[0] + i2 + 1);
+          }
+          idx = i2 + 1 + nParts;
         }
       }
     } else {
@@ -1268,6 +1259,10 @@ int Action_HydrogenBond::SyncAction() {
          for ( std::set<int>::const_iterator r = b->first.begin(); r != b->first.end(); ++r)
            iArray.push_back( *r ); // Bridging res
          iArray.push_back( b->second.Frames() ); // # frames
+         if (nParts > 0) {
+           for (unsigned int part = 0; part != nParts; part++)
+             iArray.push_back( b->second.PartFrames(part) );
+         }
       }
       // Since the size of each bridge can be different (i.e. differing #s of
       // residues may be bridged), first send size of the transport array.
