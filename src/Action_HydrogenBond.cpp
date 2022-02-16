@@ -667,7 +667,6 @@ void Action_HydrogenBond::AddUV(double dist, double angle,int fnum, int a_atom,i
       ds = (DataSet_integer*)
            masterDSL_->AddSet(DataSet::INTEGER,MetaData(hbsetname_,"solventhb",hbidx));
       if (UVseriesout_ != 0) UVseriesout_->AddDataSet( ds );
-      //ds->AddVal( fnum, 1 );
     }
     Hbond hb;
     if (udonor) { // Do not care about which solvent acceptor
@@ -754,7 +753,6 @@ void Action_HydrogenBond::AddUU(double dist, double angle, int fnum, int a_atom,
     DataSet_integer* ds = 0;
     if (series_) {
       ds = UUset(a_atom, h_atom, d_atom);
-      //ds->AddVal( fnum, 1 );
     }
     it = UU_Map_.insert(it, std::pair<Hpair,Hbond>(hbidx,Hbond(ds, a_atom, h_atom, d_atom, splitFrames_)));
   } else {
