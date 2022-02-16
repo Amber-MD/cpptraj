@@ -635,13 +635,7 @@ double Action_HydrogenBond::Angle(const double* XA, const double* XH, const doub
   }
 }
 
-/** This version is for when fnum == onum (non-MPI) */
-void Action_HydrogenBond::AddUV(double dist, double angle,int fnum, int a_atom,int h_atom,int d_atom,bool udonor) {
-  AddUV(dist, angle, fnum, a_atom, h_atom, d_atom, udonor, fnum);
-}
-
 // Action_HydrogenBond::AddUV()
-/** Add or update a solute-solvent hydrogen bond with given angle/distance. */
 void Action_HydrogenBond::AddUV(double dist, double angle,int fnum, int a_atom,int h_atom,int d_atom,bool udonor, int onum)
 {
   int hbidx, solventres, soluteres;
@@ -697,7 +691,8 @@ void Action_HydrogenBond::AddUV(double dist, double angle,int fnum, int a_atom,i
 void Action_HydrogenBond::CalcSolvHbonds(int frameNum, double dist2,
                                          Site const& SiteD, const double* XYZD,
                                          int a_atom,        const double* XYZA,
-                                         Frame const& frmIn, int& numHB, bool soluteDonor)
+                                         Frame const& frmIn, int& numHB, bool soluteDonor,
+                                         int trajoutNum)
 {
   // The two sites are close enough to hydrogen bond.
   int d_atom = SiteD.Idx();
@@ -718,11 +713,7 @@ void Action_HydrogenBond::CalcSolvHbonds(int frameNum, double dist2,
       thread_HBs_[numHB].push_back( Hbond(sqrt(dist2), angle, a_atom, *h_atom, d_atom, (int)soluteDonor) );
 #     else
       ++numHB;
-      AddUV(sqrt(dist2), angle, frameNum, a_atom, *h_atom, d_atom, soluteDonor
-#           ifdef MPI
-            ,frmIn.TrajoutNum()
-#           endif
-           );
+      AddUV(sqrt(dist2), angle, frameNum, a_atom, *h_atom, d_atom, soluteDonor, trajoutNum);
 #     endif
     }
   }
@@ -748,13 +739,6 @@ DataSet_integer* Action_HydrogenBond::UUset(int a_atom, int h_atom, int d_atom) 
   if (UUseriesout_ != 0) UUseriesout_->AddDataSet( ds );
   ds->SetLegend( CreateHBlegend(*CurrentParm_, a_atom, h_atom, d_atom) );
   return ds;
-}
-
-/** Add or update a solute-solute hydrogen bond with given angle/distance,
-  * input frame == output frame (non-MPI).
-  */
-void Action_HydrogenBond::AddUU(double dist, double angle, int fnum, int a_atom, int h_atom, int d_atom) {
-  AddUU(dist, angle, fnum, a_atom, h_atom, d_atom, fnum);
 }
 
 // Action_HydrogenBond::AddUU()
@@ -788,7 +772,8 @@ void Action_HydrogenBond::AddUU(double dist, double angle, int fnum, int a_atom,
 void Action_HydrogenBond::CalcSiteHbonds(int frameNum, double dist2,
                                          Site const& SiteD, const double* XYZD,
                                          int a_atom,        const double* XYZA,
-                                         Frame const& frmIn, int& numHB)
+                                         Frame const& frmIn, int& numHB,
+                                         int trajoutNum)
 {
   // The two sites are close enough to hydrogen bond.
   int d_atom = SiteD.Idx();
@@ -803,11 +788,7 @@ void Action_HydrogenBond::CalcSiteHbonds(int frameNum, double dist2,
       thread_HBs_[numHB].push_back( Hbond(sqrt(dist2), angle, a_atom, *h_atom, d_atom) );
 #     else
       ++numHB;
-      AddUU(sqrt(dist2), angle, frameNum, a_atom, *h_atom, d_atom
-#           ifdef MPI
-            ,frmIn.TrajoutNum()
-#           endif
-           );
+      AddUU(sqrt(dist2), angle, frameNum, a_atom, *h_atom, d_atom, trajoutNum);
 #     endif
     }
   }
@@ -854,9 +835,9 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
           if ( !(dist2 > dcut2_) )
           {
             // Site 0 donor, Site 1 acceptor
-            CalcSiteHbonds(frameNum, dist2, Site0, XYZ0, Site1.Idx(), XYZ1, frm.Frm(), numHB);
+            CalcSiteHbonds(frameNum, dist2, Site0, XYZ0, Site1.Idx(), XYZ1, frm.Frm(), numHB, frm.TrajoutNum());
             // Site 1 donor, Site 0 acceptor
-            CalcSiteHbonds(frameNum, dist2, Site1, XYZ1, Site0.Idx(), XYZ0, frm.Frm(), numHB);
+            CalcSiteHbonds(frameNum, dist2, Site1, XYZ1, Site0.Idx(), XYZ0, frm.Frm(), numHB, frm.TrajoutNum());
           }
         }
       }
@@ -867,7 +848,7 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
           const double* XYZ1 = frm.Frm().XYZ( *a_atom );
           double dist2 = DIST2( imageOpt_.ImagingType(), XYZ0, XYZ1, frm.Frm().BoxCrd() );
           if ( !(dist2 > dcut2_) )
-            CalcSiteHbonds(frameNum, dist2, Site0, XYZ0, *a_atom, XYZ1, frm.Frm(), numHB);
+            CalcSiteHbonds(frameNum, dist2, Site0, XYZ0, *a_atom, XYZ1, frm.Frm(), numHB, frm.TrajoutNum());
         }
       }
     }
@@ -896,9 +877,9 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
         if ( !(dist2 > dcut2_) )
         {
           // Site 0 donor, Site 1 acceptor
-          CalcSiteHbonds(frameNum, dist2, Site0, XYZ0, Site1.Idx(), XYZ1, frm.Frm(), numHB);
+          CalcSiteHbonds(frameNum, dist2, Site0, XYZ0, Site1.Idx(), XYZ1, frm.Frm(), numHB, frm.TrajoutNum());
           // Site 1 donor, Site 0 acceptor
-          CalcSiteHbonds(frameNum, dist2, Site1, XYZ1, Site0.Idx(), XYZ0, frm.Frm(), numHB);
+          CalcSiteHbonds(frameNum, dist2, Site1, XYZ1, Site0.Idx(), XYZ0, frm.Frm(), numHB, frm.TrajoutNum());
         }
       }
       // Loop over solute acceptor-only
@@ -907,7 +888,7 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
         const double* XYZ1 = frm.Frm().XYZ( *a_atom );
         double dist2 = DIST2( imageOpt_.ImagingType(), XYZ0, XYZ1, frm.Frm().BoxCrd() );
         if ( !(dist2 > dcut2_) )
-          CalcSiteHbonds(frameNum, dist2, Site0, XYZ0, *a_atom, XYZ1, frm.Frm(), numHB);
+          CalcSiteHbonds(frameNum, dist2, Site0, XYZ0, *a_atom, XYZ1, frm.Frm(), numHB, frm.TrajoutNum());
       }
     }
 #   ifdef _OPENMP
@@ -921,11 +902,7 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
   for (std::vector<Harray>::iterator it = thread_HBs_.begin(); it != thread_HBs_.end(); ++it) {
     numHB += (int)it->size();
     for (Harray::const_iterator hb = it->begin(); hb != it->end(); ++hb)
-      AddUU(hb->Dist(), hb->Angle(), frameNum, hb->A(), hb->H(), hb->D()
-#           ifdef MPI
-            ,frm.TrajoutNum()
-#           endif
-           );
+      AddUU(hb->Dist(), hb->Angle(), frameNum, hb->A(), hb->H(), hb->D(), frm.TrajoutNum());
     it->clear();
   }
 # endif
@@ -961,9 +938,9 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
         if ( !(dist2 > dcut2_) )
         {
           // Solvent site donor, solute site acceptor
-          CalcSolvHbonds(frameNum, dist2, Vsite, VXYZ, Both_[sidx].Idx(), UXYZ, frm.Frm(), numHB, false);
+          CalcSolvHbonds(frameNum, dist2, Vsite, VXYZ, Both_[sidx].Idx(), UXYZ, frm.Frm(), numHB, false, frm.TrajoutNum());
           // Solvent site acceptor, solute site donor
-          CalcSolvHbonds(frameNum, dist2, Both_[sidx], UXYZ, Vsite.Idx(), VXYZ, frm.Frm(), numHB, true);
+          CalcSolvHbonds(frameNum, dist2, Both_[sidx], UXYZ, Vsite.Idx(), VXYZ, frm.Frm(), numHB, true, frm.TrajoutNum());
         }
       }
       // Loop over solute sites that are donor only
@@ -973,7 +950,7 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
         double dist2 = DIST2( imageOpt_.ImagingType(), VXYZ, UXYZ, frm.Frm().BoxCrd() );
         if ( !(dist2 > dcut2_) )
           // Solvent site acceptor, solute site donor
-          CalcSolvHbonds(frameNum, dist2, Both_[sidx], UXYZ, Vsite.Idx(), VXYZ, frm.Frm(), numHB, true);
+          CalcSolvHbonds(frameNum, dist2, Both_[sidx], UXYZ, Vsite.Idx(), VXYZ, frm.Frm(), numHB, true, frm.TrajoutNum());
       }
       // Loop over solute sites that are acceptor only
       for (Iarray::const_iterator a_atom = Acceptor_.begin(); a_atom != Acceptor_.end(); ++a_atom)
@@ -982,7 +959,7 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
         double dist2 = DIST2( imageOpt_.ImagingType(), VXYZ, UXYZ, frm.Frm().BoxCrd() );
         if ( !(dist2 > dcut2_) )
           // Solvent site donor, solute site acceptor
-          CalcSolvHbonds(frameNum, dist2, Vsite, VXYZ, *a_atom, UXYZ, frm.Frm(), numHB, false);
+          CalcSolvHbonds(frameNum, dist2, Vsite, VXYZ, *a_atom, UXYZ, frm.Frm(), numHB, false, frm.TrajoutNum());
       }
     } // END loop over solvent sites
 #   ifdef _OPENMP
@@ -992,11 +969,7 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
     for (std::vector<Harray>::iterator it = thread_HBs_.begin(); it != thread_HBs_.end(); ++it) {
       numHB += (int)it->size();
       for (Harray::const_iterator hb = it->begin(); hb != it->end(); ++hb)
-        AddUV(hb->Dist(), hb->Angle(), frameNum, hb->A(), hb->H(), hb->D(), (bool)hb->Frames()
-#             ifdef MPI
-              ,frm.TrajoutNum()
-#             endif
-             );
+        AddUV(hb->Dist(), hb->Angle(), frameNum, hb->A(), hb->H(), hb->D(), (bool)hb->Frames(), frm.TrajoutNum());
       it->clear();
     }
 #   endif

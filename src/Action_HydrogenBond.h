@@ -36,20 +36,16 @@ class Action_HydrogenBond : public Action {
     inline int UU_Set_Idx(int,int) const;
     /// \return solute-solute hydrogen bond time series DataSet.
     inline DataSet_integer* UUset(int,int,int);
-    /// Add/update solute-solute hydrogen bond, input frame == output frame (non-MPI)
-    void AddUU(double,double,int,int,int,int);
     /// Add/update solute-solute hydrogen bond 
     void AddUU(double,double,int,int,int,int,int);
-    /// Add/update solute-solvent hydrogen bond, input frame == output frame (non-MPI)
-    void AddUV(double,double,int,int,int,int,bool);
     /// Add/update solute-solvent hydrogen bond
     void AddUV(double,double,int,int,int,int,bool,int);
     /// Calculate UU hydrogen bonds between site and acceptor atom.
     void CalcSiteHbonds(int,double,Site const&,const double*,int,const double*,
-                        Frame const&, int&);
+                        Frame const&, int&, int);
     /// Calculate UV hydrogen bonds between solute/solvent site and solute/solvent acceptor atom.
     void CalcSolvHbonds(int,double,Site const&,const double*,int,const double*,
-                        Frame const&, int&, bool);
+                        Frame const&, int&, bool, int);
     /// Update all hydrogen bond time series
     void UpdateSeries();
     /// Determine memory usage from # hbonds and time series
