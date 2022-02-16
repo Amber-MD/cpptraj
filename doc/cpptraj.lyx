@@ -27297,6 +27297,14 @@ hbond
 
 \end_layout
 
+\begin_layout LyX-Code
+      [bseries [bseriesfile <filename>]]
+\end_layout
+
+\begin_layout LyX-Code
+      [splitframe <comma-separated-list>]
+\end_layout
+
 \begin_deeper
 \begin_layout Description
 [<dsname>] Data set name.
@@ -27457,6 +27465,50 @@ hbond
 \end_layout
 
 \end_deeper
+\begin_layout Description
+[bseries] Save bridge formed (1.0) or not formed (0.0) per frame for any detected
+ bridge.
+ Bridges are saved with aspect [bridge_<indexlist>], where <indexlist> is
+ an underscore ('_') delimited list of bridged atom/residue numbers (depending
+ on 
+\series bold
+bridgebyatom
+\series default
+).
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[bseriesfile
+\begin_inset space ~
+\end_inset
+
+<filename>] File to write bridge time series data to.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[splitframe
+\begin_inset space ~
+\end_inset
+
+<comma-separated-list>] If specified, aplit the average hydrogen bond (
+\series bold
+avgout
+\series default
+, 
+\series bold
+solvout
+\series default
+, 
+\series bold
+bridgeout
+\series default
+) analysis into sections delimited by the frame numbers.
+ For example, 'splitframe 250,500,1000' will divide analysis into frames
+ 1-249, 250-499, 500-999, and 1000 to end.
+\end_layout
+
 \begin_layout Standard
 Data Sets Created:
 \end_layout
@@ -27518,6 +27570,17 @@ series
 \series default
  only) Time series for solute-solvent hydrogen bonds; 1 for present, 0 for
  not present.
+\end_layout
+
+\begin_layout Description
+<dsname>[bridge_<indexlist>] (bseries only) Time series for bridge; 1 for
+ present, 0 for not present.
+ The <indexlist> is an underscore ('_') delimited list of bridged atom/residue
+ numbers (depending on 
+\series bold
+bridgebyatom
+\series default
+).
 \end_layout
 
 \end_deeper
