@@ -107,7 +107,8 @@ class Action_HydrogenBond : public Action {
     DataSet* NumBridge_;     ///< Hold # solute-solvent bridges per frame.
     DataSet* BridgeID_;      ///< Hold info on each bridge per frame.
     DataFile* UUseriesout_;  ///< File to write UU time series to.
-    DataFile* UVseriesout_;  ///< File to write UN time series to.
+    DataFile* UVseriesout_;  ///< File to write UV time series to.
+    DataFile* Bseriesout_;   ///< File to write bridge time series to.
     CpptrajFile* avgout_;    ///< File to write UU averages to.
     CpptrajFile* solvout_;   ///< File to write UV averages to.
     CpptrajFile* bridgeout_; ///< File to write bridge totals to.

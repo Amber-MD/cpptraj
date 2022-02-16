@@ -20,6 +20,7 @@ Action_HydrogenBond::Action_HydrogenBond() :
   BridgeID_(0),
   UUseriesout_(0),
   UVseriesout_(0),
+  Bseriesout_(0),
   avgout_(0),
   solvout_(0),
   bridgeout_(0),
@@ -50,6 +51,7 @@ void Action_HydrogenBond::Help() const {
           "\t[solventdonor <sdmask>] [solventacceptor <samask>]\n"
           "\t[solvout <filename>] [bridgeout <filename>] [bridgebyatom]\n"
           "\t[series [uuseries <filename>] [uvseries <filename>]]\n"
+          "\t[bseries [bseriesfile <filename>]]\n"
           "\t[splitframe <comma-separated-list>\n"
           "  Hydrogen bond is defined as A-HD, where A is acceptor heavy atom, H is\n"
           "  hydrogen, D is donor heavy atom. Hydrogen bond is formed when\n"
@@ -82,6 +84,11 @@ Action::RetType Action_HydrogenBond::Init(ArgList& actionArgs, ActionInit& init,
   if (series_) {
     UUseriesout_ = init.DFL().AddDataFile(actionArgs.GetStringKey("uuseries"), actionArgs);
     UVseriesout_ = init.DFL().AddDataFile(actionArgs.GetStringKey("uvseries"), actionArgs);
+    init.DSL().SetDataSetsPending(true);
+  }
+  Bseries_ = actionArgs.hasKey("bseries");
+  if (Bseries_) {
+    Bseriesout_ = init.DFL().AddDataFile(actionArgs.GetStringKey("bseriesfile"), actionArgs);
     init.DSL().SetDataSetsPending(true);
   }
   std::string avgname = actionArgs.GetStringKey("avgout");
@@ -251,6 +258,11 @@ Action::RetType Action_HydrogenBond::Init(ArgList& actionArgs, ActionInit& init,
                                    UUseriesout_->DataFilename().full());
     if (UVseriesout_ != 0) mprintf("\tWriting solute-solvent time series to %s\n",
                                    UVseriesout_->DataFilename().full());
+  }
+  if (Bseries_) {
+    mprintf("\tTime series data for each bridge will be saved for analysis.\n");
+    if (Bseriesout_ != 0)
+      mprintf("\tWriting bridge time series to '%s'\n", Bseriesout_->DataFilename().full());
   }
   if (imageOpt_.UseImage())
     mprintf("\tImaging enabled.\n");
@@ -1009,7 +1021,12 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
             if (Bseries_) {
               bds = (DataSet_integer*)
                 masterDSL_->AddSet(DataSet::INTEGER,MetaData(hbsetname_,"bridge",BridgeMap_.size()));
-              //if (Bseriesout_ != 0) Bseriesout_->AddDataSet( bds );
+              // Create a legend from the indices.
+              std::string blegend("B");
+              for (std::set<int>::const_iterator brs = bridge->second.begin(); brs != bridge->second.end(); ++brs)
+                blegend.append("_" + integerToString(*brs + 1));
+              bds->SetLegend( blegend );
+              if (Bseriesout_ != 0) Bseriesout_->AddDataSet( bds );
             }
             b_it = BridgeMap_.insert( b_it, std::pair<std::set<int>,Bridge>(bridge->second, Bridge(bds, splitFrames_)) );
           }
