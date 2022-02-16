@@ -293,9 +293,9 @@ static inline std::string CreateHBlegend(Topology const& topIn, int a_atom, int 
 }
 
 /** Create legend for bridge based on given indices. */
-static inline std::string CreateBridgeLegend(std::set<int> indices)
+static inline std::string CreateBridgeLegend(std::string const& prefix, std::set<int> indices)
 {
-  std::string blegend("B");
+  std::string blegend(prefix);
   for (std::set<int>::const_iterator brs = indices.begin(); brs != indices.end(); ++brs)
     blegend.append("_" + integerToString(*brs + 1));
   return blegend;
@@ -1029,9 +1029,9 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
             DataSet_integer* bds = 0; 
             if (Bseries_) {
               bds = (DataSet_integer*)
-                masterDSL_->AddSet(DataSet::INTEGER,MetaData(hbsetname_,"bridge",BridgeMap_.size()));
+                masterDSL_->AddSet(DataSet::INTEGER,MetaData(hbsetname_,CreateBridgeLegend("bridge",bridge->second),BridgeMap_.size()));
               // Create a legend from the indices.
-              bds->SetLegend( CreateBridgeLegend( bridge->second ) );
+              bds->SetLegend( CreateBridgeLegend( "B", bridge->second ) );
               if (Bseriesout_ != 0) Bseriesout_->AddDataSet( bds );
             }
             b_it = BridgeMap_.insert( b_it, std::pair<std::set<int>,Bridge>(bridge->second, Bridge(bds, splitFrames_)) );
@@ -1299,9 +1299,9 @@ int Action_HydrogenBond::SyncAction() {
             // Bridge not found on master. Create new Bridge.
             if (Bseries_) {
               bds = (DataSet_integer*)
-                masterDSL_->AddSet(DataSet::INTEGER,MetaData(hbsetname_,"bridge",BridgeMap_.size()));
+                masterDSL_->AddSet(DataSet::INTEGER,MetaData(hbsetname_,CreateBridgeLegend("bridge",residues),BridgeMap_.size()));
                 // Create a legend from the indices.
-                bds->SetLegend( CreateBridgeLegend( residues ) );
+                bds->SetLegend( CreateBridgeLegend( "B", residues ) );
             }
             b_it = BridgeMap_.insert( b_it, std::pair<std::set<int>,Bridge>(residues, Bridge(bds, iArray[i2])) );
             b_it->second.SetupParts(nParts, &iArray[0] + i2 + 1);
