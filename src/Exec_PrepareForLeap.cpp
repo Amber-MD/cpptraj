@@ -2615,7 +2615,7 @@ const
 /** Modify coords according to user wishes. */
 int Exec_PrepareForLeap::ModifyCoords( Topology& topIn, Frame& frameIn,
                                        bool remove_water,
-                                       char altLocChar, std::string const& stripMask,
+                                       std::string const& altLocStr, std::string const& stripMask,
                                        std::string const& waterMask,
                                        Iarray const& resnumsToRemove )
 const
@@ -2660,6 +2660,50 @@ const
     }
 
   }
+  // Identify alternate atom location groups.
+  if (!altLocStr.empty()) {
+    if (topIn.AtomAltLoc().empty()) {
+      mprintf("\tNo alternate atom locations.\n");
+    } else {
+      // Map atom name to atom indices
+      typedef std::map<NameType, std::vector<int>> AlocMapType;
+      AlocMapType alocMap;
+      for (int rnum = 0; rnum != topIn.Nres(); rnum++) {
+        alocMap.clear();
+        for (int at = topIn.Res(rnum).FirstAtom(); at != topIn.Res(rnum).LastAtom(); at++) {
+          if (topIn.AtomAltLoc()[at] != ' ') {
+            AlocMapType::iterator it = alocMap.find( topIn[at].Name() );
+            if (it == alocMap.end()) {
+              alocMap.insert( std::pair<NameType, std::vector<int>>( topIn[at].Name(),
+                                                                     std::vector<int>(1, at) ));
+            } else {
+              it->second.push_back( at );
+            }
+          }
+        } // END loop over atoms in residue
+        if (!alocMap.empty()) {
+          mprintf("DEBUG: Alternate loc. for %s\n", topIn.TruncResNameOnumId(rnum).c_str());
+          for (AlocMapType::const_iterator it = alocMap.begin(); it != alocMap.end(); ++it) {
+            // Print
+            mprintf("\t'%s'", *(it->first));
+            for (std::vector<int>::const_iterator at = it->second.begin();
+                                                  at != it->second.end(); ++at)
+              mprintf(" %s[%c]", *(topIn[*at].Name()), topIn.AtomAltLoc()[*at]);
+            mprintf("\n");
+            if (altLocStr.size() == 1) {
+              // Keep only specified character
+              char altLocChar = altLocStr[0];
+              for (std::vector<int>::const_iterator at = it->second.begin();
+                                                    at != it->second.end(); ++at)
+                if (topIn.AtomAltLoc()[*at] != altLocChar)
+                  atomsToKeep[*at] = false;
+            }
+          }
+        }
+      } // END loop over residue numbers
+    }
+  }
+/*
   // Remove extra alternate atom locations
   if (altLocChar != '\0') {
     if (topIn.AtomAltLoc().empty()) {
@@ -2671,7 +2715,7 @@ const
           atomsToKeep[idx] = false;
       }
     }
-  }
+  }*/
 
   // Set up mask of only kept atoms.
   AtomMask keptAtoms;
@@ -3220,9 +3264,12 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   std::string waterMask = argIn.GetStringKey("watername", ":" + solventResName_);
   bool remove_h         = argIn.hasKey("noh");
   std::string altLocArg = argIn.GetStringKey("keepaltloc");
-  char altLocChar = '\0';
-  if (!altLocArg.empty())
-    altLocChar = altLocArg[0];
+  if (!altLocArg.empty()) {
+    if (altLocArg.size() > 1) {
+      mprinterr("Error: Alternate atom location identifier '%s' > 1 character.\n", altLocArg.c_str());
+      return CpptrajState::ERR;
+    }
+  }
   std::string stripMask = argIn.GetStringKey("stripmask");
 
   // Check if alternate atom location IDs are present 
@@ -3238,12 +3285,12 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
         if (*altLocId != ' ')
           firstAltLoc = *altLocId;
       } else if (*altLocId != ' ' && *altLocId != firstAltLoc) {
-        if (altLocChar == '\0') {
-          altLocChar = firstAltLoc;
+        if (altLocArg.empty()) {
+          altLocArg.assign(1, firstAltLoc);
           mprintf("Warning: '%s' has atoms with multiple alternate location IDs, which\n"
-                  "Warning:  are not supported by LEaP. Keeping only '%c'.\n"
+                  "Warning:  are not supported by LEaP. Keeping only '%s'.\n"
                   "Warning: To choose a specific location to keep use the 'keepaltloc <char>'\n"
-                  "Warning:  keyword.\n", coords.legend(), altLocChar);
+                  "Warning:  keyword.\n", coords.legend(), altLocArg.c_str());
          }
          break;
       }
@@ -3254,11 +3301,11 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     mprintf("\tRemoving solvent. Solvent mask= '%s'\n", waterMask.c_str());
   if (remove_h)
     mprintf("\tRemoving hydrogens.\n");
-  if (altLocChar != '\0')
-    mprintf("\tIf present, keeping only alternate atom locations denoted by '%c'\n", altLocChar);
+  if (!altLocArg.empty())
+    mprintf("\tIf present, keeping only alternate atom locations denoted by '%s'\n", altLocArg.c_str());
   if (!stripMask.empty())
     mprintf("\tRemoving atoms in mask '%s'\n", stripMask.c_str());
-  if (ModifyCoords(topIn, frameIn, remove_water, altLocChar, stripMask, waterMask, pdbResToRemove))
+  if (ModifyCoords(topIn, frameIn, remove_water, altLocArg, stripMask, waterMask, pdbResToRemove))
   {
     mprinterr("Error: Modification of '%s' failed.\n", coords.legend());
     return CpptrajState::ERR;
