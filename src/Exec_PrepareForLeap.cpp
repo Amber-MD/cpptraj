@@ -2940,7 +2940,7 @@ int Exec_PrepareForLeap::RunLeap(std::string const& ff_file,
         return 1;
       }
       double newcharge = leaptop[o_idx].Charge() + 0.031;
-      mprintf("\tChanging charge on %s from %f to %f\n",
+      mprintf("\tFxn group '%s'; changing charge on %s from %f to %f\n", *(res.Name()),
               leaptop.AtomMaskName(o_idx).c_str(), leaptop[o_idx].Charge(), newcharge);
       leaptop.SetAtom(o_idx).SetCharge( newcharge );
       top_is_modified = true;
@@ -2959,7 +2959,7 @@ int Exec_PrepareForLeap::RunLeap(std::string const& ff_file,
         return 1;
       }
       double newcharge = leaptop[c_idx].Charge() - 0.039;
-      mprintf("\tChanging charge on %s from %f to %f\n",
+      mprintf("\tFxn group '%s'; changing charge on %s from %f to %f\n", *(res.Name()),
               leaptop.AtomMaskName(c_idx).c_str(), leaptop[c_idx].Charge(), newcharge);
       leaptop.SetAtom(c_idx).SetCharge( newcharge );
       top_is_modified = true;
@@ -2986,7 +2986,7 @@ int Exec_PrepareForLeap::RunLeap(std::string const& ff_file,
         return 1;
       }
       double newcharge = leaptop[c_idx].Charge() + 0.008;
-      mprintf("\tChanging charge on %s from %f to %f\n",
+      mprintf("\tFxn group '%s'; changing charge on %s from %f to %f\n", *(res.Name()),
               leaptop.AtomMaskName(c_idx).c_str(), leaptop[c_idx].Charge(), newcharge);
       leaptop.SetAtom(c_idx).SetCharge( newcharge );
       top_is_modified = true;
@@ -3012,6 +3012,21 @@ int Exec_PrepareForLeap::RunLeap(std::string const& ff_file,
   }
 
   return 0;
+}
+
+/** Print warnings for residues that will need to be modified in leap. */
+void Exec_PrepareForLeap::LeapFxnGroupWarning(Topology const& topIn, int rnum) {
+  Residue const& res = topIn.Res(rnum);
+  if ( res.Name() == "SO3" ) {
+    mprintf("Warning: Residue '%s'; after LEaP, will need to adjust the charge on the link oxygen by +0.031.\n",
+            topIn.TruncResNameNum(rnum).c_str());
+  } else if ( res.Name() == "MEX" ) {
+    mprintf("Warning: Residue '%s'; after LEaP, will need to adjust the charge on the carbon bonded to link oxygen by -0.039.\n",
+            topIn.TruncResNameNum(rnum).c_str());
+  } else if ( res.Name() == "ACX" ) {
+    mprintf("Warning: Residue '%s'; after LEaP, will need to adjust the charge on the carbon bonded to link oxygen by +0.008.\n",
+            topIn.TruncResNameNum(rnum).c_str());
+  }
 }
 
 // Exec_PrepareForLeap::Help()
@@ -3445,6 +3460,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   static const char* msg2 = "Fatal problem     : ";
   for (ResStatArray::iterator it = resStat_.begin(); it != resStat_.end(); ++it)
   {
+    LeapFxnGroupWarning(topIn, it-resStat_.begin());
     //if ( *it == VALIDATED )
     //  mprintf("\t\t%s VALIDATED\n", topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
     //else

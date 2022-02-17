@@ -133,6 +133,8 @@ class Exec_PrepareForLeap : public Exec {
                          NameType const&, NameType const&, NameType const&, NameType const&) const;
     /// Run leap to generate topology, perform any modifications
     int RunLeap(std::string const&, std::string const&) const;
+    /// Print a warning for residues that will need modification after leap
+    static void LeapFxnGroupWarning(Topology const&, int);
 
     typedef std::pair<NameType, SugarToken> PairType;
     typedef std::map<NameType, SugarToken> MapType;
