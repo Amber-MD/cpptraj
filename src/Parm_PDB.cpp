@@ -179,20 +179,26 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
   } // END loop over PDB records
 
   if (hasMissingResidues) {
-    mprintf("DEBUG: Missing Residues: ");
-    for (std::vector<Residue>::const_iterator res = missingResidues.begin();
-                                              res != missingResidues.end(); ++res)
-      mprintf(" {%s %i %c %c}", *(res->Name()), res->OriginalResNum(),
-                                res->Icode(), res->ChainId());
-    mprintf("\n");
+    mprintf("\t%zu missing residues.\n", missingResidues.size());
+    if (debug_ > 0) {
+      mprintf("DEBUG: Missing Residues: ");
+      for (std::vector<Residue>::const_iterator res = missingResidues.begin();
+                                                res != missingResidues.end(); ++res)
+        mprintf(" {%s %i %c %c}", *(res->Name()), res->OriginalResNum(),
+                                  res->Icode(), res->ChainId());
+      mprintf("\n");
+    }
   }
   if (hasMissingHet) {
-    mprintf("DEBUG: Residues missing heteroatoms: ");
-    for (std::vector<Residue>::const_iterator res = missingHet.begin();
-                                              res != missingHet.end(); ++res)
-      mprintf(" {%s %i %c %c}", *(res->Name()), res->OriginalResNum(),
-                                res->Icode(), res->ChainId());
-    mprintf("\n");
+    mprintf("\t%zu HET residues with missing atoms.\n", missingHet.size());
+    if (debug_ > 0) {
+      mprintf("DEBUG: Residues missing heteroatoms: ");
+      for (std::vector<Residue>::const_iterator res = missingHet.begin();
+                                                res != missingHet.end(); ++res)
+        mprintf(" {%s %i %c %c}", *(res->Name()), res->OriginalResNum(),
+                                  res->Icode(), res->ChainId());
+      mprintf("\n");
+    }
   }
   TopIn.SetMissingResInfo(missingResidues, missingHet);
 

@@ -2902,7 +2902,7 @@ int Exec_PrepareForLeap::RunLeap(std::string const& ff_file,
   std::string topname = leapunitname_ + ".parm7";
   std::string rstname = leapunitname_ + ".rst7";
 
-  Cpptraj::LeapInterface LEAP;
+  Cpptraj::LeapInterface LEAP(debug_);
   LEAP.AddInputFile( ff_file );
   LEAP.AddInputFile( leapfilename );
   LEAP.AddCommand("saveamberparm " + leapunitname_ + " " +
@@ -2994,13 +2994,15 @@ int Exec_PrepareForLeap::RunLeap(std::string const& ff_file,
   }
 
   // DEBUG: Print out total charge on each residue
-  for (Topology::res_iterator res = leaptop.ResStart(); res != leaptop.ResEnd(); ++res)
-  {
-    double tcharge = 0;
-    for (int at = res->FirstAtom(); at != res->LastAtom(); ++at)
-      tcharge += leaptop[at].Charge();
-    mprintf("\tResidue %10s charge= %12.5f\n",
-      leaptop.TruncResNameOnumId(res-leaptop.ResStart()).c_str(), tcharge);
+  if (debug_ > 0) {
+    for (Topology::res_iterator res = leaptop.ResStart(); res != leaptop.ResEnd(); ++res)
+    {
+      double tcharge = 0;
+      for (int at = res->FirstAtom(); at != res->LastAtom(); ++at)
+        tcharge += leaptop[at].Charge();
+      mprintf("DEBUG:\tResidue %10s charge= %12.5f\n",
+        leaptop.TruncResNameOnumId(res-leaptop.ResStart()).c_str(), tcharge);
+    }
   }
 
   // If topology was modified, write it back out

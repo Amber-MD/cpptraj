@@ -11,6 +11,9 @@ using namespace Cpptraj;
 /** CONSTRUCTOR */
 LeapInterface::LeapInterface() : debug_(0) {}
 
+/** CONSTRUCTOR - set debug level */
+LeapInterface::LeapInterface(int d) : debug_(d) {}
+
 /** Set up leap to run. */
 int LeapInterface::AddInputFile(std::string const& fname) {
   if (fname.empty()) return 1;
@@ -49,7 +52,7 @@ int LeapInterface::execute_leap(FileName const& input) const {
   leapin.CloseFile();
 
   std::string cmd("tleap -f " + input.Full());
-  mprintf("DEBUG: %s\n", cmd.c_str());
+  if (debug_ > 0) mprintf("DEBUG: %s\n", cmd.c_str());
 
 //  int err = system( cmd.c_str() );
   Sarray errorMessages;
@@ -92,7 +95,7 @@ int LeapInterface::execute_leap(FileName const& input) const {
   pclose(file);
 
   if (!cleanExit) return 1;
-  mprintf("DEBUG: Leap Exit line '%s'\n", exitLine.c_str());
+  if (debug_ > 0) mprintf("DEBUG: Leap Exit line '%s'\n", exitLine.c_str());
   ArgList exitArgs(exitLine, " :=;.");
   int nerr = exitArgs.getKeyInt("Errors", -1);
   int nwarn = exitArgs.getKeyInt("Warnings", -1);

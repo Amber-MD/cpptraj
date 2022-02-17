@@ -9,6 +9,8 @@ class LeapInterface {
   public:
     /// CONSTRUCTOR
     LeapInterface();
+    /// CONSTRUCTOR - debug level
+    LeapInterface(int);
     /// Add input file
     int AddInputFile(std::string const&);
     /// Add command to run after input files are sourced
