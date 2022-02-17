@@ -239,7 +239,7 @@ Exec_PrepareForLeap::Exec_PrepareForLeap() : Exec(COORDS),
   hasGlycam_(false),
   debug_(0)
 {
-  SetHidden(true);
+  SetHidden(false);
 }
 
 /// Used to change residue name to nameIn
