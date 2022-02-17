@@ -273,8 +273,8 @@ class Exec_PrepareForLeap::SugarToken {
     SugarToken(RingTypeEnum);
     /// /return <res>, set up from line: '<res> <code> <form> <chir> <ring> <name>'
     std::string SetFromLine(ArgList const&);
-    /// Print token info to stdout
-    void PrintInfo(std::string const&) const;
+    /// \return string containing token info
+    std::string InfoStr() const;
 
     std::string const& FullName()   const { return name_; }
     std::string const& GlycamCode() const { return glycamCode_; }

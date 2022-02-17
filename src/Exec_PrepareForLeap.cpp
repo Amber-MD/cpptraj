@@ -180,11 +180,12 @@ Exec_PrepareForLeap::SugarToken::SugarToken(RingTypeEnum rt) :
   ring_(rt)
 {}
 
-/** Print token info to stdout. */
-void Exec_PrepareForLeap::SugarToken::PrintInfo(std::string const& resname) const {
-  mprintf("\t'%s' \"%s\" %s %s-%s-%s\n",
-          resname.c_str(), name_.c_str(), glycamCode_.c_str(),
-          formstr_[form_], chirstr_[chir_], ringstr_[ring_]);
+/** \return String containing name, glycam code, and form-chirality-ring type. */
+std::string Exec_PrepareForLeap::SugarToken::InfoStr() const {
+  return std::string("\"" + name_ + "\" " + glycamCode_ + " " +
+                     std::string(formstr_[form_]) + "-" +
+                     std::string(chirstr_[chir_]) + "-" +
+                     std::string(ringstr_[ring_]));
 }
 
 /** Set up from line: <res> <code> <form> <chir> <ring> <name>
@@ -1571,11 +1572,8 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar& sugarIn, Topology& topIn,
     mprinterr("Error: Could not identify sugar from residue name '%s'\n", *res.Name());
     return 1;
   }
-  mprintf("DEBUG: ");
-  pdb_glycam->second.PrintInfo( pdb_glycam->first.Truncated() );
 
-  mprintf("\tSugar %s glycam name: %s\n", sugarName.c_str(),
-          pdb_glycam->second.GlycamCode().c_str());
+  mprintf("\tSugar %s %s\n", sugarName.c_str(), pdb_glycam->second.InfoStr().c_str());
 
   SugarToken sugarInfo;
   int detect_err = 1;
@@ -1590,11 +1588,6 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar& sugarIn, Topology& topIn,
       detect_err = DetermineAnomericForm(sugarInfo, sugarIn, topIn, frameIn);
     else
       detect_err = 1;
-/*    // Modify resStat_ based on sugar status
-    if (sugar.Status() == Sugar::MISSING_C1X) {
-      // Sugar missing C1-X substituent, non-fatal
-      resStat_[rnum] = SUGAR_MISSING_C1X;
-    }*/
   }
 
   if (detect_err != 0) {
@@ -1684,7 +1677,7 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar& sugarIn, Topology& topIn,
     return 1;
   }
 
-  mprintf("\t %s form is %s(%s)-%s-%s\n", sugarName.c_str(),
+  mprintf("\t  %s detected form is %s(%s)-%s-%s\n", sugarName.c_str(),
          formstr_[sugarInfo.Form()], formStr.c_str(), chirstr_[sugarInfo.Chirality()],
          ringstr_[sugarInfo.RingType()]);
 
