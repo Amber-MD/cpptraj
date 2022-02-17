@@ -2994,16 +2994,20 @@ int Exec_PrepareForLeap::RunLeap(std::string const& ff_file,
   }
 
   // DEBUG: Print out total charge on each residue
-  if (debug_ > 0) {
-    for (Topology::res_iterator res = leaptop.ResStart(); res != leaptop.ResEnd(); ++res)
-    {
-      double tcharge = 0;
-      for (int at = res->FirstAtom(); at != res->LastAtom(); ++at)
-        tcharge += leaptop[at].Charge();
+  double total_q = 0;
+  for (Topology::res_iterator res = leaptop.ResStart(); res != leaptop.ResEnd(); ++res)
+  {
+    double tcharge = 0;
+    for (int at = res->FirstAtom(); at != res->LastAtom(); ++at) {
+      total_q += leaptop[at].Charge();
+      tcharge += leaptop[at].Charge();
+    }
+    if (debug_ > 0) {
       mprintf("DEBUG:\tResidue %10s charge= %12.5f\n",
-        leaptop.TruncResNameOnumId(res-leaptop.ResStart()).c_str(), tcharge);
+              leaptop.TruncResNameOnumId(res-leaptop.ResStart()).c_str(), tcharge);
     }
   }
+  mprintf("\tTotal charge: %16.8f\n", total_q);
 
   // If topology was modified, write it back out
   if (top_is_modified) {
