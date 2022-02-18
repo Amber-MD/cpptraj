@@ -3108,7 +3108,7 @@ void Exec_PrepareForLeap::Help() const
           "\t[pdbout <pdbfile> [terbymol]]\n"
           "\t[leapunitname <unit>] [out <leap input file> [runleap <ff file>]]\n"
           "\t[skiperrors]\n"
-          "\t[nowat [watername <watername>] [noh] [keepaltloc {<alt loc ID>|highestocc}]\n"
+          "\t[nowat [watermask <watermask>] [noh] [keepaltloc {<alt loc ID>|highestocc}]\n"
           "\t[stripmask <stripmask>] [solventresname <solventresname>]\n"
           "\t[{nohisdetect |\n"
           "\t  [nd1 <nd1>] [ne2 <ne2] [hisname <his>] [hiename <hie>]\n"
@@ -3285,7 +3285,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 
   // Deal with any coordinate modifications
   bool remove_water     = argIn.hasKey("nowat");
-  std::string waterMask = argIn.GetStringKey("watername", ":" + solventResName_);
+  std::string waterMask = argIn.GetStringKey("watermask", ":" + solventResName_);
   bool remove_h         = argIn.hasKey("noh");
   std::string altLocArg = argIn.GetStringKey("keepaltloc");
   if (!altLocArg.empty()) {

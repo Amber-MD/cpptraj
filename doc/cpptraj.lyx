@@ -6009,7 +6009,7 @@ The following COORDS data set commands are available:
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="14" columns="2">
+<lyxtabular version="3" rows="15" columns="2">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="75text%">
@@ -6233,6 +6233,27 @@ permutedihedrals
 \begin_layout Plain Layout
 Rotate specified dihedral(s) in given COORDS set by specific interval or
  to random values.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+prepareforleap
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Prepare a structure (usually loaded from a PDB) for processing with LEaP
+ from Amber.
 \end_layout
 
 \end_inset
@@ -7106,6 +7127,315 @@ permutedihedrals crdset [TZ2] random rseed 1 check maxfactor 10 phi psi
                  outtraj random.mol2 multi
 \end_layout
 
+\begin_layout Subsection
+prepareforleap
+\end_layout
+
+\begin_layout LyX-Code
+prepareforleap crdset <coords set> [frame <#>] name <out coords set>
+\end_layout
+
+\begin_layout LyX-Code
+                  	[pdbout <pdbfile> [terbymol]]
+\end_layout
+
+\begin_layout LyX-Code
+                  	[leapunitname <unit>] [out <leap input file> [runleap
+ <ff file>]]
+\end_layout
+
+\begin_layout LyX-Code
+                  	[skiperrors]
+\end_layout
+
+\begin_layout LyX-Code
+                  	[nowat [watermask <watermask>] [noh] [keepaltloc {<alt
+ loc ID>|highestocc}]
+\end_layout
+
+\begin_layout LyX-Code
+                  	[stripmask <stripmask>] [solventresname <solventresname>]
+\end_layout
+
+\begin_layout LyX-Code
+                  	[{nohisdetect |
+\end_layout
+
+\begin_layout LyX-Code
+                  	  [nd1 <nd1>] [ne2 <ne2] [hisname <his>] [hiename <hie>]
+\end_layout
+
+\begin_layout LyX-Code
+                  	  [hidname <hid>] [hipname <hip]}]
+\end_layout
+
+\begin_layout LyX-Code
+                  	[{nodisulfides |
+\end_layout
+
+\begin_layout LyX-Code
+                  	  existingdisulfides |
+\end_layout
+
+\begin_layout LyX-Code
+                  	  [cysmask <cysmask>] [disulfidecut <cut>] [newcysname
+ <name>]}]
+\end_layout
+
+\begin_layout LyX-Code
+                  	[{nosugars |
+\end_layout
+
+\begin_layout LyX-Code
+                  	  sugarmask <sugarmask> [noc1search] [notermsearch] [resmapfi
+le <file>]
+\end_layout
+
+\begin_layout LyX-Code
+                  	  [hasglycam]
+\end_layout
+
+\begin_layout LyX-Code
+                  	 }]
+\end_layout
+
+\begin_layout LyX-Code
+                  	[molmask <molmask> ...] [determinemolmask <mask>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+crdset
+\begin_inset space ~
+\end_inset
+
+<coords
+\begin_inset space ~
+\end_inset
+
+set> COORDS data set containing coordinates and topology to prepare.
+\end_layout
+
+\begin_layout Description
+[frame
+\begin_inset space ~
+\end_inset
+
+<#>] Frame to use from COORDS set (default first).
+\end_layout
+
+\begin_layout Description
+name
+\begin_inset space ~
+\end_inset
+
+<out
+\begin_inset space ~
+\end_inset
+
+coords
+\begin_inset space ~
+\end_inset
+
+set> Output COORDS set containing prepared topology/coordinates.
+\end_layout
+
+\begin_layout Description
+[pdbout
+\begin_inset space ~
+\end_inset
+
+<pdbfile>] Output PDB name.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[terbymol] If specified, base TER cards on molecules instead of PDB chains.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[leapunitname
+\begin_inset space ~
+\end_inset
+
+<unit>] LEaP unit name to use when writing to <leap input file> (i.e.
+ the LEaP input file will contain '<unit>
+\begin_inset space ~
+\end_inset
+
+=
+\begin_inset space ~
+\end_inset
+
+loadpdb
+\begin_inset space ~
+\end_inset
+
+<pdbfile>').
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<leap
+\begin_inset space ~
+\end_inset
+
+input
+\begin_inset space ~
+\end_inset
+
+file>] File containing LEaP input needed to read in the prepared system
+ (loadpdb, bond commands for disulfides, etc).
+\end_layout
+
+\begin_layout Description
+[runleap
+\begin_inset space ~
+\end_inset
+
+<ff
+\begin_inset space ~
+\end_inset
+
+file>] If specified, CPPTRAJ will attempt to run LEaP directly to generate
+ a topology and coordinates; <ff
+\begin_inset space ~
+\end_inset
+
+file> should contain the appropriate 'source' commands for loading the desired
+ force field parameters.
+\end_layout
+
+\begin_layout Description
+[skiperrors] If specified, the command will try to ignore any errors encountered.
+ Can be useful for debugging.
+\end_layout
+
+\begin_layout Description
+[nowat] If specified, remove waters from the system.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[watermask
+\begin_inset space ~
+\end_inset
+
+<watermask>] Mask selecting waters to remove (default ':<solventresname>').
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[noh] If specified, strip all hydrogen atoms from the system (recommended).
+\end_layout
+
+\begin_layout Description
+[keepaltloc
+\begin_inset space ~
+\end_inset
+
+{<alt
+\begin_inset space ~
+\end_inset
+
+loc
+\begin_inset space ~
+\end_inset
+
+ID>|highestocc}] LEaP cannot handle alternate atom locations, so the command
+ will choose location 'A' by default.
+ This can be changed to either <alt
+\begin_inset space ~
+\end_inset
+
+loc
+\begin_inset space ~
+\end_inset
+
+id> or the location with the highest occupancy if 
+\series bold
+'highestocc'
+\series default
+ is specified.
+\end_layout
+
+\begin_layout Description
+[stripmask
+\begin_inset space ~
+\end_inset
+
+<stripmask>] Mask of atoms to remove from the system.
+\end_layout
+
+\begin_layout Description
+[solventresname
+\begin_inset space ~
+\end_inset
+
+<solventresname>] Solvent residue name (default 'HOH').
+\end_layout
+
+\begin_layout Standard
+Histidine Detection:
+\end_layout
+
+\begin_layout Description
+[nohisdetect] Disable renaming of histidine residues based on existing hydrogens.
+\end_layout
+
+\begin_layout Description
+[nd1
+\begin_inset space ~
+\end_inset
+
+<nd1>] Delta nitrogen atom name (default ND1).
+\end_layout
+
+\begin_layout Description
+[ne2
+\begin_inset space ~
+\end_inset
+
+<ne2<] Epsilon nitrogen atom name (default NE2).
+\end_layout
+
+\begin_layout Description
+[hisname
+\begin_inset space ~
+\end_inset
+
+<his>] Histidine residue name (default 'HIS').
+\end_layout
+
+\begin_layout Description
+[hiename
+\begin_inset space ~
+\end_inset
+
+<hie>] Epsilon-protonated histidine name (default 'HIE').
+\end_layout
+
+\begin_layout Description
+[hidname
+\begin_inset space ~
+\end_inset
+
+<hid>] Delta-protonated histidine name (default 'HID').
+\end_layout
+
+\begin_layout Description
+[hipname
+\begin_inset space ~
+\end_inset
+
+<hip>] Doubly-protonated histidine name (defualt 'HIP').
+\end_layout
+
+\end_deeper
 \begin_layout Subsection
 reference
 \end_layout
