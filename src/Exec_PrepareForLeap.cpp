@@ -2697,6 +2697,30 @@ const
                                                     at != it->second.end(); ++at)
                 if (topIn.AtomAltLoc()[*at] != altLocChar)
                   atomsToKeep[*at] = false;
+            } else {
+              // Keep highest occupancy
+              if (topIn.Occupancy().empty()) {
+                mprintf("\tNo occupancy.\n"); // TODO error?
+              } else {
+                int highestOccAt = -1;
+                float highestOcc = 0;
+                for (std::vector<int>::const_iterator at = it->second.begin();
+                                                      at != it->second.end(); ++at)
+                {
+                  if (highestOccAt == -1) {
+                    highestOccAt = *at;
+                    highestOcc = topIn.Occupancy()[*at];
+                  } else if (topIn.Occupancy()[*at] > highestOcc) {
+                    highestOccAt = *at;
+                    highestOcc = topIn.Occupancy()[*at];
+                  }
+                }
+                // Set everything beside highest occ to false
+                for (std::vector<int>::const_iterator at = it->second.begin();
+                                                      at != it->second.end(); ++at)
+                  if (*at != highestOccAt)
+                    atomsToKeep[*at] = false;
+              }
             }
           }
         }
@@ -3084,7 +3108,7 @@ void Exec_PrepareForLeap::Help() const
           "\t[pdbout <pdbfile> [terbymol]]\n"
           "\t[leapunitname <unit>] [out <leap input file> [runleap <ff file>]]\n"
           "\t[skiperrors]\n"
-          "\t[nowat [watername <watername>] [noh] [keepaltloc <alt loc ID>]\n"
+          "\t[nowat [watername <watername>] [noh] [keepaltloc {<alt loc ID>|highestocc}]\n"
           "\t[stripmask <stripmask>] [solventresname <solventresname>]\n"
           "\t[{nohisdetect |\n"
           "\t  [nd1 <nd1>] [ne2 <ne2] [hisname <his>] [hiename <hie>]\n"
@@ -3265,13 +3289,26 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   bool remove_h         = argIn.hasKey("noh");
   std::string altLocArg = argIn.GetStringKey("keepaltloc");
   if (!altLocArg.empty()) {
-    if (altLocArg.size() > 1) {
-      mprinterr("Error: Alternate atom location identifier '%s' > 1 character.\n", altLocArg.c_str());
+    if (altLocArg != "highestocc" &&
+        altLocArg.size() > 1)
+    {
+      mprinterr("Error: Invalid keyword for 'keepaltloc' '%s'; must be 'highestocc' or 1 character.\n",
+                altLocArg.c_str());
       return CpptrajState::ERR;
     }
   }
   std::string stripMask = argIn.GetStringKey("stripmask");
 
+  // If keeping highest alt loc, check that alt locs and occupancies are present.
+  if (altLocArg == "highestocc") {
+    if (topIn.AtomAltLoc().empty()) {
+      mprintf("Warning: 'highestocc' specified but no atom alternate location info.\n");
+      altLocArg.clear();
+    } else if (topIn.Occupancy().empty()) {
+      mprintf("Warning: 'highestocc' specified but no atom occupancy info.\n");
+      altLocArg.clear();
+    }
+  }
   // Check if alternate atom location IDs are present 
   if (!topIn.AtomAltLoc().empty()) {
     // For LEaP, must have only 1 atom alternate location
@@ -3285,6 +3322,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
         if (*altLocId != ' ')
           firstAltLoc = *altLocId;
       } else if (*altLocId != ' ' && *altLocId != firstAltLoc) {
+        // Choose a default if necessary
         if (altLocArg.empty()) {
           altLocArg.assign(1, firstAltLoc);
           mprintf("Warning: '%s' has atoms with multiple alternate location IDs, which\n"
@@ -3611,7 +3649,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       mprintf("Warning: Continuing on anyway, but final structure **NEEDS VALIDATION**.\n");
     }
   }
-
+  // Run leap if needed
   if (!leapffname.empty()) {
     if (RunLeap( leapffname, leapfilename )) {
       mprinterr("Error: Running leap failed.\n");
