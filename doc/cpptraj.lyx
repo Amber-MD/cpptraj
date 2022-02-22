@@ -7158,6 +7158,10 @@ prepareforleap crdset <coords set> [frame <#>] name <out coords set>
 \end_layout
 
 \begin_layout LyX-Code
+                  	[molmask <molmask> ...] [determinemolmask <mask>]
+\end_layout
+
+\begin_layout LyX-Code
                   	[{nohisdetect |
 \end_layout
 
@@ -7187,8 +7191,8 @@ prepareforleap crdset <coords set> [frame <#>] name <out coords set>
 \end_layout
 
 \begin_layout LyX-Code
-                  	  sugarmask <sugarmask> [noc1search] [notermsearch] [resmapfi
-le <file>]
+                  	  sugarmask <sugarmask> [noc1search] [nosplitres] [resmapfile
+ <file>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -7197,10 +7201,6 @@ le <file>]
 
 \begin_layout LyX-Code
                   	 }]
-\end_layout
-
-\begin_layout LyX-Code
-                  	[molmask <molmask> ...] [determinemolmask <mask>]
 \end_layout
 
 \begin_deeper
@@ -7308,6 +7308,7 @@ file>] If specified, CPPTRAJ will attempt to run LEaP directly to generate
 
 file> should contain the appropriate 'source' commands for loading the desired
  force field parameters.
+ Will attempt to produce topology <unit>.parm7 and coordinates <unit>.rst7.
 \end_layout
 
 \begin_layout Description
@@ -7379,6 +7380,25 @@ id> or the location with the highest occupancy if
 <solventresname>] Solvent residue name (default 'HOH').
 \end_layout
 
+\begin_layout Description
+[molmask
+\begin_inset space ~
+\end_inset
+
+<mask>] If specified, atoms in <mask> will be considered all part of one
+ molecule.
+ May be specified multiple times.
+\end_layout
+
+\begin_layout Description
+[dterminemolmask
+\begin_inset space ~
+\end_inset
+
+<mask>] If specified, determine if atoms selected in <mask> are in the same
+ molecule via bonds.
+\end_layout
+
 \begin_layout Standard
 Histidine Detection:
 \end_layout
@@ -7392,7 +7412,7 @@ Histidine Detection:
 \begin_inset space ~
 \end_inset
 
-<nd1>] Delta nitrogen atom name (default ND1).
+<nd1>] Delta nitrogen atom name (default 'ND1').
 \end_layout
 
 \begin_layout Description
@@ -7400,7 +7420,7 @@ Histidine Detection:
 \begin_inset space ~
 \end_inset
 
-<ne2<] Epsilon nitrogen atom name (default NE2).
+<ne2<] Epsilon nitrogen atom name (default 'NE2').
 \end_layout
 
 \begin_layout Description
@@ -7432,10 +7452,173 @@ Histidine Detection:
 \begin_inset space ~
 \end_inset
 
-<hip>] Doubly-protonated histidine name (defualt 'HIP').
+<hip>] Doubly-protonated histidine name (default 'HIP').
+\end_layout
+
+\begin_layout Standard
+Disulfide Handling:
+\end_layout
+
+\begin_layout Description
+[nodisulfides] Disable handling of disulfides.
+\end_layout
+
+\begin_layout Description
+[existingdisulfides] Only handle disulfides already present; do not search
+ for additional disulfides.
+\end_layout
+
+\begin_layout Description
+[cysmask
+\begin_inset space ~
+\end_inset
+
+<cysmask>] Mask for selecting cysteine residues (default 'CYS').
+\end_layout
+
+\begin_layout Description
+[disulfidecut
+\begin_inset space ~
+\end_inset
+
+<cut>] Sulfur to sulfur atom distance cutoff for forming a disulfide (default
+ 2.5 Ang).
+\end_layout
+
+\begin_layout Description
+[newcysname
+\begin_inset space ~
+\end_inset
+
+<name>] Name to change cysteine residues that participate in a disulfide
+ bond to (default 'CYX').
+\end_layout
+
+\begin_layout Standard
+Sugar Handling:
+\end_layout
+
+\begin_layout Description
+[nosugars] Disable handling of sugars.
+\end_layout
+
+\begin_layout Description
+[sugarmask
+\begin_inset space ~
+\end_inset
+
+<sugarmask>] Mask selecting sugars to be handled.
+ If not specified the default is all residues defined in 
+\series bold
+resmapfile
+\series default
+.
+\end_layout
+
+\begin_layout Description
+[noc1search] If specified disable search for missing sugar C1 atom bonds.
+\end_layout
+
+\begin_layout Description
+[nosplitres] If specified do not attempt to split off functional groups
+ from sugars into separate residues.
+\end_layout
+
+\begin_layout Description
+[resmapfile
+\begin_inset space ~
+\end_inset
+
+<file>] File containing sugar residue/atom name mapping.
+ Default is '$CPPTRAJHOME/dat/Carbohydrate_PDB_Glycam_Names.txt'.
+\end_layout
+
+\begin_layout Description
+[hasglycam] If specified, assume sugars already have GLYCAM residue names;
+ just check sugar form/chirality/linkage.
 \end_layout
 
 \end_deeper
+\begin_layout Standard
+This command will prepare a structure (usually from a PDB) for processing
+ with the Amber program LEaP to generate topology and coordinates files
+ for MD simulations.
+ The command will handle things like choosing alternate atom locations,
+ renaming residues and generating 'bond' commands for disulfide bonds, change
+ histidine names based on any existing protonation, and renaming residues/atoms
+ and generating 'bond' commands for carbohydrates.
+ The command will try to report any potential problems that LEaP might encounter.
+\end_layout
+
+\begin_layout Standard
+By default, sugars will have their residue names changed to those compatible
+ with the GLYCAM force field based on their form, chirality, and linkage.
+ Any recognized functional groups that are part of sugar residues (hydroxyl,
+ acetyl, sulfate, etc) will be split into separate residues as required
+ by GLYCAM.
+ If this happens and 'runleap' has not been specified, CPPTRAJ will warn
+ about any residues/atoms that require charge to be adjusted.
+\end_layout
+
+\begin_layout Subsubsection*
+Sugar Residue/Atom Name Mapping File
+\end_layout
+
+\begin_layout Standard
+This file controls how CPPTRAJ will name sugars based on sugar form/chirality
+ linkage.
+ It consists of three sections separated by a blank line.
+ The first section defines sugar PDB residue names and how they are mapped
+ to GLYCAM residue characters:
+\end_layout
+
+\begin_layout LyX-Code
+Format: <ResName> <GlycamCode> <Form> <Chirality> <RingType> "<Name>"
+\end_layout
+
+\begin_layout LyX-Code
+Form: A=alpha, B=beta 
+\end_layout
+
+\begin_layout LyX-Code
+RingType: P=pyranose, F=furanose
+\end_layout
+
+\begin_layout LyX-Code
+Example: 64K A A D P "alpha-D-arabinopyranose" 
+\end_layout
+
+\begin_layout Standard
+The second section contains PDB to GLYCAM atom name maps for residues:
+\end_layout
+
+\begin_layout LyX-Code
+Format: <GLYCAM residue codes> <PDB atom name>,<GLYCAM atom name>[,<form>]
+ … 
+\end_layout
+
+\begin_layout LyX-Code
+If <form> (A=alpha, B=beta) is specified, the atom name map is only valid
+ for that specific form.
+\end_layout
+
+\begin_layout LyX-Code
+Example: V,W,Y C7,C2N O7,O2N C8,CME 
+\end_layout
+
+\begin_layout Standard
+The third section contains PDB to GLYCAM linkage residue (i.e.
+ non-sugar residues bonded to sugars) name maps:
+\end_layout
+
+\begin_layout LyX-Code
+Format: <PDB residue name> <GLYCAM residue name>
+\end_layout
+
+\begin_layout LyX-Code
+Example: SER OLS 
+\end_layout
+
 \begin_layout Subsection
 reference
 \end_layout
