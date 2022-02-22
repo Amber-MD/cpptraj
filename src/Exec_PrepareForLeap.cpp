@@ -2680,14 +2680,19 @@ const
           }
         } // END loop over atoms in residue
         if (!alocMap.empty()) {
-          mprintf("DEBUG: Alternate loc. for %s\n", topIn.TruncResNameOnumId(rnum).c_str());
+          if (debug_ > 0)
+            mprintf("DEBUG: Alternate loc. for %s\n", topIn.TruncResNameOnumId(rnum).c_str());
+          // Loop over atoms with alternate locations
           for (AlocMapType::const_iterator it = alocMap.begin(); it != alocMap.end(); ++it) {
-            // Print
-            mprintf("\t'%s'", *(it->first));
-            for (std::vector<int>::const_iterator at = it->second.begin();
-                                                  at != it->second.end(); ++at)
-              mprintf(" %s[%c]", *(topIn[*at].Name()), topIn.AtomAltLoc()[*at]);
-            mprintf("\n");
+            if (debug_ > 0) {
+              // Print all alternate atoms
+              mprintf("\t'%s'", *(it->first));
+              for (std::vector<int>::const_iterator at = it->second.begin();
+                                                    at != it->second.end(); ++at)
+                mprintf(" %s[%c]", *(topIn[*at].Name()), topIn.AtomAltLoc()[*at]);
+              mprintf("\n");
+            }
+            // For each, choose which location to keep.
             if (altLocStr.size() == 1) {
               // Keep only specified character
               char altLocChar = altLocStr[0];
@@ -2720,7 +2725,7 @@ const
                     atomsToKeep[*at] = false;
               }
             }
-          }
+          } // END loop over atoms with alternate locations
         }
       } // END loop over residue numbers
     }
