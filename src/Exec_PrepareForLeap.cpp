@@ -2037,15 +2037,16 @@ const
         mprinterr("Internal Error: Unhandled group in CheckForFunctionalGroups()\n");
         return 1;
       }
-      // Create array with SO3 selected
-      AtomMask SO3(selected, topIn.Natom());
-      // Split the sulfate into a new residue named SO3 for Glycam.
+      // Create array with group selected
+      AtomMask FxnGrpMask(selected, topIn.Natom());
+      // Split the sulfate into a new residue named newResName for Glycam.
       // This may involve reordering atoms within the residue, but not
       // any other atoms, so we should not have to update other sugars.
       //mprintf("DEBUG: Before split: %s\n", topIn.AtomMaskName(sugar.RingOxygenAtom()).c_str());
       Iarray atomMap;
-      if (topIn.SplitResidue(SO3, newResName, atomMap)) {
-        mprinterr("Error: Could not split sulfate from residue '%s'.\n", sugarName.c_str());
+      if (topIn.SplitResidue(FxnGrpMask, newResName, atomMap)) {
+        mprinterr("Error: Could not split functional group from residue '%s'.\n",
+                  sugarName.c_str());
         return 1;
       }
       // Set the split residue as terminal
@@ -2159,7 +2160,7 @@ const
 int Exec_PrepareForLeap::FixSugarsStructure(std::vector<Sugar>& sugarResidues,
                                             std::string const& sugarMaskStr,
                                             Topology& topIn, Frame& frameIn,
-                                            bool c1bondsearch, bool termsearch) 
+                                            bool c1bondsearch, bool splitres) 
 const
 {
   sugarResidues.clear();
@@ -2221,38 +2222,35 @@ const
   //                                    sugar != sugarResidues.end(); ++sugar)
   //  sugar->PrintInfo(topIn);
 
-  if (termsearch) {
+  if (splitres) {
     // Loop over sugar indices to see if residues have ROH that must be split off
     for (std::vector<Sugar>::iterator sugar = sugarResidues.begin();
                                       sugar != sugarResidues.end(); ++sugar)
     {
       if (sugar->NotSet()) continue;
       if (CheckIfSugarIsTerminal(*sugar, topIn, frameIn)) {
-        mprinterr("Error: Checking if sugar %s is terminal failed.\n",
+        mprinterr("Error: Checking if sugar %s has terminal functional groups failed.\n",
                   topIn.TruncResNameOnumId(sugar->ResNum(topIn)).c_str());
         return 1;
       }
     } // End loop over sugar indices
-  }
-  //DEBUG
-  //for (std::vector<Sugar>::const_iterator sugar = sugarResidues.begin();
-  //                                    sugar != sugarResidues.end(); ++sugar)
-  //  sugar->PrintInfo(topIn);
 
-
-  // if (so3search) {
     // Loop over chain indices to see if residues need to be split
     for (std::vector<Sugar>::iterator sugar = sugarResidues.begin();
                                       sugar != sugarResidues.end(); ++sugar)
     {
       if (sugar->NotSet()) continue;
       if (CheckForFunctionalGroups(*sugar, topIn, frameIn)) {
-        mprinterr("Error: Checking if sugar %s has sulfates failed.\n",
+        mprinterr("Error: Checking if sugar %s has functional groups failed.\n",
                  topIn.TruncResNameOnumId( sugar->ResNum(topIn) ).c_str());
         return 1;
       }
     }
-  //}
+    //DEBUG
+    //for (std::vector<Sugar>::const_iterator sugar = sugarResidues.begin();
+    //                                    sugar != sugarResidues.end(); ++sugar)
+    //  sugar->PrintInfo(topIn);
+  }
 
 
   return 0;
@@ -3118,7 +3116,7 @@ void Exec_PrepareForLeap::Help() const
           "\t  existingdisulfides |\n"
           "\t  [cysmask <cysmask>] [disulfidecut <cut>] [newcysname <name>]}]\n"
           "\t[{nosugars |\n"
-          "\t  sugarmask <sugarmask> [noc1search] [notermsearch] [resmapfile <file>]\n"
+          "\t  sugarmask <sugarmask> [noc1search] [nosplitres] [resmapfile <file>]\n"
           "\t  [hasglycam]\n"
           "\t }]\n"
           "  Prepare the structure in the given coords set for easier processing\n"
@@ -3416,11 +3414,11 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     }
     myMap_.DetermineAtomIDs();
 
-    bool termsearch = !argIn.hasKey("notermsearch");
-    if (termsearch)
-      mprintf("\tWill split hydroxyls on anomeric atoms of terminal sugars into separate residues.\n");
+    bool splitres = !argIn.hasKey("nosplitres");
+    if (splitres)
+      mprintf("\tWill split off recognized sugar functional groups into separate residues.\n");
     else
-      mprintf("\tNot splitting hydroxyls on anomeric atoms of terminal sugars into separate residues.\n");
+      mprintf("\tNot splitting recognized sugar functional groups into separate residues.\n");
     bool c1bondsearch = !argIn.hasKey("noc1search");
     if (c1bondsearch)
       mprintf("\tWill search for missing bonds to sugar anomeric atoms.\n");
@@ -3432,7 +3430,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     // This is done before any identification takes place since we want
     // to identify based on the most up-to-date topology.
     if (FixSugarsStructure(sugarResidues, sugarmaskstr, topIn, frameIn,
-                           c1bondsearch, termsearch))
+                           c1bondsearch, splitres))
     {
       mprinterr("Error: Sugar structure modification failed.\n");
       return CpptrajState::ERR;
