@@ -125,7 +125,6 @@ class Action_GIST : public Action {
     Iarray O_idxs_;         ///< Oxygen atom indices for each solvent molecule.+
     Iarray OnGrid_idxs_;    ///< Indices for each water atom on the grid.*
     Iarray atom_voxel_;     ///< Absolute grid voxel for each atom (OFF_GRID_ if atom not on grid).*
-    Iarray A_idxs_;         ///< Atom indices for each solute and solvent atom (energy calc only).+
     std::vector<bool> atomIsSolute_; ///< True if atom is solute.+
     std::vector<bool> atomIsSolventO_; ///< True if atom is sovent O.+
     Iarray U_idxs_;         ///< Atom indices for solute atoms only.+
@@ -195,7 +194,6 @@ class Action_GIST : public Action {
     bool doOrder_;             ///< If true do the order calc
     bool doEij_;               ///< If true do the i-j energy calc
     bool skipE_;               ///< If true skip the nonbond energy calc
-    bool includeIons_;         ///< If true include ions in solute region.
     bool skipS_;               ///< If true does not calculate entropy
     bool exactNnVolume_;       ///< If true use the exact volume equation for the NN entropy
 };

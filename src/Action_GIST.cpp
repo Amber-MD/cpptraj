@@ -75,14 +75,13 @@ Action_GIST::Action_GIST() :
   doOrder_(false),
   doEij_(false),
   skipE_(false),
-  includeIons_(true),
   exactNnVolume_(false)
 {}
 
 /** GIST help */
 void Action_GIST::Help() const {
   mprintf("\t[doorder] [doeij] [skipE] [skipS] [refdens <rdval>] [temp <tval>]\n"
-          "\t[noimage] [gridcntr <xval> <yval> <zval>] [excludeions]\n"
+          "\t[noimage] [gridcntr <xval> <yval> <zval>]\n"
           "\t[griddim <nx> <ny> <nz>] [gridspacn <spaceval>] [neighborcut <ncut>]\n"
           "\t[prefix <filename prefix>] [ext <grid extension>] [out <output suffix>]\n"
           "\t[floatfmt {double|scientific|general}] [floatwidth <fw>] [floatprec <fp>]\n"
@@ -158,7 +157,6 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   // Other keywords
   double neighborCut = actionArgs.getKeyDouble("neighborcut", 3.5);
   NeighborCut2_ = neighborCut * neighborCut;
-  includeIons_ = !actionArgs.hasKey("excludeions");
   exactNnVolume_ = !actionArgs.hasKey("oldnnvolume");
   nNnSearchLayers_ = actionArgs.getKeyInt("nnsearchlayers", 1);
   imageOpt_.InitImaging( !(actionArgs.hasKey("noimage")), actionArgs.hasKey("nonortho") );
@@ -448,10 +446,6 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     }
   }
   mprintf("\tCut off for determining solvent O-O neighbors is %f Ang\n", sqrt(NeighborCut2_));
-  if (includeIons_)
-    mprintf("\tIons will be included in the solute region.\n");
-  else
-    mprintf("\tIons will be excluded from the calculation.\n");
   if (doEij_) {
     mprintf("\tComputing and printing water-water Eij matrix, output to '%s'\n",
             eijfile_->Filename().full());
@@ -531,14 +525,12 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   // Get molecule number for each solvent molecule
   //mol_nums_.clear();
   O_idxs_.clear();
-  A_idxs_.clear();
   atom_voxel_.clear();
   atomIsSolute_.clear();
   atomIsSolventO_.clear();
   U_idxs_.clear();
   // NOTE: these are just guesses
   O_idxs_.reserve( setup.Top().Nsolvent() );
-  A_idxs_.reserve( setup.Top().Natom() );
   // atom_voxel_ and atomIsSolute will be indexed by atom #
   atom_voxel_.assign( setup.Top().Natom(), OFF_GRID_ );
   atomIsSolute_.assign(setup.Top().Natom(), false);
@@ -588,9 +580,8 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
       }
       // Save all atom indices for energy calc, including extra points
       for (unsigned int IDX = 0; IDX != nMolAtoms_; IDX++) {
-        A_idxs_.push_back( o_idx + IDX );
-        atomIsSolute_[A_idxs_.back()] = false; // The identity of the atom is water
-        atom_voxel_[A_idxs_.back()] = OFF_GRID_;
+        atomIsSolute_[o_idx + IDX] = false; // The identity of the atom is water
+        atom_voxel_[o_idx + IDX] = OFF_GRID_;
         #ifdef CUDA
         this->molecule_.push_back( setup.Top()[o_idx + IDX ].MolNum() );
         this->charges_.push_back( setup.Top()[o_idx + IDX ].Charge() );
@@ -626,31 +617,27 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
       }
       isFirstSolvent = false;
     } else {
-      // This is a non-solvent molecule. Save atom indices. May want to exclude
-      // if only 1 atom (probably ion).
-      if (mol->NumAtoms() > 1 || includeIons_) {
-        for (Unit::const_iterator seg = mol->MolUnit().segBegin();
-                                  seg != mol->MolUnit().segEnd(); ++seg)
-        {
-          for (int u_idx = seg->Begin(); u_idx != seg->End(); ++u_idx) {
-            A_idxs_.push_back( u_idx );
-            atomIsSolute_[A_idxs_.back()] = true; // the identity of the atom is solute
-            NsoluteAtoms++;
-            U_idxs_.push_back( u_idx ); // store the solute atom index for locating voxel index
-            #ifdef CUDA
-            this->molecule_.push_back( setup.Top()[ u_idx ].MolNum() );
-            this->charges_.push_back( setup.Top()[ u_idx ].Charge() );
-            this->atomTypes_.push_back( setup.Top()[ u_idx ].TypeIndex() );
-            this->solvent_[ u_idx ] = false;
-            #endif
-          }
+      // This is a non-solvent molecule. Save atom indices.
+      for (Unit::const_iterator seg = mol->MolUnit().segBegin();
+                                seg != mol->MolUnit().segEnd(); ++seg)
+      {
+        for (int u_idx = seg->Begin(); u_idx != seg->End(); ++u_idx) {
+          atomIsSolute_[u_idx] = true; // the identity of the atom is solute
+          NsoluteAtoms++;
+          U_idxs_.push_back( u_idx ); // store the solute atom index for locating voxel index
+          #ifdef CUDA
+          this->molecule_.push_back( setup.Top()[ u_idx ].MolNum() );
+          this->charges_.push_back( setup.Top()[ u_idx ].Charge() );
+          this->atomTypes_.push_back( setup.Top()[ u_idx ].TypeIndex() );
+          this->solvent_[ u_idx ] = false;
+          #endif
         }
       }
     }
   }
   NSOLVENT_ = O_idxs_.size();
   mprintf("\t%zu solvent molecules, %u solvent atoms, %u solute atoms (%zu total).\n",
-          O_idxs_.size(), NsolventAtoms, NsoluteAtoms, A_idxs_.size());
+          O_idxs_.size(), NsolventAtoms, NsoluteAtoms, setup.Top().Natom());
   if (doOrder_ && NSOLVENT_ < 5) {
     mprintf("Warning: Less than 5 solvent molecules. Cannot perform order calculation.\n");
     doOrder_ = false;
@@ -839,7 +826,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
   float* Neighbor = &(neighbor_[0][0]);
   double Evdw, Eelec;
   int aidx;
-  int maxAidx = (int)A_idxs_.size();
+  int maxAidx = frameIn.Natom();
   // Loop over all solute + solvent atoms
 # ifdef _OPENMP
   int mythread;
@@ -866,7 +853,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
 # endif
   for (aidx = 0; aidx < maxAidx; aidx++)
   {
-    int a1 = A_idxs_[aidx];            // Index of atom1
+    int a1 = aidx;            // Index of atom1
     int a1_voxel = atom_voxel_[a1];    // Voxel of atom1
     int a1_mol = topIn[ a1 ].MolNum(); // Molecule # of atom 1
     Vec3 A1_XYZ( frameIn.XYZ( a1 ) );  // Coord of atom1
