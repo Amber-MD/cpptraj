@@ -37,7 +37,6 @@ class Action_GIST : public Action {
     typedef std::vector<Farray> Xarray;
     typedef std::vector<double> Darray;
 
-    inline void TransEntropy(float,float,float,float,float,float,float,int,double&,double&) const;
     static inline void Ecalc(double, double, double, NonbondType const&, double&, double&);
     void NonbondEnergy_pme(Frame const&);
     void NonbondEnergy(Frame const&, Topology const&);
