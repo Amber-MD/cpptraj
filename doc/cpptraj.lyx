@@ -7543,11 +7543,24 @@ resmapfile
 This command will prepare a structure (usually from a PDB) for processing
  with the Amber program LEaP to generate topology and coordinates files
  for MD simulations.
- The command will handle things like choosing alternate atom locations,
- renaming residues and generating 'bond' commands for disulfide bonds, change
- histidine names based on any existing protonation, and renaming residues/atoms
- and generating 'bond' commands for carbohydrates.
- The command will try to report any potential problems that LEaP might encounter.
+ It will handle things like choosing alternate atom locations, removing
+ waters/hydrogen atoms from the structure, renaming residues and generating
+ 'bond' commands for disulfide bonds, change histidine names based on any
+ existing protonation, and renaming residues/atoms and generating 'bond'
+ commands for carbohydrates.
+ 
+\end_layout
+
+\begin_layout Standard
+If hydrogen atoms are present in the structure, the command will attempt
+ a simple and straightforward determination of the protonation state of
+ any histidine residues based on where hydrogens are bonded, and assign
+ the appropriate residue name.
+ The command will also identify any existing disulfide bonds as well as
+ potential disulfide bonds and generate the corresponding LEaP ‘bond’ commands
+ which can be applied after the structure is loaded in LEaP.
+ Potential disulfide bonding atoms can be identified via a user-specifiable
+ mask expression.
 \end_layout
 
 \begin_layout Standard
@@ -7558,6 +7571,40 @@ By default, sugars will have their residue names changed to those compatible
  by GLYCAM.
  If this happens and 'runleap' has not been specified, CPPTRAJ will warn
  about any residues/atoms that require charge to be adjusted.
+\end_layout
+
+\begin_layout Standard
+The command will try to report any potential problems that LEaP might encounter.
+ These include residue names that may be unrecognized (and therefore may
+ not have parameters), mismatches between detected sugar form/chirality
+ and form/chirality based on the sugar residue name, unrecognized sugar
+ linkages, and so on.
+ 
+\end_layout
+
+\begin_layout Standard
+For example, the following input prepares PDB 4zzw for processing with PDB,
+ putting the proper leap commands in leap.4zzw.in, writing the prepared PDB
+ to 4zzw.cpptraj.pdb, removing waters and hydrogen atoms, and keeping alternate
+ atom locations with the highest occupancy:
+\end_layout
+
+\begin_layout LyX-Code
+parm 4zzw.pdb
+\end_layout
+
+\begin_layout LyX-Code
+loadcrd 4zzw.pdb name MyCrd
+\end_layout
+
+\begin_layout LyX-Code
+prepareforleap crdset MyCrd name Final out leap.4zzw.in leapunitname m 
+\backslash
+
+\end_layout
+
+\begin_layout LyX-Code
+  pdbout 4zzw.cpptraj.pdb nowat noh keepaltloc highestocc
 \end_layout
 
 \begin_layout Subsubsection*
