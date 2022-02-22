@@ -86,7 +86,7 @@ void Action_GIST::Help() const {
           "\t[griddim <nx> <ny> <nz>] [gridspacn <spaceval>] [neighborcut <ncut>]\n"
           "\t[prefix <filename prefix>] [ext <grid extension>] [out <output suffix>]\n"
           "\t[floatfmt {double|scientific|general}] [floatwidth <fw>] [floatprec <fp>]\n"
-          "\t[intwidth <iw>] [oldnnvolume] [nnsearchlayers <nlayers>]\n"
+          "\t[intwidth <iw>] [oldnnvolume] [nnsearchlayers <nlayers>] [solvent <mask>] [mainsolvent <mask>]\n"
           "\t[info <info suffix>]\n");
 #         ifdef LIBPME
           mprintf("\t[nopme|pme %s\n\t %s\n\t %s]\n", EwaldOptions::KeywordsCommon1(), EwaldOptions::KeywordsCommon2(), EwaldOptions::KeywordsPME());
