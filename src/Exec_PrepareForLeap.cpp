@@ -1496,7 +1496,7 @@ const
   //}
   std::string linkcode;
   if (linkages.empty()) {
-    mprintf("\t  No linkages.\n");
+    mprintf("\t  No linkages (may be missing atoms).\n");
     resStatIn[rnum] = SUGAR_NO_LINKAGE;
     return linkcode;
   } else {
@@ -3578,7 +3578,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
                 msg2, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
         fatal_errors++;
     } else if ( *it == SUGAR_NO_LINKAGE ) {
-        mprintf("\t%s%s is a sugar with no linkages.\n",
+        mprintf("\t%s%s is an incomplete sugar with no linkages.\n",
                 msg2, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
         fatal_errors++;
     } else if ( *it == SUGAR_NO_CHAIN_FOR_LINK ) {
