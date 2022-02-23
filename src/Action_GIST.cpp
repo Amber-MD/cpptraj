@@ -236,23 +236,28 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   // Grid spacing
   gridspacing_ = actionArgs.getKeyDouble("gridspacn", 0.50);
   // Grid center
-  gridcntr_ = Vec3(0.0);
-  if ( actionArgs.hasKey("gridcntr") ) {
-    gridcntr_[0] = actionArgs.getNextDouble(-1);
-    gridcntr_[1] = actionArgs.getNextDouble(-1);
-    gridcntr_[2] = actionArgs.getNextDouble(-1);
-  } else
+  ArgList centerArgs = actionArgs.GetNstringKey("gridcntr", 3);
+  if ( centerArgs.empty() ) {
     mprintf("Warning: No grid center values specified, using default (origin)\n");
+    gridcntr_ = Vec3(0.0);
+  } else {
+    gridcntr_[0] = centerArgs.getNextDouble(-1);
+    gridcntr_[1] = centerArgs.getNextDouble(-1);
+    gridcntr_[2] = centerArgs.getNextDouble(-1);
+  }
   // Grid dimensions
-  int nx = 40;
-  int ny = 40;
-  int nz = 40;
-  if ( actionArgs.hasKey("griddim") ) {
-    nx = actionArgs.getNextInteger(-1);
-    ny = actionArgs.getNextInteger(-1);
-    nz = actionArgs.getNextInteger(-1);
-  } else
+  int nx, ny, nz;
+  ArgList dimArgs = actionArgs.GetNstringKey("griddim", 3);
+  if ( dimArgs.empty() ) {
+    nx = 40;
+    ny = 40;
+    nz = 40;
     mprintf("Warning: No grid dimension values specified, using default (40,40,40)\n");
+  } else {
+    nx = dimArgs.getNextInteger(-1);
+    ny = dimArgs.getNextInteger(-1);
+    nz = dimArgs.getNextInteger(-1);
+  }
   griddim_ = Vec3((double)nx, (double)ny, (double)nz);
   // Data set name
   std::string dsname = actionArgs.GetStringKey("name");
