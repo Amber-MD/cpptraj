@@ -1538,57 +1538,61 @@ void Action_GIST::Print() {
     gH[gr_pt] = 1.0 * N_hydrogens_[gr_pt] / (NFRAME_*Vvox*2*BULK_DENS_);
     if (! this->skipS_) {
       int nw_total = N_waters_[gr_pt]; // Total number of waters that have been in this voxel.
-      int ix = gr_pt / (nx * ny);
+      int ix = gr_pt / (ny * nz);
       int iy = (gr_pt / nz) % ny;
       int iz = gr_pt % nz;
       bool boundary = ( ix == 0 || iy == 0 || iz == 0 || ix == (nx-1) || iy == (ny-1) || iz == (nz-1) );
-      for (int n0 = 0; n0 < nw_total; n0++)
-      {
-        Vec3 center(voxel_xyz_[gr_pt][3*n0], voxel_xyz_[gr_pt][3*n0+1], voxel_xyz_[gr_pt][3*n0+2]);
-        int q0 = n0 * 4;  // index into voxel_Q_ for n0
-        float W4 = voxel_Q_[gr_pt][q0  ];
-        float X4 = voxel_Q_[gr_pt][q0+1];
-        float Y4 = voxel_Q_[gr_pt][q0+2];
-        float Z4 = voxel_Q_[gr_pt][q0+3];
-        std::pair<double, double> NN = searchGridNearestNeighbors6D(
-          center, W4, X4, Y4, Z4,
-          voxel_xyz_, voxel_Q_,
-          nx, ny, nz, grid_origin, gridspacing_,
-          nNnSearchLayers_, n0);
-        // It sometimes happens that we get numerically 0 values. 
-        // Using a minimum distance changes the result only by a tiny amount 
-        // (since those cases are rare), and avoids -inf values in the output.
-        double NNd = std::max(sqrt(NN.first), GIST_TINY);
-        double NNs = std::max(sqrt(NN.second), GIST_TINY);
 
-        if (!boundary) {
-          double dbl = log((NNd*NNd*NNd*NFRAME_*4*Constants::PI*BULK_DENS_)/3);
-          dTStrans_norm[gr_pt] += dbl;
-          dTSt += dbl;
-          double sixDens = (NNs*NNs*NNs*NNs*NNs*NNs*NFRAME_*Constants::PI*BULK_DENS_) / 48;
-          if (exactNnVolume_) {
-            sixDens /= sixVolumeCorrFactor(NNs);
+      if ( !boundary ) {
+        for (int n0 = 0; n0 < nw_total; ++n0)
+        {
+          Vec3 center(voxel_xyz_[gr_pt][3*n0], voxel_xyz_[gr_pt][3*n0+1], voxel_xyz_[gr_pt][3*n0+2]);
+          int q0 = n0 * 4;  // index into voxel_Q_ for n0
+          float W4 = voxel_Q_[gr_pt][q0  ];
+          float X4 = voxel_Q_[gr_pt][q0+1];
+          float Y4 = voxel_Q_[gr_pt][q0+2];
+          float Z4 = voxel_Q_[gr_pt][q0+3];
+          std::pair<double, double> NN = searchGridNearestNeighbors6D(
+            center, W4, X4, Y4, Z4,
+            voxel_xyz_, voxel_Q_,
+            nx, ny, nz, grid_origin, gridspacing_,
+            nNnSearchLayers_, n0);
+          // It sometimes happens that we get numerically 0 values. 
+          // Using a minimum distance changes the result only by a tiny amount 
+          // (since those cases are rare), and avoids -inf values in the output.
+          double NNd = std::max(sqrt(NN.first), GIST_TINY);
+          double NNs = std::max(sqrt(NN.second), GIST_TINY);
+
+          bool has_neighbor = NN.first < GIST_HUGE;
+          if (has_neighbor) {
+            ++nwts;
+            double dbl = log((NNd*NNd*NNd*NFRAME_*4*Constants::PI*BULK_DENS_)/3);
+            dTStrans_norm[gr_pt] += dbl;
+            dTSt += dbl;
+            double sixDens = (NNs*NNs*NNs*NNs*NNs*NNs*NFRAME_*Constants::PI*BULK_DENS_) / 48;
+            if (exactNnVolume_) {
+              sixDens /= sixVolumeCorrFactor(NNs);
+            }
+            dbl = log(sixDens);
+            dTSsix_norm[gr_pt] += dbl;
+            dTSs += dbl;
+            //mprintf("DEBUG1: dbl=%f NNs=%f\n", dbl, NNs);
           }
-          dbl = log(sixDens);
-          dTSsix_norm[gr_pt] += dbl;
-          dTSs += dbl;
-          //mprintf("DEBUG1: dbl=%f NNs=%f\n", dbl, NNs);
-        }
-      } // END loop over all waters for this voxel
-      if (dTStrans_norm[gr_pt] != 0) {
-        nwts += nw_total;
-        dTStrans_norm[gr_pt] = Constants::GASK_KCAL*temperature_*( (dTStrans_norm[gr_pt]/nw_total) +
+        } // END loop over all waters for this voxel
+        if (dTStrans_norm[gr_pt] != 0) {
+          dTStrans_norm[gr_pt] = Constants::GASK_KCAL*temperature_*( (dTStrans_norm[gr_pt]/nw_total) +
+                                                                    Constants::EULER_MASC );
+          dTSsix_norm[gr_pt] = Constants::GASK_KCAL*temperature_*( (dTSsix_norm[gr_pt]/nw_total) +
                                                                   Constants::EULER_MASC );
-        dTSsix_norm[gr_pt] = Constants::GASK_KCAL*temperature_*( (dTSsix_norm[gr_pt]/nw_total) +
-                                                                Constants::EULER_MASC );
+        }
+        double dtst_norm_nw = (double)dTStrans_norm[gr_pt] * (double)nw_total;
+        dTStrans[gr_pt] = (dtst_norm_nw / (NFRAME_*Vvox));
+        double dtss_norm_nw = (double)dTSsix_norm[gr_pt] * (double)nw_total;
+        dTSsix[gr_pt] = (dtss_norm_nw / (NFRAME_*Vvox));
+        dTStranstot += dTStrans[gr_pt];
       }
-      double dtst_norm_nw = (double)dTStrans_norm[gr_pt] * (double)nw_total;
-      dTStrans[gr_pt] = (dtst_norm_nw / (NFRAME_*Vvox));
-      double dtss_norm_nw = (double)dTSsix_norm[gr_pt] * (double)nw_total;
-      dTSsix[gr_pt] = (dtss_norm_nw / (NFRAME_*Vvox));
-      dTStranstot += dTStrans[gr_pt];
-    } // END loop over all grid points (voxels)
-  }
+    }
+  } // END loop over all grid points (voxels)
   if (!this->skipS_) {
     dTStranstot *= Vvox;
     double dTSst = 0.0;
