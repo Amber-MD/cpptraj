@@ -237,6 +237,7 @@ std::string Exec_PrepareForLeap::SugarToken::SetFromLine(ArgList const& line) {
 Exec_PrepareForLeap::Exec_PrepareForLeap() : Exec(COORDS),
   errorsAreFatal_(true),
   hasGlycam_(false),
+  useSugarName_(false),
   debug_(0)
 {
   SetHidden(false);
@@ -1626,7 +1627,10 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar& sugarIn, Topology& topIn,
             formstr_[pdb_glycam->second.Form()]);
     if (sugarInfo.Form() != UNKNOWN_FORM)
       resStat_[rnum] = SUGAR_NAME_MISMATCH;
-    if (sugar.IsMissingAtoms()) {
+    if (useSugarName_) {
+      mprintf("\tSetting form based on residue name.\n");
+      sugarInfo.SetForm( pdb_glycam->second.Form() );
+    } else if (sugar.IsMissingAtoms()) {
       mprintf("Warning: Residue was missing atoms; setting form based on residue name.\n");
       sugarInfo.SetForm( pdb_glycam->second.Form() );
     }
@@ -1639,7 +1643,10 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar& sugarIn, Topology& topIn,
             chirstr_[pdb_glycam->second.Chirality()]);
     if (sugarInfo.Chirality() != UNKNOWN_CHIR)
       resStat_[rnum] = SUGAR_NAME_MISMATCH;
-    if (sugar.IsMissingAtoms()) {
+    if (useSugarName_) {
+      mprintf("\tSetting chirality based on residue name.\n");
+      sugarInfo.SetChirality( pdb_glycam->second.Chirality() );
+    } else if (sugar.IsMissingAtoms()) {
       mprintf("Warning: Residue was missing atoms; setting chirality based on residue name.\n");
       sugarInfo.SetChirality( pdb_glycam->second.Chirality() );
     }
@@ -1652,7 +1659,10 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar& sugarIn, Topology& topIn,
             ringstr_[pdb_glycam->second.RingType()]);
     if (sugarInfo.RingType() != UNKNOWN_RING)
       resStat_[rnum] = SUGAR_NAME_MISMATCH;
-    if (sugar.IsMissingAtoms()) {
+    if (useSugarName_) {
+      mprintf("Setting ring type bsaed on residue name.\n");
+      sugarInfo.SetRingType( pdb_glycam->second.RingType() );
+    } else if (sugar.IsMissingAtoms()) {
       mprintf("Warning: Residue was missing atoms; setting ring type based on residue name.\n");
       sugarInfo.SetRingType( pdb_glycam->second.RingType() );
     }
@@ -3122,7 +3132,7 @@ void Exec_PrepareForLeap::Help() const
           "\t  [cysmask <cysmask>] [disulfidecut <cut>] [newcysname <name>]}]\n"
           "\t[{nosugars |\n"
           "\t  sugarmask <sugarmask> [noc1search] [nosplitres] [resmapfile <file>]\n"
-          "\t  [hasglycam]\n"
+          "\t  [hasglycam] [usesugarname]\n"
           "\t }]\n"
           "  Prepare the structure in the given coords set for easier processing\n"
           "  with the LEaP program from AmberTools. Any existing/potential\n"
@@ -3404,6 +3414,11 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   hasGlycam_ = argIn.hasKey("hasglycam");
   if (hasGlycam_)
     mprintf("\tAssuming sugars already have glycam residue names.\n");
+  useSugarName_ = argIn.hasKey("usesugarname");
+  if (useSugarName_)
+    mprintf("\tWill set up sugars based on residue names even if detected geometry differs.\n");
+  else
+    mprintf("\tWill set up sugars based on detected geometry.\n");
 
   // If preparing sugars, need to set up an atom map and potentially
   // search for terminal sugars/missing bonds. Do this here after all atom

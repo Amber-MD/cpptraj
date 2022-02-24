@@ -168,6 +168,7 @@ class Exec_PrepareForLeap : public Exec {
     std::string leapunitname_;
     bool errorsAreFatal_;   ///< If false, try to skip errors.
     bool hasGlycam_;        ///< If true, assume sugars already have glycam names
+    bool useSugarName_;     ///< If true, base form/chirality on name instead of geometry
     int debug_;             ///< Debug level
     std::string solventResName_; ///< Solvent residue name
     //std::string terminalHydroxylName_; ///< Terminal hydroxyl name FIXME this info should be in a separate file
