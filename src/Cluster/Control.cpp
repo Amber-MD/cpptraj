@@ -29,7 +29,7 @@ Cpptraj::Cluster::Control::Control() :
   sieve_(1),
   sieveSeed_(-1),
   sieveRestore_(NO_RESTORE),
-  restoreEpsilon_(0.0),
+  restoreEpsilon_(0),
   includeSieveInCalc_(false),
   includeSieveCdist_(false),
   bestRep_(BestReps::NO_REPS),
@@ -357,7 +357,7 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
           sieveRestore_ = CLOSEST_CENTROID;
       }
     }
-    // Determine sieve restore epsilon
+    // Determine sieve restore epsilon if needed
     if (sieveRestore_ == EPSILON_FRAME ||
         sieveRestore_ == EPSILON_CENTROID)
     {
@@ -368,11 +368,18 @@ int Cpptraj::Cluster::Control::SetupClustering(DataSetList const& setsToCluster,
         // Using a density-based algorithm with epsilon-based restore;
         // use restore epsilon from algorithm.
         restoreEpsilon_ = algorithm_->Epsilon();
+      } else
+        mprintf("Warning: Using sievetoframe/sievetocentroid with a non-density-based cluster algorithm.\n"
+                "Warning:   Restore epsilon 'repsilon' should be chosen with care.\n");
+      double rEps = analyzeArgs.getKeyDouble("repsilon", -1.0);
+      if (rEps > 0)
+        restoreEpsilon_ = rEps;
+      else if (restoreEpsilon_ <= 0) {
+        mprinterr("Error: For this cluster algorithm, sievetoframe/sievetocentroid requires 'repsilon' > 0 (%f).\n",
+                  restoreEpsilon_);
+        return 1;
       }
     }
-    double rEps = analyzeArgs.getKeyDouble("repsilon", -1.0);
-    if (rEps > 0)
-      restoreEpsilon_ = rEps;
   }
 
   // Best rep options
