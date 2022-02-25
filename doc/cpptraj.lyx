@@ -7196,7 +7196,7 @@ prepareforleap crdset <coords set> [frame <#>] name <out coords set>
 \end_layout
 
 \begin_layout LyX-Code
-                  	  [hasglycam] [usesugarname]
+                  	  [hasglycam] [determinesugarsby {geometry|name}]
 \end_layout
 
 \begin_layout LyX-Code
@@ -7539,9 +7539,15 @@ resmapfile
 \end_layout
 
 \begin_layout Description
-[usesugarname] If a mismatch is detected between the sugar anomer type/configura
-tion based on geometry and anomer type/configuration based on the residue
- name, use the anomer type/configuration based on name.
+[determinesugarsby
+\begin_inset space ~
+\end_inset
+
+{geometry|name}] Determine whether sugar anomer type/configuration should
+ be chosen based on sugar geometry (default) or the residue name.
+ CPPTRAJ will report when a mismatch is detected between the sugar anomer
+ type/configuration based on geometry and anomer type/configuration based
+ on the residue name.
 \end_layout
 
 \end_deeper

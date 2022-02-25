@@ -3132,7 +3132,7 @@ void Exec_PrepareForLeap::Help() const
           "\t  [cysmask <cysmask>] [disulfidecut <cut>] [newcysname <name>]}]\n"
           "\t[{nosugars |\n"
           "\t  sugarmask <sugarmask> [noc1search] [nosplitres] [resmapfile <file>]\n"
-          "\t  [hasglycam] [usesugarname]\n"
+          "\t  [hasglycam] [determinesugarsby {geom|name}]\n"
           "\t }]\n"
           "  Prepare the structure in the given coords set for easier processing\n"
           "  with the LEaP program from AmberTools. Any existing/potential\n"
@@ -3414,11 +3414,18 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   hasGlycam_ = argIn.hasKey("hasglycam");
   if (hasGlycam_)
     mprintf("\tAssuming sugars already have glycam residue names.\n");
-  useSugarName_ = argIn.hasKey("usesugarname");
-  if (useSugarName_)
-    mprintf("\tWill set up sugars based on residue names even if detected geometry differs.\n");
-  else
-    mprintf("\tWill set up sugars based on detected geometry.\n");
+  // Get how sugars should be determined (geometry/name)
+  std::string determineSugarsBy = argIn.GetStringKey("determinesugarsby", "geometry");
+  if (determineSugarsBy == "geometry") {
+    useSugarName_ = false;
+    mprintf("\tWill determine sugar anomer type/configuration by geometry.\n");
+  } else if (determineSugarsBy == "name") {
+    useSugarName_ = true;
+    mprintf("\tWill determine sugar anomer type/configuration from residue name.\n");
+  } else {
+    mprinterr("Error: Invalid argument for 'determinesugarsby': %s\n", determineSugarsBy.c_str());
+    return CpptrajState::ERR;
+  }
 
   // If preparing sugars, need to set up an atom map and potentially
   // search for terminal sugars/missing bonds. Do this here after all atom
