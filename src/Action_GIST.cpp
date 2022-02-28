@@ -241,6 +241,10 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     mprintf("Warning: No grid center values specified, using default (origin)\n");
     gridcntr_ = Vec3(0.0);
   } else {
+    if ( !validDouble(centerArgs[0]) || !validDouble(centerArgs[1]) || !validDouble(centerArgs[2]) ) {
+      mprinterr("Invalid grid center: %s %s %s\n", centerArgs[0].c_str(), centerArgs[1].c_str(), centerArgs[2].c_str());
+      return Action::ERR;
+    }
     gridcntr_[0] = centerArgs.getNextDouble(-1);
     gridcntr_[1] = centerArgs.getNextDouble(-1);
     gridcntr_[2] = centerArgs.getNextDouble(-1);
@@ -254,9 +258,17 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     nz = 40;
     mprintf("Warning: No grid dimension values specified, using default (40,40,40)\n");
   } else {
+    if ( !validInteger(dimArgs[0]) || !validInteger(dimArgs[1]) || !validInteger(dimArgs[2]) ) {
+      mprinterr("Invalid grid dimensions: %s %s %s\n", dimArgs[0].c_str(), dimArgs[1].c_str(), dimArgs[2].c_str());
+      return Action::ERR;
+    }
     nx = dimArgs.getNextInteger(-1);
     ny = dimArgs.getNextInteger(-1);
     nz = dimArgs.getNextInteger(-1);
+  }
+  if ( nx < 1 || ny < 1 || nz < 1 ) {
+    mprinterr("Error: grid dimensions must be >0, but are %d %d %d.\n", nx, ny, nz);
+    return Action::ERR;
   }
   griddim_ = Vec3((double)nx, (double)ny, (double)nz);
   // Data set name
@@ -1552,7 +1564,7 @@ void Action_GIST::Print() {
           float X4 = voxel_Q_[gr_pt][q0+1];
           float Y4 = voxel_Q_[gr_pt][q0+2];
           float Z4 = voxel_Q_[gr_pt][q0+3];
-          std::pair<double, double> NN = searchGridNearestNeighbors6D(
+          std::pair<double, double> NN = GistEntropyUtils::searchGridNearestNeighbors6D(
             center, W4, X4, Y4, Z4,
             voxel_xyz_, voxel_Q_,
             nx, ny, nz, grid_origin, gridspacing_,
@@ -1563,7 +1575,7 @@ void Action_GIST::Print() {
           double NNd = std::max(sqrt(NN.first), GIST_TINY);
           double NNs = std::max(sqrt(NN.second), GIST_TINY);
 
-          bool has_neighbor = NN.first < GIST_HUGE;
+          bool has_neighbor = NN.first < GistEntropyUtils::GIST_HUGE;
           if (has_neighbor) {
             ++nwts;
             double dbl = log((NNd*NNd*NNd*NFRAME_*4*Constants::PI*BULK_DENS_)/3);
@@ -1571,7 +1583,7 @@ void Action_GIST::Print() {
             dTSt += dbl;
             double sixDens = (NNs*NNs*NNs*NNs*NNs*NNs*NFRAME_*Constants::PI*BULK_DENS_) / 48;
             if (exactNnVolume_) {
-              sixDens /= sixVolumeCorrFactor(NNs);
+              sixDens /= GistEntropyUtils::sixVolumeCorrFactor(NNs);
             }
             dbl = log(sixDens);
             dTSsix_norm[gr_pt] += dbl;

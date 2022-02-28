@@ -26,10 +26,11 @@
   * \param NNd (IN- and OUTPUT) stores the nearest translational distance found so far.
   * \param NNs (IN- and OUTPUT) stores the nearest 6D distance found so far.
   */
-void searchVectorsForNearestNeighbors6D(Vec3 center,
-                               float W4, float X4, float Y4, float Z4,
-                               const Farray& V_XYZ_vec, const Farray& V_Q_vec,
-                               int omit, double& NNd, double& NNs)
+void GistEntropyUtils::searchVectorsForNearestNeighbors6D(
+    Vec3 center,
+    float W4, float X4, float Y4, float Z4,
+    const Farray& V_XYZ_vec, const Farray& V_Q_vec,
+    int omit, double& NNd, double& NNs)
 {
   int nw_tot = V_XYZ_vec.size() / 3;
   # ifdef DEBUG_GIST
@@ -83,7 +84,7 @@ void searchVectorsForNearestNeighbors6D(Vec3 center,
  * \param omit_in_central_vox index of molecule in the central voxel to omit.
  * \return std::pair<double, double> SQUARED distances in 3D and 6D.
  */
-std::pair<double, double> searchGridNearestNeighbors6D(
+std::pair<double, double> GistEntropyUtils::searchGridNearestNeighbors6D(
     Vec3 center,
     float W4, float X4, float Y4, float Z4,
     const std::vector<Farray>& V_XYZ, const std::vector<Farray>& V_Q,
@@ -1158,7 +1159,7 @@ static const double SIX_CORR[] = {
  * @param  values  discrete function values
  * @param  spacing spacing of x positions
  */
-double interpolate(double x, const double* values, size_t array_len, double spacing)
+double GistEntropyUtils::interpolate(double x, const double* values, size_t array_len, double spacing)
 {
     double dbl_index = x / spacing;
     int index = std::max(0, std::min(static_cast<int>(array_len) - 2, static_cast<int>(dbl_index)));
@@ -1168,7 +1169,7 @@ double interpolate(double x, const double* values, size_t array_len, double spac
 }
 
 // Interpolate SIX_CORR at a given position
-double sixVolumeCorrFactor(double NNs)
+double GistEntropyUtils::sixVolumeCorrFactor(double NNs)
 {
     return interpolate(NNs, SIX_CORR, 1001, SIX_CORR_SPACING);
 }
