@@ -10,10 +10,14 @@ unit.NameType:
 unit.ArgList:
 	@-cd ArgList && ./UnitTest.sh $(OPT)
 
+unit.GistEntropyUtils:
+	@-cd GistEntropyUtils && ./UnitTest.sh $(OPT)
+
 # ----- Every unit test should go here -----------
 COMPLETETESTS= \
   unit.NameType \
-  unit.ArgList
+  unit.ArgList \
+  unit.GistEntropyUtils
 
 test.cpptraj: $(COMPLETETESTS)
 
