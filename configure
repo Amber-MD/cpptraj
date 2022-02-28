@@ -116,6 +116,7 @@ C11_SUPPORT='yes'         # Support C++11 code
 SHARED_SUFFIX=''          # Suffix for shared libraries
 DBFLAG=''                 # Flag for turning on compiler debug symbols
 DIRECTIVES=''             # Common compiler directives
+CPPTRAJ_INC=''            # Library header include line
 SFX=''                    # Binary suffix
 EXE=''                    # Binary executable suffix
 REBUILDOPT=''             # Can be set to --rebuild and passed to get_library.sh
@@ -1126,6 +1127,7 @@ SetupFinalFlags() {
   # Set up include and linking flags
   ldf=''
   CPPTRAJ_LIB=''
+  CPPTRAJ_INC=''
   nincl=0
   for ((i=0; i < $NLIB; i++)) ; do
     if [ "${LIB_STAT[$i]}" == 'off' ] ; then
@@ -1153,7 +1155,7 @@ SetupFinalFlags() {
           #echo "DEBUG: $idir new inclusion"
           include_array[$nincl]=$idir
           ((nincl++))
-          CPATH="$CPATH $idir"
+          CPPTRAJ_INC="$CPPTRAJ_INC $idir"
         fi
       fi
       # Link flags
@@ -1320,7 +1322,7 @@ SetupLibraries() {
           else
             lflag="-L$lhdir ${LIB_FLAG[$i]}"
           fi
-          # Library-specific CPATH fixes when home specified.
+          # Library-specific CPPTRAJ_INC fixes when home specified.
           if [ $i -eq $LREADLINE ] ; then
             linc="$linc/readline"
           fi
@@ -2231,21 +2233,21 @@ BuildRules() {
         echo "CXXFLAGS=$CXXFLAGS \$(DBGFLAGS)" >> $configfile
         rule='.cpp.o:'
         cmd='CXX'
-        line='$(CXX) $(DIRECTIVES) $(CPATH) $(CXXFLAGS)'
+        line='$(CXX) $(DIRECTIVES) $(CPPTRAJ_INC) $(CXXFLAGS)'
         ;;
       cc )
         echo "CC=$CC" >> $configfile
         echo "CFLAGS=$CFLAGS \$(DBGFLAGS)" >> $configfile
         rule='.c.o:'
         cmd='CC'
-        line='$(CC) $(DIRECTIVES) $(CPATH) $(CFLAGS)'
+        line='$(CC) $(DIRECTIVES) $(CPPTRAJ_INC) $(CFLAGS)'
         ;;
       f77 )
         echo "FC=$FC" >> $configfile
         echo "F77FLAGS=$F77FLAGS \$(DBGFLAGS)" >> $configfile
         rule='.f.o:'
         cmd='FC'
-        line='$(FC) $(DIRECTIVES) $(CPATH) $(F77FLAGS)'
+        line='$(FC) $(DIRECTIVES) $(CPPTRAJ_INC) $(F77FLAGS)'
         ;;
       f90 )
         echo "FC=$FC" >> $configfile
@@ -2670,7 +2672,7 @@ fi
 #echo FFLAGS $FFLAGS
 #echo LDFLAGS $LDFLAGS
 #echo CPPTRAJ_LIB $CPPTRAJ_LIB
-#echo CPATH $CPATH
+#echo CPPTRAJ_INC $CPPTRAJ_INC
 #echo REQUIRES_FLINK $REQUIRES_FLINK FLINK $FLINK
 echo ""
 
@@ -2755,7 +2757,7 @@ fi
 cat >> config.h <<EOF
 SHARED_SUFFIX=$SHARED_SUFFIX
 DIRECTIVES=$DIRECTIVES
-CPATH=$CPATH
+CPPTRAJ_INC=$CPPTRAJ_INC
 
 LIBCPPTRAJ_TARGET=$LIBCPPTRAJ_TARGET
 

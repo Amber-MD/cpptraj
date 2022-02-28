@@ -25,7 +25,7 @@ cpptraj$(SFX)$(EXE): $(OBJECTS) $(FFT_TARGET) $(READLINE_TARGET) $(CUDA_TARGET) 
 # libcpptraj ---------------------------
 # Rule to make libcpptraj-specific objects
 %.LIBCPPTRAJ.o : %.cpp
-	$(CXX) $(DIRECTIVES) -DLIBCPPTRAJ $(CPATH) $(CXXFLAGS) -c -o $@ $<
+	$(CXX) $(DIRECTIVES) -DLIBCPPTRAJ $(CPPTRAJ_INC) $(CXXFLAGS) -c -o $@ $<
 
 libcpptraj: $(LIBCPPTRAJ_TARGET)
 
