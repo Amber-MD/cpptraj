@@ -88,6 +88,7 @@ void Action_GIST::Help() const {
           "\t[prefix <filename prefix>] [ext <grid extension>] [out <output suffix>]\n"
           "\t[floatfmt {double|scientific|general}] [floatwidth <fw>] [floatprec <fp>]\n"
           "\t[intwidth <iw>] [oldnnvolume] [nnsearchlayers <nlayers>] [solute <mask>] [solventmols <str>]\n"
+          "\t[rigidatomindices <i1> <i2> <i3>\n"
           "\t[info <info suffix>]\n");
 #         ifdef LIBPME
           mprintf("\t[nopme|pme %s\n\t %s\n\t %s]\n", EwaldOptions::KeywordsCommon1(), EwaldOptions::KeywordsCommon2(), EwaldOptions::KeywordsPME());
@@ -250,6 +251,12 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     mprinterr("Error: grid dimensions must be >0, but are %d %d %d.\n", griddim_[0], griddim_[1], griddim_[2]);
     return Action::ERR;
   }
+  /*ArgList indArgs = actionArgs.GetNstringKey("rigidatomindices", 3);
+  if ( !indArgs.empty() ) {
+    rigidAtomIndices_[0] = 0;
+    rigidAtomIndices_[1] = 1;
+    rigidAtomIndices_[2] = 2;
+  }*/
   // Data set name
   std::string dsname = actionArgs.GetStringKey("name");
   if (dsname.empty())
@@ -490,86 +497,35 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   atomIsSolute_.assign(setup.Top().Natom(), false);
   atomIsSolventO_.assign(setup.Top().Natom(), false);
   U_idxs_.reserve(setup.Top().Natom()-setup.Top().Nsolvent()*nMolAtoms_);
-  unsigned int midx = 0;
-  unsigned int NsolventAtoms = 0;
-  unsigned int NsoluteAtoms = 0;
   bool isFirstSolvent = true;
   for (Topology::mol_iterator mol = setup.Top().MolStart();
-                              mol != setup.Top().MolEnd(); ++mol, ++midx)
+                              mol != setup.Top().MolEnd(); ++mol)
   {
     if (mol->IsSolvent()) {
       // NOTE: We assume the oxygen is the first atom!
       int o_idx = mol->MolUnit().Front();
-      #ifdef CUDA
-      this->headAtomType_ = setup.Top()[o_idx].TypeIndex();
-      #endif
-      // Check that molecule has correct # of atoms
-      unsigned int molNumAtoms = (unsigned int)mol->NumAtoms();
-      if (nMolAtoms_ == 0) {
-        nMolAtoms_ = molNumAtoms;
-        mprintf("\tEach solvent molecule has %u atoms\n", nMolAtoms_);
-      } else if (molNumAtoms != nMolAtoms_) {
-        mprinterr("Error: All solvent molecules must have same # atoms.\n"
-                  "Error: Molecule '%s' has %u atoms, expected %u.\n",
-                  setup.Top().TruncResNameNum( setup.Top()[o_idx].ResNum() ).c_str(),
-                  molNumAtoms, nMolAtoms_);
-        return Action::ERR;
+      int error;
+      if (isFirstSolvent) {
+        error = setSolventProperties(*mol, setup.Top());
+        isFirstSolvent = false;
+      } else {
+        error = checkSolventProperties(*mol, setup.Top());
       }
-      //mol_nums_.push_back( midx ); // TODO needed?
-      // Check that first atom is actually Oxygen
-      if (setup.Top()[o_idx].Element() != Atom::OXYGEN) {
-        mprinterr("Error: Molecule '%s' is not water or does not have oxygen atom.\n",
+      if (error != 0) {
+        mprinterr("Error: In molecule %s.\n",
                   setup.Top().TruncResNameNum( setup.Top()[o_idx].ResNum() ).c_str());
         return Action::ERR;
       }
       O_idxs_.push_back( o_idx );
       atomIsSolventO_[o_idx] = true;
-      // Check that the next two atoms are Hydrogens
-      if (setup.Top()[o_idx+1].Element() != Atom::HYDROGEN ||
-          setup.Top()[o_idx+2].Element() != Atom::HYDROGEN)
-      {
-        mprinterr("Error: Molecule '%s' does not have hydrogen atoms.\n",
-                  setup.Top().TruncResNameNum( setup.Top()[o_idx].ResNum() ).c_str());
-        return Action::ERR;
-      }
-      // Save all atom indices for energy calc, including extra points
+      #ifdef CUDA
       for (unsigned int IDX = 0; IDX != nMolAtoms_; IDX++) {
-        //atomIsSolute_[o_idx + IDX] = false; // The identity of the atom is water
-        // atom_voxel_[o_idx + IDX] = OFF_GRID_;
-        #ifdef CUDA
         this->molecule_.push_back( setup.Top()[o_idx + IDX ].MolNum() );
         this->charges_.push_back( setup.Top()[o_idx + IDX ].Charge() );
         this->atomTypes_.push_back( setup.Top()[o_idx + IDX ].TypeIndex() );
         this->solvent_[ o_idx + IDX ] = true;
-        #endif
       }
-      NsolventAtoms += nMolAtoms_;
-      // If first solvent molecule, save charges. If not, check that charges match.
-      if (isFirstSolvent) {
-        double q_sum = 0.0;
-        Q_.reserve( nMolAtoms_ );
-        for (unsigned int IDX = 0; IDX != nMolAtoms_; IDX++) {
-          Q_.push_back( setup.Top()[o_idx+IDX].Charge() );
-          q_sum += Q_.back();
-          //mprintf("DEBUG: Q= %20.10E  q_sum= %20.10E\n", setup.Top()[o_idx+IDX].Charge(), q_sum);
-        }
-        // Sanity checks.
-        // NOTE: We know indices 1 and 2 are hydrogens (with 0 being oxygen); this is checked above.
-        if (NotEqual(Q_[1], Q_[2]))
-          mprintf("Warning: Charges on water hydrogens do not match (%g, %g).\n", Q_[1], Q_[2]);
-        if (fabs( q_sum ) > 0.0)
-          mprintf("Warning: Charges on water do not sum to 0 (%g)\n", q_sum);
-        //mprintf("DEBUG: Water charges: O=%g  H1=%g  H2=%g\n", q_O_, q_H1_, q_H2_);
-      } else {
-        for (unsigned int IDX = 0; IDX < nMolAtoms_; IDX++) {
-          double q_atom = setup.Top()[o_idx+IDX].Charge();
-          if (NotEqual(Q_[IDX], q_atom)) {
-            mprintf("Warning: Charge on water '%s' (%g) does not match first water (%g).\n",
-                  setup.Top().TruncResAtomName( o_idx+IDX ).c_str(), q_atom, Q_[IDX]);
-          }
-        }
-      }
-      isFirstSolvent = false;
+      #endif
     } else {
       // This is a non-solvent molecule. Save atom indices.
       for (Unit::const_iterator seg = mol->MolUnit().segBegin();
@@ -577,7 +533,6 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
       {
         for (int u_idx = seg->Begin(); u_idx != seg->End(); ++u_idx) {
           atomIsSolute_[u_idx] = true; // the identity of the atom is solute
-          NsoluteAtoms++;
           U_idxs_.push_back( u_idx ); // store the solute atom index for locating voxel index
           #ifdef CUDA
           this->molecule_.push_back( setup.Top()[ u_idx ].MolNum() );
@@ -590,8 +545,9 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
     }
   }
   NSOLVENT_ = O_idxs_.size();
+  int NsolventAtoms = NSOLVENT_ * nMolAtoms_;
   mprintf("\t%zu solvent molecules, %u solvent atoms, %u solute atoms (%zu total).\n",
-          O_idxs_.size(), NsolventAtoms, NsoluteAtoms, setup.Top().Natom());
+          NSOLVENT_, NsolventAtoms, U_idxs_.size(), setup.Top().Natom());
   if (doOrder_ && NSOLVENT_ < 5) {
     mprintf("Warning: Less than 5 solvent molecules. Cannot perform order calculation.\n");
     doOrder_ = false;
@@ -645,6 +601,53 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
 
   gist_setup_.Stop();
   return Action::OK;
+}
+
+int Action_GIST::setSolventProperties(const Molecule& mol, const Topology& top)
+{
+  int o_idx = mol.MolUnit().Front();
+  nMolAtoms_ = mol.NumAtoms();
+  mprintf("\tEach solvent molecule has %u atoms\n", nMolAtoms_);
+  if (top[o_idx].Element() != Atom::OXYGEN ||
+      top[o_idx+1].Element() != Atom::HYDROGEN ||
+      top[o_idx+2].Element() != Atom::HYDROGEN)
+  {
+    mprintf("First solvent molecule '%s' is not water.\n",
+            top.TruncResNameNum( top[o_idx].ResNum() ).c_str());
+  }
+  #ifdef CUDA
+  this->headAtomType_ = top[o_idx].TypeIndex();
+  #endif
+  double q_sum = 0.0;
+  Q_.reserve( nMolAtoms_ );
+  for (unsigned int IDX = 0; IDX != nMolAtoms_; IDX++) {
+    Q_.push_back( top[o_idx+IDX].Charge() );
+    q_sum += Q_.back();
+  }
+  // Sanity checks.
+  if (fabs( q_sum ) > 0.0) {
+    mprintf("Warning: Charges on solvent do not sum to 0 (%g)\n", q_sum);
+  }
+  return 0;
+}
+
+int Action_GIST::checkSolventProperties(const Molecule& mol, const Topology& top) const
+{
+  int o_idx = mol.MolUnit().Front();
+  if (mol.NumAtoms() != nMolAtoms_) {
+    mprinterr("Error: All solvent molecules must have same # atoms.\n"
+              "Error: A Molecule has %u atoms, expected %u.\n",
+              mol.NumAtoms(), nMolAtoms_);
+    return 1;
+  }
+  for (unsigned int IDX = 0; IDX < nMolAtoms_; IDX++) {
+    double q_atom = top[o_idx+IDX].Charge();
+    if (NotEqual(Q_[IDX], q_atom)) {
+      mprintf("Warning: Charge on water '%s' (%g) does not match first water (%g).\n",
+            top.TruncResAtomName( o_idx+IDX ).c_str(), q_atom, Q_[IDX]);
+    }
+  }
+  return 0;
 }
 
 const Vec3 Action_GIST::x_lab_ = Vec3(1.0, 0.0, 0.0);

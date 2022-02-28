@@ -46,6 +46,8 @@ class Action_GIST : public Action {
     void CalcAvgVoxelEnergy(double, DataSet_GridFlt&, DataSet_GridFlt&, Farray&, Farray&,
                             DataSet_GridDbl&, DataSet_GridFlt&, Farray&);
     DataSet_3D* AddDatasetAndFile(ActionInit& init, const std::string& dsname, const std::string& name, const std::string& filename);
+    int setSolventProperties(const Molecule& mol, const Topology& top);
+    int checkSolventProperties(const Molecule& mol, const Topology& top) const;
 
     int debug_;      ///< Action debug level
     int numthreads_; ///< Number of OpenMP threads
@@ -62,7 +64,7 @@ class Action_GIST : public Action {
     unsigned int numberAtoms_;
     int numberAtomTypes_;
     int headAtomType_;
-    bool *solvent_; // TODO just use atomIsSolute_ array
+    bool *solvent_; // This is needed additionally to atomIsSolute_ because we need a bool pointer to copy to the GPU.
 
     // Arrays on GPU
     int *NBindex_c_;
