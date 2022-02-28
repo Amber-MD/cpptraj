@@ -14,6 +14,8 @@
 # include <omp.h>
 #endif
 
+// TO-DO: In Cuda kernel: atoms in the same mol might have the same atom_type. This would mess with the neighbor calc.
+
 const double Action_GIST::maxD_ = DBL_MAX;
 #define GIST_TINY 1e-10
 
@@ -37,7 +39,7 @@ Action_GIST::Action_GIST() :
 #endif
   gridspacing_(0),
   gridcntr_(0.0),
-  griddim_(0.0),
+  griddim_(),
   gO_(0),
   gH_(0),
   Esw_(0),
@@ -85,7 +87,7 @@ void Action_GIST::Help() const {
           "\t[griddim <nx> <ny> <nz>] [gridspacn <spaceval>] [neighborcut <ncut>]\n"
           "\t[prefix <filename prefix>] [ext <grid extension>] [out <output suffix>]\n"
           "\t[floatfmt {double|scientific|general}] [floatwidth <fw>] [floatprec <fp>]\n"
-          "\t[intwidth <iw>] [oldnnvolume] [nnsearchlayers <nlayers>] [solvent <mask>] [mainsolvent <mask>]\n"
+          "\t[intwidth <iw>] [oldnnvolume] [nnsearchlayers <nlayers>] [solute <mask>] [solventmols <str>]\n"
           "\t[info <info suffix>]\n");
 #         ifdef LIBPME
           mprintf("\t[nopme|pme %s\n\t %s\n\t %s]\n", EwaldOptions::KeywordsCommon1(), EwaldOptions::KeywordsCommon2(), EwaldOptions::KeywordsPME());
@@ -123,20 +125,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   if (!gistout.empty()) gistout = prefix_ + "-" + gistout;
   infofile_ = init.DFL().AddCpptrajFile( gistout, "GIST info", DataFileList::TEXT, true );
   if (infofile_ == 0) return Action::ERR;
-  // Grid files
-  DataFile* file_gO = init.DFL().AddDataFile( prefix_ + "-gO" + ext );
-  DataFile* file_gH = init.DFL().AddDataFile( prefix_ + "-gH" + ext );
-  DataFile* file_Esw = init.DFL().AddDataFile(prefix_ + "-Esw-dens" + ext);
-  DataFile* file_Eww = init.DFL().AddDataFile(prefix_ + "-Eww-dens" + ext);
-  DataFile* file_dTStrans = init.DFL().AddDataFile(prefix_ + "-dTStrans-dens" + ext);
-  DataFile* file_dTSorient = init.DFL().AddDataFile(prefix_ + "-dTSorient-dens" + ext);
-  DataFile* file_dTSsix = init.DFL().AddDataFile(prefix_ + "-dTSsix-dens" + ext);
-  DataFile* file_neighbor_norm = init.DFL().AddDataFile(prefix_ + "-neighbor-norm" + ext);
-  DataFile* file_dipole = init.DFL().AddDataFile(prefix_ + "-dipole-dens" + ext);
-  DataFile* file_order_norm = init.DFL().AddDataFile(prefix_ + "-order-norm" + ext);
-  DataFile* file_dipolex = init.DFL().AddDataFile(prefix_ + "-dipolex-dens" + ext);
-  DataFile* file_dipoley = init.DFL().AddDataFile(prefix_ + "-dipoley-dens" + ext);
-  DataFile* file_dipolez = init.DFL().AddDataFile(prefix_ + "-dipolez-dens" + ext);
+
   // Output format keywords
   std::string floatfmt = actionArgs.GetStringKey("floatfmt");
   if (!floatfmt.empty()) {
@@ -207,12 +196,6 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     return Action::ERR;
 #   endif
   }
-  DataFile* file_energy_pme = 0;
-  DataFile* file_U_energy_pme = 0;
-  if (usePme_) {
-    file_energy_pme = init.DFL().AddDataFile(prefix_ + "-Water-Etot-pme-dens" + ext);
-    file_U_energy_pme = init.DFL().AddDataFile(prefix_ + "-Solute-Etot-pme-dens"+ ext);
-  }
 
   this->skipS_ = actionArgs.hasKey("skipS");
 
@@ -248,47 +231,44 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     gridcntr_[2] = centerArgs.getNextDouble(-1);
   }
   // Grid dimensions
-  int nx, ny, nz;
   ArgList dimArgs = actionArgs.GetNstringKey("griddim", 3);
   if ( dimArgs.empty() ) {
-    nx = 40;
-    ny = 40;
-    nz = 40;
+    griddim_[0] = 40;
+    griddim_[1] = 40;
+    griddim_[2] = 40;
     mprintf("Warning: No grid dimension values specified, using default (40,40,40)\n");
   } else {
     if ( !validInteger(dimArgs[0]) || !validInteger(dimArgs[1]) || !validInteger(dimArgs[2]) ) {
       mprinterr("Invalid grid dimensions: %s %s %s\n", dimArgs[0].c_str(), dimArgs[1].c_str(), dimArgs[2].c_str());
       return Action::ERR;
     }
-    nx = dimArgs.getNextInteger(-1);
-    ny = dimArgs.getNextInteger(-1);
-    nz = dimArgs.getNextInteger(-1);
+    griddim_[0] = dimArgs.getNextInteger(-1);
+    griddim_[1] = dimArgs.getNextInteger(-1);
+    griddim_[2] = dimArgs.getNextInteger(-1);
   }
-  if ( nx < 1 || ny < 1 || nz < 1 ) {
-    mprinterr("Error: grid dimensions must be >0, but are %d %d %d.\n", nx, ny, nz);
+  if ( griddim_[0] < 1 || griddim_[1] < 1 || griddim_[2] < 1 ) {
+    mprinterr("Error: grid dimensions must be >0, but are %d %d %d.\n", griddim_[0], griddim_[1], griddim_[2]);
     return Action::ERR;
   }
-  griddim_ = Vec3((double)nx, (double)ny, (double)nz);
   // Data set name
   std::string dsname = actionArgs.GetStringKey("name");
   if (dsname.empty())
     dsname = init.DSL().GenerateDefaultName("GIST");
 
   // Set up DataSets.
-  gO_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_FLT, MetaData(dsname, "gO"));
-  gH_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_FLT, MetaData(dsname, "gH"));
-  Esw_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_FLT, MetaData(dsname, "Esw"));
-  Eww_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_FLT, MetaData(dsname, "Eww"));
-  dTStrans_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_FLT, MetaData(dsname, "dTStrans"));
-  dTSorient_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_FLT, MetaData(dsname, "dTSorient"));
-  dTSsix_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_FLT, MetaData(dsname, "dTSsix"));
-  neighbor_norm_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_FLT, MetaData(dsname, "neighbor"));
-  dipole_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_FLT, MetaData(dsname, "dipole"));
-
-  order_norm_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_DBL, MetaData(dsname, "order"));
-  dipolex_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_DBL, MetaData(dsname, "dipolex"));
-  dipoley_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_DBL, MetaData(dsname, "dipoley"));
-  dipolez_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_DBL, MetaData(dsname, "dipolez"));
+  gO_ = AddDatasetAndFile(init, dsname, "gO", prefix_ + "-gO" + ext);
+  gH_ = AddDatasetAndFile(init, dsname, "gH", prefix_ + "-gH" + ext);
+  Esw_ = AddDatasetAndFile(init, dsname, "Esw", prefix_ + "-Esw-dens" + ext);
+  Eww_ = AddDatasetAndFile(init, dsname, "Eww", prefix_ + "-Eww-dens" + ext);
+  dTStrans_ = AddDatasetAndFile(init, dsname, "dTStrans", prefix_ + "-dTStrans-dens" + ext);
+  dTSorient_ = AddDatasetAndFile(init, dsname, "dTSorient", prefix_ + "-dTSorient-dens" + ext);
+  dTSsix_ = AddDatasetAndFile(init, dsname, "dTSsix", prefix_ + "-dTSsix-dens" + ext);
+  neighbor_norm_ = AddDatasetAndFile(init, dsname, "neighbor", prefix_ + "-neighbor-norm" + ext);
+  dipole_ = AddDatasetAndFile(init, dsname, "dipole", prefix_ + "-dipole-dens" + ext);
+  order_norm_ = AddDatasetAndFile(init, dsname, "order", prefix_ + "-order-norm" + ext);
+  dipolex_ = AddDatasetAndFile(init, dsname, "dipolex", prefix_ + "-dipolex-dens" + ext);
+  dipoley_ = AddDatasetAndFile(init, dsname, "dipoley", prefix_ + "-dipoley-dens" + ext);
+  dipolez_ = AddDatasetAndFile(init, dsname, "dipolez", prefix_ + "-dipolez-dens" + ext);
 
   if (gO_==0 || gH_==0 || Esw_==0 || Eww_==0 || dTStrans_==0 || dTSorient_==0 ||
       dTSsix_==0 || neighbor_norm_==0 || dipole_==0 || order_norm_==0 ||
@@ -296,8 +276,8 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     return Action::ERR;
 
   if (usePme_) {
-    PME_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_FLT, MetaData(dsname,"PME"));
-    U_PME_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_FLT,MetaData(dsname,"U_PME"));
+    PME_ = AddDatasetAndFile(init, dsname, "PME", prefix_ + "-Water-Etot-pme-dens" + ext);
+    U_PME_ = AddDatasetAndFile(init, dsname, "U_PME", prefix_ + "-Solute-Etot-pme-dens"+ ext);
     if (PME_ == 0 || U_PME_ == 0) return Action::ERR;
   }
 
@@ -306,28 +286,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     if (ww_Eij_ == 0) return Action::ERR;
   }
 
-  // Allocate DataSets. TODO non-orthogonal grids as well
-  Vec3 v_spacing( gridspacing_ );
-  gO_->Allocate_N_C_D(nx, ny, nz, gridcntr_, v_spacing);
   MAX_GRID_PT_ = gO_->Size();
-  gH_->Allocate_N_C_D(nx, ny, nz, gridcntr_, v_spacing);
-  Esw_->Allocate_N_C_D(nx, ny, nz, gridcntr_, v_spacing);
-  Eww_->Allocate_N_C_D(nx, ny, nz, gridcntr_, v_spacing);
-  dTStrans_->Allocate_N_C_D(nx, ny, nz, gridcntr_, v_spacing);
-  dTSorient_->Allocate_N_C_D(nx, ny, nz, gridcntr_, v_spacing);
-  dTSsix_->Allocate_N_C_D(nx, ny, nz, gridcntr_, v_spacing);
-  neighbor_norm_->Allocate_N_C_D(nx, ny, nz, gridcntr_, v_spacing);
-  dipole_->Allocate_N_C_D(nx, ny, nz, gridcntr_, v_spacing);
-
-  order_norm_->Allocate_N_C_D(nx, ny, nz, gridcntr_, v_spacing);
-  dipolex_->Allocate_N_C_D(nx, ny, nz, gridcntr_, v_spacing);
-  dipoley_->Allocate_N_C_D(nx, ny, nz, gridcntr_, v_spacing);
-  dipolez_->Allocate_N_C_D(nx, ny, nz, gridcntr_, v_spacing);
-
-  if (usePme_) {
-    PME_->Allocate_N_C_D(nx,ny,nz,gridcntr_,v_spacing);
-    U_PME_->Allocate_N_C_D(nx,ny,nz,gridcntr_,v_spacing);
-  }
 
   if (ww_Eij_ != 0) {
     if (ww_Eij_->AllocateTriangle( MAX_GRID_PT_ )) {
@@ -336,28 +295,10 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     }
   }
 
-  // Add sets to files
-  file_gO->AddDataSet( gO_ );
-  file_gH->AddDataSet( gH_ );
-  file_Esw->AddDataSet( Esw_ );
-  file_Eww->AddDataSet( Eww_ );
-  file_dTStrans->AddDataSet( dTStrans_ );
-  file_dTSorient->AddDataSet( dTSorient_ );
-  file_dTSsix->AddDataSet( dTSsix_ );
-  file_neighbor_norm->AddDataSet( neighbor_norm_ );
-  file_dipole->AddDataSet( dipole_ );
-  file_order_norm->AddDataSet( order_norm_ );
-  file_dipolex->AddDataSet( dipolex_ );
-  file_dipoley->AddDataSet( dipoley_ );
-  file_dipolez->AddDataSet( dipolez_ );
-  if (usePme_) {
-    file_energy_pme->AddDataSet(PME_);
-    file_U_energy_pme->AddDataSet(U_PME_);
-  }
   // Set up grid params TODO non-orthogonal as well
-  G_max_ = Vec3( (double)nx * gridspacing_ + 1.5,
-                 (double)ny * gridspacing_ + 1.5,
-                 (double)nz * gridspacing_ + 1.5 );
+  G_max_ = Vec3( (double)griddim_[0] * gridspacing_ + 1.5,
+                 (double)griddim_[1] * gridspacing_ + 1.5,
+                 (double)griddim_[2] * gridspacing_ + 1.5 );
   N_waters_.assign( MAX_GRID_PT_, 0 );
   N_solute_atoms_.assign( MAX_GRID_PT_, 0);
   N_hydrogens_.assign( MAX_GRID_PT_, 0 );
@@ -486,6 +427,19 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   return Action::OK;
 }
 
+DataSet_3D* Action_GIST::AddDatasetAndFile(ActionInit& init, const std::string& dsname, const std::string& name, const std::string& filename)
+{
+  DataFile* file = init.DFL().AddDataFile( filename );
+  DataSet_3D* dataset = static_cast<DataSet_3D*>(init.DSL().AddSet(DataSet::GRID_FLT, MetaData(dsname, name)));
+  if (dataset == 0 && file == 0) {
+    return 0;
+  }
+  Vec3 v_spacing( gridspacing_ );
+  dataset->Allocate_N_C_D(griddim_[0], griddim_[1], griddim_[2], gridcntr_, v_spacing);
+  file->AddDataSet( dataset );
+  return dataset;
+}
+
 /// \return True if given floating point values are not equal within a tolerance
 static inline bool NotEqual(double v1, double v2) { return ( fabs(v1 - v2) > Constants::SMALL ); }
 
@@ -580,8 +534,8 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
       }
       // Save all atom indices for energy calc, including extra points
       for (unsigned int IDX = 0; IDX != nMolAtoms_; IDX++) {
-        atomIsSolute_[o_idx + IDX] = false; // The identity of the atom is water
-        atom_voxel_[o_idx + IDX] = OFF_GRID_;
+        //atomIsSolute_[o_idx + IDX] = false; // The identity of the atom is water
+        // atom_voxel_[o_idx + IDX] = OFF_GRID_;
         #ifdef CUDA
         this->molecule_.push_back( setup.Top()[o_idx + IDX ].MolNum() );
         this->charges_.push_back( setup.Top()[o_idx + IDX ].Charge() );
@@ -1509,9 +1463,9 @@ void Action_GIST::Print() {
   double dTSt = 0.0;
   double dTSs = 0.0;
   int nwts = 0;
-  int nx = gO_->NX();
-  int ny = gO_->NY();
-  int nz = gO_->NZ();
+  int nx = griddim_[0];
+  int ny = griddim_[1];
+  int nz = griddim_[2];
   DataSet_GridFlt& gO = static_cast<DataSet_GridFlt&>( *gO_ );
   DataSet_GridFlt& gH = static_cast<DataSet_GridFlt&>( *gH_ );
   DataSet_GridFlt& dTStrans = static_cast<DataSet_GridFlt&>( *dTStrans_ );
@@ -1676,7 +1630,7 @@ void Action_GIST::Print() {
           " " + fltFmt_.Fmt() + // dipolex
           " " + fltFmt_.Fmt() + // dipoley
           " " + fltFmt_.Fmt() + // dipolez
-          " " + fltFmt_.Fmt() + // pol
+          " " + fltFmt_.Fmt() + // dipole
           " " + fltFmt_.Fmt() + // neighbor_dens
           " " + fltFmt_.Fmt() + // neighbor_norm
           " " + fltFmt_.Fmt() + // qtet
@@ -1698,7 +1652,7 @@ void Action_GIST::Print() {
                       " Eww-dens(kcal/mol/A^3) Eww-norm-unref(kcal/mol)",
                       gistOutputVersion, gridspacing_,
                       gridcntr_[0], gridcntr_[1], gridcntr_[2],
-                      (int)griddim_[0], (int)griddim_[1], (int)griddim_[2]);
+                      griddim_[0], griddim_[1], griddim_[2]);
     if (usePme_)
       datafile_->Printf(" PME-dens(kcal/mol/A^3) PME-norm(kcal/mol)");
     datafile_->Printf(" Dipole_x-dens(D/A^3) Dipole_y-dens(D/A^3) Dipole_z-dens(D/A^3)"

@@ -45,6 +45,7 @@ class Action_GIST : public Action {
     void CalcAvgVoxelEnergy_PME(double, DataSet_GridFlt&, DataSet_GridFlt&, Farray&) const;
     void CalcAvgVoxelEnergy(double, DataSet_GridFlt&, DataSet_GridFlt&, Farray&, Farray&,
                             DataSet_GridDbl&, DataSet_GridFlt&, Farray&);
+    DataSet_3D* AddDatasetAndFile(ActionInit& init, const std::string& dsname, const std::string& name, const std::string& filename);
 
     int debug_;      ///< Action debug level
     int numthreads_; ///< Number of OpenMP threads
@@ -96,7 +97,7 @@ class Action_GIST : public Action {
 
     double gridspacing_;
     Vec3 gridcntr_;
-    Vec3 griddim_;
+    int griddim_[3];
 
     // NOTE: '*' = Updated in DoAction(). '+' = Updated in Setup().
     ImageOption imageOpt_;  ///< Used to determine if imaging should be used.*
