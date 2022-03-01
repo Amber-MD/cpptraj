@@ -215,7 +215,7 @@ std::string Exec_PrepareForLeap::SugarToken::SetFromLine(ArgList const& line) {
   else if (line[3] == "L")
     chir_ = IS_L;
   else {
-    mprinterr("Error: Unrecognized chirality: %s\n"
+    mprinterr("Error: Unrecognized configuration: %s\n"
               "Error: Line: %s\n", line[3].c_str(), lineIn);
     return std::string("");
   }
@@ -1204,7 +1204,7 @@ const
                                           DetermineChirality(sugar.HighestStereocenter(),
                                                              topIn, frameIn, cdebug);
   if (ctypeR == Cpptraj::Chirality::ERR) {
-    mprinterr("Error: Could not determine chirality for furanose.\n"); // TODO warn?
+    mprinterr("Error: Could not determine configuration for furanose.\n"); // TODO warn?
     return 1;
   }
   if (ctypeR == Cpptraj::Chirality::IS_R)
@@ -1603,10 +1603,10 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar& sugarIn, Topology& topIn,
       sugarInfo.SetForm( pdb_glycam->second.Form() );
     }
     if (sugarInfo.Chirality() == UNKNOWN_CHIR) {
-      mprintf("Warning: Could not determine chirality from coordinates.\n");
+      mprintf("Warning: Could not determine configuration from coordinates.\n");
       if (pdb_glycam->second.Chirality() == UNKNOWN_CHIR)
         return 0;
-      mprintf("Warning: Setting chirality based on residue name.\n");
+      mprintf("Warning: Setting configuration based on residue name.\n");
       sugarInfo.SetChirality( pdb_glycam->second.Chirality() );
     }
     if (sugarInfo.RingType() == UNKNOWN_RING) {
@@ -1638,16 +1638,16 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar& sugarIn, Topology& topIn,
   if (pdb_glycam->second.Chirality() != UNKNOWN_CHIR &&
       pdb_glycam->second.Chirality() != sugarInfo.Chirality())
   {
-    mprintf("Warning: '%s' detected chirality is %s but chirality based on name is %s.\n",
+    mprintf("Warning: '%s' detected configuration is %s but configuration based on name is %s.\n",
             sugarName.c_str(), chirstr_[sugarInfo.Chirality()],
             chirstr_[pdb_glycam->second.Chirality()]);
     if (sugarInfo.Chirality() != UNKNOWN_CHIR)
       resStat_[rnum] = SUGAR_NAME_MISMATCH;
     if (useSugarName_) {
-      mprintf("\tSetting chirality based on residue name.\n");
+      mprintf("\tSetting configuration based on residue name.\n");
       sugarInfo.SetChirality( pdb_glycam->second.Chirality() );
     } else if (sugar.IsMissingAtoms()) {
-      mprintf("Warning: Residue was missing atoms; setting chirality based on residue name.\n");
+      mprintf("Warning: Residue was missing atoms; setting configuration based on residue name.\n");
       sugarInfo.SetChirality( pdb_glycam->second.Chirality() );
     }
   }
@@ -3588,7 +3588,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       else
         *it = VALIDATED;
     } else if ( *it == SUGAR_NAME_MISMATCH ) {
-        mprintf("\t%s%s sugar anomer type and/or chirality is not consistent with name.\n",
+        mprintf("\t%s%s sugar anomer type and/or configuration is not consistent with name.\n",
                 msg1, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
     // ----- Fatal Errors ----
     } else if ( *it == SUGAR_UNRECOGNIZED_LINK_RES ) {
