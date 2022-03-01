@@ -7535,7 +7535,7 @@ resmapfile
 
 \begin_layout Description
 [hasglycam] If specified, assume sugars already have GLYCAM residue names;
- just check sugar form/chirality/linkage.
+ just check sugar anomer type/configuration/linkage.
 \end_layout
 
 \begin_layout Description
@@ -7560,7 +7560,8 @@ This command will prepare a structure (usually from a PDB) for processing
  'bond' commands for disulfide bonds, change histidine names based on any
  existing protonation, and renaming residues/atoms and generating 'bond'
  commands for carbohydrates.
- 
+ The command can also call LEaP directly to generate the parameters once
+ the structure is prepared.
 \end_layout
 
 \begin_layout Standard
@@ -7577,21 +7578,23 @@ If hydrogen atoms are present in the structure, the command will attempt
 
 \begin_layout Standard
 By default, sugars will have their residue names changed to those compatible
- with the GLYCAM force field based on their anomer type (form), configuration
- (chirality), and linkage.
+ with the GLYCAM force field based on their anomer type (alpha/beta), configurat
+ion (D/L), and linkages (glycosidic and covalent sugar to non-sugar).
  Any recognized functional groups that are part of sugar residues (hydroxyl,
  acetyl, sulfate, etc) will be split into separate residues as required
  by GLYCAM.
  If this happens and 'runleap' has not been specified, CPPTRAJ will warn
  about any residues/atoms that require charge to be adjusted.
+ If 'runleap' has not been specified the command will warn about any atoms
+ that need to have their charges adjusted after LEaP is run.
 \end_layout
 
 \begin_layout Standard
 The command will try to report any potential problems that LEaP might encounter.
  These include residue names that may be unrecognized (and therefore may
- not have parameters), mismatches between detected sugar form/chirality
- and form/chirality based on the sugar residue name, unrecognized sugar
- linkages, and so on.
+ not have parameters), mismatches between detected sugar anomer type/configurati
+on and anomer type/configuration based on the sugar residue name, unrecognized
+ sugar linkages, and so on.
  
 \end_layout
 
@@ -7633,11 +7636,15 @@ This file controls how CPPTRAJ will name sugars based on sugar form/chirality
 \end_layout
 
 \begin_layout LyX-Code
-Format: <ResName> <GlycamCode> <Form> <Chirality> <RingType> "<Name>"
+Format: <ResName> <GlycamCode> <Anomer> <Config> <RingType> "<Name>"
 \end_layout
 
 \begin_layout LyX-Code
-Form: A=alpha, B=beta 
+Anomer: A=alpha, B=beta
+\end_layout
+
+\begin_layout LyX-Code
+Config: D/L
 \end_layout
 
 \begin_layout LyX-Code
@@ -7653,12 +7660,12 @@ The second section contains PDB to GLYCAM atom name maps for residues:
 \end_layout
 
 \begin_layout LyX-Code
-Format: <GLYCAM residue codes> <PDB atom name>,<GLYCAM atom name>[,<form>]
+Format: <GLYCAM residue codes> <PDB atom name>,<GLYCAM atom name>[,<anomer>]
  … 
 \end_layout
 
 \begin_layout LyX-Code
-If <form> (A=alpha, B=beta) is specified, the atom name map is only valid
+If <anomer> (A=alpha, B=beta) is specified, the atom name map is only valid
  for that specific form.
 \end_layout
 
