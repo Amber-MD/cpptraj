@@ -7149,8 +7149,11 @@ prepareforleap crdset <coords set> [frame <#>] name <out coords set>
 \end_layout
 
 \begin_layout LyX-Code
-                  	[nowat [watermask <watermask>] [noh] [keepaltloc {<alt
- loc ID>|highestocc}]
+                  	[nowat [watermask <watermask>] [noh]
+\end_layout
+
+\begin_layout LyX-Code
+                      [keepaltloc {<alt loc ID>|highestocc}]
 \end_layout
 
 \begin_layout LyX-Code
@@ -7191,8 +7194,11 @@ prepareforleap crdset <coords set> [frame <#>] name <out coords set>
 \end_layout
 
 \begin_layout LyX-Code
-                  	  sugarmask <sugarmask> [noc1search] [nosplitres] [resmapfile
- <file>]
+                  	  sugarmask <sugarmask> [noc1search] [nosplitres]
+\end_layout
+
+\begin_layout LyX-Code
+                        [resmapfile <file>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -7391,7 +7397,7 @@ id> or the location with the highest occupancy if
 \end_layout
 
 \begin_layout Description
-[dterminemolmask
+[determinemolmask
 \begin_inset space ~
 \end_inset
 
@@ -7555,6 +7561,13 @@ resmapfile
 This command will prepare a structure (usually from a PDB) for processing
  with the Amber program LEaP to generate topology and coordinates files
  for MD simulations.
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Roe2022"
+literal "true"
+
+\end_inset
+
  It will handle things like choosing alternate atom locations, removing
  waters/hydrogen atoms from the structure, renaming residues and generating
  'bond' commands for disulfide bonds, change histidine names based on any
