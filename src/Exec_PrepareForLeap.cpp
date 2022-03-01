@@ -206,7 +206,7 @@ std::string Exec_PrepareForLeap::SugarToken::SetFromLine(ArgList const& line) {
   else if (line[2] == "B")
     form_ = BETA;
   else {
-    mprinterr("Error: Unrecognized form: %s\n"
+    mprinterr("Error: Unrecognized anomer type: %s\n"
               "Error: Line: %s\n", line[2].c_str(), lineIn);
     return std::string("");
   }
@@ -1596,10 +1596,10 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar& sugarIn, Topology& topIn,
     // chirality, or both.
     // Try to fill in info based on the residue name (pdb_glycam->second).
     if (sugarInfo.Form() == UNKNOWN_FORM) {
-      mprintf("Warning: Could not determine form from coordinates.\n");
+      mprintf("Warning: Could not determine anomer type from coordinates.\n");
       if (pdb_glycam->second.Form() == UNKNOWN_FORM)
         return 0;
-      mprintf("Warning: Setting form based on residue name.\n");
+      mprintf("Warning: Setting anomer type based on residue name.\n");
       sugarInfo.SetForm( pdb_glycam->second.Form() );
     }
     if (sugarInfo.Chirality() == UNKNOWN_CHIR) {
@@ -1622,16 +1622,16 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar& sugarIn, Topology& topIn,
   if (pdb_glycam->second.Form() != UNKNOWN_FORM &&
       pdb_glycam->second.Form() != sugarInfo.Form())
   {
-    mprintf("Warning: '%s' detected form is %s but form based on name is %s.\n",
+    mprintf("Warning: '%s' detected anomer type is %s but anomer type based on name is %s.\n",
             sugarName.c_str(), formstr_[sugarInfo.Form()],
             formstr_[pdb_glycam->second.Form()]);
     if (sugarInfo.Form() != UNKNOWN_FORM)
       resStat_[rnum] = SUGAR_NAME_MISMATCH;
     if (useSugarName_) {
-      mprintf("\tSetting form based on residue name.\n");
+      mprintf("\tSetting anomer type based on residue name.\n");
       sugarInfo.SetForm( pdb_glycam->second.Form() );
     } else if (sugar.IsMissingAtoms()) {
-      mprintf("Warning: Residue was missing atoms; setting form based on residue name.\n");
+      mprintf("Warning: Residue was missing atoms; setting anomer type based on residue name.\n");
       sugarInfo.SetForm( pdb_glycam->second.Form() );
     }
   }
@@ -1683,11 +1683,11 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar& sugarIn, Topology& topIn,
   }
   // Sanity check
   if (formStr.empty()) {
-    mprinterr("Internal Error: Could not set form string.\n");
+    mprinterr("Internal Error: Could not set anomer type string.\n");
     return 1;
   }
 
-  mprintf("\t  %s detected form is %s(%s)-%s-%s\n", sugarName.c_str(),
+  mprintf("\t  %s detected anomer type is %s(%s)-%s-%s\n", sugarName.c_str(),
          formstr_[sugarInfo.Form()], formStr.c_str(), chirstr_[sugarInfo.Chirality()],
          ringstr_[sugarInfo.RingType()]);
 
@@ -3588,7 +3588,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       else
         *it = VALIDATED;
     } else if ( *it == SUGAR_NAME_MISMATCH ) {
-        mprintf("\t%s%s sugar form and/or chirality is not consistent with name.\n",
+        mprintf("\t%s%s sugar anomer type and/or chirality is not consistent with name.\n",
                 msg1, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
     // ----- Fatal Errors ----
     } else if ( *it == SUGAR_UNRECOGNIZED_LINK_RES ) {
