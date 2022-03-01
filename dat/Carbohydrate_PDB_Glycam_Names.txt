@@ -1,7 +1,7 @@
 # This file contains the mapping from common PDB names to Glycam residue codes.
 # Information obtained from mining the PDB chemical database (components.cif).
 # Last updated 11/12/21 12:05:19
-#ResName GlycamCode Form Chirality RingType "Name"
+#ResName GlycamCode Anomer Config RingType "Name"
 64K A A D P "alpha-D-arabinopyranose"
 AHR A A L F "alpha-L-arabinofuranose"
 ARA A A L P "alpha-L-arabinopyranose"
