@@ -7,6 +7,14 @@ CleanFiles cpptraj.in 1qos.cpptraj.pdb leap.1qos.in \
 
 INPUT='-i cpptraj.in'
 
+# Just in case CPPTRAJHOME is not set, see if we can find the map file
+RESMAPFILE=''
+if [ -z "$CPPTRAJHOME" ] ; then
+  if [ -e '../../dat/Carbohydrate_PDB_Glycam_Names.txt' ] ; then
+    RESMAPFILE='resmapfile ../../dat/Carbohydrate_PDB_Glycam_Names.txt'
+  fi
+fi
+
 cat > cpptraj.in <<EOF
 parm 1qos.pdb
 loadcrd 1qos.pdb name MyCrd
@@ -17,7 +25,7 @@ prepareforleap \
   out leap.1qos.in \
   leapunitname m \
   pdbout 1qos.cpptraj.pdb \
-  nowat noh
+  nowat noh $RESMAPFILE
 EOF
 RunCpptraj "Prepare PDB 1qos for LEaP"
 DoTest leap.1qos.in.save leap.1qos.in
@@ -33,7 +41,7 @@ prepareforleap \
   out leap.4zzw.in \
   leapunitname m \
   pdbout 4zzw.cpptraj.pdb \
-  nowat noh keepaltloc highestocc
+  nowat noh keepaltloc highestocc $RESMAPFILE
 EOF
 RunCpptraj "Prepare PDB 4zzw for LEaP"
 DoTest leap.4zzw.in.save leap.4zzw.in
