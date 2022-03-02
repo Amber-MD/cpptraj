@@ -41,7 +41,7 @@ prepareforleap \
   out leap.4zzw.in \
   leapunitname m \
   pdbout 4zzw.cpptraj.pdb \
-  nowat noh keepaltloc highestocc $RESMAPFILE
+  nowat noh keepaltloc highestocc
 EOF
 RunCpptraj "Prepare PDB 4zzw for LEaP"
 DoTest leap.4zzw.in.save leap.4zzw.in
