@@ -269,7 +269,7 @@ int GenerateFile(std::string const& f_glycamnames, std::string const& f_resnames
   outfile.Printf("# This file contains the mapping from common PDB names to Glycam residue codes.\n");
   outfile.Printf("# Information obtained from mining the PDB chemical database (components.cif).\n");
   outfile.Printf("# Last updated %s\n", TimeString().c_str());
-  outfile.Printf("#ResName GlycamCode Form Chirality RingType \"Name\"\n");
+  outfile.Printf("#ResName GlycamCode Anomer Config RingType \"Name\"\n");
 
   for (SpairArray::const_iterator kt = GlycamCode_to_sugarName.begin();
                                   kt != GlycamCode_to_sugarName.end(); ++kt)
