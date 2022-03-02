@@ -264,7 +264,8 @@ int GenerateFile(std::string const& f_glycamnames, std::string const& f_resnames
   }
 
   // Output
-  CpptrajFile outfile;
+  CpptrajFile outfile, codefile;
+  if (codefile.OpenWrite("code.cpp")) return 1;
   if (outfile.OpenWrite(f_outfile)) return 1;
   outfile.Printf("# This file contains the mapping from common PDB names to Glycam residue codes.\n");
   outfile.Printf("# Information obtained from mining the PDB chemical database (components.cif).\n");
@@ -295,6 +296,23 @@ int GenerateFile(std::string const& f_glycamnames, std::string const& f_resnames
       outfile.Printf("%s %s %s %s %s \"%s\"\n",
                     jt->c_str(), it->first.c_str(),
                     form.c_str(), chirality.c_str(), ring.c_str(), fullname.c_str());
+      std::string formstr, chirstr, ringstr;
+      if (form == "A")
+        formstr = "ALPHA";
+      else
+        formstr = "BETA";
+      if (chirality == "D")
+        chirstr = "IS_D";
+      else
+        chirstr = "IS_L";
+      if (ring == "P")
+        ringstr = "PYRANOSE";
+      else
+        ringstr = "FURANOSE";
+      codefile.Printf("  pdb_to_glycam_.insert( PairType(\"%s\",\n"
+                      "    SugarToken(\"%s\", \"%s\", %s, %s, %s)) );\n",
+                      jt->c_str(), fullname.c_str(), it->first.c_str(),
+                      formstr.c_str(), chirstr.c_str(), ringstr.c_str());
     }
     printf("\n");
   }
@@ -313,6 +331,7 @@ int GenerateFile(std::string const& f_glycamnames, std::string const& f_resnames
   outfile.Printf("ASN NLN\n");
 
   outfile.CloseFile();
+  codefile.CloseFile();
   return 0;
 }
     
