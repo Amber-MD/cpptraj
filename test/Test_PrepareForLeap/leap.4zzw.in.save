@@ -1,0 +1,16 @@
+m = loadpdb 4zzw.cpptraj.pdb
+bond m.19.SG m.25.SG
+bond m.50.SG m.71.SG
+bond m.61.SG m.67.SG
+bond m.138.SG m.399.SG
+bond m.172.SG m.207.SG
+bond m.176.SG m.206.SG
+bond m.235.SG m.240.SG
+bond m.258.SG m.331.SG
+bond m.436.C1 m.203.ND2
+bond m.438.C1 m.439.O1
+bond m.441.C1 m.57.ND2
+bond m.442.C1 m.429.ND2
+bond m.443.C1 m.196.OG
+bond m.436.O4 m.437.C1
+bond m.438.O4 m.440.C1

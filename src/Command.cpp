@@ -264,7 +264,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_LoadCrd(),          Cmd::EXE, 1, "loadcrd" );
   Command::AddCmd( new Exec_LoadTraj(),         Cmd::EXE, 1, "loadtraj" );
   Command::AddCmd( new Exec_PermuteDihedrals(), Cmd::EXE, 1, "permutedihedrals" );
-  Command::AddCmd( new Exec_PrepareForLeap(),   Cmd::EXE, 1, "prepareforleap" ); // hidden
+  Command::AddCmd( new Exec_PrepareForLeap(),   Cmd::EXE, 1, "prepareforleap" );
   Command::AddCmd( new Exec_RotateDihedral(),   Cmd::EXE, 1, "rotatedihedral" );
   Command::AddCmd( new Exec_SplitCoords(),      Cmd::EXE, 1, "splitcoords" );
   // TRAJECTORY

@@ -38,6 +38,8 @@ install_dat:
 	cp ../dat/BONDTYPE_CHECK.TAB $(CPPTRAJDAT)/
 	cp ../dat/Karplus.txt        $(CPPTRAJDAT)/
 	cp ../dat/README             $(CPPTRAJDAT)/
+	cp ../dat/Carbohydrate_PDB_Glycam_Names.txt $(CPPTRAJDAT)/
+	cp ../dat/PDB_ResidueNames.txt $(CPPTRAJDAT)/
 
 # Static libraries ---------------------
 #$(CPPTRAJLIB)/libcpptraj.a: $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET)
