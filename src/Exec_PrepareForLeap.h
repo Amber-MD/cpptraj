@@ -87,7 +87,8 @@ class Exec_PrepareForLeap : public Exec {
     /// \return Sugar with atom indices set up
     Sugar IdSugarRing(int, Topology const&) const;
     /// Change PDB atom names to Glycam names
-    int ChangePdbAtomNamesToGlycam(char, Residue const&, Topology&, FormTypeEnum) const;
+    int ChangePdbAtomNamesToGlycam(std::string const&, Residue const&,
+                                   Topology&, FormTypeEnum) const;
     /// Determine form/chirality for furanose
     int DetermineUpOrDown(SugarToken&, Sugar const&, Topology const&, Frame const&) const;
     /// Determine form/chirliaty for pyranose 
@@ -157,8 +158,8 @@ class Exec_PrepareForLeap : public Exec {
     /// Hold maps of pdb atom names to glycam atom names (res in beta form)
     std::vector<NameMapType> pdb_glycam_name_maps_B_;
 
-    typedef std::pair<char, int> ResIdxPairType;
-    typedef std::map<char, int> ResIdxMapType;
+    typedef std::pair<std::string, int> ResIdxPairType;
+    typedef std::map<std::string, int> ResIdxMapType;
     /// Map glycam residue chars to pdb-glycam atom name map index (pdb_glycam_name_maps_)
     ResIdxMapType glycam_res_idx_map_;
 

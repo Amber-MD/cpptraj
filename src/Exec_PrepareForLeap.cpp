@@ -487,7 +487,7 @@ int Exec_PrepareForLeap::LoadGlycamPdbResMap(std::string const& fnameIn)
         } // END loop over name pair columns
         // Map will be for each glycam res
         for (ArgList::const_iterator gres = glycamnames.begin(); gres != glycamnames.end(); ++gres)
-          glycam_res_idx_map_.insert( ResIdxPairType( (*gres)[0], glycam_map_idx ) );
+          glycam_res_idx_map_.insert( ResIdxPairType( *gres, glycam_map_idx ) );
       } else if (section == PDB_LINKAGE_RES_SECTION) {
         // <pdb linkage res name> <glycam linkage res name>
         if (argline.Nargs() != 2) {
@@ -1109,15 +1109,15 @@ const
 }
 
 /** Change PDB atom names in residue to glycam ones. */
-int Exec_PrepareForLeap::ChangePdbAtomNamesToGlycam(char resChar, Residue const& res,
+int Exec_PrepareForLeap::ChangePdbAtomNamesToGlycam(std::string const& resCode, Residue const& res,
                                                     Topology& topIn, FormTypeEnum form)
 const
 {
   // Get the appropriate map
-  ResIdxMapType::const_iterator resIdxPair = glycam_res_idx_map_.find( resChar );
+  ResIdxMapType::const_iterator resIdxPair = glycam_res_idx_map_.find( resCode );
   if (resIdxPair == glycam_res_idx_map_.end()) {
     // No map needed for this residue
-    //mprintf("DEBUG: No atom map for residue '%c'.\n", resChar);
+    //mprintf("DEBUG: No atom map for residue '%s'.\n", resCode.c_str());
     return 0;
   }
   NameMapType const& currentMap = pdb_glycam_name_maps_[resIdxPair->second];
@@ -1701,10 +1701,10 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar& sugarIn, Topology& topIn,
   }
 
   // Change PDB names to Glycam ones
-  // FIXME get rid of resChar
-  char resChar = pdb_glycam->second.GlycamCode()[0];
+  std::string resCode = pdb_glycam->second.GlycamCode();
   if (!hasGlycam_) {
-    if (ChangePdbAtomNamesToGlycam(resChar, res, topIn, sugarInfo.Form())) {
+    if (ChangePdbAtomNamesToGlycam(resCode, res, topIn, sugarInfo.Form()))
+    {
       mprinterr("Error: Changing PDB atom names to Glycam failed.\n");
       return 1;
     }
@@ -1713,10 +1713,12 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar& sugarIn, Topology& topIn,
   // Modify residue char to indicate L form if necessary.
   // We do this here and not above so as not to mess with the
   // linkage determination.
-  if (sugarInfo.Chirality() == IS_L)
-    resChar = tolower( resChar );
+  if (sugarInfo.Chirality() == IS_L) {
+    for (std::string::iterator it = resCode.begin(); it != resCode.end(); ++it)
+      *it = tolower( *it );
+  }
   // Set new residue name
-  NameType newResName( linkcode + std::string(1,resChar) + formStr );
+  NameType newResName( linkcode + resCode + formStr );
   if (!hasGlycam_) {
     mprintf("\t  Changing %s to Glycam resname: %s\n",
       topIn.TruncResNameOnumId(rnum).c_str(), *newResName);
