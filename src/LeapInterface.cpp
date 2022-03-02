@@ -5,7 +5,6 @@
 #include "File_TempName.h"
 #include "StringRoutines.h"
 #include <cstdio>
-//#incl ude <cstdlib>
 
 using namespace Cpptraj;
 /** CONSTRUCTOR */
@@ -35,6 +34,9 @@ void LeapInterface::ClearInputFiles() {
 
 /** Execute the leap process */
 int LeapInterface::execute_leap(FileName const& input) const {
+# ifdef _MSC_VER
+  return 1;
+# else /* _MSC_VER */
   // Add source commands and quit to temp leap input
   CpptrajFile leapin;
 
@@ -107,10 +109,16 @@ int LeapInterface::execute_leap(FileName const& input) const {
     return 1;
   }
   return 0;
+# endif /* _MSC_VER */
 }
 
 /** Run leap. */
 int LeapInterface::RunLeap() const {
+# ifdef _MSC_VER
+  // popen/pclose does not really work on windows.
+  mprinterr("Error: LEaP interface cannot be used on windows.\n");
+  return 1;
+# else
   // Create temporary leap input file
   FileName tmp_leap_input = File::GenTempName();
 
@@ -118,5 +126,6 @@ int LeapInterface::RunLeap() const {
 
   // Free up temp name
   File::FreeTempName( tmp_leap_input );
+# endif
   return err;
 }

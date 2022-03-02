@@ -3111,9 +3111,15 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   mprintf("\tPrepared system will be saved to COORDS set '%s'\n", outCoords->legend());
 
   std::string leapffname = argIn.GetStringKey("runleap");
-  if (!leapffname.empty())
+  if (!leapffname.empty()) {
+#   ifdef _MSC_VER
+    mprinterr("Error: Cannot use LEaP interface on windows.\n");
+    return CpptrajState::ERR;
+#   else
     mprintf("\tWill attempt to run leap with force fields specified in file '%s'\n",
             leapffname.c_str());
+#   endif
+  }
 
   std::string pdbout = argIn.GetStringKey("pdbout");
   if (!pdbout.empty())
