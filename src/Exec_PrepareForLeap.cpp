@@ -140,19 +140,18 @@ inline static int find_new_idx(int oldidx, std::vector<int> const& atomMap, int 
 /** Remap internal indices according to given map. */
 void Exec_PrepareForLeap::Sugar::RemapIndices(Iarray const& atomMap, int at0, int at1) {
   // Always try the anomeric atom
-  anomeric_atom_ = find_new_idx(anomeric_atom_, atomMap, at0, at1); //atomMap[anomeric_atom_];
-  //if (NotSet()) return;
+  anomeric_atom_ = find_new_idx(anomeric_atom_, atomMap, at0, at1);
   //mprintf("DEBUG: Ring O old = %i ring O new %i\n", ring_oxygen_atom_+1, atomMap[ring_oxygen_atom_]+1);
   if (ring_oxygen_atom_ != -1)
-    ring_oxygen_atom_     = find_new_idx(ring_oxygen_atom_, atomMap, at0, at1); //atomMap[ring_oxygen_atom_];
+    ring_oxygen_atom_     = find_new_idx(ring_oxygen_atom_, atomMap, at0, at1);
   if (ano_ref_atom_ != -1)
-    ano_ref_atom_         = find_new_idx(ano_ref_atom_, atomMap, at0, at1); //atomMap[ano_ref_atom_];
+    ano_ref_atom_         = find_new_idx(ano_ref_atom_, atomMap, at0, at1);
   if (highest_stereocenter_ != -1)
-    highest_stereocenter_ = find_new_idx(highest_stereocenter_, atomMap, at0, at1); //atomMap[highest_stereocenter_];
+    highest_stereocenter_ = find_new_idx(highest_stereocenter_, atomMap, at0, at1);
   for (Iarray::iterator it = ring_atoms_.begin(); it != ring_atoms_.end(); ++it)
-    *it = find_new_idx(*it, atomMap, at0, at1); //atomMap[*it];
+    *it = find_new_idx(*it, atomMap, at0, at1);
   for (Iarray::iterator it = chain_atoms_.begin(); it != chain_atoms_.end(); ++it)
-    *it = find_new_idx(*it, atomMap, at0, at1); //atomMap[*it];
+    *it = find_new_idx(*it, atomMap, at0, at1);
 }
 
 // ===== SugarToken class ======================================================
@@ -427,22 +426,6 @@ int Exec_PrepareForLeap::LoadGlycamPdbResMap(std::string const& fnameIn)
                     sResName.c_str(), infile.Filename().full());
           return 1;
         }
-/*
-        if (argline.Nargs() != 3) {
-          mprinterr("Error: Expected only 3 columns in '%s' res map section, got %i\n",
-                    infile.Filename().full(), argline.Nargs());
-          mprinterr("Error: %s\n", ptr);
-          return 1;
-        }
-        ArgList pdbnames( argline[2], "," );
-        if (pdbnames.Nargs() < 1) {
-          mprinterr("Error: No pdb names found.\n");
-          mprinterr("Error: %s\n", ptr);
-          return 1;
-        }
-        // TODO handle glycam res names with > 1 char
-        for (int n = 0; n < pdbnames.Nargs(); n++)
-          pdb_to_glycam_.insert( PairType(pdbnames[n], argline[1][0]) );*/
       } else if (section == PDB_ATOMMAP_SECTION) {
         // <glycam reschar list> <PDB atomname to glycam atomname pair> ...
         if (argline.Nargs() < 2) {
@@ -1147,54 +1130,6 @@ int Exec_PrepareForLeap::DetermineUpOrDown(SugarToken& stoken,
                                          Topology const& topIn, Frame const& frameIn)
 const
 {
-  /** TEST TEST TEST */
-/*
-  double t_an = 0;
-  int ret1 = CalcAnomericTorsion(t_an, sugar.AnomericAtom(), sugar.RingOxygenAtom(),
-                                 sugar.ResNum(topIn),
-                                 sugar.RingAtoms(), topIn, frameIn);
-  //if (ret < 0) {
-  //  // This means C1 X substituent missing; non-fatal.
-  //  sugarIn.SetStatus( Sugar::MISSING_C1X );
-  //  return 1; // TODO return 0?
-  //} else if (ret > 0) {
-  //  // Error
-  //  return 1; 
-  //}
-  // The definition of 'up' here is reversed compared to pyranose.
-  bool t_an_up = !(t_an > 0);
-
-  double t_cc = 0;
-  int ret2 = CalcConfigCarbonTorsion(t_cc, sugar.HighestStereocenter(),
-                                     sugar.ChainAtoms(), topIn, frameIn);
-  //    return 1;
-  //} else
-  //  t_cc = t_ar;
-  bool t_cc_up = !(t_cc > 0);
-
-  if (t_cc_up) {
-    mprintf("DEBUG: Furanose config carbon is UP (D); torsion: %f deg., ret= %i\n",
-          t_cc*Constants::RADDEG, ret2);
-    if (t_an_up)
-      mprintf("DEBUG: Furanose anomeric carbon is UP (beta-D); torsion: %f deg., ret= %i\n",
-              t_an*Constants::RADDEG, ret1);
-    else
-      mprintf("DEBUG: Furanose anomeric carbon is DOWN (alpha-D); torsion %f deg., ret= %i\n",
-              t_an*Constants::RADDEG, ret2);
-  } else {
-    mprintf("DEBUG: Furanose config carbon is DOWN (L); torsion: %f deg., ret= %i\n",
-          t_cc*Constants::RADDEG, ret2);
-    if (t_an_up)
-      mprintf("DEBUG: Furanose anomeric carbon is UP (alpha-L); torsion: %f deg., ret= %i\n",
-              t_an*Constants::RADDEG, ret1);
-    else
-      mprintf("DEBUG: Furanose anomeric carbon is DOWN (beta-L); torsion %f deg., ret= %i\n",
-              t_an*Constants::RADDEG, ret2);
-  }
-*/
-  /** END TEST TEST TEST */
-
-
   int cdebug;
   if (debug_ > 1)
     cdebug = 1;
@@ -1208,9 +1143,9 @@ const
     return 1;
   }
   if (ctypeR == Cpptraj::Chirality::IS_R)
-    stoken.SetChirality(IS_D); //isDform = true;
+    stoken.SetChirality(IS_D);
   else
-    stoken.SetChirality(IS_L); //isDform = false;
+    stoken.SetChirality(IS_L);
 
   Cpptraj::Chirality::ChiralType ctypeA = Cpptraj::Chirality::
                                           DetermineChirality(sugar.AnomericAtom(),
@@ -1222,12 +1157,10 @@ const
 
   if (ctypeR == ctypeA) {
     // Up, beta
-    //formStr = "U";
-    stoken.SetForm(BETA); //return IS_BETA;
+    stoken.SetForm(BETA);
   } else {
     // Down, alpha
-    //formStr = "D";
-    stoken.SetForm(ALPHA); //return IS_ALPHA;
+    stoken.SetForm(ALPHA);
   }
   return 0;
 }
@@ -1305,7 +1238,6 @@ const
             (int)t_an_up, (int)t_ar_up, (int)t_cc_up);
   }
 
-  //AnomerRetType form;
   // Same side is beta, opposite is alpha.
   if (t_an_up == t_ar_up) {
     stoken.SetForm(BETA); //form = IS_BETA;
@@ -1317,7 +1249,6 @@ const
 
   // By the atom ordering used by CalcAnomericRefTorsion and
   // CalcConfigCarbonTorsion, D is a negative (down) torsion.
-  //isDform = !t_cc_up;
   if (!t_cc_up)
     stoken.SetChirality(IS_D);
   else
@@ -1738,8 +1669,6 @@ int Exec_PrepareForLeap::FindSugarC1Linkages(int rnum1, int c_beg,
                                              Topology& topIn, Frame const& frameIn)
 const
 {
-  //int rnum1 = sugar.ResNum();
-  //int c_beg = sugar.AnomericAtom();
   Residue const& res1 = topIn.SetRes(rnum1);
   // If the anomeric atom is already bonded to another residue, skip this.
   for (Atom::bond_iterator bat = topIn[c_beg].bondbegin();
@@ -2742,19 +2671,6 @@ const
       } // END loop over residue numbers
     }
   }
-/*
-  // Remove extra alternate atom locations
-  if (altLocChar != '\0') {
-    if (topIn.AtomAltLoc().empty()) {
-      mprintf("\tNo alternate atom locations.\n");
-    } else {
-      for (int idx = 0; idx != topIn.Natom(); idx++) {
-        if (topIn.AtomAltLoc()[idx] != ' ' &&
-            topIn.AtomAltLoc()[idx] != altLocChar)
-          atomsToKeep[idx] = false;
-      }
-    }
-  }*/
 
   // Set up mask of only kept atoms.
   AtomMask keptAtoms;
@@ -3231,9 +3147,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
              leapunitname_.c_str());
   solventResName_ = argIn.GetStringKey("solventresname", "HOH");
   mprintf("\tSolvent residue name: %s\n", solventResName_.c_str());
-  // FIXME functional group stuff should be in a file
-  //terminalHydroxylName_ = argIn.GetStringKey("terminalhydroxylname", "ROH");
-  //mprintf("\tTerminal hydroxyl name: %s\n", terminalHydroxylName_.c_str());
+  // TODO functional group stuff should be in a file
 
   bool prepare_sugars = !argIn.hasKey("nosugars");
   if (!prepare_sugars)
@@ -3295,10 +3209,6 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       return CpptrajState::ERR;
     }
   }
-  /// Get array of residues with unrecognized PDB names.
-  //Iarray unrecognizedPdbRes = GetUnrecognizedPdbResidues( topIn );
-  /// Get array of unrecognized residues that are also isolated.
-  //Iarray isolatedPdbRes = GetIsolatedUnrecognizedResidues( topIn, unrecognizedPdbRes );
 
   // Deal with any coordinate modifications
   bool remove_water     = argIn.hasKey("nowat");
