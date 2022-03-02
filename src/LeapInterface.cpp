@@ -126,6 +126,6 @@ int LeapInterface::RunLeap() const {
 
   // Free up temp name
   File::FreeTempName( tmp_leap_input );
-# endif
   return err;
+# endif
 }
