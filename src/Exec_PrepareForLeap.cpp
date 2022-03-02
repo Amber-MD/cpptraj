@@ -544,7 +544,32 @@ void Exec_PrepareForLeap::SetGlycamPdbResMap() {
     SugarToken("N-acetyl-alpha-neuraminic acid", "S", ALPHA, IS_D, PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("SLB",
     SugarToken("N-acetyl-beta-neuraminic acid", "S", BETA, IS_D, PYRANOSE)) );
-  // PDB to glycam linkage residues
+  // PDB to glycam atom name maps
+  // 0 - V,W,Y C7,C2N  O7,O2N  C8,CME
+  pdb_glycam_name_maps_.push_back(NameMapType());
+  pdb_glycam_name_maps_A_.push_back(NameMapType());
+  pdb_glycam_name_maps_B_.push_back(NameMapType());
+  pdb_glycam_name_maps_.back().insert(NamePairType("C7","C2N"));
+  pdb_glycam_name_maps_.back().insert(NamePairType("O7","O2N"));
+  pdb_glycam_name_maps_.back().insert(NamePairType("C8","CME"));
+  glycam_res_idx_map_.insert( ResIdxPairType( "V", 0 ) );
+  glycam_res_idx_map_.insert( ResIdxPairType( "W", 0 ) );
+  glycam_res_idx_map_.insert( ResIdxPairType( "Y", 0 ) );
+  // 1 - S     C10,C5N O10,O5N C11,CME
+  pdb_glycam_name_maps_.push_back(NameMapType());
+  pdb_glycam_name_maps_A_.push_back(NameMapType());
+  pdb_glycam_name_maps_B_.push_back(NameMapType());
+  pdb_glycam_name_maps_.back().insert(NamePairType("C10","C5N"));
+  pdb_glycam_name_maps_.back().insert(NamePairType("O10","O5N"));
+  pdb_glycam_name_maps_.back().insert(NamePairType("C11","CME"));
+  glycam_res_idx_map_.insert( ResIdxPairType( "S", 1 ) );
+  // 2 - H     C6,C6M,B
+  pdb_glycam_name_maps_.push_back(NameMapType());
+  pdb_glycam_name_maps_A_.push_back(NameMapType());
+  pdb_glycam_name_maps_B_.push_back(NameMapType());
+  pdb_glycam_name_maps_B_.back().insert(NamePairType("C6","C6M"));
+  glycam_res_idx_map_.insert( ResIdxPairType( "H", 2 ) );
+  // PDB to glycam linkage residue name maps
   pdb_glycam_linkageRes_map_.insert( NamePairType("SER", "OLS") );
   pdb_glycam_linkageRes_map_.insert( NamePairType("THR", "OLT") );
   pdb_glycam_linkageRes_map_.insert( NamePairType("HYP", "OLP") );
