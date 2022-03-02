@@ -3189,7 +3189,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       // DEBUG - print atom name maps
       mprintf("\tRes char to atom map index map:\n");
       for (ResIdxMapType::const_iterator mit = glycam_res_idx_map_.begin(); mit != glycam_res_idx_map_.end(); ++mit)
-        mprintf("\t  %c -> %i\n", mit->first, mit->second);
+        mprintf("\t  %c -> %i\n", mit->first.c_str(), mit->second);
       PrintAtomNameMap("Atom name maps", pdb_glycam_name_maps_);
       PrintAtomNameMap("Atom name maps (alpha)", pdb_glycam_name_maps_A_);
       PrintAtomNameMap("Atom name maps (beta)", pdb_glycam_name_maps_B_);
