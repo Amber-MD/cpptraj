@@ -4,8 +4,8 @@ project(cpptraj NONE)
 #version number
 #---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 set(cpptraj_MAJOR_VERSION 6)
-set(cpptraj_MINOR_VERSION 2)
-set(cpptraj_TWEAK_VERSION 7)
+set(cpptraj_MINOR_VERSION 4)
+set(cpptraj_TWEAK_VERSION 0)
 
 set(cpptraj_VERSION "${cpptraj_MAJOR_VERSION}.${cpptraj_MINOR_VERSION}.${cpptraj_TWEAK_VERSION}")
 
