@@ -206,7 +206,7 @@ int DataFile::ReadDataIn(FileName const& fnameIn, ArgList const& argListIn,
 # endif
   int err = dataio_->processReadArgs(argIn);
   if (err == 0) {
-    // FIXME in parallel mark data sets as synced if all threads read.
+    // FIXME in parallel mark data sets as synced if all processes read.
     err += dataio_->ReadData( filename_, datasetlist, dsname );
     // Treat any remaining arguments as file names.
     std::string nextFile = argIn.GetStringNext();
@@ -275,7 +275,7 @@ int DataFile::SetupDatafile(FileName const& fnameIn, ArgList& argIn,
   dataio_->SetDebug( debug_ );
 # ifdef MPI
   // Default to TrajComm master can write.
-  threadCanWrite_ = Parallel::TrajComm().Master();
+  processCanWrite_ = Parallel::TrajComm().Master();
 # endif
   if (!argIn.empty())
     ProcessArgs( argIn );
@@ -567,9 +567,9 @@ int DataFile::WriteNoEnsExtension() {
 // DataFile::WriteDataOut()
 void DataFile::WriteDataOut() {
 # ifdef MPI
-  if (!threadCanWrite_) {
+  if (!processCanWrite_) {
     if (debug_ > 0)
-      rprintf("DEBUG: Thread will not write file '%s'.\n", DataFilename().full());
+      rprintf("DEBUG: Process will not write file '%s'.\n", DataFilename().full());
   } else {
 # endif
     if (debug_ > 0)
