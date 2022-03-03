@@ -4,6 +4,7 @@
 #include "ImageOption.h"
 #include "Timer.h"
 #include "EwaldOptions.h"
+#include "CharMask.h"
 #ifdef CUDA
 #include "cuda_kernels/GistCudaSetup.cuh"
 #endif
@@ -42,12 +43,13 @@ class Action_GIST : public Action {
     void NonbondEnergy(Frame const&, Topology const&);
     void Order(Frame const&);
     void SumEVV();
-    void CalcAvgVoxelEnergy_PME(double, DataSet_GridFlt&, DataSet_GridFlt&, Farray&) const;
-    void CalcAvgVoxelEnergy(double, DataSet_GridFlt&, DataSet_GridFlt&, Farray&, Farray&,
-                            DataSet_GridDbl&, DataSet_GridFlt&, Farray&);
-    DataSet_3D* AddDatasetAndFile(ActionInit& init, const std::string& dsname, const std::string& name, const std::string& filename);
+    void CalcAvgVoxelEnergy_PME(double, DataSet_3D&, DataSet_3D&, Farray&) const;
+    void CalcAvgVoxelEnergy(double, DataSet_3D&, DataSet_3D&, Farray&, Farray&,
+                            DataSet_3D&, DataSet_3D&, Farray&);
+    DataSet_3D* AddDatasetAndFile(ActionInit& init, const std::string& dsname, const std::string& name, const std::string& filename, DataSet::DataType dtype);
     int setSolventProperties(const Molecule& mol, const Topology& top);
     int checkSolventProperties(const Molecule& mol, const Topology& top) const;
+    void setSoluteSolvent(const Topology& top);
 
     int debug_;      ///< Action debug level
     int numthreads_; ///< Number of OpenMP threads
@@ -101,6 +103,8 @@ class Action_GIST : public Action {
     Vec3 gridcntr_;
     int griddim_[3];
 
+    int rigidAtomIndices_[3]; ///< the 3 atoms that define the orientation of a solvent molecule;
+
     // NOTE: '*' = Updated in DoAction(). '+' = Updated in Setup().
     ImageOption imageOpt_;  ///< Used to determine if imaging should be used.*
     // GIST float grid datasets
@@ -124,6 +128,7 @@ class Action_GIST : public Action {
     // GIST matrix datasets
     DataSet_MatrixFlt* ww_Eij_; ///< Water-water interaction energy matrix.*
 
+    CharMask isSolute_;
     //Iarray mol_nums_;     ///< Absolute molecule number of each solvent molecule.+ //TODO needed?
     Iarray O_idxs_;         ///< Oxygen atom indices for each solvent molecule.+
     Iarray OnGrid_idxs_;    ///< Indices for each water atom on the grid.*

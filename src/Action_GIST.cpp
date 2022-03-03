@@ -15,6 +15,9 @@
 #endif
 
 // TO-DO: In Cuda kernel: atoms in the same mol might have the same atom_type. This would mess with the neighbor calc.
+// Crashes with zero solvent molecules
+// TO-DO: Consistent neighbor calculation with CUDA/PME/CPU
+// TO-DO: density output for non-water solvents
 
 const double Action_GIST::maxD_ = DBL_MAX;
 #define GIST_TINY 1e-10
@@ -251,31 +254,37 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     mprinterr("Error: grid dimensions must be >0, but are %d %d %d.\n", griddim_[0], griddim_[1], griddim_[2]);
     return Action::ERR;
   }
-  /*ArgList indArgs = actionArgs.GetNstringKey("rigidatomindices", 3);
+  ArgList indArgs = actionArgs.GetNstringKey("rigidatomindices", 3);
   if ( !indArgs.empty() ) {
     rigidAtomIndices_[0] = 0;
     rigidAtomIndices_[1] = 1;
     rigidAtomIndices_[2] = 2;
-  }*/
+  } else {
+    rigidAtomIndices_[0] = indArgs.getNextInteger(-1);
+    rigidAtomIndices_[1] = indArgs.getNextInteger(-1);
+    rigidAtomIndices_[2] = indArgs.getNextInteger(-1);
+  }
+  std::string soluteMask = actionArgs.GetStringKey("solute", "");
+  isSolute_.SetMaskString(soluteMask);
   // Data set name
   std::string dsname = actionArgs.GetStringKey("name");
   if (dsname.empty())
     dsname = init.DSL().GenerateDefaultName("GIST");
 
   // Set up DataSets.
-  gO_ = AddDatasetAndFile(init, dsname, "gO", prefix_ + "-gO" + ext);
-  gH_ = AddDatasetAndFile(init, dsname, "gH", prefix_ + "-gH" + ext);
-  Esw_ = AddDatasetAndFile(init, dsname, "Esw", prefix_ + "-Esw-dens" + ext);
-  Eww_ = AddDatasetAndFile(init, dsname, "Eww", prefix_ + "-Eww-dens" + ext);
-  dTStrans_ = AddDatasetAndFile(init, dsname, "dTStrans", prefix_ + "-dTStrans-dens" + ext);
-  dTSorient_ = AddDatasetAndFile(init, dsname, "dTSorient", prefix_ + "-dTSorient-dens" + ext);
-  dTSsix_ = AddDatasetAndFile(init, dsname, "dTSsix", prefix_ + "-dTSsix-dens" + ext);
-  neighbor_norm_ = AddDatasetAndFile(init, dsname, "neighbor", prefix_ + "-neighbor-norm" + ext);
-  dipole_ = AddDatasetAndFile(init, dsname, "dipole", prefix_ + "-dipole-dens" + ext);
-  order_norm_ = AddDatasetAndFile(init, dsname, "order", prefix_ + "-order-norm" + ext);
-  dipolex_ = AddDatasetAndFile(init, dsname, "dipolex", prefix_ + "-dipolex-dens" + ext);
-  dipoley_ = AddDatasetAndFile(init, dsname, "dipoley", prefix_ + "-dipoley-dens" + ext);
-  dipolez_ = AddDatasetAndFile(init, dsname, "dipolez", prefix_ + "-dipolez-dens" + ext);
+  gO_ = AddDatasetAndFile(init, dsname, "gO", prefix_ + "-gO" + ext, DataSet::GRID_FLT);
+  gH_ = AddDatasetAndFile(init, dsname, "gH", prefix_ + "-gH" + ext, DataSet::GRID_FLT);
+  Esw_ = AddDatasetAndFile(init, dsname, "Esw", prefix_ + "-Esw-dens" + ext, DataSet::GRID_FLT);
+  Eww_ = AddDatasetAndFile(init, dsname, "Eww", prefix_ + "-Eww-dens" + ext, DataSet::GRID_FLT);
+  dTStrans_ = AddDatasetAndFile(init, dsname, "dTStrans", prefix_ + "-dTStrans-dens" + ext, DataSet::GRID_FLT);
+  dTSorient_ = AddDatasetAndFile(init, dsname, "dTSorient", prefix_ + "-dTSorient-dens" + ext, DataSet::GRID_FLT);
+  dTSsix_ = AddDatasetAndFile(init, dsname, "dTSsix", prefix_ + "-dTSsix-dens" + ext, DataSet::GRID_FLT);
+  neighbor_norm_ = AddDatasetAndFile(init, dsname, "neighbor", prefix_ + "-neighbor-norm" + ext, DataSet::GRID_FLT);
+  dipole_ = AddDatasetAndFile(init, dsname, "dipole", prefix_ + "-dipole-dens" + ext, DataSet::GRID_FLT);
+  order_norm_ = AddDatasetAndFile(init, dsname, "order", prefix_ + "-order-norm" + ext, DataSet::GRID_DBL);
+  dipolex_ = AddDatasetAndFile(init, dsname, "dipolex", prefix_ + "-dipolex-dens" + ext, DataSet::GRID_DBL);
+  dipoley_ = AddDatasetAndFile(init, dsname, "dipoley", prefix_ + "-dipoley-dens" + ext, DataSet::GRID_DBL);
+  dipolez_ = AddDatasetAndFile(init, dsname, "dipolez", prefix_ + "-dipolez-dens" + ext, DataSet::GRID_DBL);
 
   if (gO_==0 || gH_==0 || Esw_==0 || Eww_==0 || dTStrans_==0 || dTSorient_==0 ||
       dTSsix_==0 || neighbor_norm_==0 || dipole_==0 || order_norm_==0 ||
@@ -283,8 +292,8 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     return Action::ERR;
 
   if (usePme_) {
-    PME_ = AddDatasetAndFile(init, dsname, "PME", prefix_ + "-Water-Etot-pme-dens" + ext);
-    U_PME_ = AddDatasetAndFile(init, dsname, "U_PME", prefix_ + "-Solute-Etot-pme-dens"+ ext);
+    PME_ = AddDatasetAndFile(init, dsname, "PME", prefix_ + "-Water-Etot-pme-dens" + ext, DataSet::GRID_FLT);
+    U_PME_ = AddDatasetAndFile(init, dsname, "U_PME", prefix_ + "-Solute-Etot-pme-dens"+ ext, DataSet::GRID_FLT);
     if (PME_ == 0 || U_PME_ == 0) return Action::ERR;
   }
 
@@ -434,10 +443,10 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   return Action::OK;
 }
 
-DataSet_3D* Action_GIST::AddDatasetAndFile(ActionInit& init, const std::string& dsname, const std::string& name, const std::string& filename)
+DataSet_3D* Action_GIST::AddDatasetAndFile(ActionInit& init, const std::string& dsname, const std::string& name, const std::string& filename, DataSet::DataType dtype)
 {
   DataFile* file = init.DFL().AddDataFile( filename );
-  DataSet_3D* dataset = static_cast<DataSet_3D*>(init.DSL().AddSet(DataSet::GRID_FLT, MetaData(dsname, name)));
+  DataSet_3D* dataset = static_cast<DataSet_3D*>(init.DSL().AddSet(dtype, MetaData(dsname, name)));
   if (dataset == 0 && file == 0) {
     return 0;
   }
@@ -483,13 +492,6 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
 #   endif
   }
 
-  // Get molecule number for each solvent molecule
-  //mol_nums_.clear();
-  O_idxs_.clear();
-  atom_voxel_.clear();
-  atomIsSolute_.clear();
-  atomIsSolventO_.clear();
-  U_idxs_.clear();
   // NOTE: these are just guesses
   O_idxs_.reserve( setup.Top().Nsolvent() );
   // atom_voxel_ and atomIsSolute will be indexed by atom #
@@ -497,13 +499,15 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   atomIsSolute_.assign(setup.Top().Natom(), false);
   atomIsSolventO_.assign(setup.Top().Natom(), false);
   U_idxs_.reserve(setup.Top().Natom()-setup.Top().Nsolvent()*nMolAtoms_);
+
+  setSoluteSolvent(setup.Top());
+
   bool isFirstSolvent = true;
   for (Topology::mol_iterator mol = setup.Top().MolStart();
                               mol != setup.Top().MolEnd(); ++mol)
   {
-    if (mol->IsSolvent()) {
-      // NOTE: We assume the oxygen is the first atom!
-      int o_idx = mol->MolUnit().Front();
+    int o_idx = mol->MolUnit().Front();
+    if (!isSolute_.AtomInCharMask(o_idx)) {
       int error;
       if (isFirstSolvent) {
         error = setSolventProperties(*mol, setup.Top());
@@ -518,32 +522,15 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
       }
       O_idxs_.push_back( o_idx );
       atomIsSolventO_[o_idx] = true;
-      #ifdef CUDA
-      for (unsigned int IDX = 0; IDX != nMolAtoms_; IDX++) {
-        this->molecule_.push_back( setup.Top()[o_idx + IDX ].MolNum() );
-        this->charges_.push_back( setup.Top()[o_idx + IDX ].Charge() );
-        this->atomTypes_.push_back( setup.Top()[o_idx + IDX ].TypeIndex() );
-        this->solvent_[ o_idx + IDX ] = true;
-      }
-      #endif
-    } else {
-      // This is a non-solvent molecule. Save atom indices.
-      for (Unit::const_iterator seg = mol->MolUnit().segBegin();
-                                seg != mol->MolUnit().segEnd(); ++seg)
-      {
-        for (int u_idx = seg->Begin(); u_idx != seg->End(); ++u_idx) {
-          atomIsSolute_[u_idx] = true; // the identity of the atom is solute
-          U_idxs_.push_back( u_idx ); // store the solute atom index for locating voxel index
-          #ifdef CUDA
-          this->molecule_.push_back( setup.Top()[ u_idx ].MolNum() );
-          this->charges_.push_back( setup.Top()[ u_idx ].Charge() );
-          this->atomTypes_.push_back( setup.Top()[ u_idx ].TypeIndex() );
-          this->solvent_[ u_idx ] = false;
-          #endif
-        }
-      }
     }
   }
+  #ifdef CUDA
+  for (int i = 0; i != setup.Top().Natom(); ++i) {
+    this->molecule_.push_back( setup.Top()[i].MolNum() );
+    this->charges_.push_back( setup.Top()[i].Charge() );
+    this->atomTypes_.push_back( setup.Top()[i].TypeIndex() );
+  }
+  #endif
   NSOLVENT_ = O_idxs_.size();
   int NsolventAtoms = NSOLVENT_ * nMolAtoms_;
   mprintf("\t%zu solvent molecules, %u solvent atoms, %u solute atoms (%zu total).\n",
@@ -648,6 +635,30 @@ int Action_GIST::checkSolventProperties(const Molecule& mol, const Topology& top
     }
   }
   return 0;
+}
+
+void Action_GIST::setSoluteSolvent(const Topology& top)
+{
+  bool useMask = (isSolute_.MaskExpression().length() > 0);
+  top.SetupCharMask(isSolute_);
+  if (!useMask) {
+    for (Topology::mol_iterator mol=top.MolStart(); mol!=top.MolEnd(); ++mol) {
+      bool solute = !mol->IsSolvent();
+      for (int atom=mol->MolUnit().Front(); atom<=mol->MolUnit().Back(); ++atom) {
+        isSolute_.SelectAtom(atom, solute);
+      }
+    }
+  }
+  for (int i = 0; i != top.Natom(); ++i) {
+    atomIsSolute_[i] = isSolute_.AtomInCharMask(i);
+    if (isSolute_.AtomInCharMask(i)) {
+      U_idxs_.push_back(i);
+    }
+    #ifdef CUDA
+    this->solvent_[i] = !isSolute_.AtomInCharMask(i);
+    #endif
+  }
+
 }
 
 const Vec3 Action_GIST::x_lab_ = Vec3(1.0, 0.0, 0.0);
@@ -1033,11 +1044,8 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
     int oidx = O_idxs_[sidx];
     for (unsigned int IDX = 0; IDX != nMolAtoms_; IDX++)
       atom_voxel_[oidx+IDX] = OFF_GRID_;
-    const double* O_XYZ  = frm.Frm().XYZ( oidx );
-    // Get vector of water oxygen to grid origin.
-    Vec3 W_G( O_XYZ[0] - Origin[0],
-              O_XYZ[1] - Origin[1],
-              O_XYZ[2] - Origin[2] );
+    Vec3 com = frm.Frm().VCenterOfMass(oidx, oidx+nMolAtoms_);
+    Vec3 W_G = com - Origin;
     gist_grid_.Stop();
     // Check if water oxygen is no more then 1.5 Ang from grid
     // NOTE: using <= to be consistent with original code
@@ -1045,15 +1053,16 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
          W_G[1] <= G_max_[1] && W_G[1] >= -1.5 &&
          W_G[2] <= G_max_[2] && W_G[2] >= -1.5 )
     {
-      const double* H1_XYZ = frm.Frm().XYZ( oidx + 1 );
-      const double* H2_XYZ = frm.Frm().XYZ( oidx + 2 );
+      const double* O_XYZ  = frm.Frm().XYZ( oidx + rigidAtomIndices_[0] );
+      const double* H1_XYZ = frm.Frm().XYZ( oidx + rigidAtomIndices_[1] );
+      const double* H2_XYZ = frm.Frm().XYZ( oidx + rigidAtomIndices_[2] );
       // Try to bin the oxygen
-      if ( gO_->Bin().Calc( O_XYZ[0], O_XYZ[1], O_XYZ[2], bin_i, bin_j, bin_k ) )
+      if ( gO_->Bin().Calc( com[0], com[1], com[2], bin_i, bin_j, bin_k ) )
       {
         // Oxygen is inside the grid. Record the voxel.
         // NOTE hydrogens/EP always assigned to same voxel for energy purposes.
         int voxel = (int)gO_->CalcIndex(bin_i, bin_j, bin_k);
-        const double* wXYZ = O_XYZ;
+        const double* wXYZ = frm.Frm().XYZ( oidx );
         for (unsigned int IDX = 0; IDX != nMolAtoms_; IDX++) {
           atom_voxel_[oidx+IDX] = voxel;
           //OnGrid_idxs_[N_ON_GRID_+IDX] = oidx + IDX;
@@ -1070,9 +1079,9 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
         // ----- EULER ---------------------------
         gist_euler_.Start();
         // Record XYZ coords of water atoms (nonEP) in voxel TODO need EP?
-        voxel_xyz_[voxel].push_back( O_XYZ[0] );
-        voxel_xyz_[voxel].push_back( O_XYZ[1] );
-        voxel_xyz_[voxel].push_back( O_XYZ[2] );
+        voxel_xyz_[voxel].push_back( com[0] );
+        voxel_xyz_[voxel].push_back( com[1] );
+        voxel_xyz_[voxel].push_back( com[2] );
         // Get O-HX vectors
         Vec3 H1_wat( H1_XYZ[0]-O_XYZ[0], H1_XYZ[1]-O_XYZ[1], H1_XYZ[2]-O_XYZ[2] );
         Vec3 H2_wat( H2_XYZ[0]-O_XYZ[0], H2_XYZ[1]-O_XYZ[1], H2_XYZ[2]-O_XYZ[2] );
@@ -1268,21 +1277,19 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
 
 // Action_GIST::SumEVV()
 void Action_GIST::SumEVV() {
-  if (E_VV_VDW_.size() > 1) {
+  for (unsigned int thread = 0; thread < E_VV_VDW_.size(); thread++) {
     for (unsigned int gr_pt = 0; gr_pt != MAX_GRID_PT_; gr_pt++) {
-      for (unsigned int thread = 1; thread < E_VV_VDW_.size(); thread++) {
-        E_UV_VDW_[0][gr_pt]  += E_UV_VDW_[thread][gr_pt];
-        E_UV_Elec_[0][gr_pt] += E_UV_Elec_[thread][gr_pt];
-        E_VV_VDW_[0][gr_pt]  += E_VV_VDW_[thread][gr_pt];
-        E_VV_Elec_[0][gr_pt] += E_VV_Elec_[thread][gr_pt];
-        neighbor_[0][gr_pt]  += neighbor_[thread][gr_pt];
+      Esw_->UpdateVoxel(gr_pt, E_UV_VDW_[thread][gr_pt] + E_UV_Elec_[thread][gr_pt]);
+      Eww_->UpdateVoxel(gr_pt, E_VV_VDW_[thread][gr_pt] + E_VV_Elec_[thread][gr_pt]);
+      if (thread > 0) {
+        neighbor_[0][gr_pt] += neighbor_[thread][gr_pt];
       }
     }
   }
 }
 
 /** Calculate average voxel energy for PME grids. */
-void Action_GIST::CalcAvgVoxelEnergy_PME(double Vvox, DataSet_GridFlt& PME_dens, DataSet_GridFlt& U_PME_dens, Farray& PME_norm)
+void Action_GIST::CalcAvgVoxelEnergy_PME(double Vvox, DataSet_3D& PME_dens, DataSet_3D& U_PME_dens, Farray& PME_norm)
 const
 {
   double PME_tot =0.0;
@@ -1295,22 +1302,22 @@ const
     int nw_total = N_waters_[gr_pt];
     if (nw_total >=1)
     {
-      PME_dens[gr_pt] = E_pme_[gr_pt] / (NFRAME_ * Vvox);
+      PME_dens.SetGrid(gr_pt, E_pme_[gr_pt] / (NFRAME_ * Vvox));
       PME_norm[gr_pt] = E_pme_[gr_pt] / nw_total;
       PME_tot += PME_dens[gr_pt];
 
     }else{
-      PME_dens[gr_pt]=0;
+      PME_dens.SetGrid(gr_pt, 0);
       PME_norm[gr_pt]=0; 
     }
     int ns_total = N_solute_atoms_[gr_pt];  
     if (ns_total >=1)
     {
-      U_PME_dens[gr_pt] = U_E_pme_[gr_pt] / (NFRAME_ * Vvox);
+      U_PME_dens.SetGrid(gr_pt, U_E_pme_[gr_pt] / (NFRAME_ * Vvox));
       U_PME_tot += U_PME_dens[gr_pt];
 
     }else{
-      U_PME_dens[gr_pt]=0;
+      U_PME_dens.SetGrid(gr_pt, 0);
     }
   }
   PME_tot *=Vvox;
@@ -1324,17 +1331,11 @@ const
 }
 
 /** Calculate average voxel energy for GIST grids. */
-void Action_GIST::CalcAvgVoxelEnergy(double Vvox, DataSet_GridFlt& Eww_dens, DataSet_GridFlt& Esw_dens,
+void Action_GIST::CalcAvgVoxelEnergy(double Vvox, DataSet_3D& Eww_dens, DataSet_3D& Esw_dens,
                                      Farray& Eww_norm, Farray& Esw_norm,
-                                     DataSet_GridDbl& qtet,
-                                     DataSet_GridFlt& neighbor_norm, Farray& neighbor_dens)
+                                     DataSet_3D& qtet,
+                                     DataSet_3D& neighbor_norm, Farray& neighbor_dens)
 {
-    #ifndef CUDA
-    Darray const& E_UV_VDW = E_UV_VDW_[0];
-    Darray const& E_UV_Elec = E_UV_Elec_[0];
-    Darray const& E_VV_VDW = E_VV_VDW_[0];
-    Darray const& E_VV_Elec = E_VV_Elec_[0];
-    #endif
     Farray const& Neighbor = neighbor_[0];
     #ifndef CUDA
     // Sum values from other threads if necessary
@@ -1351,33 +1352,22 @@ void Action_GIST::CalcAvgVoxelEnergy(double Vvox, DataSet_GridFlt& Eww_dens, Dat
       //mprintf("DEBUG1: VV vdw=%f elec=%f\n", E_VV_VDW_[gr_pt], E_VV_Elec_[gr_pt]);
       int nw_total = N_waters_[gr_pt]; // Total number of waters that have been in this voxel.
       if (nw_total > 0) {
-        #ifndef CUDA
-        Esw_dens[gr_pt] = (E_UV_VDW[gr_pt]  + E_UV_Elec[gr_pt]) / (NFRAME_ * Vvox);
-        Esw_norm[gr_pt] = (E_UV_VDW[gr_pt]  + E_UV_Elec[gr_pt]) / nw_total;
-        Eww_dens[gr_pt] = (E_VV_VDW[gr_pt]  + E_VV_Elec[gr_pt]) / (2 * NFRAME_ * Vvox);
-        Eww_norm[gr_pt] = (E_VV_VDW[gr_pt]  + E_VV_Elec[gr_pt]) / (2 * nw_total);
-        #else
-        double esw = this->Esw_->operator[](gr_pt);
-        double eww = this->Eww_->operator[](gr_pt);
-        Esw_dens[gr_pt] = esw / (this->NFRAME_ * Vvox);
-        Esw_norm[gr_pt] = esw / nw_total;
-        Eww_dens[gr_pt] = eww / (this->NFRAME_ * Vvox);
-        Eww_norm[gr_pt] = eww / nw_total;
-        #endif
+        Esw_dens.SetGrid(gr_pt, Esw_dens[gr_pt] / (NFRAME_ * Vvox));
+        Esw_norm[gr_pt] = Esw_dens[gr_pt] * (NFRAME_ * Vvox) / nw_total;
+        Eww_->SetGrid(gr_pt, Eww_dens[gr_pt] / (NFRAME_ * Vvox));
+        Eww_norm[gr_pt] = Eww_dens[gr_pt] * (NFRAME_ * Vvox) / nw_total;
         Eswtot += Esw_dens[gr_pt];
         Ewwtot += Eww_dens[gr_pt];
 
       } else {
-        Esw_dens[gr_pt]=0;
         Esw_norm[gr_pt]=0;
         Eww_norm[gr_pt]=0;
-        Eww_dens[gr_pt]=0;
       }
       // Compute the average number of water neighbor and average order parameter.
       if (nw_total > 0) {
-        qtet[gr_pt] /= nw_total;
+        qtet.SetGrid(gr_pt, qtet[gr_pt] / nw_total);
         //mprintf("DEBUG1: neighbor= %8.1f  nw_total= %8i\n", neighbor[gr_pt], nw_total);
-        neighbor_norm[gr_pt] = (double)Neighbor[gr_pt] / nw_total;
+        neighbor_norm.SetGrid(gr_pt, (double)Neighbor[gr_pt] / nw_total);
       }
       neighbor_dens[gr_pt] = (double)Neighbor[gr_pt] / (NFRAME_ * Vvox);
     } // END loop over all grid points (voxels)
@@ -1397,7 +1387,7 @@ void Action_GIST::Print() {
 
   // The variables are kept outside, so that they are declared for later use.
   // Calculate orientational entropy
-  DataSet_GridFlt& dTSorient_dens = static_cast<DataSet_GridFlt&>( *dTSorient_ );
+  DataSet_3D& dTSorient_dens = *dTSorient_;
   Farray dTSorient_norm( MAX_GRID_PT_, 0.0 );
   double dTSorienttot = 0;
   int nwtt = 0;
@@ -1408,7 +1398,7 @@ void Action_GIST::Print() {
     ProgressBar oe_progress( MAX_GRID_PT_ );
     for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++) {
       oe_progress.Update( gr_pt );
-      dTSorient_dens[gr_pt] = 0;
+      dTSorient_dens.SetGrid(gr_pt, 0);
       dTSorient_norm[gr_pt] = 0;
       int nw_total = N_waters_[gr_pt]; // Total number of waters that have been in this voxel.
       nwtt += nw_total;
@@ -1450,7 +1440,7 @@ void Action_GIST::Print() {
         dTSorient_norm[gr_pt] = Constants::GASK_KCAL * temperature_ *
                                 ((dTSorient_norm[gr_pt]/nw_total) + Constants::EULER_MASC);
         double dtso_norm_nw = (double)dTSorient_norm[gr_pt] * (double)nw_total;
-        dTSorient_dens[gr_pt] = (dtso_norm_nw / (NFRAME_ * Vvox));
+        dTSorient_dens.SetGrid(gr_pt, (dtso_norm_nw / (NFRAME_ * Vvox)));
         dTSorienttot += dTSorient_dens[gr_pt];
         //mprintf("DEBUG1: %f\n", dTSorienttot);
       }
@@ -1469,10 +1459,10 @@ void Action_GIST::Print() {
   int nx = griddim_[0];
   int ny = griddim_[1];
   int nz = griddim_[2];
-  DataSet_GridFlt& gO = static_cast<DataSet_GridFlt&>( *gO_ );
-  DataSet_GridFlt& gH = static_cast<DataSet_GridFlt&>( *gH_ );
-  DataSet_GridFlt& dTStrans = static_cast<DataSet_GridFlt&>( *dTStrans_ );
-  DataSet_GridFlt& dTSsix = static_cast<DataSet_GridFlt&>( *dTSsix_ );
+  DataSet_3D& gO = *gO_;
+  DataSet_3D& gH = *gH_;
+  DataSet_3D& dTStrans = *dTStrans_;
+  DataSet_3D& dTSsix = *dTSsix_;
   Farray dTStrans_norm( MAX_GRID_PT_, 0.0 );
   Farray dTSsix_norm( MAX_GRID_PT_, 0.0 );
   Vec3 grid_origin(
@@ -1490,8 +1480,8 @@ void Action_GIST::Print() {
   for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++) {
     te_progress.Update( gr_pt );
     double W_dens = 1.0 * N_waters_[gr_pt] / (NFRAME_*Vvox);
-    gO[gr_pt] = W_dens / BULK_DENS_;
-    gH[gr_pt] = 1.0 * N_hydrogens_[gr_pt] / (NFRAME_*Vvox*2*BULK_DENS_);
+    gO.SetGrid(gr_pt, W_dens / BULK_DENS_);
+    gH.SetGrid(gr_pt, 1.0 * N_hydrogens_[gr_pt] / (NFRAME_*Vvox*2*BULK_DENS_));
     if (! this->skipS_) {
       int nw_total = N_waters_[gr_pt]; // Total number of waters that have been in this voxel.
       int ix = gr_pt / (ny * nz);
@@ -1542,9 +1532,9 @@ void Action_GIST::Print() {
                                                                   Constants::EULER_MASC );
         }
         double dtst_norm_nw = (double)dTStrans_norm[gr_pt] * (double)nw_total;
-        dTStrans[gr_pt] = (dtst_norm_nw / (NFRAME_*Vvox));
+        dTStrans.SetGrid(gr_pt, (dtst_norm_nw / (NFRAME_*Vvox)));
         double dtss_norm_nw = (double)dTSsix_norm[gr_pt] * (double)nw_total;
-        dTSsix[gr_pt] = (dtss_norm_nw / (NFRAME_*Vvox));
+        dTSsix.SetGrid(gr_pt, (dtss_norm_nw / (NFRAME_*Vvox)));
         dTStranstot += dTStrans[gr_pt];
       }
     }
@@ -1568,12 +1558,12 @@ void Action_GIST::Print() {
   }
   // Compute average voxel energy. Allocate these sets even if skipping energy
   // to be consistent with previous output.
-  DataSet_GridFlt& PME_dens = static_cast<DataSet_GridFlt&>( *PME_);
-  DataSet_GridFlt& U_PME_dens = static_cast<DataSet_GridFlt&>( *U_PME_);
-  DataSet_GridFlt& Esw_dens = static_cast<DataSet_GridFlt&>( *Esw_ );
-  DataSet_GridFlt& Eww_dens = static_cast<DataSet_GridFlt&>( *Eww_ );
-  DataSet_GridFlt& neighbor_norm = static_cast<DataSet_GridFlt&>( *neighbor_norm_ );
-  DataSet_GridDbl& qtet = static_cast<DataSet_GridDbl&>( *order_norm_ );
+  DataSet_3D& PME_dens = *PME_;
+  DataSet_3D& U_PME_dens = *U_PME_;
+  DataSet_3D& Esw_dens = *Esw_;
+  DataSet_3D& Eww_dens = *Eww_;
+  DataSet_3D& neighbor_norm = *neighbor_norm_;
+  DataSet_3D& qtet = *order_norm_;
   Farray Esw_norm( MAX_GRID_PT_, 0.0 );
   Farray Eww_norm( MAX_GRID_PT_, 0.0 );
   Farray PME_norm( MAX_GRID_PT_,0.0);
@@ -1587,18 +1577,18 @@ void Action_GIST::Print() {
     //}
   }
   // Compute average dipole density.
-  DataSet_GridFlt& pol = static_cast<DataSet_GridFlt&>( *dipole_ );
-  DataSet_GridDbl& dipolex = static_cast<DataSet_GridDbl&>( *dipolex_ );
-  DataSet_GridDbl& dipoley = static_cast<DataSet_GridDbl&>( *dipoley_ );
-  DataSet_GridDbl& dipolez = static_cast<DataSet_GridDbl&>( *dipolez_ );
+  DataSet_3D& pol = *dipole_;
+  DataSet_3D& dipolex = *dipolex_;
+  DataSet_3D& dipoley = *dipoley_;
+  DataSet_3D& dipolez = *dipolez_;
   for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++)
   {
-    dipolex[gr_pt] /= (Constants::DEBYE_EA * NFRAME_ * Vvox);
-    dipoley[gr_pt] /= (Constants::DEBYE_EA * NFRAME_ * Vvox);
-    dipolez[gr_pt] /= (Constants::DEBYE_EA * NFRAME_ * Vvox);
-    pol[gr_pt] = sqrt( dipolex[gr_pt]*dipolex[gr_pt] +
-                       dipoley[gr_pt]*dipoley[gr_pt] +
-                       dipolez[gr_pt]*dipolez[gr_pt] );
+    dipolex.SetGrid(gr_pt, dipolex[gr_pt] / (Constants::DEBYE_EA * NFRAME_ * Vvox));
+    dipoley.SetGrid(gr_pt, dipolex[gr_pt] / (Constants::DEBYE_EA * NFRAME_ * Vvox));
+    dipolez.SetGrid(gr_pt, dipolex[gr_pt] / (Constants::DEBYE_EA * NFRAME_ * Vvox));
+    pol.SetGrid(gr_pt, sqrt( dipolex[gr_pt]*dipolex[gr_pt] +
+                             dipoley[gr_pt]*dipoley[gr_pt] +
+                             dipolez[gr_pt]*dipolez[gr_pt] ));
   }
 
   // Write the GIST output file.
@@ -1810,14 +1800,10 @@ void Action_GIST::NonbondCuda(ActionFrame frm) {
 
   for (unsigned int sidx = 0; sidx < NSOLVENT_; sidx++) {
     int headAtomIndex = O_idxs_[sidx];
-    size_t bin_i, bin_j, bin_k;
     const double *vec = frm.Frm().XYZ(headAtomIndex);
-    int voxel = -1;
-    if (this->gO_->Bin().Calc(vec[0], vec[1], vec[2], bin_i, bin_j, bin_k)) {
-      voxel = this->gO_->CalcIndex(bin_i, bin_j, bin_k);
+    int voxel = atom_voxel_[headAtomIndex];
+    if (voxel != OFF_GRID_) {
       this->neighbor_.at(0).at(voxel) += result_n.at(headAtomIndex);
-      // This is not nice, as it assumes that O is set before the two Hydrogens
-      // might be the case, but is still not nice (in my opinion)
       for (unsigned int IDX = 0; IDX != nMolAtoms_; IDX++) {
         this->Esw_->UpdateVoxel(voxel, esw_result.at(headAtomIndex + IDX));
         this->Eww_->UpdateVoxel(voxel, eww_result.at(headAtomIndex + IDX));
