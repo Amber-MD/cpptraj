@@ -45,7 +45,7 @@ int ReferenceAction::SetTrajComm( Parallel::Comm const& commIn ) {
     return 1;
   }
   trajComm_ = commIn;
-  // Sanity check. Ensure refMode_ matches on all threads.
+  // Sanity check. Ensure refMode_ matches on all processes.
   std::vector<int> all_modes( trajComm_.Size() );
   trajComm_.AllGather( &refMode_, 1, MPI_INT, &all_modes[0] );
   for (int rank = 1; rank < trajComm_.Size(); rank++)

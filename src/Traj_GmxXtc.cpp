@@ -62,7 +62,7 @@ int Traj_GmxXtc::setupTrajin(FileName const& fnameIn, Topology* trajParm)
   Box xtcBox;
   xtcBox.SetupFromUcell( ucell );
   // Determine total number of frames
-  // FIXME in parallel every thread is doing this which is unnecessary.
+  // FIXME in parallel every process is doing this which is unnecessary.
   int nframes = TRAJIN_UNK;
   if ( natoms_ < 10 ) {
     // Small system, frame size is consistent

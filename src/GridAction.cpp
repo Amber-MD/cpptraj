@@ -155,7 +155,7 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn
 int GridAction::ParallelGridInit(Parallel::Comm const& commIn, DataSet_GridFlt* Grid) {
   if (commIn.Rank() > 0) {
     // Since this set may have been read in (and therefore is synced),
-    // zero it out on all non-master threads to avoid overcounting.
+    // zero it out on all non-master processes to avoid overcounting.
     std::fill( Grid->begin(), Grid->end(), 0.0 );
   }
   trajComm_ = commIn;
@@ -229,9 +229,9 @@ int GridAction::SetTgt(Frame const& frameIn, Matrix_3x3 const& gridUcell)
   tgt_.SetFrame( frameIn, centerMask_ );
   tgtUcell_ = gridUcell;
 # ifdef MPI
-  // Ensure all threads are using the same reference. Just broadcast the coords.
+  // Ensure all processes are using the same reference. Just broadcast the coords.
   trajComm_.MasterBcast( tgt_.xAddress(), tgt_.size(), MPI_DOUBLE );
-  // Ensure all threads have the same unit cell vecs
+  // Ensure all processes have the same unit cell vecs
   trajComm_.MasterBcast( tgtUcell_.Dptr(), 9, MPI_DOUBLE );
   //rprintf("DEBUG: Ucell0: %f %f %f %f %f %f %f %f %f\n", tgtUcell_[0], tgtUcell_[1], tgtUcell_[2], tgtUcell_[3], tgtUcell_[4], tgtUcell_[5], tgtUcell_[6], tgtUcell_[7], tgtUcell_[8]);
 # endif
