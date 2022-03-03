@@ -114,6 +114,10 @@ target_include_directories(cpptraj_common_obj PRIVATE $<TARGET_PROPERTY:xdrfile,
 
 add_executable(cpptraj $<TARGET_OBJECTS:cpptraj_common_obj> ${SOURCES})
 
+if(fftw_ENABLED)
+  set_property(TARGET cpptraj PROPERTY CXX_STANDARD 11)
+endif()
+
 target_link_libraries(cpptraj netcdf netlib xdrfile)
 
 install(TARGETS cpptraj DESTINATION ${BINDIR})
@@ -207,6 +211,10 @@ if(zlib_ENABLED)
 endif()
 
 if(fftw_ENABLED)
+        add_definitions(-DHAVE_FFTWD=1)
+        add_definitions(-DFFTW_FFT)
+        add_definitions(-DC11_SUPPORT)
+        add_definitions(-DLIBPME)
 	target_include_directories(cpptraj_common_obj PRIVATE $<TARGET_PROPERTY:fftw,INTERFACE_INCLUDE_DIRECTORIES>)	
 	targets_link_libraries(cpptraj libcpptraj LIBRARIES fftw)
 endif()
