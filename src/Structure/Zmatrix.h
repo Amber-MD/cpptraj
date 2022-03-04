@@ -11,7 +11,7 @@ class Zmatrix {
     /// CONSTRUCTOR
     Zmatrix();
     /// Convert Frame/Topology to internal coordinates array
-    SetFromFrame(Frame const&, Topology const&);
+    int SetFromFrame(Frame const&, Topology const&);
   private:
     typedef std::vector<InternalCoords> ICarray;
 
