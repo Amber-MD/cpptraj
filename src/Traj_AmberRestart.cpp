@@ -371,7 +371,7 @@ void Traj_AmberRestart::Info() {
 /// Since files are opened on write this does not need to do anything
 int Traj_AmberRestart::parallelOpenTrajout(Parallel::Comm const& commIn) { return 0; }
 
-/** No file access during setupTrajout, so have all threads call it.
+/** No file access during setupTrajout, so have all processes call it.
   * No need to sync.
   */
 int Traj_AmberRestart::parallelSetupTrajout(FileName const& fname, Topology* trajParm,

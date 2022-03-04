@@ -768,7 +768,7 @@ int Traj_GmxTrX::parallelSetupTrajout(FileName const& fname, Topology* trajParm,
   }
   commIn.MasterBcast(&err, 1, MPI_INT);
   if (err != 0) return 1;
-  // Broadcast info to non-master threads.
+  // Broadcast info to non-master processes.
   BroadcastTrajIO( commIn );
   commIn.MasterBcast( &ir_size_, 1, MPI_INT );
   commIn.MasterBcast( &e_size_,  1, MPI_INT );

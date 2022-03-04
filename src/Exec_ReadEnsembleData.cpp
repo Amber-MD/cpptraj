@@ -59,14 +59,14 @@ Exec::RetType Exec_ReadEnsembleData::Execute(CpptrajState& State, ArgList& argIn
   unsigned int max_file = fileNames.size();
 # ifdef MPI
   // Setup communicators if not already done.
-  // NOTE: Allowing fewer threads than groups here.
+  // NOTE: Allowing fewer processes than groups here.
   if (Parallel::SetupComms( fileNames.size(), true ))
     return CpptrajState::ERR;
   // Right now since trajcomm non-masters dont get data it doesnt
-  // make sense to have multiple threads per node and in fact can
+  // make sense to have multiple processes per node and in fact can
   // lead to strange errors down the line.
   if (Parallel::TrajComm().Size() > 1) {
-    mprinterr("Error: 'readensembledata' not set up to use multiple threads per member.\n");
+    mprinterr("Error: 'readensembledata' not set up to use multiple processes per member.\n");
     return CpptrajState::ERR;
   }
   min_file = (unsigned int)Parallel::Ensemble_Beg();
@@ -76,7 +76,7 @@ Exec::RetType Exec_ReadEnsembleData::Execute(CpptrajState& State, ArgList& argIn
   // Execute a data read on all files.
   int err = 0;
 # ifdef MPI
-  // Only thread 0 from each TrajComm does reads.
+  // Only process 0 from each TrajComm does reads.
   if (!Parallel::TrajComm().Master())
     min_file = max_file + 1;
 # endif

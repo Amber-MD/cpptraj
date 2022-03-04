@@ -1551,7 +1551,7 @@ Action::RetType Action_NAstruct::DoAction(int frameNum, ActionFrame& frm) {
   } else if ( findBPmode_ == FIRST) {
     // Base pairs need to be determined from first frame.
 #   ifdef MPI
-    // Ensure all threads set up base axes for base pair determinination
+    // Ensure all processes set up base axes for base pair determinination
     // from the first frame on master.
     int err = 0;
     if (trajComm_.Master()) { // TODO MasterBcast?
@@ -1692,7 +1692,7 @@ int Action_NAstruct::SyncAction() {
   // calculated, the number of steps and/or the set ordering in the master
   // DataSetList may be different on different ranks. Assume that Bases_
   // and BasePairs_ are the same.
-  // Need to know how many steps on each thread
+  // Need to know how many steps on each process 
   int num_steps = (int)Steps_.size();
   std::vector<int> nsteps_on_rank;
   if (trajComm_.Master())

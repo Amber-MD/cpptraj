@@ -28,7 +28,7 @@ Exec::RetType Exec_ParallelAnalysis::Execute(CpptrajState& State, ArgList& argIn
       setSizesBefore.push_back( (*it)->Size() );
     t_sync.Stop();
   }
-  // DEBUG - Have each thread report what analyses it knows about and what
+  // DEBUG - Have each process report what analyses it knows about and what
   // data sets it has.
 /*
   for (int rank = 0; rank < Parallel::World().Size(); rank++) {
@@ -46,13 +46,13 @@ Exec::RetType Exec_ParallelAnalysis::Execute(CpptrajState& State, ArgList& argIn
           "*** THIS COMMAND IS STILL EXPERIMENTAL! ***\n\n");
   if (syncToMaster)
     mprintf("\tResulting data sets will be synced back to master.\n");
-  // Naively divide up all analyses among threads.
+  // Naively divide up all analyses among processes.
   int my_start, my_stop;
   int nelts = Parallel::World().DivideAmongProcesses( my_start, my_stop, State.Analyses().size() );
-  rprintf("Dividing %zu analyses among %i threads: %i to %i (%i)\n",
+  rprintf("Dividing %zu analyses among %i processes: %i to %i (%i)\n",
           State.Analyses().size(), Parallel::World().Size(), my_start, my_stop, nelts);
 
-  // Each thread runs the analyses they are responsible for.
+  // Each process runs the analyses they are responsible for.
   int nerr = 0;
   for (int na = my_start; na != my_stop; na++) {
     // TODO check setup status
@@ -63,7 +63,7 @@ Exec::RetType Exec_ParallelAnalysis::Execute(CpptrajState& State, ArgList& argIn
   }
   // This error check serves as a barrier
   if (Parallel::World().CheckError( nerr )) return CpptrajState::ERR;
-  State.DFL().AllThreads_WriteAllDF();
+  State.DFL().AllProcesses_WriteAllDF();
   State.Analyses().Clear();
   if (syncToMaster) {
     t_sync.Start();
@@ -96,7 +96,7 @@ Exec::RetType Exec_ParallelAnalysis::Execute(CpptrajState& State, ArgList& argIn
             else if (setHasChanged == Parallel::World().Rank())
               State.DSL()[idx]->SendSet( 0,          Parallel::World() );
           } else
-            mprintf("Warning: '%s' exists on multiple threads. Not syncing.\n",
+            mprintf("Warning: '%s' exists on multiple processes. Not syncing.\n",
                     State.DSL()[idx]->legend());
         }
       }

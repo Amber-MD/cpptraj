@@ -46,7 +46,7 @@ class DataFileList {
     CpptrajFile* AddCpptrajFile(FileName const&,std::string const&,CFtype,bool);
 #   ifdef MPI
     CpptrajFile* AddCpptrajFile(FileName const&,std::string const&,CFtype,bool,Parallel::Comm const&);
-    void AllThreads_WriteAllDF();
+    void AllProcesses_WriteAllDF();
 #   endif
     /// List DataFiles and CpptrajFiles.
     void List() const;
