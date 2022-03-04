@@ -16,6 +16,8 @@ class InternalCoords {
   public:
     /// CONSTRUCTOR
     InternalCoords();
+    /// CONSTRUCTOR - Take pointer to XYZ coords (for first seed atom)
+    InternalCoords(const double*);
 
     enum IdxType { DISTANCE = 0, ANGLE, TORSION };
 

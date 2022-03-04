@@ -16,6 +16,9 @@ class Zmatrix {
     typedef std::vector<InternalCoords> ICarray;
 
     ICarray IC_; ///< Hold internal coordinates for all atoms
+    int seed0_;  ///< Index of first seed atom
+    int seed1_;  ///< Index of second seed atom
+    int seed2_;  ///< Index of third seed atom
 };
 }
 }
