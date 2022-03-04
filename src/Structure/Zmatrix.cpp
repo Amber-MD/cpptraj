@@ -20,5 +20,7 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn)
   IC_.push_back( InternalCoords( frameIn.XYZ(0) ) );
   seed0_ = 0;
 
+  // Choose second seed as bonded atom with lowest index. Prefer heavy atoms
+
   return 0;
 }
