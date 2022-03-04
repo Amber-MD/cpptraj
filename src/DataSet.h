@@ -73,7 +73,7 @@ class DataSet {
     /// Copy a block to position in this set from given set OF SAME TYPE using specified position and size TODO pure virtual
     virtual void CopyBlock(size_t, const DataSet*, size_t, size_t) {}
 #   ifdef MPI
-    /// Piece this DataSet together from multiple threads.
+    /// Sync data across all processes for this DataSet to the master process.
     virtual int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) = 0;
     // TODO pure virtual
     virtual int SendSet(int, Parallel::Comm const&) { return 1; }

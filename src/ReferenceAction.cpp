@@ -54,7 +54,7 @@ int ReferenceAction::SetTrajComm( Parallel::Comm const& commIn ) {
       return 1;
     }
   if (refMode_ == FRAME) {
-    // Ensure natom matches on all threads.
+    // Ensure natom matches on all processes.
     int natom = ((DataSet_Coords_REF*)refCrd_)->RefFrame().Natom();
     trajComm_.AllGather( &natom, 1, MPI_INT, &all_modes[0] );
     for (int rank = 1; rank < trajComm_.Size(); rank++)
@@ -155,7 +155,7 @@ int ReferenceAction::SetupRefMask(Topology const& topIn) {
 void ReferenceAction::SelectRefAtoms(Frame const& frameIn) {
   refFrame_ = frameIn;
 # ifdef MPI
-  // Ensure all threads are using the same reference
+  // Ensure all processes are using the same reference
   if (trajComm_.Master()) { // TODO MasterBcast
     for (int rank = 1; rank < trajComm_.Size(); rank++)
       refFrame_.SendFrame(rank, trajComm_);

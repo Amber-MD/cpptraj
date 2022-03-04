@@ -1139,7 +1139,7 @@ int Action_HydrogenBond::SyncAction() {
     nParts = 0;
     dvalsPerHbond = 2;
   }
-  // Need to know how many hbonds on each thread.
+  // Need to know how many hbonds on each process.
   std::vector<int> nuu_on_rank = GetRankNhbonds( UU_Map_.size(), trajComm_ );
   std::vector<int> nuv_on_rank = GetRankNhbonds( UV_Map_.size(), trajComm_ );
   if (trajComm_.Master()) {

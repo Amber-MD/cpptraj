@@ -216,7 +216,7 @@ void Action_PairDist::UpdateHistogramFrames() {
   * NOTE: Due to the way pairwise currently works (histogram resized on the
   *       fly) this will not work correctly for a bin that is only sometimes
   *       present as the final bin counts will be different. The only way I
-  *       could see around this is to have all the threads sync up any time
+  *       could see around this is to have all the procs sync up any time
   *       a histogram is resized, which seems pretty bad performance-wise.
   *       Adding the 'maxdist' keyword seemed like a good compromise.
   */
