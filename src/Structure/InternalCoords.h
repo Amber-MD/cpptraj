@@ -18,6 +18,8 @@ class InternalCoords {
     InternalCoords();
 
     enum IdxType { DISTANCE = 0, ANGLE, TORSION };
+
+    static const int NO_ATOM;
   private:
     int idx_[3];    ///< Atom index for distance, angle, torsion
     double val_[3]; ///< Value for distance, angle, torsion
