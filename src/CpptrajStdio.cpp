@@ -17,7 +17,7 @@ static bool suppressErrorMsg_ = false;
 static FILE* STDOUT_ = stdout;
 
 // mflush()
-/** Call flush on STDOUT only if this is the master thread */
+/** Call flush on STDOUT only if this is the master process */
 void mflush() {
 # ifdef MPI
   if (!Parallel::World().Master()) return;
@@ -73,7 +73,7 @@ void mprinterr(const char *format, ...) {
 }
 // -----------------------------------------------------------------------------
 #else
-/** Print message to STDOUT only if this is the master thread */
+/** Print message to STDOUT only if this is the master process */
 void mprintf(const char *format, ...) {
   if (world_io_level_ == IO_ALL) {
 #   ifdef MPI
@@ -86,7 +86,7 @@ void mprintf(const char *format, ...) {
   }
 }
 
-/** Print message to STDERR only if this is the master thread */
+/** Print message to STDERR only if this is the master process */
 void mprinterr(const char *format, ...) {
   if (suppressErrorMsg_) return;
 # ifdef MPI

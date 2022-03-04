@@ -98,7 +98,7 @@ const
       }
     } // END loop over unsorted sets
 #   ifdef MPI
-    // Now we need to reduce down each set onto the thread where it belongs.
+    // Now we need to reduce down each set onto the process where it belongs.
     if (Parallel::World().Size() > 1) {
       for (int idx = 0; idx != (int)OutputSets.size(); idx++) {
         DataSet_pH* out = (DataSet_pH*)OutputSets[idx];
@@ -395,8 +395,8 @@ const
   if (CheckError(err)) return 1;
 
 # ifdef MPI
-  unsigned int threadSize = maxSize;
-  comm_.AllReduce( &maxSize, &threadSize, 1, MPI_UNSIGNED, MPI_MIN );
+  unsigned int processSize = maxSize;
+  comm_.AllReduce( &maxSize, &processSize, 1, MPI_UNSIGNED, MPI_MIN );
   typedef std::vector<int> Iarray;
   Iarray Dtypes( comm_.Size(), -1 );
   if ( comm_.AllGather( &dtype, 1, MPI_INT, &Dtypes[0] ) ) return 1;

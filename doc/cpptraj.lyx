@@ -11029,7 +11029,7 @@ MPI only.
 \series bold
 sync
 \series default
- is specified all data will be synced back to the master thread (for e.g.
+ is specified all data will be synced back to the master process (for e.g.
  subsequent analysis).
  For an example of how to use the parallelanalysis command, see 
 \begin_inset CommandInset ref

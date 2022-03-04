@@ -124,7 +124,7 @@ class CpptrajState {
     Timer run_time_;      ///< Total run time.
     Timer write_time_;    ///< Run data file write time.
 #   ifdef MPI
-    bool forceParallelEnsemble_; ///< If true run parallel ensemble even with 1 thread/member
+    bool forceParallelEnsemble_; ///< If true run parallel ensemble even with 1 proc/member
     Timer sync_time_;     ///< DataSet/Action total sync time.
     Timer master_time_;   ///< Total frame processing time across all ranks.
 #   endif

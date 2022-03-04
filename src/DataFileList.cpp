@@ -269,7 +269,7 @@ CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn,
     int err = 0;
     if (openShared) {
       //rprintf("DEBUG: Opening '%s' shared.\n", name.full());
-      // File is being shared by different threads
+      // File is being shared by different processes 
       Current->SetupWrite( name, debug_ );
       // true here means open for shared write
       err = Current->ParallelOpenFile(commIn, true);
@@ -344,11 +344,11 @@ void DataFileList::WriteAllDF() {
 // DataFileList::WriteAllDF()
 /** Call write for all DataFiles in list for which writeFile is true. Once
   * a file has been written set writeFile to false; it can be reset to
-  * true if new DataSets are added to it. All threads are allowed to try
+  * true if new DataSets are added to it. All processes are allowed to try
   * writing files. FIXME this is a hack until a better way of determining
-  * write threads is found.
+  * write processes is found.
   */
-void DataFileList::AllThreads_WriteAllDF() {
+void DataFileList::AllProcesses_WriteAllDF() {
   if (fileList_.empty()) return;
 # ifdef TIMER
   Timer datafile_time;
@@ -356,7 +356,7 @@ void DataFileList::AllThreads_WriteAllDF() {
 # endif
   for (DFarray::iterator df = fileList_.begin(); df != fileList_.end(); ++df) {
     if ( (*df)->DFLwrite() ) {
-      (*df)->SetThreadCanWrite( true );
+      (*df)->SetProcessCanWrite( true );
       (*df)->WriteDataOut();
       (*df)->SetDFLwrite( false );
     }

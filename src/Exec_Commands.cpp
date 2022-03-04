@@ -22,7 +22,7 @@ Exec::RetType Exec_NoExitOnError::Execute(CpptrajState& State, ArgList&)
 #ifdef MPI
 // -----------------------------------------------------------------------------
 void Exec_ForceParaEnsemble::Help() const {
-  mprintf("  Use parallel trajectory routines in ensemble mode even with 1 thread/member.\n"
+  mprintf("  Use parallel trajectory routines in ensemble mode even with 1 process/member.\n"
           "  Can potentially result in faster execution but has some reduced functionality.\n");
 }
 
