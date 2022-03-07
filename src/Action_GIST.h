@@ -5,6 +5,8 @@
 #include "Timer.h"
 #include "EwaldOptions.h"
 #include "CharMask.h"
+#include "GridBin.h"
+#include <map>
 #ifdef CUDA
 #include "cuda_kernels/GistCudaSetup.cuh"
 #endif
@@ -38,6 +40,46 @@ class Action_GIST : public Action {
     typedef std::vector<Farray> Xarray;
     typedef std::vector<double> Darray;
 
+    struct SolventInfo
+    {
+        std::vector<int> i_element;
+        std::vector<std::string> unique_elements;
+        std::vector<int> element_count;
+    };
+
+    /**
+     * @brief Print whitespace delimited data to a CpptrajFile
+     */
+    class DataFilePrinter
+    {
+      public:
+        DataFilePrinter(CpptrajFile& df, const TextFormat& fltFmt, const TextFormat& intFmt)
+          : df_(&df), fltFmt_(fltFmt), intFmt_(intFmt), is_new_line_(true) {}
+
+        void print(double d)             { maybe_space(); df_->Printf(fltFmt_.Fmt().c_str(), d); }
+        void print(int i)                { maybe_space(); df_->Printf(intFmt_.Fmt().c_str(), i); }
+        void print(const std::string& s) { maybe_space(); df_->Printf("%s", s.c_str()); }
+        void print(const char* s)        { maybe_space(); df_->Printf("%s", s); }
+
+        void newline() {
+            df_->Printf("\n");
+            is_new_line_ = true;
+        }
+
+      private:
+        void maybe_space() {
+          if (!is_new_line_) {
+              df_->Printf(" ");
+          }
+          is_new_line_ = false;
+        }
+
+        CpptrajFile* df_;
+        TextFormat fltFmt_;
+        TextFormat intFmt_;
+        bool is_new_line_;
+    };
+
     static inline void Ecalc(double, double, double, NonbondType const&, double&, double&);
     void NonbondEnergy_pme(Frame const&);
     void NonbondEnergy(Frame const&, Topology const&);
@@ -46,13 +88,18 @@ class Action_GIST : public Action {
     void CalcAvgVoxelEnergy_PME(double, DataSet_3D&, DataSet_3D&, Farray&) const;
     void CalcAvgVoxelEnergy(double, DataSet_3D&, DataSet_3D&, Farray&, Farray&,
                             DataSet_3D&, DataSet_3D&, Farray&);
-    DataSet_3D* AddDatasetAndFile(ActionInit& init, const std::string& dsname, const std::string& name, const std::string& filename, DataSet::DataType dtype);
+    DataSet_3D* AddDatasetAndFile(const std::string& name, const std::string& filename, DataSet::DataType dtype);
     int setSolventProperties(const Molecule& mol, const Topology& top);
     int checkSolventProperties(const Molecule& mol, const Topology& top) const;
     void setSoluteSolvent(const Topology& top);
+    int calcVoxelIndex(double x, double y, double z);
+    void analyzeSolventElements(const Molecule& mol, const Topology& top);
+    bool createAtomDensityDatasets();
+    std::vector<DataSet_3D*> getDensityDataSets();
 
     int debug_;      ///< Action debug level
     int numthreads_; ///< Number of OpenMP threads
+
 #ifdef CUDA
     // Additional data for GPU calculation
 
@@ -102,33 +149,21 @@ class Action_GIST : public Action {
     double gridspacing_;
     Vec3 gridcntr_;
     int griddim_[3];
+    const GridBin* gridBin_;
 
     int rigidAtomIndices_[3]; ///< the 3 atoms that define the orientation of a solvent molecule;
 
     // NOTE: '*' = Updated in DoAction(). '+' = Updated in Setup().
     ImageOption imageOpt_;  ///< Used to determine if imaging should be used.*
-    // GIST float grid datasets
-    DataSet_3D* gO_;        ///< Solvent oxygen density
-    DataSet_3D* gH_;        ///< Solvent hydrogen density
-    DataSet_3D* Esw_;       ///< Solute-water energy
-    DataSet_3D* Eww_;       ///< Water-water energy
-    DataSet_3D* dTStrans_;  ///< Solvent translation entropy
-    DataSet_3D* dTSorient_; ///< Solvent orentational entropy
-    DataSet_3D* dTSsix_;
-    DataSet_3D* neighbor_norm_;
-    DataSet_3D* dipole_; // pol
-    // GIST double grid datasets
-    DataSet_3D* order_norm_; // qtet
-    DataSet_3D* dipolex_;    ///< Water dipole (X)*
-    DataSet_3D* dipoley_;    ///< Water dipole (Y)*
-    DataSet_3D* dipolez_;    ///< Water dipole (Z)*
-    // PME GIST double grid datasets
-    DataSet_3D* PME_;           ///< The PME nonbond interaction( charge-charge + vdw) cal for water
-    DataSet_3D* U_PME_;         ///< The PME nonbond energy for solute atoms
+    std::map<std::string, DataSet_3D*> dataSets3D_;
+    SolventInfo solventInfo_;
+    DataSetList* DSL_;
+    DataFileList* DFL_;
+    std::string dsname_;
     // GIST matrix datasets
     DataSet_MatrixFlt* ww_Eij_; ///< Water-water interaction energy matrix.*
 
-    CharMask isSolute_;
+    std::string soluteMask_;
     //Iarray mol_nums_;     ///< Absolute molecule number of each solvent molecule.+ //TODO needed?
     Iarray O_idxs_;         ///< Oxygen atom indices for each solvent molecule.+
     Iarray OnGrid_idxs_;    ///< Indices for each water atom on the grid.*
@@ -184,6 +219,7 @@ class Action_GIST : public Action {
     CpptrajFile* eijfile_;     ///< Eij matrix output
     CpptrajFile* infofile_;    ///< GIST info
     std::string prefix_;       ///< Output file name prefix
+    std::string ext_;
     TextFormat fltFmt_;        ///< Output file format for floating point values
     TextFormat intFmt_;        ///< Output file format for integer values.
     Darray Q_;                 ///< Solvent molecule charges (for dipole calc)
