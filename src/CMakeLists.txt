@@ -255,14 +255,13 @@ endif()
 if(MPI)
 	make_mpi_version(cpptraj_common_obj cpptraj_common_obj_mpi LANGUAGES CXX)
 	make_mpi_version(cpptraj cpptraj.MPI LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj> TO $<TARGET_OBJECTS:cpptraj_common_obj_mpi> INSTALL)
-	make_mpi_version(libcpptraj libcpptraj_mpi LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj> TO $<TARGET_OBJECTS:cpptraj_common_obj_mpi> INSTALL)
 	
-	set_property(TARGET cpptraj.MPI libcpptraj_mpi cpptraj_common_obj_mpi APPEND PROPERTY COMPILE_DEFINITIONS MPI) # since we use CXX mpi, we have to define this manually
+	set_property(TARGET cpptraj.MPI cpptraj_common_obj_mpi APPEND PROPERTY COMPILE_DEFINITIONS MPI) # since we use CXX mpi, we have to define this manually
 			
 	if(pnetcdf_ENABLED)
-		targets_link_libraries(cpptraj.MPI libcpptraj_mpi LIBRARIES pnetcdf)
+		targets_link_libraries(cpptraj.MPI LIBRARIES pnetcdf)
 		target_include_directories(cpptraj_common_obj_mpi PUBLIC $<TARGET_PROPERTY:pnetcdf,INTERFACE_INCLUDE_DIRECTORIES>)
-		set_property(TARGET cpptraj.MPI libcpptraj_mpi cpptraj_common_obj_mpi APPEND PROPERTY COMPILE_DEFINITIONS HAS_PNETCDF) 		
+		set_property(TARGET cpptraj.MPI cpptraj_common_obj_mpi APPEND PROPERTY COMPILE_DEFINITIONS HAS_PNETCDF) 		
 	endif()
 endif()
 
@@ -275,7 +274,6 @@ endif()
 if(BUILD_PARALLEL_COMBINATIONS AND (MPI AND OPENMP))
 	make_openmp_version(cpptraj_common_obj_mpi cpptraj_common_obj_mpi_openmp LANGUAGES CXX)
 	make_openmp_version(cpptraj.MPI cpptraj.MPI.OMP LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj_mpi> TO $<TARGET_OBJECTS:cpptraj_common_obj_mpi_openmp> INSTALL)
-	make_openmp_version(libcpptraj_mpi libcpptraj_mpi_omp LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj_mpi> TO $<TARGET_OBJECTS:cpptraj_common_obj_mpi_openmp> INSTALL)
 endif()
 	
 # CUDA
@@ -300,14 +298,13 @@ if(CUDA)
 	if(BUILD_PARALLEL_COMBINATIONS AND MPI)
 		make_mpi_version(cpptraj_common_obj_cuda cpptraj_common_obj_mpi_cuda LANGUAGES CXX)
 		make_mpi_version(cpptraj.cuda cpptraj.MPI.cuda LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj_cuda> TO $<TARGET_OBJECTS:cpptraj_common_obj_mpi_cuda> INSTALL)
-		make_mpi_version(libcpptraj_cuda libcpptraj_mpi_cuda LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj_cuda> TO $<TARGET_OBJECTS:cpptraj_common_obj_mpi_cuda> INSTALL)
 		
-		set_property(TARGET cpptraj.MPI.cuda libcpptraj_mpi_cuda cpptraj_common_obj_mpi_cuda APPEND PROPERTY COMPILE_DEFINITIONS MPI) # since we use CXX mpi, we have to define this manually
+		set_property(TARGET cpptraj.MPI.cuda cpptraj_common_obj_mpi_cuda APPEND PROPERTY COMPILE_DEFINITIONS MPI) # since we use CXX mpi, we have to define this manually
 				
 		if(pnetcdf_ENABLED)
-			targets_link_libraries(cpptraj.MPI.cuda libcpptraj_mpi_cuda LIBRARIES pnetcdf)
+			targets_link_libraries(cpptraj.MPI.cuda LIBRARIES pnetcdf)
 			target_include_directories(cpptraj_common_obj_mpi_cuda PUBLIC $<TARGET_PROPERTY:pnetcdf,INTERFACE_INCLUDE_DIRECTORIES>)
-			set_property(TARGET cpptraj.MPI.cuda libcpptraj_mpi_cuda cpptraj_common_obj_mpi_cuda APPEND PROPERTY COMPILE_DEFINITIONS HAS_PNETCDF) 		
+			set_property(TARGET cpptraj.MPI.cuda cpptraj_common_obj_mpi_cuda APPEND PROPERTY COMPILE_DEFINITIONS HAS_PNETCDF) 		
 		endif()
 	endif()
 
@@ -321,7 +318,6 @@ if(CUDA)
 		# THE ULTIMATE CHIMERA!!!!! Muahahahaha!
 		make_openmp_version(cpptraj_common_obj_mpi_cuda cpptraj_common_obj_mpi_openmp_cuda LANGUAGES CXX)
 		make_openmp_version(cpptraj.MPI.cuda cpptraj.MPI.OMP.cuda LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj_mpi_cuda> TO $<TARGET_OBJECTS:cpptraj_common_obj_mpi_openmp_cuda> INSTALL)
-		make_openmp_version(libcpptraj_mpi_cuda libcpptraj_mpi_omp_cuda LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj_mpi_cuda> TO $<TARGET_OBJECTS:cpptraj_common_obj_mpi_openmp_cuda> INSTALL)
 	endif()
 		
 		
