@@ -21,13 +21,13 @@
 #include "DataIO_VecTraj.h"
 #include "DataIO_XVG.h"
 #include "DataIO_CCP4.h"
-#include "DataIO_Cmatrix.h"
-#include "DataIO_NC_Cmatrix.h"
 #include "DataIO_CharmmRepLog.h"
 #include "DataIO_CharmmFastRep.h"
 #include "DataIO_CharmmOutput.h"
 #include "DataIO_Cpout.h"
 #include "DataIO_CharmmRtfPrm.h"
+#include "DataIO_Cmatrix_Binary.h"
+#include "DataIO_Cmatrix_NC.h"
 #include "DataIO_Peaks.h"
 
 // CONSTRUCTOR
@@ -63,17 +63,17 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
   { "Vector pseudo-traj", 0,                       DataIO_VecTraj::WriteHelp,DataIO_VecTraj::Alloc},
   { "XVG file",           0,                       0,                        DataIO_XVG::Alloc    },
   { "CCP4 file",          0,                       DataIO_CCP4::WriteHelp,   DataIO_CCP4::Alloc   },
-  { "Cluster matrix file",0,                       0,                        DataIO_Cmatrix::Alloc},
-# ifdef BINTRAJ
-  { "NetCDF Cluster matrix file", 0,               0,                     DataIO_NC_Cmatrix::Alloc},
-# else
-  { "NetCDF Cluster matrix file", 0, 0, 0 },
-# endif
   { "CHARMM REM log",     DataIO_CharmmRepLog::ReadHelp, 0,             DataIO_CharmmRepLog::Alloc},
   { "CHARMM Fast REM log",0,                             0,            DataIO_CharmmFastRep::Alloc},
   { "CHARMM Output",      0,                             0,             DataIO_CharmmOutput::Alloc},
   { "Amber CPOUT",        DataIO_Cpout::ReadHelp, DataIO_Cpout::WriteHelp, DataIO_Cpout::Alloc},
   { "CHARMM RTF/PRM",     0,                             0,            DataIO_CharmmRtfPrm::Alloc },
+  { "Pairwise Cache (binary)", 0,                        0,          DataIO_Cmatrix_Binary::Alloc },
+# ifdef BINTRAJ
+  { "Pairwise Cache (NetCDF)", 0,                        0,          DataIO_Cmatrix_NC::Alloc },
+# else
+  { "Pairwise Cache (NetCDF)", 0,                        0,          0 },
+# endif
   { "Peaks",              0,                             0,            DataIO_Peaks::Alloc },
   { "Unknown Data file",  0,                       0,                        0                    }
 };
@@ -91,11 +91,11 @@ const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
   { EVECS,        "evecs",  ".evecs" },
   { XVG,          "xvg",    ".xvg"   },
   { CCP4,         "ccp4",   ".ccp4"  },
-  { CMATRIX,      "cmatrix",".cmatrix" },
-  { NCCMATRIX,    "nccmatrix", ".nccmatrix" },
   { CHARMMREPD,   "charmmrepd",".exch" },
   { CHARMMOUT,    "charmmout", ".charmmout"},
   { CHARMMRTFPRM, "charmmrtfprm", ".rtfprm"},
+  { CMATRIX_BINARY,"cmatrix",".cmatrix" },
+  { CMATRIX_NETCDF,"nccmatrix", ".nccmatrix" },
   { PEAKS,        "peaks",  ".peaks" },
   { UNKNOWN_DATA, 0,        0        }
 };
@@ -112,9 +112,9 @@ const FileTypes::KeyToken DataFile::DF_WriteKeyArray[] = {
   { EVECS,        "evecs",  ".evecs" },
   { VECTRAJ,      "vectraj",".vectraj" },
   { CCP4,         "ccp4",   ".ccp4"  },
-  { CMATRIX,      "cmatrix",".cmatrix" },
-  { NCCMATRIX,    "nccmatrix", ".nccmatrix" },
   { CPOUT,        "cpout",  ".cpout" },
+  { CMATRIX_BINARY,"cmatrix",".cmatrix" },
+  { CMATRIX_NETCDF,"nccmatrix", ".nccmatrix" },
   { CHARMMRTFPRM, "charmmrtfprm", ".prm" },
   { PEAKS,        "peaks",  ".peaks" },
   { UNKNOWN_DATA, 0,        0        }
@@ -206,7 +206,7 @@ int DataFile::ReadDataIn(FileName const& fnameIn, ArgList const& argListIn,
 # endif
   int err = dataio_->processReadArgs(argIn);
   if (err == 0) {
-    // FIXME in parallel mark data sets as synced if all threads read.
+    // FIXME in parallel mark data sets as synced if all processes read.
     err += dataio_->ReadData( filename_, datasetlist, dsname );
     // Treat any remaining arguments as file names.
     std::string nextFile = argIn.GetStringNext();
@@ -275,7 +275,7 @@ int DataFile::SetupDatafile(FileName const& fnameIn, ArgList& argIn,
   dataio_->SetDebug( debug_ );
 # ifdef MPI
   // Default to TrajComm master can write.
-  threadCanWrite_ = Parallel::TrajComm().Master();
+  processCanWrite_ = Parallel::TrajComm().Master();
 # endif
   if (!argIn.empty())
     ProcessArgs( argIn );
@@ -567,9 +567,9 @@ int DataFile::WriteNoEnsExtension() {
 // DataFile::WriteDataOut()
 void DataFile::WriteDataOut() {
 # ifdef MPI
-  if (!threadCanWrite_) {
+  if (!processCanWrite_) {
     if (debug_ > 0)
-      rprintf("DEBUG: Thread will not write file '%s'.\n", DataFilename().full());
+      rprintf("DEBUG: Process will not write file '%s'.\n", DataFilename().full());
   } else {
 # endif
     if (debug_ > 0)

@@ -116,7 +116,7 @@ C11_SUPPORT='yes'         # Support C++11 code
 SHARED_SUFFIX=''          # Suffix for shared libraries
 DBFLAG=''                 # Flag for turning on compiler debug symbols
 DIRECTIVES=''             # Common compiler directives
-INCLUDE=''                # Library header include line
+CPPTRAJ_INC=''            # Library header include line
 SFX=''                    # Binary suffix
 EXE=''                    # Binary executable suffix
 REBUILDOPT=''             # Can be set to --rebuild and passed to get_library.sh
@@ -325,7 +325,7 @@ LIB_FLAG[$LXDRFILE]='-lxdrfile'
 LIB_STTC[$LXDRFILE]='libxdrfile.a'
 LIB_D_ON[$LXDRFILE]=''
 LIB_DOFF[$LXDRFILE]='-DNO_XDRFILE'
-LIB_TYPE[$LXDRFILE]='ld'
+LIB_TYPE[$LXDRFILE]='cpp'
 
 LIB_STAT[$LSANDER]='amberopt'
 LIB_CKEY[$LSANDER]='sanderlib'
@@ -368,7 +368,7 @@ LIB_FLAG[$LTNGFILE]='-ltng_io'
 LIB_STTC[$LTNGFILE]='libtng_io.a'
 LIB_D_ON[$LTNGFILE]='-DHAS_TNGFILE'
 LIB_DOFF[$LTNGFILE]=''
-LIB_TYPE[$LTNGFILE]='ld'
+LIB_TYPE[$LTNGFILE]='cpp'
 
 LIB_STAT[$LHDF5]='enabled'
 LIB_CKEY[$LHDF5]='hdf5'
@@ -915,6 +915,9 @@ EOF
     if [ $? -ne 0 ] ; then
       if [ "${LIB_STAT[$LFFTW3]}" = 'optional' ] ; then
         WrnMsg "FFTW test failed. CPPTRAJ will use the built-in PubFFT routines."
+        if [ $BUILD_LIBS -eq 1 ] ; then
+          echo "To force CPPTRAJ to build its own FFTW, reconfigure and specify '-fftw3'."
+        fi
         LIB_STAT[$LFFTW3]='off'
       elif [ "${LIB_STAT[$LFFTW3]}" = 'enabled' ] ; then
         # See if there is already a version of FFTW in CPPTRAJHOME
@@ -1160,7 +1163,7 @@ SetupFinalFlags() {
   # Set up include and linking flags
   ldf=''
   CPPTRAJ_LIB=''
-  INCLUDE=''
+  CPPTRAJ_INC=''
   nincl=0
   for ((i=0; i < $NLIB; i++)) ; do
     if [ "${LIB_STAT[$i]}" == 'off' ] ; then
@@ -1188,7 +1191,7 @@ SetupFinalFlags() {
           #echo "DEBUG: $idir new inclusion"
           include_array[$nincl]=$idir
           ((nincl++))
-          INCLUDE="$INCLUDE $idir"
+          CPPTRAJ_INC="$CPPTRAJ_INC $idir"
         fi
       fi
       # Link flags
@@ -1355,7 +1358,7 @@ SetupLibraries() {
           else
             lflag="-L$lhdir ${LIB_FLAG[$i]}"
           fi
-          # Library-specific INCLUDE fixes when home specified.
+          # Library-specific CPPTRAJ_INC fixes when home specified.
           if [ $i -eq $LREADLINE ] ; then
             linc="$linc/readline"
           fi
@@ -2270,21 +2273,21 @@ BuildRules() {
         echo "CXXFLAGS=$CXXFLAGS \$(DBGFLAGS)" >> $configfile
         rule='.cpp.o:'
         cmd='CXX'
-        line='$(CXX) $(DIRECTIVES) $(INCLUDE) $(CXXFLAGS)'
+        line='$(CXX) $(DIRECTIVES) $(CPPTRAJ_INC) $(CXXFLAGS)'
         ;;
       cc )
         echo "CC=$CC" >> $configfile
         echo "CFLAGS=$CFLAGS \$(DBGFLAGS)" >> $configfile
         rule='.c.o:'
         cmd='CC'
-        line='$(CC) $(DIRECTIVES) $(INCLUDE) $(CFLAGS)'
+        line='$(CC) $(DIRECTIVES) $(CPPTRAJ_INC) $(CFLAGS)'
         ;;
       f77 )
         echo "FC=$FC" >> $configfile
         echo "F77FLAGS=$F77FLAGS \$(DBGFLAGS)" >> $configfile
         rule='.f.o:'
         cmd='FC'
-        line='$(FC) $(DIRECTIVES) $(INCLUDE) $(F77FLAGS)'
+        line='$(FC) $(DIRECTIVES) $(CPPTRAJ_INC) $(F77FLAGS)'
         ;;
       f90 )
         echo "FC=$FC" >> $configfile
@@ -2569,6 +2572,17 @@ fi
 # Basic checks and directives
 BasicChecks
 
+# Create directories if necessary 
+if [ ! -e "$CPPTRAJBIN" ] ; then
+  mkdir "$CPPTRAJBIN"
+fi
+if [ ! -e "$CPPTRAJLIB" ] ; then
+  mkdir "$CPPTRAJLIB"
+fi
+if [ ! -e "$CPPTRAJDAT" ] ; then
+  mkdir "$CPPTRAJDAT"
+fi
+
 # Set up compilers and compiler options
 SetupCompilers
 
@@ -2698,7 +2712,7 @@ fi
 #echo FFLAGS $FFLAGS
 #echo LDFLAGS $LDFLAGS
 #echo CPPTRAJ_LIB $CPPTRAJ_LIB
-#echo INCLUDE $INCLUDE
+#echo CPPTRAJ_INC $CPPTRAJ_INC
 #echo REQUIRES_FLINK $REQUIRES_FLINK FLINK $FLINK
 echo ""
 
@@ -2783,7 +2797,7 @@ fi
 cat >> config.h <<EOF
 SHARED_SUFFIX=$SHARED_SUFFIX
 DIRECTIVES=$DIRECTIVES
-INCLUDE=$INCLUDE
+CPPTRAJ_INC=$CPPTRAJ_INC
 
 LIBCPPTRAJ_TARGET=$LIBCPPTRAJ_TARGET
 
@@ -2822,17 +2836,6 @@ BuildRules $external_config nvcc cc f77
 if [ "${LIB_STAT[$LZIP]}" != 'off' ] ; then
   echo "ZLIB_FLAG=${LIB_FLAG[$LZIP]}" >> $external_config
   echo "ZLIB_INCL=${LIB_INCL[$LZIP]}" >> $external_config
-fi
-
-# ----- Create directories if necessary ----------
-if [ ! -e "$CPPTRAJBIN" ] ; then
-  mkdir "$CPPTRAJBIN"
-fi
-if [ ! -e "$CPPTRAJLIB" ] ; then
-  mkdir "$CPPTRAJLIB"
-fi
-if [ ! -e "$CPPTRAJDAT" ] ; then
-  mkdir "$CPPTRAJDAT"
 fi
 
 # ----- Create a resource file. ------------------

@@ -19,7 +19,7 @@ run
 runanalysis cluster crdset CRD1 C1 :2-10 clusters 3 epsilon 4.0 \
             out cnumvtime.dat summary avg.summary.dat nofit \
             clusterout cluster info clusterinfo.txt \
-            singlerepout single repout rep repframe lifetime \
+            singlerepout single singlerepfmt mol2 repout rep repframe lifetime \
             avgout Avg avgfmt restart
 write lifetime.dat C1[Lifetime]
 EOF

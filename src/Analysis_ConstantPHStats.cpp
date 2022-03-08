@@ -39,7 +39,7 @@ Analysis::RetType Analysis_ConstantPHStats::Setup(ArgList& analyzeArgs, Analysis
 #     ifdef MPI
       // Fraction plot should only ever be written by the overall master
       // since it needs data from every ensemble member.
-      fracPlotOut_->SetThreadCanWrite( Parallel::MasterComm().Master() );
+      fracPlotOut_->SetProcessCanWrite( Parallel::MasterComm().Master() );
 #     endif
     }
   }

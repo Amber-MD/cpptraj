@@ -3,9 +3,9 @@ project(cpptraj NONE)
 
 #version number
 #---------------------------------------------------------------------------------------------------------------------------------------------------------------------
-set(cpptraj_MAJOR_VERSION 4)
-set(cpptraj_MINOR_VERSION 3)
-set(cpptraj_TWEAK_VERSION 4)
+set(cpptraj_MAJOR_VERSION 6)
+set(cpptraj_MINOR_VERSION 4)
+set(cpptraj_TWEAK_VERSION 0)
 
 set(cpptraj_VERSION "${cpptraj_MAJOR_VERSION}.${cpptraj_MINOR_VERSION}.${cpptraj_TWEAK_VERSION}")
 
@@ -49,10 +49,12 @@ if(NOT INSIDE_AMBER)
 	set(BUNDLE_SIGNATURE CPTJ)
 	include(Packaging)
 	
-	# header installation option
+	# build options
 	option(INSTALL_HEADERS "Copy headers to the include/cpptraj folder of the install directory.  Useful for building with pytraj." FALSE)
 	
 	option(BUILD_PARALLEL_COMBINATIONS "If true, then combinations of all enabled parallelizations will be built, e.g. cpptraj.OMP.MPI and cpptraj.OMP.MPI.cuda" FALSE)
+
+	option(INSTALL_TESTS "Copy tests to the test/ folder of the install directory" FALSE)
 else()
 	set(INSTALL_HEADERS FALSE)
 	set(BUILD_PARALLEL_COMBINATIONS FALSE)

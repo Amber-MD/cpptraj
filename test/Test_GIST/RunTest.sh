@@ -5,7 +5,8 @@
 CleanFiles gist.in gist.out gist-*.dx ww_Eij.dat Eww_ij.dat \
            Gist1-*.dx Gist1-*.dat Gist2-*.dx Gist2-*.dat \
            Gist3-*.dx Gist3-*.dat Gist4-*.dx Gist4-*.dat \
-           Gist5-*.dx Gist5-*.dat
+           Gist5-*.dx Gist5-*.dat Gist6-*.dx Gist6-*.dat \
+           Gist7-*.dx Gist7-*.dat
 INPUT="-i gist.in"
 TESTNAME='GIST tests'
 Requires netcdf notparallel
@@ -128,5 +129,43 @@ EOF
   #fi
 fi
 
+# Like the Gist2 test, using oldnnvolume
+UNITNAME='GIST test, orthogonal cell, oldnnvolume'
+cat > gist.in <<EOF
+parm ../tz2.ortho.parm7
+trajin ../tz2.ortho.nc 1 10
+autoimage origin
+gist nopme doorder refdens 0.033422885325 gridcntr 1.5 1.0 0.0 \
+    griddim 34 44 36 gridspacn 0.50 prefix Gist6 info Info.dat oldnnvolume
+go
+EOF
+RunCpptraj "$UNITNAME"
+DoTest Gist6-gH.dx.save Gist6-gH.dx
+DoTest Gist6-gO.dx.save Gist6-gO.dx
+DoTest Gist6-neighbor-norm.dx.save Gist6-neighbor-norm.dx
+DoTest Gist6-order-norm.dx.save Gist6-order-norm.dx
+# NOTE: gist.out allowed to fail on windows; differences due to slightly
+#       difference implementation of printf '%g' (manifests as round-off).
+DoTest Gist6.out.save Gist6-output.dat -a $TEST_TOLERANCE 
+
+# using more accurate nearest neighbor search
+UNITNAME='GIST test, orthogonal cell, nnsearchlayers 5'
+cat > gist.in <<EOF
+parm ../tz2.ortho.parm7
+trajin ../tz2.ortho.nc 1 10
+autoimage origin
+gist nopme doorder refdens 0.033422885325 gridcntr 1.5 1.0 0.0 \
+    griddim 34 44 36 gridspacn 0.50 prefix Gist7 info Info.dat nnsearchlayers 5
+go
+EOF
+RunCpptraj "$UNITNAME"
+DoTest Gist7-gH.dx.save Gist7-gH.dx
+DoTest Gist7-gO.dx.save Gist7-gO.dx
+DoTest Gist7-neighbor-norm.dx.save Gist7-neighbor-norm.dx
+DoTest Gist7-order-norm.dx.save Gist7-order-norm.dx
+# NOTE: gist.out allowed to fail on windows; differences due to slightly
+#       difference implementation of printf '%g' (manifests as round-off).
+DoTest Gist7.out.save Gist7-output.dat -a $TEST_TOLERANCE 
 EndTest
+
 exit 0

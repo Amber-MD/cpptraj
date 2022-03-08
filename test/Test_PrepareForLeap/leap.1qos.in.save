@@ -1,0 +1,7 @@
+m = loadpdb 1qos.cpptraj.pdb
+bond m.182.SG m.419.SG
+bond m.475.C1 m.476.O1
+bond m.478.C1 m.479.O1
+bond m.483.C1 m.110.OG
+bond m.475.O4 m.477.C1
+bond m.478.O4 m.480.C1

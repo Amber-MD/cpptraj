@@ -22,7 +22,8 @@ void Exec_Change::Help() const
 Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
 {
   // Change type
-  enum ChangeType { UNKNOWN = 0, RESNAME, CHAINID, ORESNUMS, ICODES, ATOMNAME, ADDBOND, REMOVEBONDS };
+  enum ChangeType { UNKNOWN = 0, RESNAME, CHAINID, ORESNUMS, ICODES,
+                    ATOMNAME, ADDBOND, REMOVEBONDS, SPLITRES };
   ChangeType type = UNKNOWN;
   if (argIn.hasKey("resname"))
     type = RESNAME;
@@ -38,6 +39,8 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
     type = ADDBOND;
   else if (argIn.hasKey("removebonds"))
     type = REMOVEBONDS;
+  else if (argIn.hasKey("splitres"))
+    type = SPLITRES;
   if (type == UNKNOWN) {
     mprinterr("Error: No change type specified.\n");
     return CpptrajState::ERR;
@@ -67,10 +70,41 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
     case ATOMNAME : err = ChangeAtomName(*parm, argIn); break;
     case ADDBOND  : err = AddBond(*parm, argIn); break;
     case REMOVEBONDS : err = RemoveBonds(State, *parm, argIn); break;
+    case SPLITRES    : err = ChangeSplitRes(*parm, argIn); break;
     case UNKNOWN  : err = 1; // sanity check
   }
   if (err != 0) return CpptrajState::ERR;
   return CpptrajState::OK;
+}
+
+// Exec_Change::ChangeSplitRes()
+int Exec_Change::ChangeSplitRes(Topology& topIn, ArgList& argIn)
+const
+{
+  // New residue name
+  std::string newname = argIn.GetStringKey("newname");
+  if (newname.empty()) {
+    mprinterr("Error: splitres: No new name specified.\n");
+    return 1;
+  }
+  // Atoms in residue to split
+  std::string maskStr = argIn.GetMaskNext();
+  if (maskStr.empty()) {
+    mprinterr("Error: splitres: No mask specified.\n");
+    return 1;
+  }
+  AtomMask toSplit;
+  if (toSplit.SetMaskString(maskStr)) return 1;
+  if (topIn.SetupIntegerMask( toSplit)) return 1;
+  if (toSplit.None()) {
+    mprinterr("Error: splitres: No atoms selected.\n");
+    return 1;
+  }
+  if (topIn.SplitResidue(toSplit, newname)) {
+    mprinterr("Error: splitres failed.\n");
+    return 1;
+  }
+  return 0;
 }
 
 // Exec_Change::ChangeResidueName()

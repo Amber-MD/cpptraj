@@ -31,7 +31,7 @@ class MapAtom : public Atom {
     void SetNotComplete()                { complete_ = false; }
     void SetNotChiral()                  { isChiral_ = false; }
   private:
-    static const char AtomicElementChar[];
+    static const char AtomicElementChar_[];
     double xyz_[3];      ///< Coordinates of atom
     bool isChiral_;      ///< true: Atom is a chiral center
     bool boundToChiral_; ///< true: Atom is bound to a chiral center.

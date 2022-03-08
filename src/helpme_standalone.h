@@ -5,7 +5,7 @@
 //
 
 
-// original file: ../src/helpme.h
+// original file: src/helpme.h
 
 // BEGINLICENSE
 //
@@ -40,7 +40,7 @@
 #include <unistd.h>
 #include <vector>
 
-// original file: ../src/cartesiantransform.h
+// original file: src/cartesiantransform.h
 
 // BEGINLICENSE
 //
@@ -53,7 +53,7 @@
 #ifndef _HELPME_STANDALONE_CARTESIANTRANSFORM_H_
 #define _HELPME_STANDALONE_CARTESIANTRANSFORM_H_
 
-// original file: ../src/matrix.h
+// original file: src/matrix.h
 
 // BEGINLICENSE
 //
@@ -78,7 +78,7 @@
 #include <stdexcept>
 #include <tuple>
 
-// original file: ../src/lapack_wrapper.h
+// original file: src/lapack_wrapper.h
 
 // BEGINLICENSE
 //
@@ -210,7 +210,8 @@ void JacobiCyclicDiagonalization(Real *eigenvalues, Real *eigenvectors, const Re
     Real threshold_norm;
     Real threshold;
     Real tan_phi, sin_phi, cos_phi, tan2_phi, sin2_phi, cos2_phi;
-    Real sin_2phi, cos_2phi, cot_2phi;
+    Real sin_2phi, cot_2phi;
+    // Real cos_2phi;
     Real dum1;
     Real dum2;
     Real dum3;
@@ -263,7 +264,7 @@ void JacobiCyclicDiagonalization(Real *eigenvalues, Real *eigenvectors, const Re
                 if (tan_phi < 0) sin_phi = -sin_phi;
                 cos_phi = sqrt(cos2_phi);
                 sin_2phi = 2 * sin_phi * cos_phi;
-                cos_2phi = cos2_phi - sin2_phi;
+                // cos_2phi = cos2_phi - sin2_phi;
 
                 // Rotate columns k and m for both the matrix A
                 //     and the matrix of eigenvectors.
@@ -316,7 +317,7 @@ void JacobiCyclicDiagonalization(Real *eigenvalues, Real *eigenvectors, const Re
 
 }  // Namespace helpme
 #endif  // Header guard
-// original file: ../src/string_utils.h
+// original file: src/string_utils.h
 
 // BEGINLICENSE
 //
@@ -391,7 +392,7 @@ std::string stringify(T *data, size_t size, size_t rowDim, int width = 14, int p
 }  // Namespace helpme
 
 #endif  // Header guard
-// original file: ../src/memory.h
+// original file: src/memory.h
 
 // BEGINLICENSE
 //
@@ -645,7 +646,7 @@ class Matrix {
     /*!
      * \brief Matrix Constructs an empty matrix.
      */
-    Matrix() : nRows_(0), nCols_(0) {}
+    Matrix() : nRows_(0), nCols_(0), data_(0) {}
 
     /*!
      * \brief Matrix Constructs a new matrix, allocating memory.
@@ -793,8 +794,8 @@ class Matrix {
      */
     void assertSymmetric(const Real& threshold = 1e-10f) const {
         assertSquare();
-        for (int row = 0; row < nRows_; ++row) {
-            for (int col = 0; col < row; ++col) {
+        for (size_t row = 0; row < nRows_; ++row) {
+            for (size_t col = 0; col < row; ++col) {
                 if (std::abs(data_[row * nCols_ + col] - data_[col * nCols_ + row]) > threshold)
                     throw std::runtime_error("Unexpected non-symmetric matrix found.");
             }
@@ -821,7 +822,7 @@ class Matrix {
         Matrix evecs = std::get<1>(eigenPairs);
         evalsReal.applyOperationToEachElement(function);
         Matrix evecsT = evecs.transpose();
-        for (int row = 0; row < nRows_; ++row) {
+        for (size_t row = 0; row < nRows_; ++row) {
             Real transformedEigenvalue = evalsReal[row][0];
             std::for_each(evecsT.data_ + row * nCols_, evecsT.data_ + (row + 1) * nCols_,
                           [&](Real& val) { val *= transformedEigenvalue; });
@@ -857,10 +858,10 @@ class Matrix {
             throw std::runtime_error("Attempting to multiply matrices with incompatible dimensions.");
         Matrix product(nRows_, other.nCols_);
         Real* output = product.data_;
-        for (int row = 0; row < nRows_; ++row) {
+        for (size_t row = 0; row < nRows_; ++row) {
             const Real* rowPtr = data_ + row * nCols_;
-            for (int col = 0; col < other.nCols_; ++col) {
-                for (int link = 0; link < nCols_; ++link) {
+            for (size_t col = 0; col < other.nCols_; ++col) {
+                for (size_t link = 0; link < nCols_; ++link) {
                     *output += rowPtr[link] * other.data_[link * other.nCols_ + col];
                 }
                 ++output;
@@ -875,6 +876,17 @@ class Matrix {
      * \return the product of this matrix with the matrix other.
      */
     Matrix operator*(const Matrix& other) const { return this->multiply(other); }
+
+    /*!
+     * \brief operator * scale a copy of this matrix by a constant, leaving the orignal untouched.
+     * \param scaleFac the scale factor to apply.
+     * \return the scaled version of this matrix.
+     */
+    Matrix operator*(Real scaleFac) const {
+        auto scaled = this->clone();
+        scaled.applyOperationToEachElement([&](Real& element) { element *= scaleFac; });
+        return scaled;
+    }
 
     /*!
      * \brief increment this matrix with another, returning a new matrix containing the sum.
@@ -1024,10 +1036,11 @@ class Matrix {
         unsortedEigenVectors.transposeInPlace();
 
         std::vector<std::pair<Real, const Real*>> eigenPairs;
-        for (int val = 0; val < nRows_; ++val) eigenPairs.push_back({eigenValues[val][0], unsortedEigenVectors[val]});
+        for (size_t val = 0; val < nRows_; ++val)
+            eigenPairs.push_back({eigenValues[val][0], unsortedEigenVectors[val]});
         std::sort(eigenPairs.begin(), eigenPairs.end());
         if (order == SortOrder::Descending) std::reverse(eigenPairs.begin(), eigenPairs.end());
-        for (int val = 0; val < nRows_; ++val) {
+        for (size_t val = 0; val < nRows_; ++val) {
             const auto& e = eigenPairs[val];
             eigenValues.data_[val] = std::get<0>(e);
             std::copy(std::get<1>(e), std::get<1>(e) + nCols_, sortedEigenVectors[val]);
@@ -1164,7 +1177,7 @@ Matrix<Real> cartesianTransform(int maxAngularMomentum, bool transformOnlyThisSh
 
 }  // Namespace helpme
 #endif  // Header guard
-// original file: ../src/fftw_wrapper.h
+// original file: src/fftw_wrapper.h
 
 // BEGINLICENSE
 //
@@ -1410,7 +1423,7 @@ class FFTWWrapper {
 
 }  // Namespace helpme
 #endif  // Header guard
-// original file: ../src/gamma.h
+// original file: src/gamma.h
 
 // BEGINLICENSE
 //
@@ -1807,7 +1820,7 @@ Real nonTemplateGammaComputer(int twoS) {
 
 }  // Namespace helpme
 #endif  // Header guard
-// original file: ../src/gridsize.h
+// original file: src/gridsize.h
 
 // BEGINLICENSE
 //
@@ -1885,7 +1898,7 @@ int findGridSize(T inputSize, const std::initializer_list<T> &requiredDivisors) 
 #endif
 // #include "memory.h"
 #if HAVE_MPI == 1
-// original file: ../src/mpi_wrapper.h
+// original file: src/mpi_wrapper.h
 
 // BEGINLICENSE
 //
@@ -2085,7 +2098,7 @@ std::ostream& operator<<(std::ostream& os, const std::unique_ptr<MPIWrapper<Real
 }  // Namespace helpme
 #endif  // Header guard
 #endif
-// original file: ../src/powers.h
+// original file: src/powers.h
 
 // BEGINLICENSE
 //
@@ -2160,7 +2173,7 @@ struct raiseNormToIntegerPower {
 }  // Namespace helpme
 
 #endif  // Header guard
-// original file: ../src/splines.h
+// original file: src/splines.h
 
 // BEGINLICENSE
 //
@@ -2252,7 +2265,10 @@ class BSpline {
         derivativeLevel_ = derivativeLevel;
 
         // The +1 is to account for the fact that we need to store entries up to and including the max.
-        if (splines_.nRows() < derivativeLevel + 1 || splines_.nCols() != order)
+        if (derivativeLevel < 0 || order < 0) {
+            throw std::runtime_error("BSpline::update: derivativeLevel and/or order < 0.");
+        }
+        if (splines_.nRows() < (size_t)derivativeLevel + 1 || splines_.nCols() != (size_t)order)
             splines_ = Matrix<Real>(derivativeLevel + 1, order);
 
         splines_.setZero();
@@ -2331,7 +2347,7 @@ class BSpline {
 }  // Namespace helpme
 #endif  // Header guard
 // #include "string_utils.h"
-// original file: ../src/tensor_utils.h
+// original file: src/tensor_utils.h
 
 // BEGINLICENSE
 //
@@ -2367,7 +2383,9 @@ namespace helpme {
 template <typename Real>
 void permuteABCtoCBA(Real const *__restrict__ abcPtr, int const aDimension, int const bDimension, int const cDimension,
                      Real *__restrict__ cbaPtr, size_t nThreads = 1) {
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(nThreads)
+#endif
     for (int C = 0; C <= -1 + cDimension; ++C)
         for (int B = 0; B <= -1 + bDimension; ++B)
             for (int A = 0; A <= -1 + aDimension; ++A)
@@ -2387,7 +2405,9 @@ void permuteABCtoCBA(Real const *__restrict__ abcPtr, int const aDimension, int 
 template <typename Real>
 void permuteABCtoACB(Real const *__restrict__ abcPtr, int const aDimension, int const bDimension, int const cDimension,
                      Real *__restrict__ acbPtr, size_t nThreads = 1) {
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(nThreads)
+#endif
     for (int A = 0; A <= -1 + aDimension; ++A)
         for (int C = 0; C <= -1 + cDimension; ++C)
             for (int B = 0; B <= -1 + bDimension; ++B)
@@ -2539,6 +2559,11 @@ class PMEInstance {
      * \brief The different conventions for numbering nodes.
      */
     enum class NodeOrder : int { Undefined = 0, ZYX = 1 };
+
+    /*!
+     * \brief The method used to converge induced dipoles
+     */
+    enum class PolarizationType : int { Mutual = 0, Direct = 1 };
 
    protected:
     /// The FFT grid dimensions in the {A,B,C} grid dimensions.
@@ -2728,10 +2753,10 @@ class PMEInstance {
         if (angMomIterator_.size() >= expectedNTerms) return;
 
         angMomIterator_.resize(expectedNTerms);
-        for (short l = 0, count = 0; l <= L; ++l) {
-            for (short lz = 0; lz <= l; ++lz) {
-                for (short ly = 0; ly <= l - lz; ++ly) {
-                    short lx = l - ly - lz;
+        for (int l = 0, count = 0; l <= L; ++l) {
+            for (int lz = 0; lz <= l; ++lz) {
+                for (int ly = 0; ly <= l - lz; ++ly) {
+                    int lx = l - ly - lz;
                     angMomIterator_[count] = {{static_cast<short>(lx), static_cast<short>(ly), static_cast<short>(lz)}};
                     ++count;
                 }
@@ -2754,6 +2779,162 @@ class PMEInstance {
                                        recVecs_, cellVolume(), kappa_, &splineModA_[0], &splineModB_[0],
                                        &splineModC_[0], mValsA_.data(), mValsB_.data(), mValsC_.data(), nThreads_);
         }
+    }
+
+    /*!
+     * \brief Runs a PME reciprocal space calculation, computing the potential and, optionally, its derivatives as
+     *        well as the volume dependent part of the virial that comes from the structure factor.
+     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for
+     * quadrupoles, etc.).  A negative value indicates that only the shell with |parameterAngMom| is to be considered,
+     * e.g. a value of -2 specifies that only quadrupoles (and not dipoles or charges) will be provided; the input
+     * matrix should have dimensions corresponding only to the number of terms in this shell.
+     * \param parameters the list of parameters associated with each atom (charges, C6
+     * coefficients, multipoles, etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL
+     * is expected, where nL = (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
+     *
+     * 0 X Y Z XX XY YY XZ YZ ZZ XXX XXY XYY YYY XXZ XYZ YYZ XZZ YZZ ZZZ ...
+     *
+     * i.e. generated by the python loops
+     * \code{.py}
+     * for L in range(maxAM+1):
+     *     for Lz in range(0,L+1):
+     *         for Ly in range(0, L - Lz + 1):
+     *              Lx  = L - Ly - Lz
+     * \endcode
+     * \param coordinates the cartesian coordinates, ordered in memory as {x1,y1,z1,x2,y2,z2,....xN,yN,zN}.
+     * \param energy pointer to the variable holding the energy; this is incremented, not assigned.
+     * \param gridPoints the list of grid points at which the potential is needed; can be the same as the
+     * coordinates.
+     * \param derivativeLevel the order of the potential derivatives required; 0 is the potential, 1 is
+     * (minus) the field, etc.  A negative value indicates that only the derivative with order |parameterAngMom|
+     * is to be generated, e.g. -2 specifies that only the second derivative (not the potential or its gradient)
+     * will be returned as output.  The output matrix should have space for only these terms, accordingly.
+     * \param potential the array holding the potential.  This is a matrix of dimensions
+     * nAtoms x nD, where nD is the derivative level requested.  See the details fo the parameters argument for
+     * information about ordering of derivative components. N.B. this array is incremented with the potential, not
+     * assigned, so take care to zero it first if only the current results are desired.
+     * \param virial a vector of length 6 containing the unique virial elements, in the order XX XY YY XZ YZ ZZ.
+     *        This vector is incremented, not assigned.
+     */
+    void computePRecHelper(int parameterAngMom, const RealMat &parameters, const RealMat &coordinates,
+                           const RealMat &gridPoints, int derivativeLevel, RealMat &potential, RealMat &virial) {
+        bool onlyOneShellForInput = parameterAngMom < 0;
+        bool onlyOneShellForOutput = derivativeLevel < 0;
+        parameterAngMom = std::abs(parameterAngMom);
+        derivativeLevel = std::abs(derivativeLevel);
+        int cartesianOffset = onlyOneShellForInput ? nCartesian(parameterAngMom - 1) : 0;
+        sanityChecks(parameterAngMom, parameters, coordinates, cartesianOffset);
+        updateAngMomIterator(std::max(parameterAngMom, derivativeLevel));
+        // Note: we're calling the version of spread parameters that computes its own splines here.
+        // This is quite inefficient, but allow the potential to be computed at arbitrary locations by
+        // simply regenerating splines on demand in the probing stage.  If this becomes too slow, it's
+        // easy to write some logic to check whether gridPoints and coordinates are the same, and
+        // handle that special case using spline cacheing machinery for efficiency.
+        Real *realGrid = reinterpret_cast<Real *>(workSpace1_.data());
+        std::fill(workSpace1_.begin(), workSpace1_.end(), 0);
+        updateAngMomIterator(parameterAngMom);
+        auto fractionalParameters =
+            cartesianTransform(parameterAngMom, onlyOneShellForInput, scaledRecVecs_.transpose(), parameters);
+        int nComponents = nCartesian(parameterAngMom) - cartesianOffset;
+        size_t nAtoms = coordinates.nRows();
+        for (size_t atom = 0; atom < nAtoms; ++atom) {
+            // Blindly reconstruct splines for this atom, assuming nothing about the validity of the cache.
+            // Note that this incurs a somewhat steep cost due to repeated memory allocations.
+            auto bSplines = makeBSplines(coordinates[atom], parameterAngMom);
+            const auto &splineA = std::get<0>(bSplines);
+            const auto &splineB = std::get<1>(bSplines);
+            const auto &splineC = std::get<2>(bSplines);
+            const auto &aGridIterator = gridIteratorA_[splineA.startingGridPoint()];
+            const auto &bGridIterator = gridIteratorB_[splineB.startingGridPoint()];
+            const auto &cGridIterator = gridIteratorC_[splineC.startingGridPoint()];
+            int numPointsA = static_cast<int>(aGridIterator.size());
+            int numPointsB = static_cast<int>(bGridIterator.size());
+            int numPointsC = static_cast<int>(cGridIterator.size());
+            const auto *iteratorDataA = aGridIterator.data();
+            const auto *iteratorDataB = bGridIterator.data();
+            const auto *iteratorDataC = cGridIterator.data();
+            for (int component = 0; component < nComponents; ++component) {
+                const auto &quanta = angMomIterator_[component + cartesianOffset];
+                Real param = fractionalParameters(atom, component);
+                const Real *splineValsA = splineA[quanta[0]];
+                const Real *splineValsB = splineB[quanta[1]];
+                const Real *splineValsC = splineC[quanta[2]];
+                for (int pointC = 0; pointC < numPointsC; ++pointC) {
+                    const auto &cPoint = iteratorDataC[pointC];
+                    Real cValP = param * splineValsC[cPoint.second];
+                    for (int pointB = 0; pointB < numPointsB; ++pointB) {
+                        const auto &bPoint = iteratorDataB[pointB];
+                        Real cbValP = cValP * splineValsB[bPoint.second];
+                        Real *cbRow = &realGrid[cPoint.first * myGridDimensionB_ * myGridDimensionA_ +
+                                                bPoint.first * myGridDimensionA_];
+                        for (int pointA = 0; pointA < numPointsA; ++pointA) {
+                            const auto &aPoint = iteratorDataA[pointA];
+                            cbRow[aPoint.first] += cbValP * splineValsA[aPoint.second];
+                        }
+                    }
+                }
+            }
+        }
+
+        Real *potentialGrid = 0;
+        if (algorithmType_ == AlgorithmType::PME) {
+            auto gridAddress = forwardTransform(realGrid);
+            if (virial.nRows() == 0 && virial.nCols() == 0) {
+                convolveE(gridAddress);
+            } else {
+                convolveEV(gridAddress, virial);
+            }
+            potentialGrid = inverseTransform(gridAddress);
+        } else if (algorithmType_ == AlgorithmType::CompressedPME) {
+            auto gridAddress = compressedForwardTransform(realGrid);
+            if (virial.nRows() == 0 && virial.nCols() == 0) {
+                convolveE(gridAddress);
+                potentialGrid = compressedInverseTransform(gridAddress);
+            } else {
+                Real *convolvedGrid;
+                convolveEV(gridAddress, convolvedGrid, virial);
+                potentialGrid = compressedInverseTransform(convolvedGrid);
+            }
+        } else {
+            std::logic_error("Unknown algorithm in helpme::computePRec");
+        }
+
+        auto fracPotential = potential.clone();
+        fracPotential.setZero();
+        cartesianOffset = onlyOneShellForOutput ? nCartesian(derivativeLevel - 1) : 0;
+        int nPotentialComponents = nCartesian(derivativeLevel) - cartesianOffset;
+        size_t nPoints = gridPoints.nRows();
+        for (size_t point = 0; point < nPoints; ++point) {
+            Real *phiPtr = fracPotential[point];
+            auto bSplines = makeBSplines(gridPoints[point], derivativeLevel);
+            auto splineA = std::get<0>(bSplines);
+            auto splineB = std::get<1>(bSplines);
+            auto splineC = std::get<2>(bSplines);
+            const auto &aGridIterator = gridIteratorA_[splineA.startingGridPoint()];
+            const auto &bGridIterator = gridIteratorB_[splineB.startingGridPoint()];
+            const auto &cGridIterator = gridIteratorC_[splineC.startingGridPoint()];
+            const Real *splineStartA = splineA[0];
+            const Real *splineStartB = splineB[0];
+            const Real *splineStartC = splineC[0];
+            for (const auto &cPoint : cGridIterator) {
+                for (const auto &bPoint : bGridIterator) {
+                    const Real *cbRow = potentialGrid + cPoint.first * myGridDimensionA_ * myGridDimensionB_ +
+                                        bPoint.first * myGridDimensionA_;
+                    for (const auto &aPoint : aGridIterator) {
+                        Real gridVal = cbRow[aPoint.first];
+                        for (int component = 0; component < nPotentialComponents; ++component) {
+                            const auto &quanta = angMomIterator_[component + cartesianOffset];
+                            const Real *splineValsA = splineStartA + quanta[0] * splineOrder_;
+                            const Real *splineValsB = splineStartB + quanta[1] * splineOrder_;
+                            const Real *splineValsC = splineStartC + quanta[2] * splineOrder_;
+                            phiPtr[component] += gridVal * splineValsA[aPoint.second] * splineValsB[bPoint.second] *
+                                                 splineValsC[cPoint.second];
+                        }
+                    }
+                }
+            }
+        }
+        potential += cartesianTransform(derivativeLevel, onlyOneShellForOutput, scaledRecVecs_, fracPotential);
     }
 
     /*!
@@ -2921,9 +3102,11 @@ class PMEInstance {
      * \param splineB the BSpline object for the B direction.
      * \param splineC the BSpline object for the C direction.
      * \param phiPtr a scratch array of length nForceComponents, to store the fractional potential.
-     * \param parameters the list of parameters associated with each atom (charges, C6 coefficients, multipoles,
-     * etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL is expected, where nL =
-     * (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
+     * \param fracParameters the list of parameters associated with the current atom, in
+     * the scaled fraction coordinate basis (charges, C6 coefficients,
+     * multipoles, etc...). For a parameter with angular momentum L, a matrix
+     * of dimension nAtoms x nL is expected, where
+     * nL = (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
      *
      * 0 X Y Z XX XY YY XZ YZ ZZ XXX XXY XYY YYY XXZ XYZ YYZ XZZ YZZ ZZZ ...
      *
@@ -2938,13 +3121,13 @@ class PMEInstance {
      */
     void probeGridImpl(const int &atom, const Real *potentialGrid, const int &nComponents, const int &nForceComponents,
                        const Spline &splineA, const Spline &splineB, const Spline &splineC, Real *phiPtr,
-                       const RealMat &parameters, Real *forces) {
+                       const Real *fracParameters, Real *forces) {
         std::fill(phiPtr, phiPtr + nForceComponents, 0);
         probeGridImpl(potentialGrid, nForceComponents, splineA, splineB, splineC, phiPtr);
 
         Real fracForce[3] = {0, 0, 0};
         for (int component = 0; component < nComponents; ++component) {
-            Real param = parameters(atom, component);
+            Real param = fracParameters[component];
             const auto &quanta = angMomIterator_[component];
             short lx = quanta[0];
             short ly = quanta[1];
@@ -3059,7 +3242,9 @@ class PMEInstance {
         // Exclude m=0 cell.
         int start = (nodeZero ? 1 : 0);
 // Writing the three nested loops in one allows for better load balancing in parallel.
+#ifdef _OPENMP
 #pragma omp parallel for reduction(+ : energy, Vxx, Vxy, Vyy, Vxz, Vyz, Vzz) num_threads(nThreads)
+#endif
         for (size_t yxz = start; yxz < nyxz; ++yxz) {
             size_t xz = yxz % nxz;
             short ky = yxz / nxz;
@@ -3166,7 +3351,9 @@ class PMEInstance {
         // Exclude m=0 cell.
         int start = (nodeZero ? 1 : 0);
 // Writing the three nested loops in one allows for better load balancing in parallel.
+#ifdef _OPENMP
 #pragma omp parallel for reduction(+ : energy, Vxx, Vxy, Vyy, Vxz, Vyz, Vzz) num_threads(nThreads)
+#endif
         for (size_t yxz = start; yxz < nyxz; ++yxz) {
             size_t xz = yxz % nxz;
             short ky = yxz / nxz;
@@ -3275,7 +3462,8 @@ class PMEInstance {
         if (coordinates.nRows() != parameters.nRows())
             throw std::runtime_error(
                 "Inconsistent number of coordinates and parameters; there should be nAtoms of each.");
-        if (parameters.nCols() != (nCartesian(parameterAngMom) - cartesianOffset))
+        int n_param_cols = nCartesian(parameterAngMom) - cartesianOffset;
+        if (n_param_cols < 0 || parameters.nCols() != (size_t)n_param_cols)
             throw std::runtime_error(
                 "Mismatch in the number of parameters provided and the parameter angular momentum");
     }
@@ -3325,7 +3513,9 @@ class PMEInstance {
         // Exclude m=0 cell.
         int start = (nodeZero ? 1 : 0);
 // Writing the three nested loops in one allows for better load balancing in parallel.
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(nThreads)
+#endif
         for (size_t yxz = start; yxz < nyxz; ++yxz) {
             size_t xz = yxz % nxz;
             short ky = yxz / nxz;
@@ -3772,16 +3962,25 @@ class PMEInstance {
         Real *realGrid = reinterpret_cast<Real *>(workSpace1_.data());
         updateAngMomIterator(parameterAngMom);
 
+        // We need to figure out whether the incoming parameters need to be transformed to scaled fractional
+        // coordinates or not, which is only needed for angular momentum higher than zero.
+        RealMat tempParams;
+        if (parameterAngMom) {
+            tempParams = cartesianTransform(parameterAngMom, false, scaledRecVecs_.transpose(), parameters);
+        }
+        const auto &fractionalParameters = parameterAngMom ? tempParams : parameters;
+
         int nComponents = nCartesian(parameterAngMom);
         size_t numBA = (size_t)myGridDimensionB_ * myGridDimensionA_;
+#ifdef _OPENMP
 #pragma omp parallel num_threads(nThreads_)
         {
-#ifdef _OPENMP
             int threadID = omp_get_thread_num();
 #else
+        {
             int threadID = 0;
 #endif
-            for (size_t row = threadID; row < myGridDimensionC_; row += nThreads_) {
+            for (int row = threadID; row < myGridDimensionC_; row += nThreads_) {
                 std::fill(&realGrid[row * numBA], &realGrid[(row + 1) * numBA], Real(0));
             }
             for (const auto &spline : splinesPerThread_[threadID]) {
@@ -3790,7 +3989,8 @@ class PMEInstance {
                 const auto &splineA = cacheEntry.aSpline;
                 const auto &splineB = cacheEntry.bSpline;
                 const auto &splineC = cacheEntry.cSpline;
-                spreadParametersImpl(atom, realGrid, nComponents, splineA, splineB, splineC, parameters, threadID);
+                spreadParametersImpl(atom, realGrid, nComponents, splineA, splineB, splineC, fractionalParameters,
+                                     threadID);
             }
         }
         return realGrid;
@@ -3812,27 +4012,28 @@ class PMEInstance {
         gridAtomList_.resize(gridDimensionC_);
 
 // Classify atoms to their worker threads first, then construct splines for each thread
+#ifdef _OPENMP
 #pragma omp parallel num_threads(nThreads_)
         {
-#ifdef _OPENMP
             int threadID = omp_get_thread_num();
 #else
+        {
             int threadID = 0;
 #endif
-            for (size_t row = threadID; row < gridDimensionC_; row += nThreads_) {
+            for (int row = threadID; row < gridDimensionC_; row += nThreads_) {
                 gridAtomList_[row].clear();
             }
             auto &mySplineList = splinesPerThread_[threadID];
-            const auto &gridIteratorC = threadedGridIteratorC_[threadID];
+            // const auto &gridIteratorC = threadedGridIteratorC_[threadID]; FIXME currently unused
             mySplineList.clear();
             size_t myNumAtoms = 0;
-            for (int atom = 0; atom < nAtoms; ++atom) {
+            for (size_t atom = 0; atom < nAtoms; ++atom) {
                 const Real *atomCoords = coords[atom];
                 Real cCoord = atomCoords[0] * recVecs_(0, 2) + atomCoords[1] * recVecs_(1, 2) +
                               atomCoords[2] * recVecs_(2, 2) - EPS;
                 cCoord -= floor(cCoord);
                 short cStartingGridPoint = gridDimensionC_ * cCoord;
-                size_t thisAtomsThread = cStartingGridPoint % nThreads_;
+                int thisAtomsThread = (int)cStartingGridPoint % nThreads_;
                 const auto &cGridIterator = gridIteratorC_[cStartingGridPoint];
                 if (cGridIterator.size() && thisAtomsThread == threadID) {
                     Real aCoord = atomCoords[0] * recVecs_(0, 0) + atomCoords[1] * recVecs_(1, 0) +
@@ -3856,7 +4057,6 @@ class PMEInstance {
             }
             numAtomsPerThread_[threadID] = myNumAtoms;
         }
-
         // We could intervene here and do some load balancing by inspecting the list.  Currently
         // the lazy approach of just assuming that the atoms are evenly distributed along c is used.
 
@@ -3867,7 +4067,7 @@ class PMEInstance {
         // certain scale factor to try and minimize allocations in a not-too-wasteful manner.
         if (splineCache_.size() < numCacheEntries) {
             size_t newSize = static_cast<size_t>(1.2 * numCacheEntries);
-            for (int atom = splineCache_.size(); atom < newSize; ++atom)
+            for (size_t atom = splineCache_.size(); atom < newSize; ++atom)
                 splineCache_.emplace_back(splineOrder_, splineDerivativeLevel);
         }
         std::vector<size_t> threadOffset(nThreads_, 0);
@@ -3875,15 +4075,16 @@ class PMEInstance {
             threadOffset[thread] = threadOffset[thread - 1] + numAtomsPerThread_[thread - 1];
         }
 
+#ifdef _OPENMP
 #pragma omp parallel num_threads(nThreads_)
         {
-#ifdef _OPENMP
             int threadID = omp_get_thread_num();
 #else
+        {
             int threadID = 0;
 #endif
             size_t entry = threadOffset[threadID];
-            for (size_t cRow = threadID; cRow < gridDimensionC_; cRow += nThreads_) {
+            for (int cRow = threadID; cRow < gridDimensionC_; cRow += nThreads_) {
                 for (const auto &gridPointAndAtom : gridAtomList_[cRow]) {
                     size_t atom = gridPointAndAtom.second;
                     const Real *atomCoords = coords[atom];
@@ -3911,13 +4112,13 @@ class PMEInstance {
                 }
             }
         }
-
 // Finally, find all of the splines that this thread will need to handle
+#ifdef _OPENMP
 #pragma omp parallel num_threads(nThreads_)
         {
-#ifdef _OPENMP
             int threadID = omp_get_thread_num();
 #else
+        {
             int threadID = 0;
 #endif
             auto &mySplineList = splinesPerThread_[threadID];
@@ -4105,14 +4306,20 @@ class PMEInstance {
      * \return Pointer to the transformed grid, which is stored in one of the buffers in BAC order.
      */
     Complex *forwardTransform(Real *realGrid) {
+#if HAVE_MPI == 1
         Real *__restrict__ realCBA;
+#endif
         Complex *__restrict__ buffer1, *__restrict__ buffer2;
         if (realGrid == reinterpret_cast<Real *>(workSpace1_.data())) {
+#if HAVE_MPI == 1
             realCBA = reinterpret_cast<Real *>(workSpace2_.data());
+#endif
             buffer1 = workSpace2_.data();
             buffer2 = workSpace1_.data();
         } else {
+#if HAVE_MPI == 1
             realCBA = reinterpret_cast<Real *>(workSpace1_.data());
+#endif
             buffer1 = workSpace1_.data();
             buffer2 = workSpace2_.data();
         }
@@ -4145,15 +4352,18 @@ class PMEInstance {
         helpme::vector<Complex> buffer(nThreads_ * scratchRowDim);
 
 // A transform, with instant sort to CAB ordering for each local block
+#ifdef _OPENMP
 #pragma omp parallel num_threads(nThreads_)
         {
-#ifdef _OPENMP
             int threadID = omp_get_thread_num();
 #else
+        {
             int threadID = 0;
 #endif
             auto scratch = &buffer[threadID * scratchRowDim];
+#ifdef _OPENMP
 #pragma omp for
+#endif
             for (int c = 0; c < subsetOfCAlongA_; ++c) {
                 for (int b = 0; b < myGridDimensionB_; ++b) {
                     Real *gridPtr = realGrid + c * myGridDimensionB_ * gridDimensionA_ + b * gridDimensionA_;
@@ -4198,7 +4408,9 @@ class PMEInstance {
 
         // B transform
         size_t numCA = (size_t)subsetOfCAlongB_ * myComplexGridDimensionA_;
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(nThreads_)
+#endif
         for (size_t ca = 0; ca < numCA; ++ca) {
             fftHelperB_.transform(buffer1 + ca * gridDimensionB_, FFTW_FORWARD);
         }
@@ -4246,7 +4458,9 @@ class PMEInstance {
 #endif
         // C transform
         size_t numBA = (size_t)subsetOfBAlongC_ * myComplexGridDimensionA_;
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(nThreads_)
+#endif
         for (size_t ba = 0; ba < numBA; ++ba) {
             fftHelperC_.transform(buffer2 + ba * gridDimensionC_, FFTW_FORWARD);
         }
@@ -4273,7 +4487,9 @@ class PMEInstance {
 
         // C transform
         size_t numYX = (size_t)subsetOfBAlongC_ * myComplexGridDimensionA_;
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(nThreads_)
+#endif
         for (size_t yx = 0; yx < numYX; ++yx) {
             fftHelperC_.transform(convolvedGrid + yx * gridDimensionC_, FFTW_BACKWARD);
         }
@@ -4325,11 +4541,15 @@ class PMEInstance {
 
         // B transform with instant sort of local blocks from CAB -> CBA order
         size_t numCA = (size_t)subsetOfCAlongB_ * myComplexGridDimensionA_;
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(nThreads_)
+#endif
         for (size_t ca = 0; ca < numCA; ++ca) {
             fftHelperB_.transform(buffer1 + ca * gridDimensionB_, FFTW_BACKWARD);
         }
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(nThreads_)
+#endif
         for (int c = 0; c < subsetOfCAlongB_; ++c) {
             for (int a = 0; a < myComplexGridDimensionA_; ++a) {
                 int cx = c * myComplexGridDimensionA_ * gridDimensionB_ + a * gridDimensionB_;
@@ -4376,7 +4596,9 @@ class PMEInstance {
 
         // A transform
         Real *realGrid = reinterpret_cast<Real *>(buffer2);
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(nThreads_)
+#endif
         for (int cb = 0; cb < subsetOfCAlongA_ * myGridDimensionB_; ++cb) {
             fftHelperA_.transform(buffer1 + cb * complexGridDimensionA_, realGrid + cb * gridDimensionA_);
         }
@@ -4489,7 +4711,9 @@ class PMEInstance {
         }
         if (iAmNodeZero) transformedGrid[0] = 0;
 // Writing the three nested loops in one allows for better load balancing in parallel.
+#ifdef _OPENMP
 #pragma omp parallel for reduction(+ : energy) num_threads(nThreads_)
+#endif
         for (size_t yxz = 0; yxz < nyxz; ++yxz) {
             energy += transformedGrid[yxz] * transformedGrid[yxz] * influenceFunction[yxz];
             transformedGrid[yxz] *= influenceFunction[yxz];
@@ -4520,7 +4744,9 @@ class PMEInstance {
         }
         if (iAmNodeZero) transformedGrid[0] = Complex(0, 0);
         const size_t numCTerms(myNumKSumTermsC_);
+#ifdef _OPENMP
 #pragma omp parallel for reduction(+ : energy) num_threads(nThreads_)
+#endif
         for (size_t yxz = 0; yxz < nyxz; ++yxz) {
             size_t xz = yxz % nxz;
             int kx = firstKSumTermA_ + xz / numCTerms;
@@ -4591,27 +4817,42 @@ class PMEInstance {
      *              Lx  = L - Ly - Lz
      * \endcode
      * \param forces a Nx3 matrix of the forces, ordered in memory as {Fx1,Fy1,Fz1,Fx2,Fy2,Fz2,....FxN,FyN,FzN}.
+     * \param virial pointer to the virial vector if needed
      */
-    void probeGrid(const Real *potentialGrid, int parameterAngMom, const RealMat &parameters, RealMat &forces) {
+    void probeGrid(const Real *potentialGrid, int parameterAngMom, const RealMat &parameters, RealMat &forces,
+                   Real *virial = nullptr) {
         updateAngMomIterator(parameterAngMom + 1);
         int nComponents = nCartesian(parameterAngMom);
         int nForceComponents = nCartesian(parameterAngMom + 1);
         const Real *paramPtr = parameters[0];
         // Find how many multiples of the cache line size are needed
         // to ensure that each thread hits a unique page.
-        size_t rowSize = std::ceil(nForceComponents / cacheLineSizeInReals_) * cacheLineSizeInReals_;
-        if (fractionalPhis_.nRows() != nThreads_ || fractionalPhis_.nCols() != rowSize) {
-            fractionalPhis_ = RealMat(nThreads_, rowSize);
-        }
         size_t nAtoms = std::accumulate(numAtomsPerThread_.begin(), numAtomsPerThread_.end(), 0);
+        size_t rowSize = std::ceil(nForceComponents / cacheLineSizeInReals_) * cacheLineSizeInReals_;
+        if (fractionalPhis_.nRows() < nAtoms || fractionalPhis_.nCols() < rowSize) {
+            fractionalPhis_ = RealMat(nAtoms, rowSize);
+        }
+
+        RealMat fractionalParams;
+        Real cartPhi[3];
+        if (parameterAngMom) {
+            fractionalParams = cartesianTransform(parameterAngMom, false, scaledRecVecs_.transpose(), parameters);
+            if (virial) {
+                if (parameterAngMom > 1) {
+                    // The structure factor derivatives below are only implemented up to dipoles for now
+                    throw std::runtime_error("Only multipoles up to L=1 are supported if the virial is requested");
+                }
+            }
+        }
+#ifdef _OPENMP
 #pragma omp parallel num_threads(nThreads_)
         {
-#ifdef _OPENMP
             int threadID = omp_get_thread_num();
+#pragma omp for
 #else
+        {
             int threadID = 0;
 #endif
-#pragma omp for
             for (size_t atom = 0; atom < nAtoms; ++atom) {
                 const auto &cacheEntry = splineCache_[atom];
                 const auto &absAtom = cacheEntry.absoluteAtomNumber;
@@ -4621,7 +4862,20 @@ class PMEInstance {
                 if (parameterAngMom) {
                     Real *myScratch = fractionalPhis_[threadID % nThreads_];
                     probeGridImpl(absAtom, potentialGrid, nComponents, nForceComponents, splineA, splineB, splineC,
-                                  myScratch, parameters, forces[absAtom]);
+                                  myScratch, fractionalParams[absAtom], forces[absAtom]);
+                    // Add extra virial terms coming from the derivative of the structure factor.
+                    // See eq. 2.16 of https://doi.org/10.1063/1.1630791 for details
+                    if (virial) {
+                        // Get the potential in the Cartesian basis
+                        matrixVectorProduct(scaledRecVecs_, &myScratch[1], &cartPhi[0]);
+                        const Real *parm = parameters[absAtom];
+                        virial[0] += cartPhi[0] * parm[1];
+                        virial[1] += 0.5f * (cartPhi[0] * parm[2] + cartPhi[1] * parm[1]);
+                        virial[2] += cartPhi[1] * parm[2];
+                        virial[3] += 0.5f * (cartPhi[0] * parm[3] + cartPhi[2] * parm[1]);
+                        virial[4] += 0.5f * (cartPhi[1] * parm[3] + cartPhi[2] * parm[2]);
+                        virial[5] += cartPhi[2] * parm[3];
+                    }
                 } else {
                     probeGridImpl(potentialGrid, splineA, splineB, splineC, paramPtr[absAtom], forces[absAtom]);
                 }
@@ -4681,7 +4935,7 @@ class PMEInstance {
      */
     Real computeEDir(const Matrix<short> &pairList, int parameterAngMom, const RealMat &parameters,
                      const RealMat &coordinates) {
-        if (parameterAngMom) throw std::runtime_error("Multipole self terms have not been coded yet.");
+        if (parameterAngMom) throw std::runtime_error("Multipole direct terms have not been coded yet.");
         sanityChecks(parameterAngMom, parameters, coordinates);
 
         Real energy = 0;
@@ -4963,13 +5217,13 @@ class PMEInstance {
 
     /*!
      * \brief Computes the full electrostatic potential at atomic sites due to point charges located at those same
-     * sites. The site located at each probe location is neglected, to avoid the resulting singularity \param charges
-     * the list of point charges (in e) associated with each particle. \param coordinates the cartesian coordinates,
-     * ordered in memory as {x1,y1,z1,x2,y2,z2,....xN,yN,zN}. \param potential the array holding the potential.  This is
-     * a matrix of dimensions  nAtoms x 1 \param sphericalCutoff the cutoff (in A) applied to the real space summations,
-     * which must be no more than half of the box dimensions
+     * sites. The site located at each probe location is neglected, to avoid the resulting singularity.
+     * \param charges * the list of point charges (in e) associated with each particle.
+     * \param coordinates the cartesian coordinates, ordered in memory as {x1,y1,z1,x2,y2,z2,....xN,yN,zN}.
+     * \param potential the array holding the potential.  This is * a matrix of dimensions  nAtoms x 1.
+     * \param sphericalCutoff the cutoff (in A) applied to the real space summations,
+     * which must be no more than half of the box dimensions.
      */
-
     void computePAtAtomicSites(const RealMat &charges, const RealMat &coordinates, RealMat &potential,
                                Real sphericalCutoff) {
         sanityChecks(0, charges, coordinates);
@@ -4980,7 +5234,9 @@ class PMEInstance {
         // Direct space, using simple O(N^2) algorithm.  This can be improved using a nonbonded list if needed.
         Real cutoffSquared = sphericalCutoff * sphericalCutoff;
         Real kappaSquared = kappa_ * kappa_;
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(nThreads_)
+#endif
         for (size_t i = 0; i < nAtoms; ++i) {
             const auto &coordsI = coordinates.row(i);
             Real *phiPtr = potential[i];
@@ -5012,7 +5268,9 @@ class PMEInstance {
         } else {
             std::logic_error("Unknown algorithm in helpme::computePAtAtomicSites");
         }
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(nThreads_)
+#endif
         for (size_t atom = 0; atom < nAtoms; ++atom) {
             const auto &cacheEntry = splineCache_[atom];
             const auto &absAtom = cacheEntry.absoluteAtomNumber;
@@ -5025,6 +5283,47 @@ class PMEInstance {
         for (size_t atom = 0; atom < nAtoms; ++atom) {
             potential[atom][0] += 2 * prefac * charges[atom][0];
         }
+    }
+
+    /*
+     * \brief Runs a PME reciprocal space calculation, computing the potential and, optionally, its derivatives as
+     *        well as the volume dependent part of the virial that comes from the structure factor.
+     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for
+     * quadrupoles, etc.).  A negative value indicates that only the shell with |parameterAngMom| is to be considered,
+     * e.g. a value of -2 specifies that only quadrupoles (and not dipoles or charges) will be provided; the input
+     * matrix should have dimensions corresponding only to the number of terms in this shell.
+     * \param parameters the list of parameters associated with each atom (charges, C6
+     * coefficients, multipoles, etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL
+     * is expected, where nL = (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
+     *
+     * 0 X Y Z XX XY YY XZ YZ ZZ XXX XXY XYY YYY XXZ XYZ YYZ XZZ YZZ ZZZ ...
+     *
+     * i.e. generated by the python loops
+     * \code{.py}
+     * for L in range(maxAM+1):
+     *     for Lz in range(0,L+1):
+     *         for Ly in range(0, L - Lz + 1):
+     *              Lx  = L - Ly - Lz
+     * \endcode
+     * \param coordinates the cartesian coordinates, ordered in memory as {x1,y1,z1,x2,y2,z2,....xN,yN,zN}.
+     * \param energy pointer to the variable holding the energy; this is incremented, not assigned.
+     * \param gridPoints the list of grid points at which the potential is needed; can be the same as the
+     * coordinates.
+     * \param derivativeLevel the order of the potential derivatives required; 0 is the potential, 1 is
+     * (minus) the field, etc.  A negative value indicates that only the derivative with order |parameterAngMom|
+     * is to be generated, e.g. -2 specifies that only the second derivative (not the potential or its gradient)
+     * will be returned as output.  The output matrix should have space for only these terms, accordingly.
+     * \param potential the array holding the potential.  This is a matrix of dimensions
+     * nAtoms x nD, where nD is the derivative level requested.  See the details fo the parameters argument for
+     * information about ordering of derivative components. N.B. this array is incremented with the potential, not
+     * assigned, so take care to zero it first if only the current results are desired.
+     * \param virial a vector of length 6 containing the unique virial elements, in the order XX XY YY XZ YZ ZZ.
+     *        This vector is incremented, not assigned.
+     */
+
+    void computePVRec(int parameterAngMom, const RealMat &parameters, const RealMat &coordinates,
+                      const RealMat &gridPoints, int derivativeLevel, RealMat &potential, RealMat &virial) {
+        computePRecHelper(parameterAngMom, parameters, coordinates, gridPoints, derivativeLevel, potential, virial);
     }
 
     /*!
@@ -5059,115 +5358,11 @@ class PMEInstance {
      * information about ordering of derivative components. N.B. this array is incremented with the potential, not
      * assigned, so take care to zero it first if only the current results are desired.
      */
-
     void computePRec(int parameterAngMom, const RealMat &parameters, const RealMat &coordinates,
                      const RealMat &gridPoints, int derivativeLevel, RealMat &potential) {
-        bool onlyOneShellForInput = parameterAngMom < 0;
-        bool onlyOneShellForOutput = derivativeLevel < 0;
-        parameterAngMom = std::abs(parameterAngMom);
-        derivativeLevel = std::abs(derivativeLevel);
-        int cartesianOffset = onlyOneShellForInput ? nCartesian(parameterAngMom - 1) : 0;
-        sanityChecks(parameterAngMom, parameters, coordinates, cartesianOffset);
-        updateAngMomIterator(std::max(parameterAngMom, derivativeLevel));
-        // Note: we're calling the version of spread parameters that computes its own splines here.
-        // This is quite inefficient, but allow the potential to be computed at arbitrary locations by
-        // simply regenerating splines on demand in the probing stage.  If this becomes too slow, it's
-        // easy to write some logic to check whether gridPoints and coordinates are the same, and
-        // handle that special case using spline cacheing machinery for efficiency.
-        Real *realGrid = reinterpret_cast<Real *>(workSpace1_.data());
-        std::fill(workSpace1_.begin(), workSpace1_.end(), 0);
-        updateAngMomIterator(parameterAngMom);
-        auto fractionalParameters =
-            cartesianTransform(parameterAngMom, onlyOneShellForInput, scaledRecVecs_, parameters);
-        int nComponents = nCartesian(parameterAngMom) - cartesianOffset;
-        size_t nAtoms = coordinates.nRows();
-        for (size_t atom = 0; atom < nAtoms; ++atom) {
-            // Blindly reconstruct splines for this atom, assuming nothing about the validity of the cache.
-            // Note that this incurs a somewhat steep cost due to repeated memory allocations.
-            auto bSplines = makeBSplines(coordinates[atom], parameterAngMom);
-            const auto &splineA = std::get<0>(bSplines);
-            const auto &splineB = std::get<1>(bSplines);
-            const auto &splineC = std::get<2>(bSplines);
-            const auto &aGridIterator = gridIteratorA_[splineA.startingGridPoint()];
-            const auto &bGridIterator = gridIteratorB_[splineB.startingGridPoint()];
-            const auto &cGridIterator = gridIteratorC_[splineC.startingGridPoint()];
-            int numPointsA = static_cast<int>(aGridIterator.size());
-            int numPointsB = static_cast<int>(bGridIterator.size());
-            int numPointsC = static_cast<int>(cGridIterator.size());
-            const auto *iteratorDataA = aGridIterator.data();
-            const auto *iteratorDataB = bGridIterator.data();
-            const auto *iteratorDataC = cGridIterator.data();
-            for (int component = 0; component < nComponents; ++component) {
-                const auto &quanta = angMomIterator_[component + cartesianOffset];
-                Real param = fractionalParameters(atom, component);
-                const Real *splineValsA = splineA[quanta[0]];
-                const Real *splineValsB = splineB[quanta[1]];
-                const Real *splineValsC = splineC[quanta[2]];
-                for (int pointC = 0; pointC < numPointsC; ++pointC) {
-                    const auto &cPoint = iteratorDataC[pointC];
-                    Real cValP = param * splineValsC[cPoint.second];
-                    for (int pointB = 0; pointB < numPointsB; ++pointB) {
-                        const auto &bPoint = iteratorDataB[pointB];
-                        Real cbValP = cValP * splineValsB[bPoint.second];
-                        Real *cbRow = &realGrid[cPoint.first * myGridDimensionB_ * myGridDimensionA_ +
-                                                bPoint.first * myGridDimensionA_];
-                        for (int pointA = 0; pointA < numPointsA; ++pointA) {
-                            const auto &aPoint = iteratorDataA[pointA];
-                            cbRow[aPoint.first] += cbValP * splineValsA[aPoint.second];
-                        }
-                    }
-                }
-            }
-        }
-
-        Real *potentialGrid;
-        if (algorithmType_ == AlgorithmType::PME) {
-            auto gridAddress = forwardTransform(realGrid);
-            convolveE(gridAddress);
-            potentialGrid = inverseTransform(gridAddress);
-        } else if (algorithmType_ == AlgorithmType::CompressedPME) {
-            auto gridAddress = compressedForwardTransform(realGrid);
-            convolveE(gridAddress);
-            potentialGrid = compressedInverseTransform(gridAddress);
-        } else {
-            std::logic_error("Unknown algorithm in helpme::computePRec");
-        }
-
-        auto fracPotential = potential.clone();
-        cartesianOffset = onlyOneShellForOutput ? nCartesian(derivativeLevel - 1) : 0;
-        int nPotentialComponents = nCartesian(derivativeLevel) - cartesianOffset;
-        size_t nPoints = gridPoints.nRows();
-        for (size_t point = 0; point < nPoints; ++point) {
-            Real *phiPtr = fracPotential[point];
-            auto bSplines = makeBSplines(gridPoints[point], derivativeLevel);
-            auto splineA = std::get<0>(bSplines);
-            auto splineB = std::get<1>(bSplines);
-            auto splineC = std::get<2>(bSplines);
-            const auto &aGridIterator = gridIteratorA_[splineA.startingGridPoint()];
-            const auto &bGridIterator = gridIteratorB_[splineB.startingGridPoint()];
-            const auto &cGridIterator = gridIteratorC_[splineC.startingGridPoint()];
-            const Real *splineStartA = splineA[0];
-            const Real *splineStartB = splineB[0];
-            const Real *splineStartC = splineC[0];
-            for (const auto &cPoint : cGridIterator) {
-                for (const auto &bPoint : bGridIterator) {
-                    const Real *cbRow = potentialGrid + cPoint.first * myGridDimensionA_ * myGridDimensionB_ +
-                                        bPoint.first * myGridDimensionA_;
-                    for (const auto &aPoint : aGridIterator) {
-                        Real gridVal = cbRow[aPoint.first];
-                        for (int component = 0; component < nPotentialComponents; ++component) {
-                            const auto &quanta = angMomIterator_[component + cartesianOffset];
-                            const Real *splineValsA = splineStartA + quanta[0] * splineOrder_;
-                            const Real *splineValsB = splineStartB + quanta[1] * splineOrder_;
-                            const Real *splineValsC = splineStartC + quanta[2] * splineOrder_;
-                            phiPtr[component] += gridVal * splineValsA[aPoint.second] * splineValsB[bPoint.second] *
-                                                 splineValsC[cPoint.second];
-                        }
-                    }
-                }
-            }
-        }
-        potential += cartesianTransform(derivativeLevel, onlyOneShellForOutput, scaledRecVecs_, fracPotential);
+        RealMat emptyMatrix(0, 0);
+        computePRecHelper(parameterAngMom, parameters, coordinates, gridPoints, derivativeLevel, potential,
+                          emptyMatrix);
     }
 
     /*!
@@ -5192,9 +5387,10 @@ class PMEInstance {
      */
     Real computeERec(int parameterAngMom, const RealMat &parameters, const RealMat &coordinates) {
         sanityChecks(parameterAngMom, parameters, coordinates);
+
         filterAtomsAndBuildSplineCache(parameterAngMom, coordinates);
         auto realGrid = spreadParameters(parameterAngMom, parameters);
-        Real energy;
+        Real energy = 0;
         if (algorithmType_ == AlgorithmType::PME) {
             auto gridAddress = forwardTransform(realGrid);
             energy = convolveE(gridAddress);
@@ -5292,7 +5488,7 @@ class PMEInstance {
             auto gridAddress = forwardTransform(realGrid);
             energy = convolveEV(gridAddress, virial);
             auto potentialGrid = inverseTransform(gridAddress);
-            probeGrid(potentialGrid, parameterAngMom, parameters, forces);
+            probeGrid(potentialGrid, parameterAngMom, parameters, forces, virial[0]);
         } else if (algorithmType_ == AlgorithmType::CompressedPME) {
             auto gridAddress = compressedForwardTransform(realGrid);
             Real *convolvedGrid;
@@ -5303,6 +5499,98 @@ class PMEInstance {
             std::logic_error("Unknown algorithm in helpme::computeEFVRec");
         }
 
+        return energy;
+    }
+
+    /*!
+     * \brief Runs a PME reciprocal space calculation, computing energies, forces and the virial.
+     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for
+     * quadrupoles, etc.).
+     * \param parameters the list of parameters associated with each atom (charges, C6
+     * coefficients, multipoles, etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL
+     * is expected, where nL = (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
+     *
+     * 0 X Y Z XX XY YY XZ YZ ZZ XXX XXY XYY YYY XXZ XYZ YYZ XZZ YZZ ZZZ ...
+     *
+     * i.e. generated by the python loops
+     * \code{.py}
+     * for L in range(maxAM+1):
+     *     for Lz in range(0,L+1):
+     *         for Ly in range(0, L - Lz + 1):
+     *              Lx  = L - Ly - Lz
+     * \endcode
+     * \param inducedDipoles the induced dipoles in the order {x1,y1,z1,x2,y2,z2,....xN,yN,zN}.
+     * \param polarizationType the method used to converged the induced dipoles.
+     * \param coordinates the cartesian coordinates, ordered in memory as {x1,y1,z1,x2,y2,z2,....xN,yN,zN}.
+     * \param energy pointer to the variable holding the energy; this is incremented, not assigned.
+     * \param forces a Nx3 matrix of the forces, ordered in memory as {Fx1,Fy1,Fz1,Fx2,Fy2,Fz2,....FxN,FyN,FzN}.
+     *        This matrix is incremented, not assigned.
+     * \param virial a vector of length 6 containing the unique virial elements, in the order XX XY YY XZ YZ ZZ.
+     *        This vector is incremented, not assigned.
+     * \return the reciprocal space energy.
+     */
+    Real computeEFVRecIsotropicInducedDipoles(int parameterAngMom, const RealMat &parameters,
+                                              const RealMat &inducedDipoles, PolarizationType polarizationType,
+                                              const RealMat &coordinates, RealMat &forces, RealMat &virial) {
+        sanityChecks(parameterAngMom, parameters, coordinates);
+        if (parameterAngMom)
+            throw std::runtime_error("Only point charges are allowed in computeEFVRecIsoPolarized() at the moment.");
+        if (polarizationType != PolarizationType::Mutual)
+            throw std::runtime_error("Only mutual (variation) optimized dipoles are supported at the moment.");
+
+        size_t numAtoms = parameters.nRows();
+        // Get the potential and field from the permanent moments
+        RealMat potential(numAtoms, 10);
+        RealMat combinedMultipoles(numAtoms, 4);
+        for (int atom = 0; atom < parameters.nRows(); ++atom) {
+            combinedMultipoles[atom][0] = parameters[atom][0];
+            combinedMultipoles[atom][1] = inducedDipoles[atom][0];
+            combinedMultipoles[atom][2] = inducedDipoles[atom][1];
+            combinedMultipoles[atom][3] = inducedDipoles[atom][2];
+        }
+
+        computePVRec(1, combinedMultipoles, coordinates, coordinates, 2, potential, virial);
+
+        double energy = 0;
+        Real *virialPtr = virial.begin();
+        Real &Vxx = virialPtr[0];
+        Real &Vxy = virialPtr[1];
+        Real &Vyy = virialPtr[2];
+        Real &Vxz = virialPtr[3];
+        Real &Vyz = virialPtr[4];
+        Real &Vzz = virialPtr[5];
+        for (int atom = 0; atom < numAtoms; ++atom) {
+            const Real *dPhi = potential[atom];
+            double charge = parameters[atom][0];
+            Real *force = forces[atom];
+            double phi = dPhi[0];
+            double phiX = dPhi[1];
+            double phiY = dPhi[2];
+            double phiZ = dPhi[3];
+            double phiXX = dPhi[4];
+            double phiXY = dPhi[5];
+            double phiYY = dPhi[6];
+            double phiXZ = dPhi[7];
+            double phiYZ = dPhi[8];
+            double phiZZ = dPhi[9];
+            const Real *mu = inducedDipoles[atom];
+            energy += 0.5 * charge * phi;
+
+            force[0] += phiXX * mu[0] + phiXY * mu[1] + phiXZ * mu[2];
+            force[1] += phiXY * mu[0] + phiYY * mu[1] + phiYZ * mu[2];
+            force[2] += phiXZ * mu[0] + phiYZ * mu[1] + phiZZ * mu[2];
+
+            force[0] += charge * phiX;
+            force[1] += charge * phiY;
+            force[2] += charge * phiZ;
+
+            Vxx += phiX * mu[0];
+            Vxy += 0.5 * (phiX * mu[1] + phiY * mu[0]);
+            Vyy += phiY * mu[1];
+            Vxz += 0.5 * (phiX * mu[2] + phiZ * mu[0]);
+            Vyz += 0.5 * (phiY * mu[2] + phiZ * mu[1]);
+            Vzz += phiZ * mu[2];
+        }
         return energy;
     }
 
@@ -5537,6 +5825,7 @@ using PMEInstanceF = helpme::PMEInstance<float>;
 
 typedef enum { Undefined = 0, XAligned = 1, ShapeMatrix = 2 } LatticeType;
 typedef enum { /* Undefined comes from the above scope */ ZYX = 1 } NodeOrder;
+typedef enum { Mutual = 0 } PolarizationType;
 
 typedef struct PMEInstance PMEInstance;
 extern struct PMEInstance *helpme_createD();

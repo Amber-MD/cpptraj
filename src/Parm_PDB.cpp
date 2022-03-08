@@ -86,7 +86,10 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
   Timer time_total, time_atom;
   time_total.Start();
 # endif
-  bool missingResidues = false;
+  bool hasMissingResidues = false;
+  std::vector<Residue> missingResidues;
+  bool hasMissingHet = false;
+  std::vector<Residue> missingHet;
   int nAltLocSkipped = 0;
   // Loop over PDB records
   while ( infile.NextRecord() != PDBfile::END_OF_FILE ) {
@@ -111,9 +114,9 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
       links.push_back( infile.pdb_Link() );
       if (debug_ > 0) {
         PDBfile::Link const& lr = links.back();
-        mprintf("DEBUG: Link record: %s %s %i to %s %s %i\n",
-                lr.aname1(), lr.rname1(), lr.Rnum1(),
-                lr.aname2(), lr.rname2(), lr.Rnum2());
+        mprintf("DEBUG: Link record: %s %s %i %c to %s %s %i %c\n",
+                lr.aname1(), lr.rname1(), lr.Rnum1(), lr.Chain1(),
+                lr.aname2(), lr.rname2(), lr.Rnum2(), lr.Chain2());
       }
     } else if (infile.RecType() == PDBfile::ATOM) {
 #     ifdef TIMER
@@ -158,15 +161,47 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
       //TopIn.StartNewMol();
       TopIn.SetRes( TopIn.Nres()-1 ).SetTerminal( true );
       if (infile.RecType() == PDBfile::END) break;
-    } else if ( !missingResidues && infile.RecType() == PDBfile::MISSING_RES ) {
-      missingResidues = true;
+    } else if ( !hasMissingResidues && infile.RecType() == PDBfile::MISSING_RES ) {
+      hasMissingResidues = true;
       mprintf("Warning: PDB file has MISSING RESIDUES section.\n");
+      if (infile.Get_Missing_Res(missingResidues))
+        mprintf("Warning: Could not read MISSING RESIDUES section.\n");
       /*if (readConect)
         mprintf("Warning: If molecule determination fails try specifying 'noconect' instead.\n");
       if (readLink)
         mprintf("Warning: If molecule determination fails try not specifying 'link' instead.\n");*/
+    } else if ( !hasMissingHet && infile.RecType() == PDBfile::MISSING_HET ) {
+      hasMissingHet = true;
+      mprintf("Warning: PDB file has MISSING HETEROATOM section.\n");
+      if (infile.Get_Missing_Het(missingHet))
+        mprintf("Warning: Could not read MISSING HETEROATOM section.\n");
     }
   } // END loop over PDB records
+
+  if (hasMissingResidues) {
+    mprintf("\t%zu missing residues.\n", missingResidues.size());
+    if (debug_ > 0) {
+      mprintf("DEBUG: Missing Residues: ");
+      for (std::vector<Residue>::const_iterator res = missingResidues.begin();
+                                                res != missingResidues.end(); ++res)
+        mprintf(" {%s %i %c %c}", *(res->Name()), res->OriginalResNum(),
+                                  res->Icode(), res->ChainId());
+      mprintf("\n");
+    }
+  }
+  if (hasMissingHet) {
+    mprintf("\t%zu HET residues with missing atoms.\n", missingHet.size());
+    if (debug_ > 0) {
+      mprintf("DEBUG: Residues missing heteroatoms: ");
+      for (std::vector<Residue>::const_iterator res = missingHet.begin();
+                                                res != missingHet.end(); ++res)
+        mprintf(" {%s %i %c %c}", *(res->Name()), res->OriginalResNum(),
+                                  res->Icode(), res->ChainId());
+      mprintf("\n");
+    }
+  }
+  TopIn.SetMissingResInfo(missingResidues, missingHet);
+
   if (nAltLocSkipped > 0)
     mprintf("\tSkipped %i alternate atom locations.\n", nAltLocSkipped);
   // Sanity check
@@ -185,6 +220,16 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
   // Add LINK bonds. Need to search for original residue numbers here.
   if (!links.empty()) {
     for (Larray::const_iterator link = links.begin(); link != links.end(); ++link) {
+      // LINK records that require symmetry operations are not yet supported.
+      //mprintf("DEBUG: LINK1 %s %s %i %c (%i) %s\n", link->aname1(), link->rname1(), link->Rnum1(), link->Chain1(), (int)link->Sym1().NoOp(), link->Sym1().OpString().c_str());
+      //mprintf("DEBUG: LINK2 %s %s %i %c (%i) %s\n", link->aname2(), link->rname2(), link->Rnum2(), link->Chain2(), (int)link->Sym2().NoOp(), link->Sym2().OpString().c_str());
+      if (!link->Sym1().NoOp() || !link->Sym2().NoOp()) {
+        mprintf("Warning: LINK between atom %s res %s %i %c and atom %s res %s %i %c requires\n"
+                "Warning:   symmetry operations, which is not yet supported. Skipping.\n",
+                link->aname1(), link->rname1(), link->Rnum1(), link->Chain1(),
+                link->aname2(), link->rname2(), link->Rnum2(), link->Chain2());
+        continue;
+      }
       Topology::res_iterator r1 = TopIn.ResEnd();
       Topology::res_iterator r2 = TopIn.ResEnd();
       for (Topology::res_iterator res = TopIn.ResStart(); res != TopIn.ResEnd(); ++res) {

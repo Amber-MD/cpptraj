@@ -22,13 +22,12 @@ const char* DataSet::Descriptions_[] = {
   "reference",      // REF_FRAME
   "3x3 matrices",   // MAT3X3
   "topology",       // TOPOLOGY
-  "cluster matrix", // CMATRIX
-  "cluster matrix (no memory)", // CMATRIX_NOMEM
-  "cluster matrix (disk)",      // CMATRIX_DISK
   "pH",                         // PH
   "pH REMD (explicit)",         // PH_EXPL
   "pH REMD (implicit)",         // PH_IMPL
   "parameters",                 // PARAMETERS
+  "pairwise matrix (mem)",      // PMATRIX_MEM
+  "pairwise matrix (NetCDF)",   // PMATRIX_NC
   "tensor",                     // TENSOR
   "string variable",            // STRINGVAR
   "vector with scalar",         // VECTOR_SCALAR
