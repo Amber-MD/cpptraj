@@ -22,7 +22,7 @@ if [ $? -eq 0 ]; then
   trajin ../tz2.ortho.nc 1 10
   autoimage origin
   gist nopme doorder doeij refdens 0.033422885325 gridcntr 1.44 0.67 0.29 \
-    griddim 10 12 10 gridspacn 2.0 prefix Gist1
+    griddim 10 12 10 gridspacn 2.0 prefix Gist1 nocom
   go
 EOF
   RunCpptraj "GIST water-water interaction test"
@@ -39,7 +39,7 @@ parm ../tz2.ortho.parm7
 trajin ../tz2.ortho.nc 1 10
 autoimage origin
 gist nopme doorder refdens 0.033422885325 gridcntr 1.5 1.0 0.0 \
-    griddim 34 44 36 gridspacn 0.50 prefix Gist2 info Info.dat
+    griddim 34 44 36 gridspacn 0.50 prefix Gist2 info Info.dat nocom
 go
 EOF
 RunCpptraj "$UNITNAME"
@@ -61,7 +61,7 @@ autoimage origin
 gist nopme doorder refdens 0.033422885325 \
   gridcntr 0.81 -1.0 0.08 \
   griddim 42 36 40 gridspacn 0.50 \
-  prefix Gist3 info Info.dat
+  prefix Gist3 info Info.dat nocom
 EOF
 RunCpptraj "$UNITNAME"
 DoTest Gist3-gH.dx.save Gist3-gH.dx
@@ -86,7 +86,7 @@ trajin ../tz2.ortho.nc 1 10
 autoimage origin
 #gist pme refdens 0.033422885325 gridcntr 17 20 18 griddim 80 90 80 prefix Gist4 info Info.dat
 gist pme refdens 0.033422885325 gridcntr 1.5 1.0 0.0 \
-    griddim 34 44 36 gridspacn 0.50 prefix Gist4 info Info.dat
+    griddim 34 44 36 gridspacn 0.50 prefix Gist4 info Info.dat nocom
 EOF
   RunCpptraj "$UNITNAME"
   DoTest Gist4-Solute-Etot-pme-dens.dx.save Gist4-Solute-Etot-pme-dens.dx
@@ -112,7 +112,7 @@ trajin ../tz2.truncoct.nc 1 10
 autoimage origin
 #gist pme refdens 0.033422885325 gridcntr 21 21 21 griddim 90 90 90 prefix Gist5 info Info.dat
 gist pme refdens 0.033422885325 gridcntr 0.81 -1.0 0.08 \
-  griddim 42 36 40 gridspacn 0.50 prefix Gist5 info Info.dat
+  griddim 42 36 40 gridspacn 0.50 prefix Gist5 info Info.dat nocom
 EOF
   RunCpptraj "$UNITNAME"
   DoTest Gist5-Solute-Etot-pme-dens.dx.save Gist5-Solute-Etot-pme-dens.dx
@@ -136,7 +136,7 @@ parm ../tz2.ortho.parm7
 trajin ../tz2.ortho.nc 1 10
 autoimage origin
 gist nopme doorder refdens 0.033422885325 gridcntr 1.5 1.0 0.0 \
-    griddim 34 44 36 gridspacn 0.50 prefix Gist6 info Info.dat oldnnvolume
+    griddim 34 44 36 gridspacn 0.50 prefix Gist6 info Info.dat oldnnvolume nocom
 go
 EOF
 RunCpptraj "$UNITNAME"
@@ -155,7 +155,7 @@ parm ../tz2.ortho.parm7
 trajin ../tz2.ortho.nc 1 10
 autoimage origin
 gist nopme doorder refdens 0.033422885325 gridcntr 1.5 1.0 0.0 \
-    griddim 34 44 36 gridspacn 0.50 prefix Gist7 info Info.dat nnsearchlayers 5
+    griddim 34 44 36 gridspacn 0.50 prefix Gist7 info Info.dat nnsearchlayers 5 nocom
 go
 EOF
 RunCpptraj "$UNITNAME"

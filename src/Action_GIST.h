@@ -96,6 +96,21 @@ class Action_GIST : public Action {
     void analyzeSolventElements(const Molecule& mol, const Topology& top);
     bool createAtomDensityDatasets();
     std::vector<DataSet_3D*> getDensityDataSets();
+    Farray DataSetAsArray(const DataSet_3D& ds) const;
+    double SumDataSet(const DataSet_3D& ds) const;
+    double SumDataSet(const std::string& name) const;
+    void ScaleDataSet(DataSet_3D& ds, double factor) const;
+    void ScaleFarray(Farray& ds, double factor) const;
+    Vec3 calcMolCenter(const ActionFrame& frm, int begin, int end) const;
+
+    template<typename ARRAY_TYPE>
+    void CopyArrayToDataSet(const ARRAY_TYPE& arr, DataSet_3D& ds) const;
+
+    template<typename ARRAY_TYPE>
+    void NormalizeFarray(Action_GIST::Farray& arr, const ARRAY_TYPE& norm) const;
+
+    template<typename ARRAY_TYPE>
+    void NormalizeDataSet(DataSet_3D& ds, const ARRAY_TYPE& norm) const;
 
     int debug_;      ///< Action debug level
     int numthreads_; ///< Number of OpenMP threads
@@ -240,5 +255,6 @@ class Action_GIST : public Action {
     bool skipE_;               ///< If true skip the nonbond energy calc
     bool skipS_;               ///< If true does not calculate entropy
     bool exactNnVolume_;       ///< If true use the exact volume equation for the NN entropy
+    bool useCom_;              ///< If true use the COM as the molecular center; If false, use the first atom according to rigidAtomIndices.
 };
 #endif

@@ -44,21 +44,6 @@ Action_GIST::Action_GIST() :
   gridspacing_(0),
   gridcntr_(0.0),
   griddim_(),
-  /*gO_(0),
-  gH_(0),
-  Esw_(0),
-  Eww_(0),
-  dTStrans_(0),
-  dTSorient_(0),
-  dTSsix_(0),
-  neighbor_norm_(0),
-  dipole_(0),
-  order_norm_(0),
-  dipolex_(0),
-  dipoley_(0),
-  dipolez_(0),
-  PME_(0),
-  U_PME_(0),*/
   ww_Eij_(0),
   G_max_(0.0),
   CurrentParm_(0),
@@ -81,7 +66,8 @@ Action_GIST::Action_GIST() :
   doOrder_(false),
   doEij_(false),
   skipE_(false),
-  exactNnVolume_(false)
+  exactNnVolume_(false),
+  useCom_(true)
 {}
 
 /** GIST help */
@@ -92,7 +78,7 @@ void Action_GIST::Help() const {
           "\t[prefix <filename prefix>] [ext <grid extension>] [out <output suffix>]\n"
           "\t[floatfmt {double|scientific|general}] [floatwidth <fw>] [floatprec <fp>]\n"
           "\t[intwidth <iw>] [oldnnvolume] [nnsearchlayers <nlayers>] [solute <mask>] [solventmols <str>]\n"
-          "\t[rigidatomindices <i1> <i2> <i3>\n"
+          "\t[rigidatomindices <i1> <i2> <i3> [nocom]\n"
           "\t[info <info suffix>]\n");
 #         ifdef LIBPME
           mprintf("\t[nopme|pme %s\n\t %s\n\t %s]\n", EwaldOptions::KeywordsCommon1(), EwaldOptions::KeywordsCommon2(), EwaldOptions::KeywordsPME());
@@ -155,6 +141,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   imageOpt_.InitImaging( !(actionArgs.hasKey("noimage")), actionArgs.hasKey("nonortho") );
   doOrder_ = actionArgs.hasKey("doorder");
   doEij_ = actionArgs.hasKey("doeij");
+  useCom_ = !actionArgs.hasKey("nocom");
 #ifdef CUDA
   if (this->doEij_) {
     mprinterr("Error: 'doeij' cannot be specified when using CUDA.\n");
@@ -255,7 +242,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     return Action::ERR;
   }
   ArgList indArgs = actionArgs.GetNstringKey("rigidatomindices", 3);
-  if ( !indArgs.empty() ) {
+  if ( indArgs.empty() ) {
     rigidAtomIndices_[0] = 0;
     rigidAtomIndices_[1] = 1;
     rigidAtomIndices_[2] = 2;
@@ -283,16 +270,11 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     || !AddDatasetAndFile("dipolex", prefix_ + "-dipolex-dens" + ext_, DataSet::GRID_DBL)
     || !AddDatasetAndFile("dipoley", prefix_ + "-dipoley-dens" + ext_, DataSet::GRID_DBL)
     || !AddDatasetAndFile("dipolez", prefix_ + "-dipolez-dens" + ext_, DataSet::GRID_DBL)
+    || !AddDatasetAndFile("PME", prefix_ + "-Water-Etot-pme-dens" + ext_, DataSet::GRID_FLT)
+    || !AddDatasetAndFile("U_PME", prefix_ + "-Solute-Etot-pme-dens"+ ext_, DataSet::GRID_FLT)
   ) return Action::ERR;
 
   gridBin_ = &dataSets3D_.at("Eww")->Bin();
-
-  if (usePme_) {
-    if (
-      !AddDatasetAndFile("PME", prefix_ + "-Water-Etot-pme-dens" + ext_, DataSet::GRID_FLT)
-      || !AddDatasetAndFile("U_PME", prefix_ + "-Solute-Etot-pme-dens"+ ext_, DataSet::GRID_FLT)
-    ) return Action::ERR;
-  }
 
   if (doEij_) {
     ww_Eij_ = (DataSet_MatrixFlt*)init.DSL().AddSet(DataSet::MATRIX_FLT, MetaData(dsname_, "Eij"));
@@ -500,8 +482,6 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
 
   // NOTE: these are just guesses
   O_idxs_.reserve( setup.Top().Nsolvent() );
-  // atom_voxel_ and atomIsSolute will be indexed by atom #
-  atom_voxel_.assign( setup.Top().Natom(), OFF_GRID_ );
   atomIsSolute_.assign(setup.Top().Natom(), false);
   atomIsSolventO_.assign(setup.Top().Natom(), false);
   U_idxs_.reserve(setup.Top().Natom()-setup.Top().Nsolvent()*nMolAtoms_);
@@ -692,17 +672,20 @@ void Action_GIST::setSoluteSolvent(const Topology& top)
     for (Topology::mol_iterator mol=top.MolStart(); mol!=top.MolEnd(); ++mol) {
       bool solute = !mol->IsSolvent();
       for (int atom=mol->MolUnit().Front(); atom<=mol->MolUnit().Back(); ++atom) {
-        isSolute_.SelectAtom(atom, solute);
+        atomIsSolute_[atom] = solute;
       }
+    }
+  } else {
+    for (int i = 0; i != top.Natom(); ++i) {
+      atomIsSolute_[i] = isSolute_.AtomInCharMask(i);
     }
   }
   for (int i = 0; i != top.Natom(); ++i) {
-    atomIsSolute_[i] = isSolute_.AtomInCharMask(i);
-    if (isSolute_.AtomInCharMask(i)) {
+    if (atomIsSolute_[i]) {
       U_idxs_.push_back(i);
     }
     #ifdef CUDA
-    this->solvent_[i] = !isSolute_.AtomInCharMask(i);
+    this->solvent_[i] = !atomIsSolute_[i];
     #endif
   }
 
@@ -1076,6 +1059,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   N_ON_GRID_ = 0;
   OnGrid_idxs_.clear();
   OnGrid_XYZ_.clear();
+  atom_voxel_.assign( frm.Frm().Natom(), OFF_GRID_ );
 
   DataSet_3D* dipolex = dataSets3D_.at("dipolex");
   DataSet_3D* dipoley = dataSets3D_.at("dipoley");
@@ -1106,10 +1090,9 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   {
     gist_grid_.Start();
     int oidx = O_idxs_[sidx];
-    for (unsigned int IDX = 0; IDX != nMolAtoms_; IDX++)
-      atom_voxel_[oidx+IDX] = OFF_GRID_;
-    Vec3 com = frm.Frm().VCenterOfMass(oidx, oidx+nMolAtoms_);
-    Vec3 W_G = com - Origin;
+    Vec3 mol_center = calcMolCenter(frm, oidx, oidx+nMolAtoms_);
+    // frm.Frm().VCenterOfMass(oidx, oidx+nMolAtoms_);
+    Vec3 W_G = mol_center - Origin;
     gist_grid_.Stop();
     // Check if water oxygen is no more then 1.5 Ang from grid
     // NOTE: using <= to be consistent with original code
@@ -1121,7 +1104,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
       const double* H1_XYZ = frm.Frm().XYZ( oidx + rigidAtomIndices_[1] );
       const double* H2_XYZ = frm.Frm().XYZ( oidx + rigidAtomIndices_[2] );
       // Try to bin the oxygen
-      int voxel = calcVoxelIndex(com[0], com[1], com[2]);
+      int voxel = calcVoxelIndex(mol_center[0], mol_center[1], mol_center[2]);
       if ( voxel != OFF_GRID_ )
       {
         // Oxygen is inside the grid. Record the voxel.
@@ -1143,9 +1126,9 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
         // ----- EULER ---------------------------
         gist_euler_.Start();
         // Record XYZ coords of water atoms (nonEP) in voxel TODO need EP?
-        voxel_xyz_[voxel].push_back( com[0] );
-        voxel_xyz_[voxel].push_back( com[1] );
-        voxel_xyz_[voxel].push_back( com[2] );
+        voxel_xyz_[voxel].push_back( mol_center[0] );
+        voxel_xyz_[voxel].push_back( mol_center[1] );
+        voxel_xyz_[voxel].push_back( mol_center[2] );
         // Get O-HX vectors
         Vec3 H1_wat( H1_XYZ[0]-O_XYZ[0], H1_XYZ[1]-O_XYZ[1], H1_XYZ[2]-O_XYZ[2] );
         Vec3 H2_wat( H2_XYZ[0]-O_XYZ[0], H2_XYZ[1]-O_XYZ[1], H2_XYZ[2]-O_XYZ[2] );
@@ -1274,7 +1257,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
         int vox = calcVoxelIndex(xyz[0], xyz[1], xyz[2]);
         if ( vox != OFF_GRID_ ) {
           int i_elem = solventInfo_.i_element[i];
-          densityDataSets[i_elem]->UpdateVoxel(vox, 1);
+          densityDataSets[i_elem]->UpdateVoxel(vox, 1.0);
         }
       }
     } // END water is within 1.5 Ang of grid
@@ -1287,7 +1270,6 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
     for (unsigned int s = 0; s != U_idxs_.size(); s++)
     {
       int uidx = U_idxs_[s]; // the solute atom index
-      atom_voxel_[uidx] = OFF_GRID_;
       const double* u_XYZ = frm.Frm().XYZ( uidx );
       // get the vector of this solute atom to the grid origin
       Vec3 U_G( u_XYZ[0] - Origin[0],
@@ -1343,6 +1325,15 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   return Action::OK;
 }
 
+Vec3 Action_GIST::calcMolCenter(const ActionFrame& frm, int begin, int end) const
+{
+  if (useCom_) {
+    return frm.Frm().VCenterOfMass(begin, end);
+  } else {
+    return Vec3(frm.Frm().XYZ(begin + rigidAtomIndices_[0]));
+  }
+}
+
 int Action_GIST::calcVoxelIndex(double x, double y, double z) {
   size_t i, j, k;
   if ( gridBin_->Calc(x, y, z, i, j, k) ) {
@@ -1355,23 +1346,89 @@ int Action_GIST::calcVoxelIndex(double x, double y, double z) {
 void Action_GIST::SumEVV() {
   DataSet_3D* Esw = dataSets3D_.at("Esw");
   DataSet_3D* Eww = dataSets3D_.at("Eww");
+  DataSet_3D* neighbor = dataSets3D_.at("neighbor");
   for (unsigned int thread = 0; thread < E_VV_VDW_.size(); thread++) {
     for (unsigned int gr_pt = 0; gr_pt != MAX_GRID_PT_; gr_pt++) {
       Esw->UpdateVoxel(gr_pt, E_UV_VDW_[thread][gr_pt] + E_UV_Elec_[thread][gr_pt]);
       Eww->UpdateVoxel(gr_pt, E_VV_VDW_[thread][gr_pt] + E_VV_Elec_[thread][gr_pt]);
-      if (thread > 0) {
-        neighbor_[0][gr_pt] += neighbor_[thread][gr_pt];
-      }
+      neighbor->UpdateVoxel(gr_pt, neighbor_[thread][gr_pt]);
     }
   }
+}
+
+Action_GIST::Farray Action_GIST::DataSetAsArray(const DataSet_3D& ds) const
+{
+  Farray ret(ds.Size());
+  for (size_t i = 0; i < ds.Size(); ++i) {
+    ret[i] = ds[i];
+  }
+  return ret;
+}
+
+void Action_GIST::ScaleDataSet(DataSet_3D& ds, double factor) const
+{
+  for (size_t i = 0; i < ds.Size(); ++i) {
+    ds.SetGrid(i, ds[i]*factor);
+  }
+}
+
+void Action_GIST::ScaleFarray(Farray& arr, double factor) const
+{
+  for (size_t i = 0; i < arr.size(); ++i) {
+    arr[i] = arr[i] * factor;
+  }
+}
+
+template<typename ARRAY_TYPE>
+void Action_GIST::NormalizeFarray(Action_GIST::Farray& arr, const ARRAY_TYPE& norm) const
+{
+  for (size_t i = 0; i < arr.size(); ++i) {
+    if (norm[i] == 0) {
+      arr[i] = 0.0;
+    } else {
+      arr[i] = arr[i] / norm[i];
+    }
+  }
+}
+
+template<typename ARRAY_TYPE>
+void Action_GIST::NormalizeDataSet(DataSet_3D& ds, const ARRAY_TYPE& norm) const
+{
+  for (size_t i = 0; i < ds.Size(); ++i) {
+    if (norm[i] == 0) {
+      ds.SetGrid(i, 0.0);
+    } else {
+      ds.SetGrid(i, ds[i] / norm[i]);
+    }
+  }
+}
+
+template<typename ARRAY_TYPE>
+void Action_GIST::CopyArrayToDataSet(const ARRAY_TYPE& arr, DataSet_3D& ds) const
+{
+  for (size_t i = 0; i < arr.size(); ++i) {
+    ds.SetGrid(i, arr[i]);
+  }
+}
+
+double Action_GIST::SumDataSet(const DataSet_3D& ds) const
+{
+  double total = 0.0;
+  for (size_t i = 0; i < ds.Size(); ++i) {
+    total += ds[i];
+  }
+  return total;
+}
+
+double Action_GIST::SumDataSet(const std::string& name) const
+{
+  return SumDataSet(*dataSets3D_.at(name));
 }
 
 /** Calculate average voxel energy for PME grids. */
 void Action_GIST::CalcAvgVoxelEnergy_PME(double Vvox, DataSet_3D& PME_dens, DataSet_3D& U_PME_dens, Farray& PME_norm)
 const
 {
-  double PME_tot =0.0;
-  double U_PME_tot = 0.0;
   mprintf("\t Calculating average voxel energies: \n");
   ProgressBar E_progress(MAX_GRID_PT_);
   for ( unsigned int gr_pt =0; gr_pt < MAX_GRID_PT_; gr_pt++)
@@ -1382,8 +1439,6 @@ const
     {
       PME_dens.SetGrid(gr_pt, E_pme_[gr_pt] / (NFRAME_ * Vvox));
       PME_norm[gr_pt] = E_pme_[gr_pt] / nw_total;
-      PME_tot += PME_dens[gr_pt];
-
     }else{
       PME_dens.SetGrid(gr_pt, 0);
       PME_norm[gr_pt]=0; 
@@ -1392,17 +1447,13 @@ const
     if (ns_total >=1)
     {
       U_PME_dens.SetGrid(gr_pt, U_E_pme_[gr_pt] / (NFRAME_ * Vvox));
-      U_PME_tot += U_PME_dens[gr_pt];
-
     }else{
       U_PME_dens.SetGrid(gr_pt, 0);
     }
   }
-  PME_tot *=Vvox;
-  U_PME_tot *=Vvox;
 
-  infofile_->Printf("Ensemble total water energy on the grid: %9.5f Kcal/mol \n", PME_tot);
-  infofile_->Printf("Ensemble total solute energy on the grid: %9.5f Kcal/mol \n",U_PME_tot);
+  infofile_->Printf("Ensemble total water energy on the grid: %9.5f Kcal/mol \n", SumDataSet(PME_dens) * Vvox);
+  infofile_->Printf("Ensemble total solute energy on the grid: %9.5f Kcal/mol \n", SumDataSet(U_PME_dens) * Vvox);
 
 //  infofile_->Printf("Ensemble solute's total potential energy : %9.5f Kcal/mol \n", solute_potential_energy_ / NFRAME_);
 //  infofile_->Printf("Ensemble system's total potential energy: %9.5f Kcal/mol \n", system_potential_energy_/NFRAME_);
@@ -1419,8 +1470,6 @@ void Action_GIST::CalcAvgVoxelEnergy(double Vvox, DataSet_3D& Eww_dens, DataSet_
     // Sum values from other threads if necessary
     SumEVV();
     #endif
-    double Eswtot = 0.0;
-    double Ewwtot = 0.0;
     mprintf("\tCalculating average voxel energies:\n");
     ProgressBar E_progress( MAX_GRID_PT_ );
     for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++)
@@ -1434,9 +1483,6 @@ void Action_GIST::CalcAvgVoxelEnergy(double Vvox, DataSet_3D& Eww_dens, DataSet_
         Esw_norm[gr_pt] = Esw_dens[gr_pt] * (NFRAME_ * Vvox) / nw_total;
         Eww_dens.SetGrid(gr_pt, Eww_dens[gr_pt] / (NFRAME_ * Vvox));
         Eww_norm[gr_pt] = Eww_dens[gr_pt] * (NFRAME_ * Vvox) / nw_total;
-        Eswtot += Esw_dens[gr_pt];
-        Ewwtot += Eww_dens[gr_pt];
-
       } else {
         Esw_norm[gr_pt]=0;
         Eww_norm[gr_pt]=0;
@@ -1449,11 +1495,9 @@ void Action_GIST::CalcAvgVoxelEnergy(double Vvox, DataSet_3D& Eww_dens, DataSet_
       }
       neighbor_dens[gr_pt] = (double)Neighbor[gr_pt] / (NFRAME_ * Vvox);
     } // END loop over all grid points (voxels)
-    Eswtot *= Vvox;
-    Ewwtot *= Vvox;
-    infofile_->Printf("Total water-solute energy of the grid: Esw = %9.5f kcal/mol\n", Eswtot);
+    infofile_->Printf("Total water-solute energy of the grid: Esw = %9.5f kcal/mol\n", SumDataSet(Esw_dens)*Vvox);
     infofile_->Printf("Total unreferenced water-water energy of the grid: Eww = %9.5f kcal/mol\n",
-                      Ewwtot);
+                      SumDataSet(Eww_dens)*Vvox);
 }
 
 /** Handle averaging for grids and output from GIST. */
@@ -1465,9 +1509,8 @@ void Action_GIST::Print() {
 
   // The variables are kept outside, so that they are declared for later use.
   // Calculate orientational entropy
-  DataSet_3D& dTSorient_dens = *dataSets3D_.at("dTSorient");
+  DataSet_3D& dTSorient = *dataSets3D_.at("dTSorient");
   Farray dTSorient_norm( MAX_GRID_PT_, 0.0 );
-  double dTSorienttot = 0;
   int nwtt = 0;
   double dTSo = 0;
   if (! this->skipS_) {
@@ -1476,12 +1519,11 @@ void Action_GIST::Print() {
     ProgressBar oe_progress( MAX_GRID_PT_ );
     for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++) {
       oe_progress.Update( gr_pt );
-      dTSorient_dens.SetGrid(gr_pt, 0);
-      dTSorient_norm[gr_pt] = 0;
       int nw_total = N_waters_[gr_pt]; // Total number of waters that have been in this voxel.
       nwtt += nw_total;
       //mprintf("DEBUG1: %u nw_total %i\n", gr_pt, nw_total);
       if (nw_total > 1) {
+        double sorient_norm = 0.0;
         for (int n0 = 0; n0 < nw_total; n0++)
         {
           double NNr = 10000;
@@ -1510,27 +1552,22 @@ void Action_GIST::Print() {
               dbl = log(NNr*NNr*NNr*nw_total / (3.0*Constants::TWOPI));
             }
             //mprintf("DEBUG1: %u  nw_total= %i  NNr= %f  dbl= %f\n", gr_pt, nw_total, NNr, dbl);
-            dTSorient_norm[gr_pt] += dbl;
+            sorient_norm += dbl;
             dTSo += dbl;
           }
         } // END outer loop over all waters for this voxel
         //mprintf("DEBUG1: dTSorient_norm %f\n", dTSorient_norm[gr_pt]);
-        dTSorient_norm[gr_pt] = Constants::GASK_KCAL * temperature_ *
-                                ((dTSorient_norm[gr_pt]/nw_total) + Constants::EULER_MASC);
-        double dtso_norm_nw = (double)dTSorient_norm[gr_pt] * (double)nw_total;
-        dTSorient_dens.SetGrid(gr_pt, (dtso_norm_nw / (NFRAME_ * Vvox)));
-        dTSorienttot += dTSorient_dens[gr_pt];
+        dTSorient.SetGrid(gr_pt, Constants::GASK_KCAL * temperature_ * nw_total
+                                 * (sorient_norm/nw_total + Constants::EULER_MASC));
         //mprintf("DEBUG1: %f\n", dTSorienttot);
       }
     } // END loop over all grid points (voxels)
-    dTSorienttot *= Vvox;
     infofile_->Printf("Maximum number of waters found in one voxel for %d frames = %d\n",
                       NFRAME_, max_nwat_);
     infofile_->Printf("Total referenced orientational entropy of the grid:"
-                      " dTSorient = %9.5f kcal/mol, Nf=%d\n", dTSorienttot, NFRAME_);
+                      " dTSorient = %9.5f kcal/mol, Nf=%d\n", SumDataSet(dTSorient)*Vvox, NFRAME_);
   }
   // Compute translational entropy for each voxel
-  double dTStranstot = 0.0;
   double dTSt = 0.0;
   double dTSs = 0.0;
   int nwts = 0;
@@ -1540,13 +1577,8 @@ void Action_GIST::Print() {
   std::vector<DataSet_3D*> densitySets = getDensityDataSets();
   DataSet_3D& dTStrans = *dataSets3D_.at("dTStrans");
   DataSet_3D& dTSsix = *dataSets3D_.at("dTSsix");
-  Farray dTStrans_norm( MAX_GRID_PT_, 0.0 );
-  Farray dTSsix_norm( MAX_GRID_PT_, 0.0 );
-  Vec3 grid_origin(
-    gridcntr_[0] - double(nx - 1) * gridspacing_ / 2,
-    gridcntr_[1] - double(ny - 1) * gridspacing_ / 2,
-    gridcntr_[2] - double(nz - 1) * gridspacing_ / 2
-  );
+
+  Vec3 grid_origin(gridBin_->Center(0, 0, 0));
 
   // Loop over all grid points
   if (! this->skipS_)
@@ -1554,11 +1586,11 @@ void Action_GIST::Print() {
   else
     mprintf("Calculating Densities:\n");
   ProgressBar te_progress( MAX_GRID_PT_ );
+  for (unsigned int i_ds = 0; i_ds < solventInfo_.unique_elements.size(); ++i_ds) {
+    ScaleDataSet(*densitySets[i_ds], 1.0 / (double(NFRAME_)*Vvox*BULK_DENS_*double(solventInfo_.element_count[i_ds])));
+  }
   for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++) {
     te_progress.Update( gr_pt );
-    for (unsigned int i_ds = 0; i_ds < solventInfo_.unique_elements.size(); ++i_ds) {
-      densitySets[i_ds]->SetGrid(gr_pt, (*densitySets[i_ds])[gr_pt] / (NFRAME_*Vvox*BULK_DENS_*solventInfo_.element_count[i_ds]));
-    }
     if (! this->skipS_) {
       int nw_total = N_waters_[gr_pt]; // Total number of waters that have been in this voxel.
       int ix = gr_pt / (ny * nz);
@@ -1567,6 +1599,8 @@ void Action_GIST::Print() {
       bool boundary = ( ix == 0 || iy == 0 || iz == 0 || ix == (nx-1) || iy == (ny-1) || iz == (nz-1) );
 
       if ( !boundary ) {
+        double strans_norm = 0.0;
+        double ssix_norm = 0.0;
         for (int n0 = 0; n0 < nw_total; ++n0)
         {
           Vec3 center(voxel_xyz_[gr_pt][3*n0], voxel_xyz_[gr_pt][3*n0+1], voxel_xyz_[gr_pt][3*n0+2]);
@@ -1590,34 +1624,28 @@ void Action_GIST::Print() {
           if (has_neighbor) {
             ++nwts;
             double dbl = log((NNd*NNd*NNd*NFRAME_*4*Constants::PI*BULK_DENS_)/3);
-            dTStrans_norm[gr_pt] += dbl;
+            strans_norm += dbl;
             dTSt += dbl;
             double sixDens = (NNs*NNs*NNs*NNs*NNs*NNs*NFRAME_*Constants::PI*BULK_DENS_) / 48;
             if (exactNnVolume_) {
               sixDens /= GistEntropyUtils::sixVolumeCorrFactor(NNs);
             }
             dbl = log(sixDens);
-            dTSsix_norm[gr_pt] += dbl;
+            ssix_norm += dbl;
             dTSs += dbl;
             //mprintf("DEBUG1: dbl=%f NNs=%f\n", dbl, NNs);
           }
         } // END loop over all waters for this voxel
-        if (dTStrans_norm[gr_pt] != 0) {
-          dTStrans_norm[gr_pt] = Constants::GASK_KCAL*temperature_*( (dTStrans_norm[gr_pt]/nw_total) +
-                                                                    Constants::EULER_MASC );
-          dTSsix_norm[gr_pt] = Constants::GASK_KCAL*temperature_*( (dTSsix_norm[gr_pt]/nw_total) +
-                                                                  Constants::EULER_MASC );
+        if (strans_norm != 0) {
+          dTStrans.SetGrid(gr_pt, Constants::GASK_KCAL * temperature_ * nw_total
+                                  * (strans_norm/nw_total + Constants::EULER_MASC));
+          dTSsix.SetGrid(gr_pt, Constants::GASK_KCAL * temperature_ * nw_total
+                                * (ssix_norm/nw_total + Constants::EULER_MASC));
         }
-        double dtst_norm_nw = (double)dTStrans_norm[gr_pt] * (double)nw_total;
-        dTStrans.SetGrid(gr_pt, (dtst_norm_nw / (NFRAME_*Vvox)));
-        double dtss_norm_nw = (double)dTSsix_norm[gr_pt] * (double)nw_total;
-        dTSsix.SetGrid(gr_pt, (dtss_norm_nw / (NFRAME_*Vvox)));
-        dTStranstot += dTStrans[gr_pt];
       }
     }
   } // END loop over all grid points (voxels)
   if (!this->skipS_) {
-    dTStranstot *= Vvox;
     double dTSst = 0.0;
     double dTStt = 0.0;
     if (nwts > 0) {
@@ -1628,45 +1656,77 @@ void Action_GIST::Print() {
     infofile_->Printf("watcount in vol = %d\n", nwtt);
     infofile_->Printf("watcount in subvol = %d\n", nwts);
     infofile_->Printf("Total referenced translational entropy of the grid:"
-                      " dTStrans = %9.5f kcal/mol, Nf=%d\n", dTStranstot, NFRAME_);
+                      " dTStrans = %9.5f kcal/mol, Nf=%d\n", SumDataSet(dTStrans)*Vvox, NFRAME_);
     infofile_->Printf("Total 6d if all one vox: %9.5f kcal/mol\n", dTSst);
     infofile_->Printf("Total t if all one vox: %9.5f kcal/mol\n", dTStt);
     infofile_->Printf("Total o if all one vox: %9.5f kcal/mol\n", dTSot);
   }
+  #ifndef CUDA
+  // Sum values from other threads if necessary
+  SumEVV();
+  #endif
   // Compute average voxel energy. Allocate these sets even if skipping energy
   // to be consistent with previous output.
-  DataSet_3D& PME_dens =      *dataSets3D_["PME"];
-  DataSet_3D& U_PME_dens =    *dataSets3D_["U_PME"];
+  DataSet_3D& PME_dens = *dataSets3D_["PME"];
+  DataSet_3D& U_PME_dens = *dataSets3D_["U_PME"];
+  CopyArrayToDataSet(E_pme_, PME_dens);
+  CopyArrayToDataSet(U_E_pme_, U_PME_dens);
   DataSet_3D& Esw_dens =      *dataSets3D_.at("Esw");
   DataSet_3D& Eww_dens =      *dataSets3D_.at("Eww");
   DataSet_3D& neighbor_norm = *dataSets3D_.at("neighbor");
   DataSet_3D& qtet =          *dataSets3D_.at("order");
-  Farray Esw_norm( MAX_GRID_PT_, 0.0 );
-  Farray Eww_norm( MAX_GRID_PT_, 0.0 );
-  Farray PME_norm( MAX_GRID_PT_,0.0);
-  Farray neighbor_dens( MAX_GRID_PT_, 0.0 );
-  if (!skipE_) {
-    if (usePme_) {
-      CalcAvgVoxelEnergy_PME(Vvox, PME_dens, U_PME_dens, PME_norm);
-    }// else {
-      CalcAvgVoxelEnergy(Vvox, Eww_dens, Esw_dens, Eww_norm, Esw_norm, qtet,
-                         neighbor_norm, neighbor_dens);
-    //}
+  Farray Esw_norm = DataSetAsArray(Esw_dens);
+  Farray Eww_norm = DataSetAsArray(Eww_dens);
+  Farray PME_norm = DataSetAsArray(PME_dens);
+  Farray neighbor_dens = DataSetAsArray(neighbor_norm);
+  if (!skipE_ && usePme_) {
+    mprintf("\t Calculating average voxel energies: \n");
   }
+  NormalizeFarray(PME_norm, N_waters_);
+  ScaleDataSet(PME_dens, 1.0 / (NFRAME_ * Vvox));
+  ScaleDataSet(U_PME_dens, 1.0 / (NFRAME_ * Vvox));
+  if (!skipE_ && usePme_) {
+    infofile_->Printf("Ensemble total water energy on the grid: %9.5f Kcal/mol \n", SumDataSet(PME_dens) * Vvox);
+    infofile_->Printf("Ensemble total solute energy on the grid: %9.5f Kcal/mol \n", SumDataSet(U_PME_dens) * Vvox);
+  }
+  if (!skipE_) {
+    mprintf("\tCalculating average voxel energies:\n");
+  }
+  NormalizeFarray(Eww_norm, N_waters_);
+  ScaleFarray(Eww_norm, 0.5);  // To account for double counting.
+  NormalizeFarray(Esw_norm, N_waters_);
+  ScaleDataSet(Esw_dens, 1.0 / (NFRAME_ * Vvox));
+  ScaleDataSet(Eww_dens, 1.0 / (2.0 * NFRAME_ * Vvox));
+  // Note that the normalization is the other way round for neighbor, because _norm is written to an output file.
+  NormalizeDataSet(neighbor_norm, N_waters_);
+  ScaleFarray(neighbor_dens, 1.0 / (NFRAME_ * Vvox));
+  if (!skipE_) {
+    infofile_->Printf("Total water-solute energy of the grid: Esw = %9.5f kcal/mol\n", SumDataSet(Esw_dens)*Vvox);
+    infofile_->Printf("Total unreferenced water-water energy of the grid: Eww = %9.5f kcal/mol\n",
+                      SumDataSet(Eww_dens)*Vvox);
+  }
+  Farray dTStrans_norm = DataSetAsArray(dTStrans);
+  Farray dTSsix_norm = DataSetAsArray(dTSsix);
+  NormalizeFarray(dTStrans_norm, N_waters_);
+  NormalizeFarray(dTSsix_norm, N_waters_);
+  ScaleDataSet(dTStrans, 1.0 / (NFRAME_ * Vvox));
+  ScaleDataSet(dTSorient, 1.0 / (NFRAME_ * Vvox));
+  ScaleDataSet(dTSsix, 1.0 / (NFRAME_ * Vvox));
   // Compute average dipole density.
   DataSet_3D& pol =     *dataSets3D_.at("dipole");
   DataSet_3D& dipolex = *dataSets3D_.at("dipolex");
   DataSet_3D& dipoley = *dataSets3D_.at("dipoley");
   DataSet_3D& dipolez = *dataSets3D_.at("dipolez");
+  ScaleDataSet(dipolex, 1.0 / (Constants::DEBYE_EA * NFRAME_ * Vvox));
+  ScaleDataSet(dipoley, 1.0 / (Constants::DEBYE_EA * NFRAME_ * Vvox));
+  ScaleDataSet(dipolez, 1.0 / (Constants::DEBYE_EA * NFRAME_ * Vvox));
   for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++)
   {
-    dipolex.SetGrid(gr_pt, dipolex[gr_pt] / (Constants::DEBYE_EA * NFRAME_ * Vvox));
-    dipoley.SetGrid(gr_pt, dipoley[gr_pt] / (Constants::DEBYE_EA * NFRAME_ * Vvox));
-    dipolez.SetGrid(gr_pt, dipolez[gr_pt] / (Constants::DEBYE_EA * NFRAME_ * Vvox));
     pol.SetGrid(gr_pt, sqrt( dipolex[gr_pt]*dipolex[gr_pt] +
                              dipoley[gr_pt]*dipoley[gr_pt] +
                              dipolez[gr_pt]*dipolez[gr_pt] ));
   }
+  NormalizeDataSet(qtet, N_waters_);
 
   std::vector<DataSet_3D*> densityDataSets(getDensityDataSets());
   // Write the GIST output file.
@@ -1712,7 +1772,7 @@ void Action_GIST::Print() {
       }
       printer.print(dTStrans[gr_pt]);
       printer.print(dTStrans_norm[gr_pt]);
-      printer.print(dTSorient_dens[gr_pt]);
+      printer.print(dTSorient[gr_pt]);
       printer.print(dTSorient_norm[gr_pt]);
       printer.print(dTSsix[gr_pt]);
       printer.print(dTSsix_norm[gr_pt]);
