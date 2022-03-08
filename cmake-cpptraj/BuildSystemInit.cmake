@@ -8,4 +8,5 @@ message(STATUS "Starting configuration of ${PROJECT_NAME} version ${${PROJECT_NA
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
 
 # Basic Utilities
-include (Shorthand)
+include(Utils)
+include(Shorthand)
