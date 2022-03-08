@@ -71,4 +71,5 @@ add_subdirectory(test)
 #--------------------------------------------------------------	
 if(NOT INSIDE_AMBER)
 	print_build_report()
+	dump_cmake_variables()
 endif()

@@ -201,7 +201,8 @@ endif()
 #------------------------------------------------------------------------------
 
 if(NEED_netcdf OR NEED_netcdf-fortran)
-	find_package(NetCDF OPTIONAL_COMPONENTS F77 F90)
+	#find_package(NetCDF OPTIONAL_COMPONENTS F77 F90)
+	find_package(NetCDF)
 endif()
 
 if(NEED_netcdf)
@@ -307,20 +308,6 @@ if(NEED_libm)
 		set_3rdparty(libm EXTERNAL)
 	else()
 		set_3rdparty(libm DISABLED)
-	endif()
-endif()
-
-#------------------------------------------------------------------------------
-#  NVIDIA NCCL
-#------------------------------------------------------------------------------ 
-
-if(NEED_nccl)
-	find_package(NCCL)
-
-	if(NCCL_FOUND)
-		set_3rdparty(nccl EXTERNAL)
-	else()
-		set_3rdparty(nccl DISABLED)
 	endif()
 endif()
 
@@ -610,26 +597,6 @@ endif()
 
 if(libbz2_EXTERNAL)
 	using_library_targets(BZip2::BZip2)
-endif()
-
-#------------------------------------------------------------------------------
-#  mpi4py
-#------------------------------------------------------------------------------ 
-
-if(mpi4py_EXTERNAL)
-	if(NOT MPI4PY_FOUND)
-		message(FATAL_ERROR "mpi4py was set to be sourced externally, but the mpi4py package was not found.")
-	endif()
-elseif(mpi4py_INTERNAL)
-	list(APPEND 3RDPARTY_SUBDIRS mpi4py-3.1.3)
-endif()
-
-#------------------------------------------------------------------------------
-#  NCCL
-#------------------------------------------------------------------------------ 
-
-if(nccl_EXTERNAL)
-	using_library_targets(nccl)
 endif()
 
 # --------------------------------------------------------------------
