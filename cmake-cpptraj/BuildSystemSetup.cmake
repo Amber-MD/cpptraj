@@ -3,6 +3,7 @@
 include(CheckLinkerFlag)
 include(TryLinkLibrary)
 
+include(LibraryTracking)
 include(BuildReport)
 include(CopyTarget)
 include(LibraryUtils)
