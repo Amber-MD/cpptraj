@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1) #need 3.1 for "cmake -E env" command
+cmake_minimum_required(VERSION 3.3) # need 3.3 for POLICY CMP0057
 project(cpptraj NONE)
 
 #version number
@@ -12,12 +12,14 @@ set(cpptraj_VERSION "${cpptraj_MAJOR_VERSION}.${cpptraj_MINOR_VERSION}.${cpptraj
 if(NOT INSIDE_AMBER)
 	# initialization and include paths
 	#---------------------------------------------------------------------------------------------------------------------------------------------------------------------
-	include(cmake/AmberBuildSystemInit.cmake)
+	include(cmake-cpptraj/BuildSystemInit.cmake)
 
 	#now enable the languages
 	enable_language(C CXX)
+        # Enable fortran for ARPACK
+        #enable_language(Fortran)
 
-	include(AmberBuildSystem2ndInit)
+	include(BuildSystemSetup)
 	
 	include(OpenMPConfig)
 	include(MPIConfig)
@@ -28,9 +30,9 @@ if(NOT INSIDE_AMBER)
 	set(REQUIRED_3RDPARTY_TOOLS netcdf)
 	include(3rdPartyTools)
 	
-	if(fftw_DISABLED)
-		enable_language(Fortran)
-	endif()
+	#if(fftw_DISABLED)
+	#	enable_language(Fortran)
+	#endif()
 	
 	include(CompilerFlags)
 

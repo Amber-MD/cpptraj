@@ -9,56 +9,28 @@ set(3RDPARTY_TOOLS
 blas
 lapack
 arpack 
-ucpp
 readline
-c9x-complex
 netcdf
-netcdf-fortran
 pnetcdf
-protobuf
 fftw
-xblas
-lio
-apbs
-pupil
 zlib
 libbz2
-plumed
 libm
 mkl
-mpi4py
-perlmol
-boost
-nccl
-mbx
 tng_io)
 
-set(3RDPARTY_TOOL_USES
+set(3RDPARTY_TOOL_USES 
 "for fundamental linear algebra calculations"                                     
 "for fundamental linear algebra calculations"                                     
 "for fundamental linear algebra calculations"                                     
-"used as a preprocessor for the NAB compiler"
-"enables an interactive terminal in cpptraj"                                     
-"used as a support library on systems that do not have C99 complex.h support"     
-"for creating trajectory data files"                                              
-"for creating trajectory data files from Fortran"                                 
-"used by cpptraj for parallel trajectory output"                                  
-"protocol buffers library, used for communication with external software in QM/MM"
+"enables an interactive terminal"
+"for creating NetCDF trajectory data files"                                              
+"for creating NetCDF trajectory files in parallel"                                  
 "used to do Fourier transforms very quickly"                                      
-"used for high-precision linear algebra calculations"                             
-"used by Sander to run certain QM routines on the GPU"                            
-"used by Sander as an alternate Poisson-Boltzmann equation solver"                
-"used by Sander as an alternate user interface"                                   
 "for various compression and decompression tasks"                                 
-"for bzip2 compression in cpptraj"                                                
-"used as an alternate MD backend for Sander"                                      
-"for fundamental math routines if they are not contained in the C library"
+"for bzip2 compression in cpptraj"  
+"for fundamental math routines if they are not contained in the C library"                                              
 "alternate implementation of lapack and blas that is tuned for speed"             
-"MPI support library for MMPBSA.py"                                               
-"chemistry library used by FEW"
-"C++ support library"
-"NVIDIA parallel GPU communication library"
-"computes energies and forces for pmemd with the MB-pol model"
 "enables GROMACS tng trajectory input in cpptraj")                                                  
 
 # Logic to disable tools
@@ -151,33 +123,6 @@ endif()
 # This ensures that all dependent libraries are built as position independent
 set(CMAKE_POSITION_INDEPENDENT_CODE ${SHARED})
 
-
-#------------------------------------------------------------------------------
-# check if we need to use c9xcomplex
-#------------------------------------------------------------------------------
-
-if(NEED_c9x-complex)
-	check_include_file(complex.h LIBC_HAS_COMPLEX)
-	if(LIBC_HAS_COMPLEX)
-		set_3rdparty(c9x-complex DISABLED)
-	else()
-		set_3rdparty(c9x-complex INTERNAL)
-	endif()
-endif()
-
-#------------------------------------------------------------------------------
-# check for ucpp
-#------------------------------------------------------------------------------
-if(NEED_ucpp)
-	find_program(UCPP_LOCATION ucpp)
-	
-	if(UCPP_LOCATION)
-		set_3rdparty(ucpp EXTERNAL)
-	else()
-		set_3rdparty(ucpp INTERNAL)	
-	endif()
-endif()
-
 #------------------------------------------------------------------------------
 #  Readline
 #------------------------------------------------------------------------------
@@ -235,12 +180,13 @@ if(NEED_fftw)
 
 	if(DEFINED USE_FFT AND NOT USE_FFT)
 		set_3rdparty(fftw DISABLED)
-	else()		
-		if(MPI)
-			find_package(FFTW COMPONENTS MPI Fortran)
-		else()
-			find_package(FFTW COMPONENTS Fortran)
-		endif()
+	else()	
+          find_package(FFTW)	
+		#if(MPI)
+		#	find_package(FFTW COMPONENTS MPI Fortran)
+		#else()
+		#	find_package(FFTW COMPONENTS Fortran)
+		#endif()
 	
 		if(FFTW_FOUND)
 			set_3rdparty(fftw EXTERNAL)
@@ -271,48 +217,6 @@ if(NEED_netcdf-fortran)
 		set_3rdparty(netcdf-fortran EXTERNAL)
 	else()
 		set_3rdparty(netcdf-fortran INTERNAL)
-	endif()
-endif()
-
-#------------------------------------------------------------------------------
-#  Protobuf
-#------------------------------------------------------------------------------
-
-if(NEED_protobuf)
-	find_package(Protobuf)
-
-	if(Protobuf_FOUND)
-		if(BUILD_PROTOBUF)
-		    set_3rdparty(protobuf EXTERNAL)
-	    else()
-    	    set_3rdparty(protobuf DISABLED)
-	    endif()
-	else()
-		if(BUILD_PROTOBUF)
-		    set_3rdparty(protobuf INTERNAL)
-	    else()
-    	    set_3rdparty(protobuf DISABLED)
-	    endif()
-	endif()
-endif()
-
-#------------------------------------------------------------------------------
-#  XBlas
-#------------------------------------------------------------------------------
-
-if(NEED_xblas)
-
-	find_package(XBLAS)
-	
-	if(XBLAS_FOUND)
-		set_3rdparty(xblas EXTERNAL)
-	else()		
-		if(EXISTS "${M4}")
-			set_3rdparty(xblas INTERNAL)
-		else()
-			message(STATUS "Internal xblas cannot build since m4 was not found.")
-			set_3rdparty(xblas DISABLED)
-		endif()
 	endif()
 endif()
 
@@ -364,66 +268,6 @@ if(NEED_pnetcdf)
 endif()
 
 #------------------------------------------------------------------------------
-#  APBS
-#------------------------------------------------------------------------------
-
-if(NEED_apbs)
-
-	find_package(APBS)	
-	
-	if(APBS_FOUND)
-		set_3rdparty(apbs EXTERNAL)
-	else()
-		set_3rdparty(apbs DISABLED)
-	endif()
-endif()
-
-#------------------------------------------------------------------------------
-#  PUPIL
-#------------------------------------------------------------------------------
-
-if(NEED_pupil)
-	find_package(PUPIL)
-	if(PUPIL_FOUND)
-		set_3rdparty(pupil EXTERNAL)
-	else()
-		set_3rdparty(pupil DISABLED)
-	endif()
-endif()
-
-#------------------------------------------------------------------------------
-#  LIO
-#------------------------------------------------------------------------------
-
-if(NEED_lio)
-
-	find_package(LIO)
-	
-	if(LIO_FOUND)			
-		set_3rdparty(lio EXTERNAL)
-	else()		
-		set_3rdparty(lio DISABLED)
-	endif()
-endif()
-
-#------------------------------------------------------------------------------
-# PLUMED
-#------------------------------------------------------------------------------
-
-if(NEED_plumed)
-
-	# PLUMED changed its C API in version 2.5.
-	# We can only build-time-link to versions >=2.5, though 
-	# runtime linking should work with all versions
-	find_package(PLUMED 2.5)
-	if(PLUMED_FOUND)
-		set_3rdparty(plumed EXTERNAL)
-	else()
-		set_3rdparty(plumed DISABLED)
-	endif()
-endif()
-
-#------------------------------------------------------------------------------
 #  zlib, for cpptraj and netcdf
 #------------------------------------------------------------------------------
 
@@ -467,100 +311,6 @@ if(NEED_libm)
 endif()
 
 #------------------------------------------------------------------------------
-#  mpi4py (only needed for MMPBSA.py)
-#------------------------------------------------------------------------------
-if(NEED_mpi4py)
-	check_python_package(mpi4py MPI4PY_FOUND)
-	if(MPI4PY_FOUND)
-		set_3rdparty(mpi4py EXTERNAL)
-	else()
-
-		if("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
-			message(STATUS "Cannot build internal mpi4py with PGI compiler")
-			set_3rdparty(mpi4py DISABLED)
-		else()
-			set_3rdparty(mpi4py INTERNAL)
-		endif()
-	endif()
-endif()
-
-#------------------------------------------------------------------------------
-#  PerlMol
-#------------------------------------------------------------------------------
-if(NEED_perlmol)
-	
-	if(BUILD_PERL)
-		find_package(PerlModules COMPONENTS Chemistry::Mol ExtUtils::MakeMaker)
-				
-		if(EXISTS "${PERLMODULES_CHEMISTRY_MOL_MODULE}")
-			set_3rdparty(perlmol EXTERNAL)
-		else()
-			if(HAVE_PERL_MAKE)
-
-				if(EXISTS "${PERLMODULES_EXTUTILS_MAKEMAKER_MODULE}")
-					set_3rdparty(perlmol INTERNAL)
-				else()
-					message(STATUS "Cannot build PerlMol internally because its dependency ExtUtils::MakeMaker is not installed.")
-					set_3rdparty(perlmol DISABLED)
-				endif()
-			else()
-				message(STATUS "Cannot build PerlMol internally because PERL_MAKE is not set to a valid program.")
-				set_3rdparty(perlmol DISABLED)
-			endif()
-		endif()
-		
-	else()
-		set_3rdparty(perlmol DISABLED)
-	endif()
-endif()
-
-#------------------------------------------------------------------------------
-# Boost
-#------------------------------------------------------------------------------
-if(NEED_boost)
-	
-	set(Boost_DETAILED_FAILURE_MSG TRUE)
-	find_package(Boost COMPONENTS thread system program_options iostreams regex timer chrono filesystem graph) 
-
-	set(EXT_BOOST_OK ${Boost_FOUND})
-
-	if(EXT_BOOST_OK AND "${Boost_LIBRARIES}" STREQUAL "")
-		message(WARNING "FindBoost reported success but returned no libraries to link to.  Please check your Boost installation and the output of FindBoost for details.")
-		set(EXT_BOOST_OK FALSE)
-	endif()
-
-	if(EXT_BOOST_OK)
-		check_boost_works(BOOST_WORKS)
-		if(NOT BOOST_WORKS)
-			set(EXT_BOOST_OK FALSE)
-		endif()
-	endif()
-
-	if(EXT_BOOST_OK)
-		check_boost_compression_support(BOOST_SUPPORTS_COMPRESSION)
-		if(NOT BOOST_SUPPORTS_COMPRESSION)
-			set(EXT_BOOST_OK FALSE)
-		endif()
-	endif()
-
-	if(EXT_BOOST_OK)
-		set_3rdparty(boost EXTERNAL)
-	else()
-
-		if(NOT libbz2_ENABLED AND zlib_ENABLED)
-			message(STATUS "Unable to build internal Boost without zlib and libbz2")
-			set_3rdparty(boost DISABLED)
-		elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "PGI")
-			message(STATUS "PGI is not capable of compiling internal Boost.")
-			set_3rdparty(boost DISABLED)
-		endif()
-
-		set_3rdparty(boost INTERNAL)
-	endif()
-
-endif()
-
-#------------------------------------------------------------------------------
 #  NVIDIA NCCL
 #------------------------------------------------------------------------------ 
 
@@ -571,22 +321,6 @@ if(NEED_nccl)
 		set_3rdparty(nccl EXTERNAL)
 	else()
 		set_3rdparty(nccl DISABLED)
-	endif()
-endif()
-
-#------------------------------------------------------------------------------
-#  MBX
-# (http://paesanigroup.ucsd.edu/software/mbx.html)
-#------------------------------------------------------------------------------ 
-
-if(NEED_mbx)
-	find_package(MBX 0.2.3 CONFIG)
-
-	if(MBX_FOUND)
-		set_3rdparty(mbx EXTERNAL)
-	else()
-		message(STATUS "Could not find MBX.  To locate it, add its install dir to the prefix path.")
-		set_3rdparty(mbx DISABLED)
 	endif()
 endif()
 
@@ -709,23 +443,6 @@ endif()
 # -------------------------------------------------------------------------------------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------
-# c9xcomplex
-#------------------------------------------------------------------------------
-
-if(c9x-complex_INTERNAL)
-	list(APPEND 3RDPARTY_SUBDIRS c9x-complex)
-endif()
-
-#------------------------------------------------------------------------------
-# check ucpp, import the system version
-#------------------------------------------------------------------------------
-if(ucpp_EXTERNAL)
-	import_executable(ucpp ${UCPP_LOCATION})
-elseif(ucpp_INTERNAL)
-	list(APPEND 3RDPARTY_SUBDIRS ucpp-1.3)
-endif()
-
-#------------------------------------------------------------------------------
 #  Readline
 #------------------------------------------------------------------------------
 
@@ -837,43 +554,6 @@ elseif(netcdf-fortran_INTERNAL)
 endif()
 
 #------------------------------------------------------------------------------
-#  Protobuf
-#------------------------------------------------------------------------------
-
-if(protobuf_EXTERNAL)
-	
-	if(NOT Protobuf_FOUND)
-		message(FATAL_ERROR "protobuf was set to be sourced externally, but it was not found!")
-	endif()
-	
-	# Import the system protobuf as a library
-	import_library(protobuf ${Protobuf_LIBRARIES} ${Protobuf_INCLUDES})
-	
-elseif(protobuf_INTERNAL)
-
-	#if(${COMPILER} STREQUAL CRAY)
-	#	message(FATAL_ERROR "Bundled protobuf cannot be used with cray compilers.  Please reconfigure with -DFORCE_EXTERNAL_LIBS=protobuf.")
-	#endif()
-	
-	list(APPEND 3RDPARTY_SUBDIRS protobuf-3.14.0/cmake)
-endif()
-
-#------------------------------------------------------------------------------
-#  XBlas
-#------------------------------------------------------------------------------
-
-if(xblas_EXTERNAL)
-
-	# rename target
-	import_libraries(xblas LIBRARIES xblas::xblas)
-	
-elseif(xblas_INTERNAL)
-	
-	list(APPEND 3RDPARTY_SUBDIRS xblas)
-	
-endif()
-
-#------------------------------------------------------------------------------
 #  Netlib libraries
 #------------------------------------------------------------------------------
 
@@ -925,56 +605,6 @@ elseif(pnetcdf_EXTERNAL)
 endif()
 
 #------------------------------------------------------------------------------
-#  APBS
-#------------------------------------------------------------------------------
-
-if(apbs_EXTERNAL)
-	if(NOT APBS_FOUND)
-		message(FATAL_ERROR "You requested to use external apbs, but no installation was found.")
-	endif()
-
-	import_libraries(apbs LIBRARIES ${APBS_LIBRARIES})
-endif()
-
-#------------------------------------------------------------------------------
-#  PUPIL
-#------------------------------------------------------------------------------
-
-if(pupil_EXTERNAL)
-	using_library_targets(pupil::pupil)
-endif()
-
-#------------------------------------------------------------------------------
-#  LIO
-#------------------------------------------------------------------------------
-
-if(lio_EXTERNAL)
-	using_library_targets(lio::lio)
-endif()
-
-#------------------------------------------------------------------------------
-# PLUMED
-#------------------------------------------------------------------------------
-if(plumed_EXTERNAL)
-	set(PLUMED_RUNTIME_LINK FALSE)	
-else()
-	if(HAVE_LIBDL AND NEED_plumed)
-		message(STATUS "Cannot find PLUMED.  You will still be able to load it at runtime.  If you want to link it at build time, set PLUMED_ROOT to where you installed it.")
-		
-		set(PLUMED_RUNTIME_LINK TRUE)
-	else()		
-		set(PLUMED_RUNTIME_LINK FALSE)
-	endif()
-endif()
-
-#------------------------------------------------------------------------------
-# zlib
-#------------------------------------------------------------------------------
-if(zlib_EXTERNAL)
-	using_library_targets(ZLIB::ZLIB)
-endif()
-
-#------------------------------------------------------------------------------
 # libbz2
 #------------------------------------------------------------------------------
 
@@ -995,74 +625,11 @@ elseif(mpi4py_INTERNAL)
 endif()
 
 #------------------------------------------------------------------------------
-#  perlmol
-#------------------------------------------------------------------------------
-
-if(perlmol_EXTERNAL)
-	 if(NOT EXISTS "${PERLMODULES_CHEMISTRY_MOL_MODULE}")
-		message(FATAL_ERROR "The Chemistry::Mol perl package was set to be sourced externally, but it was not found.")
-	endif()
-elseif(perlmol_INTERNAL)
-	
-	if(NOT HAVE_PERL_MAKE)
-		message(FATAL_ERROR "A perl-compatible make program is required to build Chemistry::Mol")
-	endif()
-	list(APPEND 3RDPARTY_SUBDIRS PerlMol-0.3500)
-endif()
-
-#------------------------------------------------------------------------------
-#  boost
-#------------------------------------------------------------------------------
-
-if(boost_EXTERNAL)
-	if(NOT Boost_FOUND)
-		message(FATAL_ERROR "boost was set to be sourced externally, but it was not found.")
-	endif()
-
-	set(BOOST_LIBS_TO_IMPORT chrono filesystem graph iostreams
-	program_options regex system thread timer)
-
-	foreach(BOOST_LIB ${BOOST_LIBS_TO_IMPORT})
-		string(TOUPPER "${BOOST_LIB}" BOOST_LIB_UCASE)
-
-		# the contents of ${Boost_${BOOST_LIB_UCASE}_LIBRARY} may be either the name
-		# of an imported target, or a path to a library
-		import_libraries(boost_${BOOST_LIB} LIBRARIES ${Boost_${BOOST_LIB_UCASE}_LIBRARY} INCLUDES ${Boost_INCLUDE_DIRS})
-
-	endforeach()
-	
-	# header interface library
-	add_library(boost_headers INTERFACE)
-	set_property(TARGET boost_headers PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${Boost_INCLUDE_DIRS})
-
-
-elseif(boost_INTERNAL)
-
-	if(NOT libbz2_ENABLED AND zlib_ENABLED)
-		message(FATAL_ERROR "Unable to build internal Boost without zlib and libbz2.")
-	elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "PGI")
-		message(FATAL_ERROR "PGI is not capable of compiling internal Boost.  An external Boost must be supplied.")
-	endif()
-
-
-	list(APPEND 3RDPARTY_SUBDIRS boost)
-
-endif()
-
-#------------------------------------------------------------------------------
 #  NCCL
 #------------------------------------------------------------------------------ 
 
 if(nccl_EXTERNAL)
 	using_library_targets(nccl)
-endif()
-
-#------------------------------------------------------------------------------
-#  mbx
-#------------------------------------------------------------------------------ 
-
-if(mbx_EXTERNAL)
-	using_library_targets(MBX::mbx)
 endif()
 
 # --------------------------------------------------------------------
