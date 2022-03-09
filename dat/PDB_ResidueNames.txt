@@ -1,0 +1,42 @@
+# A list of PDB residue names that Amber FFs will recognize.
+# Protein
+ACE
+ALA
+ARG
+ASH
+ASN
+ASP
+CYM
+CYS
+CYX
+GLH
+GLN
+GLU
+GLY
+HIE
+HIP
+HIS
+HYP
+ILE
+LEU
+LYN
+LYS
+MET
+NME
+PHE
+PRO
+SER
+THR
+TRP
+TYR
+VAL
+# DNA
+DA
+DC
+DG
+DT
+# RNA
+A
+C
+G
+U

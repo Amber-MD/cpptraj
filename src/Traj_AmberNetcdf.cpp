@@ -461,7 +461,7 @@ int Traj_AmberNetcdf::parallelSetupTrajout(FileName const& fname, Topology* traj
   }
   commIn.MasterBcast(&err, 1, MPI_INT);
   if (err != 0) return 1;
-  // Broadcast netcdf info to non-master threads.
+  // Broadcast netcdf info to non-master processes.
   Broadcast(commIn);
   if (!commIn.Master()) {
     // Non masters need filename and allocate Coord

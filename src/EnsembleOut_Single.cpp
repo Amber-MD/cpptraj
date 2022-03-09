@@ -124,7 +124,7 @@ void EnsembleOut_Single::PrintInfo(int expectedNframes) const {
 }
 #ifdef MPI
 int EnsembleOut_Single::ParallelSetupEnsembleWrite() {
-  mprinterr("Error: Multiple threads per ensemble not supported for single ensemble write.\n");
+  mprinterr("Error: Multiple processes per ensemble not supported for single ensemble write.\n");
   return 1;
 }
 #endif

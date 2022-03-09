@@ -148,6 +148,7 @@ COMMON_SOURCES= \
         ByteRoutines.cpp \
         CharMask.cpp \
         CharmmParamFile.cpp \
+        Chirality.cpp \
         CIFfile.cpp \
         ClusterMap.cpp \
         Cmd.cpp \
@@ -317,6 +318,7 @@ COMMON_SOURCES= \
         Image_List_Unit.cpp \
         InputTrajCommon.cpp \
         KDE.cpp \
+        LeapInterface.cpp \
         MapAtom.cpp \
         MaskArray.cpp \
         MaskToken.cpp \

@@ -1,0 +1,26 @@
+# This file contains sugar names mapped to glycam codes.
+"Arabinose"                      A
+"Lyxose"                         D
+"Ribose"                         R
+"Xylose"                         X
+"Allose"                         N
+"Altrose"                        E
+"Galactose"                      L
+"Glucose"                        G
+"Gulose"                         K
+"Mannose"                        M
+"Talose"                         T
+"Fructose"                       C
+"Psicose"                        P
+"Sorbose"                        B
+"Tagatose"                       J
+"Fucose"                         F
+"Quinovose"                      Q
+"Rhamnose"                       H
+"Galacturonic Acid"              O
+"Glucuronic Acid"                Z
+"Iduronic Acid"                  U
+"N-Acetyl Galactosamine"         V
+"N-Acetyl Glucosamine"           Y
+"N-Acetyl Mannosamine"           W
+"N-Acetyl Neuraminic Acid"       S

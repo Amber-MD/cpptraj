@@ -264,7 +264,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_LoadCrd(),          Cmd::EXE, 1, "loadcrd" );
   Command::AddCmd( new Exec_LoadTraj(),         Cmd::EXE, 1, "loadtraj" );
   Command::AddCmd( new Exec_PermuteDihedrals(), Cmd::EXE, 1, "permutedihedrals" );
-  Command::AddCmd( new Exec_PrepareForLeap(),   Cmd::EXE, 1, "prepareforleap" ); // hidden
+  Command::AddCmd( new Exec_PrepareForLeap(),   Cmd::EXE, 1, "prepareforleap" );
   Command::AddCmd( new Exec_RotateDihedral(),   Cmd::EXE, 1, "rotatedihedral" );
   Command::AddCmd( new Exec_SplitCoords(),      Cmd::EXE, 1, "splitcoords" );
   // TRAJECTORY
@@ -775,9 +775,9 @@ CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList cons
   for (std::vector<int>::const_iterator it = rvals.begin(); it != rvals.end(); ++it)
   {
     if (*it != rvals.front()) {
-      // This thread had a return value different than thread 0 - notify and
+      // This process had a return value different than process 0 - notify and
       // set the overall return value to error.
-      mprinterr("Internal Error: Thread %u command return value %i differs from world master %i\n",
+      mprinterr("Internal Error: Process %u command return value %i differs from world master %i\n",
                 it-rvals.begin(), *it, rvals.front());
       ret_val = CpptrajState::ERR;
     }

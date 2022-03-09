@@ -27,7 +27,7 @@ class Exec_AddMissingRes : public Exec {
 
     Rlist::iterator FindClosestRes(Rlist&, Residue const&, int&) const;
     int GetSequenceFromPDB(Rlist& ResList, std::string const&, Narray const&, CpptrajFile&) const;
-    int FindGaps(Garray&, CpptrajFile&, std::string const&) const;
+    int FindGaps(Garray&, CpptrajFile&, Topology const&) const;
     int Minimize(Topology const&, Frame&, CharMask const&) const;
     int WriteStructure(std::string const&, Topology*, Frame const&, TrajectoryFile::TrajFormatType) const;
     static void GenerateLinearGapCoords(int, int, Frame&);

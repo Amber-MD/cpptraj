@@ -41,7 +41,7 @@ class Exec_QuietBlocks : public Exec {
 };
 
 #ifdef MPI
-/// Tell CpptrajState to run parallel ensemble even with 1 thread/member
+/// Tell CpptrajState to run parallel ensemble even with 1 process/member
 class Exec_ForceParaEnsemble : public Exec {
   public:
     Exec_ForceParaEnsemble() : Exec(GENERAL) { SetHidden(true); }

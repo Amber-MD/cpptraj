@@ -19,6 +19,8 @@ class AtomMap {
     int SetupResidue(Topology const&, Frame const&, int);
     /// Reset any previously set mapping information.
     void ResetMapping();
+    /// Clear the map
+    void ClearMap();
     bool BondIsRepeated(int,int) const;
     void DetermineAtomIDs();
     void MarkAtomComplete(int,bool);

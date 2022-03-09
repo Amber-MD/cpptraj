@@ -1,4 +1,5 @@
 #include <cstring>
+#include "ArgList.h"
 #include "CIFfile.h"
 #include "CpptrajStdio.h"
 
@@ -191,6 +192,24 @@ void CIFfile::DataBlock::ListData() const {
   }
 }
 
+/** Append given DataBlock to this one. */
+void CIFfile::DataBlock::Append(DataBlock const& rhs) {
+  //mprintf("\tAppending into block '%s'\n", dataHeader_.c_str());
+  for (Sarray::const_iterator colname = rhs.columnHeaders_.begin();
+                              colname != rhs.columnHeaders_.end(); ++colname)
+    columnHeaders_.push_back( *colname );
+  for (std::vector<Sarray>::const_iterator rec = rhs.columnData_.begin();
+                                           rec != rhs.columnData_.end(); ++rec)
+  {
+    columnData_.push_back(Sarray());
+    for (Sarray::const_iterator col = rec->begin();
+                                col != rec->end(); ++col)
+      columnData_.back().push_back( *col );
+  }
+  //mprintf("DEBUG: Post append:\n");
+  //ListData(); // DEBUG
+}
+
 /** \return the index of the specified column, -1 if not present. */
 int CIFfile::DataBlock::ColumnIndex(std::string const& headerIn) const {
   for (Sarray::const_iterator col = columnHeaders_.begin();
@@ -206,6 +225,37 @@ std::string CIFfile::DataBlock::Data(std::string const& idIn) const {
   int colnum = ColumnIndex( idIn );
   if (colnum == -1) return std::string("");
   return columnData_[colnum].front();
+}
+
+// -----------------------------------------------------------------------------
+
+/** CONSTRUCTOR */
+CIFfile::CIFdata::CIFdata(std::string const& nameIn) : dataName_(nameIn) {}
+
+// CIFfile::GetDataBlock()
+CIFfile::DataBlock const& CIFfile::CIFdata::GetDataBlock(std::string const& header) const {
+  CIF_DataType::const_iterator it = cifdata_.find( header );
+  if (it == cifdata_.end()) {
+    //mprinterr("Error: CIF data block '%s' not found.\n", header.c_str());
+    return emptyblock;
+  }
+  return it->second;
+}
+
+// CIFfile::AddDataBlock()
+int CIFfile::CIFdata::AddDataBlock( DataBlock const& block ) {
+  if (block.Header().empty()) {
+    mprinterr("Internal Error: Attempting to add empty CIF data block.\n");
+    return 1;
+  }
+  CIF_DataType::iterator it = cifdata_.find( block.Header() );
+  if (it != cifdata_.end()) {
+    //mprinterr("Error: Duplicate CIF block found: '%s'\n", block.Header().c_str());
+    //return 1;
+    it->second.Append(block);
+  } else
+    cifdata_.insert( std::pair<std::string, DataBlock>(block.Header(), block) );
+  return 0;
 }
 
 // -----------------------------------------------------------------------------
@@ -238,10 +288,22 @@ int CIFfile::Read(FileName const& fnameIn, int debugIn) {
   const char* ptr = file_.Line();
   mode currentMode = UNKNOWN;
   while (ptr != 0) {
-    /// There are 3 places we can be; a data block, a looped data block,
-    /// or unknown.
-    if ( currentMode == UNKNOWN ) {
-      // Are we at a data block yet?
+    /// There are 4 places we can be; a data_<name> statement, a data block
+    /// or a looped data block corresponding to a previous data_<name>
+    /// statement, or unknown.
+    if (strncmp(ptr, "data_", 5) == 0) {
+         ArgList dataLine(ptr, " \r\n");
+         ArgList dataName(dataLine[0], "_");
+         if (dataName.Nargs() < 2) {
+           mprinterr("Error: malformed 'data_' name.\n");
+           mprinterr("%s\n", ptr);
+           return 1;
+         }
+         if (debugIn > 0) mprintf("\tGathering data for '%s'\n", dataName[1].c_str());
+         data_.push_back(CIFdata(dataName[1]));
+         ptr = file_.Line();
+    } else if ( currentMode == UNKNOWN ) {
+      // See if we are at a data block yet
       if (ptr[0] == '_')
         currentMode = SERIAL;
       else if ( strncmp(ptr, "loop_", 5) == 0 )
@@ -258,7 +320,7 @@ int CIFfile::Read(FileName const& fnameIn, int debugIn) {
       }
       if (debugIn > 1) serial.ListData();
       currentMode = UNKNOWN;
-      if (AddDataBlock( serial )) return 1;
+      if (data_.back().AddDataBlock( serial )) return 1;
     } else if ( currentMode == LOOP ) {
       DataBlock loop;
       ptr = file_.Line();
@@ -277,35 +339,33 @@ int CIFfile::Read(FileName const& fnameIn, int debugIn) {
       }
       if (debugIn > 1) loop.ListData();
       currentMode = UNKNOWN;
-      if (AddDataBlock( loop )) return 1;
+      if (data_.back().AddDataBlock( loop )) return 1;
     }
   }
   if (debugIn > 0)    
     mprintf("\tCIF file '%s', %i lines.\n", file_.Filename().full(), file_.LineNumber());
+  if (data_.size() > 1)
+    mprintf("\tCIF file contains %zu data entries.\n", data_.size());
   return 0;
 }
 
-// CIFfile::GetDataBlock()
-CIFfile::DataBlock const& CIFfile::GetDataBlock(std::string const& header) const {
-  CIF_DataType::const_iterator it = cifdata_.find( header );
-  if (it == cifdata_.end()) {
-    //mprinterr("Error: CIF data block '%s' not found.\n", header.c_str());
-    return emptyblock;
+/** Vector with DataBlocks corresponding to given header and value. */
+CIFfile::DataBlock const& CIFfile::GetBlockWithColValue(
+                                                   std::string const& header,
+                                                   std::string const& col,
+                                                   std::string const& value)
+const
+{
+  std::vector<std::vector<CIFdata>::const_iterator> ret;
+  for (std::vector<CIFdata>::const_iterator it = data_.begin();
+                                            it != data_.end(); ++it)
+  {
+    DataBlock const& tempBlock = it->GetDataBlock( header );
+    if (!tempBlock.empty()) {
+      std::string data = tempBlock.Data( col );
+      if (data == value)
+        return tempBlock;
+    }
   }
-  return it->second;
-}
-
-// CIFfile::AddDataBlock()
-int CIFfile::AddDataBlock( DataBlock const& block ) {
-  if (block.Header().empty()) {
-    mprinterr("Internal Error: Attempting to add empty CIF data block.\n");
-    return 1;
-  }
-  CIF_DataType::const_iterator it = cifdata_.find( block.Header() );
-  if (it != cifdata_.end()) {
-    mprinterr("Error: Duplicate CIF block found: '%s'\n", block.Header().c_str());
-    return 1;
-  }
-  cifdata_.insert( std::pair<std::string, DataBlock>(block.Header(), block) );
-  return 0;
+  return emptyblock;
 }

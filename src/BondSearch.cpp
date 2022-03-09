@@ -353,9 +353,11 @@ int BondSearch::ByResidueSearch(Topology& top, Frame const& frameIn, double offs
     for (int atom1 = startatom; atom1 != midatom; atom1++) {
       Atom::AtomicElementType a1Elt = top[atom1].Element();
       if (a1Elt==Atom::HYDROGEN) continue;
+      if (a1Elt == Atom::OXYGEN && top[atom1].Nbonds() > 1) continue;
       for (int atom2 = midatom; atom2 != stopatom; atom2++) {
         Atom::AtomicElementType a2Elt = top[atom2].Element();
         if (a2Elt==Atom::HYDROGEN) continue;
+        if (a2Elt == Atom::OXYGEN && top[atom2].Nbonds() > 1) continue;
         double D2 = DIST2_NoImage(frameIn.XYZ(atom1), frameIn.XYZ(atom2) );
         double cutoff2 = GetBondLengthSquared(a1Elt, a2Elt, offset);
         if (D2 < cutoff2)
