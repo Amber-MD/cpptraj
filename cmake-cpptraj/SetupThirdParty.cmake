@@ -572,7 +572,7 @@ if(arpack_EXTERNAL)
 	endif()
 
 elseif(arpack_INTERNAL)
-	list(APPEND 3RDPARTY_SUBDIRS arpack)
+	list(APPEND 3RDPARTY_SUBDIRS cpptraj/src/arpack)
 endif()
 	
 # --------------------------------------------------------------------

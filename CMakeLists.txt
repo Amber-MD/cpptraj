@@ -16,8 +16,6 @@ if(NOT INSIDE_AMBER)
 
 	#now enable the languages
 	enable_language(C CXX)
-        # Enable fortran for ARPACK
-        enable_language(Fortran)
 
 	include(BuildSystemSetup)
 	
@@ -29,11 +27,13 @@ if(NOT INSIDE_AMBER)
 	set(NEEDED_3RDPARTY_TOOLS zlib fftw libbz2 readline pnetcdf blas lapack mkl arpack netcdf)
         set(BUNDLED_3RDPARTY_TOOLS readline arpack)
 	set(REQUIRED_3RDPARTY_TOOLS netcdf)
-	include(3rdPartyTools)
+	include(SetupThirdParty)
 	
-	#if(fftw_DISABLED)
-	#	enable_language(Fortran)
-	#endif()
+	if((fftw_DISABLED AND mkl_DISABLED) OR arpack_ENABLED)
+          # If no FFTW and no MKL we need PubFFT, so need fortran.
+          # If we are building arpack we need fortran.
+		enable_language(Fortran)
+	endif()
 	
 	include(CompilerFlags)
 
