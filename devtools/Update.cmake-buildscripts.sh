@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Adapt pieces of the Amber cmake build system needed by CPPTRAJ. 
+A2C_COUNT=0
 
 if [ -z "$AMBERHOME" ] ; then
   echo "AMBERHOME is not set."
@@ -14,6 +15,7 @@ WORKDIR=`pwd`
 # This is a 1 to 1 copy of the file, same name, maybe different location.
 # If file is already copied, report any differences.
 AmberToCpptraj() {
+  ((A2C_COUNT++))
   amberfile=$AMBERCMAKE/$1
   if [ -z "$2" ] ; then
     cpptrajfile=$1
@@ -36,6 +38,52 @@ AmberToCpptraj() {
   fi
 }
 
+# CompareToAmber <amber filename> <cpptraj filename>
+# Assuming the cpptraj module is altered in necessary ways, just report the
+# differences from the Amber module.
+CompareToAmber() {
+  ((A2C_COUNT++))
+  amberfile=$AMBERCMAKE/$1
+  if [ -z "$2" ] ; then
+    cpptrajfile=$1
+  else
+    cpptrajfile=$2
+  fi
+  echo "CompareToAmber: $amberfile $cpptrajfile"
+  if [ ! -f "$amberfile" ] ; then
+    echo "  ERROR: Amber file $amberfile not present"
+    exit 1
+  elif [ ! -f "$cpptrajfile" ] ; then
+    echo "  ERROR: Cpptraj file $cpptrajfile not present"
+  else
+    diff $amberfile $cpptrajfile > temp.diff
+    if [ -s 'temp.diff' ] ; then
+      ndiff=`cat temp.diff | wc -l`
+      echo "  DIFF: $amberfile $cpptrajfile diff: $ndiff"
+    else
+      echo "  WARNING: no differences detected."
+    fi
+    rm temp.diff
+  fi
+}
+
+# CpptrajOnly <cpptraj filename>
+# Modules that should only exist here
+CpptrajOnly() {
+  ((A2C_COUNT++))
+  amberfile=$AMBERCMAKE/$1
+  cpptrajfile=$1
+  echo "CpptrajOnly: $cpptrajfile"
+  if [ -f "$amberfile" ] ; then
+    echo "  ERROR: $amberfile exists in Amber cmake."
+    exit 1
+  elif [ ! -f "$cpptrajfile" ] ; then
+    echo "  ERROR: Cpptraj file $cpptrajfile not present"
+  fi
+}
+
+
+# ==============================================================================
 # 1 to 1 files
 AmberToCpptraj BuildReport.cmake
 AmberToCpptraj CheckLinkerFlag.cmake
@@ -71,35 +119,16 @@ AmberToCpptraj jedbrown/FindNetCDF.cmake ThirdPartyTools/FindNetCDF.cmake
 AmberToCpptraj FindPnetCDF.cmake ThirdPartyTools/FindPnetCDF.cmake
 AmberToCpptraj FindReadline.cmake ThirdPartyTools/FindReadline.cmake
 
+echo "$A2C_COUNT cmake modules direct from Amber"
+
+# These are based on module in Amber but have necessary modifications
+CompareToAmber 3rdPartyTools.cmake SetupThirdParty.cmake
+CompareToAmber AmberBuildSystemInit.cmake BuildSystemInit.cmake
+CompareToAmber AmberBuildSystem2ndInit.cmake BuildSystemSetup.cmake
+
+# These should only exist in the cpptraj cmake system
+CpptrajOnly DebugCpptrajCmake.cmake
+
+echo "$A2C_COUNT total cmake modules."
+echo "`ls *.cmake */*.cmake | wc -l` cmake modules present."
 exit 0
-
-if ["`basename $WORKDIR`" != 'cmake-cpptraj' ] ; then
-  echo "Execute from cmake-cpptraj directory."
-  exit 1
-fi
-
-# Copy files from Amber that exist here
-for FILE in `find . -type f -not -path "*.git/*"` ; do
-  NAME=${FILE#./}
-  #echo $NAME
-  AMBERFILE=$AMBERHOME/cmake/$NAME
-  if [ ! -f "$AMBERFILE" ] ; then
-    echo "$AMBERFILE not present."
-  else
-    echo "cp $AMBERFILE -> $NAME"
-    #cp $AMBERFILE $NAME
-    #git add $NAME
-  fi
-done
-echo ""
-
-# Copy files from Amber that do not exist here
-for FILE in `find $AMBERHOME/cmake -type f` ; do
-  NAME=${FILE#$AMBERHOME/cmake/}
-  #echo $NAME
-  if [ ! -f "$NAME" ] ; then
-    echo "$NAME is missing."
-    #cp $AMBERFILE $NAME
-    #git add $NAME
-  fi
-done
