@@ -28,6 +28,11 @@ AmberToCpptraj() {
     exit 1
   elif [ ! -f "$cpptrajfile" ] ; then
     echo "  COPY: $amberfile to $cpptrajfile"
+    cp -i $amberfile $cpptrajfile
+    if [ $? -ne 0 ] ; then
+      echo "Copy failed."
+      exit 1
+    fi
   else
     diff $amberfile $cpptrajfile > temp.diff
     if [ -s 'temp.diff' ] ; then
@@ -85,6 +90,7 @@ CpptrajOnly() {
 
 # ==============================================================================
 # 1 to 1 files
+AmberToCpptraj AmberCompilerConfig.cmake
 AmberToCpptraj BuildReport.cmake
 AmberToCpptraj CheckLinkerFlag.cmake
 AmberToCpptraj ColorMessage.cmake

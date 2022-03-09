@@ -1,3 +1,16 @@
+# This file contains code which must run to start up the build system, and includes files that are common to Amber and every submodule.
+# This file must run AFTER a project() command without any languages, but BEFORE the enable_language() command
+
+
+if(NOT DEFINED FIRST_RUN)
+
+	# create a cache variable which is shadowed by a local variable
+	set(FIRST_RUN FALSE CACHE INTERNAL "Variable to track if it is currently the first time the build system is run" FORCE)
+	set(FIRST_RUN TRUE)
+
+endif()
+
+
 # print header
 # --------------------------------------------------------------------
 message(STATUS "**************************************************************************")
@@ -38,3 +51,6 @@ include(DebugCpptrajCmake)
 
 # get install directories
 include(InstallDirs)
+
+#run manual compiler setter, if it is enabled
+include(AmberCompilerConfig)
