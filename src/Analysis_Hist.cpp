@@ -339,14 +339,10 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
     mprintf("\tFree energy in kcal/mol will be calculated from bin populations at %f K.\n",Temp_);
   if (nativeOut_)
     mprintf("\tUsing internal routine for output. Data will not be stored on the data set list.\n");
-  //if (circular_ || gnuplot_) {
-  //  mprintf("\tWarning: gnuplot and/or circular specified; advanced grace/gnuplot\n");
-  //  mprintf("\t         formatting disabled.\n");*/
-    if (circular_)
-      mprintf("\tcircular: Output coordinates will be wrapped.\n");
-    if (gnuplot_ && outfile_ == 0)
-      mprintf("\tgnuplot: Output will be in gnuplot-readable format.\n");
-  //}
+  if (circular_)
+    mprintf("\tcircular: Output coordinates will be wrapped.\n");
+  if (gnuplot_ && outfile_ == 0)
+    mprintf("\tgnuplot: Output will be in gnuplot-readable format.\n");
   if (normalize_ == NORM_SUM)
     mprintf("\tnorm: Sum over bins will be normalized to 1.0.\n");
   else if (normalize_ == NORM_INT)

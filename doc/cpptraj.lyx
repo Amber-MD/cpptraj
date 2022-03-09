@@ -6009,7 +6009,7 @@ The following COORDS data set commands are available:
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="14" columns="2">
+<lyxtabular version="3" rows="15" columns="2">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="75text%">
@@ -6233,6 +6233,27 @@ permutedihedrals
 \begin_layout Plain Layout
 Rotate specified dihedral(s) in given COORDS set by specific interval or
  to random values.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+prepareforleap
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Prepare a structure (usually loaded from a PDB) for processing with LEaP
+ from Amber.
 \end_layout
 
 \end_inset
@@ -7104,6 +7125,578 @@ permutedihedrals crdset [TZ2] random rseed 1 check maxfactor 10 phi psi
 
 \begin_layout LyX-Code
                  outtraj random.mol2 multi
+\end_layout
+
+\begin_layout Subsection
+prepareforleap
+\end_layout
+
+\begin_layout LyX-Code
+prepareforleap crdset <coords set> [frame <#>] name <out coords set>
+\end_layout
+
+\begin_layout LyX-Code
+                  	[pdbout <pdbfile> [terbymol]]
+\end_layout
+
+\begin_layout LyX-Code
+                  	[leapunitname <unit>] [out <leap input file> [runleap
+ <ff file>]]
+\end_layout
+
+\begin_layout LyX-Code
+                  	[skiperrors]
+\end_layout
+
+\begin_layout LyX-Code
+                  	[nowat [watermask <watermask>] [noh]
+\end_layout
+
+\begin_layout LyX-Code
+                      [keepaltloc {<alt loc ID>|highestocc}]
+\end_layout
+
+\begin_layout LyX-Code
+                  	[stripmask <stripmask>] [solventresname <solventresname>]
+\end_layout
+
+\begin_layout LyX-Code
+                  	[molmask <molmask> ...] [determinemolmask <mask>]
+\end_layout
+
+\begin_layout LyX-Code
+                  	[{nohisdetect |
+\end_layout
+
+\begin_layout LyX-Code
+                  	  [nd1 <nd1>] [ne2 <ne2] [hisname <his>] [hiename <hie>]
+\end_layout
+
+\begin_layout LyX-Code
+                  	  [hidname <hid>] [hipname <hip]}]
+\end_layout
+
+\begin_layout LyX-Code
+                  	[{nodisulfides |
+\end_layout
+
+\begin_layout LyX-Code
+                  	  existingdisulfides |
+\end_layout
+
+\begin_layout LyX-Code
+                  	  [cysmask <cysmask>] [disulfidecut <cut>] [newcysname
+ <name>]}]
+\end_layout
+
+\begin_layout LyX-Code
+                  	[{nosugars |
+\end_layout
+
+\begin_layout LyX-Code
+                  	  sugarmask <sugarmask> [noc1search] [nosplitres]
+\end_layout
+
+\begin_layout LyX-Code
+                        [resmapfile <file>]
+\end_layout
+
+\begin_layout LyX-Code
+                  	  [hasglycam] [determinesugarsby {geometry|name}]
+\end_layout
+
+\begin_layout LyX-Code
+                  	 }]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+crdset
+\begin_inset space ~
+\end_inset
+
+<coords
+\begin_inset space ~
+\end_inset
+
+set> COORDS data set containing coordinates and topology to prepare.
+\end_layout
+
+\begin_layout Description
+[frame
+\begin_inset space ~
+\end_inset
+
+<#>] Frame to use from COORDS set (default first).
+\end_layout
+
+\begin_layout Description
+name
+\begin_inset space ~
+\end_inset
+
+<out
+\begin_inset space ~
+\end_inset
+
+coords
+\begin_inset space ~
+\end_inset
+
+set> Output COORDS set containing prepared topology/coordinates.
+\end_layout
+
+\begin_layout Description
+[pdbout
+\begin_inset space ~
+\end_inset
+
+<pdbfile>] Output PDB name.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[terbymol] If specified, base TER cards on molecules instead of PDB chains.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[leapunitname
+\begin_inset space ~
+\end_inset
+
+<unit>] LEaP unit name to use when writing to <leap input file> (i.e.
+ the LEaP input file will contain '<unit>
+\begin_inset space ~
+\end_inset
+
+=
+\begin_inset space ~
+\end_inset
+
+loadpdb
+\begin_inset space ~
+\end_inset
+
+<pdbfile>').
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<leap
+\begin_inset space ~
+\end_inset
+
+input
+\begin_inset space ~
+\end_inset
+
+file>] File containing LEaP input needed to read in the prepared system
+ (loadpdb, bond commands for disulfides, etc).
+\end_layout
+
+\begin_layout Description
+[runleap
+\begin_inset space ~
+\end_inset
+
+<ff
+\begin_inset space ~
+\end_inset
+
+file>] If specified, CPPTRAJ will attempt to run LEaP directly to generate
+ a topology and coordinates; <ff
+\begin_inset space ~
+\end_inset
+
+file> should contain the appropriate 'source' commands for loading the desired
+ force field parameters.
+ Will attempt to produce topology <unit>.parm7 and coordinates <unit>.rst7.
+\end_layout
+
+\begin_layout Description
+[skiperrors] If specified, the command will try to ignore any errors encountered.
+ Can be useful for debugging.
+\end_layout
+
+\begin_layout Description
+[nowat] If specified, remove waters from the system.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[watermask
+\begin_inset space ~
+\end_inset
+
+<watermask>] Mask selecting waters to remove (default ':<solventresname>').
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[noh] If specified, strip all hydrogen atoms from the system (recommended).
+\end_layout
+
+\begin_layout Description
+[keepaltloc
+\begin_inset space ~
+\end_inset
+
+{<alt
+\begin_inset space ~
+\end_inset
+
+loc
+\begin_inset space ~
+\end_inset
+
+ID>|highestocc}] LEaP cannot handle alternate atom locations, so the command
+ will choose location 'A' by default.
+ This can be changed to either <alt
+\begin_inset space ~
+\end_inset
+
+loc
+\begin_inset space ~
+\end_inset
+
+id> or the location with the highest occupancy if 
+\series bold
+'highestocc'
+\series default
+ is specified.
+\end_layout
+
+\begin_layout Description
+[stripmask
+\begin_inset space ~
+\end_inset
+
+<stripmask>] Mask of atoms to remove from the system.
+\end_layout
+
+\begin_layout Description
+[solventresname
+\begin_inset space ~
+\end_inset
+
+<solventresname>] Solvent residue name (default 'HOH').
+\end_layout
+
+\begin_layout Description
+[molmask
+\begin_inset space ~
+\end_inset
+
+<mask>] If specified, atoms in <mask> will be considered all part of one
+ molecule.
+ May be specified multiple times.
+\end_layout
+
+\begin_layout Description
+[determinemolmask
+\begin_inset space ~
+\end_inset
+
+<mask>] If specified, determine if atoms selected in <mask> are in the same
+ molecule via bonds.
+\end_layout
+
+\begin_layout Standard
+Histidine Detection:
+\end_layout
+
+\begin_layout Description
+[nohisdetect] Disable renaming of histidine residues based on existing hydrogens.
+\end_layout
+
+\begin_layout Description
+[nd1
+\begin_inset space ~
+\end_inset
+
+<nd1>] Delta nitrogen atom name (default 'ND1').
+\end_layout
+
+\begin_layout Description
+[ne2
+\begin_inset space ~
+\end_inset
+
+<ne2<] Epsilon nitrogen atom name (default 'NE2').
+\end_layout
+
+\begin_layout Description
+[hisname
+\begin_inset space ~
+\end_inset
+
+<his>] Histidine residue name (default 'HIS').
+\end_layout
+
+\begin_layout Description
+[hiename
+\begin_inset space ~
+\end_inset
+
+<hie>] Epsilon-protonated histidine name (default 'HIE').
+\end_layout
+
+\begin_layout Description
+[hidname
+\begin_inset space ~
+\end_inset
+
+<hid>] Delta-protonated histidine name (default 'HID').
+\end_layout
+
+\begin_layout Description
+[hipname
+\begin_inset space ~
+\end_inset
+
+<hip>] Doubly-protonated histidine name (default 'HIP').
+\end_layout
+
+\begin_layout Standard
+Disulfide Handling:
+\end_layout
+
+\begin_layout Description
+[nodisulfides] Disable handling of disulfides.
+\end_layout
+
+\begin_layout Description
+[existingdisulfides] Only handle disulfides already present; do not search
+ for additional disulfides.
+\end_layout
+
+\begin_layout Description
+[cysmask
+\begin_inset space ~
+\end_inset
+
+<cysmask>] Mask for selecting cysteine residues (default 'CYS').
+\end_layout
+
+\begin_layout Description
+[disulfidecut
+\begin_inset space ~
+\end_inset
+
+<cut>] Sulfur to sulfur atom distance cutoff for forming a disulfide (default
+ 2.5 Ang).
+\end_layout
+
+\begin_layout Description
+[newcysname
+\begin_inset space ~
+\end_inset
+
+<name>] Name to change cysteine residues that participate in a disulfide
+ bond to (default 'CYX').
+\end_layout
+
+\begin_layout Standard
+Sugar Handling:
+\end_layout
+
+\begin_layout Description
+[nosugars] Disable handling of sugars.
+\end_layout
+
+\begin_layout Description
+[sugarmask
+\begin_inset space ~
+\end_inset
+
+<sugarmask>] Mask selecting sugars to be handled.
+ If not specified the default is all residues defined in 
+\series bold
+resmapfile
+\series default
+.
+\end_layout
+
+\begin_layout Description
+[noc1search] If specified disable search for missing sugar C1 atom bonds.
+\end_layout
+
+\begin_layout Description
+[nosplitres] If specified do not attempt to split off functional groups
+ from sugars into separate residues.
+\end_layout
+
+\begin_layout Description
+[resmapfile
+\begin_inset space ~
+\end_inset
+
+<file>] File containing sugar residue/atom name mapping.
+ Default is '$CPPTRAJHOME/dat/Carbohydrate_PDB_Glycam_Names.txt'.
+\end_layout
+
+\begin_layout Description
+[hasglycam] If specified, assume sugars already have GLYCAM residue names;
+ just check sugar anomer type/configuration/linkage.
+\end_layout
+
+\begin_layout Description
+[determinesugarsby
+\begin_inset space ~
+\end_inset
+
+{geometry|name}] Determine whether sugar anomer type/configuration should
+ be chosen based on sugar geometry (default) or the residue name.
+ CPPTRAJ will report when a mismatch is detected between the sugar anomer
+ type/configuration based on geometry and anomer type/configuration based
+ on the residue name.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+This command will prepare a structure (usually from a PDB) for processing
+ with the Amber program LEaP to generate topology and coordinates files
+ for MD simulations.
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Roe2022"
+literal "true"
+
+\end_inset
+
+ It will handle things like choosing alternate atom locations, removing
+ waters/hydrogen atoms from the structure, renaming residues and generating
+ 'bond' commands for disulfide bonds, change histidine names based on any
+ existing protonation, and renaming residues/atoms and generating 'bond'
+ commands for carbohydrates.
+ The command can also call LEaP directly to generate the parameters once
+ the structure is prepared.
+\end_layout
+
+\begin_layout Standard
+If hydrogen atoms are present in the structure, the command will attempt
+ a simple and straightforward determination of the protonation state of
+ any histidine residues based on where hydrogens are bonded, and assign
+ the appropriate residue name.
+ The command will also identify any existing disulfide bonds as well as
+ potential disulfide bonds and generate the corresponding LEaP ‘bond’ commands
+ which can be applied after the structure is loaded in LEaP.
+ Potential disulfide bonding atoms can be identified via a user-specifiable
+ mask expression.
+\end_layout
+
+\begin_layout Standard
+By default, sugars will have their residue names changed to those compatible
+ with the GLYCAM force field based on their anomer type (alpha/beta), configurat
+ion (D/L), and linkages (glycosidic and covalent sugar to non-sugar).
+ Any recognized functional groups that are part of sugar residues (hydroxyl,
+ acetyl, sulfate, etc) will be split into separate residues as required
+ by GLYCAM.
+ If this happens and 'runleap' has not been specified, CPPTRAJ will warn
+ about any residues/atoms that require charge to be adjusted.
+ If 'runleap' has not been specified the command will warn about any atoms
+ that need to have their charges adjusted after LEaP is run.
+\end_layout
+
+\begin_layout Standard
+The command will try to report any potential problems that LEaP might encounter.
+ These include residue names that may be unrecognized (and therefore may
+ not have parameters), mismatches between detected sugar anomer type/configurati
+on and anomer type/configuration based on the sugar residue name, unrecognized
+ sugar linkages, and so on.
+ 
+\end_layout
+
+\begin_layout Standard
+For example, the following input prepares PDB 4zzw for processing with PDB,
+ putting the proper leap commands in leap.4zzw.in, writing the prepared PDB
+ to 4zzw.cpptraj.pdb, removing waters and hydrogen atoms, and keeping alternate
+ atom locations with the highest occupancy:
+\end_layout
+
+\begin_layout LyX-Code
+parm 4zzw.pdb
+\end_layout
+
+\begin_layout LyX-Code
+loadcrd 4zzw.pdb name MyCrd
+\end_layout
+
+\begin_layout LyX-Code
+prepareforleap crdset MyCrd name Final out leap.4zzw.in leapunitname m 
+\backslash
+
+\end_layout
+
+\begin_layout LyX-Code
+  pdbout 4zzw.cpptraj.pdb nowat noh keepaltloc highestocc
+\end_layout
+
+\begin_layout Subsubsection*
+Sugar Residue/Atom Name Mapping File
+\end_layout
+
+\begin_layout Standard
+This file controls how CPPTRAJ will name sugars based on sugar form/chirality
+ linkage.
+ It consists of three sections separated by a blank line.
+ The first section defines sugar PDB residue names and how they are mapped
+ to GLYCAM residue characters:
+\end_layout
+
+\begin_layout LyX-Code
+Format: <ResName> <GlycamCode> <Anomer> <Config> <RingType> "<Name>"
+\end_layout
+
+\begin_layout LyX-Code
+Anomer: A=alpha, B=beta
+\end_layout
+
+\begin_layout LyX-Code
+Config: D/L
+\end_layout
+
+\begin_layout LyX-Code
+RingType: P=pyranose, F=furanose
+\end_layout
+
+\begin_layout LyX-Code
+Example: 64K A A D P "alpha-D-arabinopyranose" 
+\end_layout
+
+\begin_layout Standard
+The second section contains PDB to GLYCAM atom name maps for residues:
+\end_layout
+
+\begin_layout LyX-Code
+Format: <GLYCAM residue codes> <PDB atom name>,<GLYCAM atom name>[,<anomer>]
+ … 
+\end_layout
+
+\begin_layout LyX-Code
+If <anomer> (A=alpha, B=beta) is specified, the atom name map is only valid
+ for that specific form.
+\end_layout
+
+\begin_layout LyX-Code
+Example: V,W,Y C7,C2N O7,O2N C8,CME 
+\end_layout
+
+\begin_layout Standard
+The third section contains PDB to GLYCAM linkage residue (i.e.
+ non-sugar residues bonded to sugars) name maps:
+\end_layout
+
+\begin_layout LyX-Code
+Format: <PDB residue name> <GLYCAM residue name>
+\end_layout
+
+\begin_layout LyX-Code
+Example: SER OLS 
 \end_layout
 
 \begin_layout Subsection
@@ -10436,7 +11029,7 @@ MPI only.
 \series bold
 sync
 \series default
- is specified all data will be synced back to the master thread (for e.g.
+ is specified all data will be synced back to the master process (for e.g.
  subsequent analysis).
  For an example of how to use the parallelanalysis command, see 
 \begin_inset CommandInset ref

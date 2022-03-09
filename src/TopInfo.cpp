@@ -428,8 +428,14 @@ void TopInfo::PrintBonds(BondArray const& barray, BondParmArray const& bondparm,
   for (BondArray::const_iterator batom = barray.begin();
                                  batom != barray.end(); ++batom)
   {
-    int atom1 = batom->A1();
-    int atom2 = batom->A2();
+    int atom1, atom2;
+    if (batom->A1() < batom->A2()) {
+      atom1 = batom->A1();
+      atom2 = batom->A2();
+    } else {
+      atom1 = batom->A2();
+      atom2 = batom->A1();
+    }
     bool printBond = false;
     if (mask2.MaskStringSet())
       printBond = (mask1.AtomInCharMask(atom1) && mask2.AtomInCharMask(atom2));

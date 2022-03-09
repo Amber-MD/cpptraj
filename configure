@@ -324,7 +324,7 @@ LIB_FLAG[$LXDRFILE]='-lxdrfile'
 LIB_STTC[$LXDRFILE]='libxdrfile.a'
 LIB_D_ON[$LXDRFILE]=''
 LIB_DOFF[$LXDRFILE]='-DNO_XDRFILE'
-LIB_TYPE[$LXDRFILE]='ld'
+LIB_TYPE[$LXDRFILE]='cpp'
 
 LIB_STAT[$LSANDER]='amberopt'
 LIB_CKEY[$LSANDER]='sanderlib'
@@ -367,7 +367,7 @@ LIB_FLAG[$LTNGFILE]='-ltng_io'
 LIB_STTC[$LTNGFILE]='libtng_io.a'
 LIB_D_ON[$LTNGFILE]='-DHAS_TNGFILE'
 LIB_DOFF[$LTNGFILE]=''
-LIB_TYPE[$LTNGFILE]='ld'
+LIB_TYPE[$LTNGFILE]='cpp'
 
 LIB_STAT[$LOPENMM]='off'
 LIB_CKEY[$LOPENMM]='openmm'
@@ -2532,6 +2532,17 @@ fi
 # Basic checks and directives
 BasicChecks
 
+# Create directories if necessary 
+if [ ! -e "$CPPTRAJBIN" ] ; then
+  mkdir "$CPPTRAJBIN"
+fi
+if [ ! -e "$CPPTRAJLIB" ] ; then
+  mkdir "$CPPTRAJLIB"
+fi
+if [ ! -e "$CPPTRAJDAT" ] ; then
+  mkdir "$CPPTRAJDAT"
+fi
+
 # Set up compilers and compiler options
 SetupCompilers
 
@@ -2785,17 +2796,6 @@ BuildRules $external_config nvcc cc f77
 if [ "${LIB_STAT[$LZIP]}" != 'off' ] ; then
   echo "ZLIB_FLAG=${LIB_FLAG[$LZIP]}" >> $external_config
   echo "ZLIB_INCL=${LIB_INCL[$LZIP]}" >> $external_config
-fi
-
-# ----- Create directories if necessary ----------
-if [ ! -e "$CPPTRAJBIN" ] ; then
-  mkdir "$CPPTRAJBIN"
-fi
-if [ ! -e "$CPPTRAJLIB" ] ; then
-  mkdir "$CPPTRAJLIB"
-fi
-if [ ! -e "$CPPTRAJDAT" ] ; then
-  mkdir "$CPPTRAJDAT"
 fi
 
 # ----- Create a resource file. ------------------
