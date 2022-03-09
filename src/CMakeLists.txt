@@ -2,6 +2,9 @@ add_subdirectory(xdrfile)
 if(readline_ENABLED)
   add_subdirectory(readline)
 endif()
+if(arpack_ENABLED)
+  add_subdirectory(arpack)
+endif()
 
 #---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Parse cpptrajfiles
@@ -96,8 +99,8 @@ endif()
 #concatenate all the source files
 set(CPPTRAJ_COMMON_SOURCES ${COMMON_SOURCES} ${CSOURCES})
 
-if(fftw_DISABLED)
-	# we only need pubfft if we don't have FFTW
+if(fftw_DISABLED AND mkl_DISABLED)
+	# we only need pubfft if we don't have FFTW/MKL
 	list(APPEND CPPTRAJ_COMMON_SOURCES ${PUBFFT_FORTRAN_SOURCE})
 endif()
 
@@ -249,6 +252,8 @@ endif()
 # arpack
 if(arpack_DISABLED)
 	add_definitions(-DNO_ARPACK)
+else()
+	targets_link_libraries(cpptraj libcpptraj LIBRARIES arpack)
 endif()
 
 # --------------------------------------------------------------------
@@ -300,6 +305,9 @@ if(CUDA)
 
 	if(readline_ENABLED)
 	  targets_link_libraries(cpptraj.cuda libcpptraj_cuda LIBRARIES readline)
+        endif()
+        if(arpack_ENABLED)
+	  targets_link_libraries(cpptraj.cuda libcpptraj_cuda LIBRARIES arpack)
         endif()
 
 	if(BUILD_PARALLEL_COMBINATIONS AND MPI)
