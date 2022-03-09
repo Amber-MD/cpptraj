@@ -24,8 +24,8 @@ if(NOT INSIDE_AMBER)
 	include(CudaConfig)
 
 	set(LINALG_LIBS_REQUIRED TRUE)
-	set(NEEDED_3RDPARTY_TOOLS zlib fftw libbz2 readline pnetcdf blas lapack mkl arpack netcdf)
-        set(BUNDLED_3RDPARTY_TOOLS readline arpack)
+	set(NEEDED_3RDPARTY_TOOLS zlib fftw libbz2 readline pnetcdf blas lapack mkl arpack netcdf tng_io)
+        set(BUNDLED_3RDPARTY_TOOLS readline arpack tng_io)
 	set(REQUIRED_3RDPARTY_TOOLS netcdf)
 	include(SetupThirdParty)
 	

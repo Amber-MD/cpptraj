@@ -1,9 +1,12 @@
 add_subdirectory(xdrfile)
-if(readline_ENABLED)
+if(readline_INTERNAL)
   add_subdirectory(readline)
 endif()
-if(arpack_ENABLED)
+if(arpack_INTERNAL)
   add_subdirectory(arpack)
+endif()
+if(tng_io_INTERNAL)
+  add_subdirectory(tng)
 endif()
 
 #---------------------------------------------------------------------------------------------------------------------------------------------------------------------
