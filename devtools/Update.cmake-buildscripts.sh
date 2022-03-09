@@ -20,7 +20,7 @@ AmberToCpptraj() {
   else
     cpptrajfile=$2
   fi
-  echo "AmberToCpptraj: $amberfile $cpptrajfile"
+  #echo "AmberToCpptraj: $amberfile $cpptrajfile"
   if [ ! -f "$amberfile" ] ; then
     echo "  ERROR: Amber file $amberfile not present"
     exit 1
@@ -60,6 +60,16 @@ AmberToCpptraj Shorthand.cmake
 AmberToCpptraj TargetArch.cmake
 AmberToCpptraj TryLinkLibrary.cmake
 AmberToCpptraj Utils.cmake
+# ThirdPartyTools
+AmberToCpptraj FindARPACK.cmake ThirdPartyTools/FindARPACK.cmake
+AmberToCpptraj patched-cmake-modules/FindBLASFixed.cmake ThirdPartyTools/FindBLASFixed.cmake
+AmberToCpptraj FindCMath.cmake ThirdPartyTools/FindCMath.cmake
+AmberToCpptraj jedbrown/FindFFTW.cmake ThirdPartyTools/FindFFTW.cmake
+AmberToCpptraj patched-cmake-modules/FindLAPACKFixed.cmake ThirdPartyTools/FindLAPACKFixed.cmake
+AmberToCpptraj hanjianwei/FindMKL.cmake ThirdPartyTools/FindMKL.cmake
+AmberToCpptraj jedbrown/FindNetCDF.cmake ThirdPartyTools/FindNetCDF.cmake
+AmberToCpptraj FindPnetCDF.cmake ThirdPartyTools/FindPnetCDF.cmake
+AmberToCpptraj FindReadline.cmake ThirdPartyTools/FindReadline.cmake
 
 exit 0
 
