@@ -312,6 +312,10 @@ if(CUDA)
         if(arpack_ENABLED)
 	  targets_link_libraries(cpptraj.cuda libcpptraj_cuda LIBRARIES arpack)
         endif()
+        if(tng_io_ENABLED)
+	  targets_link_libraries(cpptraj.cuda libcpptraj_cuda LIBRARIES tng_io)
+        endif()
+
 
 	if(BUILD_PARALLEL_COMBINATIONS AND MPI)
 		make_mpi_version(cpptraj_common_obj_cuda cpptraj_common_obj_mpi_cuda LANGUAGES CXX)
