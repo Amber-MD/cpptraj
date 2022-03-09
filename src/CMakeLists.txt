@@ -1,4 +1,7 @@
 add_subdirectory(xdrfile)
+if(readline_ENABLED)
+  add_subdirectory(readline)
+endif()
 
 #---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Parse cpptrajfiles
@@ -294,7 +297,11 @@ if(CUDA)
 	targets_link_libraries(cpptraj.cuda libcpptraj_cuda LIBRARIES cpptraj_cuda_routines)
 	
 	install(TARGETS cpptraj.cuda DESTINATION ${BINDIR} COMPONENT CUDA)
-	
+
+	if(readline_ENABLED)
+	  targets_link_libraries(cpptraj.cuda libcpptraj_cuda LIBRARIES readline)
+        endif()
+
 	if(BUILD_PARALLEL_COMBINATIONS AND MPI)
 		make_mpi_version(cpptraj_common_obj_cuda cpptraj_common_obj_mpi_cuda LANGUAGES CXX)
 		make_mpi_version(cpptraj.cuda cpptraj.MPI.cuda LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj_cuda> TO $<TARGET_OBJECTS:cpptraj_common_obj_mpi_cuda> INSTALL)

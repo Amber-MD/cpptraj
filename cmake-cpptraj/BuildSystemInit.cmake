@@ -18,3 +18,6 @@ include(Utils)
 include(Shorthand)
 include(ColorMessage)
 include(DebugCpptrajCmake)
+
+# get install directories
+include(InstallDirs)
