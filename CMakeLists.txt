@@ -17,7 +17,7 @@ if(NOT INSIDE_AMBER)
 	#now enable the languages
 	enable_language(C CXX)
         # Enable fortran for ARPACK
-        #enable_language(Fortran)
+        enable_language(Fortran)
 
 	include(BuildSystemSetup)
 	
@@ -27,7 +27,7 @@ if(NOT INSIDE_AMBER)
 
 	set(LINALG_LIBS_REQUIRED TRUE)
 	set(NEEDED_3RDPARTY_TOOLS zlib fftw libbz2 readline pnetcdf blas lapack mkl arpack netcdf)
-        set(BUNDLED_3RDPARTY_TOOLS readline)
+        set(BUNDLED_3RDPARTY_TOOLS readline arpack)
 	set(REQUIRED_3RDPARTY_TOOLS netcdf)
 	include(3rdPartyTools)
 	
