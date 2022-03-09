@@ -63,6 +63,21 @@ else()
 	set(BUILD_PARALLEL_COMBINATIONS FALSE)
 endif()
 
+# Ensure the flag for PIC is added for NVCC
+if (CUDA AND CUDA_FOUND)
+  if (SHARED)
+    if(${COMPILER} STREQUAL GNU OR ${COMPILER} STREQUAL CLANG)
+      set(CPPTRAJ_NVCC_PIC_FLAG "--compiler-options -fPIC")
+    else()
+      set(CPPTRAJ_NVCC_PIC_FLAG "--compiler-options -fpic")
+    endif()
+    message(STATUS "Set CUDA PIC flag ${CPPTRAJ_NVCC_PIC_FLAG}")
+    list(APPEND CUDA_NVCC_FLAGS ${CPPTRAJ_NVCC_PIC_FLAG})
+  else()
+    message(STATUS "Not setting CUDA PIC flag")
+  endif()
+endif()
+
 # on Windows, make MSVC auto-create import libraries just like MinGW does
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
 
