@@ -22,15 +22,15 @@ AmberToCpptraj() {
   fi
   echo "AmberToCpptraj: $amberfile $cpptrajfile"
   if [ ! -f "$amberfile" ] ; then
-    echo "Amber file $amberfile not present"
+    echo "  ERROR: Amber file $amberfile not present"
     exit 1
   elif [ ! -f "$cpptrajfile" ] ; then
-    echo "Copy $amberfile to $cpptrajfile"
+    echo "  COPY: $amberfile to $cpptrajfile"
   else
     diff $amberfile $cpptrajfile > temp.diff
     if [ -s 'temp.diff' ] ; then
-      echo "$amberfile $cpptrajfile diff:"
-      cat temp.diff
+      ndiff=`cat temp.diff | wc -l`
+      echo "  CHECK: $amberfile $cpptrajfile diff: $ndiff"
     fi
     rm temp.diff
   fi
@@ -43,6 +43,23 @@ AmberToCpptraj ColorMessage.cmake
 AmberToCpptraj CompilationOptions.cmake
 AmberToCpptraj CompilerFlags.cmake
 AmberToCpptraj CopyTarget.cmake
+AmberToCpptraj CudaConfig.cmake
+AmberToCpptraj patched-cmake-modules/FindOpenMPFixed.cmake FindOpenMPFixed.cmake
+AmberToCpptraj InstallDirs.cmake
+AmberToCpptraj LibraryBundling.cmake
+AmberToCpptraj LibraryTracking.cmake
+AmberToCpptraj LibraryUtils.cmake
+AmberToCpptraj MPIConfig.cmake
+AmberToCpptraj NetlibConfig.cmake
+AmberToCpptraj OpenMPConfig.cmake
+AmberToCpptraj PackageTypes.cmake
+AmberToCpptraj Packaging.cmake
+AmberToCpptraj ParallelizationConfig.cmake
+AmberToCpptraj Policies.cmake
+AmberToCpptraj Shorthand.cmake
+AmberToCpptraj TargetArch.cmake
+AmberToCpptraj TryLinkLibrary.cmake
+AmberToCpptraj Utils.cmake
 
 exit 0
 
