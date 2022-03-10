@@ -236,6 +236,13 @@ if(fftw_ENABLED)
         endif()
 	target_include_directories(cpptraj_common_obj PRIVATE $<TARGET_PROPERTY:fftw,INTERFACE_INCLUDE_DIRECTORIES>)	
 	targets_link_libraries(cpptraj libcpptraj LIBRARIES fftw)
+elseif(mkl_ENABLED)
+  # Use FFTW from MKL
+  add_definitions(-DFFTW_FFT)
+  # LibPME not yet supported on windows
+  if(NOT MSVC AND HAS_C11_SUPPORT)
+    add_definitions(-DLIBPME)
+  endif()
 endif()
 
 #readline
