@@ -12,7 +12,6 @@ environment:
     - BUILD_TYPE: "configure-mingw"
 
 install:
-  - git submodule update --init --recursive
   - devtools\ci\appveyor\setup-environment.bat
 
 build_script:

@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # Can be used to test the cmake install.
-# Assumes 'git submodule update --init --recursive' has been run in top dir.
 
 WORKDIR=`pwd`
 # For safety

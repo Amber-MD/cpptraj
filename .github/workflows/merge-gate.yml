@@ -54,8 +54,6 @@ jobs:
 
       - name: Checkout source code
         uses: actions/checkout@v2
-        with:
-          submodules: recursive
 
       - name: Compile and test cpptraj
         shell: bash -lex {0}
