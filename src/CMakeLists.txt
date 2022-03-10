@@ -9,6 +9,9 @@ if(NOT INSIDE_AMBER)
   if(tng_io_INTERNAL)
     add_subdirectory(tng)
   endif()
+  add_definitions(-DBUILDTYPE="GitHub")
+else()
+  add_definitions(-DBUILDTYPE="AmberTools")
 endif()
 
 #---------------------------------------------------------------------------------------------------------------------------------------------------------------------
