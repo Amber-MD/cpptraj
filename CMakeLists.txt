@@ -92,6 +92,7 @@ set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
 
 add_subdirectory(src)
 add_subdirectory(test)
+add_subdirectory(dat)
 
 #--------------------------------------------------------------	
 if(NOT INSIDE_AMBER)
