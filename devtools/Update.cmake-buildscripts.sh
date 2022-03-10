@@ -10,6 +10,12 @@ fi
 AMBERCMAKE="$AMBERHOME/cmake"
 
 WORKDIR=`pwd`
+if [ "`basename $WORKDIR`" != 'cmake-cpptraj' ] ; then
+  echo "Run from cmake-cpptraj subdir."
+  exit 1
+fi
+CPPTRAJHOME=`dirname $WORKDIR`
+#echo "$CPPTRAJHOME"
 
 # AmberToCpptraj <amber filename> <cpptraj filename>
 # This is a 1 to 1 copy of the file, same name, maybe different location.
@@ -87,6 +93,23 @@ CpptrajOnly() {
   fi
 }
 
+# CompareCMakeLists
+CompareCMakeLists() {
+  echo "CMakeLists.txt differences:"
+  for CFILE in `find $CPPTRAJHOME -name CMakeLists.txt` ; do
+    NAME=${CFILE#$CPPTRAJHOME/}
+    #echo $NAME
+    AFILE=$AMBERHOME/AmberTools/src/cpptraj/$NAME
+    if [ ! -f "$AFILE" ] ; then
+      echo "$AFILE not present."
+    else
+      ndiff=`diff $AFILE $CFILE | wc -l`
+      if [ $ndiff -gt 0 ] ; then
+        echo "  DIFF: $AFILE $CFILE $ndiff"
+      fi
+    fi
+  done
+}
 
 # ==============================================================================
 # 1 to 1 files
@@ -137,4 +160,6 @@ CpptrajOnly DebugCpptrajCmake.cmake
 
 echo "$A2C_COUNT total cmake modules."
 echo "`ls *.cmake */*.cmake | wc -l` cmake modules present."
+
+CompareCMakeLists
 exit 0
