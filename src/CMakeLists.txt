@@ -152,8 +152,7 @@ add_library(cpptraj_traj STATIC ${LIBCPPTRAJ_TRAJ_OBJECTS})
 add_library(cpptraj_parm STATIC ${LIBCPPTRAJ_PARM_OBJECTS})
 
 # all libraries include the current dir as an interface directory
-# FIXME DISABLED UNTIL CMAKE SUBMODULE UPDATED
-#targets_include_directories(cpptraj_core cpptraj_file cpptraj_traj cpptraj_parm DIRECTORIES INTERFACE .)
+targets_include_directories(cpptraj_core cpptraj_file cpptraj_traj cpptraj_parm DIRECTORIES INTERFACE .)
 
 # cpptraj_traj needs xdrfile and netcdf
 target_include_directories(cpptraj_traj PRIVATE $<TARGET_PROPERTY:xdrfile,INTERFACE_INCLUDE_DIRECTORIES> $<TARGET_PROPERTY:netcdf,INTERFACE_INCLUDE_DIRECTORIES>)
