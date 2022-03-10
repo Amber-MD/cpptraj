@@ -40,9 +40,11 @@ list(
 if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
 	message(FATAL_ERROR "You are building in the source directory.  ${PROJECT_NAME} does not support this, since it would obliterate the Makefile build system.")
 endif()
-# Basic Utilities
-# These files CANNOT use any sort of compile checks or system introspection
-#  because no languages are enabled yet.
+
+# includes
+# --------------------------------------------------------------------
+
+#Basic utilities.  These files CANNOT use any sort of compile checks or system introspection because no languages are enabled yet
 include(Policies NO_POLICY_SCOPE)
 include(Utils)
 include(Shorthand)
