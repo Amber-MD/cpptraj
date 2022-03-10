@@ -3,11 +3,21 @@ project(cpptraj NONE)
 
 #version number
 #---------------------------------------------------------------------------------------------------------------------------------------------------------------------
-set(cpptraj_MAJOR_VERSION 6)
-set(cpptraj_MINOR_VERSION 4)
-set(cpptraj_TWEAK_VERSION 0)
-
-set(cpptraj_VERSION "${cpptraj_MAJOR_VERSION}.${cpptraj_MINOR_VERSION}.${cpptraj_TWEAK_VERSION}")
+file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/src/Version.h CPPTRAJ_VERSION_FILE)
+foreach(LINE ${CPPTRAJ_VERSION_FILE})
+  separate_arguments(LINE)
+  list(LENGTH LINE nlist)
+  #message( "Line=  ${LINE}" )
+  list(GET LINE 0 col0)
+  if(col0 STREQUAL "#define")
+    list(GET LINE 1 col1)
+    if(col1 STREQUAL "CPPTRAJ_INTERNAL_VERSION")
+      #message( "Col0= ${LINE}" )
+      list(GET LINE 2 cpptraj_VERSION)
+      break()
+    endif()
+  endif()
+endforeach()
 
 if(NOT INSIDE_AMBER)
 	# initialization and include paths
