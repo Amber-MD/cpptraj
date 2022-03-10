@@ -60,12 +60,13 @@ CompareToAmber() {
   else
     cpptrajfile=$2
   fi
-  echo "CompareToAmber: $amberfile $cpptrajfile"
+  #echo "CompareToAmber: $amberfile $cpptrajfile"
   if [ ! -f "$amberfile" ] ; then
     echo "  ERROR: Amber file $amberfile not present"
     exit 1
   elif [ ! -f "$cpptrajfile" ] ; then
     echo "  ERROR: Cpptraj file $cpptrajfile not present"
+    exit 1
   else
     diff $amberfile $cpptrajfile > temp.diff
     if [ -s 'temp.diff' ] ; then
@@ -90,6 +91,7 @@ CpptrajOnly() {
     exit 1
   elif [ ! -f "$cpptrajfile" ] ; then
     echo "  ERROR: Cpptraj file $cpptrajfile not present"
+    exit 1
   fi
 }
 
@@ -101,7 +103,7 @@ CompareCMakeLists() {
     #echo $NAME
     AFILE=$AMBERHOME/AmberTools/src/cpptraj/$NAME
     if [ ! -f "$AFILE" ] ; then
-      echo "$AFILE not present."
+      echo "  NOT PRESENT: $AFILE not present."
     else
       ndiff=`diff $AFILE $CFILE | wc -l`
       if [ $ndiff -gt 0 ] ; then
