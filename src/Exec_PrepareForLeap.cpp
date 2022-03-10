@@ -594,8 +594,16 @@ int Exec_PrepareForLeap::LoadGlycamPdbResMap(std::string const& fnameIn)
     if (env != 0) {
       fname.assign(env);
       fname += "/dat/Carbohydrate_PDB_Glycam_Names.txt";
+      mprintf("Info: Parameter file path from CPPTRAJHOME variable: '%s'\n", fname.c_str());
+    } else {
+      // Check AMBERHOME
+      env = getenv("AMBERHOME");
+      if (env != 0) {
+        fname.assign(env);
+        fname += "/AmberTools/src/cpptraj/dat/Carbohydrate_PDB_Glycam_Names.txt";
+        mprintf("Info: Parameter file path from AMBERHOME variable: '%s'\n", fname.c_str());
+      }
     }
-    mprintf("Info: Parameter file path from CPPTRAJHOME variable: '%s'\n", fname.c_str());
   }
   if (fname.empty()) {
     mprintf("Warning: No PDB->Glycam file specified and/or CPPTRAJHOME not set.\n"
