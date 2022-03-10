@@ -26473,8 +26473,6 @@ Esw-dens
  any cutoff, within the minimum image convention but without Ewald summation.
  This quantity is referenced to bulk, in the trivial sense that the solute-solve
 nt interaction energy is zero in bulk.
- This column is zero if PME is used, since the PME energy cannot be trivially
- decomposed into pair-wise energies.
 \end_layout
 
 \begin_layout Itemize
@@ -26507,7 +26505,6 @@ unting, and not referenced to the corresponding bulk value of this quantity
 ).
  Again, both Lennard-Jones and electrostatic interactions are computed without
  any cutoff, within the minimum image convention.
- This column is zero if PME is used.
 \end_layout
 
 \begin_layout Itemize
