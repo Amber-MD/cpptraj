@@ -26,6 +26,7 @@ OPENMP=0
 MPI=0
 FFT=1
 COLOR=1
+COMPILER=gnu
 while [ ! -z "$1" ] ; do
   case "$1" in
     'cuda' ) CUDA=1 ;;
@@ -34,11 +35,11 @@ while [ ! -z "$1" ] ; do
     'all' ) CUDA=1 ; OPENMP=1 ; MPI=1 ;;
     'nofftw3') FFT=0 ;;
     'nocolor') COLOR=0 ;;
+    'intel' ) COMPILER=intel ;;
   esac
   shift
 done
 
-COMPILER=gnu
 if [ $CUDA -eq 1 ] ; then
   export BUILD_FLAGS="-DCUDA=TRUE ${BUILD_FLAGS}"
 fi
