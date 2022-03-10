@@ -238,6 +238,7 @@ if(fftw_ENABLED)
 	targets_link_libraries(cpptraj libcpptraj LIBRARIES fftw)
 elseif(mkl_ENABLED)
   # Use FFTW from MKL
+  add_definitions(-DHAVE_FFTWD=1)
   add_definitions(-DFFTW_FFT)
   # LibPME not yet supported on windows
   if(NOT MSVC AND HAS_C11_SUPPORT)
