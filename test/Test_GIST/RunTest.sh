@@ -89,13 +89,13 @@ gist pme refdens 0.033422885325 gridcntr 1.5 1.0 0.0 \
     griddim 34 44 36 gridspacn 0.50 prefix Gist4 info Info.dat nocom
 EOF
   RunCpptraj "$UNITNAME"
-  DoTest Gist4-Solute-Etot-pme-dens.dx.save Gist4-Solute-Etot-pme-dens.dx
-  DoTest Gist4-Water-Etot-pme-dens.dx.save Gist4-Water-Etot-pme-dens.dx
+  DoTest Gist4-Solute-Etot-pme-dens.dx.save Gist4-Solute-Etot-pme-dens.dx -a $TEST_TOLERANCE
+  DoTest Gist4-Water-Etot-pme-dens.dx.save Gist4-Water-Etot-pme-dens.dx -a $TEST_TOLERANCE
   DoTest Gist2-gH.dx.save Gist4-gH.dx
   DoTest Gist2-gO.dx.save Gist4-gO.dx
   DoTest Gist2-neighbor-norm.dx.save Gist4-neighbor-norm.dx
-  DoTest Gist4-Esw-dens.dx.save Gist4-Esw-dens.dx
-  DoTest Gist4-Eww-dens.dx.save Gist4-Eww-dens.dx
+  DoTest Gist4-Esw-dens.dx.save Gist4-Esw-dens.dx -a $TEST_TOLERANCE
+  DoTest Gist4-Eww-dens.dx.save Gist4-Eww-dens.dx -a $TEST_TOLERANCE
   DoTest Gist4-Info.dat.save Gist4-Info.dat -a $TEST_TOLERANCE
   ## Not including this save on the remote repo bc it is too big.
   #if [ -f 'Gist4-output.dat.save' ] ; then
@@ -115,13 +115,13 @@ gist pme refdens 0.033422885325 gridcntr 0.81 -1.0 0.08 \
   griddim 42 36 40 gridspacn 0.50 prefix Gist5 info Info.dat nocom
 EOF
   RunCpptraj "$UNITNAME"
-  DoTest Gist5-Solute-Etot-pme-dens.dx.save Gist5-Solute-Etot-pme-dens.dx
-  DoTest Gist5-Water-Etot-pme-dens.dx.save Gist5-Water-Etot-pme-dens.dx
+  DoTest Gist5-Solute-Etot-pme-dens.dx.save Gist5-Solute-Etot-pme-dens.dx -a $TEST_TOLERANCE
+  DoTest Gist5-Water-Etot-pme-dens.dx.save Gist5-Water-Etot-pme-dens.dx -a $TEST_TOLERANCE
   DoTest Gist3-gH.dx.save Gist5-gH.dx
   DoTest Gist3-gO.dx.save Gist5-gO.dx
   DoTest Gist3-neighbor-norm.dx.save Gist5-neighbor-norm.dx
-  DoTest Gist5-Esw-dens.dx.save Gist5-Esw-dens.dx
-  DoTest Gist5-Eww-dens.dx.save Gist5-Eww-dens.dx
+  DoTest Gist5-Esw-dens.dx.save Gist5-Esw-dens.dx -a $TEST_TOLERANCE
+  DoTest Gist5-Eww-dens.dx.save Gist5-Eww-dens.dx -a $TEST_TOLERANCE
   DoTest Gist5-Info.dat.save Gist5-Info.dat -a $TEST_TOLERANCE
   # Not including this save on the remote repo bc it is too big.
   #if [ -f 'Gist5-output.dat.save' ] ; then

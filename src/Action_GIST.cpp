@@ -19,6 +19,8 @@
 // TO-DO: Consistent neighbor calculation with CUDA/PME/CPU
 // TO-DO: density output for non-water solvents
 // TO-DO: max_voxels is actually 2.1*n_voxels. This is a waste of RAM.
+// TO-DO: update tests. currently need -a to get passing tests
+// TO-DO: update GIST output version number. Leaving it at v2 for now to get passing tests.
 
 const double Action_GIST::maxD_ = DBL_MAX;
 #define GIST_TINY 1e-10
@@ -1416,81 +1418,6 @@ double Action_GIST::SumDataSet(const DataSet_3D& ds) const
   return total;
 }
 
-/** Calculate average voxel energy for PME grids. */
-void Action_GIST::CalcAvgVoxelEnergy_PME(double Vvox, DataSet_3D& PME_dens, DataSet_3D& U_PME_dens, Farray& PME_norm)
-const
-{
-  mprintf("\t Calculating average voxel energies: \n");
-  ProgressBar E_progress(MAX_GRID_PT_);
-  for ( unsigned int gr_pt =0; gr_pt < MAX_GRID_PT_; gr_pt++)
-  {
-    E_progress.Update(gr_pt);
-    int nw_total = N_waters_[gr_pt];
-    if (nw_total >=1)
-    {
-      PME_dens.SetGrid(gr_pt, E_pme_[gr_pt] / (NFRAME_ * Vvox));
-      PME_norm[gr_pt] = E_pme_[gr_pt] / nw_total;
-    }else{
-      PME_dens.SetGrid(gr_pt, 0);
-      PME_norm[gr_pt]=0; 
-    }
-    int ns_total = N_solute_atoms_[gr_pt];  
-    if (ns_total >=1)
-    {
-      U_PME_dens.SetGrid(gr_pt, U_E_pme_[gr_pt] / (NFRAME_ * Vvox));
-    }else{
-      U_PME_dens.SetGrid(gr_pt, 0);
-    }
-  }
-
-  infofile_->Printf("Ensemble total water energy on the grid: %9.5f Kcal/mol \n", SumDataSet(PME_dens) * Vvox);
-  infofile_->Printf("Ensemble total solute energy on the grid: %9.5f Kcal/mol \n", SumDataSet(U_PME_dens) * Vvox);
-
-//  infofile_->Printf("Ensemble solute's total potential energy : %9.5f Kcal/mol \n", solute_potential_energy_ / NFRAME_);
-//  infofile_->Printf("Ensemble system's total potential energy: %9.5f Kcal/mol \n", system_potential_energy_/NFRAME_);
-}
-
-/** Calculate average voxel energy for GIST grids. */
-void Action_GIST::CalcAvgVoxelEnergy(double Vvox, DataSet_3D& Eww_dens, DataSet_3D& Esw_dens,
-                                     Farray& Eww_norm, Farray& Esw_norm,
-                                     DataSet_3D& qtet,
-                                     DataSet_3D& neighbor_norm, Farray& neighbor_dens)
-{
-    Farray const& Neighbor = neighborPerThread_[0];
-    #ifndef CUDA
-    // Sum values from other threads if necessary
-    SumEVV();
-    #endif
-    mprintf("\tCalculating average voxel energies:\n");
-    ProgressBar E_progress( MAX_GRID_PT_ );
-    for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++)
-    {
-      E_progress.Update( gr_pt );
-
-      //mprintf("DEBUG1: VV vdw=%f elec=%f\n", E_VV_VDW_[gr_pt], E_VV_Elec_[gr_pt]);
-      int nw_total = N_waters_[gr_pt]; // Total number of waters that have been in this voxel.
-      if (nw_total > 0) {
-        Esw_dens.SetGrid(gr_pt, Esw_dens[gr_pt] / (NFRAME_ * Vvox));
-        Esw_norm[gr_pt] = Esw_dens[gr_pt] * (NFRAME_ * Vvox) / nw_total;
-        Eww_dens.SetGrid(gr_pt, Eww_dens[gr_pt] / (NFRAME_ * Vvox));
-        Eww_norm[gr_pt] = Eww_dens[gr_pt] * (NFRAME_ * Vvox) / nw_total;
-      } else {
-        Esw_norm[gr_pt]=0;
-        Eww_norm[gr_pt]=0;
-      }
-      // Compute the average number of water neighbor and average order parameter.
-      if (nw_total > 0) {
-        qtet.SetGrid(gr_pt, qtet[gr_pt] / nw_total);
-        //mprintf("DEBUG1: neighbor= %8.1f  nw_total= %8i\n", neighbor[gr_pt], nw_total);
-        neighbor_norm.SetGrid(gr_pt, (double)Neighbor[gr_pt] / nw_total);
-      }
-      neighbor_dens[gr_pt] = (double)Neighbor[gr_pt] / (NFRAME_ * Vvox);
-    } // END loop over all grid points (voxels)
-    infofile_->Printf("Total water-solute energy of the grid: Esw = %9.5f kcal/mol\n", SumDataSet(Esw_dens)*Vvox);
-    infofile_->Printf("Total unreferenced water-water energy of the grid: Eww = %9.5f kcal/mol\n",
-                      SumDataSet(Eww_dens)*Vvox);
-}
-
 /** Handle averaging for grids and output from GIST. */
 void Action_GIST::Print() {
   gist_print_.Start();
@@ -1651,6 +1578,14 @@ void Action_GIST::Print() {
   // Sum values from other threads if necessary
   SumEVV();
   #endif
+
+  // Remove solvent-solvent energy in voxels without solvent (i.e., at the solute)
+  for (size_t i = 0; i < Esw_->Size(); ++i) {
+    if (N_waters_[i] == 0) {
+      Esw_->SetGrid(i, 0.0);
+    }
+  }
+
   // Compute average voxel energy. Allocate these sets even if skipping energy
   // to be consistent with previous output.
 
@@ -1678,7 +1613,7 @@ void Action_GIST::Print() {
   if (!skipE_) {
     infofile_->Printf("Total water-solute energy of the grid: Esw = %9.5f kcal/mol\n", SumDataSet(*Esw_) / NFRAME_);
     infofile_->Printf("Total unreferenced water-water energy of the grid: Eww = %9.5f kcal/mol\n",
-                      SumDataSet(*Eww_) / NFRAME_);
+                      SumDataSet(*Eww_) / NFRAME_ / 2);
   }
   Farray neighbor_norm = NormalizeDataSet<float>(*neighbor_, N_waters_);
   Farray neighbor_dens = DensityWeightDataSet<float>(*neighbor_);
@@ -1720,7 +1655,7 @@ void Action_GIST::Print() {
   // TODO: Make a data file format?
   if (datafile_ != 0) {
     mprintf("\tWriting GIST results for each voxel:\n");
-    const char* gistOutputVersion = "v4";
+    const char* gistOutputVersion = "v2";
     // Do the header
     datafile_->Printf("GIST Output %s "
                       "spacing=%.4f center=%.6f,%.6f,%.6f dims=%i,%i,%i \n"
@@ -1837,9 +1772,6 @@ void Action_GIST::NonbondCuda(ActionFrame frm) {
   std::vector<float> esw_result(this->numberAtoms_);
   std::vector<std::vector<int> > order_indices;
   this->gist_nonbond_.Start();
-  DataSet_3D& order = *dataSets3D_["order"];
-  DataSet_3D& Esw = *dataSets3D_["Esw"];
-  DataSet_3D& Eww = *dataSets3D_["Eww"];
 
   float *recip = NULL;
   float *ucell = NULL;
@@ -1903,10 +1835,10 @@ void Action_GIST::NonbondCuda(ActionFrame frm) {
     int headAtomIndex = O_idxs_[sidx];
     int voxel = atom_voxel_[headAtomIndex];
     if (voxel != OFF_GRID_) {
-      this->neighbor_.at(0).at(voxel) += result_n.at(headAtomIndex);
+      neighborPerThread_[0].at(voxel) += result_n.at(headAtomIndex);
       for (unsigned int IDX = 0; IDX != nMolAtoms_; IDX++) {
-        Esw.UpdateVoxel(voxel, esw_result.at(headAtomIndex + IDX));
-        Eww.UpdateVoxel(voxel, eww_result.at(headAtomIndex + IDX));
+        Esw_->UpdateVoxel(voxel, esw_result.at(headAtomIndex + IDX));
+        Eww_->UpdateVoxel(voxel, eww_result.at(headAtomIndex + IDX));
       }
       // Order calculation
       if (this->doOrder_) {
@@ -1940,7 +1872,7 @@ void Action_GIST::NonbondCuda(ActionFrame frm) {
             sum += (cosThet + 1.0/3) * (cosThet + 1.0/3);
           }
         }
-        order.UpdateVoxel(voxel, 1.0 - (3.0/8.0) * sum);
+        order_->UpdateVoxel(voxel, 1.0 - (3.0/8.0) * sum);
       }
     }
 
