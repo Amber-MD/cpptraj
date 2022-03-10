@@ -106,11 +106,13 @@ class Action_GIST : public Action {
     template<typename ARRAY_TYPE>
     void CopyArrayToDataSet(const ARRAY_TYPE& arr, DataSet_3D& ds) const;
 
-    template<typename ARRAY_TYPE>
-    void NormalizeFarray(Action_GIST::Farray& arr, const ARRAY_TYPE& norm) const;
+    template<typename T>
+    std::vector<T> NormalizeDataSet(const DataSet_3D& ds, const Iarray& norm) const;
 
-    template<typename ARRAY_TYPE>
-    void NormalizeDataSet(DataSet_3D& ds, const ARRAY_TYPE& norm) const;
+    template<typename T>
+    std::vector<T> WeightDataSet(const DataSet_3D& ds, double factor) const;
+    template<typename T>
+    std::vector<T> DensityWeightDataSet(const DataSet_3D& ds) const;
 
     int debug_;      ///< Action debug level
     int numthreads_; ///< Number of OpenMP threads
@@ -170,8 +172,27 @@ class Action_GIST : public Action {
 
     // NOTE: '*' = Updated in DoAction(). '+' = Updated in Setup().
     ImageOption imageOpt_;  ///< Used to determine if imaging should be used.*
-    std::map<std::string, DataSet_3D*> dataSets3D_;
+    // GIST float grid datasets
+    DataSet_3D* gO_;        ///< Solvent oxygen density
+    DataSet_3D* gH_;        ///< Solvent hydrogen density
+    DataSet_3D* Esw_;       ///< Solute-water energy
+    DataSet_3D* Eww_;       ///< Water-water energy
+    DataSet_3D* dTStrans_;  ///< Solvent translation entropy
+    DataSet_3D* dTSorient_; ///< Solvent orentational entropy
+    DataSet_3D* dTSsix_;
+    DataSet_3D* neighbor_;
+    DataSet_3D* dipole_; // pol
+    // GIST double grid datasets
+    DataSet_3D* order_; // qtet
+    DataSet_3D* dipolex_;    ///< Water dipole (X)*
+    DataSet_3D* dipoley_;    ///< Water dipole (Y)*
+    DataSet_3D* dipolez_;    ///< Water dipole (Z)*
+    // PME GIST double grid datasets
+    DataSet_3D* PME_;           ///< The PME nonbond interaction( charge-charge + vdw) cal for water
+    DataSet_3D* U_PME_;         ///< The PME nonbond energy for solute atoms
+
     SolventInfo solventInfo_;
+    std::vector<DataSet_3D*> densitySets_;
     DataSetList* DSL_;
     DataFileList* DFL_;
     std::string dsname_;
@@ -195,7 +216,7 @@ class Action_GIST : public Action {
     std::vector<Iarray> EIJ_V2_; ///< Hold any interaction energy voxel 2 each frame.*
 #   endif
 
-    std::vector<Farray> neighbor_; ///< Number of water neighbors within 3.5 Ang.*
+    std::vector<Farray> neighborPerThread_; ///< Number of water neighbors within 3.5 Ang.*
 #   ifdef _OPENMP
     std::vector<Farray> EIJ_EN_;   ///< Hold any interaction energies each frame.*
 #   endif
