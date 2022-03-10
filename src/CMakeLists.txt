@@ -123,10 +123,6 @@ target_include_directories(cpptraj_common_obj PRIVATE $<TARGET_PROPERTY:xdrfile,
 
 add_executable(cpptraj $<TARGET_OBJECTS:cpptraj_common_obj> ${SOURCES})
 
-if(fftw_ENABLED)
-  set_property(TARGET cpptraj PROPERTY CXX_STANDARD 11)
-endif()
-
 target_link_libraries(cpptraj netcdf netlib xdrfile)
 
 install(TARGETS cpptraj DESTINATION ${BINDIR})
@@ -199,6 +195,19 @@ if(INSTALL_HEADERS)
 	
 endif()
 
+# Check for C++11 support
+set(HAS_C11_SUPPORT FALSE)
+foreach(cxxfeat ${CMAKE_CXX_COMPILE_FEATURES})
+  if(${cxxfeat} STREQUAL cxx_std_11)
+    # C++11 support found
+    message(STATUS "Found C++11 support: ${cxxfeat}")
+    add_definitions(-DC11_SUPPORT)
+    set(HAS_C11_SUPPORT TRUE)
+    set_property(TARGET cpptraj PROPERTY CXX_STANDARD 11)
+    break()
+  endif()
+endforeach()
+
 #---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #Deal with external libraries
 
@@ -221,9 +230,8 @@ endif()
 if(fftw_ENABLED)
         add_definitions(-DHAVE_FFTWD=1)
         add_definitions(-DFFTW_FFT)
-        add_definitions(-DC11_SUPPORT)
         # LibPME not yet supported on windows
-        if(NOT MSVC)
+        if(NOT MSVC AND HAS_C11_SUPPORT)
           add_definitions(-DLIBPME)
         endif()
 	target_include_directories(cpptraj_common_obj PRIVATE $<TARGET_PROPERTY:fftw,INTERFACE_INCLUDE_DIRECTORIES>)	
