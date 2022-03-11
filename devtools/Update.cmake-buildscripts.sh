@@ -135,6 +135,7 @@ AmberToCpptraj PackageTypes.cmake
 AmberToCpptraj Packaging.cmake
 AmberToCpptraj ParallelizationConfig.cmake
 AmberToCpptraj Policies.cmake
+AmberToCpptraj RPATHConfig.cmake
 AmberToCpptraj Shorthand.cmake
 AmberToCpptraj TargetArch.cmake
 AmberToCpptraj TryLinkLibrary.cmake
