@@ -37,6 +37,13 @@ while [ ! -z "$1" ] ; do
     'noarpack') ARPACK=0 ;;
     'nocolor') COLOR=0 ;;
     'intel' ) COMPILER=intel ;;
+    'autotest' )
+      FFT=0
+      ARPACK=0
+      COMPILER='AUTO'
+      #export BUILD_FLAGS="-DCMAKE_C_COMPILER=icc -DCMAKE_CXX_COMPILER=icpc ${BUILD_FLAGS}"
+      #export BUILD_FLAGS="-DCMAKE_Fortran_COMPILER=ifort ${BUILD_FLAGS}"
+    ;;
   esac
   shift
 done
