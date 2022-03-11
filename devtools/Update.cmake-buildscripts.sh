@@ -117,6 +117,7 @@ CompareCMakeLists() {
 # 1 to 1 files
 AmberToCpptraj AmberCompilerConfig.cmake
 AmberToCpptraj BuildReport.cmake
+AmberToCpptraj patched-cmake-modules/CheckConstantExists.cmake CheckConstantExists.cmake
 AmberToCpptraj CheckLinkerFlag.cmake
 AmberToCpptraj ColorMessage.cmake
 AmberToCpptraj CompilationOptions.cmake
