@@ -321,19 +321,23 @@ endif()
 #------------------------------------------------------------------------------
 
 if(NEED_tng_io)
-	find_package(tng_io CONFIG)
-
-	if(NOT tng_io_FOUND)
-		message(STATUS "Could not find tng_io.  To locate it, add its install dir to the prefix path.")
-	endif()
-
-	if(tng_io_FOUND)
-		set_3rdparty(tng_io EXTERNAL)
-	elseif(zlib_ENABLED) # tng io requires zlib
-		set_3rdparty(tng_io INTERNAL)
-	else()
+	if(DEFINED USE_TNG AND NOT USE_TNG)
 		set_3rdparty(tng_io DISABLED)
-	endif() 
+	else()
+	  find_package(tng_io CONFIG)
+
+	  if(NOT tng_io_FOUND)
+		message(STATUS "Could not find tng_io.  To locate it, add its install dir to the prefix path.")
+	  endif()
+
+	  if(tng_io_FOUND)
+		set_3rdparty(tng_io EXTERNAL)
+	  elseif(zlib_ENABLED) # tng io requires zlib
+		set_3rdparty(tng_io INTERNAL)
+	  else()
+		set_3rdparty(tng_io DISABLED)
+	  endif() 
+	endif()
 endif()
 
 # Apply overrides

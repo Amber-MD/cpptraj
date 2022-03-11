@@ -40,6 +40,8 @@ if(NOT INSIDE_AMBER)
         if(NOT CMAKE_Fortran_COMPILER)
           set(USE_ARPACK FALSE)
         endif()
+        # TNG support
+        option(USE_TNG "Whether to support the Gromacs TNG trajectory format." TRUE)
 	
 	include(OpenMPConfig)
 	include(MPIConfig)
