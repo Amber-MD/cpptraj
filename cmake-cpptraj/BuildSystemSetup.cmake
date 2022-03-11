@@ -2,6 +2,7 @@
 
 include(TargetArch)
 include(CheckFunctionExists)
+include(CheckFortranFunctionExists)
 include(CheckCCompilerFlag)
 include(CheckCXXCompilerFlag)
 include(CheckLinkerFlag)

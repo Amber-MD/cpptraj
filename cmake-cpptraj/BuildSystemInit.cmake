@@ -50,6 +50,7 @@ include(Utils)
 include(Shorthand)
 include(ColorMessage)
 include(DebugCpptrajCmake)
+include(CheckLanguage)
 
 # get install directories
 include(InstallDirs)

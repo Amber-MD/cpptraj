@@ -25,11 +25,21 @@ if(NOT INSIDE_AMBER)
 
 	#now enable the languages
 	enable_language(C CXX)
+        # See if Fortran is available
+        check_language(Fortran)
+        if(CMAKE_Fortran_COMPILER)
+          enable_language(Fortran)
+        else()
+          message(STATUS "No Fortran support")
+        endif()
 
 	include(BuildSystemSetup)
 
 	# ARPACK support 
 	option(USE_ARPACK "Whether to use the Arnoldi package for diagonalization of sparse matrices." TRUE)
+        if(NOT CMAKE_Fortran_COMPILER)
+          set(USE_ARPACK FALSE)
+        endif()
 	
 	include(OpenMPConfig)
 	include(MPIConfig)
@@ -44,7 +54,9 @@ if(NOT INSIDE_AMBER)
 	if((fftw_DISABLED AND mkl_DISABLED) OR arpack_ENABLED)
           # If no FFTW and no MKL we need PubFFT, so need fortran.
           # If we are building arpack we need fortran.
-		enable_language(Fortran)
+          if(NOT CMAKE_Fortran_COMPILER)
+            message(FATAL_ERROR "Cpptraj requires an FFT library, but no FFTW/MKL/Fortran compiler available.")
+          endif()
 	endif()
 	
 	include(CompilerFlags)
