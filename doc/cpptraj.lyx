@@ -25849,6 +25849,24 @@ suffix>] Suffix for main GIST info file name.
 \end_layout
 
 \begin_layout Description
+[oldnnvolume] Use the old reference volume for the nearest neighbor entropy,
+ instead of the more precice new implementation.
+\end_layout
+
+\begin_layout Description
+[nnsearchlayers
+\begin_inset space ~
+\end_inset
+
+<nlayers>] Number of layers of neighboring voxels that should be used when
+ searching for nearest neighbors.
+ This has to be at least 1 to obtain the correct entropy.
+ Higher values can help to obtain better convergence of the translational
+ and 6D entropy with little sampling or fine grid spacings, but increase
+ the calculation time (default 1).
+\end_layout
+
+\begin_layout Description
 [nopme] Do not use particle mesh Ewald for the non-bonded calculation (default).
 \end_layout
 
@@ -26143,8 +26161,13 @@ gridspcn
 n, longer simulation times will be needed to converge the properties in
  the smaller voxels that result.
  A larger grid spacing will allow earlier convergence, but will smooth the
- spatial distributions and hence can reduce accuracy.
- 
+ spatial distributions.
+ When computing the sum over voxel values in a larger region, the result
+ is independent of the grid spacing as long as 
+\series bold
+nlayers
+\series default
+ is high enough for the given sampling.
 \end_layout
 
 \begin_layout Standard
@@ -26401,7 +26424,11 @@ dTStrans-norm
 \series bold
 dTStrans-dens
 \series default
- divided by the number density of the voxel.
+ divided by the number density of the voxel in units of number/Å
+\begin_inset Formula $^{3}$
+\end_inset
+
+.
 \end_layout
 
 \begin_layout Itemize
@@ -26453,12 +26480,12 @@ nt interaction energy is zero in bulk.
 \series bold
 Esw-norm
 \series default
- - Mean solute-water interaction energy per water molecule.
+ - Mean solute-water interaction energy per water molecule (kcal/mole/molecule).
  This equals
 \series bold
  Esw-dens
 \series default
- divided by the number density of the voxel (kcal/mole/molecule).
+ divided by the number density of the voxel.
 \end_layout
 
 \begin_layout Itemize
@@ -26478,6 +26505,42 @@ unting, and not referenced to the corresponding bulk value of this quantity
 ).
  Again, both Lennard-Jones and electrostatic interactions are computed without
  any cutoff, within the minimum image convention.
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+PME-norm
+\series default
+ - (Only if PME was used) Mean PME solvent energy per water molecule (kcal/mole/
+molecule).
+ This equals 
+\series bold
+PME-dens
+\series default
+ divided by the number density of the voxel.
+ 
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+PME-dens
+\series default
+ - (Only if PME was used) Mean PME solvent energy density (kcal/mole/Å
+\begin_inset Formula $^{3}$
+\end_inset
+
+).
+ This corresponds roughly to 
+\series bold
+Eww-norm
+\series default
+ plus one half of 
+\series bold
+Esw-norm
+\series default
+ in a non-PME GIST calculation.
 \end_layout
 
 \begin_layout Itemize
@@ -27123,6 +27186,44 @@ s of interest.
 \end_layout
 
 \begin_layout Standard
+Note that the Eww reference needs to be subtracted from the normalized water-wat
+er energy 
+\series bold
+Eww-norm
+\series default
+.
+ A referenced 
+\series bold
+Eww-dens
+\series default
+ can be obtained by multiplying the referenced 
+\series bold
+Eww-norm
+\series default
+ by the solvent number density 
+\begin_inset Formula $\rho=g_{O}\rho^{o}=\frac{N_{w}}{N_{f}V_{vox}}$
+\end_inset
+
+, where 
+\begin_inset Formula $N_{w}$
+\end_inset
+
+ is the number of water molecules in a voxel (
+\series bold
+population
+\series default
+), 
+\begin_inset Formula $N_{f}$
+\end_inset
+
+ is the number of frames, and 
+\begin_inset Formula $V_{vox}$
+\end_inset
+
+ is the voxel volume.
+\end_layout
+
+\begin_layout Standard
 \paragraph_spacing other 3
 \noindent
 
@@ -27302,6 +27403,50 @@ d with a region
  results from application of an extra factor of ½ to the reported water-water
  interaction energies here.
  
+\end_layout
+
+\begin_layout Standard
+9.
+ If the GIST grid contains the entire solute and the calculation is sufficently
+ converged, the energy and first-order entropy of hydration can be calculated
+ by numerical integration.
+ E.g., the energy of hydration is 
+\begin_inset Formula $\Delta E_{hyd}=\sum^{voxels}(E_{sw}^{dens}+E_{ww}^{dens})\times V_{vox}$
+\end_inset
+
+.
+ For this, Eww has to be referenced carefully, since numerical inaccuracies
+ can add up quickly.
+ It can be advisable to omit all voxels above a certain distance to the
+ solute to obtain more stable results.
+ When using PME, the energy cannot be decomposed into Eww and Esw contributions.
+ In that case, the energy of hydration is 
+\begin_inset Formula $\Delta E_{hyd}=E_{solute}-E_{solute}^{self}+\sum^{voxels}E_{PME}^{dens}\times V_{vox}$
+\end_inset
+
+, where the solute energy 
+\begin_inset Formula $E_{solute}$
+\end_inset
+
+ (containing solute-solute and solute-solvent interactions) can be found
+ in the GIST 
+\series bold
+info
+\series default
+ file, and the solute self-energy 
+\begin_inset Formula $E_{solute}^{self}$
+\end_inset
+
+ can be obtained e.g.
+ using the 
+\begin_inset Quotes eld
+\end_inset
+
+energy
+\begin_inset Quotes erd
+\end_inset
+
+ command .
 \end_layout
 
 \begin_layout Subsection
