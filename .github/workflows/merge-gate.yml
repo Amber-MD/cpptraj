@@ -54,8 +54,6 @@ jobs:
 
       - name: Checkout source code
         uses: actions/checkout@v2
-        with:
-          submodules: recursive
 
       - name: Compile and test cpptraj
         shell: bash -lex {0}
@@ -73,6 +71,7 @@ jobs:
           make install
           cd ..
           export PATH=$HOME/bin:$PATH
+          export LD_LIBRARY_PATH=$HOME/lib:${LD_LIBRARY_PATH}
 
           if [ $USE_OPENMP = "yes" ]; then
             export OPT="openmp"
