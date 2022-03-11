@@ -245,12 +245,17 @@ endif()
 
 if(NEED_arpack)
 	#  ARPACK
-	find_package(ARPACK)
+	if(DEFINED USE_ARPACK AND NOT USE_ARPACK)
+		set_3rdparty(arpack DISABLED)
+	else()	
+
+	  find_package(ARPACK)
 	
-	if(ARPACK_FOUND)
+	  if(ARPACK_FOUND)
 		set_3rdparty(arpack EXTERNAL)
-	else()
+	  else()
 		set_3rdparty(arpack INTERNAL)
+	  endif()
 	endif()
 endif()
 

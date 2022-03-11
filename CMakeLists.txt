@@ -27,6 +27,9 @@ if(NOT INSIDE_AMBER)
 	enable_language(C CXX)
 
 	include(BuildSystemSetup)
+
+	# ARPACK support 
+	option(USE_ARPACK "Whether to use the Arnoldi package for diagonalization of sparse matrices." TRUE)
 	
 	include(OpenMPConfig)
 	include(MPIConfig)

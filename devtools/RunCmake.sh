@@ -24,6 +24,7 @@ CUDA=0
 OPENMP=0
 MPI=0
 FFT=1
+ARPACK=1
 COLOR=1
 COMPILER=gnu
 while [ ! -z "$1" ] ; do
@@ -33,6 +34,7 @@ while [ ! -z "$1" ] ; do
     'mpi' ) MPI=1 ;;
     'all' ) CUDA=1 ; OPENMP=1 ; MPI=1 ;;
     'nofftw3') FFT=0 ;;
+    'noarpack') ARPACK=0 ;;
     'nocolor') COLOR=0 ;;
     'intel' ) COMPILER=intel ;;
   esac
@@ -52,6 +54,9 @@ if [ $MPI -eq 1 ] ; then
 fi
 if [ $FFT -eq 0 ] ; then
   export BUILD_FLAGS="-DUSE_FFT=FALSE ${BUILD_FLAGS}"
+fi
+if [ $ARPACK -eq 0 ] ; then
+  export BUILD_FLAGS="-DUSE_ARPACK=FALSE ${BUILD_FLAGS}"
 fi
 if [ $COLOR -eq 0 ] ; then
   export BUILD_FLAGS="-DCOLOR_CMAKE_MESSAGES=FALSE ${BUILD_FLAGS}"
