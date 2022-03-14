@@ -1,17 +1,24 @@
 #include "Action_Keep.h"
+#include "CharMask.h"
 #include "CpptrajStdio.h"
 #include "DataSet_string.h"
 
 /** CONSTRUCTOR */
 Action_Keep::Action_Keep() :
+  keepParm_(0),
   bridgeData_(0),
   nbridge_(0)
 {}
 
+/** DESTRUCTOR */
+Action_Keep::~Action_Keep() {
+  if (keepParm_ != 0) delete keepParm_;
+}
+
 // Action_Keep::Help()
 void Action_Keep::Help() const {
   mprintf("\t[bridgedata <bridge data set> [nbridge <#>] [bridgeresname <res name>]\n"
-          "\t[keepmask <atoms to keep>\n"
+          "\t[keepmask <atoms to keep>]\n"
           "  Keep only specified parts of the system.\n"
          );
 }
@@ -62,6 +69,23 @@ Action::RetType Action_Keep::Init(ArgList& actionArgs, ActionInit& init, int deb
 // Action_Keep::Setup()
 Action::RetType Action_Keep::Setup(ActionSetup& setup)
 {
+  atomsToKeep_.ClearSelected();
+  atomsToKeep_.SetNatoms( setup.Top().Natom() );
+
+  if (keepMask_.MaskStringSet()) {
+    if (setup.Top().SetupIntegerMask( keepMask_ )) {
+      mprinterr("Error: Could not set up keep mask '%s'\n", keepMask_.MaskString());
+      return Action::ERR;
+    }
+    if (keepMask_.None()) {
+      mprintf("Warning: No atoms selected for keep mask.\n");
+      return Action::SKIP;
+    }
+    keepMask_.MaskInfo();
+    for (AtomMask::const_iterator it = keepMask_.begin(); it != keepMask_.end(); ++it)
+      atomsToKeep_.AddSelectedAtom(*it);
+  }
+
   if (bridgeData_ != 0) {
     // Set up to keep bridge residues
     AtomMask bmask;
@@ -78,6 +102,7 @@ Action::RetType Action_Keep::Setup(ActionSetup& setup)
       mprintf("Warning: No potential bridge residues selected.\n");
       return Action::SKIP;
     }
+    bmask.MaskInfo();
     // Ensure all bridge residues have same # atoms
     std::vector<int> Rnums = setup.Top().ResnumsSelectedBy( bmask );
     int resSize = -1;
@@ -94,9 +119,49 @@ Action::RetType Action_Keep::Setup(ActionSetup& setup)
       }
     }
     mprintf("\tBridge residue size= %i\n", resSize);
-  } // END bridgeData
+    if (!keepMask_.MaskStringSet()) {
+      // Keep all atoms not in the bridge mask
+      CharMask cmask( bmask.ConvertToCharMask(), bmask.Nselected() );
+      for (int idx = 0; idx != setup.Top().Natom(); idx++)
+        if (!cmask.AtomInCharMask(idx))
+          atomsToKeep_.AddSelectedAtom( idx );
+    }
+    // Will keep only the first nbridge_ residues
+    if ((unsigned int)nbridge_ > Rnums.size()) {
+      mprinterr("Error: Number of bridge residues to keep (%i) > number of potential bridge residues (%zu).\n", nbridge_, Rnums.size());
+      return Action::ERR;
+    }
+    //idxMaskPair_.clear();
+    nNonBridgeAtoms_ = atomsToKeep_.Nselected();
+    for (int ridx = 0; ridx < nbridge_; ridx++) {
+      Residue const& res = setup.Top().Res(Rnums[ridx]);
+      //idxMaskPair_.push_back( IdxMaskPairType(selectedIdx, AtomMask()) );
+      for (int at = res.FirstAtom(); at != res.LastAtom(); at++) {
+        atomsToKeep_.AddSelectedAtom( at );
+        //idxMaskPair_.back().second.AddSelectedAtom(
+      }
+    }
     
-  return Action::OK;
+
+  } // END bridgeData
+
+  // Create topology with only atoms to keep
+  if (keepParm_ != 0)
+    delete keepParm_;
+  if (atomsToKeep_.Nselected() < 1) {
+    mprintf("Warning: No atoms to keep.\n");
+    return Action::SKIP;
+  }
+  keepParm_ = setup.Top().modifyStateByMask( atomsToKeep_ );
+  if (keepParm_ == 0) {
+    mprinterr("Error: Could not create topology for kept atoms.\n");
+    return Action::ERR;
+  }
+  setup.SetTopology( keepParm_ );
+  keepParm_->Brief("Topology for kept atoms:");
+  keepFrame_.SetupFrameV( setup.Top().Atoms(), setup.CoordInfo() );
+    
+  return Action::MODIFY_TOPOLOGY;
 }
 
 // Action_Keep::DoAction()
