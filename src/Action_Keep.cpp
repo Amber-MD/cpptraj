@@ -10,7 +10,8 @@ Action_Keep::Action_Keep() :
 
 // Action_Keep::Help()
 void Action_Keep::Help() const {
-  mprintf("\t[bridgedata <bridge data set> [nbridge <#>]]\n"
+  mprintf("\t[bridgedata <bridge data set> [nbridge <#>] [bridgeresname <res name>]\n"
+          "\t[keepmask <atoms to keep>\n"
           "  Keep only specified parts of the system.\n"
          );
 }
@@ -18,6 +19,14 @@ void Action_Keep::Help() const {
 // Action_Keep::Init()
 Action::RetType Action_Keep::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+  std::string keepmaskstr = actionArgs.GetStringKey("keepmask");
+  if (!keepmaskstr.empty()) {
+    if ( keepMask_.SetMaskString( keepmaskstr )) {
+      mprinterr("Error: Invalid mask for 'keepmask'\n");
+      return Action::ERR;
+    }
+  }
+
   std::string bridgeDataName = actionArgs.GetStringKey("bridgedata");
   if (!bridgeDataName.empty()) {
     DataSet* ds = init.DSL().GetDataSet( bridgeDataName );
@@ -35,6 +44,7 @@ Action::RetType Action_Keep::Init(ArgList& actionArgs, ActionInit& init, int deb
       mprinterr("Error: Number of bridging residues to keep must be >= 1.\n");
       return Action::ERR;
     }
+    bridgeResName_ = actionArgs.GetStringKey("bridgeresname", "WAT");
   } else {
     mprinterr("Error: Nothing specified to keep.\n");
     return Action::ERR;
@@ -44,6 +54,7 @@ Action::RetType Action_Keep::Init(ArgList& actionArgs, ActionInit& init, int deb
   if (bridgeData_ != 0) {
     mprintf("\tBridge ID data set: %s\n", bridgeData_->legend());
     mprintf("\t# of bridging residues to keep: %i\n", nbridge_);
+    mprintf("\tBridge residue name: %s\n", bridgeResName_.c_str());
   }
   return Action::OK;
 }
@@ -51,6 +62,40 @@ Action::RetType Action_Keep::Init(ArgList& actionArgs, ActionInit& init, int deb
 // Action_Keep::Setup()
 Action::RetType Action_Keep::Setup(ActionSetup& setup)
 {
+  if (bridgeData_ != 0) {
+    // Set up to keep bridge residues
+    AtomMask bmask;
+    if (bmask.SetMaskString( ":" + bridgeResName_ )) {
+      mprinterr("Error: Could not set up mask for bridge residues: %s\n", bridgeResName_.c_str());
+      return Action::ERR;
+    }
+    // Select potential bridge residues
+    if (setup.Top().SetupIntegerMask( bmask )) {
+      mprinterr("Error: Setting up bridge residue mask failed.\n");
+      return Action::ERR;
+    }
+    if (bmask.None()) {
+      mprintf("Warning: No potential bridge residues selected.\n");
+      return Action::SKIP;
+    }
+    // Ensure all bridge residues have same # atoms
+    std::vector<int> Rnums = setup.Top().ResnumsSelectedBy( bmask );
+    int resSize = -1;
+    for (std::vector<int>::const_iterator rnum = Rnums.begin();
+                                          rnum != Rnums.end(); ++rnum)
+    {
+      if (resSize == -1)
+        resSize = setup.Top().Res(*rnum).NumAtoms();
+      else if (setup.Top().Res(*rnum).NumAtoms() != resSize) {
+        mprinterr("Error: Residue '%s' size (%i) != first residue size (%s)\n",
+                  setup.Top().TruncResNameNum(*rnum).c_str(),
+                  setup.Top().Res(*rnum).NumAtoms(), resSize);
+        return Action::ERR;
+      }
+    }
+    mprintf("\tBridge residue size= %i\n", resSize);
+  } // END bridgeData
+    
   return Action::OK;
 }
 
@@ -74,11 +119,11 @@ Action::RetType Action_Keep::keepBridge(int frameNum, ActionFrame& frm) {
   }
   std::string const& bridgeIDstr = (*bridgeData_)[frameNum];
   if (bridgeIDstr == "None") {
-    mprintf("DEBUG: Frame %i has no bridging waters.\n");
-    return Action::SKIP;
+    mprintf("DEBUG: Frame %i has no bridging residues.\n", frameNum+1);
+    return Action::SUPPRESS_COORD_OUTPUT;
   }
   ArgList bridgeID( bridgeIDstr, "," );
-  mprintf("DEBUG: Frame %i has %i bridging waters.\n", frameNum+1, bridgeID.Nargs());
+  mprintf("DEBUG: Frame %i has %i bridging residues.\n", frameNum+1, bridgeID.Nargs());
 
   return Action::OK;
 }

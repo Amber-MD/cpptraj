@@ -16,7 +16,10 @@ class Action_Keep : public Action {
 
     Action::RetType keepBridge(int, ActionFrame&);
 
-    DataSet_string* bridgeData_; ///< Bridging water ID data set
-    int nbridge_;
+    DataSet_string* bridgeData_; ///< Bridging resdiue ID data set
+    int nbridge_;                ///< Number of bridging residues to keep
+    std::string bridgeResName_;  ///< Bridging residues name
+
+    AtomMask keepMask_;          ///< Mask of atoms to keep
 };
 #endif

@@ -153,6 +153,7 @@
 #include "Action_Time.h"
 #include "Action_DihedralRMS.h"
 #include "Action_MultiPucker.h"
+#include "Action_Keep.h"
 // ----- ANALYSIS --------------------------------------------------------------
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
@@ -336,6 +337,7 @@ void Command::Init() {
   Command::AddCmd( new Action_Image(),         Cmd::ACT, 1, "image" );
   Command::AddCmd( new Action_InfraredSpectrum(),Cmd::ACT,2,"irspec","infraredspec"); // hidden
   Command::AddCmd( new Action_Jcoupling(),     Cmd::ACT, 1, "jcoupling" );
+  Command::AddCmd( new Action_Keep(),          Cmd::ACT, 1, "keep" );
   Command::AddCmd( new Action_LESsplit(),      Cmd::ACT, 1, "lessplit" );
   Command::AddCmd( new Action_LIE(),           Cmd::ACT, 1, "lie" );
   Command::AddCmd( new Action_OrderParameter(),Cmd::ACT, 1, "lipidorder" );
