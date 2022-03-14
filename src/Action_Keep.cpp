@@ -5,6 +5,7 @@
 
 /** CONSTRUCTOR */
 Action_Keep::Action_Keep() :
+  currentParm_(0),
   keepParm_(0),
   bridgeData_(0),
   nbridge_(0)
@@ -69,6 +70,8 @@ Action::RetType Action_Keep::Init(ArgList& actionArgs, ActionInit& init, int deb
 // Action_Keep::Setup()
 Action::RetType Action_Keep::Setup(ActionSetup& setup)
 {
+  currentParm_ = setup.TopPtr();
+
   atomsToKeep_.ClearSelected();
   atomsToKeep_.SetNatoms( setup.Top().Natom() );
 
@@ -171,11 +174,17 @@ Action::RetType Action_Keep::DoAction(int frameNum, ActionFrame& frm)
   if (bridgeData_ != 0)
     err = keepBridge(frameNum, frm);
 
+  if (err == Action::OK) {
+    keepFrame_.SetFrame(frm.Frm(), atomsToKeep_);
+    frm.SetFrame( &keepFrame_ );
+  }
+
   return err;
 }
 
 /** Want to keep only residues specified in a bridge ID data set. */
 Action::RetType Action_Keep::keepBridge(int frameNum, ActionFrame& frm) {
+  atomsToKeep_.ShrinkSelectedTo( nNonBridgeAtoms_ );
   // Ensure we can get data
   if ((unsigned int)frameNum >= bridgeData_->Size()) {
     mprinterr("Error: Frame # %i is out of range for bridge data '%s' (size is %zu)\n",
@@ -189,6 +198,26 @@ Action::RetType Action_Keep::keepBridge(int frameNum, ActionFrame& frm) {
   }
   ArgList bridgeID( bridgeIDstr, "," );
   mprintf("DEBUG: Frame %i has %i bridging residues.\n", frameNum+1, bridgeID.Nargs());
+  if (bridgeID.Nargs() < nbridge_) {
+    mprintf("Warning: Frame %i has fewer bridges than requested (%i).\n", frameNum+1, bridgeID.Nargs());
+    return Action::SUPPRESS_COORD_OUTPUT;
+  }
+  for (int nb = 0; nb != bridgeID.Nargs(); nb++) {
+    // Format: <bres#>(ures0+ures1+...)
+    ArgList bridge( bridgeID[nb], "()+" );
+    if (bridge.Nargs() < 3) {
+      mprinterr("Error: Expected at least 3 args for bridge ID '%s', got %i\n",
+                bridgeID[nb].c_str(), bridge.Nargs());
+      return Action::ERR;
+    }
+    int bres = bridge.getNextInteger(-1);
+    mprintf("DEBUG: Bridge res %i\n", bres+1);
+    // TODO check that bres is in resnums
+
+    Residue const& res = currentParm_->Res(bres);
+    for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
+      atomsToKeep_.AddSelectedAtom( at );
+  }
 
   return Action::OK;
 }

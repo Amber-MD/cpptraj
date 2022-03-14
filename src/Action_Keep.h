@@ -17,6 +17,7 @@ class Action_Keep : public Action {
 
     Action::RetType keepBridge(int, ActionFrame&);
 
+    Topology* currentParm_;
     Topology* keepParm_;         ///< Topology for atoms to keep
     Frame keepFrame_;            ///< Frame for atoms to keep
 
