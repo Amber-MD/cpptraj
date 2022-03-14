@@ -14,6 +14,8 @@ class Action_Keep : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
+    Action::RetType keepBridge(int, ActionFrame&);
+
     DataSet_string* bridgeData_; ///< Bridging water ID data set
     int nbridge_;
 };

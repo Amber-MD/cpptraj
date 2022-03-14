@@ -51,11 +51,34 @@ Action::RetType Action_Keep::Init(ArgList& actionArgs, ActionInit& init, int deb
 // Action_Keep::Setup()
 Action::RetType Action_Keep::Setup(ActionSetup& setup)
 {
-
+  return Action::OK;
 }
 
 // Action_Keep::DoAction()
 Action::RetType Action_Keep::DoAction(int frameNum, ActionFrame& frm)
 {
+  Action::RetType err = Action::OK;
+  if (bridgeData_ != 0)
+    err = keepBridge(frameNum, frm);
 
+  return err;
+}
+
+/** Want to keep only residues specified in a bridge ID data set. */
+Action::RetType Action_Keep::keepBridge(int frameNum, ActionFrame& frm) {
+  // Ensure we can get data
+  if ((unsigned int)frameNum >= bridgeData_->Size()) {
+    mprinterr("Error: Frame # %i is out of range for bridge data '%s' (size is %zu)\n",
+              frameNum+1, bridgeData_->legend(), bridgeData_->Size());
+    return Action::ERR;
+  }
+  std::string const& bridgeIDstr = (*bridgeData_)[frameNum];
+  if (bridgeIDstr == "None") {
+    mprintf("DEBUG: Frame %i has no bridging waters.\n");
+    return Action::SKIP;
+  }
+  ArgList bridgeID( bridgeIDstr, "," );
+  mprintf("DEBUG: Frame %i has %i bridging waters.\n", frameNum+1, bridgeID.Nargs());
+
+  return Action::OK;
 }
