@@ -72,12 +72,6 @@ Action::RetType Action_Strip::Setup(ActionSetup& setup) {
   // Remove box information if asked
   if (topWriter_.ModifyActionState(setup, newParm_))
     return Action::ERR;
-/*  if (removeBoxInfo_) {
-    newParm_->SetParmBox( Box() );
-    newCinfo_ = new CoordinateInfo( setup.CoordInfo() );
-    newCinfo_->SetBox( Box() );
-    setup.SetCoordInfo( newCinfo_ );
-  }*/
   newParm_->Brief("Stripped topology:");
   // Allocate space for new frame
   newFrame_.SetupFrameV(setup.Top().Atoms(), setup.CoordInfo());

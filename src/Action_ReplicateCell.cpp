@@ -155,6 +155,7 @@ Action::RetType Action_ReplicateCell::Setup(ActionSetup& setup) {
       combinedTop_.AppendTop( *stripParm );
     combinedTop_.Brief("Combined parm:");
     delete stripParm;
+    topWriter_.ModifyTop( &combinedTop_ );
     topWriter_.WriteTops( combinedTop_ );
     // Only coordinates for now. FIXME
     combinedFrame_.SetupFrameM(combinedTop_.Atoms());

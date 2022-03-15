@@ -99,3 +99,13 @@ int ActionTopWriter::ModifyActionState(ActionSetup& setup, Topology* topIn)
   }
   return 0;
 }
+
+/** Modify given Topology only. */
+int ActionTopWriter::ModifyTop(Topology* topIn)
+{
+  // Remove box information if asked
+  if (removeBoxInfo_) {
+    topIn->SetParmBox( Box() );
+  }
+  return 0;
+}

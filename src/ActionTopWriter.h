@@ -23,6 +23,8 @@ class ActionTopWriter {
     int WriteTops(Topology const&) const;
     /// Remove box information from Topology/CoordinateInfo
     int ModifyActionState(ActionSetup&, Topology*);
+    /// Remove box information from Topology
+    int ModifyTop(Topology*);
   private:
     std::string prefix_;      ///< Prefix for writing topology as <prefix>.<originalname>
     std::string parmoutName_; ///< Output topology file name
