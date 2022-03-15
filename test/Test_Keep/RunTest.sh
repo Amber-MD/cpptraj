@@ -3,7 +3,8 @@
 . ../MasterTest.sh
 
 CleanFiles keep.in solvavg.dat uvseries.dat hb.dat b.dat \
-           keep.parm7 keep.dcd keep.crd
+           keep.parm7 keep.dcd keep.crd \
+           keep.10.11.parm7 keep.10.11.crd
 
 INPUT='keep.in'
 
@@ -32,5 +33,19 @@ EOF
   DoTest keep.crd.save keep.crd
 fi
 
+UNITNAME='Keep bridging water and selected residues test'
+CheckFor netcdf
+if [ $? -eq 0 ] ; then
+  cat > keep.in <<EOF
+parm ../tz2.ortho.parm7
+trajin ../tz2.ortho.nc
+hbond hb :10,11 solventacceptor :WAT@O solventdonor :WAT
+run
+keep keepmask :10,11 bridgedata hb[ID] parmout keep.10.11.parm7
+trajout keep.10.11.crd
+run
+EOF
+  RunCpptraj "$UNITNAME"
+fi
 
 EndTest
