@@ -168,6 +168,9 @@ Action::RetType Action_Keep::Setup(ActionSetup& setup)
     return Action::ERR;
   }
   setup.SetTopology( keepParm_ );
+  // Modify State if asked
+  if (topWriter_.ModifyActionState(setup, keepParm_))
+    return Action::ERR;
   keepParm_->Brief("Topology for kept atoms:");
   keepFrame_.SetupFrameV( setup.Top().Atoms(), setup.CoordInfo() );
 
