@@ -54,7 +54,7 @@ Action::RetType Action_Keep::Init(ArgList& actionArgs, ActionInit& init, int deb
       return Action::ERR;
     }
     bridgeResName_ = actionArgs.GetStringKey("bridgeresname", "WAT");
-  } else {
+  } else if (!keepMask_.MaskStringSet()) {
     mprinterr("Error: Nothing specified to keep.\n");
     return Action::ERR;
   }
@@ -62,8 +62,11 @@ Action::RetType Action_Keep::Init(ArgList& actionArgs, ActionInit& init, int deb
   topWriter_.InitTopWriter(actionArgs, "keep", debugIn);
 
   mprintf("    KEEP:\n");
+  if (keepMask_.MaskStringSet()) {
+    mprintf("\tKeeping atoms selected by '%s'\n", keepMask_.MaskString());
+  }
   if (bridgeData_ != 0) {
-    mprintf("\tBridge ID data set: %s\n", bridgeData_->legend());
+    mprintf("\tKeeping bridging residues from bridge ID data set: %s\n", bridgeData_->legend());
     mprintf("\t# of bridging residues to keep: %i\n", nbridge_);
     mprintf("\tBridge residue name: %s\n", bridgeResName_.c_str());
   }
