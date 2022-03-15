@@ -4,7 +4,8 @@
 
 CleanFiles keep.in solvavg.dat uvseries.dat hb.dat b.dat \
            keep.parm7 keep.dcd keep.crd \
-           keep.10.11.parm7 keep.10.11.crd
+           keep.10.11.parm7 keep.10.11.crd \
+           res1.tz2.crd
 
 INPUT='keep.in'
 
@@ -46,6 +47,20 @@ trajout keep.10.11.crd
 run
 EOF
   RunCpptraj "$UNITNAME"
+fi
+
+UNITNAME='Basic keep test'
+CheckFor netcdf
+if [ $? -eq 0 ] ; then
+  cat > keep.in <<EOF
+noprogress
+parm ../tz2.parm7
+trajin ../tz2.nc
+keep keepmask :1 nobox
+trajout res1.tz2.crd
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest ../Test_Strip/res1.tz2.crd.save res1.tz2.crd
 fi
 
 EndTest
