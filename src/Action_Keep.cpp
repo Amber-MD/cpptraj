@@ -19,9 +19,10 @@ Action_Keep::~Action_Keep() {
 // Action_Keep::Help()
 void Action_Keep::Help() const {
   mprintf("\t[bridgedata <bridge data set> [nbridge <#>] [bridgeresname <res name>]\n"
-          "\t[keepmask <atoms to keep>]\n"
-          "  Keep only specified parts of the system.\n"
-         );
+          "\t[keepmask <atoms to keep>]\n");
+  mprintf("%s", ActionTopWriter::Keywords());
+  mprintf("  Keep only specified parts of the system.\n");
+  mprintf("%s", ActionTopWriter::Options());
 }
 
 // Action_Keep::Init()
@@ -58,19 +59,22 @@ Action::RetType Action_Keep::Init(ArgList& actionArgs, ActionInit& init, int deb
     return Action::ERR;
   }
 
+  topWriter_.InitTopWriter(actionArgs, "keep", debugIn);
+
   mprintf("    KEEP:\n");
   if (bridgeData_ != 0) {
     mprintf("\tBridge ID data set: %s\n", bridgeData_->legend());
     mprintf("\t# of bridging residues to keep: %i\n", nbridge_);
     mprintf("\tBridge residue name: %s\n", bridgeResName_.c_str());
   }
+  topWriter_.PrintOptions();
   return Action::OK;
 }
 
 // Action_Keep::Setup()
 Action::RetType Action_Keep::Setup(ActionSetup& setup)
 {
-  currentParm_ = setup.TopPtr();
+  currentParm_ = setup.TopAddress();
 
   atomsToKeep_.ClearSelected();
   atomsToKeep_.SetNatoms( setup.Top().Natom() );
@@ -163,6 +167,8 @@ Action::RetType Action_Keep::Setup(ActionSetup& setup)
   setup.SetTopology( keepParm_ );
   keepParm_->Brief("Topology for kept atoms:");
   keepFrame_.SetupFrameV( setup.Top().Atoms(), setup.CoordInfo() );
+
+  topWriter_.WriteTops( *keepParm_ );
     
   return Action::MODIFY_TOPOLOGY;
 }

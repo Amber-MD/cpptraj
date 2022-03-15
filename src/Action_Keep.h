@@ -1,6 +1,7 @@
 #ifndef INC_ACTION_KEEP_H
 #define INC_ACTION_KEEP_H
 #include "Action.h"
+#include "ActionTopWriter.h"
 class DataSet_string;
 /// Keep only specified parts of the system 
 class Action_Keep : public Action {
@@ -20,6 +21,8 @@ class Action_Keep : public Action {
     Topology* currentParm_;
     Topology* keepParm_;         ///< Topology for atoms to keep
     Frame keepFrame_;            ///< Frame for atoms to keep
+
+    ActionTopWriter topWriter_;
 
     //typedef std::pair<int,AtomMask> IdxMaskPairType;
     //typedef std::vector<IdxMaskPairType> IdxMaskPairArray;
