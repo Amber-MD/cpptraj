@@ -210,6 +210,7 @@ Action::RetType Action_Keep::keepBridge(int frameNum, ActionFrame& frm) {
   }
   for (int nb = 0; nb != bridgeID.Nargs(); nb++) {
     // Format: <bres#>(ures0+ures1+...)
+    // bres# indices start from 1
     ArgList bridge( bridgeID[nb], "()+" );
     if (bridge.Nargs() < 3) {
       mprinterr("Error: Expected at least 3 args for bridge ID '%s', got %i\n",
@@ -217,10 +218,10 @@ Action::RetType Action_Keep::keepBridge(int frameNum, ActionFrame& frm) {
       return Action::ERR;
     }
     int bres = bridge.getNextInteger(-1);
-    mprintf("DEBUG: Bridge res %i\n", bres+1);
+    mprintf("DEBUG: Bridge res %i\n", bres);
     // TODO check that bres is in resnums
 
-    Residue const& res = currentParm_->Res(bres);
+    Residue const& res = currentParm_->Res(bres-1);
     for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
       atomsToKeep_.AddSelectedAtom( at );
   }
