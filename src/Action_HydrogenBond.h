@@ -254,8 +254,8 @@ class Action_HydrogenBond::Hbond {
     int H_; ///< Hydrogen atom index
     int D_; ///< Donor atom index
     int frames_; ///< # frames this hydrogen bond has been present
-    std::vector<Stats<double>> partsDist_; ///< Hold avg. distance, split by parts
-    std::vector<Stats<double>> partsAng_;  ///< Hold avg. angle, split by parts
+    std::vector<Stats<double> > partsDist_; ///< Hold avg. distance, split by parts
+    std::vector<Stats<double> > partsAng_;  ///< Hold avg. angle, split by parts
 };
 // -----------------------------------------------------------------------------
 /// Track solvent bridge between 2 or more solute residues.
