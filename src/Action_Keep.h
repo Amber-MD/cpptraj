@@ -18,26 +18,26 @@ class Action_Keep : public Action {
 
     Action::RetType keepBridge(int, ActionFrame&);
 
+    typedef std::vector<char> StatArray;
+    typedef std::vector<int> Iarray;
+
     Topology* currentParm_;
     Topology* keepParm_;         ///< Topology for atoms to keep
     Frame keepFrame_;            ///< Frame for atoms to keep
 
     ActionTopWriter topWriter_;
 
-    //typedef std::pair<int,AtomMask> IdxMaskPairType;
-    //typedef std::vector<IdxMaskPairType> IdxMaskPairArray;
-
-    typedef std::vector<char> StatArray;
     StatArray resStat_;          ///< Hold status of each array
     static const char STAT_NONE_;
     static const char STAT_BRIDGERES_;
     static const char STAT_NONBRIDGERES_;
 
+    // For keeping bridging residues
     DataSet_string* bridgeData_; ///< Bridging resdiue ID data set
     int nbridge_;                ///< Number of bridging residues to keep
     std::string bridgeResName_;  ///< Bridging residues name
     int nNonBridgeAtoms_;        ///< Number of non-bridge atoms, for resizing atomsToKeep_
-    //IdxMaskPairArray idxMaskPair_; ///< For each res to keep, index into keep mask and mask of atoms to keep
+    Iarray bridgeResOnly_;       ///< If set, only keep bridge when bridging these residues
 
     AtomMask keepMask_;          ///< Mask of atoms to keep no matter what.
 

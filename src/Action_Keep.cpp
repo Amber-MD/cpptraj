@@ -137,32 +137,43 @@ Action::RetType Action_Keep::Setup(ActionSetup& setup)
       resStat_[*rnum] = STAT_BRIDGERES_;
     }
     mprintf("\tBridge residue size= %i\n", resSize);
+    // This character mask will be used if keepMask is not set.
+    CharMask cmask;
     if (!keepMask_.MaskStringSet()) {
       // Keep all atoms not in the bridge mask
-      CharMask cmask( bmask.ConvertToCharMask(), bmask.Nselected() );
+      cmask = CharMask( bmask.ConvertToCharMask(), bmask.Nselected() );
       for (int idx = 0; idx != setup.Top().Natom(); idx++) {
         if (!cmask.AtomInCharMask(idx)) {
           atomsToKeep_.AddSelectedAtom( idx );
-          resStat_[ setup.Top()[idx].ResNum() ] = STAT_NONBRIDGERES_;
         }
       }
-    } else {
+    }
+    // Set up non-bridge residue status
+    if (!bridgeResOnly_.empty()) {
+      for (Iarray::const_iterator it = bridgeResOnly_.begin(); it != bridgeResOnly_.end(); ++it)
+        if (*it < 0 || *it >= setup.Top().Nres()) {
+          mprinterr("Error: Residue # %i for bridgeresonly out of range.\n", *it+1);
+          return Action::ERR;
+        }
+    } else if (keepMask_.MaskStringSet()) {
       for (AtomMask::const_iterator at = keepMask_.begin(); at != keepMask_.end(); ++at)
         resStat_[ setup.Top()[*at].ResNum() ] = STAT_NONBRIDGERES_;
+    } else {
+      for (int idx = 0; idx != setup.Top().Natom(); idx++) {
+        if (!cmask.AtomInCharMask(idx))
+          resStat_[ setup.Top()[idx].ResNum() ] = STAT_NONBRIDGERES_;
+      }
     }
     // Will keep only the first nbridge_ residues
     if ((unsigned int)nbridge_ > Rnums.size()) {
       mprinterr("Error: Number of bridge residues to keep (%i) > number of potential bridge residues (%zu).\n", nbridge_, Rnums.size());
       return Action::ERR;
     }
-    //idxMaskPair_.clear();
     nNonBridgeAtoms_ = atomsToKeep_.Nselected();
     for (int ridx = 0; ridx < nbridge_; ridx++) {
       Residue const& res = setup.Top().Res(Rnums[ridx]);
-      //idxMaskPair_.push_back( IdxMaskPairType(selectedIdx, AtomMask()) );
       for (int at = res.FirstAtom(); at != res.LastAtom(); at++) {
         atomsToKeep_.AddSelectedAtom( at );
-        //idxMaskPair_.back().second.AddSelectedAtom(
       }
     }
   } // END bridgeData
