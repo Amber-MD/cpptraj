@@ -25,7 +25,7 @@ class Silhouette {
     /// Used to hold SilPairArray for each cluster
     typedef std::vector<SilPairArray> SilFrameArray;
     /// Used to hold average silhouette value for each cluster 
-    typedef std::vector<Stats<double>> Darray;
+    typedef std::vector<Stats<double> > Darray;
 
     /// Initialize with frame silhouette index type
     int Init(IdxType);
