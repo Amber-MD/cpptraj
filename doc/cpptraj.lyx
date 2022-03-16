@@ -29172,7 +29172,7 @@ name "subsec:cpptraj-keep"
 \end_layout
 
 \begin_layout LyX-Code
-keep [ bridgedata <bridge data set> [nbridge <#>] 
+keep [ bridgedata <bridge data set> [nbridge <#>] [nobridgewarn]
 \end_layout
 
 \begin_layout LyX-Code
@@ -29231,6 +29231,11 @@ nbridge
 \end_inset
 
 <#> Number of bridging residues to keep (default 1).
+\end_layout
+
+\begin_layout Description
+nobridgewarn If specified, suppress warnings for when active # bridges does
+ not equal requested number.
 \end_layout
 
 \begin_layout Description
