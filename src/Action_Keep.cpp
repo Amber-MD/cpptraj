@@ -2,6 +2,7 @@
 #include "CharMask.h"
 #include "CpptrajStdio.h"
 #include "DataSet_string.h"
+#include "Range.h"
 
 /** CONSTRUCTOR */
 Action_Keep::Action_Keep() :
@@ -59,6 +60,18 @@ Action::RetType Action_Keep::Init(ArgList& actionArgs, ActionInit& init, int deb
       return Action::ERR;
     }
     bridgeResName_ = actionArgs.GetStringKey("bridgeresname", "WAT");
+    std::string bridgeresonlystr = actionArgs.GetStringKey("bridgeresonly");
+    if (!bridgeresonlystr.empty()) {
+      Range brange;
+      if (brange.SetRange( bridgeresonlystr )) {
+        mprinterr("Error: Invalid range given for 'bridgeresonly': %s\n", bridgeresonlystr.c_str());
+        return Action::ERR;
+      }
+      // User residue numbers start from 1
+      bridgeResOnly_.clear();
+      for (Range::const_iterator it = brange.begin(); it != brange.end(); ++it)
+        bridgeResOnly_.push_back( *it - 1 );
+    }
   } else if (!keepMask_.MaskStringSet()) {
     mprinterr("Error: Nothing specified to keep.\n");
     return Action::ERR;
@@ -74,6 +87,12 @@ Action::RetType Action_Keep::Init(ArgList& actionArgs, ActionInit& init, int deb
     mprintf("\tKeeping bridging residues from bridge ID data set: %s\n", bridgeData_->legend());
     mprintf("\t# of bridging residues to keep: %i\n", nbridge_);
     mprintf("\tBridge residue name: %s\n", bridgeResName_.c_str());
+    if (!bridgeResOnly_.empty()) {
+      mprintf("\tOnly keeping bridge residues when bridging residues:");
+      for (Iarray::const_iterator it = bridgeResOnly_.begin(); it != bridgeResOnly_.end(); ++it)
+        mprintf(" %i", *it + 1);
+      mprintf("\n");
+    }
   }
   topWriter_.PrintOptions();
   return Action::OK;
@@ -242,28 +261,51 @@ Action::RetType Action_Keep::keepBridge(int frameNum, ActionFrame& frm) {
     mprintf("Warning: Frame %i has fewer bridges than requested (%i).\n", frameNum+1, bridgeID.Nargs());
     return Action::SUPPRESS_COORD_OUTPUT;
   }
+  int nBridgeInFrame = 0;
   for (int nb = 0; nb != bridgeID.Nargs(); nb++) {
     // Format: <bres#>(ures0+ures1+...)
-    // bres# indices start from 1
     ArgList bridge( bridgeID[nb], "()+" );
     if (bridge.Nargs() < 3) {
       mprinterr("Error: Expected at least 3 args for bridge ID '%s', got %i\n",
                 bridgeID[nb].c_str(), bridge.Nargs());
       return Action::ERR;
     }
-    int bres = bridge.getNextInteger(-1);
-    mprintf("DEBUG: Bridge res %i\n", bres);
+    // bres# indices start from 1
+    int bres = bridge.getNextInteger(0) - 1;
+    mprintf("DEBUG: Bridge res %i\n", bres+1);
     // Check that bres is actually a bridging residue
-    if (bres < 1) {
-      mprinterr("Error: Invalid bridging residue # %i for bridge '%s'\n", bres, bridge.ArgLine());
-    } else if ( resStat_[bres-1] != STAT_BRIDGERES_ ) {
+    if (bres < 0) {
+      mprinterr("Error: Invalid bridging residue # %i for bridge '%s'\n", bres+1, bridge.ArgLine());
+    } else if ( resStat_[bres] != STAT_BRIDGERES_ ) {
       mprinterr("Error: Residue %s listed as bridging but was not selected by 'bridgeresname'.\n",
-                currentParm_->TruncResNameNum(bres-1).c_str());
+                currentParm_->TruncResNameNum(bres).c_str());
     }
-
-    Residue const& res = currentParm_->Res(bres-1);
-    for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
-      atomsToKeep_.AddSelectedAtom( at );
+    // Check that residues being bridged are active
+    bool bridgeIsActive = true;
+    int nBres = bridge.getNextInteger(0) - 1;
+    while (nBres > -1) {
+      if ( resStat_[nBres] != STAT_NONBRIDGERES_ ) {
+        bridgeIsActive = false;
+        break;
+      }
+      nBres = bridge.getNextInteger(0) - 1;
+    }
+    if (bridgeIsActive) {
+      nBridgeInFrame++;
+      if (nBridgeInFrame > nbridge_) {
+        mprintf("Warning: More bridges in frame %i (%i) than specified (%i); skipping.\n",
+                frameNum+1, nBridgeInFrame, nbridge_);
+        return SUPPRESS_COORD_OUTPUT;
+      }
+      Residue const& res = currentParm_->Res(bres);
+      for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
+        atomsToKeep_.AddSelectedAtom( at );
+    }
+  }
+  if (nBridgeInFrame < nbridge_) {
+    mprintf("Warning: Fewer bridges in frame %i (%i) than specified (%i); skipping.\n",
+            frameNum+1, nBridgeInFrame, nbridge_);
+    return SUPPRESS_COORD_OUTPUT;
   }
 
   return Action::OK;
