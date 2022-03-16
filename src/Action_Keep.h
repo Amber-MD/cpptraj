@@ -27,6 +27,12 @@ class Action_Keep : public Action {
     //typedef std::pair<int,AtomMask> IdxMaskPairType;
     //typedef std::vector<IdxMaskPairType> IdxMaskPairArray;
 
+    typedef std::vector<char> StatArray;
+    StatArray resStat_;          ///< Hold status of each array
+    static const char STAT_NONE_;
+    static const char STAT_BRIDGERES_;
+    static const char STAT_NONBRIDGERES_;
+
     DataSet_string* bridgeData_; ///< Bridging resdiue ID data set
     int nbridge_;                ///< Number of bridging residues to keep
     std::string bridgeResName_;  ///< Bridging residues name

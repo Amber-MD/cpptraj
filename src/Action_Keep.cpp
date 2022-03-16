@@ -16,9 +16,14 @@ Action_Keep::~Action_Keep() {
   if (keepParm_ != 0) delete keepParm_;
 }
 
+// Residue status characters
+const char Action_Keep::STAT_NONE_ = 'X';
+const char Action_Keep::STAT_BRIDGERES_ = 'B';
+const char Action_Keep::STAT_NONBRIDGERES_ = 'U';
+
 // Action_Keep::Help()
 void Action_Keep::Help() const {
-  mprintf("\t[bridgedata <bridge data set> [nbridge <#>] [bridgeresname <res name>]\n"
+  mprintf("\t[bridgedata <bridge data set> [nbridge <#>] [bridgeresname <res name>]]\n"
           "\t[keepmask <atoms to keep>]\n");
   mprintf("%s", ActionTopWriter::Keywords());
   mprintf("  Keep only specified parts of the system.\n");
@@ -82,6 +87,8 @@ Action::RetType Action_Keep::Setup(ActionSetup& setup)
   atomsToKeep_.ClearSelected();
   atomsToKeep_.SetNatoms( setup.Top().Natom() );
 
+  resStat_.assign( setup.Top().Nres(), STAT_NONE_ );
+
   if (keepMask_.MaskStringSet()) {
     if (setup.Top().SetupIntegerMask( keepMask_ )) {
       mprinterr("Error: Could not set up keep mask '%s'\n", keepMask_.MaskString());
@@ -127,14 +134,21 @@ Action::RetType Action_Keep::Setup(ActionSetup& setup)
                   setup.Top().Res(*rnum).NumAtoms(), resSize);
         return Action::ERR;
       }
+      resStat_[*rnum] = STAT_BRIDGERES_;
     }
     mprintf("\tBridge residue size= %i\n", resSize);
     if (!keepMask_.MaskStringSet()) {
       // Keep all atoms not in the bridge mask
       CharMask cmask( bmask.ConvertToCharMask(), bmask.Nselected() );
-      for (int idx = 0; idx != setup.Top().Natom(); idx++)
-        if (!cmask.AtomInCharMask(idx))
+      for (int idx = 0; idx != setup.Top().Natom(); idx++) {
+        if (!cmask.AtomInCharMask(idx)) {
           atomsToKeep_.AddSelectedAtom( idx );
+          resStat_[ setup.Top()[idx].ResNum() ] = STAT_NONBRIDGERES_;
+        }
+      }
+    } else {
+      for (AtomMask::const_iterator at = keepMask_.begin(); at != keepMask_.end(); ++at)
+        resStat_[ setup.Top()[*at].ResNum() ] = STAT_NONBRIDGERES_;
     }
     // Will keep only the first nbridge_ residues
     if ((unsigned int)nbridge_ > Rnums.size()) {
@@ -151,9 +165,12 @@ Action::RetType Action_Keep::Setup(ActionSetup& setup)
         //idxMaskPair_.back().second.AddSelectedAtom(
       }
     }
-    
-
   } // END bridgeData
+
+  // DEBUG: Print res stat
+  for (int rnum = 0; rnum != setup.Top().Nres(); rnum++) {
+    mprintf("DEBUG: Res %20s stat %c\n", setup.Top().TruncResNameNum(rnum).c_str(), resStat_[rnum]);
+  }
 
   // Create topology with only atoms to keep
   if (keepParm_ != 0)
@@ -225,7 +242,13 @@ Action::RetType Action_Keep::keepBridge(int frameNum, ActionFrame& frm) {
     }
     int bres = bridge.getNextInteger(-1);
     mprintf("DEBUG: Bridge res %i\n", bres);
-    // TODO check that bres is in resnums
+    // Check that bres is actually a bridging residue
+    if (bres < 1) {
+      mprinterr("Error: Invalid bridging residue # %i for bridge '%s'\n", bres, bridge.ArgLine());
+    } else if ( resStat_[bres-1] != STAT_BRIDGERES_ ) {
+      mprinterr("Error: Residue %s listed as bridging but was not selected by 'bridgeresname'.\n",
+                currentParm_->TruncResNameNum(bres-1).c_str());
+    }
 
     Residue const& res = currentParm_->Res(bres-1);
     for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
