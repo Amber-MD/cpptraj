@@ -5,7 +5,8 @@
 CleanFiles keep.in solvavg.dat uvseries.dat hb.dat b.dat \
            keep.parm7 keep.dcd keep.crd \
            keep.10.11.parm7 keep.10.11.crd \
-           res1.tz2.crd
+           res1.tz2.crd \
+           hb.2.dat keep.onlyone.crd
 
 INPUT='keep.in'
 
@@ -62,5 +63,27 @@ EOF
   RunCpptraj "$UNITNAME"
   DoTest ../Test_Strip/res1.tz2.crd.save res1.tz2.crd
 fi
+
+UNITNAME='Keep only 1 bridging water test'
+CheckFor netcdf
+if [ $? -eq 0 ] ; then
+  cat > keep.in <<EOF
+noprogress
+parm ../tz2.ortho.parm7
+trajin ../tz2.ortho.nc
+# First pass, generate bridge time series
+hbond hb solventacceptor :WAT@O solventdonor :WAT out hb.2.dat
+run
+#writedata b.dat hb[bridge_10_11]
+# Second pass, retain only frames where the bridge is present
+
+keep bridgedata hb[ID] nbridge 1 
+trajout keep.onlyone.crd
+run
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest keep.onlyone.crd.save keep.onlyone.crd
+fi
+
 
 EndTest
