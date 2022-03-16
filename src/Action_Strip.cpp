@@ -4,20 +4,18 @@
 
 // CONSTRUCTOR
 Action_Strip::Action_Strip() :
-  newParm_(0), newCinfo_(0), masterDSL_(0), removeBoxInfo_(false) {}
+  newParm_(0), masterDSL_(0) {}
 
 void Action_Strip::Help() const {
-  mprintf("\t<mask> [nobox]\n");
+  mprintf("\t<mask>\n");
   mprintf("%s", ActionTopWriter::Keywords());
-  mprintf("  Strip atoms in <mask> from the system. If 'nobox' specified,\n"
-          "  remove any unit cell info.\n");
+  mprintf("  Strip atoms in <mask> from the system.\n");
   mprintf("%s", ActionTopWriter::Options());
 }
 
 // DESTRUCTOR
 Action_Strip::~Action_Strip() {
   if (newParm_!=0) delete newParm_;
-  if (newCinfo_ != 0) delete newCinfo_;
 }
 
 // Action_Strip::Init()
@@ -25,7 +23,6 @@ Action::RetType Action_Strip::Init(ArgList& actionArgs, ActionInit& init, int de
 {
   // Get output stripped parm filename
   topWriter_.InitTopWriter(actionArgs, "stripped", debugIn);
-  removeBoxInfo_ = actionArgs.hasKey("nobox");
 
   // Get mask of atoms to be stripped
   std::string mask1 = actionArgs.GetMaskNext();
@@ -42,8 +39,6 @@ Action::RetType Action_Strip::Init(ArgList& actionArgs, ActionInit& init, int de
 
   mprintf("    STRIP: Stripping atoms in mask [%s]\n", M1_.MaskString());
   topWriter_.PrintOptions();
-  if (removeBoxInfo_)
-    mprintf("\tAny existing box information will be removed.\n");
   masterDSL_ = init.DslPtr();
   return Action::OK;
 }
@@ -75,12 +70,8 @@ Action::RetType Action_Strip::Setup(ActionSetup& setup) {
   }
   setup.SetTopology( newParm_ );
   // Remove box information if asked
-  if (removeBoxInfo_) {
-    newParm_->SetParmBox( Box() );
-    newCinfo_ = new CoordinateInfo( setup.CoordInfo() );
-    newCinfo_->SetBox( Box() );
-    setup.SetCoordInfo( newCinfo_ );
-  }
+  if (topWriter_.ModifyActionState(setup, newParm_))
+    return Action::ERR;
   newParm_->Brief("Stripped topology:");
   // Allocate space for new frame
   newFrame_.SetupFrameV(setup.Top().Atoms(), setup.CoordInfo());

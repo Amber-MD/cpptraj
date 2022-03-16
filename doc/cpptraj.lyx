@@ -17961,7 +17961,7 @@ Mod
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="87" columns="3">
+<lyxtabular version="3" rows="88" columns="3">
 <features islongtable="true" longtabularalignment="center">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="65text%">
@@ -19103,6 +19103,35 @@ Calculate J-coupling values from specified dihedral angles.
 \begin_inset Text
 
 \begin_layout Plain Layout
+keep
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Keep specified atoms in system.
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+X
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
 lessplit
 \end_layout
 
@@ -20141,7 +20170,7 @@ Remove specified atoms from the system.
 \begin_inset Text
 
 \begin_layout Plain Layout
-
+X
 \end_layout
 
 \end_inset
@@ -22433,7 +22462,7 @@ closest
 \end_layout
 
 \begin_layout LyX-Code
-    	[outprefix <prefix>] [parmout <filename>]
+    	[outprefix <prefix>] [nobox] [parmout <filename>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -22534,6 +22563,10 @@ oxygen] Calculate distances between all atoms in
 <prefix>
 \series default
 .
+\end_layout
+
+\begin_layout Description
+[nobox] Remove any box information from the topology.
 \end_layout
 
 \begin_layout Description
@@ -25394,7 +25427,7 @@ fixatomorder
 \end_layout
 
 \begin_layout LyX-Code
-fixatomorder [outprefix <prefix>] [parmout <filename>] 
+fixatomorder [outprefix <prefix>] [nobox] [parmout <filename>] 
 \end_layout
 
 \begin_layout LyX-Code
@@ -25412,6 +25445,10 @@ outprefix
 \end_inset
 
 <prefix> Write re-ordered topology to <prefix>.<originalname>
+\end_layout
+
+\begin_layout Description
+[nobox] Remove any box information from the re-ordered topology.
 \end_layout
 
 \begin_layout Description
@@ -28464,6 +28501,23 @@ The number of hydrogen bonds present at each frame will be determined and
 out
 \series default
 .
+ If desired, the bridge [ID] data can be used in conjunction with the 
+\series bold
+\emph on
+keep
+\series default
+\emph default
+ command to generate structures that only contain bridging solvent (
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-keep"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
  If the 
 \series bold
 series
@@ -29104,6 +29158,256 @@ cpptraj
 \family default
 \shape default
  format, only the J-coupling value is written.
+\end_layout
+
+\begin_layout Subsection
+keep
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj-keep"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout LyX-Code
+keep [ bridgedata <bridge data set> [nbridge <#>] [nobridgewarn]
+\end_layout
+
+\begin_layout LyX-Code
+      [bridgeresname <res name>] bridgeresonly <resrange>] ]
+\end_layout
+
+\begin_layout LyX-Code
+     [keepmask <atoms to keep>]
+\end_layout
+
+\begin_layout LyX-Code
+     [outprefix <prefix>] [nobox] [parmout <filename>]
+\end_layout
+
+\begin_layout LyX-Code
+     [parmopts <comma-separated-list>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+bridgedata
+\begin_inset space ~
+\end_inset
+
+<bridge
+\begin_inset space ~
+\end_inset
+
+data
+\begin_inset space ~
+\end_inset
+
+set> Data set containing bridge ID strings from the 
+\series bold
+\emph on
+hbond
+\series default
+\emph default
+ command (
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-hbond"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+nbridge
+\begin_inset space ~
+\end_inset
+
+<#> Number of bridging residues to keep (default 1).
+\end_layout
+
+\begin_layout Description
+nobridgewarn If specified, suppress warnings for when active # bridges does
+ not equal requested number.
+\end_layout
+
+\begin_layout Description
+bridgeresname
+\begin_inset space ~
+\end_inset
+
+<res
+\begin_inset space ~
+\end_inset
+
+name> Name of bridging residues (default 'WAT').
+\end_layout
+
+\begin_layout Description
+bridgeresonly
+\begin_inset space ~
+\end_inset
+
+<range> If specified, only keep bridges that bridge residues in the <resrange>
+ list.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+keepmask
+\begin_inset space ~
+\end_inset
+
+<atoms
+\begin_inset space ~
+\end_inset
+
+to
+\begin_inset space ~
+\end_inset
+
+keep> Mask of atoms to keep.
+\end_layout
+
+\begin_layout Description
+outprefix
+\begin_inset space ~
+\end_inset
+
+<prefix> Write modified topology to <prefix>.<originalname>
+\end_layout
+
+\begin_layout Description
+[nobox] Remove any box information from the modified topology.
+\end_layout
+
+\begin_layout Description
+parmout
+\begin_inset space ~
+\end_inset
+
+<filename> Write modified topology to <filename>.
+\end_layout
+
+\begin_layout Description
+parmopts
+\begin_inset space ~
+\end_inset
+
+<list> Options for writing topology file.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Keep only specified atoms (opposite of 
+\series bold
+\emph on
+strip
+\series default
+\emph default
+).
+ This can also be used in conjunction with output from the 
+\series bold
+\emph on
+hbond
+\series default
+\emph default
+ command to retain solute and only bridging residues (e.g.
+ bridging waters).
+ For example, the following run generates bridging data with the 
+\series bold
+\emph on
+'hbond'
+\series default
+\emph default
+ command in a first pass, then uses the bridge ID data to retain only 1
+ single bridging water between residues 10 and 11:
+\end_layout
+
+\begin_layout LyX-Code
+parm tz2.ortho.parm7
+\end_layout
+
+\begin_layout LyX-Code
+trajin tz2.ortho.nc 
+\end_layout
+
+\begin_layout LyX-Code
+# First pass, generate bridge time series 
+\end_layout
+
+\begin_layout LyX-Code
+hbond hb solventacceptor :WAT@O solventdonor :WAT out hb.dat
+\end_layout
+
+\begin_layout LyX-Code
+run
+\end_layout
+
+\begin_layout LyX-Code
+# Second pass, retain only frames where the bridge is present
+\end_layout
+
+\begin_layout LyX-Code
+# for residues 10 and 11.
+\end_layout
+
+\begin_layout LyX-Code
+keep bridgedata hb[ID] nbridge 1 bridgeresonly 10,11 parmout keep.parm7
+\end_layout
+
+\begin_layout LyX-Code
+# Write trajectory
+\end_layout
+
+\begin_layout LyX-Code
+trajout keep.nc
+\end_layout
+
+\begin_layout LyX-Code
+run
+\end_layout
+
+\begin_layout Standard
+This run reads in bridge ID data from a previous hbond run and uses it to
+ keep only residues 10, 11, and a bridging water:
+\end_layout
+
+\begin_layout LyX-Code
+parm tz2.ortho.parm7
+\end_layout
+
+\begin_layout LyX-Code
+trajin tz2.ortho.nc
+\end_layout
+
+\begin_layout LyX-Code
+readdata hb.dat
+\end_layout
+
+\begin_layout LyX-Code
+keep keepmask :10,11 bridgedata hb.dat:5 nbridge 1 bridgesonly 10,11 
+\backslash
+
+\end_layout
+
+\begin_layout LyX-Code
+  parmout keep.10.11.parm7
+\end_layout
+
+\begin_layout LyX-Code
+trajout keep.10.11.nc
+\end_layout
+
+\begin_layout LyX-Code
+run 
 \end_layout
 
 \begin_layout Subsection
@@ -34557,7 +34861,7 @@ remap data <setname>
 \end_layout
 
 \begin_layout LyX-Code
-      [outprefix <prefix>] [parmout <filename>]
+      [outprefix <prefix>] [nobox] [parmout <filename>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -34580,6 +34884,10 @@ outprefix
 \end_inset
 
 <prefix> Write remapped topology to <prefix>.<originalname>
+\end_layout
+
+\begin_layout Description
+[nobox] Remove any box information from the remapped topology.
 \end_layout
 
 \begin_layout Description
@@ -34627,7 +34935,7 @@ replicatecell [out <traj filename>] [name <dsname>]
 \end_layout
 
 \begin_layout LyX-Code
-          	[outprefix <prefix>] [parmout <filename>]
+          	[outprefix <prefix>] [nobox] [parmout <filename>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -34684,6 +34992,10 @@ outprefix
 \end_inset
 
 <prefix> Write replicated topology to <prefix>.<originalname>
+\end_layout
+
+\begin_layout Description
+[nobox] Remove any box information from the replicated topology.
 \end_layout
 
 \begin_layout Description
@@ -36883,11 +37195,11 @@ strip
 
 \end_inset
 
- <mask> [nobox]
+ <mask> 
 \end_layout
 
 \begin_layout LyX-Code
-  	[outprefix <prefix>] [parmout <filename>]
+  	[outprefix <prefix>] [nobox] [parmout <filename>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -36904,16 +37216,16 @@ strip
 \end_layout
 
 \begin_layout Description
-[nobox] Remove any box information from the stripped topology.
-\end_layout
-
-\begin_layout Description
 [outprefix
 \begin_inset space ~
 \end_inset
 
 <prefix>] Write out stripped topology file with name '<prefix>.<Original
  Topology Name>'.
+\end_layout
+
+\begin_layout Description
+[nobox] Remove any box information from the stripped topology.
 \end_layout
 
 \begin_layout Description

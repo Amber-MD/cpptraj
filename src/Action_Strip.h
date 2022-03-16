@@ -16,11 +16,9 @@ class Action_Strip: public Action {
     void Print() {}
 
     Topology* newParm_;
-    CoordinateInfo* newCinfo_;
     DataSetList* masterDSL_;
     Frame newFrame_;
     AtomMask M1_;
-    bool removeBoxInfo_;
     ActionTopWriter topWriter_;
 };
 #endif
