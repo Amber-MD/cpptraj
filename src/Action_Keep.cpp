@@ -24,7 +24,8 @@ const char Action_Keep::STAT_NONBRIDGERES_ = 'U';
 
 // Action_Keep::Help()
 void Action_Keep::Help() const {
-  mprintf("\t[bridgedata <bridge data set> [nbridge <#>] [bridgeresname <res name>]]\n"
+  mprintf("\t[ bridgedata <bridge data set> [nbridge <#>]\n"
+          "\t [bridgeresname <res name>] bridgeresonly <resrange>] ]\n"
           "\t[keepmask <atoms to keep>]\n");
   mprintf("%s", ActionTopWriter::Keywords());
   mprintf("  Keep only specified parts of the system.\n");
