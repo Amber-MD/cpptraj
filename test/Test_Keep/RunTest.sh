@@ -45,7 +45,7 @@ trajin ../tz2.ortho.nc
 
 readdata hb.dat
 
-keep keepmask :10,11 bridgedata hb.dat:5 parmout keep.10.11.parm7
+keep keepmask :10,11 bridgedata hb.dat:5 parmout keep.10.11.parm7 nobridgewarn
 trajout keep.10.11.crd
 run
 EOF

@@ -39,6 +39,7 @@ class Action_Keep : public Action {
     int nbridge_;                ///< Number of bridging residues to keep
     std::string bridgeResName_;  ///< Bridging residues name
     Iarray bridgeResOnly_;       ///< If set, only keep bridge when bridging these residues
+    bool bridgeWarn_;            ///< If true, warn when # active bridges doesnt match
     int nNonBridgeAtoms_;        ///< Number of non-bridge atoms, for resizing atomsToKeep_
 
     AtomMask keepMask_;          ///< Mask of atoms to keep no matter what.

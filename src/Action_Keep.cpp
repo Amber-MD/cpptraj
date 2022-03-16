@@ -10,7 +10,9 @@ Action_Keep::Action_Keep() :
   currentParm_(0),
   keepParm_(0),
   bridgeData_(0),
-  nbridge_(0)
+  nbridge_(0),
+  bridgeWarn_(true),
+  nNonBridgeAtoms_(-1)
 {}
 
 /** DESTRUCTOR */
@@ -25,7 +27,7 @@ const char Action_Keep::STAT_NONBRIDGERES_ = 'U';
 
 // Action_Keep::Help()
 void Action_Keep::Help() const {
-  mprintf("\t[ bridgedata <bridge data set> [nbridge <#>]\n"
+  mprintf("\t[ bridgedata <bridge data set> [nbridge <#>] [nobridgewarn]\n"
           "\t [bridgeresname <res name>] bridgeresonly <resrange>] ]\n"
           "\t[keepmask <atoms to keep>]\n");
   mprintf("%s", ActionTopWriter::Keywords());
@@ -75,6 +77,7 @@ Action::RetType Action_Keep::Init(ArgList& actionArgs, ActionInit& init, int deb
       for (Range::const_iterator it = brange.begin(); it != brange.end(); ++it)
         bridgeResOnly_.push_back( *it - 1 );
     }
+    bridgeWarn_ = !actionArgs.hasKey("nobridgewarn");
   } else if (!keepMask_.MaskStringSet()) {
     mprinterr("Error: Nothing specified to keep.\n");
     return Action::ERR;
@@ -96,6 +99,10 @@ Action::RetType Action_Keep::Init(ArgList& actionArgs, ActionInit& init, int deb
         mprintf(" %i", *it + 1);
       mprintf("\n");
     }
+    if (bridgeWarn_)
+      mprintf("\tWill warn when # active bridges does not match requested.\n");
+    else
+      mprintf("\tHiding warnings for when # active bridges does not match requested.\n");
   }
   topWriter_.PrintOptions();
   return Action::OK;
@@ -260,14 +267,16 @@ Action::RetType Action_Keep::keepBridge(int frameNum, ActionFrame& frm) {
   }
   std::string const& bridgeIDstr = (*bridgeData_)[frameNum];
   if (bridgeIDstr == "None") {
-    mprintf("Warning: Frame %i has no bridging residues.\n", frameNum+1);
+    if (bridgeWarn_)
+      mprintf("Warning: Frame %i has no bridging residues.\n", frameNum+1);
     return Action::SUPPRESS_COORD_OUTPUT;
   }
   ArgList bridgeID( bridgeIDstr, "," );
   if (debug_ > 0)
     mprintf("DEBUG: Frame %i has %i bridging residues.\n", frameNum+1, bridgeID.Nargs());
   if (bridgeID.Nargs() < nbridge_) {
-    mprintf("Warning: Frame %i has fewer total bridges than requested (%i).\n", frameNum+1, bridgeID.Nargs());
+    if (bridgeWarn_)
+      mprintf("Warning: Frame %i has fewer total bridges than requested (%i).\n", frameNum+1, bridgeID.Nargs());
     return Action::SUPPRESS_COORD_OUTPUT;
   }
   int nBridgeInFrame = 0;
@@ -303,8 +312,9 @@ Action::RetType Action_Keep::keepBridge(int frameNum, ActionFrame& frm) {
     if (bridgeIsActive) {
       nBridgeInFrame++;
       if (nBridgeInFrame > nbridge_) {
-        mprintf("Warning: More active bridges in frame %i (%i) than specified (%i); skipping.\n",
-                frameNum+1, nBridgeInFrame, nbridge_);
+        if (bridgeWarn_)
+          mprintf("Warning: More active bridges in frame %i (%i) than specified (%i); skipping.\n",
+                  frameNum+1, nBridgeInFrame, nbridge_);
         return SUPPRESS_COORD_OUTPUT;
       }
       Residue const& res = currentParm_->Res(bres);
@@ -313,8 +323,9 @@ Action::RetType Action_Keep::keepBridge(int frameNum, ActionFrame& frm) {
     }
   }
   if (nBridgeInFrame < nbridge_) {
-    mprintf("Warning: Fewer active bridges in frame %i (%i) than specified (%i); skipping.\n",
-            frameNum+1, nBridgeInFrame, nbridge_);
+    if (bridgeWarn_)
+      mprintf("Warning: Fewer active bridges in frame %i (%i) than specified (%i); skipping.\n",
+              frameNum+1, nBridgeInFrame, nbridge_);
     return SUPPRESS_COORD_OUTPUT;
   }
 
