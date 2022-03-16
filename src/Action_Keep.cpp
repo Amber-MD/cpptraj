@@ -170,10 +170,13 @@ Action::RetType Action_Keep::Setup(ActionSetup& setup)
     // Set up non-bridge residue status
     if (!bridgeResOnly_.empty()) {
       for (Iarray::const_iterator it = bridgeResOnly_.begin(); it != bridgeResOnly_.end(); ++it)
+      {
         if (*it < 0 || *it >= setup.Top().Nres()) {
           mprinterr("Error: Residue # %i for bridgeresonly out of range.\n", *it+1);
           return Action::ERR;
         }
+        resStat_[ *it ] = STAT_NONBRIDGERES_;
+      }
     } else if (keepMask_.MaskStringSet()) {
       for (AtomMask::const_iterator at = keepMask_.begin(); at != keepMask_.end(); ++at)
         resStat_[ setup.Top()[*at].ResNum() ] = STAT_NONBRIDGERES_;
