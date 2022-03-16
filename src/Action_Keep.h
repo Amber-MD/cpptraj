@@ -21,6 +21,8 @@ class Action_Keep : public Action {
     typedef std::vector<char> StatArray;
     typedef std::vector<int> Iarray;
 
+    int debug_;
+
     Topology* currentParm_;
     Topology* keepParm_;         ///< Topology for atoms to keep
     Frame keepFrame_;            ///< Frame for atoms to keep

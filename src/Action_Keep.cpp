@@ -6,6 +6,7 @@
 
 /** CONSTRUCTOR */
 Action_Keep::Action_Keep() :
+  debug_(0),
   currentParm_(0),
   keepParm_(0),
   bridgeData_(0),
@@ -35,6 +36,7 @@ void Action_Keep::Help() const {
 // Action_Keep::Init()
 Action::RetType Action_Keep::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+  debug_ = debugIn;
   std::string keepmaskstr = actionArgs.GetStringKey("keepmask");
   if (!keepmaskstr.empty()) {
     if ( keepMask_.SetMaskString( keepmaskstr )) {
@@ -202,8 +204,10 @@ Action::RetType Action_Keep::Setup(ActionSetup& setup)
   } // END bridgeData
 
   // DEBUG: Print res stat
-  for (int rnum = 0; rnum != setup.Top().Nres(); rnum++) {
-    mprintf("DEBUG: Res %20s stat %c\n", setup.Top().TruncResNameNum(rnum).c_str(), resStat_[rnum]);
+  if (debug_ > 1) {
+    for (int rnum = 0; rnum != setup.Top().Nres(); rnum++) {
+      mprintf("DEBUG: Res %20s stat %c\n", setup.Top().TruncResNameNum(rnum).c_str(), resStat_[rnum]);
+    }
   }
 
   // Create topology with only atoms to keep
@@ -256,13 +260,14 @@ Action::RetType Action_Keep::keepBridge(int frameNum, ActionFrame& frm) {
   }
   std::string const& bridgeIDstr = (*bridgeData_)[frameNum];
   if (bridgeIDstr == "None") {
-    mprintf("DEBUG: Frame %i has no bridging residues.\n", frameNum+1);
+    mprintf("Warning: Frame %i has no bridging residues.\n", frameNum+1);
     return Action::SUPPRESS_COORD_OUTPUT;
   }
   ArgList bridgeID( bridgeIDstr, "," );
-  mprintf("DEBUG: Frame %i has %i bridging residues.\n", frameNum+1, bridgeID.Nargs());
+  if (debug_ > 0)
+    mprintf("DEBUG: Frame %i has %i bridging residues.\n", frameNum+1, bridgeID.Nargs());
   if (bridgeID.Nargs() < nbridge_) {
-    mprintf("Warning: Frame %i has fewer bridges than requested (%i).\n", frameNum+1, bridgeID.Nargs());
+    mprintf("Warning: Frame %i has fewer total bridges than requested (%i).\n", frameNum+1, bridgeID.Nargs());
     return Action::SUPPRESS_COORD_OUTPUT;
   }
   int nBridgeInFrame = 0;
@@ -276,7 +281,8 @@ Action::RetType Action_Keep::keepBridge(int frameNum, ActionFrame& frm) {
     }
     // bres# indices start from 1
     int bres = bridge.getNextInteger(0) - 1;
-    mprintf("DEBUG: Bridge res %i\n", bres+1);
+    if (debug_ > 0)
+      mprintf("DEBUG:   Bridge res %i\n", bres+1);
     // Check that bres is actually a bridging residue
     if (bres < 0) {
       mprinterr("Error: Invalid bridging residue # %i for bridge '%s'\n", bres+1, bridge.ArgLine());
@@ -297,7 +303,7 @@ Action::RetType Action_Keep::keepBridge(int frameNum, ActionFrame& frm) {
     if (bridgeIsActive) {
       nBridgeInFrame++;
       if (nBridgeInFrame > nbridge_) {
-        mprintf("Warning: More bridges in frame %i (%i) than specified (%i); skipping.\n",
+        mprintf("Warning: More active bridges in frame %i (%i) than specified (%i); skipping.\n",
                 frameNum+1, nBridgeInFrame, nbridge_);
         return SUPPRESS_COORD_OUTPUT;
       }
@@ -307,7 +313,7 @@ Action::RetType Action_Keep::keepBridge(int frameNum, ActionFrame& frm) {
     }
   }
   if (nBridgeInFrame < nbridge_) {
-    mprintf("Warning: Fewer bridges in frame %i (%i) than specified (%i); skipping.\n",
+    mprintf("Warning: Fewer active bridges in frame %i (%i) than specified (%i); skipping.\n",
             frameNum+1, nBridgeInFrame, nbridge_);
     return SUPPRESS_COORD_OUTPUT;
   }
