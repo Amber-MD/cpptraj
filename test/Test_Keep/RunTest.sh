@@ -42,9 +42,10 @@ if [ $? -eq 0 ] ; then
   cat > keep.in <<EOF
 parm ../tz2.ortho.parm7
 trajin ../tz2.ortho.nc
-hbond hb :10,11 solventacceptor :WAT@O solventdonor :WAT
-run
-keep keepmask :10,11 bridgedata hb[ID] parmout keep.10.11.parm7
+
+readdata hb.dat
+
+keep keepmask :10,11 bridgedata hb.dat:5 parmout keep.10.11.parm7
 trajout keep.10.11.crd
 run
 EOF
