@@ -103,6 +103,12 @@ Action::RetType Action_Keep::Init(ArgList& actionArgs, ActionInit& init, int deb
       mprintf("\tWill warn when # active bridges does not match requested.\n");
     else
       mprintf("\tHiding warnings for when # active bridges does not match requested.\n");
+#   ifdef MPI
+    if (init.TrajComm().Size() > 1)
+      mprintf("Warning: Skipping frames with incorrect # of bridges in parallel\n"
+              "Warning:   can cause certain actions (e.g. 'rms') to hang.\n"
+              "Warning:   In addition, trajectories written after skipping frames may have issues.\n");
+#   endif
   }
   topWriter_.PrintOptions();
   return Action::OK;

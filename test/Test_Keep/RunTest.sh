@@ -14,7 +14,7 @@ INPUT='keep.in'
 TESTNAME='Keep command tests.'
 
 UNITNAME='Keep bridging water test'
-CheckFor netcdf
+CheckFor netcdf maxthreads 1
 if [ $? -eq 0 ] ; then
   cat > keep.in <<EOF
 noprogress
@@ -37,7 +37,7 @@ EOF
 fi
 
 UNITNAME='Keep bridging water and selected residues test'
-CheckFor netcdf
+CheckFor netcdf maxthreads 1
 if [ $? -eq 0 ] ; then
   cat > keep.in <<EOF
 parm ../tz2.ortho.parm7
@@ -67,7 +67,7 @@ EOF
 fi
 
 UNITNAME='Keep only 1 bridging water test'
-CheckFor netcdf
+CheckFor netcdf maxthreads 1
 if [ $? -eq 0 ] ; then
   cat > keep.in <<EOF
 noprogress
@@ -88,7 +88,7 @@ EOF
 fi
 
 UNITNAME='Keep 2 bridging waters at specified residues test'
-CheckFor netcdf
+CheckFor netcdf maxthreads 1
 if [ $? -eq 0 ] ; then
   cat > keep.in <<EOF
 noprogress
