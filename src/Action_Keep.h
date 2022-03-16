@@ -23,7 +23,7 @@ class Action_Keep : public Action {
 
     int debug_;
 
-    Topology* currentParm_;
+    Topology* currentParm_;      ///< Current topology
     Topology* keepParm_;         ///< Topology for atoms to keep
     Frame keepFrame_;            ///< Frame for atoms to keep
 
