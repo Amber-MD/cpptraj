@@ -58,13 +58,17 @@ class Action_GIST : public Action {
 
         void print(double d)             { maybe_space(); df_->Printf(fltFmt_.Fmt().c_str(), d); }
         void print(int i)                { maybe_space(); df_->Printf(intFmt_.Fmt().c_str(), i); }
-        void print(const std::string& s) { maybe_space(); df_->Printf("%s", s.c_str()); }
+        void print(unsigned int i)       { print(static_cast<int>(i)); }
         void print(const char* s)        { maybe_space(); df_->Printf("%s", s); }
-
+        void print(const std::string& s) { print(s.c_str()); }
+        
         void newline() {
             df_->Printf("\n");
             is_new_line_ = true;
         }
+
+        template<typename T>
+        DataFilePrinter& operator<<(T val) { print(val); return *this; }
 
       private:
         void maybe_space() {
@@ -91,9 +95,12 @@ class Action_GIST : public Action {
     DataSet_3D* AddDatasetAndFile(const std::string& name, const std::string& filename, DataSet::DataType dtype);
     int setSolventProperties(const Molecule& mol, const Topology& top);
     int checkSolventProperties(const Molecule& mol, const Topology& top) const;
+    void setSolventType(const Topology& top);
     void setSoluteSolvent(const Topology& top);
     int calcVoxelIndex(double x, double y, double z);
     void analyzeSolventElements(const Molecule& mol, const Topology& top);
+    bool setRigidAtomIndices(const Molecule& mol, const Topology& top);
+    bool createMoleculeDatasets();
     bool createAtomDensityDatasets();
     std::vector<DataSet_3D*> getDensityDataSets();
     Farray DataSetAsArray(const DataSet_3D& ds) const;
@@ -102,6 +109,9 @@ class Action_GIST : public Action {
     void ScaleDataSet(DataSet_3D& ds, double factor) const;
     void ScaleFarray(Farray& ds, double factor) const;
     Vec3 calcMolCenter(const ActionFrame& frm, int begin, int end) const;
+    /* void BinMoleculeAndAtoms(const ActionFrame& frm, int mol_start, int mol_end); */
+    /* bool closeToGrid(const Vec3& xyz) const; */
+    bool isMainSolvent(int atom) const;
 
     template<typename ARRAY_TYPE>
     void CopyArrayToDataSet(const ARRAY_TYPE& arr, DataSet_3D& ds) const;
@@ -162,12 +172,14 @@ class Action_GIST : public Action {
     static const double maxD_;
     static const double QFAC_;
     static const int OFF_GRID_; ///< Value in atom_voxel_ that indicates atom is off the grid
+    static const int UNKNOWN_MOLECULE_;
 
     double gridspacing_;
     Vec3 gridcntr_;
     int griddim_[3];
     const GridBin* gridBin_;
 
+    std::vector<std::string> rigidAtomNames_;
     int rigidAtomIndices_[3]; ///< the 3 atoms that define the orientation of a solvent molecule;
 
     // NOTE: '*' = Updated in DoAction(). '+' = Updated in Setup().
@@ -192,7 +204,11 @@ class Action_GIST : public Action {
     DataSet_3D* U_PME_;         ///< The PME nonbond energy for solute atoms
 
     SolventInfo solventInfo_;
-    std::vector<DataSet_3D*> densitySets_;
+    std::vector<DataSet_3D*> atomDensitySets_;
+    std::vector<DataSet_3D*> molDensitySets_;
+
+    std::vector<std::string> solventNames_;
+    std::vector<int> solventType_;
     DataSetList* DSL_;
     DataFileList* DFL_;
     std::string dsname_;
@@ -209,6 +225,7 @@ class Action_GIST : public Action {
     Iarray U_idxs_;         ///< Atom indices for solute atoms only.+
     Iarray U_onGrid_idxs_;  ///< Indices for each solute atom on the grid.*
     Iarray N_waters_;       ///< Number of waters (oxygen atoms) in each voxel.*
+    Iarray N_main_solvent_; ///< Number of waters (oxygen atoms) in each voxel.*
     Iarray N_solute_atoms_; ///< Number of solute atoms in each voxel.*
     Iarray N_hydrogens_;    ///< Number of hydrogen atoms in each voxel.*
 #   ifdef _OPENMP
@@ -277,5 +294,6 @@ class Action_GIST : public Action {
     bool skipS_;               ///< If true does not calculate entropy
     bool exactNnVolume_;       ///< If true use the exact volume equation for the NN entropy
     bool useCom_;              ///< If true use the COM as the molecular center; If false, use the first atom according to rigidAtomIndices.
+    bool setupSuccessful_;
 };
 #endif
