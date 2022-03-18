@@ -17,6 +17,7 @@ CheckFor notcuda
 if [ $? -eq 0 ]; then
   # Default test tolerance
   TEST_TOLERANCE='0.0001'
+  PME_TOLERANCE='0.0001'
   cat > gist.in <<EOF
   parm ../tz2.ortho.parm7
   trajin ../tz2.ortho.nc 1 10
@@ -30,6 +31,7 @@ EOF
 else
   # GPU test tolerance
   TEST_TOLERANCE='0.0003'
+  PME_TOLERANCE='0.001'
 fi
 
 # GIST test with finer grid for everything else
@@ -47,10 +49,13 @@ DoTest Gist2-gH.dx.save Gist2-gH.dx
 DoTest Gist2-gO.dx.save Gist2-gO.dx
 DoTest Gist2-neighbor-norm.dx.save Gist2-neighbor-norm.dx
 DoTest Gist2-order-norm.dx.save Gist2-order-norm.dx
+DoTest Gist2-dTStrans-dens.dx.save Gist2-dTStrans-dens.dx.save
+DoTest Gist2-dTSsix-dens.dx.save Gist2-dTSsix-dens.dx.save
+DoTest Gist2-dTSorient-dens.dx.save Gist2-dTSorient-dens.dx.save
 # NOTE: gist.out allowed to fail on windows; differences due to slightly
 #       difference implementation of printf '%g' (manifests as round-off).
 #       THIS IS THE SAVED OUTPUT FROM THE ORIGINAL GIST COMMAND.
-DoTest gist.out.save Gist2-output.dat -a $TEST_TOLERANCE 
+DoTest gist.out.save Gist2-output.dat -a $TEST_TOLERANCE
 
 # GIST test, nonorthogonal cell
 UNITNAME='GIST test, nonorthogonal cell'
@@ -75,10 +80,10 @@ DoTest Gist3-order-norm.dx.save Gist3-order-norm.dx
 ### Maximum relative error in matching lines = 1.08e-04 at line 5484 field 14
 ### Maximum absolute error in matching lines = 2.00e-04 at line 8015 field 17
 ### Maximum relative error in matching lines = 1.83e-05 at line 35522 field 17
-DoTest Gist3-output.dat.save Gist3-output.dat -a $TEST_TOLERANCE 
+DoTest Gist3-output.dat.save Gist3-output.dat -a $TEST_TOLERANCE
 
 UNITNAME='PME-GIST test on orthogonal cell'
-CheckFor libpme notcuda
+CheckFor libpme
 if [ $? -eq 0 ] ; then
   cat > gist.in <<EOF
 parm ../tz2.ortho.parm7
@@ -89,7 +94,7 @@ gist pme refdens 0.033422885325 gridcntr 1.5 1.0 0.0 \
     griddim 34 44 36 gridspacn 0.50 prefix Gist4 info Info.dat nocom
 EOF
   RunCpptraj "$UNITNAME"
-  DoTest Gist4-Solute-Etot-pme-dens.dx.save Gist4-Solute-Etot-pme-dens.dx -a $TEST_TOLERANCE
+  DoTest Gist4-Solute-Etot-pme-dens.dx.save Gist4-Solute-Etot-pme-dens.dx -a $PME_TOLERANCE
   DoTest Gist4-Water-Etot-pme-dens.dx.save Gist4-Water-Etot-pme-dens.dx -a $TEST_TOLERANCE
   DoTest Gist2-gH.dx.save Gist4-gH.dx
   DoTest Gist2-gO.dx.save Gist4-gO.dx
@@ -97,6 +102,9 @@ EOF
   DoTest Gist4-Esw-dens.dx.save Gist4-Esw-dens.dx -a $TEST_TOLERANCE
   DoTest Gist4-Eww-dens.dx.save Gist4-Eww-dens.dx -a $TEST_TOLERANCE
   DoTest Gist4-Info.dat.save Gist4-Info.dat -a $TEST_TOLERANCE
+  DoTest Gist2-dTStrans-dens.dx.save Gist4-dTStrans-dens.dx -a $TEST_TOLERANCE
+  DoTest Gist2-dTSsix-dens.dx.save Gist4-dTSsix-dens.dx -a $TEST_TOLERANCE
+  DoTest Gist2-dTSorient-dens.dx.save Gist4-dTSorient-dens.dx -a $TEST_TOLERANCE
   ## Not including this save on the remote repo bc it is too big.
   #if [ -f 'Gist4-output.dat.save' ] ; then
   #  DoTest Gist4-output.dat.save Gist4-output.dat
@@ -104,7 +112,7 @@ EOF
 fi
 
 UNITNAME='PME-GIST test on non-orthogonal cell'
-CheckFor libpme notcuda
+CheckFor libpme
 if [ $? -eq 0 ] ; then
   cat > gist.in <<EOF
 parm ../tz2.truncoct.parm7
@@ -115,7 +123,7 @@ gist pme refdens 0.033422885325 gridcntr 0.81 -1.0 0.08 \
   griddim 42 36 40 gridspacn 0.50 prefix Gist5 info Info.dat nocom
 EOF
   RunCpptraj "$UNITNAME"
-  DoTest Gist5-Solute-Etot-pme-dens.dx.save Gist5-Solute-Etot-pme-dens.dx -a $TEST_TOLERANCE
+  DoTest Gist5-Solute-Etot-pme-dens.dx.save Gist5-Solute-Etot-pme-dens.dx -a $PME_TOLERANCE
   DoTest Gist5-Water-Etot-pme-dens.dx.save Gist5-Water-Etot-pme-dens.dx -a $TEST_TOLERANCE
   DoTest Gist3-gH.dx.save Gist5-gH.dx
   DoTest Gist3-gO.dx.save Gist5-gO.dx
@@ -146,7 +154,7 @@ DoTest Gist6-neighbor-norm.dx.save Gist6-neighbor-norm.dx
 DoTest Gist6-order-norm.dx.save Gist6-order-norm.dx
 # NOTE: gist.out allowed to fail on windows; differences due to slightly
 #       difference implementation of printf '%g' (manifests as round-off).
-DoTest Gist6.out.save Gist6-output.dat -a $TEST_TOLERANCE 
+DoTest Gist6.out.save Gist6-output.dat -a $TEST_TOLERANCE
 
 # using more accurate nearest neighbor search
 UNITNAME='GIST test, orthogonal cell, nnsearchlayers 5'
@@ -165,7 +173,7 @@ DoTest Gist7-neighbor-norm.dx.save Gist7-neighbor-norm.dx
 DoTest Gist7-order-norm.dx.save Gist7-order-norm.dx
 # NOTE: gist.out allowed to fail on windows; differences due to slightly
 #       difference implementation of printf '%g' (manifests as round-off).
-DoTest Gist7.out.save Gist7-output.dat -a $TEST_TOLERANCE 
+DoTest Gist7.out.save Gist7-output.dat -a $TEST_TOLERANCE
 EndTest
 
 exit 0

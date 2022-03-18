@@ -63,7 +63,7 @@ class Action_GIST : public Action {
         void print(const std::string& s) { print(s.c_str()); }
         
         void newline() {
-            df_->Printf("\n");
+            df_->Printf(" \n");
             is_new_line_ = true;
         }
 

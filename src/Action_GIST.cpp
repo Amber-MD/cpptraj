@@ -24,7 +24,7 @@
 // TO-DO: update tests. currently need -a to get passing tests
 // TO-DO: update GIST output version number. Leaving it at v2 for now to get passing tests.
 // TO-DO: consistent scaling of Eww energy
-// TO-DO: quit if setup returns ERR;
+// TO-DO: linearity check
 
 // Plan for multiple solvents
 // OnGrid_idxs is used for Order and NonbondEnergy -> needs split
@@ -1522,7 +1522,7 @@ void Action_GIST::SumEVV() {
   for (unsigned int thread = 0; thread < E_VV_VDW_.size(); thread++) {
     for (unsigned int gr_pt = 0; gr_pt != MAX_GRID_PT_; gr_pt++) {
       Esw_->UpdateVoxel(gr_pt, E_UV_VDW_[thread][gr_pt] + E_UV_Elec_[thread][gr_pt]);
-      Eww_->UpdateVoxel(gr_pt, E_VV_VDW_[thread][gr_pt] + E_VV_Elec_[thread][gr_pt]);
+      Eww_->UpdateVoxel(gr_pt, (E_VV_VDW_[thread][gr_pt] + E_VV_Elec_[thread][gr_pt]) * 0.5);
       neighbor_->UpdateVoxel(gr_pt, neighborPerThread_[thread][gr_pt]);
     }
   }
@@ -1739,8 +1739,10 @@ void Action_GIST::Print() {
   voxel_xyz_.shrink_to_fit();
   voxel_Q_.clear();
   voxel_Q_.shrink_to_fit();
-  #ifndef CUDA
   // Sum values from other threads if necessary
+  #ifdef CUDA
+  if (usePme_) { SumEVV(); }
+  #else
   SumEVV();
   #endif
 
@@ -1781,7 +1783,7 @@ void Action_GIST::Print() {
   if (!skipE_) {
     infofile_->Printf("Total water-solute energy of the grid: Esw = %9.5f kcal/mol\n", SumDataSet(*Esw_) / NFRAME_);
     infofile_->Printf("Total unreferenced water-water energy of the grid: Eww = %9.5f kcal/mol\n",
-                      SumDataSet(*Eww_) / NFRAME_ / 2);
+                      SumDataSet(*Eww_) / NFRAME_);
   }
   Farray neighbor_norm = NormalizeDataSet<float>(*neighbor_, N_main_solvent_);
   Farray neighbor_dens = DensityWeightDataSet<float>(*neighbor_);
