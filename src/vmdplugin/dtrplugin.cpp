@@ -652,7 +652,7 @@ static inline std::string addslash(const std::string& s){
     return (s.rbegin()[0] == '/') ? s : s + "/";
 }
 
-#define DD_RELPATH_MAXLEN (9) 
+#define DD_RELPATH_MAXLEN (32) 
 static std::string 
 DDreldir(const std::string& fname, int ndir1, int ndir2){
 
@@ -712,7 +712,7 @@ void DDmkdir(const std::string &dirpath, mode_t mode, int ndir1, int ndir2){
 	throw DDException("fclose(.ddparams)", errno);
 
     for(int i=0; i<ndir1; ++i){
-	char sub[6];
+	char sub[16];
 	sprintf(sub, "%03x/", i);
 	std::string dirsub = dpslash + sub;
         {
@@ -720,7 +720,7 @@ void DDmkdir(const std::string &dirpath, mode_t mode, int ndir1, int ndir2){
 		throw DDException("mkdir " + dirsub, errno);
 	}
 	for(int j=0; j<ndir2; ++j){
-	    char subsub[6];
+	    char subsub[16];
 	    sprintf(subsub, "%03x", j);
 	    std::string dirsubsub = dirsub + subsub;
 	    if( mkdir(dirsubsub.c_str(), mode) < 0 ) // NOT openmode!
