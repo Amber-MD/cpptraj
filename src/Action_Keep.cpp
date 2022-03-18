@@ -164,7 +164,7 @@ Action::RetType Action_Keep::Setup(ActionSetup& setup)
       if (resSize == -1)
         resSize = setup.Top().Res(*rnum).NumAtoms();
       else if (setup.Top().Res(*rnum).NumAtoms() != resSize) {
-        mprinterr("Error: Residue '%s' size (%i) != first residue size (%s)\n",
+        mprinterr("Error: Residue '%s' size (%i) != first residue size (%i)\n",
                   setup.Top().TruncResNameNum(*rnum).c_str(),
                   setup.Top().Res(*rnum).NumAtoms(), resSize);
         return Action::ERR;
