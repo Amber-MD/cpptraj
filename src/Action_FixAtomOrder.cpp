@@ -83,8 +83,11 @@ Action::RetType Action_FixAtomOrder::Setup(ActionSetup& setup) {
     mprinterr("Error: Could not create re-ordered topology.\n");
     return Action::ERR;
   }
-  newParm_->Brief("Re-ordered parm:");
   setup.SetTopology( newParm_ );
+  // Remove box information if asked
+  if (topWriter_.ModifyActionState(setup, newParm_))
+    return Action::ERR;
+  newParm_->Brief("Re-ordered parm:");
   // Allocate space for new frame
   newFrame_.SetupFrameV( setup.Top().Atoms(), setup.CoordInfo() );
 

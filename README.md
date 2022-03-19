@@ -202,7 +202,7 @@ Fixes and improvements to nucleic acid dihedral angle definitions (DihedralSearc
 * David S. Cerutti (Rutgers University, Piscataway, NJ, USA)
 Original code for the 'xtalsymm' Action.
 
-* Franz Waibl & Klaus R. Liedl (Department of General, Inorganic, and Theoretical Chemistry, University of Innsbruck)
+* Johannes Kraml, Franz Waibl & Klaus R. Liedl (Department of General, Inorganic, and Theoretical Chemistry, University of Innsbruck)
 Improvements and enhancements for GIST.
 
 #### Various Contributions
