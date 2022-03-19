@@ -4,7 +4,7 @@
 
 CleanFiles ds.in *.summary.dat *.info.dat *.gnu *.d1.c1.dat \
            eps_v_n.dat twodihds.kmeans.info.dat onedihds.kmeans.info.dat \
-           cvt.dat
+           cvt.dat *.metricstats
 
 INPUT="-i ds.in"
 TESTNAME='Clustering via datasets tests'
@@ -14,9 +14,9 @@ OneDS() {
   cat > ds.in <<EOF
 trajin ../tz2.nc
 distance d1 :1 :13
-createcrd crd1
+#createcrd crd1
 #debug analysis 2
-cluster crdset crd1 c1 data d1 clusters 5 epsilon 4.0 out oneds.gnu summary oneds.summary.dat info oneds.info.dat gracecolor epsilonplot eps_v_n.dat \
+cluster nocoords c1 data d1 clusters 5 epsilon 4.0 out oneds.gnu summary oneds.summary.dat info oneds.info.dat gracecolor epsilonplot eps_v_n.dat \
         clustersvtime cvt.dat cvtwindow 10
 create oneds.d1.c1.dat d1 c1
 EOF
@@ -33,11 +33,43 @@ trajin ../tz2.nc
 distance d1 :1 :13
 hbond hb1
 #debug analysis 2
-cluster c1 data d1,hb1[UU] clusters 5 epsilon 4.0 out twods.gnu summary twods.summary.dat info twods.info.dat gracecolor
+cluster nocoords c1 data d1,hb1[UU] metricstats twods.metricstats \
+  clusters 5 epsilon 4.0 out twods.gnu summary twods.summary.dat info twods.info.dat gracecolor
 create twods.d1.c1.dat d1 hb1[UU] c1
 EOF
   RunCpptraj "Clustering, Two DataSets"
   DoTest twods.info.dat.save twods.info.dat
+  DoTest twods.metricstats.save twods.metricstats
+}
+
+TwoDSmanhattan() {
+  TOP=../tz2.parm7
+  cat > ds.in <<EOF
+trajin ../tz2.nc
+distance d1 :1 :13
+hbond hb1
+
+cluster nocoords c1 data d1,hb1[UU] manhattan metricstats twodsm.metricstats \
+  clusters 5 epsilon 4.0 info twodsm.info.dat
+EOF
+  RunCpptraj "Clustering, Two DataSets, Manhattan distance"
+  DoTest twodsm.info.dat.save twodsm.info.dat
+  DoTest twodsm.metricstats.save twodsm.metricstats
+}
+
+TwoDSwgt() {
+  TOP=../tz2.parm7
+  cat > ds.in <<EOF
+trajin ../tz2.nc
+distance d1 :1 :13
+hbond hb1
+#debug analysis 2
+cluster nocoords c1 data d1,hb1[UU] metricstats twodswgt.metricstats wgt 1,9 \
+  clusters 5 epsilon 4.0 info twodswgt.info.dat
+EOF
+  RunCpptraj "Clustering, Two DataSets with specified weights"
+  DoTest twodswgt.info.dat.save twodswgt.info.dat
+  DoTest twodswgt.metricstats.save twodswgt.metricstats
 }
 
 OneDihDS() {
@@ -98,6 +130,8 @@ EOF
 
 OneDS
 TwoDS
+TwoDSmanhattan
+TwoDSwgt
 OneDihDS
 TwoDihDS
 OneDihDSKmeans

@@ -43,10 +43,13 @@ class ParmFile {
     FileName const& ParmFilename() { return parmName_; }
     /// \return ParmFormatType of given file or UNKNOWN_PARM.
     static ParmFormatType DetectFormat(FileName const&);
+    /// \return Format of last read file
+    ParmFormatType CurrentFormat() const { return pfType_; }
   private :
     /// \return Allocated ParmIO if given file matches known type, 0 otherwise.
     static ParmIO* DetectFormat(FileName const&, ParmFormatType&);
 
-    FileName parmName_; ///< Topology input/output file name.
+    FileName parmName_;     ///< Topology input/output file name.
+    ParmFormatType pfType_; ///< Format of topology file.
 };
 #endif

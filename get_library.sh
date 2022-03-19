@@ -50,8 +50,13 @@ if [ ! -f "$SRCTAR" ] ; then
   WGET=`which wget`
 
   if [ -z "$WGET" ] ; then
-    echo "Error: 'wget' not found. Cannot download $LIBNAME"
-    exit 1
+    echo "Warning: 'wget' not found. Trying curl."
+    WGET=`which curl`
+    if [ -z "$WGET" ] ; then
+      echo "Error: 'wget' and 'curl' not found. Cannot download $LIBNAME"
+      exit 1
+    fi
+    WGET="$WGET -O"
   fi
 
   $WGET $URL
@@ -176,6 +181,13 @@ echo "Success."
 # Determine make command
 if [ -z "$MAKE_COMMAND" ] ; then
   NPROC=`nproc`
+  if [ -z "$NPROC" ] ; then
+    # Check for sysctl, OSX
+    SYSCTL=`which sysctl`
+    if [ ! -z "$SYSCTL" ] ; then
+      NPROC=`$SYSCTL -n hw.logicalcpu`
+    fi
+  fi
   if [ -z "$NPROC" ] ; then
     MAKE_COMMAND='make'
   elif [ $NPROC -le 2 ] ; then

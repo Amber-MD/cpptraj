@@ -2,6 +2,7 @@
 #define INC_ACTION_VECTOR_H
 #include "Action.h"
 class DataSet_Vector;
+class DataSet_3D;
 class Action_Vector : public Action {
   public:
     Action_Vector();
@@ -29,11 +30,13 @@ class Action_Vector : public Action {
     void Dipole(Frame const&);
     void Principal(Frame const&);
     void CorrPlane(Frame const&);
-    void UnitCell(Box const&);
+    void UnitCell(Box const&, Vec3 const&);
+    void BoxLengths(Box const&);
     void MinImage(Frame const&);
 
     DataSet_Vector* Vec_;   ///< Hold vector values
     DataSet* Magnitude_;    ///< Hold vector magnitudes if requested
+    DataSet_3D* gridSet_;   ///< Hold grid set for getting box vectors from grid.
     double* vcorr_;         ///< Temp. space for calculating CorrPlane
     vectorMode mode_;       ///< Vector calculation mode
     bool ptrajoutput_;      ///< If true output in ptraj format

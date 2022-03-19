@@ -365,10 +365,23 @@ Vec3 Frame::VCenterOfMass(int startAtom, int stopAtom) const {
   return Vec3( Coord0 / sumMass, Coord1 / sumMass, Coord2 / sumMass );
 }
 
+/** Calculate the center of mass of a unit. */
 Vec3 Frame::VCenterOfMass(Unit const& unit) const {
   Vec3 out(0.0);
+  double sumMass = 0.0;
   for (Unit::const_iterator seg = unit.segBegin(); seg != unit.segEnd(); ++seg)
-    out += VCenterOfMass(seg->Begin(), seg->End());
+  {
+    //out += VCenterOfMass(seg->Begin(), seg->End());
+    int idx = seg->Begin() * 3;
+    for (int at = seg->Begin(); at != seg->End(); at++, idx += 3) {
+      out[0] += ( X_[idx  ] * Mass_[at] );
+      out[1] += ( X_[idx+1] * Mass_[at] );
+      out[2] += ( X_[idx+2] * Mass_[at] );
+      sumMass += Mass_[at];
+    }
+  }
+  if (sumMass == 0.0) return out;
+  out /= sumMass;
   return out;
 }
 
@@ -388,10 +401,24 @@ Vec3 Frame::VGeometricCenter(int startAtom, int stopAtom) const {
   return Vec3( Coord0 / sumMass, Coord1 / sumMass, Coord2 / sumMass );
 }
 
+/** Calculate the Geometric center of a Unit. */
 Vec3 Frame::VGeometricCenter(Unit const& unit) const {
   Vec3 out(0.0);
+  int ntotal = 0;
   for (Unit::const_iterator seg = unit.segBegin(); seg != unit.segEnd(); ++seg)
-    out += VGeometricCenter(seg->Begin(), seg->End());
+  {
+    //out += VGeometricCenter(seg->Begin(), seg->End());
+    int startIdx = seg->Begin() * 3;
+    int stopIdx  = seg->End() * 3;
+    for (int idx = startIdx; idx < stopIdx; idx += 3) {
+      out[0] += X_[idx  ];
+      out[1] += X_[idx+1];
+      out[2] += X_[idx+2];
+    }
+    ntotal += seg->Size();
+  }
+  if (ntotal == 0) return out;
+  out /= (double)ntotal;
   return out;
 }
 

@@ -468,8 +468,8 @@ int Traj_AmberCoord::parallelSetupTrajout(FileName const& fname, Topology* trajP
   }
   commIn.MasterBcast(&err, 1, MPI_INT);
   if (err != 0) return 1;
-  // Synchronize info on non-master threads.
-  SyncTrajIO( commIn );
+  // Broadcast info to non-master processes.
+  BroadcastTrajIO( commIn );
   // TODO For simplicity convert everything to double. Is this just lazy?
   double tmpArray[10];
   if (commIn.Master()) {

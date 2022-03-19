@@ -109,7 +109,7 @@ int Traj_NcEnsemble::setupTrajin(FileName const& fname, Topology* trajParm)
 # endif
   readAccess_ = true;
   filename_ = fname;
-  // NOTE: Setup opens and closes single thread for now
+  // NOTE: Setup opens and closes single process for now
   // Setup for Amber NetCDF ensemble
   if ( NC_setupRead(filename_.Full(), NC_AMBERENSEMBLE, trajParm->Natom(),
                     useVelAsCoords_, useFrcAsCoords_, debug_) )
@@ -173,8 +173,8 @@ int Traj_NcEnsemble::setupTrajout(FileName const& fname, Topology* trajParm,
 #   endif
     if (err != 0) return 1;
 #   ifdef MPI
-    // Synchronize netcdf info on non-master threads
-    Sync(Parallel::World());
+    // Broadcast netcdf info to non-master processes
+    Broadcast(Parallel::World());
     // DEBUG: Print info for all ranks
     DebugVIDs();
 #   endif

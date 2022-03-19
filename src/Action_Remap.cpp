@@ -73,6 +73,9 @@ Action::RetType Action_Remap::Setup(ActionSetup& setup) {
     return Action::ERR;
   }
   setup.SetTopology( newParm_ );
+  // Remove box information if asked
+  if (topWriter_.ModifyActionState(setup, newParm_))
+    return Action::ERR;
   newParm_->Brief("Re-mapped topology:");
   // Allocate space for new frame
   newFrame_.SetupFrameV(setup.Top().Atoms(), setup.CoordInfo());

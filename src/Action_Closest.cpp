@@ -104,8 +104,12 @@ Action::RetType Action_Closest::Init(ArgList& actionArgs, ActionInit& init, int 
 
   // Get Masks
   std::string mask1 = actionArgs.GetStringKey("solventmask");
-  if (!mask1.empty())
-    solventMask_.SetMaskString( mask1 );
+  if (!mask1.empty()) {
+    if (solventMask_.SetMaskString( mask1 )) {
+      mprinterr("Error: Could not set solvent mask string.\n");
+      return Action::ERR;
+    }
+  }
   mask1 = actionArgs.GetMaskNext();
   if (mask1.empty()) {
     mprinterr("Error: No mask specified.\n");
@@ -291,6 +295,9 @@ Action::RetType Action_Closest::Setup(ActionSetup& setup) {
     return Action::ERR;
   }
   setup.SetTopology( newParm_ );
+  // Remove box information if asked
+  if (topWriter_.ModifyActionState(setup, newParm_))
+    return Action::ERR;
   newParm_->Brief("Closest topology:");
   // Allocate space for new frame
   newFrame_.SetupFrameV( setup.Top().Atoms(), setup.CoordInfo() );

@@ -1537,7 +1537,7 @@ numlist} e.g.
 \begin_inset space ~
 \end_inset
 
-op><distance> Selection by distance, see below.
+operator><distance> Selection by distance, see below.
 \end_layout
 
 \begin_layout Standard
@@ -1667,14 +1667,72 @@ More examples:
 Distance-based Masks
 \end_layout
 
+\begin_layout Description
+<mask><distance
+\begin_inset space ~
+\end_inset
+
+operator><distance>
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+<mask> Atoms to consider.
+\end_layout
+
+\begin_layout Description
+<distance
+\begin_inset space ~
+\end_inset
+
+operator> Distance operator.
+ 
+\family typewriter
+{<|>}{@|:|;|^}
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+< Distances less than <distance> will be selected.
+\end_layout
+
+\begin_layout Description
+> Distances greater than or equal to <distance> will be selected.
+\end_layout
+
+\begin_layout Description
+@ Any atom.
+\end_layout
+
+\begin_layout Description
+: Any atom within a residue.
+\end_layout
+
+\begin_layout Description
+; Residue geometric center.
+\end_layout
+
+\begin_layout Description
+^ Any atom within a molecule.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+<distance> The distance criteria in Angstroms.
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 There are two very important things to keep in mind when using distance
  based masks:
 \end_layout
 
 \begin_layout Enumerate
-Distance-based masks that update each frame are currently only supported
- by the 
+Distance-based masks that 
+\bar under
+update each frame
+\bar default
+ are currently only supported by the 
 \series bold
 \shape italic
 mask
@@ -1744,7 +1802,7 @@ The syntax for selection by distance is a
 \series bold
 :
 \series default
-' (residues), or '
+' (residues), ';' (residue centers), or '
 \series bold
 @
 \series default
@@ -1762,9 +1820,11 @@ residues within 3.0 Angstroms
 \end_inset
 
  etc.
- For residue- and molecule-based distance selection, if any atom in that
- residue/molecule matches the given distance criterion, the entire residue/molec
-ule is selected.
+ For ':' residue- and '^' molecule-based distance selection, if any atom
+ in that residue/molecule meets the given distance criterion, the entire
+ residue/molecule is selected.
+ For ';' residue center, the geometric center of the residue must meet the
+ given distance criterion in order to be selected.
 \end_layout
 
 \begin_layout Standard
@@ -2791,7 +2851,7 @@ status open
 \begin_layout Plain Layout
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="16" columns="5">
+<lyxtabular version="3" rows="18" columns="5">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top" width="20text%">
 <column alignment="center" valignment="top" width="20text%">
@@ -3514,7 +3574,7 @@ Read Only
 </cell>
 </row>
 <row>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -3523,7 +3583,7 @@ Charmm Output
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -3532,7 +3592,7 @@ Charmm Output
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -3541,7 +3601,7 @@ charmmout
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -3550,11 +3610,105 @@ charmmout
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
 Energy information, Read Only
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Pairwise Cache (binary)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+.cmatrix
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+cmatrix
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+pairwise distances
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Used for cluster analysis.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Pairwise Cache (NetCDF)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+.nccmatrix
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+nccmatrix
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+pairwise distances
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Used for cluster analysis.
 \end_layout
 
 \end_inset
@@ -5148,6 +5302,20 @@ Cpptraj
  if this is not successful.
 \end_layout
 
+\begin_layout Standard
+If a file contains the header:
+\end_layout
+
+\begin_layout LyX-Code
+#F1 F2 <name>
+\end_layout
+
+\begin_layout Standard
+CPPTRAJ will assume the file contains pairwise distances for clustering,
+ where the F1 and F2 columns contain the frame numbers, and the <name> column
+ contains the distance.
+\end_layout
+
 \begin_layout Subsection
 Grace Data File Options
 \end_layout
@@ -5841,7 +6009,7 @@ The following COORDS data set commands are available:
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="14" columns="2">
+<lyxtabular version="3" rows="15" columns="2">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="75text%">
@@ -6065,6 +6233,27 @@ permutedihedrals
 \begin_layout Plain Layout
 Rotate specified dihedral(s) in given COORDS set by specific interval or
  to random values.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+prepareforleap
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Prepare a structure (usually loaded from a PDB) for processing with LEaP
+ from Amber.
 \end_layout
 
 \end_inset
@@ -6936,6 +7125,578 @@ permutedihedrals crdset [TZ2] random rseed 1 check maxfactor 10 phi psi
 
 \begin_layout LyX-Code
                  outtraj random.mol2 multi
+\end_layout
+
+\begin_layout Subsection
+prepareforleap
+\end_layout
+
+\begin_layout LyX-Code
+prepareforleap crdset <coords set> [frame <#>] name <out coords set>
+\end_layout
+
+\begin_layout LyX-Code
+                  	[pdbout <pdbfile> [terbymol]]
+\end_layout
+
+\begin_layout LyX-Code
+                  	[leapunitname <unit>] [out <leap input file> [runleap
+ <ff file>]]
+\end_layout
+
+\begin_layout LyX-Code
+                  	[skiperrors]
+\end_layout
+
+\begin_layout LyX-Code
+                  	[nowat [watermask <watermask>] [noh]
+\end_layout
+
+\begin_layout LyX-Code
+                      [keepaltloc {<alt loc ID>|highestocc}]
+\end_layout
+
+\begin_layout LyX-Code
+                  	[stripmask <stripmask>] [solventresname <solventresname>]
+\end_layout
+
+\begin_layout LyX-Code
+                  	[molmask <molmask> ...] [determinemolmask <mask>]
+\end_layout
+
+\begin_layout LyX-Code
+                  	[{nohisdetect |
+\end_layout
+
+\begin_layout LyX-Code
+                  	  [nd1 <nd1>] [ne2 <ne2] [hisname <his>] [hiename <hie>]
+\end_layout
+
+\begin_layout LyX-Code
+                  	  [hidname <hid>] [hipname <hip]}]
+\end_layout
+
+\begin_layout LyX-Code
+                  	[{nodisulfides |
+\end_layout
+
+\begin_layout LyX-Code
+                  	  existingdisulfides |
+\end_layout
+
+\begin_layout LyX-Code
+                  	  [cysmask <cysmask>] [disulfidecut <cut>] [newcysname
+ <name>]}]
+\end_layout
+
+\begin_layout LyX-Code
+                  	[{nosugars |
+\end_layout
+
+\begin_layout LyX-Code
+                  	  sugarmask <sugarmask> [noc1search] [nosplitres]
+\end_layout
+
+\begin_layout LyX-Code
+                        [resmapfile <file>]
+\end_layout
+
+\begin_layout LyX-Code
+                  	  [hasglycam] [determinesugarsby {geometry|name}]
+\end_layout
+
+\begin_layout LyX-Code
+                  	 }]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+crdset
+\begin_inset space ~
+\end_inset
+
+<coords
+\begin_inset space ~
+\end_inset
+
+set> COORDS data set containing coordinates and topology to prepare.
+\end_layout
+
+\begin_layout Description
+[frame
+\begin_inset space ~
+\end_inset
+
+<#>] Frame to use from COORDS set (default first).
+\end_layout
+
+\begin_layout Description
+name
+\begin_inset space ~
+\end_inset
+
+<out
+\begin_inset space ~
+\end_inset
+
+coords
+\begin_inset space ~
+\end_inset
+
+set> Output COORDS set containing prepared topology/coordinates.
+\end_layout
+
+\begin_layout Description
+[pdbout
+\begin_inset space ~
+\end_inset
+
+<pdbfile>] Output PDB name.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[terbymol] If specified, base TER cards on molecules instead of PDB chains.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[leapunitname
+\begin_inset space ~
+\end_inset
+
+<unit>] LEaP unit name to use when writing to <leap input file> (i.e.
+ the LEaP input file will contain '<unit>
+\begin_inset space ~
+\end_inset
+
+=
+\begin_inset space ~
+\end_inset
+
+loadpdb
+\begin_inset space ~
+\end_inset
+
+<pdbfile>').
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<leap
+\begin_inset space ~
+\end_inset
+
+input
+\begin_inset space ~
+\end_inset
+
+file>] File containing LEaP input needed to read in the prepared system
+ (loadpdb, bond commands for disulfides, etc).
+\end_layout
+
+\begin_layout Description
+[runleap
+\begin_inset space ~
+\end_inset
+
+<ff
+\begin_inset space ~
+\end_inset
+
+file>] If specified, CPPTRAJ will attempt to run LEaP directly to generate
+ a topology and coordinates; <ff
+\begin_inset space ~
+\end_inset
+
+file> should contain the appropriate 'source' commands for loading the desired
+ force field parameters.
+ Will attempt to produce topology <unit>.parm7 and coordinates <unit>.rst7.
+\end_layout
+
+\begin_layout Description
+[skiperrors] If specified, the command will try to ignore any errors encountered.
+ Can be useful for debugging.
+\end_layout
+
+\begin_layout Description
+[nowat] If specified, remove waters from the system.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[watermask
+\begin_inset space ~
+\end_inset
+
+<watermask>] Mask selecting waters to remove (default ':<solventresname>').
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[noh] If specified, strip all hydrogen atoms from the system (recommended).
+\end_layout
+
+\begin_layout Description
+[keepaltloc
+\begin_inset space ~
+\end_inset
+
+{<alt
+\begin_inset space ~
+\end_inset
+
+loc
+\begin_inset space ~
+\end_inset
+
+ID>|highestocc}] LEaP cannot handle alternate atom locations, so the command
+ will choose location 'A' by default.
+ This can be changed to either <alt
+\begin_inset space ~
+\end_inset
+
+loc
+\begin_inset space ~
+\end_inset
+
+id> or the location with the highest occupancy if 
+\series bold
+'highestocc'
+\series default
+ is specified.
+\end_layout
+
+\begin_layout Description
+[stripmask
+\begin_inset space ~
+\end_inset
+
+<stripmask>] Mask of atoms to remove from the system.
+\end_layout
+
+\begin_layout Description
+[solventresname
+\begin_inset space ~
+\end_inset
+
+<solventresname>] Solvent residue name (default 'HOH').
+\end_layout
+
+\begin_layout Description
+[molmask
+\begin_inset space ~
+\end_inset
+
+<mask>] If specified, atoms in <mask> will be considered all part of one
+ molecule.
+ May be specified multiple times.
+\end_layout
+
+\begin_layout Description
+[determinemolmask
+\begin_inset space ~
+\end_inset
+
+<mask>] If specified, determine if atoms selected in <mask> are in the same
+ molecule via bonds.
+\end_layout
+
+\begin_layout Standard
+Histidine Detection:
+\end_layout
+
+\begin_layout Description
+[nohisdetect] Disable renaming of histidine residues based on existing hydrogens.
+\end_layout
+
+\begin_layout Description
+[nd1
+\begin_inset space ~
+\end_inset
+
+<nd1>] Delta nitrogen atom name (default 'ND1').
+\end_layout
+
+\begin_layout Description
+[ne2
+\begin_inset space ~
+\end_inset
+
+<ne2<] Epsilon nitrogen atom name (default 'NE2').
+\end_layout
+
+\begin_layout Description
+[hisname
+\begin_inset space ~
+\end_inset
+
+<his>] Histidine residue name (default 'HIS').
+\end_layout
+
+\begin_layout Description
+[hiename
+\begin_inset space ~
+\end_inset
+
+<hie>] Epsilon-protonated histidine name (default 'HIE').
+\end_layout
+
+\begin_layout Description
+[hidname
+\begin_inset space ~
+\end_inset
+
+<hid>] Delta-protonated histidine name (default 'HID').
+\end_layout
+
+\begin_layout Description
+[hipname
+\begin_inset space ~
+\end_inset
+
+<hip>] Doubly-protonated histidine name (default 'HIP').
+\end_layout
+
+\begin_layout Standard
+Disulfide Handling:
+\end_layout
+
+\begin_layout Description
+[nodisulfides] Disable handling of disulfides.
+\end_layout
+
+\begin_layout Description
+[existingdisulfides] Only handle disulfides already present; do not search
+ for additional disulfides.
+\end_layout
+
+\begin_layout Description
+[cysmask
+\begin_inset space ~
+\end_inset
+
+<cysmask>] Mask for selecting cysteine residues (default 'CYS').
+\end_layout
+
+\begin_layout Description
+[disulfidecut
+\begin_inset space ~
+\end_inset
+
+<cut>] Sulfur to sulfur atom distance cutoff for forming a disulfide (default
+ 2.5 Ang).
+\end_layout
+
+\begin_layout Description
+[newcysname
+\begin_inset space ~
+\end_inset
+
+<name>] Name to change cysteine residues that participate in a disulfide
+ bond to (default 'CYX').
+\end_layout
+
+\begin_layout Standard
+Sugar Handling:
+\end_layout
+
+\begin_layout Description
+[nosugars] Disable handling of sugars.
+\end_layout
+
+\begin_layout Description
+[sugarmask
+\begin_inset space ~
+\end_inset
+
+<sugarmask>] Mask selecting sugars to be handled.
+ If not specified the default is all residues defined in 
+\series bold
+resmapfile
+\series default
+.
+\end_layout
+
+\begin_layout Description
+[noc1search] If specified disable search for missing sugar C1 atom bonds.
+\end_layout
+
+\begin_layout Description
+[nosplitres] If specified do not attempt to split off functional groups
+ from sugars into separate residues.
+\end_layout
+
+\begin_layout Description
+[resmapfile
+\begin_inset space ~
+\end_inset
+
+<file>] File containing sugar residue/atom name mapping.
+ Default is '$CPPTRAJHOME/dat/Carbohydrate_PDB_Glycam_Names.txt'.
+\end_layout
+
+\begin_layout Description
+[hasglycam] If specified, assume sugars already have GLYCAM residue names;
+ just check sugar anomer type/configuration/linkage.
+\end_layout
+
+\begin_layout Description
+[determinesugarsby
+\begin_inset space ~
+\end_inset
+
+{geometry|name}] Determine whether sugar anomer type/configuration should
+ be chosen based on sugar geometry (default) or the residue name.
+ CPPTRAJ will report when a mismatch is detected between the sugar anomer
+ type/configuration based on geometry and anomer type/configuration based
+ on the residue name.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+This command will prepare a structure (usually from a PDB) for processing
+ with the Amber program LEaP to generate topology and coordinates files
+ for MD simulations.
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Roe2022"
+literal "true"
+
+\end_inset
+
+ It will handle things like choosing alternate atom locations, removing
+ waters/hydrogen atoms from the structure, renaming residues and generating
+ 'bond' commands for disulfide bonds, change histidine names based on any
+ existing protonation, and renaming residues/atoms and generating 'bond'
+ commands for carbohydrates.
+ The command can also call LEaP directly to generate the parameters once
+ the structure is prepared.
+\end_layout
+
+\begin_layout Standard
+If hydrogen atoms are present in the structure, the command will attempt
+ a simple and straightforward determination of the protonation state of
+ any histidine residues based on where hydrogens are bonded, and assign
+ the appropriate residue name.
+ The command will also identify any existing disulfide bonds as well as
+ potential disulfide bonds and generate the corresponding LEaP ‘bond’ commands
+ which can be applied after the structure is loaded in LEaP.
+ Potential disulfide bonding atoms can be identified via a user-specifiable
+ mask expression.
+\end_layout
+
+\begin_layout Standard
+By default, sugars will have their residue names changed to those compatible
+ with the GLYCAM force field based on their anomer type (alpha/beta), configurat
+ion (D/L), and linkages (glycosidic and covalent sugar to non-sugar).
+ Any recognized functional groups that are part of sugar residues (hydroxyl,
+ acetyl, sulfate, etc) will be split into separate residues as required
+ by GLYCAM.
+ If this happens and 'runleap' has not been specified, CPPTRAJ will warn
+ about any residues/atoms that require charge to be adjusted.
+ If 'runleap' has not been specified the command will warn about any atoms
+ that need to have their charges adjusted after LEaP is run.
+\end_layout
+
+\begin_layout Standard
+The command will try to report any potential problems that LEaP might encounter.
+ These include residue names that may be unrecognized (and therefore may
+ not have parameters), mismatches between detected sugar anomer type/configurati
+on and anomer type/configuration based on the sugar residue name, unrecognized
+ sugar linkages, and so on.
+ 
+\end_layout
+
+\begin_layout Standard
+For example, the following input prepares PDB 4zzw for processing with PDB,
+ putting the proper leap commands in leap.4zzw.in, writing the prepared PDB
+ to 4zzw.cpptraj.pdb, removing waters and hydrogen atoms, and keeping alternate
+ atom locations with the highest occupancy:
+\end_layout
+
+\begin_layout LyX-Code
+parm 4zzw.pdb
+\end_layout
+
+\begin_layout LyX-Code
+loadcrd 4zzw.pdb name MyCrd
+\end_layout
+
+\begin_layout LyX-Code
+prepareforleap crdset MyCrd name Final out leap.4zzw.in leapunitname m 
+\backslash
+
+\end_layout
+
+\begin_layout LyX-Code
+  pdbout 4zzw.cpptraj.pdb nowat noh keepaltloc highestocc
+\end_layout
+
+\begin_layout Subsubsection*
+Sugar Residue/Atom Name Mapping File
+\end_layout
+
+\begin_layout Standard
+This file controls how CPPTRAJ will name sugars based on sugar form/chirality
+ linkage.
+ It consists of three sections separated by a blank line.
+ The first section defines sugar PDB residue names and how they are mapped
+ to GLYCAM residue characters:
+\end_layout
+
+\begin_layout LyX-Code
+Format: <ResName> <GlycamCode> <Anomer> <Config> <RingType> "<Name>"
+\end_layout
+
+\begin_layout LyX-Code
+Anomer: A=alpha, B=beta
+\end_layout
+
+\begin_layout LyX-Code
+Config: D/L
+\end_layout
+
+\begin_layout LyX-Code
+RingType: P=pyranose, F=furanose
+\end_layout
+
+\begin_layout LyX-Code
+Example: 64K A A D P "alpha-D-arabinopyranose" 
+\end_layout
+
+\begin_layout Standard
+The second section contains PDB to GLYCAM atom name maps for residues:
+\end_layout
+
+\begin_layout LyX-Code
+Format: <GLYCAM residue codes> <PDB atom name>,<GLYCAM atom name>[,<anomer>]
+ … 
+\end_layout
+
+\begin_layout LyX-Code
+If <anomer> (A=alpha, B=beta) is specified, the atom name map is only valid
+ for that specific form.
+\end_layout
+
+\begin_layout LyX-Code
+Example: V,W,Y C7,C2N O7,O2N C8,CME 
+\end_layout
+
+\begin_layout Standard
+The third section contains PDB to GLYCAM linkage residue (i.e.
+ non-sugar residues bonded to sugars) name maps:
+\end_layout
+
+\begin_layout LyX-Code
+Format: <PDB residue name> <GLYCAM residue name>
+\end_layout
+
+\begin_layout LyX-Code
+Example: SER OLS 
 \end_layout
 
 \begin_layout Subsection
@@ -10268,7 +11029,7 @@ MPI only.
 \series bold
 sync
 \series default
- is specified all data will be synced back to the master thread (for e.g.
+ is specified all data will be synced back to the master process (for e.g.
  subsequent analysis).
  For an example of how to use the parallelanalysis command, see 
 \begin_inset CommandInset ref
@@ -11558,7 +12319,7 @@ The following topology related commands are available:
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="21" columns="2">
+<lyxtabular version="3" rows="22" columns="2">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top">
 <column alignment="center" valignment="top">
@@ -11721,6 +12482,26 @@ dihedralinfo, dihedrals, printdihedrals
 
 \begin_layout Plain Layout
 Print dihedral info for selected atoms.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+hmassrepartition
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Perform hydrogen mass repartitioning.
 \end_layout
 
 \end_inset
@@ -12104,7 +12885,7 @@ atominfo | atoms | printatoms
 \end_layout
 
 \begin_layout LyX-Code
-atominfo [parm <name> | parmindex <#> | <#>] [<mask>] [out <file>]
+atominfo [parm <name> | parmindex <#> | <#>] <mask> [out <file>]
 \end_layout
 
 \begin_deeper
@@ -12138,7 +12919,7 @@ parmindex
 \end_layout
 
 \begin_layout Description
-[<mask>] Mask selecting atoms to print info for.
+<mask> Mask selecting atoms to print info for.
 \end_layout
 
 \begin_layout Description
@@ -12624,7 +13405,7 @@ charge
 \end_layout
 
 \begin_layout LyX-Code
-charge [parm <name> | parmindex <#> | <#>] [<mask>] [out <file>] [name <set>]
+charge [parm <name> | parmindex <#> | <#>] <mask> [out <file>] [name <set>]
 \end_layout
 
 \begin_deeper
@@ -12649,7 +13430,7 @@ parmindex
 \end_layout
 
 \begin_layout Description
-[<mask>] Atom(s) to calculate total charge for (default all).
+<mask> Atom(s) to calculate total charge for (default all).
 \end_layout
 
 \begin_layout Description
@@ -12876,6 +13657,86 @@ If 4 masks are given instead of 1, print info for dihedrals with first atom
 \end_layout
 
 \begin_layout Subsection
+hmassrepartition
+\end_layout
+
+\begin_layout LyX-Code
+hmassrepartition [parm <name> | crdset <set> | parmindex <#> | <#>]
+\end_layout
+
+\begin_layout LyX-Code
+             	[<mask>] [hmass <hydrogen new mass>] [dowater]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+parm
+\begin_inset space ~
+\end_inset
+
+<name> Modify topology selected by name.
+\end_layout
+
+\begin_layout Description
+crdset
+\begin_inset space ~
+\end_inset
+
+<set> Modify topology of COORDS set.
+\end_layout
+
+\begin_layout Description
+parmindex
+\begin_inset space ~
+\end_inset
+
+<#>
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+<#> Modify topology selected by index <#> (starting from 0).
+\end_layout
+
+\begin_layout Description
+<mask> Atoms to modify (all solute atoms by default).
+\end_layout
+
+\begin_layout Description
+hmass
+\begin_inset space ~
+\end_inset
+
+<hydrogen
+\begin_inset space ~
+\end_inset
+
+new
+\begin_inset space ~
+\end_inset
+
+mass> Mass to change hydrogens to (3.024 u by default).
+\end_layout
+
+\begin_layout Description
+dowater If specified, modify water hydrogen mass as well.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Perform hydrogen mass repartitioning on the specified topology.
+ Hydrogen mass repartitioning means that for a given heavy atom, the mass
+ of all bonded hydrogens are increased (to 3.024 u by default) and the mass
+ of that heavy atom is decreased so as to maintain the same overall mass.
+ The main use case is to allow longer time steps for molecular dynamics
+ integration due to reduced frequency of vibration of bonds to hydrogen
+ atoms.
+\end_layout
+
+\begin_layout Subsection
 improperinfo | impropers | printimpropers
 \end_layout
 
@@ -12955,8 +13816,8 @@ mass
 \end_layout
 
 \begin_layout LyX-Code
-[<parmindex>] [parm <name> | parmindex <#> | <#>] [<mask>] [out <file>]
- [name <set>]
+[<parmindex>] [parm <name> | parmindex <#> | <#>] <mask> [out <file>] [name
+ <set>]
 \end_layout
 
 \begin_deeper
@@ -12981,7 +13842,7 @@ parmindex
 \end_layout
 
 \begin_layout Description
-[<mask>] Atom(s) to calculate total mass for (default all).
+<mask> Atom(s) to calculate total mass for (default all).
 \end_layout
 
 \begin_layout Description
@@ -13012,7 +13873,7 @@ molinfo
 \end_layout
 
 \begin_layout LyX-Code
-molinfo [parm <name> | parmindex <#> | <#>] [<mask>] [out <file>]
+molinfo [parm <name> | parmindex <#> | <#>] <mask> [out <file>]
 \end_layout
 
 \begin_deeper
@@ -13046,7 +13907,7 @@ parmindex
 \end_layout
 
 \begin_layout Description
-[<mask>] Mask selecting molecules to print info for.
+<mask> Mask selecting molecules to print info for.
 \end_layout
 
 \begin_layout Description
@@ -13085,7 +13946,24 @@ Natom
 Name
 \family default
  are the residue number and residue name of the first residue in the molecule
- respectively, and C is the chain ID of the first residue.
+ respectively, and 
+\family typewriter
+C
+\family default
+ is the chain ID of the first residue.
+ If the molecule is composed on non-consecutive fragments, 
+\family typewriter
+#Res
+\family default
+, 
+\family typewriter
+Name
+\family default
+, and 
+\family typewriter
+C
+\family default
+ will be printed for each fragment.
  
 \family typewriter
 SOLVENT
@@ -13840,7 +14718,7 @@ parmresinfo
 
 \end_inset
 
- [parm <name> | parmindex <#> | <#>] [<mask>] [short [maxwidth <#res>]]
+ [parm <name> | parmindex <#> | <#>] <mask> [short [maxwidth <#res>]]
 \end_layout
 
 \begin_layout LyX-Code
@@ -13878,7 +14756,7 @@ parmindex
 \end_layout
 
 \begin_layout Description
-[<mask>] Mask selecting residues to print info for.
+<mask> Mask selecting residues to print info for.
 \end_layout
 
 \begin_layout Description
@@ -16829,7 +17707,8 @@ Options for XYZ format:
 \end_layout
 
 \begin_layout LyX-Code
-ftype {atomxyz|xyz} titletype {none|single|perframe} width <#> prec <#>
+[ftype {namexyz|atomxyz|xyz}] [titletype {none|single|perframe}] [width
+ <#>] [prec <#>]
 \end_layout
 
 \begin_deeper
@@ -16838,7 +17717,16 @@ ftype
 \begin_inset space ~
 \end_inset
 
-{atomxyz|xyz} Choose either 'ATOM X Y Z' (default) or 'X Y Z' output format.
+{atomxyz|xyz} Choose either 'NAME X Y Z' (default), 'ATOM X Y Z', or 'X
+ Y Z' output format.
+ 
+\series bold
+'namexyz'
+\series default
+ format is the standard XYZ format, where each frame is preceded by the
+ number of atoms and a comment.
+ The comment written by CPPTRAJ will include the set number and box information
+ (if present).
 \end_layout
 
 \begin_layout Description
@@ -16848,6 +17736,11 @@ titletype
 
 {none|single|perframe} No title, one title (default), or title before every
  frame.
+ Only applies if not 
+\series bold
+'namexyz'
+\series default
+.
 \end_layout
 
 \begin_layout Description
@@ -17068,7 +17961,7 @@ Mod
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="87" columns="3">
+<lyxtabular version="3" rows="88" columns="3">
 <features islongtable="true" longtabularalignment="center">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="65text%">
@@ -18210,6 +19103,35 @@ Calculate J-coupling values from specified dihedral angles.
 \begin_inset Text
 
 \begin_layout Plain Layout
+keep
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Keep specified atoms in system.
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+X
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
 lessplit
 \end_layout
 
@@ -19248,7 +20170,7 @@ Remove specified atoms from the system.
 \begin_inset Text
 
 \begin_layout Plain Layout
-
+X
 \end_layout
 
 \end_inset
@@ -21540,7 +22462,7 @@ closest
 \end_layout
 
 \begin_layout LyX-Code
-    	[outprefix <prefix>] [parmout <filename>]
+    	[outprefix <prefix>] [nobox] [parmout <filename>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -21641,6 +22563,10 @@ oxygen] Calculate distances between all atoms in
 <prefix>
 \series default
 .
+\end_layout
+
+\begin_layout Description
+[nobox] Remove any box information from the topology.
 \end_layout
 
 \begin_layout Description
@@ -22966,27 +23892,245 @@ dipole
 \end_layout
 
 \begin_layout LyX-Code
-dipole <filename> {data <dsname> | <nx> <dx> <ny> <dy> <nz> <dz> 
+dipole [out <filename>]
 \end_layout
 
 \begin_layout LyX-Code
-       [gridcenter <cx> <cy> <cz>]}
+ 	  { data <dsname> | boxref <ref name/tag> <nx> <ny> <nz> |
 \end_layout
 
 \begin_layout LyX-Code
-   	[box|origin|center <mask>] [negative] [name <gridname>]
+   	  <nx> <dx> <ny> <dy> <nz> <dz>
 \end_layout
 
 \begin_layout LyX-Code
-       <mask1> {origin | box} [max <max_percent>]
+         [ { gridcenter <cx> <cy> <cz> |
 \end_layout
 
+\begin_layout LyX-Code
+ 	        boxcenter | 
+\end_layout
+
+\begin_layout LyX-Code
+ 	        maskcenter <mask> |
+\end_layout
+
+\begin_layout LyX-Code
+ 	        rmsfit <mask> [noxalign]} ]
+\end_layout
+
+\begin_layout LyX-Code
+   	[box|origin|center <mask>] [negative] [name <gridname>] 
+\end_layout
+
+\begin_layout LyX-Code
+       <mask1> [max <max_percent>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<filename>] File to write out grid to.
+ Use 
+\begin_inset Quotes eld
+\end_inset
+
+.grid
+\begin_inset Quotes erd
+\end_inset
+
+ or 
+\begin_inset Quotes eld
+\end_inset
+
+.xplor
+\begin_inset Quotes erd
+\end_inset
+
+ extension for XPLOR format, 
+\begin_inset Quotes eld
+\end_inset
+
+.dx
+\begin_inset Quotes erd
+\end_inset
+
+ for OpenDX format.
+\end_layout
+
+\begin_layout Standard
+Options for setting up grid:
+\end_layout
+
+\begin_layout Description
+data
+\begin_inset space ~
+\end_inset
+
+<dsname> Use previously calculated/loaded grid data set named <dsname>.
+ When using this option there is no need to specify grid bins/spacing/center.
+\end_layout
+
+\begin_layout Description
+boxref
+\begin_inset space ~
+\end_inset
+
+<ref
+\begin_inset space ~
+\end_inset
+
+name/tag>
+\begin_inset space ~
+\end_inset
+
+<nx>
+\begin_inset space ~
+\end_inset
+
+<ny>
+\begin_inset space ~
+\end_inset
+
+<nz> Set up grid using box information from a previously loaded reference
+ structure.
+ Currently the only way to set up non-orthogonal grids.
+\end_layout
+
+\begin_layout Description
+<nx>
+\begin_inset space ~
+\end_inset
+
+<dx>
+\begin_inset space ~
+\end_inset
+
+<ny>
+\begin_inset space ~
+\end_inset
+
+<dy>
+\begin_inset space ~
+\end_inset
+
+<nz>
+\begin_inset space ~
+\end_inset
+
+<dz> Number of grid bins and spacing in the X/Y/Z directions.
+\end_layout
+
+\begin_layout Description
+[gridcenter
+\begin_inset space ~
+\end_inset
+
+<cx>
+\begin_inset space ~
+\end_inset
+
+<cy>
+\begin_inset space ~
+\end_inset
+
+<cz>] Location of grid center, default is origin (0.0, 0.0, 0.0).
+\end_layout
+
+\begin_layout Description
+[boxcenter] Center grid on box center.
+\end_layout
+
+\begin_layout Description
+[maskcenter
+\begin_inset space ~
+\end_inset
+
+<mask>] Center the grid on the atoms selected by <mask>.
+\end_layout
+
+\begin_layout Description
+[rmsfit
+\begin_inset space ~
+\end_inset
+
+<mask>] Perform a best-fit rotation of the grid using the coordinates selected
+ by <mask>.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[noxalign] If specified, grid will not be re-oriented to align with Cartesian
+ axes once binning is finished.
+ Will affect file formats that do not store full unit cell vectors (like
+ Xplor).
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Options for offset during grid binning (must center grid at origin):
+\end_layout
+
+\begin_layout Description
+[box] Offset each point by location of box center prior to gridding.
+ Cannot be used with 'gridcenter'.
+\end_layout
+
+\begin_layout Description
+[origin] No offset (default)
+\end_layout
+
+\begin_layout Description
+[center
+\begin_inset space ~
+\end_inset
+
+<mask>] Offset each point by center of atoms in <mask> prior to gridding.
+ Cannot be used with 'gridcenter'.
+\end_layout
+
+\begin_layout Standard
+Other options:
+\end_layout
+
+\begin_layout Description
+[negative] Grid negative density instead of positive density.
+\end_layout
+
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<gridname>] Grid data set name.
+\end_layout
+
+\begin_layout Description
+<mask1> Mask selecting solvent atoms to bin.
+\end_layout
+
+\begin_layout Description
+[max
+\begin_inset space ~
+\end_inset
+
+<max
+\begin_inset space ~
+\end_inset
+
+percent>] Only keep density >= to <max_percent> of the maximum density.
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 NOTE: This command is not well-tested and may be obsolete.
 \end_layout
 
 \begin_layout Standard
-Same as 
+Similar to 
 \family sans
 \series bold
 grid
@@ -24333,7 +25477,7 @@ fixatomorder
 \end_layout
 
 \begin_layout LyX-Code
-fixatomorder [outprefix <prefix>] [parmout <filename>] 
+fixatomorder [outprefix <prefix>] [nobox] [parmout <filename>] 
 \end_layout
 
 \begin_layout LyX-Code
@@ -24351,6 +25495,10 @@ outprefix
 \end_inset
 
 <prefix> Write re-ordered topology to <prefix>.<originalname>
+\end_layout
+
+\begin_layout Description
+[nobox] Remove any box information from the re-ordered topology.
 \end_layout
 
 \begin_layout Description
@@ -24788,6 +25936,24 @@ suffix>] Suffix for main GIST info file name.
 \end_layout
 
 \begin_layout Description
+[oldnnvolume] Use the old reference volume for the nearest neighbor entropy,
+ instead of the more precice new implementation.
+\end_layout
+
+\begin_layout Description
+[nnsearchlayers
+\begin_inset space ~
+\end_inset
+
+<nlayers>] Number of layers of neighboring voxels that should be used when
+ searching for nearest neighbors.
+ This has to be at least 1 to obtain the correct entropy.
+ Higher values can help to obtain better convergence of the translational
+ and 6D entropy with little sampling or fine grid spacings, but increase
+ the calculation time (default 1).
+\end_layout
+
+\begin_layout Description
 [nopme] Do not use particle mesh Ewald for the non-bonded calculation (default).
 \end_layout
 
@@ -25082,8 +26248,13 @@ gridspcn
 n, longer simulation times will be needed to converge the properties in
  the smaller voxels that result.
  A larger grid spacing will allow earlier convergence, but will smooth the
- spatial distributions and hence can reduce accuracy.
- 
+ spatial distributions.
+ When computing the sum over voxel values in a larger region, the result
+ is independent of the grid spacing as long as 
+\series bold
+nlayers
+\series default
+ is high enough for the given sampling.
 \end_layout
 
 \begin_layout Standard
@@ -25340,7 +26511,11 @@ dTStrans-norm
 \series bold
 dTStrans-dens
 \series default
- divided by the number density of the voxel.
+ divided by the number density of the voxel in units of number/Å
+\begin_inset Formula $^{3}$
+\end_inset
+
+.
 \end_layout
 
 \begin_layout Itemize
@@ -25392,12 +26567,12 @@ nt interaction energy is zero in bulk.
 \series bold
 Esw-norm
 \series default
- - Mean solute-water interaction energy per water molecule.
+ - Mean solute-water interaction energy per water molecule (kcal/mole/molecule).
  This equals
 \series bold
  Esw-dens
 \series default
- divided by the number density of the voxel (kcal/mole/molecule).
+ divided by the number density of the voxel.
 \end_layout
 
 \begin_layout Itemize
@@ -25417,6 +26592,42 @@ unting, and not referenced to the corresponding bulk value of this quantity
 ).
  Again, both Lennard-Jones and electrostatic interactions are computed without
  any cutoff, within the minimum image convention.
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+PME-norm
+\series default
+ - (Only if PME was used) Mean PME solvent energy per water molecule (kcal/mole/
+molecule).
+ This equals 
+\series bold
+PME-dens
+\series default
+ divided by the number density of the voxel.
+ 
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+PME-dens
+\series default
+ - (Only if PME was used) Mean PME solvent energy density (kcal/mole/Å
+\begin_inset Formula $^{3}$
+\end_inset
+
+).
+ This corresponds roughly to 
+\series bold
+Eww-norm
+\series default
+ plus one half of 
+\series bold
+Esw-norm
+\series default
+ in a non-PME GIST calculation.
 \end_layout
 
 \begin_layout Itemize
@@ -26062,6 +27273,44 @@ s of interest.
 \end_layout
 
 \begin_layout Standard
+Note that the Eww reference needs to be subtracted from the normalized water-wat
+er energy 
+\series bold
+Eww-norm
+\series default
+.
+ A referenced 
+\series bold
+Eww-dens
+\series default
+ can be obtained by multiplying the referenced 
+\series bold
+Eww-norm
+\series default
+ by the solvent number density 
+\begin_inset Formula $\rho=g_{O}\rho^{o}=\frac{N_{w}}{N_{f}V_{vox}}$
+\end_inset
+
+, where 
+\begin_inset Formula $N_{w}$
+\end_inset
+
+ is the number of water molecules in a voxel (
+\series bold
+population
+\series default
+), 
+\begin_inset Formula $N_{f}$
+\end_inset
+
+ is the number of frames, and 
+\begin_inset Formula $V_{vox}$
+\end_inset
+
+ is the voxel volume.
+\end_layout
+
+\begin_layout Standard
 \paragraph_spacing other 3
 \noindent
 
@@ -26243,6 +27492,50 @@ d with a region
  
 \end_layout
 
+\begin_layout Standard
+9.
+ If the GIST grid contains the entire solute and the calculation is sufficently
+ converged, the energy and first-order entropy of hydration can be calculated
+ by numerical integration.
+ E.g., the energy of hydration is 
+\begin_inset Formula $\Delta E_{hyd}=\sum^{voxels}(E_{sw}^{dens}+E_{ww}^{dens})\times V_{vox}$
+\end_inset
+
+.
+ For this, Eww has to be referenced carefully, since numerical inaccuracies
+ can add up quickly.
+ It can be advisable to omit all voxels above a certain distance to the
+ solute to obtain more stable results.
+ When using PME, the energy cannot be decomposed into Eww and Esw contributions.
+ In that case, the energy of hydration is 
+\begin_inset Formula $\Delta E_{hyd}=E_{solute}-E_{solute}^{self}+\sum^{voxels}E_{PME}^{dens}\times V_{vox}$
+\end_inset
+
+, where the solute energy 
+\begin_inset Formula $E_{solute}$
+\end_inset
+
+ (containing solute-solute and solute-solvent interactions) can be found
+ in the GIST 
+\series bold
+info
+\series default
+ file, and the solute self-energy 
+\begin_inset Formula $E_{solute}^{self}$
+\end_inset
+
+ can be obtained e.g.
+ using the 
+\begin_inset Quotes eld
+\end_inset
+
+energy
+\begin_inset Quotes erd
+\end_inset
+
+ command .
+\end_layout
+
 \begin_layout Subsection
 grid
 \begin_inset CommandInset label
@@ -26255,7 +27548,7 @@ name "subsec:cpptraj_grid"
 \end_layout
 
 \begin_layout LyX-Code
-grid <filename>
+grid [out <filename>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -26263,7 +27556,23 @@ grid <filename>
 \end_layout
 
 \begin_layout LyX-Code
- 	  <nx> <dx> <ny> <dy> <nz> <dz> [gridcenter <cx> <cy> <cz>] }
+ 	  <nx> <dx> <ny> <dy> <nz> <dz>
+\end_layout
+
+\begin_layout LyX-Code
+       [ { gridcenter <cx> <cy> <cz> |
+\end_layout
+
+\begin_layout LyX-Code
+ 	      boxcenter | 
+\end_layout
+
+\begin_layout LyX-Code
+ 	      maskcenter <mask> |
+\end_layout
+
+\begin_layout LyX-Code
+ 	      rmsfit <mask> [noxalign]} ]
 \end_layout
 
 \begin_layout LyX-Code
@@ -26288,7 +27597,11 @@ grid <filename>
 
 \begin_deeper
 \begin_layout Description
-<filename> File to write out grid to.
+[out
+\begin_inset space ~
+\end_inset
+
+<filename>] File to write out grid to.
  Use 
 \begin_inset Quotes eld
 \end_inset
@@ -26395,6 +27708,36 @@ name/tag>
 <cz>] Location of grid center, default is origin (0.0, 0.0, 0.0).
 \end_layout
 
+\begin_layout Description
+[boxcenter] Center grid on box center.
+\end_layout
+
+\begin_layout Description
+[maskcenter
+\begin_inset space ~
+\end_inset
+
+<mask>] Center the grid on the atoms selected by <mask>.
+\end_layout
+
+\begin_layout Description
+[rmsfit
+\begin_inset space ~
+\end_inset
+
+<mask>] Perform a best-fit rotation of the grid using the coordinates selected
+ by <mask>.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[noxalign] If specified, grid will not be re-oriented to align with Cartesian
+ axes once binning is finished.
+ Will affect file formats that do not store full unit cell vectors (like
+ Xplor).
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 Options for offset during grid binning (must center grid at origin):
 \end_layout
@@ -26602,7 +27945,9 @@ Examples
 \end_layout
 
 \begin_layout Standard
-Grid water density around a solute.
+Example 1: Grid water density around a solute.
+ The solute is imaged to the origin and rms fit to the first frame.
+ The grid will be centered on the origin as well.
 \end_layout
 
 \begin_layout LyX-Code
@@ -26630,7 +27975,42 @@ grid out.dx 20 0.5 20 0.5 20 0.5 :WAT@O
 \end_layout
 
 \begin_layout Standard
-Generate grid from bounds command.
+Example 2: Grid water density around a solute.
+ The grid is centered on the solute.
+\end_layout
+
+\begin_layout LyX-Code
+trajin tz2.truncoct.nc
+\end_layout
+
+\begin_layout LyX-Code
+autoimage
+\end_layout
+
+\begin_layout LyX-Code
+grid out.dx 20 0.5 20 0.5 20 0.5 :WAT@O maskcenter :1-13
+\end_layout
+
+\begin_layout Standard
+Example 3: Grid water density around a solute.
+ The grid is centered on the solute and rms-fit.
+ The density obtained should be equivalent to the first example.
+\end_layout
+
+\begin_layout LyX-Code
+trajin tz2.truncoct.nc
+\end_layout
+
+\begin_layout LyX-Code
+image :WAT
+\end_layout
+
+\begin_layout LyX-Code
+grid out.dx 20 0.5 20 0.5 20 0.5 :WAT@O rmsfit :1-13
+\end_layout
+
+\begin_layout Standard
+Example 4: Generate grid from bounds command.
 \end_layout
 
 \begin_layout LyX-Code
@@ -26674,7 +28054,7 @@ crdaction MyCoords grid bounds.xplor data MyGrid :WAT@O
 \end_layout
 
 \begin_layout Standard
-Create non-orthogonal grid:
+Example 5: Create non-orthogonal grid based on the box.
 \end_layout
 
 \begin_layout LyX-Code
@@ -26740,6 +28120,14 @@ hbond
 \end_inset
 
 
+\end_layout
+
+\begin_layout LyX-Code
+      [bseries [bseriesfile <filename>]]
+\end_layout
+
+\begin_layout LyX-Code
+      [splitframe <comma-separated-list>]
 \end_layout
 
 \begin_deeper
@@ -26902,6 +28290,50 @@ hbond
 \end_layout
 
 \end_deeper
+\begin_layout Description
+[bseries] Save bridge formed (1.0) or not formed (0.0) per frame for any detected
+ bridge.
+ Bridges are saved with aspect [bridge_<indexlist>], where <indexlist> is
+ an underscore ('_') delimited list of bridged atom/residue numbers (depending
+ on 
+\series bold
+bridgebyatom
+\series default
+).
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[bseriesfile
+\begin_inset space ~
+\end_inset
+
+<filename>] File to write bridge time series data to.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[splitframe
+\begin_inset space ~
+\end_inset
+
+<comma-separated-list>] If specified, aplit the average hydrogen bond (
+\series bold
+avgout
+\series default
+, 
+\series bold
+solvout
+\series default
+, 
+\series bold
+bridgeout
+\series default
+) analysis into sections delimited by the frame numbers.
+ For example, 'splitframe 250,500,1000' will divide analysis into frames
+ 1-249, 250-499, 500-999, and 1000 to end.
+\end_layout
+
 \begin_layout Standard
 Data Sets Created:
 \end_layout
@@ -26965,6 +28397,17 @@ series
  not present.
 \end_layout
 
+\begin_layout Description
+<dsname>[bridge_<indexlist>] (bseries only) Time series for bridge; 1 for
+ present, 0 for not present.
+ The <indexlist> is an underscore ('_') delimited list of bridged atom/residue
+ numbers (depending on 
+\series bold
+bridgebyatom
+\series default
+).
+\end_layout
+
 \end_deeper
 \begin_layout Standard
 
@@ -26987,8 +28430,9 @@ Determine hydrogen bonds in each coordinate frame using simple geometric
  criteria.
  A hydrogen bond is defined as being between an acceptor heavy atom A, a
  donor hydrogen atom H, and a donor heavy atom D.
- If the A to D distance is less than the distance cutoff and the A-H-D angle
- is greater than the angle cutoff a hydrogen bond is considered formed.
+ If the A to D distance is less than or equal to the distance cutoff and
+ the A-H-D angle is greater than or equal to the angle cutoff a hydrogen
+ bond is considered formed.
  Imaging of distances/angles is not performed by default, but can be turned
  on using the 
 \series bold
@@ -27107,6 +28551,23 @@ The number of hydrogen bonds present at each frame will be determined and
 out
 \series default
 .
+ If desired, the bridge [ID] data can be used in conjunction with the 
+\series bold
+\emph on
+keep
+\series default
+\emph default
+ command to generate structures that only contain bridging solvent (
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-keep"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
  If the 
 \series bold
 series
@@ -27747,6 +29208,256 @@ cpptraj
 \family default
 \shape default
  format, only the J-coupling value is written.
+\end_layout
+
+\begin_layout Subsection
+keep
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj-keep"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout LyX-Code
+keep [ bridgedata <bridge data set> [nbridge <#>] [nobridgewarn]
+\end_layout
+
+\begin_layout LyX-Code
+      [bridgeresname <res name>] bridgeresonly <resrange>] ]
+\end_layout
+
+\begin_layout LyX-Code
+     [keepmask <atoms to keep>]
+\end_layout
+
+\begin_layout LyX-Code
+     [outprefix <prefix>] [nobox] [parmout <filename>]
+\end_layout
+
+\begin_layout LyX-Code
+     [parmopts <comma-separated-list>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+bridgedata
+\begin_inset space ~
+\end_inset
+
+<bridge
+\begin_inset space ~
+\end_inset
+
+data
+\begin_inset space ~
+\end_inset
+
+set> Data set containing bridge ID strings from the 
+\series bold
+\emph on
+hbond
+\series default
+\emph default
+ command (
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-hbond"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+nbridge
+\begin_inset space ~
+\end_inset
+
+<#> Number of bridging residues to keep (default 1).
+\end_layout
+
+\begin_layout Description
+nobridgewarn If specified, suppress warnings for when active # bridges does
+ not equal requested number.
+\end_layout
+
+\begin_layout Description
+bridgeresname
+\begin_inset space ~
+\end_inset
+
+<res
+\begin_inset space ~
+\end_inset
+
+name> Name of bridging residues (default 'WAT').
+\end_layout
+
+\begin_layout Description
+bridgeresonly
+\begin_inset space ~
+\end_inset
+
+<range> If specified, only keep bridges that bridge residues in the <resrange>
+ list.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+keepmask
+\begin_inset space ~
+\end_inset
+
+<atoms
+\begin_inset space ~
+\end_inset
+
+to
+\begin_inset space ~
+\end_inset
+
+keep> Mask of atoms to keep.
+\end_layout
+
+\begin_layout Description
+outprefix
+\begin_inset space ~
+\end_inset
+
+<prefix> Write modified topology to <prefix>.<originalname>
+\end_layout
+
+\begin_layout Description
+[nobox] Remove any box information from the modified topology.
+\end_layout
+
+\begin_layout Description
+parmout
+\begin_inset space ~
+\end_inset
+
+<filename> Write modified topology to <filename>.
+\end_layout
+
+\begin_layout Description
+parmopts
+\begin_inset space ~
+\end_inset
+
+<list> Options for writing topology file.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Keep only specified atoms (opposite of 
+\series bold
+\emph on
+strip
+\series default
+\emph default
+).
+ This can also be used in conjunction with output from the 
+\series bold
+\emph on
+hbond
+\series default
+\emph default
+ command to retain solute and only bridging residues (e.g.
+ bridging waters).
+ For example, the following run generates bridging data with the 
+\series bold
+\emph on
+'hbond'
+\series default
+\emph default
+ command in a first pass, then uses the bridge ID data to retain only 1
+ single bridging water between residues 10 and 11:
+\end_layout
+
+\begin_layout LyX-Code
+parm tz2.ortho.parm7
+\end_layout
+
+\begin_layout LyX-Code
+trajin tz2.ortho.nc 
+\end_layout
+
+\begin_layout LyX-Code
+# First pass, generate bridge time series 
+\end_layout
+
+\begin_layout LyX-Code
+hbond hb solventacceptor :WAT@O solventdonor :WAT out hb.dat
+\end_layout
+
+\begin_layout LyX-Code
+run
+\end_layout
+
+\begin_layout LyX-Code
+# Second pass, retain only frames where the bridge is present
+\end_layout
+
+\begin_layout LyX-Code
+# for residues 10 and 11.
+\end_layout
+
+\begin_layout LyX-Code
+keep bridgedata hb[ID] nbridge 1 bridgeresonly 10,11 parmout keep.parm7
+\end_layout
+
+\begin_layout LyX-Code
+# Write trajectory
+\end_layout
+
+\begin_layout LyX-Code
+trajout keep.nc
+\end_layout
+
+\begin_layout LyX-Code
+run
+\end_layout
+
+\begin_layout Standard
+This run reads in bridge ID data from a previous hbond run and uses it to
+ keep only residues 10, 11, and a bridging water:
+\end_layout
+
+\begin_layout LyX-Code
+parm tz2.ortho.parm7
+\end_layout
+
+\begin_layout LyX-Code
+trajin tz2.ortho.nc
+\end_layout
+
+\begin_layout LyX-Code
+readdata hb.dat
+\end_layout
+
+\begin_layout LyX-Code
+keep keepmask :10,11 bridgedata hb.dat:5 nbridge 1 bridgesonly 10,11 
+\backslash
+
+\end_layout
+
+\begin_layout LyX-Code
+  parmout keep.10.11.parm7
+\end_layout
+
+\begin_layout LyX-Code
+trajout keep.10.11.nc
+\end_layout
+
+\begin_layout LyX-Code
+run 
 \end_layout
 
 \begin_layout Subsection
@@ -33200,7 +34911,7 @@ remap data <setname>
 \end_layout
 
 \begin_layout LyX-Code
-      [outprefix <prefix>] [parmout <filename>]
+      [outprefix <prefix>] [nobox] [parmout <filename>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -33223,6 +34934,10 @@ outprefix
 \end_inset
 
 <prefix> Write remapped topology to <prefix>.<originalname>
+\end_layout
+
+\begin_layout Description
+[nobox] Remove any box information from the remapped topology.
 \end_layout
 
 \begin_layout Description
@@ -33270,7 +34985,7 @@ replicatecell [out <traj filename>] [name <dsname>]
 \end_layout
 
 \begin_layout LyX-Code
-          	[outprefix <prefix>] [parmout <filename>]
+          	[outprefix <prefix>] [nobox] [parmout <filename>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -33327,6 +35042,10 @@ outprefix
 \end_inset
 
 <prefix> Write replicated topology to <prefix>.<originalname>
+\end_layout
+
+\begin_layout Description
+[nobox] Remove any box information from the replicated topology.
 \end_layout
 
 \begin_layout Description
@@ -35526,11 +37245,11 @@ strip
 
 \end_inset
 
- <mask> [nobox]
+ <mask> 
 \end_layout
 
 \begin_layout LyX-Code
-  	[outprefix <prefix>] [parmout <filename>]
+  	[outprefix <prefix>] [nobox] [parmout <filename>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -35547,16 +37266,16 @@ strip
 \end_layout
 
 \begin_layout Description
-[nobox] Remove any box information from the stripped topology.
-\end_layout
-
-\begin_layout Description
 [outprefix
 \begin_inset space ~
 \end_inset
 
 <prefix>] Write out stripped topology file with name '<prefix>.<Original
  Topology Name>'.
+\end_layout
+
+\begin_layout Description
+[nobox] Remove any box information from the stripped topology.
 \end_layout
 
 \begin_layout Description
@@ -36485,7 +38204,7 @@ vector [<name>] <Type> [out <filename> [ptrajoutput]] [<mask1>] [<mask2>]
 \end_layout
 
 \begin_layout LyX-Code
-   	[magnitude] [ired]
+   	[magnitude] [ired] [gridset <grid>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -36566,6 +38285,27 @@ ptraj
 \begin_layout Description
 [ired] Mark this vector for subsequent IRED analysis with commands 'matrix
  ired' and 'ired'.
+\end_layout
+
+\begin_layout Description
+[gridset
+\begin_inset space ~
+\end_inset
+
+<grid>] Name of grid data set to get box info from instead of frame for
+ 
+\series bold
+box
+\series default
+, 
+\series bold
+boxcenter
+\series default
+, and 
+\series bold
+ucell[x|y|z]
+\series default
+.
 \end_layout
 
 \begin_layout Standard
@@ -39807,11 +41547,28 @@ cluster
 
 \end_inset
 
- [crdset <crd set> | nocoords]
+ [crdset <crd set>] [data <dset0>[,<dset1>...]] [nocoords]
 \end_layout
 
 \begin_layout LyX-Code
-  Algorithms:
+	[<name>] [<Algorithm>] [<Metric>] [<Pairwise>] [<Sieve>] [<BestRep>]
+\end_layout
+
+\begin_layout LyX-Code
+	[<Output>] [<Coord.
+ Output>] [<Graph>]
+\end_layout
+
+\begin_layout LyX-Code
+    [readinfo {infofile <info file> | cnvtset <dataset>}]
+\end_layout
+
+\begin_layout LyX-Code
+    [useframesincache]
+\end_layout
+
+\begin_layout LyX-Code
+  Algorithm Args: [{hieragglo|dbscan|kmeans|dpeaks}]
 \end_layout
 
 \begin_layout LyX-Code
@@ -39819,64 +41576,79 @@ cluster
 \end_layout
 
 \begin_layout LyX-Code
-      [epsilonplot <file>] [includesieved_cdist]]
+	           [epsilonplot <file>]]
 \end_layout
 
 \begin_layout LyX-Code
-	[dbscan minpoints <n> epsilon <e> [sievetoframe] [kdist <k> [kfile <prefix>]]]
+	[dbscan minpoints <n> epsilon <e> [kdist <k> [kfile <prefix>]]]
 \end_layout
 
 \begin_layout LyX-Code
-    [dpeaks epsilon <e> [noise] [dvdfile <density_vs_dist_file>]
+	[kmeans clusters <n> [randompoint [kseed <seed>]] [maxit <iterations>]]
 \end_layout
 
 \begin_layout LyX-Code
-	  [choosepoints {manual | auto}]
+	[dpeaks epsilon <e> [noise] [dvdfile <density_vs_dist_file>]
 \end_layout
 
 \begin_layout LyX-Code
-	  [distancecut <distcut>] [densitycut <densitycut>]
+	        [choosepoints {manual | auto}]
 \end_layout
 
 \begin_layout LyX-Code
-	  [runavg <runavg_file>] [deltafile <file>] [gauss]]
+	        [distancecut <distcut>] [densitycut <densitycut>]
 \end_layout
 
 \begin_layout LyX-Code
-    [kmeans clusters <n> [randompoint [kseed <seed>]] [maxit <iterations>]
+	        [runavg <runavg_file>] [deltafile <file>] [gauss]]
 \end_layout
 
 \begin_layout LyX-Code
-    [{readtxt|readinfo} infofile <file>]
+  Metric Args:
 \end_layout
 
 \begin_layout LyX-Code
-  Distance options:
+	[{dme|rms|srmsd} [mass] [nofit] [<mask>]] [{euclid|manhattan}] [wgt <list>]
 \end_layout
 
 \begin_layout LyX-Code
-	{[[rms | srmsd] [<mask>] [mass] [nofit]] | [dme [<mask>]] |
+  Pairwise Args:
 \end_layout
 
 \begin_layout LyX-Code
-      [data <dset0>[,<dset1>,...]]}
+	[pairdist <name>] [pwrecalc]
 \end_layout
 
 \begin_layout LyX-Code
-	[sieve <#> [random [sieveseed <#>]]] [loadpairdist] [savepairdist] [pairdist
- <file>]
+	[loadpairdist] [savepairdist] [pairwisecache {mem|disk|none}]
 \end_layout
 
 \begin_layout LyX-Code
-    [pairwisecache {mem | none}] [includesieveincalc] [pwrecalc]
+  Sieve Args:
 \end_layout
 
 \begin_layout LyX-Code
-  Output options:
+	[sieve <#> [sieveseed <#>] [random] [includesieveincalc] [includesieved_cdist]
 \end_layout
 
 \begin_layout LyX-Code
-	[out <cnumvtime>] [gracecolor] [summary <summaryfile>] [info <infofile>]
+	 [{sievetoframe|sievetocentroid|closestcentroid}] [repsilon <restore epsilon>]]
+\end_layout
+
+\begin_layout LyX-Code
+  BestRep Args:
+\end_layout
+
+\begin_layout LyX-Code
+	[bestrep {cumulative|centroid|cumulative_nosieve}] [savenreps <#>]
+\end_layout
+
+\begin_layout LyX-Code
+  Output Args:
+\end_layout
+
+\begin_layout LyX-Code
+	[out <cnumvtime> [gracecolor]] [noinfo|info <file>] [summary <file>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -39884,39 +41656,43 @@ cluster
 \end_layout
 
 \begin_layout LyX-Code
-    [bestrep {cumulative|centroid|cumulative_nosieve}] [savenreps <#>]
+	[clustersvtime <file> [cvtwindow <#>]] [sil <prefix> [silidx {idx|frm}]]
 \end_layout
 
 \begin_layout LyX-Code
-    [clustersvtime <filename> cvtwindow <window size>]
+	[metricstats <file>] [cpopvtime <file> [{normpop|normframe}]] [lifetime]
 \end_layout
 
 \begin_layout LyX-Code
-	[cpopvtime <file> [normpop | normframe] [lifetime]]
+  Coordinate Output Args:
 \end_layout
 
 \begin_layout LyX-Code
-    [sil <silhouette file prefix>] [assignrefs [refcut <rms>] [refmask <mask>]]
+	[clusterout <trajfileprefix> [clusterfmt <trajformat>]]
 \end_layout
 
 \begin_layout LyX-Code
-  Coordinate output options:
+	[singlerepout <trajfilename> [singlerepfmt <trajformat>]]
 \end_layout
 
 \begin_layout LyX-Code
-	[ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]
+	[repout <repprefix> [repfmt <trajformat>] [repframe]]
 \end_layout
 
 \begin_layout LyX-Code
-	[ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]
+	[avgout <avgprefix> [avgfmt <trajformat>]]
 \end_layout
 
 \begin_layout LyX-Code
-	[ repout <repprefix> [repfmt <repfmt>] [repframe] ]
+	[assignrefs [refcut <rms>] [refmask <mask>]]
 \end_layout
 
 \begin_layout LyX-Code
-    [ avgout <avgprefix> [avgfmt <avgfmt>] ]
+  Graph Args:
+\end_layout
+
+\begin_layout LyX-Code
+	[{drawgraph|drawgraph3d} [draw_tol <tolerance>] [draw_maxit <iterations]]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -39933,8 +41709,9 @@ cluster
 \begin_inset space ~
 \end_inset
 
-set>] Name of previously generated COORDS data set.
- If not specified the default COORDS set will be used unless 
+set>] Name of COORDS data set to cluster on and/or use for coordinate output.
+ If not specified the default COORDS set will be generated and used unless
+ 
 \series bold
 nocoords
 \series default
@@ -39942,8 +41719,61 @@ nocoords
 \end_layout
 
 \begin_layout Description
+[data
+\begin_inset space ~
+\end_inset
+
+<dset0>[,<dset1>,...] Distance between frames calculated using specified data
+ set(s).
+ Currently 1D scalar sets and COORDS sets are supported.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
 [nocoords] Do not use a COORDS data set; distance metrics that require coordinat
-es and coordiante output will be disabled.
+es and coordinate output will be disabled.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[<name>] Data set Name for generated cluster data sets.
+\end_layout
+
+\begin_layout Description
+[readinfo] Use previous cluster results to set up initial clusters.
+ Clustering will continue if possible (i.e.
+ this can be used to restart clustering).
+\begin_inset Separator latexpar
+\end_inset
+
+
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+infofile
+\begin_inset space ~
+\end_inset
+
+<file> Cluster 
+\series bold
+info
+\series default
+ file to read clusters from.
+\end_layout
+
+\begin_layout Description
+cnvtset
+\begin_inset space ~
+\end_inset
+
+<dataset> Cluster number vs time data set to use to generate initial clusters.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[useframesincache] If a pairwise cache is specified, cluster on the frames
+ stored in the cache.
 \end_layout
 
 \begin_layout Standard
@@ -40021,15 +41851,6 @@ averagelinkage]
 .
 \end_layout
 
-\begin_layout Description
-[includesieved_cdist] Include sieved frames in final cluster distance calculatio
-n (
-\bar under
-may be very slow
-\bar default
-).
-\end_layout
-
 \end_deeper
 \begin_layout Description
 dbscan Use DBSCAN clustering algorithm of Ester et al.
@@ -40062,11 +41883,6 @@ epsilon
 \end_inset
 
 <e> Distance cutoff between points for forming a cluster.
-\end_layout
-
-\begin_layout Description
-[sievetoframe] When restoring sieved frames, compare frame to every frame
- in a cluster instead of the centroid; slower but more accurate.
 \end_layout
 
 \begin_layout Description
@@ -40276,30 +42092,12 @@ randompoint
 \end_layout
 
 \end_deeper
-\begin_layout Description
-readtxt|readinfo No clustering - read in previous cluster results.
-\begin_inset Separator latexpar
-\end_inset
-
-
-\end_layout
-
-\begin_deeper
-\begin_layout Description
-infofile
-\begin_inset space ~
-\end_inset
-
-<file> Cluster info file to read.
-\end_layout
-
-\end_deeper
 \begin_layout Standard
 Distance Metric Options:
 \end_layout
 
 \begin_layout Description
-[rms
+[{rms
 \begin_inset space ~
 \end_inset
 
@@ -40307,12 +42105,16 @@ Distance Metric Options:
 \begin_inset space ~
 \end_inset
 
-srmsd[<mask>]] (Default 
+srmsd}
+\begin_inset space ~
+\end_inset
+
+[<mask>]] (Default 
 \series bold
 rms
 \series default
-) Distance between frames calculated via best-fit coordinate RMSD using
- atoms in 
+) For COORDS data, distance between coordinate frames calculated via best-fit
+ coordinate RMSD using atoms in 
 \series bold
 <mask>
 \series default
@@ -40350,8 +42152,8 @@ dme
 \begin_inset space ~
 \end_inset
 
-[<mask>] Distance between frames calculated using distance-RMSD (aka DME,
- 
+[<mask>] For COORDS data, distance between coordinate frames calculated
+ using distance-RMSD (aka DME, 
 \series bold
 \emph on
 distrmsd
@@ -40365,41 +42167,34 @@ distrmsd
 \end_layout
 
 \begin_layout Description
-[data
-\begin_inset space ~
-\end_inset
-
-<dset0>[,<dset1>,...] Distance between frames calculated using specified data
- set(s) (Euclidean distance).
+euclid Use Euclidean distance (sqrt(SUM(distance^2))) when more than one
+ data set has been specified (default).
 \end_layout
 
 \begin_layout Description
-[sieve
+manhatttan Use Manhattan distance (SUM(distance)) when more than one data
+ set has been specified.
+\end_layout
+
+\begin_layout Description
+wgt
 \begin_inset space ~
 \end_inset
 
-<#>] Perform clustering only for every 
+<list> Factor to multiply distances from each metric by in a comma-separated
+ list.
+ Can be used to adjust the contribution from each metric.
+ Default is 1 for each metric.
+ Output from the 
 \series bold
-<#>
+metricstats
 \series default
- frame.
- After clustering, all other frames will be added to clusters.
+ keyword can be used to determine the relative contribution of each metric
+ to the distance.
 \end_layout
 
-\begin_layout Description
-[random] When 
-\series bold
-sieve
-\series default
- is specified, select initial frames to cluster randomly.
-\end_layout
-
-\begin_layout Description
-[sieveseed
-\begin_inset space ~
-\end_inset
-
-<#>] Seed for random sieving; if not set the wallclock time will be used.
+\begin_layout Standard
+Pairwise Distance Matrix Options:
 \end_layout
 
 \begin_layout Description
@@ -40407,23 +42202,37 @@ sieve
 \begin_inset space ~
 \end_inset
 
-<file>] File to use for loading/saving pairwise distances.
+<name>] Pairwise cache DataSet/File name to use for loading/saving pairwise
+ distances.
 \end_layout
 
 \begin_layout Description
-[loadpairdist] Load pairwise distances from 
-\series bold
-<file>
-\series default
- (CpptrajPairDist if pairdist not specified).
+[pwrecalc] If the loaded pairwise distance matrix does not match the current
+ setup, force recalculation.
 \end_layout
 
 \begin_layout Description
-[savepairdist] Save pairwise distances from 
+[loadpairdist] Load pairwise distances from file specified by 
 \series bold
-<file>
+pairdist
 \series default
- (CpptrajPairDist if pairdist not specified).
+ (CpptrajPairDist if 
+\series bold
+pairdist
+\series default
+ not specified).
+\end_layout
+
+\begin_layout Description
+[savepairdist] Save pairwise distances to file specified by 
+\series bold
+pairdist
+\series default
+ (CpptrajPairDist if 
+\series bold
+pairdist
+\series default
+ not specified).
  NOTE: If sieving was performed only the calculated distances are saved.
 \end_layout
 
@@ -40456,6 +42265,48 @@ none}] Cache pairwise distance data in memory (default), to disk, or disable
  SSD) - data is saved to a file named 'CpptrajPairwiseCache'.
 \end_layout
 
+\begin_layout Standard
+Sieving Options:
+\end_layout
+
+\begin_layout Description
+[sieve
+\begin_inset space ~
+\end_inset
+
+<#>] Perform clustering only for every 
+\series bold
+<#>
+\series default
+ frame.
+ After clustering, all other frames will be added to clusters.
+\end_layout
+
+\begin_layout Description
+[random] When 
+\series bold
+sieve
+\series default
+ is specified, select initial frames to cluster randomly.
+\end_layout
+
+\begin_layout Description
+[sieveseed
+\begin_inset space ~
+\end_inset
+
+<#>] Seed for random sieving; if not set the wallclock time will be used.
+\end_layout
+
+\begin_layout Description
+[includesieved_cdist] Include sieved frames in final cluster distance calculatio
+n (
+\bar under
+may be very slow
+\bar default
+).
+\end_layout
+
 \begin_layout Description
 [includesieveincalc] Include sieved frames when calculating within-cluster
  average (
@@ -40466,8 +42317,91 @@ may be very slow
 \end_layout
 
 \begin_layout Description
-[pwrecalc] If a loaded pairwise distance file does not match the current
- setup, force recalculation.
+[sievetoframe] When restoring sieved frames, compare frame to every frame
+ in a cluster using a cutoff of 
+\series bold
+<restore epsilon>
+\series default
+ (default is algorithm 
+\series bold
+epsilon
+\series default
+ when using DPeaks/DBscan) instead of the centroid; slower but more accurate.
+\end_layout
+
+\begin_layout Description
+[sievetocentroid] When restoring sieved frames, compare frame to cluster
+ centroid using a cutoff of 
+\series bold
+<restore epsilon>
+\series default
+ (default is algorithm 
+\series bold
+epsilon
+\series default
+ when using DPeaks/DBscan).
+ Default method for DPeaks/DBSCAN.
+\end_layout
+
+\begin_layout Description
+[closestcentroid] When restoring sieved frames, add each frame to its closest
+ centroid.
+ Default method for hieragglo/kmeans.
+\end_layout
+
+\begin_layout Description
+[repsilon
+\begin_inset space ~
+\end_inset
+
+<restore
+\begin_inset space ~
+\end_inset
+
+epsilon>] Epsilon to use for sievetoframe/sievetocentroid (default is algorithm
+ 
+\series bold
+epsilon
+\series default
+ when using DPeaks/DBscan).
+\end_layout
+
+\begin_layout Standard
+Best Representative Options:
+\end_layout
+
+\begin_layout Description
+[bestrep
+\begin_inset space ~
+\end_inset
+
+{cumulative|centroid|cumulative_nosieve}] Method for choosing cluster representa
+tive frames.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+cumulative Choose by lowest cumulative distance to all other frames in cluster.
+ Default when not sieving.
+\end_layout
+
+\begin_layout Description
+centroid Choose by lowest distance to cluster centroid.
+ Default when sieving.
+\end_layout
+
+\begin_layout Description
+cumulative_nosieve Choose by lowest cumulative distance to all other frames,
+ ignoring sieved frames.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[savenreps
+\begin_inset space ~
+\end_inset
+
+<#>] Number of best representative frames to choose (default 1).
 \end_layout
 
 \begin_layout Standard
@@ -40488,6 +42422,7 @@ Output Options:
  DBSCAN) will assign noise points a value of -1.
 \end_layout
 
+\begin_deeper
 \begin_layout Description
 [gracecolor] Instead of cluster # vs frame, write cluster# + 1 (corresponding
  to colors used by XMGRACE) vs frame.
@@ -40496,6 +42431,7 @@ Output Options:
  DBSCAN) will assign noise points a color of 0 (blank).
 \end_layout
 
+\end_deeper
 \begin_layout Description
 [summary
 \begin_inset space ~
@@ -40533,6 +42469,9 @@ Stdev Standard deviation of points in the cluster.
 \begin_layout Description
 Centroid Frame # of structure in cluster that has the lowest cumulative
  distance to every other point.
+ If multiple representatives are being saved this column is replaced with
+ two columns for each representative, 'Rep' (representative frame #) and
+ 'RepScore' (score according to current best representative metric).
 \end_layout
 
 \begin_layout Description
@@ -40574,6 +42513,10 @@ AvgCDist Average distance of this cluster to every other cluster.
 \begin_inset Newline newline
 \end_inset
 
+#SSR/SST: <SSR/SST>
+\begin_inset Newline newline
+\end_inset
+
 #Algorithm: <algorithm-specific info>
 \begin_inset Newline newline
 \end_inset
@@ -40593,11 +42536,15 @@ AvgCDist Average distance of this cluster to every other cluster.
 Where <X> is the number of clusters, <N> is the number of frames clustered,
  <I> ranges from 0 to <X>-1, <AVG> is the average distance of all frames
  in that cluster to the centroid, <DBI> is the Davies-Bouldin Index, <pSF>
- is the pseudo-F statistic, and <representative frame list> contains the
- frame # of the representative frame (i.e.
+ is the pseudo-F statistic, <SSR/SST> is the SSR/SST ratio, and <representative
+ frame list> contains the frame # of the representative frame (i.e.
  closest to the centroid) for each cluster.
  Each cluster has a line made up of characters (one for each frame) where
  '.' means 'not in cluster' and 'X' means 'in cluster'.
+\end_layout
+
+\begin_layout Description
+[noinfo] Suppress printing of cluster info.
 \end_layout
 
 \begin_layout Description
@@ -40609,7 +42556,8 @@ Where <X> is the number of clusters, <N> is the number of frames clustered,
  portions of the trajectory specified by splitframe with format '#Cluster
  Total Frac C# Color NumInX ...
  FracX ...
- FirstX':
+ FirstX ...
+ RepX':
 \begin_inset Separator latexpar
 \end_inset
 
@@ -40650,6 +42598,11 @@ FirstX Frame in the Xth portion of the trajectory where the cluster is first
  observed.
 \end_layout
 
+\begin_layout Description
+RepX Best representative frame in the Xth portion of the trajectory for
+ that cluster.
+\end_layout
+
 \end_deeper
 \begin_layout Description
 [splitframe
@@ -40665,40 +42618,6 @@ summarysplit
 \end_layout
 
 \begin_layout Description
-[bestrep
-\begin_inset space ~
-\end_inset
-
-{cumulative|centroid|cumulative_nosieve}] Method for choosing cluster representa
-tive frames.
-\end_layout
-
-\begin_deeper
-\begin_layout Description
-cumulative Choose by lowest cumulative distance to all other frames in cluster.
- Default when not sieving.
-\end_layout
-
-\begin_layout Description
-centroid Choose by lowest distance to cluster centroid.
- Default when sieving.
-\end_layout
-
-\begin_layout Description
-cumulative_nosieve Choose by lowest cumulative distance to all other frames,
- ignoring sieved frames.
-\end_layout
-
-\end_deeper
-\begin_layout Description
-[savenreps
-\begin_inset space ~
-\end_inset
-
-<#>] Number of best representative frames to choose (default 1).
-\end_layout
-
-\begin_layout Description
 [clustersvtime
 \begin_inset space ~
 \end_inset
@@ -40707,6 +42626,7 @@ cumulative_nosieve Choose by lowest cumulative distance to all other frames,
  to <filename>.
 \end_layout
 
+\begin_deeper
 \begin_layout Description
 [cvtwindow
 \begin_inset space ~
@@ -40717,6 +42637,66 @@ cumulative_nosieve Choose by lowest cumulative distance to all other frames,
 clustersvtime
 \series default
  output.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[sil
+\begin_inset space ~
+\end_inset
+
+<prefix>] Write average cluster silhouette value for each cluster to '<prefix>.cl
+uster.dat' and cluster silhouette value for each individual frame to '<prefix>.fra
+me.dat'.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[silidx
+\begin_inset space ~
+\end_inset
+
+{idx|frm}] Choose what indices to write to the cluster silhouette frame
+ file: 
+\series bold
+idx
+\series default
+ (the default) specifies the sorted index (starting from 0), 
+\series bold
+frm
+\series default
+ specifies the actual frame number.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[metricstats
+\begin_inset space ~
+\end_inset
+
+<file>] When more than one metric in use, print the fraction contribution
+ of each metric to the total distance.
+ This information can be used in conjunction with the 
+\series bold
+wgt
+\series default
+ keyword to adjust the contribution of each metric to the total distance.
+ It is written to <file> with format:
+\begin_inset Newline newline
+\end_inset
+
+#Metric FracAv FracSD Avg SD Min Max Description
+\begin_inset Newline newline
+\end_inset
+
+Where #Metric is the metric number, FracAv and FracSD are the average and
+ standard devation of the fraction contribution of that metric to the total
+ distance (taking into account distance type and weights), Avg, SD, Min,
+ and Max are the average, standard devation, minimum, and maximum of the
+ unmodified distance contribution from that metric, and Description is the
+ metric description.
+ This may be slow for large numbers of frames, so it is advisable to run
+ this on a smaller (potentially sieved) number of frames.
 \end_layout
 
 \begin_layout Description
@@ -40752,15 +42732,121 @@ normframe
 \end_layout
 
 \begin_layout Description
-[sil
+[lifetime] Create a DataSet with aspect 
+\emph on
+[Lifetime]
+\emph default
+ for each cluster; for each frame, have 1 if the cluster is present and
+ 0 otherwise.
+ Can be used with 
+\series bold
+\emph on
+lifetime
+\series default
+\emph default
+ analysis (
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-lifetime"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+Coordinate Output Options:
+\end_layout
+
+\begin_layout Description
+clusterout
 \begin_inset space ~
 \end_inset
 
-<prefix>] Write average cluster silhouette value for each cluster to '<prefix>.cl
-uster.dat' and cluster silhouette value for each individual frame to '<prefix>.fra
-me.dat'.
+<trajfileprefix> Write frames in each cluster to files named <trajfileprefix>.cX,
+ where X is the cluster number.
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+clusterfmt
+\begin_inset space ~
+\end_inset
+
+<trajformat> Format keyword for clusterout (default Amber Trajectory).
+\end_layout
+
+\end_deeper
+\begin_layout Description
+singlerepout
+\begin_inset space ~
+\end_inset
+
+<trajfilename> Write all representative frames to single trajectory named
+ <trajfilename>.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+singlerepfmt
+\begin_inset space ~
+\end_inset
+
+<trajformat> Format keyword for singlerepout (default Amber Trajectory).
+\end_layout
+
+\end_deeper
+\begin_layout Description
+repout
+\begin_inset space ~
+\end_inset
+
+<repprefix> Write representative frames to separate files named <repprefix>.X.<ext
+>, where X is the cluster number and <ext> is a format-specific filename
+ extension.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+repfmt
+\begin_inset space ~
+\end_inset
+
+<trajformat> Format keyword for repout (default Amber Trajectory).
+\end_layout
+
+\begin_layout Description
+repframe Include representative frame number in 
+\series bold
+repout
+\series default
+ filename.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+avgout
+\begin_inset space ~
+\end_inset
+
+<avgprefix> Write average structure for each cluster to separate files named
+ <avgprefix>.X.<ext>, where X is the cluster number and <ext> is a format-specific
+ filename extension.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+avgfmt
+\begin_inset space ~
+\end_inset
+
+<trajformat> Format keyword for avgout.
+\end_layout
+
+\end_deeper
 \begin_layout Description
 assignrefs In 
 \series bold
@@ -40770,8 +42856,18 @@ summary
 \series bold
 summarysplit
 \series default
-, assign clusters to loaded representative structures if RMSD to that reference
+, assign clusters to loaded reference structures if RMSD to that reference
  is less than specified cutoff.
+ This will be printed in 
+\series bold
+summary
+\series default
+ and 
+\series bold
+summarysplit
+\series default
+ files as 2 extra columns: 'Name' (reference name) and 'RMS' (RMS to cluster
+ centroid).
 \end_layout
 
 \begin_deeper
@@ -40794,93 +42890,50 @@ summarysplit
 
 \end_deeper
 \begin_layout Standard
-Coordinate Output Options:
+DataSets Created:
 \end_layout
 
 \begin_layout Description
-clusterout
-\begin_inset space ~
-\end_inset
-
-<trajfileprefix> Write frames in each cluster to files named <trajfileprefix>.cX,
- where X is the cluster number.
-\end_layout
-
-\begin_layout Description
-clusterfmt
-\begin_inset space ~
-\end_inset
-
-<trajformat> Format keyword for clusterout (default Amber Trajectory).
-\end_layout
-
-\begin_layout Description
-singlerepout
-\begin_inset space ~
-\end_inset
-
-<trajfilename> Write all representative frames to single trajectory named
- <trajfilename>.
-\end_layout
-
-\begin_layout Description
-singlerepfmt
-\begin_inset space ~
-\end_inset
-
-<trajformat> Format keyword for singlerepout (default Amber Trajectory).
-\end_layout
-
-\begin_layout Description
-repout
-\begin_inset space ~
-\end_inset
-
-<repprefix> Write representative frames to separate files named <repprefix>.X.<ext
->, where X is the cluster number and <ext> is a format-specific filename
- extension.
-\end_layout
-
-\begin_layout Description
-repfmt
-\begin_inset space ~
-\end_inset
-
-<trajformat> Format keyword for repout (default Amber Trajectory).
-\end_layout
-
-\begin_layout Description
-repframe Include representative frame number in 
+<name> Cluster number vs time (color number if 
 \series bold
-repout
+gracecolor
 \series default
- filename.
+ specified).
 \end_layout
 
 \begin_layout Description
-avgout
-\begin_inset space ~
-\end_inset
-
-<avgprefix> Write average structure for each cluster to separate files named
- <avgprefix>.X.<ext>, where X is the cluster number and <ext> is a format-specific
- filename extension.
+<name>[DBI] Hold final Davies-Bouldin index.
 \end_layout
 
 \begin_layout Description
-avgfmt
-\begin_inset space ~
-\end_inset
-
-<trajformat> Format keyword for avgout.
-\end_layout
-
-\begin_layout Standard
-DataSet Aspects:
+<name>[PSF] Hold final pseudo-F value.
 \end_layout
 
 \begin_layout Description
-[Pop] Cluster population vs time; index corresponds to cluster number.
+<name>[SSRSST] Hold final SSR/SST value.
+\end_layout
+
+\begin_layout Description
+<name>[NCVT] (
+\series bold
+clustersvtime
+\series default
+ only).
+ Number of unique clusters observed over time.
+\end_layout
+
+\begin_layout Description
+<name>[Pop]:<X> Cluster X population vs time; index X corresponds to cluster
+ number.
+\end_layout
+
+\begin_layout Description
+<name>[Lifetime]:<X> (
+\series bold
+lifetime
+\series default
+ only).
+ For each cluster X, contain 1 if cluster present that frame, 0 otherwise.
 \end_layout
 
 \end_deeper
@@ -40892,9 +42945,17 @@ Note cluster population vs time data sets are not generated until the analysis
 \end_layout
 
 \begin_layout Standard
-Cluster input frames using the specified clustering algorithm and distance
- metric.
- In order to speed up clustering of large trajectories, the 
+Cluster input frames using the specified input data sets (can be any combination
+ of coordinates/COORDS and/or 1D scalar data) with the specified clustering
+ algorithm.
+ For COORDS sets, the distance metric can be RMSD, symmetry-corrected RMSD,
+ or DME.
+ When multiple data sets are present, the total distance can be determined
+ either via the Euclidean (default) or Manhattan method.
+\end_layout
+
+\begin_layout Standard
+In order to speed up clustering of large trajectories, the 
 \series bold
 sieve
 \series default
@@ -40933,9 +42994,11 @@ cluster data endToEnd clusters 10 epsilon 3.0 summary summary.dat info info.dat
 \end_layout
 
 \begin_layout Standard
-Example: cluster on the CA atoms of residues 2-10 using average-linkage,
- stopping when either 3 clusters are reached or the minimum distance between
- clusters is 4.0, writing the cluster number vs time to 
+Example: two clustering commands on the CA atoms of residues 2-10 using
+ average-linkage, stopping when either 3 clusters are reached or the minimum
+ distance between clusters is 4.0 for the first, and 8 clusters or minimum
+ distance 2.0 for the second.
+ The first command will write the cluster number vs time to 
 \begin_inset Quotes eld
 \end_inset
 
@@ -40951,20 +43014,31 @@ avg.summary.dat
 \begin_inset Quotes erd
 \end_inset
 
-:
+.
+ The second clustering command will use the pairwise distance matrix from
+ the first to speed things up:
 \end_layout
 
 \begin_layout LyX-Code
-cluster C1 :2-10 clusters 3 epsilon 4.0 out cnumvtime.dat summary avg.summary.dat
+cluster C1 :2-10 clusters 3 epsilon 4.0 info C1.info out cnumvtime.dat summary
+ avg.summary.dat pairdist PW
+\end_layout
+
+\begin_layout LyX-Code
+cluster C2 :2-10 clusters 8 epsilon 2.0 info C2.info pairdist PW
 \end_layout
 
 \begin_layout Subsubsection*
-Clustering Metrics
+Clustering Success Metrics
 \end_layout
 
 \begin_layout Standard
-The Davies-Bouldin Index (DBI) measures sum over all clusters of the within
- cluster scatter to the between cluster separation; 
+The Davies-Bouldin Index (DBI, reported in the 
+\series bold
+info
+\series default
+ file) measures sum over all clusters of the within cluster scatter to the
+ between cluster separation; 
 \series bold
 the smaller the DBI, the better
 \series default
@@ -40977,13 +43051,17 @@ the smaller the DBI, the better
 \end_layout
 
 \begin_layout Standard
-The pseudo-F statistic (pSF) is another measure of clustering goodness.
+The pseudo-F statistic (pSF, reported in the 
+\series bold
+info
+\series default
+ file) is another measure of clustering goodness.
  It is intended to capture the 'tightness' of clusters, and is in essence
  a ratio of the mean sum of squares between groups to the mean sum of squares
  within group.
  
 \series bold
-High values are good
+Higher values of pseudo-F are good
 \series default
 .
  Generally, one selects a cluster-count that gives a peak in the pseudo-f
@@ -40996,15 +43074,145 @@ High values are good
 \end_layout
 
 \begin_layout Standard
-The cluster silhouette is a measure of how well each point fits within a
- cluster.
+The SSR/SST (reported in the 
+\series bold
+info
+\series default
+ file) is the ratio of the sum of squares regression (SSR or between sum
+ of squares) and the total sum of squares (SST).
+ The SSR is calculated via the sum of the squared distances of all points
+ within a given cluster to its centroid, and summed together for all clusters.
+ The total sum of squares is the sum of squared distances for all frames
+ to the overall mean.
+ The ratio lies between 0 and 1 and is supposed to give the fraction of
+ explained variance by the data.
+ The ratio should increase with cluster count.
+ 
+\series bold
+There should be a point at which adding more clusters does not substantially
+ increase SSR/SST
+\series default
+, i.e.
+ the point where increasing the cluster count does not add new information
+ and should not increase further.
+\end_layout
+
+\begin_layout Standard
+The cluster silhouette (
+\series bold
+sil
+\series default
+/
+\series bold
+silidx
+\series default
+ keywords) is a measure of how well each point fits within a cluster.
  Values of 1 indicate the point is very similar to other points in the cluster,
  i.e.
  it is well-clustered.
  Values of -1 indicate the point is dissimilar and may fit better in a neighbori
 ng cluster.
  Values of 0 indicate the point is on a border between two clusters.
- 
+ The 
+\series bold
+sil <prefix>
+\series default
+ keyword will write two files.
+ The first, <prefix>.cluster.dat, which has the format:
+\end_layout
+
+\begin_layout LyX-Code
+#Cluster <Si> StdDev
+\end_layout
+
+\begin_layout Standard
+Where #Cluster is the cluster number, <Si> is the average silhouette value
+ for all frames in the cluster, and StdDev is the standard deviation of
+ the silhouette value for all frames in the cluster.
+ The second, <prefix>.frame.dat, will contain the silhouette value for each
+ frame grouped by cluster, with indices controlled by the 
+\series bold
+silidx
+\series default
+ keyword (default sorted by ascending silhouette value), e.g.:
+\end_layout
+
+\begin_layout LyX-Code
+#C0 Silhouette
+\end_layout
+
+\begin_layout LyX-Code
+#C0      Silhouette
+\end_layout
+
+\begin_layout LyX-Code
+       0 -0.135988
+\end_layout
+
+\begin_layout LyX-Code
+       1 -0.0266746
+\end_layout
+
+\begin_layout LyX-Code
+       2 -0.0167628
+\end_layout
+
+\begin_layout LyX-Code
+       3 0.0609673
+\end_layout
+
+\begin_layout LyX-Code
+       4 0.0649603
+\end_layout
+
+\begin_layout LyX-Code
+       5 0.0835595
+\end_layout
+
+\begin_layout LyX-Code
+
+\end_layout
+
+\begin_layout LyX-Code
+#C1      Silhouette
+\end_layout
+
+\begin_layout LyX-Code
+       6 0.319039
+\end_layout
+
+\begin_layout LyX-Code
+       7 0.319785
+\end_layout
+
+\begin_layout LyX-Code
+       8 0.348833
+\end_layout
+
+\begin_layout LyX-Code
+       9 0.358286
+\end_layout
+
+\begin_layout LyX-Code
+
+\end_layout
+
+\begin_layout LyX-Code
+       0 0.1376
+\end_layout
+
+\begin_layout LyX-Code
+       9 0.1376
+\end_layout
+
+\begin_layout Standard
+The last two lines will contain the overall average silhouette value twice,
+ one at the lowest index and one at the highest.
+ The file is formatted in this way to make it easy to visualize each cluster
+ silhouette relative to the average value in e.g.
+ the XMGRACE plotting program.
+ If the clustering results in one or more cluster with silhouette values
+ completely below the average line, the clustering is likely poor.
 \end_layout
 
 \begin_layout Subsubsection*
@@ -41040,7 +43248,7 @@ The K-dist plot will be named <prefix>.<k>.dat, with the default prefix being
  The K-dist plot usually looks like a curve with an initially steep slope
  that gradually decreases.
  Around where the initial part of the curve starts to flatten out (indicating
- an increas in density) is around where epsilon should be set; minpoints
+ an increase in density) is around where epsilon should be set; minpoints
  is set to whatever <k> was.
  It has been suggested that the shape of the K-dist curve doesn't change
  too much after Kdist=4, but users are encouraged to experiment.
@@ -41093,13 +43301,14 @@ The second way is automatically; cpptraj will attempt to identify outliers
 \end_layout
 
 \begin_layout Subsubsection*
-The CpptrajPairDist file format
+The Binary pairwise matrix file format
 \end_layout
 
 \begin_layout Standard
-The CpptrajPairDist file is binary; the exact format depends on what version
- of cpptraj generated the file (since earlier versions had no concept of
- 'sieve').
+When NetCDF is not present, the pairwise matrix file will be written in
+ binary.
+ The exact format depends on what version of cpptraj generated the file
+ (since earlier versions had no concept of 'sieve').
  The CpptrajPairDist file starts with a 4 byte header containing the characters
  'C' 'T' 'M' followed by the version number.
  A quick way to figure out the version is to use the linux 'od' command
@@ -41176,6 +43385,88 @@ The code that cpptraj uses to read in CpptrajPairDist files is in ClusterMatrix:
 :LoadFile() (ClusterMatrix.cpp).
 \end_layout
 
+\begin_layout Subsubsection*
+The NetCDF pairwise matrix format
+\end_layout
+
+\begin_layout Standard
+The default way to write pairwise matrix files as of version 6.0.0 is with
+ NetCDF.
+ This will be set up with the following parameters:
+\end_layout
+
+\begin_layout LyX-Code
+Attributes:
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+Conventions 
+\begin_inset Quotes eld
+\end_inset
+
+CPPTRAJ_CMATRIX
+\begin_inset Quotes erd
+\end_inset
+
+
+\end_layout
+
+\begin_layout Description
+Version <version string>
+\end_layout
+
+\begin_layout Description
+MetricDescription <description of the distance metric used to create matrix>
+\end_layout
+
+\end_deeper
+\begin_layout LyX-Code
+Dimensions:
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+n_original_frames Number of frames originally in the set (i.e.
+ before sieving).
+\end_layout
+
+\begin_layout Description
+n_rows Number of rows in the upper-triangle pairwise matrix.
+\end_layout
+
+\begin_layout Description
+msize Actual size of the matrix; should be (nRows_ * (nRows_-1)) / 2;
+\end_layout
+
+\end_deeper
+\begin_layout LyX-Code
+Variables:
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+sieve (integer, no dimension).
+ Sieve value.
+\end_layout
+
+\begin_layout Description
+matrix (float, dimension msize).
+ The pairwise matrix, flattened to 1 dimension.
+ Index calc is: i1 = i + 1; index = (((nRows_ * i) - ((i1 * i) / 2)) + j
+ - i1);
+\end_layout
+
+\begin_layout Description
+actual
+\begin_inset space ~
+\end_inset
+
+frames (integer, dimension n_rows).
+ The actual frame numbers for which pairwise distances were calculated.
+\end_layout
+
+\end_deeper
 \begin_layout Subsection
 cphstats
 \end_layout

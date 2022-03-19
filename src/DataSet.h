@@ -27,12 +27,12 @@ class DataSet {
     enum DataType {
       UNKNOWN_DATA=0, DOUBLE, FLOAT, INTEGER, STRING, MATRIX_DBL, MATRIX_FLT, 
       COORDS, VECTOR, MODES, GRID_FLT, GRID_DBL, REMLOG, XYMESH, TRAJ, REF_FRAME,
-      MAT3X3, TOPOLOGY, CMATRIX, CMATRIX_NOMEM, CMATRIX_DISK, PH, PH_EXPL, PH_IMPL,
-      PARAMETERS, TENSOR, STRINGVAR, VECTOR_SCALAR, UNSIGNED_INTEGER
+      MAT3X3, TOPOLOGY, PH, PH_EXPL, PH_IMPL,
+      PARAMETERS, PMATRIX_MEM, PMATRIX_NC, TENSOR, STRINGVAR, VECTOR_SCALAR, UNSIGNED_INTEGER
     };
     /// Group DataSet belongs to.
     enum DataGroup {
-      GENERIC=0, SCALAR_1D, MATRIX_2D, GRID_3D, COORDINATES, CLUSTERMATRIX, PHREMD, VECTOR_1D
+      GENERIC=0, SCALAR_1D, MATRIX_2D, GRID_3D, COORDINATES, PHREMD, PWCACHE, VECTOR_1D
     };
 
     DataSet();
@@ -73,7 +73,7 @@ class DataSet {
     /// Copy a block to position in this set from given set OF SAME TYPE using specified position and size TODO pure virtual
     virtual void CopyBlock(size_t, const DataSet*, size_t, size_t) {}
 #   ifdef MPI
-    /// Piece this DataSet together from multiple threads.
+    /// Sync data across all processes for this DataSet to the master process.
     virtual int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) = 0;
     // TODO pure virtual
     virtual int SendSet(int, Parallel::Comm const&) { return 1; }
@@ -130,8 +130,10 @@ class DataSet {
         return *first < *second;
       }
     };
-    /// \return Text description based on DataType
+    /// \return Text description based on given DataType
     static const char* description(DataType t) { return Descriptions_[t]; }
+    /// \return Text description based on current DataType
+    const char* description() const            { return Descriptions_[dType_]; }
   protected:
     TextFormat format_;         ///< Text output data format.
   private:

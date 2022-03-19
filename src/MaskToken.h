@@ -15,7 +15,7 @@ class MaskToken {
       MolNum,
       SelectAll, OP_AND, OP_OR, OP_NEG, OP_DIST
     };
-    enum DistOpType { BY_ATOM = 0, BY_RES, BY_MOL };
+    enum DistOpType { BY_ATOM = 0, BY_RES, BY_MOL, BY_RESCENTER };
     MaskToken();
     const char *TypeName() const;
     void Print() const;

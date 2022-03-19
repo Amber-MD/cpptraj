@@ -44,6 +44,7 @@ COMMON_SOURCES= \
         Action_Image.cpp \
         Action_InfraredSpectrum.cpp \
         Action_Jcoupling.cpp \
+        Action_Keep.cpp \
         Action_LESsplit.cpp \
         Action_LIE.cpp \
         Action_LipidOrder.cpp \
@@ -148,18 +149,9 @@ COMMON_SOURCES= \
         ByteRoutines.cpp \
         CharMask.cpp \
         CharmmParamFile.cpp \
+        Chirality.cpp \
         CIFfile.cpp \
-        ClusterDist.cpp \
-        ClusterList.cpp \
         ClusterMap.cpp \
-        ClusterMatrix.cpp \
-        ClusterNode.cpp \
-        ClusterSieve.cpp \
-        Cluster_DBSCAN.cpp \
-        Cluster_DPeaks.cpp \
-        Cluster_HierAgglo.cpp \
-        Cluster_Kmeans.cpp \
-        Cluster_ReadInfo.cpp \
         Cmd.cpp \
         CmdInput.cpp \
         CmdList.cpp \
@@ -183,7 +175,8 @@ COMMON_SOURCES= \
         DataIO_CharmmOutput.cpp \
         DataIO_CharmmRepLog.cpp \
         DataIO_CharmmRtfPrm.cpp \
-        DataIO_Cmatrix.cpp \
+        DataIO_Cmatrix_Binary.cpp \
+        DataIO_Cmatrix_NC.cpp \
         DataIO_Cpout.cpp \
         DataIO_Evecs.cpp \
         DataIO_Gnuplot.cpp \
@@ -191,7 +184,6 @@ COMMON_SOURCES= \
         DataIO_OpenDx.cpp \
         DataIO_Peaks.cpp \
         DataIO_Mdout.cpp \
-        DataIO_NC_Cmatrix.cpp \
         DataIO_RemLog.cpp \
         DataIO_Std.cpp \
         DataIO_VecTraj.cpp \
@@ -201,10 +193,6 @@ COMMON_SOURCES= \
         DataSetList.cpp \
         DataSet_1D.cpp \
         DataSet_3D.cpp \
-        DataSet_Cmatrix.cpp \
-        DataSet_Cmatrix_DISK.cpp \
-        DataSet_Cmatrix_MEM.cpp \
-        DataSet_Cmatrix_NOMEM.cpp \
         DataSet_Coords.cpp \
         DataSet_Coords_CRD.cpp \
         DataSet_Coords_REF.cpp \
@@ -216,6 +204,9 @@ COMMON_SOURCES= \
         DataSet_MatrixFlt.cpp \
         DataSet_Mesh.cpp \
         DataSet_Modes.cpp \
+        DataSet_PairwiseCache.cpp \
+        DataSet_PairwiseCache_MEM.cpp \
+        DataSet_PairwiseCache_NC.cpp \
         DataSet_Parameters.cpp \
         DataSet_pH.cpp \
         DataSet_PHREMD_Explicit.cpp \
@@ -258,6 +249,7 @@ COMMON_SOURCES= \
         Exec_ClusterMap.cpp \
         Exec_CombineCoords.cpp \
         Exec_Commands.cpp \
+        Exec_CompareClusters.cpp \
         Exec_CompareTop.cpp \
         Exec_CrdAction.cpp \
         Exec_CrdOut.cpp \
@@ -270,6 +262,7 @@ COMMON_SOURCES= \
         Exec_GenerateAmberRst.cpp \
         Exec_Graft.cpp \
         Exec_Help.cpp \
+        Exec_HmassRepartition.cpp \
         Exec_LoadCrd.cpp \
         Exec_LoadTraj.cpp \
         Exec_ParallelAnalysis.cpp \
@@ -314,8 +307,10 @@ COMMON_SOURCES= \
         ForLoop_mask.cpp \
         ForLoop_overSets.cpp \
         Frame.cpp \
+        GistEntropyUtils.cpp \
         GIST_PME.cpp \
         GridAction.cpp \
+        GridBin.cpp \
         HistBin.cpp \
         Hungarian.cpp \
         ImageRoutines.cpp \
@@ -324,6 +319,7 @@ COMMON_SOURCES= \
         Image_List_Unit.cpp \
         InputTrajCommon.cpp \
         KDE.cpp \
+        LeapInterface.cpp \
         MapAtom.cpp \
         MaskArray.cpp \
         MaskToken.cpp \
@@ -334,7 +330,6 @@ COMMON_SOURCES= \
         Mol.cpp \
         Mol2File.cpp \
         NameType.cpp \
-        NC_Cmatrix.cpp \
         NC_Routines.cpp \
         NetcdfFile.cpp \
         OMM_helpers.cpp \
@@ -497,6 +492,7 @@ LIBCPPTRAJ_FILE_OBJECTS= \
   Mol2File.o \
   PDBfile.o \
   SDFfile.o \
+  TextBlockBuffer.o \
   TinkerFile.o
 
 # These objects are required for Gromacs XTC support in libcpptraj_traj.a

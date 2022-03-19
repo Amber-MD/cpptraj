@@ -68,11 +68,11 @@ void Box::swap(Box& rhs) {
 }
 
 #ifdef MPI
-/** Sync box info to Comm master. */
-int Box::SyncBox(Parallel::Comm const& commIn) {
+/** Broadcast box info from Comm master. */
+int Box::BroadcastBox(Parallel::Comm const& commIn) {
   commIn.MasterBcast( box_,    6, MPI_DOUBLE );
-  unitCell_.SyncMatrix( commIn );
-  fracCell_.SyncMatrix( commIn );
+  unitCell_.BroadcastMatrix( commIn );
+  fracCell_.BroadcastMatrix( commIn );
   commIn.MasterBcast( &cellVolume_, 1, MPI_DOUBLE );
   return 0;
 }

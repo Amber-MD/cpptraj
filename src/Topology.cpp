@@ -54,13 +54,19 @@ void Topology::ResetPDBinfo() {
     res->SetIcode(' ');
     res->SetChainID(' ');
   }
+  missingRes_.clear();
+  missingHet_.clear();
+}
+
+/** Set list of missing residues and residues missing heteroatoms */
+void Topology::SetMissingResInfo(std::vector<Residue> const& missingResIn,
+                                 std::vector<Residue> const& missingHetIn)
+{
+  missingRes_ = missingResIn;
+  missingHet_ = missingHetIn;
 }
 
 /** Used to set box info from currently associated trajectory. */
-// FIXME: This routine is here for potential backwards compatibility issues
-//        since the topology box information was previously modified by
-//        trajectory box information, but may no longer be necessary or
-//        desirable.
 void Topology::SetBoxFromTraj(Box const& boxIn) {
   if (!boxIn.HasBox()) {
     // No incoming box.
@@ -243,15 +249,29 @@ std::string Topology::TruncAtomNameNum(int atom) const {
 }
 
 // Topology::TruncResNameNum()
-/** Given a residue number (starting from 0), return a string containing 
+/** Given a residue index (starting from 0), return a string containing 
   * residue name and number (starting from 1) with format: 
   * "<resname>:<resnum>", e.g. "ARG:11".
   * Truncate residue name so there are no blanks.
   */
-// FIXME: Add residue bounds check.
 std::string Topology::TruncResNameNum(int res) const {
+  if (res < 0 || res >= (int)residues_.size()) return std::string("");
   // Residue name with no trailing spaces.
   return residues_[res].Name().Truncated() + ":" + integerToString( res+1 );
+}
+
+/** Given a residue index, return a string containing residue name,
+  * original residue number, and (optionally) chain ID with format:
+  * "<resname>_<onum>[_<id>]".
+  * Truncate residue name so there are no blanks.
+  */
+std::string Topology::TruncResNameOnumId(int res) const {
+  if (res < 0 || res >= (int)residues_.size()) return std::string("");
+  std::string name = residues_[res].Name().Truncated() + "_" +
+                     integerToString(residues_[res].OriginalResNum());
+  if (residues_[res].HasChainID())
+    name.append( "_" + std::string(1, residues_[res].ChainId()) );
+  return name;
 }
 
 // Topology::FindAtomInResidue()
@@ -1461,6 +1481,17 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   newParm->pindex_ = pindex_;
   // Copy box information
   newParm->parmBox_ = parmBox_;
+  // PDB info
+  TopVecStrip<int> stripInt;
+  stripInt.Strip(newParm->pdbSerialNum_, pdbSerialNum_, MapIn);
+  TopVecStrip<char> stripChar;
+  stripChar.Strip(newParm->atom_altloc_, atom_altloc_, MapIn);
+  TopVecStrip<float> stripFloat;
+  stripFloat.Strip(newParm->occupancy_, occupancy_, MapIn);
+  stripFloat.Strip(newParm->bfactor_, bfactor_, MapIn);
+  newParm->missingRes_ = missingRes_;
+  newParm->missingHet_ = missingHet_;
+ 
   // If we dont care about setting up full parm information, exit now.
   if (!setupFullParm) return newParm;
 
@@ -1632,20 +1663,159 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   // Amber extra info.
   TopVecStrip<NameType> stripNameType;
   stripNameType.Strip(newParm->tree_, tree_, MapIn);
-  TopVecStrip<int> stripInt;
   stripInt.Strip(newParm->ijoin_, ijoin_, MapIn);
   stripInt.Strip(newParm->irotat_, irotat_, MapIn);
-  stripInt.Strip(newParm->pdbSerialNum_, pdbSerialNum_, MapIn);
-  TopVecStrip<char> stripChar;
-  stripChar.Strip(newParm->atom_altloc_, atom_altloc_, MapIn);
-  TopVecStrip<float> stripFloat;
-  stripFloat.Strip(newParm->occupancy_, occupancy_, MapIn);
-  stripFloat.Strip(newParm->bfactor_, bfactor_, MapIn);
-  
+ 
   // Determine number of extra points
   newParm->DetermineNumExtraPoints();
 
   return newParm;
+}
+
+/** Split atoms selected in a single residue into a new residue. */
+int Topology::SplitResidue(AtomMask const& maskIn, NameType const& newName,
+                           std::vector<int>& atomMap)
+{
+  if (maskIn.Nselected() == 0) {
+    mprinterr("Error: SplitResidue: No atoms selected.\n");
+    return 1;
+  }
+  int tgtResNum = Atoms()[maskIn[0]].ResNum();
+  Residue const& res = residues_[tgtResNum];
+  // Check that all atoms are in the same residue.
+  if (maskIn.Nselected() > 1) {
+    //int lastAtom = maskIn[0];
+    for (int idx = 1; idx < maskIn.Nselected(); idx++) {
+      //if (maskIn[idx] - lastAtom > 1) {
+      //  mprinterr("Error: SplitResidue: Atoms '%s' and '%s' are not consecutive.\n",
+      //            AtomMaskName(maskIn[idx]).c_str(), AtomMaskName(lastAtom).c_str());
+      //  return 1;
+      //}
+      //lastAtom = maskIn[idx];
+      if (Atoms()[maskIn[idx]].ResNum() != tgtResNum) {
+        mprinterr("Error: SplitResidue: Atoms '%s' and '%s' are in different residues.\n",
+                  AtomMaskName(maskIn[idx]).c_str(), AtomMaskName(maskIn[0]).c_str());
+        return 1;
+      }
+    }
+  }
+  // Need to re-order the topology so that selected atoms now come at the
+  // end of the residue they are a part of.
+  atomMap.clear();
+  atomMap.reserve(Natom());
+  int r0firstAtom = -1;
+  int r0lastAtom = -1;
+  int r1firstAtom = -1;
+  int r1lastAtom = -1;
+  int newAt = 0;
+  for (int at = 0; at < residues_[tgtResNum].FirstAtom(); at++, newAt++)
+    atomMap.push_back(at);
+  // Add unselected atoms of residue first
+  for (int at = res.FirstAtom(); at != res.LastAtom(); at++) {
+    if (!maskIn.IsSelected(at)) {
+      if (r0firstAtom == -1)
+        r0firstAtom = newAt;
+      atomMap.push_back(at);
+      newAt++;
+    }
+  }
+  r0lastAtom = newAt;
+  // Now add selected atoms
+  for (AtomMask::const_iterator it = maskIn.begin(); it != maskIn.end(); ++it) {
+    if (r1firstAtom == -1)
+      r1firstAtom = newAt;
+    atomMap.push_back(*it);
+    newAt++;
+  }
+  r1lastAtom = newAt;
+  // Add remaining atoms
+  if (tgtResNum+1 < Nres()) {
+    for (int at = residues_[tgtResNum+1].FirstAtom(); at != Natom(); at++)
+      atomMap.push_back(at);
+  }
+  //mprintf("DEBUG: New res0: index %i to %i\n", r0firstAtom, r0lastAtom);
+  //mprintf("DEBUG: New res1: index %i to %i\n", r1firstAtom, r1lastAtom);
+
+  // Reorder topology
+  Topology* newTop = ModifyByMap( atomMap, false );
+  if (newTop == 0) {
+    mprinterr("Internal Error: SplitResidue: Could not reorder the topology.\n");
+    return 1;
+  }
+  //mprintf("DEBUG: New res0: Atoms %s to %s\n",
+  //        newTop->AtomMaskName(r0firstAtom).c_str(), newTop->AtomMaskName(r0lastAtom-1).c_str());
+  //mprintf("DEBUG: New res1: Atoms %s to %s\n",
+  //        newTop->AtomMaskName(r1firstAtom).c_str(), newTop->AtomMaskName(r1lastAtom-1).c_str());
+  //DEBUG
+//  *this = *newTop; // DEBUG
+//  delete newTop; // DEBUG
+//  return 0; // DEBUG
+  // END DEBUG
+  // Decide insertion codes.
+  char icode0, icode1;
+  bool recode = false;
+  if (res.Icode() == ' ') {
+    icode0 = 'A';
+    icode1 = 'B';
+  } else {
+    icode0 = res.Icode();
+    icode1 = icode0 + 1;
+    recode = true;
+  }
+  // Now redo the residue information
+  newTop->residues_.clear();
+  newTop->residues_.reserve(Nres()+1);
+  // First add residues up to this one
+  for (int rnum = 0; rnum < tgtResNum; rnum++)
+    newTop->residues_.push_back( residues_[rnum] );
+  // Add non-selected part of residue
+  //mprintf("DEBUG: Last residue: %s %i - %i\n", *(newTop->residues_.back().Name()), newTop->residues_.back().FirstAtom()+1, newTop->residues_.back().LastAtom());
+  newTop->residues_.push_back( Residue(residues_[tgtResNum], r0firstAtom, r0lastAtom) );
+  newTop->residues_.back().SetIcode( icode0 );
+  //mprintf("DEBUG: New R0: %s %i - %i\n", *(newTop->residues_.back().Name()), newTop->residues_.back().FirstAtom()+1, newTop->residues_.back().LastAtom());
+  // Update atoms in selected part of residue
+  for (int at = r1firstAtom; at != r1lastAtom; at++) {
+    //mprintf("DEBUG: Set atom %i\n", at+1);
+    newTop->atoms_[at].SetResNum( newTop->residues_.size() );
+  }
+  // Add selected part of residue
+  newTop->residues_.push_back( Residue(residues_[tgtResNum], r1firstAtom, r1lastAtom) );
+  newTop->residues_.back().SetIcode( icode1 );
+  newTop->residues_.back().SetName( newName );
+  //mprintf("DEBUG: New R1: %s %i - %i\n", *(newTop->residues_.back().Name()), newTop->residues_.back().FirstAtom()+1, newTop->residues_.back().LastAtom());
+  int newResNum = (int)newTop->residues_.size();
+  // Add remaining residues
+  if (recode) {
+    for (int rnum = tgtResNum+1; rnum < Nres(); rnum++, newResNum++) {
+      newTop->residues_.push_back( residues_[rnum] );
+      if (newTop->residues_.back().OriginalResNum() == res.OriginalResNum() &&
+          newTop->residues_.back().ChainId() == res.ChainId())
+        newTop->residues_.back().SetIcode(++icode1);
+      for (int at = newTop->residues_.back().FirstAtom();
+               at != newTop->residues_.back().LastAtom(); ++at)
+        newTop->atoms_[at].SetResNum( newResNum );
+    }
+  } else {
+    for (int rnum = tgtResNum+1; rnum < Nres(); rnum++, newResNum++) {
+      newTop->residues_.push_back( residues_[rnum] );
+      for (int at = newTop->residues_.back().FirstAtom();
+               at != newTop->residues_.back().LastAtom(); ++at)
+        newTop->atoms_[at].SetResNum( newResNum );
+      //mprintf("DEBUG: Res: %s %i - %i\n", *(newTop->residues_.back().Name()), newTop->residues_.back().FirstAtom()+1, newTop->residues_.back().LastAtom());
+    }
+  }
+
+  *this = *newTop;
+  delete newTop;
+
+  return 0;
+}
+
+/** Split atoms selected in a single residue into a new residue. */
+int Topology::SplitResidue(AtomMask const& maskIn, NameType const& newName)
+{
+  std::vector<int> atomMap;
+  return SplitResidue(maskIn, newName, atomMap);
 }
 
 /** \return BondArray with bonds for which both atoms are still present.
@@ -2085,6 +2255,8 @@ int Topology::AppendTop(Topology const& NewTop) {
   // DIHEDRALS
   AddDihArray(NewTop.Dihedrals(),  NewTop.DihedralParm(), atomOffset);
   AddDihArray(NewTop.DihedralsH(), NewTop.DihedralParm(), atomOffset);
+
+  // TODO append missing stuff?
 
   // Re-set up this topology
   // TODO: Could get expensive for multiple appends.

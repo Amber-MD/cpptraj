@@ -16,7 +16,7 @@ template <class Float>
 class Stats {
 public:
   /// Default CONSTRUCTOR
-  Stats() : n_(0.0), mean_(0.0), M2_(0.0) {}
+  Stats() : n_(0), mean_(0), M2_(0) {}
 # ifdef MPI
   /// CONSTRUCTOR taking N, mean, and M2
   Stats(Float n, Float mean, Float m2) : n_(n), mean_(mean), M2_(m2) {}
@@ -37,20 +37,26 @@ public:
   Float mean() const { return mean_; };
   /// \return Current variance
   Float variance() const { 
-    if (n_ < 2) return 0.0;
+    if (n_ < 2) return 0;
     return M2_ / (n_ - 1.0); 
   };
   /// \return Current number of data points in mean/variance
   Float nData() const { return n_; };
   /// Combine given Stats with this Stats
   void Combine(Stats<Float> const& rhs) {
-    Float nX = n_ + rhs.n_;
-    Float delta = rhs.mean_ - mean_;
-    // Combined mean
-    mean_ = mean_ + delta * (rhs.n_ / nX);
-    // Combined variance
-    M2_ = M2_ + rhs.M2_ + ((delta*delta) * ((n_*rhs.n_) / nX));
-    n_ = nX; 
+    if (((unsigned long)n_) == 0) {
+      n_ = rhs.n_;
+      mean_ = rhs.mean_;
+      M2_ = rhs.M2_;
+    } else if (((unsigned long)rhs.n_) != 0) {
+      Float nX = n_ + rhs.n_;
+      Float delta = rhs.mean_ - mean_;
+      // Combined mean
+      mean_ = mean_ + delta * (rhs.n_ / nX);
+      // Combined variance
+      M2_ = M2_ + rhs.M2_ + ((delta*delta) * ((n_*rhs.n_) / nX));
+      n_ = nX;
+    }
   }
 private:
   Float n_;
@@ -68,7 +74,7 @@ template <typename Key, typename Value>
 class StatsMap {
 public:
   StatsMap() :
-    n_(0.0), min_(0), max_(0)
+    n_(0), min_(0), max_(0)
   {}
 # ifdef MPI
   /// CONSTRUCTOR - intended to create StatsMap from data transfered via MPI.
@@ -130,7 +136,7 @@ public:
 
   Value mean(Key i) { return mean_[i]; };
   Value variance(Key i) {
-    if (n_ < 2) return 0.0;
+    if (n_ < 2) return 0;
     return M2_[i] / (n_ - 1.0); 
   };
 

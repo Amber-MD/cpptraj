@@ -52,6 +52,10 @@ class AtomMask : public MaskTokenArray {
     void InvertMask();
     /// \return the number of atoms mask has in common with another mask
     int NumAtomsInCommon(AtomMask const&) const;
+    /// \return True if the given at is in the selected array.
+    bool IsSelected(int) const;
+    /// Shrink the current selected array to the first N atoms
+    void ShrinkSelectedTo(int);
     /// Add atom to Selected array; assumes atoms will be in order.
     void AddSelectedAtom(int i) { Selected_.push_back( i ); }
     /// Add given atom to Selected array 

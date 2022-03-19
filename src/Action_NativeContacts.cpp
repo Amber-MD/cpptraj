@@ -154,7 +154,7 @@ int Action_NativeContacts::DetermineNativeContacts(Topology const& parmIn, Frame
 # ifdef MPI
   Frame fIn = frameIn;
   if (trajComm_.Size() > 1) {
-    // Ensure all threads use same reference
+    // Ensure all processes use same reference
     if (trajComm_.Master())
       for (int rank = 1; rank < trajComm_.Size(); rank++)
         fIn.SendFrame( rank, trajComm_ );
@@ -606,7 +606,7 @@ int Action_NativeContacts::SyncAction() {
   trajComm_.ReduceMaster( &total_frames, &N, 1, MPI_INT, MPI_SUM );
   if (trajComm_.Master())
     nframes_ = (unsigned int)total_frames;
-  // Should have the same number of contacts on each thread since reference is shared.
+  // Should have the same number of contacts on each process since reference is shared.
   for (contactListType::iterator it = nativeContacts_.begin(); it != nativeContacts_.end(); ++it)
   {
     double total[3], buf[3];

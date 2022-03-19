@@ -5,11 +5,13 @@
 #include "CpptrajStdio.h"
 #include "DistRoutines.h" // MinImagedVec, includes Matrix_3x3 for principal
 #include "DataSet_Vector.h"
+#include "DataSet_3D.h"
 
 // CONSTRUCTOR
 Action_Vector::Action_Vector() :
   Vec_(0),
   Magnitude_(0),
+  gridSet_(0),
   vcorr_(0),
   ptrajoutput_(false),
   needBoxInfo_(false),
@@ -20,12 +22,12 @@ Action_Vector::Action_Vector() :
 // Action_Vector::Help()
 void Action_Vector::Help() const {
   mprintf("\t[<name>] <Type> [out <filename> [ptrajoutput]] [<mask1>] [<mask2>]\n"
-          "\t[magnitude] [ired]\n"
+          "\t[magnitude] [ired] [gridset <grid>]\n"
           "\t<Type> = { mask     | minimage  | dipole | center   | corrplane | \n"
           "\t           box      | boxcenter | ucellx | ucelly   | ucellz    | \n"
           "\t           momentum | principal [x|y|z]  | velocity | force       }\n" 
-          "  Calculate the specified coordinate vector.\n"
-          "    mask: (Default) Vector from <mask1> to <mask2>.\n"
+          "  Calculate the vector of specified <Type>:\n"
+          "    mask             : (Default) Vector from <mask1> to <mask2>.\n"
           "    minimage         : Store the minimum image vector between atoms in <mask1> and <mask2>.\n"
           "    dipole           : Dipole and center of mass of the atoms specified in <mask1>\n"
           "    center           : Store the center of mass of atoms in <mask1>.\n"
@@ -137,6 +139,21 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, ActionInit& init, int d
   if (mode_ == BOX || mode_ == BOX_X || mode_ == BOX_Y || mode_ == BOX_Z ||
       mode_ == BOX_CTR || mode_ == MINIMAGE)
     needBoxInfo_ = true;
+  gridSet_ = 0;
+  if (needBoxInfo_) {
+    std::string gridSetArg = actionArgs.GetStringKey("gridset");
+    if (!gridSetArg.empty()) {
+      DataSetList gridSetList = init.DSL().SelectGroupSets( gridSetArg, DataSet::GRID_3D );
+      if (gridSetList.empty()) {
+        mprinterr("Error: %s does not select any grid data set.\n", gridSetArg.c_str());
+        return Action::ERR;
+      }
+      if (gridSetList.size() > 1) {
+        mprintf("Warning: %s selects more than 1 grid data set. Only using the first set.\n", gridSetArg.c_str());
+      }
+      gridSet_ = (DataSet_3D*)gridSetList[0];
+    }
+  }
   // Check if IRED vector
   bool isIred = actionArgs.hasKey("ired"); 
   // Vector Mask
@@ -190,6 +207,8 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, ActionInit& init, int d
     mprintf(" %s", filename.c_str());
   }
   mprintf("\n");
+  if (gridSet_ != 0)
+    mprintf("\tExtracting box vectors from grid set '%s'\n", gridSet_->legend());
 
   return Action::OK;
 }
@@ -418,14 +437,19 @@ void Action_Vector::CorrPlane(Frame const& currentFrame) {
 }
 
 //  Action_Vector::UnitCell()
-void Action_Vector::UnitCell(Box const& box) {
+void Action_Vector::UnitCell(Box const& box, Vec3 const& oxyz) {
   switch ( mode_ ) {
-    case BOX_X   : Vec_->AddVxyzo( box.UnitCell().Row1(), Vec3(0.0) ); break;
-    case BOX_Y   : Vec_->AddVxyzo( box.UnitCell().Row2(), Vec3(0.0) ); break;
-    case BOX_Z   : Vec_->AddVxyzo( box.UnitCell().Row3(), Vec3(0.0) ); break;
+    case BOX_X   : Vec_->AddVxyzo( box.UnitCell().Row1(), oxyz ); break;
+    case BOX_Y   : Vec_->AddVxyzo( box.UnitCell().Row2(), oxyz ); break;
+    case BOX_Z   : Vec_->AddVxyzo( box.UnitCell().Row3(), oxyz ); break;
     case BOX_CTR : Vec_->AddVxyz( box.UnitCell().TransposeMult(Vec3(0.5)) ); break;
     default: return;
   }
+}
+
+/** Store box vector (A, B, C) lengths as a single vector (|A|, |B|, |C|). */
+void Action_Vector::BoxLengths(Box const& box) {
+  Vec_->AddVxyz( box.Lengths() );
 }
 
 // Action_Vector::MinImage()
@@ -461,11 +485,21 @@ Action::RetType Action_Vector::DoAction(int frameNum, ActionFrame& frm) {
     case PRINCIPAL_Y :
     case PRINCIPAL_Z : Principal(frm.Frm()); break;
     case CORRPLANE   : CorrPlane(frm.Frm()); break;
-    case BOX         : Vec_->AddVxyz( frm.Frm().BoxCrd().Lengths() ); break;
+    case BOX         :
+      if (gridSet_ != 0)
+        BoxLengths( gridSet_->Bin().GridBox() );
+      else
+        BoxLengths( frm.Frm().BoxCrd() );
+      break;
     case BOX_X       : 
     case BOX_Y       : 
     case BOX_Z       : 
-    case BOX_CTR     : UnitCell( frm.Frm().BoxCrd() ); break;
+    case BOX_CTR     :
+      if (gridSet_ != 0)
+        UnitCell( gridSet_->Bin().GridBox(), gridSet_->Bin().GridOrigin() );
+      else
+        UnitCell( frm.Frm().BoxCrd(), Vec3(0.0) );
+      break;
     case MINIMAGE    : MinImage( frm.Frm() ); break; 
     default          : return Action::ERR; // NO_OP
   } // END switch over vectorMode

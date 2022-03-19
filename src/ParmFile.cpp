@@ -13,7 +13,9 @@
 #include "Parm_Gromacs.h"
 
 /** CONSTRUCTOR */
-ParmFile::ParmFile() {}
+ParmFile::ParmFile() :
+  pfType_(UNKNOWN_PARM)
+{}
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------
 // NOTE: Must be in same order as ParmFormatType
@@ -115,7 +117,7 @@ int ParmFile::ReadTopology(Topology& Top, FileName const& fnameIn,
   }
   parmName_ = fnameIn;
   ArgList argIn = argListIn;
-  ParmFormatType pfType;
+  pfType_ = UNKNOWN_PARM;
   ParmIO* parmio = 0;
   Top.SetDebug( debugIn );
   BondSearch::Type bstype;
@@ -154,20 +156,20 @@ int ParmFile::ReadTopology(Topology& Top, FileName const& fnameIn,
   // 'as' keyword specifies a format
   std::string as_arg = argIn.GetStringKey("as");
   if (!as_arg.empty()) {
-    pfType = (ParmFormatType)FileTypes::GetFormatFromString( PF_KeyArray, as_arg, UNKNOWN_PARM );
-    if (pfType == UNKNOWN_PARM) {
+    pfType_ = (ParmFormatType)FileTypes::GetFormatFromString( PF_KeyArray, as_arg, UNKNOWN_PARM );
+    if (pfType_ == UNKNOWN_PARM) {
       mprinterr("Error: Topology format '%s' not recognized.\n", as_arg.c_str());
       return 1;
     }
-    parmio = (ParmIO*)FileTypes::AllocIO( PF_AllocArray, pfType, false );
+    parmio = (ParmIO*)FileTypes::AllocIO( PF_AllocArray, pfType_, false );
   } else
-    parmio = DetectFormat( parmName_, pfType );
+    parmio = DetectFormat( parmName_, pfType_ );
   if (parmio == 0) {
     mprinterr("Error: Could not determine format of topology '%s'\n", parmName_.full());
     return 1;
   }
   mprintf("\tReading '%s' as %s\n", parmName_.full(),
-          FileTypes::FormatDescription(PF_AllocArray, pfType) );
+          FileTypes::FormatDescription(PF_AllocArray, pfType_) );
   parmio->SetDebug( debugIn );
   parmio->SetOffset( bondoffset );
   parmio->SetBondSearchType( bstype );

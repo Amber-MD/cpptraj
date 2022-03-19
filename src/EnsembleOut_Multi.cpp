@@ -53,7 +53,7 @@ int EnsembleOut_Multi::InitEnsembleWrite(std::string const& tnameIn,
   // Set up ensemble file names.
   fileNames_.clear();
 # ifdef MPI
-  // In MPI each thread writes a single member.
+  // In MPI each process writes a single member.
   if (MembersToWrite().InRange( Parallel::EnsembleComm().Rank() ))
     fileNames_.push_back( AppendNumber(Traj().Filename().Full(), Parallel::EnsembleComm().Rank()) );
   //else

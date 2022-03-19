@@ -107,6 +107,26 @@ int AtomMask::NumAtomsInCommon(AtomMask const& maskIn) const {
   return int(intersect_end - intersect.begin());
 }
 
+/** \return True if atom is in Selected_ array. */
+bool AtomMask::IsSelected(int atomIn) const {
+  for (std::vector<int>::const_iterator at = Selected_.begin(); at != Selected_.end(); ++at)
+    if (*at == atomIn) return true;
+  return false;
+}
+
+/** Shrink the current selected array to only the first N entries. */
+void AtomMask::ShrinkSelectedTo(int newNselected) {
+  if (newNselected < 0) {
+    mprinterr("InternalError: AtomMask::ShrinkSelectedTo called with negative #.\n");
+    return;
+  }
+  if ((unsigned int)newNselected > Selected_.size()) {
+    mprinterr("InternalError: AtomMask::ShrinkSelectedTo called with # (%i) > selected atoms (%zu).\n", newNselected, Selected_.size());
+    return;
+  }
+  Selected_.resize( newNselected );
+}
+
 // AtomMask::AddAtom()
 /** Attempt to enforce some sorting by looking for the atom in the mask;
   * as soon as an atom # is found larger than atomIn, insert it at the

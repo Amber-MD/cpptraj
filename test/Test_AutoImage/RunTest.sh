@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles image.in reimage.mdcrd image.G3_3A.rst7
+CleanFiles image.in reimage.mdcrd image.G3_3A.rst7 image.cpptraj.Fg238.rst7
 
 TRAJ=ptraj.image.nc
 INPUT="-i image.in"
@@ -34,6 +34,19 @@ trajout image.G3_3A.rst7
 EOF
   RunCpptraj "$UNITNAME"
   DoTest image.G3_3A.rst7.save image.G3_3A.rst7
+fi
+
+UNITNAME="AutoImage test, non-sequential molecules"
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > image.in <<EOF
+parm cpptraj.Fg238.parm7
+trajin cpptraj.Fg238.rst7
+autoimage
+trajout image.cpptraj.Fg238.rst7
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest image.cpptraj.Fg238.rst7.save image.cpptraj.Fg238.rst7
 fi
 
 EndTest

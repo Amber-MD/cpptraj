@@ -136,7 +136,11 @@ std::string CoordinateInfo::InfoString() const {
 
 #ifdef MPI
 #define CINFOMPISIZE 12
-int CoordinateInfo::SyncCoordInfo(Parallel::Comm const& commIn) {
+/** Broadcast coordinate info from Master. The number of things to be 
+  * broadcast is controlled by CINFOMPISIZE; this must be increased
+  * if more items added to CoordinateInfo.
+  */
+int CoordinateInfo::BroadcastCoordInfo(Parallel::Comm const& commIn) {
   // ensSize, hasvel, hastemp, hastime, hasfrc, NrepDims, Dim1, ..., DimN, 
   int* iArray;
   int iSize;
@@ -181,7 +185,7 @@ int CoordinateInfo::SyncCoordInfo(Parallel::Comm const& commIn) {
       remdDim_.AddRemdDimension( iArray[ii] );
   }
   delete[] iArray;
-  box_.SyncBox( commIn );
+  box_.BroadcastBox( commIn );
   return 0;
 }
 #undef CINFOMPISIZE

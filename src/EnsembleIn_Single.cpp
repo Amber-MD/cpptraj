@@ -82,7 +82,7 @@ int EnsembleIn_Single::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn
   if (debug_ > 0)
     cInfo_.PrintCoordInfo( Traj().Filename().base(), Traj().Parm()->c_str() );
 # ifdef MPI
-  // This array will let each thread know who has what frame.
+  // This array will let each process know who has what frame.
   frameidx_.resize( ensembleSize_ ); // TODO: Get rid of, should do all in TrajIO class.
 # endif
   // Get a list of all temperatures/indices.

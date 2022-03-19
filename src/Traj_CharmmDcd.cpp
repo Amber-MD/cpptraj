@@ -874,8 +874,8 @@ int Traj_CharmmDcd::parallelSetupTrajout(FileName const& fname, Topology* trajPa
   }
   commIn.MasterBcast(&err, 1, MPI_INT);
   if (err != 0) return 1;
-  // Synchronize info on non-master threads.
-  SyncTrajIO( commIn );
+  // Broadcast info to non-master processes.
+  BroadcastTrajIO( commIn );
   // TODO for simplicity converting everything to int. Should be double for larger #s?
   static const unsigned int BCAST_SIZE = 15;
   std::vector<int> buf( BCAST_SIZE );

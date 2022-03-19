@@ -40,6 +40,10 @@
   *     1801  : Box::box_
   *     1802  : Box::cellVolume_
   *     1900  : Matrix_3x3::M_
+  *     2000  : GridBin::OXYZ_
+  *     2001  : GridBin::mx_
+  *     2002  : GridBin::my_
+  *     2003  : GridBin::mz_
   */
 class Parallel {
   public:

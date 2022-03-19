@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles xyz.in tz2.xyz test1.crd.save test?.crd tz2.st.xyz tz2.nt.at.xyz \
-           tz2.nt.xyz tz2.mt.at.xyz tz2.mt.xyz
+           tz2.nt.xyz tz2.mt.at.xyz tz2.mt.xyz traj.crd cpptraj.traj.xyz
 
 TESTNAME='XYZ format tests'
 Requires notparallel
@@ -16,7 +16,7 @@ parm ../tz2.parm7
 trajin ../tz2.crd 1 10
 trajout test1.crd.save crd
 # Single title, atom-xyz
-trajout tz2.xyz
+trajout tz2.xyz                          ftype atomxyz
 # Single title, xyz
 trajout tz2.st.xyz    titletype single   ftype xyz
 # No title, atom-xyz
@@ -47,6 +47,25 @@ EOF
   DoTest test1.crd.save test$N.crd
   ((N++))
 done
+
+# Read Standard format, With box coords in comments
+cat > xyz.in <<EOF
+parm waters.prmtop
+trajin traj.xyz
+trajout traj.crd
+EOF
+RunCpptraj "Read regular XYZ format with box info in comments."
+DoTest traj.crd.save traj.crd
+
+# Write standard format, with box coords in comments
+cat > xyz.in <<EOF
+parm waters.prmtop
+trajin traj.xyz
+trajout cpptraj.traj.xyz 
+#trajout cpptraj.nobox.xyz ftype namexyz nobox 
+EOF
+RunCpptraj "Write regular XYZ format with box info in comments."
+DoTest traj.xyz cpptraj.traj.xyz
 
 EndTest
 exit 0

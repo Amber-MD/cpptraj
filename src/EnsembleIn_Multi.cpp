@@ -110,7 +110,7 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
     }
   }
 # ifdef MPI
-  // This array will let each thread know who has what frame.
+  // This array will let each process know who has what frame.
   frameidx_.resize( REMDtraj_.size() );
 # endif
   // Get a list of all temperatures/indices.
@@ -284,7 +284,7 @@ int EnsembleIn_Multi::ReadEnsemble(int currentFrame, FrameArray& f_ensemble,
 int EnsembleIn_Multi::BeginEnsemble() {
   if (debug_ > 0) mprintf("\tENSEMBLE: OPENING %zu REMD TRAJECTORIES\n", REMDtraj_.size());
 # ifdef MPI
-  // Open the trajectory this thread will be dealing with.
+  // Open the trajectory this process will be dealing with.
   if (REMDtraj_[Member()]->openTrajin()) {
     rprinterr("Error: Trajin_Multi::BeginTraj: Could not open replica %s\n",
               REMDtraj_.f_name(Member()));

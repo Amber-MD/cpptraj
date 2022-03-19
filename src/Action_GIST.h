@@ -37,7 +37,6 @@ class Action_GIST : public Action {
     typedef std::vector<Farray> Xarray;
     typedef std::vector<double> Darray;
 
-    inline void TransEntropy(float,float,float,float,float,float,float,int,double&,double&) const;
     static inline void Ecalc(double, double, double, NonbondType const&, double&, double&);
     void NonbondEnergy_pme(Frame const&);
     void NonbondEnergy(Frame const&, Topology const&);
@@ -192,10 +191,12 @@ class Action_GIST : public Action {
     unsigned int nMolAtoms_;   ///< Number of atoms in a water molecule.+
     int NFRAME_;               ///< Total # frames analyzed
     int max_nwat_;             ///< Max number of waters in any voxel
+    int nNnSearchLayers_;      ///< Number of layers of voxels to search for nearest neighbors in the entropy search.
     bool doOrder_;             ///< If true do the order calc
     bool doEij_;               ///< If true do the i-j energy calc
     bool skipE_;               ///< If true skip the nonbond energy calc
     bool includeIons_;         ///< If true include ions in solute region.
     bool skipS_;               ///< If true does not calculate entropy
+    bool exactNnVolume_;       ///< If true use the exact volume equation for the NN entropy
 };
 #endif
