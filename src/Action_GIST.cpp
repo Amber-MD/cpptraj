@@ -1286,104 +1286,106 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
           gist_euler_.Start();
           ++N_main_solvent_[voxel];
           // Record XYZ coords of water atoms (nonEP) in voxel TODO need EP?
-          voxel_xyz_[voxel].push_back( mol_center[0] );
-          voxel_xyz_[voxel].push_back( mol_center[1] );
-          voxel_xyz_[voxel].push_back( mol_center[2] );
-          // Get O-HX vectors
-          const double* O_XYZ  = frm.Frm().XYZ( mol_first + rigidAtomIndices_[0] );
-          const double* H1_XYZ = frm.Frm().XYZ( mol_first + rigidAtomIndices_[1] );
-          const double* H2_XYZ = frm.Frm().XYZ( mol_first + rigidAtomIndices_[2] );
-          Vec3 H1_wat( H1_XYZ[0]-O_XYZ[0], H1_XYZ[1]-O_XYZ[1], H1_XYZ[2]-O_XYZ[2] );
-          Vec3 H2_wat( H2_XYZ[0]-O_XYZ[0], H2_XYZ[1]-O_XYZ[1], H2_XYZ[2]-O_XYZ[2] );
-          H1_wat.Normalize();
-          H2_wat.Normalize();
+          if (!skipS_) {
+            voxel_xyz_[voxel].push_back( mol_center[0] );
+            voxel_xyz_[voxel].push_back( mol_center[1] );
+            voxel_xyz_[voxel].push_back( mol_center[2] );
+            // Get O-HX vectors
+            const double* O_XYZ  = frm.Frm().XYZ( mol_first + rigidAtomIndices_[0] );
+            const double* H1_XYZ = frm.Frm().XYZ( mol_first + rigidAtomIndices_[1] );
+            const double* H2_XYZ = frm.Frm().XYZ( mol_first + rigidAtomIndices_[2] );
+            Vec3 H1_wat( H1_XYZ[0]-O_XYZ[0], H1_XYZ[1]-O_XYZ[1], H1_XYZ[2]-O_XYZ[2] );
+            Vec3 H2_wat( H2_XYZ[0]-O_XYZ[0], H2_XYZ[1]-O_XYZ[1], H2_XYZ[2]-O_XYZ[2] );
+            H1_wat.Normalize();
+            H2_wat.Normalize();
 
-          Vec3 ar1 = H1_wat.Cross( x_lab_ ); // ar1 = V cross U 
-          Vec3 sar = ar1;                    // sar = V cross U
-          ar1.Normalize();
-          //mprintf("------------------------------------------\n");
-          //H1_wat.Print("DEBUG: H1_wat");
-          //x_lab_.Print("DEBUG: x_lab_");
-          //ar1.Print("DEBUG: ar1");
-          //sar.Print("DEBUG: sar");
-          double dp1 = x_lab_ * H1_wat; // V dot U
-          double theta = acos(dp1);
-          double sign = sar * H1_wat;
-          //mprintf("DEBUG0: dp1= %f  theta= %f  sign= %f\n", dp1, theta, sign);
-          // NOTE: Use SMALL instead of 0 to avoid issues with denormalization
-          if (sign > Constants::SMALL)
-            theta /= 2.0;
-          else
-            theta /= -2.0;
-          double w1 = cos(theta);
-          double sin_theta = sin(theta);
-          //mprintf("DEBUG0: theta= %f  w1= %f  sin_theta= %f\n", theta, w1, sin_theta);
-          double x1 = ar1[0] * sin_theta;
-          double y1 = ar1[1] * sin_theta;
-          double z1 = ar1[2] * sin_theta;
-          double w2 = w1;
-          double x2 = x1;
-          double y2 = y1;
-          double z2 = z1;
+            Vec3 ar1 = H1_wat.Cross( x_lab_ ); // ar1 = V cross U 
+            Vec3 sar = ar1;                    // sar = V cross U
+            ar1.Normalize();
+            //mprintf("------------------------------------------\n");
+            //H1_wat.Print("DEBUG: H1_wat");
+            //x_lab_.Print("DEBUG: x_lab_");
+            //ar1.Print("DEBUG: ar1");
+            //sar.Print("DEBUG: sar");
+            double dp1 = x_lab_ * H1_wat; // V dot U
+            double theta = acos(dp1);
+            double sign = sar * H1_wat;
+            //mprintf("DEBUG0: dp1= %f  theta= %f  sign= %f\n", dp1, theta, sign);
+            // NOTE: Use SMALL instead of 0 to avoid issues with denormalization
+            if (sign > Constants::SMALL)
+              theta /= 2.0;
+            else
+              theta /= -2.0;
+            double w1 = cos(theta);
+            double sin_theta = sin(theta);
+            //mprintf("DEBUG0: theta= %f  w1= %f  sin_theta= %f\n", theta, w1, sin_theta);
+            double x1 = ar1[0] * sin_theta;
+            double y1 = ar1[1] * sin_theta;
+            double z1 = ar1[2] * sin_theta;
+            double w2 = w1;
+            double x2 = x1;
+            double y2 = y1;
+            double z2 = z1;
 
-          Vec3 H_temp;
-          H_temp[0] = ((w2*w2+x2*x2)-(y2*y2+z2*z2))*H1_wat[0];
-          H_temp[0] = (2*(x2*y2 + w2*z2)*H1_wat[1]) + H_temp[0];
-          H_temp[0] = (2*(x2*z2-w2*y2)*H1_wat[2]) + H_temp[0];
+            Vec3 H_temp;
+            H_temp[0] = ((w2*w2+x2*x2)-(y2*y2+z2*z2))*H1_wat[0];
+            H_temp[0] = (2*(x2*y2 + w2*z2)*H1_wat[1]) + H_temp[0];
+            H_temp[0] = (2*(x2*z2-w2*y2)*H1_wat[2]) + H_temp[0];
 
-          H_temp[1] = 2*(x2*y2 - w2*z2)* H1_wat[0];
-          H_temp[1] = ((w2*w2-x2*x2+y2*y2-z2*z2)*H1_wat[1]) + H_temp[1];
-          H_temp[1] = (2*(y2*z2+w2*x2)*H1_wat[2]) +H_temp[1];
+            H_temp[1] = 2*(x2*y2 - w2*z2)* H1_wat[0];
+            H_temp[1] = ((w2*w2-x2*x2+y2*y2-z2*z2)*H1_wat[1]) + H_temp[1];
+            H_temp[1] = (2*(y2*z2+w2*x2)*H1_wat[2]) +H_temp[1];
 
-          H_temp[2] = 2*(x2*z2+w2*y2) *H1_wat[0];
-          H_temp[2] = (2*(y2*z2-w2*x2)*H1_wat[1]) + H_temp[2];
-          H_temp[2] = ((w2*w2-x2*x2-y2*y2+z2*z2)*H1_wat[2]) + H_temp[2];
+            H_temp[2] = 2*(x2*z2+w2*y2) *H1_wat[0];
+            H_temp[2] = (2*(y2*z2-w2*x2)*H1_wat[1]) + H_temp[2];
+            H_temp[2] = ((w2*w2-x2*x2-y2*y2+z2*z2)*H1_wat[2]) + H_temp[2];
 
-          H1_wat = H_temp;
+            H1_wat = H_temp;
 
-          Vec3 H_temp2;
-          H_temp2[0] = ((w2*w2+x2*x2)-(y2*y2+z2*z2))*H2_wat[0];
-          H_temp2[0] = (2*(x2*y2 + w2*z2)*H2_wat[1]) + H_temp2[0];
-          H_temp2[0] = (2*(x2*z2-w2*y2)*H2_wat[2]) +H_temp2[0];
+            Vec3 H_temp2;
+            H_temp2[0] = ((w2*w2+x2*x2)-(y2*y2+z2*z2))*H2_wat[0];
+            H_temp2[0] = (2*(x2*y2 + w2*z2)*H2_wat[1]) + H_temp2[0];
+            H_temp2[0] = (2*(x2*z2-w2*y2)*H2_wat[2]) +H_temp2[0];
 
-          H_temp2[1] = 2*(x2*y2 - w2*z2) *H2_wat[0];
-          H_temp2[1] = ((w2*w2-x2*x2+y2*y2-z2*z2)*H2_wat[1]) +H_temp2[1];
-          H_temp2[1] = (2*(y2*z2+w2*x2)*H2_wat[2]) +H_temp2[1];
+            H_temp2[1] = 2*(x2*y2 - w2*z2) *H2_wat[0];
+            H_temp2[1] = ((w2*w2-x2*x2+y2*y2-z2*z2)*H2_wat[1]) +H_temp2[1];
+            H_temp2[1] = (2*(y2*z2+w2*x2)*H2_wat[2]) +H_temp2[1];
 
-          H_temp2[2] = 2*(x2*z2+w2*y2)*H2_wat[0];
-          H_temp2[2] = (2*(y2*z2-w2*x2)*H2_wat[1]) +H_temp2[2];
-          H_temp2[2] = ((w2*w2-x2*x2-y2*y2+z2*z2)*H2_wat[2]) + H_temp2[2];
+            H_temp2[2] = 2*(x2*z2+w2*y2)*H2_wat[0];
+            H_temp2[2] = (2*(y2*z2-w2*x2)*H2_wat[1]) +H_temp2[2];
+            H_temp2[2] = ((w2*w2-x2*x2-y2*y2+z2*z2)*H2_wat[2]) + H_temp2[2];
 
-          H2_wat = H_temp2;
+            H2_wat = H_temp2;
 
-          Vec3 ar2 = H_temp.Cross(H_temp2);
-          ar2.Normalize();
-          double dp2 = ar2 * z_lab_;
-          theta = acos(dp2);
+            Vec3 ar2 = H_temp.Cross(H_temp2);
+            ar2.Normalize();
+            double dp2 = ar2 * z_lab_;
+            theta = acos(dp2);
 
-          sar = ar2.Cross( z_lab_ );
-          sign = sar * H_temp;
+            sar = ar2.Cross( z_lab_ );
+            sign = sar * H_temp;
 
-          if (sign < 0)
-            theta /= 2.0;
-          else
-            theta /= -2.0;
+            if (sign < 0)
+              theta /= 2.0;
+            else
+              theta /= -2.0;
 
-          double w3 = cos(theta);
-          sin_theta = sin(theta);
-          double x3 = x_lab_[0] * sin_theta;
-          double y3 = x_lab_[1] * sin_theta;
-          double z3 = x_lab_[2] * sin_theta;
+            double w3 = cos(theta);
+            sin_theta = sin(theta);
+            double x3 = x_lab_[0] * sin_theta;
+            double y3 = x_lab_[1] * sin_theta;
+            double z3 = x_lab_[2] * sin_theta;
 
-          double w4 = w1*w3 - x1*x3 - y1*y3 - z1*z3;
-          double x4 = w1*x3 + x1*w3 + y1*z3 - z1*y3;
-          double y4 = w1*y3 - x1*z3 + y1*w3 + z1*x3;
-          double z4 = w1*z3 + x1*y3 - y1*x3 + z1*w3;
+            double w4 = w1*w3 - x1*x3 - y1*y3 - z1*z3;
+            double x4 = w1*x3 + x1*w3 + y1*z3 - z1*y3;
+            double y4 = w1*y3 - x1*z3 + y1*w3 + z1*x3;
+            double z4 = w1*z3 + x1*y3 - y1*x3 + z1*w3;
 
-          voxel_Q_[voxel].push_back( w4 );
-          voxel_Q_[voxel].push_back( x4 );
-          voxel_Q_[voxel].push_back( y4 );
-          voxel_Q_[voxel].push_back( z4 );
+            voxel_Q_[voxel].push_back( w4 );
+            voxel_Q_[voxel].push_back( x4 );
+            voxel_Q_[voxel].push_back( y4 );
+            voxel_Q_[voxel].push_back( z4 );
+          }
           //mprintf("DEBUG1: sidx= %u  voxel= %i  wxyz4= %g %g %g %g\n", sidx, voxel, w4, x4, y4, z4);
           //mprintf("DEBUG2: wxyz3= %g %g %g %g  wxyz2= %g %g %g %g  wxyz1= %g %g %g\n",
           //        w3, x3, y3, z3,
@@ -1608,11 +1610,17 @@ void Action_GIST::Print() {
   if (! this->skipS_) {
     // LOOP over all voxels
     mprintf("\tCalculating orientational entropy:\n");
-    ProgressBar oe_progress( MAX_GRID_PT_ );
+    ParallelProgress oe_progress( MAX_GRID_PT_ );
+    int n_finished = 0;
+    #ifdef _OPENMP
+    #pragma omp parallel firstprivate(oe_progress)
+    {
+    oe_progress.SetThread( omp_get_thread_num() );
+    #pragma omp for
+    #endif
     for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++) {
-      oe_progress.Update( gr_pt );
+      oe_progress.Update( n_finished );
       int nw_total = N_main_solvent_[gr_pt]; // Total number of waters that have been in this voxel.
-      nwtt += nw_total;
       //mprintf("DEBUG1: %u nw_total %i\n", gr_pt, nw_total);
       if (nw_total > 1) {
         double sorient_norm = 0.0;
@@ -1645,12 +1653,25 @@ void Action_GIST::Print() {
             //mprintf("DEBUG1: %u  nw_total= %i  NNr= %f  dbl= %f\n", gr_pt, nw_total, NNr, dbl);
           }
         } // END outer loop over all waters for this voxel
+        #ifdef _OPENMP
+        #pragma omp critical
+        {
+        #endif
         //mprintf("DEBUG1: dTSorient_norm %f\n", dTSorient_norm[gr_pt]);
+        nwtt += nw_total;
+        ++n_finished;
         dTSorient_->SetGrid(gr_pt, Constants::GASK_KCAL * temperature_ * nw_total
                                  * (sorient_norm/nw_total + Constants::EULER_MASC));
         //mprintf("DEBUG1: %f\n", dTSorienttot);
+        #ifdef _OPENMP
+        }
+        #endif
       }
     } // END loop over all grid points (voxels)
+    #ifdef _OPENMP
+    }
+    #endif
+    oe_progress.Finish();
     infofile_->Printf("Maximum number of waters found in one voxel for %d frames = %d\n",
                       NFRAME_, max_nwat_);
     infofile_->Printf("Total referenced orientational entropy of the grid:"
@@ -1669,12 +1690,19 @@ void Action_GIST::Print() {
     mprintf("\tCalculating translational entropy:\n");
   else
     mprintf("Calculating Densities:\n");
-  ProgressBar te_progress( MAX_GRID_PT_ );
   for (unsigned int i_ds = 0; i_ds < solventInfo_.unique_elements.size(); ++i_ds) {
     ScaleDataSet(*atomDensitySets_[i_ds], 1.0 / (double(NFRAME_)*Vvox*BULK_DENS_*double(solventInfo_.element_count[i_ds])));
   }
+  ParallelProgress te_progress( MAX_GRID_PT_ );
+  int n_finished = 0;
+  #ifdef _OPENMP
+  #pragma omp parallel firstprivate(te_progress)
+  {
+  te_progress.SetThread( omp_get_thread_num() );
+  #pragma omp for
+  #endif
   for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++) {
-    te_progress.Update( gr_pt );
+    te_progress.Update( n_finished );
     if (! this->skipS_) {
       int nw_total = N_main_solvent_[gr_pt]; // Total number of waters that have been in this voxel.
       int ix = gr_pt / (ny * nz);
@@ -1685,6 +1713,7 @@ void Action_GIST::Print() {
       if ( !boundary ) {
         double strans_norm = 0.0;
         double ssix_norm = 0.0;
+        int vox_nwts = 0;
         for (int n0 = 0; n0 < nw_total; ++n0)
         {
           Vec3 center(voxel_xyz_[gr_pt][3*n0], voxel_xyz_[gr_pt][3*n0+1], voxel_xyz_[gr_pt][3*n0+2]);
@@ -1706,7 +1735,7 @@ void Action_GIST::Print() {
 
           bool has_neighbor = NN.first < GistEntropyUtils::GIST_HUGE;
           if (has_neighbor) {
-            ++nwts;
+            ++vox_nwts;
             strans_norm += log((NNd*NNd*NNd*NFRAME_*4*Constants::PI*BULK_DENS_)/3);
             double sixDens = (NNs*NNs*NNs*NNs*NNs*NNs*NFRAME_*Constants::PI*BULK_DENS_) / 48;
             if (exactNnVolume_) {
@@ -1716,15 +1745,28 @@ void Action_GIST::Print() {
             //mprintf("DEBUG1: dbl=%f NNs=%f\n", dbl, NNs);
           }
         } // END loop over all waters for this voxel
+        #ifdef _OPENMP
+        #pragma omp critical
+        {
+        #endif
+        nwts += vox_nwts;
+        ++n_finished;
         if (strans_norm != 0) {
           dTStrans_->SetGrid(gr_pt, Constants::GASK_KCAL * temperature_ * nw_total
                                   * (strans_norm/nw_total + Constants::EULER_MASC));
           dTSsix_->SetGrid(gr_pt, Constants::GASK_KCAL * temperature_ * nw_total
                                 * (ssix_norm/nw_total + Constants::EULER_MASC));
         }
+        #ifdef _OPENMP
+        }
+        #endif
       }
     }
   } // END loop over all grid points (voxels)
+  #ifdef _OPENMP
+  }
+  #endif
+  te_progress.Finish();
   if (!this->skipS_) {
     infofile_->Printf("watcount in vol = %d\n", nwtt);
     infofile_->Printf("watcount in subvol = %d\n", nwts);
