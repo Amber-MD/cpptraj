@@ -2332,11 +2332,8 @@ SetupCmake() {
     exit 1
   fi
   # Ensure cmake build system exists
-  if [ ! -f "$WORKDIR/cmake/AmberBuildSystemInit.cmake" ] ; then
+  if [ ! -f "$WORKDIR/cmake-cpptraj/BuildSystemInit.cmake" ] ; then
     ErrMsg "Error: cmake build system is not present."
-    ErrMsg "       If this is a GIT repostitory, you may need to initialize the"
-    ErrMsg "       cmake submodule:"
-    ErrMsg " $ git submodule update --init --recursive"
     exit 1
   fi
   # Set up cmake options
