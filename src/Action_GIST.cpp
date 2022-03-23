@@ -1975,7 +1975,6 @@ void Action_GIST::NonbondCuda(ActionFrame frm) {
   std::vector<float> eww_result(this->numberAtoms_);
   std::vector<float> esw_result(this->numberAtoms_);
   std::vector<std::vector<int> > order_indices;
-  this->gist_nonbond_.Start();
 
   float *recip = NULL;
   float *ucell = NULL;
@@ -2081,7 +2080,6 @@ void Action_GIST::NonbondCuda(ActionFrame frm) {
     }
 
   }
-  this->gist_nonbond_.Stop();
 }
 
 /**
