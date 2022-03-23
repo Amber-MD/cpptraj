@@ -20,7 +20,6 @@
 // TO-DO: Consistent neighbor calculation with CUDA/PME/CPU
 // TO-DO: Make sure that neighbor and order uses N_main_solvent_
 // TO-DO: Make sure that neighbor and order use rigidAtomIndices_[0]
-// TO-DO: density output for non-water solvents
 // TO-DO: update tests. currently need -a to get passing tests
 // TO-DO: update GIST output version number. Leaving it at v2 for now to get passing tests.
 // TO-DO: consistent scaling of Eww energy
@@ -1612,12 +1611,12 @@ void Action_GIST::Print() {
     mprintf("\tCalculating orientational entropy:\n");
     ParallelProgress oe_progress( MAX_GRID_PT_ );
     int n_finished = 0;
-    #ifdef _OPENMP
-    #pragma omp parallel firstprivate(oe_progress)
+#   ifdef _OPENMP
+#   pragma omp parallel shared(n_finished) firstprivate(oe_progress)
     {
     oe_progress.SetThread( omp_get_thread_num() );
-    #pragma omp for
-    #endif
+#   pragma omp for
+#   endif
     for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++) {
       oe_progress.Update( n_finished );
       int nw_total = N_main_solvent_[gr_pt]; // Total number of waters that have been in this voxel.
@@ -1653,24 +1652,27 @@ void Action_GIST::Print() {
             //mprintf("DEBUG1: %u  nw_total= %i  NNr= %f  dbl= %f\n", gr_pt, nw_total, NNr, dbl);
           }
         } // END outer loop over all waters for this voxel
-        #ifdef _OPENMP
-        #pragma omp critical
+#       ifdef _OPENMP
+#       pragma omp critical
+#       endif
         {
-        #endif
-        //mprintf("DEBUG1: dTSorient_norm %f\n", dTSorient_norm[gr_pt]);
-        nwtt += nw_total;
-        ++n_finished;
-        dTSorient_->SetGrid(gr_pt, Constants::GASK_KCAL * temperature_ * nw_total
-                                 * (sorient_norm/nw_total + Constants::EULER_MASC));
-        //mprintf("DEBUG1: %f\n", dTSorienttot);
-        #ifdef _OPENMP
+          //mprintf("DEBUG1: dTSorient_norm %f\n", dTSorient_norm[gr_pt]);
+          nwtt += nw_total;
+          ++n_finished;
+          dTSorient_->SetGrid(gr_pt, Constants::GASK_KCAL * temperature_ * nw_total
+                                  * (sorient_norm/nw_total + Constants::EULER_MASC));
+          //mprintf("DEBUG1: %f\n", dTSorienttot);
         }
-        #endif
+      } else { // nw_total <= 1
+#       ifdef _OPENMP
+#       pragma omp atomic
+#       endif
+        ++n_finished;
       }
     } // END loop over all grid points (voxels)
-    #ifdef _OPENMP
+#   ifdef _OPENMP
     }
-    #endif
+#   endif
     oe_progress.Finish();
     infofile_->Printf("Maximum number of waters found in one voxel for %d frames = %d\n",
                       NFRAME_, max_nwat_);
@@ -1695,12 +1697,12 @@ void Action_GIST::Print() {
   }
   ParallelProgress te_progress( MAX_GRID_PT_ );
   int n_finished = 0;
-  #ifdef _OPENMP
-  #pragma omp parallel firstprivate(te_progress)
+# ifdef _OPENMP
+# pragma omp parallel shared(n_finished) firstprivate(te_progress)
   {
   te_progress.SetThread( omp_get_thread_num() );
-  #pragma omp for
-  #endif
+# pragma omp for
+# endif
   for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++) {
     te_progress.Update( n_finished );
     if (! this->skipS_) {
@@ -1745,21 +1747,24 @@ void Action_GIST::Print() {
             //mprintf("DEBUG1: dbl=%f NNs=%f\n", dbl, NNs);
           }
         } // END loop over all waters for this voxel
-        #ifdef _OPENMP
-        #pragma omp critical
+#       ifdef _OPENMP
+#       pragma omp critical
+#       endif
         {
-        #endif
-        nwts += vox_nwts;
+          nwts += vox_nwts;
+          ++n_finished;
+          if (strans_norm != 0) {
+            dTStrans_->SetGrid(gr_pt, Constants::GASK_KCAL * temperature_ * nw_total
+                                    * (strans_norm/nw_total + Constants::EULER_MASC));
+            dTSsix_->SetGrid(gr_pt, Constants::GASK_KCAL * temperature_ * nw_total
+                                  * (ssix_norm/nw_total + Constants::EULER_MASC));
+          }
+        }
+      } else { // boundary
+#       ifdef _OPENMP
+#       pragma omp atomic
+#       endif
         ++n_finished;
-        if (strans_norm != 0) {
-          dTStrans_->SetGrid(gr_pt, Constants::GASK_KCAL * temperature_ * nw_total
-                                  * (strans_norm/nw_total + Constants::EULER_MASC));
-          dTSsix_->SetGrid(gr_pt, Constants::GASK_KCAL * temperature_ * nw_total
-                                * (ssix_norm/nw_total + Constants::EULER_MASC));
-        }
-        #ifdef _OPENMP
-        }
-        #endif
       }
     }
   } // END loop over all grid points (voxels)
@@ -1788,7 +1793,7 @@ void Action_GIST::Print() {
   SumEVV();
   #endif
 
-  // Remove solvent-solvent energy in voxels without solvent (i.e., at the solute)
+  // Remove solute-solvent energy in voxels without solvent (i.e., at the solute)
   for (size_t i = 0; i < Esw_->Size(); ++i) {
     if (N_waters_[i] == 0) {
       Esw_->SetGrid(i, 0.0);
@@ -1816,9 +1821,6 @@ void Action_GIST::Print() {
     mprintf("\tCalculating average voxel energies:\n");
   }
   Farray Eww_norm = NormalizeDataSet<float>(*Eww_, N_waters_);
-  // To account for double counting.
-  /* for (size_t i = 0; i < Eww_norm.size(); ++i) { Eww_norm[i] *= 0.5; } */
-  /* Farray Eww_dens = WeightDataSet<float>(*Eww_, 1.0 / (2.0 * NFRAME_ * Vvox)); */
   Farray Eww_dens = WeightDataSet<float>(*Eww_, 1.0 / (NFRAME_ * Vvox));
   Farray Esw_norm = NormalizeDataSet<float>(*Esw_, N_waters_);
   Farray Esw_dens = DensityWeightDataSet<float>(*Esw_);
