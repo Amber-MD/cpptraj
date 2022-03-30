@@ -4,6 +4,7 @@
 #include "Action.h"
 #include "ImageOption.h"
 #include "DataSet_integer.h"
+#include "DataSet_MatrixDbl.h"
 #include "OnlineVarT.h"
 //#inc lude "CpptrajStdio.h" // DEBUG
 #ifdef TIMER
@@ -27,7 +28,7 @@ class Action_HydrogenBond : public Action {
 
     typedef std::vector<int> Iarray;
 
-    enum MatrixNormType { NORM_NONE = 0, NORM_FRAMES };
+    enum MatrixNormType { NORM_NONE = 0, NORM_FRAMES, NORM_RESMAX };
 
     class Site;
     class Hbond;
@@ -97,6 +98,7 @@ class Action_HydrogenBond : public Action {
     AtomMask SolventDonorMask_;
     AtomMask SolventAcceptorMask_;
     AtomMask Mask_;
+    DataSet_MatrixDbl UU_norm_byRes_; ///< For normalizing the max possible # hbonds by residue
     ImageOption imageOpt_;       ///< Used to determine if imaging should be performed
     Iarray splitFrames_;         ///< For calculating hydrogen bonds by parts
 #   ifdef TIMER

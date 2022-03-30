@@ -104,6 +104,8 @@ Action::RetType Action_HydrogenBond::Init(ArgList& actionArgs, ActionInit& init,
         UUmatByRes_norm_ = NORM_NONE;
       else if (uuResMatrixNorm == "frames")
         UUmatByRes_norm_ = NORM_FRAMES;
+      //else if (uuResMatrixNorm == "resmax") // DISABLE for now, needs more testing
+      //  UUmatByRes_norm_ = NORM_RESMAX;
       else {
         mprinterr("Error: Invalid keyword for 'uuresmatrixnorm'.\n");
         return Action::ERR;
@@ -295,6 +297,8 @@ Action::RetType Action_HydrogenBond::Init(ArgList& actionArgs, ActionInit& init,
       mprintf("\tNot normalizing solute-solute residue matrix.\n");
     else if (UUmatByRes_norm_ == NORM_FRAMES)
       mprintf("\tNormalizing solute-solute residue matrix by frames.\n");
+    else if (UUmatByRes_norm_ == NORM_RESMAX)
+      mprintf("\tNormalizing solute-solute residue matrix by max possible h. bonds between residues.\n");
   }
   if (imageOpt_.UseImage())
     mprintf("\tImaging enabled.\n");
@@ -656,6 +660,44 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
     if (UU_matrix_byRes_->AllocateHalf(highest_U_idx+1)) {
       mprinterr("Error: Allocating solute-solute hbond matrix failed.\n");
       return Action::ERR;
+    }
+    // Set up normalization matrix if necesary
+    if (UUmatByRes_norm_ == NORM_RESMAX) {
+      UU_norm_byRes_.AllocateHalf( UU_matrix_byRes_->Nrows() );
+      for (unsigned int sidx0 = 0; sidx0 < Both_.size(); sidx0++)
+      {
+        Site const& Site0 = Both_[sidx0];
+        int mol0 = (*CurrentParm_)[Site0.Idx()].MolNum();
+        int rnum0 = (*CurrentParm_)[Site0.Idx()].ResNum();
+        // Loop over solute sites that can be both donor and acceptor
+        for (unsigned int sidx1 = sidx0 + 1; sidx1 < bothEnd_; sidx1++)
+        {
+          Site const& Site1 = Both_[sidx1];
+          if (!noIntramol_ || mol0 != (*CurrentParm_)[Site1.Idx()].MolNum()) {
+            int rnum1 = (*CurrentParm_)[Site1.Idx()].ResNum();
+            // The max # of hbonds between sites depends on # hydrogens.
+            // However, given H1-X-H2 Y, you tend to have either Y..H1-X or
+            // Y..H2-X, not both, so do based on sites only.
+            //UU_norm_byRes_.UpdateElement(rnum0, rnum1, Site0.n_hydrogens() + Site1.n_hydrogens());
+            UU_norm_byRes_.UpdateElement(rnum0, rnum1, 2.0);
+          }
+        } // END loop over solute sites that are D/A
+        // Loop over solute acceptor-only
+        for (Iarray::const_iterator a_atom = Acceptor_.begin(); a_atom != Acceptor_.end(); ++a_atom)
+        {
+          if (!noIntramol_ || mol0 != (*CurrentParm_)[*a_atom].MolNum()) {
+            int rnum1 = (*CurrentParm_)[*a_atom].ResNum();
+            //UU_norm_byRes_.UpdateElement(rnum0, rnum1, Site0.n_hydrogens());
+            UU_norm_byRes_.UpdateElement(rnum0, rnum1, 1.0);
+          }
+        } // END loop over acceptor atoms
+      } // END loop over all D/A sites
+      mprintf("DEBUG: Residue normalization matrix:\n");
+      for (unsigned int rnum0 = 0; rnum0 < UU_norm_byRes_.Nrows(); rnum0++) {
+        for (unsigned int rnum1 = rnum0; rnum1 < UU_norm_byRes_.Ncols(); rnum1++) {
+          mprintf("\t%6i %6i %f\n", rnum0+1, rnum1+1, UU_norm_byRes_.GetElement(rnum1, rnum0));
+        }
+      }
     }
   }
 
