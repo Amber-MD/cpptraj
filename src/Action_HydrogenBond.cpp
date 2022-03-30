@@ -622,6 +622,25 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
     return Action::SKIP;
   }
 
+  // Hbond matrix setup
+  if (UU_matrix_byRes_ != 0) {
+    // Find highest solute index
+    int highest_U_idx = 0;
+    for (int rnum = 0; rnum < setup.Top().Nres(); rnum++)
+    {
+      // Find molecule number
+      int at0 = setup.Top().Res(rnum).FirstAtom();
+      int mnum = setup.Top()[at0].MolNum();
+      if (!setup.Top().Mol(mnum).IsSolvent())
+        highest_U_idx = rnum;
+    }
+    mprintf("\tHighest solute residue # = %i\n", highest_U_idx+1);
+    if (UU_matrix_byRes_->AllocateHalf(highest_U_idx+1)) {
+      mprinterr("Error: Allocating solute-solute hbond matrix failed.\n");
+      return Action::ERR;
+    }
+  }
+
   return Action::OK;
 }
 
