@@ -20,7 +20,7 @@ RunCpptraj "PairDist Test."
 DoTest ${out}.save $out
 
 UNITNAME='Pairdist test, orthogonal imaging'
-CheckFor netcdf
+CheckFor netcdf maxthreads 10
 if [ $? -eq 0 ] ; then
   cat > $in <<EOF
 parm ../tz2.ortho.parm7

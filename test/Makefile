@@ -32,6 +32,7 @@ test.center:
 test.hbond:
 	@-cd Test_Hbond && ./RunTest.sh $(OPT)
 	@-cd Test_Hbond_Split && ./RunTest.sh $(OPT)
+	@-cd Test_Hbond_Matrix && ./RunTest.sh $(OPT)
 
 test.image:
 	@-cd Test_Image && ./RunTest.sh $(OPT)

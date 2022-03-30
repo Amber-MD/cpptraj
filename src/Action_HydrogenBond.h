@@ -4,11 +4,13 @@
 #include "Action.h"
 #include "ImageOption.h"
 #include "DataSet_integer.h"
+#include "DataSet_MatrixDbl.h"
 #include "OnlineVarT.h"
 //#inc lude "CpptrajStdio.h" // DEBUG
 #ifdef TIMER
 # include "Timer.h"
 #endif
+class DataSet_2D;
 class Action_HydrogenBond : public Action {
   public:
     Action_HydrogenBond();
@@ -25,6 +27,8 @@ class Action_HydrogenBond : public Action {
     void Print();
 
     typedef std::vector<int> Iarray;
+
+    enum MatrixNormType { NORM_NONE = 0, NORM_FRAMES, NORM_RESMAX };
 
     class Site;
     class Hbond;
@@ -94,6 +98,7 @@ class Action_HydrogenBond : public Action {
     AtomMask SolventDonorMask_;
     AtomMask SolventAcceptorMask_;
     AtomMask Mask_;
+    DataSet_MatrixDbl UU_norm_byRes_; ///< For normalizing the max possible # hbonds by residue
     ImageOption imageOpt_;       ///< Used to determine if imaging should be performed
     Iarray splitFrames_;         ///< For calculating hydrogen bonds by parts
 #   ifdef TIMER
@@ -108,6 +113,7 @@ class Action_HydrogenBond : public Action {
     DataSet* NumSolvent_;    ///< Hold # UV hbonds per frame.
     DataSet* NumBridge_;     ///< Hold # solute-solvent bridges per frame.
     DataSet* BridgeID_;      ///< Hold info on each bridge per frame.
+    DataSet_2D* UU_matrix_byRes_; ///< Record # hbonds between each residue pair.
     DataFile* UUseriesout_;  ///< File to write UU time series to.
     DataFile* UVseriesout_;  ///< File to write UV time series to.
     DataFile* Bseriesout_;   ///< File to write bridge time series to.
@@ -119,6 +125,7 @@ class Action_HydrogenBond : public Action {
     unsigned int bothEnd_;   ///< Index in Both_ where donor-only sites begin
     int Nframes_;            ///< Number of frames action has been active
     int debug_;
+    MatrixNormType UUmatByRes_norm_;
     bool series_;             ///< If true track hbond time series.
     bool Bseries_;            ///< If true track bridge time series.
     bool seriesUpdated_;      ///< If false hbond time series need to be finished.

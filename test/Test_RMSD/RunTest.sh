@@ -92,9 +92,11 @@ fi
 
 # Test imaging after unit cell rotation
 UNITNAME='RMS: imaging after unit cell rotation'
-TOP='-p ../tz2.ortho.parm7'
-INPUT='-i rms.in'
-cat > rms.in <<EOF
+CheckFor maxthreads 10
+if [ $? -eq 0 ] ; then
+  TOP='-p ../tz2.ortho.parm7'
+  INPUT='-i rms.in'
+  cat > rms.in <<EOF
 noprogress
 trajin ../tz2.ortho.nc
 rms :1-13 first
@@ -102,9 +104,9 @@ distance NoImage :559 :1412 noimage out distances.agr
 distance Image   :559 :1412         out distances.agr
 run
 EOF
-RunCpptraj "$UNITNAME"
-DoTest distances.agr.save distances.agr
-
+  RunCpptraj "$UNITNAME"
+  DoTest distances.agr.save distances.agr
+fi
 
 EndTest
 
