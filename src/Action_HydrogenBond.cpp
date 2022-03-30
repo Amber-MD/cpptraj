@@ -56,7 +56,7 @@ void Action_HydrogenBond::Help() const {
           "\t[solvout <filename>] [bridgeout <filename>] [bridgebyatom]\n"
           "\t[series [uuseries <filename>] [uvseries <filename>]]\n"
           "\t[bseries [bseriesfile <filename>]]\n"
-          "\t[uuresmatrix [uuresmatrixnorm {none|frames}]]\n"
+          "\t[uuresmatrix [uuresmatrixnorm {none|frames}] [uuresmatrixout <file>]]\n"
           "\t[splitframe <comma-separated-list>]\n"
           "  Hydrogen bond is defined as A-HD, where A is acceptor heavy atom, H is\n"
           "  hydrogen, D is donor heavy atom. Hydrogen bond is formed when\n"
@@ -97,7 +97,11 @@ Action::RetType Action_HydrogenBond::Init(ArgList& actionArgs, ActionInit& init,
     init.DSL().SetDataSetsPending(true);
   }
   bool do_uuResMatrix = actionArgs.hasKey("uuresmatrix");
+  DataFile* uuResMatrixFile = 0;
   if (do_uuResMatrix) {
+    uuResMatrixFile = init.DFL().AddDataFile(actionArgs.GetStringKey("uuresmatrixout"),
+                                             ArgList("nosquare2d"),
+                                             actionArgs);
     std::string uuResMatrixNorm = actionArgs.GetStringKey("uuresmatrixnorm");
     if (!uuResMatrixNorm.empty()) {
       if (uuResMatrixNorm == "none")
@@ -111,6 +115,7 @@ Action::RetType Action_HydrogenBond::Init(ArgList& actionArgs, ActionInit& init,
         return Action::ERR;
       }
     }
+    
   }
   std::string avgname = actionArgs.GetStringKey("avgout");
   std::string solvname = actionArgs.GetStringKey("solvout");
@@ -215,6 +220,10 @@ Action::RetType Action_HydrogenBond::Init(ArgList& actionArgs, ActionInit& init,
     UU_matrix_byRes_ = (DataSet_2D*)
                        init.DSL().AddSet(DataSet::MATRIX_DBL, MetaData(hbsetname_, "UUresmat"));
     if (UU_matrix_byRes_ == 0) return Action::ERR;
+    UU_matrix_byRes_->ModifyDim(Dimension::X).SetLabel("Res");
+    UU_matrix_byRes_->ModifyDim(Dimension::Y).SetLabel("Res");
+    if (uuResMatrixFile != 0)
+      uuResMatrixFile->AddDataSet( UU_matrix_byRes_ );
   }
     
 # ifdef _OPENMP
@@ -293,6 +302,8 @@ Action::RetType Action_HydrogenBond::Init(ArgList& actionArgs, ActionInit& init,
   }
   if (UU_matrix_byRes_ != 0) {
     mprintf("\tCalculating solute-solute residue matrix: %s\n", UU_matrix_byRes_->legend());
+    if (uuResMatrixFile != 0)
+      mprintf("\tWriting solute-solute residue matrix to '%s'\n", uuResMatrixFile->DataFilename().full());
     if (UUmatByRes_norm_ == NORM_NONE)
       mprintf("\tNot normalizing solute-solute residue matrix.\n");
     else if (UUmatByRes_norm_ == NORM_FRAMES)
