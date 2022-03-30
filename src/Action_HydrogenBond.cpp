@@ -32,7 +32,7 @@ Action_HydrogenBond::Action_HydrogenBond() :
   bothEnd_(0),
   Nframes_(0),
   debug_(0),
-  UUmatByRes_norm_(NORM_NONE),
+  UUmatByRes_norm_(NORM_FRAMES),
   series_(false),
   Bseries_(false),
   seriesUpdated_(false),
