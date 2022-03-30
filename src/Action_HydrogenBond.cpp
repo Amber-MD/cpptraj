@@ -3,9 +3,10 @@
 #include "Action_HydrogenBond.h"
 #include "CpptrajStdio.h"
 #include "Constants.h"
-#include "TorsionRoutines.h"
-#include "StringRoutines.h" // ByteString
+#include "DataSet_integer.h"
 #include "DistRoutines.h"
+#include "StringRoutines.h" // ByteString
+#include "TorsionRoutines.h"
 #ifdef _OPENMP
 # include <omp.h>
 #endif
