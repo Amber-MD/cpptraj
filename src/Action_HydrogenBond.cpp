@@ -32,6 +32,7 @@ Action_HydrogenBond::Action_HydrogenBond() :
   bothEnd_(0),
   Nframes_(0),
   debug_(0),
+  UUmatByRes_norm_(NORM_NONE),
   series_(false),
   Bseries_(false),
   seriesUpdated_(false),
@@ -55,7 +56,7 @@ void Action_HydrogenBond::Help() const {
           "\t[solvout <filename>] [bridgeout <filename>] [bridgebyatom]\n"
           "\t[series [uuseries <filename>] [uvseries <filename>]]\n"
           "\t[bseries [bseriesfile <filename>]]\n"
-          "\t[uuresmatrix]\n"
+          "\t[uuresmatrix [uuresmatrixnorm {none|frames}]]\n"
           "\t[splitframe <comma-separated-list>]\n"
           "  Hydrogen bond is defined as A-HD, where A is acceptor heavy atom, H is\n"
           "  hydrogen, D is donor heavy atom. Hydrogen bond is formed when\n"
@@ -96,6 +97,19 @@ Action::RetType Action_HydrogenBond::Init(ArgList& actionArgs, ActionInit& init,
     init.DSL().SetDataSetsPending(true);
   }
   bool do_uuResMatrix = actionArgs.hasKey("uuresmatrix");
+  if (do_uuResMatrix) {
+    std::string uuResMatrixNorm = actionArgs.GetStringKey("uuresmatrixnorm");
+    if (!uuResMatrixNorm.empty()) {
+      if (uuResMatrixNorm == "none")
+        UUmatByRes_norm_ = NORM_NONE;
+      else if (uuResMatrixNorm == "frames")
+        UUmatByRes_norm_ = NORM_FRAMES;
+      else {
+        mprinterr("Error: Invalid keyword for 'uuresmatrixnorm'.\n");
+        return Action::ERR;
+      }
+    }
+  }
   std::string avgname = actionArgs.GetStringKey("avgout");
   std::string solvname = actionArgs.GetStringKey("solvout");
   if (solvname.empty()) solvname = avgname;
@@ -277,6 +291,10 @@ Action::RetType Action_HydrogenBond::Init(ArgList& actionArgs, ActionInit& init,
   }
   if (UU_matrix_byRes_ != 0) {
     mprintf("\tCalculating solute-solute residue matrix: %s\n", UU_matrix_byRes_->legend());
+    if (UUmatByRes_norm_ == NORM_NONE)
+      mprintf("\tNot normalizing solute-solute residue matrix.\n");
+    else if (UUmatByRes_norm_ == NORM_FRAMES)
+      mprintf("\tNormalizing solute-solute residue matrix by frames.\n");
   }
   if (imageOpt_.UseImage())
     mprintf("\tImaging enabled.\n");
@@ -1455,6 +1473,9 @@ std::string Action_HydrogenBond::MemoryUsage(size_t n_uu_pairs, size_t n_uv_pair
   memTotal += sizeof(BmapType);
   for (BmapType::const_iterator it = BridgeMap_.begin(); it != BridgeMap_.end(); ++it)
     memTotal += (sizeBRmapElt + it->first.size()*sizeof(int));
+  // Matrices
+  if (UU_matrix_byRes_ != 0)
+    memTotal += UU_matrix_byRes_->MemUsageInBytes();
  
   return ByteString( memTotal, BYTE_DECIMAL );
 }
@@ -1527,6 +1548,15 @@ void Action_HydrogenBond::Print() {
 # endif
   // Ensure all series have been updated for all frames.
   UpdateSeries();
+  // Matrix normalization
+  if (UU_matrix_byRes_ != 0) {
+    if (UUmatByRes_norm_ == NORM_FRAMES) {
+      double norm = 1.0 / ((double)Nframes_);
+      for (unsigned int r = 0; r != UU_matrix_byRes_->Nrows(); r++)
+        for (unsigned int c = 0; c != UU_matrix_byRes_->Ncols(); c++)
+          UU_matrix_byRes_->SetElement(c, r, UU_matrix_byRes_->GetElement(c, r) * norm);
+    }
+  }
 
   if (CurrentParm_ == 0) return;
   // Calculate necessary column width for strings based on how many residues.

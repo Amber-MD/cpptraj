@@ -27,6 +27,8 @@ class Action_HydrogenBond : public Action {
 
     typedef std::vector<int> Iarray;
 
+    enum MatrixNormType { NORM_NONE = 0, NORM_FRAMES };
+
     class Site;
     class Hbond;
     class Bridge;
@@ -121,6 +123,7 @@ class Action_HydrogenBond : public Action {
     unsigned int bothEnd_;   ///< Index in Both_ where donor-only sites begin
     int Nframes_;            ///< Number of frames action has been active
     int debug_;
+    MatrixNormType UUmatByRes_norm_;
     bool series_;             ///< If true track hbond time series.
     bool Bseries_;            ///< If true track bridge time series.
     bool seriesUpdated_;      ///< If false hbond time series need to be finished.
