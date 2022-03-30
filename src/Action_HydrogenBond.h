@@ -9,6 +9,7 @@
 #ifdef TIMER
 # include "Timer.h"
 #endif
+class DataSet_2D;
 class Action_HydrogenBond : public Action {
   public:
     Action_HydrogenBond();
@@ -108,6 +109,7 @@ class Action_HydrogenBond : public Action {
     DataSet* NumSolvent_;    ///< Hold # UV hbonds per frame.
     DataSet* NumBridge_;     ///< Hold # solute-solvent bridges per frame.
     DataSet* BridgeID_;      ///< Hold info on each bridge per frame.
+    DataSet_2D* UU_matrix_byRes_; ///< Record # hbonds between each residue pair.
     DataFile* UUseriesout_;  ///< File to write UU time series to.
     DataFile* UVseriesout_;  ///< File to write UV time series to.
     DataFile* Bseriesout_;   ///< File to write bridge time series to.

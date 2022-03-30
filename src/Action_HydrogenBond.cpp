@@ -3,6 +3,7 @@
 #include "Action_HydrogenBond.h"
 #include "CpptrajStdio.h"
 #include "Constants.h"
+#include "DataSet_2D.h"
 #include "DataSet_integer.h"
 #include "DistRoutines.h"
 #include "StringRoutines.h" // ByteString
@@ -19,6 +20,7 @@ Action_HydrogenBond::Action_HydrogenBond() :
   NumSolvent_(0),
   NumBridge_(0),
   BridgeID_(0),
+  UU_matrix_byRes_(0),
   UUseriesout_(0),
   UVseriesout_(0),
   Bseriesout_(0),
@@ -53,6 +55,7 @@ void Action_HydrogenBond::Help() const {
           "\t[solvout <filename>] [bridgeout <filename>] [bridgebyatom]\n"
           "\t[series [uuseries <filename>] [uvseries <filename>]]\n"
           "\t[bseries [bseriesfile <filename>]]\n"
+          "\t[uuresmatrix]\n"
           "\t[splitframe <comma-separated-list>]\n"
           "  Hydrogen bond is defined as A-HD, where A is acceptor heavy atom, H is\n"
           "  hydrogen, D is donor heavy atom. Hydrogen bond is formed when\n"
@@ -92,6 +95,7 @@ Action::RetType Action_HydrogenBond::Init(ArgList& actionArgs, ActionInit& init,
     Bseriesout_ = init.DFL().AddDataFile(actionArgs.GetStringKey("bseriesfile"), actionArgs);
     init.DSL().SetDataSetsPending(true);
   }
+  bool do_uuResMatrix = actionArgs.hasKey("uuresmatrix");
   std::string avgname = actionArgs.GetStringKey("avgout");
   std::string solvname = actionArgs.GetStringKey("solvout");
   if (solvname.empty()) solvname = avgname;
@@ -191,6 +195,12 @@ Action::RetType Action_HydrogenBond::Init(ArgList& actionArgs, ActionInit& init,
     solvout_ = init.DFL().AddCpptrajFile(solvname,"Avg. solute-solvent HBonds");
     bridgeout_ = init.DFL().AddCpptrajFile(bridgename,"Solvent bridging info");
   }
+  if (do_uuResMatrix) {
+    UU_matrix_byRes_ = (DataSet_2D*)
+                       init.DSL().AddSet(DataSet::MATRIX_DBL, MetaData(hbsetname_, "UUresmat"));
+    if (UU_matrix_byRes_ == 0) return Action::ERR;
+  }
+    
 # ifdef _OPENMP
   // Each thread needs temp. space to store found hbonds every frame
   // to avoid memory clashes when adding/updating in map.
@@ -264,6 +274,9 @@ Action::RetType Action_HydrogenBond::Init(ArgList& actionArgs, ActionInit& init,
     mprintf("\tTime series data for each bridge will be saved for analysis.\n");
     if (Bseriesout_ != 0)
       mprintf("\tWriting bridge time series to '%s'\n", Bseriesout_->DataFilename().full());
+  }
+  if (UU_matrix_byRes_ != 0) {
+    mprintf("\tCalculating solute-solute residue matrix: %s\n", UU_matrix_byRes_->legend());
   }
   if (imageOpt_.UseImage())
     mprintf("\tImaging enabled.\n");
@@ -760,6 +773,11 @@ void Action_HydrogenBond::AddUU(double dist, double angle, int fnum, int a_atom,
 //      mprintf("DBG1: OLD hbond : %8i .. %8i - %8i\n", a_atom+1,h_atom+1,d_atom+1);
   }
   it->second.Update(dist, angle, fnum, splitFrames_, onum);
+  if (UU_matrix_byRes_ != 0) {
+    int a_res = (*CurrentParm_)[a_atom].ResNum();
+    int d_res = (*CurrentParm_)[d_atom].ResNum();
+    UU_matrix_byRes_->UpdateElement(a_res, d_res, 1.0);
+  }
 }
 
 // Action_HydrogenBond::CalcSiteHbonds()
