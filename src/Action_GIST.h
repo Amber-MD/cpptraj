@@ -221,11 +221,11 @@ class Action_GIST : public Action {
     Iarray OnGrid_idxs_;    ///< Indices for each water atom on the grid.*
     Iarray atom_voxel_;     ///< Absolute grid voxel for each atom (OFF_GRID_ if atom not on grid).*
     std::vector<bool> atomIsSolute_; ///< True if atom is solute.+
-    std::vector<bool> atomIsSolventO_; ///< True if atom is sovent O.+
+    std::vector<bool> atomIsSolventO_; ///< True if atom is sovent O. Used to choose atoms for neighbor calc.+
     Iarray U_idxs_;         ///< Atom indices for solute atoms only.+
     Iarray U_onGrid_idxs_;  ///< Indices for each solute atom on the grid.*
-    Iarray N_waters_;       ///< Number of waters (oxygen atoms) in each voxel.*
-    Iarray N_main_solvent_; ///< Number of waters (oxygen atoms) in each voxel.*
+    Iarray N_solvent_;       ///< Number of solvent centers in each voxel.*
+    Iarray N_main_solvent_; ///< Number of main solvent (usually water) centers in each voxel.*
     Iarray N_solute_atoms_; ///< Number of solute atoms in each voxel.*
     Iarray N_hydrogens_;    ///< Number of hydrogen atoms in each voxel.*
 #   ifdef _OPENMP

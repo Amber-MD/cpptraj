@@ -15,20 +15,19 @@
 # include <omp.h>
 #endif
 
-// TO-DO: In Cuda kernel: atoms in the same mol might have the same atom_type. This would mess with the neighbor calc.
-// Crashes with zero solvent molecules
-// TO-DO: Consistent neighbor calculation with CUDA/PME/CPU
-// TO-DO: Make sure that neighbor and order uses N_main_solvent_
-// TO-DO: Make sure that neighbor and order use rigidAtomIndices_[0]
-// TO-DO: update tests. currently need -a to get passing tests
-// TO-DO: update GIST output version number. Leaving it at v2 for now to get passing tests.
-// TO-DO: consistent scaling of Eww energy
-// TO-DO: linearity check
+// Note: The Order calculation is not updated for solvents other than water.
+// E.g., it does not use rigidAtomIndices[0].
+// It will not crash, but also not produce useful results.
+//
+// The neighbor calculation is also not updated. The distance cutoff is hard-coded to 3.5 
+// Angstrom, which is reasonable only for water.
+//
+// In the CUDA kernel, the neighbor calc uses the atom type to choose which atom to use.
+// This is not reasonable with non-water solvents.
 
-// Plan for multiple solvents
-// OnGrid_idxs is used for Order and NonbondEnergy -> needs split
-// OnGrid_XYZ is used in Order and NonbondEnergy, can be replaced for OnGrid_idxs + frame functions in Order, but not in NonbondEnergy
-// 
+// Crashes with zero solvent molecules
+
+// TO-DO: check for linear solvent molecules
 
 const double Action_GIST::maxD_ = DBL_MAX;
 #define GIST_TINY 1e-10
@@ -347,7 +346,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   G_max_ = Vec3( (double)griddim_[0] * gridspacing_ + 1.5,
                  (double)griddim_[1] * gridspacing_ + 1.5,
                  (double)griddim_[2] * gridspacing_ + 1.5 );
-  N_waters_.assign( MAX_GRID_PT_, 0 );
+  N_solvent_.assign( MAX_GRID_PT_, 0 );
   N_main_solvent_.assign( MAX_GRID_PT_, 0 );
   N_solute_atoms_.assign( MAX_GRID_PT_, 0);
   N_hydrogens_.assign( MAX_GRID_PT_, 0 );
@@ -658,6 +657,8 @@ int Action_GIST::setSolventProperties(const Molecule& mol, const Topology& top)
   {
     mprintf("\tFirst solvent molecule '%s' is not water.\n",
             top.TruncResNameNum( top[o_idx].ResNum() ).c_str());
+    mprintf("Warning: The neighbor and order calculations are not meant to be used with"
+            " solvents other than water!\n");
   }
   #ifdef CUDA
   this->headAtomType_ = top[o_idx].TypeIndex();
@@ -1273,8 +1274,8 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
           wXYZ+=3;
           ++N_ON_GRID_;
         }
-        ++N_waters_[voxel];
-        max_nwat_ = std::max( N_waters_[voxel], max_nwat_ );
+        ++N_solvent_[voxel];
+        max_nwat_ = std::max( N_solvent_[voxel], max_nwat_ );
 
         if (solventType_[mol_first] != UNKNOWN_MOLECULE_) {
             molDensitySets_[solventType_[mol_first]]->UpdateVoxel(voxel, 1.0);
@@ -1390,7 +1391,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
           //        w3, x3, y3, z3,
           //        w2, x2, y2, z2,
           //        w1, x1, y1, z1);
-          // NOTE: No need for nw_angle_ here, it is same as N_waters_
+          // NOTE: No need for nw_angle_ here, it is same as N_solvent_
           gist_euler_.Stop();
           // ----- DIPOLE --------------------------
           gist_dipole_.Start();
@@ -1795,7 +1796,7 @@ void Action_GIST::Print() {
 
   // Remove solute-solvent energy in voxels without solvent (i.e., at the solute)
   for (size_t i = 0; i < Esw_->Size(); ++i) {
-    if (N_waters_[i] == 0) {
+    if (N_solvent_[i] == 0) {
       Esw_->SetGrid(i, 0.0);
     }
   }
@@ -1811,7 +1812,7 @@ void Action_GIST::Print() {
     CopyArrayToDataSet(E_pme_, *PME_);
     CopyArrayToDataSet(U_E_pme_, *U_PME_);
     mprintf("\t Calculating average voxel energies: \n");
-    PME_norm = NormalizeDataSet<double>(*PME_, N_waters_);
+    PME_norm = NormalizeDataSet<double>(*PME_, N_solvent_);
     PME_dens = DensityWeightDataSet<double>(*PME_);
     U_PME_dens = DensityWeightDataSet<double>(*U_PME_);
     infofile_->Printf("Ensemble total water energy on the grid: %9.5f Kcal/mol \n", SumDataSet(*PME_) / NFRAME_);
@@ -1820,9 +1821,9 @@ void Action_GIST::Print() {
   if (!skipE_) {
     mprintf("\tCalculating average voxel energies:\n");
   }
-  Farray Eww_norm = NormalizeDataSet<float>(*Eww_, N_waters_);
+  Farray Eww_norm = NormalizeDataSet<float>(*Eww_, N_solvent_);
   Farray Eww_dens = WeightDataSet<float>(*Eww_, 1.0 / (NFRAME_ * Vvox));
-  Farray Esw_norm = NormalizeDataSet<float>(*Esw_, N_waters_);
+  Farray Esw_norm = NormalizeDataSet<float>(*Esw_, N_solvent_);
   Farray Esw_dens = DensityWeightDataSet<float>(*Esw_);
   if (!skipE_) {
     infofile_->Printf("Total water-solute energy of the grid: Esw = %9.5f kcal/mol\n", SumDataSet(*Esw_) / NFRAME_);
@@ -1903,7 +1904,7 @@ void Action_GIST::Print() {
       Esw_->ReverseIndex( gr_pt, i, j, k );
       Vec3 XYZ = Esw_->Bin().Center( i, j, k );
       
-      printer << gr_pt << XYZ[0] << XYZ[1] << XYZ[2] << N_waters_[gr_pt];
+      printer << gr_pt << XYZ[0] << XYZ[1] << XYZ[2] << N_solvent_[gr_pt];
       for (unsigned int i = 0; i < solventInfo_.unique_elements.size(); ++i) {
         printer << (*atomDensitySets_[i])[gr_pt];
       }
