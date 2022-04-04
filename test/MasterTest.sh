@@ -189,7 +189,6 @@ DoTest() {
     if [ $USE_NDIFF -eq 0 ] ; then
       $CPPTRAJ_DIFF $DIFFARGS $DIFFOPTS $F1 $F2 > temp.diff 2>&1
     else
-      echo awk -f $CPPTRAJ_NDIFF $NDIFFARGS $F1 $F2 
       awk -f $CPPTRAJ_NDIFF $NDIFFARGS $F1 $F2 > temp.diff 2>&1
     fi
     if [ -s 'temp.diff' ] ; then
