@@ -552,7 +552,6 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
     }
     if (isMainSolvent(mol_start)) {
       int error;
-      atomIsSolventO_[mol_start+rigidAtomIndices_[0]] = true;
       if (isFirstSolvent) {
         error = setSolventProperties(*mol, setup.Top());
         analyzeSolventElements(*mol, setup.Top());
@@ -573,6 +572,7 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
                   setup.Top().TruncResNameNum( setup.Top()[mol_start].ResNum() ).c_str());
         return Action::ERR;
       }
+      atomIsSolventO_[mol_start+rigidAtomIndices_[0]] = true;
     }
   }
   #ifdef CUDA
