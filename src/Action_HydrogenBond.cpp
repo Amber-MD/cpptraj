@@ -3,9 +3,11 @@
 #include "Action_HydrogenBond.h"
 #include "CpptrajStdio.h"
 #include "Constants.h"
-#include "TorsionRoutines.h"
-#include "StringRoutines.h" // ByteString
+#include "DataSet_2D.h"
+#include "DataSet_integer.h"
 #include "DistRoutines.h"
+#include "StringRoutines.h" // ByteString
+#include "TorsionRoutines.h"
 #ifdef _OPENMP
 # include <omp.h>
 #endif
@@ -18,6 +20,7 @@ Action_HydrogenBond::Action_HydrogenBond() :
   NumSolvent_(0),
   NumBridge_(0),
   BridgeID_(0),
+  UU_matrix_byRes_(0),
   UUseriesout_(0),
   UVseriesout_(0),
   Bseriesout_(0),
@@ -29,6 +32,7 @@ Action_HydrogenBond::Action_HydrogenBond() :
   bothEnd_(0),
   Nframes_(0),
   debug_(0),
+  UUmatByRes_norm_(NORM_FRAMES),
   series_(false),
   Bseries_(false),
   seriesUpdated_(false),
@@ -52,6 +56,7 @@ void Action_HydrogenBond::Help() const {
           "\t[solvout <filename>] [bridgeout <filename>] [bridgebyatom]\n"
           "\t[series [uuseries <filename>] [uvseries <filename>]]\n"
           "\t[bseries [bseriesfile <filename>]]\n"
+          "\t[uuresmatrix [uuresmatrixnorm {none|frames}] [uuresmatrixout <file>]]\n"
           "\t[splitframe <comma-separated-list>]\n"
           "  Hydrogen bond is defined as A-HD, where A is acceptor heavy atom, H is\n"
           "  hydrogen, D is donor heavy atom. Hydrogen bond is formed when\n"
@@ -90,6 +95,27 @@ Action::RetType Action_HydrogenBond::Init(ArgList& actionArgs, ActionInit& init,
   if (Bseries_) {
     Bseriesout_ = init.DFL().AddDataFile(actionArgs.GetStringKey("bseriesfile"), actionArgs);
     init.DSL().SetDataSetsPending(true);
+  }
+  bool do_uuResMatrix = actionArgs.hasKey("uuresmatrix");
+  DataFile* uuResMatrixFile = 0;
+  if (do_uuResMatrix) {
+    uuResMatrixFile = init.DFL().AddDataFile(actionArgs.GetStringKey("uuresmatrixout"),
+                                             ArgList("nosquare2d"),
+                                             actionArgs);
+    std::string uuResMatrixNorm = actionArgs.GetStringKey("uuresmatrixnorm");
+    if (!uuResMatrixNorm.empty()) {
+      if (uuResMatrixNorm == "none")
+        UUmatByRes_norm_ = NORM_NONE;
+      else if (uuResMatrixNorm == "frames")
+        UUmatByRes_norm_ = NORM_FRAMES;
+      //else if (uuResMatrixNorm == "resmax") // DISABLE for now, needs more testing
+      //  UUmatByRes_norm_ = NORM_RESMAX;
+      else {
+        mprinterr("Error: Invalid keyword for 'uuresmatrixnorm'.\n");
+        return Action::ERR;
+      }
+    }
+    
   }
   std::string avgname = actionArgs.GetStringKey("avgout");
   std::string solvname = actionArgs.GetStringKey("solvout");
@@ -190,6 +216,16 @@ Action::RetType Action_HydrogenBond::Init(ArgList& actionArgs, ActionInit& init,
     solvout_ = init.DFL().AddCpptrajFile(solvname,"Avg. solute-solvent HBonds");
     bridgeout_ = init.DFL().AddCpptrajFile(bridgename,"Solvent bridging info");
   }
+  if (do_uuResMatrix) {
+    UU_matrix_byRes_ = (DataSet_2D*)
+                       init.DSL().AddSet(DataSet::MATRIX_DBL, MetaData(hbsetname_, "UUresmat"));
+    if (UU_matrix_byRes_ == 0) return Action::ERR;
+    UU_matrix_byRes_->ModifyDim(Dimension::X).SetLabel("Res");
+    UU_matrix_byRes_->ModifyDim(Dimension::Y).SetLabel("Res");
+    if (uuResMatrixFile != 0)
+      uuResMatrixFile->AddDataSet( UU_matrix_byRes_ );
+  }
+    
 # ifdef _OPENMP
   // Each thread needs temp. space to store found hbonds every frame
   // to avoid memory clashes when adding/updating in map.
@@ -263,6 +299,17 @@ Action::RetType Action_HydrogenBond::Init(ArgList& actionArgs, ActionInit& init,
     mprintf("\tTime series data for each bridge will be saved for analysis.\n");
     if (Bseriesout_ != 0)
       mprintf("\tWriting bridge time series to '%s'\n", Bseriesout_->DataFilename().full());
+  }
+  if (UU_matrix_byRes_ != 0) {
+    mprintf("\tCalculating solute-solute residue matrix: %s\n", UU_matrix_byRes_->legend());
+    if (uuResMatrixFile != 0)
+      mprintf("\tWriting solute-solute residue matrix to '%s'\n", uuResMatrixFile->DataFilename().full());
+    if (UUmatByRes_norm_ == NORM_NONE)
+      mprintf("\tNot normalizing solute-solute residue matrix.\n");
+    else if (UUmatByRes_norm_ == NORM_FRAMES)
+      mprintf("\tNormalizing solute-solute residue matrix by frames.\n");
+    else if (UUmatByRes_norm_ == NORM_RESMAX)
+      mprintf("\tNormalizing solute-solute residue matrix by max possible h. bonds between residues.\n");
   }
   if (imageOpt_.UseImage())
     mprintf("\tImaging enabled.\n");
@@ -608,6 +655,63 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
     return Action::SKIP;
   }
 
+  // Hbond matrix setup
+  if (UU_matrix_byRes_ != 0) {
+    // Find highest solute index
+    int highest_U_idx = 0;
+    for (int rnum = 0; rnum < setup.Top().Nres(); rnum++)
+    {
+      // Find molecule number
+      int at0 = setup.Top().Res(rnum).FirstAtom();
+      int mnum = setup.Top()[at0].MolNum();
+      if (!setup.Top().Mol(mnum).IsSolvent())
+        highest_U_idx = rnum;
+    }
+    mprintf("\tHighest solute residue # = %i\n", highest_U_idx+1);
+    if (UU_matrix_byRes_->AllocateHalf(highest_U_idx+1)) {
+      mprinterr("Error: Allocating solute-solute hbond matrix failed.\n");
+      return Action::ERR;
+    }
+    // Set up normalization matrix if necesary
+    if (UUmatByRes_norm_ == NORM_RESMAX) {
+      UU_norm_byRes_.AllocateHalf( UU_matrix_byRes_->Nrows() );
+      for (unsigned int sidx0 = 0; sidx0 < Both_.size(); sidx0++)
+      {
+        Site const& Site0 = Both_[sidx0];
+        int mol0 = (*CurrentParm_)[Site0.Idx()].MolNum();
+        int rnum0 = (*CurrentParm_)[Site0.Idx()].ResNum();
+        // Loop over solute sites that can be both donor and acceptor
+        for (unsigned int sidx1 = sidx0 + 1; sidx1 < bothEnd_; sidx1++)
+        {
+          Site const& Site1 = Both_[sidx1];
+          if (!noIntramol_ || mol0 != (*CurrentParm_)[Site1.Idx()].MolNum()) {
+            int rnum1 = (*CurrentParm_)[Site1.Idx()].ResNum();
+            // The max # of hbonds between sites depends on # hydrogens.
+            // However, given H1-X-H2 Y, you tend to have either Y..H1-X or
+            // Y..H2-X, not both, so do based on sites only.
+            //UU_norm_byRes_.UpdateElement(rnum0, rnum1, Site0.n_hydrogens() + Site1.n_hydrogens());
+            UU_norm_byRes_.UpdateElement(rnum0, rnum1, 2.0);
+          }
+        } // END loop over solute sites that are D/A
+        // Loop over solute acceptor-only
+        for (Iarray::const_iterator a_atom = Acceptor_.begin(); a_atom != Acceptor_.end(); ++a_atom)
+        {
+          if (!noIntramol_ || mol0 != (*CurrentParm_)[*a_atom].MolNum()) {
+            int rnum1 = (*CurrentParm_)[*a_atom].ResNum();
+            //UU_norm_byRes_.UpdateElement(rnum0, rnum1, Site0.n_hydrogens());
+            UU_norm_byRes_.UpdateElement(rnum0, rnum1, 1.0);
+          }
+        } // END loop over acceptor atoms
+      } // END loop over all D/A sites
+      mprintf("DEBUG: Residue normalization matrix:\n");
+      for (unsigned int rnum0 = 0; rnum0 < UU_norm_byRes_.Nrows(); rnum0++) {
+        for (unsigned int rnum1 = rnum0; rnum1 < UU_norm_byRes_.Ncols(); rnum1++) {
+          mprintf("\t%6i %6i %f\n", rnum0+1, rnum1+1, UU_norm_byRes_.GetElement(rnum1, rnum0));
+        }
+      }
+    }
+  }
+
   return Action::OK;
 }
 
@@ -759,6 +863,11 @@ void Action_HydrogenBond::AddUU(double dist, double angle, int fnum, int a_atom,
 //      mprintf("DBG1: OLD hbond : %8i .. %8i - %8i\n", a_atom+1,h_atom+1,d_atom+1);
   }
   it->second.Update(dist, angle, fnum, splitFrames_, onum);
+  if (UU_matrix_byRes_ != 0) {
+    int a_res = (*CurrentParm_)[a_atom].ResNum();
+    int d_res = (*CurrentParm_)[d_atom].ResNum();
+    UU_matrix_byRes_->UpdateElement(a_res, d_res, 1.0);
+  }
 }
 
 // Action_HydrogenBond::CalcSiteHbonds()
@@ -1417,6 +1526,9 @@ std::string Action_HydrogenBond::MemoryUsage(size_t n_uu_pairs, size_t n_uv_pair
   memTotal += sizeof(BmapType);
   for (BmapType::const_iterator it = BridgeMap_.begin(); it != BridgeMap_.end(); ++it)
     memTotal += (sizeBRmapElt + it->first.size()*sizeof(int));
+  // Matrices
+  if (UU_matrix_byRes_ != 0)
+    memTotal += UU_matrix_byRes_->MemUsageInBytes();
  
   return ByteString( memTotal, BYTE_DECIMAL );
 }
@@ -1489,6 +1601,15 @@ void Action_HydrogenBond::Print() {
 # endif
   // Ensure all series have been updated for all frames.
   UpdateSeries();
+  // Matrix normalization
+  if (UU_matrix_byRes_ != 0) {
+    if (UUmatByRes_norm_ == NORM_FRAMES) {
+      double norm = 1.0 / ((double)Nframes_);
+      for (unsigned int r = 0; r != UU_matrix_byRes_->Nrows(); r++)
+        for (unsigned int c = 0; c != UU_matrix_byRes_->Ncols(); c++)
+          UU_matrix_byRes_->SetElement(c, r, UU_matrix_byRes_->GetElement(c, r) * norm);
+    }
+  }
 
   if (CurrentParm_ == 0) return;
   // Calculate necessary column width for strings based on how many residues.

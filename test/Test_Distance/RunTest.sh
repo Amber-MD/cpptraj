@@ -22,22 +22,28 @@ RunCpptraj "$TESTNAME"
 DoTest dist.dat.save dist.dat
 
 UNITNAME='Orthogonal imaged distance'
-cat > dist.in <<EOF
+CheckFor maxthreads 10
+if [ $? -eq 0 ] ; then
+  cat > dist.in <<EOF
 parm ../tz2.ortho.parm7
 trajin ../tz2.ortho.nc
 distance EndToEnd :1 :13 out ortho.dat
 EOF
-RunCpptraj "$UNITNAME"
-DoTest ortho.dat.save ortho.dat
+  RunCpptraj "$UNITNAME"
+  DoTest ortho.dat.save ortho.dat
+fi
 
 UNITNAME='Non-orthogonal imaged distance'
-cat > dist.in <<EOF
+CheckFor maxthreads 10
+if [ $? -eq 0 ] ; then
+  cat > dist.in <<EOF
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.nc
 distance EndToEnd :1 :13 out truncoct.dat
 EOF
-RunCpptraj "$UNITNAME"
-DoTest truncoct.dat.save truncoct.dat
+  RunCpptraj "$UNITNAME"
+  DoTest truncoct.dat.save truncoct.dat
+fi
 
 EndTest
 exit 0

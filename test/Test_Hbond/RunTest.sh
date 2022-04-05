@@ -160,7 +160,7 @@ EOF
 
 TestImageOrtho() {
   UNITNAME='Hbond, orthogonal imaging'
-  CheckFor netcdf
+  CheckFor netcdf maxthreads 1
   if [ $? -eq 0 ] ; then
     cat > hbond.in <<EOF
 parm ../tz2.ortho.parm7

@@ -28127,6 +28127,10 @@ hbond
 \end_layout
 
 \begin_layout LyX-Code
+      [uuresmatrix [uuresmatrixnorm {none|frames}] [uuresmatrixout <file>]]
+\end_layout
+
+\begin_layout LyX-Code
       [splitframe <comma-separated-list>]
 \end_layout
 
@@ -28313,6 +28317,30 @@ bridgebyatom
 
 \end_deeper
 \begin_layout Description
+[uuresmatrix] If specified, create a matrix with aspect [UUresmat] containing
+ # of hydrogen bonds between each possible solute residue pair.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[uuresmatrixnorm
+\begin_inset space ~
+\end_inset
+
+{none|frames}] Control how matrix is normalized: none=no normalization,
+ frames=normalize by total # frames.
+\end_layout
+
+\begin_layout Description
+[uuresmatrixout
+\begin_inset space ~
+\end_inset
+
+<file>] If specified, write matrix data to specified file.
+\end_layout
+
+\end_deeper
+\begin_layout Description
 [splitframe
 \begin_inset space ~
 \end_inset
@@ -28398,14 +28426,25 @@ series
 \end_layout
 
 \begin_layout Description
-<dsname>[bridge_<indexlist>] (bseries only) Time series for bridge; 1 for
- present, 0 for not present.
+<dsname>[bridge_<indexlist>] (
+\series bold
+bseries
+\series default
+ only) Time series for bridge; 1 for present, 0 for not present.
  The <indexlist> is an underscore ('_') delimited list of bridged atom/residue
  numbers (depending on 
 \series bold
 bridgebyatom
 \series default
 ).
+\end_layout
+
+\begin_layout Description
+<dsname>[UUresmatr] (
+\series bold
+uuresmatrix
+\series default
+ only) Solute residue hydrogen bond matrix.
 \end_layout
 
 \end_deeper
