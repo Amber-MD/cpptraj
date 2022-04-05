@@ -584,7 +584,7 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   #endif
   NSOLVENT_ = O_idxs_.size();
   int NsolventAtoms = NSOLVENT_ * nMolAtoms_;
-  mprintf("\t%zu solvent molecules, %u solvent atoms, %u solute atoms (%zu total).\n",
+  mprintf("\t%u solvent molecules, %u solvent atoms, %zu solute atoms (%d total).\n",
           NSOLVENT_, NsolventAtoms, U_idxs_.size(), setup.Top().Natom());
   if (doOrder_ && NSOLVENT_ < 5) {
     mprintf("Warning: Less than 5 solvent molecules. Cannot perform order calculation.\n");
