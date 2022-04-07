@@ -3,7 +3,6 @@
 #include "CpptrajStdio.h"
 #include "PDBfile.h"
 #include "StringRoutines.h" // integerToString
-#include "ArgList.h"
 #ifdef TIMER
 # include "Timer.h"
 #endif
@@ -21,6 +20,14 @@ DataFileList::DataFileList() :
 
 // DESTRUCTOR
 DataFileList::~DataFileList() { Clear(); }
+
+// ----- TypeArgPair class -----------------------
+DataFileList::TypeArgPair::TypeArgPair(DataFile::DataFormatType t, ArgList const& a) :
+  type_(t),
+  args_(a)
+{}
+
+// -----------------------------------------------
 
 // DataFileList::Clear()
 void DataFileList::Clear() {
@@ -109,6 +116,36 @@ DataFile* DataFileList::AddDataFile(FileName const& nameIn, ArgList const& defau
   return df;
 }
 
+/** This version can have default args specific to file types passed in. */
+DataFile* DataFileList::AddDataFile(FileName const& nameIn, TypeArgArray const& argArray,
+                                    ArgList& argIn)
+{
+  DataFile* df = AddDataFile( nameIn );
+  if (df == 0) return 0;
+  if (!argArray.empty()) {
+    ArgList default_args;
+    for (TypeArgArray::const_iterator it = argArray.begin(); it != argArray.end(); ++it)
+    {
+      if (it->Ftype() == df->Type()) {
+        ArgList specific_args = it->Fargs();
+        df->ProcessArgs( specific_args );
+        specific_args.CheckForMoreArgs();
+        break;
+      } else if (it->Ftype() == DataFile::UNKNOWN_DATA) // Use UNKNOWN as wildcard
+        default_args = it->Fargs();
+     }
+     // If nothing specific for this file, check for default args
+     if (!default_args.empty()) {
+       df->ProcessArgs( default_args );
+       default_args.CheckForMoreArgs();
+     }
+  }
+  // Process user args if specified
+  if (!argIn.empty())
+    df->ProcessArgs( argIn );
+  return df;
+}
+
 /** Create new DataFile, or return existing DataFile. */
 DataFile* DataFileList::AddDataFile(FileName const& nameIn, ArgList& argIn,
                                     DataFile::DataFormatType typeIn)
@@ -160,11 +197,13 @@ DataFile* DataFileList::AddDataFile(FileName const& nameIn, ArgList& argIn,
   return Current;
 }
 
+/** Add data file, detect type automatically. */
 DataFile* DataFileList::AddDataFile(FileName const& nameIn, ArgList& argIn) {
   return AddDataFile( nameIn, argIn, DataFile::UNKNOWN_DATA );
 }
 
 // DataFileList::AddDataFile()
+/** Add data file, no arguments */
 DataFile* DataFileList::AddDataFile(FileName const& nameIn) {
   ArgList empty;
   return AddDataFile( nameIn, empty, DataFile::UNKNOWN_DATA );
