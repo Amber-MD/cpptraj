@@ -2,6 +2,7 @@
 #include "DataFile.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // DigitWidth, integerToString
+#include "ArgList.h"
 #ifdef TIMER
 # include "Timer.h"
 #endif
@@ -20,13 +21,14 @@
 #include "DataIO_VecTraj.h"
 #include "DataIO_XVG.h"
 #include "DataIO_CCP4.h"
-#include "DataIO_Cmatrix.h"
-#include "DataIO_NC_Cmatrix.h"
 #include "DataIO_CharmmRepLog.h"
 #include "DataIO_CharmmFastRep.h"
 #include "DataIO_CharmmOutput.h"
 #include "DataIO_Cpout.h"
 #include "DataIO_CharmmRtfPrm.h"
+#include "DataIO_Cmatrix_Binary.h"
+#include "DataIO_Cmatrix_NC.h"
+#include "DataIO_Peaks.h"
 
 // CONSTRUCTOR
 DataFile::DataFile() :
@@ -54,24 +56,25 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
   { "Grace File",         0,                       DataIO_Grace::WriteHelp,  DataIO_Grace::Alloc  },
   { "Gnuplot File",       0,                       DataIO_Gnuplot::WriteHelp,DataIO_Gnuplot::Alloc},
   { "Xplor File",         0,                       0,                        DataIO_Xplor::Alloc  },
-  { "OpenDX File",        0,                       DataIO_OpenDx::WriteHelp, DataIO_OpenDx::Alloc },
+  { "OpenDX File",        DataIO_OpenDx::ReadHelp, DataIO_OpenDx::WriteHelp, DataIO_OpenDx::Alloc },
   { "Amber REM log",      DataIO_RemLog::ReadHelp, 0,                        DataIO_RemLog::Alloc },
   { "Amber MDOUT file",   0,                       0,                        DataIO_Mdout::Alloc  },
   { "Evecs file",         DataIO_Evecs::ReadHelp,  0,                        DataIO_Evecs::Alloc  },
   { "Vector pseudo-traj", 0,                       DataIO_VecTraj::WriteHelp,DataIO_VecTraj::Alloc},
   { "XVG file",           0,                       0,                        DataIO_XVG::Alloc    },
   { "CCP4 file",          0,                       DataIO_CCP4::WriteHelp,   DataIO_CCP4::Alloc   },
-  { "Cluster matrix file",0,                       0,                        DataIO_Cmatrix::Alloc},
-# ifdef BINTRAJ
-  { "NetCDF Cluster matrix file", 0,               0,                     DataIO_NC_Cmatrix::Alloc},
-# else
-  { "NetCDF Cluster matrix file", 0, 0, 0 },
-# endif
   { "CHARMM REM log",     DataIO_CharmmRepLog::ReadHelp, 0,             DataIO_CharmmRepLog::Alloc},
   { "CHARMM Fast REM log",0,                             0,            DataIO_CharmmFastRep::Alloc},
   { "CHARMM Output",      0,                             0,             DataIO_CharmmOutput::Alloc},
   { "Amber CPOUT",        DataIO_Cpout::ReadHelp, DataIO_Cpout::WriteHelp, DataIO_Cpout::Alloc},
   { "CHARMM RTF/PRM",     0,                             0,            DataIO_CharmmRtfPrm::Alloc },
+  { "Pairwise Cache (binary)", 0,                        0,          DataIO_Cmatrix_Binary::Alloc },
+# ifdef BINTRAJ
+  { "Pairwise Cache (NetCDF)", 0,                        0,          DataIO_Cmatrix_NC::Alloc },
+# else
+  { "Pairwise Cache (NetCDF)", 0,                        0,          0 },
+# endif
+  { "Peaks",              0,                             0,            DataIO_Peaks::Alloc },
   { "Unknown Data file",  0,                       0,                        0                    }
 };
 
@@ -88,11 +91,12 @@ const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
   { EVECS,        "evecs",  ".evecs" },
   { XVG,          "xvg",    ".xvg"   },
   { CCP4,         "ccp4",   ".ccp4"  },
-  { CMATRIX,      "cmatrix",".cmatrix" },
-  { NCCMATRIX,    "nccmatrix", ".nccmatrix" },
   { CHARMMREPD,   "charmmrepd",".exch" },
   { CHARMMOUT,    "charmmout", ".charmmout"},
   { CHARMMRTFPRM, "charmmrtfprm", ".rtfprm"},
+  { CMATRIX_BINARY,"cmatrix",".cmatrix" },
+  { CMATRIX_NETCDF,"nccmatrix", ".nccmatrix" },
+  { PEAKS,        "peaks",  ".peaks" },
   { UNKNOWN_DATA, 0,        0        }
 };
 
@@ -108,9 +112,11 @@ const FileTypes::KeyToken DataFile::DF_WriteKeyArray[] = {
   { EVECS,        "evecs",  ".evecs" },
   { VECTRAJ,      "vectraj",".vectraj" },
   { CCP4,         "ccp4",   ".ccp4"  },
-  { CMATRIX,      "cmatrix",".cmatrix" },
-  { NCCMATRIX,    "nccmatrix", ".nccmatrix" },
   { CPOUT,        "cpout",  ".cpout" },
+  { CMATRIX_BINARY,"cmatrix",".cmatrix" },
+  { CMATRIX_NETCDF,"nccmatrix", ".nccmatrix" },
+  { CHARMMRTFPRM, "charmmrtfprm", ".prm" },
+  { PEAKS,        "peaks",  ".peaks" },
   { UNKNOWN_DATA, 0,        0        }
 };
 
@@ -200,7 +206,7 @@ int DataFile::ReadDataIn(FileName const& fnameIn, ArgList const& argListIn,
 # endif
   int err = dataio_->processReadArgs(argIn);
   if (err == 0) {
-    // FIXME in parallel mark data sets as synced if all threads read.
+    // FIXME in parallel mark data sets as synced if all processes read.
     err += dataio_->ReadData( filename_, datasetlist, dsname );
     // Treat any remaining arguments as file names.
     std::string nextFile = argIn.GetStringNext();
@@ -238,6 +244,12 @@ int DataFile::ReadDataOfType(FileName const& fnameIn, DataFormatType typeIn,
 }
 
 // -----------------------------------------------------------------------------
+
+int DataFile::SetupDatafile(FileName const& f, int d) {
+  ArgList a;
+  return SetupDatafile(f, a, d);
+}
+
 // DataFile::SetupDatafile()
 int DataFile::SetupDatafile(FileName const& fnameIn, ArgList& argIn, int debugIn) {
   return SetupDatafile(fnameIn, argIn, UNKNOWN_DATA, debugIn);
@@ -260,9 +272,10 @@ int DataFile::SetupDatafile(FileName const& fnameIn, ArgList& argIn,
   // Set up DataIO based on format.
   dataio_ = (DataIO*)FileTypes::AllocIO( DF_AllocArray, dfType_, false );
   if (dataio_ == 0) return Error("Error: Data file allocation failed.\n");
+  dataio_->SetDebug( debug_ );
 # ifdef MPI
   // Default to TrajComm master can write.
-  threadCanWrite_ = Parallel::TrajComm().Master();
+  processCanWrite_ = Parallel::TrajComm().Master();
 # endif
   if (!argIn.empty())
     ProcessArgs( argIn );
@@ -278,6 +291,11 @@ int DataFile::SetupStdout(ArgList& argIn, int debugIn) {
   if (!argIn.empty())
     ProcessArgs( argIn );
   return 0;
+}
+
+int DataFile::SetupStdout(int d) {
+  ArgList tmp;
+  return SetupStdout(tmp, d);
 }
 
 // DataFile::AddDataSet()
@@ -301,7 +319,12 @@ int DataFile::AddDataSet(DataSet* dataIn) {
         delete dataio_;
         dataio_ = 0;
       }
-      if (dataio_ == 0) return Error("Error: Data file allocation failed.\n");
+      if (dataio_ == 0) {
+        mprinterr("Error: Set '%s' is not valid for '%s' file type.\n",
+                  dataIn->legend(), DataFilename().full());
+        mprinterr("Error: No valid file type could be found.\n");
+        return Error("Error: Data file allocation failed.\n");
+      }
       mprintf("\tChanged DataFile '%s' type to %s for set %s\n", filename_.base(),
               FileTypes::FormatDescription(DF_AllocArray, dfType_),
               dataIn->legend());
@@ -309,7 +332,7 @@ int DataFile::AddDataSet(DataSet* dataIn) {
   } else {
     if ((int)dataIn->Ndim() != dimension_) {
       mprinterr("Error: DataSets in DataFile %s have dimension %i\n" 
-                "Error: Attempting to add set %s of dimension %u\n", 
+                "Error: Attempting to add set %s of dimension %zu\n", 
                 filename_.base(), dimension_,
                 dataIn->legend(), dataIn->Ndim());
       return Error("Error: Adding DataSets with different dimensions to same file"
@@ -346,6 +369,21 @@ int DataFile::RemoveDataSet(DataSet* dataIn) {
   return 0;
 }
 
+/** \return True if this DataFile contains any of the sets in the given set list.
+  * Matches are determined via memory address.
+  */
+bool DataFile::ContainsAnyOfSets(std::vector<DataSet*> const& setsIn) const {
+  for (std::vector<DataSet*>::const_iterator ds0 = setsIn.begin();
+                                             ds0 != setsIn.end(); ++ds0)
+  {
+    DataSet* tgt = *ds0;
+    for (DataSetList::const_iterator ds1 = SetList_.begin();
+                                     ds1 != SetList_.end(); ++ds1)
+      if (tgt == *ds1) return true;
+  }
+  return false;
+}
+
 // GetPrecisionArg()
 static inline int GetPrecisionArg(std::string const& prec_str, int& width, int& prec)
 {
@@ -364,9 +402,9 @@ int DataFile::ProcessArgs(ArgList &argIn) {
   if (dataio_==0) return 1;
   sortSets_ = argIn.hasKey("sort");
   // Dimension labels 
-  defaultDim_[0].label_ = argIn.GetStringKey("xlabel");
-  defaultDim_[1].label_ = argIn.GetStringKey("ylabel");
-  defaultDim_[2].label_ = argIn.GetStringKey("zlabel");
+  defaultDim_[0].label_ = argIn.GetStringKey("xlabel", defaultDim_[0].label_);
+  defaultDim_[1].label_ = argIn.GetStringKey("ylabel", defaultDim_[1].label_);
+  defaultDim_[2].label_ = argIn.GetStringKey("zlabel", defaultDim_[2].label_);
   // Dimension mins
   if (argIn.Contains("xmin")) {
     defaultDim_[0].min_ = argIn.getKeyDouble("xmin",1.0);
@@ -381,9 +419,9 @@ int DataFile::ProcessArgs(ArgList &argIn) {
     minIsSet_[2] = true;
   }
   // Dimension steps
-  defaultDim_[0].step_ = argIn.getKeyDouble("xstep", 0.0);
-  defaultDim_[1].step_ = argIn.getKeyDouble("ystep", 0.0);
-  defaultDim_[2].step_ = argIn.getKeyDouble("zstep", 0.0);
+  defaultDim_[0].step_ = argIn.getKeyDouble("xstep", defaultDim_[0].step_);
+  defaultDim_[1].step_ = argIn.getKeyDouble("ystep", defaultDim_[1].step_);
+  defaultDim_[2].step_ = argIn.getKeyDouble("zstep", defaultDim_[2].step_);
   // ptraj 'time' keyword
   if (argIn.Contains("time")) {
     defaultDim_[0].step_ = argIn.getKeyDouble("time", 1.0);
@@ -529,9 +567,9 @@ int DataFile::WriteNoEnsExtension() {
 // DataFile::WriteDataOut()
 void DataFile::WriteDataOut() {
 # ifdef MPI
-  if (!threadCanWrite_) {
+  if (!processCanWrite_) {
     if (debug_ > 0)
-      rprintf("DEBUG: Thread will not write file '%s'.\n", DataFilename().full());
+      rprintf("DEBUG: Process will not write file '%s'.\n", DataFilename().full());
   } else {
 # endif
     if (debug_ > 0)

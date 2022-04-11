@@ -30,7 +30,7 @@ int CmdInput::AddInput(const char* lineIn) {
   // Remove it and all after.
   end = line.find_first_of('#');
   if (end != std::string::npos) {
-    if (end == 0 || (end > 0 && line[end-1] != '\\'))
+    if (end == 0 || line[end-1] != '\\')
       line.erase( line.begin() + end, line.end() );
   }
   if (line.empty()) {

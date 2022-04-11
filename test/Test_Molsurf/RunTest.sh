@@ -4,7 +4,7 @@
 
 CleanFiles molsurf.in msurf.dat
 TESTNAME='Molsurf test'
-Requires netcdf
+Requires netcdf maxthreads 10
 # Molsurf test
 cat > molsurf.in <<EOF
 parm ../tz2.parm7

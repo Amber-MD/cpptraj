@@ -3,6 +3,9 @@
 #include "TrajectoryFile.h"
 #include "Range.h"
 #include "ActionFrameCounter.h"
+#include "CoordinateInfo.h"
+// Forward declarations
+class Topology;
 /// Output trajectory/ensemble common functionality.
 class OutputTrajCommon {
   public:
@@ -41,8 +44,8 @@ class OutputTrajCommon {
     /// \return 'true' if output frame range has been set up
     inline bool HasRange() const { return hasRange_ || !frameCount_.DefaultSettings(); }
   private:
-    FileName trajName_; // FIXME: Save this here?
-    Topology* trajParm_;// FIXME: Save this here?
+    FileName trajName_;                ///< Output file name
+    Topology* trajParm_;               ///< Pointer to associated Topology
     CoordinateInfo cInfo_;             ///< Coordinate info for trajectory
     int NframesToWrite_;               ///< Expected number of frames to be written.
     // Track frame numbers
@@ -72,6 +75,7 @@ int OutputTrajCommon::CheckFrameRange(int set) {
     // This frame is next in the range. Advance FrameRange iterator.
     ++rangeframe_;
   } else {
+    //printf("DEBUG: CheckFrameRange(%i)= %i\n", set, frameCount_.CheckFrameCounter(set));
     if (frameCount_.CheckFrameCounter( set )) return 1;
   }
   // Frame will be processed. Increment frame count.

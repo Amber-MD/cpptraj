@@ -1,4 +1,7 @@
 #include "Traj_SQM.h"
+#include "Topology.h"
+#include "ArgList.h"
+#include "Frame.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString
 
@@ -7,7 +10,7 @@ void Traj_SQM::WriteHelp() {
 }
 
 // Traj_SQM::processWriteArgs()
-int Traj_SQM::processWriteArgs(ArgList& argIn) {
+int Traj_SQM::processWriteArgs(ArgList& argIn, DataSetList const&) {
   if (argIn.Contains("charge")) {
     charge_ = argIn.getKeyInt( "charge", 0 );
     chargeIsSet_ = true;
@@ -33,7 +36,7 @@ int Traj_SQM::setupTrajout(FileName const& fname, Topology* trajParm,
   // Set up title
   std::string outTitle = Title();
   if (outTitle.empty()) {
-    outTitle.assign("Cpptraj generated SQM input");
+    outTitle.assign("Cpptraj Generated SQM input");
   } else {
     if ( outTitle.size() > 80) {
       mprintf("Warning: Amber SQM title for '%s' too long: truncating.\n[%s]\n",

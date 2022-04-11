@@ -5,6 +5,9 @@
 
 CleanFiles principal.in Ctest.pdb principal.dat Ctest.crd eigen.dat
 
+TESTNAME='Principal axes tests'
+Requires maxthreads 10
+
 TOP="../Test_IRED/1IEE_A_prot.prmtop"
 INPUT="principal.in"
 

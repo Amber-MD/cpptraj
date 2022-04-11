@@ -4,19 +4,23 @@
 #include "Energy_Sander.h"
 #include "CpptrajStdio.h"
 #include "ParmFile.h" // For writing temporary top
+#include "File_TempName.h"
 
 Energy_Sander::Energy_Sander() :
   debug_(0),
   specified_cut_(false),
   specified_igb_(false),
   specified_ntb_(false),
-  keepFiles_(false)
+  keepFiles_(false),
+  hasTempTopName_(false)
 {}
 
 Energy_Sander::~Energy_Sander() {
   if (is_setup()) sander_cleanup();
   if (!keepFiles_ && ! top_filename_.empty())
     remove( top_filename_.full() );
+  if (hasTempTopName_)
+    File::FreeTempName( top_filename_ );
 }
 
 const char* Energy_Sander::Estring_[] = {
@@ -176,7 +180,7 @@ int Energy_Sander::SetInput(ArgList& argIn) {
   input_.ntf = argIn.getKeyInt("ntf", input_.ntf);
   input_.ntc = argIn.getKeyInt("ntc", input_.ntc);
   input_.ntr = argIn.getKeyInt("ntr", input_.ntr);
-  // FIXME Currently no way with API to pass in reference coords
+  // TODO Currently no way with API to pass in reference coords
   if (input_.ntr > 0) {
     mprinterr("Error: ntr > 0 not yet supported.\n");
     return 1;
@@ -189,8 +193,19 @@ int Energy_Sander::SetInput(ArgList& argIn) {
   }
   restraintmask.copy( input_.restraintmask, restraintmask.size(), 0 );
   // Temporary parm file name
-  top_filename_ = argIn.GetStringKey("parmname", "CpptrajEsander.parm7");
+  top_filename_ = argIn.GetStringKey("parmname");
+  if (top_filename_.empty()) {
+    top_filename_ = File::GenTempName();
+    if (top_filename_.empty()) {
+      mprinterr("Internal Error: Could not get temporary file name for sander API topology.\n");
+      return 1;
+    }
+    hasTempTopName_ = true;
+  } else
+    hasTempTopName_ = false;
   keepFiles_ = argIn.hasKey("keepfiles");
+  if (keepFiles_ && hasTempTopName_)
+    mprintf("\tTemp. topology file name: %s\n", top_filename_.full());
   return 0;
 }
 
@@ -198,7 +213,6 @@ int Energy_Sander::SetInput(ArgList& argIn) {
   * it is not guaranteed that there will be a valid Amber topology file
   * present (for example, after stripping a Topology et cetera). Write
   * a temporary Topology file that can be used by the API.
-  * FIXME Should probably use mkstemp etc.
   */
 int Energy_Sander::WriteTop( Topology const& topIn ) {
   ParmFile pfile;
@@ -216,7 +230,7 @@ int Energy_Sander::Initialize(Topology const& topIn, Frame& fIn, Parallel::Comm 
     err = CommonInit( topIn, fIn );
     // Master sends reference frame.
     for (int rank = 1; rank < commIn.Size(); rank++)
-      fIn.SendFrame( rank, commIn ); // FIXME make SendFrame const
+      fIn.SendFrame( rank, commIn );
   } else {
     // Check if master was able to write temporary top file.
     if (commIn.CheckError( err )) return 1;
@@ -262,7 +276,7 @@ int Energy_Sander::CommonInit(Topology const& topIn, Frame& fIn) { // TODO const
     else
       input_.ntb = 0;
     mprintf("Warning: 'ntb' not specified; setting to %i based on box type '%s'\n",
-            input_.ntb, fIn.BoxCrd().TypeName());
+            input_.ntb, fIn.BoxCrd().CellShapeName());
   }
   if (!specified_cut_) {
     if (input_.ntb == 0)
@@ -329,6 +343,8 @@ int Energy_Sander::CommonInit(Topology const& topIn, Frame& fIn) { // TODO const
   if (topIn.Chamber().HasChamber()) {
     isActive_[ANGLE_UB] = true;
     isActive_[IMP] = true;
+  }
+  if (topIn.HasCmap()) {
     isActive_[CMAP] = true;
   }
   if (debug_ > 0) {
@@ -337,7 +353,16 @@ int Energy_Sander::CommonInit(Topology const& topIn, Frame& fIn) { // TODO const
       if (isActive_[i]) mprintf(" %s", Estring_[i]);
     mprintf("\n");
   }
-  return sander_setup_mm(top_filename_.full(), fIn.xAddress(), fIn.bAddress(), &input_);
+  // TODO copying box to temp array bc the sander API has double* instead
+  // of const double*, which I think is wrong.
+  double tmpbox[6];
+  tmpbox[0] = fIn.BoxCrd().Param(Box::X);
+  tmpbox[1] = fIn.BoxCrd().Param(Box::Y);
+  tmpbox[2] = fIn.BoxCrd().Param(Box::Z);
+  tmpbox[3] = fIn.BoxCrd().Param(Box::ALPHA);
+  tmpbox[4] = fIn.BoxCrd().Param(Box::BETA);
+  tmpbox[5] = fIn.BoxCrd().Param(Box::GAMMA);
+  return sander_setup_mm(top_filename_.full(), fIn.xAddress(), tmpbox, &input_);
 }
 
 // Energy_Sander::CalcEnergy()
@@ -345,8 +370,8 @@ int Energy_Sander::CalcEnergy(Frame& fIn) {
   if (!is_setup()) return 1;
 
   set_positions( fIn.xAddress() );
-  set_box( fIn.BoxCrd().BoxX(),  fIn.BoxCrd().BoxY(), fIn.BoxCrd().BoxZ(),
-           fIn.BoxCrd().Alpha(), fIn.BoxCrd().Beta(), fIn.BoxCrd().Gamma() );
+  set_box( fIn.BoxCrd().Param(Box::X),  fIn.BoxCrd().Param(Box::Y), fIn.BoxCrd().Param(Box::Z),
+           fIn.BoxCrd().Param(Box::ALPHA), fIn.BoxCrd().Param(Box::BETA), fIn.BoxCrd().Param(Box::GAMMA) );
   energy_forces( &energy_, &(forces_[0]) );
   return 0;
 };
@@ -356,8 +381,9 @@ int Energy_Sander::CalcEnergyForces(Frame& fIn) {
   if (!is_setup()) return 1;
 
   set_positions( fIn.xAddress() );
-  set_box( fIn.BoxCrd().BoxX(),  fIn.BoxCrd().BoxY(), fIn.BoxCrd().BoxZ(),
-           fIn.BoxCrd().Alpha(), fIn.BoxCrd().Beta(), fIn.BoxCrd().Gamma() );
+  set_box( fIn.BoxCrd().Param(Box::X),  fIn.BoxCrd().Param(Box::Y), fIn.BoxCrd().Param(Box::Z),
+           fIn.BoxCrd().Param(Box::ALPHA), fIn.BoxCrd().Param(Box::BETA), fIn.BoxCrd().Param(Box::GAMMA) );
+
   energy_forces( &energy_, fIn.fAddress() );
   return 0;
 }

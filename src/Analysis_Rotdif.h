@@ -3,7 +3,8 @@
 #include "Analysis.h"
 #include "Random.h"
 #include "DataSet_Vector.h"
-#include "DataSet_Mat3x3.h"
+#include "Timer.h"
+class DataSet_Mat3x3;
 /// Estimate rotational diffusion tensors from MD simulations
 /** To estimate rotational diffusion tensors from MD simulations along the
   * lines described by Wong & Case, (Evaluating rotational diffusion from
@@ -27,6 +28,22 @@ class Analysis_Rotdif: public Analysis {
   private:
     Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
+
+    DataSet_Vector RandomVectors();
+    int direct_compute_corr(DataSet_Vector const&, int, std::vector<double>&);
+    int fft_compute_corr(DataSet_Vector const&, int, std::vector<double>&);
+    double calcEffectiveDiffusionConst(double );
+
+    static void PrintMatrix(CpptrajFile&, const char*, Matrix_3x3 const&);
+    static void PrintVector(CpptrajFile&, const char*, Vec3 const&);
+    static void PrintVec6(CpptrajFile&, const char*, std::vector<double> const&);
+    void PrintTau( std::vector<double> const& );
+    int Tensor_Fit(std::vector<double>&);
+    //int DetermineDeffs();
+    int DetermineDeffs_Threaded();
+    void PrintDeffs(std::string const&) const;
+
+    int DetermineDeffsAlt();
 
     int debug_;
     int rseed_;          ///< Random seed
@@ -62,24 +79,16 @@ class Analysis_Rotdif: public Analysis {
     // Variables used by the random number generator
     Random_Number RNgen_;
 
-    DataSet_Mat3x3* Rmatrices_;      ///< Store rotation matrices
+    DataSet_Mat3x3* Rmatrices_;     ///< Store rotation matrices
     DataSet_Vector random_vectors_; ///< Hold nvecs random vectors
     std::vector<double> D_eff_;     ///< Hold calculated effective D values for each vector
 //    std::vector<double> sumc2_;      
-
-    DataSet_Vector RandomVectors();
-    int direct_compute_corr(DataSet_Vector const&, int, std::vector<double>&);
-    int fft_compute_corr(DataSet_Vector const&, int, std::vector<double>&);
-    double calcEffectiveDiffusionConst(double );
-
-    static void PrintMatrix(CpptrajFile&, const char*, Matrix_3x3 const&);
-    static void PrintVector(CpptrajFile&, const char*, Vec3 const&);
-    static void PrintVec6(CpptrajFile&, const char*, std::vector<double> const&);
-    void PrintTau( std::vector<double> const& );
-    int Tensor_Fit(std::vector<double>&);
-    int DetermineDeffs();
-    void PrintDeffs(std::string const&) const;
-
-    int DetermineDeffsAlt();
+    Timer t_total_;
+    Timer t_rvec_;
+    Timer t_transposeRmat_;
+    Timer t_determineDeffs_;
+    Timer t_tensorFit_;
+    Timer t_minimize_;
+    Timer t_gridSearch_;
 };
 #endif  

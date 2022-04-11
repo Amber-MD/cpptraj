@@ -14,6 +14,7 @@ calcstate name State \
   out state.dat \
   curveout curve.dat \
   stateout states.dat \
+  countout states.dat \
   transout trans.dat
 EOF
 RunCpptraj "Calcstate test"

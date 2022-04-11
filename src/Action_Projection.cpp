@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString
 #include "Constants.h" // DEGRAD
+#include "DataSet_1D.h"
 
 // CONSTRUCTOR
 Action_Projection::Action_Projection() :
@@ -81,17 +82,18 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, ActionInit& init, i
       mprinterr("Error: No valid data sets found.\n");
       return Action::ERR;
     } else if ((int)DihedralSets_.size() * 2 != modinfo_->VectorSize()) {
-      mprinterr("Error: Number of dihedral data sets %u does not correspond to"
+      mprinterr("Error: Number of dihedral data sets %zu does not correspond to"
                 " number of eigenvectors %i\n", DihedralSets_.size()*2, modinfo_->VectorSize());
       return Action::ERR;
     } else if ((int)DihedralSets_.size() * 2 != modinfo_->NavgCrd()) {
-      mprinterr("Error: Number of dihedral data sets %u does not correspond to"
+      mprinterr("Error: Number of dihedral data sets %zu does not correspond to"
                 " number of average elements %i\n", DihedralSets_.size()*2, modinfo_->NavgCrd());
       return Action::ERR;
     }
-  } else
+  } else {
     // Get mask
-    mask_.SetMaskString( actionArgs.GetMaskNext() );
+    if (mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
+  }
 
   // Set up data sets
   std::string setname = actionArgs.GetStringNext();

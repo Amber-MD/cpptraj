@@ -1,12 +1,13 @@
 #ifndef INC_DATASETLIST_H
 #define INC_DATASETLIST_H
 #include <vector>
-#include "DataSet.h"
-#include "ArgList.h" // GetReferenceFrame, GetTopology
 #include "ReferenceFrame.h" // GetReferenceFrame
 #ifdef TIMER
 # include "Timer.h"
 #endif
+// Forward declarations
+class DataSet;
+class ArgList;
 /// Hold list of DataSets.
 /** Main class for handling DataSets. All DataSet types can be allocated 
   * by DataSetList. There is a master DataSetList in CpptrajState that will
@@ -29,7 +30,7 @@ class DataSetList {
 
     DataSetList& operator+=(DataSetList const&);
     /// \return DataSet at didx.
-    DataSet* operator[](int didx) const { return DataList_[didx]; } // FIXME: No bounds check
+    DataSet* operator[](int didx) const { return DataList_[didx]; }
     /// DataSetList default iterator
     typedef DataListType::const_iterator const_iterator;
     /// Iterator to beginning of dataset list
@@ -38,6 +39,8 @@ class DataSetList {
     const_iterator end()   const { return DataList_.end();   }
     /// Clear all non-Topology and non-Reference DataSets
     void Clear();
+    /// Clear entire DataSetList
+    void ClearAll();
     /// Sort sets in the DataSetList
     void Sort();
     /// True if no DataSets in list.
@@ -54,6 +57,8 @@ class DataSetList {
     void SetDataSetsPending(bool b) { dataSetsPending_ = b; }
     /// Set whether set has copies (no ds mem free) or not (will free ds mem).
     void SetHasCopies(bool b)       { hasCopies_ = b;       }
+    /// Set whether DataSets should be cached to disk if possible.
+    void SetDiskCache(bool b)       { useDiskCache_ = b; }
     /// Make all sets not part of an ensemble part of given ensemble.
     //void MakeDataSetsEnsemble(int);
     /// \return Ensemble number; -1 if not an ensemble
@@ -86,6 +91,8 @@ class DataSetList {
     DataSetList SelectGroupSets( std::string const&, DataSet::DataGroup ) const;
     /// Find next set of specified type with given name.
     DataSet* FindSetOfType(std::string const&, DataSet::DataType) const;
+    /// Find next set of specified group with given name.
+    DataSet* FindSetOfGroup(std::string const&, DataSet::DataGroup) const;
     /// Find COORDS DataSet or create default COORDS DataSet.
     DataSet* FindCoordsSet(std::string const&);
 
@@ -101,6 +108,13 @@ class DataSetList {
     DataSet* AddSet_NoCheck(DataSet::DataType, MetaData const&);
     /// Add an already set up DataSet to list; memory for DataSet will be freed.
     int AddSet( DataSet* );
+#   ifdef TIMER
+    /// Allocate DataSet but do not add to the list. Not const so that Timer can be used.
+    DataSet* AllocateSet(DataSet::DataType, MetaData const&);
+#   else
+    /// Allocate DataSet but do not add to the list.
+    DataSet* AllocateSet(DataSet::DataType, MetaData const&) const;
+#   endif
     /// Add new sets or append to existing ones.
     int AddOrAppendSets(std::string const&, Darray const&, DataListType const&);
     /// Add a copy of the DataSet to the list; memory for DataSet will not be freed.
@@ -109,12 +123,21 @@ class DataSetList {
     void List() const;
     /// List all non-Topology/Reference data sets.
     void ListDataOnly() const;
+    /// List all string variables
+    void ListStringVar() const;
 #   ifdef MPI
     /// Indicate whether sets added to the list need to be synced
     void SetNewSetsNeedSync(bool b) { newSetsNeedSync_ = b; }
     /// Call sync for DataSets in the list (MPI only)
     int SynchronizeData(Parallel::Comm const&);
 #   endif
+
+    /// Update value in given string variable with new value
+    int UpdateStringVar(std::string const&, std::string const&) const;
+    /// \return Value corresponding to given data set as a string
+    std::string GetVariable(std::string const&) const;
+    /// \return number of variables replaced with their values in given string.
+    int ReplaceVariables(std::string&, std::string const&) const;
 
     // REF_COORDS functions ----------------------
     /// reference arg help text
@@ -144,8 +167,8 @@ class DataSetList {
     void Timing() const;
 #   endif
   private:
-    /// Clear entire DataSetList
-    void ClearAll();
+    /// \return New set of given type.
+    static DataSet* NewSet(DataSet::DataType);
     /// Search for and remove specified data set if found, optionally free memory.
     DataSet* EraseSet( DataSet*, bool );
     /// Warn if DataSet not found but may be pending.
@@ -172,16 +195,10 @@ class DataSetList {
     int ensembleNum_;       ///< Ensemble member number
     bool hasCopies_;        ///< True if DataSets should not be freed.
     bool dataSetsPending_;  ///< True if Actions will generate DataSets in the future.
+    static bool useDiskCache_; ///< If true try to use disk-cached versions of data sets.
     DataListType DataList_; ///< List of DataSets
     DataListType RefList_;  ///< Pointers to reference data sets.
     DataListType TopList_;  ///< Pointers to topology data sets.
-    /// Hold descriptions and allocators for all DataSet types.
-    struct DataToken {
-      const char* Description;
-      DataSet::AllocatorType Alloc;
-    };
-    static const DataToken DataArray[];
-    typedef const DataToken* TokenPtr;
 #   ifdef MPI
     bool newSetsNeedSync_; ///< If true, any sets added need to be synced.
 #   endif

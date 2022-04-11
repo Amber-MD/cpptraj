@@ -1,6 +1,6 @@
-#include <cmath>
 #include "Action_Distance.h"
 #include "CpptrajStdio.h"
+#include "DistRoutines.h"
 
 // CONSTRUCTOR
 Action_Distance::Action_Distance() :
@@ -28,7 +28,7 @@ Action::RetType Action_Distance::Init(ArgList& actionArgs, ActionInit& init, int
 {
   AssociatedData_NOE noe;
   // Get Keywords
-  image_.InitImaging( !(actionArgs.hasKey("noimage")) );
+  imageOpt_.InitImaging( !(actionArgs.hasKey("noimage")) );
   useMass_ = !(actionArgs.hasKey("geom"));
   DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   MetaData::scalarType stype = MetaData::UNDEFINED;
@@ -56,14 +56,14 @@ Action::RetType Action_Distance::Init(ArgList& actionArgs, ActionInit& init, int
     mprinterr("Error: Need at least 1 atom mask.\n");
     return Action::ERR;
   }
-  Mask1_.SetMaskString(maskexp);
+  if (Mask1_.SetMaskString(maskexp)) return Action::ERR;
   if (mode_ != POINT) {
     maskexp = actionArgs.GetMaskNext();
     if (maskexp.empty()) {
       mprinterr("Error: Need 2 atom masks.\n");
       return Action::ERR;
     }
-    Mask2_.SetMaskString(maskexp);
+    if (Mask2_.SetMaskString(maskexp)) return Action::ERR;
   }
 
   // Set up reference and get reference point
@@ -95,7 +95,7 @@ Action::RetType Action_Distance::Init(ArgList& actionArgs, ActionInit& init, int
             Mask2_.MaskString(), Mask2_.Nselected(), refFrm.refName());
   else if (mode_ == POINT)
     mprintf(" %s to point {%g %g %g}", Mask1_.MaskString(), a2_[0], a2_[1], a2_[2]);
-  if (!image_.UseImage()) 
+  if (!imageOpt_.UseImage()) 
     mprintf(", non-imaged");
   if (useMass_) 
     mprintf(", center of mass");
@@ -129,8 +129,8 @@ Action::RetType Action_Distance::Setup(ActionSetup& setup) {
     }
   }
   // Set up imaging info for this parm
-  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
-  if (image_.ImagingEnabled())
+  imageOpt_.SetupImaging( setup.CoordInfo().TrajBox().HasBox() );
+  if (imageOpt_.ImagingEnabled())
     mprintf(", imaged");
   else
     mprintf(", imaging off");
@@ -141,8 +141,8 @@ Action::RetType Action_Distance::Setup(ActionSetup& setup) {
 
 // Action_Distance::DoAction()
 Action::RetType Action_Distance::DoAction(int frameNum, ActionFrame& frm) {
-  double Dist;
-  Matrix_3x3 ucell, recip;
+  if (imageOpt_.ImagingEnabled())
+    imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
   Vec3 a1;
 
   if ( mode_ == NORMAL ) {
@@ -160,19 +160,7 @@ Action::RetType Action_Distance::DoAction(int frameNum, ActionFrame& frm) {
       a1 = frm.Frm().VGeometricCenter( Mask1_ );
   }
 
-  switch ( image_.ImageType() ) {
-    case NONORTHO:
-      frm.Frm().BoxCrd().ToRecip(ucell, recip);
-      Dist = DIST2_ImageNonOrtho(a1, a2_, ucell, recip);
-      break;
-    case ORTHO:
-      Dist = DIST2_ImageOrtho(a1, a2_, frm.Frm().BoxCrd());
-      break;
-    case NOIMAGE:
-      Dist = DIST2_NoImage(a1, a2_);
-      break;
-  }
-  Dist = sqrt(Dist);
+  double Dist = DIST(imageOpt_.ImagingType(), a1, a2_, frm.Frm().BoxCrd());
 
   dist_->Add(frameNum, &Dist);
 

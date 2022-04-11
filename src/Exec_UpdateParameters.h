@@ -4,9 +4,11 @@
 /// Update parameters in a topology with those from a data set. 
 class Exec_UpdateParameters : public Exec {
   public:
-    Exec_UpdateParameters() : Exec(HIDDEN) {}
+    Exec_UpdateParameters() : Exec(PARM) {}
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_UpdateParameters(); }
     RetType Execute(CpptrajState&, ArgList&);
+  private:
+    static const char* disclaimer_;
 };
 #endif

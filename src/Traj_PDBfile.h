@@ -2,7 +2,8 @@
 #define INC_TRAJ_PDBFILE_H
 #include "TrajectoryIO.h"
 #include "PDBfile.h"
-// Class: Traj_PDBfile
+// Forward declarations
+class DataSet;
 /// TrajectoryIO class for reading coordinates from PDB files.
 class Traj_PDBfile: public TrajectoryIO {
   public:
@@ -17,8 +18,11 @@ class Traj_PDBfile: public TrajectoryIO {
 
     Traj_PDBfile();
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_PDBfile(); }
+    static void ReadHelp();
     static void WriteHelp();
   private:
+    typedef std::vector<int> Iarray;
+    typedef std::vector<double> Darray;
     // Inherited functions
     bool ID_TrajFormat(CpptrajFile&);
     int setupTrajin(FileName const&, Topology*);
@@ -28,10 +32,10 @@ class Traj_PDBfile: public TrajectoryIO {
     int readFrame(int,Frame&);
     int writeFrame(int,Frame const&);
     void Info();
-    int processWriteArgs(ArgList&);
+    int processWriteArgs(ArgList&, DataSetList const&);
     int readVelocity(int, Frame&) { return 1; }
     int readForce(int, Frame&)    { return 1; }
-    int processReadArgs(ArgList&) { return 0; }
+    int processReadArgs(ArgList&);
 #   ifdef MPI
     // Parallel functions
     int parallelOpenTrajout(Parallel::Comm const&);
@@ -40,18 +44,25 @@ class Traj_PDBfile: public TrajectoryIO {
     int parallelWriteFrame(int, Frame const&);
     void parallelCloseTraj() {}
 #   endif
+
     void WriteDisulfides(Frame const&);
     void WriteBonds();
+    void writeBox(int, Box const&);
+    /// Used to set up B-factor/occupancy data from DataSets
+    int AssignData(Darray&, DataSet*, Topology const&, bool, const char*, double) const;
+    /// Used to scale Bfactor/occupancy data between set values
+    void ScaleData(Darray&, double, double) const;
 
-    typedef std::vector<int> Iarray;
     typedef PDBfile::SSBOND SSBOND;
     enum TER_Mode { BY_MOL = 0, BY_RES, ORIGINAL_PDB, NO_TER };
     enum Radii_Mode { GB = 0, PARSE, VDW };
     enum CONECT_Mode { NO_CONECT = 0, HETATM_ONLY, ALL_BONDS };
+    enum RESNUM_Mode { ORIGINAL = 0, TOPOLOGY };
     Radii_Mode radiiMode_;   ///< Radii to use if PQR.
     TER_Mode terMode_;       ///< TER card mode.
     CONECT_Mode conectMode_; ///< CONECT record mode.
     PDBWRITEMODE pdbWriteMode_;
+    RESNUM_Mode resNumType_; ///< What residue numbers will be used
     int pdbAtom_;
     int currentSet_;
     int ter_num_;       ///< Amount to increment atom number for TER
@@ -62,11 +73,16 @@ class Traj_PDBfile: public TrajectoryIO {
     bool include_ep_;   ///< If true include extra points.
     bool prependExt_;
     bool firstframe_;   ///< Set to false after first call to writeFrame
+    bool bfacscale_;               ///< If specified scale B-factor data
+    bool occscale_;                ///< If specified scale occupancy data
+    bool bfacbyres_;               ///< If true do bfactor data by residue
+    bool occbyres_;                ///< If true do occupancy data by residue
     std::string space_group_;
-    std::vector<double> radii_;  ///< Hold radii for PQR format.
-    Iarray TER_idxs_;  ///< TER card indices.
-    Iarray atrec_;     ///< Hold ATOM record #s for CONECT
-    std::vector<bool> resIsHet_; ///< True if residue needs HETATM records
+    Darray Bfactors_;              ///< Hold data for B-factor column.
+    Darray Occupancy_;             ///< Hold data for occupancy column.
+    Iarray TER_idxs_;              ///< TER card indices.
+    Iarray atrec_;                 ///< Hold ATOM record #s for CONECT
+    std::vector<bool> resIsHet_;   ///< True if residue needs HETATM records
     std::vector<SSBOND> ss_residues_;
     Iarray ss_atoms_;
     Topology *pdbTop_;
@@ -74,5 +90,13 @@ class Traj_PDBfile: public TrajectoryIO {
     std::vector<char> chainID_;      ///< Hold chainID for each residue.
     std::vector<NameType> resNames_; ///< Hold residue names.
     char chainchar_;
+    char keepAltLoc_;                ///< If not blank, only read atoms with this alt. loc. ID
+    DataSet* bfacdata_;
+    DataSet* occdata_;
+    DataSet* adpdata_; ///< Hold anisotropic B-factor data for writing.
+    double bfacmax_;
+    double occmax_;
+    double bfacdefault_;
+    double occdefault_;
 };
 #endif

@@ -49,8 +49,12 @@ class ArgList {
     void ClearList();
     /// Set up argument list from string and given separators
     int SetList(std::string const&, const char *);
-    /// \return an argument list of remaining unmarked args.
+    /// Check for and report non-ASCII characters in argline_
+    void CheckArgLineForNonASCII() const;
+    /// \return an argument list of remaining unmarked args (and mark them here).
     ArgList RemainingArgs();
+    /// \return number of unmarked arguments
+    int NremainingArgs() const;
     /// Add argument to the list
     void AddArg(std::string const&);
     /// Mark given argument
@@ -63,8 +67,6 @@ class ArgList {
     void PrintDebug() const;
     /// Remove the first argument
     void RemoveFirstArg();
-    /// Change argument at position to new argument
-    void ChangeArg(unsigned int, std::string const&);
     /// \return the first argument
     const char *Command() const;
     /// \return true if the first argument matches key
@@ -83,6 +85,8 @@ class ArgList {
     double getNextDouble(double);
     /// \return the string following the given key
     std::string const& GetStringKey(const char *);
+    /// \return ArgList containing N unmarked arguments following given key
+    ArgList GetNstringKey(const char*, int);
     /// \return string following given key or default if not found.
     std::string const& GetStringKey(const char *, std::string const&);
     /// \return the integer following the given key 

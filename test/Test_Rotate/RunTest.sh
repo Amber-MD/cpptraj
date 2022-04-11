@@ -4,6 +4,9 @@
 
 CleanFiles rotate.in fromMatrices.crd TCS.rotated.mol2 inverse.crd
 
+TESTNAME='Coordinates rotation tests'
+Requires maxthreads 10
+
 INPUT="-i rotate.in"
 cat > rotate.in <<EOF
 parm ../tz2.truncoct.parm7

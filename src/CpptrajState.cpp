@@ -3,7 +3,9 @@
 #include "Action_CreateCrd.h" // in case default COORDS need to be created
 #include "DataSet_Coords_REF.h" // AddReference
 #include "DataSet_Topology.h" // AddTopology
+#include "FrameArray.h" // RunEnsemble
 #include "ProgressBar.h"
+#include "Random.h"
 #ifdef MPI
 # include "Parallel.h"
 # include "DataSet_Coords_TRJ.h"
@@ -28,6 +30,38 @@ CpptrajState::CpptrajState() :
   , forceParallelEnsemble_(false)
 # endif
 {}
+
+/** \return Keywords recognized by ChangeDefaultRng() */
+const char* CpptrajState::RngKeywords() {
+# ifdef C11_SUPPORT
+  return "{marsaglia|stdlib|mt|pcg32|xo128}";
+# else
+  return "{marsaglia|stdlib|pcg32|xo128}";
+# endif
+}
+
+/** Change default RNG. */
+int CpptrajState::ChangeDefaultRng(std::string const& setarg) const {
+  if (!setarg.empty()) {
+    if (setarg == "marsaglia") Random_Number::SetDefaultRng( Random_Number::MARSAGLIA );
+    else if (setarg == "stdlib") Random_Number::SetDefaultRng( Random_Number::STDLIB );
+    else if (setarg == "mt") {
+#     ifdef C11_SUPPORT
+      Random_Number::SetDefaultRng( Random_Number::MERSENNE_TWISTER );
+#     else
+      mprinterr("Error: Mersenne twister RNG requires C++11 support.\n");
+      return 1;
+#     endif
+    } else if (setarg == "pcg32") Random_Number::SetDefaultRng( Random_Number::PCG32 );
+    else if (setarg == "xo128") Random_Number::SetDefaultRng( Random_Number::XOSHIRO128PP );
+    else {
+      mprinterr("Error: Unrecognized RNG type: %s\n", setarg.c_str());
+      return 1;
+    }
+    mprintf("\tDefault RNG set to '%s'\n", Random_Number::CurrentDefaultRngStr());
+  }
+  return 0;
+}
 
 /** This version of SetTrajMode() may be called from AddToActionQueue() to set
   * NORMAL as the default mode without setting up a trajectory. May also be used
@@ -127,15 +161,15 @@ int CpptrajState::AddOutputTrajectory( ArgList& argIn ) {
   Topology* top = DSL_.GetTopology( argIn );
   int err = 1;
   if (mode_ == NORMAL)
-    err = trajoutList_.AddTrajout( fname, argIn, top );
+    err = trajoutList_.AddTrajout( fname, argIn, DSL_, top );
   else if (mode_ == ENSEMBLE)
-    err = ensembleOut_.AddEnsembleOut( fname, argIn, top, trajinList_.EnsembleSize() );
+    err = ensembleOut_.AddEnsembleOut( fname, argIn, DSL_, top, trajinList_.EnsembleSize() );
   return err;
 }
 
 // CpptrajState::AddOutputTrajectory()
 int CpptrajState::AddOutputTrajectory( std::string const& fname ) {
-  // FIXME Should this use the last Topology instead?
+  // TODO Should this use the last Topology instead?
   ArgList tmpArg(fname);
   return AddOutputTrajectory( tmpArg );
 }
@@ -345,14 +379,17 @@ int CpptrajState::RemoveDataSet( ArgList& argIn ) {
     mprinterr("Error: No data set(s) specified for removal.\n");
     return 1;
   }
-  DataSetList tempDSL = DSL_.GetMultipleSets( removeArg );
-  if (!tempDSL.empty()) {
-    for (DataSetList::const_iterator ds = tempDSL.begin();
-                                     ds != tempDSL.end(); ++ds)
-    {
-      mprintf("\tRemoving \"%s\"\n", (*ds)->legend());
-      RemoveDataSet( *ds );
+  while (!removeArg.empty()) {
+    DataSetList tempDSL = DSL_.GetMultipleSets( removeArg );
+    if (!tempDSL.empty()) {
+      for (DataSetList::const_iterator ds = tempDSL.begin();
+                                       ds != tempDSL.end(); ++ds)
+      {
+        mprintf("\tRemoving \"%s\"\n", (*ds)->legend());
+        RemoveDataSet( *ds );
+      }
     }
+    removeArg = argIn.GetStringNext();
   }
   return 0;
 }
@@ -515,7 +552,7 @@ int CpptrajState::RunEnsemble() {
   // In parallel only two frames needed; one for reading, one for receiving.
   FramePtrArray SortedFrames( 2 );
   FrameArray FrameEnsemble( 2 );
-  // Each thread will process one member of the ensemble, so local ensemble
+  // Each process will handle one member of the ensemble, so local ensemble
   // size is effectively 1.
   ensembleSize = 1;
 # else
@@ -533,7 +570,7 @@ int CpptrajState::RunEnsemble() {
   ActionEnsemble[0] = &actionList_;
   for (int member = 1; member < ensembleSize; member++)
     ActionEnsemble[member] = new ActionList();
-  // If we are on a single thread, give each member its own copy of the
+  // If we are on a single process, give each member its own copy of the
   // current topology address. This way if topology is modified by a member,
   // e.g. in strip or closest, subsequent members wont be trying to modify 
   // an already-modified topology.
@@ -592,7 +629,7 @@ int CpptrajState::RunEnsemble() {
     // Set current parm from current ensemble.
     Topology* currentTop = (*ens)->Traj().Parm();
     CoordinateInfo const& currentCoordInfo = (*ens)->EnsembleCoordInfo();
-    currentTop->SetBoxFromTraj( currentCoordInfo.TrajBox() ); // FIXME necessary?
+    currentTop->SetBoxFromTraj( currentCoordInfo.TrajBox() );
     int topFrames = trajinList_.TopFrames( currentTop->Pindex() );
     for (int member = 0; member < ensembleSize; ++member)
       EnsembleParm[member].Set( currentTop, currentCoordInfo, topFrames );
@@ -614,6 +651,10 @@ int CpptrajState::RunEnsemble() {
         // Silence action output for all beyond first member.
         if (member > 0)
           SetWorldSilent( true );
+#       ifndef MPI
+        // All DataSets that will be set up will be part of this ensemble 
+        DSL_.SetEnsembleNum( member );
+#       endif
         if (ActionEnsemble[member]->SetupActions( EnsembleParm[member], exitOnError_ )) {
 #         ifdef MPI
           rprintf("Warning: Ensemble member %i: Could not set up actions for %s: skipping.\n",
@@ -660,6 +701,10 @@ int CpptrajState::RunEnsemble() {
           if ( currentFrame.Frm().CheckCoordsInvalid() )
             rprintf("Warning: Ensemble member %i frame %i may be corrupt.\n",
                     member, (*ens)->Traj().Counter().PreviousFrameNumber()+1);
+#         ifndef MPI
+          // All DataSets that will be set up will be part of this ensemble 
+          DSL_.SetEnsembleNum( member );
+#         endif
 #         ifdef TIMER
           actions_time.Start();
 #         endif
@@ -728,30 +773,39 @@ int CpptrajState::RunEnsemble() {
   post_time_.Start();
   // ========== A C T I O N  O U T P U T  P H A S E ==========
   mprintf("\nENSEMBLE ACTION OUTPUT:\n");
-  for (int member = 0; member < ensembleSize; ++member)
+  for (int member = 0; member < ensembleSize; ++member) {
+#   ifndef MPI
+    // All DataSets that will be set up will be part of this ensemble 
+    DSL_.SetEnsembleNum( member );
+#   endif
     ActionEnsemble[member]->PrintActions();
+  }
   post_time_.Stop();
   // Clean up ensemble action lists
   for (int member = 1; member < ensembleSize; member++)
     delete ActionEnsemble[member];
+# ifndef MPI
+  // Reset ensemble number
+  DSL_.SetEnsembleNum( -1 );
+# endif
 
   return 0;
 }
 #ifdef MPI
 // -----------------------------------------------------------------------------
-void CpptrajState::DivideFramesAmongThreads(int& my_start, int& my_stop, int& my_frames,
+void CpptrajState::DivideFramesAmongProcesses(int& my_start, int& my_stop, int& my_frames,
                                             int maxFrames, Parallel::Comm const& commIn) const
 {
-  my_frames = commIn.DivideAmongThreads(my_start, my_stop, maxFrames);
-  std::vector<int> frames_per_thread( commIn.Size() );
-  commIn.GatherMaster(&my_frames, 1, MPI_INT, &frames_per_thread[0]);
+  my_frames = commIn.DivideAmongProcesses(my_start, my_stop, maxFrames);
+  std::vector<int> frames_per_process( commIn.Size() );
+  commIn.GatherMaster(&my_frames, 1, MPI_INT, &frames_per_process[0]);
   // Print how many frames each rank will process.
   if (commIn.Master()) {
     mprintf("\nPARALLEL INFO:\n");
     if (Parallel::EnsembleComm().Size() > 1)
-      mprintf("  %i threads per ensemble member.\n", commIn.Size());
+      mprintf("  %i processes per ensemble member.\n", commIn.Size());
     for (int rank = 0; rank != commIn.Size(); rank++)
-      mprintf("  Thread %i will process %i frames.\n", rank, frames_per_thread[rank]);
+      mprintf("  Process %i will handle %i frames.\n", rank, frames_per_process[rank]);
   }
   commIn.Barrier();
   if (debug_ > 0) rprintf("Start %i Stop %i Frames %i\n", my_start+1, my_stop, my_frames);
@@ -773,13 +827,13 @@ int CpptrajState::PreloadCheck(int my_start, int my_frames,
     return 1;
   } else if (my_frames == n_previous_frames) {
     rprinterr("Error: Number of preload frames is same as number of processed frames.\n"
-              "Error:   Try reducing the number of threads.\n");
+              "Error:   Try reducing the number of processes.\n");
     return 1;
   } 
   if (n_previous_frames > (my_frames / 2))
     rprintf("Warning: Number of preload frames is greater than half the "
                       "number of processed frames.\n"
-            "Warning:   Try reducing the number of threads.\n");
+            "Warning:   Try reducing the number of processes.\n");
   rprintf("Warning: Preloading %i frames. These frames will NOT have Actions performed on them.\n",
           n_previous_frames);
   return 0;
@@ -805,25 +859,25 @@ int CpptrajState::RunParaEnsemble() {
   int err = NAV.AddEnsembles(trajinList_.ensemble_begin(), trajinList_.ensemble_end());
   if (Parallel::World().CheckError( err )) return 1;
 
-  // Divide frames among threads
+  // Divide frames among processes
   int my_start, my_stop, my_frames;
-  DivideFramesAmongThreads(my_start, my_stop, my_frames, NAV.IDX().MaxFrames(), TrajComm);
-  // Ensure at least 1 frame per thread, otherwise some ranks could cause hangups.
+  DivideFramesAmongProcesses(my_start, my_stop, my_frames, NAV.IDX().MaxFrames(), TrajComm);
+  // Ensure at least 1 frame per process, otherwise some ranks could cause hangups.
   if (my_frames > 0)
     err = 0;
   else {
-    rprinterr("Error: Thread is processing less than 1 frame. Try reducing # threads.\n");
+    rprinterr("Error: Process is handling less than 1 frame. Try reducing # processes.\n");
     err = 1;
   }
   if (Parallel::World().CheckError( err )) return 1;
 
-  // Allocate DataSets in the master DataSetList based on # frames to be read by this thread.
+  // Allocate DataSets in the master DataSetList based on # frames to be read by this process.
   DSL_.AllocateSets( my_frames );
   // Any DataSets added to the DataSetList during run will need to be synced.
   DSL_.SetNewSetsNeedSync( true );
 
   // ----- SETUP PHASE ---------------------------
-  NAV.FirstParm()->SetBoxFromTraj( NAV.EnsCoordInfo().TrajBox() ); // FIXME necessary?
+  NAV.FirstParm()->SetBoxFromTraj( NAV.EnsCoordInfo().TrajBox() );
   ActionSetup currentParm( NAV.FirstParm(), NAV.EnsCoordInfo(), NAV.IDX().MaxFrames() );
   err = actionList_.SetupActions( currentParm, exitOnError_ );
   if (Parallel::World().CheckError( err )) {
@@ -917,9 +971,9 @@ int CpptrajState::RunParaEnsemble() {
   ensembleOut_.CloseEnsembleOut();
   DSL_.SetNewSetsNeedSync( false );
   sync_time_.Start();
-  // Sync Actions to master thread
+  // Sync Actions to master process
   actionList_.SyncActions();
-  // Sync data sets to master thread
+  // Sync data sets to master process
   if (DSL_.SynchronizeData( TrajComm )) return 1;
   sync_time_.Stop();
   mprintf("\nACTION OUTPUT:\n");
@@ -961,26 +1015,25 @@ int CpptrajState::RunParallel() {
   }
 
   // Put all trajectories into a DataSet_Coords_TRJ for random access.
-  // FIXME error check above goes here instead?
   DataSet_Coords_TRJ input_traj;
   for ( TrajinList::trajin_it traj = trajinList_.trajin_begin();
                               traj != trajinList_.trajin_end(); ++traj)
     if (input_traj.AddInputTraj( *traj )) { err = 1; break; }
   if (TrajComm.CheckError( err )) return 1;
 
-  // Divide frames among threads.
+  // Divide frames among processes.
   int my_start, my_stop, my_frames;
-  DivideFramesAmongThreads(my_start, my_stop, my_frames, input_traj.Size(), TrajComm);
-  // Ensure at least 1 frame per thread, otherwise some ranks could cause hangups.
+  DivideFramesAmongProcesses(my_start, my_stop, my_frames, input_traj.Size(), TrajComm);
+  // Ensure at least 1 frame per process, otherwise some ranks could cause hangups.
   if (my_frames > 0)
     err = 0;
   else {
-    rprinterr("Error: Thread is processing less than 1 frame. Try reducing # threads.\n");
+    rprinterr("Error: Process is handling less than 1 frame. Try reducing # processes.\n");
     err = 1;
   }
   if (TrajComm.CheckError( err )) return 1;
 
-  // Allocate DataSets in DataSetList based on # frames read by this thread.
+  // Allocate DataSets in DataSetList based on # frames read by this process.
   DSL_.AllocateSets( my_frames );
   // Any DataSets added to the DataSetList during run will need to be synced.
   DSL_.SetNewSetsNeedSync( true );
@@ -988,7 +1041,7 @@ int CpptrajState::RunParallel() {
   // ----- SETUP PHASE ---------------------------
   CoordinateInfo const& currentCoordInfo = input_traj.CoordsInfo();
   Topology* top = input_traj.TopPtr();
-  top->SetBoxFromTraj( currentCoordInfo.TrajBox() ); // FIXME necessary?
+  top->SetBoxFromTraj( currentCoordInfo.TrajBox() );
   int topFrames = trajinList_.TopFrames( top->Pindex() );
   ActionSetup currentParm( top, currentCoordInfo, topFrames );
   err = actionList_.SetupActions( currentParm, exitOnError_ );
@@ -1019,6 +1072,11 @@ int CpptrajState::RunParallel() {
   init_time_.Stop();
   // ----- ACTION PHASE --------------------------
   mprintf("\nBEGIN PARALLEL TRAJECTORY PROCESSING:\n");
+# ifdef TIMER
+  Timer trajin_time;
+  Timer actions_time;
+  Timer trajout_time;
+# endif
   frames_time_.Start();
   master_time_.Start();
   ProgressBar progress;
@@ -1027,16 +1085,34 @@ int CpptrajState::RunParallel() {
   Frame TrajFrame = input_traj.AllocateFrame();
   int actionSet = 0; // Internal data frame
   for (int set = my_start; set != my_stop; set++, actionSet++) {
+#   ifdef TIMER
+    trajin_time.Start();
+#   endif
     input_traj.GetFrame(set, TrajFrame);
+#   ifdef TIMER
+    trajin_time.Stop();
+#   endif
     if (TrajFrame.CheckCoordsInvalid()) // TODO actual frame #
       rprintf("Warning: Set %i coords 1 & 2 overlap at origin; may be corrupt.\n", set + 1);
     ActionFrame currentFrame( &TrajFrame, set );
+#   ifdef TIMER
+    actions_time.Start();
+#   endif
     bool suppress_output = actionList_.DoActions(actionSet, currentFrame);
+#   ifdef TIMER
+    actions_time.Stop();
+#   endif
     // Trajectory output
     if (!suppress_output) {
+#     ifdef TIMER
+      trajout_time.Start();
+#     endif
       if (trajoutList_.WriteTrajout(set, currentFrame.Frm())) {
         if (exitOnError_) return 1;
       }
+#     ifdef TIMER
+      trajout_time.Stop();
+#     endif
     }
     if (showProgress_) progress.Update( actionSet );
   }
@@ -1050,12 +1126,29 @@ int CpptrajState::RunParallel() {
     mprintf("TIME: Rank %i throughput= %.4f frames / second.\n", rank, darray[rank]);
   mprintf("TIME: Avg. throughput= %.4f frames / second.\n",
           (double)input_traj.Size() / master_time_.Total());
+# ifdef TIMER
+  darray.resize( TrajComm.Size() * 4 ); // trajin, action, trajout, frames
+  double rank_times[4];
+  rank_times[0] = trajin_time.Total();
+  rank_times[1] = actions_time.Total();
+  rank_times[2] = trajout_time.Total();
+  rank_times[3] = frames_time_.Total();
+  TrajComm.GatherMaster( rank_times, 4, MPI_DOUBLE, &darray[0] );
+  int ridx = 0;
+  for (int rank = 0; rank < TrajComm.Size(); rank++, ridx += 4)
+  {
+    mprintf("TIME: Breakdown timings for rank %i\n", rank);
+    mprintf("TIME:\t%s %.4f s (%6.2f%%)\n", "Trajectory read:        ", darray[ridx],   (darray[ridx]   / darray[ridx+3])*100.0);
+    mprintf("TIME:\t%s %.4f s (%6.2f%%)\n", "Action frame processing:", darray[ridx+1], (darray[ridx+1] / darray[ridx+3])*100.0);
+    mprintf("TIME:\t%s %.4f s (%6.2f%%)\n", "Trajectory output:      ", darray[ridx+2], (darray[ridx+2] / darray[ridx+3])*100.0);
+  }
+# endif
   trajoutList_.CloseTrajout();
   DSL_.SetNewSetsNeedSync( false );
   sync_time_.Start();
-  // Sync Actions to master thread
+  // Sync Actions to master process
   actionList_.SyncActions();
-  // Sync data sets to master thread
+  // Sync data sets to master process
   if (DSL_.SynchronizeData( TrajComm )) return 1;
   sync_time_.Stop();
   post_time_.Start();
@@ -1080,10 +1173,10 @@ int CpptrajState::RunSingleTrajParallel() {
   // Set up single trajectory for parallel read.
   Trajin* trajin = *(trajinList_.trajin_begin());
   trajin->ParallelBeginTraj( Parallel::World() );
-  // Divide frames among threads.
+  // Divide frames among processes.
   int total_read_frames = trajin->Traj().Counter().TotalReadFrames();
   int my_start, my_stop, my_frames;
-  std::vector<int> rank_frames = DivideFramesAmongThreads(my_start, my_stop, my_frames,
+  std::vector<int> rank_frames = DivideFramesAmongProcesses(my_start, my_stop, my_frames,
                                                           total_read_frames,
                                                           Parallel::World().Size(),
                                                           Parallel::World().Rank(),
@@ -1095,13 +1188,13 @@ int CpptrajState::RunSingleTrajParallel() {
   rprintf("Start and stop adjusted for offset: %i to %i\n", traj_start, traj_stop);
   Parallel::World().Barrier();
 
-  // Allocate DataSets in DataSetList based on # frames read by this thread.
+  // Allocate DataSets in DataSetList based on # frames read by this process.
   DSL_.AllocateSets( my_frames );
 
   // ----- SETUP PHASE ---------------------------
   CoordinateInfo const& currentCoordInfo = trajin->TrajCoordInfo();
   Topology* top = trajin->Traj().Parm();
-  top->SetBoxFromTraj( currentCoordInfo.TrajBox() ); // FIXME necessary?
+  top->SetBoxFromTraj( currentCoordInfo.TrajBox() );
   int topFrames = trajinList_.TopFrames( top->Pindex() );
   ActionSetup currentParm( top, currentCoordInfo, topFrames );
   int err = actionList_.SetupActions( currentParm, exitOnError_ );
@@ -1149,11 +1242,11 @@ int CpptrajState::RunSingleTrajParallel() {
   mprintf("TIME: Avg. throughput= %.4f frames / second.\n",
           (double)total_read_frames / frames_time.Total());
   trajoutList_.CloseTrajout();
-  // Sync data sets to master thread
+  // Sync data sets to master process
   Timer time_sync;
   time_sync.Start();
   if (DSL_.SynchronizeData( total_read_frames, rank_frames, Parallel::World() )) return 1;
-  // Sync Actions to master thread
+  // Sync Actions to master process
   actionList_.SyncActions();
   time_sync.Stop();
   time_sync.WriteTiming(1, "Data set/actions sync");
@@ -1207,7 +1300,7 @@ int CpptrajState::RunNormal() {
     }
     // Set current parm from current traj.
     Topology* top = (*traj)->Traj().Parm();
-    top->SetBoxFromTraj( (*traj)->TrajCoordInfo().TrajBox() ); // FIXME necessary?
+    top->SetBoxFromTraj( (*traj)->TrajCoordInfo().TrajBox() );
     ActionSetup currentSetup( top, (*traj)->TrajCoordInfo(),
                              trajinList_.TopFrames( top->Pindex() ) );
     // Check if parm has changed
@@ -1328,7 +1421,7 @@ int CpptrajState::RunAnalyses() {
 # ifdef MPI
   // Only master performs analyses currently.
   if (Parallel::TrajComm().Size() > 1)
-    mprintf("Warning: Analysis does not currently use multiple MPI threads.\n");
+    mprintf("Warning: Analysis does not currently use multiple MPI processes.\n");
   if (Parallel::TrajComm().Master())
 # endif
     err = analysisList_.DoAnalyses();
@@ -1341,6 +1434,33 @@ int CpptrajState::RunAnalyses() {
   if ( err == 0) 
     analysisList_.Clear();
   return err;
+}
+
+// CpptrajState::AddReference()
+int CpptrajState::AddReference(DataSet_Coords_REF* ref, Topology* refParm,
+                               DataSet_Coords* CRD, ArgList& argIn,
+                               std::string const& fname, std::string const& tag,
+                               std::string const& maskexpr)
+{
+  if (refParm != 0) {
+    if (ref->LoadRefFromFile(fname, tag, *refParm, argIn, refDebug_)) return 1;
+  } else { // CRD != 0
+    int fnum;
+    if (argIn.hasKey("lastframe"))
+      fnum = (int)CRD->Size()-1;
+    else
+      fnum = argIn.getNextInteger(1) - 1;
+    mprintf("\tSetting up reference from COORDS set '%s', frame %i\n",
+            CRD->legend(), fnum+1);
+    if (ref->SetRefFromCoords(CRD, tag, fnum)) return 1; // TODO deprecate - all coords can be ref and vice versa
+  }
+  // If a mask expression was specified, strip to match the expression.
+  if (!maskexpr.empty()) {
+    if (ref->StripRef( maskexpr )) return 1;
+  }
+  // Add DataSet to main DataSetList.
+  if (DSL_.AddSet( ref )) return 1;
+  return 0;
 }
 
 // CpptrajState::AddReference()
@@ -1364,11 +1484,15 @@ int CpptrajState::AddReference( std::string const& fname, ArgList const& args ) 
   Topology* refParm = 0;
   DataSet_Coords* CRD = 0;
   if (argIn.hasKey("crdset")) {
-    CRD = (DataSet_Coords*)DSL_.FindCoordsSet( fname );
-    if (CRD == 0) {
-      mprinterr("COORDS set with name %s not found.\n", fname.c_str());
+    DataSet* dset = DSL_.FindSetOfGroup( fname, DataSet::COORDINATES );
+    if (dset == 0) {
+      mprinterr("Error: COORDS set with name %s not found.\n", fname.c_str());
       return 1;
+    } else if (dset->Type() == DataSet::REF_FRAME) {
+      mprintf("Warning: '%s' is already a reference.\n", fname.c_str());
+      return 0;
     }
+    CRD = static_cast<DataSet_Coords*>( dset );
   } else {
     // Get topology file.
     refParm = DSL_.GetTopology( argIn );
@@ -1380,29 +1504,16 @@ int CpptrajState::AddReference( std::string const& fname, ArgList const& args ) 
   std::string tag = argIn.GetStringKey("name");
   // Determine if there is a mask expression for stripping reference. // TODO: Remove?
   std::string maskexpr = argIn.GetMaskNext();
-  // Check for tag. FIXME: need to do after SetupTrajRead?
+  // Check for tag.
   if (tag.empty()) tag = argIn.getNextTag();
   // Set up reference DataSet from file or COORDS set.
   DataSet_Coords_REF* ref = new DataSet_Coords_REF();
   if (ref==0) return 1;
-  if (refParm != 0) {
-    if (ref->LoadRefFromFile(fname, tag, *refParm, argIn, refDebug_)) return 1;
-  } else { // CRD != 0
-    int fnum;
-    if (argIn.hasKey("lastframe"))
-      fnum = (int)CRD->Size()-1;
-    else
-      fnum = argIn.getNextInteger(1) - 1;
-    mprintf("\tSetting up reference from COORDS set '%s', frame %i\n",
-            CRD->legend(), fnum+1);
-    if (ref->SetRefFromCoords(CRD, tag, fnum)) return 1;
+  // Add to main DataSetList. If successful DataSetList is responsible for free.
+  if (AddReference(ref, refParm, CRD, argIn, fname, tag, maskexpr)) {
+    delete ref;
+    return 1;
   }
-  // If a mask expression was specified, strip to match the expression.
-  if (!maskexpr.empty()) {
-    if (ref->StripRef( maskexpr )) return 1;
-  }
-  // Add DataSet to main DataSetList.
-  if (DSL_.AddSet( ref )) return 1; 
   return 0;
 }
 
@@ -1414,7 +1525,7 @@ int CpptrajState::AddTopology( std::string const& fnameIn, ArgList const& args )
   if (fnameIn.empty()) return 1;
   File::NameArray fnames = File::ExpandToFilenames( fnameIn );
   if (fnames.empty()) {
-    mprinterr("Error: '%s' corresponds to no files.\n");
+    mprinterr("Error: '%s' corresponds to no files.\n", fnameIn.c_str());
     return 1;
   }
   ArgList argIn = args;

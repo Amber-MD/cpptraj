@@ -4,7 +4,7 @@
 
 CleanFiles ene.in ewald.dat debug.nacl.dat nacl.dat debug.tz2n.dat tz2n.dat \
            debug.tz2o.dat tz2o.dat debug.mtz2o.dat mtz2o.dat pme.nacl.dat \
-           long_tz2n.dat
+           long_tz2n.dat pme_partial.dat
 INPUT="-i ene.in"
 TESTNAME='Particle mesh Ewald tests'
 Requires libpme maxthreads 10
@@ -120,7 +120,23 @@ energy Pme nonbond out $TFILE etype pme   skinnb 0.01 order 6 !:WAT \
 precision $TFILE 20 10
 EOF
     RunCpptraj "$UNITNAME"
-    DoTest "$TFILE".save "$TFILE"
+    DoTest "$TFILE".save "$TFILE" -a 0.0000001
+  fi
+}
+
+Partial_PME() {
+  UNITNAME='PME test (partial system, trunc. oct)'
+  CheckFor netcdf maxthreads 1
+  if [ $? -eq 0 ] ; then
+    cat > ene.in <<EOF
+noprogress
+parm ../FtuFabI.NAD.TCL.parm7
+trajin ../FtuFabI.NAD.TCL.nc 1 1
+energy :NDP Pme nonbond out pme_partial.dat etype pme skinnb 2.0 cut 8.0 \
+  dsumtol 0.0000001 nfft 90,90,90
+EOF
+    RunCpptraj "$UNITNAME"
+    DoTest pme_partial.dat.save pme_partial.dat
   fi
 }
 
@@ -160,6 +176,7 @@ NaCl
 TrpzipNonortho
 TrpzipOrtho
 MaskTz2Ortho
+Partial_PME
 Tz2_Nonortho_10
 #Tz2_Ortho_10
 

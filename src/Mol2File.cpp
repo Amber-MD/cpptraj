@@ -1,6 +1,9 @@
 #include <cstring> //strlen
 #include <cstdio> //sscanf
+#include <cstdlib> // atof
 #include "Mol2File.h"
+#include "Atom.h"
+#include "Residue.h"
 #include "CpptrajStdio.h" // To print debug info
 #include "StringRoutines.h" // RemoveTrailingWhitespace
 
@@ -129,31 +132,75 @@ int Mol2File::Mol2Bond(int& at1, int& at2) {
 // Mol2File::Mol2XYZ()
 int Mol2File::Mol2XYZ(double *X) {
   if ( Gets(linebuffer_, BUF_SIZE) != 0 ) return 1;
-  sscanf(linebuffer_,"%*i %*s %lf %lf %lf",X, X+1, X+2);
+  int nread = sscanf(linebuffer_,"%*i %*s %lf %lf %lf", X, X+1, X+2);
+  if (nread != 3) {
+    mprintf("Warning: When reading Mol2 coordinates, expected 3, got %i\n", nread);
+    return 1;
+  }
   return 0;
 }
 
 // Mol2File::Mol2Atom()
-Atom Mol2File::Mol2Atom() {
-  char mol2name[10], mol2type[10];
-  double mol2q;
-  // atom_id atom_name x y z atom_type [subst_id [subst_name [charge [status_bit]]]]
-  sscanf(linebuffer_, "%*i %s %*f %*f %*f %s %*i %*s %lf", mol2name, mol2type, &mol2q);
-  NameType m2name( mol2name );
-  // Replace all asterisks with single quote.
-  m2name.ReplaceAsterisk();
-  return Atom( m2name, mol2type, mol2q );
-}
+int Mol2File::Mol2Atom(Atom& atom, Residue& res, double* XYZ) {
+  if ( Gets(linebuffer_, BUF_SIZE) != 0 ) return 1;
 
-// Mol2File::Mol2Residue()
-Residue Mol2File::Mol2Residue() {
-  char resname[10];
-  int current_res;
-  sscanf(linebuffer_,"%*i %*s %*f %*f %*f %*s %i %s", &current_res, resname);
-  NameType rname( resname );
-  // Replace all asterisks with single quote.
-  rname.ReplaceAsterisk();
-  return Residue(rname, current_res, ' ', ' ');
+  static const unsigned int m2w = 32; // Max width for any mol2 field
+  char field1[m2w];
+  char field2[m2w];
+  char field3[m2w];
+  char field4[m2w];
+  char field5[m2w];
+  char field6[m2w];
+  char field7[m2w];
+  char field8[m2w];
+
+  //         1         2 3 4 5          6         7           8
+  // atom_id atom_name x y z atom_type [subst_id [subst_name [charge [status_bit]]]]
+  int nread = sscanf(linebuffer_,"%*s %s %s %s %s %s %s %s %s",
+                     field1, field2, field3, field4,
+                     field5, field6, field7, field8);
+
+  const char* mol2name = 0;
+  const char* mol2x = 0;
+  const char* mol2y = 0;
+  const char* mol2z = 0;
+  const char* mol2type = 0;
+  const char* mol2resnum = 0;
+  const char* mol2resname = 0;
+  const char* mol2charge = 0;
+
+  if (nread == 8) {
+    mol2name = field1;
+    mol2x = field2;
+    mol2y = field3;
+    mol2z = field4;
+    mol2type = field5;
+    mol2resnum = field6;
+    mol2resname = field7;
+    mol2charge = field8;
+  } else if (nread == 7) {
+    // This is a hack for VMD files that get written with no atom type.
+    mol2name = field1;
+    mol2x = field2;
+    mol2y = field3;
+    mol2z = field4;
+    mol2type = field1;
+    mol2resnum = field5;
+    mol2resname = field6;
+    mol2charge = field7;
+  } else {
+    mprinterr("Error: Malformed mol2 line: %s\n", linebuffer_);
+    return 1;
+  }
+
+  atom = Atom( NameType(mol2name), NameType(mol2type), atof(mol2charge) );
+  res = Residue( NameType(mol2resname), atoi(mol2resnum), ' ', ' ' );
+
+  XYZ[0] = atof( mol2x );
+  XYZ[1] = atof( mol2y );
+  XYZ[2] = atof( mol2z );
+
+  return 0;
 }
 
 void Mol2File::WriteMol2Atom(int atnum, Atom const& atomIn,
@@ -205,7 +252,7 @@ void Mol2File::WriteMol2Bond(int bnum, int at1, int at2,
 }
 
 void Mol2File::WriteMol2Substructure(int rnum, const char* rname, int firstatom) {
-  Printf("%7d %4s %14d ****               0 ****  **** \n", rnum, rname, firstatom);
+  Printf("%7d %-4s %14d ****               0 ****  **** \n", rnum, rname, firstatom);
 }
 
 void Mol2File::ClearAmberMapping() {

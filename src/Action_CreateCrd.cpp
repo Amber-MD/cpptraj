@@ -22,24 +22,44 @@ Action::RetType Action_CreateCrd::Init(ArgList& actionArgs, ActionInit& init, in
   check_ = !actionArgs.hasKey("nocheck");
   // DataSet
   std::string setname = actionArgs.GetStringNext();
+  bool append = false;
+  coords_ = 0;
   if (setname == "_DEFAULTCRD_") {
     // Special case: Creation of COORDS DataSet has been requested by an
     //               analysis and should already be present.
     coords_ = (DataSet_Coords_CRD*)init.DSL().FindSetOfType(setname, DataSet::COORDS);
-  } else 
-    coords_ = (DataSet_Coords_CRD*)init.DSL().AddSet(DataSet::COORDS, setname, "CRD");
-  if (coords_ == 0) return Action::ERR;
+  } else {
+    if (!setname.empty()) {
+      DataSet* ds = init.DSL().FindSetOfType( setname, DataSet::COORDS );
+      if (ds != 0) {
+#       ifdef MPI
+        if (init.TrajComm().Size() > 1) {
+          mprinterr("Error: Appending to existing COORDS data sets not supported in parallel.\n");
+          return Action::ERR;
+        }
+#       endif
+        append = true;
+        coords_ = (DataSet_Coords_CRD*)ds;
+        pindex_ = coords_->Top().Pindex();
+      }
+    }
+    if (coords_ == 0)
+      coords_ = (DataSet_Coords_CRD*)init.DSL().AddSet(DataSet::COORDS, setname, "CRD");
+    if (coords_ == 0) return Action::ERR;
+  }
   // Do not set topology here since it may be modified later.
-
-  mprintf("    CREATECRD: Saving coordinates from Top %s to \"%s\"\n",
-          parm->c_str(), coords_->legend());
+  if (append)
+    mprintf("    CREATECRD: Appending coordinates to \"%s\"\n", coords_->legend());
+  else
+    mprintf("    CREATECRD: Saving coordinates from Top %s to \"%s\"\n",
+            parm->c_str(), coords_->legend());
   if (!check_)
     mprintf("\tNot strictly enforcing that all frames have same # atoms.\n");
 # ifdef MPI
   if (init.TrajComm().Size() > 1)
-    mprintf("Warning: Synchronization of COORDS data sets over multiple threads is\n"
+    mprintf("Warning: Synchronization of COORDS data sets over multiple processes is\n"
             "Warning:   experimental and may be slower than reading in via a single\n"
-            "Warning:   thread. Users are encouraged to run benchmarks before\n"
+            "Warning:   process. Users are encouraged to run benchmarks before\n"
             "Warning:   extensive usage.\n");
 # endif
   return Action::OK;
@@ -52,7 +72,7 @@ Action::RetType Action_CreateCrd::Setup(ActionSetup& setup) {
     // Estimate memory usage
     mprintf("\tEstimated memory usage (%i frames): %s\n",
             setup.Nframes(),
-            ByteString(coords_->SizeInBytes(setup.Nframes()), BYTE_DECIMAL).c_str());
+            ByteString(coords_->EstSizeInBytes(setup.Nframes()), BYTE_DECIMAL).c_str());
   }
   // If # atoms in currentParm does not match coords, warn user.
   if (setup.Top().Natom() != coords_->Top().Natom()) {

@@ -1,0 +1,21 @@
+
+// Header to control exporting of symbols under Windows.
+// Currently, for pytraj to work, only global variables need explicit export specifications.
+// (see https://github.com/Amber-MD/cmake-buildscripts/issues/29)
+
+// This file is automatically configured by CMake for the current install type
+
+#ifndef INC_SYMBOL_EXPORTING_H
+#define INC_SYMBOL_EXPORTING_H
+
+#ifdef _WIN32
+# if @CPPTRAJ_IS_SHARED@
+#  define CPPTRAJ_EXPORT __declspec(dllimport)
+# else
+#  define CPPTRAJ_EXPORT
+# endif
+#else
+# define CPPTRAJ_EXPORT
+#endif
+
+#endif

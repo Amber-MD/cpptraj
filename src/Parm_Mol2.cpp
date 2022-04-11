@@ -23,8 +23,10 @@ int Parm_Mol2::ReadParm(FileName const& fname, Topology &parmOut) {
   double XYZ[3];
   Frame Coords;
   for (int atom=0; atom < infile.Mol2Natoms(); atom++) {
-    if ( infile.Mol2XYZ(XYZ) ) return 1;
-    parmOut.AddTopAtom( infile.Mol2Atom(), infile.Mol2Residue() );
+    Atom mol2atom;
+    Residue mol2res;
+    if ( infile.Mol2Atom(mol2atom, mol2res, XYZ) ) return 1;
+    parmOut.AddTopAtom( mol2atom, mol2res );
     Coords.AddXYZ( XYZ );
   }
 
@@ -39,7 +41,8 @@ int Parm_Mol2::ReadParm(FileName const& fname, Topology &parmOut) {
     }
   } else {
     mprintf("      Mol2 file does not contain bond information.\n");
-    BondSearch( parmOut, Coords, Offset_, debug_ );
+    BondSearch bondSearch;
+    bondSearch.FindBonds( parmOut, searchType_, Coords, Offset_, debug_ );
   }
 
   // No box

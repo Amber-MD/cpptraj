@@ -12,8 +12,7 @@ class Action_MakeStructure : public Action {
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
-    Topology* CurrentParm_; // DEBUG
-    int debug_;
+
     /// Hold secondary structure/turn/single dihedral types.
     class SS_TYPE {
       public: 
@@ -21,7 +20,7 @@ class Action_MakeStructure : public Action {
         SS_TYPE(double ph,double ps,double ph2,double ps2,int t,std::string const& n) :
           phi(ph), psi(ps), phi2(ph2), psi2(ps2), isTurn(t), type_arg(n) {}
         bool empty() { return (isTurn == -1); }
-        double phi, psi, phi2, psi2; // Angle(s) FIXME: Should this be an array?
+        double phi, psi, phi2, psi2; // Angle(s) TODO: Should this be an array?
         int isTurn; // 0=phi/psi, 1=Turn (phi/psi/phi2/psi2), 2=Single Dihedral(phi)
         std::string type_arg;
     };
@@ -41,5 +40,9 @@ class Action_MakeStructure : public Action {
         int sstype_idx;                ///< Pointer to corresponding SS_TYPE.
     };
     std::vector<SecStructHolder> secstruct_;
+
+    Topology* CurrentParm_;    ///< Hold current topology for DoAction().
+    int debug_;
+    CpptrajFile* foundDihOut_; ///< File to write dihedrals found by Setup() to.
 };
 #endif

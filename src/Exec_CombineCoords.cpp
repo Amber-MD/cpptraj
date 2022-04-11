@@ -22,18 +22,21 @@ Exec::RetType Exec_CombineCoords::Execute(CpptrajState& State, ArgList& argIn) {
   std::vector<DataSet_Coords*> CRD;
   std::string setname = argIn.GetStringNext();
   while (!setname.empty()) {
-    DataSet_Coords* ds = (DataSet_Coords*)State.DSL().FindCoordsSet( setname );
-    if (ds == 0) {
-      mprinterr("Error: %s: No COORDS set with name %s found.\n", argIn.Command(), setname.c_str());
-      return CpptrajState::ERR;
-    }
-    CRD.push_back( ds );
+    DataSetList crdSets = State.DSL().SelectGroupSets( setname, DataSet::COORDINATES );
+    if (crdSets.empty())
+      mprintf("Warning: '%s' selected no COORDS sets.\n", setname.c_str());
+    for (DataSetList::const_iterator ds = crdSets.begin(); ds != crdSets.end(); ++ds)
+      CRD.push_back( (DataSet_Coords*)*ds );
     setname = argIn.GetStringNext();
   }
   if (CRD.size() < 2) {
     mprinterr("Error: %s: Must specify at least 2 COORDS data sets\n", argIn.Command());
     return CpptrajState::ERR;
   }
+  mprintf("\tCombining %zu sets:", CRD.size());
+  for (std::vector<DataSet_Coords*>::const_iterator it = CRD.begin(); it != CRD.end(); ++it)
+    mprintf(" %s", (*it)->legend());
+  mprintf("\n");
   // Only add the topology to the list if parmname specified
   bool addTop = true;
   Topology CombinedTop;
@@ -58,10 +61,10 @@ Exec::RetType Exec_CombineCoords::Execute(CpptrajState& State, ArgList& argIn) {
         boxStatus = SET;
       } else if (boxStatus == SET) {
         // Make sure it is the same type of box. TODO Check angles
-        if (combinedBox.Type() != CRD[setnum]->CoordsInfo().TrajBox().Type())
+        if (combinedBox.CellShape() != CRD[setnum]->CoordsInfo().TrajBox().CellShape())
         {
           mprintf("Warning: COORDS '%s' box type '%s' differs from other COORDS. Disabling box.\n",
-                  CRD[setnum]->legend(), CRD[setnum]->CoordsInfo().TrajBox().TypeName());
+                  CRD[setnum]->legend(), CRD[setnum]->CoordsInfo().TrajBox().CellShapeName());
           combinedBox.SetNoBox();
           boxStatus = INVALID;
         }
@@ -104,16 +107,20 @@ Exec::RetType Exec_CombineCoords::Execute(CpptrajState& State, ArgList& argIn) {
       output += input.size();
     }
     // Box info
-    if (combinedBox.Type() != Box::NOBOX) {
-      double* cBox = CombinedFrame.bAddress();
-      // Only use angles from first coords set.
-      std::copy(InputFrames[0].bAddress(), InputFrames[0].bAddress()+6, cBox);
+    if (combinedBox.HasBox()) {
+      // Use angles from first coords set.
+      double cBox[6];
+      for (int i = 0; i < 6; i++)
+        cBox[i] = InputFrames[0].BoxCrd().Param((Box::ParamType)i);
+      //double* cBox = CombinedFrame.bAddress();
+      //std::copy(InputFrames[0].bAddress(), InputFrames[0].bAddress()+6, cBox);
       for (unsigned int setnum = 1; setnum < CRD.size(); ++setnum) {
         // Use max X/Y/Z among coords
-        cBox[0] = std::max(cBox[0], InputFrames[setnum].BoxCrd().BoxX());
-        cBox[1] = std::max(cBox[1], InputFrames[setnum].BoxCrd().BoxY());
-        cBox[2] = std::max(cBox[2], InputFrames[setnum].BoxCrd().BoxZ());
+        cBox[0] = std::max(cBox[0], InputFrames[setnum].BoxCrd().Param(Box::X));
+        cBox[1] = std::max(cBox[1], InputFrames[setnum].BoxCrd().Param(Box::Y));
+        cBox[2] = std::max(cBox[2], InputFrames[setnum].BoxCrd().Param(Box::Z));
       }
+      CombinedFrame.ModifyBox().SetupFromXyzAbg( cBox );
     }
     CombinedCrd->AddFrame( CombinedFrame );
   }

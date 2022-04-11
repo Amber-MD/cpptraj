@@ -3,7 +3,6 @@
 #include "Constants.h" // SMALL
 
 Analysis_Spline::Analysis_Spline() :
-  outfile_(0),
   meshsize_(0),
   meshmin_(0.0),
   meshmax_(0.0),
@@ -21,7 +20,7 @@ void Analysis_Spline::Help() const {
 Analysis::RetType Analysis_Spline::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
   std::string setname = analyzeArgs.GetStringKey("name");
-  outfile_ = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
+  DataFile* outfile = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   meshsize_ = analyzeArgs.getKeyInt("meshsize", 0);
   meshfactor_ = -1.0;
   if (meshsize_ < 3) {
@@ -66,11 +65,11 @@ Analysis::RetType Analysis_Spline::Setup(ArgList& analyzeArgs, AnalysisSetup& se
     ds->SetLegend( "Spline(" + (*dsIn)->Meta().Legend() + ")" );
     // TODO: Set individually based on input_dsets_
     ds->SetDim(Dimension::X, Xdim);
-    if (outfile_ != 0) outfile_->AddDataSet( ds );
+    if (outfile != 0) outfile->AddDataSet( ds );
     output_dsets_.push_back( (DataSet_Mesh*)ds );
   }
 
-  mprintf("    SPLINE: Applying cubic splining to %u data sets\n", input_dsets_.size());
+  mprintf("    SPLINE: Applying cubic splining to %zu data sets\n", input_dsets_.size());
   if (meshfactor_ < 0)
     mprintf("\tMesh size= %i\n", meshsize_);
   else
@@ -83,10 +82,10 @@ Analysis::RetType Analysis_Spline::Setup(ArgList& analyzeArgs, AnalysisSetup& se
     mprintf(" Mesh max= %f\n", meshmax_);
   else
     mprintf(" Mesh max will be input set max.\n");
-  if (outfile_ != 0) {
+  if (outfile != 0) {
     if (!setname.empty())
       mprintf("\tOutput set name: %s\n", setname.c_str());
-    mprintf("\tOutfile name: %s\n", outfile_->DataFilename().base());
+    mprintf("\tOutfile name: %s\n", outfile->DataFilename().base());
   }
   //for (Array1D::const_iterator set = input_dsets_.begin(); set != input_dsets_.end(); ++set)
   //  mprintf("\t%s\n", (*set)->legend());

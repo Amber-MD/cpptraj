@@ -3,6 +3,8 @@
 #include "PairList.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // ByteString()
+#include "Frame.h"
+#include "AtomMask.h"
 
 PairList::PairList() :
   cutList_(0.0),
@@ -32,23 +34,17 @@ int PairList::InitPairList(double cutIn, double skinNBin, int debugIn) {
   return 0;
 }
 
-int PairList::SetupPairList(Box const& boxIn) {
-  Matrix_3x3 ucell, recip;
-  boxIn.ToRecip(ucell, recip);
-  return SetupPairList( boxIn.Type(), boxIn.RecipLengths(recip) );
-}
-
 // PairList::SetupPairList()
-int PairList::SetupPairList(Box::BoxType typeIn, Vec3 const& recipLengthsIn) {
+int PairList::SetupPairList(Box const& boxIn) {
   Timer t_setup;
   t_setup.Start();
-  if (typeIn == Box::NOBOX) {
-    mprinterr("Error: Pair list code currently requires box coordinates.\n");
+  if (!boxIn.HasBox()) {
+    mprinterr("Error: Pair list code currently requires box information.\n");
     return 1;
   }
 
   // Allocate/reallocate memory
-  if (SetupGrids(recipLengthsIn)) return 1;
+  if (SetupGrids(boxIn.RecipLengths())) return 1;
   t_setup.Stop();
   t_setup.WriteTiming(1, "Pair List Setup:");
   mprintf("\tGrid dimensions: %i %i %i (%zu total).\n", nGridX_, nGridY_, nGridZ_, cells_.size());
@@ -71,6 +67,8 @@ void PairList::FillTranslateVec(Matrix_3x3 const& ucell) {
 }
 
 // PairList::CreatePairList()
+/** \return -1 if error occurs setting up grid, 0 if all OK, otherwise # atoms off-grid
+  */
 int PairList::CreatePairList(Frame const& frmIn, Matrix_3x3 const& ucell,
                              Matrix_3x3 const& recip, AtomMask const& maskIn)
 {
@@ -79,18 +77,21 @@ int PairList::CreatePairList(Frame const& frmIn, Matrix_3x3 const& ucell,
   FillTranslateVec(ucell);
   // If box size has changed a lot this will reallocate grid
   t_gridpointers_.Start();
-  if (SetupGrids(frmIn.BoxCrd().RecipLengths(recip))) return 1;
+  if (SetupGrids(frmIn.BoxCrd().RecipLengths())) return -1;
   t_gridpointers_.Stop();
   // Place atoms in grid cells
   t_map_.Start();
-  GridUnitCell(frmIn, ucell, recip, maskIn);
+  int nOffGrid = GridUnitCell(frmIn, ucell, recip, maskIn);
+  if (nOffGrid > 0)
+    mprintf("Warning: %i atoms are off the grid. This usually indicates corrupted coordinates.\n",
+            nOffGrid);
   t_map_.Stop();
   t_total_.Stop();
-  return 0;
+  return nOffGrid;
 }
 
 // PairList::GridAtom()
-void PairList::GridAtom(int atomIdx, Vec3 const& frac, Vec3 const& cart) {
+int PairList::GridAtom(int atomIdx, Vec3 const& frac, Vec3 const& cart) {
   int i1 = (int)((frac[0]) * (double)nGridX_);
   int i2 = (int)((frac[1]) * (double)nGridY_);
   int i3 = (int)((frac[2]) * (double)nGridZ_);
@@ -99,19 +100,21 @@ void PairList::GridAtom(int atomIdx, Vec3 const& frac, Vec3 const& cart) {
   mprintf("GRID2 atom assigned to cell %6i%6i%10.5f%10.5f%10.5f\n",
           atomIdx+1, idx+1, frac[0], frac[1], frac[2]);
 # endif
-  if (idx < 0 || idx >= (int)cells_.size()) { // Sanity check
-    mprinterr("Internal Error: Grid %i is out of range (>= %zu || < 0)\n",
-              idx, cells_.size());
-    return;
+  if (idx < 0 || idx >= (int)cells_.size()) {
+    // This can happen for e.g. NaN coords
+    //mprinterr("Internal Error: Grid %i is out of range (>= %zu || < 0)\n",
+    //          idx, cells_.size());
+    return 1;
   }
   cells_[idx].AddAtom( AtmType(atomIdx, cart) );
   Frac_.push_back( frac );
+  return 0;
 }
 
 /** Place selected atoms into grid cells. Convert to fractional coords, wrap
   * into primary cell, then determine grid cell.
   */
-void PairList::GridUnitCell(Frame const& frmIn, Matrix_3x3 const& ucell,
+int PairList::GridUnitCell(Frame const& frmIn, Matrix_3x3 const& ucell,
                              Matrix_3x3 const& recip, AtomMask const& maskIn)
 {
   // Clear any existing atoms in cells.
@@ -119,7 +122,8 @@ void PairList::GridUnitCell(Frame const& frmIn, Matrix_3x3 const& ucell,
     cell->ClearAtoms();
   Frac_.clear();
   Frac_.reserve( maskIn.Nselected() );
-  if (frmIn.BoxCrd().Type() == Box::ORTHO) {
+  int nOffGrid = 0;
+  if (frmIn.BoxCrd().Is_X_Aligned_Ortho()) {
     // Orthogonal imaging
     for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
     {
@@ -131,7 +135,7 @@ void PairList::GridUnitCell(Frame const& frmIn, Matrix_3x3 const& ucell,
       mprintf("DBG: o %6i fc=%7.3f%7.3f%7.3f  fcw=%7.3f%7.3f%7.3f  ccw=%7.3f%7.3f%7.3f\n",
               *atom+1, fc[0], fc[1], fc[2], fcw[0], fcw[1], fcw[2], ccw[0], ccw[1], ccw[2]);
 #     endif
-      GridAtom( atom-maskIn.begin(), fcw, ccw );
+      nOffGrid += GridAtom( atom-maskIn.begin(), fcw, ccw );
     }
   } else {
     // Non-orthogonal imaging
@@ -144,9 +148,10 @@ void PairList::GridUnitCell(Frame const& frmIn, Matrix_3x3 const& ucell,
       mprintf("DBG: n %6i fc=%7.3f%7.3f%7.3f  fcw=%7.3f%7.3f%7.3f  ccw=%7.3f%7.3f%7.3f\n",
               *atom+1, fc[0], fc[1], fc[2], fcw[0], fcw[1], fcw[2], ccw[0], ccw[1], ccw[2]);
 #     endif
-      GridAtom( atom-maskIn.begin(), fcw, ccw );
+      nOffGrid += GridAtom( atom-maskIn.begin(), fcw, ccw );
     }
   }
+  return nOffGrid;
 }
 
 // PairList::SetupGrids()

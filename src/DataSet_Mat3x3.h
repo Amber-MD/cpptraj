@@ -18,6 +18,7 @@ class DataSet_Mat3x3 : public DataSet {
     inline void Add(size_t, const void*);
     void WriteBuffer(CpptrajFile&, SizeArray const&) const;
     int Append(DataSet*);
+    size_t MemUsageInBytes() const { return (9 * data_.size() * sizeof(double)); }
     // -------------------------------------------
     void AddMat3x3( Matrix_3x3 const& m) { data_.push_back( m ); }
     typedef Marray::const_iterator const_iterator;
@@ -26,7 +27,7 @@ class DataSet_Mat3x3 : public DataSet {
     typedef Marray::iterator iterator;
     iterator begin() { return data_.begin(); }
     iterator end()   { return data_.end();   }
-    Matrix_3x3 const& operator[](int i) { return data_[i]; }
+    Matrix_3x3 const& operator[](unsigned int i) const { return data_[i]; }
   private:
     Marray data_;
 };

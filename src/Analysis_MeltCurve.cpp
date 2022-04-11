@@ -1,5 +1,6 @@
 #include "Analysis_MeltCurve.h"
 #include "CpptrajStdio.h"
+#include "DataSet_1D.h"
 
 void Analysis_MeltCurve::Help() const {
   mprintf("\t<dset0> [<dset1> ...] [out <outfile>] [name <outsetname>] cut <cut>\n"
@@ -30,7 +31,7 @@ Analysis::RetType Analysis_MeltCurve::Setup(ArgList& analyzeArgs, AnalysisSetup&
   // Add dataset to datafile
   if (outfile != 0) outfile->AddDataSet( mcurve_ );
   
-  mprintf("    MELTCURVE: Calculating melting curve from %i data sets.\n",
+  mprintf("    MELTCURVE: Calculating melting curve from %zu data sets.\n",
           input_dsets_.size());
   mprintf("\tCut= %f", cut_);
   if (!setname.empty())

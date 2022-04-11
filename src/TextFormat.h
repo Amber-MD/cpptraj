@@ -6,7 +6,7 @@
 class TextFormat {
   public:
     /// Formats: f, E, g, i, s
-    enum FmtType { DOUBLE = 0, SCIENTIFIC, GDOUBLE, INTEGER, STRING };
+    enum FmtType { DOUBLE = 0, SCIENTIFIC, GDOUBLE, INTEGER, UNSIGNED, STRING };
     /// Alignment type: Right, Left, Right with leading space.
     enum AlignType { RIGHT = 0, LEFT, LEADING_SPACE };
     /// CONSTRUCTOR - default 8.3f format
@@ -51,9 +51,15 @@ class TextFormat {
     /// \return pointer to format string.
     const char* fmt()        const { return fmt_.c_str(); }
     std::string const& Fmt() const { return fmt_;         }
+    FmtType FormatType()     const { return type_;        }
     int Width()              const { return width_;       }
     int Precision()          const { return precision_;   }
     int ColumnWidth()        const { return colwidth_;    }
+    /// \return True if given TextFormat matches this format type, width, and precision.
+    bool operator==(TextFormat const& rhs) const {
+      return ( (type_ == rhs.type_) && (width_ == rhs.width_) && (precision_ == rhs.precision_) );
+    }
+    /// \return Description of the given format type.
     static const char* typeDescription(FmtType f) { return TypeDesc_[f]; }
   private:
     static inline bool IsDoubleType(FmtType);

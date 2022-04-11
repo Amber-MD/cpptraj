@@ -50,9 +50,15 @@ Exec::RetType Exec_CrdAction::DoCrdAction(CpptrajState& State, ArgList& actionar
     // Set up set, copy original metadata
     crdOut->SetMeta( CRD->Meta() );
     if (crdOut->CoordsSetup( originalSetup.Top(), originalSetup.CoordInfo() ))
+    {
+      delete crdOut;
       return CpptrajState::ERR;
+    }
     DataSet::SizeArray mfArray(1, frameCount.TotalReadFrames());
-    if (crdOut->Allocate( mfArray )) return CpptrajState::ERR;
+    if (crdOut->Allocate( mfArray )) {
+      delete crdOut;
+      return CpptrajState::ERR;
+    }
   }
     
   // Loop over all frames in COORDS.
@@ -110,7 +116,7 @@ Exec::RetType Exec_CrdAction::Execute(CpptrajState& State, ArgList& argIn) {
   //rprintf("DEBUG: About to create new comm, ID= %i\n", ID);
   trajComm_ = Parallel::World().Split( ID );
   if (ID != MPI_UNDEFINED) {
-    mprintf("Warning: '%s' command does not yet use multiple MPI threads.\n", argIn.Command());
+    mprintf("Warning: '%s' command does not yet use multiple MPI processes.\n", argIn.Command());
     ret = ProcessArgs(State, argIn);
     if (ret != CpptrajState::OK)
       err = 1;
@@ -131,7 +137,7 @@ Exec::RetType Exec_CrdAction::ProcessArgs(CpptrajState& State, ArgList& argIn) {
     mprinterr("Error: %s: Specify COORDS dataset name.\n", argIn.Command());
     return CpptrajState::ERR;
   }
-  DataSet_Coords* CRD = (DataSet_Coords*)State.DSL().FindCoordsSet( setname );
+  DataSet_Coords* CRD = (DataSet_Coords*)State.DSL().FindSetOfGroup( setname, DataSet::COORDINATES );
   if (CRD == 0) {
     mprinterr("Error: %s: No COORDS set with name %s found.\n", argIn.Command(), setname.c_str());
     return CpptrajState::ERR;

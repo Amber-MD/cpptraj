@@ -339,14 +339,10 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
     mprintf("\tFree energy in kcal/mol will be calculated from bin populations at %f K.\n",Temp_);
   if (nativeOut_)
     mprintf("\tUsing internal routine for output. Data will not be stored on the data set list.\n");
-  //if (circular_ || gnuplot_) {
-  //  mprintf("\tWarning: gnuplot and/or circular specified; advanced grace/gnuplot\n");
-  //  mprintf("\t         formatting disabled.\n");*/
-    if (circular_)
-      mprintf("\tcircular: Output coordinates will be wrapped.\n");
-    if (gnuplot_ && outfile_ == 0)
-      mprintf("\tgnuplot: Output will be in gnuplot-readable format.\n");
-  //}
+  if (circular_)
+    mprintf("\tcircular: Output coordinates will be wrapped.\n");
+  if (gnuplot_ && outfile_ == 0)
+    mprintf("\tgnuplot: Output will be in gnuplot-readable format.\n");
   if (normalize_ == NORM_SUM)
     mprintf("\tnorm: Sum over bins will be normalized to 1.0.\n");
   else if (normalize_ == NORM_INT)
@@ -382,14 +378,14 @@ Analysis::RetType Analysis_Hist::Analyze() {
   {
     //mprintf("DEBUG: DS %s size %i\n",histdata[hd]->Name(),histdata[hd]->Xmax()+1);
     if (Ndata != (*ds)->Size()) {
-      mprinterr("Error: Hist: Dataset %s has inconsistent # data points (%u), expected %u.\n",
+      mprinterr("Error: Hist: Dataset %s has inconsistent # data points (%zu), expected %zu.\n",
                 (*ds)->legend(), (*ds)->Size(), Ndata);
       return Analysis::ERR;
     }
   }
-  mprintf("\tHist: %u data points in each dimension.\n", Ndata);
+  mprintf("\tHist: %zu data points in each dimension.\n", Ndata);
   if (calcAMD_ && Ndata != amddata_->Size()) {
-    mprinterr("Error: Hist: AMD data set size (%i) does not match # expected data points (%i).\n",
+    mprinterr("Error: Hist: AMD data set size (%zu) does not match # expected data points (%zu).\n",
               amddata_->Size(), Ndata);
     return Analysis::ERR;
   }
@@ -414,7 +410,7 @@ Analysis::RetType Analysis_Hist::Analyze() {
       }
       // Calculate index for this particular dimension (idx)
       long int idx = (long int)((dval - dim->Min()) / dim->Step());
-      if (debug_>1) mprintf(" [%s:%f (%i)],", dim->label(), dval, idx);
+      if (debug_>1) mprintf(" [%s:%f (%li)],", dim->label(), dval, idx);
       // Calculate overall index in Bins, offset has already been calcd.
       index += (idx * (*bOff));
     }
@@ -426,7 +422,7 @@ Analysis::RetType Analysis_Hist::Analyze() {
       else
         Bins_[index]++;
     } else {
-      mprintf("\tWarning: Frame %u Coordinates out of bounds (%li)\n", n+1, index);
+      mprintf("\tWarning: Frame %zu Coordinates out of bounds (%li)\n", n+1, index);
     }
     if (debug_>1) mprintf("}\n");
   }
@@ -483,7 +479,7 @@ Analysis::RetType Analysis_Hist::Analyze() {
             mprinterr("Error: Could not write pseudo topology to '%s'\n", parmoutName_.c_str());
         }
         Trajout_Single out;
-        if (out.PrepareTrajWrite(traj3dName_, ArgList(), &pseudo, CoordinateInfo(),
+        if (out.PrepareTrajWrite(traj3dName_, ArgList(), DataSetList(), &pseudo, CoordinateInfo(),
                                  Ndata, traj3dFmt_) == 0)
         {
           Frame outFrame(1);
@@ -504,9 +500,9 @@ Analysis::RetType Analysis_Hist::Analyze() {
   return Analysis::OK;
 }
 
-/** Calculate free energy based on bin populations.  */
+/** Calculate free energy based on bin populations.  */ // TODO add refbin
 int Analysis_Hist::CalcFreeE() {
-  int refbin = -1; // TODO: re-enable
+//  int refbin = -1; // TODO: re-enable
     mprintf("\tHistogram: Calculating free E at %f K.\n",Temp_);
   // TODO: Make Kb a constant
   double KT = (-Constants::GASK_KCAL * Temp_);
@@ -524,14 +520,14 @@ int Analysis_Hist::CalcFreeE() {
     return 1;
   }
 
-  // If requested, set up reference bin other than max
+/*  // If requested, set up reference bin other than max
   if (refbin>-1) {
     if (Bins_[refbin] > 0) {
       binmax = Bins_[refbin];
       mprintf("\t           Calculating free E w.r.t bin %i, population %f\n",refbin,binmax);
     } else
       mprintf("Warning: Reference bin %i has no population. Using %f\n",refbin,binmax);
-  }
+  }*/
 
   // Set artificial ceiling for bins with 0 population. Make it equivalent
   // to a bin population of 0.5. 

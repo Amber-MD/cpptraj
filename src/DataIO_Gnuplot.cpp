@@ -2,6 +2,7 @@
 #include "DataIO_Gnuplot.h"
 #include "CpptrajStdio.h"
 #include "Array1D.h"
+#include "DataSet_1D.h"
 #include "DataSet_2D.h"
 
 // CONSTRUCTOR
@@ -63,15 +64,15 @@ int DataIO_Gnuplot::ReadBinaryData(FileName const& fname,
   bIn.Read( &Vals[0], ncols*sizeof(float) );
   for (std::vector<float>::const_iterator it = Vals.begin(); it != Vals.end(); ++it)
     Xvals.push_back( (double)*it );
-  // Keep reading rows until no more found.
-  int nread = 1;
-  while (nread > 0) {
-    // Read Y value
-    if (bIn.Read( &fval, sizeof(float) ) != sizeof(float)) break;
+  // Read Y value. Keep reading rows until no more found.
+  unsigned int nread = bIn.Read( &fval, sizeof(float) );
+  while (nread == sizeof(float)) {
     Yvals.push_back( (double)fval );
     bIn.Read( &Vals[0], ncols*sizeof(float) );
     for (std::vector<float>::const_iterator it = Vals.begin(); it != Vals.end(); ++it)
       matrix_Rmajor.push_back( (double)*it );
+    // Read next Y value
+    nread = bIn.Read( &fval, sizeof(float) );
   }
   bIn.CloseFile();
   mprintf("\t%zu rows, %i cols (%zu), %zu vals\n", Yvals.size(), ncols, Xvals.size(), matrix_Rmajor.size());
@@ -215,33 +216,40 @@ DataIO_Gnuplot::LabelArray DataIO_Gnuplot::LabelArg( std::string const& labelarg
 }
 
 void DataIO_Gnuplot::WriteHelp() {
-  mprintf("\tnolabels:      Do not print axis labels.\n"
-          "\tusemap:        pm3d output with 1 extra empty row/col (may improve look).\n"
-          "\tpm3d:          Normal pm3d map output.\n"
-          "\tnopm3d:        Turn off pm3d\n"
-          "\tjpeg:          Plot will write to a JPEG file when used with gnuplot.\n"
+  mprintf("\tnolabels       : Do not print axis labels.\n"
+          "\tlabels         : Print axis labels.\n"
+          "\tusemap         : pm3d output with 1 extra empty row/col (may improve look).\n"
+          "\tpm3d           : Normal pm3d map output.\n"
+          "\tnopm3d         : Turn off pm3d\n"
+          "\tjpeg           : Plot will write to a JPEG file when used with gnuplot.\n"
+          "\ttitle          : Plot title. Default is file name.\n"
 //          "\tbinary:   Use binary output\n"
-          "\tnoheader:      Do not format plot; data output only.\n"
-          "\tpalette <arg>: Change gnuplot pm3d palette to <arg>:\n"
+          "\theader         : Write gnuplot header before data.\n"
+          "\tnoheader       : Do not format plot; data output only.\n"
+          "\ttitle <title>  : Set plot title (default file base name).\n"
+          "\tpalette <arg>  : Change gnuplot pm3d palette to <arg>:\n"
           "\t          'rgb'   - Red, yellow, green, cyan, blue, magenta, red.\n"
           "\t          'kbvyw' - Black, blue, violet, yellow, white.\n"
           "\t          'bgyr'  - Blue, green, yellow, red.\n"
           "\t          'gray'  - Grayscale.\n"
-          "\txlabels <labellist>: Set x axis labels with comma-separated list, e.g.\n"
+          "\txlabels <list> : Set x axis labels with comma-separated list, e.g.\n"
           "\t                     'xlabels X1,X2,X3'\n"
-          "\tylabels <labellist>: Set y axis labels.\n"
-          "\tzlabels <labellist>: Set z axis labels.\n");
+          "\tylabels <list> : Set y axis labels.\n"
+          "\tzlabels <list> : Set z axis labels.\n");
 }
 
 // DataIO_Gnuplot::processWriteArgs()
 int DataIO_Gnuplot::processWriteArgs(ArgList &argIn) {
+  if (argIn.hasKey("labels")) printLabels_ = true;
   if (argIn.hasKey("nolabels")) printLabels_ = false;
   if (argIn.hasKey("usemap")) pm3d_ = MAP;
   if (argIn.hasKey("pm3d")) pm3d_ = ON;
   if (argIn.hasKey("nopm3d")) pm3d_ = OFF;
   if (argIn.hasKey("jpeg")) jpegout_ = true;
   if (argIn.hasKey("binary")) binary_ = true;
+  if (argIn.hasKey("header")) writeHeader_ = true;
   if (argIn.hasKey("noheader")) writeHeader_ = false;
+  title_ = argIn.GetStringKey("title");
   if (!writeHeader_ && jpegout_) {
     mprintf("Warning: jpeg output not supported with 'noheader' option.\n");
     jpegout_ = false;
@@ -265,9 +273,12 @@ int DataIO_Gnuplot::processWriteArgs(ArgList &argIn) {
     }
   }
   // Label arguments
-  Xlabels_ = LabelArg( argIn.GetStringKey( "xlabels" ) );
-  Ylabels_ = LabelArg( argIn.GetStringKey( "ylabels" ) );
-  Zlabels_ = LabelArg( argIn.GetStringKey( "zlabels" ) );
+  if (argIn.Contains("xlabels"))
+    Xlabels_ = LabelArg( argIn.GetStringKey( "xlabels" ) );
+  if (argIn.Contains("ylabels"))
+    Ylabels_ = LabelArg( argIn.GetStringKey( "ylabels" ) );
+  if (argIn.Contains("zlabels"))
+    Zlabels_ = LabelArg( argIn.GetStringKey( "zlabels" ) );
   if (pm3d_ == MAP) useMap_ = true;
   return 0;
 }
@@ -306,7 +317,13 @@ void DataIO_Gnuplot::WriteRangeAndHeader(Dimension const& Xdim, size_t Xmax,
   file_.Printf("set yrange [%8.3f:%8.3f]\nset xrange [%8.3f:%8.3f]\n", 
          Ydim.Coord(0) - Ydim.Step(), Ydim.Coord(Ymax + 1),
          Xdim.Coord(0) - Xdim.Step(), Xdim.Coord(Xmax + 1));
-  file_.Printf("splot \"%s\"%s%s title \"%s\"\n", data_fname_.full(), binaryFlag, pm3dstr.c_str(), file_.Filename().base());
+  const char* tout;
+  if (!title_.empty())
+    tout = title_.c_str();
+  else
+    tout = file_.Filename().base();
+  file_.Printf("splot \"%s\"%s%s title \"%s\"\n", data_fname_.full(), binaryFlag, pm3dstr.c_str(),
+               tout);
 }
 
 // DataIO_Gnuplot::Finish()
@@ -384,7 +401,7 @@ const char* DataIO_Gnuplot::BasicPalette[]= {
 void DataIO_Gnuplot::WriteDefinedPalette(int ncolors) {
   float mincolor = -0.5;
   float maxcolor = (float)ncolors - 0.5;
-  file_.Printf("set cbrange [%8.3f:%8.3f]\nset cbtics %8.3f %8.3f 1.0\n",
+  file_.Printf("set cbrange [%8.3f:%8.3f]\nset cbtics %8.3f,%8.3f,1.0\n",
                mincolor, maxcolor, mincolor + 0.5, maxcolor - 0.5);
   file_.Printf("set palette maxcolors %i\n", ncolors);
   // NOTE: Giving gnuplot too many colors can mess up the palette 
@@ -581,13 +598,13 @@ int DataIO_Gnuplot::WriteSet2D( DataSet const& setIn ) {
       // Set up X and Y labels
       if (!Ylabels_.empty()) {
         if ( Ylabels_.size() != set.Nrows() )
-          mprintf("Warning: # of Ylabels (%zu) does not match Y dimension (%u)\n",
+          mprintf("Warning: # of Ylabels (%zu) does not match Y dimension (%zu)\n",
                   Ylabels_.size(), set.Nrows());
         WriteLabels(Ylabels_, Ydim, 'y');
       }
       if (!Xlabels_.empty()) {
         if ( Xlabels_.size() != set.Ncols() )
-          mprintf("Warning: # of Xlabels (%zu) does not match X dimension (%u)\n",
+          mprintf("Warning: # of Xlabels (%zu) does not match X dimension (%zu)\n",
                   Xlabels_.size(), set.Ncols());
         WriteLabels(Xlabels_, Xdim, 'x'); 
       }

@@ -47,7 +47,7 @@ int AnalysisList::DoAnalyses() {
   for (Aarray::const_iterator ana = analysisList_.begin(); ana != analysisList_.end(); ++ana)
   {
     if ( ana->status_ == SETUP ) {
-      mprintf("  %u: [%s]\n", ana - analysisList_.begin(), ana->args_.ArgLine());
+      mprintf("  %li: [%s]\n", ana - analysisList_.begin(), ana->args_.ArgLine());
       if (ana->ptr_->Analyze()==Analysis::ERR) {
         mprinterr("Error: In Analysis [%s]\n", ana->args_.Command()); // TODO exit? Set INACTIVE?
         ++err;
@@ -63,6 +63,6 @@ void AnalysisList::List() const {
   if (!analysisList_.empty()) {
     mprintf("\nANALYSES (%zu total):\n", analysisList_.size());
     for (Aarray::const_iterator ana = analysisList_.begin(); ana != analysisList_.end(); ++ana)
-      mprintf("  %u: [%s]\n", ana - analysisList_.begin(), ana->args_.ArgLine());
+      mprintf("  %li: [%s]\n", ana - analysisList_.begin(), ana->args_.ArgLine());
   }
 }

@@ -1,7 +1,8 @@
 #ifndef INC_DATASET_COORDS_REF_H
 #define INC_DATASET_COORDS_REF_H
 #include "DataSet_Coords.h"
-#include "ArgList.h"
+// Forward declarations
+class ArgList;
 /// Store a single reference frame in double precision.
 class DataSet_Coords_REF : public DataSet_Coords {
   public:
@@ -17,17 +18,18 @@ class DataSet_Coords_REF : public DataSet_Coords {
     void Add( size_t, const void* )              { return;     }
     // Size is only ever 1, no need to allocate.
     int Allocate(SizeArray const&)               { return 0;   }
+    size_t MemUsageInBytes() const { return frame_.DataSize(); }
     // ----- DataSet_Coords functions ------------
     /// Add a frame.
-    inline void AddFrame(Frame const& fIn) { frame_ = fIn; }
+    void AddFrame(Frame const&);
     /// Get a frame at position.
-    inline void GetFrame(int idx, Frame& fIn) { fIn = frame_; }
+    void GetFrame(int idx, Frame& fIn) { fIn.SetFrame( frame_ ); }
     /// Get a frame at position corresponding to mask.
-    inline void GetFrame(int idx, Frame& fIn, AtomMask const& mIn) {
+    void GetFrame(int idx, Frame& fIn, AtomMask const& mIn) {
       fIn.SetFrame(frame_, mIn);
     }
     /// Set CRD at position with frame.
-    inline void SetCRD(int idx, Frame const& fIn) { frame_ = fIn; }
+    void SetCRD(int, Frame const&);
     /// Set Topology and coordinate info
     int CoordsSetup(Topology const&, CoordinateInfo const&);
     // -------------------------------------------

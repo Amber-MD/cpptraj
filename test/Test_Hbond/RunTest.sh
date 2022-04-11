@@ -3,11 +3,11 @@
 . ../MasterTest.sh
 
 # Clean
-CleanFiles hbond.in nhb.dat avghb.dat solvhb.dat solvavg.dat \
+CleanFiles hbond.in nhb.dat avghb.dat solvhb.dat solvavg.dat solutehb2.agr \
            nbb.dat hbavg.dat solutehb.agr lifehb.gnu avg.lifehb.gnu max.lifehb.gnu \
            crv.lifehb.gnu hb?.dat hbond.mol.dat mol.avg.dat \
            ud.dat uh.dat ua.dat \
-           bridgeintermol.dat avgbridgeintermol.dat noacut.dat
+           bridgeintermol.dat avgbridgeintermol.dat noacut.dat orthoavg.dat
 
 INPUT="-i hbond.in"
 
@@ -39,10 +39,29 @@ EOF
   fi
 }
 
+# Solute-solute, disk cache
+TestUUcache() {
+  UNITNAME='Solute Hbond test with disk caching'
+  CheckFor netcdf notparallel
+  if [ $? -eq 0 ] ; then
+    cat > hbond.in <<EOF
+noprogress
+parm ../DPDP.parm7
+trajin ../DPDP.nc
+usediskcache on
+hbond BB @N,H,C,O series
+run
+write solutehb2.agr BB[solutehb] sort
+EOF
+    RunCpptraj "$UNITNAME"
+    DoTest solutehb.agr.save solutehb2.agr
+  fi
+}
+
 # Solute-Solvent test
 TestUV() {
   UNITNAME='Solute-solvent hbond test'
-  CheckFor netcdf
+  CheckFor netcdf maxthreads 10
   if [ $? -eq 0 ] ; then
     cat > hbond.in <<EOF
 parm ../tz2.ortho.parm7
@@ -76,7 +95,7 @@ EOF
 # Nointramol test
 TestNointramol() {
   UNITNAME='Hbond, no intramolecular hydrogen bonds test'
-  CheckFor netcdf
+  CheckFor netcdf maxthreads 10
   if [ $? -eq 0 ] ; then
     cat > hbond.in <<EOF
 parm ../FtuFabI.NAD.TCL.parm7
@@ -139,13 +158,37 @@ EOF
   fi
 }
 
+TestImageOrtho() {
+  UNITNAME='Hbond, orthogonal imaging'
+  CheckFor netcdf maxthreads 1
+  if [ $? -eq 0 ] ; then
+    cat > hbond.in <<EOF
+parm ../tz2.ortho.parm7
+trajin ../tz2.ortho.nc
+#trajin temp.nc
+center :1-13 point 9.3 21.3 35.7
+image :WAT
+hbond hb image \
+      :1-13 solventacceptor :WAT@O solventdonor :WAT \
+      avgout orthoavg.dat \
+      solvout orthoavg.dat \
+      bridgeout orthoavg.dat
+EOF
+    RunCpptraj "$UNITNAME"
+    DoTest solvavg.dat.save orthoavg.dat
+  fi
+}
+
+
 TestUU
+TestUUcache
 TestUV
 TestNointramol
 SpecifiedSoluteMask
 NoAngleCut
 BridgeIntermol
 TestImage
+TestImageOrtho
 EndTest
 
 exit 0

@@ -1,8 +1,9 @@
 #ifndef INC_ACTION_NMRRST_H
 #define INC_ACTION_NMRRST_H
 #include "Action.h"
-#include "ImagedAction.h"
-#include "BufferedLine.h"
+#include "ImageOption.h"
+#include "CharMask.h"
+class BufferedLine;
 // Class: Action_NMRrst
 class Action_NMRrst: public Action {
   public:
@@ -56,8 +57,7 @@ class Action_NMRrst: public Action {
     int CheckSameResidue(Topology const&, AtomMask const&) const;
     void AnalyzeNoeArray(NOEtypeArray&, CpptrajFile*) const;
     
-    ImagedAction Image_;
-    Matrix_3x3 ucell_, recip_;
+    ImageOption imageOpt_; ///< Decide whether to use imaging
     std::string setname_;
     CpptrajFile* findOutput_;
     CpptrajFile* specOutput_;

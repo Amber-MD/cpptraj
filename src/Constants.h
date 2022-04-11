@@ -44,6 +44,8 @@ namespace Constants {
   const double CAL_TO_J = 4.184;
   /// Convert Joules to calories
   const double J_TO_CAL = 1.0 / CAL_TO_J;
+  /// One Debye in units of electron charge times Angstroms
+  const double DEBYE_EA = 0.20822678;
   /// Convert electron charge to Amber units (w/ prefactor)
   /** NOTE: This value is actually very low precision, but is used since this
     *       is the value used by LEaP. The actual conversion of Coulomb's
@@ -65,5 +67,15 @@ namespace Constants {
     * itself is derived from sqrt(1 / ((AMU_TO_KG * NA) / (1000 * CAL_TO_J))).
     */
   const double AMBERTIME_TO_PS = 20.455;
+  /// Pico prefix
+  const double PICO = 1e-12;
+  /// Convert Gromacs force units (kJ / mol * nm) to Amber units (kcal / mol * Ang)
+  const double GMX_FRC_TO_AMBER = ANG_TO_NM * J_TO_CAL;
+  /// Convert Amber force units to Gromacs
+  const double AMBER_FRC_TO_GMX = NM_TO_ANG * CAL_TO_J;
+  /// Convert Gromacs velocity units (nm / ps) to Amber units (Ang / (1/20.455)ps).
+  const double GMX_VEL_TO_AMBER = NM_TO_ANG / AMBERTIME_TO_PS;
+  /// Convert Amber velocity units to Gromacs
+  const double AMBER_VEL_TO_GMX = ANG_TO_NM * AMBERTIME_TO_PS;
 }
 #endif

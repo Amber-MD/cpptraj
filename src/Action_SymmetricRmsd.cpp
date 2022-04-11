@@ -23,7 +23,7 @@ Action::RetType Action_SymmetricRmsd::Init(ArgList& actionArgs, ActionInit& init
   DataFile* outfile = init.DFL().AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
   remap_ = actionArgs.hasKey("remap");
   // Reference keywords
-  REF_.InitRef(actionArgs, init.DSL(), fit, useMass);
+  if (REF_.InitRef(actionArgs, init.DSL(), fit, useMass)) return Action::ERR;
   // Get the RMS mask string for target
   std::string tMaskExpr = actionArgs.GetMaskNext();
   if (tgtMask_.SetMaskString( tMaskExpr )) return Action::ERR;
@@ -31,7 +31,7 @@ Action::RetType Action_SymmetricRmsd::Init(ArgList& actionArgs, ActionInit& init
   std::string rMaskExpr = actionArgs.GetMaskNext();
   if (rMaskExpr.empty())
     rMaskExpr = tMaskExpr;
-  REF_.SetRefMask( rMaskExpr );
+  if (REF_.SetRefMask( rMaskExpr )) return Action::ERR;
   // Initialize Symmetric RMSD calc.
   if (SRMSD_.InitSymmRMSD( fit, useMass, debugIn )) return Action::ERR;
 
@@ -104,8 +104,10 @@ Action::RetType Action_SymmetricRmsd::DoAction(int frameNum, ActionFrame& frm) {
     remapFrame_.SetCoordinatesByMap( frm.Frm(), targetMap_ );
     frm.SetFrame( &remapFrame_ );
   }
-  if ( SRMSD_.Fit() )
+  if ( SRMSD_.Fit() ) {
     frm.ModifyFrm().Trans_Rot_Trans( SRMSD_.TgtTrans(), SRMSD_.RotMatrix(), REF_.RefTrans() );
+    frm.ModifyFrm().ModifyBox().RotateUcell( SRMSD_.RotMatrix() );
+  }
   REF_.PreviousRef( frm.Frm() );
 
   return action_return_;

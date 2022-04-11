@@ -1,7 +1,9 @@
 #ifndef INC_DATAFILE_H
 #define INC_DATAFILE_H
-#include "DataIO.h"
 #include "FileTypes.h"
+#include "DataSetList.h"
+class FileName;
+class DataIO;
 /// Write DataSets to a file with specific format.
 class DataFile {
     /// Allocator and description for file types. 
@@ -14,20 +16,25 @@ class DataFile {
     /// Known data file formats.
     enum DataFormatType {
       DATAFILE=0, XMGRACE, GNUPLOT, XPLOR, OPENDX, REMLOG, MDOUT, EVECS,
-      VECTRAJ, XVG, CCP4, CMATRIX, NCCMATRIX, CHARMMREPD, CHARMMFASTREP,
-      CHARMMOUT, CPOUT, CHARMMRTFPRM, UNKNOWN_DATA 
+      VECTRAJ, XVG, CCP4, CHARMMREPD, CHARMMFASTREP,
+      CHARMMOUT, CPOUT, CHARMMRTFPRM, CMATRIX_BINARY, CMATRIX_NETCDF, PEAKS,
+      UNKNOWN_DATA 
     };
     DataFile();
     ~DataFile();
     // -------------------------------------------
     static void WriteHelp();
     /// List read options for each format.
-    static void ReadOptions() { FileTypes::ReadOptions(DF_KeyArray,DF_AllocArray, UNKNOWN_DATA); }
+    static void ReadOptions(std::string const& fkey) { FileTypes::Options(DF_KeyArray,DF_AllocArray, UNKNOWN_DATA, fkey, FileTypes::READOPT); }
     /// List write options for each format.
-    static void WriteOptions(){ FileTypes::WriteOptions(DF_WriteKeyArray,DF_AllocArray,UNKNOWN_DATA); }
+    static void WriteOptions(std::string const& fkey){ FileTypes::Options(DF_WriteKeyArray,DF_AllocArray,UNKNOWN_DATA, fkey, FileTypes::WRITEOPT); }
     /// \return Write format type from keyword in ArgList, or default
     static DataFormatType WriteFormatFromArg(ArgList& a, DataFormatType def) {
       return (DataFormatType)FileTypes::GetFormatFromArg(DF_WriteKeyArray,a,def);
+    }
+    /// \return Write format type from file name extension
+    static DataFormatType WriteFormatFromFname(FileName const& f, DataFormatType def) {
+      return (DataFormatType)FileTypes::GetTypeFromExtension(DF_WriteKeyArray,f.Ext(),def);
     }
     /// \return string corresponding to format.
     static const char* FormatString(DataFormatType t) {
@@ -46,20 +53,22 @@ class DataFile {
     int ReadDataIn(FileName const&, ArgList const&, DataSetList&, int, int);
     /// Read data from specific type of DataFile
     int ReadDataOfType(FileName const&, DataFormatType, DataSetList&);
+    /// Set up DataFile for writing, no args.
+    int SetupDatafile(FileName const&, int);
     /// Set up DataFile for writing with optional args.
     int SetupDatafile(FileName const&, ArgList&, int);
     /// Set up DataFile for writing with specific format.
     int SetupDatafile(FileName const&, ArgList&, DataFormatType, int);
     /// Set up DataFile for writing to STDOUT (DataIO_Std) with optional arguments
     int SetupStdout(ArgList&, int);
-    /// Set up DataFile for writing to STDOUT
-    int SetupStdout(int d) { ArgList tmp; return SetupStdout(tmp, d); }
-    /// Set up DataFile for writing, no args.
-    int SetupDatafile(FileName const& f, int d) { ArgList a; return SetupDatafile(f, a, d); }
+    /// Set up DataFile for writing to STDOUT with debug level
+    int SetupStdout(int);
     /// Add a previously set-up DataSet to DataFile.
     int AddDataSet(DataSet*);
     /// Remove a set from the DataFile.
     int RemoveDataSet(DataSet*);
+    /// \return True if this DataFile contains any of the sets in given DataSetList
+    bool ContainsAnyOfSets(std::vector<DataSet*> const&) const;
     /// Process DataFile-related arguments
     int ProcessArgs(ArgList&);
     int ProcessArgs(std::string const&); // TODO: Determine where this is used
@@ -80,7 +89,7 @@ class DataFile {
     /// \return DataFile format type.
     DataFormatType Type()          const { return dfType_;   }
 #   ifdef MPI
-    void SetThreadCanWrite(bool b)       { threadCanWrite_ = b; }
+    void SetProcessCanWrite(bool b)       { processCanWrite_ = b; }
 #   endif
   private:
     static DataIO* DetectFormat(FileName const&, DataFormatType&);
@@ -96,7 +105,7 @@ class DataFile {
     bool sortSets_;            ///< True: Sort sets before write.
     bool ensExt_;              ///< If true append ensemble member number to file
 #   ifdef MPI
-    bool threadCanWrite_;      ///< True if thread is writing to this file.
+    bool processCanWrite_;     ///< True if process is writing to this file.
 #   endif
     int default_width_;        ///< Default width of data sets added to this file.
     int default_precision_;    ///< Default precision of data sets added to this file.

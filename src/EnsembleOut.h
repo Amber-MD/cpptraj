@@ -1,6 +1,9 @@
 #ifndef INC_ENSEMBLEOUT_H
 #define INC_ENSEMBLEOUT_H
 #include "OutputTrajCommon.h"
+#include "FramePtrArray.h"
+// Forward Declarations
+class DataSetList;
 /// Write out an array of frames at a time.
 class EnsembleOut {
   public:
@@ -9,7 +12,7 @@ class EnsembleOut {
     void SetDebug(int d) { debug_ = d; }
     // ----- Inherited Functions -----------------
     /// Prepare ensemble for writing given format, no Topology setup.
-    virtual int InitEnsembleWrite(std::string const&, ArgList const&,
+    virtual int InitEnsembleWrite(std::string const&, ArgList const&, DataSetList const&,
                                   int, TrajectoryFile::TrajFormatType) = 0;
     /// Perform Topology-related setup for ensemble and open. TODO const&
     virtual int SetupEnsembleWrite(Topology*, CoordinateInfo const&, int) = 0;

@@ -1,12 +1,14 @@
 #include "MetaData.h"
-#include "CpptrajStdio.h" // FIXME remove dependency
+#include "CpptrajStdio.h"
 #include "StringRoutines.h"
 
-const char* MetaData::Smodes[] = {"distance","angle","torsion","pucker","rms","matrix","vector",0};
+const char* MetaData::Smodes[] = {"distance","angle","torsion","pucker","rms","matrix","vector","none"};
 const char* MetaData::Stypes[] = {
   // Torsions
-  "alpha", "beta", "gamma", "delta", "epsilon", "zeta", "nu1",   "nu2",
+  "alpha", "beta", "gamma", "delta", "epsilon", "zeta",
+  "nu0",   "nu1",  "nu2",   "nu3",   "nu4",
   "h1p",   "c2p",  "chin",  "phi",   "psi",     "chip", "omega",
+  "chi2",  "chi3", "chi4",  "chi5",
   // Pucker
   "pucker",
   // Distance
@@ -17,10 +19,12 @@ const char* MetaData::Stypes[] = {
   "IRED",        "dihedral covariance",
   // Vector
   "IRED",
-  0 };
+  "notype" };
 const MetaData::scalarMode MetaData::TypeModes[] = {
-  M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION,
+  M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION,
+  M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION,
   M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION,
+  M_TORSION, M_TORSION, M_TORSION, M_TORSION,
   M_PUCKER,
   M_DISTANCE,
   M_MATRIX,  M_MATRIX, M_MATRIX,

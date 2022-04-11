@@ -1,5 +1,8 @@
 #include <cstdlib> // getenv
 #include "Traj_Mol2File.h"
+#include "Topology.h"
+#include "ArgList.h"
+#include "Frame.h"
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
@@ -98,7 +101,7 @@ void Traj_Mol2File::WriteHelp() {
 }
 
 // Traj_Mol2File::processWriteArgs()
-int Traj_Mol2File::processWriteArgs(ArgList& argIn) {
+int Traj_Mol2File::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
   mol2WriteMode_ = SINGLE; // Default to single writes
   if (argIn.hasKey("single")) mol2WriteMode_ = MOL;
   if (argIn.hasKey("multi"))  mol2WriteMode_ = MULTI;
@@ -161,16 +164,29 @@ int Traj_Mol2File::setupTrajout(FileName const& fname, Topology* trajParm,
               mol2Top_->c_str());
       useSybylTypes_ = false;
     } else {
+      std::string pathname;
       // Attempt to load information. AMBERHOME must be set. TODO allow specified path
-      const char* AMBERHOME = getenv("AMBERHOME");
-      if (AMBERHOME == 0) {
-        mprinterr("Error: Amber to SYBYL atom type conversion requires AMBERHOME be set.\n");
+      const char* env = getenv("AMBERHOME");
+      if (env != 0) {
+        pathname.assign( env );
+        pathname.append("/dat/antechamber/");
+      }
+      if (pathname.empty()) {
+        env = getenv("CPPTRAJHOME");
+        if (env != 0) {
+          pathname.assign( env );
+          pathname.append("/dat/");
+        }
+      }
+      if (pathname.empty()) {
+        mprinterr("Error: Amber to SYBYL atom type conversion requires either AMBERHOME"
+                  "Error:  or CPPTRAJHOME to be set.\n");
         return 1;
       }
+      mprintf("Info: Using files in '%s' for atom type conversion.\n", pathname.c_str());
       file_.ClearAmberMapping();
-      std::string pathname(AMBERHOME);
-      if (file_.ReadAmberMapping(pathname+"/dat/antechamber/ATOMTYPE_CHECK.TAB",
-                                 pathname+"/dat/antechamber/BONDTYPE_CHECK.TAB", debug_))
+      if (file_.ReadAmberMapping(pathname + "ATOMTYPE_CHECK.TAB",
+                                 pathname + "BONDTYPE_CHECK.TAB", debug_))
       {
         mprinterr("Error: Loading Amber -> SYBYL type maps failed.\n");
         return 1;
@@ -185,7 +201,7 @@ int Traj_Mol2File::setupTrajout(FileName const& fname, Topology* trajParm,
   }
   // Set Title
   if (Title().empty())
-    SetTitle("Cpptraj generated mol2 file.");
+    SetTitle("Cpptraj Generated mol2 file.");
   file_.SetMol2Title( Title() );
   // Set up number of bonds
   file_.SetMol2Nbonds( mol2Top_->Bonds().size() + mol2Top_->BondsH().size() );

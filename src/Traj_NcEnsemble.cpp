@@ -1,8 +1,13 @@
 #ifdef BINTRAJ
 #ifdef ENABLE_SINGLE_ENSEMBLE
 #include "Traj_NcEnsemble.h"
+#include "Topology.h"
+#include "ArgList.h"
+#include "Frame.h"
+#include "CpptrajFile.h"
 #include "CpptrajStdio.h"
 #include "NC_Routines.h"
+#include "FrameArray.h"
 #ifdef MPI
 # include "Parallel.h"
 #endif
@@ -37,7 +42,7 @@ void Traj_NcEnsemble::ReadHelp() {
 }
 
 // Traj_NcEnsemble::processWriteArgs()
-int Traj_NcEnsemble::processWriteArgs(ArgList& argIn) {
+int Traj_NcEnsemble::processWriteArgs(ArgList& argIn, DataSetList const&) {
   //SetTemperature(argIn.hasKey("remdtraj"));
   //SetVelocity(argIn.hasKey("velocity"));
   return 0;
@@ -103,7 +108,7 @@ int Traj_NcEnsemble::setupTrajin(FileName const& fname, Topology* trajParm)
 # endif
   readAccess_ = true;
   filename_ = fname;
-  // NOTE: Setup opens and closes single thread for now
+  // NOTE: Setup opens and closes single process for now
   // Setup for Amber NetCDF ensemble
   if ( NC_setupRead(filename_.Full(), NC_AMBERENSEMBLE, trajParm->Natom(),
                     useVelAsCoords_, useFrcAsCoords_, debug_) )
@@ -167,8 +172,8 @@ int Traj_NcEnsemble::setupTrajout(FileName const& fname, Topology* trajParm,
 #   endif
     if (err != 0) return 1;
 #   ifdef MPI
-    // Synchronize netcdf info on non-master threads
-    Sync(Parallel::World());
+    // Broadcast netcdf info to non-master processes
+    Broadcast(Parallel::World());
     // DEBUG: Print info for all ranks
     DebugVIDs();
 #   endif
@@ -264,24 +269,26 @@ int Traj_NcEnsemble::readArray(int set, FrameArray& f_ensemble) {
     // Read Box
     if (cellLengthVID_ != -1) {
       count_[2] = 3;
+      double xyzabg[6];
 #     ifdef HAS_PNETCDF
-      if (checkPNCerr(ncmpi_get_vara_double_all(ncid_, cellLengthVID_, start_, count_, frm.bAddress())))
+      if (checkPNCerr(ncmpi_get_vara_double_all(ncid_, cellLengthVID_, start_, count_, xyzabg)))
 #     else
-      if (NC::CheckErr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, frm.bAddress())))
+      if (NC::CheckErr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, xyzabg)))
 #     endif
       {
         rprinterr("Error: Getting cell lengths for frame %i.\n", set+1);
         return 1;
       }
 #     ifdef HAS_PNETCDF
-      if (checkPNCerr(ncmpi_get_vara_double_all(ncid_, cellAngleVID_, start_, count_, frm.bAddress()+3)))
+      if (checkPNCerr(ncmpi_get_vara_double_all(ncid_, cellAngleVID_, start_, count_, xyzabg+3)))
 #     else
-      if (NC::CheckErr(nc_get_vara_double(ncid_, cellAngleVID_, start_, count_, frm.bAddress()+3)))
+      if (NC::CheckErr(nc_get_vara_double(ncid_, cellAngleVID_, start_, count_, xyzabg+3)))
 #     endif
       {
         rprinterr("Error: Getting cell angles for frame %i.\n", set+1);
         return 1;
       }
+      frm.ModifyBox().AssignFromXyzAbg( xyzabg );
     }
     // Read Temperature
     if (TempVID_!=-1) {
@@ -375,20 +382,22 @@ int Traj_NcEnsemble::writeArray(int set, FramePtrArray const& Farray) {
     }
     // Write box
     if (cellLengthVID_ != -1) {
+      if (!frm->BoxCrd().Is_X_Aligned())
+      mprintf("Warning: Set %i; unit cell is not X-aligned. Box cannot be properly stored as Amber NetCDF ensemble.\n", set+1);
       count_[2] = 3;
 #     ifdef HAS_PNETCDF
-      if (ncmpi_put_vara_double_all(ncid_,cellLengthVID_,start_,count_,frm->bAddress()))
+      if (ncmpi_put_vara_double_all(ncid_,cellLengthVID_,start_,count_,frm->BoxCrd().XyzPtr()))
 #     else
-      if (NC::CheckErr(nc_put_vara_double(ncid_,cellLengthVID_,start_,count_,frm->bAddress())) )
+      if (NC::CheckErr(nc_put_vara_double(ncid_,cellLengthVID_,start_,count_,frm->BoxCrd().XyzPtr())) )
 #     endif
       {
         mprinterr("Error: Writing cell lengths frame %i.\n", set+1);
         return 1;
       }
 #     ifdef HAS_PNETCDF
-      if (ncmpi_put_vara_double_all(ncid_,cellAngleVID_,start_,count_,frm->bAddress()+3))
+      if (ncmpi_put_vara_double_all(ncid_,cellAngleVID_,start_,count_,frm->BoxCrd().AbgPtr()))
 #     else
-      if (NC::CheckErr(nc_put_vara_double(ncid_,cellAngleVID_,start_,count_,frm->bAddress()+3)))
+      if (NC::CheckErr(nc_put_vara_double(ncid_,cellAngleVID_,start_,count_,frm->BoxCrd().AbgPtr())))
 #     endif
       {
         mprinterr("Error: Writing cell angles frame %i.\n", set+1);

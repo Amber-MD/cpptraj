@@ -28,6 +28,13 @@ int BufferedLine::ResetBuffer() {
   return 0;
 } 
 
+/** Open file for reading with given buffer size. */
+int BufferedLine::OpenFileRead(FileName const& fnameIn, size_t bufsize) {
+  currentBufSize_ = bufsize;
+  if (OpenRead( fnameIn )) return 1;
+  return ResetBuffer();
+}
+
 // BufferedLine::Line()
 const char* BufferedLine::Line() {
   bufferPosition_ = lineEnd_;
@@ -45,12 +52,17 @@ const char* BufferedLine::Line() {
       if (bufferRemainder == currentBufSize_) break;
       std::copy(bufferPosition_, bufferPosition_ + bufferRemainder, buffer_);
       int Nread = Read(buffer_ + bufferRemainder, currentBufSize_ - bufferRemainder);
-      //mprintf("DEBUG: Attempted read of %zu bytes, actually read %i bytes.\n",
-      //        currentBufSize_ - bufferRemainder, Nread);
-      if (Nread < 1) return 0;
+      //mprintf("DEBUG: Attempted read of %zu bytes, actually read %i bytes (remainder %zu).\n",
+      //        currentBufSize_ - bufferRemainder, Nread, bufferRemainder);
+      // Set buffer position
       bufferPosition_ = buffer_;
       lineEnd_ = buffer_ + bufferRemainder;
       endBuffer_ = lineEnd_ + (size_t)Nread;
+      if (Nread < 1) {
+        // If nothing was read and no previous buffer, set null.
+        if (bufferRemainder == 0) buffer_[0] = '\0';
+        return 0;
+      }
     }
     if ( *lineEnd_ == '\n') { // End of the line. Replace with null char.
       *(lineEnd_++) = '\0';

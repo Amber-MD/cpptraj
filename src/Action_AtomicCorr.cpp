@@ -42,7 +42,7 @@ Action::RetType Action_AtomicCorr::Init(ArgList& actionArgs, ActionInit& init, i
     acorr_mode_ = ATOM;
   else if (actionArgs.hasKey("byres"))
     acorr_mode_ = RES;
-  mask_.SetMaskString( actionArgs.GetMaskNext() );
+  if (mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
   
   // Set up DataSet
   dset_ = init.DSL().AddSet( DataSet::MATRIX_FLT, actionArgs.GetStringNext(), "ACorr" );

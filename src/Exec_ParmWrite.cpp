@@ -5,8 +5,8 @@
 void Exec_ParmWrite::Help() const {
   mprintf("\tout <filename> [{%s | crdset <setname>}] [<fmt>]\n\t[<Format Options>]\n",
           DataSetList::TopIdxArgs);
-  mprintf("  Write specified topology or topology from COORDS set to <filename>.\n");
-  ParmFile::WriteOptions();
+  mprintf("  Write specified topology or topology from COORDS set to <filename>.\n"
+          "  Use 'help Formats parmwrite' for format-specific help.\n");
 }
 
 Exec::RetType Exec_ParmWrite::Execute(CpptrajState& State, ArgList& argIn) {
@@ -24,7 +24,7 @@ Exec::RetType Exec_ParmWrite::Execute(CpptrajState& State, ArgList& argIn) {
     if (parm == 0) return CpptrajState::ERR;
     err = pfile.WriteTopology( *parm, outfilename, argIn, ParmFile::UNKNOWN_PARM, State.Debug() );
   } else {
-    DataSet_Coords* ds = (DataSet_Coords*)State.DSL().FindCoordsSet(crdset);
+    DataSet_Coords* ds = (DataSet_Coords*)State.DSL().FindSetOfGroup(crdset, DataSet::COORDINATES);
     if (ds == 0) return CpptrajState::ERR;
     mprintf("\tUsing topology from data set '%s'\n", ds->legend());
     err = pfile.WriteTopology(ds->Top(), outfilename, argIn, ParmFile::UNKNOWN_PARM, State.Debug());

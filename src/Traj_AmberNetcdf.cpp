@@ -3,8 +3,12 @@
 // netcdf trajectory files used with amber.
 // Dan Roe 10-2008
 // Original implementation of netcdf in Amber by John Mongan.
-#include "Traj_AmberNetcdf.h"
 #include <netcdf.h>
+#include "Traj_AmberNetcdf.h"
+#include "CpptrajFile.h"
+#include "ArgList.h"
+#include "Topology.h"
+#include "Frame.h"
 #include "CpptrajStdio.h"
 #include "NC_Routines.h"
 #ifdef MPI
@@ -97,7 +101,7 @@ void Traj_AmberNetcdf::WriteHelp() {
 }
 
 // Traj_AmberNetcdf::processWriteArgs()
-int Traj_AmberNetcdf::processWriteArgs(ArgList& argIn) {
+int Traj_AmberNetcdf::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
   outputTemp_ = argIn.hasKey("remdtraj");
   write_mdcrd_ = argIn.hasKey("mdcrd");
   if (argIn.hasKey("velocity"))
@@ -257,18 +261,20 @@ int Traj_AmberNetcdf::readFrame(int set, Frame& frameIn) {
 
   // Read box info 
   if (cellLengthVID_ != -1) {
+    double xyzabg[6];
     count_[1] = 3;
     count_[2] = 0;
-    if (NC::CheckErr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, frameIn.bAddress())))
+    if (NC::CheckErr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, xyzabg)))
     {
       mprinterr("Error: Getting cell lengths for frame %i.\n", set+1);
       return 1;
     }
-    if (NC::CheckErr(nc_get_vara_double(ncid_, cellAngleVID_, start_, count_, frameIn.bAddress()+3)))
+    if (NC::CheckErr(nc_get_vara_double(ncid_, cellAngleVID_, start_, count_, xyzabg+3)))
     {
       mprinterr("Error: Getting cell angles for frame %i.\n", set+1);
       return 1;
     }
+    frameIn.ModifyBox().AssignFromXyzAbg( xyzabg );
   }
 
   return 0;
@@ -354,16 +360,18 @@ int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
 
   // Write box
   if (cellLengthVID_ != -1) {
+    if (!frameOut.BoxCrd().Is_X_Aligned())
+      mprintf("Warning: Set %i; unit cell is not X-aligned. Box cannot be properly stored as Amber NetCDF trajectory.\n", set+1);
     count_[1] = 3;
     count_[2] = 0;
     if (NC::CheckErr(nc_put_vara_double(ncid_, cellLengthVID_, start_, count_,
-                                        frameOut.bAddress())) )
+                                        frameOut.BoxCrd().XyzPtr())) )
     {
       mprinterr("Error: Writing cell lengths frame %i.\n", set+1);
       return 1;
     }
     if (NC::CheckErr(nc_put_vara_double(ncid_, cellAngleVID_, start_, count_, 
-                                        frameOut.bAddress()+3)) )
+                                        frameOut.BoxCrd().AbgPtr())) )
     {
       mprinterr("Error: Writing cell angles frame %i.\n", set+1);
       return 1;
@@ -453,8 +461,8 @@ int Traj_AmberNetcdf::parallelSetupTrajout(FileName const& fname, Topology* traj
   }
   commIn.MasterBcast(&err, 1, MPI_INT);
   if (err != 0) return 1;
-  // Synchronize netcdf info on non-master threads.
-  Sync(commIn);
+  // Broadcast netcdf info to non-master processes.
+  Broadcast(commIn);
   if (!commIn.Master()) {
     // Non masters need filename and allocate Coord
     filename_ = fname;
@@ -493,11 +501,13 @@ int Traj_AmberNetcdf::parallelReadFrame(int set, Frame& frameIn) {
   pcount_[2] = 0;
   if (cellLengthVID_ != -1) {
     pcount_[1] = 3;
+    double xyzabg[6];
     //err = ncmpi_get_vara_double_all(ncid_, cellLengthVID_, pstart_, pcount_, frameIn.bAddress());
-    err = ncmpi_get_vara_double(ncid_, cellLengthVID_, pstart_, pcount_, frameIn.bAddress());
+    err = ncmpi_get_vara_double(ncid_, cellLengthVID_, pstart_, pcount_, xyzabg);
     if (checkPNCerr(err)) return Parallel::Abort(err);
     //err = ncmpi_get_vara_double_all(ncid_, cellAngleVID_, pstart_, pcount_, frameIn.bAddress()+3);
-    err = ncmpi_get_vara_double(ncid_, cellAngleVID_, pstart_, pcount_, frameIn.bAddress()+3);
+    err = ncmpi_get_vara_double(ncid_, cellAngleVID_, pstart_, pcount_, xyzabg+3);
+    frameIn.ModifyBox().AssignFromXyzAbg( xyzabg );
   }
   if (TempVID_ != -1) {
     //err = ncmpi_get_vara_double_all(ncid_, TempVID_, pstart_, pcount_, frameIn.tAddress());
@@ -552,10 +562,10 @@ int Traj_AmberNetcdf::parallelWriteFrame(int set, Frame const& frameOut) {
   if (cellLengthVID_ != -1) {
     pcount_[1] = 3;
     //err = ncmpi_put_vara_double_all(ncid_, cellLengthVID_, pstart_, pcount_, frameOut.bAddress());
-    err = ncmpi_put_vara_double(ncid_, cellLengthVID_, pstart_, pcount_, frameOut.bAddress());
+    err = ncmpi_put_vara_double(ncid_, cellLengthVID_, pstart_, pcount_, frameOut.BoxCrd().XyzPtr());
     if (checkPNCerr(err)) return Parallel::Abort(err);
     //err = ncmpi_put_vara_double_all(ncid_, cellAngleVID_, pstart_, pcount_, frameOut.bAddress()+3);
-    err = ncmpi_put_vara_double(ncid_, cellAngleVID_, pstart_, pcount_, frameOut.bAddress()+3);
+    err = ncmpi_put_vara_double(ncid_, cellAngleVID_, pstart_, pcount_, frameOut.BoxCrd().AbgPtr());
   }
   if (TempVID_ != -1) {
     //err = ncmpi_put_vara_double_all(ncid_, TempVID_, pstart_, pcount_, frameOut.tAddress());

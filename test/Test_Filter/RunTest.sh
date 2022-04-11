@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 # Clean
-CleanFiles filter.in filter.crd filter.dat datafilter.dat
+CleanFiles filter.in filter.crd filter.dat datafilter.dat A2.filtered.dat count.dat
 
 INPUT='filter.in'
 TOP='../tz2.truncoct.parm7'
@@ -30,9 +30,22 @@ fi
 cat > filter.in <<EOF
 readdata ../Test_Diffusion/diff_a.xmgr.save index 1 name A as dat
 datafilter A:2 A:3 min 0.0 max 1.2 out datafilter.dat multi name FA
+datafilter A:2 min 0.0 max 1.2 filterset A:2
+writedata A2.filtered.dat A:2
+list
 EOF
 RunCpptraj "Data filter test."
 DoTest datafilter.dat.save datafilter.dat
+DoTest A2.filtered.dat.save A2.filtered.dat
+
+# Test filtering 2D matrix
+cat > filter.in <<EOF
+readdata ../Test_Matrix/mtest.dat.13.save name Mat read2d square2d
+datafilter Mat min .001 max .003 countout count.dat noxcol name Filtered
+list
+EOF
+RunCpptraj "Filter matrix test."
+DoTest count.dat.save count.dat
 
 EndTest
 

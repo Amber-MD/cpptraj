@@ -32,6 +32,11 @@ class Dimension {
       if (min_ != rhs.min_ || step_ != rhs.step_) return true;
       return false;
     }
+    /// \return true if this dim min/step equal to given min/step.
+    bool operator==(const Dimension& rhs) const {
+      if (min_ != rhs.min_ || step_ != rhs.step_) return false;
+      return true;
+    }
     /// Set dimension with given min, step, and label.
     void SetDimension(double m, double s, std::string const& l) {
       label_ = l;
@@ -59,9 +64,10 @@ bool Dimension::SetDimension(std::vector<double> const& Vals, std::string const&
   bool isMonotonic = true;
   double step = 1.0;
   if (Vals.size() > 1) {
-    step = (Vals.back() - Vals.front()) / (double)(Vals.size() - 1);
+    // First step
+    step = Vals[1] - Vals[0];
     for (std::vector<double>::const_iterator X = Vals.begin()+2; X != Vals.end(); ++X)
-      if ((*X - *(X-1)) - step > 0.00000000000001) {
+      if ((*X - *(X-1)) - step > 0.000000000001) {
         isMonotonic = false;
         break;
       }

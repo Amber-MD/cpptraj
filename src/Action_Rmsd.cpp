@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString
 #include "DataSet_Mesh.h"
+#include "DataSet_Vector.h"
 
 // CONSTRUCTOR
 Action_Rmsd::Action_Rmsd() :
@@ -67,7 +68,7 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, ActionInit& init, int deb
   if (tvecType_ != NO_TVEC)
     vecsOut = init.DFL().AddDataFile(actionArgs.GetStringKey("vecsout"));
   // Reference keywords
-  REF_.InitRef(actionArgs, init.DSL(), fit_, useMass_ );
+  if (REF_.InitRef(actionArgs, init.DSL(), fit_, useMass_ )) return Action::ERR;
   // Per-res keywords
   perres_ = actionArgs.hasKey("perres");
   if (perres_) {
@@ -88,15 +89,18 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, ActionInit& init, int deb
   }
   // Get the RMS mask string for target
   std::string tMaskExpr = actionArgs.GetMaskNext();
-  tgtMask_.SetMaskString(tMaskExpr);
+  if (tgtMask_.SetMaskString(tMaskExpr)) return Action::ERR;
   // Get the RMS mask string for reference
   std::string rMaskExpr = actionArgs.GetMaskNext();
   if (rMaskExpr.empty())
     rMaskExpr = tMaskExpr;
-  REF_.SetRefMask( rMaskExpr );
+  if (REF_.SetRefMask( rMaskExpr )) return Action::ERR;
 
   // Set up the RMSD data set.
-  MetaData md( actionArgs.GetStringNext(), MetaData::M_RMS ); 
+  std::string dsname = actionArgs.GetStringNext();
+  if (dsname.empty())
+    dsname = init.DSL().GenerateDefaultName("RMSD");
+  MetaData md( dsname, MetaData::M_RMS ); 
   rmsd_ = init.DSL().AddSet(DataSet::DOUBLE, md, "RMSD");
   if (rmsd_==0) return Action::ERR;
   // Add dataset to data file list
@@ -120,6 +124,10 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, ActionInit& init, int deb
       return Action::ERR;
     }
     tvecs_ = (DataSet_Vector*)init.DSL().AddSet(DataSet::VECTOR, md);
+    //if (tvecType_ == COMBINED)
+    //  tvecs_ = (DataSet_Vector*)init.DSL().AddSet(DataSet::VEC_XYZ, md);
+    //else // SEPARATE
+    //  tvecs_ = (DataSet_Vector*)init.DSL().AddSet(DataSet::VEC_OXYZ, md);
     if (tvecs_ == 0) return Action::ERR;
     if (vecsOut != 0) vecsOut->AddDataSet( tvecs_ );
   }
@@ -245,8 +253,8 @@ int Action_Rmsd::perResSetup(Topology const& currentParm, Topology const& refPar
       }
       if (perresout_ != 0) perresout_->AddDataSet( p.data_ );
       // Setup mask strings. Note that masks are based off user residue nums
-      p.tgtResMask_.SetMaskString(":" + integerToString(tgtRes) + perresmask_);
-      p.refResMask_.SetMaskString(":" + integerToString(refRes) + perresmask_);
+      if (p.tgtResMask_.SetMaskString(":" + integerToString(tgtRes) + perresmask_)) return 2;
+      if (p.refResMask_.SetMaskString(":" + integerToString(refRes) + perresmask_)) return 2;
       ResidueRMS_.push_back( p );
       PerRes = ResidueRMS_.end() - 1;
     }
@@ -320,6 +328,14 @@ Action::RetType Action_Rmsd::Setup(ActionSetup& setup) {
     mprintf("Warning: No atoms in mask '%s'.\n", tgtMask_.MaskString());
     return Action::SKIP;
   }
+  if ( fit_ && tgtMask_.Nselected() < 3 ) {
+    mprintf("Warning: Less than 3 atoms selected for best-fit RMSD. Cannot fully\n"
+            "Warning:   populate the coordinate covariance matrix.\n");
+    if (debug_ == 0) {
+      mprintf("Warning: Skipping.\n");
+      return Action::SKIP;
+    }
+  }
   // Allocate space for selected atoms in the frame. This will also put the
   // correct masses in based on the mask.
   tgtFrame_.SetupFrameFromMask(tgtMask_, setup.Top().Atoms());
@@ -336,15 +352,6 @@ Action::RetType Action_Rmsd::Setup(ActionSetup& setup) {
     int err = perResSetup(setup.Top(), *RefParm);
     if      (err == 1) return Action::SKIP;
     else if (err == 2) return Action::ERR;
-  }
-
-  // Warn if PBC and rotating
-  if (fit_) {
-    if (mode_ == ROT_AND_TRANS && setup.CoordInfo().TrajBox().Type() != Box::NOBOX) {
-      mprintf("Warning: Coordinates are being rotated and box coordinates are present.\n"
-              "Warning: Unit cell vectors are NOT rotated; imaging will not be possible\n"
-              "Warning:  after the RMS-fit is performed.\n");
-    }
   }
 
   return Action::OK;
@@ -367,10 +374,11 @@ Action::RetType Action_Rmsd::DoAction(int frameNum, ActionFrame& frm) {
     if (tvecType_ == COMBINED)
       tvecs_->AddVxyz( tgtTrans_ + REF_.RefTrans() );
     else if (tvecType_ == SEPARATE)
-      tvecs_->AddVxyz( tgtTrans_, REF_.RefTrans() );
+      tvecs_->AddVxyzo( tgtTrans_, REF_.RefTrans() );
     switch (mode_) {
       case ROT_AND_TRANS:
         frm.ModifyFrm().Trans_Rot_Trans(tgtTrans_, rot_, REF_.RefTrans());
+        frm.ModifyFrm().ModifyBox().RotateUcell( rot_ );
         err = Action::MODIFY_COORDS;
         break;
       case TRANS_ONLY:

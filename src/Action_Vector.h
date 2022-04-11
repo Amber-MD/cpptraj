@@ -1,7 +1,8 @@
 #ifndef INC_ACTION_VECTOR_H
 #define INC_ACTION_VECTOR_H
 #include "Action.h"
-#include "DataSet_Vector.h"
+class DataSet_Vector;
+class DataSet_3D;
 class Action_Vector : public Action {
   public:
     Action_Vector();
@@ -11,11 +12,12 @@ class Action_Vector : public Action {
   private:
     enum vectorMode {
       NO_OP=0,   PRINCIPAL_X, PRINCIPAL_Y, PRINCIPAL_Z,
-      DIPOLE,    BOX,         MASK,        IRED,
+      DIPOLE,    BOX,         MASK,
       CORRPLANE, CENTER,      BOX_X,       BOX_Y,       BOX_Z,
-      BOX_CTR,   MINIMAGE,    MOMENTUM
+      BOX_CTR,   MINIMAGE,    MOMENTUM,    VELOCITY,    FORCE
     };
-    static const char* ModeString[];
+    static const char* ModeString_[];
+    static const bool NeedsOrigin_[];
 
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
@@ -28,11 +30,13 @@ class Action_Vector : public Action {
     void Dipole(Frame const&);
     void Principal(Frame const&);
     void CorrPlane(Frame const&);
-    void UnitCell(Box const&);
+    void UnitCell(Box const&, Vec3 const&);
+    void BoxLengths(Box const&);
     void MinImage(Frame const&);
 
     DataSet_Vector* Vec_;   ///< Hold vector values
     DataSet* Magnitude_;    ///< Hold vector magnitudes if requested
+    DataSet_3D* gridSet_;   ///< Hold grid set for getting box vectors from grid.
     double* vcorr_;         ///< Temp. space for calculating CorrPlane
     vectorMode mode_;       ///< Vector calculation mode
     bool ptrajoutput_;      ///< If true output in ptraj format

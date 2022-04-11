@@ -1,0 +1,10 @@
+#Clustering: 2 clusters 100 frames
+#Cluster 0 has average-distance-to-centroid 1.316672
+#Cluster 1 has average-distance-to-centroid 0.775577
+#DBI: 0.515149
+#pSF: 161.163343
+#SSR/SST: 0.621860
+#Algorithm: Kmeans nclusters 2 maxit 100
+XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX......XX..XX....XXXXXX....XXXXXX..XX..XXXX
+..........................................................XXXXXX..XX..XXXX......XXXX......XX..XX....
+#Representative frames: { 44 122.739 51 123.016 38 123.137 97 123.541 49 124.087 } { 60 18.9044 68 19.2456 72 19.5312 61 19.6654 64 19.6786 }

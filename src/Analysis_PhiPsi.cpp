@@ -1,5 +1,6 @@
 #include "Analysis_PhiPsi.h"
 #include "CpptrajStdio.h"
+#include "DataSet_1D.h"
 
 Analysis_PhiPsi::Analysis_PhiPsi() {}
 
@@ -49,8 +50,8 @@ Analysis::RetType Analysis_PhiPsi::Setup(ArgList& analyzeArgs, AnalysisSetup& se
       }
     }
     if (phi != 0 && psi != 0) {
-      input_dsets_.push_back((DataSet_1D*)phi);
-      input_dsets_.push_back((DataSet_1D*)psi);
+      input_dsets_.push_back(phi);
+      input_dsets_.push_back(psi);
     } else {
       if (phi == 0) mprintf("Warning: PHI not found for residue %i\n", *res);
       if (psi == 0) mprintf("Warning: PSI not found for residue %i\n", *res);
@@ -61,7 +62,7 @@ Analysis::RetType Analysis_PhiPsi::Setup(ArgList& analyzeArgs, AnalysisSetup& se
     return Analysis::ERR;
   }
 
-  mprintf("    PHIPSI: Calculating average/stdev of %i phi/psi pairs (%zu sets).\n",
+  mprintf("    PHIPSI: Calculating average/stdev of %zu phi/psi pairs (%zu sets).\n",
           input_dsets_.size() / 2, input_dsets_.size());
   if (debugIn > 0)
     for (Array1D::const_iterator set = input_dsets_.begin(); set != input_dsets_.end(); ++set)

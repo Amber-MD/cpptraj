@@ -1,7 +1,10 @@
 # These files are common to cpptraj/libcpptraj. Files that need to be built
 # differently for each will go into SOURCES/LIBCPPTRAJ_OBJECTS respectively.
-COMMON_SOURCES=ActionFrameCounter.cpp \
+COMMON_SOURCES= \
+        SpaceGroup.cpp \
+        ActionFrameCounter.cpp \
         ActionList.cpp \
+        ActionTopWriter.cpp \
         Action_Align.cpp \
         Action_Angle.cpp \
         Action_AreaPerMol.cpp \
@@ -26,6 +29,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Action_Density.cpp \
         Action_Diffusion.cpp \
         Action_Dihedral.cpp \
+        Action_DihedralRMS.cpp \
         Action_Dipole.cpp \
         Action_Distance.cpp \
         Action_DistRmsd.cpp \
@@ -40,6 +44,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Action_Image.cpp \
         Action_InfraredSpectrum.cpp \
         Action_Jcoupling.cpp \
+        Action_Keep.cpp \
         Action_LESsplit.cpp \
         Action_LIE.cpp \
         Action_LipidOrder.cpp \
@@ -49,6 +54,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Action_MinImage.cpp \
         Action_Molsurf.cpp \
         Action_MultiDihedral.cpp \
+        Action_MultiPucker.cpp \
         Action_MultiVector.cpp \
         Action_NAstruct.cpp \
         Action_NativeContacts.cpp \
@@ -76,6 +82,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Action_Surf.cpp \
         Action_SymmetricRmsd.cpp \
         Action_Temperature.cpp \
+        Action_Time.cpp \
         Action_Translate.cpp \
         Action_Unstrip.cpp \
         Action_Unwrap.cpp \
@@ -84,6 +91,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Action_Volmap.cpp \
         Action_Volume.cpp \
         Action_Watershell.cpp \
+        Action_XtalSymm.cpp \
         AnalysisList.cpp \
         Analysis_AmdBias.cpp \
         Analysis_AutoCorr.cpp \
@@ -96,7 +104,9 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Analysis_CrossCorr.cpp \
         Analysis_CurveFit.cpp \
         Analysis_Divergence.cpp \
+        Analysis_EvalPlateau.cpp \
         Analysis_FFT.cpp \
+        Analysis_HausdorffDistance.cpp \
         Analysis_Hist.cpp \
         Analysis_Integrate.cpp \
         Analysis_IRED.cpp \
@@ -116,6 +126,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Analysis_RmsAvgCorr.cpp \
         Analysis_Rotdif.cpp \
         Analysis_RunningAvg.cpp \
+        Analysis_Slope.cpp \
         Analysis_Spline.cpp \
         Analysis_State.cpp \
         Analysis_Statistics.cpp \
@@ -129,33 +140,25 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Atom.cpp \
         AtomMap.cpp \
         AtomMask.cpp \
-        AtomType.cpp \
-        AtomTypeArray.cpp \
         AxisType.cpp \
         BondSearch.cpp \
         Box.cpp \
+        BoxArgs.cpp \
         BufferedFrame.cpp \
         BufferedLine.cpp \
         ByteRoutines.cpp \
         CharMask.cpp \
+        CharmmParamFile.cpp \
+        Chirality.cpp \
         CIFfile.cpp \
-        ClusterDist.cpp \
-        ClusterList.cpp \
         ClusterMap.cpp \
-        ClusterMatrix.cpp \
-        ClusterNode.cpp \
-        ClusterSieve.cpp \
-        Cluster_DBSCAN.cpp \
-        Cluster_DPeaks.cpp \
-        Cluster_HierAgglo.cpp \
-        Cluster_Kmeans.cpp \
-        Cluster_ReadInfo.cpp \
         Cmd.cpp \
         CmdInput.cpp \
         CmdList.cpp \
+        CompactFrameArray.cpp \
         ComplexArray.cpp \
         Constraints.cpp \
-        Control.cpp \
+        ControlBlock_For.cpp \
         CoordinateInfo.cpp \
         Corr.cpp \
         Cph.cpp \
@@ -165,20 +168,22 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         CurveFit.cpp \
         DataFile.cpp \
         DataFileList.cpp \
+        DataFilter.cpp \
         DataIO.cpp \
         DataIO_CCP4.cpp \
         DataIO_CharmmFastRep.cpp \
         DataIO_CharmmOutput.cpp \
         DataIO_CharmmRepLog.cpp \
         DataIO_CharmmRtfPrm.cpp \
-        DataIO_Cmatrix.cpp \
+        DataIO_Cmatrix_Binary.cpp \
+        DataIO_Cmatrix_NC.cpp \
         DataIO_Cpout.cpp \
         DataIO_Evecs.cpp \
         DataIO_Gnuplot.cpp \
         DataIO_Grace.cpp \
         DataIO_OpenDx.cpp \
+        DataIO_Peaks.cpp \
         DataIO_Mdout.cpp \
-        DataIO_NC_Cmatrix.cpp \
         DataIO_RemLog.cpp \
         DataIO_Std.cpp \
         DataIO_VecTraj.cpp \
@@ -188,10 +193,6 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         DataSetList.cpp \
         DataSet_1D.cpp \
         DataSet_3D.cpp \
-        DataSet_Cmatrix.cpp \
-        DataSet_Cmatrix_DISK.cpp \
-        DataSet_Cmatrix_MEM.cpp \
-        DataSet_Cmatrix_NOMEM.cpp \
         DataSet_Coords.cpp \
         DataSet_Coords_CRD.cpp \
         DataSet_Coords_REF.cpp \
@@ -203,6 +204,9 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         DataSet_MatrixFlt.cpp \
         DataSet_Mesh.cpp \
         DataSet_Modes.cpp \
+        DataSet_PairwiseCache.cpp \
+        DataSet_PairwiseCache_MEM.cpp \
+        DataSet_PairwiseCache_NC.cpp \
         DataSet_Parameters.cpp \
         DataSet_pH.cpp \
         DataSet_PHREMD_Explicit.cpp \
@@ -210,15 +214,20 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         DataSet_RemLog.cpp \
         DataSet_Topology.cpp \
         DataSet_Vector.cpp \
+        DataSet_Vector_Scalar.cpp \
         DataSet_double.cpp \
         DataSet_float.cpp \
-        DataSet_integer.cpp \
+        DataSet_integer_disk.cpp \
+        DataSet_integer_mem.cpp \
         DataSet_string.cpp \
+        DataSet_StringVar.cpp \
+        DataSet_Tensor.cpp \
+        DataSet_unsignedInt.cpp \
         Deprecated.cpp \
         DihedralSearch.cpp \
-        DispatchObject.cpp \
         DistRoutines.cpp \
         Energy.cpp \
+        EnergyArray.cpp \
         EnsembleIn.cpp \
         EnsembleIn_Multi.cpp \
         EnsembleIn_Single.cpp \
@@ -230,12 +239,17 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Ewald.cpp \
         Ewald_ParticleMesh.cpp \
         Ewald_Regular.cpp \
+        EwaldOptions.cpp \
+        ExclusionArray.cpp \
+        Exec_AddMissingRes.cpp \
         Exec_Analyze.cpp \
         Exec_Calc.cpp \
+        Exec_CatCrd.cpp \
         Exec_Change.cpp \
         Exec_ClusterMap.cpp \
         Exec_CombineCoords.cpp \
         Exec_Commands.cpp \
+        Exec_CompareClusters.cpp \
         Exec_CompareTop.cpp \
         Exec_CrdAction.cpp \
         Exec_CrdOut.cpp \
@@ -243,55 +257,84 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Exec_DataFile.cpp \
         Exec_DataFilter.cpp \
         Exec_DataSetCmd.cpp \
+        Exec_Emin.cpp \
+        Exec_Flatten.cpp \
         Exec_GenerateAmberRst.cpp \
+        Exec_Graft.cpp \
         Exec_Help.cpp \
+        Exec_HmassRepartition.cpp \
         Exec_LoadCrd.cpp \
         Exec_LoadTraj.cpp \
+        Exec_ParallelAnalysis.cpp \
         Exec_ParmBox.cpp \
         Exec_ParmSolvent.cpp \
         Exec_ParmStrip.cpp \
         Exec_ParmWrite.cpp \
         Exec_PermuteDihedrals.cpp \
         Exec_Precision.cpp \
+        Exec_PrepareForLeap.cpp \
         Exec_PrintData.cpp \
+        Exec_Random.cpp \
         Exec_ReadData.cpp \
         Exec_ReadEnsembleData.cpp \
         Exec_ReadInput.cpp \
         Exec_RotateDihedral.cpp \
         Exec_RunAnalysis.cpp \
         Exec_ScaleDihedralK.cpp \
+        Exec_Set.cpp \
         Exec_SequenceAlign.cpp \
+        Exec_Show.cpp \
         Exec_SortEnsembleData.cpp \
+        Exec_SplitCoords.cpp \
         Exec_System.cpp \
         Exec_Top.cpp \
         Exec_Traj.cpp \
         Exec_UpdateParameters.cpp \
         Exec_ViewRst.cpp \
+        File_TempName.cpp \
         FileIO_Bzip2.cpp \
         FileIO_Gzip.cpp \
         FileIO_Mpi.cpp \
         FileIO_MpiShared.cpp \
         FileIO_Std.cpp \
         FileName.cpp \
+        FileType.cpp \
         FileTypes.cpp \
+        ForLoop.cpp \
+        ForLoop_dataSetBlocks.cpp \
+        ForLoop_integer.cpp \
+        ForLoop_list.cpp \
+        ForLoop_mask.cpp \
+        ForLoop_overSets.cpp \
         Frame.cpp \
+        GistEntropyUtils.cpp \
+        GIST_PME.cpp \
         GridAction.cpp \
+        GridBin.cpp \
         HistBin.cpp \
         Hungarian.cpp \
         ImageRoutines.cpp \
+        Image_List_Mask.cpp \
+        Image_List_Pair.cpp \
+        Image_List_Unit.cpp \
         InputTrajCommon.cpp \
         KDE.cpp \
+        LeapInterface.cpp \
         MapAtom.cpp \
+        MaskArray.cpp \
         MaskToken.cpp \
         Matrix_3x3.cpp \
+        MdOpts.cpp \
         MetaData.cpp \
+        Minimize_SteepestDescent.cpp \
         Mol.cpp \
         Mol2File.cpp \
         NameType.cpp \
-        NC_Cmatrix.cpp \
         NC_Routines.cpp \
         NetcdfFile.cpp \
+        OMM_helpers.cpp \
         OutputTrajCommon.cpp \
+        ParameterSet.cpp \
         PDBfile.cpp \
         PairList.cpp \
         Parallel.cpp \
@@ -305,12 +348,29 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Parm_PDB.cpp \
         Parm_SDF.cpp \
         Parm_Tinker.cpp \
+        PotentialFunction.cpp \
+        PotentialTerm.cpp \
+        PotentialTerm_Angle.cpp \
+        PotentialTerm_Bond.cpp \
+        PotentialTerm_Dihedral.cpp \
+        PotentialTerm_LJ_Coulomb.cpp \
+        PotentialTerm_OpenMM.cpp \
         ProgressBar.cpp \
         ProgressTimer.cpp \
         PubFFT.cpp \
         QuaternionRMSD.cpp \
+        Pucker_PuckerMask.cpp \
+        Pucker_PuckerSearch.cpp \
+        Pucker_PuckerToken.cpp \
+        ExternalFxn.cpp \
         Random.cpp \
         Range.cpp \
+        RNG.cpp \
+        RNG_Marsaglia.cpp \
+        RNG_MersenneTwister.cpp \
+        RNG_PCG32.cpp \
+        RNG_Stdlib.cpp \
+        RNG_Xoshiro128pp.cpp \
         RPNcalc.cpp \
         ReferenceAction.cpp \
         RemdReservoirNC.cpp \
@@ -318,10 +378,12 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         SDFfile.cpp \
         SimplexMin.cpp \
         Spline.cpp \
+        SplineFxnTable.cpp \
         StringRoutines.cpp \
         StructureCheck.cpp \
         StructureMapper.cpp \
         SymmetricRmsdCalc.cpp \
+        TextBlockBuffer.cpp \
         TextFormat.cpp \
         Timer.cpp \
         TinkerFile.cpp \
@@ -338,6 +400,9 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Traj_CharmmRestart.cpp \
         Traj_CIF.cpp \
         Traj_Conflib.cpp \
+        Traj_DTR.cpp \
+        Traj_GmxDump.cpp \
+        Traj_GmxTng.cpp \
         Traj_GmxTrX.cpp \
         Traj_GmxXtc.cpp \
         Traj_Gro.cpp \
@@ -347,6 +412,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Traj_SDF.cpp \
         Traj_SQM.cpp \
         Traj_Tinker.cpp \
+        Traj_XYZ.cpp \
         TrajectoryFile.cpp \
         TrajectoryIO.cpp \
         TrajFrameCounter.cpp \
@@ -356,9 +422,10 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         TrajIOarray.cpp \
         Trajout_Single.cpp \
         TrajoutList.cpp \
-        VariableArray.cpp \
         Vec3.cpp \
-        ViewRst.cpp
+        ViewRst.cpp \
+        vmdplugin/dtrplugin.cpp \
+        xoshiro128plusplus.cpp
 
 CSOURCES= molsurf.c qcprot.c
 
@@ -381,4 +448,135 @@ LIBCPPTRAJ_OBJECTS=$(COMMON_SOURCES:.cpp=.o) $(CSOURCES:.c=.o) \
         Cpptraj.LIBCPPTRAJ.o \
         Energy_Sander.LIBCPPTRAJ.o \
         ReadLine.LIBCPPTRAJ.o
+
+# These objects contain "core" functionality.
+# NOTE: From Topology down could be separate.
+# NOTE: Topology does not depend on ArgList but makes sense to have it in Core
+# NOTE: Ditto for DistRoutines.o, TextFormat.o, PairList.o, Timer.o, ByteRoutines.o
+LIBCPPTRAJ_CORE_OBJECTS= \
+  CpptrajStdio.o \
+  StringRoutines.o \
+  DistRoutines.o \
+  ArgList.o \
+  TextFormat.o \
+  PairList.o \
+  Timer.o \
+  ByteRoutines.o \
+  Topology.o \
+  Atom.o \
+  AtomMask.o \
+  Box.o \
+  CharMask.o \
+  CoordinateInfo.o \
+  FileName.o \
+  Frame.o \
+  MaskToken.o \
+  Matrix_3x3.o \
+  NameType.o \
+  Parallel.o \
+  Range.o \
+  Residue.o \
+  Vec3.o
+
+# These objects contain basic file-related functionality. Requires core library
+LIBCPPTRAJ_FILE_OBJECTS= \
+  CpptrajFile.o \
+  BufferedFrame.o \
+  BufferedLine.o \
+  FileIO_Bzip2.o \
+  FileIO_Gzip.o \
+  FileIO_Mpi.o \
+  FileIO_MpiShared.o \
+  FileIO_Std.o \
+  FileTypes.o \
+  CIFfile.o \
+  Mol2File.o \
+  PDBfile.o \
+  SDFfile.o \
+  TextBlockBuffer.o \
+  TinkerFile.o
+
+# These objects are required for Gromacs XTC support in libcpptraj_traj.a
+XDRFILE_OBJECTS= \
+  xdrfile/xdrfile.o \
+  xdrfile/xdr_seek.o \
+  xdrfile/xdrfile_xtc.o
+
+# These objects are requred for Gromacs TNG support in libcpptraj_traj.a
+TNGFILE_OBJECTS= \
+  tng/bwlzh.o \
+  tng/fixpoint.o \
+  tng/md5.o \
+  tng/tng_compress.o \
+  tng/widemuldiv.o \
+  tng/bwt.o \
+  tng/huffman.o \
+  tng/merge_sort.o \
+  tng/tng_io.o \
+  tng/xtc2.o \
+  tng/coder.o \
+  tng/huffmem.o \
+  tng/mtf.o \
+  tng/vals16.o \
+  tng/xtc3.o \
+  tng/dict.o \
+  tng/lz77.o \
+  tng/rle.o \
+  tng/warnmalloc.o
+
+# These objects are required for VMD plugin support in libcpptraj_traj.a
+VMDPLUGIN_OBJECTS= \
+  vmdplugin/dtrplugin.o
+
+# These objects contain trajectory file functionality. Requires core and file libraries.
+LIBCPPTRAJ_TRAJ_OBJECTS= \
+  TrajectoryFile.o \
+  Trajin_Single.o \
+  Trajout_Single.o \
+  InputTrajCommon.o \
+  OutputTrajCommon.o \
+  ActionFrameCounter.o \
+  NC_Routines.o \
+  NetcdfFile.o \
+  TrajFrameCounter.o \
+  Traj_AmberCoord.o \
+  Traj_AmberNetcdf.o \
+  Traj_AmberRestart.o \
+  Traj_AmberRestartNC.o \
+  Traj_Binpos.o \
+  Traj_CharmmCor.o \
+  Traj_CharmmDcd.o \
+  Traj_CharmmRestart.o \
+  Traj_CIF.o \
+  Traj_Conflib.o \
+  Traj_DTR.o \
+  Traj_GmxDump.o \
+  Traj_GmxTng.o \
+  Traj_GmxTrX.o \
+  Traj_GmxXtc.o \
+  Traj_Gro.o \
+  Traj_Mol2File.o \
+  Traj_NcEnsemble.o \
+  Traj_PDBfile.o \
+  Traj_SDF.o \
+  Traj_SQM.o \
+  Traj_Tinker.o \
+  Traj_XYZ.o
+
+# These objects contain parameter file functionality. Requires core and file libraries.
+LIBCPPTRAJ_PARM_OBJECTS= \
+  BondSearch.o \
+  CharmmParamFile.o \
+  ExclusionArray.o \
+  Mol.o \
+  ParameterSet.o \
+  ParmFile.o \
+  Parm_Amber.o \
+  Parm_CharmmPsf.o \
+  Parm_CIF.o \
+  Parm_Gromacs.o \
+  Parm_Mol2.o \
+  Parm_PDB.o \
+  Parm_SDF.o \
+  Parm_Tinker.o
 

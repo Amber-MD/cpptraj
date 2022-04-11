@@ -1,25 +1,200 @@
 #include <cstdio>  // sscanf
 #include <cstdlib> // atoi, atof
 #include <cstring> // strncmp
+#include <algorithm> // std::copy
 #include "PDBfile.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // integerToString
 
+// ----- SSBOND Class ---------------------------------------------------------- 
+PDBfile::SSBOND::SSBOND() :
+  idx1_(-1), idx2_(-1), rnum1_(-1), rnum2_(-1), 
+  chain1_(' '), chain2_(' '), icode1_(' '), icode2_(' ')
+{
+  std::fill(name1_, name1_+4, '\0');
+  std::fill(name2_, name1_+4, '\0');
+}
+
+PDBfile::SSBOND::SSBOND(int idx1, int idx2, Residue const& r1, Residue const& r2) :
+  idx1_(  idx1),                idx2_(  idx2),
+  rnum1_( r1.OriginalResNum()), rnum2_( r2.OriginalResNum()),
+  chain1_(r1.ChainId()),        chain2_(r2.ChainId()),
+  icode1_(r1.Icode()),          icode2_(r2.Icode())
+{
+  std::copy(r1.c_str(), r1.c_str()+3, name1_);
+  name1_[3] = '\0';
+  std::copy(r2.c_str(), r2.c_str()+3, name2_);
+  name2_[3] = '\0';
+}
+
+PDBfile::SSBOND::SSBOND(SSBOND const& rhs) :
+  idx1_(  rhs.idx1_),   idx2_(  rhs.idx2_),
+  rnum1_( rhs.rnum1_),  rnum2_( rhs.rnum2_),
+  chain1_(rhs.chain1_), chain2_(rhs.chain2_),
+  icode1_(rhs.icode1_), icode2_(rhs.icode2_)
+{
+  std::copy(rhs.name1_, rhs.name1_+4, name1_);
+  std::copy(rhs.name2_, rhs.name2_+4, name2_);
+}
+
+PDBfile::SSBOND& PDBfile::SSBOND::operator=(SSBOND const& rhs) {
+  if (this != &rhs) {
+    idx1_ = rhs.idx1_;
+    idx2_ = rhs.idx2_;
+    rnum1_ = rhs.rnum1_;
+    rnum2_ = rhs.rnum2_;
+    chain1_ = rhs.chain1_;
+    chain2_ = rhs.chain2_;
+    icode1_ = rhs.icode1_;
+    icode2_ = rhs.icode2_;
+    std::copy(rhs.name1_, rhs.name1_+3, name1_);
+    std::copy(rhs.name2_, rhs.name2_+3, name2_);
+  }
+  return *this;
+}
+
+// ----- SymOp Class -----------------------------------------------------------
+/** CONSTRUCTOR - no op. */
+PDBfile::SymOp::SymOp() : idx_(1), ix_(5), iy_(5), iz_(5)
+{}
+
+/** CONSTRUCTOR - construct from NNNMMM character string. */
+PDBfile::SymOp::SymOp(const char* ptr) : idx_(1), ix_(5), iy_(5), iz_(5)
+{
+  if (ptr == 0) return;
+  if (ptr[0] == ' ' && ptr[1] == ' ' && ptr[2] == ' ' &&
+      ptr[3] == ' ' && ptr[4] == ' ' && ptr[5] == ' ')
+  {
+    idx_ = 1;
+    ix_ = 5;
+    iy_ = 5;
+    iz_ = 5;
+    return;
+  }
+  // DO NNN
+  char numstr[4];
+  numstr[0] = ptr[0];
+  numstr[1] = ptr[1];
+  numstr[2] = ptr[2];
+  numstr[3] = '\0';
+  // TODO check for overflow? Shouldnt be possible with a 3 digit number
+  idx_ = (Itype)atoi( numstr );
+  // DO MMM
+  numstr[1] = '\0';
+  numstr[0] = ptr[3];
+  ix_ = (Itype)atoi(numstr);
+  numstr[0] = ptr[4];
+  iy_ = (Itype)atoi(numstr);
+  numstr[0] = ptr[5];
+  iz_ = (Itype)atoi(numstr);
+  //mprintf("DEBUG: idx= %hu  ix= %hu  iy= %hu  iz= %hu\n", idx_, ix_, iy_, iz_);
+}
+
+/** \return String containing NNNMMM code. */
+std::string PDBfile::SymOp::OpString() const {
+  std::string out;
+  std::string nstr = integerToString( (int)idx_ );
+  if (idx_ > 99)
+    out.assign( nstr );
+  else if (idx_ > 9)
+    out = " " + nstr;
+  else
+    out = "  " + nstr;
+  out.append( integerToString( ix_ ) );
+  out.append( integerToString( iy_ ) );
+  out.append( integerToString( iz_ ) );
+  return out;
+}
+
+// ----- Link Class ------------------------------------------------------------
+PDBfile::Link::Link() : rnum1_(-1), rnum2_(-1), altloc1_(' '), altloc2_(' '),
+                        chain1_(' '), chain2_(' '), icode1_(' '), icode2_(' ')
+{
+  std::fill(aname1_, aname1_+5, '\0');
+  std::fill(aname2_, aname2_+5, '\0');
+  std::fill(rname1_, rname1_+4, '\0');
+  std::fill(rname2_, rname2_+4, '\0');
+}
+
+PDBfile::Link::Link(const char* a1, char alt1, const char* r1, char ch1, int rnum1, char code1,
+                    const char* a2, char alt2, const char* r2, char ch2, int rnum2, char code2,
+                    SymOp const& S1, SymOp const& S2) :
+  rnum1_(rnum1), rnum2_(rnum2), altloc1_(alt1), altloc2_(alt2), chain1_(ch1), chain2_(ch2),
+  icode1_(code1), icode2_(code2), sym1_(S1), sym2_(S2)
+{
+  std::copy(a1, a1+4, aname1_); aname1_[4] = '\0'; 
+  std::copy(a2, a2+4, aname2_); aname2_[4] = '\0'; 
+  std::copy(r1, r1+3, rname1_); rname1_[3] = '\0'; 
+  std::copy(r2, r2+3, rname2_); rname2_[3] = '\0';
+} 
+
+/** Link COPY CONSTRUCTOR */
+PDBfile::Link::Link(Link const& rhs) : rnum1_(rhs.rnum1_), rnum2_(rhs.rnum2_),
+                                       altloc1_(rhs.altloc1_), altloc2_(rhs.altloc2_),
+                                       chain1_(rhs.chain1_), chain2_(rhs.chain2_),
+                                       icode1_(rhs.icode1_), icode2_(rhs.icode2_),
+                                       sym1_(rhs.sym1_), sym2_(rhs.sym2_)
+{
+  std::copy(rhs.aname1_, rhs.aname1_+5, aname1_);
+  std::copy(rhs.aname2_, rhs.aname2_+5, aname2_);
+  std::copy(rhs.rname1_, rhs.rname1_+4, rname1_);
+  std::copy(rhs.rname2_, rhs.rname2_+4, rname2_);
+}
+
+/** Link ASSIGNMENT */
+PDBfile::Link& PDBfile::Link::operator=(Link const& rhs) {
+  if (this != &rhs) {
+    rnum1_ = rhs.rnum1_;
+    rnum2_ = rhs.rnum2_;
+    altloc1_ = rhs.altloc1_;
+    altloc2_ = rhs.altloc2_;
+    chain1_ = rhs.chain1_;
+    chain2_ = rhs.chain2_;
+    icode1_ = rhs.icode1_;
+    icode2_ = rhs.icode2_;
+    sym1_   = rhs.sym1_;
+    sym2_   = rhs.sym2_;
+    std::copy(rhs.aname1_, rhs.aname1_+4, aname1_);
+    std::copy(rhs.aname2_, rhs.aname2_+4, aname2_);
+    std::copy(rhs.rname1_, rhs.rname1_+3, rname1_);
+    std::copy(rhs.rname2_, rhs.rname2_+3, rname2_);
+  }
+  return *this;
+}
+
+// ===== PDBfile class =========================================================
 /// PDB record types
 // NOTE: Must correspond with PDB_RECTYPE
-const char* PDBfile::PDB_RECNAME[] = { 
+const char* PDBfile::PDB_RECNAME_[] = { 
   "ATOM  ", "HETATM", "CRYST1", "TER   ", "END   ", "ANISOU", "EndRec",
-  "CONECT", 0 };
+  "CONECT", "LINK  ", "REMARK", "REMARK", "REMARK", 0 };
 
 /// CONSTRUCTOR
 PDBfile::PDBfile() :
   anum_(1),
   recType_(UNKNOWN),
   lineLengthWarning_(false),
-  coordOverflow_(false)
+  coordOverflow_(false),
+  useCol21_(false)
 {}
 
 // PDBfile::IsPDBkeyword()
+/** \return true if given string is a recognized PDB record keyword.
+  * PDB record keywords are typically 6 characters long (including spaces),
+  * so typically that is what CPPTRAJ looks for. However, in some cases
+  * for various reasons CPPTRAJ will scan fewer characters (e.g. TER,
+  * DBREF1, DBREF2, etc).
+  */
 bool PDBfile::IsPDBkeyword(std::string const& recname) {
+  // Coordinate Section
+  if (recname.compare(0,6,"MODEL ")==0) return true;
+  if (recname.compare(0,6,"ATOM  ")==0) return true;
+  if (recname.compare(0,6,"ANISOU")==0) return true;
+  if (recname.compare(0,3,"TER"   )==0) return true; // To recognize blank TER cards.
+  if (recname.compare(0,6,"HETATM")==0) return true;
+  if (recname.compare(0,6,"ENDMDL")==0) return true;
+  // Connectivity section
+  if (recname.compare(0,6,"CONECT")==0) return true;
   // Title Section
   if (recname.compare(0,6,"HEADER")==0) return true;
   if (recname.compare(0,6,"SOURCE")==0) return true;
@@ -42,12 +217,20 @@ bool PDBfile::IsPDBkeyword(std::string const& recname) {
   if (recname.compare(0,6,"SEQADV")==0) return true;
   if (recname.compare(0,6,"MODRES")==0) return true;
   if (recname.compare(0,6,"SEQRES")==0) return true;
-  // Coordinate Section
-  if (recname.compare(0,6,"MODEL ")==0) return true;
-  if (recname.compare(0,6,"ATOM  ")==0) return true;
-  if (recname.compare(0,6,"ANISOU")==0) return true;
-  if (recname.compare(0,3,"TER"   )==0) return true; // To recognize blank TER cards.
-  if (recname.compare(0,6,"HETATM")==0) return true;
+  // Heterogen Section
+  if (recname.compare(0,6,"HET   ")==0) return true;
+  if (recname.compare(0,6,"HETNAM")==0) return true;
+  if (recname.compare(0,6,"HETSYN")==0) return true;
+  if (recname.compare(0,6,"FORMUL")==0) return true;
+  // Secondary structure section
+  if (recname.compare(0,6,"HELIX ")==0) return true;
+  if (recname.compare(0,6,"SHEET ")==0) return true;
+  // Connectivity Annotation section
+  if (recname.compare(0,6,"SSBOND")==0) return true;
+  if (recname.compare(0,6,"LINK  ")==0) return true;
+  if (recname.compare(0,6,"CISPEP")==0) return true;
+  // Miscellaneuous Features section
+  if (recname.compare(0,6,"SITE  ")==0) return true;
   // Crystallographic and Coordinate Transformation Section 
   if (recname.compare(0,6,"CRYST1")==0) return true;
   if (recname.compare(0,5,"SCALE" )==0) return true; // SCALEn
@@ -86,15 +269,105 @@ PDBfile::PDB_RECTYPE PDBfile::NextRecord() {
     recType_ = ATOM;
   else if (strncmp(linebuffer_,"CONECT",6)==0)
     recType_ = CONECT;
+  else if (strncmp(linebuffer_,"LINK  ",6)==0)
+    recType_ = LINK;
   else if (strncmp(linebuffer_,"CRYST1",6)==0)
     recType_ = CRYST1;
   else if (linebuffer_[0]=='T' && linebuffer_[1]=='E' && linebuffer_[2]=='R')
     recType_ = TER;
   else if (linebuffer_[0]=='E' && linebuffer_[1]=='N' && linebuffer_[2]=='D')
     recType_ = END;
+  else if (strncmp(linebuffer_,"REMARK",6)==0) {
+    // REMARK record.
+    //           111111111122222222
+    // 0123456789012345678901234567
+    // REMARK 465 MISSING  RESIDUES
+    // REMARK 470 MISSING ATOM
+    // REMARK 610 MISSING HETEROATOM
+    if (linebuffer_[7] == '4' && linebuffer_[8] == '6' && linebuffer_[9] == '5')
+      recType_ = MISSING_RES;
+    else if (linebuffer_[7] == '4' && linebuffer_[8] == '7' && linebuffer_[9] == '0')
+      recType_ = MISSING_ATOM;
+    else if (linebuffer_[7] == '6' && linebuffer_[8] == '1' && linebuffer_[9] == '0')
+      recType_ = MISSING_HET;
+  }
   return recType_;
 }
 
+/** Get a residue from line with format:
+  *           1111111111222222
+  * 01234567890123456789012345
+  * REMARK XXX   M RES C SSEQI
+  */
+Residue PDBfile::missing_res() const {
+  // parse out res name
+  std::string currentname;
+  currentname.assign(linebuffer_+15, 3);
+  // get chain
+  char currentchain = linebuffer_[19];
+  // get insertion code
+  char currenticode = linebuffer_[26];
+  // parse out res number
+  std::string numbuf;
+  numbuf.assign(linebuffer_+21, 5);
+  //char numbuf[6];
+  //std::copy(linebuffer_+21, linebuffer_+26, numbuf);
+  //numbuf[5] = '\0';
+  int currentres = atoi(numbuf.c_str());
+  //mprintf("DEBUG: Missing residue %s %i icode= %c chain= %c\n",
+  //        currentname.c_str(), currentres, currenticode, currentchain);
+  return Residue(currentname, currentres, currenticode, currentchain);
+}
+
+
+/** Get a list of missing residues from the PDB file. */ // TODO record MODEL
+int PDBfile::Get_Missing_Res(std::vector<Residue>& missingResidues) {
+  bool inMissing = false;
+  while (recType_ == MISSING_RES) {
+    //mprintf("DEBUG: rectype=%i %s", (int)recType_, linebuffer_);
+    if (!inMissing) {
+      // Actual missing residues starts after:
+      //           11111111112222222
+      // 012345678901234567890123456
+      // REMARK 465   M RES C SSSEQI
+      if (linebuffer_[13] == 'M' && linebuffer_[15] == 'R' && linebuffer_[19] == 'C')
+        inMissing = true;
+    } else {
+      missingResidues.push_back( missing_res() );
+    }
+    NextRecord();
+    //mprintf("DEBUG: rectype=%i\n", (int)recType_);
+  }
+  return 0;
+}
+
+/** Get a list of residues missing heteroatoms */
+int PDBfile::Get_Missing_Het(std::vector<Residue>& missingHet) {
+  bool inMissing = false;
+  while (recType_ == MISSING_HET) {
+    //mprintf("DEBUG: rectype=%i %s", (int)recType_, linebuffer_);
+    if (!inMissing) {
+      // Actual missing residues starts after:
+      //           11111111112222222
+      // 012345678901234567890123456
+      // REMARK 610   M RES C SSEQI
+      if (linebuffer_[13] == 'M' && linebuffer_[15] == 'R' && linebuffer_[19] == 'C')
+        inMissing = true;
+    } else {
+      missingHet.push_back( missing_res() );
+    }
+    NextRecord();
+    //mprintf("DEBUG: rectype=%i\n", (int)recType_);
+  }
+  return 0;
+}
+
+/** \return Atom alt. loc. code from PDB ATOM/HETATM line. */
+char PDBfile::pdb_AltLoc() const {
+  return linebuffer_[16];
+}
+
+/** \return Atom containing information from PDB ATOM/HETATM line. */
 Atom PDBfile::pdb_Atom(char& altLoc, int& atnum) {
   // ATOM or HETATM keyword.
   // Check line length before any modification.
@@ -109,7 +382,6 @@ Atom PDBfile::pdb_Atom(char& altLoc, int& atnum) {
   altLoc = linebuffer_[16];
   linebuffer_[16] = '\0';
   NameType aname(linebuffer_+12);
-  aname.ReplaceAsterisk();
   linebuffer_[16] = altLoc;
   // Element (76-77), Protect against broken PDB files (lines too short).
   char eltString[2]; eltString[0] = ' '; eltString[1] = ' ';
@@ -132,7 +404,6 @@ Residue PDBfile::pdb_Residue() {
   linebuffer_[20] = '\0';
   NameType resName(linebuffer_+17);
   linebuffer_[20] = savechar;
-  resName.ReplaceAsterisk();
   // Chain ID (21)
   // Res num (22-26), insertion code (26)
   char icode = linebuffer_[26];
@@ -184,7 +455,8 @@ void PDBfile::pdb_ChargeAndRadius(float& charge, float& radius) {
   sscanf(linebuffer_+54, "%f %f", &charge, &radius);
 }
 
-void PDBfile::pdb_Box(double* box) {
+/** Set box[0-5] with A B C ALPHA BETA GAMMA from CRYST1 record. */
+void PDBfile::readCRYST1(double* box) {
   // CRYST1 keyword. RECORD A B C ALPHA BETA GAMMA SGROUP Z
   unsigned int lb_size = strlen(linebuffer_);
   if (lb_size < 54) {
@@ -208,14 +480,30 @@ void PDBfile::pdb_Box(double* box) {
     box[ib] = atof( linebuffer_ + lb );
     linebuffer_[end] = savechar;
   }
-  mprintf("\tRead CRYST1 info from PDB: a=%g b=%g c=%g alpha=%g beta=%g gamma=%g\n",
-          box[0], box[1], box[2], box[3], box[4], box[5]);
-  // Warn if the box looks strange.
+}
+
+/** Print a warning to STDOUT if unit cell lengths are strange. */
+static inline void box_warning(const double* box) {
   if (box[0] == 1.0 && box[1] == 1.0 && box[2] == 1.0)
     mprintf("Warning: PDB cell lengths are all 1.0 Ang.;"
             " this usually indicates an invalid box.\n");
 }
 
+/** Read box info from CRYST1, verbose. */
+void PDBfile::pdb_Box_verbose(double* box) {
+  readCRYST1(box);
+  box_warning(box);
+  mprintf("\tRead CRYST1 info from PDB: a=%g b=%g c=%g alpha=%g beta=%g gamma=%g\n",
+          box[0], box[1], box[2], box[3], box[4], box[5]);
+}
+
+/** Read box info from CRYST1, warn only if box is strange looking. */
+void PDBfile::pdb_Box_terse(double* box) {
+  readCRYST1(box);
+  box_warning(box);
+}
+
+/** Read serial #s of atoms from a CONECT record. */
 int PDBfile::pdb_Bonds(int* bnd) {
   unsigned int lb_size = strlen(linebuffer_);
   int Nscan = 0;
@@ -230,7 +518,7 @@ int PDBfile::pdb_Bonds(int* bnd) {
     unsigned int end = lb + 5;
     char savechar = linebuffer_[end];
     linebuffer_[end] = '\0';
-    bnd[Nscan++] = atof( linebuffer_ + lb );
+    bnd[Nscan++] = atoi( linebuffer_ + lb );
     linebuffer_[end] = savechar;
   }
   if (Nscan < 2)
@@ -242,33 +530,119 @@ int PDBfile::pdb_Bonds(int* bnd) {
   return Nscan;
 }
 
+/// Set with default no sym op link string
+static inline void NoSymOp(char* ptr) {
+  ptr[0] = ' ';
+  ptr[1] = ' ';
+  ptr[2] = '1';
+  ptr[3] = '5';
+  ptr[4] = '5';
+  ptr[5] = '5';
+  ptr[6] = '\0';
+}
+
+/** \return PDB LINK record. */
+PDBfile::Link PDBfile::pdb_Link() {
+//         1         2         3         4         5         6         7         8
+//12345678901234567890123456789012345678901234567890123456789012345678901234567890
+//LINK         O   GLY A  49                NA    NA A6001     1555   1555  2.98  
+  // NOTE: ignoring symops and distance here.
+  // Make 56 chars the minimum length for an acceptable LINK record
+  // since this includes 2nd res sequence.
+  unsigned int lb_size = strlen(linebuffer_);
+  if (lb_size < 57) {
+    mprintf("Warning: Malformed LINK record: %s", linebuffer_);
+    return Link();
+  } else if (lb_size < 80) {
+    // For short records, make sure 2nd icode is not a newline
+    if (linebuffer_[56] == '\n' || linebuffer_[56] == '\r')
+      lb_size = 56;
+  }
+  char a1[4], a2[4], r1[3], r2[3], alt1, alt2, ch1, ch2, code1, code2;
+  char sym1[7], sym2[7];
+  NoSymOp( sym1 );
+  NoSymOp( sym2 );
+  int rnum1, rnum2;
+  // Site 1
+  std::copy(linebuffer_+12, linebuffer_+16, a1);
+  alt1 = linebuffer_[16];
+  std::copy(linebuffer_+17, linebuffer_+20, r1);
+  ch1 = linebuffer_[21];
+  code1 = linebuffer_[26];
+  // Site 2
+  std::copy(linebuffer_+42, linebuffer_+46, a2);
+  alt2 = linebuffer_[46];
+  std::copy(linebuffer_+47, linebuffer_+50, r2);
+  ch2 = linebuffer_[51];
+  if (lb_size > 56) {
+    code2 = linebuffer_[56];
+    // Symmetry ops
+    std::copy(linebuffer_+59, linebuffer_+65, sym1);
+    std::copy(linebuffer_+66, linebuffer_+72, sym2);
+    //mprintf("DEBUG: Sym1: %s  Sym2: %s\n", sym1, sym2);
+  } else
+    code2 = ' ';
+  // Residue numbers TODO restore nulled chars?
+  linebuffer_[26] = '\0';
+  rnum1 = atoi(linebuffer_+22);
+  linebuffer_[56] = '\0';
+  rnum2 = atoi(linebuffer_+52);
+/*
+  NOTE: sscanf may not reliable when width absolutely matters.
+  int nscan = sscanf(linebuffer_+12, "%4s%c%3s%c%4i%c%4s%c%3s%c%4i%c",
+                                  a1, &alt1, r1, &ch1, &rnum1, &code1,
+                                  a2, &alt2, r2, &ch2, &rnum2, &code2);
+  if (nscan < 12) {
+    //mprintf("Warning: Malformed LINK record: %s", linebuffer_);
+    mprintf("DEBUG:  a1=%c%c%c%c\n", a1[0], a1[1], a1[2], a1[3]);
+    mprintf("DEBUG:  alt1=%c\n", alt1);
+    mprintf("DEBUG:  r1=%c%c%c\n", r1[0], r1[1], r1[2]);
+    mprintf("DEBUG:  ch1=%c\n", ch1);
+    mprintf("DEBUG:  rnum1=%i\n", rnum1);
+    mprintf("DEBUG:  code1=%c\n", code1);
+  }
+*/
+  return Link( a1, alt1, r1, ch1, rnum1, code1,
+               a2, alt2, r2, ch2, rnum2, code2,
+               SymOp(sym1), SymOp(sym2) );
+}
+
 // -----------------------------------------------------------------------------
 // PDBfile::WriteRecordHeader()
 void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& name,
                                 char altLoc, NameType const& resnameIn, char chain, 
                                 int resnum, char icode, const char* Elt)
 {
-  char resName[5], atomName[5];
+  char resName[6], atomName[5];
 
-  resName[4]='\0';
+  resName[5]='\0';
   atomName[4]='\0';
   // Residue number in PDB format can only be 4 digits wide
   if (resnum > 9999) resnum = resnum % 10000;
   // Atom number in PDB format can only be 5 digits wide
   if (anum > 99999) anum = anum % 100000;
   // Residue names in PDB format are 3 chars long, right-justified, starting
-  // at column 18, while the alternate location indicator is column 17. 
-  // However in Amber residues can be 4 characters long; in this case overwrite
-  // the alternate location indicator.
+  // at column 18, while the alternate location indicator is column 17.
+  // In theory, 4 character residue names are not supported. In practice, there
+  // are two ways to do this. One is to hijack the alternate location 
+  // indicator. The other is to make use of column 21. Neither way is strictly
+  // PDB format compliant.
   resName[0] = altLoc;
   resName[1] = ' ';
-  resName[2] = ' '; // TODO set location 3 as well?
-  const char* ptr = *resnameIn;
-  while (*ptr != ' ' && *ptr != '\0') ++ptr;
-  int rn_size = (int)(ptr - *resnameIn);
+  resName[2] = ' '; // NOTE location 3 is always set
+  resName[4] = ' ';
+  int rn_size = resnameIn.len();
   // Protect against residue names larger than 4 chars.
-  if (rn_size > 4) rn_size = 4;
-  int rn_idx = 3;
+  if (rn_size > 4) {
+    rn_size = 4;
+    mprintf("Warning: Residue name '%s' is larger than 4 chars and will be truncated.\n",
+            *resnameIn);
+  }
+  int rn_idx;
+  if (rn_size == 4 && useCol21_)
+    rn_idx = 4;
+  else
+    rn_idx = 3;
   for (int i = rn_size - 1; i > -1; i--, rn_idx--)
     resName[rn_idx] = resnameIn[i];
   // Determine size in characters of element name if given.
@@ -277,19 +651,28 @@ void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& na
   // For atoms with element names of 1 character, names in PDB format start
   // from col 14 when <= 3 chars, 13 when 4 chars. Atoms with element names of
   // 2 characters start from col 13.
-  if (eNameChars == 2 || name[3] != ' ') { // 4 chars or 2 char elt name
-    atomName[0] = name[0];
-    atomName[1] = name[1];
-    atomName[2] = name[2];
-    atomName[3] = name[3];
-  } else {            // <= 3 chars or 1 char elt name
-    atomName[0] = ' ';
-    atomName[1] = name[0];
-    atomName[2] = name[1];
-    atomName[3] = name[2];
+  atomName[0] = ' ';
+  atomName[1] = ' ';
+  atomName[2] = ' ';
+  atomName[3] = ' ';
+  int an_size = name.len();
+  // Protect against residue names larger than 4 chars.
+  if (an_size > 4) {
+    an_size = 4;
+    mprintf("Warning: Atom name '%s' is larger than 4 chars and will be truncated.\n",
+            *name);
   }
-
-  Printf("%-6s%5i %-4s%4s %c%4i%c",PDB_RECNAME[Record], anum, atomName,
+  if (eNameChars == 2 || an_size == 4) {
+    // 4 chars or 2 char elt name
+    for (int i = 0; i < an_size; i++)
+      atomName[i] = name[i];
+  } else {
+    // <= 3 chars or 1 char elt name
+    for (int i = 0; i < an_size; i++)
+      atomName[i+1] = name[i];
+  }
+  // TODO if REMARK, which #?
+  Printf("%-6s%5i %-4s%5s%c%4i%c",PDB_RECNAME_[Record], anum, atomName,
                resName, chain, resnum, icode);
   if (Record == TER) Printf("\n");
 }
@@ -344,6 +727,28 @@ static inline void x_to_buf(char* coord_buf, double X, bool& coordOverflow)
     sprintf(coord_buf, "%8.3f", X);
 }
 
+static inline void SetChargeString(char* charge_buf, int charge) {
+  charge_buf[0] = ' ';
+  charge_buf[1] = ' ';
+  charge_buf[2] = '\0';
+  if (charge > 0) {
+    if (charge > 9) {
+      mprintf("Warning: Charge %i is too large. Not printing.\n", charge);
+    } else {
+      charge_buf[0] = (char)(charge + '0');
+      charge_buf[1] = '+';
+    }
+  } else if (charge < 0) {
+    if (charge < -9) {
+      mprintf("Warning: Charge %i is too large. Not printing.\n", charge);
+    } else {
+      charge = -charge;
+      charge_buf[0] = (char)(charge + '0');
+      charge_buf[1] = '-';
+    }
+  }
+}
+
 // PDBfile::WriteCoord()
 void PDBfile::WriteCoord(PDB_RECTYPE Record, int anum, NameType const& name,
                          char altLoc,
@@ -359,21 +764,32 @@ void PDBfile::WriteCoord(PDB_RECTYPE Record, int anum, NameType const& name,
   x_to_buf(coord_buf+8 , Y, coordOverflow_);
   x_to_buf(coord_buf+16, Z, coordOverflow_);
   WriteRecordHeader(Record, anum, name, altLoc, resnameIn,  chain, resnum, icode, Elt);
+  static char charge_buf[3];
+  SetChargeString(charge_buf, charge);
   if (highPrecision)
-    Printf("   %24s%8.4f%8.4f      %2s%2s\n", coord_buf, Occ, B, Elt, "");
+    Printf("   %24s%8.4f%8.4f      %2s%2s\n", coord_buf, Occ, B, Elt, charge_buf);
   else
-    Printf("   %24s%6.2f%6.2f          %2s%2s\n", coord_buf, Occ, B, Elt, "");
+    Printf("   %24s%6.2f%6.2f          %2s%2s\n", coord_buf, Occ, B, Elt, charge_buf);
 }
 
 // PDBfile::WriteANISOU()
 void PDBfile::WriteANISOU(int anum, NameType const& name, 
                           NameType const& resnameIn, char chain, int resnum,
-                          int u11, int u22, int u33, int u12, int u13, int u23,
+                          const double* anisou,
                           const char* Elt, int charge)
 { // TODO icode, altLoc
+  // Convert to integers
+  int u11 = (int)(anisou[0] * 10000);
+  int u22 = (int)(anisou[1] * 10000);
+  int u33 = (int)(anisou[2] * 10000);
+  int u12 = (int)(anisou[3] * 10000);
+  int u13 = (int)(anisou[4] * 10000);
+  int u23 = (int)(anisou[5] * 10000);
+  static char charge_buf[3];
+  SetChargeString(charge_buf, charge);
   WriteRecordHeader(ANISOU, anum, name, ' ', resnameIn, chain, resnum, ' ', Elt);
-  Printf(" %7i%7i%7i%7i%7i%7i      %2s%2i\n", u11, u22, u33, 
-         u12, u13, u23, Elt, charge);
+  Printf(" %7i%7i%7i%7i%7i%7i      %2s%2s\n", u11, u22, u33,
+         u12, u13, u23, Elt, charge_buf);
 }
 
 // PDBfile::WriteTITLE()
@@ -447,49 +863,4 @@ void PDBfile::WriteSSBOND(int num, SSBOND const& ss, float distIn) {
 void PDBfile::WriteENDMDL() { Printf("ENDMDL\n"); }
 
 void PDBfile::WriteEND()    { Printf("END   \n"); }
-// -----------------------------------------------------------------------------
-PDBfile::SSBOND::SSBOND() :
-  idx1_(-1), idx2_(-1), rnum1_(-1), rnum2_(-1), 
-  chain1_(' '), chain2_(' '), icode1_(' '), icode2_(' ')
-{
-  std::fill(name1_, name1_+4, '\0');
-  std::fill(name2_, name1_+4, '\0');
-}
 
-PDBfile::SSBOND::SSBOND(int idx1, int idx2, Residue const& r1, Residue const& r2) :
-  idx1_(  idx1),                idx2_(  idx2),
-  rnum1_( r1.OriginalResNum()), rnum2_( r2.OriginalResNum()),
-  chain1_(r1.ChainID()),        chain2_(r2.ChainID()),
-  icode1_(r1.Icode()),          icode2_(r2.Icode())
-{
-  std::copy(r1.c_str(), r1.c_str()+3, name1_);
-  name1_[3] = '\0';
-  std::copy(r2.c_str(), r2.c_str()+3, name2_);
-  name2_[3] = '\0';
-}
-
-PDBfile::SSBOND::SSBOND(SSBOND const& rhs) :
-  idx1_(  rhs.idx1_),   idx2_(  rhs.idx2_),
-  rnum1_( rhs.rnum1_),  rnum2_( rhs.rnum2_),
-  chain1_(rhs.chain1_), chain2_(rhs.chain2_),
-  icode1_(rhs.icode1_), icode2_(rhs.icode2_)
-{
-  std::copy(rhs.name1_, rhs.name1_+4, name1_);
-  std::copy(rhs.name2_, rhs.name2_+4, name2_);
-}
-
-PDBfile::SSBOND PDBfile::SSBOND::operator=(SSBOND const& rhs) {
-  if (this != &rhs) {
-    idx1_ = rhs.idx1_;
-    idx2_ = rhs.idx2_;
-    rnum1_ = rhs.rnum1_;
-    rnum2_ = rhs.rnum2_;
-    chain1_ = rhs.chain1_;
-    chain2_ = rhs.chain2_;
-    icode1_ = rhs.icode1_;
-    icode2_ = rhs.icode2_;
-    std::copy(rhs.name1_, rhs.name1_+3, name1_);
-    std::copy(rhs.name2_, rhs.name2_+3, name2_);
-  }
-  return *this;
-}

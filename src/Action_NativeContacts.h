@@ -2,9 +2,9 @@
 #define INC_ACTION_NATIVECONTACTS_H
 #include <map>
 #include "Action.h"
-#include "ImagedAction.h"
 #include "DataSet_MatrixDbl.h"
 #include "DataSet_integer.h"
+#include "ImageOption.h"
 /// Calculate the number of native/non-native contacts based on distance
 /** Intended to combine and replace contacts, mindist, and maxdist actions.
   */
@@ -47,7 +47,8 @@ class Action_NativeContacts : public Action {
     bool usepdbcut_;      ///< If true only print pdb atoms with bfac > pdbcut.
     bool seriesUpdated_;  ///< True once time series have been updated for total # frames.
     bool saveNonNative_;  ///< If true save details for non native contacts as well.
-    ImagedAction image_;  ///< Hold imaging-related info/routines.
+    bool determineNativeContacts_; ///< If false, skip native contact determination.
+    ImageOption imageOpt_;  ///< Decide whether imaging is needed 
     AtomMask Mask1_;      ///< First mask in which to search
     AtomMask Mask2_;      ///< Second mask in which to search
     Iarray contactIdx1_;  ///< Hold atom/residue indices for Mask1 (for map)
@@ -70,7 +71,6 @@ class Action_NativeContacts : public Action {
     const Topology* refParm_;   ///< For printing out contact PDB.
     // TODO: Replace these with new DataSet type
     DataSetList* masterDSL_;
-    Matrix_3x3 ucell_, recip_;
     /// Define contact, atom pair.
     class contactType;
     /// Define contact pair.

@@ -20,23 +20,25 @@ class Parm_Amber : public ParmIO {
     class FortranData;
     /// Enumerated type for Fortran data type
     enum Type { UNKNOWN_FTYPE=0, FINT, FDOUBLE, FCHAR, FFLOAT };
-    /// Enumerated type for Amber Parmtop Flags
+    /// Enumerated type for Amber Parmtop Flags. KEEP IN SYNC WITH FLAGS_ ARRAY
     enum FlagType {
-      F_POINTERS = 0, F_NAMES,     F_CHARGE,    F_MASS,     F_RESNAMES,
-      F_RESNUMS,      F_TYPES,     F_BONDSH,    F_BONDS,    F_SOLVENT_POINTER,
-      F_ATOMSPERMOL,  F_PARMBOX,   F_ATYPEIDX,  F_NUMEX,    F_NB_INDEX,
-      F_LJ_A,         F_LJ_B,      F_EXCLUDE,   F_RADII,    F_SCREEN,
-      F_BONDRK,       F_BONDREQ,   F_ANGLETK,   F_ANGLETEQ, F_DIHPK,
-      F_DIHPN,        F_DIHPHASE,  F_SCEE,      F_SCNB,     F_SOLTY,
-      F_ANGLESH,      F_ANGLES,    F_DIHH,      F_DIH,      F_ASOL,
-      F_BSOL,         F_HBCUT,     F_ITREE,     F_JOIN,     F_IROTAT,
-      F_ATOMICNUM,    F_TITLE,     F_RADSET,    F_LES_NTYP, F_LES_TYPE,
-      F_LES_FAC,      F_LES_CNUM,  F_LES_ID,    F_CAP_INFO, F_CAP_INFO2,
-      F_IPOL,         F_POLAR,     F_CTITLE,    F_CHM_UBC,  F_CHM_UB,
-      F_CHM_UBFC,     F_CHM_UBEQ,  F_CHM_NIMP,  F_CHM_IMP,  F_CHM_NIMPT,
-      F_CHM_IMPFC,    F_CHM_IMPP,  F_LJ14A,     F_LJ14B,    F_CHM_CMAPC,
-      F_CHM_CMAPR,    F_CHM_CMAPP, F_CHM_CMAPI, F_FF_TYPE,  F_PDB_RES,
-      F_PDB_CHAIN,    F_PDB_ICODE, F_PDB_ALT
+      F_POINTERS = 0, F_NAMES,     F_CHARGE,    F_MASS,      F_RESNAMES,
+      F_RESNUMS,      F_TYPES,     F_BONDSH,    F_BONDS,     F_SOLVENT_POINTER,
+      F_ATOMSPERMOL,  F_PARMBOX,   F_ATYPEIDX,  F_NUMEX,     F_NB_INDEX,
+      F_LJ_A,         F_LJ_B,      F_LJ_C,      F_EXCLUDE,   F_RADII,
+      F_SCREEN,       F_BONDRK,    F_BONDREQ,   F_ANGLETK,   F_ANGLETEQ,
+      F_DIHPK,        F_DIHPN,     F_DIHPHASE,  F_SCEE,      F_SCNB,
+      F_SOLTY,        F_ANGLESH,   F_ANGLES,    F_DIHH,      F_DIH,
+      F_ASOL,         F_BSOL,      F_HBCUT,     F_ITREE,     F_JOIN,
+      F_IROTAT,       F_ATOMICNUM, F_TITLE,     F_RADSET,    F_LES_NTYP,
+      F_LES_TYPE,     F_LES_FAC,   F_LES_CNUM,  F_LES_ID,    F_CAP_INFO,
+      F_CAP_INFO2,    F_IPOL,      F_POLAR,     F_CTITLE,    F_CHM_UBC,
+      F_CHM_UB,       F_CHM_UBFC,  F_CHM_UBEQ,  F_CHM_NIMP,  F_CHM_IMP,
+      F_CHM_NIMPT,    F_CHM_IMPFC, F_CHM_IMPP,  F_LJ14A,     F_LJ14B,
+      F_CHM_CMAPC,    F_CHM_CMAPR, F_CHM_CMAPP, F_CHM_CMAPI, F_FF_TYPE,
+      F_PDB_RES,      F_PDB_CHAIN, F_PDB_ICODE, F_PDB_ALT,   F_PDB_BFAC,
+      F_PDB_OCC,      F_PDB_NUM,   F_CMAPC,     F_CMAPR,     F_CMAPP,
+      F_CMAPI
     };
     /// Used to hold %FLAG/FORMAT string pairs. Corresponds to FlagType.
     struct ParmFlag {
@@ -55,6 +57,11 @@ class Parm_Amber : public ParmIO {
     int ReadNewParm(Topology&);
     int ReadFormatLine(FortranData&);
     inline const char* SkipToNextFlag();
+
+    void ResetFileToFlag(FlagType);
+    void ProblemFlagWarning(FlagType, unsigned int, unsigned int);
+    double FileBufferToDouble(FlagType, unsigned int, unsigned int);
+
     int ReadTitle(Topology&);
     int ReadPointers(int, Topology&, FortranData const&);
     inline int SetupBuffer(FlagType, int, FortranData const&);
@@ -77,6 +84,7 @@ class Parm_Amber : public ParmIO {
     int ReadDihedralSCNB(Topology&, FortranData const&);
     int ReadLJA(Topology&, FortranData const&);
     int ReadLJB(Topology&, FortranData const&);
+    int ReadLJC(Topology&, FortranData const&);
     inline BondType GetBond();
     int ReadBondsH(Topology&, FortranData const&);
     int ReadBonds(Topology&, FortranData const&);
@@ -106,6 +114,9 @@ class Parm_Amber : public ParmIO {
     int ReadPdbChainID(Topology&, FortranData const&);
     int ReadPdbIcode(Topology&, FortranData const&);
     int ReadPdbAlt(Topology&, FortranData const&);
+    int ReadPdbBfactor(Topology&, FortranData const&);
+    int ReadPdbOccupancy(Topology&, FortranData const&);
+    int ReadPdbNumbers(Topology&, FortranData const&);
     // CHAMBER
     int ReadChamberFFtype(Topology&, FortranData const&);
     int ReadChamberUBCount(Topology&, FortranData const&);
@@ -119,10 +130,10 @@ class Parm_Amber : public ParmIO {
     int ReadChamberImpPHASE(Topology&, FortranData const&);
     int ReadChamberLJ14A(Topology&, FortranData const&);
     int ReadChamberLJ14B(Topology&, FortranData const&);
-    int ReadChamberCmapCounts(FortranData const&);
-    int ReadChamberCmapRes(Topology&, FortranData const&);
-    int ReadChamberCmapGrid(const char*, Topology&, FortranData const&);
-    int ReadChamberCmapTerms(Topology&, FortranData const&);
+    int ReadCmapCounts(FlagType,FortranData const&);
+    int ReadCmapRes(FlagType,Topology&, FortranData const&);
+    int ReadCmapGrid(FlagType,const char*, Topology&, FortranData const&);
+    int ReadCmapTerms(FlagType,Topology&, FortranData const&);
     // LES
     int ReadLESntyp(Topology&, FortranData const&);
     int ReadLESfac(Topology&, FortranData const&);
@@ -132,6 +143,7 @@ class Parm_Amber : public ParmIO {
 
     // ----- Write -------------------------------
     FortranData WriteFormat(FlagType) const;
+    int BufferAlloc(FlagType, FortranData const&, int, int);
     int BufferAlloc(FlagType, int, int);
     int BufferAlloc(FlagType f, int n) { return BufferAlloc(f, n, -1); }
     int WriteLJ(FlagType, FlagType, NonbondArray const&);
@@ -140,9 +152,13 @@ class Parm_Amber : public ParmIO {
     int WriteAngles(FlagType, AngleArray const&);
     int WriteDihedrals(FlagType, DihedralArray const&);
     void WriteLine(FlagType, std::string const&);
-    int WriteExtra(std::vector<AtomExtra> const&);
+    int WriteTreeChainClassification(std::vector<NameType> const&);
+    int WriteIjoin(std::vector<int> const&);
+    int WriteIrotat(std::vector<int> const&);
+    int WriteExtra(Topology const&, int);
  
     static const int AMBERPOINTERS_;
+    /// Contain topology flags enumerated by FlagType
     static const ParmFlag FLAGS_[];
 
     ParmType ptype_;
@@ -157,6 +173,7 @@ class Parm_Amber : public ParmIO {
     int numLJparm_; ///< Number of LJ parameters
     bool SCEE_set_; ///< True if SCEE section found
     bool SCNB_set_; ///< True if SCNB section found
+    bool atProblemFlag_; ///< True if a problematic flag was encountered and needs to be skipped.
 
     // CHAMBER variables
     static const double ELECTOCHAMBER_;
@@ -171,8 +188,9 @@ class Parm_Amber : public ParmIO {
     int nlestyp_; ///< Number of LES types
 
     // Write variables
-    bool nochamber_;
-    bool writeEmptyArrays_;
+    bool writeChamber_;     ///< If true write CHAMBER info
+    bool writeEmptyArrays_; ///< If true try to write TREE, IROTATE, JOIN even if not present 
+    bool writePdbInfo_;     ///< If true write chain IDs etc
 };
 // -----------------------------------------------------------------------------
 class Parm_Amber::FortranData {

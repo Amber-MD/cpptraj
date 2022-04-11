@@ -3,6 +3,7 @@
 #include "TrajectoryIO.h"
 #ifndef NO_XDRFILE
 # include <xdrfile_xtc.h>
+# include "FileName.h"
 #endif
 /// Read/write Gromacs XTC trajectories
 class Traj_GmxXtc : public TrajectoryIO {
@@ -23,7 +24,7 @@ class Traj_GmxXtc : public TrajectoryIO {
     void Info();
     int readVelocity(int, Frame&);
     int readForce(int, Frame&);
-    int processWriteArgs(ArgList&);
+    int processWriteArgs(ArgList&, DataSetList const&);
     int processReadArgs(ArgList&)  { return 0; }
 #   ifdef MPI
     // Parallel functions
@@ -36,6 +37,9 @@ class Traj_GmxXtc : public TrajectoryIO {
     void parallelCloseTraj();
 #   endif
 #   ifndef NO_XDRFILE
+    /// Read coordinates and box info from XTC file
+    int readXtcFrame(int,Frame&,double*);
+
     std::vector<off_t> frameOffsets_; ///< Frame offsets for reading
     XDRFILE* xd_; ///< Hold XDR file metadata
     rvec* vec_;   ///< Temporary location for holding XDR frame data

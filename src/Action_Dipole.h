@@ -1,8 +1,9 @@
 #ifndef INC_ACTION_DIPOLE_H
 #define INC_ACTION_DIPOLE_H
+class DataSet_GridFlt;
 #include "Action.h"
-#include "DataSet_GridFlt.h"
 #include "GridAction.h"
+#include "CharMask.h"
 class Action_Dipole : public Action, private GridAction {
   public:
     Action_Dipole();

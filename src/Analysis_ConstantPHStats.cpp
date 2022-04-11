@@ -34,12 +34,14 @@ Analysis::RetType Analysis_ConstantPHStats::Setup(ArgList& analyzeArgs, Analysis
     FRACSTR_ = "deprotonated";
   if (createFracPlot_) {
     fracPlotOut_ = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("fracplotout") );
-    fracPlotOut_->ProcessArgs("xlabel pH ylabel \"Frac. " + std::string(FRACSTR_) + "\" noensextension");
-#   ifdef MPI
-    // Fraction plot should only ever be written by the overall master
-    // since it needs data from every ensemble member.
-    fracPlotOut_->SetThreadCanWrite( Parallel::MasterComm().Master() );
-#   endif
+    if (fracPlotOut_ != 0) {
+      fracPlotOut_->ProcessArgs("xlabel pH ylabel \"Frac. " + std::string(FRACSTR_) + "\" noensextension");
+#     ifdef MPI
+      // Fraction plot should only ever be written by the overall master
+      // since it needs data from every ensemble member.
+      fracPlotOut_->SetProcessCanWrite( Parallel::MasterComm().Master() );
+#     endif
+    }
   }
   // Get DataSets
   DataSetList tempDSL;
@@ -198,7 +200,7 @@ Analysis::RetType Analysis_ConstantPHStats::Analyze() {
             write_pH = false;
             tot_prot = 0;
           }
-          statsOut_->Printf("%3s %-4i", stat->ds_->Res().Name().Truncated().c_str(),
+          statsOut_->Printf("%3s %-4i", *(stat->ds_->Res().Name()),
                             stat->ds_->Res().Num());
           double dsize = (double)stat->nframes_;
           double dnprot = (double)stat->n_prot_;

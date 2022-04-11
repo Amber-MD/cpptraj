@@ -29,6 +29,8 @@ class Analysis_Modes : public Analysis {
     typedef modestackType::const_iterator modestack_it;
 
     void CheckDeprecated(ArgList&,std::string&, const char*);
+    /// Print info for given modes
+    static void PrintModesInfo(DataSet_Modes const&);
     /// Calc rms atomic fluctuations for modes
     void CalcFluct(DataSet_Modes const&);
     /// Calc displacement of coordinates along normal mode directions
@@ -41,6 +43,8 @@ class Analysis_Modes : public Analysis {
     void CalculateProjection(int,Frame const&,int) const;
     /// Calc Eigenvalue fraction
     void CalcEvalFrac(DataSet_Modes const&);
+    /// \return Array with sqrt(mass) for modes
+    static DataSet_Modes::Darray GetMasses(DataSet_Modes const&);
     /// Calc Root mean square inner product
     int CalcRMSIP(DataSet_Modes const&, DataSet_Modes const&);
 

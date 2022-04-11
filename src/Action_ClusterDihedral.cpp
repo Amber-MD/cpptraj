@@ -62,7 +62,7 @@ Action::RetType Action_ClusterDihedral::Init(ArgList& actionArgs, ActionInit& in
 {
 # ifdef MPI
   if (init.TrajComm().Size() > 1) {
-    mprinterr("Error: 'clusterdihedral' not supported with > 1 thread (%i threads currently)\n",
+    mprinterr("Error: 'clusterdihedral' not supported with > 1 process (%i processes currently)\n",
               init.TrajComm().Size());
     return Action::ERR;
   }
@@ -94,7 +94,7 @@ Action::RetType Action_ClusterDihedral::Init(ArgList& actionArgs, ActionInit& in
   if (!dihedralIn.empty()) {
     if ( ReadDihedrals( dihedralIn ) != 0) return Action::ERR;
   } else {
-    mask_.SetMaskString( actionArgs.GetMaskNext() );
+    if (mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
   }
 
   // CVT dataset
@@ -157,7 +157,7 @@ Action::RetType Action_ClusterDihedral::Setup(ActionSetup& setup) {
           DCmasks_.push_back( DCmask(C1, N2, CA, C2,    phibins_, minimum_) ); // PHI
           DCmasks_.push_back( DCmask(N2, CA, C2, *atom, psibins_, minimum_) ); // PSI
           if (debug_ > 0)
-            mprintf("DIHEDRAL PAIR FOUND: C1= %i, N2= %i, CA= %i, C2= %i, N3= %li\n",
+            mprintf("DIHEDRAL PAIR FOUND: C1= %i, N2= %i, CA= %i, C2= %i, N3= %i\n",
                     C1, N2, CA, C2, *atom);
           // Since the carbonyl C/amide N probably starts a new dihedral,
           // reset to those.
@@ -268,10 +268,10 @@ void Action_ClusterDihedral::Print() {
                                            dih != DCmasks_.end(); ++dih)
   {
     outfile_->Printf("    %6li ", num++);
-    outfile_->Printf("%-s(%i)", (*dcparm_)[ dih->A1() ].c_str(), dih->A1() + 1);
-    outfile_->Printf("%-s(%i)", (*dcparm_)[ dih->A2() ].c_str(), dih->A2() + 1);
-    outfile_->Printf("%-s(%i)", (*dcparm_)[ dih->A3() ].c_str(), dih->A3() + 1);
-    outfile_->Printf("%-s(%i)", (*dcparm_)[ dih->A4() ].c_str(), dih->A4() + 1);
+    outfile_->Printf("%-4s(%i)", (*dcparm_)[ dih->A1() ].c_str(), dih->A1() + 1);
+    outfile_->Printf("%-4s(%i)", (*dcparm_)[ dih->A2() ].c_str(), dih->A2() + 1);
+    outfile_->Printf("%-4s(%i)", (*dcparm_)[ dih->A3() ].c_str(), dih->A3() + 1);
+    outfile_->Printf("%-4s(%i)", (*dcparm_)[ dih->A4() ].c_str(), dih->A4() + 1);
     outfile_->Printf(" [Bins=%i]\n", dih->Bins());
   }
   outfile_->Printf("%zu clusters.\n", dcarray_.size());
@@ -314,7 +314,7 @@ void Action_ClusterDihedral::Print() {
     num = 0;
     for (std::vector<long int>::const_iterator cnum = framecluster.begin();
                                                cnum != framecluster.end(); ++cnum)
-      (*iCVT)[ num++ ] = (int)*cnum + 1;
+      iCVT->SetElement( num++, (int)*cnum + 1 );
   }
 
   // Print cluster for each frame
@@ -325,7 +325,7 @@ void Action_ClusterDihedral::Print() {
                                                cnum != framecluster.end(); ++cnum)
     {
       // Frame, cluster num, cluster count
-      framefile_->Printf("%10li %10i %10li ", num++, *cnum + 1, dcarray_[*cnum].Count());
+      framefile_->Printf("%10li %10li %10li ", num++, *cnum + 1, dcarray_[*cnum].Count());
       // Print binID
       for (DCnode::bin_it binid = dcarray_[*cnum].binbegin();
                           binid != dcarray_[*cnum].binend(); ++binid)

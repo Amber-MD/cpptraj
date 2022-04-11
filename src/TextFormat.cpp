@@ -1,10 +1,10 @@
 #include "TextFormat.h"
 #include "StringRoutines.h"
 
-char TextFormat::TypeChar_[] = { 'f', 'E', 'g', 'i', 's' };
+char TextFormat::TypeChar_[] = { 'f', 'E', 'g', 'i', 'u', 's' };
 
 const char* TextFormat::TypeDesc_[] = {
-  "DOUBLE", "SCIENTIFIC", "GENERAL", "INTEGER", "STRING"
+  "DOUBLE", "SCIENTIFIC", "GENERAL", "INTEGER", "UNSIGNED", "STRING"
 };
 
 // TODO benchmark - will using a big buffer and C string routines be better?
@@ -73,7 +73,7 @@ void TextFormat::SetCoordFormat(size_t maxFrames, double min, double step,
   // Default width for column is at least default_width.
   if (col_width < default_width) col_width = default_width;
   // Set column data format string, left-aligned (no leading space).
-  if (type_ == INTEGER || type_ == STRING) // sanity check
+  if (type_ == INTEGER || type_ == UNSIGNED || type_ == STRING) // sanity check
     type_ = DOUBLE;
   width_ = col_width;
   precision_ = col_precision;

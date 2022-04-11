@@ -50,9 +50,10 @@ int DataIO_Xplor::ReadData(FileName const& fname,
               CellDim+3, CellDim+4, CellDim+5) != 6 )
     return ErrorMsg("Error: Could not read cell dimensions.\n");
   // Determine if grid is orthogonal and allocate.
-  Box box( CellDim );
+  Box box;
+  box.SetupFromXyzAbg( CellDim );
   int err = 0;
-  if (box.Type() == Box::ORTHO) {
+  if (box.Is_X_Aligned_Ortho()) {
     // Allocate orthogonal grid
     Vec3 spacing( CellDim[0] / (double)GridPts[0],
                   CellDim[1] / (double)GridPts[3],
@@ -64,8 +65,7 @@ int DataIO_Xplor::ReadData(FileName const& fname,
   } else {
     // Allocate non-orthogonal grid. Determine where origin is based on ucell
     // and start grid points.
-    Matrix_3x3 ucell, recip;
-    box.ToRecip(ucell, recip);
+    Matrix_3x3 const& ucell = box.UnitCell();
     // Turn ucell into delta. Use X axis only.
     Vec3 origin( (ucell[0] / (double)GridPts[0]) * (double)GridPts[1],
                  (ucell[1] / (double)GridPts[0]) * (double)GridPts[1],
@@ -100,11 +100,6 @@ int DataIO_Xplor::ReadData(FileName const& fname,
       }
     }
   }
-  // Set dimensions
-  // FIXME: This should be integrated with allocation
-  //grid.SetDim(Dimension::X, Dimension(origin[0], spacing[0], GridPts[0], "X"));
-  //grid.SetDim(Dimension::Y, Dimension(origin[1], spacing[1], GridPts[1], "Y"));
-  //grid.SetDim(Dimension::Z, Dimension(origin[2], spacing[2], GridPts[2], "Z"));
 
   return 0;
 }
@@ -151,11 +146,13 @@ void DataIO_Xplor::WriteXplorHeader(CpptrajFile& outfile,
     outfile.Printf("%8i\n%s\n",1,legend.c_str());
   else
     outfile.Printf("%8i\n%s\n",1,remark_.c_str()); // FIXME check length
-  Box box( ucell );
+  Box box;
+  box.SetupFromUcell( ucell );
   outfile.Printf("%8i%8i%8i%8i%8i%8i%8i%8i%8i\n"
                  "%12.5f%12.5f%12.5f%12.5f%12.5f%12.5f\nZYX\n",
                  nx, bx, ex, ny, by, ey, nz, bz, ez,
-                 box[0], box[1], box[2], box[3], box[4], box[5]);
+                 box.Param(Box::X), box.Param(Box::Y), box.Param(Box::Z),
+                 box.Param(Box::ALPHA), box.Param(Box::BETA), box.Param(Box::GAMMA));
 }
 
 // DataIO_Xplor::WriteSet3D()
@@ -181,7 +178,7 @@ int DataIO_Xplor::WriteSet3D(DataSet const& setIn, CpptrajFile& outfile) const {
                    set.Bin().Ucell());
   // Print grid bins
   for (size_t k = 0; k < set.NZ(); ++k) {
-    outfile.Printf("%8i\n", k);
+    outfile.Printf("%8zu\n", k);
     for (size_t j = 0; j < set.NY(); ++j) {
       int nvals = 0; // Keep track of how many values printed on current line.
       for (size_t i = 0; i < set.NX(); ++i) {

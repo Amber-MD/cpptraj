@@ -5,6 +5,8 @@
 #include "ArgList.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h"
+#include "Frame.h"
+#include "Atom.h"
 
 // CONSTRUCTOR
 TinkerFile::TinkerFile() : natom_(0), hasBox_(false) {}
@@ -16,31 +18,36 @@ static inline int SetNatomAndTitle(ArgList& lineIn, int& natom, std::string& tit
   if (!validInteger(lineIn[0])) return 1;
   natom = lineIn.getNextInteger( -1 );
   if (natom < 1) return 1;
+  int nNumbers = 1;
   std::string nextWord = lineIn.GetStringNext();
 //if (nextWord.empty()) return 1;
   while (!nextWord.empty()) {
+    if (validDouble(nextWord)) ++nNumbers;
     if (!title.empty()) title += ' ';
     title.append( nextWord );
     nextWord = lineIn.GetStringNext();
   }
+  // If all arguments were numbers this is probably not a title line after all.
+  if (lineIn.Nargs() > 1 && nNumbers == lineIn.Nargs()) return 1;
   return 0;
 }
 
 static inline bool IsAtomLine(ArgList& lineIn) {
+  if (lineIn.Nargs() < 1) return false;
   for (int i = 0; i < lineIn.Nargs(); i++) {
     std::string item = lineIn.GetStringNext();
     if (i == 0 || i >= 5) {
       try {
         convertToInteger( item );
       }
-      catch (std::runtime_error e) {
+      catch (std::runtime_error const& e) {
         return false;
       }
-    } else if (i >= 2 && i < 5) {
+    } else if (i >= 2) {
       try {
         convertToDouble( item );
       }
-      catch (std::runtime_error e) {
+      catch (std::runtime_error const& e) {
         return false;
       }
     }
@@ -71,7 +78,7 @@ bool TinkerFile::ID_Tinker(CpptrajFile& fileIn) {
       try {
         convertToDouble( secondLine.GetStringNext() );
       } 
-      catch (std::runtime_error e) {
+      catch (std::runtime_error const& e) {
         if (i != 1) return false;
         // We found a non-double on the second character -- it could be an atom
         // name. Check that the rest of the line matches an atom record
@@ -150,7 +157,7 @@ int TinkerFile::OpenTinker() {
       mprinterr("Error: Expected 6 box coordinates.\n");
       return 1;
     }
-    box_.SetBox( bp );
+    box_.SetupFromXyzAbg( bp );
   }
   // Close and reopen the file.
   file_.CloseFile();
@@ -162,7 +169,7 @@ int TinkerFile::CheckTitleLine() {
   file_.TokenizeLine(" ");
   int lineNatom = atoi( file_.NextToken() );
   if (lineNatom != natom_) {
-    mprinterr("Error: Number of atoms in Tinker file changes from %i to %i\n",
+    mprinterr("Error: Number of atoms in Tinker file changes from %i to %i\n"
               "Error: at line %i\n", natom_, lineNatom, file_.LineNumber());
     return 1;
   }
@@ -196,7 +203,8 @@ int TinkerFile::NextTinkerFrame() {
   * \return -1 if an error occurs.
   * \return 1 if more frames to read.
   */
-int TinkerFile::ReadNextTinkerFrame(double* Xptr, double* box) {
+int TinkerFile::ReadNextTinkerFrame(Frame& frameOut) {
+  double* Xptr = frameOut.xAddress();
   // Title line
   if (file_.Line() == 0) return 0;
   if (CheckTitleLine()) return -1;
@@ -212,8 +220,10 @@ int TinkerFile::ReadNextTinkerFrame(double* Xptr, double* box) {
                 file_.LineNumber(), nbox);
       return -1;
     }
+    double xyzabg[6];
     for (int b = 0; b != nbox; b++)
-      box[b] = atof( file_.NextToken() );
+      xyzabg[b] = atof( file_.NextToken() );
+    frameOut.ModifyBox().AssignFromXyzAbg( xyzabg );
   }
   // Coords
   for (int atidx = 0; atidx < natom_; atidx++) {

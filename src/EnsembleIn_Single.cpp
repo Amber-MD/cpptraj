@@ -1,7 +1,11 @@
 #ifdef ENABLE_SINGLE_ENSEMBLE
 #include "EnsembleIn_Single.h"
+#include "TrajectoryIO.h"
+#include "Topology.h"
+#include "FrameArray.h"
 #include "TrajectoryFile.h"
 #include "CpptrajStdio.h"
+#include "ArgList.h"
 
 // CONSTRUCTOR
 EnsembleIn_Single::EnsembleIn_Single() : eio_(0), ensembleSize_(0) {}
@@ -78,7 +82,7 @@ int EnsembleIn_Single::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn
   if (debug_ > 0)
     cInfo_.PrintCoordInfo( Traj().Filename().base(), Traj().Parm()->c_str() );
 # ifdef MPI
-  // This array will let each thread know who has what frame.
+  // This array will let each process know who has what frame.
   frameidx_.resize( ensembleSize_ ); // TODO: Get rid of, should do all in TrajIO class.
 # endif
   // Get a list of all temperatures/indices.
@@ -221,7 +225,7 @@ void EnsembleIn_Single::EnsembleInfo(int showExtended) const {
   mprintf("'%s' (REMD ensemble size %i) ",Traj().Filename().base(), ensembleSize_); 
   eio_->Info();
   mprintf(", Parm %s",Traj().Parm()->c_str());
-  if (cInfo_.HasBox()) mprintf(" (%s box)", cInfo_.TrajBox().TypeName());
+  if (cInfo_.HasBox()) mprintf(" (%s box)", cInfo_.TrajBox().CellShapeName());
   if (showExtended==1) Traj().Counter().PrintFrameInfo();
   if (debug_>0)
     mprintf(", %i atoms, Box %i",Traj().Parm()->Natom(),(int)cInfo_.HasBox());

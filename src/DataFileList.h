@@ -1,8 +1,10 @@
 #ifndef INC_DATAFILELIST_H
 #define INC_DATAFILELIST_H
 #include "DataFile.h"
-#include "DataSet.h"
 #include "ArgList.h"
+class DataSet;
+class FileName;
+class CpptrajFile;
 /// Holds a list of output DataFiles/CpptrajFiles.
 /** The DataFileList is meant to hold all output data files defined by any
   * Actions or Analysis. This allows multiple sets to be directed to the
@@ -13,6 +15,22 @@ class DataFileList {
   public:
     DataFileList();
     ~DataFileList();
+
+    /// Hold arguments specific to a particular DataFormatType
+    class TypeArgPair {
+      public:
+        /// CONSTRUCTOR - take data file type and corresponding args
+        TypeArgPair(DataFile::DataFormatType, ArgList const&);
+        /// \return Data file type
+        DataFile::DataFormatType Ftype() const { return type_; }
+        /// \return Corresponding args
+        ArgList const& Fargs() const { return args_; }
+      private:
+        DataFile::DataFormatType type_;
+        ArgList args_;
+    };
+    typedef std::vector<TypeArgPair> TypeArgArray;
+
     void Clear();
     DataFile* RemoveDataFile(DataFile*);
     void RemoveDataSet(DataSet*);
@@ -28,6 +46,8 @@ class DataFileList {
     DataFile* AddDataFile(FileName const&, ArgList&);
     /// Allow default arguments.
     DataFile* AddDataFile(FileName const&, ArgList const&, ArgList&);
+    /// Allow default arguments specific to certain file types.
+    DataFile* AddDataFile(FileName const&, TypeArgArray const&, ArgList&);
     /// \return DataFile specified by name, add if none exists, or 0 if no name specified.
     DataFile* AddDataFile(FileName const&);
     /// \return DataFile specified by name with specific format, add if none exists.
@@ -44,6 +64,7 @@ class DataFileList {
     CpptrajFile* AddCpptrajFile(FileName const&,std::string const&,CFtype,bool);
 #   ifdef MPI
     CpptrajFile* AddCpptrajFile(FileName const&,std::string const&,CFtype,bool,Parallel::Comm const&);
+    void AllProcesses_WriteAllDF();
 #   endif
     /// List DataFiles and CpptrajFiles.
     void List() const;
@@ -51,7 +72,11 @@ class DataFileList {
     void WriteAllDF();
     /// \return true if DataFiles have not yet been written.
     bool UnwrittenData() const;
+    /// Reset the write status of all DataFiles so they will be written
     void ResetWriteStatus();
+    /// Reset the write status of DataFiles containing any of the input sets.
+    void ResetWriteStatIfContain(std::vector<DataSet*> const& dslIn);
+    /// Process any data file args
     int ProcessDataFileArgs(ArgList&);
     int Debug() const { return debug_; }
     int EnsembleNum() const { return ensembleNum_; }

@@ -1,7 +1,9 @@
 #include "ViewRst.h"
+#include "DataSetList.h"
 #include "CpptrajStdio.h"
 #include "Trajout_Single.h"
 #include "ParmFile.h"
+#include "ArgList.h"
 
 // ViewRst::Init()
 int ViewRst::Init(Topology const& topIn, OutputType typeIn)
@@ -68,7 +70,7 @@ int ViewRst::WriteRstMol2(std::string const& mol2out, Frame const& frameIn) {
 
   for (unsigned int nt = 0; nt != Pseudo_.size(); nt++) {
     Trajout_Single trajout;
-    if (trajout.PrepareTrajWrite(OutNames[nt], ArgList(), &(Pseudo_[nt]), CoordinateInfo(), 1,
+    if (trajout.PrepareTrajWrite(OutNames[nt], ArgList(), DataSetList(), &(Pseudo_[nt]), CoordinateInfo(), 1,
                                  TrajectoryFile::MOL2FILE))
       return 1;
     if (trajout.WriteSingle(0, frameIn)) return 1;
@@ -78,18 +80,18 @@ int ViewRst::WriteRstMol2(std::string const& mol2out, Frame const& frameIn) {
   return 0;
 }
 
-int ViewRst::WriteRstTop(std::string const& topOut) {
+int ViewRst::WriteRstTop(std::string const& topOutName) {
   if (Pseudo_.empty()) return 0;
-  if (topOut.empty()) {
+  if (topOutName.empty()) {
     mprinterr("Internal Error: No topology output name given.\n");
     return 1;
   }
-  std::vector< FileName > OutNames = GenerateOutNames(topOut);
+  std::vector< FileName > OutNames = GenerateOutNames(topOutName);
 
   for (unsigned int nt = 0; nt != Pseudo_.size(); nt++) {
     ParmFile topOut;
-    Pseudo_[nt].CommonSetup(false);
-    if (topOut.WriteTopology(Pseudo_[nt], OutNames[nt], ArgList(), ParmFile::AMBERPARM, 0))
+    Pseudo_[nt].CommonSetup(false, false); // No molecule search, no renumbering residues
+    if (topOut.WriteTopology(Pseudo_[nt], OutNames[nt], ArgList(), ParmFile::UNKNOWN_PARM, 0))
       return 1;
   }
   return 0;

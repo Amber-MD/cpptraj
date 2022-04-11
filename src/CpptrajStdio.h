@@ -7,7 +7,7 @@
     often-used functions from the CSTDLIB stdio library without having
     to worry about details. For example, the mprintf function ensures
     that during parallel runs messages are only printed to the master
-    thread, etc.
+    process, etc.
  */
 void mflush();
 void loudPrintf(const char*, ...);
@@ -21,4 +21,5 @@ void SuppressAllOutput();
 void SuppressErrorMsg(bool);
 void FinalizeIO();
 int OutputToFile(const char*);
+void* CpptrajStdout();
 #endif

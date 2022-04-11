@@ -2,11 +2,12 @@
 #define INC_ANALYSIS_STATE_H
 #include <map>
 #include "Analysis.h"
+#include "Array1D.h"
 #include "DataSet_double.h"
 /// Analyze transitions between states
 class Analysis_State : public Analysis {
   public:
-    Analysis_State() : state_data_(0), curveOut_(0), stateOut_(0), transOut_(0), debug_(0) {}
+    Analysis_State();
     DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_State(); }
     void Help() const;
   
@@ -14,23 +15,46 @@ class Analysis_State : public Analysis {
     Analysis::RetType Analyze();
   private:
     // ----- PRIVATE CLASS DEFINITIONS ---------------------------------------------
+    // -------------------------------------------
     /// Hold the definition of a state and associated data
     class StateType {
       public:
-        StateType() : set_(0), min_(0.0), max_(0.0) {}
-        StateType(std::string const& i, DataSet_1D* d, double m, double x) :
-                  id_(i), set_(d), min_(m), max_(x) {}
+        StateType() : num_(-1) {}
+        StateType(std::string const& i, int n) : id_(i), num_(n) {}
+        /// Add criterion for state
+        void AddCriterion(DataSet_1D* d, double m, double x) {
+          Sets_.push_back( d );
+          Min_.push_back( m );
+          Max_.push_back( x );
+        }
+        /// \return smallest number of frames among all criterion DataSets
+        size_t Nframes() const;
+        /// \return State ID
         std::string const& ID() const { return id_; }
+        /// \return State ID as const char*
         const char* id()        const { return id_.c_str(); }
-        DataSet_1D const& DS()  const { return *set_; }
-        double Min()            const { return min_; }
-        double Max()            const { return max_; }
+        /// \return Unique state number
+        int Num() const { return num_; }
+        /// \return true if given frame satifies all criteria
+        bool InState(int n) const {
+          for (unsigned int idx = 0; idx != Sets_.size(); idx++) {
+            double dval = Sets_[idx]->Dval(n);
+            if (dval < Min_[idx] || dval >= Max_[idx]) // TODO periodic
+              return false;
+          }
+          return true;
+        }
+        /// Print state info to stdout
+        void PrintState() const;
       private:
+        typedef std::vector<double> Darray;
         std::string id_;
-        DataSet_1D* set_;
-        double min_;
-        double max_;
+        Array1D Sets_;   ///< DataSets used to determine if we are in State
+        Darray Min_;     ///< Above this value we are in state.
+        Darray Max_;     ///< Below this value we are in state.
+        int num_;        ///< Unique state identifier
     };
+    // -------------------------------------------
     /// Hold information about a transition from state0 to state1
     class Transition {
       public:
@@ -76,24 +100,41 @@ class Analysis_State : public Analysis {
         int Nlifetimes_; ///< Number of state0 lifetimes before going to state1
         DataSet_double* curve_; ///< Lifetime curve for state0->state1
     };
+    // -------------------------------------------
 
     typedef std::vector<StateType> StateArray;
     typedef std::pair<int,int> StatePair;
     typedef std::map<StatePair, Transition> TransMapType;
     typedef std::pair<StatePair, Transition> TransPair;
     typedef std::vector<int> Iarray;
+    typedef std::pair<std::string, int> IdxPair;
+    typedef std::map<std::string, int> IdxMapType;
+    typedef std::vector<std::string> Sarray;
 
     std::string const& StateName(int) const;
     const char* stateName(int i) const { return StateName(i).c_str(); }
 
     static std::string UNDEFINED_;
     StateArray States_;
+    IdxMapType NameMap_;
+    Sarray StateNames_;
     TransMapType TransitionMap_;
     DataSet* state_data_;
+    DataSet* state_counts_;
+    DataSet* state_fracs_;
+    DataSet* state_lifetimes_;
+    DataSet* state_avglife_;
+    DataSet* state_maxlife_;
+    DataSet* state_names_;
+    DataSet* trans_lifetimes_;
+    DataSet* trans_avglife_;
+    DataSet* trans_maxlife_;
+    DataSet* trans_names_;
     DataSetList* masterDSL_;
     DataFile* curveOut_;
-    CpptrajFile* stateOut_;
-    CpptrajFile* transOut_;
+    DataFile* lifeOut_;
+    DataFile* countOut_;
+    DataFile* transOut_;
     int debug_;
     bool normalize_;
 };

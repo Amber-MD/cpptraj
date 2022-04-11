@@ -7,7 +7,7 @@ INPUT="diffusion.in"
 CleanFiles $INPUT diff_?.xmgr diff.dat diff.1.dat diff.2.dat diff.3.dat nw.dat \
            WAT_O.agr DC.dat Nonortho.agr Nonortho.dat noimage.agr noimage.dat
 TESTNAME='Diffusion tests'
-Requires netcdf
+Requires netcdf maxthreads 10
 
 # Basic ptraj diffusion test
 # creates <prefix>_X.xmgr, X = {a,r,x,y,z}

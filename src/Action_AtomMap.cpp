@@ -1,7 +1,9 @@
+#include <algorithm> // std::max
 #include <list>
 #include "Action_AtomMap.h"
 #include "CpptrajStdio.h"
 #include "StructureMapper.h"
+#include "StringRoutines.h" // DigitWidth
 
 // CONSTRUCTOR
 Action_AtomMap::Action_AtomMap() :
@@ -116,20 +118,42 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, ActionInit& init, int 
   if (err != 0) return Action::ERR;
   AMap_ = Mapper.Map();
 
-  // Print atom map
+  // Print atom map TODO should this be a DataIO class?
   if (outputfile != 0) {
     Topology const& refTop = RefFrame_->Top();
     Topology const& tgtTop = TgtFrame_->Top();
-    outputfile->Printf("%-6s %4s %6s %4s\n","#TgtAt","Tgt","RefAt","Ref");
+    // Determine max name width.
+    int nWidth = 4;
+    for (int refatom = 0; refatom != (int)AMap_.size(); ++refatom) {
+      int rsize = refTop[refatom].Name().len();
+      if (rsize > nWidth) nWidth = rsize;
+      int tgtatom = AMap_[refatom];
+      if (tgtatom > -1) {
+        int tsize = tgtTop[tgtatom].Name().len();
+        if (tsize > nWidth) nWidth = tsize;
+      }
+    }
+    // Determine max atom size.
+    int aWidth = std::max( 6,      DigitWidth((int)AMap_.size()) );
+        aWidth = std::max( aWidth, DigitWidth(AMap_.back())      );
+    // Write the map
+    outputfile->Printf("%-*s %*s %*s %*s\n",
+                       aWidth, "#TgtAt",
+                       nWidth, "Tgt",
+                       aWidth, "RefAt",
+                       nWidth, "Ref");
     for (int refatom = 0; refatom != (int)AMap_.size(); ++refatom) {
       int tgtatom = AMap_[refatom];
       if (tgtatom < 0)
-        outputfile->Printf("%6s %4s %6i %4s\n", "---", "---",
-                           refatom+1, refTop[refatom].c_str());
+        outputfile->Printf("%6s %4s %*i %-*s\n", "---", "---",
+                           aWidth, refatom+1, 
+                           nWidth, refTop[refatom].c_str());
       else
-        outputfile->Printf("%6i %4s %6i %4s\n",
-                           tgtatom+1, tgtTop[tgtatom].c_str(),
-                           refatom+1, refTop[refatom].c_str());
+        outputfile->Printf("%*i %-*s %*i %-*s\n",
+                           aWidth, tgtatom+1,
+                           nWidth, tgtTop[tgtatom].c_str(),
+                           aWidth, refatom+1,
+                           nWidth, refTop[refatom].c_str());
     }
   }
   if (maponly_) return Action::OK;
@@ -232,14 +256,14 @@ Action::RetType Action_AtomMap::DoAction(int frameNum, ActionFrame& frm) {
     Vec3 Trans, refTrans;
     double R = rmsTgtFrame_.RMSD(rmsRefFrame_, Rot, Trans, refTrans, false);
     frm.ModifyFrm().Trans_Rot_Trans(Trans, Rot, refTrans);
+    frm.ModifyFrm().ModifyBox().RotateUcell( Rot );
     if (rmsdata_!=0)
       rmsdata_->Add(frameNum, &R);
-    return Action::OK;
+  } else {
+    // Modify the current frame
+    // TODO: Fix this since its probably busted for unmapped atoms
+    newFrame_->SetCoordinatesByMap(frm.Frm(), AMap_);
+    frm.SetFrame( newFrame_ );
   }
-
-  // Modify the current frame
-  // TODO: Fix this since its probably busted for unmapped atoms
-  newFrame_->SetCoordinatesByMap(frm.Frm(), AMap_);
-  frm.SetFrame( newFrame_ );
   return Action::MODIFY_COORDS;
 }

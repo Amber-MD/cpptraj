@@ -10,12 +10,18 @@ TESTNAME='Cluster with sieve tests'
 Requires netcdf
 Cluster() {
   PREFIX=$1
+  if [ "$PREFIX" = 'random' ] ; then
+    RNG='rng setdefault marsaglia'
+  else
+    RNG=''
+  fi
   SIEVEARG=$2
   SAVEARG=$3
   cat > cluster.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.nc
 #debug analysis 2
+$RNG
 cluster crd1 @CA clusters 5 rms out $PREFIX.out summary $PREFIX.summary.dat info $PREFIX.info.dat \
         clusterout $PREFIX.nc clusterfmt netcdf summaryhalf $PREFIX.half.dat cpopvtime $PREFIX.cpop.agr splitframe 24 \
         repout $PREFIX.rep.pdb repfmt pdb $SIEVEARG $SAVEARG sil $PREFIX.sil

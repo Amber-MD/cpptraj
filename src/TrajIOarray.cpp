@@ -1,7 +1,9 @@
 #include "TrajIOarray.h"
+#include "Topology.h"
 #include "StringRoutines.h" // integerToString, validInteger
 #include "CpptrajStdio.h"
 #include "TrajectoryFile.h"
+#include "ArgList.h"
 
 TrajIOarray::~TrajIOarray() { ClearIOarray(); }
 
@@ -25,7 +27,7 @@ int TrajIOarray::SetupReplicaFilenames(FileName const& tnameIn, ArgList& argIn) 
   if (!trajnames.empty())
     return AddReplicasFromArgs( tnameIn, trajnames );
   replica_filenames_ = File::SearchForReplicas( tnameIn, debug_ );
-  mprintf("\tFound %u replicas.\n", replica_filenames_.size());
+  mprintf("\tFound %zu replicas.\n", replica_filenames_.size());
   if (replica_filenames_.empty()) return 1;
   return 0;
 }
@@ -291,7 +293,7 @@ int TrajIOarray::SetupIOarray(ArgList& argIn, TrajFrameCounter& counter,
     // Check coordinate info of all files               0    1    2     3     4      5
     std::vector<int> Info( iSize * ensComm.Size() ); // box, vel, temp, time, force, nRepDims
     int rank_info[iSize];
-    rank_info[0] = (int)cInfo.TrajBox().Type();
+    rank_info[0] = (int)cInfo.TrajBox().HasBox(); // TODO should this be CellShape()?
     rank_info[1] = (int)cInfo.HasVel();
     rank_info[2] = (int)cInfo.HasTemp();
     rank_info[3] = (int)cInfo.HasTime();

@@ -8,7 +8,7 @@
 # undef MPI
 # define CPPTRAJ_MPI
 # include <mpi.h>
-# include <sys/types.h> // off_t FIXME necessary?
+# include <sys/types.h> // off_t 
 # ifdef PARALLEL_DEBUG_VERBOSE
 #   include <cstdio> // for FILE
 # endif
@@ -19,7 +19,6 @@
   *       necessary.
   * Send/Receive Tags: All Comm Send()/Recv() tags should be noted here in order.
   *     1212  : Frame::X_
-  *     1213  : Frame::box_
   *     1214  : Frame::T_
   *     1215  : Frame::V_
   *     1216  : Frame::remd_indices_
@@ -34,6 +33,17 @@
   *     1400+X: Action_AtomicCorr: Atomic movement vectors
   *     1500  : Action_NAstruct: Array containing BP step info on rank.
   *     1501+X:   Array of step series data from rank.
+  *     1600+X: Ensemble sort
+  *     1700  : DataSet_MatrixFlt size
+  *     1701  : DataSet_MatrixFlt buffer
+  *     1800  : Box::btype_
+  *     1801  : Box::box_
+  *     1802  : Box::cellVolume_
+  *     1900  : Matrix_3x3::M_
+  *     2000  : GridBin::OXYZ_
+  *     2001  : GridBin::mx_
+  *     2002  : GridBin::my_
+  *     2003  : GridBin::mz_
   */
 class Parallel {
   public:
@@ -51,7 +61,7 @@ class Parallel {
     static int Abort(int);
     /// Set up ensemble and trajectory communicators for given ensemble size
     static int SetupComms(int, bool);
-    /// Set up communicators - do not allow fewer threads than groups. TODO remove
+    /// Set up communicators - do not allow fewer processes than groups. TODO remove
     static int SetupComms(int n) { return SetupComms(n, false); }
     /// For DEBUG: infinite loop, gives time to attach a debugger.
     static void Lock();
@@ -61,11 +71,11 @@ class Parallel {
     static bool EnsembleIsSetup()       { return ensemble_size_ > -1; }
     /// \return total ensemble size.
     static int Ensemble_Size()          { return ensemble_size_;  }
-    /// \return First ensemble member this thread is responsible for.
+    /// \return First ensemble member this process is responsible for.
     static int Ensemble_Beg()           { return ensemble_beg_;   }
-    /// \return Last+1 ensemble member this thread is responsible for.
+    /// \return Last+1 ensemble member this process is responsible for.
     static int Ensemble_End()           { return ensemble_end_;   }
-    /// \return Total number of ensemble members this thread is responsible for.
+    /// \return Total number of ensemble members this process is responsible for.
     static int N_Ens_Members()          { return n_ens_members_;  }
     /// \return Rank in ensemble comm. for given member.
     static int MemberEnsCommRank(int i) { return memberEnsRank_[i];}
@@ -82,9 +92,9 @@ class Parallel {
     static void printMPIerr(int, const char*, int);
     static int checkMPIerr(int, const char*, int);
     static int ensemble_size_;  ///< Total number of ensemble members.
-    static int ensemble_beg_;   ///< Starting member for this ensemble thread.
-    static int ensemble_end_;   ///< Ending member for this ensemble thread.
-    static int n_ens_members_;  ///< Number of ensemble members thread is responsible for.
+    static int ensemble_beg_;   ///< Starting member for this ensemble process.
+    static int ensemble_end_;   ///< Ending member for this ensemble process.
+    static int n_ens_members_;  ///< Number of ensemble members process is responsible for.
     static int* memberEnsRank_; ///< Rank in ensemble comm for each member.
 #   ifdef PARALLEL_DEBUG_VERBOSE
     static void dbgprintf(const char*, ...);
@@ -118,7 +128,7 @@ class Parallel::Comm {
     Comm Split(int) const;
     void Reset();
     /// my_start, my_stop, maxElts
-    int DivideAmongThreads(int&, int&, int) const;
+    int DivideAmongProcesses(int&, int&, int) const;
     /// RecvBuffer, SendBuffer, Count, DataType, Op
     int ReduceMaster(void*, void*, int, MPI_Datatype, MPI_Op) const;
     /// Rank, RecvBuffer, SendBuffer, Count, DataType, Op
@@ -136,7 +146,7 @@ class Parallel::Comm {
     /// SendBuffer, Count, DataType, RecvBuffer
     int AllGather(void*, int, MPI_Datatype, void*) const;
     /// Buffer, Count, DataType, Destination Rank, Tag
-    int Send(void*, int, MPI_Datatype, int, int) const;
+    int Send(const void*, int, MPI_Datatype, int, int) const;
     /// Buffer, Count, DataType, Source Rank, Tag
     int Recv(void*, int, MPI_Datatype, int, int) const;
     /// Buffer, Count, DataType

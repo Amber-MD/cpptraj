@@ -1,66 +1,66 @@
 #include <cmath> // floor
 #include "ImageRoutines.h"
 #include "DistRoutines.h"
+#include "CpptrajStdio.h"
+#include "Image_List.h"
+#include "Image_List_Pair_CoM.h"
+#include "Image_List_Pair_Geom.h"
+#include "Image_List_Pair_First.h"
+#include "Image_List_Unit_CoM.h"
+#include "Image_List_Unit_Geom.h"
+#include "Image_List_Unit_First.h"
+#include "Image_List_Mask.h"
 
-/** Check that at least 1 atom in the range is in Mask1 */
-static inline void CheckRange(Image::PairType& atomPairs, CharMask const& MaskIn, 
-                              int firstAtom, int lastAtom)
-{
-  bool rangeIsValid = false;
-  for (int atom = firstAtom; atom < lastAtom; ++atom) {
-    if (MaskIn.AtomInCharMask(atom)) {
-      rangeIsValid = true;
+/** \return Empty list for imaging. */
+Image::List* Image::CreateImageList(Mode modeIn, bool useMass, bool center) {
+  Image::List* listOut = 0;
+  switch (modeIn) {
+    case BYMOL :
+      if (center) {
+        if (useMass)
+          listOut = new Image::List_Unit_CoM();
+        else
+          listOut = new Image::List_Unit_Geom();
+      } else
+        listOut = new Image::List_Unit_First();
       break;
-    }
+    case BYRES :
+      if (center) {
+        if (useMass)
+          listOut = new Image::List_Pair_CoM();
+        else
+          listOut = new Image::List_Pair_Geom();
+      } else
+        listOut = new Image::List_Pair_First();
+      break;
+    case BYATOM :
+      listOut = new Image::List_Mask();
+      break;
   }
-  if (rangeIsValid) {
-    atomPairs.push_back( firstAtom );
-    atomPairs.push_back( lastAtom );
+  if (listOut == 0) {
+    mprinterr("Internal Error: Could not allocate image list over %ss\n", ModeString(modeIn));
   }
+  return listOut;
 }
 
-// Image::CreatePairList() 
-/** An atom pair list consists of 2 values for each entry, a beginning
-  * index and ending index. For molecules and residues this is the first
-  * and just beyond the last atom; for atoms it is just the atom itself
-  * twice.
+// Image::CreateImageList() 
+/** \return list of entities to be imaged based on given mode.
   */
-Image::PairType Image::CreatePairList(Topology const& Parm, Mode modeIn,
-                                       std::string const& maskExpression)
+Image::List* Image::CreateImageList(Topology const& Parm, Mode modeIn,
+                                    std::string const& maskExpression,
+                                    bool useMass, bool center)
 {
-  PairType atomPairs;
-  // Set up mask based on desired imaging mode.
-  if ( modeIn == BYMOL || modeIn == BYRES ) {
-    CharMask cmask( maskExpression );
-    if ( Parm.SetupCharMask( cmask ) ) return atomPairs;
-    cmask.MaskInfo();
-    if (cmask.None()) return atomPairs;
-    // Set up atom range for each entity to be imaged.
-    if (modeIn == BYMOL) {
-      atomPairs.reserve( Parm.Nmol()*2 );
-      for (Topology::mol_iterator mol = Parm.MolStart();
-                                  mol != Parm.MolEnd(); ++mol)
-        CheckRange( atomPairs, cmask, mol->BeginAtom(), mol->EndAtom());
-    } else { // BYRES
-      atomPairs.reserve( Parm.Nres()*2 );
-      for (Topology::res_iterator residue = Parm.ResStart();
-                                  residue != Parm.ResEnd(); ++residue)
-        CheckRange( atomPairs, cmask, residue->FirstAtom(), residue->LastAtom() );
+  Image::List* listOut = CreateImageList(modeIn, useMass, center);
+  if (listOut != 0) {
+    if (listOut->SetupList(Parm, maskExpression)) {
+      mprinterr("Error: Could not set up image list for '%s'\n", maskExpression.c_str());
+      delete listOut;
+      return 0;
     }
-  } else { // BYATOM
-    AtomMask imask( maskExpression );
-    if ( Parm.SetupIntegerMask( imask ) ) return atomPairs;
-    imask.MaskInfo();
-    if (imask.None()) return atomPairs;
-    atomPairs.reserve( Parm.Natom()*2 );
-    for (AtomMask::const_iterator atom = imask.begin(); atom != imask.end(); ++atom) {
-      atomPairs.push_back(  *atom    );
-      atomPairs.push_back( (*atom)+1 );
-    }
+    //mprintf("DEBUG: Image list for '%s' over %u %ss.\n",
+    //        maskExpression.c_str(), listOut->nEntities(), ModeString(modeIn));
   }
-//  mprintf("\tNumber of %ss to be imaged is %zu based on mask '%s'\n",
-//           ModeString[modeIn], atomPairs.size()/2, maskIn.MaskString());
-  return atomPairs;
+  return listOut;
 }
 
 // -----------------------------------------------------------------------------
@@ -101,42 +101,26 @@ Vec3 Image::SetupTruncoct( Frame const& frameIn, AtomMask* ComMask, bool useMass
   */
 void Image::Nonortho(Frame& frameIn, bool origin, Vec3 const& fcom, Vec3 const& offIn, 
                      Matrix_3x3 const& ucell, Matrix_3x3 const& recip,
-                     bool truncoct, bool center,
-                     bool useMass, PairType const& AtomPairs)
+                     bool truncoct, List const& AtomPairs)
 {
   Vec3 Coord;
   Vec3 offset = ucell.TransposeMult( offIn );
   double min = -1.0;
 
   if (truncoct)
-    min = 100.0 * (frameIn.BoxCrd().BoxX()*frameIn.BoxCrd().BoxX()+
-                   frameIn.BoxCrd().BoxY()*frameIn.BoxCrd().BoxY()+
-                   frameIn.BoxCrd().BoxZ()*frameIn.BoxCrd().BoxZ());
+    min = 100.0 * (frameIn.BoxCrd().Param(Box::X)*frameIn.BoxCrd().Param(Box::X)+
+                   frameIn.BoxCrd().Param(Box::Y)*frameIn.BoxCrd().Param(Box::Y)+
+                   frameIn.BoxCrd().Param(Box::Z)*frameIn.BoxCrd().Param(Box::Z));
 
   // Loop over atom pairs
-  for (PairType::const_iterator atom = AtomPairs.begin();
-                                atom != AtomPairs.end(); ++atom)
+  for (unsigned int idx = 0; idx != AtomPairs.nEntities(); idx++)
   {
-    int firstAtom = *atom;
-    ++atom;
-    int lastAtom = *atom;
-    //if (debug>2)
-    //  mprintf( "  IMAGE processing atoms %i to %i\n", firstAtom+1, lastAtom);
-    // Set up Coord with position to check for imaging based on first atom or 
-    // center of mass of atoms first to last.
-    if (center) {
-      if (useMass)
-        Coord = frameIn.VCenterOfMass(firstAtom,lastAtom);
-      else
-        Coord = frameIn.VGeometricCenter(firstAtom,lastAtom);
-    } else 
-      Coord = frameIn.XYZ( firstAtom );
+    Coord = AtomPairs.GetCoord( idx, frameIn );
 
     // boxTrans will hold calculated translation needed to move atoms back into box
     Vec3 boxTrans = Nonortho(Coord, truncoct, origin, ucell, recip, fcom, min) + offset;
 
-    frameIn.Translate(boxTrans, firstAtom, lastAtom);
-
+    AtomPairs.DoTranslation( frameIn, idx, boxTrans );
   } // END loop over atom pairs
 }
 
@@ -198,7 +182,7 @@ int Image::SetupOrtho(Box const& boxIn, Vec3& bp, Vec3& bm, bool origin) {
     bp = boxIn.Center();
     bm.SetVec( -bp[0], -bp[1], -bp[2] );
   } else {
-    bp.SetVec( boxIn.BoxX(), boxIn.BoxY(), boxIn.BoxZ()  );
+    bp.SetVec( boxIn.Param(Box::X), boxIn.Param(Box::Y), boxIn.Param(Box::Z)  );
     bm.Zero();
   }
   if (bp.IsZero()) return 1;
@@ -213,36 +197,22 @@ int Image::SetupOrtho(Box const& boxIn, Vec3& bp, Vec3& bm, bool origin) {
   * \param useMass If true calc center of mass, otherwise geometric center.
   */
 void Image::Ortho(Frame& frameIn, Vec3 const& bp, Vec3 const& bm, Vec3 const& offIn,
-                  bool center, bool useMass, PairType const& AtomPairs)
+                  List const& AtomPairs)
 {
   Vec3 Coord;
-  Vec3 offset(offIn[0] * frameIn.BoxCrd()[0],
-              offIn[1] * frameIn.BoxCrd()[1],
-              offIn[2] * frameIn.BoxCrd()[2]);
+  Vec3 offset(offIn[0] * frameIn.BoxCrd().Param(Box::X),
+              offIn[1] * frameIn.BoxCrd().Param(Box::Y),
+              offIn[2] * frameIn.BoxCrd().Param(Box::Z));
   // Loop over atom pairs
-  for (PairType::const_iterator atom = AtomPairs.begin();
-                                atom != AtomPairs.end(); atom++)
+  for (unsigned int idx = 0; idx != AtomPairs.nEntities(); idx++)
   {
-    int firstAtom = *atom;
-    ++atom;
-    int lastAtom = *atom;
-    //if (debug>2)
-    //  mprintf( "  IMAGE processing atoms %i to %i\n", firstAtom+1, lastAtom);
-    // Set up Coord with position to check for imaging based on first atom or 
-    // center of mass of atoms first to last.
-    if (center) {
-      if (useMass)
-        Coord = frameIn.VCenterOfMass(firstAtom,lastAtom);
-      else
-        Coord = frameIn.VGeometricCenter(firstAtom,lastAtom);
-    } else 
-      Coord = frameIn.XYZ( firstAtom );
+    Coord = AtomPairs.GetCoord(idx, frameIn);
 
     // boxTrans will hold calculated translation needed to move atoms back into box
     Vec3 boxTrans = Ortho(Coord, bp, bm, frameIn.BoxCrd()) + offset;
 
     // Translate atoms according to Coord
-    frameIn.Translate(boxTrans, firstAtom, lastAtom);
+    AtomPairs.DoTranslation(frameIn, idx, boxTrans);
   } // END loop over atom pairs
 }
 
@@ -257,16 +227,17 @@ Vec3 Image::Ortho(Vec3 const& Coord, Vec3 const& bp, Vec3 const& bm, Box const& 
 {
   Vec3 trans;
   // Determine how far Coord is out of box
+  // Note Box::Param 0 1 2 is X Y Z
   for (int i = 0; i < 3; ++i) {
     trans[i] = 0.0;
     double crd = Coord[i];
     while (crd < bm[i]) {
-      crd += BoxVec[i];
-      trans[i] += BoxVec[i];
+      crd += BoxVec.Param((Box::ParamType)i);
+      trans[i] += BoxVec.Param((Box::ParamType)i);
     }
     while (crd > bp[i]) {
-      crd -= BoxVec[i];
-      trans[i] -= BoxVec[i];
+      crd -= BoxVec.Param((Box::ParamType)i);
+      trans[i] -= BoxVec.Param((Box::ParamType)i);
     }
   }
   return trans;
@@ -274,32 +245,17 @@ Vec3 Image::Ortho(Vec3 const& Coord, Vec3 const& bp, Vec3 const& bm, Box const& 
 
 // -----------------------------------------------------------------------------
 // Image::UnwrapNonortho()
-void Image::UnwrapNonortho( Frame& tgtIn, Frame& refIn, PairType const& AtomPairs,
-                            Matrix_3x3 const& ucell, Matrix_3x3 const& recip, 
-                            bool center, bool useMass ) 
+void Image::UnwrapNonortho(Frame& tgtIn, Frame& refIn, List const& AtomPairs,
+                           Unit const& allEntities,
+                           Matrix_3x3 const& ucell, Matrix_3x3 const& recip)
 {
   Vec3 vtgt, vref, boxTrans;
   // Loop over atom pairs
-  for (PairType::const_iterator atom = AtomPairs.begin();
-                                atom != AtomPairs.end(); ++atom)
+  for (unsigned int idx = 0; idx != AtomPairs.nEntities(); idx++)
   {
-    int firstAtom = *atom;
-    ++atom;
-    int lastAtom = *atom;
-    if (center) {
-      // Use center of coordinates between first and last atoms.
-      if (useMass) {
-        vtgt = tgtIn.VCenterOfMass(firstAtom, lastAtom);
-        vref = refIn.VCenterOfMass(firstAtom, lastAtom); 
-      } else {
-        vtgt = tgtIn.VGeometricCenter(firstAtom, lastAtom);
-        vref = refIn.VGeometricCenter(firstAtom, lastAtom);
-      }
-    } else {
-      // Use position first atom only.
-      vtgt = tgtIn.XYZ( firstAtom );
-      vref = refIn.XYZ( firstAtom );
-    }
+    vtgt = AtomPairs.GetCoord(idx, tgtIn);
+    vref = AtomPairs.GetCoord(idx, refIn);
+
     boxTrans.Zero();
     // Calculate original distance from the ref (previous) position. 
     Vec3 vd = vtgt - vref; // dx dy dz
@@ -332,50 +288,33 @@ void Image::UnwrapNonortho( Frame& tgtIn, Frame& refIn, PairType const& AtomPair
     }
     // Translate tgt atoms
     boxTrans.Neg();
-    tgtIn.Translate( boxTrans, firstAtom, lastAtom );
-    // Save new ref positions
-    int i3 = firstAtom * 3;
-    std::copy( tgtIn.xAddress()+i3, tgtIn.xAddress()+(lastAtom*3), refIn.xAddress()+i3 );
+    AtomPairs.DoTranslation( tgtIn, idx, boxTrans );
   } // END loop over atom pairs 
+  // Save new ref positions
+  refIn.CopyFrom(tgtIn, allEntities);
 }
 
 // Image::UnwrapOrtho()
-void Image::UnwrapOrtho( Frame& tgtIn, Frame& refIn, PairType const& AtomPairs,
-                         bool center, bool useMass )
+void Image::UnwrapOrtho(Frame& tgtIn, Frame& refIn, List const& AtomPairs,
+                        Unit const& allEntities)
 {
   Vec3 vtgt, vref, boxTrans;
   Vec3 boxVec = tgtIn.BoxCrd().Lengths();
   // Loop over atom pairs
-  for (PairType::const_iterator atom = AtomPairs.begin();
-                                atom != AtomPairs.end(); ++atom)
+  for (unsigned int idx = 0; idx != AtomPairs.nEntities(); idx++)
   {
-    int firstAtom = *atom;
-    ++atom;
-    int lastAtom = *atom;
-    if (center) {
-      // Use center of coordinates between first and last atoms.
-      if (useMass) {
-        vtgt = tgtIn.VCenterOfMass(firstAtom, lastAtom);
-        vref = refIn.VCenterOfMass(firstAtom, lastAtom);
-      } else {
-        vtgt = tgtIn.VGeometricCenter(firstAtom, lastAtom);
-        vref = refIn.VGeometricCenter(firstAtom, lastAtom);
-      }
-    } else {
-      // Use position first atom only.
-      vtgt = tgtIn.XYZ( firstAtom );
-      vref = refIn.XYZ( firstAtom );
-    }
+    vtgt = AtomPairs.GetCoord(idx, tgtIn);
+    vref = AtomPairs.GetCoord(idx, refIn);
+
     Vec3 dxyz = vtgt - vref;
     boxTrans[0] = -floor( dxyz[0] / boxVec[0] + 0.5 ) * boxVec[0];
     boxTrans[1] = -floor( dxyz[1] / boxVec[1] + 0.5 ) * boxVec[1];
     boxTrans[2] = -floor( dxyz[2] / boxVec[2] + 0.5 ) * boxVec[2];
     // Translate atoms from first to last
-    tgtIn.Translate(boxTrans, firstAtom, lastAtom);
-    // Save new ref positions
-    int i3 = firstAtom * 3;
-    std::copy( tgtIn.xAddress()+i3, tgtIn.xAddress()+(lastAtom*3), refIn.xAddress()+i3 );
+    AtomPairs.DoTranslation( tgtIn, idx, boxTrans );
   } // END loop over atom pairs
+  // Save new ref positions
+  refIn.CopyFrom(tgtIn, allEntities);
 }
 
 // -----------------------------------------------------------------------------

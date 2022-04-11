@@ -41,7 +41,7 @@ Action::RetType Action_Bounds::Init(ArgList& actionArgs, ActionInit& init, int d
   dxyz_[0] = actionArgs.getKeyDouble("dx", -1.0);
   dxyz_[1] = actionArgs.getKeyDouble("dy", -1.0);
   dxyz_[2] = actionArgs.getKeyDouble("dz", -1.0);
-  mask_.SetMaskString( actionArgs.GetMaskNext() );
+  if (mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
   std::string dsname = actionArgs.GetStringKey("name");
   offset_ = actionArgs.getKeyInt("offset", 1);
   if (dxyz_[0] > -1.0) {

@@ -7,15 +7,23 @@
 class PDBfile : public CpptrajFile {
   public:
     class SSBOND;
-    // NOTE: PDB_RECNAME must correspond with this.
+    class SymOp;
+    class Link;
+    // NOTE: PDB_RECNAME_ must correspond with this.
     enum PDB_RECTYPE {ATOM=0, HETATM, CRYST1, TER, END, ANISOU, END_OF_FILE, 
-                      CONECT, UNKNOWN};
+                      CONECT, LINK, MISSING_RES, MISSING_ATOM, MISSING_HET, UNKNOWN};
     /// CONSTRUCTOR
     PDBfile();
     /// Check if either of the first two lines contain valid PDB records.
     static bool ID_PDB(CpptrajFile&);
     /// \return the type of the next PDB record read.
     PDB_RECTYPE NextRecord();
+    /// Get a list of missing residues from the PDB file (REMARK 465)
+    int Get_Missing_Res(std::vector<Residue>&);
+    /// Get a list of residues missing heteroatoms from PDB file (REMARK 610)
+    int Get_Missing_Het(std::vector<Residue>&);
+    /// \return ATOM/HETATM alt. loc ID
+    char pdb_AltLoc() const;
     /// \return Atom info with name and element for ATOM/HETATM; set altLoc and #.
     Atom pdb_Atom(char&, int&);
     /// \return Atom info with name and element for ATOM/HETATM.
@@ -28,13 +36,21 @@ class PDBfile : public CpptrajFile {
     void pdb_OccupancyAndBfactor(float&, float&);
     /// Get charge and radius from PQR ATOM/HETATM record.
     void pdb_ChargeAndRadius(float&, float&);
-    /// Set given XYZ array with A/B/C/alpha/beta/gamma from CRYST1 record.
-    void pdb_Box(double*);
+    /// Set given XYZ array with A/B/C/alpha/beta/gamma from CRYST1 record, verbose.
+    void pdb_Box_verbose(double*);
+    /// Set given XYZ array with A/B/C/alpha/beta/gamma from CRYST1 record, terse.
+    void pdb_Box_terse(double*);
     /// Set given array with atom and #s of bonded atoms from CONECT record.
     int pdb_Bonds(int*);
+    /// \return Link record.
+    Link pdb_Link();
     /// \return current record type.
     PDB_RECTYPE RecType()         const { return recType_; }
     // -------------------------------------------
+    /// Set whether column 21 can be used for 4-letter residue names.
+    void SetUseCol21(bool b) { useCol21_ = b; }
+    /// \return true if using column 21 for 4-letter residue names.
+    bool UseCol21() const { return useCol21_; }
     /// Write PDB record header.
     void WriteRecordHeader(PDB_RECTYPE, int, NameType const&, char,
                            NameType const&, char, int, char, const char*);
@@ -57,7 +73,7 @@ class PDBfile : public CpptrajFile {
     bool CoordOverflow() { bool stat = coordOverflow_; coordOverflow_ = false; return stat; }
     /// Write ANISOU record.
     void WriteANISOU(int, NameType const&, NameType const&, char, int,
-                     int, int, int, int, int, int, const char *, int);
+                     const double*, const char *, int);
     /// Write TITLE
     void WriteTITLE(std::string const&);
     /// Write CRYST1
@@ -77,13 +93,18 @@ class PDBfile : public CpptrajFile {
   private:
     /// \return true if the first 6 chars of buffer match a PDB keyword
     static bool IsPDBkeyword(std::string const&);
+    /// Read box info from CRYST1 record
+    void readCRYST1(double*);
+    /// Parse a MISSING residue line
+    Residue missing_res() const;
 
     int anum_;               ///< Atom number for writing.
     PDB_RECTYPE recType_;    ///< Current record type.
     bool lineLengthWarning_; ///< True if any read line is shorter than 80 char
     bool coordOverflow_;     ///< True if coords on write exceed field width
+    bool useCol21_;          ///< If true, use column 21 for 4-char res name
     /// Recognized PDB record types; corresponds to PDB_RECTYPE
-    static const char* PDB_RECNAME[];
+    static const char* PDB_RECNAME_[];
 };
 /// Hold information for an SSBOND record.
 class PDBfile::SSBOND {
@@ -91,7 +112,7 @@ class PDBfile::SSBOND {
     SSBOND();
     SSBOND(int, int, Residue const&, Residue const&);
     SSBOND(SSBOND const&);
-    SSBOND operator=(SSBOND const&);
+    SSBOND& operator=(SSBOND const&);
     const char* name1() const { return name1_; }
     const char* name2() const { return name2_; }
     int Idx1()  const { return idx1_;  }
@@ -104,15 +125,71 @@ class PDBfile::SSBOND {
     char Icode2() const { return icode2_; }
   private:
     // TODO SymOP
-    int idx1_; ///< Index into Topology for first SG
-    int idx2_; ///< Index into Topology for second SG
+    int idx1_;      ///< Index into Topology for first SG
+    int idx2_;      ///< Index into Topology for second SG
+    int rnum1_;     ///< Residue sequence number 1
+    int rnum2_;     ///< Residue sequence number 2
+    char chain1_;   ///< Chain ID 1
+    char chain2_;   ///< Chain ID 2
+    char icode1_;   ///< Residue insertion code 1
+    char icode2_;   ///< Residue insertion code 2
+    char name1_[4]; ///< Residue name 1
+    char name2_[4]; ///< Residue name 2
+};
+/// Hold SYMOP record
+class PDBfile::SymOp {
+  public:
+    typedef unsigned short Itype;
+    SymOp();
+    /// CONSTRUCTOR - construct from NNNMMM character string
+    SymOp(const char*);
+    /// \return true if no symmetry operation required
+    bool NoOp() const { return (idx_ == 1 && ix_ == 5 && iy_ == 5 && iz_ == 5); }
+    /// \return the NNNMMM SYMOP character string
+    std::string OpString() const;
+  private:
+    Itype idx_; ///< Symmetry op #
+    Itype ix_;  ///< Cell translation along X
+    Itype iy_;  ///< Cell translation along X
+    Itype iz_;  ///< Cell translation along X
+};
+/// Hold information for a LINK record.
+class PDBfile::Link {
+  public:
+    Link();
+    Link(const char*, char, const char*, char, int, char,
+         const char*, char, const char*, char, int, char,
+         SymOp const&, SymOp const&);
+    Link(Link const&);
+    Link& operator=(Link const&);
+    int Rnum1() const { return rnum1_; }
+    int Rnum2() const { return rnum2_; }
+    const char* aname1() const { return aname1_; }
+    const char* aname2() const { return aname2_; }
+    char AltLoc1()       const { return altloc1_;}
+    char AltLoc2()       const { return altloc2_;}
+    const char* rname1() const { return rname1_; }
+    const char* rname2() const { return rname2_; }
+    char Chain1()        const { return chain1_; }
+    char Chain2()        const { return chain2_; }
+    char Icode1()        const { return icode1_; }
+    char Icode2()        const { return icode2_; }
+    SymOp const& Sym1()  const { return sym1_;   }
+    SymOp const& Sym2()  const { return sym2_;   }
+  private:
     int rnum1_;
     int rnum2_;
+    char aname1_[5];
+    char aname2_[5];
+    char altloc1_;
+    char altloc2_;
+    char rname1_[4];
+    char rname2_[4];
     char chain1_;
     char chain2_;
     char icode1_;
     char icode2_;
-    char name1_[4];
-    char name2_[4];
+    SymOp sym1_;
+    SymOp sym2_;
 };
 #endif

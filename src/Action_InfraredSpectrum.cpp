@@ -3,12 +3,13 @@
 #include "ProgressBar.h"
 #include "Constants.h"
 #include "DataSet_double.h"
+#include "DataSet_Vector.h"
 #include "Corr.h"
 #ifdef _OPENMP
 #  include <omp.h>
 #endif
 
-Action_InfraredSpectrum::Action_InfraredSpectrum() : Action(HIDDEN),
+Action_InfraredSpectrum::Action_InfraredSpectrum() :
   Vel_(0),
   VAC_(0),
   currentTop_(0),
@@ -16,7 +17,9 @@ Action_InfraredSpectrum::Action_InfraredSpectrum() : Action(HIDDEN),
   maxLag_(-1),
   previousNselected_(-1),
   useFFT_(true)
-{}
+{
+  SetHidden(true);
+}
 
 // Action_InfraredSpectrum::Help()
 void Action_InfraredSpectrum::Help() const {
@@ -32,7 +35,7 @@ Action::RetType Action_InfraredSpectrum::Init(ArgList& actionArgs, ActionInit& i
   useFFT_ = !actionArgs.hasKey("direct");
   maxLag_ = actionArgs.getKeyInt("maxlag", -1);
   tstep_ = actionArgs.getKeyDouble("tstep", 1.0);
-  mask_.SetMaskString( actionArgs.GetMaskNext() );
+  if (mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
   previousNselected_ = -1;
   // DataSet
   Vel_ = (DataSet_Vector*)

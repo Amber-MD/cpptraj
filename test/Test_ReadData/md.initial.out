@@ -1,0 +1,304 @@
+
+          -------------------------------------------------------
+          Amber 11 SANDER                              2010
+          -------------------------------------------------------
+
+| PMEMD implementation of SANDER, Release 11
+
+| Run on 07/12/2011 at 09:04:54
+
+  [-O]verwriting output
+
+File Assignments:
+|   MDIN: run1.in                                                               
+|  MDOUT: run1.out                                                              
+| INPCRD: run0.rst7                                                             
+|   PARM: ../Struct-mbondi/trpzip2.ff10.mbondi.parm7                            
+| RESTRT: run1.rst7                                                             
+|   REFC: refc                                                                  
+|  MDVEL: mdvel                                                                 
+|   MDEN: mden                                                                  
+|  MDCRD: run1.nc                                                               
+| MDINFO: mdinfo                                                                
+|LOGFILE: logfile                                                               
+
+
+ Here is the input file:
+
+short md with igb1                                                             
+&cntrl                                                                         
+   imin = 0, nstlim = 10000, dt = 0.001, nrespa = 1,                           
+   ntx=5, irest = 1, ig = -1,                                                  
+   ntwx = 1000, ioutfm = 1, ntpr = 1000, ntwr = 10000,                         
+   ntt = 3, gamma_ln = 5, temp0 = 300.0, tempi = 300.0,                        
+   ntc = 2, ntf = 2, ntb = 0, cut = 999.0,                                     
+   igb = 1, saltcon = 0.0, gbsa = 0,                                           
+&end                                                                           
+
+
+Note: ig = -1. Setting random seed based on wallclock time in microseconds
+      and disabling the synchronization of random numbers between 1 tasks
+      to improve performance.
+ 
+| Conditional Compilation Defines Used:
+| DIRFRC_COMTRANS
+| DIRFRC_EFS
+| DIRFRC_NOVEC
+| MPI
+| PUBFFT
+| FFTLOADBAL_2PROC
+| BINTRAJ
+
+| New format PARM file being parsed.
+| Version =    1.000 Date = 07/12/11 Time = 08:34:45
+
+| Note: 1-4 EEL scale factors were NOT found in the topology file.
+|       Using default value of 1.2.
+
+| Note: 1-4 VDW scale factors were NOT found in the topology file.
+|       Using default value of 2.0.
+| Duplicated    0 dihedrals
+
+| Duplicated    0 dihedrals
+
+--------------------------------------------------------------------------------
+   1.  RESOURCE   USE: 
+--------------------------------------------------------------------------------
+
+ NATOM  =     220 NTYPES =      12 NBONH =     104 MBONA  =     123
+ NTHETH =     233 MTHETA =     169 NPHIH =     481 MPHIA  =     372
+ NHPARM =       0 NPARM  =       0 NNB   =    1211 NRES   =      13
+ NBONA  =     123 NTHETA =     169 NPHIA =     372 NUMBND =      31
+ NUMANG =      68 NPTRA  =      35 NATYP =      21 NPHB   =       0
+ IFBOX  =       0 NMXRS  =      24 IFCAP =       0 NEXTRA =       0
+ NCOPY  =       0
+
+ Implicit solvent radii are modified Bondi radii (mbondi)                                                   
+--------------------------------------------------------------------------------
+   2.  CONTROL  DATA  FOR  THE  RUN
+--------------------------------------------------------------------------------
+
+                                                                                
+
+General flags:
+     imin    =       0, nmropt  =       0
+
+Nature and format of input:
+     ntx     =       5, irest   =       1, ntrx    =       1
+
+Nature and format of output:
+     ntxo    =       1, ntpr    =    1000, ntrx    =       1, ntwr    =   10000
+     iwrap   =       0, ntwx    =    1000, ntwv    =       0, ntwe    =       0
+     ioutfm  =       1, ntwprt  =       0, idecomp =       0, rbornstat=      0
+
+Potential function:
+     ntf     =       2, ntb     =       0, igb     =       1, nsnb    =      25
+     ipol    =       0, gbsa    =       0, iesp    =       0
+     dielc   =   1.00000, cut     = 999.00000, intdiel =   1.00000
+     saltcon =   0.00000, offset  =   0.09000, gbalpha=    1.00000
+     gbbeta  =   0.00000, gbgamma =   0.00000, surften =   0.00500
+     rdt     =   0.00000, rgbmax  =  25.00000  extdiel =  78.50000
+     alpb  =        0
+
+Frozen or restrained atoms:
+     ibelly  =       0, ntr     =       0
+
+Molecular dynamics:
+     nstlim  =     10000, nscm    =      1000, nrespa  =         1
+     t       =   0.00000, dt      =   0.00100, vlimit  =  20.00000
+
+Langevin dynamics temperature regulation:
+     ig      =  171315
+     temp0   = 300.00000, tempi   = 300.00000, gamma_ln=   5.00000
+
+SHAKE:
+     ntc     =       2, jfastw  =       0
+     tol     =   0.00001
+
+| Intermolecular bonds treatment:
+|     no_intermolecular_bonds =       1
+
+| Energy averages sample interval:
+|     ene_avg_sampling =    1000
+
+--------------------------------------------------------------------------------
+   3.  ATOMIC COORDINATES AND VELOCITIES
+--------------------------------------------------------------------------------
+
+                                                                                
+ begin time read from input coords =     1.000 ps
+
+ 
+ Number of triangulated 3-point waters found:        0
+| Dynamic Memory, Types Used:
+| Reals                9899
+| Integers           119322
+
+| Running AMBER/MPI version on    4 nodes
+
+ 
+--------------------------------------------------------------------------------
+   4.  RESULTS
+--------------------------------------------------------------------------------
+
+| RE_POSITION Moving by   0.787915 -0.361547  0.358004
+
+ NSTEP =     1000   TIME(PS) =       2.000  TEMP(K) =   310.58  PRESS =     0.0
+ Etot   =       -88.9869  EKtot   =       171.5762  EPtot      =      -260.5631
+ BOND   =        30.2604  ANGLE   =       100.2719  DIHED      =       131.8541
+ 1-4 NB =        40.9369  1-4 EEL =       650.6909  VDWAALS    =       -79.8350
+ EELEC  =      -850.9613  EGB     =      -283.7809  RESTRAINT  =         0.0000
+ ------------------------------------------------------------------------------
+
+| RE_POSITION Moving by  -0.366353 -0.385677 -0.307940
+
+ NSTEP =     2000   TIME(PS) =       3.000  TEMP(K) =   313.86  PRESS =     0.0
+ Etot   =       -80.9793  EKtot   =       173.3891  EPtot      =      -254.3684
+ BOND   =        35.6636  ANGLE   =       102.6118  DIHED      =       123.6321
+ 1-4 NB =        41.2398  1-4 EEL =       639.0688  VDWAALS    =       -71.9564
+ EELEC  =      -850.0041  EGB     =      -274.6240  RESTRAINT  =         0.0000
+ ------------------------------------------------------------------------------
+
+| RE_POSITION Moving by  -0.168836  0.086412  0.015309
+
+ NSTEP =     3000   TIME(PS) =       4.000  TEMP(K) =   352.68  PRESS =     0.0
+ Etot   =       -67.2752  EKtot   =       194.8317  EPtot      =      -262.1069
+ BOND   =        38.5396  ANGLE   =        92.6127  DIHED      =       128.3893
+ 1-4 NB =        42.8395  1-4 EEL =       657.7879  VDWAALS    =       -79.5533
+ EELEC  =      -842.1625  EGB     =      -300.5600  RESTRAINT  =         0.0000
+ ------------------------------------------------------------------------------
+
+| RE_POSITION Moving by   0.328082 -0.008404  0.315578
+
+ NSTEP =     4000   TIME(PS) =       5.000  TEMP(K) =   288.89  PRESS =     0.0
+ Etot   =       -89.5776  EKtot   =       159.5932  EPtot      =      -249.1708
+ BOND   =        49.5508  ANGLE   =       108.3589  DIHED      =       122.9815
+ 1-4 NB =        41.6255  1-4 EEL =       646.2620  VDWAALS    =       -71.8875
+ EELEC  =      -822.7445  EGB     =      -323.3175  RESTRAINT  =         0.0000
+ ------------------------------------------------------------------------------
+
+| RE_POSITION Moving by  -0.461007  0.206196 -0.373860
+
+ NSTEP =     5000   TIME(PS) =       6.000  TEMP(K) =   340.06  PRESS =     0.0
+ Etot   =       -67.2116  EKtot   =       187.8608  EPtot      =      -255.0724
+ BOND   =        38.9846  ANGLE   =       107.6597  DIHED      =       125.3545
+ 1-4 NB =        41.7236  1-4 EEL =       662.6387  VDWAALS    =       -81.2345
+ EELEC  =      -875.5932  EGB     =      -274.6058  RESTRAINT  =         0.0000
+ ------------------------------------------------------------------------------
+
+| RE_POSITION Moving by   0.581277  0.046247 -0.094222
+
+ NSTEP =     6000   TIME(PS) =       7.000  TEMP(K) =   280.12  PRESS =     0.0
+ Etot   =      -108.9382  EKtot   =       154.7481  EPtot      =      -263.6863
+ BOND   =        43.8380  ANGLE   =        98.0032  DIHED      =       127.7448
+ 1-4 NB =        40.4414  1-4 EEL =       645.3672  VDWAALS    =       -82.8558
+ EELEC  =      -858.5229  EGB     =      -277.7022  RESTRAINT  =         0.0000
+ ------------------------------------------------------------------------------
+
+| RE_POSITION Moving by   0.398818  0.271976  0.444930
+
+ NSTEP =     7000   TIME(PS) =       8.000  TEMP(K) =   295.03  PRESS =     0.0
+ Etot   =      -102.2957  EKtot   =       162.9874  EPtot      =      -265.2831
+ BOND   =        40.1545  ANGLE   =        94.8829  DIHED      =       126.4775
+ 1-4 NB =        43.4330  1-4 EEL =       648.1630  VDWAALS    =       -83.7493
+ EELEC  =      -858.2565  EGB     =      -276.3882  RESTRAINT  =         0.0000
+ ------------------------------------------------------------------------------
+
+| RE_POSITION Moving by   0.148506 -0.380497 -0.670910
+
+ NSTEP =     8000   TIME(PS) =       9.000  TEMP(K) =   290.42  PRESS =     0.0
+ Etot   =       -99.3741  EKtot   =       160.4389  EPtot      =      -259.8130
+ BOND   =        49.3581  ANGLE   =       109.2968  DIHED      =       121.6121
+ 1-4 NB =        39.3632  1-4 EEL =       642.0757  VDWAALS    =       -82.3322
+ EELEC  =      -875.6211  EGB     =      -263.5656  RESTRAINT  =         0.0000
+ ------------------------------------------------------------------------------
+
+| RE_POSITION Moving by  -0.532099 -0.042162  0.110563
+
+ NSTEP =     9000   TIME(PS) =      10.000  TEMP(K) =   304.77  PRESS =     0.0
+ Etot   =       -83.7917  EKtot   =       168.3691  EPtot      =      -252.1608
+ BOND   =        55.9404  ANGLE   =        97.5173  DIHED      =       121.6542
+ 1-4 NB =        42.6176  1-4 EEL =       660.2676  VDWAALS    =       -78.5090
+ EELEC  =      -882.6452  EGB     =      -269.0036  RESTRAINT  =         0.0000
+ ------------------------------------------------------------------------------
+
+| RE_POSITION Moving by   0.212366 -0.104347  0.028628
+
+ NSTEP =    10000   TIME(PS) =      11.000  TEMP(K) =   308.54  PRESS =     0.0
+ Etot   =       -90.6731  EKtot   =       170.4491  EPtot      =      -261.1222
+ BOND   =        40.8216  ANGLE   =        93.9606  DIHED      =       127.7011
+ 1-4 NB =        41.8634  1-4 EEL =       653.1833  VDWAALS    =       -78.0797
+ EELEC  =      -871.8329  EGB     =      -268.7397  RESTRAINT  =         0.0000
+ ------------------------------------------------------------------------------
+
+
+      A V E R A G E S   O V E R      10 S T E P S
+
+
+ NSTEP =    10000   TIME(PS) =      11.000  TEMP(K) =   308.49  PRESS =     0.0
+ Etot   =       -87.9103  EKtot   =       170.4244  EPtot      =      -258.3347
+ BOND   =        42.3111  ANGLE   =       100.5176  DIHED      =       125.7401
+ 1-4 NB =        41.6084  1-4 EEL =       650.5505  VDWAALS    =       -78.9993
+ EELEC  =      -858.8344  EGB     =      -281.2287  RESTRAINT  =         0.0000
+ ------------------------------------------------------------------------------
+
+
+      R M S  F L U C T U A T I O N S
+
+
+ NSTEP =    10000   TIME(PS) =      11.000  TEMP(K) =    21.66  PRESS =     0.0
+ Etot   =        13.0818  EKtot   =        11.9673  EPtot      =         5.0452
+ BOND   =         7.1535  ANGLE   =         5.8870  DIHED      =         3.1424
+ 1-4 NB =         1.1372  1-4 EEL =         7.4464  VDWAALS    =         3.9473
+ EELEC  =        17.3764  EGB     =        17.0072  RESTRAINT  =         0.0000
+ ------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+   5.  TIMINGS
+--------------------------------------------------------------------------------
+
+|  NonSetup CPU Time in Major Routines, Average for All Tasks:
+|
+|     Routine           Sec        %
+|     ------------------------------
+|     DataDistrib       0.07    0.46
+|     Nonbond          14.37   91.93
+|     Bond              0.01    0.07
+|     Angle             0.16    1.03
+|     Dihedral          0.63    4.05
+|     Shake             0.02    0.15
+|     RunMD             0.36    2.29
+|     Other             0.00    0.01
+|     ------------------------------
+|     Total            15.63
+
+|  Generalized Born CPU Time, Average for All Tasks:
+|
+|     Routine                 Sec        %
+|     ------------------------------------
+|     Radii Calc              3.01   19.27
+|     Diagonal Calc           5.23   33.45
+|     Off Diagonal Calc       5.86   37.51
+|     GBSA LCPO Calc          0.00    0.01
+|     Radii Distrib           0.20    1.30
+|     ---------------------------------
+|     Total                  14.31   91.52
+
+|  Final Performance Info:
+|     -----------------------------------------------------
+|     Average timings for last    9000 steps:
+|         Elapsed(s) =      14.07 Per Step(ms) =       1.56
+|             ns/day =      55.26   seconds/ns =    1563.40
+|
+|     Average timings for all steps:
+|         Elapsed(s) =      15.64 Per Step(ms) =       1.56
+|             ns/day =      55.25   seconds/ns =    1563.67
+|     -----------------------------------------------------
+
+|  Master Setup CPU time:            0.02 seconds
+|  Master NonSetup CPU time:        15.63 seconds
+|  Master Total CPU time:           15.65 seconds     0.00 hours
+
+|  Master Setup wall time:           0    seconds
+|  Master NonSetup wall time:       16    seconds
+|  Master Total wall time:          16    seconds     0.00 hours

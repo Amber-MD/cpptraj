@@ -4,6 +4,8 @@
 #include "Corr.h"
 #include "DataSet_double.h" // Access to Resize and [] op
 #include "DataSet_MatrixDbl.h" // Access to AddElement
+#include "DataSet_Vector.h"
+#include "DataSet_Modes.h"
 #ifdef TIMER
 # include "Timer.h"
 #endif
@@ -33,8 +35,9 @@ Analysis_IRED::Analysis_IRED() :
 {}
 
 void Analysis_IRED::Help() const {
-  mprintf("\t[relax freq <MHz> [NHdist <distnh>]] [order <order>]\n"
-          "\ttstep <tstep> tcorr <tcorr> out <filename> [norm] [drct]\n"
+  mprintf("\t[relax freq <MHz> [NHdist <distnh>] [noefile <noefilename>]]\n"
+          "\t[order <order>] [orderparamfile <orderfilename>]\n"
+          "\t[tstep <tstep>] [tcorr <tcorr>] [out <filename>] [norm] [drct]\n"
           "\tmodes <modesname> [name <output sets name>] [ds2matrix <file>]\n"
           "  Perform isotropic reorientational Eigenmode dynamics analysis.\n");
 }
@@ -45,7 +48,7 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
   debug_ = debugIn;
   // Count and store the number of previously defined IRED vectors.
   for ( DataSetList::const_iterator DS = setup.DSL().begin(); DS != setup.DSL().end(); ++DS) {
-    if ( (*DS)->Type() == DataSet::VECTOR && (*DS)->Meta().ScalarType() == MetaData::IREDVEC)
+    if ( (*DS)->Group() == DataSet::VECTOR_1D && (*DS)->Meta().ScalarType() == MetaData::IREDVEC)
       IredVectors_.push_back( (DataSet_Vector*)*DS );
   }
   if (IredVectors_.empty()) {
@@ -138,7 +141,7 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
   }
 
   // Print Status
-  mprintf("    IRED: %u iRED vectors.\n", IredVectors_.size());
+  mprintf("    IRED: %zu iRED vectors.\n", IredVectors_.size());
   mprintf("\tData set name: %s\n", dsname_.c_str());
   if (orderout != 0)
     mprintf("\tOrder parameters will be written to '%s'\n", orderout->DataFilename().full());
@@ -248,7 +251,7 @@ Analysis::RetType Analysis_IRED::Analyze() {
       Nframes = (*Vtmp)->Size();
     else if (Nframes != (int)(*Vtmp)->Size()) {
       mprinterr("Error: All iRED vectors must have the same size.\n"
-                "Error:   Vector %s size = %i, first vector size = %i\n",
+                "Error:   Vector %s size = %zu, first vector size = %i\n",
                 (*Vtmp)->legend(), (*Vtmp)->Size(), Nframes);
       return Analysis::ERR;
     }
@@ -283,7 +286,9 @@ Analysis::RetType Analysis_IRED::Analyze() {
   // Each SH value has a real + imaginary component.
   // [m-2R0][m-2I0][m-2R1][m-2I1] ... [m-2RN][m-2IN][m-1R0][m-1I0] ... [m+2RN][m+2IN]
   int ltot = 2 * order_ + 1; // Total # l values
-  std::vector<double> cf_tmp( modinfo_->Nmodes() * ltot * Nframes * 2, 0.0 );
+  std::vector<double> cf_tmp( (size_t)modinfo_->Nmodes() *
+                              (size_t)ltot *
+                              (size_t)Nframes * 2, 0.0 );
   // Project SH for each IRED vector on eigenvectors
   for (unsigned int vidx = 0; vidx != IredVectors_.size(); vidx++)
   {
@@ -306,7 +311,10 @@ Analysis::RetType Analysis_IRED::Analyze() {
         // Loop over SH coords for this l value (real, img)
         for (ComplexArray::iterator sh = IredVectors_[vidx]->SphericalHarmonics(Lval).begin();
                                     sh != IredVectors_[vidx]->SphericalHarmonics(Lval).end(); ++sh)
+        {
+          //if (mode==0) mprintf("DEBUG: %10li Qvec= %16.8E SH= %16.8E\n", CF-cf_tmp.begin(), Qvec, *sh);
           *(CF++) += (Qvec * (*sh));
+        }
       }
     }
   }
@@ -332,13 +340,16 @@ Analysis::RetType Analysis_IRED::Analyze() {
       double plateau_r = 0;
       double plateau_i = 0;
       for (int k = 0; k < Nframes*2; k += 2) {
+        //if (mode==0) mprintf("k= %8i CF= %10li CF0= %16.8E CF1= %16.8E\n", k, CF-cf_tmp.begin(), *CF, *(CF+1));
         data1_[k  ] = *CF;
-        plateau_r  += *(CF++);
-        data1_[k+1] = *CF;
-        plateau_i  += *(CF++);
+        plateau_r  += *CF;
+        data1_[k+1] = *(CF+1);
+        plateau_i  += *(CF+1);
+        CF += 2;
       }
       plateau_r /= (double)Nframes;
       plateau_i /= (double)Nframes;
+      //mprintf("DEBUG: mode= %6i Lval= %3i plateau_r= %16.8E plateau_i= %16.8E\n", mode, Lval, plateau_r, plateau_i);
       // Calc plateau value of correlation function, Cm(t->T) in Bruschweiler paper (A20)
       Plateau[mode] += (plateau_r * plateau_r) + (plateau_i * plateau_i);
       // Calc correlation function for this mode and l, Cml(t)

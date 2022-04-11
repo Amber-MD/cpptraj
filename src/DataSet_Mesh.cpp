@@ -1,4 +1,5 @@
 #include <cmath> // regression
+#include <algorithm> // copy
 #include "DataSet_Mesh.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // regression
@@ -26,6 +27,25 @@ int DataSet_Mesh::Allocate( SizeArray const& sizeIn ) {
     mesh_y_.reserve( sizeIn[0] );
   }
   return 0;
+}
+
+/** Allocate space in arrays. */
+int DataSet_Mesh::MemAlloc( SizeArray const& sizeIn ) {
+  if (!sizeIn.empty()) {
+    mesh_x_.resize( sizeIn[0] );
+    mesh_y_.resize( sizeIn[0] );
+  }
+  return 0;
+}
+
+// DataSet_Mesh::CopyBlock()
+void DataSet_Mesh::CopyBlock(size_t startIdx, DataSet const* dptrIn, size_t pos, size_t nelts)
+{
+  DataSet_Mesh const& setIn = static_cast<DataSet_Mesh const&>( *dptrIn );
+  const double* ptr = (&(setIn.mesh_x_[0])+pos);
+  std::copy( ptr, ptr + nelts, &(mesh_x_[0]) + startIdx );
+                ptr = (&(setIn.mesh_y_[0])+pos);
+  std::copy( ptr, ptr + nelts, &(mesh_y_[0]) + startIdx );
 }
 
 /** Insert data vIn at frame. */
@@ -119,47 +139,17 @@ int DataSet_Mesh::SetMeshXY(DataSet_1D const& dsIn) {
   return 0;
 }
 
-// ---------- Integration routines ---------------------------------------------
-// DataSet_Mesh::Integrate_Trapezoid()
-double DataSet_Mesh::Integrate_Trapezoid( DataSet_Mesh& sumOut ) const {
-  double sum = 0.0;
-  int mesh_size = (int)mesh_x_.size();
-  if (mesh_size < 2) return 0.0;
-  // Give output data set the same X mesh
-  sumOut.mesh_x_ = mesh_x_;
-  sumOut.mesh_y_.resize( mesh_x_.size() );
-  sumOut.mesh_y_[0] = 0.0;
-  for (int i = 1; i < mesh_size; i++) {
-      double b_minus_a = (mesh_x_[i] - mesh_x_[i - 1]);
-      sum += (b_minus_a * (mesh_y_[i - 1] + mesh_y_[i]) * 0.5);
-      sumOut.mesh_y_[i] = sum;
-  }
-  return sum;
-}
-
-// DataSet_Mesh::Integrate_Trapezoid()
-double DataSet_Mesh::Integrate_Trapezoid() const {
-  double sum = 0.0;
-  int mesh_size = (int)mesh_x_.size();
-  if (mesh_size < 2) return 0.0;
-  for (int i = 1; i < mesh_size; i++) {
-      double b_minus_a = (mesh_x_[i] - mesh_x_[i - 1]);
-      sum += (b_minus_a * (mesh_y_[i - 1] + mesh_y_[i]) * 0.5);
-  }
-  return sum;
-}
-
 // ---------- Cubic Spline Routines --------------------------------------------
 // DataSet_Mesh::SetSplinedMeshY()
 /** Assumes mesh X values already set with CalculateMeshX. */
 int DataSet_Mesh::SetSplinedMeshY(std::vector<double> const& x, std::vector<double> const& y) {
   if (x.size() != y.size()) {
-    mprinterr("Error: X size (%u) != Y size (%u)\n", x.size(), y.size());
+    mprinterr("Error: X size (%zu) != Y size (%zu)\n", x.size(), y.size());
     return 1;
   }
   // No point if 1 or less values
   if (x.size() < 2) {
-    mprinterr("Error: Requires > 1 values (%u specified).\n", x.size());
+    mprinterr("Error: Requires > 1 values (%zu specified).\n", x.size());
     return 1;
   }
   cspline_.CubicSpline_Coeff(x, y);
@@ -172,7 +162,7 @@ int DataSet_Mesh::SetSplinedMeshY(std::vector<double> const& x, std::vector<doub
 int DataSet_Mesh::SetSplinedMesh(DataSet_1D const& dsIn)
 {
   if (dsIn.Size() < 2) {
-    mprinterr("Error: Requires > 1 values (%u specified).\n", dsIn.Size());
+    mprinterr("Error: Requires > 1 values (%zu specified).\n", dsIn.Size());
     return 1;
   }
   // Create X and Y values for dsIn
@@ -203,7 +193,8 @@ int DataSet_Mesh::SingleExpRegression(double& slope, double& intercept,
     }
     mesh_y_[i] = log( mesh_y_[i] );
   }
-  int err = LinearRegression(slope, intercept, correl, out);
+  double Fval;
+  int err = LinearRegression(slope, intercept, correl, Fval, out);
   // Restore original Y values
   mesh_y_ = yorig;
   return err;

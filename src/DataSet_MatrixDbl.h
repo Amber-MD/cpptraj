@@ -14,20 +14,22 @@ class DataSet_MatrixDbl : public DataSet_2D {
     // ----- DataSet functions -------------------
     size_t Size()                        const { return mat_.size();        }
 #   ifdef MPI
-    // FIXME: Currently just sums up. Should this be a separate Sync function?
+    // TODO: Currently just sums up. Should this be a separate Sync function?
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&);
 #   endif
     void Info()                          const { return;                    }
     void WriteBuffer(CpptrajFile&, SizeArray const&) const;
+    size_t MemUsageInBytes() const { return mat_.DataSize(); }
     // ----- DataSet_2D functions ----------------
-    void UpdateElement(size_t x,size_t y,double v) { mat_.updateElement(x,y,v);       }
     int Allocate2D(size_t x,size_t y)          { kind_=FULL; return mat_.resize(x,y); }
     int AllocateHalf(size_t x)                 { kind_=HALF; return mat_.resize(x,0); }
     int AllocateTriangle(size_t x)             { kind_=TRI;  return mat_.resize(0,x); }
-    double GetElement(size_t x,size_t y) const { return mat_.element(x,y);  }
-    double GetElement(size_t i)          const { return mat_[i];            }
-    size_t Nrows()                       const { return mat_.Nrows();       }
-    size_t Ncols()                       const { return mat_.Ncols();       }
+    void UpdateElement(size_t x,size_t y,double v) { mat_.updateElement(x,y,v); }
+    void SetElement(size_t x,size_t y,double d)    { mat_.setElement(x,y,d);    }
+    double GetElement(size_t x,size_t y) const { return mat_.element(x,y); }
+    double GetElement(size_t i)          const { return mat_[i];           }
+    size_t Nrows()                       const { return mat_.Nrows();      }
+    size_t Ncols()                       const { return mat_.Ncols();      }
     double* MatrixArray()                const;
     MatrixKindType MatrixKind()          const { return kind_;              }
     // -------------------------------------------
@@ -35,7 +37,6 @@ class DataSet_MatrixDbl : public DataSet_2D {
     void IncrementSnapshots()                  { ++snap_;                   }
     double& Element(size_t x, size_t y)        { return mat_.element(x,y);  }
     int AddElement(double d)                   { return mat_.addElement(d); }
-    void SetElement(size_t x,size_t y,double d){ mat_.setElement(x,y,d);    }
     /// Type definition of iterator over matrix elements.
     typedef Matrix<double>::iterator iterator;
     iterator begin()                           { return mat_.begin();       }

@@ -1,6 +1,7 @@
 #include "Analysis_Corr.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Vector.h"
+#include "DataSet_1D.h"
 
 // CONSTRUCTOR
 Analysis_Corr::Analysis_Corr() :
@@ -59,7 +60,7 @@ Analysis::RetType Analysis_Corr::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
     mprinterr("Error: Corr: Could not get dataset named %s\n",D2name.c_str());
     return Analysis::ERR;
   }
-  if (D1_->Type() == DataSet::VECTOR && D2_->Type() != DataSet::VECTOR)
+  if (D1_->Group() == DataSet::VECTOR_1D && D2_->Group() != DataSet::VECTOR_1D)
   {
     mprinterr("Error: Vector cross correlation requires 2 vector data sets.\n");
     return Analysis::ERR;
@@ -76,7 +77,7 @@ Analysis::RetType Analysis_Corr::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
   }
   outfile->AddDataSet( Ct_ );
   Coeff_ = 0;
-  if (D1_->Type() != DataSet::VECTOR) {
+  if (D1_->Group() != DataSet::VECTOR_1D) {
     Coeff_ = setup.DSL().AddSet( DataSet::DOUBLE, MetaData(Ct_->Meta().Name(), "coeff") );
     if (Coeff_ == 0) return Analysis::ERR;
     Coeff_->Allocate( DataSet::SizeArray(1, 1) );
@@ -110,18 +111,18 @@ Analysis::RetType Analysis_Corr::Analyze() {
   // Check that D1 and D2 have same # data points.
   size_t Nelements = D1_->Size(); 
   if (Nelements != D2_->Size()) {
-    mprinterr("Error: Corr: # elements in dataset %s (%u) not equal to\n",
+    mprinterr("Error: Corr: # elements in dataset %s (%zu) not equal to\n",
               D1_->legend(), Nelements);
-    mprinterr("             # elements in dataset %s (%u)\n",
+    mprinterr("             # elements in dataset %s (%zu)\n",
               D2_->legend(), D2_->Size());
     return Analysis::ERR;
   }
   if (lagmax_==-1) lagmax_ = (int)Nelements;
 
-  mprintf("    CORR: %u elements, max lag %i\n",Nelements,lagmax_);
+  mprintf("    CORR: %zu elements, max lag %i\n",Nelements,lagmax_);
 
   Analysis::RetType err = Analysis::OK;
-  if (D1_->Type() == DataSet::VECTOR) {
+  if (D1_->Group() == DataSet::VECTOR_1D) {
     DataSet_Vector const& set1 = static_cast<DataSet_Vector const&>( *D1_ );
     DataSet_Vector const& set2 = static_cast<DataSet_Vector const&>( *D2_ );
     set1.CalcVectorCorr(set2, *((DataSet_1D*)Ct_), lagmax_);

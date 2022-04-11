@@ -18,6 +18,7 @@ class DataSet_Modes : public DataSet {
     void WriteBuffer(CpptrajFile&, SizeArray const&) const {} // TODO implement?
     int Allocate(SizeArray const&) { return 0; } // TODO implement?
     int Append(DataSet*) { return 1; }
+    size_t MemUsageInBytes() const;
     // -------------------------------------------
     typedef std::vector<double> Darray;
     typedef Darray::const_iterator AvgIt;

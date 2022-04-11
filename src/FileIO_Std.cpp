@@ -1,6 +1,7 @@
 // FileIO_Std: Standard C file operations
 #include <algorithm> // std::min, std::max
 #include "FileIO_Std.h" // FileIO.h, cstdio
+#include "CpptrajStdio.h" // CpptrajStdout
 
 // CONSTRUCTOR
 FileIO_Std::FileIO_Std() : fp_(NULL), isStream_(false) {}
@@ -13,7 +14,7 @@ int FileIO_Std::OpenStream(StreamType type) {
   Close();
   switch (type) {
     case STDIN : fp_ = stdin; break;
-    case STDOUT: fp_ = stdout; break;
+    case STDOUT: fp_ = (FILE*)CpptrajStdout(); break;
     case STDERR: fp_ = stderr; break;
   }
   isStream_ = true;
@@ -54,7 +55,10 @@ int FileIO_Std::Read(void *buffer, size_t num_bytes) {
 int FileIO_Std::Write(const void *buffer, size_t num_bytes) {
   size_t numwrite = fwrite(buffer, 1, num_bytes, fp_);
   // NOTE: Check for errors here.
-  if (numwrite != num_bytes) return 1;
+  if (numwrite != num_bytes) {
+    perror("Error during FileIO_Std::Write");
+    return 1;
+  }
   return 0;
 }
 

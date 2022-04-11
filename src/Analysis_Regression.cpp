@@ -65,7 +65,7 @@ Analysis::RetType Analysis_Regression::Setup(ArgList& analyzeArgs, AnalysisSetup
     int_dsets_.push_back( outint );
   }
 
-  mprintf("    REGRESSION: Calculating linear regression of %i data sets.\n",
+  mprintf("    REGRESSION: Calculating linear regression of %zu data sets.\n",
           input_dsets_.size());
   if (outfile != 0)
     mprintf("\tFit line output to %s\n", outfile->DataFilename().full());
@@ -90,11 +90,11 @@ Analysis::RetType Analysis_Regression::Analyze() {
               DS->legend(), DS->Size());
     else {
       DataSet_1D* dsout = output_dsets_[idx];
-      double slope, intercept, correl;
-      mprintf("  %zu: %s\n", idx, DS->legend());
+      double slope, intercept, correl, Fval;
+      mprintf("  %u: %s\n", idx, DS->legend());
       if (!statsout_->IsStream())
         statsout_->Printf("#Stats for %s\n", DS->legend());
-      int err = DS->LinearRegression( slope, intercept, correl, statsout_ );
+      int err = DS->LinearRegression( slope, intercept, correl, Fval, statsout_ );
       slope_dsets_[idx]->Add(0, &slope);
       int_dsets_[idx]->Add(0, &intercept);
       nerr += err;

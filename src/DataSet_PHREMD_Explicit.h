@@ -15,6 +15,9 @@ class DataSet_PHREMD_Explicit : public DataSet_PHREMD {
     int Allocate(SizeArray const&);
     void Add( size_t, const void* ) { return; }
     int Append(DataSet*)            { return 1; }
+    size_t MemUsageInBytes() const { return (solvent_pH_.size() * sizeof(float)) +
+                                            (recType_.size() * sizeof(int)) +
+                                            (resStates_.size() * sizeof(int)); }
 #   ifdef MPI
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
     //void Reduce(Parallel::Comm const&, int);

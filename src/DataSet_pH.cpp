@@ -14,6 +14,14 @@ int DataSet_pH::Allocate(SizeArray const& sizeIn) {
   return 0;
 }
 
+size_t DataSet_pH::MemUsageInBytes() const {
+  return sizeof(float) +
+         (res_.DataSize()) +
+         (states_.size() * sizeof(int)) +
+         (recType_.size() * sizeof(int)) +
+         time_.DataSize();
+}
+
 void DataSet_pH::WriteBuffer(CpptrajFile &cbuffer, SizeArray const& pIn) const {
   if (pIn[0] >= states_.size())
     cbuffer.Printf(format_.fmt(), 0);

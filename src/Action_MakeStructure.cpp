@@ -6,7 +6,11 @@
 #include "StringRoutines.h" // convertToDouble, convertToInteger
 
 // CONSTRUCTOR
-Action_MakeStructure::Action_MakeStructure() : debug_(0) {
+Action_MakeStructure::Action_MakeStructure() :
+  CurrentParm_(0),
+  debug_(0),
+  foundDihOut_(0)
+{
   // Initially known structure types. 
   SS.push_back(SS_TYPE(  -57.8,  -47.0,    0.0,   0.0, 0, "alpha"    ));
   SS.push_back(SS_TYPE(   57.8,   47.0,    0.0,   0.0, 0, "left"     ));
@@ -34,23 +38,36 @@ int Action_MakeStructure::FindSStype(std::string const& typeIn)
   return SS_EMPTY;
 } 
 
+// Action_MakeStructure::Help()
 void Action_MakeStructure::Help() const {
   mprintf("\t<List of Args>\n"
           "  Apply dihedrals to specified residues using arguments found in <List of Args>,\n"
           "  where an argument is 1 or more of the following arg types:\n"
-          "\t'<sstype>:<res range>' Apply SS type (phi/psi) to residue range.\n"
+          "\t1) '<sstype>:<res range>'\n"
+          "\t  Apply secondary structure type (phi/psi) to residue range. Can use a\n"
+          "\t  standard type (applied to each residue) or a turn type (applied to\n"
+          "\t  consecutive residue pairs, so resrange must be divisible by 2).\n"
           "\t\t<sstype> standard = alpha, left, pp2, hairpin, extended\n"
           "\t\t<sstype> turn = typeI, typeII, typeVIII, typeI', typeII,\n"
           "\t\t                typeVIa1, typeVIa2, typeVIb\n"
-          "\t\tTurns are applied to 2 residues at a time, so resrange must be divisible by 4.\n"
-          "\t'<custom ss>:<res range>:<phi>:<psi>' Apply custom <phi>/<psi> to residue range.\n"
-          "\t'<custom turn>:<res range>:<phi1>:<psi1>:<phi2>:<psi2>' Apply custom turn <phi>/<psi> pair to residue range.\n"
-          "\t'<custom dih>:<res range>:<dih type>:<angle>' Apply <angle> to dihedrals in range.\n"
-          "\t\t<dih type> =");
-  DihedralSearch::ListKnownTypes();
-  mprintf("\t'<custom dih>:<res range>:<at0>:<at1>:<at2>:<at3>:<angle>[:<offset>]' Apply <angle> to dihedral defined by atoms <at1>, <at2>, <at3>, and <at4>.\n");
+          "\t2) '<custom ss name>:<res range>:<phi>:<psi>'\n"
+          "\t  Apply custom <phi>/<psi> to residue range.\n"
+          "\t3) '<custom turn name>:<res range>:<phi1>:<psi1>:<phi2>:<psi2>'\n"
+          "\t  Apply custom turn <phi>/<psi> pair to residue range.\n"
+          "\t4) '<custom dih name>:<res range>:<dih type>:<angle>'\n"
+          "\t  Apply <angle> to dihedrals of type <dih type> in range. See below for\n"
+          "\t  recognized dihedral types.\n"
+          "\t5) '<custom dih name>:<res range>:<at0>:<at1>:<at2>:<at3>:<angle>[:<offset>]'\n"
+          "\t  Apply <angle> to dihedral defined by atoms <at1>, <at2>, <at3>, and <at4>.\n");
   DihedralSearch::OffsetHelp();
-  mprintf("\t'ref:<range>:<refname>[:<ref range>]' Apply dihedrals from reference <refname>.\n");
+  mprintf("\t6) 'ref:<range>:<refname>[:<ref range>[:<dih types>]] [refvalsout <file>] [founddihout <file>]'\n"
+          "\t  Apply dihedrals from reference <refname> to residues in range <range>.\n"
+          "\t  If <ref range> is specified, use those residues from reference. The\n"
+          "\t  dihedral types to be used can be specified in a comma-separated list;\n"
+          "\t  default is phi/psi. Note that in order to specify <dih types>,\n"
+          "\t  <ref range> must be specified.\n");
+  mprintf("  Dihedral type keywords=");
+  DihedralSearch::ListKnownTypes();
 }
 
 // Action_MakeStructure::Init()
@@ -58,7 +75,13 @@ Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, ActionInit& init
 {
   debug_ = debugIn;
   secstruct_.clear();
-  // Get all arguments 
+  CpptrajFile* refvalsout = init.DFL().AddCpptrajFile( actionArgs.GetStringKey("refvalsout"),
+                                                       "Ref dihedral types/values",
+                                                       DataFileList::TEXT );
+  foundDihOut_ = init.DFL().AddCpptrajFile( actionArgs.GetStringKey("founddihout"),
+                                            "Found dihedrals",
+                                            DataFileList::TEXT );
+  // Get all makestructure arguments 
   std::string ss_expr = actionArgs.GetStringNext();
   while ( !ss_expr.empty() ) {
     ArgList ss_arg(ss_expr, ":");
@@ -93,9 +116,21 @@ Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, ActionInit& init
         mprinterr("Error: Ref backbone types must be unique [%s]\n", ss_arg[0].c_str());
         return Action::ERR;
       }
-      // Use backbone phi/psi from reference structure
-      ss_holder.dihSearch_.SearchFor(MetaData::PHI);
-      ss_holder.dihSearch_.SearchFor(MetaData::PSI);
+      if (ss_arg.Nargs() < 5) {
+        // Use backbone phi/psi from reference structure
+        ss_holder.dihSearch_.SearchFor(MetaData::PHI);
+        ss_holder.dihSearch_.SearchFor(MetaData::PSI);
+      } else {
+        // Parse comma-separated list of desired types
+        ArgList typeArgs(ss_arg[4], ",");
+        ss_arg.MarkArg(4);
+        if (typeArgs.Nargs() < 1) {
+          mprinterr("Error: Expected comma-separated list of dihedral types, got '%s'\n",
+                    ss_arg[4].c_str());
+          return Action::ERR;
+        }
+        ss_holder.dihSearch_.SearchForArgs(typeArgs);
+      }
       // Get reference structure
       DataSet_Coords_REF* REF = (DataSet_Coords_REF*)
                                 init.DSL().FindSetOfType(ss_arg.GetStringNext(),
@@ -115,9 +150,7 @@ Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, ActionInit& init
       } else
         refRange = ss_holder.resRange;
       // Look for phi/psi only in reference
-      DihedralSearch refSearch;
-      refSearch.SearchFor(MetaData::PHI);
-      refSearch.SearchFor(MetaData::PSI);
+      DihedralSearch refSearch( ss_holder.dihSearch_ );
       if (refSearch.FindDihedrals( REF->Top(), refRange )) return Action::ERR;
       // For each found dihedral, set theta 
       for (DihedralSearch::mask_it dih = refSearch.begin(); dih != refSearch.end(); ++dih)
@@ -127,6 +160,12 @@ Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, ActionInit& init
                                   REF->RefFrame().XYZ(dih->A2()),
                                   REF->RefFrame().XYZ(dih->A3()) );
         ss_holder.thetas_.push_back( (float)torsion );
+        if (debug_ > 0)
+          mprintf("\t    Res %i %s = %g\n", dih->ResNum()+1, dih->Name().c_str(),
+                  torsion*Constants::RADDEG);
+        if (refvalsout != 0)
+          refvalsout->Printf("Res %i %s = %g\n", dih->ResNum()+1, dih->Name().c_str(),
+                             torsion*Constants::RADDEG);
       }
       secstruct_.push_back( ss_holder );
 
@@ -230,9 +269,15 @@ Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, ActionInit& init
           mprintf("\tDihedral value of %.2f will be applied to %s dihedrals in residue(s) %s\n",
                   myType.phi, myType.type_arg.c_str(), ss->resRange.RangeArg());
       }
-    } else 
+    } else {
       mprintf("\tBackbone angles from reference will be applied to residue(s) %s\n",
               ss->resRange.RangeArg());
+    }
+    if (!ss->dihSearch_.NoDihedralTokens()) {
+      mprintf("\tSet up for types:");
+      ss->dihSearch_.PrintTypes();
+      mprintf("\n");
+    }
   }
   return Action::OK;
 }
@@ -335,15 +380,24 @@ Action::RetType Action_MakeStructure::Setup(ActionSetup& setup) {
       // type was empty. Make sure the number of found dihedrals equals
       // number of reference dihedrals.
       if ( ss->dihSearch_.Ndihedrals() != (int)ss->thetas_.size() ) {
-        mprinterr("Error: Number of found dihedrals (%i) != number reference dihedrals (%u)\n",
+        mprinterr("Error: Number of found dihedrals (%i) != number reference dihedrals (%zu)\n",
                   ss->dihSearch_.Ndihedrals(), ss->thetas_.size());
+        for (DihedralSearch::mask_it dih = ss->dihSearch_.begin();
+                                     dih != ss->dihSearch_.end(); ++dih)
+          mprinterr("\t    Found Res %i %s\n", dih->ResNum()+1, dih->Name().c_str());
         return Action::ERR;
       }
       std::vector<float>::const_iterator theta = ss->thetas_.begin();
       for (DihedralSearch::mask_it dih = ss->dihSearch_.begin();
                                    dih != ss->dihSearch_.end(); ++dih)
       {
-        mprintf("\tDihedral in residue %i = %f\n", dih->ResNum()+1, *(theta++)*Constants::RADDEG);
+        if (foundDihOut_ != 0) {
+          mprintf("\tFound dihedrals being written to '%s'\n", foundDihOut_->Filename().full());
+          foundDihOut_->Printf("\tDihedral %s in residue %i = %f\n",
+                               dih->Name().c_str(), dih->ResNum()+1, *(theta++)*Constants::RADDEG);
+          } else
+            mprintf("\tDihedral %s in residue %i = %f\n",
+                    dih->Name().c_str(), dih->ResNum()+1, *(theta++)*Constants::RADDEG);
         ss->Rmasks_.push_back( DihedralSearch::MovingAtoms(setup.Top(),
                                  dih->A1(), dih->A2()) );
       }

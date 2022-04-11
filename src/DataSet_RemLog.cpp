@@ -8,6 +8,25 @@ DataSet_RemLog::DataSet_RemLog() :
   wrap_(false)
 {}
 
+size_t DataSet_RemLog::MemUsageInBytes() const {
+  size_t mySize = (finalCrdIdx_.size() * sizeof(int)) +
+                  repDims_.DataSize() +
+                  sizeof(int) + 
+                  sizeof(bool);
+  for (ReplicaEnsemble::const_iterator rep = ensemble_.begin();
+                                       rep != ensemble_.end(); ++rep)
+    mySize += (rep->size() * ReplicaFrame::DataSize());
+  for (GdimArray::const_iterator dim = groupDims_.begin();
+                                 dim != groupDims_.end(); ++dim)
+    for (GroupDimType::const_iterator grp = dim->begin();
+                                      grp != dim->end(); ++grp)
+      mySize += (grp->size() * GroupReplica::DataSize());
+  for (RepInfoArray::const_iterator rep = repInfo_.begin();
+                                    rep != repInfo_.end(); ++rep)
+    mySize += (rep->size() * RepInfo::DataSize());
+  return mySize;
+}
+
 /** Setup a single 1-dimension group.
   * \param group_size Expected number of replicas.
   */
@@ -59,14 +78,14 @@ void DataSet_RemLog::AllocateReplicas(int n_replicas, GdimArray const& gdimIn,
     for (GdimArray::const_iterator Dim = groupDims_.begin();
                                    Dim != groupDims_.end(); ++Dim)
     {
-      mprintf("Dimension %u:\n", Dim - groupDims_.begin());
+      mprintf("Dimension %li:\n", Dim - groupDims_.begin());
       for (GroupDimType::const_iterator Group = Dim->begin();
                                         Group != Dim->end(); ++Group)
       {
-        mprintf("\tGroup %u:\n", Group - Dim->begin());
+        mprintf("\tGroup %li:\n", Group - Dim->begin());
         for (GroupArray::const_iterator Rep = Group->begin();
                                         Rep != Group->end(); ++Rep)
-          mprintf("\t\tReplica[%u]= %i (l=%i, r=%i)\n", Rep - Group->begin(), Rep->Me(),
+          mprintf("\t\tReplica[%li]= %i (l=%i, r=%i)\n", Rep - Group->begin(), Rep->Me(),
                   Rep->L_partner(), Rep->R_partner());
       }
     }

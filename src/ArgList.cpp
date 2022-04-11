@@ -48,6 +48,7 @@ void ArgList::Append(ArgList const& argIn) {
 std::string const& ArgList::operator[](int idx) const {
   if (idx < 0 || idx >= (int)arglist_.size()) {
     mprinterr("Internal Error: Position %i out of range for Argument List.\n",idx);
+    mprinterr("Internal Error: [%s]\n", argline_.c_str());
     return emptystring;
   }
   return arglist_[idx];
@@ -145,6 +146,32 @@ int ArgList::SetList(std::string const& inputString, const char *separator) {
   return 0;
 }
 
+/** Check the current argline_ for non-ASCII characters; report
+  * if found.
+  */
+void ArgList::CheckArgLineForNonASCII() const {
+  // Store positions of bad characters
+  std::vector<unsigned int> badChars;
+  for (std::string::const_iterator pch = argline_.begin(); pch != argline_.end(); ++pch)
+  {
+    // Extended ASCII check
+    if (static_cast<unsigned char>( *pch ) > 127) {
+      mprintf("Warning: Non-ASCII character '%c' (%x) detected in input.\n", *pch, (unsigned int)*pch);
+      //mprintf("Warning: Non-ASCII character '%x' detected in input at position %li.\n", (unsigned int)*pch, pch - argline_.begin() + 1);
+      badChars.push_back( (unsigned int)(pch - argline_.begin()) );
+    }
+  }
+  if (!badChars.empty()) {
+    std::string caratStr(argline_.size(), ' ');
+    for (std::vector<unsigned int>::const_iterator it = badChars.begin(); it != badChars.end(); ++it)
+      caratStr[*it] = '^';
+    mprintf("Warning: Non-ASCII character(s) detected in input (at '^'):\n");
+    mprintf("Warning: [%s]\n", argline_.c_str());
+    mprintf("Warning:  %s \n", caratStr.c_str());
+    mprintf("Warning: These characters may need to be removed.\n");
+  }
+}
+
 // ArgList::RemainingArgs()
 ArgList ArgList::RemainingArgs() {
   ArgList remain;
@@ -158,6 +185,13 @@ ArgList ArgList::RemainingArgs() {
   }
   remain.marked_.resize( remain.arglist_.size(), false );
   return remain;
+}
+
+int ArgList::NremainingArgs() const {
+  int nUnmarked = 0;
+  for (std::vector<bool>::const_iterator it = marked_.begin(); it != marked_.end(); ++it)
+    if (!(*it)) ++nUnmarked;
+  return nUnmarked;
 }
 
 // ArgList::AddArg()
@@ -215,13 +249,6 @@ void ArgList::RemoveFirstArg() {
   if (arglist_.empty()) return;
   arglist_.erase( arglist_.begin() );
   marked_.erase( marked_.begin() );
-}
-
-/** Replace argument at position with given argument. Update ArgLine. */
-void ArgList::ChangeArg(unsigned int idx, std::string const& arg) {
-  size_t pos = argline_.find( arglist_[idx], 0 ); 
-  argline_.replace(pos, arglist_[idx].size(), arg);
-  arglist_[idx] = arg;
 }
 
 // ArgList::Command()
@@ -369,6 +396,30 @@ std::string const& ArgList::GetStringKey(const char *key) {
       }
     }
   return emptystring;
+}
+
+ArgList ArgList::GetNstringKey(const char* key, int num) {
+  ArgList ret;
+  int nargs = (int)arglist_.size() - num;
+  for (int arg = 0; arg < nargs; arg++)
+    if (!marked_[arg]) {
+      if (arglist_[arg].compare(key)==0) {
+        // Key found. Now need it followed by num unmarked args
+        marked_[arg] = true;
+        arg++;
+        for (int i = 0; i < num; i++) {
+          if (marked_[arg+i]) {
+            mprinterr("Error: Expected '%s' to be followed by %i arguments.\n", key, num);
+            return ret;
+          } else {
+            marked_[arg+i] = true;
+            ret.arglist_.push_back( arglist_[arg+i] );
+            ret.marked_.push_back( false );
+          }
+        }
+      }
+    }
+  return ret;
 }
 
 // ArgList::GetStringKey()

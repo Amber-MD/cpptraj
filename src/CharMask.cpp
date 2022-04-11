@@ -1,5 +1,14 @@
 #include "CharMask.h"
 #include "CpptrajStdio.h" // PrintMaskAtoms
+#include "Unit.h"
+
+/** Use to initialize the mask without a mask expression. */
+void CharMask::InitCharMask(int natoms, bool initSelected) {
+  if (initSelected)
+    CharMask_.assign(natoms, SelectedChar_);
+  else
+    CharMask_.assign(natoms, UnselectedChar_);
+}
 
 /** Given atom and residue info and coordinates, setup character mask
   * based on current mask tokens.
@@ -75,6 +84,13 @@ bool CharMask::AtomsInCharMask(int startatom, int endatom) const {
   return false;
 }
 
+// AtomsInCharMask()
+bool CharMask::AtomsInCharMask(Unit const& unitIn) const {
+  for (Unit::const_iterator it = unitIn.segBegin(); it != unitIn.segEnd(); ++it)
+    if (AtomsInCharMask(it->Begin(), it->End())) return true;
+  return false;
+}
+
 /** This routine can be used to convert a CharMask to an AtomMask, e.g.
   * AtomMask mask( CharMask.ConvertToIntMask(), CharMask.Natom() )
   */
@@ -87,4 +103,23 @@ std::vector<int> CharMask::ConvertToIntMask() const {
       Selected.push_back( atom );
   }
   return Selected;
+}
+
+/** Add an atom as either selected (true) or unselected (false). */
+void CharMask::AddAtom(bool selected) {
+  if (selected) {
+    CharMask_.push_back(SelectedChar_);
+    nselected_++;
+  } else
+    CharMask_.push_back(UnselectedChar_);
+}
+
+void CharMask::SelectAtom(int atom, bool selected) {
+  if (selected) {
+    if (CharMask_[atom] == UnselectedChar_) nselected_++;
+    CharMask_[atom] = SelectedChar_;
+  } else {
+    if (CharMask_[atom] == SelectedChar_) nselected_--;
+    CharMask_[atom] = UnselectedChar_;
+  }
 }

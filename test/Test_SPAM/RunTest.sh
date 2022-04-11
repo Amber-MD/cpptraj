@@ -7,7 +7,7 @@ CleanFiles spam.in spam.dat spam.info spampure.dat test.mdcrd summary.dat
 
 # Check libraries
 TESTNAME='SPAM tests'
-Requires netcdf
+Requires netcdf maxthreads 10
 
 INPUT="spam.in"
 # SPAM test

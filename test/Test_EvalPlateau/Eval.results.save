@@ -1,0 +1,2 @@
+#Frame         EQ[A0]       EQ[A1]       EQ[A2]    EQ[OneA1]     EQ[corr]     EQ[vala]    EQ[chisq]   EQ[pltime]   EQ[fslope]   EQ[name] EQ[result]
+       1       1.0366     0.002661       1.0406     375.7911       0.4204    0.0006618     0.004802     918.0000    7.435e-07 MD_Density        yes

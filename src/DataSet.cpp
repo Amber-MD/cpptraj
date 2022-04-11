@@ -1,6 +1,39 @@
 #include "DataSet.h"
 #include "CpptrajStdio.h"
 
+// NOTE: IT IS IMPORTANT THAT THIS ARRAY CORRESPOND TO DataSet::DataType
+/** Description of each DataType. */
+const char* DataSet::Descriptions_[] = {
+  "unknown",        // UNKNOWN_DATA
+  "double",         // DOUBLE
+  "float",          // FLOAT
+  "integer",        // INTEGER
+  "string",         // STRING
+  "double matrix",  // MATRIX_DBL
+  "float matrix",   // MATRIX_FLT
+  "coordinates",    // COORDS
+  "vector",         // VECTOR
+  "eigenmodes",     // MODES
+  "float grid",     // GRID_FLT
+  "double grid",    // GRID_DBL
+  "remlog",         // REMLOG
+  "X-Y mesh",       // XYMESH
+  "trajectories",   // TRAJ
+  "reference",      // REF_FRAME
+  "3x3 matrices",   // MAT3X3
+  "topology",       // TOPOLOGY
+  "pH",                         // PH
+  "pH REMD (explicit)",         // PH_EXPL
+  "pH REMD (implicit)",         // PH_IMPL
+  "parameters",                 // PARAMETERS
+  "pairwise matrix (mem)",      // PMATRIX_MEM
+  "pairwise matrix (NetCDF)",   // PMATRIX_NC
+  "tensor",                     // TENSOR
+  "string variable",            // STRINGVAR
+  "vector with scalar",         // VECTOR_SCALAR
+  "unsigned integer"            // UNSIGNED_INTEGER
+};
+
 // CONSTRUCTOR
 DataSet::DataSet() : dType_(UNKNOWN_DATA), dGroup_(GENERIC)
 # ifdef MPI
@@ -71,7 +104,7 @@ DataSet& DataSet::operator=(const DataSet& rhs) {
 int DataSet::SetMeta(MetaData const& In) {
   // Dataset name
   if (In.Name().empty()) {
-    mprinterr("Internal Error: DataSet has no name.\n"); //FIXME allow?
+    mprinterr("Internal Error: DataSet has no name.\n");
     return 1;
   }
   meta_ = In;

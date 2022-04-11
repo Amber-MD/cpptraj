@@ -138,7 +138,7 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, AnalysisSetup& se
     }
   }
 
-  mprintf("   REMLOG: %s, %i replicas, %i exchanges\n", remlog_->legend(),
+  mprintf("   REMLOG: %s, %zu replicas, %i exchanges\n", remlog_->legend(),
           remlog_->Size(), remlog_->NumExchange());
   if (mode_ == CRDIDX)
     mprintf("\tGetting coordinate index vs exchange.\n");
@@ -155,7 +155,7 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, AnalysisSetup& se
   if (calculateLifetimes_)
     mprintf("\tThe lifetime of each crd at each replica will be calculated.\n");
   if (acceptout_ != 0)
-    mprintf("\tOverall exchange acceptance % will be written to %s\n",
+    mprintf("\tOverall exchange acceptance %% will be written to %s\n",
             acceptout_->Filename().full());
   if (!eSets_.empty()) {
     mprintf("\tPotential energies from replica log will be saved to sets named '%s[E]'\n",
@@ -174,7 +174,7 @@ Analysis::RetType Analysis_RemLog::Analyze() {
     return Analysis::ERR;
   }
   int Ndims = remlog_->DimTypes().Ndims();
-  mprintf("\t'%s' %i replicas, %i exchanges, %i dims.\n", remlog_->legend(),
+  mprintf("\t'%s' %zu replicas, %i exchanges, %i dims.\n", remlog_->legend(),
          remlog_->Size(), remlog_->NumExchange(), Ndims);
   // Set up arrays for tracking replica stats.
   std::vector<RepStats> DimStats;
@@ -195,7 +195,7 @@ Analysis::RetType Analysis_RemLog::Analyze() {
   // Variables for calculating replica lifetimes
   Analysis_Lifetime Lifetime;
   Array1D dsLifetime;
-  std::vector< std::vector<DataSet_integer> > series; // 2D - repidx, crdidx
+  std::vector< std::vector<DataSet_integer_mem> > series; // 2D - repidx, crdidx
   if (calculateLifetimes_) {
     mprintf("\tData size used for lifetime analysis= %zu bytes.\n",
             remlog_->Size() * remlog_->Size() * remlog_->NumExchange() * sizeof(int));
@@ -252,13 +252,13 @@ Analysis::RetType Analysis_RemLog::Analyze() {
       }
       if (mode_ == CRDIDX) {
         DataSet_integer& ds = static_cast<DataSet_integer&>( *(outputDsets_[repidx]) );
-        ds[frame] = frm.CoordsIdx();
+        ds.SetElement(frame, frm.CoordsIdx());
       } else if (mode_ == REPIDX) {
         DataSet_integer& ds = static_cast<DataSet_integer&>( *(outputDsets_[crdidx]) );
-        ds[frame] = frm.ReplicaIdx();
+        ds.SetElement(frame, frm.ReplicaIdx());
       }
       if (calculateLifetimes_)
-        series[repidx][crdidx][frame] = 1;
+        series[repidx][crdidx].SetElement(frame, 1);
       if (calculateStats_) {
         TripStats& trip = static_cast<TripStats&>( DimTrips[dim] );
         // Fraction spent at each replica
@@ -291,8 +291,8 @@ Analysis::RetType Analysis_RemLog::Analyze() {
       for (int crdidx = 0; crdidx < (int)remlog_->Size(); crdidx++) {
         for (int replica = 0; replica < (int)remlog_->Size(); replica++)
           mesh.SetY(replica, (double)replicaFrac[replica][crdidx] / (double)frame);
-        double slope, intercept, correl;
-        mesh.LinearRegression(slope, intercept, correl, 0);
+        double slope, intercept, correl, Fval;
+        mesh.LinearRegression(slope, intercept, correl, Fval, 0);
         repFracSlope_->Printf("  %14.7g %14.7g", slope * 100.0, correl);
                 //frame+1, crdidx, slope * 100.0, intercept * 100.0, correl
       }
@@ -316,7 +316,7 @@ Analysis::RetType Analysis_RemLog::Analyze() {
             ((double)DimStats[dim].acceptDown_[replica] / exchangeAttempts) * 100.0);
   }
   if (calculateStats_) {
-    statsout_->Printf("# %i replicas, %i exchanges.\n", remlog_->Size(), remlog_->NumExchange());
+    statsout_->Printf("# %zu replicas, %i exchanges.\n", remlog_->Size(), remlog_->NumExchange());
     for (int dim = 0; dim != Ndims; dim++) {
       if (Ndims > 1)
         statsout_->Printf("#Dim%i Round-trip stats:\n", dim+1);
@@ -330,7 +330,7 @@ Analysis::RetType Analysis_RemLog::Analyze() {
       {
         double stdev = 0.0;
         double avg = rt->Avg( stdev );
-        statsout_->Printf("%-8u %8i %12.4f %12.4f %12.0f %12.0f\n", 
+        statsout_->Printf("%-8u %8zu %12.4f %12.4f %12.0f %12.0f\n", 
                           idx++, rt->Size(), avg, stdev, rt->Min(), rt->Max());
       }
     }

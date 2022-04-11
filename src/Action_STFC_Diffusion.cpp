@@ -19,7 +19,7 @@ Action_STFC_Diffusion::Action_STFC_Diffusion() :
 
 void Action_STFC_Diffusion::Help() const {
   mprintf("\tmask <mask> [out <file>] [time <time per frame>]\n"
-          "\t[mask2 <mask>] [lower <distance>] [upper <distance>]\n"
+          "\t[mask2 <mask> [lower <distance>] [upper <distance>]]\n"
           "\t[nwout <file>]) [avout <file>] [distances] [com]\n"
           "\t[x|y|z|xy|xz|yz|xyz]\n"
           "  Calculate diffusion of atoms in <mask>\n");
@@ -35,8 +35,8 @@ Action::RetType Action_STFC_Diffusion::Init(ArgList& actionArgs, ActionInit& ini
 {
 # ifdef MPI
   if (init.TrajComm().Size() > 1) {
-    mprinterr("Error: 'stfcdiffusion' action does not work with > 1 thread"
-              " (%i threads currently).\n", init.TrajComm().Size());
+    mprinterr("Error: 'stfcdiffusion' action does not work with > 1 process"
+              " (%i processes currently).\n", init.TrajComm().Size());
     return Action::ERR;
   }
 # endif
@@ -94,7 +94,13 @@ Action::RetType Action_STFC_Diffusion::Init(ArgList& actionArgs, ActionInit& ini
     }
     calcType_ = DIST;
     // See if imaging is to be performed.
-    image_.InitImaging( !(actionArgs.hasKey("noimage")) );
+    imageOpt_.InitImaging( !(actionArgs.hasKey("noimage")) );
+  } else if (actionArgs.Contains("lower")) {
+    mprinterr("Error: 'lower' requires 'mask2'\n");
+    return Action::ERR;
+  } else if (actionArgs.Contains("upper")) {
+    mprinterr("Error: 'upper' requires 'mask2'\n");
+    return Action::ERR;
   }
 
   if (calcType_ != DEFAULT)
@@ -117,7 +123,7 @@ Action::RetType Action_STFC_Diffusion::Init(ArgList& actionArgs, ActionInit& ini
   else if (calcType_ == DIST) {
     mprintf("\t\tAtoms in mask 2 (%s) in the range %.3f to %.3f Angstrom will be used\n",
             mask2_.MaskString(), lcut, ucut);
-    if (image_.UseImage())
+    if (imageOpt_.UseImage())
       mprintf("\t\tDistances will be imaged.\n");
     else
       mprintf("\t\tDistances will not be imaged.\n");
@@ -169,15 +175,15 @@ Action::RetType Action_STFC_Diffusion::Setup(ActionSetup& setup) {
       return Action::ERR;
     }
     // Set up imaging info
-    image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
-    if (image_.ImagingEnabled())
+    imageOpt_.SetupImaging( setup.CoordInfo().TrajBox().HasBox() );
+    if (imageOpt_.ImagingEnabled())
       mprintf("\tImaging distances.\n");
     else
       mprintf("\tImaging off.\n");
   }
 
   // Check for box
-  if ( setup.CoordInfo().TrajBox().Type()!=Box::NOBOX )
+  if ( setup.CoordInfo().TrajBox().HasBox() )
     hasBox_ = true;
   else
     hasBox_ = false;
@@ -320,7 +326,8 @@ void Action_STFC_Diffusion::calculateMSD(const double* XYZ, int idx1, int idx2, 
 // Action_STFC_Diffusion::DoAction()
 Action::RetType Action_STFC_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
   double Time, average, avgx, avgy, avgz;
-
+  if (imageOpt_.ImagingEnabled())
+    imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
   // ----- Load initial frame if necessary -------
   if ( initialxyz_.empty() ) {
     //mprintf("DEBUG: Initial frame is empty, mode %i\n", (int)calcType_);
@@ -417,15 +424,7 @@ Action::RetType Action_STFC_Diffusion::DoAction(int frameNum, ActionFrame& frm) 
       for ( AtomMask::const_iterator atom2 = mask2_.begin(); atom2 != mask2_.end(); ++atom2)
       {
         const double* XYZ2 = frm.Frm().XYZ(*atom2);
-        Matrix_3x3 ucell, recip;
-        switch ( image_.ImageType() ) {
-          case NONORTHO:
-            frm.Frm().BoxCrd().ToRecip(ucell, recip);
-            dist2 = DIST2_ImageNonOrtho(XYZ1, XYZ2, ucell, recip);
-            break;
-          case ORTHO:   dist2 = DIST2_ImageOrtho(XYZ1, XYZ2, frm.Frm().BoxCrd()); break;
-          case NOIMAGE: dist2 = DIST2_NoImage(XYZ1, XYZ2); break;
-        }
+        dist2 = DIST2( imageOpt_.ImagingType(), XYZ1, XYZ2, frm.Frm().BoxCrd() );
         // Find minimum distance.
         if (dist2 < minDist) {
           minDist = dist2;

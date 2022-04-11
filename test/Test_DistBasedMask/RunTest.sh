@@ -4,7 +4,7 @@
 
 # Clean
 CleanFiles mask.in First.pdb.1 Second.pdb.1 Third.pdb.1 Fourth.pdb.1 \
-           Fifth.pdb.1 Sixth.pdb.1
+           Fifth.pdb.1 Sixth.pdb.1 Seventh.pdb.1 Eighth.pdb.1
 
 # NOTE: This also tests activeref
 TESTNAME='Distance-based atom mask tests'
@@ -20,18 +20,18 @@ trajin ../tz2.nc 1 1
 
 activeref ref [FIRST]
 # Atoms outside 5 Ang from residue 2
-mask :2>@5.0 maskpdb First.pdb
+mask :2>@5.0 maskpdb First.pdb trajargs "chainid ' '"
 # Atoms within 5 Ang of residue 2
-mask :2<@5.0 maskpdb Second.pdb
+mask :2<@5.0 maskpdb Second.pdb trajargs "chainid ' '"
 
 activeref ref [LAST]
 # Residues within 5 Ang of residue 2
 strip !(:2<:5.0)
-outtraj Third.pdb.1 pdb noter
+outtraj Third.pdb.1 pdb noter chainid ' '
 unstrip
 # Residues outside 5 Ang from residue 2
 strip !(:2>:5.0)
-outtraj Fourth.pdb.1 pdb noter
+outtraj Fourth.pdb.1 pdb noter chainid ' '
 
 run
 EOF
@@ -48,17 +48,39 @@ reference ../DOPC.rst7
 
 # Molecules within 3 Ang of residue 1
 strip !(:1<^3.0)
-outtraj Fifth.pdb.1 pdb noter
+outtraj Fifth.pdb.1 pdb noter chainid ' '
 unstrip
 # Molecules outside 10 Ang of residue 24
 strip (!(:24>^22.0))|:WAT
-outtraj Sixth.pdb.1 pdb noter
+outtraj Sixth.pdb.1 pdb noter chainid ' '
 
 run
 EOF
 RunCpptraj "$TESTNAME (molecule)"
 DoTest Fifth.pdb.1.save Fifth.pdb.1
 DoTest Sixth.pdb.1.save Sixth.pdb.1
+
+# Test residue center of mass
+cat > mask.in <<EOF
+parm ../tz2.parm7
+#reference ../tz2.nc 1 [FIRST]
+reference ../tz2.nc lastframe [LAST]
+trajin ../tz2.nc 1 1
+
+activeref ref [LAST]
+# Residue centers within 5 Ang of residue 2
+strip !(:2<;5.0)
+outtraj Seventh.pdb.1 pdb noter chainid ' '
+unstrip
+# Residue centers outside 5 Ang from residue 2
+strip !(:2>;5.0)
+outtraj Eighth.pdb.1 pdb noter chainid ' '
+
+run
+EOF
+RunCpptraj "$TESTNAME (residue center)"
+DoTest Seventh.pdb.1.save Seventh.pdb.1
+DoTest Eighth.pdb.1.save Eighth.pdb.1
 
 EndTest
 

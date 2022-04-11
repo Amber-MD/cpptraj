@@ -68,9 +68,10 @@ const double CurveFit::machine_epsilon = pow(2.0, -53);
 void CurveFit::PrintMatrix(const char* name, int ncols, int mrows, CurveFit::Darray const& mat)
 const {
   CurveFit::Darray::const_iterator mij = mat.begin();
+  unsigned int idx = 0;
   for (int n = 0; n < ncols; n++) {
     for (int m = 0; m < mrows; m++)
-      DBGPRINT("DEBUG: %s(%i,%i)= %12.6g [%zu]\n", name, m+1, n+1, *(mij++), mij-mat.begin());
+      DBGPRINT("DEBUG: %s(%i,%i)= %12.6g [%u]\n", name, m+1, n+1, *(mij++), idx++);
   }
 }
 
@@ -178,7 +179,7 @@ void CurveFit::CalcJacobian_ForwardDiff(Darray const& Xvals_, Darray const& Yval
   * Laboratory. minpack project. March 1980. Burton S. Garbow,
   * Kenneth E. Hillstrom, Jorge J. More).
   */
-double CurveFit::VecNorm( Darray::const_iterator const& vBeg, dsize nElt ) {
+double CurveFit::VecNorm( Darray::const_iterator const& vBeg, dsize nElt ) const {
   // CONSTANTS
   static const double rdwarf = 3.834e-20;
   static const double rgiant = 1.304e19;
@@ -190,11 +191,16 @@ double CurveFit::VecNorm( Darray::const_iterator const& vBeg, dsize nElt ) {
   double sum_small = 0.0;
   double lMax = 0.0;
   double sMax = 0.0;
- 
+# ifdef  DBG_CURVEFIT
+  DBGPRINT("VecNorm:");
+# endif
   Darray::const_iterator vEnd = vBeg + nElt;
   for (Darray::const_iterator v = vBeg; v != vEnd; ++v)
   {
     double xabs = fabs( *v );
+#   ifdef DBG_CURVEFIT
+    DBGPRINT(" %20.10E", xabs);
+#   endif
     if (xabs > rdwarf && xabs < agiant)
     {
       // Sum for intermediate components.
@@ -223,7 +229,9 @@ double CurveFit::VecNorm( Darray::const_iterator const& vBeg, dsize nElt ) {
       } // L20
     }
   }
-
+# ifdef DBG_CURVEFIT
+  DBGPRINT("\nVecNorm sums l= %20.10E  m= %20.10E  s= %20.10E\n", sum_large, sum_mid, sum_small);
+# endif
   // Calculation of norm
   double ret_val;
   if (sum_large != 0.0) {
@@ -474,19 +482,48 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
 
         // Apply the transfomation to the remaining columns and update the norms
         dsize in1 = in + 1;
+#       ifdef DBG_CURVEFIT
+        DBGPRINT("\tApply transformation test: in1= %zu  in= %zu  n_= %zu\n", in1, in, n_);
+#       endif
         if (in1 < n_) {
           for (dsize k = in1; k < n_; k++) {
             double sum = 0.0;
             for (dsize i = in; i < m_; i++)
               sum += jacobian_[i + in * m_] * jacobian_[i + k * m_];
             double temp = sum / jacobian_[in + in * m_];
+#           ifdef DBG_CURVEFIT
+            DBGPRINT("\t\tApply transformation: sum= %30.15E  temp= %32.16E\n", sum, temp);
+            DBGPRINT("\t\tBefore trans :");
             for (dsize i = in; i < m_; i++)
-              jacobian_[i + k * m_] -= temp * jacobian_[i + in * m_];
+              DBGPRINT(" %30.15E", jacobian_[i + k * m_]);
+            DBGPRINT("\n");
+            DBGPRINT("\t\tSubtracting  :");
+#           endif
+            for (dsize i = in; i < m_; i++) {
+              //jacobian_[i + k * m_] -= (temp * jacobian_[i + in * m_]);
+              // NOTE: The commented-out combined mult./subtraction statement above 
+              //       appears to generate code that causes results to diverge with
+              //       certain compiler/CPU combinations (for example, PGI compilers
+              //       on an Intel Xeon Gold 5120).
+              //       Separating the operation like this WITH THE DEBUG STATEMENT
+              //       IN-BETWEEN seems to remove whatever optimization that causes the
+              //       divergence, hence the slightly not-as-slick looking code below.
+              double dtmp = temp * jacobian_[i + in * m_];
+              DBGPRINT(" %30.15E", dtmp);
+              jacobian_[i + k * m_] -= dtmp;
+            }
+#           ifdef DBG_CURVEFIT
+            DBGPRINT("\n");
+            DBGPRINT("\t\tAfter trans  :");
+            for (dsize i = in; i < m_; i++)
+              DBGPRINT(" %30.15E", jacobian_[i + k * m_]);
+            DBGPRINT("\n");
+#           endif
             if (Rdiag[k] != 0.0) {
               temp = jacobian_[in + k * m_] / Rdiag[k];
               Rdiag[k] *= sqrt( std::max( 0.0, 1.0 - temp * temp ) );
               temp = Rdiag[k] / work1[k];
-              DBGPRINT("\t\tQRFAC TEST: 0.5 * %g^2 <= %g\n", temp, machine_epsilon);
+              DBGPRINT("\t\tQRFAC TEST: 0.5 * %g^2 <= %g, work1[%zu]= %30.15E\n", temp, machine_epsilon, k, work1[k]);
               if (0.05 * (temp * temp) <= machine_epsilon) {
                 DBGPRINT("\t\tTEST PASSED\n");
                 Rdiag[k] = VecNorm( jacobian_.begin() + (in1 + k * m_), m_ - in - 1 );

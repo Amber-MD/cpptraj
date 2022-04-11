@@ -17,6 +17,7 @@ class DataSet_pH : public DataSet_1D {
     int Allocate(SizeArray const&);
     void Add( size_t, const void* ) { return; }
     int Append(DataSet*)            { return 1; }
+    size_t MemUsageInBytes() const;
 #   ifdef MPI
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
     /// Sum data to the specified rank in communicator
@@ -26,6 +27,7 @@ class DataSet_pH : public DataSet_1D {
     double Dval(size_t i)           const { return (double)states_[i];         }
     double Xcrd(size_t idx)         const { return Dim(0).Coord(idx);          }
     const void* VoidPtr(size_t idx) const { return (void*)(&(states_[0])+idx); }
+    void SetY(size_t i, double y)         { states_[i] = (int)y; }
     // -------------------------------------------
     void Resize(size_t, int);
     void SetResidueInfo(Cph::CpRes const& r) { res_ = r; }

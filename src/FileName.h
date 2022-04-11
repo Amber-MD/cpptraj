@@ -10,6 +10,8 @@ class FileName {
     FileName(const char* s) { SetFileName( std::string(s) ); }
     FileName(const FileName&);
     FileName& operator=(const FileName&);
+    /// \return true if full path matches
+    bool operator==(FileName const& rhs) const { return (fullPathName_ == rhs.fullPathName_); }
     /// Set file name and extensions, perform expansion as necessary.
     int SetFileName(std::string const&);
     /// Set file name, no expansions.

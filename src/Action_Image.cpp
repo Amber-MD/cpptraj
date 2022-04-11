@@ -2,6 +2,7 @@
 #include "Action_Image.h"
 #include "CpptrajStdio.h"
 #include "ImageRoutines.h"
+#include "Image_List.h"
 
 // CONSTRUCTOR
 Action_Image::Action_Image() :
@@ -10,12 +11,18 @@ Action_Image::Action_Image() :
   offset_(0.0),
   origin_(false),
   center_(false),
-  ortho_(false),
   useMass_(true),
   truncoct_(false),
   triclinic_(OFF),
-  debug_(0)
-{ } 
+  debug_(0),
+  imageList_(0)
+{ }
+
+/** DESTRUCTOR */
+Action_Image::~Action_Image() {
+  if (imageList_ != 0) delete imageList_;
+  if (ComMask_!=0) delete ComMask_;
+}
 
 void Action_Image::Help() const {
   mprintf("\t[origin] [center] [triclinic | familiar [com <commask>]] <mask>\n" 
@@ -28,11 +35,6 @@ void Action_Image::Help() const {
           "    com <commask>: If familiar, center based on COM of atoms in mask, otherwise use\n"
           "                   origin/box.\n"
           "    <mask>: Only image atoms in <mask>. If no mask given all atoms are imaged.\n");
-}
-
-// DESTRUCTOR
-Action_Image::~Action_Image() {
-  if (ComMask_!=0) delete ComMask_;
 }
 
 // Action_Image::Init()
@@ -62,7 +64,7 @@ Action::RetType Action_Image::Init(ArgList& actionArgs, ActionInit& init, int de
     std::string maskexpr = actionArgs.GetStringKey("com");
     if (!maskexpr.empty()) {
       ComMask_ = new AtomMask();
-      ComMask_->SetMaskString(maskexpr);
+      if (ComMask_->SetMaskString(maskexpr)) return Action::ERR;
     }
   }
   maskExpression_ = actionArgs.GetMaskNext();
@@ -103,28 +105,28 @@ Action::RetType Action_Image::Init(ArgList& actionArgs, ActionInit& init, int de
   */
 Action::RetType Action_Image::Setup(ActionSetup& setup) {
   // Check box type
-  if (setup.CoordInfo().TrajBox().Type() == Box::NOBOX) {
+  if (!setup.CoordInfo().TrajBox().HasBox()) {
     mprintf("Warning: Topology %s does not contain box information.\n",
             setup.Top().c_str());
     return Action::SKIP;
   }
-  ortho_ = false;  
-  if (setup.CoordInfo().TrajBox().Type()==Box::ORTHO && triclinic_==OFF)
-    ortho_ = true;
   // Setup atom pairs to be unwrapped.
-  imageList_ = Image::CreatePairList(setup.Top(), imageMode_, maskExpression_);
-  if (imageList_.empty()) {
-    mprintf("Warning: No atoms selected for topology '%s'.\n", setup.Top().c_str());
+  if (imageList_ != 0) delete imageList_;
+  imageList_ = Image::CreateImageList(setup.Top(), imageMode_, maskExpression_,
+                                      useMass_, center_);
+  if (imageList_ == 0) {
+    mprinterr("Internal Error: Could not allocate image list.\n");
+    return Action::ERR;
+  }
+  if (imageList_->nEntities() < 1) {
+    mprintf("Warning: Nothing selected to image for topology '%s'.\n", setup.Top().c_str());
     return Action::SKIP;
   }
-  mprintf("\tNumber of %ss to be imaged is %zu\n",
-          Image::ModeString(imageMode_), imageList_.size()/2);
-  // DEBUG: Print all pairs
-  if (debug_>0) {
-    for (std::vector<int>::const_iterator ap = imageList_.begin();
-                                          ap != imageList_.end(); ap+=2)
-      mprintf("\t\tFirst-Last atom#: %i - %i\n", (*ap)+1, *(ap+1) );
-  }
+  mprintf("\tNumber of %ss to be imaged is %u\n",
+          Image::ModeString(imageMode_), imageList_->nEntities());
+  // DEBUG: Print all entities 
+  if (debug_>0)
+    imageList_->PrintEntities();
   // Setup for truncated octahedron
   if (triclinic_ == FAMILIAR) {
     if (ComMask_!=0) {
@@ -145,25 +147,21 @@ Action::RetType Action_Image::Setup(ActionSetup& setup) {
 
 // Action_Image::DoAction()
 Action::RetType Action_Image::DoAction(int frameNum, ActionFrame& frm) {
-  // Ortho
-  Vec3 bp, bm;
-  // Nonortho
-  Matrix_3x3 ucell, recip;
-  Vec3 fcom;
-  
-  if (ortho_) {
+  if (frm.Frm().BoxCrd().Is_X_Aligned_Ortho() && triclinic_ == OFF) {
+    Vec3 bp, bm;
     if (Image::SetupOrtho(frm.Frm().BoxCrd(), bp, bm, origin_)) {
       mprintf("Warning: Frame %i imaging failed, box lengths are zero.\n",frameNum+1);
       // TODO: Return OK for now so next frame is tried; eventually indicate SKIP?
       return Action::OK;
     }
-    Image::Ortho(frm.ModifyFrm(), bp, bm, offset_, center_, useMass_, imageList_);
+    Image::Ortho(frm.ModifyFrm(), bp, bm, offset_, *imageList_);
   } else {
-    frm.Frm().BoxCrd().ToRecip( ucell, recip );
+    Vec3 fcom;
     if (truncoct_)
       fcom = Image::SetupTruncoct( frm.Frm(), ComMask_, useMass_, origin_ );
-    Image::Nonortho( frm.ModifyFrm(), origin_, fcom, offset_, ucell, recip, truncoct_,
-                     center_, useMass_, imageList_);
+    Image::Nonortho( frm.ModifyFrm(), origin_, fcom, offset_,
+                     frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell(), truncoct_,
+                     *imageList_);
   }
   return Action::MODIFY_COORDS;
 }

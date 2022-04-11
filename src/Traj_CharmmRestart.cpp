@@ -1,6 +1,9 @@
 #include <cstdio> // sscanf
 #include <cstdlib> // atof
 #include "Traj_CharmmRestart.h"
+#include "Topology.h"
+#include "Frame.h"
+#include "CpptrajFile.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h"
 #include "BufferedLine.h"
@@ -64,7 +67,7 @@ int Traj_CharmmRestart::processReadArgs(ArgList& argIn) {
 }
 
 static inline int ErrEOF(int line) {
-  mprinterr("Error: Unexpected end of file, line %i\n");
+  mprinterr("Error: Unexpected end of file, line %i\n", line);
   return TrajectoryIO::TRAJIN_ERR;
 }
 
@@ -138,13 +141,11 @@ int Traj_CharmmRestart::setupTrajin(FileName const& fname, Topology* trajParm)
     if (debug_ > 0)
       mprintf("DEBUG: Shape Matrix: %g %g %g %g %g %g\n",
               bs[0], bs[1], bs[2], bs[3], bs[4], bs[5]);
-    double bp[6];
-    Box::ShapeToUcell( bp, bs );
-    cbox_.SetBox( bp );
+    cbox_.SetupFromShapeMatrix( bs );
     if (debug_ > 0)
       mprintf("DEBUG: Unit cell: %g %g %g %g %g %g\n",
-              cbox_.BoxX(), cbox_.BoxY(), cbox_.BoxZ(),
-              cbox_.Alpha(), cbox_.Beta(), cbox_.Gamma());
+              cbox_.Param(Box::X), cbox_.Param(Box::Y), cbox_.Param(Box::Z),
+              cbox_.Param(Box::ALPHA), cbox_.Param(Box::BETA), cbox_.Param(Box::GAMMA));
     // Seek down to !NATOM
     while (ptr != 0 && ptr[1] != '!')
       ptr = infile.Line();
@@ -237,7 +238,7 @@ void Traj_CharmmRestart::WriteHelp() {
 }
 
 /** Process write arguments. */
-int Traj_CharmmRestart::processWriteArgs(ArgList& argIn) {
+int Traj_CharmmRestart::processWriteArgs(ArgList& argIn, DataSetList const&) {
 
   return 0;
 }

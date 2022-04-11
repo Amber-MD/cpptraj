@@ -39,14 +39,14 @@ Action::RetType Action_Center::Init(ArgList& actionArgs, ActionInit& init, int d
     centerMode_ = BOXCTR;
 
   // Get Masks
-  Mask_.SetMaskString( actionArgs.GetMaskNext() );
+  if (Mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
   // Get reference mask if reference specified.
   AtomMask refMask;
   if (centerMode_ == REF) {
     std::string rMaskExpr = actionArgs.GetMaskNext();
     if (rMaskExpr.empty())
       rMaskExpr = Mask_.MaskExpression();
-    refMask.SetMaskString( rMaskExpr );
+    if (refMask.SetMaskString( rMaskExpr )) return Action::ERR;
     if (refFrm.Parm().SetupIntegerMask( refMask, refFrm.Coord() ))
       return Action::ERR;
     // Get center of mask in reference
@@ -86,7 +86,7 @@ Action::RetType Action_Center::Setup(ActionSetup& setup) {
     return Action::SKIP;
   }
 
-  if (centerMode_ == BOXCTR && setup.CoordInfo().TrajBox().Type()==Box::NOBOX) {
+  if (centerMode_ == BOXCTR && !setup.CoordInfo().TrajBox().HasBox()) {
     mprintf("Warning: Box center specified but no box information.\n");
     return Action::SKIP;
   }

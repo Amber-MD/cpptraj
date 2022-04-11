@@ -1,6 +1,9 @@
 #include "Trajin_Single.h"
+#include "Topology.h"
+#include "TrajectoryIO.h"
 #include "TrajectoryFile.h"
 #include "CpptrajStdio.h"
+#include "ArgList.h"
 
 // CONSTRUCTOR
 Trajin_Single::Trajin_Single() : trajio_(0), velio_(0), frcio_(0) {}
@@ -14,6 +17,9 @@ Trajin_Single::~Trajin_Single() {
   if (velio_!=0) delete velio_;
   if (frcio_!=0) delete frcio_;
 }
+
+/** \return Trajectory title. */
+std::string const& Trajin_Single::Title() const { return trajio_->Title(); } //TODO Check for segfault
 
 /** Used to set up separate traj for forces/velocities. */
 TrajectoryIO* Trajin_Single::SetupSeparateTraj(FileName const& fname, const char* type) const
@@ -53,10 +59,8 @@ int Trajin_Single::SetupTrajRead(FileName const& tnameIn, ArgList& argIn,
   if (SetTraj().SetNameAndParm(tnameIn, tparmIn)) return 1;
   // Detect file format
   TrajectoryFile::TrajFormatType tformat;
-  if ( (trajio_ = TrajectoryFile::DetectFormat( Traj().Filename(), tformat )) == 0 ) {
-    mprinterr("Error: Could not determine trajectory %s format.\n", Traj().Filename().full());
-    return 1;
-  }
+  trajio_ = TrajectoryFile::DetectFormat( Traj().Filename(), argIn.GetStringKey("as"), tformat );
+  if (trajio_ == 0) return 1;
   trajio_->SetDebug( debug_ );
   mprintf("\tReading '%s' as %s\n", Traj().Filename().full(), TrajectoryFile::FormatString(tformat));
   // Process format-specific read args
@@ -156,7 +160,7 @@ void Trajin_Single::PrintInfo(int showExtended) const {
   trajio_->Info();
   mprintf(", Parm %s",Traj().Parm()->c_str());
   if (trajio_->CoordInfo().HasBox())
-    mprintf(" (%s box)", trajio_->CoordInfo().TrajBox().TypeName());
+    mprintf(" (%s box)", trajio_->CoordInfo().TrajBox().CellShapeName());
   if (showExtended==1) Traj().Counter().PrintFrameInfo(); 
   if (debug_>0)
     mprintf(", %i atoms, Box %i",Traj().Parm()->Natom(),(int)trajio_->CoordInfo().HasBox());

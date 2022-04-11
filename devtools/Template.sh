@@ -181,7 +181,7 @@ elif [ "$TYPE" = 'Traj' ] ; then
     void Info();
     int readVelocity(int, Frame&);
     int readForce(int, Frame&);
-    int processWriteArgs(ArgList&);
+    int processWriteArgs(ArgList&, DataSetList const&);
     int processReadArgs(ArgList&);
     // -------------------------------------------
 #   ifdef MPI
@@ -273,7 +273,7 @@ void $CLASS::WriteHelp() {
 }
 
 /** Process write arguments. */
-int $CLASS::processWriteArgs(ArgList& argIn) {
+int $CLASS::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
 
   return 0;
 }
@@ -419,6 +419,7 @@ elif [ "$TYPE" = 'DataSet' ] ; then
     void Add(size_t, const void*)                          { return; }
     void WriteBuffer(CpptrajFile&, SizeArray const&) const { return; }
     int Append(DataSet*)                                   { return 1; }
+    size_t MemUsageInBytes()                         const { return 0; }
 #   ifdef MPI
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
 #   endif

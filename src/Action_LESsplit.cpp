@@ -41,12 +41,13 @@ Action::RetType Action_LESsplit::Init(ArgList& actionArgs, ActionInit& init, int
   // NOTE: Cannot yet init split traj since we dont know how many.
   if (lesAverage_) {
     avgTraj_.SetDebug( debugIn );
-    if (avgTraj_.InitTrajWrite( avgfilename, trajArgs_, TrajectoryFile::UNKNOWN_TRAJ ))
+    if (avgTraj_.InitTrajWrite( avgfilename, trajArgs_, init.DSL(), TrajectoryFile::UNKNOWN_TRAJ ))
       return Action::ERR;
 #   ifdef MPI
     avgTraj_.SetTrajComm( trajComm_ );
 #   endif
   }
+  masterDSL_ = init.DslPtr();
   
   mprintf("    LESSPLIT:\n");
   if (lesSplit_) mprintf("\tSplit output to '%s.X'\n", splitfilename_.c_str());
@@ -93,7 +94,7 @@ Action::RetType Action_LESsplit::Setup(ActionSetup& setup) {
       for (unsigned int idx = 0; idx != lesMasks_.size(); idx++) {
         // FIXME this will have to be changed if lessplit every enabled for ensemble
         lesTraj_.push_back( new Trajout_Single() );
-        if (lesTraj_.back()->InitEnsembleTrajWrite( splitfilename_, trajArgs_,
+        if (lesTraj_.back()->InitEnsembleTrajWrite( splitfilename_, trajArgs_, *masterDSL_,
                                                     TrajectoryFile::UNKNOWN_TRAJ, idx ))
           return Action::ERR;
 #       ifdef MPI

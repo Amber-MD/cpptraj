@@ -497,20 +497,20 @@ int read_trr_nframes(char *fn, unsigned long *nframes) {
 	rvec *x;
 	*nframes = 0;
 
+        natoms = 0;
 	read_trr_natoms(fn, &natoms);
-	x = malloc(natoms * sizeof(*x));
 
     xd = xdrfile_open(fn, "r");
     if (NULL == xd)
         return exdrFILENOTFOUND;
+    x = malloc(natoms * sizeof(*x));
 
-	do {
-		result = read_trr(xd, natoms, &step, &time, &lambda,
-						  box, x, NULL, NULL);
-		if (exdrENDOFFILE != result) {
-			(*nframes)++;
-		}
-	} while (result == exdrOK);
+    do {
+        result = read_trr(xd, natoms, &step, &time, &lambda, box, x, NULL, NULL);
+        if (exdrENDOFFILE != result) {
+            (*nframes)++;
+        }
+    } while (result == exdrOK);
 
 	xdrfile_close(xd);
 	free(x);

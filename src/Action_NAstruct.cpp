@@ -28,7 +28,12 @@ Action_NAstruct::Action_NAstruct() :
   printheader_(true),
   seriesUpdated_(false),
   skipIfNoHB_(true),
-  bpout_(0), stepout_(0), helixout_(0),
+  spaceBetweenFrames_(true),
+  sscalc_(false),
+  bpout_(0),
+  ssout_(0),
+  stepout_(0),
+  helixout_(0),
   masterDSL_(0)
 # ifdef NASTRUCTDEBUG
   ,calcparam_(true)
@@ -36,9 +41,9 @@ Action_NAstruct::Action_NAstruct() :
 {}
 
 void Action_NAstruct::Help() const {
-  mprintf("\t[<dataset name>] [resrange <range>] [naout <suffix>]\n"
+  mprintf("\t[<dataset name>] [resrange <range>] [sscalc] [naout <suffix>]\n"
           "\t[noheader] [resmap <ResName>:{A,C,G,T,U} ...] [calcnohb]\n"
-          "\t[baseref <file>] ...\n"
+          "\t[noframespaces] [baseref <file>] ...\n"
           "\t[hbcut <hbcut>] [origincut <origincut>] [altona | cremer]\n"
           "\t[zcut <zcut>] [zanglecut <zanglecut>] [groovecalc {simple | 3dna}]\n"
           "\t[{ %s | allframes | guessbp}]\n", DataSetList::RefArgs);
@@ -58,7 +63,9 @@ void Action_NAstruct::Help() const {
           "  hydrogen bonds present between base pairs.\n"
           "  Base pair parameters are written to 'BP.<suffix>', base pair step parameters\n"
           "  are written to 'BPstep.<suffix>', and helix parameters are written to\n"
-          "  Helix.<suffix>'\n");
+          "  Helix.<suffix>'.\n"
+          "  If 'noframespaces' is specified there will be no spaces between frames\n"
+          "  in the 'naout' files.\n");
 }
 
 // Action_NAstruct::Init()
@@ -70,6 +77,7 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
   debug_ = debugIn;
   masterDSL_ = init.DslPtr();
   // Get keywords
+  sscalc_ = actionArgs.hasKey("sscalc");
   std::string outputsuffix = actionArgs.GetStringKey("naout");
   if (!outputsuffix.empty()) {
     // Set up output files.
@@ -78,6 +86,10 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     stepout_ = init.DFL().AddCpptrajFile(FName.PrependFileName("BPstep."), "Base Pair Step");
     helixout_ = init.DFL().AddCpptrajFile(FName.PrependFileName("Helix."), "Helix");
     if (bpout_ == 0 || stepout_ == 0 || helixout_ == 0) return Action::ERR;
+    if (sscalc_) {
+      ssout_ = init.DFL().AddCpptrajFile(FName.PrependFileName("SS."), "Single Strand");
+      if (ssout_ == 0) return Action::ERR;
+    }
   }
   double hbcut = actionArgs.getKeyDouble("hbcut", -1);
   if (hbcut > 0) 
@@ -110,6 +122,7 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     resRange_.ShiftBy(-1); // User res args start from 1
   printheader_ = !actionArgs.hasKey("noheader");
   skipIfNoHB_ = !actionArgs.hasKey("calcnohb");
+  spaceBetweenFrames_ = !actionArgs.hasKey("noframespaces");
   // Determine how base pairs will be found.
   ReferenceFrame REF = init.DSL().GetReferenceFrame( actionArgs );
   if (REF.error()) return Action::ERR;
@@ -125,7 +138,7 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     findBPmode_ = FIRST;
 # ifdef MPI
   if (findBPmode_ == ALL && trajComm_.Size() > 1) {
-    mprinterr("Error: Currently 'allframes' does not work with > 1 thread per traj"
+    mprinterr("Error: Currently 'allframes' does not work with > 1 process per trajectory"
               " (currently %i)\n", trajComm_.Size());
     return Action::ERR;
   }
@@ -170,13 +183,12 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
       mprinterr("Error: resmap resname > 4 chars (%s)\n",maplist.ArgLine());
       return Action::ERR;
     }
-    // Format residue name
-    // TODO: Use NameType in map
-    NameType mapresname( maplist[0] );
-    mprintf("\tCustom Map: [%s]\n", *mapresname);
-    //maplist.PrintList();
-    // Add name
-    refBases_.AddNameToBaseType( mapresname, mapbase );
+    std::pair<RefMapType::iterator, bool> ret = 
+      nameToRef_.insert( std::pair<std::string,NA_Base::NAType>(maplist[0], mapbase ) );
+    if (!ret.second) {
+      mprinterr("Error: Already tried to map residue '%s'\n", maplist[0].c_str());
+      return Action::ERR;
+    }
   }
   // Get custom base references
   while ( actionArgs.Contains("baseref") ) {
@@ -197,6 +209,12 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     mprintf("\tBase pair step parameters written to %s\n", stepout_->Filename().full());
     mprintf("\tHelical parameters written to %s\n", helixout_->Filename().full());
     if (!printheader_) mprintf("\tHeader line will not be written.\n");
+    if (!spaceBetweenFrames_) mprintf("\tNo spaces will be written between frames.\n");
+  }
+  if (sscalc_) {
+    mprintf("\tWill determine parameters for consecutive bases in strands.\n");
+    if (ssout_ != 0)
+      mprintf("\tSingle strand parameters written to %s\n", ssout_->Filename().full());
   }
   mprintf("\tHydrogen bond cutoff for determining base pairs is %.2f Angstroms.\n",
           sqrt( HBdistCut2_ ) );
@@ -207,6 +225,13 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
             staggerCut_);
     mprintf("\tBase Z angle cutoff for determining base pairs is %.2f degrees.\n",
             z_angle_cut_ * Constants::RADDEG);
+  }
+  if (!nameToRef_.empty()) {
+    static const char natypeNames[] = { '?', 'A', 'C', 'G', 'T', 'U' };
+    mprintf("\tWill attempt to map the following residues to existing references:\n");
+    for (RefMapType::const_iterator it = nameToRef_.begin();
+                                    it != nameToRef_.end(); ++it)
+      mprintf("\t  %-8s : %c\n", it->first.c_str(), natypeNames[it->second]);
   }
   if (findBPmode_ == REFERENCE) {
     // Use reference to determine base pairing
@@ -383,9 +408,9 @@ Action_NAstruct::HbondType Action_NAstruct::ID_HBtype(NA_Base const& base1, int 
     return (ATpair(base1, b1, base2, b2));
   else if ( base1.Type() == NA_Base::THY && base2.Type() == NA_Base::ADE )
     return (ATpair(base2, b2, base1, b1));
-  else if ( base1.Type() == NA_Base::ADE && base2.Type() == NA_Base::URA ) // FIXME: OK for A-U?
+  else if ( base1.Type() == NA_Base::ADE && base2.Type() == NA_Base::URA ) // A-U has same WC pattern as A-T
     return (ATpair(base1, b1, base2, b2));
-  else if ( base1.Type() == NA_Base::URA && base2.Type() == NA_Base::ADE ) // FIXME: OK for A-U?
+  else if ( base1.Type() == NA_Base::URA && base2.Type() == NA_Base::ADE ) // A-U has same WC pattern as A-T
     return (ATpair(base2, b2, base1, b1));
   return OTHER;
 }
@@ -407,16 +432,22 @@ int Action_NAstruct::CalcNumHB(NA_Base const& base1, NA_Base const& base2, int& 
         {
           const double* xyz2 = base2.HBxyz(b2);
           double dist2 = DIST2_NoImage(xyz1, xyz2);
+#         ifdef NASTRUCTDEBUG
+          mprintf("\t\t%s:%s -- %s:%s = %f",
+                    base1.ResName(), base1.atomName(b1),
+                    base2.ResName(), base2.atomName(b2), sqrt(dist2));
+#         endif
           if (dist2 < HBdistCut2_) {
             ++Nhbonds;
             HbondType hbtype = ID_HBtype(base1, b1, base2, b2);
             if (hbtype == WC) n_WC++;
 #           ifdef NASTRUCTDEBUG
-            mprintf("\t\t%s:%s -- %s:%s = %f (%i)\n",
-                    base1.ResName(), base1.atomName(b1),
-                    base2.ResName(), base2.atomName(b2), sqrt(dist2), (int)hbtype);
+            mprintf(" (%i)", (int)hbtype);
 #           endif
           }
+#         ifdef NASTRUCTDEBUG
+          mprintf("\n");
+#         endif
         }
       }
     }
@@ -486,18 +517,23 @@ int Action_NAstruct::DetermineBasePairing() {
 # ifdef NASTRUCTDEBUG  
   mprintf("\n=================== Setup Base Pairing ===================\n");
 # endif
-  // FIXME does data set name gen belong in Init()?
+  // Loop over all possible pairs of bases 
   for (Barray::const_iterator base1 = Bases_.begin(); base1 != Bases_.end(); ++base1)
   {
     for (Barray::const_iterator base2 = base1 + 1; base2 != Bases_.end(); ++base2)
     {
       double dist2 = DIST2_NoImage(base1->Axis().Oxyz(), base2->Axis().Oxyz());
+#     ifdef NASTRUCTDEBUG
+      mprintf("  Axes distance for %i:%s -- %i:%s is %f\n",
+              base1->ResNum()+1, base1->ResName(), 
+              base2->ResNum()+1, base2->ResName(), sqrt(dist2));
+#     endif
       if (dist2 < originCut2_) {
-#       ifdef NASTRUCTDEBUG
-        mprintf("  Axes distance for %i:%s -- %i:%s is %f\n",
-                base1->ResNum()+1, base1->ResName(), 
-                base2->ResNum()+1, base2->ResName(), sqrt(dist2));
-#       endif
+//#       ifdef NASTRUCTDEBUG
+//        mprintf("  Axes distance for %i:%s -- %i:%s is %f\n",
+//                base1->ResNum()+1, base1->ResName(), 
+//                base2->ResNum()+1, base2->ResName(), sqrt(dist2));
+//#       endif
         // Calculate parameters between axes.
         double Param[6];
         calculateParameters(base1->Axis(), base2->Axis(), 0, Param);
@@ -942,6 +978,50 @@ int Action_NAstruct::GetBaseIdxStep(int idx, int Nsteps) const {
     return GetBaseIdxStep( base.C5resIdx(), Nsteps + 1);
 }
 
+/** For bases in a single strand, get the values of buckle, propeller twist,
+  * opening, shear, stretch, and stagger.
+  */
+int Action_NAstruct::DetermineStrandParameters(int frameNum) {
+  double Param[6];
+  NA_Axis commonAxis;
+  // Loop over strand pairs
+  for (Smap::const_iterator it = StrandPairs_.begin(); it != StrandPairs_.end(); ++it)
+  {
+    int b1idx = it->first.first;
+    int b2idx = it->first.second;
+    Stype const& SP = it->second;
+    //mprintf("DEBUG: Strand %u, bases %u to %u\n", SP.strandidx_, b1idx, b2idx);
+
+    // Get bases
+    NA_Base& base1 = Bases_[b1idx];
+    NA_Base& base2 = Bases_[b2idx]; //TODO copy?
+    // Calc parameters between bases in the strand
+    calculateParameters(base2.Axis(), base1.Axis(), &commonAxis, Param);
+    // Store data
+    Param[3] *= Constants::RADDEG;
+    Param[4] *= Constants::RADDEG;
+    Param[5] *= Constants::RADDEG;
+    //mprintf("DBG: BP %i # hbonds = %i\n", nbasepair+1, NumberOfHbonds_[nbasepair]);
+    // Convert everything to float to save space
+    float shear = (float)Param[0];
+    float stretch = (float)Param[1];
+    float stagger = (float)Param[2];
+    float opening = (float)Param[3];
+    float prop = (float)Param[4];
+    float buckle = (float)Param[5];
+    // Add to DataSets
+    //mprintf("DEBUG:\tShear= %f  stretch= %f  stagger= %f\n", shear, stretch, stagger);
+    //mprintf("DEBUG:\tOpeni= %f  propell= %f  buckle_= %f\n", opening, prop, buckle);
+    SP.dx_->Add(frameNum, &shear);
+    SP.dy_->Add(frameNum, &stretch);
+    SP.dz_->Add(frameNum, &stagger);
+    SP.rx_->Add(frameNum, &opening);
+    SP.ry_->Add(frameNum, &prop);
+    SP.rz_->Add(frameNum, &buckle);
+  }
+  return 0;
+}
+
 // Action_NAstruct::DeterminePairParameters()
 /** For each base pair, get the values of buckle, propeller twist,
   * opening, shear, stretch, and stagger. Also determine the origin and 
@@ -954,6 +1034,7 @@ int Action_NAstruct::DeterminePairParameters(int frameNum) {
   basepairaxesfile.OpenWrite("basepairaxes.pdb");
   mprintf("\n=================== Determine BP Parameters ===================\n");
 # endif
+  // NOTE: iterator cannot be const because bpaxis_ needs to be updated
   for (BPmap::iterator it = BasePairs_.begin(); it != BasePairs_.end(); ++it)
   {
     if (it->second.nhb_ < 1 && skipIfNoHB_) continue;
@@ -1083,8 +1164,8 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
         //       pair steps are indexed by base pair indices.
         Rpair steppair(BP1.bpidx_, BP2.bpidx_);
         // Base pair step. Try to find existing base pair step.
-        StepMap::iterator entry = Steps_.find( steppair );
-        if (entry == Steps_.end()) {
+        StepMap::iterator entry = Steps_.lower_bound( steppair );
+        if (entry == Steps_.end() || entry->first != steppair) {
           // New base pair step
           StepType BS;
           MetaData md = NewStepType(BS, BP1.base1idx_, BP1.base2idx_,
@@ -1130,7 +1211,7 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
               //        BS.minGroove_->legend(), BS.P_p1_+1, BS.P_p2_+1, BS.p_m1_+1, BS.p_m2_+1);
             }
           }
-          entry = Steps_.insert( entry, std::pair<Rpair, StepType>(steppair, BS) ); // FIXME does entry make more efficient?
+          entry = Steps_.insert( entry, std::pair<Rpair, StepType>(steppair, BS) );
 #         ifdef NASTRUCTDEBUG
           mprintf("  New base pair step: %s\n", md.Legend().c_str());
 #         endif
@@ -1257,6 +1338,37 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
   }
   if (dataname_.empty())
     dataname_ = masterDSL_->GenerateDefaultName("NA");
+  // Try to fill in any custom residue maps.
+  if (!nameToRef_.empty()) {
+    std::vector<RefMapType::iterator> nToErase;
+    for (RefMapType::iterator it = nameToRef_.begin(); it != nameToRef_.end(); ++it)
+    {
+      mprintf("\tAttempting to create custom map for residue %s\n", it->first.c_str());
+      // Search for name in actual range.
+      NameType tgtResName( it->first );
+      for (Range::const_iterator resnum = actualRange.begin();
+                                 resnum != actualRange.end(); ++resnum)
+      {
+        if (setup.Top().Res(*resnum).Name() == tgtResName) {
+          mprintf("\t  Using residue %s\n", setup.Top().TruncResNameNum(*resnum).c_str());
+          if (refBases_.AddCustomBase(tgtResName, setup.Top(), *resnum, it->second))
+            return Action::ERR;
+          else {
+            // Base successfully set up. Exit this loop.
+            // This mapping can be removed since it has been satisfied.
+            nToErase.push_back( it );
+            break;
+          }
+        }
+      } // END loop over residues in topology
+    } // END loop over residues in custom map
+    // Remove names from the custom map if they were set up
+    if (!nToErase.empty()) {
+      for (std::vector<RefMapType::iterator>::const_iterator it = nToErase.begin();
+                                                             it != nToErase.end(); ++it)
+        nameToRef_.erase( *it );
+    }
+  }
   // DEBUG - print all residues
   //if (debug>0)
   //  actualRange.PrintRange("    NAstruct: NA res:",1);
@@ -1316,6 +1428,7 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
   int strandNum = 0;
   int strandBeg = -1;
   std::vector<int> Visited( setup.Top().Res(Bases_.back().ResNum()).LastAtom(), 0 );
+  Barray::iterator lastBase = Bases_.end() - 1;
   for (Barray::iterator base = Bases_.begin(); base != Bases_.end(); ++base) {
     Residue const& res = setup.Top().Res( base->ResNum() );
     int c5neighbor = -1;
@@ -1337,10 +1450,11 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
       if (c5neighbor == Bases_[idx].ResNum()) base->SetC5Idx( idx );
       if (c3neighbor == Bases_[idx].ResNum()) base->SetC3Idx( idx );
     }
-    // Set NA strand number. If no 3' neighbor increment the strand number.
+    // Set NA strand number. If no 3' neighbor or this is the last base then
+    // increment the strand number.
     base->SetStrandNum( strandNum );
     if (c5neighbor == -1) strandBeg = (int)(base - Bases_.begin());
-    if (c3neighbor == -1) {
+    if (c3neighbor == -1 || base == lastBase ) {
       strandNum++;
       Strands_.push_back( Rpair(strandBeg, (int)(base - Bases_.begin())) );
     }
@@ -1358,12 +1472,57 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
     }
     mprintf("\tNucleic acid strands (%zu):\n", Strands_.size());
     for (StrandArray::const_iterator st = Strands_.begin(); st != Strands_.end(); ++st)
-      mprintf("\t  %u: Base index %i to %i\n", st-Strands_.begin(), st->first, st->second);
+      mprintf("\t  %li: Base index %i to %i\n", st-Strands_.begin(), st->first, st->second);
   }
   if (findBPmode_ == GUESS) {
     if (GuessBasePairing(setup.Top())) return Action::ERR;
     findBPmode_ = REFERENCE;
   }
+  // Determine strand data
+  if (sscalc_) {
+    for (StrandArray::const_iterator strand = Strands_.begin();
+                                     strand != Strands_.end(); ++strand)
+    {
+      if (debug_ > 0)
+        mprintf("DEBUG: Strand %li, %i-%i\n", strand-Strands_.begin(), strand->first, strand->second);
+      for (int b1idx = strand->first; b1idx < strand->second; b1idx++)
+      {
+        int b2idx = b1idx + 1;
+        if (debug_ > 0)
+          mprintf("DEBUG:\tStrand pair: %i to %i\n", b1idx, b2idx);
+
+        // Get/add data set for strandpair
+        Rpair strandpair(b1idx, b2idx);
+        Smap::iterator entry = StrandPairs_.lower_bound( strandpair );
+        if (entry == StrandPairs_.end() || entry->first != strandpair) {
+          // New strand pair 
+          Stype SP;
+          //  MetaData md = NewStepType(BS, BP1.base1idx_, BP1.base2idx_,
+          //                                BP2.base1idx_, BP2.base2idx_, Steps_.size()+1);
+          MetaData md(dataname_, StrandPairs_.size()+1);
+          md.SetLegend( Bases_[b1idx].BaseName() + "-" + Bases_[b2idx].BaseName() );
+          md.SetAspect("dx");
+          SP.dx_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+          md.SetAspect("dy");
+          SP.dy_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+          md.SetAspect("dz");
+          SP.dz_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+          md.SetAspect("rx");
+          SP.rx_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+          md.SetAspect("ry");
+          SP.ry_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+          md.SetAspect("rz");
+          SP.rz_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+
+          SP.strandidx_ = (unsigned int)(strand - Strands_.begin());
+          //SP.base1idx_ = b1idx_;
+          //SP.base2idx_ = b2idx_;
+
+          entry = StrandPairs_.insert( entry, std::pair<Rpair,Stype>(strandpair, SP) );
+        }
+      } // END loop over bases in strand
+    } // END loop over strands
+  } // END if sscalc
   return Action::OK;  
 }
 
@@ -1392,12 +1551,12 @@ Action::RetType Action_NAstruct::DoAction(int frameNum, ActionFrame& frm) {
   } else if ( findBPmode_ == FIRST) {
     // Base pairs need to be determined from first frame.
 #   ifdef MPI
-    // Ensure all threads set up base axes for base pair determinination
+    // Ensure all processes set up base axes for base pair determinination
     // from the first frame on master.
     int err = 0;
     if (trajComm_.Master()) { // TODO MasterBcast?
       for (int rank = 1; rank < trajComm_.Size(); rank++)
-        frm.ModifyFrm().SendFrame( rank, trajComm_); // FIXME make SendFrame const
+        frm.Frm().SendFrame( rank, trajComm_);
       err = SetupBaseAxes(frm.Frm());
       if (err==0) err = DetermineBasePairing();
     } else {
@@ -1421,6 +1580,9 @@ Action::RetType Action_NAstruct::DoAction(int frameNum, ActionFrame& frm) {
 #   endif
     findBPmode_ = REFERENCE;
   }
+  // Determine strand parameters if desired
+  if (sscalc_)
+    DetermineStrandParameters(frameNum);
 
   // Determine base parameters
   DeterminePairParameters(frameNum);
@@ -1530,7 +1692,7 @@ int Action_NAstruct::SyncAction() {
   // calculated, the number of steps and/or the set ordering in the master
   // DataSetList may be different on different ranks. Assume that Bases_
   // and BasePairs_ are the same.
-  // Need to know how many steps on each thread
+  // Need to know how many steps on each process 
   int num_steps = (int)Steps_.size();
   std::vector<int> nsteps_on_rank;
   if (trajComm_.Master())
@@ -1548,8 +1710,8 @@ int Action_NAstruct::SyncAction() {
         int ii = 0;
         for (int in = 0; in != nsteps_on_rank[rank]; in++, ii += iSize) {
           Rpair steppair( iArray[ii], iArray[ii+1] );
-          StepMap::iterator entry = Steps_.find( steppair );
-          if (entry == Steps_.end()) {
+          StepMap::iterator entry = Steps_.lower_bound( steppair );
+          if (entry == Steps_.end() || entry->first != steppair) {
             // New base pair step
             //mprintf("NEW BASE PAIR STEP: %i %i\n", iArray[0], iArray[1]);
             StepType BS;
@@ -1567,7 +1729,7 @@ int Action_NAstruct::SyncAction() {
                 BS.minGroove_ = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
               }
             }
-            entry = Steps_.insert( entry, std::pair<Rpair, StepType>(steppair, BS) ); // FIXME does entry make more efficient?
+            entry = Steps_.insert( entry, std::pair<Rpair, StepType>(steppair, BS) );
           }
           //else mprintf("EXISTING BASE PAIR STEP: %i %i\n", entry->first.first, entry->first.second);
           // Synchronize all step data sets from rank.
@@ -1681,8 +1843,8 @@ void Action_NAstruct::UpdateSeries() {
   if (seriesUpdated_) return;
   if (nframes_ > 0) {
     // Base pair data
-    for (BPmap::iterator it = BasePairs_.begin(); it != BasePairs_.end(); ++it) {
-      BPtype& BP = it->second;
+    for (BPmap::const_iterator it = BasePairs_.begin(); it != BasePairs_.end(); ++it) {
+      BPtype const& BP = it->second;
       UpdateTimeSeries( nframes_, BP.shear_ );
       UpdateTimeSeries( nframes_, BP.stretch_ );
       UpdateTimeSeries( nframes_, BP.stagger_ );
@@ -1697,8 +1859,8 @@ void Action_NAstruct::UpdateSeries() {
       UpdateTimeSeries( nframes_, Bases_[BP.base2idx_].Pucker() );
     }
     // Step and helix data
-    for (StepMap::iterator it = Steps_.begin(); it != Steps_.end(); ++it) {
-      StepType& BS = it->second;
+    for (StepMap::const_iterator it = Steps_.begin(); it != Steps_.end(); ++it) {
+      StepType const& BS = it->second;
       UpdateTimeSeries( nframes_, BS.shift_ );
       UpdateTimeSeries( nframes_, BS.slide_ );
       UpdateTimeSeries( nframes_, BS.rise_ );
@@ -1715,6 +1877,16 @@ void Action_NAstruct::UpdateSeries() {
       UpdateTimeSeries( nframes_, BS.majGroove_ );
       UpdateTimeSeries( nframes_, BS.minGroove_ );
     }
+    // Strand data
+    for (Smap::const_iterator it = StrandPairs_.begin(); it != StrandPairs_.end(); ++it) {
+      Stype const& SP = it->second;
+      UpdateTimeSeries( nframes_, SP.dx_ );
+      UpdateTimeSeries( nframes_, SP.dy_ );
+      UpdateTimeSeries( nframes_, SP.dz_ );
+      UpdateTimeSeries( nframes_, SP.rx_ );
+      UpdateTimeSeries( nframes_, SP.ry_ );
+      UpdateTimeSeries( nframes_, SP.rz_ );
+    }
   }
   // Should only be called once.
   seriesUpdated_ = true;
@@ -1722,112 +1894,151 @@ void Action_NAstruct::UpdateSeries() {
 
 // Output Format Strings
 static const char* BP_OUTPUT_FMT = "%8i %8i %8i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f %2.0f %2.0f";
+static const char* SS_OUTPUT_FMT = "%8i %8i %8i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f";
 static const char* GROOVE_FMT = " %10.4f %10.4f";
 static const char* HELIX_OUTPUT_FMT = "%8i %4i-%-4i %4i-%-4i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f";
 static const char* STEP_OUTPUT_FMT = "%8i %4i-%-4i %4i-%-4i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f";
 
 // Action_NAstruct::Print()
 void Action_NAstruct::Print() {
-  if (bpout_ == 0) return;
   // Ensure all series have been updated for all frames.
   UpdateSeries();
-  // ---------- Base pair parameters ----------
-  // Check that there is actually data
-  if ( BasePairs_.empty() || nframes_ < 1)
-    mprinterr("Error: Could not write BP file %s: No BP data.\n", bpout_->Filename().full()); 
-  else {
-    mprintf("\tBase pair output file %s; %i frames, %zu base pairs.\n", 
-            bpout_->Filename().full(), nframes_, BasePairs_.size());
-    //  File header
-    if (printheader_) {
-      bpout_->Printf("%-8s %8s %8s %10s %10s %10s %10s %10s %10s %2s %2s",
-                     "#Frame","Base1","Base2", "Shear","Stretch","Stagger",
-                     "Buckle","Propeller","Opening", "BP", "HB");
-      if (grooveCalcType_ == PP_OO)
-        bpout_->Printf(" %10s %10s", "Major", "Minor");
-      bpout_->Printf("\n");
-    }
-    // Loop over all frames
-    for (int frame = 0; frame < nframes_; ++frame) {
-      for (BPmap::const_iterator it = BasePairs_.begin();
-                                 it != BasePairs_.end(); ++it)
-      {
-        BPtype const& BP = it->second;
-        bpout_->Printf(BP_OUTPUT_FMT, frame+1, 
-                       Bases_[BP.base1idx_].ResNum()+1, Bases_[BP.base2idx_].ResNum()+1,
-                       BP.shear_->Dval(frame),   BP.stretch_->Dval(frame),
-                       BP.stagger_->Dval(frame), BP.buckle_->Dval(frame),
-                       BP.prop_->Dval(frame),    BP.opening_->Dval(frame),
-                       BP.isBP_->Dval(frame),    BP.hbonds_->Dval(frame));
-        if (grooveCalcType_ == PP_OO) 
-          bpout_->Printf(GROOVE_FMT, BP.major_->Dval(frame), BP.minor_->Dval(frame));
+
+  // ---------- Base pair parameters -------------
+  if (bpout_ != 0) {
+    // Check that there is actually data
+    if ( BasePairs_.empty() || nframes_ < 1)
+      mprintf("Warning: Could not write BP file %s: No BP data.\n", bpout_->Filename().full());
+    else {
+      mprintf("\tBase pair output file %s; %i frames, %zu base pairs.\n", 
+              bpout_->Filename().full(), nframes_, BasePairs_.size());
+      //  File header
+      if (printheader_) {
+        bpout_->Printf("%-8s %8s %8s %10s %10s %10s %10s %10s %10s %2s %2s",
+                       "#Frame","Base1","Base2", "Shear","Stretch","Stagger",
+                       "Buckle","Propeller","Opening", "BP", "HB");
+        if (grooveCalcType_ == PP_OO)
+          bpout_->Printf(" %10s %10s", "Major", "Minor");
         bpout_->Printf("\n");
       }
-      bpout_->Printf("\n");
+      // Loop over all frames
+      for (int frame = 0; frame < nframes_; ++frame) {
+        for (BPmap::const_iterator it = BasePairs_.begin();
+                                   it != BasePairs_.end(); ++it)
+        {
+          BPtype const& BP = it->second;
+          bpout_->Printf(BP_OUTPUT_FMT, frame+1, 
+                         Bases_[BP.base1idx_].ResNum()+1, Bases_[BP.base2idx_].ResNum()+1,
+                         BP.shear_->Dval(frame),   BP.stretch_->Dval(frame),
+                         BP.stagger_->Dval(frame), BP.buckle_->Dval(frame),
+                         BP.prop_->Dval(frame),    BP.opening_->Dval(frame),
+                         BP.isBP_->Dval(frame),    BP.hbonds_->Dval(frame));
+          if (grooveCalcType_ == PP_OO) 
+            bpout_->Printf(GROOVE_FMT, BP.major_->Dval(frame), BP.minor_->Dval(frame));
+          bpout_->Printf("\n");
+        }
+        if (spaceBetweenFrames_) bpout_->Printf("\n");
+      }
     }
   }
 
-  // ---------- Base pair step parameters ----------
-  // Check that there is actually data
-  if ( Steps_.empty() || nframes_ < 1 )
-    mprinterr("Error: Could not write BPstep / helix files: No data.\n"); 
-  else {
-    mprintf("\tBase pair step output file %s\n\tHelix output file %s:\n"
-            "\t  %i frames, %zu base pair steps.\n", 
-            stepout_->Filename().full(), helixout_->Filename().full(),
-            nframes_, Steps_.size());
-    // Base pair step frames
-    if (printheader_) {
-      stepout_->Printf("%-8s %-9s %-9s %10s %10s %10s %10s %10s %10s %10s","#Frame","BP1","BP2",
-                     "Shift","Slide","Rise","Tilt","Roll","Twist","Zp");
-      if (grooveCalcType_ == HASSAN_CALLADINE)
-        stepout_->Printf(" %10s %10s\n", "Major", "Minor");
-      stepout_->Printf("\n");
-    }
-    for (int frame = 0; frame < nframes_; ++frame) {
-      for (StepMap::const_iterator it = Steps_.begin(); it != Steps_.end(); ++it)
-      {
-        StepType const& BS = it->second;
-        // BPstep write
-        stepout_->Printf(STEP_OUTPUT_FMT, frame+1, 
-                       Bases_[BS.b1idx_].ResNum()+1, Bases_[BS.b2idx_].ResNum()+1,
-                       Bases_[BS.b3idx_].ResNum()+1, Bases_[BS.b4idx_].ResNum()+1,
-                       BS.shift_->Dval(frame), BS.slide_->Dval(frame),
-                       BS.rise_->Dval(frame),  BS.tilt_->Dval(frame),
-                       BS.roll_->Dval(frame),  BS.twist_->Dval(frame),
-                       BS.Zp_->Dval(frame));
-        if (grooveCalcType_ == HASSAN_CALLADINE) {
-          if (BS.majGroove_ == 0)
-            stepout_->Printf(" %10s", "----");
-          else
-            stepout_->Printf(" %10.4f", BS.majGroove_->Dval(frame));
-          if (BS.minGroove_ == 0)
-            stepout_->Printf(" %10s", "----");
-          else
-            stepout_->Printf(" %10.4f", BS.minGroove_->Dval(frame));
+  // ---------- Single strand parameters ---------
+  if (sscalc_ && ssout_ != 0) {
+    // Check that there is actually data
+    if ( StrandPairs_.empty() || nframes_ < 1)
+      mprintf("Warning: Could not write single strand file %s: No SS data.\n",
+              ssout_->Filename().full());
+    else {
+      mprintf("\tSingle strand output file %s; %i frames, %zu base pairs.\n", 
+              ssout_->Filename().full(), nframes_, StrandPairs_.size());
+      //  File header
+      if (printheader_) {
+        bpout_->Printf("%-8s %8s %8s %10s %10s %10s %10s %10s %10s\n",
+                       "#Frame","Base1","Base2", "DX","DY","DZ", "RX","RY","RZ");
+      }
+      // Loop over all frames
+      for (int frame = 0; frame < nframes_; ++frame) {
+        for (Smap::const_iterator it = StrandPairs_.begin();
+                                  it != StrandPairs_.end(); ++it)
+        {
+          Stype const& SP = it->second;
+          ssout_->Printf(SS_OUTPUT_FMT, frame+1, 
+                         Bases_[it->first.first].ResNum()+1, Bases_[it->first.second].ResNum()+1,
+                         SP.dx_->Dval(frame), SP.dy_->Dval(frame), SP.dz_->Dval(frame),
+                         SP.rx_->Dval(frame), SP.ry_->Dval(frame), SP.rz_->Dval(frame));
+          ssout_->Printf("\n");
         }
-        stepout_->Printf("\n");
+        if (spaceBetweenFrames_) ssout_->Printf("\n");
       }
-      stepout_->Printf("\n");
-    }
-    // Helix frames
-    if (printheader_)
-      helixout_->Printf("%-8s %-9s %-9s %10s %10s %10s %10s %10s %10s\n","#Frame","BP1","BP2",
-                      "X-disp","Y-disp","Rise","Incl.","Tip","Twist");
-    for (int frame = 0; frame < nframes_; ++frame) {
-      for (StepMap::const_iterator it = Steps_.begin(); it != Steps_.end(); ++it)
-      {
-        StepType const& BS = it->second;
-        // Helix write
-        helixout_->Printf(HELIX_OUTPUT_FMT, frame+1,
-                          Bases_[BS.b1idx_].ResNum()+1, Bases_[BS.b2idx_].ResNum()+1,
-                          Bases_[BS.b3idx_].ResNum()+1, Bases_[BS.b4idx_].ResNum()+1,
-                          BS.xdisp_->Dval(frame), BS.ydisp_->Dval(frame),
-                          BS.hrise_->Dval(frame), BS.incl_->Dval(frame),
-                          BS.tip_->Dval(frame),   BS.htwist_->Dval(frame));
-        helixout_->Printf("\n");
-      }
-      helixout_->Printf("\n");
     }
   }
+
+  // ---------- Base pair step parameters --------
+  // Check that there is actually data
+  if ( Steps_.empty() || nframes_ < 1 ) {
+    if (stepout_ != 0 || helixout_ != 0)
+      mprintf("Warning: Could not write BPstep / helix files: No data.\n");
+  } else {
+    if (stepout_ != 0) {
+      mprintf("\tBase pair step output file %s\n\tHelix output file %s:\n"
+              "\t  %i frames, %zu base pair steps.\n", 
+              stepout_->Filename().full(), helixout_->Filename().full(),
+              nframes_, Steps_.size());
+      // -- Base pair step frames ------
+      if (printheader_) {
+        stepout_->Printf("%-8s %-9s %-9s %10s %10s %10s %10s %10s %10s %10s","#Frame","BP1","BP2",
+                       "Shift","Slide","Rise","Tilt","Roll","Twist","Zp");
+        if (grooveCalcType_ == HASSAN_CALLADINE)
+          stepout_->Printf(" %10s %10s\n", "Major", "Minor");
+        stepout_->Printf("\n");
+      }
+      for (int frame = 0; frame < nframes_; ++frame) {
+        for (StepMap::const_iterator it = Steps_.begin(); it != Steps_.end(); ++it)
+        {
+          StepType const& BS = it->second;
+          // BPstep write
+          stepout_->Printf(STEP_OUTPUT_FMT, frame+1, 
+                         Bases_[BS.b1idx_].ResNum()+1, Bases_[BS.b2idx_].ResNum()+1,
+                         Bases_[BS.b3idx_].ResNum()+1, Bases_[BS.b4idx_].ResNum()+1,
+                         BS.shift_->Dval(frame), BS.slide_->Dval(frame),
+                         BS.rise_->Dval(frame),  BS.tilt_->Dval(frame),
+                         BS.roll_->Dval(frame),  BS.twist_->Dval(frame),
+                         BS.Zp_->Dval(frame));
+          if (grooveCalcType_ == HASSAN_CALLADINE) {
+            if (BS.majGroove_ == 0)
+              stepout_->Printf(" %10s", "----");
+            else
+              stepout_->Printf(" %10.4f", BS.majGroove_->Dval(frame));
+            if (BS.minGroove_ == 0)
+              stepout_->Printf(" %10s", "----");
+            else
+              stepout_->Printf(" %10.4f", BS.minGroove_->Dval(frame));
+          }
+          stepout_->Printf("\n");
+        }
+        if (spaceBetweenFrames_) stepout_->Printf("\n");
+      }
+    } // END stepout_ file defined
+    // -- Helix frames -----------------
+    if (helixout_ != 0) {
+      if (printheader_)
+        helixout_->Printf("%-8s %-9s %-9s %10s %10s %10s %10s %10s %10s\n","#Frame","BP1","BP2",
+                        "X-disp","Y-disp","Rise","Incl.","Tip","Twist");
+      for (int frame = 0; frame < nframes_; ++frame) {
+        for (StepMap::const_iterator it = Steps_.begin(); it != Steps_.end(); ++it)
+        {
+          StepType const& BS = it->second;
+          // Helix write
+          helixout_->Printf(HELIX_OUTPUT_FMT, frame+1,
+                            Bases_[BS.b1idx_].ResNum()+1, Bases_[BS.b2idx_].ResNum()+1,
+                            Bases_[BS.b3idx_].ResNum()+1, Bases_[BS.b4idx_].ResNum()+1,
+                            BS.xdisp_->Dval(frame), BS.ydisp_->Dval(frame),
+                            BS.hrise_->Dval(frame), BS.incl_->Dval(frame),
+                            BS.tip_->Dval(frame),   BS.htwist_->Dval(frame));
+          helixout_->Printf("\n");
+        }
+        if (spaceBetweenFrames_) helixout_->Printf("\n");
+      } // END loop over frames for helix data
+    } // END helixout_ file defined
+  } // END Steps_ contains data
 }

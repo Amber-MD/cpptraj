@@ -4,7 +4,7 @@
 
 CleanFiles kmeans.in ptraj.txt ptraj.c? summary.dat info.dat cpptraj.crd.c? random.dat rinfo.dat random.crd.c?
 TESTNAME='Cluster k-means tests'
-Requires netcdf
+#Requires netcdf
 TOP=../tz2.parm7
 INPUT="kmeans.in"
 
@@ -13,7 +13,7 @@ RunPtraj() {
   #CPPTRAJ=`which ptraj`
   CPPTRAJ=/home/droe/Amber/GIT/amber/AmberTools/src/ptraj/ptraj
   cat > kmeans.in <<EOF
-trajin ../tz2.nc
+trajin ../tz2.crd
 cluster out ptraj means clusters 5 rms @CA verbose 1
 EOF
   RunCpptraj "Ptraj Kmeans"
@@ -24,7 +24,7 @@ EOF
 
 KmeansTest() {
   cat > kmeans.in <<EOF
-trajin ../tz2.nc
+trajin ../tz2.crd
 cluster means clusters 5 rms @CA summary summary.dat info info.dat clusterout cpptraj.crd
 EOF
   RunCpptraj "Cpptraj Kmeans"
@@ -32,7 +32,8 @@ EOF
   DoTest info.dat.save info.dat
   DoTest cpptraj.crd.c0.save cpptraj.crd.c0
   cat > kmeans.in <<EOF
-trajin ../tz2.nc
+trajin ../tz2.crd
+random setdefault marsaglia
 cluster means randompoint kseed 1 clusters 5 rms @CA summary random.dat info rinfo.dat clusterout random.crd
 EOF
   RunCpptraj "Cpptraj Kmeans random"

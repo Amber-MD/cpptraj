@@ -2,10 +2,16 @@
 #include "CpptrajStdio.h"
 #include "Constants.h"
 
-// CONSTRUCTOR
+/** CONSTRUCTOR */
 Action_Rotate::Action_Rotate() :
-  rmatrices_(0), delta_(0.0), mode_(ROTATE), inverse_(false) { }
+  rmatrices_(0),
+  delta_(0.0),
+  mode_(ROTATE),
+  inverse_(false),
+  all_atoms_selected_(false)
+{ }
 
+/** Action help. */
 void Action_Rotate::Help() const {
   mprintf("\t[<mask>] { [x <xdeg>] [y <ydeg>] [z <zdeg>]  |\n"
           "\t           axis0 <mask0> axis1 <mask1> <deg> |\n"
@@ -15,6 +21,7 @@ void Action_Rotate::Help() const {
           "  the specified data set.\n");
 }
 
+/** Initialize action. */
 Action::RetType Action_Rotate::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   double xrot = 0.0, yrot = 0.0, zrot = 0.0;
@@ -54,7 +61,7 @@ Action::RetType Action_Rotate::Init(ArgList& actionArgs, ActionInit& init, int d
                                    zrot * Constants::DEGRAD );
   }
   // Get mask
-  mask_.SetMaskString( actionArgs.GetMaskNext() );
+  if (mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
 
   mprintf("    ROTATE: Rotating atoms in mask %s\n", mask_.MaskString());
   switch (mode_) {
@@ -75,6 +82,7 @@ Action::RetType Action_Rotate::Init(ArgList& actionArgs, ActionInit& init, int d
   return Action::OK;
 }
 
+/** Set up action. */
 Action::RetType Action_Rotate::Setup(ActionSetup& setup) {
   if ( setup.Top().SetupIntegerMask( mask_ ) ) return Action::ERR;
   mask_.MaskInfo();
@@ -82,6 +90,11 @@ Action::RetType Action_Rotate::Setup(ActionSetup& setup) {
     mprintf("Warning: No atoms selected.\n");
     return Action::SKIP;
   }
+  all_atoms_selected_ = (mask_.Nselected() == setup.Top().Natom());
+  if (all_atoms_selected_)
+    mprintf("\tAll atoms selected for rotation. Rotating unit cell vectors as well.\n");
+  else
+    mprintf("\tNot all atoms selected for rotation. Not rotating unit cell vectors.\n");
   if (mode_ == AXIS) {
     if ( setup.Top().SetupIntegerMask( axis0_ ) ||
          setup.Top().SetupIntegerMask( axis1_ ) )
@@ -96,19 +109,29 @@ Action::RetType Action_Rotate::Setup(ActionSetup& setup) {
   return Action::OK;
 }
 
+/** Do action. */
 Action::RetType Action_Rotate::DoAction(int frameNum, ActionFrame& frm) {
   switch (mode_) {
-    case ROTATE : frm.ModifyFrm().Rotate(RotMatrix_, mask_); break;
+    case ROTATE :
+      frm.ModifyFrm().Rotate(RotMatrix_, mask_);
+      if (all_atoms_selected_)
+        frm.ModifyFrm().ModifyBox().RotateUcell( RotMatrix_ );
+      break;
     case DATASET:
       if (frm.TrajoutNum() >= (int)rmatrices_->Size()) {
         mprintf("Warning: Frame %i out of range for set '%s'\n",
                 frm.TrajoutNum()+1, rmatrices_->legend());
         return Action::ERR;
       }
-      if (inverse_)
+      if (inverse_) {
         frm.ModifyFrm().InverseRotate((*rmatrices_)[frm.TrajoutNum()], mask_);
-      else
+        if (all_atoms_selected_)
+          frm.ModifyFrm().ModifyBox().InverseRotateUcell( (*rmatrices_)[frm.TrajoutNum()] );
+      } else {
         frm.ModifyFrm().Rotate((*rmatrices_)[frm.TrajoutNum()], mask_);
+        if (all_atoms_selected_)
+          frm.ModifyFrm().ModifyBox().RotateUcell( (*rmatrices_)[frm.TrajoutNum()] );
+      }
       break;
     case AXIS   :
       Vec3 a0 = frm.Frm().VCenterOfMass(axis0_);
@@ -116,9 +139,12 @@ Action::RetType Action_Rotate::DoAction(int frameNum, ActionFrame& frm) {
                                                                frm.Frm().VCenterOfMass(axis1_) );
       RotMatrix_.CalcRotationMatrix(axisOfRotation, delta_);
       frm.ModifyFrm().Rotate(RotMatrix_, mask_);
+      if (all_atoms_selected_)
+        frm.ModifyFrm().ModifyBox().RotateUcell( RotMatrix_ );
       // SetAxisOfRotation moves a0 to center; move back.
       frm.ModifyFrm().Translate( a0 ); 
       break;
   }
+  
   return Action::MODIFY_COORDS;
 }

@@ -19,11 +19,12 @@ Action_CheckStructure::Action_CheckStructure() :
 
 void Action_CheckStructure::Help() const {
   mprintf("\t[<mask>] [around <mask2>] [reportfile <report>] [noimage]\n"
-          "\t[skipbadframes] [offset <offset>] [cut <cut>] [nobondcheck] [silent]\n"
-          "\t[plcut <cut>]\n"
+          "\t[skipbadframes] [offset <offset>] [minoffset <minoffset>]\n"
+          "\t[cut <cut>] [nobondcheck] [silent] [plcut <cut>]\n"
           "  Check atoms in <mask> for atomic overlaps less than <cut> (default 0.8 Ang)\n"
           "  and unusual bond lengths greater than equilibrium length + <offset>\n"
-          "  (default 1.15 Ang). If 'around' is specified, check between atoms in\n"
+          "  (default 1.15 Ang) or less than equilibrium length - <minoffset>\n"
+          "  (default 0.50 Ang). If 'around' is specified, check between atoms in\n"
           "  <mask1> and <mask2>. If the frame has box info and 'around' is not\n"
           "  specified a pair list will be used to speed up the calculation. The\n"
           "  cutoff used to build the pair list can be adjusted with 'plcut'\n"
@@ -53,10 +54,12 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, ActionInit& ini
     !(actionArgs.hasKey("noimage")),
     !actionArgs.hasKey("nobondcheck"),
     (outfile_ != 0), // saveProblems
+    debugIn,
     actionArgs.GetMaskNext(),
     around,
     nonbondcut,
     actionArgs.getKeyDouble("offset",1.15),
+    actionArgs.getKeyDouble("minoffset", 0.5),
     actionArgs.getKeyDouble("plcut", std::max(4.0, nonbondcut))
   );
   if (err != 0) return Action::ERR;
@@ -92,7 +95,7 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, ActionInit& ini
   mprintf("    CHECKSTRUCTURE: Checking atoms in mask '%s'", check_.Mask1().MaskString());
   if (check_.Mask2().MaskStringSet())
     mprintf(" around mask '%s'", check_.Mask2().MaskString());
-  if (!check_.Image().UseImage())
+  if (!check_.ImageOpt().UseImage())
     mprintf(", imaging off");
   if (outfile_ != 0)
     mprintf(", warnings output to %s", outfile_->Filename().full());
@@ -107,8 +110,10 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, ActionInit& ini
   if (!check_.CheckBonds())
     mprintf("\tChecking inter-atomic distances only.\n");
   else
-    mprintf("\tChecking for bond lengths > Req + %.2f Ang\n",
-            check_.BondOffset());
+    mprintf("\tChecking for bond lengths greater than eq. length + %.2f Ang and\n"
+            "\t  less than eq. length - %.2f Ang.\n", check_.BondOffset(),
+            check_.BondMinOffset());
+    
   mprintf("\tChecking for inter-atomic distances < %.2f Ang.\n",
           nonbondcut);
   if (skipBadFrames_) {
@@ -140,7 +145,7 @@ Action::RetType Action_CheckStructure::Setup(ActionSetup& setup) {
   if (check_.CheckBonds())
     mprintf("\tChecking %u bonds.\n", check_.Nbonds());
   // Print imaging info for this parm
-  if (check_.Image().ImagingEnabled())
+  if (check_.ImageOpt().ImagingEnabled())
     mprintf("\tImaging on.\n");
   else
     mprintf("\timaging off.\n");

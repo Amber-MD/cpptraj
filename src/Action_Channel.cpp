@@ -4,8 +4,12 @@
 #include "DataSet_GridFlt.h"
 
 // CONSTRUCTOR
-Action_Channel::Action_Channel() : Action(HIDDEN),
-  grid_(0), dxyz_(-1.0) {}
+Action_Channel::Action_Channel() :
+  grid_(0),
+  dxyz_(-1.0)
+{
+  SetHidden(true);
+}
 
 void Action_Channel::Help() const {
   mprintf("\t<solute mask> [<solvent mask>] [out <file>] [dx <dx> [dy <dy>] [dz <dz>]]\n");
@@ -24,12 +28,12 @@ Action::RetType Action_Channel::Init(ArgList& actionArgs, ActionInit& init, int 
     mprinterr("Error: No solute mask specified.\n");
     return Action::ERR;
   }
-  soluteMask_.SetMaskString( sMask );
+  if (soluteMask_.SetMaskString( sMask )) return Action::ERR;
   // solvent mask
   sMask = actionArgs.GetMaskNext();
   if (sMask.empty())
     sMask.assign(":WAT@O");
-  solventMask_.SetMaskString( sMask );
+  if (solventMask_.SetMaskString( sMask )) return Action::ERR;
 
   // Grid Data Set
   grid_ = init.DSL().AddSet(DataSet::GRID_FLT, actionArgs.GetStringNext(), "Channel");
@@ -48,11 +52,11 @@ Action::RetType Action_Channel::Setup(ActionSetup& setup) {
   if (grid_->Size() == 0) {
     DataSet_3D& GRID = static_cast<DataSet_3D&>( *grid_ );
     Box const& box = setup.CoordInfo().TrajBox();
-    if (box.Type() == Box::NOBOX) {
+    if (!box.HasBox()) {
       mprinterr("Error: No box information to set up grid.\n");
       return Action::ERR;
-    } else if (box.Type() == Box::ORTHO) {
-      // FIXME: May need to update parm box info or set up on first frame.
+    } else if (box.Is_X_Aligned_Ortho()) {
+      // TODO: May need to update parm box info or set up on first frame.
       if (GRID.Allocate_X_C_D(box.Lengths(), box.Center(), dxyz_)) return Action::ERR; 
     } else {
       Vec3 nxyz = box.Lengths() / dxyz_;

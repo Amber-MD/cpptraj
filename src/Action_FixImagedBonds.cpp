@@ -13,8 +13,8 @@ void Action_FixImagedBonds::Help() const {
 Action::RetType Action_FixImagedBonds::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Always image
-  image_.InitImaging( true );
-  mask_.SetMaskString( actionArgs.GetMaskNext() );
+  imageOpt_.InitImaging( true );
+  if (mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
 
   mprintf("    FIXIMAGEDBONDS: Checking all bonds selected by mask '%s'\n", mask_.MaskString());
 
@@ -25,7 +25,7 @@ Action::RetType Action_FixImagedBonds::Init(ArgList& actionArgs, ActionInit& ini
 Action::RetType Action_FixImagedBonds::Setup(ActionSetup& setup)
 {
   // Need box info
-  if (setup.CoordInfo().TrajBox().Type()==Box::NOBOX) {
+  if (!setup.CoordInfo().TrajBox().HasBox()) {
     mprintf("Warning: Topology '%s' does not contain box information; required for imaging.\n",
             setup.Top().c_str());
     return Action::SKIP;
@@ -50,7 +50,12 @@ Action::RetType Action_FixImagedBonds::Setup(ActionSetup& setup)
   Natoms_ = (unsigned int)lastSelected + 1;
   mprintf("\tFirst selected atom %i, last selected atom %u\n", firstSelected_+1, Natoms_);
   // Set up imaging info for this parm
-  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
+  imageOpt_.SetupImaging( setup.CoordInfo().TrajBox().HasBox() );
+  // sanity check
+  if (!imageOpt_.ImagingEnabled()) {
+    mprinterr("Internal Error: Box info present but imaging could not be set up.\n");
+    return Action::ERR;
+  }
 
   CurrentParm_ = setup.TopAddress();
 
@@ -62,12 +67,10 @@ Action::RetType Action_FixImagedBonds::Setup(ActionSetup& setup)
 // Action_FixImagedBonds::DoAction()
 Action::RetType Action_FixImagedBonds::DoAction(int frameNum, ActionFrame& frm)
 {
+  // NOTE: Imaging should always be enabled
   Box const& box = frm.Frm().BoxCrd();
-  // Calculate box info needed for imaging based on cell type
-  if (image_.ImageType() == NONORTHO)
-    box.ToRecip(ucell_, recip_);
-  else
-    boxCenter_ = box.Center();
+  imageOpt_.SetImageType( box.Is_X_Aligned_Ortho() ); 
+  boxCenter_ = box.Center();
   // Starting with the first atom, check every atom bonded to that atom
   // pseudo-recursively. Ensure that no bond length is longer than half
   // the box size. If it is adjust the position of the bonded atom to
@@ -106,21 +109,21 @@ Action::RetType Action_FixImagedBonds::DoAction(int frameNum, ActionFrame& frm)
         Vec3 bondXYZ( frm.Frm().XYZ( *batom ) );
         Vec3 delta = bondXYZ - currXYZ;
         Vec3 boxTrans(0.0);
-        if ( image_.ImageType() == ORTHO ) {
+        if ( imageOpt_.ImagingType() == ImageOption::ORTHO ) {
           // ----- Orthorhombic imaging ------------
           // If the distance between current and bonded atom is more than half the box,
           // adjust the position of the bonded atom.
-          while (delta[0] >  boxCenter_[0]) { delta[0] -= box.BoxX(); boxTrans[0] -= box.BoxX(); }
-          while (delta[0] < -boxCenter_[0]) { delta[0] += box.BoxX(); boxTrans[0] += box.BoxX(); }
-          while (delta[1] >  boxCenter_[1]) { delta[1] -= box.BoxY(); boxTrans[1] -= box.BoxY(); }
-          while (delta[1] < -boxCenter_[1]) { delta[1] += box.BoxY(); boxTrans[1] += box.BoxY(); }
-          while (delta[2] >  boxCenter_[2]) { delta[2] -= box.BoxZ(); boxTrans[2] -= box.BoxZ(); }
-          while (delta[2] < -boxCenter_[2]) { delta[2] += box.BoxZ(); boxTrans[2] += box.BoxZ(); }
+          while (delta[0] >  boxCenter_[0]) { delta[0] -= box.Param(Box::X); boxTrans[0] -= box.Param(Box::X); }
+          while (delta[0] < -boxCenter_[0]) { delta[0] += box.Param(Box::X); boxTrans[0] += box.Param(Box::X); }
+          while (delta[1] >  boxCenter_[1]) { delta[1] -= box.Param(Box::Y); boxTrans[1] -= box.Param(Box::Y); }
+          while (delta[1] < -boxCenter_[1]) { delta[1] += box.Param(Box::Y); boxTrans[1] += box.Param(Box::Y); }
+          while (delta[2] >  boxCenter_[2]) { delta[2] -= box.Param(Box::Z); boxTrans[2] -= box.Param(Box::Z); }
+          while (delta[2] < -boxCenter_[2]) { delta[2] += box.Param(Box::Z); boxTrans[2] += box.Param(Box::Z); }
         } else {
           // ----- Non-orthorhombic imaging --------
-          Vec3 fdelta = recip_ * delta;
+          Vec3 fdelta = box.FracCell() * delta;
           // DEBUG
-//          Vec3 dbgdelta = (recip_ * bondXYZ) - (recip_ * currXYZ);
+//          Vec3 dbgdelta = (box.FracCell() * bondXYZ) - (box.FracCell() * currXYZ);
 //          fdelta.Print("fdelta");
 //          dbgdelta.Print("dbgdelta");
           // If the distance between current and bonded atom is more than half the cell,
@@ -131,8 +134,8 @@ Action::RetType Action_FixImagedBonds::DoAction(int frameNum, ActionFrame& frm)
           while (fdelta[1] < -0.5) { fdelta[1] += 1.0; boxTrans[1] += 1.0; }
           while (fdelta[2] >  0.5) { fdelta[2] -= 1.0; boxTrans[2] -= 1.0; }
           while (fdelta[2] < -0.5) { fdelta[2] += 1.0; boxTrans[2] += 1.0; }
-          boxTrans = ucell_.TransposeMult( boxTrans );
-//          delta = ucell_.TransposeMult( fdelta ); // DEBUG
+          boxTrans = box.UnitCell().TransposeMult( boxTrans );
+//          delta = box.UnitCell().TransposeMult( fdelta ); // DEBUG
         }
         // Translate the atom
 //        if (boxTrans[0] != 0.0 || boxTrans[1] != 0.0 || boxTrans[2] != 0.0)

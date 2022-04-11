@@ -35,8 +35,13 @@ int SymmetricRmsdCalc::SetupSymmRMSD(Topology const& topIn, AtomMask const& tgtM
   Iarray SelectedIdx( topIn.Natom(), -1 );
   int tgtIdx = 0;
   for (int originalAtom = 0; originalAtom != topIn.Natom(); ++originalAtom)
-    if ( originalAtom == tgtMask[tgtIdx] )
+  {
+    if ( originalAtom == tgtMask[tgtIdx] ) {
       SelectedIdx[originalAtom] = tgtIdx++;
+      if (tgtIdx == tgtMask.Nselected())
+        break;
+    }
+  }
   if (debug_ > 0) {
     mprintf("DEBUG: Original atom -> Selected Index mapping:\n");
     for (int originalAtom = 0; originalAtom != topIn.Natom(); ++originalAtom)
@@ -98,7 +103,7 @@ int SymmetricRmsdCalc::SetupSymmRMSD(Topology const& topIn, AtomMask const& tgtM
                                         symmatoms != SymmetricAtomIndices_.end();
                                         ++symmatoms)
     {
-      mprintf("\t%8u) ", symmatoms - SymmetricAtomIndices_.begin());
+      mprintf("\t%8li) ", symmatoms - SymmetricAtomIndices_.begin());
       for (Iarray::const_iterator atom = symmatoms->begin();
                                   atom != symmatoms->end(); ++atom)
         mprintf(" %s(%i)", topIn.AtomMaskName(tgtMask[*atom]).c_str(), tgtMask[*atom] + 1);
@@ -129,6 +134,8 @@ double SymmetricRmsdCalc::SymmRMSD_CenteredRef(Frame const& selectedTgt, Frame c
     // Since tgtRemap is moved to origin during RMSD calc and centeredREF
     // should already be at the origin, just rotate.
     tgtRemap_.Rotate( rotMatrix_ );
+    // Since tgtRemap_ is only ever used privately, no need to rotate unit cell
+    //tgtRemap_.ModifyBox().RotateUcell( rotMatrix_ );
   }
   // Correct RMSD for symmetry
   for (AtomIndexArray::const_iterator symmatoms = SymmetricAtomIndices_.begin();

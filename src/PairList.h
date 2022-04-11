@@ -1,7 +1,10 @@
 #ifndef INC_PAIRLIST_H
 #define INC_PAIRLIST_H
-#include "Topology.h"
 #include "Timer.h"
+#include "Box.h" // BoxType
+#include <vector>
+class Frame;
+class AtomMask;
 /// Class for creating a lists of potential pairing atoms via spatial grid.
 /** NOTE: The code in this class is based on that from the SANDER
   *       program of Amber/AmberTools, particularly nonbond_list.F90.
@@ -22,8 +25,6 @@ class PairList {
     PairList();
     /// Initialize pair list with given cutoff, "skin", and debug level.
     int InitPairList(double,double,int);
-    /// Setup pair list grid cells based on given box type and vector of recip lengths.
-    int SetupPairList(Box::BoxType, Vec3 const&);
     /// Setup pair list grid cells using given box
     int SetupPairList(Box const&);
     /// Create pair list from Frame, unit cell and recip matrices, and mask.
@@ -55,9 +56,9 @@ class PairList {
     /// Update the translation vectors based on given unit cell matrix.
     void FillTranslateVec(Matrix_3x3 const&);
     /// Add atoms to grid cells.
-    void GridUnitCell(Frame const&, Matrix_3x3 const&, Matrix_3x3 const&, AtomMask const&);
+    int GridUnitCell(Frame const&, Matrix_3x3 const&, Matrix_3x3 const&, AtomMask const&);
     /// Calculate cell index based on given coords and add to cell
-    inline void GridAtom(int, Vec3 const&, Vec3 const&);
+    inline int GridAtom(int, Vec3 const&, Vec3 const&);
 
     Carray cells_;            ///< Hold all cells in grid
     Vec3 translateVec_[18];   ///< Translate vector array

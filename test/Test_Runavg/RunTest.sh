@@ -4,7 +4,7 @@
 
 CleanFiles runavg.in runavg.crd R1.dat
 TESTNAME='Coordinate running average tests'
-Requires netcdf
+Requires netcdf maxthreads 20
 TOP="../tz2.parm7"
 INPUT="runavg.in"
 

@@ -1,9 +1,11 @@
 #ifndef INC_DIHEDRALSEARCH_H
 #define INC_DIHEDRALSEARCH_H
-#include "Topology.h"
-#include "DataSet.h"
-#include "Range.h"
-#include "ArgList.h"
+#include "MetaData.h"
+#include "AtomMask.h"
+// Forward declarations
+class ArgList;
+class Range;
+class Topology;
 /// Class that can be used to search for dihedral angles in a range.
 // Thanks to C. Bergonzo for the NA angle definitions.
 class DihedralSearch {
@@ -18,6 +20,9 @@ class DihedralSearch {
     /// Recognized dihedral types
     typedef MetaData::scalarType DihedralType;
     DihedralSearch();
+    /// COPY CONSTRUCTOR - Set up for same types as input
+    DihedralSearch(DihedralSearch const&);
+    DihedralSearch& operator=(DihedralSearch const&);
     static void ListKnownTypes();
     static void OffsetHelp();
     static DihedralType GetType(std::string const&);
@@ -25,6 +30,10 @@ class DihedralSearch {
     int SearchFor(DihedralType);
     /// Search for known dihedral type keywords.
     void SearchForArgs(ArgList&);
+    /// Contains keywords for SearchNewTypeArgs()
+    static const char* newTypeArgsHelp();
+    /// Search for new type via args
+    int SearchForNewTypeArgs(ArgList&);
     /// Add a new dihedral type to be searched for.
     int SearchForNewType(int, std::string const&, std::string const&, std::string const&, 
                          std::string const&, std::string const&);
@@ -39,7 +48,7 @@ class DihedralSearch {
     /// Clear found dihedrals only.
     void ClearFound() { dihedrals_.clear(); }
     /// Print dihedrals currently being searched for.
-    void PrintTypes();
+    void PrintTypes() const;
     /// \return Mask of atoms that will move upon rotation.
     static AtomMask MovingAtoms(Topology const&, int, int);
   private:
@@ -55,7 +64,7 @@ class DihedralSearch {
 /// Hold dihedral type information used for searching.
 class DihedralSearch::DihedralToken {
   public:
-    DihedralToken() : offset_(0), type_(MetaData::UNDEFINED) {}
+    DihedralToken() : centerIdx_(2), offset_(0), type_(MetaData::UNDEFINED) {}
     /// Constructor for custom dihedral type
     DihedralToken(int, NameType const&, NameType const&, NameType const&, NameType const&,
                   std::string const&);
@@ -67,7 +76,8 @@ class DihedralSearch::DihedralToken {
     DihedralType Type()       const { return type_; }
     void SetAtomName(int i, NameType const& n) { aname_[i] = n; }
   private:
-    int offset_;       ///< -1|0|1: Dihedral starts at prev.|stays in current|ends at next res.
+    int centerIdx_;           ///< Index of the "central" dihedral atom (determines res#).
+    int offset_;              ///< Help determine which atoms are in which residues
     NameType aname_[4];       ///< Dihedral atom names. 
     std::string name_;        ///< Dihedral type name.
     DihedralType type_;       ///< Dihedral type.
@@ -85,6 +95,7 @@ class DihedralSearch::DihedralMask {
     std::string const& Name() const { return name_;       }
     bool None()               const { return (a0_ == -1); }
     DihedralType Type()       const { return type_;       }
+    std::string DihedralMaskString(Topology const&) const;
   private:
     int a0_, a1_, a2_, a3_, res_;
     std::string name_;

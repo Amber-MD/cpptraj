@@ -1,4 +1,6 @@
 #include "Traj_Tinker.h"
+#include "Topology.h"
+#include "Frame.h"
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
@@ -68,7 +70,7 @@ int Traj_Tinker::readFrame(int set, Frame& frameIn) {
     if (file_.NextTinkerFrame()==-1) return 1;
     currentSet_++;
   }
-  if (file_.ReadNextTinkerFrame( frameIn.xAddress(), frameIn.bAddress() ) != 1)
+  if (file_.ReadNextTinkerFrame( frameIn ) != 1)
     return 1;
   currentSet_++;
   return 0;
@@ -118,7 +120,7 @@ int Traj_Tinker::setupTrajout(FileName const& fname, Topology* trajParm,
   }
   // Set Title
   if (Title().empty())
-    SetTitle("Cpptraj generated mol2 file.");
+    SetTitle("Cpptraj Generated mol2 file.");
   file_.SetMol2Title( Title() );
   // Set up number of bonds
   file_.SetMol2Nbonds( mol2Top_->Bonds().size() + mol2Top_->BondsH().size() );

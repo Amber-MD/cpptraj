@@ -1,23 +1,32 @@
 #include "Residue.h"
 #include <cctype> // tolower
 
+const char Residue::BLANK_CHAINID_ = ' ';
+
+const char Residue::DEFAULT_CHAINID_ = 'Z';
+
 char Residue::ConvertResName(std::string const& r) {
   if (r.compare(0,3,"ALA")==0) return 'A';
   if (r.compare(0,3,"ARG")==0) return 'R';
   if (r.compare(0,3,"ASN")==0) return 'N';
   if (r.compare(0,3,"ASP")==0) return 'D';
   if (r.compare(0,3,"ASH")==0) return 'D'; // Protonated ASP
+  if (r.compare(0,3,"AS4")==0) return 'D'; // Constant pH ASP
   if (r.compare(0,3,"CYS")==0) return 'C';
   if (r.compare(0,3,"CYM")==0) return 'C'; // Deprotonated CYS
   if (r.compare(0,3,"CYX")==0) return 'C';
   if (r.compare(0,3,"GLN")==0) return 'Q';
   if (r.compare(0,3,"GLU")==0) return 'E';
   if (r.compare(0,3,"GLH")==0) return 'E'; // Protonated GLU
+  if (r.compare(0,3,"GL4")==0) return 'E'; // Constant pH GLU 
   if (r.compare(0,3,"GLY")==0) return 'G';
   if (r.compare(0,3,"HIS")==0) return 'H';
   if (r.compare(0,3,"HIE")==0) return 'H'; // NE-protonated (HIS)
   if (r.compare(0,3,"HID")==0) return 'H'; // ND-protonated
   if (r.compare(0,3,"HIP")==0) return 'H'; // NE/ND protonated
+  if (r.compare(0,3,"HSE")==0) return 'H'; // CHARMM NE-protonated
+  if (r.compare(0,3,"HSD")==0) return 'H'; // CHARMM ND-protonated
+  if (r.compare(0,3,"HSP")==0) return 'H'; // CHARMM NE/ND-protonated
   if (r.compare(0,3,"ILE")==0) return 'I';
   if (r.compare(0,3,"LEU")==0) return 'L';
   if (r.compare(0,3,"LYS")==0) return 'K';

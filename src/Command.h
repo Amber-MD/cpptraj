@@ -2,7 +2,7 @@
 #define INC_COMMAND_H
 #include "CmdList.h"
 #include "CpptrajState.h"
-#include "Control.h"
+class ControlBlock;
 class Command {
   public:
     static void Init();
@@ -44,7 +44,5 @@ class Command {
     typedef std::vector<ControlBlock*> CtlArray;
     static CtlArray control_; ///< Array of control blocks
     static int ctlidx_;       ///< Point to current control block
-    /// Array of script variables and their current values.
-    static VariableArray CurrentVars_;
 };
 #endif

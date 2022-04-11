@@ -7,11 +7,13 @@
 #include "Constants.h" // GASK_KCAL, SMALL
 
 // CONSTRUCTOR
-Action_GridFreeEnergy::Action_GridFreeEnergy() : Action(HIDDEN),
+Action_GridFreeEnergy::Action_GridFreeEnergy() :
   maxVoxelOccupancyCount_(600), // NOTE: See header for comments.
   tempInKevin_(293.0),
   grid_(0)
-{}
+{
+  SetHidden(true);
+}
 
 void Action_GridFreeEnergy::Help() const {
   mprintf("\t<filename>\n%s\n\t<mask>\n", GridAction::HelpText);
@@ -41,7 +43,7 @@ Action::RetType Action_GridFreeEnergy::Init(ArgList& actionArgs, ActionInit& ini
     init.DSL().RemoveSet( grid_ );
     return Action::ERR;
   }
-  mask_.SetMaskString(maskexpr);
+  if (mask_.SetMaskString(maskexpr)) return Action::ERR;
 
   // Get extra args
   tempInKevin_ = actionArgs.getKeyDouble("temp", 293.0);
@@ -80,12 +82,16 @@ Action::RetType Action_GridFreeEnergy::Setup(ActionSetup& setup) {
 
 // Action_GridFreeEnergy::action()
 Action::RetType Action_GridFreeEnergy::DoAction(int frameNum, ActionFrame& frm) {
+  // Move grid if necessary
+  MoveGrid( frm.Frm(), *grid_ );
   GridFrame( frm.Frm(), mask_, *grid_ );
   return Action::OK;
 }
 
 // Action_GridFreeEnergy::print()
 void Action_GridFreeEnergy::Print() {
+  if (grid_ == 0) return;
+  FinishGrid( *grid_ );
   /* How times does this occupancy count value arise?
    *    i.e. if  
    *                 voxelOccupancyCount[50] = 10 

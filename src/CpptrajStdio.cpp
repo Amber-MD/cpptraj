@@ -17,7 +17,7 @@ static bool suppressErrorMsg_ = false;
 static FILE* STDOUT_ = stdout;
 
 // mflush()
-/** Call flush on STDOUT only if this is the master thread */
+/** Call flush on STDOUT only if this is the master process */
 void mflush() {
 # ifdef MPI
   if (!Parallel::World().Master()) return;
@@ -73,7 +73,7 @@ void mprinterr(const char *format, ...) {
 }
 // -----------------------------------------------------------------------------
 #else
-/** Print message to STDOUT only if this is the master thread */
+/** Print message to STDOUT only if this is the master process */
 void mprintf(const char *format, ...) {
   if (world_io_level_ == IO_ALL) {
 #   ifdef MPI
@@ -86,7 +86,7 @@ void mprintf(const char *format, ...) {
   }
 }
 
-/** Print message to STDERR only if this is the master thread */
+/** Print message to STDERR only if this is the master process */
 void mprinterr(const char *format, ...) {
   if (suppressErrorMsg_) return;
 # ifdef MPI
@@ -163,11 +163,20 @@ int OutputToFile(const char* fname) {
   FinalizeIO();
   if (fname != 0) {
     mprintf("Info: Redirecting output to file '%s'\n", fname);
+    // Save STDOUT_ in case opening new STDOUT_ fails.
+    FILE* tmp = STDOUT_;
     STDOUT_ = fopen(fname, "wb");
     if (STDOUT_ == 0) {
+      // Restore old STDOUT_
+      STDOUT_ = tmp;
       loudPrinterr("Error: Could not open output file '%s'\n", fname);
       return 1;
     }
   }
   return 0;
+}
+
+/** \return STDOUT_ cast to a void pointer. */
+void* CpptrajStdout() {
+  return (void*)STDOUT_;
 }

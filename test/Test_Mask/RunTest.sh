@@ -3,10 +3,10 @@
 . ../MasterTest.sh
 
 # Clean
-CleanFiles mask.in mask.out mask.pdb.1 mask.mol2.1 M.dat
+CleanFiles mask.in mask.out mask.pdb.1 mask.mol2.1 M.dat Nselected.dat
 
 TESTNAME='Mask command tests'
-Requires netcdf
+Requires netcdf maxthreads 10
 
 INPUT="-i mask.in"
 # Test 1
@@ -17,7 +17,7 @@ if [ $? -eq 0 ] ; then
 noprogress
 parm ../tz2.ortho.parm7
 trajin ../tz2.ortho.nc 1 1
-mask "(:5 <:3.0) & :WAT" maskout mask.out maskpdb mask.pdb
+mask "(:5 <:3.0) & :WAT" maskout mask.out maskpdb mask.pdb trajargs 'chainid " "'
 mask "(:5 <:3.0) & :WAT" maskmol2 mask.mol2
 EOF
   RunCpptraj "$UNITNAME"
@@ -30,10 +30,11 @@ cat > mask.in <<EOF
 noprogress
 parm ../tz2.ortho.parm7
 trajin ../tz2.ortho.nc
-mask "(:8@NZ <:3.0) & :WAT@O" name M out M.dat
+mask "(:8@NZ <:3.0) & :WAT@O" name M out M.dat nselectedout Nselected.dat
 EOF
 RunCpptraj "Mask longer command test."
 DoTest M.dat.save M.dat
+DoTest Nselected.dat.save Nselected.dat
 
 EndTest
 

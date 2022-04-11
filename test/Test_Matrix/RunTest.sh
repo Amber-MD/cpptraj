@@ -2,7 +2,12 @@
 
 . ../MasterTest.sh
 
-CleanFiles matrix.in mtest.dat.save mtest.*.dat evecs.10.dat
+CleanFiles matrix.in mtest.*.dat evecs.10.dat \
+           tz2.dist.ca.matrix.dat.save tz2.dist.ca.matrix.dat \
+           mtest.*.gnu
+
+TESTNAME='Matrix Tests'
+Requires maxthreads 10
 
 INPUT="-i matrix.in"
 cat > matrix.in <<EOF
@@ -22,8 +27,9 @@ matrix covar @CA out mtest.10.dat
 matrix mwcovar @CA out mtest.11.dat
 matrix dist @N @C out mtest.12.dat 
 matrix distcovar :1-4@CA out mtest.13.dat
+matrix correl @N @C out mtest.14.gnu
 EOF
-RunCpptraj "Matrix Tests."
+RunCpptraj "$TESTNAME"
 DoTest mtest.dat.0.save mtest.0.dat
 DoTest mtest.dat.1.save mtest.1.dat
 DoTest mtest.dat.2.save mtest.2.dat
@@ -38,8 +44,8 @@ DoTest mtest.dat.10.save mtest.10.dat
 DoTest mtest.dat.11.save mtest.11.dat
 DoTest mtest.dat.12.save mtest.12.dat
 DoTest mtest.dat.13.save mtest.13.dat
+DoTest mtest.gnu.14.save mtest.14.gnu
 
-# Test reading symmetric matrix
 # Test reading symmetric matrix
 # NOTE: Currently disabled due to eigenvector sign flips causing false test errors.
 ReadSymmMatrix() {
@@ -50,6 +56,26 @@ EOF
 RunCpptraj "Read symmetric matrix data test."
 DoTest evecs.10.dat.save evecs.10.dat
 }
+
+# Test start/stop/offset args
+UNITNAME='Generate matrix with start/stop/offset tests'
+CheckFor netcdf
+if [ $? -eq 0 ] ; then
+  cat > matrix.in <<EOF
+parm ../tz2.parm7
+trajin ../tz2.nc 5 100 10
+matrix dist @CA out tz2.dist.ca.matrix.dat.save
+EOF
+  RunCpptraj "Generate matrix with trajectory start/stop/offset"
+cat > matrix.in <<EOF
+parm ../tz2.parm7
+trajin ../tz2.nc
+matrix dist @CA out tz2.dist.ca.matrix.dat start 5 stop 100 offset 10
+EOF
+  RunCpptraj "Generate matrix with action stop/start/offset"
+  DoTest tz2.dist.ca.matrix.dat.save tz2.dist.ca.matrix.dat
+fi
+
 EndTest
   
 exit 0

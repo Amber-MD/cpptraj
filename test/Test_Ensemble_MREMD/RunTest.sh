@@ -81,18 +81,22 @@ EOF
 
 # Test M-REMD process, no sort, running average (tests preload in parallel)
 RunAvgTest() {
-  cat > mremd.in <<EOF
+  UNITNAME='M-REMD no sort, running average test'
+  CheckFor maxthreads 24
+  if [ $? -eq 0 ] ; then
+    cat > mremd.in <<EOF
 parm rGACC.nowat.parm7
 ensemblesize 8
 ensemble rGACC.nowat.001 nosort
 runavg window 3
 rms RA first :1-4&!@H= out RA.dat
 EOF
-  RunCpptraj "M-REMD no sort, running average test"
-  if [ -z "$DO_PARALLEL" ] ; then
-    DoTest RA.dat.save RA.dat
-  else
-    cat RA.dat.? > all.RA.dat && DoTest all.RA.dat.save all.RA.dat
+    RunCpptraj "$UNITNAME"
+    if [ -z "$DO_PARALLEL" ] ; then
+      DoTest RA.dat.save RA.dat
+    else
+      cat RA.dat.? > all.RA.dat && DoTest all.RA.dat.save all.RA.dat
+    fi
   fi
 }
 

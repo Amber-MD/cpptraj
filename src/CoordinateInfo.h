@@ -3,9 +3,6 @@
 #include <string>
 #include "ReplicaDimArray.h"
 #include "Box.h"
-#ifdef MPI
-# include "Parallel.h"
-#endif
 /// All metadata associated with a Frame.
 class CoordinateInfo {
   public:
@@ -15,8 +12,15 @@ class CoordinateInfo {
     CoordinateInfo(Box const&, bool, bool, bool);
     /// CONSTRUCTOR - box, coord, velocity, force, time TODO merge with above? 
     CoordinateInfo(Box const&, bool, bool, bool, bool);
-    /// CONSTRUCTOR - ensemble size, remd dims, box, coords, velocity, force, temp., pH, redox, time, has repidx, has crdidx, use remd values
-    CoordinateInfo(int, ReplicaDimArray const&, Box const&, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool);
+    /// CONSTRUCTOR - ensemble size, remd dims, box, coords, velocity, force, temp., pH, redox, time, step, has repidx, has crdidx, use remd values
+    CoordinateInfo(int, ReplicaDimArray const&, Box const&, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool);
+    /// Enumerate the various information that can be part of a Frame.
+    enum Component { POSITION=0, VELOCITY, FORCE, BOX,  TEMPERATURE,
+                     PH,         REDOX,    TIME,  STEP, REMD_INDICES,
+                     REPIDX,     CRDIDX,
+                     NCOMPONENTS };
+    static const char* ComponentStr(Component);
+
     bool HasBox()              const { return box_.HasBox();            }
     const Box& TrajBox()       const { return box_;                     }
     int EnsembleSize()         const { return ensembleSize_;            }
@@ -27,12 +31,14 @@ class CoordinateInfo {
     bool Has_pH()              const { return has_pH_;                  }
     bool HasRedOx()            const { return hasRedox_;                }
     bool HasTime()             const { return hasTime_;                 }
+    bool HasStep()             const { return hasStep_;                 }
     bool HasReplicaDims()      const { return (remdDim_.Ndims() != 0);  }
     bool HasRepIdx()           const { return hasrepidx_;               }
     bool HasCrdIdx()           const { return hascrdidx_;               }
     ReplicaDimArray const& ReplicaDimensions() const { return remdDim_; }
     bool UseRemdValues()       const { return useRemdValues_;           }
     void SetTime(bool m)        { hasTime_ = m; }
+    void SetStep(bool s)        { hasStep_ = s; }
     void SetTemperature(bool t) { hasTemp_ = t; }
     void SetCrd(bool c)         { hasCrd_ = c;  }
     void SetVelocity(bool v)    { hasVel_ = v;  }
@@ -45,7 +51,7 @@ class CoordinateInfo {
     /// \return string containing info on present metadata
     std::string InfoString() const;
 #   ifdef MPI
-    int SyncCoordInfo(Parallel::Comm const&);
+    int BroadcastCoordInfo(Parallel::Comm const&);
 #   endif
     /// \return True if Frame would need to be re-setup based on CoordinateInfo
     bool operator !=(CoordinateInfo const& rhs) const {
@@ -64,6 +70,7 @@ class CoordinateInfo {
     bool has_pH_;             ///< True if coords include pH info.
     bool hasRedox_;           ///< True if coords include RedOx potential info.
     bool hasTime_;            ///< True if coords include time info.
+    bool hasStep_;            ///< True if coords include step info.
     bool hasrepidx_;          ///< True if coords have replica indices
     bool hascrdidx_;          ///< True if coords have coordinate indices
     bool useRemdValues_;      ///< True if using remd_values in netcdf file

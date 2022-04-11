@@ -26,11 +26,11 @@ static int AddSetsToDataFile(DataFile& df, ArgList const& dsetArgs, DataSetList&
 }
 
 void Exec_CreateDataFile::Help() const {
-  mprintf("\t<filename> <dataset0> [<dataset1> ...]\n"
-          "  Add a file with specified data sets to the data file list. Does not\n"
-          "  immediately write the data.\n");
+  mprintf("\t<filename> <dataset0> [<dataset1> ...]\n");
   DataFile::WriteHelp();
-  DataFile::WriteOptions();
+  mprintf("  Add a file with specified data sets to the data file list. Does not\n"
+          "  immediately write the data.\n"
+          "  Use 'help Formats writedata' for help with specific formats.\n");
 }
 
 Exec::RetType Exec_CreateDataFile::Execute(CpptrajState& State, ArgList& argIn)
@@ -50,8 +50,8 @@ void Exec_WriteDataFile::Help() const {
   mprintf("\t[<filename> <dataset0> [<dataset1> ...]]\n");
   DataFile::WriteHelp();
   mprintf("  With no arguments, write all files currently in the data file list.\n"
-          "  Otherwise, write specified data sets to <filename> immediately.\n");
-  DataFile::WriteOptions();
+          "  Otherwise, write specified data sets to <filename> immediately.\n"
+          "  Use 'help Formats writedata' for help with specific formats.\n");
 }
 
 Exec::RetType Exec_WriteDataFile::Execute(CpptrajState& State, ArgList& argIn)

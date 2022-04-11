@@ -1,14 +1,21 @@
 #include <algorithm> // sort, unique
 #include "AtomMask.h"
 #include "CpptrajStdio.h"
+#include "Unit.h"
 
-// CONSTRUCTOR
+/** CONSTRUCTOR - atom range; Natom_ will be set by AddAtomRange */
 AtomMask::AtomMask(int beginAtom, int endAtom) : Natom_(0), maskChar_(SelectedChar_)
 {
   AddAtomRange(beginAtom, endAtom);
 }
 
-// CONSTRUCTOR
+/** CONSTRUCTOR - unit; Natom_ will be set by AddAtomRange via AddUnit */
+AtomMask::AtomMask(Unit const& unit) : Natom_(0), maskChar_(SelectedChar_)
+{
+  AddUnit( unit );
+}
+
+/** CONSTRUCTOR - single atom */
 AtomMask::AtomMask(int atomNum) : Selected_(1, atomNum), Natom_(1), maskChar_(SelectedChar_) {}
 
 // AtomMask::ResetMask()
@@ -27,6 +34,15 @@ bool AtomMask::operator==(AtomMask const& rhs) const {
   return true;
 }
 
+/** \return true if masks are not equal. */
+bool AtomMask::operator!=(AtomMask const& rhs) const {
+  if (Selected_.size() != rhs.Selected_.size()) return true;
+  for (unsigned int idx = 0; idx != Selected_.size(); idx++) {
+    if (Selected_[idx] != rhs.Selected_[idx]) return true;
+  }
+  return false;
+}
+
 /** Flip the current character used to select atoms. Useful when you want 
   * the mask to select the inverse of the given expression, like in 'strip'.
   */
@@ -39,6 +55,11 @@ void AtomMask::InvertMaskExpression() {
 
 // AtomMask::InvertMask()
 void AtomMask::InvertMask() {
+  // Sanity check
+  if (Natom_ < 1) {
+    mprinterr("Internal Error: AtomMask::InvertMask() called with Natom_ < 1.\n");
+    return;
+  }
   // Invert the integer mask.
   std::vector<int> invert;
   invert.reserve( Natom_ - (int)Selected_.size() );
@@ -59,7 +80,7 @@ void AtomMask::InvertMask() {
 /** Given an atom mask, determine how many selected atoms this mask
   * has in common with it.
   */
-int AtomMask::NumAtomsInCommon(AtomMask const& maskIn) {
+int AtomMask::NumAtomsInCommon(AtomMask const& maskIn) const {
   std::vector<int> intersect;
   std::vector<int>::iterator intersect_end;
 
@@ -86,6 +107,26 @@ int AtomMask::NumAtomsInCommon(AtomMask const& maskIn) {
   return int(intersect_end - intersect.begin());
 }
 
+/** \return True if atom is in Selected_ array. */
+bool AtomMask::IsSelected(int atomIn) const {
+  for (std::vector<int>::const_iterator at = Selected_.begin(); at != Selected_.end(); ++at)
+    if (*at == atomIn) return true;
+  return false;
+}
+
+/** Shrink the current selected array to only the first N entries. */
+void AtomMask::ShrinkSelectedTo(int newNselected) {
+  if (newNselected < 0) {
+    mprinterr("InternalError: AtomMask::ShrinkSelectedTo called with negative #.\n");
+    return;
+  }
+  if ((unsigned int)newNselected > Selected_.size()) {
+    mprinterr("InternalError: AtomMask::ShrinkSelectedTo called with # (%i) > selected atoms (%zu).\n", newNselected, Selected_.size());
+    return;
+  }
+  Selected_.resize( newNselected );
+}
+
 // AtomMask::AddAtom()
 /** Attempt to enforce some sorting by looking for the atom in the mask;
   * as soon as an atom # is found larger than atomIn, insert it at the
@@ -104,6 +145,9 @@ void AtomMask::AddAtom(int atomIn) {
   }
   // Add atom to mask
   Selected_.push_back(atomIn);
+  // Update Natom_ if necessary
+  if (Selected_.back() >= Natom_)
+    Natom_ = Selected_.back() + 1;
 }
 
 // AtomMask::AddAtoms()
@@ -122,6 +166,9 @@ void AtomMask::AddAtoms(std::vector<int> const& atomsIn) {
   // Remove duplicates
   atom = unique( Selected_.begin(), Selected_.end() );
   Selected_.resize( atom - Selected_.begin() );
+  // Update Natom_ if necessary
+  if (Selected_.back() >= Natom_)
+    Natom_ = Selected_.back() + 1;
 }
 
 // AtomMask::AddAtomRange()
@@ -142,6 +189,15 @@ void AtomMask::AddAtomRange(int minAtom, int maxAtom) {
   //for (std::vector<int>::iterator da = Selected_.begin(); da != Selected_.end(); da++)
   //  mprintf(" %i",*da);
   //mprintf("]\n");
+  // Update Natom_ if necessary
+  if (Selected_.back() >= Natom_)
+    Natom_ = Selected_.back() + 1;
+}
+
+/** Add atoms in given unit to mask. */
+void AtomMask::AddUnit(Unit const& unitIn) {
+  for (Unit::const_iterator it = unitIn.segBegin(); it != unitIn.segEnd(); ++it)
+    AddAtomRange( it->Begin(), it->End() );
 }
 
 // AtomMask::AddMaskAtPosition()

@@ -6,18 +6,17 @@
 CleanFiles rms.in rmsd.dat rms.mass.in rmsd.mass.dat rms.reftraj.in \
            rmsd.reftraj.dat tz2.norotate.crd tz2.rotate.crd rmatrices.dat \
            rmsd.refcoords.dat rms.dat NoMod.dat NoMod.crd.save NoMod.crd \
-           vecs.dat
+           vecs.dat Previous.dat distances.agr
 
 TESTNAME='RMSD tests'
 Requires netcdf
-
-INPUT="rms.in"
 
 # Test rmsd, mass-weighted rmsd, rmsd to reference traj.
 UNITNAME='Basic RMSD tests'
 CheckFor maxthreads 10
 if [ $? -eq 0 ] ; then
-  TOP="../tz2.truncoct.parm7"
+  TOP='../tz2.truncoct.parm7'
+  INPUT='rms.in'
   cat > rms.in <<EOF
 noprogress
 trajin ../tz2.truncoct.nc
@@ -34,15 +33,18 @@ EOF
   RunCpptraj "$UNITNAME"
   DoTest rmsd.dat.save rmsd.dat
   DoTest rmsd.mass.dat.save rmsd.mass.dat
-  DoTest vecs.dat.save vecs.dat
+  DoTest vecs.dat.save vecs.dat -a 0.000001
   DoTest rmsd.reftraj.dat.save rmsd.reftraj.dat
   DoTest rmsd.reftraj.dat.save rmsd.refcoords.dat
 fi
 
 # Test RMS rotate/norotate, generation of rotation matrices
-TOP=""
-INPUT="-i rms.in"
-cat > rms.in <<EOF
+UNITNAME='RMS coordinate rotation/rotation matrices test'
+CheckFor maxthreads 10
+if [ $? -eq 0 ] ; then
+  TOP=''
+  INPUT='-i rms.in'
+  cat > rms.in <<EOF
 parm ../tz2.parm7 [NOWAT] 
 reference ../tz2.nc parm [NOWAT] 1 [first] 
 parm ../tz2.truncoct.parm7 [WAT]
@@ -53,12 +55,14 @@ outtraj tz2.norotate.crd parm [WAT]
 rms ROT ref [first] out rms.dat @CA savematrices matricesout rmatrices.dat
 outtraj tz2.rotate.crd parm [WAT]
 EOF
-RunCpptraj "RMS coordinate rotation/rotation matrices test."
-DoTest tz2.norotate.crd.save tz2.norotate.crd
-DoTest tz2.rotate.crd.save tz2.rotate.crd
-DoTest rmatrices.dat.save rmatrices.dat
+  RunCpptraj "$UNITNAME"
+  DoTest tz2.norotate.crd.save tz2.norotate.crd
+  DoTest tz2.rotate.crd.save tz2.rotate.crd
+  DoTest rmatrices.dat.save rmatrices.dat
+fi
 
 # Test RMS nomod
+TOP=''
 INPUT="-i rms.in"
 cat > rms.in <<EOF
 parm ../tz2.parm7
@@ -70,6 +74,39 @@ EOF
 RunCpptraj "RMS fit with no coordinates modification test."
 DoTest NoMod.dat.save NoMod.dat
 DoTest NoMod.crd.save NoMod.crd
+
+# Test RMS 'previous'
+UNITNAME='RMS fit to previous test'
+CheckFor notparallel
+if [ $? -eq 0 ] ; then
+  TOP=''
+  INPUT='-i rms.in'
+  cat > rms.in <<EOF
+parm ../tz2.parm7
+trajin ../tz2.nc
+rms ToPrevious :2-12@CA previous out Previous.dat
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest Previous.dat.save Previous.dat
+fi
+
+# Test imaging after unit cell rotation
+UNITNAME='RMS: imaging after unit cell rotation'
+CheckFor maxthreads 10
+if [ $? -eq 0 ] ; then
+  TOP='-p ../tz2.ortho.parm7'
+  INPUT='-i rms.in'
+  cat > rms.in <<EOF
+noprogress
+trajin ../tz2.ortho.nc
+rms :1-13 first
+distance NoImage :559 :1412 noimage out distances.agr
+distance Image   :559 :1412         out distances.agr
+run
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest distances.agr.save distances.agr
+fi
 
 EndTest
 

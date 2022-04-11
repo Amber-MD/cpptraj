@@ -1,5 +1,6 @@
 #ifndef INC_VEC3_H
 #define INC_VEC3_H
+#include <cstddef> // size_t
 /// Designed to hold array of size 3 (like XYZ coord etc).
 class Vec3 {
   public:
@@ -129,6 +130,7 @@ class Vec3 {
     // TODO: Eliminate this routine
     const double* Dptr() const { return V_; }
     double* Dptr() { return V_; }
+    static size_t DataSize() { return 3*sizeof(double); }
   private:
     double V_[3];
 };

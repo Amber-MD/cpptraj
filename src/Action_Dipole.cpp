@@ -51,7 +51,7 @@ Action::RetType Action_Dipole::Init(ArgList& actionArgs, ActionInit& init, int d
     init.DSL().RemoveSet( grid_ );
     return Action::ERR;
   }
-  mask_.SetMaskString(maskexpr);
+  if (mask_.SetMaskString(maskexpr)) return Action::ERR;
 
   // Info
   mprintf("    DIPOLE:\n");
@@ -59,7 +59,7 @@ Action::RetType Action_Dipole::Init(ArgList& actionArgs, ActionInit& init, int d
   mprintf("\tGrid will be printed to file %s\n",outfile_->Filename().full());
   mprintf("\tMask expression: [%s]\n",mask_.MaskString());
   if (max_ > 0)
-    mprintf("\tOnly keeping density >= to %.0lf%% of the maximum density\n", max_);
+    mprintf("\tOnly keeping density >= to %.0f%% of the maximum density\n", max_);
 
   return Action::OK;
 }
@@ -73,7 +73,7 @@ Action::RetType Action_Dipole::Setup(ActionSetup& setup) {
   // Traverse over solvent molecules to find out the 
   // "largest" solvent molecule; allocate space for this
   // many coordinates.
-  int NsolventAtoms = 0;
+  unsigned int NsolventAtoms = 0;
   for (Topology::mol_iterator Mol = setup.Top().MolStart();
                               Mol != setup.Top().MolEnd(); ++Mol)
   {
@@ -83,7 +83,7 @@ Action::RetType Action_Dipole::Setup(ActionSetup& setup) {
     }
   }
   //sol_.resize( NsolventAtoms );
-  mprintf("\tLargest solvent mol is %i atoms.\n", NsolventAtoms);
+  mprintf("\tLargest solvent mol is %u atoms.\n", NsolventAtoms);
 
   // Setup grid, checks box info.
   if (GridSetup( setup.Top(), setup.CoordInfo() )) return Action::ERR;
@@ -104,12 +104,15 @@ Action::RetType Action_Dipole::Setup(ActionSetup& setup) {
 Action::RetType Action_Dipole::DoAction(int frameNum, ActionFrame& frm) {
   Vec3 cXYZ, dipolar_vector, COM;
 
+  // Move grid if necessary
+  MoveGrid( frm.Frm(), *grid_ );
+
   // Set up center to origin or box center
-  if (GridMode() == GridAction::BOX) 
+  if (GridOffsetType() == GridAction::BOX_CENTER) 
     cXYZ = frm.Frm().BoxCrd().Center();
-  else if (GridMode() == GridAction::MASKCENTER)
+  else if (GridOffsetType() == GridAction::MASK_CENTER)
     cXYZ = frm.Frm().VGeometricCenter( CenterMask() );
-  else // GridAction::ORIGIN/SPECIFIEDCENTER
+  else // GridAction::NO_OFFSET
     cXYZ.Zero();
 
   // Traverse over solvent molecules.
@@ -123,26 +126,30 @@ Action::RetType Action_Dipole::DoAction(int frameNum, ActionFrame& frm) {
     COM.Zero();
     double total_mass = 0;
     // Loop over solvent atoms
-    for (int satom = (*solvmol).BeginAtom(); satom < (*solvmol).EndAtom(); ++satom)
+    for (Unit::const_iterator seg = solvmol->MolUnit().segBegin();
+                              seg != solvmol->MolUnit().segEnd(); ++seg)
     {
-      if ( mask_.AtomInCharMask(satom) ) {
-        // Get coordinates and shift to origin and then to appropriate spacing
-        // NOTE: Do not shift into grid coords until the very end.
-        const double* sol = frm.Frm().XYZ( satom );
-        // Calculate dipole vector. The center of mass of the solvent is used 
-        // as the "origin" for the vector.
-        // NOTE: the total charge on the solvent should be neutral for this 
-        //       to have any meaning.
-        double mass = (*CurrentParm_)[satom].Mass();
-        total_mass += mass;
-        COM[0] += (mass * sol[0]);
-        COM[1] += (mass * sol[1]);
-        COM[2] += (mass * sol[2]);
+      for (int satom = seg->Begin(); satom != seg->End(); ++satom)
+      {
+        if ( mask_.AtomInCharMask(satom) ) {
+          // Get coordinates and shift to origin and then to appropriate spacing
+          // NOTE: Do not shift into grid coords until the very end.
+          const double* sol = frm.Frm().XYZ( satom );
+          // Calculate dipole vector. The center of mass of the solvent is used 
+          // as the "origin" for the vector.
+          // NOTE: the total charge on the solvent should be neutral for this 
+          //       to have any meaning.
+          double mass = (*CurrentParm_)[satom].Mass();
+          total_mass += mass;
+          COM[0] += (mass * sol[0]);
+          COM[1] += (mass * sol[1]);
+          COM[2] += (mass * sol[2]);
 
-        double charge = (*CurrentParm_)[satom].Charge();
-        dipolar_vector[0] += (charge * sol[0]);
-        dipolar_vector[1] += (charge * sol[1]);
-        dipolar_vector[2] += (charge * sol[2]);
+          double charge = (*CurrentParm_)[satom].Charge();
+          dipolar_vector[0] += (charge * sol[0]);
+          dipolar_vector[1] += (charge * sol[1]);
+          dipolar_vector[2] += (charge * sol[2]);
+        }
       }
     }
     // If no atoms selected for this solvent molecule, skip.
@@ -183,6 +190,8 @@ int Action_Dipole::SyncAction() {
   * comes with Midas/Plus.
   */
 void Action_Dipole::Print() {
+  if (grid_ == 0) return
+  FinishGrid( *grid_ );
   double max_density;
 
   // Write header

@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cctype>
+#include <algorithm>
 #include "DataIO_Cpout.h"
 #include "CpptrajStdio.h"
 #include "DataSet_pH.h"

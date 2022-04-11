@@ -1,7 +1,0 @@
-machine:
-  services:
-    - docker
-
-test:
-  override:
-    - bash util/test_pytraj_build.sh

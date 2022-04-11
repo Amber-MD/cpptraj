@@ -23,7 +23,7 @@ class Traj_AmberRestart : public TrajectoryIO {
     int readVelocity(int, Frame&);
     int readForce(int, Frame&)     { return 1; }
     int writeFrame(int,Frame const&);
-    int processWriteArgs(ArgList&);
+    int processWriteArgs(ArgList&, DataSetList const&);
     void Info();
 #   ifdef MPI
     // Parallel functions
@@ -33,7 +33,6 @@ class Traj_AmberRestart : public TrajectoryIO {
     int parallelWriteFrame(int, Frame const&);
     void parallelCloseTraj() {}
 #   endif
-    int getBoxAngles(std::string const&, Box&);
 
     std::vector<double> CRD_; ///< Store coords on read.
     std::vector<double> VEL_; ///< Store velocities on read.

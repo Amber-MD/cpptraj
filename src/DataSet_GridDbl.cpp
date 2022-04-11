@@ -1,7 +1,15 @@
 #include "DataSet_GridDbl.h"
-#include "CpptrajStdio.h" // DEBUG
+#include "CpptrajStdio.h"
+#include "StringRoutines.h"
 
 DataSet_GridDbl::DataSet_GridDbl(DataSet_GridDbl const& rhs) : DataSet_3D(rhs), grid_(rhs.grid_) {}
+
+DataSet_GridDbl& DataSet_GridDbl::operator=(DataSet_GridDbl const& rhs) {
+  if (this == &rhs) return *this;
+  DataSet_3D::operator=(rhs);
+  grid_ = rhs.grid_;
+  return *this;
+}
 
 void DataSet_GridDbl::WriteBuffer(CpptrajFile& outfile, SizeArray const& pIn) const {
   size_t x = pIn[0];
@@ -14,7 +22,7 @@ void DataSet_GridDbl::WriteBuffer(CpptrajFile& outfile, SizeArray const& pIn) co
 }
 
 #ifdef MPI
-int DataSet_GridDbl::Sync(size_t total, std::vector<int> const& rank_frames,
+int DataSet_GridDbl::SyncGrid(size_t total, std::vector<int> const& rank_frames,
                           Parallel::Comm const& commIn)
 {
   if (commIn.Master()) {

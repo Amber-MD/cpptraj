@@ -1,6 +1,9 @@
 #include "OutputTrajCommon.h"
+#include "TrajectoryIO.h"
+#include "Topology.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // fileExists
+#include "ArgList.h"
 
 // CONSTRUCTOR
 OutputTrajCommon::OutputTrajCommon() :
@@ -113,13 +116,13 @@ int OutputTrajCommon::SetupCoordInfo(Topology* tparmIn, int nFrames, CoordinateI
   if (noFrc_ ) cInfo_.SetForce( false );
   if (noReps_) cInfo_.SetReplicaDims( ReplicaDimArray() );
   // Determine how many frames will be written
-  NframesToWrite_ = nFrames;
-  if (hasRange_)
-    NframesToWrite_ = FrameRange_.Size();
-  //trajIsOpen_ = true;
   // If a framerange is defined set it to the beginning of the range
-  if (hasRange_)
+  if (hasRange_) {
+    NframesToWrite_ = FrameRange_.Size();
     rangeframe_ = FrameRange_.begin();
+  } else
+    NframesToWrite_ = nFrames;
+  //trajIsOpen_ = true;
   numFramesWritten_ = 0;
   return 0;
 }
@@ -134,6 +137,8 @@ void OutputTrajCommon::CommonInfo() const {
   if (noReps_) mprintf(" no replica dimensions,");
   if (hasRange_)
     FrameRange_.PrintRange(": Writing frames", 1);
+  else if (!frameCount_.DefaultSettings())
+    frameCount_.FrameCounterBrief();
   else if (NframesToWrite_ > 0) {
     mprintf(": Writing %i frames", NframesToWrite_);
     frameCount_.FrameCounterBrief();

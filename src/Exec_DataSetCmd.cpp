@@ -4,50 +4,78 @@
 #include "DataSet_1D.h"
 #include "DataSet_MatrixDbl.h"
 #include "DataSet_Vector.h"
+#include "DataSet_string.h"
+#include "DataSet_Mesh.h"
+#include "DataSet_Mat3x3.h"
 #include "StringRoutines.h"
 
+// Exec_DataSetCmd::Help()
 void Exec_DataSetCmd::Help() const {
   mprintf("\t{legend|makexy|vectorcoord|cat|make2d|droppoints|keeppoints|remove|\n"
-          "\t dim|outformat|mode|type} <options>\n");
-  mprintf("  legend <legend> <set>\n"
-          "    Set the legend for a single data set.\n");
-  mprintf("  makexy <Xset> <Yset> [name <name>]\n"
-          "    Create new data set with X values from one set and Y values from another.\n");
-  mprintf("  vectorcoord {X|Y|Z} [name <name>]\n"
-          "    Extract X, Y, or Z component of vector data into new set.\n");
-  mprintf("  cat <set0> <set1> ... [name <name>] [nooffset]\n"
-          "    Concatenate 2 or more data sets.\n");
-  mprintf("  make2d <1D set> cols <ncols> rows <nrows> [name <name>]\n"
-          "    Create new 2D data set from 1D data set, assumes row-major ordering.\n");
-  Help_ModifyPoints();
-  mprintf("  remove <criterion> <select> <value> [and <value2>] [<set selection>]\n"
-          "      <criterion>: ");
-  for (int i = 1; i < (int)N_C; i++)
-    mprintf(" '%s'", CriterionKeys[i]);
-  mprintf("\n      <select>   : ");
-  for (SelectPairType const* ptr = SelectKeys; ptr->key_ != 0; ptr++)
-    mprintf(" '%s'", ptr->key_);
-  mprintf("\n    Remove data sets according to specified criterion and selection.\n");
-  Help_ChangeDim();
-  mprintf("  outformat {double|scientific|general} <set arg1> [<set arg 2> ...]\n"
-          "    Change output format of double-precision data:\n"
-          "      double     - \"Normal\" output, e.g. 0.4032\n"
-          "      scientific - Scientific \"E\" notation output, e.g. 4.032E-1\n"
-          "      general    - Use 'double' or 'scientific', whichever is shortest.\n");
-  mprintf("  [mode <mode>] [type <type>] <set arg1> [<set arg 2> ...]\n");
-  mprintf("      <mode>: ");
-  for (int i = 0; i != (int)MetaData::UNKNOWN_MODE; i++)
-    mprintf(" '%s'", MetaData::ModeString((MetaData::scalarMode)i));
-  mprintf("\n      <type>: ");
-  for (int i = 0; i != (int)MetaData::UNDEFINED; i++)
-    mprintf(" '%s'", MetaData::TypeString((MetaData::scalarType)i));
-  mprintf("\n    Options for 'type noe':\n"
-          "      %s\n", AssociatedData_NOE::HelpText);
-  mprintf("    Change the mode and/or type for one or more data sets.\n");
+          "\t dim|outformat|invert|shift|mode|type} <options>\n");
+  mprintf("  Type 'help dataset <cmd>' for detailed subcommand help.\n");
+}
+
+// Exec_DataSetCmd::Help()
+void Exec_DataSetCmd::Help(ArgList& argIn) const {
+  if (argIn.hasKey("legend")) {
+    mprintf("  legend <legend> <set>\n"
+            "    Set the legend for a single data set.\n");
+  } else if (argIn.hasKey("makexy")) {
+    mprintf("  makexy <Xset> <Yset> [name <name>]\n"
+            "    Create new data set with X values from one set and Y values from another.\n");
+  } else if (argIn.hasKey("vectorcoord")) {
+    mprintf("  vectorcoord {X|Y|Z} [name <name>]\n"
+            "    Extract X, Y, or Z component of vector data into new set.\n");
+  } else if (argIn.hasKey("cat")) {
+    mprintf("  cat <set0> <set1> ... [name <name>] [nooffset]\n"
+            "    Concatenate 2 or more data sets.\n");
+  } else if (argIn.hasKey("make2d")) {
+    mprintf("  make2d <1D set> cols <ncols> rows <nrows> [name <name>]\n"
+            "    Create new 2D data set from 1D data set, assumes row-major ordering.\n");
+  } else if (argIn.hasKey("droppoints") || argIn.hasKey("keeppoints")) {
+    Help_ModifyPoints();
+  } else if (argIn.hasKey("remove")) {
+    mprintf("  remove <criterion> <select> <value> [and <value2>] [<set selection>]\n"
+            "      <criterion>: ");
+    for (int i = 1; i < (int)N_C; i++)
+      mprintf(" '%s'", CriterionKeys[i]);
+    mprintf("\n      <select>   : ");
+    for (SelectPairType const* ptr = SelectKeys; ptr->key_ != 0; ptr++)
+      mprintf(" '%s'", ptr->key_);
+    mprintf("\n    Remove data sets according to specified criterion and selection.\n");
+  } else if (argIn.hasKey("dim")) {
+    Help_ChangeDim();
+  } else if (argIn.hasKey("outformat")) {
+    mprintf("  outformat {double|scientific|general} <set arg1> [<set arg 2> ...]\n"
+            "    Change output format of double-precision data:\n"
+            "      double     - \"Normal\" output, e.g. 0.4032\n"
+            "      scientific - Scientific \"E\" notation output, e.g. 4.032E-1\n"
+            "      general    - Use 'double' or 'scientific', whichever is shortest.\n");
+  } else if (argIn.hasKey("invert")) {
+    Help_InvertSets();
+  } else if (argIn.hasKey("shift")) {
+    Help_Shift();
+  } else if (argIn.hasKey("mode")) {
+    mprintf("  [mode <mode>] [type <type>] <set arg1> [<set arg 2> ...]\n");
+    mprintf("      <mode>: ");
+    for (int i = 0; i != (int)MetaData::UNKNOWN_MODE; i++)
+      mprintf(" '%s'", MetaData::ModeString((MetaData::scalarMode)i));
+    mprintf("    Change the mode for one or more data sets.\n");
+  } else if (argIn.hasKey("type")) {
+    mprintf("\n      <type>: ");
+    for (int i = 0; i != (int)MetaData::UNDEFINED; i++)
+      mprintf(" '%s'", MetaData::TypeString((MetaData::scalarType)i));
+    mprintf("\n    Options for 'type noe':\n"
+            "      %s\n", AssociatedData_NOE::HelpText);
+    mprintf("    Change the type for one or more data sets.\n");
+  } else
+    Help();
 }
 
 // Exec_DataSetCmd::Execute()
 Exec::RetType Exec_DataSetCmd::Execute(CpptrajState& State, ArgList& argIn) {
+  modifiedSets_.clear();
   RetType err = CpptrajState::OK;
   if (argIn.Contains("legend")) {         // Set legend for one data set
     std::string legend = argIn.GetStringKey("legend");
@@ -56,38 +84,49 @@ Exec::RetType Exec_DataSetCmd::Execute(CpptrajState& State, ArgList& argIn) {
     mprintf("\tChanging legend '%s' to '%s'\n", ds->legend(), legend.c_str());
     ds->SetLegend( legend );
   // ---------------------------------------------
-  } else if (argIn.hasKey("outformat")) { // Change double precision set output format
+  } else if (argIn.hasKey("outformat")) {   // Change double precision set output format
     err = ChangeOutputFormat(State, argIn);
   // ---------------------------------------------
-  } else if (argIn.hasKey("remove")) {    // Remove data sets by various criteria
+  } else if (argIn.hasKey("remove")) {      // Remove data sets by various criteria
     err = Remove(State, argIn);
   // ---------------------------------------------
-  } else if (argIn.hasKey("makexy")) {    // Combine values from two sets into 1
+  } else if (argIn.hasKey("makexy")) {      // Combine values from two sets into 1
     err = MakeXY(State, argIn);
   // ---------------------------------------------
-  } else if (argIn.hasKey("make2d")) {    // Create 2D matrix from 1D set
+  } else if (argIn.hasKey("make2d")) {      // Create 2D matrix from 1D set
     err = Make2D(State, argIn);
   // ---------------------------------------------
   } else if (argIn.hasKey("vectorcoord")) { // Extract vector X/Y/Z coord as new set
     err = VectorCoord(State, argIn);
   // ---------------------------------------------
-  } else if (argIn.hasKey("filter")) {    // Filter points in data set to make new data set
+  } else if (argIn.hasKey("filter")) {      // Filter points in data set to make new data set
     err = Filter(State, argIn);
   // ---------------------------------------------
-  } else if (argIn.hasKey("cat")) {       // Concatenate two or more data sets
+  } else if (argIn.hasKey("cat")) {         // Concatenate two or more data sets
     err = Concatenate(State, argIn);
   // ---------------------------------------------
-  } else if (argIn.hasKey("droppoints")) { // Drop points from set
+  } else if (argIn.hasKey("droppoints")) {  // Drop points from set
     err = ModifyPoints(State, argIn, true);
   // ---------------------------------------------
-  } else if (argIn.hasKey("keeppoints")) { // Keep points in set
+  } else if (argIn.hasKey("keeppoints")) {  // Keep points in set
     err = ModifyPoints(State, argIn, false);
   // ---------------------------------------------
-  } else if (argIn.hasKey("dim")) {        // Modify dimension of set(s)
+  } else if (argIn.hasKey("dim")) {         // Modify dimension of set(s)
     err = ChangeDim(State, argIn);
   // ---------------------------------------------
-  } else {                                // Default: change mode/type for one or more sets.
+  } else if (argIn.hasKey("invert")) {      // Invert set(s) X/Y, create new sets
+    err = InvertSets(State, argIn);
+  // ---------------------------------------------
+  } else if (argIn.hasKey("shift")) {       // Shift data in set(s) that match criteria by offset
+    err = ShiftData(State, argIn);
+  // ---------------------------------------------
+  } else {                                  // Default: change mode/type for one or more sets.
     err = ChangeModeType(State, argIn);
+  }
+  // If any sets were modified, write out data again.
+  if (err == CpptrajState::OK && !modifiedSets_.empty()) {
+    State.DFL().ResetWriteStatIfContain( modifiedSets_ );
+    State.DFL().WriteAllDF();
   }
   return err;
 }
@@ -111,11 +150,22 @@ Exec_DataSetCmd::SelectPairType Exec_DataSetCmd::SelectKeys[] = {
 void Exec_DataSetCmd::Help_ModifyPoints() {
   mprintf("  drop|keep}points {range <range arg> | [start <#>] [stop <#>] [offset <#>]}\n"
           "                   [name <output set>] <set arg1> ...\n"
-          "    Drop specified points from or keep specified points in data set(s).\n");
+          "    Drop specified points from or keep specified points in data set(s).\n"
+          "    This command currently only sowrks for 1D scalar and 3x3 matrix sets.\n");
 }
 
-static inline void KeepPoint(DataSet_1D* in, DataSet* out, int idx, int& odx) {
-  out->Add(odx++, in->VoidPtr(idx));
+/** Add the X and Y values from set in at idx to set out. */
+static void KeepPoint_1D(const DataSet* in, DataSet* out, int idx) {
+  DataSet_1D const& set1d = static_cast<DataSet_1D const&>( *in );
+  DataSet_Mesh& mesh = static_cast<DataSet_Mesh&>( *out );
+  mesh.AddXY( set1d.Xcrd(idx), set1d.Dval(idx) );
+}
+
+/** Add matrix from set in at idx to set out. */
+static void KeepPoint_Mat3x3(const DataSet* in, DataSet* out, int idx) {
+  DataSet_Mat3x3 const& setmat = static_cast<DataSet_Mat3x3 const&>( *in );
+  DataSet_Mat3x3& mat = static_cast<DataSet_Mat3x3&>( *out );
+  mat.AddMat3x3( setmat[idx] );
 }
 
 // Exec_DataSetCmd::ModifyPoints()
@@ -125,6 +175,8 @@ Exec::RetType Exec_DataSetCmd::ModifyPoints(CpptrajState& State, ArgList& argIn,
     mode = "Drop";
   else
     mode = "Kee";
+  // Hold pointer to function used to Keep points for data set type.
+  typedef void (*KeepFxnType)(const DataSet*, DataSet*, int);
   // Keywords
   std::string name = argIn.GetStringKey("name");
   int start = argIn.getKeyInt("start", 0) - 1;
@@ -159,32 +211,48 @@ Exec::RetType Exec_DataSetCmd::ModifyPoints(CpptrajState& State, ArgList& argIn,
         return CpptrajState::ERR;
       }
       // Restrict to 1D sets for now TODO more types
-      if (DS->Group() != DataSet::SCALAR_1D) {
-        mprinterr("Error: Currently only works for 1D scalar data sets.\n");
+      KeepFxnType keepFxn;
+      DataSet::DataType outType;
+      if (DS->Group() == DataSet::SCALAR_1D) {
+        keepFxn = KeepPoint_1D;
+        outType = DataSet::XYMESH;
+      } else if (DS->Type() == DataSet::MAT3X3) {
+        keepFxn = KeepPoint_Mat3x3;
+        outType = DataSet::MAT3X3;
+      } else {
+        mprinterr("Error: Currently only works for 1D scalar or 3x3 matrix data sets.\n");
         return CpptrajState::ERR;
       }
-      DataSet_1D* ds1 = (DataSet_1D*)DS;
-      // Output data set
+      // Output data set.
+      // NOTE: We want to preserve the original X values. The easiest way
+      //       to do this is to always make the output set an XY mesh
+      //       regardless of the input set type. Ideally we would detect
+      //       if a set is monotonic in X and allocate appropriately, but
+      //       since currently there are no non-monotonic (i.e. sparse)
+      //       integer/float DataSet_1D classes, XYMESH is the easiest
+      //       solution.
       DataSet* out = 0;
       if (name.empty()) {
         // Modifying this set. Create new temporary set.
-        out = State.DSL().Allocate( ds1->Type() );
+        out = State.DSL().Allocate( outType );
         if (out == 0) return CpptrajState::ERR;
-        *out = *ds1;
-        mprintf("\tOverwriting set '%s'\n", ds1->legend());
+        // This gives the new set same MetaData, format etc as the original.
+        *out = *DS;
+        mprintf("\tOverwriting set '%s'\n", DS->legend());
       } else {
         // Write to new set
-        MetaData md = ds1->Meta();
+        MetaData md = DS->Meta();
         md.SetName( name );
-        out = State.DSL().AddSet(ds1->Type(), md);
+        out = State.DSL().AddSet(outType, md);
         if (out == 0) return CpptrajState::ERR;
         mprintf("\tNew set is '%s'\n", out->Meta().PrintName().c_str());
       }
-      out->Allocate(DataSet::SizeArray(1, ds1->Size()));
+      // NOTE: Allocate() must be valid for the set type!
+      out->Allocate(DataSet::SizeArray(1, DS->Size()));
       if (points.Empty()) {
         // Drop by start/stop/offset. Set defaults if needed
         if (start < 0)  start = 0;
-        if (stop < 0)   stop = ds1->Size();
+        if (stop < 0)   stop = DS->Size();
         if (offset < 0) offset = 1;
         mprintf("\t%sping points from %i to %i, step %i\n", mode, start+1, stop, offset);
         for (int idx = start; idx < stop; idx += offset)
@@ -193,34 +261,33 @@ Exec::RetType Exec_DataSetCmd::ModifyPoints(CpptrajState& State, ArgList& argIn,
       if (State.Debug() > 0) mprintf("DEBUG: Keeping points:");
       Range::const_iterator pt = points.begin();
       int idx = 0;
-      int odx = 0;
       if (drop) {
-        // Drop points
-        for (; idx < (int)ds1->Size(); idx++) {
+        // Drop points TODO should idx be unsigned?
+        for (; idx < (int)DS->Size(); idx++) {
           if (pt == points.end()) break;
           if (*pt != idx) {
             if (State.Debug() > 0) mprintf(" %i", idx + 1);
-            KeepPoint(ds1, out, idx, odx);
+            keepFxn(DS, out, idx);
           } else
             ++pt;
         }
         // Keep all remaining points
-        for (; idx < (int)ds1->Size(); idx++) {
+        for (; idx < (int)DS->Size(); idx++) {
           if (State.Debug() > 0) mprintf(" %i", idx + 1);
-          KeepPoint(ds1, out, idx, odx);
+          keepFxn(DS, out, idx);
         }
       } else {
         // Keep points
         for (; pt != points.end(); pt++) {
-          if (*pt >= (int)ds1->Size()) break;
+          if (*pt >= (int)DS->Size()) break;
           if (State.Debug() > 0) mprintf(" %i", *pt + 1);
-          KeepPoint(ds1, out, *pt, odx);
+          keepFxn(DS, out, *pt);
         }
       }
       if (State.Debug() > 0) mprintf("\n");
       if (name.empty()) {
         // Replace old set with new set
-        State.DSL().RemoveSet( ds1 );
+        State.DSL().RemoveSet( DS );
         State.DSL().AddSet( out );
       }
     } // END loop over sets
@@ -233,39 +300,66 @@ Exec::RetType Exec_DataSetCmd::ModifyPoints(CpptrajState& State, ArgList& argIn,
 Exec::RetType Exec_DataSetCmd::VectorCoord(CpptrajState& State, ArgList& argIn) {
   // Keywords
   std::string name = argIn.GetStringKey("name");
-  int idx;
+  int tgtIdx;
   if (argIn.hasKey("X"))
-    idx = 0;
+    tgtIdx = 0;
   else if (argIn.hasKey("Y"))
-    idx = 1;
+    tgtIdx = 1;
   else if (argIn.hasKey("Z"))
-    idx = 2;
+    tgtIdx = 2;
   else {
     mprinterr("Error: 'vectorcoord' requires specifying X, Y, or Z.\n");
     return CpptrajState::ERR;
   }
-  // Data set
-  DataSet* ds1 = State.DSL().GetDataSet( argIn.GetStringNext() );
-  if (ds1 == 0) return CpptrajState::ERR;
-  if (ds1->Type() != DataSet::VECTOR) {
-    mprinterr("Error: 'vectorcoord' only works with vector data sets.\n");
+  // Data set(s)
+  typedef std::vector<DataSet_Vector*> DVarray;
+  DVarray inputSets;
+  std::string vecsetarg = argIn.GetStringNext();
+  if (vecsetarg.empty())
+    mprintf("Warning: No data set arguments specified.\n");
+  while (!vecsetarg.empty()) {
+    DataSetList dsl1 = State.DSL().GetMultipleSets( vecsetarg );
+    for (DataSetList::const_iterator it = dsl1.begin(); it != dsl1.end(); ++it)
+    {
+      if ( (*it)->Group() != DataSet::VECTOR_1D) {
+        mprintf("Warning: '%s' 'vectorcoord' only works with vector data sets.\n", (*it)->legend());
+      } else if ( (*it)->Size() < 1) {
+        mprintf("Warning: '%s' is empty.\n", (*it)->legend());
+      } else {
+        inputSets.push_back( static_cast<DataSet_Vector*>( *it ) );
+      }
+    }
+    vecsetarg = argIn.GetStringNext();
+  }
+  if (inputSets.empty()) {
+    mprinterr("Error: 'vectorcoord': No data sets selected.\n");
     return CpptrajState::ERR;
   }
-  if (ds1->Size() < 1) {
-    mprinterr("Error: '%s' is empty.\n", ds1->legend());
-    return CpptrajState::ERR;
-  }
-  // Create output set.
-  static const char* XYZ[3] = { "X", "Y", "Z" };
-  DataSet* out = State.DSL().AddSet( DataSet::DOUBLE, name, "COORD");
-  if (out == 0) return CpptrajState::ERR;
-  // Extract data
-  mprintf("\tExtracting %s coordinate from vector %s to %s\n",
-          XYZ[idx], ds1->legend(), out->Meta().PrintName().c_str());
-  DataSet_Vector const& vec = static_cast<DataSet_Vector const&>( *ds1 );
-  for (unsigned int n = 0; n != vec.Size(); n++) {
-    double d = vec.VXYZ(n)[idx];
-    out->Add( n, &d );
+  mprintf("\t%zu sets.\n", inputSets.size());
+  // Default name
+  if (name.empty())
+    name = State.DSL().GenerateDefaultName( "COORD" );
+  // Loop over input sets
+  int idx = -1;
+  if (inputSets.size() > 1)
+    idx = 0;
+  for (DVarray::const_iterator it = inputSets.begin(); it != inputSets.end(); ++it)
+  {
+    // Create output set.
+    MetaData md( name );
+    if (idx > -1) 
+      md.SetIdx( idx++ );
+    static const char* XYZchar[3] = { "X", "Y", "Z" };
+    DataSet* out = State.DSL().AddSet( DataSet::DOUBLE, md );
+    if (out == 0) return CpptrajState::ERR;
+    // Extract data
+    mprintf("\tExtracting %s coordinate from vector %s to %s\n",
+            XYZchar[tgtIdx], (*it)->legend(), out->Meta().PrintName().c_str());
+    DataSet_Vector const& vec = static_cast<DataSet_Vector const&>( *(*it) );
+    for (unsigned int n = 0; n != vec.Size(); n++) {
+      double d = vec.VXYZ(n)[tgtIdx];
+      out->Add( n, &d );
+    }
   }
   return CpptrajState::OK;
 }
@@ -470,7 +564,7 @@ Exec::RetType Exec_DataSetCmd::Remove(CpptrajState& State, ArgList& argIn) {
     mprinterr("Internal Error: Criterion not yet implemented.\n");
     return CpptrajState::ERR;
   }
-  mprintf("\tRemoved %u of %u sets.\n", Nremoved, tempDSL.size());
+  mprintf("\tRemoved %u of %zu sets.\n", Nremoved, tempDSL.size());
   return CpptrajState::OK;
 }
 
@@ -622,10 +716,7 @@ Exec::RetType Exec_DataSetCmd::Concatenate(CpptrajState& State, ArgList& argIn) 
     double XY[2];
     for (DataSetList::const_iterator ds = dsl.begin(); ds != dsl.end(); ++ds)
     {
-      if ( (*ds)->Type() != DataSet::INTEGER &&
-           (*ds)->Type() != DataSet::DOUBLE &&
-           (*ds)->Type() != DataSet::FLOAT &&
-           (*ds)->Type() != DataSet::XYMESH )
+      if ( (*ds)->Group() != DataSet::SCALAR_1D )
       {
         mprintf("Warning: '%s': Concatenation only supported for 1D scalar data sets.\n",
                 (*ds)->legend());
@@ -765,7 +856,7 @@ Exec::RetType Exec_DataSetCmd::ChangeModeType(CpptrajState const& State, ArgList
           mprintf("Warning: '%s': Expected scalar 1D data set type for mode '%s'\n",
                   (*ds)->legend(), MetaData::ModeString(dmode));
         else if ( dmode == MetaData::M_VECTOR &&
-                  (*ds)->Type() != DataSet::VECTOR )
+                  (*ds)->Group() != DataSet::VECTOR_1D )
           mprintf("Warning: '%s': Expected vector data set type for mode '%s'\n",
                   (*ds)->legend(), MetaData::ModeString(dmode));
         else if ( dmode == MetaData::M_MATRIX &&
@@ -782,5 +873,199 @@ Exec::RetType Exec_DataSetCmd::ChangeModeType(CpptrajState const& State, ArgList
     }
     ds_arg = argIn.GetStringNext();
   }
+  return CpptrajState::OK;
+}
+
+// Exec_DataSetCmd::Help_InvertSets()
+void Exec_DataSetCmd::Help_InvertSets() {
+  mprintf("  invert <set arg0> ... name <new name> [legendset <set>]\n"
+          "    Given M input sets of length N, create N new sets of length M by\n"
+          "    inverting the input sets.\n");
+}
+
+/** Syntax: dataset invert <set arg0> ... name <new name> */
+Exec::RetType Exec_DataSetCmd::InvertSets(CpptrajState& State, ArgList& argIn) {
+  DataSetList& DSL = State.DSL();
+  // Get keywords
+  DataSet* inputNames = 0;
+  std::string dsname = argIn.GetStringKey("legendset");
+  if (!dsname.empty()) {
+    inputNames = DSL.GetDataSet( dsname );
+    if (inputNames == 0) {
+      mprinterr("Error: Name set '%s' not found.\n", dsname.c_str());
+      return CpptrajState::ERR;
+    }
+    if (inputNames->Type() != DataSet::STRING) {
+      mprinterr("Error: Set '%s' does not contain strings.\n", inputNames->legend());
+      return CpptrajState::ERR;
+    }
+    mprintf("\tUsing names from set '%s' as legends for inverted sets.\n", inputNames->legend());
+  }
+  dsname = argIn.GetStringKey("name");
+  if (dsname.empty()) {
+    mprinterr("Error: 'invert' requires that 'name <new set name>' be specified.\n");
+    return CpptrajState::ERR;
+  }
+  mprintf("\tNew sets will be named '%s'\n", dsname.c_str());
+  DataFile* outfile = State.DFL().AddDataFile( argIn.GetStringKey("out"), argIn );
+  if (outfile != 0)
+    mprintf("\tNew sets will be output to '%s'\n", outfile->DataFilename().full());
+  // TODO determine type some other way
+  DataSet::DataType outtype = DataSet::DOUBLE;
+  // Get input DataSets
+  std::vector<DataSet_1D*> input_sets; 
+  std::string dsarg = argIn.GetStringNext();
+  while (!dsarg.empty()) {
+    DataSetList sets = DSL.GetMultipleSets( dsarg );
+    for (DataSetList::const_iterator ds = sets.begin(); ds != sets.end(); ++ds)
+    {
+      if ( (*ds)->Group() != DataSet::SCALAR_1D ) {
+        mprintf("Warning: '%s': Inversion only supported for 1D scalar data sets.\n",
+                (*ds)->legend());
+      } else {
+        if (!input_sets.empty()) {
+          if ( (*ds)->Size() != input_sets.back()->Size() ) {
+            mprinterr("Error: Set '%s' has different size (%zu) than previous set (%zu)\n",
+                      (*ds)->legend(), (*ds)->Size(), input_sets.back()->Size());
+            return CpptrajState::ERR;
+          }
+        }
+        input_sets.push_back( (DataSet_1D*)*ds );
+      }
+    }
+    dsarg = argIn.GetStringNext();
+  }
+  if (input_sets.empty()) {
+    mprinterr("Error: No sets selected.\n");
+    return CpptrajState::ERR;
+  }
+  if (inputNames != 0 && inputNames->Size() != input_sets.front()->Size()) {
+    mprinterr("Error: Name set '%s' size (%zu) differs from # data points (%zu).\n",
+              inputNames->legend(), inputNames->Size(), input_sets.front()->Size());
+    return CpptrajState::ERR;
+  }
+  mprintf("\t%zu input sets; creating %zu output sets.\n",
+          input_sets.size(), input_sets.front()->Size());
+  // Need an output data set for each point in input sets
+  std::vector<DataSet*> output_sets;
+  int column = 1;
+  for (int idx = 0; idx != (int)input_sets[0]->Size(); idx++, column++) {
+    DataSet* ds = 0;
+    ds = DSL.AddSet(outtype, MetaData(dsname, column));
+    if (ds == 0) return CpptrajState::ERR;
+    if (inputNames != 0)
+      ds->SetLegend( (*((DataSet_string*)inputNames))[idx] );
+    output_sets.push_back( ds );
+    if (outfile != 0) outfile->AddDataSet( ds );
+  }
+  // Create a data set containing names of each input data set
+  DataSet* nameset = DSL.AddSet(DataSet::STRING, MetaData(dsname, column));
+  if (nameset == 0) return CpptrajState::ERR;
+  if (inputNames != 0)
+    nameset->SetLegend("Names");
+  if (outfile != 0) outfile->AddDataSet( nameset );
+  // Populate output data sets
+  for (int jdx = 0; jdx != (int)input_sets.size(); jdx++)
+  {
+    DataSet_1D const& INP = static_cast<DataSet_1D const&>( *(input_sets[jdx]) );
+    nameset->Add( jdx, INP.legend() );
+    for (unsigned int idx = 0; idx != INP.Size(); idx++)
+    {
+      double dval = INP.Dval( idx );
+      output_sets[idx]->Add( jdx, &dval );
+    }
+  }
+
+  return CpptrajState::OK;
+}
+
+// Exec_DataSetCmd::Help_Shift()
+void Exec_DataSetCmd::Help_Shift() {
+  mprintf("  shift [above <value> by <offset>] [below <value> by <offset>] <set arg0> ...\n"
+          "    Shift the values in given set(s) by an offset if the points meet\n"
+          "    certain criteria.\n");
+}
+
+/** Apply an offset to data elements when a certain criterion is met. */
+Exec::RetType Exec_DataSetCmd::ShiftData(CpptrajState& State, ArgList& argIn) {
+  std::vector<SelectType> criteria;
+  std::vector<double> vals;
+  std::vector<double> offsets;
+  if (argIn.Contains("below")) {
+    criteria.push_back(LESS_THAN);
+    vals.push_back( argIn.getKeyDouble("below", 0) );
+    if (!argIn.Contains("by")) {
+      mprinterr("Error: 'by <offset>' argument missing for 'below'\n");
+      return CpptrajState::ERR;
+    }
+    offsets.push_back( argIn.getKeyDouble("by", 0) );
+  }
+  if (argIn.Contains("above")) {
+    criteria.push_back(GREATER_THAN);
+    vals.push_back( argIn.getKeyDouble("above", 0) );
+    if (!argIn.Contains("by")) {
+      mprinterr("Error: 'by <offset>' argument missing for 'above'\n");
+      return CpptrajState::ERR;
+    }
+    offsets.push_back( argIn.getKeyDouble("by", 0) );
+  }
+  if (criteria.empty()) {
+    mprinterr("Error: shift requires 'below <value> by <offset>' or 'above <value> by <offset>\n");
+    return CpptrajState::ERR;
+  }
+  // Sanity checks
+  if (criteria.size() != vals.size()) {
+    mprinterr("Error: Missing values for above/below; have %zu, expected %zu.\n",
+              vals.size(), criteria.size());
+    return CpptrajState::ERR;
+  }
+  if (criteria.size() != offsets.size()) {
+    mprinterr("Error: Missing offsets for above/below; have %zu, expected %zu.\n",
+              offsets.size(), criteria.size());
+    return CpptrajState::ERR;
+  }
+  for (unsigned int ii = 0; ii < criteria.size(); ii++)
+  {
+    if (criteria[ii] == LESS_THAN)
+      mprintf("\tValues below %g will be shifted by %g\n", vals[ii], offsets[ii]);
+    else if (criteria[ii] == GREATER_THAN)
+      mprintf("\tValues above %g will be shifted by %g\n", vals[ii], offsets[ii]);
+  }
+  // Loop over all DataSet arguments 
+  std::string ds_arg = argIn.GetStringNext();
+  if (ds_arg.empty()) {
+    mprinterr("Error: No sets specfied.\n");
+    return CpptrajState::ERR;
+  }
+  while (!ds_arg.empty()) {
+    DataSetList dsl = State.DSL().GetMultipleSets( ds_arg );
+    for (DataSetList::const_iterator ds = dsl.begin(); ds != dsl.end(); ++ds)
+    {
+      if ((*ds)->Group() != DataSet::SCALAR_1D) {
+        mprintf("Warning: Set '%s' is not scalar 1D, skipping.\n", (*ds)->legend());
+      } else {
+        DataSet_1D& set = static_cast<DataSet_1D&>( *(*ds) );
+        mprintf("\tModifying set: %s\n", set.legend());
+        // Check value against all criteria, modify by offset if necessary
+        for (unsigned int idx = 0; idx < set.Size(); idx++)
+        {
+          double dval = set.Dval(idx);
+          //mprintf("DBG: %u %g", idx, dval);
+          for (unsigned int ii = 0; ii < criteria.size(); ii++)
+          {
+            if (criteria[ii] == LESS_THAN && dval < vals[ii])
+              dval += offsets[ii];
+            else if (criteria[ii] == GREATER_THAN && dval > vals[ii])
+              dval += offsets[ii];
+          }
+          //mprintf(" %g\n", dval);
+          set.SetY( idx, dval );
+        } // END loop over set values
+        modifiedSets_.push_back( *ds );
+      }
+    } // END loop over sets
+    ds_arg = argIn.GetStringNext();
+  } // END loop over data set args
+
   return CpptrajState::OK;
 }

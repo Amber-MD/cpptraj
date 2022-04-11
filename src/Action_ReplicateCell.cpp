@@ -1,15 +1,17 @@
 #include "Action_ReplicateCell.h"
 #include "CpptrajStdio.h"
-#include "ParmFile.h"
+#include "DataSet_Coords.h"
 
 // CONSTRUCTOR
 Action_ReplicateCell::Action_ReplicateCell() : coords_(0), ncopies_(0), writeTraj_(false) {} 
 
 void Action_ReplicateCell::Help() const {
-  mprintf("\t[out <traj filename>] [parmout <parm filename>] [name <dsname>]\n"
-          "\t{ all | dir <XYZ> [dir <XYZ> ...] } [<mask>]\n"
-          "  Replicate unit cell in specified (or all) directions for atoms in <mask>.\n"
+  mprintf("\t[out <traj filename>] [name <dsname>]\n"
+          "\t{ all | dir <XYZ> [dir <XYZ> ...] } [<mask>]\n");
+  mprintf("%s", ActionTopWriter::Keywords());
+  mprintf("  Replicate unit cell in specified (or all) directions for atoms in <mask>.\n"
           "    <XYZ>: X= 1, 0, -1, replicate in specified direction (e.g. 100 is +X only)\n");
+  mprintf("%s", ActionTopWriter::Options());
 }
 
 static inline int toDigit(char c) {
@@ -31,11 +33,9 @@ static inline int toDigit(char c) {
 // Action_ReplicateCell::Init()
 Action::RetType Action_ReplicateCell::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
-  // Require imaging.
-  image_.InitImaging( true );
   // Set up output traj
   std::string trajfilename = actionArgs.GetStringKey("out");
-  parmfilename_ = actionArgs.GetStringKey("parmout");
+  topWriter_.InitTopWriter( actionArgs, "replicated cell", debugIn );
   bool setAll = actionArgs.hasKey("all");
   std::string dsname = actionArgs.GetStringKey("name");
   if (!dsname.empty()) {
@@ -47,7 +47,7 @@ Action::RetType Action_ReplicateCell::Init(ArgList& actionArgs, ActionInit& init
     return Action::ERR;
   }
   // Get Mask
-  Mask1_.SetMaskString( actionArgs.GetMaskNext() );
+  if (Mask1_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
 
   // Determine which directions to set
   if (setAll) {
@@ -98,7 +98,7 @@ Action::RetType Action_ReplicateCell::Init(ArgList& actionArgs, ActionInit& init
   // Initialize output trajectory with remaining arguments
   if (!trajfilename.empty()) {
     outtraj_.SetDebug( debugIn );
-    if ( outtraj_.InitEnsembleTrajWrite(trajfilename, actionArgs.RemainingArgs(),
+    if ( outtraj_.InitEnsembleTrajWrite(trajfilename, actionArgs.RemainingArgs(), init.DSL(),
                                         TrajectoryFile::UNKNOWN_TRAJ, init.DSL().EnsembleNum()) )
       return Action::ERR;
     writeTraj_ = true;
@@ -116,8 +116,7 @@ Action::RetType Action_ReplicateCell::Init(ArgList& actionArgs, ActionInit& init
   mprintf("\tUsing atoms in mask '%s'\n", Mask1_.MaskString());
   if (writeTraj_)
     mprintf("\tWriting to trajectory %s\n", outtraj_.Traj().Filename().full());
-  if (!parmfilename_.empty())
-    mprintf("\tWriting topology %s\n", parmfilename_.c_str());
+  topWriter_.PrintOptions();
   if (coords_ != 0)
     mprintf("\tSaving coords to data set %s\n", coords_->legend());
 
@@ -134,10 +133,9 @@ Action::RetType Action_ReplicateCell::Setup(ActionSetup& setup) {
     mprintf("Warning: One or both masks have no atoms.\n");
     return Action::SKIP;
   }
-  // Set up imaging info for this parm
-  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
-  if (!image_.ImagingEnabled()) {
-    mprintf("Warning: Imaging cannot be performed for topology %s\n", setup.Top().c_str());
+  // Check unit cell info for this parm
+  if (!setup.CoordInfo().TrajBox().HasBox()) {
+    mprintf("Warning: No box info, cannot replica cell for topology %s\n", setup.Top().c_str());
     return Action::SKIP;
   }
   // Create combined topology.
@@ -157,13 +155,8 @@ Action::RetType Action_ReplicateCell::Setup(ActionSetup& setup) {
       combinedTop_.AppendTop( *stripParm );
     combinedTop_.Brief("Combined parm:");
     delete stripParm;
-    if (!parmfilename_.empty()) {
-      ParmFile pfile;
-      if (pfile.WriteTopology(combinedTop_, parmfilename_, ParmFile::UNKNOWN_PARM, 0)) {
-        mprinterr("Error: Topology file %s not written.\n", parmfilename_.c_str());
-        return Action::ERR;
-      }
-    }
+    topWriter_.ModifyTop( &combinedTop_ );
+    topWriter_.WriteTops( combinedTop_ );
     // Only coordinates for now. FIXME
     combinedFrame_.SetupFrameM(combinedTop_.Atoms());
     // Set up COORDS / output traj if necessary.
@@ -184,7 +177,6 @@ Action::RetType Action_ReplicateCell::DoAction(int frameNum, ActionFrame& frm) {
   unsigned int id;
   Vec3 frac, t2;
 
-  frm.Frm().BoxCrd().ToRecip(ucell_, recip_);
   int shift = Mask1_.Nselected() * 3;
 # ifdef _OPENMP
 # pragma omp parallel private(idx, newFrameIdx, id) firstprivate(frac, t2)
@@ -193,14 +185,14 @@ Action::RetType Action_ReplicateCell::DoAction(int frameNum, ActionFrame& frm) {
 # endif
   for (idx = 0; idx < Mask1_.Nselected(); idx++) {
     // Convert to fractional coords
-    frac = recip_ * Vec3(frm.Frm().XYZ( Mask1_[idx] ));
+    frac = frm.Frm().BoxCrd().FracCell() * Vec3(frm.Frm().XYZ( Mask1_[idx] ));
     //mprintf("DEBUG: Atom %i frac={ %g %g %g }\n", Mask1_[idx]+1, frac[0], frac[1], frac[2]);
     // replicate in each direction
     newFrameIdx = idx * 3;
     for (id = 0; id != directionArray_.size(); id+=3, newFrameIdx += shift)
     {
        // Convert back to Cartesian coords.
-       t2 = ucell_.TransposeMult(frac + Vec3(directionArray_[id  ],
+       t2 = frm.Frm().BoxCrd().UnitCell().TransposeMult(frac + Vec3(directionArray_[id  ],
                                              directionArray_[id+1],
                                              directionArray_[id+2]));
        combinedFrame_[newFrameIdx  ] = t2[0];

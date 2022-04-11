@@ -6,7 +6,7 @@
 CleanFiles lie.in TCL.out
 
 TESTNAME='LIE test'
-Requires netcdf
+Requires netcdf maxthreads 10
 
 INPUT="lie.in"
 TOP=../FtuFabI.NAD.TCL.parm7

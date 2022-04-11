@@ -13,10 +13,9 @@ Action_MultiDihedral::Action_MultiDihedral() :
 {}
 
 void Action_MultiDihedral::Help() const {
-  mprintf("\t[<name>] <dihedral types> [resrange <range>] [out <filename>] [range360]\n");
-  mprintf("\t[dihtype <name>:<a0>:<a1>:<a2>:<a3>[:<offset>] ...]\n");
+  mprintf("\t[<name>] [<dihedral types>] [resrange <range>] [out <filename>] [range360]\n");
+  mprintf("\t[%s]\n", DihedralSearch::newTypeArgsHelp());
   DihedralSearch::OffsetHelp();
-  //mprintf("\t[range360]\n");
   mprintf("\t<dihedral types> = ");
   DihedralSearch::ListKnownTypes();
   mprintf("  Calculate specified dihedral angle types for residues in given <range>.\n");
@@ -37,18 +36,7 @@ Action::RetType Action_MultiDihedral::Init(ArgList& actionArgs, ActionInit& init
   // Search for known dihedral keywords
   dihSearch_.SearchForArgs(actionArgs);
   // Get custom dihedral arguments: dihtype <name>:<a0>:<a1>:<a2>:<a3>[:<offset>]
-  std::string dihtype_arg = actionArgs.GetStringKey("dihtype");
-  while (!dihtype_arg.empty()) {
-    ArgList dihtype(dihtype_arg, ":");
-    if (dihtype.Nargs() < 5) {
-      mprinterr("Error: Malformed dihtype arg.\n");
-      return Action::ERR;
-    }
-    int offset = 0;
-    if (dihtype.Nargs() == 6) offset = convertToInteger(dihtype[5]);
-    dihSearch_.SearchForNewType(offset,dihtype[1],dihtype[2],dihtype[3],dihtype[4], dihtype[0]);
-    dihtype_arg = actionArgs.GetStringKey("dihtype");
-  }
+  if (dihSearch_.SearchForNewTypeArgs(actionArgs)) return Action::ERR;
   // If no dihedral types yet selected, this will select all.
   dihSearch_.SearchForAll();
 
@@ -106,7 +94,7 @@ Action::RetType Action_MultiDihedral::Setup(ActionSetup& setup) {
                                dih != dihSearch_.end(); ++dih)
   {
     int resNum = dih->ResNum() + 1;
-    // See if Dataset already present. FIXME should AddSet do this?
+    // See if Dataset already present. 
     MetaData md( dsetname_, dih->Name(), resNum );
     DataSet* ds = masterDSL_->CheckForSet(md);
     if (ds == 0) {
@@ -120,13 +108,9 @@ Action::RetType Action_MultiDihedral::Setup(ActionSetup& setup) {
         outfile_->AddDataSet( ds );
     }
     data_.push_back( ds ); 
-    if (debug_ > 0) {
-      mprintf("\tDIH [%s]:", ds->legend());
-      mprintf(" :%i@%i",   setup.Top()[dih->A0()].ResNum()+1, dih->A0() + 1);
-      mprintf(" :%i@%i",   setup.Top()[dih->A1()].ResNum()+1, dih->A1() + 1);
-      mprintf(" :%i@%i",   setup.Top()[dih->A2()].ResNum()+1, dih->A2() + 1);
-      mprintf(" :%i@%i\n", setup.Top()[dih->A3()].ResNum()+1, dih->A3() + 1);
-    }
+    //if (debug_ > 0) {
+      mprintf("\t%zu [%s]: %s\n", data_.size(), ds->legend(), dih->DihedralMaskString(setup.Top()).c_str());
+    //}
   }
   return Action::OK;
 }

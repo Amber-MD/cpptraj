@@ -3,12 +3,16 @@
 #include <locale>
 #include <stack>
 #include "RPNcalc.h"
+#include "DataSetList.h"
 #include "DataSet_Vector.h"
 #include "DataSet_double.h"
+#include "DataSet_Mesh.h"
 #include "DataSet_MatrixDbl.h"
 #include "DataSet_GridFlt.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // PI
+#include "StringRoutines.h"
+#include "ArgList.h"
 
 // CONSTRUCTOR
 RPNcalc::RPNcalc() : fmt_(TextFormat::DOUBLE), formatSet_(false) {}
@@ -50,23 +54,52 @@ int RPNcalc::ProcessOptions(ArgList& argIn) {
   return 0;
 }
 
+const RPNcalc::FnIdType RPNcalc::FnIdArray_[] = {
+  { FN_SQRT,  5, "sqrt("  },
+  { FN_EXP,   4, "exp("   },
+  { FN_LN,    3, "ln("    },
+  { FN_ABS,   4, "abs("   },
+  { FN_SIN,   4, "sin("   },
+  { FN_COS,   4, "cos("   },
+  { FN_TAN,   4, "tan("   },
+  { FN_SUM,   4, "sum("   },
+  { FN_AVG,   4, "avg("   },
+  { FN_STDEV, 6, "stdev(" },
+  { FN_MIN,   4, "min("   },
+  { FN_MAX,   4, "max("   },
+  { NONE,     0, 0        }
+};
+
+RPNcalc::FnIdPtr RPNcalc::IdFunction(std::string const& expression, size_t pos)
+{
+  FnIdPtr fnid = FnIdArray_;
+  for (; fnid->nChar_ != 0; ++fnid)
+  {
+    if (expression.compare(pos, fnid->nChar_, fnid->fnName_) == 0)
+    {
+      return fnid;
+    }
+  }
+  return fnid;
+}
+
 /** Convert infix expression to RPN in tokens_ array. This uses a
   * shunting-yard algorithm which has been slightly modified to
   * recognize unary right-associative operators.
   */
-int RPNcalc::ProcessExpression(std::string const& expression) {
+int RPNcalc::ProcessExpression(std::string const& expressionIn) {
   std::locale loc;
-  if (expression.empty()) return 1;
-  if (debug_ > 0) mprintf("Parsing expression: '%s'\n", expression.c_str());
+  if (expressionIn.empty()) return 1;
+  // Remove all whitespace
+  std::string expression = NoWhitespace(expressionIn);
+  if (debug_ > 0) mprintf("DEBUG: Parsing expression: '%s'\n", expression.c_str());
   tokens_.clear();
   std::stack<Token> op_stack;
   std::string::const_iterator ptr = expression.begin();
   bool lastTokenWasOperator = true;
   while ( ptr != expression.end() )
   {
-    //mprintf("DEBUG: Start of loop, char is '%c'\n", *ptr);
-    // Skip whitespace
-    if (isspace(*ptr, loc)) { ++ptr; continue; }
+    if (debug_ > 2) mprintf("DEBUG: Start of loop, char is '%c'\n", *ptr);
 
     // NUMBER ------------------------------------
     if (*ptr == '.' || isdigit(*ptr, loc))
@@ -149,79 +182,17 @@ int RPNcalc::ProcessExpression(std::string const& expression) {
     else if ( isalpha(*ptr, loc) )
     { // Look for Function name
       size_t pos = ptr - expression.begin();
-      if (expression.compare(pos, 4, "sqrt")==0)
+      FnIdPtr fnid = IdFunction(expression, pos);
+      if (fnid->fnType_ != NONE)
       {
-        op_stack.push( Token(FN_SQRT) );
-        ptr += 4;
+        if (debug_ > 0) mprintf("DEBUG: Function found: '%s'\n", fnid->fnName_);
+        op_stack.push( Token(fnid->fnType_) );
+        // Advance pointer to left parenthese
+        ptr = ptr + (fnid->nChar_) - 1;
         lastTokenWasOperator = true;
       }
-      else if (expression.compare(pos, 3, "exp")==0)
-      {
-        op_stack.push( Token(FN_EXP) );
-        ptr += 3;
-        lastTokenWasOperator = true;
-      }
-      else if (expression.compare(pos, 2, "ln")==0)
-      {
-        op_stack.push( Token(FN_LN) );
-        ptr += 2;
-        lastTokenWasOperator = true;
-      }
-      else if (expression.compare(pos, 3, "abs")==0)
-      {
-        op_stack.push( Token(FN_ABS) );
-        ptr += 3;
-        lastTokenWasOperator = true;
-      }
-      else if (expression.compare(pos, 3, "sin")==0)
-      {
-        op_stack.push( Token(FN_SIN) );
-        ptr += 3;
-        lastTokenWasOperator = true;
-      }
-      else if (expression.compare(pos, 3, "cos")==0)
-      {
-        op_stack.push( Token(FN_COS) );
-        ptr += 3;
-        lastTokenWasOperator = true;
-      }
-      else if (expression.compare(pos, 3, "tan")==0)
-      {
-        op_stack.push( Token(FN_TAN) );
-        ptr += 3;
-        lastTokenWasOperator = true;
-      }
-      else if (expression.compare(pos, 3, "sum")==0)
-      {
-        op_stack.push( Token(FN_SUM) );
-        ptr += 3;
-        lastTokenWasOperator = true;
-      }
-      else if (expression.compare(pos, 3, "avg")==0)
-      {
-        op_stack.push( Token(FN_AVG) );
-        ptr += 3;
-        lastTokenWasOperator = true;
-      }
-      else if (expression.compare(pos, 5, "stdev")==0)
-      {
-        op_stack.push( Token(FN_STDEV) );
-        ptr += 5;
-        lastTokenWasOperator = true;
-      }
-      else if (expression.compare(pos, 3, "min")==0)
-      {
-        op_stack.push( Token(FN_MIN) );
-        ptr += 3;
-        lastTokenWasOperator = true;
-      } 
-      else if (expression.compare(pos, 3, "max")==0)
-      {
-        op_stack.push( Token(FN_MAX) );
-        ptr += 3;
-        lastTokenWasOperator = true;
-      } 
       // -----------------------------------------
+      // Look for constants
       else if (expression.compare(pos, 2, "PI")==0)
       {
         tokens_.push_back( Token( Constants::PI ) );
@@ -235,7 +206,7 @@ int RPNcalc::ProcessExpression(std::string const& expression) {
         bool has_colon = false; // For index
         enum BracketState { NONE, OPEN, CLOSED };
         BracketState bracket = NONE;
-        while (ptr != expression.end() && !isspace(*ptr,loc))
+        while (ptr != expression.end())
         {
           if (bracket != OPEN && isOpChar(*ptr)) break;
           //mprintf("DEBUG: Var '%c'\n", *ptr);
@@ -418,18 +389,14 @@ static inline bool ScalarTimeSeries(DataSet* ds) {
 }
 
 static inline bool IsMatrix(DataSet* ds) {
-  return (ds->Type()==DataSet::MATRIX_DBL ||
-          ds->Type()==DataSet::MATRIX_FLT);
+  return (ds->Group()==DataSet::MATRIX_2D);
 }
 
-static inline bool IsGrid(DataSet* ds) { return ds->Type()==DataSet::GRID_FLT; }
+static inline bool IsGrid(DataSet* ds) {
+  return ds->Group()==DataSet::GRID_3D;
+}
 
-// RPNcalc::Evaluate()
-int RPNcalc::Evaluate(DataSetList& DSL) const {
-  if (tokens_.empty()) {
-    mprinterr("Error: Expression was not set.\n");
-    return 1;
-  }
+int RPNcalc::TokenLoop(DataSetList& DSL) const {
   std::stack<ValType> Stack;
   ValType Dval[2]; // NOTE: Must be able to hold max # operands.
   DataSetList LocalList;
@@ -441,11 +408,11 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
   else if (assignStatus == YES_ASSIGN)
     assigningResult = true;
   DataSet* output = 0;
-  // Process RPN tokens. 
+
   for (Tarray::const_iterator T = tokens_.begin(); T != tokens_.end(); ++T)
   {
     if (debug_ > 0) {
-      mprintf("-------------------\n  (%u:%s) Current Stack Top:", T - tokens_.begin(), T->Description());
+      mprintf("-------------------\n  (%li:%s) Current Stack Top:", T - tokens_.begin(), T->Description());
       if (!Stack.empty()) {
         if (Stack.top().IsDataSet()) {
           if (Stack.top().DS() == 0)
@@ -466,8 +433,15 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
       else {
         ds = DSL.GetDataSet( T->Name() );
         if (ds == 0) {
+#         ifdef MPI
+          rprintf("Warning: Data set with name '%s' not found on this rank.\n"
+                  "Warning: Skipping calculation for this rank.\n",
+                  T->name());
+          return -1;
+#         else
           mprinterr("Error: Data set with name '%s' not found.\n", T->name());
           return 1;
+#         endif
         }
       }
       Stack.push( ValType( ds ) );
@@ -503,29 +477,63 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
           mprinterr("Internal Error: Assigning to wrong data set!\n");
           return 1;
         }
-        // Check if set already exists.
+        //mprintf("DEBUG: DS= %x  output= %x\n", Dval[1].DS(), output);
+        // Check if set already exists in master DataSetList.
         DataSet* mainDS = DSL.CheckForSet(tokens_.front().Name());
         if (mainDS != 0) {
           // Overwriting. TODO Only allow if dimensions match?
-          mprintf("Warning: Overwriting existing set '%s'\n", mainDS->legend());
+          // First check if the set we will be overwriting is itself!
+          if (Dval[0].IsDataSet()) {
+            if (Dval[0].DS()->Matches_Exact( mainDS->Meta() )) {
+              mprintf("Warning: Attempting to assign '%s' to itself.\n",
+                      mainDS->Meta().PrintName().c_str());
+              return 0;
+            }
+          }
+          mprintf("Warning: Overwriting existing set '%s'\n", mainDS->Meta().PrintName().c_str());
           DSL.RemoveSet( mainDS );
         }
         if (Dval[0].IsDataSet()) {
           output = Dval[0].DS();
-          if (debug_>0)
+          if (debug_ > 0)
             mprintf("DEBUG: output set is '%s'\n", output->legend());
           bool outputIsLocal = (LocalList.PopSet( output ) != 0);
-          if (!outputIsLocal)
-            mprintf("Warning: Data set copy not yet implemented. Renaming set '%s' to '%s'\n",
-                    output->Meta().PrintName().c_str(), tokens_.front().Name().c_str());
-          if (debug_>0)
-            mprintf("DEBUG: Assigning '%s' to '%s'\n", Dval[0].DS()->legend(),
-                    tokens_.front().Name().c_str());
-          // Reset DataSet info.
-          output->SetMeta( tokens_.front().Name() );
-          if (outputIsLocal) {
+          if (!outputIsLocal) {
+            // The output set is in the master DataSetList. First see if we
+            // can create a copy of it.
+            MetaData md( output->Meta() );
+            md.SetName( tokens_.front().Name() );
+            DataSet* currentSet = DSL.AddSet( output->Type(), md );
+            if (currentSet == 0) {
+              mprinterr("Error: Could not allocate set '%s'\n", md.PrintName().c_str());
+              return 1;
+            }
+            if ( currentSet->MemAlloc(output->DimSizes()) ) {
+              mprintf("Warning: Copy of set '%s' not yet implemented. Renaming to '%s'\n",
+                      output->Meta().PrintName().c_str(), tokens_.front().Name().c_str());
+              DSL.RemoveSet( currentSet );
+              // Reset existing DataSet info.
+              output->SetMeta( tokens_.front().Name() );
+            } else {
+              mprintf("\tCopying set '%s' to '%s'\n",
+                      output->Meta().PrintName().c_str(),
+                      currentSet->Meta().PrintName().c_str());
+              currentSet->CopyBlock(0, output, 0, output->Size());
+              for (size_t dim = 0; dim != output->Ndim(); dim++)
+                currentSet->SetDim(dim, output->Dim(dim));
+              output = currentSet;
+            }
+            //mprintf("Warning: Data set copy not yet implemented. Renaming set '%s' to '%s'\n",
+            //        output->Meta().PrintName().c_str(), tokens_.front().Name().c_str());
+          } else {
+            // Output set is only in LocalList; rename and add to master DataSetList
+            if (debug_ > 0)
+              mprintf("DEBUG: Assigning '%s' to '%s'\n", Dval[0].DS()->legend(),
+                      tokens_.front().Name().c_str());
+            // Reset DataSet info.
+            output->SetMeta( tokens_.front().Name() );
             if (DSL.AddSet( output )) return 1;
-          } 
+          }
         } else {
           output = DSL.AddSet(DataSet::DOUBLE, tokens_.front().Name(), "CALC");
           if (output == 0) return 1;
@@ -661,7 +669,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
             DataSet* ds1 = Dval[0].DS();
             DataSet* ds2 = Dval[1].DS();
             if (debug_>0)
-              mprintf("DEBUG: '%s' [%s] '%s' => 'TEMP:%u'\n", ds2->legend(), T->Description(),
+              mprintf("DEBUG: '%s' [%s] '%s' => 'TEMP:%li'\n", ds2->legend(), T->Description(),
                       ds1->legend(), T-tokens_.begin());
             if (ScalarTimeSeries(ds1) && ScalarTimeSeries(ds2))
             {
@@ -672,15 +680,28 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
                           ds1->legend(), ds2->legend(), T->name());
                 return 1;
               }
-              tempDS = LocalList.AddSet(DataSet::DOUBLE, MetaData("TEMP", T-tokens_.begin()));
-              DataSet_double& D0 = static_cast<DataSet_double&>( *tempDS );
-              D0.Allocate( DataSet::SizeArray(1, ds1->Size()) );
-              DataSet_1D const& D1 = static_cast<DataSet_1D const&>( *ds1 );
-              DataSet_1D const& D2 = static_cast<DataSet_1D const&>( *ds2 );
-              for (unsigned int n = 0; n != D1.Size(); n++)
-                D0.AddElement( DoOperation(D1.Dval(n), D2.Dval(n), T->Type()) );
+              // Determine how X values will be handled. Default to using X values from D1.
+              // For mesh need to AddXY. For all others just set the dimension.
+              if (ds1->Type() == DataSet::XYMESH) {
+                tempDS = LocalList.AddSet(DataSet::XYMESH, MetaData("TEMP", T-tokens_.begin()));
+                DataSet_Mesh& D0 = static_cast<DataSet_Mesh&>( *tempDS );
+                D0.Allocate( DataSet::SizeArray(1, ds1->Size()) );
+                DataSet_1D const& D1 = static_cast<DataSet_1D const&>( *ds1 );
+                DataSet_1D const& D2 = static_cast<DataSet_1D const&>( *ds2 );
+                for (unsigned int n = 0; n != D1.Size(); n++)
+                  D0.AddXY( D1.Xcrd(n), DoOperation(D1.Dval(n), D2.Dval(n), T->Type()) );
+              } else {
+                tempDS = LocalList.AddSet(DataSet::DOUBLE, MetaData("TEMP", T-tokens_.begin()));
+                tempDS->SetDim(Dimension::X, ds1->Dim(0));
+                DataSet_double& D0 = static_cast<DataSet_double&>( *tempDS );
+                D0.Allocate( DataSet::SizeArray(1, ds1->Size()) );
+                DataSet_1D const& D1 = static_cast<DataSet_1D const&>( *ds1 );
+                DataSet_1D const& D2 = static_cast<DataSet_1D const&>( *ds2 );
+                for (unsigned int n = 0; n != D1.Size(); n++)
+                  D0.AddElement( DoOperation(D1.Dval(n), D2.Dval(n), T->Type()) );
+              }
             }
-            else if (ds1->Type() == DataSet::VECTOR && ds2->Type() == DataSet::VECTOR)
+            else if (ds1->Group() == DataSet::VECTOR_1D && ds2->Group() == DataSet::VECTOR_1D)
             {
               // Both DataSets are vector time series. If ds1 size != ds2 size, ds1 or ds2
               // may be of size 1.
@@ -697,6 +718,12 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
                   return 1;
                 }
               }
+              //if (ds1->Type() == DataSet::VEC_OXYZ)
+              //  mprintf("Warning: '%s' contains vector origins; not used in math ops.\n",
+              //          ds1->legend());
+              //if (ds2->Type() == DataSet::VEC_OXYZ)
+              //  mprintf("Warning: '%s' contains vector origins; not used in math ops.\n",
+              //          ds2->legend());
               tempDS = LocalList.AddSet(DataSet::VECTOR, MetaData("TEMP", T-tokens_.begin()));
               DataSet_Vector& V0 = static_cast<DataSet_Vector&>(*tempDS);
               V0.Allocate( DataSet::SizeArray(1, Max) );
@@ -723,7 +750,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
               if (T->Type() == OP_MINUS || T->Type() == OP_PLUS) {
                 if (M1.Nrows() != M2.Nrows() || M1.Ncols() != M2.Ncols()) {
                   mprinterr("Error: Matrix operation '%s' requires both matrices have same #"
-                            " of rows and columns.\n");
+                            " of rows and columns.\n", T->Description());
                   return 1;
                 }
               } else {
@@ -750,10 +777,14 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
             {
               DataSet_3D const& G1 = static_cast<DataSet_3D const&>( *ds1 );
               DataSet_3D const& G2 = static_cast<DataSet_3D const&>( *ds2 );
-              if (T->Type() == OP_MINUS || T->Type() == OP_PLUS) {
+              if (T->Type() == OP_MINUS ||
+                  T->Type() == OP_PLUS ||
+                  T->Type() == OP_DIV ||
+                  T->Type() == OP_MULT)
+              {
                 if (G1.NX() != G2.NX() || G1.NY() != G2.NY() || G1.NZ() != G2.NZ()) {
                   mprinterr("Error: Grid operation '%s' requires both grids have"
-                            " same dimensions.\n");
+                            " same dimensions.\n", T->Description());
                   return 1;
                 }
               } else {
@@ -767,8 +798,9 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
                         G1.Bin().GridOrigin()[2]);
               tempDS = LocalList.AddSet(DataSet::GRID_FLT, MetaData("TEMP", T-tokens_.begin()));
               DataSet_GridFlt& G0 = static_cast<DataSet_GridFlt&>( *tempDS );
-              G0.Allocate_N_O_Box(G1.NX(), G1.NY(), G1.NZ(), G1.Bin().GridOrigin(),
-                                  Box(G1.Bin().Ucell()));
+              Box tempBox;
+              tempBox.SetupFromUcell( G1.Bin().Ucell() );
+              G0.Allocate_N_O_Box(G1.NX(), G1.NY(), G1.NZ(), G1.Bin().GridOrigin(), tempBox);
               G1.GridInfo();
               G0.GridInfo();
               for (unsigned int n = 0; n != G1.Size(); n++)
@@ -785,16 +817,29 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
               DataSet* ds2 = Dval[0].DS();
               double   d1  = Dval[1].Value();
               if (debug_ > 0)
-                mprintf("DEBUG: %f [%s] '%s' => 'TEMP:%u'\n", d1, T->Description(),
+                mprintf("DEBUG: %f [%s] '%s' => 'TEMP:%li'\n", d1, T->Description(),
                         ds2->legend(), T-tokens_.begin());
               if (ScalarTimeSeries( ds2 ))
               {
-                tempDS = LocalList.AddSet(DataSet::DOUBLE, MetaData("TEMP", T-tokens_.begin()));
-                DataSet_double& D0 = static_cast<DataSet_double&>( *tempDS );
-                D0.Allocate( DataSet::SizeArray(1,ds2->Size()) );
-                DataSet_1D const& D2 = static_cast<DataSet_1D const&>( *ds2 );
-                for (unsigned int n = 0; n != D2.Size(); n++)
-                  D0.AddElement( DoOperation(D2.Dval(n), d1, T->Type()) );
+                // Determine how X values will be handled. Default to using X values from D2.
+                // For mesh need to AddXY. For all others just set the dimension.
+                // TODO does the order of D2 and d1 matter here?
+                if ( ds2->Type() == DataSet::XYMESH ) {
+                  tempDS = LocalList.AddSet(DataSet::XYMESH, MetaData("TEMP", T-tokens_.begin()));
+                  DataSet_Mesh& D0 = static_cast<DataSet_Mesh&>( *tempDS );
+                  D0.Allocate( DataSet::SizeArray(1, ds2->Size()) );
+                  DataSet_1D const& D2 = static_cast<DataSet_1D const&>( *ds2 );
+                  for (unsigned int n = 0; n != D2.Size(); n++)
+                    D0.AddXY( D2.Xcrd(n), DoOperation(D2.Dval(n), d1, T->Type()) );
+                } else {
+                  tempDS = LocalList.AddSet(DataSet::DOUBLE, MetaData("TEMP", T-tokens_.begin()));
+                  tempDS->SetDim(Dimension::X, ds2->Dim(0));
+                  DataSet_double& D0 = static_cast<DataSet_double&>( *tempDS );
+                  D0.Allocate( DataSet::SizeArray(1,ds2->Size()) );
+                  DataSet_1D const& D2 = static_cast<DataSet_1D const&>( *ds2 );
+                  for (unsigned int n = 0; n != D2.Size(); n++)
+                    D0.AddElement( DoOperation(D2.Dval(n), d1, T->Type()) );
+                }
               } else {
                 mprinterr("Error: Operation '%s' between value and set %s not yet permitted.\n",
                           T->Description(), ds2->legend());
@@ -805,19 +850,34 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
               DataSet* ds1 = Dval[1].DS();
               double   d2  = Dval[0].Value();
               if (debug_ > 0)
-                mprintf("DEBUG: '%s' [%s] '%f' => 'TEMP:%u'\n", ds1->legend(), T->Description(),
+                mprintf("DEBUG: '%s' [%s] '%f' => 'TEMP:%li'\n", ds1->legend(), T->Description(),
                         d2, T-tokens_.begin());
               if (ScalarTimeSeries( ds1 ))
               {
-                tempDS = LocalList.AddSet(DataSet::DOUBLE, MetaData("TEMP", T-tokens_.begin()));
-                DataSet_double& D0 = static_cast<DataSet_double&>( *tempDS );
-                D0.Allocate( DataSet::SizeArray(1, ds1->Size()) );
-                DataSet_1D const& D1 = static_cast<DataSet_1D const&>( *ds1 );
-                for (unsigned int n = 0; n != D1.Size(); n++)
-                  D0.AddElement( DoOperation(d2, D1.Dval(n), T->Type()) );
+                // Determine how X values will be handled. Default to using X values from D1.
+                // For mesh need to AddXY. For all others just set the dimension.
+                if ( ds1->Type() == DataSet::XYMESH ) {
+                  tempDS = LocalList.AddSet(DataSet::XYMESH, MetaData("TEMP", T-tokens_.begin()));
+                  DataSet_Mesh& D0 = static_cast<DataSet_Mesh&>( *tempDS );
+                  D0.Allocate( DataSet::SizeArray(1, ds1->Size()) );
+                  DataSet_1D const& D1 = static_cast<DataSet_1D const&>( *ds1 );
+                  for (unsigned int n = 0; n != D1.Size(); n++)
+                    D0.AddXY( D1.Xcrd(n), DoOperation(d2, D1.Dval(n), T->Type()) );
+                } else {
+                  tempDS = LocalList.AddSet(DataSet::DOUBLE, MetaData("TEMP", T-tokens_.begin()));
+                  tempDS->SetDim(Dimension::X, ds1->Dim(0));
+                  DataSet_double& D0 = static_cast<DataSet_double&>( *tempDS );
+                  D0.Allocate( DataSet::SizeArray(1, ds1->Size()) );
+                  DataSet_1D const& D1 = static_cast<DataSet_1D const&>( *ds1 );
+                  for (unsigned int n = 0; n != D1.Size(); n++)
+                    D0.AddElement( DoOperation(d2, D1.Dval(n), T->Type()) );
+                }
               }
-              else if ( ds1->Type() == DataSet::VECTOR )
+              else if ( ds1->Group() == DataSet::VECTOR_1D )
               {
+                //if (ds1->Type() == DataSet::VEC_OXYZ)
+                //  mprintf("Warning: '%s' contains vector origins; not used in math ops.\n",
+                //          ds1->legend());
                 tempDS = LocalList.AddSet(DataSet::VECTOR, MetaData("TEMP", T-tokens_.begin()));
                 DataSet_Vector& V0 = static_cast<DataSet_Vector&>(*tempDS);
                 V0.Allocate( DataSet::SizeArray(1, ds1->Size()) );
@@ -860,7 +920,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
           // Only 1 operand and it is a DataSet
           DataSet* ds1 = Dval[0].DS();
           if (debug_ > 0)
-            mprintf("DEBUG: [%s] '%s' => 'TEMP:%u'\n", T->Description(),
+            mprintf("DEBUG: [%s] '%s' => 'TEMP:%li'\n", T->Description(),
                     ds1->legend(), T-tokens_.begin());
           if (ScalarTimeSeries( ds1 )) {
             tempDS = LocalList.AddSet(DataSet::DOUBLE, MetaData("TEMP", T-tokens_.begin()));
@@ -886,14 +946,39 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
     return 1;
   }
   if (output == 0) {
-    mprintf("Result: ");
+    mprintf("    Result: ");
     mprintf(fmt_.fmt(), Stack.top().Value());
     mprintf("\n");
   } else {
     if (formatSet_) output->SetupFormat() = fmt_;
-    mprintf("Result stored in '%s'\n", output->legend());
+    mprintf("    Result stored in '%s'", output->Meta().PrintName().c_str());
+    if (output->Group() == DataSet::SCALAR_1D && output->Size() == 1)
+    {
+      mprintf(": ");
+      mprintf(fmt_.fmt(), ((DataSet_1D*)output)->Dval(0));
+    }
+    mprintf("\n");
   }
   return 0;
+}
+
+// RPNcalc::Evaluate()
+int RPNcalc::Evaluate(DataSetList& DSL) const {
+  if (tokens_.empty()) {
+    mprinterr("Error: Expression was not set.\n");
+    return 1;
+  }
+  // Process RPN tokens.
+  int stat = TokenLoop( DSL );
+# ifdef MPI
+  if (stat == -1) {
+    // This means a set was not found on this rank and the calculation was skipped.
+    // A warning is printed in TokenLoop.
+    // Allow this for now.
+    stat = 0;
+  }
+# endif
+  return stat;
 }
 
 // RPNcalc::AssignStatus()

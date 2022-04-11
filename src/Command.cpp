@@ -7,8 +7,11 @@
 #include "CmdInput.h"     // ProcessInput()
 #include "RPNcalc.h"
 #include "Deprecated.h"
-#include "Control.h"
+#include "ControlBlock.h"
+#include "ControlBlock_For.h"
+#include "Parallel.h"
 // ----- GENERAL ---------------------------------------------------------------
+#include "Exec_AddMissingRes.h"
 #include "Exec_Analyze.h"
 #include "Exec_Calc.h"
 #include "Exec_ClusterMap.h"
@@ -17,9 +20,12 @@
 #include "Exec_DataFile.h"
 #include "Exec_DataFilter.h"
 #include "Exec_DataSetCmd.h"
+#include "Exec_Flatten.h"
 #include "Exec_GenerateAmberRst.h"
 #include "Exec_Help.h"
+#include "Exec_ParallelAnalysis.h"
 #include "Exec_Precision.h"
+#include "Exec_PrepareForLeap.h"
 #include "Exec_PrintData.h"
 #include "Exec_ReadData.h"
 #include "Exec_ReadEnsembleData.h"
@@ -28,21 +34,30 @@
 #include "Exec_SortEnsembleData.h"
 #include "Exec_SequenceAlign.h"
 #include "Exec_ViewRst.h"
+#include "Exec_Set.h"
+#include "Exec_Show.h"
+#include "Exec_Random.h"
+#include "Exec_CompareClusters.h"
 // ----- SYSTEM ----------------------------------------------------------------
 #include "Exec_System.h"
 // ----- COORDS ----------------------------------------------------------------
 #include "Exec_CombineCoords.h"
 #include "Exec_CrdAction.h"
 #include "Exec_CrdOut.h"
+#include "Exec_Emin.h"
+#include "Exec_Graft.h"
 #include "Exec_LoadCrd.h"
 #include "Exec_LoadTraj.h"
 #include "Exec_PermuteDihedrals.h"
 #include "Exec_RotateDihedral.h"
+#include "Exec_SplitCoords.h"
+#include "Exec_CatCrd.h"
 // ----- TRAJECTORY ------------------------------------------------------------
 #include "Exec_Traj.h"
 // ----- TOPOLOGY --------------------------------------------------------------
 #include "Exec_Change.h"
 #include "Exec_CompareTop.h"
+#include "Exec_HmassRepartition.h"
 #include "Exec_ParmBox.h"
 #include "Exec_ParmSolvent.h"
 #include "Exec_ParmStrip.h"
@@ -134,6 +149,11 @@
 #include "Action_FixImagedBonds.h"
 #include "Action_LipidOrder.h"
 #include "Action_InfraredSpectrum.h"
+#include "Action_XtalSymm.h"
+#include "Action_Time.h"
+#include "Action_DihedralRMS.h"
+#include "Action_MultiPucker.h"
+#include "Action_Keep.h"
 // ----- ANALYSIS --------------------------------------------------------------
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
@@ -150,7 +170,6 @@
 #include "Analysis_CrdFluct.h"
 #include "Analysis_RmsAvgCorr.h"
 #include "Analysis_Rms2d.h"
-#include "Analysis_Clustering.h"
 #include "Analysis_RunningAvg.h"
 #include "Analysis_MeltCurve.h"
 #include "Analysis_Overlap.h"
@@ -173,6 +192,10 @@
 #include "Analysis_Multicurve.h"
 #include "Analysis_TI.h"
 #include "Analysis_ConstantPHStats.h"
+#include "Analysis_Clustering.h"
+#include "Analysis_HausdorffDistance.h"
+#include "Analysis_Slope.h"
+#include "Analysis_EvalPlateau.h"
 
 CmdList Command::commands_ = CmdList();
 
@@ -184,31 +207,34 @@ Command::CtlArray Command::control_ = Command::CtlArray();
 
 int Command::ctlidx_ = -1;
 
-VariableArray Command::CurrentVars_ = VariableArray();
-
 /** Initialize all commands. Should only be called once as program starts. */
 void Command::Init() {
   // GENERAL
   Command::AddCmd( new Exec_ActiveRef(),       Cmd::EXE, 1, "activeref" );
-  Command::AddCmd( new Exec_Analyze(),         Cmd::EXE, 1, "analyze" ); // HIDDEN
+  Command::AddCmd( new Exec_AddMissingRes(),   Cmd::EXE, 1, "addmissingres" ); // hidden
+  Command::AddCmd( new Exec_Analyze(),         Cmd::EXE, 1, "analyze" ); // hidden
   Command::AddCmd( new Exec_Calc(),            Cmd::EXE, 1, "calc" );
   Command::AddCmd( new Exec_Clear(),           Cmd::EXE, 1, "clear" );
-  Command::AddCmd( new Exec_ClusterMap(),      Cmd::EXE, 1, "clustermap" ); // HIDDEN
+  Command::AddCmd( new Exec_ClusterMap(),      Cmd::EXE, 1, "clustermap" ); // hidden
+  Command::AddCmd( new Exec_CompareClusters(), Cmd::EXE, 1, "compareclusters" ); //hidden
   Command::AddCmd( new Exec_CreateDataFile(),  Cmd::EXE, 1, "create" );
   Command::AddCmd( new Exec_CreateSet(),       Cmd::EXE, 1, "createset" );
   Command::AddCmd( new Exec_DataFileCmd(),     Cmd::EXE, 1, "datafile" );
   Command::AddCmd( new Exec_DataFilter(),      Cmd::EXE, 1, "datafilter" );
   Command::AddCmd( new Exec_DataSetCmd(),      Cmd::EXE, 1, "dataset" );
   Command::AddCmd( new Exec_EnsFileExt(),      Cmd::EXE, 1, "ensextension" );
+  Command::AddCmd( new Exec_Flatten(),         Cmd::EXE, 1, "flatten" );
   Command::AddCmd( new Exec_GenerateAmberRst(),Cmd::EXE, 1, "rst" );
   Command::AddCmd( new Exec_Help(),            Cmd::EXE, 1, "help" );
   Command::AddCmd( new Exec_ListAll(),         Cmd::EXE, 1, "list" );
   Command::AddCmd( new Exec_NoExitOnError(),   Cmd::EXE, 1, "noexitonerror" );
   Command::AddCmd( new Exec_NoProgress(),      Cmd::EXE, 1, "noprogress" );
+  Command::AddCmd( new Exec_ParallelAnalysis(),Cmd::EXE, 1, "parallelanalysis" );
   Command::AddCmd( new Exec_Precision(),       Cmd::EXE, 1, "precision" );
   Command::AddCmd( new Exec_PrintData(),       Cmd::EXE, 1, "printdata" );
   Command::AddCmd( new Exec_QuietBlocks(),     Cmd::EXE, 1, "quietblocks" );
   Command::AddCmd( new Exec_Quit(),            Cmd::EXE, 2, "exit", "quit" );
+  Command::AddCmd( new Exec_Random(),          Cmd::EXE, 2, "random", "rng" );
   Command::AddCmd( new Exec_ReadData(),        Cmd::EXE, 1, "readdata" );
   Command::AddCmd( new Exec_ReadEnsembleData(),Cmd::EXE, 1, "readensembledata" );
   Command::AddCmd( new Exec_ReadInput(),       Cmd::EXE, 1, "readinput" );
@@ -219,23 +245,29 @@ void Command::Init() {
   Command::AddCmd( new Exec_SelectDS(),        Cmd::EXE, 1, "selectds" );
   Command::AddCmd( new Exec_SetListDebug(),    Cmd::EXE, 2, "debug", "prnlev" );
   Command::AddCmd( new Exec_SilenceActions(),  Cmd::EXE, 1, "silenceactions" );
-  Command::AddCmd( new Exec_SequenceAlign(),   Cmd::EXE, 1, "sequencealign" );
+  Command::AddCmd( new Exec_SequenceAlign(),   Cmd::EXE, 1, "sequencealign" ); // hidden
   Command::AddCmd( new Exec_SortEnsembleData(),Cmd::EXE, 1, "sortensembledata" );
   Command::AddCmd( new Exec_WriteDataFile(),   Cmd::EXE, 2, "write", "writedata" );
-  Command::AddCmd( new Exec_ViewRst(),         Cmd::EXE, 1, "viewrst" ); // HIDDEN
+  Command::AddCmd( new Exec_UseDiskCache(),    Cmd::EXE, 1, "usediskcache" );
+  Command::AddCmd( new Exec_ViewRst(),         Cmd::EXE, 1, "viewrst" ); // hidden
 # ifdef MPI
-  Command::AddCmd( new Exec_ForceParaEnsemble(), Cmd::EXE, 1, "forceparaensemble" );
+  Command::AddCmd( new Exec_ForceParaEnsemble(), Cmd::EXE, 1, "forceparaensemble" ); // hidden
 # endif
   // SYSTEM
   Command::AddCmd( new Exec_System(), Cmd::EXE, 6, "gnuplot", "head", "less", "ls", "pwd", "xmgrace" );
   // COORDS
+  Command::AddCmd( new Exec_CatCrd(),           Cmd::EXE, 1, "catcrd" );
   Command::AddCmd( new Exec_CombineCoords(),    Cmd::EXE, 1, "combinecrd" ); 
   Command::AddCmd( new Exec_CrdAction(),        Cmd::EXE, 1, "crdaction" );
   Command::AddCmd( new Exec_CrdOut(),           Cmd::EXE, 1, "crdout" );
+  Command::AddCmd( new Exec_Emin(),             Cmd::EXE, 1, "emin"); // hidden
+  Command::AddCmd( new Exec_Graft(),            Cmd::EXE, 1, "graft");
   Command::AddCmd( new Exec_LoadCrd(),          Cmd::EXE, 1, "loadcrd" );
   Command::AddCmd( new Exec_LoadTraj(),         Cmd::EXE, 1, "loadtraj" );
   Command::AddCmd( new Exec_PermuteDihedrals(), Cmd::EXE, 1, "permutedihedrals" );
+  Command::AddCmd( new Exec_PrepareForLeap(),   Cmd::EXE, 1, "prepareforleap" );
   Command::AddCmd( new Exec_RotateDihedral(),   Cmd::EXE, 1, "rotatedihedral" );
+  Command::AddCmd( new Exec_SplitCoords(),      Cmd::EXE, 1, "splitcoords" );
   // TRAJECTORY
   Command::AddCmd( new Exec_Ensemble(),     Cmd::EXE, 1, "ensemble" );
   Command::AddCmd( new Exec_EnsembleSize(), Cmd::EXE, 1, "ensemblesize" );
@@ -250,6 +282,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_ChargeInfo(),    Cmd::EXE, 1, "charge" );
   Command::AddCmd( new Exec_CompareTop(),    Cmd::EXE, 1, "comparetop" );
   Command::AddCmd( new Exec_DihedralInfo(),Cmd::EXE, 3,"dihedrals","dihedralinfo","printdihedrals");
+  Command::AddCmd( new Exec_HmassRepartition(),Cmd::EXE, 1, "hmassrepartition" );
   Command::AddCmd( new Exec_ImproperInfo(),Cmd::EXE, 3,"impropers","improperinfo","printimpropers");
   Command::AddCmd( new Exec_MassInfo(),      Cmd::EXE, 1, "mass" );
   Command::AddCmd( new Exec_MolInfo(),       Cmd::EXE, 1, "molinfo" );
@@ -262,7 +295,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_ResInfo(),       Cmd::EXE, 1, "resinfo" );
   Command::AddCmd( new Exec_ScaleDihedralK(),Cmd::EXE, 1, "scaledihedralk" );
   Command::AddCmd( new Exec_UBInfo(),        Cmd::EXE, 2, "ubinfo", "printub" );
-  Command::AddCmd( new Exec_UpdateParameters(), Cmd::EXE, 1, "updateparameters"); // HIDDEN
+  Command::AddCmd( new Exec_UpdateParameters(), Cmd::EXE, 1, "updateparameters");
   // ACTION
   Command::AddCmd( new Action_Align(),         Cmd::ACT, 1, "align" );
   Command::AddCmd( new Action_Angle(),         Cmd::ACT, 1, "angle" );
@@ -275,7 +308,7 @@ void Command::Init() {
   Command::AddCmd( new Action_Bounds(),        Cmd::ACT, 1, "bounds" );
   Command::AddCmd( new Action_Box(),           Cmd::ACT, 1, "box" );
   Command::AddCmd( new Action_Center(),        Cmd::ACT, 1, "center" );
-  Command::AddCmd( new Action_Channel(),       Cmd::ACT, 1, "channel" ); // HIDDEN
+  Command::AddCmd( new Action_Channel(),       Cmd::ACT, 1, "channel" ); // hidden
   Command::AddCmd( new Action_CheckStructure(),Cmd::ACT, 3,"check","checkoverlap","checkstructure");
   Command::AddCmd( new Action_CheckChirality(),Cmd::ACT, 1, "checkchirality" );
   Command::AddCmd( new Action_Closest(),       Cmd::ACT, 2, "closest", "closestwaters" );
@@ -286,9 +319,10 @@ void Command::Init() {
   Command::AddCmd( new Action_Density(),       Cmd::ACT, 1, "density" );
   Command::AddCmd( new Action_Diffusion(),     Cmd::ACT, 1, "diffusion" );
   Command::AddCmd( new Action_Dihedral(),      Cmd::ACT, 1, "dihedral" );
+  Command::AddCmd( new Action_DihedralRMS(),   Cmd::ACT, 2, "dihrms", "dihedralrms" );
   Command::AddCmd( new Action_Dipole(),        Cmd::ACT, 1, "dipole" );
   Command::AddCmd( new Action_Distance(),      Cmd::ACT, 1, "distance" );
-  Command::AddCmd( new Action_DNAionTracker(), Cmd::ACT, 1, "dnaiontracker" ); // HIDDEN
+  Command::AddCmd( new Action_DNAionTracker(), Cmd::ACT, 1, "dnaiontracker" ); // hidden
   Command::AddCmd( new Action_DistRmsd(),      Cmd::ACT, 2, "drms", "drmsd" );
   Command::AddCmd( new Action_DSSP(),          Cmd::ACT, 2, "dssp", "secstruct" );
   Command::AddCmd( new Action_Energy(),        Cmd::ACT, 1, "energy" );
@@ -297,12 +331,13 @@ void Command::Init() {
   Command::AddCmd( new Action_FixAtomOrder(),  Cmd::ACT, 1, "fixatomorder" );
   Command::AddCmd( new Action_FixImagedBonds(),Cmd::ACT, 1, "fiximagedbonds" );
   Command::AddCmd( new Action_GIST(),          Cmd::ACT, 1, "gist" );
-  Command::AddCmd( new Action_GridFreeEnergy(),Cmd::ACT, 1, "gfe" ); // HIDDEN
+  Command::AddCmd( new Action_GridFreeEnergy(),Cmd::ACT, 1, "gfe" ); // hidden
   Command::AddCmd( new Action_Grid(),          Cmd::ACT, 1, "grid" );
   Command::AddCmd( new Action_HydrogenBond(),  Cmd::ACT, 1, "hbond" );
   Command::AddCmd( new Action_Image(),         Cmd::ACT, 1, "image" );
-  Command::AddCmd( new Action_InfraredSpectrum(),Cmd::ACT,2,"irspec","infraredspec");
+  Command::AddCmd( new Action_InfraredSpectrum(),Cmd::ACT,2,"irspec","infraredspec"); // hidden
   Command::AddCmd( new Action_Jcoupling(),     Cmd::ACT, 1, "jcoupling" );
+  Command::AddCmd( new Action_Keep(),          Cmd::ACT, 1, "keep" );
   Command::AddCmd( new Action_LESsplit(),      Cmd::ACT, 1, "lessplit" );
   Command::AddCmd( new Action_LIE(),           Cmd::ACT, 1, "lie" );
   Command::AddCmd( new Action_OrderParameter(),Cmd::ACT, 1, "lipidorder" );
@@ -313,10 +348,11 @@ void Command::Init() {
   Command::AddCmd( new Action_MinImage(),      Cmd::ACT, 1, "minimage" );
   Command::AddCmd( new Action_Molsurf(),       Cmd::ACT, 1, "molsurf" );
   Command::AddCmd( new Action_MultiDihedral(), Cmd::ACT, 1, "multidihedral" );
+  Command::AddCmd( new Action_MultiPucker(),   Cmd::ACT, 1, "multipucker" );
   Command::AddCmd( new Action_MultiVector(),   Cmd::ACT, 1, "multivector" );
   Command::AddCmd( new Action_NAstruct(),      Cmd::ACT, 1, "nastruct" );
   Command::AddCmd( new Action_NativeContacts(),Cmd::ACT, 1, "nativecontacts" );
-  Command::AddCmd( new Action_NMRrst(),        Cmd::ACT, 1, "nmrrst" ); // HIDDEN
+  Command::AddCmd( new Action_NMRrst(),        Cmd::ACT, 1, "nmrrst" ); // hidden
   Command::AddCmd( new Action_Outtraj(),       Cmd::ACT, 1, "outtraj" );
   Command::AddCmd( new Action_PairDist(),      Cmd::ACT, 1, "pairdist" );
   Command::AddCmd( new Action_Pairwise(),      Cmd::ACT, 1, "pairwise" );
@@ -333,12 +369,13 @@ void Command::Init() {
   Command::AddCmd( new Action_RunningAvg(),    Cmd::ACT, 2, "runavg", "runningaverage" );
   Command::AddCmd( new Action_Scale(),         Cmd::ACT, 1, "scale" );
   Command::AddCmd( new Action_SetVelocity(),   Cmd::ACT, 1, "setvelocity" );
-  Command::AddCmd( new Action_Spam(),          Cmd::ACT, 1, "spam" ); // HIDDEN
+  Command::AddCmd( new Action_Spam(),          Cmd::ACT, 1, "spam" );
   Command::AddCmd( new Action_STFC_Diffusion(),Cmd::ACT, 1, "stfcdiffusion" );
   Command::AddCmd( new Action_Strip(),         Cmd::ACT, 1, "strip" );
   Command::AddCmd( new Action_Surf(),          Cmd::ACT, 1, "surf" );
   Command::AddCmd( new Action_SymmetricRmsd(), Cmd::ACT, 1, "symmrmsd" );
   Command::AddCmd( new Action_Temperature(),   Cmd::ACT, 1, "temperature" );
+  Command::AddCmd( new Action_Time(),          Cmd::ACT, 1, "time" );
   Command::AddCmd( new Action_Translate(),     Cmd::ACT, 2, "trans", "translate" );
   Command::AddCmd( new Action_Unstrip(),       Cmd::ACT, 1, "unstrip" );
   Command::AddCmd( new Action_Unwrap(),        Cmd::ACT, 1, "unwrap" );
@@ -347,8 +384,9 @@ void Command::Init() {
   Command::AddCmd( new Action_Volmap(),        Cmd::ACT, 1, "volmap" );
   Command::AddCmd( new Action_Volume(),        Cmd::ACT, 1, "volume" );
   Command::AddCmd( new Action_Watershell(),    Cmd::ACT, 1, "watershell" );
+  Command::AddCmd( new Action_XtalSymm(),      Cmd::ACT, 1, "xtalsymm" );
   // ANALYSIS
-  Command::AddCmd( new Analysis_AmdBias(),     Cmd::ANA, 1, "amdbias" ); // HIDDEN
+  Command::AddCmd( new Analysis_AmdBias(),     Cmd::ANA, 1, "amdbias" ); // hidden 
   Command::AddCmd( new Analysis_AutoCorr(),    Cmd::ANA, 1, "autocorr" );
   Command::AddCmd( new Analysis_Average(),     Cmd::ANA, 1, "avg" );
   Command::AddCmd( new Analysis_State(),       Cmd::ANA, 1, "calcstate" );
@@ -361,7 +399,9 @@ void Command::Init() {
   Command::AddCmd( new Analysis_CurveFit(),    Cmd::ANA, 1, "curvefit" );
   Command::AddCmd( new Analysis_Matrix(),      Cmd::ANA, 2, "diagmatrix", "matrix" );
   Command::AddCmd( new Analysis_Divergence(),  Cmd::ANA, 1, "divergence" );
+  Command::AddCmd( new Analysis_EvalPlateau(), Cmd::ANA, 1, "evalplateau" );
   Command::AddCmd( new Analysis_FFT(),         Cmd::ANA, 1, "fft" );
+  Command::AddCmd( new Analysis_HausdorffDistance,Cmd::ANA,1,"hausdorff" );
   Command::AddCmd( new Analysis_Hist(),        Cmd::ANA, 2, "hist", "histogram" );
   Command::AddCmd( new Analysis_Integrate(),   Cmd::ANA, 1, "integrate" );
   Command::AddCmd( new Analysis_IRED(),        Cmd::ANA, 1, "ired" );
@@ -372,7 +412,7 @@ void Command::Init() {
   Command::AddCmd( new Analysis_Modes(),       Cmd::ANA, 1, "modes" );
   Command::AddCmd( new Analysis_Multicurve(),  Cmd::ANA, 1, "multicurve" );
   Command::AddCmd( new Analysis_MultiHist(),   Cmd::ANA, 1, "multihist" );
-  Command::AddCmd( new Analysis_Overlap(),     Cmd::ANA, 1, "overlap" ); // HIDDEN
+  Command::AddCmd( new Analysis_Overlap(),     Cmd::ANA, 1, "overlap" ); // hidden 
   Command::AddCmd( new Analysis_PhiPsi(),      Cmd::ANA, 1, "phipsi" );
   Command::AddCmd( new Analysis_Regression(),  Cmd::ANA, 1, "regress" );
   Command::AddCmd( new Analysis_RemLog(),      Cmd::ANA, 1, "remlog" );
@@ -380,6 +420,7 @@ void Command::Init() {
   Command::AddCmd( new Analysis_RmsAvgCorr(),  Cmd::ANA, 1, "rmsavgcorr" );
   Command::AddCmd( new Analysis_Rotdif(),      Cmd::ANA, 1, "rotdif" );
   Command::AddCmd( new Analysis_RunningAvg(),  Cmd::ANA, 1, "runningavg" );
+  Command::AddCmd( new Analysis_Slope(),       Cmd::ANA, 1, "slope" );
   Command::AddCmd( new Analysis_Spline(),      Cmd::ANA, 1, "spline" );
   Command::AddCmd( new Analysis_Statistics(),  Cmd::ANA, 2, "stat", "statistics" );
   Command::AddCmd( new Analysis_TI(),          Cmd::ANA, 1, "ti" );
@@ -388,8 +429,8 @@ void Command::Init() {
   Command::AddCmd( new Analysis_Wavelet(),     Cmd::ANA, 1, "wavelet" );
   // CONTROL STRUCTURES
   Command::AddCmd( new ControlBlock_For(),     Cmd::BLK, 1, "for" );
-  Command::AddCmd( new Control_Set(),          Cmd::CTL, 1, "set" );
-  Command::AddCmd( new Control_Show(),         Cmd::CTL, 1, "show" );
+  Command::AddCmd( new Exec_Set(),             Cmd::EXE, 1, "set" );
+  Command::AddCmd( new Exec_Show(),            Cmd::EXE, 1, "show" );
   // DEPRECATED COMMANDS
   Command::AddCmd( new Deprecated_AvgCoord(),    Cmd::DEP, 1, "avgcoord" );
   Command::AddCmd( new Deprecated_DihScan(),     Cmd::DEP, 1, "dihedralscan" );
@@ -473,16 +514,33 @@ Cmd const& Command::SearchToken(ArgList& argIn) {
   return EMPTY_;
 }
 
+/** \return Text corresponding to given category. */
+static const char* ObjKeyword(DispatchObject::Otype typeIn) {
+  switch (typeIn) {
+    case DispatchObject::NONE: return 0;
+    case DispatchObject::PARM: return "Topology";
+    case DispatchObject::TRAJ: return "Trajectory";
+    case DispatchObject::COORDS: return "Coords";
+    case DispatchObject::ACTION: return "Action";
+    case DispatchObject::ANALYSIS: return "Analysis";
+    case DispatchObject::GENERAL: return "General";
+    case DispatchObject::SYSTEM: return "System";
+    case DispatchObject::CONTROL: return "Control";
+    case DispatchObject::DEPRECATED: return "Deprecated";
+  }
+  return 0;
+}
+
 /** First list the command category, then the commands for that category
-  * in alphabetical order. Should not be called with NONE, HIDDEN, or
-  * DEPRECATED.
+  * in alphabetical order. Should not be called with NONE.
   */
 void Command::ListCommandsForType(DispatchObject::Otype typeIn) {
+  if (typeIn == DispatchObject::NONE) return;
   std::vector< std::string > command_keys;
-  mprintf("%s Commands:\n", DispatchObject::ObjKeyword(typeIn));
+  mprintf("%s Commands:\n", ObjKeyword(typeIn));
   for (CmdList::const_iterator cmd = commands_.begin(); cmd != commands_.end(); ++cmd)
   {
-    if (cmd->Obj().Type() == typeIn)
+    if (cmd->Obj().Type() == typeIn && !cmd->Obj().Hidden())
       for (Cmd::key_iterator key = cmd->keysBegin(); key != cmd->keysEnd(); ++key)
         command_keys.push_back( *key );
   }
@@ -506,12 +564,13 @@ void Command::ListCommandsForType(DispatchObject::Otype typeIn) {
   */
 void Command::ListCommands(DispatchObject::Otype typeIn) {
   if (typeIn == DispatchObject::NONE) {
-    for (int idx = 1; idx != DispatchObject::HIDDEN; idx++)
+    for (int idx = 1; idx != DispatchObject::DEPRECATED; idx++)
       ListCommandsForType( (DispatchObject::Otype)idx );
   } else
     ListCommandsForType( typeIn );
 }
 
+// ----- Control block functions -----------------------------------------------
 /** \return true if any control blocks remain. */
 bool Command::UnterminatedControl() {
   if (!control_.empty()) {
@@ -527,7 +586,7 @@ bool Command::UnterminatedControl() {
 int Command::AddControlBlock(ControlBlock* ctl, CpptrajState& State, ArgList& cmdArg) {
   if ( ctl->SetupBlock( State, cmdArg ) )
     return 1;
-  if (ctlidx_ == -1) mprintf("CONTROL: Starting control block.\n");
+  if (ctlidx_ == -1) mprintf("CONTROL: Parsing control block.\n");
   control_.push_back( ctl );
   ctlidx_++;
   mprintf("  BLOCK %2i: ", ctlidx_);
@@ -542,30 +601,50 @@ int Command::AddControlBlock(ControlBlock* ctl, CpptrajState& State, ArgList& cm
 /** Execute the specified control block. */
 int Command::ExecuteControlBlock(int block, CpptrajState& State)
 {
-  control_[block]->Start();
-  ControlBlock::DoneType ret = control_[block]->CheckDone(CurrentVars_);
+  if (control_[block]->Start(State.DSL())) return 1;
+  ControlBlock::DoneType ret = control_[block]->CheckDone(State.DSL());
   if (State.Debug() > 0) {
     mprintf("DEBUG: Start: CurrentVars:");
-    CurrentVars_.PrintVariables();
+    State.DSL().ListStringVar();
   }
+  int blockErrors = 0;
   while (ret == ControlBlock::NOT_DONE) {
     for (ControlBlock::const_iterator it = control_[block]->begin();
                                       it != control_[block]->end(); ++it)
     {
       if (it->CommandIs(NEW_BLOCK)) {
         // Execute next control block
-        if (ExecuteControlBlock(block+1, State)) return 1;
+        int cbret = ExecuteControlBlock(block+1, State);
+        if (cbret != 0) {
+          if (State.ExitOnError())
+            return 1;
+          else
+            blockErrors += (1 + cbret);
+        }
       } else {
         for (int i = 0; i < block; i++) mprintf("  ");
         // Execute command
-        if ( ExecuteCommand(State, *it) != CpptrajState::OK ) return 1;
+        CpptrajState::RetType cmret = ExecuteCommand(State, *it);
+        if (cmret != CpptrajState::OK) {
+          if (State.ExitOnError())
+            return 1;
+          else
+            blockErrors++;
+        }
       }
     }
-    ret = control_[block]->CheckDone(CurrentVars_);
+    ret = control_[block]->CheckDone(State.DSL());
   }
-  if (ret == ControlBlock::ERROR) return 1;
-  return 0;
+  if (ret == ControlBlock::ERROR) {
+    if (State.ExitOnError())
+      return 1;
+    else
+      blockErrors++;
+  }
+  return blockErrors;
 }
+
+// ----- END Control block functions -------------------------------------------
 
 /** Handle the given command. If inside a control block, if the command is
   * a control command a new block will be created, otherwise the command will
@@ -576,7 +655,10 @@ int Command::ExecuteControlBlock(int block, CpptrajState& State)
 CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& commandIn)
 {
   ArgList cmdArg( commandIn );
+  cmdArg.CheckArgLineForNonASCII();
   cmdArg.MarkArg(0); // Always mark the first arg as the command
+  if (State.Debug() > 0)
+    cmdArg.PrintDebug();
   // Check for control block
   if (!control_.empty()) {
     mprintf("  [%s]\n", cmdArg.ArgLine());
@@ -591,9 +673,11 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
       ctlidx_--;
       if (ctlidx_ < 0) {
         // Outermost control structure is ended. Execute control block(s).
-        mprintf("CONTROL: Executing %u control block(s).\n", control_.size());
+        mprintf("CONTROL: Executing %zu control block(s).\n", control_.size());
         if (State.QuietBlocks()) SetWorldSilent(true);
         int cbret = ExecuteControlBlock(0, State);
+        if (cbret > 1)
+          mprinterr("Error: %i errors encountered in control block.\n", cbret);
         ClearControlBlocks();
         if (State.QuietBlocks()) SetWorldSilent(false);
         if (cbret != 0) return CpptrajState::ERR;
@@ -626,14 +710,26 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
 #undef NEW_BLOCK
 
 /** Search for the given command and execute it. Replace any variables in
-  * command with their values. EXE and CTL commands are executed immediately
+  * command with their values. EXE commands are executed immediately
   * and then freed. ACT and ANA commands are sent to the CpptrajState for later
   * execution. BLK commands set up control blocks which will be executed when
   * the outer control block is completed.
+  * TODO just take a string and do all tokenizing here?
   */
 CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList const& cmdArgIn ) {
   // Replace variable names in command with entries from CurrentVars
-  ArgList cmdArg = CurrentVars_.ReplaceVariables( cmdArgIn, State.DSL(), State.Debug() );
+  ArgList cmdArg;
+  std::string argline2;
+  int nReplaced = State.DSL().ReplaceVariables( argline2, cmdArgIn.ArgLineStr() );
+  // TODO trap replace errors?
+  if (nReplaced > 0) {
+    if (State.Debug() > 0)
+      mprintf("DEBUG: %i variables replaced with values in: '%s'\n",
+        nReplaced, cmdArgIn.ArgLine());
+    cmdArg = ArgList(argline2);
+    cmdArg.MarkArg(0);
+  } else
+    cmdArg = cmdArgIn;
   if (cmdArg.empty()) return CpptrajState::ERR;
   // Print modified command
   mprintf("  [%s]\n", cmdArg.ArgLine());
@@ -655,10 +751,6 @@ CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList cons
   } else {
     DispatchObject* obj = cmd.Alloc();
     switch (cmd.Destination()) {
-      case Cmd::CTL:
-        ret_val = ((Control*)obj)->SetupControl(State, cmdArg, CurrentVars_);
-        delete obj;
-        break;
       case Cmd::BLK:
         if (AddControlBlock( (ControlBlock*)obj, State, cmdArg )) {
           delete obj;
@@ -677,30 +769,94 @@ CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList cons
         break;
     }
   }
+# ifdef MPI
+  // Check that everyone had same return value from command
+  int iret = (int)ret_val;
+  std::vector<int> rvals(Parallel::World().Size(), 0);
+  Parallel::World().AllGather(&iret, 1, MPI_INT, &rvals[0]);
+  for (std::vector<int>::const_iterator it = rvals.begin(); it != rvals.end(); ++it)
+  {
+    if (*it != rvals.front()) {
+      // This process had a return value different than process 0 - notify and
+      // set the overall return value to error.
+      mprinterr("Internal Error: Process %u command return value %i differs from world master %i\n",
+                it-rvals.begin(), *it, rvals.front());
+      ret_val = CpptrajState::ERR;
+    }
+  }
+  Parallel::World().Barrier();
+# endif
   return ret_val;
 }
 
-/** Read command input from file. */
+/** Read command input from file.
+  * NOTE: In MPI, all processes MUST call this. TODO pass in comm
+  */
 CpptrajState::RetType Command::ProcessInput(CpptrajState& State, std::string const& inputFilename)
 {
-  BufferedLine infile;
-  if (infile.OpenFileRead( inputFilename )) {
-    if (!inputFilename.empty())
-      mprinterr("Error: Could not open input file '%s'\n", inputFilename.c_str());
-    return CpptrajState::ERR;
-  }
-  mprintf("INPUT: Reading input from '%s'\n", infile.Filename().full());
-  // Read in each line of input.
   int nInputErrors = 0;
   CpptrajState::RetType cmode = CpptrajState::OK;
   CmdInput input;
-  const char* ptr = infile.Line();
-  while (ptr != 0) {
-    bool moreInput = input.AddInput( ptr );
-    while (moreInput) {
-      ptr = infile.Line();
-      moreInput = input.AddInput( ptr );
+  BufferedLine infile;
+# ifdef MPI
+  // We use a char vector to communicate input lines from master
+  // since MPI routines arent really meant to take const void *.
+  std::vector<char> inpBuf;
+  if (Parallel::World().Master()) {
+# endif
+    // Open the input file. In MPI, only world master does this.
+    if (infile.OpenFileRead( inputFilename )) {
+      if (!inputFilename.empty())
+        mprinterr("Error: Could not open input file '%s'\n", inputFilename.c_str());
+      cmode = CpptrajState::ERR;
+    } else
+      mprintf("INPUT: Reading input from '%s'\n", infile.Filename().full());
+# ifdef MPI
+  } // END if master
+  if (Parallel::World().CheckError( cmode )) return CpptrajState::ERR;
+# else
+  if (cmode != CpptrajState::OK) return CpptrajState::ERR;
+# endif
+  int readMoreInput = 1;
+  while (readMoreInput == 1) {
+#   ifdef MPI
+    if (Parallel::World().Master()) {
+#   endif
+      // Read in each line of input.
+      const char* ptr = infile.Line();
+      //rprintf("DEBUG: Line: %s\n", ptr);
+      if (ptr == 0) {
+        // EOF reached
+        readMoreInput = 0;
+      } else {
+        bool moreInput = input.AddInput( ptr );
+        while (moreInput) {
+          ptr = infile.Line();
+          moreInput = input.AddInput( ptr );
+        }
+      }
+#   ifdef MPI
+    } // END if master
+    // Broadcast result to everone else
+    Parallel::World().MasterBcast(&readMoreInput, 1, MPI_INTEGER);
+#   endif
+    if (readMoreInput == 0) break;
+#   ifdef MPI
+    // Broadcast input to everyone else
+    int inpSize = (int)input.Str().size();
+    Parallel::World().MasterBcast(&inpSize, 1, MPI_INTEGER);
+    if (Parallel::World().Master()) {
+      inpBuf.clear();
+      std::copy(input.Str().begin(), input.Str().end(), std::back_inserter(inpBuf));
+      Parallel::World().MasterBcast(&inpBuf[0], inpSize, MPI_CHAR);
+    } else {
+      inpBuf.resize( inpSize );
+      Parallel::World().MasterBcast(&inpBuf[0], inpSize, MPI_CHAR);
+      inpBuf.push_back('\0');
+      input.AddInput( &inpBuf[0] );
     }
+    //rprintf("DEBUG: Input: [%s]\n", input.str());
+#   endif
     // Only attempt to execute if the command is not blank.
     if (!input.Empty()) {
 #     ifdef TIMER
@@ -715,15 +871,18 @@ CpptrajState::RetType Command::ProcessInput(CpptrajState& State, std::string con
 #     endif
       if (cmode == CpptrajState::ERR) {
         nInputErrors++;
+        //mprintf("DEBUG: Error encountered and ExitOnError is %i\n", (int)State.ExitOnError());
         if (State.ExitOnError()) break;
       } else if (cmode == CpptrajState::QUIT)
         break;
     }
     // Reset Input line
     input.Clear();
-    ptr = infile.Line();
-  }
-  infile.CloseFile();
+  } // END if readMoreInput
+# ifdef MPI
+  if (Parallel::World().Master())
+# endif
+    infile.CloseFile();
   if (nInputErrors > 0) {
     mprinterr("\t%i errors encountered reading input.\n", nInputErrors);
     return CpptrajState::ERR;

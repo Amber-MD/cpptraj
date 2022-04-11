@@ -2,7 +2,7 @@
 #define INC_ANALYSIS_REMLOG_H
 #include "Analysis.h"
 #include "DataSet_RemLog.h"
-#include "DataSet_integer.h"
+#include "DataSet_integer_mem.h"
 class Analysis_RemLog : public Analysis {
   public:
     Analysis_RemLog();
@@ -14,7 +14,7 @@ class Analysis_RemLog : public Analysis {
     enum ModeType { NONE = 0, CRDIDX, REPIDX };
 
     typedef std::vector<int> Iarray;
-    typedef std::vector<DataSet_integer> DSI_array;
+    typedef std::vector<DataSet_integer_mem> DSI_array;
     /// Track exchange stats for each dimension.
     class RepStats {
       public:

@@ -3,6 +3,10 @@
 #include "Constraints.h"
 #include "CpptrajStdio.h"
 #include "Constants.h"
+#include "Topology.h"
+#include "ArgList.h"
+#include "Frame.h"
+#include "CharMask.h"
 
 /// CONSTRUCTOR
 Constraints::Constraints() :
@@ -18,6 +22,8 @@ static const char* shakeString_[] = {
 };
 
 const char* Constraints::shakeString() const { return shakeString_[shakeType_]; }
+
+const char* Constraints::shakeString(ShakeType t) { return shakeString_[t]; }
 
 const char* Constraints::constraintArgs = "[ntc <#>]";
 
@@ -101,6 +107,19 @@ int Constraints::SetupConstraints(AtomMask const& mask, Topology const& top)
                         constrained_bonds_to_h -
                         constrained_heavy_bonds;
     mprintf("\t# of degrees of freedom = %i\n", degrees_of_freedom_);
+  // Correct for extra points if necessary.
+  if (top.NextraPts() > 0) {
+    unsigned int nextrapts = 0;
+    for (AtomMask::const_iterator idx = mask.begin(); idx != mask.end(); ++idx)
+    {
+      Atom const& atm = top[*idx];
+      if (atm.Element() == Atom::EXTRAPT)
+        nextrapts++;
+    }
+    degrees_of_freedom_ -= (3 * nextrapts);
+    mprintf("\t# of degrees of freedom, corrected for extra points = %i\n",
+            degrees_of_freedom_);
+  }
   return 0;
 }
 

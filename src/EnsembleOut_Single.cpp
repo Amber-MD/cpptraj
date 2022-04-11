@@ -1,6 +1,9 @@
 #ifdef ENABLE_SINGLE_ENSEMBLE
 #include "EnsembleOut_Single.h"
+#include "TrajectoryIO.h"
+#include "Topology.h"
 #include "CpptrajStdio.h"
+#include "ArgList.h"
 
 // CONSTRUCTOR
 EnsembleOut_Single::EnsembleOut_Single() : eio_(0), ensembleSize_(0) {}
@@ -13,7 +16,8 @@ EnsembleOut_Single::~EnsembleOut_Single() {
 
 // EnsembleOut_Single::InitEnsembleWrite()
 int EnsembleOut_Single::InitEnsembleWrite(std::string const& tnameIn,
-                                          ArgList const& argIn, int ensembleSizeIn,
+                                          ArgList const& argIn, DataSetList const& DSLin,
+                                          int ensembleSizeIn,
                                           TrajectoryFile::TrajFormatType writeFormatIn)
 {
   // Require a base filename
@@ -60,7 +64,7 @@ int EnsembleOut_Single::InitEnsembleWrite(std::string const& tnameIn,
   eio_->SetTitle( Traj().Title() );
   // Process any write arguments specific to certain formats not related
   // to parm file. Options related to parm file are handled in SetupTrajWrite 
-  if (eio_->processWriteArgs(trajout_args)) {
+  if (eio_->processWriteArgs(trajout_args, DSLin)) {
     mprinterr("Error: trajout %s: Could not process arguments.\n",Traj().Filename().full());
     return 1;
   }
@@ -120,7 +124,7 @@ void EnsembleOut_Single::PrintInfo(int expectedNframes) const {
 }
 #ifdef MPI
 int EnsembleOut_Single::ParallelSetupEnsembleWrite() {
-  mprinterr("Error: Multiple threads per ensemble not supported for single ensemble write.\n");
+  mprinterr("Error: Multiple processes per ensemble not supported for single ensemble write.\n");
   return 1;
 }
 #endif

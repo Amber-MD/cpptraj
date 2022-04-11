@@ -3,6 +3,10 @@
 #include "DispatchObject.h"
 #include "ArgList.h"
 #include "ActionState.h"
+// TODO - forward declare things in ActionState
+//class ActionInit;
+//class ActionSetup;
+//class ActionFrame;
 /// The abstract base class that all other Actions inherit.
 /** By convention Actions have 3 main phases: Init, Setup, and DoAction.
   * Init is used to initialize the Action, make sure that all arguments
@@ -24,8 +28,6 @@ class Action : public DispatchObject {
   public:
     /// Constructor
     Action() : DispatchObject(ACTION) {}
-    /// Constructor - override ACTION (e.g. HIDDEN)
-    Action(DispatchObject::Otype o) : DispatchObject(o) {}
     /// Enumerate potential return states from Init, Setup, and DoAction.
     enum RetType { OK=0, ///< Everything OK, normal return.
                    ERR,  ///< Problem occurred.

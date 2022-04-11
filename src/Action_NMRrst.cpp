@@ -8,15 +8,29 @@
 #include "CpptrajStdio.h"
 #include "AtomMap.h"
 #include "ViewRst.h"
+#include "BufferedLine.h"
+#include "DistRoutines.h"
 
 // CONSTRUCTOR
-Action_NMRrst::Action_NMRrst() : Action(HIDDEN),
-   findOutput_(0), specOutput_(0), masterDSL_(0), numNoePairs_(0), max_cut_(6.0),
-   strong_cut_(2.9), medium_cut_(3.5), weak_cut_(5.0),
-   resOffset_(0), debug_(0), nframes_(0), useMass_(false),
-   findNOEs_(false), series_(false),
+Action_NMRrst::Action_NMRrst() :
+   findOutput_(0),
+   specOutput_(0),
+   masterDSL_(0),
+   numNoePairs_(0),
+   max_cut_(6.0),
+   strong_cut_(2.9),
+   medium_cut_(3.5),
+   weak_cut_(5.0),
+   resOffset_(0),
+   debug_(0),
+   nframes_(0),
+   useMass_(false),
+   findNOEs_(false),
+   series_(false),
    rsttop_(0)
-{} 
+{
+  SetHidden(true);
+} 
 
 void Action_NMRrst::Help() const {
   mprintf("\t[file <rstfile>] [name <dataname>] [geom] [noimage] [resoffset <r>]\n"
@@ -47,14 +61,14 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, ActionInit& init, int d
 {
 # ifdef MPI
   if (init.TrajComm().Size() > 1) {
-    mprinterr("Error: 'nmrrst' action does not work with > 1 thread (%i threads currently).\n",
+    mprinterr("Error: 'nmrrst' action does not work with > 1 process (%i processes currently).\n",
               init.TrajComm().Size());
     return Action::ERR;
   }
 # endif
   debug_ = debugIn;
   // Get Keywords
-  Image_.InitImaging( !(actionArgs.hasKey("noimage")) );
+  imageOpt_.InitImaging( !(actionArgs.hasKey("noimage")) );
   useMass_ = !(actionArgs.hasKey("geom"));
   findNOEs_ = actionArgs.hasKey("findnoes");
   findOutput_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("findout"), "Found NOEs",
@@ -77,7 +91,7 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, ActionInit& init, int d
   nframes_ = 0;
 
   // Atom Mask
-  Mask_.SetMaskString( actionArgs.GetMaskNext() );
+  if (Mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
 
   // Pairs specified on command line.
   std::string pair1 = actionArgs.GetStringKey("pair");
@@ -109,8 +123,8 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, ActionInit& init, int d
     TranslateAmbiguous( noe->aName1_ ); 
     TranslateAmbiguous( noe->aName2_ );
     // Create mask expressions from resnum/atom name
-    noe->dMask1_.SetMaskString( MaskExpression( noe->resNum1_, noe->aName1_ ) ); 
-    noe->dMask2_.SetMaskString( MaskExpression( noe->resNum2_, noe->aName2_ ) ); 
+    if (noe->dMask1_.SetMaskString( MaskExpression( noe->resNum1_, noe->aName1_ ) )) return Action::ERR; 
+    if (noe->dMask2_.SetMaskString( MaskExpression( noe->resNum2_, noe->aName2_ ) )) return Action::ERR; 
     // Dataset to store distances
     AssociatedData_NOE noeData(noe->bound_, noe->boundh_, noe->rexp_);
     MetaData md(setname_, "NOE", num_noe);
@@ -148,7 +162,7 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, ActionInit& init, int d
       mprintf("\t\t[%s] to [%s]\n", mp->first.MaskString(), mp->second.MaskString());
     mprintf("\tSpecified NOE data will be written to '%s'\n", specOutput_->Filename().full());
   }
-  if (!Image_.UseImage()) 
+  if (!imageOpt_.UseImage()) 
     mprintf("\tNon-imaged");
   else
     mprintf("\tImaged");
@@ -390,7 +404,7 @@ Action::RetType Action_NMRrst::Setup(ActionSetup& setup) {
     for (SiteArray::const_iterator site = potentialSites.begin();
                                    site != potentialSites.end(); ++site)
     {
-      mprintf("  %u\tRes %i:", site - potentialSites.begin(), site->ResNum()+1);
+      mprintf("  %li\tRes %i:", site - potentialSites.begin(), site->ResNum()+1);
       for (unsigned int idx = 0; idx != site->Nindices(); ++idx)
         mprintf(" %s", setup.Top().TruncAtomNameNum( site->Idx(idx) ).c_str());
       mprintf("\n");
@@ -467,8 +481,8 @@ Action::RetType Action_NMRrst::Setup(ActionSetup& setup) {
     }
   } 
   // Set up imaging info for this parm
-  Image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
-  if (Image_.ImagingEnabled())
+  imageOpt_.SetupImaging( setup.CoordInfo().TrajBox().HasBox() );
+  if (imageOpt_.ImagingEnabled())
     mprintf("\tImaged.\n");
   else
     mprintf("\tImaging off.\n");
@@ -503,10 +517,10 @@ void Action_NMRrst::ProcessNoeArray(NOEtypeArray& Narray, Frame const& frameIn, 
     {
       for (unsigned int idx2 = 0; idx2 != my_noe->Site2().Nindices(); ++idx2)
       {
-        double dist2 = DIST2(frameIn.XYZ(my_noe->Site1().Idx(idx1)),
+        double dist2 = DIST2(imageOpt_.ImagingType(),
+                             frameIn.XYZ(my_noe->Site1().Idx(idx1)),
                              frameIn.XYZ(my_noe->Site2().Idx(idx2)),
-                             Image_.ImageType(), frameIn.BoxCrd(),
-                             ucell_, recip_);
+                             frameIn.BoxCrd());
         if (shortest_dist2 < 0.0 || dist2 < shortest_dist2) {
           shortest_dist2 = dist2;
           shortest_idx1 = idx1;
@@ -521,11 +535,10 @@ void Action_NMRrst::ProcessNoeArray(NOEtypeArray& Narray, Frame const& frameIn, 
 
 // Action_NMRrst::DoAction()
 Action::RetType Action_NMRrst::DoAction(int frameNum, ActionFrame& frm) {
-  double Dist;
   Vec3 a1, a2;
 
-  if (Image_.ImageType() == NONORTHO)
-    frm.Frm().BoxCrd().ToRecip(ucell_, recip_);
+  if (imageOpt_.ImagingEnabled())
+    imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
   // NOEs from file.
   for (noeDataArray::iterator noe = NOEs_.begin(); noe != NOEs_.end(); ++noe) {
     if ( noe->active_ ) {
@@ -537,12 +550,8 @@ Action::RetType Action_NMRrst::DoAction(int frameNum, ActionFrame& frm) {
         a2 = frm.Frm().VGeometricCenter( noe->dMask2_ );
       }
 
-      switch ( Image_.ImageType() ) {
-        case NONORTHO: Dist = DIST2_ImageNonOrtho(a1, a2, ucell_, recip_); break;
-        case ORTHO: Dist = DIST2_ImageOrtho(a1, a2, frm.Frm().BoxCrd()); break;
-        case NOIMAGE: Dist = DIST2_NoImage(a1, a2); break;
-      }
-      Dist = sqrt(Dist);
+      double Dist = DIST(imageOpt_.ImagingType(), a1, a2, frm.Frm().BoxCrd());
+
       noe->dist_->Add(frameNum, &Dist);
     }
   }
