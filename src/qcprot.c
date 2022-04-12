@@ -245,6 +245,7 @@ FastCalcRMSDAndRotation(double *rot, double *A, double *rmsd, double E0, double 
     rms = sqrt(fabs(2.0 * (E0 - mxEigenV)/len));
     (*rmsd) = rms;
     /* printf("\n\n %16g %16g %16g \n", rms, E0, 2.0 * (E0 - mxEigenV)/len); */
+    if (rot == 0) return (-1);
 
     if (minScore > 0)
         if (rms < minScore)

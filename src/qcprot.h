@@ -128,22 +128,19 @@ extern "C" {
 */
 //double InnerProduct(double *A, double **coords1, double **coords2, const int len, const double *weight);
 
-/* Calculate the RMSD, and/or the optimal rotation matrix.
-
-        Input:
-                A[9]    -- the inner product of two structures
-                E0      -- (G1 + G2) * 0.5
-                len     -- the size of the system
-                minScore-- if( minScore > 0 && rmsd < minScore) then calculate only the rmsd;
-                           otherwise, calculate both the RMSD & the rotation matrix
-        Output:
-                rot[9]   -- the rotation matrix in the order of xx, xy, xz, yx, yy, yz, zx, zy, zz
-                rmsd     -- the RMSD value
-        Return:
-                only the rmsd was calculated if < 0
-                both the RMSD & rotational matrix calculated if > 0
-*/
-int FastCalcRMSDAndRotation(double *rot, double *A, double *rmsd, double E0, double wsum, double minScore);
+/** Calculate the RMSD, and/or the optimal rotation matrix.
+  * \param rot  -- Output rotation matrix (order of xx, xy, xz, yx, yy, yz, zx, zy, zz).
+  *                If null, do not calculate rotation matrix.
+  * \param A[9] -- the inner product (coordinate covariance matrix) of two structures.
+  * \param rmsd -- Output RMSD value.
+  * \param E0   -- (G1 + G2) * 0.5
+  * \param len  -- The size of the system (total mass if mass-weighted, # atoms otherwise).
+  * \param minScore -- if( minScore > 0 && rmsd < minScore) then calculate only the rmsd;
+                           otherwise, calculate both the RMSD & the rotation matrix.
+  * \return -1 if only the RMSD was calculated.
+  * \return >= 0 If rotation matrix and RMSD were calculated.
+  */
+int FastCalcRMSDAndRotation(double *rot, double *A, double *rmsd, double E0, double len, double minScore);
 
 /* Center the coordinates.
 
