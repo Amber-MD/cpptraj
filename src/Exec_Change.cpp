@@ -1,6 +1,8 @@
 #include "Exec_Change.h"
+#include "CharMask.h"
 #include "CpptrajStdio.h"
 #include "TypeNameHolder.h"
+#include "ParameterTypes.h"
 
 // Exec_Change::Help()
 void Exec_Change::Help() const
@@ -14,6 +16,7 @@ void Exec_Change::Help() const
           "\t  atomname from <mask> to <value> |\n"
           "\t  addbond <mask1> <mask2> [req <length> <rk> <force constant>] |\n"
           "\t  removebonds <mask1> [<mask2>] [out <file>]}\n"
+          "\t  bondparm <make1> [<mask2>] {setrk|scalerk|setreq|scalereq} <value>\n"
           "  Change specified parts of topology or topology of a COORDS data set.\n",
           DataSetList::TopArgs);
 }
@@ -23,7 +26,7 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
 {
   // Change type
   enum ChangeType { UNKNOWN = 0, RESNAME, CHAINID, ORESNUMS, ICODES,
-                    ATOMNAME, ADDBOND, REMOVEBONDS, SPLITRES };
+                    ATOMNAME, ADDBOND, REMOVEBONDS, SPLITRES, BONDPARM };
   ChangeType type = UNKNOWN;
   if (argIn.hasKey("resname"))
     type = RESNAME;
@@ -39,6 +42,8 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
     type = ADDBOND;
   else if (argIn.hasKey("removebonds"))
     type = REMOVEBONDS;
+  else if (argIn.hasKey("bondparm"))
+    type = BONDPARM;
   else if (argIn.hasKey("splitres"))
     type = SPLITRES;
   if (type == UNKNOWN) {
@@ -70,6 +75,7 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
     case ATOMNAME : err = ChangeAtomName(*parm, argIn); break;
     case ADDBOND  : err = AddBond(*parm, argIn); break;
     case REMOVEBONDS : err = RemoveBonds(State, *parm, argIn); break;
+    case BONDPARM    : err = ChangeBondParameters(*parm, argIn); break;
     case SPLITRES    : err = ChangeSplitRes(*parm, argIn); break;
     case UNKNOWN  : err = 1; // sanity check
   }
@@ -433,7 +439,6 @@ int Exec_Change::RemoveBonds(CpptrajState& State, Topology& topIn, ArgList& argI
 
   return 0;
 }
-  
 
 // Exec_Change::AddBond()
 int Exec_Change::AddBond(Topology& topIn, ArgList& argIn) const {
@@ -499,3 +504,91 @@ int Exec_Change::AddBond(Topology& topIn, ArgList& argIn) const {
 
   return 0;
 }
+
+/** Change/scale bond force constants. */
+int Exec_Change::ChangeBondParameters(Topology& topIn, ArgList& argIn) const {
+  CharMask mask1, mask2;
+  std::string str1 = argIn.GetMaskNext();
+  if (str1.empty()) {
+    mprinterr("Error: Must specify at least 1 atom mask.\n");
+    return 1;
+  }
+  if (mask1.SetMaskString( str1 )) return 1;
+  if (topIn.SetupCharMask( mask1 )) return 1;
+  if (mask1.None()) {
+    mprinterr("Error: %s selects no atoms.\n", str1.c_str());
+    return 1;
+  }
+  std::string str2 = argIn.GetMaskNext();
+  if (!str2.empty()) {
+    if (mask2.SetMaskString( str2 )) return 1;
+    if (topIn.SetupCharMask( mask2 )) return 1;
+    if (mask2.None()) {
+      mprinterr("Error: %s selects no atoms.\n", str2.c_str());
+      return 1;
+    }
+  }
+  // Determine if we are setting or scaling
+  enum ModeType { SET_RK = 0, SET_REQ, SCALE_RK, SCALE_REQ };
+  ModeType mode;
+  double dval = 0;
+  if (argIn.Contains("setrk")) {
+    mode = SET_RK;
+    dval = argIn.getKeyDouble("setrk", 0);
+  } else if (argIn.Contains("scalerk")) {
+    mode = SCALE_RK;
+    dval = argIn.getKeyDouble("scalerk", 0);
+  } else if (argIn.Contains("setreq")) {
+    mode = SET_REQ;
+    dval = argIn.getKeyDouble("setreq", 0);
+  } else if (argIn.Contains("scalereq")) {
+    mode = SCALE_REQ;
+    dval = argIn.getKeyDouble("scalereq", 0);
+  } else {
+    mprinterr("Error: Must specify one of 'setrk', 'scalerk', 'setreq', 'scalereq'.\n");
+    return 1;
+  }
+
+  static const char* ModeTypeStr[] = {"set RK to", "set REQ to", "scale RK by", "scale REQ by"};
+  mprintf("\tWill %s %f\n", ModeTypeStr[mode], dval);
+
+  // Get the list of bonds to modify
+  BondArray bondsToModify;
+  if (mask2.MaskStringSet()) {
+    // Atom 1 must be in mask1, atom 2 in mask2
+    for (BondArray::const_iterator it = topIn.Bonds().begin(); it != topIn.Bonds().end(); ++it)
+      if (mask1.AtomInCharMask(it->A1()) && mask2.AtomInCharMask(it->A2()))
+        bondsToModify.push_back( *it );
+     for (BondArray::const_iterator it = topIn.BondsH().begin(); it != topIn.BondsH().end(); ++it)
+      if (mask1.AtomInCharMask(it->A1()) && mask2.AtomInCharMask(it->A2()))
+        bondsToModify.push_back( *it );
+  } else {
+    for (BondArray::const_iterator it = topIn.Bonds().begin(); it != topIn.Bonds().end(); ++it)
+      if (mask1.AtomInCharMask(it->A1()) && mask1.AtomInCharMask(it->A2()))
+        bondsToModify.push_back( *it );
+     for (BondArray::const_iterator it = topIn.BondsH().begin(); it != topIn.BondsH().end(); ++it)
+      if (mask1.AtomInCharMask(it->A1()) && mask1.AtomInCharMask(it->A2()))
+        bondsToModify.push_back( *it );
+  }
+  mprintf("\tBonds to modify (%zu):\n", bondsToModify.size());
+  for (BondArray::const_iterator it = bondsToModify.begin(); it != bondsToModify.end(); ++it)
+    mprintf("\t\t%s to %s\n",
+            topIn.TruncResAtomName( it->A1() ).c_str(),
+            topIn.TruncResAtomName( it->A2() ).c_str());
+
+  // Remove, modify, add back.
+  for (BondArray::const_iterator it = bondsToModify.begin(); it != bondsToModify.end(); ++it)
+  {
+    BondParmType bp = topIn.BondParm()[it->Idx()];
+    topIn.RemoveBond(it->A1(), it->A2());
+    switch (mode) {
+      case SET_RK    : bp.SetRk( dval ); break;
+      case SCALE_RK  : bp.SetRk( bp.Rk() * dval ); break;
+      case SET_REQ   : bp.SetReq( dval ); break;
+      case SCALE_REQ : bp.SetReq( bp.Req() * dval ); break;
+    }
+    topIn.AddBond(it->A1(), it->A2(), bp);
+  }
+
+  return 0;
+} 
