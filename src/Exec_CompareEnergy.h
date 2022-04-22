@@ -10,5 +10,10 @@ class Exec_CompareEnergy : public Exec {
     RetType Execute(CpptrajState&, ArgList&);
   private:
     static DataSet_Coords* GetCoordsSet(DataSetList const&, std::string const&);
+    static int GetEnergies(DataSet_Coords*, DataSet_Coords*);
+    static void CalcBondEnergy(Frame const&, BondArray const&, BondParmArray const&,
+                               Frame const&, BondArray const&, BondParmArray const&);
+    static void BondEnergy(Frame const&, Topology const&,
+                           Frame const&, Topology const&);
 };
 #endif
