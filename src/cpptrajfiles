@@ -250,6 +250,7 @@ COMMON_SOURCES= \
         Exec_CombineCoords.cpp \
         Exec_Commands.cpp \
         Exec_CompareClusters.cpp \
+        Exec_CompareEnergy.cpp \
         Exec_CompareTop.cpp \
         Exec_CrdAction.cpp \
         Exec_CrdOut.cpp \

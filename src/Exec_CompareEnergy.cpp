@@ -73,6 +73,10 @@ void Exec_CompareEnergy::CalcBondEnergy(Frame const& frame0,
     }
     double ene0 = EBOND(frame0, bonds0[bidx], bpa0);
     double ene1 = EBOND(frame1, bonds1[bidx], bpa1);
+    double delta = ene0 - ene1;
+    mprintf("\t%8i %8i %12.4f %12.4f %12.4f\n",
+            bonds0[bidx].A1()+1, bonds0[bidx].A2()+1,
+            ene0, ene1, delta);
   }
 
 }
@@ -131,6 +135,8 @@ Exec::RetType Exec_CompareEnergy::Execute(CpptrajState& State, ArgList& argIn)
   if (crd0 == 0) return CpptrajState::ERR;
   DataSet_Coords* crd1 = GetCoordsSet(State.DSL(), argIn.GetStringKey("crd1"));
   if (crd1 == 0) return CpptrajState::ERR;
+
+  if (GetEnergies(crd0, crd1)) return CpptrajState::ERR;
 
   return CpptrajState::OK;
 }
