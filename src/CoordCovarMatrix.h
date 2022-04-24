@@ -4,20 +4,21 @@ template <class T> class CoordCovarMatrix {
   public:
     CoordCovarMatrix() {}
     /// Calculate covariance matrix of centered Coords and Reference (R = Xt * Ref)
-    T CalcCovariance_MassWt(int ncoord, T const* Ref, T const* Tgt, T const* Mass) {
+    T CalcCovariance_MassWt(int nselected, const int* imask, T const* Ref, T const* Tgt, T const* Mass) {
       T mwss = 0.0;
       for (unsigned int idx = 0; idx != 9; idx++)
         rot_[idx] = 0;
-      int im = 0;
-      for (int i = 0; i < ncoord; i += 3, im++)
+      for (int aidx = 0; aidx != nselected; aidx++)
       {
+        int at = imask[aidx];
+        int i = at * 3;
         T xt = Tgt[i  ];
         T yt = Tgt[i+1];
         T zt = Tgt[i+2];
         T xr = Ref[i  ];
         T yr = Ref[i+1];
         T zr = Ref[i+2];
-        T atom_mass = Mass[im];
+        T atom_mass = Mass[at];
         mwss += atom_mass * ( (xt*xt)+(yt*yt)+(zt*zt)+(xr*xr)+(yr*yr)+(zr*zr) );
         rot_[0] += atom_mass*xt*xr;
         rot_[1] += atom_mass*xt*yr;
