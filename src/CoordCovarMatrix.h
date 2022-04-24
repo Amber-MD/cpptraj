@@ -3,7 +3,7 @@
 template <class T> class CoordCovarMatrix {
   public:
     CoordCovarMatrix() {}
-    /// Calculate covariance matrix of centered Coords and Reference (R = Xt * Ref)
+    /// Calculate mass-weighted covariance matrix of centered Coords and Reference (R = Xt * Ref)
     T CalcCovariance_MassWt(int nselected, const int* imask, T const* Ref, T const* Tgt, T const* Mass) {
       T mwss = 0.0;
       for (unsigned int idx = 0; idx != 9; idx++)
