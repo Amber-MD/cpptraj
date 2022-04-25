@@ -13,8 +13,8 @@ class Exec_CompareEnergy : public Exec {
   private:
     static DataSet_Coords* GetCoordsSet(DataSetList const&, std::string const&);
     int GetEnergies(DataSet_Coords*, DataSet_Coords*) const;
-    void CalcBondEnergy(Frame const&, BondArray const&, BondParmArray const&,
-                        Frame const&, BondArray const&, BondParmArray const&,
+    void CalcBondEnergy(Topology const&, Frame const&, BondArray const&, BondParmArray const&,
+                        Topology const&, Frame const&, BondArray const&, BondParmArray const&,
                         double&, double&, Stats<double>&, Stats<double>&) const;
     void BondEnergy(Frame const&, Topology const&,
                     Frame const&, Topology const&) const;

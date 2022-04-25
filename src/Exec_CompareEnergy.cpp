@@ -62,9 +62,11 @@ static inline double EBOND(Frame const& frame0,
 }
 
 /** Compare bond energies between two frames. */
-void Exec_CompareEnergy::CalcBondEnergy(Frame const& frame0,
+void Exec_CompareEnergy::CalcBondEnergy(Topology const& top0,
+                                        Frame const& frame0,
                                         BondArray const& bonds0,
                                         BondParmArray const& bpa0,
+                                        Topology const& top1,
                                         Frame const& frame1,
                                         BondArray const& bonds1,
                                         BondParmArray const& bpa1,
@@ -93,9 +95,10 @@ const
       E0 += ene0;
       double ene1 = EBOND(frame1, bonds1[bidx], bpa1);
       E1 += ene1;
-      double delta = ene0 - ene1;
-      bondout_->Printf("\t%8i %8i %12.4f %12.4f %12.4f\n",
-                       bonds0[bidx].A1()+1, bonds0[bidx].A2()+1,
+      double delta = ene1 - ene0;
+      bondout_->Printf("%-12s %-12s %12.4f %12.4f %12.4f\n",
+                       top0.TruncResAtomName(bonds0[bidx].A1()).c_str(),
+                       top0.TruncResAtomName(bonds0[bidx].A2()).c_str(),
                        ene0, ene1, delta);
       avgDelta.accumulate( delta );
       avgDelta2.accumulate( delta*delta );
@@ -112,10 +115,10 @@ const
   Stats<double> avgDelta, avgDelta2;
   double E0 = 0;
   double E1 = 0;
-  CalcBondEnergy(frame0, top0.Bonds(), top0.BondParm(),
-                 frame1, top1.Bonds(), top1.BondParm(), E0, E1, avgDelta, avgDelta2);
-  CalcBondEnergy(frame0, top0.BondsH(), top0.BondParm(),
-                 frame1, top1.BondsH(), top1.BondParm(), E0, E1, avgDelta, avgDelta2);
+  CalcBondEnergy(top0, frame0, top0.Bonds(), top0.BondParm(),
+                 top1, frame1, top1.Bonds(), top1.BondParm(), E0, E1, avgDelta, avgDelta2);
+  CalcBondEnergy(top0, frame0, top0.BondsH(), top0.BondParm(),
+                 top1, frame1, top1.BondsH(), top1.BondParm(), E0, E1, avgDelta, avgDelta2);
   double rmse = sqrt( avgDelta2.mean() );
   bondout_->Printf("Bond E0      = %f\n", E0);
   bondout_->Printf("Bond E1      = %f\n", E1);
