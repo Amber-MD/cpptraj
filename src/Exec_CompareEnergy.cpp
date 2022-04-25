@@ -1,11 +1,14 @@
 #include <cmath>
 #include "Exec_CompareEnergy.h"
 #include "CpptrajStdio.h"
+#include "DataSet_double.h"
 #include "EnergyKernel_HarmonicBond.h"
 
 /** CONSRUCTOR */
 Exec_CompareEnergy::Exec_CompareEnergy() :
-  Exec(GENERAL)
+  Exec(GENERAL),
+  bondout_(0),
+  bondDelta_(0)
 {
   SetHidden(true);
 }
@@ -47,7 +50,8 @@ template <typename T> T Distance2Kernel(T const* a1, T const* a2) {
 /// \return Energy for given bond
 static inline double EBOND(Frame const& frame0,
                            BondType const& b0,
-                           BondParmArray const& bpa0)
+                           BondParmArray const& bpa0,
+                           double& r0)
 {
   if (b0.Idx() < 0) {
     mprintf("Warning: Bond %i -- %i has no parameters.\n", b0.A1()+1, b0.A2()+1);
@@ -56,8 +60,8 @@ static inline double EBOND(Frame const& frame0,
   BondParmType const& bp0 = bpa0[b0.Idx()];
   double r20 = Distance2Kernel<double>( frame0.XYZ(b0.A1()),
                                         frame0.XYZ(b0.A2()) );
-  double ene = EnergyKernel_HarmonicBond<double>( sqrt(r20),
-                                                  bp0.Rk(), bp0.Req() );
+  r0 = sqrt(r20);
+  double ene = EnergyKernel_HarmonicBond<double>( r0, bp0.Rk(), bp0.Req() );
   return ene;
 }
 
@@ -90,16 +94,19 @@ const
     if ( (mask1_.AtomInCharMask(bonds0[bidx].A1()) && mask2_.AtomInCharMask(bonds0[bidx].A2())) || 
          (mask1_.AtomInCharMask(bonds0[bidx].A2()) && mask2_.AtomInCharMask(bonds0[bidx].A1())) )
     {
-
-      double ene0 = EBOND(frame0, bonds0[bidx], bpa0);
+      double r0 = 0;
+      double r1 = 0;
+      double ene0 = EBOND(frame0, bonds0[bidx], bpa0, r0);
       E0 += ene0;
-      double ene1 = EBOND(frame1, bonds1[bidx], bpa1);
+      double ene1 = EBOND(frame1, bonds1[bidx], bpa1, r1);
       E1 += ene1;
       double delta = ene1 - ene0;
-      bondout_->Printf("%-12s %-12s %12.4f %12.4f %12.4f\n",
+      double rdelta = r1 - r0;
+      bondDelta_->AddElement( delta );
+      bondout_->Printf("%-12s %-12s %12.4f %12.4f %12.4f %12.4f %12.4f %12.4f\n",
                        top0.TruncResAtomName(bonds0[bidx].A1()).c_str(),
                        top0.TruncResAtomName(bonds0[bidx].A2()).c_str(),
-                       ene0, ene1, delta);
+                       ene0, ene1, delta, r0, r1, rdelta);
       avgDelta.accumulate( delta );
       avgDelta2.accumulate( delta*delta );
     }
@@ -120,10 +127,10 @@ const
   CalcBondEnergy(top0, frame0, top0.BondsH(), top0.BondParm(),
                  top1, frame1, top1.BondsH(), top1.BondParm(), E0, E1, avgDelta, avgDelta2);
   double rmse = sqrt( avgDelta2.mean() );
-  bondout_->Printf("Bond E0      = %f\n", E0);
-  bondout_->Printf("Bond E1      = %f\n", E1);
-  bondout_->Printf("Bond <delta> = %f\n", avgDelta.mean());
-  bondout_->Printf("Bond RMSE    = %f\n", rmse);
+  bondout_->Printf("#Bond E0      = %f\n", E0);
+  bondout_->Printf("#Bond E1      = %f\n", E1);
+  bondout_->Printf("#Bond <delta> = %f\n", avgDelta.mean());
+  bondout_->Printf("#Bond RMSE    = %f\n", rmse);
 }
   
 /** Compare energies between two coords sets. */
@@ -179,6 +186,13 @@ Exec::RetType Exec_CompareEnergy::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Internal Error: Could not allocate bond comparison file.\n");
     return CpptrajState::ERR;
   }
+
+  std::string dsname = argIn.GetStringKey("name");
+  if (dsname.empty())
+    dsname = State.DSL().GenerateDefaultName("ECOMPARE");
+  bondDelta_ = (DataSet_double*)State.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname, "bonddelta"));
+  if (bondDelta_ == 0) return CpptrajState::ERR;
+  mprintf("\tBond delta set: %s\n", bondDelta_->legend());
 
   mask1_.SetMaskString( argIn.GetStringKey("mask1") );
   mask2_.SetMaskString( argIn.GetStringKey("mask2") );

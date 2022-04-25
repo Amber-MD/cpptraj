@@ -3,6 +3,7 @@
 #include "Exec.h"
 #include "CharMask.h"
 #include "OnlineVarT.h"
+class DataSet_double;
 /// <Enter description of Exec_CompareEnergy here>
 class Exec_CompareEnergy : public Exec {
   public:
@@ -22,5 +23,6 @@ class Exec_CompareEnergy : public Exec {
     CharMask mask1_;
     CharMask mask2_;
     CpptrajFile* bondout_;
+    DataSet_double* bondDelta_;
 };
 #endif
