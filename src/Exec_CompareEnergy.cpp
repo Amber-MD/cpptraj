@@ -69,6 +69,7 @@ void Exec_CompareEnergy::CalcBondEnergy(Frame const& frame0,
                                         BondArray const& bonds1,
                                         BondParmArray const& bpa1,
                                         double& E0, double& E1,
+                                        Stats<double>& avgDelta,
                                         Stats<double>& avgDelta2)
 const
 {
@@ -84,7 +85,7 @@ const
               bonds0[bidx].A1()+1, bonds0[bidx].A2()+1, bonds1[bidx].A1()+1, bonds1[bidx].A2()+1);
       continue;
     }
-    if ( (mask1_.AtomInCharMask(bonds0[bidx].A1()) && mask2_.AtomInCharMask(bonds0[bidx].A2())) &&
+    if ( (mask1_.AtomInCharMask(bonds0[bidx].A1()) && mask2_.AtomInCharMask(bonds0[bidx].A2())) || 
          (mask1_.AtomInCharMask(bonds0[bidx].A2()) && mask2_.AtomInCharMask(bonds0[bidx].A1())) )
     {
 
@@ -96,6 +97,7 @@ const
       bondout_->Printf("\t%8i %8i %12.4f %12.4f %12.4f\n",
                        bonds0[bidx].A1()+1, bonds0[bidx].A2()+1,
                        ene0, ene1, delta);
+      avgDelta.accumulate( delta );
       avgDelta2.accumulate( delta*delta );
     }
   }
@@ -107,17 +109,18 @@ void Exec_CompareEnergy::BondEnergy(Frame const& frame0, Topology const& top0,
                                     Frame const& frame1, Topology const& top1)
 const
 {
-  Stats<double> avgDelta2;
+  Stats<double> avgDelta, avgDelta2;
   double E0 = 0;
   double E1 = 0;
   CalcBondEnergy(frame0, top0.Bonds(), top0.BondParm(),
-                 frame1, top1.Bonds(), top1.BondParm(), E0, E1, avgDelta2);
+                 frame1, top1.Bonds(), top1.BondParm(), E0, E1, avgDelta, avgDelta2);
   CalcBondEnergy(frame0, top0.BondsH(), top0.BondParm(),
-                 frame1, top1.BondsH(), top1.BondParm(), E0, E1, avgDelta2);
+                 frame1, top1.BondsH(), top1.BondParm(), E0, E1, avgDelta, avgDelta2);
   double rmse = sqrt( avgDelta2.mean() );
-  bondout_->Printf("Bond E0   = %f\n", E0);
-  bondout_->Printf("Bond E1   = %f\n", E1);
-  bondout_->Printf("Bond RMSE = %f\n", rmse);
+  bondout_->Printf("Bond E0      = %f\n", E0);
+  bondout_->Printf("Bond E1      = %f\n", E1);
+  bondout_->Printf("Bond <delta> = %f\n", avgDelta.mean());
+  bondout_->Printf("Bond RMSE    = %f\n", rmse);
 }
   
 /** Compare energies between two coords sets. */
