@@ -195,6 +195,7 @@ COMMON_SOURCES= \
         DataSet_3D.cpp \
         DataSet_Coords.cpp \
         DataSet_Coords_CRD.cpp \
+        DataSet_Coords_FRM.cpp \
         DataSet_Coords_REF.cpp \
         DataSet_Coords_TRJ.cpp \
         DataSet_GridDbl.cpp \
