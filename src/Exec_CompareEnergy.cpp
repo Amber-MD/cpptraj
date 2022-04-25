@@ -1,3 +1,4 @@
+#include <cmath>
 #include "Exec_CompareEnergy.h"
 #include "CpptrajStdio.h"
 #include "EnergyKernel_HarmonicBond.h"
@@ -66,7 +67,9 @@ void Exec_CompareEnergy::CalcBondEnergy(Frame const& frame0,
                                         BondParmArray const& bpa0,
                                         Frame const& frame1,
                                         BondArray const& bonds1,
-                                        BondParmArray const& bpa1)
+                                        BondParmArray const& bpa1,
+                                        double& E0, double& E1,
+                                        Stats<double>& avgDelta2)
 const
 {
   if (bonds0.size() != bonds1.size()) {
@@ -86,11 +89,14 @@ const
     {
 
       double ene0 = EBOND(frame0, bonds0[bidx], bpa0);
+      E0 += ene0;
       double ene1 = EBOND(frame1, bonds1[bidx], bpa1);
+      E1 += ene1;
       double delta = ene0 - ene1;
       bondout_->Printf("\t%8i %8i %12.4f %12.4f %12.4f\n",
                        bonds0[bidx].A1()+1, bonds0[bidx].A2()+1,
                        ene0, ene1, delta);
+      avgDelta2.accumulate( delta*delta );
     }
   }
 
@@ -101,10 +107,17 @@ void Exec_CompareEnergy::BondEnergy(Frame const& frame0, Topology const& top0,
                                     Frame const& frame1, Topology const& top1)
 const
 {
+  Stats<double> avgDelta2;
+  double E0 = 0;
+  double E1 = 0;
   CalcBondEnergy(frame0, top0.Bonds(), top0.BondParm(),
-                 frame1, top1.Bonds(), top1.BondParm());
+                 frame1, top1.Bonds(), top1.BondParm(), E0, E1, avgDelta2);
   CalcBondEnergy(frame0, top0.BondsH(), top0.BondParm(),
-                 frame1, top1.BondsH(), top1.BondParm());
+                 frame1, top1.BondsH(), top1.BondParm(), E0, E1, avgDelta2);
+  double rmse = sqrt( avgDelta2.mean() );
+  bondout_->Printf("Bond E0   = %f\n", E0);
+  bondout_->Printf("Bond E1   = %f\n", E1);
+  bondout_->Printf("Bond RMSE = %f\n", rmse);
 }
   
 /** Compare energies between two coords sets. */

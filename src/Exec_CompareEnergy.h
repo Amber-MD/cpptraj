@@ -2,6 +2,7 @@
 #define INC_EXEC_COMPAREENERGY_H
 #include "Exec.h"
 #include "CharMask.h"
+#include "OnlineVarT.h"
 /// <Enter description of Exec_CompareEnergy here>
 class Exec_CompareEnergy : public Exec {
   public:
@@ -13,7 +14,8 @@ class Exec_CompareEnergy : public Exec {
     static DataSet_Coords* GetCoordsSet(DataSetList const&, std::string const&);
     int GetEnergies(DataSet_Coords*, DataSet_Coords*) const;
     void CalcBondEnergy(Frame const&, BondArray const&, BondParmArray const&,
-                        Frame const&, BondArray const&, BondParmArray const&) const;
+                        Frame const&, BondArray const&, BondParmArray const&,
+                        double&, double&, Stats<double>&) const;
     void BondEnergy(Frame const&, Topology const&,
                     Frame const&, Topology const&) const;
 
