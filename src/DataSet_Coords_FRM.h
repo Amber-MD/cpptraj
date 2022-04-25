@@ -23,10 +23,10 @@ class DataSet_Coords_FRM : public DataSet_Coords {
     void Add(size_t, const void*);
     /// Reserve memory using given array of dimensions
     int Allocate(SizeArray const&);
-    /// \return Size of set in bytes
-    size_t MemUsageInBytes() const;
     /// Allocate array using given array of dimensions
     int MemAlloc(SizeArray const&);
+    /// \return Size of set in bytes
+    size_t MemUsageInBytes() const;
     /// Copy a block of the DataSet
     void CopyBlock(size_t, const DataSet*, size_t, size_t);
     // ----- DataSet_Coords functions ------------
