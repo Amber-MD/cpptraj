@@ -2,12 +2,20 @@
 #include "CpptrajStdio.h"
 #include "EnergyKernel_HarmonicBond.h"
 
+/** CONSRUCTOR */
+Exec_CompareEnergy::Exec_CompareEnergy() :
+  Exec(GENERAL)
+{
+  SetHidden(true);
+}
+
 // Exec_CompareEnergy::Help()
 void Exec_CompareEnergy::Help() const
 {
   mprintf("\tcrd0 <set0> crd1 <set1>\n");
 }
 
+/** \return COORDINATES set corresponding to setname. */
 DataSet_Coords* Exec_CompareEnergy::GetCoordsSet(DataSetList const& DSL,
                                                  std::string const& setname)
 {
@@ -24,6 +32,7 @@ DataSet_Coords* Exec_CompareEnergy::GetCoordsSet(DataSetList const& DSL,
   return CRD;
 }
 
+/// For calculating non-imaged distance^2 between two xyz points
 template <typename T> T Distance2Kernel(T const* a1, T const* a2) {
   T x = a1[0] - a2[0];
   T y = a1[1] - a2[1];
@@ -34,7 +43,7 @@ template <typename T> T Distance2Kernel(T const* a1, T const* a2) {
   return (x*x + y*y + z*z);
 }
   
-
+/// \return Energy for given bond
 static inline double EBOND(Frame const& frame0,
                            BondType const& b0,
                            BondParmArray const& bpa0)
@@ -51,13 +60,14 @@ static inline double EBOND(Frame const& frame0,
   return ene;
 }
 
-
+/** Compare bond energies between two frames. */
 void Exec_CompareEnergy::CalcBondEnergy(Frame const& frame0,
                                         BondArray const& bonds0,
                                         BondParmArray const& bpa0,
                                         Frame const& frame1,
                                         BondArray const& bonds1,
                                         BondParmArray const& bpa1)
+const
 {
   if (bonds0.size() != bonds1.size()) {
     mprintf("Warning: Different # of bonds (%zu vs %zu)\n", bonds0.size(), bonds1.size());
@@ -71,20 +81,25 @@ void Exec_CompareEnergy::CalcBondEnergy(Frame const& frame0,
               bonds0[bidx].A1()+1, bonds0[bidx].A2()+1, bonds1[bidx].A1()+1, bonds1[bidx].A2()+1);
       continue;
     }
-    double ene0 = EBOND(frame0, bonds0[bidx], bpa0);
-    double ene1 = EBOND(frame1, bonds1[bidx], bpa1);
-    double delta = ene0 - ene1;
-    mprintf("\t%8i %8i %12.4f %12.4f %12.4f\n",
-            bonds0[bidx].A1()+1, bonds0[bidx].A2()+1,
-            ene0, ene1, delta);
+    if ( (mask1_.AtomInCharMask(bonds0[bidx].A1()) && mask2_.AtomInCharMask(bonds0[bidx].A2())) &&
+         (mask1_.AtomInCharMask(bonds0[bidx].A2()) && mask2_.AtomInCharMask(bonds0[bidx].A1())) )
+    {
+
+      double ene0 = EBOND(frame0, bonds0[bidx], bpa0);
+      double ene1 = EBOND(frame1, bonds1[bidx], bpa1);
+      double delta = ene0 - ene1;
+      bondout_->Printf("\t%8i %8i %12.4f %12.4f %12.4f\n",
+                       bonds0[bidx].A1()+1, bonds0[bidx].A2()+1,
+                       ene0, ene1, delta);
+    }
   }
 
 }
 
-
-
+/** Do bond energy comparison. */
 void Exec_CompareEnergy::BondEnergy(Frame const& frame0, Topology const& top0,
                                     Frame const& frame1, Topology const& top1)
+const
 {
   CalcBondEnergy(frame0, top0.Bonds(), top0.BondParm(),
                  frame1, top1.Bonds(), top1.BondParm());
@@ -92,8 +107,9 @@ void Exec_CompareEnergy::BondEnergy(Frame const& frame0, Topology const& top0,
                  frame1, top1.BondsH(), top1.BondParm());
 }
   
-
+/** Compare energies between two coords sets. */
 int Exec_CompareEnergy::GetEnergies(DataSet_Coords* crd0, DataSet_Coords* crd1)
+const
 {
   if (crd0->Size() < 1) {
     mprinterr("Error: '%s' has no frames.\n", crd0->legend());
@@ -135,6 +151,41 @@ Exec::RetType Exec_CompareEnergy::Execute(CpptrajState& State, ArgList& argIn)
   if (crd0 == 0) return CpptrajState::ERR;
   DataSet_Coords* crd1 = GetCoordsSet(State.DSL(), argIn.GetStringKey("crd1"));
   if (crd1 == 0) return CpptrajState::ERR;
+
+  bondout_ = State.DFL().AddCpptrajFile( argIn.GetStringKey("bondout"),
+                                                     "bond comparison",
+                                                     DataFileList::TEXT,
+                                                     true );
+  if (bondout_ == 0) {
+    mprinterr("Internal Error: Could not allocate bond comparison file.\n");
+    return CpptrajState::ERR;
+  }
+
+  mask1_.SetMaskString( argIn.GetStringKey("mask1") );
+  mask2_.SetMaskString( argIn.GetStringKey("mask2") );
+
+  mprintf("\tMask 1: %s\n", mask1_.MaskString());
+  mprintf("\tMask 2: %s\n", mask2_.MaskString());
+
+  if (crd0->Top().SetupCharMask( mask1_ )) {
+    mprinterr("Error: Setting up mask '%s' failed.\n", mask1_.MaskString());
+    return CpptrajState::ERR;
+  }
+  if (mask1_.None()) {
+    mprinterr("Error: No atoms selected by '%s'\n", mask1_.MaskString());
+    return CpptrajState::ERR;
+  }
+  if (crd0->Top().SetupCharMask( mask2_ )) {
+    mprinterr("Error: Setting up mask '%s' failed.\n", mask2_.MaskString());
+    return CpptrajState::ERR;
+  }
+  if (mask2_.None()) {
+    mprinterr("Error: No atoms selected by '%s'\n", mask2_.MaskString());
+    return CpptrajState::ERR;
+  }
+
+  mask1_.MaskInfo();
+  mask2_.MaskInfo();
 
   if (GetEnergies(crd0, crd1)) return CpptrajState::ERR;
 
