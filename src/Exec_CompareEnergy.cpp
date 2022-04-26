@@ -125,6 +125,9 @@ void Exec_CompareEnergy::BondEnergy(Frame const& frame0, Topology const& top0,
                                     Frame const& frame1, Topology const& top1)
 const
 {
+  bondout_->Printf("%-12s %-12s %12s %12s %12s %12s %12s %12s\n",
+                   "#Name0", "Name1", "Ene0", "Ene1", "Edelta", "R0", "R1", "Rdelta");
+
   Stats<double> avgEDelta, avgEDelta2, avgRDelta, avgRDelta2;
   double E0 = 0;
   double E1 = 0;
