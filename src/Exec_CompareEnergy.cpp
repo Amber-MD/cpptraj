@@ -8,7 +8,8 @@
 Exec_CompareEnergy::Exec_CompareEnergy() :
   Exec(GENERAL),
   bondout_(0),
-  bondDelta_(0)
+  bondDeltaE_(0),
+  bondDeltaR_(0)
 {
   SetHidden(true);
 }
@@ -75,8 +76,10 @@ void Exec_CompareEnergy::CalcBondEnergy(Topology const& top0,
                                         BondArray const& bonds1,
                                         BondParmArray const& bpa1,
                                         double& E0, double& E1,
-                                        Stats<double>& avgDelta,
-                                        Stats<double>& avgDelta2)
+                                        Stats<double>& avgEDelta,
+                                        Stats<double>& avgEDelta2,
+                                        Stats<double>& avgRDelta,
+                                        Stats<double>& avgRDelta2)
 const
 {
   if (bonds0.size() != bonds1.size()) {
@@ -100,15 +103,18 @@ const
       E0 += ene0;
       double ene1 = EBOND(frame1, bonds1[bidx], bpa1, r1);
       E1 += ene1;
-      double delta = ene1 - ene0;
+      double edelta = ene1 - ene0;
       double rdelta = r1 - r0;
-      bondDelta_->AddElement( delta );
+      bondDeltaE_->AddElement( edelta );
+      bondDeltaR_->AddElement( rdelta );
       bondout_->Printf("%-12s %-12s %12.4f %12.4f %12.4f %12.4f %12.4f %12.4f\n",
                        top0.TruncResAtomName(bonds0[bidx].A1()).c_str(),
                        top0.TruncResAtomName(bonds0[bidx].A2()).c_str(),
-                       ene0, ene1, delta, r0, r1, rdelta);
-      avgDelta.accumulate( delta );
-      avgDelta2.accumulate( delta*delta );
+                       ene0, ene1, edelta, r0, r1, rdelta);
+      avgEDelta.accumulate( edelta );
+      avgEDelta2.accumulate( edelta*edelta );
+      avgRDelta.accumulate( rdelta );
+      avgRDelta2.accumulate( rdelta*rdelta );
     }
   }
 
@@ -119,18 +125,23 @@ void Exec_CompareEnergy::BondEnergy(Frame const& frame0, Topology const& top0,
                                     Frame const& frame1, Topology const& top1)
 const
 {
-  Stats<double> avgDelta, avgDelta2;
+  Stats<double> avgEDelta, avgEDelta2, avgRDelta, avgRDelta2;
   double E0 = 0;
   double E1 = 0;
   CalcBondEnergy(top0, frame0, top0.Bonds(), top0.BondParm(),
-                 top1, frame1, top1.Bonds(), top1.BondParm(), E0, E1, avgDelta, avgDelta2);
+                 top1, frame1, top1.Bonds(), top1.BondParm(), E0, E1,
+                 avgEDelta, avgEDelta2, avgRDelta, avgRDelta2);
   CalcBondEnergy(top0, frame0, top0.BondsH(), top0.BondParm(),
-                 top1, frame1, top1.BondsH(), top1.BondParm(), E0, E1, avgDelta, avgDelta2);
-  double rmse = sqrt( avgDelta2.mean() );
-  bondout_->Printf("#Bond E0      = %f\n", E0);
-  bondout_->Printf("#Bond E1      = %f\n", E1);
-  bondout_->Printf("#Bond <delta> = %f\n", avgDelta.mean());
-  bondout_->Printf("#Bond RMSE    = %f\n", rmse);
+                 top1, frame1, top1.BondsH(), top1.BondParm(), E0, E1,
+                 avgEDelta, avgEDelta2, avgRDelta, avgRDelta2);
+  double ermse = sqrt( avgEDelta2.mean() );
+  double rrmse = sqrt( avgRDelta2.mean() );
+  bondout_->Printf("#Bond E0       = %f\n", E0);
+  bondout_->Printf("#Bond E1       = %f\n", E1);
+  bondout_->Printf("#Bond <edelta> = %f\n", avgEDelta.mean());
+  bondout_->Printf("#Bond ene RMSE = %f\n", ermse);
+  bondout_->Printf("#Bond <rdelta> = %f\n", avgRDelta.mean());
+  bondout_->Printf("#Bond len RMSE = %f\n", rrmse);
 }
   
 /** Compare energies between two coords sets. */
@@ -190,9 +201,12 @@ Exec::RetType Exec_CompareEnergy::Execute(CpptrajState& State, ArgList& argIn)
   std::string dsname = argIn.GetStringKey("name");
   if (dsname.empty())
     dsname = State.DSL().GenerateDefaultName("ECOMPARE");
-  bondDelta_ = (DataSet_double*)State.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname, "bonddelta"));
-  if (bondDelta_ == 0) return CpptrajState::ERR;
-  mprintf("\tBond delta set: %s\n", bondDelta_->legend());
+  bondDeltaE_ = (DataSet_double*)State.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname, "bondedelta"));
+  if (bondDeltaE_ == 0) return CpptrajState::ERR;
+  mprintf("\tBond energy delta set: %s\n", bondDeltaE_->legend());
+  bondDeltaR_ = (DataSet_double*)State.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname, "bondrdelta"));
+  if (bondDeltaR_ == 0) return CpptrajState::ERR;
+  mprintf("\tBond length delta set: %s\n", bondDeltaR_->legend());
 
   mask1_.SetMaskString( argIn.GetStringKey("mask1") );
   mask2_.SetMaskString( argIn.GetStringKey("mask2") );
