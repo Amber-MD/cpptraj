@@ -1,4 +1,5 @@
 #include <cmath>
+#include <cstdio> // sprintf
 #include "Exec_CompareEnergy.h"
 #include "CpptrajStdio.h"
 #include "DataSet_double.h"
@@ -99,60 +100,37 @@ class Eresults {
 
 
 template <typename T, typename P> void CalcEnergy( Eresults& result,
-                                                   Topology const& top0,
                                                    Frame const& frame0,
                                                    std::vector<T> const& tarray0,
                                                    std::vector<P> const& parray0,
-                                                   Topology const& top1,
                                                    Frame const& frame1,
                                                    std::vector<T> const& tarray1,
                                                    std::vector<P> const& parray1,
-                                                   CharMask const& mask1, CharMask const& mask2,
+                                                   std::vector<std::string> const& names,
                                                    double (*fxn)(Frame const&, T const&, P const&, double&) )
 {
-  if (tarray0.size() != tarray1.size()) {
-    mprintf("Warning: Different # of bonds (%zu vs %zu)\n", tarray0.size(), tarray1.size());
-    return;
-  }
   for (unsigned int bidx = 0; bidx != tarray0.size(); bidx++) {
     T const& t0 = tarray0[bidx];
     T const& t1 = tarray1[bidx];
-    if ( (t0.A1() != t1.A1()) || (t0.A2() != t1.A2()) ) { // FIXME
-      mprintf("Warning: Atom # mismatch.\n");
-      //mprintf("Warning: Bond atom # mismatch (%i-%i vs %i-%i)\n",
-      //        tarray0[bidx].A1()+1, tarray0[bidx].A2()+1, tarray1[bidx].A1()+1, tarray1[bidx].A2()+1);
-      continue;
-    }
-    if (t0.Idx() < 0) {
-      mprintf("Warning: No parameters for 0\n");
-      continue;
-    }
-    if (t1.Idx() < 0) {
-      mprintf("Warning: No paramters for 1\n");
-      continue;
-    }
-    if ( (mask1.AtomInCharMask(t0.A1()) && mask2.AtomInCharMask(t0.A2())) || 
-         (mask1.AtomInCharMask(t0.A2()) && mask2.AtomInCharMask(t0.A1())) )
-    {
-      double r0 = 0;
-      double r1 = 0;
-      double ene0 = fxn(frame0, tarray0[bidx], parray0[t0.Idx()], r0);
-      result.E0_ += ene0;
-      double ene1 = fxn(frame1, tarray1[bidx], parray1[t1.Idx()], r1);
-      result.E1_ += ene1;
-      double edelta = ene1 - ene0;
-      double rdelta = r1 - r0;
-      result.deltaE_->AddElement( edelta );
-      result.deltaR_->AddElement( rdelta );
-      //bondout_->Printf("%-12s %-12s %12.4f %12.4f %12.4f %12.4f %12.4f %12.4f\n",
-      //                 top0.TruncResAtomName(bonds0[bidx].A1()).c_str(),
-      //                 top0.TruncResAtomName(bonds0[bidx].A2()).c_str(),
-      //                 ene0, ene1, edelta, r0, r1, rdelta);
-      //avgEDelta.accumulate( edelta );
-      //avgEDelta2.accumulate( edelta*edelta );
-      //avgRDelta.accumulate( rdelta );
-      //avgRDelta2.accumulate( rdelta*rdelta );
-    }
+
+    double r0 = 0;
+    double r1 = 0;
+    double ene0 = fxn(frame0, tarray0[bidx], parray0[t0.Idx()], r0);
+    result.E0_ += ene0;
+    double ene1 = fxn(frame1, tarray1[bidx], parray1[t1.Idx()], r1);
+    result.E1_ += ene1;
+    double edelta = ene1 - ene0;
+    double rdelta = r1 - r0;
+    result.deltaE_->AddElement( edelta );
+    result.deltaR_->AddElement( rdelta );
+    //bondout_->Printf("%-12s %-12s %12.4f %12.4f %12.4f %12.4f %12.4f %12.4f\n",
+    //                 top0.TruncResAtomName(bonds0[bidx].A1()).c_str(),
+    //                 top0.TruncResAtomName(bonds0[bidx].A2()).c_str(),
+    //                 ene0, ene1, edelta, r0, r1, rdelta);
+    //avgEDelta.accumulate( edelta );
+    //avgEDelta2.accumulate( edelta*edelta );
+    //avgRDelta.accumulate( rdelta );
+    //avgRDelta2.accumulate( rdelta*rdelta );
   }
 }
 
@@ -222,9 +200,9 @@ const
   // DEBUG
   Eresults Ebond(bondDeltaE_, bondDeltaR_);
   CalcEnergy<BondType, BondParmType>(Ebond,
-                                     top0, frame0, top0.Bonds(), top0.BondParm(),
-                                     top1, frame1, top1.Bonds(), top1.BondParm(),
-                                     mask1_, mask2_, EBONDFXN);
+                                     frame0, commonBonds0_, top0.BondParm(),
+                                     frame1, commonBonds1_, top1.BondParm(),
+                                     bondNames_, EBONDFXN);
   // DEBUG
 
   Stats<double> avgEDelta, avgEDelta2, avgRDelta, avgRDelta2;
@@ -283,6 +261,60 @@ const
   return 0;
 }
 
+/** Set up array of selected bonds that top0 and top1 have in common. */
+int Exec_CompareEnergy::SetupBondArray(Topology const& top0, BondArray const& bonds0, BondArray const& bonds1)
+{
+  char buffer[64];
+  if (bonds0.size() != bonds1.size()) {
+    mprintf("Warning: Different # of bonds (%zu vs %zu)\n", bonds0.size(), bonds1.size());
+    return 1;
+  }
+  for (unsigned int bidx = 0; bidx != bonds0.size(); bidx++) {
+    BondType const& b0 = bonds0[bidx];
+    BondType const& b1 = bonds1[bidx];
+    if ( (b0.A1() != b1.A1()) || (b0.A2() != b1.A2()) ) {
+      mprintf("Warning: Bond atom # mismatch (%i-%i vs %i-%i)\n",
+              b0.A1()+1, b0.A2()+1, b1.A1()+1, b1.A2()+1);
+      continue;
+    }
+    if (b0.Idx() < 0) {
+      mprintf("Warning: No parameters for bond 0\n");
+      continue;
+    }
+    if (b1.Idx() < 0) {
+      mprintf("Warning: No paramters for bond 1\n");
+      continue;
+    }
+
+    if ( (mask1_.AtomInCharMask(b0.A1()) && mask2_.AtomInCharMask(b0.A2())) || 
+         (mask1_.AtomInCharMask(b0.A2()) && mask2_.AtomInCharMask(b0.A1())) )
+    {
+      commonBonds0_.push_back( b0 );
+      commonBonds1_.push_back( b1 );
+      sprintf(buffer, "%-12s %-12s",
+              top0.TruncResAtomName(b0.A1()).c_str(),
+              top0.TruncResAtomName(b0.A2()).c_str());
+      bondNames_.push_back( std::string(buffer) );
+    }
+  }
+
+  return 0;
+}
+
+/** Set up arrays of selected bonds that top0 and top1 have in common. */
+int Exec_CompareEnergy::SetupBondArrays(Topology const& top0, Topology const& top1) {
+  commonBonds0_.clear();
+  commonBonds1_.clear();
+  bondNames_.clear();
+  SetupBondArray(top0, top0.Bonds(), top1.Bonds());
+  SetupBondArray(top0, top0.BondsH(), top1.BondsH());
+  if (commonBonds0_.empty()) {
+    mprinterr("Error: No bonds in common.\n");
+    return 1;
+  }
+  return 0;
+}
+
 // Exec_CompareEnergy::Execute()
 Exec::RetType Exec_CompareEnergy::Execute(CpptrajState& State, ArgList& argIn)
 {
@@ -335,6 +367,8 @@ Exec::RetType Exec_CompareEnergy::Execute(CpptrajState& State, ArgList& argIn)
 
   mask1_.MaskInfo();
   mask2_.MaskInfo();
+
+  if (SetupBondArrays(crd0->Top(), crd1->Top())) return CpptrajState::ERR;
 
   if (GetEnergies(crd0, crd1)) return CpptrajState::ERR;
 

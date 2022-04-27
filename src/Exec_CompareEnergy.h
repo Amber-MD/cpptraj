@@ -12,6 +12,8 @@ class Exec_CompareEnergy : public Exec {
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_CompareEnergy(); }
     RetType Execute(CpptrajState&, ArgList&);
   private:
+    typedef std::vector<std::string> Sarray;
+
     static DataSet_Coords* GetCoordsSet(DataSetList const&, std::string const&);
     int GetEnergies(DataSet_Coords*, DataSet_Coords*) const;
     void CalcBondEnergy(Topology const&, Frame const&, BondArray const&, BondParmArray const&,
@@ -21,10 +23,17 @@ class Exec_CompareEnergy : public Exec {
     void BondEnergy(Frame const&, Topology const&,
                     Frame const&, Topology const&) const;
 
+    int SetupBondArray(Topology const&, BondArray const&, BondArray const&);
+    int SetupBondArrays(Topology const&, Topology const&);
+
     CharMask mask1_;
     CharMask mask2_;
     CpptrajFile* bondout_;
     DataSet_double* bondDeltaE_;
     DataSet_double* bondDeltaR_;
+
+    BondArray commonBonds0_;
+    BondArray commonBonds1_;
+    Sarray bondNames_;
 };
 #endif
