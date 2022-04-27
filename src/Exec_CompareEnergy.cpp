@@ -2,7 +2,7 @@
 #include "Exec_CompareEnergy.h"
 #include "CpptrajStdio.h"
 #include "DataSet_double.h"
-#include "EnergyKernel_HarmonicBond.h"
+#include "EnergyKernel_Harmonic.h"
 
 /** CONSRUCTOR */
 Exec_CompareEnergy::Exec_CompareEnergy() :
@@ -62,9 +62,100 @@ static inline double EBOND(Frame const& frame0,
   double r20 = Distance2Kernel<double>( frame0.XYZ(b0.A1()),
                                         frame0.XYZ(b0.A2()) );
   r0 = sqrt(r20);
-  double ene = EnergyKernel_HarmonicBond<double>( r0, bp0.Rk(), bp0.Req() );
+  double ene = EnergyKernel_Harmonic<double>( r0, bp0.Rk(), bp0.Req() );
   return ene;
 }
+
+/// \return Energy for given bond
+static inline double EBONDFXN(Frame const& frame0,
+                              BondType const& b0,
+                              BondParmType const& bp0,
+                              double& r0)
+{
+  if (b0.Idx() < 0) {
+    mprintf("Warning: Bond %i -- %i has no parameters.\n", b0.A1()+1, b0.A2()+1);
+    return 0;
+  }
+  double r20 = Distance2Kernel<double>( frame0.XYZ(b0.A1()),
+                                        frame0.XYZ(b0.A2()) );
+  r0 = sqrt(r20);
+  double ene = EnergyKernel_Harmonic<double>( r0, bp0.Rk(), bp0.Req() );
+  return ene;
+}
+
+class Eresults {
+  public:
+    Eresults(DataSet_double* deltaE, DataSet_double* deltaR) : E0_(0), E1_(0), deltaE_(deltaE), deltaR_(deltaR) {}
+
+    double E0_;
+    double E1_;
+    Stats<double> avgEDelta_;
+    Stats<double> avgEDelta2_;
+    Stats<double> avgRDelta_;
+    Stats<double> avgRDelta2_;
+    DataSet_double* deltaE_;
+    DataSet_double* deltaR_;
+};
+
+
+template <typename T, typename P> void CalcEnergy( Eresults& result,
+                                                   Topology const& top0,
+                                                   Frame const& frame0,
+                                                   std::vector<T> const& tarray0,
+                                                   std::vector<P> const& parray0,
+                                                   Topology const& top1,
+                                                   Frame const& frame1,
+                                                   std::vector<T> const& tarray1,
+                                                   std::vector<P> const& parray1,
+                                                   CharMask const& mask1, CharMask const& mask2,
+                                                   double (*fxn)(Frame const&, T const&, P const&, double&) )
+{
+  if (tarray0.size() != tarray1.size()) {
+    mprintf("Warning: Different # of bonds (%zu vs %zu)\n", tarray0.size(), tarray1.size());
+    return;
+  }
+  for (unsigned int bidx = 0; bidx != tarray0.size(); bidx++) {
+    T const& t0 = tarray0[bidx];
+    T const& t1 = tarray1[bidx];
+    if ( (t0.A1() != t1.A1()) || (t0.A2() != t1.A2()) ) { // FIXME
+      mprintf("Warning: Atom # mismatch.\n");
+      //mprintf("Warning: Bond atom # mismatch (%i-%i vs %i-%i)\n",
+      //        tarray0[bidx].A1()+1, tarray0[bidx].A2()+1, tarray1[bidx].A1()+1, tarray1[bidx].A2()+1);
+      continue;
+    }
+    if (t0.Idx() < 0) {
+      mprintf("Warning: No parameters for 0\n");
+      continue;
+    }
+    if (t1.Idx() < 0) {
+      mprintf("Warning: No paramters for 1\n");
+      continue;
+    }
+    if ( (mask1.AtomInCharMask(t0.A1()) && mask2.AtomInCharMask(t0.A2())) || 
+         (mask1.AtomInCharMask(t0.A2()) && mask2.AtomInCharMask(t0.A1())) )
+    {
+      double r0 = 0;
+      double r1 = 0;
+      double ene0 = fxn(frame0, tarray0[bidx], parray0[t0.Idx()], r0);
+      result.E0_ += ene0;
+      double ene1 = fxn(frame1, tarray1[bidx], parray1[t1.Idx()], r1);
+      result.E1_ += ene1;
+      double edelta = ene1 - ene0;
+      double rdelta = r1 - r0;
+      result.deltaE_->AddElement( edelta );
+      result.deltaR_->AddElement( rdelta );
+      //bondout_->Printf("%-12s %-12s %12.4f %12.4f %12.4f %12.4f %12.4f %12.4f\n",
+      //                 top0.TruncResAtomName(bonds0[bidx].A1()).c_str(),
+      //                 top0.TruncResAtomName(bonds0[bidx].A2()).c_str(),
+      //                 ene0, ene1, edelta, r0, r1, rdelta);
+      //avgEDelta.accumulate( edelta );
+      //avgEDelta2.accumulate( edelta*edelta );
+      //avgRDelta.accumulate( rdelta );
+      //avgRDelta2.accumulate( rdelta*rdelta );
+    }
+  }
+}
+
 
 /** Compare bond energies between two frames. */
 void Exec_CompareEnergy::CalcBondEnergy(Topology const& top0,
@@ -127,6 +218,14 @@ const
 {
   bondout_->Printf("%-12s %-12s %12s %12s %12s %12s %12s %12s\n",
                    "#Name0", "Name1", "Ene0", "Ene1", "Edelta", "R0", "R1", "Rdelta");
+
+  // DEBUG
+  Eresults Ebond(bondDeltaE_, bondDeltaR_);
+  CalcEnergy<BondType, BondParmType>(Ebond,
+                                     top0, frame0, top0.Bonds(), top0.BondParm(),
+                                     top1, frame1, top1.Bonds(), top1.BondParm(),
+                                     mask1_, mask2_, EBONDFXN);
+  // DEBUG
 
   Stats<double> avgEDelta, avgEDelta2, avgRDelta, avgRDelta2;
   double E0 = 0;
