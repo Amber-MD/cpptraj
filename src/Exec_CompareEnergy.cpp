@@ -38,55 +38,22 @@ DataSet_Coords* Exec_CompareEnergy::GetCoordsSet(DataSetList const& DSL,
   return CRD;
 }
 
-/// For calculating non-imaged distance^2 between two xyz points
-template <typename T> T Distance2Kernel(T const* a1, T const* a2) {
-  T x = a1[0] - a2[0];
-  T y = a1[1] - a2[1];
-  T z = a1[2] - a2[2];
-  //double D = x*x + y*y + z*z;
-  //fprintf(stdout,"Mask1=%8.3f %8.3f %8.3f Mask2=%8.3f %8.3f %8.3f D=%8.3f\n",
-  //        a1[0],a1[1],a1[2],a2[0],a2[1],a2[2],D);
-  return (x*x + y*y + z*z);
-}
-  
-/// \return Energy for given bond
-static inline double EBOND(Frame const& frame0,
-                           BondType const& b0,
-                           BondParmArray const& bpa0,
-                           double& r0)
-{
-  if (b0.Idx() < 0) {
-    mprintf("Warning: Bond %i -- %i has no parameters.\n", b0.A1()+1, b0.A2()+1);
-    return 0;
-  }
-  BondParmType const& bp0 = bpa0[b0.Idx()];
-  double r20 = Distance2Kernel<double>( frame0.XYZ(b0.A1()),
-                                        frame0.XYZ(b0.A2()) );
-  r0 = sqrt(r20);
-  double ene = EnergyKernel_Harmonic<double>( r0, bp0.Rk(), bp0.Req() );
-  return ene;
-}
-
-/// \return Energy for given bond
-static inline double EBONDFXN(Frame const& frame0,
-                              BondType const& b0,
-                              BondParmType const& bp0,
-                              double& r0)
-{
-  if (b0.Idx() < 0) {
-    mprintf("Warning: Bond %i -- %i has no parameters.\n", b0.A1()+1, b0.A2()+1);
-    return 0;
-  }
-  double r20 = Distance2Kernel<double>( frame0.XYZ(b0.A1()),
-                                        frame0.XYZ(b0.A2()) );
-  r0 = sqrt(r20);
-  double ene = EnergyKernel_Harmonic<double>( r0, bp0.Rk(), bp0.Req() );
-  return ene;
-}
-
+// -----------------------------------------------------------------------------
+/** Class to hold results from CalcEnergy */
 class Eresults {
   public:
     Eresults(DataSet_double* deltaE, DataSet_double* deltaR) : E0_(0), E1_(0), deltaE_(deltaE), deltaR_(deltaR) {}
+
+    void Print(CpptrajFile* outfile, const char* header) {
+      double ermse = sqrt( avgEDelta2_.mean() );
+      double rrmse = sqrt( avgRDelta2_.mean() );
+      outfile->Printf("#%s E0       = %f\n", header, E0_);
+      outfile->Printf("#%s E1       = %f\n", header, E1_);
+      outfile->Printf("#%s <edelta> = %f\n", header, avgEDelta_.mean());
+      outfile->Printf("#%s ene RMSE = %f\n", header, ermse);
+      outfile->Printf("#%s <rdelta> = %f\n", header, avgRDelta_.mean());
+      outfile->Printf("#%s len RMSE = %f\n", header, rrmse);
+    }
 
     double E0_;
     double E1_;
@@ -98,8 +65,9 @@ class Eresults {
     DataSet_double* deltaR_;
 };
 
-
+/** Compare energies between two frames. */
 template <typename T, typename P> void CalcEnergy( Eresults& result,
+                                                   CpptrajFile* outfile,
                                                    Frame const& frame0,
                                                    std::vector<T> const& tarray0,
                                                    std::vector<P> const& parray0,
@@ -123,70 +91,43 @@ template <typename T, typename P> void CalcEnergy( Eresults& result,
     double rdelta = r1 - r0;
     result.deltaE_->AddElement( edelta );
     result.deltaR_->AddElement( rdelta );
-    //bondout_->Printf("%-12s %-12s %12.4f %12.4f %12.4f %12.4f %12.4f %12.4f\n",
-    //                 top0.TruncResAtomName(bonds0[bidx].A1()).c_str(),
-    //                 top0.TruncResAtomName(bonds0[bidx].A2()).c_str(),
-    //                 ene0, ene1, edelta, r0, r1, rdelta);
-    //avgEDelta.accumulate( edelta );
-    //avgEDelta2.accumulate( edelta*edelta );
-    //avgRDelta.accumulate( rdelta );
-    //avgRDelta2.accumulate( rdelta*rdelta );
+    outfile->Printf("%-s %12.4f %12.4f %12.4f %12.4f %12.4f %12.4f\n",
+                    names[bidx].c_str(),
+                    ene0, ene1, edelta, r0, r1, rdelta);
+    result.avgEDelta_.accumulate( edelta );
+    result.avgEDelta2_.accumulate( edelta*edelta );
+    result.avgRDelta_.accumulate( rdelta );
+    result.avgRDelta2_.accumulate( rdelta*rdelta );
   }
 }
 
-
-/** Compare bond energies between two frames. */
-void Exec_CompareEnergy::CalcBondEnergy(Topology const& top0,
-                                        Frame const& frame0,
-                                        BondArray const& bonds0,
-                                        BondParmArray const& bpa0,
-                                        Topology const& top1,
-                                        Frame const& frame1,
-                                        BondArray const& bonds1,
-                                        BondParmArray const& bpa1,
-                                        double& E0, double& E1,
-                                        Stats<double>& avgEDelta,
-                                        Stats<double>& avgEDelta2,
-                                        Stats<double>& avgRDelta,
-                                        Stats<double>& avgRDelta2)
-const
+// -----------------------------------------------------------------------------
+/// For calculating non-imaged distance^2 between two xyz points
+template <typename T> T Distance2Kernel(T const* a1, T const* a2) {
+  T x = a1[0] - a2[0];
+  T y = a1[1] - a2[1];
+  T z = a1[2] - a2[2];
+  //double D = x*x + y*y + z*z;
+  //fprintf(stdout,"Mask1=%8.3f %8.3f %8.3f Mask2=%8.3f %8.3f %8.3f D=%8.3f\n",
+  //        a1[0],a1[1],a1[2],a2[0],a2[1],a2[2],D);
+  return (x*x + y*y + z*z);
+}
+  
+/// \return Energy for given bond
+static inline double EBONDFXN(Frame const& frame0,
+                              BondType const& b0,
+                              BondParmType const& bp0,
+                              double& r0)
 {
-  if (bonds0.size() != bonds1.size()) {
-    mprintf("Warning: Different # of bonds (%zu vs %zu)\n", bonds0.size(), bonds1.size());
-    return;
+  if (b0.Idx() < 0) {
+    mprintf("Warning: Bond %i -- %i has no parameters.\n", b0.A1()+1, b0.A2()+1);
+    return 0;
   }
-  for (unsigned int bidx = 0; bidx != bonds0.size(); bidx++) {
-    if (bonds0[bidx].A1() != bonds1[bidx].A1() ||
-        bonds0[bidx].A2() != bonds1[bidx].A2())
-    {
-      mprintf("Warning: Bond atom # mismatch (%i-%i vs %i-%i)\n",
-              bonds0[bidx].A1()+1, bonds0[bidx].A2()+1, bonds1[bidx].A1()+1, bonds1[bidx].A2()+1);
-      continue;
-    }
-    if ( (mask1_.AtomInCharMask(bonds0[bidx].A1()) && mask2_.AtomInCharMask(bonds0[bidx].A2())) || 
-         (mask1_.AtomInCharMask(bonds0[bidx].A2()) && mask2_.AtomInCharMask(bonds0[bidx].A1())) )
-    {
-      double r0 = 0;
-      double r1 = 0;
-      double ene0 = EBOND(frame0, bonds0[bidx], bpa0, r0);
-      E0 += ene0;
-      double ene1 = EBOND(frame1, bonds1[bidx], bpa1, r1);
-      E1 += ene1;
-      double edelta = ene1 - ene0;
-      double rdelta = r1 - r0;
-      bondDeltaE_->AddElement( edelta );
-      bondDeltaR_->AddElement( rdelta );
-      bondout_->Printf("%-12s %-12s %12.4f %12.4f %12.4f %12.4f %12.4f %12.4f\n",
-                       top0.TruncResAtomName(bonds0[bidx].A1()).c_str(),
-                       top0.TruncResAtomName(bonds0[bidx].A2()).c_str(),
-                       ene0, ene1, edelta, r0, r1, rdelta);
-      avgEDelta.accumulate( edelta );
-      avgEDelta2.accumulate( edelta*edelta );
-      avgRDelta.accumulate( rdelta );
-      avgRDelta2.accumulate( rdelta*rdelta );
-    }
-  }
-
+  double r20 = Distance2Kernel<double>( frame0.XYZ(b0.A1()),
+                                        frame0.XYZ(b0.A2()) );
+  r0 = sqrt(r20);
+  double ene = EnergyKernel_Harmonic<double>( r0, bp0.Rk(), bp0.Req() );
+  return ene;
 }
 
 /** Do bond energy comparison. */
@@ -197,70 +138,14 @@ const
   bondout_->Printf("%-12s %-12s %12s %12s %12s %12s %12s %12s\n",
                    "#Name0", "Name1", "Ene0", "Ene1", "Edelta", "R0", "R1", "Rdelta");
 
-  // DEBUG
   Eresults Ebond(bondDeltaE_, bondDeltaR_);
-  CalcEnergy<BondType, BondParmType>(Ebond,
+  CalcEnergy<BondType, BondParmType>(Ebond, bondout_,
                                      frame0, commonBonds0_, top0.BondParm(),
                                      frame1, commonBonds1_, top1.BondParm(),
                                      bondNames_, EBONDFXN);
-  // DEBUG
-
-  Stats<double> avgEDelta, avgEDelta2, avgRDelta, avgRDelta2;
-  double E0 = 0;
-  double E1 = 0;
-  CalcBondEnergy(top0, frame0, top0.Bonds(), top0.BondParm(),
-                 top1, frame1, top1.Bonds(), top1.BondParm(), E0, E1,
-                 avgEDelta, avgEDelta2, avgRDelta, avgRDelta2);
-  CalcBondEnergy(top0, frame0, top0.BondsH(), top0.BondParm(),
-                 top1, frame1, top1.BondsH(), top1.BondParm(), E0, E1,
-                 avgEDelta, avgEDelta2, avgRDelta, avgRDelta2);
-  double ermse = sqrt( avgEDelta2.mean() );
-  double rrmse = sqrt( avgRDelta2.mean() );
-  bondout_->Printf("#Bond E0       = %f\n", E0);
-  bondout_->Printf("#Bond E1       = %f\n", E1);
-  bondout_->Printf("#Bond <edelta> = %f\n", avgEDelta.mean());
-  bondout_->Printf("#Bond ene RMSE = %f\n", ermse);
-  bondout_->Printf("#Bond <rdelta> = %f\n", avgRDelta.mean());
-  bondout_->Printf("#Bond len RMSE = %f\n", rrmse);
+  Ebond.Print( bondout_, "Bond" );
 }
   
-/** Compare energies between two coords sets. */
-int Exec_CompareEnergy::GetEnergies(DataSet_Coords* crd0, DataSet_Coords* crd1)
-const
-{
-  if (crd0->Size() < 1) {
-    mprinterr("Error: '%s' has no frames.\n", crd0->legend());
-    return 1;
-  }
-  if (crd1->Size() < 1) {
-    mprinterr("Error: '%s' has no frames.\n", crd1->legend());
-    return 1;
-  }
-
-  Frame frame0 = crd0->AllocateFrame();
-  Frame frame1 = crd1->AllocateFrame();
-  Topology const& top0 = crd0->Top();
-  Topology const& top1 = crd1->Top();
-
-  unsigned int maxframes = std::max( crd0->Size(), crd1->Size() );
-  unsigned int idx0 = 0;
-  unsigned int idx1 = 0;
-  for (unsigned int idx = 0; idx != maxframes; idx++) {
-    crd0->GetFrame( idx0++, frame0 );
-    crd1->GetFrame( idx1++, frame1 );
-
-    BondEnergy(frame0, top0, frame1, top1);
-
-    // Reset counters if needed
-    if (idx0 == crd0->Size())
-      idx0 = 0;
-    if (idx1 == crd1->Size())
-      idx1 = 0;
-  }
-
-  return 0;
-}
-
 /** Set up array of selected bonds that top0 and top1 have in common. */
 int Exec_CompareEnergy::SetupBondArray(Topology const& top0, BondArray const& bonds0, BondArray const& bonds1)
 {
@@ -312,6 +197,44 @@ int Exec_CompareEnergy::SetupBondArrays(Topology const& top0, Topology const& to
     mprinterr("Error: No bonds in common.\n");
     return 1;
   }
+  return 0;
+}
+
+// -----------------------------------------------------------------------------
+/** Compare energies between two coords sets. */
+int Exec_CompareEnergy::GetEnergies(DataSet_Coords* crd0, DataSet_Coords* crd1)
+const
+{
+  if (crd0->Size() < 1) {
+    mprinterr("Error: '%s' has no frames.\n", crd0->legend());
+    return 1;
+  }
+  if (crd1->Size() < 1) {
+    mprinterr("Error: '%s' has no frames.\n", crd1->legend());
+    return 1;
+  }
+
+  Frame frame0 = crd0->AllocateFrame();
+  Frame frame1 = crd1->AllocateFrame();
+  Topology const& top0 = crd0->Top();
+  Topology const& top1 = crd1->Top();
+
+  unsigned int maxframes = std::max( crd0->Size(), crd1->Size() );
+  unsigned int idx0 = 0;
+  unsigned int idx1 = 0;
+  for (unsigned int idx = 0; idx != maxframes; idx++) {
+    crd0->GetFrame( idx0++, frame0 );
+    crd1->GetFrame( idx1++, frame1 );
+
+    BondEnergy(frame0, top0, frame1, top1);
+
+    // Reset counters if needed
+    if (idx0 == crd0->Size())
+      idx0 = 0;
+    if (idx1 == crd1->Size())
+      idx1 = 0;
+  }
+
   return 0;
 }
 
