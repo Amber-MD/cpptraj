@@ -1626,7 +1626,8 @@ void Action_GIST::Print() {
         double sorient_norm = 0.0;
         for (int n0 = 0; n0 < nw_total; n0++)
         {
-          double NNr = 10000;
+          // -1 is a dummy value that can never be reached, since it tracks an absolute value.
+          double cos_r_half = -1.0;
           int q0 = n0 * 4; // Index into voxel_Q_ for n0
           for (int n1 = 0; n1 < nw_total; n1++)
           {
@@ -1635,16 +1636,18 @@ void Action_GIST::Print() {
               //mprintf("DEBUG1:\t\t q1= %8i {%12.4f %12.4f %12.4f %12.4f} q0= %8i {%12.4f %12.4f %12.4f %12.4f}\n",
               //        q1, voxel_Q_[gr_pt][q1  ], voxel_Q_[gr_pt][q1+1], voxel_Q_[gr_pt][q1+2], voxel_Q_[gr_pt][q1+3],
               //        q0, voxel_Q_[gr_pt][q0  ], voxel_Q_[gr_pt][q0+1], voxel_Q_[gr_pt][q0+2], voxel_Q_[gr_pt][q0+3]);
-              double rR = 2.0 * acos(  fabs(voxel_Q_[gr_pt][q1  ] * voxel_Q_[gr_pt][q0  ]
-                                   + voxel_Q_[gr_pt][q1+1] * voxel_Q_[gr_pt][q0+1]
-                                   + voxel_Q_[gr_pt][q1+2] * voxel_Q_[gr_pt][q0+2]
-                                   + voxel_Q_[gr_pt][q1+3] * voxel_Q_[gr_pt][q0+3] )); // add fabs for quaternion distance calculation
+              /* double rR = 2.0 * acos(  fabs(voxel_Q_[gr_pt][q1  ] * voxel_Q_[gr_pt][q0  ] */
+              double rR = fabs(  voxel_Q_[gr_pt][q1  ] * voxel_Q_[gr_pt][q0  ]
+                               + voxel_Q_[gr_pt][q1+1] * voxel_Q_[gr_pt][q0+1]
+                               + voxel_Q_[gr_pt][q1+2] * voxel_Q_[gr_pt][q0+2]
+                               + voxel_Q_[gr_pt][q1+3] * voxel_Q_[gr_pt][q0+3] ); // add fabs for quaternion distance calculation
               //mprintf("DEBUG1:\t\t %8i %8i %g\n", n0, n1, rR);
-              if (rR > 0 && rR < NNr) NNr = rR;
+              if (rR > cos_r_half) cos_r_half = rR;
             }
           } // END inner loop over all waters for this voxel
 
-          if (NNr < 9999 && NNr > 0) {
+          double NNr = 2.0 * acos(cos_r_half);
+          if (cos_r_half > -1.0 && NNr > 0) {
             if (exactNnVolume_) {
               sorient_norm += log((NNr - sin(NNr)) * nw_total / Constants::PI);
             } else {
