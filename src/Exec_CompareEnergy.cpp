@@ -4,13 +4,17 @@
 #include "CpptrajStdio.h"
 #include "DataSet_double.h"
 #include "EnergyKernel_Harmonic.h"
+#include "TorsionRoutines.h"
 
 /** CONSRUCTOR */
 Exec_CompareEnergy::Exec_CompareEnergy() :
   Exec(GENERAL),
   bondout_(0),
   bondDeltaE_(0),
-  bondDeltaR_(0)
+  bondDeltaR_(0),
+  angleout_(0),
+  angleDeltaE_(0),
+  angleDeltaR_(0)
 {
   SetHidden(true);
 }
@@ -201,6 +205,96 @@ int Exec_CompareEnergy::SetupBondArrays(Topology const& top0, Topology const& to
 }
 
 // -----------------------------------------------------------------------------
+/// \return Energy for given angle 
+static inline double EANGFXN(Frame const& frame0,
+                             AngleType const& b0,
+                             AngleParmType const& bp0,
+                             double& r0)
+{
+  if (b0.Idx() < 0) {
+    mprintf("Warning: Angle %i -- %i -- %i has no parameters.\n", b0.A1()+1, b0.A2()+1, b0.A3()+1);
+    return 0;
+  }
+  double theta = CalcAngle( frame0.XYZ(b0.A1()),
+                            frame0.XYZ(b0.A2()),
+                            frame0.XYZ(b0.A3()) );
+  double ene = EnergyKernel_Harmonic<double>( theta, bp0.Tk(), bp0.Teq() );
+  return ene;
+}
+
+/** Do angle energy comparison. */
+void Exec_CompareEnergy::AngleEnergy(Frame const& frame0, Topology const& top0,
+                                    Frame const& frame1, Topology const& top1)
+const
+{
+  angleout_->Printf("%-12s %-12s %-12s %12s %12s %12s %12s %12s %12s\n",
+                   "#Name0", "Name1", "Name2", "Ene0", "Ene1", "Edelta", "R0", "R1", "Rdelta");
+
+  Eresults Eangle(angleDeltaE_, angleDeltaR_);
+  CalcEnergy<AngleType, AngleParmType>(Eangle, angleout_,
+                                     frame0, commonAngles0_, top0.AngleParm(),
+                                     frame1, commonAngles1_, top1.AngleParm(),
+                                     angleNames_, EANGFXN);
+  Eangle.Print( angleout_, "Angle" );
+}
+  
+/** Set up array of selected angles that top0 and top1 have in common. */
+int Exec_CompareEnergy::SetupAngleArray(Topology const& top0, AngleArray const& angles0, AngleArray const& angles1)
+{
+  char buffer[64];
+  if (angles0.size() != angles1.size()) {
+    mprintf("Warning: Different # of angles (%zu vs %zu)\n", angles0.size(), angles1.size());
+    return 1;
+  }
+  for (unsigned int bidx = 0; bidx != angles0.size(); bidx++) {
+    AngleType const& b0 = angles0[bidx];
+    AngleType const& b1 = angles1[bidx];
+    if ( (b0.A1() != b1.A1()) || (b0.A2() != b1.A2()) || (b0.A3() != b1.A3()) ) {
+      mprintf("Warning: Angle atom # mismatch (%i-%i-%i vs %i-%i-%i)\n",
+              b0.A1()+1, b0.A2()+1, b0.A3()+1, b1.A1()+1, b1.A2()+1, b1.A3()+1);
+      continue;
+    }
+    if (b0.Idx() < 0) {
+      mprintf("Warning: No parameters for angle 0\n");
+      continue;
+    }
+    if (b1.Idx() < 0) {
+      mprintf("Warning: No paramters for angle 1\n");
+      continue;
+    }
+
+    if ( (mask1_.AtomInCharMask(b0.A1()) && mask2_.AtomInCharMask(b0.A2()) && mask3_.AtomInCharMask(b0.A3())) || 
+         (mask1_.AtomInCharMask(b0.A3()) && mask2_.AtomInCharMask(b0.A2()) && mask3_.AtomInCharMask(b0.A1())) )
+    {
+      commonAngles0_.push_back( b0 );
+      commonAngles1_.push_back( b1 );
+      sprintf(buffer, "%-12s %-12s %-12s",
+              top0.TruncResAtomName(b0.A1()).c_str(),
+              top0.TruncResAtomName(b0.A2()).c_str(),
+              top0.TruncResAtomName(b0.A3()).c_str());
+      angleNames_.push_back( std::string(buffer) );
+    }
+  }
+
+  return 0;
+}
+
+/** Set up arrays of selected angles that top0 and top1 have in common. */
+int Exec_CompareEnergy::SetupAngleArrays(Topology const& top0, Topology const& top1) {
+  commonAngles0_.clear();
+  commonAngles1_.clear();
+  angleNames_.clear();
+  SetupAngleArray(top0, top0.Angles(), top1.Angles());
+  SetupAngleArray(top0, top0.AnglesH(), top1.AnglesH());
+  if (commonAngles0_.empty()) {
+    mprinterr("Error: No angles in common.\n");
+    return 1;
+  }
+  return 0;
+}
+
+
+// -----------------------------------------------------------------------------
 /** Compare energies between two coords sets. */
 int Exec_CompareEnergy::GetEnergies(DataSet_Coords* crd0, DataSet_Coords* crd1)
 const
@@ -227,6 +321,7 @@ const
     crd1->GetFrame( idx1++, frame1 );
 
     BondEnergy(frame0, top0, frame1, top1);
+    AngleEnergy(frame0, top0, frame1, top1);
 
     // Reset counters if needed
     if (idx0 == crd0->Size())
@@ -254,6 +349,14 @@ Exec::RetType Exec_CompareEnergy::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Internal Error: Could not allocate bond comparison file.\n");
     return CpptrajState::ERR;
   }
+  angleout_ = State.DFL().AddCpptrajFile( argIn.GetStringKey("angleout"),
+                                                     "angle comparison",
+                                                     DataFileList::TEXT,
+                                                     true );
+  if (angleout_ == 0) {
+    mprinterr("Internal Error: Could not allocate angle comparison file.\n");
+    return CpptrajState::ERR;
+  }
 
   std::string dsname = argIn.GetStringKey("name");
   if (dsname.empty())
@@ -264,12 +367,20 @@ Exec::RetType Exec_CompareEnergy::Execute(CpptrajState& State, ArgList& argIn)
   bondDeltaR_ = (DataSet_double*)State.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname, "bondrdelta"));
   if (bondDeltaR_ == 0) return CpptrajState::ERR;
   mprintf("\tBond length delta set: %s\n", bondDeltaR_->legend());
+  angleDeltaE_ = (DataSet_double*)State.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname, "angleedelta"));
+  if (angleDeltaE_ == 0) return CpptrajState::ERR;
+  mprintf("\tAngle energy delta set: %s\n", angleDeltaE_->legend());
+  angleDeltaR_ = (DataSet_double*)State.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname, "anglerdelta"));
+  if (angleDeltaR_ == 0) return CpptrajState::ERR;
+  mprintf("\tAngle length delta set: %s\n", angleDeltaR_->legend());
 
   mask1_.SetMaskString( argIn.GetStringKey("mask1") );
   mask2_.SetMaskString( argIn.GetStringKey("mask2") );
+  mask3_.SetMaskString( argIn.GetStringKey("mask3") );
 
   mprintf("\tMask 1: %s\n", mask1_.MaskString());
   mprintf("\tMask 2: %s\n", mask2_.MaskString());
+  mprintf("\tMask 3: %s\n", mask3_.MaskString());
 
   if (crd0->Top().SetupCharMask( mask1_ )) {
     mprinterr("Error: Setting up mask '%s' failed.\n", mask1_.MaskString());
@@ -287,11 +398,21 @@ Exec::RetType Exec_CompareEnergy::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: No atoms selected by '%s'\n", mask2_.MaskString());
     return CpptrajState::ERR;
   }
+  if (crd0->Top().SetupCharMask( mask3_ )) {
+    mprinterr("Error: Setting up mask '%s' failed.\n", mask3_.MaskString());
+    return CpptrajState::ERR;
+  }
+  if (mask3_.None()) {
+    mprinterr("Error: No atoms selected by '%s'\n", mask3_.MaskString());
+    return CpptrajState::ERR;
+  }
 
   mask1_.MaskInfo();
   mask2_.MaskInfo();
+  mask3_.MaskInfo();
 
   if (SetupBondArrays(crd0->Top(), crd1->Top())) return CpptrajState::ERR;
+  if (SetupAngleArrays(crd0->Top(), crd1->Top())) return CpptrajState::ERR;
 
   if (GetEnergies(crd0, crd1)) return CpptrajState::ERR;
 
