@@ -3,6 +3,7 @@
 #include "Exec_CompareEnergy.h"
 #include "CpptrajStdio.h"
 #include "DataSet_double.h"
+#include "EnergyKernel_Fourier.h"
 #include "EnergyKernel_Harmonic.h"
 #include "TorsionRoutines.h"
 
@@ -293,6 +294,99 @@ int Exec_CompareEnergy::SetupAngleArrays(Topology const& top0, Topology const& t
   return 0;
 }
 
+// -----------------------------------------------------------------------------
+/// \return Energy for given dihedral 
+static inline double EDIHFXN(Frame const& frame0,
+                             DihedralType const& b0,
+                             DihedralParmType const& bp0,
+                             double& r0)
+{
+  if (b0.Idx() < 0) {
+    mprintf("Warning: Dihedral %i -- %i -- %i -- %i has no parameters.\n", b0.A1()+1, b0.A2()+1, b0.A3()+1, b0.A4()+1);
+    return 0;
+  }
+  double theta = Torsion( frame0.XYZ(b0.A1()),
+                          frame0.XYZ(b0.A2()),
+                          frame0.XYZ(b0.A3()),
+                          frame0.XYZ(b0.A4()) );
+  double ene = EnergyKernel_Fourier<double>( theta, bp0.Pk(), bp0.Pn(), bp0.Phase() );
+  return ene;
+}
+
+/** Do dihedral energy comparison. */
+void Exec_CompareEnergy::DihedralEnergy(Frame const& frame0, Topology const& top0,
+                                        Frame const& frame1, Topology const& top1)
+const
+{
+  angleout_->Printf("%-12s %-12s %-12s %-12s %12s %12s %12s %12s %12s %12s\n",
+                   "#Name0", "Name1", "Name2", "Name3", "Ene0", "Ene1", "Edelta", "R0", "R1", "Rdelta");
+
+  Eresults Edihedral(dihedralDeltaE_, dihedralDeltaR_);
+  CalcEnergy<DihedralType, DihedralParmType>(Edihedral, dihedralout_,
+                                             frame0, commonDihedrals0_, top0.DihedralParm(),
+                                             frame1, commonDihedrals1_, top1.DihedralParm(),
+                                             dihedralNames_, EDIHFXN);
+  Edihedral.Print( dihedralout_, "Dihedral" );
+}
+  
+/** Set up array of selected dihedrals that top0 and top1 have in common. */
+int Exec_CompareEnergy::SetupDihedralArray(Topology const& top0, DihedralArray const& dihedrals0, DihedralArray const& dihedrals1)
+{
+  char buffer[64];
+  if (dihedrals0.size() != dihedrals1.size()) {
+    mprintf("Warning: Different # of dihedrals (%zu vs %zu)\n", dihedrals0.size(), dihedrals1.size());
+    return 1;
+  }
+  for (unsigned int bidx = 0; bidx != dihedrals0.size(); bidx++) {
+    DihedralType const& b0 = dihedrals0[bidx];
+    DihedralType const& b1 = dihedrals1[bidx];
+    if ( (b0.A1() != b1.A1()) || (b0.A2() != b1.A2()) || (b0.A3() != b1.A3()) || (b0.A4() != b1.A4()) ) {
+      mprintf("Warning: Dihedral atom # mismatch (%i-%i-%i-%i vs %i-%i-%i-%i)\n",
+              b0.A1()+1, b0.A2()+1, b0.A3()+1, b0.A4()+1,
+              b1.A1()+1, b1.A2()+1, b1.A3()+1, b1.A4()+1);
+      continue;
+    }
+    if (b0.Idx() < 0) {
+      mprintf("Warning: No parameters for dihedral 0\n");
+      continue;
+    }
+    if (b1.Idx() < 0) {
+      mprintf("Warning: No paramters for dihedral 1\n");
+      continue;
+    }
+
+    if ( (mask1_.AtomInCharMask(b0.A1()) && mask2_.AtomInCharMask(b0.A2()) && mask3_.AtomInCharMask(b0.A3()) && mask4_.AtomInCharMask(b0.A4())) || 
+         (mask1_.AtomInCharMask(b0.A4()) && mask2_.AtomInCharMask(b0.A3()) && mask3_.AtomInCharMask(b0.A2()) && mask4_.AtomInCharMask(b0.A1()))    )
+    {
+      commonDihedrals0_.push_back( b0 );
+      commonDihedrals1_.push_back( b1 );
+      sprintf(buffer, "%-12s %-12s %-12s %-12s",
+              top0.TruncResAtomName(b0.A1()).c_str(),
+              top0.TruncResAtomName(b0.A2()).c_str(),
+              top0.TruncResAtomName(b0.A3()).c_str(),
+              top0.TruncResAtomName(b0.A4()).c_str());
+      dihedralNames_.push_back( std::string(buffer) );
+    }
+  }
+
+  return 0;
+}
+
+/** Set up arrays of selected dihedrals that top0 and top1 have in common. */
+int Exec_CompareEnergy::SetupDihedralArrays(Topology const& top0, Topology const& top1) {
+  commonDihedrals0_.clear();
+  commonDihedrals1_.clear();
+  dihedralNames_.clear();
+  SetupDihedralArray(top0, top0.Dihedrals(), top1.Dihedrals());
+  SetupDihedralArray(top0, top0.DihedralsH(), top1.DihedralsH());
+  if (commonDihedrals0_.empty()) {
+    mprinterr("Error: No dihedrals in common.\n");
+    return 1;
+  }
+  return 0;
+}
+
+
 
 // -----------------------------------------------------------------------------
 /** Compare energies between two coords sets. */
@@ -322,6 +416,7 @@ const
 
     BondEnergy(frame0, top0, frame1, top1);
     AngleEnergy(frame0, top0, frame1, top1);
+    DihedralEnergy(frame0, top0, frame1, top1);
 
     // Reset counters if needed
     if (idx0 == crd0->Size())
@@ -357,6 +452,14 @@ Exec::RetType Exec_CompareEnergy::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Internal Error: Could not allocate angle comparison file.\n");
     return CpptrajState::ERR;
   }
+  dihedralout_ = State.DFL().AddCpptrajFile( argIn.GetStringKey("dihedralout"),
+                                                     "dihedral comparison",
+                                                     DataFileList::TEXT,
+                                                     true );
+  if (dihedralout_ == 0) {
+    mprinterr("Internal Error: Could not allocate dihedral comparison file.\n");
+    return CpptrajState::ERR;
+  }
 
   std::string dsname = argIn.GetStringKey("name");
   if (dsname.empty())
@@ -373,14 +476,22 @@ Exec::RetType Exec_CompareEnergy::Execute(CpptrajState& State, ArgList& argIn)
   angleDeltaR_ = (DataSet_double*)State.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname, "anglerdelta"));
   if (angleDeltaR_ == 0) return CpptrajState::ERR;
   mprintf("\tAngle length delta set: %s\n", angleDeltaR_->legend());
+  dihedralDeltaE_ = (DataSet_double*)State.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname, "dihedraledelta"));
+  if (dihedralDeltaE_ == 0) return CpptrajState::ERR;
+  mprintf("\tDihedral energy delta set: %s\n", dihedralDeltaE_->legend());
+  dihedralDeltaR_ = (DataSet_double*)State.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname, "dihedralrdelta"));
+  if (dihedralDeltaR_ == 0) return CpptrajState::ERR;
+  mprintf("\tDihedral length delta set: %s\n", dihedralDeltaR_->legend());
 
   mask1_.SetMaskString( argIn.GetStringKey("mask1") );
   mask2_.SetMaskString( argIn.GetStringKey("mask2") );
   mask3_.SetMaskString( argIn.GetStringKey("mask3") );
+  mask4_.SetMaskString( argIn.GetStringKey("mask4") );
 
   mprintf("\tMask 1: %s\n", mask1_.MaskString());
   mprintf("\tMask 2: %s\n", mask2_.MaskString());
   mprintf("\tMask 3: %s\n", mask3_.MaskString());
+  mprintf("\tMask 4: %s\n", mask4_.MaskString());
 
   if (crd0->Top().SetupCharMask( mask1_ )) {
     mprinterr("Error: Setting up mask '%s' failed.\n", mask1_.MaskString());
@@ -406,13 +517,23 @@ Exec::RetType Exec_CompareEnergy::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: No atoms selected by '%s'\n", mask3_.MaskString());
     return CpptrajState::ERR;
   }
+  if (crd0->Top().SetupCharMask( mask4_ )) {
+    mprinterr("Error: Setting up mask '%s' failed.\n", mask4_.MaskString());
+    return CpptrajState::ERR;
+  }
+  if (mask4_.None()) {
+    mprinterr("Error: No atoms selected by '%s'\n", mask4_.MaskString());
+    return CpptrajState::ERR;
+  }
 
   mask1_.MaskInfo();
   mask2_.MaskInfo();
   mask3_.MaskInfo();
+  mask4_.MaskInfo();
 
   if (SetupBondArrays(crd0->Top(), crd1->Top())) return CpptrajState::ERR;
   if (SetupAngleArrays(crd0->Top(), crd1->Top())) return CpptrajState::ERR;
+  if (SetupDihedralArrays(crd0->Top(), crd1->Top())) return CpptrajState::ERR;
 
   if (GetEnergies(crd0, crd1)) return CpptrajState::ERR;
 

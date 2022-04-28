@@ -26,11 +26,17 @@ class Exec_CompareEnergy : public Exec {
     int SetupAngleArray(Topology const&, AngleArray const&, AngleArray const&);
     int SetupAngleArrays(Topology const&, Topology const&);
 
+    void DihedralEnergy(Frame const&, Topology const&,
+                        Frame const&, Topology const&) const;
+    int SetupDihedralArray(Topology const&, DihedralArray const&, DihedralArray const&);
+    int SetupDihedralArrays(Topology const&, Topology const&);
+
     int GetEnergies(DataSet_Coords*, DataSet_Coords*) const;
 
     CharMask mask1_;
     CharMask mask2_;
     CharMask mask3_;
+    CharMask mask4_;
 
     CpptrajFile* bondout_;
     DataSet_double* bondDeltaE_;
@@ -45,6 +51,13 @@ class Exec_CompareEnergy : public Exec {
     AngleArray commonAngles0_;
     AngleArray commonAngles1_;
     Sarray angleNames_;
+
+    CpptrajFile* dihedralout_;
+    DataSet_double* dihedralDeltaE_;
+    DataSet_double* dihedralDeltaR_;
+    DihedralArray commonDihedrals0_;
+    DihedralArray commonDihedrals1_;
+    Sarray dihedralNames_;
 
 };
 #endif
