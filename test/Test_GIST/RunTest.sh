@@ -174,6 +174,56 @@ DoTest Gist7-order-norm.dx.save Gist7-order-norm.dx
 # NOTE: gist.out allowed to fail on windows; differences due to slightly
 #       difference implementation of printf '%g' (manifests as round-off).
 DoTest Gist7.out.save Gist7-output.dat -a $TEST_TOLERANCE
+
+# The example trajectory is normal distributed in x, y, z, alpha, cos(beta) and
+# gamma. (cartesian coordinates and euler angles).
+# The sigma in each coordinate is 0.05 times the range of the coordinate (1 for
+# x, y, z, 2*pi for alpha and gamma, 2 for cos(beta)).
+UNITNAME='GIST test, multivariate gaussian'
+sigma=0.05
+pi=3.141592653589793
+RT=0.59616
+expected_entropy=$( bc -l <<< "(3/2 * (1 + l(2*$pi)) + 1/2 * l($sigma^6)) * $RT" )
+expected_ssix=$( bc -l <<< "2*$expected_entropy" )
+
+cat > gist.in <<EOF
+parm ten-wat.parm7
+trajin ten-wat-gauss-distribution.nc
+gist nopme skipE refdens 0.01 gridcntr 0 0 0 \
+    griddim 3 3 3 gridspacn 10. prefix Gist-dummy1 info Info.dat nocom
+go
+EOF
+RunCpptraj "$UNITNAME"
+
+cat << EOF > gaussian_entropy_analytical.txt
+Total 6d if all one vox:  $expected_ssix kcal/mol
+Total t if all one vox:  $expected_entropy kcal/mol
+Total o if all one vox:  $expected_entropy kcal/mol
+EOF
+grep "if all one vox" Gist-dummy1-Info.dat > gaussian_entropy.txt
+
+DoTest gaussian_entropy_analytical.txt gaussian_entropy.txt -a 0.02
+
+# The six- and trans- entropy should be unaffected with a fine grid
+UNITNAME='GIST test, multivariate gaussian, fine grid'
+cat > gist.in <<EOF
+parm ten-wat.parm7
+trajin ten-wat-gauss-distribution.nc
+gist nopme skipE refdens 0.01 gridcntr 0 0 0 \
+    griddim 103 103 103 gridspacn 0.1 prefix Gist-dummy2 info Info.dat nocom nnsearchlayers 10
+go
+EOF
+RunCpptraj "$UNITNAME"
+
+cat << EOF > gaussian_entropy_analytical.txt
+Total 6d if all one vox:  $expected_ssix kcal/mol
+Total t if all one vox:  $expected_entropy kcal/mol
+EOF
+grep "6d if all one vox" Gist-dummy2-Info.dat > gaussian_entropy.txt
+grep "t if all one vox" Gist-dummy2-Info.dat >> gaussian_entropy.txt
+
+DoTest gaussian_entropy_analytical.txt gaussian_entropy.txt -a 0.02
+
 EndTest
 
 exit 0
