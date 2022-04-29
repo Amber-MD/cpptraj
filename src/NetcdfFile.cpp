@@ -1,4 +1,5 @@
 #include <cstdio> // FILE, fopen, fclose
+#include <cmath> // round
 #include "NetcdfFile.h"
 # include "CpptrajStdio.h"
 #ifdef BINTRAJ
@@ -971,8 +972,10 @@ int NetcdfFile::NC_writeIntCompressed(Frame const& frmOut) {
   long int maxval = (long int)std::numeric_limits<int>::max();
   for (int idx = 0; idx != frmOut.size(); idx++)
   {
+    // Multiply by compression factor and round to the nearest integer
+    long int ii = (long int)(round(frmOut[idx] * compressedFac_));
     // Try some overflow protection
-    long int ii = (long int)(frmOut[idx] * compressedFac_);
+    //long int ii = (long int)(frmOut[idx] * compressedFac_);
     if (ii > maxval || ii < -maxval) {
       mprinterr("Error: Coordinate %i frame %i (%g) is too large to convert to int.\n",
                 idx+1, ncframe_+1, frmOut[idx]);
