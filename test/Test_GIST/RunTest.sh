@@ -6,7 +6,7 @@ CleanFiles gist.in gist.out gist-*.dx ww_Eij.dat Eww_ij.dat \
            Gist1-*.dx Gist1-*.dat Gist2-*.dx Gist2-*.dat \
            Gist3-*.dx Gist3-*.dat Gist4-*.dx Gist4-*.dat \
            Gist5-*.dx Gist5-*.dat Gist6-*.dx Gist6-*.dat \
-           Gist7-*.dx Gist7-*.dat
+           Gist7-*.dx Gist7-*.dat Gist-dummy*.dat gaussian_entropy*.txt
 INPUT="-i gist.in"
 TESTNAME='GIST tests'
 Requires netcdf notparallel
@@ -16,8 +16,8 @@ CheckFor notcuda
 # doeij test with much smaller grid to save memory
 if [ $? -eq 0 ]; then
   # Default test tolerance
-  TEST_TOLERANCE='0.0001'
-  PME_TOLERANCE='0.0001'
+  TEST_TOLERANCE='0.00011'
+  PME_TOLERANCE='0.00011'
   cat > gist.in <<EOF
   parm ../tz2.ortho.parm7
   trajin ../tz2.ortho.nc 1 10
@@ -30,8 +30,8 @@ EOF
   DoTest Gist1-Eww_ij.dat.save Gist1-Eww_ij.dat
 else
   # GPU test tolerance
-  TEST_TOLERANCE='0.0003'
-  PME_TOLERANCE='0.001'
+  TEST_TOLERANCE='0.00031'
+  PME_TOLERANCE='0.00011'
 fi
 
 # GIST test with finer grid for everything else
