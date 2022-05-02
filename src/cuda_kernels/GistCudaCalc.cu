@@ -438,7 +438,7 @@ void cudaCalcEnergySlow(Coordinates *coords, int *NBindex, int ntypes, ParamsLJ 
         }
       }
       if (atom2.solvent) {
-        energy_ww += energy * 0.5f;
+        energy_ww += energy;
       } else {
         energy_sw += energy;
       }

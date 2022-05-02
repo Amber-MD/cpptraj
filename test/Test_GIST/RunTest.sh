@@ -183,8 +183,8 @@ UNITNAME='GIST test, multivariate gaussian'
 sigma=0.05
 pi=3.141592653589793
 RT=0.59616
-expected_entropy=$( bc -l <<< "(3/2 * (1 + l(2*$pi)) + 1/2 * l($sigma^6)) * $RT" )
-expected_ssix=$( bc -l <<< "2*$expected_entropy" )
+expected_entropy=$( awk "BEGIN{print (3/2 * (1 + log(2*$pi)) + 1/2 * log($sigma^6)) * $RT}" )
+expected_ssix=$( awk "BEGIN{print 2*$expected_entropy}" )
 
 cat > gist.in <<EOF
 parm ten-wat.parm7

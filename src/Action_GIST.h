@@ -89,6 +89,7 @@ class Action_GIST : public Action {
     void NonbondEnergy(Frame const&, Topology const&);
     void Order(Frame const&);
     void SumEVV();
+    void CollectEnergies();
     void CalcAvgVoxelEnergy_PME(double, DataSet_3D&, DataSet_3D&, Farray&) const;
     void CalcAvgVoxelEnergy(double, DataSet_3D&, DataSet_3D&, Farray&, Farray&,
                             DataSet_3D&, DataSet_3D&, Farray&);
@@ -116,8 +117,8 @@ class Action_GIST : public Action {
     template<typename ARRAY_TYPE>
     void CopyArrayToDataSet(const ARRAY_TYPE& arr, DataSet_3D& ds) const;
 
-    template<typename T>
-    std::vector<T> NormalizeDataSet(const DataSet_3D& ds, const Iarray& norm) const;
+    template<typename T, typename ARR>
+    std::vector<T> NormalizeDataSet(const DataSet_3D& ds, const ARR& norm) const;
 
     template<typename T>
     std::vector<T> WeightDataSet(const DataSet_3D& ds, double factor) const;
@@ -148,10 +149,13 @@ class Action_GIST : public Action {
     void *paramsLJ_c_;
     float *max_c_;
     float *min_c_;
-    float *result_w_c_;
-    float *result_s_c_;
+    float *result_eww_c_;
+    float *result_esw_c_;
     int *result_O_c_;
     int *result_N_c_;
+
+    std::vector<float> E_UV_f_;
+    std::vector<float> E_VV_f_;
 
     // CUDA only functions
     void freeGPUMemory(void);
@@ -206,6 +210,8 @@ class Action_GIST : public Action {
     SolventInfo solventInfo_;
     std::vector<DataSet_3D*> atomDensitySets_;
     std::vector<DataSet_3D*> molDensitySets_;
+    std::vector<DataSet_3D*> molEswSets_;
+    std::vector<DataSet_3D*> molEwwSets_;
 
     std::vector<std::string> solventNames_;
     std::vector<int> solventType_;
@@ -242,10 +248,10 @@ class Action_GIST : public Action {
     Xarray voxel_Q_;   ///< w4, x4, y4, z4 for all waters in each voxel.*
 
     Darray OnGrid_XYZ_;             ///< XYZ coordinates for on-grid waters.*
-    std::vector<Darray> E_UV_VDW_;  ///< Solute-solvent van der Waals energy for each voxel.*
-    std::vector<Darray> E_UV_Elec_; ///< Solute-solvent electrostatic energy for each voxel.*
-    std::vector<Darray> E_VV_VDW_;  ///< Solvent-solvent van der Waals energy for each voxel.*
-    std::vector<Darray> E_VV_Elec_; ///< Solvent-solvent electrostatic energy for each voxel.*
+    std::vector<Darray> E_UV_;  ///< Solute-solvent van der Waals energy for each atom.*
+    // std::vector<Darray> E_UV_Elec_; ///< Solute-solvent electrostatic energy for each atom.*
+    std::vector<Darray> E_VV_;  ///< Solvent-solvent van der Waals energy for each atom.*
+    // std::vector<Darray> E_VV_Elec_; ///< Solvent-solvent electrostatic energy for each atom.*
     // PME energy terms
     Darray E_pme_;     ///< Total nonbond interaction energy(VDW + electrostatic) calculated by PME for water TODO grid?
     Darray U_E_pme_;   ///< Total nonbond interaction energy(VDW + Elec) calculated by PME for solute TODO grid?

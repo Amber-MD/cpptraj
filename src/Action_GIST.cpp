@@ -28,6 +28,7 @@
 // Crashes with zero solvent molecules
 
 // TO-DO: check for linear solvent molecules
+// TO-DO: simplify the InteractionTypes in GIST_PME
 
 const double Action_GIST::maxD_ = DBL_MAX;
 #define GIST_TINY 1e-10
@@ -40,10 +41,10 @@ std::vector<std::string> split_string(std::string s, const std::string& delimite
   }
   size_t pos = 0;
   while ((pos = s.find(delimiter)) != std::string::npos) {
-      ret.emplace_back(s.substr(0, pos));
+      ret.push_back(s.substr(0, pos));
       s.erase(0, pos + delimiter.length());
   }
-  ret.emplace_back(s);
+  ret.push_back(s);
   return ret;
 }
 
@@ -60,8 +61,8 @@ Action_GIST::Action_GIST() :
   paramsLJ_c_(NULL),
   max_c_(NULL),
   min_c_(NULL),
-  result_w_c_(NULL),
-  result_s_c_(NULL),
+  result_eww_c_(NULL),
+  result_esw_c_(NULL),
   result_O_c_(NULL),
   result_N_c_(NULL),
 #endif
@@ -353,7 +354,6 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   voxel_xyz_.resize( MAX_GRID_PT_ ); // [] = X Y Z
   voxel_Q_.resize( MAX_GRID_PT_ ); // [] = W4 X4 Y4 Z4
 
-  numthreads_ = 1;
 # ifdef _OPENMP
 # pragma omp parallel
   {
@@ -363,16 +363,16 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
 # endif
 
   if (!skipE_) {
-    E_UV_VDW_.resize( numthreads_ );
-    E_UV_Elec_.resize( numthreads_ );
-    E_VV_VDW_.resize( numthreads_ );
-    E_VV_Elec_.resize( numthreads_ );
+    // E_UV_VDW_.resize( numthreads_ );
+    // E_UV_Elec_.resize( numthreads_ );
+    // E_VV_VDW_.resize( numthreads_ );
+    // E_VV_Elec_.resize( numthreads_ );
     neighborPerThread_.resize( numthreads_ );
     for (int thread = 0; thread != numthreads_; thread++) {
-      E_UV_VDW_[thread].assign( MAX_GRID_PT_, 0 );
-      E_UV_Elec_[thread].assign( MAX_GRID_PT_, 0 );
-      E_VV_VDW_[thread].assign( MAX_GRID_PT_, 0 );
-      E_VV_Elec_[thread].assign( MAX_GRID_PT_, 0 );
+      // E_UV_VDW_[thread].assign( MAX_GRID_PT_, 0 );
+      // E_UV_Elec_[thread].assign( MAX_GRID_PT_, 0 );
+      // E_VV_VDW_[thread].assign( MAX_GRID_PT_, 0 );
+      // E_VV_Elec_[thread].assign( MAX_GRID_PT_, 0 );
       neighborPerThread_[thread].assign( MAX_GRID_PT_, 0 );
     }
     if (usePme_) {
@@ -514,6 +514,10 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   this->solvent_ = new bool[this->numberAtoms_];
   #endif
 
+  if (!skipE_) {
+    E_UV_.resize( numthreads_ );
+    E_VV_.resize( numthreads_ );
+  }
   // Initialize PME
   if (usePme_) {
 #   ifdef LIBPME
@@ -616,13 +620,15 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
     this->lJParamsA_.push_back( (float) nb.NBarray().at(i).A() );
     this->lJParamsB_.push_back( (float) nb.NBarray().at(i).B() );
   }
+  this->E_UV_f_.resize(setup.Top().Natom());
+  this->E_VV_f_.resize(setup.Top().Natom());
 
   try {
     allocateCuda(((void**)&this->NBindex_c_), this->NBIndex_.size() * sizeof(int));
     allocateCuda((void**)&this->max_c_, 3 * sizeof(float));
     allocateCuda((void**)&this->min_c_, 3 * sizeof(float));
-    allocateCuda((void**)&this->result_w_c_, this->numberAtoms_ * sizeof(float));
-    allocateCuda((void**)&this->result_s_c_, this->numberAtoms_ * sizeof(float));
+    allocateCuda((void**)&this->result_eww_c_, this->numberAtoms_ * sizeof(float));
+    allocateCuda((void**)&this->result_esw_c_, this->numberAtoms_ * sizeof(float));
     allocateCuda((void**)&this->result_O_c_, this->numberAtoms_ * 4 * sizeof(int));
     allocateCuda((void**)&this->result_N_c_, this->numberAtoms_ * sizeof(int));
   } catch (CudaException &e) {
@@ -780,6 +786,8 @@ bool Action_GIST::createMoleculeDatasets()
   for (unsigned int i = 0; i != solventNames_.size(); ++i) {
     std::string mol = solventNames_[i];
     molDensitySets_.push_back(AddDatasetAndFile("g_mol_" + mol, prefix_ + "-g-mol-" + mol + ext_, DataSet::GRID_FLT));
+    molEswSets_.push_back(AddDatasetAndFile("Esw_mol_" + mol, prefix_ + "-Esw-mol-" + mol + ext_, DataSet::GRID_FLT));
+    molEwwSets_.push_back(AddDatasetAndFile("Eww_mol_" + mol, prefix_ + "-Eww-mol-" + mol + ext_, DataSet::GRID_FLT));
     if (!molDensitySets_.back()) {
       all_successful = false;
     }
@@ -886,7 +894,8 @@ void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
   double* U_E_pme_grid = &U_E_pme_[0]; 
 
   gistPme_.CalcNonbondEnergy_GIST(frameIn, atom_voxel_, atomIsSolute_, atomIsSolventO_,
-                                  E_UV_VDW_, E_UV_Elec_, E_VV_VDW_, E_VV_Elec_,
+                                  // E_UV_VDW_, E_UV_Elec_, E_VV_VDW_, E_VV_Elec_,
+                                  E_UV_, E_VV_,
                                   neighborPerThread_);
 
 //  system_potential_energy_ += ene_pme_all + ene_vdw_all;
@@ -900,7 +909,8 @@ void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
     int a_voxel = atom_voxel_[a]; // index of the voxel
     double nonbond_energy = gistPme_.E_of_atom(a);
     pme_sum += nonbond_energy;
-    E_pme_grid[a_voxel] += nonbond_energy;  
+    E_pme_grid[a_voxel] += nonbond_energy;
+    //atomEsw_[a_voxel] += 
   }
 
   // Solute energy on the GIST grid
@@ -991,10 +1001,10 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
 
 //  mprintf("DEBUG: NSolventAtoms= %zu  NwatAtomsOnGrid= %u\n", O_idxs_.size()*nMolAtoms_, N_ON_GRID_);
 
-  double* E_UV_VDW  = &(E_UV_VDW_[0][0]);
-  double* E_UV_Elec = &(E_UV_Elec_[0][0]);
-  double* E_VV_VDW  = &(E_VV_VDW_[0][0]);
-  double* E_VV_Elec = &(E_VV_Elec_[0][0]);
+  double* E_UV  = &(E_UV_[0][0]);
+  // double* E_UV_Elec = &(E_UV_Elec_[0][0]);
+  double* E_VV  = &(E_VV_[0][0]);
+  // double* E_VV_Elec = &(E_VV_Elec_[0][0]);
   float* Neighbor = &(neighborPerThread_[0][0]);
   double Evdw, Eelec;
   int aidx;
@@ -1005,13 +1015,13 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
   Iarray* eij_v1 = 0;
   Iarray* eij_v2 = 0;
   Farray* eij_en = 0;
-# pragma omp parallel private(aidx, mythread, E_UV_VDW, E_UV_Elec, E_VV_VDW, E_VV_Elec, Neighbor, Evdw, Eelec, eij_v1, eij_v2, eij_en)
+# pragma omp parallel private(aidx, mythread, E_UV, E_VV, Neighbor, Evdw, Eelec, eij_v1, eij_v2, eij_en)
   {
   mythread = omp_get_thread_num();
-  E_UV_VDW = &(E_UV_VDW_[mythread][0]);
-  E_UV_Elec = &(E_UV_Elec_[mythread][0]);
-  E_VV_VDW = &(E_VV_VDW_[mythread][0]);
-  E_VV_Elec = &(E_VV_Elec_[mythread][0]);
+  E_UV = &(E_UV_[mythread][0]);
+  // E_UV_Elec = &(E_UV_Elec_[mythread][0]);
+  E_VV = &(E_VV_[mythread][0]);
+  // E_VV_Elec = &(E_VV_Elec_[mythread][0]);
   Neighbor = (&neighborPerThread_[mythread][0]);
   if (doEij_) {
     eij_v1 = &(EIJ_V1_[mythread]);
@@ -1083,8 +1093,8 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
           //gist_nonbond_UV_.Start();
           // Calculate energy
           Ecalc( rij2, qA1, topIn[ a2 ].Charge(), topIn.GetLJparam(a1, a2), Evdw, Eelec );
-          E_UV_VDW[a2_voxel]  += Evdw;
-          E_UV_Elec[a2_voxel] += Eelec;
+          E_UV[a2] += (Evdw + Eelec);
+          // E_UV_Elec[a2_voxel] += Eelec;
           //gist_nonbond_UV_.Stop();
         } else {
           // Off-grid/on-grid solvent to on-grid solvent energy
@@ -1117,16 +1127,16 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
             // Calculate energy
             Ecalc( rij2, qA1, topIn[ a2 ].Charge(), topIn.GetLJparam(a1, a2), Evdw, Eelec );
             //mprintf("DEBUG1: v1= %i v2= %i EVV %i %i Vdw= %f Elec= %f\n", a2_voxel, a1_voxel, a2, a1, Evdw, Eelec);
-            E_VV_VDW[a2_voxel] += Evdw;
-            E_VV_Elec[a2_voxel] += Eelec;
+            E_VV[a2] += (Evdw + Eelec);
+            // E_VV_Elec[a2_voxel] += Eelec;
             // Store water neighbor using only O-O distance
             bool is_O_O = (a1IsO && atomIsSolventO_[a2]);
             if (is_O_O && rij2 < NeighborCut2_)
               Neighbor[a2_voxel] += 1.0;
             // If water atom1 was also on the grid update its energy as well.
             if ( a1_voxel != OFF_GRID_ ) {
-              E_VV_VDW[a1_voxel] += Evdw;
-              E_VV_Elec[a1_voxel] += Eelec;
+              E_VV[a1] += (Evdw + Eelec);
+              // E_VV_Elec[a1_voxel] += Eelec;
               if (is_O_O && rij2 < NeighborCut2_)
                 Neighbor[a1_voxel] += 1.0;
               if (doEij_) {
@@ -1223,6 +1233,19 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   OnGrid_idxs_.clear();
   OnGrid_XYZ_.clear();
   atom_voxel_.assign( frm.Frm().Natom(), OFF_GRID_ );
+
+  if (!skipE_) {
+    for (int thread = 0; thread != numthreads_; thread++) {
+      E_UV_[thread].assign( frm.Frm().Natom(), 0 );
+      E_VV_[thread].assign( frm.Frm().Natom(), 0 );
+    }
+# ifdef CUDA
+    if (!usePme_) {
+      E_UV_f_.assign( frm.Frm().Natom(), 0 );
+      E_VV_f_.assign( frm.Frm().Natom(), 0 );
+    }
+# endif
+  }
 
   // Determine imaging type
 # ifdef DEBUG_GIST
@@ -1486,6 +1509,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
       NonbondEnergy(frm.Frm(), *CurrentParm_);
 #     endif
     }
+    CollectEnergies();  
   }
   gist_nonbond_.Stop();
 
@@ -1519,13 +1543,43 @@ int Action_GIST::calcVoxelIndex(double x, double y, double z) {
   return OFF_GRID_;
 }
 
-// Action_GIST::SumEVV()
 void Action_GIST::SumEVV() {
-  for (unsigned int thread = 0; thread < E_VV_VDW_.size(); thread++) {
+  for (int thread = 0; thread < numthreads_; thread++) {
     for (unsigned int gr_pt = 0; gr_pt != MAX_GRID_PT_; gr_pt++) {
-      Esw_->UpdateVoxel(gr_pt, E_UV_VDW_[thread][gr_pt] + E_UV_Elec_[thread][gr_pt]);
-      Eww_->UpdateVoxel(gr_pt, (E_VV_VDW_[thread][gr_pt] + E_VV_Elec_[thread][gr_pt]) * 0.5);
+      //Esw_->UpdateVoxel(gr_pt, E_UV_VDW_[thread][gr_pt] + E_UV_Elec_[thread][gr_pt]);
+      //Eww_->UpdateVoxel(gr_pt, (E_VV_VDW_[thread][gr_pt] + E_VV_Elec_[thread][gr_pt]) * 0.5);
       neighbor_->UpdateVoxel(gr_pt, neighborPerThread_[thread][gr_pt]);
+    }
+  }
+}
+
+void Action_GIST::CollectEnergies()
+{
+  unsigned int n_atoms = E_VV_[0].size();
+  for (int thread = 0; thread < numthreads_; ++thread) {
+    for (unsigned int i = 0; i < n_atoms; ++i) {
+      int gr_pt = atom_voxel_[i];
+      if (gr_pt != OFF_GRID_) {
+        Esw_->UpdateVoxel(gr_pt, E_UV_[thread][i]);
+        Eww_->UpdateVoxel(gr_pt, E_VV_[thread][i] / 2);
+      }
+    }
+    for (Topology::mol_iterator mol = CurrentParm_->MolStart();
+                                mol != CurrentParm_->MolEnd(); ++mol)
+    {
+      int mol_start = mol->MolUnit().Front();
+      if (!atomIsSolute_[mol_start]) {
+        int solvtype = solventType_[mol_start];
+        if (solvtype != UNKNOWN_MOLECULE_) {
+          for (int atom = mol_start; atom != mol->MolUnit().Back(); ++atom) {
+            int gr_pt = atom_voxel_[atom];
+            if (gr_pt != OFF_GRID_) {
+              molEswSets_[solvtype]->UpdateVoxel(gr_pt, E_UV_[thread][atom]);
+              molEwwSets_[solvtype]->UpdateVoxel(gr_pt, E_VV_[thread][atom] / 2);
+            }
+          }
+        }
+      }
     }
   }
 }
@@ -1546,8 +1600,8 @@ void Action_GIST::ScaleDataSet(DataSet_3D& ds, double factor) const
   }
 }
 
-template<typename T>
-std::vector<T> Action_GIST::NormalizeDataSet(const DataSet_3D& ds, const Action_GIST::Iarray& norm) const
+template<typename T, typename ARR>
+std::vector<T> Action_GIST::NormalizeDataSet(const DataSet_3D& ds, const ARR& norm) const
 {
   std::vector<T> ret(ds.Size());
   for (size_t i = 0; i < ds.Size(); ++i) {
@@ -1791,11 +1845,12 @@ void Action_GIST::Print() {
   voxel_Q_.clear();
   voxel_Q_.shrink_to_fit();
   // Sum values from other threads if necessary
-  #ifdef CUDA
+  if (!skipE_) { SumEVV(); }
+  /*#ifdef CUDA
   if (usePme_) { SumEVV(); }
   #else
   SumEVV();
-  #endif
+  #endif*/
 
   // Remove solute-solvent energy in voxels without solvent (i.e., at the solute)
   for (size_t i = 0; i < Esw_->Size(); ++i) {
@@ -1804,9 +1859,6 @@ void Action_GIST::Print() {
     }
   }
 
-  for (unsigned int i = 0; i != solventNames_.size(); ++i) {
-    ScaleDataSet(*molDensitySets_[i], 1.0 / (Vvox * BULK_DENS_ * NFRAME_));
-  }
   // Compute average voxel energy. Allocate these sets even if skipping energy
   // to be consistent with previous output.
 
@@ -1825,9 +1877,27 @@ void Action_GIST::Print() {
     mprintf("\tCalculating average voxel energies:\n");
   }
   Farray Eww_norm = NormalizeDataSet<float>(*Eww_, N_solvent_);
-  Farray Eww_dens = WeightDataSet<float>(*Eww_, 1.0 / (NFRAME_ * Vvox));
+  Farray Eww_dens = DensityWeightDataSet<float>(*Eww_);
   Farray Esw_norm = NormalizeDataSet<float>(*Esw_, N_solvent_);
   Farray Esw_dens = DensityWeightDataSet<float>(*Esw_);
+  std::vector<Farray> solv_Esw_norm(0);
+  std::vector<Farray> solv_Esw_dens(0);
+  std::vector<Farray> solv_Eww_norm(0);
+  std::vector<Farray> solv_Eww_dens(0);
+  for (unsigned int i = 0; i != solventNames_.size(); ++i) {
+    DataSet_3D* solv_Esw = molEswSets_[i];
+    DataSet_3D* solv_Eww = molEwwSets_[i];
+    solv_Eww_norm.push_back(NormalizeDataSet<float>(*solv_Eww, *molDensitySets_[i]));
+    solv_Eww_dens.push_back(DensityWeightDataSet<float>(*solv_Eww));
+    solv_Esw_norm.push_back(NormalizeDataSet<float>(*solv_Esw, *molDensitySets_[i]));
+    solv_Esw_dens.push_back(DensityWeightDataSet<float>(*solv_Esw));
+    CopyArrayToDataSet(solv_Eww_dens.back(), *solv_Eww);
+    CopyArrayToDataSet(solv_Esw_dens.back(), *solv_Esw);
+  }
+  // Do this AFTER normalizing the Eww and Esw sets.
+  for (unsigned int i = 0; i != solventNames_.size(); ++i) {
+    ScaleDataSet(*molDensitySets_[i], 1.0 / (Vvox * BULK_DENS_ * NFRAME_));
+  }
   if (!skipE_) {
     infofile_->Printf("Total water-solute energy of the grid: Esw = %9.5f kcal/mol\n", SumDataSet(*Esw_) / NFRAME_);
     infofile_->Printf("Total unreferenced water-water energy of the grid: Eww = %9.5f kcal/mol\n",
@@ -1896,6 +1966,12 @@ void Action_GIST::Print() {
                       " Eww-dens(kcal/mol/A^3) Eww-norm-unref(kcal/mol)");
     if (usePme_)
       datafile_->Printf(" PME-dens(kcal/mol/A^3) PME-norm(kcal/mol)");
+    for (unsigned int i = 0; i != solventNames_.size(); ++i) {
+      datafile_->Printf( (std::string(" Esw_mol_") + solventNames_[i] + "-dens(kcal/mol/A^3)").c_str() );
+      datafile_->Printf( (std::string(" Esw_mol_") + solventNames_[i] + "-norm(kcal/mol)").c_str() );
+      datafile_->Printf( (std::string(" Eww_mol_") + solventNames_[i] + "-dens(kcal/mol/A^3)").c_str() );
+      datafile_->Printf( (std::string(" Eww_mol_") + solventNames_[i] + "-norm(kcal/mol)").c_str() );
+    }
     datafile_->Printf(" Dipole_x-dens(D/A^3) Dipole_y-dens(D/A^3) Dipole_z-dens(D/A^3)"
                       " Dipole-dens(D/A^3) neighbor-dens(1/A^3) neighbor-norm order-norm\n");
     // Loop over voxels
@@ -1918,6 +1994,10 @@ void Action_GIST::Print() {
               << dTSsix_dens[gr_pt] << dTSsix_norm[gr_pt] << Esw_dens[gr_pt] << Esw_norm[gr_pt] << Eww_dens[gr_pt] << Eww_norm[gr_pt];
       if (usePme_) {
         printer << PME_dens[gr_pt] << PME_norm[gr_pt];
+      }
+      for (unsigned int i = 0; i != solventNames_.size(); ++i) {
+        printer << solv_Esw_dens[i][gr_pt] << solv_Esw_norm[i][gr_pt]
+                << solv_Eww_dens[i][gr_pt] << solv_Eww_norm[i][gr_pt];
       }
       printer << dipolex_dens[gr_pt] << dipoley_dens[gr_pt] << dipolez_dens[gr_pt] 
               << (*dipole_)[gr_pt] << neighbor_dens[gr_pt] << neighbor_norm[gr_pt] << order_norm[gr_pt];
@@ -1976,8 +2056,8 @@ void Action_GIST::Print() {
 #ifdef CUDA
 void Action_GIST::NonbondCuda(ActionFrame frm) {
   // Simply to get the information for the energetic calculations
-  std::vector<float> eww_result(this->numberAtoms_);
-  std::vector<float> esw_result(this->numberAtoms_);
+  //std::vector<float> eww_result(this->numberAtoms_);
+  //std::vector<float> esw_result(this->numberAtoms_);
   std::vector<std::vector<int> > order_indices;
 
   float *recip = NULL;
@@ -2017,11 +2097,14 @@ void Action_GIST::NonbondCuda(ActionFrame frm) {
   std::vector<int> result_n = std::vector<int>(this->numberAtoms_);
   // Call the GPU Wrapper, which subsequently calls the kernel, after setup operations.
   // Must create arrays from the vectors, does that by getting the address of the first element of the vector.
-  std::vector<std::vector<float> > e_result = doActionCudaEnergy(frm.Frm().xAddress(), this->NBindex_c_, this->numberAtomTypes_, this->paramsLJ_c_, this->molecule_c_, boxinfo, recip, ucell, this->numberAtoms_, this->min_c_,
-                                                    this->max_c_, this->headAtomType_,this->NeighborCut2_, &(result_o[0]), &(result_n[0]), this->result_w_c_,
-                                                    this->result_s_c_, this->result_O_c_, this->result_N_c_, this->doOrder_);
-  eww_result = e_result.at(0);
-  esw_result = e_result.at(1);
+  doActionCudaEnergy(frm.Frm().xAddress(), this->NBindex_c_, this->numberAtomTypes_, this->paramsLJ_c_, this->molecule_c_, boxinfo, recip, ucell, this->numberAtoms_, this->min_c_,
+                     this->max_c_, this->headAtomType_,this->NeighborCut2_, &(E_UV_f_[0]), &(E_VV_f_[0]), &(result_o[0]), &(result_n[0]), this->result_eww_c_,
+                     this->result_esw_c_, this->result_O_c_, this->result_N_c_, this->doOrder_);
+
+  for (unsigned int i = 0; i < this->numberAtoms_; ++i) {
+    E_VV_[0][i] = E_VV_f_[i];
+    E_UV_[0][i] = E_UV_f_[i];
+  }
 
   if (this->doOrder_) {
     int counter = 0;
@@ -2043,10 +2126,6 @@ void Action_GIST::NonbondCuda(ActionFrame frm) {
     int voxel = atom_voxel_[headAtomIndex];
     if (voxel != OFF_GRID_) {
       neighbor_->UpdateVoxel(voxel, result_n.at(headAtomIndex));
-      for (unsigned int IDX = 0; IDX != nMolAtoms_; IDX++) {
-        Esw_->UpdateVoxel(voxel, esw_result.at(headAtomIndex + IDX));
-        Eww_->UpdateVoxel(voxel, eww_result.at(headAtomIndex + IDX));
-      }
       // Order calculation
       if (this->doOrder_) {
         double sum = 0;
@@ -2082,7 +2161,6 @@ void Action_GIST::NonbondCuda(ActionFrame frm) {
         order_->UpdateVoxel(voxel, 1.0 - (3.0/8.0) * sum);
       }
     }
-
   }
 }
 
@@ -2095,8 +2173,8 @@ void Action_GIST::freeGPUMemory(void) {
   freeCuda(this->paramsLJ_c_);
   freeCuda(this->max_c_);
   freeCuda(this->min_c_);
-  freeCuda(this->result_w_c_);
-  freeCuda(this->result_s_c_);
+  freeCuda(this->result_eww_c_);
+  freeCuda(this->result_esw_c_);
   freeCuda(this->result_O_c_);
   freeCuda(this->result_N_c_);
   this->NBindex_c_   = NULL;
@@ -2104,8 +2182,8 @@ void Action_GIST::freeGPUMemory(void) {
   this->paramsLJ_c_  = NULL;
   this->max_c_     = NULL;
   this->min_c_     = NULL;
-  this->result_w_c_= NULL;
-  this->result_s_c_= NULL;
+  this->result_eww_c_= NULL;
+  this->result_esw_c_= NULL;
   this->result_O_c_  = NULL;
   this->result_N_c_  = NULL;
 }
