@@ -2225,6 +2225,11 @@ BuildRules() {
   fi
   configfile=$1
   shift
+  if [ $COMPILE_VERBOSE -eq 0 ] ; then
+    echo "VB=@" >> $configfile
+  else
+    echo "VB=" >> $configfile
+  fi
   while [ ! -z "$1" ] ; do
     rule=''
     case "$1" in
@@ -2265,8 +2270,8 @@ BuildRules() {
       if [ ! -z "$rule" ] ; then
         printf "\n$rule\n" >> $configfile
         if [ $COMPILE_VERBOSE -eq 0 ] ; then
-          printf "\t@echo $cmd \$<\n" >> $configfile
-          printf "\t@$line -c -o \$@ \$<\n\n" >> $configfile
+          printf "\t\$(VB)echo $cmd \$<\n" >> $configfile
+          printf "\t\$(VB)$line -c -o \$@ \$<\n\n" >> $configfile
         else
           printf "\n\t$line -c -o \$@ \$<\n\n" >> $configfile
         fi
@@ -2754,6 +2759,7 @@ fi
 cat >> config.h <<EOF
 SHARED_SUFFIX=$SHARED_SUFFIX
 DIRECTIVES=$DIRECTIVES
+LFS=$LFS
 CPPTRAJ_INC=$CPPTRAJ_INC
 
 LIBCPPTRAJ_TARGET=$LIBCPPTRAJ_TARGET
