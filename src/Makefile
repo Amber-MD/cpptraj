@@ -34,13 +34,13 @@ install_cpptraj: cpptraj$(SFX)$(EXE)
 	$(VB)mv cpptraj$(SFX)$(EXE) $(CPPTRAJBIN)
 
 cpptraj$(SFX)$(EXE): $(OBJECTS) $(FFT_TARGET) $(READLINE_TARGET) $(CUDA_TARGET) $(XDRFILE_TARGET) $(ARPACK_TARGET) $(TNGFILE_TARGET)
-	$(VB)echo LINK cpptraj$(SFX)$(EXE)
+	$(VB)echo Link cpptraj$(SFX)$(EXE)
 	$(VB)$(CXX) -o cpptraj$(SFX)$(EXE) $(OBJECTS) $(CUDA_TARGET) $(FFT_TARGET) $(READLINE_LIB) $(CPPTRAJ_LIB) $(LDFLAGS)
 
 # libcpptraj ---------------------------
 # Rule to make libcpptraj-specific objects
 %.LIBCPPTRAJ.o : %.cpp
-	$(VB)echo [LIBCPPTRAJ] CXX
+	$(VB)echo [LIBCPPTRAJ] CXX $<
 	$(VB)$(CXX) $(DIRECTIVES) -DLIBCPPTRAJ $(CPPTRAJ_INC) $(CXXFLAGS) -c -o $@ $<
 
 libcpptraj: $(LIBCPPTRAJ_TARGET)
