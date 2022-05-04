@@ -1,5 +1,5 @@
 # Makefile for ARPACK bundled with cpptraj
-include ../../external.config.h
+include ../../config.h
 LIBDIR  = .
 
 AR       = ar rv 
@@ -23,6 +23,10 @@ snaup2.o snaupd.o snconv.o sneigh.o smout.o \
 sneupd.o sngets.o ssaitr.o ssapps.o ssaup2.o \
 ssaupd.o ssconv.o sseigt.o ssesrt.o sseupd.o \
 ssgets.o ssortc.o ssortr.o sstatn.o sstats.o sstqrb.o
+
+.f.o:
+	$(VB)echo [ARPACK] FC $<
+	$(VB)$(FC) $(F77FLAGS) -c -o $@ $<
 
 $(LIBDIR)/$(TARGET): $(ARPACKLIB)
 	-$(DEL_FILE) $(TARGET)
