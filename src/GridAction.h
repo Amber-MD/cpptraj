@@ -46,6 +46,8 @@ class GridAction {
   private:
     /// Set first frame selected coords (tgt_) and original grid unit cell vectors (tgtUcell_).
     int SetTgt(Frame const&, Matrix_3x3 const&);
+    /// Determine move type if any based on arguments
+    int determineMoveType(ArgList&, bool&);
 
     OffsetType gridOffsetType_;
     MoveType gridMoveType_;

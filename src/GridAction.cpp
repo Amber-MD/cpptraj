@@ -29,6 +29,28 @@ static inline void CheckEven(int& N, char dir) {
   }
 }
 
+/** Determine grid move type based on keywords. */
+int GridAction::determineMoveType(ArgList& argIn, bool& specifiedCenter)
+{
+  if (argIn.hasKey("boxcenter")) {
+    specifiedCenter = true;
+    gridMoveType_ = TO_BOX_CTR;
+  } else {
+    std::string maskCenterArg = argIn.GetStringKey("maskcenter");
+    std::string rmsFitArg = argIn.GetStringKey("rmsfit");
+    if (!maskCenterArg.empty()) {
+      specifiedCenter = true;
+      gridMoveType_ = TO_MASK_CTR;
+      if (centerMask_.SetMaskString( maskCenterArg )) return 1;
+    } else if (!rmsFitArg.empty()) {
+      specifiedCenter = true;
+      gridMoveType_ = RMS_FIT;
+      if (centerMask_.SetMaskString( rmsFitArg )) return 1;
+    }
+  }
+  return 0;
+}
+
 // GridAction::GridInit()
 DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn, DataSetList& DSL) 
 {
@@ -49,6 +71,7 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn
     // DataSet will probably need syncing after action.
     Grid->SetNeedsSync( true );
 #   endif
+    if (determineMoveType(argIn, specifiedCenter)) return 0;
   } else if (!refname.empty()) {
     // Get grid parameters from reference structure box.
     DataSet_Coords_REF* REF = (DataSet_Coords_REF*)DSL.FindSetOfType( refname, DataSet::REF_FRAME );
@@ -98,6 +121,10 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn
       double cz = argIn.getNextDouble(0.0);
       gridctr.SetVec(cx, cy, cz);
       specifiedCenter = true;
+    } else {
+      if (determineMoveType( argIn, specifiedCenter )) return 0;
+    }
+/*
     } else if (argIn.hasKey("boxcenter")) {
       specifiedCenter = true;
       gridMoveType_ = TO_BOX_CTR;
@@ -113,7 +140,7 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn
         gridMoveType_ = RMS_FIT;
         if (centerMask_.SetMaskString( rmsFitArg )) return 0;
       }
-    }
+    }*/
     Grid = (DataSet_GridFlt*)DSL.AddSet( DataSet::GRID_FLT, argIn.GetStringKey("name"), "GRID" );
     if (Grid == 0) return 0;
     // Set up grid from dims, center, and spacing
