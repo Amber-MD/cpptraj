@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles grid.in tyr.rmsfit.dx tyr.rmsfit.dcd tyr.gridfit.dx
+CleanFiles grid.in tyr.rmsfit.dx tyr.rmsfit.dcd tyr.gridfit.dx fitwithreaddata.dx
 
 TESTNAME='Grid rotation tests.'
 Requires netcdf
@@ -33,6 +33,21 @@ EOF
   DoTest tyr.gridfit.dx.save tyr.gridfit.dx
 }
 
+FixWithReadData() {
+  INPUT='-i grid.in'
+  cat > grid.in <<EOF
+parm ../tz2.truncoct.parm7
+trajin ../tz2.truncoct.nc
+readdata ../Test_Grid/out.dx.save name MyGrid
+autoimage origin
+grid out fitwithreaddata.dx data MyGrid rmsfit :1-13 @CA
+run
+EOF
+  RunCpptraj "RMS-fitting after reading in grid data"
+  DoTest ../Test_Grid/out.dx.2.save fitwithreaddata.dx
+}
+
 RunTyr
+FixWithReadData
 
 EndTest
