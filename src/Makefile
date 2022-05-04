@@ -11,6 +11,15 @@ CLUSTER_SOURCEFILES=$(addprefix Cluster/,$(CLUSTER_SOURCES))
 # All object files
 OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o) $(CLUSTER_SOURCEFILES:.cpp=.o)
 
+# General rules
+.cpp.o:
+	$(VB)echo CXX $<
+	$(VB)$(CXX) $(DIRECTIVES) $(CPPTRAJ_INC) $(CXXFLAGS) -c -o $@ $<
+
+.c.o:
+	$(VB)echo CC $<
+	$(VB)$(CC) $(DIRECTIVES) $(CPPTRAJ_INC) $(CFLAGS) -c -o $@ $<
+
 DEL_FILE = /bin/rm -f
 
 # Default target: cpptraj only
@@ -72,18 +81,19 @@ nolibcpptraj:
 
 # Internal object/library targets
 pub_fft.o:  pub_fft.F90
-	$(FC) $(FPPFLAGS) -c $(FFLAGS) -o $@ pub_fft.F90
+	$(VB)echo FC pub_fft.F90
+	$(VB)$(FC) -c $(FFLAGS) -o $@ pub_fft.F90
 
-readline/libreadline.a: ../external.config.h
+readline/libreadline.a:
 	cd readline && $(MAKE) all
 
-xdrfile/libxdrfile.a: ../external.config.h
+xdrfile/libxdrfile.a:
 	cd xdrfile && $(MAKE) all
 
-arpack/libarpack.a: ../external.config.h
+arpack/libarpack.a:
 	cd arpack && $(MAKE) install
 
-tng/libtng_io.a: ../external.config.h
+tng/libtng_io.a:
 	cd tng && $(MAKE) all
 
 noreadline:
@@ -106,7 +116,7 @@ noarpack:
 	@echo "Skipping bundled ARPACK build"
 	@echo ""
 
-cuda_kernels/libcpptraj_cuda.a: ../external.config.h
+cuda_kernels/libcpptraj_cuda.a:
 	cd cuda_kernels && $(MAKE) all
 
 # Dependency targets
