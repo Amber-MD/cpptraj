@@ -124,23 +124,6 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn
     } else {
       if (determineMoveType( argIn, specifiedCenter )) return 0;
     }
-/*
-    } else if (argIn.hasKey("boxcenter")) {
-      specifiedCenter = true;
-      gridMoveType_ = TO_BOX_CTR;
-    } else {
-      std::string maskCenterArg = argIn.GetStringKey("maskcenter");
-      std::string rmsFitArg = argIn.GetStringKey("rmsfit");
-      if (!maskCenterArg.empty()) {
-        specifiedCenter = true;
-        gridMoveType_ = TO_MASK_CTR;
-        if (centerMask_.SetMaskString( maskCenterArg )) return 0;
-      } else if (!rmsFitArg.empty()) {
-        specifiedCenter = true;
-        gridMoveType_ = RMS_FIT;
-        if (centerMask_.SetMaskString( rmsFitArg )) return 0;
-      }
-    }*/
     Grid = (DataSet_GridFlt*)DSL.AddSet( DataSet::GRID_FLT, argIn.GetStringKey("name"), "GRID" );
     if (Grid == 0) return 0;
     // Set up grid from dims, center, and spacing
