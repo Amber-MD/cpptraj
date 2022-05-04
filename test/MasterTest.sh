@@ -273,7 +273,7 @@ NcTest() {
 # Since eigenvector sign can flip for certain versions of BLAS/LAPACK, use
 # CPPTRAJ root-mean-square-inner-product of the files.
 EvecTest() {
-  echo "DEBUG: EvecTest $1 $2"
+  #echo "DEBUG: EvecTest $1 $2"
   if [ -z "$1" -o -z "$2" ] ; then
     ErrMsg "EvecTest(): One or both files not specified."
     exit 1
@@ -319,7 +319,7 @@ EOF
       ProgramError "EvecTest: cpptraj exited with status $STATUS"
     fi
     DoTest $DIFFARGS
-    #$CPPTRAJ_RM ev0.save ev0 tmp.evectest.out
+    $CPPTRAJ_RM ev0.save ev0 tmp.evectest.out
   fi
 }
 
