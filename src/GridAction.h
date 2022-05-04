@@ -24,6 +24,8 @@ class GridAction {
 #   ifdef MPI
     /// Perform any parallel initialization
     int ParallelGridInit(Parallel::Comm const&, DataSet_GridFlt*);
+    /// \return the current Comm
+    Parallel::Comm const& TrajComm() const { return trajComm_; }
 #   endif
     /// Print information on given grid to STDOUT
     void GridInfo(DataSet_GridFlt const&);

@@ -14,6 +14,9 @@ class Action_Grid : public Action, private GridAction {
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
     void Print();
+#   ifdef MPI
+    int SyncAction();
+#   endif
 
     void PrintPDB(double);
 
