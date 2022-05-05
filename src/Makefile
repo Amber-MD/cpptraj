@@ -6,7 +6,7 @@ include cpptrajfiles
 # Object files from subdirectories go here
 include Cluster/clusterfiles
 
-CLUSTER_SOURCEFILES=$(addprefix Cluster/,$(CLUSTER_SOURCES))
+CLUSTER_SOURCEFILES=$(CLUSTER_SOURCES:%.cpp=Cluster/%.cpp)
 
 # All object files
 OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o) $(CLUSTER_SOURCEFILES:.cpp=.o)
@@ -21,6 +21,13 @@ OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o) $(CLUSTER_SOURCEFILES:.cpp=.o)
 	$(VB)$(CC) $(DIRECTIVES) $(CPPTRAJ_INC) $(CFLAGS) -c -o $@ $<
 
 DEL_FILE = /bin/rm -f
+
+# For debugging
+showsources:
+	@echo $(CLUSTER_SOURCEFILES)
+
+showobjects:
+	@echo $(OBJECTS)
 
 # Default target: cpptraj only
 all: cpptraj$(SFX)$(EXE)
