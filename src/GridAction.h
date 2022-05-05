@@ -24,6 +24,8 @@ class GridAction {
 #   ifdef MPI
     /// Perform any parallel initialization
     int ParallelGridInit(Parallel::Comm const&, DataSet_GridFlt*);
+    /// \return the current Comm
+    Parallel::Comm const& TrajComm() const { return trajComm_; }
 #   endif
     /// Print information on given grid to STDOUT
     void GridInfo(DataSet_GridFlt const&);
@@ -44,6 +46,8 @@ class GridAction {
   private:
     /// Set first frame selected coords (tgt_) and original grid unit cell vectors (tgtUcell_).
     int SetTgt(Frame const&, Matrix_3x3 const&);
+    /// Determine move type if any based on arguments
+    int determineMoveType(ArgList&, bool&);
 
     OffsetType gridOffsetType_;
     MoveType gridMoveType_;
