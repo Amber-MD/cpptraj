@@ -813,7 +813,7 @@ EOF
         # Check if lib present but needs to be rebuilt
         CheckRebuild "LAPACK/BLAS" "${LIB_FLAG[$LBLAS]}"
         # See if user would like to get blas
-        PREFIX=$CPPTRAJHOME CC="$CC" CFLAGS="$CFLAGS" FC="$FC" LIBNAME="$MATH_LIBNAME" \
+        PREFIX=$CPPTRAJHOME CC="$CC" CFLAGS="$CFLAGS" FC="$FC" FFLAGS="$F77FLAGS" FFLAGS_NOOPT="$F77FLAGS_NOOPT" LIBNAME="$MATH_LIBNAME" \
             SRCDIR=$MATH_SRCDIR SRCTAR=$MATH_SRCTAR URL=$MATH_URL ./get_library.sh $REBUILDOPT $MATH_OPTS
         if [ $? -ne 0 ] ; then
           ErrMsg "Building LAPACK/BLAS failed."
@@ -1603,7 +1603,8 @@ EOF
   # Set compiler flags
   CXXFLAGS="$DBFLAG $warnflag $ompflag $optflags $noinlineflag $picflag $commonflags $CXXFLAGS"
   CFLAGS="$DBFLAG $warnflag $ompflag $optflags $picflag $commonflags $CFLAGS"
-  F77FLAGS="$DBFLAG $fwarnflag $ompflag $foptflags $picflag $commonflags $FFLAGS"
+  F77FLAGS_NOOPT="$DBFLAG $fwarnflag $ompflag -O0 $picflag $commonflags $F77FLAGS"
+  F77FLAGS="$DBFLAG $fwarnflag $ompflag $foptflags $picflag $commonflags $F77FLAGS"
   FFLAGS="$DBFLAG $fwarnflag $ompflag $foptflags $picflag $freefmtflag $commonflags $FFLAGS"
   LDFLAGS="$LDFLAGS $ompflag $staticflag $staticlink"
   # DEBUG
