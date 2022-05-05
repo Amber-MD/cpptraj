@@ -1993,7 +1993,11 @@ void Action_GIST::Print() {
       printer << dTStrans_dens[gr_pt] << dTStrans_norm[gr_pt] << dTSorient_dens[gr_pt] << dTSorient_norm[gr_pt] 
               << dTSsix_dens[gr_pt] << dTSsix_norm[gr_pt] << Esw_dens[gr_pt] << Esw_norm[gr_pt] << Eww_dens[gr_pt] << Eww_norm[gr_pt];
       if (usePme_) {
-        printer << PME_dens[gr_pt] << PME_norm[gr_pt];
+        if (skipE_) {
+          printer << 0.0 << 0.0;
+        } else {
+          printer << PME_dens[gr_pt] << PME_norm[gr_pt];
+        }
       }
       for (unsigned int i = 0; i != solventNames_.size(); ++i) {
         printer << solv_Esw_dens[i][gr_pt] << solv_Esw_norm[i][gr_pt]

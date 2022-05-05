@@ -6,7 +6,9 @@ CleanFiles gist.in gist.out gist-*.dx ww_Eij.dat Eww_ij.dat \
            Gist1-*.dx Gist1-*.dat Gist2-*.dx Gist2-*.dat \
            Gist3-*.dx Gist3-*.dat Gist4-*.dx Gist4-*.dat \
            Gist5-*.dx Gist5-*.dat Gist6-*.dx Gist6-*.dat \
-           Gist7-*.dx Gist7-*.dat Gist-dummy*.dat gaussian_entropy*.txt
+           Gist7-*.dx Gist7-*.dat Gist8-*.dx Gist8-*.dat \
+           Gist-dummy*.dx Gist-dummy*.dat gaussian_entropy*.txt \
+           benzene-ions-energy.txt benzene-ions-gist*.txt
 INPUT="-i gist.in"
 TESTNAME='GIST tests'
 Requires netcdf notparallel
@@ -223,6 +225,42 @@ grep "6d if all one vox" Gist-dummy2-Info.dat > gaussian_entropy.txt
 grep "t if all one vox" Gist-dummy2-Info.dat >> gaussian_entropy.txt
 
 DoTest gaussian_entropy_analytical.txt gaussian_entropy.txt -a 0.02
+
+UNITNAME='GIST test, energy with ions'
+cat > gist.in <<EOF
+parm benzene-ions.parm7
+trajin benzene-ions-10frames.nc
+autoimage origin
+gist pme refdens 3.3 gridcntr 0 0 0 solute ^1 \
+    griddim 6 6 6 gridspacn 5.0 prefix Gist8 info Info.dat nocom solventmols WAT
+go
+EOF
+RunCpptraj "$UNITNAME"
+
+# Energies produced using the energy command and PME.
+cat << EOF > benzene-ions-energy.txt
+Total water-solute energy of the grid: Esw = -17.216605 kcal/mol
+Total unreferenced water-water energy of the grid: Eww = -5415.911647 kcal/mol
+EOF
+grep "energy of the grid" Gist8-Info.dat > benzene-ions-gist8.txt
+
+DoTest benzene-ions-energy.txt benzene-ions-gist8.txt -a 0.6 -r 0.001
+
+
+UNITNAME='GIST test, energy with ions, no PME'
+cat > gist.in <<EOF
+parm benzene-ions.parm7
+trajin benzene-ions-10frames.nc
+autoimage origin
+gist refdens 3.3 gridcntr 0 0 0 solute ^1 \
+    griddim 6 6 6 gridspacn 5.0 prefix Gist9 info Info.dat nocom solventmols WAT
+go
+EOF
+RunCpptraj "$UNITNAME"
+
+grep "energy of the grid" Gist9-Info.dat > benzene-ions-gist9.txt
+
+DoTest benzene-ions-energy.txt benzene-ions-gist9.txt -a 4 -r 0.01
 
 EndTest
 
