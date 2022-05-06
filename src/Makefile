@@ -3,11 +3,31 @@ include ../config.h
 
 include cpptrajfiles
 
+# Object files from subdirectories go here
+include Cluster/clusterfiles
+
+CLUSTER_SOURCEFILES=$(CLUSTER_SOURCES:%.cpp=Cluster/%.cpp)
+
+# All object files
+OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o) $(CLUSTER_SOURCEFILES:.cpp=.o)
+
+# General rules
+.cpp.o:
+	$(VB)echo CXX $<
+	$(VB)$(CXX) $(DIRECTIVES) $(CPPTRAJ_INC) $(CXXFLAGS) -c -o $@ $<
+
+.c.o:
+	$(VB)echo CC $<
+	$(VB)$(CC) $(DIRECTIVES) $(CPPTRAJ_INC) $(CFLAGS) -c -o $@ $<
+
 DEL_FILE = /bin/rm -f
 
-OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o)
+# For debugging
+showsources:
+	@echo $(CLUSTER_SOURCEFILES)
 
-CLUSTER_TARGET=Cluster/libcpptraj_cluster.a
+showobjects:
+	@echo $(OBJECTS)
 
 # Default target: cpptraj only
 all: cpptraj$(SFX)$(EXE)
@@ -17,20 +37,24 @@ install: $(INSTALL_TARGETS)
 
 # Cpptraj ------------------------------
 install_cpptraj: cpptraj$(SFX)$(EXE)
-	mv cpptraj$(SFX)$(EXE) $(CPPTRAJBIN)
+	$(VB)echo Install cpptraj$(SFX)$(EXE) to $(CPPTRAJBIN)
+	$(VB)mv cpptraj$(SFX)$(EXE) $(CPPTRAJBIN)
 
-cpptraj$(SFX)$(EXE): $(OBJECTS) $(FFT_TARGET) $(READLINE_TARGET) $(CUDA_TARGET) $(CLUSTER_TARGET) $(XDRFILE_TARGET) $(ARPACK_TARGET) $(TNGFILE_TARGET)
-	$(CXX) -o cpptraj$(SFX)$(EXE) $(OBJECTS) $(CUDA_TARGET) $(CLUSTER_TARGET) $(FFT_TARGET) $(READLINE_LIB) $(CPPTRAJ_LIB) $(LDFLAGS)
+cpptraj$(SFX)$(EXE): $(OBJECTS) $(FFT_TARGET) $(READLINE_TARGET) $(CUDA_TARGET) $(XDRFILE_TARGET) $(ARPACK_TARGET) $(TNGFILE_TARGET)
+	$(VB)echo Link cpptraj$(SFX)$(EXE)
+	$(VB)$(CXX) -o cpptraj$(SFX)$(EXE) $(OBJECTS) $(CUDA_TARGET) $(FFT_TARGET) $(READLINE_LIB) $(CPPTRAJ_LIB) $(LDFLAGS)
 
 # libcpptraj ---------------------------
 # Rule to make libcpptraj-specific objects
 %.LIBCPPTRAJ.o : %.cpp
-	$(CXX) $(DIRECTIVES) -DLIBCPPTRAJ $(CPPTRAJ_INC) $(CXXFLAGS) -c -o $@ $<
+	$(VB)echo [LIBCPPTRAJ] CXX $<
+	$(VB)$(CXX) $(DIRECTIVES) -DLIBCPPTRAJ $(CPPTRAJ_INC) $(CXXFLAGS) -c -o $@ $<
 
 libcpptraj: $(LIBCPPTRAJ_TARGET)
 
-$(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX): $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET) $(CLUSTER_TARGET) $(XDRFILE_TARGET) $(ARPACK_TARGET) $(TNGFILE_TARGET)
-	$(CXX) -shared -o $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX) $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET) $(CLUSTER_TARGET) $(CPPTRAJ_LIB) $(LDFLAGS)
+$(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX): $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET) $(XDRFILE_TARGET) $(ARPACK_TARGET) $(TNGFILE_TARGET)
+	$(VB)echo Install $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX)
+	$(VB)$(CXX) -shared -o $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX) $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET) $(CPPTRAJ_LIB) $(LDFLAGS)
 
 # Data directory -----------------------
 install_dat:
@@ -68,18 +92,19 @@ nolibcpptraj:
 
 # Internal object/library targets
 pub_fft.o:  pub_fft.F90
-	$(FC) $(FPPFLAGS) -c $(FFLAGS) -o $@ pub_fft.F90
+	$(VB)echo FC pub_fft.F90
+	$(VB)$(FC) -c $(FFLAGS) -o $@ pub_fft.F90
 
-readline/libreadline.a: ../external.config.h
+readline/libreadline.a:
 	cd readline && $(MAKE) all
 
-xdrfile/libxdrfile.a: ../external.config.h
+xdrfile/libxdrfile.a:
 	cd xdrfile && $(MAKE) all
 
-arpack/libarpack.a: ../external.config.h
+arpack/libarpack.a:
 	cd arpack && $(MAKE) install
 
-tng/libtng_io.a: ../external.config.h
+tng/libtng_io.a:
 	cd tng && $(MAKE) all
 
 noreadline:
@@ -102,18 +127,15 @@ noarpack:
 	@echo "Skipping bundled ARPACK build"
 	@echo ""
 
-cuda_kernels/libcpptraj_cuda.a: ../external.config.h
+cuda_kernels/libcpptraj_cuda.a:
 	cd cuda_kernels && $(MAKE) all
-
-$(CLUSTER_TARGET)::
-	cd Cluster && $(MAKE) all
 
 # Dependency targets
 findDepend: FindDepend.cpp FindDepend.o 
 	$(CXX) -o findDepend FindDepend.o
 
 depend: findDepend
-	./findDepend $(SOURCES) $(CSOURCES) > cpptrajdepend
+	./findDepend $(SOURCES) $(CSOURCES) $(CLUSTER_SOURCEFILES) > cpptrajdepend
 
 dependclean:
 	$(DEL_FILE) FindDepend.o findDepend
