@@ -437,6 +437,13 @@ CheckLibraryKeys() {
       echo "  ${LIB_CKEY[$i]} location directly specified: $2"
       return 0
     fi
+    LKEY="-make"${LIB_CKEY[$i]}
+    if [ "$1" = "$LKEY" ] ; then
+      echo "  Will attempt to download and build ${LIB_CKEY[$i]}"
+      LIB_STAT[$i]='enabled'
+      LIB_MAKE[$i]='yes'
+      return 0
+    fi
   done
   return 1
 }
@@ -779,8 +786,13 @@ int main() {
   printf("Testing\n"); return 0;
 }
 EOF
-  DetermineFlink silent "  Checking LAPACK/BLAS" "${LIB_FLAG[$LLAPACK]} ${LIB_FLAG[$LBLAS]}"
-  if [ $? -ne 0 ] ; then
+  if [ "${LIB_MAKE[$LBLAS]}" != 'yes' ] ; then
+    DetermineFlink silent "  Checking LAPACK/BLAS" "${LIB_FLAG[$LLAPACK]} ${LIB_FLAG[$LBLAS]}"
+    rebuild_math=$REBUILDOPT
+  else
+    rebuild_math='--rebuild'
+  fi
+  if [ $? -ne 0 -o "${LIB_MAKE[$LBLAS]}" = 'yes' ] ; then
     if [ "${LIB_STAT[$LBLAS]}" = 'enabled' ] ; then
       if [ "$BLAS_TYPE" = 'openblas' ] ; then
         MATH_SRCDIR=$OPENBLAS_SRCDIR
@@ -814,7 +826,7 @@ EOF
         CheckRebuild "LAPACK/BLAS" "${LIB_FLAG[$LBLAS]}"
         # See if user would like to get blas
         PREFIX=$CPPTRAJHOME CC="$CC" CFLAGS="$CFLAGS" FC="$FC" LIBNAME="$MATH_LIBNAME" \
-            SRCDIR=$MATH_SRCDIR SRCTAR=$MATH_SRCTAR URL=$MATH_URL ./get_library.sh $REBUILDOPT $MATH_OPTS
+            SRCDIR=$MATH_SRCDIR SRCTAR=$MATH_SRCTAR URL=$MATH_URL ./get_library.sh $rebuild_math $MATH_OPTS
         if [ $? -ne 0 ] ; then
           ErrMsg "Building LAPACK/BLAS failed."
           exit 1
