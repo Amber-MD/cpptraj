@@ -439,6 +439,10 @@ CheckLibraryKeys() {
     fi
     LKEY="-make"${LIB_CKEY[$i]}
     if [ "$1" = "$LKEY" ] ; then
+      # For now this only works for certain libraries.
+      if [ "$1" != '-makeblas' ] ; then
+        return 1
+      fi
       echo "  Will attempt to download and build ${LIB_CKEY[$i]}"
       LIB_STAT[$i]='enabled'
       LIB_MAKE[$i]='yes'
