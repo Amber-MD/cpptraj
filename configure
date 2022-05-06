@@ -49,6 +49,7 @@ UsageFull() {
   echo "    -no<lib>           : Disable library."
   echo "    --buildlibs        : Attempt to build enabled libraries if they are not present."
   echo "    --nobuildlibs      : Do not asking about building enabled libraries."
+  echo "    -makeblas          : Have cpptraj build its own LAPACK/BLAS."
   echo "    Libraries: netcdf pnetcdf zlib bzlib blas lapack arpack fftw3 readline sanderlib xdrfile tng openmm"
   echo "    Note: pnetcdf is needed for writing NetCDF trajectories with MPI."
   echo "  LINKING OPTIONS"
