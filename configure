@@ -825,7 +825,7 @@ EOF
         # Check if lib present but needs to be rebuilt
         CheckRebuild "LAPACK/BLAS" "${LIB_FLAG[$LBLAS]}"
         # See if user would like to get blas
-        PREFIX=$CPPTRAJHOME CC="$CC" CFLAGS="$CFLAGS" FC="$FC" LIBNAME="$MATH_LIBNAME" \
+        PREFIX=$CPPTRAJHOME CC="$CC" CFLAGS="$CFLAGS" FC="$FC" FFLAGS="$F77FLAGS" FFLAGS_NOOPT="$F77FLAGS_NOOPT" LIBNAME="$MATH_LIBNAME" \
             SRCDIR=$MATH_SRCDIR SRCTAR=$MATH_SRCTAR URL=$MATH_URL ./get_library.sh $rebuild_math $MATH_OPTS
         if [ $? -ne 0 ] ; then
           ErrMsg "Building LAPACK/BLAS failed."
@@ -1615,7 +1615,8 @@ EOF
   # Set compiler flags
   CXXFLAGS="$DBFLAG $warnflag $ompflag $optflags $noinlineflag $picflag $commonflags $CXXFLAGS"
   CFLAGS="$DBFLAG $warnflag $ompflag $optflags $picflag $commonflags $CFLAGS"
-  F77FLAGS="$DBFLAG $fwarnflag $ompflag $foptflags $picflag $commonflags $FFLAGS"
+  F77FLAGS_NOOPT="$DBFLAG $fwarnflag $ompflag -O0 $picflag $commonflags $F77FLAGS"
+  F77FLAGS="$DBFLAG $fwarnflag $ompflag $foptflags $picflag $commonflags $F77FLAGS"
   FFLAGS="$DBFLAG $fwarnflag $ompflag $foptflags $picflag $freefmtflag $commonflags $FFLAGS"
   LDFLAGS="$LDFLAGS $ompflag $staticflag $staticlink"
   # DEBUG
@@ -2229,65 +2230,6 @@ EOF
 }
 
 #-------------------------------------------------------------------------------
-# BuildRules <config file> {cxx|cc|f77} ...
-# Write build rules for config files.
-BuildRules() {
-  if [ -z "$1" ] ; then
-    Err "BuildRules(): No output file."
-  fi
-  configfile=$1
-  shift
-  while [ ! -z "$1" ] ; do
-    rule=''
-    case "$1" in
-      cxx )
-        echo "CXX=$CXX" >> $configfile
-        echo "CXXFLAGS=$CXXFLAGS \$(DBGFLAGS)" >> $configfile
-        rule='.cpp.o:'
-        cmd='CXX'
-        line='$(CXX) $(DIRECTIVES) $(CPPTRAJ_INC) $(CXXFLAGS)'
-        ;;
-      cc )
-        echo "CC=$CC" >> $configfile
-        echo "CFLAGS=$CFLAGS \$(DBGFLAGS)" >> $configfile
-        rule='.c.o:'
-        cmd='CC'
-        line='$(CC) $(DIRECTIVES) $(CPPTRAJ_INC) $(CFLAGS)'
-        ;;
-      f77 )
-        echo "FC=$FC" >> $configfile
-        echo "F77FLAGS=$F77FLAGS \$(DBGFLAGS)" >> $configfile
-        rule='.f.o:'
-        cmd='FC'
-        line='$(FC) $(DIRECTIVES) $(CPPTRAJ_INC) $(F77FLAGS)'
-        ;;
-      f90 )
-        echo "FC=$FC" >> $configfile
-        echo "FFLAGS=$FFLAGS \$(DBGFLAGS)" >> $configfile
-        # No rule needed for pub_fft.F90
-        ;;
-      nvcc )
-        echo "NVCC=$NVCC" >> $configfile
-        echo "NVCCFLAGS=$NVCCFLAGS" >> $configfile
-        rule='%%.o : %%.cu'
-        cmd='NVCC'
-        line='$(NVCC) $(DBGFLAGS) $(NVCCFLAGS)'
-        ;;
-    esac
-      if [ ! -z "$rule" ] ; then
-        printf "\n$rule\n" >> $configfile
-        if [ $COMPILE_VERBOSE -eq 0 ] ; then
-          printf "\t@echo $cmd \$<\n" >> $configfile
-          printf "\t@$line -c -o \$@ \$<\n\n" >> $configfile
-        else
-          printf "\n\t$line -c -o \$@ \$<\n\n" >> $configfile
-        fi
-      fi
-    shift
-  done
-}
-
-#-------------------------------------------------------------------------------
 # Use cmake to configure build.
 SetupCmake() {
   CMAKE=`which cmake`
@@ -2703,6 +2645,7 @@ INSTALL_TARGETS=$INSTALL_TARGETS" install_cpptraj"
 # Can we build libcpptraj? TODO serial/OpenMP only?
 if [ $USE_SHARED -eq 1 ] ; then
   LIBCPPTRAJ_TARGET='$(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX)'
+  INSTALL_TARGETS=$INSTALL_TARGETS" libcpptraj"
 else
   LIBCPPTRAJ_TARGET='nolibcpptraj'
 fi
@@ -2766,6 +2709,7 @@ fi
 cat >> config.h <<EOF
 SHARED_SUFFIX=$SHARED_SUFFIX
 DIRECTIVES=$DIRECTIVES
+LFS=$LFS
 CPPTRAJ_INC=$CPPTRAJ_INC
 
 LIBCPPTRAJ_TARGET=$LIBCPPTRAJ_TARGET
@@ -2789,22 +2733,31 @@ SFX=$SFX
 EXE=$EXE
 
 EOF
-#if [ "$FFT_TARGET" = 'pub_fft.o' ] ; then
-  BuildRules config.h cc cxx f90
-#else
-#  BuildRules config.h cc cxx
-#fi
+# Add '@' symbol to Makefile rules for non-verbose compile
+if [ $COMPILE_VERBOSE -eq 0 ] ; then
+  echo "VB=@" >> config.h
+else
+  echo "VB=" >> config.h
+fi
+# Add compilers and flags
+cat >> config.h <<EOF
 
-# ----- Create config for external libraries -----
-external_config='external.config.h'
-cat > $external_config <<EOF
-# CPPTRAJ config for external libraries.
-# configured using: $CONFIGURECMD
+CXX=$CXX
+CXXFLAGS=$CXXFLAGS \$(DBGFLAGS)
+CC=$CC
+CFLAGS=$CFLAGS \$(DBGFLAGS)
+FC=$FC
+F77FLAGS=$F77FLAGS \$(DBGFLAGS)
+FFLAGS=$FFLAGS \$(DBGFLAGS)
+NVCC=$NVCC
+NVCCFLAGS=$NVCCFLAGS
+
 EOF
-BuildRules $external_config nvcc cc f77
+
+# Zlib needed by tng
 if [ "${LIB_STAT[$LZIP]}" != 'off' ] ; then
-  echo "ZLIB_FLAG=${LIB_FLAG[$LZIP]}" >> $external_config
-  echo "ZLIB_INCL=${LIB_INCL[$LZIP]}" >> $external_config
+  echo "ZLIB_FLAG=${LIB_FLAG[$LZIP]}" >> config.h
+  echo "ZLIB_INCL=${LIB_INCL[$LZIP]}" >> config.h
 fi
 
 # ----- Create a resource file. ------------------

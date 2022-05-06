@@ -1,7 +1,5 @@
 # Makefile for readline bundled with cpptraj.
-include ../../external.config.h
-DIRECTIVES   += -DHAVE_CONFIG_H
-CPPTRAJ_INC  += -I.
+include ../../config.h
 DEL_FILE      = /bin/rm -f
 AR            = ar cqs
 TARGET        = libreadline.a
@@ -43,6 +41,10 @@ SOURCES       = bind.c \
 		xmalloc.c
 
 OBJECTS=$(SOURCES:.c=.o)
+
+.c.o:
+	$(VB)echo [READLINE] CC $<
+	$(VB)$(CC) $(LFS) -DHAVE_CONFIG_H -I. $(CFLAGS) -c -o $@ $<
 
 all: $(TARGET)
 

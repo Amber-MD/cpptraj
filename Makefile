@@ -8,6 +8,8 @@ all: install
 # Install all targets 
 install: config.h
 	cd src && $(MAKE) install
+	@echo "Install complete."
+	@echo ""
 
 # Create libcpptraj.so
 libcpptraj: config.h
