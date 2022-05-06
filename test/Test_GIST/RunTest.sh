@@ -232,7 +232,7 @@ parm benzene-ions.parm7
 trajin benzene-ions-10frames.nc
 autoimage origin
 gist pme refdens 3.3 gridcntr 0 0 0 solute ^1 \
-    griddim 6 6 6 gridspacn 5.0 prefix Gist8 info Info.dat nocom solventmols WAT
+    griddim 6 6 6 gridspacn 5.0 prefix Gist8 info Info.dat nocom solventmols WAT,NA,CL
 go
 EOF
 RunCpptraj "$UNITNAME"
@@ -245,6 +245,12 @@ EOF
 grep "energy of the grid" Gist8-Info.dat > benzene-ions-gist8.txt
 
 DoTest benzene-ions-energy.txt benzene-ions-gist8.txt -a 0.6 -r 0.001
+DoTest Gist8-Esw-mol-WAT.dx.save Gist8-Esw-mol-WAT.dx -a $TEST_TOLERANCE
+DoTest Gist8-Eww-mol-WAT.dx.save Gist8-Eww-mol-WAT.dx -a $TEST_TOLERANCE
+DoTest Gist8-Esw-mol-NA.dx.save Gist8-Esw-mol-NA.dx -a $TEST_TOLERANCE
+DoTest Gist8-Eww-mol-NA.dx.save Gist8-Eww-mol-NA.dx -a $TEST_TOLERANCE
+DoTest Gist8-Esw-mol-CL.dx.save Gist8-Esw-mol-CL.dx -a $TEST_TOLERANCE
+DoTest Gist8-Eww-mol-CL.dx.save Gist8-Eww-mol-CL.dx -a $TEST_TOLERANCE
 
 
 UNITNAME='GIST test, energy with ions, no PME'
@@ -253,7 +259,7 @@ parm benzene-ions.parm7
 trajin benzene-ions-10frames.nc
 autoimage origin
 gist refdens 3.3 gridcntr 0 0 0 solute ^1 \
-    griddim 6 6 6 gridspacn 5.0 prefix Gist9 info Info.dat nocom solventmols WAT
+    griddim 6 6 6 gridspacn 5.0 prefix Gist9 info Info.dat nocom solventmols WAT,NA,CL
 go
 EOF
 RunCpptraj "$UNITNAME"
@@ -261,6 +267,12 @@ RunCpptraj "$UNITNAME"
 grep "energy of the grid" Gist9-Info.dat > benzene-ions-gist9.txt
 
 DoTest benzene-ions-energy.txt benzene-ions-gist9.txt -a 4 -r 0.01
+DoTest Gist9-Esw-mol-WAT.dx.save Gist9-Esw-mol-WAT.dx -a $TEST_TOLERANCE
+DoTest Gist9-Eww-mol-WAT.dx.save Gist9-Eww-mol-WAT.dx -a $TEST_TOLERANCE
+DoTest Gist9-Esw-mol-NA.dx.save Gist9-Esw-mol-NA.dx -a $TEST_TOLERANCE
+DoTest Gist9-Eww-mol-NA.dx.save Gist9-Eww-mol-NA.dx -a $TEST_TOLERANCE
+DoTest Gist9-Esw-mol-CL.dx.save Gist9-Esw-mol-CL.dx -a $TEST_TOLERANCE
+DoTest Gist9-Eww-mol-CL.dx.save Gist9-Eww-mol-CL.dx -a $TEST_TOLERANCE
 
 EndTest
 
