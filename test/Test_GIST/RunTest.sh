@@ -226,8 +226,10 @@ grep "t if all one vox" Gist-dummy2-Info.dat >> gaussian_entropy.txt
 
 DoTest gaussian_entropy_analytical.txt gaussian_entropy.txt -a 0.02
 
-UNITNAME='GIST test, energy with ions'
-cat > gist.in <<EOF
+CheckFor libpme
+if [ $? -eq 0 ] ; then
+	UNITNAME='GIST test, energy with ions'
+	cat > gist.in <<EOF
 parm benzene-ions.parm7
 trajin benzene-ions-10frames.nc
 autoimage origin
@@ -235,22 +237,23 @@ gist pme refdens 3.3 gridcntr 0 0 0 solute ^1 \
     griddim 6 6 6 gridspacn 5.0 prefix Gist8 info Info.dat nocom solventmols WAT,NA,CL
 go
 EOF
-RunCpptraj "$UNITNAME"
+	RunCpptraj "$UNITNAME"
 
-# Energies produced using the energy command and PME.
-cat << EOF > benzene-ions-energy.txt
+	# Energies produced using the energy command and PME.
+	cat << EOF > benzene-ions-energy.txt
 Total water-solute energy of the grid: Esw = -17.216605 kcal/mol
 Total unreferenced water-water energy of the grid: Eww = -5415.911647 kcal/mol
 EOF
-grep "energy of the grid" Gist8-Info.dat > benzene-ions-gist8.txt
+	grep "energy of the grid" Gist8-Info.dat > benzene-ions-gist8.txt
 
-DoTest benzene-ions-energy.txt benzene-ions-gist8.txt -a 0.6 -r 0.001
-DoTest Gist8-Esw-mol-WAT.dx.save Gist8-Esw-mol-WAT.dx -a $TEST_TOLERANCE
-DoTest Gist8-Eww-mol-WAT.dx.save Gist8-Eww-mol-WAT.dx -a $TEST_TOLERANCE
-DoTest Gist8-Esw-mol-NA.dx.save Gist8-Esw-mol-NA.dx -a $TEST_TOLERANCE
-DoTest Gist8-Eww-mol-NA.dx.save Gist8-Eww-mol-NA.dx -a $TEST_TOLERANCE
-DoTest Gist8-Esw-mol-CL.dx.save Gist8-Esw-mol-CL.dx -a $TEST_TOLERANCE
-DoTest Gist8-Eww-mol-CL.dx.save Gist8-Eww-mol-CL.dx -a $TEST_TOLERANCE
+	DoTest benzene-ions-energy.txt benzene-ions-gist8.txt -a 0.6 -r 0.001
+	DoTest Gist8-Esw-mol-WAT.dx.save Gist8-Esw-mol-WAT.dx -a $TEST_TOLERANCE
+	DoTest Gist8-Eww-mol-WAT.dx.save Gist8-Eww-mol-WAT.dx -a $TEST_TOLERANCE
+	DoTest Gist8-Esw-mol-NA.dx.save Gist8-Esw-mol-NA.dx -a $TEST_TOLERANCE
+	DoTest Gist8-Eww-mol-NA.dx.save Gist8-Eww-mol-NA.dx -a $TEST_TOLERANCE
+	DoTest Gist8-Esw-mol-CL.dx.save Gist8-Esw-mol-CL.dx -a $TEST_TOLERANCE
+	DoTest Gist8-Eww-mol-CL.dx.save Gist8-Eww-mol-CL.dx -a $TEST_TOLERANCE
+fi
 
 
 UNITNAME='GIST test, energy with ions, no PME'
