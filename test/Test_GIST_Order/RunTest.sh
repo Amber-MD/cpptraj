@@ -17,7 +17,7 @@ gist nopme doorder gridcntr 0.5 0.5 0.5 griddim 1 1 1 gridspacn 1.0 out gistout.
 EOF
 RunCpptraj "$UNITNAME"
 DoTest gist-order-norm.dx.save gist-order-norm.dx
-DoTest gistout.dat.save gistout.dat
+DoTest gistout.dat.save gistout.dat -a 0.000011
 
 UNITNAME='TIP4P water cluster test'
 cat > gist.in <<EOF
@@ -27,7 +27,7 @@ gist nopme doorder gridcntr 0.5 0.5 0.5 griddim 1 1 1 gridspacn 1.0 out tip4p.da
 EOF
 RunCpptraj "$UNITNAME"
 #DoTest gist-order-norm.dx.save gist-order-norm.dx
-DoTest tip4p.dat.save tip4p.dat
+DoTest tip4p.dat.save tip4p.dat -a 0.000011
 
 UNITNAME='TIP5P water cluster test'
 cat > gist.in <<EOF
@@ -37,7 +37,7 @@ gist nopme doorder gridcntr 0.5 0.5 0.5 griddim 1 1 1 gridspacn 1.0 out tip5p.da
 EOF
 RunCpptraj "$UNITNAME"
 #DoTest gist-order-norm.dx.save gist-order-norm.dx
-DoTest tip5p.dat.save tip5p.dat
+DoTest tip5p.dat.save tip5p.dat -a 0.000011
 
 
 EndTest
