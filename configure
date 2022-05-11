@@ -994,34 +994,35 @@ int main() {
   return 0;
 }
 EOF
-  # Check if we will need to try RPATH syntax. ${LIB_FLAG[$LSANDER]} should
+  # Check if we can use RPATH syntax. ${LIB_FLAG[$LSANDER]} should
   # always be the complete path to the library.
-  # First try no rpath.
-  TestProgram silent "  Checking libsander" "$CXX" "$CXXFLAGS ${LIB_INCL[$LSANDER]}" testp.cpp "${LIB_FLAG[$LSANDER]}"
-  if [ $? -eq 1 ] ; then
-    lsanderdir=`dirname ${LIB_FLAG[$LSANDER]}`
-    for rpath_type in gnu sgi none ; do
-      if [ "$rpath_type" = 'gnu' ] ; then
-        rpath_line="-L$lsanderdir -lsander -Wl,-rpath,$lsanderdir"
-      elif [ "$rpath_type" = 'sgi' ] ; then
-        rpath_line="-L$lsanderdir -lsander -rpath $lsanderdir"
-      else
-        # RPATH does not work
+  lsanderdir=`dirname ${LIB_FLAG[$LSANDER]}`
+  for rpath_type in gnu sgi none ; do
+    if [ "$rpath_type" = 'gnu' ] ; then
+      rpath_line="-L$lsanderdir -lsander -Wl,-rpath,$lsanderdir"
+    elif [ "$rpath_type" = 'sgi' ] ; then
+      rpath_line="-L$lsanderdir -lsander -rpath $lsanderdir"
+    else
+      # RPATH does not work.
+      # Try no RPATH.
+      TestProgram silent "  Checking libsander, no RPATH" "$CXX" "$CXXFLAGS ${LIB_INCL[$LSANDER]}" testp.cpp "${LIB_FLAG[$LSANDER]}"
+      if [ $? -ne 0 ] ; then
         if [ "${LIB_STAT[$LSANDER]}" = 'amberopt' ] ; then
           WrnMsg "SANDER test failed. CPPTRAJ will be built without the SANDER API."
           LIB_STAT[$LSANDER]='off'
+          break
         else
           echo "SANDER test failed."
           exit 1
         fi
       fi
-      TestProgram silent "Checking $rpath_type RPATH type for libsander" "$CXX" "$CXXFLAGS ${LIB_INCL[$LSANDER]}" testp.cpp "$rpath_line"
-      if [ $? -eq 0 ] ; then
-        LIB_FLAG[$LSANDER]="$rpath_line"
-        break
-      fi
-    done # End loop over RPATH types
-  fi # END RPATH check
+    fi
+    TestProgram silent "  Checking $rpath_type RPATH type for libsander" "$CXX" "$CXXFLAGS ${LIB_INCL[$LSANDER]}" testp.cpp "$rpath_line"
+    if [ $? -eq 0 ] ; then
+      LIB_FLAG[$LSANDER]="$rpath_line"
+      break
+    fi
+  done # End loop over RPATH types
 }
 
 TestCuda() {
