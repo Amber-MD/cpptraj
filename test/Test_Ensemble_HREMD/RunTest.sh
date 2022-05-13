@@ -16,5 +16,9 @@ ensemble rem.crd.001 remlog rem.log nstlim 1000 ntwx 1000
 trajout sorted.remlog.crd
 EOF
 RunCpptraj "$UNITNAME"
+DoTest sorted.remlog.crd.0.save sorted.remlog.crd.0
+DoTest sorted.remlog.crd.1.save sorted.remlog.crd.1
+DoTest sorted.remlog.crd.2.save sorted.remlog.crd.2
+DoTest sorted.remlog.crd.3.save sorted.remlog.crd.3
 
 EndTest
