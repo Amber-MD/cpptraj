@@ -22,6 +22,11 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
   double remlog_nstlim    = argIn.getKeyDouble("nstlim", 1.0);
   double remlog_ntwx      = argIn.getKeyDouble("ntwx",   1.0);
   bool no_sort = argIn.hasKey("nosort");
+  bool by_crdidx = argIn.hasKey("bycrdidx");
+  if (no_sort && by_crdidx) {
+    mprinterr("Error: Should only specify either 'nosort' or 'bycrdidx', not both.\n");
+    return 1;
+  }
   // CRDIDXARG: Parse out 'crdidx <indices list>' now so it is not processed
   //            by SetupTrajIO.
   ArgList crdidxarg;
@@ -63,7 +68,14 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
   // Unless nosort was specified, figure out target type
   if (no_sort)
     targetType_ = ReplicaInfo::NONE;
-  else {
+  else if (by_crdidx) {
+    if (!cInfo_.HasCrdIdx()) {
+      mprinterr("Error: Trajectories do not contain crdidx.\n"
+                "Error: To sort these trajectories by crdidx, must use 'remlog'.\n");
+      return 1;
+    }
+    targetType_ = ReplicaInfo::CRDIDX;
+  } else {
     if ( !remlog_name.empty() ) {
       // Sort according to remlog data.
       DataFile remlogFile;
@@ -220,10 +232,15 @@ int EnsembleIn_Multi::ReadEnsemble(int currentFrame, FrameArray& f_ensemble,
     else if (targetType_ == ReplicaInfo::INDICES)
       fidx = IndicesMap_.FindIndex( f_ensemble[member].RemdIndices() );
     else if (targetType_ == ReplicaInfo::CRDIDX) {
-      int currentRemExchange = (int)((double)currentFrame * remdFrameFactor_) + remdFrameOffset_;
-      //mprintf("DEBUG:\tTrajFrame#=%i  RemdExch#=%i\n", currentFrame+1, currentRemExchange+1);
-      fidx = remlogData_.RepFrame(currentRemExchange, repIdx++).CoordsIdx() - remlogData_.Offset();
-      //mprintf("DEBUG:\tFrame %i\tPosition %u is assigned index %i\n", currentFrame, member, fidx);
+      if (remlogData_.Size() < 1) {
+        fidx = f_ensemble[member].CrdIdx();
+      } else {
+        // Get crdidx from remlog
+        int currentRemExchange = (int)((double)currentFrame * remdFrameFactor_) + remdFrameOffset_;
+        //mprintf("DEBUG:\tTrajFrame#=%i  RemdExch#=%i\n", currentFrame+1, currentRemExchange+1);
+        fidx = remlogData_.RepFrame(currentRemExchange, repIdx++).CoordsIdx() - remlogData_.Offset();
+        //mprintf("DEBUG:\tFrame %i\tPosition %u is assigned index %i\n", currentFrame, member, fidx);
+      }
     }
 #   ifndef MPI
     else // NONE
@@ -330,11 +347,20 @@ void EnsembleIn_Multi::EnsembleInfo(int showExtended) const {
     mprintf("\tProcessing ensemble using replica indices\n");
   else if ( targetType_ == ReplicaInfo::TEMP )
     mprintf("\tProcessing ensemble using replica temperatures\n");
-  else if ( targetType_ == ReplicaInfo::CRDIDX )
+  else if ( SortingByRemlog() )
     mprintf("\tProcessing ensemble using remlog data, sorting by coordinate index.\n");
+  else if ( targetType_ == ReplicaInfo::CRDIDX )
+    mprintf("\tProcessing ensemble using coordinate indices.\n");
   else // NONE 
     mprintf("\tNot sorting ensemble.\n");
   if (debug_ > 0) PrintReplicaInfo();
+}
+
+/** CRDIDXARG:
+  * \return true if sorting crdidx by remlog
+  */
+bool EnsembleIn_Multi::SortingByRemlog() const {
+  return (remlogData_.Size() > 0 && targetType_ == ReplicaInfo::CRDIDX);
 }
 
 /** CRDIDXARG:
