@@ -5,7 +5,7 @@
 CleanFiles cpptraj.in sorted.remlog.crd.? sorted.crdidx.crd.?
 
 TESTNAME='H-REMD sorting tests'
-Requires netcdf
+Requires netcdf nthreads 4
 
 INPUT='-i cpptraj.in'
 
