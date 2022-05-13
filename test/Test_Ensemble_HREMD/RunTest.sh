@@ -12,6 +12,7 @@ INPUT='-i cpptraj.in'
 UNITNAME='Sort by crdidx via remlog'
 cat > cpptraj.in <<EOF
 parm ../tz2.nhe.parm7
+ensemblesize 4
 ensemble rem.crd.001 remlog rem.log nstlim 1000 ntwx 1000
 trajout sorted.remlog.crd
 EOF
@@ -24,6 +25,7 @@ DoTest sorted.remlog.crd.3.save sorted.remlog.crd.3
 UNITNAME='Sort by crdidx from trajectory'
 cat > cpptraj.in <<EOF
 parm ../tz2.nhe.parm7
+ensemblesize 4
 ensemble rem.crd.001 bycrdidx 
 trajout sorted.crdidx.crd
 EOF
