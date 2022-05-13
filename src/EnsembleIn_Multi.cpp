@@ -27,6 +27,14 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
     mprinterr("Error: Should only specify either 'nosort' or 'bycrdidx', not both.\n");
     return 1;
   }
+  if (no_sort && !remlog_name.empty()) {
+    mprinterr("Error: Should only specify either 'nosort' or 'remlog', not both.\n");
+    return 1;
+  }
+  if (by_crdidx && !remlog_name.empty()) {
+    mprinterr("Error: Should only specify either 'bycrdidx' or 'remlog', not both.\n");
+    return 1;
+  }
   // CRDIDXARG: Parse out 'crdidx <indices list>' now so it is not processed
   //            by SetupTrajIO.
   ArgList crdidxarg;
