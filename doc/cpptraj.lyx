@@ -16284,7 +16284,7 @@ ensemble rem.crd.001 bycrdidx
 \end_layout
 
 \begin_layout LyX-Code
-trajout sorted.crdidx.crd 
+trajout sorted.crdidx.nc 
 \end_layout
 
 \begin_layout Subsection
