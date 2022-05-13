@@ -85,6 +85,11 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
     targetType_ = ReplicaInfo::CRDIDX;
   } else {
     if ( !remlog_name.empty() ) {
+      if (cInfo_.HasCrdIdx()) {
+        mprintf("Warning: Trajectories contain crdidx.\n"
+                "Warning: It is recommended to use 'bycrdidx' to sort by coordinate index\n"
+                "Warning:  instead of 'remlog'.\n");
+      }
       // Sort according to remlog data.
       DataFile remlogFile;
       DataSetList tempDSL;
