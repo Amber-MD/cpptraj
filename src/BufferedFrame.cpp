@@ -121,13 +121,13 @@ int BufferedFrame::AttemptReadFrame() {
   * \return false if read was successful.
   */
 bool BufferedFrame::ReadFrame() {
-  return ( Read( buffer_, frameSize_ ) != (int)frameSize_ );
-  /*int nread = Read(buffer_, frameSize_);
+  int nread = Read(buffer_, frameSize_);
+  //mprintf("DEBUG: %i bytes read.\n", nread);
   if (nread != (int)frameSize_) {
-    mprinterr("Error: Read %i bytes, expected %zu\n", nread, frameSize_);
+    mprinterr("Error: Read %i bytes, expected %zu\n", nread, frameSize_); // DEBUG
     return true;
   }
-  return false;*/
+  return false;
 }
 
 int BufferedFrame::WriteFrame() {
