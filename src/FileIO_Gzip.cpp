@@ -80,13 +80,24 @@ off_t FileIO_Gzip::Size(const char *filename) {
 // FileIO_Gzip::Read()
 // NOTE: gzread returns 0 on EOF, -1 on error
 int FileIO_Gzip::Read(void *buffer, size_t num_bytes) {
-  return (gzread(fp_, buffer, num_bytes));
+  int n_bytes_read = gzread(fp_, buffer, num_bytes);
+  if (n_bytes_read < 1) {
+    int gzerr = 0;
+    const char* gzerrmsg = gzerror(fp_, &gzerr);
+    mprinterr("Internal Error: FileIO_Gzip::Read: %s\n", gzerrmsg);
+  }
+  return n_bytes_read;
 }
 
 // FileIO_Gzip::Write()
 int FileIO_Gzip::Write(const void *buffer, size_t num_bytes) {
-  if ( gzwrite(fp_, buffer, num_bytes)==0 ) return 1;
-  // NOTE: Check for errors here.
+  int n_bytes_written = gzwrite(fp_, buffer, num_bytes);
+  if ((size_t)n_bytes_written != num_bytes) {
+    int gzerr = 0;
+    const char* gzerrmsg = gzerror(fp_, &gzerr);
+    mprinterr("Internal Error: FileIO_Gzip::Write: %s\n", gzerrmsg);
+    return 1;
+  }
   return 0;
 }
 
