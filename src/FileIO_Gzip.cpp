@@ -110,7 +110,7 @@ int FileIO_Gzip::Seek(off_t offset) {
   zipOffset = (z_off_t)offset;
   z_off_t uncompressed_pos = gzseek(fp_, zipOffset, SEEK_SET) < 0;
   if (uncompressed_pos < 0) {
-    mprinterr("Internal Error: FileIO_Gzip::Seek offset = %li.\n", (long int)offset);
+    mprinterr("Internal Error: FileIO_Gzip::Seek failed, offset = %li\n", (long int)offset);
     return 1;
   }
   return 0;
@@ -118,7 +118,11 @@ int FileIO_Gzip::Seek(off_t offset) {
 
 // FileIO_Gzip::Rewind()
 int FileIO_Gzip::Rewind() {
-  gzrewind(fp_);
+  int err = gzrewind(fp_);
+  if (err < 0) {
+    mprinterr("Internal Error: FileIO_Gzip::Rewind failed.\n");
+    return 1;
+  }
   return 0;
 }
 
@@ -132,9 +136,13 @@ off_t FileIO_Gzip::Tell() {
 
 // FileIO_Gzip::Gets()
 int FileIO_Gzip::Gets(char *str, int num) {
-  if ( gzgets(fp_,str,num) == NULL )
+  char* pos = gzgets(fp_, str, num);
+  if ( pos == Z_NULL ) {
+    int gzerr = 0;
+    const char* gzerrmsg = gzerror(fp_, &gzerr);
+    mprinterr("Internal Error: FileIO_Gzip::Gets: %s\n", gzerrmsg);
     return 1;
-  else
-    return 0;
+  }
+  return 0;
 }
 #endif
