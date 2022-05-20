@@ -19,7 +19,7 @@ FileIO_Gzip::~FileIO_Gzip() {
 int FileIO_Gzip::Open(const char *filename, const char *mode) {
   if (filename == 0) return 1;
   fp_ = gzopen(filename, mode);
-  if (fp_==NULL) return 1;
+  if (fp_ == NULL) return 1;
   // Set gzip buffer size
   //if ( gzbuffer(fp_, GZ_BUF_SIZE)!=0 ) return 1;
   return 0;
@@ -27,8 +27,9 @@ int FileIO_Gzip::Open(const char *filename, const char *mode) {
 
 // FileIO_Gzip::Close()
 int FileIO_Gzip::Close() {
-  if (fp_!=NULL) gzclose(fp_);
-  fp_=NULL;
+  if (fp_ != NULL)
+    gzclose(fp_);
+  fp_ = NULL;
   return 0;
 }
 
@@ -106,8 +107,12 @@ int FileIO_Gzip::Seek(off_t offset) {
   z_off_t zipOffset;
  
   //if (origin == SEEK_END) return 1; 
-  zipOffset=(z_off_t) offset;
-  if ( gzseek(fp_, zipOffset, SEEK_SET) < 0) return 1;
+  zipOffset = (z_off_t)offset;
+  z_off_t uncompressed_pos = gzseek(fp_, zipOffset, SEEK_SET) < 0;
+  if (uncompressed_pos < 0) {
+    mprinterr("Internal Error: FileIO_Gzip::Seek offset = %li.\n", (long int)offset);
+    return 1;
+  }
   return 0;
 }
 
