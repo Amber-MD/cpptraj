@@ -137,10 +137,13 @@ off_t FileIO_Gzip::Tell() {
 // FileIO_Gzip::Gets()
 int FileIO_Gzip::Gets(char *str, int num) {
   char* pos = gzgets(fp_, str, num);
+  // Null can mean EOF or error
   if ( pos == Z_NULL ) {
     int gzerr = 0;
     const char* gzerrmsg = gzerror(fp_, &gzerr);
-    mprinterr("Internal Error: FileIO_Gzip::Gets: %s\n", gzerrmsg);
+    if (gzerr != 0) {
+      mprinterr("Internal Error: FileIO_Gzip::Gets: (%i) %s\n", gzerr, gzerrmsg);
+    }
     return 1;
   }
   return 0;
