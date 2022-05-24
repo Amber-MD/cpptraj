@@ -407,6 +407,7 @@ COMMON_SOURCES= \
         Traj_GmxTrX.cpp \
         Traj_GmxXtc.cpp \
         Traj_Gro.cpp \
+        Traj_H5.cpp \
         Traj_Mol2File.cpp \
         Traj_NcEnsemble.cpp \
         Traj_PDBfile.cpp \

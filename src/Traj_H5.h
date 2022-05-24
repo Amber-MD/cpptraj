@@ -1,10 +1,14 @@
 #ifndef INC_TRAJ_H5_H
 #define INC_TRAJ_H5_H
 #include "TrajectoryIO.h"
+//namespace H5 {
+//  class H5File;
+//}
 /// MDtraj H5 (HDF5) format 
 class Traj_H5 : public TrajectoryIO {
   public:
     Traj_H5();
+    ~Traj_H5();
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_H5(); }
     static void WriteHelp();
     static void ReadHelp();
@@ -37,5 +41,9 @@ class Traj_H5 : public TrajectoryIO {
 #   ifdef HAS_HDF5
     static bool HasConventions(int);
 #   endif
+
+//    H5::H5File* file_;
+    int ncid_;
+    int natom_;
 };
 #endif

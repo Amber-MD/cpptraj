@@ -95,6 +95,16 @@ void NC::Debug(int ncid) {
             ndimsp, nvarsp, ngattsp, unlimdimidp);
   else
     mprintf("NETCDF Error occurred.\n");
+  // Print name of each dimension defined in netcdf file
+  mprintf("NC DIMS:\n");
+  for (int i = 0; i < ndimsp; i++) {
+    err = nc_inq_dimname(ncid, i, varname);
+    mprintf("  Dim %i - ", i);
+    if (err == NC_NOERR)
+      mprintf("%s\n", varname);
+    else
+      mprintf("NETCDF Error occured.\n");
+  }
   // Print name of each variable defined in netcdf file
   mprintf("NC VARIABLES:\n");
   for (int i = 0; i < nvarsp; i++) {

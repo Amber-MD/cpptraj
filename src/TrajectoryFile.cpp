@@ -26,6 +26,7 @@
 #include "Traj_GmxTng.h"
 #include "Traj_GmxDump.h"
 #include "Traj_DTR.h"
+#include "Traj_H5.h"
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------ 
 // NOTE: Must be in same order as TrajFormatType
@@ -77,6 +78,11 @@ const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
 # else
   { "Desmond DTR",        0, 0, 0 },
 # endif
+# ifdef HAS_HDF5
+  { "MDtraj H5",          0, 0, Traj_H5::Alloc },
+# else
+  { "MDtraj H5",          0, 0, 0              },
+# endif
   { "Unknown trajectory", 0, 0, 0                          }
 };
 
@@ -111,6 +117,7 @@ const FileTypes::KeyToken TrajectoryFile::TF_KeyArray[] = {
   { SDF,            "sdf",       ".sdf"     },
   { XYZ,            "xyz",       ".xyz"     },
   { DTR,            "dtr",       ".dtr"     },
+  { H5,             "h5",        ".h5"      },
   { UNKNOWN_TRAJ,   0,           0          }
 };
 
