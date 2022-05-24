@@ -8,7 +8,7 @@ class NetcdfFile {
   public:
     /// For determining NetCDF trajectory file type
     enum NCTYPE { NC_AMBERTRAJ = 0, NC_AMBERRESTART, NC_AMBERENSEMBLE, NC_UNKNOWN };
-    /// For determining netcdf4/hdf5 vs netcdf3
+    /// For determining netcdf4/hdf5 vs netcdf3. Sync with NcFmtTypeStr_
     enum NC_FMT_TYPE { NC_NOTNC = 0, NC_V3, NC_V4 };
     /// \return Type of specified file.
     static NCTYPE GetNetcdfConventions(NC_FMT_TYPE&, const char*);
@@ -117,6 +117,8 @@ class NetcdfFile {
     int ensembleSize_;
     std::string nctitle_;
   private:
+    /// Strings corresponding to NC_FMT_TYPE
+    static const char* NcFmtTypeStr_[];
     static const char* ConventionsStr_[];
 
     /// \return NetCDF trajectory type based on conventions.

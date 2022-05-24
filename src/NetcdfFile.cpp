@@ -17,6 +17,11 @@
 # endif
 #endif
 
+/** Strings corresponding to NC_FMT_TYPE */
+const char* NetcdfFile::NcFmtTypeStr_[] = {
+  "Not NetCDF", "NetCDF3", "NetCDF4/HDF5"
+};
+
 // NetcdfFile::GetNetcdfConventions()
 /** First check the base format type to determine NetCDF3 vs NetCDF/HDF5.
   * Then check that the file has the proper conventions.
@@ -36,7 +41,7 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(NC_FMT_TYPE& btype, const ch
 #   ifdef BINTRAJ
     btype = NC_V3;
 #   else
-    mprintf("Warning: File '%s' appears to be NetCDF but cpptraj was compiled without NetCDF support.\n", fname);
+    mprintf("Warning: File '%s' appears to be NetCDF3 but cpptraj was compiled without NetCDF support.\n", fname);
     return nctype;
 #   endif
   } else if (nread > 7 && buf[0] == 0x89 && buf[1] == 0x48 && buf[2] == 0x44 && buf[3] == 0x46 &&
@@ -49,6 +54,7 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(NC_FMT_TYPE& btype, const ch
     return nctype;
 #   endif
   }
+  mprintf("DEBUG: Type: %s\n", NcFmtTypeStr_[btype]);
 # ifdef BINTRAJ
   // NOTE: Do not use checkNCerr so this fails silently. Allows routine to
   //       be used in file autodetection.
@@ -150,23 +156,31 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(int ncidIn) {
   NCTYPE nctype = NC_UNKNOWN;
   std::string attrText = NC::GetAttrText(ncidIn, "Conventions");
   if (attrText.empty()) {
-    mprinterr("Error: Could not get conventions from NetCDF file.\n");
-  } else {
-    for (int i = 0; i < (int)NC_UNKNOWN; i++) {
-      if (attrText.compare( ConventionsStr_[i] ) == 0) {
-        nctype = (NCTYPE)i;
-        break;
-      }
+    // Check if this is an MDtraj h5 file
+    attrText = NC::GetAttrText(ncidIn, "conventions");
+    if (attrText.empty()) {
+      mprinterr("Error: Could not get conventions from NetCDF file.\n");
+      return NC_UNKNOWN;
     }
-    if (nctype == NC_UNKNOWN) {
-      mprinterr("Error: NetCDF file has unrecognized conventions \"%s\".\n",
-                attrText.c_str());
-      mprinterr("Error: Expected one of");
-      for (int i = 0; i < (int)NC_UNKNOWN; i++)
-        mprintf(" \"%s\"", ConventionsStr_[i]);
-      mprinterr("\n");
+    mprintf("DEBUG: This appears to be an HDF5 h5 file.\n");
+    return NC_UNKNOWN;
+  }
+  // Identify the conventions string
+  for (int i = 0; i < (int)NC_UNKNOWN; i++) {
+    if (attrText.compare( ConventionsStr_[i] ) == 0) {
+      nctype = (NCTYPE)i;
+      break;
     }
   }
+  if (nctype == NC_UNKNOWN) {
+    mprinterr("Error: NetCDF file has unrecognized conventions \"%s\".\n",
+              attrText.c_str());
+    mprinterr("Error: Expected one of");
+    for (int i = 0; i < (int)NC_UNKNOWN; i++)
+      mprintf(" \"%s\"", ConventionsStr_[i]);
+    mprinterr("\n");
+  }
+  
   return nctype;
 }
 

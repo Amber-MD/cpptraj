@@ -19,11 +19,10 @@ bool NC::CheckErr(int ncerr) {
 std::string NC::GetAttrText(int ncid, int vid, const char* attribute) {
   size_t attlen;
   std::string attrOut;
-  // Get attr length
-  if ( CheckErr(nc_inq_attlen(ncid, vid, attribute, &attlen)) ) {
-    mprintf("Warning: Getting length for attribute '%s'\n",attribute);
+  // Get attr length. Make this fail silently.
+  int ncerr = nc_inq_attlen(ncid, vid, attribute, &attlen);
+  if (ncerr != NC_NOERR)
     return attrOut;
-  }
   // Allocate space for attr text, plus one for null char
   char *attrText = new char[ (attlen + 1) ];
   // Get attr text
