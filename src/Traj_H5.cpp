@@ -1,4 +1,5 @@
 #include "Traj_H5.h"
+#include "Constants.h"
 #include "CpptrajStdio.h"
 #include "CpptrajFile.h"
 #include "Topology.h"
@@ -17,9 +18,22 @@ Traj_H5::Traj_H5()
 :
 //file_(0)
   ncid_(-1),
-  natom_(0)
+  natom_(0),
+  coordVID_(-1),
+  cellLengthVID_(-1),
+  cellAngleVID_(-1),
+  timeVID_(-1),
+  convert_h5_to_cpptraj_box_(0),
+  convert_h5_to_cpptraj_coord_(0)
 //#endif
-{}
+{
+  start_[0] = 0;
+  start_[1] = 0;
+  start_[2] = 0;
+  count_[0] = 0;
+  count_[1] = 0;
+  count_[2] = 0;
+}
 
 /** DESTRUCTOR */
 Traj_H5::~Traj_H5() {
@@ -103,6 +117,19 @@ int Traj_H5::processReadArgs(ArgList& argIn) {
 }
 
 # ifdef HAS_HDF5
+static inline int setLengthFac(double& fac, std::string const& Units, const char* desc)
+{
+  if (Units == "nanometers") {
+    fac = Constants::NM_TO_ANG;
+  } else if (Units == "angstroms") {
+    fac = 1.0;
+  } else {
+    mprinterr("Error: %s has unrecognized units (%s)\n", desc, Units.c_str());
+    return 1;
+  }
+  return 0;
+}
+
 /** Set up the coordinates variable ID, number of atoms, and number of frames. */
 int Traj_H5::setupCoordVID(int& frameDID, int& atomDID, int& spatialDID, int& nframes)
 {
@@ -110,7 +137,11 @@ int Traj_H5::setupCoordVID(int& frameDID, int& atomDID, int& spatialDID, int& nf
   if (NC::CheckErr(nc_inq_varid(ncid_, "coordinates", &coordVID_)))
     return 1;
   mprintf("DEBUG: Coordinates VID is %i\n", coordVID_);
-
+  // Set conversion factor for coords
+  std::string lengthUnits = NC::GetAttrText(ncid_, coordVID_, "units");
+  if (setLengthFac(convert_h5_to_cpptraj_coord_, lengthUnits, "Coordinates"))
+    return 1;
+  // Dimensions
   frameDID = -1;
   atomDID = -1;
   spatialDID = -1;
@@ -137,8 +168,7 @@ int Traj_H5::setupCoordVID(int& frameDID, int& atomDID, int& spatialDID, int& nf
   mprintf("DEBUG: Coord dims: %i %i %i\n", coord_dims[0], coord_dims[1], coord_dims[2]);
   // Check the dimensions. One should be frames (unlimited), one should be
   // atoms, and the last should be spatial (XYZ)
-  // Expect 1 to be spatial, 2 to be natom
-  // TODO is this always the case for H5?
+
   bool dim_used[3];
   for (int i = 0; i < 3; i++) dim_used[i] = false;
   bool has_unlimited = false;
@@ -161,7 +191,8 @@ int Traj_H5::setupCoordVID(int& frameDID, int& atomDID, int& spatialDID, int& nf
       atomDID = coord_dims[nd];
     }
   }
-  // Sanity check
+
+  // Sanity checks
   for (int nd = 0; nd < ndims; nd++) {
     if (!dim_used[nd]) {
       mprinterr("Error: Dimension %i remains unused for 'coordinates'.\n", coord_dims[nd]);
@@ -172,8 +203,83 @@ int Traj_H5::setupCoordVID(int& frameDID, int& atomDID, int& spatialDID, int& nf
     mprinterr("Error: No unlimited dimension for 'coordinates'.\n");
     return 1;
   }
+  // Expect dim order to be frame, atom, spatial
+  // TODO is this always the case for H5?
+  if (coord_dims[0] != frameDID) {
+    mprinterr("Error: Frame dimension is not first.\n");
+    return 1;
+  }
+  if (coord_dims[1] != atomDID) {
+    mprinterr("Error: Atom dimension is not second.\n");
+    return 1;
+  }
+  if (coord_dims[2] != spatialDID) {
+    mprinterr("Error: Spatial dimension is not third.\n");
+    return 1;
+  }
   return 0;
 }
+
+/** Set up box variable IDs.
+  * \return 0 on success, 1 on error, -1 for no box coords.
+  */
+int Traj_H5::setupBoxVIDs(Box& ncbox, int frameDID, int spatialDID) {
+  ncbox.SetNoBox();
+  // Get the 'cell_lengths' variable ID
+  int err = nc_inq_varid(ncid_, "cell_lengths", &cellLengthVID_);
+  if (err != NC_NOERR) return -1;
+  // Get the 'cell_angles' variable ID 
+  if (NC::CheckErr(nc_inq_varid(ncid_, "cell_angles", &cellAngleVID_)))
+    return 1;
+  mprintf("DEBUG: Cell length vid= %i, cell angle vid= %i\n",
+          cellLengthVID_, cellAngleVID_);
+  // Ensure angles are in degrees
+  std::string angleUnits = NC::GetAttrText(ncid_, cellAngleVID_, "units");
+  if (angleUnits != "degrees") {
+    mprinterr("Error: Cell angles have units that are not 'degrees' (%s)\n", angleUnits.c_str());
+    return 1;
+  }
+  // Check units for lengths
+  std::string lengthUnits = NC::GetAttrText(ncid_, cellLengthVID_, "units");
+  if (setLengthFac(convert_h5_to_cpptraj_box_, lengthUnits, "Cell lengths"))
+    return 1;
+  // Get box lengths and angles to determine box type.
+  start_[0] = 0;
+  start_[1] = 0;
+  count_[0] = 1; // 1 frame
+  count_[1] = 3; // 3 coordinates (abg or xyz)
+  double boxCrd[6]; /// XYZ ABG
+  float* fptr = &ftmp_[0];
+  if ( NC::CheckErr(nc_get_vara_float(ncid_, cellLengthVID_, start_, count_, fptr )) )
+  {
+    mprinterr("Error: Getting cell lengths.\n");
+    return 1;
+  }
+  if ( NC::CheckErr(nc_get_vara_float(ncid_, cellAngleVID_, start_, count_, fptr+3)) )
+  {
+    mprinterr("Error: Getting cell angles.\n");
+    return 1;
+  }
+  for (int i = 0; i < 6; i++)
+    boxCrd[i] = (double)ftmp_[i];
+  // Convert
+  boxCrd[0] *= convert_h5_to_cpptraj_box_;
+  boxCrd[1] *= convert_h5_to_cpptraj_box_;
+  boxCrd[2] *= convert_h5_to_cpptraj_box_;
+  mprintf("DEBUG:\tH5 Box: XYZ={%f %f %f} ABG={%f %f %f}\n",
+           boxCrd[0], boxCrd[1], boxCrd[2], boxCrd[3], boxCrd[4], boxCrd[5]);
+  if (ncbox.SetupFromXyzAbg( boxCrd )) {
+    mprintf("Warning: H5 file unit cell variables appear to be empty; disabling box.\n");
+    cellLengthVID_ = -1;
+    cellAngleVID_ = -1;
+    ncbox.SetNoBox();
+    return -1;
+  }
+  // TODO check dim IDs
+
+  return 0;
+}
+
 #endif /* HAS_HDF5 */
 
 
@@ -212,6 +318,28 @@ int Traj_H5::setupTrajin(FileName const& fname, Topology* trajParm)
                trajParm->Natom(), natom_);
     return TRAJIN_ERR;
   }
+
+  // Allocate temp space
+  ftmp_.assign( natom_, 0 );
+
+  // Check for box
+  Box ncbox;
+  int err = setupBoxVIDs(ncbox, frameDID, spatialDID);
+  if (err == 1) {
+    mprinterr("Error: Problem setting up box info.\n");
+    return TRAJIN_ERR;
+  }
+
+  // Check for time
+  err = nc_inq_varid(ncid_, "time", &timeVID_);
+  if (err != NC_NOERR)
+    timeVID_ = -1;
+
+  // Get title
+  SetTitle( NC::GetAttrText(ncid_, "TITLE") );
+
+  // Setup coordinfo
+  SetCoordInfo( CoordinateInfo( ncbox, false, false, (timeVID_ != -1) ) );
 
   return 0;
 # else
