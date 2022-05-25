@@ -320,7 +320,7 @@ int Traj_H5::setupTrajin(FileName const& fname, Topology* trajParm)
   }
 
   // Allocate temp space
-  ftmp_.assign( natom_, 0 );
+  ftmp_.assign( natom_*3, 0 );
 
   // Check for box
   Box ncbox;
@@ -341,7 +341,7 @@ int Traj_H5::setupTrajin(FileName const& fname, Topology* trajParm)
   // Setup coordinfo
   SetCoordInfo( CoordinateInfo( ncbox, false, false, (timeVID_ != -1) ) );
 
-  return 0;
+  return nframes;
 # else
   return TRAJIN_ERR;
 # endif
@@ -349,6 +349,84 @@ int Traj_H5::setupTrajin(FileName const& fname, Topology* trajParm)
 
 /** Read specified trajectory frame. */
 int Traj_H5::readFrame(int set, Frame& frameIn) {
+  start_[0] = set;
+  start_[1] = 0;
+  start_[2] = 0;
+  count_[0] = 1;
+  count_[1] = natom_;
+  count_[2] = 3;
+
+/*  // Get temperature
+  if (TempVID_!=-1) {
+    if ( NC::CheckErr(nc_get_vara_double(ncid_, TempVID_, start_, count_, frameIn.tAddress())) ) {
+      mprinterr("Error: Getting replica temperature for frame %i.\n", set+1); 
+      return 1;
+    }
+    //fprintf(stderr,"DEBUG: Replica Temperature %lf\n",F->T);
+  }*/
+
+  // Get time
+  if (timeVID_!=-1) {
+    float time;
+    if (NC::CheckErr(nc_get_vara_float(ncid_, timeVID_, start_, count_, &time))) {
+      mprinterr("Error: Getting time for frame %i.\n", set + 1);
+      return 1;
+    }
+    frameIn.SetTime( (double)time );
+  }
+
+  float* fptr = &ftmp_[0];
+  // Read Coords
+  if (coordVID_ != -1) {
+    if ( NC::CheckErr(nc_get_vara_float(ncid_, coordVID_, start_, count_, fptr)) ) {
+      mprinterr("Error: Getting coordinates for frame %i\n", set+1);
+      return 1;
+    }
+    for (unsigned int idx = 0; idx != ftmp_.size(); idx++) 
+      frameIn.xAddress()[idx] = (double)ftmp_[idx] * convert_h5_to_cpptraj_coord_;
+  }
+
+  // Read Velocities
+  /*if (velocityVID_ != -1) {
+    if ( NC::CheckErr(nc_get_vara_float(ncid_, velocityVID_, start_, count_, Coord_)) ) {
+      mprinterr("Error: Getting velocities for frame %i\n", set+1);
+      return 1;
+    }
+    FloatToDouble(frameIn.vAddress(), Coord_);
+  }*/
+
+  // Read Forces
+  /*if (frcVID_ != -1) {
+    if ( NC::CheckErr(nc_get_vara_float(ncid_, frcVID_, start_, count_, Coord_)) ) {
+      mprinterr("Error: Getting forces for frame %i\n", set+1);
+      return 1;
+    }
+    FloatToDouble(frameIn.fAddress(), Coord_);
+  }*/
+
+  // Read box info 
+  if (cellLengthVID_ != -1) {
+    double xyzabg[6];
+    count_[1] = 3;
+    count_[2] = 0;
+    if (NC::CheckErr(nc_get_vara_float(ncid_, cellLengthVID_, start_, count_, fptr)))
+    {
+      mprinterr("Error: Getting cell lengths for frame %i.\n", set+1);
+      return 1;
+    }
+    if (NC::CheckErr(nc_get_vara_float(ncid_, cellAngleVID_, start_, count_, fptr+3)))
+    {
+      mprinterr("Error: Getting cell angles for frame %i.\n", set+1);
+      return 1;
+    }
+    for (int i = 0; i < 6; i++)
+      xyzabg[i] = (double)ftmp_[i];
+    // Convert
+    xyzabg[0] *= convert_h5_to_cpptraj_box_;
+    xyzabg[1] *= convert_h5_to_cpptraj_box_;
+    xyzabg[2] *= convert_h5_to_cpptraj_box_;
+    frameIn.ModifyBox().AssignFromXyzAbg( xyzabg );
+  }
 
   return 0;
 }
@@ -382,13 +460,14 @@ int Traj_H5::setupTrajout(FileName const& fname, Topology* trajParm,
                                    CoordinateInfo const& cInfoIn, 
                                    int NframesToWrite, bool append)
 {
-
+  mprinterr("Error: H5 write not yet supported.\n");
   return 1;
 }
 
 /** Write specified trajectory frame. */
 int Traj_H5::writeFrame(int set, Frame const& frameOut) {
 
+  mprinterr("Error: H5 write not yet supported.\n");
   return 0;
 }
 
