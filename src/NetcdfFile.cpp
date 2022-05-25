@@ -54,7 +54,7 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(NC_FMT_TYPE& btype, const ch
     return nctype;
 #   endif
   }
-  mprintf("DEBUG: Type: %s\n", NcFmtTypeStr_[btype]);
+  //mprintf("DEBUG: Type: %s\n", NcFmtTypeStr_[btype]);
 # ifdef BINTRAJ
   // NOTE: Do not use checkNCerr so this fails silently. Allows routine to
   //       be used in file autodetection.
@@ -162,7 +162,7 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(int ncidIn) {
       mprinterr("Error: Could not get conventions from NetCDF file.\n");
       return NC_UNKNOWN;
     }
-    mprintf("DEBUG: This appears to be an HDF5 h5 file.\n");
+    //mprintf("DEBUG: This appears to be an HDF5 h5 file.\n");
     return NC_UNKNOWN;
   }
   // Identify the conventions string
