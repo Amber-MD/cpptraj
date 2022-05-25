@@ -40,10 +40,13 @@ class Traj_H5 : public TrajectoryIO {
 #   endif
 #   ifdef HAS_HDF5
     static bool HasConventions(int);
+    /// Set up coordinates VID and related dim sizes
+    int setupCoordVID(int&, int&, int&, int&);
 #   endif
 
 //    H5::H5File* file_;
-    int ncid_;
-    int natom_;
+    int ncid_;     ///< NetCDF ID
+    int natom_;    ///< Number of atoms in each trajectory frame.
+    int coordVID_; ///< Coordinates variable ID
 };
 #endif

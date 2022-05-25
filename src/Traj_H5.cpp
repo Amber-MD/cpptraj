@@ -102,6 +102,81 @@ int Traj_H5::processReadArgs(ArgList& argIn) {
   return 0;
 }
 
+# ifdef HAS_HDF5
+/** Set up the coordinates variable ID, number of atoms, and number of frames. */
+int Traj_H5::setupCoordVID(int& frameDID, int& atomDID, int& spatialDID, int& nframes)
+{
+  // Get the 'coordinates' variable ID
+  if (NC::CheckErr(nc_inq_varid(ncid_, "coordinates", &coordVID_)))
+    return 1;
+  mprintf("DEBUG: Coordinates VID is %i\n", coordVID_);
+
+  frameDID = -1;
+  atomDID = -1;
+  spatialDID = -1;
+  natom_ = 0;
+  nframes = 0;
+  // Need to get the unlimited dimension ID, which should be the frame dim.
+  if (NC::CheckErr( nc_inq_unlimdim(ncid_, &frameDID) ) )
+    return 1;
+  if (frameDID < 0) {
+    mprinterr("Error: No unlimited (frame) dimension present in H5 file.\n");
+    return 1;
+  }
+  // Get dimensions for coordinates
+  int ndims = 0;
+  if (NC::CheckErr( nc_inq_varndims(ncid_, coordVID_, &ndims) ) )
+    return 1;
+  if (ndims != 3) {
+    mprinterr("Error: Expected 3 dims for 'coordinates', got %i\n", ndims);
+    return 1;
+  }
+  int coord_dims[3];
+  if (NC::CheckErr( nc_inq_vardimid(ncid_, coordVID_, coord_dims) ) )
+    return 1;
+  mprintf("DEBUG: Coord dims: %i %i %i\n", coord_dims[0], coord_dims[1], coord_dims[2]);
+  // Check the dimensions. One should be frames (unlimited), one should be
+  // atoms, and the last should be spatial (XYZ)
+  // Expect 1 to be spatial, 2 to be natom
+  // TODO is this always the case for H5?
+  bool dim_used[3];
+  for (int i = 0; i < 3; i++) dim_used[i] = false;
+  bool has_unlimited = false;
+  for (int nd = 0; nd < ndims; nd++) {
+    size_t dimsize = 0;
+    if (NC::CheckErr( nc_inq_dimlen(ncid_, coord_dims[nd], &dimsize)))
+      return 1;
+    mprintf("DEBUG: Dim %i size %zu\n", coord_dims[nd], dimsize);
+    if (coord_dims[nd] == frameDID) {
+      has_unlimited = true;
+      dim_used[nd] = true;
+      nframes = (int)dimsize;
+    } else if ( dimsize == 3 ) {
+      dim_used[nd] = true;
+      spatialDID = coord_dims[nd];
+    } else {
+      // Should be natoms
+      dim_used[nd] = true;
+      natom_ = (int)dimsize;
+      atomDID = coord_dims[nd];
+    }
+  }
+  // Sanity check
+  for (int nd = 0; nd < ndims; nd++) {
+    if (!dim_used[nd]) {
+      mprinterr("Error: Dimension %i remains unused for 'coordinates'.\n", coord_dims[nd]);
+      return 1;
+    }
+  }
+  if (!has_unlimited) {
+    mprinterr("Error: No unlimited dimension for 'coordinates'.\n");
+    return 1;
+  }
+  return 0;
+}
+#endif /* HAS_HDF5 */
+
+
 /** Set up trajectory for reading.
   * \return Number of frames in trajectory.
   */
@@ -120,87 +195,22 @@ int Traj_H5::setupTrajin(FileName const& fname, Topology* trajParm)
   if ( NC::CheckErr( nc_open( fname.full(), NC_NOWRITE, &ncid_ ) ) )
     return TRAJIN_ERR;
   NC::Debug(ncid_);
-  // get variables/dims present
-  // ndimsp:  Pointer to location for returned number of dimensions defined for 
-  //          this netCDF dataset.
-  // nvarsp:  Pointer to location for returned number of variables defined for 
-  //          this netCDF dataset.
-  // ngattsp: Pointer to location for returned number of global attributes 
-  //          defined for this netCDF dataset.
-  // unlimdimidp: 
-  //  Pointer to location for returned ID of the unlimited dimension, if 
-  //  there is one for this netCDF dataset. If no unlimited length 
-  //  dimension has been defined, -1 is returned
-  int ndimsp, nvarsp, ngattsp, unlimdimidp;
-  char varname[NC_MAX_NAME+1];
-  if (NC::CheckErr( nc_inq(ncid_, &ndimsp, &nvarsp, &ngattsp, &unlimdimidp) ) )
-    return TRAJIN_ERR;
-  mprintf("DEBUG: Unlimited dimid is %i\n", unlimdimidp);
-  if (unlimdimidp < 0) {
-    mprinterr("Error: No unlimited dimension present in H5 file.\n");
+
+  // Set up coordinates
+  int frameDID, atomDID, spatialDID, nframes;
+  if (setupCoordVID(frameDID, atomDID, spatialDID, nframes)) {
+    mprinterr("Error: Could not set up coordinates variable.\n");
     return TRAJIN_ERR;
   }
-  // Check for recognized variables.
-  int nframes = 0;
-  for (int ivar = 0; ivar < nvarsp; ivar++) {
-    if (NC::CheckErr( nc_inq_varname(ncid_, ivar, varname) ) )
-      return TRAJIN_ERR;
-    std::string varstr( varname );
-    if (varstr == "coordinates") {
-      // Get dimensions
-      int ndims = 0;
-      if (NC::CheckErr( nc_inq_varndims(ncid_, ivar, &ndims) ) )
-        return TRAJIN_ERR;
-      if (ndims != 3) {
-        mprinterr("Error: Expected 3 dims for 'coordinates', got %i\n", ndims);
-        return TRAJIN_ERR;
-      }
-      int coord_dims[3];
-      if (NC::CheckErr( nc_inq_vardimid(ncid_, ivar, coord_dims) ) )
-        return TRAJIN_ERR;
-      mprintf("DEBUG: Coord dims: %i %i %i\n", coord_dims[0], coord_dims[1], coord_dims[2]);
-      // Check the dimensions. One should be frames (unlimited), one should be
-      // atoms, and the last should be spatial (XYZ)
-      bool dim_used[3];
-      for (int i = 0; i < 3; i++) dim_used[i] = false;
-      bool has_unlimited = false;
-      natom_ = 0;
-      for (int nd = 0; nd < ndims; nd++) {
-        size_t dimsize = 0;
-        if (NC::CheckErr( nc_inq_dimlen(ncid_, coord_dims[nd], &dimsize)))
-          return TRAJIN_ERR;
-        mprintf("DEBUG: Dim %i size %zu\n", coord_dims[nd], dimsize);
-        if (coord_dims[nd] == unlimdimidp) {
-          has_unlimited = true;
-          dim_used[nd] = true;
-          nframes = (int)dimsize;
-        } else if ( dimsize == 3 ) {
-          dim_used[nd] = true;
-          mprintf("DEBUG: Spatial dim is %i\n", coord_dims[nd]);
-        } else {
-          // Should be natoms
-          dim_used[nd] = true;
-          natom_ = (int)dimsize;
-          mprintf("DEBUG: Atom dim is %i\n", coord_dims[nd]);
-        }
-      }
-      // Check # atoms
-      if ( natom_ != trajParm->Natom() ) {
-        mprinterr("Error: Atom mismatch between topology (%i) and trajectory (%i).\n",
-                   trajParm->Natom(), natom_);
-        return TRAJIN_ERR;
-      }
-      if (!has_unlimited) {
-        mprinterr("Error: No unlimited dimension for 'coordinates'.\n");
-        return TRAJIN_ERR;
-      }
-      // Expect 1 to be spatial, 2 to be natom
-      // TODO is this always the case for H5?
-      
-      
-    } else {
-      mprintf("Warning: Unhandled variable present: %s\n", varname);
-    }
+  mprintf("DEBUG: Unlimited dimid is %i\n", frameDID);
+  mprintf("DEBUG: Atom dim is %i\n", atomDID);
+  mprintf("DEBUG: Spatial dim is %i\n", spatialDID);
+
+  // Check # atoms
+  if ( natom_ != trajParm->Natom() ) {
+    mprinterr("Error: Atom mismatch between topology (%i) and trajectory (%i).\n",
+               trajParm->Natom(), natom_);
+    return TRAJIN_ERR;
   }
 
   return 0;
