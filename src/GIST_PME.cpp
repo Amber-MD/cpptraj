@@ -178,9 +178,7 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn,
   mprintf("DEBUG: gistpme voxel energies:\n");
   mprintf("\t%20s %20s\n", "E_UV", "E_VV");
   double sum_uv = 0;
-  // double sum_uv_elec = 0;
   double sum_vv = 0;
-  // double sum_vv_elec = 0;
   // for (unsigned int vidx = 0; vidx != E_UV_VDW_in[0].size(); vidx++)
   for (unsigned int vidx = 0; vidx != E_UV_in[0].size(); vidx++)
   {
@@ -188,15 +186,11 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn,
             // E_UV_VDW_in[0][vidx], E_UV_Elec_in[0][vidx], E_VV_VDW_in[0][vidx], E_VV_Elec_in[0][vidx]);
     mprintf("\t%20.10g %20.10g\n",
             E_UV_in[0][vidx], E_VV_in[0][vidx]);
-    // sum_uv += E_UV_VDW_in[0][vidx];
-    sum_uv_elec += E_UV_in[0][vidx];
-    // sum_vv += E_VV_VDW_in[0][vidx];
-    sum_vv_elec += E_VV_in[0][vidx];
+    sum_uv += E_UV_in[0][vidx];
+    sum_vv += E_VV_in[0][vidx];
   }
   sum_uv /= 2.0;
-  // sum_uv_elec /= 2.0;
   sum_vv /= 2.0;
-  // sum_vv_elec /= 2.0;
   mprintf("DEBUG: Sums: UV= %20.10g  VV= %20.10g  Total= %20.10g\n",
            sum_uv, sum_vv,
            sum_uv + sum_vv + sum_vv);
@@ -474,9 +468,7 @@ double GIST_PME::Direct_GIST(PairList const& PL, double& evdw_out,
                              std::vector<bool> const& atomIsSolute,
                              std::vector<bool> const& atomIsSolventO,
                              std::vector<Darray>& E_UV_in,
-                             // std::vector<Darray>& E_UV_Elec_in,
                              std::vector<Darray>& E_VV_in,
-                             // std::vector<Darray>& E_VV_Elec_in,
                              std::vector<Farray>& Neighbor_in)
             
 {
@@ -484,8 +476,8 @@ double GIST_PME::Direct_GIST(PairList const& PL, double& evdw_out,
     return Direct_VDW_LJPME_GIST(PL, evdw_out);
   else
     return Direct_VDW_LongRangeCorrection_GIST(PL, evdw_out, atom_voxel, atomIsSolute, atomIsSolventO,
-                                               E_UV_in,//  E_UV_Elec_in,
-                                               E_VV_in,//  E_VV_Elec_in,
+                                               E_UV_in,
+                                               E_VV_in,
                                                Neighbor_in);
 }
 
@@ -707,11 +699,11 @@ void GIST_PME::Ekernel_Adjust(double& e_adjust,
 #             endif
 }
 
-static inline void neighborCalc(float* neighbor, double rij2, double NeighborCut2, int a1_voxel, int a2_voxel)
+static inline void neighborCalc(float* neighbor, double rij2, double NeighborCut2, int a1, int a2)
 {
   if (rij2 < NeighborCut2) {
-    if (a1_voxel > -1) neighbor[a1_voxel] += 1.0;
-    if (a2_voxel > -1) neighbor[a2_voxel] += 1.0;
+    neighbor[a1] += 1.0;
+    neighbor[a2] += 1.0;
   }
 }
 
@@ -821,7 +813,7 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
                                interactionType, e_uv, e_vv);
             }
             if (it0_solventO && it1_solventO) {
-              neighborCalc(neighbor, rij2, NeighborCut2_, it0_voxel, it1_voxel);
+              neighborCalc(neighbor, rij2, NeighborCut2_, it0->Idx(), it1->Idx());
             }
           } // END at least 1 voxel on grid
         } // END loop over other atoms in thisCell
@@ -868,7 +860,7 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
                                interactionType, e_uv, e_vv);
               }
               if (it0_solventO && it1_solventO) {
-                neighborCalc(neighbor, rij2, NeighborCut2_, it0_voxel, it1_voxel);
+                neighborCalc(neighbor, rij2, NeighborCut2_, it0->Idx(), it1->Idx());
               }
             } // END at least 1 voxel on the grid
           } // END loop over neighbor cell atoms

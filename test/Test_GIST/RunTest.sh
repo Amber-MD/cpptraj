@@ -226,7 +226,7 @@ grep "t if all one vox" Gist-dummy2-Info.dat >> gaussian_entropy.txt
 
 DoTest gaussian_entropy_analytical.txt gaussian_entropy.txt -a 0.02
 
-UNITNAME='GIST test, energy with ions'
+UNITNAME='PME-GIST test, energy with ions'
 # Energies produced using the energy command and PME.
 cat << EOF > benzene-ions-energy.txt
 Total water-solute energy of the grid: Esw = -17.216605 kcal/mol
@@ -256,7 +256,7 @@ EOF
 fi
 
 
-UNITNAME='GIST test, energy with ions, no PME'
+UNITNAME='GIST test, energy with ions'
 cat > gist.in <<EOF
 parm benzene-ions.parm7
 trajin benzene-ions-10frames.nc

@@ -88,7 +88,7 @@ class Action_GIST : public Action {
     void NonbondEnergy_pme(Frame const&);
     void NonbondEnergy(Frame const&, Topology const&);
     void Order(Frame const&);
-    void SumEVV();
+    // void SumEVV();
     void CollectEnergies();
     void CalcAvgVoxelEnergy_PME(double, DataSet_3D&, DataSet_3D&, Farray&) const;
     void CalcAvgVoxelEnergy(double, DataSet_3D&, DataSet_3D&, Farray&, Farray&,
@@ -110,8 +110,6 @@ class Action_GIST : public Action {
     void ScaleDataSet(DataSet_3D& ds, double factor) const;
     void ScaleFarray(Farray& ds, double factor) const;
     Vec3 calcMolCenter(const ActionFrame& frm, int begin, int end) const;
-    /* void BinMoleculeAndAtoms(const ActionFrame& frm, int mol_start, int mol_end); */
-    /* bool closeToGrid(const Vec3& xyz) const; */
     bool isMainSolvent(int atom) const;
 
     template<typename ARRAY_TYPE>
@@ -196,7 +194,7 @@ class Action_GIST : public Action {
     DataSet_3D* dTStrans_;  ///< Solvent translation entropy
     DataSet_3D* dTSorient_; ///< Solvent orentational entropy
     DataSet_3D* dTSsix_;
-    DataSet_3D* neighbor_;
+    DataSet_3D* neighbor_;  ///< Number of neighbors within 3.5 Angstrom*
     DataSet_3D* dipole_; // pol
     // GIST double grid datasets
     DataSet_3D* order_; // qtet
@@ -221,10 +219,10 @@ class Action_GIST : public Action {
     // GIST matrix datasets
     DataSet_MatrixFlt* ww_Eij_; ///< Water-water interaction energy matrix.*
 
-    std::string soluteMask_;
+    std::string soluteMask_; ///< Solute mask supplied by the user using [solute]
     //Iarray mol_nums_;     ///< Absolute molecule number of each solvent molecule.+ //TODO needed?
-    Iarray O_idxs_;         ///< Oxygen atom indices for each solvent molecule.+
-    Iarray OnGrid_idxs_;    ///< Indices for each water atom on the grid.*
+    Iarray O_idxs_;         ///< First atom indices for each solvent molecule (where atomIsSolute is true).+
+    Iarray OnGrid_idxs_;    ///< Indices for each non-solute atom where the molecule is on the grid.*
     Iarray atom_voxel_;     ///< Absolute grid voxel for each atom (OFF_GRID_ if atom not on grid).*
     std::vector<bool> atomIsSolute_; ///< True if atom is solute.+
     std::vector<bool> atomIsSolventO_; ///< True if atom is sovent O. Used to choose atoms for neighbor calc.+
@@ -249,9 +247,7 @@ class Action_GIST : public Action {
 
     Darray OnGrid_XYZ_;             ///< XYZ coordinates for on-grid waters.*
     std::vector<Darray> E_UV_;  ///< Solute-solvent van der Waals energy for each atom.*
-    // std::vector<Darray> E_UV_Elec_; ///< Solute-solvent electrostatic energy for each atom.*
     std::vector<Darray> E_VV_;  ///< Solvent-solvent van der Waals energy for each atom.*
-    // std::vector<Darray> E_VV_Elec_; ///< Solvent-solvent electrostatic energy for each atom.*
     // PME energy terms
     Darray E_pme_;     ///< Total nonbond interaction energy(VDW + electrostatic) calculated by PME for water TODO grid?
     Darray U_E_pme_;   ///< Total nonbond interaction energy(VDW + Elec) calculated by PME for solute TODO grid?
@@ -300,6 +296,6 @@ class Action_GIST : public Action {
     bool skipS_;               ///< If true does not calculate entropy
     bool exactNnVolume_;       ///< If true use the exact volume equation for the NN entropy
     bool useCom_;              ///< If true use the COM as the molecular center; If false, use the first atom according to rigidAtomIndices.
-    bool setupSuccessful_;
+    bool setupSuccessful_;     ///< Used to skip Print() if setup failed.
 };
 #endif

@@ -363,27 +363,9 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
 # endif
 
   if (!skipE_) {
-    // E_UV_VDW_.resize( numthreads_ );
-    // E_UV_Elec_.resize( numthreads_ );
-    // E_VV_VDW_.resize( numthreads_ );
-    // E_VV_Elec_.resize( numthreads_ );
-    neighborPerThread_.resize( numthreads_ );
-    for (int thread = 0; thread != numthreads_; thread++) {
-      // E_UV_VDW_[thread].assign( MAX_GRID_PT_, 0 );
-      // E_UV_Elec_[thread].assign( MAX_GRID_PT_, 0 );
-      // E_VV_VDW_[thread].assign( MAX_GRID_PT_, 0 );
-      // E_VV_Elec_[thread].assign( MAX_GRID_PT_, 0 );
-      neighborPerThread_[thread].assign( MAX_GRID_PT_, 0 );
-    }
     if (usePme_) {
       E_pme_.assign( MAX_GRID_PT_, 0 );
       U_E_pme_.assign( MAX_GRID_PT_, 0 );
-      //E_pme_.resize( numthreads_);
-      //U_E_pme_.resize(numthreads_);
-      //for (int thread = 0; thread != numthreads_; thread++) {
-      //  E_pme_[thread].assign( MAX_GRID_PT_,0);
-      //  U_E_pme_[thread].assign( MAX_GRID_PT_,0);
-      //}
     }
 #   ifdef _OPENMP
     if (doEij_) {
@@ -517,6 +499,7 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   if (!skipE_) {
     E_UV_.resize( numthreads_ );
     E_VV_.resize( numthreads_ );
+    neighborPerThread_.resize( numthreads_ );
   }
   // Initialize PME
   if (usePme_) {
@@ -898,45 +881,21 @@ void Action_GIST::NonbondEnergy_pme(Frame const& frameIn)
                                   E_UV_, E_VV_,
                                   neighborPerThread_);
 
-//  system_potential_energy_ += ene_pme_all + ene_vdw_all;
-
-  // Water energy on the GIST grid
-  double pme_sum = 0.0;
-
   for (unsigned int gidx=0; gidx < N_ON_GRID_; gidx++ ) 
   {
     int a = OnGrid_idxs_[gidx]; // index of the atom of on-grid solvent;
     int a_voxel = atom_voxel_[a]; // index of the voxel
     double nonbond_energy = gistPme_.E_of_atom(a);
-    pme_sum += nonbond_energy;
     E_pme_grid[a_voxel] += nonbond_energy;
-    //atomEsw_[a_voxel] += 
   }
-
-  // Solute energy on the GIST grid
-  double solute_on_grid_sum = 0.0; // To sum up the potential energy on solute atoms that on the grid
 
   for (unsigned int uidx=0; uidx < U_onGrid_idxs_.size(); uidx++ )
   {
     int u = U_onGrid_idxs_[uidx]; // index of the solute atom on the grid
     int u_voxel = atom_voxel_[u];
     double u_nonbond_energy = gistPme_.E_of_atom(u);
-    solute_on_grid_sum += u_nonbond_energy; 
     U_E_pme_grid[u_voxel] += u_nonbond_energy;
   }
-
-/*
-  // Total solute energy
-  double solute_sum = 0.0;
-
-  for (unsigned int uidx=0; uidx < U_idxs_.size(); uidx++)
-  {
-    int u = U_idxs_[uidx];
-    double u_nonbond_energy = gistPme_.E_of_atom(u);
-    solute_sum += u_nonbond_energy;
-    solute_potential_energy_ += u_nonbond_energy; // used to calculated the ensemble energy for all solute, will print out in terminal
-  }
-*/
   //mprintf("The total potential energy on water atoms: %f \n", pme_sum);
 # else /*LIBPME */
   mprinterr("Error: Compiled without LIBPME\n");
@@ -1132,13 +1091,13 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
             // Store water neighbor using only O-O distance
             bool is_O_O = (a1IsO && atomIsSolventO_[a2]);
             if (is_O_O && rij2 < NeighborCut2_)
-              Neighbor[a2_voxel] += 1.0;
+              Neighbor[a2] += 1.0;
             // If water atom1 was also on the grid update its energy as well.
             if ( a1_voxel != OFF_GRID_ ) {
               E_VV[a1] += (Evdw + Eelec);
               // E_VV_Elec[a1_voxel] += Eelec;
               if (is_O_O && rij2 < NeighborCut2_)
-                Neighbor[a1_voxel] += 1.0;
+                Neighbor[a1] += 1.0;
               if (doEij_) {
                 if (a1_voxel != a2_voxel) {
 #                 ifdef _OPENMP
@@ -1238,6 +1197,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
     for (int thread = 0; thread != numthreads_; thread++) {
       E_UV_[thread].assign( frm.Frm().Natom(), 0 );
       E_VV_[thread].assign( frm.Frm().Natom(), 0 );
+      neighborPerThread_[thread].assign( frm.Frm().Natom(), 0 );
     }
 # ifdef CUDA
     if (!usePme_) {
@@ -1543,15 +1503,6 @@ int Action_GIST::calcVoxelIndex(double x, double y, double z) {
   return OFF_GRID_;
 }
 
-void Action_GIST::SumEVV() {
-  for (int thread = 0; thread < numthreads_; thread++) {
-    for (unsigned int gr_pt = 0; gr_pt != MAX_GRID_PT_; gr_pt++) {
-      //Esw_->UpdateVoxel(gr_pt, E_UV_VDW_[thread][gr_pt] + E_UV_Elec_[thread][gr_pt]);
-      //Eww_->UpdateVoxel(gr_pt, (E_VV_VDW_[thread][gr_pt] + E_VV_Elec_[thread][gr_pt]) * 0.5);
-      neighbor_->UpdateVoxel(gr_pt, neighborPerThread_[thread][gr_pt]);
-    }
-  }
-}
 
 void Action_GIST::CollectEnergies()
 {
@@ -1562,6 +1513,9 @@ void Action_GIST::CollectEnergies()
       if (gr_pt != OFF_GRID_) {
         Esw_->UpdateVoxel(gr_pt, E_UV_[thread][i]);
         Eww_->UpdateVoxel(gr_pt, E_VV_[thread][i] / 2);
+        if (isMainSolvent(i)) {
+          neighbor_->UpdateVoxel(gr_pt, neighborPerThread_[thread][i]);
+        }
       }
     }
     for (Topology::mol_iterator mol = CurrentParm_->MolStart();
@@ -1844,13 +1798,6 @@ void Action_GIST::Print() {
   voxel_xyz_.shrink_to_fit();
   voxel_Q_.clear();
   voxel_Q_.shrink_to_fit();
-  // Sum values from other threads if necessary
-  if (!skipE_) { SumEVV(); }
-  /*#ifdef CUDA
-  if (usePme_) { SumEVV(); }
-  #else
-  SumEVV();
-  #endif*/
 
   // Remove solute-solvent energy in voxels without solvent (i.e., at the solute)
   for (size_t i = 0; i < Esw_->Size(); ++i) {
@@ -2059,11 +2006,6 @@ void Action_GIST::Print() {
 
 #ifdef CUDA
 void Action_GIST::NonbondCuda(ActionFrame frm) {
-  // Simply to get the information for the energetic calculations
-  //std::vector<float> eww_result(this->numberAtoms_);
-  //std::vector<float> esw_result(this->numberAtoms_);
-  std::vector<std::vector<int> > order_indices;
-
   float *recip = NULL;
   float *ucell = NULL;
   int boxinfo;
@@ -2108,62 +2050,48 @@ void Action_GIST::NonbondCuda(ActionFrame frm) {
   for (unsigned int i = 0; i < this->numberAtoms_; ++i) {
     E_VV_[0][i] = E_VV_f_[i];
     E_UV_[0][i] = E_UV_f_[i];
-  }
-
-  if (this->doOrder_) {
-    int counter = 0;
-    for (unsigned int i = 0; i < (4 * this->numberAtoms_); i += 4) {
-      ++counter;
-      std::vector<int> temp;
-      for (unsigned int j = 0; j < 4; ++j) {
-        temp.push_back(result_o.at(i + j));
-      }
-      order_indices.push_back(temp);
-    }
+    neighborPerThread_[0][i] = result_n[i];
   }
 
   delete[] recip; // Free memory
   delete[] ucell; // Free memory
 
+  if (!doOrder_) {
+    return;
+  }
+
   for (unsigned int sidx = 0; sidx < NSOLVENT_; sidx++) {
     int headAtomIndex = O_idxs_[sidx];
     int voxel = atom_voxel_[headAtomIndex];
     if (voxel != OFF_GRID_) {
-      neighbor_->UpdateVoxel(voxel, result_n.at(headAtomIndex));
-      // Order calculation
-      if (this->doOrder_) {
-        double sum = 0;
-        Vec3 cent( frm.Frm().xAddress() + (headAtomIndex) * 3 );
-        std::vector<Vec3> vectors;
-        switch(imageOpt_.ImagingType()) {
-          case ImageOption::NONORTHO:
-          case ImageOption::ORTHO:
-            {
-              Vec3 vec(frm.Frm().xAddress() + (order_indices.at(headAtomIndex).at(0) * 3));
-              vectors.push_back( MinImagedVec(vec, cent, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell()));
-              vec = Vec3(frm.Frm().xAddress() + (order_indices.at(headAtomIndex).at(1) * 3));
-              vectors.push_back( MinImagedVec(vec, cent, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell()));
-              vec = Vec3(frm.Frm().xAddress() + (order_indices.at(headAtomIndex).at(2) * 3));
-              vectors.push_back( MinImagedVec(vec, cent, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell()));
-              vec = Vec3(frm.Frm().xAddress() + (order_indices.at(headAtomIndex).at(3) * 3));
-              vectors.push_back( MinImagedVec(vec, cent, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell()));
-            }
-            break;
-          default:
-            vectors.push_back( Vec3( frm.Frm().xAddress() + (order_indices.at(headAtomIndex).at(0) * 3) ) - cent );
-            vectors.push_back( Vec3( frm.Frm().xAddress() + (order_indices.at(headAtomIndex).at(1) * 3) ) - cent );
-            vectors.push_back( Vec3( frm.Frm().xAddress() + (order_indices.at(headAtomIndex).at(2) * 3) ) - cent );
-            vectors.push_back( Vec3( frm.Frm().xAddress() + (order_indices.at(headAtomIndex).at(3) * 3) ) - cent );
-        }
-
-        for (int i = 0; i < 3; ++i) {
-          for (int j = i + 1; j < 4; ++j) {
-            double cosThet = (vectors.at(i) * vectors.at(j)) / sqrt(vectors.at(i).Magnitude2() * vectors.at(j).Magnitude2());
-            sum += (cosThet + 1.0/3) * (cosThet + 1.0/3);
+      double sum = 0;
+      Vec3 cent( frm.Frm().XYZ(headAtomIndex) );
+      Vec3 vectors[4];
+      int* neighbors = &result_o.at(4*headAtomIndex);
+      switch(imageOpt_.ImagingType()) {
+        case ImageOption::NONORTHO:
+        case ImageOption::ORTHO:
+          {
+            vectors[0] = MinImagedVec(Vec3(frm.Frm().XYZ(neighbors[0])), cent, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell());
+            vectors[1] = MinImagedVec(Vec3(frm.Frm().XYZ(neighbors[1])), cent, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell());
+            vectors[2] = MinImagedVec(Vec3(frm.Frm().XYZ(neighbors[2])), cent, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell());
+            vectors[3] = MinImagedVec(Vec3(frm.Frm().XYZ(neighbors[3])), cent, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell());
           }
-        }
-        order_->UpdateVoxel(voxel, 1.0 - (3.0/8.0) * sum);
+          break;
+        default:
+          vectors[0] = Vec3( frm.Frm().XYZ(neighbors[0]) ) - cent;
+          vectors[1] = Vec3( frm.Frm().XYZ(neighbors[1]) ) - cent;
+          vectors[2] = Vec3( frm.Frm().XYZ(neighbors[2]) ) - cent;
+          vectors[3] = Vec3( frm.Frm().XYZ(neighbors[3]) ) - cent;
       }
+
+      for (int i = 0; i < 3; ++i) {
+        for (int j = i + 1; j < 4; ++j) {
+          double cosThet = (vectors[i] * vectors[j]) / sqrt(vectors[i].Magnitude2() * vectors[j].Magnitude2());
+          sum += (cosThet + 1.0/3) * (cosThet + 1.0/3);
+        }
+      }
+      order_->UpdateVoxel(voxel, 1.0 - (3.0/8.0) * sum);
     }
   }
 }
