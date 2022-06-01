@@ -277,6 +277,19 @@ DoTest Gist9-Eww-mol-NA.dx.save Gist9-Eww-mol-NA.dx -a $TEST_TOLERANCE
 DoTest Gist9-Esw-mol-CL.dx.save Gist9-Esw-mol-CL.dx -a $TEST_TOLERANCE
 DoTest Gist9-Eww-mol-CL.dx.save Gist9-Eww-mol-CL.dx -a $TEST_TOLERANCE
 
+UNITNAME='GIST test, benzene as solvent'
+cat > gist.in <<EOF
+parm benzene-ions.parm7
+trajin benzene-ions-10frames.nc
+autoimage origin
+gist refdens 3.3 gridcntr 0 0 0 solute !^1 \
+    griddim 6 6 6 gridspacn 5.0 prefix Gist10 info Info.dat
+go
+EOF
+RunCpptraj "$UNITNAME"
+DoTest Gist10-Info.dat.save Gist10-Info.dat
+DoTest Gist10-output.dat.save Gist10-output.dat -a $TEST_TOLERANCE
+
 EndTest
 
 exit 0

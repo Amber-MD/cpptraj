@@ -96,8 +96,8 @@ class Action_GIST : public Action {
     DataSet_3D* AddDatasetAndFile(const std::string& name, const std::string& filename, DataSet::DataType dtype);
     int setSolventProperties(const Molecule& mol, const Topology& top);
     int checkSolventProperties(const Molecule& mol, const Topology& top) const;
-    void setSolventType(const Topology& top);
-    void setSoluteSolvent(const Topology& top);
+    void setSolventType(const Topology& top);          ///< Set the solventType_ for each atom based on solventNames_.
+    void setSoluteSolvent(const Topology& top);        ///< Set atomIsSolute, U_idxs_, (and solvent_).
     int calcVoxelIndex(double x, double y, double z);
     void analyzeSolventElements(const Molecule& mol, const Topology& top);
     bool setRigidAtomIndices(const Molecule& mol, const Topology& top);
@@ -290,6 +290,7 @@ class Action_GIST : public Action {
     int NFRAME_;               ///< Total # frames analyzed
     int max_nwat_;             ///< Max number of waters in any voxel
     int nNnSearchLayers_;      ///< Number of layers of voxels to search for nearest neighbors in the entropy search.
+    int n_linear_solvents_;    ///< Count how many near-linear solvents occur during the GIST calculation.*
     bool doOrder_;             ///< If true do the order calc
     bool doEij_;               ///< If true do the i-j energy calc
     bool skipE_;               ///< If true skip the nonbond energy calc

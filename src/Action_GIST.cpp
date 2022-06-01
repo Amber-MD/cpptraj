@@ -25,9 +25,6 @@
 // In the CUDA kernel, the neighbor calc uses the atom type to choose which atom to use.
 // This is not reasonable with non-water solvents.
 
-// Crashes with zero solvent molecules
-
-// TO-DO: check for linear solvent molecules
 // TO-DO: simplify the InteractionTypes in GIST_PME
 
 const double Action_GIST::maxD_ = DBL_MAX;
@@ -102,6 +99,7 @@ Action_GIST::Action_GIST() :
   nMolAtoms_(0),
   NFRAME_(0),
   max_nwat_(0),
+  n_linear_solvents_(0),
   doOrder_(false),
   doEij_(false),
   skipE_(false),
@@ -118,7 +116,7 @@ void Action_GIST::Help() const {
           "\t[prefix <filename prefix>] [ext <grid extension>] [out <output suffix>]\n"
           "\t[floatfmt {double|scientific|general}] [floatwidth <fw>] [floatprec <fp>]\n"
           "\t[intwidth <iw>] [oldnnvolume] [nnsearchlayers <nlayers>] [solute <mask>] [solventmols <str>]\n"
-          "\t[rigidatoms <i1> <i2> <i3> [nocom]\n"
+          "\t[rigidatoms <i1> <i2> <i3>] [nocom]\n"
           "\t[info <info suffix>]\n");
 #         ifdef LIBPME
           mprintf("\t[nopme|pme %s\n\t %s\n\t %s]\n", EwaldOptions::KeywordsCommon1(), EwaldOptions::KeywordsCommon2(), EwaldOptions::KeywordsPME());
@@ -825,6 +823,16 @@ void Action_GIST::setSolventType(const Topology& top)
   }
 }
 
+/**
+ * @brief Set arrays for solute/solvent assignment
+ *
+ * atomIsSolute_ will be set based on the user-supplied [solute] mask, or based on 
+ * Cpptraj's solvent assignment.
+ * U_idxs_ will be set using all atoms where atomIsSolute_ is true.
+ * If CUDA, will also set solvent_ where atomIsSolute_ is false.
+ *
+ * @param top : Current topology
+ */
 void Action_GIST::setSoluteSolvent(const Topology& top)
 {
   bool useMask = soluteMask_.length() > 0;
@@ -1282,6 +1290,9 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
             H1_wat.Normalize();
             H2_wat.Normalize();
 
+            if (fabs(H1_wat * H2_wat) > 0.99) {  // < 8.11 or > 171.11 degrees
+              ++n_linear_solvents_;
+            }
             Vec3 ar1 = H1_wat.Cross( x_lab_ ); // ar1 = V cross U 
             Vec3 sar = ar1;                    // sar = V cross U
             ar1.Normalize();
@@ -1477,6 +1488,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   return Action::OK;
 }
 
+/** true if atom belongs to the main solvent species. */
 bool Action_GIST::isMainSolvent(int atom) const
 {
   if (solventNames_.size() == 0) {
@@ -1486,6 +1498,7 @@ bool Action_GIST::isMainSolvent(int atom) const
   }
 }
 
+/** Center (COM or "central atom") of a molecule. */
 Vec3 Action_GIST::calcMolCenter(const ActionFrame& frm, int begin, int end) const
 {
   if (useCom_) {
@@ -1495,6 +1508,7 @@ Vec3 Action_GIST::calcMolCenter(const ActionFrame& frm, int begin, int end) cons
   }
 }
 
+/** Compute voxel index from coordinates, or return OFF_GRID_. */
 int Action_GIST::calcVoxelIndex(double x, double y, double z) {
   size_t i, j, k;
   if ( gridBin_->Calc(x, y, z, i, j, k) ) {
@@ -1503,7 +1517,7 @@ int Action_GIST::calcVoxelIndex(double x, double y, double z) {
   return OFF_GRID_;
 }
 
-
+/** Collect Esw, Eww and neighbors from multiple threads and assign them to the grid. Also split energy per solvent. */
 void Action_GIST::CollectEnergies()
 {
   unsigned int n_atoms = E_VV_[0].size();
@@ -1538,6 +1552,7 @@ void Action_GIST::CollectEnergies()
   }
 }
 
+/** Convert DataSet_3D to vector<float> (aka Farray) */
 Action_GIST::Farray Action_GIST::DataSetAsArray(const DataSet_3D& ds) const
 {
   Farray ret(ds.Size());
@@ -1547,6 +1562,7 @@ Action_GIST::Farray Action_GIST::DataSetAsArray(const DataSet_3D& ds) const
   return ret;
 }
 
+/** In-place DataSet_3D * factor */
 void Action_GIST::ScaleDataSet(DataSet_3D& ds, double factor) const
 {
   for (size_t i = 0; i < ds.Size(); ++i) {
@@ -1554,6 +1570,7 @@ void Action_GIST::ScaleDataSet(DataSet_3D& ds, double factor) const
   }
 }
 
+/** Vectorized DataSet_3D * ARR, where ARR has operator[] */
 template<typename T, typename ARR>
 std::vector<T> Action_GIST::NormalizeDataSet(const DataSet_3D& ds, const ARR& norm) const
 {
@@ -1568,6 +1585,7 @@ std::vector<T> Action_GIST::NormalizeDataSet(const DataSet_3D& ds, const ARR& no
   return ret;
 }
 
+/** Vectorized DataSet_3D * factor */
 template<typename T>
 std::vector<T> Action_GIST::WeightDataSet(const DataSet_3D& ds, double factor) const
 {
@@ -1578,12 +1596,14 @@ std::vector<T> Action_GIST::WeightDataSet(const DataSet_3D& ds, double factor) c
   return ret;
 }
 
+/** Vectorized DataSet_3D / NFRAME_ / voxel_volume */
 template<typename T>
 std::vector<T> Action_GIST::DensityWeightDataSet(const DataSet_3D& ds) const
 {
   return WeightDataSet<T>(ds, 1.0 / (NFRAME_ * gridspacing_ * gridspacing_ * gridspacing_));
 }
 
+/** Copy an array (that has size() and operator[]), to a DataSet3D of the same size. */
 template<typename ARRAY_TYPE>
 void Action_GIST::CopyArrayToDataSet(const ARRAY_TYPE& arr, DataSet_3D& ds) const
 {
@@ -1592,6 +1612,7 @@ void Action_GIST::CopyArrayToDataSet(const ARRAY_TYPE& arr, DataSet_3D& ds) cons
   }
 }
 
+/** Calculate the sum of a DataSet_3D. */
 double Action_GIST::SumDataSet(const DataSet_3D& ds) const
 {
   double total = 0.0;
@@ -1819,6 +1840,9 @@ void Action_GIST::Print() {
     U_PME_dens = DensityWeightDataSet<double>(*U_PME_);
     infofile_->Printf("Ensemble total water energy on the grid: %9.5f Kcal/mol \n", SumDataSet(*PME_) / NFRAME_);
     infofile_->Printf("Ensemble total solute energy on the grid: %9.5f Kcal/mol \n", SumDataSet(*U_PME_) / NFRAME_);
+  }
+  if (n_linear_solvents_ > 0) {
+    mprintf("GIST warning: %d almost-linear solvent molecules occurred. Maybe choose other \"rigidatoms\".\n");
   }
   if (!skipE_) {
     mprintf("\tCalculating average voxel energies:\n");
@@ -2050,7 +2074,9 @@ void Action_GIST::NonbondCuda(ActionFrame frm) {
   for (unsigned int i = 0; i < this->numberAtoms_; ++i) {
     E_VV_[0][i] = E_VV_f_[i];
     E_UV_[0][i] = E_UV_f_[i];
-    neighborPerThread_[0][i] = result_n[i];
+    if (atomIsSolventO_[i]) {  // DoActionCudaEnergy also calculates neighbors for H atoms!
+      neighborPerThread_[0][i] = result_n[i];
+    }
   }
 
   delete[] recip; // Free memory
