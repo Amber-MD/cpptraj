@@ -146,6 +146,14 @@ Action::RetType Action_Grid::DoAction(int frameNum, ActionFrame& frm) {
   return Action::OK;
 }
 
+#ifdef MPI
+/** Ensure all processes have the same # of frames. */
+int Action_Grid::SyncAction() {
+  TrajComm().AllReduce( &nframes_, 1, MPI_INT, MPI_SUM );
+  return 0;
+}
+#endif
+
 // Action_Grid::print()
 void Action_Grid::Print() {
   if (nframes_ < 1 || grid_ == 0) return;

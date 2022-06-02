@@ -108,7 +108,7 @@ int TrajinList::AddEnsembleIn(std::string const& fname, Topology* topIn, ArgList
     if ( !tio->CanProcessEnsemble() ) {
 #   endif
       EnsembleIn_Multi const& mTraj = static_cast<EnsembleIn_Multi const&>( *ensemble );
-      if ( mTraj.TargetMode() == ReplicaInfo::CRDIDX ) {
+      if ( mTraj.SortingByRemlog() ) {
         finalCrdIndicesArg_ = mTraj.FinalCrdIndices();
         if (finalCrdIndicesArg_.empty()) {
           mprinterr("Error: Could not obtain final remlog indices.\n");
