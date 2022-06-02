@@ -1606,19 +1606,7 @@ const
               mprintf("DEBUG: Link residue name for %s found: %s\n", *(lname->first), *(lname->second));
             ChangeResName( pres, lname->second );
             resStatIn[topIn[*bat].ResNum()] = VALIDATED;
-          } else if (hasGlycam_) {
-            // Check if pres.Name() is already changed to linkage name
-            for (NameMapType::const_iterator rname = pdb_glycam_linkageRes_map_.begin();
-                                             rname != pdb_glycam_linkageRes_map_.end(); ++rname)
-            {
-              if (pres.Name() == rname->second) {
-                mprintf("DEBUG: Link residue for %s (%s) is already %s\n",
-                        topIn.TruncResNameOnumId(topIn[*bat].ResNum()).c_str(),
-                        *(rname->first), *(rname->second));
-                resStatIn[topIn[*bat].ResNum()] = VALIDATED;
-                break;
-              }
-            }
+          
           } else if (pres.Name() == "ROH") {
             if (debug_ > 0)
               mprintf("DEBUG: '%s' is terminal hydroxyl.\n", *(pres.Name()));
@@ -1635,7 +1623,22 @@ const
             if (debug_ > 0)
               mprintf("DEBUG: '%s' is an O-methyl group.\n", *(pres.Name()));
             resStatIn[topIn[*bat].ResNum()] = VALIDATED;
-          } else {
+          } else if (hasGlycam_) {
+            // Check if pres.Name() is already changed to linkage name
+            for (NameMapType::const_iterator rname = pdb_glycam_linkageRes_map_.begin();
+                                             rname != pdb_glycam_linkageRes_map_.end(); ++rname)
+            {
+              if (pres.Name() == rname->second) {
+                if (debug_ > 0)
+                  mprintf("DEBUG: Link residue for %s (%s) is already %s\n",
+                          topIn.TruncResNameOnumId(topIn[*bat].ResNum()).c_str(),
+                          *(rname->first), *(rname->second));
+                resStatIn[topIn[*bat].ResNum()] = VALIDATED;
+                break;
+              }
+            }
+          }
+          if (resStatIn[topIn[*bat].ResNum()] != VALIDATED) {
             mprintf("Warning: Unrecognized link residue %s, not modifying name.\n", *pres.Name());
             resStatIn[topIn[*bat].ResNum()] = SUGAR_UNRECOGNIZED_LINK_RES;
           }
@@ -1722,7 +1725,8 @@ std::string Exec_PrepareForLeap::GenGlycamResMaskString() const {
     SugarToken const& tkn = mit->second;
     std::pair<std::set<std::string>::iterator, bool> ret = glycamResNames.insert( tkn.GlycamCode() );
     if (ret.second == false) {
-      mprintf("DEBUG: Already seen '%s', skipping.\n", tkn.GlycamCode().c_str());
+      if (debug_ > 1)
+        mprintf("DEBUG: Already seen '%s', skipping.\n", tkn.GlycamCode().c_str());
       continue;
     }
     // L/D forms
@@ -1798,7 +1802,8 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar& sugarIn, Topology& topIn,
     // Now force uppercase
     rChar.assign( 1, toupper(rChar.front()) );
     std::string fChar(1, resName[2]);
-    mprintf("DEBUG: Searching for glycam char '%s' '%s'\n", rChar.c_str(), fChar.c_str());
+    if (debug_ > 0)
+      mprintf("DEBUG: Searching for glycam char '%s' '%s'\n", rChar.c_str(), fChar.c_str());
     // Get form from 3rd char
     FormTypeEnum fType = UNKNOWN_FORM;
     if (fChar == "U" || fChar == "B")
@@ -2672,6 +2677,14 @@ int Exec_PrepareForLeap::SearchForDisulfides(double disulfidecut, std::string co
   if (cysmask.None())
     mprintf("Warning: No cysteine sulfur atoms selected by %s\n", cysmaskstr.c_str());
   else {
+    // Sanity check - warn if non-sulfurs detected
+    for (AtomMask::const_iterator at = cysmask.begin(); at != cysmask.end(); ++at)
+    {
+      if (topIn[*at].Element() != Atom::SULFUR)
+        mprintf("Warning: Atom '%s' does not appear to be sulfur.\n",
+                topIn.ResNameNumAtomNameNum(*at).c_str());
+    }
+
     int nExistingDisulfides = 0;
     int nDisulfides = 0;
     double cut2 = disulfidecut * disulfidecut;
