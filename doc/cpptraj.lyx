@@ -340,6 +340,23 @@ https://github.com/Amber-MD/cpptraj
 
 \end_layout
 
+\begin_layout Subsection
+Examples
+\end_layout
+
+\begin_layout Standard
+Some examples of running CPPTRAJ are available in the 
+\series bold
+examples
+\series default
+ subdirectory.
+ There are also many tests in the 
+\series bold
+test
+\series default
+ subdirectory which can serve as simple examples.
+\end_layout
+
 \begin_layout Section
 Running Cpptraj
 \end_layout
@@ -782,8 +799,11 @@ Getting Help
 \end_layout
 
 \begin_layout Standard
-If in interactive mode, 'help <command>' can be used to get the associated
- keywords as well as an abbreviated description of the command.
+If in interactive mode, the 'help' command can be used to list recognized
+ commands and topics; topics (such as mask syntax) start with uppercase
+ letters.
+ 'help <command>' can be used to get the associated keywords as well as
+ an abbreviated description of the command.
  Most commands have a corresponding test which also serves as an example
  of how to use the command.
  See $AMBERHOME/AmberTools/test/cpptraj/README for more details.
