@@ -3394,6 +3394,10 @@ void Exec_PrepareForLeap::Help() const
 // Exec_PrepareForLeap::Execute()
 Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 {
+  mprintf("\tPREPAREFORLEAP:\n");
+  mprintf("# Citation: Roe, D.R.; Bergonzo, C.; \"PrepareForLeap: An Automated Tool for\n"
+          "#           Fast PDB-to-Parameter Generation.\"\n"
+          "#           J. Comp. Chem. (2022), V. 43, I. 13, pp 930-935.\n" );
   debug_ = State.Debug();
   errorsAreFatal_ = !argIn.hasKey("skiperrors");
   // Get input coords
