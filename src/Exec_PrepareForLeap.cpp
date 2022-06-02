@@ -1606,6 +1606,19 @@ const
               mprintf("DEBUG: Link residue name for %s found: %s\n", *(lname->first), *(lname->second));
             ChangeResName( pres, lname->second );
             resStatIn[topIn[*bat].ResNum()] = VALIDATED;
+          } else if (hasGlycam_) {
+            // Check if pres.Name() is already changed to linkage name
+            for (NameMapType::const_iterator rname = pdb_glycam_linkageRes_map_.begin();
+                                             rname != pdb_glycam_linkageRes_map_.end(); ++rname)
+            {
+              if (pres.Name() == rname->second) {
+                mprintf("DEBUG: Link residue for %s (%s) is already %s\n",
+                        topIn.TruncResNameOnumId(topIn[*bat].ResNum()).c_str(),
+                        *(rname->first), *(rname->second));
+                resStatIn[topIn[*bat].ResNum()] = VALIDATED;
+                break;
+              }
+            }
           } else if (pres.Name() == "ROH") {
             if (debug_ > 0)
               mprintf("DEBUG: '%s' is terminal hydroxyl.\n", *(pres.Name()));
@@ -2341,7 +2354,7 @@ const
 
   std::string newResName;
   if (groupType == G_OH) {
-    newResName = "ROH";//terminalHydroxylName_;
+    newResName = "ROH";
     // Change atom names
     ChangeAtomName(topIn.SetAtom(selected[0]), "O1");
     if (selected.size() > 1)

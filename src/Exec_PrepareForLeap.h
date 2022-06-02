@@ -174,7 +174,6 @@ class Exec_PrepareForLeap : public Exec {
     bool useSugarName_;     ///< If true, base form/chirality on name instead of geometry
     int debug_;             ///< Debug level
     std::string solventResName_; ///< Solvent residue name
-    //std::string terminalHydroxylName_; ///< Terminal hydroxyl name FIXME this info should be in a separate file
     AtomMap myMap_;
     std::vector<FunctionalGroup> functionalGroups_; ///< Recognized functional groups (FunctionalGroupType).
 };
