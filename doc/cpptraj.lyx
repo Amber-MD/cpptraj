@@ -25717,10 +25717,6 @@ rdval>]
 \end_layout
 
 \begin_layout Description
-[excludeions] If specified, exclude any ions from the calculation.
-\end_layout
-
-\begin_layout Description
 
 \series bold
 [gridcntr
@@ -26082,7 +26078,11 @@ DataSet Aspects:
 \end_layout
 
 \begin_layout Description
-[dTSorient] First order orientational entropy density .
+[dTSorient] First order orientational entropy density.
+\end_layout
+
+\begin_layout Description
+[dTSsix] First order six-dimensional entropy density.
 \end_layout
 
 \begin_layout Description

@@ -287,7 +287,7 @@ gist refdens 3.3 gridcntr 0 0 0 solute !^1 \
 go
 EOF
 RunCpptraj "$UNITNAME"
-DoTest Gist10-Info.dat.save Gist10-Info.dat
+DoTest Gist10-Info.dat.save Gist10-Info.dat -a $TEST_TOLERANCE
 DoTest Gist10-output.dat.save Gist10-output.dat -a $TEST_TOLERANCE
 
 EndTest
