@@ -31,7 +31,7 @@ writedata cjt1.dat MyIred[Cj(t)]:0
 EOF
 
 RunCpptraj "$TESTNAME"
-DoTest ired.vec.save ired.vec
+EvecTest ired.vec.save ired.vec
 DoTest v0.cmt.new.norm.save v0.cmt
 DoTest plateau.norm.dat.save plateau.norm.dat
 DoTest v0.cjt.new.save v0.cjt

@@ -16061,7 +16061,15 @@ ensemble <file0> {[<start>] [<stop> | last] [offset]} | lastframe
 \end_layout
 
 \begin_layout LyX-Code
-         [remlog <remlogfile> [nstlim <nstlim> ntwx <ntwx>]]
+         [{nosort |
+\end_layout
+
+\begin_layout LyX-Code
+	       bycrdidx | 
+\end_layout
+
+\begin_layout LyX-Code
+           remlog <remlogfile> [nstlim <nstlim> ntwx <ntwx>]}]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -16126,12 +16134,24 @@ s; use comma-separated list of trajectory names.
 \end_layout
 
 \begin_layout Description
+[nosort] Do not attempt to sort trajectories.
+ Useful for H-REMD trajectories which are already sorted by replica/Hamiltonian,
+ or collections of MD trajectories.
+\end_layout
+
+\begin_layout Description
+[bycrdidx] For H-REMD trajectories, sort by coordinate indices stored in
+ trajectory files.
+ This is preferred over sorting via 'remlog'.
+\end_layout
+
+\begin_layout Description
 [remlog
 \begin_inset space ~
 \end_inset
 
 <remlogfile>] For H-REMD trajectories only, use specified REMD log file
- to sort trajectories by coordinate index (instead of by Hamiltonian).
+ to sort trajectories by coordinate index (instead of by replica/Hamiltonian).
 \begin_inset Separator latexpar
 \end_inset
 
@@ -16220,6 +16240,51 @@ ensemble
 \series default
 \emph default
  in order to improve set up efficiency.
+\end_layout
+
+\begin_layout Standard
+H-REMD trajectories which are typically already sorted by replica/Hamiltonian
+ can be sorted by coordinate index instead with 'bycrdidx' (if the trajectory
+ contains coordinate indices) or by REMD log data specified with the 'remlog'
+ keyword.
+ For example, to sort by coordinate index using a REMD log and write sorted
+ trajectories:
+\end_layout
+
+\begin_layout LyX-Code
+parm ../tz2.nhe.parm7
+\end_layout
+
+\begin_layout LyX-Code
+ensemblesize 4
+\end_layout
+
+\begin_layout LyX-Code
+ensemble rem.crd.001 remlog rem.log nstlim 1000 ntwx 1000
+\end_layout
+
+\begin_layout LyX-Code
+trajout sorted.remlog.nc
+\end_layout
+
+\begin_layout Standard
+To sort by coordinate index when trajectories contain coordinate indices:
+\end_layout
+
+\begin_layout LyX-Code
+parm ../tz2.nhe.parm7
+\end_layout
+
+\begin_layout LyX-Code
+ensemblesize 4 
+\end_layout
+
+\begin_layout LyX-Code
+ensemble rem.crd.001 bycrdidx 
+\end_layout
+
+\begin_layout LyX-Code
+trajout sorted.crdidx.nc 
 \end_layout
 
 \begin_layout Subsection

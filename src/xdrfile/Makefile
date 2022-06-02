@@ -1,10 +1,14 @@
 # Makefile for xdrfile bundled with cpptraj
-include ../../external.config.h
+include ../../config.h
 
 # Variables
 DEL_FILE      = /bin/rm -f
 AR            = ar cqs
 TARGET        = libxdrfile.a
+
+.c.o:
+	$(VB)echo [XDRFILE] CC $<
+	$(VB)$(CC) $(LFS) $(CFLAGS) -c -o $@ $<
 
 # Source files
 XDR_SOURCES=xdrfile.c xdr_seek.c xdrfile_trr.c xdrfile_xtc.c

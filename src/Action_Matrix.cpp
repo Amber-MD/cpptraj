@@ -130,8 +130,11 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, ActionInit& init, int d
   }
   // Set up output file if needed
   outfile_ = 0;
-  if (outtype_ != BYMASK)
-    outfile_ = init.DFL().AddDataFile(outfilename, "square2d noxcol noheader", actionArgs);
+  if (outtype_ != BYMASK) {
+    DataFileList::TypeArgArray default_args;
+    default_args.push_back( DataFileList::TypeArgPair(DataFile::DATAFILE, "square2d noxcol noheader") );
+    outfile_ = init.DFL().AddDataFile(outfilename, default_args, actionArgs);
+  }
   // Check for output set name if not yet provided, to match
   // behavior of other actions.
   if (name.empty())
