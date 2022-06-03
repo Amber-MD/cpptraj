@@ -20,8 +20,6 @@ class Exec_PrepareForLeap : public Exec {
     class Link;
     /// Hold information for the various functional group types (FunctionalGroupType)
     class FunctionalGroup;
-    /// Hold general info for a specific sugar
-    class SugarToken;
 
     typedef std::vector<int> Iarray;
     enum FunctionalGroupType { G_SO3 = 0, G_CH3, G_ACX, G_OH, G_OME, UNRECOGNIZED_GROUP };
@@ -37,18 +35,9 @@ class Exec_PrepareForLeap : public Exec {
     typedef std::vector<ResStatType> ResStatArray;
 
     
-    /// Sugar form
-    enum FormTypeEnum { ALPHA = 0, BETA, UNKNOWN_FORM };
-    /// Sugar chirality
-    enum ChirTypeEnum { IS_D, IS_L, UNKNOWN_CHIR };
-
-    /// Keep synced with FunctionalGroupType
+        /// Keep synced with FunctionalGroupType
     static const char* FunctionalGroupStr_[];
-        /// Keep synced with FormTypeEnum
-    static const char* formstr_[];
-    /// Keep synced with ChirTypeEnum
-    static const char* chirstr_[];
-
+    
     inline void ChangeResName(Residue&, NameType const&) const;
     inline void ChangeAtomName(Atom&, NameType const&) const;
 
@@ -203,35 +192,5 @@ class Exec_PrepareForLeap::FunctionalGroup {
     double chargeOffset_;                ///< Charge offset for adjusting charge.
 };
 // ----- SugarToken class ------------------------------------------------------
-class Exec_PrepareForLeap::SugarToken {
-  public:
-    /// CONSTRUCTOR
-    SugarToken();
-    /// CONSTRUCTOR - name, glycam code, form, chirality, ring type
-    SugarToken(std::string const&, std::string const&, FormTypeEnum, ChirTypeEnum, RingTypeEnum);
-    /// CONSTRUCTOR - ring type
-    SugarToken(RingTypeEnum);
-    /// /return <res>, set up from line: '<res> <code> <form> <chir> <ring> <name>'
-    std::string SetFromLine(ArgList const&);
-    /// \return string containing token info
-    std::string InfoStr() const;
-
-    std::string const& FullName()   const { return name_; }
-    std::string const& GlycamCode() const { return glycamCode_; }
-    FormTypeEnum Form()             const { return form_; }
-    ChirTypeEnum Chirality()        const { return chir_; }
-    RingTypeEnum RingType()         const { return ring_; }
-
-    void SetChirality(ChirTypeEnum c) { chir_ = c; }
-    void SetForm(FormTypeEnum f)      { form_ = f; }
-    void SetRingType(RingTypeEnum r)  { ring_ = r; }
-  private:
-    std::string name_;       ///< Full sugar name
-    //std::string resname_;    ///< PDB residue name
-    std::string glycamCode_; ///< Glycam residue code
-    FormTypeEnum form_;      ///< Sugar form
-    ChirTypeEnum chir_;      ///< Sugar chirality
-    RingTypeEnum ring_;      ///< Sugar ring type
-};
 
 #endif
