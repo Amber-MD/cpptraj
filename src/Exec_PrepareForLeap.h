@@ -16,13 +16,8 @@ class Exec_PrepareForLeap : public Exec {
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_PrepareForLeap(); }
     RetType Execute(CpptrajState&, ArgList&);
   private:
-    /// Hold indices for sugar link atoms
-    class Link;
-    /// Hold information for the various functional group types (FunctionalGroupType)
-    class FunctionalGroup;
-
     typedef std::vector<int> Iarray;
-    enum FunctionalGroupType { G_SO3 = 0, G_CH3, G_ACX, G_OH, G_OME, UNRECOGNIZED_GROUP };
+
     enum ResStatType { UNKNOWN = 0,
                        VALIDATED,
                        SUGAR_UNRECOGNIZED_LINK_RES,
@@ -35,12 +30,7 @@ class Exec_PrepareForLeap : public Exec {
     typedef std::vector<ResStatType> ResStatArray;
 
     
-        /// Keep synced with FunctionalGroupType
-    static const char* FunctionalGroupStr_[];
     
-    inline void ChangeResName(Residue&, NameType const&) const;
-    inline void ChangeAtomName(Atom&, NameType const&) const;
-
     /// Set a reduced PDB res to glycam map when dat file not found.
     void SetGlycamPdbResMap();
     /// Load PDB res to glycam map from dat file
@@ -85,14 +75,7 @@ class Exec_PrepareForLeap : public Exec {
     int IdentifySugar(Sugar&, Topology&, Frame const&, CharMask const&, CpptrajFile*, std::set<BondType>&);
     /// Try to find missing linkages to anomeric carbon in sugar.
     int FindSugarC1Linkages(int, int, Topology&, Frame const&) const;
-    /// \return identity of the group bonded to given atom
-    FunctionalGroupType IdFunctionalGroup_Silent(Iarray&, int, int, int, Topology const&) const;
-    /// \return identity of the group bonded to given atom, print to stdout
-    FunctionalGroupType IdFunctionalGroup(Iarray&, int, int, int, Topology const&) const;
-    /// Determine if sugar has sulfates that need SO3 residue(s)
-    int CheckForFunctionalGroups(Sugar&, Topology&, Frame&) const;
-    /// Determine if sugar is terminal and need an ROH residue
-    int CheckIfSugarIsTerminal(Sugar&, Topology&, Frame&) const;
+    
     /// Attempt to fix any issues with sugars
     int FixSugarsStructure(std::vector<Sugar>&, std::string const&, Topology&, Frame&,
                            bool, bool) const;
@@ -156,20 +139,6 @@ class Exec_PrepareForLeap : public Exec {
     int debug_;             ///< Debug level
     std::string solventResName_; ///< Solvent residue name
     AtomMap myMap_;
-    std::vector<FunctionalGroup> functionalGroups_; ///< Recognized functional groups (FunctionalGroupType).
+    
 };
-// ----- Link class ------------------------------------------------------------
-
-// ----- FunctionalGroup class -------------------------------------------------
-class Exec_PrepareForLeap::FunctionalGroup {
-  public:
-    FunctionalGroup();
-  private:
-    NameType resname_;                   ///< Functional group residue name.
-    std::vector<NameType> anames_;       ///< Functional group atom names. Heavy atoms first.
-    Atom::AtomicElementType chargeAtom_; ///< Element of atom which needs charge adjusted.
-    double chargeOffset_;                ///< Charge offset for adjusting charge.
-};
-// ----- SugarToken class ------------------------------------------------------
-
 #endif
