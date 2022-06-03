@@ -3,7 +3,8 @@
 . ../MasterTest.sh
 
 CleanFiles cpptraj.in 1qos.cpptraj.pdb leap.1qos.in \
-           leap.4zzw.in 4zzw.cpptraj.pdb
+           leap.4zzw.in 4zzw.cpptraj.pdb 1qos.cpptraj.pdb.2 \
+           leap.1qos.in.2
 
 INPUT='-i cpptraj.in'
 
@@ -30,6 +31,22 @@ EOF
 RunCpptraj "Prepare PDB 1qos for LEaP"
 DoTest leap.1qos.in.save leap.1qos.in
 DoTest 1qos.cpptraj.pdb.save 1qos.cpptraj.pdb
+
+cat > cpptraj.in <<EOF
+parm 1qos.cpptraj.pdb.save
+loadcrd 1qos.cpptraj.pdb.save name MyCrd
+prepareforleap \
+  hasglycam \
+  crdset MyCrd \
+  name Final \
+  cysmask :CYX@SG \
+  out leap.1qos.in.2 \
+  leapunitname m \
+  pdbout 1qos.cpptraj.pdb.2 \
+  nowat noh $RESMAPFILE
+EOF
+RunCpptraj "Prepare PDB with existing glycam names (1qos)."
+DoTest 1qos.cpptraj.pdb.save 1qos.cpptraj.pdb.2
 
 cat > cpptraj.in <<EOF
 parm 4zzw.pdb
