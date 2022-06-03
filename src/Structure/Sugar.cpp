@@ -4,8 +4,6 @@
 
 using namespace Cpptraj::Structure;
 
-const char* Sugar::ringstr_[] = {"pyranose", "furanose", "?"};
-
 /** CONSTRUCTOR - Incomplete setup; set anomeric atom as residue first atom
   *               so that ResNum() works.
   */
@@ -15,7 +13,7 @@ Sugar::Sugar(StatType status, int firstat) :
   anomeric_atom_(firstat),
   ano_ref_atom_(-1),
   highest_stereocenter_(-1),
-  ringType_(UNKNOWN_RING),
+  ringType_(SugarToken::UNKNOWN_RING),
   isMissingAtoms_(false)
 {}
 
@@ -27,16 +25,16 @@ Sugar::Sugar(StatType status, int roa, int aa,
   anomeric_atom_(aa),
   ano_ref_atom_(-1),
   highest_stereocenter_(-1),
-  ringType_(UNKNOWN_RING),
+  ringType_(SugarToken::UNKNOWN_RING),
   isMissingAtoms_(true),
   ring_atoms_(RA),
   chain_atoms_(CA)
 {
   if (ring_oxygen_atom_ != -1) {
     if (RA.size() == 5)
-      ringType_ = PYRANOSE;
+      ringType_ = SugarToken::PYRANOSE;
     else if (RA.size() == 4)
-      ringType_ = FURANOSE;
+      ringType_ = SugarToken::FURANOSE;
   }
 }
 
@@ -48,16 +46,16 @@ Sugar::Sugar(int roa, int aa, int ara, int hs,
   anomeric_atom_(aa),
   ano_ref_atom_(ara),
   highest_stereocenter_(hs),
-  ringType_(UNKNOWN_RING),
+  ringType_(SugarToken::UNKNOWN_RING),
   isMissingAtoms_(isMissing),
   ring_atoms_(RA),
   chain_atoms_(CA)
 {
   if (ring_oxygen_atom_ != -1) {
     if (RA.size() == 5)
-      ringType_ = PYRANOSE;
+      ringType_ = SugarToken::PYRANOSE;
     else if (RA.size() == 4)
-      ringType_ = FURANOSE;
+      ringType_ = SugarToken::FURANOSE;
   }
 }
 
