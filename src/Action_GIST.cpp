@@ -1846,7 +1846,7 @@ void Action_GIST::Print() {
     infofile_->Printf("Ensemble total solute energy on the grid: %9.5f Kcal/mol \n", SumDataSet(*U_PME_) / NFRAME_);
   }
   if (n_linear_solvents_ > 0) {
-    mprintf("GIST warning: %d almost-linear solvent molecules occurred. Maybe choose other \"rigidatoms\".\n");
+    mprintf("GIST warning: %d almost-linear solvent molecules occurred. Maybe choose other \"rigidatoms\".\n", n_linear_solvents_);
   }
   if (!skipE_) {
     mprintf("\tCalculating average voxel energies:\n");
