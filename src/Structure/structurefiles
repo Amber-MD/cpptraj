@@ -1,0 +1,3 @@
+# Files for Structure subdirectory.
+STRUCTURE_SOURCES= \
+  Sugar.cpp
