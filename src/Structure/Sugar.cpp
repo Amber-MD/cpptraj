@@ -1,7 +1,10 @@
 #include "Sugar.h"
 #include "../CpptrajStdio.h"
+#include "../Topology.h"
 
 using namespace Cpptraj::Structure;
+
+const char* Sugar::ringstr_[] = {"pyranose", "furanose", "?"};
 
 /** CONSTRUCTOR - Incomplete setup; set anomeric atom as residue first atom
   *               so that ResNum() works.

@@ -1,11 +1,15 @@
 #ifndef INC_STRUCTURE_SUGAR_H
 #define INC_STRUCTURE_SUGAR_H
+#include <vector>
+// Forward declares
+class Topology;
+
 namespace Cpptraj {
 namespace Structure {
 /// Hold indices for a sugar residue
 class Sugar {
   public:
-
+    typedef std::vector<int> Iarray;
     /// Sugar status. Keep synced with StatTypeStr_
     enum StatType { SETUP_OK = 0,    ///< Regular sugar, setup complete
                     MISSING_O,       ///< Could not find ring oxygen
@@ -21,6 +25,15 @@ class Sugar {
     Sugar(StatType, int, int, Iarray const&,Iarray const&);
     /// CONSTRUCTOR - ring O, Anomeric, Anomeric Ref, Highest Sterocenter, ring atoms, chain atoms, isMissingAtoms
     Sugar(int,int,int,int,Iarray const&,Iarray const&, bool);
+
+    /// Base ring type
+    enum RingTypeEnum { PYRANOSE = 0,  ///< Ring is 5 carbons, 1 oxygen
+                        FURANOSE,      ///< Ring is 4 carbons, 1 oxygen
+                        UNKNOWN_RING   ///< Some unknown ring type
+                      };
+    /// Keep synced with RingTypeEnum
+    static const char* ringstr_[];
+
 
     inline int ResNum(Topology const&) const;
     StatType Status()          const { return stat_; }
