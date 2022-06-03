@@ -28,7 +28,7 @@ class Sugar {
     /// CONSTRUCTOR - ring O, Anomeric, Anomeric Ref, Highest Sterocenter, ring atoms, chain atoms, isMissingAtoms
     Sugar(int,int,int,int,Iarray const&,Iarray const&, bool);
 
-    inline int ResNum(Topology const&) const;
+    int ResNum(Topology const&) const;
     StatType Status()          const { return stat_; }
     int RingOxygenAtom()       const { return ring_oxygen_atom_; }
     int AnomericAtom()         const { return anomeric_atom_; }
