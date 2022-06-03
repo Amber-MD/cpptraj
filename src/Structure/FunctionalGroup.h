@@ -5,7 +5,7 @@
 #include <vector>
 namespace Cpptraj {
 namespace Structure {
-/// Hold information for a functional group
+/// Hold information for a functional group TODO use this to store functional group data
 class FunctionalGroup {
   public:
     /// Different functional group types
@@ -18,6 +18,8 @@ class FunctionalGroup {
       UNRECOGNIZED_GROUP };
 
     FunctionalGroup();
+
+    static const char* typeString(Type t) { return FunctionalGroupStr_[t]; }
   private:
     /// Keep synced with FunctionalGroupType
     static const char* FunctionalGroupStr_[];

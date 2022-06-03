@@ -1,5 +1,8 @@
 # Files for Structure subdirectory.
 STRUCTURE_SOURCES= \
+  FunctionalGroup.cpp \
+  FxnGroupBuilder.cpp \
+  StructureRoutines.cpp \
   Sugar.cpp \
   SugarLinkAtoms.cpp \
   SugarToken.cpp
