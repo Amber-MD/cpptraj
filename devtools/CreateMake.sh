@@ -55,3 +55,5 @@ depend: ../findDepend
 
 include $DEPENDFILE
 EOF
+
+echo "Make sure to add 'include $DIR/$SOURCEFILE' to src/Makefile"
