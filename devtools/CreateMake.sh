@@ -56,4 +56,41 @@ depend: ../findDepend
 include $DEPENDFILE
 EOF
 
+# Add source files.
+cat > CMakeLists.txt <<EOF
+#CMake buildfile for CPPTRAJ $DIR subdirectory.
+target_sources(cpptraj_common_obj PRIVATE
+EOF
+
+cat > $SOURCEFILE <<EOF
+# Files for $DIR subdirectory.
+$VARNAME= \\
+EOF
+
+LASTFILE=''
+for CPPFILE in `ls *.cpp` ; do
+  LASTFILE=$CPPFILE
+done
+
+for CPPFILE in `ls *.cpp` ; do
+  echo "  \${CMAKE_CURRENT_LIST_DIR}/$CPPFILE" >> CMakeLists.txt
+  if [ "$CPPFILE" = "$LASTFILE" ] ; then
+    echo "  $CPPFILE" >> $SOURCEFILE 
+  else
+    echo "  $CPPFILE \\" >> $SOURCEFILE
+  fi
+done
+
+echo ")" >> CMakeLists.txt
+
+# Dependencies
+touch $DEPENDFILE
+
+make depend
+
+echo ""
 echo "Make sure to add 'include $DIR/$SOURCEFILE' to src/Makefile"
+echo "Make sure to add 'add_subdirectory($DIR)' to src/CMakeLists.txt"
+echo ""
+
+
