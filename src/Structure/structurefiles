@@ -3,6 +3,7 @@ STRUCTURE_SOURCES= \
   FunctionalGroup.cpp \
   FxnGroupBuilder.cpp \
   StructureRoutines.cpp \
+  SugarBuilder.cpp \
   Sugar.cpp \
   SugarLinkAtoms.cpp \
   SugarToken.cpp
