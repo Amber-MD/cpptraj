@@ -1,4 +1,5 @@
 # Files for Structure subdirectory.
 STRUCTURE_SOURCES= \
   Sugar.cpp \
+  SugarLinkAtoms.cpp \
   SugarToken.cpp
