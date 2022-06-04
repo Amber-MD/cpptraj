@@ -68,25 +68,7 @@ class Exec_PrepareForLeap : public Exec {
 
     ResStatArray resStat_;  ///< Contain status of each residue
 
-    typedef std::pair<NameType, NameType> NamePairType;
-    typedef std::map<NameType, NameType> NameMapType;
-  
     static void PrintAtomNameMap(const char*, std::vector<NameMapType> const&);
-
-    /// Hold maps of pdb atom names to glycam atom names; multiple residues may share a map
-    std::vector<NameMapType> pdb_glycam_name_maps_;
-    /// Hold maps of pdb atom names to glycam atom names (res in alpha form)
-    std::vector<NameMapType> pdb_glycam_name_maps_A_;
-    /// Hold maps of pdb atom names to glycam atom names (res in beta form)
-    std::vector<NameMapType> pdb_glycam_name_maps_B_;
-
-    typedef std::pair<std::string, int> ResIdxPairType;
-    typedef std::map<std::string, int> ResIdxMapType;
-    /// Map glycam residue chars to pdb-glycam atom name map index (pdb_glycam_name_maps_)
-    ResIdxMapType glycam_res_idx_map_;
-
-    /// Map pdb residue names to glycam linkage residue names
-    NameMapType pdb_glycam_linkageRes_map_;
 
     std::string leapunitname_;
     bool errorsAreFatal_;   ///< If false, try to skip errors.

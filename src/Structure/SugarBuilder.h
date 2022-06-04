@@ -19,7 +19,7 @@ class SugarBuilder {
     void SetGlycamPdbResMap();
     /// Load PDB res to glycam map from dat file
     int LoadGlycamPdbResMap(std::string const&);
-
+/*
     int FindRemainingChainCarbons(Iarray&, int, Topology const&, int, Iarray const&) const;
 
     /// Determine orientation around anomeric carbon
@@ -58,13 +58,33 @@ class SugarBuilder {
 
     int PrepareSugars(std::string const&, std::vector<Sugar>&, Topology&, Frame const&, CpptrajFile*);
 
+ */
     typedef std::pair<NameType, SugarToken> PairType;
     typedef std::map<NameType, SugarToken> MapType;
     MapType pdb_to_glycam_; ///< Map PDB residue names to sugar information tokens
- 
+
+    typedef std::pair<NameType, NameType> NamePairType;
+    typedef std::map<NameType, NameType> NameMapType;
+
+    /// Hold maps of pdb atom names to glycam atom names; multiple residues may share a map
+    std::vector<NameMapType> pdb_glycam_name_maps_;
+    /// Hold maps of pdb atom names to glycam atom names (res in alpha form)
+    std::vector<NameMapType> pdb_glycam_name_maps_A_;
+    /// Hold maps of pdb atom names to glycam atom names (res in beta form)
+    std::vector<NameMapType> pdb_glycam_name_maps_B_;
+
+    typedef std::pair<std::string, int> ResIdxPairType;
+    typedef std::map<std::string, int> ResIdxMapType;
+    /// Map glycam residue chars to pdb-glycam atom name map index (pdb_glycam_name_maps_)
+    ResIdxMapType glycam_res_idx_map_;
+
+    /// Map pdb residue names to glycam linkage residue names
+    NameMapType pdb_glycam_linkageRes_map_;
 
     bool hasGlycam_;        ///< If true, assume sugars already have glycam names
     bool useSugarName_;     ///< If true, base form/chirality on name instead of geometry
     AtomMap myMap_;         ///< Used to determine unique atoms for chirality
-
+};
+}
+}
 #endif

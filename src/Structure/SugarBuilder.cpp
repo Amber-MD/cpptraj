@@ -1,4 +1,6 @@
 #include "SugarBuilder.h"
+#include "../ArgList.h"
+#include "../CpptrajFile.h"
 #include "../CpptrajStdio.h"
 
 using namespace Cpptraj::Structure;
@@ -6,195 +8,195 @@ using namespace Cpptraj::Structure;
 /** Load reduced internal PDB to Glycam map. */
 void SugarBuilder::SetGlycamPdbResMap() {
   pdb_to_glycam_.insert( PairType("64K",
-    SugarToken("alpha-D-arabinopyranose", "A", ALPHA, IS_D, PYRANOSE)) );
+    SugarToken("alpha-D-arabinopyranose", "A", SugarToken::ALPHA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("AHR",
-    SugarToken("alpha-L-arabinofuranose", "A", ALPHA, IS_L, FURANOSE)) );
+    SugarToken("alpha-L-arabinofuranose", "A", SugarToken::ALPHA, SugarToken::IS_L, SugarToken::FURANOSE)) );
   pdb_to_glycam_.insert( PairType("ARA",
-    SugarToken("alpha-L-arabinopyranose", "A", ALPHA, IS_L, PYRANOSE)) );
+    SugarToken("alpha-L-arabinopyranose", "A", SugarToken::ALPHA, SugarToken::IS_L, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("ARB",
-    SugarToken("beta-L-arabinopyranose", "A", BETA, IS_L, PYRANOSE)) );
+    SugarToken("beta-L-arabinopyranose", "A", SugarToken::BETA, SugarToken::IS_L, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("AXR",
-    SugarToken("methyl alpha-D-arabinofuranoside", "A", ALPHA, IS_D, FURANOSE)) );
+    SugarToken("methyl alpha-D-arabinofuranoside", "A", SugarToken::ALPHA, SugarToken::IS_D, SugarToken::FURANOSE)) );
   pdb_to_glycam_.insert( PairType("BXX",
-    SugarToken("beta-D-arabinofuranose", "A", BETA, IS_D, FURANOSE)) );
+    SugarToken("beta-D-arabinofuranose", "A", SugarToken::BETA, SugarToken::IS_D, SugarToken::FURANOSE)) );
   pdb_to_glycam_.insert( PairType("BXY",
-    SugarToken("alpha-D-arabinofuranose", "A", ALPHA, IS_D, FURANOSE)) );
+    SugarToken("alpha-D-arabinofuranose", "A", SugarToken::ALPHA, SugarToken::IS_D, SugarToken::FURANOSE)) );
   pdb_to_glycam_.insert( PairType("FUB",
-    SugarToken("beta-L-arabinofuranose", "A", BETA, IS_L, FURANOSE)) );
+    SugarToken("beta-L-arabinofuranose", "A", SugarToken::BETA, SugarToken::IS_L, SugarToken::FURANOSE)) );
   pdb_to_glycam_.insert( PairType("SEJ",
-    SugarToken("beta-D-arabinopyranose", "A", BETA, IS_D, PYRANOSE)) );
+    SugarToken("beta-D-arabinopyranose", "A", SugarToken::BETA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("LDY",
-    SugarToken("alpha-D-lyxopyranose", "D", ALPHA, IS_D, PYRANOSE)) );
+    SugarToken("alpha-D-lyxopyranose", "D", SugarToken::ALPHA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("Z4W",
-    SugarToken("beta-D-lyxopyranose", "D", BETA, IS_D, PYRANOSE)) );
+    SugarToken("beta-D-lyxopyranose", "D", SugarToken::BETA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("0MK",
-    SugarToken("beta-L-ribopyranose", "R", BETA, IS_L, PYRANOSE)) );
+    SugarToken("beta-L-ribopyranose", "R", SugarToken::BETA, SugarToken::IS_L, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("32O",
-    SugarToken("beta-L-ribofuranose", "R", BETA, IS_L, FURANOSE)) );
+    SugarToken("beta-L-ribofuranose", "R", SugarToken::BETA, SugarToken::IS_L, SugarToken::FURANOSE)) );
   pdb_to_glycam_.insert( PairType("BDR",
-    SugarToken("beta-D-ribofuranose", "R", BETA, IS_D, FURANOSE)) );
+    SugarToken("beta-D-ribofuranose", "R", SugarToken::BETA, SugarToken::IS_D, SugarToken::FURANOSE)) );
   pdb_to_glycam_.insert( PairType("RIB",
-    SugarToken("alpha-D-ribofuranose", "R", ALPHA, IS_D, FURANOSE)) );
+    SugarToken("alpha-D-ribofuranose", "R", SugarToken::ALPHA, SugarToken::IS_D, SugarToken::FURANOSE)) );
   pdb_to_glycam_.insert( PairType("RIP",
-    SugarToken("beta-D-ribopyranose", "R", BETA, IS_D, PYRANOSE)) );
+    SugarToken("beta-D-ribopyranose", "R", SugarToken::BETA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("YYM",
-    SugarToken("alpha-D-ribopyranose", "R", ALPHA, IS_D, PYRANOSE)) );
+    SugarToken("alpha-D-ribopyranose", "R", SugarToken::ALPHA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("Z6J",
-    SugarToken("alpha-L-ribofuranose", "R", ALPHA, IS_L, FURANOSE)) );
+    SugarToken("alpha-L-ribofuranose", "R", SugarToken::ALPHA, SugarToken::IS_L, SugarToken::FURANOSE)) );
   pdb_to_glycam_.insert( PairType("HSY",
-    SugarToken("alpha-L-xylopyranose", "X", ALPHA, IS_L, PYRANOSE)) );
+    SugarToken("alpha-L-xylopyranose", "X", SugarToken::ALPHA, SugarToken::IS_L, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("HSZ",
-    SugarToken("beta-D-xylopyranose", "X", BETA, IS_D, PYRANOSE)) );
+    SugarToken("beta-D-xylopyranose", "X", SugarToken::BETA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("LXC",
-    SugarToken("beta-L-xylopyranose", "X", BETA, IS_L, PYRANOSE)) );
+    SugarToken("beta-L-xylopyranose", "X", SugarToken::BETA, SugarToken::IS_L, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("XYP",
-    SugarToken("beta-D-xylopyranose", "X", BETA, IS_D, PYRANOSE)) );
+    SugarToken("beta-D-xylopyranose", "X", SugarToken::BETA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("XYS",
-    SugarToken("alpha-D-xylopyranose", "X", ALPHA, IS_D, PYRANOSE)) );
+    SugarToken("alpha-D-xylopyranose", "X", SugarToken::ALPHA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("XYZ",
-    SugarToken("beta-D-xylofuranose", "X", BETA, IS_D, FURANOSE)) );
+    SugarToken("beta-D-xylofuranose", "X", SugarToken::BETA, SugarToken::IS_D, SugarToken::FURANOSE)) );
   pdb_to_glycam_.insert( PairType("AFD",
-    SugarToken("alpha-D-allopyranose", "N", ALPHA, IS_D, PYRANOSE)) );
+    SugarToken("alpha-D-allopyranose", "N", SugarToken::ALPHA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("ALL",
-    SugarToken("beta-D-allopyranose", "N", BETA, IS_D, PYRANOSE)) );
+    SugarToken("beta-D-allopyranose", "N", SugarToken::BETA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("VDS",
-    SugarToken("beta-D-allofuranose", "N", BETA, IS_D, FURANOSE)) );
+    SugarToken("beta-D-allofuranose", "N", SugarToken::BETA, SugarToken::IS_D, SugarToken::FURANOSE)) );
   pdb_to_glycam_.insert( PairType("VDV",
-    SugarToken("alpha-D-allofuranose", "N", ALPHA, IS_D, FURANOSE)) );
+    SugarToken("alpha-D-allofuranose", "N", SugarToken::ALPHA, SugarToken::IS_D, SugarToken::FURANOSE)) );
   pdb_to_glycam_.insert( PairType("WOO",
-    SugarToken("beta-L-allopyranose", "N", BETA, IS_L, PYRANOSE)) );
+    SugarToken("beta-L-allopyranose", "N", SugarToken::BETA, SugarToken::IS_L, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("Z2D",
-    SugarToken("alpha-L-allopyranose", "N", ALPHA, IS_L, PYRANOSE)) );
+    SugarToken("alpha-L-allopyranose", "N", SugarToken::ALPHA, SugarToken::IS_L, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("3MK",
-    SugarToken("beta-L-altropyranose", "E", BETA, IS_L, PYRANOSE)) );
+    SugarToken("beta-L-altropyranose", "E", SugarToken::BETA, SugarToken::IS_L, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("SHD",
-    SugarToken("alpha-D-altropyranose", "E", ALPHA, IS_D, PYRANOSE)) );
+    SugarToken("alpha-D-altropyranose", "E", SugarToken::ALPHA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("Z6H",
-    SugarToken("alpha-L-altropyranose", "E", ALPHA, IS_L, PYRANOSE)) );
+    SugarToken("alpha-L-altropyranose", "E", SugarToken::ALPHA, SugarToken::IS_L, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("GAL",
-    SugarToken("beta-D-galactopyranose", "L", BETA, IS_D, PYRANOSE)) );
+    SugarToken("beta-D-galactopyranose", "L", SugarToken::BETA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("GIV",
-    SugarToken("beta-L-galactopyranose", "L", BETA, IS_L, PYRANOSE)) );
+    SugarToken("beta-L-galactopyranose", "L", SugarToken::BETA, SugarToken::IS_L, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("GLA",
-    SugarToken("alpha-D-galactopyranose", "L", ALPHA, IS_D, PYRANOSE)) );
+    SugarToken("alpha-D-galactopyranose", "L", SugarToken::ALPHA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("GXL",
-    SugarToken("alpha-L-galactopyranose", "L", ALPHA, IS_L, PYRANOSE)) );
+    SugarToken("alpha-L-galactopyranose", "L", SugarToken::ALPHA, SugarToken::IS_L, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("GZL",
-    SugarToken("beta-D-galactofuranose", "L", BETA, IS_D, FURANOSE)) );
+    SugarToken("beta-D-galactofuranose", "L", SugarToken::BETA, SugarToken::IS_D, SugarToken::FURANOSE)) );
   pdb_to_glycam_.insert( PairType("BGC",
-    SugarToken("beta-D-glucopyranose", "G", BETA, IS_D, PYRANOSE)) );
+    SugarToken("beta-D-glucopyranose", "G", SugarToken::BETA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("GLC",
-    SugarToken("alpha-D-glucopyranose", "G", ALPHA, IS_D, PYRANOSE)) );
+    SugarToken("alpha-D-glucopyranose", "G", SugarToken::ALPHA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("GU4",
-    SugarToken("2,3,4,6-tetra-O-sulfonato-alpha-D-glucopyranose", "G", ALPHA, IS_D, PYRANOSE)) );
+    SugarToken("2,3,4,6-tetra-O-sulfonato-alpha-D-glucopyranose", "G", SugarToken::ALPHA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("MGL",
-    SugarToken("methyl beta-D-glucopyranoside", "G", BETA, IS_D, PYRANOSE)) );
+    SugarToken("methyl beta-D-glucopyranoside", "G", SugarToken::BETA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("Z8T",
-    SugarToken("beta-L-glucopyranose", "G", BETA, IS_L, PYRANOSE)) );
+    SugarToken("beta-L-glucopyranose", "G", SugarToken::BETA, SugarToken::IS_L, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("4GL",
-    SugarToken("alpha-D-gulopyranose", "K", ALPHA, IS_D, PYRANOSE)) );
+    SugarToken("alpha-D-gulopyranose", "K", SugarToken::ALPHA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("GL0",
-    SugarToken("beta-D-gulopyranose", "K", BETA, IS_D, PYRANOSE)) );
+    SugarToken("beta-D-gulopyranose", "K", SugarToken::BETA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("GUP",
-    SugarToken("alpha-L-gulopyranose", "K", ALPHA, IS_L, PYRANOSE)) );
+    SugarToken("alpha-L-gulopyranose", "K", SugarToken::ALPHA, SugarToken::IS_L, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("Z8H",
-    SugarToken("beta-L-gulopyranose", "K", BETA, IS_L, PYRANOSE)) );
+    SugarToken("beta-L-gulopyranose", "K", SugarToken::BETA, SugarToken::IS_L, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("BMA",
-    SugarToken("beta-D-mannopyranose", "M", BETA, IS_D, PYRANOSE)) );
+    SugarToken("beta-D-mannopyranose", "M", SugarToken::BETA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("MAN",
-    SugarToken("alpha-D-mannopyranose", "M", ALPHA, IS_D, PYRANOSE)) );
+    SugarToken("alpha-D-mannopyranose", "M", SugarToken::ALPHA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("A5C",
-    SugarToken("alpha-L-talofuranose", "T", ALPHA, IS_L, FURANOSE)) );
+    SugarToken("alpha-L-talofuranose", "T", SugarToken::ALPHA, SugarToken::IS_L, SugarToken::FURANOSE)) );
   pdb_to_glycam_.insert( PairType("SDY",
-    SugarToken("beta-D-talopyranose", "T", BETA, IS_D, PYRANOSE)) );
+    SugarToken("beta-D-talopyranose", "T", SugarToken::BETA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("ZEE",
-    SugarToken("beta-L-talopyranose", "T", BETA, IS_L, PYRANOSE)) );
+    SugarToken("beta-L-talopyranose", "T", SugarToken::BETA, SugarToken::IS_L, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("BDF",
-    SugarToken("beta-D-fructopyranose", "C", BETA, IS_D, PYRANOSE)) );
+    SugarToken("beta-D-fructopyranose", "C", SugarToken::BETA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("FRU",
-    SugarToken("beta-D-fructofuranose", "C", BETA, IS_D, FURANOSE)) );
+    SugarToken("beta-D-fructofuranose", "C", SugarToken::BETA, SugarToken::IS_D, SugarToken::FURANOSE)) );
   pdb_to_glycam_.insert( PairType("LFR",
-    SugarToken("beta-L-fructofuranose", "C", BETA, IS_L, FURANOSE)) );
+    SugarToken("beta-L-fructofuranose", "C", SugarToken::BETA, SugarToken::IS_L, SugarToken::FURANOSE)) );
   pdb_to_glycam_.insert( PairType("YYJ",
-    SugarToken("1,3,4,6-tetra-O-sulfo-beta-D-fructofuranose", "C", BETA, IS_D, FURANOSE)) );
+    SugarToken("1,3,4,6-tetra-O-sulfo-beta-D-fructofuranose", "C", SugarToken::BETA, SugarToken::IS_D, SugarToken::FURANOSE)) );
   pdb_to_glycam_.insert( PairType("Z9N",
-    SugarToken("alpha-D-fructofuranose", "C", ALPHA, IS_D, FURANOSE)) );
+    SugarToken("alpha-D-fructofuranose", "C", SugarToken::ALPHA, SugarToken::IS_D, SugarToken::FURANOSE)) );
   pdb_to_glycam_.insert( PairType("PSV",
-    SugarToken("alpha-D-psicofuranose", "P", ALPHA, IS_D, FURANOSE)) );
+    SugarToken("alpha-D-psicofuranose", "P", SugarToken::ALPHA, SugarToken::IS_D, SugarToken::FURANOSE)) );
   pdb_to_glycam_.insert( PairType("SF6",
-    SugarToken("alpha-L-psicofuranose", "P", ALPHA, IS_L, FURANOSE)) );
+    SugarToken("alpha-L-psicofuranose", "P", SugarToken::ALPHA, SugarToken::IS_L, SugarToken::FURANOSE)) );
   pdb_to_glycam_.insert( PairType("SF9",
-    SugarToken("beta-L-psicofuranose", "P", BETA, IS_L, FURANOSE)) );
+    SugarToken("beta-L-psicofuranose", "P", SugarToken::BETA, SugarToken::IS_L, SugarToken::FURANOSE)) );
   pdb_to_glycam_.insert( PairType("TTV",
-    SugarToken("beta-D-psicofuranose", "P", BETA, IS_D, FURANOSE)) );
+    SugarToken("beta-D-psicofuranose", "P", SugarToken::BETA, SugarToken::IS_D, SugarToken::FURANOSE)) );
   pdb_to_glycam_.insert( PairType("SOE",
-    SugarToken("alpha-L-sorbopyranose", "B", ALPHA, IS_L, PYRANOSE)) );
+    SugarToken("alpha-L-sorbopyranose", "B", SugarToken::ALPHA, SugarToken::IS_L, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("UEA",
-    SugarToken("beta-D-sorbofuranose", "B", BETA, IS_D, FURANOSE)) );
+    SugarToken("beta-D-sorbofuranose", "B", SugarToken::BETA, SugarToken::IS_D, SugarToken::FURANOSE)) );
   pdb_to_glycam_.insert( PairType("T6T",
-    SugarToken("alpha-D-tagatopyranose", "J", ALPHA, IS_D, PYRANOSE)) );
+    SugarToken("alpha-D-tagatopyranose", "J", SugarToken::ALPHA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("FCA",
-    SugarToken("alpha-D-fucopyranose", "F", ALPHA, IS_D, PYRANOSE)) );
+    SugarToken("alpha-D-fucopyranose", "F", SugarToken::ALPHA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("FCB",
-    SugarToken("beta-D-fucopyranose", "F", BETA, IS_D, PYRANOSE)) );
+    SugarToken("beta-D-fucopyranose", "F", SugarToken::BETA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("FUC",
-    SugarToken("alpha-L-fucopyranose", "F", ALPHA, IS_L, PYRANOSE)) );
+    SugarToken("alpha-L-fucopyranose", "F", SugarToken::ALPHA, SugarToken::IS_L, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("FUL",
-    SugarToken("beta-L-fucopyranose", "F", BETA, IS_L, PYRANOSE)) );
+    SugarToken("beta-L-fucopyranose", "F", SugarToken::BETA, SugarToken::IS_L, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("GYE",
-    SugarToken("beta-D-fucofuranose", "F", BETA, IS_D, FURANOSE)) );
+    SugarToken("beta-D-fucofuranose", "F", SugarToken::BETA, SugarToken::IS_D, SugarToken::FURANOSE)) );
   pdb_to_glycam_.insert( PairType("MXY",
-    SugarToken("2-O-methyl-beta-L-fucopyranose", "F", BETA, IS_L, PYRANOSE)) );
+    SugarToken("2-O-methyl-beta-L-fucopyranose", "F", SugarToken::BETA, SugarToken::IS_L, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("MXZ",
-    SugarToken("2-O-methyl-alpha-L-fucopyranose", "F", ALPHA, IS_L, PYRANOSE)) );
+    SugarToken("2-O-methyl-alpha-L-fucopyranose", "F", SugarToken::ALPHA, SugarToken::IS_L, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("G6D",
-    SugarToken("alpha-D-quinovopyranose", "Q", ALPHA, IS_D, PYRANOSE)) );
+    SugarToken("alpha-D-quinovopyranose", "Q", SugarToken::ALPHA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("YYK",
-    SugarToken("beta-D-quinovopyranose", "Q", BETA, IS_D, PYRANOSE)) );
+    SugarToken("beta-D-quinovopyranose", "Q", SugarToken::BETA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("RAM",
-    SugarToken("alpha-L-rhamnopyranose", "H", ALPHA, IS_L, PYRANOSE)) );
+    SugarToken("alpha-L-rhamnopyranose", "H", SugarToken::ALPHA, SugarToken::IS_L, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("RM4",
-    SugarToken("beta-L-rhamnopyranose", "H", BETA, IS_L, PYRANOSE)) );
+    SugarToken("beta-L-rhamnopyranose", "H", SugarToken::BETA, SugarToken::IS_L, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("XXR",
-    SugarToken("alpha-D-rhamnopyranose", "H", ALPHA, IS_D, PYRANOSE)) );
+    SugarToken("alpha-D-rhamnopyranose", "H", SugarToken::ALPHA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("ADA",
-    SugarToken("alpha-D-galactopyranuronic acid", "O", ALPHA, IS_D, PYRANOSE)) );
+    SugarToken("alpha-D-galactopyranuronic acid", "O", SugarToken::ALPHA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("GTR",
-    SugarToken("beta-D-galactopyranuronic acid", "O", BETA, IS_D, PYRANOSE)) );
+    SugarToken("beta-D-galactopyranuronic acid", "O", SugarToken::BETA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("BDP",
-    SugarToken("beta-D-glucopyranuronic acid", "Z", BETA, IS_D, PYRANOSE)) );
+    SugarToken("beta-D-glucopyranuronic acid", "Z", SugarToken::BETA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("GCU",
-    SugarToken("alpha-D-glucopyranuronic acid", "Z", ALPHA, IS_D, PYRANOSE)) );
+    SugarToken("alpha-D-glucopyranuronic acid", "Z", SugarToken::ALPHA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("GCV",
-    SugarToken("4-O-methyl-alpha-D-glucopyranuronic acid", "Z", ALPHA, IS_D, PYRANOSE)) );
+    SugarToken("4-O-methyl-alpha-D-glucopyranuronic acid", "Z", SugarToken::ALPHA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("IDR",
-    SugarToken("alpha-L-idopyranuronic acid", "U", ALPHA, IS_L, PYRANOSE)) );
+    SugarToken("alpha-L-idopyranuronic acid", "U", SugarToken::ALPHA, SugarToken::IS_L, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("IDS",
-    SugarToken("2-O-sulfo-alpha-L-idopyranuronic acid", "U", ALPHA, IS_L, PYRANOSE)) );
+    SugarToken("2-O-sulfo-alpha-L-idopyranuronic acid", "U", SugarToken::ALPHA, SugarToken::IS_L, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("A2G",
-    SugarToken("2-acetamido-2-deoxy-alpha-D-galactopyranose", "V", ALPHA, IS_D, PYRANOSE)) );
+    SugarToken("2-acetamido-2-deoxy-alpha-D-galactopyranose", "V", SugarToken::ALPHA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("ASG",
-    SugarToken("2-acetamido-2-deoxy-4-O-sulfo-beta-D-galactopyranose", "V", BETA, IS_D, PYRANOSE)) );
+    SugarToken("2-acetamido-2-deoxy-4-O-sulfo-beta-D-galactopyranose", "V", SugarToken::BETA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("NG6",
-    SugarToken("2-acetamido-2-deoxy-6-O-sulfo-beta-D-galactopyranose", "V", BETA, IS_D, PYRANOSE)) );
+    SugarToken("2-acetamido-2-deoxy-6-O-sulfo-beta-D-galactopyranose", "V", SugarToken::BETA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("NGA",
-    SugarToken("2-acetamido-2-deoxy-beta-D-galactopyranose", "V", BETA, IS_D, PYRANOSE)) );
+    SugarToken("2-acetamido-2-deoxy-beta-D-galactopyranose", "V", SugarToken::BETA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("YYQ",
-    SugarToken("2-acetamido-2-deoxy-alpha-L-galactopyranose", "V", ALPHA, IS_L, PYRANOSE)) );
+    SugarToken("2-acetamido-2-deoxy-alpha-L-galactopyranose", "V", SugarToken::ALPHA, SugarToken::IS_L, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("NAG",
-    SugarToken("2-acetamido-2-deoxy-beta-D-glucopyranose", "Y", BETA, IS_D, PYRANOSE)) );
+    SugarToken("2-acetamido-2-deoxy-beta-D-glucopyranose", "Y", SugarToken::BETA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("NDG",
-    SugarToken("2-acetamido-2-deoxy-alpha-D-glucopyranose", "Y", ALPHA, IS_D, PYRANOSE)) );
+    SugarToken("2-acetamido-2-deoxy-alpha-D-glucopyranose", "Y", SugarToken::ALPHA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("NGZ",
-    SugarToken("2-acetamido-2-deoxy-alpha-L-glucopyranose", "Y", ALPHA, IS_L, PYRANOSE)) );
+    SugarToken("2-acetamido-2-deoxy-alpha-L-glucopyranose", "Y", SugarToken::ALPHA, SugarToken::IS_L, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("BM3",
-    SugarToken("2-acetamido-2-deoxy-alpha-D-mannopyranose", "W", ALPHA, IS_D, PYRANOSE)) );
+    SugarToken("2-acetamido-2-deoxy-alpha-D-mannopyranose", "W", SugarToken::ALPHA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("BM7",
-    SugarToken("2-acetamido-2-deoxy-beta-D-mannopyranose", "W", BETA, IS_D, PYRANOSE)) );
+    SugarToken("2-acetamido-2-deoxy-beta-D-mannopyranose", "W", SugarToken::BETA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("SIA",
-    SugarToken("N-acetyl-alpha-neuraminic acid", "S", ALPHA, IS_D, PYRANOSE)) );
+    SugarToken("N-acetyl-alpha-neuraminic acid", "S", SugarToken::ALPHA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   pdb_to_glycam_.insert( PairType("SLB",
-    SugarToken("N-acetyl-beta-neuraminic acid", "S", BETA, IS_D, PYRANOSE)) );
+    SugarToken("N-acetyl-beta-neuraminic acid", "S", SugarToken::BETA, SugarToken::IS_D, SugarToken::PYRANOSE)) );
   // PDB to glycam atom name maps
   // 0 - V,W,Y C7,C2N  O7,O2N  C8,CME
   pdb_glycam_name_maps_.push_back(NameMapType());
@@ -228,7 +230,7 @@ void SugarBuilder::SetGlycamPdbResMap() {
 }
 
 /** Load PDB to Glycam residue map from file. */
-int Exec_PrepareForLeap::LoadGlycamPdbResMap(std::string const& fnameIn)
+int SugarBuilder::LoadGlycamPdbResMap(std::string const& fnameIn)
 {
   std::string fname = fnameIn;
   if (fnameIn.empty()) {
