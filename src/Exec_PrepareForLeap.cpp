@@ -133,28 +133,7 @@ int Exec_PrepareForLeap::LoadPdbResNames(std::string const& fnameIn)
 
 
 // -----------------------------------------------------------------------------
-/// Recursive function for finding and recording all carbons
-static void Find_Carbons(int atm, Topology const& topIn, std::vector<bool>& Visited,
-                         std::vector<int>& remainingChainCarbons)
-{
-  remainingChainCarbons.push_back( atm );
-  Visited[atm] = true;
-  // Follow all carbons bonded to this atom
-  for (Atom::bond_iterator bat = topIn[atm].bondbegin(); bat != topIn[atm].bondend(); ++bat)
-  {
-    if (topIn[*bat].Element() == Atom::CARBON && !Visited[*bat]) {
-      Find_Carbons( *bat, topIn, Visited, remainingChainCarbons );
-    }
-  }
-}
 
-/// \return True if the given tgt atom is in the given array
-static inline bool AtomIsInArray(std::vector<int> const& RingAtoms, int tgt)
-{
-  for (std::vector<int>::const_iterator it = RingAtoms.begin(); it != RingAtoms.end(); ++it)
-    if (*it == tgt) return true;
-  return false;
-}
 
 /// \return Position of given tgt atom in the array (if it is in the given array)
 static inline int AtomIdxInArray(std::vector<int> const& ChainAtoms, int tgt)
@@ -165,27 +144,7 @@ static inline int AtomIdxInArray(std::vector<int> const& ChainAtoms, int tgt)
   return -1;
 }
 
-/** Find remaining non-ring carbons in chain starting from ring end atom. */
-int Exec_PrepareForLeap::FindRemainingChainCarbons(Iarray& remainingChainCarbons,
-                                                   int start_c, Topology const& topIn, int rnum,
-                                                   Iarray const& RingAtoms)
-const
-{
-  Residue const& res = topIn.Res(rnum);
-  std::vector<bool> Visited(topIn.Natom(), true);
-  for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
-    if (!AtomIsInArray(RingAtoms, at))
-      Visited[at] = false;
 
-  for (Atom::bond_iterator bat = topIn[start_c].bondbegin();
-                           bat != topIn[start_c].bondend();
-                         ++bat)
-  {
-    if ( !Visited[*bat] && topIn[*bat].Element() == Atom::CARBON )
-      Find_Carbons(*bat, topIn, Visited, remainingChainCarbons);
-  }
-  return 0;
-}
 
 /// Recursive function for following bonds of an atom to a target atom
 static void FollowBonds(int atm, Topology const& topIn, int idx, std::vector<int>& ring_atoms, int tgt_atom, std::vector<bool>& Visited, bool& found)

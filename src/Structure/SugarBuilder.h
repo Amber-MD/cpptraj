@@ -19,9 +19,10 @@ class SugarBuilder {
     void SetGlycamPdbResMap();
     /// Load PDB res to glycam map from dat file
     int LoadGlycamPdbResMap(std::string const&);
-/*
+
     int FindRemainingChainCarbons(Iarray&, int, Topology const&, int, Iarray const&) const;
 
+/*
     /// Determine orientation around anomeric carbon
     int CalcAnomericTorsion(double&, int, int, int, Iarray const&,
                             Topology const&, Frame const&) const;
