@@ -143,39 +143,6 @@ int Exec_PrepareForLeap::LoadPdbResNames(std::string const& fnameIn)
 // -----------------------------------------------
 
 
-/** Change PDB atom names in residue to glycam ones. */
-int Exec_PrepareForLeap::ChangePdbAtomNamesToGlycam(std::string const& resCode, Residue const& res,
-                                                    Topology& topIn, FormTypeEnum form)
-const
-{
-  // Get the appropriate map
-  ResIdxMapType::const_iterator resIdxPair = glycam_res_idx_map_.find( resCode );
-  if (resIdxPair == glycam_res_idx_map_.end()) {
-    // No map needed for this residue
-    //mprintf("DEBUG: No atom map for residue '%s'.\n", resCode.c_str());
-    return 0;
-  }
-  NameMapType const& currentMap = pdb_glycam_name_maps_[resIdxPair->second];
-  NameMapType const* currentMapAB;
-  if (form == ALPHA)
-    currentMapAB = &(pdb_glycam_name_maps_A_[resIdxPair->second]);
-  else
-    currentMapAB = &(pdb_glycam_name_maps_B_[resIdxPair->second]);
-  // Change PDB names to Glycam ones
-  for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
-  {
-    NameMapType::const_iterator namePair = currentMapAB->find( topIn[at].Name() );
-    if (namePair != currentMapAB->end())
-      ChangeAtomName( topIn.SetAtom(at), namePair->second );
-    else {
-      namePair = currentMap.find( topIn[at].Name() );
-      if (namePair != currentMap.end())
-        ChangeAtomName( topIn.SetAtom(at), namePair->second );
-    }
-  }
-  return 0;
-}
-
 /** Determine if anomeric carbon of furanose is up or down. */
 int Exec_PrepareForLeap::DetermineUpOrDown(SugarToken& stoken,
                                          Sugar const& sugar,
