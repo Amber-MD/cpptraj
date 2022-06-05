@@ -33,9 +33,9 @@ class SugarBuilder {
     int CalcConfigCarbonTorsion(double&, int, Iarray const&,
                                 Topology const&, Frame const&) const;
 
-/*
     /// \return Sugar with atom indices set up
     Sugar IdSugarRing(int, Topology const&) const;
+/*
     /// Change PDB atom names to Glycam names
     int ChangePdbAtomNamesToGlycam(std::string const&, Residue const&,
                                    Topology&, Cpptraj::Structure::SugarToken::FormTypeEnum) const;
