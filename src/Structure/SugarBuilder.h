@@ -11,7 +11,8 @@ class ResStatArray;
 /// Class for preparing sugars in a topology
 class SugarBuilder {
   public:
-    SugarBuilder();
+    /// CONSTRUCTOR - Take debug level
+    SugarBuilder(int);
   private:
     typedef std::vector<int> Iarray;
 
@@ -22,7 +23,6 @@ class SugarBuilder {
 
     int FindRemainingChainCarbons(Iarray&, int, Topology const&, int, Iarray const&) const;
 
-/*
     /// Determine orientation around anomeric carbon
     int CalcAnomericTorsion(double&, int, int, int, Iarray const&,
                             Topology const&, Frame const&) const;
@@ -33,6 +33,7 @@ class SugarBuilder {
     int CalcConfigCarbonTorsion(double&, int, Iarray const&,
                                 Topology const&, Frame const&) const;
 
+/*
     /// \return Sugar with atom indices set up
     Sugar IdSugarRing(int, Topology const&) const;
     /// Change PDB atom names to Glycam names
@@ -85,6 +86,7 @@ class SugarBuilder {
     bool hasGlycam_;        ///< If true, assume sugars already have glycam names
     bool useSugarName_;     ///< If true, base form/chirality on name instead of geometry
     AtomMap myMap_;         ///< Used to determine unique atoms for chirality
+    int debug_;
 };
 }
 }
