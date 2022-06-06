@@ -2,6 +2,7 @@
 #include "StructureRoutines.h"
 #include "Sugar.h"
 #include "../ArgList.h"
+#include "../Chirality.h"
 #include "../CpptrajFile.h"
 #include "../CpptrajStdio.h"
 #include "../TorsionRoutines.h"
@@ -1001,4 +1002,137 @@ const
   return 0;
 }
 
+// -----------------------------------------------------------------------------
+/** Determine if anomeric carbon of furanose is up or down. */
+int SugarBuilder::DetermineUpOrDown(SugarToken& stoken,
+                                         Sugar const& sugar,
+                                         Topology const& topIn, Frame const& frameIn)
+const
+{
+  int cdebug;
+  if (debug_ > 1)
+    cdebug = 1;
+  else
+    cdebug = 0;
+  Cpptraj::Chirality::ChiralType ctypeR = Cpptraj::Chirality::
+                                          DetermineChirality(sugar.HighestStereocenter(),
+                                                             topIn, frameIn, cdebug);
+  if (ctypeR == Cpptraj::Chirality::ERR) {
+    mprinterr("Error: Could not determine configuration for furanose.\n"); // TODO warn?
+    return 1;
+  }
+  if (ctypeR == Cpptraj::Chirality::IS_R)
+    stoken.SetChirality(SugarToken::IS_D);
+  else
+    stoken.SetChirality(SugarToken::IS_L);
+
+  Cpptraj::Chirality::ChiralType ctypeA = Cpptraj::Chirality::
+                                          DetermineChirality(sugar.AnomericAtom(),
+                                                             topIn, frameIn, cdebug);
+  if (ctypeA == Cpptraj::Chirality::ERR) {
+    mprinterr("Error: Could not determine chirality around anomeric atom for furanose.\n"); // TODO warn?
+    return 1;
+  }
+
+  if (ctypeR == ctypeA) {
+    // Up, beta
+    stoken.SetForm(SugarToken::BETA);
+  } else {
+    // Down, alpha
+    stoken.SetForm(SugarToken::ALPHA);
+  }
+  return 0;
+}
+
+/** Determine anomeric form of the sugar. */
+int SugarBuilder::DetermineAnomericForm(SugarToken& stoken,
+                                             Sugar& sugarIn,
+                                             Topology const& topIn, Frame const& frameIn)
+const
+{
+  Sugar const& sugar = sugarIn;
+  // For determining orientation around anomeric carbon need ring
+  // oxygen atom and next carbon in the ring.
+  double t_an;
+//  ChiralRetType ac_chirality = CalcChiralAtomTorsion(t_an, anomeric_atom, topIn, frameIn);
+//  mprintf("DEBUG: Based on t_an %s chirality is %s\n",
+//          topIn.TruncResNameOnumId(rnum).c_str(), chiralStr[ac_chirality]);
+  int ret = CalcAnomericTorsion(t_an, sugar.AnomericAtom(), sugar.RingOxygenAtom(),
+                                sugar.ResNum(topIn),
+                                sugar.RingAtoms(), topIn, frameIn);
+  if (ret < 0) {
+    // This means C1 X substituent missing; non-fatal.
+    sugarIn.SetStatus( Sugar::MISSING_C1X );
+    return 1; // TODO return 0?
+  } else if (ret > 0) {
+    // Error
+    return 1; 
+  }
+  bool t_an_up = (t_an > 0);
+
+  // For determining orientation around anomeric reference carbon need
+  // previous carbon in the chain and either next carbon or ring oxygen.
+  double t_ar;
+//    ChiralRetType ar_chirality = CalcChiralAtomTorsion(t_ar, ano_ref_atom, topIn, frameIn);
+//    mprintf("DEBUG: Based on t_ar %s chirality is %s\n",
+//            topIn.TruncResNameOnumId(rnum).c_str(), chiralStr[ar_chirality]);
+  if (CalcAnomericRefTorsion(t_ar, sugar.AnomericRefAtom(), sugar.RingOxygenAtom(), sugar.RingEndAtom(),
+                             sugar.RingAtoms(), topIn, frameIn))
+  {
+    return 1; 
+  }
+  bool t_ar_up = (t_ar > 0);
+
+  // If config. C is not the anomeric reference, need the previous
+  // carbon in the chain, next carbon in the chain, and config. C
+  // substituent.
+  double t_cc;
+  if (sugar.AnomericRefAtom() != sugar.HighestStereocenter()) {
+    if (CalcConfigCarbonTorsion(t_cc, sugar.HighestStereocenter(),
+                                sugar.ChainAtoms(), topIn, frameIn))
+      return 1;
+  } else
+    t_cc = t_ar;
+  bool t_cc_up = (t_cc > 0);
+
+  // Determine index of anomeric atom (typically index 0 but not always).
+  int aa_idx =  AtomIdxInArray(sugar.ChainAtoms(), sugar.AnomericAtom());
+  int aa_pos = (aa_idx % 2);
+  // Determine index of the anomeric reference atom in the chain.
+  int ar_idx = AtomIdxInArray(sugar.ChainAtoms(), sugar.AnomericRefAtom());
+  int cc_idx = AtomIdxInArray(sugar.ChainAtoms(), sugar.HighestStereocenter());
+
+  // Determine form and chirality.
+  // May need to adjust definitions based on the positions of the anomeric
+  // reference and config. atoms in the sequence, which alternates.
+  if ((ar_idx % 2) != aa_pos)
+    t_ar_up = !t_ar_up;
+  if ((cc_idx % 2) != aa_pos)
+    t_cc_up = !t_cc_up;
+
+  if ( debug_ > 0) {
+    mprintf("DEBUG: Index of the anomeric reference atom is %i\n", ar_idx);
+    mprintf("DEBUG: Index of the config. carbon atom is %i\n", cc_idx);
+    mprintf("DEBUG: t_an_up=%i  t_ar_up=%i  t_cc_up=%i\n",
+            (int)t_an_up, (int)t_ar_up, (int)t_cc_up);
+  }
+
+  // Same side is beta, opposite is alpha.
+  if (t_an_up == t_ar_up) {
+    stoken.SetForm(SugarToken::BETA); //form = IS_BETA;
+    //mprintf("DEBUG: Form is Beta\n");
+  } else {
+    stoken.SetForm(SugarToken::ALPHA); //form = IS_ALPHA;
+    //mprintf("DEBUG: Form is Alpha\n");
+  }
+
+  // By the atom ordering used by CalcAnomericRefTorsion and
+  // CalcConfigCarbonTorsion, D is a negative (down) torsion.
+  if (!t_cc_up)
+    stoken.SetChirality(SugarToken::IS_D);
+  else
+    stoken.SetChirality(SugarToken::IS_L);
+
+  return 0;
+}
 
