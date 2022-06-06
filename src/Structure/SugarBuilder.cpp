@@ -8,6 +8,7 @@
 #include "../Chirality.h"
 #include "../CpptrajFile.h"
 #include "../CpptrajStdio.h"
+#include "../DistRoutines.h"
 #include "../TorsionRoutines.h"
 
 using namespace Cpptraj::Structure;
@@ -1587,6 +1588,96 @@ int SugarBuilder::IdentifySugar(Sugar& sugarIn, Topology& topIn,
   }
   if (resStatIn[rnum] == ResStatArray::UNKNOWN)
     resStatIn[rnum] = ResStatArray::VALIDATED;
+  return 0;
+}
+
+// -----------------------------------------------------------------------------
+/** Attempt to find any missing linkages to the anomeric carbon in sugar. */
+int SugarBuilder::FindSugarC1Linkages(int rnum1, int c_beg,
+                                      Topology& topIn, Frame const& frameIn,
+                                      NameType const& solventResName)
+const
+{
+  Residue const& res1 = topIn.SetRes(rnum1);
+  // If the anomeric atom is already bonded to another residue, skip this.
+  for (Atom::bond_iterator bat = topIn[c_beg].bondbegin();
+                           bat != topIn[c_beg].bondend(); ++bat)
+  {
+    if (topIn[*bat].ResNum() != rnum1) {
+      if (debug_ > 0)
+        mprintf("\tSugar %s anomeric carbon is already bonded to another residue, skipping.\n",
+                topIn.TruncResNameOnumId(rnum1).c_str());
+      return 0;
+    }
+  }
+  // TODO pass these in
+  // residue first atom to residue first atom cutoff^2
+  const double rescut2 = 64.0;
+  // bond cutoff offset
+  const double offset = 0.2;
+  // index of atom to be bonded to c_beg
+  int closest_at = -1;
+  // distance^2 of atom to be bonded to c_beg
+  double closest_d2 = -1.0;
+
+  Atom::AtomicElementType a1Elt = topIn[c_beg].Element(); // Should always be C
+  if (debug_ > 0)
+    mprintf("DEBUG: Anomeric ring carbon: %s\n", topIn.ResNameNumAtomNameNum(c_beg).c_str());
+  // Loop over other residues
+  for (int rnum2 = 0; rnum2 < topIn.Nres(); rnum2++)
+  {
+    if (rnum2 != rnum1) {
+      Residue const& res2 = topIn.Res(rnum2);
+      // Ignore solvent residues
+      if (res2.Name() != solventResName) {
+        int at1 = res1.FirstAtom();
+        int at2 = res2.FirstAtom();
+        // Initial residue-residue distance based on first atoms in each residue
+        double dist2_1 = DIST2_NoImage( frameIn.XYZ(at1), frameIn.XYZ(at2) );
+        if (dist2_1 < rescut2) {
+          if (debug_ > 1)
+            mprintf("DEBUG: Residue %s to %s = %f\n",
+                    topIn.TruncResNameOnumId(rnum1).c_str(), topIn.TruncResNameOnumId(rnum2).c_str(),
+                    sqrt(dist2_1));
+          // Do the rest of the atoms in res2 to the anomeric carbon
+          for (; at2 != res2.LastAtom(); ++at2)
+          {
+            if (!topIn[c_beg].IsBondedTo(at2)) {
+              double D2 = DIST2_NoImage( frameIn.XYZ(c_beg), frameIn.XYZ(at2) );
+              Atom::AtomicElementType a2Elt = topIn[at2].Element();
+              double cutoff2 = Atom::GetBondLength(a1Elt, a2Elt) + offset;
+              cutoff2 *= cutoff2;
+              if (D2 < cutoff2) {
+                if (debug_ > 1)
+                  mprintf("DEBUG: Atom %s to %s = %f\n",
+                          topIn.AtomMaskName(c_beg).c_str(), topIn.AtomMaskName(at2).c_str(), sqrt(D2));
+                if (closest_at == -1) {
+                  closest_at = at2;
+                  closest_d2 = D2;
+                } else if (D2 < closest_d2) {
+                  mprintf("\t  Atom %s (%f Ang.) is closer than %s (%f Ang.).\n",
+                          topIn.ResNameNumAtomNameNum(at2).c_str(), sqrt(D2),
+                          topIn.ResNameNumAtomNameNum(closest_at).c_str(), sqrt(closest_d2));
+                  closest_at = at2;
+                  closest_d2 = D2;
+                }
+                //mprintf("\t  Adding bond between %s and %s\n",
+                //        topIn.ResNameNumAtomNameNum(c_beg).c_str(),
+                //        topIn.ResNameNumAtomNameNum(at2).c_str());
+                //topIn.AddBond(c_beg, at2);
+              }
+            }
+          } // END loop over res2 atoms
+        } // END res1-res2 distance cutoff
+      } // END res2 is not solvent
+    } // END res1 != res2
+  } // END res2 loop over other residues
+  if (closest_at != -1) {
+    mprintf("\t  Adding bond between %s and %s\n",
+            topIn.ResNameNumAtomNameNum(c_beg).c_str(),
+            topIn.ResNameNumAtomNameNum(closest_at).c_str());
+    topIn.AddBond(c_beg, closest_at);
+  }
   return 0;
 }
 

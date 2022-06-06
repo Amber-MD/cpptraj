@@ -3,6 +3,7 @@
 #include "SugarToken.h" // FormTypeEnum
 #include "../AtomMap.h"
 #include <map>
+class NameType;
 namespace Cpptraj {
 namespace Structure {
 // Forward declares
@@ -56,10 +57,10 @@ class SugarBuilder {
     /// Try to identify sugar name, form, and linkages
     int IdentifySugar(Sugar&, Topology&, Frame const&, CharMask const&,
                       Cpptraj::Structure::ResStatArray&, std::set<BondType>&);
-/*
     /// Try to find missing linkages to anomeric carbon in sugar.
-    int FindSugarC1Linkages(int, int, Topology&, Frame const&) const;
+    int FindSugarC1Linkages(int, int, Topology&, Frame const&, NameType const&) const;
     
+/*
     /// Attempt to fix any issues with sugars
     int FixSugarsStructure(std::vector<Sugar>&, std::string const&, Topology&, Frame&,
                            bool, bool) const;
