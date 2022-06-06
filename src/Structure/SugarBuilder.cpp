@@ -1374,4 +1374,219 @@ std::string SugarBuilder::GenGlycamResMaskString() const {
 
   return maskString;
 }
+// -----------------------------------------------------------------------------
+/** Attempt to identify sugar residue, form, and linkages. */
+int SugarBuilder::IdentifySugar(Sugar& sugarIn, Topology& topIn,
+                                       Frame const& frameIn, CharMask const& cmask,
+                                       ResStatArray& resStatIn,
+                                       std::set<BondType>& sugarBondsToRemove)
+{
+  Sugar const& sugar = sugarIn;
+  const std::string sugarName = topIn.TruncResNameOnumId(sugar.ResNum(topIn));
+  const std::string resName = topIn.Res(sugar.ResNum(topIn)).Name().Truncated();
+  //if (sugar.NotSet()) {
+  //  mprintf("Warning: Sugar %s is not set up. Skipping sugar identification.\n", sugarName.c_str());
+  //  return 0; // TODO return 1?
+  //}
+
+  int rnum = sugar.ResNum(topIn);
+  Residue& res = topIn.SetRes(rnum);
+  // Try to ID the base sugar type from the input name.
+  //char resChar = ' ';
+
+  MapType::const_iterator pdb_glycam;
+  if (!hasGlycam_) {
+    pdb_glycam = pdb_to_glycam_.find( res.Name() );
+    //resChar = pdb_glycam->second;
+  } else {
+    mprintf("\tGlycam res: '%s'\n", resName.c_str());
+    // Assume residue name is already glycam. Find it. Get sugar from 2nd char.
+    std::string rChar(1, resName[1]);
+    // Determine chirality from upper/lowercase
+    SugarToken::ChirTypeEnum cType = SugarToken::UNKNOWN_CHIR;
+    if (islower(rChar.front()))
+      cType = SugarToken::IS_L;
+    else
+      cType = SugarToken::IS_D;
+    // Now force uppercase
+    rChar.assign( 1, toupper(rChar.front()) );
+    std::string fChar(1, resName[2]);
+    if (debug_ > 0)
+      mprintf("DEBUG: Searching for glycam char '%s' '%s'\n", rChar.c_str(), fChar.c_str());
+    // Get form from 3rd char
+    SugarToken::FormTypeEnum fType = SugarToken::UNKNOWN_FORM;
+    if (fChar == "U" || fChar == "B")
+      fType = SugarToken::BETA;
+    else if (fChar == "D" || fChar == "A")
+      fType = SugarToken::ALPHA;
+    for (pdb_glycam = pdb_to_glycam_.begin(); pdb_glycam != pdb_to_glycam_.end(); ++pdb_glycam)
+      if (pdb_glycam->second.GlycamCode() == rChar &&
+          pdb_glycam->second.Form() == fType &&
+          pdb_glycam->second.Chirality() == cType)
+        break;
+  }
+
+  if ( pdb_glycam == pdb_to_glycam_.end() ) { 
+    mprinterr("Error: Could not identify sugar from residue name '%s'\n", *res.Name());
+    return 1;
+  }
+
+  mprintf("\tSugar %s %s\n", sugarName.c_str(), pdb_glycam->second.InfoStr().c_str());
+
+  SugarToken sugarInfo;
+  int detect_err = 1;
+
+  if (!sugar.NotSet()) {
+    sugarInfo = SugarToken(sugar.RingType());
+
+    // Determine alpha or beta and D or L
+    if (sugarInfo.RingType() == SugarToken::FURANOSE)
+      detect_err = DetermineUpOrDown(sugarInfo, sugar, topIn, frameIn);
+    else if (sugarInfo.RingType() == SugarToken::PYRANOSE)
+      detect_err = DetermineAnomericForm(sugarInfo, sugarIn, topIn, frameIn);
+    else
+      detect_err = 1;
+  }
+
+  if (detect_err != 0) {
+    // This means there was an issue determining ring type, form,
+    // chirality, or both.
+    // Try to fill in info based on the residue name (pdb_glycam->second).
+    if (sugarInfo.Form() == SugarToken::UNKNOWN_FORM) {
+      mprintf("Warning: Could not determine anomer type from coordinates.\n");
+      if (pdb_glycam->second.Form() == SugarToken::UNKNOWN_FORM)
+        return 0;
+      mprintf("Warning: Setting anomer type based on residue name.\n");
+      sugarInfo.SetForm( pdb_glycam->second.Form() );
+    }
+    if (sugarInfo.Chirality() == SugarToken::UNKNOWN_CHIR) {
+      mprintf("Warning: Could not determine configuration from coordinates.\n");
+      if (pdb_glycam->second.Chirality() == SugarToken::UNKNOWN_CHIR)
+        return 0;
+      mprintf("Warning: Setting configuration based on residue name.\n");
+      sugarInfo.SetChirality( pdb_glycam->second.Chirality() );
+    }
+    if (sugarInfo.RingType() == SugarToken::UNKNOWN_RING) {
+      mprintf("Warning: Could not determine ring type from coordinates.\n");
+      if (pdb_glycam->second.RingType() == SugarToken::UNKNOWN_RING)
+        return 0;
+      mprintf("Warning: Setting ring type based on residue name.\n");
+      sugarInfo.SetRingType( pdb_glycam->second.RingType() );
+    }
+  }
+  // Warn about form/chirality mismatches. If a mismatch occurs and the sugar
+  // did not have all atoms present, defer to the name.
+  if (pdb_glycam->second.Form() != SugarToken::UNKNOWN_FORM &&
+      pdb_glycam->second.Form() != sugarInfo.Form())
+  {
+    mprintf("Warning: '%s' detected anomer type is %s but anomer type based on name is %s.\n",
+            sugarName.c_str(), sugarInfo.formStr(),
+            SugarToken::formStr(pdb_glycam->second.Form()) );
+    if (sugarInfo.Form() != SugarToken::UNKNOWN_FORM)
+      resStatIn[rnum] = ResStatArray::SUGAR_NAME_MISMATCH;
+    if (useSugarName_) {
+      mprintf("\tSetting anomer type based on residue name.\n");
+      sugarInfo.SetForm( pdb_glycam->second.Form() );
+    } else if (sugar.IsMissingAtoms()) {
+      mprintf("Warning: Residue was missing atoms; setting anomer type based on residue name.\n");
+      sugarInfo.SetForm( pdb_glycam->second.Form() );
+    }
+  }
+  if (pdb_glycam->second.Chirality() != SugarToken::UNKNOWN_CHIR &&
+      pdb_glycam->second.Chirality() != sugarInfo.Chirality())
+  {
+    mprintf("Warning: '%s' detected configuration is %s but configuration based on name is %s.\n",
+            sugarName.c_str(), sugarInfo.chirStr(),
+            SugarToken::chirStr(pdb_glycam->second.Chirality()) );
+    if (sugarInfo.Chirality() != SugarToken::UNKNOWN_CHIR)
+      resStatIn[rnum] = ResStatArray::SUGAR_NAME_MISMATCH;
+    if (useSugarName_) {
+      mprintf("\tSetting configuration based on residue name.\n");
+      sugarInfo.SetChirality( pdb_glycam->second.Chirality() );
+    } else if (sugar.IsMissingAtoms()) {
+      mprintf("Warning: Residue was missing atoms; setting configuration based on residue name.\n");
+      sugarInfo.SetChirality( pdb_glycam->second.Chirality() );
+    }
+  }
+  if (pdb_glycam->second.RingType() != SugarToken::UNKNOWN_RING &&
+      pdb_glycam->second.RingType() != sugarInfo.RingType())
+  {
+    mprintf("Warning: '%s' detected ring type is %s but ring type based on name is %s.\n",
+            sugarName.c_str(), sugarInfo.ringStr(),
+            SugarToken::ringStr(pdb_glycam->second.RingType()) );
+    if (sugarInfo.RingType() != SugarToken::UNKNOWN_RING)
+      resStatIn[rnum] = ResStatArray::SUGAR_NAME_MISMATCH;
+    if (useSugarName_) {
+      mprintf("Setting ring type bsaed on residue name.\n");
+      sugarInfo.SetRingType( pdb_glycam->second.RingType() );
+    } else if (sugar.IsMissingAtoms()) {
+      mprintf("Warning: Residue was missing atoms; setting ring type based on residue name.\n");
+      sugarInfo.SetRingType( pdb_glycam->second.RingType() );
+    }
+  }
+    
+  // Get glycam form string
+  std::string formStr;
+  if (sugarInfo.RingType() == SugarToken::PYRANOSE) {
+    if (sugarInfo.Form() == SugarToken::ALPHA)
+      formStr = "A";
+    else
+      formStr = "B";
+  } else if (sugarInfo.RingType() == SugarToken::FURANOSE) {
+    if (sugarInfo.Form() == SugarToken::ALPHA)
+      formStr = "D";
+    else
+      formStr = "U";
+  }
+  // Sanity check
+  if (formStr.empty()) {
+    mprinterr("Internal Error: Could not set anomer type string.\n");
+    return 1;
+  }
+
+  mprintf("\t  %s detected anomer type is %s(%s)-%s-%s\n", sugarName.c_str(),
+         sugarInfo.formStr(), formStr.c_str(), sugarInfo.chirStr(),
+         sugarInfo.ringStr());
+
+  // Identify linkages to other residues.
+  std::string linkcode = DetermineSugarLinkages(sugar, cmask, topIn, resStatIn,
+                                                sugarBondsToRemove);
+  if (linkcode.empty()) {
+    //resStat_[rnum] = SUGAR_UNRECOGNIZED_LINKAGE;
+    mprintf("Warning: Determination of sugar linkages failed.\n");
+    return 0;
+  }
+
+  // Change PDB names to Glycam ones
+  std::string resCode = pdb_glycam->second.GlycamCode();
+  if (!hasGlycam_) {
+    if (ChangePdbAtomNamesToGlycam(resCode, res, topIn, sugarInfo.Form()))
+    {
+      mprinterr("Error: Changing PDB atom names to Glycam failed.\n");
+      return 1;
+    }
+  }
+
+  // Modify residue char to indicate L form if necessary.
+  // We do this here and not above so as not to mess with the
+  // linkage determination.
+  if (sugarInfo.Chirality() == SugarToken::IS_L) {
+    for (std::string::iterator it = resCode.begin(); it != resCode.end(); ++it)
+      *it = tolower( *it );
+  }
+  // Set new residue name
+  NameType newResName( linkcode + resCode + formStr );
+  if (!hasGlycam_) {
+    mprintf("\t  Changing %s to Glycam resname: %s\n",
+      topIn.TruncResNameOnumId(rnum).c_str(), *newResName);
+    ChangeResName(res, newResName);
+  } else {
+    if (newResName.Truncated() != resName)
+      mprintf("Warning: Detected glycam name '%s' differs from original name '%s'\n",
+              *newResName, resName.c_str());
+  }
+  if (resStatIn[rnum] == ResStatArray::UNKNOWN)
+    resStatIn[rnum] = ResStatArray::VALIDATED;
+  return 0;
+}
 

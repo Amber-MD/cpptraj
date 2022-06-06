@@ -52,9 +52,11 @@ class SugarBuilder {
                                        std::set<BondType>&) const;
     /// Create a residue mask string for selecting Glycam-named sugar residues.
     std::string GenGlycamResMaskString() const;
-/*
+
     /// Try to identify sugar name, form, and linkages
-    int IdentifySugar(Sugar&, Topology&, Frame const&, CharMask const&, CpptrajFile*, std::set<BondType>&);
+    int IdentifySugar(Sugar&, Topology&, Frame const&, CharMask const&,
+                      Cpptraj::Structure::ResStatArray&, std::set<BondType>&);
+/*
     /// Try to find missing linkages to anomeric carbon in sugar.
     int FindSugarC1Linkages(int, int, Topology&, Frame const&) const;
     
