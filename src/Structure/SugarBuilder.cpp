@@ -1301,3 +1301,77 @@ const
   return linkcode;
 }
 
+/** Create a residue mask string for selecting Glycam-named sugar residues. */
+std::string SugarBuilder::GenGlycamResMaskString() const {
+  // Linkage codes
+  // TODO this is a bit of a hack since not all linkage codes are valid for each sugar.
+  // Should tighten this up later...
+  typedef std::vector<std::string> Sarray;
+  std::vector< std::string > linkageCodes;
+  linkageCodes.push_back("0");
+  linkageCodes.push_back("1");
+  linkageCodes.push_back("2");
+  linkageCodes.push_back("3");
+  linkageCodes.push_back("4");
+  linkageCodes.push_back("5");
+  linkageCodes.push_back("6");
+  linkageCodes.push_back("Z");
+  linkageCodes.push_back("Y");
+  linkageCodes.push_back("X");
+  linkageCodes.push_back("W");
+  linkageCodes.push_back("V");
+  linkageCodes.push_back("U");
+  linkageCodes.push_back("T");
+  linkageCodes.push_back("S");
+  linkageCodes.push_back("R");
+  linkageCodes.push_back("Q");
+  linkageCodes.push_back("P");
+  // Loop over names
+  std::string maskString;
+  std::set< std::string > glycamResNames;
+  for (MapType::const_iterator mit = pdb_to_glycam_.begin(); mit != pdb_to_glycam_.end(); ++mit)
+  {
+    SugarToken const& tkn = mit->second;
+    std::pair<std::set<std::string>::iterator, bool> ret = glycamResNames.insert( tkn.GlycamCode() );
+    if (ret.second == false) {
+      if (debug_ > 1)
+        mprintf("DEBUG: Already seen '%s', skipping.\n", tkn.GlycamCode().c_str());
+      continue;
+    }
+    // L/D forms
+    std::string glycamCodes[2];
+    // Alpha/beta forms
+    std::string formCodes[2];
+    // D form is uppercase, which is the default.
+    glycamCodes[0] = tkn.GlycamCode();
+    // L form has lowercase
+    for (std::string::const_iterator it = glycamCodes[0].begin(); it != glycamCodes[0].end(); ++it)
+      glycamCodes[1] += tolower( *it );
+    // Alpha/beta based on ring type
+    if (tkn.RingType() == SugarToken::PYRANOSE) {
+      formCodes[0] = "A";
+      formCodes[1] = "B";
+    } else if (tkn.RingType() == SugarToken::FURANOSE) {
+      formCodes[0] = "D";
+      formCodes[1] = "U";
+    } else {
+      mprinterr("Internal Error: Unhandled ring type in GenGlycamResMaskString().\n");
+      return std::string("");
+    }
+    // Linkage codes
+    // Create strings
+    for (int ii = 0; ii != 2; ii++) {
+      for (int jj = 0; jj != 2; jj++) {
+        for (Sarray::const_iterator it = linkageCodes.begin(); it != linkageCodes.end(); ++it) {
+          if (maskString.empty())
+            maskString.assign( ":" + *it + glycamCodes[ii] + formCodes[jj] );
+          else
+            maskString.append( "," +  *it + glycamCodes[ii] + formCodes[jj] );
+        }
+      }
+    }
+  }
+
+  return maskString;
+}
+
