@@ -21,6 +21,7 @@ class SugarBuilder {
     /// Load PDB res to glycam map from dat file
     int LoadGlycamPdbResMap(std::string const&);
 
+    /// Find remaining non-ring carbons in chain starting from ring end atom.
     int FindRemainingChainCarbons(Iarray&, int, Topology const&, int, Iarray const&) const;
 
     /// Determine orientation around anomeric carbon
@@ -45,11 +46,11 @@ class SugarBuilder {
     /// Determine form/chirliaty for pyranose 
     int DetermineAnomericForm(SugarToken&, Sugar&, Topology const&, Frame const&) const;
 
-/*
     /// Determine linkages for the sugar
     std::string DetermineSugarLinkages(Sugar const&, CharMask const&, Topology&,
                                        Cpptraj::Structure::ResStatArray&,
-                                       CpptrajFile*, std::set<BondType>&) const;
+                                       std::set<BondType>&) const;
+/*
     /// Create a residue mask string for selecting Glycam-named sugar residues.
     std::string GenGlycamResMaskString() const;
     /// Try to identify sugar name, form, and linkages

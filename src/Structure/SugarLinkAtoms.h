@@ -18,6 +18,13 @@ class SugarLinkAtoms {
     bool NoLinkAtoms() const { return linkages_.empty(); }
     /// \return Glycam linkage code for given linked atoms
     std::string GlycamLinkageCode(Topology const&) const;
+
+    /// Iterator over link atoms
+    typedef std::set<LinkAtom>::const_iterator const_iterator;
+    /// \return iterator to beginning of link atoms
+    const_iterator begin() const { return linkages_.begin(); }
+    /// \return iterator to end of link atoms
+    const_iterator end()   const { return linkages_.end(); }
   private:
     std::set<LinkAtom> linkages_;
     int debug_;
