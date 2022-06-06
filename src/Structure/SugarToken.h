@@ -35,6 +35,12 @@ class SugarToken {
     FormTypeEnum Form()             const { return form_; }
     ChirTypeEnum Chirality()        const { return chir_; }
     RingTypeEnum RingType()         const { return ring_; }
+    const char* formStr()           const { return formstr_[form_]; }
+    const char* chirStr()           const { return chirstr_[chir_]; }
+    const char* ringStr()           const { return ringstr_[ring_]; }
+    static const char* formStr(FormTypeEnum f) { return formstr_[f]; }
+    static const char* chirStr(ChirTypeEnum c) { return chirstr_[c]; }
+    static const char* ringStr(RingTypeEnum r) { return ringstr_[r]; }
 
     void SetChirality(ChirTypeEnum c) { chir_ = c; }
     void SetForm(FormTypeEnum f)      { form_ = f; }
