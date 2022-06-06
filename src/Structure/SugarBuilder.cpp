@@ -1,4 +1,5 @@
 #include "SugarBuilder.h"
+#include "FxnGroupBuilder.h"
 #include "ResStatArray.h"
 #include "StructureRoutines.h"
 #include "Sugar.h"
@@ -1678,6 +1679,107 @@ const
             topIn.ResNameNumAtomNameNum(closest_at).c_str());
     topIn.AddBond(c_beg, closest_at);
   }
+  return 0;
+}
+
+/** Try to fix issues with sugar structure before trying to identify. */
+int SugarBuilder::FixSugarsStructure(std::vector<Sugar>& sugarResidues,
+                                            std::string const& sugarMaskStr,
+                                            Topology& topIn, Frame& frameIn,
+                                            bool c1bondsearch, bool splitres,
+                                            NameType const& solventResName) 
+const
+{
+  sugarResidues.clear();
+  AtomMask sugarMask(sugarMaskStr);
+  mprintf("\tLooking for sugars selected by '%s'\n", sugarMask.MaskString());
+  if (topIn.SetupIntegerMask( sugarMask )) return 1;
+  //sugarMask.MaskInfo();
+  mprintf("\tSelected %i sugar atoms.\n", sugarMask.Nselected());
+  if (sugarMask.None()) {
+    mprintf("Warning: No sugar atoms selected by %s\n", sugarMask.MaskString());
+    return 0;
+  }
+  //CharMask cmask( sugarMask.ConvertToCharMask(), sugarMask.Nselected() );
+  // Get sugar residue numbers.
+  Iarray sugarResNums = topIn.ResnumsSelectedBy( sugarMask );
+  // Try to identify sugar rings.
+  for (Iarray::const_iterator rnum = sugarResNums.begin();
+                              rnum != sugarResNums.end(); ++rnum)
+  {
+    Sugar sugar = IdSugarRing(*rnum, topIn);
+    if (sugar.Status() != Sugar::SETUP_OK) {
+      mprintf("Warning: Problem identifying atoms for sugar '%s'\n",
+              topIn.TruncResNameOnumId(*rnum).c_str());
+    }
+/*
+    if (stat == ID_ERR) {
+      if (errorsAreFatal_) {
+        mprinterr("Error: Problem identifying sugar ring for %s\n",
+                  topIn.TruncResNameOnumId(*rnum).c_str());
+        return 1;
+      } else
+        mprintf("Warning: Problem identifying sugar ring for %s\n",
+                topIn.TruncResNameOnumId(*rnum).c_str());
+    }*/
+    //if (!sugar.NotSet()) {
+      sugarResidues.push_back( sugar );
+      if (debug_ > 0)
+        sugarResidues.back().PrintInfo(topIn);
+    //}
+  }
+
+  if (c1bondsearch) {
+    // Loop over sugar indices to see if anomeric C is missing bonds
+    for (std::vector<Sugar>::const_iterator sugar = sugarResidues.begin();
+                                            sugar != sugarResidues.end(); ++sugar)
+    {
+      if (sugar->NotSet()) continue;
+      int anomericAtom = sugar->AnomericAtom();
+      int rnum = sugar->ResNum(topIn);
+      if (FindSugarC1Linkages(rnum, anomericAtom, topIn, frameIn, solventResName)) {
+        mprinterr("Error: Search for bonds to anomeric carbon '%s' failed.\n",
+                  topIn.AtomMaskName(anomericAtom).c_str());
+        return 1;
+      }
+    }
+  }
+  //DEBUG
+  //for (std::vector<Sugar>::const_iterator sugar = sugarResidues.begin();
+  //                                    sugar != sugarResidues.end(); ++sugar)
+  //  sugar->PrintInfo(topIn);
+  FxnGroupBuilder FGB(debug_);
+  if (splitres) {
+    // Loop over sugar indices to see if residues have ROH that must be split off
+    for (std::vector<Sugar>::iterator sugar = sugarResidues.begin();
+                                      sugar != sugarResidues.end(); ++sugar)
+    {
+      if (sugar->NotSet()) continue;
+      if (FGB.CheckIfSugarIsTerminal(*sugar, topIn, frameIn)) {
+        mprinterr("Error: Checking if sugar %s has terminal functional groups failed.\n",
+                  topIn.TruncResNameOnumId(sugar->ResNum(topIn)).c_str());
+        return 1;
+      }
+    } // End loop over sugar indices
+
+    // Loop over chain indices to see if residues need to be split
+    for (std::vector<Sugar>::iterator sugar = sugarResidues.begin();
+                                      sugar != sugarResidues.end(); ++sugar)
+    {
+      if (sugar->NotSet()) continue;
+      if (FGB.CheckForFunctionalGroups(*sugar, topIn, frameIn)) {
+        mprinterr("Error: Checking if sugar %s has functional groups failed.\n",
+                 topIn.TruncResNameOnumId( sugar->ResNum(topIn) ).c_str());
+        return 1;
+      }
+    }
+    //DEBUG
+    //for (std::vector<Sugar>::const_iterator sugar = sugarResidues.begin();
+    //                                    sugar != sugarResidues.end(); ++sugar)
+    //  sugar->PrintInfo(topIn);
+  }
+
+
   return 0;
 }
 

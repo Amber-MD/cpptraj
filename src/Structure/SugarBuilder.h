@@ -60,11 +60,11 @@ class SugarBuilder {
     /// Try to find missing linkages to anomeric carbon in sugar.
     int FindSugarC1Linkages(int, int, Topology&, Frame const&, NameType const&) const;
     
-/*
     /// Attempt to fix any issues with sugars
     int FixSugarsStructure(std::vector<Sugar>&, std::string const&, Topology&, Frame&,
-                           bool, bool) const;
+                           bool, bool, NameType const&) const;
 
+/*
     int PrepareSugars(std::string const&, std::vector<Sugar>&, Topology&, Frame const&, CpptrajFile*);
 
  */
