@@ -73,7 +73,7 @@ class SugarBuilder {
     int PrepareSugars(std::string const&, std::string const&, bool,
                       ResStatArray&,
                       Topology&, Frame const&, CpptrajFile*);
-
+    // -----------------------
     typedef std::pair<NameType, SugarToken> PairType;
     typedef std::map<NameType, SugarToken> MapType;
     MapType pdb_to_glycam_; ///< Map PDB residue names to sugar information tokens

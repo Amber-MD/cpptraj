@@ -16,7 +16,11 @@
 using namespace Cpptraj::Structure;
 
 /** CONSTRUCTOR */
-SugarBuilder::SugarBuilder(int debugIn) : debug_(debugIn) {}
+SugarBuilder::SugarBuilder(int debugIn) :
+  hasGlycam_(false),
+  useSugarName_(false),
+  debug_(debugIn)
+{}
 
 /** Load reduced internal PDB to Glycam map. */
 void SugarBuilder::SetGlycamPdbResMap() {
