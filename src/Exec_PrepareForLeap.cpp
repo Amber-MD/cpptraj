@@ -1,29 +1,11 @@
 #include "Exec_PrepareForLeap.h"
-#include "CharMask.h"
-#include "Chirality.h"
-#include "Constants.h"
-#include "CpptrajFile.h"
-#include "CpptrajStdio.h"
-#include "DataSet_Coords_CRD.h"
-#include "DistRoutines.h"
-#include "LeapInterface.h"
-#include "ParmFile.h"
-#include "TorsionRoutines.h"
-#include "Trajout_Single.h"
-#include "StringRoutines.h" // integerToString
-#include <stack>
-#include <cctype> // tolower
-#include <algorithm> // sort
+#include "Structure/ResStatArray.h"
 
-// ===== Sugar Class ===========================================================
-// ===== SugarToken class ======================================================
-// =============================================================================
+using namespace Cpptraj::Structure;
 
 /** CONSTRUCTOR */
 Exec_PrepareForLeap::Exec_PrepareForLeap() : Exec(COORDS),
   errorsAreFatal_(true),
-  hasGlycam_(false),
-  useSugarName_(false),
   debug_(0)
 {
   SetHidden(false);
@@ -122,26 +104,80 @@ int Exec_PrepareForLeap::LoadPdbResNames(std::string const& fnameIn)
   return 0;
 }
 
+/** \return True if residue name is in pdb_to_glycam_ or pdb_res_names_,
+  *               or is solvent.
+  */
+bool Exec_PrepareForLeap::IsRecognizedPdbRes(NameType const& rname) const {
+  MapType::const_iterator glycamIt = pdb_to_glycam_.find( rname );
+  if (glycamIt != pdb_to_glycam_.end())
+    return true;
+  SetType::const_iterator amberIt = pdb_res_names_.find( rname );
+  if (amberIt != pdb_res_names_.end())
+    return true;
+  if (rname == solventResName_)
+    return true;
+  return false;
+}
 
-// -----------------------------------------------------------------------------
+/** \return Array of residue numbers with unrecognized PDB res names. */
+Exec_PrepareForLeap::Iarray Exec_PrepareForLeap::GetUnrecognizedPdbResidues(Topology const& topIn)
+const
+{
+  Iarray rnums;
+  for (int ires = 0; ires != topIn.Nres(); ires++)
+  {
+    if (!IsRecognizedPdbRes( topIn.Res(ires).Name() ))
+    {
+      mprintf("\t%s is unrecognized.\n", topIn.TruncResNameOnumId(ires).c_str());
+      rnums.push_back( ires );
+    }
+  }
+  return rnums;
+}
 
+/** Given an array of residue numbers with unrecognized PDB res names,
+  * generate an array with true for unrecognized residues that are
+  * either isolated or only bound to other unrecognized residues.
+  */
+Exec_PrepareForLeap::Iarray
+  Exec_PrepareForLeap::GetIsolatedUnrecognizedResidues(Topology const& topIn,
+                                                       Iarray const& rnums)
+const
+{
+  typedef std::vector<bool> Barray;
+  Barray isRecognized(topIn.Nres(), true);
+  for (Iarray::const_iterator it = rnums.begin(); it != rnums.end(); ++it)
+    isRecognized[ *it ] = false;
 
+  Iarray isolated;
+  for (Iarray::const_iterator it = rnums.begin(); it != rnums.end(); ++it)
+  {
+    bool isIsolated = true;
+    Residue const& res = topIn.Res( *it );
+    for (int at = res.FirstAtom(); at != res.LastAtom(); ++at)
+    {
+      for (Atom::bond_iterator bat = topIn[at].bondbegin(); bat != topIn[at].bondend(); ++bat)
+      {
+        if (topIn[*bat].ResNum() != *it)
+        {
+          // This bonded atom is in another residue. Is that residue recognized?
+          if ( isRecognized[ topIn[*bat].ResNum() ] ) {
+            // Residue *it is bonded to a recognized residue. Not isolated.
+            isIsolated = false;
+            break;
+          }
+        }
+      } // END loop over residue atoms bonded atoms
+      if (!isIsolated) break;
+    } // END loop over residue atoms
+    if (isIsolated) {
+      mprintf("\t%s is isolated and unrecognized.\n", topIn.TruncResNameOnumId(*it).c_str());
+      isolated.push_back( *it );
+    }
+  } // END loop over unrecognized residues
 
-
-
-
-// -----------------------------------------------
-// -----------------------------------------------
-
-
-
-
-
-
-
-
-
-
+  return isolated;
+}
 
 // -----------------------------------------------------------------------------
 /** Determine where molecules end based on connectivity. */
@@ -217,9 +253,13 @@ const
   return 0;
 }
 
+// -----------------------------------------------------------------------------
 /** Search for disulfide bonds. */
-int Exec_PrepareForLeap::SearchForDisulfides(double disulfidecut, std::string const& newcysnamestr,
-                                             std::string const& cysmaskstr, bool searchForNewDisulfides,
+int Exec_PrepareForLeap::SearchForDisulfides(ResStatArray& resStat,
+                                             double disulfidecut,
+                                             std::string const& newcysnamestr,
+                                             std::string const& cysmaskstr,
+                                             bool searchForNewDisulfides,
                                              Topology& topIn, Frame const& frameIn,
                                              CpptrajFile* outfile)
 {
@@ -357,7 +397,7 @@ int Exec_PrepareForLeap::SearchForDisulfides(double disulfidecut, std::string co
           LeapBond(at1, at2, topIn, outfile);
         }
         ChangeResName(topIn.SetRes(topIn[at1].ResNum()), newcysname);
-        resStat_[topIn[at1].ResNum()] = VALIDATED;
+        resStat[topIn[at1].ResNum()] = VALIDATED;
       }
     }
     mprintf("\tDetected %i disulfide bonds.\n", nDisulfides);
@@ -365,80 +405,114 @@ int Exec_PrepareForLeap::SearchForDisulfides(double disulfidecut, std::string co
   return 0;
 }
 
-/** \return True if residue name is in pdb_to_glycam_ or pdb_res_names_,
-  *               or is solvent.
+// -----------------------------------------------------------------------------
+/** Try to determine histidine protonation from existing hydrogens.
+  * Change residue names as appropriate.
+  * \param topIn Input topology.
+  * \param ND1 ND1 atom name.
+  * \param NE2 NE2 atom name.
+  * \param HisName PDB histidine name.
+  * \param HieName Name for epsilon-protonated His.
+  * \param HidName Name for delta-protonated His.
+  * \param HipName Name for doubly-protonated His.
   */
-bool Exec_PrepareForLeap::IsRecognizedPdbRes(NameType const& rname) const {
-  MapType::const_iterator glycamIt = pdb_to_glycam_.find( rname );
-  if (glycamIt != pdb_to_glycam_.end())
-    return true;
-  SetType::const_iterator amberIt = pdb_res_names_.find( rname );
-  if (amberIt != pdb_res_names_.end())
-    return true;
-  if (rname == solventResName_)
-    return true;
-  return false;
-}
-
-/** \return Array of residue numbers with unrecognized PDB res names. */
-Exec_PrepareForLeap::Iarray Exec_PrepareForLeap::GetUnrecognizedPdbResidues(Topology const& topIn)
+int Exec_PrepareForLeap::DetermineHisProt( Topology& topIn,
+                                           NameType const& ND1,
+                                           NameType const& NE2,
+                                           NameType const& HisName,
+                                           NameType const& HieName,
+                                           NameType const& HidName,
+                                           NameType const& HipName )
 const
 {
-  Iarray rnums;
-  for (int ires = 0; ires != topIn.Nres(); ires++)
-  {
-    if (!IsRecognizedPdbRes( topIn.Res(ires).Name() ))
-    {
-      mprintf("\t%s is unrecognized.\n", topIn.TruncResNameOnumId(ires).c_str());
-      rnums.push_back( ires );
-    }
+  mprintf("\tAttempting to determine histidine form from any existing H atoms.\n");
+  std::string hisMaskStr = ":" + HisName.Truncated();
+  AtomMask mask;
+  if (mask.SetMaskString( hisMaskStr )) {
+    mprinterr("Error: Invalid His mask string: %s\n", hisMaskStr.c_str());
+    return 1;
   }
-  return rnums;
-}
-
-/** Given an array of residue numbers with unrecognized PDB res names,
-  * generate an array with true for unrecognized residues that are
-  * either isolated or only bound to other unrecognized residues.
-  */
-Exec_PrepareForLeap::Iarray
-  Exec_PrepareForLeap::GetIsolatedUnrecognizedResidues(Topology const& topIn,
-                                                       Iarray const& rnums)
-const
-{
-  typedef std::vector<bool> Barray;
-  Barray isRecognized(topIn.Nres(), true);
-  for (Iarray::const_iterator it = rnums.begin(); it != rnums.end(); ++it)
-    isRecognized[ *it ] = false;
-
-  Iarray isolated;
-  for (Iarray::const_iterator it = rnums.begin(); it != rnums.end(); ++it)
+  if ( topIn.SetupIntegerMask( mask )) return 1;
+  mask.MaskInfo();
+  Iarray resIdxs = topIn.ResnumsSelectedBy( mask );
+  // Loop over selected histidine residues
+  unsigned int nchanged = 0;
+  for (Iarray::const_iterator rnum = resIdxs.begin();
+                              rnum != resIdxs.end(); ++rnum)
   {
-    bool isIsolated = true;
-    Residue const& res = topIn.Res( *it );
-    for (int at = res.FirstAtom(); at != res.LastAtom(); ++at)
+    if (debug_ > 1)
+      mprintf("DEBUG: %s (%i) (%c)\n", topIn.TruncResNameOnumId(*rnum).c_str(), topIn.Res(*rnum).OriginalResNum(), topIn.Res(*rnum).ChainId());
+    int nd1idx = -1;
+    int ne2idx = -1;
+    Residue const& hisRes = topIn.Res( *rnum );
+    for (int at = hisRes.FirstAtom(); at < hisRes.LastAtom(); ++at)
     {
-      for (Atom::bond_iterator bat = topIn[at].bondbegin(); bat != topIn[at].bondend(); ++bat)
-      {
-        if (topIn[*bat].ResNum() != *it)
-        {
-          // This bonded atom is in another residue. Is that residue recognized?
-          if ( isRecognized[ topIn[*bat].ResNum() ] ) {
-            // Residue *it is bonded to a recognized residue. Not isolated.
-            isIsolated = false;
-            break;
-          }
-        }
-      } // END loop over residue atoms bonded atoms
-      if (!isIsolated) break;
-    } // END loop over residue atoms
-    if (isIsolated) {
-      mprintf("\t%s is isolated and unrecognized.\n", topIn.TruncResNameOnumId(*it).c_str());
-      isolated.push_back( *it );
+      if ( (topIn[at].Name() == ND1 ) )
+        nd1idx = at;
+      else if ( (topIn[at].Name() == NE2 ) )
+        ne2idx = at;
     }
-  } // END loop over unrecognized residues
-
-  return isolated;
+    if (nd1idx == -1) {
+      mprintf("Warning: Atom %s not found for %s; skipping residue.\n", *ND1, topIn.TruncResNameOnumId(*rnum).c_str());
+      continue;
+    }
+    if (ne2idx == -1) {
+      mprintf("Warning: Atom %s not found for %s; skipping residue,\n", *NE2, topIn.TruncResNameOnumId(*rnum).c_str());
+      continue;
+    }
+    if (debug_ > 1)
+      mprintf("DEBUG: %s nd1idx= %i ne2idx= %i\n",
+              topIn.TruncResNameOnumId( *rnum ).c_str(), nd1idx+1, ne2idx+1);
+    // Check for H bonded to nd1/ne2
+    int nd1h = 0;
+    for (Atom::bond_iterator bat = topIn[nd1idx].bondbegin();
+                             bat != topIn[nd1idx].bondend();
+                           ++bat)
+      if ( topIn[*bat].Element() == Atom::HYDROGEN)
+        ++nd1h;
+    if (nd1h > 1) {
+      mprinterr("Error: More than 1 hydrogen bonded to %s\n",
+                topIn.ResNameNumAtomNameNum(nd1idx).c_str());
+      return 1;
+    }
+    int ne2h = 0;
+    for (Atom::bond_iterator bat = topIn[ne2idx].bondbegin();
+                             bat != topIn[ne2idx].bondend();
+                           ++bat)
+      if ( topIn[*bat].Element() == Atom::HYDROGEN)
+        ++ne2h;
+    if (ne2h > 1) {
+      mprinterr("Error: More than 1 hydrogen bonded to %s\n",
+                topIn.ResNameNumAtomNameNum(ne2idx).c_str());
+      return 1;
+    }
+    if (nd1h > 0 && ne2h > 0) {
+      mprintf("\t\t%s => %s\n", topIn.TruncResNameOnumId(*rnum).c_str(), *HipName);
+      ChangeResName( topIn.SetRes(*rnum), HipName );
+      nchanged++;
+    } else if (nd1h > 0) {
+      mprintf("\t\t%s => %s\n", topIn.TruncResNameOnumId(*rnum).c_str(), *HidName);
+      ChangeResName( topIn.SetRes(*rnum), HidName );
+      nchanged++;
+    } else if (ne2h > 0) {
+      mprintf("\t\t%s => %s\n", topIn.TruncResNameOnumId(*rnum).c_str(), *HieName);
+      ChangeResName( topIn.SetRes(*rnum), HieName );
+      nchanged++;
+    }
+    //else {
+    //  // Default to epsilon
+    //  mprintf("\tUsing default name '%s' for %s\n", *HieName, topIn.TruncResNameOnumId(*rnum).c_str());
+    //  HisResNames.push_back( HieName );
+    //}
+  }
+  if (nchanged == 0) 
+    mprintf("\tNo histidine names were changed.\n");
+  else
+    mprintf("\t%u histidine names were changed.\n", nchanged);
+  return 0;
 }
+
+// -----------------------------------------------------------------------------
 
 /** Modify coords according to user wishes. */
 int Exec_PrepareForLeap::ModifyCoords( Topology& topIn, Frame& frameIn,
@@ -622,112 +696,7 @@ int Exec_PrepareForLeap::RemoveHydrogens(Topology& topIn, Frame& frameIn) const 
   return 0;
 }
 
-/** Try to determine histidine protonation from existing hydrogens.
-  * Change residue names as appropriate.
-  * \param topIn Input topology.
-  * \param ND1 ND1 atom name.
-  * \param NE2 NE2 atom name.
-  * \param HisName PDB histidine name.
-  * \param HieName Name for epsilon-protonated His.
-  * \param HidName Name for delta-protonated His.
-  * \param HipName Name for doubly-protonated His.
-  */
-int Exec_PrepareForLeap::DetermineHisProt( Topology& topIn,
-                                           NameType const& ND1,
-                                           NameType const& NE2,
-                                           NameType const& HisName,
-                                           NameType const& HieName,
-                                           NameType const& HidName,
-                                           NameType const& HipName )
-const
-{
-  mprintf("\tAttempting to determine histidine form from any existing H atoms.\n");
-  std::string hisMaskStr = ":" + HisName.Truncated();
-  AtomMask mask;
-  if (mask.SetMaskString( hisMaskStr )) {
-    mprinterr("Error: Invalid His mask string: %s\n", hisMaskStr.c_str());
-    return 1;
-  }
-  if ( topIn.SetupIntegerMask( mask )) return 1;
-  mask.MaskInfo();
-  Iarray resIdxs = topIn.ResnumsSelectedBy( mask );
-  // Loop over selected histidine residues
-  unsigned int nchanged = 0;
-  for (Iarray::const_iterator rnum = resIdxs.begin();
-                              rnum != resIdxs.end(); ++rnum)
-  {
-    if (debug_ > 1)
-      mprintf("DEBUG: %s (%i) (%c)\n", topIn.TruncResNameOnumId(*rnum).c_str(), topIn.Res(*rnum).OriginalResNum(), topIn.Res(*rnum).ChainId());
-    int nd1idx = -1;
-    int ne2idx = -1;
-    Residue const& hisRes = topIn.Res( *rnum );
-    for (int at = hisRes.FirstAtom(); at < hisRes.LastAtom(); ++at)
-    {
-      if ( (topIn[at].Name() == ND1 ) )
-        nd1idx = at;
-      else if ( (topIn[at].Name() == NE2 ) )
-        ne2idx = at;
-    }
-    if (nd1idx == -1) {
-      mprintf("Warning: Atom %s not found for %s; skipping residue.\n", *ND1, topIn.TruncResNameOnumId(*rnum).c_str());
-      continue;
-    }
-    if (ne2idx == -1) {
-      mprintf("Warning: Atom %s not found for %s; skipping residue,\n", *NE2, topIn.TruncResNameOnumId(*rnum).c_str());
-      continue;
-    }
-    if (debug_ > 1)
-      mprintf("DEBUG: %s nd1idx= %i ne2idx= %i\n",
-              topIn.TruncResNameOnumId( *rnum ).c_str(), nd1idx+1, ne2idx+1);
-    // Check for H bonded to nd1/ne2
-    int nd1h = 0;
-    for (Atom::bond_iterator bat = topIn[nd1idx].bondbegin();
-                             bat != topIn[nd1idx].bondend();
-                           ++bat)
-      if ( topIn[*bat].Element() == Atom::HYDROGEN)
-        ++nd1h;
-    if (nd1h > 1) {
-      mprinterr("Error: More than 1 hydrogen bonded to %s\n",
-                topIn.ResNameNumAtomNameNum(nd1idx).c_str());
-      return 1;
-    }
-    int ne2h = 0;
-    for (Atom::bond_iterator bat = topIn[ne2idx].bondbegin();
-                             bat != topIn[ne2idx].bondend();
-                           ++bat)
-      if ( topIn[*bat].Element() == Atom::HYDROGEN)
-        ++ne2h;
-    if (ne2h > 1) {
-      mprinterr("Error: More than 1 hydrogen bonded to %s\n",
-                topIn.ResNameNumAtomNameNum(ne2idx).c_str());
-      return 1;
-    }
-    if (nd1h > 0 && ne2h > 0) {
-      mprintf("\t\t%s => %s\n", topIn.TruncResNameOnumId(*rnum).c_str(), *HipName);
-      ChangeResName( topIn.SetRes(*rnum), HipName );
-      nchanged++;
-    } else if (nd1h > 0) {
-      mprintf("\t\t%s => %s\n", topIn.TruncResNameOnumId(*rnum).c_str(), *HidName);
-      ChangeResName( topIn.SetRes(*rnum), HidName );
-      nchanged++;
-    } else if (ne2h > 0) {
-      mprintf("\t\t%s => %s\n", topIn.TruncResNameOnumId(*rnum).c_str(), *HieName);
-      ChangeResName( topIn.SetRes(*rnum), HieName );
-      nchanged++;
-    }
-    //else {
-    //  // Default to epsilon
-    //  mprintf("\tUsing default name '%s' for %s\n", *HieName, topIn.TruncResNameOnumId(*rnum).c_str());
-    //  HisResNames.push_back( HieName );
-    //}
-  }
-  if (nchanged == 0) 
-    mprintf("\tNo histidine names were changed.\n");
-  else
-    mprintf("\t%u histidine names were changed.\n", nchanged);
-  return 0;
-}
-
+// -----------------------------------------------------------------------------
 void Exec_PrepareForLeap::PrintAtomNameMap(const char* title,
                                            std::vector<NameMapType> const& namemap)
 {
@@ -1295,7 +1264,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   // ----- Below here, no more removing/reordering atoms. ------------ 
 
   // Each residue starts out unknown.
-  resStat_.assign( topIn.Nres(), UNKNOWN );
+  ResStatArray resStat( topIn.Nres() );
 
   // Get masks for molecules now since bond info in topology may be modified later.
   std::vector<AtomMask> molMasks;
@@ -1377,7 +1346,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     for (Topology::res_iterator res = topIn.ResStart(); res != topIn.ResEnd(); ++res) {
       if ( res->Name() == solvName) {
         nsolvent++;
-        resStat_[res-topIn.ResStart()] = VALIDATED;
+        resStat[res-topIn.ResStart()] = ResStatArray::VALIDATED;
         // Set as terminal; TODO is this needed? Leap seems ok with not having TER for HOH
         topIn.SetRes(res-topIn.ResStart()).SetTerminal(true);
       }
@@ -1390,48 +1359,48 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   int fatal_errors = 0;
   static const char* msg1 = "Potential problem : ";
   static const char* msg2 = "Fatal problem     : ";
-  for (ResStatArray::iterator it = resStat_.begin(); it != resStat_.end(); ++it)
+  for (ResStatArray::iterator it = resStat.begin(); it != resStat.end(); ++it)
   {
-    LeapFxnGroupWarning(topIn, it-resStat_.begin());
+    LeapFxnGroupWarning(topIn, it-resStat.begin());
     //if ( *it == VALIDATED )
     //  mprintf("\t\t%s VALIDATED\n", topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
     //else
     //  mprintf("\t\t%s UNKNOWN\n", topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
     // ----- Warnings --------
-    if ( *it == UNKNOWN ) {
-      SetType::const_iterator pname = pdb_res_names_.find( topIn.Res(it-resStat_.begin()).Name() );
+    if ( *it == ResStatArray::UNKNOWN ) {
+      SetType::const_iterator pname = pdb_res_names_.find( topIn.Res(it-resStat.begin()).Name() );
       if (pname == pdb_res_names_.end())
         mprintf("\t%s%s is an unrecognized name and may not have parameters.\n",
-                msg1, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
+                msg1, topIn.TruncResNameOnumId(it-resStat.begin()).c_str());
       else
         *it = VALIDATED;
-    } else if ( *it == SUGAR_NAME_MISMATCH ) {
+    } else if ( *it == ResStatArray::SUGAR_NAME_MISMATCH ) {
         mprintf("\t%s%s sugar anomer type and/or configuration is not consistent with name.\n",
-                msg1, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
+                msg1, topIn.TruncResNameOnumId(it-resStat.begin()).c_str());
     // ----- Fatal Errors ----
-    } else if ( *it == SUGAR_UNRECOGNIZED_LINK_RES ) {
+    } else if ( *it == ResStatArray::SUGAR_UNRECOGNIZED_LINK_RES ) {
         mprintf("\t%s%s is linked to a sugar but has no sugar-linkage form.\n",
-                msg2, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
+                msg2, topIn.TruncResNameOnumId(it-resStat.begin()).c_str());
         fatal_errors++;
-    } else if ( *it == SUGAR_UNRECOGNIZED_LINKAGE ) {
+    } else if ( *it == ResStatArray::SUGAR_UNRECOGNIZED_LINKAGE ) {
         mprintf("\t%s%s is a sugar with an unrecognized linkage.\n",
-                msg2, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
+                msg2, topIn.TruncResNameOnumId(it-resStat.begin()).c_str());
         fatal_errors++;
-    } else if ( *it == SUGAR_NO_LINKAGE ) {
+    } else if ( *it == ResStatArray::SUGAR_NO_LINKAGE ) {
         mprintf("\t%s%s is an incomplete sugar with no linkages.\n",
-                msg2, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
+                msg2, topIn.TruncResNameOnumId(it-resStat.begin()).c_str());
         fatal_errors++;
-    } else if ( *it == SUGAR_NO_CHAIN_FOR_LINK ) {
+    } else if ( *it == ResStatArray::SUGAR_NO_CHAIN_FOR_LINK ) {
         mprintf("\t%s%s could not identify chain atoms for determining linkages.\n",
-                msg2, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
+                msg2, topIn.TruncResNameOnumId(it-resStat.begin()).c_str());
         fatal_errors++;
 /*    } else if ( *it == SUGAR_MISSING_C1X ) { // TODO should this be a warning
         mprintf("\t%s%s Sugar is missing anomeric carbon substituent.\n",
                 msg2, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
         fatal_errors++;*/
-    } else if ( *it == SUGAR_SETUP_FAILED ) {
+    } else if ( *it == ResStatArray::SUGAR_SETUP_FAILED ) {
         mprintf("\t%s%s Sugar setup failed and could not be identified.\n",
-                msg2, topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
+                msg2, topIn.TruncResNameOnumId(it-resStat.begin()).c_str());
         fatal_errors++;
     }
   }
