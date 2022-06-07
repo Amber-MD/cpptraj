@@ -9,6 +9,8 @@
 #include "Structure/HisProt.h"
 #include "Structure/ResStatArray.h"
 #include "Structure/SugarBuilder.h"
+#include "Structure/Sugar.h"
+#include "Trajout_Single.h"
 #include <stack> // FindTerByBonds
 
 using namespace Cpptraj::Structure;
@@ -266,10 +268,6 @@ const
   }
   return 0;
 }
-
-// -----------------------------------------------------------------------------
-
-// -----------------------------------------------------------------------------
 
 // -----------------------------------------------------------------------------
 
@@ -1066,7 +1064,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
         mprintf("\t%s%s is an unrecognized name and may not have parameters.\n",
                 msg1, topIn.TruncResNameOnumId(it-resStat.begin()).c_str());
       else
-        *it = VALIDATED;
+        *it = ResStatArray::VALIDATED;
     } else if ( *it == ResStatArray::SUGAR_NAME_MISMATCH ) {
         mprintf("\t%s%s sugar anomer type and/or configuration is not consistent with name.\n",
                 msg1, topIn.TruncResNameOnumId(it-resStat.begin()).c_str());

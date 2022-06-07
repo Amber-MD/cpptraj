@@ -5,6 +5,7 @@ include cpptrajfiles
 
 # Object files from subdirectories go here
 include Cluster/clusterfiles
+include Structure/structurefiles
 
 CLUSTER_SOURCEFILES=$(CLUSTER_SOURCES:%.cpp=Cluster/%.cpp)
 
