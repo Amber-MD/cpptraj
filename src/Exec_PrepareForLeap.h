@@ -4,6 +4,7 @@
 namespace Cpptraj {
 namespace Structure {
 class ResStatArray;
+class SugarBuilder;
 }
 }
 /// Do common tasks to prepare a structure to be loaded into tleap 
@@ -21,9 +22,9 @@ class Exec_PrepareForLeap : public Exec {
     /// Load PDB residue names recognized by Amber FFs from dat file
     int LoadPdbResNames(std::string const&);
     /// \return true if residue name is a recognized PDB name
-    bool IsRecognizedPdbRes(NameType const&) const;
+    bool IsRecognizedPdbRes(NameType const&, Cpptraj::Structure::SugarBuilder const&) const;
     /// \return Array of residue nums with unrecognized names
-    Iarray GetUnrecognizedPdbResidues(Topology const&) const;
+    Iarray GetUnrecognizedPdbResidues(Topology const&, Cpptraj::Structure::SugarBuilder const&) const;
     /// \return Array indices of isolated unrecognized residues
     Iarray GetIsolatedUnrecognizedResidues(Topology const&, Iarray const&) const;
 
@@ -31,7 +32,7 @@ class Exec_PrepareForLeap : public Exec {
     int FindTerByBonds(Topology&, CharMask const&) const;
 
     /// Search for disulfide bonds
-    int SearchForDisulfides(ResStatArray&,
+    int SearchForDisulfides(Cpptraj::Structure::ResStatArray&,
                             double, std::string const&, std::string const&, bool,
                             Topology&, Frame const&, CpptrajFile*);
 
@@ -46,8 +47,7 @@ class Exec_PrepareForLeap : public Exec {
     /// Remove hydrogen atoms
     int RemoveHydrogens(Topology&, Frame&) const;
 
-    static void PrintAtomNameMap(const char*, std::vector<NameMapType> const&);
-
+    
     /// Run leap to generate topology, perform any modifications
     int RunLeap(std::string const&, std::string const&) const;
     /// Print a warning for residues that will need modification after leap

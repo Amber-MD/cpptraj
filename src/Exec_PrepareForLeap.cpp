@@ -1,5 +1,7 @@
 #include "Exec_PrepareForLeap.h"
+#include "CpptrajStdio.h"
 #include "Structure/ResStatArray.h"
+#include "Structure/SugarBuilder.h"
 
 using namespace Cpptraj::Structure;
 
@@ -107,9 +109,11 @@ int Exec_PrepareForLeap::LoadPdbResNames(std::string const& fnameIn)
 /** \return True if residue name is in pdb_to_glycam_ or pdb_res_names_,
   *               or is solvent.
   */
-bool Exec_PrepareForLeap::IsRecognizedPdbRes(NameType const& rname) const {
-  MapType::const_iterator glycamIt = pdb_to_glycam_.find( rname );
-  if (glycamIt != pdb_to_glycam_.end())
+bool Exec_PrepareForLeap::IsRecognizedPdbRes(NameType const& rname,
+                                             SugarBuilder const& sugarBuilder)
+const
+{
+  if (sugarBuilder.IsRecognizedPdbSugar(rname))
     return true;
   SetType::const_iterator amberIt = pdb_res_names_.find( rname );
   if (amberIt != pdb_res_names_.end())
@@ -120,13 +124,15 @@ bool Exec_PrepareForLeap::IsRecognizedPdbRes(NameType const& rname) const {
 }
 
 /** \return Array of residue numbers with unrecognized PDB res names. */
-Exec_PrepareForLeap::Iarray Exec_PrepareForLeap::GetUnrecognizedPdbResidues(Topology const& topIn)
+Exec_PrepareForLeap::Iarray
+  Exec_PrepareForLeap::GetUnrecognizedPdbResidues(Topology const& topIn,
+                                                  SugarBuilder const& sugarBuilder)
 const
 {
   Iarray rnums;
   for (int ires = 0; ires != topIn.Nres(); ires++)
   {
-    if (!IsRecognizedPdbRes( topIn.Res(ires).Name() ))
+    if (!IsRecognizedPdbRes( topIn.Res(ires).Name(), sugarBuilder ))
     {
       mprintf("\t%s is unrecognized.\n", topIn.TruncResNameOnumId(ires).c_str());
       rnums.push_back( ires );
@@ -697,19 +703,6 @@ int Exec_PrepareForLeap::RemoveHydrogens(Topology& topIn, Frame& frameIn) const 
 }
 
 // -----------------------------------------------------------------------------
-void Exec_PrepareForLeap::PrintAtomNameMap(const char* title,
-                                           std::vector<NameMapType> const& namemap)
-{
-  mprintf("\t%s:\n", title);
-  for (std::vector<NameMapType>::const_iterator it = namemap.begin();
-                                                it != namemap.end(); ++it)
-  {
-    mprintf("\t  %li)", it - namemap.begin());
-    for (NameMapType::const_iterator mit = it->begin(); mit != it->end(); ++mit)
-      mprintf(" %s:%s", *(mit->first), *(mit->second));
-    mprintf("\n");
-  }
-}
 
 /// \return index of oxygen atom bonded to this atom but not in same residue
 static inline int getLinkOxygenIdx(Topology const& leaptop, int at, int rnum) {
@@ -1037,28 +1030,11 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   // Load PDB to glycam residue name map
+  SugarBuilder sugarBuilder;
   if (prepare_sugars) {
-    if (LoadGlycamPdbResMap( argIn.GetStringKey("resmapfile" ) )) {
+    if (sugarBuilder.LoadGlycamPdbResMap( argIn.GetStringKey("resmapfile" ) )) {
       mprinterr("Error: PDB to glycam name map load failed.\n");
       return CpptrajState::ERR;
-    }
-    mprintf("\t%zu entries in PDB to glycam name map.\n", pdb_to_glycam_.size());
-    if (debug_ > 0) {
-      // DEBUG - print residue name map
-      mprintf("\tResidue name map:\n");
-      for (MapType::const_iterator mit = pdb_to_glycam_.begin(); mit != pdb_to_glycam_.end(); ++mit)
-        mprintf("\t  %4s -> %s\n", *(mit->first), mit->second.GlycamCode().c_str());
-      // DEBUG - print atom name maps
-      mprintf("\tRes char to atom map index map:\n");
-      for (ResIdxMapType::const_iterator mit = glycam_res_idx_map_.begin(); mit != glycam_res_idx_map_.end(); ++mit)
-        mprintf("\t  %s -> %i\n", mit->first.c_str(), mit->second);
-      PrintAtomNameMap("Atom name maps", pdb_glycam_name_maps_);
-      PrintAtomNameMap("Atom name maps (alpha)", pdb_glycam_name_maps_A_);
-      PrintAtomNameMap("Atom name maps (beta)", pdb_glycam_name_maps_B_);
-      // DEBUG - print linkage res map
-      mprintf("\tLinkage res name map:\n");
-      for (NameMapType::const_iterator mit = pdb_glycam_linkageRes_map_.begin(); mit != pdb_glycam_linkageRes_map_.end(); ++mit)
-        mprintf("\t  %s -> %s\n", *(mit->first), *(mit->second));
     }
   }
 
@@ -1067,10 +1043,10 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   if (!removeArg.empty()) {
     if (removeArg == "unrecognized") {
       mprintf("\tRemoving unrecognized PDB residues.\n");
-      pdbResToRemove = GetUnrecognizedPdbResidues( topIn );
+      pdbResToRemove = GetUnrecognizedPdbResidues( topIn, sugarBuilder );
     } else if (removeArg == "isolated") {
       mprintf("\tRemoving unrecognized and isolated PDB residues.\n");
-      Iarray unrecognizedPdbRes = GetUnrecognizedPdbResidues( topIn );
+      Iarray unrecognizedPdbRes = GetUnrecognizedPdbResidues( topIn, sugarBuilder );
       pdbResToRemove = GetIsolatedUnrecognizedResidues( topIn, unrecognizedPdbRes );
     } else {
       mprinterr("Error: Unrecognized keyword for 'remove': %s\n", removeArg.c_str());
