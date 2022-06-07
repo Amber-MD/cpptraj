@@ -1,7 +1,11 @@
 #include "Exec_PrepareForLeap.h"
+#include "CharMask.h"
 #include "CpptrajStdio.h"
+#include "DistRoutines.h" // SearchForDisulfides
 #include "Structure/ResStatArray.h"
 #include "Structure/SugarBuilder.h"
+#include <algorithm> // sort
+#include <stack> // FindTerByBonds
 
 using namespace Cpptraj::Structure;
 
