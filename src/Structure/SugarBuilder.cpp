@@ -246,6 +246,21 @@ void SugarBuilder::SetGlycamPdbResMap() {
   pdb_glycam_linkageRes_map_.insert( NamePairType("ASN", "NLN") );
 }
 
+/** Print name map to stdout. */
+void SugarBuilder::PrintAtomNameMap(const char* title,
+                                           std::vector<NameMapType> const& namemap)
+{
+  mprintf("\t%s:\n", title);
+  for (std::vector<NameMapType>::const_iterator it = namemap.begin();
+                                                it != namemap.end(); ++it)
+  {
+    mprintf("\t  %li)", it - namemap.begin());
+    for (NameMapType::const_iterator mit = it->begin(); mit != it->end(); ++mit)
+      mprintf(" %s:%s", *(mit->first), *(mit->second));
+    mprintf("\n");
+  }
+}
+
 /** Load PDB to Glycam residue map from file. */
 int SugarBuilder::LoadGlycamPdbResMap(std::string const& fnameIn)
 {
@@ -371,6 +386,27 @@ int SugarBuilder::LoadGlycamPdbResMap(std::string const& fnameIn)
     } // END not comment
   } // END loop over file
   infile.CloseFile();
+
+  // Print details
+  mprintf("\t%zu entries in PDB to glycam name map.\n", pdb_to_glycam_.size());
+  if (debug_ > 0) {
+    // DEBUG - print residue name map
+    mprintf("\tResidue name map:\n");
+    for (MapType::const_iterator mit = pdb_to_glycam_.begin(); mit != pdb_to_glycam_.end(); ++mit)
+      mprintf("\t  %4s -> %s\n", *(mit->first), mit->second.GlycamCode().c_str());
+    // DEBUG - print atom name maps
+    mprintf("\tRes char to atom map index map:\n");
+    for (ResIdxMapType::const_iterator mit = glycam_res_idx_map_.begin(); mit != glycam_res_idx_map_.end(); ++mit)
+      mprintf("\t  %s -> %i\n", mit->first.c_str(), mit->second);
+    PrintAtomNameMap("Atom name maps", pdb_glycam_name_maps_);
+    PrintAtomNameMap("Atom name maps (alpha)", pdb_glycam_name_maps_A_);
+    PrintAtomNameMap("Atom name maps (beta)", pdb_glycam_name_maps_B_);
+    // DEBUG - print linkage res map
+    mprintf("\tLinkage res name map:\n");
+    for (NameMapType::const_iterator mit = pdb_glycam_linkageRes_map_.begin(); mit != pdb_glycam_linkageRes_map_.end(); ++mit)
+      mprintf("\t  %s -> %s\n", *(mit->first), *(mit->second));
+  }
+
 
   return 0;
 }
