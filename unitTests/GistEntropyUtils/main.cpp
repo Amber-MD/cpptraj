@@ -11,6 +11,8 @@
 
 #define PI_SQR 9.869604401089358
 
+using namespace GistEntropyUtils;
+
 static const int Err(const char* msg) {
   fprintf(stderr, "Error: %s\n", msg);
   return 1;
@@ -147,5 +149,19 @@ int main() {
   // test that no molecule is always omitted in the central voxel.
   nbrs = searchGridNearestNeighbors6D(Vec3(0.6, 0, 0), 0, 1, 0, 0, grid_crd, grid_Q, grid_Nx, grid_Ny, grid_Nz, grid_origin, grid_spacing, 1, -1);
   assertClose(nbrs.first, 0.0, "Does not find correct trans NN.");
+
+  // Test quaternion distance with slightly non-normalized quaternions
+  assertClose(quaternion_angle(
+    0.453887561488233, 0.440500369544494, 0.615810865052675, 0.469811115705563,
+    0.233334999318213, 0.253147448327817, 0.580026938731094, 0.738268174747172), 0.7979849037416394, "Wrong distance between normalized quaternions.");
+
+  const double FAC = 1.0002;
+  assertClose(quaternion_angle(
+    0.453887561488233*FAC, 0.440500369544494*FAC, 0.615810865052675*FAC, 0.469811115705563*FAC,
+    0.233334999318213, 0.253147448327817, 0.580026938731094, 0.738268174747172), 0.7979849037416394, "Wrong distance between non-normalized quaternions.");
+
+  assertClose(quaternion_angle(
+    0.453887561488233, 0.440500369544494, 0.615810865052675, 0.469811115705563,
+    0.233334999318213*FAC, 0.253147448327817*FAC, 0.580026938731094*FAC, 0.738268174747172*FAC), 0.7979849037416394, "Wrong distance between non-normalized quaternions.");
   return 0;
 }
