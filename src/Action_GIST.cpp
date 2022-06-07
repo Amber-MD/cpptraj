@@ -1371,13 +1371,11 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
             double w3 = cos(theta);
             sin_theta = sin(theta);
             double x3 = x_lab_[0] * sin_theta;
-            double y3 = x_lab_[1] * sin_theta;
-            double z3 = x_lab_[2] * sin_theta;
 
-            double w4 = w1*w3 - x1*x3 - y1*y3 - z1*z3;
-            double x4 = w1*x3 + x1*w3 + y1*z3 - z1*y3;
-            double y4 = w1*y3 - x1*z3 + y1*w3 + z1*x3;
-            double z4 = w1*z3 + x1*y3 - y1*x3 + z1*w3;
+            double w4 =  w1*w3 - x1*x3;
+            double x4 =  w1*x3 + x1*w3;
+            double y4 =  y1*w3 + z1*x3;
+            double z4 = -y1*x3 + z1*w3;
 
             voxel_Q_[voxel].push_back( w4 );
             voxel_Q_[voxel].push_back( x4 );
@@ -1669,11 +1667,9 @@ void Action_GIST::Print() {
               //mprintf("DEBUG1:\t\t q1= %8i {%12.4f %12.4f %12.4f %12.4f} q0= %8i {%12.4f %12.4f %12.4f %12.4f}\n",
               //        q1, voxel_Q_[gr_pt][q1  ], voxel_Q_[gr_pt][q1+1], voxel_Q_[gr_pt][q1+2], voxel_Q_[gr_pt][q1+3],
               //        q0, voxel_Q_[gr_pt][q0  ], voxel_Q_[gr_pt][q0+1], voxel_Q_[gr_pt][q0+2], voxel_Q_[gr_pt][q0+3]);
-              /* double rR = 2.0 * acos(  fabs(voxel_Q_[gr_pt][q1  ] * voxel_Q_[gr_pt][q0  ] */
-              double rR = fabs(  voxel_Q_[gr_pt][q1  ] * voxel_Q_[gr_pt][q0  ]
-                               + voxel_Q_[gr_pt][q1+1] * voxel_Q_[gr_pt][q0+1]
-                               + voxel_Q_[gr_pt][q1+2] * voxel_Q_[gr_pt][q0+2]
-                               + voxel_Q_[gr_pt][q1+3] * voxel_Q_[gr_pt][q0+3] ); // add fabs for quaternion distance calculation
+              double rR = fabs(GistEntropyUtils::cos_qdist(
+                      voxel_Q_[gr_pt][q1], voxel_Q_[gr_pt][q1+1], voxel_Q_[gr_pt][q1+2], voxel_Q_[gr_pt][q1+3],
+                      voxel_Q_[gr_pt][q0], voxel_Q_[gr_pt][q0+1], voxel_Q_[gr_pt][q0+2], voxel_Q_[gr_pt][q0+3]));
               //mprintf("DEBUG1:\t\t %8i %8i %g\n", n0, n1, rR);
               if (rR > cos_r_half) cos_r_half = rR;
             }
