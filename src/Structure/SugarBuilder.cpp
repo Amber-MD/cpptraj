@@ -22,6 +22,13 @@ SugarBuilder::SugarBuilder(int debugIn) :
   debug_(debugIn)
 {}
 
+/** Initialize options. */
+int SugarBuilder::InitOptions(bool hasGlycamIn) {
+  hasGlycam_ = hasGlycamIn;
+
+  return 0;
+}
+
 /** Load reduced internal PDB to Glycam map. */
 void SugarBuilder::SetGlycamPdbResMap() {
   pdb_to_glycam_.insert( PairType("64K",

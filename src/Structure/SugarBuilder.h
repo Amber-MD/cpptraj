@@ -17,6 +17,8 @@ class SugarBuilder {
     typedef std::vector<Sugar> Array;
     /// CONSTRUCTOR - Take debug level
     SugarBuilder(int);
+    /// Init options: hasGlycam
+    int InitOptions(bool);
     /// Load PDB res to glycam map from dat file
     int LoadGlycamPdbResMap(std::string const&);
     /// \return true if given res name is a recognized PDB sugar
