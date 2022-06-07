@@ -23,9 +23,43 @@ SugarBuilder::SugarBuilder(int debugIn) :
 {}
 
 /** Initialize options. */
-int SugarBuilder::InitOptions(bool hasGlycamIn) {
+int SugarBuilder::InitOptions(bool hasGlycamIn,
+                              std::string const& sugarmaskstrIn,
+                              std::string const& determineSugarsBy )
+{
   hasGlycam_ = hasGlycamIn;
+  sugarmaskstr_ = sugarmaskstrIn;
 
+  // Check options
+  if (sugarmaskstr_.empty()) {
+    if (hasGlycam_)
+      sugarmaskstr_ = GenGlycamResMaskString();
+    else {
+      // No sugar mask specified; create one from names in pdb_to_glycam_ map.
+      sugarmaskstr_.assign(":");
+      for (MapType::const_iterator mit = pdb_to_glycam_.begin(); mit != pdb_to_glycam_.end(); ++mit)
+      {
+        if (mit != pdb_to_glycam_.begin())
+          sugarmaskstr_.append(",");
+        sugarmaskstr_.append( mit->first.Truncated() );
+      }
+    }
+  }
+
+  if (determineSugarsBy == "geometry") {
+    useSugarName_ = false;
+    mprintf("\tWill determine sugar anomer type/configuration by geometry.\n");
+  } else if (determineSugarsBy == "name") {
+    useSugarName_ = true;
+    mprintf("\tWill determine sugar anomer type/configuration from residue name.\n");
+  } else {
+    mprinterr("Error: Invalid argument for 'determinesugarsby': %s\n", determineSugarsBy.c_str());
+    return 1;
+  }
+
+  // Write options to stdout
+  if (hasGlycam_)
+    mprintf("\tAssuming sugars already have glycam residue names.\n");
   return 0;
 }
 
@@ -1741,8 +1775,7 @@ const
 }
 
 /** Try to fix issues with sugar structure before trying to identify. */
-int SugarBuilder::FixSugarsStructure(std::string const& sugarMaskStr,
-                                     Topology& topIn, Frame& frameIn,
+int SugarBuilder::FixSugarsStructure(Topology& topIn, Frame& frameIn,
                                      bool c1bondsearch, bool splitres,
                                      NameType const& solventResName) 
 {
@@ -1756,7 +1789,7 @@ int SugarBuilder::FixSugarsStructure(std::string const& sugarMaskStr,
   myMap_.DetermineAtomIDs();
 
   Sugars_.clear();
-  AtomMask sugarMask(sugarMaskStr);
+  AtomMask sugarMask(sugarmaskstr_);
   mprintf("\tLooking for sugars selected by '%s'\n", sugarMask.MaskString());
   if (topIn.SetupIntegerMask( sugarMask )) return 1;
   //sugarMask.MaskInfo();
@@ -1849,8 +1882,7 @@ int SugarBuilder::FixSugarsStructure(std::string const& sugarMaskStr,
 }
 
 /** Prepare sugars for leap. */
-int SugarBuilder::PrepareSugars(std::string const& sugarmaskstr,
-                                std::string const& leapunitname,
+int SugarBuilder::PrepareSugars(std::string const& leapunitname,
                                 bool errorsAreFatal,
                                 ResStatArray& resStatIn,
                                        Topology& topIn,
@@ -1859,7 +1891,7 @@ int SugarBuilder::PrepareSugars(std::string const& sugarmaskstr,
 {
   // Need to set up the mask again since topology may have been modified.
   AtomMask sugarMask;
-  if (sugarMask.SetMaskString( sugarmaskstr )) return 1;
+  if (sugarMask.SetMaskString( sugarmaskstr_ )) return 1;
   //mprintf("\tPreparing sugars selected by '%s'\n", sugarMask.MaskString());
   if (topIn.SetupIntegerMask( sugarMask )) return 1;
   //sugarMask.MaskInfo();

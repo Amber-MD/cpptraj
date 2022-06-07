@@ -17,8 +17,8 @@ class SugarBuilder {
     typedef std::vector<Sugar> Array;
     /// CONSTRUCTOR - Take debug level
     SugarBuilder(int);
-    /// Init options: hasGlycam
-    int InitOptions(bool);
+    /// Init options: hasGlycam, sugar mask str, determineSugarsBy
+    int InitOptions(bool, std::string const&, std::string const&);
     /// Load PDB res to glycam map from dat file
     int LoadGlycamPdbResMap(std::string const&);
     /// \return true if given res name is a recognized PDB sugar
@@ -82,10 +82,10 @@ class SugarBuilder {
     int FindSugarC1Linkages(int, int, Topology&, Frame const&, NameType const&) const;
     
     /// ID sugar rings, find missing C1 links, split off functional groups
-    int FixSugarsStructure(std::string const&, Topology&, Frame&,
+    int FixSugarsStructure(Topology&, Frame&,
                            bool, bool, NameType const&);
     /// Identify sugars, do renaming, remove bonds, generate leap input
-    int PrepareSugars(std::string const&, std::string const&, bool,
+    int PrepareSugars(std::string const&, bool,
                       ResStatArray&,
                       Topology&, Frame const&, CpptrajFile*);
     // -----------------------
@@ -105,11 +105,11 @@ class SugarBuilder {
     /// Map pdb residue names to glycam linkage residue names
     NameMapType pdb_glycam_linkageRes_map_;
 
-    Array Sugars_;          ///< Array of found sugars
-
-    bool hasGlycam_;        ///< If true, assume sugars already have glycam names
-    bool useSugarName_;     ///< If true, base form/chirality on name instead of geometry
-    AtomMap myMap_;         ///< Used to determine unique atoms for chirality
+    Array Sugars_;             ///< Array of found sugars
+    std::string sugarmaskstr_; ///< Mask string for selecting sugars
+    bool hasGlycam_;           ///< If true, assume sugars already have glycam names
+    bool useSugarName_;        ///< If true, base form/chirality on name instead of geometry
+    AtomMap myMap_;            ///< Used to determine unique atoms for chirality
     int debug_;
 };
 }
