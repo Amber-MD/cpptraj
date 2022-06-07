@@ -25,8 +25,13 @@ SugarBuilder::SugarBuilder(int debugIn) :
 /** Initialize options. */
 int SugarBuilder::InitOptions(bool hasGlycamIn,
                               std::string const& sugarmaskstrIn,
-                              std::string const& determineSugarsBy )
+                              std::string const& determineSugarsBy,
+                              std::string const& resmapfile)
 {
+  if (LoadGlycamPdbResMap( resmapfile )) {
+    mprinterr("Error: PDB to glycam name map load failed.\n");
+    return 1;
+  }
   hasGlycam_ = hasGlycamIn;
   sugarmaskstr_ = sugarmaskstrIn;
 

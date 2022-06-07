@@ -17,10 +17,8 @@ class SugarBuilder {
     typedef std::vector<Sugar> Array;
     /// CONSTRUCTOR - Take debug level
     SugarBuilder(int);
-    /// Init options: hasGlycam, sugar mask str, determineSugarsBy
-    int InitOptions(bool, std::string const&, std::string const&);
-    /// Load PDB res to glycam map from dat file
-    int LoadGlycamPdbResMap(std::string const&);
+    /// Init options: hasGlycam, sugar mask str, determineSugarsBy, resmapfile
+    int InitOptions(bool, std::string const&, std::string const&, std::string const&);
     /// \return true if given res name is a recognized PDB sugar
     bool IsRecognizedPdbSugar(NameType const&) const;
     /// ID sugar rings, find missing C1 links, split off functional groups
@@ -44,6 +42,8 @@ class SugarBuilder {
 
     /// Set a reduced PDB res to glycam map when dat file not found.
     void SetGlycamPdbResMap();
+    /// Load PDB res to glycam map from dat file
+    int LoadGlycamPdbResMap(std::string const&);
     /// Print atom name map to stdout
     static void PrintAtomNameMap(const char*, std::vector<NameMapType> const&);
 

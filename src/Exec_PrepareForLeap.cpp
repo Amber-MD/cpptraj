@@ -786,14 +786,10 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     // Init options
     if (sugarBuilder.InitOptions( argIn.hasKey("hasglycam"),
                                   argIn.GetStringKey("sugarmask"),
-                                  argIn.GetStringKey("determinesugarsby", "geometry") ))
+                                  argIn.GetStringKey("determinesugarsby", "geometry"),
+                                  argIn.GetStringKey("resmapfile") ))
     {
       mprinterr("Error: Sugar options init failed.\n");
-      return CpptrajState::ERR;
-    }
-    // Load map
-    if (sugarBuilder.LoadGlycamPdbResMap( argIn.GetStringKey("resmapfile" ) )) {
-      mprinterr("Error: PDB to glycam name map load failed.\n");
       return CpptrajState::ERR;
     }
   }
