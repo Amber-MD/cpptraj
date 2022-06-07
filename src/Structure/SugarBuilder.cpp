@@ -1739,6 +1739,15 @@ int SugarBuilder::FixSugarsStructure(std::string const& sugarMaskStr,
                                      bool c1bondsearch, bool splitres,
                                      NameType const& solventResName) 
 {
+  // Set up an AtomMap for this residue to help determine stereocenters.
+  // This is required by the IdSugarRing() function.
+  //myMap_.SetDebug(debug_); // DEBUG
+  if (myMap_.Setup(topIn, frameIn)) {
+    mprinterr("Internal Error: FixSugarsStructure: Atom map setup failed.\n");
+    return 1;
+  }
+  myMap_.DetermineAtomIDs();
+
   Sugars_.clear();
   AtomMask sugarMask(sugarMaskStr);
   mprintf("\tLooking for sugars selected by '%s'\n", sugarMask.MaskString());
