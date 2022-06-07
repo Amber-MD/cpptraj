@@ -35,6 +35,8 @@ class SugarBuilder {
     static void PrintAtomNameMap(const char*, std::vector<NameMapType> const&);
     /// Load PDB res to glycam map from dat file
     int LoadGlycamPdbResMap(std::string const&);
+    /// \return true if given res name is a recognized PDB sugar
+    bool IsRecognizedPdbSugar(NameType const&) const;
 
     /// Find remaining non-ring carbons in chain starting from ring end atom.
     int FindRemainingChainCarbons(Iarray&, int, Topology const&, int, Iarray const&) const;

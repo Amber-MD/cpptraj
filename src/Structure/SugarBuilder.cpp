@@ -411,6 +411,14 @@ int SugarBuilder::LoadGlycamPdbResMap(std::string const& fnameIn)
   return 0;
 }
 
+/** \return True if given residue name is a recognized PDB sugar residue name. */
+bool SugarBuilder::IsRecognizedPdbSugar(NameType const& rname) const {
+  MapType::const_iterator glycamIt = pdb_to_glycam_.find( rname );
+  if (glycamIt != pdb_to_glycam_.end())
+    return true;
+  return false;
+}
+
 // -----------------------------------------------------------------------------
 /// \return True if the given tgt atom is in the given array
 static inline bool AtomIsInArray(std::vector<int> const& RingAtoms, int tgt)
