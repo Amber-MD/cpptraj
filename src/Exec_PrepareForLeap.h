@@ -3,7 +3,6 @@
 #include "Exec.h"
 namespace Cpptraj {
 namespace Structure {
-class ResStatArray;
 class SugarBuilder;
 }
 }
@@ -31,16 +30,8 @@ class Exec_PrepareForLeap : public Exec {
     /// Try to determine where TER cards should be placed based on bonds
     int FindTerByBonds(Topology&, CharMask const&) const;
 
-    /// Search for disulfide bonds
-    int SearchForDisulfides(Cpptraj::Structure::ResStatArray&,
-                            double, std::string const&, std::string const&, bool,
-                            Topology&, Frame const&, CpptrajFile*);
 
-    /// Try to determine protonation state of histidines from any hydrogens present.
-    int DetermineHisProt(Topology&,
-                         NameType const&, NameType const&,
-                         NameType const&, NameType const&, NameType const&, NameType const&) const;
-
+    
     /// Remove specified atoms
     int ModifyCoords(Topology&, Frame&, bool, std::string const&, std::string const&,
                      std::string const&, Iarray const&) const;

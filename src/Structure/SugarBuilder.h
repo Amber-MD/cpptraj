@@ -23,6 +23,13 @@ class SugarBuilder {
     int LoadGlycamPdbResMap(std::string const&);
     /// \return true if given res name is a recognized PDB sugar
     bool IsRecognizedPdbSugar(NameType const&) const;
+    /// ID sugar rings, find missing C1 links, split off functional groups
+    int FixSugarsStructure(Topology&, Frame&,
+                           bool, bool, NameType const&);
+    /// Identify sugars, do renaming, remove bonds, generate leap input
+    int PrepareSugars(std::string const&, bool,
+                      ResStatArray&,
+                      Topology&, Frame const&, CpptrajFile*);
   private:
     typedef std::vector<int> Iarray;
 
@@ -81,13 +88,8 @@ class SugarBuilder {
     /// Try to find missing linkages to anomeric carbon in sugar.
     int FindSugarC1Linkages(int, int, Topology&, Frame const&, NameType const&) const;
     
-    /// ID sugar rings, find missing C1 links, split off functional groups
-    int FixSugarsStructure(Topology&, Frame&,
-                           bool, bool, NameType const&);
-    /// Identify sugars, do renaming, remove bonds, generate leap input
-    int PrepareSugars(std::string const&, bool,
-                      ResStatArray&,
-                      Topology&, Frame const&, CpptrajFile*);
+
+
     // -----------------------
     /// Map PDB residue names to sugar information tokens
     MapType pdb_to_glycam_;

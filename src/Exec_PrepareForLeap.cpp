@@ -1,10 +1,14 @@
 #include "Exec_PrepareForLeap.h"
 #include "CharMask.h"
 #include "CpptrajStdio.h"
-#include "DistRoutines.h" // SearchForDisulfides
+#include "DataSet_Coords_CRD.h"
+#include "LeapInterface.h"
+#include "ParmFile.h"
+#include "StringRoutines.h"
+#include "Structure/Disulfide.h"
+#include "Structure/HisProt.h"
 #include "Structure/ResStatArray.h"
 #include "Structure/SugarBuilder.h"
-#include <algorithm> // sort
 #include <stack> // FindTerByBonds
 
 using namespace Cpptraj::Structure;
@@ -264,263 +268,8 @@ const
 }
 
 // -----------------------------------------------------------------------------
-/** Search for disulfide bonds. */
-int Exec_PrepareForLeap::SearchForDisulfides(ResStatArray& resStat,
-                                             double disulfidecut,
-                                             std::string const& newcysnamestr,
-                                             std::string const& cysmaskstr,
-                                             bool searchForNewDisulfides,
-                                             Topology& topIn, Frame const& frameIn,
-                                             CpptrajFile* outfile)
-{
-  // Disulfide search
-  NameType newcysname(newcysnamestr);
-  mprintf("\tCysteine residues involved in disulfide bonds will be changed to: %s\n", *newcysname);
-  if (searchForNewDisulfides)
-    mprintf("\tSearching for disulfide bonds with a cutoff of %g Ang.\n", disulfidecut);
-  else
-    mprintf("\tOnly using existing disulfide bonds, will not search for new ones.\n");
-
-  AtomMask cysmask;
-  if (cysmask.SetMaskString( cysmaskstr )) {
-    mprinterr("Error: Could not set up CYS mask string %s\n", cysmaskstr.c_str());
-    return 1;
-  }
-  if (topIn.SetupIntegerMask( cysmask )) return 1; 
-  cysmask.MaskInfo();
-  if (cysmask.None())
-    mprintf("Warning: No cysteine sulfur atoms selected by %s\n", cysmaskstr.c_str());
-  else {
-    // Sanity check - warn if non-sulfurs detected
-    for (AtomMask::const_iterator at = cysmask.begin(); at != cysmask.end(); ++at)
-    {
-      if (topIn[*at].Element() != Atom::SULFUR)
-        mprintf("Warning: Atom '%s' does not appear to be sulfur.\n",
-                topIn.ResNameNumAtomNameNum(*at).c_str());
-    }
-
-    int nExistingDisulfides = 0;
-    int nDisulfides = 0;
-    double cut2 = disulfidecut * disulfidecut;
-    // Try to find potential disulfide sites.
-    // Keep track of which atoms will be part of disulfide bonds.
-    Iarray disulfidePartner( cysmask.Nselected(), -1 );
-    // First, check for existing disulfides.
-    for (AtomMask::const_iterator at1 = cysmask.begin(); at1 != cysmask.end(); ++at1)
-    {
-      for (AtomMask::const_iterator at2 = at1 + 1; at2 != cysmask.end(); ++at2)
-      {
-        if (topIn[*at1].IsBondedTo(*at2)) {
-          if (debug_ > 0)
-            mprintf("\tExisting disulfide: %s to %s\n",
-                    topIn.ResNameNumAtomNameNum(*at1).c_str(),
-                    topIn.ResNameNumAtomNameNum(*at2).c_str());
-          nExistingDisulfides++;
-          int idx1 = (int)(at1 - cysmask.begin());
-          int idx2 = (int)(at2 - cysmask.begin());
-          disulfidePartner[idx1] = idx2;
-          disulfidePartner[idx2] = idx1;
-        }
-      }
-    }
-    mprintf("\t%i existing disulfide bonds.\n", nExistingDisulfides);
-    // DEBUG - Print current array
-    if (debug_ > 1) {
-      mprintf("DEBUG: Disulfide partner array after existing:\n");
-      for (Iarray::const_iterator it = disulfidePartner.begin(); it != disulfidePartner.end(); ++it)
-      {
-        mprintf("  S %i [%li]", cysmask[it-disulfidePartner.begin()]+1, it-disulfidePartner.begin());
-        if (*it == -1)
-          mprintf(" None.\n");
-        else
-          mprintf(" to S %i [%i]\n", cysmask[*it]+1, *it);
-      }
-    }
-    // Second, search for new disulfides from remaining sulfurs.
-    if (searchForNewDisulfides) {
-      // Only search with atoms that do not have an existing partner.
-      Iarray s_idxs; // Indices into cysmask/disulfidePartner
-      for (int idx = 0; idx != cysmask.Nselected(); idx++)
-        if (disulfidePartner[idx] == -1)
-          s_idxs.push_back( idx );
-      mprintf("\t%zu sulfur atoms do not have a partner.\n", s_idxs.size());
-      if (!s_idxs.empty()) {
-        // In some structures, there may be 2 potential disulfide partners
-        // within the cutoff. In that case, only choose the shortest.
-        // To try to do this as directly as possible, calculate all possible S-S
-        // distances, save the ones below the cutoff, sort them from shortest to
-        // longest, then assign each that to a disulfide if not already assigned.
-        // In this way, shorter S-S distances will be prioritized.
-        typedef std::pair<int,int> IdxPair;
-        typedef std::pair<double, IdxPair> D2Pair;
-        typedef std::vector<D2Pair> D2Array;
-        D2Array D2;
-
-        for (Iarray::const_iterator it1 = s_idxs.begin(); it1 != s_idxs.end(); ++it1)
-        {
-          int at1 = cysmask[*it1];
-          for (Iarray::const_iterator it2 = it1 + 1; it2 != s_idxs.end(); ++it2)
-          {
-            int at2 = cysmask[*it2];
-            double r2 = DIST2_NoImage(frameIn.XYZ(at1), frameIn.XYZ(at2));
-            if (r2 < cut2)
-              D2.push_back( D2Pair(r2, IdxPair(*it1, *it2)) );
-          }
-        }
-        std::sort(D2.begin(), D2.end());
-        if (debug_ > 1) {
-          mprintf("DEBUG: Sorted S-S array:\n");
-          for (D2Array::const_iterator it = D2.begin(); it != D2.end(); ++it)
-          {
-            int at1 = cysmask[it->second.first];
-            int at2 = cysmask[it->second.second];
-            mprintf("  %8i - %8i = %g Ang.\n", at1+1, at2+2, sqrt(it->first));
-          }
-        }
-        // All distances in D2 are below the cutoff
-        for (D2Array::const_iterator it = D2.begin(); it != D2.end(); ++it)
-        {
-          if (disulfidePartner[it->second.first] == -1 &&
-              disulfidePartner[it->second.second] == -1)
-          {
-            // Neither index has a partner yet
-            int at1 = cysmask[it->second.first];
-            int at2 = cysmask[it->second.second];
-            mprintf("\t  Potential disulfide: %s to %s (%g Ang.)\n",
-                    topIn.ResNameNumAtomNameNum(at1).c_str(),
-                    topIn.ResNameNumAtomNameNum(at2).c_str(), sqrt(it->first));
-            disulfidePartner[it->second.first ] = it->second.second;
-            disulfidePartner[it->second.second] = it->second.first;
-          }
-        } // END loop over sorted distances
-      } // END s_idxs not empty()
-    } // END search for new disulfides
-    // For each sulfur that has a disulfide partner, generate a bond command
-    // and change residue name.
-    for (Iarray::const_iterator idx1 = disulfidePartner.begin(); idx1 != disulfidePartner.end(); ++idx1)
-    {
-      if (*idx1 != -1) {
-        int at1 = cysmask[idx1-disulfidePartner.begin()];
-        int at2 = cysmask[*idx1];
-        if (at1 < at2) {
-          nDisulfides++;
-          LeapBond(at1, at2, topIn, outfile);
-        }
-        ChangeResName(topIn.SetRes(topIn[at1].ResNum()), newcysname);
-        resStat[topIn[at1].ResNum()] = VALIDATED;
-      }
-    }
-    mprintf("\tDetected %i disulfide bonds.\n", nDisulfides);
-  }
-  return 0;
-}
 
 // -----------------------------------------------------------------------------
-/** Try to determine histidine protonation from existing hydrogens.
-  * Change residue names as appropriate.
-  * \param topIn Input topology.
-  * \param ND1 ND1 atom name.
-  * \param NE2 NE2 atom name.
-  * \param HisName PDB histidine name.
-  * \param HieName Name for epsilon-protonated His.
-  * \param HidName Name for delta-protonated His.
-  * \param HipName Name for doubly-protonated His.
-  */
-int Exec_PrepareForLeap::DetermineHisProt( Topology& topIn,
-                                           NameType const& ND1,
-                                           NameType const& NE2,
-                                           NameType const& HisName,
-                                           NameType const& HieName,
-                                           NameType const& HidName,
-                                           NameType const& HipName )
-const
-{
-  mprintf("\tAttempting to determine histidine form from any existing H atoms.\n");
-  std::string hisMaskStr = ":" + HisName.Truncated();
-  AtomMask mask;
-  if (mask.SetMaskString( hisMaskStr )) {
-    mprinterr("Error: Invalid His mask string: %s\n", hisMaskStr.c_str());
-    return 1;
-  }
-  if ( topIn.SetupIntegerMask( mask )) return 1;
-  mask.MaskInfo();
-  Iarray resIdxs = topIn.ResnumsSelectedBy( mask );
-  // Loop over selected histidine residues
-  unsigned int nchanged = 0;
-  for (Iarray::const_iterator rnum = resIdxs.begin();
-                              rnum != resIdxs.end(); ++rnum)
-  {
-    if (debug_ > 1)
-      mprintf("DEBUG: %s (%i) (%c)\n", topIn.TruncResNameOnumId(*rnum).c_str(), topIn.Res(*rnum).OriginalResNum(), topIn.Res(*rnum).ChainId());
-    int nd1idx = -1;
-    int ne2idx = -1;
-    Residue const& hisRes = topIn.Res( *rnum );
-    for (int at = hisRes.FirstAtom(); at < hisRes.LastAtom(); ++at)
-    {
-      if ( (topIn[at].Name() == ND1 ) )
-        nd1idx = at;
-      else if ( (topIn[at].Name() == NE2 ) )
-        ne2idx = at;
-    }
-    if (nd1idx == -1) {
-      mprintf("Warning: Atom %s not found for %s; skipping residue.\n", *ND1, topIn.TruncResNameOnumId(*rnum).c_str());
-      continue;
-    }
-    if (ne2idx == -1) {
-      mprintf("Warning: Atom %s not found for %s; skipping residue,\n", *NE2, topIn.TruncResNameOnumId(*rnum).c_str());
-      continue;
-    }
-    if (debug_ > 1)
-      mprintf("DEBUG: %s nd1idx= %i ne2idx= %i\n",
-              topIn.TruncResNameOnumId( *rnum ).c_str(), nd1idx+1, ne2idx+1);
-    // Check for H bonded to nd1/ne2
-    int nd1h = 0;
-    for (Atom::bond_iterator bat = topIn[nd1idx].bondbegin();
-                             bat != topIn[nd1idx].bondend();
-                           ++bat)
-      if ( topIn[*bat].Element() == Atom::HYDROGEN)
-        ++nd1h;
-    if (nd1h > 1) {
-      mprinterr("Error: More than 1 hydrogen bonded to %s\n",
-                topIn.ResNameNumAtomNameNum(nd1idx).c_str());
-      return 1;
-    }
-    int ne2h = 0;
-    for (Atom::bond_iterator bat = topIn[ne2idx].bondbegin();
-                             bat != topIn[ne2idx].bondend();
-                           ++bat)
-      if ( topIn[*bat].Element() == Atom::HYDROGEN)
-        ++ne2h;
-    if (ne2h > 1) {
-      mprinterr("Error: More than 1 hydrogen bonded to %s\n",
-                topIn.ResNameNumAtomNameNum(ne2idx).c_str());
-      return 1;
-    }
-    if (nd1h > 0 && ne2h > 0) {
-      mprintf("\t\t%s => %s\n", topIn.TruncResNameOnumId(*rnum).c_str(), *HipName);
-      ChangeResName( topIn.SetRes(*rnum), HipName );
-      nchanged++;
-    } else if (nd1h > 0) {
-      mprintf("\t\t%s => %s\n", topIn.TruncResNameOnumId(*rnum).c_str(), *HidName);
-      ChangeResName( topIn.SetRes(*rnum), HidName );
-      nchanged++;
-    } else if (ne2h > 0) {
-      mprintf("\t\t%s => %s\n", topIn.TruncResNameOnumId(*rnum).c_str(), *HieName);
-      ChangeResName( topIn.SetRes(*rnum), HieName );
-      nchanged++;
-    }
-    //else {
-    //  // Default to epsilon
-    //  mprintf("\tUsing default name '%s' for %s\n", *HieName, topIn.TruncResNameOnumId(*rnum).c_str());
-    //  HisResNames.push_back( HieName );
-    //}
-  }
-  if (nchanged == 0) 
-    mprintf("\tNo histidine names were changed.\n");
-  else
-    mprintf("\t%u histidine names were changed.\n", nchanged);
-  return 0;
-}
 
 // -----------------------------------------------------------------------------
 
@@ -1034,8 +783,17 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   // Load PDB to glycam residue name map
-  SugarBuilder sugarBuilder;
+  SugarBuilder sugarBuilder(debug_);
   if (prepare_sugars) {
+    // Init options
+    if (sugarBuilder.InitOptions( argIn.hasKey("hasglycam"),
+                                  argIn.GetStringKey("sugarmask"),
+                                  argIn.GetStringKey("determinesugarsby", "geometry") ))
+    {
+      mprinterr("Error: Sugar options init failed.\n");
+      return CpptrajState::ERR;
+    }
+    // Load map
     if (sugarBuilder.LoadGlycamPdbResMap( argIn.GetStringKey("resmapfile" ) )) {
       mprinterr("Error: PDB to glycam name map load failed.\n");
       return CpptrajState::ERR;
@@ -1156,58 +914,10 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     if (RemoveHydrogens(topIn, frameIn)) return CpptrajState::ERR;
   }
 
-  // See if sugars already have glycam names
-  hasGlycam_ = argIn.hasKey("hasglycam");
-  if (hasGlycam_)
-    mprintf("\tAssuming sugars already have glycam residue names.\n");
-
-  // Get sugar mask or default sugar mask
-  std::string sugarmaskstr = argIn.GetStringKey("sugarmask");
-  if (!sugarmaskstr.empty()) {
-    if (!prepare_sugars) {
-      mprinterr("Error: Cannot specify 'nosugars' and 'sugarmask'\n");
-      return CpptrajState::ERR;
-    }
-  } else if (hasGlycam_) {
-    sugarmaskstr = GenGlycamResMaskString();
-  } else if (prepare_sugars) {
-    // No sugar mask specified; create one from names in pdb_to_glycam_ map.
-    sugarmaskstr.assign(":");
-    for (MapType::const_iterator mit = pdb_to_glycam_.begin(); mit != pdb_to_glycam_.end(); ++mit)
-    {
-      if (mit != pdb_to_glycam_.begin())
-        sugarmaskstr.append(",");
-      sugarmaskstr.append( mit->first.Truncated() );
-    }
-  }
-
-  // Get how sugars should be determined (geometry/name)
-  std::string determineSugarsBy = argIn.GetStringKey("determinesugarsby", "geometry");
-  if (determineSugarsBy == "geometry") {
-    useSugarName_ = false;
-    mprintf("\tWill determine sugar anomer type/configuration by geometry.\n");
-  } else if (determineSugarsBy == "name") {
-    useSugarName_ = true;
-    mprintf("\tWill determine sugar anomer type/configuration from residue name.\n");
-  } else {
-    mprinterr("Error: Invalid argument for 'determinesugarsby': %s\n", determineSugarsBy.c_str());
-    return CpptrajState::ERR;
-  }
-
   // If preparing sugars, need to set up an atom map and potentially
   // search for terminal sugars/missing bonds. Do this here after all atom
   // modifications have been done.
-  std::vector<Sugar> sugarResidues;
   if (prepare_sugars) {
-    // Set up an AtomMap for this residue to help determine stereocenters.
-    // This is required by the IdSugarRing() function.
-    //myMap_.SetDebug(debug_); // DEBUG
-    if (myMap_.Setup(topIn, frameIn)) {
-      mprinterr("Error: Atom map setup failed\n");
-      return CpptrajState::ERR;
-    }
-    myMap_.DetermineAtomIDs();
-
     bool splitres = !argIn.hasKey("nosplitres");
     if (splitres)
       mprintf("\tWill split off recognized sugar functional groups into separate residues.\n");
@@ -1223,8 +933,8 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     // adding missing bonds to C1 atoms.
     // This is done before any identification takes place since we want
     // to identify based on the most up-to-date topology.
-    if (FixSugarsStructure(sugarResidues, sugarmaskstr, topIn, frameIn,
-                           c1bondsearch, splitres))
+    if (sugarBuilder.FixSugarsStructure(topIn, frameIn,
+                                        c1bondsearch, splitres, solventResName_))
     {
       mprinterr("Error: Sugar structure modification failed.\n");
       return CpptrajState::ERR;
@@ -1296,11 +1006,12 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 
   // Disulfide search
   if (!argIn.hasKey("nodisulfides")) {
-    if (SearchForDisulfides( argIn.getKeyDouble("disulfidecut", 2.5),
+    if (SearchForDisulfides( resStat,
+                             argIn.getKeyDouble("disulfidecut", 2.5),
                              argIn.GetStringKey("newcysname", "CYX"),
                              argIn.GetStringKey("cysmask", ":CYS@SG"),
                             !argIn.hasKey("existingdisulfides"),
-                             topIn, frameIn, outfile ))
+                             topIn, frameIn, leapunitname_, outfile ))
     {
       mprinterr("Error: Disulfide search failed.\n");
       return CpptrajState::ERR;
@@ -1311,7 +1022,9 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 
   // Prepare sugars
   if (prepare_sugars) {
-    if (PrepareSugars(sugarmaskstr, sugarResidues, topIn, frameIn, outfile)) {
+    if (sugarBuilder.PrepareSugars(leapunitname_, errorsAreFatal_, resStat,
+                                   topIn, frameIn, outfile))
+    {
       mprinterr("Error: Sugar preparation failed.\n");
       return CpptrajState::ERR;
     }
