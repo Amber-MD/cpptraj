@@ -13,6 +13,8 @@ class ResStatArray;
 /// Class for preparing sugars in a topology
 class SugarBuilder {
   public:
+    /// Type for array of Sugar
+    typedef std::vector<Sugar> Array;
     /// CONSTRUCTOR - Take debug level
     SugarBuilder(int);
   private:
@@ -65,12 +67,12 @@ class SugarBuilder {
     int FindSugarC1Linkages(int, int, Topology&, Frame const&, NameType const&) const;
     
     /// ID sugar rings, find missing C1 links, split off functional groups
-    int FixSugarsStructure(std::vector<Sugar>&, std::string const&, Topology&, Frame&,
-                           bool, bool, NameType const&) const;
+    int FixSugarsStructure(std::string const&, Topology&, Frame&,
+                           bool, bool, NameType const&);
     /// Identify sugars, do renaming, remove bonds, generate leap input
     int PrepareSugars(std::string const&, std::string const&, bool,
                       ResStatArray&,
-                      std::vector<Sugar>&, Topology&, Frame const&, CpptrajFile*);
+                      Topology&, Frame const&, CpptrajFile*);
 
     typedef std::pair<NameType, SugarToken> PairType;
     typedef std::map<NameType, SugarToken> MapType;
@@ -93,6 +95,8 @@ class SugarBuilder {
 
     /// Map pdb residue names to glycam linkage residue names
     NameMapType pdb_glycam_linkageRes_map_;
+
+    Array Sugars_;          ///< Array of found sugars
 
     bool hasGlycam_;        ///< If true, assume sugars already have glycam names
     bool useSugarName_;     ///< If true, base form/chirality on name instead of geometry

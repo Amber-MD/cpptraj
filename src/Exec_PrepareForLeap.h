@@ -17,19 +17,6 @@ class Exec_PrepareForLeap : public Exec {
   private:
     typedef std::vector<int> Iarray;
 
-    enum ResStatType { UNKNOWN = 0,
-                       VALIDATED,
-                       SUGAR_UNRECOGNIZED_LINK_RES,
-                       SUGAR_UNRECOGNIZED_LINKAGE,
-                       SUGAR_NO_LINKAGE,
-                       SUGAR_NO_CHAIN_FOR_LINK,
-                       SUGAR_NAME_MISMATCH,
-                       //SUGAR_MISSING_C1X,
-                       SUGAR_SETUP_FAILED };
-    typedef std::vector<ResStatType> ResStatArray;
-
-    
-    
     /// Set PDB residue names recognized by Amber FFs
     void SetPdbResNames();
     /// Load PDB residue names recognized by Amber FFs from dat file

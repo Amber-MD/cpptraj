@@ -1686,14 +1686,12 @@ const
 }
 
 /** Try to fix issues with sugar structure before trying to identify. */
-int SugarBuilder::FixSugarsStructure(std::vector<Sugar>& sugarResidues,
-                                            std::string const& sugarMaskStr,
-                                            Topology& topIn, Frame& frameIn,
-                                            bool c1bondsearch, bool splitres,
-                                            NameType const& solventResName) 
-const
+int SugarBuilder::FixSugarsStructure(std::string const& sugarMaskStr,
+                                     Topology& topIn, Frame& frameIn,
+                                     bool c1bondsearch, bool splitres,
+                                     NameType const& solventResName) 
 {
-  sugarResidues.clear();
+  Sugars_.clear();
   AtomMask sugarMask(sugarMaskStr);
   mprintf("\tLooking for sugars selected by '%s'\n", sugarMask.MaskString());
   if (topIn.SetupIntegerMask( sugarMask )) return 1;
@@ -1726,16 +1724,16 @@ const
                 topIn.TruncResNameOnumId(*rnum).c_str());
     }*/
     //if (!sugar.NotSet()) {
-      sugarResidues.push_back( sugar );
+      Sugars_.push_back( sugar );
       if (debug_ > 0)
-        sugarResidues.back().PrintInfo(topIn);
+        Sugars_.back().PrintInfo(topIn);
     //}
   }
 
   if (c1bondsearch) {
     // Loop over sugar indices to see if anomeric C is missing bonds
-    for (std::vector<Sugar>::const_iterator sugar = sugarResidues.begin();
-                                            sugar != sugarResidues.end(); ++sugar)
+    for (std::vector<Sugar>::const_iterator sugar = Sugars_.begin();
+                                            sugar != Sugars_.end(); ++sugar)
     {
       if (sugar->NotSet()) continue;
       int anomericAtom = sugar->AnomericAtom();
@@ -1754,8 +1752,8 @@ const
   FxnGroupBuilder FGB(debug_);
   if (splitres) {
     // Loop over sugar indices to see if residues have ROH that must be split off
-    for (std::vector<Sugar>::iterator sugar = sugarResidues.begin();
-                                      sugar != sugarResidues.end(); ++sugar)
+    for (std::vector<Sugar>::iterator sugar = Sugars_.begin();
+                                      sugar != Sugars_.end(); ++sugar)
     {
       if (sugar->NotSet()) continue;
       if (FGB.CheckIfSugarIsTerminal(*sugar, topIn, frameIn)) {
@@ -1766,8 +1764,8 @@ const
     } // End loop over sugar indices
 
     // Loop over chain indices to see if residues need to be split
-    for (std::vector<Sugar>::iterator sugar = sugarResidues.begin();
-                                      sugar != sugarResidues.end(); ++sugar)
+    for (std::vector<Sugar>::iterator sugar = Sugars_.begin();
+                                      sugar != Sugars_.end(); ++sugar)
     {
       if (sugar->NotSet()) continue;
       if (FGB.CheckForFunctionalGroups(*sugar, topIn, frameIn)) {
@@ -1791,7 +1789,6 @@ int SugarBuilder::PrepareSugars(std::string const& sugarmaskstr,
                                 std::string const& leapunitname,
                                 bool errorsAreFatal,
                                 ResStatArray& resStatIn,
-                                       std::vector<Sugar>& Sugars,
                                        Topology& topIn,
                                        Frame const& frameIn, CpptrajFile* outfile)
                                 
@@ -1802,23 +1799,23 @@ int SugarBuilder::PrepareSugars(std::string const& sugarmaskstr,
   //mprintf("\tPreparing sugars selected by '%s'\n", sugarMask.MaskString());
   if (topIn.SetupIntegerMask( sugarMask )) return 1;
   //sugarMask.MaskInfo();
-  mprintf("\t%i sugar atoms selected in %zu residues.\n", sugarMask.Nselected(), Sugars.size());
+  mprintf("\t%i sugar atoms selected in %zu residues.\n", sugarMask.Nselected(), Sugars_.size());
   if (sugarMask.None())
     mprintf("Warning: No sugar atoms selected by %s\n", sugarMask.MaskString());
   else {
     CharMask cmask( sugarMask.ConvertToCharMask(), sugarMask.Nselected() );
     if (debug_ > 0) {
-      for (std::vector<Sugar>::const_iterator sugar = Sugars.begin();
-                                              sugar != Sugars.end(); ++sugar)
+      for (std::vector<Sugar>::const_iterator sugar = Sugars_.begin();
+                                              sugar != Sugars_.end(); ++sugar)
         sugar->PrintInfo(topIn);
     }
     std::set<BondType> linkBondsToRemove, sugarBondsToRemove;
     // For each sugar residue, see if it is bonded to a non-sugar residue.
     // If it is, remove that bond but record it.
-    for (unsigned int sidx = 0; sidx != Sugars.size(); sidx++)
+    for (unsigned int sidx = 0; sidx != Sugars_.size(); sidx++)
     {
-      Sugar const& sugar = Sugars[sidx];
-      Sugar& sugarIn = Sugars[sidx];
+      Sugar const& sugar = Sugars_[sidx];
+      Sugar& sugarIn = Sugars_[sidx];
       //if (sugar.NotSet()) {
       //  resStat_[sugar.ResNum(topIn)] = SUGAR_SETUP_FAILED;
       //  continue;
@@ -1850,7 +1847,7 @@ int SugarBuilder::PrepareSugars(std::string const& sugarmaskstr,
     // Bonds to sugars have been removed, so regenerate molecule info
     topIn.DetermineMolecules();
     // Set each sugar as terminal
-    for (std::vector<Sugar>::const_iterator sugar = Sugars.begin(); sugar != Sugars.end(); ++sugar)
+    for (std::vector<Sugar>::const_iterator sugar = Sugars_.begin(); sugar != Sugars_.end(); ++sugar)
     {
       int rnum = sugar->ResNum(topIn);
       topIn.SetRes(rnum).SetTerminal(true);
