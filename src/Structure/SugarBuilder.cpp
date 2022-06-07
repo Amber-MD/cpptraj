@@ -10,6 +10,7 @@
 #include "../CpptrajFile.h"
 #include "../CpptrajStdio.h"
 #include "../DistRoutines.h"
+#include "../LeapInterface.h"
 #include "../TorsionRoutines.h"
 
 using namespace Cpptraj::Structure;
@@ -1148,7 +1149,7 @@ const
   */
 std::string SugarBuilder::DetermineSugarLinkages(Sugar const& sugar, CharMask const& cmask,
                                                  Topology& topIn, ResStatArray& resStatIn,
-//                                                        CpptrajFile* outfile,
+                                                        std::set<BondType>& linkBondsToRemove,
                                                         std::set<BondType>& sugarBondsToRemove)
 const
 {
@@ -1208,7 +1209,7 @@ const
                   topIn.TruncResNameOnumId(rnum).c_str(), *(topIn[at].Name()), rnum+1,
                   topIn.TruncResNameOnumId(topIn[*bat].ResNum()).c_str(),
                   *(topIn[*bat].Name()), topIn[*bat].ResNum()+1, atomChainPosition+1);
-          sugarBondsToRemove.insert( BondType(at, *bat, -1) );
+          linkBondsToRemove.insert( BondType(at, *bat, -1) );
           // Check if this is a recognized linkage to non-sugar
           Residue& pres = topIn.SetRes( topIn[*bat].ResNum() );
           NameMapType::const_iterator lname = pdb_glycam_linkageRes_map_.find( pres.Name() );
@@ -1381,6 +1382,7 @@ std::string SugarBuilder::GenGlycamResMaskString() const {
 int SugarBuilder::IdentifySugar(Sugar& sugarIn, Topology& topIn,
                                        Frame const& frameIn, CharMask const& cmask,
                                        ResStatArray& resStatIn,
+                                       std::set<BondType>& linkBondsToRemove,
                                        std::set<BondType>& sugarBondsToRemove)
 {
   Sugar const& sugar = sugarIn;
@@ -1552,6 +1554,7 @@ int SugarBuilder::IdentifySugar(Sugar& sugarIn, Topology& topIn,
 
   // Identify linkages to other residues.
   std::string linkcode = DetermineSugarLinkages(sugar, cmask, topIn, resStatIn,
+                                                linkBondsToRemove,
                                                 sugarBondsToRemove);
   if (linkcode.empty()) {
     //resStat_[rnum] = SUGAR_UNRECOGNIZED_LINKAGE;
@@ -1783,3 +1786,77 @@ const
   return 0;
 }
 
+/** Prepare sugars for leap. */
+int SugarBuilder::PrepareSugars(std::string const& sugarmaskstr,
+                                std::string const& leapunitname,
+                                bool errorsAreFatal,
+                                ResStatArray& resStatIn,
+                                       std::vector<Sugar>& Sugars,
+                                       Topology& topIn,
+                                       Frame const& frameIn, CpptrajFile* outfile)
+                                
+{
+  // Need to set up the mask again since topology may have been modified.
+  AtomMask sugarMask;
+  if (sugarMask.SetMaskString( sugarmaskstr )) return 1;
+  //mprintf("\tPreparing sugars selected by '%s'\n", sugarMask.MaskString());
+  if (topIn.SetupIntegerMask( sugarMask )) return 1;
+  //sugarMask.MaskInfo();
+  mprintf("\t%i sugar atoms selected in %zu residues.\n", sugarMask.Nselected(), Sugars.size());
+  if (sugarMask.None())
+    mprintf("Warning: No sugar atoms selected by %s\n", sugarMask.MaskString());
+  else {
+    CharMask cmask( sugarMask.ConvertToCharMask(), sugarMask.Nselected() );
+    if (debug_ > 0) {
+      for (std::vector<Sugar>::const_iterator sugar = Sugars.begin();
+                                              sugar != Sugars.end(); ++sugar)
+        sugar->PrintInfo(topIn);
+    }
+    std::set<BondType> linkBondsToRemove, sugarBondsToRemove;
+    // For each sugar residue, see if it is bonded to a non-sugar residue.
+    // If it is, remove that bond but record it.
+    for (unsigned int sidx = 0; sidx != Sugars.size(); sidx++)
+    {
+      Sugar const& sugar = Sugars[sidx];
+      Sugar& sugarIn = Sugars[sidx];
+      //if (sugar.NotSet()) {
+      //  resStat_[sugar.ResNum(topIn)] = SUGAR_SETUP_FAILED;
+      //  continue;
+      //}
+      // See if we recognize this sugar.
+      if (IdentifySugar(sugarIn, topIn, frameIn, cmask, resStatIn, linkBondsToRemove, sugarBondsToRemove))
+      {
+        if (errorsAreFatal)
+          return 1;
+        else
+          mprintf("Warning: Preparation of sugar %s failed, skipping.\n",
+                  topIn.TruncResNameOnumId( sugar.ResNum(topIn) ).c_str());
+      }
+    } // END loop over sugar residues
+    // Remove bonds from non-sugar to sugar
+    for (std::set<BondType>::const_iterator bnd = linkBondsToRemove.begin();
+                                            bnd != linkBondsToRemove.end(); ++bnd)
+    {
+      outfile->Printf("%s\n", LeapInterface::LeapBond(bnd->A1(), bnd->A2(), leapunitname, topIn).c_str());
+      topIn.RemoveBond(bnd->A1(), bnd->A2());
+    }
+    // Remove bonds between sugars
+    for (std::set<BondType>::const_iterator bnd = sugarBondsToRemove.begin();
+                                            bnd != sugarBondsToRemove.end(); ++bnd)
+    {
+      outfile->Printf("%s\n", LeapInterface::LeapBond(bnd->A1(), bnd->A2(), leapunitname, topIn).c_str());
+      topIn.RemoveBond(bnd->A1(), bnd->A2());
+    }
+    // Bonds to sugars have been removed, so regenerate molecule info
+    topIn.DetermineMolecules();
+    // Set each sugar as terminal
+    for (std::vector<Sugar>::const_iterator sugar = Sugars.begin(); sugar != Sugars.end(); ++sugar)
+    {
+      int rnum = sugar->ResNum(topIn);
+      topIn.SetRes(rnum).SetTerminal(true);
+      if (rnum - 1 > -1)
+        topIn.SetRes(rnum-1).SetTerminal(true);
+    }
+  }
+  return 0;
+}

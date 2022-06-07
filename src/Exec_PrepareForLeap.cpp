@@ -29,15 +29,6 @@ Exec_PrepareForLeap::Exec_PrepareForLeap() : Exec(COORDS),
   SetHidden(false);
 }
 
-/// Generate leap bond command for given atoms
-void Exec_PrepareForLeap::LeapBond(int at1, int at2, Topology const& topIn, CpptrajFile* outfile)
-const
-{
-  outfile->Printf("bond %s.%i.%s %s.%i.%s\n",
-                  leapunitname_.c_str(), topIn[at1].ResNum()+1, *(topIn[at1].Name()),
-                  leapunitname_.c_str(), topIn[at2].ResNum()+1, *(topIn[at2].Name()));
-}
-
 /** If file not present, use a default set of residue names. */
 void Exec_PrepareForLeap::SetPdbResNames() {
   //Protein
@@ -151,71 +142,6 @@ int Exec_PrepareForLeap::LoadPdbResNames(std::string const& fnameIn)
 
 
 
-
-/** Prepare sugars for leap. */
-int Exec_PrepareForLeap::PrepareSugars(std::string const& sugarmaskstr,
-                                       std::vector<Sugar>& Sugars,
-                                       Topology& topIn,
-                                       Frame const& frameIn, CpptrajFile* outfile)
-                                
-{
-  // Need to set up the mask again since topology may have been modified.
-  AtomMask sugarMask;
-  if (sugarMask.SetMaskString( sugarmaskstr )) return 1;
-  //mprintf("\tPreparing sugars selected by '%s'\n", sugarMask.MaskString());
-  if (topIn.SetupIntegerMask( sugarMask )) return 1;
-  //sugarMask.MaskInfo();
-  mprintf("\t%i sugar atoms selected in %zu residues.\n", sugarMask.Nselected(), Sugars.size());
-  if (sugarMask.None())
-    mprintf("Warning: No sugar atoms selected by %s\n", sugarMask.MaskString());
-  else {
-    CharMask cmask( sugarMask.ConvertToCharMask(), sugarMask.Nselected() );
-    if (debug_ > 0) {
-      for (std::vector<Sugar>::const_iterator sugar = Sugars.begin();
-                                              sugar != Sugars.end(); ++sugar)
-        sugar->PrintInfo(topIn);
-    }
-    std::set<BondType> sugarBondsToRemove;
-    // For each sugar residue, see if it is bonded to a non-sugar residue.
-    // If it is, remove that bond but record it.
-    for (unsigned int sidx = 0; sidx != Sugars.size(); sidx++)
-    {
-      Sugar const& sugar = Sugars[sidx];
-      Sugar& sugarIn = Sugars[sidx];
-      //if (sugar.NotSet()) {
-      //  resStat_[sugar.ResNum(topIn)] = SUGAR_SETUP_FAILED;
-      //  continue;
-      //}
-      // See if we recognize this sugar.
-      if (IdentifySugar(sugarIn, topIn, frameIn, cmask, outfile, sugarBondsToRemove))
-      {
-        if (errorsAreFatal_)
-          return 1;
-        else
-          mprintf("Warning: Preparation of sugar %s failed, skipping.\n",
-                  topIn.TruncResNameOnumId( sugar.ResNum(topIn) ).c_str());
-      }
-    } // END loop over sugar residues
-    // Remove bonds between sugars
-    for (std::set<BondType>::const_iterator bnd = sugarBondsToRemove.begin();
-                                            bnd != sugarBondsToRemove.end(); ++bnd)
-    {
-      LeapBond(bnd->A1(), bnd->A2(), topIn, outfile);
-      topIn.RemoveBond(bnd->A1(), bnd->A2());
-    }
-    // Bonds to sugars have been removed, so regenerate molecule info
-    topIn.DetermineMolecules();
-    // Set each sugar as terminal
-    for (std::vector<Sugar>::const_iterator sugar = Sugars.begin(); sugar != Sugars.end(); ++sugar)
-    {
-      int rnum = sugar->ResNum(topIn);
-      topIn.SetRes(rnum).SetTerminal(true);
-      if (rnum - 1 > -1)
-        topIn.SetRes(rnum-1).SetTerminal(true);
-    }
-  }
-  return 0;
-}
 
 // -----------------------------------------------------------------------------
 /** Determine where molecules end based on connectivity. */

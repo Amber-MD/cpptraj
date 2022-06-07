@@ -4,6 +4,7 @@
 #include "CpptrajStdio.h"
 #include "File_TempName.h"
 #include "StringRoutines.h"
+#include "Topology.h"
 #include <cstdio>
 
 using namespace Cpptraj;
@@ -18,6 +19,18 @@ int LeapInterface::AddInputFile(std::string const& fname) {
   if (fname.empty()) return 1;
   input_files_.push_back( fname );
   return 0;
+}
+
+/** \return LEaP bond command for given atoms. */
+std::string LeapInterface::LeapBond(int at1, int at2, std::string const& leapunitname,
+                                    Topology const& topIn)
+{
+  return std::string(
+    "bond " +
+    leapunitname + "." + integerToString(topIn[at1].ResNum()+1) + "." + topIn[at1].Name().Truncated() +
+    " " +
+    leapunitname + "." + integerToString(topIn[at2].ResNum()+1) + "." + topIn[at2].Name().Truncated()
+  );
 }
 
 /** Add command to run after input is sourced. */

@@ -3,6 +3,7 @@
 #include "SugarToken.h" // FormTypeEnum
 #include "../AtomMap.h"
 #include <map>
+class CpptrajFile;
 class NameType;
 namespace Cpptraj {
 namespace Structure {
@@ -50,24 +51,27 @@ class SugarBuilder {
     /// Determine linkages for the sugar
     std::string DetermineSugarLinkages(Sugar const&, CharMask const&, Topology&,
                                        Cpptraj::Structure::ResStatArray&,
+                                       std::set<BondType>&,
                                        std::set<BondType>&) const;
     /// Create a residue mask string for selecting Glycam-named sugar residues.
     std::string GenGlycamResMaskString() const;
 
     /// Try to identify sugar name, form, and linkages
     int IdentifySugar(Sugar&, Topology&, Frame const&, CharMask const&,
-                      Cpptraj::Structure::ResStatArray&, std::set<BondType>&);
+                      Cpptraj::Structure::ResStatArray&,
+                      std::set<BondType>&,
+                      std::set<BondType>&);
     /// Try to find missing linkages to anomeric carbon in sugar.
     int FindSugarC1Linkages(int, int, Topology&, Frame const&, NameType const&) const;
     
-    /// Attempt to fix any issues with sugars
+    /// ID sugar rings, find missing C1 links, split off functional groups
     int FixSugarsStructure(std::vector<Sugar>&, std::string const&, Topology&, Frame&,
                            bool, bool, NameType const&) const;
+    /// Identify sugars, do renaming, remove bonds, generate leap input
+    int PrepareSugars(std::string const&, std::string const&, bool,
+                      ResStatArray&,
+                      std::vector<Sugar>&, Topology&, Frame const&, CpptrajFile*);
 
-/*
-    int PrepareSugars(std::string const&, std::vector<Sugar>&, Topology&, Frame const&, CpptrajFile*);
-
- */
     typedef std::pair<NameType, SugarToken> PairType;
     typedef std::map<NameType, SugarToken> MapType;
     MapType pdb_to_glycam_; ///< Map PDB residue names to sugar information tokens
