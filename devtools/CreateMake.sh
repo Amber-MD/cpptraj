@@ -90,6 +90,10 @@ make depend
 
 echo ""
 echo "Make sure to add 'include $DIR/$SOURCEFILE' to src/Makefile"
+echo "Make sure to add '"$upper"_SOURCEFILES=\$($VARNAME:%.cpp=$DIR/%.cpp)' to src/Makefile"
+echo "Make sure to add '\$("$upper"_SOURCEFILES:.cpp=.o)' to the OBJECTS variable in src/Makefile"
+echo "Make sure to add '@echo \$("$upper"_SOURCEFILES)' to the showsources: target in src/Makefile"
+echo "Make sure to add '\$("$upper"_SOURCEFILES)' to ./findDepend execution in src/Makefile"
 echo "Make sure to add 'add_subdirectory($DIR)' to src/CMakeLists.txt"
 echo ""
 

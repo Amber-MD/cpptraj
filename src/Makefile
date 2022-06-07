@@ -8,9 +8,10 @@ include Cluster/clusterfiles
 include Structure/structurefiles
 
 CLUSTER_SOURCEFILES=$(CLUSTER_SOURCES:%.cpp=Cluster/%.cpp)
+STRUCTURE_SOURCEFILES=$(STRUCTURE_SOURCES:%.cpp=Structure/%.cpp)
 
 # All object files
-OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o) $(CLUSTER_SOURCEFILES:.cpp=.o)
+OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o) $(CLUSTER_SOURCEFILES:.cpp=.o) $(STRUCTURE_SOURCEFILES:.cpp=.o)
 
 # General rules
 .cpp.o:
@@ -26,6 +27,7 @@ DEL_FILE = /bin/rm -f
 # For debugging
 showsources:
 	@echo $(CLUSTER_SOURCEFILES)
+	@echo $(STRUCTURE_SOURCEFILES)
 
 showobjects:
 	@echo $(OBJECTS)
@@ -136,7 +138,7 @@ findDepend: FindDepend.cpp FindDepend.o
 	$(CXX) -o findDepend FindDepend.o
 
 depend: findDepend
-	./findDepend $(SOURCES) $(CSOURCES) $(CLUSTER_SOURCEFILES) > cpptrajdepend
+	./findDepend $(SOURCES) $(CSOURCES) $(CLUSTER_SOURCEFILES) $(STRUCTURE_SOURCEFILES) > cpptrajdepend
 
 dependclean:
 	$(DEL_FILE) FindDepend.o findDepend
