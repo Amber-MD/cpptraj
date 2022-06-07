@@ -1,5 +1,6 @@
 # Files for Structure subdirectory.
 STRUCTURE_SOURCES= \
+  Disulfide.cpp \
   FunctionalGroup.cpp \
   FxnGroupBuilder.cpp \
   StructureRoutines.cpp \

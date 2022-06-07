@@ -7,6 +7,7 @@ namespace Cpptraj {
 namespace Structure {
 
 void SetStructureDebugLevel(int); // TODO use debug level everywhere throughout Structure
+int StructureDebugLevel();
 void ChangeResName(Residue&, NameType const&);
 void ChangeAtomName(Atom&, NameType const&);
 

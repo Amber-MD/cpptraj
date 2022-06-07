@@ -11,6 +11,9 @@ using namespace Cpptraj::Structure;
 /// Set the Structure debug level
 void SetStructureDebugLevel(int debugIn) { structure_debug_ = debugIn; }
 
+/// \return the Structure debug level
+int StructureDebugLevel() { return structure_debug_; }
+
 /// Used to change residue name to nameIn
 void ChangeResName(Residue& res, NameType const& nameIn) {
   if (res.Name() != nameIn) {
