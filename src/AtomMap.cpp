@@ -287,7 +287,7 @@ int AtomMap::CheckBonds() {
       }
     }
   }
-  if (total_bonds == 0) {
+  if (total_bonds == 0 && mapatoms_.size() > 1) {
     mprinterr("Error: No bond information present, required by AtomMap.\n");
     return 1;
   }

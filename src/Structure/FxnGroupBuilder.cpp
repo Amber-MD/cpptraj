@@ -76,6 +76,32 @@ int FxnGroupBuilder::GetGroup(Iarray& groupAtoms, Iarray const& ignoreAtoms, int
   for (Iarray::const_iterator it = groupAtoms.begin(); it != groupAtoms.end(); ++it)
     mprintf(" %s", topIn.AtomMaskName( *it ).c_str());
   mprintf("\n");
+  if (groupAtoms.empty()) return 0;
+
+  // Create topology containing only groupAtoms
+  Iarray oldToNew( topIn.Natom(), -1 );
+  Topology groupTop;
+  int newIdx = 0;
+  for (Iarray::const_iterator it = groupAtoms.begin(); it != groupAtoms.end(); ++it, newIdx++)
+  {
+    groupTop.AddTopAtom( Atom(topIn[*it].Name(), topIn[*it].ElementName()), topIn.Res(topIn[*it].ResNum()) );
+    oldToNew[*it] = newIdx;
+  }
+  // Add bonds to groupTop
+  for (Iarray::const_iterator it = groupAtoms.begin(); it != groupAtoms.end(); ++it) {
+    if (oldToNew[*it] > -1) {
+      for (Atom::bond_iterator jt = topIn[*it].bondbegin(); jt != topIn[*it].bondend(); ++jt) {
+        if (oldToNew[*jt] > -1) {
+          groupTop.AddBond( oldToNew[*it], oldToNew[*jt], -1 );
+        }
+      }
+    }
+  }
+  groupTop.Summary();
+  AtomMap groupmap;
+  groupmap.SetDebug(10); // DEBUG
+  groupmap.Setup( groupTop, Frame() );
+  groupmap.DetermineAtomIDs();
 
   return 0;
 }
