@@ -1,13 +1,84 @@
 #include "FxnGroupBuilder.h"
 #include "StructureRoutines.h"
 #include "Sugar.h"
+#include "../AtomMap.h"
 #include "../CpptrajStdio.h"
 #include "../Frame.h"
 #include "../Topology.h"
 
 using namespace Cpptraj::Structure;
 
-FxnGroupBuilder::FxnGroupBuilder(int debugIn) : debug_(debugIn) {}
+FxnGroupBuilder::FxnGroupBuilder(int debugIn) :
+  debug_(debugIn)
+{
+  AddGroups();
+}
+
+/** Add functional groups to the array. */
+void FxnGroupBuilder::AddGroups() {
+  // Sulfate
+  //     O
+  //     |
+  // O - S - O
+  //     |
+  //     O
+  Topology so3top;
+  so3top.AddTopAtom( Atom("S",  "S "), Residue("SO3", 1, ' ', ' ') );
+  so3top.AddTopAtom( Atom("O1", "O "), Residue("SO3", 1, ' ', ' ') );
+  so3top.AddTopAtom( Atom("O2", "O "), Residue("SO3", 1, ' ', ' ') );
+  so3top.AddTopAtom( Atom("O3", "O "), Residue("SO3", 1, ' ', ' ') );
+  so3top.AddBond(0, 1);
+  so3top.AddBond(0, 2);
+  so3top.AddBond(0, 3);
+  AtomMap so3map;
+  so3map.SetDebug(10); // DEBUG
+  so3map.Setup( so3top, Frame() );
+  so3map.DetermineAtomIDs();
+} 
+
+/// recursive function to visit all bonded atoms in a group
+void visitGroupAtoms(std::vector<int>& groupAtoms, int currentAtom, Topology const& topIn, std::vector<bool>& visited)
+{
+  visited[currentAtom] = true;
+  groupAtoms.push_back( currentAtom );
+  for (Atom::bond_iterator bat = topIn[currentAtom].bondbegin();
+                           bat != topIn[currentAtom].bondend(); ++bat)
+  {
+    if (!visited[*bat])
+      visitGroupAtoms(groupAtoms, *bat, topIn, visited);
+  }
+}
+
+/** Get connected atoms to atIdx, not including linkAtIdx or ignoreAtoms. */
+int FxnGroupBuilder::GetGroup(Iarray& groupAtoms, Iarray const& ignoreAtoms, int atIdx, int linkAtIdx, Topology const& topIn)
+{
+  Atom const& startAtom = topIn[atIdx];
+  Atom const& linkAtom = topIn[linkAtIdx];
+  // atIdx and linkAtIdx must be in the same residue
+  if (startAtom.ResNum() != linkAtom.ResNum()) return 0;
+  groupAtoms.clear();
+  // Mark all atoms inside the residue (except the link atom) as not visited.
+  std::vector<bool> visited( topIn.Natom(), true );
+  for (int at = topIn.Res(startAtom.ResNum()).FirstAtom();
+           at != topIn.Res(startAtom.ResNum()).LastAtom(); ++at)
+  {
+    if (at != linkAtIdx)
+      visited[at] = false;
+  }
+  // Mark atoms to ignore as visited. If atIdx is to be ignored, exit.
+  for (Iarray::const_iterator it = ignoreAtoms.begin(); it != ignoreAtoms.end(); ++it) {
+    if (*it == atIdx) return 0;
+    visited[*it] = true;
+  }
+
+  mprintf("DEBUG: Potential group starting at [%s]-[%s]\n", topIn.AtomMaskName(atIdx).c_str(), topIn.AtomMaskName(linkAtIdx).c_str());
+  visitGroupAtoms( groupAtoms, atIdx, topIn, visited );
+  mprintf("DEBUG: Potential group atoms:\n");
+  for (Iarray::const_iterator it = groupAtoms.begin(); it != groupAtoms.end(); ++it)
+    mprintf("\t%s\n", topIn.AtomMaskName( *it ).c_str());
+
+  return 0;
+}
 
 /** \return Type of group represented by the atom atIdx. */
 FunctionalGroup::Type
@@ -173,6 +244,10 @@ const
       for (Atom::bond_iterator oat = topIn[*cat].bondbegin();
                                oat != topIn[*cat].bondend(); ++oat)
       {
+        // DEBUG
+        Iarray groupAtoms;
+        GetGroup(groupAtoms, sugar.ChainAtoms(), *oat, *cat, topIn);
+        // DEBUG
         o_idx = -1;
         if (topIn[*oat].Element() == Atom::OXYGEN &&
             topIn[*oat].ResNum() == rnum &&

@@ -25,6 +25,9 @@ class FxnGroupBuilder {
     /// \return identity of the group bonded to given atom, print to stdout
     FunctionalGroup::Type IdFunctionalGroup(Iarray&, int, int, int, Topology const&) const;
 
+    void AddGroups();
+
+    static int GetGroup(Iarray&, Iarray const&, int, int, Topology const&);
 
     std::vector<FunctionalGroup> functionalGroups_; ///< Recognized functional groups (FunctionalGroupType). TODO populate and use this
     int debug_; ///< Debug level

@@ -16,8 +16,13 @@ class FunctionalGroup {
       G_OH,      ///< Hydroxyl
       G_OME,     ///< O-methyl
       UNRECOGNIZED_GROUP };
-
+    /// CONSTRUCTOR TODO remove blank constructor?
     FunctionalGroup();
+    /// CONSTRUCTOR - take name
+    FunctionalGroup(NameType const&);
+
+    /// Add atom and ID to group
+    void AddAtom(NameType const&, std::string const&);
 
     static const char* typeString(Type t) { return FunctionalGroupStr_[t]; }
   private:
@@ -26,6 +31,7 @@ class FunctionalGroup {
 
     NameType resname_;                   ///< Functional group residue name.
     std::vector<NameType> anames_;       ///< Functional group atom names. Heavy atoms first.
+    std::vector<std::string> atomIDs_;   ///< Functional group atom IDs.
     Atom::AtomicElementType chargeAtom_; ///< Element of atom which needs charge adjusted.
     double chargeOffset_;                ///< Charge offset for adjusting charge.
 };

@@ -30,17 +30,28 @@ bool AtomMap::InvalidElement() {
 
 // AtomMap::Setup()
 int AtomMap::Setup(Topology const& TopIn, Frame const& FrameIn) {
-  if (TopIn.Natom() != FrameIn.Natom()) {
-    mprinterr("Error: Size of input topology '%s' (%i) != size of input frame (%i)\n",
-              TopIn.c_str(), TopIn.Natom(), FrameIn.Natom());
-    return 1;
-  }
-  mapatoms_.clear();
-  const double* xyz = FrameIn.xAddress();
-  for (Topology::atom_iterator atom = TopIn.begin(); atom != TopIn.end(); atom++, xyz+=3) {
-    // This sets up 1 char atom name based on atom element
-    mapatoms_.push_back( MapAtom(*atom, xyz) );
-    if (InvalidElement()) return 1;
+  // Check for empty Frame
+  if (FrameIn.Natom() < 1) {
+    mapatoms_.clear();
+    static const double ZERO[3] = {0.0, 0.0, 0.0};
+    for (Topology::atom_iterator atom = TopIn.begin(); atom != TopIn.end(); atom++) {
+      // This sets up 1 char atom name based on atom element
+      mapatoms_.push_back( MapAtom(*atom, ZERO) );
+      if (InvalidElement()) return 1;
+    }
+  } else {
+    if (TopIn.Natom() != FrameIn.Natom()) {
+      mprinterr("Error: Size of input topology '%s' (%i) != size of input frame (%i)\n",
+                TopIn.c_str(), TopIn.Natom(), FrameIn.Natom());
+      return 1;
+    }
+    mapatoms_.clear();
+    const double* xyz = FrameIn.xAddress();
+    for (Topology::atom_iterator atom = TopIn.begin(); atom != TopIn.end(); atom++, xyz+=3) {
+      // This sets up 1 char atom name based on atom element
+      mapatoms_.push_back( MapAtom(*atom, xyz) );
+      if (InvalidElement()) return 1;
+    }
   }
   return CheckBonds();
 }
