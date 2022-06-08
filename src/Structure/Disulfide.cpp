@@ -1,12 +1,9 @@
 #include "Disulfide.h"
-#include <vector>
 #include "ResStatArray.h"
 #include "StructureRoutines.h"
-#include "../CpptrajFile.h"
 #include "../CpptrajStdio.h"
 #include "../DistRoutines.h"
 #include "../Frame.h"
-#include "../LeapInterface.h"
 #include "../Topology.h"
 #include <algorithm> //sort
 
@@ -19,8 +16,7 @@ int Cpptraj::Structure::SearchForDisulfides(ResStatArray& resStat,
                                              std::string const& cysmaskstr,
                                              bool searchForNewDisulfides,
                                              Topology& topIn, Frame const& frameIn,
-                                             std::string const& leapunitname,
-                                             CpptrajFile* outfile)
+                                             std::vector<BondType>& LeapBonds)
 {
   // Disulfide search
   typedef std::vector<int> Iarray;
@@ -154,7 +150,9 @@ int Cpptraj::Structure::SearchForDisulfides(ResStatArray& resStat,
         int at2 = cysmask[*idx1];
         if (at1 < at2) {
           nDisulfides++;
-          outfile->Printf("%s\n", LeapInterface::LeapBond(at1, at2, leapunitname, topIn).c_str()); // TODO remove bond from Top?
+          // TODO remove bond from Top?
+          LeapBonds.push_back( BondType(at1, at2, -1) );
+          //outfile->Printf("%s\n", LeapInterface::LeapBond(at1, at2, leapunitname, topIn).c_str());
         }
         ChangeResName(topIn.SetRes(topIn[at1].ResNum()), newcysname);
         resStat[topIn[at1].ResNum()] = ResStatArray::VALIDATED;

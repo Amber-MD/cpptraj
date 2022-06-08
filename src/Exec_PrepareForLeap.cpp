@@ -998,6 +998,9 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   if (!pdbout.empty())
     outfile->Printf("%s = loadpdb %s\n", leapunitname_.c_str(), pdbout.c_str());
 
+  // Array that will hold bonds that need to be made in LEaP
+  std::vector<BondType> LeapBonds;
+
   // Disulfide search
   if (!argIn.hasKey("nodisulfides")) {
     if (SearchForDisulfides( resStat,
@@ -1005,7 +1008,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
                              argIn.GetStringKey("newcysname", "CYX"),
                              argIn.GetStringKey("cysmask", ":CYS@SG"),
                             !argIn.hasKey("existingdisulfides"),
-                             topIn, frameIn, leapunitname_, outfile ))
+                             topIn, frameIn, LeapBonds ))
     {
       mprinterr("Error: Disulfide search failed.\n");
       return CpptrajState::ERR;
@@ -1016,8 +1019,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 
   // Prepare sugars
   if (prepare_sugars) {
-    if (sugarBuilder.PrepareSugars(leapunitname_, errorsAreFatal_, resStat,
-                                   topIn, frameIn, outfile))
+    if (sugarBuilder.PrepareSugars(errorsAreFatal_, resStat, topIn, frameIn, LeapBonds))
     {
       mprinterr("Error: Sugar preparation failed.\n");
       return CpptrajState::ERR;
@@ -1025,6 +1027,11 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   } else {
     mprintf("\tNot preparing sugars.\n");
   }
+
+  // Create LEaP input for bonds that need to be made in LEaP
+  for (std::vector<BondType>::const_iterator bnd = LeapBonds.begin();
+                                             bnd != LeapBonds.end(); ++bnd)
+    outfile->Printf("%s\n", Cpptraj::LeapInterface::LeapBond(bnd->A1(), bnd->A2(), leapunitname_, topIn).c_str());
 
   // Count any solvent molecules
   if (!remove_water) {

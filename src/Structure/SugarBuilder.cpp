@@ -10,7 +10,6 @@
 #include "../CpptrajFile.h"
 #include "../CpptrajStdio.h"
 #include "../DistRoutines.h"
-#include "../LeapInterface.h"
 #include "../TorsionRoutines.h"
 
 using namespace Cpptraj::Structure;
@@ -1887,11 +1886,10 @@ int SugarBuilder::FixSugarsStructure(Topology& topIn, Frame& frameIn,
 }
 
 /** Prepare sugars for leap. */
-int SugarBuilder::PrepareSugars(std::string const& leapunitname,
-                                bool errorsAreFatal,
+int SugarBuilder::PrepareSugars(bool errorsAreFatal,
                                 ResStatArray& resStatIn,
-                                       Topology& topIn,
-                                       Frame const& frameIn, CpptrajFile* outfile)
+                                Topology& topIn, Frame const& frameIn,
+                                std::vector<BondType>& LeapBonds)
                                 
 {
   // Need to set up the mask again since topology may have been modified.
@@ -1935,14 +1933,16 @@ int SugarBuilder::PrepareSugars(std::string const& leapunitname,
     for (std::set<BondType>::const_iterator bnd = linkBondsToRemove.begin();
                                             bnd != linkBondsToRemove.end(); ++bnd)
     {
-      outfile->Printf("%s\n", LeapInterface::LeapBond(bnd->A1(), bnd->A2(), leapunitname, topIn).c_str());
+      //outfile->Printf("%s\n", LeapInterface::LeapBond(bnd->A1(), bnd->A2(), leapunitname, topIn).c_str());
+      LeapBonds.push_back( *bnd );
       topIn.RemoveBond(bnd->A1(), bnd->A2());
     }
     // Remove bonds between sugars
     for (std::set<BondType>::const_iterator bnd = sugarBondsToRemove.begin();
                                             bnd != sugarBondsToRemove.end(); ++bnd)
     {
-      outfile->Printf("%s\n", LeapInterface::LeapBond(bnd->A1(), bnd->A2(), leapunitname, topIn).c_str());
+      //outfile->Printf("%s\n", LeapInterface::LeapBond(bnd->A1(), bnd->A2(), leapunitname, topIn).c_str());
+      LeapBonds.push_back( *bnd );
       topIn.RemoveBond(bnd->A1(), bnd->A2());
     }
     // Bonds to sugars have been removed, so regenerate molecule info

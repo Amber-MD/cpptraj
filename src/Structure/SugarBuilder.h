@@ -25,9 +25,7 @@ class SugarBuilder {
     int FixSugarsStructure(Topology&, Frame&,
                            bool, bool, NameType const&);
     /// Identify sugars, do renaming, remove bonds, generate leap input
-    int PrepareSugars(std::string const&, bool,
-                      ResStatArray&,
-                      Topology&, Frame const&, CpptrajFile*);
+    int PrepareSugars(bool, ResStatArray&, Topology&, Frame const&, std::vector<BondType>&);
   private:
     typedef std::vector<int> Iarray;
 
