@@ -71,11 +71,11 @@ int FxnGroupBuilder::GetGroup(Iarray& groupAtoms, Iarray const& ignoreAtoms, int
     visited[*it] = true;
   }
 
-  mprintf("DEBUG: Potential group starting at [%s]-[%s]\n", topIn.AtomMaskName(atIdx).c_str(), topIn.AtomMaskName(linkAtIdx).c_str());
   visitGroupAtoms( groupAtoms, atIdx, topIn, visited );
-  mprintf("DEBUG: Potential group atoms:\n");
+  mprintf("DEBUG: Potential group starting at [%s]-[%s]:", topIn.AtomMaskName(atIdx).c_str(), topIn.AtomMaskName(linkAtIdx).c_str());
   for (Iarray::const_iterator it = groupAtoms.begin(); it != groupAtoms.end(); ++it)
-    mprintf("\t%s\n", topIn.AtomMaskName( *it ).c_str());
+    mprintf(" %s", topIn.AtomMaskName( *it ).c_str());
+  mprintf("\n");
 
   return 0;
 }
@@ -244,10 +244,7 @@ const
       for (Atom::bond_iterator oat = topIn[*cat].bondbegin();
                                oat != topIn[*cat].bondend(); ++oat)
       {
-        // DEBUG
-        Iarray groupAtoms;
-        GetGroup(groupAtoms, sugar.ChainAtoms(), *oat, *cat, topIn);
-        // DEBUG
+
         o_idx = -1;
         if (topIn[*oat].Element() == Atom::OXYGEN &&
             topIn[*oat].ResNum() == rnum &&
@@ -257,6 +254,10 @@ const
           for (Atom::bond_iterator sat = topIn[*oat].bondbegin();
                                    sat != topIn[*oat].bondend(); ++sat)
           {
+            // DEBUG
+            Iarray groupAtoms;
+            GetGroup(groupAtoms, sugar.ChainAtoms(), *sat, *oat, topIn);
+            // DEBUG
             groupType = IdFunctionalGroup(selected, rnum, *sat, o_idx, topIn);
             if (groupType != FunctionalGroup::UNRECOGNIZED_GROUP) {
               so3_idx = *sat;
@@ -364,6 +365,10 @@ const
   }
   if (o1_atom == -1) return 0;
   //mprintf("DEBUG: Terminal check: %s O1 atom: '%s'\n", sugarName.c_str(), topIn.AtomMaskName(o1_atom).c_str());
+  // DEBUG
+  Iarray groupAtoms;
+  GetGroup(groupAtoms, sugar.ChainAtoms(), o1_atom, anomericAtom, topIn);
+  // DEBUG
 
   Iarray selected;
   FunctionalGroup::Type groupType = IdFunctionalGroup(selected, rnum, o1_atom, anomericAtom, topIn);
