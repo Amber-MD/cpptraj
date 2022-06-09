@@ -3,6 +3,7 @@
 #include "../Atom.h"
 #include "../NameType.h"
 #include <vector>
+class Topology;
 namespace Cpptraj {
 namespace Structure {
 /// Hold information for a functional group TODO use this to store functional group data
@@ -19,15 +20,24 @@ class FunctionalGroup {
     /// CONSTRUCTOR TODO remove blank constructor?
     FunctionalGroup();
     /// CONSTRUCTOR - take name
-    FunctionalGroup(NameType const&);
+    //FunctionalGroup(NameType const&);
 
-    /// Add atom and ID to group
-    void AddAtom(NameType const&, std::string const&);
+    /// Set up group from given topology.
+    int SetupFromTop(Topology const&);
+
+    /// Print info to stdout
+    void PrintInfo() const;
 
     static const char* typeString(Type t) { return FunctionalGroupStr_[t]; }
   private:
     /// Keep synced with FunctionalGroupType
     static const char* FunctionalGroupStr_[];
+
+    /// Clear all information
+    void Clear();
+
+    /// Add atom and ID to group
+    void AddAtom(NameType const&, std::string const&);
 
     NameType resname_;                   ///< Functional group residue name.
     std::vector<NameType> anames_;       ///< Functional group atom names. Heavy atoms first.

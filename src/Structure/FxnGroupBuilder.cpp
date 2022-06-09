@@ -1,7 +1,6 @@
 #include "FxnGroupBuilder.h"
 #include "StructureRoutines.h"
 #include "Sugar.h"
-#include "../AtomMap.h"
 #include "../CpptrajStdio.h"
 #include "../Frame.h"
 #include "../Topology.h"
@@ -15,13 +14,13 @@ FxnGroupBuilder::FxnGroupBuilder(int debugIn) :
 }
 
 /** Add functional groups to the array. */
-void FxnGroupBuilder::AddGroups() {
+int FxnGroupBuilder::AddGroups() {
   // Sulfate
-  //     O
-  //     |
-  // O - S - O
-  //     |
-  //     O
+  //       O
+  //       |
+  // (O) - S - O
+  //       |
+  //       O
   Topology so3top;
   so3top.AddTopAtom( Atom("S",  "S "), Residue("SO3", 1, ' ', ' ') );
   so3top.AddTopAtom( Atom("O1", "O "), Residue("SO3", 1, ' ', ' ') );
@@ -30,10 +29,15 @@ void FxnGroupBuilder::AddGroups() {
   so3top.AddBond(0, 1);
   so3top.AddBond(0, 2);
   so3top.AddBond(0, 3);
-  AtomMap so3map;
-  so3map.SetDebug(10); // DEBUG
-  so3map.Setup( so3top, Frame() );
-  so3map.DetermineAtomIDs();
+  FunctionalGroup fg;
+  if (fg.SetupFromTop( so3top ))
+    return 1;
+  functionalGroups_.push_back( fg );
+
+  for (std::vector<FunctionalGroup>::const_iterator it = functionalGroups_.begin();
+                                                    it != functionalGroups_.end(); ++it)
+    it->PrintInfo();
+  return 0;
 } 
 
 /// recursive function to visit all bonded atoms in a group
@@ -57,12 +61,12 @@ int FxnGroupBuilder::GetGroup(Iarray& groupAtoms, Iarray const& ignoreAtoms, int
   // atIdx and linkAtIdx must be in the same residue
   if (startAtom.ResNum() != linkAtom.ResNum()) return 0;
   groupAtoms.clear();
-  // Mark all atoms inside the residue (except the link atom) as not visited.
+  // Mark all atoms inside the residue (except the link atom and hydrogens) as not visited.
   std::vector<bool> visited( topIn.Natom(), true );
   for (int at = topIn.Res(startAtom.ResNum()).FirstAtom();
            at != topIn.Res(startAtom.ResNum()).LastAtom(); ++at)
   {
-    if (at != linkAtIdx)
+    if (at != linkAtIdx && topIn[at].Element() != Atom::HYDROGEN)
       visited[at] = false;
   }
   // Mark atoms to ignore as visited. If atIdx is to be ignored, exit.
@@ -98,10 +102,10 @@ int FxnGroupBuilder::GetGroup(Iarray& groupAtoms, Iarray const& ignoreAtoms, int
     }
   }
   groupTop.Summary();
-  AtomMap groupmap;
-  groupmap.SetDebug(10); // DEBUG
-  groupmap.Setup( groupTop, Frame() );
-  groupmap.DetermineAtomIDs();
+  FunctionalGroup fg;
+  if (fg.SetupFromTop( groupTop ))
+    return 1;
+  fg.PrintInfo();
 
   return 0;
 }

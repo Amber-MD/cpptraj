@@ -25,7 +25,7 @@ class FxnGroupBuilder {
     /// \return identity of the group bonded to given atom, print to stdout
     FunctionalGroup::Type IdFunctionalGroup(Iarray&, int, int, int, Topology const&) const;
 
-    void AddGroups();
+    int AddGroups();
 
     static int GetGroup(Iarray&, Iarray const&, int, int, Topology const&);
 
