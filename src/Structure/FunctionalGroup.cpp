@@ -29,18 +29,20 @@ void FunctionalGroup::Clear() {
   resname_ = NameType("");
   anames_.clear();
   atomIDs_.clear();
+  linkAtomElt_ = Atom::UNKNOWN_ELEMENT;
   chargeAtom_ = Atom::UNKNOWN_ELEMENT;
   chargeOffset_ = 0;
 }
 
 /** Set up functional group from given topology. */
-int FunctionalGroup::SetupFromTop(Topology const& groupTop) {
+int FunctionalGroup::SetupFromTop(Topology const& groupTop, Atom::AtomicElementType linkAtomEltIn) {
   Clear();
   if (groupTop.Nres() != 1) {
     mprinterr("Internal Error: FunctionalGroup::SetupFromTop: Expected 1 res, got %i\n", groupTop.Nres());
     return 1;
   }
   resname_ = groupTop.Res(0).Name();
+  linkAtomElt_ = linkAtomEltIn;
   AtomMap groupmap;
   //groupmap.SetDebug(10); // DEBUG
   groupmap.Setup( groupTop, Frame() );
@@ -57,5 +59,5 @@ void FunctionalGroup::PrintInfo() const {
   mprintf("FxnGroup '%s' :", *resname_);
   for (unsigned int idx = 0; idx != anames_.size(); idx++)
     mprintf(" '%s'[%s]", *(anames_[idx]), atomIDs_[idx].c_str());
-  mprintf("\n");
+  mprintf(" Linked via '%s'\n", Atom::ElementName(linkAtomElt_));
 }

@@ -15,6 +15,7 @@ FxnGroupBuilder::FxnGroupBuilder(int debugIn) :
 
 /** Add functional groups to the array. */
 int FxnGroupBuilder::AddGroups() {
+  FunctionalGroup fg;
   // Sulfate
   //       O
   //       |
@@ -29,8 +30,14 @@ int FxnGroupBuilder::AddGroups() {
   so3top.AddBond(0, 1);
   so3top.AddBond(0, 2);
   so3top.AddBond(0, 3);
-  FunctionalGroup fg;
-  if (fg.SetupFromTop( so3top ))
+  if (fg.SetupFromTop( so3top, Atom::OXYGEN ))
+    return 1;
+  functionalGroups_.push_back( fg );
+  // Hydroxyl
+  // (C1) - O
+  Topology ohtop;
+  ohtop.AddTopAtom( Atom("O", "O"), Residue("ROH", 1, ' ', ' ') );
+  if (fg.SetupFromTop( ohtop, Atom::CARBON ))
     return 1;
   functionalGroups_.push_back( fg );
 
@@ -103,7 +110,7 @@ int FxnGroupBuilder::GetGroup(Iarray& groupAtoms, Iarray const& ignoreAtoms, int
   }
   groupTop.Summary();
   FunctionalGroup fg;
-  if (fg.SetupFromTop( groupTop ))
+  if (fg.SetupFromTop( groupTop, linkAtom.Element() ))
     return 1;
   fg.PrintInfo();
 

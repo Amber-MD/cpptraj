@@ -23,7 +23,7 @@ class FunctionalGroup {
     //FunctionalGroup(NameType const&);
 
     /// Set up group from given topology.
-    int SetupFromTop(Topology const&);
+    int SetupFromTop(Topology const&, Atom::AtomicElementType);
 
     /// Print info to stdout
     void PrintInfo() const;
@@ -39,11 +39,12 @@ class FunctionalGroup {
     /// Add atom and ID to group
     void AddAtom(NameType const&, std::string const&);
 
-    NameType resname_;                   ///< Functional group residue name.
-    std::vector<NameType> anames_;       ///< Functional group atom names. Heavy atoms first.
-    std::vector<std::string> atomIDs_;   ///< Functional group atom IDs.
-    Atom::AtomicElementType chargeAtom_; ///< Element of atom which needs charge adjusted.
-    double chargeOffset_;                ///< Charge offset for adjusting charge.
+    NameType resname_;                    ///< Functional group residue name.
+    std::vector<NameType> anames_;        ///< Functional group atom names. Heavy atoms first.
+    std::vector<std::string> atomIDs_;    ///< Functional group atom IDs.
+    Atom::AtomicElementType linkAtomElt_; ///< Element of atom group is linked to.
+    Atom::AtomicElementType chargeAtom_;  ///< Element of atom which needs charge adjusted.
+    double chargeOffset_;                 ///< Charge offset for adjusting charge.
 };
 
 }
