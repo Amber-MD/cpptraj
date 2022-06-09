@@ -124,15 +124,17 @@ const
   fg.PrintInfo();
 
   // Try to find a match
-  for (std::vector<FunctionalGroup>::const_iterator it = functionalGroups_.begin();
-                                                    it != functionalGroups_.end(); ++it)
+  std::vector<FunctionalGroup>::const_iterator FG_it = functionalGroups_.end();
+  for (FG_it = functionalGroups_.begin(); FG_it != functionalGroups_.end(); ++FG_it)
   {
-    if ( it->Match( fg ) ) {
-      mprintf("DEBUG: FG MATCH FOUND.\n");
-      it->PrintInfo();
+    if ( FG_it->Match( fg ) ) {
        break;
     }
   }
+  if (FG_it == functionalGroups_.end()) return 0;
+
+  mprintf("DEBUG: FG MATCH FOUND. ");
+  FG_it->PrintInfo();
 
   return 0;
 }
