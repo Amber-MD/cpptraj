@@ -27,7 +27,7 @@ class FxnGroupBuilder {
 
     int AddGroups();
 
-    static int GetGroup(Iarray&, Iarray const&, int, int, Topology const&);
+    int GetGroup(Iarray&, Iarray const&, int, int, Topology const&) const;
 
     std::vector<FunctionalGroup> functionalGroups_; ///< Recognized functional groups (FunctionalGroupType). TODO populate and use this
     int debug_; ///< Debug level

@@ -28,6 +28,9 @@ class FunctionalGroup {
     /// Print info to stdout
     void PrintInfo() const;
 
+    /// \return true if given FunctionalGroup atom IDs match this ones
+    bool Match(FunctionalGroup const&) const;
+
     static const char* typeString(Type t) { return FunctionalGroupStr_[t]; }
   private:
     /// Keep synced with FunctionalGroupType

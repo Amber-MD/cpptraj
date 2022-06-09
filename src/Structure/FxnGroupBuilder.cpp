@@ -70,6 +70,7 @@ void visitGroupAtoms(std::vector<int>& groupAtoms, int currentAtom, Topology con
 
 /** Get connected atoms to atIdx, not including linkAtIdx or ignoreAtoms. */
 int FxnGroupBuilder::GetGroup(Iarray& groupAtoms, Iarray const& ignoreAtoms, int atIdx, int linkAtIdx, Topology const& topIn)
+const
 {
   Atom const& startAtom = topIn[atIdx];
   Atom const& linkAtom = topIn[linkAtIdx];
@@ -121,6 +122,17 @@ int FxnGroupBuilder::GetGroup(Iarray& groupAtoms, Iarray const& ignoreAtoms, int
   if (fg.SetupFromTop( groupTop, linkAtom.Element() ))
     return 1;
   fg.PrintInfo();
+
+  // Try to find a match
+  for (std::vector<FunctionalGroup>::const_iterator it = functionalGroups_.begin();
+                                                    it != functionalGroups_.end(); ++it)
+  {
+    if ( it->Match( fg ) ) {
+      mprintf("DEBUG: FG MATCH FOUND.\n");
+      it->PrintInfo();
+       break;
+    }
+  }
 
   return 0;
 }

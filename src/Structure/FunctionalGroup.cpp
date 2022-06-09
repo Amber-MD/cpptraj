@@ -61,3 +61,26 @@ void FunctionalGroup::PrintInfo() const {
     mprintf(" '%s'[%s]", *(anames_[idx]), atomIDs_[idx].c_str());
   mprintf(" Linked via '%s'\n", Atom::ElementName(linkAtomElt_));
 }
+
+/** \return True if given functional atom IDs match this one. */
+bool FunctionalGroup::Match(FunctionalGroup const& rhs) const {
+  if (atomIDs_.size() != rhs.atomIDs_.size()) return false;
+  std::vector<bool> rhs_used( rhs.atomIDs_.size(), false );
+
+  for (std::vector<std::string>::const_iterator it = atomIDs_.begin();
+                                                it != atomIDs_.end(); ++it)
+  {
+    bool has_match = false;
+    for (unsigned int idx = 0; idx != rhs.atomIDs_.size(); idx++) {
+      if (!rhs_used[idx]) {
+        if ( *it == rhs.atomIDs_[idx] ) {
+          rhs_used[idx] = true;
+          has_match = true;
+          break;
+        }
+      }
+    }
+    if (!has_match) return false;
+  }
+  return true;
+}
