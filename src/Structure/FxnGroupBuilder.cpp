@@ -68,14 +68,19 @@ void visitGroupAtoms(std::vector<int>& groupAtoms, int currentAtom, Topology con
   }
 }
 
-/** Get connected atoms to atIdx, not including linkAtIdx or ignoreAtoms. */
-int FxnGroupBuilder::GetGroup(Iarray& groupAtoms, Iarray const& ignoreAtoms, int atIdx, int linkAtIdx, Topology const& topIn)
+/** Determine if atoms connected atoms to atIdx (which in turn is connected
+  * to linkAtIdx), not including linkAtIdx or ignoreAtoms, form a
+  * recognized functional group.
+  */
+FxnGroupBuilder::FGarray::const_iterator
+  FxnGroupBuilder::GetGroup(Iarray& groupAtoms, Iarray const& ignoreAtoms, int atIdx, int linkAtIdx, Topology const& topIn)
 const
 {
+  std::vector<FunctionalGroup>::const_iterator FG_it = functionalGroups_.end();
   Atom const& startAtom = topIn[atIdx];
   Atom const& linkAtom = topIn[linkAtIdx];
   // atIdx and linkAtIdx must be in the same residue
-  if (startAtom.ResNum() != linkAtom.ResNum()) return 0;
+  if (startAtom.ResNum() != linkAtom.ResNum()) return FG_it;
   groupAtoms.clear();
   // Mark all atoms inside the residue (except the link atom) as not visited.
   std::vector<bool> visited( topIn.Natom(), true );
@@ -87,7 +92,7 @@ const
   }
   // Mark atoms to ignore as visited. If atIdx is to be ignored, exit.
   for (Iarray::const_iterator it = ignoreAtoms.begin(); it != ignoreAtoms.end(); ++it) {
-    if (*it == atIdx) return 0;
+    if (*it == atIdx) return FG_it;
     visited[*it] = true;
   }
 
@@ -96,7 +101,7 @@ const
   for (Iarray::const_iterator it = groupAtoms.begin(); it != groupAtoms.end(); ++it)
     mprintf(" %s", topIn.AtomMaskName( *it ).c_str());
   mprintf("\n");
-  if (groupAtoms.empty()) return 0;
+  if (groupAtoms.empty()) return FG_it;
 
   // Create topology containing only groupAtoms
   Iarray oldToNew( topIn.Natom(), -1 );
@@ -119,24 +124,24 @@ const
   }
   groupTop.Summary();
   FunctionalGroup fg;
-  if (fg.SetupFromTop( groupTop, linkAtom.Element() ))
-    return 1;
+  if (fg.SetupFromTop( groupTop, linkAtom.Element() )) {
+    mprinterr("Internal Error: Set up functional group topology failed.\n");
+    return FG_it;
+  }
   fg.PrintInfo();
 
   // Try to find a match
-  std::vector<FunctionalGroup>::const_iterator FG_it = functionalGroups_.end();
   for (FG_it = functionalGroups_.begin(); FG_it != functionalGroups_.end(); ++FG_it)
   {
     if ( FG_it->Match( fg ) ) {
        break;
     }
   }
-  if (FG_it == functionalGroups_.end()) return 0;
-
-  mprintf("DEBUG: FG MATCH FOUND. ");
-  FG_it->PrintInfo();
-
-  return 0;
+  if (FG_it != functionalGroups_.end()) {
+    mprintf("DEBUG: FG MATCH FOUND. ");
+    FG_it->PrintInfo();
+  }
+  return FG_it;
 }
 
 /** \return Type of group represented by the atom atIdx. */

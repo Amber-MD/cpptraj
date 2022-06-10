@@ -20,17 +20,19 @@ class FxnGroupBuilder {
     int CheckIfSugarIsTerminal(Sugar&, Topology&, Frame&) const;
   private:
     typedef std::vector<int> Iarray;
+    typedef std::vector<FunctionalGroup> FGarray;
     /// \return identity of the group bonded to given atom
     FunctionalGroup::Type IdFunctionalGroup_Silent(Iarray&, int, int, int, Topology const&) const;
     /// \return identity of the group bonded to given atom, print to stdout
     FunctionalGroup::Type IdFunctionalGroup(Iarray&, int, int, int, Topology const&) const;
 
+    /// Add recognized functional groups to array
     int AddGroups();
+    /// \return Functional group if one is recognized
+    FGarray::const_iterator GetGroup(Iarray&, Iarray const&, int, int, Topology const&) const;
 
-    int GetGroup(Iarray&, Iarray const&, int, int, Topology const&) const;
-
-    std::vector<FunctionalGroup> functionalGroups_; ///< Recognized functional groups (FunctionalGroupType). TODO populate and use this
-    int debug_; ///< Debug level
+    FGarray functionalGroups_; ///< Recognized functional groups (FunctionalGroupType).
+    int debug_;                ///< Debug level
 
 };
 }
