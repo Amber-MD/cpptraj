@@ -1953,7 +1953,7 @@ void Action_NAstruct::Print() {
               ssout_->Filename().full(), nframes_, StrandPairs_.size());
       //  File header
       if (printheader_) {
-        bpout_->Printf("%-8s %8s %8s %10s %10s %10s %10s %10s %10s\n",
+        ssout_->Printf("%-8s %8s %8s %10s %10s %10s %10s %10s %10s\n",
                        "#Frame","Base1","Base2", "DX","DY","DZ", "RX","RY","RZ");
       }
       // Loop over all frames
