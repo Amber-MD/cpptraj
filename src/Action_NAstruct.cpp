@@ -1305,7 +1305,9 @@ int Action_NAstruct::TravelBackbone( Topology const& top, int atom, std::vector<
   for (Atom::bond_iterator bndat = top[atom].bondbegin();
                            bndat != top[atom].bondend(); ++bndat)
   {
-    if ( Visited[*bndat] == 0) {
+    // If not all residues are selected it is possible bndat is outside
+    // the scope of the Visited array.
+    if ( *bndat < (int)Visited.size() && Visited[*bndat] == 0) {
       if ( top[*bndat].Element() == Atom::CARBON || 
            top[*bndat].Element() == Atom::HYDROGEN )
         Visited[*bndat] = 1;
@@ -1470,15 +1472,18 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
   for (unsigned int bidx = 0; bidx < Bases_.size(); bidx++) {
     if (!base_is_used[bidx]) {
       if (Bases_[bidx].C5resIdx() < 0) {
-        mprintf("DEBUG: 5' start at residue %i\n", Bases_[bidx].ResNum()+1);
+        if (debug_ > 0)
+          mprintf("DEBUG: 5' start at residue %i\n", Bases_[bidx].ResNum()+1);
         int strandBeg = bidx;
         int strandEnd = follow_base_to_3prime(Bases_, bidx, base_is_used, strandNum);
         if (strandEnd < 0) {
           mprinterr("Internal Error: Could not follow base %i to 3' terminal.\n", Bases_[bidx].ResNum());
           return Action::ERR;
         }
-        mprintf("DEBUG: 3' end at residue %i\n", Bases_[strandEnd].ResNum()+1);
-        mprintf("DEUBG: Adding strand %i from %i to %i\n", strandNum, strandBeg, strandEnd);
+        if (debug_ > 0) {
+          mprintf("DEBUG: 3' end at residue %i\n", Bases_[strandEnd].ResNum()+1);
+          mprintf("DEBUG: Adding strand %i from base index %i to %i\n", strandNum, strandBeg, strandEnd);
+        }
         strandNum++;
         Strands_.push_back( Rpair(strandBeg, strandEnd) );
       }
