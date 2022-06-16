@@ -1240,13 +1240,17 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   // Loop over each solvent molecule
   for (Topology::mol_iterator mol = CurrentParm_->MolStart(); mol != CurrentParm_->MolEnd(); ++mol)
   {
+    //mprintf("DEBUG: Molecule %li\n", mol - CurrentParm_->MolStart());
     gist_grid_.Start();
     int mol_first = mol->MolUnit().Front();
     int mol_end = mol->MolUnit().Back();
     if (atomIsSolute_[mol_first]) { continue; }
+    //mprintf("DEBUG: Solvent Molecule %li\n", mol - CurrentParm_->MolStart());
     Vec3 mol_center = calcMolCenter(frm, mol_first, mol_end);
     // frm.Frm().VCenterOfMass(oidx, oidx+nMolAtoms_);
+    mprintf("DEBUG: OXYZ %f %f %f\n", mol_center[0], mol_center[1], mol_center[2]);
     Vec3 W_G = mol_center - Origin;
+    W_G.Print("DEBUG: W_G");
     gist_grid_.Stop();
     // Check if water oxygen is no more then 1.5 Ang from grid
     // NOTE: using <= to be consistent with original code
@@ -1256,6 +1260,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
     {
       // Try to bin the oxygen
       int voxel = calcVoxelIndex(mol_center[0], mol_center[1], mol_center[2]);
+      mprintf("DEBUG: Voxel %i\n", voxel);
       if ( voxel != OFF_GRID_ )
       {
         // Oxygen is inside the grid. Record the voxel.
@@ -1652,7 +1657,7 @@ void Action_GIST::Print() {
     for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++) {
       oe_progress.Update( n_finished );
       int nw_total = N_main_solvent_[gr_pt]; // Total number of waters that have been in this voxel.
-      //mprintf("DEBUG1: %u nw_total %i\n", gr_pt, nw_total);
+      mprintf("DEBUG1: %u nw_total %i\n", gr_pt, nw_total);
       if (nw_total > 1) {
         double sorient_norm = 0.0;
         for (int n0 = 0; n0 < nw_total; n0++)
