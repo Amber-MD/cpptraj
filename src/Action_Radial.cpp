@@ -76,7 +76,18 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
     rmode_ = CENTER2;
   else if (actionArgs.hasKey("nointramol"))
     rmode_ = NO_INTRAMOL;
-  else
+  else if (actionArgs.Contains("toxyz")) {
+    std::string toxyz = actionArgs.GetStringKey("toxyz");
+    ArgList toxyzArg( toxyz, "," );
+    if (toxyzArg.Nargs() != 3) {
+      mprinterr("Error: Expected a comma-separated list of 3 coordinates after 'toxyz'.\n");
+      return Action::ERR;
+    }
+    specified_xyz_[0] = toxyzArg.getNextDouble(0);
+    specified_xyz_[1] = toxyzArg.getNextDouble(0);
+    specified_xyz_[2] = toxyzArg.getNextDouble(0);
+    rmode_ = SPECIFIED;
+  } else
     rmode_ = NORMAL;
   // Check for mode incompatibility
   if (siteMode1_ != OFF || siteMode2_ != OFF) {
@@ -532,9 +543,14 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
     }
 #   endif
   // ---------------------------------------------
-  } else { // CENTER1 || CENTER2
+  } else { // CENTER1 || CENTER2 || SPECIFIED
     // Calculation of center of one Mask to all atoms in other Mask
-    Vec3 coord_center = frm.Frm().VGeometricCenter(OuterMask_);
+    // or specified point to all atoms in a mask (InnerMask_).
+    Vec3 coord_center;
+    if (rmode_ == SPECIFIED)
+      coord_center = specified_xyz_;
+    else
+      coord_center = frm.Frm().VGeometricCenter(OuterMask_);
     int mask2_max = InnerMask_.Nselected();
 #   ifdef _OPENMP
 #   pragma omp parallel private(nmask2,atom2,D,idx,mythread)
