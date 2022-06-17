@@ -33,9 +33,11 @@ Action_Radial::Action_Radial() :
 {} 
 
 void Action_Radial::Help() const {
-  mprintf("\t[out <outfilename>] <spacing> <maximum> <solvent mask1> [<solute mask2>] [noimage]\n"
+  mprintf("\t[out <outfilename>] <spacing> <maximum> <solvent mask1> [<solute mask2>]\n"
+          "\t[noimage]\n"
           "\t[density <density> | volume] [<dataset name>] [intrdf <file>] [rawrdf <file>]\n"
-          "\t[{{center1|center2|nointramol} | [byres1] [byres2] [bymol1] [bymol2]}]\n"
+          "\t[{{center1|center2|nointramol|toxyz <x>,<y>,<z>} |\n"
+          "\t  [byres1] [byres2] [bymol1] [bymol2]}]\n"
           "  Calculate the radial distribution function (RDF) of atoms in <solvent mask1>.\n"
           "  If <solute mask2> is given calculate RDF of all atoms in <solvent mask1>\n"
           "  to each atom in <solute mask2>.\n"
