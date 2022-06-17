@@ -34750,20 +34750,24 @@ radial
 
 \end_inset
 
- [out <outfilename>] <spacing> <maximum> <solvent mask1>
+ [out <outfilename>] <spacing> <maximum> <solvent mask1> [<solute mask2>]
 \end_layout
 
 \begin_layout LyX-Code
-       [<solute mask2>] [noimage] [density <density> | volume] [<dataset
- name>]
+       [noimage]
 \end_layout
 
 \begin_layout LyX-Code
-       [intrdf <file>] [rawrdf <file>]
+   	[density <density> | volume] [<dataset name>] [intrdf <file>] [rawrdf
+ <file>]
 \end_layout
 
 \begin_layout LyX-Code
-       [{{center1|center2|nointramol} | [byres1] [byres2] [bymol1] [bymol2]}]]
+   	[{{center1|center2|nointramol|toxyz <x>,<y>,<z>} |
+\end_layout
+
+\begin_layout LyX-Code
+         [byres1] [byres2] [bymol1] [bymol2]}]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -34831,21 +34835,7 @@ mask2>] (Optional) If specified calculate RDF of all atoms in <solvent mask1>
 \end_layout
 
 \begin_layout Description
-[<setname>] Name of output data sets.
-\end_layout
-
-\begin_layout Description
-[center1] Calculate RDF from geometric center of atoms in <solvent mask1>
- to all atoms in <solute mask2>.
-\end_layout
-
-\begin_layout Description
-[center2] Calculate RDF from geometric center of atoms in <solute mask2>
- to all atoms in <solvent mask1>.
-\end_layout
-
-\begin_layout Description
-[nointramol] Ignore intra-molecular distances.
+[<dataset name>] Name of output data sets.
 \end_layout
 
 \begin_layout Description
@@ -34864,6 +34854,29 @@ ame>).
 \end_inset
 
 <file>] Write raw (non-normalized) RDF values to <file>.
+\end_layout
+
+\begin_layout Description
+[center1] Calculate RDF from geometric center of atoms in <solvent mask1>
+ to all atoms in <solute mask2>.
+\end_layout
+
+\begin_layout Description
+[center2] Calculate RDF from geometric center of atoms in <solute mask2>
+ to all atoms in <solvent mask1>.
+\end_layout
+
+\begin_layout Description
+[nointramol] Ignore intra-molecular distances.
+\end_layout
+
+\begin_layout Description
+[toxyz
+\begin_inset space ~
+\end_inset
+
+<x>,<y>,<z>] Calculate RDF from center of atoms in <solvent mask1> to point
+ specified by <x> <y> and <z> (in Ang.).
 \end_layout
 
 \begin_layout Description
