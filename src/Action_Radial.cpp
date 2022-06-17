@@ -62,7 +62,9 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
   std::string outfilename = actionArgs.GetStringKey("out");
   // Default particle density (mols/Ang^3) for water based on 1.0 g/mL
   density_ = actionArgs.getKeyDouble("density",0.033456);
+
   // Determine mode, by site TODO better integrate with other modes
+  bool needMask2 = true;
   siteMode1_ = OFF;
   siteMode2_ = OFF;
   if (actionArgs.hasKey("byres1")) siteMode1_ = BYRES;
@@ -87,8 +89,10 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
     specified_xyz_[1] = toxyzArg.getNextDouble(0);
     specified_xyz_[2] = toxyzArg.getNextDouble(0);
     rmode_ = SPECIFIED;
+    needMask2 = false;
   } else
     rmode_ = NORMAL;
+
   // Check for mode incompatibility
   if (siteMode1_ != OFF || siteMode2_ != OFF) {
     if (rmode_ != NORMAL) {
@@ -97,6 +101,7 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
     }
     rmode_ = BYSITE;
   }
+
   useVolume_ = actionArgs.hasKey("volume");
   DataFile* intrdfFile = init.DFL().AddDataFile(actionArgs.GetStringKey("intrdf"));
   DataFile* rawrdfFile = init.DFL().AddDataFile(actionArgs.GetStringKey("rawrdf"));
@@ -125,11 +130,13 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
   if (Mask1_.SetMaskString(mask1)) return Action::ERR;
 
   // Check for second mask - if none specified use first mask
-  std::string mask2 = actionArgs.GetMaskNext();
-  if (!mask2.empty()) {
-    if (Mask2_.SetMaskString(mask2)) return Action::ERR;
-  } else {
-    if (Mask2_.SetMaskString(mask1)) return Action::ERR;
+  if (needMask2) {
+    std::string mask2 = actionArgs.GetMaskNext();
+    if (!mask2.empty()) {
+      if (Mask2_.SetMaskString(mask2)) return Action::ERR;
+    } else {
+      if (Mask2_.SetMaskString(mask1)) return Action::ERR;
+    }
   }
   // If filename not yet specified check for backwards compat.
   if (outfilename.empty() && actionArgs.Nargs() > 1 && !actionArgs.Marked(1))
@@ -144,7 +151,10 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
   // Make default precision a little higher than normal
   Dset_->SetupFormat().SetFormatWidthPrecision(12,6);
   // Set DataSet legend from mask strings.
-  Dset_->SetLegend(Mask1_.MaskExpression() + " => " + Mask2_.MaskExpression());
+  if (needMask2)
+    Dset_->SetLegend(Mask1_.MaskExpression() + " => " + Mask2_.MaskExpression());
+  else
+    Dset_->SetLegend(Mask1_.MaskExpression());
   // TODO: Set Yaxis label in DataFile
   // Calculate number of bins
   one_over_spacing_ = 1 / spacing_;
@@ -161,7 +171,10 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
                                                            MetaData::NOT_TS) );
     if (intrdf_ == 0) return Rdf_Err("Could not allocate RDF integral data set.");
     intrdf_->SetupFormat().SetFormatWidthPrecision(12,6);
-    intrdf_->SetLegend("Int[" + Mask2_.MaskExpression() + "]");
+    if (needMask2)
+      intrdf_->SetLegend("Int[" + Mask2_.MaskExpression() + "]");
+    else
+      intrdf_->SetLegend("Int[" + Mask1_.MaskExpression() + "]");
     intrdf_->SetDim(Dimension::X, Rdim);
     intrdfFile->AddDataSet( intrdf_ );
   } else
@@ -200,9 +213,9 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
     rdf_thread_[i].assign( numBins_, 0 );
 # endif /* _OPENMP */
   
-  mprintf("    RADIAL: Calculating RDF for atoms in mask [%s]",Mask1_.MaskString());
-  if (!mask2.empty()) 
-    mprintf(" to atoms in mask [%s]",Mask2_.MaskString());
+  mprintf("    RADIAL: Calculating RDF for atoms in mask1 [%s]",Mask1_.MaskString());
+  if (Mask2_.MaskStringSet()) 
+    mprintf(" to atoms in mask2 [%s]",Mask2_.MaskString());
   mprintf("\n");
   if (outfile != 0)
     mprintf("\tOutput to %s.\n", outfile->DataFilename().full());
@@ -228,6 +241,9 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
       mprintf("\tUsing center of all atoms selected by mask2.\n");
     else if (rmode_==NO_INTRAMOL)
       mprintf("\tIgnoring intramolecular distances.\n");
+    else if (rmode_ == SPECIFIED)
+      mprintf("\tCalculating RDF of atoms selected by mask1 to point %g %g %g\n",
+              specified_xyz_[0], specified_xyz_[1], specified_xyz_[2]);
   }
   mprintf("\tHistogram max %f, spacing %f, bins %i.\n",maximum,
           spacing_,numBins_);
@@ -329,10 +345,12 @@ Action::RetType Action_Radial::Setup(ActionSetup& setup) {
     mprintf("Warning: First mask has no atoms.\n");
     return Action::SKIP;
   }
-  if (setup.Top().SetupIntegerMask( Mask2_ ) ) return Action::ERR;
-  if (Mask2_.None()) {
-    mprintf("Warning: Second mask has no atoms.\n");
-    return Action::SKIP;
+  if (Mask2_.MaskStringSet()) {
+    if (setup.Top().SetupIntegerMask( Mask2_ ) ) return Action::ERR;
+    if (Mask2_.None()) {
+      mprintf("Warning: Second mask has no atoms.\n");
+      return Action::SKIP;
+    }
   }
   imageOpt_.SetupImaging( setup.CoordInfo().TrajBox().HasBox() );
 
@@ -351,6 +369,8 @@ Action::RetType Action_Radial::Setup(ActionSetup& setup) {
     InnerMask_ = Mask2_;
   } else if (rmode_ == CENTER2) {
     OuterMask_ = Mask2_;
+    InnerMask_ = Mask1_;
+  } else if (rmode_ == SPECIFIED) {
     InnerMask_ = Mask1_;
   } else if (rmode_ == BYSITE) {
     // One or both masks will be by residue.
@@ -404,6 +424,8 @@ Action::RetType Action_Radial::Setup(ActionSetup& setup) {
   if (rmode_ == BYSITE) {
     mprintf("\t%zu sites selected by Mask1 (%i atoms), %zu sites selected by Mask2 (%i atoms)\n",
             Sites1_.size(), Mask1_.Nselected(), Sites2_.size(), Mask2_.Nselected());
+  } else if (rmode_ == SPECIFIED) {
+    mprintf("\t%i atoms in Mask1.\n", Mask1_.Nselected());
   } else {
     mprintf("\t%i atoms in Mask1, %i atoms in Mask2\n",
             Mask1_.Nselected(), Mask2_.Nselected());
@@ -647,6 +669,10 @@ void Action_Radial::Print() {
   } else if (rmode_ == CENTER2) {
     // If the center2 option was specified only one distance was calcd
     // from mask 2. Assume COM of mask 2 != atom(s) in mask1.
+    nmask2 = 1.0;
+    numSameAtoms = 0;
+  } else if (rmode_ == SPECIFIED) {
+    // No mask 2; calculated distances to a single point.
     nmask2 = 1.0;
     numSameAtoms = 0;
   } else if (rmode_ == BYSITE) {
