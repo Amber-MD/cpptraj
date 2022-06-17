@@ -4,7 +4,8 @@
 
 CleanFiles radial.in Radial.agr cRadial.agr WatO-Trp4.agr WatO-Trp4.raw.agr \
            WatO-Trp4.byres.agr WatO-Trp.agr WatO-Trp.volume.agr \
-           WatO-Glu5CD.agr noimage.WatO-Glu5CD.agr
+           WatO-Glu5CD.agr noimage.WatO-Glu5CD.agr point.dat \
+           point?.agr
 
 TESTNAME='Radial tests'
 Requires netcdf maxthreads 10
@@ -43,6 +44,21 @@ EOF
 RunCpptraj "$UNITNAME"
 DoTest WatO-Glu5CD.agr.save WatO-Glu5CD.agr
 DoTest noimage.WatO-Glu5CD.agr.save noimage.WatO-Glu5CD.agr
+
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  UNITNAME='Radial test, specified point'
+  cat > radial.in <<EOF
+parm ../tz2.truncoct.parm7
+trajin ../tz2.truncoct.nc 1 1
+
+#radial point0.agr    0.5 10.0 :WAT@O :5@CD
+radial point1.agr    0.5 10.0 :WAT@O toxyz 11.5742,4.3807,-13.7675
+#vector center :5@CD out point.dat
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest point1.agr.save point1.agr
+fi
 
 EndTest
 
