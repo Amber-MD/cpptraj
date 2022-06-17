@@ -67,6 +67,8 @@ limited developers guide is available [here](https://jenkins.jasonswails.com/job
 and limited HTML-formatted documentation is available
 [here](https://amber-md.github.io/cpptraj/).
 
+Some examples are available in the `examples` subdirectory.
+
 Installation & Testing
 ======================
 Run `./configure --help` for a short list of configure options. `./configure --full-help`
@@ -90,19 +92,22 @@ CPPTRAJ also makes use of the following libraries that are bundled with CPPTRAJ.
 * XDR for reading GROMACS XTC trajectories.
 * TNG for reading GROMACS TNG trajectories.
 
+C++11 support is required to enable particle mesh Ewald (PME) calculation support via helPME.
 CPPTRAJ also uses the PCG32 and Xoshiro 128++ pseudo-random number generators.
 
 `./configure gnu` should be adequate to set up compilation for most systems.
 For systems without BLAS/LAPACK, FFTW, and/or NetCDF libraries installed,
-the `-amberlib` flag can be specified to use the ones already compiled in
-an AmberTools installation (`$AMBERHOME` must be set), e.g.
-`./configure -amberlib gnu`. If enabled libraries are not present, CPPTRAJ's
-configure can attempt to download and install them into $CPPTRAJHOME. By default
-CPPTRAJ will ask if these should be installed; the '--buildlibs' option can
-be used to try to automatically install any missing enabled library. To prevent
-CPPTRAJ from asking about building external libraries, use the '--nobuildlibs'
-option.
-C++11 support is required to enable particle mesh Ewald (PME) calculation support.
+CPPTRAJ's configure can attempt to download and install any enabled library
+into $CPPTRAJHOME. By default CPPTRAJ will ask if these should be installed;
+the '--buildlibs' option can be specified to try to automatically install any
+missing enabled library. For example, `./configure -fftw3 --buildlibs gnu`
+will tell CPPTRAJ to build missing libraries including FFTW (if it is not
+available). To prevent CPPTRAJ from asking about building external libraries,
+use the '--nobuildlibs' option.
+
+If Amber is installed and `$AMBERHOME` is properly set, the `-amberlib` flag
+can be specified to use the libraries already compiled in an AmberTools
+installation, e.g. `./configure -amberlib gnu`.  
 
 For multicore systems, the `-openmp` flag can
 be specified to enable OpenMP parallelization, e.g. `./configure -openmp gnu`.

@@ -502,6 +502,9 @@ test.prepareforleap:
 test.keep:
 	@-cd Test_Keep && ./RunTest.sh $(OPT)
 
+test.hremd:
+	@-cd Test_Ensemble_HREMD && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -582,6 +585,7 @@ COMPLETETESTS=test.general \
               test.symmrmsd \
               test.multidihedral \
               test.mremd \
+              test.hremd \
               test.makestructure \
               test.rotate \
               test.integrate \

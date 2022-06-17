@@ -1,12 +1,14 @@
 # Makefile for TNG bundled with cpptraj
-include ../../external.config.h
-
-CFLAGS += -I . $(ZLIB_INCL)
+include ../../config.h
 
 # Variables
 DEL_FILE      = /bin/rm -f
 AR            = ar cqs
 TARGET        = libtng_io.a
+
+.c.o:
+	$(VB)echo [TNG] CC $<
+	$(VB)$(CC) $(LFS) -I. $(ZLIB_INCL) $(CFLAGS) -c -o $@ $<
 
 # Source files
 SOURCES=md5.c tng_io.c tng_compress.c coder.c warnmalloc.c fixpoint.c xtc3.c bwlzh.c xtc2.c widemuldiv.c huffmem.c vals16.c bwt.c mtf.c rle.c lz77.c dict.c huffman.c merge_sort.c
