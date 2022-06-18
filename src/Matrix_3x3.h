@@ -50,6 +50,8 @@ class Matrix_3x3 {
     void RotationAroundY(double, double);
     void CalcRotationMatrix(Vec3 const&, double);
     void CalcRotationMatrix(double, double, double);
+    /// Calculate coordinate covariance matrix
+    double CalcCovariance(int, const int*, double const*, double const*, double const*, Vec3 const&, Vec3 const&);
     double RotationAngle();
     Vec3 AxisOfRotation(double);
     /// Multiply 3x3 matrix times double[3]
