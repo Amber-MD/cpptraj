@@ -98,6 +98,8 @@ class Exec_PrepareForLeap : public Exec {
     /// Determine linkages for the sugar
     std::string DetermineSugarLinkages(Sugar const&, CharMask const&, Topology&, ResStatArray&,
                                        CpptrajFile*, std::set<BondType>&) const;
+    /// Create a residue mask string for selecting Glycam-named sugar residues.
+    std::string GenGlycamResMaskString() const;
     /// Try to identify sugar name, form, and linkages
     int IdentifySugar(Sugar&, Topology&, Frame const&, CharMask const&, CpptrajFile*, std::set<BondType>&);
     /// Try to find missing linkages to anomeric carbon in sugar.
@@ -172,7 +174,6 @@ class Exec_PrepareForLeap : public Exec {
     bool useSugarName_;     ///< If true, base form/chirality on name instead of geometry
     int debug_;             ///< Debug level
     std::string solventResName_; ///< Solvent residue name
-    //std::string terminalHydroxylName_; ///< Terminal hydroxyl name FIXME this info should be in a separate file
     AtomMap myMap_;
     std::vector<FunctionalGroup> functionalGroups_; ///< Recognized functional groups (FunctionalGroupType).
 };

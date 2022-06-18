@@ -1606,6 +1606,7 @@ const
               mprintf("DEBUG: Link residue name for %s found: %s\n", *(lname->first), *(lname->second));
             ChangeResName( pres, lname->second );
             resStatIn[topIn[*bat].ResNum()] = VALIDATED;
+          
           } else if (pres.Name() == "ROH") {
             if (debug_ > 0)
               mprintf("DEBUG: '%s' is terminal hydroxyl.\n", *(pres.Name()));
@@ -1622,7 +1623,22 @@ const
             if (debug_ > 0)
               mprintf("DEBUG: '%s' is an O-methyl group.\n", *(pres.Name()));
             resStatIn[topIn[*bat].ResNum()] = VALIDATED;
-          } else {
+          } else if (hasGlycam_) {
+            // Check if pres.Name() is already changed to linkage name
+            for (NameMapType::const_iterator rname = pdb_glycam_linkageRes_map_.begin();
+                                             rname != pdb_glycam_linkageRes_map_.end(); ++rname)
+            {
+              if (pres.Name() == rname->second) {
+                if (debug_ > 0)
+                  mprintf("DEBUG: Link residue for %s (%s) is already %s\n",
+                          topIn.TruncResNameOnumId(topIn[*bat].ResNum()).c_str(),
+                          *(rname->first), *(rname->second));
+                resStatIn[topIn[*bat].ResNum()] = VALIDATED;
+                break;
+              }
+            }
+          }
+          if (resStatIn[topIn[*bat].ResNum()] != VALIDATED) {
             mprintf("Warning: Unrecognized link residue %s, not modifying name.\n", *pres.Name());
             resStatIn[topIn[*bat].ResNum()] = SUGAR_UNRECOGNIZED_LINK_RES;
           }
@@ -1676,6 +1692,81 @@ const
   return linkcode;
 }
 
+/** Create a residue mask string for selecting Glycam-named sugar residues. */
+std::string Exec_PrepareForLeap::GenGlycamResMaskString() const {
+  // Linkage codes
+  // TODO this is a bit of a hack since not all linkage codes are valid for each sugar.
+  // Should tighten this up later...
+  typedef std::vector<std::string> Sarray;
+  std::vector< std::string > linkageCodes;
+  linkageCodes.push_back("0");
+  linkageCodes.push_back("1");
+  linkageCodes.push_back("2");
+  linkageCodes.push_back("3");
+  linkageCodes.push_back("4");
+  linkageCodes.push_back("5");
+  linkageCodes.push_back("6");
+  linkageCodes.push_back("Z");
+  linkageCodes.push_back("Y");
+  linkageCodes.push_back("X");
+  linkageCodes.push_back("W");
+  linkageCodes.push_back("V");
+  linkageCodes.push_back("U");
+  linkageCodes.push_back("T");
+  linkageCodes.push_back("S");
+  linkageCodes.push_back("R");
+  linkageCodes.push_back("Q");
+  linkageCodes.push_back("P");
+  // Loop over names
+  std::string maskString;
+  std::set< std::string > glycamResNames;
+  for (MapType::const_iterator mit = pdb_to_glycam_.begin(); mit != pdb_to_glycam_.end(); ++mit)
+  {
+    SugarToken const& tkn = mit->second;
+    std::pair<std::set<std::string>::iterator, bool> ret = glycamResNames.insert( tkn.GlycamCode() );
+    if (ret.second == false) {
+      if (debug_ > 1)
+        mprintf("DEBUG: Already seen '%s', skipping.\n", tkn.GlycamCode().c_str());
+      continue;
+    }
+    // L/D forms
+    std::string glycamCodes[2];
+    // Alpha/beta forms
+    std::string formCodes[2];
+    // D form is uppercase, which is the default.
+    glycamCodes[0] = tkn.GlycamCode();
+    // L form has lowercase
+    for (std::string::const_iterator it = glycamCodes[0].begin(); it != glycamCodes[0].end(); ++it)
+      glycamCodes[1] += tolower( *it );
+    // Alpha/beta based on ring type
+    if (tkn.RingType() == PYRANOSE) {
+      formCodes[0] = "A";
+      formCodes[1] = "B";
+    } else if (tkn.RingType() == FURANOSE) {
+      formCodes[0] = "D";
+      formCodes[1] = "U";
+    } else {
+      mprinterr("Internal Error: Unhandled ring type in GenGlycamResMaskString().\n");
+      return std::string("");
+    }
+    // Linkage codes
+    // Create strings
+    for (int ii = 0; ii != 2; ii++) {
+      for (int jj = 0; jj != 2; jj++) {
+        for (Sarray::const_iterator it = linkageCodes.begin(); it != linkageCodes.end(); ++it) {
+          if (maskString.empty())
+            maskString.assign( ":" + *it + glycamCodes[ii] + formCodes[jj] );
+          else
+            maskString.append( "," +  *it + glycamCodes[ii] + formCodes[jj] );
+        }
+      }
+    }
+  }
+
+  return maskString;
+}
+
+
 /** Attempt to identify sugar residue, form, and linkages. */
 int Exec_PrepareForLeap::IdentifySugar(Sugar& sugarIn, Topology& topIn,
                                        Frame const& frameIn, CharMask const& cmask,
@@ -1711,7 +1802,8 @@ int Exec_PrepareForLeap::IdentifySugar(Sugar& sugarIn, Topology& topIn,
     // Now force uppercase
     rChar.assign( 1, toupper(rChar.front()) );
     std::string fChar(1, resName[2]);
-    mprintf("DEBUG: Searching for glycam char '%s' '%s'\n", rChar.c_str(), fChar.c_str());
+    if (debug_ > 0)
+      mprintf("DEBUG: Searching for glycam char '%s' '%s'\n", rChar.c_str(), fChar.c_str());
     // Get form from 3rd char
     FormTypeEnum fType = UNKNOWN_FORM;
     if (fChar == "U" || fChar == "B")
@@ -2267,7 +2359,7 @@ const
 
   std::string newResName;
   if (groupType == G_OH) {
-    newResName = "ROH";//terminalHydroxylName_;
+    newResName = "ROH";
     // Change atom names
     ChangeAtomName(topIn.SetAtom(selected[0]), "O1");
     if (selected.size() > 1)
@@ -2585,6 +2677,14 @@ int Exec_PrepareForLeap::SearchForDisulfides(double disulfidecut, std::string co
   if (cysmask.None())
     mprintf("Warning: No cysteine sulfur atoms selected by %s\n", cysmaskstr.c_str());
   else {
+    // Sanity check - warn if non-sulfurs detected
+    for (AtomMask::const_iterator at = cysmask.begin(); at != cysmask.end(); ++at)
+    {
+      if (topIn[*at].Element() != Atom::SULFUR)
+        mprintf("Warning: Atom '%s' does not appear to be sulfur.\n",
+                topIn.ResNameNumAtomNameNum(*at).c_str());
+    }
+
     int nExistingDisulfides = 0;
     int nDisulfides = 0;
     double cut2 = disulfidecut * disulfidecut;
@@ -3294,6 +3394,10 @@ void Exec_PrepareForLeap::Help() const
 // Exec_PrepareForLeap::Execute()
 Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 {
+  mprintf("\tPREPAREFORLEAP:\n");
+  mprintf("# Citation: Roe, D.R.; Bergonzo, C.; \"PrepareForLeap: An Automated Tool for\n"
+          "#           Fast PDB-to-Parameter Generation.\"\n"
+          "#           J. Comp. Chem. (2022), V. 43, I. 13, pp 930-935.\n" );
   debug_ = State.Debug();
   errorsAreFatal_ = !argIn.hasKey("skiperrors");
   // Get input coords
@@ -3539,6 +3643,11 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     if (RemoveHydrogens(topIn, frameIn)) return CpptrajState::ERR;
   }
 
+  // See if sugars already have glycam names
+  hasGlycam_ = argIn.hasKey("hasglycam");
+  if (hasGlycam_)
+    mprintf("\tAssuming sugars already have glycam residue names.\n");
+
   // Get sugar mask or default sugar mask
   std::string sugarmaskstr = argIn.GetStringKey("sugarmask");
   if (!sugarmaskstr.empty()) {
@@ -3546,6 +3655,8 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       mprinterr("Error: Cannot specify 'nosugars' and 'sugarmask'\n");
       return CpptrajState::ERR;
     }
+  } else if (hasGlycam_) {
+    sugarmaskstr = GenGlycamResMaskString();
   } else if (prepare_sugars) {
     // No sugar mask specified; create one from names in pdb_to_glycam_ map.
     sugarmaskstr.assign(":");
@@ -3556,9 +3667,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       sugarmaskstr.append( mit->first.Truncated() );
     }
   }
-  hasGlycam_ = argIn.hasKey("hasglycam");
-  if (hasGlycam_)
-    mprintf("\tAssuming sugars already have glycam residue names.\n");
+
   // Get how sugars should be determined (geometry/name)
   std::string determineSugarsBy = argIn.GetStringKey("determinesugarsby", "geometry");
   if (determineSugarsBy == "geometry") {

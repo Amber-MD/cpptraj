@@ -346,7 +346,7 @@ void cudaCalcEnergy(Coordinates *coords, int *NBindex, int ntypes, ParamsLJ *par
     float energy = calcTotalEnergy(atom1.charge, atom2.charge, lj.A, lj.B, r_2);
     
     if (atom2.solvent) {
-      atomicAdd(&(result_ww[a1]), energy * 0.5f);
+      atomicAdd(&(result_ww[a1]), energy);
     } else {
       atomicAdd(&(result_sw[a1]), energy);
     }
@@ -438,7 +438,7 @@ void cudaCalcEnergySlow(Coordinates *coords, int *NBindex, int ntypes, ParamsLJ 
         }
       }
       if (atom2.solvent) {
-        energy_ww += energy * 0.5f;
+        energy_ww += energy;
       } else {
         energy_sw += energy;
       }

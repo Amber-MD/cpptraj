@@ -113,18 +113,18 @@ void freeCuda(void *array) {
  * This starts the cuda kernel, thus it is actually a quite long function.
  */
 __host__
-std::vector<std::vector<float> > doActionCudaEnergy(const double *coords, int *NBindex_c, int ntypes, void *parameter, void *molecule_c,
-                            int boxinfo, float *recip_o_box, float *ucell, int maxAtoms, float *min_c, float *max_c, int headAtomType, 
-                            float neighbourCut2, int *result_o, int *result_n, float *result_w_c, float *result_s_c,
-                            int *result_O_c, int *result_N_c, bool doorder) {
+void doActionCudaEnergy(const double *coords, int *NBindex_c, int ntypes, void *parameter, void *molecule_c,
+                        int boxinfo, float *recip_o_box, float *ucell, int maxAtoms, float *min_c, float *max_c, int headAtomType, 
+                        float neighbourCut2, float *result_esw, float *result_eww, int *result_o, int *result_n, float *result_eww_c, float *result_esw_c,
+                        int *result_O_c, int *result_N_c, bool doorder) {
   Coordinates *coords_c   = NULL;
   float *recip_b_c  = NULL;
   float *ucell_c    = NULL;
   
   
 
-  float *result_A = (float *) calloc(maxAtoms, sizeof(float));
-  float *result_s = (float *) calloc(maxAtoms, sizeof(float));
+  // float *result_A = (float *) calloc(maxAtoms, sizeof(float));
+  // float *result_s = (float *) calloc(maxAtoms, sizeof(float));
   // TODO: Fix this, test is actually a quite bad name here!
   Coordinates *coord_array = (Coordinates *) calloc(maxAtoms, sizeof(Coordinates));
   
@@ -150,13 +150,13 @@ std::vector<std::vector<float> > doActionCudaEnergy(const double *coords, int *N
   }
 
   // vectors that will return the necessary information.
-  std::vector<std::vector<float> > result;
-  std::vector<float> result_esw;
-  std::vector<float> result_eww;
+  // std::vector<std::vector<float> > result;
+  // std::vector<float> result_esw;
+  // std::vector<float> result_eww;
 
   // Allocate space on the GPU
   if (cudaMalloc(&coords_c, maxAtoms * sizeof(Coordinates)) != cudaSuccess) {
-    free(result_A); free(result_s); free(coord_array);
+    free(coord_array);
     throw CudaException();
   }
 
@@ -164,17 +164,17 @@ std::vector<std::vector<float> > doActionCudaEnergy(const double *coords, int *N
   // Copy the data to the GPU
   if (cudaMemcpy(coords_c, coord_array, maxAtoms * sizeof(Coordinates), cudaMemcpyHostToDevice) != cudaSuccess) {
     cudaFree(coords_c); cudaFree(recip_b_c); cudaFree(ucell_c);
-    free(result_A); free(result_s); free(coord_array);
+    free(coord_array);
     throw CudaException();
   }
-  if (cudaMemcpy(result_w_c, result_A, maxAtoms * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
+  if (cudaMemcpy(result_eww_c, result_eww, maxAtoms * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
     cudaFree(coords_c); cudaFree(recip_b_c); cudaFree(ucell_c);
-    free(result_A); free(result_s); free(coord_array);
+    free(coord_array);
     throw CudaException();
   }
-  if (cudaMemcpy(result_s_c, result_s, maxAtoms * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
+  if (cudaMemcpy(result_esw_c, result_esw, maxAtoms * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
     cudaFree(coords_c); cudaFree(recip_b_c); cudaFree(ucell_c);
-    free(result_A); free(result_s); free(coord_array);
+    free(coord_array);
     throw CudaException();
   }
 
@@ -182,7 +182,7 @@ std::vector<std::vector<float> > doActionCudaEnergy(const double *coords, int *N
   // (this is about 10% slower).
   if (doorder) {
     cudaCalcEnergySlow<<< (maxAtoms + SLOW_BLOCKSIZE) / SLOW_BLOCKSIZE, SLOW_BLOCKSIZE >>> (coords_c, NBindex_c, ntypes, lennardJonesParams, sender,
-                                                                                            boxinf, ucellN, maxAtoms, result_w_c, result_s_c, min_c, max_c,
+                                                                                            boxinf, ucellN, maxAtoms, result_eww_c, result_esw_c, min_c, max_c,
                                                                                             headAtomType, neighbourCut2, result_O_c, result_N_c);
   } else {
     // Uses a 2D array, which is nice for memory access.
@@ -190,7 +190,7 @@ std::vector<std::vector<float> > doActionCudaEnergy(const double *coords, int *N
     dim3 numBlocks((maxAtoms + threadsPerBlock.x) / threadsPerBlock.x, (maxAtoms + threadsPerBlock.y) / threadsPerBlock.y);
     // The actual call of the device function
     cudaCalcEnergy<<<numBlocks, threadsPerBlock>>> (coords_c, NBindex_c, ntypes, lennardJonesParams, sender,
-                                                                      boxinf, ucellN, maxAtoms, result_w_c, result_s_c, min_c, max_c,
+                                                                      boxinf, ucellN, maxAtoms, result_eww_c, result_esw_c, min_c, max_c,
                                                                       headAtomType, neighbourCut2, result_O_c, result_N_c);
     // Check if there was an error.
     cudaError_t cudaError = cudaGetLastError();
@@ -199,16 +199,16 @@ std::vector<std::vector<float> > doActionCudaEnergy(const double *coords, int *N
     }
   }
   // Return the results of the calculation to the main memory
-  if (cudaMemcpy(result_A, result_w_c, maxAtoms * sizeof(float), cudaMemcpyDeviceToHost) != cudaSuccess) {
+  if (cudaMemcpy(result_eww, result_eww_c, maxAtoms * sizeof(float), cudaMemcpyDeviceToHost) != cudaSuccess) {
     cudaFree(coords_c); cudaFree(recip_b_c); cudaFree(ucell_c);
-    free(result_A); free(result_s); free(coord_array);
+    free(coord_array);
     throw CudaException();
   }  
   
 
-  if (cudaMemcpy(result_s, result_s_c, maxAtoms * sizeof(float), cudaMemcpyDeviceToHost) != cudaSuccess) {
+  if (cudaMemcpy(result_esw, result_esw_c, maxAtoms * sizeof(float), cudaMemcpyDeviceToHost) != cudaSuccess) {
     cudaFree(coords_c); cudaFree(recip_b_c); cudaFree(ucell_c);
-    free(result_A); free(result_s); free(coord_array);
+    free(coord_array);
     throw CudaException();
   }
 
@@ -216,27 +216,27 @@ std::vector<std::vector<float> > doActionCudaEnergy(const double *coords, int *N
   
   if (cudaMemcpy(result_o, result_O_c, maxAtoms * 4 * sizeof(int), cudaMemcpyDeviceToHost) != cudaSuccess) {
     cudaFree(coords_c); cudaFree(recip_b_c); cudaFree(ucell_c);
-    free(result_A); free(result_s); free(coord_array);
+    free(coord_array);
     throw CudaException();
   }
   
   if (cudaMemcpy(result_n, result_N_c, maxAtoms * sizeof(int), cudaMemcpyDeviceToHost) != cudaSuccess) {
     cudaFree(coords_c); cudaFree(recip_b_c); cudaFree(ucell_c);
-    free(result_A); free(result_s); free(coord_array);
+    free(coord_array);
     throw CudaException();
   }
 
-  for (int i = 0; i < maxAtoms; ++i) {
-    result_eww.push_back(result_A[i]);
-    result_esw.push_back(result_s[i]);
-  }
+  // for (int i = 0; i < maxAtoms; ++i) {
+  //   result_eww.push_back(result_A[i]);
+  //   result_esw.push_back(result_s[i]);
+  // }
 
-  result.push_back(result_eww);
-  result.push_back(result_esw);
+  // result.push_back(result_eww);
+  // result.push_back(result_esw);
 
   // Free everything used in here.
   cudaFree(coords_c); cudaFree(recip_b_c); cudaFree(ucell_c);
-  free(result_A); free(result_s); free(coord_array);
+  free(coord_array);
   
-  return result;
+  return; // result;
 }
