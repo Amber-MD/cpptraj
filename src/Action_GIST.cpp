@@ -1810,9 +1810,18 @@ void Action_GIST::Print() {
     infofile_->Printf("watcount in subvol = %d\n", nwts);
     infofile_->Printf("Total referenced translational entropy of the grid:"
                       " dTStrans = %9.5f kcal/mol, Nf=%d\n", SumDataSet(*dTStrans_) / NFRAME_, NFRAME_);
-    infofile_->Printf("Total 6d if all one vox: %9.5f kcal/mol\n", SumDataSet(*dTSsix_) / nwts);
-    infofile_->Printf("Total t if all one vox: %9.5f kcal/mol\n", SumDataSet(*dTStrans_) / nwts);
-    infofile_->Printf("Total o if all one vox: %9.5f kcal/mol\n", SumDataSet(*dTSorient_) / nwtt);
+    double total_6d_1vox = 0;
+    double total_t_1vox = 0;
+    double total_o_1vox = 0;
+    if (nwts > 0) {
+      total_6d_1vox = SumDataSet(*dTSsix_) / (double)nwts;
+      total_t_1vox = SumDataSet(*dTStrans_) / (double)nwts;
+    }
+    if (nwtt > 0)
+      total_o_1vox = SumDataSet(*dTSorient_) / (double)nwtt;
+    infofile_->Printf("Total 6d if all one vox: %9.5f kcal/mol\n", total_6d_1vox);
+    infofile_->Printf("Total t if all one vox: %9.5f kcal/mol\n", total_t_1vox);
+    infofile_->Printf("Total o if all one vox: %9.5f kcal/mol\n", total_o_1vox);
   }
   // free some memory before allocating all those Farrays for the -dens and -norm data.
   voxel_xyz_.clear();
