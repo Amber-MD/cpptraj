@@ -1,4 +1,5 @@
 Maximum number of waters found in one voxel for 10 frames = 3
+Number of singly-occupied voxels: 1688
 Total referenced orientational entropy of the grid: dTSorient = -13.01998 kcal/mol, Nf=10
 watcount in vol = 136
 watcount in subvol = 1132

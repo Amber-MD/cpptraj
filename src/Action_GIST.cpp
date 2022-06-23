@@ -1643,8 +1643,9 @@ void Action_GIST::Print() {
     mprintf("\tCalculating orientational entropy:\n");
     ParallelProgress oe_progress( MAX_GRID_PT_ );
     int n_finished = 0;
+    int n_single_occ = 0;
 #   ifdef _OPENMP
-#   pragma omp parallel shared(n_finished) firstprivate(oe_progress)
+#   pragma omp parallel shared(n_finished) firstprivate(oe_progress) reduction(+: n_single_occ)
     {
     oe_progress.SetThread( omp_get_thread_num() );
 #   pragma omp for
@@ -1653,6 +1654,8 @@ void Action_GIST::Print() {
       oe_progress.Update( n_finished );
       int nw_total = N_main_solvent_[gr_pt]; // Total number of waters that have been in this voxel.
       //mprintf("DEBUG1: %u nw_total %i\n", gr_pt, nw_total);
+      if (nw_total == 1)
+        n_single_occ++;
       if (nw_total > 1) {
         double sorient_norm = 0.0;
         for (int n0 = 0; n0 < nw_total; n0++)
@@ -1709,6 +1712,10 @@ void Action_GIST::Print() {
     oe_progress.Finish();
     infofile_->Printf("Maximum number of waters found in one voxel for %d frames = %d\n",
                       NFRAME_, max_nwat_);
+    if (n_single_occ > 0) {
+      infofile_->Printf("Number of singly-occupied voxels: %i\n", n_single_occ);
+      mprintf("Warning: %i singly-occupied voxels; use more frames or bigger voxels.\n", n_single_occ);
+    }
     infofile_->Printf("Total referenced orientational entropy of the grid:"
                       " dTSorient = %9.5f kcal/mol, Nf=%d\n", SumDataSet(*dTSorient_) / NFRAME_, NFRAME_);
   }
@@ -1816,9 +1823,12 @@ void Action_GIST::Print() {
     if (nwts > 0) {
       total_6d_1vox = SumDataSet(*dTSsix_) / (double)nwts;
       total_t_1vox = SumDataSet(*dTStrans_) / (double)nwts;
-    }
+    } else
+      mprintf("Warning: Not enough data in voxels to calculate 6D and translational entropy.\n");
     if (nwtt > 0)
       total_o_1vox = SumDataSet(*dTSorient_) / (double)nwtt;
+    else
+      mprintf("Warning: Not enough data in voxels to calculate orientational entropy.\n");
     infofile_->Printf("Total 6d if all one vox: %9.5f kcal/mol\n", total_6d_1vox);
     infofile_->Printf("Total t if all one vox: %9.5f kcal/mol\n", total_t_1vox);
     infofile_->Printf("Total o if all one vox: %9.5f kcal/mol\n", total_o_1vox);
