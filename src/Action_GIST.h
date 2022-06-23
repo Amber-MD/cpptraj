@@ -193,17 +193,17 @@ class Action_GIST : public Action {
     DataSet_3D* Eww_;       ///< Water-water energy
     DataSet_3D* dTStrans_;  ///< Solvent translation entropy
     DataSet_3D* dTSorient_; ///< Solvent orentational entropy
-    DataSet_3D* dTSsix_;
+    DataSet_3D* dTSsix_;    ///< Solvent entropy estimate from combined trans/rotate
     DataSet_3D* neighbor_;  ///< Number of neighbors within 3.5 Angstrom*
-    DataSet_3D* dipole_; // pol
+    DataSet_3D* dipole_;    ///< Mean dipole moment
     // GIST double grid datasets
-    DataSet_3D* order_; // qtet
-    DataSet_3D* dipolex_;    ///< Water dipole (X)*
-    DataSet_3D* dipoley_;    ///< Water dipole (Y)*
-    DataSet_3D* dipolez_;    ///< Water dipole (Z)*
+    DataSet_3D* order_;     ///< Average tetrahedral order parameter for solvent, qtet
+    DataSet_3D* dipolex_;   ///< Water dipole (X)*
+    DataSet_3D* dipoley_;   ///< Water dipole (Y)*
+    DataSet_3D* dipolez_;   ///< Water dipole (Z)*
     // PME GIST double grid datasets
-    DataSet_3D* PME_;           ///< The PME nonbond interaction( charge-charge + vdw) cal for water
-    DataSet_3D* U_PME_;         ///< The PME nonbond energy for solute atoms
+    DataSet_3D* PME_;       ///< The PME nonbond interaction( charge-charge + vdw) cal for water
+    DataSet_3D* U_PME_;     ///< The PME nonbond energy for solute atoms
 
     SolventInfo solventInfo_;
     std::vector<DataSet_3D*> atomDensitySets_;
