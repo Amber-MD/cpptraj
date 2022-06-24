@@ -1154,7 +1154,6 @@ void Action_GIST::Order(Frame const& frameIn) {
     Vec3 XYZ1( (&OnGrid_XYZ_[0])+gidx*3 );
     // Find coordinates for 4 closest neighbors to this water (on or off grid).
     // TODO set up overall grid in DoAction.
-    // TODO initialize WAT?
     Vec3 WAT[4];
     for (int ii = 0; ii < 4; ii++)
       WAT[ii].Zero();
