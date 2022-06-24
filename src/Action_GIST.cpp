@@ -1718,7 +1718,10 @@ void Action_GIST::Print() {
                       NFRAME_, max_nwat_);
     if (n_single_occ > 0) {
       infofile_->Printf("Number of singly-occupied voxels: %i\n", n_single_occ);
-      mprintf("Warning: %i singly-occupied voxels; use more frames or bigger voxels.\n", n_single_occ);
+      double pct_single_occ = ((double)n_single_occ/(double)MAX_GRID_PT_)*100.0;
+      mprintf("\t%i (%.2f %%) of voxels are singly-occupied.\n", n_single_occ, pct_single_occ);
+      if (pct_single_occ > 10.0)
+        mprintf("Warning: More than 10%% of voxels are singly-occupied; use more frames or bigger voxels.\n", n_single_occ);
     }
     infofile_->Printf("Total referenced orientational entropy of the grid:"
                       " dTSorient = %9.5f kcal/mol, Nf=%d\n", SumDataSet(*dTSorient_) / NFRAME_, NFRAME_);
