@@ -35,7 +35,7 @@ class Action_Radial: public Action {
     typedef std::vector<AtomMask> Marray;
     Marray Sites1_;
     Marray Sites2_;
-    enum RmodeType { NORMAL=0, NO_INTRAMOL, CENTER1, CENTER2, BYSITE };
+    enum RmodeType { NORMAL=0, NO_INTRAMOL, CENTER1, CENTER2, BYSITE, SPECIFIED };
     RmodeType rmode_;                ///< Type of calculation to perform.
     enum SmodeType { OFF = 0, BYRES, BYMOL };
     SmodeType siteMode1_;
@@ -55,6 +55,7 @@ class Action_Radial: public Action {
     DataSet* intrdf_;
     DataSet* rawrdf_;
     int debug_;
+    Vec3 specified_xyz_;      ///< XYZ coordinates for SPECIFIED
 
     int SetupSiteArrayByAtom(Marray&, AtomMask const&) const;
     int SetupSiteArrayByRes(Marray&, Topology const&, AtomMask const&) const;

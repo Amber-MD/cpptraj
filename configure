@@ -830,13 +830,15 @@ int main() {
   printf("Testing\n"); return 0;
 }
 EOF
+  check_lblas=0
   if [ "${LIB_MAKE[$LBLAS]}" != 'yes' ] ; then
     DetermineFlink silent "  Checking LAPACK/BLAS" "${LIB_FLAG[$LLAPACK]} ${LIB_FLAG[$LBLAS]}"
+    check_lblas=$?
     rebuild_math=$REBUILDOPT
   else
     rebuild_math='--rebuild'
   fi
-  if [ $? -ne 0 -o "${LIB_MAKE[$LBLAS]}" = 'yes' ] ; then
+  if [ $check_lblas -ne 0 -o "${LIB_MAKE[$LBLAS]}" = 'yes' ] ; then
     if [ "${LIB_STAT[$LBLAS]}" = 'enabled' ] ; then
       if [ "$BLAS_TYPE" = 'openblas' ] ; then
         MATH_SRCDIR=$OPENBLAS_SRCDIR

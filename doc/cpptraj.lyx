@@ -340,6 +340,23 @@ https://github.com/Amber-MD/cpptraj
 
 \end_layout
 
+\begin_layout Subsection
+Examples
+\end_layout
+
+\begin_layout Standard
+Some examples of running CPPTRAJ are available in the 
+\series bold
+examples
+\series default
+ subdirectory.
+ There are also many tests in the 
+\series bold
+test
+\series default
+ subdirectory which can serve as simple examples.
+\end_layout
+
 \begin_layout Section
 Running Cpptraj
 \end_layout
@@ -782,8 +799,11 @@ Getting Help
 \end_layout
 
 \begin_layout Standard
-If in interactive mode, 'help <command>' can be used to get the associated
- keywords as well as an abbreviated description of the command.
+If in interactive mode, the 'help' command can be used to list recognized
+ commands and topics; topics (such as mask syntax) start with uppercase
+ letters.
+ 'help <command>' can be used to get the associated keywords as well as
+ an abbreviated description of the command.
  Most commands have a corresponding test which also serves as an example
  of how to use the command.
  See $AMBERHOME/AmberTools/test/cpptraj/README for more details.
@@ -25832,10 +25852,6 @@ rdval>]
 \end_layout
 
 \begin_layout Description
-[excludeions] If specified, exclude any ions from the calculation.
-\end_layout
-
-\begin_layout Description
 
 \series bold
 [gridcntr
@@ -26019,6 +26035,68 @@ suffix>] Suffix for main GIST info file name.
 \end_layout
 
 \begin_layout Description
+[solute
+\begin_inset space ~
+\end_inset
+
+<mask>] Selection mask for the solute.
+ All other molecules will be solvent.
+ If this is omitted, the standard solute/solvent assignment will be used.
+\end_layout
+
+\begin_layout Description
+[solventmols
+\begin_inset space ~
+\end_inset
+
+<MOLS>] Comma-separated list of names of solvent molecules.
+ Energies will be computed per solvent molecule.
+ For the entropy, only the main solvent (the first one) will be used.
+ Use, e.g., 
+\series bold
+solventmols WAT,NA,CL
+\series default
+ for a GIST calculation including ions.
+ This needs to be specified if there is more than one solvent species.
+\end_layout
+
+\begin_layout Description
+[nocom] Do not use the center of mass to define the molecular position.
+ Instead, use the first atom in 
+\series bold
+rigidatoms
+\series default
+.
+ Use this flag to restore the behavior of old GIST runs.
+\end_layout
+
+\begin_layout Description
+[rigidatoms
+\begin_inset space ~
+\end_inset
+
+<CENTRAL>
+\begin_inset space ~
+\end_inset
+
+<SUBST1>
+\begin_inset space ~
+\end_inset
+
+<SUBST2>] Specifies how to define the molecular orientation for the entropy.
+ By default, a simple heuristic will be used.
+ This works for water, but not for all solvents.
+ The atoms should be representative of the molecular orientation and should
+ not be collinear.
+ Note that the central atom goes first.
+ For water, the default is equivalent to 
+\series bold
+rigidatoms O H1 H2
+\series default
+, corresponding to H1-O-H2 as the rigid substructure.
+\end_layout
+
+\begin_layout Description
 [nopme] Do not use particle mesh Ewald for the non-bonded calculation (default).
 \end_layout
 
@@ -26135,7 +26213,11 @@ DataSet Aspects:
 \end_layout
 
 \begin_layout Description
-[dTSorient] First order orientational entropy density .
+[dTSorient] First order orientational entropy density.
+\end_layout
+
+\begin_layout Description
+[dTSsix] First order six-dimensional entropy density.
 \end_layout
 
 \begin_layout Description
@@ -26173,6 +26255,90 @@ DataSet Aspects:
 
 \begin_layout Description
 [U_PME] (pme only) Mean solute energy on the GIST grid.
+\end_layout
+
+\begin_layout Standard
+DataSets if the main solvent is not water:
+\end_layout
+
+\begin_layout Description
+[gELEM] For every element 
+\series bold
+ELEM
+\series default
+ in the main solvent, the atomic density relative to rho0 (e.g., 
+\series bold
+gC
+\series default
+ and 
+\series bold
+gH
+\series default
+ for benzene).
+\end_layout
+
+\begin_layout Standard
+DataSets if there are multiple solvents:
+\end_layout
+
+\begin_layout Description
+[g_mol_NAME] for every solvent species 
+\series bold
+NAME
+\series default
+ (e.g., 
+\series bold
+g_mol_WAT
+\series default
+ and 
+\series bold
+g_mol_NA
+\series default
+ if 
+\series bold
+solventmols WAT,NA
+\series default
+ was specified).
+\end_layout
+
+\begin_layout Description
+[Esw_mol_NAME] for every solvent species 
+\series bold
+NAME
+\series default
+ (e.g., 
+\series bold
+Esw_mol_WAT
+\series default
+ and 
+\series bold
+Esw_mol_NA
+\series default
+ if 
+\series bold
+solventmols WAT,NA
+\series default
+ was specified).
+\end_layout
+
+\begin_layout Description
+[Eww_mol_NAME] for every solvent species 
+\series bold
+NAME
+\series default
+ (e.g., 
+\series bold
+Eww_mol_WAT
+\series default
+ and 
+\series bold
+Eww_mol_NA
+\series default
+ if 
+\series bold
+solventmols WAT,NA
+\series default
+ was specified).
 \end_layout
 
 \end_deeper
@@ -26550,6 +26716,37 @@ g_H
 \begin_layout Itemize
 
 \series bold
+g_ELEM
+\series default
+ - (if the main solvent is not water) Density of every further element 
+\series bold
+ELEM
+\series default
+ in the main solvent.
+ Scaled such that the expectation value in pure solvent is unity.
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+g_mol_NAME
+\series default
+ - (if there is more than one solvent) Density of every solvent species
+ 
+\series bold
+NAME
+\series default
+ specified in solventmols.
+ Scaled by 
+\series bold
+rho0
+\series default
+.
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
 dTStrans-dens
 \series default
  - First order translational entropy density (kcal/mole/Å
@@ -26655,8 +26852,60 @@ unting, and not referenced to the corresponding bulk value of this quantity
 \end_inset
 
 ).
- Again, both Lennard-Jones and electrostatic interactions are computed without
- any cutoff, within the minimum image convention.
+ Unless PME is used, both Lennard-Jones and electrostatic interactions are
+ computed without any cutoff, within the minimum image convention.
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+Esw_mol_NAME-dens
+\series default
+ and 
+\series bold
+Esw_mol_NAME-norm
+\series default
+ - (if there are multiple solvent species) Mean solute-solvent energy per
+ molecule of species 
+\series bold
+NAME
+\series default
+, for each solvent specified in 
+\series bold
+solventmols
+\series default
+.
+ Follows the same conventions as 
+\series bold
+Esw
+\series default
+.
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+Eww_mol_NAME-dens
+\series default
+ and 
+\series bold
+Eww_mol_NAME-norm
+\series default
+ - (if there are multiple solvent species) Mean solvent-solvent energy per
+ molecule of species 
+\series bold
+NAME
+\series default
+, for each solvent specified in 
+\series bold
+solventmols
+\series default
+.
+ Follows the same conventions as 
+\series bold
+Eww
+\series default
+.
 \end_layout
 
 \begin_layout Itemize
@@ -27571,34 +27820,7 @@ d with a region
  can add up quickly.
  It can be advisable to omit all voxels above a certain distance to the
  solute to obtain more stable results.
- When using PME, the energy cannot be decomposed into Eww and Esw contributions.
- In that case, the energy of hydration is 
-\begin_inset Formula $\Delta E_{hyd}=E_{solute}-E_{solute}^{self}+\sum^{voxels}E_{PME}^{dens}\times V_{vox}$
-\end_inset
-
-, where the solute energy 
-\begin_inset Formula $E_{solute}$
-\end_inset
-
- (containing solute-solute and solute-solvent interactions) can be found
- in the GIST 
-\series bold
-info
-\series default
- file, and the solute self-energy 
-\begin_inset Formula $E_{solute}^{self}$
-\end_inset
-
- can be obtained e.g.
- using the 
-\begin_inset Quotes eld
-\end_inset
-
-energy
-\begin_inset Quotes erd
-\end_inset
-
- command .
+ 
 \end_layout
 
 \begin_layout Subsection
@@ -34578,20 +34800,24 @@ radial
 
 \end_inset
 
- [out <outfilename>] <spacing> <maximum> <solvent mask1>
+ [out <outfilename>] <spacing> <maximum> <solvent mask1> [<solute mask2>]
 \end_layout
 
 \begin_layout LyX-Code
-       [<solute mask2>] [noimage] [density <density> | volume] [<dataset
- name>]
+       [noimage]
 \end_layout
 
 \begin_layout LyX-Code
-       [intrdf <file>] [rawrdf <file>]
+   	[density <density> | volume] [<dataset name>] [intrdf <file>] [rawrdf
+ <file>]
 \end_layout
 
 \begin_layout LyX-Code
-       [{{center1|center2|nointramol} | [byres1] [byres2] [bymol1] [bymol2]}]]
+   	[{{center1|center2|nointramol|toxyz <x>,<y>,<z>} |
+\end_layout
+
+\begin_layout LyX-Code
+         [byres1] [byres2] [bymol1] [bymol2]}]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -34659,21 +34885,7 @@ mask2>] (Optional) If specified calculate RDF of all atoms in <solvent mask1>
 \end_layout
 
 \begin_layout Description
-[<setname>] Name of output data sets.
-\end_layout
-
-\begin_layout Description
-[center1] Calculate RDF from geometric center of atoms in <solvent mask1>
- to all atoms in <solute mask2>.
-\end_layout
-
-\begin_layout Description
-[center2] Calculate RDF from geometric center of atoms in <solute mask2>
- to all atoms in <solvent mask1>.
-\end_layout
-
-\begin_layout Description
-[nointramol] Ignore intra-molecular distances.
+[<dataset name>] Name of output data sets.
 \end_layout
 
 \begin_layout Description
@@ -34692,6 +34904,29 @@ ame>).
 \end_inset
 
 <file>] Write raw (non-normalized) RDF values to <file>.
+\end_layout
+
+\begin_layout Description
+[center1] Calculate RDF from geometric center of atoms in <solvent mask1>
+ to all atoms in <solute mask2>.
+\end_layout
+
+\begin_layout Description
+[center2] Calculate RDF from geometric center of atoms in <solute mask2>
+ to all atoms in <solvent mask1>.
+\end_layout
+
+\begin_layout Description
+[nointramol] Ignore intra-molecular distances.
+\end_layout
+
+\begin_layout Description
+[toxyz
+\begin_inset space ~
+\end_inset
+
+<x>,<y>,<z>] Calculate RDF from center of atoms in <solvent mask1> to point
+ specified by <x> <y> and <z> (in Ang.).
 \end_layout
 
 \begin_layout Description
