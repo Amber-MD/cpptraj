@@ -1156,6 +1156,8 @@ void Action_GIST::Order(Frame const& frameIn) {
     // TODO set up overall grid in DoAction.
     // TODO initialize WAT?
     Vec3 WAT[4];
+    for (int ii = 0; ii < 4; ii++)
+      WAT[ii].Zero();
     double d1 = maxD_;
     double d2 = maxD_;
     double d3 = maxD_;
