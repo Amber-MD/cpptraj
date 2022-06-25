@@ -97,7 +97,7 @@ double do_quaternion_rmsd(Frame const& Ref, Frame& Tgt,
 
   double rmsd;
   //int err =
-  FastCalcRMSDAndRotation(U, rot.Dptr(), &rmsd, mwss, total_mass, minScore);
+  Cpptraj::QCPRot::FastCalcRMSDAndRotation(U, rot.Dptr(), &rmsd, mwss, total_mass, minScore);
   //mprintf("DEBUG: qcprot returned %i\n", err);
   return rmsd;
 }
