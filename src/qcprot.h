@@ -1,8 +1,7 @@
 #ifndef INC_QCPROT_H
 #define INC_QCPROT_H
-#ifdef __cplusplus
-extern "C" {
-#endif
+namespace Cpptraj {
+namespace QCPRot {
 /*******************************************************************************
  *  -/_|:|_|_\-
  *
@@ -79,10 +78,6 @@ extern "C" {
  *
  ******************************************************************************/
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
-
 /* Calculate the RMSD & rotational matrix.
 
         Input:
@@ -151,7 +146,6 @@ int FastCalcRMSDAndRotation(double *rot, double *A, double *rmsd, double E0, dou
             You can use CenterCoords() for this.
 */
 //void CenterCoords(double **coords, const int len);
-#ifdef __cplusplus
 }
-#endif
+}
 #endif

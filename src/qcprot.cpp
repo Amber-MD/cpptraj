@@ -86,7 +86,8 @@
  *
  ******************************************************************************/
 #include "qcprot.h"
-
+#include <cmath>
+#include "CpptrajStdio.h"
 /*
 static double
 InnerProduct(double *A, double **coords1, double **coords2, const int len, const double *weight)
@@ -163,7 +164,7 @@ InnerProduct(double *A, double **coords1, double **coords2, const int len, const
 */
 
 int
-FastCalcRMSDAndRotation(double *rot, double *A, double *rmsd, double E0, double len, double minScore)
+Cpptraj::QCPRot::FastCalcRMSDAndRotation(double *rot, double *A, double *rmsd, double E0, double len, double minScore)
 {
     double Sxx, Sxy, Sxz, Syx, Syy, Syz, Szx, Szy, Szz;
     double Szz2, Syy2, Sxx2, Sxy2, Syz2, Sxz2, Syx2, Szy2, Szx2,
@@ -239,7 +240,7 @@ FastCalcRMSDAndRotation(double *rot, double *A, double *rmsd, double E0, double 
     }
 
     if (i == 50)
-       fprintf(stderr,"\nMore than %d iterations needed!\n", i);
+       mprinterr("\nMore than %d iterations needed!\n", i);
 
     /* the fabs() is to guard against extremely small, but *negative* numbers due to floating point error */
     rms = sqrt(fabs(2.0 * (E0 - mxEigenV)/len));
