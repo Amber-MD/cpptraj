@@ -433,6 +433,10 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   Esw_->GridInfo();
   mprintf("\tNumber of voxels: %u, voxel volume: %f Ang^3\n",
           MAX_GRID_PT_, gridBin_->VoxelVolume());
+  if (useCom_)
+    mprintf("\tVoxel occupancy will be determined using molecule center of mass.\n");
+  else
+    mprintf("\tVoxel occupancy will be determined using the first atom.\n");
   mprintf("#Please cite these papers if you use GIST results in a publication:\n"
           "#    Steven Ramsey, Crystal Nguyen, Romelia Salomon-Ferrer, Ross C. Walker, Michael K. Gilson, and Tom Kurtzman. J. Comp. Chem. 37 (21) 2016\n"
           "#    Franz Waibl, Johannes Kraml, Valentin J. Hoerschinger, Florian Hofer, Anna S. Kamenik, Monica L. Fernandez-Quintero, and Klaus R. Liedl,\n"
@@ -1150,8 +1154,9 @@ void Action_GIST::Order(Frame const& frameIn) {
     Vec3 XYZ1( (&OnGrid_XYZ_[0])+gidx*3 );
     // Find coordinates for 4 closest neighbors to this water (on or off grid).
     // TODO set up overall grid in DoAction.
-    // TODO initialize WAT?
     Vec3 WAT[4];
+    for (int ii = 0; ii < 4; ii++)
+      WAT[ii].Zero();
     double d1 = maxD_;
     double d2 = maxD_;
     double d3 = maxD_;
@@ -1643,8 +1648,9 @@ void Action_GIST::Print() {
     mprintf("\tCalculating orientational entropy:\n");
     ParallelProgress oe_progress( MAX_GRID_PT_ );
     int n_finished = 0;
+    int n_single_occ = 0;
 #   ifdef _OPENMP
-#   pragma omp parallel shared(n_finished) firstprivate(oe_progress)
+#   pragma omp parallel shared(n_finished) firstprivate(oe_progress) reduction(+: n_single_occ)
     {
     oe_progress.SetThread( omp_get_thread_num() );
 #   pragma omp for
@@ -1653,6 +1659,8 @@ void Action_GIST::Print() {
       oe_progress.Update( n_finished );
       int nw_total = N_main_solvent_[gr_pt]; // Total number of waters that have been in this voxel.
       //mprintf("DEBUG1: %u nw_total %i\n", gr_pt, nw_total);
+      if (nw_total == 1)
+        n_single_occ++;
       if (nw_total > 1) {
         double sorient_norm = 0.0;
         for (int n0 = 0; n0 < nw_total; n0++)
@@ -1709,6 +1717,12 @@ void Action_GIST::Print() {
     oe_progress.Finish();
     infofile_->Printf("Maximum number of waters found in one voxel for %d frames = %d\n",
                       NFRAME_, max_nwat_);
+    if (n_single_occ > 0) {
+      infofile_->Printf("Number of singly-occupied voxels: %i\n", n_single_occ);
+      double pct_single_occ = ((double)n_single_occ/(double)MAX_GRID_PT_)*100.0;
+      mprintf("\t%i (%.2f %%) of voxels are singly-occupied.\n", n_single_occ, pct_single_occ);
+      mprintf("Info: To calculate orientational entropy for these voxels use more frames or bigger voxels.\n");
+    }
     infofile_->Printf("Total referenced orientational entropy of the grid:"
                       " dTSorient = %9.5f kcal/mol, Nf=%d\n", SumDataSet(*dTSorient_) / NFRAME_, NFRAME_);
   }
@@ -1810,9 +1824,21 @@ void Action_GIST::Print() {
     infofile_->Printf("watcount in subvol = %d\n", nwts);
     infofile_->Printf("Total referenced translational entropy of the grid:"
                       " dTStrans = %9.5f kcal/mol, Nf=%d\n", SumDataSet(*dTStrans_) / NFRAME_, NFRAME_);
-    infofile_->Printf("Total 6d if all one vox: %9.5f kcal/mol\n", SumDataSet(*dTSsix_) / nwts);
-    infofile_->Printf("Total t if all one vox: %9.5f kcal/mol\n", SumDataSet(*dTStrans_) / nwts);
-    infofile_->Printf("Total o if all one vox: %9.5f kcal/mol\n", SumDataSet(*dTSorient_) / nwtt);
+    double total_6d_1vox = 0;
+    double total_t_1vox = 0;
+    double total_o_1vox = 0;
+    if (nwts > 0) {
+      total_6d_1vox = SumDataSet(*dTSsix_) / (double)nwts;
+      total_t_1vox = SumDataSet(*dTStrans_) / (double)nwts;
+    } else
+      mprintf("Warning: Not enough data in voxels to calculate 6D and translational entropy.\n");
+    if (nwtt > 0)
+      total_o_1vox = SumDataSet(*dTSorient_) / (double)nwtt;
+    else
+      mprintf("Warning: Not enough data in voxels to calculate orientational entropy.\n");
+    infofile_->Printf("Total 6d if all one vox: %9.5f kcal/mol\n", total_6d_1vox);
+    infofile_->Printf("Total t if all one vox: %9.5f kcal/mol\n", total_t_1vox);
+    infofile_->Printf("Total o if all one vox: %9.5f kcal/mol\n", total_o_1vox);
   }
   // free some memory before allocating all those Farrays for the -dens and -norm data.
   voxel_xyz_.clear();
