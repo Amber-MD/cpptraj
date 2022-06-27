@@ -425,6 +425,7 @@ COMMON_SOURCES= \
         TrajIOarray.cpp \
         Trajout_Single.cpp \
         TrajoutList.cpp \
+        Units.cpp \
         Vec3.cpp \
         ViewRst.cpp \
         vmdplugin/dtrplugin.cpp \
