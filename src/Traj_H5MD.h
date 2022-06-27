@@ -42,7 +42,7 @@ class Traj_H5MD : public TrajectoryIO {
     /// Set up coordinates VID and related dim sizes
     int setupCoordVID(int, int&, int&, int&, int&);
     /// Set up box variable IDs and determine type
-    int setupBoxVIDs(Box&, int, int);
+    int setupBoxVIDs(int, Box&, int, int);
 #   endif
 
 //    H5::H5File* file_;
@@ -58,7 +58,7 @@ class Traj_H5MD : public TrajectoryIO {
     int natom_;         ///< Number of atoms in each trajectory frame.
     int coordVID_;      ///< Coordinates variable ID
     int cellLengthVID_; ///< Cell lengths variable ID
-    int cellAngleVID_;  ///< Cell angles variable ID
+    int cellAngleVID_;  ///< Cell angles variable ID TODO remove if unused
     int timeVID_;       ///< Time variable ID
     size_t start_[3];   ///< Start indices in each dimension
     size_t count_[3];   ///< Count indices in each dimension
