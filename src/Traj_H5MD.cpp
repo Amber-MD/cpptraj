@@ -427,7 +427,7 @@ int Traj_H5MD::readFrame(int set, Frame& frameIn) {
   // Get time
   if (timeVID_!=-1) {
     float time;
-    if (NC::CheckErr(nc_get_vara_float(ncid_, timeVID_, start_, count_, &time))) {
+    if (NC::CheckErr(nc_get_vara_float(position_gid_, timeVID_, start_, count_, &time))) {
       mprinterr("Error: Getting time for frame %i.\n", set + 1);
       return 1;
     }
@@ -437,7 +437,7 @@ int Traj_H5MD::readFrame(int set, Frame& frameIn) {
   float* fptr = &ftmp_[0];
   // Read Coords
   if (coordVID_ != -1) {
-    if ( NC::CheckErr(nc_get_vara_float(ncid_, coordVID_, start_, count_, fptr)) ) {
+    if ( NC::CheckErr(nc_get_vara_float(position_gid_, coordVID_, start_, count_, fptr)) ) {
       mprinterr("Error: Getting coordinates for frame %i\n", set+1);
       return 1;
     }
@@ -447,7 +447,7 @@ int Traj_H5MD::readFrame(int set, Frame& frameIn) {
 
   // Read Velocities
   /*if (velocityVID_ != -1) {
-    if ( NC::CheckErr(nc_get_vara_float(ncid_, velocityVID_, start_, count_, Coord_)) ) {
+    if ( NC::CheckErr(nc_get_vara_float(position_gid_, velocityVID_, start_, count_, Coord_)) ) {
       mprinterr("Error: Getting velocities for frame %i\n", set+1);
       return 1;
     }
@@ -456,7 +456,7 @@ int Traj_H5MD::readFrame(int set, Frame& frameIn) {
 
   // Read Forces
   /*if (frcVID_ != -1) {
-    if ( NC::CheckErr(nc_get_vara_float(ncid_, frcVID_, start_, count_, Coord_)) ) {
+    if ( NC::CheckErr(nc_get_vara_float(position_gid_, frcVID_, start_, count_, Coord_)) ) {
       mprinterr("Error: Getting forces for frame %i\n", set+1);
       return 1;
     }
@@ -465,26 +465,27 @@ int Traj_H5MD::readFrame(int set, Frame& frameIn) {
 
   // Read box info 
   if (cellLengthVID_ != -1) {
-    double xyzabg[6];
+    double ucell[9];
     count_[1] = 3;
-    count_[2] = 0;
-    if (NC::CheckErr(nc_get_vara_float(ncid_, cellLengthVID_, start_, count_, fptr)))
+    count_[2] = 3;
+    if (NC::CheckErr(nc_get_vara_float(edges_gid_, cellLengthVID_, start_, count_, fptr)))
     {
-      mprinterr("Error: Getting cell lengths for frame %i.\n", set+1);
+      mprinterr("Error: Getting unit cell vectors for frame %i.\n", set+1);
       return 1;
     }
-    if (NC::CheckErr(nc_get_vara_float(ncid_, cellAngleVID_, start_, count_, fptr+3)))
+/*    if (NC::CheckErr(nc_get_vara_float(edges_gid_, cellAngleVID_, start_, count_, fptr+3)))
     {
       mprinterr("Error: Getting cell angles for frame %i.\n", set+1);
       return 1;
-    }
-    for (int i = 0; i < 6; i++)
-      xyzabg[i] = (double)ftmp_[i];
+    }*/
     // Convert
-    xyzabg[0] *= convert_h5_to_cpptraj_box_;
+    for (int i = 0; i < 9; i++)
+      ucell[i] = (double)ftmp_[i] * convert_h5_to_cpptraj_box_;
+    // Convert
+/*    xyzabg[0] *= convert_h5_to_cpptraj_box_;
     xyzabg[1] *= convert_h5_to_cpptraj_box_;
-    xyzabg[2] *= convert_h5_to_cpptraj_box_;
-    frameIn.ModifyBox().AssignFromXyzAbg( xyzabg );
+    xyzabg[2] *= convert_h5_to_cpptraj_box_;*/
+    frameIn.ModifyBox().AssignFromUcell( ucell );
   }
 
   return 0;
