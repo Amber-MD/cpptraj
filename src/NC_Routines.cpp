@@ -72,6 +72,32 @@ int NC::GetDimInfo(int ncid, const char* attribute, int& length) {
   return dimID;
 }
 
+/** \return Array containing group names. */
+std::vector<std::string> NC::GetGroupNames(int ncid) {
+  std::vector<std::string> GroupNames;
+  int numgrps;
+  nc_inq_grps( ncid, &numgrps, NULL );
+  if (numgrps < 1)
+    return GroupNames;
+
+  mprintf("DEBUG: Netcdf file contains %i groups.\n", numgrps);
+  GroupNames.reserve( numgrps );
+  int* ncids = new int[ numgrps ];
+  nc_inq_grps( ncid, NULL, ncids );
+  for (int ii = 0; ii < numgrps; ii++) {
+    mprintf("\tncid %i", ncids[ii]);
+    size_t gnamelen;
+    nc_inq_grpname_len( ncids[ii], &gnamelen );
+    char* gname = new char[ gnamelen+1 ];
+    nc_inq_grpname( ncids[ii], gname );
+    mprintf(" %s\n", gname);
+    GroupNames.push_back( gname );
+    delete[] gname;
+  }
+  delete[] ncids;
+  return GroupNames;
+}
+
 // NC::Debug()
 void NC::Debug(int ncid) {
   int ndimsp, nvarsp, ngattsp,unlimdimidp;
@@ -117,4 +143,4 @@ void NC::Debug(int ncid) {
   }
   mprintf("==========  END NETCDF DEBUG ==========\n");
 }
-#endif
+#endif /* BINTRAJ */
