@@ -160,27 +160,22 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(int ncidIn) {
     attrText = NC::GetAttrText(ncidIn, "conventions");
     if (attrText.empty()) {
       // Check if this is an MDAnalysis h5md file
-      int numgrps;
-      nc_inq_grps( ncidIn, &numgrps, NULL );
-      if ( numgrps > 0 ) {
-        mprintf("DEBUG: Netcdf file contains %i groups.\n", numgrps);
-        int* ncids = new int[ numgrps ];
-        nc_inq_grps( ncidIn, NULL, ncids );
-        for (int ii = 0; ii < numgrps; ii++) {
-          mprintf("\tncid %i", ncids[ii]);
-          size_t gnamelen;
-          nc_inq_grpname_len( ncids[ii], &gnamelen );
-          char* gname = new char[ gnamelen+1 ];
-          nc_inq_grpname( ncids[ii], gname );
-          mprintf(" %s\n", gname);
-          delete[] gname;
+      bool is_h5md = false;
+      std::vector<std::string> GroupNames = NC::GetGroupNames( ncidIn );
+      if (!GroupNames.empty()) {
+        for (std::vector<std::string>::const_iterator it = GroupNames.begin();
+                                                      it != GroupNames.end(); ++it)
+        {
+          if (*it == "h5md") {
+            mprintf("DEBUG: H5MD detected.\n");
+            is_h5md = true;
+            break;
+          }
         }
-        delete[] ncids;
-        return NC_UNKNOWN;
-      } else {
-        mprinterr("Error: Could not get conventions from NetCDF file.\n");
-        return NC_UNKNOWN;
       }
+      if (!is_h5md)
+        mprinterr("Error: Could not get conventions from NetCDF file.\n");
+      return NC_UNKNOWN;
     }
     //mprintf("DEBUG: This appears to be an HDF5 h5 file.\n");
     return NC_UNKNOWN;
