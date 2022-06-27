@@ -135,14 +135,15 @@ static inline int setLengthFac(double& fac, std::string const& Units, const char
 }
 
 /** Set up the coordinates variable ID, number of atoms, and number of frames. */
-int Traj_H5MD::setupCoordVID(int& frameDID, int& atomDID, int& spatialDID, int& nframes)
+int Traj_H5MD::setupCoordVID(int position_gid, int& frameDID, int& atomDID,
+                             int& spatialDID, int& nframes)
 {
-  // Get the 'coordinates' variable ID
-  if (NC::CheckErr(nc_inq_varid(ncid_, "coordinates", &coordVID_)))
+  // Get the 'coordinates' variable ID ('value')
+  if (NC::CheckErr(nc_inq_varid(position_gid, "value", &coordVID_)))
     return 1;
   mprintf("DEBUG: Coordinates VID is %i\n", coordVID_);
   // Set conversion factor for coords
-  std::string lengthUnits = NC::GetAttrText(ncid_, coordVID_, "units");
+  std::string lengthUnits = NC::GetAttrText(position_gid, coordVID_, "units");
   if (setLengthFac(convert_h5_to_cpptraj_coord_, lengthUnits, "Coordinates"))
     return 1;
   // Dimensions
@@ -152,7 +153,7 @@ int Traj_H5MD::setupCoordVID(int& frameDID, int& atomDID, int& spatialDID, int& 
   natom_ = 0;
   nframes = 0;
   // Need to get the unlimited dimension ID, which should be the frame dim.
-  if (NC::CheckErr( nc_inq_unlimdim(ncid_, &frameDID) ) )
+  if (NC::CheckErr( nc_inq_unlimdim(position_gid, &frameDID) ) )
     return 1;
   if (frameDID < 0) {
     mprinterr("Error: No unlimited (frame) dimension present in H5 file.\n");
@@ -160,14 +161,14 @@ int Traj_H5MD::setupCoordVID(int& frameDID, int& atomDID, int& spatialDID, int& 
   }
   // Get dimensions for coordinates
   int ndims = 0;
-  if (NC::CheckErr( nc_inq_varndims(ncid_, coordVID_, &ndims) ) )
+  if (NC::CheckErr( nc_inq_varndims(position_gid, coordVID_, &ndims) ) )
     return 1;
   if (ndims != 3) {
     mprinterr("Error: Expected 3 dims for 'coordinates', got %i\n", ndims);
     return 1;
   }
   int coord_dims[3];
-  if (NC::CheckErr( nc_inq_vardimid(ncid_, coordVID_, coord_dims) ) )
+  if (NC::CheckErr( nc_inq_vardimid(position_gid, coordVID_, coord_dims) ) )
     return 1;
   mprintf("DEBUG: Coord dims: %i %i %i\n", coord_dims[0], coord_dims[1], coord_dims[2]);
   // Check the dimensions. One should be frames (unlimited), one should be
@@ -178,7 +179,7 @@ int Traj_H5MD::setupCoordVID(int& frameDID, int& atomDID, int& spatialDID, int& 
   bool has_unlimited = false;
   for (int nd = 0; nd < ndims; nd++) {
     size_t dimsize = 0;
-    if (NC::CheckErr( nc_inq_dimlen(ncid_, coord_dims[nd], &dimsize)))
+    if (NC::CheckErr( nc_inq_dimlen(position_gid, coord_dims[nd], &dimsize)))
       return 1;
     mprintf("DEBUG: Dim %i size %zu\n", coord_dims[nd], dimsize);
     if (coord_dims[nd] == frameDID) {
@@ -333,7 +334,7 @@ int Traj_H5MD::setupTrajin(FileName const& fname, Topology* trajParm)
 
   // Set up coordinates
   int frameDID, atomDID, spatialDID, nframes;
-  if (setupCoordVID(frameDID, atomDID, spatialDID, nframes)) {
+  if (setupCoordVID(position_gid, frameDID, atomDID, spatialDID, nframes)) {
     mprinterr("Error: Could not set up coordinates variable.\n");
     return TRAJIN_ERR;
   }

@@ -40,7 +40,7 @@ class Traj_H5MD : public TrajectoryIO {
 #   endif
 #   ifdef HAS_HDF5
     /// Set up coordinates VID and related dim sizes
-    int setupCoordVID(int&, int&, int&, int&);
+    int setupCoordVID(int, int&, int&, int&, int&);
     /// Set up box variable IDs and determine type
     int setupBoxVIDs(Box&, int, int);
 #   endif
