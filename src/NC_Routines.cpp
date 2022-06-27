@@ -23,18 +23,44 @@ std::string NC::GetAttrText(int ncid, int vid, const char* attribute) {
   int ncerr = nc_inq_attlen(ncid, vid, attribute, &attlen);
   if (ncerr != NC_NOERR)
     return attrOut;
-  // Allocate space for attr text, plus one for null char
-  char *attrText = new char[ (attlen + 1) ];
-  // Get attr text
-  if ( CheckErr(nc_get_att_text(ncid, vid, attribute, attrText)) ) {
-    mprintf("Warning: Getting attribute text for '%s'\n",attribute);
-    delete[] attrText;
+  // Check attribute type
+  int xtypep = -1;
+  if ( CheckErr(nc_inq_atttype(ncid, vid, attribute, &xtypep)) ) {
+    mprintf("Warning: Problem getting attribute type for '%s'\n", attribute);
     return attrOut;
   }
-  // Append null char - NECESSARY?
-  attrText[attlen]='\0';
-  attrOut.assign( attrText );
-  delete[] attrText;
+  //mprintf("DEBUG: Attribute %s type %i\n", attribute, xtypep);
+
+  // Get attr text
+  if ( xtypep == NC_CHAR ) {
+    // Allocate space for attr text, plus one for null char
+    char *attrText = new char[ (attlen + 1) ];
+    if ( CheckErr(nc_get_att_text(ncid, vid, attribute, attrText)) ) {
+      mprintf("Warning: Problem getting attribute text for '%s'\n", attribute);
+      delete[] attrText;
+      return attrOut;
+    }
+    // Append null char - NECESSARY?
+    attrText[attlen]='\0';
+    attrOut.assign( attrText );
+    delete[] attrText;
+  } else if ( xtypep == NC_STRING ) {
+    if (attlen > 1) {
+      mprinterr("Error: Variable attribute %s has %i strings, expected only 1.\n",
+                attribute, attlen);
+      return attrOut;
+    }
+    char* attrString;
+    if ( CheckErr(nc_get_att_string(ncid, vid, attribute, &attrString)) ) {
+      mprintf("Warning: Problem getting attribute string for '%s'\n", attribute);
+      return attrOut;
+    }
+    attrOut.assign( attrString );
+    nc_free_string(attlen, &attrString);
+  } else {
+    mprinterr("Error: Attribute %s has unhandled type.\n", attribute);
+    return attrOut;
+  }
 
   return attrOut;
 }
