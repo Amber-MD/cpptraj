@@ -18,6 +18,9 @@ Traj_H5MD::Traj_H5MD()
 //#ifdef HAS_HDF5
 :
 //file_(0)
+  particle_gid_(-1),
+  position_gid_(-1),
+  edges_gid_(-1),
   ncid_(-1),
   natom_(0),
   coordVID_(-1),
@@ -123,15 +126,15 @@ int Traj_H5MD::processReadArgs(ArgList& argIn) {
 
 # ifdef HAS_HDF5
 /** Set up the coordinates variable ID, number of atoms, and number of frames. */
-int Traj_H5MD::setupCoordVID(int position_gid, int& frameDID, int& atomDID,
+int Traj_H5MD::setupCoordVID(int& frameDID, int& atomDID,
                              int& spatialDID, int& nframes)
 {
   // Get the 'coordinates' variable ID ('value')
-  if (NC::CheckErr(nc_inq_varid(position_gid, "value", &coordVID_)))
+  if (NC::CheckErr(nc_inq_varid(position_gid_, "value", &coordVID_)))
     return 1;
   mprintf("DEBUG: Coordinates VID is %i\n", coordVID_);
   // Set conversion factor for coords
-  std::string lengthUnits = NC::GetAttrText(position_gid, coordVID_, "unit");
+  std::string lengthUnits = NC::GetAttrText(position_gid_, coordVID_, "unit");
   mprintf("DEBUG: length units are: %s\n", lengthUnits.c_str());
   if (Cpptraj::Units::SetConversionFactor( convert_h5_to_cpptraj_coord_, lengthUnits, "ang" )) {
     mprinterr("Error: Could not determine Coordinates conversion factor.\n");
@@ -145,7 +148,7 @@ int Traj_H5MD::setupCoordVID(int position_gid, int& frameDID, int& atomDID,
   natom_ = 0;
   nframes = 0;
   // Need to get the unlimited dimension ID, which should be the frame dim.
-  if (NC::CheckErr( nc_inq_unlimdim(position_gid, &frameDID) ) )
+  if (NC::CheckErr( nc_inq_unlimdim(position_gid_, &frameDID) ) )
     return 1;
   if (frameDID < 0) {
     mprinterr("Error: No unlimited (frame) dimension present in H5MD file.\n");
@@ -153,14 +156,14 @@ int Traj_H5MD::setupCoordVID(int position_gid, int& frameDID, int& atomDID,
   }
   // Get dimensions for coordinates
   int ndims = 0;
-  if (NC::CheckErr( nc_inq_varndims(position_gid, coordVID_, &ndims) ) )
+  if (NC::CheckErr( nc_inq_varndims(position_gid_, coordVID_, &ndims) ) )
     return 1;
   if (ndims != 3) {
     mprinterr("Error: Expected 3 dims for 'coordinates', got %i\n", ndims);
     return 1;
   }
   int coord_dims[3];
-  if (NC::CheckErr( nc_inq_vardimid(position_gid, coordVID_, coord_dims) ) )
+  if (NC::CheckErr( nc_inq_vardimid(position_gid_, coordVID_, coord_dims) ) )
     return 1;
   mprintf("DEBUG: Coord dims: %i %i %i\n", coord_dims[0], coord_dims[1], coord_dims[2]);
   // Check the dimensions. One should be frames (unlimited), one should be
@@ -171,7 +174,7 @@ int Traj_H5MD::setupCoordVID(int position_gid, int& frameDID, int& atomDID,
   bool has_unlimited = false;
   for (int nd = 0; nd < ndims; nd++) {
     size_t dimsize = 0;
-    if (NC::CheckErr( nc_inq_dimlen(position_gid, coord_dims[nd], &dimsize)))
+    if (NC::CheckErr( nc_inq_dimlen(position_gid_, coord_dims[nd], &dimsize)))
       return 1;
     mprintf("DEBUG: Dim %i size %zu\n", coord_dims[nd], dimsize);
     if (coord_dims[nd] == frameDID) {
@@ -223,38 +226,42 @@ int Traj_H5MD::setupCoordVID(int position_gid, int& frameDID, int& atomDID,
 int Traj_H5MD::setupBoxVIDs(int box_gid, Box& ncbox, int frameDID, int spatialDID) {
   ncbox.SetNoBox();
   // Search for 'edges' group id
-  int edges_gid = -1;
+  edges_gid_ = -1;
   Iarray box_ids;
   Sarray box_gnames = NC::GetGroupNames( box_gid, box_ids );
   for (unsigned int ii = 0; ii < box_gnames.size(); ii++) {
     if (box_gnames[ii] == "edges") {
-      edges_gid = box_ids[ii];
+      edges_gid_ = box_ids[ii];
     }
   }
-  mprintf("DEBUG: edges group id %i\n", edges_gid);
+  mprintf("DEBUG: edges group id %i\n", edges_gid_);
+  if (edges_gid_ < 0) {
+    mprinterr("Error: box group does not contain 'edges'\n");
+    return 1;
+  }
   // Get the cell_lengths 'value' variable ID
-  int err = nc_inq_varid(edges_gid, "value", &cellLengthVID_);
+  int err = nc_inq_varid(edges_gid_, "value", &cellLengthVID_);
   if (err != NC_NOERR) return -1;
 /*  // Get the 'cell_angles' variable ID 
-  if (NC::CheckErr(nc_inq_varid(edges_gid, "cell_angles", &cellAngleVID_)))
+  if (NC::CheckErr(nc_inq_varid(edges_gid_, "cell_angles", &cellAngleVID_)))
     return 1;
   mprintf("DEBUG: Cell length vid= %i, cell angle vid= %i\n",
           cellLengthVID_, cellAngleVID_);
   // Ensure angles are in degrees
-  std::string angleUnits = NC::GetAttrText(edges_gid, cellAngleVID_, "units");
+  std::string angleUnits = NC::GetAttrText(edges_gid_, cellAngleVID_, "units");
   if (angleUnits != "degrees") {
     mprinterr("Error: Cell angles have units that are not 'degrees' (%s)\n", angleUnits.c_str());
     return 1;
   }*/
   // Check units for lengths
-  std::string lengthUnits = NC::GetAttrText(edges_gid, cellLengthVID_, "unit");
+  std::string lengthUnits = NC::GetAttrText(edges_gid_, cellLengthVID_, "unit");
   if (Cpptraj::Units::SetConversionFactor(convert_h5_to_cpptraj_box_, lengthUnits, "ang")) {
     mprinterr("Error: Could not determine Cell Lengths conversion factor.\n");
     return 1;
   }
   // Check what kind of info is stored
   int ndims = 0;
-  if (NC::CheckErr( nc_inq_varndims(edges_gid, cellLengthVID_, &ndims) ) )
+  if (NC::CheckErr( nc_inq_varndims(edges_gid_, cellLengthVID_, &ndims) ) )
     return 1;
   if (ndims != 3) {
     mprinterr("Error: Expected 3 dims for 'edges', got %i\n", ndims);
@@ -270,12 +277,12 @@ int Traj_H5MD::setupBoxVIDs(int box_gid, Box& ncbox, int frameDID, int spatialDI
   count_[2] = 3; // 3 coordinates (XYZ)
   double ucell[9]; /// Unit cell vectors in rows
   float* fptr = &ftmp_[0];
-  if ( NC::CheckErr(nc_get_vara_float(edges_gid, cellLengthVID_, start_, count_, fptr )) )
+  if ( NC::CheckErr(nc_get_vara_float(edges_gid_, cellLengthVID_, start_, count_, fptr )) )
   {
     mprinterr("Error: Getting unit cell vectors.\n");
     return 1;
   }
-  /*if ( NC::CheckErr(nc_get_vara_float(edges_gid, cellAngleVID_, start_, count_, fptr+3)) )
+  /*if ( NC::CheckErr(nc_get_vara_float(edges_gid_, cellAngleVID_, start_, count_, fptr+3)) )
   {
     mprinterr("Error: Getting cell angles.\n");
     return 1;
@@ -341,20 +348,20 @@ int Traj_H5MD::setupTrajin(FileName const& fname, Topology* trajParm)
   }
   // Get box and position groups in the trajectory group
   int box_gid = -1;
-  int position_gid = -1;
+  position_gid_ = -1;
   Iarray trajectory_ids;
   Sarray trajectory_gnames = NC::GetGroupNames( trajectory_gid, trajectory_ids );
   for (unsigned int ii = 0; ii < trajectory_gnames.size(); ii++) {
     if (trajectory_gnames[ii] == "box")
       box_gid = trajectory_ids[ii];
     else if (trajectory_gnames[ii] == "position")
-      position_gid = trajectory_ids[ii];
+      position_gid_ = trajectory_ids[ii];
   }
-  mprintf("DEBUG: Box gid = %i, position gid = %i\n", box_gid, position_gid);
+  mprintf("DEBUG: Box gid = %i, position gid = %i\n", box_gid, position_gid_);
 
   // Set up coordinates
   int frameDID, atomDID, spatialDID, nframes;
-  if (setupCoordVID(position_gid, frameDID, atomDID, spatialDID, nframes)) {
+  if (setupCoordVID(frameDID, atomDID, spatialDID, nframes)) {
     mprinterr("Error: Could not set up coordinates variable.\n");
     return TRAJIN_ERR;
   }
@@ -382,9 +389,10 @@ int Traj_H5MD::setupTrajin(FileName const& fname, Topology* trajParm)
   ncbox.PrintDebug("H5MD box");
 
   // Check for time
-  err = nc_inq_varid(ncid_, "time", &timeVID_);
+  err = nc_inq_varid(position_gid_, "time", &timeVID_);
   if (err != NC_NOERR)
     timeVID_ = -1;
+  mprintf("DEBUG: Time variable ID %i\n", timeVID_);
 
   // Get title
   SetTitle( NC::GetAttrText(ncid_, "TITLE") );

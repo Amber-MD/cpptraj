@@ -40,7 +40,7 @@ class Traj_H5MD : public TrajectoryIO {
 #   endif
 #   ifdef HAS_HDF5
     /// Set up coordinates VID and related dim sizes
-    int setupCoordVID(int, int&, int&, int&, int&);
+    int setupCoordVID(int&, int&, int&, int&);
     /// Set up box variable IDs and determine type
     int setupBoxVIDs(int, Box&, int, int);
 #   endif
@@ -52,7 +52,9 @@ class Traj_H5MD : public TrajectoryIO {
     Sarray mainGroupNames_;
     Iarray mainGroupIds_;
 
-    int particle_gid_;  ///< Particle group id
+    int particle_gid_;  ///< particles group ID
+    int position_gid_;  ///< position group ID (particles->trajectory->position)
+    int edges_gid_;     ///< edges group ID (particles->trajectory->box->edges)
     
     int ncid_;          ///< NetCDF ID
     int natom_;         ///< Number of atoms in each trajectory frame.
