@@ -72,8 +72,8 @@ int NC::GetDimInfo(int ncid, const char* attribute, int& length) {
   return dimID;
 }
 
-/** \return Array containing group names. */
-std::vector<std::string> NC::GetGroupNames(int ncid) {
+/** \return Array containing group names. Also set array with corresponding ncids. */
+std::vector<std::string> NC::GetGroupNames(int ncid, std::vector<int>& NcidArray) {
   std::vector<std::string> GroupNames;
   int numgrps;
   nc_inq_grps( ncid, &numgrps, NULL );
@@ -82,7 +82,8 @@ std::vector<std::string> NC::GetGroupNames(int ncid) {
 
   mprintf("DEBUG: Netcdf file contains %i groups.\n", numgrps);
   GroupNames.reserve( numgrps );
-  int* ncids = new int[ numgrps ];
+  NcidArray.assign( numgrps, -1 );
+  int* ncids = &NcidArray[0];
   nc_inq_grps( ncid, NULL, ncids );
   for (int ii = 0; ii < numgrps; ii++) {
     mprintf("\tncid %i", ncids[ii]);
@@ -94,8 +95,13 @@ std::vector<std::string> NC::GetGroupNames(int ncid) {
     GroupNames.push_back( gname );
     delete[] gname;
   }
-  delete[] ncids;
   return GroupNames;
+}
+
+/** \return Array containing group names. */
+std::vector<std::string> NC::GetGroupNames(int ncid) {
+  std::vector<int> NcidArray;
+  return GetGroupNames(ncid, NcidArray);
 }
 
 // NC::Debug()
