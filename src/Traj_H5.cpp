@@ -6,6 +6,7 @@
 #ifdef BINTRAJ
 # include <netcdf.h>
 # include "NC_Routines.h"
+# include "Units.h"
 #endif
 //#ifdef HAS_HDF5
 //# include <H5Cpp.h>
@@ -117,19 +118,6 @@ int Traj_H5::processReadArgs(ArgList& argIn) {
 }
 
 # ifdef HAS_HDF5
-static inline int setLengthFac(double& fac, std::string const& Units, const char* desc)
-{
-  if (Units == "nanometers") {
-    fac = Constants::NM_TO_ANG;
-  } else if (Units == "angstroms") {
-    fac = 1.0;
-  } else {
-    mprinterr("Error: %s has unrecognized units (%s)\n", desc, Units.c_str());
-    return 1;
-  }
-  return 0;
-}
-
 /** Set up the coordinates variable ID, number of atoms, and number of frames. */
 int Traj_H5::setupCoordVID(int& frameDID, int& atomDID, int& spatialDID, int& nframes)
 {
@@ -139,8 +127,10 @@ int Traj_H5::setupCoordVID(int& frameDID, int& atomDID, int& spatialDID, int& nf
   mprintf("DEBUG: Coordinates VID is %i\n", coordVID_);
   // Set conversion factor for coords
   std::string lengthUnits = NC::GetAttrText(ncid_, coordVID_, "units");
-  if (setLengthFac(convert_h5_to_cpptraj_coord_, lengthUnits, "Coordinates"))
+  if (Cpptraj::Units::SetConversionFactor( convert_h5_to_cpptraj_coord_, lengthUnits, "ang" )) {
+    mprinterr("Error: Could not determine Coordinates conversion factor.\n");
     return 1;
+  }
   // Dimensions
   frameDID = -1;
   atomDID = -1;
@@ -241,8 +231,10 @@ int Traj_H5::setupBoxVIDs(Box& ncbox, int frameDID, int spatialDID) {
   }
   // Check units for lengths
   std::string lengthUnits = NC::GetAttrText(ncid_, cellLengthVID_, "units");
-  if (setLengthFac(convert_h5_to_cpptraj_box_, lengthUnits, "Cell lengths"))
+  if (Cpptraj::Units::SetConversionFactor(convert_h5_to_cpptraj_box_, lengthUnits, "ang")) {
+    mprinterr("Error: Could not determine Cell Lengths conversion factor.\n");
     return 1;
+  }
   // Get box lengths and angles to determine box type.
   start_[0] = 0;
   start_[1] = 0;
