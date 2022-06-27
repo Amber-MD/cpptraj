@@ -51,14 +51,26 @@ bool Traj_H5MD::ID_TrajFormat(CpptrajFile& fileIn) {
   int myNcid;
   if ( nc_open( fileIn.Filename().full(), NC_NOWRITE, &myNcid ) != NC_NOERR )
     return false;
-  std::vector<std::string> GroupNames = NC::GetGroupNames( myNcid );
-  if (GroupNames.empty()) return false;
-  for (unsigned int ii = 0; ii != GroupNames.size(); ii++) {
-    if (GroupNames[ii] == "h5md") {
-      return true;
+  mainGroupNames_ = NC::GetGroupNames( myNcid, mainGroupIds_ );
+  if (mainGroupNames_.empty()) return false;
+  // Check for h5md and particle groups
+  bool is_h5md = false;
+  particle_gid_ = -1;
+  for (unsigned int ii = 0; ii != mainGroupNames_.size(); ii++) {
+    if (mainGroupNames_[ii] == "h5md") {
+      is_h5md = true;
+    } else if (mainGroupNames_[ii] == "particles") {
+      particle_gid_ = mainGroupIds_[ii];
     }
   }
   nc_close( myNcid );
+  if (is_h5md) {
+    if (particle_gid_ == -1) {
+      mprinterr("Error: H5MD file missing 'particle' group.\n");
+    } else {
+      return true;
+    }
+  }
 # else
   unsigned char buf[8];
   unsigned int nread = fileIn.Read(buf, 8);
@@ -293,6 +305,20 @@ int Traj_H5MD::setupTrajin(FileName const& fname, Topology* trajParm)
   if ( NC::CheckErr( nc_open( fname.full(), NC_NOWRITE, &ncid_ ) ) )
     return TRAJIN_ERR;
   NC::Debug(ncid_);
+
+  // Get groups in the particles group
+  int trajectory_gid = -1;
+  Iarray particle_ids;
+  Sarray particle_gnames = NC::GetGroupNames( particle_gid_, particle_ids );
+  for (unsigned int ii = 0; ii < particle_gnames.size(); ii++) {
+    if (particle_gnames[ii] == "trajectory")
+      trajectory_gid = particle_ids[ii];
+  }
+  if (trajectory_gid == -1) {
+    mprinterr("Error: 'trajectory' group not found.\n");
+    return TRAJIN_ERR;
+  }
+
 
   // Set up coordinates
   int frameDID, atomDID, spatialDID, nframes;

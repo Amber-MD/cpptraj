@@ -46,6 +46,14 @@ class Traj_H5MD : public TrajectoryIO {
 #   endif
 
 //    H5::H5File* file_;
+    typedef std::vector<std::string> Sarray;
+    typedef std::vector<int> Iarray;
+
+    Sarray mainGroupNames_;
+    Iarray mainGroupIds_;
+
+    int particle_gid_;  ///< Particle group id
+    
     int ncid_;          ///< NetCDF ID
     int natom_;         ///< Number of atoms in each trajectory frame.
     int coordVID_;      ///< Coordinates variable ID
