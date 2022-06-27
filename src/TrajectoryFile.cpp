@@ -27,6 +27,7 @@
 #include "Traj_GmxDump.h"
 #include "Traj_DTR.h"
 #include "Traj_H5.h"
+#include "Traj_H5MD.h"
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------ 
 // NOTE: Must be in same order as TrajFormatType
@@ -80,8 +81,10 @@ const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
 # endif
 # ifdef HAS_HDF5
   { "MDtraj H5",          0, 0, Traj_H5::Alloc },
+  { "MDanalysis H5MD",    0, 0, Traj_H5MD::Alloc },
 # else
   { "MDtraj H5",          0, 0, 0              },
+  { "MDanalysis H5MD",    0, 0, 0              },
 # endif
   { "Unknown trajectory", 0, 0, 0                          }
 };
