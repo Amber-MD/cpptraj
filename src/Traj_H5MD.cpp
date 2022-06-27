@@ -306,7 +306,7 @@ int Traj_H5MD::setupTrajin(FileName const& fname, Topology* trajParm)
     return TRAJIN_ERR;
   NC::Debug(ncid_);
 
-  // Get groups in the particles group
+  // Get trajectory group in the particles group
   int trajectory_gid = -1;
   Iarray particle_ids;
   Sarray particle_gnames = NC::GetGroupNames( particle_gid_, particle_ids );
@@ -318,7 +318,18 @@ int Traj_H5MD::setupTrajin(FileName const& fname, Topology* trajParm)
     mprinterr("Error: 'trajectory' group not found.\n");
     return TRAJIN_ERR;
   }
-
+  // Get box and position groups in the trajectory group
+  int box_gid = -1;
+  int position_gid = -1;
+  Iarray trajectory_ids;
+  Sarray trajectory_gnames = NC::GetGroupNames( trajectory_gid, trajectory_ids );
+  for (unsigned int ii = 0; ii < trajectory_gnames.size(); ii++) {
+    if (trajectory_gnames[ii] == "box")
+      box_gid = trajectory_ids[ii];
+    else if (trajectory_gnames[ii] == "position")
+      position_gid = trajectory_ids[ii];
+  }
+  mprintf("DEBUG: Box gid = %i, position gid = %i\n", box_gid, position_gid);
 
   // Set up coordinates
   int frameDID, atomDID, spatialDID, nframes;
