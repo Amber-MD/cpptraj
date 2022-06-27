@@ -106,18 +106,18 @@ std::vector<std::string> NC::GetGroupNames(int ncid, std::vector<int>& NcidArray
   if (numgrps < 1)
     return GroupNames;
 
-  mprintf("DEBUG: Netcdf file contains %i groups.\n", numgrps);
+  //mprintf("DEBUG: Netcdf file contains %i groups.\n", numgrps);
   GroupNames.reserve( numgrps );
   NcidArray.assign( numgrps, -1 );
   int* ncids = &NcidArray[0];
   nc_inq_grps( ncid, NULL, ncids );
   for (int ii = 0; ii < numgrps; ii++) {
-    mprintf("\tncid %i", ncids[ii]);
+    //mprintf("\tncid %i", ncids[ii]);
     size_t gnamelen;
     nc_inq_grpname_len( ncids[ii], &gnamelen );
     char* gname = new char[ gnamelen+1 ];
     nc_inq_grpname( ncids[ii], gname );
-    mprintf(" %s\n", gname);
+    //mprintf(" %s\n", gname);
     GroupNames.push_back( gname );
     delete[] gname;
   }
