@@ -1,11 +1,15 @@
 #include "Units.h"
 #include "Constants.h"
 #include "CpptrajStdio.h"
+#include <cctype> // tolower
 
 /** \return Unit type from name. */
 Cpptraj::Units::Type Cpptraj::Units::TypeFromName(std::string const& nameIn) {
-  if (nameIn == "angstroms" || nameIn == "ang") return ANG;
-  if (nameIn == "nanometers" || nameIn == "nm") return NM;
+  std::string name;
+  for (std::string::const_iterator it = nameIn.begin(); it != nameIn.end(); ++it)
+    name += tolower( *it );
+  if (name == "angstroms"  || name == "angstrom"  || name == "ang") return ANG;
+  if (name == "nanometers" || name == "nanometer" || name == "nm") return NM;
   mprintf("Warning: Unrecognized units: %s\n", nameIn.c_str());
   return UNKNOWN_UNITS;
 }
