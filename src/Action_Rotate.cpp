@@ -60,7 +60,7 @@ Action::RetType Action_Rotate::Init(ArgList& actionArgs, ActionInit& init, int d
   } else if (!calcfrom.empty()) {
     output_setname = actionArgs.GetStringKey("name");
     // Check if DataSet exists
-    if ( Get3x3Set(init.DSL(), dsname) )
+    if ( Get3x3Set(init.DSL(), calcfrom) )
       return Action::ERR;
     mode_ = CALC;
   } else if (!axis.empty()) {
@@ -86,6 +86,8 @@ Action::RetType Action_Rotate::Init(ArgList& actionArgs, ActionInit& init, int d
     RotMatrix_.CalcRotationMatrix( xrot * Constants::DEGRAD, 
                                    yrot * Constants::DEGRAD, 
                                    zrot * Constants::DEGRAD );
+    if (debugIn > 0)
+      RotMatrix_.Print("Rotation matrix:");
   }
   // Get mask
   if (mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
@@ -123,10 +125,12 @@ Action::RetType Action_Rotate::Setup(ActionSetup& setup) {
     return Action::SKIP;
   }
   all_atoms_selected_ = (mask_.Nselected() == setup.Top().Natom());
-  if (all_atoms_selected_)
-    mprintf("\tAll atoms selected for rotation. Rotating unit cell vectors as well.\n");
-  else
-    mprintf("\tNot all atoms selected for rotation. Not rotating unit cell vectors.\n");
+  if (setup.CoordInfo().HasBox()) {
+    if (all_atoms_selected_)
+      mprintf("\tAll atoms selected for rotation. Rotating unit cell vectors as well.\n");
+    else
+      mprintf("\tNot all atoms selected for rotation. Not rotating unit cell vectors.\n");
+  }
   if (mode_ == AXIS) {
     if ( setup.Top().SetupIntegerMask( axis0_ ) ||
          setup.Top().SetupIntegerMask( axis1_ ) )
