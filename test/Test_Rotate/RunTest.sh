@@ -3,7 +3,8 @@
 . ../MasterTest.sh
 
 CleanFiles rotate.in fromMatrices.crd TCS.rotated.mol2 inverse.crd \
-           tz2.rotate.rst7 tz2.*.rotate.rst7 tz2.?.rst7
+           tz2.rotate.rst7 tz2.*.rotate.rst7 tz2.?.rst7 matrices.dat \
+           rotations.dat
 
 TESTNAME='Coordinates rotation tests'
 Requires maxthreads 10
@@ -79,13 +80,14 @@ CheckFor maxthreads 1
 if [ $? -eq 0 ] ; then
   cat > rotate.in <<EOF
 parm ../tz2.parm7
-reference ../tz2.rst7 name REF
-crdaction REF center origin
-trajin tz2.separate.rotate.rst7.save
-rms R0 reference savematrices
-rotate calcfrom R0[RM] name Rot
+# Want to go from the original coords (target) to rotated coords (reference)
+reference tz2.separate.rotate.rst7.save name REF
+trajin ../tz2.rst7
+rms R0 reference savematrices matricesout matrices.dat
+rotate calcfrom R0[RM] name Rot out rotations.dat
 EOF
   RunCpptraj "$UNITNAME"
+  DoTest rotations.dat.save rotations.dat
 fi
 
 EndTest
