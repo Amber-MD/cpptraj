@@ -457,8 +457,8 @@ void Matrix_3x3::RotationAroundY(double a1, double a2) {
   M_[8] = M_[0];   //  cos t
 }
 
-/** Given an axis of rotation V and a magnitude (radians), calculate a 
-  * rotation matrix.
+/** Given an axis of rotation V (which must be normalized) and a magnitude
+  * (radians), calculate a rotation matrix.
   */
 void Matrix_3x3::CalcRotationMatrix(Vec3 const& V, double theta) {
   // Compute all prefactors
@@ -489,14 +489,38 @@ void Matrix_3x3::CalcRotationMatrix(Vec3 const& V, double theta) {
 }
 
 /** Given rotations around the X, Y, and Z axes (radians), calculate a
-  * rotation matrix.
+  * rotation matrix. The convention used is:
+  *   Rotation around X = alpha (A)
+  *   Rotation around Y = beta (B)
+  *   Rotation around Z = gamma (G)
   */
 void Matrix_3x3::CalcRotationMatrix(double psiX, double psiY, double psiZ) {
+/*
   Vec3 V(psiX, psiY, psiZ);
   double Psi = V.Normalize(); 
   //mprintf("\t\tcalcRotationMatrix(%.2lf,%.2lf,%.2lf) Psi=%lf\n",
   //        psiX*Constants::RADDEG,psiY*Constants::RADDEG,psiZ*Constants::RADDEG,Psi*Constants::RADDEG);
   CalcRotationMatrix(V, Psi);
+*/
+  // Calculate prefactors
+  double cosA = cos(psiX);
+  double cosB = cos(psiY);
+  double cosG = cos(psiZ);
+  double sinA = sin(psiX);
+  double sinB = sin(psiY);
+  double sinG = sin(psiZ);
+
+  M_[0] = cosB * cosG;
+  M_[3] = cosB * sinG;
+  M_[6] = -sinB;
+
+  M_[1] = (sinA * sinB * cosG) - (cosA * sinG);
+  M_[4] = (sinA * sinB * sinG) + (cosA * cosG);
+  M_[7] = sinA * cosB;
+
+  M_[2] = (cosA * sinB * cosG) + (sinA * sinG);
+  M_[5] = (cosA * sinB * sinG) - (sinA * cosG);
+  M_[8] = cosA * cosB;
 }
 
 /** Return angle of rotation from rotation matrix according to
