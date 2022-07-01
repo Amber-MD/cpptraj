@@ -229,7 +229,7 @@ Action::RetType Action_Rotate::DoAction(int frameNum, ActionFrame& frm) {
     tx *= Constants::RADDEG;
     ty *= Constants::RADDEG;
     tz *= Constants::RADDEG;
-    mprintf("DEBUG: tx= %g, ty= %g, tz= %g\n", tx, ty, tz);
+    //mprintf("DEBUG: tx= %g, ty= %g, tz= %g\n", tx, ty, tz);
     dsout_tx_->Add( frameNum, &tx );
     dsout_ty_->Add( frameNum, &ty );
     dsout_tz_->Add( frameNum, &tz );
