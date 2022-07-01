@@ -6,28 +6,43 @@
 #endif
 class Matrix_3x3 {
   public:
+    /// CONSTRUCTOR
     Matrix_3x3() {}
+    /// COPY CONSTRUCTOR
     Matrix_3x3(const Matrix_3x3&);
+    /// CONSTRUCTOR - pointer to flattened matrix array of size 9, assumes row-major
     Matrix_3x3(const double*);
+    /// CONSTRUCTOR - Set all elements to a single number
     Matrix_3x3(double);
+    /// CONSTRUCTOR - Set diagonal, all others to zero
     Matrix_3x3(double,double,double);
+    /// CONSTRUCTOR - Set all elements individually (row major)
     Matrix_3x3(double m0, double m1, double m2, double m3, double m4,
                double m5, double m6, double m7, double m8)
     {
       M_[0] = m0; M_[1] = m1; M_[2] = m2; M_[3] = m3; M_[4] = m4;
       M_[5] = m5; M_[6] = m6; M_[7] = m7; M_[8] = m8;
     }
+    /// ASSIGNMENT
     Matrix_3x3& operator=(const Matrix_3x3&);
  
     // NOTE: No bounds check!
     // TODO: Make const ref only?
+    /// \return Element at specified index
     double  operator[](int idx) const { return M_[idx]; }
+    /// \return Element at specified index
     double& operator[](int idx)       { return M_[idx]; }
+    /// \return First row
     Vec3 Row1() const { return Vec3(M_);   }
+    /// \return Second row
     Vec3 Row2() const { return Vec3(M_+3); }
+    /// \return Third row
     Vec3 Row3() const { return Vec3(M_+6); }
+    /// \return First column
     Vec3 Col1() const { return Vec3(M_[0], M_[3], M_[6]); }
+    /// \return Second column
     Vec3 Col2() const { return Vec3(M_[1], M_[4], M_[7]); }
+    /// \return Third column
     Vec3 Col3() const { return Vec3(M_[2], M_[5], M_[8]); }
     /// \return const pointer to internal matrix data
     const double* Dptr() const { return M_; }
@@ -39,8 +54,11 @@ class Matrix_3x3 {
     /// Print matrix to stdout
     void Print(const char*) const;
 
+    /// Diagonalize matrix, store eigenvectors in columns, set eigenvalues
     int Diagonalize( Vec3& );
+    /// Diagonalize matrix and sort eigenvectors (in cols) by eigenvalue
     int Diagonalize_Sort( Vec3& );
+    /// Diagonalize matrix, sort eignvectors, attempt to correct for eigenvector sign flips
     int Diagonalize_Sort_Chirality(Vec3&,int);
 
     /// Transpose the matrix
@@ -108,8 +126,11 @@ class Matrix_3x3 {
     Vec3 AxisOfRotation(double) const;
 
 #   ifdef MPI
+    /// Broadcast from master to other ranks
     void BroadcastMatrix(Parallel::Comm const&);
+    /// Send matrix to rank
     int SendMatrix(int, Parallel::Comm const&) const;
+    /// Receive matrix from rank
     int RecvMatrix(int, Parallel::Comm const&);
 #   endif
   private:
@@ -128,7 +149,7 @@ class Matrix_3x3 {
     int i1_;
     int i2_;
     int i3_;
-    static const int MAX_ITERATIONS;
+    static const int MAX_ITERATIONS_; ///< Max iterations to use in Jacobi
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
 Matrix_3x3 Matrix_3x3::Transposed() const {

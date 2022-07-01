@@ -3,7 +3,7 @@
 #include "CpptrajStdio.h"
 #include "Constants.h" // PI, RADDEG
 
-// COPY CONSTRUCTOR
+/** COPY CONSTRUCTOR */
 Matrix_3x3::Matrix_3x3(const Matrix_3x3& rhs) {
   M_[0] = rhs.M_[0];
   M_[1] = rhs.M_[1];
@@ -16,7 +16,7 @@ Matrix_3x3::Matrix_3x3(const Matrix_3x3& rhs) {
   M_[8] = rhs.M_[8];
 }
 
-/// CONSTRUCTOR - Takes array of 9, row-major
+/** CONSTRUCTOR - Takes array of 9, row-major */
 Matrix_3x3::Matrix_3x3(const double *Min) {
   M_[0] = Min[0]; 
   M_[1] = Min[1]; 
@@ -29,7 +29,7 @@ Matrix_3x3::Matrix_3x3(const double *Min) {
   M_[8] = Min[8]; 
 }
 
-/// CONSTRUCTOR - Set all elements to xIn 
+/** CONSTRUCTOR - Set all elements to xIn */
 Matrix_3x3::Matrix_3x3(double xIn) {
   M_[0] = xIn; 
   M_[1] = xIn; 
@@ -42,7 +42,7 @@ Matrix_3x3::Matrix_3x3(double xIn) {
   M_[8] = xIn; 
 }
 
-/// CONSTRUCTOR - Set diagonal
+/** CONSTRUCTOR - Set diagonal */
 Matrix_3x3::Matrix_3x3(double d1, double d2, double d3) {
   M_[0] = d1;
   M_[1] = 0;
@@ -55,7 +55,7 @@ Matrix_3x3::Matrix_3x3(double d1, double d2, double d3) {
   M_[8] = d3;
 }
 
-// Assignment
+/** Assignment */
 Matrix_3x3& Matrix_3x3::operator=(const Matrix_3x3& rhs) {
   if (this==&rhs) return *this;
   M_[0] = rhs.M_[0];
@@ -70,6 +70,7 @@ Matrix_3x3& Matrix_3x3::operator=(const Matrix_3x3& rhs) {
   return *this;
 }
 
+/** Set all elements to zero */
 void Matrix_3x3::Zero() {
   M_[0] = 0;
   M_[1] = 0;
@@ -93,7 +94,7 @@ void Matrix_3x3::Print(const char* Title) const
 
 // -----------------------------------------------------------------------------
 /// Max number of iterations to execute Jacobi algorithm
-const int Matrix_3x3::MAX_ITERATIONS = 50;
+const int Matrix_3x3::MAX_ITERATIONS_ = 50;
 
 #define ROTATE(ARR,MAJ1,MIN1,MAJ2,MIN2) { \
   dg = ARR[MAJ1 + MIN1]; \
@@ -140,7 +141,7 @@ int Matrix_3x3::Diagonalize( Vec3& vecD )
   // MAIN LOOP
   double tresh = 0;
   //int nrot = 0;
-  for (int i = 0; i < MAX_ITERATIONS; ++i) {
+  for (int i = 0; i < MAX_ITERATIONS_; ++i) {
     // sm = SUM of UPPER RIGHT TRIANGLE
     double sm = fabs(mat[1]) + fabs(mat[2]) + fabs(mat[5]);
     if (sm == 0) return 0;
@@ -377,6 +378,7 @@ Matrix_3x3 Matrix_3x3::operator*(double fac) const {
 }
 
 // Matrix_3x3::operator*=()
+/** Matrix in-place multiply */
 Matrix_3x3& Matrix_3x3::operator*=(const Matrix_3x3& rhs) {
   double Row[9];
   Row[0] = M_[0];
@@ -400,6 +402,7 @@ Matrix_3x3& Matrix_3x3::operator*=(const Matrix_3x3& rhs) {
   return *this;
 }
 
+/** Matrix multiply */
 Matrix_3x3 Matrix_3x3::operator*(Matrix_3x3 const& rhs) const {
   Matrix_3x3 result;
   result.M_[0] = M_[0]*rhs.M_[0] + M_[1]*rhs.M_[3] + M_[2]*rhs.M_[6];
@@ -414,6 +417,7 @@ Matrix_3x3 Matrix_3x3::operator*(Matrix_3x3 const& rhs) const {
   return result;
 }
 
+/** Matrix times transpose of rhs */
 Matrix_3x3 Matrix_3x3::TransposeMult(Matrix_3x3 const& rhs) const {
   Matrix_3x3 result;
   result.M_[0] = M_[0]*rhs.M_[0] + M_[1]*rhs.M_[1] + M_[2]*rhs.M_[2];
@@ -562,6 +566,7 @@ int Matrix_3x3::RotationAngles(double& thetaX, double& thetaY, double& thetaZ) c
   *     0 -z  y
   *     z  0 -x
   *    -y  x  0
+  * TODO: This function can be vastly simplified. Also is not currently used.
   */
 Vec3 Matrix_3x3::AxisOfRotation(double theta) const {
   if (theta > 0 && theta < Constants::PI) {
