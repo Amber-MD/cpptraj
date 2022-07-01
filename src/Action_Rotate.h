@@ -32,5 +32,6 @@ class Action_Rotate : public Action {
     DataSet* dsout_tx_;         ///< Hold output theta X (calc)
     DataSet* dsout_ty_;         ///< Hold output theta Y (calc)
     DataSet* dsout_tz_;         ///< Hold output theta Z (calc)
+    DataSet* dsout_t_;          ///< Hold output theta (calc)
 };
 #endif

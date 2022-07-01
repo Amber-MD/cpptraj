@@ -12,7 +12,8 @@ Action_Rotate::Action_Rotate() :
   all_atoms_selected_(false),
   dsout_tx_(0),
   dsout_ty_(0),
-  dsout_tz_(0)
+  dsout_tz_(0),
+  dsout_t_(0)
 { }
 
 /** Action help. */
@@ -60,10 +61,14 @@ int Action_Rotate::SetupOutputSets(DataSetList& DSL, std::string const& dsname,
   if (CheckSet(dsout_ty_, dsname, "TY")) return 1;
   dsout_tz_ = DSL.AddSet(type, MetaData(dsname, "TZ"));
   if (CheckSet(dsout_tz_, dsname, "TZ")) return 1;
+  dsout_t_ = DSL.AddSet(type, MetaData(dsname, "T"));
+  if (CheckSet(dsout_t_, dsname, "T")) return 1;
+
   if (outfile != 0) {
     outfile->AddDataSet( dsout_tx_ );
     outfile->AddDataSet( dsout_ty_ );
     outfile->AddDataSet( dsout_tz_ );
+    outfile->AddDataSet( dsout_t_ );
   }
   return 0;
 }
@@ -228,6 +233,8 @@ Action::RetType Action_Rotate::DoAction(int frameNum, ActionFrame& frm) {
     dsout_tx_->Add( frameNum, &tx );
     dsout_ty_->Add( frameNum, &ty );
     dsout_tz_->Add( frameNum, &tz );
+    double theta = RM.RotationAngle() * Constants::RADDEG;
+    dsout_t_->Add( frameNum, &theta );
     ret = Action::OK;
   } else if (mode_ == AXIS) {
     // Rotate around a user defined axis
