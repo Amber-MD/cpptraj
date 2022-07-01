@@ -572,8 +572,8 @@ Vec3 Matrix_3x3::AxisOfRotation(double theta) const {
     result.Normalize();
     return result;
   } else {
-    mprintf("Error: axis_of_rotation: Could not extract axis of rotation, angle is %lf\n",
-            Constants::RADDEG*theta);
+    mprinterr("Error: axis_of_rotation: Could not extract axis of rotation, angle is %f\n",
+              Constants::RADDEG*theta);
   }
   return Vec3(0.0, 0.0, 0.0);
 }
