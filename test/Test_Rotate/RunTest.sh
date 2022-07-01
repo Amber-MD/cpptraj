@@ -2,7 +2,8 @@
 
 . ../MasterTest.sh
 
-CleanFiles rotate.in fromMatrices.crd TCS.rotated.mol2 inverse.crd
+CleanFiles rotate.in fromMatrices.crd TCS.rotated.mol2 inverse.crd \
+           tz2.rotate.rst7
 
 TESTNAME='Coordinates rotation tests'
 Requires maxthreads 10
@@ -37,5 +38,19 @@ EOF
   RunCpptraj "$UNITNAME"
   DoTest TCS.rotated.mol2.save TCS.rotated.mol2
 fi
+
+UNITNAME='Basic rotation around axes'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > rotate.in <<EOF
+parm ../tz2.parm7
+trajin ../tz2.rst7
+rotate * x 30 y 45 z 60
+trajout tz2.rotate.rst7
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest tz2.rotate.rst7.save tz2.rotate.rst7
+fi
+
 EndTest
 exit 0
