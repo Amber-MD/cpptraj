@@ -428,6 +428,7 @@ Matrix_3x3 Matrix_3x3::TransposeMult(Matrix_3x3 const& rhs) const {
   return result;
 }
 
+// ----- Rotation matrix -------------------------------------------------------
 // Matrix_3x3::RotationAroundZ()
 void Matrix_3x3::RotationAroundZ(double a1, double a2) {
   double r = sqrt( a1*a1 + a2*a2 );
@@ -504,10 +505,22 @@ void Matrix_3x3::CalcRotationMatrix(double psiX, double psiY, double psiZ) {
   *   3D game engine design: a practical approach to real-time Computer Graphics,
   *   Volume 385, By David H. Eberly, 2001, p. 16.
   */
-double Matrix_3x3::RotationAngle() {
+double Matrix_3x3::RotationAngle() const {
   double trace = M_[0] + M_[4] + M_[8];
   trace = (trace - 1) / 2;
   return acos( trace );
+}
+
+/** Decompose rotation matrix into Euler angles (in radians) around each axis. */
+int Matrix_3x3::RotationAngles(double& thetaX, double& thetaY, double& thetaZ) const {
+  thetaX = atan2( M_[7], M_[8] );
+
+  double d1 = sqrt( (M_[7]*M_[7]) + (M_[8]*M_[8]) );
+  thetaY = atan2( M_[6], d1 );
+
+  thetaZ = atan2( M_[3], M_[0] );
+
+  return 0;
 }
 
 /** If theta is between 0 and pi extract axis of rotation from rotation matrix
@@ -517,7 +530,7 @@ double Matrix_3x3::RotationAngle() {
   *     z  0 -x
   *    -y  x  0
   */
-Vec3 Matrix_3x3::AxisOfRotation(double theta) {
+Vec3 Matrix_3x3::AxisOfRotation(double theta) const {
   if (theta > 0 && theta < Constants::PI) {
     double dx = 1 / (2 * sin(theta));
     Vec3 result( (M_[5] - M_[7]) * dx,
@@ -531,6 +544,7 @@ Vec3 Matrix_3x3::AxisOfRotation(double theta) {
   }
   return Vec3(0.0, 0.0, 0.0);
 }
+// -----------------------------------------------------------------------------
 
 #ifdef MPI
 /** Broadcast matrix from master to other ranks. */
