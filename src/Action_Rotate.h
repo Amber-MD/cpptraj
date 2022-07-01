@@ -16,6 +16,8 @@ class Action_Rotate : public Action {
 
     /// Get 3x3 matrix DataSet from name
     int Get3x3Set(DataSetList const&, std::string const&);
+    /// Setup output DataSets
+    int SetupOutputSets(DataSetList&, std::string const&, DataFile*);
 
     enum ModeType { ROTATE = 0, DATASET, AXIS, CALC };
     Matrix_3x3 RotMatrix_;      ///< Rotation matrix.
@@ -27,5 +29,8 @@ class Action_Rotate : public Action {
     ModeType mode_;             ///< Mode to use.
     bool inverse_;              ///< If true perform an inverse rotation.
     bool all_atoms_selected_;   ///< If true all atoms selected for rotation
+    DataSet* dsout_tx_;         ///< Hold output theta X (calc)
+    DataSet* dsout_ty_;         ///< Hold output theta Y (calc)
+    DataSet* dsout_tz_;         ///< Hold output theta Z (calc)
 };
 #endif

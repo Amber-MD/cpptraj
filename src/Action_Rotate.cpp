@@ -9,7 +9,10 @@ Action_Rotate::Action_Rotate() :
   delta_(0.0),
   mode_(ROTATE),
   inverse_(false),
-  all_atoms_selected_(false)
+  all_atoms_selected_(false),
+  dsout_tx_(0),
+  dsout_ty_(0),
+  dsout_tz_(0)
 { }
 
 /** Action help. */
@@ -17,7 +20,7 @@ void Action_Rotate::Help() const {
   mprintf("\t[<mask>] { [x <xdeg>] [y <ydeg>] [z <zdeg>]  |\n"
           "\t           axis0 <mask0> axis1 <mask1> <deg> |\n"
           "\t           usedata <set name> [inverse] |\n"
-          "\t           calcfrom <set name> [name <output set name>]\n"
+          "\t           calcfrom <set name> [name <output set name>] [out <file>]\n"
           "\t         }\n"
           "  Rotate atoms in <mask> either around the x, y, and/or z axes, around the\n"
           "  the axis defined by <mask0> to <mask1>, or using rotation matrices in\n"
@@ -37,10 +40,39 @@ int Action_Rotate::Get3x3Set(DataSetList const& DSL, std::string const& dsname) 
   return 0;
 }
 
+/** Print error message if set is null. */
+static inline int CheckSet(DataSet* ds, std::string const& name, const char* aspect) {
+  if (ds == 0) {
+    mprinterr("Error: Could not set up output set %s[%s]\n", name.c_str(), aspect);
+    return 1;
+  }
+  return 0;
+}
+
+/** Create output DataSets */
+int Action_Rotate::SetupOutputSets(DataSetList& DSL, std::string const& dsname,
+                                   DataFile* outfile)
+{
+  static const DataSet::DataType type = DataSet::DOUBLE;
+  dsout_tx_ = DSL.AddSet(type, MetaData(dsname, "TX"));
+  if (CheckSet(dsout_tx_, dsname, "TX")) return 1;
+  dsout_ty_ = DSL.AddSet(type, MetaData(dsname, "TY"));
+  if (CheckSet(dsout_ty_, dsname, "TY")) return 1;
+  dsout_tz_ = DSL.AddSet(type, MetaData(dsname, "TZ"));
+  if (CheckSet(dsout_tz_, dsname, "TZ")) return 1;
+  if (outfile != 0) {
+    outfile->AddDataSet( dsout_tx_ );
+    outfile->AddDataSet( dsout_ty_ );
+    outfile->AddDataSet( dsout_tz_ );
+  }
+  return 0;
+}
+
 /** Initialize action. */
 Action::RetType Action_Rotate::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   double xrot = 0.0, yrot = 0.0, zrot = 0.0;
+  DataFile* outfile = 0;
   std::string output_setname;
   std::string dsname = actionArgs.GetStringKey("usedata");
   std::string calcfrom = actionArgs.GetStringKey("calcfrom");
@@ -59,6 +91,7 @@ Action::RetType Action_Rotate::Init(ArgList& actionArgs, ActionInit& init, int d
     mode_ = DATASET;
   } else if (!calcfrom.empty()) {
     output_setname = actionArgs.GetStringKey("name");
+    outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
     // Check if DataSet exists
     if ( Get3x3Set(init.DSL(), calcfrom) )
       return Action::ERR;
@@ -92,6 +125,13 @@ Action::RetType Action_Rotate::Init(ArgList& actionArgs, ActionInit& init, int d
   // Get mask
   if (mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
 
+  // Set up output data sets
+  if (mode_ == CALC) {
+    if (output_setname.empty())
+      output_setname = init.DSL().GenerateDefaultName("ROTATE");
+    if (SetupOutputSets( init.DSL(), output_setname, outfile)) return Action::ERR;
+  }
+
   mprintf("    ROTATE: Rotating atoms in mask %s\n", mask_.MaskString());
   switch (mode_) {
     case ROTATE:
@@ -106,6 +146,8 @@ Action::RetType Action_Rotate::Init(ArgList& actionArgs, ActionInit& init, int d
       mprintf("\tCalculating rotations (in degrees) from rotation matrices in set '%s'\n",
               rmatrices_->legend());
       mprintf("\tOutput sets name: %s\n", output_setname.c_str());
+      if (outfile != 0)
+        mprintf("\tSets written to '%s'\n", outfile->DataFilename().full());
       break;
     case AXIS:
       mprintf("\t%f degrees around axis defined by '%s' and '%s'\n",
@@ -183,6 +225,9 @@ Action::RetType Action_Rotate::DoAction(int frameNum, ActionFrame& frm) {
     ty *= Constants::RADDEG;
     tz *= Constants::RADDEG;
     mprintf("DEBUG: tx= %g, ty= %g, tz= %g\n", tx, ty, tz);
+    dsout_tx_->Add( frameNum, &tx );
+    dsout_ty_->Add( frameNum, &ty );
+    dsout_tz_->Add( frameNum, &tz );
     ret = Action::OK;
   } else if (mode_ == AXIS) {
     // Rotate around a user defined axis
