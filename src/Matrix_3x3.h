@@ -125,6 +125,12 @@ class Matrix_3x3 {
     /// Given theta, extract axis of rotation from rotation matrix
     Vec3 AxisOfRotation(double) const;
 
+    /// Calculate rotation matrix around Z axis. TODO make private
+    void RotationAroundZ(double, double);
+    /// Calculate rotation matrix around Y axis. TODO make private
+    void RotationAroundY(double, double);
+
+
 #   ifdef MPI
     /// Broadcast from master to other ranks
     void BroadcastMatrix(Parallel::Comm const&);
@@ -134,10 +140,6 @@ class Matrix_3x3 {
     int RecvMatrix(int, Parallel::Comm const&);
 #   endif
   private:
-    /// Calculate rotation matrix around Z axis.
-    void RotationAroundZ(double, double);
-    /// Calculate rotation matrix around Y axis.
-    void RotationAroundY(double, double);
     /// Try to fix eigenvector sign flips (Diagonalize_Sort_Chirality())
     int jacobiCheckChirality();
 
