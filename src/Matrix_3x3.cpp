@@ -513,12 +513,21 @@ double Matrix_3x3::RotationAngle() const {
 
 /** Decompose rotation matrix into Euler angles (in radians) around each axis. */
 int Matrix_3x3::RotationAngles(double& thetaX, double& thetaY, double& thetaZ) const {
-  thetaX = atan2( M_[7], M_[8] );
+  if (fabs(M_[7]) > 0 && fabs(M_[8]) > 0)
+    thetaX = atan2( M_[7], M_[8] );
+  else
+    thetaX = 0;
 
   double d1 = sqrt( (M_[7]*M_[7]) + (M_[8]*M_[8]) );
-  thetaY = atan2( M_[6], d1 );
+  if (fabs(M_[6]) > 0 && d1 > 0)
+    thetaY = atan2( M_[6], d1 );
+  else
+    thetaY = 0;
 
-  thetaZ = atan2( M_[3], M_[0] );
+  if (fabs(M_[3]) > 0 && fabs(M_[0]) > 0)
+    thetaZ = atan2( M_[3], M_[0] );
+  else
+    thetaZ = 0;
 
   return 0;
 }
