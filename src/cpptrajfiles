@@ -170,6 +170,7 @@ COMMON_SOURCES= \
         DataFileList.cpp \
         DataFilter.cpp \
         DataIO.cpp \
+        DataIO_AmberEne.cpp \
         DataIO_CCP4.cpp \
         DataIO_CharmmFastRep.cpp \
         DataIO_CharmmOutput.cpp \

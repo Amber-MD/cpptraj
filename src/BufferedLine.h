@@ -31,7 +31,7 @@ class BufferedLine : private CpptrajFile {
       return ResetBuffer();
     }
 
-    /// \return current line number
+    /// \return current line number (starting from 1)
     int LineNumber()          const { return nline_;          }
     /// \return pointer to beginning of buffer.
     const char* Buffer()      const { return buffer_;         }
