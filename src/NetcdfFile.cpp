@@ -1042,6 +1042,25 @@ int NetcdfFile::NC_writeIntCompressed(Frame const& frmOut) {
   return 0;
 }
 
+/** Read atom-based array that uses integer quantization and compression. */
+int NetcdfFile::NC_readIntCompressed(double* xyz, int vid, int set) {
+  // Read array
+  start_[0] = set;
+  start_[1] = 0;
+  start_[2] = 0;
+  count_[0] = 1;
+  count_[1] = Ncatom();
+  count_[2] = 3;
+  if (NC::CheckErr(nc_get_vara_int(ncid_, vid, start_, count_, &itmp_[0]))) {
+    mprinterr("Error: NetCDF reading compressed values frame %i\n", set+1);
+    return 1;
+  }
+  // Convert from integer
+  for (int idx = 0; idx != Ncatom3(); idx++)
+    xyz[idx] = (double)(itmp_[idx]) / compressedFac_; // TODO convert to 1/fac first?
+  return 0;
+}
+
 /** Read integer-compressed coords. */
 int NetcdfFile::NC_readIntCompressed(int set, Frame& frmIn) {
   // Read array

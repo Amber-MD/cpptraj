@@ -127,6 +127,8 @@ class NetcdfFile {
     void CheckConventionsVersion();
     /// Write array[ncatom3] compressed
     int NC_writeIntCompressed(const double*, int);
+    /// Read array[ncatom3] compressed
+    int NC_readIntCompressed(double*, int, int);
 
     bool Has_pH() const;
     bool HasRedOx() const;
