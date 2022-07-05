@@ -125,6 +125,8 @@ class NetcdfFile {
     static NCTYPE GetNetcdfConventions(int);
     /// Check NetCDF file conventions version.
     void CheckConventionsVersion();
+    /// Write array[ncatom3] compressed
+    int NC_writeIntCompressed(const double*, int);
 
     bool Has_pH() const;
     bool HasRedOx() const;
