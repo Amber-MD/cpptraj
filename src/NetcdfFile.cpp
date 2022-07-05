@@ -985,9 +985,16 @@ int NetcdfFile::NC_createIntCompressed(int power)
   } else
     mprintf("Warning: Using lossy compression.\n"
             "Warning: Energy error will be on the order of 2E-%i kcal/mol/atom\n", power);
-  int dimensionID[NC_MAX_VAR_DIMS];
   // Place file back in define mode
   if (NC::CheckErr( nc_redef( ncid_ ) )) return 1;
+  // Set up compressed coords
+  if ( NC_defineIcompressedVar(NCCOMPPOS, V_COORDS, compressedPosVID_) ) {
+    mprinterr("Error: Could not set up coordinates for integer compression.\n");
+    return 1;
+  }
+/*
+  int dimensionID[NC_MAX_VAR_DIMS];
+
   // Define variable to hold converted coords
   dimensionID[0] = frameDID_;
   dimensionID[1] = atomDID_;
@@ -1014,9 +1021,10 @@ int NetcdfFile::NC_createIntCompressed(int power)
     return 1;
   }
   if (NC_setFrameChunkSize(V_COORDS, compressedPosVID_)) return 1;
+*/
   // Define variable to hold conversion power
   int compressedPowVID = -1;
-  if (NC::CheckErr( nc_def_var(ncid_, NCCOMPPOW, NC_INT, 0, dimensionID, &compressedPowVID) )) {
+  if (NC::CheckErr( nc_def_var(ncid_, NCCOMPPOW, NC_INT, 0, NULL, &compressedPowVID) )) {
     mprinterr("Error: defining compressed power factor VID.\n");
     return 1;
   }
