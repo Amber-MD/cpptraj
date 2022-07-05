@@ -125,10 +125,14 @@ int DataIO_AmberEne::ReadData(FileName const& fname, DataSetList& dsl, std::stri
   // Read the header
   const DataSet::DataType fpType = DataSet::DOUBLE;
   while (ptr != 0) {
+   if (infile.LineNumber() > 1 && ptr[0] == 'L' && ptr[1] == '0') {
+      // At first line of data
+      break;
+    }
     Lines.push_back( AmberEneLine() );
     if (Lines.back().Setup(ptr, infile.LineNumber(), dsl, dsname, fpType))
       return 1;
-     Lines.back().Print();
+    Lines.back().Print();
 /*
     ArgList headerArgs( ptr, " \n\r" );
     if (headerArgs.Nargs() < 1) {
@@ -148,10 +152,7 @@ int DataIO_AmberEne::ReadData(FileName const& fname, DataSetList& dsl, std::stri
                 headerArgs[1].c_str());
       return 1;
     }
-    if (infile.LineNumber() > 1 && headerArgs[0] == "L0") {
-      // At first line of data
-      break;
-    }
+  
     // Read headers
     Nlines++;
     for (int iarg = 1; iarg < headerArgs.Nargs(); iarg++)
