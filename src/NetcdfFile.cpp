@@ -928,6 +928,41 @@ int NetcdfFile::calcCompressFactor(int power) {
   return 0;
 }
 
+/** Define an integer compressed variable of dims frame x atom x spatial. */
+int NetcdfFile::NC_defineIcompressedVar(const char* tag, VidType vtype, int& vid)
+{
+  int dimensionID[NC_MAX_VAR_DIMS];
+  dimensionID[0] = frameDID_;
+  dimensionID[1] = atomDID_;
+  dimensionID[2] = spatialDID_;
+
+  if (NC::CheckErr( nc_def_var(ncid_, tag, NC_INT, 3, dimensionID, &vid) )) {
+    mprinterr("Error: defining compressed positions VID.\n");
+    return 1;
+  }
+  // Set compression for converted coords. Use 1 if not set.
+  if (deflateLevels_[vtype] == 0) {
+    mprintf("Warning: Using default compression level for coords.\n");
+    deflateLevels_[vtype] = 1;
+  }
+  // TODO should this be an option?
+  int ishuffle = 1;
+  if (ncdebug_ > 0) {
+    if (ishuffle == 0)
+      mprintf("DEBUG: Integer shuffle is off.\n");
+    else
+      mprintf("DEBUG: Integer shuffle is on.\n");
+  }
+  if ( NC::CheckErr( nc_def_var_deflate(ncid_, vid, ishuffle, 1, deflateLevels_[vtype]) ) ) {
+    mprinterr("Error: Setting compression level %i for integer compressed coords.\n",
+              deflateLevels_[vtype]);
+    return 1;
+  }
+  if (NC_setFrameChunkSize(vtype, vid)) return 1;
+
+  return 0;
+}
+
 /** Prepare trajectory for adding coords converted to integer. */
 int NetcdfFile::NC_createIntCompressed(int power)
 {

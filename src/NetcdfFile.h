@@ -125,6 +125,8 @@ class NetcdfFile {
     /// Read array[ncatom3] compressed
     int NC_readIntCompressed(double*, int, int);
 
+    int NC_defineIcompressedVar(const char*, VidType, int&);
+
     bool Has_pH() const;
     bool HasRedOx() const;
     bool HasForces()       const { return (frcVID_ != -1);      }
