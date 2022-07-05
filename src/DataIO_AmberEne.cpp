@@ -52,7 +52,7 @@ class AmberEneLine {
                   lineNumber);
         return 1;
       }
-      fmt_.assign("%*s");
+      //fmt_.assign("%*s");
       // Output sets and sscanf read format
       for (int iarg = 1; iarg < headerArgs.Nargs(); iarg++) {
       // Determine expected type
@@ -81,24 +81,30 @@ class AmberEneLine {
           }
         }
         outsets_.push_back( ds );
-        if (setType == DataSet::INTEGER)
-          fmt_.append(" %i");
-        else
-          fmt_.append(" %lf");
+        //if (setType == DataSet::INTEGER)
+        //  fmt_.append(" %i");
+        //else
+        //  fmt_.append(" %lf");
       } // END loop over header labels in this line
       return 0;
     } // END Setup()
     /// Print details to stdout
     void Print() const {
-      mprintf("Format: '%s'\n", fmt_.c_str());
-      mprintf("Sets:");
+      //mprintf("Format: '%s'\n", fmt_.c_str());
+      mprintf("\tSets:");
       for (std::vector<DataSet*>::const_iterator it = outsets_.begin();
                                                  it != outsets_.end(); ++it)
         mprintf(" %s", (*it)->legend());
       mprintf("\n");
     }
+    /// \return # of values this line contains
+    unsigned int Nvals() const { return outsets_.size(); }
+    /// \return iterator to beginning of sets
+    std::vector<DataSet*>::const_iterator begin() const { return outsets_.begin(); }
+    /// \return iterator to end of sets
+    std::vector<DataSet*>::const_iterator end()   const { return outsets_.end(); }
   private:
-    std::string fmt_;               ///< scanf format for reading this line
+    //std::string fmt_;               ///< scanf format for reading this line
     std::vector<DataSet*> outsets_; ///< Output sets for this line
 };
 // ----------------------------------------------- 
@@ -110,19 +116,17 @@ int DataIO_AmberEne::ReadData(FileName const& fname, DataSetList& dsl, std::stri
   if (infile.OpenFileRead(fname)) return 1;
   const char* ptr = infile.Line();
   // Should be at first line of the header
-  mprintf("DEBUG: %i '%s'\n", infile.LineNumber(), ptr);
+  //mprintf("DEBUG: %i '%s'\n", infile.LineNumber(), ptr);
   if (ptr[0] != 'L' || ptr[1] != '0') {
     mprinterr("Error: 'L0' not found in Amber energy file '%s'\n", fname.full());
     return 1;
   }
 
-//  typedef std::vector<std::string> Sarray;
-//  Sarray headers;
-//  unsigned int Nlines = 0;
   typedef std::vector<AmberEneLine> LineArray;
   LineArray Lines;
 
   // Read the header
+  unsigned int maxVals = 0;
   const DataSet::DataType fpType = DataSet::DOUBLE;
   while (ptr != 0) {
    if (infile.LineNumber() > 1 && ptr[0] == 'L' && ptr[1] == '0') {
@@ -133,101 +137,49 @@ int DataIO_AmberEne::ReadData(FileName const& fname, DataSetList& dsl, std::stri
     if (Lines.back().Setup(ptr, infile.LineNumber(), dsl, dsname, fpType))
       return 1;
     Lines.back().Print();
-/*
-    ArgList headerArgs( ptr, " \n\r" );
-    if (headerArgs.Nargs() < 1) {
-      mprinterr("Error: No columns detected at line %i of Amber energy file.\n",
-                infile.LineNumber());
-      return 1;
-    }
-    headerArgs.PrintDebug();
-    if (headerArgs.Nargs() != 5) {
-      mprinterr("Error: Expected 5 columns in Amber energy file, got %i\n",
-                headerArgs.Nargs());
-      return 1;
-    }
-    // Expect Nsteps in L0
-    if (infile.LineNumber() == 1 && headerArgs[1] != "Nsteps") {
-      mprinterr("Error: Expected 'Nsteps' as first column of Amber energy file, got '%s'\n",
-                headerArgs[1].c_str());
-      return 1;
-    }
-  
-    // Read headers
-    Nlines++;
-    for (int iarg = 1; iarg < headerArgs.Nargs(); iarg++)
-      headers.push_back( headerArgs[iarg] );
-  */  
+    maxVals = std::max( maxVals, Lines.back().Nvals() );
+
     ptr = infile.Line();
   }
-/*  mprintf("\tHeader has %zu labels over %u lines.\n", headers.size(), Nlines);
-  for (Sarray::const_iterator it = headers.begin(); it != headers.end(); ++it)
-    mprintf(" %s", it->c_str());
-  mprintf("\n");*/
+
   // Sanity check
   if (Lines.empty()) {
     mprinterr("Error: No headers read.\n");
     return 1;
   }
-  // Set up data sets
-/*  std::vector<DataSet*> outsets;
-  const DataSet::DataType fpType = DataSet::DOUBLE;
-  for (Sarray::const_iterator it = headers.begin(); it != headers.end(); ++it)
-  {
-    // Determine expected type
-    DataSet::DataType setType;
-    if (*it == "Nsteps")
-      setType = DataSet::INTEGER;
-    else
-      setType = fpType;
 
-    MetaData md(dsname, *it);
-    DataSet* ds = dsl.CheckForSet( md );
-    if (ds == 0) {
-      // Creating new set
-      ds = dsl.AddSet( setType, MetaData(dsname, *it) );
-      if (ds == 0) {
-        mprinterr("Error: Could not allocate set '%s[%s]'\n", dsname.c_str(), it->c_str());
-        return 1;
-      }
-    } else {
-      // Append to existing. Check type.
-      if (setType != ds->Type()) {
-        mprinterr("Error: Cannot append to set '%s'. Type is '%s', expected '%s'\n",
-                  ds->legend(), DataSet::description(ds->Type()),
-                  DataSet::description(setType));
-        return 1;
-      }
-    }
-    outsets.push_back( ds );
-  }*/
-/*
   // Read data
   int ndata = 0;
   while (ptr != 0) {
-    unsigned int idx = 0;
-    for (unsigned int iline = 0; iline != Nlines; iline++, idx += 4) {
-      if (iline == 0) {
-        int ival;
-        double fval[3];
-        sscanf( ptr, "%*s %i %lf %lf %lf", &ival, fval, fval+1, fval+2 );
-        outsets[idx  ]->Add( ndata, &ival );
-        outsets[idx+1]->Add( ndata, fval );
-        outsets[idx+2]->Add( ndata, fval+1 );
-        outsets[idx+3]->Add( ndata, fval+2 );
-      } else {
-        double fval[3];
-        sscanf( ptr, "%*s %lf %lf %lf %lf", fval, fval+1, fval+2, fval+3);
-        outsets[idx  ]->Add( ndata, fval );
-        outsets[idx+1]->Add( ndata, fval+1 );
-        outsets[idx+2]->Add( ndata, fval+2 );
-        outsets[idx+3]->Add( ndata, fval+3 );
+    for (LineArray::const_iterator it = Lines.begin(); it != Lines.end(); ++it)
+    {
+      int nvals = infile.TokenizeLine(" \n\r");
+      // Subtract the LX column
+      nvals--;
+      if ( (nvals < 1) || ((unsigned int)nvals != it->Nvals()) ) {
+        mprinterr("Error: Line %i expected %u values, got %i\n",
+                  infile.LineNumber(), it->Nvals(), nvals);
+        it->Print();
+        return 1;
       }
-    } // END loop over LX lines
+      infile.NextToken();
+      // Loop over remaining columns
+      for (std::vector<DataSet*>::const_iterator ds = it->begin();
+                                                 ds != it->end(); ++ds)
+      {
+        if ((*ds)->Type() == DataSet::INTEGER) {
+          int ival = atoi( infile.NextToken() );
+          (*ds)->Add( ndata, &ival );
+        } else {
+          double dval = atof( infile.NextToken() );
+          (*ds)->Add( ndata, &dval );
+        }
+      } // END loop over remaining columns
+      ptr = infile.Line();
+    } // END loop over lines
+
     ndata++;
-    ptr = infile.Line();
   }
-  */      
   return 0;
 }
 
