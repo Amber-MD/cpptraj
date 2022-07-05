@@ -288,7 +288,7 @@ int Traj_AmberNetcdf::readFrame(int set, Frame& frameIn) {
 
   // Read Coords
  # ifdef HAS_HDF5
-  if (compressedPosVID_ != -1) {
+  if (CompressedPosVID() != -1) {
     if (NC_readIntCompressed(set, frameIn)) return 1;
   } else
 # endif
@@ -404,7 +404,7 @@ int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
 
   // Write coords.
 # ifdef HAS_HDF5
-  if (compressedPosVID_ != -1) {
+  if (CompressedPosVID() != -1) {
     if (NC_writeIntCompressed(frameOut)) return 1;
   } else
 # endif

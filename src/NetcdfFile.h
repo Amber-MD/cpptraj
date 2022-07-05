@@ -60,20 +60,14 @@ class NetcdfFile {
     inline int Ncatom3()   const { return ncatom3_;             }
     inline int Ncframe()   const { return ncframe_;             }
     inline int CoordVID()  const { return coordVID_;            }
+    /// \return Variable ID of integer-compressed coordinates
+    int CompressedPosVID() const { return compressedPosVID_; }
   protected: // TODO: Make all private
     /// Enumerated type for variable IDs. MUST MATCH vidDesc_.
     enum VidType { V_COORDS = 0, V_VEL,  V_FRC, V_TEMP, V_BOXL,
                    V_BOXA,       V_TIME, V_IND, V_RIDX, V_CIDX,
                    V_REMDVALS,
                    NVID };
-    /// Descriptions of VidType. MUST MATCH VidType (except NVID).
-    static const char* vidDesc_[];
-    /// Enumerated type for dimension IDs. MUST MATCH didDesc_.
-    enum DidType { D_FRAME = 0, D_ATOM, D_SPATIAL,
-                   NDID }; // TODO everything else
-    /// Descriptions of DidType. MUST MATCH DidType (except NDID).
-    static const char* didDesc_[];
-
 #   ifdef HAS_HDF5
     /// Set all variables compression level.
     int SetCompression(int);
@@ -90,13 +84,6 @@ class NetcdfFile {
     void Broadcast(Parallel::Comm const&);
 #   endif
 
-#   ifdef HAS_HDF5
-    std::vector<int> deflateLevels_; ///< Compression levels for each VID
-    int compressedPosVID_;           ///< Coordinates integer VID
-    double compressedFac_;           ///< Compression factor 
-    std::vector<int> itmp_;          ///< Temp space for converting to int
-    int fchunkSize_;                 ///< Frame chunk size
-#   endif
     size_t start_[4];    ///< Array starting indices
     size_t count_[4];    ///< Array counts
     int ncid_;           ///< NetCDF file ID
@@ -120,6 +107,14 @@ class NetcdfFile {
     /// Strings corresponding to NC_FMT_TYPE
     static const char* NcFmtTypeStr_[];
     static const char* ConventionsStr_[];
+
+    /// Descriptions of VidType. MUST MATCH VidType (except NVID).
+    static const char* vidDesc_[];
+    /// Enumerated type for dimension IDs. MUST MATCH didDesc_.
+    enum DidType { D_FRAME = 0, D_ATOM, D_SPATIAL,
+                   NDID }; // TODO everything else
+    /// Descriptions of DidType. MUST MATCH DidType (except NDID).
+    static const char* didDesc_[];
 
     /// \return NetCDF trajectory type based on conventions.
     static NCTYPE GetNetcdfConventions(int);
@@ -168,6 +163,14 @@ class NetcdfFile {
 
     int NC_defineTemperature(int*, int);
     inline void SetRemDimDID(int, int*) const;
+
+#   ifdef HAS_HDF5
+    std::vector<int> deflateLevels_; ///< Compression levels for each VID
+    int compressedPosVID_;           ///< Coordinates integer VID
+    double compressedFac_;           ///< Compression factor 
+    std::vector<int> itmp_;          ///< Temp space for converting to int
+    int fchunkSize_;                 ///< Frame chunk size
+#   endif
 
     std::vector<double> RemdValues_; ///< Hold remd values
     ReplicaDimArray remDimType_;     ///< Type of each dimension (multi-D).

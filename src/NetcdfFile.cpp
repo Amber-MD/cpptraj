@@ -102,12 +102,6 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(NC_FMT_TYPE& btype, const ch
 
 // CONSTRUCTOR
 NetcdfFile::NetcdfFile() :
-# ifdef HAS_HDF5
-  deflateLevels_((unsigned int)NVID, 0),
-  compressedPosVID_(-1),
-  compressedFac_(0),
-  fchunkSize_(1),
-# endif
   ncid_(-1),
   ncframe_(-1),
   TempVID_(-1),
@@ -122,6 +116,12 @@ NetcdfFile::NetcdfFile() :
   repidxVID_(-1),
   crdidxVID_(-1),
   ensembleSize_(0),
+# ifdef HAS_HDF5
+  deflateLevels_((unsigned int)NVID, 0),
+  compressedPosVID_(-1),
+  compressedFac_(0),
+  fchunkSize_(1),
+# endif
   ncdebug_(0),
   frameDID_(-1),
   atomDID_(-1),
