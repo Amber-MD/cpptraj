@@ -1063,20 +1063,10 @@ int NetcdfFile::NC_readIntCompressed(double* xyz, int vid, int set) {
 
 /** Read integer-compressed coords. */
 int NetcdfFile::NC_readIntCompressed(int set, Frame& frmIn) {
-  // Read array
-  start_[0] = set;
-  start_[1] = 0;
-  start_[2] = 0;
-  count_[0] = 1;
-  count_[1] = Ncatom();
-  count_[2] = 3;
-  if (NC::CheckErr(nc_get_vara_int(ncid_, compressedPosVID_, start_, count_, &itmp_[0]))) {
+  if (NC_readIntCompressed( frmIn.xAddress(), compressedPosVID_, set )) {
     mprinterr("Error: NetCDF reading compressed coordinates frame %i\n", set+1);
     return 1;
   }
-  // Convert from integer
-  for (int idx = 0; idx != frmIn.size(); idx++)
-    frmIn[idx] = (double)(itmp_[idx]) / compressedFac_; // TODO convert to 1/fac first?
   return 0;
 }
 // -----------------------------------------------------------------------------
