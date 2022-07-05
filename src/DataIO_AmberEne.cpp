@@ -1,7 +1,7 @@
 #include "DataIO_AmberEne.h"
 #include "BufferedLine.h"
 #include "CpptrajStdio.h"
-#include <cstdio> // sscanf
+#include <cstdlib> // atoi, atof
 
 /// CONSTRUCTOR
 DataIO_AmberEne::DataIO_AmberEne()
