@@ -1035,34 +1035,7 @@ int NetcdfFile::NC_writeIntCompressed(const double* xyz, int vid)
 
 /** Write integer-compressed coords. */
 int NetcdfFile::NC_writeIntCompressed(Frame const& frmOut) {
-  // Convert to integer
-  long int maxval = (long int)std::numeric_limits<int>::max();
-  for (int idx = 0; idx != frmOut.size(); idx++)
-  {
-    // Multiply by compression factor and round to the nearest integer
-    long int ii = (long int)(round(frmOut[idx] * compressedFac_));
-    // Try some overflow protection
-    //long int ii = (long int)(frmOut[idx] * compressedFac_);
-    if (ii > maxval || ii < -maxval) {
-      mprinterr("Error: Coordinate %i frame %i (%g) is too large to convert to int.\n",
-                idx+1, ncframe_+1, frmOut[idx]);
-      mprinterr("Error: A smaller integer compression factor must be used.\n");
-      return 1;
-    }
-    itmp_[idx] = (int)ii;
-    //itmp_[idx] = (int)(frmOut[idx] * compressedFac_);
-  }
-  //mprintf("DEBUG: atom 0 xyz={ %20.10f %20.10f %20.10f } ixyz= { %20i %20i %20i }\n",
-  //        frmOut[0], frmOut[1], frmOut[2], itmp_[0], itmp_[1], itmp_[2]);
-  //  Write array
-  start_[0] = ncframe_;
-  start_[1] = 0;
-  start_[2] = 0;
-  count_[0] = 1;
-  count_[1] = Ncatom();
-  count_[2] = 3;
-
-  if (NC::CheckErr(nc_put_vara_int(ncid_, compressedPosVID_, start_, count_, &itmp_[0]))) {
+  if (NC_writeIntCompressed(frmOut.xAddress(), compressedPosVID_)) {
     mprinterr("Error: NetCDF writing compressed coordinates frame %i\n", ncframe_+1);
     return 1;
   }
