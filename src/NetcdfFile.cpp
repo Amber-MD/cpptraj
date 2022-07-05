@@ -929,7 +929,7 @@ int NetcdfFile::calcCompressFactor(int power) {
 }
 
 /** Define an integer compressed variable of dims frame x atom x spatial. */
-int NetcdfFile::NC_defineIcompressedVar(const char* tag, VidType vtype, int& vid)
+int NetcdfFile::NC_defineIcompressedVar(const char* desc, const char* tag, VidType vtype, int& vid)
 {
   int dimensionID[NC_MAX_VAR_DIMS];
   dimensionID[0] = frameDID_;
@@ -942,7 +942,7 @@ int NetcdfFile::NC_defineIcompressedVar(const char* tag, VidType vtype, int& vid
   }
   // Set compression for converted coords. Use 1 if not set.
   if (deflateLevels_[vtype] == 0) {
-    mprintf("Warning: Using default compression level for coords.\n");
+    mprintf("Warning: Using default compression level for %s.\n", desc);
     deflateLevels_[vtype] = 1;
   }
   // TODO should this be an option?
@@ -954,8 +954,8 @@ int NetcdfFile::NC_defineIcompressedVar(const char* tag, VidType vtype, int& vid
       mprintf("DEBUG: Integer shuffle is on.\n");
   }
   if ( NC::CheckErr( nc_def_var_deflate(ncid_, vid, ishuffle, 1, deflateLevels_[vtype]) ) ) {
-    mprinterr("Error: Setting compression level %i for integer compressed coords.\n",
-              deflateLevels_[vtype]);
+    mprinterr("Error: Setting compression level %i for integer compressed %s.\n",
+              deflateLevels_[vtype], desc);
     return 1;
   }
   if (NC_setFrameChunkSize(vtype, vid)) return 1;
@@ -988,7 +988,7 @@ int NetcdfFile::NC_createIntCompressed(int power)
   // Place file back in define mode
   if (NC::CheckErr( nc_redef( ncid_ ) )) return 1;
   // Set up compressed coords
-  if ( NC_defineIcompressedVar(NCCOMPPOS, V_COORDS, compressedPosVID_) ) {
+  if ( NC_defineIcompressedVar("coords", NCCOMPPOS, V_COORDS, compressedPosVID_) ) {
     mprinterr("Error: Could not set up coordinates for integer compression.\n");
     return 1;
   }
