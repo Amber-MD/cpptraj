@@ -98,6 +98,7 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(NC_FMT_TYPE& btype, const ch
 #define NCBINS "bins"
 #define NCREMDVALUES "remd_values"
 #define NCCOMPPOS "compressedpos"
+#define NCCOMPVEL "compressedvel"
 #define NCCOMPPOW "compressedpow"
 
 // CONSTRUCTOR
@@ -119,6 +120,7 @@ NetcdfFile::NetcdfFile() :
 # ifdef HAS_HDF5
   deflateLevels_((unsigned int)NVID, 0),
   compressedPosVID_(-1),
+  compressedVelVID_(-1),
   compressedFac_(0),
   fchunkSize_(1),
 # endif
@@ -294,6 +296,11 @@ int NetcdfFile::SetupCoordsVelo(bool useVelAsCoords, bool useFrcAsCoords) {
     if (calcCompressFactor(power)) return 1;
     // Allocate temporary space for integer array
     itmp_.resize( Ncatom3() );
+    // Check if there are compressed velocities as well TODO make independent of coords
+    if (nc_inq_varid(ncid_, NCCOMPVEL, &compressedVelVID_) == NC_NOERR) {
+      mprintf("\tNetCDF file has integer-compressed velocities.\n");
+    } else
+      compressedVelVID_ = -1;
 #   else
     mprinterr("Error: Integer-compressed NetCDF trajectories requires cpptraj compiled with HDF5 support.\n");
     return 1;

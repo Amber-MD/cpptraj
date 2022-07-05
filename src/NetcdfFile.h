@@ -167,6 +167,7 @@ class NetcdfFile {
 #   ifdef HAS_HDF5
     std::vector<int> deflateLevels_; ///< Compression levels for each VID
     int compressedPosVID_;           ///< Coordinates integer VID
+    int compressedVelVID_;           ///< Velocities integer VID
     double compressedFac_;           ///< Compression factor 
     std::vector<int> itmp_;          ///< Temp space for converting to int
     int fchunkSize_;                 ///< Frame chunk size
