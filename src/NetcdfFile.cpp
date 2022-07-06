@@ -1066,6 +1066,35 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE typeIn, int natomIn,
 }
 
 
+/** Set up given dimension array with dimension IDs appropriate for 
+  * atom-based arrays for file type.
+  */
+int NetcdfFile::set_atom_dim_array(int* dimensionID) const {
+  // Setup dimensions for Coords/Velocity
+  // NOTE: THIS MUST BE MODIFIED IF NEW TYPES ADDED
+  switch (myType_) {
+    case NC_AMBERENSEMBLE:
+      dimensionID[0] = frameDID_;
+      dimensionID[1] = ensembleDID_;
+      dimensionID[2] = atomDID_;
+      dimensionID[3] = spatialDID_;
+      break;
+    case NC_AMBERTRAJ:
+      dimensionID[0] = frameDID_;
+      dimensionID[1] = atomDID_;
+      dimensionID[2] = spatialDID_;
+      break;
+    case NC_AMBERRESTART:
+      dimensionID[0] = atomDID_;
+      dimensionID[1] = spatialDID_;
+      break;
+    case NC_UNKNOWN:
+      mprinterr("Internal Error: Unknown type passed to set_atom_dim_array()\n");
+      return 1;
+  }
+  return 0;
+}
+
 // NetcdfFile::NC_create()
 int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE typeIn, int natomIn,
                           CoordinateInfo const& coordInfo, std::string const& title, int debugIn) 
@@ -1163,62 +1192,24 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
     mprinterr("Error: Defining atom dimension.\n");
     return 1;
   }
+
   // Setup dimensions for Coords/Velocity
-  // NOTE: THIS MUST BE MODIFIED IF NEW TYPES ADDED
-  switch (myType_) {
-    case NC_AMBERENSEMBLE:
-      dimensionID[0] = frameDID_;
-      dimensionID[1] = ensembleDID_;
-      dimensionID[2] = atomDID_;
-      dimensionID[3] = spatialDID_;
-      break;
-    case NC_AMBERTRAJ:
-      dimensionID[0] = frameDID_;
-      dimensionID[1] = atomDID_;
-      dimensionID[2] = spatialDID_;
-      break;
-    case NC_AMBERRESTART:
-      dimensionID[0] = atomDID_;
-      dimensionID[1] = spatialDID_;
-      break;
-    case NC_UNKNOWN:
-      mprinterr("Internal Error: Unknown type passed to NC_create()\n");
-      return 1;
-  }
+  if (set_atom_dim_array(dimensionID)) return 1;
+
   // Coord variable
   unsigned int needed_itmp_size = 0;
-  if (coordInfo.HasCrd()) {
-    int local_coordVID = -1;
-    int local_ishuffle = 0;
-    if (intCompressFac_[V_COORDS] > 0) {
-      // Coords with integer compression
-      mprintf("\tCOORDS will use integer compression with factor %g\n", intCompressFac_[V_COORDS]);
-      if (NC::CheckErr( nc_def_var(ncid_, NCCOMPPOS, NC_INT, NDIM, dimensionID, &compressedPosVID_) )) {
-        mprinterr("Error: defining compressed positions VID.\n");
-        return 1;
-      }
-      if (NC::CheckErr(nc_put_att_double(ncid_, compressedPosVID_, NCICOMPFAC,
-                                         NC_DOUBLE, 1, (&intCompressFac_[0])+V_COORDS))) {
-        mprinterr("Error: Assigning integer compressed coords compression factor attribute.\n");
-        return 1;
-      }
-      local_coordVID = compressedPosVID_;
-      local_ishuffle = ishuffle_;
-      needed_itmp_size = Ncatom3();
-    } else {
-      // Regular coords
-      if ( NC::CheckErr( nc_def_var( ncid_, NCCOORDS, dataType, NDIM, dimensionID, &coordVID_)) ) {
-        mprinterr("Error: Defining coordinates variable.\n");
-        return 1;
-      }
-      local_coordVID = coordVID_;
-    }
-    if ( NC::CheckErr( nc_put_att_text( ncid_, local_coordVID, "units", 8, "angstrom")) ) {
-      mprinterr("Error: Writing coordinates variable units.\n");
+  if (coordInfo.HasCrd() && intCompressFac_[V_COORDS] == 0) {
+    // Regular coords
+    if ( NC::CheckErr( nc_def_var( ncid_, NCCOORDS, dataType, NDIM, dimensionID, &coordVID_)) ) {
+      mprinterr("Error: Defining coordinates variable.\n");
       return 1;
     }
-    if (NC_setDeflate(V_COORDS, local_coordVID, local_ishuffle)) return 1;
-    if (NC_setFrameChunkSize(V_COORDS, local_coordVID)) return 1;
+    if ( NC::CheckErr( nc_put_att_text( ncid_, coordVID_, "units", 8, "angstrom")) ) {
+      mprinterr("Error: Setting coordinates variable units attribute.\n");
+      return 1;
+    }
+    if (NC_setDeflate(V_COORDS, coordVID_)) return 1;
+    if (NC_setFrameChunkSize(V_COORDS, coordVID_)) return 1;
   }
   // Velocity variable
   if (coordInfo.HasVel()) {
@@ -1254,11 +1245,7 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
     if (NC_setDeflate(V_FRC, frcVID_)) return 1;
     if (NC_setFrameChunkSize(V_FRC, frcVID_)) return 1;
   }
-  // Allocate temporary space for integer array
-# ifdef HAS_HDF5
-  if (needed_itmp_size > 0)
-    itmp_.resize( needed_itmp_size );
-# endif
+
   // Replica Temperature
   if (coordInfo.HasTemp() && !coordInfo.UseRemdValues()) {
     // NOTE: Setting dimensionID should be OK for Restart, will not be used.
@@ -1419,6 +1406,29 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
     if (NC_setFrameChunkSize(V_BOXA, cellAngleVID_)) return 1;
   }
 
+  // Integer-compressed coordinates
+  if (coordInfo.HasCrd() && intCompressFac_[V_COORDS] > 0) {
+    if (set_atom_dim_array(dimensionID)) return 1;
+    // Coords with integer compression
+    mprintf("\tCOORDS will use integer compression with factor %g\n", intCompressFac_[V_COORDS]);
+    if (NC::CheckErr( nc_def_var(ncid_, NCCOMPPOS, NC_INT, NDIM, dimensionID, &compressedPosVID_) )) {
+      mprinterr("Error: defining compressed positions VID.\n");
+      return 1;
+     }
+    if (NC::CheckErr(nc_put_att_double(ncid_, compressedPosVID_, NCICOMPFAC,
+                                       NC_DOUBLE, 1, (&intCompressFac_[0])+V_COORDS))) {
+      mprinterr("Error: Assigning integer compressed coords compression factor attribute.\n");
+      return 1;
+    }
+    needed_itmp_size = Ncatom3();
+    if ( NC::CheckErr( nc_put_att_text( ncid_, compressedPosVID_, "units", 8, "angstrom")) ) {
+      mprinterr("Error: Assigning compressed coordinates variable units attribute.\n");
+      return 1;
+    }
+    if (NC_setDeflate(V_COORDS, compressedPosVID_, ishuffle_)) return 1;
+    if (NC_setFrameChunkSize(V_COORDS, compressedPosVID_)) return 1;
+  }
+
   // Attributes
   if (NC::CheckErr(nc_put_att_text(ncid_,NC_GLOBAL,"title",title.size(),title.c_str())) ) {
     mprinterr("Error: Writing title.\n");
@@ -1511,6 +1521,11 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
     }
   }
   if (ncdebug_ > 1) NC::Debug(ncid_);
+  // Allocate temporary space for integer array
+# ifdef HAS_HDF5
+  if (needed_itmp_size > 0)
+    itmp_.resize( needed_itmp_size );
+# endif
 
   return 0;
 }

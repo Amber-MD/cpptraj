@@ -118,10 +118,6 @@ class NetcdfFile {
     static NCTYPE GetNetcdfConventions(int);
     /// Check NetCDF file conventions version.
     void CheckConventionsVersion();
-    /// Write array[ncatom3] compressed
-    int NC_writeIntCompressed(const double*, int, double);
-    /// Read array[ncatom3] compressed
-    int NC_readIntCompressed(double*, int, int, double);
 
     bool Has_pH() const;
     bool HasRedOx() const;
@@ -159,10 +155,17 @@ class NetcdfFile {
     static int calcCompressFactor(double&, int);
     /// Increase variable chunk sizes
     int NC_setVarDimChunkSizes(VidType, int, int, std::vector<int> const&, int, std::vector<size_t>&) const;
+    /// Write array[ncatom3] compressed
+    int NC_writeIntCompressed(const double*, int, double);
+    /// Read array[ncatom3] compressed
+    int NC_readIntCompressed(double*, int, int, double);
 #   endif
-
+    /// Write - define the temperature variable
     int NC_defineTemperature(int*, int);
     inline void SetRemDimDID(int, int*) const;
+
+    /// Set dimension IDs for atom-based array according to current file type
+    int set_atom_dim_array(int*) const;
 
     int compressedPosVID_;               ///< Coordinates integer VID
     int compressedVelVID_;               ///< Velocities integer VID
