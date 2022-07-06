@@ -326,7 +326,7 @@ int NetcdfFile::SetupCoordsVelo(bool useVelAsCoords, bool useFrcAsCoords) {
       mprinterr("Error: Could not get integer compression factor attribute for COORDS.\n");
       return 1;
     }
-    mprintf("DEBUG: Integer compression factor: %g\n", intCompressFac_[V_COORDS]);
+    mprintf("\tCoordinates are integer-compressed with factor: %g\n", intCompressFac_[V_COORDS]);
     needed_itmp_size = Ncatom3();
     has_coordinates = true;
 #   else /* HAS_HDF5 */
@@ -805,9 +805,9 @@ int NetcdfFile::NC_setDeflate(VidType vtype, int varid, int ishuffleIn) const
 {
 # ifdef HAS_HDF5
   if (deflateLevels_[vtype] > 0) {
-    mprintf("DEBUG: Setting deflate level for '%s' to %i (ishuffle=%i)\n",
-            vidDesc_[vtype], deflateLevels_[vtype], ishuffleIn);
-    // TODO shuffle integer types?
+    if (ncdebug_ > 0)
+      mprintf("DEBUG: Setting deflate level for '%s' to %i (ishuffle=%i)\n",
+              vidDesc_[vtype], deflateLevels_[vtype], ishuffleIn);
     if ( NC::CheckErr( nc_def_var_deflate(ncid_, varid, ishuffleIn, 1, deflateLevels_[vtype]) ) ) {
       mprinterr("Error: Setting compression for '%s' variable.\n", vidDesc_[vtype]);
       return 1;
@@ -861,7 +861,7 @@ int NetcdfFile::NC_setFrameChunkSize(VidType vtype, int varid) const
 # ifdef HAS_HDF5
 /** Set desired compression level for specified variable if supported. */
 int NetcdfFile::setDesiredCompression(VidType vtype, int deflateLevelIn) {
-  //if (ncdebug_ > 0)
+  if (ncdebug_ > 0)
     mprintf("DEBUG: Setting desired compression for VIDTYPE %s to %i\n", vidDesc_[vtype], deflateLevelIn);
   deflateLevels_[vtype] = deflateLevelIn;
   return 0;
@@ -897,12 +897,10 @@ int NetcdfFile::SetupCompression(int deflateLevelIn, int icompressIn, int ishuff
     err += (calcCompressFactor( intCompressFac_[V_COORDS], icompressIn ));
     // Report ishuffle status
     ishuffle_ = ishuffleIn;
-    //if (ncdebug_ > 0) {
-      if (ishuffle_ == 0)
-        mprintf("DEBUG: Integer shuffle is off.\n");
-      else
-        mprintf("DEBUG: Integer shuffle is on.\n");
-    //}
+    if (ishuffle_ == 0)
+      mprintf("\tInteger shuffle is off.\n");
+    else
+      mprintf("\tInteger shuffle is on.\n");
   }
   return err;
 }

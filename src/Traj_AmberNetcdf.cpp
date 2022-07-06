@@ -502,7 +502,10 @@ void Traj_AmberNetcdf::Info() {
     if (useVelAsCoords_) mprintf(" (using velocities as coordinates)");
     if (useFrcAsCoords_) mprintf(" (using forces as coordinates)");
     if (remd_dimension_ > 0) mprintf(", %i replica dimensions", remd_dimension_);
-  } 
+  } else {
+    if (compress_ > 0) mprintf(", with compression");
+    if (icompress_ > 0) mprintf(", with integer-compressed coordinates");
+  }
 }
 #ifdef MPI
 #ifdef HAS_PNETCDF
