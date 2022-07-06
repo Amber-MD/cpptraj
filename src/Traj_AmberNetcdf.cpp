@@ -207,8 +207,11 @@ int Traj_AmberNetcdf::setupTrajout(FileName const& fname, Topology* trajParm,
     if (Title().empty())
       SetTitle("Cpptraj Generated trajectory");
 #   ifdef HAS_HDF5
-    // Set compression levels
-    if (compress_ > 0) SetCompression(compress_);
+    // Set compression levels TODO have ishuffle option
+    if (compress_ > 0 || icompress_ > 0) {
+      if (SetupCompression(compress_, icompress_, 1))
+        return 1;
+    }
     // Set frame chunk size
     if (fchunkSize_ > 0) SetFrameChunkSize(fchunkSize_);
 #   endif
@@ -216,12 +219,12 @@ int Traj_AmberNetcdf::setupTrajout(FileName const& fname, Topology* trajParm,
     if (NC_create( ftype_, filename_.Full(), NC_AMBERTRAJ, trajParm->Natom(), CoordInfo(),
                    Title(), debug_ ))
       return 1;
-#   ifdef HAS_HDF5
-    // Set up for integer compression if necessary
-    if (icompress_ > 0) {
-      if (NC_createIntCompressed(icompress_)) return 1;
-    }
-#   endif
+//#   ifdef HAS_HDF5
+//    // Set up for integer compression if necessary
+//    if (icompress_ > 0) {
+//      if (NC_createIntCompressed(icompress_)) return 1;
+//    }
+//#   endif
     // Close Netcdf file. It will be reopened write. FIXME should NC_create leave it closed?
     NC_close();
     // Allocate memory

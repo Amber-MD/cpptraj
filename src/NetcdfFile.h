@@ -69,12 +69,10 @@ class NetcdfFile {
                    V_REMDVALS,
                    NVID };
 #   ifdef HAS_HDF5
-    /// Set all variables compression level.
-    int SetCompression(int);
+    /// Set all variables compression level and integer compression level (and shuffle).
+    int SetupCompression(int, int, int);
     /// Set default frame chunk size
     int SetFrameChunkSize(int);
-    /// Create an integer compressed version of the trajectory
-    int NC_createIntCompressed(int);
     /// Write an integer-compressed frame to the trajectory
     int NC_writeIntCompressed(Frame const&);
     /// Read an integer-compressed frame from the trajectory
@@ -121,17 +119,15 @@ class NetcdfFile {
     /// Check NetCDF file conventions version.
     void CheckConventionsVersion();
     /// Write array[ncatom3] compressed
-    int NC_writeIntCompressed(const double*, int);
+    int NC_writeIntCompressed(const double*, int, double);
     /// Read array[ncatom3] compressed
-    int NC_readIntCompressed(double*, int, int);
-
-    int NC_defineIcompressedVar(const char*, const char*, VidType, int&);
+    int NC_readIntCompressed(double*, int, int, double);
 
     bool Has_pH() const;
     bool HasRedOx() const;
     bool HasForces()       const { return (frcVID_ != -1);      }
     bool HasVelocities()   const { return (velocityVID_ != -1); }
-    bool HasCoords()       const { return (coordVID_ != -1);    }
+    bool HasCoords()       const { return (coordVID_ != -1 || compressedPosVID_ != -1);    }
     bool HasTemperatures() const;
     bool HasTimes()        const { return (timeVID_ != -1);     }
 
@@ -150,15 +146,17 @@ class NetcdfFile {
     /// Read - Set up replica index info if present.
     int SetupMultiD();
 
-    /// Set compression level for variable ID (HDF5 only)
+    /// Set compression level and integer shuffle for variable ID (HDF5 only)
+    int NC_setDeflate(VidType, int, int) const;
+    /// Set compression level with integer shuffle off for variable ID (HDF5 only)
     int NC_setDeflate(VidType, int) const;
     /// Set frame chunk size for variable ID (HDF5 only)
     int NC_setFrameChunkSize(VidType, int) const;
 #   ifdef HAS_HDF5
     /// Set desired compression level for variable ID.
-    int SetCompression(VidType, int);
+    int setDesiredCompression(VidType, int);
     /// Calculate integer compression factor of 10 from given power
-    int calcCompressFactor(int);
+    static int calcCompressFactor(double&, int);
     /// Increase variable chunk sizes
     int NC_setVarDimChunkSizes(VidType, int, int, std::vector<int> const&, int, std::vector<size_t>&) const;
 #   endif
@@ -166,13 +164,15 @@ class NetcdfFile {
     int NC_defineTemperature(int*, int);
     inline void SetRemDimDID(int, int*) const;
 
+    int compressedPosVID_;               ///< Coordinates integer VID
+    int compressedVelVID_;               ///< Velocities integer VID
+    int compressedFrcVID_;               ///< Velocities integer VID
+    int fchunkSize_;                     ///< Frame chunk size
+    int ishuffle_;                       ///< Control integer shuffle for integer-compressed vars
 #   ifdef HAS_HDF5
-    std::vector<int> deflateLevels_; ///< Compression levels for each VID
-    int compressedPosVID_;           ///< Coordinates integer VID
-    int compressedVelVID_;           ///< Velocities integer VID
-    double compressedFac_;           ///< Compression factor 
-    std::vector<int> itmp_;          ///< Temp space for converting to int
-    int fchunkSize_;                 ///< Frame chunk size
+    std::vector<int> deflateLevels_;     ///< Compression levels for each VID
+    std::vector<double> intCompressFac_; ///< Integer compression factor for each VID
+    std::vector<int> itmp_;              ///< Temp space for converting to int
 #   endif
 
     std::vector<double> RemdValues_; ///< Hold remd values
