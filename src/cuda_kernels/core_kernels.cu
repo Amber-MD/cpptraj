@@ -773,7 +773,8 @@ __global__ void kClosestDistsToAtoms_Nonortho(double*D_,
 
 // -----------------------------------------------------------------------------
 __global__ void kBinDistances_nonOverlap_nonOrtho(const double* xyz1, int N1, const double* xyz2, int N2,
-                                                  const double* frac, const double* ucell)
+                                                  const double* frac, const double* ucell,
+                                                  double maximum2, double one_over_spacing)
 {
   int a1 = blockIdx.x * blockDim.x + threadIdx.x;
   int a2 = blockIdx.y * blockDim.y + threadIdx.y;
@@ -796,5 +797,9 @@ __global__ void kBinDistances_nonOverlap_nonOrtho(const double* xyz1, int N1, co
     double f2z = frac[6]*a2x + frac[7]*a2y + frac[8]*a2z;
 
     double dist2 =  NonOrtho_dist(f2x, f2y, f2z, f1x ,f1y, f1z, ucell);
+    if (dist2 <= maximum2) {
+      double dist = sqrt(dist2);
+      int histIdx = (int) (dist * one_over_spacing);
+    }
   }
 }
