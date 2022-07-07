@@ -7,6 +7,14 @@
 
 #define BLOCKDIM 512
 
+static inline int calc_nblocks(int ntotal, int nthreadsPerBlock)
+{
+  int nblocks = ntotal / nthreadsPerBlock;
+  if ( (ntotal % nthreadsPerBlock) != 0 )
+    nblocks++;
+  return nblocks;
+}
+
 /** Calculate distances between pairs of atoms and bin them into a 1D histogram. */
 void Cpptraj_GPU_RDF(unsigned long* bins,
                      const double* xyz1, int N1,
@@ -34,7 +42,7 @@ void Cpptraj_GPU_RDF(unsigned long* bins,
 
   // Determine number of blocks
   dim3 threadsPerBlock(BLOCKDIM, BLOCKDIM);
-  dim3 numBlocks(N1 / threadsPerBlock.x, N2 / threadsPerBlock.y);
+  dim3 numBlocks(calc_nblocks(N1, threadsPerBlock.x), calc_nblocks(N2, threadsPerBlock.y));
   mprintf("#Atoms = %i, %i; Threads per block = %i, %i;  #Blocks = %i, %i\n",
           N1, N2, threadsPerBlock.x, threadsPerBlock.y, numBlocks.x, numBlocks.y);
 
