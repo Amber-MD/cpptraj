@@ -5,7 +5,7 @@
 #include "../HipDefinitions.h"
 #endif
 
-#define BLOCKDIM 512
+#define BLOCKDIM 32
 
 static inline int calc_nblocks(int ntotal, int nthreadsPerBlock)
 {
