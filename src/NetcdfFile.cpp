@@ -398,21 +398,31 @@ int NetcdfFile::SetupCoordsVelo(bool useVelAsCoords, bool useFrcAsCoords) {
   }
   // If using velocities/forces as coordinates, swap them now.
   if (useVelAsCoords) {
-    if (velocityVID_ == -1) {
+    if (velocityVID_ != -1) {
+      coordVID_ = velocityVID_;
+      velocityVID_ = -1;
+    } else if (compressedVelVID_ != -1) {
+      compressedPosVID_ = compressedVelVID_;
+      compressedPosVID_ = -1;
+      intCompressFac_[V_COORDS] = intCompressFac_[V_VEL];
+    } else {
       mprinterr("Error: Cannot use velocities as coordinates; no velocities present.\n");
       return 1;
     }
     mprintf("\tUsing velocities as coordinates.\n");
-    coordVID_ = velocityVID_;
-    velocityVID_ = -1;
   } else if (useFrcAsCoords) {
-    if (frcVID_ == -1) {
+    if (frcVID_ != -1) {
+      coordVID_ = velocityVID_;
+      frcVID_ = -1;
+    } else if (compressedFrcVID_ != -1) {
+      compressedPosVID_ = compressedFrcVID_;
+      compressedFrcVID_ = -1;
+      intCompressFac_[V_COORDS] = intCompressFac_[V_FRC];
+    } else {
       mprinterr("Error: Cannot use forces as coordinates; no forces present.\n");
       return 1;
     }
     mprintf("\tUsing forces as coordinates.\n");
-    coordVID_ = frcVID_;
-    frcVID_ = -1;
   }
   // Get overall replica and coordinate indices
   crdidxVID_ = -1;

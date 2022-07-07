@@ -121,9 +121,9 @@ class NetcdfFile {
 
     bool Has_pH() const;
     bool HasRedOx() const;
-    bool HasForces()       const { return (frcVID_ != -1);      }
-    bool HasVelocities()   const { return (velocityVID_ != -1); }
-    bool HasCoords()       const { return (coordVID_ != -1 || compressedPosVID_ != -1);    }
+    bool HasForces()       const { return (frcVID_      != -1 || compressedFrcVID_ != -1);    }
+    bool HasVelocities()   const { return (velocityVID_ != -1 || compressedVelVID_ != -1); }
+    bool HasCoords()       const { return (coordVID_    != -1 || compressedPosVID_ != -1); }
     bool HasTemperatures() const;
     bool HasTimes()        const { return (timeVID_ != -1);     }
 
