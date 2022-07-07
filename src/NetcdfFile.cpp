@@ -1519,6 +1519,29 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
     if (NC_setDeflate(V_VEL, compressedVelVID_, ishuffle_)) return 1;
     if (NC_setFrameChunkSize(V_VEL, compressedVelVID_)) return 1;
   }
+  // Integer-compressed forces 
+  if (coordInfo.HasForce() && intCompressFac_[V_FRC] > 0) {
+    if (set_atom_dim_array(dimensionID)) return 1;
+    // Forces with integer compression
+    mprintf("\tFORCES will use integer compression with factor %g\n", intCompressFac_[V_FRC]);
+    if (NC::CheckErr( nc_def_var(ncid_, NCCOMPFRC, NC_INT, NDIM, dimensionID, &compressedFrcVID_) )) {
+      mprinterr("Error: defining compressed forces VID.\n");
+      return 1;
+    }
+    if (NC::CheckErr(nc_put_att_double(ncid_, compressedFrcVID_, NCICOMPFAC,
+                                       NC_DOUBLE, 1, (&intCompressFac_[0])+V_FRC))) {
+      mprinterr("Error: Assigning integer compressed forces compression factor attribute.\n");
+      return 1;
+    }
+    needed_itmp_size = Ncatom3();
+    if ( NC::CheckErr( nc_put_att_text( ncid_, compressedFrcVID_, "units", 25, "kilocalorie/mole/angstrom")) )
+    {
+      mprinterr("Error: Writing forces variable units.\n");
+      return 1;
+    }
+    if (NC_setDeflate(V_FRC, compressedFrcVID_, ishuffle_)) return 1;
+    if (NC_setFrameChunkSize(V_FRC, compressedFrcVID_)) return 1;
+  }
 
   // Attributes
   if (NC::CheckErr(nc_put_att_text(ncid_,NC_GLOBAL,"title",title.size(),title.c_str())) ) {
