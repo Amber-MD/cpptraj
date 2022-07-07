@@ -403,7 +403,7 @@ int NetcdfFile::SetupCoordsVelo(bool useVelAsCoords, bool useFrcAsCoords) {
       velocityVID_ = -1;
     } else if (compressedVelVID_ != -1) {
       compressedPosVID_ = compressedVelVID_;
-      compressedPosVID_ = -1;
+      compressedVelVID_ = -1;
       intCompressFac_[V_COORDS] = intCompressFac_[V_VEL];
     } else {
       mprinterr("Error: Cannot use velocities as coordinates; no velocities present.\n");
@@ -412,7 +412,7 @@ int NetcdfFile::SetupCoordsVelo(bool useVelAsCoords, bool useFrcAsCoords) {
     mprintf("\tUsing velocities as coordinates.\n");
   } else if (useFrcAsCoords) {
     if (frcVID_ != -1) {
-      coordVID_ = velocityVID_;
+      coordVID_ = frcVID_;
       frcVID_ = -1;
     } else if (compressedFrcVID_ != -1) {
       compressedPosVID_ = compressedFrcVID_;
