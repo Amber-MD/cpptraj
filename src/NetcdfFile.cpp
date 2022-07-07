@@ -1046,9 +1046,23 @@ int NetcdfFile::NC_writeIntCompressed(const double* xyz, int vid, double compres
 
 /** Write integer-compressed coords. */
 int NetcdfFile::NC_writeIntCompressed(Frame const& frmOut) {
-  if (NC_writeIntCompressed(frmOut.xAddress(), compressedPosVID_, intCompressFac_[V_COORDS])) { 
-    mprinterr("Error: NetCDF writing compressed coordinates frame %i\n", ncframe_+1);
-    return 1;
+  if (compressedPosVID_ != -1) {
+    if (NC_writeIntCompressed(frmOut.xAddress(), compressedPosVID_, intCompressFac_[V_COORDS])) { 
+      mprinterr("Error: NetCDF writing compressed coordinates frame %i\n", ncframe_+1);
+      return 1;
+    }
+  }
+  if (compressedVelVID_ != -1) {
+    if (NC_writeIntCompressed(frmOut.vAddress(), compressedVelVID_, intCompressFac_[V_VEL])) { 
+      mprinterr("Error: NetCDF writing compressed velocities frame %i\n", ncframe_+1);
+      return 1;
+    }
+  }
+  if (compressedFrcVID_ != -1) {
+    if (NC_writeIntCompressed(frmOut.fAddress(), compressedFrcVID_, intCompressFac_[V_FRC])) { 
+      mprinterr("Error: NetCDF writing compressed forces frame %i\n", ncframe_+1);
+      return 1;
+    }
   }
   return 0;
 }
@@ -1074,9 +1088,23 @@ int NetcdfFile::NC_readIntCompressed(double* xyz, int vid, int set, double compr
 
 /** Read integer-compressed coords. */
 int NetcdfFile::NC_readIntCompressed(int set, Frame& frmIn) {
-  if (NC_readIntCompressed( frmIn.xAddress(), compressedPosVID_, set, intCompressFac_[V_COORDS] )) {
-    mprinterr("Error: NetCDF reading compressed coordinates frame %i\n", set+1);
-    return 1;
+  if (compressedPosVID_ != -1) {
+    if (NC_readIntCompressed( frmIn.xAddress(), compressedPosVID_, set, intCompressFac_[V_COORDS] )) {
+      mprinterr("Error: NetCDF reading compressed coordinates frame %i\n", set+1);
+      return 1;
+    }
+  }
+  if (compressedVelVID_ != -1) {
+    if (NC_readIntCompressed( frmIn.vAddress(), compressedVelVID_, set, intCompressFac_[V_VEL] )) {
+      mprinterr("Error: NetCDF reading compressed velocities frame %i\n", set+1);
+      return 1;
+    }
+  }
+  if (compressedFrcVID_ != -1) {
+    if (NC_readIntCompressed( frmIn.fAddress(), compressedFrcVID_, set, intCompressFac_[V_FRC] )) {
+      mprinterr("Error: NetCDF reading compressed forces frame %i\n", set+1);
+      return 1;
+    }
   }
   return 0;
 }
@@ -1130,6 +1158,21 @@ int NetcdfFile::set_atom_dim_array(int* dimensionID) const {
     case NC_UNKNOWN:
       mprinterr("Internal Error: Unknown type passed to set_atom_dim_array()\n");
       return 1;
+  }
+  return 0;
+}
+
+/** Write - Set attributes for velocity variable. */
+int NetcdfFile::setVelAttributes(int vid) const {
+  if ( NC::CheckErr( nc_put_att_text( ncid_, vid, "units", 19, "angstrom/picosecond")) ) {
+    mprinterr("Error: Writing velocities variable units.\n");
+    return 1;
+  }
+  if ( NC::CheckErr( nc_put_att_double( ncid_, vid, "scale_factor", NC_DOUBLE, 1, 
+                                        &Constants::AMBERTIME_TO_PS)) )
+  {
+    mprinterr("Error: Writing velocities scale factor.\n");
+    return 1;
   }
   return 0;
 }
@@ -1256,17 +1299,7 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
       mprinterr("Error: Defining velocities variable.\n");
       return 1;
     }
-    if ( NC::CheckErr( nc_put_att_text( ncid_, velocityVID_, "units", 19, "angstrom/picosecond")) )
-    {
-      mprinterr("Error: Writing velocities variable units.\n");
-      return 1;
-    }
-    if ( NC::CheckErr( nc_put_att_double( ncid_, velocityVID_, "scale_factor", NC_DOUBLE, 1, 
-                                        &Constants::AMBERTIME_TO_PS)) )
-    {
-      mprinterr("Error: Writing velocities scale factor.\n");
-      return 1;
-    }
+    if (setVelAttributes( velocityVID_ )) return 1;
     if (NC_setDeflate(V_VEL, velocityVID_)) return 1;
     if (NC_setFrameChunkSize(V_VEL, velocityVID_)) return 1;
   }
@@ -1453,7 +1486,7 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
     if (NC::CheckErr( nc_def_var(ncid_, NCCOMPPOS, NC_INT, NDIM, dimensionID, &compressedPosVID_) )) {
       mprinterr("Error: defining compressed positions VID.\n");
       return 1;
-     }
+    }
     if (NC::CheckErr(nc_put_att_double(ncid_, compressedPosVID_, NCICOMPFAC,
                                        NC_DOUBLE, 1, (&intCompressFac_[0])+V_COORDS))) {
       mprinterr("Error: Assigning integer compressed coords compression factor attribute.\n");
@@ -1466,6 +1499,25 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
     }
     if (NC_setDeflate(V_COORDS, compressedPosVID_, ishuffle_)) return 1;
     if (NC_setFrameChunkSize(V_COORDS, compressedPosVID_)) return 1;
+  }
+  // Integer-compressed velocities 
+  if (coordInfo.HasVel() && intCompressFac_[V_VEL] > 0) {
+    if (set_atom_dim_array(dimensionID)) return 1;
+    // Velocities with integer compression
+    mprintf("\tVELOCITIES will use integer compression with factor %g\n", intCompressFac_[V_VEL]);
+    if (NC::CheckErr( nc_def_var(ncid_, NCCOMPVEL, NC_INT, NDIM, dimensionID, &compressedVelVID_) )) {
+      mprinterr("Error: defining compressed velocities VID.\n");
+      return 1;
+    }
+    if (NC::CheckErr(nc_put_att_double(ncid_, compressedVelVID_, NCICOMPFAC,
+                                       NC_DOUBLE, 1, (&intCompressFac_[0])+V_VEL))) {
+      mprinterr("Error: Assigning integer compressed velocities compression factor attribute.\n");
+      return 1;
+    }
+    needed_itmp_size = Ncatom3();
+    if (setVelAttributes( compressedVelVID_ )) return 1;
+    if (NC_setDeflate(V_VEL, compressedVelVID_, ishuffle_)) return 1;
+    if (NC_setFrameChunkSize(V_VEL, compressedVelVID_)) return 1;
   }
 
   // Attributes

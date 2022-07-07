@@ -160,12 +160,15 @@ class NetcdfFile {
     /// Read array[ncatom3] compressed
     int NC_readIntCompressed(double*, int, int, double);
 #   endif
+
     /// Write - define the temperature variable
     int NC_defineTemperature(int*, int);
+    /// Write - set dimension array for remd vars
     inline void SetRemDimDID(int, int*) const;
-
-    /// Set dimension IDs for atom-based array according to current file type
+    /// Write - Set dimension IDs for atom-based array according to current file type
     int set_atom_dim_array(int*) const;
+    /// Write - Set attributes for velocity variable
+    int setVelAttributes(int) const;
 
     int compressedPosVID_;               ///< Coordinates integer VID
     int compressedVelVID_;               ///< Velocities integer VID
