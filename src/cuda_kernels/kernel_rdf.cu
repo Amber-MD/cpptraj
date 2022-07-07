@@ -1,4 +1,5 @@
 #include "kernel_rdf.cuh"
+#include "../CpptrajStdio.h"
 #if defined(__HIP_PLATFORM_HCC__)
 #include <hip/hip_runtime.h>
 #include "../HipDefinitions.h"
@@ -30,4 +31,11 @@ void Cpptraj_GPU_RDF(int* bins,
     cudaMemcpy(ucellDev,ucell, 9 * sizeof(double), cudaMemcpyHostToDevice);
     cudaMemcpy(recipDev,recip, 9 * sizeof(double), cudaMemcpyHostToDevice);
   }
+
+  // Determine number of blocks
+  dim3 threadsPerBlock(BLOCKDIM, BLOCKDIM);
+  dim3 numBlocks(N1 / threadsPerBlock.x, N2 / threadsPerBlock.y);
+  mprintf("#Atoms = %i, %i; Threads per block = %i, %i;  #Blocks = %i, %i\n",
+          N1, N2, threadsPerBlock.x, threadsPerBlock.y, numBlocks.x, numBlocks.y);
+
 }
