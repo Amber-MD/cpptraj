@@ -99,6 +99,7 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(NC_FMT_TYPE& btype, const ch
 #define NCREMDVALUES "remd_values"
 #define NCCOMPPOS "compressedpos"
 #define NCCOMPVEL "compressedvel"
+#define NCCOMPFRC "compressedfrc"
 #define NCICOMPFAC "icompressfac"
 
 // CONSTRUCTOR
@@ -341,12 +342,50 @@ int NetcdfFile::SetupCoordsVelo(bool useVelAsCoords, bool useFrcAsCoords) {
     if (ncdebug_>0) mprintf("\tNetCDF file has velocities.\n");
     has_velocities = true;
   }
+  // Get compressed velocity info
+  compressedVelVID_ = -1;
+  if ( nc_inq_varid(ncid_, NCCOMPVEL, &compressedVelVID_) == NC_NOERR ) {
+    if (ncdebug_ > 0) mprintf("\tNetCDF file has integer-compressed velocities.\n");
+#   ifdef HAS_HDF5
+    // Get integer compression factor
+    if (NC::CheckErr(nc_get_att_double(ncid_, compressedVelVID_, NCICOMPFAC, (&intCompressFac_[0])+V_VEL))) {
+      mprinterr("Error: Could not get integer compression factor attribute for VEL.\n");
+      return 1;
+    }
+    mprintf("\tVelocities are integer-compressed with factor: %g\n", intCompressFac_[V_VEL]);
+    needed_itmp_size = Ncatom3();
+    has_velocities = true;
+#   else /* HAS_HDF5 */
+    mprinterr("Error: Integer-compressed NetCDF trajectories requires cpptraj compiled with HDF5 support.\n");
+    return 1;
+#   endif /* HAS_HDF5 */
+  }
+
   // Get force info
   frcVID_ = -1;
   if ( nc_inq_varid(ncid_, NCFRC, &frcVID_) == NC_NOERR ) {
     if (ncdebug_>0) mprintf("\tNetCDF file has forces.\n");
     has_forces = true;
   }
+  // Get compressed force info
+  compressedFrcVID_ = -1;
+  if ( nc_inq_varid(ncid_, NCCOMPFRC, &compressedFrcVID_) == NC_NOERR ) {
+    if (ncdebug_ > 0) mprintf("\tNetCDF file has integer-compressed forces.\n");
+#   ifdef HAS_HDF5
+    // Get integer compression factor
+    if (NC::CheckErr(nc_get_att_double(ncid_, compressedFrcVID_, NCICOMPFAC, (&intCompressFac_[0])+V_FRC))) {
+      mprinterr("Error: Could not get integer compression factor attribute for FRC.\n");
+      return 1;
+    }
+    mprintf("\tForces are integer-compressed with factor: %g\n", intCompressFac_[V_FRC]);
+    needed_itmp_size = Ncatom3();
+    has_forces = true;
+#   else /* HAS_HDF5 */
+    mprinterr("Error: Integer-compressed NetCDF trajectories requires cpptraj compiled with HDF5 support.\n");
+    return 1;
+#   endif /* HAS_HDF5 */
+  }
+
 # ifdef HAS_HDF5
   // Allocate temporary space for integer array if needed
   if (needed_itmp_size > 0)
