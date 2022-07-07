@@ -943,7 +943,9 @@ int NetcdfFile::SetupCompression(int deflateLevelIn, int icompressIn, int ishuff
       mprintf("Warning: Using lossy compression.\n"
               "Warning: Energy error will be on the order of 2E-%i kcal/mol/atom\n", icompressIn);
     // Calculate integer compression factors for supported variables
-    err += (calcCompressFactor( intCompressFac_[V_COORDS], icompressIn ));
+    err += (calcCompressFactor( intCompressFac_[V_COORDS], icompressIn, "coordinates" ));
+    err += (calcCompressFactor( intCompressFac_[V_VEL],    icompressIn, "velocities" ));
+    err += (calcCompressFactor( intCompressFac_[V_FRC],    icompressIn, "forces" ));
     // Report ishuffle status
     ishuffle_ = ishuffleIn;
     if (ishuffle_ == 0)
@@ -1003,7 +1005,7 @@ const
 }
  
 /** Set compressedFac to given power of 10 (min 1). */
-int NetcdfFile::calcCompressFactor(double& compressedFac, int power) {
+int NetcdfFile::calcCompressFactor(double& compressedFac, int power, const char* desc) {
   compressedFac = 0;
   if (power < 1) {
     mprinterr("Internal Error: calcCompressFactor called with power of 10 < 1\n");
@@ -1012,7 +1014,7 @@ int NetcdfFile::calcCompressFactor(double& compressedFac, int power) {
   compressedFac = 10.0;
   for (int i = 1; i < power; i++)
     compressedFac *= 10.0;
-  mprintf("\tConverting floats to integer using factor: x%g\n", compressedFac);
+  mprintf("\tConverting %s to integer using factor: x%g\n", desc, compressedFac);
   return 0;
 }
 
@@ -1304,7 +1306,7 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
     if (NC_setFrameChunkSize(V_COORDS, coordVID_)) return 1;
   }
   // Velocity variable
-  if (coordInfo.HasVel()) {
+  if (coordInfo.HasVel() && intCompressFac_[V_VEL] == 0) {
     if ( NC::CheckErr( nc_def_var( ncid_, NCVELO, dataType, NDIM, dimensionID, &velocityVID_)) ) {
       mprinterr("Error: Defining velocities variable.\n");
       return 1;
@@ -1314,7 +1316,7 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
     if (NC_setFrameChunkSize(V_VEL, velocityVID_)) return 1;
   }
   // Force variable
-  if (coordInfo.HasForce()) {
+  if (coordInfo.HasForce() && intCompressFac_[V_FRC] == 0) {
     if ( NC::CheckErr( nc_def_var( ncid_, NCFRC, dataType, NDIM, dimensionID, &frcVID_)) ) {
       mprinterr("Error: Defining forces variable\n");
       return 1;
