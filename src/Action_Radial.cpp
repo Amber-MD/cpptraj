@@ -7,6 +7,9 @@
 #ifdef _OPENMP
 #  include <omp.h>
 #endif
+#ifdef CUDA
+#  include "cuda_kernels/kernel_rdf.cuh"
+#endif
 
 // CONSTRUCTOR
 Action_Radial::Action_Radial() :
@@ -439,6 +442,21 @@ Action::RetType Action_Radial::Setup(ActionSetup& setup) {
   return Action::OK;  
 }
 
+#ifdef CUDA
+static inline std::vector<double> mask_to_xyz(AtomMask const& Mask, Frame const& frm)
+{
+  std::vector<double> outerxyz;
+  outerxyz.reserve( Mask.Nselected()*3 );
+  for (AtomMask::const_iterator at = Mask.begin(); at != Mask.end(); ++at) {
+    const double* xyz = frm.XYZ( *at );
+    outerxyz.push_back( xyz[0] );
+    outerxyz.push_back( xyz[1] );
+    outerxyz.push_back( xyz[2] );
+  }
+  return outerxyz;
+}
+#endif
+
 // Action_Radial::DoAction()
 /** Calculate distances from atoms in mask1 to atoms in mask 2 and
   * bin them.
@@ -457,6 +475,19 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
   // Store volume if specified
   if (useVolume_)
     volume_ += frm.Frm().BoxCrd().CellVolume();
+  // ---------------------------------------------
+#ifdef CUDA
+  // Copy atoms FIXME need to do overlapping and non-overlapping case
+  std::vector<double> outerxyz = mask_to_xyz(OuterMask_, frm.Frm());
+  std::vector<double> innerxyz = mask_to_xyz(InnerMask_, frm.Frm());
+  Cpptraj_GPU_RDF( &RDF_[0],
+                   &outerxyz[0], OuterMask_.Nselected(),
+                   &innerxyz[0], InnerMask_.Nselected(),
+                   imageOpt_.ImagingType(),
+                   frm.Frm().BoxCrd().XyzPtr(),
+                   frm.Frm().BoxCrd().UnitCell().Dptr(),
+                   frm.Frm().BoxCrd().FracCell().Dptr() );
+#else /* CUDA */
   // ---------------------------------------------
   if ( rmode_ == NORMAL ) { 
     // Calculation of all atoms in Mask1 to all atoms in Mask2
@@ -602,6 +633,7 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
     } // END pragma omp parallel
 #   endif 
   }
+#endif /* CUDA */
   ++numFrames_;
 
   return Action::OK;

@@ -8,7 +8,7 @@
 #define BLOCKDIM 512
 
 /** Calculate distances between pairs of atoms and bin them into a 1D histogram. */
-void Cpptraj_GPU_RDF(int* bins,
+void Cpptraj_GPU_RDF(unsigned long* bins,
                      const double* xyz1, int N1,
                      const double* xyz2, int N2,
                      ImageOption::Type imageType,
