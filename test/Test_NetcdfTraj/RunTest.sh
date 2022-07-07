@@ -7,7 +7,8 @@ CleanFiles ptraj_netcdf.in trajectory.netcdf trajectory_test.mdcrd \
             trajectory_nc4.mdcrd trajectory.nc4 \
             compress.mdcrd compress.nc4 \
             icompress.mdcrd icompress.nc4 \
-            velfrc.compress.nc4 trpzip2.*.crd
+            velfrc.compress.nc4 trpzip2.*.crd \
+            velfrc.icompress.nc4
 
 TESTNAME='NetCDF tests'
 Requires netcdf pnetcdf maxthreads 10
@@ -112,6 +113,39 @@ EOF
   DoTest ../Test_VelFrc/trpzip2.pos.crd.save trpzip2.pos.crd
   DoTest ../Test_VelFrc/trpzip2.vel.crd.save trpzip2.vel.crd
   DoTest ../Test_VelFrc/trpzip2.frc.crd.save trpzip2.frc.crd
+fi
+
+UNITNAME='Test lossy compression of velocity/force info'
+CheckFor hdf5
+if [ $? -eq 0 ] ; then
+  cat > ptraj_netcdf.in <<EOF
+parm ../trpzip2.ff14SB.mbondi3.parm7
+#debug 2
+trajin ../trpzip2.ff14SB.mbondi3.nc
+trajout velfrc.icompress.nc4 netcdf hdf5 icompress
+EOF
+  RunCpptraj "Integer compress velocity/force info"
+  cat > ptraj_netcdf.in <<EOF
+parm ../trpzip2.ff14SB.mbondi3.parm7
+set TRJ = velfrc.icompress.nc4
+trajin \$TRJ
+trajout trpzip2.ipos.crd
+run
+clear trajin
+trajin \$TRJ usevelascoords
+trajout trpzip2.ivel.crd
+run
+clear trajin
+trajin \$TRJ usefrcascoords
+trajout trpzip2.ifrc.crd
+run
+EOF
+  RunCpptraj "Decompress lossy velocity/force info"
+  # Max error allowed is 0.001. There are 10x more frames here compared to the
+  # above lossy test, as well as velocity/force info.
+  DoTest ../Test_VelFrc/trpzip2.pos.crd.save trpzip2.ipos.crd -a 0.002
+  DoTest ../Test_VelFrc/trpzip2.vel.crd.save trpzip2.ivel.crd -a 0.002
+  DoTest ../Test_VelFrc/trpzip2.frc.crd.save trpzip2.ifrc.crd -a 0.002
 fi
 
 EndTest
