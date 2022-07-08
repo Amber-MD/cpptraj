@@ -127,6 +127,7 @@ void Cpptraj::Intro() const {
               deviceProp.maxThreadsDim[0],
               deviceProp.maxThreadsDim[1],
               deviceProp.maxThreadsDim[2]);
+      mprintf("| Max threads/multiprocessor: %i\n", deviceProp.maxThreadsPerMultiProcessor);
     }
   }
 # endif
