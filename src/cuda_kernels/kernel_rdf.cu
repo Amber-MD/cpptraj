@@ -29,9 +29,11 @@ int Cpptraj_GPU_RDF(unsigned long* bins, int nbins, double maximum2, double one_
 
   double* device_xyz1;
   cudaMalloc(((void**)(&device_xyz1)), N1 * 3 * sizeof(double));
+  cudaMemcpy(device_xyz1, xyz1, N1 * 3 * sizeof(double), cudaMemcpyHostToDevice);
 
   double* device_xyz2;
   cudaMalloc(((void**)(&device_xyz2)), N2 * 3 * sizeof(double));
+  cudaMemcpy(device_xyz2, xyz2, N2 * 3 * sizeof(double), cudaMemcpyHostToDevice);
 
   double *boxDev;
   double *ucellDev, *recipDev;
@@ -61,5 +63,25 @@ int Cpptraj_GPU_RDF(unsigned long* bins, int nbins, double maximum2, double one_
       mprinterr("Internal Error: kernel_rdf: Unhandled image type.\n");
       return 1;
   }
+
+  // Copy the result back
+  int* local_bins = new int[ nbins ];
+  cudaMemcpy(local_bins, device_rdf, nbins*sizeof(int), cudaMemcpyDeviceToHost);
+  for (int ibin = 0; ibin != nbins; ibin++) {
+    //mprintf("DEBUG:\tBin %i = %i (%i)\n", ibin, local_bins[ibin], device_rdf[ibin]);
+    //mprintf("DEBUG:\tBin %i = %i\n", ibin, local_bins[ibin]);
+    bins[ibin] += local_bins[ibin];
+  }
+  delete[] local_bins;
+  // Free device memory
+  cudaFree(device_rdf);
+  cudaFree(device_xyz1);
+  cudaFree(device_xyz2);
+  if (imageType == ImageOption::ORTHO)
+    cudaFree(boxDev);
+  else if (imageType == ImageOption::NONORTHO) {
+    cudaFree(ucellDev);
+    cudaFree(recipDev);
+  } 
   return 0;
 }
