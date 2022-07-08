@@ -309,6 +309,7 @@ COMMON_SOURCES= \
         Frame.cpp \
         GistEntropyUtils.cpp \
         GIST_PME.cpp \
+        Gpu.cpp \
         GridAction.cpp \
         GridBin.cpp \
         HistBin.cpp \
