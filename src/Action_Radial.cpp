@@ -20,6 +20,7 @@ Action_Radial::Action_Radial() :
   currentParm_(0),
   intramol_distances_(0),
   useVolume_(false),
+  mask2_is_mask1_(false),
   volume_(0),
   maximum2_(0),
   spacing_(-1),
@@ -139,12 +140,14 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
   if (Mask1_.SetMaskString(mask1)) return Action::ERR;
 
   // Check for second mask - if none specified use first mask
+  mask2_is_mask1_ = false;
   if (needMask2) {
     std::string mask2 = actionArgs.GetMaskNext();
     if (!mask2.empty()) {
       if (Mask2_.SetMaskString(mask2)) return Action::ERR;
     } else {
       if (Mask2_.SetMaskString(mask1)) return Action::ERR;
+      mask2_is_mask1_ = true;
     }
   }
   // If filename not yet specified check for backwards compat.
@@ -483,10 +486,16 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
 #ifdef CUDA
   // Copy atoms FIXME need to do overlapping and non-overlapping case
   std::vector<double> outerxyz = mask_to_xyz(OuterMask_, frm.Frm());
-  std::vector<double> innerxyz = mask_to_xyz(InnerMask_, frm.Frm());
+  const double* outerxyzPtr = &outerxyz[0];
+  std::vector<double> innerxyz;
+  const double* innerxyzPtr = 0;
+  if (!mask2_is_mask1_) {
+    innerxyz = mask_to_xyz(InnerMask_, frm.Frm());
+    innerxyzPtr = &innerxyz[0];
+  }
   Cpptraj_GPU_RDF( &RDF_[0], RDF_.size(), maximum2_, one_over_spacing_,
-                   &outerxyz[0], OuterMask_.Nselected(),
-                   &innerxyz[0], InnerMask_.Nselected(),
+                   outerxyzPtr, OuterMask_.Nselected(),
+                   innerxyzPtr, InnerMask_.Nselected(),
                    imageOpt_.ImagingType(),
                    frm.Frm().BoxCrd().XyzPtr(),
                    frm.Frm().BoxCrd().UnitCell().Dptr(),

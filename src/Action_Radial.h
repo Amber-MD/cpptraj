@@ -43,6 +43,7 @@ class Action_Radial: public Action {
     Topology* currentParm_;   ///< Current topology, needed for NO_INTERMOL
     int intramol_distances_;  ///< # of intra-molecular distances for NO_INTERMOL.
     bool useVolume_;          ///< If true normalize based on input volume.
+    bool mask2_is_mask1_;     ///< True is mask1 and mask2 are the same.
     double volume_;           ///< Hold sum of volume for averaging.
     double maximum2_;         ///< Largest distance squared that can be binned.
     double spacing_;          ///< Bin spacing.

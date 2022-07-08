@@ -42,8 +42,11 @@ int Cpptraj_GPU_RDF(unsigned long* bins, int nbins, double maximum2, double one_
   Cuda_check(cudaMemcpy(device_xyz1, xyz1, N1 * 3 * sizeof(double), cudaMemcpyHostToDevice), "Copying xyz1");
 
   double* device_xyz2;
-  Cuda_check(cudaMalloc(((void**)(&device_xyz2)), N2 * 3 * sizeof(double)), "Allocating xyz2");
-  Cuda_check(cudaMemcpy(device_xyz2, xyz2, N2 * 3 * sizeof(double), cudaMemcpyHostToDevice), "Copying xyz2");
+  if (xyz2 != 0) {
+    Cuda_check(cudaMalloc(((void**)(&device_xyz2)), N2 * 3 * sizeof(double)), "Allocating xyz2");
+    Cuda_check(cudaMemcpy(device_xyz2, xyz2, N2 * 3 * sizeof(double), cudaMemcpyHostToDevice), "Copying xyz2");
+  } else
+    device_xyz2 = device_xyz1;
 
   double *boxDev;
   double *ucellDev, *fracDev;
@@ -66,7 +69,7 @@ int Cpptraj_GPU_RDF(unsigned long* bins, int nbins, double maximum2, double one_
           N1, N2, threadsPerBlock.x, threadsPerBlock.y, numBlocks.x, numBlocks.y);
 
   // Launch kernel
-  if (xyz2 != 0) {
+  //if (xyz2 != 0) {
     // Non-overlapping coords
     switch (imageType) {
       case ImageOption::NONORTHO:
@@ -85,10 +88,11 @@ int Cpptraj_GPU_RDF(unsigned long* bins, int nbins, double maximum2, double one_
       //  mprinterr("Internal Error: kernel_rdf: Unhandled image type.\n");
       //  return 1;
     }
-  } else {
-    // Overlapping coords
-    return 1;// FIXME
-  }
+  //} else {
+  //  // Overlapping coords
+//
+//    return 1;// FIXME
+//  }
   // Error check
   Cuda_check(cudaGetLastError(), "kernel launch");
 
@@ -104,7 +108,7 @@ int Cpptraj_GPU_RDF(unsigned long* bins, int nbins, double maximum2, double one_
   // Free device memory
   cudaFree(device_rdf);
   cudaFree(device_xyz1);
-  cudaFree(device_xyz2);
+  if (xyz2 != 0) cudaFree(device_xyz2);
   if (imageType == ImageOption::ORTHO)
     cudaFree(boxDev);
   else if (imageType == ImageOption::NONORTHO) {
