@@ -46,15 +46,15 @@ int Cpptraj_GPU_RDF(unsigned long* bins, int nbins, double maximum2, double one_
   Cuda_check(cudaMemcpy(device_xyz2, xyz2, N2 * 3 * sizeof(double), cudaMemcpyHostToDevice), "Copying xyz2");
 
   double *boxDev;
-  double *ucellDev, *recipDev;
+  double *ucellDev, *fracDev;
   if (imageType == ImageOption::ORTHO) {
     Cuda_check(cudaMalloc(((void**)(&boxDev)), 3 * sizeof(double)), "Allocating box");
     Cuda_check(cudaMemcpy(boxDev,box, 3 * sizeof(double), cudaMemcpyHostToDevice), "Copying box");
   } else if (imageType == ImageOption::NONORTHO) {
     Cuda_check(cudaMalloc(((void**)(&ucellDev)), 9 * sizeof(double)), "Allocating ucell");
-    Cuda_check(cudaMalloc(((void**)(&recipDev)), 9 * sizeof(double)), "Allocating frac");
+    Cuda_check(cudaMalloc(((void**)(&fracDev)), 9 * sizeof(double)), "Allocating frac");
     Cuda_check(cudaMemcpy(ucellDev,ucell, 9 * sizeof(double), cudaMemcpyHostToDevice), "Copying ucell");
-    Cuda_check(cudaMemcpy(recipDev,recip, 9 * sizeof(double), cudaMemcpyHostToDevice), "Copying frac");
+    Cuda_check(cudaMemcpy(fracDev,recip, 9 * sizeof(double), cudaMemcpyHostToDevice), "Copying frac");
   }
 
   // Determine number of blocks
@@ -69,7 +69,7 @@ int Cpptraj_GPU_RDF(unsigned long* bins, int nbins, double maximum2, double one_
   switch (imageType) {
     case ImageOption::NONORTHO:
       kBinDistances_nonOverlap_nonOrtho<<<numBlocks, threadsPerBlock>>>(
-        device_rdf, device_xyz1, N1, device_xyz2, N2, recipDev, ucellDev, maximum2, one_over_spacing);
+        device_rdf, device_xyz1, N1, device_xyz2, N2, fracDev, ucellDev, maximum2, one_over_spacing);
       break;
     default:
       mprinterr("Internal Error: kernel_rdf: Unhandled image type.\n");
@@ -95,7 +95,7 @@ int Cpptraj_GPU_RDF(unsigned long* bins, int nbins, double maximum2, double one_
     cudaFree(boxDev);
   else if (imageType == ImageOption::NONORTHO) {
     cudaFree(ucellDev);
-    cudaFree(recipDev);
+    cudaFree(fracDev);
   } 
   return 0;
 }
