@@ -16,6 +16,17 @@ static inline int calc_nblocks(int ntotal, int nthreadsPerBlock)
   return nblocks;
 }
 
+/** Report any cuda errors. */
+static inline int Cuda_check(cudaError_t err, const char* desc) {
+  //cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    mprintf("Warning: CUDA Error %s: %s\n", desc, cudaGetErrorString(err));
+    mprinterr("Error: CUDA Error %s: %s\n", desc, cudaGetErrorString(err));
+    //return 1;
+  }
+  return 0;
+}
+
 /** Calculate distances between pairs of atoms and bin them into a 1D histogram. */
 int Cpptraj_GPU_RDF(unsigned long* bins, int nbins, double maximum2, double one_over_spacing,
                      const double* xyz1, int N1,
@@ -24,27 +35,27 @@ int Cpptraj_GPU_RDF(unsigned long* bins, int nbins, double maximum2, double one_
                      const double* box, const double* ucell, const double* recip)
 {
   int* device_rdf;
-  cudaMalloc(((void**)(&device_rdf)), nbins * sizeof(int));
-  cudaMemset( &device_rdf, 0, nbins*sizeof(int) );
+  Cuda_check(cudaMalloc(((void**)(&device_rdf)), nbins * sizeof(int)), "Allocating rdf bins");
+  Cuda_check(cudaMemset( device_rdf, 0, nbins*sizeof(int) ), "Setting rdf bins to 0");
 
   double* device_xyz1;
-  cudaMalloc(((void**)(&device_xyz1)), N1 * 3 * sizeof(double));
-  cudaMemcpy(device_xyz1, xyz1, N1 * 3 * sizeof(double), cudaMemcpyHostToDevice);
+  Cuda_check(cudaMalloc(((void**)(&device_xyz1)), N1 * 3 * sizeof(double)), "Allocating xyz1");
+  Cuda_check(cudaMemcpy(device_xyz1, xyz1, N1 * 3 * sizeof(double), cudaMemcpyHostToDevice), "Copying xyz1");
 
   double* device_xyz2;
-  cudaMalloc(((void**)(&device_xyz2)), N2 * 3 * sizeof(double));
-  cudaMemcpy(device_xyz2, xyz2, N2 * 3 * sizeof(double), cudaMemcpyHostToDevice);
+  Cuda_check(cudaMalloc(((void**)(&device_xyz2)), N2 * 3 * sizeof(double)), "Allocating xyz2");
+  Cuda_check(cudaMemcpy(device_xyz2, xyz2, N2 * 3 * sizeof(double), cudaMemcpyHostToDevice), "Copying xyz2");
 
   double *boxDev;
   double *ucellDev, *recipDev;
   if (imageType == ImageOption::ORTHO) {
-    cudaMalloc(((void**)(&boxDev)), 3 * sizeof(double));
-    cudaMemcpy(boxDev,box, 3 * sizeof(double), cudaMemcpyHostToDevice);
+    Cuda_check(cudaMalloc(((void**)(&boxDev)), 3 * sizeof(double)), "Allocating box");
+    Cuda_check(cudaMemcpy(boxDev,box, 3 * sizeof(double), cudaMemcpyHostToDevice), "Copying box");
   } else if (imageType == ImageOption::NONORTHO) {
-    cudaMalloc(((void**)(&ucellDev)), 9 * sizeof(double));
-    cudaMalloc(((void**)(&recipDev)), 9 * sizeof(double));
-    cudaMemcpy(ucellDev,ucell, 9 * sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(recipDev,recip, 9 * sizeof(double), cudaMemcpyHostToDevice);
+    Cuda_check(cudaMalloc(((void**)(&ucellDev)), 9 * sizeof(double)), "Allocating ucell");
+    Cuda_check(cudaMalloc(((void**)(&recipDev)), 9 * sizeof(double)), "Allocating frac");
+    Cuda_check(cudaMemcpy(ucellDev,ucell, 9 * sizeof(double), cudaMemcpyHostToDevice), "Copying ucell");
+    Cuda_check(cudaMemcpy(recipDev,recip, 9 * sizeof(double), cudaMemcpyHostToDevice), "Copying frac");
   }
 
   // Determine number of blocks
@@ -64,12 +75,7 @@ int Cpptraj_GPU_RDF(unsigned long* bins, int nbins, double maximum2, double one_
       return 1;
   }
   // Error check
-  cudaError_t err = cudaGetLastError();
-  if (err != cudaSuccess) {
-    mprintf("Warning: CUDA Error: %s\n", cudaGetErrorString(err));
-    mprinterr("Error: CUDA Error: %s\n", cudaGetErrorString(err));
-    //return 1;
-  }
+  Cuda_check(cudaGetLastError(), "kernel launch");
 
   // Copy the result back
   int* local_bins = new int[ nbins ];
