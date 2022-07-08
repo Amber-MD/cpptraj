@@ -1,12 +1,11 @@
 #include "kernel_rdf.cuh"
 #include "core_kernels.cuh"
 #include "../CpptrajStdio.h"
+#include "../Gpu.h"
 #if defined(__HIP_PLATFORM_HCC__)
 #include <hip/hip_runtime.h>
 #include "../HipDefinitions.h"
 #endif
-
-#define BLOCKDIM 32
 
 static inline int calc_nblocks(int ntotal, int nthreadsPerBlock)
 {
@@ -59,6 +58,8 @@ int Cpptraj_GPU_RDF(unsigned long* bins, int nbins, double maximum2, double one_
   }
 
   // Determine number of blocks
+  unsigned int BLOCKDIM = CpptrajGpu::MaxBlockDim_2D();
+
   dim3 threadsPerBlock(BLOCKDIM, BLOCKDIM);
   dim3 numBlocks(calc_nblocks(N1, threadsPerBlock.x), calc_nblocks(N2, threadsPerBlock.y));
   mprintf("#Atoms = %i, %i; Threads per block = %i, %i;  #Blocks = %i, %i\n",
