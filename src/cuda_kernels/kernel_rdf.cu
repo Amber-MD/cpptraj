@@ -65,8 +65,8 @@ int Cpptraj_GPU_RDF(unsigned long* bins, int nbins, double maximum2, double one_
 
   dim3 threadsPerBlock(BLOCKDIM, BLOCKDIM);
   dim3 numBlocks(calc_nblocks(N1, threadsPerBlock.x), calc_nblocks(N2, threadsPerBlock.y));
-  mprintf("#Atoms = %i, %i; Threads per block = %i, %i;  #Blocks = %i, %i\n",
-          N1, N2, threadsPerBlock.x, threadsPerBlock.y, numBlocks.x, numBlocks.y);
+  //mprintf("#Atoms = %i, %i; Threads per block = %i, %i;  #Blocks = %i, %i\n",
+  //        N1, N2, threadsPerBlock.x, threadsPerBlock.y, numBlocks.x, numBlocks.y);
 
   // Launch kernel
   //if (xyz2 != 0) {
