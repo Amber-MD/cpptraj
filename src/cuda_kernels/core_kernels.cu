@@ -1,5 +1,5 @@
 #include "core_kernels.cuh"
-//#incl ude <cstdio> // DEBUG
+#include <cstdio> // DEBUG
 #define BLOCKDIM 512
 #define RSIZE 512
 
@@ -802,8 +802,8 @@ __global__ void kBinDistances_nonOverlap_nonOrtho(int* RDF,
     if (dist2 <= maximum2) {
       double dist = sqrt(dist2);
       int histIdx = (int) (dist * one_over_spacing);
-      //printf("DEBUG: a1= %i  a2= %i  dist= %f  bin=%i\n", a1+1, a2+1, dist, histIdx);
-      //printf("DEBUG: xyz1= %f %f %f\n", a1x, a1y, a1z);
+      printf("DEBUG: a1= %i  a2= %i  dist= %f  bin=%i\n", a1+1, a2+1, dist, histIdx);
+      printf("DEBUG: xyz1= %f %f %f\n", a1x, a1y, a1z);
       //printf("DEBUG: a1= %i  a2= %i  dist= %f  bin=%i  xyz1=%f %f %f  xyz2=%f %f %f\n", a1+1, a2+1, dist, histIdx,
       //       a1x, a1y, a1z, a2x, a2y, a2z);
       atomicAdd( RDF + histIdx, 1 );

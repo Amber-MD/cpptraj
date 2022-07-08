@@ -63,6 +63,12 @@ int Cpptraj_GPU_RDF(unsigned long* bins, int nbins, double maximum2, double one_
       mprinterr("Internal Error: kernel_rdf: Unhandled image type.\n");
       return 1;
   }
+  // Error check
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    mprinterr("CUDA Error: %s\n", cudaGetErrorString(err));
+    return 1;
+  }
 
   // Copy the result back
   int* local_bins = new int[ nbins ];
