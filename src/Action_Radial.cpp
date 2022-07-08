@@ -268,9 +268,8 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
   if (numthreads_ > 1)
     mprintf("\tParallelizing RDF calculation with %i threads.\n",numthreads_);
 #ifdef CUDA
-  if (rmode_ != NORMAL) {
-    mprinterr("Error: RDF calculation on GPU only enabled for regular RDF with 1 or 2 masks.\n");
-    return Action::ERR;
+  if (rmode_ == NORMAL) {
+    mprintf("\tRDF calculation will be accelerated with CUDA.\n");
   }
 #endif
 
@@ -489,8 +488,9 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
   if (useVolume_)
     volume_ += frm.Frm().BoxCrd().CellVolume();
   // ---------------------------------------------
+  if ( rmode_ == NORMAL ) {
 #ifdef CUDA
-  // Copy atoms FIXME need to do overlapping and non-overlapping case
+  // Copy atoms for GPU 
   std::vector<double> outerxyz = mask_to_xyz(OuterMask_, frm.Frm());
   const double* outerxyzPtr = &outerxyz[0];
   std::vector<double> innerxyz;
@@ -506,9 +506,7 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
                    frm.Frm().BoxCrd().XyzPtr(),
                    frm.Frm().BoxCrd().UnitCell().Dptr(),
                    frm.Frm().BoxCrd().FracCell().Dptr() );
-#else /* CUDA */
-  // ---------------------------------------------
-  if ( rmode_ == NORMAL ) { 
+#else /* CUDA */ 
     // Calculation of all atoms in Mask1 to all atoms in Mask2
     int outer_max = OuterMask_.Nselected();
     int inner_max = InnerMask_.Nselected();
@@ -543,6 +541,7 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
 #   ifdef _OPENMP
     } // END pragma omp parallel
 #   endif
+#endif /* CUDA */
   // ---------------------------------------------
   } else if ( rmode_ == NO_INTRAMOL ) {
     // Calculation of all atoms in Mask1 to all atoms in Mask2, ignoring
@@ -652,7 +651,6 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
     } // END pragma omp parallel
 #   endif 
   }
-#endif /* CUDA */
   ++numFrames_;
 
   return Action::OK;
