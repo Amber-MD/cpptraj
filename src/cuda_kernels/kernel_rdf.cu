@@ -66,14 +66,28 @@ int Cpptraj_GPU_RDF(unsigned long* bins, int nbins, double maximum2, double one_
           N1, N2, threadsPerBlock.x, threadsPerBlock.y, numBlocks.x, numBlocks.y);
 
   // Launch kernel
-  switch (imageType) {
-    case ImageOption::NONORTHO:
-      kBinDistances_nonOverlap_nonOrtho<<<numBlocks, threadsPerBlock>>>(
-        device_rdf, device_xyz1, N1, device_xyz2, N2, fracDev, ucellDev, maximum2, one_over_spacing);
+  if (xyz2 != 0) {
+    // Non-overlapping coords
+    switch (imageType) {
+      case ImageOption::NONORTHO:
+        kBinDistances_nonOverlap_nonOrtho<<<numBlocks, threadsPerBlock>>>(
+          device_rdf, device_xyz1, N1, device_xyz2, N2, fracDev, ucellDev, maximum2, one_over_spacing);
       break;
-    default:
-      mprinterr("Internal Error: kernel_rdf: Unhandled image type.\n");
-      return 1;
+      case ImageOption::ORTHO:
+        kBinDistances_nonOverlap_Ortho<<<numBlocks, threadsPerBlock>>>(
+          device_rdf, device_xyz1, N1, device_xyz2, N2, boxDev, maximum2, one_over_spacing);
+      break;
+      case ImageOption::NO_IMAGE:
+        kBinDistances_nonOverlap_NoImage<<<numBlocks, threadsPerBlock>>>(
+          device_rdf, device_xyz1, N1, device_xyz2, N2, maximum2, one_over_spacing);
+      break;
+      //default:
+      //  mprinterr("Internal Error: kernel_rdf: Unhandled image type.\n");
+      //  return 1;
+    }
+  } else {
+    // Overlapping coords
+    return 1;// FIXME
   }
   // Error check
   Cuda_check(cudaGetLastError(), "kernel launch");
