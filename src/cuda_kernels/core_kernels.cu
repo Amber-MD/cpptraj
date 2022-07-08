@@ -820,7 +820,7 @@ __global__ void kBinDistances_nonOverlap_NoImage(int* RDF,
     double z = a1z - xyz2[idx2+2];
 
     double dist2 = (x*x) + (y*y) + (z*z); 
-    if (dist2 <= maximum2) {
+    if (dist2 > 0 && dist2 <= maximum2) {
       double dist = sqrt(dist2);
       int histIdx = (int) (dist * one_over_spacing);
       //printf("DEBUG: a1= %i  a2= %i  dist= %f  bin=%i\n", a1+1, a2+1, dist, histIdx);
@@ -853,7 +853,7 @@ __global__ void kBinDistances_nonOverlap_Ortho(int* RDF,
     double a2z = xyz2[idx2+2];
 
     double dist2 = ortho_dist2(a1x, a1y, a1z, a2x, a2y, a2z, box);
-    if (dist2 <= maximum2) {
+    if (dist2 > 0 && dist2 <= maximum2) {
       double dist = sqrt(dist2);
       int histIdx = (int) (dist * one_over_spacing);
       //printf("DEBUG: a1= %i  a2= %i  dist= %f  bin=%i\n", a1+1, a2+1, dist, histIdx);
@@ -892,7 +892,7 @@ __global__ void kBinDistances_nonOverlap_nonOrtho(int* RDF,
     double f2z = frac[6]*a2x + frac[7]*a2y + frac[8]*a2z;
 
     double dist2 =  NonOrtho_dist2(f2x, f2y, f2z, f1x ,f1y, f1z, ucell);
-    if (dist2 <= maximum2) {
+    if (dist2 > 0 && dist2 <= maximum2) {
       double dist = sqrt(dist2);
       int histIdx = (int) (dist * one_over_spacing);
       //printf("DEBUG: a1= %i  a2= %i  dist= %f  bin=%i\n", a1+1, a2+1, dist, histIdx);
