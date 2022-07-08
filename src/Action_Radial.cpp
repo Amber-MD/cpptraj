@@ -122,6 +122,10 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
     Help();
     return Action::ERR;
   }
+  if (spacing_ > maximum) {
+    mprinterr("Error: Bin spacing %g is larger than the maximum %g\n", spacing_, maximum);
+    return Action::ERR;
+  }
   // Store max^2, distances^2 greater than max^2 do not need to be
   // binned and therefore do not need a sqrt calc.
   maximum2_ = maximum * maximum;
