@@ -4,10 +4,37 @@
 #define RSIZE 512
 
 // -----------------------------------------------------------------------------
-/** \return Shortest imaged distance between given coordinates in fractional space.
+/** \return Shortest imaged distance^2 between given coordinates in an orthorhombic box. */
+__device__ double ortho_dist2(double a1x, double a1y, double a1z,
+                              double a2x, double a2y, double a2z,
+                              const double* box)
+{
+  double x = a1x - a2x;
+  double y = a1y - a2y;
+  double z = a1z - a2z;
+  // Get rid of sign info
+  if (x<0) x=-x;
+  if (y<0) y=-y;
+  if (z<0) z=-z;
+  // Get rid of multiples of box lengths 
+  while (x > box[0]) x = x - box[0];
+  while (y > box[1]) y = y - box[1];
+  while (z > box[2]) z = z - box[2];
+  // Find shortest distance in periodic reference
+  double D2 = box[0] - x;
+  if (D2 < x) x = D2;
+  D2 = box[1] - y;
+  if (D2 < y) y = D2;
+  D2 = box[2] - z;
+  if (D2 < z) z = D2;
+
+  return (x*x + y*y + z*z);
+}
+
+/** \return Shortest imaged distance^2 between given coordinates in fractional space.
   * NOTE: This function is complicated hence we will put into a __device__ only function.
   */
-__device__ double NonOrtho_dist(double a0, double a1, double a2,
+__device__ double NonOrtho_dist2(double a0, double a1, double a2,
                                 double b0, double b1, double b2,
                                 const double *ucell)
 {
@@ -652,7 +679,7 @@ __global__ void kClosestDistsToPt_Nonortho(double* D_, const double* maskCenter,
       double x =  recip[0]*SolventMols_[sIndex + offset + 0] + recip[1]*SolventMols_[sIndex + offset + 1] + recip[2]*SolventMols_[sIndex + offset + 2];
       double y =  recip[3]*SolventMols_[sIndex + offset + 0] + recip[4]*SolventMols_[sIndex + offset + 1] + recip[5]*SolventMols_[sIndex + offset + 2];
       double z =  recip[6]*SolventMols_[sIndex + offset + 0] + recip[7]*SolventMols_[sIndex + offset + 1] + recip[8]*SolventMols_[sIndex + offset + 2];
-      double dist  = NonOrtho_dist(x,y,z,a0,a1,a2,ucell);
+      double dist  = NonOrtho_dist2(x,y,z,a0,a1,a2,ucell);
       // if (mol ==  0)
       //   printf("dist  = %f\n",dist);
 
@@ -734,7 +761,7 @@ __global__ void kClosestDistsToAtoms_Nonortho(double*D_,
         double y = recip[3]*Solute_atoms[j + 0]  + recip[4]*Solute_atoms[j + 1]  + recip[5]*Solute_atoms[j + 2] ;
         double z = recip[6]*Solute_atoms[j + 0]  + recip[7]*Solute_atoms[j + 1]  + recip[8]*Solute_atoms[j + 2] ;
 
-        dist =  NonOrtho_dist(x,y,z,a0,a1,a2,ucell);
+        dist =  NonOrtho_dist2(x,y,z,a0,a1,a2,ucell);
         //if (mol ==  11)
         //  printf("min  = %f\n",min_val);
         min_val = min(min_val,dist);
@@ -773,6 +800,40 @@ __global__ void kClosestDistsToAtoms_Nonortho(double*D_,
 }
 
 // -----------------------------------------------------------------------------
+/** Bin distances from two non-overlapping sets of coords. */
+__global__ void kBinDistances_nonOverlap_Ortho(int* RDF,
+                                               const double* xyz1, int N1, const double* xyz2, int N2,
+                                               const double* box,
+                                               double maximum2, double one_over_spacing)
+{
+  int a1 = blockIdx.x * blockDim.x + threadIdx.x;
+  int a2 = blockIdx.y * blockDim.y + threadIdx.y;
+
+  if (a1 < N1 && a2 < N2) {
+    int idx1 = a1 * 3;
+    double a1x = xyz1[idx1  ];
+    double a1y = xyz1[idx1+1];
+    double a1z = xyz1[idx1+2];
+
+    int idx2 = a2 * 3;
+    double a2x = xyz2[idx2  ];
+    double a2y = xyz2[idx2+1];
+    double a2z = xyz2[idx2+2];
+
+    double dist2 = ortho_dist2(a1x, a1y, a1z, a2x, a2y, a2z, box);
+    if (dist2 <= maximum2) {
+      double dist = sqrt(dist2);
+      int histIdx = (int) (dist * one_over_spacing);
+      //printf("DEBUG: a1= %i  a2= %i  dist= %f  bin=%i\n", a1+1, a2+1, dist, histIdx);
+      //printf("DEBUG: xyz1= %f %f %f\n", a1x, a1y, a1z);
+      //printf("DEBUG: a1= %i  a2= %i  dist= %f  bin=%i  xyz1=%f %f %f  xyz2=%f %f %f\n", a1+1, a2+1, dist, histIdx,
+      //       a1x, a1y, a1z, a2x, a2y, a2z);
+      atomicAdd( RDF + histIdx, 1 );
+    }
+  }
+}
+
+/** Bin distances from two non-overlapping sets of coords. */
 __global__ void kBinDistances_nonOverlap_nonOrtho(int* RDF,
                                                   const double* xyz1, int N1, const double* xyz2, int N2,
                                                   const double* frac, const double* ucell,
@@ -798,7 +859,7 @@ __global__ void kBinDistances_nonOverlap_nonOrtho(int* RDF,
     double f2y = frac[3]*a2x + frac[4]*a2y + frac[5]*a2z;
     double f2z = frac[6]*a2x + frac[7]*a2y + frac[8]*a2z;
 
-    double dist2 =  NonOrtho_dist(f2x, f2y, f2z, f1x ,f1y, f1z, ucell);
+    double dist2 =  NonOrtho_dist2(f2x, f2y, f2z, f1x ,f1y, f1z, ucell);
     if (dist2 <= maximum2) {
       double dist = sqrt(dist2);
       int histIdx = (int) (dist * one_over_spacing);
