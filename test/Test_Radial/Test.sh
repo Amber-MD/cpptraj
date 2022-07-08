@@ -42,6 +42,7 @@ EOF
   DoTest watO.raw.agr.save watO.raw.agr
 }
 
+Radial_WatProt_Nonortho
 Radial_Wat_Nonortho
 
 EndTest
