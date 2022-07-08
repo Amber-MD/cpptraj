@@ -480,7 +480,7 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
   // Copy atoms FIXME need to do overlapping and non-overlapping case
   std::vector<double> outerxyz = mask_to_xyz(OuterMask_, frm.Frm());
   std::vector<double> innerxyz = mask_to_xyz(InnerMask_, frm.Frm());
-  Cpptraj_GPU_RDF( &RDF_[0],
+  Cpptraj_GPU_RDF( &RDF_[0], RDF_.size(), maximum2_, one_over_spacing_,
                    &outerxyz[0], OuterMask_.Nselected(),
                    &innerxyz[0], InnerMask_.Nselected(),
                    imageOpt_.ImagingType(),
