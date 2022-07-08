@@ -13,4 +13,7 @@ __global__ void kClosestDistsToAtoms_Ortho(double*,const double*,const double*,d
 // Non-orthorhombic imaging
 __global__ void kClosestDistsToPt_Nonortho(double*,const double*,const double*,double,const double*,const double*,int,int,int);
 __global__ void kClosestDistsToAtoms_Nonortho(double*,const double*,const double*,double,const double*,const double*,int,int,int,int);
+// RDF nonortho imaging
+__global__ void kBinDistances_nonOverlap_nonOrtho(int*, const double*, int, const double*, int,
+                                                  const double*, const double*, double, double);
 #endif

@@ -1,4 +1,5 @@
 #include "kernel_rdf.cuh"
+#include "core_kernels.cuh"
 #include "../CpptrajStdio.h"
 #if defined(__HIP_PLATFORM_HCC__)
 #include <hip/hip_runtime.h>
@@ -16,12 +17,16 @@ static inline int calc_nblocks(int ntotal, int nthreadsPerBlock)
 }
 
 /** Calculate distances between pairs of atoms and bin them into a 1D histogram. */
-void Cpptraj_GPU_RDF(unsigned long* bins,
+int Cpptraj_GPU_RDF(unsigned long* bins, int nbins, double maximum2, double one_over_spacing,
                      const double* xyz1, int N1,
                      const double* xyz2, int N2,
                      ImageOption::Type imageType,
                      const double* box, const double* ucell, const double* recip)
 {
+  int* device_rdf;
+  cudaMalloc(((void**)(&device_rdf)), nbins * sizeof(int));
+  cudaMemset( &device_rdf, 0, nbins*sizeof(int) );
+
   double* device_xyz1;
   cudaMalloc(((void**)(&device_xyz1)), N1 * 3 * sizeof(double));
 
@@ -46,4 +51,15 @@ void Cpptraj_GPU_RDF(unsigned long* bins,
   mprintf("#Atoms = %i, %i; Threads per block = %i, %i;  #Blocks = %i, %i\n",
           N1, N2, threadsPerBlock.x, threadsPerBlock.y, numBlocks.x, numBlocks.y);
 
+  // Launch kernel
+  switch (imageType) {
+    case ImageOption::NONORTHO:
+      kBinDistances_nonOverlap_nonOrtho<<<numBlocks, threadsPerBlock>>>(
+        device_rdf, device_xyz1, N1, device_xyz2, N2, recipDev, ucellDev, maximum2, one_over_spacing);
+      break;
+    default:
+      mprinterr("Internal Error: kernel_rdf: Unhandled image type.\n");
+      return 1;
+  }
+  return 0;
 }
