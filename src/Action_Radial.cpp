@@ -267,6 +267,12 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
     mprintf("\tImaging disabled.\n");
   if (numthreads_ > 1)
     mprintf("\tParallelizing RDF calculation with %i threads.\n",numthreads_);
+#ifdef CUDA
+  if (rmode_ != NORMAL) {
+    mprinterr("Error: RDF calculation on GPU only enabled for regular RDF with 1 or 2 masks.\n");
+    return Action::ERR;
+  }
+#endif
 
   return Action::OK;
 }
