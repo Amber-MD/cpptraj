@@ -66,8 +66,8 @@ int Cpptraj_GPU_RDF(unsigned long* bins, int nbins, double maximum2, double one_
   // Error check
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {
-    mprintf("CUDA Error: %s\n", cudaGetErrorString(err));
-    mprinterr("CUDA Error: %s\n", cudaGetErrorString(err));
+    mprintf("Warning: CUDA Error: %s\n", cudaGetErrorString(err));
+    mprinterr("Error: CUDA Error: %s\n", cudaGetErrorString(err));
     //return 1;
   }
 
