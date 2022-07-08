@@ -123,6 +123,10 @@ void Cpptraj::Intro() const {
       mprintf("| Available GPU memory: %s\n",
               ByteString(deviceProp.totalGlobalMem, BYTE_DECIMAL).c_str());
       mprintf("| Max threads/block: %i\n", deviceProp.maxThreadsPerBlock);
+      mprintf("| Max threads dim: %i %i %i\n",
+              deviceProp.maxThreadsDim[0],
+              deviceProp.maxThreadsDim[1],
+              deviceProp.maxThreadsDim[2]);
     }
   }
 # endif
