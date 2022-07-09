@@ -42,11 +42,30 @@ int Cpptraj_GPU_RDF(unsigned long* bins, int nbins, double maximum2, double one_
   Cuda_check(cudaMemcpy(device_xyz1, xyz1, N1 * 3 * sizeof(double), cudaMemcpyHostToDevice), "Copying xyz1");
 
   double* device_xyz2;
+  int* device_rows1;
   if (xyz2 != 0) {
     Cuda_check(cudaMalloc(((void**)(&device_xyz2)), N2 * 3 * sizeof(double)), "Allocating xyz2");
     Cuda_check(cudaMemcpy(device_xyz2, xyz2, N2 * 3 * sizeof(double), cudaMemcpyHostToDevice), "Copying xyz2");
-  } else
-    device_xyz2 = device_xyz1;
+  } else {
+    //device_xyz2 = device_xyz1;
+    // Create array of upper triangle row start indices TODO long ints?
+    int* rows1 = new int[ N1 ];
+    int i1 = 0;
+    for (unsigned int row = 0; row < N1; row++) {
+      for (unsigned int col = row+1; col < N1; col++) {
+        long int idx = calcTriIndex( N1, col, row );
+        if (col == row + 1) {
+          printf("ROW START: %li\n", idx);
+          //if (row > 0) Rows1.push_back( idx );
+          rows1[i1++] = idx;
+          //Rows1.push_back( idx );
+        }
+        printf("%8zu %8zu = %8li\n", col, row, idx);
+      }
+    }
+    delete[] rows1;
+  }
+
 
   double *boxDev;
   double *ucellDev, *fracDev;
