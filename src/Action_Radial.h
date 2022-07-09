@@ -22,6 +22,10 @@ class Action_Radial: public Action {
 #   endif
     typedef std::vector<unsigned long> Iarray;
 
+    void calcRDF_singleMask(Frame const&);
+
+    void calcRDF_twoMask(Frame const&);
+
 #   ifdef _OPENMP
     bool threadsCombined_;           ///< True if CombineRdfThreads() has been called.
 #   endif

@@ -469,6 +469,73 @@ static inline std::vector<double> mask_to_xyz(AtomMask const& Mask, Frame const&
 }
 #endif
 
+void Action_Radial::calcRDF_singleMask(Frame const& frmIn) {
+  int outer_max = OuterMask_.Nselected();
+  int idx1;
+
+  long unsigned* myRDF = &RDF_[0];
+# ifdef _OPENMP
+# pragma omp parallel private(idx1, myRDF)
+  {
+    //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
+    myRDF = &(rdf_thread_[omp_get_thread_num()][0]);
+# pragma omp for
+# endif
+  for (idx1 = 0; idx1 < outer_max; idx1++) {
+    const double* xyz1 = frmIn.XYZ( OuterMask_[idx1] );
+    for (int idx2 = idx1 + 1; idx2 < outer_max; idx2++) {
+      const double* xyz2 = frmIn.XYZ( OuterMask_[idx2] );
+      double D2 = DIST2( imageOpt_.ImagingType(), xyz1, xyz2, frmIn.BoxCrd() );
+      if (D2 <= maximum2_) {
+      // NOTE: Can we modify the histogram to store D^2?
+        double dist = sqrt(D2);
+        //mprintf("MASKLOOP: %10i %10i %10.4f\n",atom1,atom2,D);
+        int idx = (int) (dist * one_over_spacing_);
+        //if (idx > -1 && idx < numBins_) {
+          myRDF[idx] += 2;
+        //}
+      }
+    } // END inner loop
+  } // END outer loop
+# ifdef _OPENMP
+  } // END pragma omp parallel
+# endif
+}
+
+void Action_Radial::calcRDF_twoMask(Frame const& frmIn) {
+  int outer_max = OuterMask_.Nselected();
+  int inner_max = InnerMask_.Nselected();
+  int idx1;
+
+  long unsigned* myRDF = &RDF_[0];
+# ifdef _OPENMP
+# pragma omp parallel private(idx1, myRDF)
+  {
+    //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
+    myRDF = &(rdf_thread_[omp_get_thread_num()][0]);
+# pragma omp for
+# endif
+  for (idx1 = 0; idx1 < outer_max; idx1++) {
+    const double* xyz1 = frmIn.XYZ( OuterMask_[idx1] );
+    for (int idx2 = 0; idx2 < inner_max; idx2++) {
+      const double* xyz2 = frmIn.XYZ( InnerMask_[idx2] );
+      double D2 = DIST2( imageOpt_.ImagingType(), xyz1, xyz2, frmIn.BoxCrd() );
+      if (D2 <= maximum2_) {
+      // NOTE: Can we modify the histogram to store D^2?
+        double dist = sqrt(D2);
+        //mprintf("MASKLOOP: %10i %10i %10.4f\n",atom1,atom2,D);
+        int idx = (int) (dist * one_over_spacing_);
+        //if (idx > -1 && idx < numBins_) {
+          myRDF[idx]++;
+        //}
+      }
+    } // END inner loop
+  } // END outer loop
+# ifdef _OPENMP
+  } // END pragma omp parallel
+# endif
+}
+
 // Action_Radial::DoAction()
 /** Calculate distances from atoms in mask1 to atoms in mask 2 and
   * bin them.
@@ -508,7 +575,11 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
                    frm.Frm().BoxCrd().FracCell().Dptr() );
 #else /* CUDA */ 
     // Calculation of all atoms in Mask1 to all atoms in Mask2
-    int outer_max = OuterMask_.Nselected();
+    if (mask2_is_mask1_)
+      calcRDF_singleMask( frm.Frm() );
+    else
+      calcRDF_twoMask( frm.Frm() );
+/*    int outer_max = OuterMask_.Nselected();
     int inner_max = InnerMask_.Nselected();
 #   ifdef _OPENMP
 #   pragma omp parallel private(nmask1,nmask2,atom1,atom2,D,idx,mythread)
@@ -540,7 +611,7 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
     } // END loop over 1st mask
 #   ifdef _OPENMP
     } // END pragma omp parallel
-#   endif
+#   endif*/
 #endif /* CUDA */
   // ---------------------------------------------
   } else if ( rmode_ == NO_INTRAMOL ) {
