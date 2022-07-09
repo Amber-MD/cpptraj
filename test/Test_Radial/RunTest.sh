@@ -5,7 +5,7 @@
 CleanFiles radial.in Radial.agr cRadial.agr WatO-Trp4.agr WatO-Trp4.raw.agr \
            WatO-Trp4.byres.agr WatO-Trp.agr WatO-Trp.volume.agr \
            WatO-Glu5CD.agr noimage.WatO-Glu5CD.agr point.dat \
-           point?.agr wat.origin.agr
+           point?.agr wat.origin.agr tz2.WatO-Prot.agr 
 
 TESTNAME='Radial tests'
 Requires netcdf maxthreads 10
@@ -70,6 +70,15 @@ radial out wat.origin.agr 0.25 15.0 :WAT@O toxyz 0,0,0
 EOF
 RunCpptraj "$UNITNAME"
 DoTest wat.origin.agr.save wat.origin.agr
+
+UNITNAME='Radial test, water -> protein'
+cat > radial.in <<EOF
+parm ../tz2.truncoct.parm7
+trajin ../tz2.truncoct.nc
+radial WatO-Prot :WAT@O ^1 out tz2.WatO-Prot.agr 0.25 15.0
+EOF
+RunCpptraj "$UNITNAME"
+DoTest tz2.WatO-Prot.agr.save tz2.WatO-Prot.agr  
 
 EndTest
 
