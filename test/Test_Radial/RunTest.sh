@@ -113,6 +113,27 @@ EOF
   DoTest tz2ortho.WatO.agr.save tz2ortho.WatO.agr
 fi
 
+UNITNAME='Radial test, water -> protein, no imaging'
+cat > radial.in <<EOF
+parm ../tz2.ortho.parm7
+trajin ../tz2.ortho.nc
+radial WatO-Prot :WAT@O ^1 out tz2noimage.WatO-Prot.agr 0.25 15.0 noimage
+EOF
+RunCpptraj "$UNITNAME"
+DoTest tz2noimage.WatO-Prot.agr.save tz2noimage.WatO-Prot.agr  
+
+UNITNAME='Radial test, water -> water, no imaging'
+CheckFor maxthreads 2
+if [ $? -eq 0 ] ; then
+  cat > radial.in <<EOF
+parm ../tz2.ortho.parm7
+trajin ../tz2.ortho.nc 1 2
+radial WatO      :WAT@O    out tz2noimage.WatO.agr      0.25 15.0 noimage
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest tz2noimage.WatO.agr.save tz2noimage.WatO.agr
+fi
+
 EndTest
 
 exit 0
