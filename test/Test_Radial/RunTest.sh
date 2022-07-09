@@ -45,9 +45,9 @@ RunCpptraj "$UNITNAME"
 DoTest WatO-Glu5CD.agr.save WatO-Glu5CD.agr
 DoTest noimage.WatO-Glu5CD.agr.save noimage.WatO-Glu5CD.agr
 
+UNITNAME='Radial test, specified point'
 CheckFor maxthreads 1
 if [ $? -eq 0 ] ; then
-  UNITNAME='Radial test, specified point'
   cat > radial.in <<EOF
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.nc 1 1
@@ -71,7 +71,7 @@ EOF
 RunCpptraj "$UNITNAME"
 DoTest wat.origin.agr.save wat.origin.agr
 
-UNITNAME='Radial test, water -> protein'
+UNITNAME='Radial test, water -> protein, non-orthogonal cell'
 cat > radial.in <<EOF
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.nc
@@ -80,7 +80,7 @@ EOF
 RunCpptraj "$UNITNAME"
 DoTest tz2.WatO-Prot.agr.save tz2.WatO-Prot.agr  
 
-UNITNAME='Radial test, water -> water'
+UNITNAME='Radial test, water -> water, non-orthogonal cell'
 CheckFor maxthreads 2
 if [ $? -eq 0 ] ; then
   cat > radial.in <<EOF
@@ -90,6 +90,27 @@ radial WatO      :WAT@O    out tz2.WatO.agr      0.25 15.0
 EOF
   RunCpptraj "$UNITNAME"
   DoTest tz2.WatO.agr.save tz2.WatO.agr
+fi
+
+UNITNAME='Radial test, water -> protein, orthogonal cell'
+cat > radial.in <<EOF
+parm ../tz2.ortho.parm7
+trajin ../tz2.ortho.nc
+radial WatO-Prot :WAT@O ^1 out tz2ortho.WatO-Prot.agr 0.25 15.0
+EOF
+RunCpptraj "$UNITNAME"
+DoTest tz2ortho.WatO-Prot.agr.save tz2ortho.WatO-Prot.agr  
+
+UNITNAME='Radial test, water -> water, orthogonal cell'
+CheckFor maxthreads 2
+if [ $? -eq 0 ] ; then
+  cat > radial.in <<EOF
+parm ../tz2.ortho.parm7
+trajin ../tz2.ortho.nc 1 2
+radial WatO      :WAT@O    out tz2ortho.WatO.agr      0.25 15.0
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest tz2ortho.WatO.agr.save tz2ortho.WatO.agr
 fi
 
 EndTest
