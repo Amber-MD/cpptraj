@@ -5,7 +5,9 @@
 CleanFiles radial.in Radial.agr cRadial.agr WatO-Trp4.agr WatO-Trp4.raw.agr \
            WatO-Trp4.byres.agr WatO-Trp.agr WatO-Trp.volume.agr \
            WatO-Glu5CD.agr noimage.WatO-Glu5CD.agr point.dat \
-           point?.agr wat.origin.agr tz2.WatO-Prot.agr tz2.WatO.agr
+           point?.agr wat.origin.agr tz2.WatO-Prot.agr tz2.WatO.agr \
+           tz2ortho.WatO-Prot.agr tz2ortho.WatO.agr \
+           tz2noimage.WatO-Prot.agr tz2noimage.WatO.agr
 
 TESTNAME='Radial tests'
 Requires netcdf maxthreads 10
@@ -16,7 +18,7 @@ CheckForSilent cuda
 if [ $? -eq 0 ] ; then
   TOL_ARG='-a 0.0002'
   echo "Lowering tolerance for single-precision CUDA: $TOL_ARG"
-fi
+fitz2noimage.WatO-Prot.agr
 
 INPUT="-i radial.in"
 
