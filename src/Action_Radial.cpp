@@ -456,6 +456,7 @@ Action::RetType Action_Radial::Setup(ActionSetup& setup) {
 }
 
 #ifdef CUDA
+/** Place coords for selected atoms into arrays. */
 static inline std::vector<CpptrajGpu::FpType> mask_to_xyz(AtomMask const& Mask, Frame const& frm)
 {
   std::vector<CpptrajGpu::FpType> outerxyz;
@@ -589,39 +590,6 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
       calcRDF_singleMask( frm.Frm() );
     else
       calcRDF_twoMask( frm.Frm() );
-/*    int outer_max = OuterMask_.Nselected();
-    int inner_max = InnerMask_.Nselected();
-#   ifdef _OPENMP
-#   pragma omp parallel private(nmask1,nmask2,atom1,atom2,D,idx,mythread)
-    {
-    //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
-    mythread = omp_get_thread_num();
-#   pragma omp for
-#   endif
-    for (nmask1 = 0; nmask1 < outer_max; nmask1++) {
-      atom1 = OuterMask_[nmask1];
-      for (nmask2 = 0; nmask2 < inner_max; nmask2++) {
-        atom2 = InnerMask_[nmask2];
-        if (atom1 != atom2) {
-          D = DIST2( imageOpt_.ImagingType(), frm.Frm().XYZ(atom1), frm.Frm().XYZ(atom2), frm.Frm().BoxCrd() );
-          if (D <= maximum2_) {
-            // NOTE: Can we modify the histogram to store D^2?
-            D = sqrt(D);
-            //mprintf("MASKLOOP: %10i %10i %10.4f\n",atom1,atom2,D);
-            idx = (int) (D * one_over_spacing_);
-            if (idx > -1 && idx < numBins_)
-#             ifdef _OPENMP
-              ++rdf_thread_[mythread][idx];
-#             else
-              ++RDF_[idx];
-#             endif
-          }
-        }
-      } // END loop over 2nd mask
-    } // END loop over 1st mask
-#   ifdef _OPENMP
-    } // END pragma omp parallel
-#   endif*/
 #endif /* CUDA */
   // ---------------------------------------------
   } else if ( rmode_ == NO_INTRAMOL ) {
