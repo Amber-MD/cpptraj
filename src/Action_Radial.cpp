@@ -8,6 +8,7 @@
 #  include <omp.h>
 #endif
 #ifdef CUDA
+#  include "Gpu.h"
 #  include "cuda_kernels/kernel_rdf.cuh"
 #endif
 
@@ -455,15 +456,15 @@ Action::RetType Action_Radial::Setup(ActionSetup& setup) {
 }
 
 #ifdef CUDA
-static inline std::vector<double> mask_to_xyz(AtomMask const& Mask, Frame const& frm)
+static inline std::vector<CpptrajGpu::FpType> mask_to_xyz(AtomMask const& Mask, Frame const& frm)
 {
-  std::vector<double> outerxyz;
+  std::vector<CpptrajGpu::FpType> outerxyz;
   outerxyz.reserve( Mask.Nselected()*3 );
   for (AtomMask::const_iterator at = Mask.begin(); at != Mask.end(); ++at) {
     const double* xyz = frm.XYZ( *at );
-    outerxyz.push_back( xyz[0] );
-    outerxyz.push_back( xyz[1] );
-    outerxyz.push_back( xyz[2] );
+    outerxyz.push_back( (CpptrajGpu::FpType)xyz[0] );
+    outerxyz.push_back( (CpptrajGpu::FpType)xyz[1] );
+    outerxyz.push_back( (CpptrajGpu::FpType)xyz[2] );
   }
   return outerxyz;
 }
@@ -558,10 +559,10 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
   if ( rmode_ == NORMAL ) {
 #ifdef CUDA
   // Copy atoms for GPU 
-  std::vector<double> outerxyz = mask_to_xyz(OuterMask_, frm.Frm());
-  const double* outerxyzPtr = &outerxyz[0];
-  std::vector<double> innerxyz;
-  const double* innerxyzPtr = 0;
+  std::vector<CpptrajGpu::FpType> outerxyz = mask_to_xyz(OuterMask_, frm.Frm());
+  const CpptrajGpu::FpType* outerxyzPtr = &outerxyz[0];
+  std::vector<CpptrajGpu::FpType> innerxyz;
+  const CpptrajGpu::FpType* innerxyzPtr = 0;
   if (!mask2_is_mask1_) {
     innerxyz = mask_to_xyz(InnerMask_, frm.Frm());
     innerxyzPtr = &innerxyz[0];
