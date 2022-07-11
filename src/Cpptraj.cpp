@@ -8,6 +8,7 @@
 #include "Cpptraj.h"
 #include "CpptrajStdio.h"
 #include "Command.h"
+#include "Gpu.h"
 #include "ReadLine.h"
 #include "Version.h"
 #include "ParmFile.h" // ProcessMask
@@ -122,6 +123,16 @@ void Cpptraj::Intro() const {
       mprintf("| CUDA device: %s\n", deviceProp.name);
       mprintf("| Available GPU memory: %s\n",
               ByteString(deviceProp.totalGlobalMem, BYTE_DECIMAL).c_str());
+      mprintf("| Compute capability: %i.%i\n", deviceProp.major, deviceProp.minor);
+      CpptrajGpu::SetComputeVersion( deviceProp.major );
+      if (State_.Debug() > 0) {
+        mprintf("| Max threads/block: %i\n", deviceProp.maxThreadsPerBlock);
+        mprintf("| Max threads dim: %i %i %i\n",
+                deviceProp.maxThreadsDim[0],
+                deviceProp.maxThreadsDim[1],
+                deviceProp.maxThreadsDim[2]);
+        mprintf("| Max threads/multiprocessor: %i\n", deviceProp.maxThreadsPerMultiProcessor);
+      }
     }
   }
 # endif

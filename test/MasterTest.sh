@@ -76,6 +76,7 @@ WARNCOUNT=0              # Total number of warnings detected by DoTest this test
 PROGCOUNT=0              # Total number of times RunCpptraj has been called this test.
 PROGERROR=0              # Total number of program errors this test
 CHECKERR=0               # Total errors this test from CheckEnv routine.
+CHECKSILENT=0            # If 1 make the TestLibrary routine silent
 TESTNAME=''              # Current test name for Requires routine.
 UNITNAME=''              # Current unit name for CheckFor routine.
 DESCRIP=''               # Current test/unit name for CheckEnv routine.
@@ -990,8 +991,10 @@ SkipCheck() {
 #   CheckDefines.
 TestLibrary() {
   if [ -z "$2" ] ; then
-    echo "  $DESCRIP requires $1."
-    echo "  Cpptraj was compiled without $1 support."
+    if [ $CHECKSILENT -eq 0 ] ; then
+      echo "  $DESCRIP requires $1."
+      echo "  Cpptraj was compiled without $1 support."
+    fi
     ((CHECKERR++))
   fi
 }
@@ -1173,6 +1176,16 @@ CheckFor() {
     return 1
   fi
   return 0
+}
+
+# CheckForSilent() <list>
+# \return > 0 if anything in <list> is not present, 0 otherwise.
+CheckForSilent() {
+  CHECKSILENT=1
+  # Give generic name
+  DESCRIP='Test'
+  CheckEnv $*
+  return $CHECKERR
 }
 
 # ------------------------------------------------------------------------------
