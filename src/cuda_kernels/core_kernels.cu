@@ -1,4 +1,5 @@
 #include "core_kernels.cuh"
+#include "NonOrtho_dist2.cuh"
 #include "ortho_dist2.cuh"
 //#include <cstdio> // DEBUG
 #define BLOCKDIM 512
@@ -35,6 +36,7 @@
 /** \return Shortest imaged distance^2 between given coordinates in fractional space.
   * NOTE: This function is complicated hence we will put into a __device__ only function.
   */
+/*
 __device__ double NonOrtho_dist2(double a0, double a1, double a2,
                                 double b0, double b1, double b2,
                                 const double *ucell)
@@ -307,7 +309,7 @@ __device__ double NonOrtho_dist2(double a0, double a1, double a2,
   return(min);
 
 }
-
+*/
 // -----------------------------------------------------------------------------
 //try thread coarsening 
 /** Calculate the closest distances of atoms of solvent molecules to a point. */
@@ -680,7 +682,7 @@ __global__ void kClosestDistsToPt_Nonortho(double* D_, const double* maskCenter,
       double x =  recip[0]*SolventMols_[sIndex + offset + 0] + recip[1]*SolventMols_[sIndex + offset + 1] + recip[2]*SolventMols_[sIndex + offset + 2];
       double y =  recip[3]*SolventMols_[sIndex + offset + 0] + recip[4]*SolventMols_[sIndex + offset + 1] + recip[5]*SolventMols_[sIndex + offset + 2];
       double z =  recip[6]*SolventMols_[sIndex + offset + 0] + recip[7]*SolventMols_[sIndex + offset + 1] + recip[8]*SolventMols_[sIndex + offset + 2];
-      double dist  = NonOrtho_dist2(x,y,z,a0,a1,a2,ucell);
+      double dist  = NonOrtho_dist2<double>(x,y,z,a0,a1,a2,ucell);
       // if (mol ==  0)
       //   printf("dist  = %f\n",dist);
 
@@ -762,7 +764,7 @@ __global__ void kClosestDistsToAtoms_Nonortho(double*D_,
         double y = recip[3]*Solute_atoms[j + 0]  + recip[4]*Solute_atoms[j + 1]  + recip[5]*Solute_atoms[j + 2] ;
         double z = recip[6]*Solute_atoms[j + 0]  + recip[7]*Solute_atoms[j + 1]  + recip[8]*Solute_atoms[j + 2] ;
 
-        dist =  NonOrtho_dist2(x,y,z,a0,a1,a2,ucell);
+        dist =  NonOrtho_dist2<double>(x,y,z,a0,a1,a2,ucell);
         //if (mol ==  11)
         //  printf("min  = %f\n",min_val);
         min_val = min(min_val,dist);
@@ -892,7 +894,7 @@ __global__ void kBinDistances_nonOverlap_nonOrtho(int* RDF,
     double f2y = frac[3]*a2x + frac[4]*a2y + frac[5]*a2z;
     double f2z = frac[6]*a2x + frac[7]*a2y + frac[8]*a2z;
 
-    double dist2 =  NonOrtho_dist2(f2x, f2y, f2z, f1x ,f1y, f1z, ucell);
+    double dist2 =  NonOrtho_dist2<double>(f2x, f2y, f2z, f1x ,f1y, f1z, ucell);
     if (dist2 > 0 && dist2 <= maximum2) {
       double dist = sqrt(dist2);
       int histIdx = (int) (dist * one_over_spacing);
