@@ -6,6 +6,6 @@ void SetComputeVersion(int);
 /// \return Max block dimensions if using 2D blocks
 unsigned int MaxBlockDim_2D();
 /// Default floating point type
-typedef double FpType;
+typedef float FpType;
 }
 #endif
