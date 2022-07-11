@@ -123,14 +123,16 @@ void Cpptraj::Intro() const {
       mprintf("| CUDA device: %s\n", deviceProp.name);
       mprintf("| Available GPU memory: %s\n",
               ByteString(deviceProp.totalGlobalMem, BYTE_DECIMAL).c_str());
-      mprintf("| Major compute capability: %i\n", deviceProp.major);
+      mprintf("| Compute capability: %i.%i\n", deviceProp.major, deviceProp.minor);
       CpptrajGpu::SetComputeVersion( deviceProp.major );
-      mprintf("| Max threads/block: %i\n", deviceProp.maxThreadsPerBlock);
-      mprintf("| Max threads dim: %i %i %i\n",
-              deviceProp.maxThreadsDim[0],
-              deviceProp.maxThreadsDim[1],
-              deviceProp.maxThreadsDim[2]);
-      mprintf("| Max threads/multiprocessor: %i\n", deviceProp.maxThreadsPerMultiProcessor);
+      if (State_.Debug() > 0) {
+        mprintf("| Max threads/block: %i\n", deviceProp.maxThreadsPerBlock);
+        mprintf("| Max threads dim: %i %i %i\n",
+                deviceProp.maxThreadsDim[0],
+                deviceProp.maxThreadsDim[1],
+                deviceProp.maxThreadsDim[2]);
+        mprintf("| Max threads/multiprocessor: %i\n", deviceProp.maxThreadsPerMultiProcessor);
+      }
     }
   }
 # endif
