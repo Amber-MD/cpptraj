@@ -567,13 +567,22 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
     innerxyz = mask_to_xyz(InnerMask_, frm.Frm());
     innerxyzPtr = &innerxyz[0];
   }
+  CpptrajGpu::FpType gpu_box[3];
+  gpu_box[0] = (CpptrajGpu::FpType)frm.Frm().BoxCrd().Param(Box::X);
+  gpu_box[1] = (CpptrajGpu::FpType)frm.Frm().BoxCrd().Param(Box::Y);
+  gpu_box[2] = (CpptrajGpu::FpType)frm.Frm().BoxCrd().Param(Box::Z);
+  CpptrajGpu::FpType gpu_ucell[9], gpu_frac[9];
+  for (int ibox = 0; ibox != 9; ibox++) {
+    gpu_ucell[ibox] = (CpptrajGpu::FpType)frm.Frm().BoxCrd().UnitCell()[ibox];
+    gpu_frac[ibox]  = (CpptrajGpu::FpType)frm.Frm().BoxCrd().FracCell()[ibox];
+  }
   Cpptraj_GPU_RDF( &RDF_[0], RDF_.size(), maximum2_, one_over_spacing_,
                    outerxyzPtr, OuterMask_.Nselected(),
                    innerxyzPtr, InnerMask_.Nselected(),
                    imageOpt_.ImagingType(),
-                   frm.Frm().BoxCrd().XyzPtr(),
-                   frm.Frm().BoxCrd().UnitCell().Dptr(),
-                   frm.Frm().BoxCrd().FracCell().Dptr() );
+                   gpu_box,
+                   gpu_ucell,
+                   gpu_frac );
 #else /* CUDA */ 
     // Calculation of all atoms in Mask1 to all atoms in Mask2
     if (mask2_is_mask1_)

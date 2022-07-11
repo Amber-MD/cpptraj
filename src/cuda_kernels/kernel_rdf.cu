@@ -1,7 +1,6 @@
 #include "kernel_rdf.cuh"
 #include "core_kernels.cuh"
 #include "../CpptrajStdio.h"
-#include "../Gpu.h"
 #if defined(__HIP_PLATFORM_HCC__)
 #include <hip/hip_runtime.h>
 #include "../HipDefinitions.h"
@@ -27,25 +26,25 @@ static inline int Cuda_check(cudaError_t err, const char* desc) {
 }
 
 /** Calculate distances between pairs of atoms and bin them into a 1D histogram. */
-int Cpptraj_GPU_RDF(unsigned long* bins, int nbins, double maximum2, double one_over_spacing,
-                     const double* xyz1, int N1,
-                     const double* xyz2, int N2,
+int Cpptraj_GPU_RDF(unsigned long* bins, int nbins, CpptrajGpu::FpType maximum2, CpptrajGpu::FpType one_over_spacing,
+                     const CpptrajGpu::FpType* xyz1, int N1,
+                     const CpptrajGpu::FpType* xyz2, int N2,
                      ImageOption::Type imageType,
-                     const double* box, const double* ucell, const double* recip)
+                     const CpptrajGpu::FpType* box, const CpptrajGpu::FpType* ucell, const CpptrajGpu::FpType* recip)
 {
   int* device_rdf;
   Cuda_check(cudaMalloc(((void**)(&device_rdf)), nbins * sizeof(int)), "Allocating rdf bins");
   Cuda_check(cudaMemset( device_rdf, 0, nbins*sizeof(int) ), "Setting rdf bins to 0");
 
-  double* device_xyz1;
-  Cuda_check(cudaMalloc(((void**)(&device_xyz1)), N1 * 3 * sizeof(double)), "Allocating xyz1");
-  Cuda_check(cudaMemcpy(device_xyz1, xyz1, N1 * 3 * sizeof(double), cudaMemcpyHostToDevice), "Copying xyz1");
+  CpptrajGpu::FpType* device_xyz1;
+  Cuda_check(cudaMalloc(((void**)(&device_xyz1)), N1 * 3 * sizeof(CpptrajGpu::FpType)), "Allocating xyz1");
+  Cuda_check(cudaMemcpy(device_xyz1, xyz1, N1 * 3 * sizeof(CpptrajGpu::FpType), cudaMemcpyHostToDevice), "Copying xyz1");
 
-  double* device_xyz2;
+  CpptrajGpu::FpType* device_xyz2;
   //int* device_rows1;
   if (xyz2 != 0) {
-    Cuda_check(cudaMalloc(((void**)(&device_xyz2)), N2 * 3 * sizeof(double)), "Allocating xyz2");
-    Cuda_check(cudaMemcpy(device_xyz2, xyz2, N2 * 3 * sizeof(double), cudaMemcpyHostToDevice), "Copying xyz2");
+    Cuda_check(cudaMalloc(((void**)(&device_xyz2)), N2 * 3 * sizeof(CpptrajGpu::FpType)), "Allocating xyz2");
+    Cuda_check(cudaMemcpy(device_xyz2, xyz2, N2 * 3 * sizeof(CpptrajGpu::FpType), cudaMemcpyHostToDevice), "Copying xyz2");
   } else {
     device_xyz2 = device_xyz1;
     // Create array of upper triangle row start indices TODO long ints?
@@ -67,16 +66,16 @@ int Cpptraj_GPU_RDF(unsigned long* bins, int nbins, double maximum2, double one_
   }
 
 
-  double *boxDev;
-  double *ucellDev, *fracDev;
+  CpptrajGpu::FpType *boxDev;
+  CpptrajGpu::FpType *ucellDev, *fracDev;
   if (imageType == ImageOption::ORTHO) {
-    Cuda_check(cudaMalloc(((void**)(&boxDev)), 3 * sizeof(double)), "Allocating box");
-    Cuda_check(cudaMemcpy(boxDev,box, 3 * sizeof(double), cudaMemcpyHostToDevice), "Copying box");
+    Cuda_check(cudaMalloc(((void**)(&boxDev)), 3 * sizeof(CpptrajGpu::FpType)), "Allocating box");
+    Cuda_check(cudaMemcpy(boxDev,box, 3 * sizeof(CpptrajGpu::FpType), cudaMemcpyHostToDevice), "Copying box");
   } else if (imageType == ImageOption::NONORTHO) {
-    Cuda_check(cudaMalloc(((void**)(&ucellDev)), 9 * sizeof(double)), "Allocating ucell");
-    Cuda_check(cudaMalloc(((void**)(&fracDev)), 9 * sizeof(double)), "Allocating frac");
-    Cuda_check(cudaMemcpy(ucellDev,ucell, 9 * sizeof(double), cudaMemcpyHostToDevice), "Copying ucell");
-    Cuda_check(cudaMemcpy(fracDev,recip, 9 * sizeof(double), cudaMemcpyHostToDevice), "Copying frac");
+    Cuda_check(cudaMalloc(((void**)(&ucellDev)), 9 * sizeof(CpptrajGpu::FpType)), "Allocating ucell");
+    Cuda_check(cudaMalloc(((void**)(&fracDev)), 9 * sizeof(CpptrajGpu::FpType)), "Allocating frac");
+    Cuda_check(cudaMemcpy(ucellDev,ucell, 9 * sizeof(CpptrajGpu::FpType), cudaMemcpyHostToDevice), "Copying ucell");
+    Cuda_check(cudaMemcpy(fracDev,recip, 9 * sizeof(CpptrajGpu::FpType), cudaMemcpyHostToDevice), "Copying frac");
   }
 
   // Determine number of blocks
