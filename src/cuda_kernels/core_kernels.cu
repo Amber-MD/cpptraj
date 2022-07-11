@@ -1,11 +1,12 @@
 #include "core_kernels.cuh"
+#include "ortho_dist2.cuh"
 //#include <cstdio> // DEBUG
 #define BLOCKDIM 512
 #define RSIZE 512
 
 // -----------------------------------------------------------------------------
 /** \return Shortest imaged distance^2 between given coordinates in an orthorhombic box. */
-__device__ double ortho_dist2(double a1x, double a1y, double a1z,
+/*__device__ double ortho_dist2(double a1x, double a1y, double a1z,
                               double a2x, double a2y, double a2z,
                               const double* box)
 {
@@ -29,7 +30,7 @@ __device__ double ortho_dist2(double a1x, double a1y, double a1z,
   if (D2 < z) z = D2;
 
   return (x*x + y*y + z*z);
-}
+}*/
 
 /** \return Shortest imaged distance^2 between given coordinates in fractional space.
   * NOTE: This function is complicated hence we will put into a __device__ only function.
@@ -852,7 +853,7 @@ __global__ void kBinDistances_nonOverlap_Ortho(int* RDF,
     double a2y = xyz2[idx2+1];
     double a2z = xyz2[idx2+2];
 
-    double dist2 = ortho_dist2(a1x, a1y, a1z, a2x, a2y, a2z, box);
+    double dist2 = ortho_dist2<double>(a1x, a1y, a1z, a2x, a2y, a2z, box);
     if (dist2 > 0 && dist2 <= maximum2) {
       double dist = sqrt(dist2);
       int histIdx = (int) (dist * one_over_spacing);
