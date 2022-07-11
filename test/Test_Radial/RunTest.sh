@@ -10,6 +10,14 @@ CleanFiles radial.in Radial.agr cRadial.agr WatO-Trp4.agr WatO-Trp4.raw.agr \
 TESTNAME='Radial tests'
 Requires netcdf maxthreads 10
 
+# CUDA requires a tolerance since it is done in single precision
+TOL_ARG=''
+CheckForSilent cuda
+if [ $? -eq 0 ] ; then
+  TOL_ARG='-a 0.0002'
+  echo "Lowering tolerance for single-precision CUDA: $TOL_ARG"
+fi
+
 INPUT="-i radial.in"
 
 UNITNAME='Radial test, non-orthogonal imaging'
@@ -78,7 +86,7 @@ trajin ../tz2.truncoct.nc
 radial WatO-Prot :WAT@O ^1 out tz2.WatO-Prot.agr 0.25 15.0
 EOF
 RunCpptraj "$UNITNAME"
-DoTest tz2.WatO-Prot.agr.save tz2.WatO-Prot.agr  
+DoTest tz2.WatO-Prot.agr.save tz2.WatO-Prot.agr $TOL_ARG
 
 UNITNAME='Radial test, water -> water, non-orthogonal cell'
 CheckFor maxthreads 2
@@ -89,7 +97,7 @@ trajin ../tz2.truncoct.nc 1 2
 radial WatO      :WAT@O    out tz2.WatO.agr      0.25 15.0
 EOF
   RunCpptraj "$UNITNAME"
-  DoTest tz2.WatO.agr.save tz2.WatO.agr
+  DoTest tz2.WatO.agr.save tz2.WatO.agr $TOL_ARG
 fi
 
 UNITNAME='Radial test, water -> protein, orthogonal cell'
@@ -99,7 +107,7 @@ trajin ../tz2.ortho.nc
 radial WatO-Prot :WAT@O ^1 out tz2ortho.WatO-Prot.agr 0.25 15.0
 EOF
 RunCpptraj "$UNITNAME"
-DoTest tz2ortho.WatO-Prot.agr.save tz2ortho.WatO-Prot.agr  
+DoTest tz2ortho.WatO-Prot.agr.save tz2ortho.WatO-Prot.agr $TOL_ARG 
 
 UNITNAME='Radial test, water -> water, orthogonal cell'
 CheckFor maxthreads 2
@@ -110,7 +118,7 @@ trajin ../tz2.ortho.nc 1 2
 radial WatO      :WAT@O    out tz2ortho.WatO.agr      0.25 15.0
 EOF
   RunCpptraj "$UNITNAME"
-  DoTest tz2ortho.WatO.agr.save tz2ortho.WatO.agr
+  DoTest tz2ortho.WatO.agr.save tz2ortho.WatO.agr $TOL_ARG
 fi
 
 UNITNAME='Radial test, water -> protein, no imaging'
@@ -120,7 +128,7 @@ trajin ../tz2.ortho.nc
 radial WatO-Prot :WAT@O ^1 out tz2noimage.WatO-Prot.agr 0.25 15.0 noimage
 EOF
 RunCpptraj "$UNITNAME"
-DoTest tz2noimage.WatO-Prot.agr.save tz2noimage.WatO-Prot.agr  
+DoTest tz2noimage.WatO-Prot.agr.save tz2noimage.WatO-Prot.agr $TOL_ARG 
 
 UNITNAME='Radial test, water -> water, no imaging'
 CheckFor maxthreads 2
