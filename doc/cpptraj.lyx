@@ -1230,6 +1230,10 @@ watershell
 gist
 \end_layout
 
+\begin_layout LyX-Code
+radial
+\end_layout
+
 \begin_layout Section
 General Concepts
 \end_layout
@@ -35039,6 +35043,14 @@ Note that correct normalization of the RDF depends on the number of atoms
  in each mask; if multiple topology files are being processed that result
  in changes in the number of atoms in each mask, the normalization will
  be off.
+\end_layout
+
+\begin_layout Standard
+The basic (i.e.
+ no center1/center2/byres1/byres2/bymol1/bymol2) RDF calculations are now
+ CUDA parallelized.
+ However, the calculation is done in single-precision on GPUs so the resulting
+ histograms may differ slightly from the CPU (on the order of 0.0002 - 0.0004).
 \end_layout
 
 \begin_layout Subsection

@@ -1,283 +1,9 @@
 #include "core_kernels.cuh"
+#include "NonOrtho_dist2.cuh"
+#include "ortho_dist2.cuh"
+//#include <cstdio> // DEBUG
 #define BLOCKDIM 512
 #define RSIZE 512
-
-// -----------------------------------------------------------------------------
-/** \return Shortest imaged distance between given coordinates in fractional space.
-  * NOTE: This function is complicated hence we will put into a __device__ only function.
-  */
-__device__ double NonOrtho_dist(double a0, double a1, double a2,
-                                double b0, double b1, double b2,
-                                const double *ucell)
-{
-  //int ixyz[3];
-  double minIn  = -1.0;
-
-   //double closest2
-  // The floor() calls serve to bring each point back in the main unit cell.
-  double fx = a0 - floor(a0);
-  double fy = a1 - floor(a1);
-  double fz = a2 - floor(a2); 
-  double f2x = b0 - floor(b0);
-  double f2y = b1 - floor(b1);
-  double f2z = b2 - floor(b2);
-  // f2 back in Cartesian space
-  double X_factor = (f2x*ucell[0] + f2y*ucell[3] + f2z*ucell[6]);
-  double Y_factor = (f2x*ucell[1] + f2y*ucell[4] + f2z*ucell[7]);
-  double Z_factor = (f2x*ucell[2] + f2y*ucell[5] + f2z*ucell[8]);
-  // Precompute some factors
-  double fxm1 = fx - 1.0;
-  double fxp1 = fx + 1.0;
-  double fym1 = fy - 1.0;
-  double fyp1 = fy + 1.0;
-  double fzm1 = fz - 1.0;
-  double fzp1 = fz + 1.0;
-
-  double fxm1u0 = fxm1 * ucell[0];
-  double fxu0   = fx   * ucell[0];
-  double fxp1u0 = fxp1 * ucell[0];
-  double fxm1u1 = fxm1 * ucell[1];
-  double fxu1   = fx   * ucell[1];
-  double fxp1u1 = fxp1 * ucell[1];
-  double fxm1u2 = fxm1 * ucell[2];
-  double fxu2   = fx   * ucell[2];
-  double fxp1u2 = fxp1 * ucell[2];
-
-  double fym1u3 = fym1 * ucell[3];
-  double fyu3   = fy   * ucell[3];
-  double fyp1u3 = fyp1 * ucell[3];
-  double fym1u4 = fym1 * ucell[4];
-  double fyu4   = fy   * ucell[4];
-  double fyp1u4 = fyp1 * ucell[4];
-  double fym1u5 = fym1 * ucell[5];
-  double fyu5   = fy   * ucell[5];
-  double fyp1u5 = fyp1 * ucell[5];
-
-  double fzm1u6 = fzm1 * ucell[6];
-  double fzu6   = fz   * ucell[6];
-  double fzp1u6 = fzp1 * ucell[6];
-  double fzm1u7 = fzm1 * ucell[7];
-  double fzu7   = fz   * ucell[7];
-  double fzp1u7 = fzp1 * ucell[7];
-  double fzm1u8 = fzm1 * ucell[8];
-  double fzu8   = fz   * ucell[8];
-  double fzp1u8 = fzp1 * ucell[8];
-
-  // Calc ix iy iz = 0 case
-  double x = (fxu0 + fyu3 + fzu6) - X_factor;
-  double y = (fxu1 + fyu4 + fzu7) - Y_factor;
-  double z = (fxu2 + fyu5 + fzu8) - Z_factor;
-  // DEBUG
-  //mprintf("DEBUG: a2: %g %g %g\n",(fxu0 + fyu3 + fzu6), (fxu1 + fyu4 + fzu7), (fxu2 + fyu5 + fzu8));
-  //mprintf("DEBUG: a1: %g %g %g\n", X_factor, Y_factor, Z_factor);
-  double min = (x*x) + (y*y) + (z*z);
-
-  if (minIn > 0.0 && minIn < min) min = minIn;
-
-  //ixyz[0] = 0;
-  //ixyz[1] = 0;
-  //ixyz[2] = 0;
-
-  // -1 -1 -1
-  x = (fxm1u0 + fym1u3 + fzm1u6) - X_factor;
-  y = (fxm1u1 + fym1u4 + fzm1u7) - Y_factor;
-  z = (fxm1u2 + fym1u5 + fzm1u8) - Z_factor;
-  double D = (x*x) + (y*y) + (z*z);
-  //if (D < min) { min = D; ixyz[0] = -1; ixyz[1] = -1; ixyz[2] = -1; }
-  if (D < min) min = D;
-  // -1 -1  0
-  x = (fxm1u0 + fym1u3 + fzu6  ) - X_factor;
-  y = (fxm1u1 + fym1u4 + fzu7  ) - Y_factor;
-  z = (fxm1u2 + fym1u5 + fzu8  ) - Z_factor;
-  D = (x*x) + (y*y) + (z*z);
-  //if (D < min) { min = D; ixyz[0] = -1; ixyz[1] = -1; ixyz[2] =  0; }
-  if (D < min) min = D;
-  // -1 -1 +1
-  x = (fxm1u0 + fym1u3 + fzp1u6) - X_factor;
-  y = (fxm1u1 + fym1u4 + fzp1u7) - Y_factor;
-  z = (fxm1u2 + fym1u5 + fzp1u8) - Z_factor;
-  D = (x*x) + (y*y) + (z*z);
-  //if (D < min) { min = D; ixyz[0] = -1; ixyz[1] = -1; ixyz[2] =  1; }
-  if (D < min) min = D;
-  // -1  0 -1
-  x = (fxm1u0 + fyu3   + fzm1u6) - X_factor;
-  y = (fxm1u1 + fyu4   + fzm1u7) - Y_factor;
-  z = (fxm1u2 + fyu5   + fzm1u8) - Z_factor;
-  D = (x*x) + (y*y) + (z*z);
-  //if (D < min) { min = D; ixyz[0] = -1; ixyz[1] =  0; ixyz[2] = -1; }
-  if (D < min) min = D;
-  // -1  0  0
-  x = (fxm1u0 + fyu3   + fzu6  ) - X_factor;
-  y = (fxm1u1 + fyu4   + fzu7  ) - Y_factor;
-  z = (fxm1u2 + fyu5   + fzu8  ) - Z_factor;
-  D = (x*x) + (y*y) + (z*z);
-  //if (D < min) { min = D; ixyz[0] = -1; ixyz[1] =  0; ixyz[2] =  0; }
-  if (D < min) min = D;
-  // -1  0 +1
-  x = (fxm1u0 + fyu3   + fzp1u6) - X_factor;
-  y = (fxm1u1 + fyu4   + fzp1u7) - Y_factor;
-  z = (fxm1u2 + fyu5   + fzp1u8) - Z_factor;
-  D = (x*x) + (y*y) + (z*z);
-  //if (D < min) { min = D; ixyz[0] = -1; ixyz[1] =  0; ixyz[2] =  1; }
-  if (D < min) min = D;
-  // -1 +1 -1
-  x = (fxm1u0 + fyp1u3 + fzm1u6) - X_factor;
-  y = (fxm1u1 + fyp1u4 + fzm1u7) - Y_factor;
-  z = (fxm1u2 + fyp1u5 + fzm1u8) - Z_factor;
-  D = (x*x) + (y*y) + (z*z);
-  //if (D < min) { min = D; ixyz[0] = -1; ixyz[1] =  1; ixyz[2] = -1; }
-  if (D < min) min = D;
-  // -1 +1  0
-  x = (fxm1u0 + fyp1u3 + fzu6  ) - X_factor;
-  y = (fxm1u1 + fyp1u4 + fzu7  ) - Y_factor;
-  z = (fxm1u2 + fyp1u5 + fzu8  ) - Z_factor;
-  D = (x*x) + (y*y) + (z*z);
-  //if (D < min) { min = D; ixyz[0] = -1; ixyz[1] =  1; ixyz[2] =  0; }
-  if (D < min) min = D;
-  // -1 +1 +1
-  x = (fxm1u0 + fyp1u3 + fzp1u6) - X_factor;
-  y = (fxm1u1 + fyp1u4 + fzp1u7) - Y_factor;
-  z = (fxm1u2 + fyp1u5 + fzp1u8) - Z_factor;
-  D = (x*x) + (y*y) + (z*z);
-  //if (D < min) { min = D; ixyz[0] = -1; ixyz[1] =  1; ixyz[2] =  1; }
-  if (D < min) min = D;
-
-  //  0 -1 -1
-  x = (fxu0   + fym1u3 + fzm1u6) - X_factor;
-  y = (fxu1   + fym1u4 + fzm1u7) - Y_factor;
-  z = (fxu2   + fym1u5 + fzm1u8) - Z_factor;
-  D = (x*x) + (y*y) + (z*z);
-  //if (D < min) { min = D; ixyz[0] =  0; ixyz[1] = -1; ixyz[2] = -1; }
-  if (D < min) min = D;
-  //  0 -1  0
-  x = (fxu0   + fym1u3 + fzu6  ) - X_factor;
-  y = (fxu1   + fym1u4 + fzu7  ) - Y_factor;
-  z = (fxu2   + fym1u5 + fzu8  ) - Z_factor;
-  D = (x*x) + (y*y) + (z*z);
-  //if (D < min) { min = D; ixyz[0] =  0; ixyz[1] = -1; ixyz[2] =  0; }
-  if (D < min) min = D;
-  //  0 -1 +1
-  x = (fxu0   + fym1u3 + fzp1u6) - X_factor;
-  y = (fxu1   + fym1u4 + fzp1u7) - Y_factor;
-  z = (fxu2   + fym1u5 + fzp1u8) - Z_factor;
-  D = (x*x) + (y*y) + (z*z);
-  //if (D < min) { min = D; ixyz[0] =  0; ixyz[1] = -1; ixyz[2] =  1; }
-  if (D < min) min = D;
-  //  0  0 -1
-  x = (fxu0   + fyu3   + fzm1u6) - X_factor;
-  y = (fxu1   + fyu4   + fzm1u7) - Y_factor;
-  z = (fxu2   + fyu5   + fzm1u8) - Z_factor;
-  D = (x*x) + (y*y) + (z*z);
-  //if (D < min) { min = D; ixyz[0] =  0; ixyz[1] =  0; ixyz[2] = -1; }
-  if (D < min) min = D;
-  //  0  0  0
-  //  0  0 +1
-  x = (fxu0   + fyu3   + fzp1u6) - X_factor;
-  y = (fxu1   + fyu4   + fzp1u7) - Y_factor;
-  z = (fxu2   + fyu5   + fzp1u8) - Z_factor;
-  D = (x*x) + (y*y) + (z*z);
-  //if (D < min) { min = D; ixyz[0] =  0; ixyz[1] =  0; ixyz[2] =  1; }
-  if (D < min) min = D;
-  //  0 +1 -1
-  x = (fxu0   + fyp1u3 + fzm1u6) - X_factor;
-  y = (fxu1   + fyp1u4 + fzm1u7) - Y_factor;
-  z = (fxu2   + fyp1u5 + fzm1u8) - Z_factor;
-  D = (x*x) + (y*y) + (z*z);
-  //if (D < min) { min = D; ixyz[0] =  0; ixyz[1] =  1; ixyz[2] = -1; }
-  if (D < min) min = D;
-  //  0 +1  0
-  x = (fxu0   + fyp1u3 + fzu6  ) - X_factor;
-  y = (fxu1   + fyp1u4 + fzu7  ) - Y_factor;
-  z = (fxu2   + fyp1u5 + fzu8  ) - Z_factor;
-  D = (x*x) + (y*y) + (z*z);
-  //if (D < min) { min = D; ixyz[0] =  0; ixyz[1] =  1; ixyz[2] =  0; }
-  if (D < min) min = D;
-  //  0 +1 +1
-  x = (fxu0   + fyp1u3 + fzp1u6) - X_factor;
-  y = (fxu1   + fyp1u4 + fzp1u7) - Y_factor;
-  z = (fxu2   + fyp1u5 + fzp1u8) - Z_factor;
-  D = (x*x) + (y*y) + (z*z);
-  //if (D < min) { min = D; ixyz[0] =  0; ixyz[1] =  1; ixyz[2] =  1; }
-  if (D < min) min = D;
-
-  // +1 -1 -1
-  x = (fxp1u0 + fym1u3 + fzm1u6) - X_factor;
-  y = (fxp1u1 + fym1u4 + fzm1u7) - Y_factor;
-  z = (fxp1u2 + fym1u5 + fzm1u8) - Z_factor;
-  D = (x*x) + (y*y) + (z*z);
-  //if (D < min) { min = D; ixyz[0] =  1; ixyz[1] = -1; ixyz[2] = -1; }
-  if (D < min) min = D;
-  // +1 -1  0
-  x = (fxp1u0 + fym1u3 + fzu6  ) - X_factor;
-  y = (fxp1u1 + fym1u4 + fzu7  ) - Y_factor;
-  z = (fxp1u2 + fym1u5 + fzu8  ) - Z_factor;
-  D = (x*x) + (y*y) + (z*z);
-  //if (D < min) { min = D; ixyz[0] =  1; ixyz[1] = -1; ixyz[2] =  0; }
-  if (D < min) min = D;
-  // +1 -1 +1
-  x = (fxp1u0 + fym1u3 + fzp1u6) - X_factor;
-  y = (fxp1u1 + fym1u4 + fzp1u7) - Y_factor;
-  z = (fxp1u2 + fym1u5 + fzp1u8) - Z_factor;
-  D = (x*x) + (y*y) + (z*z);
-  //if (D < min) { min = D; ixyz[0] =  1; ixyz[1] = -1; ixyz[2] =  1; }
-  if (D < min) min = D;
-  // +1  0 -1
-  x = (fxp1u0 + fyu3   + fzm1u6) - X_factor;
-  y = (fxp1u1 + fyu4   + fzm1u7) - Y_factor;
-  z = (fxp1u2 + fyu5   + fzm1u8) - Z_factor;
-  D = (x*x) + (y*y) + (z*z);
-  //if (D < min) { min = D; ixyz[0] =  1; ixyz[1] =  0; ixyz[2] = -1; }
-  if (D < min) min = D;
-  // +1  0  0
-  x = (fxp1u0 + fyu3   + fzu6  ) - X_factor;
-  y = (fxp1u1 + fyu4   + fzu7  ) - Y_factor;
-  z = (fxp1u2 + fyu5   + fzu8  ) - Z_factor;
-  D = (x*x) + (y*y) + (z*z);
-  //if (D < min) { min = D; ixyz[0] =  1; ixyz[1] =  0; ixyz[2] =  0; }
-  if (D < min) min = D;
-  // +1  0 +1
-  x = (fxp1u0 + fyu3   + fzp1u6) - X_factor;
-  y = (fxp1u1 + fyu4   + fzp1u7) - Y_factor;
-  z = (fxp1u2 + fyu5   + fzp1u8) - Z_factor;
-  D = (x*x) + (y*y) + (z*z);
-  //if (D < min) { min = D; ixyz[0] =  1; ixyz[1] =  0; ixyz[2] =  1; }
-  if (D < min) min = D;
-  // +1 +1 -1
-  x = (fxp1u0 + fyp1u3 + fzm1u6) - X_factor;
-  y = (fxp1u1 + fyp1u4 + fzm1u7) - Y_factor;
-  z = (fxp1u2 + fyp1u5 + fzm1u8) - Z_factor;
-  D = (x*x) + (y*y) + (z*z);
-  //if (D < min) { min = D; ixyz[0] =  1; ixyz[1] =  1; ixyz[2] = -1; }
-  if (D < min) min = D;
-  // +1 +1  0
-  x = (fxp1u0 + fyp1u3 + fzu6  ) - X_factor;
-  y = (fxp1u1 + fyp1u4 + fzu7  ) - Y_factor;
-  z = (fxp1u2 + fyp1u5 + fzu8  ) - Z_factor;
-  D = (x*x) + (y*y) + (z*z);
-  //if (D < min) { min = D; ixyz[0] =  1; ixyz[1] =  1; ixyz[2] =  0; }
-  if (D < min) min = D;
-  // +1 +1 +1
-  x = (fxp1u0 + fyp1u3 + fzp1u6) - X_factor;
-  y = (fxp1u1 + fyp1u4 + fzp1u7) - Y_factor;
-  z = (fxp1u2 + fyp1u5 + fzp1u8) - Z_factor;
-  D = (x*x) + (y*y) + (z*z);
-  //if (D < min) { min = D; ixyz[0] =  1; ixyz[1] =  1; ixyz[2] =  1; }
-  if (D < min) min = D;
-
-  //if (closest2 != 0.0 && min < closest2) return (min);
-//  this->ClosestImage(a1, a2, ixyz);
-//  fprintf(stdout,"DEBUG: Predict  = %2i %2i %2i\n",ixyz[0],ixyz[1],ixyz[2]);
-
-//  ix = ixyz[0];
-//  iy = ixyz[1];
-//  iz = ixyz[2];
-
-//D = sqrt(min);
-//  fprintf(stdout,"DEBUG: MinDist  = %2i %2i %2i = %8.3f\n", ixmin, iymin, izmin, D);
-//  printf("---------------------------------------------------------------\n");
-  return(min);
-
-}
 
 // -----------------------------------------------------------------------------
 //try thread coarsening 
@@ -320,7 +46,6 @@ __global__ void kClosestDistsToPt_NoImage(double* D_, const double* maskCenter,
     D_[mol] = min_val;
   }
 }
-
 
 // -----------------------------------------------------------------------------
 /** Calculate closest distances of atoms of solvent molecules to solute atoms.
@@ -456,29 +181,11 @@ __global__ void kClosestDistsToPt_Ortho(double *D_, const double* maskCenter,
     double dist;
     for(int offset  = 0 ; offset < NAtoms ; offset++ )
     {
-      double x = a0 - SolventMols_[sIndex++];
-      double y = a1 - SolventMols_[sIndex++];
-      double z = a2 - SolventMols_[sIndex++];
+      dist = ortho_dist2<double>( a0, a1, a2,
+                                  SolventMols_[sIndex], SolventMols_[sIndex+1], SolventMols_[sIndex+2],
+                                  box );
+      sIndex += 3;
 
-      // Get rid of sign info
-      if (x<0) x=-x;
-      if (y<0) y=-y;
-      if (z<0) z=-z;
-      // Get rid of multiples of box lengths 
-      //TODO  WIERD that should be a way to simplify it
-      while (x > box[0]) x = x - box[0];
-      while (y > box[1]) y = y - box[1];
-      while (z > box[2]) z = z - box[2];
-        // Find shortest distance in periodic reference
-      double D = box[0] - x;
-      if (D < x) x = D;
-      D = box[1] - y;
-      if (D < y) y = D;  
-      D = box[2] - z;
-      if (D < z) z = D;
-
-      //Dist = x*x + y*y + z*z;
-      dist = x*x + y*y + z*z;
       if (box[0]==0.0 || box[1]==0.0 || box[2]==0.0)
         dist= -1.0;
 
@@ -551,34 +258,10 @@ __global__ void kClosestDistsToAtoms_Ortho(double* D_, const double* SolventMols
       for (j = start ; j < end; j+=3 )
       {
         //int offset = start + (j + threadIdx.x)%(end - start);
-        double x = Solute_atoms[j + 0]  - a0;
-        double y = Solute_atoms[j + 1]  - a1;
-        double z = Solute_atoms[j + 2]  - a2;
+        dist = ortho_dist2<double>( Solute_atoms[j], Solute_atoms[j+1], Solute_atoms[j+2],
+                                    a0, a1, a2,
+                                    box );
 
-        // Get rid of sign info
-        if (x<0) x=-x;
-        if (y<0) y=-y;
-        if (z<0) z=-z;
-        // Get rid of multiples of box lengths 
-        //TODO  WIERD that should be a way to simplify it
-        while (x > box[0]) x = x - box[0];
-        while (y > box[1]) y = y - box[1];
-        while (z > box[2]) z = z - box[2];
-
-        //below is actually slower! 
-        //x = x - box[0]*((int)x/box[0]);
-        //y = y - box[0]*((int)y/box[1]);
-        //z = z - box[0]*((int)z/box[2]);
-        // Find shortest distance in periodic reference
-        double D = box[0] - x;
-        if (D < x) x = D;
-        D = box[1] - y;
-        if (D < y) y = D;  
-        D = box[2] - z;
-        if (D < z) z = D;
-
-        //Dist = x*x + y*y + z*z;
-        dist =  x*x + y*y + z*z;
         if (box[0]==0.0 || box[1]==0.0 || box[2]==0.0)
           dist = -1.0;
 
@@ -651,7 +334,7 @@ __global__ void kClosestDistsToPt_Nonortho(double* D_, const double* maskCenter,
       double x =  recip[0]*SolventMols_[sIndex + offset + 0] + recip[1]*SolventMols_[sIndex + offset + 1] + recip[2]*SolventMols_[sIndex + offset + 2];
       double y =  recip[3]*SolventMols_[sIndex + offset + 0] + recip[4]*SolventMols_[sIndex + offset + 1] + recip[5]*SolventMols_[sIndex + offset + 2];
       double z =  recip[6]*SolventMols_[sIndex + offset + 0] + recip[7]*SolventMols_[sIndex + offset + 1] + recip[8]*SolventMols_[sIndex + offset + 2];
-      double dist  = NonOrtho_dist(x,y,z,a0,a1,a2,ucell);
+      double dist  = NonOrtho_dist2<double>(x,y,z,a0,a1,a2,ucell);
       // if (mol ==  0)
       //   printf("dist  = %f\n",dist);
 
@@ -733,7 +416,7 @@ __global__ void kClosestDistsToAtoms_Nonortho(double*D_,
         double y = recip[3]*Solute_atoms[j + 0]  + recip[4]*Solute_atoms[j + 1]  + recip[5]*Solute_atoms[j + 2] ;
         double z = recip[6]*Solute_atoms[j + 0]  + recip[7]*Solute_atoms[j + 1]  + recip[8]*Solute_atoms[j + 2] ;
 
-        dist =  NonOrtho_dist(x,y,z,a0,a1,a2,ucell);
+        dist =  NonOrtho_dist2<double>(x,y,z,a0,a1,a2,ucell);
         //if (mol ==  11)
         //  printf("min  = %f\n",min_val);
         min_val = min(min_val,dist);
@@ -771,4 +454,107 @@ __global__ void kClosestDistsToAtoms_Nonortho(double*D_,
   }
 }
 
+// -----------------------------------------------------------------------------
+/** Bin distances from two non-overlapping sets of coords. */
+__global__ void kBinDistances_nonOverlap_NoImage(int* RDF,
+                                               const CpptrajGpu::FpType* xyz1, int N1, const CpptrajGpu::FpType* xyz2, int N2,
+                                               CpptrajGpu::FpType maximum2, CpptrajGpu::FpType one_over_spacing)
+{
+  int a1 = blockIdx.x * blockDim.x + threadIdx.x;
+  int a2 = blockIdx.y * blockDim.y + threadIdx.y;
 
+  if (a1 < N1 && a2 < N2) {
+    int idx1 = a1 * 3;
+    CpptrajGpu::FpType a1x = xyz1[idx1  ];
+    CpptrajGpu::FpType a1y = xyz1[idx1+1];
+    CpptrajGpu::FpType a1z = xyz1[idx1+2];
+
+    int idx2 = a2 * 3;
+    CpptrajGpu::FpType x = a1x - xyz2[idx2  ];
+    CpptrajGpu::FpType y = a1y - xyz2[idx2+1];
+    CpptrajGpu::FpType z = a1z - xyz2[idx2+2];
+
+    CpptrajGpu::FpType dist2 = (x*x) + (y*y) + (z*z); 
+    if (dist2 > 0 && dist2 <= maximum2) {
+      CpptrajGpu::FpType dist = sqrt(dist2);
+      int histIdx = (int) (dist * one_over_spacing);
+      //printf("DEBUG: a1= %i  a2= %i  dist= %f  bin=%i\n", a1+1, a2+1, dist, histIdx);
+      //printf("DEBUG: xyz1= %f %f %f\n", a1x, a1y, a1z);
+      //printf("DEBUG: a1= %i  a2= %i  dist= %f  bin=%i  xyz1=%f %f %f  xyz2=%f %f %f\n", a1+1, a2+1, dist, histIdx,
+      //       a1x, a1y, a1z, a2x, a2y, a2z);
+      atomicAdd( RDF + histIdx, 1 );
+    }
+  }
+}
+
+/** Bin distances from two non-overlapping sets of coords. */
+__global__ void kBinDistances_nonOverlap_Ortho(int* RDF,
+                                               const CpptrajGpu::FpType* xyz1, int N1, const CpptrajGpu::FpType* xyz2, int N2,
+                                               const CpptrajGpu::FpType* box,
+                                               CpptrajGpu::FpType maximum2, CpptrajGpu::FpType one_over_spacing)
+{
+  int a1 = blockIdx.x * blockDim.x + threadIdx.x;
+  int a2 = blockIdx.y * blockDim.y + threadIdx.y;
+
+  if (a1 < N1 && a2 < N2) {
+    int idx1 = a1 * 3;
+    CpptrajGpu::FpType a1x = xyz1[idx1  ];
+    CpptrajGpu::FpType a1y = xyz1[idx1+1];
+    CpptrajGpu::FpType a1z = xyz1[idx1+2];
+
+    int idx2 = a2 * 3;
+    CpptrajGpu::FpType a2x = xyz2[idx2  ];
+    CpptrajGpu::FpType a2y = xyz2[idx2+1];
+    CpptrajGpu::FpType a2z = xyz2[idx2+2];
+
+    CpptrajGpu::FpType dist2 = ortho_dist2<CpptrajGpu::FpType>(a1x, a1y, a1z, a2x, a2y, a2z, box);
+    if (dist2 > 0 && dist2 <= maximum2) {
+      CpptrajGpu::FpType dist = sqrt(dist2);
+      int histIdx = (int) (dist * one_over_spacing);
+      //printf("DEBUG: a1= %i  a2= %i  dist= %f  bin=%i\n", a1+1, a2+1, dist, histIdx);
+      //printf("DEBUG: xyz1= %f %f %f\n", a1x, a1y, a1z);
+      //printf("DEBUG: a1= %i  a2= %i  dist= %f  bin=%i  xyz1=%f %f %f  xyz2=%f %f %f\n", a1+1, a2+1, dist, histIdx,
+      //       a1x, a1y, a1z, a2x, a2y, a2z);
+      atomicAdd( RDF + histIdx, 1 );
+    }
+  }
+}
+
+/** Bin distances from two non-overlapping sets of coords. */
+__global__ void kBinDistances_nonOverlap_nonOrtho(int* RDF,
+                                                  const CpptrajGpu::FpType* xyz1, int N1, const CpptrajGpu::FpType* xyz2, int N2,
+                                                  const CpptrajGpu::FpType* frac, const CpptrajGpu::FpType* ucell,
+                                                  CpptrajGpu::FpType maximum2, CpptrajGpu::FpType one_over_spacing)
+{
+  int a1 = blockIdx.x * blockDim.x + threadIdx.x;
+  int a2 = blockIdx.y * blockDim.y + threadIdx.y;
+
+  if (a1 < N1 && a2 < N2) {
+    int idx1 = a1 * 3;
+    CpptrajGpu::FpType a1x = xyz1[idx1  ];
+    CpptrajGpu::FpType a1y = xyz1[idx1+1];
+    CpptrajGpu::FpType a1z = xyz1[idx1+2];
+    CpptrajGpu::FpType f1x = frac[0]*a1x + frac[1]*a1y + frac[2]*a1z;
+    CpptrajGpu::FpType f1y = frac[3]*a1x + frac[4]*a1y + frac[5]*a1z;
+    CpptrajGpu::FpType f1z = frac[6]*a1x + frac[7]*a1y + frac[8]*a1z;
+
+    int idx2 = a2 * 3;
+    CpptrajGpu::FpType a2x = xyz2[idx2  ];
+    CpptrajGpu::FpType a2y = xyz2[idx2+1];
+    CpptrajGpu::FpType a2z = xyz2[idx2+2];
+    CpptrajGpu::FpType f2x = frac[0]*a2x + frac[1]*a2y + frac[2]*a2z;
+    CpptrajGpu::FpType f2y = frac[3]*a2x + frac[4]*a2y + frac[5]*a2z;
+    CpptrajGpu::FpType f2z = frac[6]*a2x + frac[7]*a2y + frac[8]*a2z;
+
+    CpptrajGpu::FpType dist2 =  NonOrtho_dist2<CpptrajGpu::FpType>(f2x, f2y, f2z, f1x ,f1y, f1z, ucell);
+    if (dist2 > 0 && dist2 <= maximum2) {
+      CpptrajGpu::FpType dist = sqrt(dist2);
+      int histIdx = (int) (dist * one_over_spacing);
+      //printf("DEBUG: a1= %i  a2= %i  dist= %f  bin=%i\n", a1+1, a2+1, dist, histIdx);
+      //printf("DEBUG: xyz1= %f %f %f\n", a1x, a1y, a1z);
+      //printf("DEBUG: a1= %i  a2= %i  dist= %f  bin=%i  xyz1=%f %f %f  xyz2=%f %f %f\n", a1+1, a2+1, dist, histIdx,
+      //       a1x, a1y, a1z, a2x, a2y, a2z);
+      atomicAdd( RDF + histIdx, 1 );
+    }
+  }
+}

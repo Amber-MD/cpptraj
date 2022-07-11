@@ -7,6 +7,10 @@
 #ifdef _OPENMP
 #  include <omp.h>
 #endif
+#ifdef CUDA
+#  include "Gpu.h"
+#  include "cuda_kernels/kernel_rdf.cuh"
+#endif
 
 // CONSTRUCTOR
 Action_Radial::Action_Radial() :
@@ -17,6 +21,7 @@ Action_Radial::Action_Radial() :
   currentParm_(0),
   intramol_distances_(0),
   useVolume_(false),
+  mask2_is_mask1_(false),
   volume_(0),
   maximum2_(0),
   spacing_(-1),
@@ -119,6 +124,10 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
     Help();
     return Action::ERR;
   }
+  if (spacing_ > maximum) {
+    mprinterr("Error: Bin spacing %g is larger than the maximum %g\n", spacing_, maximum);
+    return Action::ERR;
+  }
   // Store max^2, distances^2 greater than max^2 do not need to be
   // binned and therefore do not need a sqrt calc.
   maximum2_ = maximum * maximum;
@@ -132,12 +141,14 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
   if (Mask1_.SetMaskString(mask1)) return Action::ERR;
 
   // Check for second mask - if none specified use first mask
+  mask2_is_mask1_ = false;
   if (needMask2) {
     std::string mask2 = actionArgs.GetMaskNext();
     if (!mask2.empty()) {
       if (Mask2_.SetMaskString(mask2)) return Action::ERR;
     } else {
       if (Mask2_.SetMaskString(mask1)) return Action::ERR;
+      mask2_is_mask1_ = true;
     }
   }
   // If filename not yet specified check for backwards compat.
@@ -257,6 +268,11 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
     mprintf("\tImaging disabled.\n");
   if (numthreads_ > 1)
     mprintf("\tParallelizing RDF calculation with %i threads.\n",numthreads_);
+#ifdef CUDA
+  if (rmode_ == NORMAL) {
+    mprintf("\tRDF calculation will be accelerated with CUDA.\n");
+  }
+#endif
 
   return Action::OK;
 }
@@ -439,6 +455,89 @@ Action::RetType Action_Radial::Setup(ActionSetup& setup) {
   return Action::OK;  
 }
 
+#ifdef CUDA
+/** Place coords for selected atoms into arrays. */
+static inline std::vector<CpptrajGpu::FpType> mask_to_xyz(AtomMask const& Mask, Frame const& frm)
+{
+  std::vector<CpptrajGpu::FpType> outerxyz;
+  outerxyz.reserve( Mask.Nselected()*3 );
+  for (AtomMask::const_iterator at = Mask.begin(); at != Mask.end(); ++at) {
+    const double* xyz = frm.XYZ( *at );
+    outerxyz.push_back( (CpptrajGpu::FpType)xyz[0] );
+    outerxyz.push_back( (CpptrajGpu::FpType)xyz[1] );
+    outerxyz.push_back( (CpptrajGpu::FpType)xyz[2] );
+  }
+  return outerxyz;
+}
+#endif
+
+void Action_Radial::calcRDF_singleMask(Frame const& frmIn) {
+  int outer_max = OuterMask_.Nselected();
+  int idx1;
+
+  long unsigned* myRDF = &RDF_[0];
+# ifdef _OPENMP
+# pragma omp parallel private(idx1, myRDF)
+  {
+    //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
+    myRDF = &(rdf_thread_[omp_get_thread_num()][0]);
+# pragma omp for schedule(dynamic)
+# endif
+  for (idx1 = 0; idx1 < outer_max; idx1++) {
+    const double* xyz1 = frmIn.XYZ( OuterMask_[idx1] );
+    for (int idx2 = idx1 + 1; idx2 < outer_max; idx2++) {
+      const double* xyz2 = frmIn.XYZ( OuterMask_[idx2] );
+      double D2 = DIST2( imageOpt_.ImagingType(), xyz1, xyz2, frmIn.BoxCrd() );
+      if (D2 <= maximum2_) {
+      // NOTE: Can we modify the histogram to store D^2?
+        double dist = sqrt(D2);
+        //mprintf("MASKLOOP: %10i %10i %10.4f\n",atom1,atom2,D);
+        int idx = (int) (dist * one_over_spacing_);
+        //if (idx > -1 && idx < numBins_) {
+          myRDF[idx] += 2;
+        //}
+      }
+    } // END inner loop
+  } // END outer loop
+# ifdef _OPENMP
+  } // END pragma omp parallel
+# endif
+}
+
+void Action_Radial::calcRDF_twoMask(Frame const& frmIn) {
+  int outer_max = OuterMask_.Nselected();
+  int inner_max = InnerMask_.Nselected();
+  int idx1;
+
+  long unsigned* myRDF = &RDF_[0];
+# ifdef _OPENMP
+# pragma omp parallel private(idx1, myRDF)
+  {
+    //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
+    myRDF = &(rdf_thread_[omp_get_thread_num()][0]);
+# pragma omp for
+# endif
+  for (idx1 = 0; idx1 < outer_max; idx1++) {
+    const double* xyz1 = frmIn.XYZ( OuterMask_[idx1] );
+    for (int idx2 = 0; idx2 < inner_max; idx2++) {
+      const double* xyz2 = frmIn.XYZ( InnerMask_[idx2] );
+      double D2 = DIST2( imageOpt_.ImagingType(), xyz1, xyz2, frmIn.BoxCrd() );
+      if (D2 <= maximum2_) {
+      // NOTE: Can we modify the histogram to store D^2?
+        double dist = sqrt(D2);
+        //mprintf("MASKLOOP: %10i %10i %10.4f\n",atom1,atom2,D);
+        int idx = (int) (dist * one_over_spacing_);
+        //if (idx > -1 && idx < numBins_) {
+          myRDF[idx]++;
+        //}
+      }
+    } // END inner loop
+  } // END outer loop
+# ifdef _OPENMP
+  } // END pragma omp parallel
+# endif
+}
+
 // Action_Radial::DoAction()
 /** Calculate distances from atoms in mask1 to atoms in mask 2 and
   * bin them.
@@ -458,41 +557,40 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
   if (useVolume_)
     volume_ += frm.Frm().BoxCrd().CellVolume();
   // ---------------------------------------------
-  if ( rmode_ == NORMAL ) { 
+  if ( rmode_ == NORMAL ) {
+#ifdef CUDA
+  // Copy atoms for GPU 
+  std::vector<CpptrajGpu::FpType> outerxyz = mask_to_xyz(OuterMask_, frm.Frm());
+  const CpptrajGpu::FpType* outerxyzPtr = &outerxyz[0];
+  std::vector<CpptrajGpu::FpType> innerxyz;
+  const CpptrajGpu::FpType* innerxyzPtr = 0;
+  if (!mask2_is_mask1_) {
+    innerxyz = mask_to_xyz(InnerMask_, frm.Frm());
+    innerxyzPtr = &innerxyz[0];
+  }
+  CpptrajGpu::FpType gpu_box[3];
+  gpu_box[0] = (CpptrajGpu::FpType)frm.Frm().BoxCrd().Param(Box::X);
+  gpu_box[1] = (CpptrajGpu::FpType)frm.Frm().BoxCrd().Param(Box::Y);
+  gpu_box[2] = (CpptrajGpu::FpType)frm.Frm().BoxCrd().Param(Box::Z);
+  CpptrajGpu::FpType gpu_ucell[9], gpu_frac[9];
+  for (int ibox = 0; ibox != 9; ibox++) {
+    gpu_ucell[ibox] = (CpptrajGpu::FpType)frm.Frm().BoxCrd().UnitCell()[ibox];
+    gpu_frac[ibox]  = (CpptrajGpu::FpType)frm.Frm().BoxCrd().FracCell()[ibox];
+  }
+  Cpptraj_GPU_RDF( &RDF_[0], RDF_.size(), maximum2_, one_over_spacing_,
+                   outerxyzPtr, OuterMask_.Nselected(),
+                   innerxyzPtr, InnerMask_.Nselected(),
+                   imageOpt_.ImagingType(),
+                   gpu_box,
+                   gpu_ucell,
+                   gpu_frac );
+#else /* CUDA */ 
     // Calculation of all atoms in Mask1 to all atoms in Mask2
-    int outer_max = OuterMask_.Nselected();
-    int inner_max = InnerMask_.Nselected();
-#   ifdef _OPENMP
-#   pragma omp parallel private(nmask1,nmask2,atom1,atom2,D,idx,mythread)
-    {
-    //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
-    mythread = omp_get_thread_num();
-#   pragma omp for
-#   endif
-    for (nmask1 = 0; nmask1 < outer_max; nmask1++) {
-      atom1 = OuterMask_[nmask1];
-      for (nmask2 = 0; nmask2 < inner_max; nmask2++) {
-        atom2 = InnerMask_[nmask2];
-        if (atom1 != atom2) {
-          D = DIST2( imageOpt_.ImagingType(), frm.Frm().XYZ(atom1), frm.Frm().XYZ(atom2), frm.Frm().BoxCrd() );
-          if (D <= maximum2_) {
-            // NOTE: Can we modify the histogram to store D^2?
-            D = sqrt(D);
-            //mprintf("MASKLOOP: %10i %10i %10.4f\n",atom1,atom2,D);
-            idx = (int) (D * one_over_spacing_);
-            if (idx > -1 && idx < numBins_)
-#             ifdef _OPENMP
-              ++rdf_thread_[mythread][idx];
-#             else
-              ++RDF_[idx];
-#             endif
-          }
-        }
-      } // END loop over 2nd mask
-    } // END loop over 1st mask
-#   ifdef _OPENMP
-    } // END pragma omp parallel
-#   endif
+    if (mask2_is_mask1_)
+      calcRDF_singleMask( frm.Frm() );
+    else
+      calcRDF_twoMask( frm.Frm() );
+#endif /* CUDA */
   // ---------------------------------------------
   } else if ( rmode_ == NO_INTRAMOL ) {
     // Calculation of all atoms in Mask1 to all atoms in Mask2, ignoring
