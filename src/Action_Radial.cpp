@@ -480,7 +480,7 @@ void Action_Radial::calcRDF_singleMask(Frame const& frmIn) {
   {
     //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
     myRDF = &(rdf_thread_[omp_get_thread_num()][0]);
-# pragma omp for
+# pragma omp for schedule(dynamic)
 # endif
   for (idx1 = 0; idx1 < outer_max; idx1++) {
     const double* xyz1 = frmIn.XYZ( OuterMask_[idx1] );
