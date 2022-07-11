@@ -47,7 +47,6 @@ __global__ void kClosestDistsToPt_NoImage(double* D_, const double* maskCenter,
   }
 }
 
-
 // -----------------------------------------------------------------------------
 /** Calculate closest distances of atoms of solvent molecules to solute atoms.
   */
@@ -186,30 +185,7 @@ __global__ void kClosestDistsToPt_Ortho(double *D_, const double* maskCenter,
                                   SolventMols_[sIndex], SolventMols_[sIndex+1], SolventMols_[sIndex+2],
                                   box );
       sIndex += 3;
-/*
-      double x = a0 - SolventMols_[sIndex++];
-      double y = a1 - SolventMols_[sIndex++];
-      double z = a2 - SolventMols_[sIndex++];
 
-      // Get rid of sign info
-      if (x<0) x=-x;
-      if (y<0) y=-y;
-      if (z<0) z=-z;
-      // Get rid of multiples of box lengths 
-      //TODO  WIERD that should be a way to simplify it
-      while (x > box[0]) x = x - box[0];
-      while (y > box[1]) y = y - box[1];
-      while (z > box[2]) z = z - box[2];
-        // Find shortest distance in periodic reference
-      double D = box[0] - x;
-      if (D < x) x = D;
-      D = box[1] - y;
-      if (D < y) y = D;  
-      D = box[2] - z;
-      if (D < z) z = D;
-
-      //Dist = x*x + y*y + z*z;
-      dist = x*x + y*y + z*z;*/
       if (box[0]==0.0 || box[1]==0.0 || box[2]==0.0)
         dist= -1.0;
 
@@ -285,35 +261,7 @@ __global__ void kClosestDistsToAtoms_Ortho(double* D_, const double* SolventMols
         dist = ortho_dist2<double>( Solute_atoms[j], Solute_atoms[j+1], Solute_atoms[j+2],
                                     a0, a1, a2,
                                     box );
-/*
-        double x = Solute_atoms[j + 0]  - a0;
-        double y = Solute_atoms[j + 1]  - a1;
-        double z = Solute_atoms[j + 2]  - a2;
 
-        // Get rid of sign info
-        if (x<0) x=-x;
-        if (y<0) y=-y;
-        if (z<0) z=-z;
-        // Get rid of multiples of box lengths 
-        //TODO  WIERD that should be a way to simplify it
-        while (x > box[0]) x = x - box[0];
-        while (y > box[1]) y = y - box[1];
-        while (z > box[2]) z = z - box[2];
-
-        //below is actually slower! 
-        //x = x - box[0]*((int)x/box[0]);
-        //y = y - box[0]*((int)y/box[1]);
-        //z = z - box[0]*((int)z/box[2]);
-        // Find shortest distance in periodic reference
-        double D = box[0] - x;
-        if (D < x) x = D;
-        D = box[1] - y;
-        if (D < y) y = D;  
-        D = box[2] - z;
-        if (D < z) z = D;
-
-        //Dist = x*x + y*y + z*z;
-        dist =  x*x + y*y + z*z;*/
         if (box[0]==0.0 || box[1]==0.0 || box[2]==0.0)
           dist = -1.0;
 

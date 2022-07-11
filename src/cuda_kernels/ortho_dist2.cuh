@@ -17,6 +17,10 @@ __device__ T ortho_dist2(T a1x, T a1y, T a1z,
   while (x > box[0]) x = x - box[0];
   while (y > box[1]) y = y - box[1];
   while (z > box[2]) z = z - box[2];
+  //below is actually slower! 
+  //x = x - box[0]*((int)x/box[0]);
+  //y = y - box[0]*((int)y/box[1]);
+  //z = z - box[0]*((int)z/box[2]);
   // Find shortest distance in periodic reference
   T D2 = box[0] - x;
   if (D2 < x) x = D2;
