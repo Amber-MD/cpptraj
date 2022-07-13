@@ -18,7 +18,7 @@ CheckForSilent cuda
 if [ $? -eq 0 ] ; then
   TOL_ARG='-a 0.0002'
   echo "Lowering tolerance for single-precision CUDA: $TOL_ARG"
-fitz2noimage.WatO-Prot.agr
+fi
 
 INPUT="-i radial.in"
 
