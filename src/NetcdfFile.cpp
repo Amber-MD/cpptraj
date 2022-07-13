@@ -1005,7 +1005,7 @@ const
 }
  
 /** Set compressedFac to given power of 10 (min 1). */
-int NetcdfFile::calcCompressFactor(double& compressedFac, int power, const char* desc) {
+int NetcdfFile::calcCompressFactor(double& compressedFac, int power, const char* desc) const {
   compressedFac = 0;
   if (power < 1) {
     mprinterr("Internal Error: calcCompressFactor called with power of 10 < 1\n");
@@ -1014,7 +1014,8 @@ int NetcdfFile::calcCompressFactor(double& compressedFac, int power, const char*
   compressedFac = 10.0;
   for (int i = 1; i < power; i++)
     compressedFac *= 10.0;
-  mprintf("\tConverting %s to integer using factor: x%g\n", desc, compressedFac);
+  if (ncdebug_ > 0)
+    mprintf("\tIf present, will convert %s to integer using factor: x%g\n", desc, compressedFac);
   return 0;
 }
 
@@ -1494,7 +1495,7 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
   if (coordInfo.HasCrd() && intCompressFac_[V_COORDS] > 0) {
     if (set_atom_dim_array(dimensionID)) return 1;
     // Coords with integer compression
-    mprintf("\tCOORDS will use integer compression with factor %g\n", intCompressFac_[V_COORDS]);
+    mprintf("\tCoordinates will use integer compression with factor %g\n", intCompressFac_[V_COORDS]);
     if (NC::CheckErr( nc_def_var(ncid_, NCCOMPPOS, NC_INT, NDIM, dimensionID, &compressedPosVID_) )) {
       mprinterr("Error: defining compressed positions VID.\n");
       return 1;
@@ -1516,7 +1517,7 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
   if (coordInfo.HasVel() && intCompressFac_[V_VEL] > 0) {
     if (set_atom_dim_array(dimensionID)) return 1;
     // Velocities with integer compression
-    mprintf("\tVELOCITIES will use integer compression with factor %g\n", intCompressFac_[V_VEL]);
+    mprintf("\tVelocities will use integer compression with factor %g\n", intCompressFac_[V_VEL]);
     if (NC::CheckErr( nc_def_var(ncid_, NCCOMPVEL, NC_INT, NDIM, dimensionID, &compressedVelVID_) )) {
       mprinterr("Error: defining compressed velocities VID.\n");
       return 1;
@@ -1535,7 +1536,7 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
   if (coordInfo.HasForce() && intCompressFac_[V_FRC] > 0) {
     if (set_atom_dim_array(dimensionID)) return 1;
     // Forces with integer compression
-    mprintf("\tFORCES will use integer compression with factor %g\n", intCompressFac_[V_FRC]);
+    mprintf("\tForces will use integer compression with factor %g\n", intCompressFac_[V_FRC]);
     if (NC::CheckErr( nc_def_var(ncid_, NCCOMPFRC, NC_INT, NDIM, dimensionID, &compressedFrcVID_) )) {
       mprinterr("Error: defining compressed forces VID.\n");
       return 1;

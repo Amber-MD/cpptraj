@@ -29,6 +29,7 @@ Traj_AmberNetcdf::Traj_AmberNetcdf() :
   compress_(0),
   icompress_(0),
   fchunkSize_(0),
+  ishuffle_(1),
 # endif
   ftype_(NC_V3) // Default to NetCDF 3
 {}
@@ -157,6 +158,8 @@ int Traj_AmberNetcdf::processWriteArgs(ArgList& argIn, DataSetList const& DSLin)
     // icompress implies compress
     if (icompress_ > 0 && compress_ < 1)
       compress_ = 1;
+    // integer shuffle
+    ishuffle_ = argIn.getKeyInt("ishuffle", 1); // NOTE: Hidden option
     // Frame chunk size
     fchunkSize_ = argIn.getKeyInt("fchunksize", 0); // NOTE: Hidden option
     if (fchunkSize_ < 0) {
@@ -207,9 +210,9 @@ int Traj_AmberNetcdf::setupTrajout(FileName const& fname, Topology* trajParm,
     if (Title().empty())
       SetTitle("Cpptraj Generated trajectory");
 #   ifdef HAS_HDF5
-    // Set compression levels TODO have ishuffle option
+    // Set compression levels
     if (compress_ > 0 || icompress_ > 0) {
-      if (SetupCompression(compress_, icompress_, 1))
+      if (SetupCompression(compress_, icompress_, ishuffle_))
         return 1;
     }
     // Set frame chunk size

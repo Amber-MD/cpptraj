@@ -152,7 +152,7 @@ class NetcdfFile {
     /// Set desired compression level for variable ID.
     int setDesiredCompression(VidType, int);
     /// Calculate integer compression factor of 10 from given power
-    static int calcCompressFactor(double&, int, const char*);
+    int calcCompressFactor(double&, int, const char*) const;
     /// Increase variable chunk sizes
     int NC_setVarDimChunkSizes(VidType, int, int, std::vector<int> const&, int, std::vector<size_t>&) const;
     /// Write array[ncatom3] compressed
