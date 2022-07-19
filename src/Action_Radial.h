@@ -22,6 +22,10 @@ class Action_Radial: public Action {
 #   endif
     typedef std::vector<unsigned long> Iarray;
 
+    void calcRDF_singleMask(Frame const&);
+
+    void calcRDF_twoMask(Frame const&);
+
 #   ifdef _OPENMP
     bool threadsCombined_;           ///< True if CombineRdfThreads() has been called.
 #   endif
@@ -35,7 +39,7 @@ class Action_Radial: public Action {
     typedef std::vector<AtomMask> Marray;
     Marray Sites1_;
     Marray Sites2_;
-    enum RmodeType { NORMAL=0, NO_INTRAMOL, CENTER1, CENTER2, BYSITE };
+    enum RmodeType { NORMAL=0, NO_INTRAMOL, CENTER1, CENTER2, BYSITE, SPECIFIED };
     RmodeType rmode_;                ///< Type of calculation to perform.
     enum SmodeType { OFF = 0, BYRES, BYMOL };
     SmodeType siteMode1_;
@@ -43,6 +47,7 @@ class Action_Radial: public Action {
     Topology* currentParm_;   ///< Current topology, needed for NO_INTERMOL
     int intramol_distances_;  ///< # of intra-molecular distances for NO_INTERMOL.
     bool useVolume_;          ///< If true normalize based on input volume.
+    bool mask2_is_mask1_;     ///< True is mask1 and mask2 are the same.
     double volume_;           ///< Hold sum of volume for averaging.
     double maximum2_;         ///< Largest distance squared that can be binned.
     double spacing_;          ///< Bin spacing.
@@ -55,6 +60,7 @@ class Action_Radial: public Action {
     DataSet* intrdf_;
     DataSet* rawrdf_;
     int debug_;
+    Vec3 specified_xyz_;      ///< XYZ coordinates for SPECIFIED
 
     int SetupSiteArrayByAtom(Marray&, AtomMask const&) const;
     int SetupSiteArrayByRes(Marray&, Topology const&, AtomMask const&) const;

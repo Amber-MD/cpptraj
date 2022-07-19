@@ -113,6 +113,8 @@ class Action_NAstruct: public Action {
     typedef std::vector<Rpair> StrandArray;   ///< Hold indices into Bases_ for strand beg/end
     typedef std::map<std::string, NA_Base::NAType> RefMapType; ///< Map custom res names to target types
     // ----- Functions ---------------------------
+    /// Recursively travel to 3' terminal base
+    static int follow_base_to_3prime(Barray&, unsigned int, std::vector<bool>&, int);
     /// Recursively travel sugar-phosphate backbone to find the next residue in a strand.
     static int TravelBackbone(Topology const&, int, std::vector<int>&);
     /// Set up axes for each base.

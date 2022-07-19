@@ -55,10 +55,7 @@ void GistEntropyUtils::searchVectorsForNearestNeighbors6D(
       // NNd is always < NNs, therefore we only check dd < NNd if dd < NNs
       if (dd < NNd) { NNd = dd; }
       int q1 = n1 * 4; // index into V_Q for n1
-      double rR = 2.0 * acos( fabs(W4 * V_Q[q1  ] +
-                              X4 * V_Q[q1+1] +
-                              Y4 * V_Q[q1+2] +
-                              Z4 * V_Q[q1+3] )); //add fabs for quaternions distance calculation
+      double rR = quaternion_angle(W4, X4, Y4, Z4, V_Q[q1], V_Q[q1+1], V_Q[q1+2], V_Q[q1+3]);
       double ds = rR*rR + dd;
       if (ds < NNs) { NNs = ds; }
     }

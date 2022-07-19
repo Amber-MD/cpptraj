@@ -4,7 +4,7 @@
 
 # Clean
 CleanFiles nastruct.in BP.*.dat BPstep.*.dat bases.pdb baseaxes.pdb basepairaxes.pdb \
-           Helix.*.dat Param.pdb SS.mol1.dat
+           Helix.*.dat Param.pdb SS.mol1.dat SS.mol1.selected.dat
 
 # Test 2
 TESTNAME='NAstruct tests'
@@ -40,6 +40,16 @@ nastruct naout mol1.dat sscalc
 EOF
 RunCpptraj "NAstruct command test, single strand"
 DoTest SS.mol1.dat.save SS.mol1.dat
+
+# Single strand, selected residues
+cat > nastruct.in <<EOF
+parm ../adh026.3.pdb
+trajin ../adh026.3.pdb
+strip ^2
+nastruct naout mol1.selected.dat sscalc resrange 2,3,5,6,7
+EOF
+RunCpptraj "NAstruct command test, single strand, selected residues"
+DoTest SS.mol1.selected.dat.save SS.mol1.selected.dat
 
 EndTest
 

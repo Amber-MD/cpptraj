@@ -4511,7 +4511,7 @@ object 3 class array type double rank 0 items 53856 data follows
 -1.03514 -1.08597 0
 0 0 0
 0 0 0
-0 -136.057 0
+0 -136.056 0
 0 0 0
 0 0 1.23976
 0 0 0
@@ -5130,7 +5130,7 @@ object 3 class array type double rank 0 items 53856 data follows
 0 0 0
 0 0 0
 0 0 0
-0 -5.1824 -13.1592
+0 -5.1824 -13.1591
 0 -15.7078 -33.5223
 0 0 0
 0 0 0
@@ -5857,7 +5857,7 @@ object 3 class array type double rank 0 items 53856 data follows
 0 0 0
 0 0 0
 0 0 0
--0.613188 -0.0678786 0
+-0.613188 -0.0678787 0
 0 0 0
 0 0 0
 0 0 0
@@ -6309,7 +6309,7 @@ object 3 class array type double rank 0 items 53856 data follows
 0 0 0
 0 0 0
 0 0 0
-2.43635 0 1.25898
+2.43635 0 1.25897
 0 0 0
 0 0 0
 0 0 0
@@ -7031,7 +7031,7 @@ object 3 class array type double rank 0 items 53856 data follows
 0 0 0
 0 0.92454 0
 0 0 0
--20.0152 0 0
+-20.0151 0 0
 0 0 0
 0 0 0
 1.89211 1.06558 0
@@ -7458,7 +7458,7 @@ object 3 class array type double rank 0 items 53856 data follows
 0 0 0
 0 0 0
 0 0 0
-0 0 -1.14354
+0 0 -1.14353
 0 0 0
 0 0 0
 0 0 -0.949279
@@ -7600,7 +7600,7 @@ object 3 class array type double rank 0 items 53856 data follows
 0 0 0
 0 0 0
 -2.57076 0 -6.34068
-0.269525 0 0
+0.269526 0 0
 0 0 0
 0 0 0
 0 0 0
@@ -7612,7 +7612,7 @@ object 3 class array type double rank 0 items 53856 data follows
 0 0 0
 0 -1.90114 0
 0 0 -5.16913
--1.6161 -1.07212 0
+-1.6161 -1.07213 0
 0 0 0
 0 0 0
 0 0 0
@@ -8139,7 +8139,7 @@ object 3 class array type double rank 0 items 53856 data follows
 0 -1.2353 -8.17223
 -1.1972 0 0
 0 -3.66318 -1.97908
--2.03401 0 0
+-2.03402 0 0
 0 0 0
 0 0 0
 0 0 0
@@ -8566,7 +8566,7 @@ object 3 class array type double rank 0 items 53856 data follows
 0 0 0
 0 0 0
 0 0 0
--70.4844 -21.8962 0
+-70.4844 -21.8963 0
 0 0 0
 0 0 0
 0 0 0
@@ -9043,7 +9043,7 @@ object 3 class array type double rank 0 items 53856 data follows
 0 0 0
 0 0 0
 0 0 0
-2.63749 -2.04689 -2.72891
+2.63749 -2.04689 -2.72892
 0 0 0
 0 0 0
 0 0 0
@@ -9086,7 +9086,7 @@ object 3 class array type double rank 0 items 53856 data follows
 0 -20.3195 -29.5623
 -10.0647 0 0
 0 0 0
-0 0 -3.80777
+0 0 -3.80776
 0 0 0
 0 0 0
 0 0 0
@@ -10414,7 +10414,7 @@ object 3 class array type double rank 0 items 53856 data follows
 0 0 -0.0267598
 0 0 0
 0 0 -0.376726
-0.2331 0.00911169 0
+0.2331 0.0091117 0
 0 0.769645 -2.12591
 -4.46562 0 0
 0 0 0

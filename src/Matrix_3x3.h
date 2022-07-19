@@ -6,52 +6,72 @@
 #endif
 class Matrix_3x3 {
   public:
+    /// CONSTRUCTOR
     Matrix_3x3() {}
+    /// COPY CONSTRUCTOR
     Matrix_3x3(const Matrix_3x3&);
+    /// CONSTRUCTOR - pointer to flattened matrix array of size 9, assumes row-major
     Matrix_3x3(const double*);
+    /// CONSTRUCTOR - Set all elements to a single number
     Matrix_3x3(double);
+    /// CONSTRUCTOR - Set diagonal, all others to zero
     Matrix_3x3(double,double,double);
+    /// CONSTRUCTOR - Set all elements individually (row major)
     Matrix_3x3(double m0, double m1, double m2, double m3, double m4,
                double m5, double m6, double m7, double m8)
     {
       M_[0] = m0; M_[1] = m1; M_[2] = m2; M_[3] = m3; M_[4] = m4;
       M_[5] = m5; M_[6] = m6; M_[7] = m7; M_[8] = m8;
     }
+    /// ASSIGNMENT
     Matrix_3x3& operator=(const Matrix_3x3&);
  
     // NOTE: No bounds check!
     // TODO: Make const ref only?
+    /// \return Element at specified index
     double  operator[](int idx) const { return M_[idx]; }
+    /// \return Element at specified index
     double& operator[](int idx)       { return M_[idx]; }
+    /// \return First row
     Vec3 Row1() const { return Vec3(M_);   }
+    /// \return Second row
     Vec3 Row2() const { return Vec3(M_+3); }
+    /// \return Third row
     Vec3 Row3() const { return Vec3(M_+6); }
+    /// \return First column
     Vec3 Col1() const { return Vec3(M_[0], M_[3], M_[6]); }
+    /// \return Second column
     Vec3 Col2() const { return Vec3(M_[1], M_[4], M_[7]); }
+    /// \return Third column
     Vec3 Col3() const { return Vec3(M_[2], M_[5], M_[8]); }
+    /// \return const pointer to internal matrix data
+    const double* Dptr() const { return M_; }
+    /// \return pointer to internal matrix data
+    double* Dptr() { return M_; }
+
+    /// Zero all elements of the matrix
     void Zero();
+    /// Print matrix to stdout
     void Print(const char*) const;
 
+    /// Diagonalize matrix, store eigenvectors in columns, set eigenvalues
     int Diagonalize( Vec3& );
+    /// Diagonalize matrix and sort eigenvectors (in cols) by eigenvalue
     int Diagonalize_Sort( Vec3& );
+    /// Diagonalize matrix, sort eignvectors, attempt to correct for eigenvector sign flips
     int Diagonalize_Sort_Chirality(Vec3&,int);
 
+    /// Transpose the matrix
     void Transpose();
     /// \return Matrix with rows and columns transposed.
     inline Matrix_3x3 Transposed() const;
+
     /// \return Result of multiplying this matrix times given 3x3 matrix TODO split into a void and const version
     Matrix_3x3& operator*=(const Matrix_3x3&);
     /// Multiply all elements of this matrix by scalar
     Matrix_3x3& operator*=(double);
     /// \return Result of multiplying this matrix times given scalar
     Matrix_3x3 operator*(double) const;
-    
-    void RotationAroundZ(double, double);
-    void RotationAroundY(double, double);
-    void CalcRotationMatrix(Vec3 const&, double);
-    void CalcRotationMatrix(double, double, double);
-    double RotationAngle();
-    Vec3 AxisOfRotation(double);
     /// Multiply 3x3 matrix times double[3]
     void TimesVec(double* result, const double* rhs) const {
       double x = rhs[0];
@@ -92,15 +112,37 @@ class Matrix_3x3 {
     Matrix_3x3 operator*(Matrix_3x3 const&) const;
     /// Multiply this times transpose of 3x3 matrix
     Matrix_3x3 TransposeMult(Matrix_3x3 const&) const;
-    // TODO: Get rid of this
-    const double* Dptr() const { return M_; }
-    double* Dptr() { return M_; }
+
+    // ----- Rotation functions ------------------
+    /// Calculate rotation matrix around given axis of given magnitude
+    void CalcRotationMatrix(Vec3 const&, double);
+    /// Calculate rotation matrix around X, Y, and Z axes
+    void CalcRotationMatrix(double, double, double);
+    /// \return Angle of rotation from matrix
+    double RotationAngle() const;
+    /// Decompose rotation matrix into Euler angles around each axis
+    int RotationAngles(double&, double&, double&) const;
+    /// Given theta, extract axis of rotation from rotation matrix
+    Vec3 AxisOfRotation(double) const;
+
+    /// Calculate rotation matrix around Z axis. TODO make private
+    void RotationAroundZ(double, double);
+    /// Calculate rotation matrix around Y axis. TODO make private
+    void RotationAroundY(double, double);
+
+
 #   ifdef MPI
+    /// Broadcast from master to other ranks
     void BroadcastMatrix(Parallel::Comm const&);
+    /// Send matrix to rank
     int SendMatrix(int, Parallel::Comm const&) const;
+    /// Receive matrix from rank
     int RecvMatrix(int, Parallel::Comm const&);
 #   endif
   private:
+    /// Try to fix eigenvector sign flips (Diagonalize_Sort_Chirality())
+    int jacobiCheckChirality();
+
     double M_[9];
     // The following three variables are set during Diagonalize_Sort. They
     // indicate the original ordering of the eigenvalues/eigenvectors. This
@@ -109,9 +151,7 @@ class Matrix_3x3 {
     int i1_;
     int i2_;
     int i3_;
-    static const int MAX_ITERATIONS;
-
-    int jacobiCheckChirality();
+    static const int MAX_ITERATIONS_; ///< Max iterations to use in Jacobi
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
 Matrix_3x3 Matrix_3x3::Transposed() const {
