@@ -3,7 +3,7 @@
 #include "CpptrajStdio.h"
 #include "Constants.h" // PI, RADDEG
 
-// COPY CONSTRUCTOR
+/** COPY CONSTRUCTOR */
 Matrix_3x3::Matrix_3x3(const Matrix_3x3& rhs) {
   M_[0] = rhs.M_[0];
   M_[1] = rhs.M_[1];
@@ -16,7 +16,7 @@ Matrix_3x3::Matrix_3x3(const Matrix_3x3& rhs) {
   M_[8] = rhs.M_[8];
 }
 
-/// CONSTRUCTOR - Takes array of 9, row-major
+/** CONSTRUCTOR - Takes array of 9, row-major */
 Matrix_3x3::Matrix_3x3(const double *Min) {
   M_[0] = Min[0]; 
   M_[1] = Min[1]; 
@@ -29,7 +29,7 @@ Matrix_3x3::Matrix_3x3(const double *Min) {
   M_[8] = Min[8]; 
 }
 
-/// CONSTRUCTOR - Set all elements to xIn 
+/** CONSTRUCTOR - Set all elements to xIn */
 Matrix_3x3::Matrix_3x3(double xIn) {
   M_[0] = xIn; 
   M_[1] = xIn; 
@@ -42,7 +42,7 @@ Matrix_3x3::Matrix_3x3(double xIn) {
   M_[8] = xIn; 
 }
 
-/// CONSTRUCTOR - Set diagonal
+/** CONSTRUCTOR - Set diagonal */
 Matrix_3x3::Matrix_3x3(double d1, double d2, double d3) {
   M_[0] = d1;
   M_[1] = 0;
@@ -55,7 +55,7 @@ Matrix_3x3::Matrix_3x3(double d1, double d2, double d3) {
   M_[8] = d3;
 }
 
-// Assignment
+/** Assignment */
 Matrix_3x3& Matrix_3x3::operator=(const Matrix_3x3& rhs) {
   if (this==&rhs) return *this;
   M_[0] = rhs.M_[0];
@@ -70,6 +70,7 @@ Matrix_3x3& Matrix_3x3::operator=(const Matrix_3x3& rhs) {
   return *this;
 }
 
+/** Set all elements to zero */
 void Matrix_3x3::Zero() {
   M_[0] = 0;
   M_[1] = 0;
@@ -93,7 +94,7 @@ void Matrix_3x3::Print(const char* Title) const
 
 // -----------------------------------------------------------------------------
 /// Max number of iterations to execute Jacobi algorithm
-const int Matrix_3x3::MAX_ITERATIONS = 50;
+const int Matrix_3x3::MAX_ITERATIONS_ = 50;
 
 #define ROTATE(ARR,MAJ1,MIN1,MAJ2,MIN2) { \
   dg = ARR[MAJ1 + MIN1]; \
@@ -140,7 +141,7 @@ int Matrix_3x3::Diagonalize( Vec3& vecD )
   // MAIN LOOP
   double tresh = 0;
   //int nrot = 0;
-  for (int i = 0; i < MAX_ITERATIONS; ++i) {
+  for (int i = 0; i < MAX_ITERATIONS_; ++i) {
     // sm = SUM of UPPER RIGHT TRIANGLE
     double sm = fabs(mat[1]) + fabs(mat[2]) + fabs(mat[5]);
     if (sm == 0) return 0;
@@ -377,6 +378,7 @@ Matrix_3x3 Matrix_3x3::operator*(double fac) const {
 }
 
 // Matrix_3x3::operator*=()
+/** Matrix in-place multiply */
 Matrix_3x3& Matrix_3x3::operator*=(const Matrix_3x3& rhs) {
   double Row[9];
   Row[0] = M_[0];
@@ -400,6 +402,7 @@ Matrix_3x3& Matrix_3x3::operator*=(const Matrix_3x3& rhs) {
   return *this;
 }
 
+/** Matrix multiply */
 Matrix_3x3 Matrix_3x3::operator*(Matrix_3x3 const& rhs) const {
   Matrix_3x3 result;
   result.M_[0] = M_[0]*rhs.M_[0] + M_[1]*rhs.M_[3] + M_[2]*rhs.M_[6];
@@ -414,6 +417,7 @@ Matrix_3x3 Matrix_3x3::operator*(Matrix_3x3 const& rhs) const {
   return result;
 }
 
+/** Matrix times transpose of rhs */
 Matrix_3x3 Matrix_3x3::TransposeMult(Matrix_3x3 const& rhs) const {
   Matrix_3x3 result;
   result.M_[0] = M_[0]*rhs.M_[0] + M_[1]*rhs.M_[1] + M_[2]*rhs.M_[2];
@@ -428,6 +432,7 @@ Matrix_3x3 Matrix_3x3::TransposeMult(Matrix_3x3 const& rhs) const {
   return result;
 }
 
+// ----- Rotation matrix -------------------------------------------------------
 // Matrix_3x3::RotationAroundZ()
 void Matrix_3x3::RotationAroundZ(double a1, double a2) {
   double r = sqrt( a1*a1 + a2*a2 );
@@ -456,8 +461,8 @@ void Matrix_3x3::RotationAroundY(double a1, double a2) {
   M_[8] = M_[0];   //  cos t
 }
 
-/** Given an axis of rotation V and a magnitude (radians), calculate a 
-  * rotation matrix.
+/** Given an axis of rotation V (which must be normalized) and a magnitude
+  * (radians), calculate a rotation matrix.
   */
 void Matrix_3x3::CalcRotationMatrix(Vec3 const& V, double theta) {
   // Compute all prefactors
@@ -488,14 +493,38 @@ void Matrix_3x3::CalcRotationMatrix(Vec3 const& V, double theta) {
 }
 
 /** Given rotations around the X, Y, and Z axes (radians), calculate a
-  * rotation matrix.
+  * rotation matrix. The convention used is:
+  *   Rotation around X = alpha (A)
+  *   Rotation around Y = beta (B)
+  *   Rotation around Z = gamma (G)
   */
 void Matrix_3x3::CalcRotationMatrix(double psiX, double psiY, double psiZ) {
+/*
   Vec3 V(psiX, psiY, psiZ);
   double Psi = V.Normalize(); 
   //mprintf("\t\tcalcRotationMatrix(%.2lf,%.2lf,%.2lf) Psi=%lf\n",
   //        psiX*Constants::RADDEG,psiY*Constants::RADDEG,psiZ*Constants::RADDEG,Psi*Constants::RADDEG);
   CalcRotationMatrix(V, Psi);
+*/
+  // Calculate prefactors
+  double cosA = cos(psiX);
+  double cosB = cos(psiY);
+  double cosG = cos(psiZ);
+  double sinA = sin(psiX);
+  double sinB = sin(psiY);
+  double sinG = sin(psiZ);
+
+  M_[0] = cosB * cosG;
+  M_[3] = cosB * sinG;
+  M_[6] = -sinB;
+
+  M_[1] = (sinA * sinB * cosG) - (cosA * sinG);
+  M_[4] = (sinA * sinB * sinG) + (cosA * cosG);
+  M_[7] = sinA * cosB;
+
+  M_[2] = (cosA * sinB * cosG) + (sinA * sinG);
+  M_[5] = (cosA * sinB * sinG) - (sinA * cosG);
+  M_[8] = cosA * cosB;
 }
 
 /** Return angle of rotation from rotation matrix according to
@@ -504,10 +533,31 @@ void Matrix_3x3::CalcRotationMatrix(double psiX, double psiY, double psiZ) {
   *   3D game engine design: a practical approach to real-time Computer Graphics,
   *   Volume 385, By David H. Eberly, 2001, p. 16.
   */
-double Matrix_3x3::RotationAngle() {
+double Matrix_3x3::RotationAngle() const {
   double trace = M_[0] + M_[4] + M_[8];
   trace = (trace - 1) / 2;
   return acos( trace );
+}
+
+/** Decompose rotation matrix into Euler angles (in radians) around each axis. */
+int Matrix_3x3::RotationAngles(double& thetaX, double& thetaY, double& thetaZ) const {
+  if (fabs(M_[7]) > 0 && fabs(M_[8]) > 0)
+    thetaX = atan2( M_[7], M_[8] );
+  else
+    thetaX = 0;
+
+  double d1 = sqrt( (M_[7]*M_[7]) + (M_[8]*M_[8]) );
+  if (fabs(M_[6]) > 0 && d1 > 0)
+    thetaY = atan2( M_[6], d1 );
+  else
+    thetaY = 0;
+
+  if (fabs(M_[3]) > 0 && fabs(M_[0]) > 0)
+    thetaZ = atan2( M_[3], M_[0] );
+  else
+    thetaZ = 0;
+
+  return 0;
 }
 
 /** If theta is between 0 and pi extract axis of rotation from rotation matrix
@@ -516,8 +566,9 @@ double Matrix_3x3::RotationAngle() {
   *     0 -z  y
   *     z  0 -x
   *    -y  x  0
+  * TODO: This function can be vastly simplified. Also is not currently used.
   */
-Vec3 Matrix_3x3::AxisOfRotation(double theta) {
+Vec3 Matrix_3x3::AxisOfRotation(double theta) const {
   if (theta > 0 && theta < Constants::PI) {
     double dx = 1 / (2 * sin(theta));
     Vec3 result( (M_[5] - M_[7]) * dx,
@@ -526,11 +577,12 @@ Vec3 Matrix_3x3::AxisOfRotation(double theta) {
     result.Normalize();
     return result;
   } else {
-    mprintf("Error: axis_of_rotation: Could not extract axis of rotation, angle is %lf\n",
-            Constants::RADDEG*theta);
+    mprinterr("Error: axis_of_rotation: Could not extract axis of rotation, angle is %f\n",
+              Constants::RADDEG*theta);
   }
   return Vec3(0.0, 0.0, 0.0);
 }
+// -----------------------------------------------------------------------------
 
 /** Calculate coordinate covariance matrix between Ref and Tgt. */
 double Matrix_3x3::CalcCovariance(int nselected, const int* imask, double const* Ref, double const* Tgt,
