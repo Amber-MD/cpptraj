@@ -89,9 +89,6 @@ double Energy_Amber::CalcAngleEnergy(Frame const& fIn, AngleArray const& Angles,
       double ene = Cpptraj::Energy::Ene_Angle<double>(
                      fIn.XYZ(a->A1()), fIn.XYZ(a->A2()), fIn.XYZ(a->A3()), ap.Teq(), ap.Tk());
 
-//      double theta = CalcAngle(fIn.XYZ(a->A1()), fIn.XYZ(a->A2()), fIn.XYZ(a->A3()));
-//      double tdiff = theta - ap.Teq();
-//      double ene = ap.Tk() * (tdiff * tdiff);
       Eangle += ene;
 #     ifdef DEBUG_ENERGY
       mprintf("\tAngle %4u %4i -- %4i -- %4i: k= %12.5f  x0= %12.5f  t= %12.5f  E= %12.5e\n",
