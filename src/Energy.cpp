@@ -15,11 +15,13 @@ const double Energy_Amber::QFAC = Constants::ELECTOAMBER * Constants::ELECTOAMBE
 Energy_Amber::Energy_Amber() : debug_(0) {}
 
 /** Bond energy */
-double Energy_Amber::E_bond(Frame const& fIn, Topology const& tIn, CharMask const& mask)
+double Energy_Amber::E_bond(Frame const& fIn, Topology const& tIn, CharMask const& mask, bool bondsToH)
 {
   // Heavy atom bonds
   double Ebond = CalcBondEnergy(fIn, tIn.Bonds(), tIn.BondParm(), mask);
-  Ebond += CalcBondEnergy(fIn, tIn.BondsH(), tIn.BondParm(), mask);
+  // Bonds to hydrogen
+  if (bondsToH)
+    Ebond += CalcBondEnergy(fIn, tIn.BondsH(), tIn.BondParm(), mask);
   return Ebond;
 }
 
