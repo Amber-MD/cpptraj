@@ -46,8 +46,8 @@ double Energy_Amber::CalcBondEnergy(Frame const& fIn, BondArray const& Bonds,
       double rdiff = r - bp.Req();
       double ene = bp.Rk() * (rdiff * rdiff);
       Ebond += ene;
-      mprintf("EBOND %4li %4i -- %4i: k= %12.5f  x0= %12.5f  r= %12.5f  E= %12.5f\n",
-              b - Bonds.begin(), b->A1()+1, b->A2()+1, bp.Rk(), bp.Req(), r, ene);
+//      mprintf("EBOND %4li %4i -- %4i: k= %12.5f  x0= %12.5f  r= %12.5f  E= %12.5f\n",
+//              b - Bonds.begin(), b->A1()+1, b->A2()+1, bp.Rk(), bp.Req(), r, ene);
 #     ifdef DEBUG_ENERGY
       mprintf("\tBond %4li %4i -- %4i: k= %12.5f  x0= %12.5f  r= %12.5f  E= %12.5e\n",
               b - Bonds.begin(), b->A1()+1, b->A2()+1, bp.Rk(), bp.Req(), r, ene);
