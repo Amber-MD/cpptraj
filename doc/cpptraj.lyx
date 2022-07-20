@@ -24729,7 +24729,7 @@ energy
 \end_layout
 
 \begin_layout LyX-Code
-energy [<name>] [<mask1>] [out <filename>]
+energy [<name>] [<mask1>] [out <filename>] [nobondstoh]
 \end_layout
 
 \begin_layout LyX-Code
@@ -24801,6 +24801,10 @@ energy [<name>] [<mask1>] [out <filename>]
 \end_inset
 
 <filename>] File to write results to.
+\end_layout
+
+\begin_layout Description
+[nobondstoh] Skip calculating the energy of bonds to hydrogen.
 \end_layout
 
 \begin_layout Description

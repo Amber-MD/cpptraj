@@ -54,6 +54,7 @@ class Action_Energy: public Action {
     double dt_;                    ///< Time step for estimating kinetic energy (leapfrog)
     bool need_lj_params_;          ///< True if LJ parameters needed.
     bool needs_exclList_;          ///< True if Excluded_ needs to be set up.
+    bool bondsToH_;                ///< True if we want to calculate energy of bonds with H
     Timer time_total_;
     Timer time_bond_;
     Timer time_angle_;

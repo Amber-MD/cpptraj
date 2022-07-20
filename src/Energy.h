@@ -12,7 +12,7 @@ class Energy_Amber {
     typedef std::vector<double> Darray;
     Energy_Amber();
 
-    double E_bond(Frame const&, Topology const&, CharMask const&);
+    double E_bond(Frame const&, Topology const&, CharMask const&, bool);
     double E_angle(Frame const&, Topology const&, CharMask const&);
     double E_torsion(Frame const&, Topology const&, CharMask const&);
     double E_14_Nonbond(Frame const&, Topology const&, CharMask const&, double&);
