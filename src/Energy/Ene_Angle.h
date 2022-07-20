@@ -2,7 +2,7 @@
 #define INC_ENERGY_ENE_ANGLE_H
 namespace Cpptraj {
 namespace Energy {
-
+/// \return Energy of the angle between xyz1, xyz2, and xyz3 (modeled after SANDER)
 template <typename T>
 T Ene_Angle(T const* xyz1, T const* xyz2, T const* xyz3, T const& teq, T const& tk)
 {
