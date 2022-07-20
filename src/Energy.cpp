@@ -7,6 +7,7 @@
 #include "Topology.h"
 #include "CharMask.h"
 #include "ExclusionArray.h"
+#include "Energy/Ene_Angle.h"
 
 const double Energy_Amber::QFAC = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
 
@@ -43,8 +44,10 @@ double Energy_Amber::CalcBondEnergy(Frame const& fIn, BondArray const& Bonds,
       double rdiff = r - bp.Req();
       double ene = bp.Rk() * (rdiff * rdiff);
       Ebond += ene;
+      mprintf("EBOND %4li %4i -- %4i: k= %12.5f  x0= %12.5f  r= %12.5f  E= %12.5f\n",
+              b - Bonds.begin(), b->A1()+1, b->A2()+1, bp.Rk(), bp.Req(), r, ene);
 #     ifdef DEBUG_ENERGY
-      mprintf("\tBond %4u %4i -- %4i: k= %12.5f  x0= %12.5f  r= %12.5f  E= %12.5e\n",
+      mprintf("\tBond %4li %4i -- %4i: k= %12.5f  x0= %12.5f  r= %12.5f  E= %12.5e\n",
               b - Bonds.begin(), b->A1()+1, b->A2()+1, bp.Rk(), bp.Req(), r, ene);
 #     endif
     }
@@ -81,9 +84,12 @@ double Energy_Amber::CalcAngleEnergy(Frame const& fIn, AngleArray const& Angles,
         continue;
       }
       AngleParmType const& ap = APA[apidx];
-      double theta = CalcAngle(fIn.XYZ(a->A1()), fIn.XYZ(a->A2()), fIn.XYZ(a->A3()));
-      double tdiff = theta - ap.Teq();
-      double ene = ap.Tk() * (tdiff * tdiff);
+      double ene = Cpptraj::Energy::Ene_Angle<double>(
+                     fIn.XYZ(a->A1()), fIn.XYZ(a->A2()), fIn.XYZ(a->A3()), ap.Teq(), ap.Tk());
+
+//      double theta = CalcAngle(fIn.XYZ(a->A1()), fIn.XYZ(a->A2()), fIn.XYZ(a->A3()));
+//      double tdiff = theta - ap.Teq();
+//      double ene = ap.Tk() * (tdiff * tdiff);
       Eangle += ene;
 #     ifdef DEBUG_ENERGY
       mprintf("\tAngle %4u %4i -- %4i -- %4i: k= %12.5f  x0= %12.5f  t= %12.5f  E= %12.5e\n",
