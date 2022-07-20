@@ -29,9 +29,9 @@ T Ene_Angle(T const* xyz1, T const* xyz2, T const* xyz3, T const& teq, T const& 
   //T ct2 = std::min( pt999, ct1);
 
   //T cst = ct2;
-  T ant = acos(ct0);
+  T theta = acos(ct0);
 
-  T da = ant - teq;
+  T da = theta - teq;
   // for rms deviation from ideal angles:
   // eadev = eadev + da*da
   T df = tk * da;
