@@ -13,7 +13,8 @@ Action_Energy::Action_Energy() :
   EW_(0),
   dt_(0),
   need_lj_params_(false),
-  needs_exclList_(false)
+  needs_exclList_(false),
+  bondsToH_(true)
 {}
 
 /// DESTRUCTOR
@@ -22,7 +23,7 @@ Action_Energy::~Action_Energy() {
 }
 
 void Action_Energy::Help() const {
-  mprintf("\t[<name>] [<mask1>] [out <filename>]\n"
+  mprintf("\t[<name>] [<mask1>] [out <filename>] [nobondstoh]\n"
           "\t[bond] [angle] [dihedral] {[nb14] | [e14] | [v14]}\n"
           "\t{[nonbond] | [elec] [vdw]} [kinetic [ketype {vel|vv}] [dt <dt>]]\n"
           "\t[ etype { simple |\n"
@@ -116,6 +117,8 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
     if (KEtype_ != KE_VEL)
       dt_ = actionArgs.getKeyDouble("dt", 0.001);
   }
+  // Do we want bonds to H calculated?
+  bondsToH_ = !(actionArgs.hasKey("nobondstoh"));
   // Electrostatics type.
   std::string etypearg = actionArgs.GetStringKey("etype");
   elecType_ = NO_ELE;
@@ -235,6 +238,8 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
   for (int i = 0; i != (int)TOTAL+1; i++)
     if (termEnabled[i]) mprintf(" '%s'", EtypeStr[i]);
   mprintf("\n");
+  if (termEnabled[BOND] && !bondsToH_)
+    mprintf("\tNot calculating energy of bonds to hydrogen.\n");
   if (elecType_ != NO_ELE)
     mprintf("\tElectrostatics method: %s\n", ElecStr[elecType_]);
   if (elecType_ == DIRECTSUM) {
@@ -344,7 +349,7 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
     switch (*calc) {
       case C_BND:
         time_bond_.Start();
-        ene = ENE_.E_bond(frm.Frm(), *currentParm_, Mask1_);
+        ene = ENE_.E_bond(frm.Frm(), *currentParm_, Mask1_, bondsToH_);
         time_bond_.Stop();
         Energy_[BOND]->Add(frameNum, &ene);
         Etot += ene;
