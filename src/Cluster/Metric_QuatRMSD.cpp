@@ -49,10 +49,10 @@ double Cpptraj::Cluster::Metric_QuatRMSD::FrameDist(int f1, int f2) {
   double rms;
   frm1_.printAtomCoord(0);
   frm2_.printAtomCoord(0);
-  if (nofit_)
-    rms = frm1_.RMSD_NoFit( frm2_, useMass_ );
-  else
-    rms = frm1_.RMSD( frm2_, useMass_ );
+  //if (nofit_)
+  //  rms = frm1_.RMSD_NoFit( frm2_, useMass_ );
+  //else
+    rms = QuaternionRMSD_CenteredRef( frm2_, frm1_, useMass_ );
   mprintf("\tMetric_QuatRMSD::FrameDist(%i, %i)= %g\n", f1, f2, rms);
   return rms;
 # else
