@@ -278,7 +278,8 @@ Cpptraj::Cluster::Metric const*
   {
     if ( (*it)->MetricType() == Metric::RMS ||
          (*it)->MetricType() == Metric::DME ||
-         (*it)->MetricType() == Metric::SRMSD )
+         (*it)->MetricType() == Metric::SRMSD ||
+         (*it)->MetricType() == Metric::QRMSD )
       return *it;
   }
   return 0;
@@ -292,6 +293,7 @@ Cpptraj::Cluster::Metric* Cpptraj::Cluster::MetricArray::AllocateMetric(Metric::
     case Metric::RMS       : met = new Metric_RMS(); break;
     case Metric::DME       : met = new Metric_DME(); break;
     case Metric::SRMSD     : met = new Metric_SRMSD(); break;
+    case Metric::QRMSD     : met = new Metric_QuatRMSD(); break;
     case Metric::SCALAR    : met = new Metric_Scalar(); break;
     case Metric::TORSION   : met = new Metric_Torsion(); break;
     default: mprinterr("Error: Unhandled Metric in AllocateMetric.\n");
@@ -339,7 +341,7 @@ int Cpptraj::Cluster::MetricArray::initMetricArray(DataSetList const& setsToClus
   if      (usedme)  coordsMetricType = Metric::DME;
   else if (userms)  coordsMetricType = Metric::RMS;
   else if (usesrms) coordsMetricType = Metric::SRMSD;
-  else if (usesrms) coordsMetricType = Metric::QRMSD;
+  else if (useqrms) coordsMetricType = Metric::QRMSD;
   else coordsMetricType = Metric::RMS; // default
 
   // For each input set, set up the appropriate metric
@@ -377,7 +379,7 @@ int Cpptraj::Cluster::MetricArray::initMetricArray(DataSetList const& setsToClus
       case Metric::SRMSD :
         err = ((Metric_SRMSD*)met)->Init((DataSet_Coords*)*ds, AtomMask(maskExpr), nofit, useMass, debug_); break;
       case Metric::QRMSD :
-        err = ((Metric_QuatRMSD*)met)->Init((DataSet_Coords*)*ds, AtomMask(maskExpr), nofit, useMass, debug_); break;
+        err = ((Metric_QuatRMSD*)met)->Init((DataSet_Coords*)*ds, AtomMask(maskExpr), useMass); break;
       case Metric::SCALAR :
         err = ((Metric_Scalar*)met)->Init((DataSet_1D*)*ds); break;
       case Metric::TORSION :
