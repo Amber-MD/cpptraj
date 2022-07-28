@@ -584,39 +584,6 @@ Vec3 Matrix_3x3::AxisOfRotation(double theta) const {
 }
 // -----------------------------------------------------------------------------
 
-/** Calculate coordinate covariance matrix between Ref and Tgt. */
-double Matrix_3x3::CalcCovariance(int nselected, const int* imask, double const* Ref, double const* Tgt,
-                                  double const* Mass,
-                                  Vec3 const& refTrans, Vec3 const& tgtTrans)
-{
-  double mwss = 0.0;
-  for (unsigned int idx = 0; idx != 9; idx++)
-    M_[idx] = 0;
-  for (int aidx = 0; aidx != nselected; aidx++)
-  {
-    int at = imask[aidx];
-    int i = at * 3;
-    double xt = Tgt[i  ] + tgtTrans[0];
-    double yt = Tgt[i+1] + tgtTrans[1];
-    double zt = Tgt[i+2] + tgtTrans[2];
-    double xr = Ref[i  ] + refTrans[0];
-    double yr = Ref[i+1] + refTrans[1];
-    double zr = Ref[i+2] + refTrans[2];
-    double atom_mass = Mass[at];
-    mwss += atom_mass * ( (xt*xt)+(yt*yt)+(zt*zt)+(xr*xr)+(yr*yr)+(zr*zr) );
-    M_[0] += atom_mass*xt*xr;
-    M_[1] += atom_mass*xt*yr;
-    M_[2] += atom_mass*xt*zr;
-    M_[3] += atom_mass*yt*xr;
-    M_[4] += atom_mass*yt*yr;
-    M_[5] += atom_mass*yt*zr;
-    M_[6] += atom_mass*zt*xr;
-    M_[7] += atom_mass*zt*yr;
-    M_[8] += atom_mass*zt*zr;
-  }
-  return mwss;
-}
-
 #ifdef MPI
 /** Broadcast matrix from master to other ranks. */
 void Matrix_3x3::BroadcastMatrix(Parallel::Comm const& commIn) {

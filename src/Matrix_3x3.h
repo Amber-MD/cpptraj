@@ -72,10 +72,6 @@ class Matrix_3x3 {
     Matrix_3x3& operator*=(double);
     /// \return Result of multiplying this matrix times given scalar
     Matrix_3x3 operator*(double) const;
-    
-    /// Calculate coordinate covariance matrix
-    double CalcCovariance(int, const int*, double const*, double const*, double const*, Vec3 const&, Vec3 const&);
-
     /// Multiply 3x3 matrix times double[3]
     void TimesVec(double* result, const double* rhs) const {
       double x = rhs[0];
