@@ -430,7 +430,7 @@ COMMON_SOURCES= \
         xoshiro128plusplus.cpp
 
 CSOURCES= molsurf.c
- 
+
 # The files below are used by cpptraj and libcpptraj but must be compiled
 # differently for libcpptraj.
 SOURCES=$(COMMON_SOURCES) \
