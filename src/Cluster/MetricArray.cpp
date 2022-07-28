@@ -23,6 +23,7 @@
 #include "Metric_Scalar.h"
 #include "Metric_SRMSD.h"
 #include "Metric_Torsion.h"
+#include "Metric_QuatRMSD.h"
 
 /** CONSTRUCTOR */
 Cpptraj::Cluster::MetricArray::MetricArray() :
@@ -300,7 +301,7 @@ Cpptraj::Cluster::Metric* Cpptraj::Cluster::MetricArray::AllocateMetric(Metric::
 
 /** Recognized metric args. */
 const char* Cpptraj::Cluster::MetricArray::MetricArgs_ =
-  "[{dme|rms|srmsd} [mass] [nofit] [<mask>]] [{euclid|manhattan}] [wgt <list>]";
+  "[{dme|rms|srmsd|qrmsd} [mass] [nofit] [<mask>]] [{euclid|manhattan}] [wgt <list>]";
 
 /** Initialize with given sets and arguments. */
 int Cpptraj::Cluster::MetricArray::initMetricArray(DataSetList const& setsToCluster, ArgList& analyzeArgs)
@@ -311,6 +312,7 @@ int Cpptraj::Cluster::MetricArray::initMetricArray(DataSetList const& setsToClus
   int usedme = (int)analyzeArgs.hasKey("dme");
   int userms = (int)analyzeArgs.hasKey("rms");
   int usesrms = (int)analyzeArgs.hasKey("srmsd");
+  int useqrms = (int)analyzeArgs.hasKey("qrmsd");
   bool useMass = analyzeArgs.hasKey("mass");
   bool nofit   = analyzeArgs.hasKey("nofit");
   std::string maskExpr = analyzeArgs.GetMaskNext();
@@ -329,14 +331,15 @@ int Cpptraj::Cluster::MetricArray::initMetricArray(DataSetList const& setsToClus
   std::string wgtArgStr = analyzeArgs.GetStringKey("wgt");
 
   // Check args
-  if (usedme + userms + usesrms > 1) {
-    mprinterr("Error: Specify either 'dme', 'rms', or 'srmsd'.\n");
+  if (usedme + userms + usesrms + useqrms> 1) {
+    mprinterr("Error: Specify either 'dme', 'rms', 'srmsd', or 'qrmsd'.\n");
     return 1;
   }
   Metric::Type coordsMetricType;
   if      (usedme)  coordsMetricType = Metric::DME;
   else if (userms)  coordsMetricType = Metric::RMS;
   else if (usesrms) coordsMetricType = Metric::SRMSD;
+  else if (usesrms) coordsMetricType = Metric::QRMSD;
   else coordsMetricType = Metric::RMS; // default
 
   // For each input set, set up the appropriate metric
@@ -373,6 +376,8 @@ int Cpptraj::Cluster::MetricArray::initMetricArray(DataSetList const& setsToClus
         err = ((Metric_DME*)met)->Init((DataSet_Coords*)*ds, AtomMask(maskExpr)); break;
       case Metric::SRMSD :
         err = ((Metric_SRMSD*)met)->Init((DataSet_Coords*)*ds, AtomMask(maskExpr), nofit, useMass, debug_); break;
+      case Metric::QRMSD :
+        err = ((Metric_QuatRMSD*)met)->Init((DataSet_Coords*)*ds, AtomMask(maskExpr), nofit, useMass, debug_); break;
       case Metric::SCALAR :
         err = ((Metric_Scalar*)met)->Init((DataSet_1D*)*ds); break;
       case Metric::TORSION :
