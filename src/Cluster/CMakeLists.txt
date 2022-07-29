@@ -18,6 +18,7 @@ target_sources(cpptraj_common_obj PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}/List.cpp
   ${CMAKE_CURRENT_LIST_DIR}/MetricArray.cpp
   ${CMAKE_CURRENT_LIST_DIR}/Metric_DME.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/Metric_QuatRMSD.cpp
   ${CMAKE_CURRENT_LIST_DIR}/Metric_RMS.cpp
   ${CMAKE_CURRENT_LIST_DIR}/Metric_Scalar.cpp
   ${CMAKE_CURRENT_LIST_DIR}/Metric_SRMSD.cpp
