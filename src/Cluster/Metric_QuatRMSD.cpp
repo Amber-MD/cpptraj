@@ -52,6 +52,7 @@ double Cpptraj::Cluster::Metric_QuatRMSD::FrameDist(int f1, int f2) {
   //if (nofit_)
   //  rms = frm1_.RMSD_NoFit( frm2_, useMass_ );
   //else
+    frm2_.CenterOnOrigin(useMass_);
     rms = QuaternionRMSD_CenteredRef( frm2_, frm1_, useMass_ );
   mprintf("\tMetric_QuatRMSD::FrameDist(%i, %i)= %g\n", f1, f2, rms);
   return rms;
@@ -59,6 +60,7 @@ double Cpptraj::Cluster::Metric_QuatRMSD::FrameDist(int f1, int f2) {
   //if (nofit_)
   //  return frm1_.RMSD_NoFit( frm2_, useMass_ );
   //else
+    frm2_.CenterOnOrigin(useMass_);
     return QuaternionRMSD_CenteredRef( frm2_, frm1_, useMass_ );
 # endif
 }
