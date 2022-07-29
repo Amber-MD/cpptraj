@@ -239,6 +239,8 @@ class Frame {
     inline void Rotate(Matrix_3x3 const&, AtomMask const&);
     /// Apply inverse of rotation defined by matrix to all atoms in mask
     inline void InverseRotate(Matrix_3x3 const&, AtomMask const&);
+    /// Apply invese of rotation defined by matrix to all coords.
+    inline void InverseRotate(Matrix_3x3 const&);
     /// Apply translation followed by rotation followed by second translation
     inline void Trans_Rot_Trans(Vec3 const&, Matrix_3x3 const&, Vec3 const&);
     /// Apply translation, rotation, 2nd translation for atoms in mask
@@ -520,6 +522,17 @@ void Frame::InverseRotate(Matrix_3x3 const& RotMatrix, AtomMask const& mask) {
     XYZ[0] = (x*RotMatrix[0]) + (y*RotMatrix[3]) + (z*RotMatrix[6]);
     XYZ[1] = (x*RotMatrix[1]) + (y*RotMatrix[4]) + (z*RotMatrix[7]);
     XYZ[2] = (x*RotMatrix[2]) + (y*RotMatrix[5]) + (z*RotMatrix[8]);
+  }
+}
+
+void Frame::InverseRotate(Matrix_3x3 const& T) {
+  for (int i = 0; i < ncoord_; i += 3) {
+    double x = X_[i  ];
+    double y = X_[i+1];
+    double z = X_[i+2];
+    X_[i  ] = (x*T[0]) + (y*T[3]) + (z*T[6]);
+    X_[i+1] = (x*T[1]) + (y*T[4]) + (z*T[7]);
+    X_[i+2] = (x*T[2]) + (y*T[5]) + (z*T[8]);
   }
 }
 

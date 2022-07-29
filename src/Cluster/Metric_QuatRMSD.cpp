@@ -102,7 +102,8 @@ void Cpptraj::Cluster::Metric_QuatRMSD::CalculateCentroid(Centroid* centIn,  Cfr
     } else {
       //if (!nofit_) {
         QuaternionRMSD_CenteredRef( cent->Cframe(), frm1_, Rot, Trans, useMass_ );
-        frm1_.Rotate( Rot );
+        //Rot.Print("CalculateCentroid"); // DEBUG
+        frm1_.InverseRotate( Rot );
       //}
       cent->Cframe() += frm1_;
     }
@@ -133,7 +134,7 @@ void Cpptraj::Cluster::Metric_QuatRMSD::FrameOpCentroid(int frame, Centroid* cen
   coords_->GetFrame( frame, frm1_, mask_ );
   //if (!nofit_) {
     QuaternionRMSD_CenteredRef( cent->Cframe(), frm1_, Rot, Trans, useMass_ );
-    frm1_.Rotate( Rot );
+    frm1_.InverseRotate( Rot );
   //}
   cent->Cframe().Multiply( oldSize );
   if (OP == ADDFRAME) {
