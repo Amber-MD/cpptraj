@@ -42,7 +42,6 @@ class Action_Diffusion : public Action {
     DataSet* diffInter_;   ///< Hold MSD vs time line intercepts.
     DataSet* diffCorrl_;   ///< Hold MSD vs time line correlation.
     int debug_;
-    Darray delta_;         ///< Hold current distances from initial frame for selected atoms
     AtomMask mask_;        ///< Selected atoms
     DataFile* outputx_;
     DataFile* outputy_;

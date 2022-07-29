@@ -237,9 +237,6 @@ Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
   } else
     mprintf("\tImaging disabled.\n");
 
-  // Allocate the delta array
-  delta_.assign( mask_.Nselected() * 3, 0.0 );
-
   // Reserve space for the previous coordinates array
   previous_.reserve( mask_.Nselected() * 3 );
 
@@ -329,10 +326,14 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
   double avgx = 0.0;
   double avgy = 0.0;
   double avgz = 0.0;
-  unsigned int idx = 0; // Index into previous_ and delta_
+  unsigned int idx = 0; // Index into previous_
+  double fixedXYZ[3];
   for (AtomMask::const_iterator at = mask_.begin(); at != mask_.end(); ++at, idx += 3)
   { // Get current and initial coords for this atom.
     const double* XYZ = frm.Frm().XYZ(*at);
+    fixedXYZ[0] = XYZ[0];
+    fixedXYZ[1] = XYZ[1];
+    fixedXYZ[2] = XYZ[2];
     const double* iXYZ = initial_.XYZ(*at);
     // Calculate distance from initial position. 
     double delx, dely, delz;
@@ -345,17 +346,17 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
       // If the particle moved more than half the box, assume it was imaged
       // and adjust the distance of the total movement with respect to the
       // original frame.
-      if      (delx >  boxcenter_[0]) delta_[idx  ] -= frm.Frm().BoxCrd().Param(Box::X);
-      else if (delx < -boxcenter_[0]) delta_[idx  ] += frm.Frm().BoxCrd().Param(Box::X);
-      if      (dely >  boxcenter_[1]) delta_[idx+1] -= frm.Frm().BoxCrd().Param(Box::Y);
-      else if (dely < -boxcenter_[1]) delta_[idx+1] += frm.Frm().BoxCrd().Param(Box::Y);
-      if      (delz >  boxcenter_[2]) delta_[idx+2] -= frm.Frm().BoxCrd().Param(Box::Z);
-      else if (delz < -boxcenter_[2]) delta_[idx+2] += frm.Frm().BoxCrd().Param(Box::Z);
+      if      (delx >  boxcenter_[0]) fixedXYZ[0] -= frm.Frm().BoxCrd().Param(Box::X);
+      else if (delx < -boxcenter_[0]) fixedXYZ[0] += frm.Frm().BoxCrd().Param(Box::X);
+      if      (dely >  boxcenter_[1]) fixedXYZ[1] -= frm.Frm().BoxCrd().Param(Box::Y);
+      else if (dely < -boxcenter_[1]) fixedXYZ[1] += frm.Frm().BoxCrd().Param(Box::Y);
+      if      (delz >  boxcenter_[2]) fixedXYZ[2] -= frm.Frm().BoxCrd().Param(Box::Z);
+      else if (delz < -boxcenter_[2]) fixedXYZ[2] += frm.Frm().BoxCrd().Param(Box::Z);
       // Calculate the distance between this "fixed" coordinate
       // and the reference (initial) frame.
-      delx = XYZ[0] + delta_[idx  ] - iXYZ[0];
-      dely = XYZ[1] + delta_[idx+1] - iXYZ[1];
-      delz = XYZ[2] + delta_[idx+2] - iXYZ[2];
+      delx = fixedXYZ[0] - iXYZ[0];
+      dely = fixedXYZ[1] - iXYZ[1];
+      delz = fixedXYZ[2] - iXYZ[2];
     } else if ( imageOpt_.ImagingType() == ImageOption::NONORTHO ) {
       // Non-orthorhombic imaging
       // Calculate distance to previous frames coordinates.
@@ -396,16 +397,16 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
             }
           }
         }
-        // Update the delta for this atom
-        delta_[idx  ] += minCurr[0] - XYZ[0]; // cCart
-        delta_[idx+1] += minCurr[1] - XYZ[1];
-        delta_[idx+2] += minCurr[2] - XYZ[2];
+        // minCurr contains the shortest imaged position from previous coords
+        fixedXYZ[0] = minCurr[0];
+        fixedXYZ[1] = minCurr[1];
+        fixedXYZ[2] = minCurr[2];
       }
       // Calculate the distance between this "fixed" coordinate
       // and the reference (initial) frame.
-      delx = XYZ[0] + delta_[idx  ] - iXYZ[0];
-      dely = XYZ[1] + delta_[idx+1] - iXYZ[1];
-      delz = XYZ[2] + delta_[idx+2] - iXYZ[2];
+      delx = fixedXYZ[0] - iXYZ[0];
+      dely = fixedXYZ[1] - iXYZ[1];
+      delz = fixedXYZ[2] - iXYZ[2];
     } else {
       // No imaging. Calculate distance from current position to initial position.
       delx = XYZ[0] - iXYZ[0];
@@ -437,9 +438,9 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
       atom_a_[*at]->Add(frameNum, &fval);
     }
     // Update the previous coordinate set to match the current coordinates
-    previous_[idx  ] = XYZ[0];
-    previous_[idx+1] = XYZ[1];
-    previous_[idx+2] = XYZ[2];
+    previous_[idx  ] = fixedXYZ[0];
+    previous_[idx+1] = fixedXYZ[1];
+    previous_[idx+2] = fixedXYZ[2];
   } // END loop over selected atoms
   // Calc averages
   double dNselected = 1.0 / (double)mask_.Nselected();
