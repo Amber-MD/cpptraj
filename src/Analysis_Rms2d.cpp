@@ -22,7 +22,7 @@ Analysis_Rms2d::Analysis_Rms2d() :
 
 void Analysis_Rms2d::Help() const {
   mprintf("\t[crdset <crd set>] [<name>] [<mask>] [out <filename>]\n"
-          "\t[dme | nofit | srmsd | quat] [mass]\n"
+          "\t[{dme | nofit | srmsd | qrmsd}] [mass]\n"
           "\t[reftraj <traj> [parm <parmname> | parmindex <#>] [<refmask>]]\n"
           "\t[corr <corrfilename>]\n"
           "  Calculate RMSD between all frames in <crd set>, or between frames in\n"
@@ -53,7 +53,7 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, AnalysisSetup& set
     mode_ = DME;
   else if (analyzeArgs.hasKey("srmsd"))
     mode_ = SRMSD;
-  else if (analyzeArgs.hasKey("quat"))
+  else if (analyzeArgs.hasKey("qrmsd"))
     mode_ = QUAT;
   else
     mode_ = RMS_FIT;

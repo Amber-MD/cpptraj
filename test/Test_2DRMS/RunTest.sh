@@ -92,7 +92,7 @@ cat > rms.in <<EOF
 noprogress
 parm ../tz2.parm7
 trajin ../tz2.nc 1 10
-2drms crd1 :3-7 rmsout quat.rmsd2.dat quat
+2drms crd1 :3-7 rmsout quat.rmsd2.dat qrmsd
 EOF
 RunCpptraj "2D RMSD Test with quaternion."
 DoTest rmsd.dat.save quat.rmsd2.dat
