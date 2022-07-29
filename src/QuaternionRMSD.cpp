@@ -3,6 +3,17 @@
 #include "Constants.h"
 #include "CpptrajStdio.h"
 
+/** Print citation to stdout. */
+void PrintQrmsdCitation() {
+  mprintf("# Citation: Theobald, D. L.; \"Rapid calculation of RMSD using a\n"
+          "#           quaternion-based characteristic polynomial.\"\n"
+          "#           Acta Crystallographica A 61(4):478-480.\n"
+          "# Citation: Liu, P.; Agrafiotis, D. K.; Theobald, D. L.;\n"
+          "#           \"Fast determination of the optimal rotational matrix\n"
+          "#           for macromolecular superpositions.\"\n"
+          "#           Journal of Computational Chemistry 31(7):1561-1563.\n");
+}
+
 /** Calculate the coordinate covariance matrix and perform the
   * quaternion RMSD calculation.
   * \param Ref Reference coordinates centered at the origin; will not be modified.

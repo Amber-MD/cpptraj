@@ -17,6 +17,7 @@
 #include "../OnlineVarT.h" // for metric stats average
 #include "../ProgressBar.h"
 #include "../StringRoutines.h"
+#include "../QuaternionRMSD.h" // for printing qrmsd citation
 // Metric classes
 #include "Metric_RMS.h"
 #include "Metric_DME.h"
@@ -341,8 +342,10 @@ int Cpptraj::Cluster::MetricArray::initMetricArray(DataSetList const& setsToClus
   if      (usedme)  coordsMetricType = Metric::DME;
   else if (userms)  coordsMetricType = Metric::RMS;
   else if (usesrms) coordsMetricType = Metric::SRMSD;
-  else if (useqrms) coordsMetricType = Metric::QRMSD;
-  else coordsMetricType = Metric::RMS; // default
+  else if (useqrms) {
+    coordsMetricType = Metric::QRMSD;
+    PrintQrmsdCitation();
+  } else coordsMetricType = Metric::RMS; // default
 
   // For each input set, set up the appropriate metric
   for (DataSetList::const_iterator ds = setsToCluster.begin(); ds != setsToCluster.end(); ++ds)

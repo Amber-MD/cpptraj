@@ -141,6 +141,8 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, AnalysisSetup& set
   if (corrfile != 0)
     mprintf("\tRMSD auto-correlation will be calculated and output to '%s'\n",
             corrfile->DataFilename().full());
+  if (mode_ == QUAT)
+    PrintQrmsdCitation();
 
   return Analysis::OK;
 }
