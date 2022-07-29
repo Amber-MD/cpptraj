@@ -135,7 +135,7 @@ namespace QCPRot {
   * \return -1 if only the RMSD was calculated.
   * \return >= 0 If rotation matrix and RMSD were calculated.
   */
-int FastCalcRMSDAndRotation(double *rot, double *A, double *rmsd, double E0, double len, double minScore);
+int FastCalcRMSDAndRotation(double *rot, double *A, double *rmsd, double E0, double len);
 
 /* Center the coordinates.
 

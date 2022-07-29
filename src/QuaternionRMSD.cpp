@@ -5,10 +5,15 @@
 
 /** Calculate the coordinate covariance matrix and perform the
   * quaternion RMSD calculation.
+  * \param Ref Reference coordinates centered at the origin; will not be modified.
+  * \param Tgt Target coordinates; will be centered at the origin.
+  * \param U If specified, will hold rotation vectors in columns.
+  * \param Trans Will be set to translation from Target to origin.
+  * \param useMass If true, weight by Target atom masses.
   */
 double do_quaternion_rmsd(Frame const& Ref, Frame& Tgt,
                           double* U, double* Trans,
-                          bool useMass, double minScore)
+                          bool useMass)
 {
   Trans[0] = 0;
   Trans[1] = 0;
@@ -97,7 +102,7 @@ double do_quaternion_rmsd(Frame const& Ref, Frame& Tgt,
 
   double rmsd;
   //int err =
-  Cpptraj::QCPRot::FastCalcRMSDAndRotation(U, rot.Dptr(), &rmsd, mwss, total_mass, minScore);
+  Cpptraj::QCPRot::FastCalcRMSDAndRotation(U, rot.Dptr(), &rmsd, mwss, total_mass);
   //mprintf("DEBUG: qcprot returned %i\n", err);
   return rmsd;
 }
@@ -105,9 +110,9 @@ double do_quaternion_rmsd(Frame const& Ref, Frame& Tgt,
 /** Calculate quaternion RMSD with translation vector and rotation matrix. */
 double QuaternionRMSD_CenteredRef(Frame const& Ref, Frame& Tgt,
                                   Matrix_3x3& U, Vec3& Trans,
-                                  bool useMass, double minScore)
+                                  bool useMass)
 {
-  return do_quaternion_rmsd(Ref, Tgt, U.Dptr(), Trans.Dptr(), useMass, minScore);
+  return do_quaternion_rmsd(Ref, Tgt, U.Dptr(), Trans.Dptr(), useMass);
 /*  Trans.Zero();
   int ncoord = Ref.size();
   double total_mass;
@@ -211,16 +216,9 @@ double QuaternionRMSD_CenteredRef(Frame const& Ref, Frame& Tgt,
 */
 }
 
-double QuaternionRMSD_CenteredRef(Frame const& Ref, Frame& Tgt,
-                                  Matrix_3x3& U, Vec3& Trans,
-                                  bool useMass)
-{
-  return QuaternionRMSD_CenteredRef(Ref, Tgt, U, Trans, useMass, -1);
-}
-
 /** Calculate quaternion RMSD only. */
 double QuaternionRMSD_CenteredRef(Frame const& Ref, Frame& Tgt, bool useMass)
 {
   Vec3 Trans;
-  return do_quaternion_rmsd(Ref, Tgt, 0, Trans.Dptr(), useMass, -1);
+  return do_quaternion_rmsd(Ref, Tgt, 0, Trans.Dptr(), useMass);
 }

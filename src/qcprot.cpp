@@ -163,8 +163,8 @@ InnerProduct(double *A, double **coords1, double **coords2, const int len, const
 }
 */
 
-int
-Cpptraj::QCPRot::FastCalcRMSDAndRotation(double *rot, double *A, double *rmsd, double E0, double len, double minScore)
+/// Calculate quaternion RMSD.
+int Cpptraj::QCPRot::FastCalcRMSDAndRotation(double *rot, double *A, double *rmsd, double E0, double len)
 {
     double Sxx, Sxy, Sxz, Syx, Syy, Syz, Szx, Szy, Szz;
     double Szz2, Syy2, Sxx2, Sxy2, Syz2, Sxz2, Syx2, Szy2, Szx2,
@@ -248,9 +248,9 @@ Cpptraj::QCPRot::FastCalcRMSDAndRotation(double *rot, double *A, double *rmsd, d
     /* printf("\n\n %16g %16g %16g \n", rms, E0, 2.0 * (E0 - mxEigenV)/len); */
     if (rot == 0) return (-1);
 
-    if (minScore > 0)
-        if (rms < minScore)
-            return (-1); // Don't bother with rotation.
+//    if (minScore > 0)
+//        if (rms < minScore)
+//            return (-1); // Don't bother with rotation.
 
     a11 = SxxpSyy + Szz-mxEigenV; a12 = SyzmSzy; a13 = - SxzmSzx; a14 = SxymSyx;
     a21 = SyzmSzy; a22 = SxxmSyy - Szz-mxEigenV; a23 = SxypSyx; a24= SxzpSzx;
