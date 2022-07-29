@@ -333,7 +333,7 @@ int Cpptraj::Cluster::MetricArray::initMetricArray(DataSetList const& setsToClus
   std::string wgtArgStr = analyzeArgs.GetStringKey("wgt");
 
   // Check args
-  if (usedme + userms + usesrms + useqrms> 1) {
+  if (usedme + userms + usesrms + useqrms > 1) {
     mprinterr("Error: Specify either 'dme', 'rms', 'srmsd', or 'qrmsd'.\n");
     return 1;
   }
