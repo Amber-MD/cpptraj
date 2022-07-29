@@ -18,6 +18,7 @@ CLUSTER_SOURCES= \
   List.cpp \
   MetricArray.cpp \
   Metric_DME.cpp \
+  Metric_QuatRMSD.cpp \
   Metric_RMS.cpp \
   Metric_Scalar.cpp \
   Metric_SRMSD.cpp \

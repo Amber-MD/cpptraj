@@ -14,7 +14,7 @@ const int UNCLASSIFIED = -2;
 /// Abstract base class for calculating distance between points or determining centroid.
 class Metric {
   public:
-    enum Type { RMS=0, DME, SRMSD, SCALAR, TORSION, MATRIX2D, UNKNOWN_METRIC };
+    enum Type { RMS=0, DME, SRMSD, SCALAR, TORSION, MATRIX2D, QRMSD, UNKNOWN_METRIC };
     enum CentOpType { ADDFRAME=0, SUBTRACTFRAME };
 
     /// CONSTRUCTOR

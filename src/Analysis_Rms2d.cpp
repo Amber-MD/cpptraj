@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "ProgressBar.h"
 #include "DataSet_Coords_TRJ.h"
+#include "QuaternionRMSD.h"
 #ifdef _OPENMP
 #  include <omp.h>
 #endif
@@ -21,7 +22,7 @@ Analysis_Rms2d::Analysis_Rms2d() :
 
 void Analysis_Rms2d::Help() const {
   mprintf("\t[crdset <crd set>] [<name>] [<mask>] [out <filename>]\n"
-          "\t[dme | nofit | srmsd] [mass]\n"
+          "\t[{dme | nofit | srmsd | qrmsd}] [mass]\n"
           "\t[reftraj <traj> [parm <parmname> | parmindex <#>] [<refmask>]]\n"
           "\t[corr <corrfilename>]\n"
           "  Calculate RMSD between all frames in <crd set>, or between frames in\n"
@@ -30,7 +31,7 @@ void Analysis_Rms2d::Help() const {
 }
 
 const char* Analysis_Rms2d::ModeStrings_[] = {
-  "RMSD (fit)", "RMSD (no fitting)", "DME", "symmetry-corrected RMSD"
+  "RMSD (fit)", "RMSD (no fitting)", "DME", "symmetry-corrected RMSD", "quaternion RMSD"
 };
 
 // Analysis_Rms2d::Setup()
@@ -52,6 +53,8 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, AnalysisSetup& set
     mode_ = DME;
   else if (analyzeArgs.hasKey("srmsd"))
     mode_ = SRMSD;
+  else if (analyzeArgs.hasKey("qrmsd"))
+    mode_ = QUAT;
   else
     mode_ = RMS_FIT;
   useMass_ = analyzeArgs.hasKey("mass");
@@ -138,6 +141,8 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, AnalysisSetup& set
   if (corrfile != 0)
     mprintf("\tRMSD auto-correlation will be calculated and output to '%s'\n",
             corrfile->DataFilename().full());
+  if (mode_ == QUAT)
+    PrintQrmsdCitation();
 
   return Analysis::OK;
 }
@@ -257,7 +262,7 @@ int Analysis_Rms2d::Calculate_2D() {
 #     endif
         RefTraj_->GetFrame( nref, SelectedRef, RefMask_ );
       // Select and pre-center reference atoms (if fitting)
-      if (mode_ == RMS_FIT || mode_ == SRMSD)
+      if (mode_ == QUAT || mode_ == RMS_FIT || mode_ == SRMSD)
         SelectedRef.CenterOnOrigin(useMass_);
       // LOOP OVER TARGET FRAMES
       if (calculateFullMatrix)
@@ -272,6 +277,8 @@ int Analysis_Rms2d::Calculate_2D() {
           case RMS_NOFIT: R = (float)SelectedTgt.RMSD_NoFit(SelectedRef, useMass_); break;
           case DME:       R = (float)SelectedTgt.DISTRMSD(SelectedRef); break;
           case SRMSD:     R = (float)SRMSD_.SymmRMSD_CenteredRef(SelectedTgt, SelectedRef); break;
+          case QUAT:
+            R = (float)QuaternionRMSD_CenteredRef(SelectedRef, SelectedTgt,  useMass_); break;
         }
         rmsdataset_->SetElement(nref, ntgt, R);
         // DEBUG

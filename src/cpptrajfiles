@@ -362,6 +362,8 @@ COMMON_SOURCES= \
         ProgressBar.cpp \
         ProgressTimer.cpp \
         PubFFT.cpp \
+        qcprot.cpp \
+        QuaternionRMSD.cpp \
         Pucker_PuckerMask.cpp \
         Pucker_PuckerSearch.cpp \
         Pucker_PuckerToken.cpp \
@@ -433,7 +435,7 @@ COMMON_SOURCES= \
         vmdplugin/dtrplugin.cpp \
         xoshiro128plusplus.cpp
 
-CSOURCES= molsurf.c 
+CSOURCES= molsurf.c
 
 # The files below are used by cpptraj and libcpptraj but must be compiled
 # differently for libcpptraj.
