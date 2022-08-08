@@ -1978,7 +1978,7 @@ void Action_GIST::Print() {
       O_progress.Update( gr_pt );
       size_t i, j, k;
       Esw_->ReverseIndex( gr_pt, i, j, k );
-      Vec3 XYZ = Esw_->Bin().Center( i, j, k );
+      Vec3 XYZ = gridBin_->Center( i, j, k );
       
       printer << gr_pt << XYZ[0] << XYZ[1] << XYZ[2] << N_solvent_[gr_pt];
       for (unsigned int i = 0; i < solventInfo_.unique_elements.size(); ++i) {
