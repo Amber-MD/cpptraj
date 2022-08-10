@@ -27,7 +27,6 @@ Action_Diffusion::Action_Diffusion() :
   debug_(0),
   outputx_(0), outputy_(0), outputz_(0), outputr_(0), outputa_(0),
   diffout_(0),
-  boxcenter_(0.0),
   masterDSL_(0)
 {}
 
@@ -332,12 +331,11 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
     }
   }
   // Diffusion calculation
-  Vec3 boxLengths(0.0);
+  Vec3 boxLengths(0.0), limxyz(0.0);
   if (imageOpt_.ImagingEnabled()) {
     imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
-    boxcenter_ = frm.Frm().BoxCrd().Center();
-    if (imageOpt_.ImagingType() == ImageOption::ORTHO)
-      boxLengths = frm.Frm().BoxCrd().Lengths();
+    boxLengths = frm.Frm().BoxCrd().Lengths();
+    limxyz = boxLengths / 2.0;
   }
   // For averaging over selected atoms
   double average2 = 0.0;
@@ -369,7 +367,7 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
     if ( imageOpt_.ImagingType() == ImageOption::ORTHO ) {
       // Orthorhombic imaging
       // Calculate vector needed to correct XYZ for imaging.
-      Vec3 transVec = Unwrap::UnwrapVec_Ortho<double>(Vec3(XYZ), Vec3((&previous_[0])+idx), boxLengths);
+      Vec3 transVec = Unwrap::UnwrapVec_Ortho<double>(Vec3(XYZ), Vec3((&previous_[0])+idx), boxLengths, limxyz);
       fixedXYZ[0] += transVec[0];
       fixedXYZ[1] += transVec[1];
       fixedXYZ[2] += transVec[2];
@@ -381,7 +379,7 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
     } else if ( imageOpt_.ImagingType() == ImageOption::NONORTHO ) {
       // Non-orthorhombic imaging
       // Calculate vector needed to correct XYZ for imaging.
-      Vec3 transVec = Unwrap::UnwrapVec_Nonortho<double>(Vec3(XYZ), Vec3((&previous_[0])+idx), frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell());
+      Vec3 transVec = Unwrap::UnwrapVec_Nonortho<double>(Vec3(XYZ), Vec3((&previous_[0])+idx), frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell(), limxyz);
       fixedXYZ[0] += transVec[0];
       fixedXYZ[1] += transVec[1];
       fixedXYZ[2] += transVec[2];

@@ -36,9 +36,9 @@ namespace Image {
 
   /// Perform unwrap of non-orthogonal cell using given reference.
   void UnwrapNonortho( Frame&, Frame&, List const&, Unit const&,
-                       Matrix_3x3 const&, Matrix_3x3 const& );
+                       Matrix_3x3 const&, Matrix_3x3 const&, Vec3 const& );
   /// Perform unwrap of orthogonal cell using given reference.
-  void UnwrapOrtho( Frame&, Frame&, List const&, Unit const& );
+  void UnwrapOrtho( Frame&, Frame&, List const&, Unit const&, Vec3 const& );
 
   /// Wrap selected atom coords from given frame into primary cell, store in result.
   void WrapToCell0(std::vector<double>&, Frame const&, AtomMask const&,

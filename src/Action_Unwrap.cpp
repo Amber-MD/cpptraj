@@ -125,11 +125,12 @@ Action::RetType Action_Unwrap::DoAction(int frameNum, ActionFrame& frm) {
     RefFrame_ = frm.Frm();
     return Action::OK;
   }
- 
+
+  Vec3 limxyz = frm.Frm().BoxCrd().Lengths() / 2.0; 
   if (frm.Frm().BoxCrd().Is_X_Aligned_Ortho())
-    Image::UnwrapOrtho( frm.ModifyFrm(), RefFrame_, *imageList_, allEntities_ );
+    Image::UnwrapOrtho( frm.ModifyFrm(), RefFrame_, *imageList_, allEntities_, limxyz );
   else {
-    Image::UnwrapNonortho( frm.ModifyFrm(), RefFrame_, *imageList_, allEntities_, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell() );
+    Image::UnwrapNonortho( frm.ModifyFrm(), RefFrame_, *imageList_, allEntities_, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell(), limxyz );
   }
 
   return Action::MODIFY_COORDS;

@@ -49,7 +49,6 @@ class Action_Diffusion : public Action {
     DataFile* outputr_;
     DataFile* outputa_;
     DataFile* diffout_;
-    Vec3 boxcenter_; ///< Hold center of box each frame
     DataSetList* masterDSL_;
     std::string dsname_;
     Dimension Xdim_;
