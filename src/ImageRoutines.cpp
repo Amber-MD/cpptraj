@@ -2,6 +2,7 @@
 #include "ImageRoutines.h"
 #include "DistRoutines.h"
 #include "CpptrajStdio.h"
+#include "Unwrap.h"
 #include "Image_List.h"
 #include "Image_List_Pair_CoM.h"
 #include "Image_List_Pair_Geom.h"
@@ -10,6 +11,8 @@
 #include "Image_List_Unit_Geom.h"
 #include "Image_List_Unit_First.h"
 #include "Image_List_Mask.h"
+
+using namespace Cpptraj;
 
 /** \return Empty list for imaging. */
 Image::List* Image::CreateImageList(Mode modeIn, bool useMass, bool center) {
@@ -247,7 +250,7 @@ Vec3 Image::Ortho(Vec3 const& Coord, Vec3 const& bp, Vec3 const& bm, Box const& 
 // Image::UnwrapNonortho()
 void Image::UnwrapNonortho(Frame& tgtIn, Frame& refIn, List const& AtomPairs,
                            Unit const& allEntities,
-                           Matrix_3x3 const& ucell, Matrix_3x3 const& recip)
+                           Matrix_3x3 const& ucell, Matrix_3x3 const& frac)
 {
   Vec3 vtgt, vref, boxTrans;
   // Loop over atom pairs
@@ -255,7 +258,8 @@ void Image::UnwrapNonortho(Frame& tgtIn, Frame& refIn, List const& AtomPairs,
   {
     vtgt = AtomPairs.GetCoord(idx, tgtIn);
     vref = AtomPairs.GetCoord(idx, refIn);
-
+    boxTrans = Unwrap::UnwrapVec_Nonortho<double>(vtgt, vref, ucell, frac);
+/*
     boxTrans.Zero();
     // Calculate original distance from the ref (previous) position. 
     Vec3 vd = vtgt - vref; // dx dy dz
@@ -287,7 +291,7 @@ void Image::UnwrapNonortho(Frame& tgtIn, Frame& refIn, List const& AtomPairs,
       }
     }
     // Translate tgt atoms
-    boxTrans.Neg();
+    boxTrans.Neg();*/
     AtomPairs.DoTranslation( tgtIn, idx, boxTrans );
   } // END loop over atom pairs 
   // Save new ref positions
@@ -305,11 +309,12 @@ void Image::UnwrapOrtho(Frame& tgtIn, Frame& refIn, List const& AtomPairs,
   {
     vtgt = AtomPairs.GetCoord(idx, tgtIn);
     vref = AtomPairs.GetCoord(idx, refIn);
-
+    boxTrans = Unwrap::UnwrapVec_Ortho<double>(vtgt, vref, boxVec);
+/*
     Vec3 dxyz = vtgt - vref;
     boxTrans[0] = -floor( dxyz[0] / boxVec[0] + 0.5 ) * boxVec[0];
     boxTrans[1] = -floor( dxyz[1] / boxVec[1] + 0.5 ) * boxVec[1];
-    boxTrans[2] = -floor( dxyz[2] / boxVec[2] + 0.5 ) * boxVec[2];
+    boxTrans[2] = -floor( dxyz[2] / boxVec[2] + 0.5 ) * boxVec[2];*/
     // Translate atoms from first to last
     AtomPairs.DoTranslation( tgtIn, idx, boxTrans );
   } // END loop over atom pairs
