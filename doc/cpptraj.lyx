@@ -1118,6 +1118,10 @@ cluster (pair-wise distance calculation and sieved frame restore only)
 \end_layout
 
 \begin_layout LyX-Code
+diffusion
+\end_layout
+
+\begin_layout LyX-Code
 dssp/secstruct
 \end_layout
 
@@ -25698,7 +25702,7 @@ gist
 \end_layout
 
 \begin_layout LyX-Code
-     [noimage] [gridcntr <xval> <yval> <zval>] [excludeions]
+     [noimage] [gridcntr <xval> <yval> <zval>]
 \end_layout
 
 \begin_layout LyX-Code
