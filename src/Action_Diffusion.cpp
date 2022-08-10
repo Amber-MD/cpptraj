@@ -7,6 +7,9 @@
 #ifdef TIMER
 # include "Timer.h"
 #endif
+#ifdef _OPENMP
+# include <omp.h>
+#endif
 
 using namespace Cpptraj;
 
@@ -206,6 +209,15 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
     mprintf("\tTo calculate diffusion constant from mean squared displacement plots,\n"
             "\t  calculate the slope of MSD vs time and multiply by 10.0/2*N (where N\n"
             "\t  is # of dimensions); this will give units of 1x10^-5 cm^2/s.\n");
+# ifdef _OPENMP
+# pragma omp parallel
+  {
+# pragma omp master
+  {
+  mprintf("\tParallelizing calculation with %i threads.\n", omp_get_num_threads());
+  }
+  }
+# endif
   return Action::OK;
 }
 
@@ -320,30 +332,44 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
     }
   }
   // Diffusion calculation
+  Vec3 boxLengths(0.0);
   if (imageOpt_.ImagingEnabled()) {
     imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
     boxcenter_ = frm.Frm().BoxCrd().Center();
+    if (imageOpt_.ImagingType() == ImageOption::ORTHO)
+      boxLengths = frm.Frm().BoxCrd().Lengths();
   }
   // For averaging over selected atoms
   double average2 = 0.0;
   double avgx = 0.0;
   double avgy = 0.0;
   double avgz = 0.0;
-  unsigned int idx = 0; // Index into previous_
-  double fixedXYZ[3];
-  for (AtomMask::const_iterator at = mask_.begin(); at != mask_.end(); ++at, idx += 3)
-  { // Get current and initial coords for this atom.
-    const double* XYZ = frm.Frm().XYZ(*at);
+  int imask;
+//  unsigned int idx = 0; // Index into previous_
+//  double fixedXYZ[3];
+# ifdef _OPENMP
+# pragma omp parallel private(imask) reduction(+ : average2, avgx, avgy, avgz)
+  {
+# pragma omp for
+# endif
+  for (imask = 0; imask < mask_.Nselected(); imask++)
+  //for (AtomMask::const_iterator at = mask_.begin(); at != mask_.end(); ++at, idx += 3)
+  {
+    int at = mask_[imask];
+    int idx = imask * 3; // Index into previous_
+    // Get current and initial coords for this atom.
+    const double* XYZ = frm.Frm().XYZ(at);
+    double fixedXYZ[3];
     fixedXYZ[0] = XYZ[0];
     fixedXYZ[1] = XYZ[1];
     fixedXYZ[2] = XYZ[2];
-    const double* iXYZ = initial_.XYZ(*at);
+    const double* iXYZ = initial_.XYZ(at);
     // Calculate distance from initial position. 
     double delx, dely, delz;
     if ( imageOpt_.ImagingType() == ImageOption::ORTHO ) {
       // Orthorhombic imaging
       // Calculate vector needed to correct XYZ for imaging.
-      Vec3 transVec = Unwrap::UnwrapVec_Ortho<double>(Vec3(XYZ), Vec3((&previous_[0])+idx), frm.Frm().BoxCrd().Lengths());
+      Vec3 transVec = Unwrap::UnwrapVec_Ortho<double>(Vec3(XYZ), Vec3((&previous_[0])+idx), boxLengths);
       fixedXYZ[0] += transVec[0];
       fixedXYZ[1] += transVec[1];
       fixedXYZ[2] += transVec[2];
@@ -383,22 +409,25 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
     // Store distances for this atom
     if (printIndividual_) {
       float fval = (float)distx;
-      atom_x_[*at]->Add(frameNum, &fval);
+      atom_x_[at]->Add(frameNum, &fval);
       fval = (float)disty;
-      atom_y_[*at]->Add(frameNum, &fval);
+      atom_y_[at]->Add(frameNum, &fval);
       fval = (float)distz;
-      atom_z_[*at]->Add(frameNum, &fval);
+      atom_z_[at]->Add(frameNum, &fval);
       fval = (float)dist2;
-      atom_r_[*at]->Add(frameNum, &fval);
+      atom_r_[at]->Add(frameNum, &fval);
       dist2 = sqrt(dist2);
       fval = (float)dist2;
-      atom_a_[*at]->Add(frameNum, &fval);
+      atom_a_[at]->Add(frameNum, &fval);
     }
     // Update the previous coordinate set to match the current coordinates
     previous_[idx  ] = fixedXYZ[0];
     previous_[idx+1] = fixedXYZ[1];
     previous_[idx+2] = fixedXYZ[2];
   } // END loop over selected atoms
+# ifdef _OPENMP
+  } // END pragma omp parallel
+# endif
   // Calc averages
   double dNselected = 1.0 / (double)mask_.Nselected();
   avgx *= dNselected;
