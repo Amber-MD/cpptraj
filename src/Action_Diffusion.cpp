@@ -342,26 +342,7 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
     double delx, dely, delz;
     if ( imageOpt_.ImagingType() == ImageOption::ORTHO ) {
       // Orthorhombic imaging
-      // Calculate distance to previous frames coordinates.
-      delx = XYZ[0] - previous_[idx  ];
-      dely = XYZ[1] - previous_[idx+1];
-      delz = XYZ[2] - previous_[idx+2];
-      // If the particle moved more than half the box, assume it was imaged
-      // and adjust the distance of the total movement with respect to the
-      // original frame.
-      mprintf("DEBUG: %4i %6s ortho prevdist %8.3f %8.3f %8.3f", frameNum, avg_x_->legend(), delx, dely, delz);
-/*      if      (delx >  boxcenter_[0]) fixedXYZ[0] -= frm.Frm().BoxCrd().Param(Box::X);
-      else if (delx < -boxcenter_[0]) fixedXYZ[0] += frm.Frm().BoxCrd().Param(Box::X);
-      if      (dely >  boxcenter_[1]) fixedXYZ[1] -= frm.Frm().BoxCrd().Param(Box::Y);
-      else if (dely < -boxcenter_[1]) fixedXYZ[1] += frm.Frm().BoxCrd().Param(Box::Y);
-      if      (delz >  boxcenter_[2]) fixedXYZ[2] -= frm.Frm().BoxCrd().Param(Box::Z);
-      else if (delz < -boxcenter_[2]) fixedXYZ[2] += frm.Frm().BoxCrd().Param(Box::Z);*/
-/*      double t0 = -floor( delx / frm.Frm().BoxCrd().Param(Box::X) + 0.5 ) * frm.Frm().BoxCrd().Param(Box::X);
-      double t1 = -floor( dely / frm.Frm().BoxCrd().Param(Box::Y) + 0.5 ) * frm.Frm().BoxCrd().Param(Box::Y);
-      double t2 = -floor( delz / frm.Frm().BoxCrd().Param(Box::Z) + 0.5 ) * frm.Frm().BoxCrd().Param(Box::Z);
-      fixedXYZ[0] += t0;
-      fixedXYZ[1] += t1;
-      fixedXYZ[2] += t2;*/
+      // Calculate vector needed to correct XYZ for imaging.
       Vec3 transVec = Unwrap::UnwrapVec_Ortho<double>(Vec3(XYZ), Vec3((&previous_[0])+idx), frm.Frm().BoxCrd().Lengths());
       fixedXYZ[0] += transVec[0];
       fixedXYZ[1] += transVec[1];
@@ -371,106 +352,23 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
       delx = fixedXYZ[0] - iXYZ[0];
       dely = fixedXYZ[1] - iXYZ[1];
       delz = fixedXYZ[2] - iXYZ[2];
-      mprintf("  fixeddist %8.3f %8.3f %8.3f\n", delx, dely, delz);
     } else if ( imageOpt_.ImagingType() == ImageOption::NONORTHO ) {
       // Non-orthorhombic imaging
-      //Vec3 boxTrans(0.0);
-      Vec3 vtgt( XYZ[0], XYZ[1], XYZ[2] );
-      Vec3 vref( previous_[idx], previous_[idx+1], previous_[idx+2] );
-      Vec3 transVec = Unwrap::UnwrapVec_Nonortho<double>(vtgt, vref, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell());
+      // Calculate vector needed to correct XYZ for imaging.
+      Vec3 transVec = Unwrap::UnwrapVec_Nonortho<double>(Vec3(XYZ), Vec3((&previous_[0])+idx), frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell());
       fixedXYZ[0] += transVec[0];
       fixedXYZ[1] += transVec[1];
       fixedXYZ[2] += transVec[2];
-/*      // Calculate original distance from the ref (previous) position. 
-      Vec3 vd = vtgt - vref; // dx dy dz
-      double minDistanceSquare = vd.Magnitude2();
-      // Reciprocal coordinates
-      vd = frm.Frm().BoxCrd().FracCell() * vd ; // recip * dxyz
-      double cx = floor(vd[0]);
-      double cy = floor(vd[1]);
-      double cz = floor(vd[2]);
-      // Loop over all possible translations 
-      for (int ix = -1; ix < 2; ++ix) {
-        for (int iy = -1; iy < 2; ++iy) {
-          for (int iz = -1; iz < 2; ++iz) {
-            // Calculate the translation.
-            Vec3 vcc = frm.Frm().BoxCrd().UnitCell().TransposeMult( Vec3( cx+(double)ix,
-                                                                          cy+(double)iy,
-                                                                          cz+(double)iz ) ); // ucell^T * ccxyz
-            // Calc. the potential new coordinate for tgt
-            Vec3 vnew = vtgt - vcc;
-            // Calc. the new distance from the ref (previous) position
-            Vec3 vr = vref - vnew;
-            double distanceSquare = vr.Magnitude2();
-            // If the orig. distance is greater than the new distance, unwrap. 
-            if ( minDistanceSquare > distanceSquare ) {
-                minDistanceSquare = distanceSquare;
-                boxTrans = vcc;
-            }
-          }
-        }
-      } // END loop over ix
-      // Fix position
-      fixedXYZ[0] -= boxTrans[0];
-      fixedXYZ[1] -= boxTrans[1];
-      fixedXYZ[2] -= boxTrans[2];
-*/
-      
-/*      // Calculate distance to previous frames coordinates.
-      delx = XYZ[0] - previous_[idx  ];
-      dely = XYZ[1] - previous_[idx+1];
-      delz = XYZ[2] - previous_[idx+2];
-      // If the particle moved more than half the box, assume it was imaged
-      // and adjust the distance of the total movement with respect to the
-      // original frame.
-      if (fabs(delx) > boxcenter_[0] ||
-          fabs(dely) > boxcenter_[1] ||
-          fabs(delz) > boxcenter_[2])
-      {
-        // Previous position in Cartesian space
-        Vec3 pCart( previous_[idx], previous_[idx+1], previous_[idx+2] );
-        // Current position in fractional coords
-        Vec3 cFrac = frm.Frm().BoxCrd().FracCell() * Vec3( XYZ[0], XYZ[1], XYZ[2] );
-        // Look for imaged distance closer to previous than current position
-        double minDist2 = frm.Frm().BoxCrd().Param(Box::X) *
-                          frm.Frm().BoxCrd().Param(Box::Y) *
-                          frm.Frm().BoxCrd().Param(Box::Z);
-        Vec3 minCurr(0.0);
-        for (int ix = -1; ix < 2; ix++) {
-          for (int iy = -1; iy < 2; iy++) {
-            for (int iz = -1; iz < 2; iz++) {
-              if (ix != 0 || iy != 0 || iz != 0) { // Ignore current position
-                Vec3 ixyz(ix, iy, iz);
-                // Current position shifted and back in Cartesian space
-                Vec3 IMG = frm.Frm().BoxCrd().UnitCell().TransposeMult(cFrac + ixyz);
-                // Distance from previous position to imaged current position
-                Vec3 dxyz = IMG - pCart;
-                double dist2 = dxyz.Magnitude2();
-                if (dist2 < minDist2) {
-                  minDist2 = dist2;
-                  minCurr = IMG;
-                }
-              }
-            }
-          }
-        }
-        // minCurr contains the shortest imaged position from previous coords
-        fixedXYZ[0] = minCurr[0];
-        fixedXYZ[1] = minCurr[1];
-        fixedXYZ[2] = minCurr[2];
-      }*/
       // Calculate the distance between this "fixed" coordinate
       // and the reference (initial) frame.
       delx = fixedXYZ[0] - iXYZ[0];
       dely = fixedXYZ[1] - iXYZ[1];
       delz = fixedXYZ[2] - iXYZ[2];
     } else {
-      mprintf("DEBUG: %4i %6s noimg prevdist %8.3f %8.3f %8.3f", frameNum, avg_x_->legend(), XYZ[0] - previous_[idx], XYZ[1] - previous_[idx+1], XYZ[2] - previous_[idx+2]);
       // No imaging. Calculate distance from current position to initial position.
       delx = XYZ[0] - iXYZ[0];
       dely = XYZ[1] - iXYZ[1];
       delz = XYZ[2] - iXYZ[2];
-      mprintf("  fixeddist %8.3f %8.3f %8.3f\n", frameNum, avg_x_->legend(), " ", delx, dely, delz);
     }
     // Calc distances for this atom
     double distx = delx * delx;
