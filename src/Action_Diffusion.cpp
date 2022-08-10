@@ -343,15 +343,12 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
   double avgy = 0.0;
   double avgz = 0.0;
   int imask;
-//  unsigned int idx = 0; // Index into previous_
-//  double fixedXYZ[3];
 # ifdef _OPENMP
 # pragma omp parallel private(imask) reduction(+ : average2, avgx, avgy, avgz)
   {
 # pragma omp for
 # endif
   for (imask = 0; imask < mask_.Nselected(); imask++)
-  //for (AtomMask::const_iterator at = mask_.begin(); at != mask_.end(); ++at, idx += 3)
   {
     int at = mask_[imask];
     int idx = imask * 3; // Index into previous_
