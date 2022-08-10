@@ -1182,6 +1182,10 @@ surf
 \end_layout
 
 \begin_layout LyX-Code
+unwrap
+\end_layout
+
+\begin_layout LyX-Code
 velocityautocorr
 \end_layout
 
