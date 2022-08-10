@@ -3,11 +3,11 @@
 #include <string>
 #include <vector>
 #include "ImageTypes.h"
+#include "Vec3.h"
 class Topology;
 class Frame;
 class AtomMask;
 class Matrix_3x3;
-class Vec3;
 class Box;
 class Unit;
 
@@ -33,6 +33,21 @@ namespace Image {
   void Ortho(Frame&, Vec3 const&, Vec3 const&, Vec3 const&, List const&);
   /// Perform orthogonal imaging on given coordinates using given box boundaries
   Vec3 Ortho(Vec3 const&, Vec3 const&, Vec3 const&, Box const&);
+
+  /// \return Vector required for unwrapping in orthogonal box
+  template <typename T> Vec3 UnwrapVec_Ortho(Vec3 const& vtgt, Vec3 const& vref, Vec3 const& boxVec)
+  {
+    T dxyz[3];
+    dxyz[0] = (vtgt[0] - vref[0]);
+    dxyz[1] = (vtgt[1] - vref[1]);
+    dxyz[2] = (vtgt[2] - vref[2]);
+    return Vec3(
+      -floor( dxyz[0] / boxVec[0] + 0.5 ) * boxVec[0],
+      -floor( dxyz[1] / boxVec[1] + 0.5 ) * boxVec[1],
+      -floor( dxyz[2] / boxVec[2] + 0.5 ) * boxVec[2]
+    );
+  }
+    
 
   /// Perform unwrap of non-orthogonal cell using given reference.
   void UnwrapNonortho( Frame&, Frame&, List const&, Unit const&,

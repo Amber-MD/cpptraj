@@ -2,6 +2,7 @@
 #include "Action_Diffusion.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // validDouble
+#include "ImageRoutines.h"
 #include "DataSet_1D.h" // LinearRegression
 #ifdef TIMER
 # include "Timer.h"
@@ -353,12 +354,16 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
       else if (dely < -boxcenter_[1]) fixedXYZ[1] += frm.Frm().BoxCrd().Param(Box::Y);
       if      (delz >  boxcenter_[2]) fixedXYZ[2] -= frm.Frm().BoxCrd().Param(Box::Z);
       else if (delz < -boxcenter_[2]) fixedXYZ[2] += frm.Frm().BoxCrd().Param(Box::Z);*/
-      double t0 = -floor( delx / frm.Frm().BoxCrd().Param(Box::X) + 0.5 ) * frm.Frm().BoxCrd().Param(Box::X);
+/*      double t0 = -floor( delx / frm.Frm().BoxCrd().Param(Box::X) + 0.5 ) * frm.Frm().BoxCrd().Param(Box::X);
       double t1 = -floor( dely / frm.Frm().BoxCrd().Param(Box::Y) + 0.5 ) * frm.Frm().BoxCrd().Param(Box::Y);
       double t2 = -floor( delz / frm.Frm().BoxCrd().Param(Box::Z) + 0.5 ) * frm.Frm().BoxCrd().Param(Box::Z);
       fixedXYZ[0] += t0;
       fixedXYZ[1] += t1;
-      fixedXYZ[2] += t2;
+      fixedXYZ[2] += t2;*/
+      Vec3 transVec = Image::UnwrapVec_Ortho<double>(Vec3(XYZ), Vec3((&previous_[0])+idx), frm.Frm().BoxCrd().Lengths());
+      fixedXYZ[0] += transVec[0];
+      fixedXYZ[1] += transVec[1];
+      fixedXYZ[2] += transVec[2];
       // Calculate the distance between this "fixed" coordinate
       // and the reference (initial) frame.
       delx = fixedXYZ[0] - iXYZ[0];
