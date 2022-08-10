@@ -2,11 +2,13 @@
 #include "Action_Diffusion.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // validDouble
-#include "ImageRoutines.h"
+#include "Unwrap.h"
 #include "DataSet_1D.h" // LinearRegression
 #ifdef TIMER
 # include "Timer.h"
 #endif
+
+using namespace Cpptraj;
 
 // CONSTRUCTOR
 Action_Diffusion::Action_Diffusion() :
@@ -360,7 +362,7 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
       fixedXYZ[0] += t0;
       fixedXYZ[1] += t1;
       fixedXYZ[2] += t2;*/
-      Vec3 transVec = Image::UnwrapVec_Ortho<double>(Vec3(XYZ), Vec3((&previous_[0])+idx), frm.Frm().BoxCrd().Lengths());
+      Vec3 transVec = Unwrap::UnwrapVec_Ortho<double>(Vec3(XYZ), Vec3((&previous_[0])+idx), frm.Frm().BoxCrd().Lengths());
       fixedXYZ[0] += transVec[0];
       fixedXYZ[1] += transVec[1];
       fixedXYZ[2] += transVec[2];
@@ -372,10 +374,14 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
       mprintf("  fixeddist %8.3f %8.3f %8.3f\n", delx, dely, delz);
     } else if ( imageOpt_.ImagingType() == ImageOption::NONORTHO ) {
       // Non-orthorhombic imaging
-      Vec3 boxTrans(0.0);
+      //Vec3 boxTrans(0.0);
       Vec3 vtgt( XYZ[0], XYZ[1], XYZ[2] );
       Vec3 vref( previous_[idx], previous_[idx+1], previous_[idx+2] );
-      // Calculate original distance from the ref (previous) position. 
+      Vec3 transVec = Unwrap::UnwrapVec_Nonortho<double>(vtgt, vref, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell());
+      fixedXYZ[0] += transVec[0];
+      fixedXYZ[1] += transVec[1];
+      fixedXYZ[2] += transVec[2];
+/*      // Calculate original distance from the ref (previous) position. 
       Vec3 vd = vtgt - vref; // dx dy dz
       double minDistanceSquare = vd.Magnitude2();
       // Reciprocal coordinates
@@ -408,6 +414,7 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
       fixedXYZ[0] -= boxTrans[0];
       fixedXYZ[1] -= boxTrans[1];
       fixedXYZ[2] -= boxTrans[2];
+*/
       
 /*      // Calculate distance to previous frames coordinates.
       delx = XYZ[0] - previous_[idx  ];
