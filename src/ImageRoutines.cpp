@@ -253,15 +253,24 @@ void Image::UnwrapNonortho(Frame& tgtIn, Frame& refIn, List const& AtomPairs,
                            Matrix_3x3 const& ucell, Matrix_3x3 const& frac,
                            Vec3 const& limxyz)
 {
-  Vec3 vtgt, vref, boxTrans;
+  int idx;
+  int maxidx = (int)AtomPairs.nEntities();
   // Loop over atom pairs
-  for (unsigned int idx = 0; idx != AtomPairs.nEntities(); idx++)
+# ifdef _OPENMP
+# pragma omp parallel private(idx)
   {
-    vtgt = AtomPairs.GetCoord(idx, tgtIn);
-    vref = AtomPairs.GetCoord(idx, refIn);
-    boxTrans = Unwrap::UnwrapVec_Nonortho<double>(vtgt, vref, ucell, frac, limxyz);
+# pragma omp for
+# endif
+  for (idx = 0; idx < maxidx; idx++)
+  {
+    Vec3 vtgt = AtomPairs.GetCoord(idx, tgtIn);
+    Vec3 vref = AtomPairs.GetCoord(idx, refIn);
+    Vec3 boxTrans = Unwrap::UnwrapVec_Nonortho<double>(vtgt, vref, ucell, frac, limxyz);
     AtomPairs.DoTranslation( tgtIn, idx, boxTrans );
-  } // END loop over atom pairs 
+  } // END loop over atom pairs
+# ifdef _OPENMP
+  }
+# endif
   // Save new ref positions
   refIn.CopyFrom(tgtIn, allEntities);
 }
@@ -270,17 +279,26 @@ void Image::UnwrapNonortho(Frame& tgtIn, Frame& refIn, List const& AtomPairs,
 void Image::UnwrapOrtho(Frame& tgtIn, Frame& refIn, List const& AtomPairs,
                         Unit const& allEntities, Vec3 const& limxyz)
 {
-  Vec3 vtgt, vref, boxTrans;
   Vec3 boxVec = tgtIn.BoxCrd().Lengths();
+  int idx;
+  int maxidx = (int)AtomPairs.nEntities();
   // Loop over atom pairs
-  for (unsigned int idx = 0; idx != AtomPairs.nEntities(); idx++)
+# ifdef _OPENMP
+# pragma omp parallel private(idx)
   {
-    vtgt = AtomPairs.GetCoord(idx, tgtIn);
-    vref = AtomPairs.GetCoord(idx, refIn);
-    boxTrans = Unwrap::UnwrapVec_Ortho<double>(vtgt, vref, boxVec, limxyz);
+# pragma omp for
+# endif
+  for (idx = 0; idx < maxidx; idx++)
+  {
+    Vec3 vtgt = AtomPairs.GetCoord(idx, tgtIn);
+    Vec3 vref = AtomPairs.GetCoord(idx, refIn);
+    Vec3 boxTrans = Unwrap::UnwrapVec_Ortho<double>(vtgt, vref, boxVec, limxyz);
     // Translate atoms from first to last
     AtomPairs.DoTranslation( tgtIn, idx, boxTrans );
   } // END loop over atom pairs
+# ifdef _OPENMP
+  }
+# endif
   // Save new ref positions
   refIn.CopyFrom(tgtIn, allEntities);
 }
