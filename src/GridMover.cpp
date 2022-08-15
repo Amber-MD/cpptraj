@@ -58,7 +58,7 @@ int GridMover::MoverSetup(Topology const& topIn, AtomMask const& maskIn) {
 }
 
 /** Set the coordinates of the first frame. Set original grid unit cell vectors. */
-int GridMover::SetTgt(Frame const& frameIn, Matrix_3x3 const& gridUcell, AtomMask const& maskIn)
+int GridMover::setTgt(Frame const& frameIn, Matrix_3x3 const& gridUcell, AtomMask const& maskIn)
 {
   tgt_.SetFrame( frameIn, maskIn );
   tgtUcell_ = gridUcell;
@@ -85,7 +85,7 @@ void GridMover::MoveGrid(Frame const& currentFrame, AtomMask const& maskIn, Data
     // Ranks > 0 still need to do the rotation on the first frame.
     bool doRotate = true;
     if (firstFrame_) {
-      SetTgt(currentFrame, grid.Bin().Ucell(), maskIn);
+      setTgt(currentFrame, grid.Bin().Ucell(), maskIn);
       if (trajComm_.Rank() == 0)
         doRotate = false;
       firstFrame_ = false;
@@ -105,7 +105,7 @@ void GridMover::MoveGrid(Frame const& currentFrame, AtomMask const& maskIn, Data
     }
 #   else
     if (firstFrame_) {
-      SetTgt(currentFrame, grid.Bin().Ucell(), maskIn);
+      setTgt(currentFrame, grid.Bin().Ucell(), maskIn);
       //grid.SetGridCenter( tgt_.VGeometricCenter( 0, tgt_.Natom() ) );
       firstFrame_ = false;
     } else {
