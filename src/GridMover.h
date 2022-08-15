@@ -22,7 +22,7 @@ class GridMover {
     void MoverInfo(AtomMask const&) const;
 #   ifdef MPI
     /// Set the trajectory comm
-    int MoverSetComm(Parallel::Comm const&);
+    void MoverSetComm(Parallel::Comm const&);
 #   endif
     /// Setup Tgt and Ref frames for given topology and mask
     int MoverSetup(Topology const&, AtomMask const&);

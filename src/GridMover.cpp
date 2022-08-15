@@ -39,6 +39,13 @@ void GridMover::MoverInfo(AtomMask const& maskIn) const {
   }
 }
 
+#ifdef MPI
+/** Set the trajectory comm for RMS fit */
+void GridMover::MoverSetComm(Parallel::Comm const& commIn) {
+  trajComm_ = commIn;
+}
+#endif
+
 /** Setup GridMover */
 int GridMover::MoverSetup(Topology const& topIn, AtomMask const& maskIn) {
   // Set up frames if needed
