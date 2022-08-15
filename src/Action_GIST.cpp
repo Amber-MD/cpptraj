@@ -145,6 +145,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
               init.TrajComm().Size());
     return Action::ERR;
   }
+  mover_.MoverSetComm(init.TrajComm());
 # endif
   gist_init_.Start();
   prefix_ = actionArgs.GetStringKey("prefix", "gist");
@@ -619,6 +620,19 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
       mprintf("\tImaging enabled for energy distance calculations.\n");
     else
       mprintf("\tNo imaging will be performed for energy distance calculations.\n");
+  }
+
+  // Set up movement if needed
+  if (moveMask_.MaskStringSet()) {
+    if (setup.Top().SetupIntegerMask( moveMask_ )) {
+      mprinterr("Error: Could not set up grid move mask.\n");
+      return Action::ERR;
+    }
+    moveMask_.MaskInfo();
+    if (mover_.MoverSetup( setup.Top(), moveMask_ )) {
+      mprinterr("Error: Could not set up grid movement.\n");
+      return Action::ERR;
+    }
   }
 
 #ifdef CUDA
