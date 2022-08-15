@@ -455,6 +455,8 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     mprintf("\tVoxel occupancy will be determined using molecule center of mass.\n");
   else
     mprintf("\tVoxel occupancy will be determined using the first atom.\n");
+  if (moveMask_.MaskStringSet())
+    mover_.MoverInfo(moveMask_);
   mprintf("#Please cite these papers if you use GIST results in a publication:\n"
           "#    Steven Ramsey, Crystal Nguyen, Romelia Salomon-Ferrer, Ross C. Walker, Michael K. Gilson, and Tom Kurtzman. J. Comp. Chem. 37 (21) 2016\n"
           "#    Franz Waibl, Johannes Kraml, Valentin J. Hoerschinger, Florian Hofer, Anna S. Kamenik, Monica L. Fernandez-Quintero, and Klaus R. Liedl,\n"
