@@ -311,6 +311,7 @@ COMMON_SOURCES= \
         GIST_PME.cpp \
         Gpu.cpp \
         GridAction.cpp \
+        GridMover.cpp \
         GridBin.cpp \
         HistBin.cpp \
         Hungarian.cpp \
