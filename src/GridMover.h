@@ -25,7 +25,7 @@ class GridMover {
     int MoverSetup(Topology const&, AtomMask const&);
   private:
     /// Set first frame selected coords (tgt_) and original grid unit cell vectors (tgtUcell_).
-    int SetTgt(Frame const&, Matrix_3x3 const&);
+    int SetTgt(Frame const&, Matrix_3x3 const&, AtomMask const&);
 
     MoveType gridMoveType_; ///< The move type
     Frame tgt_;             ///< For RMS_FIT, first frames selected coordinates
