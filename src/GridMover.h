@@ -24,6 +24,9 @@ class GridMover {
 #   endif
     /// Setup Tgt and Ref frames for given topology and mask
     int MoverSetup(Topology const&, AtomMask const&);
+
+    /// Move the grid
+    void MoveGrid(Frame const&, AtomMask const&, DataSet_3D&);
     /// Finalize moving the grid
     void MoverFinish(DataSet_3D&) const;
   private:

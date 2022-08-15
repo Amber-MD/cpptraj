@@ -46,6 +46,61 @@ int GridMover::SetTgt(Frame const& frameIn, Matrix_3x3 const& gridUcell, AtomMas
   return 0;
 }
 
+/** Move/reorient grid if necessary. */
+void GridMover::MoveGrid(Frame const& currentFrame, AtomMask const& maskIn, DataSet_3D& grid)
+{
+  if (gridMoveType_ == TO_BOX_CTR)
+    grid.SetGridCenter( currentFrame.BoxCrd().Center() );
+  else if (gridMoveType_ == TO_MASK_CTR)
+    grid.SetGridCenter( currentFrame.VGeometricCenter( maskIn ) );
+  else if (gridMoveType_ == RMS_FIT) {
+    grid.SetGridCenter( currentFrame.VGeometricCenter( maskIn ) );
+#   ifdef MPI
+    // Ranks > 0 still need to do the rotation on the first frame.
+    bool doRotate = true;
+    if (firstFrame_) {
+      SetTgt(currentFrame, grid.Bin().Ucell(), maskIn);
+      if (trajComm_.Rank() == 0)
+        doRotate = false;
+      firstFrame_ = false;
+    }
+    if (doRotate) {
+      // Want to rotate to coordinates in current frame. Make them the ref.
+      ref_.SetFrame( currentFrame, maskIn );
+      // Reset to original grid.
+      grid.Assign_Grid_UnitCell( tgtUcell_ );
+      // Do not want to modify original coords. Make a copy.
+      Frame tmpTgt( tgt_ );
+      // Rot will contain rotation from original grid to current frame.
+      Matrix_3x3 Rot;
+      Vec3 T1, T2;
+      tmpTgt.RMSD( ref_, Rot, T1, T2, false );
+      grid.Rotate_3D_Grid( Rot );
+    }
+#   else
+    if (firstFrame_) {
+      SetTgt(currentFrame, grid.Bin().Ucell(), maskIn);
+      //grid.SetGridCenter( tgt_.VGeometricCenter( 0, tgt_.Natom() ) );
+      firstFrame_ = false;
+    } else {
+      //grid.SetGridCenter( currentFrame.VGeometricCenter( maskIn ) );
+      // Want to rotate to coordinates in current frame. Make them the ref.
+      ref_.SetFrame( currentFrame, maskIn );
+      // Reset to original grid.
+      grid.Assign_Grid_UnitCell( tgtUcell_ );
+      // Do not want to modify original coords. Make a copy.
+      Frame tmpTgt( tgt_ );
+      // Rot will contain rotation from original grid to current frame.
+      Matrix_3x3 Rot;
+      Vec3 T1, T2;
+      tmpTgt.RMSD( ref_, Rot, T1, T2, false );
+      grid.Rotate_3D_Grid( Rot );
+      //tgt_.SetFrame( currentFrame, maskIn );
+    }
+#   endif
+  }
+}
+
 /** Any final actions to grid. */
 void GridMover::MoverFinish(DataSet_3D& grid) const {
   //rprintf("DEBUG: Final Grid origin: %f %f %f\n", grid.Bin().GridOrigin()[0], grid.Bin().GridOrigin()[1], grid.Bin().GridOrigin()[2]);
