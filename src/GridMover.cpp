@@ -20,6 +20,25 @@ int GridMover::MoverInit(MoveType typeIn, bool x_alignIn) {
   return 0;
 }
 
+/** Print info to stdout. */
+void GridMover::MoverInfo(AtomMask const& maskIn) const {
+  if (gridMoveType_ == NO_MOVE)
+    mprintf("\tGrid will not move.\n");
+  else if (gridMoveType_ == TO_BOX_CTR)
+    mprintf("\tGrid will be kept centered at the box center.\n");
+  else if (gridMoveType_ == TO_MASK_CTR)
+    mprintf("\tGrid will be kept centered on atoms in mask [%s]\n",
+            maskIn.MaskString());
+  else if (gridMoveType_ == RMS_FIT) {
+    mprintf("\tGrid will be RMS-fit using atoms in mask [%s]\n",
+            maskIn.MaskString());
+    if (x_align_)
+      mprintf("\tGrid will be realigned with Cartesian axes after binning is complete.\n");
+    else
+      mprintf("\tGrid will not be realigned with Cartesian axes after binning is complete.\n");
+  }
+}
+
 /** Setup GridMover */
 int GridMover::MoverSetup(Topology const& topIn, AtomMask const& maskIn) {
   // Set up frames if needed

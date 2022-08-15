@@ -18,6 +18,8 @@ class GridMover {
     GridMover();
     /// Initialize (move type, do final x-align)
     int MoverInit(MoveType, bool);
+    /// Print info to stdout
+    void MoverInfo(AtomMask const&) const;
 #   ifdef MPI
     /// Set the trajectory comm
     int MoverSetComm(Parallel::Comm const&);

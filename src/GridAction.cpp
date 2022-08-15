@@ -3,13 +3,12 @@
 #include "ArgList.h"
 #include "StringRoutines.h"
 
+using namespace Cpptraj;
+
 /** CONSTRUCTOR */
 GridAction::GridAction() :
   gridOffsetType_(NO_OFFSET),
-  gridMoveType_(NO_MOVE),
-  increment_(1.0),
-  firstFrame_(false),
-  x_align_(true)
+  increment_(1.0)
 {}
 
 // GridAction::HelpText
@@ -30,21 +29,22 @@ static inline void CheckEven(int& N, char dir) {
 }
 
 /** Determine grid move type based on keywords. */
-int GridAction::determineMoveType(ArgList& argIn, bool& specifiedCenter)
+int GridAction::determineMoveType(ArgList& argIn, GridMover::MoveType& gridMoveType,
+                                  bool& specifiedCenter)
 {
   if (argIn.hasKey("boxcenter")) {
     specifiedCenter = true;
-    gridMoveType_ = TO_BOX_CTR;
+    gridMoveType = GridMover::TO_BOX_CTR;
   } else {
     std::string maskCenterArg = argIn.GetStringKey("maskcenter");
     std::string rmsFitArg = argIn.GetStringKey("rmsfit");
     if (!maskCenterArg.empty()) {
       specifiedCenter = true;
-      gridMoveType_ = TO_MASK_CTR;
+      gridMoveType = GridMover::TO_MASK_CTR;
       if (centerMask_.SetMaskString( maskCenterArg )) return 1;
     } else if (!rmsFitArg.empty()) {
       specifiedCenter = true;
-      gridMoveType_ = RMS_FIT;
+      gridMoveType = GridMover::RMS_FIT;
       if (centerMask_.SetMaskString( rmsFitArg )) return 1;
     }
   }
@@ -56,7 +56,8 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn
 {
   DataSet_GridFlt* Grid = 0; 
   bool specifiedCenter = false;
-  x_align_ = !argIn.hasKey("noxalign");
+  GridMover::MoveType gridMoveType = GridMover::NO_MOVE;
+  bool do_x_align = !argIn.hasKey("noxalign");
   std::string dsname = argIn.GetStringKey("data");
   std::string refname = argIn.GetStringKey("boxref");
   if (!dsname.empty()) { 
@@ -71,7 +72,7 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn
     // DataSet will probably need syncing after action.
     Grid->SetNeedsSync( true );
 #   endif
-    if (determineMoveType(argIn, specifiedCenter)) return 0;
+    if (determineMoveType(argIn, gridMoveType, specifiedCenter)) return 0;
   } else if (!refname.empty()) {
     // Get grid parameters from reference structure box.
     DataSet_Coords_REF* REF = (DataSet_Coords_REF*)DSL.FindSetOfType( refname, DataSet::REF_FRAME );
@@ -114,7 +115,7 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn
     CheckEven( nx, 'X' ); CheckEven( ny, 'Y' ); CheckEven( nz, 'Z' );
     Vec3 gridctr(0.0, 0.0, 0.0);
     // Check if we want to specifically re-center the grid during DoAction
-    gridMoveType_ = NO_MOVE;
+    gridMoveType = GridMover::NO_MOVE;
     if (argIn.hasKey("gridcenter")) {
       double cx = argIn.getNextDouble(0.0);
       double cy = argIn.getNextDouble(0.0);
@@ -122,7 +123,7 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn
       gridctr.SetVec(cx, cy, cz);
       specifiedCenter = true;
     } else {
-      if (determineMoveType( argIn, specifiedCenter )) return 0;
+      if (determineMoveType( argIn, gridMoveType, specifiedCenter )) return 0;
     }
     Grid = (DataSet_GridFlt*)DSL.AddSet( DataSet::GRID_FLT, argIn.GetStringKey("name"), "GRID" );
     if (Grid == 0) return 0;
@@ -157,6 +158,8 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn
     increment_ = -1.0;
   else
     increment_ = 1.0;
+  // Set up the grid mover
+  if (mover_.MoverInit(gridMoveType, do_x_align)) return 0;
 
   return Grid;
 }
@@ -169,12 +172,13 @@ int GridAction::ParallelGridInit(Parallel::Comm const& commIn, DataSet_GridFlt* 
     std::fill( Grid->begin(), Grid->end(), 0.0 );
   }
   trajComm_ = commIn;
+  mover_.MoverSetComm( trajComm_ );
   return 0;
 }
 #endif
 
 // GridAction::GridInfo() 
-void GridAction::GridInfo(DataSet_GridFlt const& grid) {
+void GridAction::GridInfo(DataSet_GridFlt const& grid) const {
   if (gridOffsetType_ == NO_OFFSET)
     mprintf("\tNo offset will be applied to points.\n");
   else if (gridOffsetType_ == BOX_CENTER)
@@ -182,21 +186,7 @@ void GridAction::GridInfo(DataSet_GridFlt const& grid) {
   else if (gridOffsetType_ == MASK_CENTER)
     mprintf("\tOffset for points is center of atoms in mask [%s]\n",
             centerMask_.MaskString());
-  if (gridMoveType_ == NO_MOVE)
-    mprintf("\tGrid will not move.\n");
-  else if (gridMoveType_ == TO_BOX_CTR)
-    mprintf("\tGrid will be kept centered at the box center.\n");
-  else if (gridMoveType_ == TO_MASK_CTR)
-    mprintf("\tGrid will be kept centered on atoms in mask [%s]\n",
-            centerMask_.MaskString());
-  else if (gridMoveType_ == RMS_FIT) {
-    mprintf("\tGrid will be RMS-fit using atoms in mask [%s]\n",
-            centerMask_.MaskString());
-    if (x_align_)
-      mprintf("\tGrid will be realigned with Cartesian axes after binning is complete.\n");
-    else
-      mprintf("\tGrid will not be realigned with Cartesian axes after binning is complete.\n");
-  }
+  mover_.MoverInfo(centerMask_);
   if (increment_ > 0)
     mprintf("\tCalculating positive density.\n");
   else
@@ -224,37 +214,8 @@ int GridAction::GridSetup(Topology const& currentParm, CoordinateInfo const& cIn
       return 1;
     }
   }
-  // Set up frames if needed
-  if (gridMoveType_ == RMS_FIT) {
-    tgt_.SetupFrameFromMask(centerMask_, currentParm.Atoms());
-    ref_ = tgt_;
-    firstFrame_ = true;
-  }
-  return 0;
-}
+  // Set up mover if needed
+  if (mover_.MoverSetup(currentParm, centerMask_)) return 1;
 
-/** Set the coordinates of the first frame. Set original grid unit cell vectors. */
-int GridAction::SetTgt(Frame const& frameIn, Matrix_3x3 const& gridUcell)
-{
-  tgt_.SetFrame( frameIn, centerMask_ );
-  tgtUcell_ = gridUcell;
-# ifdef MPI
-  // Ensure all processes are using the same reference. Just broadcast the coords.
-  trajComm_.MasterBcast( tgt_.xAddress(), tgt_.size(), MPI_DOUBLE );
-  // Ensure all processes have the same unit cell vecs
-  trajComm_.MasterBcast( tgtUcell_.Dptr(), 9, MPI_DOUBLE );
-  //rprintf("DEBUG: Ucell0: %f %f %f %f %f %f %f %f %f\n", tgtUcell_[0], tgtUcell_[1], tgtUcell_[2], tgtUcell_[3], tgtUcell_[4], tgtUcell_[5], tgtUcell_[6], tgtUcell_[7], tgtUcell_[8]);
-# endif
   return 0;
-}
-
-/** Any final actions to grid. */
-void GridAction::FinishGrid(DataSet_GridFlt& grid) const {
-  //rprintf("DEBUG: Final Grid origin: %f %f %f\n", grid.Bin().GridOrigin()[0], grid.Bin().GridOrigin()[1], grid.Bin().GridOrigin()[2]);
-  if (x_align_) {
-    if (!grid.Bin().IsXalignedGrid()) {
-      mprintf("\tEnsuring grid '%s' is X-aligned.\n", grid.legend());
-      grid.Xalign_3D_Grid();
-    }
-  }
 }
