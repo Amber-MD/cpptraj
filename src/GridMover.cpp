@@ -46,7 +46,7 @@ int GridMover::SetTgt(Frame const& frameIn, Matrix_3x3 const& gridUcell, AtomMas
   return 0;
 }
 
-/** Move/reorient grid if necessary. */
+/** Move/reorient grid if necessary. */ // TODO inline?
 void GridMover::MoveGrid(Frame const& currentFrame, AtomMask const& maskIn, DataSet_3D& grid)
 {
   if (gridMoveType_ == TO_BOX_CTR)
