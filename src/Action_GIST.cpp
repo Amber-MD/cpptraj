@@ -66,6 +66,8 @@ Action_GIST::Action_GIST() :
   gridspacing_(0),
   gridcntr_(0.0),
   griddim_(),
+  masterGrid_(0),
+  gridBin_(0),
   rigidAtomNames_(3),
   Esw_(0),
   Eww_(0),
@@ -325,7 +327,8 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     return Action::ERR;
   }
 
-  gridBin_ = &Eww_->Bin();
+  masterGrid_ = Eww_;
+  gridBin_ = &(Eww_->Bin());
 
   if (doEij_) {
     ww_Eij_ = (DataSet_MatrixFlt*)init.DSL().AddSet(DataSet::MATRIX_FLT, MetaData(dsname_, "Eij"));

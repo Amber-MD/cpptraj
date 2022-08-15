@@ -179,7 +179,8 @@ class Action_GIST : public Action {
     double gridspacing_;
     Vec3 gridcntr_;
     int griddim_[3];
-    const GridBin* gridBin_;
+    DataSet_3D* masterGrid_; ///< Grid that will be used to determine voxels for all grids
+    const GridBin* gridBin_; ///< Hold the GridBin class from masterGrid_
 
     std::vector<std::string> rigidAtomNames_;
     int rigidAtomIndices_[3]; ///< the 3 atoms that define the orientation of a solvent molecule;
