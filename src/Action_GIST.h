@@ -1,6 +1,7 @@
 #ifndef INC_ACTION_GIST_H
 #define INC_ACTION_GIST_H
 #include "Action.h"
+#include "GridMover.h"
 #include "ImageOption.h"
 #include "Timer.h"
 #include "EwaldOptions.h"
@@ -181,6 +182,9 @@ class Action_GIST : public Action {
     int griddim_[3];
     DataSet_3D* masterGrid_; ///< Grid that will be used to determine voxels for all grids
     const GridBin* gridBin_; ///< Hold the GridBin class from masterGrid_
+
+    Cpptraj::GridMover mover_; ///< Used to move the master grid if necessary
+    AtomMask moveMask_;        ///< Select atoms used to move the grid if necessary
 
     std::vector<std::string> rigidAtomNames_;
     int rigidAtomIndices_[3]; ///< the 3 atoms that define the orientation of a solvent molecule;

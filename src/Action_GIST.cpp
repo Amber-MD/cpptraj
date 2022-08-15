@@ -15,6 +15,8 @@
 # include <omp.h>
 #endif
 
+using namespace Cpptraj;
+
 // Note: The Order calculation is not updated for solvents other than water.
 // E.g., it does not use rigidAtomIndices[0].
 // It will not crash, but also not produce useful results.
@@ -192,6 +194,19 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   if (skipE_) {
     if (doEij_) {
       mprinterr("Error: 'doeij' cannot be specified if 'skipE' is specified.\n");
+      return Action::ERR;
+    }
+  }
+  // Grid move options
+  std::string rmsfitmask = actionArgs.GetStringKey("rmsfit");
+  if (!rmsfitmask.empty()) {
+    if ( moveMask_.SetMaskString( rmsfitmask )) {
+      mprinterr("Error: Bad mask string: '%s'\n", rmsfitmask.c_str());
+      return Action::ERR;
+    }
+    // Rms fit grid, x-align after
+    if (mover_.MoverInit( GridMover::RMS_FIT, true )) {
+      mprinterr("Error: Could not initialize grid mover.\n");
       return Action::ERR;
     }
   }
