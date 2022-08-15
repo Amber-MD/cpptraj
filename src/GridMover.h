@@ -2,9 +2,6 @@
 #define INC_GRIDMOVER_H
 #include "Frame.h"
 // Forward declares
-//class AtomMask;
-//class Frame;
-//class Matrix_3x3;
 class DataSet_3D;
 class Topology;
 namespace Cpptraj {
@@ -35,12 +32,12 @@ class GridMover {
     /// Set first frame selected coords (tgt_) and original grid unit cell vectors (tgtUcell_).
     int SetTgt(Frame const&, Matrix_3x3 const&, AtomMask const&);
 
-    MoveType gridMoveType_; ///< The move type
-    Frame tgt_;             ///< For RMS_FIT, first frames selected coordinates
-    Matrix_3x3 tgtUcell_;   ///< For RMS_FIT, original grid unit cell vectors
-    Frame ref_;             ///< For RMS_FIT, current frames selected coordinates
-    bool firstFrame_;       ///< For RMS_FIT, true if this is the first frame (no fit needed)
-    bool x_align_;          ///< For RMS_FIT, if true ensure grid is X-aligned in FinishGrid().
+    MoveType gridMoveType_;   ///< The move type
+    Frame tgt_;               ///< For RMS_FIT, first frames selected coordinates
+    Matrix_3x3 tgtUcell_;     ///< For RMS_FIT, original grid unit cell vectors
+    Frame ref_;               ///< For RMS_FIT, current frames selected coordinates
+    bool firstFrame_;         ///< For RMS_FIT, true if this is the first frame (no fit needed)
+    bool x_align_;            ///< For RMS_FIT, if true ensure grid is X-aligned in MoverFinish().
 #   ifdef MPI
     Parallel::Comm trajComm_; ///< For RMS_FIT used to ensure all procs use same reference
 #   endif
