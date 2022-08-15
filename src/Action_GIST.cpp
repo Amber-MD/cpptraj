@@ -1244,6 +1244,9 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   OnGrid_XYZ_.clear();
   atom_voxel_.assign( frm.Frm().Natom(), OFF_GRID_ );
 
+  // Move the grid if needed
+  mover_.MoveGrid(frm.Frm(), moveMask_, static_cast<DataSet_3D&>( *masterGrid_ ));
+
   if (!skipE_) {
     for (int thread = 0; thread != numthreads_; thread++) {
       E_UV_[thread].assign( frm.Frm().Natom(), 0 );
