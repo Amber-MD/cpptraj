@@ -1,4 +1,6 @@
 #include "GridMover.h"
+#include "CpptrajStdio.h"
+#include "DataSet_3D.h"
 #include "Topology.h"
 
 using namespace Cpptraj;
@@ -44,3 +46,13 @@ int GridMover::SetTgt(Frame const& frameIn, Matrix_3x3 const& gridUcell, AtomMas
   return 0;
 }
 
+/** Any final actions to grid. */
+void GridMover::MoverFinish(DataSet_3D& grid) const {
+  //rprintf("DEBUG: Final Grid origin: %f %f %f\n", grid.Bin().GridOrigin()[0], grid.Bin().GridOrigin()[1], grid.Bin().GridOrigin()[2]);
+  if (x_align_) {
+    if (!grid.Bin().IsXalignedGrid()) {
+      mprintf("\tEnsuring grid '%s' is X-aligned.\n", grid.legend());
+      grid.Xalign_3D_Grid();
+    }
+  }
+}

@@ -5,6 +5,7 @@
 //class AtomMask;
 //class Frame;
 //class Matrix_3x3;
+class DataSet_3D;
 class Topology;
 namespace Cpptraj {
 /// Helper class for moving/rotating a GridBin
@@ -23,6 +24,8 @@ class GridMover {
 #   endif
     /// Setup Tgt and Ref frames for given topology and mask
     int MoverSetup(Topology const&, AtomMask const&);
+    /// Finalize moving the grid
+    void MoverFinish(DataSet_3D&) const;
   private:
     /// Set first frame selected coords (tgt_) and original grid unit cell vectors (tgtUcell_).
     int SetTgt(Frame const&, Matrix_3x3 const&, AtomMask const&);
