@@ -46,7 +46,7 @@ void GridMover::MoverSetComm(Parallel::Comm const& commIn) {
 }
 #endif
 
-/** Setup GridMover */
+/** Setup GridMover */ // TODO could just pass in Atoms() instead of Topology
 int GridMover::MoverSetup(Topology const& topIn, AtomMask const& maskIn) {
   // Set up frames if needed
   if (gridMoveType_ == RMS_FIT) {
