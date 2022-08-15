@@ -1677,6 +1677,9 @@ void Action_GIST::Print() {
 
   mprintf("    GIST OUTPUT:\n");
 
+  // Finish moving the grid if needed
+  mover_.MoverFinish( static_cast<DataSet_3D&>( *masterGrid_ ) );
+
   // The variables are kept outside, so that they are declared for later use.
   // Calculate orientational entropy
   int nwtt = 0;
