@@ -9,7 +9,8 @@ using namespace Cpptraj;
 GridMover::GridMover() :
   gridMoveType_(NO_MOVE),
   firstFrame_(true),
-  x_align_(false)
+  x_align_(false),
+  doRotate_(false)
 {}
 
 /** Set GridMover options. */
@@ -17,6 +18,7 @@ int GridMover::MoverInit(MoveType typeIn, bool x_alignIn) {
   gridMoveType_ = typeIn;
   x_align_ = x_alignIn;
   firstFrame_ = true;
+  doRotate_ = false;
   return 0;
 }
 
@@ -83,14 +85,14 @@ void GridMover::MoveGrid(Frame const& currentFrame, AtomMask const& maskIn, Data
     grid.SetGridCenter( currentFrame.VGeometricCenter( maskIn ) );
 #   ifdef MPI
     // Ranks > 0 still need to do the rotation on the first frame.
-    bool doRotate = true;
+    doRotate_ = true;
     if (firstFrame_) {
       setTgt(currentFrame, grid.Bin().Ucell(), maskIn);
       if (trajComm_.Rank() == 0)
-        doRotate = false;
+        doRotate_ = false;
       firstFrame_ = false;
     }
-    if (doRotate) {
+    if (doRotate_) {
       // Want to rotate to coordinates in current frame. Make them the ref.
       ref_.SetFrame( currentFrame, maskIn );
       // Reset to original grid.
@@ -98,16 +100,17 @@ void GridMover::MoveGrid(Frame const& currentFrame, AtomMask const& maskIn, Data
       // Do not want to modify original coords. Make a copy.
       Frame tmpTgt( tgt_ );
       // Rot will contain rotation from original grid to current frame.
-      Matrix_3x3 Rot;
+      //Matrix_3x3 Rot;
       Vec3 T1, T2;
-      tmpTgt.RMSD( ref_, Rot, T1, T2, false );
-      grid.Rotate_3D_Grid( Rot );
+      tmpTgt.RMSD( ref_, Rot_, T1, T2, false );
+      grid.Rotate_3D_Grid( Rot_ );
     }
 #   else
     if (firstFrame_) {
       setTgt(currentFrame, grid.Bin().Ucell(), maskIn);
       //grid.SetGridCenter( tgt_.VGeometricCenter( 0, tgt_.Natom() ) );
       firstFrame_ = false;
+      doRotate_ = false;
     } else {
       //grid.SetGridCenter( currentFrame.VGeometricCenter( maskIn ) );
       // Want to rotate to coordinates in current frame. Make them the ref.
@@ -117,10 +120,11 @@ void GridMover::MoveGrid(Frame const& currentFrame, AtomMask const& maskIn, Data
       // Do not want to modify original coords. Make a copy.
       Frame tmpTgt( tgt_ );
       // Rot will contain rotation from original grid to current frame.
-      Matrix_3x3 Rot;
+      //Matrix_3x3 Rot;
       Vec3 T1, T2;
-      tmpTgt.RMSD( ref_, Rot, T1, T2, false );
-      grid.Rotate_3D_Grid( Rot );
+      tmpTgt.RMSD( ref_, Rot_, T1, T2, false );
+      grid.Rotate_3D_Grid( Rot_ );
+      doRotate_ = true;
       //tgt_.SetFrame( currentFrame, maskIn );
     }
 #   endif

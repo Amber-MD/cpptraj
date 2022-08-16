@@ -351,6 +351,14 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   masterGrid_ = Eww_;
   gridBin_ = &(Eww_->Bin());
 
+  // Allocate the grid + 1.5 Ang buffer TODO handle nonortho case
+  borderGrid_.Setup_Lengths_Center_Spacing( Vec3(gridBin_->GridBox().Param(Box::X)+3.0,
+                                                 gridBin_->GridBox().Param(Box::Y)+3.0,
+                                                 gridBin_->GridBox().Param(Box::Z)+3.0),
+                                            gridBin_->GridCenter(),
+                                            Vec3( gridspacing_ ) );
+  borderGrid_.PrintDebug("borderGrid");
+
   if (doEij_) {
     ww_Eij_ = (DataSet_MatrixFlt*)init.DSL().AddSet(DataSet::MATRIX_FLT, MetaData(dsname_, "Eij"));
     if (ww_Eij_ == 0) return Action::ERR;
@@ -1253,6 +1261,10 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   // Move the grid if needed
   if (moveMask_.MaskStringSet()) {
     mover_.MoveGrid(frm.Frm(), moveMask_, static_cast<DataSet_3D&>( *masterGrid_ ));
+    if (mover_.RotationHappened()) {
+      mover_.RotMatrix().Print("RotMatrix");
+      borderGrid_.RotateGrid( mover_.RotMatrix() );
+    }
   }
 
   if (!skipE_) {
@@ -1290,6 +1302,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   if (debugOut_ != 0) {
     debugOut_->Printf("Frame %i grid oxyz= %12.4f %12.4f %12.4f\n", frameNum+1, Origin[0], Origin[1], Origin[2]);
     debugOut_->Printf("Frame %i grid mxyz= %12.4f %12.4f %12.4f\n", frameNum+1, gridBin_->MX(), gridBin_->MY(), gridBin_->MZ());
+    debugOut_->Printf("Frame %i border oxyz %12.4f %12.4f %12.4f\n", frameNum+1, borderGrid_.GridOrigin()[0], borderGrid_.GridOrigin()[1], borderGrid_.GridOrigin()[2]);
   }
   // Loop over each solvent molecule
   for (Topology::mol_iterator mol = CurrentParm_->MolStart(); mol != CurrentParm_->MolEnd(); ++mol)
@@ -1300,15 +1313,26 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
     if (atomIsSolute_[mol_first]) { continue; }
     Vec3 mol_center = calcMolCenter(frm, mol_first, mol_end);
     // frm.Frm().VCenterOfMass(oidx, oidx+nMolAtoms_);
-    Vec3 W_G = mol_center - Origin;
+    bool isNearGrid = borderGrid_.IsOnGrid(mol_center[0], mol_center[1], mol_center[2]);
+    //Vec3 W_G = mol_center - Origin;
     gist_grid_.Stop();
-    if (debugOut_ != 0) debugOut_->Printf("\tMol %6li ctr= %8.3f %8.3f %8.3f  W_G= %8.3f %8.3f %8.3f\n", mol - CurrentParm_->MolStart() + 1, mol_center[0], mol_center[1], mol_center[2], W_G[0], W_G[1], W_G[2]);
+    if (debugOut_ != 0) {
+      //debugOut_->Printf("\tMol %6li ctr= %8.3f %8.3f %8.3f  W_G= %8.3f %8.3f %8.3f\n", mol - CurrentParm_->MolStart() + 1, mol_center[0], mol_center[1], mol_center[2], W_G[0], W_G[1], W_G[2]);
+      debugOut_->Printf("\tMol %6li\n", mol - CurrentParm_->MolStart() + 1);
+      debugOut_->Printf("\t\tIsNearGrid= %i\n", (int)isNearGrid);
+    }
     // Check if water oxygen is no more then 1.5 Ang from grid
+    if (isNearGrid)
     // NOTE: using <= to be consistent with original code
-    if ( W_G[0] <= G_max_[0] && W_G[0] >= G_min_[0] &&
-         W_G[1] <= G_max_[1] && W_G[1] >= G_min_[1] &&
-         W_G[2] <= G_max_[2] && W_G[2] >= G_min_[2] )
+    //if ( W_G[0] <= G_max_[0] && W_G[0] >= G_min_[0] &&
+    //     W_G[1] <= G_max_[1] && W_G[1] >= G_min_[1] &&
+    //     W_G[2] <= G_max_[2] && W_G[2] >= G_min_[2] )
     {
+      if (debugOut_ != 0) {
+        debugOut_->Printf("\t\tWithin min/max.");
+        if (!isNearGrid) debugOut_->Printf(" MISMATCH!");
+        debugOut_->Printf("\n");
+      }
       // Try to bin the oxygen
       int voxel = calcVoxelIndex(mol_center[0], mol_center[1], mol_center[2]);
       if ( voxel != OFF_GRID_ )

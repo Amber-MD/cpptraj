@@ -13,6 +13,8 @@ class GridBin {
                 {}
     /// \return true if given coordinates are on grid; set corresponding bin indices.
     inline bool Calc(double, double, double, size_t&, size_t&, size_t&) const;
+    /// \return true if given coords are on the grid.
+    inline bool IsOnGrid(double, double, double) const;
     /// Given coordinates, set corresponding bin indices; no bounds check.
     inline void Indices(double, double, double, long int&, long int&, long int&) const;
     /// \return coordinates of bin for given indices; no bound check.
@@ -106,6 +108,12 @@ class GridBin {
 bool GridBin::Calc(double x, double y, double z, size_t& i, size_t& j, size_t& k) const {
   return ((*this).*(CalcPtr_))(x, y, z, i, j, k);
 }
+
+/** Interface to the Calc routine that just indicates if coords are on the grid. */
+bool GridBin::IsOnGrid(double x, double y, double z) const {
+  size_t i, j, k;
+  return ((*this).*(CalcPtr_))(x, y, z, i, j, k);
+} 
 
 /** Interface to the Indices routine appropriate for the grid type. */
 void GridBin::Indices(double x, double y, double z, long int& i, long int& j, long int& k) const
