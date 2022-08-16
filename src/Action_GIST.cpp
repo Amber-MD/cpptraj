@@ -86,6 +86,7 @@ Action_GIST::Action_GIST() :
   U_PME_(0),
   ww_Eij_(0),
   G_max_(0.0),
+  G_min_(0.0),
   CurrentParm_(0),
   datafile_(0),
   eijfile_(0),
@@ -104,6 +105,7 @@ Action_GIST::Action_GIST() :
   NFRAME_(0),
   max_nwat_(0),
   n_linear_solvents_(0),
+  debugOut_(0),
   doOrder_(false),
   doEij_(false),
   skipE_(false),
@@ -148,6 +150,9 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   mover_.MoverSetComm(init.TrajComm());
 # endif
   gist_init_.Start();
+  // DEBUG
+  debugOut_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("debugout"), "GIST debug");
+  // DEBUG
   prefix_ = actionArgs.GetStringKey("prefix", "gist");
   ext_ = actionArgs.GetStringKey("ext", ".dx");
   std::string gistout = actionArgs.GetStringKey("out", prefix_ + "-output.dat");
@@ -364,6 +369,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   G_max_ = Vec3( (double)griddim_[0] * gridspacing_ + 1.5,
                  (double)griddim_[1] * gridspacing_ + 1.5,
                  (double)griddim_[2] * gridspacing_ + 1.5 );
+  G_min_ = Vec3( -1.5 );
   N_solvent_.assign( MAX_GRID_PT_, 0 );
   N_main_solvent_.assign( MAX_GRID_PT_, 0 );
   N_solute_atoms_.assign( MAX_GRID_PT_, 0);
@@ -1245,7 +1251,9 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   atom_voxel_.assign( frm.Frm().Natom(), OFF_GRID_ );
 
   // Move the grid if needed
-  mover_.MoveGrid(frm.Frm(), moveMask_, static_cast<DataSet_3D&>( *masterGrid_ ));
+  if (moveMask_.MaskStringSet()) {
+    mover_.MoveGrid(frm.Frm(), moveMask_, static_cast<DataSet_3D&>( *masterGrid_ ));
+  }
 
   if (!skipE_) {
     for (int thread = 0; thread != numthreads_; thread++) {
@@ -1279,6 +1287,10 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   // CUDA necessary information
 
   Vec3 const& Origin = gridBin_->GridOrigin();
+  if (debugOut_ != 0) {
+    debugOut_->Printf("Frame %i grid oxyz= %12.4f %12.4f %12.4f\n", frameNum+1, Origin[0], Origin[1], Origin[2]);
+    debugOut_->Printf("Frame %i grid mxyz= %12.4f %12.4f %12.4f\n", frameNum+1, gridBin_->MX(), gridBin_->MY(), gridBin_->MZ());
+  }
   // Loop over each solvent molecule
   for (Topology::mol_iterator mol = CurrentParm_->MolStart(); mol != CurrentParm_->MolEnd(); ++mol)
   {
@@ -1290,11 +1302,12 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
     // frm.Frm().VCenterOfMass(oidx, oidx+nMolAtoms_);
     Vec3 W_G = mol_center - Origin;
     gist_grid_.Stop();
+    if (debugOut_ != 0) debugOut_->Printf("\tMol %6li ctr= %8.3f %8.3f %8.3f  W_G= %8.3f %8.3f %8.3f\n", mol - CurrentParm_->MolStart() + 1, mol_center[0], mol_center[1], mol_center[2], W_G[0], W_G[1], W_G[2]);
     // Check if water oxygen is no more then 1.5 Ang from grid
     // NOTE: using <= to be consistent with original code
-    if ( W_G[0] <= G_max_[0] && W_G[0] >= -1.5 &&
-         W_G[1] <= G_max_[1] && W_G[1] >= -1.5 &&
-         W_G[2] <= G_max_[2] && W_G[2] >= -1.5 )
+    if ( W_G[0] <= G_max_[0] && W_G[0] >= G_min_[0] &&
+         W_G[1] <= G_max_[1] && W_G[1] >= G_min_[1] &&
+         W_G[2] <= G_max_[2] && W_G[2] >= G_min_[2] )
     {
       // Try to bin the oxygen
       int voxel = calcVoxelIndex(mol_center[0], mol_center[1], mol_center[2]);
@@ -1483,9 +1496,9 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
                 u_XYZ[2] - Origin[2]);
       //size_t bin_i, bin_j, bin_k;
 
-      if ( U_G[0] <= G_max_[0] && U_G[0] >= -1.5 &&
-           U_G[1] <= G_max_[1] && U_G[1] >= -1.5 &&
-           U_G[2] <= G_max_[2] && U_G[2] >- -1.5)
+      if ( U_G[0] <= G_max_[0] && U_G[0] >= G_min_[0] &&
+           U_G[1] <= G_max_[1] && U_G[1] >= G_min_[1] &&
+           U_G[2] <= G_max_[2] && U_G[2] >= G_min_[2])
       {
         int voxel = calcVoxelIndex(u_XYZ[0], u_XYZ[1], u_XYZ[2]);
         if ( voxel != OFF_GRID_ )

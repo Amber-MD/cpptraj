@@ -41,6 +41,10 @@ class GridBin {
     inline double DY() const { return dy_; }
     inline double DZ() const { return dz_; }
 
+    inline double MX() const { return mx_; }
+    inline double MY() const { return my_; }
+    inline double MZ() const { return mz_; }
+
     /// Print debug info
     void PrintDebug(const char*) const;
 

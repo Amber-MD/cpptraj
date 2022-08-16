@@ -258,6 +258,7 @@ class Action_GIST : public Action {
     Darray U_E_pme_;   ///< Total nonbond interaction energy(VDW + Elec) calculated by PME for solute TODO grid?
 
     Vec3 G_max_; ///< Grid max + 1.5 Ang.
+    Vec3 G_min_; ///< -1.5 Ang.
 
     // Timing data
     Timer gist_init_;
@@ -296,6 +297,7 @@ class Action_GIST : public Action {
     int max_nwat_;             ///< Max number of waters in any voxel
     int nNnSearchLayers_;      ///< Number of layers of voxels to search for nearest neighbors in the entropy search.
     int n_linear_solvents_;    ///< Count how many near-linear solvents occur during the GIST calculation.*
+    CpptrajFile* debugOut_; ///> DEBUG
     bool doOrder_;             ///< If true do the order calc
     bool doEij_;               ///< If true do the i-j energy calc
     bool skipE_;               ///< If true skip the nonbond energy calc
