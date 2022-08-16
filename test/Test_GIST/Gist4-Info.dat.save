@@ -1,6 +1,6 @@
 Maximum number of waters found in one voxel for 10 frames = 3
 Number of singly-occupied voxels: 1434
-Total referenced orientational entropy of the grid: dTSorient = -21.29450 kcal/mol, Nf=10
+Total referenced orientational entropy of the grid: dTSorient = -21.29451 kcal/mol, Nf=10
 watcount in vol = 161
 watcount in subvol = 1011
 Total referenced translational entropy of the grid: dTStrans = -61.13316 kcal/mol, Nf=10
@@ -8,6 +8,6 @@ Total 6d if all one vox:  -1.36755 kcal/mol
 Total t if all one vox:  -0.60468 kcal/mol
 Total o if all one vox:  -1.32264 kcal/mol
 Ensemble total water energy on the grid: -1542.80744 Kcal/mol 
-Ensemble total solute energy on the grid: -1254.32084 Kcal/mol 
+Ensemble total solute energy on the grid: -1270.79410 Kcal/mol 
 Total water-solute energy of the grid: Esw = -379.83753 kcal/mol
-Total unreferenced water-water energy of the grid: Eww = -1352.88869 kcal/mol
+Total unreferenced water-water energy of the grid: Eww = -1352.88868 kcal/mol
