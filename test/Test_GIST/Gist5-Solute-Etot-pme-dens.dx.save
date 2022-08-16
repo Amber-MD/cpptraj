@@ -3705,7 +3705,7 @@ object 3 class array type double rank 0 items 60480 data follows
 0 0 0
 0 0 0
 0 0 0
-0 -8.53841 0
+0 -8.53842 0
 0 0 0
 0 0 0
 0 0 0
@@ -5163,7 +5163,7 @@ object 3 class array type double rank 0 items 60480 data follows
 0 0 0
 0 0 0
 0 0 0
--4.10575 0 -0.501806
+-4.10575 0 -0.501807
 0 0 0
 0 0 0
 0 0 0
@@ -5597,7 +5597,7 @@ object 3 class array type double rank 0 items 60480 data follows
 0 0 0
 0 0 0
 0 0 0
-0 0 -97.8307
+0 0 -97.8306
 -25.0476 0 0
 0 0 0
 0 0 0
@@ -12232,7 +12232,7 @@ object 3 class array type double rank 0 items 60480 data follows
 0 0 0
 0 0 0
 0 0 0
-0 0 0
+0 1.85021 0
 -11.7442 0 0
 0 0 0
 0 0 0
@@ -12245,7 +12245,7 @@ object 3 class array type double rank 0 items 60480 data follows
 0 0 0
 0 0 0
 0 0 0
-0 0 0
+0 -0.625858 0
 0 -8.55231 0
 0 0 0
 0 0 0
@@ -12712,6 +12712,7 @@ object 3 class array type double rank 0 items 60480 data follows
 0 0 0
 0 0 0
 0 0 0
+0 2.91404 0
 0 0 0
 0 0 0
 0 0 0
@@ -12724,8 +12725,7 @@ object 3 class array type double rank 0 items 60480 data follows
 0 0 0
 0 0 0
 0 0 0
-0 0 0
-0 0 0
+0 0 -0.119051
 0 -5.84586 0
 0 0 0
 0 0 0
@@ -12739,7 +12739,7 @@ object 3 class array type double rank 0 items 60480 data follows
 0 0 0
 0 0 0
 0 0 0
-0 -0.928563 0
+0.134361 -0.928563 0
 0 0 0
 0 0 0
 0 0 0
@@ -13112,7 +13112,7 @@ object 3 class array type double rank 0 items 60480 data follows
 0 0 0
 0 0 0
 0 0 0
-0 0 0
+0 2.79862 0
 0 0 0
 0 0 0
 0 0 0
@@ -14129,7 +14129,7 @@ object 3 class array type double rank 0 items 60480 data follows
 0 0 0
 0 0 0
 0 0 0
--8.93328 -19.7806 -11.6859
+-8.93328 -19.7805 -11.6859
 0 0 0
 0 0 0
 0 0 0
@@ -15594,7 +15594,7 @@ object 3 class array type double rank 0 items 60480 data follows
 0 0 0
 0 0 0
 0 0 0
-0 -8.61014 0
+0 -8.61013 0
 0 0 0
 0 0 0
 0 0 0
