@@ -1472,7 +1472,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
           dipolex_->UpdateVoxel(voxel, DPX);
           dipoley_->UpdateVoxel(voxel, DPY);
           dipolez_->UpdateVoxel(voxel, DPZ);
-          if (debugOut_ != 0) debugOut_->Printf("\t\tDipole voxel %12i %12.4f %12.4f %12.4f\n", voxel, DPX, DPY, DPZ);
+          //if (debugOut_ != 0) debugOut_->Printf("\t\tDipole voxel %12i %12.4f %12.4f %12.4f\n", voxel, DPX, DPY, DPZ);
           gist_dipole_.Stop();
         }
         // ---------------------------------------

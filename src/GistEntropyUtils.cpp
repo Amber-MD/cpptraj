@@ -121,7 +121,7 @@ std::pair<double, double> GistEntropyUtils::searchGridNearestNeighbors6D(
           // omit voxels that are contained in previous layers, i.e., that are not on the border.
           if (x_is_border || y_is_border || z_is_border) {
             int other_vox = voxel_num(x, y, z, grid_Nx, grid_Ny, grid_Nz);
-            if (debugOut != 0) debugOut->Printf("\t\tto other voxel %i\n", other_vox);
+            if (debugOut != 0 && !V_XYZ[other_vox].empty()) debugOut->Printf("\t\tto other voxel %i\n", other_vox);
             searchVectorsForNearestNeighbors6D(
               center, W4, X4, Y4, Z4, V_XYZ[other_vox], V_Q[other_vox], omit, nearest.first, nearest.second, debugOut);
           }
