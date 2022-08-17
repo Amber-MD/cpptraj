@@ -1328,11 +1328,11 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
     //     W_G[1] <= G_max_[1] && W_G[1] >= G_min_[1] &&
     //     W_G[2] <= G_max_[2] && W_G[2] >= G_min_[2] )
     {
-      if (debugOut_ != 0) {
-        debugOut_->Printf("\t\tWithin min/max.");
-        if (!isNearGrid) debugOut_->Printf(" MISMATCH!");
-        debugOut_->Printf("\n");
-      }
+      //if (debugOut_ != 0) {
+      //  debugOut_->Printf("\t\tWithin min/max.");
+      //  if (!isNearGrid) debugOut_->Printf(" MISMATCH!");
+      //  debugOut_->Printf("\n");
+      //}
       // Try to bin the oxygen
       int voxel = calcVoxelIndex(mol_center[0], mol_center[1], mol_center[2]);
       if ( voxel != OFF_GRID_ )
@@ -1341,6 +1341,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
         const double* wXYZ = frm.Frm().XYZ( mol_first );
         for (int atom = mol_first; atom != mol_end; ++atom) {
           atom_voxel_[atom] = voxel;
+          if (debugOut_ != 0) debugOut_->Printf("\t\tAtom %8i voxel %12i\n", atom+1, voxel);
           OnGrid_idxs_.push_back( atom );
           OnGrid_XYZ_.push_back( wXYZ[0] );
           OnGrid_XYZ_.push_back( wXYZ[1] );
@@ -1486,6 +1487,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
           dipolex_->UpdateVoxel(voxel, DPX);
           dipoley_->UpdateVoxel(voxel, DPY);
           dipolez_->UpdateVoxel(voxel, DPZ);
+          if (debugOut_ != 0) debugOut_->Printf("\t\tDipole voxel %12i %12.4f %12.4f %12.4f\n", voxel, DPX, DPY, DPZ);
           gist_dipole_.Stop();
         }
         // ---------------------------------------
