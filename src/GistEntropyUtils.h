@@ -54,7 +54,7 @@ namespace GistEntropyUtils {
     */
   void searchVectorsForNearestNeighbors6D(Vec3 center,
                                           float W4, float X4, float Y4, float Z4,
-                                          const Farray& V_XYZ_vec, const Farray& V_Q_vec, int omit, double& NNd, double& NNs);
+                                          const Farray& V_XYZ_vec, const Farray& V_Q_vec, int omit, double& NNd, double& NNs, CpptrajFile* debugOut);
 
   /**
    * Search a 3D grid for the nearest neighbor of a molecule in 3D (translation) and 6D (translation+rotation)

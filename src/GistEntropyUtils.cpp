@@ -31,7 +31,8 @@ void GistEntropyUtils::searchVectorsForNearestNeighbors6D(
     Vec3 center,
     float W4, float X4, float Y4, float Z4,
     const Farray& V_XYZ_vec, const Farray& V_Q_vec,
-    int omit, double& NNd, double& NNs)
+    int omit, double& NNd, double& NNs,
+    CpptrajFile* debugOut)
 {
   int nw_tot = V_XYZ_vec.size() / 3;
   # ifdef DEBUG_GIST
@@ -50,6 +51,7 @@ void GistEntropyUtils::searchVectorsForNearestNeighbors6D(
     double dy = (double)(center[1] - V_XYZ[i1+1]);
     double dz = (double)(center[2] - V_XYZ[i1+2]);
     double dd = dx*dx+dy*dy+dz*dz;
+    if (debugOut != 0) debugOut->Printf("\t\t\tto wat %8i dd= %12.4f\n", n1, dd);
 
     if (dd < NNs && n1 != omit)
     {
@@ -98,7 +100,7 @@ std::pair<double, double> GistEntropyUtils::searchGridNearestNeighbors6D(
 //  int vox_x = int(floor((center[0] - grid_origin[0]) / grid_spacing + 0.5));
 //  int vox_y = int(floor((center[1] - grid_origin[1]) / grid_spacing + 0.5));
 //  int vox_z = int(floor((center[2] - grid_origin[2]) / grid_spacing + 0.5));
-  if (debugOut != 0) debugOut->Printf("NN6D: voxel ijk = %8i %8i %8i\n", vox_x, vox_y, vox_z);
+  if (debugOut != 0) debugOut->Printf("\tNN6D: voxel ijk = %8i %8i %8i\n", vox_x, vox_y, vox_z);
 
   // In the innermost voxel, we want to omit the molecule that corresponds to the current center.
   int omit = omit_in_central_vox;
@@ -119,8 +121,9 @@ std::pair<double, double> GistEntropyUtils::searchGridNearestNeighbors6D(
           // omit voxels that are contained in previous layers, i.e., that are not on the border.
           if (x_is_border || y_is_border || z_is_border) {
             int other_vox = voxel_num(x, y, z, grid_Nx, grid_Ny, grid_Nz);
+            if (debugOut != 0) debugOut->Printf("\t\tto other voxel %i\n", other_vox);
             searchVectorsForNearestNeighbors6D(
-              center, W4, X4, Y4, Z4, V_XYZ[other_vox], V_Q[other_vox], omit, nearest.first, nearest.second);
+              center, W4, X4, Y4, Z4, V_XYZ[other_vox], V_Q[other_vox], omit, nearest.first, nearest.second, debugOut);
           }
         }
       }

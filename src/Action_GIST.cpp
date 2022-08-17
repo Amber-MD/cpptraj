@@ -1298,7 +1298,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
 # endif
   // CUDA necessary information
 
-  Vec3 const& Origin = gridBin_->GridOrigin();
+  Vec3 const& Origin = gridBin_->GridOrigin(); // TODO deprecate
   if (debugOut_ != 0) {
     debugOut_->Printf("Frame %i grid oxyz= %12.4f %12.4f %12.4f\n", frameNum+1, Origin[0], Origin[1], Origin[2]);
     debugOut_->Printf("Frame %i grid mxyz= %12.4f %12.4f %12.4f\n", frameNum+1, gridBin_->MX(), gridBin_->MY(), gridBin_->MZ());
@@ -1516,15 +1516,18 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
     {
       int uidx = U_idxs_[s]; // the solute atom index
       const double* u_XYZ = frm.Frm().XYZ( uidx );
+
+      bool isNearGrid = borderGrid_.IsOnGrid(u_XYZ[0], u_XYZ[1], u_XYZ[2]);
       // get the vector of this solute atom to the grid origin
-      Vec3 U_G( u_XYZ[0] - Origin[0],
-                u_XYZ[1] - Origin[1],
-                u_XYZ[2] - Origin[2]);
+      //Vec3 U_G( u_XYZ[0] - Origin[0],
+      //          u_XYZ[1] - Origin[1],
+      //          u_XYZ[2] - Origin[2]);
       //size_t bin_i, bin_j, bin_k;
 
-      if ( U_G[0] <= G_max_[0] && U_G[0] >= G_min_[0] &&
-           U_G[1] <= G_max_[1] && U_G[1] >= G_min_[1] &&
-           U_G[2] <= G_max_[2] && U_G[2] >= G_min_[2])
+      //if ( U_G[0] <= G_max_[0] && U_G[0] >= G_min_[0] &&
+      //     U_G[1] <= G_max_[1] && U_G[1] >= G_min_[1] &&
+      //     U_G[2] <= G_max_[2] && U_G[2] >= G_min_[2])
+      if (isNearGrid)
       {
         int voxel = calcVoxelIndex(u_XYZ[0], u_XYZ[1], u_XYZ[2]);
         if ( voxel != OFF_GRID_ )
@@ -1811,7 +1814,7 @@ void Action_GIST::Print() {
   int ny = griddim_[1];
   int nz = griddim_[2];
 
-  Vec3 grid_origin(gridBin_->Center(0, 0, 0));
+//  Vec3 grid_origin(gridBin_->Center(0, 0, 0));
 
   // Loop over all grid points
   if (! this->skipS_)
@@ -1836,15 +1839,16 @@ void Action_GIST::Print() {
       int ix = gr_pt / (ny * nz);
       int iy = (gr_pt / nz) % ny;
       int iz = gr_pt % nz;
-      //if (debugOut_ != 0) debugOut_->Printf("Strans grid %8u voxel ijk= %8i %8i %8i\n", gr_pt, ix, iy, iz);
       bool boundary = ( ix == 0 || iy == 0 || iz == 0 || ix == (nx-1) || iy == (ny-1) || iz == (nz-1) );
 
       if ( !boundary ) {
+        if (debugOut_ != 0 && nw_total > 0) debugOut_->Printf("Strans grid %8u voxel ijk= %8i %8i %8i\n", gr_pt, ix, iy, iz);
         double strans_norm = 0.0;
         double ssix_norm = 0.0;
         int vox_nwts = 0;
         for (int n0 = 0; n0 < nw_total; ++n0)
         {
+          if (debugOut_ != 0) debugOut_->Printf("\twat %8i\n", n0);
           Vec3 center(voxel_xyz_[gr_pt][3*n0], voxel_xyz_[gr_pt][3*n0+1], voxel_xyz_[gr_pt][3*n0+2]);
           int q0 = n0 * 4;  // index into voxel_Q_ for n0
           float W4 = voxel_Q_[gr_pt][q0  ];
@@ -1859,7 +1863,7 @@ void Action_GIST::Print() {
             gridspacing_,
             nNnSearchLayers_, n0,
             debugOut_);
-          if (debugOut_ != 0) debugOut_->Printf("Strans grid %8u wat %8i NNd= %12.4f NNs= %12.4f\n", gr_pt, n0, NN.first, NN.second);
+          if (debugOut_ != 0) debugOut_->Printf("\twat %8i NNd= %12.4f NNs= %12.4f\n", n0, NN.first, NN.second);
           // It sometimes happens that we get numerically 0 values. 
           // Using a minimum distance changes the result only by a tiny amount 
           // (since those cases are rare), and avoids -inf values in the output.
