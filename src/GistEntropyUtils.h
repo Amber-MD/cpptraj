@@ -5,7 +5,7 @@
 #include <vector>
 #include "Vec3.h"
 #include <cmath>
-
+class CpptrajFile; // DEBUG
 namespace GistEntropyUtils {
   typedef std::vector<float> Farray;
 
@@ -77,12 +77,14 @@ namespace GistEntropyUtils {
    */
   std::pair<double, double> searchGridNearestNeighbors6D(
       Vec3 center,
+      int vox_x, int vox_y, int vox_z,
       float W4, float X4, float Y4, float Z4,
       const std::vector<Farray>& V_XYZ, const std::vector<Farray>& V_Q,
       int grid_Nx, int grid_Ny, int grid_Nz,
-      Vec3 grid_origin,
+//      Vec3 grid_origin,
       double grid_spacing,
-      int n_layers, int omit_in_central_vox);
+      int n_layers, int omit_in_central_vox,
+      CpptrajFile* debugOut);
 
   const double SIX_CORR_SPACING = 0.01;
 

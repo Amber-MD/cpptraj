@@ -1737,7 +1737,7 @@ void Action_GIST::Print() {
     for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++) {
       oe_progress.Update( n_finished );
       int nw_total = N_main_solvent_[gr_pt]; // Total number of waters that have been in this voxel.
-      //mprintf("DEBUG1: %u nw_total %i\n", gr_pt, nw_total);
+      if (debugOut_ != 0 && nw_total > 0) debugOut_->Printf("Sorient: grid %8u nw_total %i\n", gr_pt, nw_total);
       if (nw_total == 1)
         n_single_occ++;
       if (nw_total > 1) {
@@ -1836,6 +1836,7 @@ void Action_GIST::Print() {
       int ix = gr_pt / (ny * nz);
       int iy = (gr_pt / nz) % ny;
       int iz = gr_pt % nz;
+      //if (debugOut_ != 0) debugOut_->Printf("Strans grid %8u voxel ijk= %8i %8i %8i\n", gr_pt, ix, iy, iz);
       bool boundary = ( ix == 0 || iy == 0 || iz == 0 || ix == (nx-1) || iy == (ny-1) || iz == (nz-1) );
 
       if ( !boundary ) {
@@ -1851,10 +1852,14 @@ void Action_GIST::Print() {
           float Y4 = voxel_Q_[gr_pt][q0+2];
           float Z4 = voxel_Q_[gr_pt][q0+3];
           std::pair<double, double> NN = GistEntropyUtils::searchGridNearestNeighbors6D(
-            center, W4, X4, Y4, Z4,
+            center, ix, iy, iz, W4, X4, Y4, Z4,
             voxel_xyz_, voxel_Q_,
-            nx, ny, nz, grid_origin, gridspacing_,
-            nNnSearchLayers_, n0);
+            nx, ny, nz,
+            //grid_origin,
+            gridspacing_,
+            nNnSearchLayers_, n0,
+            debugOut_);
+          if (debugOut_ != 0) debugOut_->Printf("Strans grid %8u wat %8i NNd= %12.4f NNs= %12.4f\n", gr_pt, n0, NN.first, NN.second);
           // It sometimes happens that we get numerically 0 values. 
           // Using a minimum distance changes the result only by a tiny amount 
           // (since those cases are rare), and avoids -inf values in the output.

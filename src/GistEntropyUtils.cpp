@@ -1,4 +1,5 @@
 #include "GistEntropyUtils.h"
+#include "CpptrajFile.h" // DEBUG
 #include <algorithm>
 #include <cmath>
 #include <iostream>
@@ -83,18 +84,21 @@ void GistEntropyUtils::searchVectorsForNearestNeighbors6D(
  */
 std::pair<double, double> GistEntropyUtils::searchGridNearestNeighbors6D(
     Vec3 center,
+    int vox_x, int vox_y, int vox_z,
     float W4, float X4, float Y4, float Z4,
     const std::vector<Farray>& V_XYZ, const std::vector<Farray>& V_Q,
     int grid_Nx, int grid_Ny, int grid_Nz,
-    Vec3 grid_origin,
+//    Vec3 grid_origin,
     double grid_spacing,
-    int n_layers, int omit_in_central_vox)
+    int n_layers, int omit_in_central_vox,
+    CpptrajFile* debugOut)
 {
   // will keep the smallest squared distance. first: trans, second: six
   std::pair<double, double>nearest(GIST_HUGE, GIST_HUGE);
-  int vox_x = int(floor((center[0] - grid_origin[0]) / grid_spacing + 0.5));
-  int vox_y = int(floor((center[1] - grid_origin[1]) / grid_spacing + 0.5));
-  int vox_z = int(floor((center[2] - grid_origin[2]) / grid_spacing + 0.5));
+//  int vox_x = int(floor((center[0] - grid_origin[0]) / grid_spacing + 0.5));
+//  int vox_y = int(floor((center[1] - grid_origin[1]) / grid_spacing + 0.5));
+//  int vox_z = int(floor((center[2] - grid_origin[2]) / grid_spacing + 0.5));
+  if (debugOut != 0) debugOut->Printf("NN6D: voxel ijk = %8i %8i %8i\n", vox_x, vox_y, vox_z);
 
   // In the innermost voxel, we want to omit the molecule that corresponds to the current center.
   int omit = omit_in_central_vox;
