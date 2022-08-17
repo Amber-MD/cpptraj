@@ -258,9 +258,6 @@ class Action_GIST : public Action {
     Darray E_pme_;     ///< Total nonbond interaction energy(VDW + electrostatic) calculated by PME for water TODO grid?
     Darray U_E_pme_;   ///< Total nonbond interaction energy(VDW + Elec) calculated by PME for solute TODO grid?
 
-    Vec3 G_max_; ///< Grid max + 1.5 Ang.
-    Vec3 G_min_; ///< -1.5 Ang.
-
     // Timing data
     Timer gist_init_;
     Timer gist_setup_;

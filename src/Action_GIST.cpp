@@ -85,8 +85,6 @@ Action_GIST::Action_GIST() :
   PME_(0),
   U_PME_(0),
   ww_Eij_(0),
-  G_max_(0.0),
-  G_min_(0.0),
   CurrentParm_(0),
   datafile_(0),
   eijfile_(0),
@@ -351,13 +349,14 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   masterGrid_ = Eww_;
   gridBin_ = &(Eww_->Bin());
 
-  // Allocate the grid + 1.5 Ang buffer TODO handle nonortho case
+  // Allocate a border grid (the grid + 1.5 Ang buffer) for
+  // determining when things are near the grid. TODO handle nonortho case
   borderGrid_.Setup_Lengths_Center_Spacing( Vec3(gridBin_->GridBox().Param(Box::X)+3.0,
                                                  gridBin_->GridBox().Param(Box::Y)+3.0,
                                                  gridBin_->GridBox().Param(Box::Z)+3.0),
                                             gridBin_->GridCenter(),
                                             Vec3( gridspacing_ ) );
-  borderGrid_.PrintDebug("borderGrid");
+  borderGrid_.PrintDebug("borderGrid"); // DEBUG
 
   if (doEij_) {
     ww_Eij_ = (DataSet_MatrixFlt*)init.DSL().AddSet(DataSet::MATRIX_FLT, MetaData(dsname_, "Eij"));
@@ -373,11 +372,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     }
   }
 
-  // Set up grid params TODO non-orthogonal as well
-  G_max_ = Vec3( (double)griddim_[0] * gridspacing_ + 1.5,
-                 (double)griddim_[1] * gridspacing_ + 1.5,
-                 (double)griddim_[2] * gridspacing_ + 1.5 );
-  G_min_ = Vec3( -1.5 );
+  // Init arrays 
   N_solvent_.assign( MAX_GRID_PT_, 0 );
   N_main_solvent_.assign( MAX_GRID_PT_, 0 );
   N_solute_atoms_.assign( MAX_GRID_PT_, 0);
@@ -1298,9 +1293,8 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
 # endif
   // CUDA necessary information
 
-  Vec3 const& Origin = gridBin_->GridOrigin(); // TODO deprecate
   if (debugOut_ != 0) {
-    debugOut_->Printf("Frame %i grid oxyz= %12.4f %12.4f %12.4f\n", frameNum+1, Origin[0], Origin[1], Origin[2]);
+    debugOut_->Printf("Frame %i grid oxyz= %12.4f %12.4f %12.4f\n", frameNum+1, gridBin_->GridOrigin()[0], gridBin_->GridOrigin()[1], gridBin_->GridOrigin()[2]);
     debugOut_->Printf("Frame %i grid mxyz= %12.4f %12.4f %12.4f\n", frameNum+1, gridBin_->MX(), gridBin_->MY(), gridBin_->MZ());
     debugOut_->Printf("Frame %i border oxyz %12.4f %12.4f %12.4f\n", frameNum+1, borderGrid_.GridOrigin()[0], borderGrid_.GridOrigin()[1], borderGrid_.GridOrigin()[2]);
   }
@@ -1323,16 +1317,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
     }
     // Check if water oxygen is no more then 1.5 Ang from grid
     if (isNearGrid)
-    // NOTE: using <= to be consistent with original code
-    //if ( W_G[0] <= G_max_[0] && W_G[0] >= G_min_[0] &&
-    //     W_G[1] <= G_max_[1] && W_G[1] >= G_min_[1] &&
-    //     W_G[2] <= G_max_[2] && W_G[2] >= G_min_[2] )
     {
-      //if (debugOut_ != 0) {
-      //  debugOut_->Printf("\t\tWithin min/max.");
-      //  if (!isNearGrid) debugOut_->Printf(" MISMATCH!");
-      //  debugOut_->Printf("\n");
-      //}
       // Try to bin the oxygen
       int voxel = calcVoxelIndex(mol_center[0], mol_center[1], mol_center[2]);
       if ( voxel != OFF_GRID_ )
@@ -1518,15 +1503,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
       const double* u_XYZ = frm.Frm().XYZ( uidx );
 
       bool isNearGrid = borderGrid_.IsOnGrid(u_XYZ[0], u_XYZ[1], u_XYZ[2]);
-      // get the vector of this solute atom to the grid origin
-      //Vec3 U_G( u_XYZ[0] - Origin[0],
-      //          u_XYZ[1] - Origin[1],
-      //          u_XYZ[2] - Origin[2]);
-      //size_t bin_i, bin_j, bin_k;
 
-      //if ( U_G[0] <= G_max_[0] && U_G[0] >= G_min_[0] &&
-      //     U_G[1] <= G_max_[1] && U_G[1] >= G_min_[1] &&
-      //     U_G[2] <= G_max_[2] && U_G[2] >= G_min_[2])
       if (isNearGrid)
       {
         int voxel = calcVoxelIndex(u_XYZ[0], u_XYZ[1], u_XYZ[2]);
