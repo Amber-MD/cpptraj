@@ -183,6 +183,7 @@ class Action_GIST : public Action {
     DataSet_3D* masterGrid_; ///< Grid that will be used to determine voxels for all grids
     const GridBin* gridBin_; ///< Hold the GridBin class from masterGrid_
     GridBin borderGrid_;     ///< Hold dims for grid + 1.5 Ang buffer region.
+    Matrix_3x3 borderGridUcell0_; ///< Hold border grid original unit cell (in case of rotation).
 
     Cpptraj::GridMover mover_; ///< Used to move the master grid if necessary
     AtomMask moveMask_;        ///< Select atoms used to move the grid if necessary

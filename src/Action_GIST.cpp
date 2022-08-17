@@ -1258,8 +1258,12 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
     mover_.MoveGrid(frm.Frm(), moveMask_, static_cast<DataSet_3D&>( *masterGrid_ ));
     if (mover_.RotationHappened()) {
       mover_.RotMatrix().Print("RotMatrix");
+      // Remove any previous rotation from the border grid
+      borderGrid_.Assign_UnitCell( borderGridUcell0_ );
+      // Rotate the border grid the same way as the regular grid
       borderGrid_.RotateGrid( mover_.RotMatrix() );
-    }
+    } else
+      borderGridUcell0_ = borderGrid_.GridBox().UnitCell();
   }
 
   if (!skipE_) {
