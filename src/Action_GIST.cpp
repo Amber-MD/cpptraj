@@ -1487,16 +1487,28 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
           double DPX = 0.0;
           double DPY = 0.0;
           double DPZ = 0.0;
-          for (int IDX = 0; IDX != mol_end-mol_first; IDX++) {
-            const double* XYZ = frm.Frm().XYZ( mol_first+IDX );
-            DPX += XYZ[0] * Q_.at(IDX);
-            DPY += XYZ[1] * Q_.at(IDX);
-            DPZ += XYZ[2] * Q_.at(IDX);
+          if (mover_.RotationHappened()) {
+            // Need to rotate into reference frame of the rotated grid.
+            // Pivot point is the center of the grid.
+            // TODO consolidate this rotation with the one for entropy above?
+            for (int IDX = 0; IDX != mol_end-mol_first; IDX++) {
+              Vec3 ongrid = mover_.RotMatrix().TransposeMult( Vec3(frm.Frm().XYZ(mol_first+IDX)) - gridBin_->GridCenter() );
+              DPX += ongrid[0] * Q_.at(IDX);
+              DPY += ongrid[1] * Q_.at(IDX);
+              DPZ += ongrid[2] * Q_.at(IDX);
+            }
+          } else {
+            for (int IDX = 0; IDX != mol_end-mol_first; IDX++) {
+              const double* XYZ = frm.Frm().XYZ( mol_first+IDX );
+              DPX += XYZ[0] * Q_.at(IDX);
+              DPY += XYZ[1] * Q_.at(IDX);
+              DPZ += XYZ[2] * Q_.at(IDX);
+            }
           }
           dipolex_->UpdateVoxel(voxel, DPX);
           dipoley_->UpdateVoxel(voxel, DPY);
           dipolez_->UpdateVoxel(voxel, DPZ);
-          //if (debugOut_ != 0) debugOut_->Printf("\t\tDipole voxel %12i %12.4f %12.4f %12.4f\n", voxel, DPX, DPY, DPZ);
+          if (debugOut_ != 0) debugOut_->Printf("\t\tDipole voxel %12i %12.4f %12.4f %12.4f\n", voxel, DPX, DPY, DPZ);
           gist_dipole_.Stop();
         }
         // ---------------------------------------
