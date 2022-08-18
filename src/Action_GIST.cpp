@@ -1351,9 +1351,20 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
           ++N_main_solvent_[voxel];
           // Record XYZ coords of water atoms (nonEP) in voxel TODO need EP?
           if (!skipS_) {
-            voxel_xyz_[voxel].push_back( mol_center[0] );
-            voxel_xyz_[voxel].push_back( mol_center[1] );
-            voxel_xyz_[voxel].push_back( mol_center[2] );
+            if (mover_.RotationHappened()) {
+              // Need to rotate into reference frame of the rotated grid.
+              // Pivot point is the center of the grid.
+              Vec3 ongrid = mover_.RotMatrix().TransposeMult( mol_center - gridBin_->GridCenter() );
+              voxel_xyz_[voxel].push_back( ongrid[0] );
+              voxel_xyz_[voxel].push_back( ongrid[1] );
+              voxel_xyz_[voxel].push_back( ongrid[2] );
+              if (debugOut_ != 0) debugOut_->Printf("\t\tVXYZ %12.4f %12.4f %12.4f\n", ongrid[0], ongrid[1], ongrid[2]);
+            } else {
+              voxel_xyz_[voxel].push_back( mol_center[0] );
+              voxel_xyz_[voxel].push_back( mol_center[1] );
+              voxel_xyz_[voxel].push_back( mol_center[2] );
+              if (debugOut_ != 0) debugOut_->Printf("\t\tVXYZ %12.4f %12.4f %12.4f\n", mol_center[0], mol_center[1], mol_center[2]);
+            }
             // Get O-HX vectors
             const double* O_XYZ  = frm.Frm().XYZ( mol_first + rigidAtomIndices_[0] );
             const double* H1_XYZ = frm.Frm().XYZ( mol_first + rigidAtomIndices_[1] );

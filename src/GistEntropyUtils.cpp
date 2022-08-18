@@ -51,7 +51,7 @@ void GistEntropyUtils::searchVectorsForNearestNeighbors6D(
     double dy = (double)(center[1] - V_XYZ[i1+1]);
     double dz = (double)(center[2] - V_XYZ[i1+2]);
     double dd = dx*dx+dy*dy+dz*dz;
-    if (debugOut != 0) debugOut->Printf("\t\t\tto wat %8i dd= %12.4f\n", n1, dd);
+    if (debugOut != 0) debugOut->Printf("\t\t\tto wat %8i dist= %12.4f\n", n1, sqrt(dd));
 
     if (dd < NNs && n1 != omit)
     {
