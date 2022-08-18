@@ -1,7 +1,7 @@
 #include "GistEntropyUtils.h"
 #include <algorithm> // std::pair
 #ifdef DEBUG_GIST
-//#incl ude "CpptrajFile.h" // DEBUG_GIST, commented out so cpptrajdepend ignores it
+# include "CpptrajFile.h"
 # include <stdexcept>
 #endif
 
