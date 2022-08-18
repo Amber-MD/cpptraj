@@ -144,7 +144,7 @@ void GridBin::RotateGrid(Matrix_3x3 const& Rot)
 {
   // Save the grid center coords TODO should this just always be saved?
   Vec3 gridCtrXyz = GridCenter();
-  mprintf("DEBUG: Original oxyz= %f %f %f\n", OXYZ_[0], OXYZ_[1], OXYZ_[2]);
+  //mprintf("DEBUG: Original oxyz= %f %f %f\n", OXYZ_[0], OXYZ_[1], OXYZ_[2]);
   // Rotate grid unit cell
   box_.RotateUcell(Rot);
   // Update internal pointers based on new cell orientation
@@ -153,7 +153,7 @@ void GridBin::RotateGrid(Matrix_3x3 const& Rot)
   // Update origin by setting the grid back at the original center 
   // with the new grid unit cell.
   SetOriginFromCenter( gridCtrXyz );
-  mprintf("DEBUG: New oxyz= %f %f %f\n", OXYZ_[0], OXYZ_[1], OXYZ_[2]);
+  //mprintf("DEBUG: New oxyz= %f %f %f\n", OXYZ_[0], OXYZ_[1], OXYZ_[2]);
 }
 
 /** X-align the current grid. */

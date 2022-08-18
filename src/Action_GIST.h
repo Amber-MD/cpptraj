@@ -296,7 +296,9 @@ class Action_GIST : public Action {
     int max_nwat_;             ///< Max number of waters in any voxel
     int nNnSearchLayers_;      ///< Number of layers of voxels to search for nearest neighbors in the entropy search.
     int n_linear_solvents_;    ///< Count how many near-linear solvents occur during the GIST calculation.*
+#   ifdef DEBUG_GIST
     CpptrajFile* debugOut_; ///> DEBUG
+#   endif
     bool doOrder_;             ///< If true do the order calc
     bool doEij_;               ///< If true do the i-j energy calc
     bool skipE_;               ///< If true skip the nonbond energy calc

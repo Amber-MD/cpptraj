@@ -103,7 +103,9 @@ Action_GIST::Action_GIST() :
   NFRAME_(0),
   max_nwat_(0),
   n_linear_solvents_(0),
+# ifdef DEBUG_GIST
   debugOut_(0),
+# endif
   doOrder_(false),
   doEij_(false),
   skipE_(false),
@@ -148,9 +150,13 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   mover_.MoverSetComm(init.TrajComm());
 # endif
   gist_init_.Start();
-  // DEBUG
+# ifdef DEBUG_GIST
   debugOut_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("debugout"), "GIST debug");
-  // DEBUG
+# else
+  std::string debugOut = actionArgs.GetStringKey("debugout");
+  if (!debugOut.empty())
+    mprintf("Warning: 'debugout' requires compiling with DEBUG_GIST. Ignoring.\n");
+# endif
   prefix_ = actionArgs.GetStringKey("prefix", "gist");
   ext_ = actionArgs.GetStringKey("ext", ".dx");
   std::string gistout = actionArgs.GetStringKey("out", prefix_ + "-output.dat");
@@ -350,13 +356,14 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   gridBin_ = &(Eww_->Bin());
 
   // Allocate a border grid (the grid + 1.5 Ang buffer) for
-  // determining when things are near the grid. TODO handle nonortho case
+  // determining when things are near the grid. TODO handle nonortho shape case
   borderGrid_.Setup_Lengths_Center_Spacing( Vec3(gridBin_->GridBox().Param(Box::X)+3.0,
                                                  gridBin_->GridBox().Param(Box::Y)+3.0,
                                                  gridBin_->GridBox().Param(Box::Z)+3.0),
                                             gridBin_->GridCenter(),
                                             Vec3( gridspacing_ ) );
-  borderGrid_.PrintDebug("borderGrid"); // DEBUG
+  if (debug_ > 0)
+    borderGrid_.PrintDebug("borderGrid"); // DEBUG
 
   if (doEij_) {
     ww_Eij_ = (DataSet_MatrixFlt*)init.DSL().AddSet(DataSet::MATRIX_FLT, MetaData(dsname_, "Eij"));
@@ -1257,7 +1264,9 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   if (moveMask_.MaskStringSet()) {
     mover_.MoveGrid(frm.Frm(), moveMask_, static_cast<DataSet_3D&>( *masterGrid_ ));
     if (mover_.RotationHappened()) {
+#     ifdef DEBUG_GIST
       mover_.RotMatrix().Print("RotMatrix");
+#     endif
       // Remove any previous rotation from the border grid
       borderGrid_.Assign_UnitCell( borderGridUcell0_ );
       // Rotate the border grid the same way as the regular grid
@@ -1294,14 +1303,13 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
     case ImageOption::ORTHO    : mprintf("DEBUG: Orthogonal image.\n"); break;
     case ImageOption::NONORTHO : mprintf("DEBUG: Nonorthogonal image.\n"); break;
   }
-# endif
-  // CUDA necessary information
 
   if (debugOut_ != 0) {
     debugOut_->Printf("Frame %i grid oxyz= %12.4f %12.4f %12.4f\n", frameNum+1, gridBin_->GridOrigin()[0], gridBin_->GridOrigin()[1], gridBin_->GridOrigin()[2]);
     debugOut_->Printf("Frame %i grid mxyz= %12.4f %12.4f %12.4f\n", frameNum+1, gridBin_->MX(), gridBin_->MY(), gridBin_->MZ());
     debugOut_->Printf("Frame %i border oxyz %12.4f %12.4f %12.4f\n", frameNum+1, borderGrid_.GridOrigin()[0], borderGrid_.GridOrigin()[1], borderGrid_.GridOrigin()[2]);
   }
+# endif
   // Loop over each solvent molecule
   for (Topology::mol_iterator mol = CurrentParm_->MolStart(); mol != CurrentParm_->MolEnd(); ++mol)
   {
@@ -1314,11 +1322,13 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
     bool isNearGrid = borderGrid_.IsOnGrid(mol_center[0], mol_center[1], mol_center[2]);
     //Vec3 W_G = mol_center - Origin;
     gist_grid_.Stop();
+#   ifdef DEBUG_GIST
     if (debugOut_ != 0) {
       //debugOut_->Printf("\tMol %6li ctr= %8.3f %8.3f %8.3f  W_G= %8.3f %8.3f %8.3f\n", mol - CurrentParm_->MolStart() + 1, mol_center[0], mol_center[1], mol_center[2], W_G[0], W_G[1], W_G[2]);
       debugOut_->Printf("\tMol %6li\n", mol - CurrentParm_->MolStart() + 1);
       debugOut_->Printf("\t\tIsNearGrid= %i\n", (int)isNearGrid);
     }
+#   endif
     // Check if water oxygen is no more then 1.5 Ang from grid
     if (isNearGrid)
     {
@@ -1330,7 +1340,9 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
         const double* wXYZ = frm.Frm().XYZ( mol_first );
         for (int atom = mol_first; atom != mol_end; ++atom) {
           atom_voxel_[atom] = voxel;
+#         ifdef DEBUG_GIST
           if (debugOut_ != 0) debugOut_->Printf("\t\tAtom %8i voxel %12i\n", atom+1, voxel);
+#         endif
           OnGrid_idxs_.push_back( atom );
           OnGrid_XYZ_.push_back( wXYZ[0] );
           OnGrid_XYZ_.push_back( wXYZ[1] );
@@ -1359,7 +1371,9 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
               voxel_xyz_[voxel].push_back( ongrid[0] );
               voxel_xyz_[voxel].push_back( ongrid[1] );
               voxel_xyz_[voxel].push_back( ongrid[2] );
+#             ifdef DEBUG_GIST
               if (debugOut_ != 0) debugOut_->Printf("\t\tVXYZ %12.4f %12.4f %12.4f\n", ongrid[0], ongrid[1], ongrid[2]);
+#             endif
               // Get O-HX vectors
               Vec3 O_XYZ  = mover_.RotMatrix().TransposeMult( Vec3(frm.Frm().XYZ(mol_first + rigidAtomIndices_[0])) - gridBin_->GridCenter() );
               Vec3 H1_XYZ = mover_.RotMatrix().TransposeMult( Vec3(frm.Frm().XYZ(mol_first + rigidAtomIndices_[1])) - gridBin_->GridCenter() );
@@ -1370,7 +1384,9 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
               voxel_xyz_[voxel].push_back( mol_center[0] );
               voxel_xyz_[voxel].push_back( mol_center[1] );
               voxel_xyz_[voxel].push_back( mol_center[2] );
+#             ifdef DEBUG_GIST
               if (debugOut_ != 0) debugOut_->Printf("\t\tVXYZ %12.4f %12.4f %12.4f\n", mol_center[0], mol_center[1], mol_center[2]);
+#             endif
               // Get O-HX vectors
               const double* O_XYZ  = frm.Frm().XYZ( mol_first + rigidAtomIndices_[0] );
               const double* H1_XYZ = frm.Frm().XYZ( mol_first + rigidAtomIndices_[1] );
@@ -1380,9 +1396,12 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
             }
             H1_wat.Normalize();
             H2_wat.Normalize();
-            if (debugOut_ != 0) debugOut_->Printf("\t\tH1_wat %12.4f %12.4f %12.4f\n", H1_wat[0], H1_wat[1], H1_wat[2]);
-            if (debugOut_ != 0) debugOut_->Printf("\t\tH2_wat %12.4f %12.4f %12.4f\n", H2_wat[0], H2_wat[1], H2_wat[2]);
-
+#           ifdef DEBUG_GIST
+            if (debugOut_ != 0) {
+              debugOut_->Printf("\t\tH1_wat %12.4f %12.4f %12.4f\n", H1_wat[0], H1_wat[1], H1_wat[2]);
+              debugOut_->Printf("\t\tH2_wat %12.4f %12.4f %12.4f\n", H2_wat[0], H2_wat[1], H2_wat[2]);
+            }
+#           endif
             if (fabs(H1_wat * H2_wat) > 0.99) {  // < 8.11 or > 171.11 degrees
               ++n_linear_solvents_;
             }
@@ -1508,7 +1527,9 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
           dipolex_->UpdateVoxel(voxel, DPX);
           dipoley_->UpdateVoxel(voxel, DPY);
           dipolez_->UpdateVoxel(voxel, DPZ);
+#         ifdef DEBUG_GIST
           if (debugOut_ != 0) debugOut_->Printf("\t\tDipole voxel %12i %12.4f %12.4f %12.4f\n", voxel, DPX, DPY, DPZ);
+#         endif
           gist_dipole_.Stop();
         }
         // ---------------------------------------
@@ -1753,7 +1774,9 @@ void Action_GIST::Print() {
     for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++) {
       oe_progress.Update( n_finished );
       int nw_total = N_main_solvent_[gr_pt]; // Total number of waters that have been in this voxel.
+#     ifdef DEBUG_GIST
       if (debugOut_ != 0 && nw_total > 0) debugOut_->Printf("Sorient: grid %8u nw_total %i\n", gr_pt, nw_total);
+#     endif
       if (nw_total == 1)
         n_single_occ++;
       if (nw_total > 1) {
@@ -1855,13 +1878,17 @@ void Action_GIST::Print() {
       bool boundary = ( ix == 0 || iy == 0 || iz == 0 || ix == (nx-1) || iy == (ny-1) || iz == (nz-1) );
 
       if ( !boundary ) {
+#       ifdef DEBUG_GIST
         if (debugOut_ != 0 && nw_total > 0) debugOut_->Printf("Strans grid %8u voxel ijk= %8i %8i %8i\n", gr_pt, ix, iy, iz);
+#       endif
         double strans_norm = 0.0;
         double ssix_norm = 0.0;
         int vox_nwts = 0;
         for (int n0 = 0; n0 < nw_total; ++n0)
         {
+#         ifdef DEBUG_GIST
           if (debugOut_ != 0) debugOut_->Printf("\twat %8i\n", n0);
+#         endif
           Vec3 center(voxel_xyz_[gr_pt][3*n0], voxel_xyz_[gr_pt][3*n0+1], voxel_xyz_[gr_pt][3*n0+2]);
           int q0 = n0 * 4;  // index into voxel_Q_ for n0
           float W4 = voxel_Q_[gr_pt][q0  ];
@@ -1874,9 +1901,14 @@ void Action_GIST::Print() {
             nx, ny, nz,
             //grid_origin,
             gridspacing_,
-            nNnSearchLayers_, n0,
-            debugOut_);
+            nNnSearchLayers_, n0
+#           ifdef DEBUG_GIST
+            , debugOut_
+#           endif
+            );
+#         ifdef DEBUG_GIST
           if (debugOut_ != 0) debugOut_->Printf("\twat %8i NNd= %12.4f NNs= %12.4f\n", n0, NN.first, NN.second);
+#         endif
           // It sometimes happens that we get numerically 0 values. 
           // Using a minimum distance changes the result only by a tiny amount 
           // (since those cases are rare), and avoids -inf values in the output.
