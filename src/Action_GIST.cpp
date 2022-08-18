@@ -1351,6 +1351,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
           ++N_main_solvent_[voxel];
           // Record XYZ coords of water atoms (nonEP) in voxel TODO need EP?
           if (!skipS_) {
+            Vec3 H1_wat, H2_wat;
             if (mover_.RotationHappened()) {
               // Need to rotate into reference frame of the rotated grid.
               // Pivot point is the center of the grid.
@@ -1359,20 +1360,28 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
               voxel_xyz_[voxel].push_back( ongrid[1] );
               voxel_xyz_[voxel].push_back( ongrid[2] );
               if (debugOut_ != 0) debugOut_->Printf("\t\tVXYZ %12.4f %12.4f %12.4f\n", ongrid[0], ongrid[1], ongrid[2]);
+              // Get O-HX vectors
+              Vec3 O_XYZ  = mover_.RotMatrix().TransposeMult( Vec3(frm.Frm().XYZ(mol_first + rigidAtomIndices_[0])) - gridBin_->GridCenter() );
+              Vec3 H1_XYZ = mover_.RotMatrix().TransposeMult( Vec3(frm.Frm().XYZ(mol_first + rigidAtomIndices_[1])) - gridBin_->GridCenter() );
+              Vec3 H2_XYZ = mover_.RotMatrix().TransposeMult( Vec3(frm.Frm().XYZ(mol_first + rigidAtomIndices_[2])) - gridBin_->GridCenter() );
+              H1_wat = H1_XYZ - O_XYZ;
+              H2_wat = H2_XYZ - O_XYZ;
             } else {
               voxel_xyz_[voxel].push_back( mol_center[0] );
               voxel_xyz_[voxel].push_back( mol_center[1] );
               voxel_xyz_[voxel].push_back( mol_center[2] );
               if (debugOut_ != 0) debugOut_->Printf("\t\tVXYZ %12.4f %12.4f %12.4f\n", mol_center[0], mol_center[1], mol_center[2]);
+              // Get O-HX vectors
+              const double* O_XYZ  = frm.Frm().XYZ( mol_first + rigidAtomIndices_[0] );
+              const double* H1_XYZ = frm.Frm().XYZ( mol_first + rigidAtomIndices_[1] );
+              const double* H2_XYZ = frm.Frm().XYZ( mol_first + rigidAtomIndices_[2] );
+              H1_wat = Vec3( H1_XYZ[0]-O_XYZ[0], H1_XYZ[1]-O_XYZ[1], H1_XYZ[2]-O_XYZ[2] );
+              H2_wat = Vec3( H2_XYZ[0]-O_XYZ[0], H2_XYZ[1]-O_XYZ[1], H2_XYZ[2]-O_XYZ[2] );
             }
-            // Get O-HX vectors
-            const double* O_XYZ  = frm.Frm().XYZ( mol_first + rigidAtomIndices_[0] );
-            const double* H1_XYZ = frm.Frm().XYZ( mol_first + rigidAtomIndices_[1] );
-            const double* H2_XYZ = frm.Frm().XYZ( mol_first + rigidAtomIndices_[2] );
-            Vec3 H1_wat( H1_XYZ[0]-O_XYZ[0], H1_XYZ[1]-O_XYZ[1], H1_XYZ[2]-O_XYZ[2] );
-            Vec3 H2_wat( H2_XYZ[0]-O_XYZ[0], H2_XYZ[1]-O_XYZ[1], H2_XYZ[2]-O_XYZ[2] );
             H1_wat.Normalize();
             H2_wat.Normalize();
+            if (debugOut_ != 0) debugOut_->Printf("\t\tH1_wat %12.4f %12.4f %12.4f\n", H1_wat[0], H1_wat[1], H1_wat[2]);
+            if (debugOut_ != 0) debugOut_->Printf("\t\tH2_wat %12.4f %12.4f %12.4f\n", H2_wat[0], H2_wat[1], H2_wat[2]);
 
             if (fabs(H1_wat * H2_wat) > 0.99) {  // < 8.11 or > 171.11 degrees
               ++n_linear_solvents_;
