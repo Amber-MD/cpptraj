@@ -351,7 +351,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     mprinterr("Failed to create datasets for molecular densities;\n");
     return Action::ERR;
   }
-
+  // The master grid is the one that will be used for all voxel calcs.
   masterGrid_ = Eww_;
   gridBin_ = &(Eww_->Bin());
 
@@ -421,13 +421,6 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     }
     #endif
   }
-
-  //Box gbox;
-  //gbox.SetBetaLengths( 90.0, (double)nx * gridspacing_,
-  //                           (double)ny * gridspacing_,
-  //                           (double)nz * gridspacing_ );
-  //grid_.Setup_O_Box( nx, ny, nz, gO_->GridOrigin(), gbox );
-  //grid_.Setup_O_D( nx, ny, nz, gO_->GridOrigin(), v_spacing );
 
   mprintf("    GIST:\n");
   mprintf("\tOutput prefix= '%s', grid output extension= '%s'\n", prefix_.c_str(), ext_.c_str());
@@ -1320,7 +1313,6 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
     Vec3 mol_center = calcMolCenter(frm, mol_first, mol_end);
     // frm.Frm().VCenterOfMass(oidx, oidx+nMolAtoms_);
     bool isNearGrid = borderGrid_.IsOnGrid(mol_center[0], mol_center[1], mol_center[2]);
-    //Vec3 W_G = mol_center - Origin;
     gist_grid_.Stop();
 #   ifdef DEBUG_GIST
     if (debugOut_ != 0) {
