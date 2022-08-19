@@ -87,7 +87,9 @@ class Action_GIST : public Action {
         TextFormat intFmt_;
         bool is_new_line_;
     };
-
+#   ifdef MPI
+    void sync_Xarray(Xarray&) const;
+#   endif
     static inline void Ecalc(double, double, double, NonbondType const&, double&, double&);
     void NonbondEnergy_pme(Frame const&);
     void NonbondEnergy(Frame const&, Topology const&);

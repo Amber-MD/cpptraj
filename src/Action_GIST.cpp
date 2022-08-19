@@ -1736,6 +1736,55 @@ double Action_GIST::SumDataSet(const DataSet_3D& ds) const
 }
 
 #ifdef MPI
+static inline void reduce_iarray_master(Parallel::Comm const& commIn, std::vector<int>& itmp, std::vector<int>& iarray)
+{
+  commIn.ReduceMaster( &itmp[0], &iarray[0], iarray.size(), MPI_INT, MPI_SUM );
+  iarray = itmp;
+}
+
+void Action_GIST::sync_Xarray(Xarray& xarrayIn) const {
+  if (trajComm_.Master()) {
+    Farray frecv;
+    int fsendsize;
+    for (int rank = 1; rank < trajComm_.Size(); rank++) {
+      // Get size of fsend from non-master
+      trajComm_.Recv( &fsendsize, 1, MPI_INT, rank, 101010 ); // TODO new tag
+      frecv.resize( fsendsize );
+      // Get fsend from non-master
+      trajComm_.Recv( &frecv[0], frecv.size(), MPI_FLOAT, rank, 101011 ); // TODO new tag
+      // Place values in frecv in xarrayIn
+      unsigned int idx = 0;
+      while (idx < frecv.size()) {
+        unsigned int grpt = (unsigned int)frecv[idx++];
+        unsigned int nvals = (unsigned int)frecv[idx++];
+        for (unsigned int jdx = 0; jdx < nvals; jdx++)
+          xarrayIn[grpt].push_back( frecv[idx++] );
+      }
+    } // END loop over ranks
+  } else {
+    // non-master
+    // Compact the xarrayIn array.
+    // Store [grid point 0] [# values] [value0] ... [valueN] [grid point 1] ...
+    Farray fsend;
+    for (unsigned int ig = 0; ig != MAX_GRID_PT_; ig++) {
+      Farray const& fgrid = xarrayIn[ig];
+      if (!fgrid.empty()) {
+        fsend.push_back( ig );
+        // How many values in this grid point
+        fsend.push_back( fgrid.size() );
+        // store values
+        for (Farray::const_iterator it = fgrid.begin(); it != fgrid.end(); it++)
+          fsend.push_back( *it );
+      }
+    }
+    // Send size of fsend to master
+    int fsendsize = (int)fsend.size();
+    trajComm_.Send( &fsendsize, 1, MPI_INT, 0, 101010 ); // TODO new tag
+    // Send fsend
+    trajComm_.Send( &fsend[0], fsend.size(), MPI_FLOAT, 0, 101011 ); // TODO new tag
+  }
+}
+
 int Action_GIST::SyncAction() {
   // Calc total number of frames.
   int total_frames = 0;
@@ -1743,6 +1792,16 @@ int Action_GIST::SyncAction() {
   if (trajComm_.Master())
     NFRAME_ = total_frames;
   mprintf("DEBUG: GIST total frame count: %i\n", NFRAME_);
+  // Update # counts
+  Iarray itmp( MAX_GRID_PT_ );
+  reduce_iarray_master(trajComm_, itmp, N_solvent_);
+  reduce_iarray_master(trajComm_, itmp, N_main_solvent_);
+  reduce_iarray_master(trajComm_, itmp, N_solute_atoms_);
+  reduce_iarray_master(trajComm_, itmp, N_hydrogens_);
+  // Update Xarray counts. Compact the arrays on each thread to take less space.
+  sync_Xarray( voxel_xyz_ );
+  sync_Xarray( voxel_Q_ );
+
   return 0;
 }
 #endif
