@@ -27077,6 +27077,147 @@ literal "true"
 \end_inset
 
 , in order to define spherical hydration sites based on the density distribution.
+ More detailed descriptions of the files follows:
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+gist-dipole-dens.dx
+\series default
+ - Magnitude of mean dipole moment (polarization) (Debye/Å3).
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+gist-dipolex-dens.dx
+\series default
+ - X-component of the mean water dipole moment density (Debye/Å3).
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+gist-dipoley-dens.dx
+\series default
+- Y-component of the mean water dipole moment density (Debye/Å3).
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+gist-dipolez-dens.dx
+\series default
+ - Z-component of the mean water dipole moment density (Debye/Å3).
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+gist-dTSorient-dens.dx
+\series default
+ - Density weighted first order orientational entropy (kcal/mole/Å3).
+ The more negative the isovalue, the more restricted or unfavorable the
+ orientation of the water is.
+ The value at bulk density is expected to be zero, most values will fall
+ between 0 and -1.
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+gist-dTStrans-dens.dx
+\series default
+ - Density weighted first order tranlational entropy (kcal/mole/Å3).
+ The more negative isovalue, the more restricted the water is positionally.
+ The value at bulk density is expected to be zero, most values will fall
+ between 0 and -1.
+ 
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+gist-Esw-dens.dx
+\series default
+ - Density weighted Solute-Water interaction energy (kcal/mole/Å3).
+ This is the interaction of the water with the entire solute.
+ Both Lennard-Jones and electrostatic interactions are computed without
+ any cutoff, within the minimum image convention.
+ The more negative the number, the more favorable the interaction between
+ the water and solute is.
+ Isovalues will be negative numbers.
+ 
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+gist-Eww-dens.dx
+\series default
+ - Density weighted Water-Water interaction energy (kcal/mole/Å3).
+ This is the interaction of the water with the entire solvent.
+ Both Lennard-Jones and electrostatic interactions are computed without
+ any cutoff, within the minimum image convention.
+ The more negative the number, the more favorable the interaction between
+ water within this voxel and all other water molucules is.
+ Isovalues will be negative numbers.
+ 
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+gist-gH.dx
+\series default
+ - Number density of hydrogen centers found in the voxel, in units of the
+ bulk density.
+ The expectation value of g_H for a neat water system is unity.
+ The units of this dx file are the density/bulk density.
+ Therefore an isovalue of 1 represents every voxel at or greater than bulk
+ density.
+ 
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+gist-gO.dx
+\series default
+ - Number density of oxygen centers found in the voxel, in units of the
+ bulk density.
+ The expectation value of g_O for a neat water system is unity.
+ The units of this dx file are the density/bulk density.
+ Therefore an isovalue of 1 represents every voxel at or greater than bulk
+ density.
+ 
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+gist-neighbor-norm.dx
+\series default
+ - Mean number of neighboring water molecules, per water molecule found
+ in the voxel (units of number per water).
+ Two waters are considered neighbors if their oxygens are within 3.5 Angstroms
+ of each other.
+ 
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+gist-order-norm.dx
+\series default
+ - Average Tetrahedral Order Parameter for water molecules found in the
+ voxel, normalized by the number of waters in the voxel.
+ 
+\series bold
+doorder
+\series default
+ must be declared in the command line for this file to be produced.
 \end_layout
 
 \begin_layout Standard
