@@ -35,6 +35,9 @@ class Action_GIST : public Action {
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
     void Print();
+#   ifdef MPI
+    int SyncAction();
+#   endif
 
     typedef std::vector<float> Farray;
     typedef std::vector<int> Iarray;
@@ -306,5 +309,8 @@ class Action_GIST : public Action {
     bool exactNnVolume_;       ///< If true use the exact volume equation for the NN entropy
     bool useCom_;              ///< If true use the COM as the molecular center; If false, use the first atom according to rigidAtomIndices.
     bool setupSuccessful_;     ///< Used to skip Print() if setup failed.
+#   ifdef MPI
+    Parallel::Comm trajComm_;  ///< Communicator across trajectory
+#   endif
 };
 #endif

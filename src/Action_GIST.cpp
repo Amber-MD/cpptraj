@@ -142,11 +142,12 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   DFL_ = &init.DFL();
   DSL_ = init.DslPtr();
 # ifdef MPI
-  if (init.TrajComm().Size() > 1) {
+  /*if (init.TrajComm().Size() > 1) {
     mprinterr("Error: 'gist' action does not work with > 1 process (%i processes currently).\n",
               init.TrajComm().Size());
     return Action::ERR;
-  }
+  }*/
+  trajComm_ = init.TrajComm();
   mover_.MoverSetComm(init.TrajComm());
 # endif
   gist_init_.Start();
@@ -1734,6 +1735,19 @@ double Action_GIST::SumDataSet(const DataSet_3D& ds) const
   return total;
 }
 
+#ifdef MPI
+int Action_GIST::SyncAction() {
+  // Calc total number of frames.
+  int total_frames = 0;
+  trajComm_.ReduceMaster( &total_frames, &NFRAME_, 1, MPI_INT, MPI_SUM );
+  if (trajComm_.Master())
+    NFRAME_ = total_frames;
+  mprintf("DEBUG: GIST total frame count: %i\n", NFRAME_);
+  return 0;
+}
+#endif
+
+
 /** Handle averaging for grids and output from GIST. */
 void Action_GIST::Print() {
   if (!setupSuccessful_) {
@@ -1741,6 +1755,7 @@ void Action_GIST::Print() {
     return;
   }
   gist_print_.Start();
+
   double Vvox = gridBin_->VoxelVolume();
 
   mprintf("    GIST OUTPUT:\n");
