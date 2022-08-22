@@ -1736,12 +1736,14 @@ double Action_GIST::SumDataSet(const DataSet_3D& ds) const
 }
 
 #ifdef MPI
+/** Sum the given integer array to the master. */
 static inline void reduce_iarray_master(Parallel::Comm const& commIn, std::vector<int>& itmp, std::vector<int>& iarray)
 {
   commIn.ReduceMaster( &itmp[0], &iarray[0], iarray.size(), MPI_INT, MPI_SUM );
   iarray = itmp;
 }
 
+/** Sync the given Xarray to the master. */
 void Action_GIST::sync_Xarray(Xarray& xarrayIn) const {
   if (trajComm_.Master()) {
     Farray frecv;
@@ -1785,6 +1787,7 @@ void Action_GIST::sync_Xarray(Xarray& xarrayIn) const {
   }
 }
 
+/** Sync all information to the master process. */
 int Action_GIST::SyncAction() {
   // Calc total number of frames.
   int total_frames = 0;
@@ -1798,6 +1801,11 @@ int Action_GIST::SyncAction() {
   reduce_iarray_master(trajComm_, itmp, N_main_solvent_);
   reduce_iarray_master(trajComm_, itmp, N_solute_atoms_);
   reduce_iarray_master(trajComm_, itmp, N_hydrogens_);
+  // Max # waters
+  if (trajComm_.Master()) {
+    for (Iarray::const_iterator it = N_solvent_.begin(); it != N_solvent_.end(); ++it)
+      max_nwat_ = std::max(max_nwat_, *it);
+  }
   // Update Xarray counts. Compact the arrays on each thread to take less space.
   sync_Xarray( voxel_xyz_ );
   sync_Xarray( voxel_Q_ );
