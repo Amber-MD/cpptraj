@@ -2271,7 +2271,7 @@ void Action_GIST::Print() {
 }
 
 #ifdef CUDA
-void Action_GIST::NonbondCuda(ActionFrame frm) {
+void Action_GIST::NonbondCuda(ActionFrame const& frm) {
   float *recip = NULL;
   float *ucell = NULL;
   int boxinfo;

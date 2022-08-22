@@ -164,7 +164,7 @@ class Action_GIST : public Action {
     // CUDA only functions
     void freeGPUMemory(void);
     void copyToGPU(void);
-    void NonbondCuda(ActionFrame);
+    void NonbondCuda(ActionFrame const&);
 
 #endif
 
