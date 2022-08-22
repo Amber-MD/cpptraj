@@ -1757,10 +1757,10 @@ void Action_GIST::sync_Xarray(Xarray& xarrayIn) const {
     int fsendsize;
     for (int rank = 1; rank < trajComm_.Size(); rank++) {
       // Get size of fsend from non-master
-      trajComm_.Recv( &fsendsize, 1, MPI_INT, rank, 101010 ); // TODO new tag
+      trajComm_.Recv( &fsendsize, 1, MPI_INT, rank, 2100 );
       frecv.resize( fsendsize );
       // Get fsend from non-master
-      trajComm_.Recv( &frecv[0], frecv.size(), MPI_FLOAT, rank, 101011 ); // TODO new tag
+      trajComm_.Recv( &frecv[0], frecv.size(), MPI_FLOAT, rank, 2101 );
       // Place values in frecv in xarrayIn
       unsigned int idx = 0;
       while (idx < frecv.size()) {
@@ -1788,9 +1788,9 @@ void Action_GIST::sync_Xarray(Xarray& xarrayIn) const {
     }
     // Send size of fsend to master
     int fsendsize = (int)fsend.size();
-    trajComm_.Send( &fsendsize, 1, MPI_INT, 0, 101010 ); // TODO new tag
+    trajComm_.Send( &fsendsize, 1, MPI_INT, 0, 2100 );
     // Send fsend
-    trajComm_.Send( &fsend[0], fsend.size(), MPI_FLOAT, 0, 101011 ); // TODO new tag
+    trajComm_.Send( &fsend[0], fsend.size(), MPI_FLOAT, 0, 2101 );
   }
 }
 
