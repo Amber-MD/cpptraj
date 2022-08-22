@@ -1743,6 +1743,13 @@ static inline void reduce_iarray_master(Parallel::Comm const& commIn, std::vecto
   iarray = itmp;
 }
 
+/** Sum the given double array to the master. */
+static inline void reduce_darray_master(Parallel::Comm const& commIn, std::vector<double>& dtmp, std::vector<double>& darray)
+{
+  commIn.ReduceMaster( &dtmp[0], &darray[0], darray.size(), MPI_DOUBLE, MPI_SUM );
+  darray = dtmp;
+}
+
 /** Sync the given Xarray to the master. */
 void Action_GIST::sync_Xarray(Xarray& xarrayIn) const {
   if (trajComm_.Master()) {
@@ -1801,6 +1808,12 @@ int Action_GIST::SyncAction() {
   reduce_iarray_master(trajComm_, itmp, N_main_solvent_);
   reduce_iarray_master(trajComm_, itmp, N_solute_atoms_);
   reduce_iarray_master(trajComm_, itmp, N_hydrogens_);
+  // Update double arrays
+  Darray dtmp( MAX_GRID_PT_ );
+  if (usePme_ && !skipE_) {
+    reduce_darray_master(trajComm_, dtmp, E_pme_);
+    reduce_darray_master(trajComm_, dtmp, U_E_pme_);
+  }
   // Max # waters
   if (trajComm_.Master()) {
     for (Iarray::const_iterator it = N_solvent_.begin(); it != N_solvent_.end(); ++it)

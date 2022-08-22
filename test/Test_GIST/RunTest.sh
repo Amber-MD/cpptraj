@@ -11,7 +11,7 @@ CleanFiles gist.in gist.out gist-*.dx ww_Eij.dat Eww_ij.dat \
            benzene-ions-energy.txt benzene-ions-gist*.txt
 INPUT="-i gist.in"
 TESTNAME='GIST tests'
-Requires netcdf notparallel
+Requires netcdf maxthreads 10 #notparallel
 
 UNITNAME='Eww Test'
 CheckFor notcuda
