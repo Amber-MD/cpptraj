@@ -365,6 +365,8 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
                                             Vec3( gridspacing_ ) );
   if (debug_ > 0)
     borderGrid_.PrintDebug("borderGrid"); // DEBUG
+  // Save initial border grid vectors
+  borderGridUcell0_ = borderGrid_.GridBox().UnitCell();
 
   if (doEij_) {
     ww_Eij_ = (DataSet_MatrixFlt*)init.DSL().AddSet(DataSet::MATRIX_FLT, MetaData(dsname_, "Eij"));
@@ -1265,8 +1267,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
       borderGrid_.Assign_UnitCell( borderGridUcell0_ );
       // Rotate the border grid the same way as the regular grid
       borderGrid_.RotateGrid( mover_.RotMatrix() );
-    } else
-      borderGridUcell0_ = borderGrid_.GridBox().UnitCell();
+    } 
   }
 
   if (!skipE_) {

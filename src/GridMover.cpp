@@ -64,6 +64,7 @@ int GridMover::setTgt(Frame const& frameIn, Matrix_3x3 const& gridUcell, AtomMas
 {
   tgt_.SetFrame( frameIn, maskIn );
   tgtUcell_ = gridUcell;
+  //tgtUcell_.Print("Initial GridMover ucell"); // DEBUG
 # ifdef MPI
   // Ensure all processes are using the same reference. Just broadcast the coords.
   trajComm_.MasterBcast( tgt_.xAddress(), tgt_.size(), MPI_DOUBLE );
