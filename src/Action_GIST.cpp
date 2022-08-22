@@ -142,11 +142,6 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   DFL_ = &init.DFL();
   DSL_ = init.DslPtr();
 # ifdef MPI
-  /*if (init.TrajComm().Size() > 1) {
-    mprinterr("Error: 'gist' action does not work with > 1 process (%i processes currently).\n",
-              init.TrajComm().Size());
-    return Action::ERR;
-  }*/
   trajComm_ = init.TrajComm();
   mover_.MoverSetComm(init.TrajComm());
 # endif
