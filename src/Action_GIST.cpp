@@ -1267,7 +1267,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
       borderGrid_.Assign_UnitCell( borderGridUcell0_ );
       // Rotate the border grid the same way as the regular grid
       borderGrid_.RotateGrid( mover_.RotMatrix() );
-    } 
+    }
   }
 
   if (!skipE_) {

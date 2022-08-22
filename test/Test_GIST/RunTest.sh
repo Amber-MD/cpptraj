@@ -20,6 +20,11 @@ if [ $? -eq 0 ]; then
   # Default test tolerance
   TEST_TOLERANCE='0.00011'
   PME_TOLERANCE='0.00011'
+  # Set tolerance for MPI
+  if [ ! -z "$DO_PARALLEL" -a $N_THREADS -gt 1 ] ; then
+    echo "Setting increased Eww tolerance for MPI."
+    MPI_TOLERANCE='-a 0.00001'
+  fi
   cat > gist.in <<EOF
   parm ../tz2.ortho.parm7
   trajin ../tz2.ortho.nc 1 10
@@ -29,7 +34,7 @@ if [ $? -eq 0 ]; then
   go
 EOF
   RunCpptraj "GIST water-water interaction test"
-  DoTest Gist1-Eww_ij.dat.save Gist1-Eww_ij.dat
+  DoTest Gist1-Eww_ij.dat.save Gist1-Eww_ij.dat $MPI_TOLERANCE
 else
   # GPU test tolerance
   TEST_TOLERANCE='0.00031'
