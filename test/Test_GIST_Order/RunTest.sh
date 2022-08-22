@@ -5,7 +5,7 @@
 CleanFiles gist.in gist-*.dx gistout.dat tip4p.dat tip5p.dat
 
 TESTNAME='GIST tetrahedral water cluster tests'
-Requires notparallel
+Requires maxthreads 1 
 
 INPUT="-i gist.in"
 
