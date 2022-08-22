@@ -27,10 +27,10 @@ int DataSet_GridDbl::SyncGrid(size_t total, std::vector<int> const& rank_frames,
 {
   if (commIn.Master()) {
     std::vector<double> buf( grid_.size() );
-    commIn.ReduceMaster( &(buf[0]), &(grid_[0]), grid_.size(), MPI_FLOAT, MPI_SUM );
+    commIn.ReduceMaster( &(buf[0]), &(grid_[0]), grid_.size(), MPI_DOUBLE, MPI_SUM );
     std::copy( buf.begin(), buf.end(), grid_.begin() );
   } else
-    commIn.ReduceMaster( 0,         &(grid_[0]), grid_.size(), MPI_FLOAT, MPI_SUM );
+    commIn.ReduceMaster( 0,         &(grid_[0]), grid_.size(), MPI_DOUBLE, MPI_SUM );
   return 0;
 }
 #endif
