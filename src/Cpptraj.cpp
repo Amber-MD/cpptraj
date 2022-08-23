@@ -405,7 +405,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       return QUIT;
     }
     if ( arg == "--ndiff" ) {
-      // --ndiff -v {RELERR=<tol>|ABSERR=<tol>} <file1> <file2>
+      // --ndiff [-v {RELERR=<tol>|ABSERR=<tol>}] <file1> <file2>
       // Perform numerical diff and exit
       // Check that next arg is '-v'
       if (cmdLineArgs[iarg+1] != "-v") {
@@ -413,7 +413,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
         return ERROR;
       }
       SetWorldSilent(true);
-      int ndiff = NDiff( cmdLineArgs[iarg+2], cmdLineArgs[iarg+3], cmdLineArgs[iarg+4] );
+      int ndiff = NDiff( cmdLineArgs, iarg );
       if (ndiff == 0)
         return QUIT;
       else

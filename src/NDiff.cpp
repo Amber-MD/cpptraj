@@ -30,6 +30,11 @@ void report_difference(CpptrajFile& outfile, int& ndiff, int NRLINE,
   ndiff++;
 }
 
+/// Absolute diff tolerance
+static double ndiff_abstol = 0;
+/// Relative diff tolerance
+static double ndiff_reltol = 0;
+// Hold max errors
 static double ndiff_max_abserr = 0;
 static int    ndiff_max_abserr_line = 0;
 static int    ndiff_max_abserr_field = 0;
@@ -37,8 +42,7 @@ static double ndiff_max_relerr = 0;
 static int    ndiff_max_relerr_line = 0;
 static int    ndiff_max_relerr_field = 0;
 
-int diff_field(std::string const& f1, std::string const& f2, bool is_absolute, double tolIn,
-               int NRLINE, int nfield)
+int diff_field(std::string const& f1, std::string const& f2, int NRLINE, int nfield)
 {
    // If both fields are identical as strings, return 0.
    if (f1 == f2) return 0;
@@ -50,11 +54,12 @@ int diff_field(std::string const& f1, std::string const& f2, bool is_absolute, d
      double This_Relerr = maxrelerr(d1, d2);
 
      bool is_diff = false;
-     if (is_absolute) {
-       if ( This_Abserr > tolIn )
+     if (ndiff_abstol > 0) {
+       if ( This_Abserr > ndiff_abstol )
          is_diff = true;
-     } else {
-       if ( This_Relerr > tolIn )
+     }
+     if (ndiff_reltol > 0) {
+       if ( This_Relerr > ndiff_reltol )
          is_diff = true;
      }
      if (is_diff) {
@@ -76,11 +81,10 @@ int diff_field(std::string const& f1, std::string const& f2, bool is_absolute, d
 }
 
 int compare_all( CpptrajFile& outfile, int& ndiff, int NRLINE,
-                 ArgList const& f1line, ArgList const& f2line,
-                 bool is_absolute, double tolIn )
+                 ArgList const& f1line, ArgList const& f2line )
 {
   for (int iarg = 0; iarg < f1line.Nargs(); iarg++) {
-    if (diff_field(f1line[iarg], f2line[iarg], is_absolute, tolIn, NRLINE, iarg)) {
+    if (diff_field(f1line[iarg], f2line[iarg], NRLINE, iarg)) {
       report_difference(outfile, ndiff, NRLINE, f1line.ArgLine(), f2line.ArgLine());
       return 1;
     }
@@ -88,8 +92,7 @@ int compare_all( CpptrajFile& outfile, int& ndiff, int NRLINE,
   return 0;
 }
 
-int ndiff_compare_files(BufferedLine& file1, BufferedLine& file2, bool is_absolute,
-                        double tolIn)
+int ndiff_compare_files(BufferedLine& file1, BufferedLine& file2)
 {
   int NRLINE = 0;
   int ndiff = 0;
@@ -105,7 +108,7 @@ int ndiff_compare_files(BufferedLine& file1, BufferedLine& file2, bool is_absolu
     ArgList f1line( ptr1 );
     ArgList f2line( ptr2 );
     if (f1line.Nargs() == f2line.Nargs()) {
-      compare_all( outfile, ndiff, NRLINE, f1line, f2line, is_absolute, tolIn );
+      compare_all( outfile, ndiff, NRLINE, f1line, f2line );
     } else {
       report_difference(outfile, ndiff, NRLINE, ptr1, ptr2 );
     }
@@ -137,8 +140,24 @@ int ndiff_compare_files(BufferedLine& file1, BufferedLine& file2, bool is_absolu
 /** Intended to be a faster drop-in replacement for Nelson H. F. Beebe's 
   * ndiff.awk script.
   */
-int NDiff(std::string const& tolArgStr, std::string const& fname1, std::string const& fname2)
+int NDiff(std::string const& fname1, std::string const& fname2)
 {
+
+
+  BufferedLine file1, file2;
+  if (file1.OpenFileRead( fname1 )) {
+    mprinterr("Error: ndiff: Could not open '%s'\n", fname1.c_str());
+    return -1;
+  }
+  if (file2.OpenFileRead( fname2 )) {
+    mprinterr("Error: ndiff: Could not open '%s'\n", fname2.c_str());
+    return -1;
+  }
+
+  return ndiff_compare_files(file1, file2);
+}
+
+int ParseToleranceArg(std::string const& tolArgStr) {
   // Parse the tolerance arg
   ArgList tolarg(tolArgStr, "=");
   if (tolarg.Nargs() != 2) {
@@ -162,15 +181,31 @@ int NDiff(std::string const& tolArgStr, std::string const& fname1, std::string c
   }
   double tolIn = convertToDouble(tolarg[1]);
 
-  BufferedLine file1, file2;
-  if (file1.OpenFileRead( fname1 )) {
-    mprinterr("Error: ndiff: Could not open '%s'\n", fname1.c_str());
-    return -1;
-  }
-  if (file2.OpenFileRead( fname2 )) {
-    mprinterr("Error: ndiff: Could not open '%s'\n", fname2.c_str());
-    return -1;
+  if (is_absolute)
+    ndiff_abstol = tolIn;
+  else
+    ndiff_reltol = tolIn;
+  return 0;
+}
+
+/** Process ndiff-related command line args from cpptraj command line. */
+int NDiff(ArgList const& cmdLineArgs, int iNdiffFlag)
+{
+  std::string fname1, fname2;
+  for (int iarg = iNdiffFlag + 1; iarg < cmdLineArgs.Nargs(); iarg++)
+  {
+    if (cmdLineArgs[iarg] == "-v") {
+      if (ParseToleranceArg(cmdLineArgs[++iarg]))
+        return 1;
+    } else if (fname1.empty()) {
+      fname1 = cmdLineArgs[iarg];
+    } else if (fname2.empty()) {
+      fname2 = cmdLineArgs[iarg];
+    } else {
+      mprinterr("Error: Unrecognized argument: %s\n", cmdLineArgs[iarg].c_str());
+      return -1;
+    }
   }
 
-  return ndiff_compare_files(file1, file2, is_absolute, tolIn);
+  return NDiff(fname1, fname2);
 }
