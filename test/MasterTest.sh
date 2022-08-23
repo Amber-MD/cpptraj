@@ -733,7 +733,7 @@ SetNthreads() {
       return 1
     fi
     export N_THREADS=`$CPPTRAJ_NPROC`
-    echo "  $N_THREADS MPI threads."
+    echo "  $N_THREADS MPI processes."
   fi
   return 0
 }
