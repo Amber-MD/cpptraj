@@ -81,6 +81,7 @@ UNITNAME=''              # Current unit name for CheckFor routine.
 DESCRIP=''               # Current test/unit name for CheckEnv routine.
 FNC1=''                  # First file to NcTest(); for output in DoTest()
 FNC2=''                  # Second file to NcTest(); for output in DoTest()
+TEST_TOLERANCE=''        # Set by SetConditionalTol() to desired test tolerance.
 
 # ==============================================================================
 # TestHeader() <outfile>
@@ -321,6 +322,63 @@ EOF
     fi
     DoTest $DIFFARGS
     $CPPTRAJ_RM ev0.save ev0 tmp.evectest.out
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# SetConditionalTol() <name> <key> <flag> <tol> [<key> <flag> <tol> ...]
+#   Set TEST_TOLERANCE based on keyword <key>, with later tolerances having
+#   priority over earlier ones.
+SetConditionalTol() {
+  TEST_TOLERANCE=''
+  tol_name=$1
+  if [ -z "$tol_name" ] ; then
+    ErrMsg "SetConditionalTol(): no name set."
+    exit 1
+  fi
+  shift
+  tol_key=''
+  tol_flag=''
+  tol_val=''
+  while [ ! -z "$1" ] ; do
+    tmp_key=$1
+    shift
+    tmp_flag=$1
+    shift
+    tmp_val=$1
+    shift
+    if [ -z "$tmp_key" -o -z "$tmp_flag" -o -z "$tmp_val" ] ; then
+      ErrMsg "SetConditionalTol(): Improper key/flag/val."
+      exit 1
+    fi
+    # Check key
+    if [ "$tmp_key" = 'mpi' ] ; then
+      if [ ! -z "$DO_PARALLEL" ] ; then
+        if [ $N_THREADS -gt 1 ] ; then
+          tol_key=$tmp_key
+          tol_flag=$tmp_flag
+          tol_val=$tmp_val
+        fi
+      fi
+    elif [ "$tmp_key" = 'cuda' ] ; then
+      if [ ! -z "$CPPTRAJ_CUDA" ] ; then
+        tol_key=$tmp_key
+        tol_flag=$tmp_flag
+        tol_val=$tmp_val
+      fi
+    elif [ "$tmp_key" = 'default' ] ; then
+      tol_key=$tmp_key
+      tol_flag=$tmp_flag
+      tol_val=$tmp_val
+    else
+      ErrMsg "SetConditionalTol(): Unhandled key $tmp_key"
+      exit 1
+    fi
+  done # END loop over keys
+  if [ ! -z "$tol_key" ] ; then
+    TEST_TOLERANCE="$tol_flag $tol_val"
+    echo ""
+    echo "Setting $tol_key tolerance for $tol_name : $TEST_TOLERANCE"
   fi
 }
 

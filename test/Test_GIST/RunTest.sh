@@ -11,20 +11,12 @@ CleanFiles gist.in gist.out gist-*.dx ww_Eij.dat Eww_ij.dat \
            benzene-ions-energy.txt benzene-ions-gist*.txt
 INPUT="-i gist.in"
 TESTNAME='GIST tests'
-Requires netcdf maxthreads 10 #notparallel
+Requires netcdf maxthreads 10
 
 UNITNAME='Eww Test'
 CheckFor notcuda
 # doeij test with much smaller grid to save memory
 if [ $? -eq 0 ]; then
-  # Default test tolerance
-  TEST_TOLERANCE='0.00011'
-  PME_TOLERANCE='0.00011'
-  # Set tolerance for MPI
-  if [ ! -z "$DO_PARALLEL" -a $N_THREADS -gt 1 ] ; then
-    echo "Setting increased Eww tolerance for MPI."
-    MPI_TOLERANCE='-a 0.00001'
-  fi
   cat > gist.in <<EOF
   parm ../tz2.ortho.parm7
   trajin ../tz2.ortho.nc 1 10
@@ -34,12 +26,14 @@ if [ $? -eq 0 ]; then
   go
 EOF
   RunCpptraj "GIST water-water interaction test"
-  DoTest Gist1-Eww_ij.dat.save Gist1-Eww_ij.dat $MPI_TOLERANCE
-else
-  # GPU test tolerance
-  TEST_TOLERANCE='0.00031'
-  PME_TOLERANCE='0.00011'
+  # MPI needs relaxed tolerance due to single precision summation round-off error
+  SetConditionalTol Gist1-Eww_ij.dat mpi -a 0.00001
+  DoTest Gist1-Eww_ij.dat.save Gist1-Eww_ij.dat $TEST_TOLERANCE
 fi
+
+# Set test tolerances (TEST_TOLERANCE) for remaining tests
+PME_TOLERANCE='-a 0.00011'
+SetConditionalTol 'GIST tests' default -a 0.00011 cuda -a 0.00031
 
 # GIST test with finer grid for everything else
 UNITNAME='GIST test, orthogonal cell'
@@ -62,7 +56,7 @@ DoTest Gist2-dTSorient-dens.dx.save Gist2-dTSorient-dens.dx.save
 # NOTE: gist.out allowed to fail on windows; differences due to slightly
 #       difference implementation of printf '%g' (manifests as round-off).
 #       THIS IS THE SAVED OUTPUT FROM THE ORIGINAL GIST COMMAND.
-DoTest gist.out.save Gist2-output.dat -a $TEST_TOLERANCE
+DoTest gist.out.save Gist2-output.dat $TEST_TOLERANCE
 
 # GIST test, nonorthogonal cell
 UNITNAME='GIST test, nonorthogonal cell'
@@ -87,7 +81,7 @@ DoTest Gist3-order-norm.dx.save Gist3-order-norm.dx
 ### Maximum relative error in matching lines = 1.08e-04 at line 5484 field 14
 ### Maximum absolute error in matching lines = 2.00e-04 at line 8015 field 17
 ### Maximum relative error in matching lines = 1.83e-05 at line 35522 field 17
-DoTest Gist3-output.dat.save Gist3-output.dat -a $TEST_TOLERANCE
+DoTest Gist3-output.dat.save Gist3-output.dat $TEST_TOLERANCE
 
 UNITNAME='PME-GIST test on orthogonal cell'
 CheckFor libpme
@@ -101,17 +95,17 @@ gist pme refdens 0.033422885325 gridcntr 1.5 1.0 0.0 \
     griddim 34 44 36 gridspacn 0.50 prefix Gist4 info Info.dat nocom
 EOF
   RunCpptraj "$UNITNAME"
-  DoTest Gist4-Solute-Etot-pme-dens.dx.save Gist4-Solute-Etot-pme-dens.dx -a $PME_TOLERANCE
-  DoTest Gist4-Water-Etot-pme-dens.dx.save Gist4-Water-Etot-pme-dens.dx -a $TEST_TOLERANCE
+  DoTest Gist4-Solute-Etot-pme-dens.dx.save Gist4-Solute-Etot-pme-dens.dx $PME_TOLERANCE
+  DoTest Gist4-Water-Etot-pme-dens.dx.save Gist4-Water-Etot-pme-dens.dx $TEST_TOLERANCE
   DoTest Gist2-gH.dx.save Gist4-gH.dx
   DoTest Gist2-gO.dx.save Gist4-gO.dx
   DoTest Gist2-neighbor-norm.dx.save Gist4-neighbor-norm.dx
-  DoTest Gist4-Esw-dens.dx.save Gist4-Esw-dens.dx -a $TEST_TOLERANCE
-  DoTest Gist4-Eww-dens.dx.save Gist4-Eww-dens.dx -a $TEST_TOLERANCE
-  DoTest Gist4-Info.dat.save Gist4-Info.dat -a $TEST_TOLERANCE
-  DoTest Gist2-dTStrans-dens.dx.save Gist4-dTStrans-dens.dx -a $TEST_TOLERANCE
-  DoTest Gist2-dTSsix-dens.dx.save Gist4-dTSsix-dens.dx -a $TEST_TOLERANCE
-  DoTest Gist2-dTSorient-dens.dx.save Gist4-dTSorient-dens.dx -a $TEST_TOLERANCE
+  DoTest Gist4-Esw-dens.dx.save Gist4-Esw-dens.dx $TEST_TOLERANCE
+  DoTest Gist4-Eww-dens.dx.save Gist4-Eww-dens.dx $TEST_TOLERANCE
+  DoTest Gist4-Info.dat.save Gist4-Info.dat $TEST_TOLERANCE
+  DoTest Gist2-dTStrans-dens.dx.save Gist4-dTStrans-dens.dx $TEST_TOLERANCE
+  DoTest Gist2-dTSsix-dens.dx.save Gist4-dTSsix-dens.dx $TEST_TOLERANCE
+  DoTest Gist2-dTSorient-dens.dx.save Gist4-dTSorient-dens.dx $TEST_TOLERANCE
   ## Not including this save on the remote repo bc it is too big.
   #if [ -f 'Gist4-output.dat.save' ] ; then
   #  DoTest Gist4-output.dat.save Gist4-output.dat
@@ -130,14 +124,14 @@ gist pme refdens 0.033422885325 gridcntr 0.81 -1.0 0.08 \
   griddim 42 36 40 gridspacn 0.50 prefix Gist5 info Info.dat nocom
 EOF
   RunCpptraj "$UNITNAME"
-  DoTest Gist5-Solute-Etot-pme-dens.dx.save Gist5-Solute-Etot-pme-dens.dx -a $PME_TOLERANCE
-  DoTest Gist5-Water-Etot-pme-dens.dx.save Gist5-Water-Etot-pme-dens.dx -a $TEST_TOLERANCE
+  DoTest Gist5-Solute-Etot-pme-dens.dx.save Gist5-Solute-Etot-pme-dens.dx $PME_TOLERANCE
+  DoTest Gist5-Water-Etot-pme-dens.dx.save Gist5-Water-Etot-pme-dens.dx $TEST_TOLERANCE
   DoTest Gist3-gH.dx.save Gist5-gH.dx
   DoTest Gist3-gO.dx.save Gist5-gO.dx
   DoTest Gist3-neighbor-norm.dx.save Gist5-neighbor-norm.dx
-  DoTest Gist5-Esw-dens.dx.save Gist5-Esw-dens.dx -a $TEST_TOLERANCE
-  DoTest Gist5-Eww-dens.dx.save Gist5-Eww-dens.dx -a $TEST_TOLERANCE
-  DoTest Gist5-Info.dat.save Gist5-Info.dat -a $TEST_TOLERANCE
+  DoTest Gist5-Esw-dens.dx.save Gist5-Esw-dens.dx $TEST_TOLERANCE
+  DoTest Gist5-Eww-dens.dx.save Gist5-Eww-dens.dx $TEST_TOLERANCE
+  DoTest Gist5-Info.dat.save Gist5-Info.dat $TEST_TOLERANCE
   # Not including this save on the remote repo bc it is too big.
   #if [ -f 'Gist5-output.dat.save' ] ; then
   #  DoTest Gist5-output.dat.save Gist5-output.dat
@@ -161,7 +155,7 @@ DoTest Gist6-neighbor-norm.dx.save Gist6-neighbor-norm.dx
 DoTest Gist6-order-norm.dx.save Gist6-order-norm.dx
 # NOTE: gist.out allowed to fail on windows; differences due to slightly
 #       difference implementation of printf '%g' (manifests as round-off).
-DoTest Gist6.out.save Gist6-output.dat -a $TEST_TOLERANCE
+DoTest Gist6.out.save Gist6-output.dat $TEST_TOLERANCE
 
 # using more accurate nearest neighbor search
 UNITNAME='GIST test, orthogonal cell, nnsearchlayers 5'
@@ -180,7 +174,7 @@ DoTest Gist7-neighbor-norm.dx.save Gist7-neighbor-norm.dx
 DoTest Gist7-order-norm.dx.save Gist7-order-norm.dx
 # NOTE: gist.out allowed to fail on windows; differences due to slightly
 #       difference implementation of printf '%g' (manifests as round-off).
-DoTest Gist7.out.save Gist7-output.dat -a $TEST_TOLERANCE
+DoTest Gist7.out.save Gist7-output.dat $TEST_TOLERANCE
 
 # The example trajectory is normal distributed in x, y, z, alpha, cos(beta) and
 # gamma. (cartesian coordinates and euler angles).
@@ -252,12 +246,12 @@ EOF
 	grep "energy of the grid" Gist8-Info.dat > benzene-ions-gist8.txt
 
 	DoTest benzene-ions-energy.txt benzene-ions-gist8.txt -a 0.6 -r 0.001
-	DoTest Gist8-Esw-mol-WAT.dx.save Gist8-Esw-mol-WAT.dx -a $TEST_TOLERANCE
-	DoTest Gist8-Eww-mol-WAT.dx.save Gist8-Eww-mol-WAT.dx -a $TEST_TOLERANCE
-	DoTest Gist8-Esw-mol-NA.dx.save Gist8-Esw-mol-NA.dx -a $TEST_TOLERANCE
-	DoTest Gist8-Eww-mol-NA.dx.save Gist8-Eww-mol-NA.dx -a $TEST_TOLERANCE
-	DoTest Gist8-Esw-mol-CL.dx.save Gist8-Esw-mol-CL.dx -a $TEST_TOLERANCE
-	DoTest Gist8-Eww-mol-CL.dx.save Gist8-Eww-mol-CL.dx -a $TEST_TOLERANCE
+	DoTest Gist8-Esw-mol-WAT.dx.save Gist8-Esw-mol-WAT.dx $TEST_TOLERANCE
+	DoTest Gist8-Eww-mol-WAT.dx.save Gist8-Eww-mol-WAT.dx $TEST_TOLERANCE
+	DoTest Gist8-Esw-mol-NA.dx.save Gist8-Esw-mol-NA.dx $TEST_TOLERANCE
+	DoTest Gist8-Eww-mol-NA.dx.save Gist8-Eww-mol-NA.dx $TEST_TOLERANCE
+	DoTest Gist8-Esw-mol-CL.dx.save Gist8-Esw-mol-CL.dx $TEST_TOLERANCE
+	DoTest Gist8-Eww-mol-CL.dx.save Gist8-Eww-mol-CL.dx $TEST_TOLERANCE
 fi
 
 
@@ -275,12 +269,12 @@ RunCpptraj "$UNITNAME"
 grep "energy of the grid" Gist9-Info.dat > benzene-ions-gist9.txt
 
 DoTest benzene-ions-energy.txt benzene-ions-gist9.txt -a 4 -r 0.01
-DoTest Gist9-Esw-mol-WAT.dx.save Gist9-Esw-mol-WAT.dx -a $TEST_TOLERANCE
-DoTest Gist9-Eww-mol-WAT.dx.save Gist9-Eww-mol-WAT.dx -a $TEST_TOLERANCE
-DoTest Gist9-Esw-mol-NA.dx.save Gist9-Esw-mol-NA.dx -a $TEST_TOLERANCE
-DoTest Gist9-Eww-mol-NA.dx.save Gist9-Eww-mol-NA.dx -a $TEST_TOLERANCE
-DoTest Gist9-Esw-mol-CL.dx.save Gist9-Esw-mol-CL.dx -a $TEST_TOLERANCE
-DoTest Gist9-Eww-mol-CL.dx.save Gist9-Eww-mol-CL.dx -a $TEST_TOLERANCE
+DoTest Gist9-Esw-mol-WAT.dx.save Gist9-Esw-mol-WAT.dx $TEST_TOLERANCE
+DoTest Gist9-Eww-mol-WAT.dx.save Gist9-Eww-mol-WAT.dx $TEST_TOLERANCE
+DoTest Gist9-Esw-mol-NA.dx.save Gist9-Esw-mol-NA.dx $TEST_TOLERANCE
+DoTest Gist9-Eww-mol-NA.dx.save Gist9-Eww-mol-NA.dx $TEST_TOLERANCE
+DoTest Gist9-Esw-mol-CL.dx.save Gist9-Esw-mol-CL.dx $TEST_TOLERANCE
+DoTest Gist9-Eww-mol-CL.dx.save Gist9-Eww-mol-CL.dx $TEST_TOLERANCE
 
 UNITNAME='GIST test, benzene as solvent'
 cat > gist.in <<EOF
@@ -292,8 +286,8 @@ gist refdens 3.3 gridcntr 0 0 0 solute !^1 \
 go
 EOF
 RunCpptraj "$UNITNAME"
-DoTest Gist10-Info.dat.save Gist10-Info.dat -a $TEST_TOLERANCE
-DoTest Gist10-output.dat.save Gist10-output.dat -a $TEST_TOLERANCE
+DoTest Gist10-Info.dat.save Gist10-Info.dat $TEST_TOLERANCE
+DoTest Gist10-output.dat.save Gist10-output.dat $TEST_TOLERANCE
 
 EndTest
 
