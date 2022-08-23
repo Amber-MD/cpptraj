@@ -366,6 +366,12 @@ SetConditionalTol() {
         tol_flag=$tmp_flag
         tol_val=$tmp_val
       fi
+    elif [ "$tmp_key" = 'openmp' ] ; then
+      if [ ! -z "$CPPTRAJ_OPENMP" ] ; then
+        tol_key=$tmp_key
+        tol_flag=$tmp_flag
+        tol_val=$tmp_val
+      fi
     elif [ "$tmp_key" = 'default' ] ; then
       tol_key=$tmp_key
       tol_flag=$tmp_flag
