@@ -333,6 +333,7 @@ COMMON_SOURCES= \
         Mol2File.cpp \
         NameType.cpp \
         NC_Routines.cpp \
+        NDiff.cpp \
         NetcdfFile.cpp \
         OMM_helpers.cpp \
         OutputTrajCommon.cpp \

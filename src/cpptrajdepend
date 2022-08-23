@@ -362,6 +362,7 @@ Minimize_SteepestDescent.o : Minimize_SteepestDescent.cpp ActionFrameCounter.h A
 Mol.o : Mol.cpp Atom.h AtomMask.h AtomType.h Box.h Constants.h CoordinateInfo.h CpptrajStdio.h FileName.h Frame.h MaskToken.h Matrix_3x3.h Mol.h Molecule.h NameType.h Parallel.h ParameterHolders.h ParameterSet.h ParameterTypes.h Range.h ReplicaDimArray.h Residue.h Segment.h SymbolExporting.h Topology.h TypeNameHolder.h Unit.h Vec3.h
 Mol2File.o : Mol2File.cpp Atom.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h Mol2File.h NameType.h Parallel.h Residue.h StringRoutines.h SymbolExporting.h
 NC_Routines.o : NC_Routines.cpp CpptrajStdio.h NC_Routines.h
+NDiff.o : NDiff.cpp BufferedLine.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h NDiff.h Parallel.h
 NameType.o : NameType.cpp CpptrajStdio.h NameType.h
 NetcdfFile.o : NetcdfFile.cpp Atom.h AtomMask.h Box.h Constants.h CoordinateInfo.h CpptrajStdio.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NC_Routines.h NameType.h NetcdfFile.h Parallel.h ParallelNetcdf.h ReplicaDimArray.h Residue.h Segment.h SymbolExporting.h Unit.h Vec3.h Version.h
 OMM_helpers.o : OMM_helpers.cpp Constants.h OMM_helpers.h ParameterTypes.h
