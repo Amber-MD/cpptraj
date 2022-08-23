@@ -137,23 +137,30 @@ int ndiff_compare_files(BufferedLine& file1, BufferedLine& file2, bool is_absolu
 /** Intended to be a faster drop-in replacement for Nelson H. F. Beebe's 
   * ndiff.awk script.
   */
-int NDiff(std::string const& fname1, std::string const& fname2, std::string const& tolarg,
-          std::string const& tolStr)
+int NDiff(std::string const& tolArgStr, std::string const& fname1, std::string const& fname2)
 {
+  // Parse the tolerance arg
+  ArgList tolarg(tolArgStr, "=");
+  if (tolarg.Nargs() != 2) {
+    mprinterr("Error: ndiff: malformed tolerance arg: %s\n", tolArgStr.c_str());
+    return 1;
+  }
+  
   bool is_absolute = true;
-  if (tolarg == "-r")
+  if (tolarg[0] == "RELERR")
     is_absolute = false;
-  else if (tolarg == "-a")
+  else if (tolarg[0] == "ABSERR")
     is_absolute = true;
   else {
-    mprinterr("Error: ndiff: Expected '-r' or '-a', got '%s'\n", tolarg.c_str());
+    mprinterr("Error: ndiff: Expected 'RELERR' or 'ABSERR', got '%s'\n", tolarg[0].c_str());
     return -1;
   }
-  if (!validDouble(tolStr)) {
-    mprinterr("Error: ndiff: '%s' is not a valid tolerance.\n", tolStr.c_str());
+
+  if (!validDouble(tolarg[1])) {
+    mprinterr("Error: ndiff: '%s' is not a valid tolerance.\n", tolarg[1].c_str());
     return -1;
   }
-  double tolIn = convertToDouble(tolStr);
+  double tolIn = convertToDouble(tolarg[1]);
 
   BufferedLine file1, file2;
   if (file1.OpenFileRead( fname1 )) {
