@@ -14,6 +14,7 @@
 #include "ParmFile.h" // ProcessMask
 #include "TopInfo.h" // ProcessMask
 #include "Timer.h"
+#include "NDiff.h"
 #include "StringRoutines.h" // TimeString
 #include "TrajectoryFile.h" // for autodetect
 #if defined(CUDA)
@@ -402,6 +403,16 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       SetWorldSilent(true);
       Usage();
       return QUIT;
+    }
+    if ( arg == "--ndiff" ) {
+      // --ndiff <file1> <file2> <key> <tol>
+      // Perform numerical diff and exit
+      SetWorldSilent(true);
+      int ndiff = NDiff( cmdLineArgs[iarg+1], cmdLineArgs[iarg+2], cmdLineArgs[iarg+3], cmdLineArgs[iarg+4] );
+      if (ndiff == 0)
+        return QUIT;
+      else
+        return ERROR;
     }
     if ( arg == "-V" || arg == "--version" ) {
       // -V, --version: Print version number and exit

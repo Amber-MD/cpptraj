@@ -117,10 +117,10 @@ int ndiff_compare_files(BufferedLine& file1, BufferedLine& file2, bool is_absolu
   //{
     if (ndiff_max_abserr > 0)
       outfile.Printf("### Maximum absolute error in matching lines = %.2e at line %d field %d\n",
-                     ndiff_max_abserr, ndiff_max_abserr_line, ndiff_max_abserr_field);
+                     ndiff_max_abserr, ndiff_max_abserr_line, ndiff_max_abserr_field+1);
     if (ndiff_max_relerr > 0)
       outfile.Printf("### Maximum relative error in matching lines = %.2e at line %d field %d\n",
-                     ndiff_max_relerr, ndiff_max_relerr_line, ndiff_max_relerr_field);
+                     ndiff_max_relerr, ndiff_max_relerr_line, ndiff_max_relerr_field+1);
   //}
   if (ptr2 != 0) {
     mprintf("Warning: file %s is short.\n", file1.Filename().full());
@@ -138,7 +138,7 @@ int ndiff_compare_files(BufferedLine& file1, BufferedLine& file2, bool is_absolu
   * ndiff.awk script.
   */
 int NDiff(std::string const& fname1, std::string const& fname2, std::string const& tolarg,
-          double tolIn)
+          std::string const& tolStr)
 {
   bool is_absolute = true;
   if (tolarg == "-r")
@@ -147,17 +147,22 @@ int NDiff(std::string const& fname1, std::string const& fname2, std::string cons
     is_absolute = true;
   else {
     mprinterr("Error: ndiff: Expected '-r' or '-a', got '%s'\n", tolarg.c_str());
-    return 1;
+    return -1;
   }
+  if (!validDouble(tolStr)) {
+    mprinterr("Error: ndiff: '%s' is not a valid tolerance.\n", tolStr.c_str());
+    return -1;
+  }
+  double tolIn = convertToDouble(tolStr);
 
   BufferedLine file1, file2;
   if (file1.OpenFileRead( fname1 )) {
     mprinterr("Error: ndiff: Could not open '%s'\n", fname1.c_str());
-    return 1;
+    return -1;
   }
   if (file2.OpenFileRead( fname2 )) {
     mprinterr("Error: ndiff: Could not open '%s'\n", fname2.c_str());
-    return 1;
+    return -1;
   }
 
   return ndiff_compare_files(file1, file2, is_absolute, tolIn);
