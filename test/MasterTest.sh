@@ -968,12 +968,13 @@ SetBinaries() {
   fi
   # Determine location of ndiff.awk
   if [ -z "$CPPTRAJ_NDIFF" ] ; then
-    CPPTRAJ_NDIFF=$CPPTRAJ_TEST_ROOT/utilities/ndiff/ndiff.awk
-    if [ ! -f "$CPPTRAJ_NDIFF" ] ; then
-      ErrMsg "'ndiff.awk' not present: $CPPTRAJ_NDIFF"
-      exit 1
-    fi
-    CPPTRAJ_NDIFF="awk -f $CPPTRAJ_NDIFF"
+    CPPTRAJ_NDIFF="$CPPTRAJ --ndiff"
+    #CPPTRAJ_NDIFF=$CPPTRAJ_TEST_ROOT/utilities/ndiff/ndiff.awk
+    #if [ ! -f "$CPPTRAJ_NDIFF" ] ; then
+    #  ErrMsg "'ndiff.awk' not present: $CPPTRAJ_NDIFF"
+    #  exit 1
+    #fi
+    #CPPTRAJ_NDIFF="awk -f $CPPTRAJ_NDIFF"
     export CPPTRAJ_NDIFF
   fi
   # Determine location of nproc/numprocs
