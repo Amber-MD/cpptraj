@@ -188,12 +188,15 @@ DoTest() {
       # Print AT test header.
       echo "diffing $FNAME1 with $FNAME2"
     fi
+    # Both CPPTRAJ_DIFF and CPPTRAJ_NDIFF should return non-zero on diff
     if [ $USE_NDIFF -eq 0 ] ; then
       $CPPTRAJ_DIFF $DIFFARGS $DIFFOPTS $F1 $F2 > temp.diff 2>&1
+      is_diff=$?
     else
       $CPPTRAJ_NDIFF $NDIFFARGS $F1 $F2 > temp.diff 2>&1
+      is_diff=$?
     fi
-    if [ -s 'temp.diff' ] ; then
+    if [ $is_diff -ne 0 ] ; then
       if [ -z "$CPPTRAJ_DACDIF" ] ; then
         OutBoth "  $FNAME1 $FNAME2 are different."
         cat temp.diff >> $CPPTRAJ_TEST_ERROR
