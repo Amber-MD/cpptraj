@@ -183,6 +183,12 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
 #   else
     err = Interactive();
 #   endif
+  } else if ( cmode == NDIFF) {
+    int ndiff = NDiff(argc, argv);
+    if (ndiff < 0)
+      mprinterr("Error: 'ndiff' error.\n");
+    FinalizeIO();
+    return ndiff;
   } else if ( cmode == ERROR ) {
     err = 1;
   }
@@ -412,12 +418,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
         mprinterr("Error: Expected '-v' after '--ndiff'.\n");
         return ERROR;
       }
-      SetWorldSilent(true);
-      int ndiff = NDiff( cmdLineArgs, iarg );
-      if (ndiff == 0)
-        return QUIT;
-      else
-        return ERROR;
+      return NDIFF;
     }
     if ( arg == "-V" || arg == "--version" ) {
       // -V, --version: Print version number and exit

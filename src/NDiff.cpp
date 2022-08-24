@@ -189,21 +189,28 @@ int ParseToleranceArg(std::string const& tolArgStr) {
 }
 
 /** Process ndiff-related command line args from cpptraj command line. */
-int NDiff(ArgList const& cmdLineArgs, int iNdiffFlag)
+int NDiff(int argc, char** argv)
 {
   std::string fname1, fname2;
-  for (int iarg = iNdiffFlag + 1; iarg < cmdLineArgs.Nargs(); iarg++)
+  bool process_ndiff_args = false;
+  for (int iarg = 1; iarg < argc; iarg++)
   {
-    if (cmdLineArgs[iarg] == "-v") {
-      if (ParseToleranceArg(cmdLineArgs[++iarg]))
-        return 1;
-    } else if (fname1.empty()) {
-      fname1 = cmdLineArgs[iarg];
-    } else if (fname2.empty()) {
-      fname2 = cmdLineArgs[iarg];
+    std::string cmdLineArg( argv[iarg] );
+    if (process_ndiff_args) {
+      if (cmdLineArg == "-v") {
+        if (ParseToleranceArg( std::string(argv[++iarg]) ))
+          return 1;
+      } else if (fname1.empty()) {
+        fname1 = cmdLineArg;
+      } else if (fname2.empty()) {
+        fname2 = cmdLineArg;
+      } else {
+        mprinterr("Error: ndiff: Unrecognized argument: %s\n", cmdLineArg.c_str());
+        return -1;
+      }
     } else {
-      mprinterr("Error: Unrecognized argument: %s\n", cmdLineArgs[iarg].c_str());
-      return -1;
+      if ( cmdLineArg == "--ndiff" )
+        process_ndiff_args = true;
     }
   }
 
