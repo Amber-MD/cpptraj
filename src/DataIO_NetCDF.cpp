@@ -88,11 +88,14 @@ class NC_dimension {
 
   std::string const& Label() const { return label_; }
   int Size() const { return size_; }
+  std::vector<DataSet const*> const& Sets() const { return sets_; }
 
+  void AddSet(DataSet const* ds) { sets_.push_back( ds ); }
   private:
 
     std::string label_;
     int size_;
+    std::vector<DataSet const*> sets_;
 };
 
 // DataIO_NetCDF::WriteData()
@@ -105,7 +108,8 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
     return 1;
 
   // Check our incoming data sets. Try to find common dimensions.
-  std::set<NC_dimension> dims_;
+  typedef std::set<NC_dimension> DimSet;
+  DimSet dims_;
 
   for (DataSetList::const_iterator dsit = dsl.begin(); dsit != dsl.end(); ++dsit)
   {
@@ -114,11 +118,13 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
       // 1 dimension
       Dimension const& dim = ds->Dim(0);
 
-      dims_.insert( NC_dimension(dim.Label(), ds->Size()) );
+      std::pair<DimSet::iterator,bool> ret = dims_.insert( NC_dimension(dim.Label(), ds->Size()) );
+      mprintf("%i\n", ret.first->Size());
+      //ret.first->AddSet( ds );
     }
   }
   mprintf("DEBUG: Dimensions:\n");
-  for (std::set<NC_dimension>::const_iterator it = dims_.begin(); it != dims_.end(); ++it)
+  for (DimSet::const_iterator it = dims_.begin(); it != dims_.end(); ++it)
     mprintf("\t'%s' %i\n", it->Label().c_str(), it->Size());
 
   return 0;
