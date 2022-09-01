@@ -68,6 +68,7 @@ int DataIO_NetCDF::processWriteArgs(ArgList& argIn)
   return 0;
 }
 
+/// Used to track unique DataSet dimensions
 class NC_dimension {
   public:
     NC_dimension(std::string const& l, int s) : label_(l), size_(s) {}
@@ -149,6 +150,17 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
     for (Iarray::const_iterator it = didx->begin(); it != didx->end(); ++it)
       mprintf(" %i", *it);
     mprintf("\n");
+  }
+
+  // Define dimensions
+  Iarray dimIds;
+  dimIds.resize( dims_.size() );
+  int* dimIdsPtr = &dimIds[0];
+  for (DimSet::const_iterator it = dims_.begin(); it != dims_.end(); ++it, ++dimIdsPtr) {
+    if (NC::CheckErr( nc_def_dim(ncid, it->first.Label().c_str(), it->first.Size(), dimIdsPtr ))) {
+      mprinterr("Error: Could not define dimension '%s'\n", it->first.Label().c_str());
+      return 1;
+    }
   }
 
   return 0;
