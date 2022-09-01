@@ -1,7 +1,7 @@
 #include "DataIO_NetCDF.h"
 #include "CpptrajStdio.h"
 #ifdef BINTRAJ
-# include <set>
+# include <map>
 # include <netcdf.h>
 # include "NC_Routines.h"
 #endif
@@ -108,8 +108,14 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
     return 1;
 
   // Check our incoming data sets. Try to find common dimensions.
-  typedef std::set<NC_dimension> DimSet;
+  // Give each unique dimension an index.
+  typedef std::pair<NC_dimension,int> DimPair;
+  typedef std::map<NC_dimension,int> DimSet;
   DimSet dims_;
+  // Hold dims for each set
+  typedef std::vector<int> Iarray;
+  typedef std::vector<Iarray> DimArray;
+  DimArray dimIndices_;
 
   for (DataSetList::const_iterator dsit = dsl.begin(); dsit != dsl.end(); ++dsit)
   {
@@ -117,15 +123,33 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
     if (ds->Group() == DataSet::SCALAR_1D) {
       // 1 dimension
       Dimension const& dim = ds->Dim(0);
+      NC_dimension ncdim(dim.Label(), ds->Size());
 
-      std::pair<DimSet::iterator,bool> ret = dims_.insert( NC_dimension(dim.Label(), ds->Size()) );
-      mprintf("%i\n", ret.first->Size());
+      DimSet::iterator ret = dims_.find( ncdim );
+
+      if (ret == dims_.end()) {
+        std::pair<DimSet::iterator,bool> it = dims_.insert( DimPair(ncdim,dims_.size()) );
+        ret = it.first;
+      }
+      dimIndices_.push_back( Iarray(1, ret->second) );
+
+      //std::pair<DimSet::iterator,bool> ret = dims_.insert( NC_dimension(dim.Label(), ds->Size()) );
+      //mprintf("%i\n", ret.first->Size());
       //ret.first->AddSet( ds );
     }
   }
   mprintf("DEBUG: Dimensions:\n");
   for (DimSet::const_iterator it = dims_.begin(); it != dims_.end(); ++it)
-    mprintf("\t'%s' %i\n", it->Label().c_str(), it->Size());
+    mprintf("\t%i : '%s' %i\n", it->second, it->first.Label().c_str(), it->first.Size());
+  mprintf("DEBUG: Set dim indices:\n");
+  DimArray::const_iterator didx = dimIndices_.begin();
+  for (DataSetList::const_iterator dsit = dsl.begin(); dsit != dsl.end(); ++dsit, ++didx)
+  {
+    mprintf("\t%s :", (*dsit)->legend());
+    for (Iarray::const_iterator it = didx->begin(); it != didx->end(); ++it)
+      mprintf(" %i", *it);
+    mprintf("\n");
+  }
 
   return 0;
 # else
