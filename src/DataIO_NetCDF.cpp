@@ -7,7 +7,8 @@
 #endif
 
 /// CONSTRUCTOR
-DataIO_NetCDF::DataIO_NetCDF()
+DataIO_NetCDF::DataIO_NetCDF() :
+  DataIO(true, true, true) // Valid for 1D, 2D, 3D
 {
 
 }
