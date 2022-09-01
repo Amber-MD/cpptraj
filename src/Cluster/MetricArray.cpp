@@ -17,12 +17,14 @@
 #include "../OnlineVarT.h" // for metric stats average
 #include "../ProgressBar.h"
 #include "../StringRoutines.h"
+#include "../QuaternionRMSD.h" // for printing qrmsd citation
 // Metric classes
 #include "Metric_RMS.h"
 #include "Metric_DME.h"
 #include "Metric_Scalar.h"
 #include "Metric_SRMSD.h"
 #include "Metric_Torsion.h"
+#include "Metric_QuatRMSD.h"
 
 /** CONSTRUCTOR */
 Cpptraj::Cluster::MetricArray::MetricArray() :
@@ -277,7 +279,8 @@ Cpptraj::Cluster::Metric const*
   {
     if ( (*it)->MetricType() == Metric::RMS ||
          (*it)->MetricType() == Metric::DME ||
-         (*it)->MetricType() == Metric::SRMSD )
+         (*it)->MetricType() == Metric::SRMSD ||
+         (*it)->MetricType() == Metric::QRMSD )
       return *it;
   }
   return 0;
@@ -291,6 +294,7 @@ Cpptraj::Cluster::Metric* Cpptraj::Cluster::MetricArray::AllocateMetric(Metric::
     case Metric::RMS       : met = new Metric_RMS(); break;
     case Metric::DME       : met = new Metric_DME(); break;
     case Metric::SRMSD     : met = new Metric_SRMSD(); break;
+    case Metric::QRMSD     : met = new Metric_QuatRMSD(); break;
     case Metric::SCALAR    : met = new Metric_Scalar(); break;
     case Metric::TORSION   : met = new Metric_Torsion(); break;
     default: mprinterr("Error: Unhandled Metric in AllocateMetric.\n");
@@ -300,7 +304,7 @@ Cpptraj::Cluster::Metric* Cpptraj::Cluster::MetricArray::AllocateMetric(Metric::
 
 /** Recognized metric args. */
 const char* Cpptraj::Cluster::MetricArray::MetricArgs_ =
-  "[{dme|rms|srmsd} [mass] [nofit] [<mask>]] [{euclid|manhattan}] [wgt <list>]";
+  "[{dme|rms|srmsd|qrmsd} [mass] [nofit] [<mask>]] [{euclid|manhattan}] [wgt <list>]";
 
 /** Initialize with given sets and arguments. */
 int Cpptraj::Cluster::MetricArray::initMetricArray(DataSetList const& setsToCluster, ArgList& analyzeArgs)
@@ -311,6 +315,7 @@ int Cpptraj::Cluster::MetricArray::initMetricArray(DataSetList const& setsToClus
   int usedme = (int)analyzeArgs.hasKey("dme");
   int userms = (int)analyzeArgs.hasKey("rms");
   int usesrms = (int)analyzeArgs.hasKey("srmsd");
+  int useqrms = (int)analyzeArgs.hasKey("qrmsd");
   bool useMass = analyzeArgs.hasKey("mass");
   bool nofit   = analyzeArgs.hasKey("nofit");
   std::string maskExpr = analyzeArgs.GetMaskNext();
@@ -329,15 +334,18 @@ int Cpptraj::Cluster::MetricArray::initMetricArray(DataSetList const& setsToClus
   std::string wgtArgStr = analyzeArgs.GetStringKey("wgt");
 
   // Check args
-  if (usedme + userms + usesrms > 1) {
-    mprinterr("Error: Specify either 'dme', 'rms', or 'srmsd'.\n");
+  if (usedme + userms + usesrms + useqrms > 1) {
+    mprinterr("Error: Specify either 'dme', 'rms', 'srmsd', or 'qrmsd'.\n");
     return 1;
   }
   Metric::Type coordsMetricType;
   if      (usedme)  coordsMetricType = Metric::DME;
   else if (userms)  coordsMetricType = Metric::RMS;
   else if (usesrms) coordsMetricType = Metric::SRMSD;
-  else coordsMetricType = Metric::RMS; // default
+  else if (useqrms) {
+    coordsMetricType = Metric::QRMSD;
+    PrintQrmsdCitation();
+  } else coordsMetricType = Metric::RMS; // default
 
   // For each input set, set up the appropriate metric
   for (DataSetList::const_iterator ds = setsToCluster.begin(); ds != setsToCluster.end(); ++ds)
@@ -373,6 +381,8 @@ int Cpptraj::Cluster::MetricArray::initMetricArray(DataSetList const& setsToClus
         err = ((Metric_DME*)met)->Init((DataSet_Coords*)*ds, AtomMask(maskExpr)); break;
       case Metric::SRMSD :
         err = ((Metric_SRMSD*)met)->Init((DataSet_Coords*)*ds, AtomMask(maskExpr), nofit, useMass, debug_); break;
+      case Metric::QRMSD :
+        err = ((Metric_QuatRMSD*)met)->Init((DataSet_Coords*)*ds, AtomMask(maskExpr), useMass); break;
       case Metric::SCALAR :
         err = ((Metric_Scalar*)met)->Init((DataSet_1D*)*ds); break;
       case Metric::TORSION :

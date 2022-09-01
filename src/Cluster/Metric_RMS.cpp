@@ -99,6 +99,7 @@ void Cpptraj::Cluster::Metric_RMS::CalculateCentroid(Centroid* centIn,  Cframes 
     } else {
       if (!nofit_) {
         frm1_.RMSD_CenteredRef( cent->Cframe(), Rot, Trans, useMass_ );
+        //Rot.Print("CalculateCentroid"); // DEBUG
         frm1_.Rotate( Rot );
       }
       cent->Cframe() += frm1_;

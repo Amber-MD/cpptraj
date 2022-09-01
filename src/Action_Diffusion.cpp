@@ -2,10 +2,16 @@
 #include "Action_Diffusion.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // validDouble
+#include "Unwrap.h"
 #include "DataSet_1D.h" // LinearRegression
 #ifdef TIMER
 # include "Timer.h"
 #endif
+#ifdef _OPENMP
+# include <omp.h>
+#endif
+
+using namespace Cpptraj;
 
 // CONSTRUCTOR
 Action_Diffusion::Action_Diffusion() :
@@ -21,7 +27,6 @@ Action_Diffusion::Action_Diffusion() :
   debug_(0),
   outputx_(0), outputy_(0), outputz_(0), outputr_(0), outputa_(0),
   diffout_(0),
-  boxcenter_(0.0),
   masterDSL_(0)
 {}
 
@@ -203,6 +208,15 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
     mprintf("\tTo calculate diffusion constant from mean squared displacement plots,\n"
             "\t  calculate the slope of MSD vs time and multiply by 10.0/2*N (where N\n"
             "\t  is # of dimensions); this will give units of 1x10^-5 cm^2/s.\n");
+# ifdef _OPENMP
+# pragma omp parallel
+  {
+# pragma omp master
+  {
+  mprintf("\tParallelizing calculation with %i threads.\n", omp_get_num_threads());
+  }
+  }
+# endif
   return Action::OK;
 }
 
@@ -236,9 +250,6 @@ Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
 #   endif
   } else
     mprintf("\tImaging disabled.\n");
-
-  // Allocate the delta array
-  delta_.assign( mask_.Nselected() * 3, 0.0 );
 
   // Reserve space for the previous coordinates array
   previous_.reserve( mask_.Nselected() * 3 );
@@ -320,92 +331,60 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
     }
   }
   // Diffusion calculation
+  Vec3 boxLengths(0.0), limxyz(0.0);
   if (imageOpt_.ImagingEnabled()) {
     imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
-    boxcenter_ = frm.Frm().BoxCrd().Center();
+    boxLengths = frm.Frm().BoxCrd().Lengths();
+    limxyz = boxLengths / 2.0;
   }
   // For averaging over selected atoms
   double average2 = 0.0;
   double avgx = 0.0;
   double avgy = 0.0;
   double avgz = 0.0;
-  unsigned int idx = 0; // Index into previous_ and delta_
-  for (AtomMask::const_iterator at = mask_.begin(); at != mask_.end(); ++at, idx += 3)
-  { // Get current and initial coords for this atom.
-    const double* XYZ = frm.Frm().XYZ(*at);
-    const double* iXYZ = initial_.XYZ(*at);
+  int imask;
+# ifdef _OPENMP
+# pragma omp parallel private(imask) reduction(+ : average2, avgx, avgy, avgz)
+  {
+# pragma omp for
+# endif
+  for (imask = 0; imask < mask_.Nselected(); imask++)
+  {
+    int at = mask_[imask];
+    int idx = imask * 3; // Index into previous_
+    // Get current and initial coords for this atom.
+    const double* XYZ = frm.Frm().XYZ(at);
+    double fixedXYZ[3];
+    fixedXYZ[0] = XYZ[0];
+    fixedXYZ[1] = XYZ[1];
+    fixedXYZ[2] = XYZ[2];
+    const double* iXYZ = initial_.XYZ(at);
     // Calculate distance from initial position. 
     double delx, dely, delz;
     if ( imageOpt_.ImagingType() == ImageOption::ORTHO ) {
       // Orthorhombic imaging
-      // Calculate distance to previous frames coordinates.
-      delx = XYZ[0] - previous_[idx  ];
-      dely = XYZ[1] - previous_[idx+1];
-      delz = XYZ[2] - previous_[idx+2];
-      // If the particle moved more than half the box, assume it was imaged
-      // and adjust the distance of the total movement with respect to the
-      // original frame.
-      if      (delx >  boxcenter_[0]) delta_[idx  ] -= frm.Frm().BoxCrd().Param(Box::X);
-      else if (delx < -boxcenter_[0]) delta_[idx  ] += frm.Frm().BoxCrd().Param(Box::X);
-      if      (dely >  boxcenter_[1]) delta_[idx+1] -= frm.Frm().BoxCrd().Param(Box::Y);
-      else if (dely < -boxcenter_[1]) delta_[idx+1] += frm.Frm().BoxCrd().Param(Box::Y);
-      if      (delz >  boxcenter_[2]) delta_[idx+2] -= frm.Frm().BoxCrd().Param(Box::Z);
-      else if (delz < -boxcenter_[2]) delta_[idx+2] += frm.Frm().BoxCrd().Param(Box::Z);
+      // Calculate vector needed to correct XYZ for imaging.
+      Vec3 transVec = Unwrap::UnwrapVec_Ortho<double>(Vec3(XYZ), Vec3((&previous_[0])+idx), boxLengths, limxyz);
+      fixedXYZ[0] += transVec[0];
+      fixedXYZ[1] += transVec[1];
+      fixedXYZ[2] += transVec[2];
       // Calculate the distance between this "fixed" coordinate
       // and the reference (initial) frame.
-      delx = XYZ[0] + delta_[idx  ] - iXYZ[0];
-      dely = XYZ[1] + delta_[idx+1] - iXYZ[1];
-      delz = XYZ[2] + delta_[idx+2] - iXYZ[2];
+      delx = fixedXYZ[0] - iXYZ[0];
+      dely = fixedXYZ[1] - iXYZ[1];
+      delz = fixedXYZ[2] - iXYZ[2];
     } else if ( imageOpt_.ImagingType() == ImageOption::NONORTHO ) {
       // Non-orthorhombic imaging
-      // Calculate distance to previous frames coordinates.
-      delx = XYZ[0] - previous_[idx  ];
-      dely = XYZ[1] - previous_[idx+1];
-      delz = XYZ[2] - previous_[idx+2];
-      // If the particle moved more than half the box, assume it was imaged
-      // and adjust the distance of the total movement with respect to the
-      // original frame.
-      if (fabs(delx) > boxcenter_[0] ||
-          fabs(dely) > boxcenter_[1] ||
-          fabs(delz) > boxcenter_[2])
-      {
-        // Previous position in Cartesian space
-        Vec3 pCart( previous_[idx], previous_[idx+1], previous_[idx+2] );
-        // Current position in fractional coords
-        Vec3 cFrac = frm.Frm().BoxCrd().FracCell() * Vec3( XYZ[0], XYZ[1], XYZ[2] );
-        // Look for imaged distance closer to previous than current position
-        double minDist2 = frm.Frm().BoxCrd().Param(Box::X) *
-                          frm.Frm().BoxCrd().Param(Box::Y) *
-                          frm.Frm().BoxCrd().Param(Box::Z);
-        Vec3 minCurr(0.0);
-        for (int ix = -1; ix < 2; ix++) {
-          for (int iy = -1; iy < 2; iy++) {
-            for (int iz = -1; iz < 2; iz++) {
-              if (ix != 0 || iy != 0 || iz != 0) { // Ignore current position
-                Vec3 ixyz(ix, iy, iz);
-                // Current position shifted and back in Cartesian space
-                Vec3 IMG = frm.Frm().BoxCrd().UnitCell().TransposeMult(cFrac + ixyz);
-                // Distance from previous position to imaged current position
-                Vec3 dxyz = IMG - pCart;
-                double dist2 = dxyz.Magnitude2();
-                if (dist2 < minDist2) {
-                  minDist2 = dist2;
-                  minCurr = IMG;
-                }
-              }
-            }
-          }
-        }
-        // Update the delta for this atom
-        delta_[idx  ] += minCurr[0] - XYZ[0]; // cCart
-        delta_[idx+1] += minCurr[1] - XYZ[1];
-        delta_[idx+2] += minCurr[2] - XYZ[2];
-      }
+      // Calculate vector needed to correct XYZ for imaging.
+      Vec3 transVec = Unwrap::UnwrapVec_Nonortho<double>(Vec3(XYZ), Vec3((&previous_[0])+idx), frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell(), limxyz);
+      fixedXYZ[0] += transVec[0];
+      fixedXYZ[1] += transVec[1];
+      fixedXYZ[2] += transVec[2];
       // Calculate the distance between this "fixed" coordinate
       // and the reference (initial) frame.
-      delx = XYZ[0] + delta_[idx  ] - iXYZ[0];
-      dely = XYZ[1] + delta_[idx+1] - iXYZ[1];
-      delz = XYZ[2] + delta_[idx+2] - iXYZ[2];
+      delx = fixedXYZ[0] - iXYZ[0];
+      dely = fixedXYZ[1] - iXYZ[1];
+      delz = fixedXYZ[2] - iXYZ[2];
     } else {
       // No imaging. Calculate distance from current position to initial position.
       delx = XYZ[0] - iXYZ[0];
@@ -425,22 +404,25 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
     // Store distances for this atom
     if (printIndividual_) {
       float fval = (float)distx;
-      atom_x_[*at]->Add(frameNum, &fval);
+      atom_x_[at]->Add(frameNum, &fval);
       fval = (float)disty;
-      atom_y_[*at]->Add(frameNum, &fval);
+      atom_y_[at]->Add(frameNum, &fval);
       fval = (float)distz;
-      atom_z_[*at]->Add(frameNum, &fval);
+      atom_z_[at]->Add(frameNum, &fval);
       fval = (float)dist2;
-      atom_r_[*at]->Add(frameNum, &fval);
+      atom_r_[at]->Add(frameNum, &fval);
       dist2 = sqrt(dist2);
       fval = (float)dist2;
-      atom_a_[*at]->Add(frameNum, &fval);
+      atom_a_[at]->Add(frameNum, &fval);
     }
     // Update the previous coordinate set to match the current coordinates
-    previous_[idx  ] = XYZ[0];
-    previous_[idx+1] = XYZ[1];
-    previous_[idx+2] = XYZ[2];
+    previous_[idx  ] = fixedXYZ[0];
+    previous_[idx+1] = fixedXYZ[1];
+    previous_[idx+2] = fixedXYZ[2];
   } // END loop over selected atoms
+# ifdef _OPENMP
+  } // END pragma omp parallel
+# endif
   // Calc averages
   double dNselected = 1.0 / (double)mask_.Nselected();
   avgx *= dNselected;

@@ -2,6 +2,7 @@
 #include "ImageRoutines.h"
 #include "DistRoutines.h"
 #include "CpptrajStdio.h"
+#include "Unwrap.h"
 #include "Image_List.h"
 #include "Image_List_Pair_CoM.h"
 #include "Image_List_Pair_Geom.h"
@@ -10,6 +11,8 @@
 #include "Image_List_Unit_Geom.h"
 #include "Image_List_Unit_First.h"
 #include "Image_List_Mask.h"
+
+using namespace Cpptraj;
 
 /** \return Empty list for imaging. */
 Image::List* Image::CreateImageList(Mode modeIn, bool useMass, bool center) {
@@ -247,72 +250,55 @@ Vec3 Image::Ortho(Vec3 const& Coord, Vec3 const& bp, Vec3 const& bm, Box const& 
 // Image::UnwrapNonortho()
 void Image::UnwrapNonortho(Frame& tgtIn, Frame& refIn, List const& AtomPairs,
                            Unit const& allEntities,
-                           Matrix_3x3 const& ucell, Matrix_3x3 const& recip)
+                           Matrix_3x3 const& ucell, Matrix_3x3 const& frac,
+                           Vec3 const& limxyz)
 {
-  Vec3 vtgt, vref, boxTrans;
+  int idx;
+  int maxidx = (int)AtomPairs.nEntities();
   // Loop over atom pairs
-  for (unsigned int idx = 0; idx != AtomPairs.nEntities(); idx++)
+# ifdef _OPENMP
+# pragma omp parallel private(idx)
   {
-    vtgt = AtomPairs.GetCoord(idx, tgtIn);
-    vref = AtomPairs.GetCoord(idx, refIn);
-
-    boxTrans.Zero();
-    // Calculate original distance from the ref (previous) position. 
-    Vec3 vd = vtgt - vref; // dx dy dz
-    double minDistanceSquare = vd.Magnitude2();
-    // Reciprocal coordinates
-    vd = recip * vd ; // recip * dxyz
-    double cx = floor(vd[0]);
-    double cy = floor(vd[1]);
-    double cz = floor(vd[2]);
-    // Loop over all possible translations 
-    for (int ix = -1; ix < 2; ++ix) {
-      for (int iy = -1; iy < 2; ++iy) {
-        for (int iz = -1; iz < 2; ++iz) {
-          // Calculate the translation.
-          Vec3 vcc = ucell.TransposeMult( Vec3( cx+(double)ix, 
-                                                cy+(double)iy, 
-                                                cz+(double)iz ) ); // ucell^T * ccxyz
-          // Calc. the potential new coordinate for tgt
-          Vec3 vnew = vtgt - vcc; 
-          // Calc. the new distance from the ref (previous) position
-          Vec3 vr = vref - vnew; 
-          double distanceSquare = vr.Magnitude2();
-          // If the orig. distance is greater than the new distance, unwrap. 
-          if ( minDistanceSquare > distanceSquare ) {
-              minDistanceSquare = distanceSquare;
-              boxTrans = vcc;
-          }
-        }
-      }
-    }
-    // Translate tgt atoms
-    boxTrans.Neg();
+# pragma omp for
+# endif
+  for (idx = 0; idx < maxidx; idx++)
+  {
+    Vec3 vtgt = AtomPairs.GetCoord(idx, tgtIn);
+    Vec3 vref = AtomPairs.GetCoord(idx, refIn);
+    Vec3 boxTrans = Unwrap::UnwrapVec_Nonortho<double>(vtgt, vref, ucell, frac, limxyz);
     AtomPairs.DoTranslation( tgtIn, idx, boxTrans );
-  } // END loop over atom pairs 
+  } // END loop over atom pairs
+# ifdef _OPENMP
+  }
+# endif
   // Save new ref positions
   refIn.CopyFrom(tgtIn, allEntities);
 }
 
 // Image::UnwrapOrtho()
 void Image::UnwrapOrtho(Frame& tgtIn, Frame& refIn, List const& AtomPairs,
-                        Unit const& allEntities)
+                        Unit const& allEntities, Vec3 const& limxyz)
 {
-  Vec3 vtgt, vref, boxTrans;
   Vec3 boxVec = tgtIn.BoxCrd().Lengths();
+  int idx;
+  int maxidx = (int)AtomPairs.nEntities();
   // Loop over atom pairs
-  for (unsigned int idx = 0; idx != AtomPairs.nEntities(); idx++)
+# ifdef _OPENMP
+# pragma omp parallel private(idx)
   {
-    vtgt = AtomPairs.GetCoord(idx, tgtIn);
-    vref = AtomPairs.GetCoord(idx, refIn);
-
-    Vec3 dxyz = vtgt - vref;
-    boxTrans[0] = -floor( dxyz[0] / boxVec[0] + 0.5 ) * boxVec[0];
-    boxTrans[1] = -floor( dxyz[1] / boxVec[1] + 0.5 ) * boxVec[1];
-    boxTrans[2] = -floor( dxyz[2] / boxVec[2] + 0.5 ) * boxVec[2];
+# pragma omp for
+# endif
+  for (idx = 0; idx < maxidx; idx++)
+  {
+    Vec3 vtgt = AtomPairs.GetCoord(idx, tgtIn);
+    Vec3 vref = AtomPairs.GetCoord(idx, refIn);
+    Vec3 boxTrans = Unwrap::UnwrapVec_Ortho<double>(vtgt, vref, boxVec, limxyz);
     // Translate atoms from first to last
     AtomPairs.DoTranslation( tgtIn, idx, boxTrans );
   } // END loop over atom pairs
+# ifdef _OPENMP
+  }
+# endif
   // Save new ref positions
   refIn.CopyFrom(tgtIn, allEntities);
 }

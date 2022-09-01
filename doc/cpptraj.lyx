@@ -1118,6 +1118,10 @@ cluster (pair-wise distance calculation and sieved frame restore only)
 \end_layout
 
 \begin_layout LyX-Code
+diffusion
+\end_layout
+
+\begin_layout LyX-Code
 dssp/secstruct
 \end_layout
 
@@ -1175,6 +1179,10 @@ spam
 
 \begin_layout LyX-Code
 surf
+\end_layout
+
+\begin_layout LyX-Code
+unwrap
 \end_layout
 
 \begin_layout LyX-Code
@@ -24682,7 +24690,7 @@ energy
 \end_layout
 
 \begin_layout LyX-Code
-energy [<name>] [<mask1>] [out <filename>]
+energy [<name>] [<mask1>] [out <filename>] [nobondstoh]
 \end_layout
 
 \begin_layout LyX-Code
@@ -24753,6 +24761,10 @@ energy [<name>] [<mask1>] [out <filename>]
 \end_inset
 
 <filename>] File to write results to.
+\end_layout
+
+\begin_layout Description
+[nobondstoh] Skip calculating the energy of bonds to hydrogen.
 \end_layout
 
 \begin_layout Description
@@ -25694,7 +25706,7 @@ gist
 \end_layout
 
 \begin_layout LyX-Code
-     [noimage] [gridcntr <xval> <yval> <zval>] [excludeions]
+     [noimage] [gridcntr <xval> <yval> <zval>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -42038,7 +42050,8 @@ cluster
 \end_layout
 
 \begin_layout LyX-Code
-	[{dme|rms|srmsd} [mass] [nofit] [<mask>]] [{euclid|manhattan}] [wgt <list>]
+	[{dme|rms|srmsd|qrmsd} [mass] [nofit] [<mask>]] [{euclid|manhattan}] [wgt
+ <list>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -42574,6 +42587,26 @@ reference "subsec:cpptraj_symmrmsd"
 
 \begin_layout Description
 [nofit] Do not fit structures onto each other prior to calculating RMSD.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+qrmsd
+\begin_inset space ~
+\end_inset
+
+[<mask>] For COORDS data, distance between coordinate frames calculated
+ using best-fit quaternion RMSD (can be 15-20% faster than regular RMSD)
+ using atoms in 
+\series bold
+<mask>
+\series default
+.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[mass] Mass-weight the RMSD.
 \end_layout
 
 \end_deeper
@@ -48318,7 +48351,7 @@ rms2d
 \end_layout
 
 \begin_layout LyX-Code
-      [dme | nofit | srmsd] [mass]
+      [{dme | nofit | srmsd | qrmsd}] [mass]
 \end_layout
 
 \begin_layout LyX-Code
@@ -48378,6 +48411,10 @@ reference "subsec:cpptraj_symmrmsd"
 \end_inset
 
 ).
+\end_layout
+
+\begin_layout Description
+[qrmsd] Use quaternion RMSD calculation (can be 15-20% faster).
 \end_layout
 
 \begin_layout Description

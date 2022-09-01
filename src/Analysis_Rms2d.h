@@ -22,7 +22,7 @@ class Analysis_Rms2d: public Analysis {
     void CalcAutoCorr();
 
     static const char* ModeStrings_[];
-    enum ModeType { RMS_FIT = 0, RMS_NOFIT, DME, SRMSD };
+    enum ModeType { RMS_FIT = 0, RMS_NOFIT, DME, SRMSD, QUAT };
     ModeType mode_;
     DataSet_Coords* TgtTraj_;  ///< Hold coords from input frames.
     bool useReferenceTraj_;    ///< If true read from reference trajectory.
