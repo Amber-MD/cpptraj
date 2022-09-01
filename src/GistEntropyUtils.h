@@ -11,6 +11,27 @@ namespace GistEntropyUtils {
 
   const double GIST_HUGE = 10000.0;
 
+/* Compute the dot product of two almost normalized quaternions (such as those casted from double)
+ * Instead of normalizing by 1.0 / sqrt, approximates the inverse square root by 2 / (1 + x)
+ * This is the first order Pade approximation.
+ * Based on David Hammen's answer on https://stackoverflow.com/questions/11667783/quaternion-and-normalization
+ */
+  inline double cos_qdist(const double w1, const double x1, const double y1, const double z1, const double w2, const double x2, const double y2, const double z2)
+  {
+    double square_mag1 = w1*w1 + x1*x1 + y1*y1 + z1*z1;
+    double square_mag2 = w2*w2 + x2*x2 + y2*y2 + z2*z2;
+    double dotprod = w1*w2 + x1*x2 + y1*y2 + z1*z2;
+    double both = square_mag1 * square_mag2;
+    double inv_sqrt = 2.0 / (1.0 + both);
+    return dotprod * inv_sqrt;
+  }
+
+  /* Use the cos_qdist function (approximate) to compute the rotation angle between two quaternions. */
+  inline double quaternion_angle(const double w1, const double x1, const double y1, const double z1, const double w2, const double x2, const double y2, const double z2)
+  {
+    return 2*acos(fabs(cos_qdist(w1, x1, y1, z1, w2, x2, y2, z2)));
+  }
+
   /** Compute translational and 6D distances to elements in V_XYZ_vec and V_Q_vec, store the smallest in NNd and NNs;
     *
     * For each solvent molecule defined by three elements of V_XYZ_vec (its

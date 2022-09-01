@@ -1305,7 +1305,9 @@ int Action_NAstruct::TravelBackbone( Topology const& top, int atom, std::vector<
   for (Atom::bond_iterator bndat = top[atom].bondbegin();
                            bndat != top[atom].bondend(); ++bndat)
   {
-    if ( Visited[*bndat] == 0) {
+    // If not all residues are selected it is possible bndat is outside
+    // the scope of the Visited array.
+    if ( *bndat < (int)Visited.size() && Visited[*bndat] == 0) {
       if ( top[*bndat].Element() == Atom::CARBON || 
            top[*bndat].Element() == Atom::HYDROGEN )
         Visited[*bndat] = 1;
@@ -1318,6 +1320,21 @@ int Action_NAstruct::TravelBackbone( Topology const& top, int atom, std::vector<
     }
   }
   return -1;
+}
+
+/** \return index in bases of 3' termini */
+int Action_NAstruct::follow_base_to_3prime(Barray& Bases, unsigned int bidx, std::vector<bool>& base_is_used, int strandNum)
+{
+  if (base_is_used[bidx]) {
+    mprinterr("Internal Error: Base %u is used already.\n", bidx);
+    return -1;
+  }
+  base_is_used[bidx] = true;
+  Bases[bidx].SetStrandNum( strandNum );
+  // If no more bases in the 3' direction, this is the 3' terminal
+  if (Bases[bidx].C3resIdx() == -1)
+    return bidx;
+  return follow_base_to_3prime(Bases, Bases[bidx].C3resIdx(), base_is_used, strandNum);
 }
 
 // Action_NAstruct::Setup()
@@ -1423,12 +1440,9 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
     mprintf("Warning: No NA bases. Skipping.\n");
     return Action::SKIP;
   }
-  // Determine base connectivity.
+  // Determine base connectivity (5' and 3' neighbors).
   Strands_.clear();
-  int strandNum = 0;
-  int strandBeg = -1;
   std::vector<int> Visited( setup.Top().Res(Bases_.back().ResNum()).LastAtom(), 0 );
-  Barray::iterator lastBase = Bases_.end() - 1;
   for (Barray::iterator base = Bases_.begin(); base != Bases_.end(); ++base) {
     Residue const& res = setup.Top().Res( base->ResNum() );
     int c5neighbor = -1;
@@ -1450,15 +1464,32 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
       if (c5neighbor == Bases_[idx].ResNum()) base->SetC5Idx( idx );
       if (c3neighbor == Bases_[idx].ResNum()) base->SetC3Idx( idx );
     }
-    // Set NA strand number. If no 3' neighbor or this is the last base then
-    // increment the strand number.
-    base->SetStrandNum( strandNum );
-    if (c5neighbor == -1) strandBeg = (int)(base - Bases_.begin());
-    if (c3neighbor == -1 || base == lastBase ) {
-      strandNum++;
-      Strands_.push_back( Rpair(strandBeg, (int)(base - Bases_.begin())) );
+  } // END loop over bases setting 5' and 3' neighbors
+
+  // For each base, find 5' terminii, trace them to the 3' terminii, set up strands
+  int strandNum = 0;
+  std::vector<bool> base_is_used( Bases_.size(), false );
+  for (unsigned int bidx = 0; bidx < Bases_.size(); bidx++) {
+    if (!base_is_used[bidx]) {
+      if (Bases_[bidx].C5resIdx() < 0) {
+        if (debug_ > 0)
+          mprintf("DEBUG: 5' start at residue %i\n", Bases_[bidx].ResNum()+1);
+        int strandBeg = bidx;
+        int strandEnd = follow_base_to_3prime(Bases_, bidx, base_is_used, strandNum);
+        if (strandEnd < 0) {
+          mprinterr("Internal Error: Could not follow base %i to 3' terminal.\n", Bases_[bidx].ResNum());
+          return Action::ERR;
+        }
+        if (debug_ > 0) {
+          mprintf("DEBUG: 3' end at residue %i\n", Bases_[strandEnd].ResNum()+1);
+          mprintf("DEBUG: Adding strand %i from base index %i to %i\n", strandNum, strandBeg, strandEnd);
+        }
+        strandNum++;
+        Strands_.push_back( Rpair(strandBeg, strandEnd) );
+      }
     }
-  }
+  } // END loop over bases adding strands
+
   // DEBUG - Print base connectivity.
   if (debug_ > 0) {
     mprintf("\tBase Connectivity:\n");
@@ -1953,7 +1984,7 @@ void Action_NAstruct::Print() {
               ssout_->Filename().full(), nframes_, StrandPairs_.size());
       //  File header
       if (printheader_) {
-        bpout_->Printf("%-8s %8s %8s %10s %10s %10s %10s %10s %10s\n",
+        ssout_->Printf("%-8s %8s %8s %10s %10s %10s %10s %10s %10s\n",
                        "#Frame","Base1","Base2", "DX","DY","DZ", "RX","RY","RZ");
       }
       // Loop over all frames

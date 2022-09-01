@@ -130,7 +130,7 @@ noarpack:
 	@echo "Skipping bundled ARPACK build"
 	@echo ""
 
-cuda_kernels/libcpptraj_cuda.a:
+cuda_kernels/libcpptraj_cuda.a::
 	cd cuda_kernels && $(MAKE) all
 
 # Dependency targets
