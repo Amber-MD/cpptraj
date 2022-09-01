@@ -184,6 +184,7 @@ COMMON_SOURCES= \
         DataIO_OpenDx.cpp \
         DataIO_Peaks.cpp \
         DataIO_Mdout.cpp \
+        DataIO_NetCDF.cpp \
         DataIO_RemLog.cpp \
         DataIO_Std.cpp \
         DataIO_VecTraj.cpp \
