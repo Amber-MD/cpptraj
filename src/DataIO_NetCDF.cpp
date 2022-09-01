@@ -1,5 +1,9 @@
 #include "DataIO_NetCDF.h"
 #include "CpptrajStdio.h"
+#ifdef BINTRAJ
+# include <netcdf.h>
+# include "NC_Routines.h"
+#endif
 
 /// CONSTRUCTOR
 DataIO_NetCDF::DataIO_NetCDF()
@@ -18,7 +22,14 @@ bool DataIO_NetCDF::ID_DataFormat(CpptrajFile& infile)
   magic[2] = 0;
   infile.Read(magic, 3);
   infile.CloseFile();
-  if (magic[0] == 'C' && magic[1] == 'D' && magic[2] == 'F') return true;
+  if (magic[0] == 'C' && magic[1] == 'D' && magic[2] == 'F') {
+#   ifdef BINTRAJ
+    return true;
+#   else
+    mprintf("Warning: '%s' is a NetCDF file but CPPTRAJ was compiled without NetCDF support.\n",
+            infile.Filename().full());
+#   endif
+  }
   return false;
 }
 
@@ -58,6 +69,14 @@ int DataIO_NetCDF::processWriteArgs(ArgList& argIn)
 // DataIO_NetCDF::WriteData()
 int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
 {
+# ifdef BINTRAJ
+  int ncid = -1;
+  // TODO check existing file
+  if (NC::CheckErr( nc_create( fname.full(), NC_64BIT_OFFSET, &ncid ) ))
+    return 1;
 
+  return 0;
+# else
   return 1;
+# endif
 }
