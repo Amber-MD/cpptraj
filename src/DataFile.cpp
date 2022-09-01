@@ -29,6 +29,7 @@
 #include "DataIO_Cmatrix_Binary.h"
 #include "DataIO_Cmatrix_NC.h"
 #include "DataIO_Peaks.h"
+#include "DataIO_NetCDF.h"
 
 // CONSTRUCTOR
 DataFile::DataFile() :
@@ -75,6 +76,11 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
   { "Pairwise Cache (NetCDF)", 0,                        0,          0 },
 # endif
   { "Peaks",              0,                             0,            DataIO_Peaks::Alloc },
+# ifdef BINTRAJ
+  { "NetCDF data",             0,                        0,          DataIO_NetCDF::Alloc },
+# else
+  { "NetCDF data",             0,                        0,          0 },
+# endif
   { "Unknown Data file",  0,                       0,                        0                    }
 };
 
@@ -117,6 +123,7 @@ const FileTypes::KeyToken DataFile::DF_WriteKeyArray[] = {
   { CMATRIX_NETCDF,"nccmatrix", ".nccmatrix" },
   { CHARMMRTFPRM, "charmmrtfprm", ".prm" },
   { PEAKS,        "peaks",  ".peaks" },
+  { NETCDFDATA,   "netcdf", ".nc" },
   { UNKNOWN_DATA, 0,        0        }
 };
 
