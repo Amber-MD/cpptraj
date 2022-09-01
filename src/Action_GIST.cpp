@@ -1448,7 +1448,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
 
       if ( U_G[0] <= G_max_[0] && U_G[0] >= -1.5 &&
            U_G[1] <= G_max_[1] && U_G[1] >= -1.5 &&
-           U_G[2] <= G_max_[2] && U_G[2] >- -1.5)
+           U_G[2] <= G_max_[2] && U_G[2] >= -1.5)
       {
         int voxel = calcVoxelIndex(u_XYZ[0], u_XYZ[1], u_XYZ[2]);
         if ( voxel != OFF_GRID_ )

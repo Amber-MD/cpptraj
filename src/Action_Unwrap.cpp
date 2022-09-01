@@ -2,6 +2,9 @@
 #include "CpptrajStdio.h"
 #include "ImageRoutines.h"
 #include "Image_List.h"
+#ifdef _OPENMP
+# include <omp.h>
+#endif
 
 // CONSTRUCTOR
 Action_Unwrap::Action_Unwrap() :
@@ -74,6 +77,15 @@ Action::RetType Action_Unwrap::Init(ArgList& actionArgs, ActionInit& init, int d
   else
     mprintf("\tReference is first frame.");
   mprintf("\n");
+  # ifdef _OPENMP
+# pragma omp parallel
+  {
+# pragma omp master
+  {
+  mprintf("\tParallelizing calculation with %i threads.\n", omp_get_num_threads());
+  }
+  }
+# endif
 
   return Action::OK;
 }
@@ -125,11 +137,12 @@ Action::RetType Action_Unwrap::DoAction(int frameNum, ActionFrame& frm) {
     RefFrame_ = frm.Frm();
     return Action::OK;
   }
- 
+
+  Vec3 limxyz = frm.Frm().BoxCrd().Lengths() / 2.0; 
   if (frm.Frm().BoxCrd().Is_X_Aligned_Ortho())
-    Image::UnwrapOrtho( frm.ModifyFrm(), RefFrame_, *imageList_, allEntities_ );
+    Image::UnwrapOrtho( frm.ModifyFrm(), RefFrame_, *imageList_, allEntities_, limxyz );
   else {
-    Image::UnwrapNonortho( frm.ModifyFrm(), RefFrame_, *imageList_, allEntities_, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell() );
+    Image::UnwrapNonortho( frm.ModifyFrm(), RefFrame_, *imageList_, allEntities_, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell(), limxyz );
   }
 
   return Action::MODIFY_COORDS;
