@@ -1,6 +1,7 @@
 #include "DataIO_NetCDF.h"
 #include "CpptrajStdio.h"
 #ifdef BINTRAJ
+# include <set>
 # include <netcdf.h>
 # include "NC_Routines.h"
 #endif
@@ -66,6 +67,33 @@ int DataIO_NetCDF::processWriteArgs(ArgList& argIn)
   return 0;
 }
 
+class NC_dimension {
+  public:
+    NC_dimension(std::string const& l, int s) : label_(l), size_(s) {}
+
+    bool operator==(NC_dimension const& rhs) const {
+      if (rhs.size_ != size_) return false;
+      if (rhs.label_ != label_) return false;
+      return true;
+    }
+
+    bool operator<(NC_dimension const& rhs) const {
+      if (rhs.size_ == size_) {
+        return (label_ < rhs.label_);
+      } else {
+        return (size_ < rhs.size_);
+      }
+    }
+
+  std::string const& Label() const { return label_; }
+  int Size() const { return size_; }
+
+  private:
+
+    std::string label_;
+    int size_;
+};
+
 // DataIO_NetCDF::WriteData()
 int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
 {
@@ -74,6 +102,23 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
   // TODO check existing file
   if (NC::CheckErr( nc_create( fname.full(), NC_64BIT_OFFSET, &ncid ) ))
     return 1;
+
+  // Check our incoming data sets. Try to find common dimensions.
+  std::set<NC_dimension> dims_;
+
+  for (DataSetList::const_iterator dsit = dsl.begin(); dsit != dsl.end(); ++dsit)
+  {
+    DataSet const* ds = *dsit;
+    if (ds->Group() == DataSet::SCALAR_1D) {
+      // 1 dimension
+      Dimension const& dim = ds->Dim(0);
+
+      dims_.insert( NC_dimension(dim.Label(), ds->Size()) );
+    }
+  }
+  mprintf("DEBUG: Dimensions:\n");
+  for (std::set<NC_dimension>::const_iterator it = dims_.begin(); it != dims_.end(); ++it)
+    mprintf("\t'%s' %i\n", it->Label().c_str(), it->Size());
 
   return 0;
 # else
