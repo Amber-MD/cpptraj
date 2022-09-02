@@ -15,5 +15,6 @@ class DataIO_NetCDF : public DataIO {
     bool ID_DataFormat(CpptrajFile&);
   private:
     class SetPool;
+    class Set;
 };
 #endif

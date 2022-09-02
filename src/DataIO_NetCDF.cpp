@@ -5,6 +5,7 @@
 # include <string>
 # include <netcdf.h>
 # include "NC_Routines.h"
+# include "StringRoutines.h"
 # include "Version.h"
 #endif
 
@@ -70,37 +71,6 @@ int DataIO_NetCDF::processWriteArgs(ArgList& argIn)
   return 0;
 }
 
-/// Used to track unique DataSet dimensions
-/*class NC_dimension {
-  public:
-    NC_dimension(std::string const& l, int s) : label_(l), size_(s) {}
-
-    bool operator==(NC_dimension const& rhs) const {
-      if (rhs.size_ != size_) return false;
-      if (rhs.label_ != label_) return false;
-      return true;
-    }
-
-    bool operator<(NC_dimension const& rhs) const {
-      if (rhs.size_ == size_) {
-        return (label_ < rhs.label_);
-      } else {
-        return (size_ < rhs.size_);
-      }
-    }
-
-  std::string const& Label() const { return label_; }
-  int Size() const { return size_; }
-  std::vector<DataSet const*> const& Sets() const { return sets_; }
-
-  void AddSet(DataSet const* ds) { sets_.push_back( ds ); }
-  private:
-
-    std::string label_;
-    int size_;
-    std::vector<DataSet const*> sets_;
-};*/
-
 /// Hold a pool of pointers to DataSets in the list.
 class DataIO_NetCDF::SetPool {
   public:
@@ -131,6 +101,18 @@ class DataIO_NetCDF::SetPool {
     unsigned int nUsed_;
 };
 
+/// Hold a pointer to DataSet and its original index
+class DataIO_NetCDF::Set {
+  public:
+    Set(DataSet const* ds, int oidx) : ds_(ds), oidx_(oidx) {}
+
+    DataSet const* DS() const { return ds_; }
+    int OriginalIdx() const { return oidx_; }
+  private:
+    DataSet const* ds_;
+    int oidx_;
+};
+
 // DataIO_NetCDF::WriteData()
 int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
 {
@@ -144,9 +126,15 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
   // be removed from the pool.
   SetPool setPool( dsl );
 
-  typedef std::vector<DataSet const*> SetArray;
+  typedef std::vector<Set> SetArray;
+
+  int dimensionID[NC_MAX_VAR_DIMS];
+
+  std::vector<int> varIDs( dsl.size(), -1 );
+  int* varIDptr = &varIDs[0];
 
   // Check our incoming data sets. Try to find common dimensions.
+  int dimIdx = 0;
   for (unsigned int idx = 0; idx < setPool.Nsets(); idx++)
   {
     if (setPool.IsUsed(idx)) continue;
@@ -155,7 +143,7 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
 
     if (ds->Group() == DataSet::SCALAR_1D) {
       // ----- 1D scalar -------------------------
-      SetArray sets(1, ds);
+      SetArray sets(1, Set(ds, idx));
       setPool.MarkUsed( idx );
       // Group this set with others that share the same dimension and length.
       Dimension const& dim = ds->Dim(0);
@@ -163,77 +151,51 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
       {
         DataSet const* ds2 = setPool.Set( jdx );
         if (ds->Size() == ds2->Size() && dim == ds2->Dim(0)) {
-          sets.push_back( ds2 );
+          sets.push_back( Set(ds2, jdx) );
           setPool.MarkUsed( jdx );
         }
       }
       mprintf("DEBUG: Sets for dimension '%s' %f %f:", dim.label(), dim.Min(), dim.Step());
       for (SetArray::const_iterator it = sets.begin(); it != sets.end(); ++it)
-        mprintf(" %s", (*it)->legend());
+        mprintf(" %s", it->DS()->legend());
       mprintf("\n");
+      // Define the dimension. Ensure name is unique.
+      std::string dimLabel = dim.Label() + integerToString(dimIdx++);
+      int dimId = -1;
+      if (NC::CheckErr( nc_def_dim(ncid, dimLabel.c_str(), ds->Size(), &dimId ))) {
+        mprinterr("Error: Could not define dimension ID for set '%s'\n", ds->legend());
+        return 1;
+      }
+      dimensionID[0] = dimId;
+      // Define the 'index' variable. Will be shared by this group.
+      std::string idxName = dimLabel + "." + "idx";
+      int idxId;
+      if ( NC::CheckErr( nc_def_var(ncid, idxName.c_str(), NC_DOUBLE, 1, dimensionID, &idxId) ) ) {
+        mprinterr("Error: Could not define index variable.\n");
+        return 1;
+      }
+      
+      // Define the variable(s). Names should be unique.
+      for (SetArray::const_iterator it = sets.begin(); it != sets.end(); ++it) {
+        std::string varName = dimLabel + "." + it->DS()->Meta().PrintName();
+        if ( NC::CheckErr( nc_def_var(ncid, varName.c_str(), NC_DOUBLE, 1, dimensionID, varIDptr + it->OriginalIdx() ) ) ) {
+          mprinterr("Error: Could not define variable '%s'\n", varName.c_str());
+          return 1;
+        }
+      }
     } else {
       mprinterr("Error: '%s' is an unhandled set type for NetCDF.\n", ds->legend());
       return 1;
     }
   } // END loop over set pool
+  // Warn if for some reason we didnt use all the sets.
   if (!setPool.AllUsed()) {
     mprintf("Warning: Not all sets were used.\n");
   }
-/*
-  // Give each unique dimension an index.
-  typedef std::pair<NC_dimension,int> DimPair;
-  typedef std::map<NC_dimension,int> DimSet;
-  DimSet dims_;
-  // Hold dims for each set
-  typedef std::vector<int> Iarray;
-  typedef std::vector<Iarray> DimArray;
-  DimArray dimIndices_;
+  mprintf("DEBUG: Variable IDs:\n");
+  for (unsigned int idx = 0; idx != dsl.size(); idx++)
+    mprintf("\t'%s' vid= %i\n", dsl[idx]->legend(), varIDs[idx]);
 
-  for (DataSetList::const_iterator dsit = dsl.begin(); dsit != dsl.end(); ++dsit)
-  {
-    DataSet const* ds = *dsit;
-    if (ds->Group() == DataSet::SCALAR_1D) {
-      // 1 dimension
-      Dimension const& dim = ds->Dim(0);
-      NC_dimension ncdim(dim.Label(), ds->Size());
-
-      DimSet::iterator ret = dims_.find( ncdim );
-
-      if (ret == dims_.end()) {
-        std::pair<DimSet::iterator,bool> it = dims_.insert( DimPair(ncdim,dims_.size()) );
-        ret = it.first;
-      }
-      dimIndices_.push_back( Iarray(1, ret->second) );
-
-      //std::pair<DimSet::iterator,bool> ret = dims_.insert( NC_dimension(dim.Label(), ds->Size()) );
-      //mprintf("%i\n", ret.first->Size());
-      //ret.first->AddSet( ds );
-    }
-  }
-  mprintf("DEBUG: Dimensions:\n");
-  for (DimSet::const_iterator it = dims_.begin(); it != dims_.end(); ++it)
-    mprintf("\t%i : '%s' %i\n", it->second, it->first.Label().c_str(), it->first.Size());
-  mprintf("DEBUG: Set dim indices:\n");
-  DimArray::const_iterator didx = dimIndices_.begin();
-  for (DataSetList::const_iterator dsit = dsl.begin(); dsit != dsl.end(); ++dsit, ++didx)
-  {
-    mprintf("\t%s :", (*dsit)->legend());
-    for (Iarray::const_iterator it = didx->begin(); it != didx->end(); ++it)
-      mprintf(" %i", *it);
-    mprintf("\n");
-  }
-
-  // Define dimensions
-  Iarray dimIds;
-  dimIds.resize( dims_.size() );
-  int* dimIdsPtr = &dimIds[0];
-  for (DimSet::const_iterator it = dims_.begin(); it != dims_.end(); ++it, ++dimIdsPtr) {
-    if (NC::CheckErr( nc_def_dim(ncid, it->first.Label().c_str(), it->first.Size(), dimIdsPtr ))) {
-      mprinterr("Error: Could not define dimension '%s'\n", it->first.Label().c_str());
-      return 1;
-    }
-  }
-*/
   // Attributes
   //if (NC::CheckErr(nc_put_att_text(ncid_,NC_GLOBAL,"title",title.size(),title.c_str())) ) {
   //  mprinterr("Error: Writing title.\n");
