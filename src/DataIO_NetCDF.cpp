@@ -177,8 +177,21 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
       
       // Define the variable(s). Names should be unique.
       for (SetArray::const_iterator it = sets.begin(); it != sets.end(); ++it) {
+        // Choose type
+        nc_type dtype;
+        switch (it->DS()->Type()) {
+          case DataSet::DOUBLE  :
+          case DataSet::XYMESH  : dtype = NC_DOUBLE ; break;
+          case DataSet::INTEGER : dtype = NC_INT ; break;
+          case DataSet::FLOAT   :
+          case DataSet::PH      : dtype = NC_FLOAT ; break;
+          case DataSet::UNSIGNED_INTEGER : dtype = NC_UINT ; break;
+          default:
+            mprinterr("Internal Error: Unhandled DataSet type for 1D NetCDF variable.\n");
+            return 1;
+        }
         std::string varName = dimLabel + "." + it->DS()->Meta().PrintName();
-        if ( NC::CheckErr( nc_def_var(ncid, varName.c_str(), NC_DOUBLE, 1, dimensionID, varIDptr + it->OriginalIdx() ) ) ) {
+        if ( NC::CheckErr( nc_def_var(ncid, varName.c_str(), dtype, 1, dimensionID, varIDptr + it->OriginalIdx() ) ) ) {
           mprinterr("Error: Could not define variable '%s'\n", varName.c_str());
           return 1;
         }
