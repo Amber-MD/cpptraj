@@ -646,8 +646,15 @@ TestNetcdf() {
 void unused() {int ncid; nc_open("foo.nc", 0, &ncid);}
 int main() { printf("Testing\n"); printf("%s\n",nc_strerror(0)); return 0; }
 EOF
-  TestProgram silent "  Checking NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]}"
-  if [ $? -ne 0 ] ; then
+  check_netcdf=0
+  if [ "${LIB_MAKE[$LNETCDF]}" != 'yes' ] ; then
+    TestProgram silent "  Checking NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]}"
+    check_netcdf=$?
+    rebuild_netcdf=$REBUILDOPT
+  else
+    rebuild_netcdf='--rebuild'
+  fi
+  if [ $check_netcdf -ne 0 -o "${LIB_MAKE[$LNETCDF]}" == 'yes' ] ; then
     if [ "${LIB_STAT[$LNETCDF]}" = 'enabled' ] ; then
       # See if there is already a version of NetCDF in CPPTRAJHOME
       LIB_STAT[$LNETCDF]='specified'
@@ -660,7 +667,7 @@ EOF
         CheckRebuild "NetCDF" "${LIB_FLAG[$LNETCDF]}"
         # See if user would like to get netcdf
         PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS LIBNAME='netcdf' \
-            SRCDIR=$NETCDF_SRCDIR SRCTAR=$NETCDF_SRCTAR URL=$NETCDF_URL ./get_library.sh $REBUILDOPT $NETCDF_OPTS
+            SRCDIR=$NETCDF_SRCDIR SRCTAR=$NETCDF_SRCTAR URL=$NETCDF_URL ./get_library.sh $rebuild_netcdf $NETCDF_OPTS
         if [ $? -ne 0 ] ; then
           ErrMsg "Building NetCDF failed."
           exit 1
