@@ -2,8 +2,10 @@
 #include "CpptrajStdio.h"
 #ifdef BINTRAJ
 # include <map>
+# include <string>
 # include <netcdf.h>
 # include "NC_Routines.h"
+# include "Version.h"
 #endif
 
 /// CONSTRUCTOR
@@ -69,7 +71,7 @@ int DataIO_NetCDF::processWriteArgs(ArgList& argIn)
 }
 
 /// Used to track unique DataSet dimensions
-class NC_dimension {
+/*class NC_dimension {
   public:
     NC_dimension(std::string const& l, int s) : label_(l), size_(s) {}
 
@@ -97,6 +99,36 @@ class NC_dimension {
     std::string label_;
     int size_;
     std::vector<DataSet const*> sets_;
+};*/
+
+/// Hold a pool of pointers to DataSets in the list.
+class DataIO_NetCDF::SetPool {
+  public:
+    /// CONSTRUCTOR - place sets from DataSetList in this pool
+    SetPool(DataSetList const& dsl) : nUsed_(0) {
+      sets_.reserve( dsl.size() );
+      isUsed_.assign( dsl.size(), false );
+      for (DataSetList::const_iterator it = dsl.begin(); it != dsl.end(); ++it)
+        sets_.push_back( *it );
+    }
+    /// \return set at idx
+    DataSet const* Set(unsigned int idx) const { return sets_[idx]; }
+    /// \return Number of sets
+    unsigned int Nsets() const { return sets_.size(); }
+    /// \return true if set at idx has been used
+    bool IsUsed(unsigned int idx) const { return isUsed_[idx]; }
+    /// \return true if all sets have been marked as used
+    bool AllUsed() const { return (nUsed_ == isUsed_.size()); }
+
+    /// Mark set at idx as used
+    void MarkUsed(unsigned int idx) {
+      isUsed_[idx] = true;
+      nUsed_++;
+    }
+  private:
+    std::vector<DataSet const*> sets_;
+    std::vector<bool> isUsed_;
+    unsigned int nUsed_;
 };
 
 // DataIO_NetCDF::WriteData()
@@ -108,7 +140,46 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
   if (NC::CheckErr( nc_create( fname.full(), NC_64BIT_OFFSET, &ncid ) ))
     return 1;
 
+  // Place incoming DataSets into a pool. As they are handled they will
+  // be removed from the pool.
+  SetPool setPool( dsl );
+
+  typedef std::vector<DataSet const*> SetArray;
+
   // Check our incoming data sets. Try to find common dimensions.
+  for (unsigned int idx = 0; idx < setPool.Nsets(); idx++)
+  {
+    if (setPool.IsUsed(idx)) continue;
+
+    DataSet const* ds = setPool.Set( idx );
+
+    if (ds->Group() == DataSet::SCALAR_1D) {
+      // ----- 1D scalar -------------------------
+      SetArray sets(1, ds);
+      setPool.MarkUsed( idx );
+      // Group this set with others that share the same dimension and length.
+      Dimension const& dim = ds->Dim(0);
+      for (unsigned int jdx = idx + 1; jdx < setPool.Nsets(); jdx++)
+      {
+        DataSet const* ds2 = setPool.Set( jdx );
+        if (ds->Size() == ds2->Size() && dim == ds2->Dim(0)) {
+          sets.push_back( ds2 );
+          setPool.MarkUsed( jdx );
+        }
+      }
+      mprintf("DEBUG: Sets for dimension '%s' %f %f:", dim.label(), dim.Min(), dim.Step());
+      for (SetArray::const_iterator it = sets.begin(); it != sets.end(); ++it)
+        mprintf(" %s", (*it)->legend());
+      mprintf("\n");
+    } else {
+      mprinterr("Error: '%s' is an unhandled set type for NetCDF.\n", ds->legend());
+      return 1;
+    }
+  } // END loop over set pool
+  if (!setPool.AllUsed()) {
+    mprintf("Warning: Not all sets were used.\n");
+  }
+/*
   // Give each unique dimension an index.
   typedef std::pair<NC_dimension,int> DimPair;
   typedef std::map<NC_dimension,int> DimSet;
@@ -162,7 +233,34 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
       return 1;
     }
   }
+*/
+  // Attributes
+  //if (NC::CheckErr(nc_put_att_text(ncid_,NC_GLOBAL,"title",title.size(),title.c_str())) ) {
+  //  mprinterr("Error: Writing title.\n");
+  //  return 1;
+  //}
+  if (NC::CheckErr(nc_put_att_text(ncid,NC_GLOBAL,"application",5,"AMBER")) ) {
+    mprinterr("Error: Writing application.\n");
+    return 1;
+  }
+  if (NC::CheckErr(nc_put_att_text(ncid,NC_GLOBAL,"program",7,"cpptraj")) ) {
+    mprinterr("Error: Writing program.\n");
+    return 1;
+  }
+  std::string programVersion(CPPTRAJ_INTERNAL_VERSION);
+  if (NC::CheckErr(nc_put_att_text(ncid,NC_GLOBAL,"programVersion",
+                                   programVersion.size(), programVersion.c_str())))
+  {
+    mprinterr("Error: Writing program version.\n");
+    return 1;
+  }
 
+  // End netcdf definitions
+  if (NC::CheckErr(nc_enddef(ncid))) {
+    mprinterr("NetCDF data error on ending definitions.");
+    return 1;
+  }
+  NC::Debug(ncid);
   return 0;
 # else
   return 1;

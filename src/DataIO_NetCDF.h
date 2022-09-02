@@ -13,5 +13,7 @@ class DataIO_NetCDF : public DataIO {
     int processWriteArgs(ArgList&);
     int WriteData(FileName const&, DataSetList const&);
     bool ID_DataFormat(CpptrajFile&);
+  private:
+    class SetPool;
 };
 #endif
