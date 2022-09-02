@@ -113,6 +113,26 @@ class DataIO_NetCDF::Set {
     int oidx_;
 };
 
+/// Tell netcdf file to end define mode
+static inline int EndDefineMode(int ncid) {
+  // End netcdf definitions
+  if (NC::CheckErr(nc_enddef(ncid))) {
+    mprinterr("NetCDF data error on ending definitions.");
+    return 1;
+  }
+  return 0;
+}
+
+/// Tell netcdf file to enter define mode
+static inline int EnterDefineMode(int ncid) {
+  int err = nc_redef(ncid);
+  if (err != NC_NOERR && err != NC_EINDEFINE) {
+    NC::CheckErr( err );
+    return 1;
+  }
+  return 0;
+}
+
 // DataIO_NetCDF::WriteData()
 int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
 {
@@ -143,6 +163,7 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
 
     if (ds->Group() == DataSet::SCALAR_1D) {
       // ----- 1D scalar -------------------------
+      if (EnterDefineMode(ncid)) return 1;
       SetArray sets(1, Set(ds, idx));
       setPool.MarkUsed( idx );
       // Group this set with others that share the same dimension and length.
@@ -195,6 +216,12 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
           mprinterr("Error: Could not define variable '%s'\n", varName.c_str());
           return 1;
         }
+        if (NC::CheckErr( nc_put_att_text(ncid, varIDptr[it->OriginalIdx()], "legend",
+                                          it->DS()->Meta().Legend().size(), it->DS()->legend()) ))
+        {
+          mprinterr("Error: Writing variable legend.\n");
+          return 1;
+        }
       }
     } else {
       mprinterr("Error: '%s' is an unhandled set type for NetCDF.\n", ds->legend());
@@ -210,6 +237,7 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
     mprintf("\t'%s' vid= %i\n", dsl[idx]->legend(), varIDs[idx]);
 
   // Attributes
+  if (EnterDefineMode(ncid)) return 1;
   //if (NC::CheckErr(nc_put_att_text(ncid_,NC_GLOBAL,"title",title.size(),title.c_str())) ) {
   //  mprinterr("Error: Writing title.\n");
   //  return 1;
@@ -231,7 +259,7 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
   }
 
   // End netcdf definitions
-  if (NC::CheckErr(nc_enddef(ncid))) {
+  if (EndDefineMode(ncid)) {
     mprinterr("NetCDF data error on ending definitions.");
     return 1;
   }
