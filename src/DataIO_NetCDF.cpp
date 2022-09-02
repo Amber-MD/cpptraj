@@ -4,6 +4,7 @@
 # include <map>
 # include <string>
 # include <netcdf.h>
+# include "DataSet_1D.h"
 # include "NC_Routines.h"
 # include "StringRoutines.h"
 # include "Version.h"
@@ -206,7 +207,7 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
           case DataSet::INTEGER : dtype = NC_INT ; break;
           case DataSet::FLOAT   :
           case DataSet::PH      : dtype = NC_FLOAT ; break;
-          case DataSet::UNSIGNED_INTEGER : dtype = NC_UINT ; break;
+          case DataSet::UNSIGNED_INTEGER : dtype = NC_UINT ; break; // TODO netcdf4 only?
           default:
             mprinterr("Internal Error: Unhandled DataSet type for 1D NetCDF variable.\n");
             return 1;
@@ -216,10 +217,23 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
           mprinterr("Error: Could not define variable '%s'\n", varName.c_str());
           return 1;
         }
-        if (NC::CheckErr( nc_put_att_text(ncid, varIDptr[it->OriginalIdx()], "legend",
+        if (NC::CheckErr( nc_put_att_text(ncid, varIDs[it->OriginalIdx()], "legend",
                                           it->DS()->Meta().Legend().size(), it->DS()->legend()) ))
         {
           mprinterr("Error: Writing variable legend.\n");
+          return 1;
+        }
+      } // END define variable(s)
+      if (EndDefineMode( ncid )) return 1;
+      // Write the variables
+      size_t start[1];
+      size_t count[1];
+      start[0] = 0;
+      count[0] = ds->Size();
+      for (SetArray::const_iterator it = sets.begin(); it != sets.end(); ++it) {
+        DataSet_1D const& ds1d = static_cast<DataSet_1D const&>( *(it->DS()) );
+        if (NC::CheckErr(nc_put_vara(ncid, varIDs[it->OriginalIdx()], start, count, ds1d.VoidPtr(0)))) {
+          mprinterr("Error: Could not write variable '%s'\n", ds1d.legend());
           return 1;
         }
       }
