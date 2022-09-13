@@ -1844,6 +1844,7 @@ void Action_GIST::Print() {
   int nwtt = 0;
   if (! this->skipS_) {
     // LOOP over all voxels
+    gist_print_OE_.Start();
     mprintf("\tCalculating orientational entropy:\n");
     ParallelProgress oe_progress( MAX_GRID_PT_ );
     int n_finished = 0;
@@ -1926,8 +1927,11 @@ void Action_GIST::Print() {
     }
     infofile_->Printf("Total referenced orientational entropy of the grid:"
                       " dTSorient = %9.5f kcal/mol, Nf=%d\n", SumDataSet(*dTSorient_) / NFRAME_, NFRAME_);
+    
+    gist_print_OE_.Start();
   }
   // Compute translational entropy for each voxel
+  gist_print_TE_.Start();
   int nwts = 0;
   int nx = griddim_[0];
   int ny = griddim_[1];
@@ -2056,6 +2060,7 @@ void Action_GIST::Print() {
     infofile_->Printf("Total t if all one vox: %9.5f kcal/mol\n", total_t_1vox);
     infofile_->Printf("Total o if all one vox: %9.5f kcal/mol\n", total_o_1vox);
   }
+  gist_print_TE_.Stop();
   // free some memory before allocating all those Farrays for the -dens and -norm data.
   voxel_xyz_.clear();
   voxel_xyz_.shrink_to_fit();
@@ -2156,6 +2161,7 @@ void Action_GIST::Print() {
 
   // Write the GIST output file.
   // TODO: Make a data file format?
+  gist_print_write_.Start();
   if (datafile_ != 0) {
     mprintf("\tWriting GIST results for each voxel:\n");
     const char* gistOutputVersion = "v4";
@@ -2221,6 +2227,7 @@ void Action_GIST::Print() {
       printer.newline();
     } // END loop over voxels
   } // END datafile_ not null
+  gist_print_write_.Stop();
 
   // Write water-water interaction energy matrix
   if (ww_Eij_ != 0) {
@@ -2262,8 +2269,11 @@ void Action_GIST::Print() {
   //gist_nonbond_OV_.WriteTiming(3, "OV:", gist_nonbond_.Total());
   gist_euler_.WriteTiming(2,   "Euler:  ", gist_action_.Total());
   gist_dipole_.WriteTiming(2,  "Dipole: ", gist_action_.Total());
-  gist_order_.WriteTiming(2,   "Order: ", gist_action_.Total());
-  gist_print_.WriteTiming(1,   "Print:", total);
+  gist_order_.WriteTiming(2,   "Order:  ", gist_action_.Total());
+  gist_print_.WriteTiming(1,   "Print: ", total);
+  gist_print_OE_.WriteTiming(2,   "Orientational Entropy:", gist_print_.Total());
+  gist_print_TE_.WriteTiming(2,   "Translational Entropy:", gist_print_.Total());
+  gist_print_write_.WriteTiming(2,"GIST results write:   ", gist_print_.Total()); 
   mprintf("TIME:\tTotal: %.4f s\n", total);
   #ifdef CUDA
   this->freeGPUMemory();

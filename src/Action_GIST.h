@@ -278,6 +278,9 @@ class Action_GIST : public Action {
     Timer gist_euler_;
     Timer gist_dipole_;
     Timer gist_order_;
+    Timer gist_print_OE_; ///< Orientational entropy calc timer
+    Timer gist_print_TE_; ///< Translational entropy calc timer
+    Timer gist_print_write_; ///< GIST results file write timer
 
     Topology* CurrentParm_;    ///< Current topology, for energy calc.
     CpptrajFile* datafile_;    ///< GIST output
