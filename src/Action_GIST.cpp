@@ -2039,6 +2039,7 @@ void Action_GIST::Print() {
   }
   #endif
   te_progress.Finish();
+  gist_print_TE_.Stop();
   if (!this->skipS_) {
     infofile_->Printf("watcount in vol = %d\n", nwtt);
     infofile_->Printf("watcount in subvol = %d\n", nwts);
@@ -2060,7 +2061,6 @@ void Action_GIST::Print() {
     infofile_->Printf("Total t if all one vox: %9.5f kcal/mol\n", total_t_1vox);
     infofile_->Printf("Total o if all one vox: %9.5f kcal/mol\n", total_o_1vox);
   }
-  gist_print_TE_.Stop();
   // free some memory before allocating all those Farrays for the -dens and -norm data.
   voxel_xyz_.clear();
   voxel_xyz_.shrink_to_fit();
