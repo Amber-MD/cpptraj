@@ -111,7 +111,8 @@ Action_GIST::Action_GIST() :
   skipE_(false),
   exactNnVolume_(false),
   useCom_(true),
-  setupSuccessful_(false)
+  setupSuccessful_(false),
+  watCountSubvol_(-1)
 {}
 
 /** GIST help */
@@ -1823,6 +1824,121 @@ int Action_GIST::SyncAction() {
 }
 #endif
 
+/** Calculate translational entropy.
+  * \return ntws: water count in subvolume.
+  */
+int Action_GIST::CalcTranslationalEntropy() {
+  int nwts = 0;
+  int nx = griddim_[0];
+  int ny = griddim_[1];
+  int nz = griddim_[2];
+  double Vvox = gridBin_->VoxelVolume();
+
+//  Vec3 grid_origin(gridBin_->Center(0, 0, 0));
+
+  // Loop over all grid points
+  if (! this->skipS_)
+    mprintf("\tCalculating translational entropy:\n");
+  else
+    mprintf("Calculating Densities:\n");
+  for (unsigned int i_ds = 0; i_ds < solventInfo_.unique_elements.size(); ++i_ds) {
+    ScaleDataSet(*atomDensitySets_[i_ds], 1.0 / (double(NFRAME_)*Vvox*BULK_DENS_*double(solventInfo_.element_count[i_ds])));
+  }
+  ParallelProgress te_progress( MAX_GRID_PT_ );
+  int n_finished = 0;
+# ifdef _OPENMP
+# pragma omp parallel shared(n_finished) firstprivate(te_progress)
+  {
+  te_progress.SetThread( omp_get_thread_num() );
+# pragma omp for
+# endif
+  for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++) {
+    te_progress.Update( n_finished );
+    if (! this->skipS_) {
+      int nw_total = N_main_solvent_[gr_pt]; // Total number of waters that have been in this voxel.
+      int ix = gr_pt / (ny * nz);
+      int iy = (gr_pt / nz) % ny;
+      int iz = gr_pt % nz;
+      bool boundary = ( ix == 0 || iy == 0 || iz == 0 || ix == (nx-1) || iy == (ny-1) || iz == (nz-1) );
+
+      if ( !boundary ) {
+#       ifdef DEBUG_GIST
+        if (debugOut_ != 0 && nw_total > 0) debugOut_->Printf("Strans grid %8u voxel ijk= %8i %8i %8i\n", gr_pt, ix, iy, iz);
+#       endif
+        double strans_norm = 0.0;
+        double ssix_norm = 0.0;
+        int vox_nwts = 0;
+        for (int n0 = 0; n0 < nw_total; ++n0)
+        {
+#         ifdef DEBUG_GIST
+          if (debugOut_ != 0) debugOut_->Printf("\twat %8i\n", n0);
+#         endif
+          Vec3 center(voxel_xyz_[gr_pt][3*n0], voxel_xyz_[gr_pt][3*n0+1], voxel_xyz_[gr_pt][3*n0+2]);
+          int q0 = n0 * 4;  // index into voxel_Q_ for n0
+          float W4 = voxel_Q_[gr_pt][q0  ];
+          float X4 = voxel_Q_[gr_pt][q0+1];
+          float Y4 = voxel_Q_[gr_pt][q0+2];
+          float Z4 = voxel_Q_[gr_pt][q0+3];
+          std::pair<double, double> NN = GistEntropyUtils::searchGridNearestNeighbors6D(
+            center, ix, iy, iz, W4, X4, Y4, Z4,
+            voxel_xyz_, voxel_Q_,
+            nx, ny, nz,
+            //grid_origin,
+            gridspacing_,
+            nNnSearchLayers_, n0
+#           ifdef DEBUG_GIST
+            , debugOut_
+#           endif
+            );
+#         ifdef DEBUG_GIST
+          if (debugOut_ != 0) debugOut_->Printf("\twat %8i NNd= %12.4f NNs= %12.4f\n", n0, NN.first, NN.second);
+#         endif
+          // It sometimes happens that we get numerically 0 values. 
+          // Using a minimum distance changes the result only by a tiny amount 
+          // (since those cases are rare), and avoids -inf values in the output.
+          double NNd = std::max(sqrt(NN.first), GIST_TINY);
+          double NNs = std::max(sqrt(NN.second), GIST_TINY);
+
+          bool has_neighbor = NN.first < GistEntropyUtils::GIST_HUGE;
+          if (has_neighbor) {
+            ++vox_nwts;
+            strans_norm += log((NNd*NNd*NNd*NFRAME_*4*Constants::PI*BULK_DENS_)/3);
+            double sixDens = (NNs*NNs*NNs*NNs*NNs*NNs*NFRAME_*Constants::PI*BULK_DENS_) / 48;
+            if (exactNnVolume_) {
+              sixDens /= GistEntropyUtils::sixVolumeCorrFactor(NNs);
+            }
+            ssix_norm += log(sixDens);
+            //mprintf("DEBUG1: dbl=%f NNs=%f\n", dbl, NNs);
+          }
+        } // END loop over all waters for this voxel
+#       ifdef _OPENMP
+#       pragma omp critical
+#       endif
+        {
+          nwts += vox_nwts;
+          ++n_finished;
+          if (strans_norm != 0) {
+            dTStrans_->SetGrid(gr_pt, Constants::GASK_KCAL * temperature_ * nw_total
+                                    * (strans_norm/nw_total + Constants::EULER_MASC));
+            dTSsix_->SetGrid(gr_pt, Constants::GASK_KCAL * temperature_ * nw_total
+                                  * (ssix_norm/nw_total + Constants::EULER_MASC));
+          }
+        }
+      } else { // boundary
+#       ifdef _OPENMP
+#       pragma omp atomic
+#       endif
+        ++n_finished;
+      }
+    }
+  } // END loop over all grid points (voxels)
+  #ifdef _OPENMP
+  }
+  #endif
+  te_progress.Finish();
+
+  return nwts;
+}
 
 /** Handle averaging for grids and output from GIST. */
 void Action_GIST::Print() {
@@ -1932,125 +2048,22 @@ void Action_GIST::Print() {
   }
   // Compute translational entropy for each voxel
   gist_print_TE_.Start();
-  int nwts = 0;
-  int nx = griddim_[0];
-  int ny = griddim_[1];
-  int nz = griddim_[2];
-
-//  Vec3 grid_origin(gridBin_->Center(0, 0, 0));
-
-  // Loop over all grid points
-  if (! this->skipS_)
-    mprintf("\tCalculating translational entropy:\n");
-  else
-    mprintf("Calculating Densities:\n");
-  for (unsigned int i_ds = 0; i_ds < solventInfo_.unique_elements.size(); ++i_ds) {
-    ScaleDataSet(*atomDensitySets_[i_ds], 1.0 / (double(NFRAME_)*Vvox*BULK_DENS_*double(solventInfo_.element_count[i_ds])));
+  if (watCountSubvol_ == -1) {
+    // watCountSubvol_ was nwts
+    watCountSubvol_ = CalcTranslationalEntropy();
   }
-  ParallelProgress te_progress( MAX_GRID_PT_ );
-  int n_finished = 0;
-# ifdef _OPENMP
-# pragma omp parallel shared(n_finished) firstprivate(te_progress)
-  {
-  te_progress.SetThread( omp_get_thread_num() );
-# pragma omp for
-# endif
-  for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++) {
-    te_progress.Update( n_finished );
-    if (! this->skipS_) {
-      int nw_total = N_main_solvent_[gr_pt]; // Total number of waters that have been in this voxel.
-      int ix = gr_pt / (ny * nz);
-      int iy = (gr_pt / nz) % ny;
-      int iz = gr_pt % nz;
-      bool boundary = ( ix == 0 || iy == 0 || iz == 0 || ix == (nx-1) || iy == (ny-1) || iz == (nz-1) );
-
-      if ( !boundary ) {
-#       ifdef DEBUG_GIST
-        if (debugOut_ != 0 && nw_total > 0) debugOut_->Printf("Strans grid %8u voxel ijk= %8i %8i %8i\n", gr_pt, ix, iy, iz);
-#       endif
-        double strans_norm = 0.0;
-        double ssix_norm = 0.0;
-        int vox_nwts = 0;
-        for (int n0 = 0; n0 < nw_total; ++n0)
-        {
-#         ifdef DEBUG_GIST
-          if (debugOut_ != 0) debugOut_->Printf("\twat %8i\n", n0);
-#         endif
-          Vec3 center(voxel_xyz_[gr_pt][3*n0], voxel_xyz_[gr_pt][3*n0+1], voxel_xyz_[gr_pt][3*n0+2]);
-          int q0 = n0 * 4;  // index into voxel_Q_ for n0
-          float W4 = voxel_Q_[gr_pt][q0  ];
-          float X4 = voxel_Q_[gr_pt][q0+1];
-          float Y4 = voxel_Q_[gr_pt][q0+2];
-          float Z4 = voxel_Q_[gr_pt][q0+3];
-          std::pair<double, double> NN = GistEntropyUtils::searchGridNearestNeighbors6D(
-            center, ix, iy, iz, W4, X4, Y4, Z4,
-            voxel_xyz_, voxel_Q_,
-            nx, ny, nz,
-            //grid_origin,
-            gridspacing_,
-            nNnSearchLayers_, n0
-#           ifdef DEBUG_GIST
-            , debugOut_
-#           endif
-            );
-#         ifdef DEBUG_GIST
-          if (debugOut_ != 0) debugOut_->Printf("\twat %8i NNd= %12.4f NNs= %12.4f\n", n0, NN.first, NN.second);
-#         endif
-          // It sometimes happens that we get numerically 0 values. 
-          // Using a minimum distance changes the result only by a tiny amount 
-          // (since those cases are rare), and avoids -inf values in the output.
-          double NNd = std::max(sqrt(NN.first), GIST_TINY);
-          double NNs = std::max(sqrt(NN.second), GIST_TINY);
-
-          bool has_neighbor = NN.first < GistEntropyUtils::GIST_HUGE;
-          if (has_neighbor) {
-            ++vox_nwts;
-            strans_norm += log((NNd*NNd*NNd*NFRAME_*4*Constants::PI*BULK_DENS_)/3);
-            double sixDens = (NNs*NNs*NNs*NNs*NNs*NNs*NFRAME_*Constants::PI*BULK_DENS_) / 48;
-            if (exactNnVolume_) {
-              sixDens /= GistEntropyUtils::sixVolumeCorrFactor(NNs);
-            }
-            ssix_norm += log(sixDens);
-            //mprintf("DEBUG1: dbl=%f NNs=%f\n", dbl, NNs);
-          }
-        } // END loop over all waters for this voxel
-#       ifdef _OPENMP
-#       pragma omp critical
-#       endif
-        {
-          nwts += vox_nwts;
-          ++n_finished;
-          if (strans_norm != 0) {
-            dTStrans_->SetGrid(gr_pt, Constants::GASK_KCAL * temperature_ * nw_total
-                                    * (strans_norm/nw_total + Constants::EULER_MASC));
-            dTSsix_->SetGrid(gr_pt, Constants::GASK_KCAL * temperature_ * nw_total
-                                  * (ssix_norm/nw_total + Constants::EULER_MASC));
-          }
-        }
-      } else { // boundary
-#       ifdef _OPENMP
-#       pragma omp atomic
-#       endif
-        ++n_finished;
-      }
-    }
-  } // END loop over all grid points (voxels)
-  #ifdef _OPENMP
-  }
-  #endif
-  te_progress.Finish();
   gist_print_TE_.Stop();
   if (!this->skipS_) {
     infofile_->Printf("watcount in vol = %d\n", nwtt);
-    infofile_->Printf("watcount in subvol = %d\n", nwts);
+    infofile_->Printf("watcount in subvol = %d\n", watCountSubvol_);
     infofile_->Printf("Total referenced translational entropy of the grid:"
                       " dTStrans = %9.5f kcal/mol, Nf=%d\n", SumDataSet(*dTStrans_) / NFRAME_, NFRAME_);
     double total_6d_1vox = 0;
     double total_t_1vox = 0;
     double total_o_1vox = 0;
-    if (nwts > 0) {
-      total_6d_1vox = SumDataSet(*dTSsix_) / (double)nwts;
-      total_t_1vox = SumDataSet(*dTStrans_) / (double)nwts;
+    if (watCountSubvol_ > 0) {
+      total_6d_1vox = SumDataSet(*dTSsix_) / (double)watCountSubvol_;
+      total_t_1vox = SumDataSet(*dTStrans_) / (double)watCountSubvol_;
     } else
       mprintf("Warning: Not enough data in voxels to calculate 6D and translational entropy.\n");
     if (nwtt > 0)

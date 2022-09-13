@@ -129,6 +129,8 @@ class Action_GIST : public Action {
     template<typename T>
     std::vector<T> DensityWeightDataSet(const DataSet_3D& ds) const;
 
+    int CalcTranslationalEntropy();
+
     int debug_;      ///< Action debug level
     int numthreads_; ///< Number of OpenMP threads
 
@@ -317,5 +319,6 @@ class Action_GIST : public Action {
 #   ifdef MPI
     Parallel::Comm trajComm_;  ///< Communicator across trajectory
 #   endif
+    int watCountSubvol_;       ///< Hold nwts; if -1, trans. entropy calc has not been run
 };
 #endif
