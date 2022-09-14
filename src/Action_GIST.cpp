@@ -1827,7 +1827,7 @@ int Action_GIST::SyncAction() {
 int Action_GIST::ParallelPostCalc() {
   mprintf("    GIST: Performing translational entropy calc in parallel.\n");
   if (trajComm_.Rank() == 0) {
-    watCountSubvol_ = CalcTranslationalEntropy();
+    watCountSubvol_ = CalcTranslationalEntropy(0, MAX_GRID_PT_);
   }
   trajComm_.MasterBcast( &watCountSubvol_, 1, MPI_INT );
   return 0;
@@ -1835,9 +1835,11 @@ int Action_GIST::ParallelPostCalc() {
 #endif
 
 /** Calculate translational entropy.
+  * \param gridPointStart Starting grid point.
+  * \param gridPointEnd Ending grid point.
   * \return ntws: water count in subvolume.
   */
-int Action_GIST::CalcTranslationalEntropy() const {
+int Action_GIST::CalcTranslationalEntropy(unsigned int gridPointStart, unsigned int gridPointEnd) const {
   int nwts = 0;
   int nx = griddim_[0];
   int ny = griddim_[1];
@@ -1862,7 +1864,7 @@ int Action_GIST::CalcTranslationalEntropy() const {
   te_progress.SetThread( omp_get_thread_num() );
 # pragma omp for
 # endif
-  for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++) {
+  for (unsigned int gr_pt = gridPointStart; gr_pt < gridPointEnd; gr_pt++) {
     te_progress.Update( n_finished );
     if (! this->skipS_) {
       int nw_total = N_main_solvent_[gr_pt]; // Total number of waters that have been in this voxel.
@@ -2061,7 +2063,7 @@ void Action_GIST::Print() {
   if (watCountSubvol_ == -1) {
     mprintf("DEBUG: Doing serial translational entropy calc.\n");
     // watCountSubvol_ was nwts
-    watCountSubvol_ = CalcTranslationalEntropy();
+    watCountSubvol_ = CalcTranslationalEntropy(0, MAX_GRID_PT_);
   }
   gist_print_TE_.Stop();
   if (!this->skipS_) {
