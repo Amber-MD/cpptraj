@@ -1837,7 +1837,7 @@ int Action_GIST::ParallelPostCalc() {
 /** Calculate translational entropy.
   * \return ntws: water count in subvolume.
   */
-int Action_GIST::CalcTranslationalEntropy() {
+int Action_GIST::CalcTranslationalEntropy() const {
   int nwts = 0;
   int nx = griddim_[0];
   int ny = griddim_[1];
