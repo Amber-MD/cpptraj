@@ -1833,6 +1833,7 @@ int Action_GIST::SyncAction() {
 
 /** Do the translational entropy calc in parallel */
 int Action_GIST::ParallelPostCalc() {
+  gist_print_TE_.Start();
   mprintf("    GIST: Performing translational entropy calc in parallel.\n");
   // Broadcast any necessary info to other processors
   trajComm_.MasterBcast( &N_main_solvent_[0], N_main_solvent_.size(), MPI_INT );
@@ -1908,6 +1909,7 @@ int Action_GIST::ParallelPostCalc() {
 //    watCountSubvol_ = CalcTranslationalEntropy(0, MAX_GRID_PT_);
 //  }
 //  trajComm_.MasterBcast( &watCountSubvol_, 1, MPI_INT );
+  gist_print_TE_.Stop();
   return 0;
 }
 #endif
