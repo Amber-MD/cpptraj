@@ -1822,6 +1822,16 @@ int Action_GIST::SyncAction() {
 
   return 0;
 }
+
+/** Do the translational entropy calc in parallel */
+int Action_GIST::ParallelPostCalc() {
+  rprintf("DEBUG: Doing parallel translational entropy calc.\n");
+  if (trajComm_.Rank() == 0) {
+    watCountSubvol_ = CalcTranslationalEntropy();
+  }
+  trajComm_.MasterBcast( &watCountSubvol_, 1, MPI_INT );
+  return 0;
+}
 #endif
 
 /** Calculate translational entropy.
@@ -2049,6 +2059,7 @@ void Action_GIST::Print() {
   // Compute translational entropy for each voxel
   gist_print_TE_.Start();
   if (watCountSubvol_ == -1) {
+    mprintf("DEBUG: Doing serial translational entropy calc.\n");
     // watCountSubvol_ was nwts
     watCountSubvol_ = CalcTranslationalEntropy();
   }

@@ -37,6 +37,7 @@ class Action_GIST : public Action {
     void Print();
 #   ifdef MPI
     int SyncAction();
+    int ParallelPostCalc();
 #   endif
 
     typedef std::vector<float> Farray;
