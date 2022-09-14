@@ -1826,6 +1826,10 @@ int Action_GIST::SyncAction() {
 /** Do the translational entropy calc in parallel */
 int Action_GIST::ParallelPostCalc() {
   mprintf("    GIST: Performing translational entropy calc in parallel.\n");
+  // Divide grid points among processes
+  int my_start, my_stop;
+  int my_grid_points = trajComm_.DivideAmongProcesses(my_start, my_stop, MAX_GRID_PT_);
+  rprintf("DEBUG: My grid points = %i to %i (%i)\n", my_start, my_stop, my_grid_points);
   if (trajComm_.Rank() == 0) {
     watCountSubvol_ = CalcTranslationalEntropy(0, MAX_GRID_PT_);
   }
