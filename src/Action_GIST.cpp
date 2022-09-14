@@ -1806,7 +1806,7 @@ int Action_GIST::SyncAction() {
   trajComm_.ReduceMaster( &total_frames, &NFRAME_, 1, MPI_INT, MPI_SUM );
   if (trajComm_.Master())
     NFRAME_ = total_frames;
-  mprintf("DEBUG: GIST total frame count: %i\n", NFRAME_);
+  if (debug_ > 0) mprintf("DEBUG: GIST total frame count: %i\n", NFRAME_);
   // Update # counts
   Iarray itmp( MAX_GRID_PT_ );
   reduce_iarray_master(trajComm_, itmp, N_solvent_);
@@ -1841,7 +1841,7 @@ int Action_GIST::ParallelPostCalc() {
   // Divide grid points among processes
   int my_start, my_stop;
   int my_grid_points = trajComm_.DivideAmongProcesses(my_start, my_stop, MAX_GRID_PT_);
-  rprintf("DEBUG: My grid points = %i to %i (%i)\n", my_start, my_stop, my_grid_points);
+  if (debug_ > 0) rprintf("DEBUG: My grid points = %i to %i (%i)\n", my_start, my_stop, my_grid_points);
   std::vector<int> process_start( trajComm_.Size() );
   trajComm_.GatherMaster(&my_start, 1, MPI_INT, &process_start[0]);
   std::vector<int> process_stop( trajComm_.Size() );
