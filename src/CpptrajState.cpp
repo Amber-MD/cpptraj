@@ -978,6 +978,8 @@ int CpptrajState::RunParaEnsemble() {
   sync_time_.Stop();
   mprintf("\nACTION OUTPUT:\n");
   post_time_.Start();
+  // Perform any parallelized post-processing
+  actionList_.ParallelPostCalcs();
   // Only call print for master
   if (TrajComm.Master())
     actionList_.PrintActions();
@@ -1152,6 +1154,8 @@ int CpptrajState::RunParallel() {
   if (DSL_.SynchronizeData( TrajComm )) return 1;
   sync_time_.Stop();
   post_time_.Start();
+  // Perform any parallelized post-processing
+  actionList_.ParallelPostCalcs();
   mprintf("\nACTION OUTPUT:\n");
   // Only call print for master
   if (TrajComm.Master())
@@ -1251,6 +1255,8 @@ int CpptrajState::RunSingleTrajParallel() {
   time_sync.Stop();
   time_sync.WriteTiming(1, "Data set/actions sync");
   mprintf("\nACTION OUTPUT:\n");
+  // Perform any parallelized post-processing
+  actionList_.ParallelPostCalcs();
   // Only call print for master
   if (Parallel::World().Master())
     actionList_.PrintActions();

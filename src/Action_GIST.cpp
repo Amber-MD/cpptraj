@@ -1825,7 +1825,7 @@ int Action_GIST::SyncAction() {
 
 /** Do the translational entropy calc in parallel */
 int Action_GIST::ParallelPostCalc() {
-  rprintf("DEBUG: Doing parallel translational entropy calc.\n");
+  mprintf("    GIST: Performing translational entropy calc in parallel.\n");
   if (trajComm_.Rank() == 0) {
     watCountSubvol_ = CalcTranslationalEntropy();
   }
