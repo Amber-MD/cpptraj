@@ -136,6 +136,12 @@ void Action_GIST::Help() const {
           );
 }
 
+// DEBUG MPI
+//static CpptrajFile* debugOut_ = 0;
+
+// DEBUG MPI
+//Action_GIST::~Action_GIST() { /*if (debugOut_ != 0) {debugOut_->CloseFile(); delete debugOut_; }* }
+
 /** Init GIST action. */
 Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
@@ -145,6 +151,8 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
 # ifdef MPI
   trajComm_ = init.TrajComm();
   mover_.MoverSetComm(init.TrajComm());
+//  debugOut_ = new CpptrajFile(); // DEBUG MPI
+//  debugOut_->OpenWrite( "rank." + integerToString(trajComm_.Rank()) ); // DEBUG MPI
 # endif
   gist_init_.Start();
 # ifdef DEBUG_GIST
@@ -1826,14 +1834,80 @@ int Action_GIST::SyncAction() {
 /** Do the translational entropy calc in parallel */
 int Action_GIST::ParallelPostCalc() {
   mprintf("    GIST: Performing translational entropy calc in parallel.\n");
+  // Broadcast any necessary info to other processors
+  trajComm_.MasterBcast( &N_main_solvent_[0], N_main_solvent_.size(), MPI_INT );
+  trajComm_.MasterBcast( &NFRAME_, 1, MPI_INT );
   // Divide grid points among processes
   int my_start, my_stop;
   int my_grid_points = trajComm_.DivideAmongProcesses(my_start, my_stop, MAX_GRID_PT_);
   rprintf("DEBUG: My grid points = %i to %i (%i)\n", my_start, my_stop, my_grid_points);
-  if (trajComm_.Rank() == 0) {
-    watCountSubvol_ = CalcTranslationalEntropy(0, MAX_GRID_PT_);
+  std::vector<int> process_start( trajComm_.Size() );
+  trajComm_.GatherMaster(&my_start, 1, MPI_INT, &process_start[0]);
+  std::vector<int> process_stop( trajComm_.Size() );
+  trajComm_.GatherMaster(&my_stop, 1, MPI_INT, &process_stop[0]);
+  // Ensure voxel_xyz_ and voxel_Q_ are up-to-date on each process
+  for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++)
+  {
+    if (N_main_solvent_[gr_pt] > 0) {
+      //rprintf("DEBUG: Bcast for grid point %u\n", gr_pt);
+      Farray& vxyz = voxel_xyz_[gr_pt];
+      Farray& vq = voxel_Q_[gr_pt];
+      if (!trajComm_.Master()) {
+        vxyz.resize( N_main_solvent_[gr_pt]*3 );
+        vq.resize( N_main_solvent_[gr_pt]*4 );
+      }
+      trajComm_.MasterBcast( &vxyz[0], N_main_solvent_[gr_pt]*3, MPI_FLOAT );
+      trajComm_.MasterBcast( &vq[0],   N_main_solvent_[gr_pt]*4, MPI_FLOAT );
+    }
   }
-  trajComm_.MasterBcast( &watCountSubvol_, 1, MPI_INT );
+/*  if (trajComm_.Master()) {
+    for (int rank = 1; rank < trajComm_.Size(); rank++) {
+      // Send to rank
+      rprintf("DEBUG: Master sending voxel arrays from %i to %i for rank %i\n", process_start[rank], process_stop[rank], rank);
+      for (int gr_pt = process_start[rank]; gr_pt < process_stop[rank]; gr_pt++)
+      {
+        if (gr_pt == process_start[rank]) rprintf("DEBUG: Point %i (%i)\n", gr_pt,N_main_solvent_[gr_pt] );
+        Farray const& vxyz = voxel_xyz_[gr_pt];
+        trajComm_.Send( &vxyz[0], N_main_solvent_[gr_pt]*3, MPI_FLOAT, rank, 10101+gr_pt ); // TODO tag
+        Farray const& vq = voxel_Q_[gr_pt];
+        trajComm_.Send( &vq[0],   N_main_solvent_[gr_pt]*4, MPI_FLOAT, rank, 10102+gr_pt ); // TODO tag
+      }
+    }
+  } else {
+    // Receive from master
+    rprintf("DEBUG: Rank %i receive voxel arrays from master (%i to %i)\n", trajComm_.Rank(), my_start, my_stop);
+    for (int gr_pt = my_start; gr_pt < my_stop; gr_pt++) {
+      rprintf("DEBUG: Point %i (%i)\n", gr_pt,N_main_solvent_[gr_pt] );
+      Farray& vxyz = voxel_xyz_[gr_pt];
+      vxyz.resize( N_main_solvent_[gr_pt]*3 );
+      trajComm_.Recv( &vxyz[0], N_main_solvent_[gr_pt]*3, MPI_FLOAT, 0, 10101+gr_pt ); // TODO tag
+      Farray& vq = voxel_Q_[gr_pt];
+      vq.resize( N_main_solvent_[gr_pt]*4 );
+      trajComm_.Recv( &vq[0],   N_main_solvent_[gr_pt]*4, MPI_FLOAT, 0, 10102+gr_pt ); // TODO tag
+    }
+  }*/
+  // Zero the grids
+  for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++) {
+    dTStrans_->SetGrid(gr_pt, 0);
+    dTSsix_->SetGrid(gr_pt, 0);
+  }
+  // Do the translational entropy calculation
+  int nwts = CalcTranslationalEntropy(my_start, my_stop);
+  //rprintf("DEBUG: nwts= %i\n", nwts);
+  // Combine nwts
+  trajComm_.ReduceMaster( &watCountSubvol_, &nwts, 1, MPI_INT, MPI_SUM );
+  // Sync grids back to master.
+  // NOTE: The DataSet_3D Sync routines do not use 'total' or 'rank_frames'
+  //       arguments currently; just sums up grid to master with
+  //       ReduceMaster.
+  size_t fake_total = 0;
+  std::vector<int> fake_rank_frames(trajComm_.Size(), 0);
+  dTStrans_->Sync(fake_total, fake_rank_frames, trajComm_);
+  dTSsix_->Sync(fake_total, fake_rank_frames, trajComm_);
+//  if (trajComm_.Rank() == 0) {
+//    watCountSubvol_ = CalcTranslationalEntropy(0, MAX_GRID_PT_);
+//  }
+//  trajComm_.MasterBcast( &watCountSubvol_, 1, MPI_INT );
   return 0;
 }
 #endif
@@ -1860,7 +1934,7 @@ int Action_GIST::CalcTranslationalEntropy(unsigned int gridPointStart, unsigned 
   for (unsigned int i_ds = 0; i_ds < solventInfo_.unique_elements.size(); ++i_ds) {
     ScaleDataSet(*atomDensitySets_[i_ds], 1.0 / (double(NFRAME_)*Vvox*BULK_DENS_*double(solventInfo_.element_count[i_ds])));
   }
-  ParallelProgress te_progress( MAX_GRID_PT_ );
+  ParallelProgress te_progress( gridPointEnd - gridPointStart );
   int n_finished = 0;
 # ifdef _OPENMP
 # pragma omp parallel shared(n_finished) firstprivate(te_progress)
@@ -1927,6 +2001,9 @@ int Action_GIST::CalcTranslationalEntropy(unsigned int gridPointStart, unsigned 
             //mprintf("DEBUG1: dbl=%f NNs=%f\n", dbl, NNs);
           }
         } // END loop over all waters for this voxel
+#       ifdef DEBUG_GIST
+        if (debugOut_ != 0) debugOut_->Printf("strans_norm= %12.4f  ssix_norm= %12.4f\n", strans_norm, ssix_norm);
+#       endif
 #       ifdef _OPENMP
 #       pragma omp critical
 #       endif

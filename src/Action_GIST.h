@@ -28,6 +28,7 @@ class Action_GIST : public Action {
     #ifdef CUDA
     ~Action_GIST() {delete[] this->solvent_;}
     #endif
+    //~Action_GIST(); // DEBUG MPI
     DispatchObject* Alloc() const { return (DispatchObject*)new Action_GIST(); }
     void Help() const;
   private:
