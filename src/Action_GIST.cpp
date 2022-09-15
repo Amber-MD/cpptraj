@@ -1207,6 +1207,11 @@ void Action_GIST::Order(Frame const& frameIn) {
     Vec3 WAT[4];
     for (int ii = 0; ii < 4; ii++)
       WAT[ii].Zero();
+#   ifdef DEBUG_GIST
+    int IDX[4];
+    for (int ii = 0; ii < 4; ii++)
+      IDX[ii] = -1;
+#   endif
     double d1 = maxD_;
     double d2 = maxD_;
     double d3 = maxD_;
@@ -1221,15 +1226,27 @@ void Action_GIST::Order(Frame const& frameIn) {
         if        (dist2 < d1) {
           d4 = d3; d3 = d2; d2 = d1; d1 = dist2;
           WAT[3] = WAT[2]; WAT[2] = WAT[1]; WAT[1] = WAT[0]; WAT[0] = XYZ2;
+#         ifdef DEBUG_GIST
+          IDX[3] = IDX[2]; IDX[2] = IDX[1]; IDX[1] = IDX[0]; IDX[0] = oidx2;
+#         endif
         } else if (dist2 < d2) {
           d4 = d3; d3 = d2; d2 = dist2;
           WAT[3] = WAT[2]; WAT[2] = WAT[1]; WAT[1] = XYZ2;
+#         ifdef DEBUG_GIST
+          IDX[3] = IDX[2]; IDX[2] = IDX[1]; IDX[1] = oidx2;
+#         endif
         } else if (dist2 < d3) {
           d4 = d3; d3 = dist2;
           WAT[3] = WAT[2]; WAT[2] = XYZ2;
+#         ifdef DEBUG_GIST
+          IDX[3] = IDX[2]; IDX[2] = oidx2;
+#         endif
         } else if (dist2 < d4) {
           d4 = dist2;
           WAT[3] = XYZ2;
+#         ifdef DEBUG_GIST
+          IDX[3] = oidx2;
+#         endif
         }
       }
     }
@@ -1247,7 +1264,10 @@ void Action_GIST::Order(Frame const& frameIn) {
     }
     order_->UpdateVoxel(voxel1, (1.0 - (3.0/8)*sum));
 #   ifdef DEBUG_GIST
-    if (debugOut_ != 0) debugOut_->Printf("Order: gidx= %8u  oidx1=%8i  voxel1= %8i  XYZ1={%12.4f %12.4f %12.4f}  sum= %g\n", gidx, oidx1, voxel1, XYZ1[0], XYZ1[1], XYZ1[2], sum);
+    if (debugOut_ != 0) {
+      debugOut_->Printf("Order: gidx= %8u  oidx1=%8i  voxel1= %8i  XYZ1={%12.4f %12.4f %12.4f}  sum= %g\n", gidx, oidx1, voxel1, XYZ1[0], XYZ1[1], XYZ1[2], sum);
+      debugOut_->Printf("Order indices: %8i %8i %8i %8i\n", IDX[0], IDX[1], IDX[2], IDX[3]);
+    }
 #   endif
   } // END loop over all solvent molecules
 }
