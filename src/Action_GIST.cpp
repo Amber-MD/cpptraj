@@ -1263,6 +1263,8 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   // Move the grid if needed
   if (moveMask_.MaskStringSet()) {
     mover_.MoveGrid(frm.Frm(), moveMask_, static_cast<DataSet_3D&>( *masterGrid_ ));
+    // Set border grid center to regular grid center
+    borderGrid_.SetOriginFromCenter( masterGrid_->Bin().GridCenter() );
     if (mover_.RotationHappened()) {
 #     ifdef DEBUG_GIST
       mover_.RotMatrix().Print("RotMatrix");
