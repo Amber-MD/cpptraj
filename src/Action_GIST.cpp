@@ -1381,9 +1381,10 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
               H1_wat = H1_XYZ - O_XYZ;
               H2_wat = H2_XYZ - O_XYZ;
             } else {
-              voxel_xyz_[voxel].push_back( mol_center[0] );
-              voxel_xyz_[voxel].push_back( mol_center[1] );
-              voxel_xyz_[voxel].push_back( mol_center[2] );
+              Vec3 vxyz = mol_center - gridBin_->GridCenter();
+              voxel_xyz_[voxel].push_back( vxyz[0] );
+              voxel_xyz_[voxel].push_back( vxyz[1] );
+              voxel_xyz_[voxel].push_back( vxyz[2] );
 #             ifdef DEBUG_GIST
               if (debugOut_ != 0) debugOut_->Printf("\t\tVXYZ %12.4f %12.4f %12.4f\n", mol_center[0], mol_center[1], mol_center[2]);
 #             endif
