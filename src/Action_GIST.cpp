@@ -1221,8 +1221,12 @@ void Action_GIST::Order(Frame const& frameIn) {
       int oidx2 = O_idxs_[sidx2];
       if (isMainSolvent(oidx2) && oidx2 != oidx1)
       {
-        const double* XYZ2 = frameIn.XYZ( oidx2 );
-        double dist2 = DIST2_NoImage( XYZ1.Dptr(), XYZ2 );
+        // Get coordinates of closest image of other solvent to this solvent
+        double dist2;
+        Vec3 XYZ2 = MinImagedCoords(dist2, imageOpt_.ImagingType(),
+                                    XYZ1, Vec3(frameIn.XYZ(oidx2)), frameIn.BoxCrd());
+//        const double* XYZ2 = frameIn.XYZ( oidx2 );
+//        double dist2 = DIST2_NoImage( XYZ1.Dptr(), XYZ2 );
         if        (dist2 < d1) {
           d4 = d3; d3 = d2; d2 = d1; d1 = dist2;
           WAT[3] = WAT[2]; WAT[2] = WAT[1]; WAT[1] = WAT[0]; WAT[0] = XYZ2;

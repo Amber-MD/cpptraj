@@ -10,6 +10,9 @@ class Box;
 /// \return Vector representing minimum imaged distance between two points.
 Vec3 MinImagedVec(Vec3 const&, Vec3 const&, Matrix_3x3 const&, Matrix_3x3 const&);
 
+/// \return Coordinates of minimum image of a2 to a1
+Vec3 MinImagedCoords(double&, ImageOption::Type, Vec3 const&, Vec3 const&, Box const&);
+
 /// \return Distance squared between points in fractional space, general unit cell imaging.
 double DIST2_ImageNonOrthoRecip(Vec3 const&, Vec3 const&, double, int*, Matrix_3x3 const&);
 /// \return Distance squared between points in Cartesian space, general unit cell imaging.

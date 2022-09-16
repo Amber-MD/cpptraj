@@ -5,14 +5,14 @@
 /** \param a1 First set of XYZ coordinates.
   * \param a2 Second set of XYZ coordinates.
   * \param ucell Unit cell vectors.
-  * \param recip Fractional cell vectors.
+  * \param frac Fractional cell vectors.
   * \return the shortest vector from a1 to a2. 
   */
 Vec3 MinImagedVec(Vec3 const& a1, Vec3 const& a2,
-                  Matrix_3x3 const& ucell, Matrix_3x3 const& recip)
+                  Matrix_3x3 const& ucell, Matrix_3x3 const& frac)
 {
-  Vec3 f1 = recip * a1;
-  Vec3 f2 = recip * a2;
+  Vec3 f1 = frac * a1;
+  Vec3 f2 = frac * a2;
 //  mprintf("DEBUG: a1= %g %g %g, f1= %g %g %g\n", a1[0], a1[1], a1[2], f1[0], f1[1], f1[2]);
 //  mprintf("DEBUG: a2= %g %g %g, f2= %g %g %g\n", a2[0], a2[1], a2[2], f2[0], f2[1], f2[2]);
   for (unsigned int i = 0; i < 3; i++) {
@@ -42,6 +42,50 @@ Vec3 MinImagedVec(Vec3 const& a1, Vec3 const& a2,
     }
   }
   return minVec;
+}
+
+/** \param dist2 Distance from a1 to minimum image of a2.
+  * \param itype Imaging type for current unit cell.
+  * \param a1 First set of XYZ coordinates.
+  * \param a2 Second set of XYZ coordinates.
+  * \param box Unit cell parameters.
+  * \return Minimum imaged coordinates of a2 to a1.
+  */
+Vec3 MinImagedCoords(double& dist2, ImageOption::Type itype,
+                     Vec3 const& a1, Vec3 const& a2, Box const& box)
+{
+  Vec3 minVec;
+  if (itype == ImageOption::NONORTHO) {
+    minVec = MinImagedVec(a1, a2, box.UnitCell(), box.FracCell());
+  } else if (itype == ImageOption::ORTHO) {
+    // TODO separate routine for ortho minvec
+    minVec = a2 - a1;
+    // Get rid of multiples of box lengths
+    while (minVec[0] >  box.Param(Box::X)) minVec[0] -= box.Param(Box::X);
+    while (minVec[0] < -box.Param(Box::X)) minVec[0] += box.Param(Box::X);
+
+    while (minVec[1] >  box.Param(Box::Y)) minVec[1] -= box.Param(Box::Y);
+    while (minVec[1] < -box.Param(Box::Y)) minVec[1] += box.Param(Box::Y);
+
+    while (minVec[2] >  box.Param(Box::Z)) minVec[2] -= box.Param(Box::Z);
+    while (minVec[2] < -box.Param(Box::Z)) minVec[2] += box.Param(Box::Z);
+
+    // Figure out which direction is the shorter one for each dimension
+    for (int idx = 0; idx < 3; idx++) {
+      Box::ParamType ptype = (Box::ParamType)idx; // Should be X, Y, or Z
+      if (minVec[idx] > 0) {
+        double other = minVec[idx] - box.Param(ptype);
+        if (-other < minVec[idx]) minVec[idx] = other;
+      } else {
+        double other = box.Param(ptype) + minVec[idx];
+        if (other < -minVec[idx]) minVec[idx] = other;
+      }
+    }
+  } else {
+    minVec = a2 - a1;
+  }
+  dist2 = minVec.Magnitude2();
+  return a1 + minVec;
 }
 
 /** NON-ORTHORHOMBIC CASE: find shortest distance in periodic reference
