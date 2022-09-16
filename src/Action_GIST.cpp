@@ -1193,6 +1193,21 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
 # endif
 }
 
+/** GIST order calculation with pair list. */
+void Action_GIST::Order_PL(Frame const& frameIn) {
+  int retVel = pairList_.CreatePairlist( frameIn,
+                                         frameIn.BoxCrd().UnitCell(),
+                                         frameIn.BoxCrd().FracCell(),
+                                         AtomMask(O_idxs_, atom_voxel_.size()) );
+
+  if (retVel < 0) {
+    mprinterr("Error: Grid setup failed for order calculation.\n");
+    return;
+  }
+  // Loop over all solvent molecules
+  
+  
+
 /** GIST order calculation. */
 void Action_GIST::Order(Frame const& frameIn) {
   // Loop over all solvent molecules that are on the grid
