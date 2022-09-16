@@ -60,19 +60,15 @@ Vec3 MinImagedCoords(double& dist2, ImageOption::Type itype,
   } else if (itype == ImageOption::ORTHO) {
     // TODO separate routine for ortho minvec
     minVec = a2 - a1;
-    // Get rid of multiples of box lengths
-    while (minVec[0] >  box.Param(Box::X)) minVec[0] -= box.Param(Box::X);
-    while (minVec[0] < -box.Param(Box::X)) minVec[0] += box.Param(Box::X);
 
-    while (minVec[1] >  box.Param(Box::Y)) minVec[1] -= box.Param(Box::Y);
-    while (minVec[1] < -box.Param(Box::Y)) minVec[1] += box.Param(Box::Y);
-
-    while (minVec[2] >  box.Param(Box::Z)) minVec[2] -= box.Param(Box::Z);
-    while (minVec[2] < -box.Param(Box::Z)) minVec[2] += box.Param(Box::Z);
-
-    // Figure out which direction is the shorter one for each dimension
     for (int idx = 0; idx < 3; idx++) {
       Box::ParamType ptype = (Box::ParamType)idx; // Should be X, Y, or Z
+
+      // Get rid of multiples of box lengths
+      while (minVec[idx] >  box.Param(ptype)) minVec[idx] -= box.Param(ptype);
+      while (minVec[idx] < -box.Param(ptype)) minVec[idx] += box.Param(ptype);
+
+      // Figure out which direction is the shorter one for each dimension
       if (minVec[idx] > 0) {
         double other = minVec[idx] - box.Param(ptype);
         if (-other < minVec[idx]) minVec[idx] = other;
