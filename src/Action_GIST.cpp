@@ -1287,11 +1287,11 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   atom_voxel_.assign( frm.Frm().Natom(), OFF_GRID_ );
 
   // Move the grid if needed
-  if (moveMask_.MaskStringSet()) {
+  if (mover_.NeedsMove()) {
     mover_.MoveGrid(frm.Frm(), moveMask_, static_cast<DataSet_3D&>( *masterGrid_ ));
     // Set border grid center to regular grid center
     borderGrid_.SetOriginFromCenter( masterGrid_->Bin().GridCenter() );
-    if (mover_.RotationHappened()) {
+    //if (mover_.RotationHappened()) {
 #     ifdef DEBUG_GIST
       mover_.RotMatrix().Print("RotMatrix");
 #     endif
@@ -1299,7 +1299,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
       borderGrid_.Assign_UnitCell( borderGridUcell0_ );
       // Rotate the border grid the same way as the regular grid
       borderGrid_.RotateGrid( mover_.RotMatrix() );
-    }
+    //}
   }
 
   if (!skipE_) {
@@ -1390,7 +1390,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
           // Record XYZ coords of water atoms (nonEP) in voxel TODO need EP?
           if (!skipS_) {
             Vec3 H1_wat, H2_wat;
-            if (mover_.RotationHappened()) {
+            if (mover_.NeedsMove()) {
               // Need to rotate into reference frame of the rotated grid.
               // Pivot point is the center of the grid.
               Vec3 ongrid = mover_.RotMatrix().TransposeMult( mol_center - gridBin_->GridCenter() );
@@ -1407,10 +1407,10 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
               H1_wat = H1_XYZ - O_XYZ;
               H2_wat = H2_XYZ - O_XYZ;
             } else {
-              Vec3 vxyz = mol_center - gridBin_->GridCenter();
-              voxel_xyz_[voxel].push_back( vxyz[0] );
-              voxel_xyz_[voxel].push_back( vxyz[1] );
-              voxel_xyz_[voxel].push_back( vxyz[2] );
+              //Vec3 vxyz = mol_center - gridBin_->GridCenter();
+              voxel_xyz_[voxel].push_back( mol_center[0] );
+              voxel_xyz_[voxel].push_back( mol_center[1] );
+              voxel_xyz_[voxel].push_back( mol_center[2] );
 #             ifdef DEBUG_GIST
               if (debugOut_ != 0) debugOut_->Printf("\t\tVXYZ %12.4f %12.4f %12.4f\n", mol_center[0], mol_center[1], mol_center[2]);
 #             endif
@@ -1533,7 +1533,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
           double DPX = 0.0;
           double DPY = 0.0;
           double DPZ = 0.0;
-          if (mover_.RotationHappened()) {
+          if (mover_.NeedsMove()) {
             // Need to rotate into reference frame of the rotated grid.
             // Pivot point is the center of the grid.
             // TODO consolidate this rotation with the one for entropy above?

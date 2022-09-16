@@ -8,6 +8,7 @@ using namespace Cpptraj;
 /** CONSTRUCTOR. */
 GridMover::GridMover() :
   gridMoveType_(NO_MOVE),
+  Rot_(1.0, 1.0, 1.0), // Default no rotation
   firstFrame_(true),
   x_align_(false),
   doRotate_(false)
