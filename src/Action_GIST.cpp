@@ -1253,7 +1253,7 @@ void Action_GIST::Order(Frame const& frameIn) {
 #         endif
         }
       }
-    }
+    } // END loop over all solvent molecules
     // Compute the tetrahedral order parameter
     double sum = 0.0;
     for (int mol1 = 0; mol1 < 3; mol1++) {
@@ -1273,7 +1273,7 @@ void Action_GIST::Order(Frame const& frameIn) {
       debugOut_->Printf("Order indices: %8i %8i %8i %8i\n", IDX[0], IDX[1], IDX[2], IDX[3]);
     }
 #   endif
-  } // END loop over all solvent molecules
+  } // END loop over all solvent molecules on the grid
 }
 
 /** GIST action */
