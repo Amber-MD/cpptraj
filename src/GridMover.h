@@ -33,6 +33,8 @@ class GridMover {
     Matrix_3x3 const& RotMatrix() const { return Rot_; }
     /// \return true if rotation happened last MoveGrid call
     bool RotationHappened() const { return doRotate_; }
+    /// \return true if grid needs to be moved
+    bool NeedsMove() const { return (gridMoveType_ != NO_MOVE); }
   private:
     /// Set first frame selected coords (tgt_) and original grid unit cell vectors (tgtUcell_).
     int setTgt(Frame const&, Matrix_3x3 const&, AtomMask const&);
