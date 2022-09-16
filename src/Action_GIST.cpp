@@ -472,7 +472,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     mprintf("\tVoxel occupancy will be determined using molecule center of mass.\n");
   else
     mprintf("\tVoxel occupancy will be determined using the first atom.\n");
-  if (moveMask_.MaskStringSet())
+  if (mover_.NeedsMove())
     mover_.MoverInfo(moveMask_);
   mprintf("#Please cite these papers if you use GIST results in a publication:\n"
           "#    Steven Ramsey, Crystal Nguyen, Romelia Salomon-Ferrer, Ross C. Walker, Michael K. Gilson, and Tom Kurtzman. J. Comp. Chem. 37 (21) 2016\n"
@@ -639,7 +639,7 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   }
 
   // Set up movement if needed
-  if (moveMask_.MaskStringSet()) {
+  if (mover_.NeedsMove()) {
     if (setup.Top().SetupIntegerMask( moveMask_ )) {
       mprinterr("Error: Could not set up grid move mask.\n");
       return Action::ERR;
@@ -1407,7 +1407,6 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
               H1_wat = H1_XYZ - O_XYZ;
               H2_wat = H2_XYZ - O_XYZ;
             } else {
-              //Vec3 vxyz = mol_center - gridBin_->GridCenter();
               voxel_xyz_[voxel].push_back( mol_center[0] );
               voxel_xyz_[voxel].push_back( mol_center[1] );
               voxel_xyz_[voxel].push_back( mol_center[2] );
