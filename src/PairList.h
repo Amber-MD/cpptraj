@@ -43,6 +43,8 @@ class PairList {
     Vec3 const& TransVec(int t)    const { return translateVec_[t];  }
     /// \return Array containing wrapped fractional coords.
     Varray const& FracCoords()     const { return Frac_;  }
+    /// \return Cell that atom corresponding to index is in.
+    int CellOfIndex(int atomIdx) const { return cell_of_index_[atomIdx]; }
 #   ifdef DEBUG_PAIRLIST
     int NX() const { return nGridX_; }
     int NY() const { return nGridY_; }
@@ -60,6 +62,7 @@ class PairList {
     /// Calculate cell index based on given coords and add to cell
     inline int GridAtom(int, Vec3 const&, Vec3 const&);
 
+    Iarray cell_of_index_;    ///< Hold which cell atom at specified index is in.
     Carray cells_;            ///< Hold all cells in grid
     Vec3 translateVec_[18];   ///< Translate vector array
     Varray Frac_;             ///< Hold fractional coords back in primary cell.
