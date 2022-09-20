@@ -70,6 +70,8 @@ Action_GIST::Action_GIST() :
   griddim_(),
   masterGrid_(0),
   gridBin_(0),
+  use_PL_(true),
+  PL_active_(false),
   rigidAtomNames_(3),
   Esw_(0),
   Eww_(0),
@@ -117,7 +119,8 @@ Action_GIST::Action_GIST() :
 
 /** GIST help */
 void Action_GIST::Help() const {
-  mprintf("\t[doorder] [doeij] [skipE] [skipS] [refdens <rdval>] [temp <tval>]\n"
+  mprintf("\t[doorder [nopl]]\n"
+          "\t[doeij] [skipE] [skipS] [refdens <rdval>] [temp <tval>]\n"
           "\t[noimage] [gridcntr <xval> <yval> <zval>]\n"
           "\t[griddim <nx> <ny> <nz>] [gridspacn <spaceval>] [neighborcut <ncut>]\n"
           "\t[prefix <filename prefix>] [ext <grid extension>] [out <output suffix>]\n"
@@ -197,6 +200,11 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   nNnSearchLayers_ = actionArgs.getKeyInt("nnsearchlayers", 1);
   imageOpt_.InitImaging( !(actionArgs.hasKey("noimage")), actionArgs.hasKey("nonortho") );
   doOrder_ = actionArgs.hasKey("doorder");
+  if (doOrder_) {
+    use_PL_ = !actionArgs.hasKey("nopl");
+  } else {
+    use_PL_ = false;
+  }
   doEij_ = actionArgs.hasKey("doeij");
   useCom_ = !actionArgs.hasKey("nocom");
 #ifdef CUDA
@@ -434,9 +442,13 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   mprintf("\tOutput float format string= '%s', output integer format string= '%s'\n", fltFmt_.fmt(), intFmt_.fmt());
   mprintf("\tGIST info written to '%s'\n", infofile_->Filename().full());
   mprintf("\tName for data sets: %s\n", dsname_.c_str());
-  if (doOrder_)
+  if (doOrder_) {
     mprintf("\tDoing order calculation.\n");
-  else
+    if (use_PL_)
+      mprintf("\t  Using pair list if possible.\n");
+    else
+      mprintf("\t  Not using pair list.\n");
+  } else
     mprintf("\tSkipping order calculation.\n");
   if (skipE_)
     mprintf("\tSkipping energy calculation.\n");
@@ -620,6 +632,21 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
     mprintf("Warning: Less than 5 solvent molecules. Cannot perform order calculation.\n");
     doOrder_ = false;
   }
+  PL_active_ = false;
+  if (doOrder_ && use_PL_) {
+    if (imageOpt_.ImagingEnabled()) {
+      // TODO make cutoff user specifiable
+      if (pairList_.InitPairList( 8.0, 0.1, debug_ )) {
+        mprinterr("Error: Could not init pair list.\n");
+        return Action::ERR;
+      }
+      if (pairList_.SetupPairList( setup.CoordInfo().TrajBox() )) {
+        mprinterr("Error: Could not setup pair list.\n");
+        return Action::ERR;
+      }
+      PL_active_ = true;
+    }
+  } 
   // Allocate space for saving indices of water atoms that are on the grid
   // Estimate how many solvent molecules can possibly fit onto the grid.
   // Add some extra voxels as a buffer.
@@ -1193,9 +1220,43 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
 # endif
 }
 
+/// For keeping track of the closest coords
+#ifdef DEBUG_GIST
+static inline void insertDist2(double dist2, Vec3 const& XYZ2, double* D, Vec3* WAT, int oidx2, int* IDX)
+#else
+static inline void insertDist2(double dist2, Vec3 const& XYZ2, double* D, Vec3* WAT)
+#endif
+{
+        if        (dist2 < D[0]) {
+          D[3] = D[2]; D[2] = D[1]; D[1] = D[0]; D[0] = dist2;
+          WAT[3] = WAT[2]; WAT[2] = WAT[1]; WAT[1] = WAT[0]; WAT[0] = XYZ2;
+#         ifdef DEBUG_GIST
+          IDX[3] = IDX[2]; IDX[2] = IDX[1]; IDX[1] = IDX[0]; IDX[0] = oidx2;
+#         endif
+        } else if (dist2 < D[1]) {
+          D[3] = D[2]; D[2] = D[1]; D[1] = dist2;
+          WAT[3] = WAT[2]; WAT[2] = WAT[1]; WAT[1] = XYZ2;
+#         ifdef DEBUG_GIST
+          IDX[3] = IDX[2]; IDX[2] = IDX[1]; IDX[1] = oidx2;
+#         endif
+        } else if (dist2 < D[2]) {
+          D[3] = D[2]; D[2] = dist2;
+          WAT[3] = WAT[2]; WAT[2] = XYZ2;
+#         ifdef DEBUG_GIST
+          IDX[3] = IDX[2]; IDX[2] = oidx2;
+#         endif
+        } else if (dist2 < D[3]) {
+          D[3] = dist2;
+          WAT[3] = XYZ2;
+#         ifdef DEBUG_GIST
+          IDX[3] = oidx2;
+#         endif
+        }
+}
+
 /** GIST order calculation with pair list. */
 void Action_GIST::Order_PL(Frame const& frameIn) {
-  int retVel = pairList_.CreatePairlist( frameIn,
+  int retVel = pairList_.CreatePairList( frameIn,
                                          frameIn.BoxCrd().UnitCell(),
                                          frameIn.BoxCrd().FracCell(),
                                          AtomMask(O_idxs_, atom_voxel_.size()) );
@@ -1204,10 +1265,94 @@ void Action_GIST::Order_PL(Frame const& frameIn) {
     mprinterr("Error: Grid setup failed for order calculation.\n");
     return;
   }
-  // Loop over all solvent molecules
+  // Loop over all solvent molecules that are on the grid
+  for (int sidx1 = 0; sidx1 < (int)O_idxs_.size(); sidx1++)
+  {
+    int oidx1 = O_idxs_[sidx1];
+    int voxel1 = atom_voxel_[oidx1];
+    if (isMainSolvent(oidx1) && voxel1 != OFF_GRID_) {
+      // Solvent 1 is main solvent and on the grid.
+      // Get the unit cell corresponding to sidx1.
+      int cidx = pairList_.CellOfIndex(sidx1);
+      PairList::CellType const& thisCell = pairList_.Cell( cidx );
+      // cellList contains this cell index and all neighbors
+      PairList::Iarray const& cellList = thisCell.CellList();
+      // transList contains index to translation for the neighbors
+      PairList::Iarray const& transList = thisCell.TransList();
+      // Get imaged coords of this atom TODO improve the efficiency
+      Vec3 XYZ1(0.0);
+      for (PairList::CellType::const_iterator it0 = thisCell.begin();
+                                              it0 != thisCell.end(); ++it0)
+      {
+        if (it0->Idx() == sidx1) {
+          XYZ1 = it0->ImageCoords();
+          break;
+        }
+      }
+      /// For tracking the closest distances to this solvent
+      std::vector<Vec3> WAT(4, 0.0);
+      std::vector<double> DIST2array(4, maxD_);
+#     ifdef DEBUG_GIST
+      std::vector<int> IDX(4, -1);
+#     endif
+      // Loop over other atoms of thisCell.
+      for (PairList::CellType::const_iterator it0 = thisCell.begin();
+                                              it0 != thisCell.end(); ++it0)
+      {
+        if (it0->Idx() != sidx1) {
+          Vec3 const& XYZ2 = it0->ImageCoords();
+          Vec3 dxyz = XYZ2 - XYZ1;
+          double dist2 = dxyz.Magnitude2();
+#         ifdef DEBUG_GIST
+          insertDist2( dist2, XYZ2, &DIST2array[0], &WAT[0], O_idxs_[it0->Idx()], &IDX[0] );
+#         else
+          insertDist2( dist2, XYZ2, &DIST2array[0], &WAT[0] );
+#         endif
+        }
+      }
+      // Loop over all neighbor cells
+      for (unsigned int nidx = 1; nidx != cellList.size(); nidx++)
+      {
+        PairList::CellType const& nbrCell = pairList_.Cell( cellList[nidx] );
+        // Translate vector for neighbor cell
+        Vec3 const& tVec = pairList_.TransVec( transList[nidx] );
+        // Loop over every atom in nbrCell
+        for (PairList::CellType::const_iterator it1 = nbrCell.begin();
+                                                it1 != nbrCell.end(); ++it1)
+        {
+          Vec3 XYZ2 = it1->ImageCoords() + tVec;
+          Vec3 dxyz = XYZ2 - XYZ1;
+          double dist2 = dxyz.Magnitude2();
+#         ifdef DEBUG_GIST
+          insertDist2( dist2, XYZ2, &DIST2array[0], &WAT[0], O_idxs_[it1->Idx()], &IDX[0] );
+#         else
+          insertDist2( dist2, XYZ2, &DIST2array[0], &WAT[0] );
+#         endif
+        }
+      } // END loop over all neighbor cells
+      // Compute the tetrahedral order parameter
+      double sum = 0.0;
+      for (int mol1 = 0; mol1 < 3; mol1++) {
+        for (int mol2 = mol1 + 1; mol2 < 4; mol2++) {
+          Vec3 v1 = WAT[mol1] - XYZ1;
+          Vec3 v2 = WAT[mol2] - XYZ1;
+          double r1 = v1.Magnitude2();
+          double r2 = v2.Magnitude2();
+          double cos = (v1* v2) / sqrt(r1 * r2);
+          sum += (cos + 1.0/3)*(cos + 1.0/3);
+        }
+      }
+      order_->UpdateVoxel(voxel1, (1.0 - (3.0/8)*sum));
+#     ifdef DEBUG_GIST
+      if (debugOut_ != 0) {
+        debugOut_->Printf("Order: gidx= %8u  oidx1=%8i  voxel1= %8i  XYZ1={%12.4f %12.4f %12.4f}  sum= %g\n", gidx, oidx1, voxel1, XYZ1[0], XYZ1[1], XYZ1[2], sum);
+        debugOut_->Printf("Order indices: %8i %8i %8i %8i\n", IDX[0], IDX[1], IDX[2], IDX[3]);
+      }
+#     endif
+    } // END main solvent on grid
+  } // END loop over solvent molecules
+}
   
-  
-
 /** GIST order calculation. */
 void Action_GIST::Order(Frame const& frameIn) {
   // Loop over all solvent molecules that are on the grid
@@ -1624,7 +1769,12 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   //       the nonbond calc can modify the on-grid coordinates (for minimum
   //       image convention when cell is non-orthogonal).
   gist_order_.Start();
-  if (doOrder_) Order(frm.Frm());
+  if (doOrder_) {
+    if (PL_active_)
+      Order_PL(frm.Frm());
+    else
+      Order(frm.Frm());
+  }
   gist_order_.Stop();
 # endif
   // Do nonbond energy calc if not skipping energy

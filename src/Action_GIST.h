@@ -7,6 +7,7 @@
 #include "EwaldOptions.h"
 #include "CharMask.h"
 #include "GridBin.h"
+#include "PairList.h"
 #include <map>
 #ifdef CUDA
 #include "cuda_kernels/GistCudaSetup.cuh"
@@ -95,6 +96,7 @@ class Action_GIST : public Action {
     static inline void Ecalc(double, double, double, NonbondType const&, double&, double&);
     void NonbondEnergy_pme(Frame const&);
     void NonbondEnergy(Frame const&, Topology const&);
+    void Order_PL(Frame const&);
     void Order(Frame const&);
     // void SumEVV();
     void CollectEnergies();
@@ -196,6 +198,10 @@ class Action_GIST : public Action {
 
     Cpptraj::GridMover mover_; ///< Used to move the master grid if necessary
     AtomMask moveMask_;        ///< Select atoms used to move the grid if necessary
+
+    PairList pairList_;        ///< Pair list for order calc
+    bool use_PL_;              ///< If true, user wants to use pair list
+    bool PL_active_;           ///< If true, pairlist can be used
 
     std::vector<std::string> rigidAtomNames_;
     int rigidAtomIndices_[3]; ///< the 3 atoms that define the orientation of a solvent molecule;
