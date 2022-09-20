@@ -1345,7 +1345,7 @@ void Action_GIST::Order_PL(Frame const& frameIn) {
       order_->UpdateVoxel(voxel1, (1.0 - (3.0/8)*sum));
 #     ifdef DEBUG_GIST
       if (debugOut_ != 0) {
-        debugOut_->Printf("Order: gidx= %8u  oidx1=%8i  voxel1= %8i  XYZ1={%12.4f %12.4f %12.4f}  sum= %g\n", gidx, oidx1, voxel1, XYZ1[0], XYZ1[1], XYZ1[2], sum);
+        debugOut_->Printf("Order: gidx= %8u  oidx1=%8i  voxel1= %8i  XYZ1={%12.4f %12.4f %12.4f}  sum= %g\n", sidx1, oidx1, voxel1, XYZ1[0], XYZ1[1], XYZ1[2], sum);
         debugOut_->Printf("Order indices: %8i %8i %8i %8i\n", IDX[0], IDX[1], IDX[2], IDX[3]);
       }
 #     endif
