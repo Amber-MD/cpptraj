@@ -25702,7 +25702,11 @@ gist
 
 \end_inset
 
- [doorder] [doeij] [skipE] [skipS] [refdens <rdval>] [temp <tval>]
+ [doorder [nopl] [plcut <plcut>]] 
+\end_layout
+
+\begin_layout LyX-Code
+     [doeij] [skipE] [skipS] [refdens <rdval>] [temp <tval>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -25759,6 +25763,21 @@ literal "true"
  for each voxel.
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+[nopl] If specified, do not use the pair list for the order calculation
+ (may be much slower).
+\end_layout
+
+\begin_layout Description
+[plcut
+\begin_inset space ~
+\end_inset
+
+<plcut>] Pair list cutoff for order calculation (default 10.0 Ang.).
+\end_layout
+
+\end_deeper
 \begin_layout Description
 
 \series bold
