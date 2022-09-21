@@ -72,6 +72,7 @@ Action_GIST::Action_GIST() :
   gridBin_(0),
   use_PL_(true),
   PL_active_(false),
+  PL_cut_(10.0),
   rigidAtomNames_(3),
   Esw_(0),
   Eww_(0),
@@ -119,7 +120,7 @@ Action_GIST::Action_GIST() :
 
 /** GIST help */
 void Action_GIST::Help() const {
-  mprintf("\t[doorder [nopl]]\n"
+  mprintf("\t[doorder [nopl] [plcut <plcut>]]\n"
           "\t[doeij] [skipE] [skipS] [refdens <rdval>] [temp <tval>]\n"
           "\t[noimage] [gridcntr <xval> <yval> <zval>]\n"
           "\t[griddim <nx> <ny> <nz>] [gridspacn <spaceval>] [neighborcut <ncut>]\n"
@@ -202,6 +203,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   doOrder_ = actionArgs.hasKey("doorder");
   if (doOrder_) {
     use_PL_ = !actionArgs.hasKey("nopl");
+    PL_cut_ = actionArgs.getKeyDouble("plcut", 10.0);
   } else {
     use_PL_ = false;
   }
@@ -444,9 +446,10 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   mprintf("\tName for data sets: %s\n", dsname_.c_str());
   if (doOrder_) {
     mprintf("\tDoing order calculation.\n");
-    if (use_PL_)
+    if (use_PL_) {
       mprintf("\t  Using pair list if possible.\n");
-    else
+      mprintf("\t  Pair list cutoff is %.3f Ang.\n", PL_cut_);
+    } else
       mprintf("\t  Not using pair list.\n");
   } else
     mprintf("\tSkipping order calculation.\n");
@@ -636,7 +639,7 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   if (doOrder_ && use_PL_) {
     if (imageOpt_.ImagingEnabled()) {
       // TODO make cutoff user specifiable
-      if (pairList_.InitPairList( 10.0, 0.1, debug_ )) {
+      if (pairList_.InitPairList( PL_cut_, 0.1, debug_ )) {
         mprinterr("Error: Could not init pair list.\n");
         return Action::ERR;
       }
@@ -1322,6 +1325,7 @@ void Action_GIST::Order_PL(Frame const& frameIn) {
       int voxel = atom_voxel_[oidx];
       if (Wat_Distances[idx].size() < 4) {
         mprinterr("Error: Less than 4 waters close to water with atom %i, cannot do order calc.\n", oidx+1);
+        mprinterr("Error: Try increasing the pair list cutoff.\n");
       } else {
         std::vector<Vec3> WAT;
         WAT.reserve(4);

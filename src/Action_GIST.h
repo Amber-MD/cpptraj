@@ -202,6 +202,7 @@ class Action_GIST : public Action {
     PairList pairList_;        ///< Pair list for order calc
     bool use_PL_;              ///< If true, user wants to use pair list
     bool PL_active_;           ///< If true, pairlist can be used
+    double PL_cut_;            ///< Pair list cutoff
 
     std::vector<std::string> rigidAtomNames_;
     int rigidAtomIndices_[3]; ///< the 3 atoms that define the orientation of a solvent molecule;
