@@ -74,7 +74,7 @@ int PairList::CreatePairList(Frame const& frmIn, Matrix_3x3 const& ucell,
 {
   t_total_.Start();
   // Reset cell assignments
-  cell_of_index_.assign(maskIn.Nselected(), -1);
+//  cell_of_index_.assign(maskIn.Nselected(), -1);
   // Calculate translation vectors based on current unit cell.
   FillTranslateVec(ucell);
   // If box size has changed a lot this will reallocate grid
@@ -109,7 +109,7 @@ int PairList::GridAtom(int atomIdx, Vec3 const& frac, Vec3 const& cart) {
     return 1;
   }
   cells_[idx].AddAtom( AtmType(atomIdx, cart) );
-  cell_of_index_[atomIdx] = idx;
+//  cell_of_index_[atomIdx] = idx;
   Frac_.push_back( frac );
   return 0;
 }
