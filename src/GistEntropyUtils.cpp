@@ -1,6 +1,6 @@
 #include "GistEntropyUtils.h"
 #include <algorithm> // std::pair
-#ifdef DEBUG_GIST
+#ifdef DEBUG_GIST_6D
 # include "CpptrajFile.h"
 # include <stdexcept>
 #endif
@@ -31,13 +31,13 @@ void GistEntropyUtils::searchVectorsForNearestNeighbors6D(
     float W4, float X4, float Y4, float Z4,
     const Farray& V_XYZ_vec, const Farray& V_Q_vec,
     int omit, double& NNd, double& NNs
-#   ifdef DEBUG_GIST
+#   ifdef DEBUG_GIST_6D
     , CpptrajFile* debugOut
 #   endif
     )
 {
   int nw_tot = V_XYZ_vec.size() / 3;
-# ifdef DEBUG_GIST
+# ifdef DEBUG_GIST_6D
   if (int(V_Q_vec.size()) != 4 * nw_tot) {
       throw std::logic_error("Inconsistent size of coordinate and quaternion arrays in TransEntropy");
   }
@@ -53,7 +53,7 @@ void GistEntropyUtils::searchVectorsForNearestNeighbors6D(
     double dy = (double)(center[1] - V_XYZ[i1+1]);
     double dz = (double)(center[2] - V_XYZ[i1+2]);
     double dd = dx*dx+dy*dy+dz*dz;
-#   ifdef DEBUG_GIST
+#   ifdef DEBUG_GIST_6D
     if (debugOut != 0) debugOut->Printf("\t\t\tto wat %8i dist= %12.4f\n", n1, sqrt(dd));
 #   endif
     if (dd < NNs && n1 != omit)
@@ -98,14 +98,14 @@ std::pair<double, double> GistEntropyUtils::searchGridNearestNeighbors6D(
     int grid_Nx, int grid_Ny, int grid_Nz,
     double grid_spacing,
     int n_layers, int omit_in_central_vox
-#   ifdef DEBUG_GIST
+#   ifdef DEBUG_GIST_6D
     , CpptrajFile* debugOut
 #   endif
     )
 {
   // will keep the smallest squared distance. first: trans, second: six
   std::pair<double, double>nearest(GIST_HUGE, GIST_HUGE);
-# ifdef DEBUG_GIST
+# ifdef DEBUG_GIST_6D
   if (debugOut != 0) debugOut->Printf("\tNN6D: voxel ijk = %8i %8i %8i\n", vox_x, vox_y, vox_z);
 # endif
   // In the innermost voxel, we want to omit the molecule that corresponds to the current center.
@@ -127,12 +127,12 @@ std::pair<double, double> GistEntropyUtils::searchGridNearestNeighbors6D(
           // omit voxels that are contained in previous layers, i.e., that are not on the border.
           if (x_is_border || y_is_border || z_is_border) {
             int other_vox = voxel_num(x, y, z, grid_Nx, grid_Ny, grid_Nz);
-#           ifdef DEBUG_GIST
+#           ifdef DEBUG_GIST_6D
             if (debugOut != 0 && !V_XYZ[other_vox].empty()) debugOut->Printf("\t\tto other voxel %i\n", other_vox);
 #           endif
             searchVectorsForNearestNeighbors6D(
               center, W4, X4, Y4, Z4, V_XYZ[other_vox], V_Q[other_vox], omit, nearest.first, nearest.second
-#             ifdef DEBUG_GIST
+#             ifdef DEBUG_GIST_6D
               , debugOut
 #             endif
             );

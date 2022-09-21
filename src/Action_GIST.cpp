@@ -1347,6 +1347,7 @@ void Action_GIST::Order_PL(Frame const& frameIn) {
       if (debugOut_ != 0) {
         debugOut_->Printf("Order: gidx= %8u  oidx1=%8i  voxel1= %8i  XYZ1={%12.4f %12.4f %12.4f}  sum= %g\n", sidx1, oidx1, voxel1, XYZ1[0], XYZ1[1], XYZ1[2], sum);
         debugOut_->Printf("Order indices: %8i %8i %8i %8i\n", IDX[0], IDX[1], IDX[2], IDX[3]);
+        debugOut_->Printf("Order dist2  : %8.3f %8.3f %8.3f %8.3f\n", DIST2array[0], DIST2array[1], DIST2array[2], DIST2array[3]);
       }
 #     endif
     } // END main solvent on grid
@@ -1431,6 +1432,7 @@ void Action_GIST::Order(Frame const& frameIn) {
     if (debugOut_ != 0) {
       debugOut_->Printf("Order: gidx= %8u  oidx1=%8i  voxel1= %8i  XYZ1={%12.4f %12.4f %12.4f}  sum= %g\n", gidx, oidx1, voxel1, XYZ1[0], XYZ1[1], XYZ1[2], sum);
       debugOut_->Printf("Order indices: %8i %8i %8i %8i\n", IDX[0], IDX[1], IDX[2], IDX[3]);
+      debugOut_->Printf("Order dist2  : %8.3f %8.3f %8.3f %8.3f\n", d1, d2, d3, d4);
     }
 #   endif
   } // END loop over all solvent molecules on the grid
@@ -2147,7 +2149,7 @@ int Action_GIST::CalcTranslationalEntropy(unsigned int gridPointStart, unsigned 
       bool boundary = ( ix == 0 || iy == 0 || iz == 0 || ix == (nx-1) || iy == (ny-1) || iz == (nz-1) );
 
       if ( !boundary ) {
-#       ifdef DEBUG_GIST
+#       ifdef DEBUG_GIST_6D
         if (debugOut_ != 0 && nw_total > 0) debugOut_->Printf("Strans grid %8u voxel ijk= %8i %8i %8i\n", gr_pt, ix, iy, iz);
 #       endif
         double strans_norm = 0.0;
@@ -2155,7 +2157,7 @@ int Action_GIST::CalcTranslationalEntropy(unsigned int gridPointStart, unsigned 
         int vox_nwts = 0;
         for (int n0 = 0; n0 < nw_total; ++n0)
         {
-#         ifdef DEBUG_GIST
+#         ifdef DEBUG_GIST_6D
           if (debugOut_ != 0) debugOut_->Printf("\twat %8i\n", n0);
 #         endif
           Vec3 center(voxel_xyz_[gr_pt][3*n0], voxel_xyz_[gr_pt][3*n0+1], voxel_xyz_[gr_pt][3*n0+2]);
@@ -2171,11 +2173,11 @@ int Action_GIST::CalcTranslationalEntropy(unsigned int gridPointStart, unsigned 
             //grid_origin,
             gridspacing_,
             nNnSearchLayers_, n0
-#           ifdef DEBUG_GIST
+#           ifdef DEBUG_GIST_6D
             , debugOut_
 #           endif
             );
-#         ifdef DEBUG_GIST
+#         ifdef DEBUG_GIST_6D
           if (debugOut_ != 0) debugOut_->Printf("\twat %8i NNd= %12.4f NNs= %12.4f\n", n0, NN.first, NN.second);
 #         endif
           // It sometimes happens that we get numerically 0 values. 
@@ -2196,7 +2198,7 @@ int Action_GIST::CalcTranslationalEntropy(unsigned int gridPointStart, unsigned 
             //mprintf("DEBUG1: dbl=%f NNs=%f\n", dbl, NNs);
           }
         } // END loop over all waters for this voxel
-#       ifdef DEBUG_GIST
+#       ifdef DEBUG_GIST_6D
         if (debugOut_ != 0) debugOut_->Printf("strans_norm= %12.4f  ssix_norm= %12.4f\n", strans_norm, ssix_norm);
 #       endif
 #       ifdef _OPENMP

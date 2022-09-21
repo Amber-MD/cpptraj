@@ -4,7 +4,7 @@
 #include <cstdlib> // fabs
 #include <cmath> // sqrt, acos
 #include <vector>
-#ifdef DEBUG_GIST
+#ifdef DEBUG_GIST_6D
 class CpptrajFile;
 #endif
 namespace GistEntropyUtils {
@@ -57,7 +57,7 @@ namespace GistEntropyUtils {
                                           float W4, float X4, float Y4, float Z4,
                                           const Farray& V_XYZ_vec, const Farray& V_Q_vec,
                                           int omit, double& NNd, double& NNs
-#                                         ifdef DEBUG_GIST
+#                                         ifdef DEBUG_GIST_6D
                                           , CpptrajFile* debugOut
 #                                         endif
                                           );
@@ -91,7 +91,7 @@ namespace GistEntropyUtils {
       int grid_Nx, int grid_Ny, int grid_Nz,
       double grid_spacing,
       int n_layers, int omit_in_central_vox
-#     ifdef DEBUG_GIST
+#     ifdef DEBUG_GIST_6D
       , CpptrajFile* debugOut
 #     endif
       );
