@@ -1254,17 +1254,40 @@ static inline void insertDist2(double dist2, Vec3 const& XYZ2, double* D, Vec3* 
         }
 }
 
+/** The pairlist distance calc is idx1 - idx0. The original order calculation
+  * for each on-grid solvent molecule is done with idx0 as that solvent
+  * molecule. This routine corrects for that since the ordering is not
+  * guaranteed.
+  */
+static inline void  order_pl_insert(Vec3 const& dxyz, std::vector< std::set<Vec3> >& Wat_Distances,
+                                    bool ongrid0, bool ongrid1, int idx0, int idx1)
+{
+  if (ongrid0 && ongrid1) {
+    // Both on the grid. Need to negate the vector from perspective of idx1. 
+    Wat_Distances[idx0].insert( dxyz );
+    Wat_Distances[idx1].insert( dxyz.Negative() );
+  } else if (ongrid0)
+    // idx0 on grid.
+    Wat_Distances[idx0].insert( dxyz );
+  else if (ongrid1)
+    // idx1 on grid. Negate.
+    Wat_Distances[idx1].insert( dxyz.Negative() );
+}
+
 /** GIST order calculation with pair list. */
 void Action_GIST::Order_PL(Frame const& frameIn) {
   int retVel = pairList_.CreatePairList( frameIn,
                                          frameIn.BoxCrd().UnitCell(),
                                          frameIn.BoxCrd().FracCell(),
                                          AtomMask(O_idxs_, atom_voxel_.size()) );
-
   if (retVel < 0) {
     mprinterr("Error: Grid setup failed for order calculation.\n");
     return;
   }
+  // Hold list of distance vectors to on-grid water, sorted by distance
+  typedef std::set<Vec3> Vset;
+  // Hold distances for each on grid water
+  std::vector<Vset> Wat_Distances( O_idxs_.size() );
   // Loop over PL cells
   for (int cidx = 0; cidx < pairList_.NGridMax(); cidx++)
   {
@@ -1279,18 +1302,23 @@ void Action_GIST::Order_PL(Frame const& frameIn) {
     {
       int oidx0 = O_idxs_[it0->Idx()];
       int voxel0 = atom_voxel_[oidx0];
+      bool ongrid0 = voxel0 != OFF_GRID_;
       Vec3 const& xyz0 = it0->ImageCoords();
-      mprintf("DEBUG: Index %8i atom %8i.\n", it0->Idx(), oidx0);
+      mprintf("DEBUG: Index %8i atom %8i (vox=%i).\n", it0->Idx(), oidx0, voxel0);
       // Loop over all other atoms of thisCell
       for (PairList::CellType::const_iterator it1 = it0 + 1;
                                               it1 != thisCell.end(); ++it1)
       {
         int oidx1 = O_idxs_[it1->Idx()];
         int voxel1 = atom_voxel_[oidx1];
-        Vec3 const& xyz1 = it1->ImageCoords();
-        Vec3 dxyz = xyz1 - xyz0;
-        double dist2 = dxyz.Magnitude2();
-        mprintf("\tto %8i dist2= %8.3f (same cell)\n", oidx1, dist2);
+        bool ongrid1 = voxel1 != OFF_GRID_;
+        if (ongrid0 || ongrid1) {
+          Vec3 const& xyz1 = it1->ImageCoords();
+          Vec3 dxyz = xyz1 - xyz0;
+          double dist2 = dxyz.Magnitude2();
+          mprintf("\tto %8i dist2= %8.3f (same cell)\n", oidx1, dist2);
+          order_pl_insert(dxyz, Wat_Distances, ongrid0, ongrid1, it0->Idx(), it1->Idx());
+        }
       }
       // Loop over all neighbor cells
       for (unsigned int nidx = 1; nidx != cellList.size(); nidx++)
@@ -1304,14 +1332,68 @@ void Action_GIST::Order_PL(Frame const& frameIn) {
         {
           int oidx1 = O_idxs_[it1->Idx()];
           int voxel1 = atom_voxel_[oidx1]; 
-          Vec3 xyz1 = it1->ImageCoords() + tVec;
-          Vec3 dxyz = xyz1 - xyz0;
-          double dist2 = dxyz.Magnitude2();
-          mprintf("\tto %8i dist2= %8.3f (diff cell)\n", oidx1, dist2);
+          bool ongrid1 = voxel1 != OFF_GRID_;
+          if (ongrid0 || ongrid1) {
+            Vec3 xyz1 = it1->ImageCoords() + tVec;
+            Vec3 dxyz = xyz1 - xyz0;
+            double dist2 = dxyz.Magnitude2();
+            mprintf("\tto %8i (vox=%i) dist2= %8.3f (diff cell)\n", oidx1, voxel1, dist2);
+            order_pl_insert(dxyz, Wat_Distances, ongrid0, ongrid1, it0->Idx(), it1->Idx());
+          }
         } // END loop over atoms in nbrCell
       } // END loop over neighbor cells
     } // END loop over atoms in thisCell
   } // END loop over cells
+  // DEBUG print distances
+  for (unsigned int idx = 0; idx < O_idxs_.size(); idx++) {
+    if (!Wat_Distances[idx].empty()) {
+      mprintf("%8i", O_idxs_[idx]);
+      for (Vset::const_iterator it = Wat_Distances[idx].begin(); it != Wat_Distances[idx].end(); ++it)
+        mprintf(" %8.3f", it->Magnitude2());
+      mprintf("\n");
+    }
+  }
+  // Do the order calculation for each voxel
+  for (unsigned int idx = 0; idx < O_idxs_.size(); idx++) {
+    if (!Wat_Distances[idx].empty()) {
+      int oidx = O_idxs_[idx];
+      int voxel = atom_voxel_[oidx];
+      if (Wat_Distances[idx].size() < 4) {
+        mprinterr("Error: Less than 4 waters close to water with atom %i, cannot do order calc.\n", oidx+1);
+      } else {
+        std::vector<Vec3> WAT;
+        WAT.reserve(4);
+        for (Vset::const_iterator it = Wat_Distances[idx].begin(); it != Wat_Distances[idx].end(); ++it) {
+          WAT.push_back( *it );
+          if (WAT.size() == 4) break;
+        }
+        // Compute the tetrahedral order parameter
+        double sum = 0.0;
+        for (int mol1 = 0; mol1 < 3; mol1++) {
+          for (int mol2 = mol1 + 1; mol2 < 4; mol2++) {
+            Vec3 const& v1 = WAT[mol1];
+            Vec3 const& v2 = WAT[mol2];
+#           ifdef DEBUG_GIST
+            debugOut_->Printf("\t\t{%8.3f %8.3f %8.3f} * {%8.3f %8.3f %8.3f}\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2]);
+#           endif
+            double r1 = v1.Magnitude2();
+            double r2 = v2.Magnitude2();
+            double cos = (v1* v2) / sqrt(r1 * r2);
+            sum += (cos + 1.0/3)*(cos + 1.0/3);
+          }
+        }
+        order_->UpdateVoxel(voxel, (1.0 - (3.0/8)*sum));
+#       ifdef DEBUG_GIST
+        if (debugOut_ != 0) {
+          debugOut_->Printf("Order: gidx= %8u  oidx1=%8i  voxel1= %8i  sum= %g\n", idx, oidx, voxel, sum);
+          //debugOut_->Printf("Order indices: %8i %8i %8i %8i\n", IDX[0], IDX[1], IDX[2], IDX[3]);
+          debugOut_->Printf("Order dist2  : %8.3f %8.3f %8.3f %8.3f\n", WAT[0].Magnitude2(), WAT[1].Magnitude2(), WAT[2].Magnitude2(), WAT[3].Magnitude2());
+        }
+#       endif
+      }
+    }
+  } // END loop over waters
+
 /*
   // Loop over all solvent molecules that are on the grid
   for (int sidx1 = 0; sidx1 < (int)O_idxs_.size(); sidx1++)
@@ -1475,6 +1557,9 @@ void Action_GIST::Order(Frame const& frameIn) {
       for (int mol2 = mol1 + 1; mol2 < 4; mol2++) {
         Vec3 v1 = WAT[mol1] - XYZ1;
         Vec3 v2 = WAT[mol2] - XYZ1;
+#       ifdef DEBUG_GIST
+        debugOut_->Printf("\t\t{%8.3f %8.3f %8.3f} * {%8.3f %8.3f %8.3f}\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2]);
+#       endif
         double r1 = v1.Magnitude2();
         double r2 = v2.Magnitude2();
         double cos = (v1* v2) / sqrt(r1 * r2);
@@ -1485,7 +1570,7 @@ void Action_GIST::Order(Frame const& frameIn) {
 #   ifdef DEBUG_GIST
     if (debugOut_ != 0) {
       debugOut_->Printf("Order: gidx= %8u  oidx1=%8i  voxel1= %8i  XYZ1={%12.4f %12.4f %12.4f}  sum= %g\n", gidx, oidx1, voxel1, XYZ1[0], XYZ1[1], XYZ1[2], sum);
-      debugOut_->Printf("Order indices: %8i %8i %8i %8i\n", IDX[0], IDX[1], IDX[2], IDX[3]);
+      //debugOut_->Printf("Order indices: %8i %8i %8i %8i\n", IDX[0], IDX[1], IDX[2], IDX[3]);
       debugOut_->Printf("Order dist2  : %8.3f %8.3f %8.3f %8.3f\n", d1, d2, d3, d4);
     }
 #   endif
