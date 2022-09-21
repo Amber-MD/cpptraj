@@ -636,7 +636,7 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   if (doOrder_ && use_PL_) {
     if (imageOpt_.ImagingEnabled()) {
       // TODO make cutoff user specifiable
-      if (pairList_.InitPairList( 8.0, 0.1, debug_ )) {
+      if (pairList_.InitPairList( 10.0, 0.1, debug_ )) {
         mprinterr("Error: Could not init pair list.\n");
         return Action::ERR;
       }
@@ -1374,7 +1374,7 @@ void Action_GIST::Order_PL(Frame const& frameIn) {
             Vec3 const& v1 = WAT[mol1];
             Vec3 const& v2 = WAT[mol2];
 #           ifdef DEBUG_GIST
-            debugOut_->Printf("\t\t{%8.3f %8.3f %8.3f} * {%8.3f %8.3f %8.3f}\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2]);
+            if (debugOut_ != 0) debugOut_->Printf("\t\t{%8.3f %8.3f %8.3f} * {%8.3f %8.3f %8.3f}\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2]);
 #           endif
             double r1 = v1.Magnitude2();
             double r2 = v2.Magnitude2();
@@ -1385,7 +1385,7 @@ void Action_GIST::Order_PL(Frame const& frameIn) {
         order_->UpdateVoxel(voxel, (1.0 - (3.0/8)*sum));
 #       ifdef DEBUG_GIST
         if (debugOut_ != 0) {
-          debugOut_->Printf("Order: gidx= %8u  oidx1=%8i  voxel1= %8i  sum= %g\n", idx, oidx, voxel, sum);
+          debugOut_->Printf("Order: oidx1=%8i  voxel1= %8i  sum= %g\n", oidx, voxel, sum);
           //debugOut_->Printf("Order indices: %8i %8i %8i %8i\n", IDX[0], IDX[1], IDX[2], IDX[3]);
           debugOut_->Printf("Order dist2  : %8.3f %8.3f %8.3f %8.3f\n", WAT[0].Magnitude2(), WAT[1].Magnitude2(), WAT[2].Magnitude2(), WAT[3].Magnitude2());
         }
@@ -1569,7 +1569,8 @@ void Action_GIST::Order(Frame const& frameIn) {
     order_->UpdateVoxel(voxel1, (1.0 - (3.0/8)*sum));
 #   ifdef DEBUG_GIST
     if (debugOut_ != 0) {
-      debugOut_->Printf("Order: gidx= %8u  oidx1=%8i  voxel1= %8i  XYZ1={%12.4f %12.4f %12.4f}  sum= %g\n", gidx, oidx1, voxel1, XYZ1[0], XYZ1[1], XYZ1[2], sum);
+      //debugOut_->Printf("Order: gidx= %8u  oidx1=%8i  voxel1= %8i  XYZ1={%12.4f %12.4f %12.4f}  sum= %g\n", gidx, oidx1, voxel1, XYZ1[0], XYZ1[1], XYZ1[2], sum);
+      debugOut_->Printf("Order: oidx1=%8i  voxel1= %8i  sum= %g\n", oidx1, voxel1, sum);
       //debugOut_->Printf("Order indices: %8i %8i %8i %8i\n", IDX[0], IDX[1], IDX[2], IDX[3]);
       debugOut_->Printf("Order dist2  : %8.3f %8.3f %8.3f %8.3f\n", d1, d2, d3, d4);
     }
