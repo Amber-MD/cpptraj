@@ -1220,40 +1220,6 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
 # endif
 }
 
-/// For keeping track of the closest coords
-#ifdef DEBUG_GIST
-static inline void insertDist2(double dist2, Vec3 const& XYZ2, double* D, Vec3* WAT, int oidx2, int* IDX)
-#else
-static inline void insertDist2(double dist2, Vec3 const& XYZ2, double* D, Vec3* WAT)
-#endif
-{
-        if        (dist2 < D[0]) {
-          D[3] = D[2]; D[2] = D[1]; D[1] = D[0]; D[0] = dist2;
-          WAT[3] = WAT[2]; WAT[2] = WAT[1]; WAT[1] = WAT[0]; WAT[0] = XYZ2;
-#         ifdef DEBUG_GIST
-          IDX[3] = IDX[2]; IDX[2] = IDX[1]; IDX[1] = IDX[0]; IDX[0] = oidx2;
-#         endif
-        } else if (dist2 < D[1]) {
-          D[3] = D[2]; D[2] = D[1]; D[1] = dist2;
-          WAT[3] = WAT[2]; WAT[2] = WAT[1]; WAT[1] = XYZ2;
-#         ifdef DEBUG_GIST
-          IDX[3] = IDX[2]; IDX[2] = IDX[1]; IDX[1] = oidx2;
-#         endif
-        } else if (dist2 < D[2]) {
-          D[3] = D[2]; D[2] = dist2;
-          WAT[3] = WAT[2]; WAT[2] = XYZ2;
-#         ifdef DEBUG_GIST
-          IDX[3] = IDX[2]; IDX[2] = oidx2;
-#         endif
-        } else if (dist2 < D[3]) {
-          D[3] = dist2;
-          WAT[3] = XYZ2;
-#         ifdef DEBUG_GIST
-          IDX[3] = oidx2;
-#         endif
-        }
-}
-
 /** The pairlist distance calc is idx1 - idx0. The original order calculation
   * for each on-grid solvent molecule is done with idx0 as that solvent
   * molecule. This routine corrects for that since the ordering is not
