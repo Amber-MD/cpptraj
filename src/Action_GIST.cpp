@@ -1304,7 +1304,7 @@ void Action_GIST::Order_PL(Frame const& frameIn) {
       int voxel0 = atom_voxel_[oidx0];
       bool ongrid0 = voxel0 != OFF_GRID_;
       Vec3 const& xyz0 = it0->ImageCoords();
-      mprintf("DEBUG: Index %8i atom %8i (vox=%i).\n", it0->Idx(), oidx0, voxel0);
+//      mprintf("DEBUG: Index %8i atom %8i (vox=%i).\n", it0->Idx(), oidx0, voxel0);
       // Loop over all other atoms of thisCell
       for (PairList::CellType::const_iterator it1 = it0 + 1;
                                               it1 != thisCell.end(); ++it1)
@@ -1315,8 +1315,8 @@ void Action_GIST::Order_PL(Frame const& frameIn) {
         if (ongrid0 || ongrid1) {
           Vec3 const& xyz1 = it1->ImageCoords();
           Vec3 dxyz = xyz1 - xyz0;
-          double dist2 = dxyz.Magnitude2();
-          mprintf("\tto %8i dist2= %8.3f (same cell)\n", oidx1, dist2);
+//          double dist2 = dxyz.Magnitude2();
+//          mprintf("\tto %8i dist2= %8.3f (same cell)\n", oidx1, dist2);
           order_pl_insert(dxyz, Wat_Distances, ongrid0, ongrid1, it0->Idx(), it1->Idx());
         }
       }
@@ -1336,8 +1336,8 @@ void Action_GIST::Order_PL(Frame const& frameIn) {
           if (ongrid0 || ongrid1) {
             Vec3 xyz1 = it1->ImageCoords() + tVec;
             Vec3 dxyz = xyz1 - xyz0;
-            double dist2 = dxyz.Magnitude2();
-            mprintf("\tto %8i (vox=%i) dist2= %8.3f (diff cell)\n", oidx1, voxel1, dist2);
+//            double dist2 = dxyz.Magnitude2();
+//            mprintf("\tto %8i (vox=%i) dist2= %8.3f (diff cell)\n", oidx1, voxel1, dist2);
             order_pl_insert(dxyz, Wat_Distances, ongrid0, ongrid1, it0->Idx(), it1->Idx());
           }
         } // END loop over atoms in nbrCell
@@ -1345,14 +1345,14 @@ void Action_GIST::Order_PL(Frame const& frameIn) {
     } // END loop over atoms in thisCell
   } // END loop over cells
   // DEBUG print distances
-  for (unsigned int idx = 0; idx < O_idxs_.size(); idx++) {
+/*  for (unsigned int idx = 0; idx < O_idxs_.size(); idx++) {
     if (!Wat_Distances[idx].empty()) {
       mprintf("%8i", O_idxs_[idx]);
       for (Vset::const_iterator it = Wat_Distances[idx].begin(); it != Wat_Distances[idx].end(); ++it)
         mprintf(" %8.3f", it->Magnitude2());
       mprintf("\n");
     }
-  }
+  }*/
   // Do the order calculation for each voxel
   for (unsigned int idx = 0; idx < O_idxs_.size(); idx++) {
     if (!Wat_Distances[idx].empty()) {
@@ -1393,99 +1393,6 @@ void Action_GIST::Order_PL(Frame const& frameIn) {
       }
     }
   } // END loop over waters
-
-/*
-  // Loop over all solvent molecules that are on the grid
-  for (int sidx1 = 0; sidx1 < (int)O_idxs_.size(); sidx1++)
-  {
-
-    int oidx1 = O_idxs_[sidx1];
-    int voxel1 = atom_voxel_[oidx1];
-    // Loop over atoms of thisCell
-
-
-    if (isMainSolvent(oidx1) && voxel1 != OFF_GRID_) {
-      // Solvent 1 is main solvent and on the grid.
-      // Get the unit cell corresponding to sidx1.
-      int cidx = pairList_.CellOfIndex(sidx1);
-
-      // Get imaged coords of this atom TODO improve the efficiency
-      Vec3 XYZ1(0.0);
-      for (PairList::CellType::const_iterator it0 = thisCell.begin();
-                                              it0 != thisCell.end(); ++it0)
-      {
-        if (it0->Idx() == sidx1) {
-          XYZ1 = it0->ImageCoords();
-          break;
-        }
-      }
-      /// For tracking the closest distances to this solvent
-      std::vector<Vec3> WAT(4, 0.0);
-      std::vector<double> DIST2array(4, maxD_);
-#     ifdef DEBUG_GIST
-      std::vector<int> IDX(4, -1);
-#     endif
-      // Loop over other atoms of thisCell.
-      for (PairList::CellType::const_iterator it0 = thisCell.begin();
-                                              it0 != thisCell.end(); ++it0)
-      {
-          mprintf("DEBUG: same cell: %8i to %8i\n", oidx1, O_idxs_[it0->Idx()]);
-        if (it0->Idx() != sidx1) {
-          //mprintf("DEBUG: same cell: %8i to %8i\n", oidx1, O_idxs_[it0->Idx()]);
-          Vec3 const& XYZ2 = it0->ImageCoords();
-          Vec3 dxyz = XYZ2 - XYZ1;
-          double dist2 = dxyz.Magnitude2();
-#         ifdef DEBUG_GIST
-          insertDist2( dist2, XYZ2, &DIST2array[0], &WAT[0], O_idxs_[it0->Idx()], &IDX[0] );
-#         else
-          insertDist2( dist2, XYZ2, &DIST2array[0], &WAT[0] );
-#         endif
-        }
-      }
-      // Loop over all neighbor cells
-      for (unsigned int nidx = 1; nidx != cellList.size(); nidx++)
-      {
-        PairList::CellType const& nbrCell = pairList_.Cell( cellList[nidx] );
-        // Translate vector for neighbor cell
-        Vec3 const& tVec = pairList_.TransVec( transList[nidx] );
-        // Loop over every atom in nbrCell
-        for (PairList::CellType::const_iterator it1 = nbrCell.begin();
-                                                it1 != nbrCell.end(); ++it1)
-        {
-          Vec3 XYZ2 = it1->ImageCoords() + tVec;
-          Vec3 dxyz = XYZ2 - XYZ1;
-          double dist2 = dxyz.Magnitude2();
-          mprintf("DEBUG: diff cell: %8i to %8i dist2= %8.3f\n", oidx1, O_idxs_[it1->Idx()], dist2);
-#         ifdef DEBUG_GIST
-          insertDist2( dist2, XYZ2, &DIST2array[0], &WAT[0], O_idxs_[it1->Idx()], &IDX[0] );
-#         else
-          insertDist2( dist2, XYZ2, &DIST2array[0], &WAT[0] );
-#         endif
-        }
-      } // END loop over all neighbor cells
-      // Compute the tetrahedral order parameter
-      double sum = 0.0;
-      for (int mol1 = 0; mol1 < 3; mol1++) {
-        for (int mol2 = mol1 + 1; mol2 < 4; mol2++) {
-          Vec3 v1 = WAT[mol1] - XYZ1;
-          Vec3 v2 = WAT[mol2] - XYZ1;
-          double r1 = v1.Magnitude2();
-          double r2 = v2.Magnitude2();
-          double cos = (v1* v2) / sqrt(r1 * r2);
-          sum += (cos + 1.0/3)*(cos + 1.0/3);
-        }
-      }
-      order_->UpdateVoxel(voxel1, (1.0 - (3.0/8)*sum));
-#     ifdef DEBUG_GIST
-      if (debugOut_ != 0) {
-        debugOut_->Printf("Order: gidx= %8u  oidx1=%8i  voxel1= %8i  XYZ1={%12.4f %12.4f %12.4f}  sum= %g\n", sidx1, oidx1, voxel1, XYZ1[0], XYZ1[1], XYZ1[2], sum);
-        debugOut_->Printf("Order indices: %8i %8i %8i %8i\n", IDX[0], IDX[1], IDX[2], IDX[3]);
-        debugOut_->Printf("Order dist2  : %8.3f %8.3f %8.3f %8.3f\n", DIST2array[0], DIST2array[1], DIST2array[2], DIST2array[3]);
-      }
-#     endif
-    } // END main solvent on grid
-  } // END loop over solvent molecules
-*/
 }
   
 /** GIST order calculation. */
@@ -1496,7 +1403,7 @@ void Action_GIST::Order(Frame const& frameIn) {
     int oidx1 = OnGrid_idxs_[gidx];
     if (!isMainSolvent(oidx1)) { continue; }
     int voxel1 = atom_voxel_[oidx1];
-    mprintf("DEBUG: Index %8u atom %8i.\n", gidx, oidx1);
+//    mprintf("DEBUG: Index %8u atom %8i.\n", gidx, oidx1);
     Vec3 XYZ1( (&OnGrid_XYZ_[0])+gidx*3 );
     // Find coordinates for 4 closest neighbors to this water (on or off grid).
     // TODO set up overall grid in DoAction.
@@ -1521,7 +1428,7 @@ void Action_GIST::Order(Frame const& frameIn) {
         double dist2;
         Vec3 XYZ2 = MinImagedCoords(dist2, imageOpt_.ImagingType(),
                                     XYZ1, Vec3(frameIn.XYZ(oidx2)), frameIn.BoxCrd());
-        mprintf("\tto %8i dist2= %8.3f\n", oidx2, dist2);
+//        mprintf("\tto %8i dist2= %8.3f\n", oidx2, dist2);
 //        const double* XYZ2 = frameIn.XYZ( oidx2 );
 //        double dist2 = DIST2_NoImage( XYZ1.Dptr(), XYZ2 );
         if        (dist2 < d1) {
