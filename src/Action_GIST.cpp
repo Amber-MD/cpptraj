@@ -1228,14 +1228,10 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
 static inline void  order_pl_insert(Vec3 const& dxyz, std::vector< std::set<Vec3> >& Wat_Distances,
                                     bool ongrid0, bool ongrid1, int idx0, int idx1)
 {
-  if (ongrid0 && ongrid1) {
-    // Both on the grid. Need to negate the vector from perspective of idx1. 
-    Wat_Distances[idx0].insert( dxyz );
-    Wat_Distances[idx1].insert( dxyz.Negative() );
-  } else if (ongrid0)
+  if (ongrid0)
     // idx0 on grid.
     Wat_Distances[idx0].insert( dxyz );
-  else if (ongrid1)
+  if (ongrid1)
     // idx1 on grid. Negate.
     Wat_Distances[idx1].insert( dxyz.Negative() );
 }
