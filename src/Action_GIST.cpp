@@ -120,9 +120,10 @@ Action_GIST::Action_GIST() :
 
 /** GIST help */
 void Action_GIST::Help() const {
-  mprintf("\t[doorder [nopl] [plcut <plcut>]]\n"
+  mprintf("\t[name <dataset name>] [doorder [nopl] [plcut <plcut>]]\n"
           "\t[doeij] [skipE] [skipS] [refdens <rdval>] [temp <tval>]\n"
           "\t[noimage] [gridcntr <xval> <yval> <zval>]\n"
+          "\t[rmsfit <fitmask>]\n"
           "\t[griddim <nx> <ny> <nz>] [gridspacn <spaceval>] [neighborcut <ncut>]\n"
           "\t[prefix <filename prefix>] [ext <grid extension>] [out <output suffix>]\n"
           "\t[floatfmt {double|scientific|general}] [floatwidth <fw>] [floatprec <fp>]\n"

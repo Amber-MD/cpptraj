@@ -25702,7 +25702,7 @@ gist
 
 \end_inset
 
- [doorder [nopl] [plcut <plcut>]] 
+ [name <dataset name>] [doorder [nopl] [plcut <plcut>]] 
 \end_layout
 
 \begin_layout LyX-Code
@@ -25711,6 +25711,10 @@ gist
 
 \begin_layout LyX-Code
      [noimage] [gridcntr <xval> <yval> <zval>]
+\end_layout
+
+\begin_layout LyX-Code
+     [rmsfit <fitmask>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -25747,6 +25751,18 @@ gist
 \end_layout
 
 \begin_deeper
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<dataset
+\begin_inset space ~
+\end_inset
+
+name>] Name for output data sets.
+\end_layout
+
 \begin_layout Description
 
 \series bold
@@ -25854,6 +25870,15 @@ rdval>]
 <zval>]
 \series default
  Coordinates (Å) of the center of the grid (default 0.0, 0.0, 0.0).
+\end_layout
+
+\begin_layout Description
+[rmsfit
+\begin_inset space ~
+\end_inset
+
+<fitmask>] If specified, grid will be centered and rotated to follow atoms
+ selected by <fitmask>.
 \end_layout
 
 \begin_layout Description
