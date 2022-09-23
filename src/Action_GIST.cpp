@@ -2352,7 +2352,7 @@ void Action_GIST::Print() {
   // Compute translational entropy for each voxel
   gist_print_TE_.Start();
   if (watCountSubvol_ == -1) {
-    mprintf("DEBUG: Doing serial translational entropy calc.\n");
+    //mprintf("DEBUG: Doing serial translational entropy calc.\n");
     // watCountSubvol_ was nwts
     watCountSubvol_ = CalcTranslationalEntropy(0, MAX_GRID_PT_);
   }
