@@ -1431,7 +1431,7 @@ void Action_GIST::Order(Frame const& frameIn) {
         Vec3 v1 = WAT[mol1] - XYZ1;
         Vec3 v2 = WAT[mol2] - XYZ1;
 #       ifdef DEBUG_GIST
-        debugOut_->Printf("\t\t{%8.3f %8.3f %8.3f} * {%8.3f %8.3f %8.3f}\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2]);
+        if (debugOut_ != 0) debugOut_->Printf("\t\t{%8.3f %8.3f %8.3f} * {%8.3f %8.3f %8.3f}\n", v1[0], v1[1], v1[2], v2[0], v2[1], v2[2]);
 #       endif
         double r1 = v1.Magnitude2();
         double r2 = v2.Magnitude2();
