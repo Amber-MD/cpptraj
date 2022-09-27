@@ -16,5 +16,13 @@ class DataIO_NetCDF : public DataIO {
   private:
     class SetPool;
     class Set;
+    typedef std::vector<Set> SetArray;
+
+    int writeData_1D(DataSet const*, Dimension const&, SetArray const&);
+
+    int ncid_;                ///< Current netcdf ID
+    int dimIdx_;              ///< Keep track of indices currently defined
+    std::vector<int> varIDs_; ///< All variable IDs currently defined
+    int* varIDptr_;           ///< Pointer to start of varIDs_
 };
 #endif
