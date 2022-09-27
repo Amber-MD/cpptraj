@@ -230,6 +230,16 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
       size_t count[1];
       start[0] = 0;
       count[0] = ds->Size();
+      // Use the first set for the 'index'
+      DataSet_1D const& dsidx = static_cast<DataSet_1D const&>( *(sets.front().DS()) );
+      std::vector<double> idxs;
+      idxs.reserve(dsidx.Size());
+      for (unsigned int ii = 0; ii < dsidx.Size(); ii++)
+        idxs.push_back( dsidx.Xcrd(ii) );
+      if (NC::CheckErr(nc_put_vara(ncid, idxId, start, count, &idxs[0]))) {
+        mprinterr("Error: Could not write index variable from '%s'\n", dsidx.legend());
+        return 1;
+      }
       for (SetArray::const_iterator it = sets.begin(); it != sets.end(); ++it) {
         DataSet_1D const& ds1d = static_cast<DataSet_1D const&>( *(it->DS()) );
         if (NC::CheckErr(nc_put_vara(ncid, varIDs[it->OriginalIdx()], start, count, ds1d.VoidPtr(0)))) {
