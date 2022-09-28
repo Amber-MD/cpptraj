@@ -137,6 +137,61 @@ static inline int EnterDefineMode(int ncid) {
   return 0;
 }
 
+/// Add a string as text attribute to a variable
+static inline int AddDataSetStringAtt(std::string const& str, const char* desc, int ncid, int varid)
+{
+  if (!str.empty()) {
+    if (NC::CheckErr(nc_put_att_text(ncid, varid, desc, str.size(), str.c_str()) ))
+    {  
+      mprinterr("Error: Writing variable %s.\n", desc);
+      return 1;
+    }
+  }
+  return 0;
+}
+
+/// Add an integer as integer attribute
+static inline int AddDataSetIntAtt(int ival, const char* desc, int ncid, int varid)
+{
+  // NOTE: -1 means not set TODO define that in MetaData
+  if (ival != -1) {
+    if (NC::CheckErr(nc_put_att_int(ncid, varid, desc, NC_INT, 1, &ival)))
+    {
+      mprinterr("Error: Writing variable %s.\n", desc);
+      return 1;
+    }
+  }
+  return 0;
+}
+
+/// Add DataSet metadata to a variable
+static inline int AddDataSetMetaData(MetaData const& meta, int ncid, int varid)
+{
+  // Filename
+  if (AddDataSetStringAtt(meta.Fname().Full(), "filename", ncid, varid)) return 1;
+  // Name
+  if (AddDataSetStringAtt(meta.Name(), "name", ncid, varid)) return 1;
+  // Aspect
+  if (AddDataSetStringAtt(meta.Aspect(), "aspect", ncid, varid)) return 1;
+  // Legend
+  if (AddDataSetStringAtt(meta.Legend(), "legend", ncid, varid)) return 1;
+  // Index
+  if (AddDataSetIntAtt(meta.Idx(), "index", ncid, varid)) return 1;
+  // Ensemble number
+  if (AddDataSetIntAtt(meta.EnsembleNum(), "ensemblenum", ncid, varid)) return 1;
+  // TODO  TimeSeries?
+  // Scalar type
+  if (meta.ScalarType() != MetaData::UNDEFINED) {
+    if (AddDataSetStringAtt(meta.TypeString(), "scalartype", ncid, varid)) return 1;
+  }
+  // Scalar mode
+  if (meta.ScalarMode() != MetaData::UNKNOWN_MODE) {
+    if (AddDataSetStringAtt(meta.ModeString(), "scalarmode", ncid, varid)) return 1;
+  }
+
+  return 0;
+}
+
 /** Write 1D DataSets that share an index dimension. */
 int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArray const& sets) {
   mprintf("DEBUG: Sets for dimension '%s' %f %f:", dim.label(), dim.Min(), dim.Step());
@@ -182,12 +237,8 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
       mprinterr("Error: Could not define variable '%s'\n", varName.c_str());
       return 1;
     }
-    if (NC::CheckErr( nc_put_att_text(ncid_, varIDs_[it->OriginalIdx()], "legend",
-                                      it->DS()->Meta().Legend().size(), it->DS()->legend()) ))
-    {
-      mprinterr("Error: Writing variable legend.\n");
-      return 1;
-    }
+    // Add DataSet metadata as attributes
+    if (AddDataSetMetaData( it->DS()->Meta(), ncid_, varIDs_[it->OriginalIdx()] )) return 1;
   } // END define variable(s)
   if (EndDefineMode( ncid_ )) return 1;
   // Write the variables
