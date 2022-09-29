@@ -22,5 +22,6 @@ dihedral :1 :2 :3 :4 out d1.$SFX
 run
 EOF
 RunCpptraj "$UNITNAME"
+NcTest d1.nc.save d1.nc
 
 EndTest
