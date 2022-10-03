@@ -151,6 +151,7 @@ clean:
 	cd arpack && $(MAKE) clean
 	cd cuda_kernels && $(MAKE) clean
 	cd Cluster && $(MAKE) clean
+	cd Structure && $(MAKE) clean
 	cd tng && $(MAKE) clean
 
 uninstall_lib:
@@ -173,6 +174,7 @@ uninstall: uninstall_lib uninstall_inc
 	cd xdrfile && $(MAKE) uninstall
 	cd cuda_kernels && $(MAKE) uninstall
 	cd Cluster && $(MAKE) uninstall
+	cd Structure && $(MAKE) uninstall
 
 # Header dependencies
 include cpptrajdepend
