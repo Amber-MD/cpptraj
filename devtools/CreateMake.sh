@@ -95,6 +95,7 @@ echo "Make sure to add '\$("$upper"_SOURCEFILES:.cpp=.o)' to the OBJECTS variabl
 echo "Make sure to add '@echo \$("$upper"_SOURCEFILES)' to the showsources: target in src/Makefile"
 echo "Make sure to add '\$("$upper"_SOURCEFILES)' to ./findDepend execution in src/Makefile"
 echo "Make sure to add 'cd $DIR && \$(MAKE) clean' to clean: target in src/Makefile"
+echo "Make sure to add 'cd $DIR && \$(MAKE) uninstall' to uninstall: target in src/Makefile"
 echo "Make sure to add 'add_subdirectory($DIR)' to src/CMakeLists.txt"
 echo ""
 
