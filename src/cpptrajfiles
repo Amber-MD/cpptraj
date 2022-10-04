@@ -441,16 +441,6 @@ SOURCES=$(COMMON_SOURCES) \
         ReadLine.cpp \
         main.cpp
 
-# These objects are used by libcpptraj. The specified objects are special
-# versions used only by libcpptraj. They MUST have the '.LIBCPPTRAJ.o'
-# extension.
-LIBCPPTRAJ_OBJECTS=$(COMMON_SOURCES:.cpp=.o) $(CSOURCES:.c=.o) $(CLUSTER_SOURCEFILES:.cpp=.o) \
-        Action_Esander.LIBCPPTRAJ.o \
-        Command.LIBCPPTRAJ.o \
-        Cpptraj.LIBCPPTRAJ.o \
-        Energy_Sander.LIBCPPTRAJ.o \
-        ReadLine.LIBCPPTRAJ.o
-
 # These objects contain "core" functionality.
 # NOTE: From Topology down could be separate.
 # NOTE: Topology does not depend on ArgList but makes sense to have it in Core
