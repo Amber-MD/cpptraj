@@ -9,21 +9,8 @@ CLUSTER_SOURCEFILES=$(CLUSTER_SOURCES:%.cpp=Cluster/%.cpp)
 include Structure/structurefiles
 STRUCTURE_SOURCEFILES=$(STRUCTURE_SOURCES:%.cpp=Structure/%.cpp)
 
-SUBDIR_OBJECTS=$(CLUSTER_SOURCEFILES:.cpp=.o) $(STRUCTURE_SOURCEFILES:.cpp=.o)
-
 # All object files
-OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o) $(SUBDIR_OBJECTS)
-
-# Object files for the cpptraj library used by pytraj etc.
-# The specified objects (e.g. Action_Esander) are special versions used only 
-# by libcpptraj. They MUST have the '.LIBCPPTRAJ.o' extension and will be
-# compiled with the '-DLIBCPPTRAJ' define.
-LIBCPPTRAJ_OBJECTS=$(COMMON_SOURCES:.cpp=.o) $(CSOURCES:.c=.o) $(SUBDIR_OBJECTS) \
-        Action_Esander.LIBCPPTRAJ.o \
-        Command.LIBCPPTRAJ.o \
-        Cpptraj.LIBCPPTRAJ.o \
-        Energy_Sander.LIBCPPTRAJ.o \
-        ReadLine.LIBCPPTRAJ.o
+OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o) $(CLUSTER_SOURCEFILES:.cpp=.o) $(STRUCTURE_SOURCEFILES:.cpp=.o)
 
 # General rules
 .cpp.o:
