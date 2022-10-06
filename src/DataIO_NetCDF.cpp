@@ -74,6 +74,20 @@ int DataIO_NetCDF::ReadData(FileName const& fname, DataSetList& dsl, std::string
   mprintf("DEBUG: '%s' : ndimsp=%i  nvarsp=%i  ngattsp=%i  unlimdimidp=%i\n",
           fname.full(), ndimsp, nvarsp, ngattsp, unlimdimidp);
 
+  // Loop over all variables in the NetCDF file.
+  char varName[NC_MAX_NAME+1];
+  nc_type varType = 0;            // Variable type
+  int nVarDims = -1;              // # variable dimensions
+  int varDimIds[NC_MAX_VAR_DIMS]; // variable dim ids
+  int nVarAttributes = -1;        // number of variable attributes
+  for (int ivar = 0; ivar < nvarsp; ivar++) {
+    if (NC::CheckErr(nc_inq_var(ncid_, ivar, varName, &varType, &nVarDims, varDimIds, &nVarAttributes))) {
+      mprinterr("Error: Could not get NetCDF data variable name %i\n", ivar);
+      return 1;
+    }
+    mprintf("DEBUG:\tVariable %i - '%s', %i dims, %i attributes\n", ivar, varName, nVarDims, nVarAttributes);
+  }
+
   nc_close( ncid_ );
   return 0;
 # else  
