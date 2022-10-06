@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles ncdata.in d1.nc d1.dat
+CleanFiles ncdata.in d1.nc d1.dat rmsf.dat
 
 TESTNAME='NetCDF data file tests.'
 Requires netcdf
@@ -20,6 +20,10 @@ run
 trajin ../tz2.nc 11 15
 dihedral :1 :2 :3 :4 out d1.$SFX
 run
+clear trajin
+trajin ../tz2.nc
+align :2-12&!@H=
+rmsf :2,4,9,11&!@H= byres out d1.$SFX 
 EOF
 RunCpptraj "$UNITNAME"
 NcTest d1.nc.save d1.nc
