@@ -114,6 +114,7 @@ endif()
 
 add_library(cpptraj_common_obj OBJECT ${CPPTRAJ_COMMON_SOURCES})
 add_subdirectory(Cluster)
+add_subdirectory(Structure)
 make_pic_if_needed(cpptraj_common_obj)
 
 #normally this would be applied by target_link_libraries, but since we use that intermediary object library, we have to apply it manually
