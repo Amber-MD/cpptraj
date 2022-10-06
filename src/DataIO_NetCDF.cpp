@@ -58,7 +58,7 @@ int DataIO_NetCDF::processReadArgs(ArgList& argIn)
 // DataIO_NetCDF::ReadData()
 int DataIO_NetCDF::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
-
+  
   return 1;
 }
 
@@ -122,6 +122,7 @@ class DataIO_NetCDF::Set {
     int oidx_;
 };
 
+#ifdef BINTRAJ
 /// Tell netcdf file to end define mode
 static inline int EndDefineMode(int ncid) {
   // End netcdf definitions
@@ -270,6 +271,7 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
   }
   return 0;
 }
+#endif /* BINTRAJ */
 
 // DataIO_NetCDF::WriteData()
 int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
