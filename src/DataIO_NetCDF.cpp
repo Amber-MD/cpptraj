@@ -55,6 +55,14 @@ int DataIO_NetCDF::processReadArgs(ArgList& argIn)
   return 0;
 }
 
+/** Read a 1D variable. */
+int DataIO_NetCDF::read_1d_var(DataSetList& dsl, std::string const& dsname,
+                               int ivar, const char* varName, int varType, int nVarAttributes)
+                               
+{
+  return 0;
+}
+
 // DataIO_NetCDF::ReadData()
 int DataIO_NetCDF::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
@@ -73,9 +81,21 @@ int DataIO_NetCDF::ReadData(FileName const& fname, DataSetList& dsl, std::string
   }
   mprintf("DEBUG: '%s' : ndimsp=%i  nvarsp=%i  ngattsp=%i  unlimdimidp=%i\n",
           fname.full(), ndimsp, nvarsp, ngattsp, unlimdimidp);
+  char varName[NC_MAX_NAME+1];
+  // Get the length of all dimensions
+  std::vector<unsigned int> dimLengths;
+  dimLengths.reserve(ndimsp);
+  for (int idim = 0; idim < ndimsp; idim++) {
+    size_t diml;
+    if (NC::CheckErr(nc_inq_dim(ncid_, idim, varName, &diml))) {
+      mprinterr("Error: Could not get length of NetCDF data dimension %i\n", idim);
+      return 1;
+    }
+    dimLengths.push_back( diml );
+    mprintf("DEBUG:\tDimenison %i - '%s' (%u)\n", idim, varName, dimLengths[idim]);
+  }
 
   // Loop over all variables in the NetCDF file.
-  char varName[NC_MAX_NAME+1];
   nc_type varType = 0;            // Variable type
   int nVarDims = -1;              // # variable dimensions
   int varDimIds[NC_MAX_VAR_DIMS]; // variable dim ids
@@ -86,6 +106,11 @@ int DataIO_NetCDF::ReadData(FileName const& fname, DataSetList& dsl, std::string
       return 1;
     }
     mprintf("DEBUG:\tVariable %i - '%s', %i dims, %i attributes\n", ivar, varName, nVarDims, nVarAttributes);
+    if (nVarDims == 1) {
+      if (read_1d_var(dsl, dsname, ivar, varName, varType, nVarAttributes)) return 1;
+    } else {
+      mprintf("Warning: Variable '%s' not yet handled by CPPTRAJ.\n", varName);
+    }
   }
 
   nc_close( ncid_ );
@@ -305,7 +330,7 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
   }
   for (SetArray::const_iterator it = sets.begin(); it != sets.end(); ++it) {
     DataSet_1D const& ds1d = static_cast<DataSet_1D const&>( *(it->DS()) );
-    if (NC::CheckErr(nc_put_vara(ncid_, varIDs_[it->OriginalIdx()], start, count, ds1d.VoidPtr(0)))) {
+    if (NC::CheckErr(nc_put_vara(ncid_, varIDs_[it->OriginalIdx()], start, count, ds1d.DvalPtr()))) {
       mprinterr("Error: Could not write variable '%s'\n", ds1d.legend());
       return 1;
     }

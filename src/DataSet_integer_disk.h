@@ -23,6 +23,8 @@ class DataSet_integer_disk : public DataSet_integer {
     double Dval(size_t) const;
     /// This function is invalid for DataSet_integer_disk
     const void* VoidPtr(size_t) const;
+    /// This function is invalid for DataSet_integer_disk
+    const void* DvalPtr() const;
     // ----- DataSet_integer functions -----------
     //int& operator[](size_t);
     void SetElement(size_t, int);

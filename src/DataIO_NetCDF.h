@@ -20,6 +20,8 @@ class DataIO_NetCDF : public DataIO {
     class Set;
     typedef std::vector<Set> SetArray;
 
+    int read_1d_var(DataSetList&, std::string const&, int, const char*, int, int);
+
     int writeData_1D(DataSet const*, Dimension const&, SetArray const&);
 
     int ncid_;                ///< Current netcdf ID
