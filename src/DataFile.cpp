@@ -84,6 +84,7 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
   { "Unknown Data file",  0,                       0,                        0                    }
 };
 
+/** Types that support reads. */
 const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
   { DATAFILE,     "dat",    ".dat"   },
   { XMGRACE,      "grace",  ".agr"   },
@@ -103,6 +104,7 @@ const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
   { CMATRIX_BINARY,"cmatrix",".cmatrix" },
   { CMATRIX_NETCDF,"nccmatrix", ".nccmatrix" },
   { PEAKS,        "peaks",  ".peaks" },
+  { NETCDFDATA,   "netcdf", ".nc" },
   { UNKNOWN_DATA, 0,        0        }
 };
 

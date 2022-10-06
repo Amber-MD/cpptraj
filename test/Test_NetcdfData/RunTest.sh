@@ -24,4 +24,12 @@ EOF
 RunCpptraj "$UNITNAME"
 NcTest d1.nc.save d1.nc
 
+UNITNAME='Read basic 1D NetCDF data'
+cat > ncdata.in <<EOF
+readdata d1.nc.save
+list
+quit
+EOF
+RunCpptraj "$UNITNAME"
+
 EndTest

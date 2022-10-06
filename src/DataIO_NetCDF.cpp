@@ -58,8 +58,27 @@ int DataIO_NetCDF::processReadArgs(ArgList& argIn)
 // DataIO_NetCDF::ReadData()
 int DataIO_NetCDF::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
-  
+# ifdef BINTRAJ
+  if (NC::CheckErr( nc_open( fname.full(), NC_NOWRITE, &ncid_ ) != NC_NOERR )) {
+    mprinterr("Error: Could not open NetCDF data file '%s'\n", fname.full());
+    return 1;
+  }
+
+  // Get the number of dimensions, variables, attributes, and ID of the
+  // unlimited dimension (if any).
+  int ndimsp, nvarsp, ngattsp,unlimdimidp;
+  if (NC::CheckErr( nc_inq(ncid_, &ndimsp, &nvarsp, &ngattsp, &unlimdimidp) )) {
+    mprinterr("Error: Could not get NetCDF data file information.\n");
+    return 1;
+  }
+  mprintf("DEBUG: '%s' : ndimsp=%i  nvarsp=%i  ngattsp=%i  unlimdimidp=%i\n",
+          fname.full(), ndimsp, nvarsp, ngattsp, unlimdimidp);
+
+  nc_close( ncid_ );
+  return 0;
+# else  
   return 1;
+# endif
 }
 
 // -----------------------------------------------------------------------------
@@ -357,6 +376,8 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
     return 1;
   }
   NC::Debug(ncid_);
+
+  nc_close(ncid_); 
   return 0;
 # else
   return 1;
