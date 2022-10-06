@@ -14,7 +14,9 @@ class DataIO_NetCDF : public DataIO {
     int WriteData(FileName const&, DataSetList const&);
     bool ID_DataFormat(CpptrajFile&);
   private:
+    /// Hold a list of pointers to DataSets in a DataSetList
     class SetPool;
+    /// Hold a pointer to DataSet in a DataSetList and its original index
     class Set;
     typedef std::vector<Set> SetArray;
 

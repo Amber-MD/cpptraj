@@ -62,6 +62,7 @@ int DataIO_NetCDF::ReadData(FileName const& fname, DataSetList& dsl, std::string
   return 1;
 }
 
+// -----------------------------------------------------------------------------
 // DataIO_NetCDF::WriteHelp()
 void DataIO_NetCDF::WriteHelp()
 {
@@ -75,7 +76,9 @@ int DataIO_NetCDF::processWriteArgs(ArgList& argIn)
   return 0;
 }
 
-/// Hold a pool of pointers to DataSets in the list.
+/** Hold a pool of pointers to DataSets in the list. They will be marked off
+  * as they are used.
+  */
 class DataIO_NetCDF::SetPool {
   public:
     /// CONSTRUCTOR - place sets from DataSetList in this pool
@@ -105,7 +108,9 @@ class DataIO_NetCDF::SetPool {
     unsigned int nUsed_;
 };
 
-/// Hold a pointer to DataSet and its original index
+/** Hold a pointer to DataSet and its original index. Used to refer back to
+  * original DataSetList from sets in a SetPool.
+  */
 class DataIO_NetCDF::Set {
   public:
     Set(DataSet const* ds, int oidx) : ds_(ds), oidx_(oidx) {}
@@ -198,7 +203,7 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
   for (SetArray::const_iterator it = sets.begin(); it != sets.end(); ++it)
     mprintf(" %s", it->DS()->legend());
   mprintf("\n");
-  // Define the dimension. Ensure name is unique.
+  // Define the dimension. Ensure name is unique by appending an index.
   if (EnterDefineMode(ncid_)) return 1;
   std::string dimLabel = dim.Label() + integerToString(dimIdx_++);
   int dimId = -1;
@@ -217,7 +222,7 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
     return 1;
   }
   
-  // Define the variable(s). Names should be unique.
+  // Define the variable(s). Names should be unique: <DimName>.<VarName>
   for (SetArray::const_iterator it = sets.begin(); it != sets.end(); ++it) {
     // Choose type
     nc_type dtype;
