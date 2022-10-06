@@ -278,6 +278,14 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
     }
     // Add DataSet metadata as attributes
     if (AddDataSetMetaData( it->DS()->Meta(), ncid_, varIDs_[it->OriginalIdx()] )) return 1;
+    // Indicate whether the variable is monotonic or not
+    int isMonotonic = 1;
+    if (it->DS()->Type() == DataSet::XYMESH)
+      isMonotonic = 0;
+    if (NC::CheckErr(nc_put_att_int(ncid_, varIDs_[it->OriginalIdx()], "monotonic", NC_INT, 1, &isMonotonic))) {
+      mprinterr("Error: Setting monotonic attribute.\n");
+      return 1;
+    }
   } // END define variable(s)
   if (EndDefineMode( ncid_ )) return 1;
   // Write the variables
