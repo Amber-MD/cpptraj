@@ -92,7 +92,7 @@ int DataIO_NetCDF::ReadData(FileName const& fname, DataSetList& dsl, std::string
       return 1;
     }
     dimLengths.push_back( diml );
-    mprintf("DEBUG:\tDimenison %i - '%s' (%u)\n", idim, varName, dimLengths[idim]);
+    mprintf("DEBUG:\tDimension %i - '%s' (%u)\n", idim, varName, dimLengths[idim]);
   }
 
   // Loop over all variables in the NetCDF file.
