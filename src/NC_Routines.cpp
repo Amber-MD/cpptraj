@@ -177,4 +177,15 @@ NC::ConventionsType NC::GetConventions(int ncidIn, bool verbose) {
   return nctype;
 }
 
+/** Add Conventions string to given NetCDF id. */
+int NC::PutConventions(int ncid, ConventionsType nctype) {
+  std::string cStr( conventionsStr(nctype) );
+  if (CheckErr(nc_put_att_text(ncid, NC_GLOBAL, "Conventions", cStr.size(), cStr.c_str())))
+  {
+    mprinterr("Error: Writing NetCDF Conventions for '%s'.\n", cStr.c_str());
+    return 1;
+  }
+  return 0;
+}
+
 #endif /* BINTRAJ */

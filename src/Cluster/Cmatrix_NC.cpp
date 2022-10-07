@@ -251,8 +251,7 @@ int Cpptraj::Cluster::Cmatrix_NC::CreateCmatrix(FileName const& fname, unsigned 
     actualFrames_VID_ = -1;
 
   // Attributes
-  std::string cStr( NC::conventionsStr(NC::NC_CPPTRAJCMATRIX) );
-  if (NC::CheckErr(nc_put_att_text(ncid_, NC_GLOBAL, "Conventions", cStr.size(), cStr.c_str())))
+  if (NC::PutConventions(ncid_, NC::NC_CPPTRAJCMATRIX))
     return 1;
   if (NC::CheckErr(nc_put_att_text(ncid_, NC_GLOBAL, "Version", 3, "1.0")))
     return 1;

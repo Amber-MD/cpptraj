@@ -36,6 +36,8 @@ namespace NC {
   ConventionsType GetConventions(int, bool);
   /// \return Character string corresponding to given ConventionsType
   const char* conventionsStr(ConventionsType);
+  /// Put specified conventions string to given NetCDF id.
+  int PutConventions(int, ConventionsType);
 }
 #endif /* BINTRAJ */
 #endif

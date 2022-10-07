@@ -942,9 +942,8 @@ int NetcdfFile::NC_create(std::string const& Name, NC::ConventionsType typeIn, i
     mprinterr("Error: Writing program version.\n");
     return 1;
   }
-  // Write conventions based on type 
-  std::string cStr( NC::conventionsStr(myType_) );
-  if (NC::CheckErr(nc_put_att_text(ncid_, NC_GLOBAL, "Conventions", cStr.size(), cStr.c_str())))
+  // Write conventions based on type
+  if (NC::PutConventions(ncid_, myType_)) 
   {
     mprinterr("Error: Writing conventions.\n");
     return 1;
