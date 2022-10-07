@@ -63,6 +63,18 @@ int DataIO_NetCDF::read_1d_var(DataSetList& dsl, std::string const& dsname,
   return 0;
 }
 
+/** Hold info for a netcdf variable. */
+class DataIO_NetCDF::NcVar {
+  public:
+    NcVar(int vidIn, nc_type vtypeIn) : vid_(vidIn), vtype_(vtypeIn) {}
+
+    int VID() const { return vid_; }
+    nc_type Vtype() const { return vtype_; }
+  private:
+    int vid_;       ///< Netcdf variable id
+    nc_type vtype_; ///< Netcdf variable type
+};
+
 // DataIO_NetCDF::ReadData()
 int DataIO_NetCDF::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
@@ -71,6 +83,11 @@ int DataIO_NetCDF::ReadData(FileName const& fname, DataSetList& dsl, std::string
     mprinterr("Error: Could not open NetCDF data file '%s'\n", fname.full());
     return 1;
   }
+
+  // Check if we have CPPTRAJ conventions
+  bool hasCpptrajConventions = (NC::GetConventions(ncid_) == NC::NC_CPPTRAJDATA);
+  if (hasCpptrajConventions)
+    mprintf("\tNetCDF data file has CPPTRAJ conventions.\n");
 
   // Get the number of dimensions, variables, attributes, and ID of the
   // unlimited dimension (if any).
@@ -95,6 +112,10 @@ int DataIO_NetCDF::ReadData(FileName const& fname, DataSetList& dsl, std::string
     mprintf("DEBUG:\tDimension %i - '%s' (%u)\n", idim, varName, dimLengths[idim]);
   }
 
+  typedef std::vector<NcVar> Iarray;
+  // For each dimension, a list of any 1D variables
+  std::vector<Iarray> sets_1d( ndimsp );
+
   // Loop over all variables in the NetCDF file.
   nc_type varType = 0;            // Variable type
   int nVarDims = -1;              // # variable dimensions
@@ -107,10 +128,18 @@ int DataIO_NetCDF::ReadData(FileName const& fname, DataSetList& dsl, std::string
     }
     mprintf("DEBUG:\tVariable %i - '%s', %i dims, %i attributes\n", ivar, varName, nVarDims, nVarAttributes);
     if (nVarDims == 1) {
-      if (read_1d_var(dsl, dsname, ivar, varName, varType, nVarAttributes)) return 1;
+      //if (read_1d_var(dsl, dsname, ivar, varName, varType, nVarAttributes)) return 1;
+      sets_1d[ varDimIds[0] ].push_back( NcVar(ivar, varType) );
     } else {
       mprintf("Warning: Variable '%s' not yet handled by CPPTRAJ.\n", varName);
     }
+  }
+  mprintf("DEBUG: 1D sets for each dimension ID:\n");
+  for (int idim = 0; idim < ndimsp; idim++) {
+    mprintf("\t%i :", idim);
+    for (Iarray::const_iterator it = sets_1d[idim].begin(); it != sets_1d[idim].end(); ++it)
+      mprintf(" %i", it->VID());
+    mprintf("\n");
   }
 
   nc_close( ncid_ );
@@ -280,9 +309,12 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
     mprinterr("Error: Could not define index variable.\n");
     return 1;
   }
+  int isIndex = 1;
+  if (AddDataSetIntAtt(isIndex, "index", ncid_, idxId)) return 1;
   
   // Define the variable(s). Names should be unique: <DimName>.<VarName>
   for (SetArray::const_iterator it = sets.begin(); it != sets.end(); ++it) {
+    isIndex = 0;
     // Choose type
     nc_type dtype;
     switch (it->DS()->Type()) {
@@ -307,10 +339,8 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
     int isMonotonic = 1;
     if (it->DS()->Type() == DataSet::XYMESH)
       isMonotonic = 0;
-    if (NC::CheckErr(nc_put_att_int(ncid_, varIDs_[it->OriginalIdx()], "monotonic", NC_INT, 1, &isMonotonic))) {
-      mprinterr("Error: Setting monotonic attribute.\n");
-      return 1;
-    }
+    if (AddDataSetIntAtt(isMonotonic, "monotonic", ncid_, varIDs_[it->OriginalIdx()])) return 1;
+    if (AddDataSetIntAtt(isIndex, "index", ncid_, varIDs_[it->OriginalIdx()])) return 1;
   } // END define variable(s)
   if (EndDefineMode( ncid_ )) return 1;
   // Write the variables
@@ -401,10 +431,6 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
   //  mprinterr("Error: Writing title.\n");
   //  return 1;
   //}
-  if (NC::CheckErr(nc_put_att_text(ncid_,NC_GLOBAL,"application",5,"AMBER")) ) {
-    mprinterr("Error: Writing application.\n");
-    return 1;
-  }
   if (NC::CheckErr(nc_put_att_text(ncid_,NC_GLOBAL,"program",7,"cpptraj")) ) {
     mprinterr("Error: Writing program.\n");
     return 1;

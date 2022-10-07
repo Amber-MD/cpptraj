@@ -19,6 +19,8 @@ class DataIO_NetCDF : public DataIO {
     /// Hold a pointer to DataSet in a DataSetList and its original index
     class Set;
     typedef std::vector<Set> SetArray;
+    /// Hold info for a NetCDF variable
+    class NcVar;
 
     int read_1d_var(DataSetList&, std::string const&, int, const char*, int, int);
 
