@@ -355,7 +355,7 @@ static inline int AddDataSetStringAtt(std::string const& str, const char* desc, 
   if (!str.empty()) {
     if (NC::CheckErr(nc_put_att_text(ncid, varid, desc, str.size(), str.c_str()) ))
     {  
-      mprinterr("Error: Writing variable %s.\n", desc);
+      mprinterr("Error: Writing attribute %s.\n", desc);
       return 1;
     }
   }
@@ -369,9 +369,20 @@ static inline int AddDataSetIntAtt(int ival, const char* desc, int ncid, int var
   if (ival != -1) {
     if (NC::CheckErr(nc_put_att_int(ncid, varid, desc, NC_INT, 1, &ival)))
     {
-      mprinterr("Error: Writing variable %s.\n", desc);
+      mprinterr("Error: Writing attribute %s.\n", desc);
       return 1;
     }
+  }
+  return 0;
+}
+
+/// Add a double as double attribute
+static inline int AddDataSetDblAtt(double dval, const char* desc, int ncid, int varid)
+{
+  if (NC::CheckErr(nc_put_att_double(ncid, varid, desc, NC_DOUBLE, 1, &dval)))
+  {
+    mprinterr("Error: Writing attribute %s.\n", desc);
+    return 1;
   }
   return 0;
 }
@@ -482,23 +493,22 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
   std::string dimLabel;
   int dimId = defineDim( dimLabel, dim.Label(), ds );
   if (dimId == -1) return 1;
-
   //int dimensionID[NC_MAX_VAR_DIMS];
   int dimensionID[1];
   dimensionID[0] = dimId;
   // Define the 'index' variable. Will be shared by this group.
-  std::string idxName = dimLabel + "." + "idx";
+/*  std::string idxName = dimLabel + "." + "idx";
   int idxId;
   if ( NC::CheckErr( nc_def_var(ncid_, idxName.c_str(), NC_DOUBLE, 1, dimensionID, &idxId) ) ) {
     mprinterr("Error: Could not define index variable.\n");
     return 1;
   }
   int isIndex = 1;
-  if (AddDataSetIntAtt(isIndex, "indexvar", ncid_, idxId)) return 1;
+  if (AddDataSetIntAtt(isIndex, "indexvar", ncid_, idxId)) return 1;*/
   
   // Define the variable(s). Names should be unique: <DimName>.<VarName>
   for (SetArray::const_iterator it = sets.begin(); it != sets.end(); ++it) {
-    isIndex = 0;
+    //isIndex = 0;
     // Choose type
     nc_type dtype;
     switch (it->DS()->Type()) {
@@ -519,16 +529,19 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
     }
     // Add DataSet metadata as attributes
     if (AddDataSetMetaData( it->DS()->Meta(), ncid_, varIDs_[it->OriginalIdx()] )) return 1;
-    // Indicate whether the variable is monotonic or not
+    // Add dimension min and step
+    if (AddDataSetDblAtt(dim.Min(),  "min",  ncid_, varIDs_[it->OriginalIdx()])) return 1;
+    if (AddDataSetDblAtt(dim.Step(), "step", ncid_, varIDs_[it->OriginalIdx()])) return 1;
+
+/*    // Indicate whether the variable is monotonic or not
     int isMonotonic = 1;
     if (it->DS()->Type() == DataSet::XYMESH)
       isMonotonic = 0;
     if (AddDataSetIntAtt(isMonotonic, "monotonic", ncid_, varIDs_[it->OriginalIdx()])) return 1;
     // Indicate this is not an index variable
-    if (AddDataSetIntAtt(isIndex, "indexvar", ncid_, varIDs_[it->OriginalIdx()])) return 1;
+    if (AddDataSetIntAtt(isIndex, "indexvar", ncid_, varIDs_[it->OriginalIdx()])) return 1;*/
     // Store the description
     if (AddDataSetStringAtt(it->DS()->description(), "description", ncid_, varIDs_[it->OriginalIdx()])) return 1;
-
   } // END define variable(s)
   if (EndDefineMode( ncid_ )) return 1;
   // Write the variables
@@ -536,7 +549,7 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
   size_t count[1];
   start[0] = 0;
   count[0] = ds->Size();
-  // Use the first set for the 'index'
+/*  // Use the first set for the 'index'
   DataSet_1D const& dsidx = static_cast<DataSet_1D const&>( *(sets.front().DS()) );
   std::vector<double> idxs;
   idxs.reserve(dsidx.Size());
@@ -545,7 +558,7 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
   if (NC::CheckErr(nc_put_vara(ncid_, idxId, start, count, &idxs[0]))) {
     mprinterr("Error: Could not write index variable from '%s'\n", dsidx.legend());
     return 1;
-  }
+  }*/
   for (SetArray::const_iterator it = sets.begin(); it != sets.end(); ++it) {
     DataSet_1D const& ds1d = static_cast<DataSet_1D const&>( *(it->DS()) );
     if (NC::CheckErr(nc_put_vara(ncid_, varIDs_[it->OriginalIdx()], start, count, ds1d.DvalPtr()))) {
