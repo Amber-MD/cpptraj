@@ -404,6 +404,32 @@ static inline int AddDataSetMetaData(MetaData const& meta, int ncid, int varid)
   return 0;
 }
 
+/** Define dimension. Ensure name is unique by appending an index.
+  * \return defined dimension ID.
+  */
+int DataIO_NetCDF::defineDim(std::string& dimLabel, std::string const& label, DataSet const* ds)
+{
+  dimLabel.assign( label + integerToString(dimIdx_++) );
+  int dimId = -1;
+  if (NC::CheckErr( nc_def_dim(ncid_, dimLabel.c_str(), ds->Size(), &dimId ))) {
+    mprinterr("Error: Could not define dimension ID for set '%s'\n", ds->legend());
+    return -1;
+  }
+  return dimId;
+}
+
+/** Write 1D X-Y Mesh data set. */
+int DataIO_NetCDF::writeData_1D_xy(DataSet const* ds) {
+  mprintf("DEBUG: XY set '%s'\n", ds->legend());
+  // Define the dimension
+  if (EnterDefineMode(ncid_)) return 1;
+  std::string dimLabel;
+  int dimId = defineDim( dimLabel, ds->Dim(0).Label(), ds );
+  if (dimId == -1) return 1;
+
+  return  0;
+}
+
 /** Write 1D DataSets that share an index dimension. */
 int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArray const& sets) {
   mprintf("DEBUG: Sets for dimension '%s' %f %f:", dim.label(), dim.Min(), dim.Step());
@@ -412,12 +438,10 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
   mprintf("\n");
   // Define the dimension. Ensure name is unique by appending an index.
   if (EnterDefineMode(ncid_)) return 1;
-  std::string dimLabel = dim.Label() + integerToString(dimIdx_++);
-  int dimId = -1;
-  if (NC::CheckErr( nc_def_dim(ncid_, dimLabel.c_str(), ds->Size(), &dimId ))) {
-    mprinterr("Error: Could not define dimension ID for set '%s'\n", ds->legend());
-    return 1;
-  }
+  std::string dimLabel;
+  int dimId = defineDim( dimLabel, dim.Label(), ds );
+  if (dimId == -1) return 1;
+
   //int dimensionID[NC_MAX_VAR_DIMS];
   int dimensionID[1];
   dimensionID[0] = dimId;
