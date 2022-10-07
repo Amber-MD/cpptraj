@@ -74,6 +74,23 @@ int DataIO_NetCDF::processReadArgs(ArgList& argIn)
   return 0;
 }
 
+/// Get integer attribute from variable
+/** \return 1 if an error occurred, 0 if found, and -1 if not present. */
+static inline int GetVarIntAtt(int& ival, const char* desc, int ncid, int varid)
+{
+  ival = -1;
+  int ncerr = nc_get_att_int(ncid, varid, desc, &ival);
+  if (ncerr != NC_NOERR) {
+    if (ncerr != NC_ENOTATT) {
+      NC::CheckErr(ncerr);
+      mprinterr("Error: Could not get '%s' attribute.\n", desc);
+      return 1;
+    }
+    return -1;
+  }
+  return 0;
+}
+
 /// Get DataSet metadata from a variable
 static inline MetaData GetVarMetaData(int& errStat, int ncid, int varid)
 {
@@ -91,6 +108,24 @@ static inline MetaData GetVarMetaData(int& errStat, int ncid, int varid)
     return meta;
   }
   meta.SetName( att );
+  // Aspect
+  att = NC::GetAttrText(ncid, varid, "aspect");
+  if (!att.empty())
+    meta.SetAspect( att );
+  // Legend
+  att = NC::GetAttrText(ncid, varid, "legend");
+  if (!att.empty())
+    meta.SetLegend( att );
+  // Index
+  int ival;
+  int ret = GetVarIntAtt(ival, "index", ncid, varid);
+  if (ret == 1) {
+    mprinterr("Error: Could not get 'index' attribute.\n");
+    errStat = 1;
+    return meta;
+  } else if (ret == 0) {
+    meta.SetIdx( ival );
+  }
 /*
   // Aspect
   if (AddDataSetStringAtt(meta.Aspect(), "aspect", ncid, varid)) return 1;
@@ -122,8 +157,8 @@ const
   for (VarArray::const_iterator it = Vars.begin(); it != Vars.end(); ++it)
   {
     int isIndex;
-    if (NC::CheckErr(nc_get_att_int(ncid_, it->VID(), "index", &isIndex))) {
-      mprinterr("Error: Could not get 'index' attribute for var %s\n", it->vname());
+    if (NC::CheckErr(nc_get_att_int(ncid_, it->VID(), "indexvar", &isIndex))) {
+      mprinterr("Error: Could not get 'indexvar' attribute for var %s\n", it->vname());
       return 1;
     }
     if (isIndex == 1) {
@@ -390,7 +425,7 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
     return 1;
   }
   int isIndex = 1;
-  if (AddDataSetIntAtt(isIndex, "index", ncid_, idxId)) return 1;
+  if (AddDataSetIntAtt(isIndex, "indexvar", ncid_, idxId)) return 1;
   
   // Define the variable(s). Names should be unique: <DimName>.<VarName>
   for (SetArray::const_iterator it = sets.begin(); it != sets.end(); ++it) {
@@ -420,7 +455,7 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
     if (it->DS()->Type() == DataSet::XYMESH)
       isMonotonic = 0;
     if (AddDataSetIntAtt(isMonotonic, "monotonic", ncid_, varIDs_[it->OriginalIdx()])) return 1;
-    if (AddDataSetIntAtt(isIndex, "index", ncid_, varIDs_[it->OriginalIdx()])) return 1;
+    if (AddDataSetIntAtt(isIndex, "indexvar", ncid_, varIDs_[it->OriginalIdx()])) return 1;
   } // END define variable(s)
   if (EndDefineMode( ncid_ )) return 1;
   // Write the variables
