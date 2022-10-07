@@ -129,6 +129,7 @@ void NC::Debug(int ncid) {
   mprintf("==========  END NETCDF DEBUG ==========\n");
 }
 
+/// NOTE: Must be kept in sync with NC::ConventionsType
 static const char* NC_ConventionsStr_[] = {
   "AMBER",           // NC_AMBERTRAJ
   "AMBERRESTART",    // NC_AMBERRESTART
