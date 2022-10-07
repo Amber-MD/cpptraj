@@ -46,13 +46,17 @@ bool DataIO_NetCDF::ID_DataFormat(CpptrajFile& infile)
 /** Hold info for a netcdf variable. */
 class DataIO_NetCDF::NcVar {
   public:
-    NcVar(int vidIn, nc_type vtypeIn) : vid_(vidIn), vtype_(vtypeIn) {}
+    NcVar(int vidIn, nc_type vtypeIn, const char* vnameIn) :
+      vid_(vidIn), vtype_(vtypeIn), vname_(vnameIn) {}
 
     int VID() const { return vid_; }
     nc_type Vtype() const { return vtype_; }
+    std::string const& Vname() const { return vname_; }
+    const char* vname() const { return vname_.c_str(); }
   private:
     int vid_;       ///< Netcdf variable id
     nc_type vtype_; ///< Netcdf variable type
+    std::string vname_; ///< Variable name
 };
 
 // -----------------------------------------------------------------------------
@@ -70,6 +74,45 @@ int DataIO_NetCDF::processReadArgs(ArgList& argIn)
   return 0;
 }
 
+/// Get DataSet metadata from a variable
+static inline MetaData GetVarMetaData(int& errStat, int ncid, int varid)
+{
+  MetaData meta;
+  errStat = 0;
+  // Filename
+  std::string att = NC::GetAttrText(ncid, varid, "filename");
+  if (!att.empty())
+    meta.SetFileName( att );
+  // Name
+  att = NC::GetAttrText(ncid, varid, "name");
+  if (att.empty()) {
+    mprinterr("Error: 'name' attribute missing for VID %i\n", varid);
+    errStat = 1;
+    return meta;
+  }
+  meta.SetName( att );
+/*
+  // Aspect
+  if (AddDataSetStringAtt(meta.Aspect(), "aspect", ncid, varid)) return 1;
+  // Legend
+  if (AddDataSetStringAtt(meta.Legend(), "legend", ncid, varid)) return 1;
+  // Index
+  if (AddDataSetIntAtt(meta.Idx(), "index", ncid, varid)) return 1;
+  // Ensemble number
+  if (AddDataSetIntAtt(meta.EnsembleNum(), "ensemblenum", ncid, varid)) return 1;
+  // TODO  TimeSeries?
+  // Scalar type
+  if (meta.ScalarType() != MetaData::UNDEFINED) {
+    if (AddDataSetStringAtt(meta.TypeString(), "scalartype", ncid, varid)) return 1;
+  }
+  // Scalar mode
+  if (meta.ScalarMode() != MetaData::UNKNOWN_MODE) {
+    if (AddDataSetStringAtt(meta.ModeString(), "scalarmode", ncid, varid)) return 1;
+  }
+
+  return 0;*/
+  return meta;
+}
 /** Read 1D variable(s) with CPPTRAJ conventions. */
 int DataIO_NetCDF::read_1d_var(DataSetList& dsl, std::string const& dsname, int dimId, VarArray const& Vars)
 const
@@ -80,7 +123,7 @@ const
   {
     int isIndex;
     if (NC::CheckErr(nc_get_att_int(ncid_, it->VID(), "index", &isIndex))) {
-      mprinterr("Error: Could not get 'index' attribute for vid %i\n", it->VID());
+      mprinterr("Error: Could not get 'index' attribute for var %s\n", it->vname());
       return 1;
     }
     if (isIndex == 1) {
@@ -92,6 +135,18 @@ const
     }
   }
   mprintf("DEBUG: Index VID: %i\n", index_vid);
+  // For each vid that is not the index, create the data set.
+  for (VarArray::const_iterator it = Vars.begin(); it != Vars.end(); ++it)
+  {
+    if (it->VID() != index_vid) {
+      int errStat = 0;
+      MetaData meta = GetVarMetaData( errStat, ncid_, it->VID() );
+      if (errStat != 0) {
+        mprinterr("Error: Could not set up meta data for variable '%s'\n", it->vname());
+        return 1;
+      }
+    }
+  }
 
   return 0;
 }
@@ -150,7 +205,7 @@ int DataIO_NetCDF::ReadData(FileName const& fname, DataSetList& dsl, std::string
     mprintf("DEBUG:\tVariable %i - '%s', %i dims, %i attributes\n", ivar, varName, nVarDims, nVarAttributes);
     if (nVarDims == 1) {
       //if (read_1d_var(dsl, dsname, ivar, varName, varType, nVarAttributes)) return 1;
-      sets_1d[ varDimIds[0] ].push_back( NcVar(ivar, varType) );
+      sets_1d[ varDimIds[0] ].push_back( NcVar(ivar, varType, varName) );
     } else {
       mprintf("Warning: Variable '%s' not yet handled by CPPTRAJ.\n", varName);
     }
@@ -159,7 +214,7 @@ int DataIO_NetCDF::ReadData(FileName const& fname, DataSetList& dsl, std::string
   for (int idim = 0; idim < ndimsp; idim++) {
     mprintf("\t%i :", idim);
     for (Iarray::const_iterator it = sets_1d[idim].begin(); it != sets_1d[idim].end(); ++it)
-      mprintf(" %i", it->VID());
+      mprintf("  %i (%s)", it->VID(), it->vname());
     mprintf("\n");
   }
   

@@ -40,15 +40,22 @@ std::string NC::GetAttrText(int ncid, int vid, const char* attribute) {
   size_t attlen;
   std::string attrOut;
   // Get attr length
-  if ( CheckErr(nc_inq_attlen(ncid, vid, attribute, &attlen)) ) {
-    mprintf("Warning: Getting length for attribute '%s'\n",attribute);
+  int ncerr = nc_inq_attlen(ncid, vid, attribute, &attlen);
+  if (ncerr != NC_NOERR) {
+    // Only print error message if something other than attribute not present happened.
+    if (ncerr != NC_ENOTATT)
+      CheckErr( ncerr );
     return attrOut;
   }
+  //if ( CheckErr(nc_inq_attlen(ncid, vid, attribute, &attlen)) ) {
+  //  mprintf("Warning: Getting length for attribute '%s'\n",attribute);
+  //  return attrOut;
+  //}
   // Allocate space for attr text, plus one for null char
   char *attrText = new char[ (attlen + 1) ];
   // Get attr text
   if ( CheckErr(nc_get_att_text(ncid, vid, attribute, attrText)) ) {
-    mprintf("Warning: Getting attribute text for '%s'\n",attribute);
+    mprintf("Warning: Could not get attribute text for '%s'\n", attribute);
     delete[] attrText;
     return attrOut;
   }
