@@ -426,6 +426,47 @@ int DataIO_NetCDF::writeData_1D_xy(DataSet const* ds) {
   std::string dimLabel;
   int dimId = defineDim( dimLabel, ds->Dim(0).Label(), ds );
   if (dimId == -1) return 1;
+  int dimensionID[1];
+  dimensionID[0] = dimId;
+  // Define the X variable
+  std::string xvarstr = dimLabel + "." + ds->Meta().PrintName() + ".X";
+  int xid;
+  if (NC::CheckErr(nc_def_var(ncid_, xvarstr.c_str(), NC_DOUBLE, 1, dimensionID, &xid))) {
+    mprinterr("Error: Could not define X var for '%s'\n", ds->legend());
+    return 1;
+  }
+  // Define the Y variable
+  std::string yvarstr = dimLabel + "." + ds->Meta().PrintName() + ".Y";
+  int yid;
+  if (NC::CheckErr(nc_def_var(ncid_, yvarstr.c_str(), NC_DOUBLE, 1, dimensionID, &yid))) {
+    mprinterr("Error: Could not define Y var for '%s'\n", ds->legend());
+    return 1;
+  }
+  // Add DataSet metadata as attributes
+  if (AddDataSetMetaData( ds->Meta(), ncid_, yid )) return 1;
+   // Store the description
+  if (AddDataSetStringAtt( ds->description(), "description", ncid_, yid)) return 1;
+  // End define mode
+  if (EndDefineMode( ncid_ )) return 1;
+  // Write the X and Y variables
+  size_t start[1];
+  size_t count[1];
+  start[0] = 0;
+  count[0] = ds->Size();
+
+  DataSet_1D const& ds1d = static_cast<DataSet_1D const&>( *ds );
+  std::vector<double> idxs; // TODO access from XYMESH directly
+  idxs.reserve(ds1d.Size());
+  for (unsigned int ii = 0; ii < ds1d.Size(); ii++)
+    idxs.push_back( ds1d.Xcrd(ii) );
+  if (NC::CheckErr(nc_put_vara(ncid_, xid, start, count, &idxs[0]))) {
+    mprinterr("Error: Could not write X variable from '%s'\n", ds1d.legend());
+    return 1;
+  }
+  if (NC::CheckErr(nc_put_vara(ncid_, yid, start, count, ds1d.DvalPtr()))) {
+    mprinterr("Error: Could not write variable '%s'\n", ds1d.legend());
+    return 1;
+  }
 
   return  0;
 }
@@ -541,7 +582,13 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
 
     DataSet const* ds = setPool.Set( idx );
 
-    if (ds->Group() == DataSet::SCALAR_1D) {
+    if (ds->Type() == DataSet::XYMESH) {
+      // ----- XY Mesh ---------------------------
+      if (writeData_1D_xy(ds)) {
+        mprinterr("Error: xy mesh set write failed.\n");
+        return 1;
+      }
+    } else if (ds->Group() == DataSet::SCALAR_1D) {
       // ----- 1D scalar -------------------------
       SetArray sets(1, Set(ds, idx));
       setPool.MarkUsed( idx );
