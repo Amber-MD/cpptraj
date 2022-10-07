@@ -182,6 +182,8 @@ const
         return 1;
       }
       // Determine DataSet type
+      std::string desc = NC::GetAttrText(ncid_, it->VID(), "description");
+      mprintf("\tDescription: %s\n", desc.c_str());
       
       //DataSet* ds = dsl.AddSet
     }
