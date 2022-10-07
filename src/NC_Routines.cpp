@@ -134,7 +134,7 @@ static const char* NC_ConventionsStr_[] = {
   "AMBERRESTART",    // NC_AMBERRESTART
   "AMBERENSEMBLE",   // NC_AMBERENSEMBLE
   "CPPTRAJ_CMATRIX", // NC_CPPTRAJCMATRIX
-  "CPPTRAJ",         // NC_CPPTRAJDATA
+  "CPPTRAJ_DATA",    // NC_CPPTRAJDATA
   0                  // UNKNOWN
 };
 

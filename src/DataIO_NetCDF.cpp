@@ -416,6 +416,12 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
     mprinterr("Error: Writing program version.\n");
     return 1;
   }
+  if (NC::PutConventions(ncid_, NC::NC_CPPTRAJDATA))
+    return 1;
+  if (NC::CheckErr(nc_put_att_text(ncid_,NC_GLOBAL,"ConventionVersion",3,"1.0")) ) {
+    mprinterr("Error: Writing NetCDF data conventions version.\n");
+    return 1;
+  }
 
   // End netcdf definitions
   if (EndDefineMode(ncid_)) {
