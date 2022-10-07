@@ -456,8 +456,10 @@ int DataIO_NetCDF::writeData_1D_xy(DataSet const* ds) {
     return 1;
   }
   // Add DataSet metadata as attributes
+  if (AddDataSetMetaData( ds->Meta(), ncid_, xid )) return 1;
   if (AddDataSetMetaData( ds->Meta(), ncid_, yid )) return 1;
    // Store the description
+  if (AddDataSetStringAtt( ds->description(), "description", ncid_, xid)) return 1;
   if (AddDataSetStringAtt( ds->description(), "description", ncid_, yid)) return 1;
   // End define mode
   if (EndDefineMode( ncid_ )) return 1;
