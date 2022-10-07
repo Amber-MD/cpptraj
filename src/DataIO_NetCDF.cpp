@@ -120,32 +120,33 @@ static inline MetaData GetVarMetaData(int& errStat, int ncid, int varid)
   int ival;
   int ret = GetVarIntAtt(ival, "index", ncid, varid);
   if (ret == 1) {
-    mprinterr("Error: Could not get 'index' attribute.\n");
     errStat = 1;
     return meta;
   } else if (ret == 0) {
     meta.SetIdx( ival );
   }
-/*
-  // Aspect
-  if (AddDataSetStringAtt(meta.Aspect(), "aspect", ncid, varid)) return 1;
-  // Legend
-  if (AddDataSetStringAtt(meta.Legend(), "legend", ncid, varid)) return 1;
-  // Index
-  if (AddDataSetIntAtt(meta.Idx(), "index", ncid, varid)) return 1;
   // Ensemble number
-  if (AddDataSetIntAtt(meta.EnsembleNum(), "ensemblenum", ncid, varid)) return 1;
+  ret = GetVarIntAtt(ival, "ensemblenum", ncid, varid);
+  if (ret == 1) {
+    errStat = 1;
+    return meta;
+  } else if (ret == 0) {
+    meta.SetEnsembleNum( ival );
+  } 
   // TODO  TimeSeries?
-  // Scalar type
-  if (meta.ScalarType() != MetaData::UNDEFINED) {
-    if (AddDataSetStringAtt(meta.TypeString(), "scalartype", ncid, varid)) return 1;
-  }
   // Scalar mode
-  if (meta.ScalarMode() != MetaData::UNKNOWN_MODE) {
-    if (AddDataSetStringAtt(meta.ModeString(), "scalarmode", ncid, varid)) return 1;
-  }
+  MetaData::scalarMode smode = MetaData::UNKNOWN_MODE;
+  att = NC::GetAttrText(ncid, varid, "scalarmode");
+  if (!att.empty())
+    smode = MetaData::ModeFromKeyword( att );
+  meta.SetScalarMode( smode );
+  // Scalar type
+  MetaData::scalarType stype = MetaData::UNDEFINED;
+  att = NC::GetAttrText(ncid, varid, "scalartype");
+  if (!att.empty())
+    stype = MetaData::TypeFromKeyword( att, smode );
+  meta.SetScalarType( stype );
 
-  return 0;*/
   return meta;
 }
 /** Read 1D variable(s) with CPPTRAJ conventions. */
@@ -180,6 +181,9 @@ const
         mprinterr("Error: Could not set up meta data for variable '%s'\n", it->vname());
         return 1;
       }
+      // Determine DataSet type
+      
+      //DataSet* ds = dsl.AddSet
     }
   }
 
@@ -455,7 +459,11 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
     if (it->DS()->Type() == DataSet::XYMESH)
       isMonotonic = 0;
     if (AddDataSetIntAtt(isMonotonic, "monotonic", ncid_, varIDs_[it->OriginalIdx()])) return 1;
+    // Indicate this is not an index variable
     if (AddDataSetIntAtt(isIndex, "indexvar", ncid_, varIDs_[it->OriginalIdx()])) return 1;
+    // Store the description
+    if (AddDataSetStringAtt(it->DS()->description(), "description", ncid_, varIDs_[it->OriginalIdx()])) return 1;
+
   } // END define variable(s)
   if (EndDefineMode( ncid_ )) return 1;
   // Write the variables
