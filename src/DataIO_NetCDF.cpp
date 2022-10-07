@@ -42,6 +42,21 @@ bool DataIO_NetCDF::ID_DataFormat(CpptrajFile& infile)
   return false;
 }
 
+// -----------------------------------------------------------------------------
+/** Hold info for a netcdf variable. */
+class DataIO_NetCDF::NcVar {
+  public:
+    NcVar(int vidIn, nc_type vtypeIn) : vid_(vidIn), vtype_(vtypeIn) {}
+
+    int VID() const { return vid_; }
+    nc_type Vtype() const { return vtype_; }
+  private:
+    int vid_;       ///< Netcdf variable id
+    nc_type vtype_; ///< Netcdf variable type
+};
+
+// -----------------------------------------------------------------------------
+
 // DataIO_NetCDF::ReadHelp()
 void DataIO_NetCDF::ReadHelp()
 {
@@ -55,25 +70,31 @@ int DataIO_NetCDF::processReadArgs(ArgList& argIn)
   return 0;
 }
 
-/** Read a 1D variable. */
-int DataIO_NetCDF::read_1d_var(DataSetList& dsl, std::string const& dsname,
-                               int ivar, const char* varName, int varType, int nVarAttributes)
-                               
+/** Read 1D variable(s) with CPPTRAJ conventions. */
+int DataIO_NetCDF::read_1d_var(DataSetList& dsl, std::string const& dsname, int dimId, VarArray const& Vars)
+const
 {
+  // Determine if there is an index
+  int index_vid = -1;
+  for (VarArray::const_iterator it = Vars.begin(); it != Vars.end(); ++it)
+  {
+    int isIndex;
+    if (NC::CheckErr(nc_get_att_int(ncid_, it->VID(), "index", &isIndex))) {
+      mprinterr("Error: Could not get 'index' attribute for vid %i\n", it->VID());
+      return 1;
+    }
+    if (isIndex == 1) {
+      if (index_vid != -1) {
+        mprinterr("Error: Multiple indices found for dimension %i\n", dimId);
+        return 1;
+      }
+      index_vid = it->VID();
+    }
+  }
+  mprintf("DEBUG: Index VID: %i\n", index_vid);
+
   return 0;
 }
-
-/** Hold info for a netcdf variable. */
-class DataIO_NetCDF::NcVar {
-  public:
-    NcVar(int vidIn, nc_type vtypeIn) : vid_(vidIn), vtype_(vtypeIn) {}
-
-    int VID() const { return vid_; }
-    nc_type Vtype() const { return vtype_; }
-  private:
-    int vid_;       ///< Netcdf variable id
-    nc_type vtype_; ///< Netcdf variable type
-};
 
 // DataIO_NetCDF::ReadData()
 int DataIO_NetCDF::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
@@ -140,6 +161,10 @@ int DataIO_NetCDF::ReadData(FileName const& fname, DataSetList& dsl, std::string
     for (Iarray::const_iterator it = sets_1d[idim].begin(); it != sets_1d[idim].end(); ++it)
       mprintf(" %i", it->VID());
     mprintf("\n");
+  }
+  
+  for (int idim = 0; idim < ndimsp; idim++) {
+    if (read_1d_var( dsl, dsname, idim, sets_1d[idim] )) return 1;
   }
 
   nc_close( ncid_ );

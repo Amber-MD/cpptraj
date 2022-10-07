@@ -21,8 +21,9 @@ class DataIO_NetCDF : public DataIO {
     typedef std::vector<Set> SetArray;
     /// Hold info for a NetCDF variable
     class NcVar;
+    typedef std::vector<NcVar> VarArray;
 
-    int read_1d_var(DataSetList&, std::string const&, int, const char*, int, int);
+    int read_1d_var(DataSetList&, std::string const&, int, VarArray const&) const;
 
     int writeData_1D(DataSet const*, Dimension const&, SetArray const&);
 
