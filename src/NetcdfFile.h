@@ -2,13 +2,12 @@
 #define INC_NETCDFFILE_H
 #include <string>
 #include "Frame.h"
+#ifdef BINTRAJ
+# include "NC_Routines.h"
+#endif
 /// The base interface to NetCDF trajectory files.
 class NetcdfFile {
   public:
-    /// For determining NetCDF trajectory file type
-    enum NCTYPE { NC_AMBERTRAJ = 0, NC_AMBERRESTART, NC_AMBERENSEMBLE, NC_UNKNOWN };
-    /// \return Type of given file.
-    NCTYPE GetNetcdfConventions(const char*);
 #   ifndef BINTRAJ
     NetcdfFile() { }
 #   else 
@@ -22,14 +21,14 @@ class NetcdfFile {
     /// Create NetCDF reservoir.
     int NC_createReservoir(bool, double, int, int&, int&);
     /// Create NetCDF trajectory file of given type.
-    int NC_create(std::string const&, NCTYPE, int, 
+    int NC_create(std::string const&, NC::ConventionsType, int, 
                   CoordinateInfo const&, std::string const&, int);
     /// Close NetCDF file, do not reset dimension/variable IDs.
     void NC_close();
     /// \return Title of NetCDF file.
     std::string const& GetNcTitle() const { return nctitle_; }
     /// Set up NetCDF file for reading.
-    int NC_setupRead(std::string const&, NCTYPE, int, bool, bool, int);
+    int NC_setupRead(std::string const&, NC::ConventionsType, int, bool, bool, int);
     /// Read - Remd Values
     int ReadRemdValues(Frame&);
     /// Write - Remd Values
@@ -77,10 +76,6 @@ class NetcdfFile {
     int ensembleSize_;
     std::string nctitle_;
   private:
-    static const char* ConventionsStr_[];
-
-    /// \return NetCDF trajectory type based on conventions.
-    NCTYPE GetNetcdfConventions(int);
     /// Check NetCDF file conventions version.
     void CheckConventionsVersion();
 
@@ -115,7 +110,7 @@ class NetcdfFile {
     ReplicaDimArray remValType_;     ///< Type of each value (single or multi-D).
     // TODO audit the dimension IDs, may not need to be class vars.
     Box nc_box_;          ///< Hold box information
-    NCTYPE myType_;       ///< Current file type.
+    NC::ConventionsType myType_; ///< Current file type.
     int ncdebug_;
     int ensembleDID_;     ///< Ensemble dimenison ID
     int frameDID_;        ///< Frames dimension ID

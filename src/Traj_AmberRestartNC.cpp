@@ -33,7 +33,7 @@ Traj_AmberRestartNC::~Traj_AmberRestartNC() {
 }
 
 bool Traj_AmberRestartNC::ID_TrajFormat(CpptrajFile& fileIn) {
-  if ( GetNetcdfConventions( fileIn.Filename().full() ) == NC_AMBERRESTART ) return true;
+  if ( NC::GetConventions( fileIn.Filename().Full() ) == NC::NC_AMBERRESTART ) return true;
   return false;
 }
 
@@ -73,7 +73,7 @@ int Traj_AmberRestartNC::setupTrajin(FileName const& fname, Topology* trajParm)
   filename_ = fname;
   readAccess_ = true;
   // Setup for Amber NetCDF restart.
-  if ( NC_setupRead(filename_.Full(), NC_AMBERRESTART, trajParm->Natom(),
+  if ( NC_setupRead(filename_.Full(), NC::NC_AMBERRESTART, trajParm->Natom(),
                     useVelAsCoords_, useFrcAsCoords_, debug_) )
     return TRAJIN_ERR;
   // Get title
@@ -258,7 +258,7 @@ int Traj_AmberRestartNC::writeFrame(int set, Frame const& frameOut) {
   else
     fname = filename_.AppendFileName( "." + integerToString(set+1) );
   // Create Netcdf file 
-  if ( NC_create( fname.full(), NC_AMBERRESTART, n_atoms_, CoordInfo(),
+  if ( NC_create( fname.full(), NC::NC_AMBERRESTART, n_atoms_, CoordInfo(),
                   Title(), debug_ ) )
     return 1;
   // write coords

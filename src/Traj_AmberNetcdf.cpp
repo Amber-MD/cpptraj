@@ -36,7 +36,7 @@ Traj_AmberNetcdf::~Traj_AmberNetcdf() {
 }
 
 bool Traj_AmberNetcdf::ID_TrajFormat(CpptrajFile& fileIn) {
-  if ( GetNetcdfConventions( fileIn.Filename().full() ) == NC_AMBERTRAJ ) return true;
+  if ( NC::GetConventions( fileIn.Filename().Full() ) == NC::NC_AMBERTRAJ ) return true;
   return false;
 } 
 
@@ -79,7 +79,7 @@ int Traj_AmberNetcdf::setupTrajin(FileName const& fname, Topology* trajParm)
   filename_ = fname;
   readAccess_ = true;
   // Setup for Amber NetCDF trajectory
-  if ( NC_setupRead(filename_.Full(), NC_AMBERTRAJ, trajParm->Natom(),
+  if ( NC_setupRead(filename_.Full(), NC::NC_AMBERTRAJ, trajParm->Natom(),
                     useVelAsCoords_, useFrcAsCoords_, debug_) )
     return TRAJIN_ERR;
   // Get title
@@ -152,10 +152,10 @@ int Traj_AmberNetcdf::setupTrajout(FileName const& fname, Topology* trajParm,
     if (Title().empty())
       SetTitle("Cpptraj Generated trajectory");
     // Create NetCDF file.
-    if (NC_create( filename_.Full(), NC_AMBERTRAJ, trajParm->Natom(), CoordInfo(),
+    if (NC_create( filename_.Full(), NC::NC_AMBERTRAJ, trajParm->Natom(), CoordInfo(),
                    Title(), debug_ ))
       return 1;
-    // Close Netcdf file. It will be reopened write. FIXME should NC_create leave it closed?
+    // Close Netcdf file. It will be reopened write. TODO should NC_create leave it closed?
     NC_close();
     // Allocate memory
     if (Coord_!=0) delete[] Coord_;

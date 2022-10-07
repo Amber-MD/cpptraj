@@ -29,7 +29,7 @@ Cpptraj::Cluster::Cmatrix_NC::~Cmatrix_NC() {
 
 /** \return true if NetCDF file has CPPTRAJ_CMATRIX conventions. */
 bool Cpptraj::Cluster::Cmatrix_NC::IsCpptrajCmatrix(int NCID) {
-  return (NC::GetAttrText(NCID, "Conventions") == "CPPTRAJ_CMATRIX");
+  return (NC::GetConventions(NCID) == NC::NC_CPPTRAJCMATRIX);
 }
 
 #else /* BINTRAJ */

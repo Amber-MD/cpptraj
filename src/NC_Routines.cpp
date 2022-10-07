@@ -1,7 +1,27 @@
-#ifdef BINTRAJ
-#include <netcdf.h>
 #include "NC_Routines.h"
 #include "CpptrajStdio.h"
+#ifdef BINTRAJ
+# include <netcdf.h>
+#endif
+
+// NC::GetConventions()
+NC::ConventionsType NC::GetConventions(std::string const& fname) {
+  ConventionsType nctype = NC_UNKNOWN;
+# ifdef BINTRAJ
+  // NOTE: Do not use checkNCerr so this fails silently. Allows routine to
+  //       be used in file autodetection.
+  int myNcid;
+  if ( nc_open( fname.c_str(), NC_NOWRITE, &myNcid ) != NC_NOERR )
+    return NC_UNKNOWN;
+  nctype = GetConventions(myNcid);
+  nc_close( myNcid ); 
+# else
+  mprinterr("Error: Compiled without NetCDF support. Recompile with -DBINTRAJ\n");
+# endif
+  return nctype;
+}
+
+#ifdef BINTRAJ
 
 // NC::CheckErr()
 bool NC::CheckErr(int ncerr) {
@@ -108,4 +128,53 @@ void NC::Debug(int ncid) {
   }
   mprintf("==========  END NETCDF DEBUG ==========\n");
 }
-#endif
+
+static const char* NC_ConventionsStr_[] = {
+  "AMBER",           // NC_AMBERTRAJ
+  "AMBERRESTART",    // NC_AMBERRESTART
+  "AMBERENSEMBLE",   // NC_AMBERENSEMBLE
+  "CPPTRAJ_CMATRIX", // NC_CPPTRAJCMATRIX
+  "CPPTRAJ",         // NC_CPPTRAJDATA
+  0                  // UNKNOWN
+};
+
+// NC::conventionsStr()
+const char* NC::conventionsStr(ConventionsType nctype) {
+  return NC_ConventionsStr_[nctype];
+}
+
+// NC::GetConventions()
+/** Get conventions. No warning/error messages if no conventions or no
+  * recognized conventions found.
+  */
+NC::ConventionsType NC::GetConventions(int ncid) {
+  return GetConventions(ncid, false);
+}
+
+// NC::GetConventions()
+NC::ConventionsType NC::GetConventions(int ncidIn, bool verbose) {
+  ConventionsType nctype = NC_UNKNOWN;
+  std::string attrText = GetAttrText(ncidIn, "Conventions");
+  if (attrText.empty()) {
+    if (verbose)
+      mprintf("Warning: Could not get conventions from NetCDF file.\n");
+  } else {
+    for (int i = 0; i < (int)NC_UNKNOWN; i++) {
+      if (attrText.compare( NC_ConventionsStr_[i] ) == 0) {
+        nctype = (ConventionsType)i;
+        break;
+      }
+    }
+    if (verbose && nctype == NC_UNKNOWN) {
+      mprintf("Warning: NetCDF file has unrecognized conventions \"%s\".\n",
+              attrText.c_str());
+      mprintf("Warning: Expected one of");
+      for (int i = 0; i < (int)NC_UNKNOWN; i++)
+        mprintf(" \"%s\"", NC_ConventionsStr_[i]);
+      mprintf("\n");
+    }
+  }
+  return nctype;
+}
+
+#endif /* BINTRAJ */
