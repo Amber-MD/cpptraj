@@ -32,6 +32,7 @@ class DataSet_Mesh : public DataSet_1D {
     double Xcrd(size_t idx)   const { return mesh_x_[idx];       }
     const void* VoidPtr(size_t) const;
     const void* DvalPtr()           const { return (void*)(&mesh_y_[0]); }
+    void* Yptr() { return (&mesh_y_[0]); }
     void SetY(size_t idx, double y) { mesh_y_[idx] = y; }
     // -------------------------------------------
     inline void AddXY(double,double);

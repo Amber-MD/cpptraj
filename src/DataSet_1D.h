@@ -22,6 +22,8 @@ class DataSet_1D : public DataSet {
     virtual const void* VoidPtr(size_t) const = 0;
     /// \return Memory address of Y value array cast to void *. NOTE used to write to NetCDF
     virtual const void* DvalPtr() const = 0;
+    /// \return Memory address of Y value array cast to void *. NOTE used to read from NetCDF
+    virtual void* Yptr() = 0;
     /// Set Y value at given index
     virtual void SetY(size_t, double) = 0;
     /// Resize the underlying arrays to the given size

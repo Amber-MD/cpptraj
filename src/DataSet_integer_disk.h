@@ -25,6 +25,8 @@ class DataSet_integer_disk : public DataSet_integer {
     const void* VoidPtr(size_t) const;
     /// This function is invalid for DataSet_integer_disk
     const void* DvalPtr() const;
+    /// This function is invalid for DataSet_integer_disk
+    void* Yptr();
     // ----- DataSet_integer functions -----------
     //int& operator[](size_t);
     void SetElement(size_t, int);

@@ -32,6 +32,7 @@ class DataSet_float : public DataSet_1D {
     double Xcrd(size_t idx)         const { return Dim(0).Coord(idx);  }
     const void* VoidPtr(size_t idx) const { return (void*)(&(Data_[0])+idx); }
     const void* DvalPtr()           const { return (void*)(&Data_[0]); }
+    void* Yptr() { return (&Data_[0]); }
     void SetY(size_t idx, double y)       { Data_[idx] = (float)y; }
     // -------------------------------------------
     float* Ptr()                         { return &(Data_[0]);        }

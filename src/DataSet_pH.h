@@ -28,6 +28,7 @@ class DataSet_pH : public DataSet_1D {
     double Xcrd(size_t idx)         const { return Dim(0).Coord(idx);          }
     const void* VoidPtr(size_t idx) const { return (void*)(&(states_[0])+idx); }
     const void* DvalPtr()           const { return (void*)(&states_[0]); }
+    void* Yptr() { return (&states_[0]); }
     void SetY(size_t i, double y)         { states_[i] = (int)y; }
     void Resize(size_t n)                 { states_.resize(n, 0); }
     // -------------------------------------------

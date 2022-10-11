@@ -20,6 +20,7 @@ class DataSet_integer_mem : public DataSet_integer {
     double Dval(size_t idx)     const { return (double)Data_[idx]; }
     const void* VoidPtr(size_t idx) const { return (void*)(&(Data_[0])+idx); }
     const void* DvalPtr()           const { return (void*)(&Data_[0]); }
+    void* Yptr() { return (&Data_[0]); }
     // ----- DataSet functions -------------------
     size_t Size()               const { return Data_.size();       }
 #   ifdef MPI
