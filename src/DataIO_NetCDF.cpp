@@ -176,6 +176,10 @@ const
       return 1;
     }
     // Add the set
+    size_t start[1];
+    size_t count[1];
+    start[0] = 0;
+    count[0]  = dimLength;
     if (dtype == DataSet::XYMESH) {
       // Expect 2 vars, X and Y
       if (Vars.size() != 2) {
@@ -189,10 +193,6 @@ const
       set.Resize(dimLength);
       DataSet_Mesh::Darray& Xvals = set.SetMeshX();
       DataSet_Mesh::Darray& Yvals = set.SetMeshY();
-      size_t start[1];
-      size_t count[1];
-      start[0] = 0;
-      count[0]  = dimLength;
       // Get X
       if (NC::CheckErr(nc_get_vara(ncid_, it->VID(), start, count, (void*)(&Xvals[0])))) {
         mprinterr("Error: Could not get X values for XY set.\n");
@@ -208,6 +208,12 @@ const
     } else {
       DataSet* ds = dsl.AddSet( dtype, meta );
       mprintf("DEBUG: '%s'\n", ds->legend());
+      DataSet_1D& set = static_cast<DataSet_1D&>( *ds );
+      set.Resize( dimLength );
+      if (NC::CheckErr(nc_get_vara(ncid_, it->VID(), start, count, (void*)(set.Yptr())))) {
+        mprinterr("Error: Could not read to set.\n");
+        return 1;
+      }
     }
   }
 /*
