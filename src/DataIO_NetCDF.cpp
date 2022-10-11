@@ -8,6 +8,8 @@
 # include "NC_Routines.h"
 # include "StringRoutines.h"
 # include "Version.h"
+// DataSets
+# include "DataSet_Mesh.h"
 #endif
 
 /// CONSTRUCTOR
@@ -149,10 +151,66 @@ static inline MetaData GetVarMetaData(int& errStat, int ncid, int varid)
 
   return meta;
 }
-/** Read 1D variable(s) with CPPTRAJ conventions. */
-int DataIO_NetCDF::read_1d_var(DataSetList& dsl, std::string const& dsname, int dimId, VarArray const& Vars)
+/** Read 1D variable(s) that share a dimension with CPPTRAJ conventions. */
+int DataIO_NetCDF::read_1d_var(DataSetList& dsl, std::string const& dsname,
+                               unsigned int dimLength, VarArray const& Vars)
 const
 {
+  if (Vars.empty()) {
+    mprinterr("Internal Error: read_1d_var() called with no variables.\n");
+    return 1;
+  }
+  // Loop over the variables
+  for (VarArray::const_iterator it = Vars.begin(); it != Vars.end(); ++it)
+  {
+    // Get the description
+    std::string desc = NC::GetAttrText(ncid_, it->VID(), "description");
+    // Get the type from the description
+    DataSet::DataType dtype = DataSet::TypeFromDescription( desc );
+    mprintf("\t%s Description: %s (%i)\n", it->vname(), desc.c_str(), (int)dtype);
+    // Get metaData
+    int errStat = 0;
+    MetaData meta = GetVarMetaData( errStat, ncid_, it->VID() );
+    if (errStat != 0) {
+      mprinterr("Error: Could not set up meta data for variable '%s'\n", it->vname());
+      return 1;
+    }
+    // Add the set
+    if (dtype == DataSet::XYMESH) {
+      // Expect 2 vars, X and Y
+      if (Vars.size() != 2) {
+        mprinterr("Error: Expected only 2 variables for XY set '%s'\n", it->vname());
+        return 1;
+      }
+      // TODO check this is X, next is Y
+      DataSet* ds = dsl.AddSet( dtype, meta );
+      mprintf("DEBUG: '%s'\n", ds->legend());
+      DataSet_Mesh& set = static_cast<DataSet_Mesh&>( *ds );
+      set.Resize(dimLength);
+      DataSet_Mesh::Darray& Xvals = set.SetMeshX();
+      DataSet_Mesh::Darray& Yvals = set.SetMeshY();
+      size_t start[1];
+      size_t count[1];
+      start[0] = 0;
+      count[0]  = dimLength;
+      // Get X
+      if (NC::CheckErr(nc_get_vara(ncid_, it->VID(), start, count, (void*)(&Xvals[0])))) {
+        mprinterr("Error: Could not get X values for XY set.\n");
+        return 1;
+      }
+      // Get Y
+      it++;
+      if (NC::CheckErr(nc_get_vara(ncid_, it->VID(), start, count, (void*)(&Yvals[0])))) {
+        mprinterr("Error: Could not get Y values for XY set.\n");
+        return 1;
+      }
+      break;
+    } else {
+      DataSet* ds = dsl.AddSet( dtype, meta );
+      mprintf("DEBUG: '%s'\n", ds->legend());
+    }
+  }
+/*
   // Determine if there is an index
   int index_vid = -1;
   for (VarArray::const_iterator it = Vars.begin(); it != Vars.end(); ++it)
@@ -172,22 +230,12 @@ const
   }
   mprintf("DEBUG: Index VID: %i\n", index_vid);
   // For each vid that is not the index, create the data set.
-  for (VarArray::const_iterator it = Vars.begin(); it != Vars.end(); ++it)
   {
     if (it->VID() != index_vid) {
-      int errStat = 0;
-      MetaData meta = GetVarMetaData( errStat, ncid_, it->VID() );
-      if (errStat != 0) {
-        mprinterr("Error: Could not set up meta data for variable '%s'\n", it->vname());
-        return 1;
-      }
       // Determine DataSet type
-      std::string desc = NC::GetAttrText(ncid_, it->VID(), "description");
-      mprintf("\tDescription: %s\n", desc.c_str());
       
-      //DataSet* ds = dsl.AddSet
     }
-  }
+  }*/
 
   return 0;
 }
@@ -260,7 +308,7 @@ int DataIO_NetCDF::ReadData(FileName const& fname, DataSetList& dsl, std::string
   }
   
   for (int idim = 0; idim < ndimsp; idim++) {
-    if (read_1d_var( dsl, dsname, idim, sets_1d[idim] )) return 1;
+    if (read_1d_var( dsl, dsname, dimLengths[idim], sets_1d[idim] )) return 1;
   }
 
   nc_close( ncid_ );
