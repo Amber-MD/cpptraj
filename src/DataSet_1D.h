@@ -24,6 +24,8 @@ class DataSet_1D : public DataSet {
     virtual const void* DvalPtr() const = 0;
     /// Set Y value at given index
     virtual void SetY(size_t, double) = 0;
+    /// Resize the underlying arrays to the given size
+    virtual void Resize(size_t) = 0;
     // -------------------------------------------
     /// \return Average over set Y values
     double Avg()           const { return Avg( 0 ); }
