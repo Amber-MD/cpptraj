@@ -25,10 +25,11 @@ class DataSet {
     /// DataSet base type.
     /** When adding new entries make sure that Descriptions_ is updated. */ 
     enum DataType {
-      UNKNOWN_DATA=0, DOUBLE, FLOAT, INTEGER, STRING, MATRIX_DBL, MATRIX_FLT, 
+      DOUBLE = 0, FLOAT, INTEGER, STRING, MATRIX_DBL, MATRIX_FLT, 
       COORDS, VECTOR, MODES, GRID_FLT, GRID_DBL, REMLOG, XYMESH, TRAJ, REF_FRAME,
       MAT3X3, TOPOLOGY, PH, PH_EXPL, PH_IMPL,
-      PARAMETERS, PMATRIX_MEM, PMATRIX_NC, TENSOR, STRINGVAR, VECTOR_SCALAR, UNSIGNED_INTEGER
+      PARAMETERS, PMATRIX_MEM, PMATRIX_NC, TENSOR, STRINGVAR, VECTOR_SCALAR, UNSIGNED_INTEGER,
+      UNKNOWN_DATA
     };
     /// Group DataSet belongs to.
     enum DataGroup {
@@ -132,6 +133,8 @@ class DataSet {
     };
     /// \return Text description based on given DataType
     static const char* description(DataType t) { return Descriptions_[t]; }
+    /// \return DataType from description
+    static DataType TypeFromDescription(std::string const&);
     /// \return Text description based on current DataType
     const char* description() const            { return Descriptions_[dType_]; }
   protected:

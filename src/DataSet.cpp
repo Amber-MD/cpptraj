@@ -4,7 +4,6 @@
 // NOTE: IT IS IMPORTANT THAT THIS ARRAY CORRESPOND TO DataSet::DataType
 /** Description of each DataType. */
 const char* DataSet::Descriptions_[] = {
-  "unknown",        // UNKNOWN_DATA
   "double",         // DOUBLE
   "float",          // FLOAT
   "integer",        // INTEGER
@@ -31,8 +30,21 @@ const char* DataSet::Descriptions_[] = {
   "tensor",                     // TENSOR
   "string variable",            // STRINGVAR
   "vector with scalar",         // VECTOR_SCALAR
-  "unsigned integer"            // UNSIGNED_INTEGER
+  "unsigned integer",           // UNSIGNED_INTEGER
+  "unknown"                     // UNKNOWN_DATA
 };
+
+/** \return DataType from description. */
+DataSet::DataType DataSet::TypeFromDescription(std::string const& desc) {
+  DataType dtype = UNKNOWN_DATA;
+  for (int itype = 0; itype < (int)UNKNOWN_DATA; itype++) {
+    if (std::string(Descriptions_[itype]) == desc) {
+      dtype = DataType(itype);
+      break;
+    }
+  }
+  return dtype;
+}
 
 // CONSTRUCTOR
 DataSet::DataSet() : dType_(UNKNOWN_DATA), dGroup_(GENERIC)
