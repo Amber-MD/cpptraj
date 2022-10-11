@@ -461,6 +461,9 @@ int DataIO_NetCDF::writeData_1D_xy(DataSet const* ds) {
    // Store the description
   if (AddDataSetStringAtt( ds->description(), "description", ncid_, xid)) return 1;
   if (AddDataSetStringAtt( ds->description(), "description", ncid_, yid)) return 1;
+  // Have each var refer to the other
+  if (AddDataSetIntAtt( yid, "yvarid", ncid_, xid )) return 1;
+  if (AddDataSetIntAtt( xid, "xvarid", ncid_, yid )) return 1;
   // End define mode
   if (EndDefineMode( ncid_ )) return 1;
   // Write the X and Y variables
