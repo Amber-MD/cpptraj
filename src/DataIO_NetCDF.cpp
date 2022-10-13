@@ -224,6 +224,9 @@ const
       mprinterr("Error: Could not set up dimension for variable '%s'\n", it->vname());
       return 1;
     }
+    // For backwards compat., if no label set assume Frame
+    if (dim.Label().empty())
+      dim.SetLabel("Frame");
     // Add the set
     size_t start[1];
     size_t count[1];
