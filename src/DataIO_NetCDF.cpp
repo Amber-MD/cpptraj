@@ -288,32 +288,6 @@ const
       }
     }
   }
-/*
-  // Determine if there is an index
-  int index_vid = -1;
-  for (VarArray::const_iterator it = Vars.begin(); it != Vars.end(); ++it)
-  {
-    int isIndex;
-    if (NC::CheckErr(nc_get_att_int(ncid_, it->VID(), "indexvar", &isIndex))) {
-      mprinterr("Error: Could not get 'indexvar' attribute for var %s\n", it->vname());
-      return 1;
-    }
-    if (isIndex == 1) {
-      if (index_vid != -1) {
-        mprinterr("Error: Multiple indices found for dimension %i\n", dimId);
-        return 1;
-      }
-      index_vid = it->VID();
-    }
-  }
-  mprintf("DEBUG: Index VID: %i\n", index_vid);
-  // For each vid that is not the index, create the data set.
-  {
-    if (it->VID() != index_vid) {
-      // Determine DataSet type
-      
-    }
-  }*/
 
   return 0;
 }
@@ -648,15 +622,6 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
   //int dimensionID[NC_MAX_VAR_DIMS];
   int dimensionID[1];
   dimensionID[0] = dimId;
-  // Define the 'index' variable. Will be shared by this group.
-/*  std::string idxName = dimLabel + "." + "idx";
-  int idxId;
-  if ( NC::CheckErr( nc_def_var(ncid_, idxName.c_str(), NC_DOUBLE, 1, dimensionID, &idxId) ) ) {
-    mprinterr("Error: Could not define index variable.\n");
-    return 1;
-  }
-  int isIndex = 1;
-  if (AddDataSetIntAtt(isIndex, "indexvar", ncid_, idxId)) return 1;*/
   
   // Define the variable(s). Names should be unique: <DimName>.<VarName>
   for (SetArray::const_iterator it = sets.begin(); it != sets.end(); ++it) {
@@ -666,9 +631,9 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
     switch (it->DS()->Type()) {
       case DataSet::DOUBLE  :
       case DataSet::XYMESH  : dtype = NC_DOUBLE ; break;
+      case DataSet::PH      :
       case DataSet::INTEGER : dtype = NC_INT ; break;
       case DataSet::FLOAT   :
-      case DataSet::PH      : dtype = NC_FLOAT ; break;
       case DataSet::UNSIGNED_INTEGER : dtype = NC_UINT ; break; // TODO netcdf4 only?
       default:
         mprinterr("Internal Error: Unhandled DataSet type for 1D NetCDF variable.\n");
