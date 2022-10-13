@@ -31,7 +31,8 @@ class DataSet_MatrixDbl : public DataSet_2D {
     size_t Nrows()                       const { return mat_.Nrows();      }
     size_t Ncols()                       const { return mat_.Ncols();      }
     double* MatrixArray()                const;
-    MatrixKindType MatrixKind()          const { return kind_;              }
+    MatrixKindType MatrixKind()          const { return kind_;             }
+    const void* MatrixPtr()              const { return mat_.Ptr();        }
     // -------------------------------------------
     unsigned int Nsnapshots()            const { return snap_;              }
     void IncrementSnapshots()                  { ++snap_;                   }

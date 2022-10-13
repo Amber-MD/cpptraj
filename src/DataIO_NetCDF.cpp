@@ -751,6 +751,15 @@ int DataIO_NetCDF::writeData_2D(DataSet const* ds) {
   if (AddDataSetStringAtt(set.description(), "description", ncid_, varid)) return 1;
   // END define variable
   if (EndDefineMode( ncid_ )) return 1;
+  // Write the matrix 
+  size_t start[1];
+  size_t count[1];
+  start[0] = 0;
+  count[0] = set.Size();
+  if (NC::CheckErr(nc_put_vara(ncid_, varid, start, count, set.MatrixPtr()))) {
+    mprinterr("Error: Could not write matrix '%s'\n", set.legend());
+    return 1;
+  }
 
   return 0;
 }
@@ -785,6 +794,7 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
         mprinterr("Error: matrix set write failed.\n");
         return 1;
       }
+      setPool.MarkUsed( idx );
     } else if (ds->Type() == DataSet::XYMESH) {
       // ----- XY Mesh ---------------------------
       if (writeData_1D_xy(ds)) {
