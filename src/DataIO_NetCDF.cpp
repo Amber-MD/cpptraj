@@ -10,7 +10,7 @@
 # include "Version.h"
 // DataSets
 # include "DataSet_Mesh.h"
-# include "DataSet_2D.h"
+# include "DataSet_MatrixDbl.h"
 #endif
 
 /// CONSTRUCTOR
@@ -699,23 +699,6 @@ int DataIO_NetCDF::writeData_2D(DataSet const* ds) {
   std::string dimLabel;
   int dimId = defineDim( dimLabel, label, set.Size(), set.Meta().Legend() );
   if (dimId == -1) return 1;
-/*
-  std::string xdim = set.Dim(0).Label();
-  if (xdim.empty()) {
-    mprintf("Warning: Matrix X dim label is empty, using 'X'.\n");
-    xdim.assign("X");
-  }
-  std::string ydim = set.Dim(1).Label();
-  if (ydim.empty()) {
-    mprintf("Warning: Matrix Y dim label is empty, using 'Y'.\n");
-    ydim.assign("Y");
-  }
-  std::string xdimLabel;
-  int xdimId = defineDim( xdimLabel, xdim, set.Ncols(), set.Meta().Legend() + ".X" );
-  if (xdimId == -1) return 1;
-  std::string ydimLabel;
-  int ydimId = defineDim( ydimLabel, ydim, set.Nrows(), set.Meta().Legend() + ".Y" );
-  if (ydimId == -1) return 1;*/
   int dimensionID[1];
   dimensionID[0] = dimId;
   // Choose type
@@ -749,6 +732,36 @@ int DataIO_NetCDF::writeData_2D(DataSet const* ds) {
   if (AddDataSetStringAtt(kind, "matrixkind", ncid_, varid)) return 1;
   // Store the description
   if (AddDataSetStringAtt(set.description(), "description", ncid_, varid)) return 1;
+  // Define the diagonal vector if present
+  int vectVarId = -1;
+  int massVarId = -1;
+  if (set.Type() == DataSet::MATRIX_DBL) {
+    DataSet_MatrixDbl const& dmat = static_cast<DataSet_MatrixDbl const&>( set );
+    if (!dmat.Vect().empty()) {
+      int vectDimId = defineDim( dimLabel, "vect", dmat.Vect().size(), set.Meta().Legend() + " diagonal vector" );
+      if (vectDimId == -1) return 1;
+      dimensionID[0] = vectDimId;
+      std::string vectName = varName + "." + "vect";
+      if (NC::CheckErr(nc_def_var(ncid_, vectName.c_str(), NC_DOUBLE, 1, dimensionID, &vectVarId))) {
+        mprinterr("Error: Could not define vect variable for matrix '%s'\n", set.legend());
+        return 1;
+      }
+      // Note that there is a vect variable
+      if (AddDataSetIntAtt(vectVarId, "vectid", ncid_, varid)) return 1;
+    }
+    if (!dmat.Mass().empty()) {
+      int massDimId = defineDim( dimLabel, "mass", dmat.Mass().size(), set.Meta().Legend() + " mass" );
+      if (massDimId == -1) return 1;
+      dimensionID[0] = massDimId;
+      std::string massName = varName + "." + "mass";
+      if (NC::CheckErr(nc_def_var(ncid_, massName.c_str(), NC_DOUBLE, 1, dimensionID, &massVarId))) {
+        mprinterr("Error: Could not define mass variable for matrix '%s'\n", set.legend());
+        return 1;
+      }
+      // Note that there is a mass variable
+      if (AddDataSetIntAtt(massVarId, "massid", ncid_, varid)) return 1;
+    }
+  }
   // END define variable
   if (EndDefineMode( ncid_ )) return 1;
   // Write the matrix 
@@ -759,6 +772,22 @@ int DataIO_NetCDF::writeData_2D(DataSet const* ds) {
   if (NC::CheckErr(nc_put_vara(ncid_, varid, start, count, set.MatrixPtr()))) {
     mprinterr("Error: Could not write matrix '%s'\n", set.legend());
     return 1;
+  }
+  if (vectVarId != -1) {
+    DataSet_MatrixDbl const& dmat = static_cast<DataSet_MatrixDbl const&>( set );
+    count[0] = dmat.Vect().size();
+    if (NC::CheckErr(nc_put_vara(ncid_, vectVarId, start, count, &(dmat.Vect()[0])))) {
+      mprinterr("Error: Could not write vect variable for matrix '%s'\n", set.legend());
+      return 1;
+    }
+  }
+  if (massVarId != -1) {
+    DataSet_MatrixDbl const& dmat = static_cast<DataSet_MatrixDbl const&>( set );
+    count[0] = dmat.Mass().size();
+    if (NC::CheckErr(nc_put_vara(ncid_, massVarId, start, count, &(dmat.Mass()[0])))) {
+      mprinterr("Error: Could not write mass variable for matrix '%s'\n", set.legend());
+      return 1;
+    }
   }
 
   return 0;
