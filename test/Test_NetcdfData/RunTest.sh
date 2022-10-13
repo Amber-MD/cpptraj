@@ -3,7 +3,10 @@
 . ../MasterTest.sh
 
 CleanFiles ncdata.in d1.nc d1.dat rmsf.dat ascii.dat.save ascii.dat \
-           ca.matrix.nc ca.matrix.dat
+           matrix.nc \
+           ca.matrix.nc ca.matrix.dat \
+           n.ca.matrix.nc n.ca.matrix.dat \
+           ca.rms2d.dat
 
 TESTNAME='NetCDF data file tests.'
 Requires netcdf
@@ -45,9 +48,13 @@ UNITNAME='Write basic 2D NetCDF data'
 cat > ncdata.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.nc
-matrix name CA covar @CA out ca.matrix.nc
+matrix name CA covar @CA out matrix.nc
+matrix name N.CA mwcovar @N @CA out matrix.nc
+2drms RMS2D @CA out matrix.nc
 run
 writedata ca.matrix.dat CA nosquare2d
+writedata n.ca.matrix.dat N.CA nosquare2d
+writedata ca.rms2d.dat RMS2D nosquare2d
 EOF
 RunCpptraj "$UNITNAME"
 
