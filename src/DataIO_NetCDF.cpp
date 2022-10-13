@@ -313,6 +313,38 @@ int DataIO_NetCDF::read_cpptraj_vars(DataSetList& dsl, std::string const& dsname
           mprinterr("Error: Could not get values for set.\n");
           return 1;
         }
+      } else if (ds->Group() == DataSet::MATRIX_2D) {
+        // Get nrows/ncols
+        int ncols, nrows;
+        int ret = GetVarIntAtt(ncols, "ncols", ncid_, var->VID());
+        if (ret != 0) {
+          mprinterr("Error: Could not get 'ncols'.\n");
+          return 1;
+        }
+        ret = GetVarIntAtt(nrows, "nrows", ncid_, var->VID());
+        if (ret != 0) {
+          mprinterr("Error: Could not get 'nrows'.\n");
+          return 1;
+        }
+        // Get matrix kind
+        std::string mkind = NC::GetAttrText(ncid_, var->VID(), "matrixkind");
+        // Allocate
+        DataSet_2D& mat = static_cast<DataSet_2D&>( *ds );
+        int allocErr = 0;
+        if (mkind == "full")
+          allocErr = mat.Allocate2D(ncols, nrows);
+        else if (mkind == "half")
+          allocErr = mat.AllocateHalf(ncols);
+        else if (mkind == "tri")
+          allocErr = mat.AllocateTriangle(ncols);
+        else {
+          mprinterr("Error: Urecognized matrix kind: %s\n", mkind.c_str());
+          return 1;
+        }
+        if (allocErr != 0) {
+          mprinterr("Error: Could not allocate matrix.\n");
+          return 1;
+        } 
       }
     } else {
       mprinterr("Error: Cannot read type '%s' yet.\n", desc.c_str());
@@ -862,6 +894,9 @@ int DataIO_NetCDF::writeData_2D(DataSet const* ds) {
   // Add dimension min and step
   if (AddDataSetDimension( integerToString(0), set.Dim(0), ncid_, varid)) return 1;
   if (AddDataSetDimension( integerToString(1), set.Dim(1), ncid_, varid)) return 1;
+  // Store rows and columns
+  if (AddDataSetIntAtt( set.Ncols(), "ncols", ncid_, varid )) return 1;
+  if (AddDataSetIntAtt( set.Nrows(), "nrows", ncid_, varid )) return 1;
   // Store the matrix kind
   std::string kind;
   switch (set.MatrixKind()) {
