@@ -10,6 +10,7 @@
 # include "Version.h"
 // DataSets
 # include "DataSet_Mesh.h"
+# include "DataSet_2D.h"
 #endif
 
 /// CONSTRUCTOR
@@ -522,26 +523,47 @@ static inline int AddDataSetMetaData(MetaData const& meta, int ncid, int varid)
   return 0;
 }
 
+/// Add DataSet dimension to a variable with optional prefix
+static inline int AddDataSetDimension(std::string const& prefix, Dimension const& dim, int ncid, int varid)
+{
+  // Add dimension min and step
+  std::string min, step, label;
+  if (!prefix.empty()) {
+    min = prefix + "min";
+    step = prefix + "step";
+    label = prefix + "label";
+  } else {
+    min.assign("min");
+    step.assign("step");
+    label.assign("label");
+  }
+  if (AddDataSetDblAtt(dim.Min(),  min.c_str(),  ncid, varid)) return 1;
+  if (AddDataSetDblAtt(dim.Step(), step.c_str(), ncid, varid)) return 1;
+  if (AddDataSetStringAtt(dim.Label(), label.c_str(), ncid, varid)) return 1;
+  return 0;
+}
+
 /// Add DataSet dimension to a variable
 static inline int AddDataSetDimension(Dimension const& dim, int ncid, int varid)
 {
-  // Add dimension min and step
-  if (AddDataSetDblAtt(dim.Min(),  "min",  ncid, varid)) return 1;
-  if (AddDataSetDblAtt(dim.Step(), "step", ncid, varid)) return 1;
-  if (AddDataSetStringAtt(dim.Label(), "label", ncid, varid)) return 1;
-  return 0;
+  return AddDataSetDimension("", dim, ncid, varid);
 }
 
 /** Define dimension. Ensure name is unique by appending an index.
   * Dimension label will be '<label>.<index>'.
   * \return defined dimension ID.
   */
-int DataIO_NetCDF::defineDim(std::string& dimLabel, std::string const& label, DataSet const* ds)
+int DataIO_NetCDF::defineDim(std::string& dimLabel, std::string const& label,
+                             unsigned int dimSize, std::string const& Legend)
 {
+  if (label.empty()) {
+    mprinterr("Internal Error: defineDim(): label is empty.\n");
+    return -1;
+  }
   dimLabel.assign( label + "." + integerToString(dimIdx_++) );
   int dimId = -1;
-  if (NC::CheckErr( nc_def_dim(ncid_, dimLabel.c_str(), ds->Size(), &dimId ))) {
-    mprinterr("Error: Could not define dimension ID for set '%s'\n", ds->legend());
+  if (NC::CheckErr( nc_def_dim(ncid_, dimLabel.c_str(), dimSize, &dimId ))) {
+    mprinterr("Error: Could not define dimension ID for '%s' (%s)\n", Legend.c_str(), dimLabel.c_str());
     return -1;
   }
   return dimId;
@@ -553,7 +575,7 @@ int DataIO_NetCDF::writeData_1D_xy(DataSet const* ds) {
   // Define the dimension
   if (EnterDefineMode(ncid_)) return 1;
   std::string dimLabel;
-  int dimId = defineDim( dimLabel, ds->Dim(0).Label(), ds );
+  int dimId = defineDim( dimLabel, ds->Dim(0).Label(), ds->Size(), ds->Meta().Legend() );
   if (dimId == -1) return 1;
   int dimensionID[1];
   dimensionID[0] = dimId;
@@ -618,7 +640,7 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
   // Define the dimension. Ensure name is unique by appending an index.
   if (EnterDefineMode(ncid_)) return 1;
   std::string dimLabel;
-  int dimId = defineDim( dimLabel, dim.Label(), ds );
+  int dimId = defineDim( dimLabel, dim.Label(), ds->Size(), ds->Meta().Legend() );
   if (dimId == -1) return 1;
   //int dimensionID[NC_MAX_VAR_DIMS];
   int dimensionID[1];
@@ -631,10 +653,10 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
     nc_type dtype;
     switch (it->DS()->Type()) {
       case DataSet::DOUBLE  :
-      case DataSet::XYMESH  : dtype = NC_DOUBLE ; break;
+      case DataSet::XYMESH  :          dtype = NC_DOUBLE ; break;
       case DataSet::PH      :
-      case DataSet::INTEGER : dtype = NC_INT ; break;
-      case DataSet::FLOAT   :
+      case DataSet::INTEGER :          dtype = NC_INT ; break;
+      case DataSet::FLOAT   :          dtype = NC_FLOAT ; break;
       case DataSet::UNSIGNED_INTEGER : dtype = NC_UINT ; break; // TODO netcdf4 only?
       default:
         mprinterr("Internal Error: Unhandled DataSet type for 1D NetCDF variable.\n");
@@ -667,6 +689,71 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
   }
   return 0;
 }
+
+/** Write a 2D set. */
+int DataIO_NetCDF::writeData_2D(DataSet const* ds) {
+  // Define the dimension of the underlying array. Ensure name is unique by appending an index.
+  if (EnterDefineMode(ncid_)) return 1;
+  DataSet_2D const& set = static_cast<DataSet_2D const&>( *ds );
+  std::string label("Matrix");
+  std::string dimLabel;
+  int dimId = defineDim( dimLabel, label, set.Size(), set.Meta().Legend() );
+  if (dimId == -1) return 1;
+/*
+  std::string xdim = set.Dim(0).Label();
+  if (xdim.empty()) {
+    mprintf("Warning: Matrix X dim label is empty, using 'X'.\n");
+    xdim.assign("X");
+  }
+  std::string ydim = set.Dim(1).Label();
+  if (ydim.empty()) {
+    mprintf("Warning: Matrix Y dim label is empty, using 'Y'.\n");
+    ydim.assign("Y");
+  }
+  std::string xdimLabel;
+  int xdimId = defineDim( xdimLabel, xdim, set.Ncols(), set.Meta().Legend() + ".X" );
+  if (xdimId == -1) return 1;
+  std::string ydimLabel;
+  int ydimId = defineDim( ydimLabel, ydim, set.Nrows(), set.Meta().Legend() + ".Y" );
+  if (ydimId == -1) return 1;*/
+  int dimensionID[1];
+  dimensionID[0] = dimId;
+  // Choose type
+  nc_type dtype;
+  switch (set.Type()) {
+    case DataSet::MATRIX_DBL : dtype = NC_DOUBLE ; break;
+    case DataSet::MATRIX_FLT : dtype = NC_FLOAT ; break; 
+    default:
+      mprinterr("Internal Error: Unhandled DataSet type for 2D NetCDF variable.\n");
+      return 1;
+  }
+  // Define the matrix variable
+  std::string varName = dimLabel + "." + set.Meta().PrintName();
+  int varid;
+  if ( NC::CheckErr( nc_def_var(ncid_, varName.c_str(), dtype, 1, dimensionID, &varid ) ) ) {
+    mprinterr("Error: Could not define matrix variable '%s'\n", varName.c_str());
+    return 1;
+  }
+  // Add DataSet metadata as attributes
+  if (AddDataSetMetaData( set.Meta(), ncid_, varid )) return 1;
+  // Add dimension min and step
+  if (AddDataSetDimension( "x", set.Dim(0), ncid_, varid)) return 1;
+  if (AddDataSetDimension( "y", set.Dim(1), ncid_, varid)) return 1;
+  // Store the matrix kind
+  std::string kind;
+  switch (set.MatrixKind()) {
+    case DataSet_2D::FULL : kind.assign("full");
+    case DataSet_2D::HALF : kind.assign("half");
+    case DataSet_2D::TRI  : kind.assign("tri");
+  }
+  if (AddDataSetStringAtt(kind, "matrixkind", ncid_, varid)) return 1;
+  // Store the description
+  if (AddDataSetStringAtt(set.description(), "description", ncid_, varid)) return 1;
+  // END define variable
+  if (EndDefineMode( ncid_ )) return 1;
+
+  return 0;
+}
 #endif /* BINTRAJ */
 
 // DataIO_NetCDF::WriteData()
@@ -693,8 +780,12 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
     if (setPool.IsUsed(idx)) continue;
 
     DataSet const* ds = setPool.Set( idx );
-
-    if (ds->Type() == DataSet::XYMESH) {
+    if (ds->Group() == DataSet::MATRIX_2D) {
+      if (writeData_2D(ds)) {
+        mprinterr("Error: matrix set write failed.\n");
+        return 1;
+      }
+    } else if (ds->Type() == DataSet::XYMESH) {
       // ----- XY Mesh ---------------------------
       if (writeData_1D_xy(ds)) {
         mprinterr("Error: xy mesh set write failed.\n");
