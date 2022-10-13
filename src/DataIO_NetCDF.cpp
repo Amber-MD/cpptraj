@@ -93,6 +93,22 @@ static inline int GetVarIntAtt(int& ival, const char* desc, int ncid, int varid)
   return 0;
 }
 
+/// Get double attribute from variable
+static inline int GetVarDblAtt(double& dval, const char* desc, int ncid, int varid)
+{
+  dval = 0;
+  int ncerr = nc_get_att_double(ncid, varid, desc, &dval);
+  if (ncerr != NC_NOERR) {
+    if (ncerr != NC_ENOTATT) {
+      NC::CheckErr(ncerr);
+      mprinterr("Error: Could not get '%s' attribute.\n", desc);
+      return 1;
+    }
+    return -1;
+  }
+  return 0;
+}
+
 /// Get DataSet metadata from a variable
 static inline MetaData GetVarMetaData(int& errStat, int ncid, int varid)
 {
@@ -151,6 +167,33 @@ static inline MetaData GetVarMetaData(int& errStat, int ncid, int varid)
 
   return meta;
 }
+
+/// \return Dimension from variable attributes
+static inline Dimension GetVarDimension(int errStat, int ncid, int varid)
+{
+  errStat = 0;
+  Dimension dim;
+  // label is optional
+  std::string att = NC::GetAttrText(ncid, varid, "label");
+  if (!att.empty()) dim.SetLabel( att );
+  double dval;
+  int ret = GetVarDblAtt(dval, "min", ncid, varid);
+  if (ret != 0) {
+    mprinterr("Error: 'min' attribute is missing for varid %i.\n", varid);
+    errStat = 1;
+    return dim;
+  }
+  dim.ChangeMin( dval );
+  ret = GetVarDblAtt(dval, "step", ncid, varid);
+  if (ret != 0) {
+    mprinterr("Error: 'step' attribute is missing for varid %i.\n", varid);
+    errStat = 1;
+    return dim;
+  }
+  dim.ChangeStep( dval );
+  return dim;
+}
+
 /** Read 1D variable(s) that share a dimension with CPPTRAJ conventions. */
 int DataIO_NetCDF::read_1d_var(DataSetList& dsl, std::string const& dsname,
                                unsigned int dimLength, VarArray const& Vars)
@@ -175,19 +218,40 @@ const
       mprinterr("Error: Could not set up meta data for variable '%s'\n", it->vname());
       return 1;
     }
+    // Get dimension
+    Dimension dim = GetVarDimension( errStat, ncid_, it->VID() );
+    if (errStat != 0) {
+      mprinterr("Error: Could not set up dimension for variable '%s'\n", it->vname());
+      return 1;
+    }
     // Add the set
     size_t start[1];
     size_t count[1];
     start[0] = 0;
     count[0]  = dimLength;
     if (dtype == DataSet::XYMESH) {
-      // Expect 2 vars, X and Y
+      // Expect 2 vars, X and Y, in that order. Only X will contain attributes
       if (Vars.size() != 2) {
         mprinterr("Error: Expected only 2 variables for XY set '%s'\n", it->vname());
         return 1;
       }
-      // TODO check this is X, next is Y
+      // Check this is X, next is Y
+      int yvarid;
+      int ret = GetVarIntAtt(yvarid, "yvarid", ncid_, it->VID());
+      if (ret != 0) {
+        mprinterr("Error: No 'yvarid' attribute for XY set '%s'.\n", it->vname());
+        return 1;
+      }
+      if (yvarid != (it+1)->VID()) {
+        mprinterr("Error: Expected Y varid to be %i, got %i\n", yvarid, (it+1)->VID());
+        return 1;
+      }
       DataSet* ds = dsl.AddSet( dtype, meta );
+      if (ds == 0) {
+        mprinterr("Error: Could not create set '%s'\n", meta.PrintName().c_str());
+        return 1;
+      }
+      ds->SetDim(0, dim);
       mprintf("DEBUG: '%s'\n", ds->legend());
       DataSet_Mesh& set = static_cast<DataSet_Mesh&>( *ds );
       set.Resize(dimLength);
@@ -207,11 +271,16 @@ const
       break;
     } else {
       DataSet* ds = dsl.AddSet( dtype, meta );
+      if (ds == 0) {
+        mprinterr("Error: Could not create set '%s'\n", meta.PrintName().c_str());
+        return 1;
+      }
+      ds->SetDim(0, dim);
       mprintf("DEBUG: '%s'\n", ds->legend());
       DataSet_1D& set = static_cast<DataSet_1D&>( *ds );
       set.Resize( dimLength );
       if (NC::CheckErr(nc_get_vara(ncid_, it->VID(), start, count, (void*)(set.Yptr())))) {
-        mprinterr("Error: Could not read to set.\n");
+        mprinterr("Error: Could not get values for set.\n");
         return 1;
       }
     }
@@ -471,12 +540,23 @@ static inline int AddDataSetMetaData(MetaData const& meta, int ncid, int varid)
   return 0;
 }
 
+/// Add DataSet dimension to a variable
+static inline int AddDataSetDimension(Dimension const& dim, int ncid, int varid)
+{
+  // Add dimension min and step
+  if (AddDataSetDblAtt(dim.Min(),  "min",  ncid, varid)) return 1;
+  if (AddDataSetDblAtt(dim.Step(), "step", ncid, varid)) return 1;
+  if (AddDataSetStringAtt(dim.Label(), "label", ncid, varid)) return 1;
+  return 0;
+}
+
 /** Define dimension. Ensure name is unique by appending an index.
+  * Dimension label will be '<label>.<index>'.
   * \return defined dimension ID.
   */
 int DataIO_NetCDF::defineDim(std::string& dimLabel, std::string const& label, DataSet const* ds)
 {
-  dimLabel.assign( label + integerToString(dimIdx_++) );
+  dimLabel.assign( label + "." + integerToString(dimIdx_++) );
   int dimId = -1;
   if (NC::CheckErr( nc_def_dim(ncid_, dimLabel.c_str(), ds->Size(), &dimId ))) {
     mprinterr("Error: Could not define dimension ID for set '%s'\n", ds->legend());
@@ -511,10 +591,12 @@ int DataIO_NetCDF::writeData_1D_xy(DataSet const* ds) {
   }
   // Add DataSet metadata as attributes
   if (AddDataSetMetaData( ds->Meta(), ncid_, xid )) return 1;
-  if (AddDataSetMetaData( ds->Meta(), ncid_, yid )) return 1;
+  //if (AddDataSetMetaData( ds->Meta(), ncid_, yid )) return 1;
    // Store the description
   if (AddDataSetStringAtt( ds->description(), "description", ncid_, xid)) return 1;
-  if (AddDataSetStringAtt( ds->description(), "description", ncid_, yid)) return 1;
+  //if (AddDataSetStringAtt( ds->description(), "description", ncid_, yid)) return 1;
+  // Store the dimension
+  if (AddDataSetDimension(ds->Dim(0), ncid_, xid)) return 1;
   // Have each var refer to the other
   if (AddDataSetIntAtt( yid, "yvarid", ncid_, xid )) return 1;
   if (AddDataSetIntAtt( xid, "xvarid", ncid_, yid )) return 1;
