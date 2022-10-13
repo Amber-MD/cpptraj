@@ -742,9 +742,9 @@ int DataIO_NetCDF::writeData_2D(DataSet const* ds) {
   // Store the matrix kind
   std::string kind;
   switch (set.MatrixKind()) {
-    case DataSet_2D::FULL : kind.assign("full");
-    case DataSet_2D::HALF : kind.assign("half");
-    case DataSet_2D::TRI  : kind.assign("tri");
+    case DataSet_2D::FULL : kind.assign("full"); break;
+    case DataSet_2D::HALF : kind.assign("half"); break;
+    case DataSet_2D::TRI  : kind.assign("tri"); break;
   }
   if (AddDataSetStringAtt(kind, "matrixkind", ncid_, varid)) return 1;
   // Store the description
