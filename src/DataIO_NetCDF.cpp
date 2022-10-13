@@ -344,7 +344,12 @@ int DataIO_NetCDF::read_cpptraj_vars(DataSetList& dsl, std::string const& dsname
         if (allocErr != 0) {
           mprinterr("Error: Could not allocate matrix.\n");
           return 1;
-        } 
+        }
+        // Read values
+        if (NC::CheckErr(nc_get_vara(ncid_, var->VID(), start, count, (void*)(mat.MatrixPtr())))) {
+          mprinterr("Error: Could not get values for matrix.\n");
+          return 1;
+        }
       }
     } else {
       mprinterr("Error: Cannot read type '%s' yet.\n", desc.c_str());
