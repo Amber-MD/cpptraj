@@ -427,7 +427,11 @@ class DataIO_NetCDF::SetPool {
     bool IsUsed(unsigned int idx) const { return isUsed_[idx]; }
     /// \return true if all sets have been marked as used
     bool AllUsed() const { return (nUsed_ == isUsed_.size()); }
-
+    /// Print unused sets to stdout
+    void PrintUnused() const {
+      for (unsigned int idx = 0; idx < sets_.size(); idx++)
+        if (!isUsed_[idx]) mprintf("\tUnused: %s\n", sets_[idx]->legend());
+    }
     /// Mark set at idx as used
     void MarkUsed(unsigned int idx) {
       isUsed_[idx] = true;
@@ -744,6 +748,7 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
         mprinterr("Error: xy mesh set write failed.\n");
         return 1;
       }
+      setPool.MarkUsed( idx );
     } else if (ds->Group() == DataSet::SCALAR_1D) {
       // ----- 1D scalar -------------------------
       SetArray sets(1, Set(ds, idx));
@@ -770,6 +775,7 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
   // Warn if for some reason we didnt use all the sets.
   if (!setPool.AllUsed()) {
     mprintf("Warning: Not all sets were used.\n");
+    setPool.PrintUnused();
   }
   mprintf("DEBUG: Variable IDs:\n");
   for (unsigned int idx = 0; idx != dsl.size(); idx++)
