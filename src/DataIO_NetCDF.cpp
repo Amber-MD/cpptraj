@@ -634,6 +634,8 @@ int DataIO_NetCDF::writeData_1D_xy(DataSet const* ds) {
 
 /** Write 1D DataSets that share an index dimension. */
 int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArray const& sets) {
+  if (ds->Type() == DataSet::PH)
+    mprintf("Warning: Currently only State information saved for pH sets.\n");
   mprintf("DEBUG: Sets for dimension '%s' %f %f:", dim.label(), dim.Min(), dim.Step());
   for (SetArray::const_iterator it = sets.begin(); it != sets.end(); ++it)
     mprintf(" %s", it->DS()->legend());
