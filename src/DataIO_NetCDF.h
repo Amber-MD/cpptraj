@@ -23,6 +23,11 @@ class DataIO_NetCDF : public DataIO {
     class NcVar;
     typedef std::vector<NcVar> VarArray;
 
+    static void MarkVarIdRead(VarArray&, int);
+
+    int read_cpptraj_vars(DataSetList&, std::string const&, VarArray&,
+                          std::vector<unsigned int> const&);
+
     int read_1d_var(DataSetList&, std::string const&, unsigned int, VarArray const&) const;
 
     int defineDim(std::string&, std::string const&,

@@ -49,17 +49,26 @@ bool DataIO_NetCDF::ID_DataFormat(CpptrajFile& infile)
 /** Hold info for a netcdf variable. */
 class DataIO_NetCDF::NcVar {
   public:
-    NcVar(int vidIn, nc_type vtypeIn, const char* vnameIn) :
-      vid_(vidIn), vtype_(vtypeIn), vname_(vnameIn) {}
+    NcVar(int vidIn, nc_type vtypeIn, const char* vnameIn, int ndims, const int* dimids) :
+      vid_(vidIn), vtype_(vtypeIn), vname_(vnameIn), hasBeenRead_(false), dimIds_(ndims)
+    {
+      for (int i = 0; i < ndims; i++) dimIds_[i] = dimids[i];
+    }
 
-    int VID() const { return vid_; }
-    nc_type Vtype() const { return vtype_; }
+    int VID()                  const { return vid_; }
+    nc_type Vtype()            const { return vtype_; }
     std::string const& Vname() const { return vname_; }
-    const char* vname() const { return vname_.c_str(); }
+    const char* vname()        const { return vname_.c_str(); }
+    bool HasBeenRead()         const { return hasBeenRead_; }
+    std::vector<int> const& DimIds() const { return dimIds_; }
+
+    void MarkRead() { hasBeenRead_ = true; }
   private:
-    int vid_;       ///< Netcdf variable id
-    nc_type vtype_; ///< Netcdf variable type
-    std::string vname_; ///< Variable name
+    int vid_;                 ///< Netcdf variable id
+    nc_type vtype_;           ///< Netcdf variable type
+    std::string vname_;       ///< Variable name
+    bool hasBeenRead_;        ///< True if the variable has been read in.
+    std::vector<int> dimIds_; ///< Netcdf dimension ids for this var.
 };
 
 // -----------------------------------------------------------------------------
@@ -170,30 +179,150 @@ static inline MetaData GetVarMetaData(int& errStat, int ncid, int varid)
 }
 
 /// \return Dimension from variable attributes
-static inline Dimension GetVarDimension(int errStat, int ncid, int varid)
+static inline std::vector<Dimension> GetVarDimensions(int& errStat, int ncid, int varid)
 {
   errStat = 0;
-  Dimension dim;
-  // label is optional
-  std::string att = NC::GetAttrText(ncid, varid, "label");
-  if (!att.empty()) dim.SetLabel( att );
-  double dval;
-  int ret = GetVarDblAtt(dval, "min", ncid, varid);
+  std::vector<Dimension> Dims;
+  // Get # of dimensions
+  int ndim = 0;
+  int ret = GetVarIntAtt(ndim, "ndim", ncid, varid);
   if (ret != 0) {
-    mprinterr("Error: 'min' attribute is missing for varid %i.\n", varid);
-    errStat = 1;
-    return dim;
+    mprinterr("Error: Missing 'ndim' attribute.\n");
+    return Dims;
   }
-  dim.ChangeMin( dval );
-  ret = GetVarDblAtt(dval, "step", ncid, varid);
-  if (ret != 0) {
-    mprinterr("Error: 'step' attribute is missing for varid %i.\n", varid);
-    errStat = 1;
-    return dim;
+  mprintf("DEBUG: ndim= %i\n", ndim);
+  Dims.resize( ndim );
+  for (int i = 0; i < ndim; i++) {
+    std::string label, min, step;
+    if (ndim > 1) {
+      label = "label" + integerToString(i);
+      min = "min" + integerToString(i);
+      step = "step" + integerToString(i);
+    } else {
+      label = "label";
+      min = "min";
+      step = "step";
+    }
+    Dimension& dim = Dims[i];
+    // label is optional
+    std::string att = NC::GetAttrText(ncid, varid, label.c_str());
+    if (!att.empty()) dim.SetLabel( att );
+    double dval;
+    int ret = GetVarDblAtt(dval, min.c_str(), ncid, varid);
+    if (ret != 0) {
+      mprinterr("Error: '%s' attribute is missing for varid %i.\n", min.c_str(), varid);
+      errStat = 1;
+      return Dims;
+    }
+    dim.ChangeMin( dval );
+    ret = GetVarDblAtt(dval, step.c_str(), ncid, varid);
+    if (ret != 0) {
+      mprinterr("Error: '%s' attribute is missing for varid %i.\n", step.c_str(), varid);
+      errStat = 1;
+      return Dims;
+    }
+    dim.ChangeStep( dval );
   }
-  dim.ChangeStep( dval );
-  return dim;
+  return Dims;
 }
+
+/** Mark variable with given vid as read. */
+void DataIO_NetCDF::MarkVarIdRead(VarArray& Vars, int vid)
+{
+  for (VarArray::iterator it = Vars.begin(); it != Vars.end(); ++it)
+  {
+    if (it->VID() == vid) {
+      it->MarkRead();
+      break;
+    }
+  }
+}
+
+/** Read variable with CPPTRAJ conventions. */
+int DataIO_NetCDF::read_cpptraj_vars(DataSetList& dsl, std::string const& dsname, VarArray& Vars,
+                                     std::vector<unsigned int> const& dimLengths)
+{
+  for (VarArray::const_iterator var = Vars.begin(); var != Vars.end(); ++var)
+  {
+    if (var->HasBeenRead()) continue;
+
+    // Get the description
+    std::string desc = NC::GetAttrText(ncid_, var->VID(), "description");
+    // Get the type from the description
+    DataSet::DataType dtype = DataSet::TypeFromDescription( desc );
+    mprintf("\t%s Description: %s (%i)\n", var->vname(), desc.c_str(), (int)dtype);
+    // Get metaData
+    int errStat = 0;
+    MetaData meta = GetVarMetaData( errStat, ncid_, var->VID() );
+    if (errStat != 0) {
+      mprinterr("Error: Could not set up meta data for variable '%s'\n", var->vname());
+      return 1;
+    }
+    // Get DataSet dimensions
+    errStat = 0;
+    std::vector<Dimension> Dims = GetVarDimensions(errStat, ncid_, var->VID());
+    if (errStat != 0) return 1;
+    for (std::vector<Dimension>::const_iterator dim = Dims.begin(); dim != Dims.end(); ++dim)
+      mprintf("DEBUG:\t Var %s dim %s min %f step %f\n", var->vname(), dim->label(), dim->Min(), dim->Step());
+    // Add the set
+    DataSet* ds = dsl.AddSet( dtype, meta );
+    if (ds == 0) {
+      mprinterr("Error: Could not allocate set '%s'\n", meta.PrintName().c_str());
+      return 1;
+    }
+    // Set DataSet dimensions
+    unsigned int idx = 0;
+    for (std::vector<Dimension>::const_iterator dim = Dims.begin(); dim != Dims.end(); ++dim)
+      ds->SetDim(idx++, *dim);
+    // Check netcdf variable dimensions
+    if (var->DimIds().size() == 1) {
+      // One flat dimension
+      size_t start[1];
+      size_t count[1];
+      start[0] = 0;
+      count[0] = dimLengths[ var->DimIds()[0] ];
+      mprintf("DEBUG: %s dim length %zu\n", var->vname(), count[0]);
+      if (dtype == DataSet::XYMESH) {
+        // Get the Y var id
+        int yvarid;
+        int ret = GetVarIntAtt(yvarid, "yvarid", ncid_, var->VID());
+        if (ret != 0) {
+          mprinterr("Error: No 'yvarid' attribute for XY set '%s'.\n", var->vname());
+          return 1;
+        }
+        DataSet_Mesh& set = static_cast<DataSet_Mesh&>( *ds );
+        set.Resize(count[0]);
+        DataSet_Mesh::Darray& Xvals = set.SetMeshX();
+        DataSet_Mesh::Darray& Yvals = set.SetMeshY();
+        // Get X
+        if (NC::CheckErr(nc_get_vara(ncid_, var->VID(), start, count, (void*)(&Xvals[0])))) {
+          mprinterr("Error: Could not get X values for XY set.\n");
+          return 1;
+        }
+        Vars[var->VID()].MarkRead();
+        // Get Y
+        if (NC::CheckErr(nc_get_vara(ncid_, yvarid, start, count, (void*)(&Yvals[0])))) {
+          mprinterr("Error: Could not get Y values for XY set.\n");
+          return 1;
+        }
+        Vars[yvarid].MarkRead();
+      } else if (ds->Group() == DataSet::SCALAR_1D) {
+        DataSet_1D& set = static_cast<DataSet_1D&>( *ds );
+        set.Resize( count[0] );
+        if (NC::CheckErr(nc_get_vara(ncid_, var->VID(), start, count, (void*)(set.Yptr())))) {
+          mprinterr("Error: Could not get values for set.\n");
+          return 1;
+        }
+      }
+    } else {
+      mprinterr("Error: Cannot read type '%s' yet.\n", desc.c_str());
+      return 1;
+    }
+  }
+  return 0;
+}
+   
+
 
 /** Read 1D variable(s) that share a dimension with CPPTRAJ conventions. */
 int DataIO_NetCDF::read_1d_var(DataSetList& dsl, std::string const& dsname,
@@ -220,7 +349,8 @@ const
       return 1;
     }
     // Get dimension
-    Dimension dim = GetVarDimension( errStat, ncid_, it->VID() );
+    std::vector<Dimension> Dims = GetVarDimensions( errStat, ncid_, it->VID() );
+    Dimension const& dim = Dims[0];
     if (errStat != 0) {
       mprinterr("Error: Could not set up dimension for variable '%s'\n", it->vname());
       return 1;
@@ -331,9 +461,8 @@ int DataIO_NetCDF::ReadData(FileName const& fname, DataSetList& dsl, std::string
     mprintf("DEBUG:\tDimension %i - '%s' (%u)\n", idim, varName, dimLengths[idim]);
   }
 
-  typedef std::vector<NcVar> Iarray;
-  // For each dimension, a list of any 1D variables
-  std::vector<Iarray> sets_1d( ndimsp );
+  VarArray AllVars;
+  AllVars.reserve( nvarsp ); 
 
   // Loop over all variables in the NetCDF file.
   nc_type varType = 0;            // Variable type
@@ -346,24 +475,29 @@ int DataIO_NetCDF::ReadData(FileName const& fname, DataSetList& dsl, std::string
       return 1;
     }
     mprintf("DEBUG:\tVariable %i - '%s', %i dims, %i attributes\n", ivar, varName, nVarDims, nVarAttributes);
+    AllVars.push_back( NcVar(ivar, varType, varName, nVarDims, varDimIds) );
+/*
     if (nVarDims == 1) {
       //if (read_1d_var(dsl, dsname, ivar, varName, varType, nVarAttributes)) return 1;
       sets_1d[ varDimIds[0] ].push_back( NcVar(ivar, varType, varName) );
     } else {
       mprintf("Warning: Variable '%s' not yet handled by CPPTRAJ.\n", varName);
-    }
+    }*/
   }
-  mprintf("DEBUG: 1D sets for each dimension ID:\n");
+/*  mprintf("DEBUG: 1D sets for each dimension ID:\n");
   for (int idim = 0; idim < ndimsp; idim++) {
     mprintf("\t%i :", idim);
     for (Iarray::const_iterator it = sets_1d[idim].begin(); it != sets_1d[idim].end(); ++it)
       mprintf("  %i (%s)", it->VID(), it->vname());
     mprintf("\n");
-  }
+  }*/
+  for (VarArray::const_iterator it = AllVars.begin(); it != AllVars.end(); ++it)
+    mprintf("  %i (%s)\n", it->VID(), it->vname());
   
-  for (int idim = 0; idim < ndimsp; idim++) {
-    if (read_1d_var( dsl, dsname, dimLengths[idim], sets_1d[idim] )) return 1;
-  }
+  if (read_cpptraj_vars(dsl, dsname, AllVars, dimLengths)) return 1;
+  //for (int idim = 0; idim < ndimsp; idim++) {
+  //  if (read_1d_var( dsl, dsname, dimLengths[idim], sets_1d[idim] )) return 1;
+  //}
 
   nc_close( ncid_ );
   return 0;
@@ -523,15 +657,15 @@ static inline int AddDataSetMetaData(MetaData const& meta, int ncid, int varid)
   return 0;
 }
 
-/// Add DataSet dimension to a variable with optional prefix
-static inline int AddDataSetDimension(std::string const& prefix, Dimension const& dim, int ncid, int varid)
+/// Add DataSet dimension to a variable with optional suffix 
+static inline int AddDataSetDimension(std::string const& suffix, Dimension const& dim, int ncid, int varid)
 {
   // Add dimension min and step
   std::string min, step, label;
-  if (!prefix.empty()) {
-    min = prefix + "min";
-    step = prefix + "step";
-    label = prefix + "label";
+  if (!suffix.empty()) {
+    min = "min" + suffix;
+    step = "step" + suffix;
+    label = "label" + suffix;
   } else {
     min.assign("min");
     step.assign("step");
@@ -599,6 +733,8 @@ int DataIO_NetCDF::writeData_1D_xy(DataSet const* ds) {
    // Store the description
   if (AddDataSetStringAtt( ds->description(), "description", ncid_, xid)) return 1;
   //if (AddDataSetStringAtt( ds->description(), "description", ncid_, yid)) return 1;
+  // Add number of dimensions
+  if (AddDataSetIntAtt( ds->Ndim(), "ndim", ncid_, xid )) return 1;
   // Store the dimension
   if (AddDataSetDimension(ds->Dim(0), ncid_, xid)) return 1;
   // Have each var refer to the other
@@ -669,6 +805,8 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
     }
     // Add DataSet metadata as attributes
     if (AddDataSetMetaData( it->DS()->Meta(), ncid_, varIDs_[it->OriginalIdx()] )) return 1;
+    // Add number of dimensions
+    if (AddDataSetIntAtt( it->DS()->Ndim(), "ndim", ncid_, varIDs_[it->OriginalIdx()] )) return 1;
     // Add dimension min and step
     if (AddDataSetDimension( dim, ncid_, varIDs_[it->OriginalIdx()])) return 1;
     // Store the description
@@ -719,9 +857,11 @@ int DataIO_NetCDF::writeData_2D(DataSet const* ds) {
   }
   // Add DataSet metadata as attributes
   if (AddDataSetMetaData( set.Meta(), ncid_, varid )) return 1;
+  // Add number of dimensions
+  if (AddDataSetIntAtt( set.Ndim(), "ndim", ncid_, varid )) return 1;
   // Add dimension min and step
-  if (AddDataSetDimension( "x", set.Dim(0), ncid_, varid)) return 1;
-  if (AddDataSetDimension( "y", set.Dim(1), ncid_, varid)) return 1;
+  if (AddDataSetDimension( integerToString(0), set.Dim(0), ncid_, varid)) return 1;
+  if (AddDataSetDimension( integerToString(1), set.Dim(1), ncid_, varid)) return 1;
   // Store the matrix kind
   std::string kind;
   switch (set.MatrixKind()) {
@@ -732,11 +872,14 @@ int DataIO_NetCDF::writeData_2D(DataSet const* ds) {
   if (AddDataSetStringAtt(kind, "matrixkind", ncid_, varid)) return 1;
   // Store the description
   if (AddDataSetStringAtt(set.description(), "description", ncid_, varid)) return 1;
-  // Define the diagonal vector if present
+  // Define the diagonal vector/mass array if present
   int vectVarId = -1;
   int massVarId = -1;
   if (set.Type() == DataSet::MATRIX_DBL) {
     DataSet_MatrixDbl const& dmat = static_cast<DataSet_MatrixDbl const&>( set );
+    if (dmat.Nsnapshots() > 0) {
+      if (AddDataSetIntAtt( dmat.Nsnapshots(), "nsnapshots", ncid_, varid)) return 1;
+    }
     if (!dmat.Vect().empty()) {
       int vectDimId = defineDim( dimLabel, "vect", dmat.Vect().size(), set.Meta().Legend() + " diagonal vector" );
       if (vectDimId == -1) return 1;
