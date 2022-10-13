@@ -506,6 +506,9 @@ test.keep:
 test.hremd:
 	@-cd Test_Ensemble_HREMD && ./RunTest.sh $(OPT)
 
+test.netcdfdata:
+	@-cd Test_NetcdfData && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -665,7 +668,8 @@ COMPLETETESTS=test.general \
               test.ljc \
               test.hmassrepartition \
               test.prepareforleap \
-              test.keep
+              test.keep \
+              test.netcdfdata
 
 test.all:
 	$(MAKE) test.complete summary
