@@ -224,6 +224,7 @@ const
       mprinterr("Error: Could not set up dimension for variable '%s'\n", it->vname());
       return 1;
     }
+    mprintf("DEBUG: Var %s dim %s min %f step %f\n", it->vname(), dim.label(), dim.Min(), dim.Step());
 //    // For backwards compat., if no label set assume Frame
 //    if (dim.Label().empty())
 //      dim.SetLabel("Frame");
