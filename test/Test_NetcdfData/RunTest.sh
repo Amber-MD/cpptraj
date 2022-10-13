@@ -2,7 +2,8 @@
 
 . ../MasterTest.sh
 
-CleanFiles ncdata.in d1.nc d1.dat rmsf.dat ascii.dat.save ascii.dat
+CleanFiles ncdata.in d1.nc d1.dat rmsf.dat ascii.dat.save ascii.dat \
+           ca.matrix.nc ca.matrix.dat
 
 TESTNAME='NetCDF data file tests.'
 Requires netcdf
@@ -39,5 +40,15 @@ quit
 EOF
 RunCpptraj "$UNITNAME"
 DoTest ascii.dat.save ascii.dat
+
+UNITNAME='Write basic 2D NetCDF data'
+cat > ncdata.in <<EOF
+parm ../tz2.parm7
+trajin ../tz2.nc
+matrix name CA covar @CA out ca.matrix.nc
+run
+writedata ca.matrix.dat CA nosquare2d
+EOF
+RunCpptraj "$UNITNAME"
 
 EndTest
