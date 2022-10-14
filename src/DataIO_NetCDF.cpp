@@ -350,6 +350,27 @@ int DataIO_NetCDF::read_cpptraj_vars(DataSetList& dsl, std::string const& dsname
           mprinterr("Error: Could not get values for matrix.\n");
           return 1;
         }
+        Vars[var->VID()].MarkRead();
+        // Check for vect
+        int vectVarId = -1;
+        ret = GetVarIntAtt(vectVarId, "vectid", ncid_, var->VID());
+        if (ret == 1) return 1;
+        if (ret == 0) {
+          mprintf("DEBUG: Matrix has diagonal vector data.\n");
+          if (mat.Type() != DataSet::MATRIX_DBL) {
+            mprinterr("Error: Variable has vect data but set is not double matrix.\n");
+            return 1;
+          }
+          unsigned int vectLength = dimLengths[ vectVarId ];
+          DataSet_MatrixDbl& dmat = static_cast<DataSet_MatrixDbl&>( mat );
+          dmat.AllocateVector( vectLength );
+          count[0] = vectLength;
+          if (NC::CheckErr(nc_get_vara(ncid_, vectVarId, start, count, (void*)(&dmat.V1()[0])))) {
+            mprinterr("Error: Could not get vect for matrix.\n");
+            return 1;
+          }
+          Vars[vectVarId].MarkRead();
+        }
       }
     } else {
       mprinterr("Error: Cannot read type '%s' yet.\n", desc.c_str());
