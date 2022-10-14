@@ -20,7 +20,7 @@ DataIO_NetCDF::DataIO_NetCDF() :
   dimIdx_(0),
   varIDptr_(0)
 {
-
+  SetValid( DataSet::MODES );
 }
 
 // DataIO_NetCDF::ID_DataFormat()
@@ -410,8 +410,8 @@ int DataIO_NetCDF::read_cpptraj_vars(DataSetList& dsl, std::string const& dsname
 }
    
 
-
-/** Read 1D variable(s) that share a dimension with CPPTRAJ conventions. */
+/*
+ ** Read 1D variable(s) that share a dimension with CPPTRAJ conventions. *
 int DataIO_NetCDF::read_1d_var(DataSetList& dsl, std::string const& dsname,
                                unsigned int dimLength, VarArray const& Vars)
 const
@@ -509,7 +509,7 @@ const
   }
 
   return 0;
-}
+}*/
 
 // DataIO_NetCDF::ReadData()
 int DataIO_NetCDF::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
@@ -593,7 +593,7 @@ int DataIO_NetCDF::ReadData(FileName const& fname, DataSetList& dsl, std::string
 # endif
 }
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 // DataIO_NetCDF::WriteHelp()
 void DataIO_NetCDF::WriteHelp()
 {
@@ -607,6 +607,7 @@ int DataIO_NetCDF::processWriteArgs(ArgList& argIn)
   return 0;
 }
 
+// -----------------------------------------------------------------------------
 /** Hold a pool of pointers to DataSets in the list. They will be marked off
   * as they are used.
   */
@@ -642,6 +643,7 @@ class DataIO_NetCDF::SetPool {
     std::vector<bool> isUsed_;
     unsigned int nUsed_;
 };
+// -----------------------------------------------------------------------------
 
 /** Hold a pointer to DataSet and its original index. Used to refer back to
   * original DataSetList from sets in a SetPool.
@@ -656,6 +658,7 @@ class DataIO_NetCDF::Set {
     DataSet const* ds_;
     int oidx_;
 };
+// -----------------------------------------------------------------------------
 
 #ifdef BINTRAJ
 /// Tell netcdf file to end define mode
