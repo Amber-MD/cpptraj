@@ -37,6 +37,7 @@ class DataSet_MatrixDbl : public DataSet_2D {
     // -------------------------------------------
     unsigned int Nsnapshots()            const { return snap_;              }
     void IncrementSnapshots()                  { ++snap_;                   }
+    void SetNsnapshots(unsigned int n)         { snap_ = n;                 }
     double& Element(size_t x, size_t y)        { return mat_.element(x,y);  }
     int AddElement(double d)                   { return mat_.addElement(d); }
     /// Type definition of iterator over matrix elements.

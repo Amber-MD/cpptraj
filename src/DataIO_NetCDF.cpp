@@ -351,7 +351,16 @@ int DataIO_NetCDF::read_cpptraj_vars(DataSetList& dsl, std::string const& dsname
           return 1;
         }
         Vars[var->VID()].MarkRead();
-        // Check for vect
+        // Check for nsnapshots
+        int nsnapshots = 0;
+        ret = GetVarIntAtt(nsnapshots, "nsnapshots", ncid_, var->VID());
+        if (ret == 1)
+          return 1;
+        else if (ret == 0) {
+          DataSet_MatrixDbl& dmat = static_cast<DataSet_MatrixDbl&>( mat );
+          dmat.SetNsnapshots( nsnapshots );
+        }
+        // Check for vectid
         int vectVarId = -1;
         ret = GetVarIntAtt(vectVarId, "vectid", ncid_, var->VID());
         if (ret == 1) return 1;
@@ -371,7 +380,7 @@ int DataIO_NetCDF::read_cpptraj_vars(DataSetList& dsl, std::string const& dsname
           }
           Vars[vectVarId].MarkRead();
         }
-        // Check for mass 
+        // Check for massid
         int massVarId = -1;
         ret = GetVarIntAtt(massVarId, "massid", ncid_, var->VID());
         if (ret == 1) return 1;
