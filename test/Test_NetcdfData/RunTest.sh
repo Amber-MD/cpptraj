@@ -6,7 +6,8 @@ CleanFiles ncdata.in d1.nc d1.dat rmsf.dat ascii.dat.save ascii.dat \
            matrix.nc \
            ca.matrix.nc ca.matrix.dat \
            n.ca.matrix.nc n.ca.matrix.dat \
-           ca.rms2d.dat
+           ca.rms2d.dat \
+           MyEvecs.dat.save MyEvecs.dat
 
 TESTNAME='NetCDF data file tests.'
 Requires netcdf
@@ -56,6 +57,7 @@ trajin ../tz2.nc
 matrix name CA covar @CA out matrix.nc
 matrix name N.CA mwcovar @N @CA out matrix.nc
 2drms RMS2D @CA out matrix.nc
+diagmatrix CA out MyEvecs.dat.save name MyEvecs
 run
 writedata ca.matrix.dat.save CA nosquare2d prec 12.4
 writedata n.ca.matrix.dat.save N.CA nosquare2d prec 12.4
@@ -68,11 +70,13 @@ readdata matrix.nc
 writedata ca.matrix.dat CA nosquare2d
 writedata n.ca.matrix.dat N.CA nosquare2d
 writedata ca.rms2d.dat RMS2D nosquare2d
+runanalysis diagmatrix CA out MyEvecs.dat name MyEvecs
 EOF
   RunCpptraj "Read basic 2D NetCDF data"
   DoTest ca.matrix.dat.save ca.matrix.dat
   DoTest n.ca.matrix.dat.save n.ca.matrix.dat
   DoTest ca.rms2d.dat.save ca.rms2d.dat
+  DoTest MyEvecs.dat.save MyEvecs.dat
 }
 
 Write1d
