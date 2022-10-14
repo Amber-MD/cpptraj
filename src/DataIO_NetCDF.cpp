@@ -11,6 +11,7 @@
 // DataSets
 # include "DataSet_Mesh.h"
 # include "DataSet_MatrixDbl.h"
+# include "DataSet_Modes.h"
 #endif
 
 /// CONSTRUCTOR
@@ -1028,6 +1029,25 @@ int DataIO_NetCDF::writeData_2D(DataSet const* ds) {
 
   return 0;
 }
+
+/** Write modes set to file. */
+int DataIO_NetCDF::writeData_modes(DataSet const* ds) {
+  // Define the dimension of the underlying array. Ensure name is unique by appending an index.
+  if (EnterDefineMode(ncid_)) return 1;
+  DataSet_Modes const& modes = static_cast<DataSet_Modes const&>( *ds );
+  std::string valuesDimLabel, vectorsDimLabel;
+  int valuesDimId = defineDim( valuesDimLabel, "eigenvalues", modes.Nmodes(),
+                               modes.Meta().Legend() + "eigenvalues" );
+  if (valuesDimId == -1) return 1;
+  int vectorsDimId = defineDim( vectorsDimLabel, "eigenvectors", modes.Nmodes()*modes.VectorSize(),
+                                modes.Meta().Legend() + " eigenvectors" );
+  if (vectorsDimId == -1) return 1;
+
+//  int dimensionID[1];
+//  dimensionID[0] = dimId;
+
+  return 0;
+}
 #endif /* BINTRAJ */
 
 // DataIO_NetCDF::WriteData()
@@ -1054,7 +1074,13 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
     if (setPool.IsUsed(idx)) continue;
 
     DataSet const* ds = setPool.Set( idx );
-    if (ds->Group() == DataSet::MATRIX_2D) {
+    if (ds->Type() == DataSet::MODES) {
+      if (writeData_modes(ds)) {
+        mprinterr("Error: modes set write failed.\n");
+        return 1;
+      }
+      setPool.MarkUsed( idx );
+    } else if (ds->Group() == DataSet::MATRIX_2D) {
       if (writeData_2D(ds)) {
         mprinterr("Error: matrix set write failed.\n");
         return 1;

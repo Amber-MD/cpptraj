@@ -339,13 +339,15 @@ int DataFile::AddDataSet(DataSet* dataIn) {
               dataIn->legend());
     }
   } else {
-    if ((int)dataIn->Ndim() != dimension_) {
-      mprinterr("Error: DataSets in DataFile %s have dimension %i\n" 
-                "Error: Attempting to add set %s of dimension %zu\n", 
-                filename_.base(), dimension_,
-                dataIn->legend(), dataIn->Ndim());
-      return Error("Error: Adding DataSets with different dimensions to same file"
-                   " is currently unsupported.\n");
+    if (Type() != NETCDFDATA) {
+      if ((int)dataIn->Ndim() != dimension_) {
+        mprinterr("Error: DataSets in DataFile %s have dimension %i\n" 
+                  "Error: Attempting to add set %s of dimension %zu\n", 
+                  filename_.base(), dimension_,
+                  dataIn->legend(), dataIn->Ndim());
+        return Error("Error: Adding DataSets with different dimensions to same file"
+                     " is currently unsupported.\n");
+      }
     }
     if (!dataio_->CheckValidFor(*dataIn)) {
       mprinterr("Error: DataSet '%s' is not valid for DataFile '%s' format.\n",

@@ -57,11 +57,12 @@ trajin ../tz2.nc
 matrix name CA covar @CA out matrix.nc
 matrix name N.CA mwcovar @N @CA out matrix.nc
 2drms RMS2D @CA out matrix.nc
-diagmatrix CA out MyEvecs.dat.save name MyEvecs
+diagmatrix CA out matrix.nc name MyEvecs
 run
 writedata ca.matrix.dat.save CA nosquare2d prec 12.4
 writedata n.ca.matrix.dat.save N.CA nosquare2d prec 12.4
 writedata ca.rms2d.dat.save RMS2D nosquare2d prec 12.4
+writedata MyEvecs.dat.save MyEvecs
 EOF
   RunCpptraj "$UNITNAME"
 
