@@ -33,6 +33,11 @@ class DataIO_NetCDF : public DataIO {
     int defineDim(std::string&, std::string const&,
                   unsigned int, std::string const&);
 
+    int defineVar(int, std::string const&, std::string const&,
+                  int, const char*) const;
+
+    int defineVar(int, std::string const&, std::string const&) const;
+
     int writeData_1D_xy(DataSet const*);
 
     int writeData_1D(DataSet const*, Dimension const&, SetArray const&);
@@ -45,5 +50,6 @@ class DataIO_NetCDF : public DataIO {
     int dimIdx_;              ///< Keep track of indices currently defined
     std::vector<int> varIDs_; ///< All variable IDs currently defined
     int* varIDptr_;           ///< Pointer to start of varIDs_
+    bool user_specified_name_; ///< True if user specified a data set name on read
 };
 #endif

@@ -19,7 +19,8 @@ DataIO_NetCDF::DataIO_NetCDF() :
   DataIO(true, true, true), // Valid for 1D, 2D, 3D
   ncid_(-1),
   dimIdx_(0),
-  varIDptr_(0)
+  varIDptr_(0),
+  user_specified_name_(false)
 {
   SetValid( DataSet::MODES );
 }
@@ -516,6 +517,16 @@ const
 int DataIO_NetCDF::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
 # ifdef BINTRAJ
+  // Check if the user specified a data set name. The default is to use the
+  // file base name, optionally plus '_<index>'
+  if ( dsname.find(fname.Base()) == std::string::npos ) {
+    mprintf("\tUser has specified a data set name.\n");
+    user_specified_name_ = true;
+  } else {
+    mprintf("\tUser has not specified a data set name.\n");
+    user_specified_name_ = false;
+  }
+
   if (NC::CheckErr( nc_open( fname.full(), NC_NOWRITE, &ncid_ ) != NC_NOERR )) {
     mprinterr("Error: Could not open NetCDF data file '%s'\n", fname.full());
     return 1;
@@ -1030,21 +1041,84 @@ int DataIO_NetCDF::writeData_2D(DataSet const* ds) {
   return 0;
 }
 
+/** Create 1D variable. Optionally associate it with a parent variable.
+  * \return variable ID of defined variable.
+  */
+int DataIO_NetCDF::defineVar(int dimid, std::string const& dimLabel, std::string const& PrintName,
+                             int parentVarId, const char* childVarDesc)
+const
+{
+  // ASSUME WE ARE IN DEFINE MODE
+  if (dimid < 0) return -1;
+  // Define the variable
+  int dimensionID[1];
+  dimensionID[0] = dimid;
+  std::string varName = dimLabel + "." + PrintName;
+  int varid;
+  if ( NC::CheckErr(nc_def_var(ncid_, varName.c_str(), NC_DOUBLE, 1, dimensionID, &varid)) ) {
+    mprinterr("Error: Could not define variable '%s'\n", varName.c_str());
+    return -1;
+  }
+  if (parentVarId > -1) {
+    if (AddDataSetIntAtt( varid, childVarDesc, ncid_, parentVarId )) return -1;
+  }
+  return varid;
+}
+
+/** Create 1D variable. */
+int DataIO_NetCDF::defineVar(int dimid, std::string const& dimLabel, std::string const& PrintName)
+const
+{
+  return defineVar(dimid, dimLabel, PrintName, -1, 0);
+}
+
 /** Write modes set to file. */
 int DataIO_NetCDF::writeData_modes(DataSet const* ds) {
-  // Define the dimension of the underlying array. Ensure name is unique by appending an index.
+  // Define the dimensions of all arrays. Ensure names are unique by appending an index.
   if (EnterDefineMode(ncid_)) return 1;
   DataSet_Modes const& modes = static_cast<DataSet_Modes const&>( *ds );
-  std::string valuesDimLabel, vectorsDimLabel;
+  std::string valuesDimLabel, vectorsDimLabel, coordsDimLabel, massDimLabel;
   int valuesDimId = defineDim( valuesDimLabel, "eigenvalues", modes.Nmodes(),
-                               modes.Meta().Legend() + "eigenvalues" );
+                               modes.Meta().Legend() + " eigenvalues" );
   if (valuesDimId == -1) return 1;
   int vectorsDimId = defineDim( vectorsDimLabel, "eigenvectors", modes.Nmodes()*modes.VectorSize(),
                                 modes.Meta().Legend() + " eigenvectors" );
   if (vectorsDimId == -1) return 1;
+  int coordsDimId = defineDim( coordsDimLabel, "ncoords", modes.NavgCrd(),
+                               modes.Meta().Legend() + " avg. coords" );
+  if (coordsDimId == -1) return 1;
+  int massDimId = -1;
+  if (!modes.Mass().empty()) {
+    int massDimId = defineDim( massDimLabel, "mass", modes.Mass().size(),
+                               modes.Meta().Legend() + " mass" );
+    if (massDimId == -1) return 1;
+  }
+  // Define variables
+  // Define the eigenvalues variable
+  int valuesVarid = defineVar(valuesDimId, valuesDimLabel, modes.Meta().PrintName());
+  if (valuesVarid == -1) return 1;
+  // Add DataSet metadata as attributes
+  if (AddDataSetMetaData( modes.Meta(), ncid_, valuesVarid )) return 1;
+  // Add number of dimensions
+  if (AddDataSetIntAtt( modes.Ndim(), "ndim", ncid_, valuesVarid )) return 1;
+  // Store the description
+  if (AddDataSetStringAtt( ds->description(), "description", ncid_, valuesVarid)) return 1;
 
-//  int dimensionID[1];
-//  dimensionID[0] = dimId;
+  // Define the eigenvectors variable
+  if (defineVar(vectorsDimId, vectorsDimLabel, modes.Meta().PrintName(), valuesVarid, "vectorsid")==-1)
+    return 1;
+
+  // Add the avg. coords variable
+  if (defineVar(coordsDimId, coordsDimLabel, modes.Meta().PrintName(), valuesVarid, "avgcoordsid")==-1)
+    return 1;
+
+  // Add the masses variable
+  if (massDimId > -1) {
+    if (defineVar(massDimId, massDimLabel, modes.Meta().PrintName(), valuesVarid, "massid")==-1)
+      return 1;
+  }
+  // END define variable
+  if (EndDefineMode( ncid_ )) return 1;
 
   return 0;
 }
