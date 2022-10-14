@@ -67,11 +67,11 @@ EOF
   RunCpptraj "$UNITNAME"
 
   cat > ncdata.in <<EOF
-readdata matrix.nc
+readdata matrix.nc name MyMatrix
 writedata ca.matrix.dat CA nosquare2d
 writedata n.ca.matrix.dat N.CA nosquare2d
 writedata ca.rms2d.dat RMS2D nosquare2d
-runanalysis diagmatrix CA out MyEvecs.dat name MyEvecs
+runanalysis diagmatrix CA out MyEvecs.dat name MyEvecs2
 EOF
   RunCpptraj "Read basic 2D NetCDF data"
   DoTest ca.matrix.dat.save ca.matrix.dat

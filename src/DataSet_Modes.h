@@ -41,6 +41,7 @@ class DataSet_Modes : public DataSet {
     int Thermo(CpptrajFile&, int, double, double) const;
 
     double Eigenvalue(int i)         const { return evalues_[i];                } // IRED
+    const double* EigenvaluePtr()    const { return evalues_; }
     const double* Eigenvectors()     const { return evectors_;                  } // IRED
     const double* Eigenvector(int i) const { return evectors_ + (i * vecsize_); }
     int Nmodes()                     const { return nmodes_;                    } // Project

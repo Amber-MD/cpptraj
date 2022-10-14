@@ -1095,30 +1095,53 @@ int DataIO_NetCDF::writeData_modes(DataSet const* ds) {
   }
   // Define variables
   // Define the eigenvalues variable
-  int valuesVarid = defineVar(valuesDimId, valuesDimLabel, modes.Meta().PrintName());
-  if (valuesVarid == -1) return 1;
+  int valuesVarId = defineVar(valuesDimId, valuesDimLabel, modes.Meta().PrintName());
+  if (valuesVarId == -1) return 1;
   // Add DataSet metadata as attributes
-  if (AddDataSetMetaData( modes.Meta(), ncid_, valuesVarid )) return 1;
+  if (AddDataSetMetaData( modes.Meta(), ncid_, valuesVarId )) return 1;
   // Add number of dimensions
-  if (AddDataSetIntAtt( modes.Ndim(), "ndim", ncid_, valuesVarid )) return 1;
+  if (AddDataSetIntAtt( modes.Ndim(), "ndim", ncid_, valuesVarId )) return 1;
   // Store the description
-  if (AddDataSetStringAtt( ds->description(), "description", ncid_, valuesVarid)) return 1;
+  if (AddDataSetStringAtt( ds->description(), "description", ncid_, valuesVarId)) return 1;
 
   // Define the eigenvectors variable
-  if (defineVar(vectorsDimId, vectorsDimLabel, modes.Meta().PrintName(), valuesVarid, "vectorsid")==-1)
-    return 1;
+  int vectorsVarId = defineVar(vectorsDimId, vectorsDimLabel, modes.Meta().PrintName(), valuesVarId, "vectorsid");
+  if (vectorsVarId == -1) return 1;
 
   // Add the avg. coords variable
-  if (defineVar(coordsDimId, coordsDimLabel, modes.Meta().PrintName(), valuesVarid, "avgcoordsid")==-1)
-    return 1;
+  int coordsVarId = defineVar(coordsDimId, coordsDimLabel, modes.Meta().PrintName(), valuesVarId, "avgcoordsid");
+  if (coordsVarId == -1) return 1;
 
   // Add the masses variable
+  int massVarId = -1;
   if (massDimId > -1) {
-    if (defineVar(massDimId, massDimLabel, modes.Meta().PrintName(), valuesVarid, "massid")==-1)
-      return 1;
+    massVarId = defineVar(massDimId, massDimLabel, modes.Meta().PrintName(), valuesVarId, "massid");
+    if (massVarId == -1) return 1;
   }
   // END define variable
   if (EndDefineMode( ncid_ )) return 1;
+
+  size_t start[1];
+  size_t count[1];
+  // Write the eigenvalues
+  start[0] = 0;
+  count[0] = modes.Nmodes();
+  if (NC::CheckErr(nc_put_vara(ncid_, valuesVarId, start, count, modes.EigenvaluePtr()))) {
+    mprinterr("Error: Could not write eigenvalues from '%s'\n", modes.legend());
+    return 1;
+  }
+  // Write the eigenvectors
+  count[0] = modes.Nmodes()*modes.VectorSize();
+  if (NC::CheckErr(nc_put_vara(ncid_, vectorsVarId, start, count, modes.Eigenvectors()))) {
+    mprinterr("Error: Could not write eigenvectors from '%s'\n", modes.legend());
+    return 1;
+  }
+  // Write the avg coords
+  count[0] = modes.NavgCrd();
+  if (NC::CheckErr(nc_put_vara(ncid_, coordsVarId, start, count, &(modes.AvgCrd()[0])))) {
+    mprinterr("Error: Coult not write avg. coords from '%s'\n", modes.legend());
+    return 1;
+  }
 
   return 0;
 }
