@@ -1139,8 +1139,16 @@ int DataIO_NetCDF::writeData_modes(DataSet const* ds) {
   // Write the avg coords
   count[0] = modes.NavgCrd();
   if (NC::CheckErr(nc_put_vara(ncid_, coordsVarId, start, count, &(modes.AvgCrd()[0])))) {
-    mprinterr("Error: Coult not write avg. coords from '%s'\n", modes.legend());
+    mprinterr("Error: Could not write avg. coords from '%s'\n", modes.legend());
     return 1;
+  }
+  // Write masses
+  if (massVarId != -1) {
+    count[0] = modes.Mass().size();
+    if (NC::CheckErr(nc_put_vara(ncid_, coordsVarId, start, count, &(modes.Mass()[0])))) {
+      mprinterr("Error: Could not write mass from '%s'\n", modes.legend());
+      return 1;
+    }
   }
 
   return 0;
