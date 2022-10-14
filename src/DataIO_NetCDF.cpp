@@ -371,6 +371,26 @@ int DataIO_NetCDF::read_cpptraj_vars(DataSetList& dsl, std::string const& dsname
           }
           Vars[vectVarId].MarkRead();
         }
+        // Check for mass 
+        int massVarId = -1;
+        ret = GetVarIntAtt(massVarId, "massid", ncid_, var->VID());
+        if (ret == 1) return 1;
+        if (ret == 0) {
+          mprintf("DEBUG: Matrix has mass data.\n");
+          if (mat.Type() != DataSet::MATRIX_DBL) {
+            mprinterr("Error: Variable has mass data but set is not double matrix.\n");
+            return 1;
+          }
+          unsigned int massLength = dimLengths[ massVarId ];
+          DataSet_MatrixDbl& dmat = static_cast<DataSet_MatrixDbl&>( mat );
+          dmat.AllocateMass( massLength );
+          count[0] = massLength;
+          if (NC::CheckErr(nc_get_vara(ncid_, massVarId, start, count, (void*)(&dmat.M1()[0])))) {
+            mprinterr("Error: Could not get mass for matrix.\n");
+            return 1;
+          }
+          Vars[massVarId].MarkRead();
+        }
       }
     } else {
       mprinterr("Error: Cannot read type '%s' yet.\n", desc.c_str());

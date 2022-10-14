@@ -54,10 +54,13 @@ class DataSet_MatrixDbl : public DataSet_2D {
     Darray::iterator v1begin()                 { return vect_.begin();      }
     /// \return iterator to end of diagonal vector.
     Darray::iterator v1end()                   { return vect_.end();        }
+    /// Allocate mass array
+    void AllocateMass(size_t msize)            { mass_.resize(msize, 0.0);  }
     /// Store masses associated with columns in matrix.
     void StoreMass(Darray const& mIn)          { mass_ = mIn;               }
     /// \return array of masses associated with columns in matrix.
     Darray const& Mass()                 const { return mass_;              }
+    Darray& M1()                               { return mass_;              }
     /// Set matrix kind prior to allocation.
     void SetMatrixKind( MatrixKindType t )     { kind_ = t;                 }
   private:
