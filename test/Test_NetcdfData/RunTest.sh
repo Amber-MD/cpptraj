@@ -50,18 +50,29 @@ EOF
 
 Write2d() {
   UNITNAME='Write basic 2D NetCDF data'
-cat > ncdata.in <<EOF
+  cat > ncdata.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.nc
 matrix name CA covar @CA out matrix.nc
 matrix name N.CA mwcovar @N @CA out matrix.nc
 2drms RMS2D @CA out matrix.nc
 run
+writedata ca.matrix.dat.save CA nosquare2d prec 12.4
+writedata n.ca.matrix.dat.save N.CA nosquare2d prec 12.4
+writedata ca.rms2d.dat.save RMS2D nosquare2d prec 12.4
+EOF
+  RunCpptraj "$UNITNAME"
+
+  cat > ncdata.in <<EOF
+readdata matrix.nc
 writedata ca.matrix.dat CA nosquare2d
 writedata n.ca.matrix.dat N.CA nosquare2d
 writedata ca.rms2d.dat RMS2D nosquare2d
 EOF
-  RunCpptraj "$UNITNAME"
+  RunCpptraj "Read basic 2D NetCDF data"
+  DoTest ca.matrix.dat.save ca.matrix.dat
+  DoTest n.ca.matrix.dat.save n.ca.matrix.dat
+  DoTest ca.rms2d.dat.save ca.rms2d.dat
 }
 
 Write1d
