@@ -228,18 +228,6 @@ static inline std::vector<Dimension> GetVarDimensions(int& errStat, int ncid, in
   return Dims;
 }
 
-/** Mark variable with given vid as read. */
-void DataIO_NetCDF::MarkVarIdRead(VarArray& Vars, int vid)
-{
-  for (VarArray::iterator it = Vars.begin(); it != Vars.end(); ++it)
-  {
-    if (it->VID() == vid) {
-      it->MarkRead();
-      break;
-    }
-  }
-}
-
 /** Read variable with CPPTRAJ conventions. */
 int DataIO_NetCDF::read_cpptraj_vars(DataSetList& dsl, std::string const& dsname, VarArray& Vars,
                                      std::vector<unsigned int> const& dimLengths)
