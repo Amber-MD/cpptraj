@@ -273,6 +273,7 @@ int DataIO_NetCDF::read_cpptraj_vars(DataSetList& dsl, std::string const& dsname
       count[0] = dimLengths[ var->DimIds()[0] ];
       mprintf("DEBUG: %s dim length %zu\n", var->vname(), count[0]);
       if (dtype == DataSet::XYMESH) {
+        // ----- XY Mesh ---------------
         // Get the Y var id
         int yvarid;
         int ret = GetVarIntAtt(yvarid, "yvarid", ncid_, var->VID());
@@ -297,6 +298,7 @@ int DataIO_NetCDF::read_cpptraj_vars(DataSetList& dsl, std::string const& dsname
         }
         Vars[yvarid].MarkRead();
       } else if (ds->Group() == DataSet::SCALAR_1D) {
+        // ----- 1D Scalar -------------
         DataSet_1D& set = static_cast<DataSet_1D&>( *ds );
         set.Resize( count[0] );
         if (NC::CheckErr(nc_get_vara(ncid_, var->VID(), start, count, (void*)(set.Yptr())))) {
@@ -304,6 +306,7 @@ int DataIO_NetCDF::read_cpptraj_vars(DataSetList& dsl, std::string const& dsname
           return 1;
         }
       } else if (ds->Group() == DataSet::MATRIX_2D) {
+        // ----- 2D Matrix -------------
         // Get nrows/ncols
         int ncols, nrows;
         int ret = GetVarIntAtt(ncols, "ncols", ncid_, var->VID());
@@ -390,7 +393,48 @@ int DataIO_NetCDF::read_cpptraj_vars(DataSetList& dsl, std::string const& dsname
           }
           Vars[massVarId].MarkRead();
         }
+      } else if ( dtype == DataSet::MODES ) {
+        // ----- Modes -----------------
+        unsigned int n_eigenvalues = dimLengths[var->DimIds()[0]];
+        // Get the eigenvectors variable ID
+        int vectorsVarId = -1;
+        int ret = GetVarIntAtt(vectorsVarId, "vectorsid", ncid_, var->VID());
+        if (ret != 0) {
+          mprinterr("Error: Modes data missing 'vectorsid'.\n");
+          return 1;
+        }
+        unsigned int evectorLength = dimLengths[Vars[vectorsVarId].DimIds()[0]];
+        // Get the avg. coords variable ID
+        int coordsVarId = -1;
+        ret = GetVarIntAtt(coordsVarId, "avgcoordsid", ncid_, var->VID());
+        if (ret != 0) {
+          mprinterr("Error: Modes data missing 'avgcoordsid'.\n");
+          return 1;
+        }
+        unsigned int avgCoordsLength = dimLengths[Vars[coordsVarId].DimIds()[0]];
+        // Get the mass variable ID if present
+        int massVarId = -1;
+        unsigned int massLength = 0;
+        ret = GetVarIntAtt(massVarId, "massid", ncid_, var->VID());
+        if (ret == 1) {
+          mprinterr("Error: Could not get 'massid'.\n");
+          return 1;
+        } else if (ret == 0) {
+          massLength = dimLengths[Vars[massVarId].DimIds()[0]];
+        }
+        mprintf("DEBUG: Modes: # values= %u, evector size= %u, avg coords size= %u, mass size = %u\n",
+                n_eigenvalues, evectorLength, avgCoordsLength, massLength);
+        // Mark variables as read
+        Vars[var->VID()].MarkRead();
+        Vars[vectorsVarId].MarkRead();
+        Vars[coordsVarId].MarkRead();
+        if (massVarId != -1)
+          Vars[massVarId].MarkRead();
+      } else {
+        mprinterr("Error: Cannot read type '%s' yet.\n", desc.c_str());
+        return 1;
       }
+
     } else {
       mprinterr("Error: Cannot read type '%s' yet.\n", desc.c_str());
       return 1;
