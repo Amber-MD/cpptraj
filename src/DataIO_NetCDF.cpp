@@ -424,6 +424,34 @@ int DataIO_NetCDF::read_cpptraj_vars(DataSetList& dsl, std::string const& dsname
         }
         mprintf("DEBUG: Modes: # values= %u, evector size= %u, avg coords size= %u, mass size = %u\n",
                 n_eigenvalues, evectorLength, avgCoordsLength, massLength);
+        // Allocate the modes set
+        DataSet_Modes& modes = static_cast<DataSet_Modes&>( *ds );
+        if (modes.AllocateModes(n_eigenvalues, evectorLength, avgCoordsLength, massLength)) {
+          mprinterr("Error: Could not allocate memory for modes set.\n");
+          return 1;
+        }
+        // Read modes data
+        if (NC::CheckErr(nc_get_vara(ncid_, var->VID(), start, count, modes.EvalPtr()))) {
+          mprinterr("Error: Could not read eigenvalues.\n");
+          return 1;
+        }
+        count[0] = evectorLength;
+        if (NC::CheckErr(nc_get_vara(ncid_, vectorsVarId, start, count, modes.EvectPtr()))) {
+          mprinterr("Error: Could not read eigenvectors.\n");
+          return 1;
+        }
+        count[0] = avgCoordsLength;
+        if (NC::CheckErr(nc_get_vara(ncid_, coordsVarId, start, count, modes.AvgFramePtr()))) {
+          mprinterr("Error: Could not read avg. coords.\n");
+          return 1;
+        }
+        if (massVarId != -1 && massLength > 0) {
+          count[0] = massLength;
+          if (NC::CheckErr(nc_get_vara(ncid_, massVarId, start, count, modes.MassPtr()))) {
+            mprinterr("Error: Could not read masses.\n");
+            return 1;
+          }
+        }
         // Mark variables as read
         Vars[var->VID()].MarkRead();
         Vars[vectorsVarId].MarkRead();

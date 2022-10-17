@@ -108,6 +108,31 @@ int DataSet_Modes::SetModes(bool reducedIn, int nmodesIn, int vecsizeIn,
   return 0;
 }
 
+/** Allocate memory for modes data. */
+int DataSet_Modes::AllocateModes(unsigned int n_eigenvalues, unsigned int evectsize,
+                                 unsigned int n_avg_crd, unsigned int mass_size)
+{
+  if (evalues_ != 0) delete evalues_;
+  if (evectors_ != 0) delete evectors_;
+  // Make sure evectsize is a multiple of nmodes_
+  if ( (evectsize % n_eigenvalues) != 0) {
+    mprinterr("Internal Error: Eigenvector size %u is not a multiple of # eigenvalues %u.\n",
+              evectsize, n_eigenvalues);
+    return 1;
+  }
+  evalues_ = new double[n_eigenvalues];
+  evectors_ = new double[evectsize];
+  vecsize_ = evectsize / n_eigenvalues;
+  nmodes_ = n_eigenvalues;
+
+  avgcrd_.resize( n_avg_crd );
+  if (mass_size > 0)
+    mass_.resize( mass_size );
+  else
+    mass_.clear();
+  return 0;
+}
+
 /** Get n_to_calc eigenvectors and eigenvalues from given matrix. They will be
   * stored in descending order (largest eigenvalue first).
   */

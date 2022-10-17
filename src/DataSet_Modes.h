@@ -30,9 +30,17 @@ class DataSet_Modes : public DataSet {
     double* AvgFramePtr()                  { return &avgcrd_[0];          }
     const double* AvgFramePtr()      const { return &avgcrd_[0];          }
     void AllocateAvgCoords(int n)          { avgcrd_.resize(n, 0.0);      }
+    /// For reading directly into mass
+    double* MassPtr()                      { return &mass_[0]; }
+    /// For reading directly into eigenvlues array
+    double* EvalPtr()                      { return evalues_; }
+    /// For reading directly into eigenvectors array
+    double* EvectPtr()                     { return evectors_; }
 
     int SetAvgCoords(DataSet_2D const&);
     int SetModes(bool, int, int, const double*, const double*);
+    /// Allocate memory for modes data
+    int AllocateModes(unsigned int, unsigned int, unsigned int, unsigned int);
     int CalcEigen(DataSet_2D const&,int);
     void PrintModes();
     int EigvalToFreq(double);
