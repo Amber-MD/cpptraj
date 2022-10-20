@@ -51,6 +51,9 @@ bool DataIO_NetCDF::ID_DataFormat(CpptrajFile& infile)
 /** Hold info for a netcdf variable. */
 class DataIO_NetCDF::NcVar {
   public:
+    /// CONSTRUCTOR - blank (indicates error)
+    NcVar() : vid_(-1), vtype_(0), hasBeenRead_(false) {}
+    /// CONSTRUCTOR
     NcVar(int vidIn, nc_type vtypeIn, const char* vnameIn, int ndims, const int* dimids) :
       vid_(vidIn), vtype_(vtypeIn), vname_(vnameIn), hasBeenRead_(false), dimIds_(ndims)
     {
@@ -63,6 +66,7 @@ class DataIO_NetCDF::NcVar {
     const char* vname()        const { return vname_.c_str(); }
     bool HasBeenRead()         const { return hasBeenRead_; }
     std::vector<int> const& DimIds() const { return dimIds_; }
+    bool Error()               const { return (vid_ == -1); }
 
     void MarkRead() { hasBeenRead_ = true; }
   private:
@@ -72,7 +76,24 @@ class DataIO_NetCDF::NcVar {
     bool hasBeenRead_;        ///< True if the variable has been read in.
     std::vector<int> dimIds_; ///< Netcdf dimension ids for this var.
 };
-
+// -----------------------------------------------------------------------------
+/** Hold info for a netcdf dimension. */
+class DataIO_NetCDF::NcDim {
+  public:
+    /// CONSTRUCTOR - blank, indicates error
+    NcDim() : did_(-1), size_(0)
+    /// CONSTRUCTOR
+    NcDim(int did, std::string const& lbl, unsigned int sze) :
+      did_(did), label_(lbl), size_(sze) {}
+    int DID()                  const { return did_; }
+    std::string const& Label() const { return label_; }
+    unsigned int Size()        const { return size_; }
+    bool Error()               const { return (did_ == -1); }
+  private:
+    int did_;           ///< Netcdf dimension ID
+    std::string label_; ///< Dimension label
+    unsigned int size_; ///< Dimension size
+};
 // -----------------------------------------------------------------------------
 
 // DataIO_NetCDF::ReadHelp()
@@ -722,13 +743,14 @@ class DataIO_NetCDF::SetPool {
   */
 class DataIO_NetCDF::Set {
   public:
-    Set(DataSet const* ds, int oidx) : ds_(ds), oidx_(oidx) {}
+    //Set(DataSet const* ds, int oidx) : ds_(ds), oidx_(oidx) {}
+    Set(DataSet const* ds) : ds_(ds) {}
 
     DataSet const* DS() const { return ds_; }
-    int OriginalIdx() const { return oidx_; }
+    //int OriginalIdx() const { return oidx_; }
   private:
     DataSet const* ds_;
-    int oidx_;
+    //int oidx_;
 };
 // -----------------------------------------------------------------------------
 
@@ -847,22 +869,60 @@ static inline int AddDataSetDimension(Dimension const& dim, int ncid, int varid)
 
 /** Define dimension. Ensure name is unique by appending an index.
   * Dimension label will be '<label>.<index>'.
-  * \return defined dimension ID.
+  * \return index of defined dimension in Dimensions_.
   */
-int DataIO_NetCDF::defineDim(std::string& dimLabel, std::string const& label,
-                             unsigned int dimSize, std::string const& Legend)
+DataIO_NetCDF::NcDim const& DataIO_NetCDF::defineDim(std::string const& label, unsigned int dimSize, std::string const& setname)
 {
   if (label.empty()) {
     mprinterr("Internal Error: defineDim(): label is empty.\n");
-    return -1;
+    return NcDim();
   }
-  dimLabel.assign( label + "." + integerToString(dimIdx_++) );
-  int dimId = -1;
-  if (NC::CheckErr( nc_def_dim(ncid_, dimLabel.c_str(), dimSize, &dimId ))) {
-    mprinterr("Error: Could not define dimension ID for '%s' (%s)\n", Legend.c_str(), dimLabel.c_str());
-    return -1;
+  int dimIdx = Dimensions_.size();
+  dimLabel.assign( label + "." + integerToString(dimIdx) );
+  int did = -1;
+  if (NC::CheckErr( nc_def_dim(ncid_, dimLabel.c_str(), dimSize, &did ))) {
+    mprinterr("Error: Could not define dimension '%s' ID for set '%s' (%s)\n", label.c_str(), setname.c_str());
+    return NcDim();
   }
-  return dimId;
+  Dimensions_.push_back( NcDim(did, dimLabel, dimSize) );
+  mprintf("DEBUG: Defined dimension %i : id=%i, label=%s, size=%u\n", 
+          Dimensions.back().DID(), Dimensions.back().Label().c_str(), Dimensions.back().Size());
+  return Dimensions.back();
+}
+
+/** Create 1D variable. Optionally associate it with a parent variable.
+  * \return Created variable.
+  */
+DataIO_NetCDF::NcVar DataIO_NetCDF::defineVar(int dimid, int nctype,
+                                              std::string const& PrintName,
+                                              std::string const& VarSuffix,
+                                              int parentVarId)
+const
+{
+  // ASSUME WE ARE IN DEFINE MODE
+  if (dimid < 0) return NcVar();
+  // Define the variable
+  int dimensionID[1];
+  dimensionID[0] = dimid;
+  std::string varName = PrintName + "." + VarSuffix;
+  int varid;
+  if ( NC::CheckErr(nc_def_var(ncid_, varName.c_str(), nctype, 1, dimensionID, &varid)) ) {
+    mprinterr("Error: Could not define variable '%s'\n", varName.c_str());
+    return NcVar();
+  }
+  if (parentVarId > -1) {
+    std::string childVarDesc = VarSuffix + "id";
+    if (AddDataSetIntAtt( varid, childVarDesc.c_str(), ncid_, parentVarId )) return NcVar;
+  }
+  int varIdx = Variables_.size();
+  return NcVar(varid, nctype, varName.c_str(), 1, dimensionID);
+}
+
+/** Create 1D variable. */
+DataIO_NetCDF::NcVar DataIO_NetCDF::defineVar(int dimid, int nctype, std::string const& PrintName, std::string const& VarSuffix)
+const
+{
+  return defineVar(dimid, nctype, PrintName, VarSuffix, -1);
 }
 
 /** Write 1D X-Y Mesh data set. */
@@ -937,16 +997,12 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
   mprintf("\n");
   // Define the dimension. Ensure name is unique by appending an index.
   if (EnterDefineMode(ncid_)) return 1;
-  std::string dimLabel;
-  int dimId = defineDim( dimLabel, dim.Label(), ds->Size(), ds->Meta().Legend() );
-  if (dimId == -1) return 1;
-  //int dimensionID[NC_MAX_VAR_DIMS];
-  int dimensionID[1];
-  dimensionID[0] = dimId;
+  NcDim const& ncdim = defineDim( "length", ds->Size(), ds->Meta().Legend() );
+  if (ncdim.Error()) return 1;
   
-  // Define the variable(s). Names should be unique: <DimName>.<VarName>
+  // Define the variable(s). Names should be unique
+  VarArray variables;
   for (SetArray::const_iterator it = sets.begin(); it != sets.end(); ++it) {
-    //isIndex = 0;
     // Choose type
     nc_type dtype;
     switch (it->DS()->Type()) {
@@ -960,29 +1016,32 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
         mprinterr("Internal Error: Unhandled DataSet type for 1D NetCDF variable.\n");
         return 1;
     }
-    std::string varName = dimLabel + "." + it->DS()->Meta().PrintName();
-    if ( NC::CheckErr( nc_def_var(ncid_, varName.c_str(), dtype, 1, dimensionID, varIDptr_ + it->OriginalIdx() ) ) ) {
-      mprinterr("Error: Could not define variable '%s'\n", varName.c_str());
+    variables.push_back( defineVar(ncdim.DID(), dtype, it->DS()->Meta().PrintName(), "Y") );
+    if (variables.back().Error()) {
+      mprinterr("Error: Could not define variable for set '%s'\n", it->DS()->legend());
       return 1;
     }
+    NcVar const& currentVar = variables.back();
     // Add DataSet metadata as attributes
-    if (AddDataSetMetaData( it->DS()->Meta(), ncid_, varIDs_[it->OriginalIdx()] )) return 1;
+    if (AddDataSetMetaData( it->DS()->Meta(), ncid_, currentVar.VID() )) return 1;
     // Add number of dimensions
-    if (AddDataSetIntAtt( it->DS()->Ndim(), "ndim", ncid_, varIDs_[it->OriginalIdx()] )) return 1;
+    if (AddDataSetIntAtt( it->DS()->Ndim(), "ndim", ncid_, currentVar.VID() )) return 1;
     // Add dimension min and step
-    if (AddDataSetDimension( dim, ncid_, varIDs_[it->OriginalIdx()])) return 1;
+    if (AddDataSetDimension( dim, ncid_, currentVar.VID())) return 1;
     // Store the description
-    if (AddDataSetStringAtt(it->DS()->description(), "description", ncid_, varIDs_[it->OriginalIdx()])) return 1;
+    if (AddDataSetStringAtt(it->DS()->description(), "description", ncid_, currentVar.VID())) return 1;
   } // END define variable(s)
   if (EndDefineMode( ncid_ )) return 1;
   // Write the variables
   size_t start[1];
   size_t count[1];
   start[0] = 0;
-  count[0] = ds->Size();
-  for (SetArray::const_iterator it = sets.begin(); it != sets.end(); ++it) {
-    DataSet_1D const& ds1d = static_cast<DataSet_1D const&>( *(it->DS()) );
-    if (NC::CheckErr(nc_put_vara(ncid_, varIDs_[it->OriginalIdx()], start, count, ds1d.DvalPtr()))) {
+  count[0] = ncdim.Size();
+  SetArray::const_iterator dset = sets.begin();
+  for (VarArray::const_iterator it = variables.begin(); it != variables.end(); ++it, ++dset)
+  {
+    DataSet_1D const& ds1d = static_cast<DataSet_1D const&>( *(dset->DS()) );
+    if (NC::CheckErr(nc_put_vara(ncid_, it->VID(), start, count, ds1d.DvalPtr()))) {
       mprinterr("Error: Could not write variable '%s'\n", ds1d.legend());
       return 1;
     }
@@ -1101,37 +1160,6 @@ int DataIO_NetCDF::writeData_2D(DataSet const* ds) {
   return 0;
 }
 
-/** Create 1D variable. Optionally associate it with a parent variable.
-  * \return variable ID of defined variable.
-  */
-int DataIO_NetCDF::defineVar(int dimid, std::string const& dimLabel, std::string const& PrintName,
-                             int parentVarId, const char* childVarDesc)
-const
-{
-  // ASSUME WE ARE IN DEFINE MODE
-  if (dimid < 0) return -1;
-  // Define the variable
-  int dimensionID[1];
-  dimensionID[0] = dimid;
-  std::string varName = dimLabel + "." + PrintName;
-  int varid;
-  if ( NC::CheckErr(nc_def_var(ncid_, varName.c_str(), NC_DOUBLE, 1, dimensionID, &varid)) ) {
-    mprinterr("Error: Could not define variable '%s'\n", varName.c_str());
-    return -1;
-  }
-  if (parentVarId > -1) {
-    if (AddDataSetIntAtt( varid, childVarDesc, ncid_, parentVarId )) return -1;
-  }
-  return varid;
-}
-
-/** Create 1D variable. */
-int DataIO_NetCDF::defineVar(int dimid, std::string const& dimLabel, std::string const& PrintName)
-const
-{
-  return defineVar(dimid, dimLabel, PrintName, -1, 0);
-}
-
 /** Write modes set to file. */
 int DataIO_NetCDF::writeData_modes(DataSet const* ds) {
   // Define the dimensions of all arrays. Ensure names are unique by appending an index.
@@ -1220,8 +1248,7 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
 {
 # ifdef BINTRAJ
   ncid_ = -1;
-  dimIdx_ = 0;
-  varIDs_.clear();
+  Dimensions_.clear();
   // TODO check existing file
   if (NC::CheckErr( nc_create( fname.full(), NC_64BIT_OFFSET, &ncid_ ) ))
     return 1;
@@ -1240,12 +1267,14 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
 
     DataSet const* ds = setPool.Set( idx );
     if (ds->Type() == DataSet::MODES) {
+      // ----- Modes -----------------------------
       if (writeData_modes(ds)) {
         mprinterr("Error: modes set write failed.\n");
         return 1;
       }
       setPool.MarkUsed( idx );
     } else if (ds->Group() == DataSet::MATRIX_2D) {
+      // ----- Matrix ----------------------------
       if (writeData_2D(ds)) {
         mprinterr("Error: matrix set write failed.\n");
         return 1;
@@ -1260,7 +1289,7 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
       setPool.MarkUsed( idx );
     } else if (ds->Group() == DataSet::SCALAR_1D) {
       // ----- 1D scalar -------------------------
-      SetArray sets(1, Set(ds, idx));
+      SetArray sets(1, Set(ds));
       setPool.MarkUsed( idx );
       // Group this set with others that share the same dimension and length.
       Dimension const& dim = ds->Dim(0);
@@ -1268,7 +1297,7 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
       {
         DataSet const* ds2 = setPool.Set( jdx );
         if (ds->Size() == ds2->Size() && dim == ds2->Dim(0)) {
-          sets.push_back( Set(ds2, jdx) );
+          sets.push_back( Set(ds2) );
           setPool.MarkUsed( jdx );
         }
       }

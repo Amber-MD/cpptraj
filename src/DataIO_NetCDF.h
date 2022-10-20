@@ -22,19 +22,20 @@ class DataIO_NetCDF : public DataIO {
     /// Hold info for a NetCDF variable
     class NcVar;
     typedef std::vector<NcVar> VarArray;
+    /// Hold info for a NetCDF dimension
+    class NcDim;
+    typedef std::vector<NcDim> DimArray;
 
     int read_cpptraj_vars(DataSetList&, std::string const&, VarArray&,
                           std::vector<unsigned int> const&);
 
     //int read_1d_var(DataSetList&, std::string const&, unsigned int, VarArray const&) const;
 
-    int defineDim(std::string&, std::string const&,
-                  unsigned int, std::string const&);
+    NcDim const& defineDim(std::string const&, unsigned int, std::string const&);
 
-    int defineVar(int, std::string const&, std::string const&,
-                  int, const char*) const;
+    NcVar defineVar(int, int, std::string const&, std::string const&, int) const;
 
-    int defineVar(int, std::string const&, std::string const&) const;
+    NcVar defineVar(int, int, std::string const&, std::string const&) const;
 
     int writeData_1D_xy(DataSet const*);
 
@@ -44,10 +45,8 @@ class DataIO_NetCDF : public DataIO {
 
     int writeData_modes(DataSet const*);
 
-    int ncid_;                ///< Current netcdf ID
-    int dimIdx_;              ///< Keep track of indices currently defined
-    std::vector<int> varIDs_; ///< All variable IDs currently defined
-    int* varIDptr_;           ///< Pointer to start of varIDs_
+    int ncid_;                 ///< Current netcdf ID
     bool user_specified_name_; ///< True if user specified a data set name on read
+    DimArray Dimensions_;      ///< Array of all currently defined dimensions
 };
 #endif
