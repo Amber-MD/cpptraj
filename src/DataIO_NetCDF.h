@@ -32,6 +32,7 @@ class DataIO_NetCDF : public DataIO {
     //int read_1d_var(DataSetList&, std::string const&, unsigned int, VarArray const&) const;
 
     NcDim const& defineDim(std::string const&, unsigned int, std::string const&);
+    static const NcDim errorDim_;
 
     NcVar defineVar(int, int, std::string const&, std::string const&, int) const;
 

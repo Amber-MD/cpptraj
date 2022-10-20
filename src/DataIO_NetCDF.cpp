@@ -18,8 +18,6 @@
 DataIO_NetCDF::DataIO_NetCDF() :
   DataIO(true, true, true), // Valid for 1D, 2D, 3D
   ncid_(-1),
-  dimIdx_(0),
-  varIDptr_(0),
   user_specified_name_(false)
 {
   SetValid( DataSet::MODES );
@@ -81,7 +79,7 @@ class DataIO_NetCDF::NcVar {
 class DataIO_NetCDF::NcDim {
   public:
     /// CONSTRUCTOR - blank, indicates error
-    NcDim() : did_(-1), size_(0)
+    NcDim() : did_(-1), size_(0) {}
     /// CONSTRUCTOR
     NcDim(int did, std::string const& lbl, unsigned int sze) :
       did_(did), label_(lbl), size_(sze) {}
@@ -94,6 +92,8 @@ class DataIO_NetCDF::NcDim {
     std::string label_; ///< Dimension label
     unsigned int size_; ///< Dimension size
 };
+
+const DataIO_NetCDF::NcDim DataIO_NetCDF::errorDim_ = NcDim();
 // -----------------------------------------------------------------------------
 
 // DataIO_NetCDF::ReadHelp()
@@ -875,19 +875,19 @@ DataIO_NetCDF::NcDim const& DataIO_NetCDF::defineDim(std::string const& label, u
 {
   if (label.empty()) {
     mprinterr("Internal Error: defineDim(): label is empty.\n");
-    return NcDim();
+    return errorDim_;
   }
   int dimIdx = Dimensions_.size();
-  dimLabel.assign( label + "." + integerToString(dimIdx) );
+  std::string dimLabel( label + "." + integerToString(dimIdx) );
   int did = -1;
   if (NC::CheckErr( nc_def_dim(ncid_, dimLabel.c_str(), dimSize, &did ))) {
     mprinterr("Error: Could not define dimension '%s' ID for set '%s' (%s)\n", label.c_str(), setname.c_str());
-    return NcDim();
+    return errorDim_;
   }
   Dimensions_.push_back( NcDim(did, dimLabel, dimSize) );
   mprintf("DEBUG: Defined dimension %i : id=%i, label=%s, size=%u\n", 
-          Dimensions.back().DID(), Dimensions.back().Label().c_str(), Dimensions.back().Size());
-  return Dimensions.back();
+          Dimensions_.back().DID(), Dimensions_.back().Label().c_str(), Dimensions_.back().Size());
+  return Dimensions_.back();
 }
 
 /** Create 1D variable. Optionally associate it with a parent variable.
@@ -912,9 +912,9 @@ const
   }
   if (parentVarId > -1) {
     std::string childVarDesc = VarSuffix + "id";
-    if (AddDataSetIntAtt( varid, childVarDesc.c_str(), ncid_, parentVarId )) return NcVar;
+    if (AddDataSetIntAtt( varid, childVarDesc.c_str(), ncid_, parentVarId )) return NcVar();
   }
-  int varIdx = Variables_.size();
+  
   return NcVar(varid, nctype, varName.c_str(), 1, dimensionID);
 }
 
@@ -930,56 +930,49 @@ int DataIO_NetCDF::writeData_1D_xy(DataSet const* ds) {
   mprintf("DEBUG: XY set '%s'\n", ds->legend());
   // Define the dimension
   if (EnterDefineMode(ncid_)) return 1;
-  std::string dimLabel;
-  int dimId = defineDim( dimLabel, ds->Dim(0).Label(), ds->Size(), ds->Meta().Legend() );
-  if (dimId == -1) return 1;
-  int dimensionID[1];
-  dimensionID[0] = dimId;
+  NcDim const& ncdim = defineDim( "length", ds->Size(), ds->Meta().Legend() );
+  if (ncdim.Error()) return 1;
   // Define the X variable
-  std::string xvarstr = dimLabel + "." + ds->Meta().PrintName() + ".X";
-  int xid;
-  if (NC::CheckErr(nc_def_var(ncid_, xvarstr.c_str(), NC_DOUBLE, 1, dimensionID, &xid))) {
-    mprinterr("Error: Could not define X var for '%s'\n", ds->legend());
+  NcVar xVar = defineVar(ncdim.DID(), NC_DOUBLE, ds->Meta().PrintName(), "X");
+  if (xVar.Error()) {
+    mprinterr("Error: Could not define X variable for set '%s'\n", ds->legend());
     return 1;
   }
-  // Define the Y variable
-  std::string yvarstr = dimLabel + "." + ds->Meta().PrintName() + ".Y";
-  int yid;
-  if (NC::CheckErr(nc_def_var(ncid_, yvarstr.c_str(), NC_DOUBLE, 1, dimensionID, &yid))) {
-    mprinterr("Error: Could not define Y var for '%s'\n", ds->legend());
+  // Define the Y variable, parent is X variable
+  NcVar yVar = defineVar(ncdim.DID(), NC_DOUBLE, ds->Meta().PrintName(), "Y", xVar.VID());
+  if (yVar.Error()) {
+    mprinterr("Error: Could not define Y variable for '%s'\n", ds->legend());
     return 1;
   }
   // Add DataSet metadata as attributes
-  if (AddDataSetMetaData( ds->Meta(), ncid_, xid )) return 1;
-  //if (AddDataSetMetaData( ds->Meta(), ncid_, yid )) return 1;
+  if (AddDataSetMetaData( ds->Meta(), ncid_, xVar.VID() )) return 1;
    // Store the description
-  if (AddDataSetStringAtt( ds->description(), "description", ncid_, xid)) return 1;
-  //if (AddDataSetStringAtt( ds->description(), "description", ncid_, yid)) return 1;
+  if (AddDataSetStringAtt( ds->description(), "description", ncid_, xVar.VID())) return 1;
   // Add number of dimensions
-  if (AddDataSetIntAtt( ds->Ndim(), "ndim", ncid_, xid )) return 1;
+  if (AddDataSetIntAtt( ds->Ndim(), "ndim", ncid_, xVar.VID() )) return 1;
   // Store the dimension
-  if (AddDataSetDimension(ds->Dim(0), ncid_, xid)) return 1;
-  // Have each var refer to the other
-  if (AddDataSetIntAtt( yid, "yvarid", ncid_, xid )) return 1;
-  if (AddDataSetIntAtt( xid, "xvarid", ncid_, yid )) return 1;
+  if (AddDataSetDimension(ds->Dim(0), ncid_, xVar.VID())) return 1;
+//  // Have each var refer to the other
+//  if (AddDataSetIntAtt( yid, "yvarid", ncid_, xid )) return 1;
+//  if (AddDataSetIntAtt( xid, "xvarid", ncid_, yid )) return 1;
   // End define mode
   if (EndDefineMode( ncid_ )) return 1;
   // Write the X and Y variables
   size_t start[1];
   size_t count[1];
   start[0] = 0;
-  count[0] = ds->Size();
+  count[0] = ncdim.Size();
 
   DataSet_1D const& ds1d = static_cast<DataSet_1D const&>( *ds );
   std::vector<double> idxs; // TODO access from XYMESH directly
   idxs.reserve(ds1d.Size());
   for (unsigned int ii = 0; ii < ds1d.Size(); ii++)
     idxs.push_back( ds1d.Xcrd(ii) );
-  if (NC::CheckErr(nc_put_vara(ncid_, xid, start, count, &idxs[0]))) {
+  if (NC::CheckErr(nc_put_vara(ncid_, xVar.VID(), start, count, &idxs[0]))) {
     mprinterr("Error: Could not write X variable from '%s'\n", ds1d.legend());
     return 1;
   }
-  if (NC::CheckErr(nc_put_vara(ncid_, yid, start, count, ds1d.DvalPtr()))) {
+  if (NC::CheckErr(nc_put_vara(ncid_, yVar.VID(), start, count, ds1d.DvalPtr()))) {
     mprinterr("Error: Could not write variable '%s'\n", ds1d.legend());
     return 1;
   }
