@@ -300,7 +300,7 @@ LIB_D_ON[$LARPACK]=''
 LIB_DOFF[$LARPACK]='-DNO_ARPACK'
 LIB_TYPE[$LARPACK]='cpp'
 
-LIB_STAT[$LFFTW3]='optional'
+LIB_STAT[$LFFTW3]='enabled'
 LIB_CKEY[$LFFTW3]='fftw3'
 LIB_HOME[$LFFTW3]=''
 LIB_FLAG[$LFFTW3]='-lfftw3'
@@ -927,11 +927,13 @@ EOF
           PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS LIBNAME='fftw' \
               SRCDIR=$FFTW_SRCDIR SRCTAR=$FFTW_SRCTAR URL=$FFTW_URL ./get_library.sh $REBUILDOPT $FFTW_OPTS
           if [ $? -ne 0 ] ; then
-            ErrMsg "Building FFTW failed."
-            exit 1
+            # Use built-in FFTW
+            WrnMsg "No FFTW available. Using built-in FFT library (does not support PME)."
+            LIB_STAT[$LFFTW3]='off'
+          else
+            # Test the built FFTW
+            TestProgram "  Checking built FFTW" "$CXX" "$CXXFLAGS ${LIB_INCL[$LFFTW3]}" testp.cpp "${LIB_FLAG[$LFFTW3]}"
           fi
-          # Test the built FFTW
-          TestProgram "  Checking built FFTW" "$CXX" "$CXXFLAGS ${LIB_INCL[$LFFTW3]}" testp.cpp "${LIB_FLAG[$LFFTW3]}"
         fi
       else
         # FFTW specified but failed.
