@@ -49,22 +49,37 @@ bool DataIO_NetCDF::ID_DataFormat(CpptrajFile& infile)
 /** Hold info for a netcdf variable. */
 class DataIO_NetCDF::NcVar {
   public:
-    /// CONSTRUCTOR - blank (indicates error)
-    NcVar() : vid_(-1), vtype_(0), hasBeenRead_(false) {}
+    /// CONSTRUCTOR - blank
+    NcVar() : vid_(-999), vtype_(0), hasBeenRead_(false) {}
     /// CONSTRUCTOR
     NcVar(int vidIn, nc_type vtypeIn, const char* vnameIn, int ndims, const int* dimids) :
       vid_(vidIn), vtype_(vtypeIn), vname_(vnameIn), hasBeenRead_(false), dimIds_(ndims)
     {
       for (int i = 0; i < ndims; i++) dimIds_[i] = dimids[i];
     }
+    /// COPY CONSTRUCTOR
+    NcVar(NcVar const& rhs) :
+      vid_(rhs.vid_), vtype_(rhs.vtype_), vname_(rhs.vname_), hasBeenRead_(rhs.hasBeenRead_),
+      dimIds_(rhs.dimIds_) {}
+    /// ASSIGNMENT
+    NcVar& operator=(NcVar const& rhs) {
+      if (this == &rhs) return *this;
+      vid_ = rhs.vid_;
+      vtype_ = rhs.vtype_;
+      vname_ = rhs.vname_;
+      hasBeenRead_ = rhs.hasBeenRead_;
+      dimIds_ = rhs.dimIds_;
+      return *this;
+    }
 
-    int VID()                  const { return vid_; }
-    nc_type Vtype()            const { return vtype_; }
-    std::string const& Vname() const { return vname_; }
-    const char* vname()        const { return vname_.c_str(); }
-    bool HasBeenRead()         const { return hasBeenRead_; }
-    std::vector<int> const& DimIds() const { return dimIds_; }
-    bool Error()               const { return (vid_ == -1); }
+    int VID()                   const { return vid_; }
+    nc_type Vtype()             const { return vtype_; }
+    std::string const& Vname()  const { return vname_; }
+    const char* vname()         const { return vname_.c_str(); }
+    bool HasBeenRead()          const { return hasBeenRead_; }
+    unsigned int Ndims()        const { return dimIds_.size(); }
+    int DimId(unsigned int idx) const { return dimIds_[idx]; }
+    bool Empty()               const { return (vid_ == -999); }
 
     void MarkRead() { hasBeenRead_ = true; }
   private:
@@ -78,22 +93,35 @@ class DataIO_NetCDF::NcVar {
 /** Hold info for a netcdf dimension. */
 class DataIO_NetCDF::NcDim {
   public:
-    /// CONSTRUCTOR - blank, indicates error
-    NcDim() : did_(-1), size_(0) {}
+    /// CONSTRUCTOR - blank
+    NcDim() : did_(-999), size_(0) {}
     /// CONSTRUCTOR
     NcDim(int did, std::string const& lbl, unsigned int sze) :
       did_(did), label_(lbl), size_(sze) {}
-    int DID()                  const { return did_; }
-    std::string const& Label() const { return label_; }
-    unsigned int Size()        const { return size_; }
-    bool Error()               const { return (did_ == -1); }
+    /// COPY CONSTRUCTOR
+    NcDim(NcDim const& rhs) : did_(rhs.did_), label_(rhs.label_), size_(rhs.size_) {}
+    /// ASSIGNMENT
+    NcDim& operator=(NcDim const& rhs) {
+      if (this == &rhs) return *this;
+      did_ = rhs.did_;
+      label_ = rhs.label_;
+      size_ = rhs.size_;
+      return *this;
+    }
+
+    int DID()                  const { return did_;           }
+    std::string const& Label() const { return label_;         }
+    unsigned int Size()        const { return size_;          }
+    bool Empty()               const { return (did_ == -999); }
+    void Print() const {
+      mprintf("DEBUG:\tDimension %i - '%s' (%u)\n", did_, label_.c_str(), size_);
+    }
   private:
     int did_;           ///< Netcdf dimension ID
     std::string label_; ///< Dimension label
     unsigned int size_; ///< Dimension size
 };
 
-const DataIO_NetCDF::NcDim DataIO_NetCDF::errorDim_ = NcDim();
 // -----------------------------------------------------------------------------
 
 // DataIO_NetCDF::ReadHelp()
@@ -249,9 +277,43 @@ static inline std::vector<Dimension> GetVarDimensions(int& errStat, int ncid, in
   return Dims;
 }
 
+/** Read CPPTRAJ XY mesh set. */
+int DataIO_NetCDF::readData_1D_xy(DataSet* ds, NcVar const& xVar, VarArray& Vars) const {
+  // ----- XY Mesh ---------------
+  size_t start[1];
+  size_t count[1];
+  start[0] = 0;
+  count[0] = Dimensions_[ xVar.DimId(0) ].Size();
+
+  // Get the Y var id
+  int yvarid;
+  int ret = GetVarIntAtt(yvarid, "Yid", ncid_, xVar.VID());
+  if (ret != 0) {
+    mprinterr("Error: No 'Yid' attribute for XY set '%s'.\n", xVar.vname());
+    return 1;
+  }
+  DataSet_Mesh& set = static_cast<DataSet_Mesh&>( *ds );
+  set.Resize(count[0]);
+  DataSet_Mesh::Darray& Xvals = set.SetMeshX();
+  DataSet_Mesh::Darray& Yvals = set.SetMeshY();
+  // Get X
+  if (NC::CheckErr(nc_get_vara(ncid_, xVar.VID(), start, count, (void*)(&Xvals[0])))) {
+    mprinterr("Error: Could not get X values for XY set.\n");
+    return 1;
+  }
+  Vars[xVar.VID()].MarkRead();
+  // Get Y
+  if (NC::CheckErr(nc_get_vara(ncid_, yvarid, start, count, (void*)(&Yvals[0])))) {
+    mprinterr("Error: Could not get Y values for XY set.\n");
+    return 1;
+  }
+  Vars[yvarid].MarkRead();
+  return 0;
+}
+
 /** Read variable with CPPTRAJ conventions. */
-int DataIO_NetCDF::read_cpptraj_vars(DataSetList& dsl, std::string const& dsname, VarArray& Vars,
-                                     std::vector<unsigned int> const& dimLengths)
+int DataIO_NetCDF::read_cpptraj_vars(DataSetList& dsl, std::string const& dsname, VarArray& Vars)
+const
 {
   for (VarArray::const_iterator var = Vars.begin(); var != Vars.end(); ++var)
   {
@@ -286,38 +348,16 @@ int DataIO_NetCDF::read_cpptraj_vars(DataSetList& dsl, std::string const& dsname
     for (std::vector<Dimension>::const_iterator dim = Dims.begin(); dim != Dims.end(); ++dim)
       ds->SetDim(idx++, *dim);
     // Check netcdf variable dimensions
-    if (var->DimIds().size() == 1) {
+    if (var->Ndims() == 1) {
       // One flat dimension
       size_t start[1];
       size_t count[1];
       start[0] = 0;
-      count[0] = dimLengths[ var->DimIds()[0] ];
+      count[0] = Dimensions_[ var->DimId(0) ].Size();
       mprintf("DEBUG: %s dim length %zu\n", var->vname(), count[0]);
       if (dtype == DataSet::XYMESH) {
-        // ----- XY Mesh ---------------
-        // Get the Y var id
-        int yvarid;
-        int ret = GetVarIntAtt(yvarid, "yvarid", ncid_, var->VID());
-        if (ret != 0) {
-          mprinterr("Error: No 'yvarid' attribute for XY set '%s'.\n", var->vname());
+        if (readData_1D_xy(ds, *var, Vars))
           return 1;
-        }
-        DataSet_Mesh& set = static_cast<DataSet_Mesh&>( *ds );
-        set.Resize(count[0]);
-        DataSet_Mesh::Darray& Xvals = set.SetMeshX();
-        DataSet_Mesh::Darray& Yvals = set.SetMeshY();
-        // Get X
-        if (NC::CheckErr(nc_get_vara(ncid_, var->VID(), start, count, (void*)(&Xvals[0])))) {
-          mprinterr("Error: Could not get X values for XY set.\n");
-          return 1;
-        }
-        Vars[var->VID()].MarkRead();
-        // Get Y
-        if (NC::CheckErr(nc_get_vara(ncid_, yvarid, start, count, (void*)(&Yvals[0])))) {
-          mprinterr("Error: Could not get Y values for XY set.\n");
-          return 1;
-        }
-        Vars[yvarid].MarkRead();
       } else if (ds->Group() == DataSet::SCALAR_1D) {
         // ----- 1D Scalar -------------
         DataSet_1D& set = static_cast<DataSet_1D&>( *ds );
@@ -384,7 +424,7 @@ int DataIO_NetCDF::read_cpptraj_vars(DataSetList& dsl, std::string const& dsname
             mprinterr("Error: Variable has vect data but set is not double matrix.\n");
             return 1;
           }
-          unsigned int vectLength = dimLengths[ vectVarId ];
+          unsigned int vectLength = Dimensions_[ Vars[vectVarId].DimId(0) ].Size();
           DataSet_MatrixDbl& dmat = static_cast<DataSet_MatrixDbl&>( mat );
           dmat.AllocateVector( vectLength );
           count[0] = vectLength;
@@ -404,7 +444,7 @@ int DataIO_NetCDF::read_cpptraj_vars(DataSetList& dsl, std::string const& dsname
             mprinterr("Error: Variable has mass data but set is not double matrix.\n");
             return 1;
           }
-          unsigned int massLength = dimLengths[ massVarId ];
+          unsigned int massLength = Dimensions_[ Vars[massVarId].DimId(0) ].Size();
           DataSet_MatrixDbl& dmat = static_cast<DataSet_MatrixDbl&>( mat );
           dmat.AllocateMass( massLength );
           count[0] = massLength;
@@ -416,7 +456,7 @@ int DataIO_NetCDF::read_cpptraj_vars(DataSetList& dsl, std::string const& dsname
         }
       } else if ( dtype == DataSet::MODES ) {
         // ----- Modes -----------------
-        unsigned int n_eigenvalues = dimLengths[var->DimIds()[0]];
+        unsigned int n_eigenvalues = Dimensions_[var->DimId(0)].Size();
         // Get the eigenvectors variable ID
         int vectorsVarId = -1;
         int ret = GetVarIntAtt(vectorsVarId, "vectorsid", ncid_, var->VID());
@@ -424,7 +464,7 @@ int DataIO_NetCDF::read_cpptraj_vars(DataSetList& dsl, std::string const& dsname
           mprinterr("Error: Modes data missing 'vectorsid'.\n");
           return 1;
         }
-        unsigned int evectorLength = dimLengths[Vars[vectorsVarId].DimIds()[0]];
+        unsigned int evectorLength = Dimensions_[Vars[vectorsVarId].DimId(0)].Size();
         // Get the avg. coords variable ID
         int coordsVarId = -1;
         ret = GetVarIntAtt(coordsVarId, "avgcoordsid", ncid_, var->VID());
@@ -432,7 +472,7 @@ int DataIO_NetCDF::read_cpptraj_vars(DataSetList& dsl, std::string const& dsname
           mprinterr("Error: Modes data missing 'avgcoordsid'.\n");
           return 1;
         }
-        unsigned int avgCoordsLength = dimLengths[Vars[coordsVarId].DimIds()[0]];
+        unsigned int avgCoordsLength = Dimensions_[Vars[coordsVarId].DimId(0)].Size();
         // Get the mass variable ID if present
         int massVarId = -1;
         unsigned int massLength = 0;
@@ -441,7 +481,7 @@ int DataIO_NetCDF::read_cpptraj_vars(DataSetList& dsl, std::string const& dsname
           mprinterr("Error: Could not get 'massid'.\n");
           return 1;
         } else if (ret == 0) {
-          massLength = dimLengths[Vars[massVarId].DimIds()[0]];
+          massLength = Dimensions_[Vars[massVarId].DimId(0)].Size();
         }
         mprintf("DEBUG: Modes: # values= %u, evector size= %u, avg coords size= %u, mass size = %u\n",
                 n_eigenvalues, evectorLength, avgCoordsLength, massLength);
@@ -629,16 +669,16 @@ int DataIO_NetCDF::ReadData(FileName const& fname, DataSetList& dsl, std::string
           fname.full(), ndimsp, nvarsp, ngattsp, unlimdimidp);
   char varName[NC_MAX_NAME+1];
   // Get the length of all dimensions
-  std::vector<unsigned int> dimLengths;
-  dimLengths.reserve(ndimsp);
+  Dimensions_.clear();
+  Dimensions_.reserve(ndimsp);
   for (int idim = 0; idim < ndimsp; idim++) {
     size_t diml;
     if (NC::CheckErr(nc_inq_dim(ncid_, idim, varName, &diml))) {
       mprinterr("Error: Could not get length of NetCDF data dimension %i\n", idim);
       return 1;
     }
-    dimLengths.push_back( diml );
-    mprintf("DEBUG:\tDimension %i - '%s' (%u)\n", idim, varName, dimLengths[idim]);
+    Dimensions_.push_back( NcDim( idim, varName, diml ) );
+    Dimensions_.back().Print();
   }
 
   VarArray AllVars;
@@ -674,7 +714,7 @@ int DataIO_NetCDF::ReadData(FileName const& fname, DataSetList& dsl, std::string
   for (VarArray::const_iterator it = AllVars.begin(); it != AllVars.end(); ++it)
     mprintf("  %i (%s)\n", it->VID(), it->vname());
   
-  if (read_cpptraj_vars(dsl, dsname, AllVars, dimLengths)) return 1;
+  if (read_cpptraj_vars(dsl, dsname, AllVars)) return 1;
   //for (int idim = 0; idim < ndimsp; idim++) {
   //  if (read_1d_var( dsl, dsname, dimLengths[idim], sets_1d[idim] )) return 1;
   //}
@@ -869,25 +909,24 @@ static inline int AddDataSetDimension(Dimension const& dim, int ncid, int varid)
 
 /** Define dimension. Ensure name is unique by appending an index.
   * Dimension label will be '<label>.<index>'.
-  * \return index of defined dimension in Dimensions_.
+  * \return index of defined dimension in Dimensions_, -1 on error.
   */
-DataIO_NetCDF::NcDim const& DataIO_NetCDF::defineDim(std::string const& label, unsigned int dimSize, std::string const& setname)
+int DataIO_NetCDF::defineDim(std::string const& label, unsigned int dimSize, std::string const& setname)
 {
   if (label.empty()) {
     mprinterr("Internal Error: defineDim(): label is empty.\n");
-    return errorDim_;
+    return -1;
   }
   int dimIdx = Dimensions_.size();
   std::string dimLabel( label + "." + integerToString(dimIdx) );
   int did = -1;
   if (NC::CheckErr( nc_def_dim(ncid_, dimLabel.c_str(), dimSize, &did ))) {
     mprinterr("Error: Could not define dimension '%s' ID for set '%s' (%s)\n", label.c_str(), setname.c_str());
-    return errorDim_;
+    return -1;
   }
   Dimensions_.push_back( NcDim(did, dimLabel, dimSize) );
-  mprintf("DEBUG: Defined dimension %i : id=%i, label=%s, size=%u\n", 
-          Dimensions_.back().DID(), Dimensions_.back().Label().c_str(), Dimensions_.back().Size());
-  return Dimensions_.back();
+  Dimensions_.back().Print();
+  return dimIdx;
 }
 
 /** Create 1D variable. Optionally associate it with a parent variable.
@@ -930,17 +969,18 @@ int DataIO_NetCDF::writeData_1D_xy(DataSet const* ds) {
   mprintf("DEBUG: XY set '%s'\n", ds->legend());
   // Define the dimension
   if (EnterDefineMode(ncid_)) return 1;
-  NcDim const& ncdim = defineDim( "length", ds->Size(), ds->Meta().Legend() );
-  if (ncdim.Error()) return 1;
+  int dimIdx = defineDim( "length", ds->Size(), ds->Meta().Legend() );
+  if (dimIdx < 0) return 1;
+  NcDim const& ncdim = Dimensions_[dimIdx];
   // Define the X variable
   NcVar xVar = defineVar(ncdim.DID(), NC_DOUBLE, ds->Meta().PrintName(), "X");
-  if (xVar.Error()) {
+  if (xVar.Empty()) {
     mprinterr("Error: Could not define X variable for set '%s'\n", ds->legend());
     return 1;
   }
   // Define the Y variable, parent is X variable
   NcVar yVar = defineVar(ncdim.DID(), NC_DOUBLE, ds->Meta().PrintName(), "Y", xVar.VID());
-  if (yVar.Error()) {
+  if (yVar.Empty()) {
     mprinterr("Error: Could not define Y variable for '%s'\n", ds->legend());
     return 1;
   }
@@ -990,8 +1030,9 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
   mprintf("\n");
   // Define the dimension. Ensure name is unique by appending an index.
   if (EnterDefineMode(ncid_)) return 1;
-  NcDim const& ncdim = defineDim( "length", ds->Size(), ds->Meta().Legend() );
-  if (ncdim.Error()) return 1;
+  int dimIdx = defineDim( "length", ds->Size(), ds->Meta().Legend() );
+  if (dimIdx < 0) return 1;
+  NcDim const& ncdim = Dimensions_[dimIdx];
   
   // Define the variable(s). Names should be unique
   VarArray variables;
@@ -1010,7 +1051,7 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
         return 1;
     }
     variables.push_back( defineVar(ncdim.DID(), dtype, it->DS()->Meta().PrintName(), "Y") );
-    if (variables.back().Error()) {
+    if (variables.back().Empty()) {
       mprinterr("Error: Could not define variable for set '%s'\n", it->DS()->legend());
       return 1;
     }
@@ -1047,12 +1088,9 @@ int DataIO_NetCDF::writeData_2D(DataSet const* ds) {
   // Define the dimension of the underlying array. Ensure name is unique by appending an index.
   if (EnterDefineMode(ncid_)) return 1;
   DataSet_2D const& set = static_cast<DataSet_2D const&>( *ds );
-  std::string label("Matrix");
-  std::string dimLabel;
-  int dimId = defineDim( dimLabel, label, set.Size(), set.Meta().Legend() );
-  if (dimId == -1) return 1;
-  int dimensionID[1];
-  dimensionID[0] = dimId;
+  int dimIdx = defineDim( "size", set.Size(), set.Meta().Legend() );
+  if (dimIdx < 0) return 1;
+  NcDim const& ncdim = Dimensions_[dimIdx];
   // Choose type
   nc_type dtype;
   switch (set.Type()) {
@@ -1063,22 +1101,21 @@ int DataIO_NetCDF::writeData_2D(DataSet const* ds) {
       return 1;
   }
   // Define the matrix variable
-  std::string varName = dimLabel + "." + set.Meta().PrintName();
-  int varid;
-  if ( NC::CheckErr( nc_def_var(ncid_, varName.c_str(), dtype, 1, dimensionID, &varid ) ) ) {
-    mprinterr("Error: Could not define matrix variable '%s'\n", varName.c_str());
+  NcVar matVar = defineVar(ncdim.DID(), dtype, ds->Meta().PrintName(), "matrix");
+  if ( matVar.Empty() ) {
+    mprinterr("Error: Could not define matrix variable for set '%s'\n", ds->legend());
     return 1;
   }
   // Add DataSet metadata as attributes
-  if (AddDataSetMetaData( set.Meta(), ncid_, varid )) return 1;
+  if (AddDataSetMetaData( set.Meta(), ncid_, matVar.VID() )) return 1;
   // Add number of dimensions
-  if (AddDataSetIntAtt( set.Ndim(), "ndim", ncid_, varid )) return 1;
+  if (AddDataSetIntAtt( set.Ndim(), "ndim", ncid_, matVar.VID() )) return 1;
   // Add dimension min and step
-  if (AddDataSetDimension( integerToString(0), set.Dim(0), ncid_, varid)) return 1;
-  if (AddDataSetDimension( integerToString(1), set.Dim(1), ncid_, varid)) return 1;
+  if (AddDataSetDimension( integerToString(0), set.Dim(0), ncid_, matVar.VID())) return 1;
+  if (AddDataSetDimension( integerToString(1), set.Dim(1), ncid_, matVar.VID())) return 1;
   // Store rows and columns
-  if (AddDataSetIntAtt( set.Ncols(), "ncols", ncid_, varid )) return 1;
-  if (AddDataSetIntAtt( set.Nrows(), "nrows", ncid_, varid )) return 1;
+  if (AddDataSetIntAtt( set.Ncols(), "ncols", ncid_, matVar.VID() )) return 1;
+  if (AddDataSetIntAtt( set.Nrows(), "nrows", ncid_, matVar.VID() )) return 1;
   // Store the matrix kind
   std::string kind;
   switch (set.MatrixKind()) {
@@ -1086,40 +1123,35 @@ int DataIO_NetCDF::writeData_2D(DataSet const* ds) {
     case DataSet_2D::HALF : kind.assign("half"); break;
     case DataSet_2D::TRI  : kind.assign("tri"); break;
   }
-  if (AddDataSetStringAtt(kind, "matrixkind", ncid_, varid)) return 1;
+  if (AddDataSetStringAtt(kind, "matrixkind", ncid_, matVar.VID())) return 1;
   // Store the description
-  if (AddDataSetStringAtt(set.description(), "description", ncid_, varid)) return 1;
+  if (AddDataSetStringAtt(set.description(), "description", ncid_, matVar.VID())) return 1;
   // Define the diagonal vector/mass array if present
-  int vectVarId = -1;
-  int massVarId = -1;
+  NcVar vectVar, massVar;
   if (set.Type() == DataSet::MATRIX_DBL) {
     DataSet_MatrixDbl const& dmat = static_cast<DataSet_MatrixDbl const&>( set );
     if (dmat.Nsnapshots() > 0) {
-      if (AddDataSetIntAtt( dmat.Nsnapshots(), "nsnapshots", ncid_, varid)) return 1;
+      if (AddDataSetIntAtt( dmat.Nsnapshots(), "nsnapshots", ncid_, matVar.VID())) return 1;
     }
     if (!dmat.Vect().empty()) {
-      int vectDimId = defineDim( dimLabel, "vect", dmat.Vect().size(), set.Meta().Legend() + " diagonal vector" );
-      if (vectDimId == -1) return 1;
-      dimensionID[0] = vectDimId;
-      std::string vectName = varName + "." + "vect";
-      if (NC::CheckErr(nc_def_var(ncid_, vectName.c_str(), NC_DOUBLE, 1, dimensionID, &vectVarId))) {
+      dimIdx = defineDim("vectsize", dmat.Vect().size(), set.Meta().Legend() + " diagonal vector");
+      if (dimIdx < 0) return 1;
+      NcDim const& vectDim = Dimensions_[dimIdx];
+      vectVar = defineVar(vectDim.DID(), NC_DOUBLE, ds->Meta().PrintName(), "vect", matVar.VID());
+      if (vectVar.Empty()) { 
         mprinterr("Error: Could not define vect variable for matrix '%s'\n", set.legend());
         return 1;
       }
-      // Note that there is a vect variable
-      if (AddDataSetIntAtt(vectVarId, "vectid", ncid_, varid)) return 1;
     }
     if (!dmat.Mass().empty()) {
-      int massDimId = defineDim( dimLabel, "mass", dmat.Mass().size(), set.Meta().Legend() + " mass" );
-      if (massDimId == -1) return 1;
-      dimensionID[0] = massDimId;
-      std::string massName = varName + "." + "mass";
-      if (NC::CheckErr(nc_def_var(ncid_, massName.c_str(), NC_DOUBLE, 1, dimensionID, &massVarId))) {
+      dimIdx = defineDim( "nmass", dmat.Mass().size(), set.Meta().Legend() + " mass" );
+      if (dimIdx < 0) return 1;
+      NcDim const& massDim = Dimensions_[dimIdx];
+      massVar = defineVar(massDim.DID(), NC_DOUBLE, ds->Meta().PrintName(), "mass", matVar.VID());
+      if (massVar.Empty()) {
         mprinterr("Error: Could not define mass variable for matrix '%s'\n", set.legend());
         return 1;
       }
-      // Note that there is a mass variable
-      if (AddDataSetIntAtt(massVarId, "massid", ncid_, varid)) return 1;
     }
   }
   // END define variable
@@ -1128,23 +1160,23 @@ int DataIO_NetCDF::writeData_2D(DataSet const* ds) {
   size_t start[1];
   size_t count[1];
   start[0] = 0;
-  count[0] = set.Size();
-  if (NC::CheckErr(nc_put_vara(ncid_, varid, start, count, set.MatrixPtr()))) {
+  count[0] = ncdim.Size();
+  if (NC::CheckErr(nc_put_vara(ncid_, matVar.VID(), start, count, set.MatrixPtr()))) {
     mprinterr("Error: Could not write matrix '%s'\n", set.legend());
     return 1;
   }
-  if (vectVarId != -1) {
+  if (!vectVar.Empty()) {
     DataSet_MatrixDbl const& dmat = static_cast<DataSet_MatrixDbl const&>( set );
     count[0] = dmat.Vect().size();
-    if (NC::CheckErr(nc_put_vara(ncid_, vectVarId, start, count, &(dmat.Vect()[0])))) {
+    if (NC::CheckErr(nc_put_vara(ncid_, vectVar.VID(), start, count, &(dmat.Vect()[0])))) {
       mprinterr("Error: Could not write vect variable for matrix '%s'\n", set.legend());
       return 1;
     }
   }
-  if (massVarId != -1) {
+  if (!massVar.Empty()) {
     DataSet_MatrixDbl const& dmat = static_cast<DataSet_MatrixDbl const&>( set );
     count[0] = dmat.Mass().size();
-    if (NC::CheckErr(nc_put_vara(ncid_, massVarId, start, count, &(dmat.Mass()[0])))) {
+    if (NC::CheckErr(nc_put_vara(ncid_, massVar.VID(), start, count, &(dmat.Mass()[0])))) {
       mprinterr("Error: Could not write mass variable for matrix '%s'\n", set.legend());
       return 1;
     }
@@ -1158,46 +1190,49 @@ int DataIO_NetCDF::writeData_modes(DataSet const* ds) {
   // Define the dimensions of all arrays. Ensure names are unique by appending an index.
   if (EnterDefineMode(ncid_)) return 1;
   DataSet_Modes const& modes = static_cast<DataSet_Modes const&>( *ds );
-  std::string valuesDimLabel, vectorsDimLabel, coordsDimLabel, massDimLabel;
-  int valuesDimId = defineDim( valuesDimLabel, "eigenvalues", modes.Nmodes(),
-                               modes.Meta().Legend() + " eigenvalues" );
-  if (valuesDimId == -1) return 1;
-  int vectorsDimId = defineDim( vectorsDimLabel, "eigenvectors", modes.Nmodes()*modes.VectorSize(),
-                                modes.Meta().Legend() + " eigenvectors" );
-  if (vectorsDimId == -1) return 1;
-  int coordsDimId = defineDim( coordsDimLabel, "ncoords", modes.NavgCrd(),
-                               modes.Meta().Legend() + " avg. coords" );
-  if (coordsDimId == -1) return 1;
-  int massDimId = -1;
+  // N modes
+  int dimIdx = defineDim( "nmodes", modes.Nmodes(), modes.Meta().Legend() + " eigenvalues" );
+  if (dimIdx < 0) return 1;
+  NcDim const& modesDim = Dimensions_[dimIdx];
+  // N evec elements
+  dimIdx = defineDim( "nevecelts", modes.Nmodes()*modes.VectorSize(), modes.Meta().Legend() + " eigenvectors" );
+  if (dimIdx < 0) return 1;
+  NcDim const& evecsDim = Dimensions_[dimIdx];
+  // N avg coords
+  dimIdx = defineDim( "ncoords", modes.NavgCrd(), modes.Meta().Legend() + " avg. coords" );
+  if (dimIdx < 0) return 1;
+  NcDim const& coordsDim = Dimensions_[dimIdx];
+  // N Masses
+  NcDim massDim;
   if (!modes.Mass().empty()) {
-    int massDimId = defineDim( massDimLabel, "mass", modes.Mass().size(),
-                               modes.Meta().Legend() + " mass" );
-    if (massDimId == -1) return 1;
+    dimIdx = defineDim( "nmass", modes.Mass().size(), modes.Meta().Legend() + " mass" );
+    if (dimIdx == -1) return 1;
+    massDim = Dimensions_[dimIdx];
   }
   // Define variables
   // Define the eigenvalues variable
-  int valuesVarId = defineVar(valuesDimId, valuesDimLabel, modes.Meta().PrintName());
-  if (valuesVarId == -1) return 1;
+  NcVar valuesVar = defineVar(modesDim.DID(), NC_DOUBLE, modes.Meta().PrintName(), "eigenvalues");
+  if (valuesVar.Empty()) return 1;
   // Add DataSet metadata as attributes
-  if (AddDataSetMetaData( modes.Meta(), ncid_, valuesVarId )) return 1;
+  if (AddDataSetMetaData( modes.Meta(), ncid_, valuesVar.VID() )) return 1;
   // Add number of dimensions
-  if (AddDataSetIntAtt( modes.Ndim(), "ndim", ncid_, valuesVarId )) return 1;
+  if (AddDataSetIntAtt( modes.Ndim(), "ndim", ncid_, valuesVar.VID() )) return 1;
   // Store the description
-  if (AddDataSetStringAtt( ds->description(), "description", ncid_, valuesVarId)) return 1;
+  if (AddDataSetStringAtt( ds->description(), "description", ncid_, valuesVar.VID())) return 1;
 
   // Define the eigenvectors variable
-  int vectorsVarId = defineVar(vectorsDimId, vectorsDimLabel, modes.Meta().PrintName(), valuesVarId, "vectorsid");
-  if (vectorsVarId == -1) return 1;
+  NcVar vectorsVar = defineVar(evecsDim.DID(), NC_DOUBLE, modes.Meta().PrintName(), "eigenvectors", valuesVar.VID());
+  if (vectorsVar.Empty()) return 1;
 
   // Add the avg. coords variable
-  int coordsVarId = defineVar(coordsDimId, coordsDimLabel, modes.Meta().PrintName(), valuesVarId, "avgcoordsid");
-  if (coordsVarId == -1) return 1;
+  NcVar coordsVar = defineVar(coordsDim.DID(), NC_DOUBLE, modes.Meta().PrintName(), "avgcoords", valuesVar.VID());
+  if (coordsVar.Empty()) return 1;
 
   // Add the masses variable
-  int massVarId = -1;
-  if (massDimId > -1) {
-    massVarId = defineVar(massDimId, massDimLabel, modes.Meta().PrintName(), valuesVarId, "massid");
-    if (massVarId == -1) return 1;
+  NcVar massVar;
+  if (!massDim.Empty()) {
+    massVar = defineVar(massDim.DID(), NC_DOUBLE, modes.Meta().PrintName(), "mass", valuesVar.VID());
+    if (massVar.Empty()) return 1;
   }
   // END define variable
   if (EndDefineMode( ncid_ )) return 1;
@@ -1207,26 +1242,26 @@ int DataIO_NetCDF::writeData_modes(DataSet const* ds) {
   // Write the eigenvalues
   start[0] = 0;
   count[0] = modes.Nmodes();
-  if (NC::CheckErr(nc_put_vara(ncid_, valuesVarId, start, count, modes.EigenvaluePtr()))) {
+  if (NC::CheckErr(nc_put_vara(ncid_, valuesVar.VID(), start, count, modes.EigenvaluePtr()))) {
     mprinterr("Error: Could not write eigenvalues from '%s'\n", modes.legend());
     return 1;
   }
   // Write the eigenvectors
   count[0] = modes.Nmodes()*modes.VectorSize();
-  if (NC::CheckErr(nc_put_vara(ncid_, vectorsVarId, start, count, modes.Eigenvectors()))) {
+  if (NC::CheckErr(nc_put_vara(ncid_, vectorsVar.VID(), start, count, modes.Eigenvectors()))) {
     mprinterr("Error: Could not write eigenvectors from '%s'\n", modes.legend());
     return 1;
   }
   // Write the avg coords
   count[0] = modes.NavgCrd();
-  if (NC::CheckErr(nc_put_vara(ncid_, coordsVarId, start, count, &(modes.AvgCrd()[0])))) {
+  if (NC::CheckErr(nc_put_vara(ncid_, coordsVar.VID(), start, count, &(modes.AvgCrd()[0])))) {
     mprinterr("Error: Could not write avg. coords from '%s'\n", modes.legend());
     return 1;
   }
   // Write masses
-  if (massVarId != -1) {
+  if (!massVar.Empty()) {
     count[0] = modes.Mass().size();
-    if (NC::CheckErr(nc_put_vara(ncid_, coordsVarId, start, count, &(modes.Mass()[0])))) {
+    if (NC::CheckErr(nc_put_vara(ncid_, massVar.VID(), start, count, &(modes.Mass()[0])))) {
       mprinterr("Error: Could not write mass from '%s'\n", modes.legend());
       return 1;
     }
@@ -1249,9 +1284,6 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
   // Place incoming DataSets into a pool. As they are handled they will
   // be removed from the pool.
   SetPool setPool( dsl );
-
-  varIDs_.assign( dsl.size(), -1 );
-  varIDptr_ = &varIDs_[0];
 
   // Check our incoming data sets. Try to find common dimensions.
   for (unsigned int idx = 0; idx < setPool.Nsets(); idx++)
@@ -1308,9 +1340,6 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
     mprintf("Warning: Not all sets were used.\n");
     setPool.PrintUnused();
   }
-  mprintf("DEBUG: Variable IDs:\n");
-  for (unsigned int idx = 0; idx != dsl.size(); idx++)
-    mprintf("\t'%s' vid= %i\n", dsl[idx]->legend(), varIDs_[idx]);
 
   // Attributes
   if (EnterDefineMode(ncid_)) return 1;

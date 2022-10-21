@@ -26,13 +26,13 @@ class DataIO_NetCDF : public DataIO {
     class NcDim;
     typedef std::vector<NcDim> DimArray;
 
-    int read_cpptraj_vars(DataSetList&, std::string const&, VarArray&,
-                          std::vector<unsigned int> const&);
+    int readData_1D_xy(DataSet*, NcVar const&, VarArray&) const;
+
+    int read_cpptraj_vars(DataSetList&, std::string const&, VarArray&) const;
 
     //int read_1d_var(DataSetList&, std::string const&, unsigned int, VarArray const&) const;
 
-    NcDim const& defineDim(std::string const&, unsigned int, std::string const&);
-    static const NcDim errorDim_;
+    int defineDim(std::string const&, unsigned int, std::string const&);
 
     NcVar defineVar(int, int, std::string const&, std::string const&, int) const;
 
