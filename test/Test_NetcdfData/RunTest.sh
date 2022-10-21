@@ -60,12 +60,14 @@ matrix name N.CA mwcovar @N @CA out matrix.nc
 matrix name heavyAtom !@H= mwcovar out matrix.nc
 2drms RMS2D @CA out matrix.nc
 diagmatrix CA out matrix.nc name MyEvecs
+diagmatrix heavyAtom out matrix.nc name heavyEvecs
 run
 writedata ca.matrix.dat.save CA nosquare2d prec 12.4
 writedata n.ca.matrix.dat.save N.CA nosquare2d prec 12.4
 writedata heavyAtom.matrix.dat.save heavyAtom nosquare2d prec 12.4
 writedata ca.rms2d.dat.save RMS2D nosquare2d prec 12.4
 writedata MyEvecs.dat.save MyEvecs
+writedata heavyEvecs.dat.save heavyEvecs
 EOF
   RunCpptraj "$UNITNAME"
 
@@ -77,6 +79,7 @@ writedata heavyAtom.matrix.dat heavyAtom nosquare2d
 writedata ca.rms2d.dat RMS2D nosquare2d
 writedata WrittenEvecs.dat MyEvecs
 runanalysis diagmatrix CA out MyEvecs.dat name MyEvecs2
+runanalysis diagmatrix heavyAtom out heavyEvecs.dat name heavyEvecs2
 EOF
   RunCpptraj "Read basic 2D NetCDF data"
   DoTest ca.matrix.dat.save ca.matrix.dat
@@ -85,6 +88,7 @@ EOF
   DoTest ca.rms2d.dat.save ca.rms2d.dat
   DoTest MyEvecs.dat.save MyEvecs.dat
   DoTest MyEvecs.dat.save WrittenEvecs.dat
+  DoTest heavyEvecs.dat.save heavyEvecs.dat
 }
 
 Write1d
