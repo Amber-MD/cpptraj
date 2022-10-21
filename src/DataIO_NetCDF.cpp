@@ -425,6 +425,79 @@ int DataIO_NetCDF::readData_2D(DataSet* ds, NcVar const& matVar, VarArray& Vars)
   return 0;
 }
 
+/** Read modes data with CPPTRAJ conventions. */
+int DataIO_NetCDF::readData_modes(DataSet* ds, NcVar const& modesVar, VarArray& Vars) const {
+  size_t start[1];
+  size_t count[1];
+  start[0] = 0;
+  count[0] = Dimensions_[ modesVar.DimId(0) ].Size();
+  // ----- Modes -----------------
+  unsigned int n_eigenvalues = Dimensions_[modesVar.DimId(0)].Size();
+  // Get the eigenvectors variable ID
+  int vectorsVarId = -1;
+  int ret = GetVarIntAtt(vectorsVarId, "vectorsid", ncid_, modesVar.VID());
+  if (ret != 0) {
+    mprinterr("Error: Modes data missing 'vectorsid'.\n");
+    return 1;
+  }
+  unsigned int evectorLength = Dimensions_[Vars[vectorsVarId].DimId(0)].Size();
+  // Get the avg. coords variable ID
+  int coordsVarId = -1;
+  ret = GetVarIntAtt(coordsVarId, "avgcoordsid", ncid_, modesVar.VID());
+  if (ret != 0) {
+    mprinterr("Error: Modes data missing 'avgcoordsid'.\n");
+    return 1;
+  }
+  unsigned int avgCoordsLength = Dimensions_[Vars[coordsVarId].DimId(0)].Size();
+  // Get the mass variable ID if present
+  int massVarId = -1;
+  unsigned int massLength = 0;
+  ret = GetVarIntAtt(massVarId, "massid", ncid_, modesVar.VID());
+  if (ret == 1) {
+    mprinterr("Error: Could not get 'massid'.\n");
+    return 1;
+  } else if (ret == 0) {
+    massLength = Dimensions_[Vars[massVarId].DimId(0)].Size();
+  }
+  mprintf("DEBUG: Modes: # values= %u, evector size= %u, avg coords size= %u, mass size = %u\n",
+          n_eigenvalues, evectorLength, avgCoordsLength, massLength);
+  // Allocate the modes set
+  DataSet_Modes& modes = static_cast<DataSet_Modes&>( *ds );
+  if (modes.AllocateModes(n_eigenvalues, evectorLength, avgCoordsLength, massLength)) {
+    mprinterr("Error: Could not allocate memory for modes set.\n");
+    return 1;
+  }
+  // Read modes data
+  if (NC::CheckErr(nc_get_vara(ncid_, modesVar.VID(), start, count, modes.EvalPtr()))) {
+    mprinterr("Error: Could not read eigenvalues.\n");
+    return 1;
+  }
+  count[0] = evectorLength;
+  if (NC::CheckErr(nc_get_vara(ncid_, vectorsVarId, start, count, modes.EvectPtr()))) {
+    mprinterr("Error: Could not read eigenvectors.\n");
+    return 1;
+  }
+  count[0] = avgCoordsLength;
+  if (NC::CheckErr(nc_get_vara(ncid_, coordsVarId, start, count, modes.AvgFramePtr()))) {
+    mprinterr("Error: Could not read avg. coords.\n");
+    return 1;
+  }
+  if (massVarId != -1 && massLength > 0) {
+    count[0] = massLength;
+    if (NC::CheckErr(nc_get_vara(ncid_, massVarId, start, count, modes.MassPtr()))) {
+      mprinterr("Error: Could not read masses.\n");
+      return 1;
+    }
+  }
+  // Mark variables as read
+  Vars[modesVar.VID()].MarkRead();
+  Vars[vectorsVarId].MarkRead();
+  Vars[coordsVarId].MarkRead();
+  if (massVarId != -1)
+    Vars[massVarId].MarkRead();
+  return 0;
+}
+
 /** Read variable with CPPTRAJ conventions. */
 int DataIO_NetCDF::read_cpptraj_vars(DataSetList& dsl, std::string const& dsname, VarArray& Vars)
 const
@@ -464,89 +537,23 @@ const
     // Check netcdf variable dimensions
     if (var->Ndims() == 1) {
       // One flat dimension
-      size_t start[1];
-      size_t count[1];
-      start[0] = 0;
-      count[0] = Dimensions_[ var->DimId(0) ].Size();
-      mprintf("DEBUG: %s dim length %zu\n", var->vname(), count[0]);
+      mprintf("DEBUG: %s dim length %u\n", var->vname(), Dimensions_[ var->DimId(0) ].Size() );
       if (dtype == DataSet::XYMESH) {
         if (readData_1D_xy(ds, *var, Vars))
           return 1;
       } else if (ds->Group() == DataSet::SCALAR_1D) {
-
+        if (readData_1D(ds, *var, Vars))
+          return 1;
       } else if (ds->Group() == DataSet::MATRIX_2D) {
         if (readData_2D(ds, *var, Vars))
           return 1;
       } else if ( dtype == DataSet::MODES ) {
-        // ----- Modes -----------------
-        unsigned int n_eigenvalues = Dimensions_[var->DimId(0)].Size();
-        // Get the eigenvectors variable ID
-        int vectorsVarId = -1;
-        int ret = GetVarIntAtt(vectorsVarId, "vectorsid", ncid_, var->VID());
-        if (ret != 0) {
-          mprinterr("Error: Modes data missing 'vectorsid'.\n");
+        if (readData_modes(ds, *var, Vars))
           return 1;
-        }
-        unsigned int evectorLength = Dimensions_[Vars[vectorsVarId].DimId(0)].Size();
-        // Get the avg. coords variable ID
-        int coordsVarId = -1;
-        ret = GetVarIntAtt(coordsVarId, "avgcoordsid", ncid_, var->VID());
-        if (ret != 0) {
-          mprinterr("Error: Modes data missing 'avgcoordsid'.\n");
-          return 1;
-        }
-        unsigned int avgCoordsLength = Dimensions_[Vars[coordsVarId].DimId(0)].Size();
-        // Get the mass variable ID if present
-        int massVarId = -1;
-        unsigned int massLength = 0;
-        ret = GetVarIntAtt(massVarId, "massid", ncid_, var->VID());
-        if (ret == 1) {
-          mprinterr("Error: Could not get 'massid'.\n");
-          return 1;
-        } else if (ret == 0) {
-          massLength = Dimensions_[Vars[massVarId].DimId(0)].Size();
-        }
-        mprintf("DEBUG: Modes: # values= %u, evector size= %u, avg coords size= %u, mass size = %u\n",
-                n_eigenvalues, evectorLength, avgCoordsLength, massLength);
-        // Allocate the modes set
-        DataSet_Modes& modes = static_cast<DataSet_Modes&>( *ds );
-        if (modes.AllocateModes(n_eigenvalues, evectorLength, avgCoordsLength, massLength)) {
-          mprinterr("Error: Could not allocate memory for modes set.\n");
-          return 1;
-        }
-        // Read modes data
-        if (NC::CheckErr(nc_get_vara(ncid_, var->VID(), start, count, modes.EvalPtr()))) {
-          mprinterr("Error: Could not read eigenvalues.\n");
-          return 1;
-        }
-        count[0] = evectorLength;
-        if (NC::CheckErr(nc_get_vara(ncid_, vectorsVarId, start, count, modes.EvectPtr()))) {
-          mprinterr("Error: Could not read eigenvectors.\n");
-          return 1;
-        }
-        count[0] = avgCoordsLength;
-        if (NC::CheckErr(nc_get_vara(ncid_, coordsVarId, start, count, modes.AvgFramePtr()))) {
-          mprinterr("Error: Could not read avg. coords.\n");
-          return 1;
-        }
-        if (massVarId != -1 && massLength > 0) {
-          count[0] = massLength;
-          if (NC::CheckErr(nc_get_vara(ncid_, massVarId, start, count, modes.MassPtr()))) {
-            mprinterr("Error: Could not read masses.\n");
-            return 1;
-          }
-        }
-        // Mark variables as read
-        Vars[var->VID()].MarkRead();
-        Vars[vectorsVarId].MarkRead();
-        Vars[coordsVarId].MarkRead();
-        if (massVarId != -1)
-          Vars[massVarId].MarkRead();
       } else {
         mprinterr("Error: Cannot read type '%s' yet.\n", desc.c_str());
         return 1;
       }
-
     } else {
       mprinterr("Error: Cannot read type '%s' yet.\n", desc.c_str());
       return 1;
@@ -554,108 +561,6 @@ const
   }
   return 0;
 }
-   
-
-/*
- ** Read 1D variable(s) that share a dimension with CPPTRAJ conventions. *
-int DataIO_NetCDF::read_1d_var(DataSetList& dsl, std::string const& dsname,
-                               unsigned int dimLength, VarArray const& Vars)
-const
-{
-  if (Vars.empty()) {
-    mprinterr("Internal Error: read_1d_var() called with no variables.\n");
-    return 1;
-  }
-  // Loop over the variables
-  for (VarArray::const_iterator it = Vars.begin(); it != Vars.end(); ++it)
-  {
-    // Get the description
-    std::string desc = NC::GetAttrText(ncid_, it->VID(), "description");
-    // Get the type from the description
-    DataSet::DataType dtype = DataSet::TypeFromDescription( desc );
-    mprintf("\t%s Description: %s (%i)\n", it->vname(), desc.c_str(), (int)dtype);
-    // Get metaData
-    int errStat = 0;
-    MetaData meta = GetVarMetaData( errStat, ncid_, it->VID() );
-    if (errStat != 0) {
-      mprinterr("Error: Could not set up meta data for variable '%s'\n", it->vname());
-      return 1;
-    }
-    // Get dimension
-    std::vector<Dimension> Dims = GetVarDimensions( errStat, ncid_, it->VID() );
-    Dimension const& dim = Dims[0];
-    if (errStat != 0) {
-      mprinterr("Error: Could not set up dimension for variable '%s'\n", it->vname());
-      return 1;
-    }
-    mprintf("DEBUG: Var %s dim %s min %f step %f\n", it->vname(), dim.label(), dim.Min(), dim.Step());
-//    // For backwards compat., if no label set assume Frame
-//    if (dim.Label().empty())
-//      dim.SetLabel("Frame");
-    // Add the set
-    size_t start[1];
-    size_t count[1];
-    start[0] = 0;
-    count[0]  = dimLength;
-    if (dtype == DataSet::XYMESH) {
-      // Expect 2 vars, X and Y, in that order. Only X will contain attributes
-      if (Vars.size() != 2) {
-        mprinterr("Error: Expected only 2 variables for XY set '%s'\n", it->vname());
-        return 1;
-      }
-      // Check this is X, next is Y
-      int yvarid;
-      int ret = GetVarIntAtt(yvarid, "yvarid", ncid_, it->VID());
-      if (ret != 0) {
-        mprinterr("Error: No 'yvarid' attribute for XY set '%s'.\n", it->vname());
-        return 1;
-      }
-      if (yvarid != (it+1)->VID()) {
-        mprinterr("Error: Expected Y varid to be %i, got %i\n", yvarid, (it+1)->VID());
-        return 1;
-      }
-      DataSet* ds = dsl.AddSet( dtype, meta );
-      if (ds == 0) {
-        mprinterr("Error: Could not create set '%s'\n", meta.PrintName().c_str());
-        return 1;
-      }
-      ds->SetDim(0, dim);
-      mprintf("DEBUG: '%s'\n", ds->legend());
-      DataSet_Mesh& set = static_cast<DataSet_Mesh&>( *ds );
-      set.Resize(dimLength);
-      DataSet_Mesh::Darray& Xvals = set.SetMeshX();
-      DataSet_Mesh::Darray& Yvals = set.SetMeshY();
-      // Get X
-      if (NC::CheckErr(nc_get_vara(ncid_, it->VID(), start, count, (void*)(&Xvals[0])))) {
-        mprinterr("Error: Could not get X values for XY set.\n");
-        return 1;
-      }
-      // Get Y
-      it++;
-      if (NC::CheckErr(nc_get_vara(ncid_, it->VID(), start, count, (void*)(&Yvals[0])))) {
-        mprinterr("Error: Could not get Y values for XY set.\n");
-        return 1;
-      }
-      break;
-    } else {
-      DataSet* ds = dsl.AddSet( dtype, meta );
-      if (ds == 0) {
-        mprinterr("Error: Could not create set '%s'\n", meta.PrintName().c_str());
-        return 1;
-      }
-      ds->SetDim(0, dim);
-      mprintf("DEBUG: '%s'\n", ds->legend());
-      DataSet_1D& set = static_cast<DataSet_1D&>( *ds );
-      set.Resize( dimLength );
-      if (NC::CheckErr(nc_get_vara(ncid_, it->VID(), start, count, (void*)(set.Yptr())))) {
-        mprinterr("Error: Could not get values for set.\n");
-        return 1;
-      }
-    }
-  }
-
-  return 0;
-}*/
 
 // DataIO_NetCDF::ReadData()
 int DataIO_NetCDF::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
