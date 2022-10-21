@@ -26,6 +26,8 @@ class DataIO_NetCDF : public DataIO {
     class NcDim;
     typedef std::vector<NcDim> DimArray;
 
+    inline unsigned int dimLen(int) const;
+
     int readData_1D_xy(DataSet*, NcVar const&, VarArray&) const;
 
     int readData_1D(DataSet*, NcVar const&, VarArray&) const;
