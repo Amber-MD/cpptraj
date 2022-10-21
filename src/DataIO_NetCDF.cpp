@@ -277,7 +277,7 @@ static inline std::vector<Dimension> GetVarDimensions(int& errStat, int ncid, in
   return Dims;
 }
 
-/** Read CPPTRAJ XY mesh set. */
+/** Read CPPTRAJ XY mesh set with CPPTRAJ conventions. */
 int DataIO_NetCDF::readData_1D_xy(DataSet* ds, NcVar const& xVar, VarArray& Vars) const {
   // ----- XY Mesh ---------------
   size_t start[1];
@@ -308,6 +308,103 @@ int DataIO_NetCDF::readData_1D_xy(DataSet* ds, NcVar const& xVar, VarArray& Vars
     return 1;
   }
   Vars[yvarid].MarkRead();
+  return 0;
+}
+
+/** Read 2D matrix with CPPTRAJ conventions. */
+int DataIO_NetCDF::readData_2D(DataSet* ds, NcVar const& matVar, VarArray& Vars) const {
+  // ----- 2D Matrix -------------
+  size_t start[1];
+  size_t count[1];
+  start[0] = 0;
+  count[0] = Dimensions_[ matVar.DimId(0) ].Size();
+
+  // Get nrows/ncols
+  int ncols, nrows;
+  int ret = GetVarIntAtt(ncols, "ncols", ncid_, matVar.VID());
+  if (ret != 0) {
+    mprinterr("Error: Could not get 'ncols'.\n");
+    return 1;
+  }
+  ret = GetVarIntAtt(nrows, "nrows", ncid_, matVar.VID());
+  if (ret != 0) {
+    mprinterr("Error: Could not get 'nrows'.\n");
+    return 1;
+  }
+  // Get matrix kind
+  std::string mkind = NC::GetAttrText(ncid_, matVar.VID(), "matrixkind");
+  // Allocate
+  DataSet_2D& mat = static_cast<DataSet_2D&>( *ds );
+  int allocErr = 0;
+  if (mkind == "full")
+    allocErr = mat.Allocate2D(ncols, nrows);
+  else if (mkind == "half")
+    allocErr = mat.AllocateHalf(ncols);
+  else if (mkind == "tri")
+    allocErr = mat.AllocateTriangle(ncols);
+  else {
+    mprinterr("Error: Urecognized matrix kind: %s\n", mkind.c_str());
+    return 1;
+  }
+  if (allocErr != 0) {
+    mprinterr("Error: Could not allocate matrix.\n");
+    return 1;
+  }
+  // Read values
+  if (NC::CheckErr(nc_get_vara(ncid_, matVar.VID(), start, count, (void*)(mat.MatrixPtr())))) {
+    mprinterr("Error: Could not get values for matrix.\n");
+    return 1;
+  }
+  Vars[matVar.VID()].MarkRead();
+  // Check for nsnapshots
+  int nsnapshots = 0;
+  ret = GetVarIntAtt(nsnapshots, "nsnapshots", ncid_, matVar.VID());
+  if (ret == 1)
+    return 1;
+  else if (ret == 0) {
+    DataSet_MatrixDbl& dmat = static_cast<DataSet_MatrixDbl&>( mat );
+    dmat.SetNsnapshots( nsnapshots );
+  }
+  // Check for vectid
+  int vectVarId = -1;
+  ret = GetVarIntAtt(vectVarId, "vectid", ncid_, matVar.VID());
+  if (ret == 1) return 1;
+  if (ret == 0) {
+    mprintf("DEBUG: Matrix has diagonal vector data.\n");
+    if (mat.Type() != DataSet::MATRIX_DBL) {
+      mprinterr("Error: Variable has vect data but set is not double matrix.\n");
+      return 1;
+    }
+    unsigned int vectLength = Dimensions_[ Vars[vectVarId].DimId(0) ].Size();
+    DataSet_MatrixDbl& dmat = static_cast<DataSet_MatrixDbl&>( mat );
+    dmat.AllocateVector( vectLength );
+    count[0] = vectLength;
+    if (NC::CheckErr(nc_get_vara(ncid_, vectVarId, start, count, (void*)(&dmat.V1()[0])))) {
+      mprinterr("Error: Could not get vect for matrix.\n");
+      return 1;
+    }
+    Vars[vectVarId].MarkRead();
+  }
+  // Check for massid
+  int massVarId = -1;
+  ret = GetVarIntAtt(massVarId, "massid", ncid_, matVar.VID());
+  if (ret == 1) return 1;
+  if (ret == 0) {
+    mprintf("DEBUG: Matrix has mass data.\n");
+    if (mat.Type() != DataSet::MATRIX_DBL) {
+      mprinterr("Error: Variable has mass data but set is not double matrix.\n");
+      return 1;
+    }
+    unsigned int massLength = Dimensions_[ Vars[massVarId].DimId(0) ].Size();
+    DataSet_MatrixDbl& dmat = static_cast<DataSet_MatrixDbl&>( mat );
+    dmat.AllocateMass( massLength );
+    count[0] = massLength;
+    if (NC::CheckErr(nc_get_vara(ncid_, massVarId, start, count, (void*)(&dmat.M1()[0])))) {
+      mprinterr("Error: Could not get mass for matrix.\n");
+      return 1;
+    }
+    Vars[massVarId].MarkRead();
+  }
   return 0;
 }
 
@@ -367,93 +464,8 @@ const
           return 1;
         }
       } else if (ds->Group() == DataSet::MATRIX_2D) {
-        // ----- 2D Matrix -------------
-        // Get nrows/ncols
-        int ncols, nrows;
-        int ret = GetVarIntAtt(ncols, "ncols", ncid_, var->VID());
-        if (ret != 0) {
-          mprinterr("Error: Could not get 'ncols'.\n");
+        if (readData_2D(ds, *var, Vars))
           return 1;
-        }
-        ret = GetVarIntAtt(nrows, "nrows", ncid_, var->VID());
-        if (ret != 0) {
-          mprinterr("Error: Could not get 'nrows'.\n");
-          return 1;
-        }
-        // Get matrix kind
-        std::string mkind = NC::GetAttrText(ncid_, var->VID(), "matrixkind");
-        // Allocate
-        DataSet_2D& mat = static_cast<DataSet_2D&>( *ds );
-        int allocErr = 0;
-        if (mkind == "full")
-          allocErr = mat.Allocate2D(ncols, nrows);
-        else if (mkind == "half")
-          allocErr = mat.AllocateHalf(ncols);
-        else if (mkind == "tri")
-          allocErr = mat.AllocateTriangle(ncols);
-        else {
-          mprinterr("Error: Urecognized matrix kind: %s\n", mkind.c_str());
-          return 1;
-        }
-        if (allocErr != 0) {
-          mprinterr("Error: Could not allocate matrix.\n");
-          return 1;
-        }
-        // Read values
-        if (NC::CheckErr(nc_get_vara(ncid_, var->VID(), start, count, (void*)(mat.MatrixPtr())))) {
-          mprinterr("Error: Could not get values for matrix.\n");
-          return 1;
-        }
-        Vars[var->VID()].MarkRead();
-        // Check for nsnapshots
-        int nsnapshots = 0;
-        ret = GetVarIntAtt(nsnapshots, "nsnapshots", ncid_, var->VID());
-        if (ret == 1)
-          return 1;
-        else if (ret == 0) {
-          DataSet_MatrixDbl& dmat = static_cast<DataSet_MatrixDbl&>( mat );
-          dmat.SetNsnapshots( nsnapshots );
-        }
-        // Check for vectid
-        int vectVarId = -1;
-        ret = GetVarIntAtt(vectVarId, "vectid", ncid_, var->VID());
-        if (ret == 1) return 1;
-        if (ret == 0) {
-          mprintf("DEBUG: Matrix has diagonal vector data.\n");
-          if (mat.Type() != DataSet::MATRIX_DBL) {
-            mprinterr("Error: Variable has vect data but set is not double matrix.\n");
-            return 1;
-          }
-          unsigned int vectLength = Dimensions_[ Vars[vectVarId].DimId(0) ].Size();
-          DataSet_MatrixDbl& dmat = static_cast<DataSet_MatrixDbl&>( mat );
-          dmat.AllocateVector( vectLength );
-          count[0] = vectLength;
-          if (NC::CheckErr(nc_get_vara(ncid_, vectVarId, start, count, (void*)(&dmat.V1()[0])))) {
-            mprinterr("Error: Could not get vect for matrix.\n");
-            return 1;
-          }
-          Vars[vectVarId].MarkRead();
-        }
-        // Check for massid
-        int massVarId = -1;
-        ret = GetVarIntAtt(massVarId, "massid", ncid_, var->VID());
-        if (ret == 1) return 1;
-        if (ret == 0) {
-          mprintf("DEBUG: Matrix has mass data.\n");
-          if (mat.Type() != DataSet::MATRIX_DBL) {
-            mprinterr("Error: Variable has mass data but set is not double matrix.\n");
-            return 1;
-          }
-          unsigned int massLength = Dimensions_[ Vars[massVarId].DimId(0) ].Size();
-          DataSet_MatrixDbl& dmat = static_cast<DataSet_MatrixDbl&>( mat );
-          dmat.AllocateMass( massLength );
-          count[0] = massLength;
-          if (NC::CheckErr(nc_get_vara(ncid_, massVarId, start, count, (void*)(&dmat.M1()[0])))) {
-            mprinterr("Error: Could not get mass for matrix.\n");
-            return 1;
-          }
-          Vars[massVarId].MarkRead();
-        }
       } else if ( dtype == DataSet::MODES ) {
         // ----- Modes -----------------
         unsigned int n_eigenvalues = Dimensions_[var->DimId(0)].Size();
