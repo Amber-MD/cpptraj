@@ -311,6 +311,23 @@ int DataIO_NetCDF::readData_1D_xy(DataSet* ds, NcVar const& xVar, VarArray& Vars
   return 0;
 }
 
+/** Read 1D array with CPPTRAJ conventions. */
+int DataIO_NetCDF::readData_1D(DataSet* ds, NcVar const& yVar, VarArray& Vars) const {
+  // ----- 1D Scalar -------------
+  size_t start[1];
+  size_t count[1];
+  start[0] = 0;
+  count[0] = Dimensions_[ yVar.DimId(0) ].Size();
+
+  DataSet_1D& set = static_cast<DataSet_1D&>( *ds );
+  set.Resize( count[0] );
+  if (NC::CheckErr(nc_get_vara(ncid_, yVar.VID(), start, count, (void*)(set.Yptr())))) {
+    mprinterr("Error: Could not get values for set.\n");
+    return 1;
+  }
+  return 0;
+}
+
 /** Read 2D matrix with CPPTRAJ conventions. */
 int DataIO_NetCDF::readData_2D(DataSet* ds, NcVar const& matVar, VarArray& Vars) const {
   // ----- 2D Matrix -------------
@@ -456,13 +473,7 @@ const
         if (readData_1D_xy(ds, *var, Vars))
           return 1;
       } else if (ds->Group() == DataSet::SCALAR_1D) {
-        // ----- 1D Scalar -------------
-        DataSet_1D& set = static_cast<DataSet_1D&>( *ds );
-        set.Resize( count[0] );
-        if (NC::CheckErr(nc_get_vara(ncid_, var->VID(), start, count, (void*)(set.Yptr())))) {
-          mprinterr("Error: Could not get values for set.\n");
-          return 1;
-        }
+
       } else if (ds->Group() == DataSet::MATRIX_2D) {
         if (readData_2D(ds, *var, Vars))
           return 1;
