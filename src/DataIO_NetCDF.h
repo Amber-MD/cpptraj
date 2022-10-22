@@ -52,6 +52,8 @@ class DataIO_NetCDF : public DataIO {
 
     int writeData_2D(DataSet const*);
 
+    int writeData_3D(DataSet const*);
+
     int writeData_modes(DataSet const*);
 
     int ncid_;                 ///< Current netcdf ID

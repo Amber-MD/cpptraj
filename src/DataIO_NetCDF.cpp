@@ -12,6 +12,7 @@
 # include "DataSet_Mesh.h"
 # include "DataSet_MatrixDbl.h"
 # include "DataSet_Modes.h"
+# include "DataSet_3D.h"
 #endif
 
 /// CONSTRUCTOR
@@ -1106,6 +1107,57 @@ int DataIO_NetCDF::writeData_2D(DataSet const* ds) {
   return 0;
 }
 
+/** Write a 3D set. */
+int DataIO_NetCDF::writeData_3D(DataSet const* ds) {
+  // Define the dimension of the underlying array. Ensure name is unique by appending an index.
+  if (EnterDefineMode(ncid_)) return 1;
+  DataSet_3D const& set = static_cast<DataSet_3D const&>( *ds );
+  int dimIdx = defineDim( "size", set.Size(), set.Meta().Legend() );
+  if (dimIdx < 0) return 1;
+  // Choose type
+  nc_type dtype;
+  switch (set.Type()) {
+    case DataSet::GRID_DBL : dtype = NC_DOUBLE ; break;
+    case DataSet::GRID_FLT : dtype = NC_FLOAT ; break; 
+    default:
+      mprinterr("Internal Error: Unhandled DataSet type for 3D NetCDF variable.\n");
+      return 1;
+  }
+  // Define the grid variable
+  NcVar gridVar = defineVar(Dimensions_[dimIdx].DID(), dtype, ds->Meta().PrintName(), "grid");
+  if ( gridVar.Empty() ) {
+    mprinterr("Error: Could not define grid variable for set '%s'\n", ds->legend());
+    return 1;
+  }
+  // Add DataSet metadata as attributes
+  if (AddDataSetMetaData( set.Meta(), ncid_, gridVar.VID() )) return 1;
+  // Add number of dimensions
+  if (AddDataSetIntAtt( set.Ndim(), "ndim", ncid_, gridVar.VID() )) return 1;
+  // Add dimension min and step
+  if (AddDataSetDimension( integerToString(0), set.Dim(0), ncid_, gridVar.VID())) return 1;
+  if (AddDataSetDimension( integerToString(1), set.Dim(1), ncid_, gridVar.VID())) return 1;
+  if (AddDataSetDimension( integerToString(2), set.Dim(2), ncid_, gridVar.VID())) return 1;
+  // Store NX, NY, and NZ
+  if (AddDataSetIntAtt( set.NX(), "nx", ncid_, gridVar.VID() )) return 1;
+  if (AddDataSetIntAtt( set.NY(), "ny", ncid_, gridVar.VID() )) return 1;
+  if (AddDataSetIntAtt( set.NZ(), "nz", ncid_, gridVar.VID() )) return 1;
+  // Store the description
+  if (AddDataSetStringAtt(set.description(), "description", ncid_, gridVar.VID())) return 1;
+  // END define variable
+  if (EndDefineMode( ncid_ )) return 1;
+  // Write the grid 
+  size_t start[1];
+  size_t count[1];
+  start[0] = 0;
+  count[0] = dimLen(dimIdx);
+  mprintf("DEBUG: start %zu count %zu\n", start[0], count[0]);
+  if (NC::CheckErr(nc_put_vara(ncid_, gridVar.VID(), start, count, set.GridPtr()))) {
+    mprinterr("Error: Could not write grid '%s'\n", set.legend());
+    return 1;
+  }
+  return 0;
+}
+
 /** Write modes set to file. */
 int DataIO_NetCDF::writeData_modes(DataSet const* ds) {
   // Define the dimensions of all arrays. Ensure names are unique by appending an index.
@@ -1226,6 +1278,12 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
         return 1;
       }
       setPool.MarkUsed( idx );
+    } else if (ds->Group() == DataSet::GRID_3D) {
+      // ----- Grid ------------------------------
+      if (writeData_3D(ds)) {
+        mprinterr("Error: grid set write failed.\n");
+        return 1;
+      }
     } else if (ds->Type() == DataSet::XYMESH) {
       // ----- XY Mesh ---------------------------
       if (writeData_1D_xy(ds)) {

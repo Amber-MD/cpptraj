@@ -29,6 +29,9 @@ template <class T> class Grid {
     void setGrid(size_t, size_t, size_t, const T&);
     /// \return element at a specified grid point.
     const T& element(size_t, size_t, size_t) const;
+    /// \return pointer to internal array of elements.
+    T const* Ptr()     const { return grid_;  }
+    T* Ptr()                 { return grid_;  }
     /// Convert X, Y, and Z bin #s to index.
     long int CalcIndex(size_t x, size_t y, size_t z) const { 
       return (long int)(x*(ny_*nz_))+(y*nz_)+z;

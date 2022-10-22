@@ -8,7 +8,8 @@ CleanFiles ncdata.in d1.nc d1.dat rmsf.dat ascii.dat.save ascii.dat \
            n.ca.matrix.nc n.ca.matrix.dat \
            ca.rms2d.dat \
            MyEvecs.dat.save MyEvecs.dat WrittenEvecs.dat \
-           heavyAtom.matrix.dat.save heavyAtom.matrix.dat
+           heavyAtom.matrix.dat.save heavyAtom.matrix.dat \
+           grid.nc grid.dx.save
 
 TESTNAME='NetCDF data file tests.'
 Requires netcdf
@@ -91,8 +92,26 @@ EOF
   DoTest heavyEvecs.dat.save heavyEvecs.dat
 }
 
+Write3d() {
+  UNITNAME='Write basic 3D NetCDF data'
+  cat > ncdata.in <<EOF
+parm ../tz2.ortho.parm7
+trajin ../tz2.ortho.nc
+autoimage origin
+bounds ^1 name MyGrid dx 0.5 offset 8
+run
+list
+autoimage origin
+grid out grid.nc data MyGrid origin ^1
+run
+writedata grid.dx.save opendx MyGrid
+EOF
+  RunCpptraj "$UNITNAME"
+}
+
 Write1d
 Read1d
 Write2d
+Write3d
 
 EndTest
