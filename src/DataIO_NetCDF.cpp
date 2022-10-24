@@ -803,30 +803,27 @@ static inline int AddDataSetMetaData(MetaData const& meta, int ncid, int varid)
   return 0;
 }
 
-/// Add DataSet dimension to a variable with optional suffix 
-static inline int AddDataSetDimension(std::string const& suffix, Dimension const& dim, int ncid, int varid)
+/// Add DataSet index dimension to a variable 
+static inline int AddDataSetIndexDim(int idx, Dimension const& dim, int ncid, int varid)
 {
-  // Add dimension min and step
-  std::string min, step, label;
-  if (!suffix.empty()) {
-    min = "min" + suffix;
-    step = "step" + suffix;
-    label = "label" + suffix;
-  } else {
-    min.assign("min");
-    step.assign("step");
-    label.assign("label");
-  }
+  // Add dimension min, step, and label
+  std::string suffix( integerToString(idx) );
+  std::string min(  "min"   + suffix);
+  std::string step( "step"  + suffix);
+  std::string label("label" + suffix);
+
   if (AddDataSetDblAtt(dim.Min(),  min.c_str(),  ncid, varid)) return 1;
   if (AddDataSetDblAtt(dim.Step(), step.c_str(), ncid, varid)) return 1;
   if (AddDataSetStringAtt(dim.Label(), label.c_str(), ncid, varid)) return 1;
   return 0;
 }
 
-/// Add DataSet dimension to a variable
-static inline int AddDataSetDimension(Dimension const& dim, int ncid, int varid)
+/// Add DataSet index variable ID to a variable
+static inline int AddDataSetIndexVarid(int idx, int idxVarId, int ncid, int varid)
 {
-  return AddDataSetDimension("", dim, ncid, varid);
+  std::string indexid = "index" + integerToString(idx) + "id";
+  if (AddDataSetIntAtt(idxVarId, indexid.c_str(), ncid, varid)) return 1;
+  return 0;
 }
 
 /** Define dimension. Ensure name is unique by appending an index.
