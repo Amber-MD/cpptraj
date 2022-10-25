@@ -929,10 +929,10 @@ int DataIO_NetCDF::writeData_1D_xy(DataSet const* ds) {
   }
   // Add DataSet metadata as attributes
   if (AddDataSetMetaData( ds->Meta(), ncid_, yVar.VID() )) return 1;
-   // Store the description
-  if (AddDataSetStringAtt( ds->description(), "description", ncid_, yVar.VID())) return 1;
   // Add index info
   if (AddDataSetIndexInfo( ds, xVar.VID(), ncid_, yVar.VID())) return 1;
+  // Store the description
+  if (AddDataSetStringAtt( ds->description(), "description", ncid_, yVar.VID())) return 1;
 //  // Have each var refer to the other
 //  if (AddDataSetIntAtt( yid, "yvarid", ncid_, xid )) return 1;
 //  if (AddDataSetIntAtt( xid, "xvarid", ncid_, yid )) return 1;
@@ -998,10 +998,8 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
     NcVar const& currentVar = variables.back();
     // Add DataSet metadata as attributes
     if (AddDataSetMetaData( it->DS()->Meta(), ncid_, currentVar.VID() )) return 1;
-    // Add number of dimensions
-    if (AddDataSetIntAtt( it->DS()->Ndim(), "ndim", ncid_, currentVar.VID() )) return 1;
-    // Add dimension min and step
-    if (AddDataSetDimension( dim, ncid_, currentVar.VID())) return 1;
+    // Add index info
+    if (AddDataSetIndexInfo( ds, ncid_, currentVar.VID())) return 1;
     // Store the description
     if (AddDataSetStringAtt(it->DS()->description(), "description", ncid_, currentVar.VID())) return 1;
   } // END define variable(s)
@@ -1048,11 +1046,10 @@ int DataIO_NetCDF::writeData_2D(DataSet const* ds) {
   }
   // Add DataSet metadata as attributes
   if (AddDataSetMetaData( set.Meta(), ncid_, matVar.VID() )) return 1;
-  // Add number of dimensions
-  if (AddDataSetIntAtt( set.Ndim(), "ndim", ncid_, matVar.VID() )) return 1;
-  // Add dimension min and step
-  if (AddDataSetDimension( integerToString(0), set.Dim(0), ncid_, matVar.VID())) return 1;
-  if (AddDataSetDimension( integerToString(1), set.Dim(1), ncid_, matVar.VID())) return 1;
+  // Add index info
+  if (AddDataSetIndexInfo( ds, ncid_, matVar.VID())) return 1;
+  // Store the description
+  if (AddDataSetStringAtt(set.description(), "description", ncid_, matVar.VID())) return 1;
   // Store rows and columns
   if (AddDataSetIntAtt( set.Ncols(), "ncols", ncid_, matVar.VID() )) return 1;
   if (AddDataSetIntAtt( set.Nrows(), "nrows", ncid_, matVar.VID() )) return 1;
@@ -1064,8 +1061,6 @@ int DataIO_NetCDF::writeData_2D(DataSet const* ds) {
     case DataSet_2D::TRI  : kind.assign("tri"); break;
   }
   if (AddDataSetStringAtt(kind, "matrixkind", ncid_, matVar.VID())) return 1;
-  // Store the description
-  if (AddDataSetStringAtt(set.description(), "description", ncid_, matVar.VID())) return 1;
   // Define the diagonal vector/mass array if present
   NcVar vectVar, massVar;
   if (set.Type() == DataSet::MATRIX_DBL) {
