@@ -848,6 +848,27 @@ static inline int AddDataSetIndexInfo(DataSet const* ds, int ncid, int varid) {
   return AddDataSetIndexInfo(ds, -1, ncid, varid);
 }
 
+/// Add DataSet MetaData, index information, and description to target variable
+static inline int AddDataSetInfo(DataSet const* ds, int indexVarId, int ncid, int varid)
+{
+  // Add DataSet metadata as attributes
+  if (AddDataSetMetaData(ds->Meta(), ncid, varid)) return 1;
+  // Add index info
+  if (indexVarId > -1) {
+    if (AddDataSetIndexInfo(ds, indexVarId, ncid, varid)) return 1;
+  } else {
+    if (AddDataSetIndexInfo(ds, ncid, varid)) return 1;
+  }
+  // Store the description
+  if (AddDataSetStringAtt(ds->description(), "description", ncid, varid)) return 1;
+  return 0;
+}
+
+/// Add DataSet MetaData, index information, and description to target variable
+static inline int AddDataSetInfo(DataSet const* ds, int ncid, int varid) {
+  return AddDataSetInfo(ds, -1, ncid, varid);
+}
+
 /** Define dimension. Ensure name is unique by appending an index.
   * Dimension label will be '<label>.<index>'.
   * \return index of defined dimension in Dimensions_, -1 on error.
@@ -927,12 +948,8 @@ int DataIO_NetCDF::writeData_1D_xy(DataSet const* ds) {
     mprinterr("Error: Could not define Y variable for '%s'\n", ds->legend());
     return 1;
   }
-  // Add DataSet metadata as attributes
-  if (AddDataSetMetaData( ds->Meta(), ncid_, yVar.VID() )) return 1;
-  // Add index info
-  if (AddDataSetIndexInfo( ds, xVar.VID(), ncid_, yVar.VID())) return 1;
-  // Store the description
-  if (AddDataSetStringAtt( ds->description(), "description", ncid_, yVar.VID())) return 1;
+  // Add DataSet info to variable
+  if (AddDataSetInfo(ds, xVar.VID(), ncid_, yVar.VID())) return 1;
 //  // Have each var refer to the other
 //  if (AddDataSetIntAtt( yid, "yvarid", ncid_, xid )) return 1;
 //  if (AddDataSetIntAtt( xid, "xvarid", ncid_, yid )) return 1;
@@ -996,12 +1013,8 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
       return 1;
     }
     NcVar const& currentVar = variables.back();
-    // Add DataSet metadata as attributes
-    if (AddDataSetMetaData( it->DS()->Meta(), ncid_, currentVar.VID() )) return 1;
-    // Add index info
-    if (AddDataSetIndexInfo( ds, ncid_, currentVar.VID())) return 1;
-    // Store the description
-    if (AddDataSetStringAtt(it->DS()->description(), "description", ncid_, currentVar.VID())) return 1;
+    // Add DataSet info to variable
+    if (AddDataSetInfo( it->DS(), ncid_, currentVar.VID() )) return 1;
   } // END define variable(s)
   if (EndDefineMode( ncid_ )) return 1;
   // Write the variables
@@ -1044,12 +1057,8 @@ int DataIO_NetCDF::writeData_2D(DataSet const* ds) {
     mprinterr("Error: Could not define matrix variable for set '%s'\n", ds->legend());
     return 1;
   }
-  // Add DataSet metadata as attributes
-  if (AddDataSetMetaData( set.Meta(), ncid_, matVar.VID() )) return 1;
-  // Add index info
-  if (AddDataSetIndexInfo( ds, ncid_, matVar.VID())) return 1;
-  // Store the description
-  if (AddDataSetStringAtt(set.description(), "description", ncid_, matVar.VID())) return 1;
+  // Add DataSet info
+  if (AddDataSetInfo( ds, ncid_, matVar.VID() )) return 1;
   // Store rows and columns
   if (AddDataSetIntAtt( set.Ncols(), "ncols", ncid_, matVar.VID() )) return 1;
   if (AddDataSetIntAtt( set.Nrows(), "nrows", ncid_, matVar.VID() )) return 1;
@@ -1141,20 +1150,12 @@ int DataIO_NetCDF::writeData_3D(DataSet const* ds) {
     mprinterr("Error: Could not define grid variable for set '%s'\n", ds->legend());
     return 1;
   }
-  // Add DataSet metadata as attributes
-  if (AddDataSetMetaData( set.Meta(), ncid_, gridVar.VID() )) return 1;
-  // Add number of dimensions
-  if (AddDataSetIntAtt( set.Ndim(), "ndim", ncid_, gridVar.VID() )) return 1;
-  // Add dimension min and step
-  if (AddDataSetDimension( integerToString(0), set.Dim(0), ncid_, gridVar.VID())) return 1;
-  if (AddDataSetDimension( integerToString(1), set.Dim(1), ncid_, gridVar.VID())) return 1;
-  if (AddDataSetDimension( integerToString(2), set.Dim(2), ncid_, gridVar.VID())) return 1;
+  // Add DataSet info to variable
+  if (AddDataSetInfo( ds, ncid_, gridVar.VID() )) return 1;
   // Store NX, NY, and NZ
   if (AddDataSetIntAtt( set.NX(), "nx", ncid_, gridVar.VID() )) return 1;
   if (AddDataSetIntAtt( set.NY(), "ny", ncid_, gridVar.VID() )) return 1;
   if (AddDataSetIntAtt( set.NZ(), "nz", ncid_, gridVar.VID() )) return 1;
-  // Store the description
-  if (AddDataSetStringAtt(set.description(), "description", ncid_, gridVar.VID())) return 1;
   // END define variable
   if (EndDefineMode( ncid_ )) return 1;
   // Write the grid 
@@ -1198,12 +1199,8 @@ int DataIO_NetCDF::writeData_modes(DataSet const* ds) {
   // Define the eigenvalues variable
   NcVar valuesVar = defineVar(modesDim.DID(), NC_DOUBLE, modes.Meta().PrintName(), "eigenvalues");
   if (valuesVar.Empty()) return 1;
-  // Add DataSet metadata as attributes
-  if (AddDataSetMetaData( modes.Meta(), ncid_, valuesVar.VID() )) return 1;
-  // Add number of dimensions
-  if (AddDataSetIntAtt( modes.Ndim(), "ndim", ncid_, valuesVar.VID() )) return 1;
-  // Store the description
-  if (AddDataSetStringAtt( ds->description(), "description", ncid_, valuesVar.VID())) return 1;
+  // Add DataSet info to variable
+  if (AddDataSetInfo( ds, ncid_, valuesVar.VID() )) return 1;
 
   // Define the eigenvectors variable
   NcVar vectorsVar = defineVar(evecsDim.DID(), NC_DOUBLE, modes.Meta().PrintName(), "eigenvectors", valuesVar.VID());
