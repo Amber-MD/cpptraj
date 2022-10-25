@@ -803,27 +803,49 @@ static inline int AddDataSetMetaData(MetaData const& meta, int ncid, int varid)
   return 0;
 }
 
-/// Add DataSet index dimension to a variable 
-static inline int AddDataSetIndexDim(int idx, Dimension const& dim, int ncid, int varid)
+/// Add DataSet index information to a target variable
+/** \param ds Input DataSet
+  * \param indexVarId Index variable ID if present
+  * \param ncid File ncid
+  * \param varid Target variable id
+  */
+static inline int AddDataSetIndexInfo(DataSet const* ds, int indexVarId, int ncid, int varid)
 {
-  // Add dimension min, step, and label
-  std::string suffix( integerToString(idx) );
-  std::string min(  "min"   + suffix);
-  std::string step( "step"  + suffix);
-  std::string label("label" + suffix);
-
-  if (AddDataSetDblAtt(dim.Min(),  min.c_str(),  ncid, varid)) return 1;
-  if (AddDataSetDblAtt(dim.Step(), step.c_str(), ncid, varid)) return 1;
-  if (AddDataSetStringAtt(dim.Label(), label.c_str(), ncid, varid)) return 1;
+  // Add number of index dimensions
+  if (AddDataSetIntAtt( ds->Ndim(), "ndim", ncid, varid )) return 1;
+  // Add index dimensions
+  if (ds->Type() == DataSet::XYMESH) {
+    // Sanity check
+    if (indexVarId < 0) {
+      mprinterr("Internal Error: AddDataSetIndexInfo() called with -1 indexVarId.\n");
+      return 1;
+    }
+    // SPECIAL CASE
+    // Add index variable ID
+    if (AddDataSetIntAtt(indexVarId, "indexid0", ncid, varid)) return 1;
+    // Add index variable label
+    std::string label("label0");
+    if (AddDataSetStringAtt(ds->Dim(0).Label(), label.c_str(), ncid, varid)) return 1;
+  } else {
+    // Loop over dimensions
+    for (int idx = 0 ; idx < (int)ds->Ndim(); idx++) {
+      // Add dimension min, step, and label
+      std::string suffix( integerToString(idx) );
+      std::string min(  "min"   + suffix);
+      std::string step( "step"  + suffix);
+      std::string label("label" + suffix);
+      Dimension const& dim = ds->Dim(idx);
+      if (AddDataSetDblAtt(dim.Min(),  min.c_str(),  ncid, varid)) return 1;
+      if (AddDataSetDblAtt(dim.Step(), step.c_str(), ncid, varid)) return 1;
+      if (AddDataSetStringAtt(dim.Label(), label.c_str(), ncid, varid)) return 1;
+    }
+  }
   return 0;
 }
 
-/// Add DataSet index variable ID to a variable
-static inline int AddDataSetIndexVarid(int idx, int idxVarId, int ncid, int varid)
-{
-  std::string indexid = "index" + integerToString(idx) + "id";
-  if (AddDataSetIntAtt(idxVarId, indexid.c_str(), ncid, varid)) return 1;
-  return 0;
+/// Add DataSet index information to a target variable
+static inline int AddDataSetIndexInfo(DataSet const* ds, int ncid, int varid) {
+  return AddDataSetIndexInfo(ds, -1, ncid, varid);
 }
 
 /** Define dimension. Ensure name is unique by appending an index.
@@ -893,26 +915,24 @@ int DataIO_NetCDF::writeData_1D_xy(DataSet const* ds) {
   if (EnterDefineMode(ncid_)) return 1;
   int dimIdx = defineDim( "length", ds->Size(), ds->Meta().Legend() );
   if (dimIdx < 0) return 1;
-  // Define the X variable
-  NcVar xVar = defineVar(Dimensions_[dimIdx].DID(), NC_DOUBLE, ds->Meta().PrintName(), "X");
-  if (xVar.Empty()) {
-    mprinterr("Error: Could not define X variable for set '%s'\n", ds->legend());
+  // Define the Y variable
+  NcVar yVar = defineVar(Dimensions_[dimIdx].DID(), NC_DOUBLE, ds->Meta().PrintName(), "Y");
+  if (yVar.Empty()) {
+    mprinterr("Error: Could not define Y variable for set '%s'\n", ds->legend());
     return 1;
   }
-  // Define the Y variable, parent is X variable
-  NcVar yVar = defineVar(Dimensions_[dimIdx].DID(), NC_DOUBLE, ds->Meta().PrintName(), "Y", xVar.VID());
-  if (yVar.Empty()) {
+  // Define the X variable.
+  NcVar xVar = defineVar(Dimensions_[dimIdx].DID(), NC_DOUBLE, ds->Meta().PrintName(), "X");
+  if (xVar.Empty()) {
     mprinterr("Error: Could not define Y variable for '%s'\n", ds->legend());
     return 1;
   }
   // Add DataSet metadata as attributes
-  if (AddDataSetMetaData( ds->Meta(), ncid_, xVar.VID() )) return 1;
+  if (AddDataSetMetaData( ds->Meta(), ncid_, yVar.VID() )) return 1;
    // Store the description
-  if (AddDataSetStringAtt( ds->description(), "description", ncid_, xVar.VID())) return 1;
-  // Add number of dimensions
-  if (AddDataSetIntAtt( ds->Ndim(), "ndim", ncid_, xVar.VID() )) return 1;
-  // Store the dimension
-  if (AddDataSetDimension(ds->Dim(0), ncid_, xVar.VID())) return 1;
+  if (AddDataSetStringAtt( ds->description(), "description", ncid_, yVar.VID())) return 1;
+  // Add index info
+  if (AddDataSetIndexInfo( ds, xVar.VID(), ncid_, yVar.VID())) return 1;
 //  // Have each var refer to the other
 //  if (AddDataSetIntAtt( yid, "yvarid", ncid_, xid )) return 1;
 //  if (AddDataSetIntAtt( xid, "xvarid", ncid_, yid )) return 1;
