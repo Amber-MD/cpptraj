@@ -309,17 +309,17 @@ unsigned int DataIO_NetCDF::dimLen(int did) const {
 }
 
 /** Read CPPTRAJ XY mesh set with CPPTRAJ conventions. */
-int DataIO_NetCDF::readData_1D_xy(DataSet* ds, NcVar const& xVar, VarArray& Vars) const {
+int DataIO_NetCDF::readData_1D_xy(DataSet* ds, NcVar const& yVar, VarArray& Vars) const {
   // ----- XY Mesh ---------------
   size_t start[1];
   size_t count[1];
   start[0] = 0;
-  count[0] = dimLen(xVar.DimId(0));
+  count[0] = dimLen(yVar.DimId(0));
   // Get the Y var id
-  int yvarid;
-  int ret = GetVarIntAtt(yvarid, "Yid", ncid_, xVar.VID());
+  int xvarid;
+  int ret = GetVarIntAtt(xvarid, "indexid0", ncid_, yVar.VID());
   if (ret != 0) {
-    mprinterr("Error: No 'Yid' attribute for XY set '%s'.\n", xVar.vname());
+    mprinterr("Error: No 'Yid' attribute for XY set '%s'.\n", yVar.vname());
     return 1;
   }
   DataSet_Mesh& set = static_cast<DataSet_Mesh&>( *ds );
@@ -327,17 +327,17 @@ int DataIO_NetCDF::readData_1D_xy(DataSet* ds, NcVar const& xVar, VarArray& Vars
   DataSet_Mesh::Darray& Xvals = set.SetMeshX();
   DataSet_Mesh::Darray& Yvals = set.SetMeshY();
   // Get X
-  if (NC::CheckErr(nc_get_vara(ncid_, xVar.VID(), start, count, (void*)(&Xvals[0])))) {
+  if (NC::CheckErr(nc_get_vara(ncid_, xvarid, start, count, (void*)(&Xvals[0])))) {
     mprinterr("Error: Could not get X values for XY set.\n");
     return 1;
   }
-  Vars[xVar.VID()].MarkRead();
+  Vars[xvarid].MarkRead();
   // Get Y
-  if (NC::CheckErr(nc_get_vara(ncid_, yvarid, start, count, (void*)(&Yvals[0])))) {
+  if (NC::CheckErr(nc_get_vara(ncid_, yVar.VID(), start, count, (void*)(&Yvals[0])))) {
     mprinterr("Error: Could not get Y values for XY set.\n");
     return 1;
   }
-  Vars[yvarid].MarkRead();
+  Vars[yVar.VID()].MarkRead();
   return 0;
 }
 
