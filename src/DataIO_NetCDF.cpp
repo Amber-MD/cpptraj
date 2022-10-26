@@ -276,9 +276,13 @@ const
       mprinterr("Error: Getting '%s' attribute.\n", str.c_str());
       errStat = 1;
       return Dims;
-//    } else if (ret == 0) {
+    } else if (ret == 0) {
 //      // index<i> present
 //      idxVarIds[i] = indexid;
+      // TODO setting dim for backwards compatibility. This should
+      // not be necessary eventually when index vars are better handled.
+      dim.ChangeMin(1.0);
+      dim.ChangeStep(1.0);
     } else if (ret == -1) {
       // No index<i>, check for min<i> and step<i>
       std::string min = "min" + suffix;
