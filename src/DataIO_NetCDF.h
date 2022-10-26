@@ -25,6 +25,10 @@ class DataIO_NetCDF : public DataIO {
     /// Hold info for a NetCDF dimension
     class NcDim;
     typedef std::vector<NcDim> DimArray;
+    /// Hold array of integers
+//    typedef std::vector<int> Iarray;
+
+    std::vector<Dimension> getVarIndexInfo(int&, int, int) const;
 
     inline unsigned int dimLen(int) const;
 

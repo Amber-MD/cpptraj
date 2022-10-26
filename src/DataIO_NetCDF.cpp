@@ -236,50 +236,69 @@ static inline MetaData GetVarMetaData(int& errStat, int ncid, int varid)
   return meta;
 }
 
-/// \return Dimension from variable attributes
-static inline std::vector<Dimension> GetVarDimensions(int& errStat, int ncid, int varid)
+/// \return Variable index information from attributes
+std::vector<Dimension> DataIO_NetCDF::getVarIndexInfo(int& errStat, int ncid, int varid)
+const
 {
+//  idxVarIds.clear();
   errStat = 0;
   std::vector<Dimension> Dims;
-  // Get # of dimensions
-  int ndim = 0;
-  int ret = GetVarIntAtt(ndim, "ndim", ncid, varid);
+  // Get # of index dimensions
+  int nindexdim = 0;
+  int ret = GetVarIntAtt(nindexdim, "nindexdim", ncid, varid);
   if (ret != 0) {
-    mprinterr("Error: Missing 'ndim' attribute.\n");
+    mprinterr("Error: Missing 'nindexdim' attribute.\n");
+    errStat = 1;
     return Dims;
   }
-  mprintf("DEBUG: ndim= %i\n", ndim);
-  Dims.resize( ndim );
-  for (int i = 0; i < ndim; i++) {
-    std::string label, min, step;
-    if (ndim > 1) {
-      label = "label" + integerToString(i);
-      min = "min" + integerToString(i);
-      step = "step" + integerToString(i);
-    } else {
-      label = "label";
-      min = "min";
-      step = "step";
-    }
+  mprintf("DEBUG: nindexdim= %i\n", nindexdim);
+  if (nindexdim < 1) return Dims;
+//  idxVarIds.assign(nindexdim, -1);
+
+  Dims.resize( nindexdim );
+  for (int i = 0; i < nindexdim; i++) {
     Dimension& dim = Dims[i];
-    // label is optional
+    // Expect either label<i> and indexid<i>, or
+    // label<i>, min<i>, and step<i>
+    std::string suffix( integerToString(i) );
+    std::string label = label + suffix;
     std::string att = NC::GetAttrText(ncid, varid, label.c_str());
-    if (!att.empty()) dim.SetLabel( att );
-    double dval;
-    int ret = GetVarDblAtt(dval, min.c_str(), ncid, varid);
-    if (ret != 0) {
-      mprinterr("Error: '%s' attribute is missing for varid %i.\n", min.c_str(), varid);
+    if (att.empty()) {
+      mprintf("Warning: Index dim %i missing 'label' attribute.\n", i);
+    } else {
+      dim.SetLabel( att );
+    }
+    // Check for index<i>
+    std::string str = "indexid" + suffix;
+    int indexid = -1;
+    int ret = GetVarIntAtt(indexid, str.c_str(), ncid, varid);
+    if (ret == 1) {
+      mprinterr("Error: Getting '%s' attribute.\n", str.c_str());
       errStat = 1;
       return Dims;
+//    } else if (ret == 0) {
+//      // index<i> present
+//      idxVarIds[i] = indexid;
+    } else if (ret == -1) {
+      // No index<i>, check for min<i> and step<i>
+      std::string min = "min" + suffix;
+      std::string step = "step" + suffix;
+      double dval;
+      ret = GetVarDblAtt(dval, min.c_str(), ncid, varid);
+      if (ret != 0) {
+        mprinterr("Error: '%s' attribute is missing for varid %i.\n", min.c_str(), varid);
+        errStat = 1;
+        return Dims;
+      }
+      dim.ChangeMin( dval );
+      ret = GetVarDblAtt(dval, step.c_str(), ncid, varid);
+      if (ret != 0) {
+        mprinterr("Error: '%s' attribute is missing for varid %i.\n", step.c_str(), varid);
+        errStat = 1;
+        return Dims;
+      }
+      dim.ChangeStep( dval );
     }
-    dim.ChangeMin( dval );
-    ret = GetVarDblAtt(dval, step.c_str(), ncid, varid);
-    if (ret != 0) {
-      mprinterr("Error: '%s' attribute is missing for varid %i.\n", step.c_str(), varid);
-      errStat = 1;
-      return Dims;
-    }
-    dim.ChangeStep( dval );
   }
   return Dims;
 }
@@ -530,7 +549,7 @@ const
     }
     // Get DataSet dimensions
     errStat = 0;
-    std::vector<Dimension> Dims = GetVarDimensions(errStat, ncid_, var->VID());
+    std::vector<Dimension> Dims = getVarIndexInfo(errStat, ncid_, var->VID());
     if (errStat != 0) return 1;
     for (std::vector<Dimension>::const_iterator dim = Dims.begin(); dim != Dims.end(); ++dim)
       mprintf("DEBUG:\t Var %s dim %s min %f step %f\n", var->vname(), dim->label(), dim->Min(), dim->Step());
@@ -812,7 +831,7 @@ static inline int AddDataSetMetaData(MetaData const& meta, int ncid, int varid)
 static inline int AddDataSetIndexInfo(DataSet const* ds, int indexVarId, int ncid, int varid)
 {
   // Add number of index dimensions
-  if (AddDataSetIntAtt( ds->Ndim(), "ndim", ncid, varid )) return 1;
+  if (AddDataSetIntAtt( ds->Ndim(), "nindexdim", ncid, varid )) return 1;
   // Add index dimensions
   if (ds->Type() == DataSet::XYMESH) {
     // Sanity check
