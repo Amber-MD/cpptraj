@@ -503,6 +503,11 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   #endif
 
   if (!skipE_) {
+    // Ensure we have nonbonded parameters
+    if (!setup.Top().Nonbond().HasNonbond()) {
+      mprinterr("Error: Topology does not have nonbonded parameters required for GIST energy calc.\n");
+      return Action::ERR;
+    }
     E_UV_.resize( numthreads_ );
     E_VV_.resize( numthreads_ );
     neighborPerThread_.resize( numthreads_ );
