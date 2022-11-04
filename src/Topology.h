@@ -151,6 +151,8 @@ class Topology {
     /// \return Lennard-Jones 6-12 parameters for given pair of atoms
     inline NonbondType const& GetLJparam(int, int) const;
     void AssignNonbondParams(ParmHolder<AtomType> const&, ParmHolder<NonbondType> const&);
+    /// \return True if any charge is non-zero
+    bool HasChargeInfo() const;
     // ----- Water Cap Info ----------------------
     CapParmType const& Cap()    const { return cap_; }
     CapParmType&       SetCap()       { return cap_; }
