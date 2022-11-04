@@ -503,9 +503,14 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   #endif
 
   if (!skipE_) {
+    // Warn if no charge info
+    if (!setup.Top().HasChargeInfo())
+      mprintf("Warning: No charges in topology '%s'.\n", setup.Top().c_str());
     // Ensure we have nonbonded parameters
     if (!setup.Top().Nonbond().HasNonbond()) {
-      mprinterr("Error: Topology does not have nonbonded parameters required for GIST energy calc.\n");
+      mprinterr("Error: Topology '%s' does not have nonbonded parameters\n"
+                "Error:  required for GIST energy calc. Use a topology file with non-bonded\n"
+                "Error:  parameters.\n", setup.Top().c_str());
       return Action::ERR;
     }
     E_UV_.resize( numthreads_ );
