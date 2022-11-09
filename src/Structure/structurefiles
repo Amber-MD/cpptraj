@@ -1,0 +1,11 @@
+# Files for Structure subdirectory.
+STRUCTURE_SOURCES= \
+  Disulfide.cpp \
+  FunctionalGroup.cpp \
+  FxnGroupBuilder.cpp \
+  HisProt.cpp \
+  StructureRoutines.cpp \
+  SugarBuilder.cpp \
+  Sugar.cpp \
+  SugarLinkAtoms.cpp \
+  SugarToken.cpp

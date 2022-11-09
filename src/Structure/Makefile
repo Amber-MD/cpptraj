@@ -1,12 +1,12 @@
-# Cluster Makefile
+# Structure Makefile
 include ../../config.h
 
-include clusterfiles
+include structurefiles
 
 DEL_FILE = /bin/rm -f
 
 # Objects
-OBJECTS=$(CLUSTER_SOURCES:.cpp=.o)
+OBJECTS=$(STRUCTURE_SOURCES:.cpp=.o)
 
 # Default target: objects
 all: $(OBJECTS)
@@ -21,6 +21,6 @@ uninstall: clean
 	cd ../ && $(MAKE) findDepend
 
 depend: ../findDepend
-	../findDepend $(CLUSTER_SOURCES) > clusterdepend
+	../findDepend $(STRUCTURE_SOURCES) > structuredepend
 
-include clusterdepend
+include structuredepend
