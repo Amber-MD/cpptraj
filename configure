@@ -132,6 +132,12 @@ NETCDF_SRCTAR='netcdf-4.6.1.tar.gz'
 NETCDF_SRCDIR='netcdf-4.6.1'
 NETCDF_URL="ftp://ftp.unidata.ucar.edu/pub/netcdf/$NETCDF_SRCTAR"
 NETCDF_OPTS=" --disable-netcdf-4 --disable-dap $windows_hostflag --disable-shared --disable-doxygen"
+NETCDF4_OPTS=" --disable-dap $windows_hostflag --disable-shared --disable-doxygen"
+
+HDF5_SRCTAR='hdf5-1_10_9.tar.gz'
+HDF5_SRCDIR='hdf5-hdf5-1_10_9'
+HDF5_URL="https://github.com/HDFGroup/hdf5/archive/refs/tags/$HDF5_SRCTAR"
+HDF5_OPTS=''
 
 BZIP2_SRCTAR='bzip2-latest.tar.gz'
 BZIP2_SRCDIR=''
@@ -693,9 +699,22 @@ EOF
       if [ $? -ne 0 ] ; then
         # Check if lib present but needs to be rebuilt
         CheckRebuild "NetCDF" "${LIB_FLAG[$LNETCDF]}"
+        if [ "${LIB_STAT[$LHDF5]}" != 'off' ] ; then
+          # Get HDF5
+          PREFIX=$CPPTRAJHOME CC=$CC CPPFLAGS="$CPPFLAGS -I$CPPTRAJHOME/include" LDFLAGS="-L$CPPTRAJHOME/lib" \
+              LIBNAME='hdf5' \
+              SRCDIR=$HDF5_SRCDIR SRCTAR=$HDF5_SRCTAR URL=$HDF5_URL ./get_library.sh $REBUILDOPT $HDF5_OPTS
+          if [ $? -ne 0 ] ; then
+            ErrMsg "Building HDF5 failed."
+            exit 1
+          fi
+          local_netcdf_opts=$NETCDF4_OPTS
+        else
+          local_netcdf_opts=$NETCDF_OPTS
+        fi
         # See if user would like to get netcdf
         PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS LIBNAME='netcdf' \
-            SRCDIR=$NETCDF_SRCDIR SRCTAR=$NETCDF_SRCTAR URL=$NETCDF_URL ./get_library.sh $REBUILDOPT $NETCDF_OPTS
+            SRCDIR=$NETCDF_SRCDIR SRCTAR=$NETCDF_SRCTAR URL=$NETCDF_URL ./get_library.sh $REBUILDOPT $local_netcdf_opts
         if [ $? -ne 0 ] ; then
           ErrMsg "Building NetCDF failed."
           exit 1
