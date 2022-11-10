@@ -381,7 +381,7 @@ LIB_STAT[$LHDF5]='enabled'
 LIB_CKEY[$LHDF5]='hdf5'
 LIB_HOME[$LHDF5]=''
 LIB_FLAG[$LHDF5]=''
-LIB_STTC[$LHDF5]=''
+LIB_STTC[$LHDF5]='libhdf5.a'
 LIB_D_ON[$LHDF5]='-DHAS_HDF5'
 LIB_DOFF[$LHDF5]=''
 LIB_LINK[$LHDF5]='dynamic'
@@ -656,7 +656,7 @@ EOF
   fi
 }
 
-TestHdf5() {
+TestNetcdf4Hdf5() {
   cat > testp.cpp <<EOF
 #include <cstdio>
 #include "netcdf.h"
@@ -673,10 +673,52 @@ void unused() {
 }
 int main() { printf("Testing\n"); printf("%s\n",nc_strerror(0)); return 0; }
 EOF
-  TestProgram silent "  Checking NetCDF/HDF5" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]} ${LIB_INCL[$LHDF5]}" testp.cpp "${LIB_FLAG[$LNETCDF]} ${LIB_FLAG[$LHDF5]}"
-  if [ $? -eq 1 ] ; then
-    WrnMsg "NetCDF library does not contain HDF5 support."
-    LIB_STAT[$LHDF5]='off'
+  TestProgram "  Checking NetCDF/HDF5" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]}"
+  #if [ $? -eq 1 ] ; then
+  #  WrnMsg "NetCDF library does not contain HDF5 support."
+  #  LIB_STAT[$LHDF5]='off'
+  #fi
+}
+
+TestHdf5() {
+  cat > testp.cpp <<EOF
+#include <cstdio>
+#include "hdf5.h"
+void unused() {
+  hid_t file;
+  file = H5Fcreate("tmp", H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  herr_t status = H5Fclose(file);
+}
+int main() {
+  printf("Testing\n");
+  return 0;
+}
+EOF
+  TestProgram silent "  Checking HDF5" "$CXX" "$CXXFLAGS ${LIB_INCL[$LHDF5]}" testp.cpp "${LIB_FLAG[$LHDF5]}"
+  if [ $? -ne 0 ] ; then
+    if [ "${LIB_STAT[$LHDF5]}" = 'enabled' ] ; then
+      # See if there is already a version of HDF5 in CPPTRAJHOME
+      LIB_STAT[$LHDF5]='specified'
+      LIB_HOME[$LHDF5]=$CPPTRAJHOME
+      LIB_FLAG[$LHDF5]="$CPPTRAJHOME/lib/libhdf5_hl.a $CPPTRAJHOME/lib/${LIB_STTC[$LHDF5]} -ldl ${LIB_FLAG[$LZIP]}"
+      LIB_INCL[$LHDF5]="-I$CPPTRAJHOME/include"
+      TestProgram $BUILDTESTOPT "  Checking for bundled HDF5" "$CXX" "$CXXFLAGS ${LIB_INCL[$LHDF5]}" testp.cpp "${LIB_FLAG[$LHDF5]}"
+      if [ $? -ne 0 ] ; then
+        CheckRebuild "HDF5" "${LIB_FLAG[$LHDF5]}"
+        # See if user would like to get HDF5 
+        PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS LIBNAME='hdf5' \
+            SRCDIR=$HDF5_SRCDIR SRCTAR=$HDF5_SRCTAR URL=$HDF5_URL ./get_library.sh $REBUILDOPT $HDF5_OPTS
+        if [ $? -ne 0 ] ; then
+          ErrMsg "Building HDF5 failed."
+          exit 1
+        fi
+        # Test the built HDF5
+        TestProgram "  Checking built HDF5" "$CXX" "$CXXFLAGS ${LIB_INCL[$LHDF5]}" testp.cpp "${LIB_FLAG[$LHDF5]}"
+      fi
+    else
+      # HDF5 specified but failed.
+      TestProgErr "HDF5"
+    fi
   fi
 }
 
@@ -695,27 +737,28 @@ EOF
       LIB_HOME[$LNETCDF]=$CPPTRAJHOME
       LIB_FLAG[$LNETCDF]=$CPPTRAJHOME/lib/${LIB_STTC[$LNETCDF]}
       LIB_INCL[$LNETCDF]="-I$CPPTRAJHOME/include"
+      if [ "${LIB_STAT[$LHDF5]}" != 'off' ] ; then
+        # Netcdf needs to know where hdf5 is
+        LIB_FLAG[$LNETCDF]="${LIB_FLAG[$LNETCDF]} ${LIB_FLAG[$LHDF5]}"
+        LIB_INCL[$LNETCDF]="${LIB_INCL[$LNETCDF]} ${LIB_INCL[$LHDF5]}"
+      fi
       TestProgram $BUILDTESTOPT "  Checking for bundled NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]}"
       if [ $? -ne 0 ] ; then
         # Check if lib present but needs to be rebuilt
         CheckRebuild "NetCDF" "${LIB_FLAG[$LNETCDF]}"
         if [ "${LIB_STAT[$LHDF5]}" != 'off' ] ; then
-          # Get HDF5
-          PREFIX=$CPPTRAJHOME CC=$CC CPPFLAGS="$CPPFLAGS -I$CPPTRAJHOME/include" LDFLAGS="-L$CPPTRAJHOME/lib" \
-              LIBNAME='hdf5' \
-              SRCDIR=$HDF5_SRCDIR SRCTAR=$HDF5_SRCTAR URL=$HDF5_URL ./get_library.sh $REBUILDOPT $HDF5_OPTS
-          if [ $? -ne 0 ] ; then
-            ErrMsg "Building HDF5 failed."
-            exit 1
-          fi
-          local_netcdf_opts=$NETCDF4_OPTS
+          # Get/compile netcdf4 with HDF5 
+          PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS LIBNAME='netcdf' \
+              CPPFLAGS=${LIB_INCL[$LHDF5]} LDFLAGS="-L$CPPTRAJHOME/lib" \
+              SRCDIR=$NETCDF_SRCDIR SRCTAR=$NETCDF_SRCTAR URL=$NETCDF_URL ./get_library.sh $REBUILDOPT $NETCDF4_OPTS
+          netcdferr=$?
         else
-          local_netcdf_opts=$NETCDF_OPTS
+          # Get/compile netcdf3
+          PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS LIBNAME='netcdf' \
+              SRCDIR=$NETCDF_SRCDIR SRCTAR=$NETCDF_SRCTAR URL=$NETCDF_URL ./get_library.sh $REBUILDOPT $NETCDF_OPTS
+          netcdferr=$?
         fi
-        # See if user would like to get netcdf
-        PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS LIBNAME='netcdf' \
-            SRCDIR=$NETCDF_SRCDIR SRCTAR=$NETCDF_SRCTAR URL=$NETCDF_URL ./get_library.sh $REBUILDOPT $local_netcdf_opts
-        if [ $? -ne 0 ] ; then
+        if [ $netcdferr -ne 0 ] ; then
           ErrMsg "Building NetCDF failed."
           exit 1
         fi
@@ -726,6 +769,10 @@ EOF
       # NetCDF specified but failed.
       TestProgErr "NetCDF"
     fi
+  fi
+  # Check netcdf4 if necessary
+  if [ "${LIB_STAT[$LHDF5]}" != 'off' ] ; then
+    TestNetcdf4Hdf5
   fi
 }
 
