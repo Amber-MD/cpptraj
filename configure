@@ -756,8 +756,15 @@ EOF
         # Check if lib present but needs to be rebuilt
         CheckRebuild "NetCDF" "${LIB_FLAG[$LNETCDF]}"
         if [ "${LIB_STAT[$LHDF5]}" != 'off' ] ; then
-          # Get/compile netcdf4 with HDF5 
-          PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS LIBNAME='netcdf' \
+          # Get/compile netcdf4 with HDF5
+          # Some of the HDF5-related portions of NetCDF4 have race conditions,
+          # so override MAKE_COMMAND
+          if [ -z "$MAKE_COMMAND" ] ; then
+            echo "Setting MAKE_COMMAND to 'make -j1' to avoid NetCDF4/HDF5 race conditions."
+          else
+            echo "Overriding MAKE_COMMAND with 'make -j1' to avoid NetCDF4/HDF5 race conditions."
+          fi
+          PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS LIBNAME='netcdf' MAKE_COMMAND='make -j1' \
               CPPFLAGS=${LIB_INCL[$LHDF5]} LDFLAGS="-L$CPPTRAJHOME/lib" \
               SRCDIR=$NETCDF_SRCDIR SRCTAR=$NETCDF_SRCTAR URL=$NETCDF_URL ./get_library.sh $rebuild_netcdf $NETCDF4_OPTS
           netcdferr=$?
