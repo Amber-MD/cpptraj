@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 class FileName;
+class Topology;
 namespace Cpptraj {
 /// Provide an interface to generate a topology from Amber LEaP
 class LeapInterface {
@@ -19,6 +20,8 @@ class LeapInterface {
     void ClearInputFiles();
     /// Run leap
     int RunLeap() const;
+    /// \return LEaP bond command between given atoms.
+    static std::string LeapBond(int, int, std::string const&, Topology const&);
   private:
     typedef std::vector<std::string> Sarray;
 
