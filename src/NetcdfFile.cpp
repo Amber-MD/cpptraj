@@ -302,8 +302,9 @@ int NetcdfFile::SetupCoordsVelo(bool useVelAsCoords, bool useFrcAsCoords) {
   atomDID_ = NC::GetDimInfo( ncid_, NCATOM, ncatom_ );
   if (atomDID_==-1) return 1;
   ncatom3_ = ncatom_ * 3;
-
+# ifdef HAS_HDF5
   unsigned int needed_itmp_size = 0;
+# endif
   bool has_coordinates = false;
   bool has_velocities = false;
   bool has_forces = false;
@@ -401,10 +402,12 @@ int NetcdfFile::SetupCoordsVelo(bool useVelAsCoords, bool useFrcAsCoords) {
     if (velocityVID_ != -1) {
       coordVID_ = velocityVID_;
       velocityVID_ = -1;
+#   ifdef HAS_HDF5
     } else if (compressedVelVID_ != -1) {
       compressedPosVID_ = compressedVelVID_;
       compressedVelVID_ = -1;
       intCompressFac_[V_COORDS] = intCompressFac_[V_VEL];
+#   endif
     } else {
       mprinterr("Error: Cannot use velocities as coordinates; no velocities present.\n");
       return 1;
@@ -414,10 +417,12 @@ int NetcdfFile::SetupCoordsVelo(bool useVelAsCoords, bool useFrcAsCoords) {
     if (frcVID_ != -1) {
       coordVID_ = frcVID_;
       frcVID_ = -1;
+#   ifdef HAS_HDF5
     } else if (compressedFrcVID_ != -1) {
       compressedPosVID_ = compressedFrcVID_;
       compressedFrcVID_ = -1;
       intCompressFac_[V_COORDS] = intCompressFac_[V_FRC];
+#   endif
     } else {
       mprinterr("Error: Cannot use forces as coordinates; no forces present.\n");
       return 1;
@@ -1292,8 +1297,12 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
   if (set_atom_dim_array(dimensionID)) return 1;
 
   // Coord variable
-  unsigned int needed_itmp_size = 0;
-  if (coordInfo.HasCrd() && intCompressFac_[V_COORDS] == 0) {
+# ifdef HAS_HDF5
+  if (coordInfo.HasCrd() && intCompressFac_[V_COORDS] == 0)
+# else
+  if (coordInfo.HasCrd())
+# endif
+  {
     // Regular coords
     if ( NC::CheckErr( nc_def_var( ncid_, NCCOORDS, dataType, NDIM, dimensionID, &coordVID_)) ) {
       mprinterr("Error: Defining coordinates variable.\n");
@@ -1307,7 +1316,12 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
     if (NC_setFrameChunkSize(V_COORDS, coordVID_)) return 1;
   }
   // Velocity variable
-  if (coordInfo.HasVel() && intCompressFac_[V_VEL] == 0) {
+# ifdef HAS_HDF5
+  if (coordInfo.HasVel() && intCompressFac_[V_VEL] == 0)
+# else
+  if (coordInfo.HasVel())
+# endif
+  {
     if ( NC::CheckErr( nc_def_var( ncid_, NCVELO, dataType, NDIM, dimensionID, &velocityVID_)) ) {
       mprinterr("Error: Defining velocities variable.\n");
       return 1;
@@ -1317,7 +1331,12 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
     if (NC_setFrameChunkSize(V_VEL, velocityVID_)) return 1;
   }
   // Force variable
-  if (coordInfo.HasForce() && intCompressFac_[V_FRC] == 0) {
+# ifdef HAS_HDF5
+  if (coordInfo.HasForce() && intCompressFac_[V_FRC] == 0)
+# else
+  if (coordInfo.HasForce())
+# endif
+  {
     if ( NC::CheckErr( nc_def_var( ncid_, NCFRC, dataType, NDIM, dimensionID, &frcVID_)) ) {
       mprinterr("Error: Defining forces variable\n");
       return 1;
@@ -1490,7 +1509,8 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
     if (NC_setDeflate(V_BOXA, cellAngleVID_)) return 1;
     if (NC_setFrameChunkSize(V_BOXA, cellAngleVID_)) return 1;
   }
-
+# ifdef HAS_HDF5
+  unsigned int needed_itmp_size = 0;
   // Integer-compressed coordinates
   if (coordInfo.HasCrd() && intCompressFac_[V_COORDS] > 0) {
     if (set_atom_dim_array(dimensionID)) return 1;
@@ -1555,7 +1575,7 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
     if (NC_setDeflate(V_FRC, compressedFrcVID_, ishuffle_)) return 1;
     if (NC_setFrameChunkSize(V_FRC, compressedFrcVID_)) return 1;
   }
-
+# endif /* HAS_HDF5 */
   // Attributes
   if (NC::CheckErr(nc_put_att_text(ncid_,NC_GLOBAL,"title",title.size(),title.c_str())) ) {
     mprinterr("Error: Writing title.\n");
