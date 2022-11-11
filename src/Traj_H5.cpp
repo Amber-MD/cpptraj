@@ -341,6 +341,7 @@ int Traj_H5::setupTrajin(FileName const& fname, Topology* trajParm)
 
 /** Read specified trajectory frame. */
 int Traj_H5::readFrame(int set, Frame& frameIn) {
+# ifdef HAS_HDF5
   start_[0] = set;
   start_[1] = 0;
   start_[2] = 0;
@@ -421,6 +422,9 @@ int Traj_H5::readFrame(int set, Frame& frameIn) {
   }
 
   return 0;
+# else /* HAS_HDF5 */
+  return 1;
+# endif
 }
 
 /** Read velocities from specified frame. */

@@ -408,6 +408,7 @@ int Traj_H5MD::setupTrajin(FileName const& fname, Topology* trajParm)
 
 /** Read specified trajectory frame. */
 int Traj_H5MD::readFrame(int set, Frame& frameIn) {
+# ifdef HAS_HDF5
   start_[0] = set;
   start_[1] = 0;
   start_[2] = 0;
@@ -487,8 +488,10 @@ int Traj_H5MD::readFrame(int set, Frame& frameIn) {
     xyzabg[2] *= convert_h5_to_cpptraj_box_;*/
     frameIn.ModifyBox().AssignFromUcell( ucell );
   }
-
   return 0;
+# else /* HAS_HDF5 */
+  return 1;
+# endif
 }
 
 /** Read velocities from specified frame. */
