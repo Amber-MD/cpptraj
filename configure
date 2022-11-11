@@ -680,7 +680,12 @@ int main() { printf("Testing\n"); printf("%s\n",nc_strerror(0)); return 0; }
 EOF
   TestProgram silent "  Checking NetCDF4/HDF5" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]}"
   if [ $? -eq 0 ] ; then
-    # HDF5 support is present. Just exit.
+    # HDF5 support is present.
+    # If we are going to build our own netcdf, it needs to know how to link
+    # HDF5.
+    if [ "${LIB_MAKE[$LNETCDF]}" = 'yes' ] ; then
+      LIB_FLAG[$LHDF5]="-lhdf5_hl -lhdf5 -ldl ${LIB_FLAG[$LZIP]}"
+    fi
     return 0
   fi
   # If netcdf was specified, this means netcdf was built without hdf5 support
