@@ -102,8 +102,6 @@ class NetcdfFile {
     int ensembleSize_;
     std::string nctitle_;
   private:
-    /// Strings corresponding to NC_FMT_TYPE
-    static const char* NcFmtTypeStr_[];
     static const char* ConventionsStr_[];
 
     /// Descriptions of VidType. MUST MATCH VidType (except NVID).
@@ -202,6 +200,8 @@ class NetcdfFile {
     int cell_angularVID_; ///< Box angles variable ID
     int RemdValuesVID_;   ///< Replica values variable ID.
 #   endif /* BINTRAJ */
+    /// Strings corresponding to NC_FMT_TYPE
+    static const char* NcFmtTypeStr_[];
 };
 #ifdef BINTRAJ
 // ----- Inline Functions ------------------------------------------------------
