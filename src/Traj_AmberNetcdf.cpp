@@ -25,9 +25,9 @@ Traj_AmberNetcdf::Traj_AmberNetcdf() :
   write_mdcrd_(false),
   write_mdvel_(false),
   write_mdfrc_(false),
-# ifdef HAS_HDF5
   compress_(0),
   icompress_(0),
+# ifdef HAS_HDF5
   fchunkSize_(0),
   ishuffle_(1),
 # endif
