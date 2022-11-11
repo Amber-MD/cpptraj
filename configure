@@ -660,7 +660,8 @@ EOF
   fi
 }
 
-TestNetcdf4Hdf5() {
+TestHdf5() {
+  # First, check if NetCDF has HDF5 support baked in.
   cat > testp.cpp <<EOF
 #include <cstdio>
 #include "netcdf.h"
@@ -677,14 +678,12 @@ void unused() {
 }
 int main() { printf("Testing\n"); printf("%s\n",nc_strerror(0)); return 0; }
 EOF
-  TestProgram "  Checking NetCDF/HDF5" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]}"
-  #if [ $? -eq 1 ] ; then
-  #  WrnMsg "NetCDF library does not contain HDF5 support."
-  #  LIB_STAT[$LHDF5]='off'
-  #fi
-}
-
-TestHdf5() {
+  TestProgram silent "  Checking NetCDF4/HDF5" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]}"
+  if [ $? -eq 0 ] ; then
+    # HDF5 support is present. Just exit.
+    return 0
+  fi
+  # Check for separate HDF5
   cat > testp.cpp <<EOF
 #include <cstdio>
 #include "hdf5.h"
@@ -787,10 +786,6 @@ EOF
       # NetCDF specified but failed.
       TestProgErr "NetCDF"
     fi
-  fi
-  # Check netcdf4 if necessary
-  if [ "${LIB_STAT[$LHDF5]}" != 'off' ] ; then
-    TestNetcdf4Hdf5
   fi
 }
 
