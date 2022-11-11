@@ -14,12 +14,14 @@ namespace NC {
   int GetDimInfo(int, const char*, unsigned int&);
   // FIXME This version here for backwards compatibility.
   int GetDimInfo(int, const char*, int&);
+  /// Print debug info to STDOUT
+  void Debug(int);
+# ifdef HAS_HDF5
   /// \return Array of group names, set array with ncids
   std::vector<std::string> GetGroupNames(int, std::vector<int>&);
   /// \return Array of group names
   std::vector<std::string> GetGroupNames(int);
-  /// Print debug info to STDOUT
-  void Debug(int);
+# endif
 }
 #endif /* BINTRAJ */
 #endif

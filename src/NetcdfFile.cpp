@@ -164,6 +164,7 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(int ncidIn) {
     // Check if this is an MDtraj h5 file
     attrText = NC::GetAttrText(ncidIn, "conventions");
     if (attrText.empty()) {
+#     ifdef HAS_HDF5
       // Check if this is an MDAnalysis h5md file
       bool is_h5md = false;
       std::vector<std::string> GroupNames = NC::GetGroupNames( ncidIn );
@@ -180,6 +181,7 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(int ncidIn) {
       }
       if (!is_h5md)
         mprinterr("Error: Could not get conventions from NetCDF file.\n");
+#     endif
       return NC_UNKNOWN;
     }
     //mprintf("DEBUG: This appears to be an HDF5 h5 file.\n");

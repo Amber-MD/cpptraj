@@ -81,7 +81,7 @@ bool Traj_H5MD::ID_TrajFormat(CpptrajFile& fileIn) {
   if (nread > 7 && buf[0] == 0x89 && buf[1] == 0x48 && buf[2] == 0x44 && buf[3] == 0x46 &&
                    buf[4] == 0x0d && buf[5] == 0x0a && buf[6] == 0x1a && buf[7] == 0x0a)
   {
-    mprintf("Warning: File '%s' appears to be HDF5 but cpptraj was compiled without HDF5 support.\n", fname);
+    mprintf("Warning: File '%s' appears to be HDF5 but cpptraj was compiled without HDF5 support.\n", fileIn.Filename().full());
   }
 # endif
   return false;

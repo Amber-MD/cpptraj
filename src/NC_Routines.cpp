@@ -45,6 +45,7 @@ std::string NC::GetAttrText(int ncid, int vid, const char* attribute) {
     attrOut.assign( attrText );
     delete[] attrText;
   } else if ( xtypep == NC_STRING ) {
+#   ifdef HAS_HDF5
     if (attlen > 1) {
       mprinterr("Error: Variable attribute %s has %i strings, expected only 1.\n",
                 attribute, attlen);
@@ -57,6 +58,10 @@ std::string NC::GetAttrText(int ncid, int vid, const char* attribute) {
     }
     attrOut.assign( attrString );
     nc_free_string(attlen, &attrString);
+#   else
+    mprinterr("Internal Error: Attribute type 'string' only supported with NetCDF4/HDF5.\n"
+              "Internal Error: Recompile with Netcdf4/HDF5 support.\n");
+#   endif
   } else {
     mprinterr("Error: Attribute %s has unhandled type.\n", attribute);
     return attrOut;
@@ -96,38 +101,6 @@ int NC::GetDimInfo(int ncid, const char* attribute, int& length) {
   int dimID = GetDimInfo(ncid, attribute, ulen);
   length = (int)ulen;
   return dimID;
-}
-
-/** \return Array containing group names. Also set array with corresponding ncids. */
-std::vector<std::string> NC::GetGroupNames(int ncid, std::vector<int>& NcidArray) {
-  std::vector<std::string> GroupNames;
-  int numgrps;
-  nc_inq_grps( ncid, &numgrps, NULL );
-  if (numgrps < 1)
-    return GroupNames;
-
-  //mprintf("DEBUG: Netcdf file contains %i groups.\n", numgrps);
-  GroupNames.reserve( numgrps );
-  NcidArray.assign( numgrps, -1 );
-  int* ncids = &NcidArray[0];
-  nc_inq_grps( ncid, NULL, ncids );
-  for (int ii = 0; ii < numgrps; ii++) {
-    //mprintf("\tncid %i", ncids[ii]);
-    size_t gnamelen;
-    nc_inq_grpname_len( ncids[ii], &gnamelen );
-    char* gname = new char[ gnamelen+1 ];
-    nc_inq_grpname( ncids[ii], gname );
-    //mprintf(" %s\n", gname);
-    GroupNames.push_back( gname );
-    delete[] gname;
-  }
-  return GroupNames;
-}
-
-/** \return Array containing group names. */
-std::vector<std::string> NC::GetGroupNames(int ncid) {
-  std::vector<int> NcidArray;
-  return GetGroupNames(ncid, NcidArray);
 }
 
 // NC::Debug()
@@ -175,4 +148,40 @@ void NC::Debug(int ncid) {
   }
   mprintf("==========  END NETCDF DEBUG ==========\n");
 }
+
+// ----- NetCDF4/HDF5 routines -------------------------------------------------
+#ifdef HAS_HDF5
+/** \return Array containing group names. Also set array with corresponding ncids. */
+std::vector<std::string> NC::GetGroupNames(int ncid, std::vector<int>& NcidArray) {
+  std::vector<std::string> GroupNames;
+  int numgrps;
+  nc_inq_grps( ncid, &numgrps, NULL );
+  if (numgrps < 1)
+    return GroupNames;
+
+  //mprintf("DEBUG: Netcdf file contains %i groups.\n", numgrps);
+  GroupNames.reserve( numgrps );
+  NcidArray.assign( numgrps, -1 );
+  int* ncids = &NcidArray[0];
+  nc_inq_grps( ncid, NULL, ncids );
+  for (int ii = 0; ii < numgrps; ii++) {
+    //mprintf("\tncid %i", ncids[ii]);
+    size_t gnamelen;
+    nc_inq_grpname_len( ncids[ii], &gnamelen );
+    char* gname = new char[ gnamelen+1 ];
+    nc_inq_grpname( ncids[ii], gname );
+    //mprintf(" %s\n", gname);
+    GroupNames.push_back( gname );
+    delete[] gname;
+  }
+  return GroupNames;
+}
+
+/** \return Array containing group names. */
+std::vector<std::string> NC::GetGroupNames(int ncid) {
+  std::vector<int> NcidArray;
+  return GetGroupNames(ncid, NcidArray);
+}
+#endif /* HAS_HDF5 */
+// -----------------------------------------------------------------------------
 #endif /* BINTRAJ */
