@@ -683,6 +683,12 @@ EOF
     # HDF5 support is present. Just exit.
     return 0
   fi
+  # If netcdf was specified, this means netcdf was built without hdf5 support
+  if [ "${LIB_STAT[$LNETCDF]}" = 'specified' ] ; then
+    ErrMsg "NetCDF in '${LIB_HOME[$LNETCDF]}' does not have HDF5 support."
+    ErrMsg "To use this NetCDF, disable HDF5 support with '-nohdf5'."
+    exit 1
+  fi
   # Check for separate HDF5
   cat > testp.cpp <<EOF
 #include <cstdio>
