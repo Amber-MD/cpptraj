@@ -548,6 +548,8 @@ TestProgram() {
     else
       COMPILE_ERROR_LINE=$COMPILELINE
       COMPILE_ERROR_MESSAGE=`cat $COMPERR`
+      #echo "DEBUG: Error: $COMPILE_ERROR_LINE"
+      #echo "DEBUG: Error: $COMPILE_ERROR_MESSAGE"
       rm $COMPERR $COMPOUT
       return 1
     fi
