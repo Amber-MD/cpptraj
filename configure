@@ -1533,7 +1533,9 @@ SetupLibraries() {
   fi
   if [ "${LIB_STAT[$LNETCDF]}" = 'off' -a "${LIB_STAT[$LHDF5]}" != 'off' ] ; then
     # HDF5 needs netcdf
+    echo "Warning: HDF5 depends on NetCDF; disabling HDF5."
     LIB_STAT[$LHDF5]='off'
+    LIB_TEST[$LHDF5]='no'
   fi
 }
 
