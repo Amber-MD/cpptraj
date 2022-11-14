@@ -51,7 +51,6 @@ Traj_H5MD::~Traj_H5MD() {
 /** Identify trajectory format. File should be setup for READ */
 bool Traj_H5MD::ID_TrajFormat(CpptrajFile& fileIn) {
 # ifdef HAS_HDF5
-  mprintf("BING BONG\n");
   int myNcid;
   if ( nc_open( fileIn.Filename().full(), NC_NOWRITE, &myNcid ) != NC_NOERR )
     return false;

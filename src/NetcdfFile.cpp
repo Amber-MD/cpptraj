@@ -1803,7 +1803,7 @@ void NetcdfFile::Broadcast(Parallel::Comm const& commIn) {
     nc_vars[29] = compressedPosVID_;
     nc_vars[30] = compressedVelVID_;
     nc_vars[31] = compressedFrcVID_;
-    nc_vars[32] = fchunksize_;
+    nc_vars[32] = fchunkSize_;
     nc_vars[33] = ishuffle_;
     commIn.MasterBcast( nc_vars, NCVARS_SIZE, MPI_INT );
   } else {
@@ -1842,7 +1842,7 @@ void NetcdfFile::Broadcast(Parallel::Comm const& commIn) {
     compressedPosVID_ = nc_vars[29];
     compressedVelVID_ = nc_vars[30];
     compressedFrcVID_ = nc_vars[31];
-    fchunksize_ = nc_vars[32];
+    fchunkSize_ = nc_vars[32];
     ishuffle_ = nc_vars[33];
   }
   if (!remDimType_.empty())
