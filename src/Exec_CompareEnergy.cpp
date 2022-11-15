@@ -3,7 +3,7 @@
 #include "Exec_CompareEnergy.h"
 #include "CpptrajStdio.h"
 #include "DataSet_double.h"
-#include "EnergyKernel_Fourier.h"
+#include "Energy/Kernel_Fourier.h"
 #include "Energy/Kernel_Harmonic.h"
 #include "TorsionRoutines.h"
 
@@ -309,7 +309,7 @@ static inline double EDIHFXN(Frame const& frame0,
                           frame0.XYZ(b0.A2()),
                           frame0.XYZ(b0.A3()),
                           frame0.XYZ(b0.A4()) );
-  double ene = EnergyKernel_Fourier<double>( theta, bp0.Pk(), bp0.Pn(), bp0.Phase() );
+  double ene = Cpptraj::Energy::Kernel_Fourier<double>( theta, bp0.Pk(), bp0.Pn(), bp0.Phase() );
   return ene;
 }
 
