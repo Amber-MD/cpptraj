@@ -31,7 +31,7 @@ DoTest ../tz2.truncoct.crd trajectory_test.mdcrd
 
 # ----- NetCDF4/HDF5 tests -----------------------
 UNITNAME='Convert mdcrd <-> NetCDF4/HDF5'
-CheckFor hdf5
+CheckFor hdf5 maxthreads 1
 if [ $? -eq 0 ] ; then
   cat > $INPUT <<EOF
 trajin ../tz2.truncoct.crd
@@ -47,7 +47,7 @@ EOF
 fi
 
 UNITNAME='Convert mdcrd <-> NetCDF4/HDF5 with compression'
-CheckFor hdf5
+CheckFor hdf5 maxthreads 1
 if [ $? -eq 0 ] ; then
   cat > $INPUT <<EOF
 trajin ../tz2.truncoct.crd
@@ -63,7 +63,7 @@ EOF
 fi
 
 UNITNAME='Convert mdcrd <-> NetCDF4/HDF5 with lossy compression'
-CheckFor hdf5
+CheckFor hdf5 maxthreads 1
 if [ $? -eq 0 ] ; then
   cat > $INPUT <<EOF
 trajin ../tz2.truncoct.crd
@@ -85,7 +85,7 @@ fi
 TOP=''
 INPUT="-i ptraj_netcdf.in"
 UNITNAME='Test compression of velocity/force info'
-CheckFor hdf5
+CheckFor hdf5 maxthreads 1
 if [ $? -eq 0 ] ; then
   cat > ptraj_netcdf.in <<EOF
 parm ../trpzip2.ff14SB.mbondi3.parm7
@@ -116,7 +116,7 @@ EOF
 fi
 
 UNITNAME='Test lossy compression of velocity/force info'
-CheckFor hdf5
+CheckFor hdf5 maxthreads 1
 if [ $? -eq 0 ] ; then
   cat > ptraj_netcdf.in <<EOF
 parm ../trpzip2.ff14SB.mbondi3.parm7
