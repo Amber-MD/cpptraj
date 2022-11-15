@@ -543,6 +543,12 @@ int Traj_AmberNetcdf::parallelSetupTrajout(FileName const& fname, Topology* traj
                                            Parallel::Comm const& commIn)
 {
   int err = 0;
+  if (ftype_ == NC_V4) {
+    if (commIn.Size() > 1) {
+      mprinterr("Error: NetCDF4/HDF5 write not yet supported for > 1 process.\n");
+      return 1;
+    }
+  }
   if (commIn.Master()) {
     err = setupTrajout(fname, trajParm, cInfoIn, NframesToWrite, append);
     // NOTE: setupTrajout leaves file open. Should this change?
