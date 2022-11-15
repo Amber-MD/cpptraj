@@ -4,7 +4,7 @@
 #include "CpptrajStdio.h"
 #include "DataSet_double.h"
 #include "EnergyKernel_Fourier.h"
-#include "EnergyKernel_Harmonic.h"
+#include "Energy/Kernel_Harmonic.h"
 #include "TorsionRoutines.h"
 
 /** CONSRUCTOR */
@@ -131,7 +131,7 @@ static inline double EBONDFXN(Frame const& frame0,
   double r20 = Distance2Kernel<double>( frame0.XYZ(b0.A1()),
                                         frame0.XYZ(b0.A2()) );
   r0 = sqrt(r20);
-  double ene = EnergyKernel_Harmonic<double>( r0, bp0.Rk(), bp0.Req() );
+  double ene = Cpptraj::Energy::Kernel_Harmonic<double>( r0, bp0.Rk(), bp0.Req() );
   return ene;
 }
 
@@ -219,7 +219,7 @@ static inline double EANGFXN(Frame const& frame0,
   double theta = CalcAngle( frame0.XYZ(b0.A1()),
                             frame0.XYZ(b0.A2()),
                             frame0.XYZ(b0.A3()) );
-  double ene = EnergyKernel_Harmonic<double>( theta, bp0.Tk(), bp0.Teq() );
+  double ene = Cpptraj::Energy::Kernel_Harmonic<double>( theta, bp0.Tk(), bp0.Teq() );
   return ene;
 }
 
