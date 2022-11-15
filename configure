@@ -808,7 +808,16 @@ void unused() {int ncid; ncmpi_open(MPI_COMM_WORLD, "foo.nc", NC_NOWRITE, MPI_IN
 int main() { printf("Testing\n"); printf("%s\n",ncmpi_strerror(0)); return 0; }
 EOF
   TestProgram silent "  Checking Parallel NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LPARANC]}" testp.cpp "${LIB_FLAG[$LPARANC]}"
-  if [ $? -ne 0 ] ; then
+  pnetcdfstat=$?
+  # Check if pnetcdf just needs netcdf support
+  if [ $pnetcdfstat -ne 0 -a "${LIB_STAT[$LPARANC]}" = 'specified' ] ; then
+    TestProgram silent "  Checking Parallel NetCDF (link to NetCDF)" "$CXX" "$CXXFLAGS ${LIB_INCL[$LPARANC]} ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LPARANC]} ${LIB_FLAG[$LNETCDF]}"
+    pnetcdfstat=$?
+    # If above check worked, pnetcdf should be linked OK with netcdf flags
+    return 0
+    #echo "DEBUG: Returned $?"
+  fi
+  if [ $pnetcdfstat -ne 0 ] ; then
     if [ "${LIB_STAT[$LPARANC]}" = 'optional' ] ; then
       WrnMsg "Parallel NetCDF test failed. CPPTRAJ will be built without parallel NetCDF."
       LIB_STAT[$LPARANC]='off'
