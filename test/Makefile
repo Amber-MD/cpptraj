@@ -506,6 +506,9 @@ test.keep:
 test.hremd:
 	@-cd Test_Ensemble_HREMD && ./RunTest.sh $(OPT)
 
+test.compareenergy:
+	@-cd Test_CompareEnergy && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -665,7 +668,8 @@ COMPLETETESTS=test.general \
               test.ljc \
               test.hmassrepartition \
               test.prepareforleap \
-              test.keep
+              test.keep \
+              test.compareenergy
 
 test.all:
 	$(MAKE) test.complete summary
