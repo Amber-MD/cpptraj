@@ -939,16 +939,13 @@ int NetcdfFile::SetupCompression(int deflateLevelIn, int icompressIn, int ishuff
   if (icompressIn > 0) {
     mprintf("\tSetting NetCDF integer compression for supported variables to %i\n", icompressIn);
     // Warn about low precision powers
-    if (icompressIn < 1) {
-      mprinterr("Error: Integer compression power < 1 not allowed.\n");
-      return 1;
-    } else if (icompressIn < 4) {
+    if (icompressIn < 4) {
       mprintf("Warning: Using extremely low precision for integer compression.\n"
-              "Warning: Energy error will be on the order of 2E-%i kcal/mol/atom\n", icompressIn);
+              "Warning: Energy error will be on the order of 1E-%i kcal/mol/atom\n", icompressIn);
       mprintf("Warning: Consider using integer power >= 4.\n");
     } else
       mprintf("Warning: Using lossy compression.\n"
-              "Warning: Energy error will be on the order of 2E-%i kcal/mol/atom\n", icompressIn);
+              "Warning: Energy error will be on the order of 1E-%i kcal/mol/atom\n", icompressIn);
     // Calculate integer compression factors for supported variables
     err += (calcCompressFactor( intCompressFac_[V_COORDS], icompressIn, "coordinates" ));
     err += (calcCompressFactor( intCompressFac_[V_VEL],    icompressIn, "velocities" ));
