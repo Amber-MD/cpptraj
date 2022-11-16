@@ -108,7 +108,7 @@ int FileIO_Gzip::Seek(off_t offset) {
  
   //if (origin == SEEK_END) return 1; 
   zipOffset = (z_off_t)offset;
-  z_off_t uncompressed_pos = gzseek(fp_, zipOffset, SEEK_SET) < 0;
+  long int uncompressed_pos = gzseek(fp_, zipOffset, SEEK_SET) < 0;
   if (uncompressed_pos < 0) {
     mprinterr("Internal Error: FileIO_Gzip::Seek failed, offset = %li\n", (long int)offset);
     return 1;
