@@ -6895,6 +6895,68 @@ loadcrd
 loadcrd <filename> [parm <parm> | parmindex<#>] [<trajin args>] [name <name>]
 \end_layout
 
+\begin_layout LyX-Code
+        [prec {single|double}
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+<filename> Trajectory file to load.
+\end_layout
+
+\begin_layout Description
+[parm
+\begin_inset space ~
+\end_inset
+
+<parmfile/tag>] Topology filename/tag to associate with trajectory (default
+ first topology).
+\end_layout
+
+\begin_layout Description
+[parmindex
+\begin_inset space ~
+\end_inset
+
+<#>] Index of Topology to associate with trajectory (default 0, first topology).
+\end_layout
+
+\begin_layout Description
+[<trajin
+\begin_inset space ~
+\end_inset
+
+args>] Additional 'trajin' args; see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj_trajin"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<name>] Name of the COORDS set.
+\end_layout
+
+\begin_layout Description
+[prec
+\begin_inset space ~
+\end_inset
+
+{single|double}] Load as either a single-precision COORDS set (the default)
+ or a double-precision FRAMES set (which will use much more memory).
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 Immediately load trajectory <filename> as a COORDS data set named <name>
  (default base name of <filename>).
@@ -6923,6 +6985,20 @@ loadtraj
 loadtraj name <setname> [<filename>]
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+name
+\begin_inset space ~
+\end_inset
+
+<setname> Name of the TRAJ set.
+\end_layout
+
+\begin_layout Description
+[<filename>] If specified, trajectory to add to the TRAJ set.
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 This command functions in two ways.
  If <filename> is not provided, all currently loaded input trajectories
