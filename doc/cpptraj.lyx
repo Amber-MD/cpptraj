@@ -50358,7 +50358,7 @@ timecorr
 \end_layout
 
 \begin_layout LyX-Code
-timecorr vec1 <vecname1> [vec2 <vecname2>] out <filename>
+timecorr vec1 <vecname1> [vec2 <vecname2>] out <filename> [name <dsname>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -50407,6 +50407,14 @@ out
 <filename>
 \series default
  Name of file to write output to.
+\end_layout
+
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<dsname>] Name of output vector data sets.
 \end_layout
 
 \begin_layout Description
