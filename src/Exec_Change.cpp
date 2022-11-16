@@ -16,7 +16,7 @@ void Exec_Change::Help() const
           "\t  atomname from <mask> to <value> |\n"
           "\t  addbond <mask1> <mask2> [req <length> <rk> <force constant>] |\n"
           "\t  removebonds <mask1> [<mask2>] [out <file>]}\n"
-          "\t  bondparm <make1> [<mask2>] {setrk|scalerk|setreq|scalereq} <value>\n"
+          "\t  bondparm <mask1> [<mask2>] {setrk|scalerk|setreq|scalereq} <value>\n"
           "  Change specified parts of topology or topology of a COORDS data set.\n",
           DataSetList::TopArgs);
 }
