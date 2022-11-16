@@ -47,7 +47,7 @@ std::string NC::GetAttrText(int ncid, int vid, const char* attribute) {
   } else if ( xtypep == NC_STRING ) {
 #   ifdef HAS_HDF5
     if (attlen > 1) {
-      mprinterr("Error: Variable attribute %s has %i strings, expected only 1.\n",
+      mprinterr("Error: Variable attribute %s has %zu strings, expected only 1.\n",
                 attribute, attlen);
       return attrOut;
     }
