@@ -9473,6 +9473,7 @@ cat
 ...
  Concatenate two or more data sets into a new data set (optionally named
  <name>).
+ Only works for scalar 1D and string sets.
 \end_layout
 
 \begin_layout Description
