@@ -2549,7 +2549,11 @@ set { <variable> <OP> <value> |
 \begin_inset space ~
 \end_inset
 
-{atoms|residues|molecules|atomnums|resnums|oresnums|molnums}
+{atoms|residues|molecules|atomnums|resnums
+\end_layout
+
+\begin_layout Description
+|oresnums|molnums}
 \begin_inset space ~
 \end_inset
 
@@ -2660,7 +2664,7 @@ The following input will put a range of residues selected by :LYS:
 \end_layout
 
 \begin_layout LyX-Code
-> set SELECTED1 = resnums inmask :LYS
+> set SELECTED1 = resnums inmask :1-183&:LYS
 \end_layout
 
 \begin_layout LyX-Code
@@ -2668,8 +2672,7 @@ The following input will put a range of residues selected by :LYS:
 \end_layout
 
 \begin_layout LyX-Code
-	Variable 'SELECTED1' set to '7-8,18,26,44,49,71,79,128,135,151,163,183,193,204-
-205,217-218'
+	Variable 'SELECTED1' set to '7-8,18,26,44,49,71,79,128,135,151,163,183'
 \end_layout
 
 \begin_layout Subsection
