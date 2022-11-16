@@ -1,6 +1,7 @@
 #ifndef INC_TRAJ_H5_H
 #define INC_TRAJ_H5_H
 #include "TrajectoryIO.h"
+#include <vector>
 //namespace H5 {
 //  class H5File;
 //}
