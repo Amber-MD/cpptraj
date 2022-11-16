@@ -121,6 +121,7 @@ const FileTypes::KeyToken TrajectoryFile::TF_KeyArray[] = {
   { XYZ,            "xyz",       ".xyz"     },
   { DTR,            "dtr",       ".dtr"     },
   { H5,             "h5",        ".h5"      },
+  { H5MD,           "h5md",      ".h5md"    },
   { UNKNOWN_TRAJ,   0,           0          }
 };
 
