@@ -118,6 +118,7 @@ jobs:
           else
             export LD_LIBRARY_PATH=$HOME/lib:${LD_LIBRARY_PATH}
             ./configure --buildlibs ${BUILD_FLAGS} ${COMPILER}
+            source cpptraj.sh
             make -j2 install
           fi
           cd test && make $TEST_TYPE
