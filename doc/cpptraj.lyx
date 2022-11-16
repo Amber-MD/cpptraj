@@ -13340,7 +13340,12 @@ change [parm <name> | parmindex <#> | <#> |
 \end_layout
 
 \begin_layout LyX-Code
-      removebonds <mask1> [<mask2>] [out <file>] }
+      removebonds <mask1> [<mask2>] [out <file>] |
+\end_layout
+
+\begin_layout LyX-Code
+      bondparm <make1> [<mask2>] {setrk|scalerk|setreq|scalereq} <value>
+ }
 \end_layout
 
 \begin_deeper
@@ -13589,6 +13594,45 @@ removebonds
 
 <file>] If specified, write removed bonds to <file> with format '<residue
  name> <residue num> <atom name> <atom num>'.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+bondparm
+\begin_inset space ~
+\end_inset
+
+<mask1>
+\begin_inset space ~
+\end_inset
+
+[<mask2>]
+\begin_inset space ~
+\end_inset
+
+{setrk|scalerk|setreq|scalereq}
+\begin_inset space ~
+\end_inset
+
+<value> Modify bond parameters in bonds selected by <mask1> (and <mask2>
+ if specified) by specified <value>.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+setrk Set bond force constants to <value>.
+\end_layout
+
+\begin_layout Description
+scalerk Scale bond force constants by <value>.
+\end_layout
+
+\begin_layout Description
+setreq Set bond equilibrium lengths to <value>.
+\end_layout
+
+\begin_layout Description
+scalereq Scale bond equilibirum lengths by <value>.
 \end_layout
 
 \end_deeper
