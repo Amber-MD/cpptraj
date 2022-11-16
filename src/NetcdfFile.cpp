@@ -995,8 +995,8 @@ const
   // Loop over dimension chunk sizes
   for (unsigned int dim = 0; dim != dimids.size(); dim++) {
     if (tgtDimId == -1 || tgtDimId == dimids[dim]) {
-      mprintf("DEBUG: '%s' dim %u chunk size = %zu new size= %i\n",
-              vidDesc_[vtype], dim, chunkSizes[dim], chunkSizes[dim]*chunkFac);
+      mprintf("DEBUG: '%s' dim %u chunk size = %zu new size= %zu\n",
+              vidDesc_[vtype], dim, chunkSizes[dim], chunkSizes[dim]*(size_t)chunkFac);
       // Set new chunk size
       chunkSizes[dim] *= chunkFac;
     }
