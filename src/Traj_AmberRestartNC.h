@@ -46,6 +46,7 @@ class Traj_AmberRestartNC : public TrajectoryIO, private NetcdfFile {
     bool readAccess_;
     bool prependExt_;
     FileName filename_;
+    NC::FormatType ftype_;
 };
 #endif
 #endif

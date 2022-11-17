@@ -17,6 +17,8 @@ Constraints::Constraints() :
   degrees_of_freedom_(0)
 {}
 
+const int Constraints::maxIterations_ = 1000;
+
 static const char* shakeString_[] = {
   "off", "bonds to H", "all bonds"
 };
@@ -123,6 +125,75 @@ int Constraints::SetupConstraints(AtomMask const& mask, Topology const& top)
   return 0;
 }
 
+// Constraints::Rattle()
+int Constraints::Rattle(Frame& frameIn, Frame const& oldFrame)
+const
+{
+  static const double FAC = 1.2; // TODO make part of class
+  // Main loop
+  bool done = false;
+  int niterations = 0;
+  while (!done && (niterations < maxIterations_))
+  {
+    niterations++;
+    done = true;
+    // Loop over selected constrained bonds
+    for (Carray::const_iterator bnd = Bonds_.begin(); bnd != Bonds_.end(); ++bnd)
+    {
+        // Get the bond equilibrium length
+        double req = bnd->req_;
+        // Calculate bond vector
+        Vec3 dR = Vec3(frameIn.XYZ( bnd->at2_)) - Vec3(frameIn.XYZ( bnd->at1_ ));
+        // Bond length^2
+        double dist2 = dR.Magnitude2();
+        // Delta (squared)
+        double delta = req * req - dist2;
+
+        if ( fabs(delta) > EPS_ ) {
+          done = false;
+          Vec3 rOld = Vec3(oldFrame.XYZ( bnd->at2_)) - Vec3(oldFrame.XYZ( bnd->at1_ ));
+
+          double dot = dR * rOld;
+
+          double rma = 1.0 / frameIn.Mass( bnd->at1_ );
+          double rmb = 1.0 / frameIn.Mass( bnd->at2_ );
+
+          double term = FAC * delta / (2.0 * (rma + rmb) * dot);
+
+          Vec3 dTerm = rOld * term;
+
+          // Update positions
+          double* xyzArray = frameIn.xAddress();
+          int idx1 = bnd->at1_*3;
+          xyzArray[idx1  ] -= dTerm[0] * rma;
+          xyzArray[idx1+1] -= dTerm[1] * rma;
+          xyzArray[idx1+2] -= dTerm[2] * rma;
+          int idx2 = bnd->at2_*3;
+          xyzArray[idx2  ] += dTerm[0] * rmb;
+          xyzArray[idx2+1] += dTerm[1] * rmb;
+          xyzArray[idx2+2] += dTerm[2] * rmb;
+          // Update velocities
+          if (frameIn.HasVelocity()) {
+            rma = rma / dt_;
+            rmb = rmb / dt_;
+            double* vArray = frameIn.vAddress();
+            vArray[idx1  ] -= dTerm[0] * rma;
+            vArray[idx1+1] -= dTerm[1] * rma;
+            vArray[idx1+2] -= dTerm[2] * rma;
+            vArray[idx2  ] += dTerm[0] * rmb;
+            vArray[idx2+1] += dTerm[1] * rmb;
+            vArray[idx2+2] += dTerm[2] * rmb;
+          }
+        } // END abs delta > epsilon
+    } // END loop over constrained bonds
+  } // END main rattle loop
+  if (niterations > maxIterations_) {
+    mprinterr("Error: RATTLE took more than %i iterations.\n", maxIterations_);
+    return 1;
+  }
+  return 0;
+}
+
 // Constraints::Rattle2()
 int Constraints::Rattle2(Frame& frameIn)
 const
@@ -131,9 +202,8 @@ const
   // Main loop
   bool done = false;
   int niterations = 0;
-  static const int maxIterations = 1000;
   double* Vel = frameIn.vAddress();
-  while (!done && (niterations < maxIterations))
+  while (!done && (niterations < maxIterations_))
   {
     niterations++;
     done = true;
@@ -168,8 +238,8 @@ const
         }
     } // END loop over bonds
   } // END main rattle loop
-  if (niterations > maxIterations) {
-    mprinterr("Error: RATTLE took more than %i iterations.\n", maxIterations);
+  if (niterations > maxIterations_) {
+    mprinterr("Error: RATTLE2 took more than %i iterations.\n", maxIterations_);
     return 1;
   }
   return 0;

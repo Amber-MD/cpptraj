@@ -509,6 +509,9 @@ test.hremd:
 test.netcdfdata:
 	@-cd Test_NetcdfData && ./RunTest.sh $(OPT)
 
+test.compareenergy:
+	@-cd Test_CompareEnergy && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -669,7 +672,8 @@ COMPLETETESTS=test.general \
               test.hmassrepartition \
               test.prepareforleap \
               test.keep \
-              test.netcdfdata
+              test.netcdfdata \
+              test.compareenergy
 
 test.all:
 	$(MAKE) test.complete summary

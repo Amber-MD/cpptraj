@@ -8,6 +8,7 @@
 #include "CharMask.h"
 #include "ExclusionArray.h"
 #include "Energy/Ene_Angle.h"
+#include "Energy/Ene_Bond.h"
 
 const double Energy_Amber::QFAC = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
 
@@ -41,10 +42,7 @@ double Energy_Amber::CalcBondEnergy(Frame const& fIn, BondArray const& Bonds,
         continue;
       }
       BondParmType const& bp = BPA[bpidx];
-      double r2 = DIST2_NoImage( fIn.XYZ(b->A1()), fIn.XYZ(b->A2()) );
-      double r = sqrt(r2);
-      double rdiff = r - bp.Req();
-      double ene = bp.Rk() * (rdiff * rdiff);
+      double ene = Cpptraj::Energy::Ene_Bond<double>( fIn.XYZ(b->A1()), fIn.XYZ(b->A2()), bp.Req(), bp.Rk() );
       Ebond += ene;
 //      mprintf("EBOND %4li %4i -- %4i: k= %12.5f  x0= %12.5f  r= %12.5f  E= %12.5f\n",
 //              b - Bonds.begin(), b->A1()+1, b->A2()+1, bp.Rk(), bp.Req(), r, ene);

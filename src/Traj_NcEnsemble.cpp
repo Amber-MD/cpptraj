@@ -23,7 +23,8 @@ Traj_NcEnsemble::Traj_NcEnsemble() :
   ensembleEnd_(0),
   readAccess_(false),
   useVelAsCoords_(false),
-  useFrcAsCoords_(false)
+  useFrcAsCoords_(false),
+  ftype_(NC::NC_V3) // Default to NetCDF 3
 {}
 
 // DESTRUCTOR
@@ -57,7 +58,11 @@ int Traj_NcEnsemble::processReadArgs(ArgList& argIn) {
 
 // Traj_NcEnsemble::ID_TrajFormat()
 bool Traj_NcEnsemble::ID_TrajFormat(CpptrajFile& fileIn) {
-  return ( NC::GetConventions( fileIn.Filename().Full() ) == NC::NC_AMBERENSEMBLE );
+  ftype_ = NC::GetFormatType( fileIn.Filename().Full() );
+  if (ftype_ != NC::NC_NOTNC) {
+    return ( NC::GetConventions( fileIn.Filename().Full() ) == NC::NC_AMBERENSEMBLE );
+  }
+  return false;
 }
 
 // Traj_NcEnsemble::openTrajin()

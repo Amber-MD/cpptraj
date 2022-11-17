@@ -20,5 +20,6 @@ class Exec_Change : public Exec {
     static inline int FindBondTypeIdx(Topology const&, BondArray const&, TypeNameHolder const&);
     int AddBond(Topology&, ArgList&) const;
     int RemoveBonds(CpptrajState&, Topology&, ArgList&) const;
+    int ChangeBondParameters(Topology&, ArgList&) const;
 };
 #endif

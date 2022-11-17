@@ -8,7 +8,6 @@
 #include "ArgList.h"
 #include "Frame.h"
 #include "CpptrajFile.h"
-#include "NC_Routines.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString 
 
@@ -23,7 +22,8 @@ Traj_AmberRestartNC::Traj_AmberRestartNC() :
   useFrcAsCoords_(false),
   outputTemp_(false),
   readAccess_(false),
-  prependExt_(false)
+  prependExt_(false),
+  ftype_(NC::NC_V3) // Default to NetCDF 3
 {}
 
 // DESTRUCTOR
@@ -33,7 +33,10 @@ Traj_AmberRestartNC::~Traj_AmberRestartNC() {
 }
 
 bool Traj_AmberRestartNC::ID_TrajFormat(CpptrajFile& fileIn) {
-  if ( NC::GetConventions( fileIn.Filename().Full() ) == NC::NC_AMBERRESTART ) return true;
+  ftype_ = NC::GetFormatType( fileIn.Filename().Full() );
+  if (ftype_ != NC::NC_NOTNC) {
+    if ( NC::GetConventions( fileIn.Filename().Full() ) == NC::NC_AMBERRESTART ) return true;
+  }
   return false;
 }
 

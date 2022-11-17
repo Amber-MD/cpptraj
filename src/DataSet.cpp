@@ -31,6 +31,7 @@ const char* DataSet::Descriptions_[] = {
   "string variable",            // STRINGVAR
   "vector with scalar",         // VECTOR_SCALAR
   "unsigned integer",           // UNSIGNED_INTEGER
+  "frames",                     // FRAMES
   "unknown"                     // UNKNOWN_DATA
 };
 

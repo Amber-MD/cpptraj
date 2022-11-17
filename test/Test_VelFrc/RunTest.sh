@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles cpptraj.in CrdFrcVel.nc Vel.crd Frc.crd Vel1.crd Frc1.crd \
-           CrdFrcVel.ncrst.? fromncrst.nc
+           CrdFrcVel.ncrst.? fromncrst.nc trpzip2.*.crd
 
 TESTNAME='Read separate velocity/force trajectory data tests'
 Requires notparallel netcdf
@@ -64,6 +64,27 @@ trajout fromncrst.nc
 EOF
 RunCpptraj "Test reading combined coords/velocity/force NetCDF restart."
 NcTest CrdFrcVel.nc fromncrst.nc
+
+UNITNAME="Test reading coordinates, velocities, and forces from NetCDF trajectory."
+cat > cpptraj.in <<EOF
+parm ../trpzip2.ff14SB.mbondi3.parm7
+set TRJ = ../trpzip2.ff14SB.mbondi3.nc
+trajin \$TRJ
+trajout trpzip2.pos.crd
+run
+clear trajin
+trajin \$TRJ usevelascoords
+trajout trpzip2.vel.crd
+run
+clear trajin
+trajin \$TRJ usefrcascoords
+trajout trpzip2.frc.crd
+run
+EOF
+RunCpptraj "$UNITNAME"
+DoTest trpzip2.pos.crd.save trpzip2.pos.crd
+DoTest trpzip2.vel.crd.save trpzip2.vel.crd
+DoTest trpzip2.frc.crd.save trpzip2.frc.crd
 
 EndTest
 exit 0

@@ -170,6 +170,7 @@ COMMON_SOURCES= \
         DataFileList.cpp \
         DataFilter.cpp \
         DataIO.cpp \
+        DataIO_AmberEne.cpp \
         DataIO_CCP4.cpp \
         DataIO_CharmmFastRep.cpp \
         DataIO_CharmmOutput.cpp \
@@ -196,6 +197,7 @@ COMMON_SOURCES= \
         DataSet_3D.cpp \
         DataSet_Coords.cpp \
         DataSet_Coords_CRD.cpp \
+        DataSet_Coords_FRM.cpp \
         DataSet_Coords_REF.cpp \
         DataSet_Coords_TRJ.cpp \
         DataSet_GridDbl.cpp \
@@ -251,6 +253,7 @@ COMMON_SOURCES= \
         Exec_CombineCoords.cpp \
         Exec_Commands.cpp \
         Exec_CompareClusters.cpp \
+        Exec_CompareEnergy.cpp \
         Exec_CompareTop.cpp \
         Exec_CrdAction.cpp \
         Exec_CrdOut.cpp \
@@ -409,6 +412,8 @@ COMMON_SOURCES= \
         Traj_GmxTrX.cpp \
         Traj_GmxXtc.cpp \
         Traj_Gro.cpp \
+        Traj_H5.cpp \
+        Traj_H5MD.cpp \
         Traj_Mol2File.cpp \
         Traj_NcEnsemble.cpp \
         Traj_PDBfile.cpp \
@@ -425,6 +430,7 @@ COMMON_SOURCES= \
         TrajIOarray.cpp \
         Trajout_Single.cpp \
         TrajoutList.cpp \
+        Units.cpp \
         Vec3.cpp \
         ViewRst.cpp \
         vmdplugin/dtrplugin.cpp \

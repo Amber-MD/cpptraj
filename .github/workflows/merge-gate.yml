@@ -63,16 +63,6 @@ jobs:
           mkdir -p include && mv AmberTools/src/sander/sander.h include
           mv lib include $HOME
 
-          curl -OL ftp://ftp.unidata.ucar.edu/pub/netcdf/netcdf-4.6.1.tar.gz
-          tar -zxf netcdf-4.6.1.tar.gz
-          cd netcdf-4.6.1
-          ./configure --disable-netcdf-4 --disable-dap --disable-doxygen --prefix=$HOME
-          make -j2
-          make install
-          cd ..
-          export PATH=$HOME/bin:$PATH
-          export LD_LIBRARY_PATH=$HOME/lib:${LD_LIBRARY_PATH}
-
           if [ $USE_OPENMP = "yes" ]; then
             export OPT="openmp"
             export OMP_NUM_THREADS=4
@@ -105,6 +95,16 @@ jobs:
           fi
 
           if [ "$USE_CMAKE" = "1" ]; then
+            curl -OL ftp://ftp.unidata.ucar.edu/pub/netcdf/netcdf-4.6.1.tar.gz
+            tar -zxf netcdf-4.6.1.tar.gz
+            cd netcdf-4.6.1
+            ./configure --disable-netcdf-4 --disable-dap --disable-doxygen --prefix=$HOME
+            make -j2
+            make install
+            cd ..
+            export PATH=$HOME/bin:$PATH
+            export LD_LIBRARY_PATH=$HOME/lib:${LD_LIBRARY_PATH}
+
             mkdir build install
             installdir=$(pwd)
             cd build
@@ -117,7 +117,8 @@ jobs:
             export PATH=$installdir/bin:$PATH
           else
             export LD_LIBRARY_PATH=$HOME/lib:${LD_LIBRARY_PATH}
-            ./configure --with-netcdf=$HOME ${BUILD_FLAGS} ${COMPILER}
+            ./configure --buildlibs ${BUILD_FLAGS} ${COMPILER}
+            source cpptraj.sh
             make -j2 install
           fi
           cd test && make $TEST_TYPE

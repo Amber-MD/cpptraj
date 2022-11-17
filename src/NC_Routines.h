@@ -14,9 +14,20 @@ namespace NC {
   };
   /// \return NetCDF conventions of file with given name.
   ConventionsType GetConventions(std::string const&);
+  /// Recognized NetCDF file types (previously NetcdfFile::NC_FMT_TYPE). MUST MATCH NC_FmtTypeStr_ in NC_Routines.cpp
+  enum FormatType {
+    NC_V3 = 0, ///< NetCDF V3 (classic)
+    NC_V4,     ///< NetCDF V4 (really HDF5)
+    NC_NOTNC   ///< Unrecognized format type
+  };
+  /// \return String corresponding to given FormatType
+  const char* fmtTypeStr(FormatType);
+  /// \return Format type of file with given name.
+  FormatType GetFormatType(std::string const&);
 }
 #ifdef BINTRAJ
 // Routines that require NetCDF
+#include <vector>
 namespace NC {
   /// \return true if given code is error and print message, false otherwise.
   bool CheckErr(int);
@@ -38,6 +49,12 @@ namespace NC {
   const char* conventionsStr(ConventionsType);
   /// Put specified conventions string to given NetCDF id.
   int PutConventions(int, ConventionsType);
+# ifdef HAS_HDF5
+  /// \return Array of group names, set array with ncids
+  std::vector<std::string> GetGroupNames(int, std::vector<int>&);
+  /// \return Array of group names
+  std::vector<std::string> GetGroupNames(int);
+# endif
 }
 #endif /* BINTRAJ */
 #endif

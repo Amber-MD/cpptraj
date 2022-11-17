@@ -10,7 +10,6 @@
 #include "Topology.h"
 #include "Frame.h"
 #include "CpptrajStdio.h"
-#include "NC_Routines.h"
 #ifdef MPI
 # include "ParallelNetcdf.h"
 #endif
@@ -24,7 +23,14 @@ Traj_AmberNetcdf::Traj_AmberNetcdf() :
   outputTemp_(false),
   write_mdcrd_(false),
   write_mdvel_(false),
-  write_mdfrc_(false)
+  write_mdfrc_(false),
+  compress_(0),
+  icompress_(0),
+# ifdef HAS_HDF5
+  fchunkSize_(0),
+  ishuffle_(1),
+# endif
+  ftype_(NC::NC_V3) // Default to NetCDF 3
 {}
 
 // DESTRUCTOR
@@ -36,7 +42,10 @@ Traj_AmberNetcdf::~Traj_AmberNetcdf() {
 }
 
 bool Traj_AmberNetcdf::ID_TrajFormat(CpptrajFile& fileIn) {
-  if ( NC::GetConventions( fileIn.Filename().Full() ) == NC::NC_AMBERTRAJ ) return true;
+  ftype_ = NC::GetFormatType( fileIn.Filename().Full() );
+  if (ftype_ != NC::NC_NOTNC) {
+    if ( NC::GetConventions( fileIn.Filename().Full() ) == NC::NC_AMBERTRAJ ) return true;
+  }
   return false;
 } 
 
@@ -94,10 +103,16 @@ int Traj_AmberNetcdf::setupTrajin(FileName const& fname, Topology* trajParm)
 }
 
 void Traj_AmberNetcdf::WriteHelp() {
-  mprintf("\tremdtraj: Write temperature to trajectory (makes REMD trajectory).\n"
-          "\tmdvel   : Write only velocities to trajectory.\n"
-          "\tmdfrc   : Write only forces to trajectory.\n"
-          "\tmdcrd   : Write coordinates to trajectory (only required with mdvel/mdfrc).\n");
+  mprintf("\tremdtraj     : Write temperature to trajectory (makes REMD trajectory).\n"
+          "\tmdvel        : Write only velocities to trajectory.\n"
+          "\tmdfrc        : Write only forces to trajectory.\n"
+          "\tmdcrd        : Write coordinates to trajectory (only required with mdvel/mdfrc).\n"
+#         ifdef HAS_HDF5
+          "\thdf5         : Create file as NetCDF4/HDF5 instead of NetCDF4 (classic).\n"
+          "\tcompress     : Use compression in HDF5 file.\n"
+          "\ticompress    : Use lossy compression in HDF5 file via conversion to integers.\n"
+#         endif
+         );
 }
 
 // Traj_AmberNetcdf::processWriteArgs()
@@ -110,6 +125,50 @@ int Traj_AmberNetcdf::processWriteArgs(ArgList& argIn, DataSetList const& DSLin)
     mprintf("Warning: The 'force' keyword is no longer necessary and has been deprecated.\n");
   write_mdvel_ = argIn.hasKey("mdvel");
   write_mdfrc_ = argIn.hasKey("mdfrc");
+  if (argIn.hasKey("hdf5")) {
+#   ifdef HAS_HDF5
+    ftype_ = NC::NC_V4;
+#   else
+    mprinterr("Error: HDF5 output requested but cpptraj compiled without HDF5 support.\n");
+    return 1;
+#   endif
+  }
+# ifdef HAS_HDF5
+  // HDF5-specific options
+  if (ftype_ == NC::NC_V4) {
+    // Regular compression
+    if (argIn.hasKey("compress"))
+      // Use recommended compression level
+      compress_ = 1;
+    else
+      compress_ = argIn.getKeyInt("deflatelvl", 0); // NOTE: Hidden option
+    if (compress_ < 0) {
+      mprinterr("Error: compress cannot be negative.\n");
+      return 1;
+    }
+    // Integer compression
+    if (argIn.hasKey("icompress"))
+      // Use recommended integer compression power
+      icompress_ = 4;
+    else
+      icompress_ = argIn.getKeyInt("icompresspow", 0); // NOTE: Hidden option
+    if (icompress_ < 0) {
+      mprinterr("Error: icompress cannot be negative.\n");
+      return 1;
+    }
+    // icompress implies compress
+    if (icompress_ > 0 && compress_ < 1)
+      compress_ = 1;
+    // integer shuffle
+    ishuffle_ = argIn.getKeyInt("ishuffle", 1); // NOTE: Hidden option
+    // Frame chunk size
+    fchunkSize_ = argIn.getKeyInt("fchunksize", 0); // NOTE: Hidden option
+    if (fchunkSize_ < 0) {
+      mprinterr("Error: fchunksize cannot be negative.\n");
+      return 1;
+    }
+  }
+# endif
   return 0;
 }
 
@@ -151,11 +210,26 @@ int Traj_AmberNetcdf::setupTrajout(FileName const& fname, Topology* trajParm,
     // Set up title
     if (Title().empty())
       SetTitle("Cpptraj Generated trajectory");
+#   ifdef HAS_HDF5
+    // Set compression levels
+    if (compress_ > 0 || icompress_ > 0) {
+      if (SetupCompression(compress_, icompress_, ishuffle_))
+        return 1;
+    }
+    // Set frame chunk size
+    if (fchunkSize_ > 0) SetFrameChunkSize(fchunkSize_);
+#   endif
     // Create NetCDF file.
-    if (NC_create( filename_.Full(), NC::NC_AMBERTRAJ, trajParm->Natom(), CoordInfo(),
+    if (NC_create( ftype_, filename_.Full(), NC::NC_AMBERTRAJ, trajParm->Natom(), CoordInfo(),
                    Title(), debug_ ))
       return 1;
-    // Close Netcdf file. It will be reopened write. TODO should NC_create leave it closed?
+//#   ifdef HAS_HDF5
+//    // Set up for integer compression if necessary
+//    if (icompress_ > 0) {
+//      if (NC_createIntCompressed(icompress_)) return 1;
+//    }
+//#   endif
+    // Close Netcdf file. It will be reopened write. FIXME should NC_create leave it closed?
     NC_close();
     // Allocate memory
     if (Coord_!=0) delete[] Coord_;
@@ -219,12 +293,19 @@ int Traj_AmberNetcdf::readFrame(int set, Frame& frameIn) {
     frameIn.SetTime( (double)time );
   }
 
-  // Read Coords 
-  if ( NC::CheckErr(nc_get_vara_float(ncid_, coordVID_, start_, count_, Coord_)) ) {
-    mprinterr("Error: Getting coordinates for frame %i\n", set+1);
-    return 1;
+  // Read Coords
+ # ifdef HAS_HDF5
+  if (CompressedPosVID() != -1) {
+    if (NC_readIntCompressed(set, frameIn)) return 1;
+  } else
+# endif
+  if (coordVID_ != -1) {
+    if ( NC::CheckErr(nc_get_vara_float(ncid_, coordVID_, start_, count_, Coord_)) ) {
+      mprinterr("Error: Getting coordinates for frame %i\n", set+1);
+      return 1;
+    }
+    FloatToDouble(frameIn.xAddress(), Coord_);
   }
-  FloatToDouble(frameIn.xAddress(), Coord_);
 
   // Read Velocities
   if (velocityVID_ != -1) {
@@ -329,6 +410,11 @@ int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
   count_[2] = 3;
 
   // Write coords.
+# ifdef HAS_HDF5
+  if (CompressedPosVID() != -1) {
+    if (NC_writeIntCompressed(frameOut)) return 1;
+  } else
+# endif
   if (coordVID_ != -1) {
     DoubleToFloat(Coord_, frameOut.xAddress());
     if (NC::CheckErr(nc_put_vara_float(ncid_,coordVID_,start_,count_,Coord_)) ) {
@@ -413,13 +499,17 @@ int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
 
 // Traj_AmberNetcdf::Info()
 void Traj_AmberNetcdf::Info() {
-  mprintf("is a NetCDF AMBER trajectory");
+  static const char* fvstr[3] = { "?", "V3", "HDF5" };
+  mprintf("is a NetCDF (%s) AMBER trajectory", fvstr[ftype_]);
   if (readAccess_) {
     mprintf(" with %s", CoordInfo().InfoString().c_str());
     if (useVelAsCoords_) mprintf(" (using velocities as coordinates)");
     if (useFrcAsCoords_) mprintf(" (using forces as coordinates)");
     if (remd_dimension_ > 0) mprintf(", %i replica dimensions", remd_dimension_);
-  } 
+  } else {
+    if (compress_ > 0) mprintf(", with compression");
+    if (icompress_ > 0) mprintf(", with integer-compressed coordinates");
+  }
 }
 #ifdef MPI
 #ifdef HAS_PNETCDF
@@ -454,6 +544,12 @@ int Traj_AmberNetcdf::parallelSetupTrajout(FileName const& fname, Topology* traj
                                            Parallel::Comm const& commIn)
 {
   int err = 0;
+  if (ftype_ == NC::NC_V4) {
+    if (commIn.Size() > 1) {
+      mprinterr("Error: NetCDF4/HDF5 write not yet supported for > 1 process.\n");
+      return 1;
+    }
+  }
   if (commIn.Master()) {
     err = setupTrajout(fname, trajParm, cInfoIn, NframesToWrite, append);
     // NOTE: setupTrajout leaves file open. Should this change?
