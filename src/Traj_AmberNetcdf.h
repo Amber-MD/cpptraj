@@ -45,6 +45,13 @@ class Traj_AmberNetcdf : public TrajectoryIO, private NetcdfFile {
     bool write_mdcrd_;    ///< If true write out coordinates
     bool write_mdvel_;    ///< If true write out velocities
     bool write_mdfrc_;    ///< If true write out forces
+    int compress_;        ///< HDF5 compression level
+    int icompress_;       ///< HDF5 integer compression level
+#   ifdef HAS_HDF5
+    int fchunkSize_;      ///< HDF5 frame chunk size
+    int ishuffle_;        ///< HDF5 integer shuffle (1 = on, 0 = off)
+#   endif
+    NC_FMT_TYPE ftype_;   ///< Base format type 
 };
 #endif
 #endif

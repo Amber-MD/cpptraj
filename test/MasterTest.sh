@@ -37,6 +37,7 @@
 #   CPPTRAJ_ZLIB         : If set CPPTRAJ has zlib support.
 #   CPPTRAJ_BZLIB        : If set CPPTRAJ has bzip support.
 #   CPPTRAJ_NETCDFLIB    : If set CPPTRAJ has NetCDF support.
+#   CPPTRAJ_HDF5         : If set CPPTRAJ has NetCDF4/HDF5 support.
 #   CPPTRAJ_C11_SUPPORT  : If set CPPTRAJ has C++11 support.
 #   CPPTRAJ_LIBPME       : If set CPPTRAJ was compiled with libPME.
 #   CPPTRAJ_MPILIB       : If set CPPTRAJ has MPI support.
@@ -813,6 +814,7 @@ CheckDefines() {
       '-DHASGZ'         ) export CPPTRAJ_ZLIB=$DEFINE ;;
       '-DHASBZ2'        ) export CPPTRAJ_BZLIB=$DEFINE ;;
       '-DBINTRAJ'       ) export CPPTRAJ_NETCDFLIB=$DEFINE ;;
+      '-DHAS_HDF5'      ) export CPPTRAJ_HDF5=$DEFINE ;;
       '-DC11_SUPPORT'   ) export CPPTRAJ_C11_SUPPORT=$DEFINE ;;
       '-DLIBPME'        ) export CPPTRAJ_LIBPME=$DEFINE ;;
       '-DMPI'           ) export CPPTRAJ_MPILIB=$DEFINE ;;
@@ -1032,6 +1034,7 @@ CheckEnv() {
     #echo "DEBUG: $DESCRIP: Checking requirement: $1"
     case "$1" in
       'netcdf'    ) TestLibrary "NetCDF"             "$CPPTRAJ_NETCDFLIB" ;;
+      'hdf5'      ) TestLibrary "HDF5"               "$CPPTRAJ_HDF5" ;;
       'c++11'     ) TestLibrary "C++11"              "$CPPTRAJ_C11_SUPPORT" ;;
       'libpme'    ) TestLibrary "libPME"             "$CPPTRAJ_LIBPME" ;;
       'zlib'      ) TestLibrary "Zlib"               "$CPPTRAJ_ZLIB" ;;

@@ -2,6 +2,7 @@
 #define INC_NC_ROUTINES_H
 #ifdef BINTRAJ
 #include <string>
+#include <vector>
 namespace NC {
   /// \return true if given code is error and print message, false otherwise.
   bool CheckErr(int);
@@ -15,6 +16,12 @@ namespace NC {
   int GetDimInfo(int, const char*, int&);
   /// Print debug info to STDOUT
   void Debug(int);
+# ifdef HAS_HDF5
+  /// \return Array of group names, set array with ncids
+  std::vector<std::string> GetGroupNames(int, std::vector<int>&);
+  /// \return Array of group names
+  std::vector<std::string> GetGroupNames(int);
+# endif
 }
 #endif /* BINTRAJ */
 #endif

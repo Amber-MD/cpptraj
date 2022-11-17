@@ -29,6 +29,7 @@
 #include "DataIO_Cmatrix_Binary.h"
 #include "DataIO_Cmatrix_NC.h"
 #include "DataIO_Peaks.h"
+#include "DataIO_AmberEne.h"
 
 // CONSTRUCTOR
 DataFile::DataFile() :
@@ -75,6 +76,7 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
   { "Pairwise Cache (NetCDF)", 0,                        0,          0 },
 # endif
   { "Peaks",              0,                             0,            DataIO_Peaks::Alloc },
+  { "Amber Energy File",  0,                             0,            DataIO_AmberEne::Alloc},
   { "Unknown Data file",  0,                       0,                        0                    }
 };
 
@@ -91,12 +93,13 @@ const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
   { EVECS,        "evecs",  ".evecs" },
   { XVG,          "xvg",    ".xvg"   },
   { CCP4,         "ccp4",   ".ccp4"  },
-  { CHARMMREPD,   "charmmrepd",".exch" },
-  { CHARMMOUT,    "charmmout", ".charmmout"},
+  { CHARMMREPD,   "charmmrepd",   ".exch" },
+  { CHARMMOUT,    "charmmout",    ".charmmout"},
   { CHARMMRTFPRM, "charmmrtfprm", ".rtfprm"},
-  { CMATRIX_BINARY,"cmatrix",".cmatrix" },
-  { CMATRIX_NETCDF,"nccmatrix", ".nccmatrix" },
-  { PEAKS,        "peaks",  ".peaks" },
+  { CMATRIX_BINARY,"cmatrix",     ".cmatrix" },
+  { CMATRIX_NETCDF,"nccmatrix",   ".nccmatrix" },
+  { PEAKS,        "peaks",        ".peaks" },
+  { AMBERENE,     "amberene",     ".ene" },
   { UNKNOWN_DATA, 0,        0        }
 };
 
