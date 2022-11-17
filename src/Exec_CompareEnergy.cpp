@@ -1,5 +1,6 @@
 #include <cmath>
 #include <cstdio> // sprintf
+#include <algorithm> // std::max
 #include "Exec_CompareEnergy.h"
 #include "CpptrajStdio.h"
 #include "DataSet_double.h"

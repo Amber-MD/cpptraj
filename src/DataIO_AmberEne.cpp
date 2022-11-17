@@ -2,6 +2,7 @@
 #include "BufferedLine.h"
 #include "CpptrajStdio.h"
 #include <cstdlib> // atoi, atof
+#include <algorithm> // std::max
 
 /// CONSTRUCTOR
 DataIO_AmberEne::DataIO_AmberEne()
