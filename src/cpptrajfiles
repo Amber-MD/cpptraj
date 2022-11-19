@@ -486,6 +486,7 @@ LIBCPPTRAJ_CORE_OBJECTS= \
   Parallel.o \
   Range.o \
   Residue.o \
+  Units.o \
   Vec3.o
 
 # These objects contain basic file-related functionality. Requires core library
@@ -565,6 +566,8 @@ LIBCPPTRAJ_TRAJ_OBJECTS= \
   Traj_GmxTrX.o \
   Traj_GmxXtc.o \
   Traj_Gro.o \
+  Traj_H5.o \
+  Traj_H5MD.o \
   Traj_Mol2File.o \
   Traj_NcEnsemble.o \
   Traj_PDBfile.o \
