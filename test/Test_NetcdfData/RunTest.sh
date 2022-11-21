@@ -9,7 +9,7 @@ CleanFiles ncdata.in d1.nc d1.dat rmsf.dat ascii.dat.save ascii.dat \
            ca.rms2d.dat \
            MyEvecs.dat.save MyEvecs.dat WrittenEvecs.dat \
            heavyAtom.matrix.dat.save heavyAtom.matrix.dat \
-           grid.nc grid.dx.save
+           grid.nc grid.dx.save grid.dx
 
 TESTNAME='NetCDF data file tests.'
 Requires netcdf
@@ -107,6 +107,12 @@ run
 writedata grid.dx.save opendx MyGrid
 EOF
   RunCpptraj "$UNITNAME"
+#  cat > ncdata.in <<EOF
+#readdata grid.nc name MyGrid
+#writedata grid.dx opendx MyGrid
+#EOF
+#  RunCpptraj "Read basic 3D NetCDF data"
+#  DoTest grid.dx.save grid.dx
 }
 
 Write1d
