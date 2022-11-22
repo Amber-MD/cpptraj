@@ -38,6 +38,8 @@ class DataIO_NetCDF : public DataIO {
 
     int readData_2D(DataSet*, NcVar const&, VarArray&) const;
 
+    int readData_3D(DataSet*, NcVar const&, VarArray&) const;
+
     int readData_modes(DataSet*, NcVar const&, VarArray&) const;
 
     int read_cpptraj_vars(DataSetList&, std::string const&, VarArray&) const;

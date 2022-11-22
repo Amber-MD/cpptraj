@@ -458,6 +458,49 @@ int DataIO_NetCDF::readData_2D(DataSet* ds, NcVar const& matVar, VarArray& Vars)
   return 0;
 }
 
+/** Read 3D grid with CPPTRAJ conventions. */
+int DataIO_NetCDF::readData_3D(DataSet* ds, NcVar const& gridVar, VarArray& Vars) const {
+  // ----- 3D Grid ---------------------
+  // Get nx/ny/nz 
+  int nx, ny, nz;
+  int ret = GetVarIntAtt(nx, "nx", ncid_, gridVar.VID());
+  if (ret != 0) {
+    mprinterr("Error: Could not get 'nx'.\n");
+    return 1;
+  }
+  ret = GetVarIntAtt(ny, "ny", ncid_, gridVar.VID());
+  if (ret != 0) {
+    mprinterr("Error: Could not get 'ny'.\n");
+    return 1;
+  }
+  ret = GetVarIntAtt(nz, "nz", ncid_, gridVar.VID());
+  if (ret != 0) {
+    mprinterr("Error: Could not get 'nz'.\n");
+    return 1;
+  }
+
+  // Allocate
+  DataSet_3D& grid = static_cast<DataSet_3D&>( *ds );
+  int allocErr = 0;
+
+  if (allocErr != 0) {
+    mprinterr("Error: Could not allocate grid.\n");
+    return 1;
+  }
+  // Read values
+  size_t start[1];
+  size_t count[1];
+  start[0] = 0;
+  count[0] = dimLen(gridVar.DimId(0));
+  if (NC::CheckErr(nc_get_vara(ncid_, gridVar.VID(), start, count, (void*)(grid.GridPtr())))) {
+    mprinterr("Error: Could not get values for grid.\n");
+    return 1;
+  }
+  Vars[gridVar.VID()].MarkRead();
+
+  return 0;
+}
+
 /** Read modes data with CPPTRAJ conventions. */
 int DataIO_NetCDF::readData_modes(DataSet* ds, NcVar const& modesVar, VarArray& Vars) const {
   // ----- Modes -----------------
@@ -1179,6 +1222,20 @@ int DataIO_NetCDF::writeData_3D(DataSet const* ds) {
   if (AddDataSetIntAtt( set.NX(), "nx", ncid_, gridVar.VID() )) return 1;
   if (AddDataSetIntAtt( set.NY(), "ny", ncid_, gridVar.VID() )) return 1;
   if (AddDataSetIntAtt( set.NZ(), "nz", ncid_, gridVar.VID() )) return 1;
+  // Store the origin
+  if (NC::CheckErr(nc_put_att_double(ncid_, gridVar.VID(), "origin", NC_DOUBLE, 3,
+                                     set.Bin().GridOrigin().Dptr() )))
+  {
+    mprinterr("Error: Could not put attribute 'origin'.\n");
+    return 1;
+  }
+  // Store the unit cell vectors
+  if (NC::CheckErr(nc_put_att_double(ncid_, gridVar.VID(), "ucell", NC_DOUBLE, 9,
+                                     set.Bin().GridBox().UnitCell().Dptr() )))
+  {
+    mprinterr("Error: Could not put attribute 'ucell'.\n");
+    return 1;
+  }
   // END define variable
   if (EndDefineMode( ncid_ )) return 1;
   // Write the grid 
