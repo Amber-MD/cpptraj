@@ -4,11 +4,12 @@
 
 CleanFiles ncdata.in d1.nc d1.dat rmsf.dat ascii.dat.save ascii.dat \
            matrix.nc \
-           ca.matrix.nc ca.matrix.dat \
-           n.ca.matrix.nc n.ca.matrix.dat \
-           ca.rms2d.dat \
+           ca.matrix.nc ca.matrix.dat ca.matrix.dat.save \
+           n.ca.matrix.nc n.ca.matrix.dat n.ca.matrix.dat.save \
+           ca.rms2d.dat ca.rms2d.dat.save \
            MyEvecs.dat.save MyEvecs.dat WrittenEvecs.dat \
            heavyAtom.matrix.dat.save heavyAtom.matrix.dat \
+           heavyEvecs.dat.save heavyEvecs.dat \
            grid.nc grid.dx.save grid.dx
 
 TESTNAME='NetCDF data file tests.'
