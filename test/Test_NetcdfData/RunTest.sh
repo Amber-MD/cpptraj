@@ -108,12 +108,12 @@ run
 writedata grid.dx.save opendx MyGrid
 EOF
   RunCpptraj "$UNITNAME"
-#  cat > ncdata.in <<EOF
-#readdata grid.nc name MyGrid
-#writedata grid.dx opendx MyGrid
-#EOF
-#  RunCpptraj "Read basic 3D NetCDF data"
-#  DoTest grid.dx.save grid.dx
+  cat > ncdata.in <<EOF
+readdata grid.nc name MyGrid
+writedata grid.dx opendx MyGrid
+EOF
+  RunCpptraj "Read basic 3D NetCDF data"
+  DoTest grid.dx.save grid.dx
 }
 
 Write1d

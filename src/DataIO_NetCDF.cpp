@@ -177,6 +177,21 @@ static inline int GetVarDblAtt(double& dval, const char* desc, int ncid, int var
   return 0;
 }
 
+/// Get double attribute array from variable
+static inline int GetVarDblArrayAtt(double* darray, const char* desc, int ncid, int varid)
+{
+  int ncerr = nc_get_att_double(ncid, varid, desc, darray);
+  if (ncerr != NC_NOERR) {
+    if (ncerr != NC_ENOTATT) {
+      NC::CheckErr(ncerr);
+      mprinterr("Error: Could not get '%s' attribute array.\n", desc);
+      return 1;
+    }
+    return -1;
+  }
+  return 0;
+}
+
 /// Get DataSet metadata from a variable
 static inline MetaData GetVarMetaData(int& errStat, int ncid, int varid)
 {
@@ -478,11 +493,35 @@ int DataIO_NetCDF::readData_3D(DataSet* ds, NcVar const& gridVar, VarArray& Vars
     mprinterr("Error: Could not get 'nz'.\n");
     return 1;
   }
+  // Get origin
+  double oxyz[3];
+  ret = GetVarDblArrayAtt(oxyz, "origin", ncid_, gridVar.VID());
+  if (ret == 1) {
+    mprinterr("Error: Could not get attribute 'origin'.\n");
+    return 1;
+  } else if (ret == -1) {
+    mprinterr("Error: Missing attribute 'origin'.\n");
+    return 1;
+  }
+  // Get ucell
+  double ucell[9];
+  ret = GetVarDblArrayAtt(ucell, "ucell", ncid_, gridVar.VID());
+  if (ret == 1) {
+    mprinterr("Error: Could not get attribute 'ucell'.\n");
+    return 1;
+  } else if (ret == -1) {
+    mprinterr("Error: Missing attribute 'ucell'.\n");
+    return 1;
+  }
+  Box gridBox;
+  if (gridBox.SetupFromUcell( ucell )) {
+    mprinterr("Error: Could not set up grid unit cell.\n");
+    return 1;
+  }
 
   // Allocate
   DataSet_3D& grid = static_cast<DataSet_3D&>( *ds );
-  int allocErr = 0;
-
+  int allocErr = grid.Allocate_N_O_Box( nx, ny, nz, Vec3(oxyz), gridBox );
   if (allocErr != 0) {
     mprinterr("Error: Could not allocate grid.\n");
     return 1;
@@ -497,6 +536,8 @@ int DataIO_NetCDF::readData_3D(DataSet* ds, NcVar const& gridVar, VarArray& Vars
     return 1;
   }
   Vars[gridVar.VID()].MarkRead();
+  // DEBUG
+  grid.GridInfo();
 
   return 0;
 }
@@ -622,6 +663,9 @@ const
           return 1;
       } else if (ds->Group() == DataSet::MATRIX_2D) {
         if (readData_2D(ds, *var, Vars))
+          return 1;
+      } else if (ds->Group() == DataSet::GRID_3D) {
+        if (readData_3D(ds, *var, Vars))
           return 1;
       } else if ( dtype == DataSet::MODES ) {
         if (readData_modes(ds, *var, Vars))
