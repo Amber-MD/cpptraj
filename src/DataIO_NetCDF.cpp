@@ -1165,10 +1165,7 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
       count[0] = lengthDim.Size();
 
       DataSet_Mesh const& ds1d = static_cast<DataSet_Mesh const&>( *(dset->DS()) );
-      std::vector<double> const& idxs = ds1d.MeshX(); // TODO access from XYMESH directly
-      //idxs.reserve(ds1d.Size());
-      //for (unsigned int ii = 0; ii < ds1d.Size(); ii++)
-      //  idxs.push_back( ds1d.Xcrd(ii) );
+      std::vector<double> const& idxs = ds1d.MeshX();
       if (NC::CheckErr(nc_put_vara(ncid_, set_vars[1].VID(), start, count, &idxs[0]))) {
         mprinterr("Error: Could not write X variable from '%s'\n", ds1d.legend());
         return 1;
