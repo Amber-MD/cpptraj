@@ -361,6 +361,11 @@ int DataIO_NetCDF::readData_1D_xy(DataSet* ds, NcVar const& yVar, VarArray& Vars
   return 0;
 }
 
+/** Read string set with CPPTRAJ conventions. */
+int DataIO_NetCDF::readData_1D_string(DataSet* ds, NcVar const& yVar, VarArray& Vars) const {
+  return 1;
+}
+
 /** Read 1D array with CPPTRAJ conventions. */
 int DataIO_NetCDF::readData_1D(DataSet* ds, NcVar const& yVar, VarArray& Vars) const {
   // ----- 1D Scalar -------------
@@ -1094,6 +1099,10 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
       NcVar lengthsVar = defineVar(lengthDim.DID(), NC_INT, strSet.Meta().PrintName(), "strlengths");
       if (lengthsVar.Empty()) return 1;
       set_vars.push_back( lengthsVar );
+      if (AddDataSetIntAtt(lengthsVar.VID(), "lengthsid", ncid_, charsVar.VID())) {
+        mprinterr("Error: Could not add 'lengthsid' attribute to characters variable.\n");
+        return 1;
+      }
     } else if (it->DS()->Type() == DataSet::XYMESH) {
       // ----- XY mesh set -------------
       // Define the Y variable
@@ -1464,7 +1473,7 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
         mprinterr("Error: grid set write failed.\n");
         return 1;
       }
-    } else if (ds->Group() == DataSet::SCALAR_1D) {
+    } else if (ds->Group() == DataSet::SCALAR_1D || ds->Type() == DataSet::STRING) {
       // ----- 1D scalar -------------------------
       SetArray sets(1, Set(ds));
       setPool.MarkUsed( idx );
@@ -1473,9 +1482,11 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
       for (unsigned int jdx = idx + 1; jdx < setPool.Nsets(); jdx++)
       {
         DataSet const* ds2 = setPool.Set( jdx );
-        if (ds->Size() == ds2->Size() && dim == ds2->Dim(0)) {
-          sets.push_back( Set(ds2) );
-          setPool.MarkUsed( jdx );
+        if (ds2->Group() == DataSet::SCALAR_1D || ds2->Type() == DataSet::STRING) {
+          if (ds->Size() == ds2->Size() && dim == ds2->Dim(0)) {
+            sets.push_back( Set(ds2) );
+            setPool.MarkUsed( jdx );
+          }
         }
       }
       if (writeData_1D(ds, dim, sets)) {
