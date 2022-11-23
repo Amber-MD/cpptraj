@@ -10,7 +10,8 @@ CleanFiles ncdata.in d1.nc d1.dat rmsf.dat ascii.dat.save ascii.dat \
            MyEvecs.dat.save MyEvecs.dat WrittenEvecs.dat \
            heavyAtom.matrix.dat.save heavyAtom.matrix.dat \
            heavyEvecs.dat.save heavyEvecs.dat \
-           grid.nc grid.dx.save grid.dx
+           grid.nc grid.dx.save grid.dx \
+           hbond.nc hbond.dat.save hbond.dat
 
 TESTNAME='NetCDF data file tests.'
 Requires netcdf
@@ -116,9 +117,36 @@ EOF
   DoTest grid.dx.save grid.dx
 }
 
+#Closest() {
+#  UNITNAME='Write scalar and string data'
+#  cat > ncdata.in <<EOF
+#parm ../tz2.ortho.parm7
+#trajin ../tz2.ortho.nc
+#closest 10 ^1 closestout closest.nc name Closest
+#run
+#writedata closest.dat.save Closest[*]
+#EOF
+#  RunCpptraj "$UNITNAME"
+#}
+
+Hbond() {
+  UNITNAME='Write scalar and string data'
+  cat > ncdata.in <<EOF
+parm ../tz2.ortho.parm7
+trajin ../tz2.ortho.nc
+autoimage origin
+hbond HB ^1 solventdonor :WAT solventacceptor :WAT@O out hbond.nc
+run
+writedata hbond.dat.save HB[*]
+EOF
+  RunCpptraj "$UNITNAME"
+}
+
 Write1d
 Read1d
 Write2d
 Write3d
+#Closest
+Hbond
 
 EndTest
