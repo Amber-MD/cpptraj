@@ -1101,10 +1101,11 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
   if (EnterDefineMode(ncid_)) return 1;
   int dimIdx = defineDim( "length", ds->Size(), ds->Meta().Legend() );
   if (dimIdx < 0) return 1;
+  NcDim lengthDim = Dimensions_[dimIdx];
   
   // Define the variable(s). Names should be unique. May be more than
   // one variable per DataSet.
-  VarArray variables;
+  std::vector<VarArray> variables;
   for (SetArray::const_iterator it = sets.begin(); it != sets.end(); ++it) {
     // Choose type
     nc_type dtype;
@@ -1115,32 +1116,64 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
       case DataSet::INTEGER :          dtype = NC_INT ; break;
       case DataSet::FLOAT   :          dtype = NC_FLOAT ; break;
       case DataSet::UNSIGNED_INTEGER : dtype = NC_UINT ; break; // TODO netcdf4 only?
+      case DataSet::STRING  :          dtype = NC_CHAR ; break;
       default:
         mprinterr("Internal Error: '%s': Unhandled DataSet type for 1D NetCDF variable.\n", it->DS()->legend());
         return 1;
     }
-    variables.push_back( defineVar(Dimensions_[dimIdx].DID(), dtype, it->DS()->Meta().PrintName(), "Y") );
-    if (variables.back().Empty()) {
-      mprinterr("Error: Could not define variable for set '%s'\n", it->DS()->legend());
-      return 1;
+    // Add variable(s)
+    variables.push_back( VarArray() );
+    VarArray& set_vars = variables.back();
+    if (it->DS()->Type() == DataSet::STRING) {
+      // ----- String set --------------
+      DataSet_string const& strSet = static_cast<DataSet_string const&>( *(it->DS()) );
+      // Sum up all characters for the netcdf character array dimension
+      unsigned int nchars = 0;
+      for (unsigned int idx = 0; idx < strSet.Size(); idx++)
+        nchars += strSet[idx].size();
+      dimIdx = defineDim("nchars", nchars, strSet.Meta().Legend() + " nchars" );
+      if (dimIdx < 0) return 1;
+      NcDim ncharsDim = Dimensions_[dimIdx];
+      // Define the character array variable
+      NcVar charsVar = defineVar(ncharsDim.DID(), NC_CHAR, strSet.Meta().PrintName(), "chars");
+      if (charsVar.Empty()) return 1;
+      if (AddDataSetInfo( it->DS(), ncid_, charsVar.VID() )) return 1;
+      set_vars.push_back( charsVar );
+      // Define the string lengths variable
+      NcVar lengthsVar = defineVar(lengthDim.DID(), NC_INT, strSet.Meta().PrintName(), "strlengths");
+      if (lengthsVar.Empty()) return 1;
+      set_vars.push_back( lengthsVar );
+    } else {
+      // ----- All other 1D sets -------
+      set_vars.push_back( defineVar(lengthDim.DID(), dtype, it->DS()->Meta().PrintName(), "Y") );
+      if (set_vars.back().Empty()) {
+        mprinterr("Error: Could not define variable for set '%s'\n", it->DS()->legend());
+        return 1;
+      }
+      NcVar const& currentVar = set_vars.back();
+      // Add DataSet info to variable
+      if (AddDataSetInfo( it->DS(), ncid_, currentVar.VID() )) return 1;
     }
-    NcVar const& currentVar = variables.back();
-    // Add DataSet info to variable
-    if (AddDataSetInfo( it->DS(), ncid_, currentVar.VID() )) return 1;
   } // END define variable(s)
   if (EndDefineMode( ncid_ )) return 1;
   // Write the variables
   size_t start[1];
   size_t count[1];
-  start[0] = 0;
-  count[0] = dimLen(dimIdx);
   SetArray::const_iterator dset = sets.begin();
-  for (VarArray::const_iterator it = variables.begin(); it != variables.end(); ++it, ++dset)
+  for (std::vector<VarArray>::const_iterator it = variables.begin(); it != variables.end(); ++it, ++dset)
   {
-    DataSet_1D const& ds1d = static_cast<DataSet_1D const&>( *(dset->DS()) );
-    if (NC::CheckErr(nc_put_vara(ncid_, it->VID(), start, count, ds1d.DvalPtr()))) {
-      mprinterr("Error: Could not write variable '%s'\n", ds1d.legend());
-      return 1;
+    if (dset->DS()->Type() == DataSet::STRING) {
+      // ----- String set --------------
+      mprintf("DEBUG: Placeholder for string set write.\n");
+    } else {
+      // ----- All other 1D sets -------
+      start[0] = 0;
+      count[0] = lengthDim.Size();
+      DataSet_1D const& ds1d = static_cast<DataSet_1D const&>( *(dset->DS()) );
+      if (NC::CheckErr(nc_put_vara(ncid_, it->front().VID(), start, count, ds1d.DvalPtr()))) {
+        mprinterr("Error: Could not write variable '%s'\n", ds1d.legend());
+        return 1;
+      }
     }
   }
   return 0;
