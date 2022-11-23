@@ -1040,55 +1040,6 @@ const
   return defineVar(dimid, nctype, PrintName, VarSuffix, -1);
 }
 
-/** Write 1D X-Y Mesh data set. */
-int DataIO_NetCDF::writeData_1D_xy(DataSet const* ds) {
-  mprintf("DEBUG: XY set '%s'\n", ds->legend());
-  // Define the dimension
-  if (EnterDefineMode(ncid_)) return 1;
-  int dimIdx = defineDim( "length", ds->Size(), ds->Meta().Legend() );
-  if (dimIdx < 0) return 1;
-  // Define the Y variable
-  NcVar yVar = defineVar(Dimensions_[dimIdx].DID(), NC_DOUBLE, ds->Meta().PrintName(), "Y");
-  if (yVar.Empty()) {
-    mprinterr("Error: Could not define Y variable for set '%s'\n", ds->legend());
-    return 1;
-  }
-  // Define the X variable.
-  NcVar xVar = defineVar(Dimensions_[dimIdx].DID(), NC_DOUBLE, ds->Meta().PrintName(), "X");
-  if (xVar.Empty()) {
-    mprinterr("Error: Could not define Y variable for '%s'\n", ds->legend());
-    return 1;
-  }
-  // Add DataSet info to variable
-  if (AddDataSetInfo(ds, xVar.VID(), ncid_, yVar.VID())) return 1;
-//  // Have each var refer to the other
-//  if (AddDataSetIntAtt( yid, "yvarid", ncid_, xid )) return 1;
-//  if (AddDataSetIntAtt( xid, "xvarid", ncid_, yid )) return 1;
-  // End define mode
-  if (EndDefineMode( ncid_ )) return 1;
-  // Write the X and Y variables
-  size_t start[1];
-  size_t count[1];
-  start[0] = 0;
-  count[0] = dimLen(dimIdx);
-
-  DataSet_1D const& ds1d = static_cast<DataSet_1D const&>( *ds );
-  std::vector<double> idxs; // TODO access from XYMESH directly
-  idxs.reserve(ds1d.Size());
-  for (unsigned int ii = 0; ii < ds1d.Size(); ii++)
-    idxs.push_back( ds1d.Xcrd(ii) );
-  if (NC::CheckErr(nc_put_vara(ncid_, xVar.VID(), start, count, &idxs[0]))) {
-    mprinterr("Error: Could not write X variable from '%s'\n", ds1d.legend());
-    return 1;
-  }
-  if (NC::CheckErr(nc_put_vara(ncid_, yVar.VID(), start, count, ds1d.DvalPtr()))) {
-    mprinterr("Error: Could not write variable '%s'\n", ds1d.legend());
-    return 1;
-  }
-
-  return  0;
-}
-
 /** Write 1D DataSets that share an index dimension. */
 int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArray const& sets) {
   if (ds->Type() == DataSet::PH)
@@ -1516,13 +1467,6 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
         mprinterr("Error: grid set write failed.\n");
         return 1;
       }
-//    } else if (ds->Type() == DataSet::XYMESH) {
-//      // ----- XY Mesh ---------------------------
-//      if (writeData_1D_xy(ds)) {
-//        mprinterr("Error: xy mesh set write failed.\n");
-//        return 1;
-//      }
-//      setPool.MarkUsed( idx );
     } else if (ds->Group() == DataSet::SCALAR_1D) {
       // ----- 1D scalar -------------------------
       SetArray sets(1, Set(ds));
