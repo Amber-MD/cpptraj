@@ -1157,16 +1157,39 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
   } // END define variable(s)
   if (EndDefineMode( ncid_ )) return 1;
   // Write the variables
-  size_t start[1];
-  size_t count[1];
   SetArray::const_iterator dset = sets.begin();
   for (std::vector<VarArray>::const_iterator it = variables.begin(); it != variables.end(); ++it, ++dset)
   {
     if (dset->DS()->Type() == DataSet::STRING) {
       // ----- String set --------------
+      VarArray const& set_vars = *it;
+      DataSet_string const& strSet = static_cast<DataSet_string const&>( *(dset->DS()) );
       mprintf("DEBUG: Placeholder for string set write.\n");
+      size_t cstart[1], nstart[1];
+      size_t ccount[1], ncount[1];
+      // Write the strings. To avoid allocating a lot of extra memory write
+      // one string at a time.
+      cstart[0] = 0;
+      ncount[0] = 1;
+      for (unsigned int idx = 0; idx < strSet.Size(); idx++) {
+        int len = strSet[idx].size();
+        ccount[0] = strSet[idx].size();
+        if (NC::CheckErr(nc_put_vara(ncid_, set_vars[0].VID(), cstart, ccount, strSet[idx].c_str()))) {
+          mprinterr("Error: Could not write characters for string %u from '%s'\n", idx+1, strSet.legend());
+          return 1;
+        }
+        cstart[0] += strSet[idx].size();
+
+        nstart[0] = idx;
+        if (NC::CheckErr(nc_put_vara_int(ncid_, set_vars[1].VID(), nstart, ncount, &len))) {
+          mprinterr("Error: Could not write length for string %u from '%s'\n", idx+1, strSet.legend());
+          return 1;
+        }
+      }
     } else {
       // ----- All other 1D sets -------
+      size_t start[1];
+      size_t count[1];
       start[0] = 0;
       count[0] = lengthDim.Size();
       DataSet_1D const& ds1d = static_cast<DataSet_1D const&>( *(dset->DS()) );
