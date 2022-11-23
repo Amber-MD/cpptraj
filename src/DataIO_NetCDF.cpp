@@ -1353,51 +1353,6 @@ int DataIO_NetCDF::writeData_3D(DataSet const* ds) {
   return 0;
 }
 
-/** Write strings set to file. */
-int DataIO_NetCDF::writeData_strings(DataSet const* ds) {
-  if (EnterDefineMode(ncid_)) return 1;
-  DataSet_string const& set = static_cast<DataSet_string const&>( *ds );
-  // Define dimensions. Ensure names are unique by appending an index.
-  int dimIdx = defineDim("length", set.Size(), set.Meta().Legend());
-  if (dimIdx < 0) return 1;
-  NcDim nstringsDim = Dimensions_[dimIdx];
-  // Sum up all characters for the netcdf character array
-  unsigned int nchars = 0;
-  for (unsigned int idx = 0; idx < set.Size(); idx++)
-    nchars += set[idx].size();
-  dimIdx = defineDim("nchars", nchars, set.Meta().Legend() + " nchars" );
-  if (dimIdx < 0) return 1;
-  NcDim ncharsDim = Dimensions_[dimIdx];
-  // Define the character array variable
-  NcVar charsVar = defineVar(ncharsDim.DID(), NC_CHAR, set.Meta().PrintName(), "chars");
-  if (charsVar.Empty()) return 1;
-  // Define the string lengths variable
-  NcVar lengthsVar = defineVar(nstringsDim.DID(), NC_INT, set.Meta().PrintName(), "strlengths");
-  if (lengthsVar.Empty()) return 1;
-  size_t cstart[1], nstart[1];
-  size_t ccount[1], ncount[1];
-  // Write the strings. To avoid allocating a lot of extra memory write
-  // one string at a time.
-  cstart[0] = 0;
-  ncount[0] = 1;
-  for (unsigned int idx = 0; idx < set.Size(); idx++) {
-    int len = set[idx].size();
-    ccount[0] = set[idx].size();
-    if (NC::CheckErr(nc_put_vara(ncid_, charsVar.VID(), cstart, ccount, set[idx].c_str()))) {
-      mprinterr("Error: Could not write characters for string %u from '%s'\n", idx+1, set.legend());
-      return 1;
-    }
-    cstart[0] += set[idx].size();
-
-    nstart[0] = idx;
-    if (NC::CheckErr(nc_put_vara_int(ncid_, lengthsVar.VID(), nstart, ncount, &len))) {
-      mprinterr("Error: Could not write length for string %u from '%s'\n", idx+1, set.legend());
-      return 1;
-    }
-  }
-  return 0;
-}
-
 /** Write modes set to file. */
 int DataIO_NetCDF::writeData_modes(DataSet const* ds) {
   // Define the dimensions of all arrays. Ensure names are unique by appending an index.
@@ -1505,12 +1460,6 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
       // ----- Modes -----------------------------
       if (writeData_modes(ds)) {
         mprinterr("Error: modes set write failed.\n");
-        return 1;
-      }
-      setPool.MarkUsed( idx );
-    } else if (ds->Type() == DataSet::STRING) {
-      if (writeData_strings(ds)) {
-        mprinterr("Error: strings set write failed.\n");
         return 1;
       }
       setPool.MarkUsed( idx );
