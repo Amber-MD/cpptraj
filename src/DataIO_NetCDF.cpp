@@ -363,7 +363,64 @@ int DataIO_NetCDF::readData_1D_xy(DataSet* ds, NcVar const& yVar, VarArray& Vars
 
 /** Read string set with CPPTRAJ conventions. */
 int DataIO_NetCDF::readData_1D_string(DataSet* ds, NcVar const& yVar, VarArray& Vars) const {
-  return 1;
+  // Get the lengths var id
+  int lengthsVarid;
+  int ret = GetVarIntAtt(lengthsVarid, "lengthsid", ncid_, yVar.VID());
+  if (ret != 0) {
+    mprinterr("Error: No 'lengthsid' attribute for string set '%s'.\n", yVar.vname());
+    return 1;
+  }
+  // Get the lengths dim id
+  int lengthDim[1];
+  if (NC::CheckErr(nc_inq_vardimid(ncid_, lengthsVarid, lengthDim))) {
+    mprinterr("Error: Could not get dimension id for string lengths var.\n");
+    return 1;
+  }
+  // Get lengths dim size
+  size_t nstrings;
+  if (NC::CheckErr(nc_inq_dimlen(ncid_, lengthDim[0], &nstrings))) {
+    mprinterr("Error: Could not get size of dimension for string lengths var.\n");
+    return 1;
+  }
+
+  DataSet_string& strSet = static_cast<DataSet_string&>( *ds );
+  strSet.Resize( nstrings );
+
+  size_t cstart[1], nstart[1];
+  size_t ccount[1], ncount[1];
+  cstart[0] = 0;
+  nstart[0] = 0;
+  ncount[0] = 1;
+  std::vector<char> buffer;
+  for (size_t idx = 0; idx < nstrings; idx++) {
+    mprintf("DEBUG: read string %zu", idx);
+    // Get the string length
+    int len;
+    if (NC::CheckErr(nc_get_vara_int(ncid_, lengthsVarid, nstart, ncount, &len))) {
+      mprinterr("Error: Could not get length of string %zu\n", idx);
+      return 1;
+    }
+    mprintf(" len=%i", len);
+    if ((size_t)len+1 > buffer.size())
+      buffer.resize( len+1 );
+    nstart[0]++;
+    // Get the string
+    ccount[0] = len;
+    if (NC::CheckErr(nc_get_vara_text(ncid_, yVar.VID(), cstart, ccount, &buffer[0]))) {
+      mprinterr("Error: Could not get string %zu\n", idx);
+      return 1;
+    }
+    buffer[len] = '\0';
+    mprintf(" str='%s'\n", &buffer[0]);
+    cstart[0] += (size_t)len;
+    // Assign to DataSet
+    strSet[idx].assign( &buffer[0] );
+  }
+  // Mark vars as read
+  Vars[yVar.VID()].MarkRead();
+  Vars[lengthsVarid].MarkRead();
+
+  return 0;
 }
 
 /** Read 1D array with CPPTRAJ conventions. */
@@ -380,6 +437,7 @@ int DataIO_NetCDF::readData_1D(DataSet* ds, NcVar const& yVar, VarArray& Vars) c
     mprinterr("Error: Could not get values for set.\n");
     return 1;
   }
+  Vars[yVar.VID()].MarkRead();
   return 0;
 }
 
@@ -663,6 +721,9 @@ const
       mprintf("DEBUG: %s dim length %u\n", var->vname(), dimLen(var->DimId(0)) );
       if (dtype == DataSet::XYMESH) {
         if (readData_1D_xy(ds, *var, Vars))
+          return 1;
+      } else if (dtype == DataSet::STRING) {
+        if (readData_1D_string(ds, *var, Vars))
           return 1;
       } else if (ds->Group() == DataSet::SCALAR_1D) {
         if (readData_1D(ds, *var, Vars))
