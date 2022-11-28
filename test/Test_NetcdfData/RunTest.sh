@@ -11,7 +11,8 @@ CleanFiles ncdata.in d1.nc d1.dat rmsf.dat ascii.dat.save ascii.dat \
            heavyAtom.matrix.dat.save heavyAtom.matrix.dat \
            heavyEvecs.dat.save heavyEvecs.dat \
            grid.nc grid.dx.save grid.dx \
-           hbond.nc hbond.dat.save hbond.dat
+           hbond.nc hbond.dat.save hbond.dat \
+           vector.nc vector.dat.save vector.dat
 
 TESTNAME='NetCDF data file tests.'
 Requires netcdf
@@ -160,6 +161,14 @@ run
 writedata vector.dat.save V1[*]
 EOF
   RunCpptraj "$UNITNAME"
+
+  cat > ncdata.in <<EOF
+readdata vector.nc name V1
+list
+writedata vector.dat V1[*]
+EOF
+  RunCpptraj "Read vector data"
+  DoTest vector.dat.save vector.dat
 }
 
 Write1d
