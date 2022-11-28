@@ -140,6 +140,14 @@ run
 writedata hbond.dat.save HB[*]
 EOF
   RunCpptraj "$UNITNAME"
+
+  cat > ncdata.in <<EOF
+readdata hbond.nc name HB
+list
+writedata hbond.dat HB[*]
+EOF
+  RunCpptraj "Read scalar and string data"
+  DoTest hbond.dat.save hbond.dat
 }
 
 Write1d
