@@ -366,9 +366,9 @@ int DataIO_NetCDF::readData_1D_xy(DataSet* ds, NcVar const& yVar, VarArray& Vars
 int DataIO_NetCDF::readData_1D_string(DataSet* ds, NcVar const& yVar, VarArray& Vars) const {
   // Get the lengths var id
   int lengthsVarid;
-  int ret = GetVarIntAtt(lengthsVarid, "lengthsid", ncid_, yVar.VID());
+  int ret = GetVarIntAtt(lengthsVarid, "strlengthsid", ncid_, yVar.VID());
   if (ret != 0) {
-    mprinterr("Error: No 'lengthsid' attribute for string set '%s'.\n", yVar.vname());
+    mprinterr("Error: No 'strlengthsid' attribute for string set '%s'.\n", yVar.vname());
     return 1;
   }
   // Get the lengths dim id
@@ -1173,13 +1173,9 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
       if (AddDataSetInfo( it->DS(), ncid_, charsVar.VID() )) return 1;
       set_vars.push_back( charsVar );
       // Define the string lengths variable
-      NcVar lengthsVar = defineVar(lengthDim.DID(), NC_INT, strSet.Meta().PrintName(), "strlengths");
+      NcVar lengthsVar = defineVar(lengthDim.DID(), NC_INT, strSet.Meta().PrintName(), "strlengths", charsVar.VID());
       if (lengthsVar.Empty()) return 1;
       set_vars.push_back( lengthsVar );
-      if (AddDataSetIntAtt(lengthsVar.VID(), "lengthsid", ncid_, charsVar.VID())) {
-        mprinterr("Error: Could not add 'lengthsid' attribute to characters variable.\n");
-        return 1;
-      }
     } else if (it->DS()->Type() == DataSet::VECTOR) {
       // ----- Vector set --------------
       DataSet_Vector const& vecSet = static_cast<DataSet_Vector const&>( *(it->DS()) );
@@ -1261,7 +1257,29 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
         }
       }
     } else if (dset->DS()->Type() == DataSet::VECTOR) {
-      mprintf("DEBUG: Placeholder for vector set write.\n");
+      // ----- Vector set --------------
+      VarArray const& set_vars = *it;
+      DataSet_Vector const& vecSet = static_cast<DataSet_Vector const&>( *(dset->DS()) );
+      size_t start[2], count[2];
+      start[1] = 0;
+      count[0] = 1;
+      count[1] = 3;
+      for (unsigned int idx = 0; idx < vecSet.Size(); idx++) {
+        start[0] = idx;
+        if (NC::CheckErr(nc_put_vara(ncid_, set_vars[0].VID(), start, count, vecSet[idx].Dptr()))) {
+          mprinterr("Error: Could not write vector %u xyz from '%s'\n", idx, vecSet.legend());
+          return 1;
+        }
+      }
+      if (vecSet.HasOrigins()) {
+        for (unsigned int idx = 0; idx < vecSet.Size(); idx++) {
+          start[0] = idx;
+          if (NC::CheckErr(nc_put_vara(ncid_, set_vars[1].VID(), start, count, vecSet.OXYZ(idx).Dptr()))) {
+            mprinterr("Error: Could not write vector %u origin from '%s'\n", idx, vecSet.legend());
+            return 1;
+          }
+        }
+      }
     } else if (dset->DS()->Type() == DataSet::XYMESH) {
       // ----- XY mesh set -------------
       VarArray const& set_vars = *it;
