@@ -150,11 +150,24 @@ EOF
   DoTest hbond.dat.save hbond.dat
 }
 
+Vector() {
+  UNITNAME='Write vector data'
+  cat > ncdata.in <<EOF
+parm ../tz2.ortho.parm7
+trajin ../tz2.ortho.nc
+vector V1 mask :1 :12 out vector.nc magnitude
+run
+writedata vector.dat.save V1[*]
+EOF
+  RunCpptraj "$UNITNAME"
+}
+
 Write1d
 Read1d
 Write2d
 Write3d
 #Closest
 Hbond
+Vector
 
 EndTest
