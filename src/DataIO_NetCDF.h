@@ -36,6 +36,8 @@ class DataIO_NetCDF : public DataIO {
 
     int readData_1D_string(DataSet*, NcVar const&, VarArray&) const;
 
+    int readData_1D_vector(DataSet*, NcVar const&, VarArray&) const;
+
     int readData_1D(DataSet*, NcVar const&, VarArray&) const;
 
     int readData_2D(DataSet*, NcVar const&, VarArray&) const;

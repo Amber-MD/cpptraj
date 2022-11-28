@@ -362,6 +362,49 @@ int DataIO_NetCDF::readData_1D_xy(DataSet* ds, NcVar const& yVar, VarArray& Vars
   return 0;
 }
 
+/** Read vector set with CPPTRAJ conventions. */
+int DataIO_NetCDF::readData_1D_vector(DataSet* ds, NcVar const& yVar, VarArray& Vars) const {
+  size_t start[2];
+  start[1] = 0;
+  size_t count[2];
+  count[0] = 1;
+  count[1] = 3;
+
+  unsigned int nvecs = dimLen(yVar.DimId(0));
+
+  DataSet_Vector& vecSet = static_cast<DataSet_Vector&>( *ds );
+  //vecSet.Allocate(DataSet::SizeArray(1, nvecs));
+
+  // Get the xyz values
+  vecSet.Resize( nvecs );
+  for (unsigned int idx = 0; idx < nvecs; idx++) {
+    start[0] = idx;
+    if (NC::CheckErr(nc_get_vara(ncid_, yVar.VID(), start, count, vecSet[idx].Dptr()))) {
+      mprinterr("Error: Could not get vector xyz values for %u '%s'\n", idx, vecSet.legend());
+      return 1;
+    }
+  }
+  Vars[yVar.VID()].MarkRead();
+  // Get the origin values
+  int originVarid;
+  int ret = GetVarIntAtt(originVarid, "originsid", ncid_, yVar.VID());
+  if (ret == 1) {
+    mprinterr("Error: Problem getting 'originsid' attribute for '%s'\n", vecSet.legend());
+    return 1;
+  } else if (ret == 0) {
+    vecSet.ResizeOrigins( nvecs );
+    for (unsigned int idx = 0; idx < nvecs; idx++) {
+      start[0] = idx;
+      if (NC::CheckErr(nc_get_vara(ncid_, originVarid, start, count, vecSet.ModifyOxyz(idx).Dptr()))) {
+        mprinterr("Error: Could not get vector origin values for %u '%s'\n", idx, vecSet.legend());
+        return 1;
+      }
+    }
+    Vars[originVarid].MarkRead();
+  }
+  return 0;
+}
+
 /** Read string set with CPPTRAJ conventions. */
 int DataIO_NetCDF::readData_1D_string(DataSet* ds, NcVar const& yVar, VarArray& Vars) const {
   // Get the lengths var id
@@ -717,11 +760,14 @@ const
     for (std::vector<Dimension>::const_iterator dim = Dims.begin(); dim != Dims.end(); ++dim)
       ds->SetDim(idx++, *dim);
     // Check netcdf variable dimensions
-    if (var->Ndims() == 1) {
+//    if (var->Ndims() == 1) {
       // One flat dimension
       mprintf("DEBUG: %s dim length %u\n", var->vname(), dimLen(var->DimId(0)) );
       if (dtype == DataSet::XYMESH) {
         if (readData_1D_xy(ds, *var, Vars))
+          return 1;
+      } else if (dtype == DataSet::VECTOR) {
+        if (readData_1D_vector(ds, *var, Vars))
           return 1;
       } else if (dtype == DataSet::STRING) {
         if (readData_1D_string(ds, *var, Vars))
@@ -742,10 +788,10 @@ const
         mprinterr("Error: Cannot read type '%s' yet.\n", desc.c_str());
         return 1;
       }
-    } else {
-      mprinterr("Error: Cannot read type '%s' yet.\n", desc.c_str());
-      return 1;
-    }
+//    } else {
+//      mprinterr("Error: Cannot read type '%s' yet.\n", desc.c_str());
+//      return 1;
+//    }
   }
   return 0;
 }
