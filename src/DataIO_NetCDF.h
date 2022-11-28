@@ -50,6 +50,8 @@ class DataIO_NetCDF : public DataIO {
 
     int defineDim(std::string const&, unsigned int, std::string const&);
 
+    NcVar defineVar(std::vector<int> const&, int, std::string const&, std::string const&, int) const;
+
     NcVar defineVar(int, int, std::string const&, std::string const&, int) const;
 
     NcVar defineVar(int, int, std::string const&, std::string const&) const;

@@ -14,6 +14,7 @@
 # include "DataSet_Modes.h"
 # include "DataSet_3D.h"
 # include "DataSet_string.h"
+# include "DataSet_Vector.h"
 #endif
 
 /// CONSTRUCTOR
@@ -1068,23 +1069,24 @@ int DataIO_NetCDF::defineDim(std::string const& label, unsigned int dimSize, std
   return dimIdx;
 }
 
-/** Create 1D variable. Optionally associate it with a parent variable.
+/** Create ND variable. Optionally associate it with a parent variable.
   * \return Created variable.
   */
-DataIO_NetCDF::NcVar DataIO_NetCDF::defineVar(int dimid, int nctype,
+DataIO_NetCDF::NcVar DataIO_NetCDF::defineVar(std::vector<int> const& DimIds,
+                                              int nctype,
                                               std::string const& PrintName,
                                               std::string const& VarSuffix,
                                               int parentVarId)
 const
 {
   // ASSUME WE ARE IN DEFINE MODE
-  if (dimid < 0) return NcVar();
+  //if (dimid < 0) return NcVar();
   // Define the variable
-  int dimensionID[1];
-  dimensionID[0] = dimid;
+  //int dimensionID[1];
+  //dimensionID[0] = dimid;
   std::string varName = PrintName + "." + VarSuffix;
   int varid;
-  if ( NC::CheckErr(nc_def_var(ncid_, varName.c_str(), nctype, 1, dimensionID, &varid)) ) {
+  if ( NC::CheckErr(nc_def_var(ncid_, varName.c_str(), nctype, DimIds.size(), &DimIds[0], &varid)) ) {
     mprinterr("Error: Could not define variable '%s'\n", varName.c_str());
     return NcVar();
   }
@@ -1094,9 +1096,22 @@ const
   }
   
   //return NcVar(varid, nctype, varName.c_str(), 1, dimensionID);
-  NcVar ret(varid, nctype, varName.c_str(), 1, dimensionID); // DEBUG
+  NcVar ret(varid, nctype, varName.c_str(), DimIds.size(), &DimIds[0]); // DEBUG
   ret.Print(); // DEBUG
   return ret; // DEBUG
+}
+
+/** Create 1D variable. Optionally associate it with a parent variable.
+  * \return Created variable.
+  */
+DataIO_NetCDF::NcVar DataIO_NetCDF::defineVar(int dimid, int nctype,
+                                              std::string const& PrintName,
+                                              std::string const& VarSuffix,
+                                              int parentVarId)
+const
+{
+  std::vector<int> DimIds(1, dimid);
+  return defineVar(DimIds, nctype, PrintName, VarSuffix, parentVarId);
 }
 
 /** Create 1D variable. */
@@ -1127,6 +1142,7 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
     // Choose type
     nc_type dtype;
     switch (it->DS()->Type()) {
+      case DataSet::VECTOR  :
       case DataSet::DOUBLE  :
       case DataSet::XYMESH  :          dtype = NC_DOUBLE ; break;
       case DataSet::PH      :
@@ -1152,7 +1168,7 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
       if (dimIdx < 0) return 1;
       NcDim ncharsDim = Dimensions_[dimIdx];
       // Define the character array variable
-      NcVar charsVar = defineVar(ncharsDim.DID(), NC_CHAR, strSet.Meta().PrintName(), "chars");
+      NcVar charsVar = defineVar(ncharsDim.DID(), dtype, strSet.Meta().PrintName(), "chars");
       if (charsVar.Empty()) return 1;
       if (AddDataSetInfo( it->DS(), ncid_, charsVar.VID() )) return 1;
       set_vars.push_back( charsVar );
@@ -1163,6 +1179,26 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
       if (AddDataSetIntAtt(lengthsVar.VID(), "lengthsid", ncid_, charsVar.VID())) {
         mprinterr("Error: Could not add 'lengthsid' attribute to characters variable.\n");
         return 1;
+      }
+    } else if (it->DS()->Type() == DataSet::VECTOR) {
+      // ----- Vector set --------------
+      DataSet_Vector const& vecSet = static_cast<DataSet_Vector const&>( *(it->DS()) );
+      // Define xyz dimension
+      dimIdx = defineDim("xyz", 3, vecSet.Meta().Legend() + " xyz" );
+      if (dimIdx < 0) return 1;
+      NcDim xyzDim = Dimensions_[dimIdx];
+      // Define vector variable
+      std::vector<int> DimIds(2);
+      DimIds[0] = lengthDim.DID();
+      DimIds[1] = xyzDim.DID();
+      NcVar vecVar = defineVar( DimIds, dtype, vecSet.Meta().PrintName(), "vecs", -1);
+      if (vecVar.Empty()) return 1;
+      if (AddDataSetInfo( it->DS(), ncid_, vecVar.VID() )) return 1;
+      set_vars.push_back( vecVar );
+      // Define the origin variable if needed
+      if (vecSet.HasOrigins()) {
+        NcVar originVar = defineVar( DimIds, dtype, vecSet.Meta().PrintName(), "origins", vecVar.VID());
+        set_vars.push_back( originVar );
       }
     } else if (it->DS()->Type() == DataSet::XYMESH) {
       // ----- XY mesh set -------------
@@ -1203,7 +1239,6 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
       // ----- String set --------------
       VarArray const& set_vars = *it;
       DataSet_string const& strSet = static_cast<DataSet_string const&>( *(dset->DS()) );
-      mprintf("DEBUG: Placeholder for string set write.\n");
       size_t cstart[1], nstart[1];
       size_t ccount[1], ncount[1];
       // Write the strings. To avoid allocating a lot of extra memory write
@@ -1225,6 +1260,8 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
           return 1;
         }
       }
+    } else if (dset->DS()->Type() == DataSet::VECTOR) {
+      mprintf("DEBUG: Placeholder for vector set write.\n");
     } else if (dset->DS()->Type() == DataSet::XYMESH) {
       // ----- XY mesh set -------------
       VarArray const& set_vars = *it;
@@ -1534,7 +1571,10 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
         mprinterr("Error: grid set write failed.\n");
         return 1;
       }
-    } else if (ds->Group() == DataSet::SCALAR_1D || ds->Type() == DataSet::STRING) {
+    } else if (ds->Group() == DataSet::SCALAR_1D ||
+               ds->Type() == DataSet::STRING ||
+               ds->Type() == DataSet::VECTOR)
+    {
       // ----- 1D scalar -------------------------
       SetArray sets(1, Set(ds));
       setPool.MarkUsed( idx );
@@ -1543,7 +1583,10 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
       for (unsigned int jdx = idx + 1; jdx < setPool.Nsets(); jdx++)
       {
         DataSet const* ds2 = setPool.Set( jdx );
-        if (ds2->Group() == DataSet::SCALAR_1D || ds2->Type() == DataSet::STRING) {
+        if (ds2->Group() == DataSet::SCALAR_1D ||
+            ds2->Type() == DataSet::STRING ||
+            ds2->Type() == DataSet::VECTOR)
+        {
           if (ds->Size() == ds2->Size() && dim == ds2->Dim(0)) {
             sets.push_back( Set(ds2) );
             setPool.MarkUsed( jdx );
