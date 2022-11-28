@@ -414,7 +414,7 @@ int DataIO_NetCDF::readData_1D_string(DataSet* ds, NcVar const& yVar, VarArray& 
     mprintf(" str='%s'\n", &buffer[0]);
     cstart[0] += (size_t)len;
     // Assign to DataSet
-    strSet[idx].assign( &buffer[0] );
+    strSet.SetElement( idx, &buffer[0] );
   }
   // Mark vars as read
   Vars[yVar.VID()].MarkRead();
