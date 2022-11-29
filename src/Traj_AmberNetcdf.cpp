@@ -499,8 +499,7 @@ int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
 
 // Traj_AmberNetcdf::Info()
 void Traj_AmberNetcdf::Info() {
-  static const char* fvstr[3] = { "?", "V3", "HDF5" };
-  mprintf("is a NetCDF (%s) AMBER trajectory", fvstr[ftype_]);
+  mprintf("is a NetCDF (%s) AMBER trajectory", NC::fmtTypeStr(ftype_));
   if (readAccess_) {
     mprintf(" with %s", CoordInfo().InfoString().c_str());
     if (useVelAsCoords_) mprintf(" (using velocities as coordinates)");
