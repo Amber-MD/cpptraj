@@ -512,7 +512,7 @@ int DataFile::WriteSetsToFile(FileName const& fname, DataSetList& setsToWrite)
             dftimer.Total());
 #   endif
     if (err > 0) 
-      mprinterr("Error writing %iD Data to %s\n", dimension_, fname.base());
+      mprinterr("Error: Could not write data sets to %s\n", fname.base());
   }
   return err;
 }
