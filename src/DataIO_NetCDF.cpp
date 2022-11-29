@@ -15,6 +15,7 @@
 # include "DataSet_3D.h"
 # include "DataSet_string.h"
 # include "DataSet_Vector.h"
+# include "DataSet_Vector_Scalar.h"
 #endif
 
 /// CONSTRUCTOR
@@ -24,6 +25,7 @@ DataIO_NetCDF::DataIO_NetCDF() :
   user_specified_name_(false)
 {
   SetValid( DataSet::MODES );
+  SetValid( DataSet::VECTOR_SCALAR );
 }
 
 // DataIO_NetCDF::ID_DataFormat()
@@ -1167,6 +1169,53 @@ const
   return defineVar(dimid, nctype, PrintName, VarSuffix, -1);
 }
 
+/** Write 1D VECTOR_SCALAR set. TODO should be covered in writeData_1D. */
+int DataIO_NetCDF::writeData_vector_scalar(DataSet const* ds) {
+  if (EnterDefineMode(ncid_)) return 1;
+  // Define the dimension. Ensure name is unique by appending an index.
+  int dimIdx = defineDim( "length", ds->Size(), ds->Meta().Legend() );
+  if (dimIdx < 0) return 1;
+  NcDim lengthDim = Dimensions_[dimIdx];
+
+  DataSet_Vector_Scalar const& vecSet = static_cast<DataSet_Vector_Scalar const&>( *ds );
+  // Define xyz dimension
+  dimIdx = defineDim("xyz", 3, vecSet.Meta().Legend() + " xyz" );
+  if (dimIdx < 0) return 1;
+  NcDim xyzDim = Dimensions_[dimIdx];
+  // Define vector variable
+  std::vector<int> DimIds(2);
+  DimIds[0] = lengthDim.DID();
+  DimIds[1] = xyzDim.DID();
+  NcVar vecVar = defineVar( DimIds, NC_DOUBLE, vecSet.Meta().PrintName(), "vecs", -1);
+  if (vecVar.Empty()) return 1;
+  if (AddDataSetInfo( ds, ncid_, vecVar.VID() )) return 1;
+  // Define scalar variable
+  NcVar scalarVar = defineVar( lengthDim.DID(), NC_DOUBLE, vecSet.Meta().PrintName(), "scalar", vecVar.VID() );
+  if (scalarVar.Empty()) return 1;
+  if (EndDefineMode( ncid_ )) return 1;
+
+  size_t start[2], count[2];
+  start[1] = 0;
+  count[0] = 1;
+  count[1] = 3;
+  for (unsigned int idx = 0; idx < vecSet.Size(); idx++) {
+    start[0] = idx;
+    if (NC::CheckErr(nc_put_vara(ncid_, vecVar.VID(), start, count, vecSet.Vec(idx).Dptr()))) {
+      mprinterr("Error: Could not write vector %u xyz from '%s'\n", idx, vecSet.legend());
+      return 1;
+    }
+  }
+
+  start[0] = 0;
+  count[0] = lengthDim.Size();
+  if (NC::CheckErr(nc_put_vara(ncid_, scalarVar.VID(), start, count, vecSet.ValPtr()))) {
+    mprinterr("Error: Could not write scalar values from '%s'\n", vecSet.legend());
+    return 1;
+  }
+
+  return 0;
+}
+
 /** Write 1D DataSets that share an index dimension. */
 int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArray const& sets) {
   if (ds->Type() == DataSet::PH)
@@ -1188,6 +1237,7 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
     // Choose type
     nc_type dtype;
     switch (it->DS()->Type()) {
+      case DataSet::VECTOR_SCALAR :
       case DataSet::VECTOR  :
       case DataSet::DOUBLE  :
       case DataSet::XYMESH  :          dtype = NC_DOUBLE ; break;
@@ -1594,6 +1644,14 @@ int DataIO_NetCDF::writeData_modes(DataSet const* ds) {
 }
 #endif /* BINTRAJ */
 
+/// \return true if this is a valid 1D set to write
+static inline bool isValid1dSetToWrite(DataSet const* ds) {
+  return (ds->Group() == DataSet::SCALAR_1D ||
+          ds->Type() == DataSet::STRING ||
+          ds->Type() == DataSet::VECTOR
+         );
+}
+
 // DataIO_NetCDF::WriteData()
 int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
 {
@@ -1635,10 +1693,16 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
         mprinterr("Error: grid set write failed.\n");
         return 1;
       }
-    } else if (ds->Group() == DataSet::SCALAR_1D ||
-               ds->Type() == DataSet::STRING ||
-               ds->Type() == DataSet::VECTOR)
-    {
+    } else if (ds->Type() == DataSet::VECTOR_SCALAR) {
+      // ----- Vector+Scalar ---------------------
+      // TODO The VECTOR_SCALAR set has a dimension of 0 so it can default
+      // to output with DataIO_Peaks, but this is a hack. Should be able to
+      // be written with other 1D sets.
+      if (writeData_vector_scalar(ds)) {
+        mprinterr("Error: Vector/scalar set write failed.\n");
+        return 1;
+      }
+    } else if (isValid1dSetToWrite(ds)) {
       // ----- 1D scalar -------------------------
       SetArray sets(1, Set(ds));
       setPool.MarkUsed( idx );
@@ -1647,10 +1711,7 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
       for (unsigned int jdx = idx + 1; jdx < setPool.Nsets(); jdx++)
       {
         DataSet const* ds2 = setPool.Set( jdx );
-        if (ds2->Group() == DataSet::SCALAR_1D ||
-            ds2->Type() == DataSet::STRING ||
-            ds2->Type() == DataSet::VECTOR)
-        {
+        if (isValid1dSetToWrite(ds2)) {
           if (ds->Size() == ds2->Size() && dim == ds2->Dim(0)) {
             sets.push_back( Set(ds2) );
             setPool.MarkUsed( jdx );

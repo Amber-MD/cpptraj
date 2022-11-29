@@ -58,6 +58,8 @@ class DataIO_NetCDF : public DataIO {
 
     NcVar defineVar(int, int, std::string const&, std::string const&) const;
 
+    int writeData_vector_scalar(DataSet const*);
+
     int writeData_1D(DataSet const*, Dimension const&, SetArray const&);
 
     int writeData_2D(DataSet const*);

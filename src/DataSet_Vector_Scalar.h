@@ -5,6 +5,8 @@
 /// Hold XYZ value and associated scalar. 
 class DataSet_Vector_Scalar : public DataSet {
   public:
+    typedef std::vector<double> Darray;
+
     DataSet_Vector_Scalar();
     static DataSet* Alloc() { return (DataSet*)new DataSet_Vector_Scalar(); }
     // ----- DataSet functions -------------------
@@ -21,9 +23,9 @@ class DataSet_Vector_Scalar : public DataSet {
     // -------------------------------------------
     Vec3 const& Vec(unsigned int i) const { return vecs_[i]; }
     double Val(unsigned int i)      const { return vals_[i]; }
+    const double* ValPtr()          const { return &vals_[0]; }
   private:
     typedef std::vector<Vec3> Varray;
-    typedef std::vector<double> Darray;
 
     Varray vecs_; ///< Hold XYZ values.
     Darray vals_; ///< Hold scalar values.
