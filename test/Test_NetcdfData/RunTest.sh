@@ -12,7 +12,8 @@ CleanFiles ncdata.in d1.nc d1.dat rmsf.dat ascii.dat.save ascii.dat \
            heavyEvecs.dat.save heavyEvecs.dat \
            grid.nc grid.dx.save grid.dx \
            hbond.nc hbond.dat.save hbond.dat \
-           vector.nc vector.dat.save vector.dat
+           vector.nc vector.dat.save vector.dat \
+           peaks1.nc peaks1.dat.save peaks1.dat
 
 TESTNAME='NetCDF data file tests.'
 Requires netcdf
@@ -171,6 +172,29 @@ EOF
   DoTest vector.dat.save vector.dat
 }
 
+Volmap() {
+  UNITNAME='Write vector/scalar data'
+  cat > ncdata.in <<EOF
+parm ../tz2.ortho.parm7
+trajin ../tz2.ortho.nc
+rms first :1-13
+center :1-13 mass origin
+volmap name MyMap 1.0 1.0 1.0 :WAT@O \
+       radscale 1.36 size 20,20,20 \
+       peakcut 0.10 peakfile peaks1.nc
+run
+writedata peaks1.dat.save MyMap[peaks]
+EOF
+  RunCpptraj "$UNITNAME"
+
+  cat > ncdata.in <<EOF
+readdata peaks1.nc
+writedata peaks1.dat MyMap[peaks]
+EOF
+  RunCpptraj "Read vector/scalar data"
+  DoTest peaks1.dat.save peaks1.dat
+}
+
 Write1d
 Read1d
 Write2d
@@ -178,5 +202,6 @@ Write3d
 #Closest
 Hbond
 Vector
+Volmap
 
 EndTest

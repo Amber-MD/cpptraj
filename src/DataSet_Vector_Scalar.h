@@ -2,6 +2,7 @@
 #define INC_DATASET_VECTOR_SCALAR_H
 #include "DataSet.h"
 #include "Vec3.h"
+#include <cstddef> // size_t
 /// Hold XYZ value and associated scalar. 
 class DataSet_Vector_Scalar : public DataSet {
   public:
@@ -24,6 +25,11 @@ class DataSet_Vector_Scalar : public DataSet {
     Vec3 const& Vec(unsigned int i) const { return vecs_[i]; }
     double Val(unsigned int i)      const { return vals_[i]; }
     const double* ValPtr()          const { return &vals_[0]; }
+
+    void Resize(size_t s)           { vecs_.resize( s ); vals_.resize( s ); }
+  
+    Vec3& ModifyVec(unsigned int i) { return vecs_[i]; }
+    double* ValPtr()                { return &vals_[0]; } 
   private:
     typedef std::vector<Vec3> Varray;
 

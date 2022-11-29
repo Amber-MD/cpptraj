@@ -407,6 +407,49 @@ int DataIO_NetCDF::readData_1D_vector(DataSet* ds, NcVar const& yVar, VarArray& 
   return 0;
 }
 
+/** Read vector/scalar set with CPPTRAJ conventions. */
+int DataIO_NetCDF::readData_1D_vector_scalar(DataSet* ds, NcVar const& yVar, VarArray& Vars) const {
+  size_t start[2];
+  start[1] = 0;
+  size_t count[2];
+  count[0] = 1;
+  count[1] = 3;
+
+  unsigned int nvecs = dimLen(yVar.DimId(0));
+
+  DataSet_Vector_Scalar& vecSet = static_cast<DataSet_Vector_Scalar&>( *ds );
+  //vecSet.Allocate(DataSet::SizeArray(1, nvecs));
+
+  // Get the xyz values
+  vecSet.Resize( nvecs );
+  for (unsigned int idx = 0; idx < nvecs; idx++) {
+    start[0] = idx;
+    if (NC::CheckErr(nc_get_vara(ncid_, yVar.VID(), start, count, vecSet.ModifyVec(idx).Dptr()))) {
+      mprinterr("Error: Could not get vector xyz values for %u '%s'\n", idx, vecSet.legend());
+      return 1;
+    }
+  }
+  Vars[yVar.VID()].MarkRead();
+
+  // Get the scalar values
+  int scalarVid;
+  int ret = GetVarIntAtt(scalarVid, "scalarid", ncid_, yVar.VID());
+  if (ret != 0) {
+    mprinterr("Error: Could not get 'scalarid' attribute for '%s'\n", vecSet.legend());
+    return 1;
+  }
+
+  start[0] = 0;
+  count[0] = nvecs;
+  if (NC::CheckErr(nc_get_vara(ncid_, scalarVid, start, count, vecSet.ValPtr()))) {
+    mprinterr("Error: Could not get scalar values for '%s'\n", vecSet.legend());
+    return 1;
+  }
+  Vars[scalarVid].MarkRead();
+
+  return 0;
+}
+
 /** Read string set with CPPTRAJ conventions. */
 int DataIO_NetCDF::readData_1D_string(DataSet* ds, NcVar const& yVar, VarArray& Vars) const {
   // Get the lengths var id
@@ -770,6 +813,9 @@ const
           return 1;
       } else if (dtype == DataSet::VECTOR) {
         if (readData_1D_vector(ds, *var, Vars))
+          return 1;
+      } else if (dtype == DataSet::VECTOR_SCALAR) {
+        if (readData_1D_vector_scalar(ds, *var, Vars))
           return 1;
       } else if (dtype == DataSet::STRING) {
         if (readData_1D_string(ds, *var, Vars))
