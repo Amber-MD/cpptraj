@@ -45,7 +45,7 @@ int ForLoop_inData::SetupFor(CpptrajState& State, ArgList& argIn) {
   }
   // Check that we have the right kind of set.
   if (!valid_inData_set(set_)) {
-    mprinterr("Error: Set '%s' is not a valid set type for 'for indata' loop.\n");
+    mprinterr("Error: Set '%s' is not a valid set type for 'for indata' loop.\n", set_->legend());
     return 1;
   }
   // Variable name.
