@@ -306,6 +306,7 @@ COMMON_SOURCES= \
         FileTypes.cpp \
         ForLoop.cpp \
         ForLoop_dataSetBlocks.cpp \
+        ForLoop_inData.cpp \
         ForLoop_integer.cpp \
         ForLoop_list.cpp \
         ForLoop_mask.cpp \

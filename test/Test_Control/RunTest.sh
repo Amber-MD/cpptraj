@@ -5,7 +5,7 @@
 CleanFiles for.in TRP.vec.dat TRP.rms.dat TRP.CA.dist.dat TRP.tocenter.dat \
            nh.dat rms.nofit.dat last10.dat distance.dat nested.agr \
            EndToEnd0.dat EndToEnd1.dat EndToEnd2.agr temp.*.dat \
-           DataOut.dat testset.dist.dat nested2.dat
+           DataOut.dat testset.dist.dat nested2.dat hbavg.dat
 
 TESTNAME='Loop tests'
 Requires netcdf maxthreads 10
@@ -190,6 +190,20 @@ list
 EOF
 RunCpptraj "$UNITNAME"
 DoTest nested2.dat.save nested2.dat
+
+UNITNAME='Test looping over data set elements'
+cat > for.in <<EOF
+parm ../tz2.ortho.parm7
+trajin ../tz2.ortho.nc
+readdata datain.dat name MyData intcols 2,3
+for R1 indata MyData:2 R2 indata MyData:3 NAME indata MyData:1 \
+  CUT indata MyData:4 ANG indata MyData:5
+    hbond \$NAME :\$R1,\$R2 dist \$CUT angle \$ANG avgout hbavg.dat
+done
+run
+EOF
+RunCpptraj "$UNITNAME"
+DoTest hbavg.dat.save hbavg.dat
 
 EndTest
 exit 0

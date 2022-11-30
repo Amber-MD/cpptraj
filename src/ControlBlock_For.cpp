@@ -10,6 +10,7 @@
 #include "ForLoop_list.h"
 #include "ForLoop_dataSetBlocks.h"
 #include "ForLoop_overSets.h"
+#include "ForLoop_inData.h"
 
 /// DESTRUCTOR
 ControlBlock_For::~ControlBlock_For() {
@@ -21,7 +22,7 @@ ControlBlock_For::~ControlBlock_For() {
 void ControlBlock_For::Help() const {
   mprintf("\t<loop spec.> ...\n"
           "  Create a 'for' loop of one or more types:\n"
-          "    <loop spec> = mask, list, integer, datasetblocks, oversets\n"
+          "    <loop spec> = mask, list, integer, indata, datasetblocks, oversets\n"
           "  Type help 'for <loop spec.>' for more info on each type.\n"
           "  Note that non-integer variables (e.g. for mask loops) are NOT incremented\n"
           "  after the final loop iteration, i.e. these loop variables always retain\n"
@@ -47,11 +48,13 @@ void ControlBlock_For::Help(ArgList& argIn) const {
     ForLoop_mask::helpText();
   else if (argIn.hasKey("oversets"))
     ForLoop_overSets::helpText();
+  else if (argIn.hasKey("indata"))
+    ForLoop_inData::helpText();
   else
     Help();
 }
 
-/** Set up each mask/integer loop. */
+/** Set up each 'for' loop. */
 int ControlBlock_For::SetupBlock(CpptrajState& State, ArgList& argIn) {
   mprintf("    Setting up 'for' loop.\n");
   Vars_.clear();
@@ -75,6 +78,14 @@ int ControlBlock_For::SetupBlock(CpptrajState& State, ArgList& argIn) {
       }
       forLoopIdxs.push_back( idx );
       Vars_.push_back( static_cast<ForLoop*>( new ForLoop_mask() ) );
+    } else if (argIn[iarg] == "indata") {
+      int idx = iarg - 1;
+      if (idx < 1) {
+        mprinterr("Error: Malformed 'indata' for loop.\n");
+        return 1;
+      }
+      forLoopIdxs.push_back( idx );
+      Vars_.push_back( static_cast<ForLoop*>( new ForLoop_inData() ) );
     } else if (argIn[iarg] == "in") {
       int idx = iarg - 1;
       if (idx < 1) {
