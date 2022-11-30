@@ -2215,6 +2215,10 @@ for { {atoms|residues|molecules|molfirstres|mollastres}
 \end_layout
 
 \begin_layout LyX-Code
+      <var> indata <data set name> |
+\end_layout
+
+\begin_layout LyX-Code
       <var> oversets <list> |
 \end_layout
 
@@ -2307,6 +2311,27 @@ in
 
 <list> Loop over a comma-separated list of strings.
  File name wildcards can be used.
+\end_layout
+
+\begin_layout Description
+<var>
+\begin_inset space ~
+\end_inset
+
+in
+\begin_inset space ~
+\end_inset
+
+<data
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name> Loop over elements of specified data set.
+ Currently only 1D scalar sets and string sets can be specified.
 \end_layout
 
 \begin_layout Description
