@@ -12,6 +12,7 @@ class ForLoop_inData : public ForLoop {
     int BeginFor(DataSetList const&);
     bool EndFor(DataSetList&);
   private:
-    DataSet* set_; ///< Set with elements to iterate over
+    DataSet* set_;     ///< Set with elements to iterate over
+    unsigned int idx_; ///< Current index into set_
 };
 #endif
