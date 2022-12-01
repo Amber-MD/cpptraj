@@ -270,7 +270,8 @@ const
     errStat = 1;
     return Dims;
   }
-  mprintf("DEBUG: nindexdim= %i\n", nindexdim);
+  if (debug_ > 0)
+    mprintf("DEBUG: nindexdim= %i\n", nindexdim);
   if (nindexdim < 1) return Dims;
 //  idxVarIds.assign(nindexdim, -1);
 
@@ -482,14 +483,14 @@ int DataIO_NetCDF::readData_1D_string(DataSet* ds, NcVar const& yVar, VarArray& 
   ncount[0] = 1;
   std::vector<char> buffer;
   for (size_t idx = 0; idx < nstrings; idx++) {
-    mprintf("DEBUG: read string %zu", idx);
+    //if (debug_ > 1) mprintf("DEBUG: read string %zu", idx);
     // Get the string length
     int len;
     if (NC::CheckErr(nc_get_vara_int(ncid_, lengthsVarid, nstart, ncount, &len))) {
       mprinterr("Error: Could not get length of string %zu\n", idx);
       return 1;
     }
-    mprintf(" len=%i", len);
+    //if (debug_ > 1) mprintf(" len=%i", len);
     if ((size_t)len+1 > buffer.size())
       buffer.resize( len+1 );
     nstart[0]++;
@@ -500,7 +501,7 @@ int DataIO_NetCDF::readData_1D_string(DataSet* ds, NcVar const& yVar, VarArray& 
       return 1;
     }
     buffer[len] = '\0';
-    mprintf(" str='%s'\n", &buffer[0]);
+    //if (debug_ > 1) mprintf(" str='%s'\n", &buffer[0]);
     cstart[0] += (size_t)len;
     // Assign to DataSet
     strSet.SetElement( idx, &buffer[0] );
@@ -588,7 +589,7 @@ int DataIO_NetCDF::readData_2D(DataSet* ds, NcVar const& matVar, VarArray& Vars)
   ret = GetVarIntAtt(vectVarId, "vectid", ncid_, matVar.VID());
   if (ret == 1) return 1;
   if (ret == 0) {
-    mprintf("DEBUG: Matrix has diagonal vector data.\n");
+    mprintf("\tMatrix has diagonal vector data.\n");
     if (mat.Type() != DataSet::MATRIX_DBL) {
       mprinterr("Error: Variable has vect data but set is not double matrix.\n");
       return 1;
@@ -608,7 +609,7 @@ int DataIO_NetCDF::readData_2D(DataSet* ds, NcVar const& matVar, VarArray& Vars)
   ret = GetVarIntAtt(massVarId, "massid", ncid_, matVar.VID());
   if (ret == 1) return 1;
   if (ret == 0) {
-    mprintf("DEBUG: Matrix has mass data.\n");
+    mprintf("\tMatrix has mass data.\n");
     if (mat.Type() != DataSet::MATRIX_DBL) {
       mprinterr("Error: Variable has mass data but set is not double matrix.\n");
       return 1;
@@ -690,7 +691,8 @@ int DataIO_NetCDF::readData_3D(DataSet* ds, NcVar const& gridVar, VarArray& Vars
   }
   Vars[gridVar.VID()].MarkRead();
   // DEBUG
-  grid.GridInfo();
+  if (debug_ > 0)
+    grid.GridInfo();
 
   return 0;
 }
@@ -725,7 +727,7 @@ int DataIO_NetCDF::readData_modes(DataSet* ds, NcVar const& modesVar, VarArray& 
   } else if (ret == 0) {
     massLength = dimLen(Vars[massVarId].DimId(0));
   }
-  mprintf("DEBUG: Modes: # values= %u, evector size= %u, avg coords size= %u, mass size = %u\n",
+  mprintf("\tModes: # values= %u, evector size= %u, avg coords size= %u, mass size = %u\n",
           n_eigenvalues, evectorLength, avgCoordsLength, massLength);
   // Allocate the modes set
   DataSet_Modes& modes = static_cast<DataSet_Modes&>( *ds );
@@ -780,7 +782,8 @@ const
     std::string desc = NC::GetAttrText(ncid_, var->VID(), "description");
     // Get the type from the description
     DataSet::DataType dtype = DataSet::TypeFromDescription( desc );
-    mprintf("\t%s Description: %s (%i)\n", var->vname(), desc.c_str(), (int)dtype);
+    if (debug_ > 0)
+      mprintf("\t%s Description: %s (%i)\n", var->vname(), desc.c_str(), (int)dtype);
     // Get metaData
     int errStat = 0;
     MetaData meta = GetVarMetaData( errStat, ncid_, var->VID() );
@@ -792,8 +795,9 @@ const
     errStat = 0;
     std::vector<Dimension> Dims = getVarIndexInfo(errStat, ncid_, var->VID());
     if (errStat != 0) return 1;
-    for (std::vector<Dimension>::const_iterator dim = Dims.begin(); dim != Dims.end(); ++dim)
-      mprintf("DEBUG:\t Var %s dim %s min %f step %f\n", var->vname(), dim->label(), dim->Min(), dim->Step());
+    if (debug_ > 0)
+      for (std::vector<Dimension>::const_iterator dim = Dims.begin(); dim != Dims.end(); ++dim)
+        mprintf("DEBUG:\t Var %s dim %s min %f step %f\n", var->vname(), dim->label(), dim->Min(), dim->Step());
     // Add the set
     DataSet* ds = dsl.AddSet( dtype, meta );
     if (ds == 0) {
@@ -807,7 +811,8 @@ const
     // Check netcdf variable dimensions
 //    if (var->Ndims() == 1) {
       // One flat dimension
-      mprintf("DEBUG: %s dim length %u\n", var->vname(), dimLen(var->DimId(0)) );
+      if (debug_ > 0)
+        mprintf("DEBUG: %s dim length %u\n", var->vname(), dimLen(var->DimId(0)) );
       if (dtype == DataSet::XYMESH) {
         if (readData_1D_xy(ds, *var, Vars))
           return 1;
@@ -867,6 +872,10 @@ int DataIO_NetCDF::ReadData(FileName const& fname, DataSetList& dsl, std::string
   bool hasCpptrajConventions = (NC::GetConventions(ncid_) == NC::NC_CPPTRAJDATA);
   if (hasCpptrajConventions)
     mprintf("\tNetCDF data file has CPPTRAJ conventions.\n");
+  else {
+    mprinterr("Error: NetCDF data file has unknown conventions.\n");
+    return 1;
+  }
 
   // Get the number of dimensions, variables, attributes, and ID of the
   // unlimited dimension (if any).
@@ -875,8 +884,9 @@ int DataIO_NetCDF::ReadData(FileName const& fname, DataSetList& dsl, std::string
     mprinterr("Error: Could not get NetCDF data file information.\n");
     return 1;
   }
-  mprintf("DEBUG: '%s' : ndimsp=%i  nvarsp=%i  ngattsp=%i  unlimdimidp=%i\n",
-          fname.full(), ndimsp, nvarsp, ngattsp, unlimdimidp);
+  if (debug_ > 0)
+    mprintf("DEBUG: '%s' : ndimsp=%i  nvarsp=%i  ngattsp=%i  unlimdimidp=%i\n",
+            fname.full(), ndimsp, nvarsp, ngattsp, unlimdimidp);
   char varName[NC_MAX_NAME+1];
   // Get the length of all dimensions
   Dimensions_.clear();
@@ -888,7 +898,8 @@ int DataIO_NetCDF::ReadData(FileName const& fname, DataSetList& dsl, std::string
       return 1;
     }
     Dimensions_.push_back( NcDim( idim, varName, diml ) );
-    Dimensions_.back().Print();
+    if (debug_ > 0)
+      Dimensions_.back().Print();
   }
 
   VarArray AllVars;
@@ -904,12 +915,13 @@ int DataIO_NetCDF::ReadData(FileName const& fname, DataSetList& dsl, std::string
       mprinterr("Error: Could not get NetCDF data variable name %i\n", ivar);
       return 1;
     }
-    mprintf("DEBUG:\tVariable %i - '%s', %i dims, %i attributes\n", ivar, varName, nVarDims, nVarAttributes);
+    if (debug_ > 0)
+      mprintf("DEBUG:\tVariable %i - '%s', %i dims, %i attributes\n", ivar, varName, nVarDims, nVarAttributes);
     AllVars.push_back( NcVar(ivar, varType, varName, nVarDims, varDimIds) );
   }
 
   for (VarArray::const_iterator it = AllVars.begin(); it != AllVars.end(); ++it)
-    mprintf("  %i (%s)\n", it->VID(), it->vname());
+    mprintf("\t  %i (%s)\n", it->VID(), it->vname());
   
   if (read_cpptraj_vars(dsl, dsname, AllVars)) return 1;
 
@@ -1159,7 +1171,8 @@ int DataIO_NetCDF::defineDim(std::string const& label, unsigned int dimSize, std
     return -1;
   }
   Dimensions_.push_back( NcDim(did, dimLabel, dimSize) );
-  Dimensions_.back().Print();
+  if (debug_ > 0)
+    Dimensions_.back().Print();
   return dimIdx;
 }
 
@@ -1189,10 +1202,10 @@ const
     if (AddDataSetIntAtt( varid, childVarDesc.c_str(), ncid_, parentVarId )) return NcVar();
   }
   
-  //return NcVar(varid, nctype, varName.c_str(), 1, dimensionID);
-  NcVar ret(varid, nctype, varName.c_str(), DimIds.size(), &DimIds[0]); // DEBUG
-  ret.Print(); // DEBUG
-  return ret; // DEBUG
+  NcVar ret(varid, nctype, varName.c_str(), DimIds.size(), &DimIds[0]);
+  if (debug_ > 0)
+    ret.Print(); // DEBUG
+  return ret;
 }
 
 /** Create 1D variable. Optionally associate it with a parent variable.
@@ -1266,10 +1279,12 @@ int DataIO_NetCDF::writeData_vector_scalar(DataSet const* ds) {
 int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArray const& sets) {
   if (ds->Type() == DataSet::PH)
     mprintf("Warning: Currently only State information saved for pH sets.\n");
-  mprintf("DEBUG: Sets for dimension '%s' %f %f:", dim.label(), dim.Min(), dim.Step());
-  for (SetArray::const_iterator it = sets.begin(); it != sets.end(); ++it)
-    mprintf(" %s", it->DS()->legend());
-  mprintf("\n");
+  if (debug_ > 0) {
+    mprintf("DEBUG: Sets for dimension '%s' %f %f:", dim.label(), dim.Min(), dim.Step());
+    for (SetArray::const_iterator it = sets.begin(); it != sets.end(); ++it)
+      mprintf(" %s", it->DS()->legend());
+    mprintf("\n");
+  }
   // Define the dimension. Ensure name is unique by appending an index.
   if (EnterDefineMode(ncid_)) return 1;
   int dimIdx = defineDim( "length", ds->Size(), ds->Meta().Legend() );
@@ -1464,7 +1479,7 @@ int DataIO_NetCDF::writeData_2D(DataSet const* ds) {
   DataSet_2D const& set = static_cast<DataSet_2D const&>( *ds );
   int dimIdx = defineDim( "size", set.Size(), set.Meta().Legend() );
   if (dimIdx < 0) return 1;
-  mprintf("DEBUG: ncdim.Size()= %u\n", dimLen(dimIdx));
+  //mprintf("DEBUG: ncdim.Size()= %u\n", dimLen(dimIdx));
   // Choose type
   nc_type dtype;
   switch (set.Type()) {
@@ -1526,7 +1541,7 @@ int DataIO_NetCDF::writeData_2D(DataSet const* ds) {
   size_t count[1];
   start[0] = 0;
   count[0] = dimLen(dimIdx);
-  mprintf("DEBUG: start %zu count %zu\n", start[0], count[0]);
+  //mprintf("DEBUG: start %zu count %zu\n", start[0], count[0]);
   if (NC::CheckErr(nc_put_vara(ncid_, matVar.VID(), start, count, set.MatrixPtr()))) {
     mprinterr("Error: Could not write matrix '%s'\n", set.legend());
     return 1;
@@ -1600,7 +1615,7 @@ int DataIO_NetCDF::writeData_3D(DataSet const* ds) {
   size_t count[1];
   start[0] = 0;
   count[0] = dimLen(dimIdx);
-  mprintf("DEBUG: start %zu count %zu\n", start[0], count[0]);
+  //mprintf("DEBUG: start %zu count %zu\n", start[0], count[0]);
   if (NC::CheckErr(nc_put_vara(ncid_, gridVar.VID(), start, count, set.GridPtr()))) {
     mprinterr("Error: Could not write grid '%s'\n", set.legend());
     return 1;
@@ -1718,7 +1733,8 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
     if (setPool.IsUsed(idx)) continue;
 
     DataSet const* ds = setPool.Set( idx );
-    mprintf("DEBUG: '%s'\n", ds->legend());
+    if (debug_ > 0)
+      mprintf("DEBUG: '%s'\n", ds->legend());
     if (ds->Type() == DataSet::MODES) {
       // ----- Modes -----------------------------
       if (writeData_modes(ds)) {
@@ -1808,7 +1824,8 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
     mprinterr("NetCDF data error on ending definitions.");
     return 1;
   }
-  NC::Debug(ncid_);
+  if (debug_ > 0)
+    NC::Debug(ncid_);
 
   nc_close(ncid_); 
   return 0;
