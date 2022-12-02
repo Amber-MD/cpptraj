@@ -16,6 +16,7 @@
 # include "DataSet_string.h"
 # include "DataSet_Vector.h"
 # include "DataSet_Vector_Scalar.h"
+# include "DataSet_PairwiseCache_MEM.h"
 #endif
 
 /// CONSTRUCTOR
@@ -26,6 +27,7 @@ DataIO_NetCDF::DataIO_NetCDF() :
 {
   SetValid( DataSet::MODES );
   SetValid( DataSet::VECTOR_SCALAR );
+  SetValid( DataSet::PMATRIX_MEM );
 }
 
 // DataIO_NetCDF::ID_DataFormat()
@@ -1623,6 +1625,54 @@ int DataIO_NetCDF::writeData_3D(DataSet const* ds) {
   return 0;
 }
 
+/** Write pairwise cluster matrix to file. TODO fold into 2d matrix write? */
+int DataIO_NetCDF::writeData_cluster_pwmatrix(DataSet const* ds) {
+  // Define the dimensions of all arrays. Ensure names are unique by appending an index.
+  if (EnterDefineMode(ncid_)) return 1;
+  DataSet_PairwiseCache_MEM const& Mat = static_cast<DataSet_PairwiseCache_MEM const&>( *ds );
+  // # original frames (TODO attribute)
+  //int dimIdx = defineDim( "n_original_frames", 
+
+  // Actual matrix size
+  int dimIdx = defineDim( "msize", Mat.Size(), Mat.Meta().Legend() + " matrix size" );
+  if (dimIdx < 0) return 1;
+  NcDim matsizeDim = Dimensions_[dimIdx];
+  // Define variables TODO units
+  // Matrix
+  NcVar matrixVar = defineVar(matsizeDim.DID(), NC_FLOAT, Mat.Meta().PrintName(), "matrix");
+  if (matrixVar.Empty()) {
+    mprinterr("Error: Could not define cluster matrix variable.\n");
+    return 1;
+  }
+  // Attributes for matrix
+  if (AddDataSetIntAtt( Mat.FrameToIdx().size(), "n_original_frames", ncid_, matrixVar.VID() )) return 1;
+  if (AddDataSetIntAtt( Mat.SieveVal(), "sieve", ncid_, matrixVar.VID() )) return 1;
+  if (AddDataSetStringAtt(Mat.MetricDescrip(), "MetricDescription", ncid_, matrixVar.VID()))
+    return 1;
+
+  // Add DataSet info to variable
+  if (AddDataSetInfo( ds, ncid_, matrixVar.VID() )) return 1;
+
+  // Frames (if sieved) TODO always define?
+  if (Mat.SieveVal() != 1) {
+    // # matrix Rows (frames)
+    dimIdx = defineDim( "n_rows", Mat.Nrows(), Mat.Meta().Legend() + " number of rows" );
+    if (dimIdx < 0) return 1;
+    NcDim nrowsDim = Dimensions_[dimIdx];
+    // Actual frames clustered
+    NcVar framesVar = defineVar(nrowsDim.DID(), NC_INT, Mat.Meta().PrintName(), "actual_frames", matrixVar.VID());
+    if (framesVar.Empty()) {
+      mprinterr("Error: Could not define cluster frames variable.\n");
+      return 1;
+    }
+  }
+
+  // END define variable
+  if (EndDefineMode( ncid_ )) return 1;
+ 
+  return 0;
+}
+
 /** Write modes set to file. */
 int DataIO_NetCDF::writeData_modes(DataSet const* ds) {
   // Define the dimensions of all arrays. Ensure names are unique by appending an index.
@@ -1739,6 +1789,13 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
       // ----- Modes -----------------------------
       if (writeData_modes(ds)) {
         mprinterr("Error: modes set write failed.\n");
+        return 1;
+      }
+      setPool.MarkUsed( idx );
+    } else if (ds->Type() == DataSet::PMATRIX_MEM) {
+      // ----- Cluster pairwise matrix -----------
+      if (writeData_cluster_pwmatrix(ds)) {
+        mprinterr("Error: cluster pairwise matrix write failed.\n");
         return 1;
       }
       setPool.MarkUsed( idx );
