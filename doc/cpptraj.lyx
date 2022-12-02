@@ -42448,7 +42448,7 @@ cluster
 \end_layout
 
 \begin_layout LyX-Code
-	[pairdist <name>] [pwrecalc]
+	[pairdist <name> [pairdistfile <file>]] [pwrecalc]
 \end_layout
 
 \begin_layout LyX-Code
@@ -43058,6 +43058,24 @@ Pairwise Distance Matrix Options:
  distances.
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+[pairdistfile
+\begin_inset space ~
+\end_inset
+
+<file>] File name to use for pairwise cache; if not specified and 
+\series bold
+'pairdist'
+\series default
+ specified, uses 
+\series bold
+'pairdist'
+\series default
+.
+\end_layout
+
+\end_deeper
 \begin_layout Description
 [pwrecalc] If the loaded pairwise distance matrix does not match the current
  setup, force recalculation.
