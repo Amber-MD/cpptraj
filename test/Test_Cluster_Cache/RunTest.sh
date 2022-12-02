@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles cluster.in *.cnumvtime.dat *.info.dat *.summary.dat PW0 PW1 \
-           CpptrajPairwiseCache
+           CpptrajPairwiseCache MyMatrix.nc MyMatrix.2.nccmatrix
 
 INPUT="-i cluster.in"
 TESTNAME='Cluster pairwise cache tests'
@@ -75,6 +75,18 @@ DoTest sieve5.mem.save.info.dat.save sieve5.nocache.save.info.dat
 # Test loading pairwise cache with different sieve
 Cluster sieve3.mem.load "sieve 3" "loadpairdist pairdist PW1 pwrecalc"
 DoTest sieve3.mem.load.info.dat.save sieve3.mem.load.info.dat
+
+# Test using different set and file names
+UNITNAME='Test using different set and file names'
+cat > cluster.in <<EOF
+parm ../tz2.parm7
+trajin ../tz2.nc
+cluster @CA sieve 5 hieragglo clusters 5 pairdist MyMatrix pairdistfile MyMatrix.nc
+run
+writedata MyMatrix.2.nccmatrix MyMatrix 
+EOF
+RunCpptraj "$UNITNAME"
+NcTest MyMatrix.2.nccmatrix MyMatrix.nc
 
 # Test sieving
 #Cluster nosieve
