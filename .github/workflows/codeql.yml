@@ -65,8 +65,8 @@ jobs:
     #   modify them (or add more) to build your code if your project, please refer to the EXAMPLE below for guidance.
 
     - run: |
-      ./configure --buildlibs gnu
-      make install
+        ./configure --buildlibs gnu
+        make install
     #   ./location_of_script_within_repo/buildscript.sh
 
     - name: Perform CodeQL Analysis
