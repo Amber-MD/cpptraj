@@ -13,7 +13,8 @@ CleanFiles ncdata.in d1.nc d1.dat rmsf.dat ascii.dat.save ascii.dat \
            grid.nc grid.dx.save grid.dx \
            hbond.nc hbond.dat.save hbond.dat \
            vector.nc vector.dat.save vector.dat \
-           peaks1.nc peaks1.dat.save peaks1.dat
+           peaks1.nc peaks1.dat.save peaks1.dat \
+           cluster.nc
 
 TESTNAME='NetCDF data file tests.'
 Requires netcdf
@@ -195,6 +196,21 @@ EOF
   DoTest peaks1.dat.save peaks1.dat
 }
 
+Cluster() {
+  UNITNAME='Write cluster data'
+  cat > ncdata.in <<EOF
+parm ../tz2.parm7
+trajin ../tz2.nc
+#cluster C1 :2-10 clusters 3 epsilon 4.0 \
+#  pairdist cluster.nc savepairdist
+cluster C1 @CA clusters 5 \
+  sieve 5 bestrep cumulative includesieveincalc \
+  pairdist cluster.nc savepairdist
+EOF
+  RunCpptraj "$UNITNAME"
+
+}
+
 Write1d
 Read1d
 Write2d
@@ -203,5 +219,6 @@ Write3d
 Hbond
 Vector
 Volmap
+Cluster
 
 EndTest
