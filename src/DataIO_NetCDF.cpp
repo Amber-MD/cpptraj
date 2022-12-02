@@ -1654,13 +1654,15 @@ int DataIO_NetCDF::writeData_cluster_pwmatrix(DataSet const* ds) {
   if (AddDataSetInfo( ds, ncid_, matrixVar.VID() )) return 1;
 
   // Frames (if sieved) TODO always define?
+  NcDim nrowsDim;
+  NcVar framesVar;
   if (Mat.SieveVal() != 1) {
     // # matrix Rows (frames)
     dimIdx = defineDim( "n_rows", Mat.Nrows(), Mat.Meta().Legend() + " number of rows" );
     if (dimIdx < 0) return 1;
-    NcDim nrowsDim = Dimensions_[dimIdx];
+    nrowsDim = Dimensions_[dimIdx];
     // Actual frames clustered
-    NcVar framesVar = defineVar(nrowsDim.DID(), NC_INT, Mat.Meta().PrintName(), "actual_frames", matrixVar.VID());
+    framesVar = defineVar(nrowsDim.DID(), NC_INT, Mat.Meta().PrintName(), "actual_frames", matrixVar.VID());
     if (framesVar.Empty()) {
       mprinterr("Error: Could not define cluster frames variable.\n");
       return 1;
@@ -1669,6 +1671,23 @@ int DataIO_NetCDF::writeData_cluster_pwmatrix(DataSet const* ds) {
 
   // END define variable
   if (EndDefineMode( ncid_ )) return 1;
+
+  // Write variables
+  size_t start[1], count[1];
+  start[0] = 0;
+  count[0] = matsizeDim.Size();
+  if (NC::CheckErr(nc_put_vara(ncid_, matrixVar.VID(), start, count, Mat.Ptr()))) {
+    mprinterr("Error: Writing cluster matrix variable.\n");
+    return 1;
+  }
+  if (!framesVar.Empty()) {
+    count[0] = nrowsDim.Size();
+    Cpptraj::Cluster::Cframes actualFrames = Mat.PresentFrames();
+    if (NC::CheckErr(nc_put_vara( ncid_, framesVar.VID(), start, count, &actualFrames[0] ))) {
+      mprinterr("Error: Writing cluster frames variable.\n");
+      return 1;
+    }
+  }
  
   return 0;
 }
