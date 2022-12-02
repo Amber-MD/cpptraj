@@ -20,9 +20,6 @@ on:
   schedule:
     - cron: '26 13 * * 3'
 
-paths:
-  - src
-
 jobs:
   analyze:
     name: Analyze
