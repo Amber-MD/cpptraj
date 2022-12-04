@@ -42,6 +42,8 @@ class DataIO_NetCDF : public DataIO {
 
     int readData_1D(DataSet*, NcVar const&, VarArray&) const;
 
+    int readData_cluster_pwmatrix(DataSet*, NcVar const&, VarArray&) const;
+
     int readData_2D(DataSet*, NcVar const&, VarArray&) const;
 
     int readData_3D(DataSet*, NcVar const&, VarArray&) const;

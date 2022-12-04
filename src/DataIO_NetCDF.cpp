@@ -534,6 +534,70 @@ int DataIO_NetCDF::readData_1D(DataSet* ds, NcVar const& yVar, VarArray& Vars) c
   return 0;
 }
 
+/** Read cluster pairwise matrix with CPPTRAJ conventions. */
+int DataIO_NetCDF::readData_cluster_pwmatrix(DataSet* ds, NcVar const& matrixVar, VarArray& Vars) const {
+  // Get n_original_frames attribute
+  int n_original_frames;
+  int ret = GetVarIntAtt(n_original_frames, "n_original_frames", ncid_, matrixVar.VID());
+  if (ret != 0) {
+    mprinterr("Error: Could not get 'n_original_frames' attribute.\n");
+    return 1;
+  }
+  // Get metric description
+  std::string metric_description = NC::GetAttrText(ncid_, matrixVar.VID(), "MetricDescription");
+  // Get the sieve attribute
+  int sieve;
+  ret = GetVarIntAtt(sieve, "sieve", ncid_, matrixVar.VID());
+  if (ret != 0) {
+    mprinterr("Error: Could not get 'sieve' attribute.\n");
+    return 1;
+  }
+  // Get the frames being clustered
+  Cpptraj::Cluster::Cframes frames_to_cluster; 
+  int actual_framesid = -1;
+  if (sieve != 1) {
+    ret = GetVarIntAtt(actual_framesid, "actual_framesid", ncid_, matrixVar.VID());
+    if (ret != 0) {
+      mprinterr("Error: Could not get 'actual_framesid' attribute and sieve != 1.\n");
+      return 1;
+    }
+    // Get the actual_frames dim id TODO consolidate with string lengths read routine above
+    int lengthDim[1];
+    if (NC::CheckErr(nc_inq_vardimid(ncid_, actual_framesid, lengthDim))) {
+      mprinterr("Error: Could not get dimension id for actual_frames var.\n");
+      return 1;
+    }
+    // Get actual_frames dim size
+    size_t n_actual_frames;
+    if (NC::CheckErr(nc_inq_dimlen(ncid_, lengthDim[0], &n_actual_frames))) {
+      mprinterr("Error: Could not get size of dimension for actual_frames var.\n");
+      return 1;
+    }
+    // Read actual frames
+    frames_to_cluster.assign(n_actual_frames, -1);
+    size_t start[1], count[1];
+    start[0] = 0;
+    count[0] = n_actual_frames;
+    if (NC::CheckErr(nc_get_vara(ncid_, actual_framesid, start, count, frames_to_cluster.Ptr()))) {
+      mprinterr("Error: Could not read actual frames array.\n");
+      return 1;
+    }
+    Vars[actual_framesid].MarkRead();
+  } else {
+    // Sieve 1 (i.e. no sieveing)
+    frames_to_cluster.reserve(n_original_frames);
+    for (int frm = 0; frm < n_original_frames; frm++)
+      frames_to_cluster.push_back( frm );
+  }
+  mprintf("DEBUG: Frames in pairwise matrix:");
+  for (Cpptraj::Cluster::Cframes::const_iterator it = frames_to_cluster.begin();
+                                                 it != frames_to_cluster.end(); ++it)
+    mprintf(" %i", *it);
+  mprintf("\n");
+
+  return 0;
+}
+
 /** Read 2D matrix with CPPTRAJ conventions. */
 int DataIO_NetCDF::readData_2D(DataSet* ds, NcVar const& matVar, VarArray& Vars) const {
   // ----- 2D Matrix -------------
@@ -831,6 +895,9 @@ const
       } else if (ds->Group() == DataSet::SCALAR_1D) {
         if (readData_1D(ds, *var, Vars))
           return 1;
+      } else if (dtype == DataSet::PMATRIX_MEM) {
+        if (readData_cluster_pwmatrix(ds, *var, Vars))
+         return 1;
       } else if (ds->Group() == DataSet::MATRIX_2D) {
         if (readData_2D(ds, *var, Vars))
           return 1;
