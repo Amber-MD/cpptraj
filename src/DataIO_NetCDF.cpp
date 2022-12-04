@@ -43,7 +43,8 @@ bool DataIO_NetCDF::ID_DataFormat(CpptrajFile& infile)
   infile.CloseFile();
   if (magic[0] == 'C' && magic[1] == 'D' && magic[2] == 'F') {
 #   ifdef BINTRAJ
-    return true;
+    // Check that we have cpptraj conventions
+    return (NC::GetConventions(infile.Filename().Full()) == NC::NC_CPPTRAJDATA);
 #   else
     mprintf("Warning: '%s' is a NetCDF file but CPPTRAJ was compiled without NetCDF support.\n",
             infile.Filename().full());
