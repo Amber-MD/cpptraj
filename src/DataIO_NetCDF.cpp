@@ -1267,10 +1267,6 @@ DataIO_NetCDF::NcVar DataIO_NetCDF::defineVar(std::vector<int> const& DimIds,
 const
 {
   // ASSUME WE ARE IN DEFINE MODE
-  //if (dimid < 0) return NcVar();
-  // Define the variable
-  //int dimensionID[1];
-  //dimensionID[0] = dimid;
   std::string varName = PrintName + "." + VarSuffix;
   int varid;
   if ( NC::CheckErr(nc_def_var(ncid_, varName.c_str(), nctype, DimIds.size(), &DimIds[0], &varid)) ) {
