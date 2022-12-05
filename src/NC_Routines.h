@@ -35,7 +35,7 @@ namespace NC {
   std::string GetAttrText(int, int, const char*);
   /// \return Text for given global attribute.
   std::string GetAttrText(int, const char*);
-  /// \return dimension ID of given attribute and set dimension length.
+  /// \return dimension ID of given name and set dimension length.
   int GetDimInfo(int, const char*, unsigned int&);
   // FIXME This version here for backwards compatibility.
   int GetDimInfo(int, const char*, int&);
