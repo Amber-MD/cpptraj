@@ -1173,63 +1173,62 @@ static inline int AddDataSetMetaData(MetaData const& meta, int ncid, int varid)
 
 /// Add DataSet index information to a target variable
 /** \param ds Input DataSet
-  * \param indexVarId Index variable ID if present
+  * \param indexVarIds Optional index variable IDs, one for each dimension.
   * \param ncid File ncid
   * \param varid Target variable id
   */
-static inline int AddDataSetIndexInfo(DataSet const* ds, int indexVarId, int ncid, int varid)
+static inline int AddDataSetIndexInfo(DataSet const* ds, std::vector<int> const& indexVarIds,
+                                      int ncid, int varid)
 {
   // Add number of index dimensions
   if (AddDataSetIntAtt( ds->Ndim(), "nindexdim", ncid, varid )) return 1;
-  // Add index dimensions
-  if (ds->Type() == DataSet::XYMESH) {
-    // Sanity check
-    if (indexVarId < 0) {
-      mprinterr("Internal Error: AddDataSetIndexInfo() called with -1 indexVarId.\n");
-      return 1;
-    }
-    // SPECIAL CASE
-    // Add index variable ID
-    if (AddDataSetIntAtt(indexVarId, "indexid0", ncid, varid)) return 1;
-    // Add index variable label
-    std::string label("label0");
-    if (AddDataSetStringAtt(ds->Dim(0).Label(), label.c_str(), ncid, varid)) return 1;
-  } else {
-    // Loop over dimensions
-    for (int idx = 0 ; idx < (int)ds->Ndim(); idx++) {
-      // Add dimension min, step, and label
-      std::string suffix( integerToString(idx) );
+  // Loop over dimensions
+  for (int idx = 0 ; idx < (int)ds->Ndim(); idx++)
+  {
+    Dimension const& dim = ds->Dim(idx);
+    std::string suffix( integerToString(idx) );
+    if (!indexVarIds.empty() && indexVarIds[idx] > -1) {
+      // Index variable ID present for this dimension
+      std::string indexid( "indexid" + suffix );
+      if (AddDataSetIntAtt(indexVarIds[idx], indexid.c_str(), ncid, varid)) return 1;
+    } else {
+      // No index variable ID for this dimension
       std::string min(  "min"   + suffix);
       std::string step( "step"  + suffix);
-      std::string label("label" + suffix);
-      Dimension const& dim = ds->Dim(idx);
       if (AddDataSetDblAtt(dim.Min(),  min.c_str(),  ncid, varid)) return 1;
       if (AddDataSetDblAtt(dim.Step(), step.c_str(), ncid, varid)) return 1;
-      if (AddDataSetStringAtt(dim.Label(), label.c_str(), ncid, varid)) return 1;
     }
+    std::string label("label" + suffix);
+    if (AddDataSetStringAtt(dim.Label(), label.c_str(), ncid, varid)) return 1;
   }
   return 0;
 }
 
-/// Add DataSet MetaData, index information, and description to target variable
-static inline int AddDataSetInfo(DataSet const* ds, int indexVarId, int ncid, int varid)
+/// Add DataSet MetaData, index information (with optional index var IDs), and description to target variable
+/** \param ds Set with MetaData to add.
+  * \param indexVarIds Optional index variable IDs, one for each dimension.
+  * \param ncid NetCDF id to add to.
+  * \param varid NetCDF variable id to add to.
+  */
+static inline int AddDataSetInfo(DataSet const* ds, std::vector<int> const& indexVarIds,
+                                 int ncid, int varid)
 {
   // Add DataSet metadata as attributes
   if (AddDataSetMetaData(ds->Meta(), ncid, varid)) return 1;
   // Add index info
-  if (indexVarId > -1) {
-    if (AddDataSetIndexInfo(ds, indexVarId, ncid, varid)) return 1;
-  } else {
-    if (AddDataSetIndexInfo(ds, -1, ncid, varid)) return 1;
-  }
+  if (AddDataSetIndexInfo(ds, indexVarIds, ncid, varid)) return 1;
   // Store the description
   if (AddDataSetStringAtt(ds->description(), "description", ncid, varid)) return 1;
   return 0;
 }
 
-/// Add DataSet MetaData, index information, and description to target variable
+/// Add DataSet MetaData, index information (no index var IDs), and description to target variable
+/** \param ds Set with MetaData to add.
+  * \param ncid NetCDF id to add to.
+  * \param varid NetCDF variable id to add to.
+  */
 static inline int AddDataSetInfo(DataSet const* ds, int ncid, int varid) {
-  return AddDataSetInfo(ds, -1, ncid, varid);
+  return AddDataSetInfo(ds, std::vector<int>(), ncid, varid);
 }
 
 /** Define dimension. Ensure name is unique by appending an index.
@@ -1449,7 +1448,7 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
       }
       set_vars.push_back( xVar );
       // Add DataSet info to variable
-      if (AddDataSetInfo(ds, xVar.VID(), ncid_, yVar.VID())) return 1;
+      if (AddDataSetInfo(ds, std::vector<int>(1, xVar.VID()), ncid_, yVar.VID())) return 1;
     } else {
       // ----- All other 1D sets -------
       set_vars.push_back( defineVar(lengthDim.DID(), dtype, it->DS()->Meta().PrintName(), "Y") );
