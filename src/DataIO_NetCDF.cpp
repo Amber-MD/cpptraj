@@ -266,20 +266,19 @@ const
   errStat = 0;
   std::vector<Dimension> Dims;
   // Get # of index dimensions
-  int nindexdim = 0;
-  int ret = GetVarIntAtt(nindexdim, "nindexdim", ncid, varid);
+  int nindexvar = 0;
+  int ret = GetVarIntAtt(nindexvar, "nindexvar", ncid, varid);
   if (ret != 0) {
-    mprinterr("Error: Missing 'nindexdim' attribute.\n");
+    mprinterr("Error: Missing 'nindexvar' attribute.\n");
     errStat = 1;
     return Dims;
   }
   if (debug_ > 0)
-    mprintf("DEBUG: nindexdim= %i\n", nindexdim);
-  if (nindexdim < 1) return Dims;
-//  idxVarIds.assign(nindexdim, -1);
+    mprintf("DEBUG: nindexvar= %i\n", nindexvar);
+  if (nindexvar < 1) return Dims;
 
-  Dims.resize( nindexdim );
-  for (int i = 0; i < nindexdim; i++) {
+  Dims.resize( nindexvar );
+  for (int i = 0; i < nindexvar; i++) {
     Dimension& dim = Dims[i];
     // Expect either label<i> and indexid<i>, or
     // label<i>, min<i>, and step<i>
@@ -1181,9 +1180,9 @@ static inline int AddDataSetMetaData(MetaData const& meta, int ncid, int varid)
 static inline int AddDataSetIndexInfo(DataSet const* ds, std::vector<int> const& indexVarIds,
                                       int ncid, int varid)
 {
-  // Add number of index dimensions
-  if (AddDataSetIntAtt( ds->Ndim(), "nindexdim", ncid, varid )) return 1;
-  // Loop over dimensions
+  // Add number of index variables 
+  if (AddDataSetIntAtt( ds->Ndim(), "nindexvar", ncid, varid )) return 1;
+  // Loop over index variables
   for (int idx = 0 ; idx < (int)ds->Ndim(); idx++)
   {
     Dimension const& dim = ds->Dim(idx);
