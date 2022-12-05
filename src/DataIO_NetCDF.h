@@ -30,6 +30,8 @@ class DataIO_NetCDF : public DataIO {
 
     std::vector<Dimension> getVarIndexInfo(int&, int, int) const;
 
+    int get_1D_var_dimlen(size_t&, int, const char*) const;
+
     inline unsigned int dimLen(int) const;
 
     int readData_1D_xy(DataSet*, NcVar const&, VarArray&) const;

@@ -330,6 +330,23 @@ const
   return Dims;
 }
 
+/** \return the length of the dimension of a 1D variable. */
+int DataIO_NetCDF::get_1D_var_dimlen(size_t& len, int varid, const char* desc) const {
+  len = 0;
+  // Get the first dimension dim id
+  int lengthDim[1];
+  if (NC::CheckErr(nc_inq_vardimid(ncid_, varid, lengthDim))) {
+    mprinterr("Error: Could not get dimension id for %s var.\n", desc);
+    return 1;
+  }
+  // Get lengths dim size
+  if (NC::CheckErr(nc_inq_dimlen(ncid_, lengthDim[0], &len))) {
+    mprinterr("Error: Could not get size of dimension for %s var.\n", desc);
+    return 1;
+  }
+  return 0;
+}
+
 /// Shortcut for getting dimension length from Dimensions_ array
 unsigned int DataIO_NetCDF::dimLen(int did) const {
   return Dimensions_[did].Size();
@@ -464,7 +481,9 @@ int DataIO_NetCDF::readData_1D_string(DataSet* ds, NcVar const& yVar, VarArray& 
     return 1;
   }
   // Get the lengths dim id
-  int lengthDim[1];
+  size_t nstrings;
+  if (get_1D_var_dimlen(nstrings, lengthsVarid, "string lengths")) return 1;
+/*  int lengthDim[1];
   if (NC::CheckErr(nc_inq_vardimid(ncid_, lengthsVarid, lengthDim))) {
     mprinterr("Error: Could not get dimension id for string lengths var.\n");
     return 1;
@@ -474,7 +493,7 @@ int DataIO_NetCDF::readData_1D_string(DataSet* ds, NcVar const& yVar, VarArray& 
   if (NC::CheckErr(nc_inq_dimlen(ncid_, lengthDim[0], &nstrings))) {
     mprinterr("Error: Could not get size of dimension for string lengths var.\n");
     return 1;
-  }
+  }*/
 
   DataSet_string& strSet = static_cast<DataSet_string&>( *ds );
   strSet.Resize( nstrings );
@@ -562,6 +581,9 @@ int DataIO_NetCDF::readData_cluster_pwmatrix(DataSet* ds, NcVar const& matrixVar
       return 1;
     }
     // Get the actual_frames dim id TODO consolidate with string lengths read routine above
+    size_t n_actual_frames;
+    if (get_1D_var_dimlen(n_actual_frames, actual_framesid, "actual # frames")) return 1;
+/*
     int lengthDim[1];
     if (NC::CheckErr(nc_inq_vardimid(ncid_, actual_framesid, lengthDim))) {
       mprinterr("Error: Could not get dimension id for actual_frames var.\n");
@@ -572,7 +594,7 @@ int DataIO_NetCDF::readData_cluster_pwmatrix(DataSet* ds, NcVar const& matrixVar
     if (NC::CheckErr(nc_inq_dimlen(ncid_, lengthDim[0], &n_actual_frames))) {
       mprinterr("Error: Could not get size of dimension for actual_frames var.\n");
       return 1;
-    }
+    }*/
     // Read actual frames
     frames_to_cluster.assign(n_actual_frames, -1);
     size_t start[1], count[1];
@@ -594,6 +616,21 @@ int DataIO_NetCDF::readData_cluster_pwmatrix(DataSet* ds, NcVar const& matrixVar
                                                  it != frames_to_cluster.end(); ++it)
     mprintf(" %i", *it);
   mprintf("\n");
+  // Allocate matrix
+  DataSet_PairwiseCache_MEM& pwmatrix = static_cast<DataSet_PairwiseCache_MEM&>( *ds );
+  if (pwmatrix.SetupCache( n_original_frames, frames_to_cluster, sieve, metric_description ))
+  {
+    mprinterr("Error: Failed to set up cluster pairwise matrix.\n");
+    return 1;
+  }
+  // Read matrix
+  size_t start[1], count[1];
+  start[0] = 0;
+  count[0] = dimLen(matrixVar.DimId(0));
+  if (NC::CheckErr(nc_get_vara(ncid_, matrixVar.VID(), start, count, pwmatrix.Ptr()))) {
+    mprinterr("Error: Could not read pairwise matrix variable.\n");
+    return 1;
+  }
 
   return 0;
 }
