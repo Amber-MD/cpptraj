@@ -146,7 +146,7 @@ int Action_Bounds::calc_center_and_bins() {
       long int nbins = (long int)ceil( (max_[i] - min_[i]) / dxyz_[i] ) + (long int)offset_;
       if (nbins < 0) {
         mprinterr("Error: Overflow in bounds dim %i: max=%f min=%f spacing=%f\n",
-                  max_[i], min_[i], dxyz_[i]);
+                  i, max_[i], min_[i], dxyz_[i]);
         return 1;
       }
       nxyz_[i] = (size_t)nbins;
