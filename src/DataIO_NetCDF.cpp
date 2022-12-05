@@ -480,20 +480,9 @@ int DataIO_NetCDF::readData_1D_string(DataSet* ds, NcVar const& yVar, VarArray& 
     mprinterr("Error: No 'strlengthsid' attribute for string set '%s'.\n", yVar.vname());
     return 1;
   }
-  // Get the lengths dim id
+  // Get the string lengths array dimension size
   size_t nstrings;
   if (get_1D_var_dimlen(nstrings, lengthsVarid, "string lengths")) return 1;
-/*  int lengthDim[1];
-  if (NC::CheckErr(nc_inq_vardimid(ncid_, lengthsVarid, lengthDim))) {
-    mprinterr("Error: Could not get dimension id for string lengths var.\n");
-    return 1;
-  }
-  // Get lengths dim size
-  size_t nstrings;
-  if (NC::CheckErr(nc_inq_dimlen(ncid_, lengthDim[0], &nstrings))) {
-    mprinterr("Error: Could not get size of dimension for string lengths var.\n");
-    return 1;
-  }*/
 
   DataSet_string& strSet = static_cast<DataSet_string&>( *ds );
   strSet.Resize( nstrings );
@@ -580,21 +569,9 @@ int DataIO_NetCDF::readData_cluster_pwmatrix(DataSet* ds, NcVar const& matrixVar
       mprinterr("Error: Could not get 'actual_framesid' attribute and sieve != 1.\n");
       return 1;
     }
-    // Get the actual_frames dim id TODO consolidate with string lengths read routine above
+    // Get the actual_frames dimension length (i.e. # rows) TODO check against nrows attribute?
     size_t n_actual_frames;
     if (get_1D_var_dimlen(n_actual_frames, actual_framesid, "actual # frames")) return 1;
-/*
-    int lengthDim[1];
-    if (NC::CheckErr(nc_inq_vardimid(ncid_, actual_framesid, lengthDim))) {
-      mprinterr("Error: Could not get dimension id for actual_frames var.\n");
-      return 1;
-    }
-    // Get actual_frames dim size
-    size_t n_actual_frames;
-    if (NC::CheckErr(nc_inq_dimlen(ncid_, lengthDim[0], &n_actual_frames))) {
-      mprinterr("Error: Could not get size of dimension for actual_frames var.\n");
-      return 1;
-    }*/
     // Read actual frames
     frames_to_cluster.assign(n_actual_frames, -1);
     size_t start[1], count[1];
