@@ -351,6 +351,7 @@ unsigned int DataIO_NetCDF::dimLen(int did) const {
   return Dimensions_[did].Size();
 }
 
+// -----------------------------------------------------------------------------
 /** Read CPPTRAJ XY mesh set with CPPTRAJ conventions. */
 int DataIO_NetCDF::readData_1D_xy(DataSet* ds, NcVar const& yVar, VarArray& Vars) const {
   // ----- XY Mesh ---------------
@@ -892,46 +893,40 @@ const
     for (std::vector<Dimension>::const_iterator dim = Dims.begin(); dim != Dims.end(); ++dim)
       ds->SetDim(idx++, *dim);
     // Check netcdf variable dimensions
-//    if (var->Ndims() == 1) {
-      // One flat dimension
-      if (debug_ > 0)
-        mprintf("DEBUG: %s dim length %u\n", var->vname(), dimLen(var->DimId(0)) );
-      if (dtype == DataSet::XYMESH) {
-        if (readData_1D_xy(ds, *var, Vars))
-          return 1;
-      } else if (dtype == DataSet::VECTOR) {
-        if (readData_1D_vector(ds, *var, Vars))
-          return 1;
-      } else if (dtype == DataSet::VECTOR_SCALAR) {
-        if (readData_1D_vector_scalar(ds, *var, Vars))
-          return 1;
-      } else if (dtype == DataSet::STRING) {
-        if (readData_1D_string(ds, *var, Vars))
-          return 1;
-      } else if (ds->Group() == DataSet::SCALAR_1D) {
-        if (readData_1D(ds, *var, Vars))
-          return 1;
-      } else if (dtype == DataSet::PMATRIX_MEM) {
-        if (readData_cluster_pwmatrix(ds, *var, Vars))
-         return 1;
-      } else if (ds->Group() == DataSet::MATRIX_2D) {
-        if (readData_2D(ds, *var, Vars))
-          return 1;
-      } else if (ds->Group() == DataSet::GRID_3D) {
-        if (readData_3D(ds, *var, Vars))
-          return 1;
-      } else if ( dtype == DataSet::MODES ) {
-        if (readData_modes(ds, *var, Vars))
-          return 1;
-      } else {
-        mprinterr("Error: Cannot read type '%s' yet.\n", desc.c_str());
+    if (debug_ > 0)
+      mprintf("DEBUG: %s dim length %u\n", var->vname(), dimLen(var->DimId(0)) );
+    if (dtype == DataSet::XYMESH) {
+      if (readData_1D_xy(ds, *var, Vars))
         return 1;
-      }
-//    } else {
-//      mprinterr("Error: Cannot read type '%s' yet.\n", desc.c_str());
-//      return 1;
-//    }
-  }
+    } else if (dtype == DataSet::VECTOR) {
+      if (readData_1D_vector(ds, *var, Vars))
+        return 1;
+    } else if (dtype == DataSet::VECTOR_SCALAR) {
+      if (readData_1D_vector_scalar(ds, *var, Vars))
+        return 1;
+    } else if (dtype == DataSet::STRING) {
+      if (readData_1D_string(ds, *var, Vars))
+        return 1;
+    } else if (ds->Group() == DataSet::SCALAR_1D) {
+      if (readData_1D(ds, *var, Vars))
+        return 1;
+    } else if (dtype == DataSet::PMATRIX_MEM) {
+      if (readData_cluster_pwmatrix(ds, *var, Vars))
+       return 1;
+    } else if (ds->Group() == DataSet::MATRIX_2D) {
+      if (readData_2D(ds, *var, Vars))
+        return 1;
+    } else if (ds->Group() == DataSet::GRID_3D) {
+      if (readData_3D(ds, *var, Vars))
+        return 1;
+    } else if ( dtype == DataSet::MODES ) {
+      if (readData_modes(ds, *var, Vars))
+        return 1;
+    } else {
+      mprinterr("Error: Cannot read type '%s' yet.\n", desc.c_str());
+      return 1;
+    }
+  } // END loop over Vars
   return 0;
 }
 
