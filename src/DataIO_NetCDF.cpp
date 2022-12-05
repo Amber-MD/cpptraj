@@ -286,7 +286,7 @@ const
     std::string label = "label" + suffix;
     std::string att = NC::GetAttrText(ncid, varid, label.c_str());
     if (att.empty()) {
-      mprintf("Warning: Index dim %i missing 'label' attribute.\n", i);
+      mprintf("Warning: Index variable %i missing 'label' attribute.\n", i);
     } else {
       dim.SetLabel( att );
     }
