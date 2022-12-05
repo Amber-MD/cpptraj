@@ -564,11 +564,12 @@ int DataIO_NetCDF::readData_cluster_pwmatrix(DataSet* ds, NcVar const& matrixVar
   Cpptraj::Cluster::Cframes frames_to_cluster; 
   int actual_framesid = -1;
   if (sieve != 1) {
-    ret = GetVarIntAtt(actual_framesid, "actual_framesid", ncid_, matrixVar.VID());
+    ret = GetVarIntAtt(actual_framesid, "indexid0", ncid_, matrixVar.VID());
     if (ret != 0) {
-      mprinterr("Error: Could not get 'actual_framesid' attribute and sieve != 1.\n");
+      mprinterr("Error: Could not get 'indexid0' attribute (for clustered frames variable ID) but sieve != 1.\n");
       return 1;
     }
+    // TODO check that indexid0 == indexid1?
     // Get the actual_frames dimension length (i.e. # rows) TODO check against nrows attribute?
     size_t n_actual_frames;
     if (get_1D_var_dimlen(n_actual_frames, actual_framesid, "actual # frames")) return 1;
@@ -1712,14 +1713,31 @@ int DataIO_NetCDF::writeData_cluster_pwmatrix(DataSet const* ds) {
   if (dimIdx < 0) return 1;
   NcDim matsizeDim = Dimensions_[dimIdx];
   // Define variables TODO units
-  // Matrix
+  // Matrix variable
   NcVar matrixVar = defineVar(matsizeDim.DID(), NC_FLOAT, Mat.Meta().PrintName(), "matrix");
   if (matrixVar.Empty()) {
     mprinterr("Error: Could not define cluster matrix variable.\n");
     return 1;
   }
-  // Add DataSet info to variable
-  if (AddDataSetInfo( ds, ncid_, matrixVar.VID() )) return 1;
+  // Frames variable (if sieved) TODO always define?
+  NcDim nrowsDim;
+  NcVar framesVar;
+  std::vector<int> indexVarIds;
+  if (Mat.SieveVal() != 1) {
+    // # matrix Rows (frames)
+    dimIdx = defineDim( "n_rows", Mat.Nrows(), Mat.Meta().Legend() + " number of rows" );
+    if (dimIdx < 0) return 1;
+    nrowsDim = Dimensions_[dimIdx];
+    // Actual frames clustered
+    framesVar = defineVar(nrowsDim.DID(), NC_INT, Mat.Meta().PrintName(), "actual_frames");
+    if (framesVar.Empty()) {
+      mprinterr("Error: Could not define cluster frames variable.\n");
+      return 1;
+    }
+    indexVarIds.assign(2, framesVar.VID());
+  }
+  // Add DataSet info to matrix variable
+  if (AddDataSetInfo( ds, indexVarIds, ncid_, matrixVar.VID() )) return 1;
   // Attributes for matrix
   if (AddDataSetIntAtt( Mat.Nrows(), "ncols", ncid_, matrixVar.VID() )) return 1;
   if (AddDataSetIntAtt( Mat.Nrows(), "nrows", ncid_, matrixVar.VID() )) return 1;
@@ -1729,21 +1747,6 @@ int DataIO_NetCDF::writeData_cluster_pwmatrix(DataSet const* ds) {
   if (AddDataSetStringAtt(Mat.MetricDescrip(), "MetricDescription", ncid_, matrixVar.VID()))
     return 1;
 
-  // Frames (if sieved) TODO always define?
-  NcDim nrowsDim;
-  NcVar framesVar;
-  if (Mat.SieveVal() != 1) {
-    // # matrix Rows (frames)
-    dimIdx = defineDim( "n_rows", Mat.Nrows(), Mat.Meta().Legend() + " number of rows" );
-    if (dimIdx < 0) return 1;
-    nrowsDim = Dimensions_[dimIdx];
-    // Actual frames clustered
-    framesVar = defineVar(nrowsDim.DID(), NC_INT, Mat.Meta().PrintName(), "actual_frames", matrixVar.VID());
-    if (framesVar.Empty()) {
-      mprinterr("Error: Could not define cluster frames variable.\n");
-      return 1;
-    }
-  }
 
   // END define variable
   if (EndDefineMode( ncid_ )) return 1;
