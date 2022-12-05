@@ -1211,11 +1211,6 @@ static inline int AddDataSetIndexInfo(DataSet const* ds, int indexVarId, int nci
   return 0;
 }
 
-/// Add DataSet index information to a target variable
-static inline int AddDataSetIndexInfo(DataSet const* ds, int ncid, int varid) {
-  return AddDataSetIndexInfo(ds, -1, ncid, varid);
-}
-
 /// Add DataSet MetaData, index information, and description to target variable
 static inline int AddDataSetInfo(DataSet const* ds, int indexVarId, int ncid, int varid)
 {
@@ -1225,7 +1220,7 @@ static inline int AddDataSetInfo(DataSet const* ds, int indexVarId, int ncid, in
   if (indexVarId > -1) {
     if (AddDataSetIndexInfo(ds, indexVarId, ncid, varid)) return 1;
   } else {
-    if (AddDataSetIndexInfo(ds, ncid, varid)) return 1;
+    if (AddDataSetIndexInfo(ds, -1, ncid, varid)) return 1;
   }
   // Store the description
   if (AddDataSetStringAtt(ds->description(), "description", ncid, varid)) return 1;
