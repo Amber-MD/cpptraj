@@ -1876,7 +1876,7 @@ int DataIO_NetCDF::writeData_modes(DataSet const* ds) {
     return 1;
   }
   // Write the eigenvectors
-  count[0] = modes.Nmodes()*modes.VectorSize();
+  count[0] = (size_t)modes.Nmodes()*(size_t)modes.VectorSize();
   if (NC::CheckErr(nc_put_vara(ncid_, vectorsVar.VID(), start, count, modes.Eigenvectors()))) {
     mprinterr("Error: Could not write eigenvectors from '%s'\n", modes.legend());
     return 1;
