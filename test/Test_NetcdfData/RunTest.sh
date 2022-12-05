@@ -78,7 +78,7 @@ EOF
   RunCpptraj "$UNITNAME"
 
   cat > ncdata.in <<EOF
-readdata matrix.nc name MyMatrix
+readdata matrix.nc
 writedata ca.matrix.dat CA nosquare2d
 writedata n.ca.matrix.dat N.CA nosquare2d
 writedata heavyAtom.matrix.dat heavyAtom nosquare2d
@@ -113,8 +113,8 @@ writedata grid.dx.save opendx MyGrid
 EOF
   RunCpptraj "$UNITNAME"
   cat > ncdata.in <<EOF
-readdata grid.nc name MyGrid
-writedata grid.dx opendx MyGrid
+readdata grid.nc name Grid0
+writedata grid.dx opendx Grid0
 EOF
   RunCpptraj "Read basic 3D NetCDF data"
   DoTest grid.dx.save grid.dx
