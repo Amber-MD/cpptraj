@@ -112,8 +112,8 @@ int DataSet_Modes::SetModes(bool reducedIn, int nmodesIn, int vecsizeIn,
 int DataSet_Modes::AllocateModes(unsigned int n_eigenvalues, unsigned int evectsize,
                                  unsigned int n_avg_crd, unsigned int mass_size)
 {
-  if (evalues_ != 0) delete evalues_;
-  if (evectors_ != 0) delete evectors_;
+  if (evalues_ != 0) delete[] evalues_;
+  if (evectors_ != 0) delete[] evectors_;
   // Make sure evectsize is a multiple of nmodes_
   if ( (evectsize % n_eigenvalues) != 0) {
     mprinterr("Internal Error: Eigenvector size %u is not a multiple of # eigenvalues %u.\n",
