@@ -14,7 +14,7 @@ CleanFiles ncdata.in d1.nc d1.dat rmsf.dat ascii.dat.save ascii.dat \
            hbond.nc hbond.dat.save hbond.dat \
            vector.nc vector.dat.save vector.dat \
            peaks1.nc peaks1.dat.save peaks1.dat \
-           cluster.nc
+           cluster.nc C?.matrix.dat.save C?.matrix.dat
 
 TESTNAME='NetCDF data file tests.'
 Requires netcdf
@@ -205,10 +205,26 @@ trajin ../tz2.nc
 #  pairdist cluster.nc savepairdist
 cluster C1 @CA clusters 5 \
   sieve 5 bestrep cumulative includesieveincalc \
-  pairdist cluster.nc savepairdist
+  pairdist C1matrix pairdistfile cluster.nc savepairdist
+cluster C2 :2-10 clusters 3 epsilon 4.0 \
+  pairdist C2matrix pairdistfile cluster.nc savepairdist
+run
+
+writedata C1.matrix.dat.save C1matrix
+writedata C2.matrix.dat.save C2matrix 
 EOF
   RunCpptraj "$UNITNAME"
 
+  cat > ncdata.in <<EOF
+readdata cluster.nc
+writedata C1.matrix.dat C1matrix
+writedata C2.matrix.dat C2matrix
+list
+quit
+EOF
+  RunCpptraj 'Read cluster data'
+  DoTest C1.matrix.dat.save C1.matrix.dat
+  DoTest C2.matrix.dat.save C2.matrix.dat
 }
 
 Write1d
