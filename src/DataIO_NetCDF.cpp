@@ -1749,14 +1749,16 @@ int DataIO_NetCDF::writeData_cluster_pwmatrix(DataSet const* ds) {
     mprinterr("Error: Could not define cluster matrix variable.\n");
     return 1;
   }
+  // Add DataSet info to variable
+  if (AddDataSetInfo( ds, ncid_, matrixVar.VID() )) return 1;
   // Attributes for matrix
+  if (AddDataSetIntAtt( Mat.Nrows(), "ncols", ncid_, matrixVar.VID() )) return 1;
+  if (AddDataSetIntAtt( Mat.Nrows(), "nrows", ncid_, matrixVar.VID() )) return 1;
+  if (AddDataSetStringAtt("tri", "matrixkind", ncid_, matrixVar.VID())) return 1;
   if (AddDataSetIntAtt( Mat.FrameToIdx().size(), "n_original_frames", ncid_, matrixVar.VID() )) return 1;
   if (AddDataSetIntAtt( Mat.SieveVal(), "sieve", ncid_, matrixVar.VID() )) return 1;
   if (AddDataSetStringAtt(Mat.MetricDescrip(), "MetricDescription", ncid_, matrixVar.VID()))
     return 1;
-
-  // Add DataSet info to variable
-  if (AddDataSetInfo( ds, ncid_, matrixVar.VID() )) return 1;
 
   // Frames (if sieved) TODO always define?
   NcDim nrowsDim;
