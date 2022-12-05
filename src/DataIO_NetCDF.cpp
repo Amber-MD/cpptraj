@@ -22,8 +22,7 @@
 /// CONSTRUCTOR
 DataIO_NetCDF::DataIO_NetCDF() :
   DataIO(true, true, true), // Valid for 1D, 2D, 3D
-  ncid_(-1),
-  user_specified_name_(false)
+  ncid_(-1)
 {
   SetValid( DataSet::MODES );
   SetValid( DataSet::VECTOR_SCALAR );
@@ -875,6 +874,19 @@ const
       mprinterr("Error: Could not set up meta data for variable '%s'\n", var->vname());
       return 1;
     }
+    // Replace name if user has specified a name
+    if (!user_specified_name_.empty()) {
+      // First, check if overwriting the name will clash with an existing set.
+      MetaData checkMeta = meta;
+      checkMeta.SetName( user_specified_name_ );
+      DataSet* checkSet = dsl.CheckForSet( checkMeta );
+      if (checkSet != 0) {
+        mprinterr("Error: Using specified name '%s' clashes with existing set '%s'\n",
+                  checkMeta.PrintName().c_str(), checkSet->Meta().PrintName().c_str());
+        return 1;
+      }
+      meta.SetName( user_specified_name_ );
+    }
     // Get DataSet dimensions
     errStat = 0;
     std::vector<Dimension> Dims = getVarIndexInfo(errStat, ncid_, var->VID());
@@ -937,11 +949,12 @@ int DataIO_NetCDF::ReadData(FileName const& fname, DataSetList& dsl, std::string
   // Check if the user specified a data set name. The default is to use the
   // file base name, optionally plus '_<index>'
   if ( dsname.find(fname.Base()) == std::string::npos ) {
-    mprintf("\tUser has specified a data set name.\n");
-    user_specified_name_ = true;
+    mprintf("\tUser has specified a data set name.\n"
+            "\tThis will replace any existing data set names in NetCDF file.\n");
+    user_specified_name_ = dsname;
   } else {
-    mprintf("\tUser has not specified a data set name.\n");
-    user_specified_name_ = false;
+    mprintf("\tUser has not specified a data set name. Using data set names in NetCDF file.\n");
+    user_specified_name_.clear();
   }
 
   if (NC::CheckErr( nc_open( fname.full(), NC_NOWRITE, &ncid_ ) != NC_NOERR )) {

@@ -76,8 +76,8 @@ class DataIO_NetCDF : public DataIO {
 
     int writeData_modes(DataSet const*);
 
-    int ncid_;                 ///< Current netcdf ID
-    bool user_specified_name_; ///< True if user specified a data set name on read
-    DimArray Dimensions_;      ///< Array of all currently defined dimensions
+    int ncid_;                        ///< Current netcdf ID
+    std::string user_specified_name_; ///< Set if user specified a data set name on read
+    DimArray Dimensions_;             ///< Array of all currently defined dimensions
 };
 #endif
