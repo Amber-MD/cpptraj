@@ -385,6 +385,31 @@ int DataIO_NetCDF::readData_1D_xy(DataSet* ds, NcVar const& yVar, VarArray& Vars
   return 0;
 }
 
+/** Read unsigned integer set with CPPTRAJ conventions. Separate routine from
+  * readData_1D needed because netcdf classic has no unsigned int type.
+  */
+int DataIO_NetCDF::readData_1D_unsignedInt(DataSet* ds, NcVar const& yVar, VarArray& Vars) const {
+  size_t start[1], count[1];
+  count[0] = 1;
+
+  unsigned int nelts = dimLen(yVar.DimId(0));
+
+  DataSet_unsignedInt& uintSet = static_cast<DataSet_unsignedInt&>( *ds );
+  uintSet.Allocate( DataSet::SizeArray(1, nelts) );
+
+  for (unsigned int idx = 0; idx < nelts; idx++) {
+    start[0] = idx;
+    int ival;
+    if (NC::CheckErr(nc_get_vara(ncid_, yVar.VID(), start, count, &ival))) {
+      mprinterr("Error: Coult not get element %u for unsigned int set '%s'\n", idx, uintSet.legend());
+      return 1;
+    }
+    uintSet.AddElement( ival );
+  }
+  Vars[yVar.VID()].MarkRead();
+  return 0;
+}
+
 /** Read vector set with CPPTRAJ conventions. */
 int DataIO_NetCDF::readData_1D_vector(DataSet* ds, NcVar const& yVar, VarArray& Vars) const {
   size_t start[2];
