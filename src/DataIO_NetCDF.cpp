@@ -1281,7 +1281,8 @@ int DataIO_NetCDF::defineDim(std::string const& label, unsigned int dimSize, std
   std::string dimLabel( label + "." + integerToString(dimIdx) );
   int did = -1;
   if (NC::CheckErr( nc_def_dim(ncid_, dimLabel.c_str(), dimSize, &did ))) {
-    mprinterr("Error: Could not define dimension '%s' ID for set '%s' (%s)\n", label.c_str(), setname.c_str());
+    mprinterr("Error: Could not define dimension '%s' ID for set '%s' (%s)\n",
+              label.c_str(), setname.c_str(), dimLabel.c_str());
     return -1;
   }
   Dimensions_.push_back( NcDim(did, dimLabel, dimSize) );
