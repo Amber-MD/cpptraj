@@ -588,11 +588,13 @@ int DataIO_NetCDF::readData_cluster_pwmatrix(DataSet* ds, NcVar const& matrixVar
     for (int frm = 0; frm < n_original_frames; frm++)
       frames_to_cluster.push_back( frm );
   }
-  mprintf("DEBUG: Frames in pairwise matrix:");
-  for (Cpptraj::Cluster::Cframes::const_iterator it = frames_to_cluster.begin();
-                                                 it != frames_to_cluster.end(); ++it)
-    mprintf(" %i", *it);
-  mprintf("\n");
+  if (debug_ > 1) {
+    mprintf("DEBUG: Frames in pairwise matrix:");
+    for (Cpptraj::Cluster::Cframes::const_iterator it = frames_to_cluster.begin();
+                                                   it != frames_to_cluster.end(); ++it)
+      mprintf(" %i", *it);
+    mprintf("\n");
+  }
   // Allocate matrix
   DataSet_PairwiseCache_MEM& pwmatrix = static_cast<DataSet_PairwiseCache_MEM&>( *ds );
   if (pwmatrix.SetupCache( n_original_frames, frames_to_cluster, sieve, metric_description ))
