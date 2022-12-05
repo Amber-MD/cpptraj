@@ -17,6 +17,7 @@
 # include "DataSet_Vector.h"
 # include "DataSet_Vector_Scalar.h"
 # include "DataSet_PairwiseCache_MEM.h"
+# include "DataSet_unsignedInt.h"
 #endif
 
 /// CONSTRUCTOR
@@ -1387,9 +1388,10 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
       case DataSet::DOUBLE  :
       case DataSet::XYMESH  :          dtype = NC_DOUBLE ; break;
       case DataSet::PH      :
+      case DataSet::UNSIGNED_INTEGER : // NOTE; NC_UINT is invalid for NetCDF classic (v3)
       case DataSet::INTEGER :          dtype = NC_INT ; break;
       case DataSet::FLOAT   :          dtype = NC_FLOAT ; break;
-      case DataSet::UNSIGNED_INTEGER : dtype = NC_UINT ; break; // TODO netcdf4 only?
+      //case DataSet::UNSIGNED_INTEGER : dtype = NC_UINT ; break; // TODO netcdf4 only?
       case DataSet::STRING  :          dtype = NC_CHAR ; break;
       default:
         mprinterr("Internal Error: '%s': Unhandled DataSet type for 1D NetCDF variable.\n", it->DS()->legend());
@@ -1539,6 +1541,20 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
       if (NC::CheckErr(nc_put_vara(ncid_, set_vars[0].VID(), start, count, ds1d.DvalPtr()))) {
         mprinterr("Error: Could not write variable '%s'\n", ds1d.legend());
         return 1;
+      }
+    } else if (dset->DS()->Type() == DataSet::UNSIGNED_INTEGER) {
+      // ----- Unsigned integer set ----
+      // This needs to be different since netcdf classic has no unsigned int type.
+      size_t start[1], count[1];
+      count[0] = 1;
+      DataSet_unsignedInt const& ds1d = static_cast<DataSet_unsignedInt const&>( *(dset->DS()) );
+      for (unsigned int idx = 0; idx < ds1d.Size(); idx++) {
+        start[0] = idx;
+        int ival = (int)ds1d[idx];
+        if (NC::CheckErr(nc_put_vara(ncid_, it->front().VID(), start, count, &ival))) {
+          mprinterr("Error: Coult not write element %u for variable '%s'\n", idx, ds1d.legend());
+          return 1;
+        }
       }
     } else {
       // ----- All other 1D sets -------
