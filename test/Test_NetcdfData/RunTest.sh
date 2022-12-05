@@ -15,7 +15,8 @@ CleanFiles ncdata.in d1.nc d1.dat rmsf.dat ascii.dat.save ascii.dat \
            vector.nc vector.dat.save vector.dat \
            peaks1.nc peaks1.dat.save peaks1.dat \
            cluster.nc C?.matrix.dat.save C?.matrix.dat \
-           C1.dat.save C1.dat
+           C1.dat.save C1.dat \
+           random.nc random.dat.save random.dat
 
 TESTNAME='NetCDF data file tests.'
 Requires netcdf
@@ -231,6 +232,23 @@ EOF
   DoTest C1.dat.save C1.dat
 }
 
+Random() {
+  UNITNAME='Write unsigned integer data'
+  cat > ncdata.in <<EOF
+rng setdefault marsaglia createset Marsaglia settype int count 10 seed 10 out random.nc
+writedata random.dat.save Marsaglia
+EOF
+  RunCpptraj "$UNITNAME"
+
+  cat > ncdata.in <<EOF
+readdata random.nc
+list
+writedata random.dat Marsaglia
+EOF
+  RunCpptraj "Read unsigned integer data"
+  DoTest random.dat.save random.dat
+}
+
 Write1d
 Read1d
 Write2d
@@ -240,5 +258,6 @@ Hbond
 Vector
 Volmap
 Cluster
+Random
 
 EndTest
