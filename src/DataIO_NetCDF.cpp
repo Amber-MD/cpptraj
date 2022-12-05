@@ -1735,8 +1735,6 @@ int DataIO_NetCDF::writeData_cluster_pwmatrix(DataSet const* ds) {
   // Define the dimensions of all arrays. Ensure names are unique by appending an index.
   if (EnterDefineMode(ncid_)) return 1;
   DataSet_PairwiseCache_MEM const& Mat = static_cast<DataSet_PairwiseCache_MEM const&>( *ds );
-  // # original frames (TODO attribute)
-  //int dimIdx = defineDim( "n_original_frames", 
 
   // Actual matrix size
   int dimIdx = defineDim( "msize", Mat.Size(), Mat.Meta().Legend() + " matrix size" );
