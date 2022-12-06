@@ -1146,8 +1146,8 @@ char DECLSPECDLLEXPORT *tng_compress_pos_int(int *pos, const int natoms, const i
                                                This is 17% extra. The final 11*4 is to store information
                                                needed for decompression. */
   int *quant=pos; /* Already quantized positions. */
-  int *quant_intra=malloc(natoms*nframes*3*sizeof *quant_intra);
-  int *quant_inter=malloc(natoms*nframes*3*sizeof *quant_inter);
+  int *quant_intra=malloc((size_t)natoms*(size_t)nframes*3*sizeof *quant_intra);
+  int *quant_inter=malloc((size_t)natoms*(size_t)nframes*3*sizeof *quant_inter);
 
   int initial_coding, initial_coding_parameter;
   int coding, coding_parameter;
@@ -1222,7 +1222,7 @@ char DECLSPECDLLEXPORT *tng_compress_pos(double *pos, const int natoms, const in
                                          const int speed,int *algo,
                                          int *nitems)
 {
-  int *quant=malloc(natoms*nframes*3*sizeof *quant);
+  int *quant=malloc((size_t)natoms*(size_t)nframes*3*sizeof *quant);
   char *data;
   fix_t prec_hi, prec_lo;
   Ptngc_d_to_i32x2(desired_precision,&prec_hi,&prec_lo);
@@ -1240,7 +1240,7 @@ char DECLSPECDLLEXPORT *tng_compress_pos_float(float *pos, const int natoms, con
                                                const int speed, int *algo,
                                                int *nitems)
 {
-  int *quant=malloc(natoms*nframes*3*sizeof *quant);
+  int *quant=malloc((size_t)natoms*(size_t)nframes*3*sizeof *quant);
   char *data;
   fix_t prec_hi, prec_lo;
   Ptngc_d_to_i32x2((double)desired_precision,&prec_hi,&prec_lo);
@@ -1312,7 +1312,7 @@ char DECLSPECDLLEXPORT *tng_compress_vel_int(int *vel, const int natoms, const i
                                                This is 17% extra. The final 11*4 is to store information
                                                needed for decompression. */
   int *quant=vel;
-  int *quant_inter=malloc(natoms*nframes*3*sizeof *quant_inter);
+  int *quant_inter=malloc((size_t)natoms*(size_t)nframes*3*sizeof *quant_inter);
 
   int initial_coding, initial_coding_parameter;
   int coding, coding_parameter;
@@ -1385,7 +1385,7 @@ char DECLSPECDLLEXPORT *tng_compress_vel(double *vel, const int natoms, const in
                                          const int speed, int *algo,
                                          int *nitems)
 {
-  int *quant=malloc(natoms*nframes*3*sizeof *quant);
+  int *quant=malloc((size_t)natoms*(size_t)nframes*3*sizeof *quant);
   char *data;
   fix_t prec_hi, prec_lo;
   Ptngc_d_to_i32x2(desired_precision,&prec_hi,&prec_lo);
@@ -1402,7 +1402,7 @@ char DECLSPECDLLEXPORT *tng_compress_vel_float(float *vel, const int natoms, con
                                                const int speed, int *algo,
                                                int *nitems)
 {
-  int *quant=malloc(natoms*nframes*3*sizeof *quant);
+  int *quant=malloc((size_t)natoms*(size_t)nframes*3*sizeof *quant);
   char *data;
   fix_t prec_hi, prec_lo;
   Ptngc_d_to_i32x2((double)desired_precision,&prec_hi,&prec_lo);
@@ -1543,7 +1543,7 @@ static int tng_compress_uncompress_pos_gen(char *data,double *posd,float *posf,i
   *prec_hi=readbufferfix((unsigned char *)data+bufloc,4);
   bufloc+=4;
   /* Allocate the memory for the quantized positions */
-  quant=malloc(natoms*nframes*3*sizeof *quant);
+  quant=malloc((size_t)natoms*(size_t)nframes*3*sizeof *quant);
   /* The data block length. */
   length=(int)readbufferfix((unsigned char *)data+bufloc,4);
   bufloc+=4;
@@ -1612,7 +1612,7 @@ static int tng_compress_uncompress_pos_gen(char *data,double *posd,float *posf,i
           else if (posf)
             unquantize_float(posf+natoms*3,natoms,nframes-1,(float)PRECISION(*prec_hi,*prec_lo),quant+natoms*3);
           else if (posi)
-            memcpy(posi+natoms*3,quant+natoms*3,natoms*3*(nframes-1)*sizeof *posi);
+            memcpy(posi+natoms*3,quant+natoms*3,(size_t)natoms*3*(size_t)(nframes-1)*sizeof *posi);
         }
       else if ((coding==TNG_COMPRESS_ALGO_POS_TRIPLET_INTRA) ||
                (coding==TNG_COMPRESS_ALGO_POS_BWLZH_INTRA))
@@ -1690,7 +1690,7 @@ static int tng_compress_uncompress_vel_gen(char *data,double *veld,float *velf,i
   *prec_hi=readbufferfix((unsigned char *)data+bufloc,4);
   bufloc+=4;
   /* Allocate the memory for the quantized positions */
-  quant=malloc(natoms*nframes*3*sizeof *quant);
+  quant=malloc((size_t)natoms*(size_t)nframes*3*sizeof *quant);
   /* The data block length. */
   length=(int)readbufferfix((unsigned char *)data+bufloc,4);
   bufloc+=4;
@@ -1748,7 +1748,7 @@ static int tng_compress_uncompress_vel_gen(char *data,double *veld,float *velf,i
           else if (velf)
             unquantize_float(velf+natoms*3,natoms,nframes-1,(float)PRECISION(*prec_hi,*prec_lo),quant+natoms*3);
           else if (veli)
-            memcpy(veli+natoms*3,quant+natoms*3,natoms*3*(nframes-1)*sizeof *veli);
+            memcpy(veli+natoms*3,quant+natoms*3,(size_t)natoms*3*(size_t)(nframes-1)*sizeof *veli);
         }
     }
  error:
