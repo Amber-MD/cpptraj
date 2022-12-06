@@ -29,10 +29,12 @@ class DataSet_Vector : public DataSet {
     void reset();
     void Resize(size_t s)               { vectors_.resize( s );    }
     void Resize(size_t s, Vec3 const& v){ vectors_.resize(s, v);   }
+    void ResizeOrigins(size_t s)        { origins_.resize( s );    }
 
     // Vector functions
     const Vec3& operator[](int i) const { return vectors_[i];      }
     Vec3&       operator[](int i)       { return vectors_[i];      }
+    Vec3& ModifyOxyz(int i)             { return origins_[i];      }
     const Vec3& VXYZ(int i)       const { return vectors_[i];      }
     void AddVxyz(Vec3 const& v)         { vectors_.push_back( v ); }
     typedef Varray::const_iterator const_iterator;

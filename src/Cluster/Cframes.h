@@ -28,6 +28,7 @@ class Cframes {
     void clear()                           { frames_.clear();        }
     void reserve(std::size_t n)            { frames_.reserve(n);     }
     Iarray const& Data()             const { return frames_;         }
+    int* Ptr()                             { return &frames_[0];     }
     bool empty()                     const { return frames_.empty(); }
 
     bool HasFrame(int) const;

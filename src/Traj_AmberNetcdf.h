@@ -51,7 +51,7 @@ class Traj_AmberNetcdf : public TrajectoryIO, private NetcdfFile {
     int fchunkSize_;      ///< HDF5 frame chunk size
     int ishuffle_;        ///< HDF5 integer shuffle (1 = on, 0 = off)
 #   endif
-    NC_FMT_TYPE ftype_;   ///< Base format type 
+    NC::FormatType ftype_; ///< Base format type 
 };
 #endif
 #endif

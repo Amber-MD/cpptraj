@@ -1,5 +1,6 @@
 #include <algorithm> // std::max
 #include "DataSet_string.h"
+#include "CpptrajStdio.h"
 
 size_t DataSet_string::MemUsageInBytes() const {
   size_t mySize = 0;
@@ -29,6 +30,17 @@ void DataSet_string::Add(size_t frame, const void* vIn) {
   // Always insert at the end
   // NOTE: No check for duplicate frame values.
   Data_.push_back( Temp );
+}
+
+/** Set string at specified index with given string; update format width. */
+void DataSet_string::SetElement(size_t idx, const char* cIn) {
+  if (cIn == 0) {
+    mprinterr("Internal Error: DataSet_string::SetElement() called with null.\n");
+    return;
+  }
+  Data_[idx].assign( cIn );
+  if ( Data_[idx].size() > (size_t)format_.Width() )
+    format_.SetWidth( Data_[idx].size() );
 }
 
 // DataSet_string::WriteBuffer()

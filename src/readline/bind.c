@@ -770,7 +770,16 @@ _rl_read_file (filename, sizep)
   char *buffer;
   int i, file;
 
-  if ((stat (filename, &finfo) < 0) || (file = open (filename, O_RDONLY, 0666)) < 0)
+  //if ((stat (filename, &finfo) < 0) || (file = open (filename, O_RDONLY, 0666)) < 0)
+  //  return ((char *)NULL);
+
+  // DRR: Replace the above with safer TOCTOU code
+  // First check that the file can be opened
+  file = open(filename, O_RDONLY, 0666);
+  if (file < 0)
+    return ((char *)NULL);
+  // stat the open file
+  if (fstat(file, &finfo) < 0)
     return ((char *)NULL);
 
   file_size = (size_t)finfo.st_size;

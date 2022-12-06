@@ -128,6 +128,17 @@ const void* DataSet_integer_disk::VoidPtr(size_t offset) const {
   return 0;
 }
 
+// DataSet_integer_disk::DvalPtr()
+const void* DataSet_integer_disk::DvalPtr() const {
+  mprinterr("Internal Error: DvalPtr() not implemented for DataSet_integer_disk.\n");
+  return 0;
+}
+
+void* DataSet_integer_disk::Yptr() {
+  mprinterr("Internal Error: Yptr() not implemented for DataSet_integer_disk.\n");
+  return 0;
+}
+
 // DataSet_integer_disk::SetElement()
 void DataSet_integer_disk::SetElement(size_t idx, int val) {
   setVal(idx, val);

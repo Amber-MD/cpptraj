@@ -37,7 +37,7 @@ class Traj_NcEnsemble : public TrajectoryIO, private NetcdfFile {
     bool readAccess_;
     bool useVelAsCoords_;
     bool useFrcAsCoords_;
-    NC_FMT_TYPE ftype_;
+    NC::FormatType ftype_;
 };
 #endif
 #endif

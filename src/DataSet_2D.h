@@ -39,6 +39,10 @@ class DataSet_2D : public DataSet {
     virtual double* MatrixArray() const = 0;
     /// \return the kind of matrix, full/half/triangle.
     virtual MatrixKindType MatrixKind() const = 0;
+    /// \return const pointer to underlying matrix.
+    virtual const void* MatrixPtr() const = 0;
+    /// \return pointer to underlying matrix.
+    virtual void* MatrixPtr() = 0;
     // -------------------------------------------
     // TODO: Remove this. Only needed by DataSet_1D.h
     void Add(size_t,const void*) { }

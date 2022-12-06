@@ -1,17 +1,15 @@
 #ifndef INC_NETCDFFILE_H
 #define INC_NETCDFFILE_H
 #include <string>
-#include "CoordinateInfo.h"
+#ifdef BINTRAJ
+# include "CoordinateInfo.h"
+# include "NC_Routines.h"
+#endif
+// Forward declares
 class Frame;
 /// The base interface to NetCDF trajectory files.
 class NetcdfFile {
   public:
-    /// For determining NetCDF trajectory file type
-    enum NCTYPE { NC_AMBERTRAJ = 0, NC_AMBERRESTART, NC_AMBERENSEMBLE, NC_UNKNOWN };
-    /// For determining netcdf4/hdf5 vs netcdf3. Sync with NcFmtTypeStr_
-    enum NC_FMT_TYPE { NC_NOTNC = 0, NC_V3, NC_V4 };
-    /// \return Type of specified file.
-    static NCTYPE GetNetcdfConventions(NC_FMT_TYPE&, const char*);
 #   ifndef BINTRAJ
     NetcdfFile() { }
 #   else
@@ -25,18 +23,18 @@ class NetcdfFile {
     int NC_openWrite(std::string const&);
     /// Create NetCDF reservoir.
     int NC_createReservoir(bool, double, int, int&, int&);
-    /// Create NetCDF trajectory file of given type.
-    int NC_create(NC_FMT_TYPE, std::string const&, NCTYPE, int,
+    /// Create NetCDF trajectory file of given type and conventions.
+    int NC_create(NC::FormatType, std::string const&, NC::ConventionsType, int, 
                   CoordinateInfo const&, std::string const&, int);
-    /// Create NetCDF (v3) trajectory file of given type.
-    int NC_create(std::string const&, NCTYPE, int, 
+    /// Create NetCDF (v3) trajectory file of given conventions.
+    int NC_create(std::string const&, NC::ConventionsType, int, 
                   CoordinateInfo const&, std::string const&, int);
     /// Close NetCDF file, do not reset dimension/variable IDs.
     void NC_close();
     /// \return Title of NetCDF file.
     std::string const& GetNcTitle() const { return nctitle_; }
     /// Set up NetCDF file for reading.
-    int NC_setupRead(std::string const&, NCTYPE, int, bool, bool, int);
+    int NC_setupRead(std::string const&, NC::ConventionsType, int, bool, bool, int);
     /// Read - Remd Values
     int ReadRemdValues(Frame&);
     /// Write - Remd Values
@@ -102,8 +100,6 @@ class NetcdfFile {
     int ensembleSize_;
     std::string nctitle_;
   private:
-    static const char* ConventionsStr_[];
-
     /// Descriptions of VidType. MUST MATCH VidType (except NVID).
     static const char* vidDesc_[];
     /// Enumerated type for dimension IDs. MUST MATCH didDesc_.
@@ -112,8 +108,6 @@ class NetcdfFile {
     /// Descriptions of DidType. MUST MATCH DidType (except NDID).
     static const char* didDesc_[];
 
-    /// \return NetCDF trajectory type based on conventions.
-    static NCTYPE GetNetcdfConventions(int);
     /// Check NetCDF file conventions version.
     void CheckConventionsVersion();
 
@@ -184,7 +178,7 @@ class NetcdfFile {
     ReplicaDimArray remValType_;     ///< Type of each value (single or multi-D).
     // TODO audit the dimension IDs, may not need to be class vars.
     Box nc_box_;          ///< Hold box information
-    NCTYPE myType_;       ///< Current file type.
+    NC::ConventionsType myType_; ///< Current file type.
     int ncdebug_;
     int ensembleDID_;     ///< Ensemble dimenison ID
     int frameDID_;        ///< Frames dimension ID

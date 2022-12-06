@@ -52,6 +52,10 @@ class DataSet_3D : public DataSet {
     virtual void UpdateVoxel(long int, double) = 0;
     /// Divide all elements by the given scalar
     virtual void operator/=(double) = 0;
+    /// \return const pointer to underlying grid array
+    virtual const void* GridPtr() const = 0;
+    /// \return pointer to underlying grid array
+    virtual void* GridPtr() = 0;
     // -------------------------------------------
     /*
     double Coord(unsigned int d, size_t p) const {

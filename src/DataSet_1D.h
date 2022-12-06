@@ -20,8 +20,14 @@ class DataSet_1D : public DataSet {
     virtual double Xcrd(size_t) const = 0;
     /// \return Memory address at position cast to void *. TODO may not need this anymore.
     virtual const void* VoidPtr(size_t) const = 0;
+    /// \return Memory address of Y value array cast to void *. NOTE used to write to NetCDF
+    virtual const void* DvalPtr() const = 0;
+    /// \return Memory address of Y value array cast to void *. NOTE used to read from NetCDF
+    virtual void* Yptr() = 0;
     /// Set Y value at given index
     virtual void SetY(size_t, double) = 0;
+    /// Resize the underlying arrays to the given size
+    virtual void Resize(size_t) = 0;
     // -------------------------------------------
     /// \return Average over set Y values
     double Avg()           const { return Avg( 0 ); }

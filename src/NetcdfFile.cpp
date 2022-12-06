@@ -1,78 +1,19 @@
-#include <cstdio> // FILE, fopen, fclose
-#include <cmath> // round
 #include "NetcdfFile.h"
-# include "CpptrajStdio.h"
 #ifdef BINTRAJ
-# include <netcdf.h>
-# include <cstring> // strlen
-# include "NC_Routines.h"
-# include "Constants.h"
-# include "Version.h"
-# include "Frame.h"
-# ifdef MPI
-#  include "ParallelNetcdf.h"
-# endif
-# ifdef HAS_HDF5
-#  include <limits> // for integer compression
-# endif
+#include <netcdf.h>
+#include <cstring> // strlen
+#include <cmath> // round
+#ifdef HAS_HDF5
+# include <limits> // for integer compression
 #endif
+#ifdef MPI
+# include "ParallelNetcdf.h"
+#endif
+#include "CpptrajStdio.h"
+#include "Constants.h"
+#include "Version.h"
+#include "Frame.h"
 
-/** Strings corresponding to NC_FMT_TYPE */
-const char* NetcdfFile::NcFmtTypeStr_[] = {
-  "Not NetCDF", "NetCDF3", "NetCDF4/HDF5"
-};
-
-// NetcdfFile::GetNetcdfConventions()
-/** First check the base format type to determine NetCDF3 vs NetCDF/HDF5.
-  * Then check that the file has the proper conventions.
-  */
-NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(NC_FMT_TYPE& btype, const char* fname)
-{
-  btype = NC_NOTNC;
-  NCTYPE nctype = NC_UNKNOWN;
-  // Determine base type via magic number
-  FILE* infile = fopen(fname, "rb");
-  if (infile == 0) return nctype;
-  unsigned char buf[8];
-  unsigned int nread = fread(buf, sizeof(char), 8, infile);
-  //mprintf("DEBUG: '%s' nread=%u %x %x %x %x %x %x %x %x\n", fname, nread, buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7]);
-  fclose(infile);
-  if (nread > 3 && buf[0] == 'C' && buf[1] == 'D' && buf[2] == 'F') {
-#   ifdef BINTRAJ
-    btype = NC_V3;
-#   else
-    mprintf("Warning: File '%s' appears to be NetCDF3 but cpptraj was compiled without NetCDF support.\n", fname);
-    return nctype;
-#   endif
-  } else if (nread > 7 && buf[0] == 0x89 && buf[1] == 0x48 && buf[2] == 0x44 && buf[3] == 0x46 &&
-                          buf[4] == 0x0d && buf[5] == 0x0a && buf[6] == 0x1a && buf[7] == 0x0a)
-  {
-#   ifdef HAS_HDF5
-    btype = NC_V4;
-#   else
-    mprintf("Warning: File '%s' appears to be NetCDF4/HDF5 but cpptraj was compiled without HDF5 support.\n", fname);
-    return nctype;
-#   endif
-  }
-  //mprintf("DEBUG: Type: %s\n", NcFmtTypeStr_[btype]);
-# ifdef BINTRAJ
-  // NOTE: Do not use checkNCerr so this fails silently. Allows routine to
-  //       be used in file autodetection.
-  int myNcid;
-  if ( nc_open( fname, NC_NOWRITE, &myNcid ) != NC_NOERR )
-    return NC_UNKNOWN;
-  nctype = GetNetcdfConventions(myNcid);
-  nc_close( myNcid ); 
-# else
-  mprinterr("Error: Compiled without NetCDF support. Recompile with -DBINTRAJ\n");
-# endif
-  return nctype;
-}
-
-/** \return netcdf format type if the file magic number is recognized.
-  */
-
-#ifdef BINTRAJ
 // DEFINES
 #define NCENSEMBLE "ensemble"
 #define NCFRAME "frame"
@@ -149,13 +90,7 @@ NetcdfFile::NetcdfFile() :
   count_[2] = 0;
 }
 
-const char* NetcdfFile::ConventionsStr_[] = {
-  "AMBER",         // NC_AMBERTRAJ
-  "AMBERRESTART",  // NC_AMBERRESTART
-  "AMBERENSEMBLE", // NC_AMBERENSEMBLE
-  0                // UNKNOWN
-};
-
+/*
 // NetcdfFile::GetNetcdfConventions()
 NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(int ncidIn) {
   NCTYPE nctype = NC_UNKNOWN;
@@ -205,6 +140,7 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(int ncidIn) {
   
   return nctype;
 }
+*/
 
 // NetcdfFile::CheckConventionsVersion()
 void NetcdfFile::CheckConventionsVersion() {
@@ -454,7 +390,7 @@ int NetcdfFile::SetupTime() {
               attrText.c_str());
     // Check for time values which have NOT been filled, which was possible
     // with netcdf trajectories created by older versions of ptraj/cpptraj.
-    if (ncframe_ > 0 && myType_ == NC_AMBERTRAJ) {
+    if (ncframe_ > 0 && myType_ == NC::NC_AMBERTRAJ) {
       float time;
       start_[0] = 0; count_[0] = 1;
       if (NC::CheckErr(nc_get_vara_float(ncid_, timeVID_, start_, count_, &time))) {
@@ -593,22 +529,22 @@ int NetcdfFile::SetupBox() {
     start_[2]=0;
     start_[3]=0;
     switch (myType_) {
-      case NC_AMBERRESTART:
+      case NC::NC_AMBERRESTART:
         count_[0]=3;
         count_[1]=0;
         count_[2]=0;
         break;
-      case NC_AMBERTRAJ:
+      case NC::NC_AMBERTRAJ:
         count_[0]=1; 
         count_[1]=3;
         count_[2]=0;
         break;
-      case NC_AMBERENSEMBLE:
+      case NC::NC_AMBERENSEMBLE:
         count_[0]=1; // NOTE: All ensemble members must have same box type
         count_[1]=1; // TODO: Check all members?
         count_[2]=3;
         break;
-      case NC_UNKNOWN: return 1; // Sanity check
+      default: return 1; // Sanity check
     }
     count_[3]=0;
     double boxCrd[6]; /// XYZ ABG
@@ -670,7 +606,7 @@ int NetcdfFile::ReadRemdValues(Frame& frm) {
 }
 
 /** Set up a NetCDF file for reading. */
-int NetcdfFile::NC_setupRead(std::string const& fname, NCTYPE expectedType, int expectedNatoms,
+int NetcdfFile::NC_setupRead(std::string const& fname, NC::ConventionsType expectedType, int expectedNatoms,
                              bool useVelAsCoords, bool useFrcAsCoords, int debugIn)
 {
   ncdebug_ = debugIn;
@@ -682,10 +618,10 @@ int NetcdfFile::NC_setupRead(std::string const& fname, NCTYPE expectedType, int 
     return 1;
   }
   // Sanity check
-  myType_ = GetNetcdfConventions(ncid_);
+  myType_ = NC::GetConventions(ncid_);
   if ( myType_ != expectedType ) {
     mprinterr("Error: NetCDF file conventions do not include \"%s\"\n",
-              ConventionsStr_[expectedType]);
+              NC::conventionsStr(expectedType));
     return 1;
   }
   // This will warn if conventions are not 1.0 
@@ -693,14 +629,14 @@ int NetcdfFile::NC_setupRead(std::string const& fname, NCTYPE expectedType, int 
   // Get the title
   nctitle_ = NC::GetAttrText(ncid_, "title");
   // Get frame info if necessary.
-  if (myType_ == NC_AMBERTRAJ || myType_ == NC_AMBERENSEMBLE) {
+  if (myType_ == NC::NC_AMBERTRAJ || myType_ == NC::NC_AMBERENSEMBLE) {
     if (SetupFrameDim() != 0) return 1;
     if (Ncframe() < 1) {
       mprinterr("Error: NetCDF file has no frames.\n");
       return 1;
     }
     // Get ensemble info if necessary
-    if (myType_ == NC_AMBERENSEMBLE) {
+    if (myType_ == NC::NC_AMBERENSEMBLE) {
       if (SetupEnsembleDim() < 1) {
         mprinterr("Error: Could not get ensemble dimension info.\n");
         return 1;
@@ -814,16 +750,16 @@ int NetcdfFile::NC_createReservoir(bool hasBins, double reservoirT, int iseed,
 /** Set remDimDID appropriate for given type. */
 void NetcdfFile::SetRemDimDID(int remDimDID, int* dimensionID) const {
   switch (myType_) {
-    case NC_AMBERENSEMBLE:
+    case NC::NC_AMBERENSEMBLE:
       dimensionID[0] = frameDID_;
       dimensionID[1] = ensembleDID_;
       dimensionID[2] = remDimDID;
       break;
-    case NC_AMBERTRAJ:
+    case NC::NC_AMBERTRAJ:
       dimensionID[0] = frameDID_;
       dimensionID[1] = remDimDID;
       break;
-    case NC_AMBERRESTART:
+    case NC::NC_AMBERRESTART:
       dimensionID[0] = remDimDID;
       break;
     default:
@@ -1143,10 +1079,10 @@ int NetcdfFile::NC_defineTemperature(int* dimensionID, int NDIM) {
 }
 
 /** Create default NetCDF version 3 file. */
-int NetcdfFile::NC_create(std::string const& Name, NCTYPE typeIn, int natomIn,
+int NetcdfFile::NC_create(std::string const& Name, NC::ConventionsType typeIn, int natomIn,
                           CoordinateInfo const& coordInfo, std::string const& title, int debugIn) 
 {
-  return (NC_create(NC_V3, Name, typeIn, natomIn, coordInfo, title, debugIn));
+  return (NC_create(NC::NC_V3, Name, typeIn, natomIn, coordInfo, title, debugIn));
 }
 
 
@@ -1156,27 +1092,34 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE typeIn, int natomIn,
 int NetcdfFile::set_atom_dim_array(int* dimensionID) const {
   // Setup dimensions for Coords/Velocity
   // NOTE: THIS MUST BE MODIFIED IF NEW TYPES ADDED
+  int err = 0;
   switch (myType_) {
-    case NC_AMBERENSEMBLE:
+    case NC::NC_AMBERENSEMBLE:
       dimensionID[0] = frameDID_;
       dimensionID[1] = ensembleDID_;
       dimensionID[2] = atomDID_;
       dimensionID[3] = spatialDID_;
       break;
-    case NC_AMBERTRAJ:
+    case NC::NC_AMBERTRAJ:
       dimensionID[0] = frameDID_;
       dimensionID[1] = atomDID_;
       dimensionID[2] = spatialDID_;
       break;
-    case NC_AMBERRESTART:
+    case NC::NC_AMBERRESTART:
       dimensionID[0] = atomDID_;
       dimensionID[1] = spatialDID_;
       break;
-    case NC_UNKNOWN:
+    case NC::NC_UNKNOWN:
       mprinterr("Internal Error: Unknown type passed to set_atom_dim_array()\n");
-      return 1;
+      err = 1;
+      break;
+    default:
+      mprinterr("Internal Error: Invalid NetCDF trajectory conventions (%s) in set_atom_dim_array()\n",
+                NC::conventionsStr(myType_));
+      err = 1;
+      break;
   }
-  return 0;
+  return err;
 }
 
 /** Write - Set attributes for velocity variable. */
@@ -1195,7 +1138,7 @@ int NetcdfFile::setVelAttributes(int vid) const {
 }
 
 // NetcdfFile::NC_create()
-int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE typeIn, int natomIn,
+int NetcdfFile::NC_create(NC::FormatType wtypeIn, std::string const& Name, NC::ConventionsType typeIn, int natomIn,
                           CoordinateInfo const& coordInfo, std::string const& title, int debugIn) 
 {
   if (Name.empty()) return 1;
@@ -1209,9 +1152,9 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
     mprintf("DEBUG: NC_create: '%s'  natom=%i  %s\n",
             Name.c_str(),natomIn, coordInfo.InfoString().c_str());
   int cmode;
-  if (wtypeIn == NC_V3)
+  if (wtypeIn == NC::NC_V3)
     cmode = NC_64BIT_OFFSET;
-  else if (wtypeIn == NC_V4)
+  else if (wtypeIn == NC::NC_V4)
     cmode = NC_NETCDF4;
   else {
     mprinterr("Internal Error: Unspecified base format type given in NC_create().\n");
@@ -1225,15 +1168,15 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
   
   // Set number of dimensions based on file type
   switch (myType_) {
-    case NC_AMBERENSEMBLE:
+    case NC::NC_AMBERENSEMBLE:
       NDIM = 4;
       dataType = NC_FLOAT;
       break;
-    case NC_AMBERTRAJ: 
+    case NC::NC_AMBERTRAJ: 
       NDIM = 3;
       dataType = NC_FLOAT;
       break;
-    case NC_AMBERRESTART: 
+    case NC::NC_AMBERRESTART: 
       NDIM = 2; 
       dataType = NC_DOUBLE;
       break;
@@ -1243,7 +1186,7 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
   }
 
   // Ensemble dimension for ensemble
-  if (myType_ == NC_AMBERENSEMBLE) {
+  if (myType_ == NC::NC_AMBERENSEMBLE) {
     if (coordInfo.EnsembleSize() < 1) {
       mprinterr("Internal Error: NetcdfFile: ensembleSize < 1\n");
       return 1;
@@ -1256,7 +1199,7 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
   }
   // Frame dimension for traj
   ncframe_ = 0;
-  if (myType_ == NC_AMBERTRAJ || myType_ == NC_AMBERENSEMBLE) {
+  if (myType_ == NC::NC_AMBERTRAJ || myType_ == NC::NC_AMBERENSEMBLE) {
     if ( NC::CheckErr( nc_def_dim( ncid_, NCFRAME, NC_UNLIMITED, &frameDID_)) ) {
       mprinterr("Error: Defining frame dimension.\n");
       return 1;
@@ -1471,11 +1414,11 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
     // Setup dimensions for Box
     // NOTE: This must be modified if more types added
     int boxdim;
-    if (myType_ == NC_AMBERENSEMBLE) {
+    if (myType_ == NC::NC_AMBERENSEMBLE) {
       dimensionID[0] = frameDID_;
       dimensionID[1] = ensembleDID_;
       boxdim = 2;
-    } else if (myType_ == NC_AMBERTRAJ) {
+    } else if (myType_ == NC::NC_AMBERTRAJ) {
       dimensionID[0] = frameDID_;
       boxdim = 1;
     } else {
@@ -1594,9 +1537,8 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
     mprinterr("Error: Writing program version.\n");
     return 1;
   }
-  // Write conventions based on type 
-  std::string cStr( ConventionsStr_[myType_] );
-  if (NC::CheckErr(nc_put_att_text(ncid_, NC_GLOBAL, "Conventions", cStr.size(), cStr.c_str())))
+  // Write conventions based on type
+  if (NC::PutConventions(ncid_, myType_)) 
   {
     mprinterr("Error: Writing conventions.\n");
     return 1;
@@ -1745,8 +1687,8 @@ int NetcdfFile::parallelWriteRemdValues(int set, Frame const& frm) {
   }
   return 0;
 }
-#endif
-#endif
+#endif /* HAS_PNETCDF */
+#endif /* MPI */
 
 // =============================================================================
 // NetcdfFile::DebugIndices()

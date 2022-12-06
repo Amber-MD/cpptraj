@@ -31,10 +31,13 @@ class DataSet_MatrixDbl : public DataSet_2D {
     size_t Nrows()                       const { return mat_.Nrows();      }
     size_t Ncols()                       const { return mat_.Ncols();      }
     double* MatrixArray()                const;
-    MatrixKindType MatrixKind()          const { return kind_;              }
+    MatrixKindType MatrixKind()          const { return kind_;             }
+    const void* MatrixPtr()              const { return mat_.Ptr();        }
+    void* MatrixPtr()                          { return mat_.Ptr();        }
     // -------------------------------------------
     unsigned int Nsnapshots()            const { return snap_;              }
     void IncrementSnapshots()                  { ++snap_;                   }
+    void SetNsnapshots(unsigned int n)         { snap_ = n;                 }
     double& Element(size_t x, size_t y)        { return mat_.element(x,y);  }
     int AddElement(double d)                   { return mat_.addElement(d); }
     /// Type definition of iterator over matrix elements.
@@ -52,10 +55,13 @@ class DataSet_MatrixDbl : public DataSet_2D {
     Darray::iterator v1begin()                 { return vect_.begin();      }
     /// \return iterator to end of diagonal vector.
     Darray::iterator v1end()                   { return vect_.end();        }
+    /// Allocate mass array
+    void AllocateMass(size_t msize)            { mass_.resize(msize, 0.0);  }
     /// Store masses associated with columns in matrix.
     void StoreMass(Darray const& mIn)          { mass_ = mIn;               }
     /// \return array of masses associated with columns in matrix.
     Darray const& Mass()                 const { return mass_;              }
+    Darray& M1()                               { return mass_;              }
     /// Set matrix kind prior to allocation.
     void SetMatrixKind( MatrixKindType t )     { kind_ = t;                 }
   private:

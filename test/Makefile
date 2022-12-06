@@ -506,6 +506,9 @@ test.keep:
 test.hremd:
 	@-cd Test_Ensemble_HREMD && ./RunTest.sh $(OPT)
 
+test.netcdfdata:
+	@-cd Test_NetcdfData && ./RunTest.sh $(OPT)
+
 test.compareenergy:
 	@-cd Test_CompareEnergy && ./RunTest.sh $(OPT)
 
@@ -669,6 +672,7 @@ COMPLETETESTS=test.general \
               test.hmassrepartition \
               test.prepareforleap \
               test.keep \
+              test.netcdfdata \
               test.compareenergy
 
 test.all:

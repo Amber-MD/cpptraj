@@ -10,7 +10,6 @@
 #include "Topology.h"
 #include "Frame.h"
 #include "CpptrajStdio.h"
-#include "NC_Routines.h"
 #ifdef MPI
 # include "ParallelNetcdf.h"
 #endif
@@ -31,7 +30,7 @@ Traj_AmberNetcdf::Traj_AmberNetcdf() :
   fchunkSize_(0),
   ishuffle_(1),
 # endif
-  ftype_(NC_V3) // Default to NetCDF 3
+  ftype_(NC::NC_V3) // Default to NetCDF 3
 {}
 
 // DESTRUCTOR
@@ -43,8 +42,10 @@ Traj_AmberNetcdf::~Traj_AmberNetcdf() {
 }
 
 bool Traj_AmberNetcdf::ID_TrajFormat(CpptrajFile& fileIn) {
-  if ( GetNetcdfConventions( ftype_,  fileIn.Filename().full() ) == NC_AMBERTRAJ )
-    return true;
+  ftype_ = NC::GetFormatType( fileIn.Filename().Full() );
+  if (ftype_ != NC::NC_NOTNC) {
+    if ( NC::GetConventions( fileIn.Filename().Full() ) == NC::NC_AMBERTRAJ ) return true;
+  }
   return false;
 } 
 
@@ -87,7 +88,7 @@ int Traj_AmberNetcdf::setupTrajin(FileName const& fname, Topology* trajParm)
   filename_ = fname;
   readAccess_ = true;
   // Setup for Amber NetCDF trajectory
-  if ( NC_setupRead(filename_.Full(), NC_AMBERTRAJ, trajParm->Natom(),
+  if ( NC_setupRead(filename_.Full(), NC::NC_AMBERTRAJ, trajParm->Natom(),
                     useVelAsCoords_, useFrcAsCoords_, debug_) )
     return TRAJIN_ERR;
   // Get title
@@ -126,7 +127,7 @@ int Traj_AmberNetcdf::processWriteArgs(ArgList& argIn, DataSetList const& DSLin)
   write_mdfrc_ = argIn.hasKey("mdfrc");
   if (argIn.hasKey("hdf5")) {
 #   ifdef HAS_HDF5
-    ftype_ = NC_V4;
+    ftype_ = NC::NC_V4;
 #   else
     mprinterr("Error: HDF5 output requested but cpptraj compiled without HDF5 support.\n");
     return 1;
@@ -134,7 +135,7 @@ int Traj_AmberNetcdf::processWriteArgs(ArgList& argIn, DataSetList const& DSLin)
   }
 # ifdef HAS_HDF5
   // HDF5-specific options
-  if (ftype_ == NC_V4) {
+  if (ftype_ == NC::NC_V4) {
     // Regular compression
     if (argIn.hasKey("compress"))
       // Use recommended compression level
@@ -219,7 +220,7 @@ int Traj_AmberNetcdf::setupTrajout(FileName const& fname, Topology* trajParm,
     if (fchunkSize_ > 0) SetFrameChunkSize(fchunkSize_);
 #   endif
     // Create NetCDF file.
-    if (NC_create( ftype_, filename_.Full(), NC_AMBERTRAJ, trajParm->Natom(), CoordInfo(),
+    if (NC_create( ftype_, filename_.Full(), NC::NC_AMBERTRAJ, trajParm->Natom(), CoordInfo(),
                    Title(), debug_ ))
       return 1;
 //#   ifdef HAS_HDF5
@@ -498,8 +499,7 @@ int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
 
 // Traj_AmberNetcdf::Info()
 void Traj_AmberNetcdf::Info() {
-  static const char* fvstr[3] = { "?", "V3", "HDF5" };
-  mprintf("is a NetCDF (%s) AMBER trajectory", fvstr[ftype_]);
+  mprintf("is a NetCDF (%s) AMBER trajectory", NC::fmtTypeStr(ftype_));
   if (readAccess_) {
     mprintf(" with %s", CoordInfo().InfoString().c_str());
     if (useVelAsCoords_) mprintf(" (using velocities as coordinates)");
@@ -543,7 +543,7 @@ int Traj_AmberNetcdf::parallelSetupTrajout(FileName const& fname, Topology* traj
                                            Parallel::Comm const& commIn)
 {
   int err = 0;
-  if (ftype_ == NC_V4) {
+  if (ftype_ == NC::NC_V4) {
     if (commIn.Size() > 1) {
       mprinterr("Error: NetCDF4/HDF5 write not yet supported for > 1 process.\n");
       return 1;

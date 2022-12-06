@@ -37,6 +37,8 @@ class DataSet_GridFlt : public DataSet_3D {
     size_t NX() const { return grid_.NX(); }
     size_t NY() const { return grid_.NY(); }
     size_t NZ() const { return grid_.NZ(); }
+    const void* GridPtr() const { return grid_.Ptr(); }
+    void* GridPtr() { return grid_.Ptr(); }
     /// \return grid index
     long int CalcIndex(size_t i, size_t j, size_t k) const { return grid_.CalcIndex(i,j,k); }
     void ReverseIndex(long int n, size_t& i, size_t& j, size_t& k) const

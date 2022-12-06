@@ -29,7 +29,7 @@ Cpptraj::Cluster::Cmatrix_NC::~Cmatrix_NC() {
 
 /** \return true if NetCDF file has CPPTRAJ_CMATRIX conventions. */
 bool Cpptraj::Cluster::Cmatrix_NC::IsCpptrajCmatrix(int NCID) {
-  return (NC::GetAttrText(NCID, "Conventions") == "CPPTRAJ_CMATRIX");
+  return (NC::GetConventions(NCID) == NC::NC_CPPTRAJCMATRIX);
 }
 
 #else /* BINTRAJ */
@@ -251,7 +251,7 @@ int Cpptraj::Cluster::Cmatrix_NC::CreateCmatrix(FileName const& fname, unsigned 
     actualFrames_VID_ = -1;
 
   // Attributes
-  if (NC::CheckErr(nc_put_att_text(ncid_, NC_GLOBAL, "Conventions", 15, "CPPTRAJ_CMATRIX")))
+  if (NC::PutConventions(ncid_, NC::NC_CPPTRAJCMATRIX))
     return 1;
   if (NC::CheckErr(nc_put_att_text(ncid_, NC_GLOBAL, "Version", 3, "1.0")))
     return 1;
