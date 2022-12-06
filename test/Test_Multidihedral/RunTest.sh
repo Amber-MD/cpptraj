@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles dih.in multidih.dat dihedral.dat custom.dat dihedral2.dat all.dat \
-           chin.dat arg.dat cyclic.dat
+           chin.dat arg.dat cyclic.dat all.bymask.dat
 
 TESTNAME='Multidihedral tests'
 Requires maxthreads 10
@@ -31,10 +31,12 @@ EOF
   done
   echo "multidihedral dihtype chi1:N:CA:CB:CG out custom.dat" >> dih.in
   echo "multidihedral out all.dat resrange 1-3" >> dih.in
+  echo "multidihedral out all.bymask.dat resrange :1-3" >> dih.in
   RunCpptraj "$UNITNAME"
   DoTest dihedral.dat multidih.dat
   DoTest dihedral2.dat custom.dat
   DoTest all.dat.save all.dat
+  DoTest all.dat.save all.bymask.dat
 fi
 
 # Test nucleic acid chi
