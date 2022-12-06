@@ -279,6 +279,33 @@ bool validDouble(std::string const& argument) {
 */
 }
 
+/** \return True if this is a recognized CPPTRAJ mask expression.
+  * NOTE: The previous method for this was:
+  *   size_t found = arglist_[pos].find_first_of(":@*");
+  *   return (found != std::string::npos);
+  * Which could potentially let something weird through like 'test@'.
+  */
+bool StrIsMask(std::string const& str) {
+  if (str.empty()) return false;
+  std::string::const_iterator p = str.begin();
+  // Advance past any negate operator or open parentheses.
+  while (*p == '!' || *p == '(') {
+    ++p;
+    if (p == str.end()) return false;
+  }
+  // Determine if character could start a mask expression.
+  bool isMask;
+  switch ( *p ) {
+    case '@':
+    case ':':
+    case '^':
+    case '*':
+    case '=': isMask = true; break;
+    default : isMask = false;
+  }
+  return isMask;
+}
+
 // -----------------------------------------------------------------------------
 // NOTE: I think this serves as a great example of how printf syntax is way
 //       easier than iostream stuff (same printf command is only 3 lines). -DRR

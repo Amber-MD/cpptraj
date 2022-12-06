@@ -32378,7 +32378,7 @@ name "subsec:cpptraj_multidihedral"
 \end_layout
 
 \begin_layout LyX-Code
-multidihedral [<name>] <dihedral types> [resrange <range>] [out <filename>]
+multidihedral [<name>] <dihedral types> [resrange <range/mask>] [out <filename>]
  [range360]
 \end_layout
 
@@ -32434,8 +32434,10 @@ types> Dihedral types to look for.
 \begin_inset space ~
 \end_inset
 
-<range>] Residue range to look for dihedrals in.
+<range/mask>] Residue range to look for dihedrals in.
  Default is all solute residues.
+ If a mask expression is given, use residues selected by the mask expression;
+ if any part of a residue is selcted it will be used.
 \end_layout
 
 \begin_layout Description
@@ -32496,7 +32498,7 @@ run
 \end_layout
 
 \begin_layout Standard
-Calculate specified dihedral angle types for residues in given range.
+Calculate specified dihedral angle types for residues in given range/mask.
  By default, dihedral angles are identified based on standard Amber atom
  names.
  The resulting data sets will have aspect equal to [<dihedral type>] and

@@ -45,6 +45,8 @@ std::string doubleToString(double);
 bool validInteger(std::string const&);
 /// \return true if given string represents a valid floating point number,
 bool validDouble(std::string const&);
+/// \return true if the string is a CPPTRAJ mask selection expression.
+bool StrIsMask(std::string const&);
 /// \return the current date/time with format 'mm/dd/yy  hh:mm:ss'
 std::string TimeString();
 /// BYTE_BINARY: Sizes are based on 1024^X. BYTE_DECIMAL: Sizes are based on 1000^X.

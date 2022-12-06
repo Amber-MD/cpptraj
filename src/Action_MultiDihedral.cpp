@@ -5,22 +5,26 @@
 #include "TorsionRoutines.h"
 #include "StringRoutines.h" // convertToInteger
 
+/** CONSTRUCTOR */
 Action_MultiDihedral::Action_MultiDihedral() :
   minTorsion_(-180.0),
   debug_(0),
   outfile_(0),
-  masterDSL_(0)
+  masterDSL_(0),
+  use_mask_expression_(false)
 {}
 
+// Action_MultiDihedral::Help() 
 void Action_MultiDihedral::Help() const {
-  mprintf("\t[<name>] [<dihedral types>] [resrange <range>] [out <filename>] [range360]\n");
+  mprintf("\t[<name>] [<dihedral types>] [resrange <range/mask>] [out <filename>] [range360]\n");
   mprintf("\t[%s]\n", DihedralSearch::newTypeArgsHelp());
   DihedralSearch::OffsetHelp();
   mprintf("\t<dihedral types> = ");
   DihedralSearch::ListKnownTypes();
-  mprintf("  Calculate specified dihedral angle types for residues in given <range>.\n");
+  mprintf("  Calculate specified dihedral angle types for residues in given <range/mask>.\n");
 }
 
+// Action_MultiDihedral::Init()
 Action::RetType Action_MultiDihedral::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   debug_ = debugIn;
@@ -31,8 +35,16 @@ Action::RetType Action_MultiDihedral::Init(ArgList& actionArgs, ActionInit& init
   else
     minTorsion_ = -180.0;
   std::string resrange_arg = actionArgs.GetStringKey("resrange");
-  if (!resrange_arg.empty())
-    if (resRange_.SetRange( resrange_arg )) return Action::ERR;
+  use_mask_expression_ = false;
+  if (!resrange_arg.empty()) {
+    if ( StrIsMask( resrange_arg ) ) {
+      use_mask_expression_ = true;
+      if (resMask_.SetMaskString( resrange_arg )) return Action::ERR;
+    } else {
+      use_mask_expression_ = false;
+      if (resRange_.SetRange( resrange_arg )) return Action::ERR;
+    }
+  }
   // Search for known dihedral keywords
   dihSearch_.SearchForArgs(actionArgs);
   // Get custom dihedral arguments: dihtype <name>:<a0>:<a1>:<a2>:<a3>[:<offset>]
@@ -45,10 +57,14 @@ Action::RetType Action_MultiDihedral::Init(ArgList& actionArgs, ActionInit& init
 
   mprintf("    MULTIDIHEDRAL: Calculating");
   dihSearch_.PrintTypes();
-  if (!resRange_.Empty())
-    mprintf(" dihedrals for residues in range %s\n", resRange_.RangeArg());
-  else
-    mprintf(" dihedrals for all solute residues.\n");
+  if (use_mask_expression_) {
+    mprintf(" dihedrals for residues selected by mask '%s'\n", resMask_.MaskString());
+  } else {
+    if (!resRange_.Empty())
+      mprintf(" dihedrals for residues in range %s\n", resRange_.RangeArg());
+    else
+      mprintf(" dihedrals for all solute residues.\n");
+  }
   if (!dsetname_.empty())
     mprintf("\tDataSet name: %s\n", dsetname_.c_str());
   if (outfile_ != 0) mprintf("\tOutput to %s\n", outfile_->DataFilename().base());
@@ -64,15 +80,24 @@ Action::RetType Action_MultiDihedral::Init(ArgList& actionArgs, ActionInit& init
 // Action_MultiDihedral::Setup();
 Action::RetType Action_MultiDihedral::Setup(ActionSetup& setup) {
   Range actualRange;
-  // If range is empty (i.e. no resrange arg given) look through all 
-  // solute residues.
-  if (resRange_.Empty())
-    actualRange = setup.Top().SoluteResidues();
-  else {
-    // If user range specified, create new range shifted by -1 since internal
-    // resnums start from 0.
-    actualRange = resRange_;
-    actualRange.ShiftBy(-1);
+  if (use_mask_expression_) {
+    if (setup.Top().SetupIntegerMask( resMask_ )) return Action::ERR;
+    if (debug_ > 0) resMask_.MaskInfo();
+    std::vector<int> rnums = setup.Top().ResnumsSelectedBy( resMask_ );
+    mprintf("\tMask '%s' selects %zu residues.\n", resMask_.MaskString(), rnums.size());
+    for (std::vector<int>::const_iterator rnum = rnums.begin(); rnum != rnums.end(); ++rnum)
+      actualRange.AddToRange( *rnum );
+  } else {
+    // If range is empty (i.e. no resrange arg given) look through all 
+    // solute residues.
+    if (resRange_.Empty())
+      actualRange = setup.Top().SoluteResidues();
+    else {
+      // If user range specified, create new range shifted by -1 since internal
+      // resnums start from 0.
+      actualRange = resRange_;
+      actualRange.ShiftBy(-1);
+    }
   }
   // Exit if no residues specified
   if (actualRange.Empty()) {
@@ -82,7 +107,12 @@ Action::RetType Action_MultiDihedral::Setup(ActionSetup& setup) {
   // Search for specified dihedrals in each residue in the range
   if (dihSearch_.FindDihedrals(setup.Top(), actualRange))
     return Action::SKIP;
-  mprintf("\tResRange=[%s]", resRange_.RangeArg());
+  if (use_mask_expression_)
+    mprintf("\tMask=[%s]", resMask_.MaskString());
+  else if (!resRange_.Empty())
+    mprintf("\tResRange=[%s]", resRange_.RangeArg());
+  else
+    mprintf("\tAll solute residues");
   dihSearch_.PrintTypes();
   mprintf(", %i dihedrals.\n", dihSearch_.Ndihedrals());
 
