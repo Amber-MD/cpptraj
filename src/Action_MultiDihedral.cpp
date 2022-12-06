@@ -82,8 +82,9 @@ Action::RetType Action_MultiDihedral::Setup(ActionSetup& setup) {
   Range actualRange;
   if (use_mask_expression_) {
     if (setup.Top().SetupIntegerMask( resMask_ )) return Action::ERR;
-    resMask_.MaskInfo(); // DEBUG
+    if (debug_ > 0) resMask_.MaskInfo();
     std::vector<int> rnums = setup.Top().ResnumsSelectedBy( resMask_ );
+    mprintf("\tMask '%s' selects %zu residues.\n", resMask_.MaskString(), rnums.size());
     for (std::vector<int>::const_iterator rnum = rnums.begin(); rnum != rnums.end(); ++rnum)
       actualRange.AddToRange( *rnum );
   } else {
