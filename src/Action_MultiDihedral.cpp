@@ -16,12 +16,12 @@ Action_MultiDihedral::Action_MultiDihedral() :
 
 // Action_MultiDihedral::Help() 
 void Action_MultiDihedral::Help() const {
-  mprintf("\t[<name>] [<dihedral types>] [resrange <range>] [out <filename>] [range360]\n");
+  mprintf("\t[<name>] [<dihedral types>] [resrange <range/mask>] [out <filename>] [range360]\n");
   mprintf("\t[%s]\n", DihedralSearch::newTypeArgsHelp());
   DihedralSearch::OffsetHelp();
   mprintf("\t<dihedral types> = ");
   DihedralSearch::ListKnownTypes();
-  mprintf("  Calculate specified dihedral angle types for residues in given <range>.\n");
+  mprintf("  Calculate specified dihedral angle types for residues in given <range/mask>.\n");
 }
 
 // Action_MultiDihedral::Init()
