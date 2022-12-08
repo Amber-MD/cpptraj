@@ -2215,6 +2215,10 @@ for { {atoms|residues|molecules|molfirstres|mollastres}
 \end_layout
 
 \begin_layout LyX-Code
+      <var> indata <data set name> |
+\end_layout
+
+\begin_layout LyX-Code
       <var> oversets <list> |
 \end_layout
 
@@ -2307,6 +2311,27 @@ in
 
 <list> Loop over a comma-separated list of strings.
  File name wildcards can be used.
+\end_layout
+
+\begin_layout Description
+<var>
+\begin_inset space ~
+\end_inset
+
+in
+\begin_inset space ~
+\end_inset
+
+<data
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name> Loop over elements of specified data set.
+ Currently only 1D scalar sets and string sets can be specified.
 \end_layout
 
 \begin_layout Description
@@ -2549,7 +2574,11 @@ set { <variable> <OP> <value> |
 \begin_inset space ~
 \end_inset
 
-{atoms|residues|molecules|atomnums|resnums|oresnums|molnums}
+{atoms|residues|molecules|atomnums|resnums
+\end_layout
+
+\begin_layout Description
+|oresnums|molnums}
 \begin_inset space ~
 \end_inset
 
@@ -2660,7 +2689,7 @@ The following input will put a range of residues selected by :LYS:
 \end_layout
 
 \begin_layout LyX-Code
-> set SELECTED1 = resnums inmask :LYS
+> set SELECTED1 = resnums inmask :1-183&:LYS
 \end_layout
 
 \begin_layout LyX-Code
@@ -2668,8 +2697,7 @@ The following input will put a range of residues selected by :LYS:
 \end_layout
 
 \begin_layout LyX-Code
-	Variable 'SELECTED1' set to '7-8,18,26,44,49,71,79,128,135,151,163,183,193,204-
-205,217-218'
+	Variable 'SELECTED1' set to '7-8,18,26,44,49,71,79,128,135,151,163,183'
 \end_layout
 
 \begin_layout Subsection
@@ -2883,7 +2911,7 @@ status open
 \begin_layout Plain Layout
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="18" columns="5">
+<lyxtabular version="3" rows="21" columns="5">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top" width="20text%">
 <column alignment="center" valignment="top" width="20text%">
@@ -3281,6 +3309,53 @@ Energy information, Read Only
 \begin_inset Text
 
 \begin_layout Plain Layout
+Amber Energy File
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+.ene
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+amberene
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+-
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Read Only
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
 Amber Evecs
 \end_layout
 
@@ -3365,6 +3440,53 @@ pH data only
 
 \begin_layout Plain Layout
 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Amber Energy file
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+.ene
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+amberene
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+1D
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Read Only
 \end_layout
 
 \end_inset
@@ -3700,7 +3822,7 @@ Used for cluster analysis.
 </cell>
 </row>
 <row>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -3709,7 +3831,7 @@ Pairwise Cache (NetCDF)
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -3718,7 +3840,7 @@ Pairwise Cache (NetCDF)
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -3727,7 +3849,7 @@ nccmatrix
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -3736,11 +3858,58 @@ pairwise distances
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
 Used for cluster analysis.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+NetCDF Data
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+.nc
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+netcdf
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+All data
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Only state info saved for pH data.
 \end_layout
 
 \end_inset
@@ -6801,6 +6970,68 @@ loadcrd
 loadcrd <filename> [parm <parm> | parmindex<#>] [<trajin args>] [name <name>]
 \end_layout
 
+\begin_layout LyX-Code
+        [prec {single|double}
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+<filename> Trajectory file to load.
+\end_layout
+
+\begin_layout Description
+[parm
+\begin_inset space ~
+\end_inset
+
+<parmfile/tag>] Topology filename/tag to associate with trajectory (default
+ first topology).
+\end_layout
+
+\begin_layout Description
+[parmindex
+\begin_inset space ~
+\end_inset
+
+<#>] Index of Topology to associate with trajectory (default 0, first topology).
+\end_layout
+
+\begin_layout Description
+[<trajin
+\begin_inset space ~
+\end_inset
+
+args>] Additional 'trajin' args; see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj_trajin"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<name>] Name of the COORDS set.
+\end_layout
+
+\begin_layout Description
+[prec
+\begin_inset space ~
+\end_inset
+
+{single|double}] Load as either a single-precision COORDS set (the default)
+ or a double-precision FRAMES set (which will use much more memory).
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 Immediately load trajectory <filename> as a COORDS data set named <name>
  (default base name of <filename>).
@@ -6829,6 +7060,20 @@ loadtraj
 loadtraj name <setname> [<filename>]
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+name
+\begin_inset space ~
+\end_inset
+
+<setname> Name of the TRAJ set.
+\end_layout
+
+\begin_layout Description
+[<filename>] If specified, trajectory to add to the TRAJ set.
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 This command functions in two ways.
  If <filename> is not provided, all currently loaded input trajectories
@@ -9303,6 +9548,7 @@ cat
 ...
  Concatenate two or more data sets into a new data set (optionally named
  <name>).
+ Only works for scalar 1D and string sets.
 \end_layout
 
 \begin_layout Description
@@ -13170,7 +13416,12 @@ change [parm <name> | parmindex <#> | <#> |
 \end_layout
 
 \begin_layout LyX-Code
-      removebonds <mask1> [<mask2>] [out <file>] }
+      removebonds <mask1> [<mask2>] [out <file>] |
+\end_layout
+
+\begin_layout LyX-Code
+      bondparm <make1> [<mask2>] {setrk|scalerk|setreq|scalereq} <value>
+ }
 \end_layout
 
 \begin_deeper
@@ -13419,6 +13670,45 @@ removebonds
 
 <file>] If specified, write removed bonds to <file> with format '<residue
  name> <residue num> <atom name> <atom num>'.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+bondparm
+\begin_inset space ~
+\end_inset
+
+<mask1>
+\begin_inset space ~
+\end_inset
+
+[<mask2>]
+\begin_inset space ~
+\end_inset
+
+{setrk|scalerk|setreq|scalereq}
+\begin_inset space ~
+\end_inset
+
+<value> Modify bond parameters in bonds selected by <mask1> (and <mask2>
+ if specified) by specified <value>.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+setrk Set bond force constants to <value>.
+\end_layout
+
+\begin_layout Description
+scalerk Scale bond force constants by <value>.
+\end_layout
+
+\begin_layout Description
+setreq Set bond equilibrium lengths to <value>.
+\end_layout
+
+\begin_layout Description
+scalereq Scale bond equilibirum lengths by <value>.
 \end_layout
 
 \end_deeper
@@ -15052,7 +15342,7 @@ Cpptraj currently understands the following trajectory file formats:
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="22" columns="4">
+<lyxtabular version="3" rows="24" columns="4">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="25text%">
@@ -15873,7 +16163,7 @@ Read Only
 </cell>
 </row>
 <row>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -15882,7 +16172,7 @@ LMOD Conflib
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -15891,7 +16181,7 @@ conflib
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -15900,11 +16190,87 @@ conflib
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
 Read Only, Detection by extension
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+MDTraj H5
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+h5
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+.h5
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Read Only
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+MDAnalysis H5MD
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+h5md
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+.h5md
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Read Only
 \end_layout
 
 \end_inset
@@ -17579,6 +17945,26 @@ mdfrc Write only force information in trajectory.
 
 \begin_layout Description
 mdcrd Write coordinates to trajectory (only required with mdvel/mdfrc).
+\end_layout
+
+\begin_layout Description
+hdf5 Create file as NetCDF4/HDF5 instead of NetCDF4 (classic).
+\end_layout
+
+\begin_layout Description
+compress Use compression in NetCDF4/HDF5 file.
+\end_layout
+
+\begin_layout Description
+icompress Use lossy compression in NetCDF4/HDF5 file via conversion to integers.
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Roe2022a"
+literal "true"
+
+\end_inset
+
+
 \end_layout
 
 \end_deeper
@@ -24694,11 +25080,12 @@ energy [<name>] [<mask1>] [out <filename>] [nobondstoh]
 \end_layout
 
 \begin_layout LyX-Code
-   	[bond] [angle] [dihedral] {[nb14] | [e14] | [v14]}
+   	[bond] [angle] [dihedral] {[nb14]|[e14]|[v14]} {[nonbond]|[elec] [vdw]}
+ 
 \end_layout
 
 \begin_layout LyX-Code
-   	{[nonbond] | [elec] [vdw]} [kinetic [ketype {vel|vv}] [dt <dt>]]
+   	[{nokinetic|kinetic [ketype {vel|vv}] [dt <dt>]}]
 \end_layout
 
 \begin_layout LyX-Code
@@ -24803,6 +25190,51 @@ energy [<name>] [<mask1>] [out <filename>] [nobondstoh]
 [vdw] Calculate van der Waals energy (Lennard-Jones 6-12 potential).
 \end_layout
 
+\begin_layout Description
+[nokinetic] Do not calculate kinetic energy even if velocity/force information
+ present.
+\end_layout
+
+\begin_layout Description
+[kinetic] Attempt to calculate kinetic energy.
+ Requires force and/or velocity information.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+ketype
+\begin_inset space ~
+\end_inset
+
+{vel|vv} Specify kinetic energy type.
+ If not specified, if velocity and force information use a velocity verlet-type
+ calculation (
+\series bold
+vv
+\series default
+), i.e.
+ assume velocities are a half-step ahead of the forces.
+ If only velocity information is present, calculate from on-step velocities
+ (
+\series bold
+vel
+\series default
+).
+\end_layout
+
+\begin_layout Description
+dt
+\begin_inset space ~
+\end_inset
+
+<dt> Time step for 
+\series bold
+vv
+\series default
+ calculation in ps.
+\end_layout
+
+\end_deeper
 \begin_layout Description
 [etype
 \begin_inset space ~
@@ -25035,6 +25467,10 @@ DataSet Aspects:
 
 \begin_layout Description
 [elec] Electrostatic energy.
+\end_layout
+
+\begin_layout Description
+[kinetic] Kinetic energy.
 \end_layout
 
 \begin_layout Description
@@ -32127,7 +32563,7 @@ name "subsec:cpptraj_multidihedral"
 \end_layout
 
 \begin_layout LyX-Code
-multidihedral [<name>] <dihedral types> [resrange <range>] [out <filename>]
+multidihedral [<name>] <dihedral types> [resrange <range/mask>] [out <filename>]
  [range360]
 \end_layout
 
@@ -32183,8 +32619,10 @@ types> Dihedral types to look for.
 \begin_inset space ~
 \end_inset
 
-<range>] Residue range to look for dihedrals in.
+<range/mask>] Residue range to look for dihedrals in.
  Default is all solute residues.
+ If a mask expression is given, use residues selected by the mask expression;
+ if any part of a residue is selcted it will be used.
 \end_layout
 
 \begin_layout Description
@@ -32245,7 +32683,7 @@ run
 \end_layout
 
 \begin_layout Standard
-Calculate specified dihedral angle types for residues in given range.
+Calculate specified dihedral angle types for residues in given range/mask.
  By default, dihedral angles are identified based on standard Amber atom
  names.
  The resulting data sets will have aspect equal to [<dihedral type>] and
@@ -42244,7 +42682,7 @@ cluster
 \end_layout
 
 \begin_layout LyX-Code
-	[pairdist <name>] [pwrecalc]
+	[pairdist <name> [pairdistfile <file>]] [pwrecalc]
 \end_layout
 
 \begin_layout LyX-Code
@@ -42854,6 +43292,24 @@ Pairwise Distance Matrix Options:
  distances.
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+[pairdistfile
+\begin_inset space ~
+\end_inset
+
+<file>] File name to use for pairwise cache; if not specified and 
+\series bold
+'pairdist'
+\series default
+ specified, uses 
+\series bold
+'pairdist'
+\series default
+.
+\end_layout
+
+\end_deeper
 \begin_layout Description
 [pwrecalc] If the loaded pairwise distance matrix does not match the current
  setup, force recalculation.
@@ -50303,7 +50759,7 @@ timecorr
 \end_layout
 
 \begin_layout LyX-Code
-timecorr vec1 <vecname1> [vec2 <vecname2>] out <filename>
+timecorr vec1 <vecname1> [vec2 <vecname2>] out <filename> [name <dsname>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -50352,6 +50808,14 @@ out
 <filename>
 \series default
  Name of file to write output to.
+\end_layout
+
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<dsname>] Name of output vector data sets.
 \end_layout
 
 \begin_layout Description

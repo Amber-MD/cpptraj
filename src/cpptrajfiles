@@ -170,6 +170,7 @@ COMMON_SOURCES= \
         DataFileList.cpp \
         DataFilter.cpp \
         DataIO.cpp \
+        DataIO_AmberEne.cpp \
         DataIO_CCP4.cpp \
         DataIO_CharmmFastRep.cpp \
         DataIO_CharmmOutput.cpp \
@@ -184,6 +185,7 @@ COMMON_SOURCES= \
         DataIO_OpenDx.cpp \
         DataIO_Peaks.cpp \
         DataIO_Mdout.cpp \
+        DataIO_NetCDF.cpp \
         DataIO_RemLog.cpp \
         DataIO_Std.cpp \
         DataIO_VecTraj.cpp \
@@ -195,6 +197,7 @@ COMMON_SOURCES= \
         DataSet_3D.cpp \
         DataSet_Coords.cpp \
         DataSet_Coords_CRD.cpp \
+        DataSet_Coords_FRM.cpp \
         DataSet_Coords_REF.cpp \
         DataSet_Coords_TRJ.cpp \
         DataSet_GridDbl.cpp \
@@ -250,6 +253,7 @@ COMMON_SOURCES= \
         Exec_CombineCoords.cpp \
         Exec_Commands.cpp \
         Exec_CompareClusters.cpp \
+        Exec_CompareEnergy.cpp \
         Exec_CompareTop.cpp \
         Exec_CrdAction.cpp \
         Exec_CrdOut.cpp \
@@ -302,6 +306,7 @@ COMMON_SOURCES= \
         FileTypes.cpp \
         ForLoop.cpp \
         ForLoop_dataSetBlocks.cpp \
+        ForLoop_inData.cpp \
         ForLoop_integer.cpp \
         ForLoop_list.cpp \
         ForLoop_mask.cpp \
@@ -410,6 +415,8 @@ COMMON_SOURCES= \
         Traj_GmxTrX.cpp \
         Traj_GmxXtc.cpp \
         Traj_Gro.cpp \
+        Traj_H5.cpp \
+        Traj_H5MD.cpp \
         Traj_Mol2File.cpp \
         Traj_NcEnsemble.cpp \
         Traj_PDBfile.cpp \
@@ -426,6 +433,7 @@ COMMON_SOURCES= \
         TrajIOarray.cpp \
         Trajout_Single.cpp \
         TrajoutList.cpp \
+        Units.cpp \
         Vec3.cpp \
         ViewRst.cpp \
         vmdplugin/dtrplugin.cpp \
@@ -443,10 +451,12 @@ SOURCES=$(COMMON_SOURCES) \
         ReadLine.cpp \
         main.cpp
 
-# These objects are used by libcpptraj. The specified objects are special
-# versions used only by libcpptraj. They MUST have the '.LIBCPPTRAJ.o'
-# extension.
-LIBCPPTRAJ_OBJECTS=$(COMMON_SOURCES:.cpp=.o) $(CSOURCES:.c=.o) $(CLUSTER_SOURCEFILES:.cpp=.o) \
+# Object files for the cpptraj library used by pytraj etc.
+# The specified objects (e.g. Action_Esander) are special versions used only
+# by libcpptraj. They MUST have the '.LIBCPPTRAJ.o' extension and will be
+# compiled with the '-DLIBCPPTRAJ' define.
+# NOTE: This variable MUST be in cpptrajfiles as the cmake build expects it.
+LIBCPPTRAJ_OBJECTS=$(COMMON_SOURCES:.cpp=.o) $(CSOURCES:.c=.o) $(CLUSTER_SOURCEFILES:.cpp=.o) $(STRUCTURE_SOURCEFILES:.cpp=.o) \
         Action_Esander.LIBCPPTRAJ.o \
         Command.LIBCPPTRAJ.o \
         Cpptraj.LIBCPPTRAJ.o \
@@ -480,6 +490,7 @@ LIBCPPTRAJ_CORE_OBJECTS= \
   Parallel.o \
   Range.o \
   Residue.o \
+  Units.o \
   Vec3.o
 
 # These objects contain basic file-related functionality. Requires core library
@@ -559,6 +570,8 @@ LIBCPPTRAJ_TRAJ_OBJECTS= \
   Traj_GmxTrX.o \
   Traj_GmxXtc.o \
   Traj_Gro.o \
+  Traj_H5.o \
+  Traj_H5MD.o \
   Traj_Mol2File.o \
   Traj_NcEnsemble.o \
   Traj_PDBfile.o \

@@ -31,6 +31,8 @@ class DataSet_Mesh : public DataSet_1D {
     double Dval(size_t idx)   const { return mesh_y_[idx];       }
     double Xcrd(size_t idx)   const { return mesh_x_[idx];       }
     const void* VoidPtr(size_t) const;
+    const void* DvalPtr()           const { return (void*)(&mesh_y_[0]); }
+    void* Yptr() { return (&mesh_y_[0]); }
     void SetY(size_t idx, double y) { mesh_y_[idx] = y; }
     // -------------------------------------------
     inline void AddXY(double,double);
@@ -44,6 +46,8 @@ class DataSet_Mesh : public DataSet_1D {
     Darray& SetMeshY() { return mesh_y_; }
     /// Allow direct access to X values.
     Darray& SetMeshX() { return mesh_x_; }
+    /// Allow const access to X values
+    Darray const& MeshX() const { return mesh_x_; }
     /// Set mesh X and Y values from input data set.
     int SetMeshXY(DataSet_1D const&); // TODO remove
     /// Set mesh X and Y values from input arrays.

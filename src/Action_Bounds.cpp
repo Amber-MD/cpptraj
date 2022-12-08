@@ -8,6 +8,7 @@
 Action_Bounds::Action_Bounds() :
   outfile_(0),
   offset_(1),
+  gridIsSetup_(false),
   grid_(0),
   ds_xmin_(0),
   ds_ymin_(0),
@@ -44,6 +45,7 @@ Action::RetType Action_Bounds::Init(ArgList& actionArgs, ActionInit& init, int d
   if (mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
   std::string dsname = actionArgs.GetStringKey("name");
   offset_ = actionArgs.getKeyInt("offset", 1);
+  gridIsSetup_ = false;
   if (dxyz_[0] > -1.0) {
     // Set up grid
     if (dsname.empty()) {
@@ -127,14 +129,42 @@ int Action_Bounds::SyncAction() {
   trajComm_.ReduceMaster( &buf, max_, 3, MPI_DOUBLE, MPI_MAX );
   if (trajComm_.Master())
     std::copy( buf, buf+3, max_ );
+  // Set up the grid here so all processes have it.
+  trajComm_.MasterBcast(min_, 3, MPI_DOUBLE);
+  trajComm_.MasterBcast(max_, 3, MPI_DOUBLE);
+  calc_center_and_bins();
   return 0;
 }
 #endif
 
+/** Calculate bounds center and grid bins based on min/max/spacing. */
+int Action_Bounds::calc_center_and_bins() {
+  if (gridIsSetup_) return 0;
+  for (int i = 0; i < 3; i++) {
+    if (dxyz_[i] > 0.0) {
+      center_[i] = (max_[i] + min_[i]) / 2.0;
+      long int nbins = (long int)ceil( (max_[i] - min_[i]) / dxyz_[i] ) + (long int)offset_;
+      if (nbins < 0) {
+        mprinterr("Error: Overflow in bounds dim %i: max=%f min=%f spacing=%f\n",
+                  i, max_[i], min_[i], dxyz_[i]);
+        return 1;
+      }
+      nxyz_[i] = (size_t)nbins;
+    }
+  }
+  if (grid_ != 0) {
+    DataSet_3D& grid3d = static_cast<DataSet_3D&>( *grid_ );
+    if (grid3d.Allocate_N_C_D( nxyz_[0], nxyz_[1], nxyz_[2], center_, dxyz_ )) {
+      mprinterr("Error: Could not allocate grid %s\n", grid_->legend());
+      return 1;
+    }
+  }
+  gridIsSetup_ = true;
+  return 0;
+} 
+
 void Action_Bounds::Print() {
   static const char cXYZ[3] = {'X', 'Y', 'Z'};
-  Vec3 center;
-  size_t nxyz[3];
 
   mprintf("    BOUNDS: Output to %s\n", outfile_->Filename().full());
   ds_xmin_->Add(0, min_  );
@@ -143,19 +173,14 @@ void Action_Bounds::Print() {
   ds_xmax_->Add(0, max_  );
   ds_ymax_->Add(0, max_+1);
   ds_zmax_->Add(0, max_+2);
+
+  calc_center_and_bins();
+
   for (int i = 0; i < 3; i++) {
     outfile_->Printf("%f < %c < %f", min_[i], cXYZ[i], max_[i]);
-    if (dxyz_[i] > 0.0) {
-      center[i] = (max_[i] + min_[i]) / 2.0;
-      long int nbins = (long int)ceil( (max_[i] - min_[i]) / dxyz_[i] ) + (long int)offset_;
-      nxyz[i] = (size_t)nbins;
-      outfile_->Printf("\tCenter= %f  Bins=%zu", center[i], nxyz[i]);
-    }
+    if (dxyz_[i] > 0.0)
+      outfile_->Printf("\tCenter= %f  Bins=%zu", center_[i], nxyz_[i]);
     outfile_->Printf("\n");
   }
-  if (grid_ != 0) {
-    DataSet_3D& grid3d = static_cast<DataSet_3D&>( *grid_ );
-    if (grid3d.Allocate_N_C_D( nxyz[0], nxyz[1], nxyz[2], center, dxyz_ ))
-      mprinterr("Error: Could not allocate grid %s\n", grid_->legend());
-  }
+
 }

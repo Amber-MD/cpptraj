@@ -2781,6 +2781,15 @@ void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes, ParmHol
   }
 }
 
+/** \return True if any atom has a non-zero charge. */
+bool Topology::HasChargeInfo() const {
+  for (std::vector<Atom>::const_iterator at = atoms_.begin();
+                                         at != atoms_.end(); ++at)
+    if (at->Charge() > 0.0 || at->Charge() < 0.0)
+      return true;
+  return false;
+}
+
 // -----------------------------------------------------------------------------
 
 /** Update/add to parameters in this topology with those from given set. */

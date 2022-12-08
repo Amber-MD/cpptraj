@@ -29,6 +29,8 @@
 #include "DataIO_Cmatrix_Binary.h"
 #include "DataIO_Cmatrix_NC.h"
 #include "DataIO_Peaks.h"
+#include "DataIO_NetCDF.h"
+#include "DataIO_AmberEne.h"
 
 // CONSTRUCTOR
 DataFile::DataFile() :
@@ -75,9 +77,16 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
   { "Pairwise Cache (NetCDF)", 0,                        0,          0 },
 # endif
   { "Peaks",              0,                             0,            DataIO_Peaks::Alloc },
+# ifdef BINTRAJ
+  { "NetCDF data",             0,                        0,          DataIO_NetCDF::Alloc },
+# else
+  { "NetCDF data",             0,                        0,          0 },
+# endif
+  { "Amber Energy File",  0,                             0,            DataIO_AmberEne::Alloc},
   { "Unknown Data file",  0,                       0,                        0                    }
 };
 
+/** Types that support reads. */
 const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
   { DATAFILE,     "dat",    ".dat"   },
   { XMGRACE,      "grace",  ".agr"   },
@@ -91,12 +100,14 @@ const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
   { EVECS,        "evecs",  ".evecs" },
   { XVG,          "xvg",    ".xvg"   },
   { CCP4,         "ccp4",   ".ccp4"  },
-  { CHARMMREPD,   "charmmrepd",".exch" },
-  { CHARMMOUT,    "charmmout", ".charmmout"},
+  { CHARMMREPD,   "charmmrepd",   ".exch" },
+  { CHARMMOUT,    "charmmout",    ".charmmout"},
   { CHARMMRTFPRM, "charmmrtfprm", ".rtfprm"},
-  { CMATRIX_BINARY,"cmatrix",".cmatrix" },
-  { CMATRIX_NETCDF,"nccmatrix", ".nccmatrix" },
-  { PEAKS,        "peaks",  ".peaks" },
+  { NETCDFDATA,   "netcdf",       ".nc" },
+  { CMATRIX_BINARY,"cmatrix",     ".cmatrix" },
+  { CMATRIX_NETCDF,"nccmatrix",   ".nccmatrix" },
+  { PEAKS,        "peaks",        ".peaks" },
+  { AMBERENE,     "amberene",     ".ene" },
   { UNKNOWN_DATA, 0,        0        }
 };
 
@@ -117,6 +128,7 @@ const FileTypes::KeyToken DataFile::DF_WriteKeyArray[] = {
   { CMATRIX_NETCDF,"nccmatrix", ".nccmatrix" },
   { CHARMMRTFPRM, "charmmrtfprm", ".prm" },
   { PEAKS,        "peaks",  ".peaks" },
+  { NETCDFDATA,   "netcdf", ".nc" },
   { UNKNOWN_DATA, 0,        0        }
 };
 
@@ -330,13 +342,15 @@ int DataFile::AddDataSet(DataSet* dataIn) {
               dataIn->legend());
     }
   } else {
-    if ((int)dataIn->Ndim() != dimension_) {
-      mprinterr("Error: DataSets in DataFile %s have dimension %i\n" 
-                "Error: Attempting to add set %s of dimension %zu\n", 
-                filename_.base(), dimension_,
-                dataIn->legend(), dataIn->Ndim());
-      return Error("Error: Adding DataSets with different dimensions to same file"
-                   " is currently unsupported.\n");
+    if (Type() != NETCDFDATA) {
+      if ((int)dataIn->Ndim() != dimension_) {
+        mprinterr("Error: DataSets in DataFile %s have dimension %i\n" 
+                  "Error: Attempting to add set %s of dimension %zu\n", 
+                  filename_.base(), dimension_,
+                  dataIn->legend(), dataIn->Ndim());
+        return Error("Error: Adding DataSets with different dimensions to same file"
+                     " is currently unsupported.\n");
+      }
     }
     if (!dataio_->CheckValidFor(*dataIn)) {
       mprinterr("Error: DataSet '%s' is not valid for DataFile '%s' format.\n",
@@ -498,7 +512,7 @@ int DataFile::WriteSetsToFile(FileName const& fname, DataSetList& setsToWrite)
             dftimer.Total());
 #   endif
     if (err > 0) 
-      mprinterr("Error writing %iD Data to %s\n", dimension_, fname.base());
+      mprinterr("Error: Could not write data sets to %s\n", fname.base());
   }
   return err;
 }

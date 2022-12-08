@@ -91,6 +91,8 @@ class Atom {
     inline double Screen()             const { return gb_screen_; }
     /// \return Optimal bond length in Ang. based on given element types.
     static double GetBondLength(AtomicElementType, AtomicElementType);
+    /// \return Element name of element
+    static const char* ElementName(AtomicElementType e) { return AtomicElementName_[e]; }
     /// \return PARSE radius in Ang. based on element.
     double ParseRadius() const;
     /// Determine element from given atomic number. Use mass/name if number < 1.

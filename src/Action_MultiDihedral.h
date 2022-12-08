@@ -22,5 +22,7 @@ class Action_MultiDihedral : public Action {
     DataFile* outfile_;
     // TODO: Replace these with new DataSet type
     DataSetList* masterDSL_;
+    bool use_mask_expression_;    ///< If true, using a mask expression instead of range
+    AtomMask resMask_;            ///< The mask to use if use_mask_expression_
 };
 #endif 

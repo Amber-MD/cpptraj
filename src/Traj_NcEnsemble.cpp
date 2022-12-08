@@ -23,7 +23,8 @@ Traj_NcEnsemble::Traj_NcEnsemble() :
   ensembleEnd_(0),
   readAccess_(false),
   useVelAsCoords_(false),
-  useFrcAsCoords_(false)
+  useFrcAsCoords_(false),
+  ftype_(NC::NC_V3) // Default to NetCDF 3
 {}
 
 // DESTRUCTOR
@@ -57,7 +58,11 @@ int Traj_NcEnsemble::processReadArgs(ArgList& argIn) {
 
 // Traj_NcEnsemble::ID_TrajFormat()
 bool Traj_NcEnsemble::ID_TrajFormat(CpptrajFile& fileIn) {
-  return ( GetNetcdfConventions( fileIn.Filename().full() ) == NC_AMBERENSEMBLE );
+  ftype_ = NC::GetFormatType( fileIn.Filename().Full() );
+  if (ftype_ != NC::NC_NOTNC) {
+    return ( NC::GetConventions( fileIn.Filename().Full() ) == NC::NC_AMBERENSEMBLE );
+  }
+  return false;
 }
 
 // Traj_NcEnsemble::openTrajin()
@@ -110,7 +115,7 @@ int Traj_NcEnsemble::setupTrajin(FileName const& fname, Topology* trajParm)
   filename_ = fname;
   // NOTE: Setup opens and closes single process for now
   // Setup for Amber NetCDF ensemble
-  if ( NC_setupRead(filename_.Full(), NC_AMBERENSEMBLE, trajParm->Natom(),
+  if ( NC_setupRead(filename_.Full(), NC::NC_AMBERENSEMBLE, trajParm->Natom(),
                     useVelAsCoords_, useFrcAsCoords_, debug_) )
     return TRAJIN_ERR;
   // Get title
@@ -162,7 +167,7 @@ int Traj_NcEnsemble::setupTrajout(FileName const& fname, Topology* trajParm,
     if (Parallel::World().Master()) { // Only master creates file.
 #   endif
       // Create NetCDF file.
-      err = NC_create(filename_.Full(), NC_AMBERENSEMBLE, trajParm->Natom(), CoordInfo(),
+      err = NC_create(filename_.Full(), NC::NC_AMBERENSEMBLE, trajParm->Natom(), CoordInfo(),
                       Title(), debug_);
       // Close Netcdf file. It will be reopened write. FIXME should NC_create leave it closed?
       NC_close();

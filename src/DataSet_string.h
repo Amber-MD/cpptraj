@@ -14,6 +14,8 @@ class DataSet_string : public DataSet {
 
     void operator=(std::vector<std::string> const& rhs) { Data_ = rhs;}
     void AddElement(std::string const& s){ Data_.push_back( s );      }
+    /// Set element at index with given string; update width if necessary
+    void SetElement(size_t, const char*);
     /// Make set size sizeIn, all values set to blank
     void Resize(size_t sizeIn)           { Data_.resize(sizeIn, "");  }
     // ----- DataSet functions -------------------

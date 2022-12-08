@@ -6,7 +6,7 @@ CleanFiles vector.in v6and7.dat rex-d.dat MD.ene.dat out.dx out.dat \
            truncoct.dat out?.dx append.dx append.dat temp.dat \
            truncsparse.dat temp2.dat truncoct.dat.save sparse.dat \
            xyz.dat v7and6.dat matrix.dat cpptraj.matrix.dat \
-           square.matrix.dat
+           square.matrix.dat run0.dat
 
 TESTNAME='Read data tests'
 
@@ -165,6 +165,15 @@ writedata square.matrix.dat MyMatrix prec 6.3 noheader
 EOF
 RunCpptraj "$UNITNAME"
 DoTest ../Test_Matrix/mtest.dat.13.save square.matrix.dat
+
+# Amber energy file read
+UNITNAME='Read Amber energy file'
+cat > vector.in <<EOF
+readdata run0.ene name ENE
+writedata run0.dat ENE[*]
+EOF
+RunCpptraj "$UNITNAME"
+DoTest run0.dat.save run0.dat
 
 EndTest
   
