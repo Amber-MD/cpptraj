@@ -244,9 +244,9 @@ Box::CellShapeType Box::CellShape() const {
 
 /** Check the box for potential problems. It is expected that if this routine
   * is called, valid box information is present. If not, this is an error.
-  * \return 1 if no box, 0 otherwise.
+  * \return BOX_NOT_PRESENT if no box, BOX_IS_SKEWED if too skewed for imaging, BOX_OK otherwise.
   */
-int Box::CheckBox() const {
+Box::CheckType Box::CheckBox() const {
   // Check for invalid lengths/angles
   bool hasZeros = false;
   for (int i = 0; i < 3; i++) {
@@ -261,7 +261,7 @@ int Box::CheckBox() const {
       hasZeros = true;
     }
   }
-  if (hasZeros) return 1;
+  if (hasZeros) return BOX_NOT_PRESENT;
 
   CellShapeType cellShape = CellShape();
   // Check for low-precision truncated octahedron angles.
@@ -284,9 +284,9 @@ int Box::CheckBox() const {
   {
     mprintf("Warning: Box is too skewed to perform accurate imaging.\n"
             "Warning:  Images and imaged distances may not be the absolute minimum.\n");
-    // TODO should this return 1?
+    return BOX_IS_SKEWED;
   }
-  return 0;
+  return BOX_OK;
 }
 
 // Box::SetNoBox()
@@ -514,7 +514,7 @@ int Box::SetupFromShapeMatrix(const double* shape) {
 # ifdef DEBUG_BOX
   printBoxStatus("SetupFromShapeMatrix");
 # endif
-  if (CheckBox()) {
+  if (CheckBox() == BOX_NOT_PRESENT) {
     SetNoBox();
     return 1;
   }
@@ -532,7 +532,7 @@ int Box::SetupFromUcell(const double* ucell) {
 # ifdef DEBUG_BOX
   printBoxStatus("SetupFromUcell");
 # endif
-  if (CheckBox()) {
+  if (CheckBox() == BOX_NOT_PRESENT) {
     SetNoBox();
     return 1;
   }
@@ -555,7 +555,7 @@ int Box::SetupFromXyzAbg(double bx, double by, double bz, double ba, double bb, 
 # ifdef DEBUG_BOX
   printBoxStatus("SetupFromXyzAbgIndividual");
 # endif
-  if (CheckBox()) {
+  if (CheckBox() == BOX_NOT_PRESENT) {
     SetNoBox();
     return 1;
   }
@@ -578,7 +578,7 @@ int Box::SetupFromXyzAbg(const double* xyzabg) {
 # ifdef DEBUG_BOX
   printBoxStatus("SetupFromXyzAbg");
 # endif
-  if (CheckBox()) {
+  if (CheckBox() == BOX_NOT_PRESENT) {
     SetNoBox();
     return 1;
   }
