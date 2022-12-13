@@ -192,8 +192,8 @@ void EnsembleOut_Multi::PrintInfo(int expectedNframes) const {
   mprintf("  '%s.X' ", Traj().Filename().base());
   if (expectedNframes > 0) mprintf("(%i frames) ", expectedNframes);
   // Use MembersToWrite() instead of ioarray since 'onlymembers' may have been specified
-  mprintf("(Ensemble, %i members written", MembersToWrite().Size());
-  if (MembersToWrite().Size() < ensembleSize_) {
+  mprintf("(Ensemble, %u members written", MembersToWrite().Size());
+  if (MembersToWrite().Size() < (unsigned int)ensembleSize_) {
     mprintf(":");
     for (Range::const_iterator it = MembersToWrite().begin();
                                it != MembersToWrite().end(); ++it)
