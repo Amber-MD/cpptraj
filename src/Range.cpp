@@ -170,12 +170,9 @@ void Range::ShiftBy(int val) {
 }
 
 // Range::PrintRange()
-/** Print all numbers in the range to a line. Increment by offset. */
-void Range::PrintRange(const char* header, int offset) const {
-  if (header!=0)
-    mprintf("%s",header);
-  std::string rangeExp = ArrayToRangeExpression( rangeList_, offset );
-  mprintf(" %s", rangeExp.c_str());
+/** \return string containing actual range, optionally incremented by an offset.*/
+std::string Range::PrintRange(int offset) const {
+  return ArrayToRangeExpression( rangeList_, offset );
 /*
   for (std::list<int>::const_iterator it=rangeList_.begin(); it!=rangeList_.end(); it++)
     mprintf(" %i",(*it)+offset);

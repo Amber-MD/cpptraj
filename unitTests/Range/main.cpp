@@ -25,7 +25,7 @@ int main() {
   if (myRange.SetRange("3-6,9,12-14")) return Err("SetRange failed.");
   myRange.PrintToStdout();
   if (myRange.Size() != 8) return Err("myRange size is not 8.");
-  myRange.PrintRange("myRange + 1", 1);
+  printf("myRange (+ 1) %s\n", myRange.PrintRange(1).c_str());
   printf("\n");
   printf("Range arg: '%s'\n", myRange.RangeArg());
   if (TestRange(myRange)) return 1;
@@ -47,7 +47,7 @@ int main() {
   // Test basic range from numbers
   Range range2;
   if (range2.SetRange(10, 15)) return Err("SetRange range2 failed.");
-  range2.PrintRange("range2", -1);
+  printf("range2 (should be 10-14 minus 1) %s\n", range2.PrintRange(-1).c_str());
   printf("\n");
   printf("Range2 arg: '%s'\n", range2.RangeArg());
   range2.ShiftBy(-1);
@@ -66,7 +66,7 @@ int main() {
   range3.AddToRange(5);
   range3.AddToRange(9);
   range3.AddToRange(13);
-  range3.PrintRange(0,0);
+  printf("range3 %s\n", range3.PrintRange(0).c_str());
   if (TestRange(myRange)) return Err("AddToRange test failed.");
 
   return 0;

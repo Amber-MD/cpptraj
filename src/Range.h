@@ -49,8 +49,8 @@ class Range {
     void ShiftBy(int);
     /// \return the range expression used to set up range
     const char *RangeArg() const { return rangeArg_.c_str(); }
-    /// Print the range to stdout, with optional header and offset; no newline.
-    void PrintRange(const char*, int) const;
+    /// \return string containing actual range, with optional offset.
+    std::string PrintRange(int) const;
     /// Print entire range to stdout
     void PrintToStdout() const;
     /// \return true if given number is within the Range.
