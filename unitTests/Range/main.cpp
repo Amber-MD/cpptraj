@@ -36,5 +36,19 @@ int main() {
   myRange.PrintToStdout();
   if (myRange.Size() != 8) return Err("myRange duplicate size is not 8.");
 
+  // Test basic range from numbers
+  Range range2;
+  if (range2.SetRange(10, 15)) return Err("SetRange range2 failed.");
+  range2.PrintRange("range2", -1);
+  printf("\n");
+  printf("Range2 arg: '%s'\n", range2.RangeArg());
+  range2.ShiftBy(-1);
+  if (range2.Size() != 5) return Err("range2 size is not 5.");
+  Range::const_iterator it = range2.begin();
+  for (int i = 9; i < 14; i++, ++it) {
+    if (*it != i) return Err("Iterator range 9-14 does not match.");
+  }
+
+
   return 0;
 }
