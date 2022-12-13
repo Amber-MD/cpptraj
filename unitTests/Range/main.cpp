@@ -57,6 +57,17 @@ int main() {
     if (*it != i) return Err("Iterator range 9-14 does not match.");
   }
 
+  // Test AddToRange
+  Range range3;
+  range3.SetRange("6,9,12");
+  range3.AddToRange(4);
+  range3.AddToRange(3);
+  range3.AddToRange(14);
+  range3.AddToRange(5);
+  range3.AddToRange(9);
+  range3.AddToRange(13);
+  range3.PrintRange(0,0);
+  if (TestRange(myRange)) return Err("AddToRange test failed.");
 
   return 0;
 }
