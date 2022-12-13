@@ -35,6 +35,14 @@ int main() {
   if (myRange.SetRange("5,12,9,3-6,9,12-14")) return Err("SetRange duplicate failed.");
   myRange.PrintToStdout();
   if (myRange.Size() != 8) return Err("myRange duplicate size is not 8.");
+  if (TestRange(myRange)) return 1;
+
+  // Test copying and assignment
+  Range rangeCopy( myRange );
+  if (TestRange(rangeCopy)) return 1;
+  Range rangeAssign;
+  rangeAssign = myRange;
+  if (TestRange(rangeAssign)) return 1;
 
   // Test basic range from numbers
   Range range2;
