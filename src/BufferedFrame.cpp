@@ -230,7 +230,7 @@ void BufferedFrame::DoubleToBuffer(const double* Xin, int Nin, const char* forma
       mprinterr("Error: Writing element '%i' to '%s'\n", element+1, Filename().base());
       return;
     } else if ((unsigned int)n_chars > eltWidth_) {
-      mprintf("Warning: Number overflow in '%s', element %i (only writing %u of %i chars).\n",
+      mprintf("Warning: Number overflow in '%s', element %i (only writing %zu of %i chars).\n",
               Filename().base(), element+1, eltWidth_, n_chars);
     }
     bufferPosition_ += eltWidth_;
@@ -262,19 +262,37 @@ void BufferedFrame::AdvanceCol() {
 
 /** Write given integer to the buffer and advance to next column. */
 void BufferedFrame::IntToBuffer(int ival) {
-  sprintf(bufferPosition_, writeFmt_.fmt(), ival);
+  int n_chars = snprintf(bufferPosition_, eltWidth_+1, writeFmt_.fmt(), ival);
+  if (n_chars < 0) {
+    mprinterr("Error: Writing integer %i to '%s'\n", ival, Filename().base());
+  } else if ((unsigned int)n_chars > eltWidth_) {
+    mprintf("Warning: Number overflow in '%s' integer %i (only writing %zu of %i chars).\n",
+            Filename().base(), ival, eltWidth_, n_chars);
+  }
   AdvanceCol();
 }
 
 /** Write the given double to the buffer and advance to next column. */
 void BufferedFrame::DblToBuffer(double dval) {
-  sprintf(bufferPosition_, writeFmt_.fmt(), dval);
+  int n_chars = snprintf(bufferPosition_, eltWidth_+1, writeFmt_.fmt(), dval);
+  if (n_chars < 0) {
+    mprinterr("Error: Writing double %g to '%s'\n", dval, Filename().base());
+  } else if ((unsigned int)n_chars > eltWidth_) {
+    mprintf("Warning: Number overflow in '%s' double %g (only writing %zu of %i chars).\n",
+            Filename().base(), dval, eltWidth_, n_chars);
+  }
   AdvanceCol();
 }
 
 /** Write the given character string to the buffer and advance to next column. */
 void BufferedFrame::CharToBuffer(const char* cval) {
-  sprintf(bufferPosition_, writeFmt_.fmt(), cval);
+  int n_chars = snprintf(bufferPosition_, eltWidth_+1, writeFmt_.fmt(), cval);
+  if (n_chars < 0) {
+    mprinterr("Error: Writing string %s to '%s'\n", cval, Filename().base());
+  } else if ((unsigned int)n_chars > eltWidth_) {
+    mprintf("Warning: Overflow in '%s' string %s (only writing %zu of %i chars).\n",
+            Filename().base(), cval, eltWidth_, n_chars);
+  }
   AdvanceCol();
 }
 
