@@ -5,20 +5,26 @@
 /// Used to buffer text files that will be read in chunks
 class BufferedFrame : public CpptrajFile {
   public:
+    /// CONSTRUCTOR
     BufferedFrame();
+    /// DESTRUCTOR
     ~BufferedFrame();
     /// Set up buffer for read/write with # elts, elt width, elts per line
     size_t SetupFrameBuffer(int, int, int);
-    /// Set up buffer for read/write. Can specify additional bytes in frame/offset
+    /// Set up buffer for read/write. # elts, elt width, elts per line, additional bytes, offset.
     size_t SetupFrameBuffer(int, int, int, size_t, int);
-    /// Set up buffer (primarily for writes)
+    /// Set up buffer (primarily for writes). # elements, text format, elts per line.
     size_t SetupFrameBuffer(int, TextFormat const&, int);
+    /// Change size of buffer by given delta
     size_t ResizeBuffer(int);
+
+    /// Seek to a specific frame in the file
     int SeekToFrame(size_t);
     /// Attempt to read frameSize_ bytes.
     int AttemptReadFrame();
-    /// Read frameSize_ bytes.
+    /// Read frameSize_ bytes into buffer.
     bool ReadFrame();
+    /// Write frameSize_ bytes from buffer.
     int WriteFrame();
     void GetDoubleAtPosition(double&,size_t,size_t);
     void BufferBegin();

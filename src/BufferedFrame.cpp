@@ -3,6 +3,7 @@
 #include "BufferedFrame.h"
 #include "CpptrajStdio.h"
 
+/** CONSTRUCTOR */
 BufferedFrame::BufferedFrame() :
   buffer_(0),
   bufferPosition_(0),
@@ -16,6 +17,7 @@ BufferedFrame::BufferedFrame() :
   saveChar_(0)
 {}
 
+/** DESTRUCTOR */
 BufferedFrame::~BufferedFrame() {
   if (buffer_!=0) delete[] buffer_;
 }
@@ -26,6 +28,7 @@ size_t BufferedFrame::SetupFrameBuffer(int Nelts, int eltWidthIn, int eltsPerLin
   return SetupFrameBuffer(Nelts, eltWidthIn, eltsPerLine, 0, 0);
 }
 
+// BufferedFrame::SetupFrameBuffer()
 size_t BufferedFrame::SetupFrameBuffer(int Nelts, TextFormat const& fmtIn, int eltsPerLine)
 {
   writeFmt_ = fmtIn;
@@ -105,10 +108,29 @@ size_t BufferedFrame::ResizeBuffer(int delta) {
   return frameSize_;
 }
 
+// -----------------------------------------------------------------------------
+/** Seek to specified frame in file. */
 int BufferedFrame::SeekToFrame(size_t set) {
   return Seek( (off_t)((set * frameSize_) + offset_) );
 }
 
+/** Set buffer pointer to beginning of buffer. */
+void BufferedFrame::BufferBegin() {
+  bufferPosition_ = buffer_;
+  col_ = 0;
+}
+
+/** Set buffer pointer to specified position in buffer. */ // TODO needed?
+void BufferedFrame::BufferBeginAt(size_t pos) {
+  bufferPosition_ = buffer_ + pos;
+}
+
+/** Advance buffer pointer by specified offset. */ // TODO needed?
+void BufferedFrame::AdvanceBuffer(size_t offset) {
+  bufferPosition_ += offset;
+}
+
+// -----------------------------------------------------------------------------
 /** Attempt to read in the next frameSize_ bytes.
   * \return the actual number of bytes read.
   */
@@ -131,28 +153,12 @@ bool BufferedFrame::ReadFrame() {
   return false;
 }
 
-int BufferedFrame::WriteFrame() {
-  return Write( buffer_, (size_t)(bufferPosition_ - buffer_) );
-}
-
+/** Convert text between start and end in buffer to a double. */ // TODO needed?
 void BufferedFrame::GetDoubleAtPosition(double& val, size_t start, size_t end) {
   char savechar = buffer_[end];
   buffer_[end] = '\0';
   val = atof(buffer_ + start);
   buffer_[end] = savechar;
-}
-
-void BufferedFrame::BufferBegin() {
-  bufferPosition_ = buffer_;
-  col_ = 0;
-}
-
-void BufferedFrame::BufferBeginAt(size_t pos) {
-  bufferPosition_ = buffer_ + pos;
-}
-
-void BufferedFrame::AdvanceBuffer(size_t offset) {
-  bufferPosition_ += offset;
 }
 
 /** Convert text in buffer containing numerical elements with format 
@@ -184,66 +190,6 @@ void BufferedFrame::BufferToDouble(double* Xout, int Nout) {
   }
 }
 
-/** Convert given double array to ordered text in buffer. The number of
-  * elements in the given array should be what SetupFrameBuffer was
-  * called with. Update bufferPosition after write. 
-  */
-void BufferedFrame::DoubleToBuffer(const double* Xin, int Nin, const char* format)
-{
-  int col = 0;
-  for (int element = 0; element < Nin; ++element) {
-    sprintf(bufferPosition_, format, Xin[element]);
-    bufferPosition_ += eltWidth_;
-    ++col;
-    if ( col == Ncols_ ) {
-      sprintf(bufferPosition_,"\n");
-      ++bufferPosition_;
-      col = 0;
-    }
-  }
-  // If the coord record didnt end on a newline, print one
-  if ( col != 0 ) {
-    sprintf(bufferPosition_,"\n");
-    ++bufferPosition_;
-  }
-}
-
-void BufferedFrame::AdvanceCol() {
-  bufferPosition_ += eltWidth_;
-  ++col_;
-  if ( col_ == Ncols_ ) {
-    sprintf(bufferPosition_,"\n");
-    ++bufferPosition_;
-    col_ = 0;
-  }
-}
-
-void BufferedFrame::IntToBuffer(int ival) {
-  sprintf(bufferPosition_, writeFmt_.fmt(), ival);
-  AdvanceCol();
-}
-
-void BufferedFrame::DblToBuffer(double dval) {
-  sprintf(bufferPosition_, writeFmt_.fmt(), dval);
-  AdvanceCol();
-}
-
-void BufferedFrame::CharToBuffer(const char* cval) {
-  sprintf(bufferPosition_, writeFmt_.fmt(), cval);
-  AdvanceCol();
-}
-
-void BufferedFrame::FlushBuffer() {
-  // If the coord record didnt end on a newline, print one
-  if ( col_ != 0 ) {
-    sprintf(bufferPosition_,"\n");
-    ++bufferPosition_;
-  }
-  WriteFrame();
-  col_ = 0;
-  bufferPosition_ = buffer_;
-}
-
 /** \return Pointer to next null-terminated element in buffer.
   */
 const char* BufferedFrame::NextElement() {
@@ -262,4 +208,84 @@ const char* BufferedFrame::NextElement() {
     *end = '\0';
   }
   return position; 
+}
+
+// -----------------------------------------------------------------------------
+/** Write the current buffer to file. */
+int BufferedFrame::WriteFrame() {
+  return Write( buffer_, (size_t)(bufferPosition_ - buffer_) );
+}
+
+/** Convert given double array to ordered text in buffer. The number of
+  * elements in the given array should be what SetupFrameBuffer was
+  * called with. Update bufferPosition after write. 
+  */
+void BufferedFrame::DoubleToBuffer(const double* Xin, int Nin, const char* format)
+{
+  int col = 0;
+  for (int element = 0; element < Nin; ++element) {
+    //sprintf(bufferPosition_, format, Xin[element]);
+    int n_chars = snprintf(bufferPosition_, eltWidth_+1, format, Xin[element]);
+    if (n_chars < 0) {
+      mprinterr("Error: Writing element '%i' to '%s'\n", element+1, Filename().base());
+      return;
+    } else if ((unsigned int)n_chars > eltWidth_) {
+      mprintf("Warning: Number overflow in '%s', element %i (only writing %u of %i chars).\n",
+              Filename().base(), element+1, eltWidth_, n_chars);
+    }
+    bufferPosition_ += eltWidth_;
+    ++col;
+    if ( col == Ncols_ ) {
+      sprintf(bufferPosition_,"\n");
+      ++bufferPosition_;
+      col = 0;
+    }
+  }
+  // If the coord record didnt end on a newline, print one
+  if ( col != 0 ) {
+    sprintf(bufferPosition_,"\n");
+    ++bufferPosition_;
+  }
+}
+
+/** Advance to the next column of the buffer. Write a newline if 
+  * at the end of a line. */
+void BufferedFrame::AdvanceCol() {
+  bufferPosition_ += eltWidth_;
+  ++col_;
+  if ( col_ == Ncols_ ) {
+    sprintf(bufferPosition_,"\n");
+    ++bufferPosition_;
+    col_ = 0;
+  }
+}
+
+/** Write given integer to the buffer and advance to next column. */
+void BufferedFrame::IntToBuffer(int ival) {
+  sprintf(bufferPosition_, writeFmt_.fmt(), ival);
+  AdvanceCol();
+}
+
+/** Write the given double to the buffer and advance to next column. */
+void BufferedFrame::DblToBuffer(double dval) {
+  sprintf(bufferPosition_, writeFmt_.fmt(), dval);
+  AdvanceCol();
+}
+
+/** Write the given character string to the buffer and advance to next column. */
+void BufferedFrame::CharToBuffer(const char* cval) {
+  sprintf(bufferPosition_, writeFmt_.fmt(), cval);
+  AdvanceCol();
+}
+
+/** Write the buffer to the file. */
+void BufferedFrame::FlushBuffer() {
+  // If the coord record didnt end on a newline, print one
+  if ( col_ != 0 ) {
+    sprintf(bufferPosition_,"\n");
+    ++bufferPosition_;
+  }
+  WriteFrame();
+  col_ = 0;
+  bufferPosition_ = buffer_;
 }
