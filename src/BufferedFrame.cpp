@@ -1,4 +1,4 @@
-#include <cstdio>  // sprintf
+#include <cstdio>  // snprintf
 #include <cstdlib> // atof
 #include "BufferedFrame.h"
 #include "CpptrajStdio.h"
@@ -236,14 +236,14 @@ void BufferedFrame::DoubleToBuffer(const double* Xin, int Nin, const char* forma
     bufferPosition_ += eltWidth_;
     ++col;
     if ( col == Ncols_ ) {
-      sprintf(bufferPosition_,"\n");
+      *bufferPosition_ = '\n';
       ++bufferPosition_;
       col = 0;
     }
   }
   // If the coord record didnt end on a newline, print one
   if ( col != 0 ) {
-    sprintf(bufferPosition_,"\n");
+    *bufferPosition_ = '\n';
     ++bufferPosition_;
   }
 }
@@ -254,7 +254,7 @@ void BufferedFrame::AdvanceCol() {
   bufferPosition_ += eltWidth_;
   ++col_;
   if ( col_ == Ncols_ ) {
-    sprintf(bufferPosition_,"\n");
+    *bufferPosition_ = '\n';
     ++bufferPosition_;
     col_ = 0;
   }
@@ -300,7 +300,7 @@ void BufferedFrame::CharToBuffer(const char* cval) {
 void BufferedFrame::FlushBuffer() {
   // If the coord record didnt end on a newline, print one
   if ( col_ != 0 ) {
-    sprintf(bufferPosition_,"\n");
+    *bufferPosition_ = '\n';
     ++bufferPosition_;
   }
   WriteFrame();
