@@ -20,26 +20,39 @@ class BufferedFrame : public CpptrajFile {
 
     /// Seek to a specific frame in the file
     int SeekToFrame(size_t);
+    /// Set buffer position to beginning of buffer.
+    void BufferBegin();
+    /// Set buffer position to specified position.
+    void BufferBeginAt(size_t);
+//    void AdvanceBuffer(size_t);
+
     /// Attempt to read frameSize_ bytes.
     int AttemptReadFrame();
     /// Read frameSize_ bytes into buffer.
     bool ReadFrame();
-    /// Write frameSize_ bytes from buffer.
-    int WriteFrame();
+    /// Get a double from buffer between specified positions
     void GetDoubleAtPosition(double&,size_t,size_t);
-    void BufferBegin();
-    void BufferBeginAt(size_t);
-    void AdvanceBuffer(size_t);
+    /// Convert contents of buffer to an array of double precision numbers
     void BufferToDouble(double*,int);
-    void DoubleToBuffer(const double*,int, const char*);
+    /// \return Pointer to next element in buffer (null-terminated).
     const char* NextElement();
 
+    /// Write frameSize_ bytes from buffer. // TODO should this be hidden in favor of FlushBuffer
+    int WriteFrame();
+    /// Convert array of double precision numbers to text in buffer.
+    void DoubleToBuffer(const double*,int, const char*);
+    /// Place integer into buffer and advance
     void IntToBuffer(int);
+    /// Place double into buffer and advance
     void DblToBuffer(double);
+    /// Place character string into buffer and advance
     void CharToBuffer(const char*);
+    /// Write contents of buffer to file.
     void FlushBuffer();
 
+    /// \return Current frame size
     size_t FrameSize()   const { return frameSize_; }
+    /// \return Const pointer to buffer
     const char* Buffer() const { return buffer_;    }
     /// \return Total output file size for given number of frames.
     size_t OutputFileSize(unsigned int n) const { return offset_ + (frameSize_ * n); }

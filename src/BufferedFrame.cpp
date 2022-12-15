@@ -126,9 +126,9 @@ void BufferedFrame::BufferBeginAt(size_t pos) {
 }
 
 /** Advance buffer pointer by specified offset. */ // TODO needed?
-void BufferedFrame::AdvanceBuffer(size_t offset) {
+/*void BufferedFrame::AdvanceBuffer(size_t offset) {
   bufferPosition_ += offset;
-}
+}*/
 
 // -----------------------------------------------------------------------------
 /** Attempt to read in the next frameSize_ bytes.
