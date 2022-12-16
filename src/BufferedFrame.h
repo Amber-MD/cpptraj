@@ -2,7 +2,10 @@
 #define INC_BUFFEREDFRAME_H
 #include "CpptrajFile.h"
 #include "TextFormat.h"
-/// Used to buffer text files that will be read in chunks
+/// Used to buffer text files that will be read/written in formatted 'frames'.
+/** NOTE: The preprocessor define CPPTRAJ_DEBUG_BUFFEREDFRAME can be used
+  *       to provide more details on buffer write errors or overflows.
+  */
 class BufferedFrame : public CpptrajFile {
   public:
     /// CONSTRUCTOR
@@ -24,7 +27,6 @@ class BufferedFrame : public CpptrajFile {
     void BufferBegin();
     /// Set buffer position to specified position.
     void BufferBeginAt(size_t);
-//    void AdvanceBuffer(size_t);
 
     /// Attempt to read frameSize_ bytes.
     int AttemptReadFrame();

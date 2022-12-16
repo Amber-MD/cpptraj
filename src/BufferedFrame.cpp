@@ -127,11 +127,6 @@ void BufferedFrame::BufferBeginAt(size_t pos) {
   bufferPosition_ = buffer_ + pos;
 }
 
-/** Advance buffer pointer by specified offset. */ // TODO needed?
-/*void BufferedFrame::AdvanceBuffer(size_t offset) {
-  bufferPosition_ += offset;
-}*/
-
 // -----------------------------------------------------------------------------
 /** Attempt to read in the next frameSize_ bytes.
   * \return the actual number of bytes read.
@@ -233,7 +228,6 @@ void BufferedFrame::DoubleToBuffer(const double* Xin, int Nin, const char* forma
 {
   int col = 0;
   for (int element = 0; element < Nin; ++element) {
-    //sprintf(bufferPosition_, format, Xin[element]);
     int n_chars = snprintf(bufferPosition_, eltWidth_+1, format, Xin[element]);
     // NOTE: Technically there is an overflow if n_chars is greater than the
     //       element width. However, it is not uncommon for there to be some
@@ -244,16 +238,19 @@ void BufferedFrame::DoubleToBuffer(const double* Xin, int Nin, const char* forma
     //       n_chars > eltWidth_+1 instead of n_chars > eltWidth_.
     if (n_chars < 0) {
       errorCount_++;
-      //mprinterr("Error: Writing element '%i' to '%s'\n", element+1, Filename().base());
-      //return;
+#     ifdef CPPTRAJ_DEBUG_BUFFEREDFRAME
+      mprinterr("Error: Writing element '%i' to '%s'\n", element+1, Filename().base());
+#     endif
     } else if ((unsigned int)n_chars > eltWidth_+1) {
       overflowCount_++;
+#     ifdef CPPTRAJ_DEBUG_BUFFEREDFRAME
       mprintf("Warning: Number overflow in '%s', element %i = %f (only writing %zu of %i chars).\n",
               Filename().base(), element+1, Xin[element], eltWidth_, n_chars);
       // DEBUG
       char tmpbuf[128];
       sprintf(tmpbuf, format, Xin[element]);
       mprintf("DEBUG: Full element= '%s'\n", tmpbuf);
+#     endif
     }
     bufferPosition_ += eltWidth_;
     ++col;
@@ -287,11 +284,15 @@ void BufferedFrame::IntToBuffer(int ival) {
   int n_chars = snprintf(bufferPosition_, eltWidth_+1, writeFmt_.fmt(), ival);
   if (n_chars < 0) {
     errorCount_++;
-    //mprinterr("Error: Writing integer %i to '%s'\n", ival, Filename().base());
+#   ifdef CPPTRAJ_DEBUG_BUFFEREDFRAME
+    mprinterr("Error: Writing integer %i to '%s'\n", ival, Filename().base());
+#   endif
   } else if ((unsigned int)n_chars > eltWidth_) {
     overflowCount_++;
-    //mprintf("Warning: Number overflow in '%s' integer %i (only writing %zu of %i chars).\n",
-    //        Filename().base(), ival, eltWidth_, n_chars);
+#   ifdef CPPTRAJ_DEBUG_BUFFEREDFRAME
+    mprintf("Warning: Number overflow in '%s' integer %i (only writing %zu of %i chars).\n",
+            Filename().base(), ival, eltWidth_, n_chars);
+#   endif
   }
   AdvanceCol();
 }
@@ -301,11 +302,15 @@ void BufferedFrame::DblToBuffer(double dval) {
   int n_chars = snprintf(bufferPosition_, eltWidth_+1, writeFmt_.fmt(), dval);
   if (n_chars < 0) {
     errorCount_++;
-    //mprinterr("Error: Writing double %g to '%s'\n", dval, Filename().base());
+#   ifdef CPPTRAJ_DEBUG_BUFFEREDFRAME
+    mprinterr("Error: Writing double %f to '%s'\n", dval, Filename().base());
+#   endif
   } else if ((unsigned int)n_chars > eltWidth_) {
     overflowCount_++;
-    //mprintf("Warning: Number overflow in '%s' double %g (only writing %zu of %i chars).\n",
-    //        Filename().base(), dval, eltWidth_, n_chars);
+#   ifdef CPPTRAJ_DEBUG_BUFFEREDFRAME
+    mprintf("Warning: Number overflow in '%s' double %g (only writing %zu of %i chars).\n",
+            Filename().base(), dval, eltWidth_, n_chars);
+#   endif
   }
   AdvanceCol();
 }
@@ -315,11 +320,15 @@ void BufferedFrame::CharToBuffer(const char* cval) {
   int n_chars = snprintf(bufferPosition_, eltWidth_+1, writeFmt_.fmt(), cval);
   if (n_chars < 0) {
     errorCount_++;
-    //mprinterr("Error: Writing string %s to '%s'\n", cval, Filename().base());
+#   ifdef CPPTRAJ_DEBUG_BUFFEREDFRAME
+    mprinterr("Error: Writing string %s to '%s'\n", cval, Filename().base());
+#   endif
   } else if ((unsigned int)n_chars > eltWidth_) {
     overflowCount_++;
-    //mprintf("Warning: Overflow in '%s' string %s (only writing %zu of %i chars).\n",
-    //        Filename().base(), cval, eltWidth_, n_chars);
+#   ifdef CPPTRAJ_DEBUG_BUFFEREDFRAME
+    mprintf("Warning: Overflow in '%s' string %s (only writing %zu of %i chars).\n",
+            Filename().base(), cval, eltWidth_, n_chars);
+#   endif
   }
   AdvanceCol();
 }
