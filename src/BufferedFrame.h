@@ -35,10 +35,8 @@ class BufferedFrame : public CpptrajFile {
 
     /// Seek to a specific frame in the file
     int SeekToFrame(size_t);
-    /// Set buffer position to beginning of buffer.
+    /// Set buffer position to beginning of buffer (past any header bytes).
     void BufferBegin();
-    /// Set buffer position to specified position.
-    void BufferBeginAt(size_t);
 
     /// Attempt to read frameSize_ bytes.
     int AttemptReadFrame();
@@ -74,7 +72,8 @@ class BufferedFrame : public CpptrajFile {
 
     char* buffer_;         ///< Character buffer.
     char* bufferPosition_; ///< Current position in buffer_.
-    size_t frameSize_;     ///< Total size of frame to read/write.
+    size_t frameSize_;     ///< Total size of frame to read/write (including header bytes).
+    size_t headerSize_;    ///< Header bytes at the beginning of each frame.
     size_t offset_;        ///< Non-frame bytes at the beginning of the file. Used in seeking.
     size_t memSize_;       ///< Current size of the buffer.
     size_t maxSize_;       ///< Actual size of the buffer in memory.

@@ -115,7 +115,7 @@ int Traj_AmberCoord::readFrame(int set, Frame& frameIn) {
     }
   }
   // Get Coordinates; offset is hasREMD (size in bytes of REMD header)
-  file_.BufferBeginAt(headerSize_);
+  file_.BufferBegin();
   file_.BufferToDouble(frameIn.xAddress(), natom3_);
   if (numBoxCoords_ != 0) {
     double xyzabg[6];
@@ -136,7 +136,7 @@ int Traj_AmberCoord::readVelocity(int set, Frame& frameIn) {
   file_.SeekToFrame( set );
   // Read frame into the char buffer
   if (file_.ReadFrame()) return 1;
-  file_.BufferBeginAt(headerSize_);
+  file_.BufferBegin();
   file_.BufferToDouble(frameIn.vAddress(), natom3_);
   return 0;
 }
@@ -145,7 +145,7 @@ int Traj_AmberCoord::readForce(int set, Frame& frameIn) {
   file_.SeekToFrame( set );
   // Read frame into the char buffer
   if (file_.ReadFrame()) return 1;
-  file_.BufferBeginAt(headerSize_);
+  file_.BufferBegin();
   file_.BufferToDouble(frameIn.fAddress(), natom3_);
   return 0;
 }

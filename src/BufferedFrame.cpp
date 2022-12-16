@@ -8,6 +8,7 @@ BufferedFrame::BufferedFrame() :
   buffer_(0),
   bufferPosition_(0),
   frameSize_(0),
+  headerSize_(0),
   offset_(0),
   memSize_(0),
   maxSize_(0),
@@ -43,12 +44,12 @@ size_t BufferedFrame::SetupFrameBuffer(int Nelts, TextFormat const& fmtIn, int e
   * \param Nelts Total expected number of elements to read.
   * \param eltWidth Width in chars of each element.
   * \param eltsPerLine Number of elements per line (columns).
-  * \param additionalBytes Any additional bytes in a frame.
-  * \param offsetIn Offset (not part of frame) to be used in seeking.
+  * \param headerSizeIn Any additional bytes at the beginning of frame.
+  * \param offsetIn Number of bytes at beginning of file to skip (not part of any frame).
   * \return Size of set-up frame.
   */
 size_t BufferedFrame::SetupFrameBuffer(int Nelts, int eltWidthIn, int eltsPerLine, 
-                                      size_t additionalBytes, int offsetIn) 
+                                      size_t headerSizeIn, int offsetIn)
 {
   //if (Access() != CpptrajFile::READ &&
   //    buffer_ != 0 && bufferPosition_ != 0 && buffer_ != bufferPosition_)
@@ -56,7 +57,8 @@ size_t BufferedFrame::SetupFrameBuffer(int Nelts, int eltWidthIn, int eltsPerLin
   Ncols_ = eltsPerLine;
   eltWidth_ = (size_t)eltWidthIn;
   offset_ = (size_t) offsetIn;
-  frameSize_ = CalcFrameSize( Nelts ) + additionalBytes;
+  headerSize_ = headerSizeIn;
+  frameSize_ = CalcFrameSize( Nelts );
   memSize_ = frameSize_ + 1; // +1 for null, TODO not necessary for read?
   //mprintf("DEBUG: Buffer required size %zu, max size %zu.\n", memSize_, maxSize_);
   if (memSize_ > maxSize_) {
@@ -72,7 +74,7 @@ size_t BufferedFrame::SetupFrameBuffer(int Nelts, int eltWidthIn, int eltsPerLin
   col_ = 0;
   saveChar_ = 0;
   //mprintf("DEBUG: %s %i cols, eltWidth= %zu, offset= %zu, frameSize= %zu additional= %zu\n",
-  //        Filename().base(), Ncols_, eltWidth_, offset_, frameSize_, additionalBytes);
+  //        Filename().base(), Ncols_, eltWidth_, offset_, frameSize_, headerSize_);
   return frameSize_;
 }
 
@@ -87,7 +89,7 @@ size_t BufferedFrame::CalcFrameSize( int Nelts ) const {
   // If Reading and DOS, CR present for each newline
   if (readingFile && IsDos()) frame_lines *= 2;
   // Calculate total frame size
-  size_t fsize = (((size_t)Nelts * eltWidth_) + frame_lines);
+  size_t fsize = (((size_t)Nelts * eltWidth_) + frame_lines) + headerSize_;
   return fsize;
 }
 
@@ -116,15 +118,10 @@ int BufferedFrame::SeekToFrame(size_t set) {
   return Seek( (off_t)((set * frameSize_) + offset_) );
 }
 
-/** Set buffer pointer to beginning of buffer. */
+/** Set buffer pointer to beginning of buffer, past any header bytes. */
 void BufferedFrame::BufferBegin() {
-  bufferPosition_ = buffer_;
+  bufferPosition_ = buffer_ + headerSize_;
   col_ = 0;
-}
-
-/** Set buffer pointer to specified position in buffer. */ // TODO needed?
-void BufferedFrame::BufferBeginAt(size_t pos) {
-  bufferPosition_ = buffer_ + pos;
 }
 
 // -----------------------------------------------------------------------------
