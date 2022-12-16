@@ -71,5 +71,7 @@ class BufferedFrame : public CpptrajFile {
     size_t eltWidth_;      ///< Width of each element in the frame.
     char saveChar_;        ///< For NextElement(); saved character at bufferPosition_.
     TextFormat writeFmt_;  ///< Format to use for Int|Dbl|CharToBuffer
+    int errorCount_;       ///< Count errors since last write
+    int overflowCount_;    ///< Count overflows since last write
 };
 #endif
