@@ -1,5 +1,6 @@
 #ifndef INC_BUFFEREDFRAME_H
 #define INC_BUFFEREDFRAME_H
+#include <cstddef> // size_t
 #include "CpptrajFile.h"
 #include "TextFormat.h"
 /// Used to buffer text files that will be read/written in formatted 'frames'.
