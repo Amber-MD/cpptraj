@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles temp.in T.dat T2.dat T3.dat T4.dat T.XP.agr
+CleanFiles temp.in T.dat T2.dat T3.dat T4.dat T.XP.agr FromAscii.dat
 
 TESTNAME='Temperature tests'
 Requires maxthreads 10
@@ -58,5 +58,14 @@ temperature NoXP  ntc 2 out T.XP.agr :WAT@O,H1,H2
 EOF
 RunCpptraj "$UNITNAME."
 DoTest T.XP.agr.save T.XP.agr
+
+UNITNAME='Temperature from Amber ASCII trajectory'
+cat > temp.in <<EOF
+parm ../Test_RemdTraj/ala2.99sb.mbondi2.parm7
+trajin ../Test_RemdTraj/rem.crd.000
+temperature T0 frame out FromAscii.dat
+EOF
+RunCpptraj "$UNITNAME"
+DoTest FromAscii.dat.save FromAscii.dat
 
 EndTest

@@ -77,6 +77,7 @@ jobs:
             curl -OL http://www.mpich.org/static/downloads/3.4.2/mpich-3.4.2.tar.gz
             tar -zxf mpich-3.4.2.tar.gz
             cd mpich-3.4.2
+            export FFLAGS=-fallow-argument-mismatch
             ./configure --with-device=ch3 --prefix=$HOME
             make -j2
             make install

@@ -109,10 +109,13 @@ int Traj_AmberCoord::readFrame(int set, Frame& frameIn) {
   if (file_.ReadFrame()) return 1;
 
   // Get REMD Temperature if present
-  if (headerSize_ != 0) 
-    file_.GetDoubleAtPosition(*(frameIn.tAddress()), tStart_, tEnd_); 
+  if (headerSize_ != 0) {
+    if (sscanf(file_.Buffer() + tStart_, "%lf", frameIn.tAddress()) != 1) {
+      mprinterr("Error: Could not read temperature from '%s' for frame %i\n",file_.Filename().base(),set+1);
+    }
+  }
   // Get Coordinates; offset is hasREMD (size in bytes of REMD header)
-  file_.BufferBeginAt(headerSize_);
+  file_.BufferBegin();
   file_.BufferToDouble(frameIn.xAddress(), natom3_);
   if (numBoxCoords_ != 0) {
     double xyzabg[6];
@@ -133,7 +136,7 @@ int Traj_AmberCoord::readVelocity(int set, Frame& frameIn) {
   file_.SeekToFrame( set );
   // Read frame into the char buffer
   if (file_.ReadFrame()) return 1;
-  file_.BufferBeginAt(headerSize_);
+  file_.BufferBegin();
   file_.BufferToDouble(frameIn.vAddress(), natom3_);
   return 0;
 }
@@ -142,7 +145,7 @@ int Traj_AmberCoord::readForce(int set, Frame& frameIn) {
   file_.SeekToFrame( set );
   // Read frame into the char buffer
   if (file_.ReadFrame()) return 1;
-  file_.BufferBeginAt(headerSize_);
+  file_.BufferBegin();
   file_.BufferToDouble(frameIn.fAddress(), natom3_);
   return 0;
 }

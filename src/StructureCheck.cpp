@@ -437,13 +437,42 @@ int StructureCheck::Mask1_CheckOverlap(Frame const& currentFrame)
 
 //  StructureCheck::CheckOverlaps()
 int StructureCheck::CheckOverlaps(Frame const& currentFrame) {
-  if (imageOpt_.ImagingEnabled())
-    imageOpt_.SetImageType( currentFrame.BoxCrd().Is_X_Aligned_Ortho() );
+  //mprintf("Entering CheckOverlaps()\n");
   int Nproblems = 0;
-  switch (checkType_) {
-    case PL_1_MASK     : Nproblems = PL1_CheckOverlap(currentFrame); break;
-    case NO_PL_2_MASKS : Nproblems = Mask2_CheckOverlap(currentFrame); break;
-    case NO_PL_1_MASK  : Nproblems = Mask1_CheckOverlap(currentFrame); break;
+
+  // First check the box if imaging is enabled.
+  bool box_is_bad = false;
+  if (imageOpt_.ImagingEnabled()) {
+    if (currentFrame.BoxCrd().CheckBox() != Box::BOX_OK) {
+      // Box is bad
+      box_is_bad = true;
+      mprintf("Warning: Disabling imaging due to problem with box.\n");
+      Nproblems++;
+      // Since there is a problem with the box, disable imaging.
+      if (imageOpt_.ImagingEnabled())
+        imageOpt_.SetImageType( ImageOption::NO_IMAGE );
+    } else {
+      // Box is ok
+      imageOpt_.SetImageType( currentFrame.BoxCrd().Is_X_Aligned_Ortho() );
+    }
   }
+
+  if (checkType_ == PL_1_MASK) {
+    // First, check the box before using pairlist.
+    if (box_is_bad) {
+      // Since there is a problem with the box, do not use the pair list
+      mprintf("Warning: Not using pair list due to problem with box.\n");
+      Nproblems += Mask1_CheckOverlap(currentFrame);
+    } else {
+      //mprintf("DEBUG: Box is ok.\n");
+      Nproblems += PL1_CheckOverlap(currentFrame);
+    }
+  } else if (checkType_ == NO_PL_2_MASKS) {
+    Nproblems = Mask2_CheckOverlap(currentFrame);
+  } else { // (checkType_ == NO_PL_1_MASK)
+    Nproblems = Mask1_CheckOverlap(currentFrame);
+  }
+  //mprintf("Exiting CheckOverlaps() with %i\n\n", Nproblems);
+
   return Nproblems;
 }

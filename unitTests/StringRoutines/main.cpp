@@ -1,4 +1,4 @@
-// Unit test for NameType class
+// Unit test for StringRoutines 
 #include <cstdio>
 #include "StringRoutines.h"
 

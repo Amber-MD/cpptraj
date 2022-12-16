@@ -1,6 +1,6 @@
 #ifndef INC_RANGE_H
 #define INC_RANGE_H
-#include <list>
+#include <vector>
 #include <string>
 // Class: Range
 /// The Range class is used to hold an ordered list of numbers. 
@@ -9,37 +9,57 @@
   * and end number.
 */
 class Range {
+    typedef std::vector<int> RangeType;
   public:
+    /// CONSTRUCTOR - empty range
     Range();
+    /// CONSTRUCTOR - range expression
     Range(std::string const&);
+    /// CONSTRUCTOR - single number
     Range(int);
+    /// CONSTRUCTOR - range expression and offset
     Range(std::string const&,int);
+    /// COPY CONSTRUCTOR
     Range(const Range&);
+    /// ASSIGNMENT
     Range& operator=(const Range&);
 
-    typedef std::list<int>::const_iterator const_iterator;
+    typedef RangeType::const_iterator const_iterator;
+    /// \return const iterator to beginning of range
     const_iterator begin() const { return rangeList_.begin();      }
+    /// \return const iterator to end of range
     const_iterator end()   const { return rangeList_.end();        }
+    /// \return true if range is empty
     bool Empty()           const { return rangeList_.empty();      }
-    int Size()             const { return (int) rangeList_.size(); }
+    /// \return Total numbers in range
+    unsigned int Size()    const { return rangeList_.size();       }
+    /// \return Last number in range
     int Back()             const { return rangeList_.back();       }
+    /// \return First number in range
     int Front()            const { return rangeList_.front();      }
+    /// Clear the range
     void Clear() { rangeArg_.clear(); rangeList_.clear(); }
-
+    /// Set range from range expression
     int SetRange(std::string const&);
-    int SetRange(int,int);
-    /// \return the range argument
-    const char *RangeArg() const { return rangeArg_.c_str(); }
-    void PrintRange(const char*,int) const;
-
+    /// Set range from first number up to but not including second number.
+    int SetRange(int, int);
+    /// Add a number to the range. Range will still be sorted.
+    void AddToRange(int);
+    /// Shift all numbers in the range by a constant
     void ShiftBy(int);
-    /// Add a number to the range. Range is NOT explicitly sorted in this case. 
-    void AddToRange(int num) { rangeList_.push_back(num); }
-    void RemoveFromRange(int);
+    /// \return the range expression used to set up range
+    const char *RangeArg() const { return rangeArg_.c_str(); }
+    /// \return string containing actual range, with optional offset.
+    std::string PrintRange(int) const;
+    /// Print entire range to stdout
+    void PrintToStdout() const;
     /// \return true if given number is within the Range.
     bool InRange(int) const;
   private:
-    std::string rangeArg_;
-    std::list<int> rangeList_;
+    /// Add numbers from start up to but not including end to range.
+    int setRange(int, int);
+
+    std::string rangeArg_; ///< Expression that describes the range
+    RangeType rangeList_;  ///< Array containing numbers in the range
 };
 #endif
