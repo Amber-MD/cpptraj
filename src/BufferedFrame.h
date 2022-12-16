@@ -3,7 +3,18 @@
 #include "CpptrajFile.h"
 #include "TextFormat.h"
 /// Used to buffer text files that will be read/written in formatted 'frames'.
-/** NOTE: The preprocessor define CPPTRAJ_DEBUG_BUFFEREDFRAME can be used
+/** Assumes the file is laid out as follows:
+  * [<file header bytes>]
+  * [<frame0 header bytes>]
+  * <frame0>
+  * [<frame1 header bytes>]
+  * <frame1>
+  * ...
+  * Where <file header bytes> are optional non-frame bytes at the beginning
+  * of the file, <frameX header bytes> are optional frame bytes at the
+  * beginning of each frame, and <frameX> is the acual formatted frame
+  * data.
+  * NOTE: The preprocessor define CPPTRAJ_DEBUG_BUFFEREDFRAME can be used
   *       to provide more details on buffer write errors or overflows.
   */
 class BufferedFrame : public CpptrajFile {
@@ -65,7 +76,7 @@ class BufferedFrame : public CpptrajFile {
     char* buffer_;         ///< Character buffer.
     char* bufferPosition_; ///< Position in buffer.
     size_t frameSize_;     ///< Total size of frame to read.
-    size_t offset_;        ///< User specified offset, used in seeking.
+    size_t offset_;        ///< Non-frame bytes at the beginning of the file. Used in seeking.
     size_t memSize_;       ///< Total size of the buffer in memory.
     size_t maxSize_;       ///< Max size of the buffer in memory.
     int Ncols_;            ///< Number of columns, use to convert array to buffer.
