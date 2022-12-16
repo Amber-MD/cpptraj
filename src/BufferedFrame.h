@@ -74,17 +74,17 @@ class BufferedFrame : public CpptrajFile {
     inline void AdvanceCol();
 
     char* buffer_;         ///< Character buffer.
-    char* bufferPosition_; ///< Position in buffer.
-    size_t frameSize_;     ///< Total size of frame to read.
+    char* bufferPosition_; ///< Current position in buffer_.
+    size_t frameSize_;     ///< Total size of frame to read/write.
     size_t offset_;        ///< Non-frame bytes at the beginning of the file. Used in seeking.
-    size_t memSize_;       ///< Total size of the buffer in memory.
-    size_t maxSize_;       ///< Max size of the buffer in memory.
-    int Ncols_;            ///< Number of columns, use to convert array to buffer.
-    int col_;              ///< Current column (writes)
-    size_t eltWidth_;      ///< Width of each element in the frame.
+    size_t memSize_;       ///< Current size of the buffer.
+    size_t maxSize_;       ///< Actual size of the buffer in memory.
+    int Ncols_;            ///< Number of columns in each frame.
+    int col_;              ///< Current column (during writes).
+    size_t eltWidth_;      ///< Width in chars of each text element in a frame.
     char saveChar_;        ///< For NextElement(); saved character at bufferPosition_.
-    TextFormat writeFmt_;  ///< Format to use for Int|Dbl|CharToBuffer
-    int errorCount_;       ///< Count errors since last write
-    int overflowCount_;    ///< Count overflows since last write
+    TextFormat writeFmt_;  ///< Write format to use for {Int|Dbl|Char}ToBuffer.
+    int errorCount_;       ///< Number of errors since last write.
+    int overflowCount_;    ///< Number of character overflows since last write.
 };
 #endif
