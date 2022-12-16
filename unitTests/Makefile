@@ -16,12 +16,16 @@ unit.GistEntropyUtils:
 unit.StringRoutines:
 	@-cd StringRoutines && ./UnitTest.sh $(OPT)
 
+unit.Range:
+	@-cd Range && ./UnitTest.sh $(OPT)
+
 # ----- Every unit test should go here -----------
 COMPLETETESTS= \
   unit.NameType \
   unit.ArgList \
   unit.GistEntropyUtils \
-  unit.StringRoutines
+  unit.StringRoutines \
+  unit.Range
 
 test.cpptraj: $(COMPLETETESTS)
 
