@@ -150,14 +150,6 @@ bool BufferedFrame::ReadFrame() {
   return false;
 }
 
-/** Convert text between start and end in buffer to a double. */ // TODO needed?
-void BufferedFrame::GetDoubleAtPosition(double& val, size_t start, size_t end) {
-  char savechar = buffer_[end];
-  buffer_[end] = '\0';
-  val = atof(buffer_ + start);
-  buffer_[end] = savechar;
-}
-
 /** Convert text in buffer containing numerical elements with format 
   * X0Y0Z0X1Y1Z1...XNYNZN to the given double array. The width of each 
   * element should be what SetupFrameBuffer was called with, and the 

@@ -43,8 +43,6 @@ class BufferedFrame : public CpptrajFile {
     int AttemptReadFrame();
     /// Read frameSize_ bytes into buffer.
     bool ReadFrame();
-    /// Get a double from buffer between specified positions
-    void GetDoubleAtPosition(double&,size_t,size_t);
     /// Convert contents of buffer to an array of double precision numbers
     void BufferToDouble(double*,int);
     /// \return Pointer to next element in buffer (null-terminated).

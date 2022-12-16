@@ -109,8 +109,11 @@ int Traj_AmberCoord::readFrame(int set, Frame& frameIn) {
   if (file_.ReadFrame()) return 1;
 
   // Get REMD Temperature if present
-  if (headerSize_ != 0) 
-    file_.GetDoubleAtPosition(*(frameIn.tAddress()), tStart_, tEnd_); 
+  if (headerSize_ != 0) {
+    if (sscanf(file_.Buffer() + tStart_, "%lf", frameIn.tAddress()) != 1) {
+      mprinterr("Error: Could not read temperature from '%s' for frame %i\n",file_.Filename().base(),set+1);
+    }
+  }
   // Get Coordinates; offset is hasREMD (size in bytes of REMD header)
   file_.BufferBeginAt(headerSize_);
   file_.BufferToDouble(frameIn.xAddress(), natom3_);
