@@ -1,21 +1,26 @@
-#include <cstdio>  // sprintf
+#include <cstdio>  // snprintf
 #include <cstdlib> // atof
 #include "BufferedFrame.h"
 #include "CpptrajStdio.h"
 
+/** CONSTRUCTOR */
 BufferedFrame::BufferedFrame() :
   buffer_(0),
   bufferPosition_(0),
   frameSize_(0),
+  headerSize_(0),
   offset_(0),
   memSize_(0),
   maxSize_(0),
   Ncols_(0),
   col_(0),
   eltWidth_(0),
-  saveChar_(0)
+  saveChar_(0),
+  errorCount_(0),
+  overflowCount_(0)
 {}
 
+/** DESTRUCTOR */
 BufferedFrame::~BufferedFrame() {
   if (buffer_!=0) delete[] buffer_;
 }
@@ -26,6 +31,7 @@ size_t BufferedFrame::SetupFrameBuffer(int Nelts, int eltWidthIn, int eltsPerLin
   return SetupFrameBuffer(Nelts, eltWidthIn, eltsPerLine, 0, 0);
 }
 
+// BufferedFrame::SetupFrameBuffer()
 size_t BufferedFrame::SetupFrameBuffer(int Nelts, TextFormat const& fmtIn, int eltsPerLine)
 {
   writeFmt_ = fmtIn;
@@ -38,12 +44,12 @@ size_t BufferedFrame::SetupFrameBuffer(int Nelts, TextFormat const& fmtIn, int e
   * \param Nelts Total expected number of elements to read.
   * \param eltWidth Width in chars of each element.
   * \param eltsPerLine Number of elements per line (columns).
-  * \param additionalBytes Any additional bytes in a frame.
-  * \param offsetIn Offset (not part of frame) to be used in seeking.
+  * \param headerSizeIn Any additional bytes at the beginning of frame.
+  * \param offsetIn Number of bytes at beginning of file to skip (not part of any frame).
   * \return Size of set-up frame.
   */
 size_t BufferedFrame::SetupFrameBuffer(int Nelts, int eltWidthIn, int eltsPerLine, 
-                                      size_t additionalBytes, int offsetIn) 
+                                      size_t headerSizeIn, int offsetIn)
 {
   //if (Access() != CpptrajFile::READ &&
   //    buffer_ != 0 && bufferPosition_ != 0 && buffer_ != bufferPosition_)
@@ -51,7 +57,8 @@ size_t BufferedFrame::SetupFrameBuffer(int Nelts, int eltWidthIn, int eltsPerLin
   Ncols_ = eltsPerLine;
   eltWidth_ = (size_t)eltWidthIn;
   offset_ = (size_t) offsetIn;
-  frameSize_ = CalcFrameSize( Nelts ) + additionalBytes;
+  headerSize_ = headerSizeIn;
+  frameSize_ = CalcFrameSize( Nelts );
   memSize_ = frameSize_ + 1; // +1 for null, TODO not necessary for read?
   //mprintf("DEBUG: Buffer required size %zu, max size %zu.\n", memSize_, maxSize_);
   if (memSize_ > maxSize_) {
@@ -67,7 +74,7 @@ size_t BufferedFrame::SetupFrameBuffer(int Nelts, int eltWidthIn, int eltsPerLin
   col_ = 0;
   saveChar_ = 0;
   //mprintf("DEBUG: %s %i cols, eltWidth= %zu, offset= %zu, frameSize= %zu additional= %zu\n",
-  //        Filename().base(), Ncols_, eltWidth_, offset_, frameSize_, additionalBytes);
+  //        Filename().base(), Ncols_, eltWidth_, offset_, frameSize_, headerSize_);
   return frameSize_;
 }
 
@@ -82,7 +89,7 @@ size_t BufferedFrame::CalcFrameSize( int Nelts ) const {
   // If Reading and DOS, CR present for each newline
   if (readingFile && IsDos()) frame_lines *= 2;
   // Calculate total frame size
-  size_t fsize = (((size_t)Nelts * eltWidth_) + frame_lines);
+  size_t fsize = (((size_t)Nelts * eltWidth_) + frame_lines) + headerSize_;
   return fsize;
 }
 
@@ -105,10 +112,19 @@ size_t BufferedFrame::ResizeBuffer(int delta) {
   return frameSize_;
 }
 
+// -----------------------------------------------------------------------------
+/** Seek to specified frame in file. */
 int BufferedFrame::SeekToFrame(size_t set) {
   return Seek( (off_t)((set * frameSize_) + offset_) );
 }
 
+/** Set buffer pointer to beginning of buffer, past any header bytes. */
+void BufferedFrame::BufferBegin() {
+  bufferPosition_ = buffer_ + headerSize_;
+  col_ = 0;
+}
+
+// -----------------------------------------------------------------------------
 /** Attempt to read in the next frameSize_ bytes.
   * \return the actual number of bytes read.
   */
@@ -129,30 +145,6 @@ bool BufferedFrame::ReadFrame() {
     return true;
   }
   return false;
-}
-
-int BufferedFrame::WriteFrame() {
-  return Write( buffer_, (size_t)(bufferPosition_ - buffer_) );
-}
-
-void BufferedFrame::GetDoubleAtPosition(double& val, size_t start, size_t end) {
-  char savechar = buffer_[end];
-  buffer_[end] = '\0';
-  val = atof(buffer_ + start);
-  buffer_[end] = savechar;
-}
-
-void BufferedFrame::BufferBegin() {
-  bufferPosition_ = buffer_;
-  col_ = 0;
-}
-
-void BufferedFrame::BufferBeginAt(size_t pos) {
-  bufferPosition_ = buffer_ + pos;
-}
-
-void BufferedFrame::AdvanceBuffer(size_t offset) {
-  bufferPosition_ += offset;
 }
 
 /** Convert text in buffer containing numerical elements with format 
@@ -184,66 +176,6 @@ void BufferedFrame::BufferToDouble(double* Xout, int Nout) {
   }
 }
 
-/** Convert given double array to ordered text in buffer. The number of
-  * elements in the given array should be what SetupFrameBuffer was
-  * called with. Update bufferPosition after write. 
-  */
-void BufferedFrame::DoubleToBuffer(const double* Xin, int Nin, const char* format)
-{
-  int col = 0;
-  for (int element = 0; element < Nin; ++element) {
-    sprintf(bufferPosition_, format, Xin[element]);
-    bufferPosition_ += eltWidth_;
-    ++col;
-    if ( col == Ncols_ ) {
-      sprintf(bufferPosition_,"\n");
-      ++bufferPosition_;
-      col = 0;
-    }
-  }
-  // If the coord record didnt end on a newline, print one
-  if ( col != 0 ) {
-    sprintf(bufferPosition_,"\n");
-    ++bufferPosition_;
-  }
-}
-
-void BufferedFrame::AdvanceCol() {
-  bufferPosition_ += eltWidth_;
-  ++col_;
-  if ( col_ == Ncols_ ) {
-    sprintf(bufferPosition_,"\n");
-    ++bufferPosition_;
-    col_ = 0;
-  }
-}
-
-void BufferedFrame::IntToBuffer(int ival) {
-  sprintf(bufferPosition_, writeFmt_.fmt(), ival);
-  AdvanceCol();
-}
-
-void BufferedFrame::DblToBuffer(double dval) {
-  sprintf(bufferPosition_, writeFmt_.fmt(), dval);
-  AdvanceCol();
-}
-
-void BufferedFrame::CharToBuffer(const char* cval) {
-  sprintf(bufferPosition_, writeFmt_.fmt(), cval);
-  AdvanceCol();
-}
-
-void BufferedFrame::FlushBuffer() {
-  // If the coord record didnt end on a newline, print one
-  if ( col_ != 0 ) {
-    sprintf(bufferPosition_,"\n");
-    ++bufferPosition_;
-  }
-  WriteFrame();
-  col_ = 0;
-  bufferPosition_ = buffer_;
-}
-
 /** \return Pointer to next null-terminated element in buffer.
   */
 const char* BufferedFrame::NextElement() {
@@ -262,4 +194,142 @@ const char* BufferedFrame::NextElement() {
     *end = '\0';
   }
   return position; 
+}
+
+// -----------------------------------------------------------------------------
+/** Write the current buffer to file. */
+int BufferedFrame::WriteFrame() {
+  // Report any errors or warnings.
+  if (errorCount_ > 0)
+    mprinterr("Error: %i errors encountered writing elements to file '%s'\n", errorCount_, Filename().base());
+  if (overflowCount_ > 0)
+    mprintf("Warning: Character overflow detected writing %i elements to file '%s'\n", overflowCount_, Filename().base());
+  errorCount_ = 0;
+  overflowCount_ = 0;
+  return Write( buffer_, (size_t)(bufferPosition_ - buffer_) );
+}
+
+/** Convert given double array to ordered text in buffer. The number of
+  * elements in the given array should be what SetupFrameBuffer was
+  * called with. Update bufferPosition after write. 
+  */
+void BufferedFrame::DoubleToBuffer(const double* Xin, int Nin, const char* format)
+{
+  int col = 0;
+  for (int element = 0; element < Nin; ++element) {
+    int n_chars = snprintf(bufferPosition_, eltWidth_+1, format, Xin[element]);
+    // NOTE: Technically there is an overflow if n_chars is greater than the
+    //       element width. However, it is not uncommon for there to be some
+    //       basic rounding with floating point formats (particularly in the
+    //       mantissa), e.g. '-1013.0374146' (13 chars) becomes
+    //       -1013.037415 (12 chars), but snprintf will still return 13.
+    //       Therefore, allow for single-digit overflow by checking for
+    //       n_chars > eltWidth_+1 instead of n_chars > eltWidth_.
+    if (n_chars < 0) {
+      errorCount_++;
+#     ifdef CPPTRAJ_DEBUG_BUFFEREDFRAME
+      mprinterr("Error: Writing element '%i' to '%s'\n", element+1, Filename().base());
+#     endif
+    } else if ((unsigned int)n_chars > eltWidth_+1) {
+      overflowCount_++;
+#     ifdef CPPTRAJ_DEBUG_BUFFEREDFRAME
+      mprintf("Warning: Number overflow in '%s', element %i = %f (only writing %zu of %i chars).\n",
+              Filename().base(), element+1, Xin[element], eltWidth_, n_chars);
+      // DEBUG
+      char tmpbuf[128];
+      sprintf(tmpbuf, format, Xin[element]);
+      mprintf("DEBUG: Full element= '%s'\n", tmpbuf);
+#     endif
+    }
+    bufferPosition_ += eltWidth_;
+    ++col;
+    if ( col == Ncols_ ) {
+      *bufferPosition_ = '\n';
+      ++bufferPosition_;
+      col = 0;
+    }
+  }
+  // If the coord record didnt end on a newline, print one
+  if ( col != 0 ) {
+    *bufferPosition_ = '\n';
+    ++bufferPosition_;
+  }
+}
+
+/** Advance to the next column of the buffer. Write a newline if 
+  * at the end of a line. */
+void BufferedFrame::AdvanceCol() {
+  bufferPosition_ += eltWidth_;
+  ++col_;
+  if ( col_ == Ncols_ ) {
+    *bufferPosition_ = '\n';
+    ++bufferPosition_;
+    col_ = 0;
+  }
+}
+
+/** Write given integer to the buffer and advance to next column. */
+void BufferedFrame::IntToBuffer(int ival) {
+  int n_chars = snprintf(bufferPosition_, eltWidth_+1, writeFmt_.fmt(), ival);
+  if (n_chars < 0) {
+    errorCount_++;
+#   ifdef CPPTRAJ_DEBUG_BUFFEREDFRAME
+    mprinterr("Error: Writing integer %i to '%s'\n", ival, Filename().base());
+#   endif
+  } else if ((unsigned int)n_chars > eltWidth_) {
+    overflowCount_++;
+#   ifdef CPPTRAJ_DEBUG_BUFFEREDFRAME
+    mprintf("Warning: Number overflow in '%s' integer %i (only writing %zu of %i chars).\n",
+            Filename().base(), ival, eltWidth_, n_chars);
+#   endif
+  }
+  AdvanceCol();
+}
+
+/** Write the given double to the buffer and advance to next column. */
+void BufferedFrame::DblToBuffer(double dval) {
+  int n_chars = snprintf(bufferPosition_, eltWidth_+1, writeFmt_.fmt(), dval);
+  if (n_chars < 0) {
+    errorCount_++;
+#   ifdef CPPTRAJ_DEBUG_BUFFEREDFRAME
+    mprinterr("Error: Writing double %f to '%s'\n", dval, Filename().base());
+#   endif
+  } else if ((unsigned int)n_chars > eltWidth_) {
+    overflowCount_++;
+#   ifdef CPPTRAJ_DEBUG_BUFFEREDFRAME
+    mprintf("Warning: Number overflow in '%s' double %g (only writing %zu of %i chars).\n",
+            Filename().base(), dval, eltWidth_, n_chars);
+#   endif
+  }
+  AdvanceCol();
+}
+
+/** Write the given character string to the buffer and advance to next column. */
+void BufferedFrame::CharToBuffer(const char* cval) {
+  int n_chars = snprintf(bufferPosition_, eltWidth_+1, writeFmt_.fmt(), cval);
+  if (n_chars < 0) {
+    errorCount_++;
+#   ifdef CPPTRAJ_DEBUG_BUFFEREDFRAME
+    mprinterr("Error: Writing string %s to '%s'\n", cval, Filename().base());
+#   endif
+  } else if ((unsigned int)n_chars > eltWidth_) {
+    overflowCount_++;
+#   ifdef CPPTRAJ_DEBUG_BUFFEREDFRAME
+    mprintf("Warning: Overflow in '%s' string %s (only writing %zu of %i chars).\n",
+            Filename().base(), cval, eltWidth_, n_chars);
+#   endif
+  }
+  AdvanceCol();
+}
+
+/** Write the buffer to the file. */
+void BufferedFrame::FlushBuffer() {
+  // If the coord record didnt end on a newline, print one
+  if ( col_ != 0 ) {
+    *bufferPosition_ = '\n';
+    ++bufferPosition_;
+  }
+  WriteFrame();
+  col_ = 0;
+  bufferPosition_ = buffer_;
 }

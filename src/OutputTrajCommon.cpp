@@ -61,8 +61,7 @@ int OutputTrajCommon::CommonTrajoutSetup(FileName const& tnameIn, ArgList& argIn
       mprintf("Warning: trajout %s: onlyframes: %s is not a valid range.\n",
               trajName_.full(), onlyframes.c_str());
     else {
-      FrameRange_.PrintRange("\tSaving frames",0);
-      mprintf("\n");
+      mprintf("\tSaving frames %s\n", FrameRange_.PrintRange(0).c_str());
     }
     // User frame args start from 1. Start from 0 internally.
     FrameRange_.ShiftBy(-1);
@@ -136,7 +135,7 @@ void OutputTrajCommon::CommonInfo() const {
   if (noFrc_) mprintf(" no forces,");
   if (noReps_) mprintf(" no replica dimensions,");
   if (hasRange_)
-    FrameRange_.PrintRange(": Writing frames", 1);
+    mprintf(": Writing frames %s", FrameRange_.PrintRange(1).c_str());
   else if (!frameCount_.DefaultSettings())
     frameCount_.FrameCounterBrief();
   else if (NframesToWrite_ > 0) {

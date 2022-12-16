@@ -3,19 +3,21 @@
 #include "Range.h"
 #include "ArgList.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // ArrayToRangeExpression
 
-// CONSTRUCTOR
+/** CONSTRUCTOR */
 Range::Range() { }
 
-/// CONSTRUCTOR - Takes argument string as input
+/** CONSTRUCTOR - Takes argument string as input. */
 Range::Range( std::string const& argIn ) {
   if (!argIn.empty())
     SetRange( argIn );
 }
 
-/// CONSTRUCTOR - Single number
+/** CONSTRUCTOR - Single number. */
 Range::Range(int start) { SetRange(start, start+1); }
 
+/** CONSTRUCTOR - Range expression and offset. */
 Range::Range( std::string const& argIn, int offsetIn) {
   if (!argIn.empty()) {
     SetRange( argIn );
@@ -23,13 +25,13 @@ Range::Range( std::string const& argIn, int offsetIn) {
   }
 }
 
-// COPY CONSTRUCTOR
+/** COPY CONSTRUCTOR */
 Range::Range(const Range &rhs) :
   rangeArg_(rhs.rangeArg_),
   rangeList_(rhs.rangeList_)
 {}
 
-// ASSIGNMENT OPERATOR
+/** ASSIGNMENT OPERATOR */
 Range &Range::operator=(const Range &rhs) {
   // Check for self assignment
   if ( this == &rhs ) return *this;
@@ -82,47 +84,32 @@ int Range::SetRange(std::string const& ArgIn) {
     upper = R[1];
     if (upper==-1) upper=R[0];
     ++upper; // Want up to and including the upper argument
-    if ( this->SetRange(R[0], upper) )
+    if ( this->setRange(R[0], upper) )
       mprintf("Warning: Converting %s to range [%i-%i] is not valid.\n",
               ArgIn.c_str(), R[0], R[1]);
   }
 
-  // Dont return an empty list
-  if ( err>0 || rangeList_.empty() ) 
+  // Do not return an empty list
+  if ( err > 0 || rangeList_.empty() ) 
     return 1;
   
   // Sort frames using default comparison
-  rangeList_.sort();
+  std::sort(rangeList_.begin(), rangeList_.end());
   //for (it=rangeList_.begin(); it!=rangeList_.end(); it++)
   //  fprintf(stdout,"RangeList= %i\n",*it); 
   // Remove duplicates
-  err=-1;
-  //fprintf(stdout,"Size of RangeList is %lu\n",rangeList_.size());
-  std::list<int>::iterator it = rangeList_.begin();
-  while (!rangeList_.empty()) {
-    //fprintf(stdout,"     List= %i  Last= %i",*it,err);
-    upper=*it;
-    if (*it == err) {
-      //fprintf(stdout,"REMOVING."); 
-      // Erasing effectively increments the iterator
-      it = rangeList_.erase(it);
-    } else {
-      ++it;
-    }
-    err=upper;
-    //fprintf(stdout,"\n");
-    // If we are past the last element exit now
-    if (it == rangeList_.end()) break;
-  }
+  RangeType::const_iterator it = std::unique( rangeList_.begin(), rangeList_.end() );
+  rangeList_.resize( it - rangeList_.begin() );
 
   return 0;
 }
 
-// Range::SetRange()
-/** Given a start and end number, set up a range from start to (not 
-  * including) end.  
+// Range::setRange()
+/** Given a start and end number, add numbers to range from start to (but
+  * not including) end.  
   */
-int Range::SetRange(int start, int end) {
+int Range::setRange(int start, int end) {
+  //mprintf("DEBUG: setRange called with start=%i end=%i\n", start, end);
   //Check that end is greater than start so that the range list is
   if (end <= start) {
     mprintf("Error: Range::SetRange: end (%i) <= start (%i)\n",end,start);
@@ -134,36 +121,73 @@ int Range::SetRange(int start, int end) {
   return 0;
 }
 
+/** Given a start and end number, set up range from start up to but
+  * not including end.
+  */
+int Range::SetRange(int start, int end) {
+  rangeList_.clear();
+  //mprintf("DEBUG: SetRange called with start=%i end=%i\n", start, end);
+  if (setRange(start, end)) return 1;
+  // Set range expression
+  rangeArg_ = ArrayToRangeExpression( rangeList_, 0 );
+  return 0;
+}
+
+/** Add number to range. Ensure it is sorted. */
+void Range::AddToRange(int num) {
+  //mprintf("DEBUG: AddToRange(%i)\n", num);
+  //PrintToStdout();
+  // Find where num should be
+  unsigned int idx = 0;
+  while (idx < rangeList_.size()) {
+    // Check if num is already present
+    if (num == rangeList_[idx]) return;
+    if (num < rangeList_[idx]) break;
+    idx++;
+  }
+  //mprintf("DEBUG: %i belongs at index %u\n", num, idx);
+  // If it belongs at the end, add it and leave
+  if (idx == rangeList_.size()) {
+    rangeList_.push_back( num );
+    return;
+  }
+  // Add placeholder to end of the range array
+  unsigned int jdx = rangeList_.size();
+  rangeList_.push_back(0);
+  // Move everything up one
+  for (unsigned int i = jdx; i > idx; i--)
+    rangeList_[i] = rangeList_[i-1];
+  // Put num at idx
+  rangeList_[idx] = num;
+}
+
 // Range::ShiftBy()
 /** Shift all numbers in range by specified value. */
 void Range::ShiftBy(int val) {
-  for (std::list<int>::iterator rangeNum = rangeList_.begin(); 
-                                rangeNum != rangeList_.end(); ++rangeNum)
+  for (RangeType::iterator rangeNum = rangeList_.begin(); 
+                            rangeNum != rangeList_.end(); ++rangeNum)
     *rangeNum += val;
 }
 
-// Range::RemoveFromRange()
-/** Remove all instances of num from the range. */
-void Range::RemoveFromRange(int num) {
-  std::list<int>::iterator it=rangeList_.begin();
-  while (it!=rangeList_.end()) {
-    if (*it == num) 
-      it = rangeList_.erase(it);
-    else
-      it++;
-  }
-}
-
 // Range::PrintRange()
-/** Print all numbers in the range to a line. Increment by offset. */
-void Range::PrintRange(const char* header, int offset) const {
-  if (header!=0)
-    mprintf("%s",header);
+/** \return string containing actual range, optionally incremented by an offset.*/
+std::string Range::PrintRange(int offset) const {
+  return ArrayToRangeExpression( rangeList_, offset );
+/*
   for (std::list<int>::const_iterator it=rangeList_.begin(); it!=rangeList_.end(); it++)
     mprintf(" %i",(*it)+offset);
   //mprintf("\n");
+*/
 }
 
+/** For debugging, print entire range to stdout. */
+void Range::PrintToStdout() const {
+  for (RangeType::const_iterator it=rangeList_.begin(); it!=rangeList_.end(); it++)
+    mprintf(" %i", *it);
+  mprintf("\n");
+}
+
+/** \return True if number idx is in the range. */
 bool Range::InRange(int idx) const {
   return ( std::find( rangeList_.begin(), rangeList_.end(), idx ) != rangeList_.end() );
 }

@@ -1,6 +1,7 @@
 #ifndef INC_CLUSTER_LIST_H
 #define INC_CLUSTER_LIST_H
 #include "Cframes.h"
+#include <list>
 class DataSet_integer;
 namespace Cpptraj {
 namespace Cluster {

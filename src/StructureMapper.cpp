@@ -1,4 +1,5 @@
 #include <algorithm> // std::min, std::max
+#include <list>
 #include "StructureMapper.h"
 #include "CpptrajStdio.h"
 #include "TorsionRoutines.h"

@@ -15,6 +15,8 @@ class Box {
                          CUBIC,        TETRAGONAL, ORTHORHOMBIC,
                          MONOCLINIC,   TRICLINIC,  HEXAGONAL,
                          RHOMBOHEDRAL, OCTAHEDRAL, RHOMBIC_DODECAHEDRON };
+    /// Box check type
+    enum CheckType { BOX_OK=0, BOX_NOT_PRESENT, BOX_IS_SKEWED };
     /// CONSTRUCTOR
     Box();
     /// COPY CONSTRUCTOR
@@ -76,6 +78,8 @@ class Box {
     /// \return True if box info present
     bool HasBox()             const { return (box_[0] > 0); }
     //bool HasBox()             const { return (btype_ != NOBOX); }
+    /// \return 1 if box has issues, 0 otherwise.
+    CheckType CheckBox() const;
     /// \return Vector containing box center.
     Vec3 Center()             const { return Vec3(box_[0]/2.0, box_[1]/2.0, box_[2]/2.0); }
     /// \return Vector containing box center.
@@ -130,8 +134,6 @@ class Box {
     static inline bool IsEq(double,double);
 
     void printBoxStatus(const char*) const;
-    /// \return 1 if box has issues, 0 otherwise.
-    int CheckBox() const;
 
     /// Calculate fractional matrix from unit cell matrix.
     static inline double CalcFracFromUcell(Matrix_3x3&, Matrix_3x3 const&);
