@@ -118,8 +118,14 @@ int BufferedFrame::SeekToFrame(size_t set) {
   return Seek( (off_t)((set * frameSize_) + offset_) );
 }
 
-/** Set buffer pointer to beginning of buffer, past any header bytes. */
+/** Set buffer pointer to beginning of buffer. */
 void BufferedFrame::BufferBegin() {
+  bufferPosition_ = buffer_;
+  col_ = 0;
+}
+
+/** Set buffer pointer to beginning of buffer, past any header bytes. */
+void BufferedFrame::BufferBeginAfterHeader() {
   bufferPosition_ = buffer_ + headerSize_;
   col_ = 0;
 }

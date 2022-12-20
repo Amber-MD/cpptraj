@@ -35,8 +35,10 @@ class BufferedFrame : public CpptrajFile {
 
     /// Seek to a specific frame in the file
     int SeekToFrame(size_t);
-    /// Set buffer position to beginning of buffer (past any header bytes).
+    /// Set buffer position to beginning of buffer.
     void BufferBegin();
+    /// Set buffer position to beginning of buffer, past any header bytes.
+    void BufferBeginAfterHeader();
 
     /// Attempt to read frameSize_ bytes.
     int AttemptReadFrame();
