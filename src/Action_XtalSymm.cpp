@@ -707,7 +707,7 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
       }
     }
     if (fnidXfrm == -1) {
-
+      mprintf("DEBUG: P1 crystal.\n");
       // This was a P1 crystal.  Any origin will work for applying the symmetry operations.
       for (i = 0; i < nops_; i++) {
         for (j = 0; j < nLead; j++) {
@@ -720,6 +720,7 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
       }
     }
     else {
+      mprintf("DEBUG: Non-P1 crystal.\n");
       
       // This is not a P1 crystal, and there are many possible combinations of the discovered
       // leads that could paint the correct picture of how to reassemble the unit (super)
