@@ -403,6 +403,7 @@ Action::RetType Action_XtalSymm::Setup(ActionSetup& setup)
   if (setup.Top().SetupIntegerMask(Masks_[0])) {
     return Action::ERR;
   }
+  Masks_[0].MaskInfo();
 
   // Set up the mask for the entire topology, for making the RefFrame_ clone of it later
   std::string str;
@@ -478,6 +479,9 @@ Action::RetType Action_XtalSymm::Setup(ActionSetup& setup)
       }
     }
   }
+  mprintf("\tAsymmetric masks:\n");
+  for (int ii = 1; ii < nops_; ii++)
+    mprintf("\t  Subunit %i : %i atoms.\n", ii, Masks_[ii].Nselected());
 
   // Determine which rotations are identity matrices
   rotIdentity_.clear();
