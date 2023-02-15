@@ -156,7 +156,13 @@ UNITNAME='Test for filename wildcards and oversets'
 CheckFor notos windows
 if [ $? -eq 0 ] ; then
   cat > for.in <<EOF
-for FILE in distance.dat.save,last10.dat.save,doesnot*,TRP.*.dat.save
+# NOTE: Previously this test chcked for a file wildcard that
+#       does not exist, 'doesnot*', which would be silently
+#       ignored. This is now an error. The original behavior
+#       can be recovered by specifying the 'noexitonerror' flag.
+#noexitonerror
+#for FILE in distance.dat.save,last10.dat.save,doesnot*,TRP.*.dat.save
+for FILE in distance.dat.save,last10.dat.save,TRP.*.dat.save
   readdata \$FILE
 done
 
