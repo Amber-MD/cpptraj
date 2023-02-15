@@ -54,6 +54,7 @@ int ForLoop_list::BeginFor(DataSetList const& CurrentVars) {
       // Allow wildcard expansion to fail with a warning.
       if (!files.empty() && files.front().Full().compare( listEntry ) == 0) {
         mprintf("Warning: '%s' selects no files.\n", it->c_str());
+        List_.push_back( listEntry );
       } else {
         for (File::NameArray::const_iterator fn = files.begin(); fn != files.end(); ++fn)
           List_.push_back( fn->Full() );
