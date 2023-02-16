@@ -157,8 +157,11 @@ int Cpptraj::Cluster::MetricArray::setupPairwiseCache(ArgList& analyzeArgs,
     } else if (File::Exists( pairdist_fname )) {
       mprintf("\tLoading pairwise distances from file '%s'\n", pairdist_fname.c_str());
       DataFile dfIn;
-      // TODO set data set name with ArgList?
-      if (dfIn.ReadDataIn( pairdist_fname, ArgList(), DSL )) return 1;
+      // Set data set name in pairwise file load ArgList
+      ArgList dfargs;
+      if (!pairdist_setname.empty())
+        dfargs.SetList("name " + pairdist_setname, " ");
+      if (dfIn.ReadDataIn( pairdist_fname, dfargs, DSL )) return 1;
       DataSet* ds = DSL.GetDataSet( pairdist_fname );
       if (ds == 0) return 1;
       if (ds->Group() != DataSet::PWCACHE) {
@@ -177,7 +180,7 @@ int Cpptraj::Cluster::MetricArray::setupPairwiseCache(ArgList& analyzeArgs,
     if (cache_ == 0) {
       // Just 'pairdist' specified or loadpairdist specified and set/file not found.
       // Warn the user.
-      mprintf("Warning: Pairwise distance matrix specified but cache '%s'/file '%s' not found.\n", pairdist_setname.c_str(), pairdist_fname.c_str());
+      mprintf("Warning: Pairwise distance matrix specified but cache '%s' and file '%s' not found.\n", pairdist_setname.c_str(), pairdist_fname.c_str());
       if (!save_pair) {
         // If the file (or dataset) does not yet exist we will assume we want to save.
         mprintf("Warning: Pairwise distance matrix specified but not found; will save distances.\n");
