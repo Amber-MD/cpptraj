@@ -878,6 +878,7 @@ std::string DataSetList::GetVariable(std::string const& varnameIn) const {
 int DataSetList::ReplaceVariables(std::string& varname, std::string const& varnameIn)
 const
 {
+  //mprintf("DEBUG: ReplaceVariables in '%s'\n", varnameIn.c_str());
   int nReplaced = 0;
   varname = varnameIn;
   size_t pos = varname.find("$");
