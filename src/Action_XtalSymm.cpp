@@ -206,7 +206,8 @@ const
   Vec3 corig = orig.VCenterOfMass(0, orig.Natom());
   Vec3 cothr = othr.VCenterOfMass(0, othr.Natom());
   Vec3 cdiff = cothr - corig;
-  Matrix_3x3 const& U = RefFrame_.BoxCrd().UnitCell();
+  Matrix_3x3 U = RefFrame_.BoxCrd().UnitCell();
+  U.Transpose();
   Matrix_3x3 const& invU = RefFrame_.BoxCrd().FracCell();
   cdiff = invU * cdiff;
   const double nearTwo = 1.999999999;  
@@ -403,6 +404,7 @@ Action::RetType Action_XtalSymm::Setup(ActionSetup& setup)
   if (setup.Top().SetupIntegerMask(Masks_[0])) {
     return Action::ERR;
   }
+  Masks_[0].MaskInfo();
 
   // Set up the mask for the entire topology, for making the RefFrame_ clone of it later
   std::string str;
@@ -478,6 +480,9 @@ Action::RetType Action_XtalSymm::Setup(ActionSetup& setup)
       }
     }
   }
+  mprintf("\tAsymmetric masks:\n");
+  for (int ii = 1; ii < nops_; ii++)
+    mprintf("\t  Subunit %i : %i atoms.\n", ii, Masks_[ii].Nselected());
 
   // Determine which rotations are identity matrices
   rotIdentity_.clear();
@@ -682,7 +687,8 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
     // Ensure this is only done once FIXME ok?
     refType_ = NONE;
 
-    Matrix_3x3 const& U = RefFrame_.BoxCrd().UnitCell();
+    Matrix_3x3 U = RefFrame_.BoxCrd().UnitCell();
+    U.Transpose();
     Matrix_3x3 const& invU = RefFrame_.BoxCrd().FracCell(); 
     XtalDock* leads = new XtalDock[nops_ * nops_ * 125]; // TODO vector?
     int nLead = 0;
@@ -703,7 +709,7 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
       }
     }
     if (fnidXfrm == -1) {
-
+      //mprintf("DEBUG: P1 crystal.\n");
       // This was a P1 crystal.  Any origin will work for applying the symmetry operations.
       for (i = 0; i < nops_; i++) {
         for (j = 0; j < nLead; j++) {
@@ -716,6 +722,7 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
       }
     }
     else {
+      //mprintf("DEBUG: Non-P1 crystal.\n");
       
       // This is not a P1 crystal, and there are many possible combinations of the discovered
       // leads that could paint the correct picture of how to reassemble the unit (super)
@@ -819,7 +826,8 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
   
   // Loop over all subunits, set them according to the correct displacements from
   // the original subunits (imaging considerations), and apply the transformations.
-  Matrix_3x3 const& U = frm.Frm().BoxCrd().UnitCell();
+  Matrix_3x3 U = frm.Frm().BoxCrd().UnitCell();
+  U.Transpose();
   Matrix_3x3 const& invU = frm.Frm().BoxCrd().FracCell();
   orig = Frame(Masks_[0].Nselected());
 
