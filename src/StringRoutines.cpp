@@ -36,6 +36,8 @@ std::string AppendNumber(std::string const &fname, int number) {
   *   '?': A single character.
   */
 int WildcardMatch(std::string const& S1, std::string const& S2) {
+  //mprintf("DEBUG: wildcard string : '%s'\n", S1.c_str());
+  //mprintf("DEBUG: string to match : '%s'\n", S2.c_str());
   std::string::const_iterator c1 = S1.begin();
   std::string::const_iterator c2 = S2.begin();
   while ( c1 != S1.end() || c2 != S2.end() ) {
@@ -43,15 +45,20 @@ int WildcardMatch(std::string const& S1, std::string const& S2) {
     if (*c1 == '*') {
       ++c1;
       if (c1 == S1.end()) return 1;
-      bool match = false;
-      while (c2 != S2.end()) {
-        if (*c2 == *c1) {
-          match = true;
-          break;
-        }
-        ++c2;
+      // Search for the last instance of c1 in s2
+      int last_idx = -1;
+      for (unsigned int i2 = (unsigned int)(c2 - S2.begin());
+                        i2 != S2.size(); ++i2)
+      {
+        if (S2[i2] == *c1)
+          last_idx = (int)i2;
       }
-      if (!match) return 0;
+      if (last_idx == -1) {
+        // c1 was not found in S2. No match.
+        return 0;
+      }
+      // c1 was found in S2. Adjust c2.
+      c2 = S2.begin() + last_idx;
     } else if (c2 == S2.end()) {
       return 0;
     } else if (*c1 == '?') {
