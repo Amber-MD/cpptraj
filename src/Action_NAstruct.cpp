@@ -362,10 +362,9 @@ int Action_NAstruct::SetupBaseAxes(Frame const& InputFrame) {
       mprintf("Base %i: RMS of RefCoords from ExpCoords is %f\n",base->ResNum(), rmsd);
       base->Axis().PrintAxisInfo("BaseAxes");
     }
+
 #   ifdef NASTRUCTDEBUG
-    // DEBUG - Write base axis to file
-    WriteAxes(baseaxesfile, base->ResNum()+1, base->ResName(), base->Axis());
-     // Overlap ref coords onto input coords.
+    // Overlap ref coords onto input coords.
     Frame reftemp = base->Ref(); 
     reftemp.Trans_Rot_Trans(TransVec, RotMatrix, refTrans);
     // DEBUG - Write reference frame to file
@@ -376,6 +375,17 @@ int Action_NAstruct::SetupBaseAxes(Frame const& InputFrame) {
     }
 #   endif
   } // END loop over bases
+  // Check that base axes correspond to EMBO guidelines
+  for (std::vector<NA_Base>::iterator base = Bases_.begin(); 
+                                      base != Bases_.end(); ++base)
+  {
+    // Check the base axis strand direction
+    check_base_axis_strand_direction( *base );
+#   ifdef NASTRUCTDEBUG
+    // DEBUG - Write base axis to file
+    WriteAxes(baseaxesfile, base->ResNum()+1, base->ResName(), base->Axis());
+#   endif
+  }
   return 0;
 }
 
@@ -1085,8 +1095,6 @@ int Action_NAstruct::DeterminePairParameters(int frameNum) {
     NA_Base& base1 = Bases_[b1];
     NA_Base& base2 = Bases_[b2]; //TODO copy? 
 
-    check_base_axis_strand_direction( base1 );
-    check_base_axis_strand_direction( base2 );
 #   ifdef NASTRUCTDEBUG
     mprintf("BasePair %i:%s to %i:%s", b1+1, base1.ResName(), b2+1, base2.ResName());
     if (BP.isAnti_)
