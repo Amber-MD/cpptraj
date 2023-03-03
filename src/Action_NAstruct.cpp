@@ -733,7 +733,7 @@ int Action_NAstruct::calculateParameters(NA_Axis const& Axis1, NA_Axis const& Ax
 # ifdef NASTRUCTDEBUG
   // Print rotated R1 and R2
   RotatedR1.Print("Rotated R1");
-  RotatedR1.Print("Rotated R2");
+  RotatedR2.Print("Rotated R2");
   if (calcparam_) {
     tempAxis.StoreRotMatrix(RotatedR1, Axis1.Oxyz()); 
     WriteAxes(paramfile, 1, "R1'", tempAxis);
