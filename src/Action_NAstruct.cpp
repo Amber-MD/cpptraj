@@ -1049,6 +1049,7 @@ int Action_NAstruct::DeterminePairParameters(int frameNum) {
       mprintf(" Anti-parallel.\n");
     else
       mprintf(" Parallel.\n");
+    base2.Axis().Rot().Print("Original base2 axis");
 #   endif
     // Check Antiparallel / Parallel
     // Flip YZ (rotate around X) for antiparallel
