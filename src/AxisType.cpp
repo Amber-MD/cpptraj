@@ -684,3 +684,13 @@ void NA_Axis::FlipXY() {
   RX_.Neg();
   RY_.Neg();
 }
+
+/** Flip the Z axis. Done to ensure Z points in 5' to 3' strand
+  * direction.
+  */
+void NA_Axis::FlipZ() {
+  R_[2] = -R_[2]; // -Zx
+  R_[5] = -R_[5]; // -Zy
+  R_[8] = -R_[8]; // -Zz
+  RZ_.Neg();
+}

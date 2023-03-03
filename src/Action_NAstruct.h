@@ -141,6 +141,8 @@ class Action_NAstruct: public Action {
     int GetBaseIdxStep(int, int) const;
     /// Determine individual base parameters in single strands.
     int DetermineStrandParameters(int);
+    /// Check that base axis points in correct direction
+    int check_base_axis_strand_direction(NA_Base&) const;
     /// Determine individual base and base pair parameters.
     int DeterminePairParameters(int);
     /// Determine base pair steps and step parameters, including HC groove calc.

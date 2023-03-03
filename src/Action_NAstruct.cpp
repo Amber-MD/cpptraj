@@ -1022,6 +1022,47 @@ int Action_NAstruct::DetermineStrandParameters(int frameNum) {
   return 0;
 }
 
+/** Check that the base axis is pointing in the right direction
+  * according to EMBO 1988 guidelines.
+  * Z axis should point in the 5' to 3' direction.
+  */
+int Action_NAstruct::check_base_axis_strand_direction(NA_Base& base1) const {
+  // Ensure base Z vector points 5' to 3'
+  if (base1.HasC1atom()) {
+    int c3residx = base1.C3resIdx();
+    int c5residx = base1.C5resIdx();
+    if (c3residx > -1 || c5residx > -1) {
+      const double *c5res_c1xyz, *c3res_c1xyz;
+      if (c3residx == -1)
+        c3res_c1xyz = base1.C1xyz();
+      else
+        c3res_c1xyz = Bases_[c3residx].C1xyz();
+      if (c5residx == -1)
+        c5res_c1xyz = base1.C1xyz();
+      else
+        c5res_c1xyz = Bases_[c5residx].C1xyz();
+      mprintf("DEBUG: c5res_c1xyz = %f %f %f  c3res_c1xyz = %f %f %f\n",
+              c5res_c1xyz[0], c5res_c1xyz[1], c5res_c1xyz[2],
+              c3res_c1xyz[0], c3res_c1xyz[1], c3res_c1xyz[2]);
+      Vec3 strand_vec( c3res_c1xyz[0] - c5res_c1xyz[0],
+                       c3res_c1xyz[1] - c5res_c1xyz[1],
+                       c3res_c1xyz[2] - c5res_c1xyz[2] );
+      strand_vec.Normalize();
+      strand_vec.Print("strand vector");
+      base1.Axis().Rz().Print("Axis Z");
+      double s_angle = base1.Axis().Rz().Angle( strand_vec );
+      mprintf("DEBUG: Angle between strand and Axis Z = %f\n", s_angle * Constants::RADDEG);
+      if (s_angle > Constants::PIOVER2) {
+        mprintf("DEBUG: Z should be flipped.\n");
+        base1.Axis().FlipZ();
+        base1.Axis().Rz().Print("Flipped Axis Z");
+      } else
+        mprintf("DEBUG: Z is OK, points 5' to 3'.\n");
+    }
+  }
+  return 0;
+}
+
 // Action_NAstruct::DeterminePairParameters()
 /** For each base pair, get the values of buckle, propeller twist,
   * opening, shear, stretch, and stagger. Also determine the origin and 
@@ -1043,6 +1084,9 @@ int Action_NAstruct::DeterminePairParameters(int frameNum) {
     int b2 = BP.base2idx_;
     NA_Base& base1 = Bases_[b1];
     NA_Base& base2 = Bases_[b2]; //TODO copy? 
+
+    check_base_axis_strand_direction( base1 );
+    check_base_axis_strand_direction( base2 );
 #   ifdef NASTRUCTDEBUG
     mprintf("BasePair %i:%s to %i:%s", b1+1, base1.ResName(), b2+1, base2.ResName());
     if (BP.isAnti_)
@@ -1051,6 +1095,7 @@ int Action_NAstruct::DeterminePairParameters(int frameNum) {
       mprintf(" Parallel.\n");
     base2.Axis().Rot().Print("Original base2 axis");
 #   endif
+        
     // Check Antiparallel / Parallel
     // Flip YZ (rotate around X) for antiparallel
     // Flip XY (rotate around Z) for parallel

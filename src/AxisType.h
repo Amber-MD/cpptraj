@@ -21,6 +21,7 @@ class NA_Axis {
     void PrintAxisInfo(const char*) const;
     void FlipYZ();
     void FlipXY();
+    void FlipZ();
     Matrix_3x3 const& Rot() const { return R_;      }
     Vec3 const& Oxyz()      const { return origin_; }
     Vec3 const& Rx()        const { return RX_;     }
@@ -75,6 +76,7 @@ class NA_Base {
     std::string const& BaseName()  const { return basename_;       }
     bool HasPatom()                const { return atomIdx_[PHOS] != -1; }
     bool HasO4atom()               const { return atomIdx_[O4p] != -1;  }
+    bool HasC1atom()               const { return atomIdx_[C1p] != -1;  }
 #   ifdef NASTRUCTDEBUG
     const char* ResName()       const { return *rname_;         }
     const char* RefName(int i)  const { return *(refnames_[i]); }
@@ -84,9 +86,9 @@ class NA_Base {
     const double* HBxyz(int i) const { return Inp_.XYZ(i);              }
     const double* Pxyz()       const { return Inp_.XYZ(atomIdx_[PHOS]); }
     const double* O4xyz()      const { return Inp_.XYZ(atomIdx_[O4p]);  }
+    const double* C1xyz()      const { return Inp_.XYZ(atomIdx_[C1p]);  }
     DataSet_1D* Pucker()       const { return pucker_;                  }
   private:
-    const double* C1xyz()      const { return Inp_.XYZ(atomIdx_[C1p]);  }
     const double* C2xyz()      const { return Inp_.XYZ(atomIdx_[C2p]);  }
     const double* C3xyz()      const { return Inp_.XYZ(atomIdx_[C3p]);  }
     const double* C4xyz()      const { return Inp_.XYZ(atomIdx_[C4p]);  }
