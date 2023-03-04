@@ -1037,8 +1037,9 @@ int Action_NAstruct::DetermineStrandParameters(int frameNum) {
   * Z axis should point in the 5' to 3' direction.
   */
 int Action_NAstruct::check_base_axis_strand_direction(NA_Base& base1) const {
-  // Ensure base Z vector points 5' to 3'
   if (base1.HasC1atom()) {
+    // Ensure base Z vector points 5' to 3'
+    // TODO check 3 and 5 base c1 atom
     int c3residx = base1.C3resIdx();
     int c5residx = base1.C5resIdx();
     if (c3residx > -1 || c5residx > -1) {
@@ -1069,6 +1070,19 @@ int Action_NAstruct::check_base_axis_strand_direction(NA_Base& base1) const {
       } else
         mprintf("DEBUG: Z is OK, points 5' to 3'.\n");
     }
+    // Check that Y axis points towards attached strand.
+    // Axis origin to C1 should roughly align with Y axis vector.
+    const double* this_c1xyz = base1.C1xyz();
+    Vec3 toStrand_vec = Vec3(this_c1xyz) - base1.Axis().Oxyz();
+    toStrand_vec.Normalize();
+    toStrand_vec.Print("to strand vec");
+    base1.Axis().Ry().Print("Axis Y");
+    double ts_angle = base1.Axis().Ry().Angle( toStrand_vec );
+    mprintf("DEBUG: Angle between to-strand vector and Axis Y = %f\n", ts_angle * Constants::RADDEG);
+    if (ts_angle > Constants::PIOVER2) {
+      mprintf("DEBUG: Y should be flipped.\n");
+    } else
+      mprintf("DEBUG: Y is OK, points to strand.\n");
   }
   return 0;
 }
