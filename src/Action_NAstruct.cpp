@@ -1079,8 +1079,10 @@ int Action_NAstruct::check_base_axis_strand_direction(NA_Base& base1) const {
         const double* this_c1xyz = base1.C1xyz();
         Vec3 toStrand_vec = Vec3(this_c1xyz) - base1.Axis().Oxyz();
         toStrand_vec.Normalize();
+#       ifdef NASTRUCTDEBUG
         toStrand_vec.Print("to strand vec");
         base1.Axis().Ry().Print("Axis Y");
+#       endif
         double ts_angle = base1.Axis().Ry().Angle( toStrand_vec );
 #       ifdef NASTRUCTDEBUG
         mprintf("DEBUG: Z should be flipped.\n");
