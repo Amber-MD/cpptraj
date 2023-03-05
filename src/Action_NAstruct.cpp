@@ -1039,19 +1039,23 @@ int Action_NAstruct::DetermineStrandParameters(int frameNum) {
 int Action_NAstruct::check_base_axis_strand_direction(NA_Base& base1) const {
   if (base1.HasC1atom()) {
     // Ensure base Z vector points 5' to 3'
-    // TODO check 3 and 5 base c1 atom
     int c3residx = base1.C3resIdx();
     int c5residx = base1.C5resIdx();
     if (c3residx > -1 || c5residx > -1) {
-      const double *c5res_c1xyz, *c3res_c1xyz;
+      const double *c5res_c1xyz = 0;
+      const double *c3res_c1xyz = 0;
       if (c3residx == -1)
         c3res_c1xyz = base1.C1xyz();
-      else
+      else if (Bases_[c3residx].HasC1atom())
         c3res_c1xyz = Bases_[c3residx].C1xyz();
       if (c5residx == -1)
         c5res_c1xyz = base1.C1xyz();
-      else
+      else if (Bases_[c5residx].HasC1atom())
         c5res_c1xyz = Bases_[c5residx].C1xyz();
+      if (c5res_c1xyz == 0 || c3res_c1xyz == 0) {
+        mprinterr("Error: 5' res and/ord 3' res missing C1 atom coords.\n");
+        return 1;
+      }
       mprintf("DEBUG: c5res_c1xyz = %f %f %f  c3res_c1xyz = %f %f %f\n",
               c5res_c1xyz[0], c5res_c1xyz[1], c5res_c1xyz[2],
               c3res_c1xyz[0], c3res_c1xyz[1], c3res_c1xyz[2]);
@@ -1064,25 +1068,33 @@ int Action_NAstruct::check_base_axis_strand_direction(NA_Base& base1) const {
       double s_angle = base1.Axis().Rz().Angle( strand_vec );
       mprintf("DEBUG: Angle between strand and Axis Z = %f\n", s_angle * Constants::RADDEG);
       if (s_angle > Constants::PIOVER2) {
+        // Z has flipped, likely due to rotation around chi.
         mprintf("DEBUG: Z should be flipped.\n");
-        base1.Axis().FlipZ();
-        base1.Axis().Rz().Print("Flipped Axis Z");
+        // Sanity check to ensure the Y axis still points towards the
+        // strand backbone, which should be the case if Z has flipped
+        // due to a chi rotation. In that case X also needs to be flipped.
+        const double* this_c1xyz = base1.C1xyz();
+        Vec3 toStrand_vec = Vec3(this_c1xyz) - base1.Axis().Oxyz();
+        toStrand_vec.Normalize();
+        toStrand_vec.Print("to strand vec");
+        base1.Axis().Ry().Print("Axis Y");
+        double ts_angle = base1.Axis().Ry().Angle( toStrand_vec );
+        mprintf("DEBUG: Angle between to-strand vector and Axis Y = %f\n", ts_angle * Constants::RADDEG);
+        if (ts_angle > Constants::PIOVER2) {
+          // Y is flipped so it points away from the strand backbone. This
+          // should never happen.
+          mprinterr("Error: Base Y axis has flipped. There may be corruption or\n"
+                    "Error:  distortion in the input coordinates.\n");
+          return 1;
+        } else
+          mprintf("DEBUG: Y is OK, points to strand.\n");
+
+        base1.Axis().FlipXZ();
+        base1.Axis().Rz().Print("Flipped Axes X and Z");
       } else
+        // Z points 5' to 3' as it should.
         mprintf("DEBUG: Z is OK, points 5' to 3'.\n");
     }
-    // Check that Y axis points towards attached strand.
-    // Axis origin to C1 should roughly align with Y axis vector.
-    const double* this_c1xyz = base1.C1xyz();
-    Vec3 toStrand_vec = Vec3(this_c1xyz) - base1.Axis().Oxyz();
-    toStrand_vec.Normalize();
-    toStrand_vec.Print("to strand vec");
-    base1.Axis().Ry().Print("Axis Y");
-    double ts_angle = base1.Axis().Ry().Angle( toStrand_vec );
-    mprintf("DEBUG: Angle between to-strand vector and Axis Y = %f\n", ts_angle * Constants::RADDEG);
-    if (ts_angle > Constants::PIOVER2) {
-      mprintf("DEBUG: Y should be flipped.\n");
-    } else
-      mprintf("DEBUG: Y is OK, points to strand.\n");
   }
   return 0;
 }

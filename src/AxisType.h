@@ -21,7 +21,7 @@ class NA_Axis {
     void PrintAxisInfo(const char*) const;
     void FlipYZ();
     void FlipXY();
-    void FlipZ();
+    void FlipXZ();
     Matrix_3x3 const& Rot() const { return R_;      }
     Vec3 const& Oxyz()      const { return origin_; }
     Vec3 const& Rx()        const { return RX_;     }
