@@ -1056,20 +1056,23 @@ int Action_NAstruct::check_base_axis_strand_direction(NA_Base& base1) const {
         mprinterr("Error: 5' res and/ord 3' res missing C1 atom coords.\n");
         return 1;
       }
+#     ifdef NASTRUCTDEBUG
       mprintf("DEBUG: c5res_c1xyz = %f %f %f  c3res_c1xyz = %f %f %f\n",
               c5res_c1xyz[0], c5res_c1xyz[1], c5res_c1xyz[2],
               c3res_c1xyz[0], c3res_c1xyz[1], c3res_c1xyz[2]);
+#     endif
       Vec3 strand_vec( c3res_c1xyz[0] - c5res_c1xyz[0],
                        c3res_c1xyz[1] - c5res_c1xyz[1],
                        c3res_c1xyz[2] - c5res_c1xyz[2] );
       strand_vec.Normalize();
+      double s_angle = base1.Axis().Rz().Angle( strand_vec );
+#     ifdef NASTRUCTDEBUG
       strand_vec.Print("strand vector");
       base1.Axis().Rz().Print("Axis Z");
-      double s_angle = base1.Axis().Rz().Angle( strand_vec );
       mprintf("DEBUG: Angle between strand and Axis Z = %f\n", s_angle * Constants::RADDEG);
+#     endif
       if (s_angle > Constants::PIOVER2) {
         // Z has flipped, likely due to rotation around chi.
-        mprintf("DEBUG: Z should be flipped.\n");
         // Sanity check to ensure the Y axis still points towards the
         // strand backbone, which should be the case if Z has flipped
         // due to a chi rotation. In that case X also needs to be flipped.
@@ -1079,21 +1082,31 @@ int Action_NAstruct::check_base_axis_strand_direction(NA_Base& base1) const {
         toStrand_vec.Print("to strand vec");
         base1.Axis().Ry().Print("Axis Y");
         double ts_angle = base1.Axis().Ry().Angle( toStrand_vec );
+#       ifdef NASTRUCTDEBUG
+        mprintf("DEBUG: Z should be flipped.\n");
         mprintf("DEBUG: Angle between to-strand vector and Axis Y = %f\n", ts_angle * Constants::RADDEG);
+#       endif
         if (ts_angle > Constants::PIOVER2) {
           // Y is flipped so it points away from the strand backbone. This
           // should never happen.
           mprinterr("Error: Base Y axis has flipped. There may be corruption or\n"
                     "Error:  distortion in the input coordinates.\n");
           return 1;
-        } else
+        }
+#       ifdef NASTRUCTDEBUG
+        else
           mprintf("DEBUG: Y is OK, points to strand.\n");
-
+#       endif
         base1.Axis().FlipXZ();
+#       ifdef NASTRUCTDEBUG
         base1.Axis().Rz().Print("Flipped Axes X and Z");
-      } else
+#       endif
+      }
+#     ifdef NASTRUCTDEBUG
+      else
         // Z points 5' to 3' as it should.
         mprintf("DEBUG: Z is OK, points 5' to 3'.\n");
+#     endif
     }
   }
   return 0;
