@@ -606,7 +606,7 @@ int Action_NAstruct::DetermineBasePairing() {
   */
 int Action_NAstruct::GuessBasePairing(Topology const& Top) {
 # ifdef NASTRUCTDEBUG
-  mprintf("\n=================== Setup Base Pairing ===================\n");
+  mprintf("\n=================== Guess Base Pairing ===================\n");
 # endif
   if (Strands_.size() < 2) {
     mprinterr("Error: Need at least 2 strands to guess base pairing, have %zu\n",
