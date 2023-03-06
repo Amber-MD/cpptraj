@@ -68,6 +68,8 @@ class Action_NAstruct: public Action {
       DataSet_1D* isBP_;
       DataSet_1D* major_;
       DataSet_1D* minor_;
+      //DataSet*    axes_oxyz_; ///< Base pair axes origin vectors
+      DataSet*    axes_nxyz_; ///< Base pair axes Z (i.e. mean normal) vectors
       unsigned int bpidx_;
       unsigned int base1idx_; ///< Index of first base in Bases_
       unsigned int base2idx_; ///< Index of second base in Bases_

@@ -506,6 +506,10 @@ Action_NAstruct::BPmap::iterator
       BP.major_ = 0;
       BP.minor_ = 0;
     }
+    //md.SetAspect("oxyz");
+    //BP.axes_oxyz_ = (DataSet*)masterDSL_->AddSet(DataSet::VECTOR, md);
+    md.SetAspect("nxyz");
+    BP.axes_nxyz_ = (DataSet*)masterDSL_->AddSet(DataSet::VECTOR, md);
     BP.bpidx_ = BasePairs_.size();
     BP.base1idx_ = base1idx;
     BP.base2idx_ = base2idx;
@@ -1204,6 +1208,14 @@ int Action_NAstruct::DeterminePairParameters(int frameNum) {
     static const int ONE = 1;
     if (BP.nhb_ > 0)
       BP.isBP_->Add(frameNum, &ONE);
+    double bp_axes_vec[6]; // Hold base pair axis Z vec and origin
+    bp_axes_vec[0] = BP.bpaxis_.Rz()[0];
+    bp_axes_vec[1] = BP.bpaxis_.Rz()[1];
+    bp_axes_vec[2] = BP.bpaxis_.Rz()[2];
+    bp_axes_vec[3] = BP.bpaxis_.Oxyz()[0];
+    bp_axes_vec[4] = BP.bpaxis_.Oxyz()[1];
+    bp_axes_vec[5] = BP.bpaxis_.Oxyz()[2];
+    BP.axes_nxyz_->Add(frameNum, bp_axes_vec);
 #   ifdef NASTRUCTDEBUG
     // DEBUG - write base pair axes
     WriteAxes(basepairaxesfile, b1+1, base1.ResName(), BP.bpaxis_);
@@ -1721,7 +1733,7 @@ Action::RetType Action_NAstruct::DoAction(int frameNum, ActionFrame& frm) {
 } 
 
 // UpdateTimeSeries()
-static inline void UpdateTimeSeries(unsigned int nframes_, DataSet_1D* ds) {
+static inline void UpdateTimeSeries(unsigned int nframes_, DataSet* ds) {
   if (ds != 0) {
     if (ds->Type() == DataSet::FLOAT) {
       const float ZERO = 0.0;
@@ -1729,6 +1741,11 @@ static inline void UpdateTimeSeries(unsigned int nframes_, DataSet_1D* ds) {
     } else if (ds->Type() == DataSet::INTEGER) {
       const int ZERO = 0;
       if (ds->Size() < nframes_) ds->Add(nframes_ - 1, &ZERO);
+    } else if (ds->Type() == DataSet::VECTOR) {
+      double ZERO[6];
+      for (int i = 0; i < 6; i++)
+        ZERO[i] = 0.0;
+      if (ds->Size() < nframes_) ds->Add(nframes_ - 1, ZERO);
     }
   }
 }
@@ -1982,6 +1999,7 @@ void Action_NAstruct::UpdateSeries() {
       UpdateTimeSeries( nframes_, BP.isBP_ );
       UpdateTimeSeries( nframes_, BP.major_ );
       UpdateTimeSeries( nframes_, BP.minor_ );
+      UpdateTimeSeries( nframes_, BP.axes_nxyz_ );
       UpdateTimeSeries( nframes_, Bases_[BP.base1idx_].Pucker() );
       UpdateTimeSeries( nframes_, Bases_[BP.base2idx_].Pucker() );
     }
