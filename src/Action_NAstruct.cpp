@@ -1057,7 +1057,8 @@ int Action_NAstruct::check_base_axis_strand_direction(NA_Base& base1) const {
         return 1;
       }
 #     ifdef NASTRUCTDEBUG
-      mprintf("DEBUG: c5res_c1xyz = %f %f %f  c3res_c1xyz = %f %f %f\n",
+      mprintf("DEBUG: Res %i  c5res_c1xyz = %f %f %f  c3res_c1xyz = %f %f %f\n",
+              base1.ResNum()+1,
               c5res_c1xyz[0], c5res_c1xyz[1], c5res_c1xyz[2],
               c3res_c1xyz[0], c3res_c1xyz[1], c3res_c1xyz[2]);
 #     endif
