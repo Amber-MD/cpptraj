@@ -380,7 +380,7 @@ int Action_NAstruct::SetupBaseAxes(Frame const& InputFrame) {
                                       base != Bases_.end(); ++base)
   {
     // Check the base axis strand direction
-    check_base_axis_strand_direction( *base );
+    //check_base_axis_strand_direction( *base );
 #   ifdef NASTRUCTDEBUG
     // DEBUG - Write base axis to file
     WriteAxes(baseaxesfile, base->ResNum()+1, base->ResName(), base->Axis());
@@ -538,9 +538,10 @@ int Action_NAstruct::DetermineBasePairing() {
     {
       double dist2 = DIST2_NoImage(base1->Axis().Oxyz(), base2->Axis().Oxyz());
 #     ifdef NASTRUCTDEBUG
+      double axes_distance = sqrt(dist2);
       mprintf("  Axes distance for %i:%s -- %i:%s is %f\n",
               base1->ResNum()+1, base1->ResName(), 
-              base2->ResNum()+1, base2->ResName(), sqrt(dist2));
+              base2->ResNum()+1, base2->ResName(), axes_distance);
 #     endif
       if (dist2 < originCut2_) {
 //#       ifdef NASTRUCTDEBUG
@@ -548,16 +549,44 @@ int Action_NAstruct::DetermineBasePairing() {
 //                base1->ResNum()+1, base1->ResName(), 
 //                base2->ResNum()+1, base2->ResName(), sqrt(dist2));
 //#       endif
+        // Determine if base Z axis vectors point in same (theta <= 90) or
+        // opposite (theta > 90) directions.
+        NA_Axis b2Axis = base2->Axis();
+        bool is_antiparallel;
+        double z_theta = base1->Axis().Rz().Angle( base2->Axis().Rz() );
+        double z_deviation_from_linear;
+        if (z_theta > Constants::PIOVER2) { // If theta(Z) > 90 deg.
+#         ifdef NASTRUCTDEBUG
+          mprintf("\t%s is anti-parallel to %s (%g deg)\n", base1->ResName(), base2->ResName(),
+                  z_theta * Constants::RADDEG);
+#         endif
+          is_antiparallel = true;
+          z_deviation_from_linear = Constants::PI - z_theta;
+          // Antiparallel - flip Y and Z axes of complimentary base
+          b2Axis.FlipYZ();
+        } else {
+#         ifdef NASTRUCTDEBUG
+          mprintf("\t%s is parallel to %s (%g deg)\n", base1->ResName(), base2->ResName(),
+                  z_theta * Constants::RADDEG);
+#         endif
+          is_antiparallel = false;
+          // Parallel - no flip needed
+          z_deviation_from_linear = z_theta;
+        }
+#       ifdef NASTRUCTDEBUG
+        mprintf("\tDeviation from linear: %g deg.\n", z_deviation_from_linear * Constants::RADDEG);
+#       endif       
         // Calculate parameters between axes.
         double Param[6];
-        calculateParameters(base1->Axis(), base2->Axis(), 0, Param);
+        //calculateParameters(base1->Axis(), base2->Axis(), 0, Param);
+        calculateParameters(b2Axis, base1->Axis(), 0, Param);
 #       ifdef NASTRUCTDEBUG
-        mprintf("    Shear=%g  Stretch=%g  Stagger=%g  Open=%g  Prop=%g  Buck=%g\n",
-                Param[0], Param[1], Param[2], Param[3], Param[4], Param[5]);
+        mprintf("    Shear= %6.2f  Stretch= %6.2f  Stagger= %6.2f  Buck= %6.2f  Prop= %6.2f  Open= %6.2f\n",
+                Param[0], Param[1], Param[2], Param[5]*Constants::RADDEG, Param[4]*Constants::RADDEG, Param[3]*Constants::RADDEG);
 #       endif
         // Stagger (vertical separation) must be less than a cutoff.
         if ( fabs(Param[2]) < staggerCut_ ) {
-          // Figure out if z vectors point in same (<90 deg) or opposite (>90 deg) direction
+/*          // Figure out if z vectors point in same (<90 deg) or opposite (>90 deg) direction
           bool AntiParallel;
           double theta = base1->Axis().Rz().Angle( base2->Axis().Rz() );
           double t_delta; // Deviation from linear
@@ -578,19 +607,19 @@ int Action_NAstruct::DetermineBasePairing() {
           }
 #         ifdef NASTRUCTDEBUG
           mprintf("\tDeviation from linear: %g deg.\n", t_delta * Constants::RADDEG);
-#         endif
+#         endif*/
           // Deviation from linear must be less than cutoff
-          if (t_delta < z_angle_cut_) {
+          if (z_deviation_from_linear < z_angle_cut_) {
             int NHB = CalcNumHB(*base1, *base2, n_wc_hb);
             if (NHB > 0) {
               BPmap::iterator entry = AddBasePair(base1-Bases_.begin(), *base1,
                                                   base2-Bases_.begin(), *base2);
 #             ifdef NASTRUCTDEBUG
-              mprintf(", %i hbonds.\n", NHB);
+              mprintf(", %i hbonds, axes distance= %g\n", NHB, axes_distance);
 #             endif
               entry->second.nhb_ = NHB;
               entry->second.n_wc_hb_ = n_wc_hb;
-              entry->second.isAnti_ = AntiParallel;
+              entry->second.isAnti_ = is_antiparallel;
             } // END if # hydrogen bonds > 0
           } // END if Z angle < cut
         } // END if stagger < stagger cut
