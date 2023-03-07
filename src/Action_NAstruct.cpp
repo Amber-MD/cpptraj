@@ -1088,9 +1088,68 @@ int Action_NAstruct::DetermineStrandParameters(int frameNum) {
   return 0;
 }
 
+/** \return 1 if base Z axis is pointing in 5' to 3' direction.
+  * \return 0 if base Z axis is pointing 3' to 5'
+  * \return -1 if an error occurs.
+  */
+int Action_NAstruct::axis_points_5p_to_3p(NA_Base const& base1) const {
+  if (base1.HasC1atom()) {
+    // Ensure base Z vector points 5' to 3'
+    int c3residx = base1.C3resIdx();
+    int c5residx = base1.C5resIdx();
+    if (c3residx > -1 || c5residx > -1) {
+      const double *c5res_c1xyz = 0;
+      const double *c3res_c1xyz = 0;
+      if (c3residx == -1)
+        c3res_c1xyz = base1.C1xyz();
+      else if (Bases_[c3residx].HasC1atom())
+        c3res_c1xyz = Bases_[c3residx].C1xyz();
+      if (c5residx == -1)
+        c5res_c1xyz = base1.C1xyz();
+      else if (Bases_[c5residx].HasC1atom())
+        c5res_c1xyz = Bases_[c5residx].C1xyz();
+      if (c5res_c1xyz == 0 || c3res_c1xyz == 0) {
+        mprinterr("Error: 5' res and/ord 3' res missing C1 atom coords.\n");
+        return -1;
+      }
+#     ifdef NASTRUCTDEBUG
+      mprintf("DEBUG: Res %i  c5res_c1xyz = %f %f %f  c3res_c1xyz = %f %f %f\n",
+              base1.ResNum()+1,
+              c5res_c1xyz[0], c5res_c1xyz[1], c5res_c1xyz[2],
+              c3res_c1xyz[0], c3res_c1xyz[1], c3res_c1xyz[2]);
+#     endif
+      Vec3 strand_vec( c3res_c1xyz[0] - c5res_c1xyz[0],
+                       c3res_c1xyz[1] - c5res_c1xyz[1],
+                       c3res_c1xyz[2] - c5res_c1xyz[2] );
+      strand_vec.Normalize();
+      double s_angle = base1.Axis().Rz().Angle( strand_vec );
+#     ifdef NASTRUCTDEBUG
+      strand_vec.Print("strand vector");
+      base1.Axis().Rz().Print("Axis Z");
+      mprintf("DEBUG: Angle between strand and Axis Z = %f\n", s_angle * Constants::RADDEG);
+#     endif
+      if (s_angle > Constants::PIOVER2) {
+        // Z has flipped, likely due to rotation around chi.
+#       ifdef NASTRUCTDEBUG
+        mprintf("DEBUG: Res %i Z axis is aligned 3' to 5'\n", base1.ResNum()+1);
+#       endif
+        return 0;
+      } else {
+        // Z is aligned 5' to 3'
+#       ifdef NASTRUCTDEBUG
+        mprintf("DEBUG: Res %i Z axis is aligned 5' to 3'\n", base1.ResNum()+1);
+#       endif
+        return 1;
+      }
+    }
+  }
+  // If we are here, either not enough coords or not enough res. Assume aligned. TODO OK?
+  return 1;
+}
+
 /** Check that the base axis is pointing in the right direction
   * according to EMBO 1988 guidelines.
-  * Z axis should point in the 5' to 3' direction.
+  * Z axis should point in the 5' to 3' direction. TODO deprecate
   */
 int Action_NAstruct::check_base_axis_strand_direction(NA_Base& base1) const {
   if (base1.HasC1atom()) {

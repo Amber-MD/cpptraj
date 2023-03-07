@@ -150,6 +150,8 @@ class Action_NAstruct: public Action {
     int GetBaseIdxStep(int, int) const;
     /// Determine individual base parameters in single strands.
     int DetermineStrandParameters(int);
+    /// Check that base Z axis points 5' to 3'
+    int axis_points_5p_to_3p(NA_Base const&) const;
     /// Check that base axis points in correct direction
     int check_base_axis_strand_direction(NA_Base&) const;
     /// Determine individual base and base pair parameters.
