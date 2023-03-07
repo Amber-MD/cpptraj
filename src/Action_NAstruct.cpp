@@ -230,8 +230,8 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
       mprintf("\tSingle strand parameters written to %s\n", ssout_->Filename().full());
   }
   switch (bpConvention_) {
-    case BP_3DNA : mprintf("\tUsing 3DNA conventions for base pairing (no XY flip for parallel strands).\n");
-    case BP_BABCOCK : mprintf("\tUsing Babcock et al. conventions for base pairing (XY flip for parallel strands).\n");
+    case BP_3DNA : mprintf("\tUsing 3DNA conventions for base pairing (no XY flip for parallel strands).\n"); break;
+    case BP_BABCOCK : mprintf("\tUsing Babcock et al. conventions for base pairing (XY flip for parallel strands).\n"); break;
   }
   mprintf("\tHydrogen bond cutoff for determining base pairs is %.2f Angstroms.\n",
           sqrt( HBdistCut2_ ) );
