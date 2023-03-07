@@ -16,9 +16,11 @@
 Action_NAstruct::Action_NAstruct() :
   puckerMethod_(NA_Base::ALTONA),
   HBdistCut2_(12.25),     // Hydrogen Bond distance cutoff^2: 3.5^2
-  // NOTE: Is this too big?
-  originCut2_(6.25),      // Origin cutoff^2 for base-pairing: 2.5^2
+  // NOTE: should this be bigger? 3dna cutoff is 15 ang
+  originCut2_(25.0),      // Origin cutoff^2 for base-pairing: 5.0^2
+  // NOTE: should this be smaller? 3dna cutoff is 1.5 Ang
   staggerCut_(2.0),       // Vertical separation cutoff
+  // NOTE: should this be smaller? 3dna cutoff is 30 deg.
   z_angle_cut_(1.134464), // Z angle cutoff in radians (65 deg)
   maxResSize_(0),
   debug_(0),
@@ -143,9 +145,10 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     findBPmode_ = REFERENCE;
   else if (actionArgs.hasKey("allframes"))
     findBPmode_ = ALL;
-  else if (actionArgs.hasKey("guessbp"))
-    findBPmode_ = GUESS;
-  else if (actionArgs.hasKey("first"))
+  else if (actionArgs.hasKey("guessbp")) {
+    mprintf("Warning: 'guessbp' is deprecated. Defaulting to 'first'.\n");
+    findBPmode_ = FIRST;
+  } else if (actionArgs.hasKey("first"))
     findBPmode_ = FIRST;
   else 
     findBPmode_ = FIRST;
