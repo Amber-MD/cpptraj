@@ -25,6 +25,7 @@ Action_NAstruct::Action_NAstruct() :
   nframes_(0),
   findBPmode_(FIRST),
   grooveCalcType_(PP_OO),
+  bpConvention_(BP_3DNA),
   printheader_(true),
   seriesUpdated_(false),
   skipIfNoHB_(true),
@@ -44,6 +45,7 @@ void Action_NAstruct::Help() const {
   mprintf("\t[<dataset name>] [resrange <range>] [sscalc] [naout <suffix>]\n"
           "\t[noheader] [resmap <ResName>:{A,C,G,T,U} ...] [calcnohb]\n"
           "\t[noframespaces] [baseref <file>] ...\n"
+          "\t[bpmode {3dna|babcock}]\n"
           "\t[hbcut <hbcut>] [origincut <origincut>] [altona | cremer]\n"
           "\t[zcut <zcut>] [zanglecut <zanglecut>] [groovecalc {simple | 3dna}]\n"
           "\t[{ %s | allframes | guessbp}]\n", DataSetList::RefArgs);
@@ -90,6 +92,17 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
       ssout_ = init.DFL().AddCpptrajFile(FName.PrependFileName("SS."), "Single Strand");
       if (ssout_ == 0) return Action::ERR;
     }
+  }
+  std::string bpmode = actionArgs.GetStringKey("bpmode");
+  if (bpmode.empty())
+    bpConvention_ = BP_3DNA;
+  else if (bpmode == "3dna")
+    bpConvention_ = BP_3DNA;
+  else if (bpmode == "babcock")
+    bpConvention_ = BP_BABCOCK;
+  else {
+    mprinterr("Error: Unrecognized keyword '%s' for 'bpmode'.\n", bpmode.c_str());
+    return Action::ERR;
   }
   double hbcut = actionArgs.getKeyDouble("hbcut", -1);
   if (hbcut > 0) 
@@ -215,6 +228,10 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     mprintf("\tWill determine parameters for consecutive bases in strands.\n");
     if (ssout_ != 0)
       mprintf("\tSingle strand parameters written to %s\n", ssout_->Filename().full());
+  }
+  switch (bpConvention_) {
+    case BP_3DNA : mprintf("\tUsing 3DNA conventions for base pairing (no XY flip for parallel strands).\n");
+    case BP_BABCOCK : mprintf("\tUsing Babcock et al. conventions for base pairing (XY flip for parallel strands).\n");
   }
   mprintf("\tHydrogen bond cutoff for determining base pairs is %.2f Angstroms.\n",
           sqrt( HBdistCut2_ ) );
@@ -570,8 +587,11 @@ int Action_NAstruct::DetermineBasePairing() {
                   z_theta * Constants::RADDEG);
 #         endif
           is_antiparallel = false;
-          // Parallel - no flip needed
           z_deviation_from_linear = z_theta;
+          // Parallel - no flip needed if 3dna.
+          // If using Babcock convention, flip X and Y axes.
+          if (bpConvention_ == BP_BABCOCK)
+            b2Axis.FlipXY();
         }
 #       ifdef NASTRUCTDEBUG
         mprintf("\tDeviation from linear: %g deg.\n", z_deviation_from_linear * Constants::RADDEG);
@@ -1184,7 +1204,7 @@ int Action_NAstruct::DeterminePairParameters(int frameNum) {
     // Flip XY (rotate around Z) for parallel
     if (BP.isAnti_)
       base2.Axis().FlipYZ();
-    else
+    else if (bpConvention_ == BP_BABCOCK)
       base2.Axis().FlipXY();
     if (grooveCalcType_ == PP_OO) {
       // Calc direct P--P distance

@@ -21,6 +21,12 @@
   *   Westhof E, Wolberger C, Berman H, "A Standard Reference Frame for the 
   *   Description of Nucleic Acid Base-pair Geometry", J. Mol. Biol. (2001)
   *   313, 229-237.
+  * Default conventions for determining base pairing etc are those used in 
+  * 3DNA:
+  *   Lu XJ, Olson WK. "3DNA: a software package for the analysis, rebuilding
+  *   and visualization of three-dimensional nucleic acid structures".
+  *   Nucleic Acids Res. 2003 Sep 1;31(17):5108-21.
+  *   doi: 10.1093/nar/gkg680. PMID: 12930962; PMCID: PMC212791.
   */
 class Action_NAstruct: public Action {
   public:
@@ -40,6 +46,7 @@ class Action_NAstruct: public Action {
     // ----- Enumerations ------------------------
     enum HbondType { WC = 0, HOOG, OTHER };
     enum GrooveType { PP_OO = 0, HASSAN_CALLADINE };
+    enum BP_ConventionType { BP_3DNA = 0, BP_BABCOCK };
     /// How to find base pairs: first frame, reference structure, all frames, guess.
     enum FindType { FIRST = 0, REFERENCE, ALL, GUESS };
     // ----- Data Structures ---------------------
@@ -173,6 +180,7 @@ class Action_NAstruct: public Action {
     int nframes_;                       ///< Total number of frames calculated.
     FindType findBPmode_;               ///< How base pairs are to be found.
     GrooveType grooveCalcType_;         ///< Type of groove calc to perform
+    BP_ConventionType bpConvention_;    ///< Conventions to use when determining base pairing.
     Range resRange_;                    ///< Range to search for NA residues.
     bool printheader_;                  ///< If true, print header to naout files.
     bool seriesUpdated_;                ///< If false, check that time series data is nframes long
