@@ -569,6 +569,10 @@ int Action_NAstruct::DetermineBasePairing() {
 //                base1->ResNum()+1, base1->ResName(), 
 //                base2->ResNum()+1, base2->ResName(), sqrt(dist2));
 //#       endif
+        // Determine if base Z axis vectors are aligned with strand direction
+        int b1_5to3 = axis_points_5p_to_3p( *base1 );
+        int b2_5to3 = axis_points_5p_to_3p( *base2 );
+        // TODO trap errors here
         // Determine if base Z axis vectors point in same (theta <= 90) or
         // opposite (theta > 90) directions.
         NA_Axis b2Axis = base2->Axis();
@@ -584,6 +588,10 @@ int Action_NAstruct::DetermineBasePairing() {
           z_deviation_from_linear = Constants::PI - z_theta;
           // Antiparallel - flip Y and Z axes of complimentary base
           b2Axis.FlipYZ();
+          // If antiparallel and both bases are aligned 3' to 5', may be ZDNA
+          if (b1_5to3 == 0 && b2_5to3 == 0) {
+            mprintf("Antiparallel and both bases aligned 3' to 5', ZDNA\n");
+          }
         } else {
 #         ifdef NASTRUCTDEBUG
           mprintf("\t%s is parallel to %s (%g deg)\n", base1->ResName(), base2->ResName(),
