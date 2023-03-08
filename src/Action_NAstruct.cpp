@@ -585,7 +585,9 @@ int Action_NAstruct::DetermineBasePairing() {
         // TODO trap errors here
         // If antiparallel and both bases are aligned 3' to 5', may be ZDNA
         if (b1_5to3 == 0 && b2_5to3 == 0) {
+#         ifdef NASTRUCTDEBUG
           mprintf("Both bases aligned 3' to 5', ZDNA\n");
+#         endif
           b1Axis.FlipXZ();
           b2Axis.FlipXZ();
           is_z = true;
