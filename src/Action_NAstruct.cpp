@@ -569,15 +569,22 @@ int Action_NAstruct::DetermineBasePairing() {
 //                base1->ResNum()+1, base1->ResName(), 
 //                base2->ResNum()+1, base2->ResName(), sqrt(dist2));
 //#       endif
+        NA_Axis b1Axis = base1->Axis();
+        NA_Axis b2Axis = base2->Axis();
         // Determine if base Z axis vectors are aligned with strand direction
         int b1_5to3 = axis_points_5p_to_3p( *base1 );
         int b2_5to3 = axis_points_5p_to_3p( *base2 );
         // TODO trap errors here
+        // If antiparallel and both bases are aligned 3' to 5', may be ZDNA
+        if (b1_5to3 == 0 && b2_5to3 == 0) {
+          mprintf("Both bases aligned 3' to 5', ZDNA\n");
+          b1Axis.FlipXZ();
+          b2Axis.FlipXZ();
+        }
         // Determine if base Z axis vectors point in same (theta <= 90) or
         // opposite (theta > 90) directions.
-        NA_Axis b2Axis = base2->Axis();
         bool is_antiparallel;
-        double z_theta = base1->Axis().Rz().Angle( base2->Axis().Rz() );
+        double z_theta = b1Axis.Rz().Angle( b2Axis.Rz() );
         double z_deviation_from_linear;
         if (z_theta > Constants::PIOVER2) { // If theta(Z) > 90 deg.
 #         ifdef NASTRUCTDEBUG
@@ -588,10 +595,7 @@ int Action_NAstruct::DetermineBasePairing() {
           z_deviation_from_linear = Constants::PI - z_theta;
           // Antiparallel - flip Y and Z axes of complimentary base
           b2Axis.FlipYZ();
-          // If antiparallel and both bases are aligned 3' to 5', may be ZDNA
-          if (b1_5to3 == 0 && b2_5to3 == 0) {
-            mprintf("Antiparallel and both bases aligned 3' to 5', ZDNA\n");
-          }
+          
         } else {
 #         ifdef NASTRUCTDEBUG
           mprintf("\t%s is parallel to %s (%g deg)\n", base1->ResName(), base2->ResName(),
@@ -610,7 +614,7 @@ int Action_NAstruct::DetermineBasePairing() {
         // Calculate parameters between axes.
         double Param[6];
         //calculateParameters(base1->Axis(), base2->Axis(), 0, Param);
-        calculateParameters(b2Axis, base1->Axis(), 0, Param);
+        calculateParameters(b2Axis, b1Axis, 0, Param);
 #       ifdef NASTRUCTDEBUG
         mprintf("    Shear= %6.2f  Stretch= %6.2f  Stagger= %6.2f  Buck= %6.2f  Prop= %6.2f  Open= %6.2f\n",
                 Param[0], Param[1], Param[2], Param[5]*Constants::RADDEG, Param[4]*Constants::RADDEG, Param[3]*Constants::RADDEG);
