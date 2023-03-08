@@ -559,7 +559,7 @@ int Action_NAstruct::DetermineBasePairing() {
       double dist2 = DIST2_NoImage(base1->Axis().Oxyz(), base2->Axis().Oxyz());
 #     ifdef NASTRUCTDEBUG
       double axes_distance = sqrt(dist2);
-      mprintf("  Axes distance for %i:%s -- %i:%s is %f\n",
+      mprintf("\n  ----- Axes distance for %i:%s -- %i:%s is %f -----\n",
               base1->ResNum()+1, base1->ResName(), 
               base2->ResNum()+1, base2->ResName(), axes_distance);
 #     endif
@@ -569,6 +569,13 @@ int Action_NAstruct::DetermineBasePairing() {
 //                base1->ResNum()+1, base1->ResName(), 
 //                base2->ResNum()+1, base2->ResName(), sqrt(dist2));
 //#       endif
+#       ifdef NASTRUCTDEBUG
+        // Glycosidic N-N distance
+        if (base1->HasNXatom() && base2->HasNXatom()) {
+          double n_n_dist2 = DIST2_NoImage(base1->NXxyz(), base2->NXxyz());
+          mprintf("DEBUG: NX-NX distance= %f\n", sqrt(n_n_dist2));
+        }
+#       endif
         NA_Axis b1Axis = base1->Axis();
         NA_Axis b2Axis = base2->Axis();
         // Determine if base Z axis vectors are aligned with strand direction
