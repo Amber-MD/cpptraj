@@ -389,7 +389,7 @@ NA_Base::NA_Base() :
   bchar_('?'),
   type_(UNKNOWN_BASE)
 {
-  std::fill( atomIdx_, atomIdx_+6, -1 );
+  std::fill( atomIdx_, atomIdx_+7, -1 );
 }
 
 // COPY CONSTRUCTOR
@@ -414,7 +414,7 @@ NA_Base::NA_Base(const NA_Base& rhs) :
   inpFitMask_(rhs.inpFitMask_),
   refFitMask_(rhs.refFitMask_)
 {
-  std::copy( rhs.atomIdx_, rhs.atomIdx_+6, atomIdx_ );
+  std::copy( rhs.atomIdx_, rhs.atomIdx_+7, atomIdx_ );
 }
 
 // ASSIGNMENT
@@ -436,7 +436,7 @@ NA_Base& NA_Base::operator=(const NA_Base& rhs) {
 #   endif
     Inp_ = rhs.Inp_;
     hb_ = rhs.hb_;
-    std::copy( rhs.atomIdx_, rhs.atomIdx_+6, atomIdx_ );
+    std::copy( rhs.atomIdx_, rhs.atomIdx_+7, atomIdx_ );
     parmMask_ = rhs.parmMask_;
     inpFitMask_ = rhs.inpFitMask_;
     refFitMask_ = rhs.refFitMask_;
@@ -479,7 +479,7 @@ int NA_Base::Setup_Base(RefBase const& REF, Residue const& RES, int resnum,
   // Save atom names for input coords. Look for specific atom names for
   // calculating things like groove width and pucker.
   int inpatom = 0;
-  std::fill( atomIdx_, atomIdx_+6, -1 );
+  std::fill( atomIdx_, atomIdx_+7, -1 );
   for (int atom = resstart; atom < resstop; ++atom) {
     anames_.push_back( Atoms[atom].Name() );
     // Is this atom P?
@@ -496,6 +496,15 @@ int NA_Base::Setup_Base(RefBase const& REF, Residue const& RES, int resnum,
       atomIdx_[C3p] = inpatom;
     else if (anames_.back() == "C4' " || anames_.back() == "C4* ")
       atomIdx_[C4p] = inpatom;
+    else if (type_ == ADE || type_ == GUA) {
+      // Purine-specific
+      if (anames_.back() == "N9")
+        atomIdx_[NX] = inpatom;
+    } else if (type_ == CYT || type_ == THY || type_ == URA) {
+      // Pyrimidine-specific
+      if (anames_.back() == "N1")
+        atomIdx_[NX] = inpatom;
+    }
     inpatom++;
   }
   // Determine whether sugar atoms are all present.
