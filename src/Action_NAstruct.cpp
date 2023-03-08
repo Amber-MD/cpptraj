@@ -572,6 +572,7 @@ int Action_NAstruct::DetermineBasePairing() {
         NA_Axis b1Axis = base1->Axis();
         NA_Axis b2Axis = base2->Axis();
         // Determine if base Z axis vectors are aligned with strand direction
+        bool is_z = false;
         int b1_5to3 = axis_points_5p_to_3p( *base1 );
         int b2_5to3 = axis_points_5p_to_3p( *base2 );
         // TODO trap errors here
@@ -580,6 +581,7 @@ int Action_NAstruct::DetermineBasePairing() {
           mprintf("Both bases aligned 3' to 5', ZDNA\n");
           b1Axis.FlipXZ();
           b2Axis.FlipXZ();
+          is_z = true;
         }
         // Determine if base Z axis vectors point in same (theta <= 90) or
         // opposite (theta > 90) directions.
@@ -655,6 +657,7 @@ int Action_NAstruct::DetermineBasePairing() {
               entry->second.nhb_ = NHB;
               entry->second.n_wc_hb_ = n_wc_hb;
               entry->second.isAnti_ = is_antiparallel;
+              entry->second.isZ_ = is_z;
             } // END if # hydrogen bonds > 0
           } // END if Z angle < cut
         } // END if stagger < stagger cut
@@ -666,7 +669,7 @@ int Action_NAstruct::DetermineBasePairing() {
 
 /** Try to guess base pairing based on strand layout. Assume NA strands
   * are laid out 5' to 3', and that consecutive strands are supposed to
-  * base pair.
+  * base pair. TODO deprecate
   */
 int Action_NAstruct::GuessBasePairing(Topology const& Top) {
 # ifdef NASTRUCTDEBUG
@@ -735,6 +738,7 @@ int Action_NAstruct::GuessBasePairing(Topology const& Top) {
       entry->second.nhb_ = 0;
       entry->second.n_wc_hb_ = 0;
       entry->second.isAnti_ = *bptype;
+      entry->second.isZ_ = false;
     }
   }
 
@@ -1267,15 +1271,23 @@ int Action_NAstruct::DeterminePairParameters(int frameNum) {
 #   ifdef NASTRUCTDEBUG
     mprintf("BasePair %i:%s to %i:%s", b1+1, base1.ResName(), b2+1, base2.ResName());
     if (BP.isAnti_)
-      mprintf(" Anti-parallel.\n");
+      mprintf(" Anti-parallel,");
     else
-      mprintf(" Parallel.\n");
+      mprintf(" Parallel,");
+    if (BP.isZ_)
+      mprintf(" aligned 3' to 5' (Z).\n");
+    else
+      mprintf(" aligned 5' to 3' (A/B).\n");
     base2.Axis().Rot().Print("Original base2 axis");
 #   endif
-        
+    // Check Z-DNA - need to flip XZ
+    if (BP.isZ_) {
+      base1.Axis().FlipXZ();
+      base2.Axis().FlipXZ();
+    }
     // Check Antiparallel / Parallel
     // Flip YZ (rotate around X) for antiparallel
-    // Flip XY (rotate around Z) for parallel
+    // Flip XY (rotate around Z) for parallel (Babcock convention only)
     if (BP.isAnti_)
       base2.Axis().FlipYZ();
     else if (bpConvention_ == BP_BABCOCK)

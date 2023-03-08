@@ -82,7 +82,8 @@ class Action_NAstruct: public Action {
       unsigned int base2idx_; ///< Index of second base in Bases_
       int nhb_;               ///< Current # of hydrogen bonds in base pair.
       int n_wc_hb_;           ///< Number of WC hydrogen bonds in base pair.
-      bool isAnti_;
+      bool isAnti_;           ///< True if base Z axes are not aligned
+      bool isZ_;              ///< True if Z axes are aligned 3' to 5' instead of 5' to 3'
     };
     /// Hold a base pair step.
     struct StepType {
