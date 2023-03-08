@@ -1474,15 +1474,29 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
         calculateParameters(BP1.bpaxis_, BP2.bpaxis_, &midFrame, Param);
         // Calculate zP
         float Zp = 0.0;
+        NA_Base const* s1base = 0;
         NA_Base const* s2base = 0;
         if (BP1.isAnti_) {
-          if (base2.HasPatom()) s2base = &base2;
+          if (base3.HasPatom() && base2.HasPatom()) {
+            s2base = &base3;
+            s1base = &base2;
+            //pVec = Vec3(base3.Pxyz()) - Vec3(s2base->Pxyz());
+          }
         } else {
-          if (base4.HasPatom()) s2base = &base4;
+          if (base2.HasPatom() && base3.HasPatom()) {
+            s2base = &base2;
+            s1base = &base3;
+            //pVec = Vec3(s2base->Pxyz()) - Vec3(base3.Pxyz());
+          }
         }
         if (s2base != 0) {
-          Vec3 xyzP = midFrame.Rot().TransposeMult((Vec3(base3.Pxyz()) - Vec3(s2base->Pxyz())) / 2);
-          //xyzP.Print("xyzP"); // TODO: Check/fix Xp
+          Vec3 pVec = Vec3(s2base->Pxyz()) - Vec3(s1base->Pxyz());
+          Vec3 xyzP = midFrame.Rot().TransposeMult(pVec / 2);
+#         ifdef NASTRUCTDEBUG
+          mprintf("  Zp calculation between base %i and base %i\n", s1base->ResNum()+1, s2base->ResNum()+1);
+          pVec.Print("pVec");
+          xyzP.Print("xyzP"); // TODO: Check/fix Xp
+#         endif
           Zp = (float)xyzP[2];
         }
         currentStep.Zp_->Add(frameNum, &Zp);
