@@ -47,8 +47,8 @@ class Action_NAstruct: public Action {
     enum HbondType { WC = 0, HOOG, OTHER };
     enum GrooveType { PP_OO = 0, HASSAN_CALLADINE };
     enum BP_ConventionType { BP_3DNA = 0, BP_BABCOCK };
-    /// How to find base pairs: first frame, reference structure, all frames, guess.
-    enum FindType { FIRST = 0, REFERENCE, ALL, GUESS };
+    /// How to find base pairs: first frame, reference structure, all frames.
+    enum FindType { FIRST = 0, REFERENCE, ALL };
     // ----- Data Structures ---------------------
     /// Hold consecutive bases
     struct Stype {
@@ -141,8 +141,6 @@ class Action_NAstruct: public Action {
     BPmap::iterator AddBasePair(int, NA_Base const&, int, NA_Base const&);
     /// Determine which bases are paired geometrically, set base pair data.
     int DetermineBasePairing();
-    /// Guess which bases are paired based on strand layout.
-    int GuessBasePairing(Topology const&);
     /// Calculate translational/rotational parameters between two axes.
     int calculateParameters(NA_Axis const&, NA_Axis const&, NA_Axis*, double*);
     /// Calculate helical parameters between two axes.
@@ -195,7 +193,6 @@ class Action_NAstruct: public Action {
     CpptrajFile* stepout_;              ///< Base pair step out (BPstep.<suffix>).
     CpptrajFile* helixout_;             ///< Helical parameters out (Helix.<suffix>).
     std::string dataname_;              ///< NA DataSet name (default NA).
-    std::vector<bool> BpTypes_;         ///< Hold specified base pairing types for strands
     // TODO: Replace these with new DataSet type
     DataSetList* masterDSL_;
 #   ifdef NASTRUCTDEBUG
