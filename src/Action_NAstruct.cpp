@@ -1285,6 +1285,8 @@ int Action_NAstruct::DeterminePairParameters(int frameNum) {
 int Action_NAstruct::DetermineStepParameters(int frameNum) {
   double Param[6];
 # ifdef NASTRUCTDEBUG
+  PDBfile stepaxesfile;
+  stepaxesfile.OpenWrite("stepaxes.pdb");
   mprintf("\n=================== Determine BPstep Parameters ===================\n");
 # endif
   if (BasePairs_.size() < 2) return 0;
@@ -1394,6 +1396,41 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
             s1base = &base3;
             //pVec = Vec3(s2base->Pxyz()) - Vec3(base3.Pxyz());
           }
+#         ifdef NASTRUCTDEBUG
+          // DEBUG
+          NA_Base const* pbase1 = &base3;
+          NA_Base const* pbase2;
+          if (BP1.isAnti_)
+            pbase2 = &base2;
+          else
+            pbase2 = &base4;
+          //Vec3 p1xyz( pbase1->Pxyz() );
+          //Vec3 p2xyz( pbase2->Pxyz() );
+          Vec3 p1xyz = midFrame.Rot().TransposeMult( Vec3(pbase1->Pxyz()) - midFrame.Oxyz() );
+          Vec3 p2xyz = midFrame.Rot().TransposeMult( Vec3(pbase2->Pxyz()) - midFrame.Oxyz() );
+          mprintf("ZPCALC: SI '%3s' P %6.2f %6.2f %6.2f  |  SII '%3s' P %6.2f %6.2f %6.2f\n",
+                  pbase1->BaseName().c_str(), p1xyz[0], p1xyz[1], p1xyz[2],
+                  pbase2->BaseName().c_str(), p2xyz[0], p2xyz[1], p2xyz[2]);
+/*
+          typedef std::vector<NA_Base const*> TARRAY;
+          TARRAY tmp_bases;
+          tmp_bases.push_back( &base1 );
+          tmp_bases.push_back( &base2 );
+          tmp_bases.push_back( &base3 );
+          tmp_bases.push_back( &base4 );
+          mprintf("ZPCALC:\n");
+          for (unsigned int t1 = 0; t1 != tmp_bases.size(); t1++) {
+            for (unsigned int t2 = 0; t2 != tmp_bases.size(); t2++) {
+              if (t1 != t2) {
+                Vec3 tmp_pVec = Vec3(tmp_bases[t1]->Pxyz()) - Vec3(tmp_bases[t2]->Pxyz());
+                Vec3 tmp_xyzP = midFrame.Rot().TransposeMult(tmp_pVec / 2);
+                //Vec3 tmp_xyzP = midFrame.Rot() * (tmp_pVec / 2);
+                mprintf("ZPCALC: base %2u '%3s' - base %2u '%3s' : %6.2f %6.2f %6.2f\n", t1+1, tmp_bases[t1]->BaseName().c_str(), t2+1, tmp_bases[t2]->BaseName().c_str(), tmp_xyzP[0], tmp_xyzP[1], tmp_xyzP[2]);
+              }
+            }
+          }*/
+          // END DEBUG
+#         endif
         }
         if (s2base != 0) {
           Vec3 pVec = Vec3(s2base->Pxyz()) - Vec3(s1base->Pxyz());
@@ -1462,8 +1499,12 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
         currentStep.incl_->Add(frameNum, &incl);
         currentStep.tip_->Add(frameNum, &tip);
         currentStep.htwist_->Add(frameNum, &htwist);
+#       ifdef NASTRUCTDEBUG
+        // DEBUG - write base pair step axes
+        WriteAxes(stepaxesfile, base1.ResNum()+1, base1.ResName(), midFrame);
+#       endif
       } // END second base pair found
-    } // END second base pair valid 
+    } // END second base pair valid
   } // END loop over base pairs 
   return 0;
 }
