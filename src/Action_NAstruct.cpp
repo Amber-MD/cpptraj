@@ -1380,65 +1380,36 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
         // Calc step parameters
         NA_Axis midFrame;
         calculateParameters(BP1.bpaxis_, BP2.bpaxis_, &midFrame, Param);
-        // Calculate zP
+        // Calculate zP: difference in step phosphate atoms along the Z axis
+        // of the step middle frame.
         float Zp = 0.0;
-        NA_Base const* s1base = 0;
-        NA_Base const* s2base = 0;
-        if (BP1.isAnti_) {
-          if (base3.HasPatom() && base2.HasPatom()) {
-            s2base = &base3;
-            s1base = &base2;
-            //pVec = Vec3(base3.Pxyz()) - Vec3(s2base->Pxyz());
-          }
-        } else {
-          if (base2.HasPatom() && base3.HasPatom()) {
-            s2base = &base2;
-            s1base = &base3;
-            //pVec = Vec3(s2base->Pxyz()) - Vec3(base3.Pxyz());
-          }
-#         ifdef NASTRUCTDEBUG
-          // DEBUG
-          NA_Base const* pbase1 = &base3;
-          NA_Base const* pbase2;
-          if (BP1.isAnti_)
-            pbase2 = &base2;
-          else
-            pbase2 = &base4;
-          //Vec3 p1xyz( pbase1->Pxyz() );
-          //Vec3 p2xyz( pbase2->Pxyz() );
+        NA_Base const* pbase1 = &base3;
+        NA_Base const* pbase2 = 0;
+        if (BP1.isAnti_)
+          pbase2 = &base2;
+        else
+          pbase2 = &base4;
+        if (pbase1->HasPatom() && pbase2->HasPatom()) { // TODO warn if atoms missing?
+          // Rotate the coordinates of the base phosphate atoms so they are
+          // in the step middle frame.
           Vec3 p1xyz = midFrame.Rot().TransposeMult( Vec3(pbase1->Pxyz()) - midFrame.Oxyz() );
           Vec3 p2xyz = midFrame.Rot().TransposeMult( Vec3(pbase2->Pxyz()) - midFrame.Oxyz() );
-          mprintf("ZPCALC: SI '%3s' P %6.2f %6.2f %6.2f  |  SII '%3s' P %6.2f %6.2f %6.2f\n",
-                  pbase1->BaseName().c_str(), p1xyz[0], p1xyz[1], p1xyz[2],
-                  pbase2->BaseName().c_str(), p2xyz[0], p2xyz[1], p2xyz[2]);
-/*
-          typedef std::vector<NA_Base const*> TARRAY;
-          TARRAY tmp_bases;
-          tmp_bases.push_back( &base1 );
-          tmp_bases.push_back( &base2 );
-          tmp_bases.push_back( &base3 );
-          tmp_bases.push_back( &base4 );
-          mprintf("ZPCALC:\n");
-          for (unsigned int t1 = 0; t1 != tmp_bases.size(); t1++) {
-            for (unsigned int t2 = 0; t2 != tmp_bases.size(); t2++) {
-              if (t1 != t2) {
-                Vec3 tmp_pVec = Vec3(tmp_bases[t1]->Pxyz()) - Vec3(tmp_bases[t2]->Pxyz());
-                Vec3 tmp_xyzP = midFrame.Rot().TransposeMult(tmp_pVec / 2);
-                //Vec3 tmp_xyzP = midFrame.Rot() * (tmp_pVec / 2);
-                mprintf("ZPCALC: base %2u '%3s' - base %2u '%3s' : %6.2f %6.2f %6.2f\n", t1+1, tmp_bases[t1]->BaseName().c_str(), t2+1, tmp_bases[t2]->BaseName().c_str(), tmp_xyzP[0], tmp_xyzP[1], tmp_xyzP[2]);
-              }
-            }
-          }*/
-          // END DEBUG
-#         endif
-        }
-        if (s2base != 0) {
-          Vec3 pVec = Vec3(s2base->Pxyz()) - Vec3(s1base->Pxyz());
-          Vec3 xyzP = midFrame.Rot().TransposeMult(pVec / 2);
+          // If anti-parallel, ensure axes on second strand are properly flipped
+          if (BP1.isAnti_) {
+            // FlipYZ
+            p2xyz[1] = -p2xyz[1];
+            p2xyz[2] = -p2xyz[2];
+          } else if (bpConvention_ == BP_BABCOCK) {
+            // FlipXY
+            p2xyz[0] = -p2xyz[0];
+            p2xyz[1] = -p2xyz[1];
+          }
+          Vec3 xyzP = (p1xyz + p2xyz) / 2.0;
 #         ifdef NASTRUCTDEBUG
-          mprintf("  Zp calculation between base %i and base %i\n", s1base->ResNum()+1, s2base->ResNum()+1);
-          pVec.Print("pVec");
-          xyzP.Print("xyzP"); // TODO: Check/fix Xp
+          mprintf("ZPCALC: SI '%3s' P %6.2f %6.2f %6.2f  |  SII '%3s' P %6.2f %6.2f %6.2f  |  %6.2f %6.2f %6.2f\n",
+                  pbase1->BaseName().c_str(), p1xyz[0], p1xyz[1], p1xyz[2],
+                  pbase2->BaseName().c_str(), p2xyz[0], p2xyz[1], p2xyz[2],
+                  xyzP[0], xyzP[1], xyzP[2]);
 #         endif
           Zp = (float)xyzP[2];
         }
