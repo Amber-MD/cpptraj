@@ -21,6 +21,7 @@ class NA_Axis {
     void PrintAxisInfo(const char*) const;
     void FlipYZ();
     void FlipXY();
+    void FlipXZ();
     Matrix_3x3 const& Rot() const { return R_;      }
     Vec3 const& Oxyz()      const { return origin_; }
     Vec3 const& Rx()        const { return RX_;     }
@@ -39,8 +40,8 @@ class NA_Axis {
 class RefBase;
 /// Hold information for NA base.
 class NA_Base {
-    /// Type for phosphate/sugar atoms (index into atomIdx_).
-    enum PSType { PHOS, O4p, C1p, C2p, C3p, C4p };
+    /// Type for phosphate/sugar/glycosidic nitrogen atoms (index into atomIdx_).
+    enum PSType { PHOS, O4p, C1p, C2p, C3p, C4p, NX };
   public:
     enum PmethodType { ALTONA=0, CREMER };
     /// Type for each standard NA base.
@@ -75,6 +76,8 @@ class NA_Base {
     std::string const& BaseName()  const { return basename_;       }
     bool HasPatom()                const { return atomIdx_[PHOS] != -1; }
     bool HasO4atom()               const { return atomIdx_[O4p] != -1;  }
+    bool HasC1atom()               const { return atomIdx_[C1p] != -1;  }
+    bool HasNXatom()               const { return atomIdx_[NX] != -1; }
 #   ifdef NASTRUCTDEBUG
     const char* ResName()       const { return *rname_;         }
     const char* RefName(int i)  const { return *(refnames_[i]); }
@@ -84,9 +87,10 @@ class NA_Base {
     const double* HBxyz(int i) const { return Inp_.XYZ(i);              }
     const double* Pxyz()       const { return Inp_.XYZ(atomIdx_[PHOS]); }
     const double* O4xyz()      const { return Inp_.XYZ(atomIdx_[O4p]);  }
+    const double* C1xyz()      const { return Inp_.XYZ(atomIdx_[C1p]);  }
+    const double* NXxyz()      const { return Inp_.XYZ(atomIdx_[NX]);   }
     DataSet_1D* Pucker()       const { return pucker_;                  }
   private:
-    const double* C1xyz()      const { return Inp_.XYZ(atomIdx_[C1p]);  }
     const double* C2xyz()      const { return Inp_.XYZ(atomIdx_[C2p]);  }
     const double* C3xyz()      const { return Inp_.XYZ(atomIdx_[C3p]);  }
     const double* C4xyz()      const { return Inp_.XYZ(atomIdx_[C4p]);  }
@@ -110,7 +114,7 @@ class NA_Base {
 #   endif  
     Frame Inp_;                     ///< Input coords.
     std::vector<HBType> hb_;        ///< Hydrogen bond type of each Input atom.
-    int atomIdx_[6];                ///< Indices of Input phosphate/sugar atoms.
+    int atomIdx_[7];                ///< Indices of Input phosphate/sugar atoms.
     AtomMask parmMask_;             ///< Mask corresponding to atoms in parm.
     AtomMask inpFitMask_;           ///< Mask of input atoms to be used in RMS fit.
     AtomMask refFitMask_;           ///< Mask of ref atoms to be used in RMS fit.
