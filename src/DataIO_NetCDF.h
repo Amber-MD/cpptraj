@@ -14,6 +14,7 @@ class DataIO_NetCDF : public DataIO {
     int WriteData(FileName const&, DataSetList const&);
     bool ID_DataFormat(CpptrajFile&);
   private:
+#ifdef BINTRAJ
     /// Hold a list of pointers to DataSets in a DataSetList
     class SetPool;
     /// Hold a pointer to DataSet in a DataSetList and its original index
@@ -81,5 +82,6 @@ class DataIO_NetCDF : public DataIO {
     int ncid_;                        ///< Current netcdf ID
     std::string user_specified_name_; ///< Set if user specified a data set name on read
     DimArray Dimensions_;             ///< Array of all currently defined dimensions
+#   endif /* BINTRAJ */
 };
 #endif

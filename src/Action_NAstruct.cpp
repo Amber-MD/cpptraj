@@ -505,10 +505,12 @@ Action_NAstruct::BPmap::iterator
       BP.major_ = 0;
       BP.minor_ = 0;
     }
+#   ifdef NASTRUCTDEBUG
     //md.SetAspect("oxyz");
     //BP.axes_oxyz_ = (DataSet*)masterDSL_->AddSet(DataSet::VECTOR, md);
     md.SetAspect("nxyz");
     BP.axes_nxyz_ = (DataSet*)masterDSL_->AddSet(DataSet::VECTOR, md);
+#   endif
     BP.bpidx_ = BasePairs_.size();
     BP.base1idx_ = base1idx;
     BP.base2idx_ = base2idx;
@@ -1170,6 +1172,7 @@ int Action_NAstruct::DeterminePairParameters(int frameNum) {
     static const int ONE = 1;
     if (BP.nhb_ > 0)
       BP.isBP_->Add(frameNum, &ONE);
+#   ifdef NASTRUCTDEBUG
     double bp_axes_vec[6]; // Hold base pair axis Z vec and origin
     bp_axes_vec[0] = BP.bpaxis_.Rz()[0];
     bp_axes_vec[1] = BP.bpaxis_.Rz()[1];
@@ -1178,6 +1181,7 @@ int Action_NAstruct::DeterminePairParameters(int frameNum) {
     bp_axes_vec[4] = BP.bpaxis_.Oxyz()[1];
     bp_axes_vec[5] = BP.bpaxis_.Oxyz()[2];
     BP.axes_nxyz_->Add(frameNum, bp_axes_vec);
+#   endif
 #   ifdef NASTRUCTDEBUG
     // DEBUG - write base pair axes
     WriteAxes(basepairaxesfile, b1+1, base1.ResName(), BP.bpaxis_);
@@ -1984,7 +1988,9 @@ void Action_NAstruct::UpdateSeries() {
       UpdateTimeSeries( nframes_, BP.isBP_ );
       UpdateTimeSeries( nframes_, BP.major_ );
       UpdateTimeSeries( nframes_, BP.minor_ );
+#     ifdef NASTRUCTDEBUG
       UpdateTimeSeries( nframes_, BP.axes_nxyz_ );
+#     endif
       UpdateTimeSeries( nframes_, Bases_[BP.base1idx_].Pucker() );
       UpdateTimeSeries( nframes_, Bases_[BP.base2idx_].Pucker() );
     }

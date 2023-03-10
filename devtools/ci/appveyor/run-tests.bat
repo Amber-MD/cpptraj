@@ -18,5 +18,7 @@ if %BUILD_TYPE% equ cmake-vs (
 	rem sh -lc "cd /c/projects/cpptraj/test; make test.showerrors"
 	
 ) else (
+	set "PATH=%cd%\bin;%PATH%"
+	rem set "PATH=%PATH%;C:\projects\cpptraj\bin"
 	sh -lc "cd test; make test.showerrors" || exit /b
 )

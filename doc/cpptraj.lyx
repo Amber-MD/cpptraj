@@ -32962,8 +32962,8 @@ key "Lu2003"
 literal "true"
 
 \end_inset
-; flip Y and Z of
- complimentary base for antiparallel.
+
+; flip Y and Z of complimentary base for antiparallel.
  If 'babcock', use conventions of Babcock et al.
 \begin_inset CommandInset citation
 LatexCommand citep
@@ -32971,8 +32971,9 @@ key "Babcock94"
 literal "true"
 
 \end_inset
- ; flip Y and Z of complimentary base for antiparallel, flip
- X and Y for parallel.
+
+ ; flip Y and Z of complimentary base for antiparallel, flip X and Y for
+ parallel.
 \end_layout
 
 \begin_layout Description
@@ -33141,10 +33142,6 @@ Base pairs:
 \begin_layout Description
 <name>[minor]:X (If groovecalc simple) Minor groove width calculated between
  O4 atoms of each base.
-\end_layout
-
-\begin_layout Description
-<name>[nxyz]:X Base pair axis normal (Z) vector.
 \end_layout
 
 \begin_layout Standard
@@ -50770,6 +50767,14 @@ dplr
  only).
 \end_layout
 
+\begin_layout Standard
+DataSet Aspects for 
+\series bold
+dplr
+\series default
+ only:
+\end_layout
+
 \begin_layout Description
 [R3R3] <1/(r(0)
 \begin_inset script superscript
@@ -50789,31 +50794,27 @@ r(t)
 
 \end_inset
 
-> correlation function (
-\series bold
-dplr
-\series default
- only).
+> correlation function.
 \end_layout
 
 \begin_layout Description
-[R] (_TC_DIPOLAR_) Average magnitude (<R>).
+[R] Average magnitude (<R>).
 \end_layout
 
 \begin_layout Description
-[RRIG] (_TC_DIPOLAR_) Sqrt( <R^2> ).
+[RRIG] Sqrt( <R^2> ).
 \end_layout
 
 \begin_layout Description
-[R3] (_TC_DIPOLAR_) <1/R^3>.
+[R3] <1/R^3>.
 \end_layout
 
 \begin_layout Description
-[R6] (_TC_DIPOLAR_) <1/R^6>.
+[R6] <1/R^6>.
 \end_layout
 
 \begin_layout Description
-[Name] (_TC_DIPOLAR_) Vector name.
+[Name] Vector name.
 \end_layout
 
 \end_deeper
@@ -50837,18 +50838,10 @@ norm
 \series bold
 dplr
 \series default
- is specified, a new global data set named _TC_DIPOLAR_ will be created,
- containing extra data for each vector analyzed with a '
-\series bold
-\shape italic
-timecorr
-\series default
-\shape default
+ is specified, several additional data sets with aspects [R], [RRIG], [R3],
+ [R6], and [Name] will be created containing either 1 or 2 values depending
+ on how many vectors were specified.
  
-\series bold
-dplr
-\series default
-' command.
 \end_layout
 
 \begin_layout Subsubsection*

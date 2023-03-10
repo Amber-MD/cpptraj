@@ -18,9 +18,10 @@
 # include "DataSet_Vector_Scalar.h"
 # include "DataSet_PairwiseCache_MEM.h"
 # include "DataSet_unsignedInt.h"
-#endif
+#endif /* BINTRAJ */
 
 /// CONSTRUCTOR
+#ifdef BINTRAJ
 DataIO_NetCDF::DataIO_NetCDF() :
   DataIO(true, true, true), // Valid for 1D, 2D, 3D
   ncid_(-1)
@@ -29,6 +30,18 @@ DataIO_NetCDF::DataIO_NetCDF() :
   SetValid( DataSet::VECTOR_SCALAR );
   SetValid( DataSet::PMATRIX_MEM );
 }
+#else
+// Empty functions when no netcdf
+DataIO_NetCDF::DataIO_NetCDF() {}
+
+int DataIO_NetCDF::processReadArgs(ArgList&) { return 0; }
+
+int DataIO_NetCDF::ReadData(FileName const&, DataSetList&, std::string const&) { return 1; }
+
+int DataIO_NetCDF::processWriteArgs(ArgList&) { return 0; }
+
+int DataIO_NetCDF::WriteData(FileName const&, DataSetList const&) { return 1; }
+#endif
 
 // DataIO_NetCDF::ID_DataFormat()
 bool DataIO_NetCDF::ID_DataFormat(CpptrajFile& infile)
@@ -54,6 +67,7 @@ bool DataIO_NetCDF::ID_DataFormat(CpptrajFile& infile)
 }
 
 // -----------------------------------------------------------------------------
+#ifdef BINTRAJ
 /** Hold info for a netcdf variable. */
 class DataIO_NetCDF::NcVar {
   public:
@@ -103,6 +117,7 @@ class DataIO_NetCDF::NcVar {
     bool hasBeenRead_;        ///< True if the variable has been read in.
     std::vector<int> dimIds_; ///< Netcdf dimension ids for this var.
 };
+
 // -----------------------------------------------------------------------------
 /** Hold info for a netcdf dimension. */
 class DataIO_NetCDF::NcDim {
@@ -345,7 +360,6 @@ int DataIO_NetCDF::get_1D_var_dimlen(size_t& len, int varid, const char* desc) c
   }
   return 0;
 }
-
 /// Shortcut for getting dimension length from Dimensions_ array
 unsigned int DataIO_NetCDF::dimLen(int did) const {
   return Dimensions_[did].Size();
@@ -971,7 +985,6 @@ const
 // DataIO_NetCDF::ReadData()
 int DataIO_NetCDF::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
-# ifdef BINTRAJ
   // Check if the user specified a data set name. The default is to use the
   // file base name, optionally plus '_<index>'
   if ( dsname.find(fname.Base()) == std::string::npos ) {
@@ -1047,9 +1060,6 @@ int DataIO_NetCDF::ReadData(FileName const& fname, DataSetList& dsl, std::string
 
   nc_close( ncid_ );
   return 0;
-# else  
-  return 1;
-# endif
 }
 
 // =============================================================================
@@ -1120,7 +1130,6 @@ class DataIO_NetCDF::Set {
 };
 // -----------------------------------------------------------------------------
 
-#ifdef BINTRAJ
 /// Tell netcdf file to end define mode
 static inline int EndDefineMode(int ncid) {
   // End netcdf definitions
@@ -1898,7 +1907,6 @@ int DataIO_NetCDF::writeData_modes(DataSet const* ds) {
 
   return 0;
 }
-#endif /* BINTRAJ */
 
 /// \return true if this is a valid 1D set to write
 static inline bool isValid1dSetToWrite(DataSet const* ds) {
@@ -1911,7 +1919,6 @@ static inline bool isValid1dSetToWrite(DataSet const* ds) {
 // DataIO_NetCDF::WriteData()
 int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
 {
-# ifdef BINTRAJ
   ncid_ = -1;
   Dimensions_.clear();
   // TODO check existing file
@@ -2031,7 +2038,5 @@ int DataIO_NetCDF::WriteData(FileName const& fname, DataSetList const& dsl)
 
   nc_close(ncid_); 
   return 0;
-# else
-  return 1;
-# endif
 }
+#endif /*BINTRAJ*/
