@@ -81,6 +81,18 @@ EOF
   DoTest vtest.dat.11.save vtest.dat.11
 fi
 
+# Test min imaged vector output
+UNITNAME="Minimum imaged distance vector test."
+CheckFor netcdf maxthreads 10
+if [ $? -eq 0 ] ; then
+  cat > vector.in <<EOF
+parm ../tz2.truncoct.parm7
+trajin ../tz2.truncoct.nc 1 10
+vector v12 minimage ^1 :385 magnitude out vtest.dat.12
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest vtest.dat.12.save vtest.dat.12
+fi
 
 EndTest
   
