@@ -40,7 +40,8 @@ if %BUILD_TYPE% equ cmake-vs (
 	
 	rem path from here: https://www.appveyor.com/docs/build-environment/#mingw-msys-cygwin
 	set MINGWDIR=C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1
-	set "PATH=%PATH%;C:\projects\cpptraj\bin"
+	rem set "PATH=%PATH%;C:\projects\cpptraj\bin"
+	set "PATH=%cd%\bin;%PATH%"
 )
 
 if %BUILD_TYPE% equ cmake-mingw (
