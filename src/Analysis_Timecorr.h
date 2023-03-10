@@ -44,6 +44,10 @@ class Analysis_Timecorr : public Analysis {
     DataSet* tc_c_;
     DataSet* tc_p_;
     DataSet* tc_r3r3_;
+    DataSet* tc_r_;
+    DataSet* tc_rrig_;
+    DataSet* tc_r3_;
+    DataSet* tc_r6_;
     CpptrajFile* outfile_;         ///< Timecorr/dipolar output
     static const char* Plegend_[]; ///< <P0>, <P1>, <P2>
     CorrF_FFT pubfft_;

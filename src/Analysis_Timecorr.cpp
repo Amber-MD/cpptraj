@@ -23,6 +23,10 @@ Analysis_Timecorr::Analysis_Timecorr() :
   tc_c_(0),
   tc_p_(0),
   tc_r3r3_(0),
+  tc_r_(0),
+  tc_rrig_(0),
+  tc_r3_(0),
+  tc_r6_(0),
   outfile_(0)
 {}
 
@@ -176,6 +180,11 @@ Analysis::RetType Analysis_Timecorr::Setup(ArgList& analyzeArgs, AnalysisSetup& 
       dataout->AddDataSet( tc_c_ );
       dataout->AddDataSet( tc_r3r3_ );
     }
+    // Allocate [R], [RRIG], [R3], and [R6]
+    tc_r_ = setup.DSL().AddSet( DataSet::DOUBLE, MetaData(setname, "R"));
+    tc_rrig_ = setup.DSL().AddSet( DataSet::DOUBLE, MetaData(setname, "RRIG"));
+    tc_r3_ = setup.DSL().AddSet( DataSet::DOUBLE, MetaData(setname, "R3"));
+    tc_r6_ = setup.DSL().AddSet( DataSet::DOUBLE, MetaData(setname, "R6"));
   }
 
   // Print Status
@@ -313,6 +322,19 @@ Analysis::RetType Analysis_Timecorr::Analyze() {
   if (dplr_) {
     Normalize( tc_c_,    frame, KN );
     Normalize( tc_r3r3_, frame, 1.0 );
+  }
+  // ----- Save R, RRIG, R3, R6 ------------------
+  if (dplr_) {
+    tc_r_->Add(    0, &(Avg1.rave_) );
+    tc_rrig_->Add( 0, &(Avg1.avgr_) );
+    tc_r3_->Add(   0, &(Avg1.r3iave_) );
+    tc_r6_->Add(   0, &(Avg1.r6iave_) );
+    if (mode_ == CROSSCORR) {
+      tc_r_->Add(    1, &(Avg2.rave_) );
+      tc_rrig_->Add( 1, &(Avg2.avgr_) );
+      tc_r3_->Add(   1, &(Avg2.r3iave_) );
+      tc_r6_->Add(   1, &(Avg2.r6iave_) );
+    }
   }
   // ----- PRINT PTRAJ FORMAT --------------------
   if (outfile_ != 0) { 

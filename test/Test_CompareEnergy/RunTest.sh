@@ -5,7 +5,7 @@
 CleanFiles compare.in compare.bonds.dat compare.angles.dat compare.dih.dat
 
 TESTNAME='Compare energy tests'
-Requires maxthreads 1
+Requires netcdf maxthreads 1
 
 INPUT='-i compare.in'
 
