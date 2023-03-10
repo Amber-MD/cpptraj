@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles dist.in dist.dat ortho.dat truncoct.dat \
-           ortho.553.dat
+           ortho.553.dat truncoct.385.dat
 
 TESTNAME='Distance tests'
 Requires netcdf
@@ -44,9 +44,13 @@ if [ $? -eq 0 ] ; then
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.nc
 distance EndToEnd :1 :13 out truncoct.dat
+set RES = 385
+distance To\$RES         ^1 :\$RES out truncoct.\$RES.dat
+distance To\$RES_NoImage ^1 :\$RES out truncoct.\$RES.dat noimage
 EOF
   RunCpptraj "$UNITNAME"
   DoTest truncoct.dat.save truncoct.dat
+  DoTest truncoct.385.dat.save truncoct.385.dat
 fi
 
 EndTest
