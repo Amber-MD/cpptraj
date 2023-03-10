@@ -32962,8 +32962,8 @@ key "Lu2003"
 literal "true"
 
 \end_inset
-; flip Y and Z of
- complimentary base for antiparallel.
+
+; flip Y and Z of complimentary base for antiparallel.
  If 'babcock', use conventions of Babcock et al.
 \begin_inset CommandInset citation
 LatexCommand citep
@@ -32971,8 +32971,9 @@ key "Babcock94"
 literal "true"
 
 \end_inset
- ; flip Y and Z of complimentary base for antiparallel, flip
- X and Y for parallel.
+
+ ; flip Y and Z of complimentary base for antiparallel, flip X and Y for
+ parallel.
 \end_layout
 
 \begin_layout Description
@@ -33141,10 +33142,6 @@ Base pairs:
 \begin_layout Description
 <name>[minor]:X (If groovecalc simple) Minor groove width calculated between
  O4 atoms of each base.
-\end_layout
-
-\begin_layout Description
-<name>[nxyz]:X Base pair axis normal (Z) vector.
 \end_layout
 
 \begin_layout Standard
