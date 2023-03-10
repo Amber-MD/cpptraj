@@ -8,8 +8,8 @@ clone_folder: c:\projects\cpptraj
 environment:
   matrix:
     - BUILD_TYPE: "cmake-vs"
-    - BUILD_TYPE: "cmake-mingw"
     - BUILD_TYPE: "configure-mingw"
+#    - BUILD_TYPE: "cmake-mingw"
 
 install:
   - devtools\ci\appveyor\setup-environment.bat
