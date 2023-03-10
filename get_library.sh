@@ -56,7 +56,7 @@ if [ ! -f "$SRCTAR" ] ; then
       echo "Error: 'wget' and 'curl' not found. Cannot download $LIBNAME"
       exit 1
     fi
-    WGET="$WGET -O"
+    WGET="$WGET -L -O"
   fi
 
   $WGET $URL
