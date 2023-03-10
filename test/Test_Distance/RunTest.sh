@@ -2,7 +2,8 @@
 
 . ../MasterTest.sh
 
-CleanFiles dist.in dist.dat ortho.dat truncoct.dat
+CleanFiles dist.in dist.dat ortho.dat truncoct.dat \
+           ortho.553.dat
 
 TESTNAME='Distance tests'
 Requires netcdf
@@ -28,9 +29,12 @@ if [ $? -eq 0 ] ; then
 parm ../tz2.ortho.parm7
 trajin ../tz2.ortho.nc
 distance EndToEnd :1 :13 out ortho.dat
+distance To553         ^1 :553 out ortho.553.dat
+distance To553_noImage ^1 :553 out ortho.553.dat noimage
 EOF
   RunCpptraj "$UNITNAME"
   DoTest ortho.dat.save ortho.dat
+  DoTest ortho.553.dat.save ortho.553.dat
 fi
 
 UNITNAME='Non-orthogonal imaged distance'
