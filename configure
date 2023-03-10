@@ -500,7 +500,7 @@ BuildMPI() {
   PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS FC=$FC FFLAGS="$FFLAGS $mpi_fflags" LIBNAME=$mpi_libname \
               SRCDIR=$mpi_srcdir SRCTAR=$mpi_srctar URL=$mpi_url ./get_library.sh --rebuild $mpi_opts
   if [ $? -ne 0 ] ; then
-    Err "MPI $1 build failed."
+    Err "No MPI $1 available. To build without MPI do not specify the '-mpi' flag."
   fi
 }
 
@@ -613,7 +613,7 @@ EOF
         PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS LIBNAME='bzip2' \
             SRCDIR=$BZIP2_SRCDIR SRCTAR=$BZIP2_SRCTAR URL=$BZIP2_URL ./get_library.sh $REBUILDOPT $BZIP2_OPTS
         if [ $? -ne 0 ] ; then
-          ErrMsg "Building Bzip2 failed."
+          ErrMsg "No Bzip2 available. To build without Bzip2 specify '-nobzlib'."
           exit 1
         fi
         # Test the built Bzip2
@@ -647,7 +647,7 @@ EOF
         PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS LIBNAME='zlib' \
             SRCDIR=$ZLIB_SRCDIR SRCTAR=$ZLIB_SRCTAR URL=$ZLIB_URL ./get_library.sh $REBUILDOPT $ZLIB_OPTS
         if [ $? -ne 0 ] ; then
-          ErrMsg "Building ZLIB failed."
+          ErrMsg "No ZLIB available. To build without ZLIB specify '-nozlib'."
           exit 1
         fi
         # Test the built ZLIB
@@ -723,7 +723,7 @@ EOF
         PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS LIBNAME='hdf5' \
             SRCDIR=$HDF5_SRCDIR SRCTAR=$HDF5_SRCTAR URL=$HDF5_URL ./get_library.sh $REBUILDOPT $HDF5_OPTS
         if [ $? -ne 0 ] ; then
-          ErrMsg "Building HDF5 failed."
+          ErrMsg "No HDF5 available. To build without HDF5 specify '-nohdf5'."
           exit 1
         fi
         # Test the built HDF5
@@ -787,7 +787,7 @@ EOF
           netcdferr=$?
         fi
         if [ $netcdferr -ne 0 ] ; then
-          ErrMsg "Building NetCDF failed."
+          ErrMsg "No NetCDF available. To build without NetCDF specify '-nonetcdf'"
           exit 1
         fi
         # Test the built netcdf
@@ -973,7 +973,7 @@ EOF
         PREFIX=$CPPTRAJHOME CC="$CC" CFLAGS="$CFLAGS" FC="$FC" FFLAGS="$F77FLAGS" FFLAGS_NOOPT="$F77FLAGS_NOOPT" LIBNAME="$MATH_LIBNAME" \
             SRCDIR=$MATH_SRCDIR SRCTAR=$MATH_SRCTAR URL=$MATH_URL ./get_library.sh $rebuild_math $MATH_OPTS
         if [ $? -ne 0 ] ; then
-          ErrMsg "Building LAPACK/BLAS failed."
+          ErrMsg "No LAPACK/BLAS available. To build without LAPACK/BLAS specify '-nomathlib'."
           exit 1
         fi
         # Test the built openblas
