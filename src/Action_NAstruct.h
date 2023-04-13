@@ -21,6 +21,12 @@
   *   Westhof E, Wolberger C, Berman H, "A Standard Reference Frame for the 
   *   Description of Nucleic Acid Base-pair Geometry", J. Mol. Biol. (2001)
   *   313, 229-237.
+  * Default conventions for determining base pairing etc are those used in 
+  * 3DNA:
+  *   Lu XJ, Olson WK. "3DNA: a software package for the analysis, rebuilding
+  *   and visualization of three-dimensional nucleic acid structures".
+  *   Nucleic Acids Res. 2003 Sep 1;31(17):5108-21.
+  *   doi: 10.1093/nar/gkg680. PMID: 12930962; PMCID: PMC212791.
   */
 class Action_NAstruct: public Action {
   public:
@@ -40,8 +46,9 @@ class Action_NAstruct: public Action {
     // ----- Enumerations ------------------------
     enum HbondType { WC = 0, HOOG, OTHER };
     enum GrooveType { PP_OO = 0, HASSAN_CALLADINE };
-    /// How to find base pairs: first frame, reference structure, all frames, guess.
-    enum FindType { FIRST = 0, REFERENCE, ALL, GUESS };
+    enum BP_ConventionType { BP_3DNA = 0, BP_BABCOCK };
+    /// How to find base pairs: first frame, reference structure, all frames.
+    enum FindType { FIRST = 0, REFERENCE, ALL };
     // ----- Data Structures ---------------------
     /// Hold consecutive bases
     struct Stype {
@@ -68,12 +75,17 @@ class Action_NAstruct: public Action {
       DataSet_1D* isBP_;
       DataSet_1D* major_;
       DataSet_1D* minor_;
+#     ifdef NASTRUCTDEBUG
+      //DataSet*    axes_oxyz_; ///< Base pair axes origin vectors
+      DataSet*    axes_nxyz_; ///< Base pair axes Z (i.e. mean normal) vectors
+#     endif
       unsigned int bpidx_;
       unsigned int base1idx_; ///< Index of first base in Bases_
       unsigned int base2idx_; ///< Index of second base in Bases_
       int nhb_;               ///< Current # of hydrogen bonds in base pair.
       int n_wc_hb_;           ///< Number of WC hydrogen bonds in base pair.
-      bool isAnti_;
+      bool isAnti_;           ///< True if base Z axes are not aligned
+      bool isZ_;              ///< True if Z axes are aligned 3' to 5' instead of 5' to 3'
     };
     /// Hold a base pair step.
     struct StepType {
@@ -131,8 +143,6 @@ class Action_NAstruct: public Action {
     BPmap::iterator AddBasePair(int, NA_Base const&, int, NA_Base const&);
     /// Determine which bases are paired geometrically, set base pair data.
     int DetermineBasePairing();
-    /// Guess which bases are paired based on strand layout.
-    int GuessBasePairing(Topology const&);
     /// Calculate translational/rotational parameters between two axes.
     int calculateParameters(NA_Axis const&, NA_Axis const&, NA_Axis*, double*);
     /// Calculate helical parameters between two axes.
@@ -141,6 +151,8 @@ class Action_NAstruct: public Action {
     int GetBaseIdxStep(int, int) const;
     /// Determine individual base parameters in single strands.
     int DetermineStrandParameters(int);
+    /// Check that base Z axis points 5' to 3'
+    int axis_points_5p_to_3p(NA_Base const&) const;
     /// Determine individual base and base pair parameters.
     int DeterminePairParameters(int);
     /// Determine base pair steps and step parameters, including HC groove calc.
@@ -169,6 +181,7 @@ class Action_NAstruct: public Action {
     int nframes_;                       ///< Total number of frames calculated.
     FindType findBPmode_;               ///< How base pairs are to be found.
     GrooveType grooveCalcType_;         ///< Type of groove calc to perform
+    BP_ConventionType bpConvention_;    ///< Conventions to use when determining base pairing.
     Range resRange_;                    ///< Range to search for NA residues.
     bool printheader_;                  ///< If true, print header to naout files.
     bool seriesUpdated_;                ///< If false, check that time series data is nframes long
@@ -180,7 +193,6 @@ class Action_NAstruct: public Action {
     CpptrajFile* stepout_;              ///< Base pair step out (BPstep.<suffix>).
     CpptrajFile* helixout_;             ///< Helical parameters out (Helix.<suffix>).
     std::string dataname_;              ///< NA DataSet name (default NA).
-    std::vector<bool> BpTypes_;         ///< Hold specified base pairing types for strands
     // TODO: Replace these with new DataSet type
     DataSetList* masterDSL_;
 #   ifdef NASTRUCTDEBUG

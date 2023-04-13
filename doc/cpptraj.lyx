@@ -33032,6 +33032,10 @@ nastruct
 \end_layout
 
 \begin_layout LyX-Code
+         [bpmode {3dna|babcock}]
+\end_layout
+
+\begin_layout LyX-Code
      	[hbcut <hbcut>] [origincut <origincut>] [altona | cremer]
 \end_layout
 
@@ -33128,6 +33132,33 @@ naout
 <file>] Specify a custom nucleic acid base reference.
  One file per custom residue; multiple 'baseref' keywords may be present.
  See below for details.
+\end_layout
+
+\begin_layout Description
+[bpmode
+\begin_inset space ~
+\end_inset
+
+{3dna|babcock}] Specify axis conventions for calculating base pair parameters.
+ If '3dna' (default), use conventions of 3DNA
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Lu2003"
+literal "true"
+
+\end_inset
+
+; flip Y and Z of complimentary base for antiparallel.
+ If 'babcock', use conventions of Babcock et al.
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Babcock94"
+literal "true"
+
+\end_inset
+
+ ; flip Y and Z of complimentary base for antiparallel, flip X and Y for
+ parallel.
 \end_layout
 
 \begin_layout Description
@@ -33242,19 +33273,6 @@ ref
 
 \begin_layout Description
 [allframes] If specified determine base pairing each frame.
-\end_layout
-
-\begin_layout Description
-[guessbp
-\begin_inset space ~
-\end_inset
-
-[bptype{anti|para}]] If specified base pairing will be determined based
- on selected NA strands.
- It is assumed that consecutive strands will be base-paired and that they
- are arranged 5' to 3'.
- The specific type of base pairing between strands can be specified with
- one or more 'bptype' arguments.
 \end_layout
 
 \begin_layout Standard
@@ -33503,8 +33521,14 @@ literal "true"
 \shape italic
 cpptraj
 \shape default
- nastruct gives the exact same numbers as 3DNA.
  
+\series bold
+\emph on
+nastruct
+\series default
+\emph default
+ should give the exact same numbers as 3DNA.
+ One notable exception are parameters for G-quadruplex structures.
 \end_layout
 
 \begin_layout Standard
@@ -50928,6 +50952,14 @@ dplr
  only).
 \end_layout
 
+\begin_layout Standard
+DataSet Aspects for 
+\series bold
+dplr
+\series default
+ only:
+\end_layout
+
 \begin_layout Description
 [R3R3] <1/(r(0)
 \begin_inset script superscript
@@ -50947,31 +50979,27 @@ r(t)
 
 \end_inset
 
-> correlation function (
-\series bold
-dplr
-\series default
- only).
+> correlation function.
 \end_layout
 
 \begin_layout Description
-[R] (_TC_DIPOLAR_) Average magnitude (<R>).
+[R] Average magnitude (<R>).
 \end_layout
 
 \begin_layout Description
-[RRIG] (_TC_DIPOLAR_) Sqrt( <R^2> ).
+[RRIG] Sqrt( <R^2> ).
 \end_layout
 
 \begin_layout Description
-[R3] (_TC_DIPOLAR_) <1/R^3>.
+[R3] <1/R^3>.
 \end_layout
 
 \begin_layout Description
-[R6] (_TC_DIPOLAR_) <1/R^6>.
+[R6] <1/R^6>.
 \end_layout
 
 \begin_layout Description
-[Name] (_TC_DIPOLAR_) Vector name.
+[Name] Vector name.
 \end_layout
 
 \end_deeper
@@ -50995,18 +51023,10 @@ norm
 \series bold
 dplr
 \series default
- is specified, a new global data set named _TC_DIPOLAR_ will be created,
- containing extra data for each vector analyzed with a '
-\series bold
-\shape italic
-timecorr
-\series default
-\shape default
+ is specified, several additional data sets with aspects [R], [RRIG], [R3],
+ [R6], and [Name] will be created containing either 1 or 2 values depending
+ on how many vectors were specified.
  
-\series bold
-dplr
-\series default
-' command.
 \end_layout
 
 \begin_layout Subsubsection*

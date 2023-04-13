@@ -8,7 +8,7 @@ Build Status
 * GitHub Actions: [![GitHub Actions Status](https://github.com/Amber-MD/cpptraj/actions/workflows/merge-gate.yml/badge.svg)](https://github.com/Amber-MD/cpptraj/actions)
 * AppVeyor: [![Windows Build Status](https://ci.appveyor.com/api/projects/status/github/Amber-MD/cpptraj?branch=master&svg=true&retina=true)](https://ci.appveyor.com/project/drroe/cpptraj-aof9y/branch/master)
 * Jenkins: [![Jenkins Build Status](https://jenkins.jasonswails.com/buildStatus/icon?job=amber-github%2Fcpptraj%2Fmaster&style=plastic)](https://jenkins.jasonswails.com/job/amber-github/job/cpptraj/job/master/)
-* LGTM: [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/Amber-MD/cpptraj.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Amber-MD/cpptraj/context:cpp)
+* CodeQL: [![CodeQL](https://github.com/Amber-MD/cpptraj/workflows/CodeQL/badge.svg)](https://github.com/Amber-MD/cpptraj/actions?query=workflow%3ACodeQL)
 
 Description
 ===========
@@ -46,7 +46,7 @@ CPPTRAJ see the following publication:
 Disclaimer and Copyright
 ========================
 
-CPPTRAJ is Copyright (c) 2010-2022 Daniel R. Roe.
+CPPTRAJ is Copyright (c) 2010-2023 Daniel R. Roe.
 The terms for using, copying, modifying, and distributing CPPTRAJ are
 specified in the file LICENSE.
 
