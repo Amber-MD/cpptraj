@@ -34,6 +34,10 @@ namespace Image {
   /// Perform orthogonal imaging on given coordinates using given box boundaries
   Vec3 Ortho(Vec3 const&, Vec3 const&, Vec3 const&, Box const&);
 
+  /// Perform unwrapping in fractional space
+  void UnwrapFrac(std::vector<Vec3>&, Frame&,
+                  Matrix_3x3 const&, Matrix_3x3 const&);
+
   /// Perform unwrap of non-orthogonal cell using given reference.
   void UnwrapNonortho( Frame&, Frame&, List const&, Unit const&,
                        Matrix_3x3 const&, Matrix_3x3 const&, Vec3 const& );

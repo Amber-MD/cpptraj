@@ -1,4 +1,4 @@
-#include <cmath> // floor
+#include <cmath> // floor, round
 #include "ImageRoutines.h"
 #include "DistRoutines.h"
 #include "CpptrajStdio.h"
@@ -247,6 +247,64 @@ Vec3 Image::Ortho(Vec3 const& Coord, Vec3 const& bp, Vec3 const& bm, Box const& 
 }
 
 // -----------------------------------------------------------------------------
+void Image::UnwrapFrac(std::vector<Vec3>& previousFrac,
+                       Frame& currentFrame,
+                       Matrix_3x3 const& ucell, Matrix_3x3 const& frac)
+{
+  int idx;
+  int natom = currentFrame.Natom();
+  if (previousFrac.empty()) {
+    // Set initial frac coords
+    //mprintf("DEBUG: Initial set.\n");
+    previousFrac.reserve( natom * 3 );
+#   ifdef _OPENMP
+#   pragma omp parallel private(idx)
+    {
+#   pragma omp for
+#   endif
+    for (idx = 0; idx < natom; idx++)
+    {
+      // Convert to fractional coords
+      Vec3 xyz_cart( currentFrame.XYZ( idx ) );
+      //Vec3 xyz_frac = frac * xyz_cart;
+      previousFrac.push_back( frac * xyz_cart );
+      //previousFrac.push_back( xyz_frac[1] );
+      //previousFrac.push_back( xyz_frac[2] );
+    }
+#   ifdef _OPENMP
+    }
+#   endif
+  } else {
+    //mprintf("DEBUG: Subsequent set.\n");
+    // Update currentframe
+#   ifdef _OPENMP
+#   pragma omp parallel private(idx)
+    {
+#   pragma omp for
+#   endif
+    for (idx = 0; idx < natom; idx++)
+    {
+      // Convert to fractional coords
+      Vec3 xyz_cart( currentFrame.XYZ( idx ) );
+      Vec3 xyz_frac = frac * xyz_cart;
+      // Correct frac coords
+      Vec3 ixyz = xyz_frac - previousFrac[idx];
+      ixyz[0] = ixyz[0] - round(ixyz[0]);
+      ixyz[1] = ixyz[1] - round(ixyz[1]);
+      ixyz[2] = ixyz[2] - round(ixyz[2]);
+      xyz_frac = previousFrac[idx] + ixyz;
+      // Back to Cartesian
+      xyz_cart = ucell.TransposeMult( xyz_frac );
+      currentFrame.SetXYZ(idx, xyz_cart);
+      // Update reference frac coords
+      previousFrac[idx] = xyz_frac;
+    }
+#   ifdef _OPENMP
+    }
+#   endif
+  }
+}
+
 // Image::UnwrapNonortho()
 void Image::UnwrapNonortho(Frame& tgtIn, Frame& refIn, List const& AtomPairs,
                            Unit const& allEntities,

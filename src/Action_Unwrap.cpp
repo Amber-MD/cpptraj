@@ -132,6 +132,8 @@ Action::RetType Action_Unwrap::Setup(ActionSetup& setup) {
 
 // Action_Unwrap::DoAction()
 Action::RetType Action_Unwrap::DoAction(int frameNum, ActionFrame& frm) {
+  Image::UnwrapFrac(fracCoords_, frm.ModifyFrm(), frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell());
+/* 
   if (RefFrame_.empty()) {
     // Set reference structure if not already set
     RefFrame_ = frm.Frm();
@@ -144,6 +146,6 @@ Action::RetType Action_Unwrap::DoAction(int frameNum, ActionFrame& frm) {
   else {
     Image::UnwrapNonortho( frm.ModifyFrm(), RefFrame_, *imageList_, allEntities_, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell(), limxyz );
   }
-
+*/
   return Action::MODIFY_COORDS;
 }

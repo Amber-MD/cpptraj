@@ -27,5 +27,7 @@ class Action_Unwrap : public Action {
 #   ifdef MPI
     Parallel::Comm trajComm_;
 #   endif
+    typedef std::vector<Vec3> Varray;
+    Varray fracCoords_; ///< Hold fractional coords for last frame
 };
 #endif
