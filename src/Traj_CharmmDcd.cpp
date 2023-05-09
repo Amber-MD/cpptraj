@@ -28,7 +28,8 @@ Traj_CharmmDcd::Traj_CharmmDcd() :
   freeat_(0),
   xcoord_(0),
   ycoord_(0),
-  zcoord_(0)
+  zcoord_(0),
+  timeStep_(0)
 {}
 
 // DESTRUCTOR
@@ -365,8 +366,8 @@ int Traj_CharmmDcd::readDcdHeader() {
   } else
     boxBytes_ = 0;
   // Timestep - convert from AKMA to ps
-  float timestep = buffer.f[9] / Constants::AMBERTIME_TO_PS;
-  if (debug_>0) mprintf("\tTimestep is %f\n",timestep);
+  timeStep_ = (double)(buffer.f[9]) / Constants::AMBERTIME_TO_PS;
+  if (debug_>0) mprintf("\tTimestep is %f ps\n", timeStep_);
   // Read end size of first block, should also be 84
   if (ReadBlock(84)<0) return 1;
   // ********** Step 2 - Read title block
@@ -572,6 +573,7 @@ void Traj_CharmmDcd::WriteHelp() {
           "\tucell   : Write older (v21) format trajectory that stores unit cell params\n"
           "\t          instead of shape matrix.\n"
           "\tveltraj : Write velocity trajectory instead of coordinates.\n"
+          "\tdt      : Set trajectory time step in ps.\n"
          );
 }
 
@@ -593,6 +595,7 @@ int Traj_CharmmDcd::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
     isVel_ = true;
   else
     isVel_ = false;
+  timeStep_ = argIn.getKeyDouble("dt", 0.001);
   return 0;
 }
 
@@ -697,8 +700,8 @@ int Traj_CharmmDcd::writeDcdHeader() {
     buffer.i[4] = 1;
   // Number of fixed atoms
   buffer.i[8] = 0;
-  // Timestep
-  buffer.f[9] = 0.001;
+  // Timestep - convert from ps to AKMA
+  buffer.f[9] = (float)(timeStep_ * Constants::AMBERTIME_TO_PS);
   // Default to SHAPE
   if (charmmCellType_ == UNKNOWN)
     charmmCellType_ = SHAPE;
