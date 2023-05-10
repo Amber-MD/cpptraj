@@ -21,10 +21,11 @@ Action_Unwrap::~Action_Unwrap() {
 }
 
 void Action_Unwrap::Help() const {
-  mprintf("\t[center] [{bymol | byres | byatom}]\n"
+  mprintf("\t[center] [{byatom | byres | bymol}]\n"
           "\t[ %s ] [<mask>]\n", DataSetList::RefArgs);
   mprintf("  Reverse of 'image'; unwrap coordinates in <mask> according\n"
-          "  to a reference structure.\n");
+          "  to the first frame, or optionally a reference structure. Can\n"
+          " unwrap by atom (default), by residue, or by molecule.\n");
 }
 
 // Action_Unwrap::Init()
