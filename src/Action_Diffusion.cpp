@@ -2,7 +2,6 @@
 #include "Action_Diffusion.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // validDouble
-#include "Unwrap.h"
 #include "DataSet_1D.h" // LinearRegression
 #ifdef TIMER
 # include "Timer.h"
@@ -10,8 +9,6 @@
 #ifdef _OPENMP
 # include <omp.h>
 #endif
-
-using namespace Cpptraj;
 
 // CONSTRUCTOR
 Action_Diffusion::Action_Diffusion() :
