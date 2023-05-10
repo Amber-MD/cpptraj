@@ -35,7 +35,7 @@ namespace Image {
   Vec3 Ortho(Vec3 const&, Vec3 const&, Vec3 const&, Box const&);
 
   /// Perform unwrapping in fractional space
-  void UnwrapFrac(std::vector<Vec3>&, Frame&,
+  void UnwrapFrac(std::vector<Vec3>&, Frame&, List const&,
                   Matrix_3x3 const&, Matrix_3x3 const&);
 
   /// Perform unwrap of non-orthogonal cell using given reference.

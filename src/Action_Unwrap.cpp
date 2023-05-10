@@ -132,7 +132,7 @@ Action::RetType Action_Unwrap::Setup(ActionSetup& setup) {
 
 // Action_Unwrap::DoAction()
 Action::RetType Action_Unwrap::DoAction(int frameNum, ActionFrame& frm) {
-  Image::UnwrapFrac(fracCoords_, frm.ModifyFrm(), frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell());
+  Image::UnwrapFrac(fracCoords_, frm.ModifyFrm(), *imageList_, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell());
 /* 
   if (RefFrame_.empty()) {
     // Set reference structure if not already set

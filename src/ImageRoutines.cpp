@@ -249,23 +249,25 @@ Vec3 Image::Ortho(Vec3 const& Coord, Vec3 const& bp, Vec3 const& bm, Box const& 
 // -----------------------------------------------------------------------------
 void Image::UnwrapFrac(std::vector<Vec3>& previousFrac,
                        Frame& currentFrame,
+                       List const& AtomPairs,
                        Matrix_3x3 const& ucell, Matrix_3x3 const& frac)
 {
   int idx;
-  int natom = currentFrame.Natom();
+  int maxidx = (int)AtomPairs.nEntities();
   if (previousFrac.empty()) {
     // Set initial frac coords
     //mprintf("DEBUG: Initial set.\n");
-    previousFrac.reserve( natom * 3 );
+    previousFrac.reserve( maxidx );
 #   ifdef _OPENMP
 #   pragma omp parallel private(idx)
     {
 #   pragma omp for
 #   endif
-    for (idx = 0; idx < natom; idx++)
+    for (idx = 0; idx < maxidx; idx++)
     {
       // Convert to fractional coords
-      Vec3 xyz_cart( currentFrame.XYZ( idx ) );
+      //Vec3 xyz_cart( currentFrame.XYZ( idx ) );
+      Vec3 xyz_cart = AtomPairs.GetCoord(idx, currentFrame);
       //Vec3 xyz_frac = frac * xyz_cart;
       previousFrac.push_back( frac * xyz_cart );
       //previousFrac.push_back( xyz_frac[1] );
@@ -282,11 +284,12 @@ void Image::UnwrapFrac(std::vector<Vec3>& previousFrac,
     {
 #   pragma omp for
 #   endif
-    for (idx = 0; idx < natom; idx++)
+    for (idx = 0; idx < maxidx; idx++)
     {
       // Convert to fractional coords
-      Vec3 xyz_cart( currentFrame.XYZ( idx ) );
-      Vec3 xyz_frac = frac * xyz_cart;
+      //Vec3 xyz_cart( currentFrame.XYZ( idx ) );
+      Vec3 xyz_cart0 = AtomPairs.GetCoord(idx, currentFrame);
+      Vec3 xyz_frac = frac * xyz_cart0;
       // Correct frac coords
       Vec3 ixyz = xyz_frac - previousFrac[idx];
       ixyz[0] = ixyz[0] - round(ixyz[0]);
@@ -294,8 +297,9 @@ void Image::UnwrapFrac(std::vector<Vec3>& previousFrac,
       ixyz[2] = ixyz[2] - round(ixyz[2]);
       xyz_frac = previousFrac[idx] + ixyz;
       // Back to Cartesian
-      xyz_cart = ucell.TransposeMult( xyz_frac );
-      currentFrame.SetXYZ(idx, xyz_cart);
+      Vec3 xyz_cart1 = ucell.TransposeMult( xyz_frac );
+      //currentFrame.SetXYZ(idx, xyz_cart);
+      AtomPairs.DoTranslation( currentFrame, idx, xyz_cart1 - xyz_cart0 );
       // Update reference frac coords
       previousFrac[idx] = xyz_frac;
     }
