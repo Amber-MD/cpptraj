@@ -33,6 +33,8 @@ class Traj_CharmmDcd : public TrajectoryIO {
     float* zcoord_;          ///< Pointer to start of Z coords in master coord array
     CpptrajFile file_;       ///< Input/Output file
     double timeStep_;        ///< Time step for writing
+    int stepsBetweenFrames_; ///< # of steps between frames (write)
+    int initialStep_;        ///< Initial step (write)
 
     union headerbyte { unsigned char c[80]; int i[20]; float f[20]; };
     int ReadBlock(int);
