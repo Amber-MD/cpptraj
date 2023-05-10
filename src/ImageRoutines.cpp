@@ -257,7 +257,7 @@ void Image::UnwrapFrac(std::vector<Vec3>& previousFrac,
   if (previousFrac.empty()) {
     // Set initial frac coords
     //mprintf("DEBUG: Initial set.\n");
-    previousFrac.reserve( maxidx );
+    previousFrac.resize( maxidx );
 #   ifdef _OPENMP
 #   pragma omp parallel private(idx)
     {
@@ -269,7 +269,7 @@ void Image::UnwrapFrac(std::vector<Vec3>& previousFrac,
       //Vec3 xyz_cart( currentFrame.XYZ( idx ) );
       Vec3 xyz_cart = AtomPairs.GetCoord(idx, currentFrame);
       //Vec3 xyz_frac = frac * xyz_cart;
-      previousFrac.push_back( frac * xyz_cart );
+      previousFrac[idx] = ( frac * xyz_cart );
       //previousFrac.push_back( xyz_frac[1] );
       //previousFrac.push_back( xyz_frac[2] );
     }
