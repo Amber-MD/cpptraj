@@ -18092,6 +18092,14 @@ veltraj Write velocity trajectory instead of coordinates.
 dt Set trajectory time step in ps.
 \end_layout
 
+\begin_layout Description
+nstep # steps between frames.
+\end_layout
+
+\begin_layout Description
+step0 Initial step.
+\end_layout
+
 \end_deeper
 \begin_layout Standard
 Note that by default CPPTRAJ will try to write the symmetric shape matrix

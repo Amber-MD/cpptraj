@@ -586,7 +586,7 @@ void Traj_CharmmDcd::WriteHelp() {
           "\tveltraj : Write velocity trajectory instead of coordinates.\n"
           "\tdt      : Set trajectory time step in ps.\n"
           "\tnstep   : # steps between frames.\n"
-          "\tt0      : Initial step.\n"
+          "\tstep0   : Initial step.\n"
          );
 }
 
@@ -610,7 +610,7 @@ int Traj_CharmmDcd::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
     isVel_ = false;
   timeStep_ = argIn.getKeyDouble("dt", 0.001);
   stepsBetweenFrames_ = argIn.getKeyInt("nstep", 1);
-  initialStep_ = argIn.getKeyInt("t0", 1);
+  initialStep_ = argIn.getKeyInt("step0", 1);
   return 0;
 }
 
