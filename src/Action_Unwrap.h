@@ -23,6 +23,7 @@ class Action_Unwrap : public Action {
     Frame RefFrame_;             ///< Reference frame, updated each DoAction
     Topology* RefParm_;          ///< Reference topology
     bool center_;                ///< If true, determine distances to centers
+    bool refNeedsCalc_;          ///< If true, need to calc frac. coords of ref
     Unit allEntities_;           ///< Hold atoms to copy from target to reference
 #   ifdef MPI
     Parallel::Comm trajComm_;
