@@ -1,4 +1,4 @@
-#include <cmath> // sqrt
+#include <cmath> // sqrt, round
 #include "Action_Diffusion.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // validDouble
@@ -251,8 +251,9 @@ Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
   } else
     mprintf("\tImaging disabled.\n");
 
-  // Reserve space for the previous coordinates array
-  previous_.reserve( mask_.Nselected() * 3 );
+  // If imaging, reserve space for the previous fractional coordinates array
+  if (imageOpt_.ImagingEnabled())
+    previousFrac_.reserve( mask_.Nselected() );
 
   // If initial frame already set and current # atoms > # atoms in initial
   // frame this will probably cause an error.
@@ -310,7 +311,11 @@ Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
 
 // Action_Diffusion::DoAction()
 Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
-  // Load initial frame if necessary
+  if (imageOpt_.ImagingEnabled()) {
+    imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
+  }
+
+  // ----- Load initial frame if necessary -------
   if (initial_.empty()) {
     initial_ = frm.Frm();
 #   ifdef MPI
@@ -322,21 +327,15 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
         initial_.RecvFrame( 0, trajComm_ );
     }
 #   endif
-    for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)
-    {
-      const double* XYZ = initial_.XYZ(*atom);
-      previous_.push_back( XYZ[0] );
-      previous_.push_back( XYZ[1] );
-      previous_.push_back( XYZ[2] );
+    if (imageOpt_.ImagingEnabled()) {
+      // Imaging. Store initial fractional coordinates.
+      for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)
+      {
+        previousFrac_.push_back( frm.Frm().BoxCrd().FracCell() * Vec3( initial_.XYZ(*atom) ) );
+      }
     }
-  }
-  // Diffusion calculation
-  Vec3 boxLengths(0.0), limxyz(0.0);
-  if (imageOpt_.ImagingEnabled()) {
-    imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
-    boxLengths = frm.Frm().BoxCrd().Lengths();
-    limxyz = boxLengths / 2.0;
-  }
+  } // END initial frame load
+  // ----- Diffusion calculation -----------------
   // For averaging over selected atoms
   double average2 = 0.0;
   double avgx = 0.0;
@@ -351,40 +350,30 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
   for (imask = 0; imask < mask_.Nselected(); imask++)
   {
     int at = mask_[imask];
-    int idx = imask * 3; // Index into previous_
-    // Get current and initial coords for this atom.
+    // Get current coords for this atom.
     const double* XYZ = frm.Frm().XYZ(at);
-    double fixedXYZ[3];
-    fixedXYZ[0] = XYZ[0];
-    fixedXYZ[1] = XYZ[1];
-    fixedXYZ[2] = XYZ[2];
+    // Get initial coords for this atom
     const double* iXYZ = initial_.XYZ(at);
     // Calculate distance from initial position. 
     double delx, dely, delz;
-    if ( imageOpt_.ImagingType() == ImageOption::ORTHO ) {
-      // Orthorhombic imaging
-      // Calculate vector needed to correct XYZ for imaging.
-      Vec3 transVec = Unwrap::UnwrapVec_Ortho<double>(Vec3(XYZ), Vec3((&previous_[0])+idx), boxLengths, limxyz);
-      fixedXYZ[0] += transVec[0];
-      fixedXYZ[1] += transVec[1];
-      fixedXYZ[2] += transVec[2];
-      // Calculate the distance between this "fixed" coordinate
-      // and the reference (initial) frame.
-      delx = fixedXYZ[0] - iXYZ[0];
-      dely = fixedXYZ[1] - iXYZ[1];
-      delz = fixedXYZ[2] - iXYZ[2];
-    } else if ( imageOpt_.ImagingType() == ImageOption::NONORTHO ) {
-      // Non-orthorhombic imaging
-      // Calculate vector needed to correct XYZ for imaging.
-      Vec3 transVec = Unwrap::UnwrapVec_Nonortho<double>(Vec3(XYZ), Vec3((&previous_[0])+idx), frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell(), limxyz);
-      fixedXYZ[0] += transVec[0];
-      fixedXYZ[1] += transVec[1];
-      fixedXYZ[2] += transVec[2];
-      // Calculate the distance between this "fixed" coordinate
-      // and the reference (initial) frame.
-      delx = fixedXYZ[0] - iXYZ[0];
-      dely = fixedXYZ[1] - iXYZ[1];
-      delz = fixedXYZ[2] - iXYZ[2];
+    if ( imageOpt_.ImagingEnabled() ) {
+      // Convert current Cartesian coords to fractional coords
+      Vec3 xyz_frac = frm.Frm().BoxCrd().FracCell() * Vec3(XYZ);
+      // Correct current frac coords
+      Vec3 ixyz = xyz_frac - previousFrac_[imask];
+      ixyz[0] = ixyz[0] - round(ixyz[0]);
+      ixyz[1] = ixyz[1] - round(ixyz[1]);
+      ixyz[2] = ixyz[2] - round(ixyz[2]);
+      xyz_frac = previousFrac_[imask] + ixyz;
+      // Back to Cartesian
+      Vec3 xyz_cart1 = frm.Frm().BoxCrd().UnitCell().TransposeMult( xyz_frac );
+      // Update reference frac coords
+      previousFrac_[imask] = xyz_frac;
+      // Calculate the distance between the fixed coordinates
+      // and reference (initial) frame coordinates.
+      delx = xyz_cart1[0] - iXYZ[0];
+      dely = xyz_cart1[1] - iXYZ[1];
+      delz = xyz_cart1[2] - iXYZ[2];
     } else {
       // No imaging. Calculate distance from current position to initial position.
       delx = XYZ[0] - iXYZ[0];
@@ -415,10 +404,6 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
       fval = (float)dist2;
       atom_a_[at]->Add(frameNum, &fval);
     }
-    // Update the previous coordinate set to match the current coordinates
-    previous_[idx  ] = fixedXYZ[0];
-    previous_[idx+1] = fixedXYZ[1];
-    previous_[idx+2] = fixedXYZ[2];
   } // END loop over selected atoms
 # ifdef _OPENMP
   } // END pragma omp parallel

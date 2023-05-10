@@ -14,7 +14,7 @@ class Action_Diffusion : public Action {
     void Print();
 
     typedef DataSetList::DataListType Dlist;
-    typedef std::vector<double> Darray;
+    typedef std::vector<Vec3> Varray;
 
     inline void LoadInitial(Frame const&);
     void CalcDiffForSet(unsigned int&, Dlist const&, int, std::string const&) const;
@@ -22,7 +22,7 @@ class Action_Diffusion : public Action {
 
     ImageOption imageOpt_; ///< Used to determine if imaging should be used.
     Frame initial_;   ///< Initial frame (all atoms)
-    Darray previous_; ///< Previous coordinates (selected atoms)
+    Varray previousFrac_; ///< Previous fractional coordinates for imaging (selected atoms)
     DataSet* avg_x_;  ///< Hold average diffusion in X direction each frame
     DataSet* avg_y_;  ///< Hold average diffusion in Y direction each frame
     DataSet* avg_z_;  ///< Hold average diffusion in Z direction each frame
