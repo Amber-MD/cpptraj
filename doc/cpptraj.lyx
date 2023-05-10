@@ -18088,6 +18088,10 @@ ucell Write older (v21) format trajectory that stores unit cell params instead
 veltraj Write velocity trajectory instead of coordinates.
 \end_layout
 
+\begin_layout Description
+dt Set trajectory time step in ps.
+\end_layout
+
 \end_deeper
 \begin_layout Standard
 Note that by default CPPTRAJ will try to write the symmetric shape matrix
