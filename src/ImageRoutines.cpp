@@ -1,8 +1,7 @@
-#include <cmath> // floor
+#include <cmath> // floor, round
 #include "ImageRoutines.h"
 #include "DistRoutines.h"
 #include "CpptrajStdio.h"
-#include "Unwrap.h"
 #include "Image_List.h"
 #include "Image_List_Pair_CoM.h"
 #include "Image_List_Pair_Geom.h"
@@ -11,8 +10,6 @@
 #include "Image_List_Unit_Geom.h"
 #include "Image_List_Unit_First.h"
 #include "Image_List_Mask.h"
-
-using namespace Cpptraj;
 
 /** \return Empty list for imaging. */
 Image::List* Image::CreateImageList(Mode modeIn, bool useMass, bool center) {
@@ -247,60 +244,66 @@ Vec3 Image::Ortho(Vec3 const& Coord, Vec3 const& bp, Vec3 const& bm, Box const& 
 }
 
 // -----------------------------------------------------------------------------
-// Image::UnwrapNonortho()
-void Image::UnwrapNonortho(Frame& tgtIn, Frame& refIn, List const& AtomPairs,
-                           Unit const& allEntities,
-                           Matrix_3x3 const& ucell, Matrix_3x3 const& frac,
-                           Vec3 const& limxyz)
+void Image::UnwrapFrac(std::vector<Vec3>& previousFrac,
+                       Frame& currentFrame,
+                       List const& AtomPairs,
+                       Matrix_3x3 const& ucell, Matrix_3x3 const& frac)
 {
   int idx;
   int maxidx = (int)AtomPairs.nEntities();
-  // Loop over atom pairs
-# ifdef _OPENMP
-# pragma omp parallel private(idx)
-  {
-# pragma omp for
-# endif
-  for (idx = 0; idx < maxidx; idx++)
-  {
-    Vec3 vtgt = AtomPairs.GetCoord(idx, tgtIn);
-    Vec3 vref = AtomPairs.GetCoord(idx, refIn);
-    Vec3 boxTrans = Unwrap::UnwrapVec_Nonortho<double>(vtgt, vref, ucell, frac, limxyz);
-    AtomPairs.DoTranslation( tgtIn, idx, boxTrans );
-  } // END loop over atom pairs
-# ifdef _OPENMP
+  if (previousFrac.empty()) {
+    // Set initial frac coords
+    //mprintf("DEBUG: Initial set.\n");
+    previousFrac.resize( maxidx );
+#   ifdef _OPENMP
+#   pragma omp parallel private(idx)
+    {
+#   pragma omp for
+#   endif
+    for (idx = 0; idx < maxidx; idx++)
+    {
+      // Convert to fractional coords
+      //Vec3 xyz_cart( currentFrame.XYZ( idx ) );
+      Vec3 xyz_cart = AtomPairs.GetCoord(idx, currentFrame);
+      //Vec3 xyz_frac = frac * xyz_cart;
+      previousFrac[idx] = ( frac * xyz_cart );
+      //previousFrac.push_back( xyz_frac[1] );
+      //previousFrac.push_back( xyz_frac[2] );
+    }
+#   ifdef _OPENMP
+    }
+#   endif
+  } else {
+    //mprintf("DEBUG: Subsequent set.\n");
+    // Update currentframe
+#   ifdef _OPENMP
+#   pragma omp parallel private(idx)
+    {
+#   pragma omp for
+#   endif
+    for (idx = 0; idx < maxidx; idx++)
+    {
+      // Convert to fractional coords
+      //Vec3 xyz_cart( currentFrame.XYZ( idx ) );
+      Vec3 xyz_cart0 = AtomPairs.GetCoord(idx, currentFrame);
+      Vec3 xyz_frac = frac * xyz_cart0;
+      // Correct frac coords
+      Vec3 ixyz = xyz_frac - previousFrac[idx];
+      ixyz[0] = ixyz[0] - round(ixyz[0]);
+      ixyz[1] = ixyz[1] - round(ixyz[1]);
+      ixyz[2] = ixyz[2] - round(ixyz[2]);
+      xyz_frac = previousFrac[idx] + ixyz;
+      // Back to Cartesian
+      Vec3 xyz_cart1 = ucell.TransposeMult( xyz_frac );
+      //currentFrame.SetXYZ(idx, xyz_cart);
+      AtomPairs.DoTranslation( currentFrame, idx, xyz_cart1 - xyz_cart0 );
+      // Update reference frac coords
+      previousFrac[idx] = xyz_frac;
+    }
+#   ifdef _OPENMP
+    }
+#   endif
   }
-# endif
-  // Save new ref positions
-  refIn.CopyFrom(tgtIn, allEntities);
-}
-
-// Image::UnwrapOrtho()
-void Image::UnwrapOrtho(Frame& tgtIn, Frame& refIn, List const& AtomPairs,
-                        Unit const& allEntities, Vec3 const& limxyz)
-{
-  Vec3 boxVec = tgtIn.BoxCrd().Lengths();
-  int idx;
-  int maxidx = (int)AtomPairs.nEntities();
-  // Loop over atom pairs
-# ifdef _OPENMP
-# pragma omp parallel private(idx)
-  {
-# pragma omp for
-# endif
-  for (idx = 0; idx < maxidx; idx++)
-  {
-    Vec3 vtgt = AtomPairs.GetCoord(idx, tgtIn);
-    Vec3 vref = AtomPairs.GetCoord(idx, refIn);
-    Vec3 boxTrans = Unwrap::UnwrapVec_Ortho<double>(vtgt, vref, boxVec, limxyz);
-    // Translate atoms from first to last
-    AtomPairs.DoTranslation( tgtIn, idx, boxTrans );
-  } // END loop over atom pairs
-# ifdef _OPENMP
-  }
-# endif
-  // Save new ref positions
-  refIn.CopyFrom(tgtIn, allEntities);
 }
 
 // -----------------------------------------------------------------------------

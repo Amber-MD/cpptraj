@@ -28,7 +28,10 @@ Traj_CharmmDcd::Traj_CharmmDcd() :
   freeat_(0),
   xcoord_(0),
   ycoord_(0),
-  zcoord_(0)
+  zcoord_(0),
+  timeStep_(0),
+  stepsBetweenFrames_(0),
+  initialStep_(0)
 {}
 
 // DESTRUCTOR
@@ -296,8 +299,8 @@ int Traj_CharmmDcd::setupTrajin(FileName const& fname, Topology* trajParm)
       box.SetupFromXyzAbg( boxtmp );
     }
   }
-  // Set traj info: No velocity, temperature, or time.
-  SetCoordInfo( CoordinateInfo( box, false, false, false ) );
+  // Set traj info: No velocity or temperature, but has time.
+  SetCoordInfo( CoordinateInfo( box, false, false, true ) );
   // If there are fixed atoms read the first frame now
   // TODO: Deal with fixed atoms
   closeTraj();
@@ -365,8 +368,14 @@ int Traj_CharmmDcd::readDcdHeader() {
   } else
     boxBytes_ = 0;
   // Timestep - convert from AKMA to ps
-  float timestep = buffer.f[9] / Constants::AMBERTIME_TO_PS;
-  if (debug_>0) mprintf("\tTimestep is %f\n",timestep);
+  timeStep_ = (double)(buffer.f[9]) / Constants::AMBERTIME_TO_PS;
+  stepsBetweenFrames_ = buffer.i[2];
+  initialStep_= buffer.i[1];
+  if (debug_>0) {
+    mprintf("\tTimestep is %f ps\n", timeStep_);
+    mprintf("\tSteps between frames is %i\n", stepsBetweenFrames_);
+    mprintf("\tStarting step is %i\n", initialStep_);
+  }
   // Read end size of first block, should also be 84
   if (ReadBlock(84)<0) return 1;
   // ********** Step 2 - Read title block
@@ -548,6 +557,9 @@ int Traj_CharmmDcd::readFrame(int set, Frame& frameIn) {
     else
       frameIn.ModifyBox().AssignFromXyzAbg( box );
   }
+  // Calculate time
+  int step = initialStep_ + (set * stepsBetweenFrames_);
+  frameIn.SetTime( (double)step * timeStep_ );
   return readXYZ(frameIn.xAddress());
 }
 
@@ -572,6 +584,9 @@ void Traj_CharmmDcd::WriteHelp() {
           "\tucell   : Write older (v21) format trajectory that stores unit cell params\n"
           "\t          instead of shape matrix.\n"
           "\tveltraj : Write velocity trajectory instead of coordinates.\n"
+          "\tdt      : Set trajectory time step in ps.\n"
+          "\tnstep   : # steps between frames.\n"
+          "\tstep0   : Initial step.\n"
          );
 }
 
@@ -593,6 +608,9 @@ int Traj_CharmmDcd::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
     isVel_ = true;
   else
     isVel_ = false;
+  timeStep_ = argIn.getKeyDouble("dt", 0.001);
+  stepsBetweenFrames_ = argIn.getKeyInt("nstep", 1);
+  initialStep_ = argIn.getKeyInt("step0", 1);
   return 0;
 }
 
@@ -689,16 +707,16 @@ int Traj_CharmmDcd::writeDcdHeader() {
   //buffer.i[0] = trajParm->parmFrames;
   buffer.i[0] = 0;
   // Starting timestep
-  buffer.i[1] = 1;
+  buffer.i[1] = initialStep_;
   // Number of steps between frames
-  buffer.i[2] = 1;
+  buffer.i[2] = stepsBetweenFrames_;
   // For velocity traj only
   if (isVel_)
     buffer.i[4] = 1;
   // Number of fixed atoms
   buffer.i[8] = 0;
-  // Timestep
-  buffer.f[9] = 0.001;
+  // Timestep - convert from ps to AKMA
+  buffer.f[9] = (float)(timeStep_ * Constants::AMBERTIME_TO_PS);
   // Default to SHAPE
   if (charmmCellType_ == UNKNOWN)
     charmmCellType_ = SHAPE;

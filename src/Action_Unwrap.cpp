@@ -11,7 +11,8 @@ Action_Unwrap::Action_Unwrap() :
   imageList_(0),
   imageMode_(Image::BYATOM),
   RefParm_(0),
-  center_(false)
+  center_(false),
+  refNeedsCalc_(false)
 { }
 
 /** DESTRUCTOR */
@@ -20,10 +21,11 @@ Action_Unwrap::~Action_Unwrap() {
 }
 
 void Action_Unwrap::Help() const {
-  mprintf("\t[center] [{bymol | byres | byatom}]\n"
+  mprintf("\t[center] [{byatom | byres | bymol}]\n"
           "\t[ %s ] [<mask>]\n", DataSetList::RefArgs);
   mprintf("  Reverse of 'image'; unwrap coordinates in <mask> according\n"
-          "  to a reference structure.\n");
+          "  to the first frame, or optionally a reference structure. Can\n"
+          " unwrap by atom (default), by residue, or by molecule.\n");
 }
 
 // Action_Unwrap::Init()
@@ -55,7 +57,9 @@ Action::RetType Action_Unwrap::Init(ArgList& actionArgs, ActionInit& init, int d
     RefFrame_ = REF.Coord();
     // Get reference parm for frame
     RefParm_ = REF.ParmPtr();
-  }
+    refNeedsCalc_ = true;
+  } else
+    refNeedsCalc_ = false;
 
   // Get mask string
   maskExpression_ = actionArgs.GetMaskNext();
@@ -132,18 +136,15 @@ Action::RetType Action_Unwrap::Setup(ActionSetup& setup) {
 
 // Action_Unwrap::DoAction()
 Action::RetType Action_Unwrap::DoAction(int frameNum, ActionFrame& frm) {
-  if (RefFrame_.empty()) {
-    // Set reference structure if not already set
-    RefFrame_ = frm.Frm();
-    return Action::OK;
+  if (refNeedsCalc_) {
+    // Calculate initial fractional coords from reference frame.
+    Image::UnwrapFrac(fracCoords_, RefFrame_, *imageList_,
+                      frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell());
+    refNeedsCalc_ = false;
   }
 
-  Vec3 limxyz = frm.Frm().BoxCrd().Lengths() / 2.0; 
-  if (frm.Frm().BoxCrd().Is_X_Aligned_Ortho())
-    Image::UnwrapOrtho( frm.ModifyFrm(), RefFrame_, *imageList_, allEntities_, limxyz );
-  else {
-    Image::UnwrapNonortho( frm.ModifyFrm(), RefFrame_, *imageList_, allEntities_, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell(), limxyz );
-  }
+  Image::UnwrapFrac(fracCoords_, frm.ModifyFrm(), *imageList_,
+                    frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell());
 
   return Action::MODIFY_COORDS;
 }

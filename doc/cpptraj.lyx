@@ -18088,6 +18088,18 @@ ucell Write older (v21) format trajectory that stores unit cell params instead
 veltraj Write velocity trajectory instead of coordinates.
 \end_layout
 
+\begin_layout Description
+dt Set trajectory time step in ps.
+\end_layout
+
+\begin_layout Description
+nstep # steps between frames.
+\end_layout
+
+\begin_layout Description
+step0 Initial step.
+\end_layout
+
 \end_deeper
 \begin_layout Standard
 Note that by default CPPTRAJ will try to write the symmetric shape matrix
@@ -38950,7 +38962,7 @@ unwrap
 \end_layout
 
 \begin_layout LyX-Code
-unwrap [center] [{bymol | byres | byatom}]
+unwrap [center] [{byatom | byres | bymol}]
 \end_layout
 
 \begin_layout LyX-Code
@@ -38963,11 +38975,12 @@ unwrap [center] [{bymol | byres | byatom}]
 
 \begin_deeper
 \begin_layout Description
-[center] Unwrap by center of mass; otherwise unwrap by first atom position.
+[center] Unwrap by center of mass; otherwise unwrap by first atom position
+ (byres and bymol).
 \end_layout
 
 \begin_layout Description
-bymol Unwrap by molecule (default).
+byatom Unwrap by atom (default).
 \end_layout
 
 \begin_layout Description
@@ -38975,7 +38988,7 @@ byres Unwrap by residue.
 \end_layout
 
 \begin_layout Description
-byatom Unwrap by atom.
+bymol Unwrap by molecule.
 \end_layout
 
 \begin_layout Description
@@ -39048,28 +39061,20 @@ image
 \series default
 , but this command can also be used to place molecules side by side, for
  example, two strands of a DNA duplex.
- However, this command fails when the 
+ However, this command may fail if the 
 \shape italic
 mask
 \shape default
-ed molecules travel more than half of the box size within a single frame.
+ed entities travel more than half of the box size within a single frame.
+ Note that uwrapping by atom (the default behavior) is slower than unwrapping
+ by residue or molecule, but is usually the safer method, especially if
+ it is unknown if the original imaging was done by atom, by residue, or
+ by molecule.
 \end_layout
 
 \begin_layout Standard
-If the optional argument 
-\begin_inset Quotes eld
-\end_inset
-
-
-\family typewriter
-reference
-\family default
-
-\begin_inset Quotes erd
-\end_inset
-
- is specified, then the first frame is unwrapped according to the reference
- structure.
+If the optional reference arguments are specified, then the first frame
+ is unwrapped according to the reference structure.
  Otherwise, the first frame is not modified.
 \end_layout
 
