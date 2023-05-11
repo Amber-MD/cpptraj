@@ -68,16 +68,16 @@ int Action_AvgBox::SyncAction() {
       trajComm_.Recv( recvbuf, 27, MPI_DOUBLE, proc, 2100 );
       int j = 0;
       for (int i = 0; i < 9; i++, j+= 3)
-        avgbox_[i].Combine( Stats<double>( recvbuf[j], recvbuf[j+1], recvbuf[j+2] );
+        avgbox_[i].Combine( Stats<double>(recvbuf[j], recvbuf[j+1], recvbuf[j+2]) );
     }
   } else {
     // Children
     double sendbuf[27];
     int j = 0;
     for (int i = 0; i < 9; i++, j += 3) {
-      sendbuf[j  ] = avgbox_.nData();
-      sendbuf[j+1] = avgbox_.mean();
-      sendbuf[j+2] = avgbox_.M2();
+      sendbuf[j  ] = avgbox_[i].nData();
+      sendbuf[j+1] = avgbox_[i].mean();
+      sendbuf[j+2] = avgbox_[i].M2();
     }
     trajComm_.Send( sendbuf, 27, MPI_DOUBLE, 0, 2100 );
   }
