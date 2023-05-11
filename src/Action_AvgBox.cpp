@@ -98,6 +98,7 @@ void Action_AvgBox::Print() {
     if (thisBox.SetupFromUcell( ucell )) {
       mprintf("Warning: Box appears to be invalid.\n");
     }
+    thisBox.PrintInfo();
   } else {
     mprintf("\tNothing to average.\n");
   }

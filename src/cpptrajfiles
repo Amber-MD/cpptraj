@@ -13,6 +13,7 @@ COMMON_SOURCES= \
         Action_AtomicFluct.cpp \
         Action_AutoImage.cpp \
         Action_Average.cpp \
+        Action_AvgBox.cpp \
         Action_Bounds.cpp \
         Action_Box.cpp \
         Action_Center.cpp \
