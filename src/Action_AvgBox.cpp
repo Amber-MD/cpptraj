@@ -4,7 +4,7 @@
 
 // Action_AvgBox::Help()
 void Action_AvgBox::Help() const {
-  mprintf("\t[name <setname>] [out <file>]\n"
+  mprintf("\t[<setname>] [out <file>]\n"
           "  Calculate average box.\n");
 }
 
