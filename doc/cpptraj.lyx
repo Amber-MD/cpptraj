@@ -18456,7 +18456,7 @@ Mod
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="88" columns="3">
+<lyxtabular version="3" rows="89" columns="3">
 <features islongtable="true" longtabularalignment="center">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="65text%">
@@ -18714,6 +18714,35 @@ average
 
 \begin_layout Plain Layout
 Calculate average structure.
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+avgbox
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Calculate average unit cell (box), primarily for unwrapping NPT trajectories.
 \end_layout
 
 \end_inset
@@ -22268,12 +22297,97 @@ run
 \end_layout
 
 \begin_layout Subsection
+avgbox
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj_avgbox"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout LyX-Code
+avgbox [name <setname>] [out <file>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<setname>] Average unit cell data set name.
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<file>] File to write average unit cell data to.
+\end_layout
+
+\begin_layout Standard
+DataSets created:
+\end_layout
+
+\begin_layout Description
+<setname>[avg] Hold average unit cell as 3x3 matrix data.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Calculate the average unit cell vectors for incoming frames and store them
+ in a 3x3 matrix data set, The average unit cell is particularly useful
+ when unwrapping trajectories from NPT simulations where the box size fluctuates
+ (see the 
+\series bold
+\emph on
+unwrap
+\series default
+\emph default
+ command, 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj_unwrap"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+If writing to a .dat file, the output will look something like:
+\end_layout
+
+\begin_layout LyX-Code
+#Frame                                                                 
+                                            MyBox[avg]
+\end_layout
+
+\begin_layout LyX-Code
+       1 42.433046075  0.000000000  0.000000000 -14.144347550 40.006259905  0.00000000
+0 -14.144347550 -20.003127532 34.646438786
+\end_layout
+
+\begin_layout Standard
+Where the first 3 floating point numbers are the average X unit cell vector,
+ the next 3 floating point numbers are the average Y unit cell vector, and
+ the last 3 floating point numbers are the average Z unit cell vector.
+\end_layout
+
+\begin_layout Subsection
 avgcoord
 \end_layout
 
 \begin_layout Standard
 This command is deprecated.
  Use 'vector center' (optionally with keyword 'magnitude') instead.
+ 
 \end_layout
 
 \begin_layout Subsection
@@ -24027,7 +24141,24 @@ In order to correctly calculate diffusion molecules should take continuous
 noimage
 \series default
  keyword can be used.
- 
+ In order to remove the noise caused by box fluctuations in NPT trajectories,
+ the trajectory should be unwrapped with the average box (see the 
+\series bold
+\emph on
+unwrap
+\series default
+\emph default
+ command for an example, 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj_unwrap"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
 \end_layout
 
 \begin_layout Standard
@@ -38959,10 +39090,17 @@ outtraj Ligand.pdb pdb
 
 \begin_layout Subsection
 unwrap
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj_unwrap"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout LyX-Code
-unwrap [center] [{byatom | byres | bymol}]
+unwrap [center] [{byatom | byres | bymol}] [avgucell <avg ucell set>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -38989,6 +39127,22 @@ byres Unwrap by residue.
 
 \begin_layout Description
 bymol Unwrap by molecule.
+\end_layout
+
+\begin_layout Description
+[avgucell
+\begin_inset space ~
+\end_inset
+
+<avg
+\begin_inset space ~
+\end_inset
+
+ucell
+\begin_inset space ~
+\end_inset
+
+set>] Average unit cell data set; useful when unwrapping NPT trajectories.
 \end_layout
 
 \begin_layout Description
@@ -39044,9 +39198,11 @@ iwrap
  This command, 
 \family sans
 \series bold
+\emph on
 unwrap
 \family default
 \series default
+\emph default
  processes the trajectories to force the 
 \shape italic
 mask
@@ -39056,9 +39212,11 @@ ed molecules continuous by translating the molecules into the neighboring
  It is the opposite function of 
 \family sans
 \series bold
+\emph on
 image
 \family default
 \series default
+\emph default
 , but this command can also be used to place molecules side by side, for
  example, two strands of a DNA duplex.
  However, this command may fail if the 
@@ -39070,6 +39228,39 @@ ed entities travel more than half of the box size within a single frame.
  by residue or molecule, but is usually the safer method, especially if
  it is unknown if the original imaging was done by atom, by residue, or
  by molecule.
+\end_layout
+
+\begin_layout Standard
+To remove the 
+\begin_inset Quotes eld
+\end_inset
+
+noise
+\begin_inset Quotes erd
+\end_inset
+
+ caused by box fluctuations in NPT trajectories, the average unit cell vectors
+ describing the average box can be provided with the 
+\series bold
+avgucell
+\series default
+ keyword; see the 
+\series bold
+\emph on
+avgbox
+\series default
+\emph default
+ command (
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj_avgbox"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
 \end_layout
 
 \begin_layout Standard
@@ -39095,6 +39286,51 @@ center :1-20 mass origin
 
 \begin_layout LyX-Code
 image origin center familiar
+\end_layout
+
+\begin_layout Standard
+To unwrap an NPT trajectory by using the average unit cell (box), the calculate
+ diffusion from the unwrapped trajectory:
+\end_layout
+
+\begin_layout LyX-Code
+parm tz2.ortho.parm7
+\end_layout
+
+\begin_layout LyX-Code
+trajin tz2.ortho.nc
+\end_layout
+
+\begin_layout LyX-Code
+# Create average box data
+\end_layout
+
+\begin_layout LyX-Code
+avgbox MyBox
+\end_layout
+
+\begin_layout LyX-Code
+run
+\end_layout
+
+\begin_layout LyX-Code
+# Unwrap using average box data
+\end_layout
+
+\begin_layout LyX-Code
+unwrap bymol avgucell MyBox[avg]
+\end_layout
+
+\begin_layout LyX-Code
+# Calculate diffusion
+\end_layout
+
+\begin_layout LyX-Code
+diffusion Water :WAT@O out tz2.ortho.wato.dat
+\end_layout
+
+\begin_layout LyX-Code
+run 
 \end_layout
 
 \begin_layout Subsection
