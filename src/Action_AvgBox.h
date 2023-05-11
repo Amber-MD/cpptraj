@@ -12,7 +12,11 @@ class Action_AvgBox : public Action {
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
-    void Print() {}
+    void Print();
+#   ifdef MPI
+    int SyncAction();
+    Parallel::Comm trajComm_;
+#   endif
 
     Stats<double> avgbox_[9]; ///< For averaging box unit cell vectors
     DataSet* boxMatrix_; ///< Hold box matrix data set

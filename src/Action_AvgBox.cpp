@@ -1,5 +1,6 @@
 #include "Action_AvgBox.h"
 #include "CpptrajStdio.h"
+#include "DataSet_Mat3x3.h"
 
 // Action_AvgBox::Help()
 void Action_AvgBox::Help() const {
@@ -10,6 +11,9 @@ void Action_AvgBox::Help() const {
 // Action_AvgBox::Init()
 Action::RetType Action_AvgBox::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+# endif
   DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   std::string dsname = actionArgs.GetStringNext();
 
@@ -34,11 +38,67 @@ Action::RetType Action_AvgBox::Init(ArgList& actionArgs, ActionInit& init, int d
 // Action_AvgBox::Setup()
 Action::RetType Action_AvgBox::Setup(ActionSetup& setup)
 {
-
+  // Check box type
+  if (!setup.CoordInfo().TrajBox().HasBox()) {
+    mprintf("Error: Topology %s does not contain box information.\n",
+            setup.Top().c_str());
+    return Action::ERR;
+  }
+  return Action::OK;
 }
 
 // Action_AvgBox::DoAction()
 Action::RetType Action_AvgBox::DoAction(int frameNum, ActionFrame& frm)
 {
+  Box const& box = frm.Frm().BoxCrd();
+  Matrix_3x3 const& ucell = box.UnitCell();
+  for (unsigned int i = 0; i < 9; i++)
+    avgbox_[i].accumulate( ucell[i] );
 
+  return Action::OK;
+}
+
+# ifdef MPI
+int Action_AvgBox::SyncAction() {
+  // Transfer all processes avg to master and combine.
+  if (trajComm_.Master()) {
+    // Master
+    double recvbuf[27];
+    for (int proc = 1; proc < trajComm_.Size(); proc++) {
+      trajComm_.Recv( recvbuf, 27, MPI_DOUBLE, proc, 2100 );
+      int j = 0;
+      for (int i = 0; i < 9; i++, j+= 3)
+        avgbox_[i].Combine( Stats<double>( recvbuf[j], recvbuf[j+1], recvbuf[j+2] );
+    }
+  } else {
+    // Children
+    double sendbuf[27];
+    int j = 0;
+    for (int i = 0; i < 9; i++, j += 3) {
+      sendbuf[j  ] = avgbox_.nData();
+      sendbuf[j+1] = avgbox_.mean();
+      sendbuf[j+2] = avgbox_.M2();
+    }
+    trajComm_.Send( sendbuf, 27, MPI_DOUBLE, 0, 2100 );
+  }
+  // TODO broadcast?
+  return 0;
+}
+#endif
+
+void Action_AvgBox::Print() {
+  mprintf("    AVGBOX:\n");
+  if (avgbox_[0].nData() > 0) {
+    Matrix_3x3 ucell;
+    for (int i = 0; i < 9; i++)
+      ucell[i] = avgbox_[i].mean();
+    ucell.Print("Average Unit Cell Vectors:");
+    ((DataSet_Mat3x3*)boxMatrix_)->AddMat3x3( ucell );
+    Box thisBox;
+    if (thisBox.SetupFromUcell( ucell )) {
+      mprintf("Warning: Box appears to be invalid.\n");
+    }
+  } else {
+    mprintf("\tNothing to average.\n");
+  }
 }
