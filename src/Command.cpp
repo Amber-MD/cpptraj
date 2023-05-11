@@ -155,6 +155,7 @@
 #include "Action_DihedralRMS.h"
 #include "Action_MultiPucker.h"
 #include "Action_Keep.h"
+#include "Action_AvgBox.h"
 // ----- ANALYSIS --------------------------------------------------------------
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
@@ -307,6 +308,7 @@ void Command::Init() {
   Command::AddCmd( new Action_AtomMap(),       Cmd::ACT, 1, "atommap" );
   Command::AddCmd( new Action_AutoImage(),     Cmd::ACT, 1, "autoimage" );
   Command::AddCmd( new Action_Average(),       Cmd::ACT, 1, "average" );
+  Command::AddCmd( new Action_AvgBox(),        Cmd::ACT, 1, "avgbox" );
   Command::AddCmd( new Action_Bounds(),        Cmd::ACT, 1, "bounds" );
   Command::AddCmd( new Action_Box(),           Cmd::ACT, 1, "box" );
   Command::AddCmd( new Action_Center(),        Cmd::ACT, 1, "center" );

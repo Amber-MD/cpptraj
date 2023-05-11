@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "ImageRoutines.h"
 #include "Image_List.h"
+#include "DataSet_Mat3x3.h"
 #ifdef _OPENMP
 # include <omp.h>
 #endif
@@ -12,7 +13,8 @@ Action_Unwrap::Action_Unwrap() :
   imageMode_(Image::BYATOM),
   RefParm_(0),
   center_(false),
-  refNeedsCalc_(false)
+  refNeedsCalc_(false),
+  avgucell_(0)
 { }
 
 /** DESTRUCTOR */
@@ -21,7 +23,7 @@ Action_Unwrap::~Action_Unwrap() {
 }
 
 void Action_Unwrap::Help() const {
-  mprintf("\t[center] [{byatom | byres | bymol}]\n"
+  mprintf("\t[center] [{byatom | byres | bymol}] [avgucell <avg ucell set>]\n"
           "\t[ %s ] [<mask>]\n", DataSetList::RefArgs);
   mprintf("  Reverse of 'image'; unwrap coordinates in <mask> according\n"
           "  to the first frame, or optionally a reference structure. Can\n"
@@ -60,6 +62,29 @@ Action::RetType Action_Unwrap::Init(ArgList& actionArgs, ActionInit& init, int d
     refNeedsCalc_ = true;
   } else
     refNeedsCalc_ = false;
+  // Get average box
+  std::string avgucellstr = actionArgs.GetStringKey("avgucell");
+  if (!avgucellstr.empty()) {
+    avgucell_ = init.DSL().GetDataSet( avgucellstr );
+    if (avgucell_ == 0) {
+      mprinterr("Error: No data set selected by '%s'\n", avgucellstr.c_str());
+      return Action::ERR;
+    }
+    if (avgucell_->Type() != DataSet::MAT3X3) {
+      mprinterr("Error: Average unit cell set '%s' is not a 3x3 matrix set.\n", avgucell_->legend());
+      return Action::ERR;
+    }
+    if (avgucell_->Size() < 1) {
+      mprinterr("Error: Average unit cell set '%s' is empty.\n", avgucell_->legend());
+      return Action::ERR;
+    }
+    DataSet_Mat3x3 const& matset = static_cast<DataSet_Mat3x3 const&>( *avgucell_ );
+    Matrix_3x3 const& ucell = matset[0];
+    if (avgbox_.SetupFromUcell( ucell )) {
+      mprinterr("Error: Could not set up box from unit cell parameters in '%s'\n", avgucell_->legend());
+      return Action::ERR;
+    }
+  }
 
   // Get mask string
   maskExpression_ = actionArgs.GetMaskNext();
@@ -81,6 +106,10 @@ Action::RetType Action_Unwrap::Init(ArgList& actionArgs, ActionInit& init, int d
   else
     mprintf("\tReference is first frame.");
   mprintf("\n");
+  if (avgucell_ != 0) {
+    mprintf("\tUsing average unit cell vectors from set '%s' to remove box fluctuations.\n", avgucell_->legend());
+    avgbox_.PrintInfo();
+  }
   # ifdef _OPENMP
 # pragma omp parallel
   {
@@ -136,15 +165,18 @@ Action::RetType Action_Unwrap::Setup(ActionSetup& setup) {
 
 // Action_Unwrap::DoAction()
 Action::RetType Action_Unwrap::DoAction(int frameNum, ActionFrame& frm) {
+  Matrix_3x3 const* ucell;
+  if (avgucell_ == 0)
+    ucell = &(frm.Frm().BoxCrd().UnitCell());
+  else
+    ucell = &(avgbox_.UnitCell());
   if (refNeedsCalc_) {
     // Calculate initial fractional coords from reference frame.
-    Image::UnwrapFrac(fracCoords_, RefFrame_, *imageList_,
-                      frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell());
+    Image::UnwrapFrac(fracCoords_, RefFrame_, *imageList_, *ucell, frm.Frm().BoxCrd().FracCell());
     refNeedsCalc_ = false;
   }
 
-  Image::UnwrapFrac(fracCoords_, frm.ModifyFrm(), *imageList_,
-                    frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell());
+  Image::UnwrapFrac(fracCoords_, frm.ModifyFrm(), *imageList_, *ucell, frm.Frm().BoxCrd().FracCell());
 
   return Action::MODIFY_COORDS;
 }

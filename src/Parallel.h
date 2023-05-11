@@ -44,6 +44,7 @@
   *     2001  : GridBin::mx_
   *     2002  : GridBin::my_
   *     2003  : GridBin::mz_
+  *     2100  : Action_AvgBox average box values
   */
 class Parallel {
   public:
