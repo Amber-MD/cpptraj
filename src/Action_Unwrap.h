@@ -29,6 +29,8 @@ class Action_Unwrap : public Action {
     Parallel::Comm trajComm_;
 #   endif
     typedef std::vector<Vec3> Varray;
-    Varray fracCoords_; ///< Hold fractional coords for last frame
+    Varray fracCoords_;   ///< Hold fractional coords for previous frame
+    DataSet* avgucell_;   ///< Hold average unit cell parameters for removing box fluctuations
+    Box avgbox_;          ///< Hold average box for removing box fluctuations
 };
 #endif
