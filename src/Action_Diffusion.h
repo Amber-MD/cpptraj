@@ -52,6 +52,8 @@ class Action_Diffusion : public Action {
     DataSetList* masterDSL_;
     std::string dsname_;
     Dimension Xdim_;
+    DataSet* avgucell_;   ///< Hold average unit cell parameters for removing box fluctuations
+    Box avgbox_;          ///< Hold average box for removing box fluctuations
 #   ifdef MPI
     Parallel::Comm trajComm_;
 #   endif

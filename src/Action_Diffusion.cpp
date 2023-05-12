@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // validDouble
 #include "DataSet_1D.h" // LinearRegression
+#include "DataSet_Mat3x3.h"
 #ifdef TIMER
 # include "Timer.h"
 #endif
@@ -24,12 +25,14 @@ Action_Diffusion::Action_Diffusion() :
   debug_(0),
   outputx_(0), outputy_(0), outputz_(0), outputr_(0), outputa_(0),
   diffout_(0),
-  masterDSL_(0)
+  masterDSL_(0),
+  avgucell_(0)
 {}
 
 static inline void ShortHelp() {
   mprintf("\t[{out <filename> | separateout <suffix>}] [time <time per frame>] [noimage]\n"
-          "\t[<mask>] [<set name>] [individual] [diffout <filename>] [nocalc]\n");
+          "\t[<mask>] [<set name>] [individual] [diffout <filename>] [nocalc]\n"
+          "\t[avgucell <avg ucell set>]\n");
 }
 
 void Action_Diffusion::Help() const {
@@ -110,6 +113,29 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
     }
   }
   if (diffout_ != 0) calcDiffConst_ = true;
+  // Get average box
+  std::string avgucellstr = actionArgs.GetStringKey("avgucell");
+  if (!avgucellstr.empty()) {
+    avgucell_ = init.DSL().GetDataSet( avgucellstr );
+    if (avgucell_ == 0) {
+      mprinterr("Error: No data set selected by '%s'\n", avgucellstr.c_str());
+      return Action::ERR;
+    }
+    if (avgucell_->Type() != DataSet::MAT3X3) {
+      mprinterr("Error: Average unit cell set '%s' is not a 3x3 matrix set.\n", avgucell_->legend());
+      return Action::ERR;
+    }
+    if (avgucell_->Size() < 1) {
+      mprinterr("Error: Average unit cell set '%s' is empty.\n", avgucell_->legend());
+      return Action::ERR;
+    }
+    DataSet_Mat3x3 const& matset = static_cast<DataSet_Mat3x3 const&>( *avgucell_ );
+    Matrix_3x3 const& ucell = matset[0];
+    if (avgbox_.SetupFromUcell( ucell )) {
+      mprinterr("Error: Could not set up box from unit cell parameters in '%s'\n", avgucell_->legend());
+      return Action::ERR;
+    }
+  }
   // Add DataSets
   dsname_ = actionArgs.GetStringNext();
   if (dsname_.empty())
@@ -205,6 +231,10 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
     mprintf("\tTo calculate diffusion constant from mean squared displacement plots,\n"
             "\t  calculate the slope of MSD vs time and multiply by 10.0/2*N (where N\n"
             "\t  is # of dimensions); this will give units of 1x10^-5 cm^2/s.\n");
+  if (avgucell_ != 0) {
+    mprintf("\tUsing average unit cell vectors from set '%s' to remove box fluctuations.\n", avgucell_->legend());
+    avgbox_.PrintInfo();
+  }
 # ifdef _OPENMP
 # pragma omp parallel
   {
@@ -245,8 +275,11 @@ Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
       return Action::ERR;
     }
 #   endif
-  } else
+  } else {
     mprintf("\tImaging disabled.\n");
+    if (avgucell_ != 0)
+      mprintf("Warning: 'avgucell' specified but trajectory has no unit cell.\n");
+  }
 
   // If imaging, reserve space for the previous fractional coordinates array
   if (imageOpt_.ImagingEnabled())
@@ -308,8 +341,13 @@ Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
 
 // Action_Diffusion::DoAction()
 Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
+  Matrix_3x3 const* ucell = 0;
   if (imageOpt_.ImagingEnabled()) {
     imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
+    if (avgucell_ == 0)
+      ucell = &(frm.Frm().BoxCrd().UnitCell());
+    else
+      ucell = &(avgbox_.UnitCell());
   }
 
   // ----- Load initial frame if necessary -------
@@ -363,7 +401,7 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
       ixyz[2] = ixyz[2] - round(ixyz[2]);
       xyz_frac = previousFrac_[imask] + ixyz;
       // Back to Cartesian
-      Vec3 xyz_cart1 = frm.Frm().BoxCrd().UnitCell().TransposeMult( xyz_frac );
+      Vec3 xyz_cart1 = ucell->TransposeMult( xyz_frac );
       // Update reference frac coords
       previousFrac_[imask] = xyz_frac;
       // Calculate the distance between the fixed coordinates

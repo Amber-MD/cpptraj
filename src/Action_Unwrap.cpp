@@ -27,7 +27,7 @@ void Action_Unwrap::Help() const {
           "\t[ %s ] [<mask>]\n", DataSetList::RefArgs);
   mprintf("  Reverse of 'image'; unwrap coordinates in <mask> according\n"
           "  to the first frame, or optionally a reference structure. Can\n"
-          " unwrap by atom (default), by residue, or by molecule.\n");
+          "  unwrap by atom (default), by residue, or by molecule.\n");
 }
 
 // Action_Unwrap::Init()
