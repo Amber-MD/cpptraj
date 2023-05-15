@@ -368,6 +368,12 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
       {
         previousFrac_.push_back( frm.Frm().BoxCrd().FracCell() * Vec3( initial_.XYZ(*atom) ) );
       }
+      if (avgucell_ != 0) {
+        // If using the average unit cell, we do not want it on the 
+        // initial frame since that can shift coordinates and the
+        // first frame should have a distance of 0.
+        ucell = &(frm.Frm().BoxCrd().UnitCell());
+      }
     }
   } // END initial frame load
   // ----- Diffusion calculation -----------------
