@@ -394,7 +394,7 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
     // Get current coords for this atom.
     const double* XYZ = frm.Frm().XYZ(at);
     // Get initial coords for this atom
-    const double* iXYZ = initial_.XYZ(at);
+    const double* initialXYZ = initial_.XYZ(at);
     // Calculate distance from initial position. 
     double delx, dely, delz;
     if ( imageOpt_.ImagingEnabled() ) {
@@ -412,14 +412,14 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
       previousFrac_[imask] = xyz_frac;
       // Calculate the distance between the fixed coordinates
       // and reference (initial) frame coordinates.
-      delx = xyz_cart1[0] - iXYZ[0];
-      dely = xyz_cart1[1] - iXYZ[1];
-      delz = xyz_cart1[2] - iXYZ[2];
+      delx = xyz_cart1[0] - initialXYZ[0];
+      dely = xyz_cart1[1] - initialXYZ[1];
+      delz = xyz_cart1[2] - initialXYZ[2];
     } else {
       // No imaging. Calculate distance from current position to initial position.
-      delx = XYZ[0] - iXYZ[0];
-      dely = XYZ[1] - iXYZ[1];
-      delz = XYZ[2] - iXYZ[2];
+      delx = XYZ[0] - initialXYZ[0];
+      dely = XYZ[1] - initialXYZ[1];
+      delz = XYZ[2] - initialXYZ[2];
     }
     // Calc distances for this atom
     double distx = delx * delx;
