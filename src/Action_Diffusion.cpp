@@ -10,6 +10,9 @@
 #ifdef _OPENMP
 # include <omp.h>
 #endif
+#ifdef MPI
+#include "DataSet_double.h"
+#endif
 
 // CONSTRUCTOR
 Action_Diffusion::Action_Diffusion() :
@@ -27,6 +30,9 @@ Action_Diffusion::Action_Diffusion() :
   diffout_(0),
   masterDSL_(0),
   avgucell_(0)
+# ifdef MPI
+  ,multipleTimeOrigins_(false)
+# endif
 {}
 
 static inline void ShortHelp() {
@@ -56,6 +62,7 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
 {
 # ifdef MPI
   trajComm_ = init.TrajComm();
+  multipleTimeOrigins_ = false;
 # endif
   debug_ = debugIn;
   imageOpt_.InitImaging( !(actionArgs.hasKey("noimage")) );
@@ -130,7 +137,13 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
       return Action::ERR;
     }
     DataSet_Mat3x3 const& matset = static_cast<DataSet_Mat3x3 const&>( *avgucell_ );
+#   ifdef MPI
+    Matrix_3x3 ucell = matset[0];
+    // Broadcast the master unit cell
+    ucell.BroadcastMatrix( trajComm_ );
+#   else
     Matrix_3x3 const& ucell = matset[0];
+#   endif
     if (avgbox_.SetupFromUcell( ucell )) {
       mprinterr("Error: Could not set up box from unit cell parameters in '%s'\n", avgucell_->legend());
       return Action::ERR;
@@ -145,8 +158,10 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
   avg_z_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "Z"));
   avg_r_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "R"));
   avg_a_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "A"));
-  if (avg_x_ == 0 || avg_y_ == 0 || avg_z_ == 0 || avg_r_ == 0 || avg_a_ == 0)
+  if (avg_x_ == 0 || avg_y_ == 0 || avg_z_ == 0 || avg_r_ == 0 || avg_a_ == 0) {
+    mprinterr("Error: Could not allocate one or more average sets.\n");
     return Action::ERR;
+  }
   if (outputr_ != 0) outputr_->AddDataSet( avg_r_ );
   if (outputx_ != 0) outputx_->AddDataSet( avg_x_ );
   if (outputy_ != 0) outputy_->AddDataSet( avg_y_ );
@@ -169,7 +184,10 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
     diffCorrl_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "Corr", ts));
     if (diffConst_ == 0 || diffLabel_ == 0 || diffSlope_ == 0 || diffInter_ == 0 ||
         diffCorrl_ == 0)
+    {
+      mprinterr("Error: Could not allocate 1 or more diffusion constant sets.\n");
       return Action::ERR;
+    }
 #   ifdef MPI
     // No sync needed since these are not time series
     diffConst_->SetNeedsSync( false );
@@ -265,7 +283,7 @@ Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
   imageOpt_.SetupImaging( setup.CoordInfo().TrajBox().HasBox() );
   if (imageOpt_.ImagingEnabled()) {
     mprintf("\tImaging enabled.\n");
-#   ifdef MPI
+/*#   ifdef MPI
     if (trajComm_.Size() > 1) {
       mprinterr("Error: Imaging for 'diffusion' is not supported in parallel as there is\n"
                 "Error:   no way to correct for imaging that has taken place on preceding\n"
@@ -274,7 +292,7 @@ Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
                 "Error:   specify the 'noimage' keyword.\n");
       return Action::ERR;
     }
-#   endif
+#   endif*/
   } else {
     mprintf("\tImaging disabled.\n");
     if (avgucell_ != 0)
@@ -284,6 +302,14 @@ Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
   // If imaging, reserve space for the previous fractional coordinates array
   if (imageOpt_.ImagingEnabled())
     previousFrac_.reserve( mask_.Nselected() );
+
+# ifdef MPI
+  if (initial_.empty() && imageOpt_.ImagingEnabled() && trajComm_.Size() > 1) {
+    mprintf("Warning: Calculating diffusion in parallel with imaging turned on.\n"
+            "Warning:   Mean-squared distance calculation will be averaged starting\n"
+            "Warning:   from %i independent time origins.\n", trajComm_.Size());
+  }
+# endif
 
   // If initial frame already set and current # atoms > # atoms in initial
   // frame this will probably cause an error.
@@ -295,6 +321,12 @@ Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
 
   // Set up sets for individual atoms if necessary
   if (printIndividual_) {
+#   ifdef MPI
+    if (imageOpt_.ImagingEnabled() && trajComm_.Size() > 1) {
+      mprinterr("Error: Cannot track individual atom diffusion in parallel with imaging.\n");
+      return Action::ERR;
+    }
+#   endif
     // Create as many spots for sets as needed. All do not have to be used.
     if (mask_.back() >= (int)atom_x_.size()) {
       int newSize = mask_.back() + 1;
@@ -341,6 +373,7 @@ Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
 
 // Action_Diffusion::DoAction()
 Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
+  //rprintf("DEBUG: DIFFUSION FRAME %i\n", frameNum);
   Matrix_3x3 const* ucell = 0;
   if (imageOpt_.ImagingEnabled()) {
     imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
@@ -354,7 +387,10 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
   if (initial_.empty()) {
     initial_ = frm.Frm();
 #   ifdef MPI
-    if (trajComm_.Size() > 1) {
+    if (imageOpt_.ImagingEnabled()) {
+      // Indicate data sets will have multiple time origins
+      multipleTimeOrigins_ = true;
+    } else if (trajComm_.Size() > 1) {
       if (trajComm_.Master())
         for (int rank = 1; rank < trajComm_.Size(); ++rank)
           initial_.SendFrame( rank, trajComm_ );
@@ -464,6 +500,89 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
   avg_a_->Add(frameNum, &average2);
   return Action::OK;
 }
+
+#ifdef MPI
+void Action_Diffusion::average_multiple_time_origins(DataSet* set,
+                                                     std::vector<int> const& nvals_on_rank,
+                                                     int max)
+const
+{
+  // Sanity check - underlying set should be double
+  if (set->Type() != DataSet::DOUBLE) {
+    mprinterr("Internal Error: Action_Diffusion::average_multiple_time_origins(): Set %s is not double.\n", set->legend());
+    return;
+  }
+  DataSet_double const& dset = static_cast<DataSet_double const&>( *set );
+  // Average over all the values
+  if (trajComm_.Master()) {
+    std::vector<double> Sum_all( max, 0.0 );
+    std::vector<double> Ntotal( max, 0.0 );
+    std::vector<double> fromChild( max, 0.0 );
+    // Sum master rank
+    for (unsigned int idx = 0; idx < set->Size(); idx++) {
+      Sum_all[idx] = dset[idx];
+      Ntotal[idx] = 1.0;
+    }
+    for (int rank = 1; rank < trajComm_.Size(); rank++) {
+      // Receive from child
+      trajComm_.Recv( &fromChild[0], nvals_on_rank[rank], MPI_DOUBLE, rank, 10101 ); // FIXME tag
+      // Sum child rank
+      for (int idx = 0; idx < nvals_on_rank[rank]; idx++) {
+        Sum_all[idx] += fromChild[idx];
+        Ntotal[idx] += 1.0;
+      }
+    }
+    //for (int idx = 0; idx < max; idx++) 
+    //  mprintf("DEBUG sum=%g total=%g avg=%g\n", Sum_all[idx], Ntotal[idx], Sum_all[idx] / Ntotal[idx]);
+    // Ensure master set is big enough to hold result
+    DataSet_double& updateSet = static_cast<DataSet_double&>( *set );
+    if (dset.Size() < (unsigned int)max)
+      updateSet.Resize( max );
+    // Update master set
+    for (int idx = 0; idx < max; idx++)
+      updateSet[idx] = Sum_all[idx] / Ntotal[idx];
+  } else {
+    // Send the values to master
+    trajComm_.Send(dset.DvalPtr(), dset.Size(), MPI_DOUBLE, 0, 10101); // FIXME tag
+  }
+  // Set no longer needs to be synced
+  set->SetNeedsSync( false );
+}
+
+/** See if we need to average over multiple time origins. */
+int Action_Diffusion::SyncAction() {
+  if (multipleTimeOrigins_) {
+    mprintf("DEBUG: Multiple time origins.\n");
+    int max = 0;
+    std::vector<int> nvals_on_rank;
+    if (trajComm_.Master()) {
+      // Get how many values each rank has
+      nvals_on_rank.assign( trajComm_.Size(), 0 );
+      int nvals = (int)avg_a_->Size();
+      trajComm_.GatherMaster( &nvals, 1, MPI_INT, &nvals_on_rank[0] );
+      mprintf("DEBUG: %s array sizes:", avg_a_->legend());
+      for (std::vector<int>::const_iterator it = nvals_on_rank.begin(); it != nvals_on_rank.end(); ++it)
+        mprintf(" %i", *it);
+      mprintf("\n");
+      max = nvals;
+      for (unsigned int idx = 1; idx < nvals_on_rank.size(); idx++)
+        if (nvals_on_rank[idx] > max) max = nvals_on_rank[idx];
+      mprintf("DEBUG: Max is %i\n", max);
+
+    } else {
+      // Tell master how many values we have
+      int nvals = (int)avg_a_->Size();
+      trajComm_.GatherMaster( &nvals, 1, MPI_INT, 0);
+    }
+    average_multiple_time_origins( avg_x_, nvals_on_rank, max );
+    average_multiple_time_origins( avg_y_, nvals_on_rank, max );
+    average_multiple_time_origins( avg_z_, nvals_on_rank, max );
+    average_multiple_time_origins( avg_r_, nvals_on_rank, max );
+    average_multiple_time_origins( avg_a_, nvals_on_rank, max );
+  }
+  return 0;
+}
+#endif /* MPI */
 
 // Action_Diffusion::Print()
 void Action_Diffusion::Print() {
