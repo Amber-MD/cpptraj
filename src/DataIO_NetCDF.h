@@ -41,6 +41,8 @@ class DataIO_NetCDF : public DataIO {
 
     int readData_1D_unsignedInt(DataSet*, NcVar const&, VarArray&) const;
 
+    int readData_Mat3x3(DataSet*, NcVar const&, VarArray&) const;
+
     int readData_1D_vector(DataSet*, NcVar const&, VarArray&) const;
 
     int readData_1D_vector_scalar(DataSet*, NcVar const&, VarArray&) const;

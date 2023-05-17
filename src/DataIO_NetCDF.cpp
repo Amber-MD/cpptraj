@@ -29,6 +29,7 @@ DataIO_NetCDF::DataIO_NetCDF() :
 {
   SetValid( DataSet::MODES );
   SetValid( DataSet::VECTOR_SCALAR );
+  SetValid( DataSet::MAT3X3 );
   SetValid( DataSet::PMATRIX_MEM );
 }
 #else
@@ -422,6 +423,33 @@ int DataIO_NetCDF::readData_1D_unsignedInt(DataSet* ds, NcVar const& yVar, VarAr
     uintSet.AddElement( ival );
   }
   Vars[yVar.VID()].MarkRead();
+  return 0;
+}
+
+/** Read 3x3 matrix array set with CPPTRAJ conventions. */
+int DataIO_NetCDF::readData_Mat3x3(DataSet* ds, NcVar const& yVar, VarArray& Vars) const {
+  size_t start[3];
+  start[1] = 0;
+  start[2] = 0;
+  size_t count[3];
+  count[0] = 1;
+  count[1] = 3;
+  count[2] = 3;
+
+  unsigned int nmats = dimLen(yVar.DimId(0));
+
+  DataSet_Mat3x3& matSet = static_cast<DataSet_Mat3x3&>( *ds );
+  // Get 3x3 matrices
+  matSet.Resize( nmats );
+  for (unsigned int idx = 0; idx < nmats; idx++) {
+    start[0] = idx;
+    if (NC::CheckErr(nc_get_vara(ncid_, yVar.VID(), start, count, matSet[idx].Dptr()))) {
+      mprinterr("Error: Could not get 3x3 matrix values for %u '%s'\n", idx, matSet.legend());
+      return 1;
+    }
+  }
+  Vars[yVar.VID()].MarkRead();
+
   return 0;
 }
 
@@ -956,6 +984,9 @@ const
         return 1;
     } else if (dtype == DataSet::VECTOR_SCALAR) {
       if (readData_1D_vector_scalar(ds, *var, Vars))
+        return 1;
+    } else if (dtype == DataSet::MAT3X3) {
+      if (readData_Mat3x3(ds, *var, Vars))
         return 1;
     } else if (dtype == DataSet::STRING) {
       if (readData_1D_string(ds, *var, Vars))
