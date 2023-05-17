@@ -18,6 +18,7 @@
 # include "DataSet_Vector_Scalar.h"
 # include "DataSet_PairwiseCache_MEM.h"
 # include "DataSet_unsignedInt.h"
+# include "DataSet_Mat3x3.h"
 #endif /* BINTRAJ */
 
 /// CONSTRUCTOR
@@ -1421,6 +1422,7 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
       case DataSet::VECTOR_SCALAR :
       case DataSet::VECTOR  :
       case DataSet::DOUBLE  :
+      case DataSet::MAT3X3  :
       case DataSet::XYMESH  :          dtype = NC_DOUBLE ; break;
       case DataSet::PH      :
       case DataSet::UNSIGNED_INTEGER : // NOTE; NC_UINT is invalid for NetCDF classic (v3)
@@ -1474,6 +1476,26 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
         NcVar originVar = defineVar( DimIds, dtype, vecSet.Meta().PrintName(), "origins", vecVar.VID());
         set_vars.push_back( originVar );
       }
+    } else if (it->DS()->Type() == DataSet::MAT3X3) {
+      // ----- Array of 3x3 Matrices ---
+      DataSet_Mat3x3 const& matSet = static_cast<DataSet_Mat3x3 const&>( *(it->DS()) );
+      // Define vecxyz dimension (unit cell vectors)
+      dimIdx = defineDim("vecxyz", 3, matSet.Meta().Legend() + " vecxyz" );
+      if (dimIdx < 0) return 1;
+      NcDim vecxyzDim = Dimensions_[dimIdx];
+      // Define xyz dimension (for each unit cell vector)
+      dimIdx = defineDim("xyz", 3, matSet.Meta().Legend() + " xyz" );
+      if (dimIdx < 0) return 1;
+      NcDim xyzDim = Dimensions_[dimIdx];
+      // Define mat3x3 variable
+      std::vector<int> DimIds(3);
+      DimIds[0] = lengthDim.DID();
+      DimIds[1] = vecxyzDim.DID();
+      DimIds[2] = xyzDim.DID();
+      NcVar mat3x3Var = defineVar( DimIds, dtype, matSet.Meta().PrintName(), "mat3x3", -1);
+      if (mat3x3Var.Empty()) return 1;
+      if (AddDataSetInfo( it->DS(), ncid_, mat3x3Var.VID() )) return 1;
+      set_vars.push_back( mat3x3Var );
     } else if (it->DS()->Type() == DataSet::XYMESH) {
       // ----- XY mesh set -------------
       // Define the Y variable
@@ -1556,6 +1578,23 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
             mprinterr("Error: Could not write vector %u origin from '%s'\n", idx, vecSet.legend());
             return 1;
           }
+        }
+      }
+    } else if (dset->DS()->Type() == DataSet::MAT3X3) {
+      // ----- Array of 3x3 matrices ---
+      VarArray const& set_vars = *it;
+      DataSet_Mat3x3 const& matSet = static_cast<DataSet_Mat3x3 const&>( *(dset->DS()) );
+      size_t start[3], count[3];
+      start[1] = 0;
+      start[2] = 0;
+      count[0] = 1;
+      count[1] = 3;
+      count[2] = 3;
+      for (unsigned int idx = 0; idx < matSet.Size(); idx++) {
+        start[0] = idx;
+        if (NC::CheckErr(nc_put_vara(ncid_, set_vars[0].VID(), start, count, matSet[idx].Dptr()))) {
+          mprinterr("Error: Coult not write 3x3 matrix %u from '%s'\n", idx, matSet.legend());
+          return 1;
         }
       }
     } else if (dset->DS()->Type() == DataSet::XYMESH) {
@@ -1912,7 +1951,8 @@ int DataIO_NetCDF::writeData_modes(DataSet const* ds) {
 static inline bool isValid1dSetToWrite(DataSet const* ds) {
   return (ds->Group() == DataSet::SCALAR_1D ||
           ds->Type() == DataSet::STRING ||
-          ds->Type() == DataSet::VECTOR
+          ds->Type() == DataSet::VECTOR ||
+          ds->Type() == DataSet::MAT3X3
          );
 }
 
