@@ -345,7 +345,7 @@ Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
   // Set up sets for individual atoms if necessary
   if (printIndividual_) {
 #   ifdef MPI
-    if (imageOpt_.ImagingEnabled() && trajComm_.Size() > 1) {
+    if (multipleTimeOrigins_ && trajComm_.Size() > 1) {
       mprinterr("Error: Cannot track individual atom diffusion in parallel with imaging.\n");
       return Action::ERR;
     }
