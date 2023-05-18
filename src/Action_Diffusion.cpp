@@ -552,7 +552,7 @@ const
 /** See if we need to average over multiple time origins. */
 int Action_Diffusion::SyncAction() {
   if (multipleTimeOrigins_) {
-    mprintf("DEBUG: Multiple time origins.\n");
+    mprintf("    DIFFUSION: Calculating diffusion by averaging over %i time origins.\n", trajComm_.Size());
     int max = 0;
     std::vector<int> nvals_on_rank;
     if (trajComm_.Master()) {
@@ -560,14 +560,14 @@ int Action_Diffusion::SyncAction() {
       nvals_on_rank.assign( trajComm_.Size(), 0 );
       int nvals = (int)avg_a_->Size();
       trajComm_.GatherMaster( &nvals, 1, MPI_INT, &nvals_on_rank[0] );
-      mprintf("DEBUG: %s array sizes:", avg_a_->legend());
-      for (std::vector<int>::const_iterator it = nvals_on_rank.begin(); it != nvals_on_rank.end(); ++it)
-        mprintf(" %i", *it);
-      mprintf("\n");
+      //mprintf("DEBUG: %s array sizes:", avg_a_->legend());
+      //for (std::vector<int>::const_iterator it = nvals_on_rank.begin(); it != nvals_on_rank.end(); ++it)
+      //  mprintf(" %i", *it);
+      //mprintf("\n");
       max = nvals;
       for (unsigned int idx = 1; idx < nvals_on_rank.size(); idx++)
         if (nvals_on_rank[idx] > max) max = nvals_on_rank[idx];
-      mprintf("DEBUG: Max is %i\n", max);
+      mprintf("\tMax time is %g ps.\n", (double)(max-1) * time_);
 
     } else {
       // Tell master how many values we have
