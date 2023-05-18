@@ -5,7 +5,8 @@
 INPUT="diffusion.in"
 
 CleanFiles $INPUT diff_?.xmgr diff.dat diff.1.dat diff.2.dat diff.3.dat nw.dat \
-           WAT_O.agr DC.dat Nonortho.agr Nonortho.dat noimage.agr noimage.dat
+           WAT_O.agr DC.dat Nonortho.agr Nonortho.dat noimage.agr noimage.dat \
+           tz2.ortho.wato.dat
 TESTNAME='Diffusion tests'
 Requires netcdf maxthreads 10
 
@@ -45,6 +46,35 @@ EOF
   RunCpptraj "Diffusion test, nonorthogonal box"
   DoTest Nonortho.dat.save Nonortho.dat 
   DoTest Nonortho.agr.save Nonortho.agr
+}
+
+Test_diffusion_avgucell() {
+  UNITNAME='Diffusion with average box correction test'
+  CheckFor maxthreads 2
+  if [ $? -eq 0 ] ; then
+    TOP=../tz2.ortho.parm7
+    cat > $INPUT <<EOF
+trajin ../tz2.ortho.nc
+avgbox MyBox
+run
+
+diffusion Water :WAT@O out tz2.ortho.wato.dat avgucell MyBox[avg] allowmultipleorigins
+run
+EOF
+    RunCpptraj "$UNITNAME"
+    if [ -z "$N_THREADS" ] ; then
+      testsave=../Test_Unwrap/tz2.ortho.wato.dat.save
+    elif [ $N_THREADS -eq 1 ] ; then
+      testsave=../Test_Unwrap/tz2.ortho.wato.dat.save
+    elif [ $N_THREADS -eq 2 ] ; then
+      testsave=2procs.tz2.ortho.wato.dat.save
+    else
+      testsave=''
+    fi
+    if [ ! -z "$testsave" ] ; then
+      DoTest $testsave tz2.ortho.wato.dat
+    fi
+  fi
 }
 
 Test_diffusion_noImage() {
@@ -94,6 +124,7 @@ EOF
 }
 
 Test_diffusion_noImage
+Test_diffusion_avgucell
 UNITNAME='Imaged diffusion tests'
 CheckFor maxthreads 1
 if [ $? -eq 0 ] ; then
@@ -106,6 +137,8 @@ CheckFor notparallel
 if [ $? -eq 0 ] ; then
   Test_stfc_diffusion
 fi
+
+
 
 EndTest
 

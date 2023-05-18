@@ -60,6 +60,7 @@ Action::RetType Action_AvgBox::DoAction(int frameNum, ActionFrame& frm)
 
 # ifdef MPI
 int Action_AvgBox::SyncAction() {
+  Matrix_3x3 ucell;
   // Transfer all processes avg to master and combine.
   if (trajComm_.Master()) {
     // Master
@@ -70,6 +71,9 @@ int Action_AvgBox::SyncAction() {
       for (int i = 0; i < 9; i++, j+= 3)
         avgbox_[i].Combine( Stats<double>(recvbuf[j], recvbuf[j+1], recvbuf[j+2]) );
     }
+    for (int i = 0; i < 9; i++)
+      ucell[i] = avgbox_[i].mean();
+    ucell.Print("Average Unit Cell Vectors:");
   } else {
     // Children
     double sendbuf[27];
@@ -81,19 +85,31 @@ int Action_AvgBox::SyncAction() {
     }
     trajComm_.Send( sendbuf, 27, MPI_DOUBLE, 0, 2100 );
   }
-  // TODO broadcast?
+  // Broadcast the unit cell
+  ucell.BroadcastMatrix( trajComm_ );
+  // Add to DataSet on all processes 
+  ((DataSet_Mat3x3*)boxMatrix_)->AddMat3x3( ucell );
   return 0;
 }
 #endif
 
+/** Do averaging in serial. In parallel just print box since averaging
+  * is already done in SyncAction().
+  */
 void Action_AvgBox::Print() {
   mprintf("    AVGBOX:\n");
   if (avgbox_[0].nData() > 0) {
+#   ifdef MPI
+    // Unit cell data was already set up in SyncAction
+    DataSet_Mat3x3 const& dset = static_cast<DataSet_Mat3x3 const&>( *boxMatrix_ );
+    Matrix_3x3 const& ucell = dset[0];
+#   else
     Matrix_3x3 ucell;
     for (int i = 0; i < 9; i++)
       ucell[i] = avgbox_[i].mean();
     ucell.Print("Average Unit Cell Vectors:");
     ((DataSet_Mat3x3*)boxMatrix_)->AddMat3x3( ucell );
+#   endif
     Box thisBox;
     if (thisBox.SetupFromUcell( ucell )) {
       mprintf("Warning: Box appears to be invalid.\n");

@@ -31,7 +31,7 @@ avgbox MyBox
 run
 
 unwrap bymol avgucell MyBox[avg]
-diffusion Water :WAT@O out tz2.ortho.wato.dat
+diffusion Water :WAT@O out tz2.ortho.wato.dat noimage
 run
 EOF
 RunCpptraj "Unwrap with average box correction test"

@@ -12,6 +12,11 @@ class Action_Diffusion : public Action {
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
     void Print();
+#   ifdef MPI
+    int SyncAction();
+
+    void average_multiple_time_origins(DataSet*, std::vector<int> const&, int) const;
+#   endif
 
     typedef DataSetList::DataListType Dlist;
     typedef std::vector<Vec3> Varray;
@@ -52,8 +57,12 @@ class Action_Diffusion : public Action {
     DataSetList* masterDSL_;
     std::string dsname_;
     Dimension Xdim_;
+    DataSet* avgucell_;   ///< Hold average unit cell parameters for removing box fluctuations
+    Box avgbox_;          ///< Hold average box for removing box fluctuations
+    bool allowMultipleTimeOrigins_; ///< If true, allow multiple time origins with imaging
 #   ifdef MPI
     Parallel::Comm trajComm_;
+    bool multipleTimeOrigins_; ///< If true, parallel diffusion calc with imaging, multiple time originsi
 #   endif
 };
 #endif
