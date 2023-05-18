@@ -49,8 +49,11 @@ EOF
 }
 
 Test_diffusion_avgucell() {
-  TOP=../tz2.ortho.parm7
-  cat > $INPUT <<EOF
+  UNITNAME='Diffusion with average box correction test'
+  CheckFor maxthreads 2
+  if [ $? -eq 0 ] ; then
+    TOP=../tz2.ortho.parm7
+    cat > $INPUT <<EOF
 trajin ../tz2.ortho.nc
 avgbox MyBox
 run
@@ -58,8 +61,20 @@ run
 diffusion Water :WAT@O out tz2.ortho.wato.dat avgucell MyBox[avg]
 run
 EOF
-  RunCpptraj "Diffusion with average box correction test"
-  DoTest ../Test_Unwrap/tz2.ortho.wato.dat.save tz2.ortho.wato.dat
+    RunCpptraj "$UNITNAME"
+    if [ -z "$N_THREADS" ] ; then
+      testsave=../Test_Unwrap/tz2.ortho.wato.dat.save
+    elif [ $N_THREADS -eq 1 ] ; then
+      testsave=../Test_Unwrap/tz2.ortho.wato.dat.save
+    elif [ $N_THREADS -eq 2 ] ; then
+      testsave=2procs.tz2.ortho.wato.dat.save
+    else
+      testsave=''
+    fi
+    if [ ! -z "$testsave" ] ; then
+      DoTest $testsave tz2.ortho.wato.dat
+    fi
+  fi
 }
 
 Test_diffusion_noImage() {
@@ -109,13 +124,13 @@ EOF
 }
 
 Test_diffusion_noImage
+Test_diffusion_avgucell
 UNITNAME='Imaged diffusion tests'
 CheckFor maxthreads 1
 if [ $? -eq 0 ] ; then
   Test_diffusion_oldSyntax
   Test_diffusion_newSyntax
   Test_diffusion_nonOrtho
-  Test_diffusion_avgucell
 fi
 UNITNAME='STFC diffusion tests'
 CheckFor notparallel
