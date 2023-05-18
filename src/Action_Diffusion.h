@@ -59,6 +59,7 @@ class Action_Diffusion : public Action {
     Dimension Xdim_;
     DataSet* avgucell_;   ///< Hold average unit cell parameters for removing box fluctuations
     Box avgbox_;          ///< Hold average box for removing box fluctuations
+    bool allowMultipleTimeOrigins_; ///< If true, allow multiple time origins with imaging
 #   ifdef MPI
     Parallel::Comm trajComm_;
     bool multipleTimeOrigins_; ///< If true, parallel diffusion calc with imaging, multiple time originsi

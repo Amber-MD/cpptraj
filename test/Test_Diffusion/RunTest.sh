@@ -58,7 +58,7 @@ trajin ../tz2.ortho.nc
 avgbox MyBox
 run
 
-diffusion Water :WAT@O out tz2.ortho.wato.dat avgucell MyBox[avg]
+diffusion Water :WAT@O out tz2.ortho.wato.dat avgucell MyBox[avg] allowmultipleorigins
 run
 EOF
     RunCpptraj "$UNITNAME"

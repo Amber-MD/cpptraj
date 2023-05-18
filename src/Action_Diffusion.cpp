@@ -29,7 +29,8 @@ Action_Diffusion::Action_Diffusion() :
   outputx_(0), outputy_(0), outputz_(0), outputr_(0), outputa_(0),
   diffout_(0),
   masterDSL_(0),
-  avgucell_(0)
+  avgucell_(0),
+  allowMultipleTimeOrigins_(false)
 # ifdef MPI
   ,multipleTimeOrigins_(false)
 # endif
@@ -39,6 +40,9 @@ static inline void ShortHelp() {
   mprintf("\t[{out <filename> | separateout <suffix>}] [time <time per frame>] [noimage]\n"
           "\t[<mask>] [<set name>] [individual] [diffout <filename>] [nocalc]\n"
           "\t[avgucell <avg ucell set>]\n");
+#ifdef MPI
+  mprintf("\t[allowmultipleorigins]\n");
+#endif
 }
 
 void Action_Diffusion::Help() const {
@@ -120,6 +124,7 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
     }
   }
   if (diffout_ != 0) calcDiffConst_ = true;
+  allowMultipleTimeOrigins_ = actionArgs.hasKey("allowmultipleorigins");
   // Get average box
   std::string avgucellstr = actionArgs.GetStringKey("avgucell");
   if (!avgucellstr.empty()) {
@@ -253,6 +258,17 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
     mprintf("\tUsing average unit cell vectors from set '%s' to remove box fluctuations.\n", avgucell_->legend());
     avgbox_.PrintInfo();
   }
+  if (allowMultipleTimeOrigins_) {
+# ifdef MPI
+    if (imageOpt_.UseImage()) {
+      if (trajComm_.Size() > 1)
+        mprintf("\tTrajectories that require unit cell imaging will be averaged over %i time origins.\n", trajComm_.Size());
+    } else
+      mprintf("\tImaging is disabled, ignoring 'allowmultipleorigins'\n");
+# else
+    mprintf("\tThe 'allowmultipleorigins' keyword is only relevant in parallel, ignoring.\n");
+# endif /* MPI */
+  }
 # ifdef _OPENMP
 # pragma omp parallel
   {
@@ -283,16 +299,23 @@ Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
   imageOpt_.SetupImaging( setup.CoordInfo().TrajBox().HasBox() );
   if (imageOpt_.ImagingEnabled()) {
     mprintf("\tImaging enabled.\n");
-/*#   ifdef MPI
+#   ifdef MPI
     if (trajComm_.Size() > 1) {
-      mprinterr("Error: Imaging for 'diffusion' is not supported in parallel as there is\n"
-                "Error:   no way to correct for imaging that has taken place on preceding\n"
-                "Error:   MPI ranks. To use 'diffusion' in parallel, the trajectory should\n"
-                "Error:   be unwrapped. If this trajectory has already been unwrapped please\n"
-                "Error:   specify the 'noimage' keyword.\n");
-      return Action::ERR;
+      if (!allowMultipleTimeOrigins_) {
+        mprinterr("Error: Imaging for 'diffusion' is not supported in parallel as there is\n"
+                  "Error:   no way to correct for imaging that has taken place on preceding\n"
+                  "Error:   MPI ranks. To use 'diffusion' in parallel, the trajectory should\n"
+                  "Error:   be unwrapped. If this trajectory has already been unwrapped please\n"
+                  "Error:   specify the 'noimage' keyword.\n");
+        mprinterr("Error: To calculate diffusion in parallel by dividing the trajectory among\n"
+                  "Error:   multiple time origins, specify the 'allowmultipleorigins' keyword.\n");
+        return Action::ERR;
+      } else {
+        // Indicate data sets will have multiple time origins
+        multipleTimeOrigins_ = true;
+      }
     }
-#   endif*/
+#   endif
   } else {
     mprintf("\tImaging disabled.\n");
     if (avgucell_ != 0)
@@ -304,7 +327,7 @@ Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
     previousFrac_.reserve( mask_.Nselected() );
 
 # ifdef MPI
-  if (initial_.empty() && imageOpt_.ImagingEnabled() && trajComm_.Size() > 1) {
+  if (multipleTimeOrigins_ && initial_.empty()) {
     mprintf("Warning: Calculating diffusion in parallel with imaging turned on.\n"
             "Warning:   Mean-squared distance calculation will be averaged starting\n"
             "Warning:   from %i independent time origins.\n", trajComm_.Size());
@@ -388,8 +411,7 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
     initial_ = frm.Frm();
 #   ifdef MPI
     if (imageOpt_.ImagingEnabled()) {
-      // Indicate data sets will have multiple time origins
-      multipleTimeOrigins_ = true;
+
     } else if (trajComm_.Size() > 1) {
       if (trajComm_.Master())
         for (int rank = 1; rank < trajComm_.Size(); ++rank)
