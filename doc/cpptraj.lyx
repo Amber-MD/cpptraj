@@ -24005,6 +24005,14 @@ diffusion [{out <filename> | separateout <suffix>}] [time <time per frame>]
 
 \end_layout
 
+\begin_layout LyX-Code
+          [avgucell <avg ucell set>]
+\end_layout
+
+\begin_layout LyX-Code
+          [allowmultipleorigins]
+\end_layout
+
 \begin_deeper
 \begin_layout Description
 [out
@@ -24068,6 +24076,18 @@ name>] MSD data set name.
 [nocalc] Do not calculate diffusion constants.
 \end_layout
 
+\begin_layout Description
+[avgucell] Remove periodic box fluctuations from imaged NPT trajectories
+ using average unit cell vectors.
+\end_layout
+
+\begin_layout Description
+[allowmultipleorigins] (MPI only).
+ For imaged trajectories in parallel, calculate diffusion by averaging over
+ multiple time origins.
+ Should be used with caution.
+\end_layout
+
 \begin_layout Standard
 DataSet Aspects:
 \end_layout
@@ -24112,10 +24132,50 @@ DataSet Aspects:
 [Corr] Linear regression correlation coefficients.
 \end_layout
 
+\begin_layout Description
+[aX]:<atomN> (
+\series bold
+individual
+\series default
+ only) Atom <N> MSD in the X direction.
+\end_layout
+
+\begin_layout Description
+[aY]:<atomN> (
+\series bold
+individual
+\series default
+ only) Atom <N> MSD in the Y direction.
+\end_layout
+
+\begin_layout Description
+[aZ]:<atomN> (
+\series bold
+individual
+\series default
+ only) Atom <N> MSD in the Z direction.
+\end_layout
+
+\begin_layout Description
+[aR]:<atomN> (
+\series bold
+individual
+\series default
+ only) Atom <N> overall MSD.
+\end_layout
+
+\begin_layout Description
+[aA]:<atomN> (
+\series bold
+individual
+\series default
+ only) Atom <N> overall displacement.
+\end_layout
+
 \end_deeper
 \begin_layout Standard
-Compute mean square displacement (MSD) plots (using distance traveled from
- initial position) for the atoms in 
+Compute mean-squared displacement (MSD, in Angstroms squared) plots (using
+ distance traveled from initial position) for the atoms in 
 \series bold
 <mask>
 \series default
@@ -24141,14 +24201,43 @@ In order to correctly calculate diffusion molecules should take continuous
 noimage
 \series default
  keyword can be used.
- In order to remove the noise caused by box fluctuations in NPT trajectories,
- the trajectory should be unwrapped with the average box (see the 
+ To remove the 
+\begin_inset Quotes eld
+\end_inset
+
+noise
+\begin_inset Quotes erd
+\end_inset
+
+ caused by box fluctuations in NPT trajectories, the average unit cell vectors
+ describing the average box can be provided with the 
+\series bold
+avgucell
+\series default
+ keyword; see the 
+\series bold
+\emph on
+avgbox
+\series default
+\emph default
+ command (
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj_avgbox"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
+ Alternatively, the trajectory can be unwrapped prior using the 
 \series bold
 \emph on
 unwrap
 \series default
 \emph default
- command for an example, 
+ command, 
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj_unwrap"
@@ -24158,7 +24247,45 @@ noprefix "false"
 
 \end_inset
 
-).
+.
+ If the trajectory is unwrapped, the 
+\series bold
+noimage
+\series default
+ keyword should be specified.
+\end_layout
+
+\begin_layout Standard
+Note that in parallel, imaging becomes difficult because there is no way
+ to correct for any wrapping that has been done on preceding MPI ranks.
+ Therefore this command will not work on imaged trajectories in parallel
+ by default.
+ There are two workarounds.
+ 1) Unwrap the trajectory prior to 
+\series bold
+\emph on
+diffusion
+\series default
+\emph default
+ with the 
+\series bold
+\emph on
+unwrap
+\series default
+\emph default
+ command, then run the diffusion calculation with the 
+\series bold
+noimage
+\series default
+ keyword (this is the recommended way), or 2) specify the 
+\series bold
+allowmultipleorigins
+\series default
+ keyword to calculate MSD separately on each MPI rank, then averaging over
+ all MSD plots.
+ This means the maximum length of any given MSD plot will be <# frames>
+ / <# MPI ranks>, and the calculated diffusion constants will not be as
+ accurate.
 \end_layout
 
 \begin_layout Standard
