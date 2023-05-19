@@ -9,6 +9,8 @@ class Exec_ParseTiming : public Exec {
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_ParseTiming(); }
     RetType Execute(CpptrajState&, ArgList&);
   private:
+    class RunTiming;
+
     int read_cpptraj_output(std::string const&);
 };
 #endif
