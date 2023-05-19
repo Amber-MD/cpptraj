@@ -32,8 +32,24 @@ class Exec_ParseTiming::RunTiming {
     void SetNprocs(int n) { nprocs_ = n; }
     void SetNthreads(int n) { nthreads_ = n; }
     void SetTotalTime(double t) { t_total_ = t; }
+    void AddTrajReadTime(double t) { t_traj_read_.push_back( t ); }
+    void AddActionFrameTime(double t) { t_action_frame_.push_back( t ); }
 
     double TotalTime() const { return t_total_; }
+
+    double TrajReadTime() const {
+      double t = 0;
+      for (Darray::const_iterator it = t_traj_read_.begin(); it != t_traj_read_.end(); ++it)
+        if (*it > t) t = *it;
+      return t;
+    }
+
+    double ActionFrameTime() const {
+      double t = 0;
+      for (Darray::const_iterator it = t_action_frame_.begin(); it != t_action_frame_.end(); ++it)
+        if (*it > t) t = *it;
+      return t;
+    }
 
     int TotalCores() const {
       if (isMPI_ && isOpenMP_)
@@ -45,6 +61,8 @@ class Exec_ParseTiming::RunTiming {
       else
         return 1;
     }
+
+    bool HasDetailedTiming() const { return !(t_traj_read_.empty() || t_action_frame_.empty()); }
 
     std::string const& Filename() const { return filename_; }
 
@@ -66,6 +84,11 @@ class Exec_ParseTiming::RunTiming {
       mprintf("%s Version %i.%i.%i mpi=%i omp=%i cuda=%i nprocs=%i nthreads=%i ncores=%i t_total=%g\n",
               filename_.c_str(), version_major_, version_minor_, version_revision_,
               (int)isMPI_, (int)isOpenMP_, (int)isCUDA_, nprocs_, nthreads_, TotalCores(), t_total_);
+      for (Darray::const_iterator it = t_traj_read_.begin(); it != t_traj_read_.end(); ++it)
+        mprintf(" %g", *it);
+      for (Darray::const_iterator it = t_action_frame_.begin(); it != t_action_frame_.end(); ++it)
+        mprintf(" %g", *it);
+      mprintf("\n");
     }
 
     bool IsBad() {
@@ -109,6 +132,8 @@ class Exec_ParseTiming::RunTiming {
     int nprocs_;
     int nthreads_;
     double t_total_;
+    Darray t_traj_read_;
+    Darray t_action_frame_;
     std::string errMsg_;
 };
 
@@ -148,9 +173,14 @@ Exec_ParseTiming::RunTiming Exec_ParseTiming::read_cpptraj_output(std::string co
       }
     } else if (ptr[0] == 'T') {
       if (strncmp(ptr, "TIME:", 5) == 0) {
-        ArgList timeArg( ptr+5, " " );
-        if (timeArg.Nargs() == 5 && timeArg[0] == "Total" && timeArg[1] == "execution")
+        ArgList timeArg( ptr, " \t" );
+        //timeArg.PrintDebug();
+        if (timeArg.Nargs() == 6 && timeArg[1] == "Total" && timeArg[2] == "execution")
           thisRun.SetTotalTime( timeArg.getKeyDouble("time:", -1) );
+        else if (timeArg.Nargs() > 3 && timeArg[1] == "Trajectory" && timeArg[2] == "read:")
+          thisRun.AddTrajReadTime( timeArg.getNextDouble(-1) );
+        else if (timeArg.Nargs() > 4 && timeArg[1] == "Action" && timeArg[2] == "frame" && timeArg[3] == "processing:")
+          thisRun.AddActionFrameTime( timeArg.getNextDouble(-1) );
       } // END TIME:
     }
     ptr = infile.Line();
@@ -163,6 +193,7 @@ Exec_ParseTiming::RunTiming Exec_ParseTiming::read_cpptraj_output(std::string co
 void Exec_ParseTiming::Help() const
 {
   mprintf("\t<filename args> ... [sortby {time|cores}] [out <file>] [name <setname>]\n"
+          "\t[type {trajread|actframe}]\n"
           "  Parse cpptraj output for timing data.\n"
          );
 }
@@ -194,7 +225,7 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
 
   // Which variables to plot
   enum Xtype { X_INDEX=0, X_CORES };
-  enum Ytype { Y_T_TOTAL=0 };
+  enum Ytype { Y_T_TOTAL=0, Y_T_TRAJREAD, Y_T_ACTFRAME };
 
   Xtype xvar;
   Ytype yvar;
@@ -209,7 +240,17 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
     Xdim.SetLabel("Run");
   }
 
-  yvar = Y_T_TOTAL;
+  bool needsDetailedTiming = false;
+  std::string typearg = argIn.GetStringKey("type");
+  if (typearg.empty())
+    yvar = Y_T_TOTAL;
+  else if (typearg == "trajread") {
+    yvar = Y_T_TRAJREAD;
+    needsDetailedTiming = true;
+  } else if (typearg == "actframe") {
+    yvar = Y_T_ACTFRAME;
+    needsDetailedTiming = true;
+  }
   //Ydim.SetLabel("TotalTime");
 
   // Only file name args below here
@@ -269,6 +310,12 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
   nameSet->SetDim(Dimension::X, Xdim);
 
   for (RunArray::const_iterator it = Runs.begin(); it != Runs.end(); ++it) {
+    if (needsDetailedTiming && !it->HasDetailedTiming()) {
+      mprinterr("Error: Detailed timing requested but output %s does not contain detailed timing.\n",
+                it->Filename().c_str());
+      it->Print();
+      return CpptrajState::ERR;
+    }
     double X = 0;
     switch (xvar) {
       case X_INDEX : X = (double)(it - Runs.begin()); break;
@@ -277,6 +324,8 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
     double Y = 0;
     switch (yvar) {
       case Y_T_TOTAL : Y = it->TotalTime(); break;
+      case Y_T_TRAJREAD : Y = it->TrajReadTime(); break;
+      case Y_T_ACTFRAME : Y = it->ActionFrameTime(); break;
     }
     outset.AddXY(X, Y);
     nameSet->Add(it - Runs.begin(), it->Name().c_str());
