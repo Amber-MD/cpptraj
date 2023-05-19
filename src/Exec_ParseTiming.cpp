@@ -68,13 +68,17 @@ class Exec_ParseTiming::RunTiming {
               (int)isMPI_, (int)isOpenMP_, (int)isCUDA_, nprocs_, nthreads_, TotalCores(), t_total_);
     }
 
-    bool IsBad() const {
-      if (filename_.empty()) { mprinterr("Error: Empty run name.\n"); return true; }
-      if (t_total_ < 0) { mprinterr("Error: Empty run time.\n"); return true; }
-      if (isMPI_ && nprocs_ < 1) { mprinterr("Error: MPI && procs < 1.\n"); return true; }
-      if (isOpenMP_ && nthreads_ < 1) { mprinterr("Error: OpenMP && threads < 1.\n"); return true; }
+    bool IsBad() {
+      errMsg_.clear();
+      if (filename_.empty()) { errMsg_.assign("Empty run name.\n"); return true; }
+      if (t_total_ < 0) { errMsg_.assign("Empty run time.\n"); return true; }
+      if (isMPI_ && nprocs_ < 1) { errMsg_.assign("MPI && procs < 1.\n"); return true; }
+      if (isOpenMP_ && nthreads_ < 1) { errMsg_.assign("OpenMP && threads < 1.\n"); return true; }
       return false;
     }
+
+    /** \return last error message set by IsBad() */
+    std::string const& ErrMsg() const { return errMsg_; }
 
     /** Sort by total time, longest first. */
     struct sort_by_total_time {
@@ -105,6 +109,7 @@ class Exec_ParseTiming::RunTiming {
     int nprocs_;
     int nthreads_;
     double t_total_;
+    std::string errMsg_;
 };
 
 /** Execute command. */
@@ -227,10 +232,12 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
   Runs.reserve( FileNameList.size() );
   for (File::NameArray::const_iterator it = FileNameList.begin(); it != FileNameList.end(); ++it) {
     //mprintf("\t%s\n", it->full());
-    Runs.push_back( read_cpptraj_output( it->Full() ) );
-    if (Runs.back().IsBad()) {
-      mprinterr("Error: Problem reading cpptraj output from '%s'\n", it->full());
-      return CpptrajState::ERR;
+    RunTiming thisRun = read_cpptraj_output( it->Full() );
+    if (thisRun.IsBad()) {
+      mprintf("Warning: Problem reading cpptraj output from '%s' : %s\n", it->full(), thisRun.ErrMsg().c_str());
+      //return CpptrajState::ERR;
+    } else {
+      Runs.push_back( thisRun );
     }
     //Runs.back().Print();
     //mprintf("\n");
