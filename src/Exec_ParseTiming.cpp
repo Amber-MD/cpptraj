@@ -3,6 +3,7 @@
 #include "FileName.h"
 #include "BufferedLine.h"
 #include <cstring> // strncmp
+#include <algorithm> // std::sort
 
 /** CONSTRUCTOR */
 Exec_ParseTiming::Exec_ParseTiming() :
@@ -30,6 +31,8 @@ class Exec_ParseTiming::RunTiming {
     void SetNthreads(int n) { nthreads_ = n; }
     void SetTotalTime(double t) { t_total_ = t; }
 
+    double TotalTime() const { return t_total_; }
+
     void Print() const {
       mprintf("%s Version %i.%i.%i mpi=%i omp=%i cuda=%i nprocs=%i nthreads=%i t_total=%g\n",
               name_.c_str(), version_major_, version_minor_, version_revision_,
@@ -41,6 +44,14 @@ class Exec_ParseTiming::RunTiming {
       if (t_total_ < 0) return true;
       return false;
     }
+
+    /** Sort by total time, longest first. */
+    struct sort_by_total_time {
+      inline bool operator()(RunTiming const& first, RunTiming const& second) const {
+        return (first.TotalTime() > second.TotalTime());
+      }
+    };
+
   private:
     std::string name_;
     int version_major_;
@@ -54,6 +65,7 @@ class Exec_ParseTiming::RunTiming {
     double t_total_;
 };
 
+/** Execute command. */
 Exec_ParseTiming::RunTiming Exec_ParseTiming::read_cpptraj_output(std::string const& fname) {
   BufferedLine infile;
 
@@ -135,7 +147,14 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
       mprinterr("Error: Problem reading cpptraj output from '%s'\n", it->full());
       return CpptrajState::ERR;
     }
-    Runs.back().Print();
+    //Runs.back().Print();
+    //mprintf("\n");
+  }
+
+  std::sort(Runs.begin(), Runs.end(), RunTiming::sort_by_total_time());
+
+  for (RunArray::const_iterator it = Runs.begin(); it != Runs.end(); ++it) {
+    it->Print();
     mprintf("\n");
   }
 
