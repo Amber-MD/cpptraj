@@ -275,6 +275,7 @@ COMMON_SOURCES= \
         Exec_ParmSolvent.cpp \
         Exec_ParmStrip.cpp \
         Exec_ParmWrite.cpp \
+        Exec_ParseTiming.cpp \
         Exec_PermuteDihedrals.cpp \
         Exec_Precision.cpp \
         Exec_PrepareForLeap.cpp \
