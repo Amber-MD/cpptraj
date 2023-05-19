@@ -16,9 +16,9 @@ class Exec_ParseTiming::RunTiming {
   public:
     RunTiming() : version_major_(-1), version_minor_(-1), version_revision_(-1),
                   isMPI_(false), isOpenMP_(false), isCUDA_(false),
-                  nprocs_(-1), t_total_(-1) {}
+                  nprocs_(-1), nthreads_(-1), t_total_(-1) {}
     RunTiming(std::string const& vstr, bool isM, bool isO, bool isC) :
-      isMPI_(isM), isOpenMP_(isO), isCUDA_(isC), nprocs_(-1), t_total_(-1)
+      isMPI_(isM), isOpenMP_(isO), isCUDA_(isC), nprocs_(-1), nthreads_(-1), t_total_(-1)
     {
       ArgList varg( vstr, "V." );
       version_major_ = varg.getNextInteger(-1);
@@ -27,12 +27,13 @@ class Exec_ParseTiming::RunTiming {
     }
 
     void SetNprocs(int n) { nprocs_ = n; }
+    void SetNthreads(int n) { nthreads_ = n; }
     void SetTotalTime(double t) { t_total_ = t; }
 
     void Print() const {
-      mprintf("Version %i.%i.%i mpi=%i omp=%i cuda=%i nprocs=%i t_total=%g\n",
+      mprintf("Version %i.%i.%i mpi=%i omp=%i cuda=%i nprocs=%i nthreads=%i t_total=%g\n",
               version_major_, version_minor_, version_revision_,
-              (int)isMPI_, (int)isOpenMP_, (int)isCUDA_, nprocs_, t_total_);
+              (int)isMPI_, (int)isOpenMP_, (int)isCUDA_, nprocs_, nthreads_, t_total_);
     }
   private:
     int version_major_;
@@ -42,6 +43,7 @@ class Exec_ParseTiming::RunTiming {
     bool isOpenMP_;
     bool isCUDA_;
     int nprocs_;
+    int nthreads_;
     double t_total_;
 };
 
@@ -72,6 +74,10 @@ int Exec_ParseTiming::read_cpptraj_output(std::string const& fname) {
         ArgList procs( ptr+12, " " );
         // processes should be the next arg
         thisRun.SetNprocs( procs.getNextInteger(-1) );
+      } else if (strncmp(ptr+4, "OpenMP", 6)==0) {
+        ArgList threads( ptr+1, " " );
+        // threads should be the next arg
+        thisRun.SetNthreads( threads.getNextInteger(-1) );
       }
     } else if (ptr[0] == 'T') {
       if (strncmp(ptr, "TIME:", 5) == 0) {
@@ -83,7 +89,7 @@ int Exec_ParseTiming::read_cpptraj_output(std::string const& fname) {
     ptr = infile.Line();
   }
   thisRun.Print();
-
+  mprintf("\n");
   infile.CloseFile();
   return 0;
 }
