@@ -65,6 +65,17 @@ class Exec_ParseTiming::RunTiming {
       }
     };
 
+    /** Sort by total cores, then time. */
+    struct sort_by_cores {
+      inline bool operator()(RunTiming const& first, RunTiming const& second) const {
+        int first_cores = first.TotalCores();
+        int second_cores = second.TotalCores();
+        if (first_cores == second_cores)
+          return (first.TotalTime() > second.TotalTime());
+        else
+          return (first_cores < second_cores);
+      }
+    };
   private:
     std::string name_;
     int version_major_;
@@ -81,6 +92,7 @@ class Exec_ParseTiming::RunTiming {
 /** Execute command. */
 Exec_ParseTiming::RunTiming Exec_ParseTiming::read_cpptraj_output(std::string const& fname) {
   BufferedLine infile;
+
 
   RunTiming thisRun;
   if (infile.OpenFileRead( fname )) {
@@ -127,7 +139,7 @@ Exec_ParseTiming::RunTiming Exec_ParseTiming::read_cpptraj_output(std::string co
 // Exec_ParseTiming::Help()
 void Exec_ParseTiming::Help() const
 {
-  mprintf("\t<filename args> ...\n"
+  mprintf("\t<filename args> ... [sortby {time|cores}]\n"
           "  Parse cpptraj output for timing data.\n"
          );
 }
@@ -136,6 +148,18 @@ void Exec_ParseTiming::Help() const
 // Exec_ParseTiming::Execute()
 Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
 {
+  enum SortType { SORT_T_TOTAL = 0, SORT_CORES };
+  const char* SortTypeStr[] = {"time", "total # cores"};
+  SortType sort;
+  std::string sortarg = argIn.GetStringKey("sortby");
+  if (sortarg.empty())
+    sort = SORT_T_TOTAL;
+  else if (sortarg == "time")
+    sort = SORT_T_TOTAL;
+  else if (sortarg == "cores")
+    sort = SORT_CORES;
+  mprintf("\tSort by %s\n", SortTypeStr[sort]);
+
   File::NameArray FileNameList;
 
   std::string filearg = argIn.GetStringNext();
@@ -164,7 +188,10 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
     //mprintf("\n");
   }
 
-  std::sort(Runs.begin(), Runs.end(), RunTiming::sort_by_total_time());
+  switch (sort) {
+    case SORT_T_TOTAL : std::sort(Runs.begin(), Runs.end(), RunTiming::sort_by_total_time()); break;
+    case SORT_CORES   : std::sort(Runs.begin(), Runs.end(), RunTiming::sort_by_cores()); break;
+  }
 
   for (RunArray::const_iterator it = Runs.begin(); it != Runs.end(); ++it) {
     it->Print();
