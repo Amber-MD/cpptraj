@@ -33,15 +33,28 @@ class Exec_ParseTiming::RunTiming {
 
     double TotalTime() const { return t_total_; }
 
+    int TotalCores() const {
+      if (isMPI_ && isOpenMP_)
+        return nprocs_ * nthreads_;
+      else if (isMPI_)
+        return nprocs_;
+      else if (isOpenMP_)
+        return nthreads_;
+      else
+        return 1;
+    }
+
     void Print() const {
-      mprintf("%s Version %i.%i.%i mpi=%i omp=%i cuda=%i nprocs=%i nthreads=%i t_total=%g\n",
+      mprintf("%s Version %i.%i.%i mpi=%i omp=%i cuda=%i nprocs=%i nthreads=%i ncores=%i t_total=%g\n",
               name_.c_str(), version_major_, version_minor_, version_revision_,
-              (int)isMPI_, (int)isOpenMP_, (int)isCUDA_, nprocs_, nthreads_, t_total_);
+              (int)isMPI_, (int)isOpenMP_, (int)isCUDA_, nprocs_, nthreads_, TotalCores(), t_total_);
     }
 
     bool IsBad() const {
-      if (name_.empty()) return true;
-      if (t_total_ < 0) return true;
+      if (name_.empty()) { mprinterr("Error: Empty run name.\n"); return true; }
+      if (t_total_ < 0) { mprinterr("Error: Empty run time.\n"); return true; }
+      if (isMPI_ && nprocs_ < 1) { mprinterr("Error: MPI && procs < 1.\n"); return true; }
+      if (isOpenMP_ && nthreads_ < 1) { mprinterr("Error: OpenMP && threads < 1.\n"); return true; }
       return false;
     }
 
@@ -79,24 +92,24 @@ Exec_ParseTiming::RunTiming Exec_ParseTiming::read_cpptraj_output(std::string co
     if (ptr[0] == 'C') {
       if (strncmp(ptr, "CPPTRAJ: Trajectory Analysis.", 29)==0) {
         //mprintf("DEBUG: Title: %s\n", ptr);
-        ArgList title( ptr+29, " " );
+        ArgList titleArg( ptr+29, " " );
         //mprintf("DEBUG: TitleArg: %s\n", title.ArgLine());
         // Version should be the first arg
-        std::string versionStr = title.GetStringNext();
-        bool isMPI = title.hasKey("MPI");
-        bool isOpenMP = title.hasKey("OpenMP");
-        bool isCUDA = title.hasKey("CUDA");
+        std::string versionStr = titleArg.GetStringNext();
+        bool isMPI = titleArg.hasKey("MPI");
+        bool isOpenMP = titleArg.hasKey("OpenMP");
+        bool isCUDA = titleArg.hasKey("CUDA");
         thisRun = RunTiming(fname, versionStr, isMPI, isOpenMP, isCUDA);
       }
     } else if (ptr[0] == '|') {
-      if (strncmp(ptr, "| Running on", 12)==0) {
-        ArgList procs( ptr+12, " " );
-        // processes should be the next arg
-        thisRun.SetNprocs( procs.getNextInteger(-1) );
-      } else if (strncmp(ptr+4, "OpenMP", 6)==0) {
-        ArgList threads( ptr+1, " " );
-        // threads should be the next arg
-        thisRun.SetNthreads( threads.getNextInteger(-1) );
+      ArgList infoArg(ptr+1, " ");
+      if (infoArg.Nargs() == 4 && infoArg[0] == "Running" && infoArg[1] == "on") {
+        // processes should be the next integer arg
+        thisRun.SetNprocs( infoArg.getNextInteger(-1) );
+      } else if (infoArg.Nargs() == 4 && infoArg[1] == "OpenMP" &&  infoArg[2] == "threads") {
+        mprintf("DEBUG: OpenMP threads. %s\n", ptr);
+        // threads should be the next integer arg
+        thisRun.SetNthreads( infoArg.getNextInteger(-1) );
       }
     } else if (ptr[0] == 'T') {
       if (strncmp(ptr, "TIME:", 5) == 0) {
