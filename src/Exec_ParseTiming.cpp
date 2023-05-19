@@ -17,8 +17,8 @@ class Exec_ParseTiming::RunTiming {
     RunTiming() : version_major_(-1), version_minor_(-1), version_revision_(-1),
                   isMPI_(false), isOpenMP_(false), isCUDA_(false),
                   nprocs_(-1), nthreads_(-1), t_total_(-1) {}
-    RunTiming(std::string const& vstr, bool isM, bool isO, bool isC) :
-      isMPI_(isM), isOpenMP_(isO), isCUDA_(isC), nprocs_(-1), nthreads_(-1), t_total_(-1)
+    RunTiming(std::string const& name, std::string const& vstr, bool isM, bool isO, bool isC) :
+      name_(name), isMPI_(isM), isOpenMP_(isO), isCUDA_(isC), nprocs_(-1), nthreads_(-1), t_total_(-1)
     {
       ArgList varg( vstr, "V." );
       version_major_ = varg.getNextInteger(-1);
@@ -31,11 +31,18 @@ class Exec_ParseTiming::RunTiming {
     void SetTotalTime(double t) { t_total_ = t; }
 
     void Print() const {
-      mprintf("Version %i.%i.%i mpi=%i omp=%i cuda=%i nprocs=%i nthreads=%i t_total=%g\n",
-              version_major_, version_minor_, version_revision_,
+      mprintf("%s Version %i.%i.%i mpi=%i omp=%i cuda=%i nprocs=%i nthreads=%i t_total=%g\n",
+              name_.c_str(), version_major_, version_minor_, version_revision_,
               (int)isMPI_, (int)isOpenMP_, (int)isCUDA_, nprocs_, nthreads_, t_total_);
     }
+
+    bool IsBad() const {
+      if (name_.empty()) return true;
+      if (t_total_ < 0) return true;
+      return false;
+    }
   private:
+    std::string name_;
     int version_major_;
     int version_minor_;
     int version_revision_;
@@ -47,27 +54,27 @@ class Exec_ParseTiming::RunTiming {
     double t_total_;
 };
 
-int Exec_ParseTiming::read_cpptraj_output(std::string const& fname) {
+Exec_ParseTiming::RunTiming Exec_ParseTiming::read_cpptraj_output(std::string const& fname) {
   BufferedLine infile;
 
+  RunTiming thisRun;
   if (infile.OpenFileRead( fname )) {
     mprinterr("Error: Could not open '%s'\n", fname.c_str());
-    return 1;
+    return thisRun;
   }
-  RunTiming thisRun;
   const char* ptr = infile.Line();
   while (ptr != 0) {
     if (ptr[0] == 'C') {
       if (strncmp(ptr, "CPPTRAJ: Trajectory Analysis.", 29)==0) {
-        mprintf("DEBUG: Title: %s\n", ptr);
+        //mprintf("DEBUG: Title: %s\n", ptr);
         ArgList title( ptr+29, " " );
-        mprintf("DEBUG: TitleArg: %s\n", title.ArgLine());
+        //mprintf("DEBUG: TitleArg: %s\n", title.ArgLine());
         // Version should be the first arg
         std::string versionStr = title.GetStringNext();
         bool isMPI = title.hasKey("MPI");
         bool isOpenMP = title.hasKey("OpenMP");
         bool isCUDA = title.hasKey("CUDA");
-        thisRun = RunTiming(versionStr, isMPI, isOpenMP, isCUDA);
+        thisRun = RunTiming(fname, versionStr, isMPI, isOpenMP, isCUDA);
       }
     } else if (ptr[0] == '|') {
       if (strncmp(ptr, "| Running on", 12)==0) {
@@ -88,10 +95,9 @@ int Exec_ParseTiming::read_cpptraj_output(std::string const& fname) {
     }
     ptr = infile.Line();
   }
-  thisRun.Print();
-  mprintf("\n");
+  //thisRun.Print();
   infile.CloseFile();
-  return 0;
+  return thisRun;
 }
 // Exec_ParseTiming::Help()
 void Exec_ParseTiming::Help() const
@@ -119,12 +125,18 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
     filearg = argIn.GetStringNext();
   }
 
+  typedef std::vector<RunTiming> RunArray;
+  RunArray Runs;
+  Runs.reserve( FileNameList.size() );
   for (File::NameArray::const_iterator it = FileNameList.begin(); it != FileNameList.end(); ++it) {
-    mprintf("\t%s\n", it->full());
-    if (read_cpptraj_output( it->Full() )) {
-      mprinterr("Error: Could not read cpptraj output '%s'\n", it->full());
+    //mprintf("\t%s\n", it->full());
+    Runs.push_back( read_cpptraj_output( it->Full() ) );
+    if (Runs.back().IsBad()) {
+      mprinterr("Error: Problem reading cpptraj output from '%s'\n", it->full());
       return CpptrajState::ERR;
     }
+    Runs.back().Print();
+    mprintf("\n");
   }
 
   return CpptrajState::OK;

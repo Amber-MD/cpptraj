@@ -11,6 +11,6 @@ class Exec_ParseTiming : public Exec {
   private:
     class RunTiming;
 
-    int read_cpptraj_output(std::string const&);
+    RunTiming read_cpptraj_output(std::string const&);
 };
 #endif
