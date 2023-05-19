@@ -2,6 +2,8 @@
 #include "CpptrajStdio.h"
 #include "FileName.h"
 #include "BufferedLine.h"
+#include "DataSet_Mesh.h"
+#include "StringRoutines.h"
 #include <cstring> // strncmp
 #include <algorithm> // std::sort
 
@@ -19,7 +21,7 @@ class Exec_ParseTiming::RunTiming {
                   isMPI_(false), isOpenMP_(false), isCUDA_(false),
                   nprocs_(-1), nthreads_(-1), t_total_(-1) {}
     RunTiming(std::string const& name, std::string const& vstr, bool isM, bool isO, bool isC) :
-      name_(name), isMPI_(isM), isOpenMP_(isO), isCUDA_(isC), nprocs_(-1), nthreads_(-1), t_total_(-1)
+      filename_(name), isMPI_(isM), isOpenMP_(isO), isCUDA_(isC), nprocs_(-1), nthreads_(-1), t_total_(-1)
     {
       ArgList varg( vstr, "V." );
       version_major_ = varg.getNextInteger(-1);
@@ -44,14 +46,30 @@ class Exec_ParseTiming::RunTiming {
         return 1;
     }
 
+    std::string const& Filename() const { return filename_; }
+
+    std::string Name() const {
+      std::string out;
+      if (isMPI_ && isOpenMP_)
+        out.assign("H" + integerToString(nprocs_) + "x" + integerToString(nthreads_));
+      else if (isMPI_)
+        out.assign("M" + integerToString(nprocs_));
+      else if (isOpenMP_)
+        out.assign("O" + integerToString(nthreads_));
+      else
+        out.assign("S");
+      if (isCUDA_) out.append("(C)");
+      return out;
+    }
+
     void Print() const {
       mprintf("%s Version %i.%i.%i mpi=%i omp=%i cuda=%i nprocs=%i nthreads=%i ncores=%i t_total=%g\n",
-              name_.c_str(), version_major_, version_minor_, version_revision_,
+              filename_.c_str(), version_major_, version_minor_, version_revision_,
               (int)isMPI_, (int)isOpenMP_, (int)isCUDA_, nprocs_, nthreads_, TotalCores(), t_total_);
     }
 
     bool IsBad() const {
-      if (name_.empty()) { mprinterr("Error: Empty run name.\n"); return true; }
+      if (filename_.empty()) { mprinterr("Error: Empty run name.\n"); return true; }
       if (t_total_ < 0) { mprinterr("Error: Empty run time.\n"); return true; }
       if (isMPI_ && nprocs_ < 1) { mprinterr("Error: MPI && procs < 1.\n"); return true; }
       if (isOpenMP_ && nthreads_ < 1) { mprinterr("Error: OpenMP && threads < 1.\n"); return true; }
@@ -77,7 +95,7 @@ class Exec_ParseTiming::RunTiming {
       }
     };
   private:
-    std::string name_;
+    std::string filename_;
     int version_major_;
     int version_minor_;
     int version_revision_;
@@ -119,7 +137,7 @@ Exec_ParseTiming::RunTiming Exec_ParseTiming::read_cpptraj_output(std::string co
         // processes should be the next integer arg
         thisRun.SetNprocs( infoArg.getNextInteger(-1) );
       } else if (infoArg.Nargs() == 4 && infoArg[1] == "OpenMP" &&  infoArg[2] == "threads") {
-        mprintf("DEBUG: OpenMP threads. %s\n", ptr);
+        //mprintf("DEBUG: OpenMP threads. %s\n", ptr);
         // threads should be the next integer arg
         thisRun.SetNthreads( infoArg.getNextInteger(-1) );
       }
@@ -139,7 +157,7 @@ Exec_ParseTiming::RunTiming Exec_ParseTiming::read_cpptraj_output(std::string co
 // Exec_ParseTiming::Help()
 void Exec_ParseTiming::Help() const
 {
-  mprintf("\t<filename args> ... [sortby {time|cores}]\n"
+  mprintf("\t<filename args> ... [sortby {time|cores}] [out <file>] [name <setname>]\n"
           "  Parse cpptraj output for timing data.\n"
          );
 }
@@ -160,6 +178,36 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
     sort = SORT_CORES;
   mprintf("\tSort by %s\n", SortTypeStr[sort]);
 
+  DataFile* outfile = State.DFL().AddDataFile( argIn.GetStringKey("out"), argIn );
+  if (outfile != 0)
+    mprintf("\tOutput to file '%s'\n", outfile->DataFilename().full());
+
+  std::string dsname = argIn.GetStringKey("name");
+  if (dsname.empty())
+    dsname = State.DSL().GenerateDefaultName("TIMING");
+  mprintf("\tDataSet name: %s\n", dsname.c_str());
+
+  // Which variables to plot
+  enum Xtype { X_INDEX=0, X_CORES };
+  enum Ytype { Y_T_TOTAL=0 };
+
+  Xtype xvar;
+  Ytype yvar;
+  Dimension Xdim;
+  //Dimension Ydim;
+
+  if (sort == SORT_CORES) {
+    xvar = X_CORES;
+    Xdim.SetLabel("Cores");
+  } else {
+    xvar = X_INDEX;
+    Xdim.SetLabel("Run");
+  }
+
+  yvar = Y_T_TOTAL;
+  //Ydim.SetLabel("TotalTime");
+
+  // Only file name args below here
   File::NameArray FileNameList;
 
   std::string filearg = argIn.GetStringNext();
@@ -193,9 +241,39 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
     case SORT_CORES   : std::sort(Runs.begin(), Runs.end(), RunTiming::sort_by_cores()); break;
   }
 
+  DataSet* ds = State.DSL().AddSet( DataSet::XYMESH, MetaData(dsname) );
+  if (ds == 0) {
+    mprinterr("Error: Could not allocate output set.\n");
+    return CpptrajState::ERR;
+  }
+  if (outfile != 0) outfile->AddDataSet( ds );
+  DataSet_Mesh& outset = static_cast<DataSet_Mesh&>( *ds );
+  outset.Allocate( DataSet::SizeArray(1, Runs.size()) );
+  outset.SetDim(Dimension::X, Xdim);
+  //outset.SetDim(Dimension::Y, Ydim);
+
+  DataSet* nameSet = State.DSL().AddSet(DataSet::STRING, MetaData(dsname, "name"));
+  if (nameSet == 0) {
+    mprinterr("Error: Could not allocate output names set.\n");
+    return CpptrajState::ERR;
+  }
+  if (outfile != 0) outfile->AddDataSet( nameSet );
+  nameSet->Allocate( DataSet::SizeArray(1, Runs.size()) );
+  nameSet->SetDim(Dimension::X, Xdim);
+
   for (RunArray::const_iterator it = Runs.begin(); it != Runs.end(); ++it) {
+    double X = 0;
+    switch (xvar) {
+      case X_INDEX : X = (double)(it - Runs.begin()); break;
+      case X_CORES : X = (double)it->TotalCores(); break;
+    }
+    double Y = 0;
+    switch (yvar) {
+      case Y_T_TOTAL : Y = it->TotalTime(); break;
+    }
+    outset.AddXY(X, Y);
+    nameSet->Add(it - Runs.begin(), it->Name().c_str());
     it->Print();
-    mprintf("\n");
   }
 
   return CpptrajState::OK;
