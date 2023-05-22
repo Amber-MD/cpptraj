@@ -132,6 +132,7 @@ COMMON_SOURCES= \
         Analysis_State.cpp \
         Analysis_Statistics.cpp \
         Analysis_TI.cpp \
+        Analysis_TICA.cpp \
         Analysis_Timecorr.cpp \
         Analysis_VectorMath.cpp \
         Analysis_Wavelet.cpp \
