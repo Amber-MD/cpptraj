@@ -199,6 +199,7 @@
 #include "Analysis_HausdorffDistance.h"
 #include "Analysis_Slope.h"
 #include "Analysis_EvalPlateau.h"
+#include "Analysis_TICA.h"
 
 CmdList Command::commands_ = CmdList();
 
@@ -430,6 +431,7 @@ void Command::Init() {
   Command::AddCmd( new Analysis_Spline(),      Cmd::ANA, 1, "spline" );
   Command::AddCmd( new Analysis_Statistics(),  Cmd::ANA, 2, "stat", "statistics" );
   Command::AddCmd( new Analysis_TI(),          Cmd::ANA, 1, "ti" );
+  Command::AddCmd( new Analysis_TICA(),        Cmd::ANA, 1, "tica" );
   Command::AddCmd( new Analysis_Timecorr(),    Cmd::ANA, 1, "timecorr" );
   Command::AddCmd( new Analysis_VectorMath(),  Cmd::ANA, 1, "vectormath" );
   Command::AddCmd( new Analysis_Wavelet(),     Cmd::ANA, 1, "wavelet" );
