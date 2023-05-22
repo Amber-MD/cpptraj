@@ -13,5 +13,6 @@ class Analysis_TICA : public Analysis {
   private:
     DataSet_Coords* TgtTraj_; ///< Input trajectory
     int lag_; ///< TICA time lag
+    AtomMask mask1_; ///< Atoms to use in matrix calc
 };
 #endif
