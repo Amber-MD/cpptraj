@@ -13,7 +13,8 @@ Action_ToroidalDiffusion::Action_ToroidalDiffusion() :
   avg_z_(0),
   avg_r_(0),
   avg_a_(0),
-  time_(0)
+  time_(0),
+  debug_(0)
 {}
 
 // Action_ToroidalDiffusion::Help()
@@ -24,6 +25,7 @@ void Action_ToroidalDiffusion::Help() const {
 // Action_ToroidalDiffusion::Init()
 Action::RetType Action_ToroidalDiffusion::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+  debug_ = debugIn;
 # ifdef MPI
   if (init.TrajComm().Size() > 1) {
     mprinterr("Error: 'tordiff' action does not work with > 1 process (%i processes currently).\n",
@@ -117,12 +119,14 @@ const
     } // END loop over segments in molecule
   } // END loop over molecules
 
-  mprintf("DEBUG: Entities selected by '%s'\n", mask1_.MaskString());
-  for (Marray::const_iterator it = entitiesOut.begin(); it != entitiesOut.end(); ++it) {
-    mprintf("\t");
-    for (AtomMask::const_iterator at = it->begin(); at != it->end(); ++at)
-      mprintf(" %i", *at + 1);
-    mprintf("\n");
+  if (debug_ > 1) {
+    mprintf("DEBUG: Entities selected by '%s'\n", mask1_.MaskString());
+    for (Marray::const_iterator it = entitiesOut.begin(); it != entitiesOut.end(); ++it) {
+      mprintf("\t");
+      for (AtomMask::const_iterator at = it->begin(); at != it->end(); ++at)
+        mprintf(" %i", *at + 1);
+      mprintf("\n");
+    }
   }
 
   return entitiesOut;

@@ -31,5 +31,6 @@ class Action_ToroidalDiffusion : public Action {
     DataSet* avg_r_;  ///< Hold average MSD each frame
     DataSet* avg_a_;  ///< Hold average distance each frame
     double time_;     ///< Time between frames in ps
+    int debug_;
 };
 #endif
