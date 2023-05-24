@@ -3,13 +3,13 @@
 
 // Action_ToroidalDiffusion::Help()
 void Action_ToroidalDiffusion::Help() const {
-  mprintf("\t[mask <mask>]\n");
+  mprintf("\t[<mask>]\n");
 }
 
 // Action_ToroidalDiffusion::Init()
 Action::RetType Action_ToroidalDiffusion::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
-  if (mask1_.SetMaskString( actionArgs.GetStringKey("mask") )) {
+  if (mask1_.SetMaskString( actionArgs.GetMaskNext() )) {
     mprinterr("Error: Invalid mask string.\n");
     return Action::ERR;
   }
@@ -86,5 +86,5 @@ Action::RetType Action_ToroidalDiffusion::Setup(ActionSetup& setup)
 // Action_ToroidalDiffusion::DoAction()
 Action::RetType Action_ToroidalDiffusion::DoAction(int frameNum, ActionFrame& frm)
 {
-
+  return Action::OK;
 }

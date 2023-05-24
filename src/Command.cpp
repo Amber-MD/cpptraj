@@ -156,6 +156,7 @@
 #include "Action_MultiPucker.h"
 #include "Action_Keep.h"
 #include "Action_AvgBox.h"
+#include "Action_ToroidalDiffusion.h"
 // ----- ANALYSIS --------------------------------------------------------------
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
@@ -380,6 +381,7 @@ void Command::Init() {
   Command::AddCmd( new Action_SymmetricRmsd(), Cmd::ACT, 1, "symmrmsd" );
   Command::AddCmd( new Action_Temperature(),   Cmd::ACT, 1, "temperature" );
   Command::AddCmd( new Action_Time(),          Cmd::ACT, 1, "time" );
+  Command::AddCmd( new Action_ToroidalDiffusion(), Cmd::ACT, 1, "tordiff" );
   Command::AddCmd( new Action_Translate(),     Cmd::ACT, 2, "trans", "translate" );
   Command::AddCmd( new Action_Unstrip(),       Cmd::ACT, 1, "unstrip" );
   Command::AddCmd( new Action_Unwrap(),        Cmd::ACT, 1, "unwrap" );

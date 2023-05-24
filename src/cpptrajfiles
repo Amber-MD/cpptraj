@@ -84,6 +84,7 @@ COMMON_SOURCES= \
         Action_SymmetricRmsd.cpp \
         Action_Temperature.cpp \
         Action_Time.cpp \
+        Action_ToroidalDiffusion.cpp \
         Action_Translate.cpp \
         Action_Unstrip.cpp \
         Action_Unwrap.cpp \
