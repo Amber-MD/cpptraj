@@ -1,6 +1,9 @@
 #include "Action_ToroidalDiffusion.h"
 #include "CpptrajStdio.h"
 #include <cmath> // floor
+#ifdef _OPENMP
+# include <omp.h>
+#endif
 
 /** CONSTRUCTOR */
 Action_ToroidalDiffusion::Action_ToroidalDiffusion() :
@@ -73,6 +76,15 @@ Action::RetType Action_ToroidalDiffusion::Init(ArgList& actionArgs, ActionInit& 
   mprintf("\tData set name: %s\n", dsname_.c_str());
   if (outfile != 0)
     mprintf("\tOutput to file '%s'\n", outfile->DataFilename().full());
+# ifdef _OPENMP
+# pragma omp parallel
+  {
+# pragma omp master
+  {
+  mprintf("\tParallelizing calculation with %i threads.\n", omp_get_num_threads());
+  }
+  }
+# endif
   mprintf("# Citation: Bullerjahn, von Bulow, Heidari, Henin, and Hummer.\n"
           "#           \"Unwrapping NPT Simulations to Calculate Diffusion Coefficients.\n"
           "#           https://arxiv.org/abs/2303.09418\n");
