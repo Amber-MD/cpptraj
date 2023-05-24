@@ -4,7 +4,6 @@
 #include "DataSet_1D.h"
 #include "DataSetList.h"
 #include "DataFileList.h"
-#include "ArgList.h"
 
 using namespace Cpptraj;
 /** CONSTRUCTOR */
@@ -17,11 +16,22 @@ DiffusionResults::DiffusionResults() :
   diffout_(0)
 {}
 
+/** Add diffusion output file. */
+int DiffusionResults::AddDiffOut(DataFileList& DFL, std::string const& fname) {
+  diffout_ = DFL.AddDataFile(fname);
+  if (diffout_ != 0) {
+    if (diffConst_ != 0) diffout_->AddDataSet(diffConst_);
+    if (diffSlope_ != 0) diffout_->AddDataSet(diffSlope_);
+    if (diffInter_ != 0) diffout_->AddDataSet(diffInter_);
+    if (diffCorrl_ != 0) diffout_->AddDataSet(diffCorrl_);
+    if (diffLabel_ != 0) diffout_->AddDataSet(diffLabel_);
+  }
+  return 0;
+}
+
 /** Process arguments and create sets. */
-int DiffusionResults::InitDiffusionResults(DataSetList& DSL, DataFileList& DFL,
-                                           ArgList& actionArgs, std::string const& dsname_)
+int DiffusionResults::InitDiffusionResults(DataSetList& DSL, std::string const& dsname_)
 {
-  diffout_ = DFL.AddDataFile(actionArgs.GetStringKey("diffout"));
   MetaData::tsType ts = MetaData::NOT_TS;
   diffConst_ = DSL.AddSet(DataSet::DOUBLE, MetaData(dsname_, "D", ts));
   diffLabel_ = DSL.AddSet(DataSet::STRING, MetaData(dsname_, "Label", ts));
