@@ -1,9 +1,15 @@
 #include "Action_ToroidalDiffusion.h"
 #include "CpptrajStdio.h"
+#include <cmath> // floor
 
 /** CONSTRUCTOR */
 Action_ToroidalDiffusion::Action_ToroidalDiffusion() :
-  useMass_(false)
+  useMass_(false),
+  avg_x_(0),
+  avg_y_(0),
+  avg_z_(0),
+  avg_r_(0),
+  avg_a_(0)
 {}
 
 // Action_ToroidalDiffusion::Help()
@@ -24,6 +30,19 @@ Action::RetType Action_ToroidalDiffusion::Init(ArgList& actionArgs, ActionInit& 
   useMass_ = actionArgs.hasKey("mass");
   if (mask1_.SetMaskString( actionArgs.GetMaskNext() )) {
     mprinterr("Error: Invalid mask string.\n");
+    return Action::ERR;
+  }
+  // Add DataSets
+  std::string dsname_ = actionArgs.GetStringNext();
+  if (dsname_.empty())
+    dsname_ = init.DSL().GenerateDefaultName("Diff");
+  avg_x_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "X"));
+  avg_y_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "Y"));
+  avg_z_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "Z"));
+  avg_r_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "R"));
+  avg_a_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "A"));
+  if (avg_x_ == 0 || avg_y_ == 0 || avg_z_ == 0 || avg_r_ == 0 || avg_a_ == 0) {
+    mprinterr("Error: Could not allocate one or more average toroidal diffusion sets.\n");
     return Action::ERR;
   }
 
@@ -123,16 +142,80 @@ Action::RetType Action_ToroidalDiffusion::Setup(ActionSetup& setup)
 // Action_ToroidalDiffusion::DoAction()
 Action::RetType Action_ToroidalDiffusion::DoAction(int frameNum, ActionFrame& frm)
 {
-  if (torPositions_.empty()) {
-    torPositions_.reserve( entities_.size() );
-    if (useMass_) {
-      for (Marray::const_iterator mask = entities_.begin(); mask != entities_.end(); ++mask)
-        torPositions_.push_back( frm.Frm().VCenterOfMass( *mask ) );
-    } else {
-      for (Marray::const_iterator mask = entities_.begin(); mask != entities_.end(); ++mask)
-        torPositions_.push_back( frm.Frm().VGeometricCenter( *mask ) );
-    }
+  Box const& currentBox = frm.Frm().BoxCrd();
+  if (!currentBox.HasBox() || !currentBox.Is_X_Aligned_Ortho()) {
+    mprinterr("Error: Either no box or box not X-aligned ortho. for frame %i\n", frameNum+1);
+    return Action::ERR;
   }
-    
+  Vec3 boxVec = currentBox.Lengths();
+
+  double average2 = 0.0;
+  double avgx = 0.0;
+  double avgy = 0.0;
+  double avgz = 0.0;
+
+  if (torPositions_.empty()) {
+    // ----- First frame ---------------
+    torPositions_.reserve( entities_.size() );
+    prevPositions_.reserve( entities_.size() );
+    if (useMass_) {
+      for (Marray::const_iterator mask = entities_.begin(); mask != entities_.end(); ++mask) {
+        torPositions_.push_back( frm.Frm().VCenterOfMass( *mask ) );
+        prevPositions_.push_back( torPositions_.back() );
+      }
+    } else {
+      for (Marray::const_iterator mask = entities_.begin(); mask != entities_.end(); ++mask) {
+        torPositions_.push_back( frm.Frm().VGeometricCenter( *mask ) );
+        prevPositions_.push_back( torPositions_.back() );
+      }
+    }
+  } else {
+    // ----- Subsequent frames ---------
+    for (unsigned int idx = 0; idx != entities_.size(); idx++)
+    {
+      // wi+1 - wi
+      Vec3 Wi1;
+      if (useMass_)
+        Wi1 = frm.Frm().VCenterOfMass( entities_[idx] );
+      else
+        Wi1 = frm.Frm().VGeometricCenter( entities_[idx] );
+      Vec3 deltaW = Wi1 - prevPositions_[idx];
+      // Calculate translation for toroidal scheme
+      Vec3 trans;
+      trans[0] = deltaW[0] - floor( (deltaW[0] / boxVec[0]) + 0.5 ) * boxVec[0];
+      trans[1] = deltaW[1] - floor( (deltaW[1] / boxVec[1]) + 0.5 ) * boxVec[1];
+      trans[2] = deltaW[2] - floor( (deltaW[2] / boxVec[2]) + 0.5 ) * boxVec[2];
+      // Calculate current position in toroidal scheme
+      Vec3 Ui1 = torPositions_[idx] + trans;
+      // Calculate diffusion
+      double distx = trans[0] * trans[0];
+      double disty = trans[1] * trans[1];
+      double distz = trans[2] * trans[2];
+      double dist2 = distx + disty + distz;
+      // Accumulate averages
+      avgx += distx;
+      avgy += disty;
+      avgz += distz;
+      average2 += dist2;
+
+      // Update arrays
+      torPositions_[idx] = Ui1;
+      prevPositions_[idx] = Wi1;
+    } // END loop over entities
+  }
+  // Calc averages
+  double dNselected = 1.0 / (double)entities_.size();
+  avgx *= dNselected;
+  avgy *= dNselected;
+  avgz *= dNselected;
+  average2 *= dNselected;
+  // Save averages
+  avg_x_->Add(frameNum, &avgx);
+  avg_y_->Add(frameNum, &avgy);
+  avg_z_->Add(frameNum, &avgz);
+  avg_r_->Add(frameNum, &average2);
+  average2 = sqrt(average2);
+  avg_a_->Add(frameNum, &average2);
+
   return Action::OK;
 }
