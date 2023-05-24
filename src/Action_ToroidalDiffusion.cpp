@@ -78,6 +78,26 @@ Action::RetType Action_ToroidalDiffusion::Setup(ActionSetup& setup)
       mprinterr("Error: No entities to calculate diffusion for.\n");
       return Action::ERR;
     }
+  } else {
+    // Require that the same number of entities be selected TODO check mol #s?
+    Marray newEntities = setup_entities( setup.Top() );
+    if (newEntities.size() != entities_.size()) {
+      mprinterr("Error: Number of entities selected for topology '%s' (%zu)\n"
+                "Error:   differs from original number of entities (%zu)\n",
+                setup.Top().c_str(), newEntities.size(), entities_.size());
+      return Action::ERR;
+    }
+  }
+  // Check for box
+  if (!setup.CoordInfo().TrajBox().HasBox()) {
+    mprintf("Error: Topology '%s' does not contain box information.\n",
+            setup.Top().c_str());
+    return Action::ERR;
+  }
+  if (!setup.CoordInfo().TrajBox().Is_X_Aligned_Ortho()) {
+    mprinterr("Error: Toroidal-preserving-view diffusion calculation currently only works\n"
+              "Error:   for X-aligned orthogonal cells.\n");
+    return Action::ERR;
   }
 
   return Action::OK;
