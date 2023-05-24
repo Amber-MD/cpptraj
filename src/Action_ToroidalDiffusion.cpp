@@ -14,7 +14,7 @@ Action_ToroidalDiffusion::Action_ToroidalDiffusion() :
 
 // Action_ToroidalDiffusion::Help()
 void Action_ToroidalDiffusion::Help() const {
-  mprintf("\t[<mask>] [mass]\n");
+  mprintf("\t[<set name>] [<mask>] [mass]\n");
 }
 
 // Action_ToroidalDiffusion::Init()
@@ -27,6 +27,7 @@ Action::RetType Action_ToroidalDiffusion::Init(ArgList& actionArgs, ActionInit& 
     return Action::ERR;
   }
 # endif
+  DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out") );
   useMass_ = actionArgs.hasKey("mass");
   if (mask1_.SetMaskString( actionArgs.GetMaskNext() )) {
     mprinterr("Error: Invalid mask string.\n");
@@ -45,6 +46,13 @@ Action::RetType Action_ToroidalDiffusion::Init(ArgList& actionArgs, ActionInit& 
     mprinterr("Error: Could not allocate one or more average toroidal diffusion sets.\n");
     return Action::ERR;
   }
+  if (outfile != 0) {
+    outfile->AddDataSet( avg_r_ );
+    outfile->AddDataSet( avg_x_ );
+    outfile->AddDataSet( avg_y_ );
+    outfile->AddDataSet( avg_z_ );
+    outfile->AddDataSet( avg_a_ );
+  }
 
   mprintf("    TORDIFF: Toroidal-view-preserving diffusion calculation.\n");
   mprintf("\tCalculating diffusion for molecules selected by mask '%s'\n", mask1_.MaskString());
@@ -52,6 +60,9 @@ Action::RetType Action_ToroidalDiffusion::Init(ArgList& actionArgs, ActionInit& 
     mprintf("\tUsing center of mass.\n");
   else
     mprintf("\tUsing geometric center.\n");
+  mprintf("\tData set name: %s\n", dsname_.c_str());
+  if (outfile != 0)
+    mprintf("\tOutput to file '%s'\n", outfile->DataFilename().full());
   mprintf("# Citation: Bullerjahn, von Bulow, Heidari, Henin, and Hummer.\n"
           "#           \"Unwrapping NPT Simulations to Calculate Diffusion Coefficients.\n"
           "#           https://arxiv.org/abs/2303.09418\n");
