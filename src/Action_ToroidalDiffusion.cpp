@@ -1,14 +1,27 @@
 #include "Action_ToroidalDiffusion.h"
 #include "CpptrajStdio.h"
 
+/** CONSTRUCTOR */
+Action_ToroidalDiffusion::Action_ToroidalDiffusion() :
+  useMass_(false)
+{}
+
 // Action_ToroidalDiffusion::Help()
 void Action_ToroidalDiffusion::Help() const {
-  mprintf("\t[<mask>]\n");
+  mprintf("\t[<mask>] [mass]\n");
 }
 
 // Action_ToroidalDiffusion::Init()
 Action::RetType Action_ToroidalDiffusion::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  if (init.TrajComm().Size() > 1) {
+    mprinterr("Error: 'tordiff' action does not work with > 1 process (%i processes currently).\n",
+              init.TrajComm().Size());
+    return Action::ERR;
+  }
+# endif
+  useMass_ = actionArgs.hasKey("mass");
   if (mask1_.SetMaskString( actionArgs.GetMaskNext() )) {
     mprinterr("Error: Invalid mask string.\n");
     return Action::ERR;
@@ -16,6 +29,10 @@ Action::RetType Action_ToroidalDiffusion::Init(ArgList& actionArgs, ActionInit& 
 
   mprintf("    TORDIFF: Toroidal-view-preserving diffusion calculation.\n");
   mprintf("\tCalculating diffusion for molecules selected by mask '%s'\n", mask1_.MaskString());
+  if (useMass_)
+    mprintf("\tUsing center of mass.\n");
+  else
+    mprintf("\tUsing geometric center.\n");
   mprintf("# Citation: Bullerjahn, von Bulow, Heidari, Henin, and Hummer.\n"
           "#           \"Unwrapping NPT Simulations to Calculate Diffusion Coefficients.\n"
           "#           https://arxiv.org/abs/2303.09418\n");
@@ -106,5 +123,16 @@ Action::RetType Action_ToroidalDiffusion::Setup(ActionSetup& setup)
 // Action_ToroidalDiffusion::DoAction()
 Action::RetType Action_ToroidalDiffusion::DoAction(int frameNum, ActionFrame& frm)
 {
+  if (torPositions_.empty()) {
+    torPositions_.reserve( entities_.size() );
+    if (useMass_) {
+      for (Marray::const_iterator mask = entities_.begin(); mask != entities_.end(); ++mask)
+        torPositions_.push_back( frm.Frm().VCenterOfMass( *mask ) );
+    } else {
+      for (Marray::const_iterator mask = entities_.begin(); mask != entities_.end(); ++mask)
+        torPositions_.push_back( frm.Frm().VGeometricCenter( *mask ) );
+    }
+  }
+    
   return Action::OK;
 }

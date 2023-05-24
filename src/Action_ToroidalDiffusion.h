@@ -5,7 +5,7 @@
 /// Implements the Toroidal-view-preserving scheme of Hummer et al. for calculating diffusion
 class Action_ToroidalDiffusion : public Action {
   public:
-    Action_ToroidalDiffusion() {}
+    Action_ToroidalDiffusion();
     DispatchObject* Alloc() const { return (DispatchObject*)new Action_ToroidalDiffusion(); }
     void Help() const;
   private:
@@ -22,5 +22,6 @@ class Action_ToroidalDiffusion : public Action {
     Varray torPositions_; ///< Current positions of each entity in the toroidal scheme.
     Marray entities_;     ///< Masks selecting each entity to track diffusion of.
     CharMask mask1_;      ///< Mask selecting entities.
+    bool useMass_;        ///< Control center of mass vs geometric center
 };
 #endif
