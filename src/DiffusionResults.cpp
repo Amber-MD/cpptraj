@@ -29,8 +29,8 @@ int DiffusionResults::AddDiffOut(DataFileList& DFL, std::string const& fname) {
   return 0;
 }
 
-/** Process arguments and create sets. */
-int DiffusionResults::InitDiffusionResults(DataSetList& DSL, std::string const& dsname_)
+/** Create data sets. */
+int DiffusionResults::CreateDiffusionSets(DataSetList& DSL, std::string const& dsname_)
 {
   MetaData::tsType ts = MetaData::NOT_TS;
   diffConst_ = DSL.AddSet(DataSet::DOUBLE, MetaData(dsname_, "D", ts));
@@ -70,6 +70,9 @@ int DiffusionResults::InitDiffusionResults(DataSetList& DSL, std::string const& 
 
 /** Print info to stdout. */
 void DiffusionResults::Info() const {
+  mprintf("\tCalculating diffusion constants by fitting slope to MSD vs time\n"
+            "\t  and multiplying by 10.0/2*N (where N is # of dimensions), units\n"
+            "\t  are 1x10^-5 cm^2/s.\n");
   if (diffout_ != 0)
     mprintf("\tDiffusion constant output to '%s'\n", diffout_->DataFilename().full());
   else

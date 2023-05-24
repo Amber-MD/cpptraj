@@ -2,6 +2,7 @@
 #define INC_ACTION_TOROIDALDIFFUSION_H
 #include "Action.h"
 #include "CharMask.h"
+#include "DiffusionResults.h"
 /// Implements the Toroidal-view-preserving scheme of Hummer et al. for calculating diffusion
 class Action_ToroidalDiffusion : public Action {
   public:
@@ -12,7 +13,7 @@ class Action_ToroidalDiffusion : public Action {
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
-    void Print() {}
+    void Print();
 
     typedef std::vector<Vec3> Varray;
     typedef std::vector<AtomMask> Marray;
@@ -32,5 +33,6 @@ class Action_ToroidalDiffusion : public Action {
     DataSet* avg_a_;  ///< Hold average distance each frame
     double time_;     ///< Time between frames in ps
     int debug_;
+    Cpptraj::DiffusionResults results_;
 };
 #endif

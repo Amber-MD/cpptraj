@@ -14,7 +14,7 @@ class DiffusionResults {
 
     int AddDiffOut(DataFileList&, std::string const&);
 
-    int InitDiffusionResults(DataSetList&, std::string const&);
+    int CreateDiffusionSets(DataSetList&, std::string const&);
 
     void Info() const;
 

@@ -19,7 +19,8 @@ Action_ToroidalDiffusion::Action_ToroidalDiffusion() :
 
 // Action_ToroidalDiffusion::Help()
 void Action_ToroidalDiffusion::Help() const {
-  mprintf("\t[<set name>] [<mask>] [mass]\n");
+  mprintf("\t[<set name>] [<mask>] [mass] [out <file>] [diffout <file>]\n"
+          "  Calculate diffusion using the toroidal-view-preserving scheme.\n");
 }
 
 // Action_ToroidalDiffusion::Init()
@@ -35,6 +36,8 @@ Action::RetType Action_ToroidalDiffusion::Init(ArgList& actionArgs, ActionInit& 
 # endif
   DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out") );
   useMass_ = actionArgs.hasKey("mass");
+  if (results_.AddDiffOut(init.DFL(), actionArgs.GetStringKey("diffout")))
+    return Action::ERR;
   time_ = actionArgs.getNextDouble(1.0);
   if (mask1_.SetMaskString( actionArgs.GetMaskNext() )) {
     mprinterr("Error: Invalid mask string.\n");
@@ -67,6 +70,9 @@ Action::RetType Action_ToroidalDiffusion::Init(ArgList& actionArgs, ActionInit& 
   avg_z_->SetDim(Dimension::X, Xdim_);
   avg_r_->SetDim(Dimension::X, Xdim_);
   avg_a_->SetDim(Dimension::X, Xdim_);
+  // Set up diffusion sets
+  if (results_.CreateDiffusionSets(init.DSL(), dsname_))
+    return Action::ERR;
 
   mprintf("    TORDIFF: Toroidal-view-preserving diffusion calculation.\n");
   mprintf("\tCalculating diffusion for molecules selected by mask '%s'\n", mask1_.MaskString());
@@ -78,6 +84,7 @@ Action::RetType Action_ToroidalDiffusion::Init(ArgList& actionArgs, ActionInit& 
   mprintf("\tData set name: %s\n", dsname_.c_str());
   if (outfile != 0)
     mprintf("\tOutput to file '%s'\n", outfile->DataFilename().full());
+  results_.Info();
 # ifdef _OPENMP
 # pragma omp parallel
   {
@@ -270,4 +277,15 @@ Action::RetType Action_ToroidalDiffusion::DoAction(int frameNum, ActionFrame& fr
   avg_a_->Add(frameNum, &average2);
 
   return Action::OK;
+}
+
+/** Calc diffusion constants. */
+void Action_ToroidalDiffusion::Print() {
+  mprintf("    TORDIFF: Calculating diffusion constants from slopes.\n");
+  std::string const& name = avg_r_->Meta().Name();
+  unsigned int set = 0;
+  results_.CalcDiffusionConst( set, avg_r_, 3, name + "_AvgDr" );
+  results_.CalcDiffusionConst( set, avg_x_, 1, name + "_AvgDx" );
+  results_.CalcDiffusionConst( set, avg_y_, 1, name + "_AvgDy" );
+  results_.CalcDiffusionConst( set, avg_z_, 1, name + "_AvgDz" );
 }
