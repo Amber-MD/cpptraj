@@ -169,15 +169,18 @@ Action::RetType Action_ToroidalDiffusion::DoAction(int frameNum, ActionFrame& fr
     // ----- First frame ---------------
     torPositions_.reserve( entities_.size() );
     prevPositions_.reserve( entities_.size() );
+    initialPositions_.reserve( entities_.size() );
     if (useMass_) {
       for (Marray::const_iterator mask = entities_.begin(); mask != entities_.end(); ++mask) {
         torPositions_.push_back( frm.Frm().VCenterOfMass( *mask ) );
         prevPositions_.push_back( torPositions_.back() );
+        initialPositions_.push_back( torPositions_.back() );
       }
     } else {
       for (Marray::const_iterator mask = entities_.begin(); mask != entities_.end(); ++mask) {
         torPositions_.push_back( frm.Frm().VGeometricCenter( *mask ) );
         prevPositions_.push_back( torPositions_.back() );
+        initialPositions_.push_back( torPositions_.back() );
       }
     }
   } else {
@@ -191,17 +194,19 @@ Action::RetType Action_ToroidalDiffusion::DoAction(int frameNum, ActionFrame& fr
       else
         Wi1 = frm.Frm().VGeometricCenter( entities_[idx] );
       Vec3 deltaW = Wi1 - prevPositions_[idx];
-      // Calculate translation for toroidal scheme
+      // Calculate translation for toroidal scheme (3rd term of eq. 2)
       Vec3 trans;
-      trans[0] = deltaW[0] - floor( (deltaW[0] / boxVec[0]) + 0.5 ) * boxVec[0];
-      trans[1] = deltaW[1] - floor( (deltaW[1] / boxVec[1]) + 0.5 ) * boxVec[1];
-      trans[2] = deltaW[2] - floor( (deltaW[2] / boxVec[2]) + 0.5 ) * boxVec[2];
+      trans[0] = floor( (deltaW[0] / boxVec[0]) + 0.5 ) * boxVec[0];
+      trans[1] = floor( (deltaW[1] / boxVec[1]) + 0.5 ) * boxVec[1];
+      trans[2] = floor( (deltaW[2] / boxVec[2]) + 0.5 ) * boxVec[2];
       // Calculate current position in toroidal scheme
-      Vec3 Ui1 = torPositions_[idx] + trans;
+      Vec3 Ui1 = torPositions_[idx] + deltaW - trans;
+      // Calculate distance from current toroidal position to initial position
+      Vec3 delta = Ui1 - initialPositions_[idx];
       // Calculate diffusion
-      double distx = trans[0] * trans[0];
-      double disty = trans[1] * trans[1];
-      double distz = trans[2] * trans[2];
+      double distx = delta[0] * delta[0];
+      double disty = delta[1] * delta[1];
+      double distz = delta[2] * delta[2];
       double dist2 = distx + disty + distz;
       // Accumulate averages
       avgx += distx;
