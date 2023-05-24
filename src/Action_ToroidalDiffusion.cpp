@@ -195,7 +195,14 @@ Action::RetType Action_ToroidalDiffusion::DoAction(int frameNum, ActionFrame& fr
     }
   } else {
     // ----- Subsequent frames ---------
-    for (unsigned int idx = 0; idx != entities_.size(); idx++)
+    int idx;
+    int maxidx = (int)entities_.size();
+#   ifdef _OPENMP
+#   pragma omp parallel private(idx) reduction(+ : average2, avgx, avgy, avgz)
+    {
+#   pragma omp for
+#   endif
+    for (idx = 0; idx < maxidx; idx++)
     {
       // wi+1 - wi
       Vec3 Wi1;
@@ -228,6 +235,9 @@ Action::RetType Action_ToroidalDiffusion::DoAction(int frameNum, ActionFrame& fr
       torPositions_[idx] = Ui1;
       prevPositions_[idx] = Wi1;
     } // END loop over entities
+#   ifdef _OPENMP
+    } /* END pragma omp parallel */
+#   endif
   }
   // Calc averages
   double dNselected = 1.0 / (double)entities_.size();
