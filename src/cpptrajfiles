@@ -230,6 +230,7 @@ COMMON_SOURCES= \
         DataSet_unsignedInt.cpp \
         Deprecated.cpp \
         DihedralSearch.cpp \
+        DiffusionResults.cpp \
         DistRoutines.cpp \
         Energy.cpp \
         EnergyArray.cpp \

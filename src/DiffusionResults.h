@@ -18,6 +18,8 @@ class DiffusionResults {
     void Info() const;
 
     void CalcDiffusionConst(unsigned int&, DataSet*, int, std::string const&) const;
+
+    DataFile* DiffOut() const { return diffout_; }
   private:
     DataSet* diffConst_;   ///< Hold diffusion constants.
     DataSet* diffLabel_;   ///< Hold diffusion constant labels.
