@@ -9,7 +9,8 @@ Action_ToroidalDiffusion::Action_ToroidalDiffusion() :
   avg_y_(0),
   avg_z_(0),
   avg_r_(0),
-  avg_a_(0)
+  avg_a_(0),
+  time_(0)
 {}
 
 // Action_ToroidalDiffusion::Help()
@@ -29,6 +30,7 @@ Action::RetType Action_ToroidalDiffusion::Init(ArgList& actionArgs, ActionInit& 
 # endif
   DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out") );
   useMass_ = actionArgs.hasKey("mass");
+  time_ = actionArgs.getNextDouble(1.0);
   if (mask1_.SetMaskString( actionArgs.GetMaskNext() )) {
     mprinterr("Error: Invalid mask string.\n");
     return Action::ERR;
@@ -53,6 +55,13 @@ Action::RetType Action_ToroidalDiffusion::Init(ArgList& actionArgs, ActionInit& 
     outfile->AddDataSet( avg_z_ );
     outfile->AddDataSet( avg_a_ );
   }
+  // Set X dim
+  Dimension Xdim_ = Dimension(0.0, time_, "Time");
+  avg_x_->SetDim(Dimension::X, Xdim_);
+  avg_y_->SetDim(Dimension::X, Xdim_);
+  avg_z_->SetDim(Dimension::X, Xdim_);
+  avg_r_->SetDim(Dimension::X, Xdim_);
+  avg_a_->SetDim(Dimension::X, Xdim_);
 
   mprintf("    TORDIFF: Toroidal-view-preserving diffusion calculation.\n");
   mprintf("\tCalculating diffusion for molecules selected by mask '%s'\n", mask1_.MaskString());
@@ -60,6 +69,7 @@ Action::RetType Action_ToroidalDiffusion::Init(ArgList& actionArgs, ActionInit& 
     mprintf("\tUsing center of mass.\n");
   else
     mprintf("\tUsing geometric center.\n");
+  mprintf("\tThe time between frames is %g ps.\n", time_);
   mprintf("\tData set name: %s\n", dsname_.c_str());
   if (outfile != 0)
     mprintf("\tOutput to file '%s'\n", outfile->DataFilename().full());
