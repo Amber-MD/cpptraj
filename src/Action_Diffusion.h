@@ -2,6 +2,7 @@
 #define INC_ACTION_DIFFUSION_H
 #include "Action.h"
 #include "ImageOption.h"
+#include "DiffusionResults.h"
 class Action_Diffusion : public Action {
   public:
     Action_Diffusion();
@@ -23,7 +24,6 @@ class Action_Diffusion : public Action {
 
     inline void LoadInitial(Frame const&);
     void CalcDiffForSet(unsigned int&, Dlist const&, int, std::string const&) const;
-    void CalcDiffusionConst(unsigned int&, DataSet*, int, std::string const&) const;
 
     ImageOption imageOpt_; ///< Used to determine if imaging should be used.
     Frame initial_;   ///< Initial frame (all atoms)
@@ -41,11 +41,6 @@ class Action_Diffusion : public Action {
     bool printIndividual_; ///< If true print diffusion for individual atoms
     bool calcDiffConst_;   ///< If true calculate diffusion const from MSD vs time
     double time_;          ///< Time step between frames
-    DataSet* diffConst_;   ///< Hold diffusion constants.
-    DataSet* diffLabel_;   ///< Hold diffusion constant labels.
-    DataSet* diffSlope_;   ///< Hold MSD vs time line slopes.
-    DataSet* diffInter_;   ///< Hold MSD vs time line intercepts.
-    DataSet* diffCorrl_;   ///< Hold MSD vs time line correlation.
     int debug_;
     AtomMask mask_;        ///< Selected atoms
     DataFile* outputx_;
@@ -53,13 +48,13 @@ class Action_Diffusion : public Action {
     DataFile* outputz_;
     DataFile* outputr_;
     DataFile* outputa_;
-    DataFile* diffout_;
     DataSetList* masterDSL_;
     std::string dsname_;
     Dimension Xdim_;
     DataSet* avgucell_;   ///< Hold average unit cell parameters for removing box fluctuations
     Box avgbox_;          ///< Hold average box for removing box fluctuations
     bool allowMultipleTimeOrigins_; ///< If true, allow multiple time origins with imaging
+    Cpptraj::DiffusionResults results_;
 #   ifdef MPI
     Parallel::Comm trajComm_;
     bool multipleTimeOrigins_; ///< If true, parallel diffusion calc with imaging, multiple time originsi

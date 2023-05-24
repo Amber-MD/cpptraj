@@ -20,7 +20,9 @@ class DiffusionResults {
 
     void CalcDiffusionConst(unsigned int&, DataSet*, int, std::string const&) const;
 
-    DataFile* DiffOut() const { return diffout_; }
+    //DataFile* DiffOut() const { return diffout_; }
+
+    bool HasDiffOut() const { return (diffout_ != 0); }
   private:
     DataSet* diffConst_;   ///< Hold diffusion constants.
     DataSet* diffLabel_;   ///< Hold diffusion constant labels.
