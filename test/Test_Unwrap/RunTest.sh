@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles ptraj.in unwrap.crd unwrap.ortho.crd tz2.ortho.wato.dat
+CleanFiles ptraj.in unwrap.crd unwrap.ortho.crd tz2.ortho.wato.dat tor.dat
 TESTNAME='Unwrap tests'
 Requires netcdf notparallel
 
@@ -36,6 +36,14 @@ run
 EOF
 RunCpptraj "Unwrap with average box correction test"
 DoTest tz2.ortho.wato.dat.save tz2.ortho.wato.dat
+
+cat > ptraj.in <<EOF
+trajin ../tz2.ortho.nc
+unwrap scheme tor
+diffusion TOR :WAT@O out tor.dat noimage
+EOF
+RunCpptraj "Unwrap with toroidal-view-preserving test"
+DoTest ../Test_TorDiff/tor.dat.save tor.dat
 
 EndTest
 
