@@ -306,6 +306,62 @@ void Image::UnwrapFrac(std::vector<Vec3>& previousFrac,
   }
 }
 
+/** Unwrap using the toroidal-view-preserving scheme */ // TODO non-orthogonal case
+void Image::UnwrapToroidal(std::vector<Vec3>& torPositions,
+                       std::vector<Vec3>& prevPositions,
+                       Frame& currentFrame,
+                       List const& AtomPairs,
+                       Vec3 const& boxVec)
+{
+  int idx;
+  int maxidx = (int)AtomPairs.nEntities();
+
+  if (torPositions.empty()) {
+    torPositions.resize( maxidx );
+    prevPositions.resize( maxidx );
+#   ifdef _OPENMP
+#   pragma omp parallel private(idx)
+    {
+#   pragma omp for
+#   endif
+    for (idx = 0; idx < maxidx; idx++)
+    {
+      // Store initial coords 
+      Vec3 xyz_cart = AtomPairs.GetCoord(idx, currentFrame);
+      torPositions[idx] = xyz_cart;
+      prevPositions[idx] = xyz_cart;
+    }
+#   ifdef _OPENMP
+    }
+#   endif
+  } else {
+    // Update currentframe
+#   ifdef _OPENMP
+#   pragma omp parallel private(idx)
+    {
+#   pragma omp for
+#   endif
+    for (idx = 0; idx < maxidx; idx++)
+    {
+      Vec3 Wi1 = AtomPairs.GetCoord(idx, currentFrame);
+      Vec3 deltaW = Wi1 - prevPositions[idx];
+      // Calculate translation for toroidal scheme (3rd term of eq. 2)
+      Vec3 trans;
+      trans[0] = deltaW[0] - floor( (deltaW[0] / boxVec[0]) + 0.5 ) * boxVec[0];
+      trans[1] = deltaW[1] - floor( (deltaW[1] / boxVec[1]) + 0.5 ) * boxVec[1];
+      trans[2] = deltaW[2] - floor( (deltaW[2] / boxVec[2]) + 0.5 ) * boxVec[2];
+      // Do the translation
+      AtomPairs.DoTranslation( currentFrame, idx, trans );
+      // Update previous position and toroidal position
+      torPositions[idx] += trans;
+      prevPositions[idx] = Wi1;
+    }
+#   ifdef _OPENMP
+    }
+#   endif
+  }
+}
+
 // -----------------------------------------------------------------------------
 void Image::WrapToCell0(std::vector<double>& CoordsIn, Frame const& frmIn,
                         AtomMask const& maskIn,
