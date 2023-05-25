@@ -343,6 +343,7 @@ void Image::UnwrapToroidal(std::vector<Vec3>& torPositions,
 #   endif
     for (idx = 0; idx < maxidx; idx++)
     {
+      // Get current position
       Vec3 Wi1 = AtomPairs.GetCoord(idx, currentFrame);
       Vec3 deltaW = Wi1 - prevPositions[idx];
       // Calculate translation for toroidal scheme (3rd term of eq. 2)
@@ -350,10 +351,11 @@ void Image::UnwrapToroidal(std::vector<Vec3>& torPositions,
       trans[0] = deltaW[0] - floor( (deltaW[0] / boxVec[0]) + 0.5 ) * boxVec[0];
       trans[1] = deltaW[1] - floor( (deltaW[1] / boxVec[1]) + 0.5 ) * boxVec[1];
       trans[2] = deltaW[2] - floor( (deltaW[2] / boxVec[2]) + 0.5 ) * boxVec[2];
-      // Do the translation
-      AtomPairs.DoTranslation( currentFrame, idx, trans );
-      // Update previous position and toroidal position
+      // Update the toroidal position
       torPositions[idx] += trans;
+      // Do the translation from current position to toroidal position
+      AtomPairs.DoTranslation( currentFrame, idx, torPositions[idx] - Wi1 );
+      // Update previous position
       prevPositions[idx] = Wi1;
     }
 #   ifdef _OPENMP
