@@ -1,5 +1,6 @@
 #include "Analysis_CalcDiffusion.h"
 #include "CpptrajStdio.h"
+#include <algorithm> // std::min
 
 /** CONSTRUCTOR */
 Analysis_CalcDiffusion::Analysis_CalcDiffusion() :
@@ -108,10 +109,28 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
   }
   int stopframe = maxframes - maxlag_;
 
-  mprintf("\tCalculating diffusion from set '%s' for atoms in mask '%s' from t=0 to %g\n",
-          TgtTraj_->legend(), mask1_.MaskString(), (double)maxlag_ * time_);
-  mprintf("\tUsing frames 1 to %i as time origins.\n", stopframe);
+  mprintf("\tCalculating diffusion from set '%s' for atoms in mask '%s' from t=0 to %g ps.\n",
+          TgtTraj_->legend(), mask1_.MaskString(), (double)stopframe * time_);
+  mprintf("\tMax lag is %i frames.\n", maxlag_);
+  mprintf("\tUsing frames 1 to %i as time origins.\n", stopframe+1);
 
+  if (stopframe < 1) {
+    mprinterr("Error: Stop frame is less than 1.\n");
+    return Analysis::ERR;
+  }
+
+  int idx0, idx1;
+
+  for (idx0 = 0; idx0 <= stopframe; idx0++)
+  {
+    mprintf("DEBUG: (t=%g) %i to", (double)idx0*time_, idx0);
+    int endidx = std::min(idx0 + maxlag_, maxframes);
+    for (idx1 = idx0; idx1 < endidx; idx1++)
+    {
+      mprintf(" %i", idx1);
+    }
+    mprintf("\n");
+  }
 
   return Analysis::OK;
 }
