@@ -3,7 +3,8 @@
 
 // Analysis_CalcDiffusion::Help()
 void Analysis_CalcDiffusion::Help() const {
-  mprintf("\t[crdset <coords set>] [maxlag <maxlag>] [<mask>]\n");
+  mprintf("\t[crdset <coords set>] [maxlag <maxlag>] [<mask>] [time <dt>]\n"
+          "\t[<name>] [out <file>]\n");
 }
 
 // Analysis_CalcDiffusion::Setup()
@@ -67,5 +68,19 @@ Analysis::RetType Analysis_CalcDiffusion::Setup(ArgList& analyzeArgs, AnalysisSe
 
 // Analysis_CalcDiffusion::Analyze()
 Analysis::RetType Analysis_CalcDiffusion::Analyze() {
+  if (TgtTraj_->Size() < 1) {
+    mprinterr("Error: COORDS set '%s' is empty.\n", TgtTraj_->legend());
+    return Analysis::ERR;
+  }
+  if (TgtTraj_->Top().SetupIntegerMask( mask1_ )) {
+    mprinterr("Error: Could not set up mask '%s'\n", mask1_.MaskString());
+    return Analysis::ERR;
+  }
+  mask1_.MaskInfo();
+  if (mask1_.None()) {
+    mprinterr("Error: Nothing selected by mask '%s'\n", mask1_.MaskString());
+    return Analysis::ERR;
+  }
 
+  return Analysis::OK;
 }

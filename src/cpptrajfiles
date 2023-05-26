@@ -98,6 +98,7 @@ COMMON_SOURCES= \
         Analysis_AmdBias.cpp \
         Analysis_AutoCorr.cpp \
         Analysis_Average.cpp \
+        Analysis_CalcDiffusion.cpp \
         Analysis_Clustering.cpp \
         Analysis_Corr.cpp \
         Analysis_ConstantPHStats.cpp \
