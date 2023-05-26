@@ -19,7 +19,7 @@ Analysis_CalcDiffusion::Analysis_CalcDiffusion() :
 // Analysis_CalcDiffusion::Help()
 void Analysis_CalcDiffusion::Help() const {
   mprintf("\t[crdset <coords set>] [maxlag <maxlag>] [<mask>] [time <dt>]\n"
-          "\t[<name>] [out <file>]\n");
+          "\t[<name>] [out <file>] [diffout <file>]\n");
 }
 
 // Analysis_CalcDiffusion::Setup()
@@ -37,6 +37,7 @@ Analysis::RetType Analysis_CalcDiffusion::Setup(ArgList& analyzeArgs, AnalysisSe
   maxlag_ = analyzeArgs.getKeyInt("maxlag", -1);
   time_ = analyzeArgs.getKeyDouble("time", 1.0);
   DataFile* outfile = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
+  results_.AddDiffOut(setup.DFL(), analyzeArgs.GetStringKey("diffout"));
   // Mask
   if (mask1_.SetMaskString( analyzeArgs.GetMaskNext() )) {
     mprinterr("Error: Could not set mask string.\n");
@@ -77,6 +78,10 @@ Analysis::RetType Analysis_CalcDiffusion::Setup(ArgList& analyzeArgs, AnalysisSe
   if (maxlag_ > 0)
     mprintf("\tMaximum lag is %i frames.\n", maxlag_);
   mprintf("\tUsing atoms selected by mask '%s'\n", mask1_.MaskString());
+  mprintf("\tData set name: %s\n", dsname_.c_str());
+  if (outfile != 0)
+    mprintf("\tOutput to '%s'\n", outfile->DataFilename().full());
+  results_.Info();
 
   return Analysis::OK;
 }
@@ -112,7 +117,7 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
   int stopframe = maxframes - maxlag_;
 
   mprintf("\tCalculating diffusion from set '%s' for atoms in mask '%s' from t=0 to %g ps.\n",
-          TgtTraj_->legend(), mask1_.MaskString(), (double)stopframe * time_);
+          TgtTraj_->legend(), mask1_.MaskString(), (double)(maxlag_-1) * time_);
   mprintf("\tMax lag is %i frames.\n", maxlag_);
   mprintf("\tUsing frames 1 to %i as time origins.\n", stopframe+1);
 
@@ -188,6 +193,14 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
       AA[idx0] /= (double)count[idx0];
     }
   }
+
+  // Calculate diffusion constants
+  std::string const& name = avg_r_->Meta().Name();
+  unsigned int set = 0;
+  results_.CalcDiffusionConst( set, avg_r_, 3, name + "_AvgDr" );
+  results_.CalcDiffusionConst( set, avg_x_, 1, name + "_AvgDx" );
+  results_.CalcDiffusionConst( set, avg_y_, 1, name + "_AvgDy" );
+  results_.CalcDiffusionConst( set, avg_z_, 1, name + "_AvgDz" );
 
   return Analysis::OK;
 }
