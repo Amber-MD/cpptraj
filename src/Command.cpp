@@ -199,6 +199,7 @@
 #include "Analysis_HausdorffDistance.h"
 #include "Analysis_Slope.h"
 #include "Analysis_EvalPlateau.h"
+#include "Analysis_CalcDiffusion.h"
 
 CmdList Command::commands_ = CmdList();
 
@@ -395,6 +396,7 @@ void Command::Init() {
   Command::AddCmd( new Analysis_AmdBias(),     Cmd::ANA, 1, "amdbias" ); // hidden 
   Command::AddCmd( new Analysis_AutoCorr(),    Cmd::ANA, 1, "autocorr" );
   Command::AddCmd( new Analysis_Average(),     Cmd::ANA, 1, "avg" );
+  Command::AddCmd( new Analysis_CalcDiffusion(), Cmd::ANA, 1, "calcdiffusion" );
   Command::AddCmd( new Analysis_State(),       Cmd::ANA, 1, "calcstate" );
   Command::AddCmd( new Analysis_Clustering(),  Cmd::ANA, 1, "cluster" );
   Command::AddCmd( new Analysis_Corr(),        Cmd::ANA, 2, "corr", "correlationcoe" );

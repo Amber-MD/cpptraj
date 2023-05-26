@@ -99,10 +99,18 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
   }
 
   int maxframes = (int)TgtTraj_->Size();
-  if (maxlag_ < 1)
-    maxlag_ = (maxframes / 2) + (maxframes%2);
+  if (maxlag_ < 1) {
+    maxlag_ = (maxframes / 2);
+  } else {
+    int halfmax = (maxframes / 2);
+    if (maxlag_ > halfmax)
+      mprintf("Warning: Lag %i is more than half the number of input frames %i\n", maxlag_, halfmax);
+  }
+  int stopframe = maxframes - maxlag_;
+
   mprintf("\tCalculating diffusion from set '%s' for atoms in mask '%s' from t=0 to %g\n",
           TgtTraj_->legend(), mask1_.MaskString(), (double)maxlag_ * time_);
+  mprintf("\tUsing frames 1 to %i as time origins.\n", stopframe);
 
 
   return Analysis::OK;
