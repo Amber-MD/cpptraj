@@ -11,6 +11,7 @@
 /** CONSTRUCTOR */
 Analysis_CalcDiffusion::Analysis_CalcDiffusion() :
   TgtTraj_(0),
+  debug_(0),
   maxlag_(0),
   time_(0),
   avg_x_(0),
@@ -29,6 +30,7 @@ void Analysis_CalcDiffusion::Help() const {
 // Analysis_CalcDiffusion::Setup()
 Analysis::RetType Analysis_CalcDiffusion::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
+  debug_ = debugIn;
   // Attempt to get coords dataset from datasetlist
   std::string setname = analyzeArgs.GetStringKey("crdset");
   TgtTraj_ = (DataSet_Coords*)setup.DSL().FindCoordsSet( setname );
@@ -112,17 +114,18 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
 
   int maxframes = (int)TgtTraj_->Size();
   if (maxlag_ < 1) {
+    mprintf("\t'maxlag' not specified, using half the number of input frames.\n");
     maxlag_ = (maxframes / 2);
   } else {
     int halfmax = (maxframes / 2);
     if (maxlag_ > halfmax)
-      mprintf("Warning: Lag %i is more than half the number of input frames %i\n", maxlag_, halfmax);
+      mprintf("Warning: Lag %i is more than half the number of input frames (N/2=%i)\n", maxlag_, halfmax);
   }
+  mprintf("\tMax lag is %i frames.\n", maxlag_);
   int stopframe = maxframes - maxlag_;
 
   mprintf("\tCalculating diffusion from set '%s' for atoms in mask '%s' from t=0 to %g ps.\n",
           TgtTraj_->legend(), mask1_.MaskString(), (double)(maxlag_-1) * time_);
-  mprintf("\tMax lag is %i frames.\n", maxlag_);
   mprintf("\tUsing frames 1 to %i as time origins.\n", stopframe+1);
 
   if (stopframe < 1) {
@@ -253,7 +256,8 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
   for (idx0 = 0; idx0 < maxlag_; idx0++) {
     maxcount = std::max( maxcount, count[idx0] );
     mincount = std::min( mincount, count[idx0] );
-    //mprintf("DEBUG: Average at t=%g is from %u data points.\n", (double)idx0*time_, count[idx0]);
+    if (debug_ > 0)
+      mprintf("DEBUG: Average at t=%g is from %u data points.\n", (double)idx0*time_, count[idx0]);
     if (count[idx0] > 0) {
       AX[idx0] /= (double)count[idx0];
       AY[idx0] /= (double)count[idx0];

@@ -13,6 +13,7 @@ class Analysis_CalcDiffusion : public Analysis {
     Analysis::RetType Analyze();
   private:
     DataSet_Coords* TgtTraj_; ///< Coordinates to calculate diffusion for
+    int debug_;
     int maxlag_;              ///< Maximum number of frames to use for each origin
     double time_;             ///< Time between frames in ps
     AtomMask mask1_;          ///< Atoms to track diffusion for.
