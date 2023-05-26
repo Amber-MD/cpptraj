@@ -133,7 +133,7 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
   AA.Resize( maxlag_ );
   AR.Resize( maxlag_ );
 
-  std::vector<unsigned int> count( stopframe+1, 0 );
+  std::vector<unsigned int> count( maxlag_, 0 );
 
   int idx0, idx1;
   Frame frm0 = TgtTraj_->AllocateFrame();
@@ -164,7 +164,7 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
         double disty = dely * dely;
         double distz = delz * delz;
         double dist2 = distx + disty + distz;
-        mprintf("DEBUG: At=%i  frm %i to %i  t=%g  d2=%g\n", *at+1, idx0+1, idx1+1, (double)tidx*time_, dist2);
+//        mprintf("DEBUG: At=%i  frm %i to %i  t=%g  d2=%g\n", *at+1, idx0+1, idx1+1, (double)tidx*time_, dist2);
         // Accumulate distances
         AX[tidx] += distx;
         AY[tidx] += disty;
@@ -178,7 +178,8 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
   } // END outer loop
 
   // Calculate averages
-  for (idx0 = 0; idx0 <= stopframe; idx0++) {
+  for (idx0 = 0; idx0 < maxlag_; idx0++) {
+    mprintf("DEBUG: Average at t=%g is from %u data points.\n", (double)idx0*time_, count[idx0]);
     if (count[idx0] > 0) {
       AX[idx0] /= (double)count[idx0];
       AY[idx0] /= (double)count[idx0];
