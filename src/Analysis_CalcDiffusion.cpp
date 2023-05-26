@@ -1,8 +1,12 @@
 #include "Analysis_CalcDiffusion.h"
 #include "CpptrajStdio.h"
 #include "DataSet_double.h"
+#include "ProgressBar.h"
 #include <algorithm> // std::min
 #include <cmath> // sqrt
+#ifdef _OPENMP
+# include <omp.h>
+#endif
 
 /** CONSTRUCTOR */
 Analysis_CalcDiffusion::Analysis_CalcDiffusion() :
@@ -140,18 +144,55 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
 
   std::vector<unsigned int> count( maxlag_, 0 );
 
-  int idx0, idx1;
+# ifdef _OPENMP
+  int nthreads;
+# pragma omp parallel
+  {
+# pragma omp master
+  nthreads = omp_get_num_threads();
+  }
+  mprintf("\tParallelizing calculation with %i OpenMP threads.\n", nthreads);
+  typedef std::vector<double> Darray;
+  typedef std::vector<Darray> Tarray;
+  Tarray thread_X_( nthreads );
+  Tarray thread_Y_( nthreads );
+  Tarray thread_Z_( nthreads );
+  Tarray thread_A_( nthreads );
+  Tarray thread_R_( nthreads );
+  typedef std::vector< std::vector<unsigned int> > Carray;
+  Carray thread_C_( nthreads );
+  for (int t = 0; t < nthreads; t++) {
+    thread_X_[t].resize( maxlag_, 0 );
+    thread_Y_[t].resize( maxlag_, 0 );
+    thread_Z_[t].resize( maxlag_, 0 );
+    thread_A_[t].resize( maxlag_, 0 );
+    thread_R_[t].resize( maxlag_, 0 );
+    thread_C_[t].resize( maxlag_, 0 );
+  }
+# endif /* OPENMP */
+
+  int idx0;
   Frame frm0 = TgtTraj_->AllocateFrame();
   Frame frm1 = frm0;
 
+  ParallelProgress progress( stopframe+1 );
+# ifdef _OPENMP
+  int mythread;
+# pragma omp parallel private(idx0, mythread) firstprivate(frm0, frm1, progress)
+  {
+  mythread = omp_get_thread_num();
+  progress.SetThread( mythread );
+# pragma omp for schedule(dynamic)
+# endif
   // LOOP OVER FRAMES
   for (idx0 = 0; idx0 <= stopframe; idx0++)
   {
+    progress.Update( idx0 );
 //    mprintf("DEBUG: (t=%g) %i to", (double)idx0*time_, idx0);
     TgtTraj_->GetFrame(idx0, frm0);
     int endidx = std::min(idx0 + maxlag_, maxframes);
     int tidx = 0;
-    for (idx1 = idx0; idx1 < endidx; idx1++, tidx++)
+    for (int idx1 = idx0; idx1 < endidx; idx1++, tidx++)
     {
 //      mprintf(" %i", idx1);
       // TODO for idx1==idx0 this is the same frame
@@ -171,16 +212,40 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
         double dist2 = distx + disty + distz;
 //        mprintf("DEBUG: At=%i  frm %i to %i  t=%g  d2=%g\n", *at+1, idx0+1, idx1+1, (double)tidx*time_, dist2);
         // Accumulate distances
+#       ifdef _OPENMP
+        thread_X_[mythread][tidx] += distx;
+        thread_Y_[mythread][tidx] += disty;
+        thread_Z_[mythread][tidx] += distz;
+        thread_R_[mythread][tidx] += dist2;
+        thread_A_[mythread][tidx] += sqrt(dist2);
+        thread_C_[mythread][tidx]++;
+#       else
         AX[tidx] += distx;
         AY[tidx] += disty;
         AZ[tidx] += distz;
         AR[tidx] += dist2;
         AA[tidx] += sqrt(dist2);
         count[tidx]++;
+#       endif
       } // END loop over atoms
     } // END inner loop
 //    mprintf("\n");
   } // END outer loop
+# ifdef _OPENMP
+  } // END omp parallel
+  // Sum into the DataSet arrays
+  for (int t = 0; t < nthreads; t++) {
+    for (idx0 = 0; idx0 < maxlag_; idx0++) {
+      AX[idx0] += thread_X_[t][idx0];
+      AY[idx0] += thread_Y_[t][idx0];
+      AZ[idx0] += thread_Z_[t][idx0];
+      AR[idx0] += thread_R_[t][idx0];
+      AA[idx0] += thread_A_[t][idx0];
+      count[idx0] += thread_C_[t][idx0];
+    }
+  }
+# endif
+  progress.Finish();
 
   // Calculate averages
   for (idx0 = 0; idx0 < maxlag_; idx0++) {
