@@ -248,8 +248,12 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
   progress.Finish();
 
   // Calculate averages
+  unsigned int maxcount = count[0];
+  unsigned int mincount = count[0];
   for (idx0 = 0; idx0 < maxlag_; idx0++) {
-    mprintf("DEBUG: Average at t=%g is from %u data points.\n", (double)idx0*time_, count[idx0]);
+    maxcount = std::max( maxcount, count[idx0] );
+    mincount = std::min( mincount, count[idx0] );
+    //mprintf("DEBUG: Average at t=%g is from %u data points.\n", (double)idx0*time_, count[idx0]);
     if (count[idx0] > 0) {
       AX[idx0] /= (double)count[idx0];
       AY[idx0] /= (double)count[idx0];
@@ -258,6 +262,10 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
       AA[idx0] /= (double)count[idx0];
     }
   }
+  if (maxcount == mincount)
+    mprintf("\t%u data points contributed to each average.\n", maxcount);
+  else
+    mprintf("\tMax # points averaged = %u, min # points averaged = %u\n", maxcount, mincount);
 
   // Calculate diffusion constants
   std::string const& name = avg_r_->Meta().Name();
