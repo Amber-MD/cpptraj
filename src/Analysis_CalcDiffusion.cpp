@@ -1,6 +1,18 @@
 #include "Analysis_CalcDiffusion.h"
 #include "CpptrajStdio.h"
 
+/** CONSTRUCTOR */
+Analysis_CalcDiffusion::Analysis_CalcDiffusion() :
+  TgtTraj_(0),
+  maxlag_(0),
+  time_(0),
+  avg_x_(0),
+  avg_y_(0),
+  avg_z_(0),
+  avg_r_(0),
+  avg_a_(0)
+{}
+
 // Analysis_CalcDiffusion::Help()
 void Analysis_CalcDiffusion::Help() const {
   mprintf("\t[crdset <coords set>] [maxlag <maxlag>] [<mask>] [time <dt>]\n"
@@ -20,7 +32,7 @@ Analysis::RetType Analysis_CalcDiffusion::Setup(ArgList& analyzeArgs, AnalysisSe
     return Analysis::ERR;
   }
   maxlag_ = analyzeArgs.getKeyInt("maxlag", -1);
-  double time_ = analyzeArgs.getKeyDouble("time", 1.0);
+  time_ = analyzeArgs.getKeyDouble("time", 1.0);
   DataFile* outfile = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
   // Mask
   if (mask1_.SetMaskString( analyzeArgs.GetMaskNext() )) {
@@ -72,6 +84,10 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
     mprinterr("Error: COORDS set '%s' is empty.\n", TgtTraj_->legend());
     return Analysis::ERR;
   }
+  if (TgtTraj_->Size() == 1) {
+    mprinterr("Error: COORDS set '%s' has only 1 frame.\n");
+    return Analysis::ERR;
+  }
   if (TgtTraj_->Top().SetupIntegerMask( mask1_ )) {
     mprinterr("Error: Could not set up mask '%s'\n", mask1_.MaskString());
     return Analysis::ERR;
@@ -81,6 +97,13 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
     mprinterr("Error: Nothing selected by mask '%s'\n", mask1_.MaskString());
     return Analysis::ERR;
   }
+
+  int maxframes = (int)TgtTraj_->Size();
+  if (maxlag_ < 1)
+    maxlag_ = (maxframes / 2) + (maxframes%2);
+  mprintf("\tCalculating diffusion from set '%s' for atoms in mask '%s' from t=0 to %g\n",
+          TgtTraj_->legend(), mask1_.MaskString(), (double)maxlag_ * time_);
+
 
   return Analysis::OK;
 }
