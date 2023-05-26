@@ -19,7 +19,7 @@ Action_ToroidalDiffusion::Action_ToroidalDiffusion() :
 
 // Action_ToroidalDiffusion::Help()
 void Action_ToroidalDiffusion::Help() const {
-  mprintf("\t[<set name>] [<mask>] [mass] [out <file>] [diffout <file>]\n"
+  mprintf("\t[<set name>] [<mask>] [mass] [out <file>] [diffout <file>] [time <dt>]\n"
           "  Calculate diffusion using the toroidal-view-preserving scheme.\n");
 }
 
@@ -38,7 +38,7 @@ Action::RetType Action_ToroidalDiffusion::Init(ArgList& actionArgs, ActionInit& 
   useMass_ = actionArgs.hasKey("mass");
   if (results_.AddDiffOut(init.DFL(), actionArgs.GetStringKey("diffout")))
     return Action::ERR;
-  time_ = actionArgs.getNextDouble(1.0);
+  time_ = actionArgs.getKeyDouble("time", 1.0);
   if (mask1_.SetMaskString( actionArgs.GetMaskNext() )) {
     mprinterr("Error: Invalid mask string.\n");
     return Action::ERR;
