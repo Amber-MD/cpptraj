@@ -1,6 +1,7 @@
 #ifndef INC_ANALYSIS_CALCDIFFUSION_H
 #define INC_ANALYSIS_CALCDIFFUSION_H
 #include "Analysis.h"
+#include "DiffusionResults.h"
 /// Calculate diffusion from unwrapped coordinates using multiple time origins 
 class Analysis_CalcDiffusion : public Analysis {
   public:
@@ -14,5 +15,11 @@ class Analysis_CalcDiffusion : public Analysis {
     DataSet_Coords* TgtTraj_; ///< Coordinates to calculate diffusion for
     int maxlag_;              ///< Maximum number of frames to use for each origin
     AtomMask mask1_;          ///< Atoms to track diffusion for.
+    DataSet* avg_x_;  ///< Hold average diffusion in X direction each frame
+    DataSet* avg_y_;  ///< Hold average diffusion in Y direction each frame
+    DataSet* avg_z_;  ///< Hold average diffusion in Z direction each frame
+    DataSet* avg_r_;  ///< Hold average MSD each frame
+    DataSet* avg_a_;  ///< Hold average distance each frame
+    Cpptraj::DiffusionResults results_;
 };
 #endif
