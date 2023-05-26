@@ -1,6 +1,8 @@
 #include "Analysis_CalcDiffusion.h"
 #include "CpptrajStdio.h"
+#include "DataSet_double.h"
 #include <algorithm> // std::min
+#include <cmath> // sqrt
 
 /** CONSTRUCTOR */
 Analysis_CalcDiffusion::Analysis_CalcDiffusion() :
@@ -119,17 +121,71 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
     return Analysis::ERR;
   }
 
-  int idx0, idx1;
+  // Allocate sets
+  DataSet_double& AX = static_cast<DataSet_double&>( *avg_x_ );
+  DataSet_double& AY = static_cast<DataSet_double&>( *avg_y_ );
+  DataSet_double& AZ = static_cast<DataSet_double&>( *avg_z_ );
+  DataSet_double& AA = static_cast<DataSet_double&>( *avg_a_ );
+  DataSet_double& AR = static_cast<DataSet_double&>( *avg_r_ );
+  AX.Resize( maxlag_ );
+  AY.Resize( maxlag_ );
+  AZ.Resize( maxlag_ );
+  AA.Resize( maxlag_ );
+  AR.Resize( maxlag_ );
 
+  std::vector<unsigned int> count( stopframe+1, 0 );
+
+  int idx0, idx1;
+  Frame frm0 = TgtTraj_->AllocateFrame();
+  Frame frm1 = frm0;
+
+  // LOOP OVER FRAMES
   for (idx0 = 0; idx0 <= stopframe; idx0++)
   {
-    mprintf("DEBUG: (t=%g) %i to", (double)idx0*time_, idx0);
+//    mprintf("DEBUG: (t=%g) %i to", (double)idx0*time_, idx0);
+    TgtTraj_->GetFrame(idx0, frm0);
     int endidx = std::min(idx0 + maxlag_, maxframes);
-    for (idx1 = idx0; idx1 < endidx; idx1++)
+    int tidx = 0;
+    for (idx1 = idx0; idx1 < endidx; idx1++, tidx++)
     {
-      mprintf(" %i", idx1);
+//      mprintf(" %i", idx1);
+      // TODO for idx1==idx0 this is the same frame
+      TgtTraj_->GetFrame(idx1, frm1);
+      // Loop over atoms
+      for (AtomMask::const_iterator at = mask1_.begin(); at != mask1_.end(); ++at)
+      {
+        const double* xyz0 = frm0.XYZ( *at );
+        const double* xyz1 = frm1.XYZ( *at );
+        double delx = xyz1[0] - xyz0[0];
+        double dely = xyz1[1] - xyz0[1];
+        double delz = xyz1[2] - xyz0[2];
+        // Calc distances for this atom
+        double distx = delx * delx;
+        double disty = dely * dely;
+        double distz = delz * delz;
+        double dist2 = distx + disty + distz;
+        mprintf("DEBUG: At=%i  frm %i to %i  t=%g  d2=%g\n", *at+1, idx0+1, idx1+1, (double)tidx*time_, dist2);
+        // Accumulate distances
+        AX[tidx] += distx;
+        AY[tidx] += disty;
+        AZ[tidx] += distz;
+        AR[tidx] += dist2;
+        AA[tidx] += sqrt(dist2);
+        count[tidx]++;
+      } // END loop over atoms
+    } // END inner loop
+//    mprintf("\n");
+  } // END outer loop
+
+  // Calculate averages
+  for (idx0 = 0; idx0 <= stopframe; idx0++) {
+    if (count[idx0] > 0) {
+      AX[idx0] /= (double)count[idx0];
+      AY[idx0] /= (double)count[idx0];
+      AZ[idx0] /= (double)count[idx0];
+      AR[idx0] /= (double)count[idx0];
+      AA[idx0] /= (double)count[idx0];
     }
-    mprintf("\n");
   }
 
   return Analysis::OK;
