@@ -7,7 +7,7 @@ CleanFiles diff.in
 INPUT='diff.in'
 
 TESTNAME='Diffusion analysis tests'
-Requires netcdf notparallel
+Requires netcdf maxthreads 1 
 
 cat > diff.in <<EOF
 parm ../tz2.ortho.parm7
