@@ -26,5 +26,8 @@ class Analysis_CalcDiffusion : public Analysis {
     DataSet* avg_r_;  ///< Hold average MSD each frame
     DataSet* avg_a_;  ///< Hold average distance each frame
     Cpptraj::DiffusionResults results_;
+#   ifdef MPI
+    Parallel::Comm trajComm_;
+#   endif
 };
 #endif

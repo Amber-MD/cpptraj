@@ -30,6 +30,9 @@ void Analysis_CalcDiffusion::Help() const {
 // Analysis_CalcDiffusion::Setup()
 Analysis::RetType Analysis_CalcDiffusion::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
+# ifdef MPI
+  trajComm_ = setup.TrajComm();
+# endif
   debug_ = debugIn;
   // Attempt to get coords dataset from datasetlist
   std::string setname = analyzeArgs.GetStringKey("crdset");
@@ -88,12 +91,20 @@ Analysis::RetType Analysis_CalcDiffusion::Setup(ArgList& analyzeArgs, AnalysisSe
   if (outfile != 0)
     mprintf("\tOutput to '%s'\n", outfile->DataFilename().full());
   results_.Info();
+# ifdef MPI
+  mprintf("\tDividing frames among %i processes.\n", trajComm_.Size());
+# endif
 
   return Analysis::OK;
 }
 
 // Analysis_CalcDiffusion::Analyze()
 Analysis::RetType Analysis_CalcDiffusion::Analyze() {
+# ifdef MPI
+  // Need to make sure each process has access to the frames it needs.
+  // FIXME do a better job determining what frames are actually needed on each process.
+  
+# endif
   if (TgtTraj_->Size() < 1) {
     mprinterr("Error: COORDS set '%s' is empty.\n", TgtTraj_->legend());
     return Analysis::ERR;
