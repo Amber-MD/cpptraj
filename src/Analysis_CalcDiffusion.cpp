@@ -103,7 +103,7 @@ Analysis::RetType Analysis_CalcDiffusion::Setup(ArgList& analyzeArgs, AnalysisSe
 # ifdef MPI
   mprintf("\tDividing frames among %i processes.\n", trajComm_.Size());
 # endif
-  rprintf("DEBUG: Setup finished successfully.\n");
+  //rprintf("DEBUG: Setup finished successfully.\n");
 
   return Analysis::OK;
 }
@@ -130,7 +130,7 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
       return Analysis::ERR;
     }
   }
-  rprintf("DEBUG: COORDS set has %zu frames.\n", TgtTraj_->Size());
+  //rprintf("DEBUG: COORDS set has %zu frames.\n", TgtTraj_->Size());
 # endif
   if (TgtTraj_->Size() < 1) {
     mprinterr("Error: COORDS set '%s' is empty.\n", TgtTraj_->legend());
@@ -353,7 +353,7 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
   results_.CalcDiffusionConst( set, avg_x_, 1, name + "_AvgDx" );
   results_.CalcDiffusionConst( set, avg_y_, 1, name + "_AvgDy" );
   results_.CalcDiffusionConst( set, avg_z_, 1, name + "_AvgDz" );
-  rprintf("DEBUG: Analysis finished successfully.\n");
+  //rprintf("DEBUG: Analysis finished successfully.\n");
 
   return Analysis::OK;
 }

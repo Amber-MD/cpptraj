@@ -186,7 +186,7 @@ int DataSet_Coords_CRD::Bcast(Parallel::Comm const& commIn) {
   int totalSize = Size();
   int err = commIn.MasterBcast( &totalSize, 1, MPI_INT );
   if (!commIn.Master()) {
-    rprintf("DEBUG: Resizing array to %i\n", totalSize);
+    //rprintf("DEBUG: Resizing array to %i\n", totalSize);
     frames_.Resize( totalSize );
   }
   // Broadcast data from the master
