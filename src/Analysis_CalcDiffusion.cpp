@@ -2,7 +2,7 @@
 #include "CpptrajStdio.h"
 #include "DataSet_double.h"
 #include "ProgressBar.h"
-#include <algorithm> // std::min
+#include <algorithm> // std::min, std::copy
 #include <cmath> // sqrt
 #ifdef _OPENMP
 # include <omp.h>
@@ -108,6 +108,16 @@ Analysis::RetType Analysis_CalcDiffusion::Setup(ArgList& analyzeArgs, AnalysisSe
   return Analysis::OK;
 }
 
+# ifdef MPI
+/** Sum array to master. */
+static inline void sumToMaster(std::vector<double>& dbuf, DataSet_double& AX,
+                               Parallel::Comm const& trajComm, int maxlag)
+{
+  trajComm.ReduceMaster( &dbuf[0], AX.DvalPtr(), maxlag, MPI_DOUBLE, MPI_SUM );
+  std::copy( dbuf.begin(), dbuf.end(), (double*)AX.Yptr() );
+}
+# endif
+
 // Analysis_CalcDiffusion::Analyze()
 Analysis::RetType Analysis_CalcDiffusion::Analyze() {
 # ifdef MPI
@@ -206,7 +216,18 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
   Frame frm0 = TgtTraj_->AllocateFrame();
   Frame frm1 = frm0;
 
-  ParallelProgress progress( stopframe+1 );
+  int my_start, my_stop;
+#ifdef MPI
+  int my_frames = trajComm_.DivideAmongProcesses( my_start, my_stop, stopframe + 1 );
+  ParallelProgress progress( my_stop );
+  progress.SetThread( trajComm_.Rank() );
+  rprintf("\tProcessing %i frames (%i to %i).\n", my_frames, my_start, my_stop);
+  if (my_frames < 1)
+    rprintf("Warning: Rank is processing less than 1 frame. Should use fewer processes.\n");
+#else /* MPI */
+  my_start = 0; 
+  my_stop = stopframe + 1;
+  ParallelProgress progress( my_stop );
 # ifdef _OPENMP
   int mythread;
 # pragma omp parallel private(idx0, mythread) firstprivate(frm0, frm1, progress)
@@ -214,9 +235,10 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
   mythread = omp_get_thread_num();
   progress.SetThread( mythread );
 # pragma omp for schedule(dynamic)
-# endif
+# endif /* _OPENMP */
+#endif /* MPI */
   // LOOP OVER FRAMES
-  for (idx0 = 0; idx0 <= stopframe; idx0++)
+  for (idx0 = my_start; idx0 < my_stop; idx0++)
   {
     progress.Update( idx0 );
 //    mprintf("DEBUG: (t=%g) %i to", (double)idx0*time_, idx0);
@@ -278,6 +300,18 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
 # endif
   progress.Finish();
 
+# ifdef MPI
+  // Sum arrays back down to the master
+  std::vector<double> dbuf( maxlag_, 0 );
+  sumToMaster( dbuf, AX, trajComm_, maxlag_ );
+  sumToMaster( dbuf, AY, trajComm_, maxlag_ );
+  sumToMaster( dbuf, AZ, trajComm_, maxlag_ );
+  sumToMaster( dbuf, AR, trajComm_, maxlag_ );
+  sumToMaster( dbuf, AA, trajComm_, maxlag_ );
+  std::vector<unsigned int> ubuf( maxlag_, 0 );
+  trajComm_.ReduceMaster( &ubuf[0], &count[0], maxlag_, MPI_UNSIGNED, MPI_SUM );
+  std::copy( ubuf.begin(), ubuf.end(), count.begin() );
+# endif /* MPI */
   // Calculate averages
   unsigned int maxcount = count[0];
   unsigned int mincount = count[0];
