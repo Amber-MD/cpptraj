@@ -200,7 +200,11 @@ CpptrajState::RetType CpptrajState::AddToActionQueue( Action* actIn, ArgList& ar
 // CpptrajState::AddToAnalysisQueue()
 CpptrajState::RetType CpptrajState::AddToAnalysisQueue( Analysis* anaIn, ArgList& argIn ) {
   argIn.MarkArg(0);
+# ifdef MPI
+  AnalysisSetup setup(DSL_, DFL_, Parallel::TrajComm());
+# else
   AnalysisSetup setup(DSL_, DFL_);
+# endif
   RetType err = OK;
   if (analysisList_.AddAnalysis( anaIn, argIn, setup )) err = ERR;
 # ifdef MPI

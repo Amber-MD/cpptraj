@@ -11,6 +11,9 @@ class Analysis_CalcDiffusion : public Analysis {
 
     Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
+#   ifdef MPI
+    bool IsParallel() const { return true; }
+#   endif
   private:
     DataSet_Coords* TgtTraj_; ///< Coordinates to calculate diffusion for
     int debug_;
