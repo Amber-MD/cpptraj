@@ -69,7 +69,7 @@ int Exec_RunAnalysis::DoRunAnalysis(CpptrajState& State, ArgList& argIn) const {
     ret = ana->Analyze();
 #   endif /* MPI */
     if (ret != Analysis::ERR) {
-      rprintf("DEBUG: Analysis success!\n");
+      //rprintf("DEBUG: Analysis success!\n");
       stat = CpptrajState::OK;
       State.MasterDataFileWrite();
     }
