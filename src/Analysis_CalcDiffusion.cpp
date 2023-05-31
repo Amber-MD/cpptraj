@@ -185,6 +185,7 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
 
   std::vector<unsigned int> count( maxlag_, 0 );
 
+# ifndef MPI
 # ifdef _OPENMP
   int nthreads;
 # pragma omp parallel
@@ -211,6 +212,7 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
     thread_C_[t].resize( maxlag_, 0 );
   }
 # endif /* OPENMP */
+#endif /* MPI */
 
   int idx0;
   Frame frm0 = TgtTraj_->AllocateFrame();
@@ -265,6 +267,14 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
         double dist2 = distx + disty + distz;
 //        mprintf("DEBUG: At=%i  frm %i to %i  t=%g  d2=%g\n", *at+1, idx0+1, idx1+1, (double)tidx*time_, dist2);
         // Accumulate distances
+#       ifdef MPI
+        AX[tidx] += distx;
+        AY[tidx] += disty;
+        AZ[tidx] += distz;
+        AR[tidx] += dist2;
+        AA[tidx] += sqrt(dist2);
+        count[tidx]++;
+#       else /* MPI */
 #       ifdef _OPENMP
         thread_X_[mythread][tidx] += distx;
         thread_Y_[mythread][tidx] += disty;
@@ -272,18 +282,20 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
         thread_R_[mythread][tidx] += dist2;
         thread_A_[mythread][tidx] += sqrt(dist2);
         thread_C_[mythread][tidx]++;
-#       else
+#       else /* OPENMP */
         AX[tidx] += distx;
         AY[tidx] += disty;
         AZ[tidx] += distz;
         AR[tidx] += dist2;
         AA[tidx] += sqrt(dist2);
         count[tidx]++;
-#       endif
+#       endif /* _OPENMP */
+#       endif /* MPI */
       } // END loop over atoms
     } // END inner loop
 //    mprintf("\n");
   } // END outer loop
+# ifndef MPI
 # ifdef _OPENMP
   } // END omp parallel
   // Sum into the DataSet arrays
@@ -298,6 +310,7 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
     }
   }
 # endif
+# endif /* MPI */
   progress.Finish();
 
 # ifdef MPI
