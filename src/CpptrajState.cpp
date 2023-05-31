@@ -201,7 +201,7 @@ CpptrajState::RetType CpptrajState::AddToActionQueue( Action* actIn, ArgList& ar
 CpptrajState::RetType CpptrajState::AddToAnalysisQueue( Analysis* anaIn, ArgList& argIn ) {
   argIn.MarkArg(0);
 # ifdef MPI
-  AnalysisSetup setup(DSL_, DFL_, Parallel::TrajComm());
+  AnalysisSetup setup(DSL_, DFL_, Parallel::World());
 # else
   AnalysisSetup setup(DSL_, DFL_);
 # endif
@@ -1422,13 +1422,7 @@ int CpptrajState::RunAnalyses() {
   analysis_time_.Reset();
   analysis_time_.Start();
   int err = 0;
-# ifdef MPI
-  // Only master performs analyses currently.
-  if (Parallel::TrajComm().Size() > 1)
-    mprintf("Warning: Analysis does not currently use multiple MPI processes.\n");
-  if (Parallel::TrajComm().Master())
-# endif
-    err = analysisList_.DoAnalyses();
+  err = analysisList_.DoAnalyses();
   analysis_time_.Stop();
 # ifdef MPI
   if (Parallel::World().CheckError( err )) err = 1;

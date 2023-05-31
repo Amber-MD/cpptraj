@@ -152,6 +152,7 @@ class Parallel::Comm {
     int Recv(void*, int, MPI_Datatype, int, int) const;
     /// Buffer, Count, DataType
     int MasterBcast(void*, int, MPI_Datatype) const;
+    /// \return The sum of given error statuses on all processes (> 0 means error).
     int CheckError(int) const;
 #   else
     Comm() : rank_(0), size_(1) {}

@@ -54,9 +54,9 @@ int AnalysisList::DoAnalyses() {
         ret = ana->ptr_->Analyze();
       } else {
         mprintf("Warning: Analysis '%s' does not currently use multiple MPI processes.\n", ana->args_.Command());
-        if (Parallel::TrajComm().Master())
+        if (Parallel::World().Master())
           ret = ana->ptr_->Analyze();
-        Parallel::TrajComm().MasterBcast( &ret, 1, MPI_INT );
+        Parallel::World().MasterBcast( &ret, 1, MPI_INT );
       }
       int err;
       if (ret == Analysis::ERR) {
@@ -64,11 +64,11 @@ int AnalysisList::DoAnalyses() {
         err = 1;
       } else
         err = 0;
-      if (Parallel::TrajComm().CheckError( err ))
+      if (Parallel::World().CheckError( err ))
         ret = Analysis::ERR;
-#     else
+#     else /* MPI */
       ret = ana->ptr_->Analyze();
-#     endif
+#     endif /* MPI */
       if (ret == Analysis::ERR) {
         mprinterr("Error: In Analysis [%s]\n", ana->args_.Command()); // TODO exit? Set INACTIVE?
         ++err;
