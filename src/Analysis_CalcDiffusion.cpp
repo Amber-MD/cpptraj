@@ -7,6 +7,9 @@
 #ifdef _OPENMP
 # include <omp.h>
 #endif
+#ifdef MPI
+#include "DataSet_Coords_CRD.h"
+#endif
 
 /** CONSTRUCTOR */
 Analysis_CalcDiffusion::Analysis_CalcDiffusion() :
@@ -43,6 +46,12 @@ Analysis::RetType Analysis_CalcDiffusion::Setup(ArgList& analyzeArgs, AnalysisSe
     Help();
     return Analysis::ERR;
   }
+# ifdef MPI
+  if (TgtTraj_->Type() != DataSet::COORDS && trajComm_.Size() > 1) {
+    mprinterr("Error: Parallel calcdiffusion only works with COORDS sets currently.\n");
+    return Analysis::ERR;
+  }
+# endif
   maxlag_ = analyzeArgs.getKeyInt("maxlag", -1);
   time_ = analyzeArgs.getKeyDouble("time", 1.0);
   DataFile* outfile = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
@@ -94,6 +103,7 @@ Analysis::RetType Analysis_CalcDiffusion::Setup(ArgList& analyzeArgs, AnalysisSe
 # ifdef MPI
   mprintf("\tDividing frames among %i processes.\n", trajComm_.Size());
 # endif
+  rprintf("DEBUG: Setup finished successfully.\n");
 
   return Analysis::OK;
 }
@@ -103,7 +113,14 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
 # ifdef MPI
   // Need to make sure each process has access to the frames it needs.
   // FIXME do a better job determining what frames are actually needed on each process.
-  
+  if (TgtTraj_->Type() == DataSet::COORDS) {
+    DataSet_Coords_CRD& crd = static_cast<DataSet_Coords_CRD&>( *TgtTraj_ );
+    if (crd.Bcast( trajComm_ )) {
+      rprinterr("Error: COORDS broadcast failed.\n");
+      return Analysis::ERR;
+    }
+  }
+  rprintf("DEBUG: COORDS set has %zu frames.\n", TgtTraj_->Size());
 # endif
   if (TgtTraj_->Size() < 1) {
     mprinterr("Error: COORDS set '%s' is empty.\n", TgtTraj_->legend());
@@ -289,6 +306,7 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
   results_.CalcDiffusionConst( set, avg_x_, 1, name + "_AvgDx" );
   results_.CalcDiffusionConst( set, avg_y_, 1, name + "_AvgDy" );
   results_.CalcDiffusionConst( set, avg_z_, 1, name + "_AvgDz" );
+  rprintf("DEBUG: Analysis finished successfully.\n");
 
   return Analysis::OK;
 }

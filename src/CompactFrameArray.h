@@ -21,6 +21,10 @@ class CompactFrameArray {
     unsigned int SizeInBytes() const;
     /// \return Size of a single frame in elements
     unsigned int FrameSize() const;
+#   ifdef MPI
+    /// \return total number of elements in the compact frame array
+    unsigned int NumArrayElements() const { return compactFrames_.size(); }
+#   endif
     /// \return True if components/offsets do not match
     bool operator!=(CompactFrameArray const&) const;
 
