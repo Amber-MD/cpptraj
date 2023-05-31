@@ -46,12 +46,16 @@ Analysis::RetType Analysis_CalcDiffusion::Setup(ArgList& analyzeArgs, AnalysisSe
     Help();
     return Analysis::ERR;
   }
-//# ifdef MPI
-//  if (TgtTraj_->Type() != DataSet::COORDS && trajComm_.Size() > 1) {
-//    mprinterr("Error: Parallel calcdiffusion only works with COORDS sets currently.\n");
-//    return Analysis::ERR;
-//  }
-//# endif
+# ifdef MPI
+  if (trajComm_.Size() > 1) {
+    if (TgtTraj_->Type() != DataSet::COORDS && 
+        TgtTraj_->Type() != DataSet::TRAJ)
+    {
+      mprinterr("Error: Parallel calcdiffusion only works with COORDS and TRAJ sets currently.\n");
+      return Analysis::ERR;
+    }
+  }
+# endif
   maxlag_ = analyzeArgs.getKeyInt("maxlag", -1);
   time_ = analyzeArgs.getKeyDouble("time", 1.0);
   DataFile* outfile = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
