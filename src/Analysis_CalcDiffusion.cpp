@@ -223,7 +223,16 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
   int my_frames = trajComm_.DivideAmongProcesses( my_start, my_stop, stopframe + 1 );
   ParallelProgress progress( my_stop );
   progress.SetThread( trajComm_.Rank() );
-  rprintf("\tProcessing %i frames (%i to %i).\n", my_frames, my_start, my_stop);
+  std::vector<int> all_frames( trajComm_.Size() );
+  std::vector<int> all_start( trajComm_.Size() );
+  std::vector<int> all_stop( trajComm_.Size() );
+  trajComm_.GatherMaster(&my_frames, 1, MPI_INT, &all_frames[0]);
+  trajComm_.GatherMaster(&my_start, 1, MPI_INT, &all_start[0]);
+  trajComm_.GatherMaster(&my_stop, 1, MPI_INT, &all_stop[0]);
+  if (trajComm_.Master()) {
+    for (int rank = 0; rank < trajComm_.Size(); rank++)
+      mprintf("\tRank %i processing %i frames (%i to %i).\n", rank, all_frames[rank], all_start[rank]+1, all_stop[rank]);
+  }
   if (my_frames < 1)
     rprintf("Warning: Rank is processing less than 1 frame. Should use fewer processes.\n");
 #else /* MPI */
