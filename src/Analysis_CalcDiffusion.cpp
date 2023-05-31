@@ -189,7 +189,6 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
 
   std::vector<unsigned int> count( maxlag_, 0 );
 
-# ifndef MPI
 # ifdef _OPENMP
   int nthreads;
 # pragma omp parallel
@@ -216,7 +215,6 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
     thread_C_[t].resize( maxlag_, 0 );
   }
 # endif /* OPENMP */
-#endif /* MPI */
 
   int idx0;
   Frame frm0 = TgtTraj_->AllocateFrame();
@@ -225,8 +223,6 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
   int my_start, my_stop;
 #ifdef MPI
   int my_frames = trajComm_.DivideAmongProcesses( my_start, my_stop, stopframe + 1 );
-  ParallelProgress progress( my_stop );
-  progress.SetThread( trajComm_.Rank() );
   std::vector<int> all_frames( trajComm_.Size() );
   std::vector<int> all_start( trajComm_.Size() );
   std::vector<int> all_stop( trajComm_.Size() );
@@ -242,7 +238,10 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
 #else /* MPI */
   my_start = 0; 
   my_stop = stopframe + 1;
+# endif /* MPI */
+
   ParallelProgress progress( my_stop );
+
 # ifdef _OPENMP
   int mythread;
 # pragma omp parallel private(idx0, mythread) firstprivate(frm0, frm1, progress)
@@ -251,7 +250,6 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
   progress.SetThread( mythread );
 # pragma omp for schedule(dynamic)
 # endif /* _OPENMP */
-#endif /* MPI */
   // LOOP OVER FRAMES
   for (idx0 = my_start; idx0 < my_stop; idx0++)
   {
@@ -280,14 +278,6 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
         double dist2 = distx + disty + distz;
 //        mprintf("DEBUG: At=%i  frm %i to %i  t=%g  d2=%g\n", *at+1, idx0+1, idx1+1, (double)tidx*time_, dist2);
         // Accumulate distances
-#       ifdef MPI
-        AX[tidx] += distx;
-        AY[tidx] += disty;
-        AZ[tidx] += distz;
-        AR[tidx] += dist2;
-        AA[tidx] += sqrt(dist2);
-        count[tidx]++;
-#       else /* MPI */
 #       ifdef _OPENMP
         thread_X_[mythread][tidx] += distx;
         thread_Y_[mythread][tidx] += disty;
@@ -303,12 +293,10 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
         AA[tidx] += sqrt(dist2);
         count[tidx]++;
 #       endif /* _OPENMP */
-#       endif /* MPI */
       } // END loop over atoms
     } // END inner loop
 //    mprintf("\n");
   } // END outer loop
-# ifndef MPI
 # ifdef _OPENMP
   } // END omp parallel
   // Sum into the DataSet arrays
@@ -323,7 +311,6 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
     }
   }
 # endif
-# endif /* MPI */
   progress.Finish();
 
 # ifdef MPI
