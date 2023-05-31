@@ -5,7 +5,7 @@
 CleanFiles tordiff.in frc.dat tor.dat
 
 TESTNAME='Toroidal-view-preserving diffusion calculation tests'
-Requires netcdf
+Requires netcdf maxthreads 1 
 
 INPUT='-i tordiff.in'
 
