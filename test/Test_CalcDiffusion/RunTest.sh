@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles diff.in unwrap.out unwrap.dcd tz2.diff.dat
+CleanFiles diff.in unwrap.out unwrap.dcd tz2.diff.dat tz2.traj.diff.dat
 
 INPUT='-i diff.in'
 
@@ -41,6 +41,14 @@ runanalysis calcdiffusion crdset TZ2 out tz2.diff.dat :WAT@O
 EOF
     RunCpptraj "$UNITNAME"
     DoTest tz2.diff.dat.save tz2.diff.dat
+    # Test with TRAJ coords
+    cat > diff.in <<EOF
+parm ../tz2.ortho.parm7
+loadtraj unwrap.dcd name TZ2 1 10
+runanalysis calcdiffusion crdset TZ2 out tz2.traj.diff.dat :WAT@O
+EOF
+    RunCpptraj "$UNITNAME, TRAJ set"
+    DoTest tz2.diff.dat.save tz2.traj.diff.dat
   fi
 fi
 
