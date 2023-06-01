@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "DataSet_double.h"
 #include "ProgressBar.h"
+#include "OnlineVarT.h"
 #include <algorithm> // std::min, std::copy
 #include <cmath> // sqrt
 #ifdef _OPENMP
@@ -113,6 +114,18 @@ Analysis::RetType Analysis_CalcDiffusion::Setup(ArgList& analyzeArgs, AnalysisSe
 }
 
 # ifdef MPI
+/** Flatten a Stats<double> array. */
+static inline void flattenArray(std::vector<double>& out, std::vector< Stats<double> const& in)
+{
+  out.clear();
+  out.reserve( in.size()*3 );
+  for (std::vector< Stats<double> >::const_iterator it = in.begin(); it != in.end(); ++it) {
+    out.push_back( it->nData() );
+    out.push_back( it->mean() );
+    out.push_back( it->M2() );
+  }
+}
+  
 /** Sum array to master. */
 static inline void sumToMaster(std::vector<double>& dbuf, DataSet_double& AX,
                                Parallel::Comm const& trajComm, int maxlag)
@@ -175,7 +188,32 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
     return Analysis::ERR;
   }
 
-  // Allocate sets
+  // Allocate temp. sets
+  typedef std::vector< Stats<double> > Darray;
+  typedef std::vector< Darray > Tarray;
+  int nthreads = 1;
+# ifdef _OPENMP
+# pragma omp parallel
+  {
+# pragma omp master
+  nthreads = omp_get_num_threads();
+  }
+# endif
+  if (nthreads > 1) mprintf("\tParallelizing calculation with %i OpenMP threads.\n", nthreads);
+  Tarray thread_X_( nthreads );
+  Tarray thread_Y_( nthreads );
+  Tarray thread_Z_( nthreads );
+  Tarray thread_A_( nthreads );
+  Tarray thread_R_( nthreads );
+  for (int t = 0; t < nthreads; t++) {
+    thread_X_[t].resize( maxlag_ );
+    thread_Y_[t].resize( maxlag_ );
+    thread_Z_[t].resize( maxlag_ );
+    thread_A_[t].resize( maxlag_ );
+    thread_R_[t].resize( maxlag_ );
+  }
+
+/*
   DataSet_double& AX = static_cast<DataSet_double&>( *avg_x_ );
   DataSet_double& AY = static_cast<DataSet_double&>( *avg_y_ );
   DataSet_double& AZ = static_cast<DataSet_double&>( *avg_z_ );
@@ -214,7 +252,7 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
     thread_R_[t].resize( maxlag_, 0 );
     thread_C_[t].resize( maxlag_, 0 );
   }
-# endif /* OPENMP */
+# endif *//* OPENMP */
 
   int idx0;
   Frame frm0 = TgtTraj_->AllocateFrame();
@@ -242,8 +280,8 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
 
   ParallelProgress progress( my_stop );
 
+  int mythread = 0;
 # ifdef _OPENMP
-  int mythread;
 # pragma omp parallel private(idx0, mythread) firstprivate(frm0, frm1, progress)
   {
   mythread = omp_get_thread_num();
@@ -278,36 +316,35 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
         double dist2 = distx + disty + distz;
 //        mprintf("DEBUG: At=%i  frm %i to %i  t=%g  d2=%g\n", *at+1, idx0+1, idx1+1, (double)tidx*time_, dist2);
         // Accumulate distances
-#       ifdef _OPENMP
-        thread_X_[mythread][tidx] += distx;
-        thread_Y_[mythread][tidx] += disty;
-        thread_Z_[mythread][tidx] += distz;
-        thread_R_[mythread][tidx] += dist2;
-        thread_A_[mythread][tidx] += sqrt(dist2);
-        thread_C_[mythread][tidx]++;
-#       else /* OPENMP */
+/*#       ifdef _OPENMP*/
+        thread_X_[mythread][tidx].accumulate( distx );
+        thread_Y_[mythread][tidx].accumulate( disty );
+        thread_Z_[mythread][tidx].accumulate( distz );
+        thread_R_[mythread][tidx].accumulate( dist2 );
+        thread_A_[mythread][tidx].accumulate( sqrt(dist2) );
+/*#       else * OPENMP *
         AX[tidx] += distx;
         AY[tidx] += disty;
         AZ[tidx] += distz;
         AR[tidx] += dist2;
         AA[tidx] += sqrt(dist2);
         count[tidx]++;
-#       endif /* _OPENMP */
+#       endif * _OPENMP *
+*/
       } // END loop over atoms
     } // END inner loop
 //    mprintf("\n");
   } // END outer loop
 # ifdef _OPENMP
   } // END omp parallel
-  // Sum into the DataSet arrays
-  for (int t = 0; t < nthreads; t++) {
+  // Sum into thread 0 array
+  for (int t = 1; t < nthreads; t++) {
     for (idx0 = 0; idx0 < maxlag_; idx0++) {
-      AX[idx0] += thread_X_[t][idx0];
-      AY[idx0] += thread_Y_[t][idx0];
-      AZ[idx0] += thread_Z_[t][idx0];
-      AR[idx0] += thread_R_[t][idx0];
-      AA[idx0] += thread_A_[t][idx0];
-      count[idx0] += thread_C_[t][idx0];
+      thread_X_[0][idx0].Combine( thread_X_[t][idx0] );
+      thread_Y_[0][idx0].Combine( thread_Y_[t][idx0] );
+      thread_Z_[0][idx0].Combine( thread_Z_[t][idx0] );
+      thread_R_[0][idx0].Combine( thread_R_[t][idx0] );
+      thread_A_[0][idx0].Combine( thread_A_[t][idx0] );
     }
   }
 # endif
@@ -326,20 +363,36 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
   std::copy( ubuf.begin(), ubuf.end(), count.begin() );
 # endif /* MPI */
   // Calculate averages
-  unsigned int maxcount = count[0];
-  unsigned int mincount = count[0];
+  DataSet_double& AX = static_cast<DataSet_double&>( *avg_x_ );
+  DataSet_double& AY = static_cast<DataSet_double&>( *avg_y_ );
+  DataSet_double& AZ = static_cast<DataSet_double&>( *avg_z_ );
+  DataSet_double& AA = static_cast<DataSet_double&>( *avg_a_ );
+  DataSet_double& AR = static_cast<DataSet_double&>( *avg_r_ );
+  AX.Resize( maxlag_ );
+  AY.Resize( maxlag_ );
+  AZ.Resize( maxlag_ );
+  AA.Resize( maxlag_ );
+  AR.Resize( maxlag_ );
+
+  unsigned int maxcount = thread_X_[0][0].nData();
+  unsigned int mincount = maxcount;
   for (idx0 = 0; idx0 < maxlag_; idx0++) {
-    maxcount = std::max( maxcount, count[idx0] );
-    mincount = std::min( mincount, count[idx0] );
+    maxcount = std::max( maxcount, (unsigned int)thread_X_[0][idx0].nData() );
+    mincount = std::min( mincount, (unsigned int)thread_X_[0][idx0].nData() );
     if (debug_ > 0)
-      mprintf("DEBUG: Average at t=%g is from %u data points.\n", (double)idx0*time_, count[idx0]);
-    if (count[idx0] > 0) {
+      mprintf("DEBUG: Average at t=%g is from %g data points.\n", (double)idx0*time_, thread_X_[0][idx0].nData());
+    AX[idx0] = thread_X_[0][idx0].mean();
+    AY[idx0] = thread_Y_[0][idx0].mean();
+    AZ[idx0] = thread_Z_[0][idx0].mean();
+    AR[idx0] = thread_R_[0][idx0].mean();
+    AA[idx0] = thread_A_[0][idx0].mean();
+    /*if (count[idx0] > 0) {
       AX[idx0] /= (double)count[idx0];
       AY[idx0] /= (double)count[idx0];
       AZ[idx0] /= (double)count[idx0];
       AR[idx0] /= (double)count[idx0];
       AA[idx0] /= (double)count[idx0];
-    }
+    }*/
   }
   if (maxcount == mincount)
     mprintf("\t%u data points contributed to each average.\n", maxcount);
