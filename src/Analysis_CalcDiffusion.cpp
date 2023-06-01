@@ -147,9 +147,6 @@ static inline void sumToMaster(std::vector<double>& dbuf, std::vector< Stats<dou
     // Send to master
     trajComm.SendMaster( &dbuf[0], dbuf.size(), trajComm.Rank(), MPI_DOUBLE );
   }
-
-  //trajComm.ReduceMaster( &dbuf[0], AX.DvalPtr(), maxlag, MPI_DOUBLE, MPI_SUM );
-  //std::copy( dbuf.begin(), dbuf.end(), (double*)AX.Yptr() );
 }
 # endif
 
@@ -231,47 +228,6 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
     thread_R_[t].resize( maxlag_ );
   }
 
-/*
-  DataSet_double& AX = static_cast<DataSet_double&>( *avg_x_ );
-  DataSet_double& AY = static_cast<DataSet_double&>( *avg_y_ );
-  DataSet_double& AZ = static_cast<DataSet_double&>( *avg_z_ );
-  DataSet_double& AA = static_cast<DataSet_double&>( *avg_a_ );
-  DataSet_double& AR = static_cast<DataSet_double&>( *avg_r_ );
-  AX.Resize( maxlag_ );
-  AY.Resize( maxlag_ );
-  AZ.Resize( maxlag_ );
-  AA.Resize( maxlag_ );
-  AR.Resize( maxlag_ );
-
-  std::vector<unsigned int> count( maxlag_, 0 );
-
-# ifdef _OPENMP
-  int nthreads;
-# pragma omp parallel
-  {
-# pragma omp master
-  nthreads = omp_get_num_threads();
-  }
-  mprintf("\tParallelizing calculation with %i OpenMP threads.\n", nthreads);
-  typedef std::vector<double> Darray;
-  typedef std::vector<Darray> Tarray;
-  Tarray thread_X_( nthreads );
-  Tarray thread_Y_( nthreads );
-  Tarray thread_Z_( nthreads );
-  Tarray thread_A_( nthreads );
-  Tarray thread_R_( nthreads );
-  typedef std::vector< std::vector<unsigned int> > Carray;
-  Carray thread_C_( nthreads );
-  for (int t = 0; t < nthreads; t++) {
-    thread_X_[t].resize( maxlag_, 0 );
-    thread_Y_[t].resize( maxlag_, 0 );
-    thread_Z_[t].resize( maxlag_, 0 );
-    thread_A_[t].resize( maxlag_, 0 );
-    thread_R_[t].resize( maxlag_, 0 );
-    thread_C_[t].resize( maxlag_, 0 );
-  }
-# endif *//* OPENMP */
-
   int idx0;
   Frame frm0 = TgtTraj_->AllocateFrame();
   Frame frm1 = frm0;
@@ -294,7 +250,7 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
 #else /* MPI */
   my_start = 0; 
   my_stop = stopframe + 1;
-# endif /* MPI */
+#endif /* MPI */
 
   ParallelProgress progress( my_stop );
 
@@ -334,21 +290,11 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
         double dist2 = distx + disty + distz;
 //        mprintf("DEBUG: At=%i  frm %i to %i  t=%g  d2=%g\n", *at+1, idx0+1, idx1+1, (double)tidx*time_, dist2);
         // Accumulate distances
-/*#       ifdef _OPENMP*/
         thread_X_[mythread][tidx].accumulate( distx );
         thread_Y_[mythread][tidx].accumulate( disty );
         thread_Z_[mythread][tidx].accumulate( distz );
         thread_R_[mythread][tidx].accumulate( dist2 );
         thread_A_[mythread][tidx].accumulate( sqrt(dist2) );
-/*#       else * OPENMP *
-        AX[tidx] += distx;
-        AY[tidx] += disty;
-        AZ[tidx] += distz;
-        AR[tidx] += dist2;
-        AA[tidx] += sqrt(dist2);
-        count[tidx]++;
-#       endif * _OPENMP *
-*/
       } // END loop over atoms
     } // END inner loop
 //    mprintf("\n");
@@ -376,11 +322,8 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
   sumToMaster( dbuf, thread_Z_[0], trajComm_, maxlag_ );
   sumToMaster( dbuf, thread_R_[0], trajComm_, maxlag_ );
   sumToMaster( dbuf, thread_A_[0], trajComm_, maxlag_ );
-//  std::vector<unsigned int> ubuf( maxlag_, 0 );
-//  trajComm_.ReduceMaster( &ubuf[0], &count[0], maxlag_, MPI_UNSIGNED, MPI_SUM );
-//  std::copy( ubuf.begin(), ubuf.end(), count.begin() );
 # endif /* MPI */
-  // Calculate averages
+  // Store averages
   DataSet_double& AX = static_cast<DataSet_double&>( *avg_x_ );
   DataSet_double& AY = static_cast<DataSet_double&>( *avg_y_ );
   DataSet_double& AZ = static_cast<DataSet_double&>( *avg_z_ );
@@ -404,13 +347,6 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
     AZ[idx0] = thread_Z_[0][idx0].mean();
     AR[idx0] = thread_R_[0][idx0].mean();
     AA[idx0] = thread_A_[0][idx0].mean();
-    /*if (count[idx0] > 0) {
-      AX[idx0] /= (double)count[idx0];
-      AY[idx0] /= (double)count[idx0];
-      AZ[idx0] /= (double)count[idx0];
-      AR[idx0] /= (double)count[idx0];
-      AA[idx0] /= (double)count[idx0];
-    }*/
   }
   if (maxcount == mincount)
     mprintf("\t%u data points contributed to each average.\n", maxcount);
