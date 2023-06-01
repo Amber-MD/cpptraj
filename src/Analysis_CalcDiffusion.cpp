@@ -115,7 +115,7 @@ Analysis::RetType Analysis_CalcDiffusion::Setup(ArgList& analyzeArgs, AnalysisSe
 
 # ifdef MPI
 /** Flatten a Stats<double> array. */
-static inline void flattenArray(std::vector<double>& out, std::vector< Stats<double> const& in)
+static inline void flattenArray(std::vector<double>& out, std::vector< Stats<double> > const& in)
 {
   out.clear();
   out.reserve( in.size()*3 );
@@ -126,12 +126,30 @@ static inline void flattenArray(std::vector<double>& out, std::vector< Stats<dou
   }
 }
   
-/** Sum array to master. */
-static inline void sumToMaster(std::vector<double>& dbuf, DataSet_double& AX,
+/** Combine a Stats<double> array on master. */
+static inline void sumToMaster(std::vector<double>& dbuf, std::vector< Stats<double> >& AX,
                                Parallel::Comm const& trajComm, int maxlag)
 {
-  trajComm.ReduceMaster( &dbuf[0], AX.DvalPtr(), maxlag, MPI_DOUBLE, MPI_SUM );
-  std::copy( dbuf.begin(), dbuf.end(), (double*)AX.Yptr() );
+  dbuf.resize(maxlag*3);
+  if (trajComm.Master()) {
+    for (int rank = 1; rank < trajComm.Size(); rank++) {
+      // Receive flattened array from rank
+      trajComm.SendMaster( &dbuf[0], dbuf.size(), rank, MPI_DOUBLE);
+      // Combine elements
+      for (int idx = 0; idx < maxlag; idx++) {
+        int i3 = idx * 3;
+        AX[idx].Combine( Stats<double>( dbuf[i3], dbuf[i3+1], dbuf[i3+2] ) );
+      }
+    }
+  } else {
+    // Flatten array
+    flattenArray( dbuf, AX );
+    // Send to master
+    trajComm.SendMaster( &dbuf[0], dbuf.size(), trajComm.Rank(), MPI_DOUBLE );
+  }
+
+  //trajComm.ReduceMaster( &dbuf[0], AX.DvalPtr(), maxlag, MPI_DOUBLE, MPI_SUM );
+  //std::copy( dbuf.begin(), dbuf.end(), (double*)AX.Yptr() );
 }
 # endif
 
@@ -352,15 +370,15 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
 
 # ifdef MPI
   // Sum arrays back down to the master
-  std::vector<double> dbuf( maxlag_, 0 );
-  sumToMaster( dbuf, AX, trajComm_, maxlag_ );
-  sumToMaster( dbuf, AY, trajComm_, maxlag_ );
-  sumToMaster( dbuf, AZ, trajComm_, maxlag_ );
-  sumToMaster( dbuf, AR, trajComm_, maxlag_ );
-  sumToMaster( dbuf, AA, trajComm_, maxlag_ );
-  std::vector<unsigned int> ubuf( maxlag_, 0 );
-  trajComm_.ReduceMaster( &ubuf[0], &count[0], maxlag_, MPI_UNSIGNED, MPI_SUM );
-  std::copy( ubuf.begin(), ubuf.end(), count.begin() );
+  std::vector<double> dbuf( maxlag_*3, 0 );
+  sumToMaster( dbuf, thread_X_[0], trajComm_, maxlag_ );
+  sumToMaster( dbuf, thread_Y_[0], trajComm_, maxlag_ );
+  sumToMaster( dbuf, thread_Z_[0], trajComm_, maxlag_ );
+  sumToMaster( dbuf, thread_R_[0], trajComm_, maxlag_ );
+  sumToMaster( dbuf, thread_A_[0], trajComm_, maxlag_ );
+//  std::vector<unsigned int> ubuf( maxlag_, 0 );
+//  trajComm_.ReduceMaster( &ubuf[0], &count[0], maxlag_, MPI_UNSIGNED, MPI_SUM );
+//  std::copy( ubuf.begin(), ubuf.end(), count.begin() );
 # endif /* MPI */
   // Calculate averages
   DataSet_double& AX = static_cast<DataSet_double&>( *avg_x_ );
