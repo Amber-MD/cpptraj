@@ -2220,8 +2220,14 @@ BasicChecks() {
   fi
   # Decide what to do about parallel netcdf
   if [ "${LIB_STAT[$LPARANC]}" != 'off' -a $USE_MPI -eq 0 ] ; then
-    WrnMsg "Parallel NetCDF enabled but MPI not specified. Assuming '-mpi'."
-    USE_MPI=1
+    # Check for mpiicpc before assuming mpicxx
+    if [ ! -z "`which mpiicpc`" ] ; then
+      WrnMsg "Parallel NetCDF enabled but MPI not specified. Assuming '-intelmpi'."
+      USE_MPI=2
+    else
+      WrnMsg "Parallel NetCDF enabled but MPI not specified. Assuming '-mpi'."
+      USE_MPI=1
+    fi
   elif [ $USE_MPI -ne 0 -a "${LIB_STAT[$LPARANC]}" = 'off' -a "${LIB_DISABLED[$LPARANC]}" = 'false' ] ; then
     # If automatically building libs, enabled parallel netcdf for MPI.
     # Otherwise make it optional by specifying 'optional'
