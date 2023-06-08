@@ -37,6 +37,9 @@ namespace Image {
   /// Perform unwrapping in fractional space
   void UnwrapFrac(std::vector<Vec3>&, Frame&, List const&,
                   Matrix_3x3 const&, Matrix_3x3 const&);
+  /// Perform unwrapping in toroidal-view-preserving space
+  void UnwrapToroidal(std::vector<Vec3>&, std::vector<Vec3>&, Frame& currentFrame,
+                      List const&, Vec3 const&);
 
   /// Wrap selected atom coords from given frame into primary cell, store in result.
   void WrapToCell0(std::vector<double>&, Frame const&, AtomMask const&,
