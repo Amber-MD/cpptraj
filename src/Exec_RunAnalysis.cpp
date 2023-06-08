@@ -58,6 +58,7 @@ int Exec_RunAnalysis::DoRunAnalysis(CpptrajState& State, ArgList& argIn) const {
   //rprintf("DEBUG: Run analysis= %i\n",(int)run_analysis);
   if (run_analysis) {
     ret = ana->Setup( analyzeargs, setup, State.Debug() );
+    //rprintf("DEBUG: Run after setup= %i\n",(int)ret);
     if (analyzeargs.CheckForMoreArgs()) {
       ret = Analysis::ERR;
     } else if (ret == Analysis::OK) {
@@ -69,7 +70,7 @@ int Exec_RunAnalysis::DoRunAnalysis(CpptrajState& State, ArgList& argIn) const {
     stat = 1;
   else
     stat = 0;
-
+  //rprintf("DEBUG: Stat= %i\n", stat);
   delete ana;
 
   total_time.Stop();

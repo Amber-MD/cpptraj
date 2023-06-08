@@ -169,7 +169,7 @@ Analysis::RetType Analysis_CalcDiffusion::Analyze() {
     return Analysis::ERR;
   }
   if (TgtTraj_->Size() == 1) {
-    mprinterr("Error: COORDS set '%s' has only 1 frame.\n");
+    mprinterr("Error: COORDS set '%s' has only 1 frame.\n", TgtTraj_->legend());
     return Analysis::ERR;
   }
   if (TgtTraj_->Top().SetupIntegerMask( mask1_ )) {
