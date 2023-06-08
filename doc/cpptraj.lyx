@@ -24126,12 +24126,12 @@ diffusion
 \end_layout
 
 \begin_layout LyX-Code
-diffusion [{out <filename> | separateout <suffix>}] [time <time per frame>]
+diffusion [{out <filename>|separateout <suffix>}] [time <time per frame>]
  [noimage]
 \end_layout
 
 \begin_layout LyX-Code
-      	[<mask>] [<set name>] [individual] [diffout <filename>] [nocalc]
+          [<mask>] [<set name>] [individual] [diffout <filename>] [nocalc]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -42759,7 +42759,7 @@ calcdiffusion [crdset <coords set>] [maxlag <maxlag>] [<mask>] [time <dt>]
 \end_layout
 
 \begin_layout LyX-Code
-          	[<name>] [out <file>] [diffout <file>]
+              [<name>] [out <file>] [diffout <file>]
 \end_layout
 
 \begin_deeper
