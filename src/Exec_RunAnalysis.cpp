@@ -10,17 +10,16 @@ void Exec_RunAnalysis::Help() const {
 }
 
 Exec::RetType Exec_RunAnalysis::Execute(CpptrajState& State, ArgList& argIn) {
-  // If only 1 arg (the command) run all analyses in list
+  //rprintf("DEBUG: Entering runanalysis. Nargs is %i\n", argIn.Nargs());
+  int err = 0;
   if (argIn.Nargs() == 1) {
-    int eval = State.RunAnalyses();
-    State.MasterDataFileWrite();
-    if (eval == 0)
-      return CpptrajState::OK;
-    else
-      return CpptrajState::ERR;
+    // If only 1 arg (the command) run all analyses in list
+    err = State.RunAnalyses();
+  } else {
+    // Run specified analysis
+    err = DoRunAnalysis(State, argIn);
   }
-  // Run specified analysis
-  int err = DoRunAnalysis(State, argIn);
+  State.MasterDataFileWrite();
 # ifdef MPI
   if (Parallel::World().CheckError( err )) err = 1;
 # endif
@@ -28,55 +27,52 @@ Exec::RetType Exec_RunAnalysis::Execute(CpptrajState& State, ArgList& argIn) {
   return CpptrajState::OK;
 }
 
+/** Set up and perform the analysis. */
 int Exec_RunAnalysis::DoRunAnalysis(CpptrajState& State, ArgList& argIn) const {
+  //rprintf("DEBUG: Entering DoRunAnalysis.\n");
   // FIXME: Use RemoveFirstArg
   ArgList analyzeargs = argIn.RemainingArgs();
   analyzeargs.MarkArg(0);
   Cmd const& cmd = Command::SearchTokenType( DispatchObject::ANALYSIS, analyzeargs.Command() );
+  //rprintf("DEBUG: cmd is empty= %i\n", (int)cmd.Empty());
   if ( cmd.Empty() ) return 1;
   Analysis* ana = (Analysis*)cmd.Alloc();
   if (ana == 0) return 1;
+  //rprintf("DEBUG: Starting analysis.\n");
+
   Timer total_time;
   total_time.Start();
-  CpptrajState::RetType stat = CpptrajState::ERR;
+
+  bool run_analysis = true;
 # ifdef MPI
-  AnalysisSetup setup(State.DSL(), State.DFL(), Parallel::World());
-# else
+  Parallel::Comm const& analyzeComm = Parallel::World();
+  AnalysisSetup setup(State.DSL(), State.DFL(), analyzeComm);
+  if (!ana->IsParallel()) {
+    mprintf("Warning: Analysis '%s' does not currently use multiple MPI processes.\n", analyzeargs.Command());
+    run_analysis = analyzeComm.Master();
+  }
+# else /* MPI */
   AnalysisSetup setup(State.DSL(), State.DFL());
-# endif
-  if ( ana->Setup( analyzeargs, setup, State.Debug() ) == Analysis::OK )
-  {
-    analyzeargs.CheckForMoreArgs();
-    Analysis::RetType ret;
-#   ifdef MPI
-    if (ana->IsParallel()) {
-      ret = ana->Analyze();
-    } else {
-      mprintf("Warning: Analysis '%s' does not currently use multiple MPI processes.\n", analyzeargs.Command());
-      if ( Parallel::World().Master() )
-        ret = ana->Analyze();
-      Parallel::World().MasterBcast( &ret, 1, MPI_INT );
-    }
-    int err;
-    if (ret == Analysis::ERR) {
-      rprinterr("Error: In parallel, analysis '%s' failed.\n", analyzeargs.Command());
-      err = 1;
-    } else
-      err = 0;
-    if (Parallel::World().CheckError( err ))
+# endif /* MPI */
+  Analysis::RetType ret = Analysis::OK;
+  //rprintf("DEBUG: Run analysis= %i\n",(int)run_analysis);
+  if (run_analysis) {
+    ret = ana->Setup( analyzeargs, setup, State.Debug() );
+    if (analyzeargs.CheckForMoreArgs()) {
       ret = Analysis::ERR;
-#   else /* MPI */
-    ret = ana->Analyze();
-#   endif /* MPI */
-    if (ret != Analysis::ERR) {
-      //rprintf("DEBUG: Analysis success!\n");
-      stat = CpptrajState::OK;
-      State.MasterDataFileWrite();
+    } else if (ret == Analysis::OK) {
+      ret = ana->Analyze();
     }
   }
+  int stat;
+  if (ret == Analysis::ERR)
+    stat = 1;
+  else
+    stat = 0;
+
   delete ana;
+
   total_time.Stop();
   mprintf("TIME: Total analysis execution time: %.4f seconds.\n", total_time.Total());
-  if (stat != CpptrajState::OK) return 1;
-  return 0;
+  return stat;
 }
