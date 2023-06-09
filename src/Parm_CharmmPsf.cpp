@@ -208,33 +208,65 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
   ParmHolder<AtomType>& atomTypes = params_.AT();
   Sarray SegIDs;
   bool firstLine = true;
+  enum PsfFormatType { T_CHARMM = 0, T_VMD };
+  PsfFormatType psfFormatType = T_CHARMM;
   for (int atom=0; atom < natom; atom++) {
     if ( (buffer=infile.Line()) == 0 ) {
       mprinterr("Error: ReadParmPSF(): Reading atom %i\n",atom+1);
       return 1;
     }
-    // Read line
-    // ATOM# SEGID RESID RES ATNAME ATTYPE CHRG MASS (REST OF COLUMNS ARE LIKELY FOR CMAP AND CHEQ)
-    int nread = sscanf(buffer,"%*i %s %s %s %s %s %lf %lf", segmentID, psfresid, psfresname, 
-                       psfname, psftype, &psfcharge, &psfmass);
+    // Check first line
     if (firstLine) {
-      mprintf("DEBUG: first line: nread= %i\n", nread);
+      int ntokens = infile.TokenizeLine(" \t");
+      //mprintf("DEBUG: first line: ntokens= %i\n", ntokens);
+      // A CHARMM psf will have 11 columns:
+      // AtomID, SegID, ResID, ResName, AtomName, AtomType, Charge, Mass, Constrained, Polarizability, TholeScaleFactor
+      if (ntokens < 11) {
+        mprintf("Warning: PSF has non-standard format; atoms line contains less than 11 columns (%i).\n", ntokens);
+        if (ntokens == 8) {
+          mprintf("Warning: 8 columns in atoms line; assuming VMD or similarly formatted PSF.\n");
+          psfFormatType = T_VMD;
+        } else {
+          mprinterr("Error: Unrecognized number of columns in atoms line (%i); PSF has bad format.\n", ntokens);
+          return 1;
+        }
+      }
       firstLine = false;
+    }
+    // Read line
+    if (psfFormatType == T_CHARMM) {
+      // ATOM# SEGID RESID RES ATNAME ATTYPE CHRG MASS CONST POL THOLE 
+      int nread = sscanf(buffer,"%*i %s %s %s %s %s %lf %lf", segmentID, psfresid, psfresname, 
+                         psfname, psftype, &psfcharge, &psfmass);
+      //mprintf("DEBUG: Read %i columns.\n", nread);
+      if (nread != 7) {
+        mprintf("Warning: During read of PSF atoms, expected to read 7 columns, got %i (line %i)\n", nread, infile.LineNumber());
+      }
+    } else if (psfFormatType == T_VMD) {
+      // ATOM# RESID RES ATNAME ATTYPE CHRG MASS CONST
+      int nread = sscanf(buffer,"%*i %s %s %s %s %lf %lf", psfresid, psfresname,
+                         psfname, psftype, &psfcharge, &psfmass);
+      segmentID[0] = '\0';
+      if (nread != 6) {
+        mprintf("Warning: During read of PSF atoms, expected to read 6 columns, got %i (line %i)\n", nread, infile.LineNumber());
+      }
     }
     // Extract residue number and alternatively insertion code.
     int psfresnum = ParseResID(psficode, psfresid);
     //mprintf("DEBUG: resnum %10i  icode %c\n", psfresnum, psficode);
     // Search for segment ID
     int idx = -1;
-    for (int i = 0; i != (int)SegIDs.size(); i++)
-      if (SegIDs[i].compare( segmentID )==0) {
-        idx = i;
-        break;
+    if (segmentID[0] != '\0') {
+      for (int i = 0; i != (int)SegIDs.size(); i++)
+        if (SegIDs[i].compare( segmentID )==0) {
+          idx = i;
+          break;
+        }
+      if (idx == -1) {
+        idx = (int)SegIDs.size();
+        SegIDs.push_back( segmentID );
+        if (debug_>0) mprintf("DEBUG: New segment ID %i '%s'\n", idx, SegIDs.back().c_str());
       }
-    if (idx == -1) {
-      idx = (int)SegIDs.size();
-      SegIDs.push_back( segmentID );
-      if (debug_>0) mprintf("DEBUG: New segment ID %i '%s'\n", idx, SegIDs.back().c_str());
     }
     atomTypes.AddParm( TypeNameHolder(NameType(psftype)), AtomType(psfmass), false );
     Atom chmAtom( psfname, psfcharge, psfmass, psftype );
