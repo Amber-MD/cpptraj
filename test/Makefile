@@ -515,6 +515,9 @@ test.compareenergy:
 test.avgbox:
 	@-cd Test_AvgBox && ./RunTest.sh $(OPT)
 
+test.tordiff:
+	@-cd Test_TorDiff && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -677,7 +680,8 @@ COMPLETETESTS=test.general \
               test.keep \
               test.netcdfdata \
               test.compareenergy \
-              test.avgbox
+              test.avgbox \
+              test.tordiff
 
 test.all:
 	$(MAKE) test.complete summary

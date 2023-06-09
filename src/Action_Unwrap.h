@@ -17,6 +17,8 @@ class Action_Unwrap : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
+    enum UnwrapType { FRAC = 0, TOR };
+
     Image::List* imageList_;     ///< List of entities to unwrap
     Image::Mode imageMode_;      ///< Specifiy unwrapping by atom, res, or mol
     std::string maskExpression_; ///< Expression selecting entities to unwrap
@@ -32,5 +34,7 @@ class Action_Unwrap : public Action {
     Varray fracCoords_;   ///< Hold fractional coords for previous frame
     DataSet* avgucell_;   ///< Hold average unit cell parameters for removing box fluctuations
     Box avgbox_;          ///< Hold average box for removing box fluctuations
+    Varray torPositions_; ///< Hold toroidal positions for toroidal scheme
+    UnwrapType scheme_;   ///< Which unwrap scheme to use
 };
 #endif

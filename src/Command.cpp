@@ -157,6 +157,7 @@
 #include "Action_MultiPucker.h"
 #include "Action_Keep.h"
 #include "Action_AvgBox.h"
+#include "Action_ToroidalDiffusion.h"
 // ----- ANALYSIS --------------------------------------------------------------
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
@@ -200,6 +201,7 @@
 #include "Analysis_Slope.h"
 #include "Analysis_EvalPlateau.h"
 #include "Analysis_TICA.h"
+#include "Analysis_CalcDiffusion.h"
 
 CmdList Command::commands_ = CmdList();
 
@@ -383,6 +385,7 @@ void Command::Init() {
   Command::AddCmd( new Action_SymmetricRmsd(), Cmd::ACT, 1, "symmrmsd" );
   Command::AddCmd( new Action_Temperature(),   Cmd::ACT, 1, "temperature" );
   Command::AddCmd( new Action_Time(),          Cmd::ACT, 1, "time" );
+  Command::AddCmd( new Action_ToroidalDiffusion(), Cmd::ACT, 1, "tordiff" );
   Command::AddCmd( new Action_Translate(),     Cmd::ACT, 2, "trans", "translate" );
   Command::AddCmd( new Action_Unstrip(),       Cmd::ACT, 1, "unstrip" );
   Command::AddCmd( new Action_Unwrap(),        Cmd::ACT, 1, "unwrap" );
@@ -396,6 +399,7 @@ void Command::Init() {
   Command::AddCmd( new Analysis_AmdBias(),     Cmd::ANA, 1, "amdbias" ); // hidden 
   Command::AddCmd( new Analysis_AutoCorr(),    Cmd::ANA, 1, "autocorr" );
   Command::AddCmd( new Analysis_Average(),     Cmd::ANA, 1, "avg" );
+  Command::AddCmd( new Analysis_CalcDiffusion(), Cmd::ANA, 1, "calcdiffusion" );
   Command::AddCmd( new Analysis_State(),       Cmd::ANA, 1, "calcstate" );
   Command::AddCmd( new Analysis_Clustering(),  Cmd::ANA, 1, "cluster" );
   Command::AddCmd( new Analysis_Corr(),        Cmd::ANA, 2, "corr", "correlationcoe" );

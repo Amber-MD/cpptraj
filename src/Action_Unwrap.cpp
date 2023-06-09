@@ -14,7 +14,8 @@ Action_Unwrap::Action_Unwrap() :
   RefParm_(0),
   center_(false),
   refNeedsCalc_(false),
-  avgucell_(0)
+  avgucell_(0),
+  scheme_(FRAC)
 { }
 
 /** DESTRUCTOR */
@@ -24,7 +25,9 @@ Action_Unwrap::~Action_Unwrap() {
 
 void Action_Unwrap::Help() const {
   mprintf("\t[center] [{byatom | byres | bymol}] [avgucell <avg ucell set>]\n"
-          "\t[ %s ] [<mask>]\n", DataSetList::RefArgs);
+          "\t[ %s ] [<mask>]\n"
+          "\t[scheme {frac|tor}]\n",
+          DataSetList::RefArgs);
   mprintf("  Reverse of 'image'; unwrap coordinates in <mask> according\n"
           "  to the first frame, or optionally a reference structure. Can\n"
           "  unwrap by atom (default), by residue, or by molecule.\n");
@@ -42,6 +45,25 @@ Action::RetType Action_Unwrap::Init(ArgList& actionArgs, ActionInit& init, int d
 # endif
   // Get Keywords
   center_ = actionArgs.hasKey("center");
+
+  std::string sarg = actionArgs.GetStringKey("scheme");
+  if (sarg.empty())
+    scheme_ = FRAC;
+  else if (sarg == "frac")
+    scheme_ = FRAC;
+  else if (sarg == "tor")
+    scheme_ = TOR;
+  else {
+    mprinterr("Error: Unrecognized 'scheme' %s\n", sarg.c_str());
+    return Action::ERR;
+  }
+
+  Image::Mode defaultMode;
+  switch (scheme_) {
+    case FRAC : defaultMode = Image::BYATOM; break;
+    case TOR  : defaultMode = Image::BYMOL; break;
+  }
+
   if (actionArgs.hasKey("bymol"))
     imageMode_ = Image::BYMOL;
   else if (actionArgs.hasKey("byres"))
@@ -51,7 +73,13 @@ Action::RetType Action_Unwrap::Init(ArgList& actionArgs, ActionInit& init, int d
     // Unwrapping to center by atom makes no sense
     if (center_) center_ = false;
   } else
-    imageMode_ = Image::BYATOM;
+    imageMode_ = defaultMode;
+
+  if (scheme_ == TOR && imageMode_ != Image::BYMOL) { // TODO warning only?
+    mprinterr("Error: Toroidal-view-preserving unwrap only works with 'bymol'.\n");
+    return Action::ERR;
+  }
+
   // Get reference
   ReferenceFrame REF = init.DSL().GetReferenceFrame( actionArgs );
   if (REF.error()) return Action::ERR;
@@ -110,7 +138,11 @@ Action::RetType Action_Unwrap::Init(ArgList& actionArgs, ActionInit& init, int d
     mprintf("\tUsing average unit cell vectors from set '%s' to remove box fluctuations.\n", avgucell_->legend());
     avgbox_.PrintInfo();
   }
-  # ifdef _OPENMP
+  switch (scheme_) {
+    case FRAC : mprintf("\tUnwrapping using fractional coordinates.\n"); break;
+    case TOR  : mprintf("\tUnwrapping using toroidal-view-preserving scheme.\n"); break;
+  }
+# ifdef _OPENMP
 # pragma omp parallel
   {
 # pragma omp master
@@ -119,6 +151,11 @@ Action::RetType Action_Unwrap::Init(ArgList& actionArgs, ActionInit& init, int d
   }
   }
 # endif
+  if (scheme_ == TOR) {
+    mprintf("# Citation: Bullerjahn, von Bulow, Heidari, Henin, and Hummer.\n"
+            "#           \"Unwrapping NPT Simulations to Calculate Diffusion Coefficients.\n"
+            "#           https://arxiv.org/abs/2303.09418\n");
+  }
 
   return Action::OK;
 }
@@ -138,6 +175,13 @@ Action::RetType Action_Unwrap::Setup(ActionSetup& setup) {
     mprintf("Error: unwrap: Parm %s does not contain box information.\n",
             setup.Top().c_str());
     return Action::ERR;
+  }
+  if (scheme_ == TOR) {
+    if (!setup.CoordInfo().TrajBox().Is_X_Aligned_Ortho()) {
+      mprinterr("Error: Toroidal-preserving-view unwrap calculation currently only works\n"
+                "Error:   for X-aligned orthogonal cells.\n");
+      return Action::ERR;
+    }
   }
 
   // Setup atom pairs to be unwrapped. Always use CoM TODO why?
@@ -172,11 +216,16 @@ Action::RetType Action_Unwrap::DoAction(int frameNum, ActionFrame& frm) {
     ucell = &(avgbox_.UnitCell());
   if (refNeedsCalc_) {
     // Calculate initial fractional coords from reference frame.
-    Image::UnwrapFrac(fracCoords_, RefFrame_, *imageList_, *ucell, frm.Frm().BoxCrd().FracCell());
+    switch (scheme_) {
+      case FRAC : Image::UnwrapFrac(fracCoords_, RefFrame_, *imageList_, *ucell, RefFrame_.BoxCrd().FracCell()); break;
+      case TOR  : Image::UnwrapToroidal(torPositions_, fracCoords_, RefFrame_, *imageList_, RefFrame_.BoxCrd().Lengths()); break;
+    }
     refNeedsCalc_ = false;
   }
-
-  Image::UnwrapFrac(fracCoords_, frm.ModifyFrm(), *imageList_, *ucell, frm.Frm().BoxCrd().FracCell());
+  switch (scheme_) {
+    case FRAC : Image::UnwrapFrac(fracCoords_, frm.ModifyFrm(), *imageList_, *ucell, frm.Frm().BoxCrd().FracCell()); break;
+    case TOR  : Image::UnwrapToroidal(torPositions_, fracCoords_, frm.ModifyFrm(), *imageList_, frm.Frm().BoxCrd().Lengths()); break;
+  }
 
   return Action::MODIFY_COORDS;
 }

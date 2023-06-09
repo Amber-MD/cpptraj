@@ -80,6 +80,8 @@ class DataSet {
     // TODO pure virtual
     virtual int SendSet(int, Parallel::Comm const&) { return 1; }
     virtual int RecvSet(int, Parallel::Comm const&) { return 1; }
+    /// Broadcast data from this DataSet to all other processes.
+    virtual int Bcast(Parallel::Comm const&) { return 1; }
 #   endif
     // -----------------------------------------------------
     /// Associate additional data with this set.
