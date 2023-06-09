@@ -219,9 +219,9 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
     if (firstLine) {
       int ntokens = infile.TokenizeLine(" \t");
       //mprintf("DEBUG: first line: ntokens= %i\n", ntokens);
-      // A CHARMM psf will have 11 columns:
-      // AtomID, SegID, ResID, ResName, AtomName, AtomType, Charge, Mass, Constrained, Polarizability, TholeScaleFactor
-      if (ntokens < 11) {
+      // A CHARMM psf will have 9-11 columns:
+      // AtomID, SegID, ResID, ResName, AtomName, AtomType, Charge, Mass, Constrained[, Polarizability, TholeScaleFactor]
+      if (ntokens < 9) {
         mprintf("Warning: PSF has non-standard format; atoms line contains less than 11 columns (%i).\n", ntokens);
         if (ntokens == 8) {
           mprintf("Warning: 8 columns in atoms line; assuming VMD or similarly formatted PSF.\n");
