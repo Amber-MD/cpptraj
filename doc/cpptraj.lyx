@@ -1011,14 +1011,75 @@ trajin
  of trajectory 1, process 2 reads frames 1-500 of trajectory 2, and process
  3 reads frames 501-1000 of trajectory 2.
  Most Actions will work with across-trajectory parallelization with the
- exception of the following:
-\end_layout
-
-\begin_layout Standard
-'clusterdihedral', 'contacts', 'createreservoir', 'gist', 'lipidorder',
- 'pairwise', 'stfcdiffusion', 'unwrap', and 'xtalsymm'.
- Note that 'diffusion' will only work with across-trajectory parallelism
- if no imaging is to be performed.
+ exception of the following: 
+\series bold
+\emph on
+'clusterdihedral'
+\series default
+\emph default
+, 
+\series bold
+\emph on
+'contacts'
+\series default
+\emph default
+, 
+\series bold
+\emph on
+'createreservoir'
+\series default
+\emph default
+, 
+\series bold
+\emph on
+'gist'
+\series default
+\emph default
+, 
+\series bold
+\emph on
+'lipidorder'
+\series default
+\emph default
+, 
+\series bold
+\emph on
+'pairwise'
+\series default
+\emph default
+, 
+\series bold
+\emph on
+'stfcdiffusion'
+\series default
+\emph default
+, 
+\series bold
+\emph on
+'tordiff'
+\series default
+\emph default
+, 
+\series bold
+\emph on
+'unwrap'
+\series default
+\emph default
+, and 
+\series bold
+\emph on
+'xtalsymm'
+\series default
+\emph default
+.
+ The 
+\series bold
+\emph on
+'diffusion'
+\series default
+\emph default
+ Action will only work with across-trajectory parallelism if no imaging
+ is to be performed.
 \end_layout
 
 \begin_layout Standard
@@ -1048,6 +1109,27 @@ ensemblesize
 \emph default
  command be used prior to any ensemble command as this will make set up
  far more efficient.
+\end_layout
+
+\begin_layout Standard
+Note that most Analyses are not MPI-parallelized, with the exception of
+ the 
+\series bold
+\emph on
+calcdiffusion
+\series default
+\emph default
+ Analysis (
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-calcdiffusion"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
 \end_layout
 
 \begin_layout Standard
@@ -1103,6 +1185,10 @@ cpptraj
 
 \begin_layout LyX-Code
 atomiccorr
+\end_layout
+
+\begin_layout LyX-Code
+calcdiffusion
 \end_layout
 
 \begin_layout LyX-Code
@@ -1179,6 +1265,10 @@ spam
 
 \begin_layout LyX-Code
 surf
+\end_layout
+
+\begin_layout LyX-Code
+tordiff
 \end_layout
 
 \begin_layout LyX-Code
@@ -7054,6 +7144,13 @@ loadcrd traj2.nc name Crd2
 
 \begin_layout Subsection
 loadtraj
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj-loadtraj"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout LyX-Code
@@ -18088,6 +18185,18 @@ ucell Write older (v21) format trajectory that stores unit cell params instead
 veltraj Write velocity trajectory instead of coordinates.
 \end_layout
 
+\begin_layout Description
+dt Set trajectory time step in ps.
+\end_layout
+
+\begin_layout Description
+nstep # steps between frames.
+\end_layout
+
+\begin_layout Description
+step0 Initial step.
+\end_layout
+
 \end_deeper
 \begin_layout Standard
 Note that by default CPPTRAJ will try to write the symmetric shape matrix
@@ -18444,7 +18553,7 @@ Mod
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="88" columns="3">
+<lyxtabular version="3" rows="90" columns="3">
 <features islongtable="true" longtabularalignment="center">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="65text%">
@@ -18702,6 +18811,35 @@ average
 
 \begin_layout Plain Layout
 Calculate average structure.
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+avgbox
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Calculate average unit cell (box), primarily for unwrapping NPT trajectories.
 \end_layout
 
 \end_inset
@@ -20781,6 +20919,35 @@ X
 \begin_inset Text
 
 \begin_layout Plain Layout
+tordiff
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Calculate diffusion using the toroidal-view-preserving scheme.
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
 trans, translate
 \end_layout
 
@@ -22256,12 +22423,97 @@ run
 \end_layout
 
 \begin_layout Subsection
+avgbox
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj_avgbox"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout LyX-Code
+avgbox [name <setname>] [out <file>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<setname>] Average unit cell data set name.
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<file>] File to write average unit cell data to.
+\end_layout
+
+\begin_layout Standard
+DataSets created:
+\end_layout
+
+\begin_layout Description
+<setname>[avg] Hold average unit cell as 3x3 matrix data.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Calculate the average unit cell vectors for incoming frames and store them
+ in a 3x3 matrix data set, The average unit cell is particularly useful
+ when unwrapping trajectories from NPT simulations where the box size fluctuates
+ (see the 
+\series bold
+\emph on
+unwrap
+\series default
+\emph default
+ command, 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj_unwrap"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+If writing to a .dat file, the output will look something like:
+\end_layout
+
+\begin_layout LyX-Code
+#Frame                                                                 
+                                            MyBox[avg]
+\end_layout
+
+\begin_layout LyX-Code
+       1 42.433046075  0.000000000  0.000000000 -14.144347550 40.006259905  0.00000000
+0 -14.144347550 -20.003127532 34.646438786
+\end_layout
+
+\begin_layout Standard
+Where the first 3 floating point numbers are the average X unit cell vector,
+ the next 3 floating point numbers are the average Y unit cell vector, and
+ the last 3 floating point numbers are the average Z unit cell vector.
+\end_layout
+
+\begin_layout Subsection
 avgcoord
 \end_layout
 
 \begin_layout Standard
 This command is deprecated.
  Use 'vector center' (optionally with keyword 'magnitude') instead.
+ 
 \end_layout
 
 \begin_layout Subsection
@@ -23854,6 +24106,13 @@ density :WAT@O out wato.agr xydy
 
 \begin_layout Subsection
 diffusion
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj-diffusion"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -23867,16 +24126,24 @@ diffusion
 \end_layout
 
 \begin_layout LyX-Code
-diffusion [{out <filename> | separateout <suffix>}] [time <time per frame>]
+diffusion [{out <filename>|separateout <suffix>}] [time <time per frame>]
  [noimage]
 \end_layout
 
 \begin_layout LyX-Code
-      	[<mask>] [<set name>] [individual] [diffout <filename>] [nocalc]
+          [<mask>] [<set name>] [individual] [diffout <filename>] [nocalc]
 \begin_inset Separator latexpar
 \end_inset
 
 
+\end_layout
+
+\begin_layout LyX-Code
+          [avgucell <avg ucell set>]
+\end_layout
+
+\begin_layout LyX-Code
+          [allowmultipleorigins]
 \end_layout
 
 \begin_deeper
@@ -23942,6 +24209,18 @@ name>] MSD data set name.
 [nocalc] Do not calculate diffusion constants.
 \end_layout
 
+\begin_layout Description
+[avgucell] Remove periodic box fluctuations from imaged NPT trajectories
+ using average unit cell vectors.
+\end_layout
+
+\begin_layout Description
+[allowmultipleorigins] (MPI only).
+ For imaged trajectories in parallel, calculate diffusion by averaging over
+ multiple time origins.
+ Should be used with caution.
+\end_layout
+
 \begin_layout Standard
 DataSet Aspects:
 \end_layout
@@ -23967,7 +24246,25 @@ DataSet Aspects:
 \end_layout
 
 \begin_layout Description
-[D] Diffusion constants.
+[D] Diffusion constants (1x10
+\begin_inset script superscript
+
+\begin_layout Plain Layout
+-5
+\end_layout
+
+\end_inset
+
+ cm
+\begin_inset script superscript
+
+\begin_layout Plain Layout
+2
+\end_layout
+
+\end_inset
+
+/s).
 \end_layout
 
 \begin_layout Description
@@ -23986,10 +24283,50 @@ DataSet Aspects:
 [Corr] Linear regression correlation coefficients.
 \end_layout
 
+\begin_layout Description
+[aX]:<atomN> (
+\series bold
+individual
+\series default
+ only) Atom <N> MSD in the X direction.
+\end_layout
+
+\begin_layout Description
+[aY]:<atomN> (
+\series bold
+individual
+\series default
+ only) Atom <N> MSD in the Y direction.
+\end_layout
+
+\begin_layout Description
+[aZ]:<atomN> (
+\series bold
+individual
+\series default
+ only) Atom <N> MSD in the Z direction.
+\end_layout
+
+\begin_layout Description
+[aR]:<atomN> (
+\series bold
+individual
+\series default
+ only) Atom <N> overall MSD.
+\end_layout
+
+\begin_layout Description
+[aA]:<atomN> (
+\series bold
+individual
+\series default
+ only) Atom <N> overall displacement.
+\end_layout
+
 \end_deeper
 \begin_layout Standard
-Compute mean square displacement (MSD) plots (using distance traveled from
- initial position) for the atoms in 
+Compute mean-squared displacement (MSD, in Angstroms squared) plots (using
+ distance traveled from initial position) for the atoms in 
 \series bold
 <mask>
 \series default
@@ -24015,7 +24352,91 @@ In order to correctly calculate diffusion molecules should take continuous
 noimage
 \series default
  keyword can be used.
- 
+ To remove the 
+\begin_inset Quotes eld
+\end_inset
+
+noise
+\begin_inset Quotes erd
+\end_inset
+
+ caused by box fluctuations in NPT trajectories, the average unit cell vectors
+ describing the average box can be provided with the 
+\series bold
+avgucell
+\series default
+ keyword; see the 
+\series bold
+\emph on
+avgbox
+\series default
+\emph default
+ command (
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj_avgbox"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
+ Alternatively, the trajectory can be unwrapped prior using the 
+\series bold
+\emph on
+unwrap
+\series default
+\emph default
+ command, 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj_unwrap"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+ If the trajectory is unwrapped, the 
+\series bold
+noimage
+\series default
+ keyword should be specified.
+\end_layout
+
+\begin_layout Standard
+Note that in parallel, imaging becomes difficult because there is no way
+ to correct for any wrapping that has been done on preceding MPI ranks.
+ Therefore this command will not work on imaged trajectories in parallel
+ by default.
+ There are two workarounds.
+ 1) Unwrap the trajectory prior to 
+\series bold
+\emph on
+diffusion
+\series default
+\emph default
+ with the 
+\series bold
+\emph on
+unwrap
+\series default
+\emph default
+ command, then run the diffusion calculation with the 
+\series bold
+noimage
+\series default
+ keyword (this is the recommended way), or 2) specify the 
+\series bold
+allowmultipleorigins
+\series default
+ keyword to calculate MSD separately on each MPI rank, then averaging over
+ all MSD plots.
+ This means the maximum length of any given MSD plot will be <# frames>
+ / <# MPI ranks>, and the calculated diffusion constants will not be as
+ accurate.
 \end_layout
 
 \begin_layout Standard
@@ -24138,6 +24559,23 @@ Due to the fact that diffusion is currently calculated from initial positions
  stochastic, so the results are most sensible when averaged over many atoms;
  for example, the diffusion of water should be calculated using all waters
  in the system.
+ If more averaging is needed, the 
+\series bold
+\emph on
+calcdiffusion
+\series default
+\emph default
+ Analysis command (
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-calcdiffusion"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+) can be used to calculate diffusion from multiple time origins.
 \end_layout
 
 \begin_layout Standard
@@ -38955,6 +39393,219 @@ crdaction
 \end_layout
 
 \begin_layout Subsection
+tordiff
+\end_layout
+
+\begin_layout LyX-Code
+tordiff [<set name>] [<mask>] [mass] [out <file>] [diffout <file>] [time
+ <dt>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[<set
+\begin_inset space ~
+\end_inset
+
+name>] Output mean-squared-displacement data sets name.
+\end_layout
+
+\begin_layout Description
+[<mask>] Mask of molecules to calculate diffusion for.
+\end_layout
+
+\begin_layout Description
+[mass] Use center of mass of molecules instead of geometric center.
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<file>] File to write mean-squared-displacement sets to.
+\end_layout
+
+\begin_layout Description
+[diffout
+\begin_inset space ~
+\end_inset
+
+<file>] Write diffusion contants calculated from fits of mean-squared-displacent
+ data sets to <filename>.
+\end_layout
+
+\begin_layout Description
+[time
+\begin_inset space ~
+\end_inset
+
+<dt>] Time between frames in ps.
+\end_layout
+
+\begin_layout Standard
+DataSet Aspects:
+\end_layout
+
+\begin_layout Description
+[X] MSD(s) in the X direction.
+\end_layout
+
+\begin_layout Description
+[Y] MSD(s) in the Y direction.
+\end_layout
+
+\begin_layout Description
+[Z] MSD(s) in the Z direction.
+\end_layout
+
+\begin_layout Description
+[R] Overall MSD(s).
+\end_layout
+
+\begin_layout Description
+[A] Overall displacement(s) in Å.
+\end_layout
+
+\begin_layout Description
+[D] Diffusion constants (1x10
+\begin_inset script superscript
+
+\begin_layout Plain Layout
+-5
+\end_layout
+
+\end_inset
+
+ cm
+\begin_inset script superscript
+
+\begin_layout Plain Layout
+2
+\end_layout
+
+\end_inset
+
+/s).
+\end_layout
+
+\begin_layout Description
+[Label] Diffusion constant lablels.
+\end_layout
+
+\begin_layout Description
+[Slope] Linear regression slopes.
+\end_layout
+
+\begin_layout Description
+[Intercept] Linear refression Y-intercepts.
+\end_layout
+
+\begin_layout Description
+[Corr] Linear regression correlation coefficients.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Calculate the diffusion via mean-squared displacement (in Å
+\begin_inset Formula $^{\text{2}}$
+\end_inset
+
+/ps) of specified molecules using the toroidal-view-preserving (TOR) scheme
+ of Hummer et al.
+ 
+\series bold
+Note that currently this only works for orthogonal boxes
+\series default
+.
+ (
+\begin_inset Flex URL
+status open
+
+\begin_layout Plain Layout
+
+https://arxiv.org/abs/2303.09418
+\end_layout
+
+\end_inset
+
+).
+ Unlike the 
+\series bold
+\emph on
+diffusion
+\series default
+\emph default
+ (
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-diffusion"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+) and 
+\series bold
+\emph on
+unwrap
+\series default
+\emph default
+ (
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj_unwrap"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+) commands which correct for box fluctuations via fractional coordinates,
+ the TOR scheme corrects for box fluctuations by tracking the displacement
+ of each molecule with respect to its position in the previous frame in
+ Cartesian space.
+\end_layout
+
+\begin_layout Standard
+Diffusion constants are calculated in the same manner as the 
+\series bold
+\emph on
+diffusion
+\series default
+\emph default
+ command; for more details see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-diffusion"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+For example, to calculate the diffusion (with data set name TOR) of waters
+ (name WAT) in an orthogonal box using the toroidal scheme:
+\end_layout
+
+\begin_layout LyX-Code
+parm tz2.ortho.parm7
+\end_layout
+
+\begin_layout LyX-Code
+trajin tz2.ortho.nc
+\end_layout
+
+\begin_layout LyX-Code
+tordiff TOR :WAT@O out tor.msd.dat diffout tor.diff.dat
+\end_layout
+
+\begin_layout Subsection
 trans | translate
 \end_layout
 
@@ -39132,10 +39783,17 @@ outtraj Ligand.pdb pdb
 
 \begin_layout Subsection
 unwrap
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj_unwrap"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout LyX-Code
-unwrap [center] [{bymol | byres | byatom}]
+unwrap [center] [{byatom | byres | bymol}] [avgucell <avg ucell set>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -39146,13 +39804,18 @@ unwrap [center] [{bymol | byres | byatom}]
 
 \end_layout
 
+\begin_layout LyX-Code
+       [scheme {frac|tor}]
+\end_layout
+
 \begin_deeper
 \begin_layout Description
-[center] Unwrap by center of mass; otherwise unwrap by first atom position.
+[center] Unwrap by center of mass; otherwise unwrap by first atom position
+ (byres and bymol).
 \end_layout
 
 \begin_layout Description
-bymol Unwrap by molecule (default).
+byatom Unwrap by atom (default).
 \end_layout
 
 \begin_layout Description
@@ -39160,7 +39823,23 @@ byres Unwrap by residue.
 \end_layout
 
 \begin_layout Description
-byatom Unwrap by atom.
+bymol Unwrap by molecule.
+\end_layout
+
+\begin_layout Description
+[avgucell
+\begin_inset space ~
+\end_inset
+
+<avg
+\begin_inset space ~
+\end_inset
+
+ucell
+\begin_inset space ~
+\end_inset
+
+set>] Average unit cell data set; useful when unwrapping NPT trajectories.
 \end_layout
 
 \begin_layout Description
@@ -39203,6 +39882,22 @@ refindex
 [<mask>] Selection to unwrap.
 \end_layout
 
+\begin_layout Description
+[scheme
+\begin_inset space ~
+\end_inset
+
+frac|tor}] Unwrap using either 
+\series bold
+frac
+\series default
+tional coordinates (default) or 
+\series bold
+tor
+\series default
+oidal-view-preserving scheme (orthogonal boxes only).
+\end_layout
+
 \end_deeper
 \begin_layout Standard
 Under periodic boundary conditions, MD trajectories are not continuous if
@@ -39216,9 +39911,11 @@ iwrap
  This command, 
 \family sans
 \series bold
+\emph on
 unwrap
 \family default
 \series default
+\emph default
  processes the trajectories to force the 
 \shape italic
 mask
@@ -39228,34 +39925,86 @@ ed molecules continuous by translating the molecules into the neighboring
  It is the opposite function of 
 \family sans
 \series bold
+\emph on
 image
 \family default
 \series default
+\emph default
 , but this command can also be used to place molecules side by side, for
  example, two strands of a DNA duplex.
- However, this command fails when the 
+ However, this command may fail if the 
 \shape italic
 mask
 \shape default
-ed molecules travel more than half of the box size within a single frame.
+ed entities travel more than half of the box size within a single frame.
+ Note that uwrapping by atom (the default behavior) is slower than unwrapping
+ by residue or molecule, but is usually the safer method, especially if
+ it is unknown if the original imaging was done by atom, by residue, or
+ by molecule.
+ If the optional reference arguments are specified, then the first frame
+ is unwrapped according to the reference structure.
+ Otherwise, the first frame is not modified.
 \end_layout
 
 \begin_layout Standard
-If the optional argument 
+To remove the 
 \begin_inset Quotes eld
 \end_inset
 
-
-\family typewriter
-reference
-\family default
-
+noise
 \begin_inset Quotes erd
 \end_inset
 
- is specified, then the first frame is unwrapped according to the reference
- structure.
- Otherwise, the first frame is not modified.
+ caused by box fluctuations in NPT trajectories, the average unit cell vectors
+ describing the average box can be provided with the 
+\series bold
+avgucell
+\series default
+ keyword; see the 
+\series bold
+\emph on
+avgbox
+\series default
+\emph default
+ command (
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj_avgbox"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
+ 
+\end_layout
+
+\begin_layout Standard
+By default coordinates are unwrapped using fractional coordinates.
+ To unwrap via the toroidal-view-preserving scheme (
+\begin_inset Flex URL
+status open
+
+\begin_layout Plain Layout
+
+https://arxiv.org/abs/2303.09418
+\end_layout
+
+\end_inset
+
+) specify 
+\series bold
+scheme tor.
+
+\series default
+ However, note that this currently 
+\series bold
+only works for orthogonal boxes
+\series default
+ and may result in unrealistic trajectories (particularly at long times
+ when molecules have had the chance to traverse multiple box lengths) and
+ is only currently recommended for calculating diffusion.
 \end_layout
 
 \begin_layout Standard
@@ -39275,6 +40024,51 @@ center :1-20 mass origin
 
 \begin_layout LyX-Code
 image origin center familiar
+\end_layout
+
+\begin_layout Standard
+To unwrap an NPT trajectory by using the average unit cell (box), the calculate
+ diffusion from the unwrapped trajectory:
+\end_layout
+
+\begin_layout LyX-Code
+parm tz2.ortho.parm7
+\end_layout
+
+\begin_layout LyX-Code
+trajin tz2.ortho.nc
+\end_layout
+
+\begin_layout LyX-Code
+# Create average box data
+\end_layout
+
+\begin_layout LyX-Code
+avgbox MyBox
+\end_layout
+
+\begin_layout LyX-Code
+run
+\end_layout
+
+\begin_layout LyX-Code
+# Unwrap using average box data
+\end_layout
+
+\begin_layout LyX-Code
+unwrap bymol avgucell MyBox[avg]
+\end_layout
+
+\begin_layout LyX-Code
+# Calculate diffusion
+\end_layout
+
+\begin_layout LyX-Code
+diffusion Water :WAT@O out tz2.ortho.wato.dat
+\end_layout
+
+\begin_layout LyX-Code
+run 
 \end_layout
 
 \begin_layout Subsection
@@ -40477,7 +41271,7 @@ trajin
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="47" columns="3">
+<lyxtabular version="3" rows="48" columns="3">
 <features islongtable="true" longtabularalignment="center">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="50text%">
@@ -40570,6 +41364,35 @@ Calculate average, standard deviation, min, and max for (or over) data sets.
 
 \begin_layout Plain Layout
 N 1D scalar
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+calcdiffusion
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Calculate diffusion using multiple time origins.
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+COORDS
 \end_layout
 
 \end_inset
@@ -42103,6 +42926,279 @@ readdata perres.peptide.dat
 
 \begin_layout LyX-Code
 avg perres.peptide.dat out output.dat name V 
+\end_layout
+
+\begin_layout Subsection
+calcdiffusion
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj-calcdiffusion"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout LyX-Code
+calcdiffusion [crdset <coords set>] [maxlag <maxlag>] [<mask>] [time <dt>]
+\end_layout
+
+\begin_layout LyX-Code
+              [<name>] [out <file>] [diffout <file>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[crdset
+\begin_inset space ~
+\end_inset
+
+<coords
+\begin_inset space ~
+\end_inset
+
+set>] Input COORDS set to calculate diffusion for.
+\end_layout
+
+\begin_layout Description
+[maxlag
+\begin_inset space ~
+\end_inset
+
+<maxlag>] Maximum lag to calculate diffusion for in frames.
+ Defaults to half the number of input frames if not specified.
+\end_layout
+
+\begin_layout Description
+[<mask>] Mask of atoms to calculate diffusion for.
+\end_layout
+
+\begin_layout Description
+[time
+\begin_inset space ~
+\end_inset
+
+<dt>] Time between frames in ps.
+\end_layout
+
+\begin_layout Description
+[<name>] Output MSD data sets name.
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<file>] File to write MSD data sets to.
+\end_layout
+
+\begin_layout Description
+[diffout
+\begin_inset space ~
+\end_inset
+
+<file>] Write diffusion contants calculated from fits of MSD data sets to
+ <filename>.
+\end_layout
+
+\begin_layout Standard
+DataSet Aspects:
+\end_layout
+
+\begin_layout Description
+[X] MSD(s) in the X direction.
+\end_layout
+
+\begin_layout Description
+[Y] MSD(s) in the Y direction.
+\end_layout
+
+\begin_layout Description
+[Z] MSD(s) in the Z direction.
+\end_layout
+
+\begin_layout Description
+[R] Overall MSD(s).
+\end_layout
+
+\begin_layout Description
+[A] Overall displacement(s) in Å.
+\end_layout
+
+\begin_layout Description
+[D] Diffusion constants (1x10
+\begin_inset script superscript
+
+\begin_layout Plain Layout
+-5
+\end_layout
+
+\end_inset
+
+ cm
+\begin_inset script superscript
+
+\begin_layout Plain Layout
+2
+\end_layout
+
+\end_inset
+
+/s).
+\end_layout
+
+\begin_layout Description
+[Label] Diffusion constant lablels.
+\end_layout
+
+\begin_layout Description
+[Slope] Linear regression slopes.
+\end_layout
+
+\begin_layout Description
+[Intercept] Linear refression Y-intercepts.
+\end_layout
+
+\begin_layout Description
+[Corr] Linear regression correlation coefficients.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Calculate diffusion via mean-squared-displacements (MSD) of specified atoms.
+ Unlike the 
+\series bold
+\emph on
+diffusion
+\series default
+\emph default
+ Action (
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-diffusion"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+), which calculates MSD from a single time origin, the 
+\series bold
+\emph on
+calcdiffusion
+\series default
+\emph default
+ command calculates diffusion from multiple time origins up to a user-specified
+ lag (in frames).
+ Note that no imaging is performed for this command, so any unwrapping should
+ be performed prior to this command (see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj_unwrap"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
+ Diffusion constants are calculated in the same manner as the 
+\series bold
+\emph on
+diffusion
+\series default
+\emph default
+ command; for more details see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-diffusion"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+This command is both OpenMP- and MPI-parallelized; either or both can be
+ active.
+ In order to keep per-process memory requirements low, it is recommended
+ that TRAJ (i.e.
+ on-disk) data sets be used with MPI instead of CRD (in-memory) sets (see
+ 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-loadtraj"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+For example, to calculate diffusion from multiple time origins (with a maximum
+ lag of half the number of trajectrory frames) from an input trajectory
+ in memory (unwrapping first):
+\end_layout
+
+\begin_layout LyX-Code
+parm tz2.ortho.parm7
+\end_layout
+
+\begin_layout LyX-Code
+loadcrd tz2.ortho.nc name TZ2
+\end_layout
+
+\begin_layout LyX-Code
+crdaction TZ2 unwrap bymol
+\end_layout
+
+\begin_layout LyX-Code
+runanalysis calcdiffusion crdset TZ2 out tz2.diff.dat :WAT@O
+\end_layout
+
+\begin_layout Standard
+To do the same calculation using MPI parallelism, it will first be necessary
+ to unwrap the trajectory (non-MPI parallel, but OpenMP parallelism can
+ be used):
+\end_layout
+
+\begin_layout LyX-Code
+parm tz2.ortho.parm7
+\end_layout
+
+\begin_layout LyX-Code
+trajin tz2.ortho.nc
+\end_layout
+
+\begin_layout LyX-Code
+unwrap bymol
+\end_layout
+
+\begin_layout LyX-Code
+trajout unwrap.dcd
+\end_layout
+
+\begin_layout Standard
+Then diffusion can be calculated using MPI (and/or OpenMP):
+\end_layout
+
+\begin_layout LyX-Code
+parm tz2.ortho.parm7
+\end_layout
+
+\begin_layout LyX-Code
+loadtraj unwrap.dcd name TZ2
+\end_layout
+
+\begin_layout LyX-Code
+runanalysis calcdiffusion crdset TZ2 out tz2.traj.diff.dat :WAT@O
 \end_layout
 
 \begin_layout Subsection

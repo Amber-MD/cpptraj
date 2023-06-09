@@ -13,6 +13,7 @@ COMMON_SOURCES= \
         Action_AtomicFluct.cpp \
         Action_AutoImage.cpp \
         Action_Average.cpp \
+        Action_AvgBox.cpp \
         Action_Bounds.cpp \
         Action_Box.cpp \
         Action_Center.cpp \
@@ -83,6 +84,7 @@ COMMON_SOURCES= \
         Action_SymmetricRmsd.cpp \
         Action_Temperature.cpp \
         Action_Time.cpp \
+        Action_ToroidalDiffusion.cpp \
         Action_Translate.cpp \
         Action_Unstrip.cpp \
         Action_Unwrap.cpp \
@@ -96,6 +98,7 @@ COMMON_SOURCES= \
         Analysis_AmdBias.cpp \
         Analysis_AutoCorr.cpp \
         Analysis_Average.cpp \
+        Analysis_CalcDiffusion.cpp \
         Analysis_Clustering.cpp \
         Analysis_Corr.cpp \
         Analysis_ConstantPHStats.cpp \
@@ -228,6 +231,7 @@ COMMON_SOURCES= \
         DataSet_unsignedInt.cpp \
         Deprecated.cpp \
         DihedralSearch.cpp \
+        DiffusionResults.cpp \
         DistRoutines.cpp \
         Energy.cpp \
         EnergyArray.cpp \

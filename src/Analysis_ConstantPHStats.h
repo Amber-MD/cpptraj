@@ -20,6 +20,11 @@ class Analysis_ConstantPHStats : public Analysis {
     bool useFracProtonated_;
     DataSetList inputSets_;
     DataSetList* masterDSL_;
+#   ifdef MPI
+    Parallel::Comm masterComm_; ///< Communicator containing only ensemble masters.
+    /// \return True for parallel (but will only use ensemble masters) FIXME use all procs?
+    bool IsParallel() const { return true; }
+#   endif
 
     /// Hold all DataSets for a residue
     struct resStatData {

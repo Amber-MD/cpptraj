@@ -153,6 +153,7 @@ size_t DataSet_Coords_CRD::sizeInBytes(size_t nframes, size_t natom, size_t nbox
 }*/
 
 #ifdef MPI
+/** Sync all frames back to the master process. */
 int DataSet_Coords_CRD::Sync(size_t total, std::vector<int> const& rank_frames,
                              Parallel::Comm const& commIn)
 {
@@ -176,5 +177,20 @@ int DataSet_Coords_CRD::Sync(size_t total, std::vector<int> const& rank_frames,
                        commIn.Rank(), MPI_FLOAT );
   }
   return 0;
+}
+
+/** Broadcast all frames to all processes. */
+int DataSet_Coords_CRD::Bcast(Parallel::Comm const& commIn) {
+  if (commIn.Size() == 1) return 0;
+  // Assume all data is currently on the master process.
+  int totalSize = Size();
+  int err = commIn.MasterBcast( &totalSize, 1, MPI_INT );
+  if (!commIn.Master()) {
+    //rprintf("DEBUG: Resizing array to %i\n", totalSize);
+    frames_.Resize( totalSize );
+  }
+  // Broadcast data from the master
+  err += commIn.MasterBcast( frames_.FramePtr(0), frames_.NumArrayElements(), MPI_FLOAT );
+  return commIn.CheckError( err );
 }
 #endif

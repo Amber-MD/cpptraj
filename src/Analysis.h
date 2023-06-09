@@ -19,5 +19,8 @@ class Analysis : public DispatchObject {
     virtual RetType Setup(ArgList&, AnalysisSetup&, int) = 0;
     /// Execute Analysis
     virtual RetType Analyze() = 0;
+#   ifdef MPI
+    virtual bool IsParallel() const { return false; }
+#   endif
 };
 #endif

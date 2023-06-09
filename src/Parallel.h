@@ -46,6 +46,7 @@
   *     2003  : GridBin::mz_
   *     2100  : Action_GIST: Compressed Xarray size
   *     2101  : Action_GIST: Compressed Xarray
+  *     2200  : Action_AvgBox average box values
   */
 class Parallel {
   public:
@@ -132,7 +133,7 @@ class Parallel::Comm {
     /// my_start, my_stop, maxElts
     int DivideAmongProcesses(int&, int&, int) const;
     /// RecvBuffer, SendBuffer, Count, DataType, Op
-    int ReduceMaster(void*, void*, int, MPI_Datatype, MPI_Op) const;
+    int ReduceMaster(void*, const void*, int, MPI_Datatype, MPI_Op) const;
     /// Rank, RecvBuffer, SendBuffer, Count, DataType, Op
     int Reduce(int, void*, void*, int, MPI_Datatype, MPI_Op) const;
     /// Buffer, Count, Rank, DataType 
@@ -153,6 +154,7 @@ class Parallel::Comm {
     int Recv(void*, int, MPI_Datatype, int, int) const;
     /// Buffer, Count, DataType
     int MasterBcast(void*, int, MPI_Datatype) const;
+    /// \return The sum of given error statuses on all processes (> 0 means error).
     int CheckError(int) const;
 #   else
     Comm() : rank_(0), size_(1) {}

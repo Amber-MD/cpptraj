@@ -130,11 +130,11 @@ COMPERR='cpptrajcfg.compile.err'
 COMPOUT='cpptrajcfg.compile.out'
 
 # ----- Variables for downloading libraries ------
-NETCDF_SRCTAR='netcdf-4.6.1.tar.gz'
-NETCDF_SRCDIR='netcdf-4.6.1'
-NETCDF_URL="ftp://ftp.unidata.ucar.edu/pub/netcdf/$NETCDF_SRCTAR"
-NETCDF_OPTS=" --disable-netcdf-4 --disable-dap $windows_hostflag --disable-shared --disable-doxygen"
-NETCDF4_OPTS=" --disable-dap $windows_hostflag --disable-shared --disable-doxygen"
+NETCDF_SRCTAR='v4.9.2.tar.gz'
+NETCDF_SRCDIR='netcdf-c-4.9.2'
+NETCDF_URL="https://github.com/Unidata/netcdf-c/archive/refs/tags/$NETCDF_SRCTAR"
+NETCDF_OPTS=" --disable-byterange --disable-libxml2 --disable-netcdf-4 --disable-dap $windows_hostflag --disable-shared --disable-doxygen"
+NETCDF4_OPTS=" --disable-byterange --disable-libxml2 --disable-dap $windows_hostflag --disable-shared --disable-doxygen"
 
 HDF5_SRCTAR='hdf5-1_10_9.tar.gz'
 HDF5_SRCDIR='hdf5-hdf5-1_10_9'
@@ -2220,8 +2220,14 @@ BasicChecks() {
   fi
   # Decide what to do about parallel netcdf
   if [ "${LIB_STAT[$LPARANC]}" != 'off' -a $USE_MPI -eq 0 ] ; then
-    WrnMsg "Parallel NetCDF enabled but MPI not specified. Assuming '-mpi'."
-    USE_MPI=1
+    # Check for mpiicpc before assuming mpicxx
+    if [ ! -z "`which mpiicpc`" ] ; then
+      WrnMsg "Parallel NetCDF enabled but MPI not specified. Assuming '-intelmpi'."
+      USE_MPI=2
+    else
+      WrnMsg "Parallel NetCDF enabled but MPI not specified. Assuming '-mpi'."
+      USE_MPI=1
+    fi
   elif [ $USE_MPI -ne 0 -a "${LIB_STAT[$LPARANC]}" = 'off' -a "${LIB_DISABLED[$LPARANC]}" = 'false' ] ; then
     # If automatically building libs, enabled parallel netcdf for MPI.
     # Otherwise make it optional by specifying 'optional'

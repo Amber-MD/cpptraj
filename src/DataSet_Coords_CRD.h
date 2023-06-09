@@ -11,7 +11,10 @@ class DataSet_Coords_CRD : public DataSet_Coords {
     size_t Size()        const { return frames_.MaxFrames(); } // TODO should this use current index instead?
     SizeArray DimSizes() const { return SizeArray(1, Size()); }
 #   ifdef MPI
+    /// Sync frames back to master
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&);
+    /// Ensure each process has all frames
+    int Bcast(Parallel::Comm const&);
 #   endif
     void Info() const { return; }
     void Add(size_t, const void*) {}
