@@ -8,6 +8,7 @@
 #include "StringRoutines.h"
 #include "Mol.h" // UniqueCount()
 #include "CharmmParamFile.h"
+#include "BufferedLine.h"
 
 /// CONSTRUCTOR
 Parm_CharmmPsf::Parm_CharmmPsf() :
@@ -47,11 +48,11 @@ int Parm_CharmmPsf::processReadArgs(ArgList& argIn) {
 }
 
 // Parm_CharmmPsf::FindTag()
-int Parm_CharmmPsf::FindTag(char* tag, const char* target, CpptrajFile& infile) {
+int Parm_CharmmPsf::FindTag(char* tag, const char* target, BufferedLine& infile) {
   int nval = 0;
   int tgtsize = strlen( target );
   while (strncmp(tag,target,tgtsize)!=0) {
-    const char* buffer = infile.NextLine();
+    const char* buffer = infile.Line();
     if ( buffer == 0 ) return 0;
     sscanf(buffer,"%i %10s",&nval,tag);
   }
@@ -59,7 +60,7 @@ int Parm_CharmmPsf::FindTag(char* tag, const char* target, CpptrajFile& infile) 
 }
 
 //  Parm_CharmmPsf::ReadDihedrals()
-int Parm_CharmmPsf::ReadDihedrals(CpptrajFile& infile, int ndihedral, const char* typestr, Topology& parmOut) const
+int Parm_CharmmPsf::ReadDihedrals(BufferedLine& infile, int ndihedral, const char* typestr, Topology& parmOut) const
 {
     bool found;
     int bondatoms[8];
@@ -67,7 +68,7 @@ int Parm_CharmmPsf::ReadDihedrals(CpptrajFile& infile, int ndihedral, const char
     int nlines = ndihedral / 2;
     if ( (ndihedral % 2) != 0) nlines++;
     for (int dihline = 0; dihline < nlines; dihline++) {
-      if ( (buffer=infile.NextLine()) == 0) {
+      if ( (buffer=infile.Line()) == 0) {
         mprinterr("Error: Reading %s line %i\n", typestr, dihline+1);
         return 1;
       }
@@ -166,18 +167,18 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
   char tag[TAGSIZE];
   tag[0]='\0';
 
-  CpptrajFile infile;
-  if (infile.OpenRead(fname)) return 1;
+  BufferedLine infile;
+  if (infile.OpenFileRead(fname)) return 1;
   mprintf("    Reading Charmm PSF file %s as topology file.\n",infile.Filename().base());
   // Read the first line, should contain PSF...
   const char* buffer = 0;
-  if ( (buffer=infile.NextLine()) == 0 ) return 1;
+  if ( (buffer=infile.Line()) == 0 ) return 1;
   // Advance to <ntitle> !NTITLE
   int ntitle = FindTag(tag, "!NTITLE", infile); 
   // Only read in 1st title. Skip any asterisks.
   std::string psftitle;
   if (ntitle > 0) {
-    buffer = infile.NextLine();
+    buffer = infile.Line();
     const char* ptr = buffer;
     while (*ptr != '\0' && (*ptr == ' ' || *ptr == '*')) ++ptr;
     psftitle.assign( ptr );
@@ -206,29 +207,66 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
   typedef std::vector<std::string> Sarray;
   ParmHolder<AtomType>& atomTypes = params_.AT();
   Sarray SegIDs;
+  bool firstLine = true;
+  enum PsfFormatType { T_CHARMM = 0, T_VMD };
+  PsfFormatType psfFormatType = T_CHARMM;
   for (int atom=0; atom < natom; atom++) {
-    if ( (buffer=infile.NextLine()) == 0 ) {
+    if ( (buffer=infile.Line()) == 0 ) {
       mprinterr("Error: ReadParmPSF(): Reading atom %i\n",atom+1);
       return 1;
     }
+    // Check first line
+    if (firstLine) {
+      int ntokens = infile.TokenizeLine(" \t");
+      //mprintf("DEBUG: first line: ntokens= %i\n", ntokens);
+      // A CHARMM psf will have 9-11 columns:
+      // AtomID, SegID, ResID, ResName, AtomName, AtomType, Charge, Mass, Constrained[, Polarizability, TholeScaleFactor]
+      if (ntokens < 9) {
+        mprintf("Warning: PSF has non-standard format; atoms line contains less than 11 columns (%i).\n", ntokens);
+        if (ntokens == 8) {
+          mprintf("Warning: 8 columns in atoms line; assuming VMD or similarly formatted PSF.\n");
+          psfFormatType = T_VMD;
+        } else {
+          mprinterr("Error: Unrecognized number of columns in atoms line (%i); PSF has bad format.\n", ntokens);
+          return 1;
+        }
+      }
+      firstLine = false;
+    }
     // Read line
-    // ATOM# SEGID RESID RES ATNAME ATTYPE CHRG MASS (REST OF COLUMNS ARE LIKELY FOR CMAP AND CHEQ)
-    sscanf(buffer,"%*i %s %s %s %s %s %lf %lf", segmentID, psfresid, psfresname, 
-           psfname, psftype, &psfcharge, &psfmass);
+    if (psfFormatType == T_CHARMM) {
+      // ATOM# SEGID RESID RES ATNAME ATTYPE CHRG MASS CONST POL THOLE 
+      int nread = sscanf(buffer,"%*i %s %s %s %s %s %lf %lf", segmentID, psfresid, psfresname, 
+                         psfname, psftype, &psfcharge, &psfmass);
+      //mprintf("DEBUG: Read %i columns.\n", nread);
+      if (nread != 7) {
+        mprintf("Warning: During read of PSF atoms, expected to read 7 columns, got %i (line %i)\n", nread, infile.LineNumber());
+      }
+    } else if (psfFormatType == T_VMD) {
+      // ATOM# RESID RES ATNAME ATTYPE CHRG MASS CONST
+      int nread = sscanf(buffer,"%*i %s %s %s %s %lf %lf", psfresid, psfresname,
+                         psfname, psftype, &psfcharge, &psfmass);
+      segmentID[0] = '\0';
+      if (nread != 6) {
+        mprintf("Warning: During read of PSF atoms, expected to read 6 columns, got %i (line %i)\n", nread, infile.LineNumber());
+      }
+    }
     // Extract residue number and alternatively insertion code.
     int psfresnum = ParseResID(psficode, psfresid);
     //mprintf("DEBUG: resnum %10i  icode %c\n", psfresnum, psficode);
     // Search for segment ID
     int idx = -1;
-    for (int i = 0; i != (int)SegIDs.size(); i++)
-      if (SegIDs[i].compare( segmentID )==0) {
-        idx = i;
-        break;
+    if (segmentID[0] != '\0') {
+      for (int i = 0; i != (int)SegIDs.size(); i++)
+        if (SegIDs[i].compare( segmentID )==0) {
+          idx = i;
+          break;
+        }
+      if (idx == -1) {
+        idx = (int)SegIDs.size();
+        SegIDs.push_back( segmentID );
+        if (debug_>0) mprintf("DEBUG: New segment ID %i '%s'\n", idx, SegIDs.back().c_str());
       }
-    if (idx == -1) {
-      idx = (int)SegIDs.size();
-      SegIDs.push_back( segmentID );
-      if (debug_>0) mprintf("DEBUG: New segment ID %i '%s'\n", idx, SegIDs.back().c_str());
     }
     atomTypes.AddParm( TypeNameHolder(NameType(psftype)), AtomType(psfmass), false );
     Atom chmAtom( psfname, psfcharge, psfmass, psftype );
@@ -242,7 +280,7 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
     int nlines = nbond / 4;
     if ( (nbond % 4) != 0) nlines++;
     for (int bondline=0; bondline < nlines; bondline++) {
-      if ( (buffer=infile.NextLine()) == 0 ) {
+      if ( (buffer=infile.Line()) == 0 ) {
         mprinterr("Error: ReadParmPSF(): Reading bond line %i\n",bondline+1);
         return 1;
       }
@@ -280,7 +318,7 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
     int nlines = nangle / 3;
     if ( (nangle % 3) != 0) nlines++;
     for (int angleline=0; angleline < nlines; angleline++) {
-      if ( (buffer=infile.NextLine()) == 0) {
+      if ( (buffer=infile.Line()) == 0) {
         mprinterr("Error: Reading angle line %i\n", angleline+1);
         return 1;
       }
