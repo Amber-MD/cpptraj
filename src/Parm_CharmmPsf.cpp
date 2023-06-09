@@ -8,6 +8,7 @@
 #include "StringRoutines.h"
 #include "Mol.h" // UniqueCount()
 #include "CharmmParamFile.h"
+#include "BufferedLine.h"
 
 /// CONSTRUCTOR
 Parm_CharmmPsf::Parm_CharmmPsf() :
@@ -47,11 +48,11 @@ int Parm_CharmmPsf::processReadArgs(ArgList& argIn) {
 }
 
 // Parm_CharmmPsf::FindTag()
-int Parm_CharmmPsf::FindTag(char* tag, const char* target, CpptrajFile& infile) {
+int Parm_CharmmPsf::FindTag(char* tag, const char* target, BufferedLine& infile) {
   int nval = 0;
   int tgtsize = strlen( target );
   while (strncmp(tag,target,tgtsize)!=0) {
-    const char* buffer = infile.NextLine();
+    const char* buffer = infile.Line();
     if ( buffer == 0 ) return 0;
     sscanf(buffer,"%i %10s",&nval,tag);
   }
@@ -59,7 +60,7 @@ int Parm_CharmmPsf::FindTag(char* tag, const char* target, CpptrajFile& infile) 
 }
 
 //  Parm_CharmmPsf::ReadDihedrals()
-int Parm_CharmmPsf::ReadDihedrals(CpptrajFile& infile, int ndihedral, const char* typestr, Topology& parmOut) const
+int Parm_CharmmPsf::ReadDihedrals(BufferedLine& infile, int ndihedral, const char* typestr, Topology& parmOut) const
 {
     bool found;
     int bondatoms[8];
@@ -67,7 +68,7 @@ int Parm_CharmmPsf::ReadDihedrals(CpptrajFile& infile, int ndihedral, const char
     int nlines = ndihedral / 2;
     if ( (ndihedral % 2) != 0) nlines++;
     for (int dihline = 0; dihline < nlines; dihline++) {
-      if ( (buffer=infile.NextLine()) == 0) {
+      if ( (buffer=infile.Line()) == 0) {
         mprinterr("Error: Reading %s line %i\n", typestr, dihline+1);
         return 1;
       }
@@ -166,18 +167,18 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
   char tag[TAGSIZE];
   tag[0]='\0';
 
-  CpptrajFile infile;
-  if (infile.OpenRead(fname)) return 1;
+  BufferedLine infile;
+  if (infile.OpenFileRead(fname)) return 1;
   mprintf("    Reading Charmm PSF file %s as topology file.\n",infile.Filename().base());
   // Read the first line, should contain PSF...
   const char* buffer = 0;
-  if ( (buffer=infile.NextLine()) == 0 ) return 1;
+  if ( (buffer=infile.Line()) == 0 ) return 1;
   // Advance to <ntitle> !NTITLE
   int ntitle = FindTag(tag, "!NTITLE", infile); 
   // Only read in 1st title. Skip any asterisks.
   std::string psftitle;
   if (ntitle > 0) {
-    buffer = infile.NextLine();
+    buffer = infile.Line();
     const char* ptr = buffer;
     while (*ptr != '\0' && (*ptr == ' ' || *ptr == '*')) ++ptr;
     psftitle.assign( ptr );
@@ -206,15 +207,20 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
   typedef std::vector<std::string> Sarray;
   ParmHolder<AtomType>& atomTypes = params_.AT();
   Sarray SegIDs;
+  bool firstLine = true;
   for (int atom=0; atom < natom; atom++) {
-    if ( (buffer=infile.NextLine()) == 0 ) {
+    if ( (buffer=infile.Line()) == 0 ) {
       mprinterr("Error: ReadParmPSF(): Reading atom %i\n",atom+1);
       return 1;
     }
     // Read line
     // ATOM# SEGID RESID RES ATNAME ATTYPE CHRG MASS (REST OF COLUMNS ARE LIKELY FOR CMAP AND CHEQ)
-    sscanf(buffer,"%*i %s %s %s %s %s %lf %lf", segmentID, psfresid, psfresname, 
-           psfname, psftype, &psfcharge, &psfmass);
+    int nread = sscanf(buffer,"%*i %s %s %s %s %s %lf %lf", segmentID, psfresid, psfresname, 
+                       psfname, psftype, &psfcharge, &psfmass);
+    if (firstLine) {
+      mprintf("DEBUG: first line: nread= %i\n", nread);
+      firstLine = false;
+    }
     // Extract residue number and alternatively insertion code.
     int psfresnum = ParseResID(psficode, psfresid);
     //mprintf("DEBUG: resnum %10i  icode %c\n", psfresnum, psficode);
@@ -242,7 +248,7 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
     int nlines = nbond / 4;
     if ( (nbond % 4) != 0) nlines++;
     for (int bondline=0; bondline < nlines; bondline++) {
-      if ( (buffer=infile.NextLine()) == 0 ) {
+      if ( (buffer=infile.Line()) == 0 ) {
         mprinterr("Error: ReadParmPSF(): Reading bond line %i\n",bondline+1);
         return 1;
       }
@@ -280,7 +286,7 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
     int nlines = nangle / 3;
     if ( (nangle % 3) != 0) nlines++;
     for (int angleline=0; angleline < nlines; angleline++) {
-      if ( (buffer=infile.NextLine()) == 0) {
+      if ( (buffer=infile.Line()) == 0) {
         mprinterr("Error: Reading angle line %i\n", angleline+1);
         return 1;
       }
