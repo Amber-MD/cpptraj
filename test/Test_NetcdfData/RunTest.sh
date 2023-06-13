@@ -26,7 +26,9 @@ INPUT='-i ncdata.in'
 Write1d() {
   UNITNAME='Write basic 1D NetCDF data'
   SFX='nc'
-  cat > ncdata.in <<EOF
+  CheckFor maxthreads 10
+  if [ $? -eq 0 ] ; then
+    cat > ncdata.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.nc 1 10
 distance d1 :1 :12 out d1.$SFX
@@ -42,20 +44,26 @@ rmsf :2,4,9,11&!@H= byres out d1.$SFX
 run
 writedata ascii.dat.save d1 a1 Dih_00003 Fluct_00004
 EOF
-  RunCpptraj "$UNITNAME"
-  NcTest d1.nc.save d1.nc
+    RunCpptraj "$UNITNAME"
+    SetConditionalTol d1.nc mpi -a 0.0000000000001
+    NcTest d1.nc.save d1.nc $TEST_TOLERANCE
+  fi
 }
 
 Read1d() {
   UNITNAME='Read basic 1D NetCDF data'
-  cat > ncdata.in <<EOF
+  # Needs 10 procs for save to have been generated in Write1d()
+  CheckFor maxthreads 10
+  if [ $? -eq 0 ] ; then
+    cat > ncdata.in <<EOF
 readdata d1.nc.save
 list
 writedata ascii.dat d1 a1 Dih_00003 Fluct_00004
 quit
 EOF
-  RunCpptraj "$UNITNAME"
-  DoTest ascii.dat.save ascii.dat
+    RunCpptraj "$UNITNAME"
+    DoTest ascii.dat.save ascii.dat
+  fi
 }
 
 Write2d() {
@@ -101,7 +109,9 @@ EOF
 
 Write3d() {
   UNITNAME='Write basic 3D NetCDF data'
-  cat > ncdata.in <<EOF
+  CheckFor maxthreads 10
+  if [ $? -eq 0 ] ; then
+    cat > ncdata.in <<EOF
 parm ../tz2.ortho.parm7
 trajin ../tz2.ortho.nc
 autoimage origin
@@ -113,13 +123,14 @@ grid out grid.nc data MyGrid origin ^1
 run
 writedata grid.dx.save opendx MyGrid
 EOF
-  RunCpptraj "$UNITNAME"
-  cat > ncdata.in <<EOF
+    RunCpptraj "$UNITNAME"
+    cat > ncdata.in <<EOF
 readdata grid.nc name Grid0
 writedata grid.dx opendx Grid0
 EOF
-  RunCpptraj "Read basic 3D NetCDF data"
-  DoTest grid.dx.save grid.dx
+    RunCpptraj "Read basic 3D NetCDF data"
+    DoTest grid.dx.save grid.dx
+  fi
 }
 
 #Closest() {
@@ -136,7 +147,9 @@ EOF
 
 Hbond() {
   UNITNAME='Write scalar and string data'
-  cat > ncdata.in <<EOF
+  CheckFor maxthreads 10
+  if [ $? -eq 0 ] ; then
+    cat > ncdata.in <<EOF
 parm ../tz2.ortho.parm7
 trajin ../tz2.ortho.nc
 autoimage origin
@@ -144,40 +157,46 @@ hbond HB ^1 solventdonor :WAT solventacceptor :WAT@O out hbond.nc
 run
 writedata hbond.dat.save HB[*]
 EOF
-  RunCpptraj "$UNITNAME"
-
-  cat > ncdata.in <<EOF
+    RunCpptraj "$UNITNAME"
+ 
+    cat > ncdata.in <<EOF
 readdata hbond.nc name HB
 list
 writedata hbond.dat HB[*]
 EOF
-  RunCpptraj "Read scalar and string data"
-  DoTest hbond.dat.save hbond.dat
+    RunCpptraj "Read scalar and string data"
+    DoTest hbond.dat.save hbond.dat
+  fi
 }
 
 Vector() {
   UNITNAME='Write vector data'
-  cat > ncdata.in <<EOF
+  CheckFor maxthreads 10
+  if [ $? -eq 0 ] ; then
+    cat > ncdata.in <<EOF
 parm ../tz2.ortho.parm7
 trajin ../tz2.ortho.nc
 vector V1 mask :1 :12 out vector.nc magnitude
 run
 writedata vector.dat.save V1[*]
 EOF
-  RunCpptraj "$UNITNAME"
+    RunCpptraj "$UNITNAME"
 
-  cat > ncdata.in <<EOF
+    cat > ncdata.in <<EOF
 readdata vector.nc name V1
 list
 writedata vector.dat V1[*]
 EOF
-  RunCpptraj "Read vector data"
-  DoTest vector.dat.save vector.dat
+    RunCpptraj "Read vector data"
+    DoTest vector.dat.save vector.dat
+  fi
 }
 
 Volmap() {
   UNITNAME='Write vector/scalar data'
-  cat > ncdata.in <<EOF
+  CheckFor maxthreads 10
+  if [ $? -eq 0 ] ; then
+    cat > ncdata.in <<EOF
 parm ../tz2.ortho.parm7
 trajin ../tz2.ortho.nc
 rms first :1-13
@@ -188,14 +207,15 @@ volmap name MyMap 1.0 1.0 1.0 :WAT@O \
 run
 writedata peaks1.dat.save MyMap[peaks]
 EOF
-  RunCpptraj "$UNITNAME"
+    RunCpptraj "$UNITNAME"
 
-  cat > ncdata.in <<EOF
+    cat > ncdata.in <<EOF
 readdata peaks1.nc
 writedata peaks1.dat MyMap[peaks]
 EOF
-  RunCpptraj "Read vector/scalar data"
-  DoTest peaks1.dat.save peaks1.dat
+    RunCpptraj "Read vector/scalar data"
+    DoTest peaks1.dat.save peaks1.dat
+  fi
 }
 
 Cluster() {
