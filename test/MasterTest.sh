@@ -14,7 +14,7 @@
 #   CPPTRAJ_NCDUMP       : Set to ncdump command; needed for NcTest()
 #   CPPTRAJ_RM           : Command used to remove files
 #   CPPTRAJ_TIME         : Set to the 'time' command if timing requested.
-#   CPPTRAJ_NPROC        : nproc binary for counting threads in parallel tests.
+#   CPPTRAJ_NPROC        : nproc binary for counting processes in parallel tests.
 # Test output locations
 #   CPPTRAJ_TEST_RESULTS : File to record individual test results to.
 #   CPPTRAJ_TEST_ERROR   : File to record individual test errors/diffs to.
@@ -25,7 +25,7 @@
 #   CPPTRAJ_TEST_SETUP   : 'yes' if setup is complete.
 #   CPPTRAJ_TEST_CLEAN   : If 1, only cleaning tests; do not run them.
 #   CPPTRAJ_TEST_OS      : Operating system on which tests are being run. If blank assume linux.
-#   N_THREADS            : Number of MPI threads if parallel.
+#   N_THREADS            : Number of MPI processes if parallel.
 #   OMP_NUM_THREADS      : Max number of OpenMP threads.
 #   DO_PARALLEL          : MPI run command (e.g. 'mpirun -n 11')
 #   CPPTRAJ_DEBUG        : Can be set to pass global debug flag to cpptraj.
