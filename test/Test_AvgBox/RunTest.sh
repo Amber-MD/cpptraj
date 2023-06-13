@@ -7,7 +7,7 @@ CleanFiles box.in box.ortho.dat box.truncoct.dat
 INPUT='-i box.in'
 
 TESTNAME='Average box tests'
-Requires netcdf
+Requires netcdf maxthreads 10
 
 cat > box.in <<EOF
 parm ../tz2.ortho.parm7

@@ -1145,7 +1145,7 @@ CheckEnv() {
         shift
         if [ ! -z "$DO_PARALLEL" ] ; then
           if [ $N_THREADS -gt $1 ] ; then
-            echo "  $DESCRIP can only run with $1 or fewer parallel threads."
+            echo "  $DESCRIP can only run with $1 or fewer parallel processes."
             ((CHECKERR++))
           fi
         fi
@@ -1155,7 +1155,7 @@ CheckEnv() {
         if [ ! -z "$DO_PARALLEL" ] ; then
           REMAINDER=`expr $N_THREADS % $1`
           if [ -z "$REMAINDER" -o $REMAINDER -ne 0 ] ; then
-            echo "  $DESCRIP requires a multiple of $1 parallel threads."
+            echo "  $DESCRIP requires a multiple of $1 parallel processes."
             ((CHECKERR++))
           fi
         fi
@@ -1164,7 +1164,7 @@ CheckEnv() {
         shift
         if [ ! -z "$DO_PARALLEL" ] ; then
           if [ $N_THREADS -ne $1 ] ; then
-            echo "  $DESCRIP requires exactly $1 parallel threads."
+            echo "  $DESCRIP requires exactly $1 parallel processes."
             ((CHECKERR++))
           fi
         fi
