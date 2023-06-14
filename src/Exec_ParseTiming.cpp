@@ -64,7 +64,7 @@ class Exec_ParseTiming::RunTiming {
 
     bool HasDetailedTiming() const { return !(t_traj_read_.empty() || t_action_frame_.empty()); }
 
-    std::string const& Filename() const { return filename_; }
+    FileName const& Filename() const { return filename_; }
 
     std::string Name() const {
       std::string out;
@@ -82,7 +82,7 @@ class Exec_ParseTiming::RunTiming {
 
     void Print() const {
       mprintf("%s Version %i.%i.%i mpi=%i omp=%i cuda=%i nprocs=%i nthreads=%i ncores=%i t_total=%g\n",
-              filename_.c_str(), version_major_, version_minor_, version_revision_,
+              filename_.full(), version_major_, version_minor_, version_revision_,
               (int)isMPI_, (int)isOpenMP_, (int)isCUDA_, nprocs_, nthreads_, TotalCores(), t_total_);
       for (Darray::const_iterator it = t_traj_read_.begin(); it != t_traj_read_.end(); ++it)
         mprintf(" %g", *it);
@@ -122,7 +122,7 @@ class Exec_ParseTiming::RunTiming {
       }
     };
   private:
-    std::string filename_;
+    FileName filename_;
     int version_major_;
     int version_minor_;
     int version_revision_;
@@ -204,14 +204,18 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
 {
   enum SortType { SORT_T_TOTAL = 0, SORT_CORES };
   const char* SortTypeStr[] = {"time", "total # cores"};
-  SortType sort;
+  SortType sort = SORT_T_TOTAL;
   std::string sortarg = argIn.GetStringKey("sortby");
-  if (sortarg.empty())
-    sort = SORT_T_TOTAL;
-  else if (sortarg == "time")
-    sort = SORT_T_TOTAL;
-  else if (sortarg == "cores")
-    sort = SORT_CORES;
+  if (!sortarg.empty()) {
+    if (sortarg == "time")
+      sort = SORT_T_TOTAL;
+    else if (sortarg == "cores")
+      sort = SORT_CORES;
+    else {
+      mprinterr("Error: Unrecognized sort: %s\n", sortarg.c_str());
+      return CpptrajState::ERR;
+    }
+  }
   mprintf("\tSort by %s\n", SortTypeStr[sort]);
 
   DataFile* outfile = State.DFL().AddDataFile( argIn.GetStringKey("out"), argIn );
@@ -228,7 +232,7 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
   enum Ytype { Y_T_TOTAL=0, Y_T_TRAJREAD, Y_T_ACTFRAME };
 
   Xtype xvar;
-  Ytype yvar;
+  Ytype yvar = Y_T_TOTAL;
   Dimension Xdim;
   //Dimension Ydim;
 
@@ -309,10 +313,19 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
   nameSet->Allocate( DataSet::SizeArray(1, Runs.size()) );
   nameSet->SetDim(Dimension::X, Xdim);
 
+  DataSet* dirNameSet = State.DSL().AddSet(DataSet::STRING, MetaData(dsname, "dir"));
+  if (dirNameSet == 0) {
+    mprinterr("Error: Could not allocate directory names set.\n");
+    return CpptrajState::ERR;
+  }
+  if (outfile != 0) outfile->AddDataSet( dirNameSet );
+  dirNameSet->Allocate( DataSet::SizeArray(1, Runs.size()) );
+  dirNameSet->SetDim(Dimension::X, Xdim);
+
   for (RunArray::const_iterator it = Runs.begin(); it != Runs.end(); ++it) {
     if (needsDetailedTiming && !it->HasDetailedTiming()) {
       mprinterr("Error: Detailed timing requested but output %s does not contain detailed timing.\n",
-                it->Filename().c_str());
+                it->Filename().full());
       it->Print();
       return CpptrajState::ERR;
     }
@@ -329,6 +342,7 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
     }
     outset.AddXY(X, Y);
     nameSet->Add(it - Runs.begin(), it->Name().c_str());
+    dirNameSet->Add(it - Runs.begin(), it->Filename().DirPrefix().c_str());
     it->Print();
   }
 
