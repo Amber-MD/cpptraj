@@ -21,9 +21,15 @@ class Exec_ParseTiming::RunTiming {
     RunTiming() : version_major_(-1), version_minor_(-1), version_revision_(-1),
                   isMPI_(false), isOpenMP_(false), isCUDA_(false),
                   nprocs_(-1), nthreads_(-1), t_total_(-1) {}
-    RunTiming(std::string const& name, std::string const& vstr, bool isM, bool isO, bool isC) :
-      filename_(name), isMPI_(isM), isOpenMP_(isO), isCUDA_(isC), nprocs_(-1), nthreads_(-1), t_total_(-1)
-    {
+    RunTiming(std::string const& name) : filename_(name),
+                  version_major_(-1), version_minor_(-1), version_revision_(-1),
+                  isMPI_(false), isOpenMP_(false), isCUDA_(false),
+                  nprocs_(-1), nthreads_(-1), t_total_(-1) {}
+
+    void SetVersionAndType(std::string const& vstr, bool isM, bool isO, bool isC) {
+      isMPI_ = isM;
+      isOpenMP_ = isO;
+      isCUDA_ = isC;
       ArgList varg( vstr, "V." );
       version_major_ = varg.getNextInteger(-1);
       version_minor_ = varg.getNextInteger(-1);
@@ -154,7 +160,7 @@ Exec_ParseTiming::RunTiming Exec_ParseTiming::read_cpptraj_output(std::string co
   BufferedLine infile;
 
 
-  RunTiming thisRun;
+  RunTiming thisRun( fname );
   if (infile.OpenFileRead( fname )) {
     mprinterr("Error: Could not open '%s'\n", fname.c_str());
     return thisRun;
@@ -171,7 +177,7 @@ Exec_ParseTiming::RunTiming Exec_ParseTiming::read_cpptraj_output(std::string co
         bool isMPI = titleArg.hasKey("MPI");
         bool isOpenMP = titleArg.hasKey("OpenMP");
         bool isCUDA = titleArg.hasKey("CUDA");
-        thisRun = RunTiming(fname, versionStr, isMPI, isOpenMP, isCUDA);
+        thisRun.SetVersionAndType(versionStr, isMPI, isOpenMP, isCUDA);
       }
     } else if (ptr[0] == '|') {
       ArgList infoArg(ptr+1, " ");
