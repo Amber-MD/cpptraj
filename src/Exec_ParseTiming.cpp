@@ -193,7 +193,7 @@ Exec_ParseTiming::RunTiming Exec_ParseTiming::read_cpptraj_output(std::string co
 void Exec_ParseTiming::Help() const
 {
   mprintf("\t<filename args> ... [sortby {time|cores}] [out <file>] [name <setname>]\n"
-          "\t[type {trajread|actframe}]\n"
+          "\t[type {trajread|actframe}] [reverse]\n"
           "  Parse cpptraj output for timing data.\n"
          );
 }
@@ -217,6 +217,10 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
     }
   }
   mprintf("\tSort by %s\n", SortTypeStr[sort]);
+
+  bool reverse_sort = argIn.hasKey("reverse");
+  if (reverse_sort)
+    mprintf("\tPerforming reverse sort.\n");
 
   DataFile* outfile = State.DFL().AddDataFile( argIn.GetStringKey("out"), argIn );
   if (outfile != 0)
@@ -257,7 +261,7 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
   }
   //Ydim.SetLabel("TotalTime");
 
-  // Only file name args below here
+  // ----- Only file name args below here --------
   File::NameArray FileNameList;
 
   std::string filearg = argIn.GetStringNext();
@@ -292,6 +296,9 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
     case SORT_T_TOTAL : std::sort(Runs.begin(), Runs.end(), RunTiming::sort_by_total_time()); break;
     case SORT_CORES   : std::sort(Runs.begin(), Runs.end(), RunTiming::sort_by_cores()); break;
   }
+
+  if (reverse_sort)
+    std::reverse( Runs.begin(), Runs.end() );
 
   DataSet* ds = State.DSL().AddSet( DataSet::XYMESH, MetaData(dsname) );
   if (ds == 0) {
