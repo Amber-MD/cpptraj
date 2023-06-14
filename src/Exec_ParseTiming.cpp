@@ -242,6 +242,10 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
   if (reverse_sort)
     mprintf("\tPerforming reverse sort.\n");
 
+  bool include_bad = argIn.hasKey("includebad");
+  if (include_bad)
+    mprintf("\tIncluding bad results.\n");
+
   DataFile* outfile = State.DFL().AddDataFile( argIn.GetStringKey("out"), argIn );
   if (outfile != 0)
     mprintf("\tOutput to file '%s'\n", outfile->DataFilename().full());
@@ -304,6 +308,8 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
     RunTiming thisRun = read_cpptraj_output( it->Full() );
     if (thisRun.IsBad()) {
       mprintf("Warning: Problem reading cpptraj output from '%s' : %s\n", it->full(), thisRun.ErrMsg().c_str());
+      if (include_bad)
+        Runs.push_back( thisRun );
       //return CpptrajState::ERR;
     } else {
       Runs.push_back( thisRun );
