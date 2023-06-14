@@ -14,6 +14,7 @@ Exec_ParseTiming::Exec_ParseTiming() :
   SetHidden( true );
 }
 
+// -----------------------------------------------------------------------------
 /** Hold run timing and details. */
 class Exec_ParseTiming::RunTiming {
   public:
@@ -121,6 +122,16 @@ class Exec_ParseTiming::RunTiming {
           return (first_cores < second_cores);
       }
     };
+
+    /** Sort by file name. */
+    struct sort_by_filename {
+      inline bool operator()(RunTiming const& first, RunTiming const& second) const {
+        if (first.filename_.Full() == second.filename_.Full())
+          return (first.TotalTime() > second.TotalTime());
+        else
+          return (first.filename_.Full() < second.filename_.Full());
+      }
+    };
   private:
     FileName filename_;
     int version_major_;
@@ -136,6 +147,7 @@ class Exec_ParseTiming::RunTiming {
     Darray t_action_frame_;
     std::string errMsg_;
 };
+// -----------------------------------------------------------------------------
 
 /** Execute command. */
 Exec_ParseTiming::RunTiming Exec_ParseTiming::read_cpptraj_output(std::string const& fname) {
@@ -202,8 +214,8 @@ void Exec_ParseTiming::Help() const
 // Exec_ParseTiming::Execute()
 Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
 {
-  enum SortType { SORT_T_TOTAL = 0, SORT_CORES };
-  const char* SortTypeStr[] = {"time", "total # cores"};
+  enum SortType { SORT_T_TOTAL = 0, SORT_CORES, SORT_FILENAME };
+  const char* SortTypeStr[] = {"time", "total # cores", "file name"};
   SortType sort = SORT_T_TOTAL;
   std::string sortarg = argIn.GetStringKey("sortby");
   if (!sortarg.empty()) {
@@ -211,6 +223,8 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
       sort = SORT_T_TOTAL;
     else if (sortarg == "cores")
       sort = SORT_CORES;
+    else if (sortarg == "filename")
+      sort = SORT_FILENAME;
     else {
       mprinterr("Error: Unrecognized sort: %s\n", sortarg.c_str());
       return CpptrajState::ERR;
@@ -293,8 +307,9 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   switch (sort) {
-    case SORT_T_TOTAL : std::sort(Runs.begin(), Runs.end(), RunTiming::sort_by_total_time()); break;
-    case SORT_CORES   : std::sort(Runs.begin(), Runs.end(), RunTiming::sort_by_cores()); break;
+    case SORT_T_TOTAL  : std::sort(Runs.begin(), Runs.end(), RunTiming::sort_by_total_time()); break;
+    case SORT_CORES    : std::sort(Runs.begin(), Runs.end(), RunTiming::sort_by_cores()); break;
+    case SORT_FILENAME : std::sort(Runs.begin(), Runs.end(), RunTiming::sort_by_filename()); break;
   }
 
   if (reverse_sort)
