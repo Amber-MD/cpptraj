@@ -8,7 +8,9 @@ Analysis_TICA::Analysis_TICA() :
   TgtTraj_(0),
   lag_(0),
   useMass_(false)
-{}
+{
+  SetHidden(true);
+}
 
 // Analysis_TICA::Help()
 void Analysis_TICA::Help() const {
