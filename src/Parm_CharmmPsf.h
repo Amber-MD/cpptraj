@@ -2,6 +2,7 @@
 #define INC_PARM_CHARMMPSF_H
 #include "ParmIO.h"
 #include "ParameterSet.h"
+class BufferedLine;
 class Parm_CharmmPsf : public ParmIO {
   public :
     Parm_CharmmPsf();
@@ -15,10 +16,10 @@ class Parm_CharmmPsf : public ParmIO {
     int processWriteArgs(ArgList&);
   private:
     static const unsigned int ChmStrMax_;
-    static inline int FindTag(char*, const char*, int, CpptrajFile&);
+    //static inline int FindTag(char*, const char*, int, BufferedLine&);
     static inline int ParseResID(char&, const char*);
-    static inline int FindTag(char*, const char*, CpptrajFile&);
-    int ReadDihedrals(CpptrajFile&, int, const char*, Topology&) const;
+    static inline int FindTag(char*, const char*, BufferedLine&);
+    int ReadDihedrals(BufferedLine&, int, const char*, Topology&) const;
 
     inline void WriteSectionHeader(CpptrajFile&, const char*, int) const;
 
