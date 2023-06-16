@@ -7,6 +7,7 @@ CleanFiles gist.in gist.out gist-*.dx ww_Eij.dat Eww_ij.dat \
            Gist3-*.dx Gist3-*.dat Gist4-*.dx Gist4-*.dat \
            Gist5-*.dx Gist5-*.dat Gist6-*.dx Gist6-*.dat \
            Gist7-*.dx Gist7-*.dat Gist8-*.dx Gist8-*.dat \
+           Gist9-*.dx Gist9-*.dat Gist10-*.dx Gist10-*.dat \
            Gist-dummy*.dx Gist-dummy*.dat gaussian_entropy*.txt \
            benzene-ions-energy.txt benzene-ions-gist*.txt
 INPUT="-i gist.in"
