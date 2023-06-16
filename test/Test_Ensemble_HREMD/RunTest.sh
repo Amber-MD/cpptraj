@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles cpptraj.in sorted.remlog.crd.? sorted.crdidx.crd.? distances.dat.?
+CleanFiles cpptraj.in sorted.remlog.crd.? sorted.crdidx.crd.? distances.dat.? avg.distances.dat.?
 
 TESTNAME='H-REMD sorting tests'
 Requires netcdf nthreads 4
@@ -41,11 +41,16 @@ parm ../tz2.nhe.parm7
 ensemblesize 4
 ensemble rem.crd.001 nosort
 distance EndToEnd :1 :12 out distances.dat
+avg EndToEnd out avg.distances.dat name AvgE2E
 EOF
 RunCpptraj "$UNITNAME"
 DoTest distances.dat.0.save distances.dat.0
 DoTest distances.dat.1.save distances.dat.1
 DoTest distances.dat.2.save distances.dat.2
 DoTest distances.dat.3.save distances.dat.3
+DoTest avg.distances.dat.0.save avg.distances.dat.0
+DoTest avg.distances.dat.1.save avg.distances.dat.1
+DoTest avg.distances.dat.2.save avg.distances.dat.2
+DoTest avg.distances.dat.3.save avg.distances.dat.3
 
 EndTest
