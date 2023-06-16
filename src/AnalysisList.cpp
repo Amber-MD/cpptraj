@@ -54,8 +54,10 @@ int AnalysisList::DoAnalyses() {
         ret = ana->ptr_->Analyze();
       } else {
         mprintf("Warning: Analysis '%s' does not currently use multiple MPI processes.\n", ana->args_.Command());
-        if (Parallel::World().Master())
+        if (Parallel::TrajComm().Master())
           ret = ana->ptr_->Analyze();
+        else
+          ret = Analysis::OK;
         Parallel::World().MasterBcast( &ret, 1, MPI_INT );
       }
       int err;
