@@ -1,0 +1,2 @@
+#Set     AvgE2E[avg]%0 AvgE2E[sd]%0 AvgE2E[ymin]%0 AvgE2E[ymax]%0 AvgE2E[yminidx]%0 AvgE2E[ymaxidx]%0 AvgE2E[names]%0
+       1          6.71        1.719          4.412          12.42                46                83    "EndToEnd%0"

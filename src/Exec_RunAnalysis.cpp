@@ -45,11 +45,10 @@ int Exec_RunAnalysis::DoRunAnalysis(CpptrajState& State, ArgList& argIn) const {
 
   bool run_analysis = true;
 # ifdef MPI
-  Parallel::Comm const& analyzeComm = Parallel::World();
-  AnalysisSetup setup(State.DSL(), State.DFL(), analyzeComm);
+  AnalysisSetup setup(State.DSL(), State.DFL(), Parallel::World());
   if (!ana->IsParallel()) {
     mprintf("Warning: Analysis '%s' does not currently use multiple MPI processes.\n", analyzeargs.Command());
-    run_analysis = analyzeComm.Master();
+    run_analysis = Parallel::TrajComm().Master();
   }
 # else /* MPI */
   AnalysisSetup setup(State.DSL(), State.DFL());
