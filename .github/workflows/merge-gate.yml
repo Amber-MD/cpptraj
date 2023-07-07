@@ -123,3 +123,46 @@ jobs:
             make -j2 install
           fi
           cd test && make $TEST_TYPE
+
+  build-pytraj:
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 5
+    steps:
+    - name: Install prerequisite packages
+      run: |
+        sudo apt-get install gfortran
+        sudo apt-get install libbz2-dev
+        sudo apt-get install libblas-dev liblapack-dev
+        sudo apt-get install libfftw3-dev
+        sudo apt-get install clang
+        sudo apt-get install cmake-data cmake    
+    - uses: actions/checkout@v3
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v3
+      with:
+        python-version: 3.8
+    - name: Add conda to system path
+      run: |
+        # $CONDA is an environment variable pointing to the root of the miniconda directory
+        echo $CONDA/bin >> $GITHUB_PATH
+    - name: Install conda packages
+      run: |
+        conda env update --file environment.yml --name base        
+    - name: Install cpptraj
+      run: |
+        export PATH=$HOME/bin:${PATH}
+        export LD_LIBRARY_PATH=$HOME/lib:${LD_LIBRARY_PATH}
+        ./configure --buildlibs -openmp gnu 
+        source cpptraj.sh
+        make -j2 libcpptraj
+    - name: Install pytraj
+      run: |        
+        git clone https://github.com/Amber-MD/pytraj
+        source cpptraj.sh
+        cd pytraj
+        python setup.py install
+        cd ..
+    - name: Test with pytest
+      run: |
+        source cpptraj.sh && cd pytraj/tests && pytest -vs --ignore=test_parallel_pmap
