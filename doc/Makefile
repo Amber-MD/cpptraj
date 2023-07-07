@@ -3,7 +3,7 @@ docs: CpptrajManual.pdf CpptrajDevelopmentGuide.pdf
 .lyx.pdf:
 	lyx -batch --export pdf2 $<
 
-CpptrajManual.pdf: CpptrajManual.lyx
+CpptrajManual.pdf: CpptrajManual.lyx cpptraj.lyx
 	lyx -batch --export pdf2 CpptrajManual.lyx
 
 CpptrajDevelopmentGuide.pdf: CpptrajDevelopmentGuide.lyx
