@@ -158,7 +158,7 @@ jobs:
         make -j2 libcpptraj
     - name: Install pytraj
       run: |        
-        git clone https://github.com/Amber-MD/pytraj
+        git clone https://github.com/Amber-MD/pytraj.git
         source cpptraj.sh
         cd pytraj
         python setup.py install
