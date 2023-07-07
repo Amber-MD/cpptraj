@@ -153,7 +153,7 @@ jobs:
       run: |
         export PATH=$HOME/bin:${PATH}
         export LD_LIBRARY_PATH=$HOME/lib:${LD_LIBRARY_PATH}
-        ./configure --buildlibs -openmp gnu 
+        ./configure --buildlibs -openmp -shared gnu
         source cpptraj.sh
         make -j2 libcpptraj
     - name: Install pytraj
