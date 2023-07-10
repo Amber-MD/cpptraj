@@ -1503,11 +1503,10 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
     NA_Reference::RetType err = refBases_.SetupBaseRef( currentBase, setup.Top(), *resnum,
                                                         *masterDSL_, dataname_ );
     if (err == NA_Reference::NOT_FOUND) {
-      // Residue not recognized. Print a warning if the user specified this range.
-      if (!resRange_.Empty()) {
-        mprintf("Warning: Residue %i:%s not recognized as NA residue.\n",
-                *resnum+1, setup.Top().Res(*resnum).c_str());
-      }
+      // Residue not recognized. Print a warning.
+      mprintf("Warning: Residue %i:%s not recognized as a nucleic acid residue.\n",
+              *resnum+1, setup.Top().Res(*resnum).c_str());
+      mprintf("Warning: For non-standard names, use the 'resmap' keyword.\n");
       continue;
     } else if (err == NA_Reference::BASE_ERROR) {
       mprinterr("Error: Could not set up residue %s for NA structure analysis.\n",
@@ -1564,6 +1563,8 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
       if (c5neighbor == Bases_[idx].ResNum()) base->SetC5Idx( idx );
       if (c3neighbor == Bases_[idx].ResNum()) base->SetC3Idx( idx );
     }
+    if (debug_ > 0)
+      mprintf("DEBUG: Base res %i C3res=%i C5res=%i\n", base->ResNum()+1, base->C3resIdx(), base->C5resIdx());
   } // END loop over bases setting 5' and 3' neighbors
 
   // For each base, find 5' terminii, trace them to the 3' terminii, set up strands
