@@ -353,6 +353,11 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     mprintf("\tUsing simple groove width calculation (P-P and O-O base pair distances).\n");
   else if (grooveCalcType_ == HASSAN_CALLADINE)
     mprintf("\tUsing groove width calculation of El Hassan & Calladine.\n");
+  if (axesOut_ != 0) {
+    mprintf("\tWriting base axes pseudo trajectory to '%s'\n", axesOut_->Traj().Filename().full());
+    if (!axesParm_->OriginalFilename().empty())
+      mprintf("\tWriting base axes pseudo topology to '%s'\n", axesParm_->OriginalFilename().full());
+  }
   mprintf("# Citations: Babcock MS; Pednault EPD; Olson WK; \"Nucleic Acid Structure\n"
           "#             Analysis: Mathematics for Local Cartesian and Helical Structure\n"
           "#             Parameters That Are Truly Comparable Between Structures\",\n"
@@ -1790,10 +1795,10 @@ const
                                           ++res)
   {
     // Order is origin, x, y, z
-    pseudo.AddTopAtom(Atom("Orig", 0), *res);
-    pseudo.AddTopAtom(Atom("X", 0), *res);
-    pseudo.AddTopAtom(Atom("Y", 0), *res);
-    pseudo.AddTopAtom(Atom("Z", 0), *res);
+    pseudo.AddTopAtom(Atom("Orig", "C"), *res);
+    pseudo.AddTopAtom(Atom("X", "H"), *res);
+    pseudo.AddTopAtom(Atom("Y", "H"), *res);
+    pseudo.AddTopAtom(Atom("Z", "H"), *res);
     // Bond x y and z to origin
     pseudo.AddBond(natom, natom+1, 0);
     pseudo.AddBond(natom, natom+2, 0);
@@ -1888,9 +1893,11 @@ Action::RetType Action_NAstruct::DoAction(int frameNum, ActionFrame& frm) {
 
   // Output base axes if needed
   if (axesOut_ != 0) {
+    axesFrame_.ClearAtoms();
     for (std::vector<NA_Base>::const_iterator base = Bases_.begin(); 
                                               base != Bases_.end(); ++base)
       axesToFrame( axesFrame_, base->Axis() );
+    axesOut_->WriteSingle(frm.TrajoutNum(), axesFrame_);
   }
 
   nframes_++;
