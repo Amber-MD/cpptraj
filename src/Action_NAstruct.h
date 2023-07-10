@@ -7,6 +7,7 @@
 #include "AxisType.h"
 #include "Range.h"
 #include "DataSet_1D.h"
+class Trajout_Single;
 /// Basic Nucleic acid structure analysis. 
 /** Calculate nucleic acid base/base pair structural parameters.
   * Algorithms for calculation of base/base pair structural parameters
@@ -31,6 +32,8 @@
 class Action_NAstruct: public Action {
   public:
     Action_NAstruct();
+    /// DESTRUCTOR - Needed in case axes trajectories are being written
+    ~Action_NAstruct();
     DispatchObject* Alloc() const { return (DispatchObject*)new Action_NAstruct(); }
     void Help() const;
   private:
@@ -199,5 +202,7 @@ class Action_NAstruct: public Action {
     // DEBUG - used to trigger AxisPDBwriter for first call of calculateParameters
     bool calcparam_;
 #   endif
+    Trajout_Single* axesOut_; ///< Output trajectory for base axes
+    Topology* axesParm_;      ///< Pseudo-topology for base axes
 };
 #endif

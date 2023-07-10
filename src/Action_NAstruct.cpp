@@ -5,14 +5,15 @@
 #include "StringRoutines.h" // integerToString
 #include "DistRoutines.h"
 #include "Constants.h" // RADDEG
+#include "Trajout_Single.h"
 #ifdef NASTRUCTDEBUG
-#include "PDBfile.h"
+#include "PDBfile.h" //FIXME remove
 #endif
 #ifdef MPI
 # include "DataSet_float.h" // internal pointer needed for sync
 #endif
 
-// CONSTRUCTOR
+/** CONSTRUCTOR */
 Action_NAstruct::Action_NAstruct() :
   puckerMethod_(NA_Base::ALTONA),
   HBdistCut2_(12.25),     // Hydrogen Bond distance cutoff^2: 3.5^2
@@ -37,12 +38,23 @@ Action_NAstruct::Action_NAstruct() :
   ssout_(0),
   stepout_(0),
   helixout_(0),
-  masterDSL_(0)
+  masterDSL_(0),
 # ifdef NASTRUCTDEBUG
-  ,calcparam_(true)
+  calcparam_(true),
 # endif
+  axesOut_(0),
+  axesParm_(0)
 {}
 
+/** DESTRUCTOR */
+Action_NAstruct::~Action_NAstruct() {
+  if (axesOut_ != 0) {
+    axesOut_->EndTraj();
+    delete axesOut_;
+  }
+}
+
+/** Print help text. */
 void Action_NAstruct::Help() const {
   mprintf("\t[<dataset name>] [resrange <range>] [sscalc] [naout <suffix>]\n"
           "\t[noheader] [resmap <ResName>:{A,C,G,T,U} ...] [calcnohb]\n"
