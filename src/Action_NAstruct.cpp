@@ -57,6 +57,46 @@ Action_NAstruct::~Action_NAstruct() {
   }
 }
 
+/** Set up axes pseudo trajectory. */
+int Action_NAstruct::setup_axes_pseudoTraj(const char* description,
+                                           const char* trajKeyword,
+                                           const char* argKeyword,
+                                           const char* parmKeyword,
+                                           const char* topName,
+                                           DataSetList const& DSL,
+                                           ArgList& actionArgs,
+                                           Trajout_Single** outputTraj,
+                                           Topology** outputParm)
+const
+{
+  std::string axesout = actionArgs.GetStringKey(trajKeyword);
+  if (!axesout.empty()) {
+    *outputTraj = new Trajout_Single();
+    (*outputTraj)->SetDebug( debug_ );
+#   ifdef MPI
+    (*outputTraj)->SetTrajComm( trajComm_ );
+#   endif
+    std::string axesoutargStr;
+    std::string axesoutarg = actionArgs.GetStringKey(argKeyword);
+    while (!axesoutarg.empty()) {
+      axesoutargStr.append(" " + axesoutarg);
+      axesoutarg = actionArgs.GetStringKey(argKeyword);
+    }
+    ArgList axesOutArglist( axesoutargStr );
+    if ((*outputTraj)->InitEnsembleTrajWrite( axesout, axesOutArglist, DSL,
+                                         TrajectoryFile::UNKNOWN_TRAJ, DSL.EnsembleNum()) )
+    {
+      mprinterr("Error: Could not init %s trajectory '%s'\n", description, axesout.c_str());
+      return 1;
+    }
+    std::string axesparmout = actionArgs.GetStringKey(parmKeyword);
+    *outputParm = new Topology();
+    (*outputParm)->SetDebug( debug_ );
+    (*outputParm)->SetParmName( topName, axesparmout );
+  }
+  return 0;
+}
+
 /** Print help text. */
 void Action_NAstruct::Help() const {
   mprintf("\t[<dataset name>] [resrange <range>] [sscalc] [naout <suffix>]\n"
@@ -141,6 +181,11 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
   if      (actionArgs.hasKey("altona")) puckerMethod_=NA_Base::ALTONA;
   else if (actionArgs.hasKey("cremer")) puckerMethod_=NA_Base::CREMER;
   // See if we want axes pseudo-trajectories
+  if (setup_axes_pseudoTraj("base axes", "axesout", "axesoutarg", "axesparmout",
+                            "BaseAxes", init.DSL(), actionArgs,
+                            &axesOut_, &axesParm_))
+    return Action::ERR;
+/*
   std::string axesout = actionArgs.GetStringKey("axesout");
   if (!axesout.empty()) {
     axesOut_ = new Trajout_Single();
@@ -165,7 +210,7 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     axesParm_ = new Topology();
     axesParm_->SetDebug( debug_ );
     axesParm_->SetParmName( "BaseAxes", axesparmout );
-  }
+  }*/
   // Get residue range
   resRange_.SetRange(actionArgs.GetStringKey("resrange"));
   if (!resRange_.Empty())
@@ -1693,6 +1738,11 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
       } // END loop over bases in strand
     } // END loop over strands
   } // END if sscalc
+
+  // Set up axes pseudo-topologies
+  if (axesParm_ != 0) {
+    // 1 pseudo bond type
+  }
   return Action::OK;  
 }
 
