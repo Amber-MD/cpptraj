@@ -134,7 +134,7 @@ class Action_NAstruct: public Action {
                              DataSetList const&, ArgList&,
                              Trajout_Single**, Topology**) const;
     /// Set up an axes pseudo-trajectory
-    int setup_axes_pseudoTraj(Topology&, std::vector<Residue> const&) const;
+    int setup_axes_pseudoTraj(Topology&, Trajout_Single&, std::vector<Residue> const&, int) const;
     /// Recursively travel to 3' terminal base
     static int follow_base_to_3prime(Barray&, unsigned int, std::vector<bool>&, int);
     /// Recursively travel sugar-phosphate backbone to find the next residue in a strand.

@@ -1749,7 +1749,7 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
       Residue const& res = setup.Top().Res( base->ResNum() );
       axesResidues.push_back( res );
     }
-    if (setup_axes_pseudoTraj( *axesParm_, axesResidues ))
+    if (setup_axes_pseudoTraj( *axesParm_, *axesOut_, axesResidues, setup.Nframes() ))
       return Action::ERR;
   }
   return Action::OK;  
@@ -1757,7 +1757,9 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
 
 /** Set up topology for an axes pseudo-trajectory. */
 int Action_NAstruct::setup_axes_pseudoTraj(Topology& pseudo,
-                                           std::vector<Residue> const& axesResidues)
+                                           Trajout_Single& outtraj,
+                                           std::vector<Residue> const& axesResidues,
+                                           int Nframes)
 const
 {
   if (pseudo.Natom() > 0) {
@@ -1793,6 +1795,13 @@ const
       return 1;
     }
   }
+
+  if (outtraj.SetupTrajWrite( &pseudo, CoordinateInfo(), Nframes)) {
+    mprinterr("Error: Could not set up axes output trajectory.\n");
+    return 1;
+  }
+  mprintf("      "); //TODO this is a kludge; PrintInfo should be a string.
+  outtraj.PrintInfo(0);
   return 0;
 } 
 
