@@ -52,6 +52,9 @@ Action_NAstruct::~Action_NAstruct() {
     axesOut_->EndTraj();
     delete axesOut_;
   }
+  if (axesParm_ != 0) {
+    delete axesParm_;
+  }
 }
 
 /** Print help text. */
@@ -137,6 +140,32 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     grooveCalcType_ = PP_OO;
   if      (actionArgs.hasKey("altona")) puckerMethod_=NA_Base::ALTONA;
   else if (actionArgs.hasKey("cremer")) puckerMethod_=NA_Base::CREMER;
+  // See if we want axes pseudo-trajectories
+  std::string axesout = actionArgs.GetStringKey("axesout");
+  if (!axesout.empty()) {
+    axesOut_ = new Trajout_Single();
+    axesOut_->SetDebug( debug_ );
+#   ifdef MPI
+    axesOut_->SetTrajComm( trajComm_ );
+#   endif
+    std::string axesoutargStr;
+    std::string axesoutarg = actionArgs.GetStringKey("axesoutarg");
+    while (!axesoutarg.empty()) {
+      axesoutargStr.append(" " + axesoutarg);
+      axesoutarg = actionArgs.GetStringKey("axesoutarg");
+    }
+    ArgList axesOutArglist( axesoutargStr );
+    if (axesOut_->InitEnsembleTrajWrite( axesout, axesOutArglist, init.DSL(),
+                                         TrajectoryFile::UNKNOWN_TRAJ, init.DSL().EnsembleNum()) )
+    {
+      mprinterr("Error: Could not init base axes trajectory '%s'\n", axesout.c_str());
+      return Action::ERR;
+    }
+    std::string axesparmout = actionArgs.GetStringKey("axesparmout");
+    axesParm_ = new Topology();
+    axesParm_->SetDebug( debug_ );
+    axesParm_->SetParmName( "BaseAxes", axesparmout );
+  }
   // Get residue range
   resRange_.SetRange(actionArgs.GetStringKey("resrange"));
   if (!resRange_.Empty())
