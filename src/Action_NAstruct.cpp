@@ -390,6 +390,19 @@ static void WriteAxes(PDBfile& outfile, int resnum, const char* resname, NA_Axis
 // -----------------------------------------------------------------------------
 #endif
 
+/// Add NA_Axis to given Frame
+static void axesToFrame(Frame& frame, NA_Axis const& axis) {
+  // Origin
+  Vec3 oxyz = axis.Oxyz();
+  frame.AddVec3( oxyz );
+  // X vector
+  frame.AddVec3( axis.Rx() + oxyz );
+  // Y vector
+  frame.AddVec3( axis.Ry() + oxyz );
+  // Z vector
+  frame.AddVec3( axis.Rz() + oxyz );
+}
+
 // Action_NAstruct::SetupBaseAxes()
 /** For each residue in Bases (set up in Setup()), get the corresponding input
   * coords and fit the reference coords on top of input coords. This sets up 
@@ -1749,7 +1762,7 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
       Residue const& res = setup.Top().Res( base->ResNum() );
       axesResidues.push_back( res );
     }
-    if (setup_axes_pseudoTraj( *axesParm_, *axesOut_, axesResidues, setup.Nframes() ))
+    if (setup_axes_pseudoTraj( *axesParm_, *axesOut_, axesFrame_, axesResidues, setup.Nframes() ))
       return Action::ERR;
   }
   return Action::OK;  
@@ -1758,6 +1771,7 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
 /** Set up topology for an axes pseudo-trajectory. */
 int Action_NAstruct::setup_axes_pseudoTraj(Topology& pseudo,
                                            Trajout_Single& outtraj,
+                                           Frame& frame,
                                            std::vector<Residue> const& axesResidues,
                                            int Nframes)
 const
@@ -1802,6 +1816,8 @@ const
   }
   mprintf("      "); //TODO this is a kludge; PrintInfo should be a string.
   outtraj.PrintInfo(0);
+
+  frame = Frame(natom);
   return 0;
 } 
 
@@ -1868,6 +1884,14 @@ Action::RetType Action_NAstruct::DoAction(int frameNum, ActionFrame& frm) {
 
   // Determine base pair step parameters
   DetermineStepParameters(frameNum);
+
+  // Output base axes if needed
+  if (axesOut_ != 0) {
+    for (std::vector<NA_Base>::const_iterator base = Bases_.begin(); 
+                                              base != Bases_.end(); ++base)
+      axesToFrame( axesFrame_, base->Axis() );
+  }
+
   nframes_++;
   return Action::OK;
 } 
