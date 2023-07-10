@@ -58,15 +58,15 @@ Action_NAstruct::~Action_NAstruct() {
 }
 
 /** Set up axes pseudo trajectory. */
-int Action_NAstruct::setup_axes_pseudoTraj(const char* description,
-                                           const char* trajKeyword,
-                                           const char* argKeyword,
-                                           const char* parmKeyword,
-                                           const char* topName,
-                                           DataSetList const& DSL,
-                                           ArgList& actionArgs,
-                                           Trajout_Single** outputTraj,
-                                           Topology** outputParm)
+int Action_NAstruct::init_axes_pseudoTraj(const char* description,
+                                          const char* trajKeyword,
+                                          const char* argKeyword,
+                                          const char* parmKeyword,
+                                          const char* topName,
+                                          DataSetList const& DSL,
+                                          ArgList& actionArgs,
+                                          Trajout_Single** outputTraj,
+                                          Topology** outputParm)
 const
 {
   std::string axesout = actionArgs.GetStringKey(trajKeyword);
@@ -181,9 +181,9 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
   if      (actionArgs.hasKey("altona")) puckerMethod_=NA_Base::ALTONA;
   else if (actionArgs.hasKey("cremer")) puckerMethod_=NA_Base::CREMER;
   // See if we want axes pseudo-trajectories
-  if (setup_axes_pseudoTraj("base axes", "axesout", "axesoutarg", "axesparmout",
-                            "BaseAxes", init.DSL(), actionArgs,
-                            &axesOut_, &axesParm_))
+  if (init_axes_pseudoTraj("base axes", "axesout", "axesoutarg", "axesparmout",
+                           "BaseAxes", init.DSL(), actionArgs,
+                           &axesOut_, &axesParm_))
     return Action::ERR;
 /*
   std::string axesout = actionArgs.GetStringKey("axesout");

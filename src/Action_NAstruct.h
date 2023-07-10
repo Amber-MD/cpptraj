@@ -128,11 +128,11 @@ class Action_NAstruct: public Action {
     typedef std::vector<Rpair> StrandArray;   ///< Hold indices into Bases_ for strand beg/end
     typedef std::map<std::string, NA_Base::NAType> RefMapType; ///< Map custom res names to target types
     // ----- Functions ---------------------------
-    /// Set up an axes pseudo-trajectory
-    int setup_axes_pseudoTraj(const char*, const char*, const char*,
-                              const char*, const char*, 
-                              DataSetList const&, ArgList&,
-                              Trajout_Single**, Topology**) const;
+    /// Initialize an axes pseudo-trajectory
+    int init_axes_pseudoTraj(const char*, const char*, const char*,
+                             const char*, const char*, 
+                             DataSetList const&, ArgList&,
+                             Trajout_Single**, Topology**) const;
     /// Recursively travel to 3' terminal base
     static int follow_base_to_3prime(Barray&, unsigned int, std::vector<bool>&, int);
     /// Recursively travel sugar-phosphate backbone to find the next residue in a strand.
