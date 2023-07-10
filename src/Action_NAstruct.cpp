@@ -6,6 +6,7 @@
 #include "DistRoutines.h"
 #include "Constants.h" // RADDEG
 #include "Trajout_Single.h"
+#include "ParmFile.h"
 #ifdef NASTRUCTDEBUG
 #include "PDBfile.h" //FIXME remove
 #endif
@@ -1741,10 +1742,59 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
 
   // Set up axes pseudo-topologies
   if (axesParm_ != 0) {
-    // 1 pseudo bond type
+    // Create residue information for each base axes
+    std::vector<Residue> axesResidues;
+    axesResidues.reserve( Bases_.size() );
+    for (Barray::iterator base = Bases_.begin(); base != Bases_.end(); ++base) {
+      Residue const& res = setup.Top().Res( base->ResNum() );
+      axesResidues.push_back( res );
+    }
+    if (setup_axes_pseudoTraj( *axesParm_, axesResidues ))
+      return Action::ERR;
   }
   return Action::OK;  
 }
+
+/** Set up topology for an axes pseudo-trajectory. */
+int Action_NAstruct::setup_axes_pseudoTraj(Topology& pseudo,
+                                           std::vector<Residue> const& axesResidues)
+const
+{
+  if (pseudo.Natom() > 0) {
+    mprintf("\tAxes pseudo-topology '%s' is already set up.\n", pseudo.c_str());
+    return 0;
+  }
+  // 1 pseudo bond type, Rk = 0.0, Req = 1.0 Ang., will be bond parm index 0
+  BondArray bonds;
+  pseudo.AddBondParm( BondParmType(0.0, 1.0) );
+  int natom = 0;
+  for (std::vector<Residue>::const_iterator res = axesResidues.begin();
+                                            res != axesResidues.end();
+                                          ++res)
+  {
+    // Order is origin, x, y, z
+    pseudo.AddTopAtom(Atom("Orig", 0), *res);
+    pseudo.AddTopAtom(Atom("X", 0), *res);
+    pseudo.AddTopAtom(Atom("Y", 0), *res);
+    pseudo.AddTopAtom(Atom("Z", 0), *res);
+    // Bond x y and z to origin
+    pseudo.AddBond(natom, natom+1, 0);
+    pseudo.AddBond(natom, natom+2, 0);
+    pseudo.AddBond(natom, natom+3, 0);
+    natom += 4;
+  }
+
+  pseudo.CommonSetup();
+  if (!pseudo.OriginalFilename().empty()) {
+    mprintf("\tWriting axes pseudo-topology to '%s'\n", pseudo.OriginalFilename().full());
+    ParmFile pfile;
+    if (pfile.WriteTopology(pseudo, pseudo.OriginalFilename(), ParmFile::UNKNOWN_PARM, debug_)) {
+      mprinterr("Error: Could not write axes pseudo-topology '%s'\n", pseudo.c_str());
+      return 1;
+    }
+  }
+  return 0;
+} 
 
 // Action_NAstruct::CalculateHbonds()
 void Action_NAstruct::CalculateHbonds() {
