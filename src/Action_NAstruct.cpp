@@ -106,6 +106,7 @@ void Action_NAstruct::Help() const {
           "\t[bpmode {3dna|babcock}]\n"
           "\t[hbcut <hbcut>] [origincut <origincut>] [altona | cremer]\n"
           "\t[zcut <zcut>] [zanglecut <zanglecut>] [groovecalc {simple | 3dna}]\n"
+          "\t[axesout <file> [axesoutarg <arg> ...] [axesparmout <file>]]\n"
           "\t[{ %s | allframes}]\n", DataSetList::RefArgs);
   mprintf("  Perform nucleic acid structure analysis. Base pairing can be determined\n"
           "  in multiple ways:\n"
