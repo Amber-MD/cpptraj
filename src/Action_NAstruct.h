@@ -212,6 +212,9 @@ class Action_NAstruct: public Action {
 #   endif
     Trajout_Single* axesOut_; ///< Output trajectory for base axes
     Topology* axesParm_;      ///< Pseudo-topology for base axes
-    Frame axesFrame_;
+    Frame axesFrame_;         ///< Frame for base axes pseudo traj
+    Trajout_Single* bpAxesOut_; ///< Output trajectory for base pair axes
+    Topology* bpAxesParm_;      ///< Pseudo-topology for base pair axes
+    Frame bpAxesFrame_;         ///< Frame for base pair axes pseudo traj
 };
 #endif

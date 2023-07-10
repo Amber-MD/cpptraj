@@ -44,7 +44,9 @@ Action_NAstruct::Action_NAstruct() :
   calcparam_(true),
 # endif
   axesOut_(0),
-  axesParm_(0)
+  axesParm_(0),
+  bpAxesOut_(0),
+  bpAxesParm_(0)
 {}
 
 /** DESTRUCTOR */
@@ -55,6 +57,13 @@ Action_NAstruct::~Action_NAstruct() {
   }
   if (axesParm_ != 0) {
     delete axesParm_;
+  }
+  if (bpAxesOut_ != 0) {
+    bpAxesOut_->EndTraj();
+    delete bpAxesOut_;
+  }
+  if (bpAxesParm_ != 0) {
+    delete bpAxesParm_;
   }
 }
 
@@ -187,32 +196,10 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
                            "BaseAxes", init.DSL(), actionArgs,
                            &axesOut_, &axesParm_))
     return Action::ERR;
-/*
-  std::string axesout = actionArgs.GetStringKey("axesout");
-  if (!axesout.empty()) {
-    axesOut_ = new Trajout_Single();
-    axesOut_->SetDebug( debug_ );
-#   ifdef MPI
-    axesOut_->SetTrajComm( trajComm_ );
-#   endif
-    std::string axesoutargStr;
-    std::string axesoutarg = actionArgs.GetStringKey("axesoutarg");
-    while (!axesoutarg.empty()) {
-      axesoutargStr.append(" " + axesoutarg);
-      axesoutarg = actionArgs.GetStringKey("axesoutarg");
-    }
-    ArgList axesOutArglist( axesoutargStr );
-    if (axesOut_->InitEnsembleTrajWrite( axesout, axesOutArglist, init.DSL(),
-                                         TrajectoryFile::UNKNOWN_TRAJ, init.DSL().EnsembleNum()) )
-    {
-      mprinterr("Error: Could not init base axes trajectory '%s'\n", axesout.c_str());
-      return Action::ERR;
-    }
-    std::string axesparmout = actionArgs.GetStringKey("axesparmout");
-    axesParm_ = new Topology();
-    axesParm_->SetDebug( debug_ );
-    axesParm_->SetParmName( "BaseAxes", axesparmout );
-  }*/
+  if (init_axes_pseudoTraj("basepair axes", "bpaxesout", "bpaxesoutarg", "bpaxesparmout",
+                           "BasePairAxes", init.DSL(), actionArgs,
+                           &bpAxesOut_, &bpAxesParm_))
+    return Action::ERR;
   // Get residue range
   resRange_.SetRange(actionArgs.GetStringKey("resrange"));
   if (!resRange_.Empty())
@@ -357,6 +344,11 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     mprintf("\tWriting base axes pseudo trajectory to '%s'\n", axesOut_->Traj().Filename().full());
     if (!axesParm_->OriginalFilename().empty())
       mprintf("\tWriting base axes pseudo topology to '%s'\n", axesParm_->OriginalFilename().full());
+  }
+  if (bpAxesOut_ != 0) {
+    mprintf("\tWriting base pair axes pseudo trajectory to '%s'\n", bpAxesOut_->Traj().Filename().full());
+    if (!bpAxesParm_->OriginalFilename().empty())
+      mprintf("\tWriting base pair axes pseudo topology to '%s'\n", bpAxesParm_->OriginalFilename().full());
   }
   mprintf("# Citations: Babcock MS; Pednault EPD; Olson WK; \"Nucleic Acid Structure\n"
           "#             Analysis: Mathematics for Local Cartesian and Helical Structure\n"
