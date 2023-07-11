@@ -1755,6 +1755,13 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
   if (axesParm_ != 0) {
     if (axesParm_->Natom() > 0) {
       mprintf("\tBase axes pseudo-topology is already set up.\n");
+      // Check that number of bases has not changed
+      if ((unsigned int)axesParm_->Nres() != Bases_.size()) {
+        mprinterr("Error: Number of bases has changed from %i to %zu.\n"
+                  "Error: Base axes pseudo-topology is already set up for %i bases.\n",
+                  axesParm_->Nres(), Bases_.size(), axesParm_->Nres());
+        return Action::ERR;
+      }
     } else {
       // Create residue information for each base axes
       std::vector<Residue> axesResidues;
