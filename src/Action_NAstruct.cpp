@@ -1922,7 +1922,7 @@ Action::RetType Action_NAstruct::DoAction(int frameNum, ActionFrame& frm) {
     findBPmode_ = REFERENCE;
   }
 
-  // Set up base pair axes pseudo-topology. This is done inside the action
+  // Set up base pair axes pseudo-topology. This is done inside DoAction
   // because we may not know about base pairing until the first frame.
   if (bpAxesParm_ != 0) {
     if (bpAxesParm_->Natom() > 0) {
@@ -1964,7 +1964,7 @@ Action::RetType Action_NAstruct::DoAction(int frameNum, ActionFrame& frm) {
   // Determine base pair step parameters
   DetermineStepParameters(frameNum);
 
-  // Set up base pair step axes pseudo-topology. This is done inside the action
+  // Set up base pair step axes pseudo-topology. This is done inside DoAction
   // because we may not know about base pairing until the first frame.
   if (stepAxesParm_ != 0) {
     if (stepAxesParm_->Natom() > 0) {
