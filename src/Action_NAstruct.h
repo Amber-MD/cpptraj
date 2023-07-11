@@ -92,6 +92,7 @@ class Action_NAstruct: public Action {
     };
     /// Hold a base pair step.
     struct StepType {
+      NA_Axis stepaxis_; ///< Base pair step axis
       DataSet_1D* shift_;
       DataSet_1D* slide_;
       DataSet_1D* rise_;

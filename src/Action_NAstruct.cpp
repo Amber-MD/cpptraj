@@ -1403,8 +1403,8 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
         }
         StepType& currentStep = entry->second;
         // Calc step parameters
-        NA_Axis midFrame;
-        calculateParameters(BP1.bpaxis_, BP2.bpaxis_, &midFrame, Param);
+        calculateParameters(BP1.bpaxis_, BP2.bpaxis_, &(currentStep.stepaxis_), Param);
+        NA_Axis& midFrame = currentStep.stepaxis_;
         // Calculate zP: difference in step phosphate atoms along the Z axis
         // of the step middle frame.
         float Zp = 0.0;
