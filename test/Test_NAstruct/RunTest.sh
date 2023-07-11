@@ -5,7 +5,7 @@
 # Clean
 CleanFiles nastruct.in BP.*.dat BPstep.*.dat bases.pdb baseaxes.pdb basepairaxes.pdb \
            Helix.*.dat Param.pdb SS.mol1.dat SS.mol1.selected.dat \
-           axes.bases.pdb axes.bp.mol2
+           axes.bases.pdb axes.bp.mol2 axes.step.dcd axes.step.parm7
 
 # Test 2
 TESTNAME='NAstruct tests'
@@ -17,7 +17,8 @@ parm ../adh026.3.pdb
 trajin ../adh026.3.pdb 
 nastruct naout adh026.dat \
   axesout axes.bases.pdb \
-  bpaxesout axes.bp.mol2
+  bpaxesout axes.bp.mol2 \
+  stepaxesout axes.step.dcd stepaxesparmout axes.step.parm7
 nastruct naout baseref.dat baseref Atomic_G.pdb.nastruct
 nastruct naout groove.dat groovecalc 3dna
 nastruct naout GuessBP.dat guessbp
@@ -33,6 +34,9 @@ DoTest BPstep.groove.dat.save BPstep.groove.dat
 DoTest BP.adh026.dat.save BP.GuessBP.dat
 DoTest BPstep.adh026.dat.save BPstep.GuessBP.dat
 DoTest Helix.adh026.dat.save Helix.GuessBP.dat
+DoTest axes.bases.pdb.save axes.bases.pdb
+DoTest axes.bp.mol2.save axes.bp.mol2
+DoTest axes.step.parm7.save axes.step.parm7 -I %VERSION
 
 # Single strand
 cat > nastruct.in <<EOF
