@@ -228,6 +228,14 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     return Action::ERR;
   }
 # endif
+  // Check for base pair mode incompatibilities
+  if (findBPmode_ == ALL) {
+    if (bpAxesOut_ != 0) {
+      mprinterr("Error: Cannot use 'allframes' mode with 'bpaxesout' since the # of\n"
+                "Error:  base pairs can change each frame.\n");
+      return Action::ERR;
+    }
+  }
   // For guess/specify modes, get base pairing type
   std::string bptype = actionArgs.GetStringKey("bptype");
   while (!bptype.empty()) {
