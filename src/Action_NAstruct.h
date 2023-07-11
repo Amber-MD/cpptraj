@@ -51,7 +51,7 @@ class Action_NAstruct: public Action {
     enum GrooveType { PP_OO = 0, HASSAN_CALLADINE };
     enum BP_ConventionType { BP_3DNA = 0, BP_BABCOCK };
     /// How to find base pairs: first frame, reference structure, all frames.
-    enum FindType { FIRST = 0, REFERENCE, ALL };
+    enum FindType { FIRST = 0, REFERENCE, ALL, SPECIFIED };
     // ----- Data Structures ---------------------
     /// Hold consecutive bases
     struct Stype {

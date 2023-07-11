@@ -130,7 +130,9 @@ void Action_NAstruct::Help() const {
           "\t[bpaxesout <file> [bpaxesoutarg <arg> ...] [bpaxesparmout <file>]]\n"
           "\t[stepaxesout <file> [stepaxesoutarg <arg> ...] [stepaxesparmout <file>]]\n"
           "\t[axisnameo <name>] [axisnamex <name>] [axisnamey <name>] [axisnamez <name>]\n"
-          "\t[{ %s | allframes}]\n", DataSetList::RefArgs);
+          "\t[{ %s |\n"
+          "\t  allframes |\n"
+          "\t  specifiedbp pairs <b1>-<b2>,... }]\n", DataSetList::RefArgs);
   mprintf("  Perform nucleic acid structure analysis. Base pairing can be determined\n"
           "  in multiple ways:\n"
           "    - If 'first' (default) or a reference is specified, determine base\n"
@@ -236,6 +238,8 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     findBPmode_ = REFERENCE;
   else if (actionArgs.hasKey("allframes"))
     findBPmode_ = ALL;
+  else if (actionArgs.hasKey("specifiedbp"))
+    findBPmode_ = SPECIFIED;
   else if (actionArgs.hasKey("guessbp")) {
     mprintf("Warning: 'guessbp' is deprecated. Defaulting to 'first'.\n");
     findBPmode_ = FIRST;
@@ -250,6 +254,41 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     return Action::ERR;
   }
 # endif
+  // Check for user-specified base pairs
+  if (findBPmode_ == SPECIFIED) {
+    std::string pairsarg = actionArgs.GetStringKey("pairs");
+    // Format is b1-b2,...
+    while (!pairsarg.empty()) {
+      ArgList pairslist( pairsarg, "," );
+      for (int iarg = 0; iarg < pairslist.Nargs(); iarg++) {
+        ArgList bpair( pairslist[iarg], "-" );
+        if (bpair.Nargs() != 2) {
+          mprinterr("Error: Malformed base pair argument: %s\n", pairslist[iarg].c_str());
+          return Action::ERR;
+        }
+        if (!validInteger(bpair[0])) {
+          mprinterr("Error: Expected an integer, got '%s'\n", bpair[0].c_str());
+          return Action::ERR;
+        }
+        if (!validInteger(bpair[1])) {
+          mprinterr("Error: Expected an integer, got '%s'\n", bpair[1].c_str());
+          return Action::ERR;
+        }
+        int b1idx = convertToInteger(bpair[0]);
+        int b2idx = convertToInteger(bpair[1]);
+        if (b1idx < 1 || b2idx < 1) {
+          mprinterr("Error: Base pair arg '%s', base #s must be > 0.\n", pairslist[iarg].c_str());
+          return Action::ERR;
+        }
+        specifiedPairs_.push_back( std::pair<unsigned int,unsigned int>( b1idx, b2idx ) );
+      } // END loop over specified pairs
+      pairsarg = actionArgs.GetStringKey("pairs");
+    } // END checking for 'pairs' keywords
+    if (specifiedPairs_.empty()) {
+      mprinterr("Error: No 'pairs' arguments for 'specifiedbp'\n");
+      return Action::ERR;
+    }
+  }
   // Check for base pair mode incompatibilities
   if (findBPmode_ == ALL) {
     if (bpAxesOut_ != 0) {
@@ -359,6 +398,11 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     // Determine Base Pairing
     if ( DetermineBasePairing() ) return Action::ERR;
     mprintf("\tSet up %zu base pairs.\n", BasePairs_.size() );
+  } else if (findBPmode_ == SPECIFIED) {
+    mprintf("\tUser specified base pairs:");
+    for (PairArray::const_iterator it = specifiedPairs_.begin(); it != specifiedPairs_.end(); ++it)
+      mprintf(" %u-%u", it->first, it->second);
+    mprintf("\n");
   } else if (findBPmode_ == ALL)
     mprintf("\tBase pairs will be determined for each frame.\n");
   else if (findBPmode_ == FIRST)
@@ -1971,6 +2015,11 @@ Action::RetType Action_NAstruct::DoAction(int frameNum, ActionFrame& frm) {
     // calculated as part of determining base pairing.
     if ( SetupBaseAxes(frm.Frm()) ) return Action::ERR;
     if ( DetermineBasePairing() ) return Action::ERR;
+  } else if ( findBPmode_ == SPECIFIED ) {
+    // User-specified base pairing.
+    if ( SetupBaseAxes(frm.Frm()) ) return Action::ERR;
+    if ( SpecifiedBasePairing() ) return Action::ERR;
+    findBPmode_ = REFERENCE;
   } else if ( findBPmode_ == FIRST) {
     // Base pairs need to be determined from first frame.
 #   ifdef MPI
