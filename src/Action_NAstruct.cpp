@@ -755,28 +755,6 @@ int Action_NAstruct::DetermineBasePairing() {
 #       endif
         // Stagger (vertical separation) must be less than a cutoff.
         if ( fabs(Param[2]) < staggerCut_ ) {
-/*          // Figure out if z vectors point in same (<90 deg) or opposite (>90 deg) direction
-          bool AntiParallel;
-          double theta = base1->Axis().Rz().Angle( base2->Axis().Rz() );
-          double t_delta; // Deviation from linear
-          if (theta > Constants::PIOVER2) { // If theta(Z) > 90 deg.
-#           ifdef NASTRUCTDEBUG
-            mprintf("\t%s is anti-parallel to %s (%g deg)\n", base1->ResName(), base2->ResName(),
-                    theta * Constants::RADDEG);
-#           endif
-            AntiParallel = true;
-            t_delta = Constants::PI - theta;
-          } else {
-#           ifdef NASTRUCTDEBUG
-            mprintf("\t%s is parallel to %s (%g deg)\n", base1->ResName(), base2->ResName(),
-                    theta * Constants::RADDEG);
-#           endif
-            AntiParallel = false;
-            t_delta = theta;
-          }
-#         ifdef NASTRUCTDEBUG
-          mprintf("\tDeviation from linear: %g deg.\n", t_delta * Constants::RADDEG);
-#         endif*/
           // Deviation from linear must be less than cutoff
           if (z_deviation_from_linear < z_angle_cut_) {
             int NHB = CalcNumHB(*base1, *base2, n_wc_hb);
