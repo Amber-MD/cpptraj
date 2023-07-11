@@ -124,7 +124,7 @@ void Action_NAstruct::Help() const {
   mprintf("\t[<dataset name>] [resrange <range>] [sscalc] [naout <suffix>]\n"
           "\t[noheader] [resmap <ResName>:{A,C,G,T,U} ...] [calcnohb]\n"
           "\t[noframespaces] [baseref <file>] ...\n"
-          "\t[bpmode {3dna|babcock}] [wchbonly]\n"
+          "\t[bpmode {3dna|babcock}] [allhb]\n"
           "\t[hbcut <hbcut>] [origincut <origincut>] [altona | cremer]\n"
           "\t[zcut <zcut>] [zanglecut <zanglecut>] [groovecalc {simple | 3dna}]\n"
           "\t[axesout <file> [axesoutarg <arg> ...] [axesparmout <file>]]\n"
@@ -147,7 +147,8 @@ void Action_NAstruct::Help() const {
           "      structure to determine base pairing.\n"
           "  If 'calcnohb' is specified NA parameters will be calculated even if no\n"
           "  hydrogen bonds present between base pairs.\n"
-          "  If 'wchbonly' is specified only report the number of Watson-Crick-Franklin\n"
+          "  If 'allhb' is specified report the total number of hydrogen bonds detected\n"
+          "  instead of just the number of Watson-Crick-Franklin hydrogen bonds.\n"
           "   hydrogen bonds in output.\n"
           "  Base pair parameters are written to 'BP.<suffix>', base pair step parameters\n"
           "  are written to 'BPstep.<suffix>', and helix parameters are written to\n"
@@ -190,7 +191,7 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     mprinterr("Error: Unrecognized keyword '%s' for 'bpmode'.\n", bpmode.c_str());
     return Action::ERR;
   }
-  wc_hb_only_ = actionArgs.hasKey("wchbonly");
+  wc_hb_only_ = !actionArgs.hasKey("allhb");
   double hbcut = actionArgs.getKeyDouble("hbcut", -1);
   if (hbcut > 0) 
     HBdistCut2_ = hbcut * hbcut;
