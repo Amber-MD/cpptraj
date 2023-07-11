@@ -35,6 +35,7 @@ Action_NAstruct::Action_NAstruct() :
   skipIfNoHB_(true),
   spaceBetweenFrames_(true),
   sscalc_(false),
+  wc_hb_only_(false),
   bpout_(0),
   ssout_(0),
   stepout_(0),
@@ -123,7 +124,7 @@ void Action_NAstruct::Help() const {
   mprintf("\t[<dataset name>] [resrange <range>] [sscalc] [naout <suffix>]\n"
           "\t[noheader] [resmap <ResName>:{A,C,G,T,U} ...] [calcnohb]\n"
           "\t[noframespaces] [baseref <file>] ...\n"
-          "\t[bpmode {3dna|babcock}]\n"
+          "\t[bpmode {3dna|babcock}] [wchbonly]\n"
           "\t[hbcut <hbcut>] [origincut <origincut>] [altona | cremer]\n"
           "\t[zcut <zcut>] [zanglecut <zanglecut>] [groovecalc {simple | 3dna}]\n"
           "\t[axesout <file> [axesoutarg <arg> ...] [axesparmout <file>]]\n"
@@ -146,6 +147,8 @@ void Action_NAstruct::Help() const {
           "      structure to determine base pairing.\n"
           "  If 'calcnohb' is specified NA parameters will be calculated even if no\n"
           "  hydrogen bonds present between base pairs.\n"
+          "  If 'wchbonly' is specified only report the number of Watson-Crick-Franklin\n"
+          "   hydrogen bonds in output.\n"
           "  Base pair parameters are written to 'BP.<suffix>', base pair step parameters\n"
           "  are written to 'BPstep.<suffix>', and helix parameters are written to\n"
           "  Helix.<suffix>'.\n"
@@ -187,6 +190,7 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     mprinterr("Error: Unrecognized keyword '%s' for 'bpmode'.\n", bpmode.c_str());
     return Action::ERR;
   }
+  wc_hb_only_ = actionArgs.hasKey("wchbonly");
   double hbcut = actionArgs.getKeyDouble("hbcut", -1);
   if (hbcut > 0) 
     HBdistCut2_ = hbcut * hbcut;
@@ -380,6 +384,10 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
   }
   mprintf("\tHydrogen bond cutoff for determining base pairs is %.2f Angstroms.\n",
           sqrt( HBdistCut2_ ) );
+  if (wc_hb_only_)
+    mprintf("\tOnly reporting total # of Watson-Crick-Franklin hydrogen bonds.\n");
+  else
+    mprintf("\tReporting total # of all hydrogen bonds.\n");
   mprintf("\tBase reference axes origin cutoff for determining base pairs is %.2f Angstroms.\n",
           sqrt( originCut2_ ) );
   mprintf("\tBase Z height cutoff (stagger) for determining base pairs is %.2f Angstroms.\n",
@@ -618,7 +626,7 @@ Action_NAstruct::HbondType Action_NAstruct::ID_HBtype(NA_Base const& base1, int 
 /** Given two NA_Bases for which IDs have been given and input coords set,
   * calculate the number of hydrogen bonds between them.
   */
-// TODO Identify type of base pairing (WC, Hoog., etc)
+// TODO Identify type of base pairing (WCF, Hoog., etc)
 int Action_NAstruct::CalcNumHB(NA_Base const& base1, NA_Base const& base2, int& n_WC) {
   int Nhbonds = 0;
   n_WC = 0;
@@ -764,23 +772,25 @@ int Action_NAstruct::SpecifiedBasePairing() {
     // opposite (theta > 90) directions.
     bool is_antiparallel;
     double z_theta = b1Axis.Rz().Angle( b2Axis.Rz() );
+#   ifdef NASTRUCTDEBUG
     double z_deviation_from_linear;
+#   endif
     if (z_theta > Constants::PIOVER2) { // If theta(Z) > 90 deg.
 #     ifdef NASTRUCTDEBUG
       mprintf("\t%s is anti-parallel to %s (%g deg)\n", base1.ResName(), base2.ResName(),
               z_theta * Constants::RADDEG);
+      z_deviation_from_linear = Constants::PI - z_theta;
 #     endif
       is_antiparallel = true;
-      z_deviation_from_linear = Constants::PI - z_theta;
       // Antiparallel - flip Y and Z axes of complimentary base
       b2Axis.FlipYZ();
     } else {
 #     ifdef NASTRUCTDEBUG
       mprintf("\t%s is parallel to %s (%g deg)\n", base1.ResName(), base2.ResName(),
               z_theta * Constants::RADDEG);
+      z_deviation_from_linear = z_theta;
 #     endif
       is_antiparallel = false;
-      z_deviation_from_linear = z_theta;
       // Parallel - no flip needed if 3dna.
       // If using Babcock convention, flip X and Y axes.
       if (bpConvention_ == BP_BABCOCK)
@@ -1433,7 +1443,10 @@ int Action_NAstruct::DeterminePairParameters(int frameNum) {
     BP.opening_->Add(frameNum, &opening);
     BP.prop_->Add(frameNum, &prop);
     BP.buckle_->Add(frameNum, &buckle);
-    BP.hbonds_->Add(frameNum, &(BP.n_wc_hb_));
+    if (wc_hb_only_)
+      BP.hbonds_->Add(frameNum, &(BP.n_wc_hb_));
+    else
+      BP.hbonds_->Add(frameNum, &(BP.nhb_));
     static const int ONE = 1;
     if (BP.nhb_ > 0)
       BP.isBP_->Add(frameNum, &ONE);

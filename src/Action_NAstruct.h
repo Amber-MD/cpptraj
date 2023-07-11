@@ -204,6 +204,7 @@ class Action_NAstruct: public Action {
     bool skipIfNoHB_;                   ///< When true, do not calc parameters when BP not present
     bool spaceBetweenFrames_;           ///< If false do not print spaces between frames in naout
     bool sscalc_;                       ///< If true determine params for consecutive bases in strands
+    bool wc_hb_only_;                   ///< If true, only report # of WC hydrogen bonds.
     CpptrajFile* bpout_;                ///< Base pair out (BP.<suffix>).
     CpptrajFile* ssout_;                ///< Single strand out (SS.<suffix>).
     CpptrajFile* stepout_;              ///< Base pair step out (BPstep.<suffix>).
