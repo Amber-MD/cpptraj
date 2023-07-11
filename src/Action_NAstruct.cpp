@@ -149,7 +149,6 @@ void Action_NAstruct::Help() const {
           "  hydrogen bonds present between base pairs.\n"
           "  If 'allhb' is specified report the total number of hydrogen bonds detected\n"
           "  instead of just the number of Watson-Crick-Franklin hydrogen bonds.\n"
-          "   hydrogen bonds in output.\n"
           "  Base pair parameters are written to 'BP.<suffix>', base pair step parameters\n"
           "  are written to 'BPstep.<suffix>', and helix parameters are written to\n"
           "  Helix.<suffix>'.\n"

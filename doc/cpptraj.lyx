@@ -33238,7 +33238,7 @@ nastruct
 \end_layout
 
 \begin_layout LyX-Code
-         [bpmode {3dna|babcock}]
+         [bpmode {3dna|babcock}] [allhb]
 \end_layout
 
 \begin_layout LyX-Code
@@ -33383,6 +33383,11 @@ literal "true"
 
  ; flip Y and Z of complimentary base for antiparallel, flip X and Y for
  parallel.
+\end_layout
+
+\begin_layout Description
+[allhb] Report the total number of hydrogen bonds detected instead of just
+ the number of Watson-Crick-Franklin hydrogen bonds.
 \end_layout
 
 \begin_layout Description
