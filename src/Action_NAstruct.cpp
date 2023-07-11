@@ -47,6 +47,8 @@ Action_NAstruct::Action_NAstruct() :
   axesParm_(0),
   bpAxesOut_(0),
   bpAxesParm_(0),
+  stepAxesOut_(0),
+  stepAxesParm_(0),
   setupNframes_(0),
   setupTop_(0)
 {}
@@ -66,6 +68,13 @@ Action_NAstruct::~Action_NAstruct() {
   }
   if (bpAxesParm_ != 0) {
     delete bpAxesParm_;
+  }
+  if (stepAxesOut_ != 0) {
+    stepAxesOut_->EndTraj();
+    delete stepAxesOut_;
+  }
+  if (stepAxesParm_ != 0) {
+    delete stepAxesParm_;
   }
 }
 
@@ -118,6 +127,8 @@ void Action_NAstruct::Help() const {
           "\t[hbcut <hbcut>] [origincut <origincut>] [altona | cremer]\n"
           "\t[zcut <zcut>] [zanglecut <zanglecut>] [groovecalc {simple | 3dna}]\n"
           "\t[axesout <file> [axesoutarg <arg> ...] [axesparmout <file>]]\n"
+          "\t[bpaxesout <file> [bpaxesoutarg <arg> ...] [bpaxesparmout <file>]]\n"
+          "\t[stepaxesout <file> [stepaxesoutarg <arg> ...] [stepaxesparmout <file>]]\n"
           "\t[{ %s | allframes}]\n", DataSetList::RefArgs);
   mprintf("  Perform nucleic acid structure analysis. Base pairing can be determined\n"
           "  in multiple ways:\n"
@@ -202,6 +213,10 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
                            "BasePairAxes", init.DSL(), actionArgs,
                            &bpAxesOut_, &bpAxesParm_))
     return Action::ERR;
+  if (init_axes_pseudoTraj("step axes", "stepaxesout", "stepaxesoutarg", "stepaxesparmout",
+                           "StepAxes", init.DSL(), actionArgs,
+                           &stepAxesOut_, &stepAxesParm_))
+    return Action::ERR;
   // Get residue range
   resRange_.SetRange(actionArgs.GetStringKey("resrange"));
   if (!resRange_.Empty())
@@ -235,6 +250,11 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     if (bpAxesOut_ != 0) {
       mprinterr("Error: Cannot use 'allframes' mode with 'bpaxesout' since the # of\n"
                 "Error:  base pairs can change each frame.\n");
+      return Action::ERR;
+    }
+    if (stepAxesOut_ != 0) {
+      mprinterr("Error: Cannot use 'allframes' mode with 'stepaxesout' since the # of\n"
+                "Error:  base pair steps can change each frame.\n");
       return Action::ERR;
     }
   }
@@ -359,6 +379,11 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     mprintf("\tWriting base pair axes pseudo trajectory to '%s'\n", bpAxesOut_->Traj().Filename().full());
     if (!bpAxesParm_->OriginalFilename().empty())
       mprintf("\tWriting base pair axes pseudo topology to '%s'\n", bpAxesParm_->OriginalFilename().full());
+  }
+  if (stepAxesOut_ != 0) {
+    mprintf("\tWriting base pair step axes pseudo trajectory to '%s'\n", stepAxesOut_->Traj().Filename().full());
+    if (!stepAxesParm_->OriginalFilename().empty())
+      mprintf("\tWriting base pair step axes pseudo topology to '%s'\n", stepAxesParm_->OriginalFilename().full());
   }
   mprintf("# Citations: Babcock MS; Pednault EPD; Olson WK; \"Nucleic Acid Structure\n"
           "#             Analysis: Mathematics for Local Cartesian and Helical Structure\n"
@@ -1896,6 +1921,7 @@ Action::RetType Action_NAstruct::DoAction(int frameNum, ActionFrame& frm) {
 #   endif
     findBPmode_ = REFERENCE;
   }
+
   // Set up base pair axes pseudo-topology. This is done inside the action
   // because we may not know about base pairing until the first frame.
   if (bpAxesParm_ != 0) {
@@ -1927,6 +1953,7 @@ Action::RetType Action_NAstruct::DoAction(int frameNum, ActionFrame& frm) {
         return Action::ERR;
     }
   }
+
   // Determine strand parameters if desired
   if (sscalc_)
     DetermineStrandParameters(frameNum);
@@ -1936,6 +1963,34 @@ Action::RetType Action_NAstruct::DoAction(int frameNum, ActionFrame& frm) {
 
   // Determine base pair step parameters
   DetermineStepParameters(frameNum);
+
+  // Set up base pair step axes pseudo-topology. This is done inside the action
+  // because we may not know about base pairing until the first frame.
+  if (stepAxesParm_ != 0) {
+    if (stepAxesParm_->Natom() > 0) {
+      //mprintf("\tBase pair step axes pseudo-topology is already set up.\n");
+      // Check that number of base pair steps has not changed
+      if ((unsigned int)stepAxesParm_->Nres() != Steps_.size()) {
+        mprinterr("Error: Number of base pair steps has changed from %i to %zu.\n"
+                  "Error: Base pair step axes pseudo-topology is already set up for %i bases.\n",
+                  stepAxesParm_->Nres(), Steps_.size(), stepAxesParm_->Nres());
+        return Action::ERR;
+      }
+    } else {
+      // Create residue information for each base pair step axes
+      std::vector<Residue> stepAxesResidues;
+      stepAxesResidues.reserve( Steps_.size() );
+      for (StepMap::const_iterator it = Steps_.begin(); it != Steps_.end(); ++it)
+      {
+        StepType const& BS = it->second;
+        NA_Base const& base1 = Bases_[BS.b1idx_];
+        Residue const& res = setupTop_->Res( base1.ResNum() );
+        stepAxesResidues.push_back( res );
+      }
+      if (setup_axes_pseudoTraj( *stepAxesParm_, *stepAxesOut_, stepAxesFrame_, stepAxesResidues ))
+        return Action::ERR;
+    }
+  }
 
   // Output base axes if needed
   if (axesOut_ != 0) {
@@ -1953,6 +2008,13 @@ Action::RetType Action_NAstruct::DoAction(int frameNum, ActionFrame& frm) {
       axesToFrame( bpAxesFrame_, it->second.bpaxis_ );
     }
     bpAxesOut_->WriteSingle(frm.TrajoutNum(), bpAxesFrame_);
+  }
+  // Output base pair step axes if needed
+  if (stepAxesOut_ != 0) {
+    stepAxesFrame_.ClearAtoms();
+    for (StepMap::const_iterator it = Steps_.begin(); it != Steps_.end(); ++it)
+      axesToFrame( stepAxesFrame_, it->second.stepaxis_ );
+    stepAxesOut_->WriteSingle(frm.TrajoutNum(), stepAxesFrame_);
   }
 
   nframes_++;

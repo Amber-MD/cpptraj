@@ -211,13 +211,16 @@ class Action_NAstruct: public Action {
     // DEBUG - used to trigger AxisPDBwriter for first call of calculateParameters
     bool calcparam_;
 #   endif
-    Trajout_Single* axesOut_; ///< Output trajectory for base axes
-    Topology* axesParm_;      ///< Pseudo-topology for base axes
-    Frame axesFrame_;         ///< Frame for base axes pseudo traj
-    Trajout_Single* bpAxesOut_; ///< Output trajectory for base pair axes
-    Topology* bpAxesParm_;      ///< Pseudo-topology for base pair axes
-    Frame bpAxesFrame_;         ///< Frame for base pair axes pseudo traj
-    int setupNframes_;          ///< Set in Setup(); number of expected frames to write (pseudo-traj)
-    Topology* setupTop_;        ///< Set in Setup(); current topology
+    Trajout_Single* axesOut_;     ///< Output trajectory for base axes
+    Topology* axesParm_;          ///< Pseudo-topology for base axes
+    Frame axesFrame_;             ///< Frame for base axes pseudo traj
+    Trajout_Single* bpAxesOut_;   ///< Output trajectory for base pair axes
+    Topology* bpAxesParm_;        ///< Pseudo-topology for base pair axes
+    Frame bpAxesFrame_;           ///< Frame for base pair axes pseudo traj
+    Trajout_Single* stepAxesOut_; ///< Output trajectory for base pair step axes
+    Topology* stepAxesParm_;      ///< Pseudo-topology for base pair step axes
+    Frame stepAxesFrame_;         ///< Frame for base pair step axes pseudo traj
+    int setupNframes_;            ///< Set in Setup(); number of expected frames to write (pseudo-traj)
+    Topology* setupTop_;          ///< Set in Setup(); current topology
 };
 #endif
