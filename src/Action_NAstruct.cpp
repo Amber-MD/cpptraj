@@ -511,8 +511,6 @@ int Action_NAstruct::SetupBaseAxes(Frame const& InputFrame) {
   Frame refFrame(maxResSize_); // Hold copy of base reference coords for RMS fit
   Frame inpFrame(maxResSize_); // Hold copy of input base coords for RMS fit
 # ifdef NASTRUCTDEBUG
-  PDBfile baseaxesfile;
-  baseaxesfile.OpenWrite("baseaxes.pdb");
   PDBfile basesfile;
   basesfile.OpenWrite("bases.pdb");
   mprintf("\n=================== Setup Base Axes ===================\n");
@@ -578,12 +576,7 @@ int Action_NAstruct::SetupBaseAxes(Frame const& InputFrame) {
     }
 #   endif
   } // END loop over bases
-# ifdef NASTRUCTDEBUG
-    // DEBUG - Write base axis to file
-  for (std::vector<NA_Base>::iterator base = Bases_.begin(); 
-                                      base != Bases_.end(); ++base)
-    WriteAxes(baseaxesfile, base->ResNum()+1, base->ResName(), base->Axis());
-#   endif
+
   return 0;
 }
 
@@ -1368,8 +1361,6 @@ int Action_NAstruct::axis_points_5p_to_3p(NA_Base const& base1) const {
 int Action_NAstruct::DeterminePairParameters(int frameNum) {
   double Param[6];
 # ifdef NASTRUCTDEBUG
-  PDBfile basepairaxesfile;
-  basepairaxesfile.OpenWrite("basepairaxes.pdb");
   mprintf("\n=================== Determine BP Parameters ===================\n");
 # endif
   // NOTE: iterator cannot be const because bpaxis_ needs to be updated
@@ -1470,10 +1461,6 @@ int Action_NAstruct::DeterminePairParameters(int frameNum) {
     bp_axes_vec[5] = BP.bpaxis_.Oxyz()[2];
     BP.axes_nxyz_->Add(frameNum, bp_axes_vec);
 #   endif
-#   ifdef NASTRUCTDEBUG
-    // DEBUG - write base pair axes
-    WriteAxes(basepairaxesfile, b1+1, base1.ResName(), BP.bpaxis_);
-#   endif
   }
   // Calculate base parameters.
   for (Barray::iterator base = Bases_.begin(); base != Bases_.end(); ++base)
@@ -1489,8 +1476,6 @@ int Action_NAstruct::DeterminePairParameters(int frameNum) {
 int Action_NAstruct::DetermineStepParameters(int frameNum) {
   double Param[6];
 # ifdef NASTRUCTDEBUG
-  PDBfile stepaxesfile;
-  stepaxesfile.OpenWrite("stepaxes.pdb");
   mprintf("\n=================== Determine BPstep Parameters ===================\n");
 # endif
   if (BasePairs_.size() < 2) return 0;
@@ -1674,10 +1659,6 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
         currentStep.incl_->Add(frameNum, &incl);
         currentStep.tip_->Add(frameNum, &tip);
         currentStep.htwist_->Add(frameNum, &htwist);
-#       ifdef NASTRUCTDEBUG
-        // DEBUG - write base pair step axes
-        WriteAxes(stepaxesfile, base1.ResNum()+1, base1.ResName(), midFrame);
-#       endif
       } // END second base pair found
     } // END second base pair valid
   } // END loop over base pairs 
