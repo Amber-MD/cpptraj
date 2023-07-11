@@ -665,6 +665,101 @@ Action_NAstruct::BPmap::iterator
   return entry;
 }
 
+/** User-specified base pairing. */
+int Action_NAstruct::SpecifiedBasePairing() {
+  int n_wc_hb;
+# ifdef NASTRUCTDEBUG  
+  mprintf("\n=================== Specified Base Pairing ===================\n");
+# endif
+  for (PairArray::const_iterator it = specifiedPairs_.begin();
+                                 it != specifiedPairs_.end();
+                               ++it)
+  {
+    // User-specified base pair #s start from 1
+    int b1idx = it->first - 1;
+    int b2idx = it->second - 1;
+    if (b1idx < 0 || (unsigned int)b1idx >= Bases_.size()) {
+      mprinterr("Error: Specified base # %u is out of range.\n", it->first);
+      return 1;
+    }
+    NA_Base& base1 = Bases_[b1idx];
+    if (b2idx < 0 || (unsigned int)b2idx >= Bases_.size()) {
+      mprinterr("Error: Specified base # %u is out of range.\n", it->second);
+      return 1;
+    }
+    NA_Base& base2 = Bases_[b2idx];
+/*#   ifdef NASTRUCTDEBUG
+    // Glycosidic N-N distance
+    if (base1.HasNXatom() && base2.HasNXatom()) {
+      double n_n_dist2 = DIST2_NoImage(base1.NXxyz(), base2.NXxyz());
+      mprintf("DEBUG: NX-NX distance= %f\n", sqrt(n_n_dist2));
+    }
+#   endif*/
+    NA_Axis b1Axis = base1.Axis();
+    NA_Axis b2Axis = base2.Axis();
+    // Determine if base Z axis vectors are aligned with strand direction
+    bool is_z = false;
+    int b1_5to3 = axis_points_5p_to_3p( base1 );
+    int b2_5to3 = axis_points_5p_to_3p( base2 );
+    // TODO trap errors here
+    // If antiparallel and both bases are aligned 3' to 5', may be ZDNA
+    if (b1_5to3 == 0 && b2_5to3 == 0) {
+#     ifdef NASTRUCTDEBUG
+      mprintf("Both bases aligned 3' to 5', ZDNA\n");
+#     endif
+      b1Axis.FlipXZ();
+      b2Axis.FlipXZ();
+      is_z = true;
+    }
+    // Determine if base Z axis vectors point in same (theta <= 90) or
+    // opposite (theta > 90) directions.
+    bool is_antiparallel;
+    double z_theta = b1Axis.Rz().Angle( b2Axis.Rz() );
+    double z_deviation_from_linear;
+    if (z_theta > Constants::PIOVER2) { // If theta(Z) > 90 deg.
+#     ifdef NASTRUCTDEBUG
+      mprintf("\t%s is anti-parallel to %s (%g deg)\n", base1.ResName(), base2.ResName(),
+              z_theta * Constants::RADDEG);
+#     endif
+      is_antiparallel = true;
+      z_deviation_from_linear = Constants::PI - z_theta;
+      // Antiparallel - flip Y and Z axes of complimentary base
+      b2Axis.FlipYZ();
+    } else {
+#     ifdef NASTRUCTDEBUG
+      mprintf("\t%s is parallel to %s (%g deg)\n", base1.ResName(), base2.ResName(),
+              z_theta * Constants::RADDEG);
+#     endif
+      is_antiparallel = false;
+      z_deviation_from_linear = z_theta;
+      // Parallel - no flip needed if 3dna.
+      // If using Babcock convention, flip X and Y axes.
+      if (bpConvention_ == BP_BABCOCK)
+        b2Axis.FlipXY();
+    }
+#   ifdef NASTRUCTDEBUG
+    mprintf("\tDeviation from linear: %g deg.\n", z_deviation_from_linear * Constants::RADDEG);
+    // Calculate parameters between axes.
+    double Param[6];
+    calculateParameters(b2Axis, b1Axis, 0, Param);
+    mprintf("    Shear= %6.2f  Stretch= %6.2f  Stagger= %6.2f  Buck= %6.2f  Prop= %6.2f  Open= %6.2f\n",
+            Param[0], Param[1], Param[2], Param[5]*Constants::RADDEG, Param[4]*Constants::RADDEG, Param[3]*Constants::RADDEG);
+#   endif
+    int NHB = CalcNumHB(base1, base2, n_wc_hb);
+    BPmap::iterator entry = AddBasePair(b1idx, base1, b2idx, base2);
+#   ifdef NASTRUCTDEBUG
+    mprintf(", %i hbonds\n", NHB);
+#   endif
+    entry->second.nhb_ = NHB;
+    entry->second.n_wc_hb_ = n_wc_hb;
+    entry->second.isAnti_ = is_antiparallel;
+    entry->second.isZ_ = is_z;
+  } // END loop over pairs 
+
+  return 0;
+
+}
+
 // Action_NAstruct::DetermineBasePairing()
 /** Determine which bases are paired from the individual base axes and set up
   * entry in BasePairs_ if one not already present.

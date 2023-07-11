@@ -128,6 +128,7 @@ class Action_NAstruct: public Action {
     typedef std::map<Rpair,StepType> StepMap; ///< Map of BP indices to Steps
     typedef std::vector<Rpair> StrandArray;   ///< Hold indices into Bases_ for strand beg/end
     typedef std::map<std::string, NA_Base::NAType> RefMapType; ///< Map custom res names to target types
+    typedef std::vector< std::pair<unsigned int, unsigned int> > PairArray; ///< Specified base pair #s
     // ----- Functions ---------------------------
     /// Initialize an axes pseudo-trajectory
     int init_axes_pseudoTraj(const char*, const char*, const char*,
@@ -155,6 +156,8 @@ class Action_NAstruct: public Action {
     BPmap::iterator AddBasePair(int, NA_Base const&, int, NA_Base const&);
     /// Determine which bases are paired geometrically, set base pair data.
     int DetermineBasePairing();
+    /// Set up base pairs based on user specification
+    int SpecifiedBasePairing();
     /// Calculate translational/rotational parameters between two axes.
     int calculateParameters(NA_Axis const&, NA_Axis const&, NA_Axis*, double*);
     /// Calculate helical parameters between two axes.
@@ -183,6 +186,7 @@ class Action_NAstruct: public Action {
     BPmap BasePairs_;                   ///< Hold base pairs
     StepMap Steps_;                     ///< Hold base pair steps.
     StrandArray Strands_;               ///< Hold strand info
+    PairArray specifiedPairs_;          ///< User-specified base pairing
     NA_Base::PmethodType puckerMethod_; ///< Pucker calculation method.
     double HBdistCut2_;                 ///< distance Cutoff^2 for determining hydrogen bonds
     double originCut2_;                 ///< Cutoff^2 for determining base-pairing vi origins
