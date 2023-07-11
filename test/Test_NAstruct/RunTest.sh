@@ -17,8 +17,6 @@ cat > nastruct.in <<EOF
 parm ../adh026.3.pdb
 trajin ../adh026.3.pdb 
 nastruct naout adh026.dat \
-  axesout axes.bases.pdb axesoutarg noter \
-  bpaxesout axes.bp.mol2 \
   stepaxesout axes.step.crd stepaxesparmout axes.step.parm7
 nastruct naout baseref.dat baseref Atomic_G.pdb.nastruct
 nastruct naout groove.dat groovecalc 3dna
@@ -31,10 +29,23 @@ DoTest BP.adh026.dat.save BP.baseref.dat
 DoTest BPstep.adh026.dat.save BPstep.baseref.dat
 DoTest Helix.adh026.dat.save Helix.baseref.dat
 DoTest BPstep.groove.dat.save BPstep.groove.dat
-DoTest axes.bases.pdb.save axes.bases.pdb
-DoTest axes.bp.mol2.save axes.bp.mol2
 DoTest axes.step.crd.save axes.step.crd
 DoTest axes.step.parm7.save axes.step.parm7 -I %VERSION
+
+# Base axes
+UNITNAME='NAstruct, write base and base pair axes'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > nastruct.in <<EOF
+parm ../adh026.3.pdb
+trajin ../adh026.3.pdb 
+nastruct axesout axes.bases.pdb axesoutarg noter \
+         bpaxesout axes.bp.mol2
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest axes.bases.pdb.save axes.bases.pdb
+  DoTest axes.bp.mol2.save axes.bp.mol2
+fi
 
 # User-specified base pairing
 cat > nastruct.in <<EOF
