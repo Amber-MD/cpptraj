@@ -46,7 +46,9 @@ Action_NAstruct::Action_NAstruct() :
   axesOut_(0),
   axesParm_(0),
   bpAxesOut_(0),
-  bpAxesParm_(0)
+  bpAxesParm_(0),
+  setupNframes_(0),
+  setupTop_(0)
 {}
 
 /** DESTRUCTOR */
@@ -760,6 +762,7 @@ int Action_NAstruct::DetermineBasePairing() {
       } // END if base to base origin distance < cut
     } // END base2 loop
   } // END base1 loop
+
   return 0;
 }
 
@@ -1760,6 +1763,8 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
   } // END if sscalc
 
   // Set up base axes pseudo-topology
+  setupNframes_ = setup.Nframes();
+  setupTop_ = setup.TopAddress();
   if (axesParm_ != 0) {
     if (axesParm_->Natom() > 0) {
       mprintf("\tBase axes pseudo-topology is already set up.\n");
@@ -1778,7 +1783,7 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
         Residue const& res = setup.Top().Res( base->ResNum() );
         axesResidues.push_back( res );
       }
-      if (setup_axes_pseudoTraj( *axesParm_, *axesOut_, axesFrame_, axesResidues, setup.Nframes() ))
+      if (setup_axes_pseudoTraj( *axesParm_, *axesOut_, axesFrame_, axesResidues ))
         return Action::ERR;
     }
   }
@@ -1789,8 +1794,7 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
 int Action_NAstruct::setup_axes_pseudoTraj(Topology& pseudo,
                                            Trajout_Single& outtraj,
                                            Frame& frame,
-                                           std::vector<Residue> const& axesResidues,
-                                           int Nframes)
+                                           std::vector<Residue> const& axesResidues)
 const
 {
   if (pseudo.Natom() > 0) {
@@ -1827,7 +1831,7 @@ const
     }
   }
 
-  if (outtraj.SetupTrajWrite( &pseudo, CoordinateInfo(), Nframes)) {
+  if (outtraj.SetupTrajWrite( &pseudo, CoordinateInfo(), setupNframes_)) {
     mprinterr("Error: Could not set up axes output trajectory.\n");
     return 1;
   }
@@ -1892,6 +1896,37 @@ Action::RetType Action_NAstruct::DoAction(int frameNum, ActionFrame& frm) {
 #   endif
     findBPmode_ = REFERENCE;
   }
+  // Set up base pair axes pseudo-topology. This is done inside the action
+  // because we may not know about base pairing until the first frame.
+  if (bpAxesParm_ != 0) {
+    if (bpAxesParm_->Natom() > 0) {
+      //mprintf("\tBase pair axes pseudo-topology is already set up.\n");
+      // Check that number of base pairs has not changed
+      if ((unsigned int)bpAxesParm_->Nres() != BasePairs_.size()) {
+        mprinterr("Error: Number of base pairs has changed from %i to %zu.\n"
+                  "Error: Base pair axes pseudo-topology is already set up for %i bases.\n",
+                  bpAxesParm_->Nres(), BasePairs_.size(), bpAxesParm_->Nres());
+        return Action::ERR;
+      }
+    } else {
+      // Create residue information for each base pair axes
+      std::vector<Residue> bpAxesResidues;
+      bpAxesResidues.reserve( BasePairs_.size() );
+      for (BPmap::const_iterator it = BasePairs_.begin(); it != BasePairs_.end(); ++it)
+      {
+        //if (it->second.nhb_ < 1 && skipIfNoHB_) continue;
+        BPtype const& BP = it->second;
+        int b1 = BP.base1idx_;
+        //int b2 = BP.base2idx_;
+        NA_Base const& base1 = Bases_[b1];
+        //NA_Base const& base2 = Bases_[b2];
+        Residue const& res = setupTop_->Res( base1.ResNum() );
+        bpAxesResidues.push_back( res );
+      }
+      if (setup_axes_pseudoTraj( *bpAxesParm_, *bpAxesOut_, bpAxesFrame_, bpAxesResidues ))
+        return Action::ERR;
+    }
+  }
   // Determine strand parameters if desired
   if (sscalc_)
     DetermineStrandParameters(frameNum);
@@ -1909,6 +1944,15 @@ Action::RetType Action_NAstruct::DoAction(int frameNum, ActionFrame& frm) {
                                               base != Bases_.end(); ++base)
       axesToFrame( axesFrame_, base->Axis() );
     axesOut_->WriteSingle(frm.TrajoutNum(), axesFrame_);
+  }
+  // Output base pair axes if needed
+  if (bpAxesOut_ != 0) {
+    bpAxesFrame_.ClearAtoms();
+    for (BPmap::const_iterator it = BasePairs_.begin(); it != BasePairs_.end(); ++it) {
+      //if (it->second.nhb_ < 1 && skipIfNoHB_) continue;
+      axesToFrame( bpAxesFrame_, it->second.bpaxis_ );
+    }
+    bpAxesOut_->WriteSingle(frm.TrajoutNum(), bpAxesFrame_);
   }
 
   nframes_++;

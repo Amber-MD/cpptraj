@@ -135,7 +135,7 @@ class Action_NAstruct: public Action {
                              Trajout_Single**, Topology**) const;
     /// Set up an axes pseudo-trajectory
     int setup_axes_pseudoTraj(Topology&, Trajout_Single&, Frame&,
-                              std::vector<Residue> const&, int) const;
+                              std::vector<Residue> const&) const;
     /// Recursively travel to 3' terminal base
     static int follow_base_to_3prime(Barray&, unsigned int, std::vector<bool>&, int);
     /// Recursively travel sugar-phosphate backbone to find the next residue in a strand.
@@ -216,5 +216,7 @@ class Action_NAstruct: public Action {
     Trajout_Single* bpAxesOut_; ///< Output trajectory for base pair axes
     Topology* bpAxesParm_;      ///< Pseudo-topology for base pair axes
     Frame bpAxesFrame_;         ///< Frame for base pair axes pseudo traj
+    int setupNframes_;          ///< Set in Setup(); number of expected frames to write (pseudo-traj)
+    Topology* setupTop_;        ///< Set in Setup(); current topology
 };
 #endif
