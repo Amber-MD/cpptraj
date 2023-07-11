@@ -1751,17 +1751,21 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
     } // END loop over strands
   } // END if sscalc
 
-  // Set up axes pseudo-topologies
+  // Set up base axes pseudo-topology
   if (axesParm_ != 0) {
-    // Create residue information for each base axes
-    std::vector<Residue> axesResidues;
-    axesResidues.reserve( Bases_.size() );
-    for (Barray::iterator base = Bases_.begin(); base != Bases_.end(); ++base) {
-      Residue const& res = setup.Top().Res( base->ResNum() );
-      axesResidues.push_back( res );
+    if (axesParm_->Natom() > 0) {
+      mprintf("\tBase axes pseudo-topology is already set up.\n");
+    } else {
+      // Create residue information for each base axes
+      std::vector<Residue> axesResidues;
+      axesResidues.reserve( Bases_.size() );
+      for (Barray::iterator base = Bases_.begin(); base != Bases_.end(); ++base) {
+        Residue const& res = setup.Top().Res( base->ResNum() );
+        axesResidues.push_back( res );
+      }
+      if (setup_axes_pseudoTraj( *axesParm_, *axesOut_, axesFrame_, axesResidues, setup.Nframes() ))
+        return Action::ERR;
     }
-    if (setup_axes_pseudoTraj( *axesParm_, *axesOut_, axesFrame_, axesResidues, setup.Nframes() ))
-      return Action::ERR;
   }
   return Action::OK;  
 }
