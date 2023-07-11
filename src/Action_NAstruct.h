@@ -222,5 +222,9 @@ class Action_NAstruct: public Action {
     Frame stepAxesFrame_;         ///< Frame for base pair step axes pseudo traj
     int setupNframes_;            ///< Set in Setup(); number of expected frames to write (pseudo-traj)
     Topology* setupTop_;          ///< Set in Setup(); current topology
+    NameType axesNameO_;
+    NameType axesNameX_;
+    NameType axesNameY_;
+    NameType axesNameZ_;
 };
 #endif

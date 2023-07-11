@@ -217,6 +217,10 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
                            "StepAxes", init.DSL(), actionArgs,
                            &stepAxesOut_, &stepAxesParm_))
     return Action::ERR;
+  axesNameO_ = actionArgs.GetStringKey("axesnameo", "Orig");
+  axesNameX_ = actionArgs.GetStringKey("axesnamex", "X");
+  axesNameY_ = actionArgs.GetStringKey("axesnamey", "Y");
+  axesNameZ_ = actionArgs.GetStringKey("axesnamez", "Z");
   // Get residue range
   resRange_.SetRange(actionArgs.GetStringKey("resrange"));
   if (!resRange_.Empty())
@@ -384,6 +388,10 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     mprintf("\tWriting base pair step axes pseudo trajectory to '%s'\n", stepAxesOut_->Traj().Filename().full());
     if (!stepAxesParm_->OriginalFilename().empty())
       mprintf("\tWriting base pair step axes pseudo topology to '%s'\n", stepAxesParm_->OriginalFilename().full());
+  }
+  if (axesOut_ != 0 || bpAxesOut_ != 0 || stepAxesOut_ != 0) {
+    mprintf("\tAxes pseudo atom names: origin='%s' X='%s' Y='%s' Z='%s'\n",
+            *axesNameO_, *axesNameX_, *axesNameY_, axesNameZ_);
   }
   mprintf("# Citations: Babcock MS; Pednault EPD; Olson WK; \"Nucleic Acid Structure\n"
           "#             Analysis: Mathematics for Local Cartesian and Helical Structure\n"
@@ -1835,10 +1843,10 @@ const
                                           ++res)
   {
     // Order is origin, x, y, z
-    pseudo.AddTopAtom(Atom("Orig", "C"), *res);
-    pseudo.AddTopAtom(Atom("X", "H"), *res);
-    pseudo.AddTopAtom(Atom("Y", "H"), *res);
-    pseudo.AddTopAtom(Atom("Z", "H"), *res);
+    pseudo.AddTopAtom(Atom(axesNameO_, "C"), *res);
+    pseudo.AddTopAtom(Atom(axesNameX_, "H"), *res);
+    pseudo.AddTopAtom(Atom(axesNameY_, "H"), *res);
+    pseudo.AddTopAtom(Atom(axesNameZ_, "H"), *res);
     // Bond x y and z to origin
     pseudo.AddBond(natom, natom+1, 0);
     pseudo.AddBond(natom, natom+2, 0);
