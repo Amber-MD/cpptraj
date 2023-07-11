@@ -449,7 +449,7 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
   }
   if (axesOut_ != 0 || bpAxesOut_ != 0 || stepAxesOut_ != 0) {
     mprintf("\tAxes pseudo atom names: origin='%s' X='%s' Y='%s' Z='%s'\n",
-            *axisNameO_, *axisNameX_, *axisNameY_, axisNameZ_);
+            *axisNameO_, *axisNameX_, *axisNameY_, *axisNameZ_);
   }
   mprintf("# Citations: Babcock MS; Pednault EPD; Olson WK; \"Nucleic Acid Structure\n"
           "#             Analysis: Mathematics for Local Cartesian and Helical Structure\n"
