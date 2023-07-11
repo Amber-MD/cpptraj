@@ -129,6 +129,7 @@ void Action_NAstruct::Help() const {
           "\t[axesout <file> [axesoutarg <arg> ...] [axesparmout <file>]]\n"
           "\t[bpaxesout <file> [bpaxesoutarg <arg> ...] [bpaxesparmout <file>]]\n"
           "\t[stepaxesout <file> [stepaxesoutarg <arg> ...] [stepaxesparmout <file>]]\n"
+          "\t[axisnameo <name>] [axisnamex <name>] [axisnamey <name>] [axisnamez <name>]\n"
           "\t[{ %s | allframes}]\n", DataSetList::RefArgs);
   mprintf("  Perform nucleic acid structure analysis. Base pairing can be determined\n"
           "  in multiple ways:\n"
@@ -217,10 +218,10 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
                            "StepAxes", init.DSL(), actionArgs,
                            &stepAxesOut_, &stepAxesParm_))
     return Action::ERR;
-  axesNameO_ = actionArgs.GetStringKey("axesnameo", "Orig");
-  axesNameX_ = actionArgs.GetStringKey("axesnamex", "X");
-  axesNameY_ = actionArgs.GetStringKey("axesnamey", "Y");
-  axesNameZ_ = actionArgs.GetStringKey("axesnamez", "Z");
+  axisNameO_ = actionArgs.GetStringKey("axisnameo", "Orig");
+  axisNameX_ = actionArgs.GetStringKey("axisnamex", "X");
+  axisNameY_ = actionArgs.GetStringKey("axisnamey", "Y");
+  axisNameZ_ = actionArgs.GetStringKey("axisnamez", "Z");
   // Get residue range
   resRange_.SetRange(actionArgs.GetStringKey("resrange"));
   if (!resRange_.Empty())
@@ -391,7 +392,7 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
   }
   if (axesOut_ != 0 || bpAxesOut_ != 0 || stepAxesOut_ != 0) {
     mprintf("\tAxes pseudo atom names: origin='%s' X='%s' Y='%s' Z='%s'\n",
-            *axesNameO_, *axesNameX_, *axesNameY_, axesNameZ_);
+            *axisNameO_, *axisNameX_, *axisNameY_, axisNameZ_);
   }
   mprintf("# Citations: Babcock MS; Pednault EPD; Olson WK; \"Nucleic Acid Structure\n"
           "#             Analysis: Mathematics for Local Cartesian and Helical Structure\n"
@@ -1843,10 +1844,10 @@ const
                                           ++res)
   {
     // Order is origin, x, y, z
-    pseudo.AddTopAtom(Atom(axesNameO_, "C"), *res);
-    pseudo.AddTopAtom(Atom(axesNameX_, "H"), *res);
-    pseudo.AddTopAtom(Atom(axesNameY_, "H"), *res);
-    pseudo.AddTopAtom(Atom(axesNameZ_, "H"), *res);
+    pseudo.AddTopAtom(Atom(axisNameO_, "C"), *res);
+    pseudo.AddTopAtom(Atom(axisNameX_, "H"), *res);
+    pseudo.AddTopAtom(Atom(axisNameY_, "H"), *res);
+    pseudo.AddTopAtom(Atom(axisNameZ_, "H"), *res);
     // Bond x y and z to origin
     pseudo.AddBond(natom, natom+1, 0);
     pseudo.AddBond(natom, natom+2, 0);
