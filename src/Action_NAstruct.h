@@ -156,6 +156,8 @@ class Action_NAstruct: public Action {
     BPmap::iterator AddBasePair(int, NA_Base const&, int, NA_Base const&);
     /// Determine which bases are paired geometrically, set base pair data.
     int DetermineBasePairing();
+    /// Find index in bases for given internal residue #
+    int find_index_in_bases(int) const;
     /// Set up base pairs based on user specification
     int SpecifiedBasePairing();
     /// Calculate translational/rotational parameters between two axes.

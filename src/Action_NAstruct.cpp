@@ -722,6 +722,16 @@ Action_NAstruct::BPmap::iterator
   return entry;
 }
 
+/** Search Bases_ for the specified residue number, return index into Bases_. */
+int Action_NAstruct::find_index_in_bases(int resnum) const {
+  for (Barray::const_iterator it = Bases_.begin(); it != Bases_.end(); ++it) {
+    if (it->ResNum() == resnum) {
+      return (int)(it - Bases_.begin());
+    }
+  }
+  return -1;
+}
+
 /** User-specified base pairing. */
 int Action_NAstruct::SpecifiedBasePairing() {
   int n_wc_hb;
@@ -733,15 +743,15 @@ int Action_NAstruct::SpecifiedBasePairing() {
                                ++it)
   {
     // User-specified base pair #s start from 1
-    int b1idx = it->first - 1;
-    int b2idx = it->second - 1;
-    if (b1idx < 0 || (unsigned int)b1idx >= Bases_.size()) {
-      mprinterr("Error: Specified base # %u is out of range.\n", it->first);
+    int b1idx = find_index_in_bases(it->first - 1);
+    int b2idx = find_index_in_bases(it->second - 1);
+    if (b1idx < 0) {
+      mprinterr("Error: Specified base residue # %u not found in set up bases.\n", it->first);
       return 1;
     }
     NA_Base& base1 = Bases_[b1idx];
-    if (b2idx < 0 || (unsigned int)b2idx >= Bases_.size()) {
-      mprinterr("Error: Specified base # %u is out of range.\n", it->second);
+    if (b2idx < 0) {
+      mprinterr("Error: Specified base residue # %u not found in set up bases.\n", it->second);
       return 1;
     }
     NA_Base& base2 = Bases_[b2idx];
