@@ -17,7 +17,7 @@ cat > nastruct.in <<EOF
 parm ../adh026.3.pdb
 trajin ../adh026.3.pdb 
 nastruct naout adh026.dat \
-  axesout axes.bases.pdb \
+  axesout axes.bases.pdb axesoutarg noter \
   bpaxesout axes.bp.mol2 \
   stepaxesout axes.step.crd stepaxesparmout axes.step.parm7
 nastruct naout baseref.dat baseref Atomic_G.pdb.nastruct
