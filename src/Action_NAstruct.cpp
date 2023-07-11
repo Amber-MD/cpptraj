@@ -1121,8 +1121,8 @@ int Action_NAstruct::DetermineStrandParameters(int frameNum) {
     //mprintf("DEBUG: Strand %u, bases %u to %u\n", SP.strandidx_, b1idx, b2idx);
 
     // Get bases
-    NA_Base& base1 = Bases_[b1idx];
-    NA_Base& base2 = Bases_[b2idx]; //TODO copy?
+    NA_Base const& base1 = Bases_[b1idx];
+    NA_Base const& base2 = Bases_[b2idx];
     // Calc parameters between bases in the strand
     calculateParameters(base2.Axis(), base1.Axis(), &commonAxis, Param);
     // Store data
@@ -1958,6 +1958,16 @@ Action::RetType Action_NAstruct::DoAction(int frameNum, ActionFrame& frm) {
   if (sscalc_)
     DetermineStrandParameters(frameNum);
 
+  // Output base axes if needed. Do it here because DeterminePairParameters()
+  // can flip base axes.
+  if (axesOut_ != 0) {
+    axesFrame_.ClearAtoms();
+    for (std::vector<NA_Base>::const_iterator base = Bases_.begin(); 
+                                              base != Bases_.end(); ++base)
+      axesToFrame( axesFrame_, base->Axis() );
+    axesOut_->WriteSingle(frm.TrajoutNum(), axesFrame_);
+  }
+
   // Determine base parameters
   DeterminePairParameters(frameNum);
 
@@ -1992,14 +2002,6 @@ Action::RetType Action_NAstruct::DoAction(int frameNum, ActionFrame& frm) {
     }
   }
 
-  // Output base axes if needed
-  if (axesOut_ != 0) {
-    axesFrame_.ClearAtoms();
-    for (std::vector<NA_Base>::const_iterator base = Bases_.begin(); 
-                                              base != Bases_.end(); ++base)
-      axesToFrame( axesFrame_, base->Axis() );
-    axesOut_->WriteSingle(frm.TrajoutNum(), axesFrame_);
-  }
   // Output base pair axes if needed
   if (bpAxesOut_ != 0) {
     bpAxesFrame_.ClearAtoms();

@@ -4,7 +4,8 @@
 
 # Clean
 CleanFiles nastruct.in BP.*.dat BPstep.*.dat bases.pdb baseaxes.pdb basepairaxes.pdb \
-           Helix.*.dat Param.pdb SS.mol1.dat SS.mol1.selected.dat
+           Helix.*.dat Param.pdb SS.mol1.dat SS.mol1.selected.dat \
+           axes.bases.pdb axes.bp.mol2
 
 # Test 2
 TESTNAME='NAstruct tests'
@@ -14,7 +15,9 @@ INPUT="-i nastruct.in"
 cat > nastruct.in <<EOF
 parm ../adh026.3.pdb
 trajin ../adh026.3.pdb 
-nastruct naout adh026.dat
+nastruct naout adh026.dat \
+  axesout axes.bases.pdb \
+  bpaxesout axes.bp.mol2
 nastruct naout baseref.dat baseref Atomic_G.pdb.nastruct
 nastruct naout groove.dat groovecalc 3dna
 nastruct naout GuessBP.dat guessbp
