@@ -33250,15 +33250,33 @@ nastruct
 \end_layout
 
 \begin_layout LyX-Code
-     	[{ first | reference | ref <name> | refindex <#> | allframes | guessbp}]
-\begin_inset Separator latexpar
-\end_inset
-
-
+         [axesout <file> [axesoutarg <arg> ...] [axesparmout <file>]]
 \end_layout
 
 \begin_layout LyX-Code
-         [bptype {anti | para} ...]
+     	[bpaxesout <file> [bpaxesoutarg <arg> ...] [bpaxesparmout <file>]]
+\end_layout
+
+\begin_layout LyX-Code
+     	[stepaxesout <file> [stepaxesoutarg <arg> ...] [stepaxesparmout <file>]]
+\end_layout
+
+\begin_layout LyX-Code
+         [axisnameo <name>] [axisnamex <name>] [axisnamey <name>] [axisnamez
+ <name>]
+\end_layout
+
+\begin_layout LyX-Code
+     	[{ first | reference | ref <name> | refindex <#> |
+\end_layout
+
+\begin_layout LyX-Code
+            allframes |
+\end_layout
+
+\begin_layout LyX-Code
+            specifiedbp pairs <b1>-<b2>,...
+ }]
 \end_layout
 
 \begin_deeper
@@ -33446,6 +33464,123 @@ literal "true"
 
 \end_deeper
 \begin_layout Description
+[axesout
+\begin_inset space ~
+\end_inset
+
+<file>] Trajectory file to write base axes to.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[axesoutarg
+\begin_inset space ~
+\end_inset
+
+<arg>] Trajectory argument to pass to base axes trajectory file (can specify
+ more than once).
+\end_layout
+
+\begin_layout Description
+[axesparmout
+\begin_inset space ~
+\end_inset
+
+<file>] Topology file to write base axes pseudo topology to.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[bpaxesout
+\begin_inset space ~
+\end_inset
+
+<file>] Trajectory file to write base pair axes to.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[bpaxesoutarg
+\begin_inset space ~
+\end_inset
+
+<arg>] Trajectory argument to pass to base pair axes trajectory file (can
+ specify more than once).
+\end_layout
+
+\begin_layout Description
+[bpaxesparmout
+\begin_inset space ~
+\end_inset
+
+<file>] Topology file to write base pair axes pseudo topology to.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[stepaxesout
+\begin_inset space ~
+\end_inset
+
+<file>] Trajectory file to write base pair step axes to.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[stepaxesoutarg
+\begin_inset space ~
+\end_inset
+
+<arg>] Trajectory argument to pass to base pair step axes trajectory file
+ (can specify more than once).
+\end_layout
+
+\begin_layout Description
+[stepaxesparmout
+\begin_inset space ~
+\end_inset
+
+<file>] Topology file to write base pair step axes pseudo topology to.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[axisnameo
+\begin_inset space ~
+\end_inset
+
+<name>] Change name of axis origin pseudo atom (default 'Orig').
+\end_layout
+
+\begin_layout Description
+[axisnamex
+\begin_inset space ~
+\end_inset
+
+<name>] Change name of axis origin pseudo atom (default 'X').
+\end_layout
+
+\begin_layout Description
+[axisnamey
+\begin_inset space ~
+\end_inset
+
+<name>] Change name of axis origin pseudo atom (default 'Y').
+\end_layout
+
+\begin_layout Description
+[axisnamez
+\begin_inset space ~
+\end_inset
+
+<name>] Change name of axis origin pseudo atom (default 'Z').
+\end_layout
+
+\begin_layout Standard
+How to determine base pairing:
+\end_layout
+
+\begin_layout Description
 [first] Use first frame to determine base pairing (default).
 \end_layout
 
@@ -33479,6 +33614,23 @@ ref
 
 \begin_layout Description
 [allframes] If specified determine base pairing each frame.
+\end_layout
+
+\begin_layout Description
+[specifiedbp
+\begin_inset space ~
+\end_inset
+
+pairs
+\begin_inset space ~
+\end_inset
+
+<b1>-<b2>,...] User specified base pairing.
+ Base pairs are specified in a comma-separated list after the 'pairs' keyword
+ as <b1>-<b2>, where <b1> and <b2> are the residue numbers of bases in the
+ base pair, e.g.
+ 'pairs 1-16,2-15,3-14,4-13'.
+ Can specify 'pairs' multiple times.
 \end_layout
 
 \begin_layout Standard
@@ -33687,6 +33839,15 @@ Base pairs are determined either once from the first frame or from a reference
 allframes
 \series default
  is specified.
+ Base pairing can also be specified via the 
+\series bold
+specifiedbp
+\series default
+ and 
+\series bold
+pairs
+\series default
+ keywords.
  Base pairing is determined first by base reference axis origin distance,
  then by stagger, then by angle between base Z axes, then finally by hydrogen
  bonding (at least one hydrogen bond must be present).
@@ -33782,6 +33943,42 @@ ve bases in single strands by specifying
 sscalc
 \series default
 .
+\end_layout
+
+\begin_layout Standard
+Base axes, base pair axes, and base pair step axes can be written to trajectory
+ files using the 
+\series bold
+axesout
+\series default
+, 
+\series bold
+bpaxesout
+\series default
+, and 
+\series bold
+stepaxesout
+\series default
+ and related keywords.
+ The axes are written using 4 points: an origin, and X Y and Z which are
+ bonded to the origin.
+ The names of these pseudo atoms can be changed using the 
+\series bold
+axisnameo
+\series default
+, 
+\series bold
+axisnamex
+\series default
+, 
+\series bold
+axisnamey
+\series default
+, and 
+\series bold
+axisnamez
+\series default
+ keywords.
 \end_layout
 
 \begin_layout Subsubsection*

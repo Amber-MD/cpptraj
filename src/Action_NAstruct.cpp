@@ -131,8 +131,8 @@ void Action_NAstruct::Help() const {
           "\t[stepaxesout <file> [stepaxesoutarg <arg> ...] [stepaxesparmout <file>]]\n"
           "\t[axisnameo <name>] [axisnamex <name>] [axisnamey <name>] [axisnamez <name>]\n"
           "\t[{ %s |\n"
-          "\t  allframes |\n"
-          "\t  specifiedbp pairs <b1>-<b2>,... }]\n", DataSetList::RefArgs);
+          "\t   allframes |\n"
+          "\t   specifiedbp pairs <b1>-<b2>,... }]\n", DataSetList::RefArgs);
   mprintf("  Perform nucleic acid structure analysis. Base pairing can be determined\n"
           "  in multiple ways:\n"
           "    - If 'first' (default) or a reference is specified, determine base\n"
@@ -142,6 +142,8 @@ void Action_NAstruct::Help() const {
           "    - If 'specifiedbp' is specified, base pairing is given by subsequent\n"
           "      'pairs <b1>-<b2>,...' arguments, where <b1> and <b2> are the residue\n"
           "      numbers of bases in the base pair, e.g. 'pairs 1-16,2-15,3-14,4-13'.\n"
+          "    - If 'reference', 'ref', or 'refindex' is specified, use a reference\n"
+          "      structure to determine base pairing.\n"
           "  If 'calcnohb' is specified NA parameters will be calculated even if no\n"
           "  hydrogen bonds present between base pairs.\n"
           "  Base pair parameters are written to 'BP.<suffix>', base pair step parameters\n"
