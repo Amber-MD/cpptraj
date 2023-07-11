@@ -241,8 +241,8 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
   else if (actionArgs.hasKey("specifiedbp"))
     findBPmode_ = SPECIFIED;
   else if (actionArgs.hasKey("guessbp")) {
-    mprintf("Warning: 'guessbp' is deprecated. Defaulting to 'first'.\n");
-    findBPmode_ = FIRST;
+    mprinterr("Error: 'guessbp' is deprecated. Consider using 'specifiedbp' instead.\n");
+    return Action::ERR;
   } else if (actionArgs.hasKey("first"))
     findBPmode_ = FIRST;
   else 

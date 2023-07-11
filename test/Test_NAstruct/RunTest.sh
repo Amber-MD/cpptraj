@@ -22,7 +22,6 @@ nastruct naout adh026.dat \
   stepaxesout axes.step.crd stepaxesparmout axes.step.parm7
 nastruct naout baseref.dat baseref Atomic_G.pdb.nastruct
 nastruct naout groove.dat groovecalc 3dna
-nastruct naout GuessBP.dat guessbp
 EOF
 RunCpptraj "NAstruct command test."
 DoTest BP.adh026.dat.save BP.adh026.dat
@@ -32,9 +31,6 @@ DoTest BP.adh026.dat.save BP.baseref.dat
 DoTest BPstep.adh026.dat.save BPstep.baseref.dat
 DoTest Helix.adh026.dat.save Helix.baseref.dat
 DoTest BPstep.groove.dat.save BPstep.groove.dat
-DoTest BP.adh026.dat.save BP.GuessBP.dat
-DoTest BPstep.adh026.dat.save BPstep.GuessBP.dat
-DoTest Helix.adh026.dat.save Helix.GuessBP.dat
 DoTest axes.bases.pdb.save axes.bases.pdb
 DoTest axes.bp.mol2.save axes.bp.mol2
 DoTest axes.step.crd.save axes.step.crd
