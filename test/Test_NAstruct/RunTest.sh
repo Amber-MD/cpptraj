@@ -5,7 +5,8 @@
 # Clean
 CleanFiles nastruct.in BP.*.dat BPstep.*.dat bases.pdb baseaxes.pdb basepairaxes.pdb \
            Helix.*.dat Param.pdb SS.mol1.dat SS.mol1.selected.dat \
-           axes.bases.pdb axes.bp.mol2 axes.step.crd axes.step.parm7
+           axes.bases.pdb axes.bp.mol2 axes.step.crd axes.step.parm7 \
+           BP.specified.dat BPstep.specified.dat Helix.specified.dat
 
 # Test 2
 TESTNAME='NAstruct tests'
@@ -38,6 +39,18 @@ DoTest axes.bases.pdb.save axes.bases.pdb
 DoTest axes.bp.mol2.save axes.bp.mol2
 DoTest axes.step.crd.save axes.step.crd
 DoTest axes.step.parm7.save axes.step.parm7 -I %VERSION
+
+# User-specified base pairing
+cat > nastruct.in <<EOF
+parm ../adh026.3.pdb
+trajin ../adh026.3.pdb 
+nastruct naout specified.dat \
+  specifiedbp pairs 1-16,2-15,3-14,4-13 pairs 5-12,6-11,7-10,8-9
+EOF
+RunCpptraj "NAstruct, user-specified base pairing"
+DoTest BP.adh026.dat.save BP.specified.dat
+DoTest BPstep.adh026.dat.save BPstep.specified.dat
+DoTest Helix.adh026.dat.save Helix.specified.dat
 
 # Single strand
 cat > nastruct.in <<EOF
