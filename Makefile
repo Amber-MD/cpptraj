@@ -37,6 +37,7 @@ clean: config.h
 	cd unitTests && $(MAKE) clean
 
 docs: src/cpptraj.Doxyfile
+	cd doc && make docs
 	cd src && doxygen cpptraj.Doxyfile
 
 # Remove cpptraj binary

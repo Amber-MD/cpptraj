@@ -193,39 +193,6 @@ pipeline {
 
         stage("Post-test steps") {
             parallel {
-                stage("Check pytraj") {
-                    agent none
-                    environment {
-                        DOCKER_IMAGE_TAG = "${env.BRANCH_NAME == "master" ? "master" : env.GIT_COMMIT}"
-                    }
-
-                    stages {
-                        stage("Build libcpptraj docker container") {
-                            agent { label "linux && docker" }
-
-                            steps {
-                                unstash "source"
-                                echo "Building and pushing ambermd/libcpptraj:${env.DOCKER_IMAGE_TAG}"
-                                script {
-                                    def image = docker.build("ambermd/libcpptraj:${env.DOCKER_IMAGE_TAG}",
-                                                             "-f ./devtools/ci/jenkins/Dockerfile.libcpptraj .")
-                                    docker.withRegistry("", "amber-docker-credentials") {
-                                        image.push()
-                                    }
-                                }
-                            }
-                            post { cleanup { deleteDir() } }
-                        }
-
-                        stage("Check pytraj with this version of libcpptraj") {
-                            steps {
-                                build job: '/amber-github/pytraj',
-                                           parameters: [string(name: 'LIBCPPTRAJ_IMAGE_TAG', value: env.DOCKER_IMAGE_TAG),
-                                                        string(name: 'BRANCH_TO_BUILD', value: 'master')]
-                            }
-                        }
-                    }
-                }
                 stage("Publish the manual") {
                     stages {
                         stage("Build the manual") {
