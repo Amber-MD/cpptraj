@@ -109,9 +109,10 @@ bool MetaData::Match_Exact(MetaData const& In) const {
 /** This version allows wildcards and ranges. */
 bool MetaData::Match_WildCard(SearchString const& search) const
 {
-  //mprintf("DEBUG: Input: %s[%s]:%s  This Set: %s[%s]:%i\n",
-  //        dsname.c_str(), aspect.c_str(), idxRange.RangeArg(), 
-  //        name_.c_str(), aspect_.c_str(), idx_);
+  //mprintf("DEBUG: Input: %s[%s]:%s%%%s  This Set: %s[%s]:%i%%%i\n",
+  //        search.NameArg().c_str(), search.AspectArg().c_str(),
+  //        search.IdxRange().RangeArg(), search.MemberRange().RangeArg(),
+  //        name_.c_str(), aspect_.c_str(), idx_, ensembleNum_);
   // Match type if specified
   if (fileName_.empty()) {
     // No filename. Match name if specified.
