@@ -32,7 +32,12 @@
           // If atom excluded, calc adjustment, otherwise calc elec. energy.
           if (excluded.find( it1->Idx() ) == excluded.end())
           {
+
             if ( rij2 < cut2_ ) {
+              if (it0->Idx() < it1->Idx())
+                mprintf("NBDBG %6i%6i\n", it0->Idx()+1, it1->Idx()+1);
+              else
+                mprintf("NBDBG %6i%6i\n", it1->Idx()+1, it0->Idx()+1);
 #             include "EnergyKernel_Nonbond.h"
             }
           } else {
@@ -65,8 +70,13 @@
             // TODO Is there better way of checking this?
             if (excluded.find( it1->Idx() ) == excluded.end())
             {
+
               //mprintf("\t\t\tdist= %f\n", sqrt(rij2));
               if ( rij2 < cut2_ ) {
+                if (it0->Idx() < it1->Idx())
+                  mprintf("NBDBG %6i%6i\n", it0->Idx()+1, it1->Idx()+1);
+                else
+                  mprintf("NBDBG %6i%6i\n", it1->Idx()+1, it0->Idx()+1);
 #               include "EnergyKernel_Nonbond.h"
               }
             } else {

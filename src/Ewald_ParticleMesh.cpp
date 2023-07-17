@@ -320,9 +320,18 @@ int Ewald_ParticleMesh::CalcNonbondEnergy(Frame const& frameIn, AtomMask const& 
 
   e_vdw = 0.0;
   double e_direct = Direct( pairList_, e_vdw );
-  if (debug_ > 0)
+  if (debug_ > 0) {
     mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f  Evdw= %20.10f\n",
             e_self, e_recip, e_direct, e_vdw);
+    mprintf("     E electrostatic (self) = %24.12f\n", e_self);
+    mprintf("                     (rec)  = %24.12f\n", e_recip);
+    mprintf("                     (dir)  = %24.12f\n", e_direct);
+    mprintf("     E vanDerWaals   (dir)  = %24.12f\n", e_vdw);
+    mprintf("                     (LR)   = %24.12f\n", e_vdw_lr_correction);
+    mprintf("                     (6slf) = %24.12f\n", e_vdw6self);
+    mprintf("                     (6rcp) = %24.12f\n", e_vdw6recip);
+    mprintf("                     (sum)  = %24.12f\n", e_vdw + e_vdw_lr_correction + e_vdw6self + e_vdw6recip); 
+  }
   e_vdw += (e_vdw_lr_correction + e_vdw6self + e_vdw6recip);
   t_total_.Stop();
   e_elec = e_self + e_recip + e_direct;

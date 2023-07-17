@@ -85,6 +85,8 @@ int PairList::CreatePairList(Frame const& frmIn, Matrix_3x3 const& ucell,
   if (nOffGrid > 0)
     mprintf("Warning: %i atoms are off the grid. This usually indicates corrupted coordinates.\n",
             nOffGrid);
+  // DEBUG
+  PrintCells();
   t_map_.Stop();
   t_total_.Stop();
   return nOffGrid;
@@ -92,6 +94,7 @@ int PairList::CreatePairList(Frame const& frmIn, Matrix_3x3 const& ucell,
 
 // PairList::GridAtom()
 int PairList::GridAtom(int atomIdx, Vec3 const& frac, Vec3 const& cart) {
+  mprintf("DBGPL: Fracxyz %6i%12.4f%12.4f%12.4f\n", atomIdx+1, frac[0], frac[1], frac[2]);
   int i1 = (int)((frac[0]) * (double)nGridX_);
   int i2 = (int)((frac[1]) * (double)nGridY_);
   int i3 = (int)((frac[2]) * (double)nGridZ_);
@@ -411,4 +414,16 @@ void PairList::PrintMemory() const {
     total += cell->MemSize();
   total += ((Frac_.size() * sizeof(Vec3)) + sizeof(Varray));
   mprintf("\tTotal Grid memory: %s\n", ByteString(total, BYTE_DECIMAL).c_str());
+}
+
+void PairList::PrintCells() const {
+  for (Carray::const_iterator cell = cells_.begin(); cell != cells_.end(); ++cell) {
+    if (cell->NatomsInGrid() > 0) {
+      mprintf("DEBUG: Cell %8li atoms:", cell - cells_.begin());
+      for (CellType::const_iterator atm = cell->begin(); atm != cell->end(); ++atm) {
+        mprintf(" %i", atm->Idx()+1);
+      }
+      mprintf("\n");
+  }
+  }
 }
