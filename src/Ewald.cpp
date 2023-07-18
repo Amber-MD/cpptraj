@@ -345,7 +345,7 @@ double Ewald::SwitchFxn(double rij2, double cut2_0, double cut2_1) {
 /** Nonbond direct-space calculation for Coulomb electrostatics and Lennard-Jones,
   * intended for use with long-range LJ correction.
   */
-double Ewald::Direct_VDW_LongRangeCorrection(PairList const& PL, double& evdw_out)
+double Ewald::Direct_VDW_LongRangeCorrection(PairList const& PL, double& evdw_out, double& eadjust_out)
 {
   t_direct_.Start();
   double Eelec = 0.0;
@@ -362,19 +362,20 @@ double Ewald::Direct_VDW_LongRangeCorrection(PairList const& PL, double& evdw_ou
   } // END pragma omp parallel
 # endif
   t_direct_.Stop();
-//# ifdef DEBUG_PAIRLIST
+# ifdef DEBUG_PAIRLIST
   mprintf("DEBUG: Elec                             = %16.8f\n", Eelec);
   mprintf("DEBUG: Eadjust                          = %16.8f\n", e_adjust);
   mprintf("DEBUG: LJ vdw                           = %16.8f\n", Evdw);
-//# endif
+# endif
   evdw_out = Evdw;
-  return Eelec + e_adjust;
+  eadjust_out = e_adjust;
+  return Eelec;
 }
 
 /** Nonbond direct-space calculation for Coulomb electrostatics and Lennard-Jones
   * calculated via PME.
   */
-double Ewald::Direct_VDW_LJPME(PairList const& PL, double& evdw_out)
+double Ewald::Direct_VDW_LJPME(PairList const& PL, double& evdw_out, double& eadjust_out)
 {
   t_direct_.Start();
   double Eelec = 0.0;
@@ -403,7 +404,8 @@ double Ewald::Direct_VDW_LJPME(PairList const& PL, double& evdw_out)
   mprintf("DEBUG: LJ vdw PME correction (excluded) = %16.8f\n", Eljpme_correction_excl);
 # endif
   evdw_out = Evdw + Eljpme_correction + Eljpme_correction_excl;
-  return Eelec + e_adjust;
+  eadjust_out = e_adjust;
+  return Eelec;
 }
 
 
@@ -414,14 +416,14 @@ double Ewald::Direct_VDW_LJPME(PairList const& PL, double& evdw_out)
   * \param PL The pairlist used to calculate energy.
   * \param e_adjust_out The electrostatic adjust energy for excluded atoms.
   * \param evdw_out The direct space van der Waals term (corrected for exclusion if LJ PME).
-  * \return The electrostatics term plus exclusion adjustment.
+  * \return The electrostatics term.
   */
-double Ewald::Direct(PairList const& PL, double& evdw_out)
+double Ewald::Direct(PairList const& PL, double& evdw_out, double& e_adjust_out)
 {
   if (lw_coeff_ > 0.0)
-    return Direct_VDW_LJPME(PL, evdw_out);
+    return Direct_VDW_LJPME(PL, evdw_out, e_adjust_out);
   else
-    return Direct_VDW_LongRangeCorrection(PL, evdw_out);
+    return Direct_VDW_LongRangeCorrection(PL, evdw_out, e_adjust_out);
 }
 
 /** Determine VDW long range correction prefactor. */
