@@ -34,10 +34,12 @@
           {
 
             if ( rij2 < cut2_ ) {
+#             ifdef NBDBG
               if (it0->Idx() < it1->Idx())
                 mprintf("NBDBG %6i%6i\n", it0->Idx()+1, it1->Idx()+1);
               else
                 mprintf("NBDBG %6i%6i\n", it1->Idx()+1, it0->Idx()+1);
+#             endif
 #             include "EnergyKernel_Nonbond.h"
             }
           } else {
@@ -77,10 +79,12 @@
 
               //mprintf("\t\t\tdist= %f\n", sqrt(rij2));
               if ( rij2 < cut2_ ) {
+#               ifdef NBDBG
                 if (it0->Idx() < it1->Idx())
                   mprintf("NBDBG %6i%6i\n", it0->Idx()+1, it1->Idx()+1);
                 else
                   mprintf("NBDBG %6i%6i\n", it1->Idx()+1, it0->Idx()+1);
+#               endif
 #               include "EnergyKernel_Nonbond.h"
               }
             } else {

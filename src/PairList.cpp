@@ -86,9 +86,9 @@ int PairList::CreatePairList(Frame const& frmIn, Matrix_3x3 const& ucell,
   if (nOffGrid > 0)
     mprintf("Warning: %i atoms are off the grid. This usually indicates corrupted coordinates.\n",
             nOffGrid);
-  // DEBUG
-  PrintCells();
   t_map_.Stop();
+  // DEBUG
+  if (debug_ > 0) PrintCells();
   t_total_.Stop();
   return nOffGrid;
 }
