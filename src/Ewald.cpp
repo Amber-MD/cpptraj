@@ -362,11 +362,11 @@ double Ewald::Direct_VDW_LongRangeCorrection(PairList const& PL, double& evdw_ou
   } // END pragma omp parallel
 # endif
   t_direct_.Stop();
-# ifdef DEBUG_PAIRLIST
+//# ifdef DEBUG_PAIRLIST
   mprintf("DEBUG: Elec                             = %16.8f\n", Eelec);
   mprintf("DEBUG: Eadjust                          = %16.8f\n", e_adjust);
   mprintf("DEBUG: LJ vdw                           = %16.8f\n", Evdw);
-# endif
+//# endif
   evdw_out = Evdw;
   return Eelec + e_adjust;
 }

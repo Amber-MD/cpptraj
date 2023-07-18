@@ -14,7 +14,7 @@
         Vec3 const& xyz0 = it0->ImageCoords();
         double q0 = Charge_[it0->Idx()];
 #       ifdef DEBUG_PAIRLIST
-        mprintf("DBG: Cell %6i (%6i atoms):\n", cidx+1, thisCell.NatomsInGrid());
+        mprintf("DBG: Cell %6i (%6i atoms):\n", cidx, thisCell.NatomsInGrid());
 #       endif
         // Exclusion list for this atom
         ExclusionArray::ExListType const& excluded = Excluded_[it0->Idx()];
@@ -53,6 +53,9 @@
 #         endif
           // Translate vector for neighbor cell
           Vec3 const& tVec = PL.TransVec( transList[nidx] );
+#         ifdef DEBUG_PAIRLIST
+          if (nbrCell.NatomsInGrid()>0) mprintf("DBG:\tto neighbor cell %6i (%6i atoms) tVec= %f %f %f\n", cellList[nidx], nbrCell.NatomsInGrid(), tVec[0], tVec[1], tVec[2]);
+#         endif
           //mprintf("\tNEIGHBOR %i (idxs %i - %i)\n", nbrCell, beg1, end1);
           // Loop over every atom in nbrCell
           for (PairList::CellType::const_iterator it1 = nbrCell.begin();
@@ -62,6 +65,7 @@
             double q1 = Charge_[it1->Idx()];
             Vec3 dxyz = xyz1 + tVec - xyz0;
             double rij2 = dxyz.Magnitude2();
+            //mprintf("\t\tAtom %6i {%f %f %f} to atom %6i {%f %f %f} = %f Ang\n", it0->Idx()+1, xyz0[0], xyz0[1], xyz0[2], it1->Idx()+1, xyz1[0], xyz1[1], xyz1[2], sqrt(rij2));
 #           ifdef DEBUG_PAIRLIST
             mprintf("\t\tAtom %6i to atom %6i (%f)\n", it0->Idx()+1, it1->Idx()+1, sqrt(rij2));
 #           endif
