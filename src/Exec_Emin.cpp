@@ -82,6 +82,8 @@ Exec::RetType Exec_Emin::Execute(CpptrajState& State, ArgList& argIn)
   int nMinSteps = argIn.getKeyInt("nsteps", 1);
   mprintf("\t%i minimization steps.\n", nMinSteps);
 
+  std::string dsname = argIn.GetStringKey("name");
+
   std::string maskexpr = argIn.GetMaskNext();
   if (!maskexpr.empty())
     mprintf("\tMask expression: %s\n", maskexpr.c_str());
@@ -103,6 +105,11 @@ Exec::RetType Exec_Emin::Execute(CpptrajState& State, ArgList& argIn)
   }
   Minimize_SteepestDescent SD;
 
+  DataSet* eneSet = 0;
+  if (!dsname.empty()) {
+    eneSet = State.DSL().AddSet( DataSet::DOUBLE, MetaData(dsname, "Energy") );
+  }
+
   // Set up the potential function
   if (potential.SetupPotential( crdset->Top(), frameIn.BoxCrd(), maskexpr )) {
     mprinterr("Error: Could not set up potential.\n");
@@ -111,7 +118,7 @@ Exec::RetType Exec_Emin::Execute(CpptrajState& State, ArgList& argIn)
   potential.FnInfo();
 
   // Set up and run minimization
-  if (SD.SetupMin(trajoutname, min_tol, dx0, nMinSteps)) {
+  if (SD.SetupMin(trajoutname, min_tol, dx0, nMinSteps, eneSet)) {
     mprinterr("Error: Could not set up minimizer.\n");
     return CpptrajState::ERR;
   }
