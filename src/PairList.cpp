@@ -88,7 +88,7 @@ int PairList::CreatePairList(Frame const& frmIn, Matrix_3x3 const& ucell,
             nOffGrid);
   t_map_.Stop();
   // DEBUG
-  if (debug_ > 0) PrintCells();
+  if (debug_ > 1) PrintCells();
   t_total_.Stop();
   return nOffGrid;
 }
