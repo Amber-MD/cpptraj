@@ -322,8 +322,7 @@ int Ewald_ParticleMesh::CalcNonbondEnergy(Frame const& frameIn, AtomMask const& 
   double e_adjust = 0.0;
   double e_direct = Direct( pairList_, e_vdw, e_adjust );
   if (debug_ > 0) {
-    mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f  Eadjust= %20.10f  Evdw= %20.10f\n",
-            e_self, e_recip, e_direct, e_adjust, e_vdw);
+    mprintf("DEBUG: Nonbond energy components:\n");
     mprintf("     Evdw                   = %24.12f\n", e_vdw + e_vdw_lr_correction + e_vdw6self + e_vdw6recip);
     mprintf("     Ecoulomb               = %24.12f\n", e_self + e_recip + e_direct + e_adjust);
     mprintf("\n");
