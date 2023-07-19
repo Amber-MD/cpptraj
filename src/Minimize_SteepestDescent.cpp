@@ -8,23 +8,39 @@
 #include "ArgList.h"
 #include "DataSetList.h"
 #include "CpptrajFile.h"
+#include "DataSet_1D.h"
 
 /** CONSTRUCTOR */
 Minimize_SteepestDescent::Minimize_SteepestDescent() :
   min_tol_(1.0E-5),
   dx0_(0.01),
-  nMinSteps_(1)
+  nMinSteps_(1),
+  eneSet_(0)
 {}
 
 /** Set up minimization. */
 int Minimize_SteepestDescent::SetupMin(std::string const& nameIn, double tolIn, double dx0In,
-                                       int stepsIn)
+                                       int stepsIn, DataSet* eneSetIn)
 {
   trajoutName_ = nameIn;
   min_tol_ = tolIn;
   dx0_ = dx0In;
   nMinSteps_ = stepsIn;
+  if (eneSetIn != 0) {
+    if (eneSetIn->Group() != DataSet::SCALAR_1D) {
+      mprinterr("Internal Error: Minimize_SteepestDescent::SetupMin: Energy set is not 1D scalar.\n");
+      return 1;
+    }
+    eneSet_ = (DataSet_1D*)eneSetIn;
+  } else
+    eneSet_ = 0;
   return 0;
+}
+/** Set up minimization. */
+int Minimize_SteepestDescent::SetupMin(std::string const& nameIn, double tolIn, double dx0In,
+                                       int stepsIn)
+{
+  return SetupMin(nameIn, tolIn, dx0In, stepsIn, 0);
 }
 
 /** Run minimization. */
@@ -107,6 +123,7 @@ const
     }
     // Write out current E.
     outfile.Printf("%-8i %12.4E %12.4E", iteration+1, e_total, rms);
+    if (eneSet_ != 0) eneSet_->Add( iteration, &e_total );
     // Do not print terms when only a single term.
     potential.Energy().PrintActiveTerms(outfile, false);
     outfile.Printf("\n");
