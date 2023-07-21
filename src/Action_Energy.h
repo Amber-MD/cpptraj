@@ -15,6 +15,7 @@ class Action_Energy: public Action {
     ~Action_Energy();
     DispatchObject* Alloc() const { return (DispatchObject*)new Action_Energy(); }
     void Help() const;
+    void Help(ArgList&) const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

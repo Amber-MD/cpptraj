@@ -28,7 +28,7 @@ Action_Energy::~Action_Energy() {
 }
 
 void Action_Energy::Help() const {
-  mprintf("\t[<name>] [<mask1>] [out <filename>] [nobondstoh]\n"
+  mprintf("\t[<name>] [<mask1>] [out <filename>] [nobondstoh] [openmm [<mdopts>]]\n"
           "\t[bond] [angle] [dihedral] {[nb14]|[e14]|[v14]} {[nonbond] | [elec] [vdw]}\n"
           "\t[{nokinetic|kinetic [ketype {vel|vv}] [dt <dt>]}]\n"
           "\t[ etype { simple |\n"
@@ -50,6 +50,15 @@ void Action_Energy::Help() const {
           EwaldOptions::KeywordsPME(),
           EwaldOptions::KeywordsLjpme()
          );
+  mprintf("  Type 'help energy mdopts' for a list of potential options for 'openmm'.\n");
+}
+
+void Action_Energy::Help(ArgList& argIn) const {
+  if (argIn.hasKey("mdopts")) {
+    mprintf("  <OpenMM potential options>:\n");
+    MdOpts::PrintHelp();
+  } else
+    Help();
 }
 
 /// Corresponds to Etype 
