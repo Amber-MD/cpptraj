@@ -24,9 +24,10 @@ Energy_Sander::~Energy_Sander() {
 }
 
 const char* Energy_Sander::Estring_[] = {
-  "Total", "VDW", "Elec", "GB", "Bond", "Angle", "Dihedral", "VDW14", "Elec14",
+  "Bond", "Angle", "Dih", "VDW14", "Elec14", "VDW", "Elec", "GB",
   "Constraint", "Polar", "Hbond", "Surf", "Cavity", "SCF", "Dispersion", "DVDL", "Angle_UB",
-  "Improper", "CMap", "EMap", "LES", "NOE", "PB", "RISM", "CT", "aMD_Boost", 0
+  "Improper", "CMap", "EMap", "LES", "NOE", "PB", "RISM", "CT", "aMD_Boost", "Total",
+  0
 };
 
 // Energy_Sander::Easpect()
