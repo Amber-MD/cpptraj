@@ -112,6 +112,16 @@ int PotentialFunction::CalculateForce(Frame& frameIn) {
   return 0;
 }
 
+/** Calculate energy only for each term. */
+int PotentialFunction::CalculateEnergy(Frame const& frameIn) {
+  earray_.zero();
+  for (Parray::const_iterator it = terms_.begin(); it != terms_.end(); ++it)
+  {
+    (*it)->CalcEnergy( frameIn, mask_ );
+  }
+  return 0;
+}
+
 /** Print information about potential function. */
 void PotentialFunction::FnInfo() const {
   mprintf("\t%zu terms:", terms_.size());

@@ -2,6 +2,8 @@
 #include "CpptrajStdio.h"
 #include "Ewald_Regular.h"
 #include "Ewald_ParticleMesh.h"
+#include "PotentialFunction.h"
+#include "MdOpts.h"
 
 /// CONSTRUCTOR
 Action_Energy::Action_Energy() :
@@ -11,6 +13,8 @@ Action_Energy::Action_Energy() :
   npoints_(0),
   debug_(0),
   EW_(0),
+  potential_(0),
+  use_openmm_(false),
   dt_(0),
   need_lj_params_(false),
   needs_exclList_(false),
@@ -20,6 +24,7 @@ Action_Energy::Action_Energy() :
 /// DESTRUCTOR
 Action_Energy::~Action_Energy() {
   if (EW_ != 0) delete EW_;
+  if (potential_ != 0) delete potential_;
 }
 
 void Action_Energy::Help() const {
@@ -75,24 +80,40 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
   debug_ = debugIn;
   ENE_.SetDebug( debug_ );
   DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  // TODO integrate this better
+  use_openmm_ = false;
+  if (actionArgs.hasKey("openmm")) {
+#   ifdef HAS_OPENMM
+    potential_ = new PotentialFunction();
+    use_openmm_ = true;
+#   else
+    mprinterr("Error: 'openmm' requires compilation with -DHAS_OPENMM.\n");
+    return Action::ERR;
+#   endif /* HAS_OPENMM */
+  }
   // Determine which energy terms are active 
   std::vector<bool> termEnabled((int)TOTAL+1, false);
-  termEnabled[BOND] = actionArgs.hasKey("bond");
-  termEnabled[ANGLE] = actionArgs.hasKey("angle");
-  termEnabled[DIHEDRAL] = actionArgs.hasKey("dihedral");
-  termEnabled[V14] = actionArgs.hasKey("v14");
-  termEnabled[Q14] = actionArgs.hasKey("e14");
-  termEnabled[VDW] = actionArgs.hasKey("vdw");
-  termEnabled[ELEC] = actionArgs.hasKey("elec");
-  if (actionArgs.hasKey("nb14")) {
-    termEnabled[V14] = true;
-    termEnabled[Q14] = true;
+  if (use_openmm_) {
+    // Only total allowed
+    termEnabled[TOTAL] = true;
+  } else {
+    termEnabled[BOND] = actionArgs.hasKey("bond");
+    termEnabled[ANGLE] = actionArgs.hasKey("angle");
+    termEnabled[DIHEDRAL] = actionArgs.hasKey("dihedral");
+    termEnabled[V14] = actionArgs.hasKey("v14");
+    termEnabled[Q14] = actionArgs.hasKey("e14");
+    termEnabled[VDW] = actionArgs.hasKey("vdw");
+    termEnabled[ELEC] = actionArgs.hasKey("elec");
+    if (actionArgs.hasKey("nb14")) {
+      termEnabled[V14] = true;
+      termEnabled[Q14] = true;
+    }
+    if (actionArgs.hasKey("nonbond")) {
+      termEnabled[VDW] = true;
+      termEnabled[ELEC] = true;
+    }
+    termEnabled[KE] = actionArgs.hasKey("kinetic");
   }
-  if (actionArgs.hasKey("nonbond")) {
-    termEnabled[VDW] = true;
-    termEnabled[ELEC] = true;
-  }
-  termEnabled[KE] = actionArgs.hasKey("kinetic");
   int nactive = 0;
   for (std::vector<bool>::const_iterator it = termEnabled.begin(); it != termEnabled.end(); ++it)
     if (*it) ++nactive;
@@ -228,6 +249,15 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
   // Get Masks
   if (Mask1_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
 
+  // Get options for potential function
+  if (potential_ != 0) {
+    MdOpts opts;
+    if (opts.GetOptsFromArgs(actionArgs)) return Action::ERR;
+    opts.PrintOpts(); // TODO move down
+    if (use_openmm_)
+      potential_->AddTerm( PotentialTerm::OPENMM, opts );
+  }
+
   // DataSet
   setname_ = actionArgs.GetStringNext();
   if (setname_.empty())
@@ -246,31 +276,35 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
   for (int i = 0; i != (int)TOTAL+1; i++)
     if (termEnabled[i]) mprintf(" '%s'", EtypeStr[i]);
   mprintf("\n");
-  if (termEnabled[BOND] && !bondsToH_)
-    mprintf("\tNot calculating energy of bonds to hydrogen.\n");
-  if (elecType_ != NO_ELE)
-    mprintf("\tElectrostatics method: %s\n", ElecStr[elecType_]);
-  if (elecType_ == DIRECTSUM) {
-    if (npoints_ < 0)
-      mprintf("\tDirect sum energy for up to %i unit cells in each direction will be calculated.\n",
-              -npoints_);
-    else
-      mprintf("\tDirect sum energy for %i unit cells in each direction will be calculated.\n",
-              npoints_);
-  } else if (elecType_ == EWALD || elecType_ == PME) {
-    ewaldOpts_.PrintOptions();
-  }
-  if (KEtype_ != KE_NONE) {
-    if (KEtype_ == KE_AUTO)
-      mprintf("\tIf forces and velocities present KE will be calculated assuming\n"
-              "\tvelocities are a half step ahead of forces; if only velocities\n"
-              "\tpresent KE will be calculated assuming velocities are on-step.\n");
-    else if (KEtype_ == KE_VV)
-      mprintf("\tKE will be calculated assuming velocities are a half step ahead of forces.\n");
-    else if (KEtype_ == KE_VEL)
-      mprintf("\tKE will be calculated assuming velocities are on-step.\n");
-    if (KEtype_ != KE_VEL)
-      mprintf("\tTime step for KE calculation if forces present: %g ps\n", dt_);
+  if (use_openmm_) {
+    mprintf("\tUsing OpenMM to calculate total energy.\n");
+  } else {
+    if (termEnabled[BOND] && !bondsToH_)
+      mprintf("\tNot calculating energy of bonds to hydrogen.\n");
+    if (elecType_ != NO_ELE)
+      mprintf("\tElectrostatics method: %s\n", ElecStr[elecType_]);
+    if (elecType_ == DIRECTSUM) {
+      if (npoints_ < 0)
+        mprintf("\tDirect sum energy for up to %i unit cells in each direction will be calculated.\n",
+                -npoints_);
+      else
+        mprintf("\tDirect sum energy for %i unit cells in each direction will be calculated.\n",
+                npoints_);
+    } else if (elecType_ == EWALD || elecType_ == PME) {
+      ewaldOpts_.PrintOptions();
+    }
+    if (KEtype_ != KE_NONE) {
+      if (KEtype_ == KE_AUTO)
+        mprintf("\tIf forces and velocities present KE will be calculated assuming\n"
+                "\tvelocities are a half step ahead of forces; if only velocities\n"
+                "\tpresent KE will be calculated assuming velocities are on-step.\n");
+      else if (KEtype_ == KE_VV)
+        mprintf("\tKE will be calculated assuming velocities are a half step ahead of forces.\n");
+      else if (KEtype_ == KE_VEL)
+        mprintf("\tKE will be calculated assuming velocities are on-step.\n");
+      if (KEtype_ != KE_VEL)
+        mprintf("\tTime step for KE calculation if forces present: %g ps\n", dt_);
+    }
   }
   return Action::OK;
 }
@@ -279,12 +313,25 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
 /** Set angle up for this parmtop. Get masks etc.
   */
 Action::RetType Action_Energy::Setup(ActionSetup& setup) {
+  currentParm_ = setup.TopAddress();
+  // Set up mask
   if (setup.Top().SetupCharMask(Mask1_)) return Action::ERR;
   if (Mask1_.None()) {
     mprintf("Warning: Mask '%s' selects no atoms.\n", Mask1_.MaskString());
     return Action::SKIP;
   }
   Mask1_.MaskInfo();
+
+  // OpenMM
+  if (use_openmm_) {
+    if (potential_->SetupPotential( setup.Top(), setup.CoordInfo().TrajBox(), Mask1_ )) {
+      mprinterr("Error: Could not set up potential function.\n");
+      return Action::ERR;
+    }
+    potential_->FnInfo();
+    return Action::OK;
+  }
+
   Imask_ = AtomMask(Mask1_.ConvertToIntMask(), Mask1_.Natom());
   // Check for LJ terms
   if (need_lj_params_ && !setup.Top().Nonbond().HasNonbond())
@@ -327,7 +374,6 @@ Action::RetType Action_Energy::Setup(ActionSetup& setup) {
     }
   }
 
-  currentParm_ = setup.TopAddress();
   return Action::OK;
 }
 
@@ -352,6 +398,12 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
   time_total_.Start();
   double Etot = 0.0, ene, ene2;
   int err = 0;
+
+  if (use_openmm_) {
+    if (potential_->CalculateEnergy( frm.Frm() )) return Action::ERR;
+    Etot = potential_->Energy().Ene( EnergyArray::E_OPENMM ); 
+  }
+
   for (calc_it calc = Ecalcs_.begin(); calc != Ecalcs_.end(); ++calc)
   {
     switch (*calc) {

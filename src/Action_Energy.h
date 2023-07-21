@@ -7,6 +7,7 @@
 #include "ExclusionArray.h"
 #include "EwaldOptions.h"
 class Ewald;
+class PotentialFunction;
 /// Calculate energy 
 class Action_Energy: public Action {
   public:
@@ -50,6 +51,9 @@ class Action_Energy: public Action {
     int debug_;
     Ewald* EW_;                    ///< Ewald energy class.
     EwaldOptions ewaldOpts_;       ///< Ewald options
+
+    PotentialFunction* potential_; ///< TODO currently just for openmm, use for everything
+    bool use_openmm_;              ///< If true use openmm for calculating total E
 
     double dt_;                    ///< Time step for estimating kinetic energy (leapfrog)
     bool need_lj_params_;          ///< True if LJ parameters needed.
