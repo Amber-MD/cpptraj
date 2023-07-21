@@ -8,7 +8,7 @@
 void Exec_Emin::Help() const
 {
   mprintf("\tcrdset <name> [trajoutname <name>] [rmstol <tol>] [nsteps <#>]\n"
-          "\t[<mask>] [frame <#>] [dx0 <step0>] [out <file>]\n"
+          "\t[<mask>] [frame <#>] [dx0 <step0>] [out <file>] [name <setname>]\n"
           "\t[{nonbond|openmm}] [<potential options>]\n"
           "Warning: THIS COMMAND IS STILL UNDER DEVELOPMENT.\n"
           "  Perform a simple steepest descent minimization on given COORDS set.\n"
