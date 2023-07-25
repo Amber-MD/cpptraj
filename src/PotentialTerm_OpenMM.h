@@ -17,10 +17,13 @@ class PotentialTerm_OpenMM : public PotentialTerm {
     int InitTerm(MdOpts const&);
     int SetupTerm(Topology const&, Box const&, CharMask const&, EnergyArray&);
     void CalcForce(Frame&, CharMask const&) const;
+    void CalcEnergy(Frame const&, CharMask const&) const;
     int RemovedDegreesOfFreedom() const { return n_removed_dof_; }
   private:
 #   ifdef HAS_OPENMM
     int OpenMM_setup(Topology const&, Box const&, CharMask const&, EnergyArray&);
+
+    void set_from_frame(Frame const&, CharMask const&) const;
 
     OpenMM::System* system_;
     OpenMM::Context* context_;

@@ -6744,6 +6744,13 @@ reference "subsec:cpptraj_createcrd"
 
 \begin_layout Subsection
 emin
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj-emin"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout LyX-Code
@@ -6751,7 +6758,7 @@ emin crdset <name> [trajoutname <name>] [rmstol <tol>] [nsteps <#>]
 \end_layout
 
 \begin_layout LyX-Code
- 	[<mask>] [frame <#>] [dx0 <step0>] [out <file>]
+ 	[<mask>] [frame <#>] [dx0 <step0>] [out <file>] [name <setname>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -6820,6 +6827,14 @@ crdset
 \end_layout
 
 \begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<setname>] If specified, create an energy per step data set.
+\end_layout
+
+\begin_layout Description
 [nonbond] If specified, use simple nonbonded potential term in additon to
  bonded terms.
 \end_layout
@@ -6841,9 +6856,61 @@ cut
 <cutoff> Set nonbonded interaction cutoff in Ang.
  (electrostatics and vdW).
  Default 8.0.
+\end_layout
+
+\begin_layout Description
+cutee
+\begin_inset space ~
+\end_inset
+
+<cutoff> Set electrostatics interaction cutoff in Ang.
  
 \end_layout
 
+\begin_layout Description
+cutnb
+\begin_inset space ~
+\end_inset
+
+<cutoff> Set vdW interaction cutoff in Ang.
+ 
+\end_layout
+
+\begin_layout Description
+scaleee
+\begin_inset space ~
+\end_inset
+
+<factor> Scaling factor to multiply 1-4 electrostatics interactions by.
+ 
+\end_layout
+
+\begin_layout Description
+scalenb
+\begin_inset space ~
+\end_inset
+
+<factor> Scaling factor to multiply 1-4 vdW interactions by.
+\end_layout
+
+\begin_layout Description
+shake
+\begin_inset space ~
+\end_inset
+
+<type> Use SHAKE constraints of <type>:
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+'hydrogen' Constrain bonds to hydrogen.
+\end_layout
+
+\begin_layout Description
+'all' Constrain all bonds.
+\end_layout
+
+\end_deeper
 \begin_layout Description
 nexclude
 \begin_inset space ~
@@ -6851,6 +6918,22 @@ nexclude
 
 <#> Number of bonded atoms within which nonbonded interactions are excluded.
  Default 4.
+\end_layout
+
+\begin_layout Description
+qfac
+\begin_inset space ~
+\end_inset
+
+<factor> Factor to use in electrostatic calculation.
+\end_layout
+
+\begin_layout Standard
+DataSets Created
+\end_layout
+
+\begin_layout Description
+<setname>[Energy] Total energy at each minimization step.
 \end_layout
 
 \end_deeper
@@ -25467,7 +25550,7 @@ energy
 \end_layout
 
 \begin_layout LyX-Code
-energy [<name>] [<mask1>] [out <filename>] [nobondstoh]
+energy [<name>] [<mask1>] [out <filename>] [nobondstoh] [openmm [<mdopts>]]
 \end_layout
 
 \begin_layout LyX-Code
@@ -25543,6 +25626,24 @@ energy [<name>] [<mask1>] [out <filename>] [nobondstoh]
 
 \begin_layout Description
 [nobondstoh] Skip calculating the energy of bonds to hydrogen.
+\end_layout
+
+\begin_layout Description
+[openmm] If specified and CPPTRAJ is compiled with OpenMM support, use OpenMM
+ to calculate energy.
+ Note this will only calculate total energy; any keywords pertaining to
+ individual energy components are not available.
+ For a list of potential options that can be used with 'openmm', see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-emin"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
 \end_layout
 
 \begin_layout Description

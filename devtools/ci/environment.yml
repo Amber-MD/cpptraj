@@ -1,10 +1,10 @@
 channels:
-    - conda-forge
+    - defaults 
 dependencies:
-    - netcdf4
-    - pyflakes
+    - python=3.8
     - numpy
-    - cython
-    - parmed
-    - pytest
     - mock
+    - pytest
+    - cython
+    - setuptools
+    - curl 
