@@ -23,10 +23,19 @@ class Energy_Sander {
     int CalcEnergy(Frame&);
     /// Calculate energy for given Frame, save forces
     int CalcEnergyForces(Frame&);
-    /// Enumerate different types of energy calcd via libsander
+    /// Enumerate different types of energy calcd via libsander. Linked to Estring_
+#   ifdef CPPTRAJ_ESANDER_ENERGY_ORDER
+    // This term ordering corresponds to what is used in the 'energy' action
+    enum Etype { BOND = 0, ANGLE, DIHEDRAL, VDW14, ELEC14, VDW, ELEC, GB,
+                 CONSTRAINT, POLAR, HBOND, SURF, CAVITY, SCF, DISP, DVDL, ANGLE_UB,
+                 IMP, CMAP, EMAP, LES, NOE, PB, RISM, CT, AMD_BOOST, TOTAL,
+                 N_ENERGYTYPES };
+#   else
+    // This is the original term ordering
     enum Etype { TOTAL = 0, VDW, ELEC, GB, BOND, ANGLE, DIHEDRAL, VDW14, ELEC14,
                  CONSTRAINT, POLAR, HBOND, SURF, CAVITY, SCF, DISP, DVDL, ANGLE_UB,
                  IMP, CMAP, EMAP, LES, NOE, PB, RISM, CT, AMD_BOOST, N_ENERGYTYPES };
+#   endif
     /// \return Value of specified energy term.
     double Energy(Etype) const;
     /// \return Pointer to specified energy term.
@@ -45,7 +54,7 @@ class Energy_Sander {
     void SetDefaultInput();
     int WriteTop(Topology const&);
     int CommonInit(Topology const& topIn, Frame& fIn);
-
+    /// Strings corresponding to Etype
     static const char* Estring_[];
     static const char* supportedNamelist_;
     sander_input input_;         ///< Sander input options

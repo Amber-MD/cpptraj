@@ -1040,6 +1040,7 @@ void DataSetList::ClearRef() {
     for (DataListType::const_iterator ds = RefList_.begin(); ds != RefList_.end(); ++ds)
       delete *ds;
   RefList_.clear();
+  activeRef_ = 0;
   DataList_ = setsToKeep;
 }
 

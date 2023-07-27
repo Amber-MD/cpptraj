@@ -23,11 +23,22 @@ Energy_Sander::~Energy_Sander() {
     File::FreeTempName( top_filename_ );
 }
 
+#ifdef CPPTRAJ_ESANDER_ENERGY_ORDER
+// This term ordering corresponds to what is used in the 'energy' action
+const char* Energy_Sander::Estring_[] = {
+  "Bond", "Angle", "Dih", "VDW14", "Elec14", "VDW", "Elec", "GB",
+  "Constraint", "Polar", "Hbond", "Surf", "Cavity", "SCF", "Dispersion", "DVDL", "Angle_UB",
+  "Improper", "CMap", "EMap", "LES", "NOE", "PB", "RISM", "CT", "aMD_Boost", "Total",
+  0
+};
+#else
+// This is the original term ordering
 const char* Energy_Sander::Estring_[] = {
   "Total", "VDW", "Elec", "GB", "Bond", "Angle", "Dihedral", "VDW14", "Elec14",
   "Constraint", "Polar", "Hbond", "Surf", "Cavity", "SCF", "Dispersion", "DVDL", "Angle_UB",
   "Improper", "CMap", "EMap", "LES", "NOE", "PB", "RISM", "CT", "aMD_Boost", 0
 };
+#endif
 
 // Energy_Sander::Easpect()
 std::string Energy_Sander::Easpect(Etype typeIn) {
