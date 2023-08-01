@@ -1031,7 +1031,7 @@ EOF
     fi
   elif [ "$MKL_FFTW" = 'yes' ] ; then
     # Using FFTW from MKL
-    TestProgram "  Checking FFTW3" "$CXX" "$CXXFLAGS ${LIB_INCL[$LBLAS]}" testp.cpp "${LIB_FLAG[$LBLAS]}"
+    TestProgram "  Checking MKL FFTW3" "$CXX" "$CXXFLAGS ${LIB_INCL[$LBLAS]}" testp.cpp "${LIB_FLAG[$LBLAS]}"
   else
     TestProgram silent "  Checking FFTW3" "$CXX" "$CXXFLAGS ${LIB_INCL[$LFFTW3]}" testp.cpp "${LIB_FLAG[$LFFTW3]}"
     if [ $? -ne 0 ] ; then
