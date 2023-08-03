@@ -18,13 +18,27 @@ Exec_ParseTiming::Exec_ParseTiming() :
 /** Hold run timing and details. */
 class Exec_ParseTiming::RunTiming {
   public:
+    /// CONSTRUCTOR - blank
     RunTiming() : version_major_(-1), version_minor_(-1), version_revision_(-1),
                   isMPI_(false), isOpenMP_(false), isCUDA_(false),
                   nprocs_(-1), nthreads_(-1), t_total_(-1) {}
+    /// CONSTRUCTOR - filename
     RunTiming(std::string const& name) : filename_(name),
                   version_major_(-1), version_minor_(-1), version_revision_(-1),
                   isMPI_(false), isOpenMP_(false), isCUDA_(false),
-                  nprocs_(-1), nthreads_(-1), t_total_(-1) {}
+                  nprocs_(-1), nthreads_(-1), t_total_(-1)
+    {
+      // Get directory prefix.
+      std::string dirprefix( filename_.DirPrefix_NoSlash() );
+      FileName fname( filename_ );
+      while (!dirprefix.empty()) {
+        fname.SetFileName_NoExpansion( fname.DirPrefix_NoSlash() );
+        dirprefix = fname.DirPrefix_NoSlash();
+      }
+      prefix_ = fname.Base();
+      //FileName dirprefix2( dirprefix1.Full() );
+      //mprintf("DEBUG: '%s' Dirprefix= '%s' name= '%s'\n", filename_.full(), fname.full(), fname.base());
+    }
 
     void SetVersionAndType(std::string const& vstr, bool isM, bool isO, bool isC) {
       isMPI_ = isM;
@@ -72,6 +86,7 @@ class Exec_ParseTiming::RunTiming {
     bool HasDetailedTiming() const { return !(t_traj_read_.empty() || t_action_frame_.empty()); }
 
     FileName const& Filename() const { return filename_; }
+    std::string const& Prefix() const { return prefix_; }
 
     std::string Name() const {
       std::string out;
@@ -140,6 +155,7 @@ class Exec_ParseTiming::RunTiming {
     };
   private:
     FileName filename_;
+    std::string prefix_; ///< Filename prefix
     int version_major_;
     int version_minor_;
     int version_revision_;
@@ -216,6 +232,91 @@ void Exec_ParseTiming::Help() const
          );
 }
 
+/** Make an output data set for RunArray */
+int Exec_ParseTiming::create_output_set(RunArray const& Runs, DataSetList& DSL,
+                                        DataFile* outfile, std::string const& dsname,
+                                        Dimension const& Xdim, Xtype xvar, Ytype yvar)
+const
+{
+  // Create DataSet
+
+  DataSet* ds = DSL.AddSet( DataSet::XYMESH, MetaData(dsname) );
+  if (ds == 0) {
+    mprinterr("Error: Could not allocate output set.\n");
+    return 1;
+  }
+  if (outfile != 0) outfile->AddDataSet( ds );
+  DataSet_Mesh& outset = static_cast<DataSet_Mesh&>( *ds );
+  outset.Allocate( DataSet::SizeArray(1, Runs.size()) );
+  outset.SetDim(Dimension::X, Xdim);
+  //outset.SetDim(Dimension::Y, Ydim);
+
+  DataSet* nameSet = DSL.AddSet(DataSet::STRING, MetaData(dsname, "name"));
+  if (nameSet == 0) {
+    mprinterr("Error: Could not allocate output names set.\n");
+    return 1;
+  }
+  if (outfile != 0) outfile->AddDataSet( nameSet );
+  nameSet->Allocate( DataSet::SizeArray(1, Runs.size()) );
+  nameSet->SetDim(Dimension::X, Xdim);
+
+  DataSet* dirNameSet = DSL.AddSet(DataSet::STRING, MetaData(dsname, "dir"));
+  if (dirNameSet == 0) {
+    mprinterr("Error: Could not allocate directory names set.\n");
+    return 1;
+  }
+  if (outfile != 0) outfile->AddDataSet( dirNameSet );
+  dirNameSet->Allocate( DataSet::SizeArray(1, Runs.size()) );
+  dirNameSet->SetDim(Dimension::X, Xdim);
+
+  for (RunArray::const_iterator it = Runs.begin(); it != Runs.end(); ++it) {
+    //if (needsDetailedTiming && !it->HasDetailedTiming()) {
+    //  mprinterr("Error: Detailed timing requested but output %s does not contain detailed timing.\n",
+    //            it->Filename().full());
+    //  it->Print();
+    //  return 1;
+    //}
+    double X = 0;
+    switch (xvar) {
+      case X_INDEX : X = (double)(it - Runs.begin()); break;
+      case X_CORES : X = (double)it->TotalCores(); break;
+    }
+    double Y = 0;
+    switch (yvar) {
+      case Y_T_TOTAL : Y = it->TotalTime(); break;
+      case Y_T_TRAJREAD : Y = it->TrajReadTime(); break;
+      case Y_T_ACTFRAME : Y = it->ActionFrameTime(); break;
+    }
+    outset.AddXY(X, Y);
+    nameSet->Add(it - Runs.begin(), it->Name().c_str());
+    dirNameSet->Add(it - Runs.begin(), it->Filename().DirPrefix().c_str());
+    it->Print();
+  }
+  return 0;
+}
+
+void Exec_ParseTiming::write_to_file(CpptrajFile& outfile, RunArray const& Runs, Xtype xvar, Ytype yvar) const {
+  for (RunArray::const_iterator it = Runs.begin(); it != Runs.end(); ++it) {
+    //if (needsDetailedTiming && !it->HasDetailedTiming()) {
+    //  mprinterr("Error: Detailed timing requested but output %s does not contain detailed timing.\n",
+    //            it->Filename().full());
+    //  it->Print();
+    //  return 1;
+    //}
+    double X = 0;
+    switch (xvar) {
+      case X_INDEX : X = (double)(it - Runs.begin()); break;
+      case X_CORES : X = (double)it->TotalCores(); break;
+    }
+    double Y = 0;
+    switch (yvar) {
+      case Y_T_TOTAL : Y = it->TotalTime(); break;
+      case Y_T_TRAJREAD : Y = it->TrajReadTime(); break;
+      case Y_T_ACTFRAME : Y = it->ActionFrameTime(); break;
+    }
+    outfile.Printf("%12.4f %12.4f %12s %s\n", X, Y, it->Name().c_str(), it->Filename().DirPrefix().c_str());
+  }
+}
 
 // Exec_ParseTiming::Execute()
 Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
@@ -254,10 +355,6 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
   if (dsname.empty())
     dsname = State.DSL().GenerateDefaultName("TIMING");
   mprintf("\tDataSet name: %s\n", dsname.c_str());
-
-  // Which variables to plot
-  enum Xtype { X_INDEX=0, X_CORES };
-  enum Ytype { Y_T_TOTAL=0, Y_T_TRAJREAD, Y_T_ACTFRAME };
 
   Xtype xvar;
   Ytype yvar = Y_T_TOTAL;
@@ -318,6 +415,17 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
     //mprintf("\n");
   }
 
+  // Check Runs
+  for (RunArray::const_iterator it = Runs.begin(); it != Runs.end(); ++it) {
+    if (needsDetailedTiming && !it->HasDetailedTiming()) {
+      mprinterr("Error: Detailed timing requested but output %s does not contain detailed timing.\n",
+                it->Filename().full());
+      it->Print();
+      return CpptrajState::ERR;
+    }
+  }
+
+  // Sort runs
   switch (sort) {
     case SORT_T_TOTAL  : std::sort(Runs.begin(), Runs.end(), RunTiming::sort_by_total_time()); break;
     case SORT_CORES    : std::sort(Runs.begin(), Runs.end(), RunTiming::sort_by_cores()); break;
@@ -327,6 +435,36 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
   if (reverse_sort)
     std::reverse( Runs.begin(), Runs.end() );
 
+  // Group runs - TODO use pointers?
+  CpptrajFile groupout;
+  groupout.OpenWrite("");
+  typedef std::map<std::string, RunArray> RunMap;
+  RunMap groupByPrefix;
+  for (RunArray::const_iterator it = Runs.begin(); it != Runs.end(); ++it)
+  {
+    RunMap::iterator jt = groupByPrefix.lower_bound( it->Prefix() );
+    if (jt == groupByPrefix.end() || jt->first != it->Prefix() )
+    {
+      // New group
+      jt = groupByPrefix.insert( jt, std::pair<std::string,RunArray>( it->Prefix(), RunArray() ) );
+    }
+    jt->second.push_back( *it );
+  }
+  mprintf("\tFound %zu groups.\n", groupByPrefix.size());
+  for (RunMap::const_iterator jt = groupByPrefix.begin(); jt != groupByPrefix.end(); ++jt)
+  {
+    mprintf("\t\t%s\n", jt->first.c_str());
+    write_to_file(groupout, jt->second, xvar, yvar);
+    //for (RunArray::const_iterator it = jt->second.begin(); it != jt->second.end(); ++it)
+    //  mprintf("\t\t\t%s\n", it->Filename().DirPrefix().c_str());
+  }
+
+
+
+  // Create DataSet
+  if (create_output_set(Runs, State.DSL(), outfile, dsname, Xdim, xvar, yvar))
+    return CpptrajState::ERR;
+/*
   DataSet* ds = State.DSL().AddSet( DataSet::XYMESH, MetaData(dsname) );
   if (ds == 0) {
     mprinterr("Error: Could not allocate output set.\n");
@@ -379,6 +517,6 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
     dirNameSet->Add(it - Runs.begin(), it->Filename().DirPrefix().c_str());
     it->Print();
   }
-
+*/
   return CpptrajState::OK;
 }
