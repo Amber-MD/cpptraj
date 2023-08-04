@@ -270,12 +270,6 @@ const
   dirNameSet->SetDim(Dimension::X, Xdim);
 
   for (RunArray::const_iterator it = Runs.begin(); it != Runs.end(); ++it) {
-    //if (needsDetailedTiming && !it->HasDetailedTiming()) {
-    //  mprinterr("Error: Detailed timing requested but output %s does not contain detailed timing.\n",
-    //            it->Filename().full());
-    //  it->Print();
-    //  return 1;
-    //}
     double X = 0;
     switch (xvar) {
       case X_INDEX : X = (double)(it - Runs.begin()); break;
@@ -296,13 +290,9 @@ const
 }
 
 void Exec_ParseTiming::write_to_file(CpptrajFile& outfile, RunArray const& Runs, Xtype xvar, Ytype yvar) const {
+  double refy = 0;
+  double refcores = 0;
   for (RunArray::const_iterator it = Runs.begin(); it != Runs.end(); ++it) {
-    //if (needsDetailedTiming && !it->HasDetailedTiming()) {
-    //  mprinterr("Error: Detailed timing requested but output %s does not contain detailed timing.\n",
-    //            it->Filename().full());
-    //  it->Print();
-    //  return 1;
-    //}
     double X = 0;
     switch (xvar) {
       case X_INDEX : X = (double)(it - Runs.begin()); break;
@@ -314,7 +304,14 @@ void Exec_ParseTiming::write_to_file(CpptrajFile& outfile, RunArray const& Runs,
       case Y_T_TRAJREAD : Y = it->TrajReadTime(); break;
       case Y_T_ACTFRAME : Y = it->ActionFrameTime(); break;
     }
-    outfile.Printf("%12.4f %12.4f %12s %s\n", X, Y, it->Name().c_str(), it->Filename().DirPrefix().c_str());
+    if (it == Runs.begin()) {
+      refy = Y;
+      refcores = (double)it->TotalCores();
+    }
+    double speedup = refy / Y;
+    double ideal_speedup = (double)it->TotalCores() / refcores;
+    double efficiency = speedup / ideal_speedup;
+    outfile.Printf("%12.4f %12.4f %6.2f %6.2f %6.2f %12s %s\n", X, Y, speedup, ideal_speedup, efficiency, it->Name().c_str(), it->Filename().DirPrefix().c_str());
   }
 }
 
@@ -474,59 +471,6 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
   // Create DataSet
   if (create_output_set(Runs, State.DSL(), outfile, dsname, Xdim, xvar, yvar))
     return CpptrajState::ERR;
-/*
-  DataSet* ds = State.DSL().AddSet( DataSet::XYMESH, MetaData(dsname) );
-  if (ds == 0) {
-    mprinterr("Error: Could not allocate output set.\n");
-    return CpptrajState::ERR;
-  }
-  if (outfile != 0) outfile->AddDataSet( ds );
-  DataSet_Mesh& outset = static_cast<DataSet_Mesh&>( *ds );
-  outset.Allocate( DataSet::SizeArray(1, Runs.size()) );
-  outset.SetDim(Dimension::X, Xdim);
-  //outset.SetDim(Dimension::Y, Ydim);
 
-  DataSet* nameSet = State.DSL().AddSet(DataSet::STRING, MetaData(dsname, "name"));
-  if (nameSet == 0) {
-    mprinterr("Error: Could not allocate output names set.\n");
-    return CpptrajState::ERR;
-  }
-  if (outfile != 0) outfile->AddDataSet( nameSet );
-  nameSet->Allocate( DataSet::SizeArray(1, Runs.size()) );
-  nameSet->SetDim(Dimension::X, Xdim);
-
-  DataSet* dirNameSet = State.DSL().AddSet(DataSet::STRING, MetaData(dsname, "dir"));
-  if (dirNameSet == 0) {
-    mprinterr("Error: Could not allocate directory names set.\n");
-    return CpptrajState::ERR;
-  }
-  if (outfile != 0) outfile->AddDataSet( dirNameSet );
-  dirNameSet->Allocate( DataSet::SizeArray(1, Runs.size()) );
-  dirNameSet->SetDim(Dimension::X, Xdim);
-
-  for (RunArray::const_iterator it = Runs.begin(); it != Runs.end(); ++it) {
-    if (needsDetailedTiming && !it->HasDetailedTiming()) {
-      mprinterr("Error: Detailed timing requested but output %s does not contain detailed timing.\n",
-                it->Filename().full());
-      it->Print();
-      return CpptrajState::ERR;
-    }
-    double X = 0;
-    switch (xvar) {
-      case X_INDEX : X = (double)(it - Runs.begin()); break;
-      case X_CORES : X = (double)it->TotalCores(); break;
-    }
-    double Y = 0;
-    switch (yvar) {
-      case Y_T_TOTAL : Y = it->TotalTime(); break;
-      case Y_T_TRAJREAD : Y = it->TrajReadTime(); break;
-      case Y_T_ACTFRAME : Y = it->ActionFrameTime(); break;
-    }
-    outset.AddXY(X, Y);
-    nameSet->Add(it - Runs.begin(), it->Name().c_str());
-    dirNameSet->Add(it - Runs.begin(), it->Filename().DirPrefix().c_str());
-    it->Print();
-  }
-*/
   return CpptrajState::OK;
 }
