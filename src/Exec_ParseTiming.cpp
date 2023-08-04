@@ -227,7 +227,7 @@ Exec_ParseTiming::RunTiming Exec_ParseTiming::read_cpptraj_output(std::string co
 void Exec_ParseTiming::Help() const
 {
   mprintf("\t<filename args> ... [sortby {time|cores}] [out <file>] [name <setname>]\n"
-          "\t[type {trajread|actframe}] [reverse]\n"
+          "\t[type {trajread|actframe}] [reverse] [groupout <file>]\n"
           "  Parse cpptraj output for timing data.\n"
          );
 }
@@ -351,6 +351,17 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
   if (outfile != 0)
     mprintf("\tOutput to file '%s'\n", outfile->DataFilename().full());
 
+  std::string groupOutArg = argIn.GetStringKey("groupout");
+  CpptrajFile* groupout = 0;
+  if (!groupOutArg.empty()) {
+    groupout = State.DFL().AddCpptrajFile(groupOutArg, "Timing by group", DataFileList::TEXT);
+    if (groupout == 0) {
+      mprinterr("Error: Could not add file '%s'\n", groupOutArg.c_str());
+      return CpptrajState::ERR;
+    }
+    mprintf("\tGroup output to '%s'\n", groupout->Filename().full());
+  }
+
   std::string dsname = argIn.GetStringKey("name");
   if (dsname.empty())
     dsname = State.DSL().GenerateDefaultName("TIMING");
@@ -436,30 +447,29 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
     std::reverse( Runs.begin(), Runs.end() );
 
   // Group runs - TODO use pointers?
-  CpptrajFile groupout;
-  groupout.OpenWrite("");
-  typedef std::map<std::string, RunArray> RunMap;
-  RunMap groupByPrefix;
-  for (RunArray::const_iterator it = Runs.begin(); it != Runs.end(); ++it)
-  {
-    RunMap::iterator jt = groupByPrefix.lower_bound( it->Prefix() );
-    if (jt == groupByPrefix.end() || jt->first != it->Prefix() )
+  if (groupout != 0) {
+    //groupout.OpenWrite("");
+    typedef std::map<std::string, RunArray> RunMap;
+    RunMap groupByPrefix;
+    for (RunArray::const_iterator it = Runs.begin(); it != Runs.end(); ++it)
     {
-      // New group
-      jt = groupByPrefix.insert( jt, std::pair<std::string,RunArray>( it->Prefix(), RunArray() ) );
+      RunMap::iterator jt = groupByPrefix.lower_bound( it->Prefix() );
+      if (jt == groupByPrefix.end() || jt->first != it->Prefix() )
+      {
+        // New group
+        jt = groupByPrefix.insert( jt, std::pair<std::string,RunArray>( it->Prefix(), RunArray() ) );
+      }
+      jt->second.push_back( *it );
     }
-    jt->second.push_back( *it );
+    mprintf("\tFound %zu groups.\n", groupByPrefix.size());
+    for (RunMap::const_iterator jt = groupByPrefix.begin(); jt != groupByPrefix.end(); ++jt)
+    {
+      groupout->Printf("#\t\t%s\n", jt->first.c_str());
+      write_to_file(*groupout, jt->second, xvar, yvar);
+      //for (RunArray::const_iterator it = jt->second.begin(); it != jt->second.end(); ++it)
+      //  mprintf("\t\t\t%s\n", it->Filename().DirPrefix().c_str());
+    }
   }
-  mprintf("\tFound %zu groups.\n", groupByPrefix.size());
-  for (RunMap::const_iterator jt = groupByPrefix.begin(); jt != groupByPrefix.end(); ++jt)
-  {
-    mprintf("\t\t%s\n", jt->first.c_str());
-    write_to_file(groupout, jt->second, xvar, yvar);
-    //for (RunArray::const_iterator it = jt->second.begin(); it != jt->second.end(); ++it)
-    //  mprintf("\t\t\t%s\n", it->Filename().DirPrefix().c_str());
-  }
-
-
 
   // Create DataSet
   if (create_output_set(Runs, State.DSL(), outfile, dsname, Xdim, xvar, yvar))
