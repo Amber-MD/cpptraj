@@ -223,14 +223,6 @@ Exec_ParseTiming::RunTiming Exec_ParseTiming::read_cpptraj_output(std::string co
   infile.CloseFile();
   return thisRun;
 }
-// Exec_ParseTiming::Help()
-void Exec_ParseTiming::Help() const
-{
-  mprintf("\t<filename args> ... [sortby {time|cores}] [out <file>] [name <setname>]\n"
-          "\t[type {trajread|actframe}] [reverse] [groupout <file>]\n"
-          "  Parse cpptraj output for timing data.\n"
-         );
-}
 
 /** Make an output data set for RunArray */
 int Exec_ParseTiming::create_output_set(RunArray const& Runs, DataSetList& DSL,
@@ -315,6 +307,16 @@ void Exec_ParseTiming::write_to_file(CpptrajFile& outfile, RunArray const& Runs,
   }
 }
 
+// Exec_ParseTiming::Help()
+void Exec_ParseTiming::Help() const
+{
+  mprintf("\t<filename args> ... [sortby {time|cores}] [out <file>] [name <setname>]\n"
+          "\t[type {trajread|actframe}] [reverse]\n"
+          "\t[groupout <file> [grouptype {prefix|name}]\n"
+          "  Parse cpptraj output for timing data.\n"
+         );
+}
+
 // Exec_ParseTiming::Execute()
 Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
 {
@@ -350,6 +352,7 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
 
   std::string groupOutArg = argIn.GetStringKey("groupout");
   CpptrajFile* groupout = 0;
+  GroupType groupOpt = GROUPBY_PREFIX;
   if (!groupOutArg.empty()) {
     groupout = State.DFL().AddCpptrajFile(groupOutArg, "Timing by group", DataFileList::TEXT);
     if (groupout == 0) {
@@ -357,6 +360,20 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
       return CpptrajState::ERR;
     }
     mprintf("\tGroup output to '%s'\n", groupout->Filename().full());
+    // NOTE: groupby is already a keyword for standard data file output
+    std::string grouptypeArg = argIn.GetStringKey("grouptype");
+    if (!grouptypeArg.empty()) {
+      if (grouptypeArg == "prefix")
+        groupOpt = GROUPBY_PREFIX;
+      else if (grouptypeArg == "name")
+        groupOpt = GROUPBY_NAME;
+      else {
+        mprinterr("Error: Unrecognized option for 'grouptype': %s\n", grouptypeArg.c_str());
+        return CpptrajState::ERR;
+      }
+    }
+    static const char* GroupTypeStr[] = { "directory prefix", "run type name" };
+    mprintf("\tGroup by %s\n", GroupTypeStr[groupOpt]);
   }
 
   std::string dsname = argIn.GetStringKey("name");
@@ -450,11 +467,16 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
     RunMap groupByPrefix;
     for (RunArray::const_iterator it = Runs.begin(); it != Runs.end(); ++it)
     {
-      RunMap::iterator jt = groupByPrefix.lower_bound( it->Prefix() );
-      if (jt == groupByPrefix.end() || jt->first != it->Prefix() )
+      std::string key;
+      switch (groupOpt) {
+        case GROUPBY_PREFIX : key = it->Prefix(); break;
+        case GROUPBY_NAME   : key = it->Name(); break;
+      }
+      RunMap::iterator jt = groupByPrefix.lower_bound( key );
+      if (jt == groupByPrefix.end() || jt->first != key )
       {
         // New group
-        jt = groupByPrefix.insert( jt, std::pair<std::string,RunArray>( it->Prefix(), RunArray() ) );
+        jt = groupByPrefix.insert( jt, std::pair<std::string,RunArray>( key, RunArray() ) );
       }
       jt->second.push_back( *it );
     }
