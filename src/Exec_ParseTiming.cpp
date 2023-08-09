@@ -21,12 +21,12 @@ class Exec_ParseTiming::RunTiming {
     /// CONSTRUCTOR - blank
     RunTiming() : version_major_(-1), version_minor_(-1), version_revision_(-1),
                   isMPI_(false), isOpenMP_(false), isCUDA_(false),
-                  nprocs_(-1), nthreads_(-1), t_total_(-1) {}
+                  nprocs_(-1), nthreads_(-1), t_total_(-1), t_traj_proc_(-1) {}
     /// CONSTRUCTOR - filename
     RunTiming(std::string const& name) : filename_(name),
                   version_major_(-1), version_minor_(-1), version_revision_(-1),
                   isMPI_(false), isOpenMP_(false), isCUDA_(false),
-                  nprocs_(-1), nthreads_(-1), t_total_(-1)
+                  nprocs_(-1), nthreads_(-1), t_total_(-1), t_traj_proc_(-1)
     {
       // Get directory prefix.
       std::string dirprefix( filename_.DirPrefix_NoSlash() );
@@ -53,10 +53,12 @@ class Exec_ParseTiming::RunTiming {
     void SetNprocs(int n) { nprocs_ = n; }
     void SetNthreads(int n) { nthreads_ = n; }
     void SetTotalTime(double t) { t_total_ = t; }
+    void SetTrajProcTime(double t) { t_traj_proc_ = t; }
     void AddTrajReadTime(double t) { t_traj_read_.push_back( t ); }
     void AddActionFrameTime(double t) { t_action_frame_.push_back( t ); }
 
     double TotalTime() const { return t_total_; }
+    double TrajProcTime() const { return t_traj_proc_; }
 
     double TrajReadTime() const {
       double t = 0;
@@ -165,6 +167,7 @@ class Exec_ParseTiming::RunTiming {
     int nprocs_;
     int nthreads_;
     double t_total_;
+    double t_traj_proc_; 
     Darray t_traj_read_;
     Darray t_action_frame_;
     std::string errMsg_;
@@ -211,6 +214,8 @@ Exec_ParseTiming::RunTiming Exec_ParseTiming::read_cpptraj_output(std::string co
         //timeArg.PrintDebug();
         if (timeArg.Nargs() == 6 && timeArg[1] == "Total" && timeArg[2] == "execution")
           thisRun.SetTotalTime( timeArg.getKeyDouble("time:", -1) );
+        else if (timeArg.Nargs() >= 6 && timeArg[1] == "Trajectory" && timeArg[2] == "Process")
+          thisRun.SetTrajProcTime( timeArg.getKeyDouble(":", -1) );
         else if (timeArg.Nargs() > 3 && timeArg[1] == "Trajectory" && timeArg[2] == "read:")
           thisRun.AddTrajReadTime( timeArg.getNextDouble(-1) );
         else if (timeArg.Nargs() > 4 && timeArg[1] == "Action" && timeArg[2] == "frame" && timeArg[3] == "processing:")
@@ -269,7 +274,8 @@ const
     }
     double Y = 0;
     switch (yvar) {
-      case Y_T_TOTAL : Y = it->TotalTime(); break;
+      case Y_T_TOTAL    : Y = it->TotalTime(); break;
+      case Y_T_TRAJPROC : Y = it->TrajProcTime(); break;
       case Y_T_TRAJREAD : Y = it->TrajReadTime(); break;
       case Y_T_ACTFRAME : Y = it->ActionFrameTime(); break;
     }
@@ -292,7 +298,8 @@ void Exec_ParseTiming::write_to_file(CpptrajFile& outfile, RunArray const& Runs,
     }
     double Y = 0;
     switch (yvar) {
-      case Y_T_TOTAL : Y = it->TotalTime(); break;
+      case Y_T_TOTAL    : Y = it->TotalTime(); break;
+      case Y_T_TRAJPROC : Y = it->TrajProcTime(); break;
       case Y_T_TRAJREAD : Y = it->TrajReadTime(); break;
       case Y_T_ACTFRAME : Y = it->ActionFrameTime(); break;
     }
@@ -311,7 +318,7 @@ void Exec_ParseTiming::write_to_file(CpptrajFile& outfile, RunArray const& Runs,
 void Exec_ParseTiming::Help() const
 {
   mprintf("\t<filename args> ... [sortby {time|cores}] [out <file>] [name <setname>]\n"
-          "\t[type {trajread|actframe}] [reverse]\n"
+          "\t[type {trajproc|trajread|actframe}] [reverse]\n"
           "\t[groupout <file> [grouptype {prefix|name}]\n"
           "  Parse cpptraj output for timing data.\n"
          );
@@ -398,6 +405,8 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
   std::string typearg = argIn.GetStringKey("type");
   if (typearg.empty())
     yvar = Y_T_TOTAL;
+  else if (typearg == "trajproc")
+    yvar = Y_T_TRAJPROC;
   else if (typearg == "trajread") {
     yvar = Y_T_TRAJREAD;
     needsDetailedTiming = true;
