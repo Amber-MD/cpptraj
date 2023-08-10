@@ -291,6 +291,7 @@ const
   return 0;
 }
 
+/** Write a run group to file. */
 void Exec_ParseTiming::write_to_file(CpptrajFile& outfile, RunArray const& Runs, Xtype xvar, Ytype yvar) const {
   double refy = 0;
   double refcores = 0;
@@ -312,9 +313,10 @@ void Exec_ParseTiming::write_to_file(CpptrajFile& outfile, RunArray const& Runs,
       refcores = (double)it->TotalCores();
     }
     double speedup = refy / Y;
-    double ideal_speedup = (double)it->TotalCores() / refcores;
+    int totalCores = it->TotalCores();
+    double ideal_speedup = (double)totalCores / refcores;
     double efficiency = speedup / ideal_speedup;
-    outfile.Printf("%12.4f %12.4f %6.2f %6.2f %6.2f %12s %s\n", X, Y, speedup, ideal_speedup, efficiency, it->Name().c_str(), it->Filename().DirPrefix().c_str());
+    outfile.Printf("%12.4f %12.4f %6.2f %6i %6.2f %12s %s\n", X, Y, speedup, totalCores, efficiency, it->Name().c_str(), it->Filename().DirPrefix().c_str());
   }
 }
 
