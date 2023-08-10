@@ -19,10 +19,12 @@ class Exec_ParseTiming : public Exec {
     // Groupo types. NOTE: Update GroupTypeStr in Exec_ParseTiming.cpp
     enum GroupType { GROUPBY_PREFIX = 0, GROUPBY_NAME, GROUPBY_KIND };
 
+    static inline double YVAL(Ytype, RunTiming const&);
+
     RunTiming read_cpptraj_output(std::string const&);
     int create_output_set(RunArray const&, DataSetList&, DataFile*,
                           std::string const&, Dimension const&,
                           Xtype, Ytype) const;
-    void write_to_file(CpptrajFile&, RunArray const&, Xtype, Ytype) const;
+    void write_to_file(CpptrajFile&, RunArray const&, Xtype, Ytype, double, double) const;
 };
 #endif

@@ -233,6 +233,19 @@ Exec_ParseTiming::RunTiming Exec_ParseTiming::read_cpptraj_output(std::string co
   return thisRun;
 }
 
+/** \return Y value according to yvar */
+double Exec_ParseTiming::YVAL(Ytype yvar, RunTiming const& run)
+{
+  double Y = 0;
+  switch (yvar) {
+    case Y_T_TOTAL    : Y = run.TotalTime(); break;
+    case Y_T_TRAJPROC : Y = run.TrajProcTime(); break;
+    case Y_T_TRAJREAD : Y = run.TrajReadTime(); break;
+    case Y_T_ACTFRAME : Y = run.ActionFrameTime(); break;
+  }
+  return Y;
+}
+
 /** Make an output data set for RunArray */
 int Exec_ParseTiming::create_output_set(RunArray const& Runs, DataSetList& DSL,
                                         DataFile* outfile, std::string const& dsname,
@@ -276,13 +289,8 @@ const
       case X_INDEX : X = (double)(it - Runs.begin()); break;
       case X_CORES : X = (double)it->TotalCores(); break;
     }
-    double Y = 0;
-    switch (yvar) {
-      case Y_T_TOTAL    : Y = it->TotalTime(); break;
-      case Y_T_TRAJPROC : Y = it->TrajProcTime(); break;
-      case Y_T_TRAJREAD : Y = it->TrajReadTime(); break;
-      case Y_T_ACTFRAME : Y = it->ActionFrameTime(); break;
-    }
+    double Y = YVAL( yvar, *it );
+
     outset.AddXY(X, Y);
     nameSet->Add(it - Runs.begin(), it->Name().c_str());
     dirNameSet->Add(it - Runs.begin(), it->Filename().DirPrefix().c_str());
@@ -292,26 +300,24 @@ const
 }
 
 /** Write a run group to file. */
-void Exec_ParseTiming::write_to_file(CpptrajFile& outfile, RunArray const& Runs, Xtype xvar, Ytype yvar) const {
-  double refy = 0;
-  double refcores = 0;
+void Exec_ParseTiming::write_to_file(CpptrajFile& outfile, RunArray const& Runs, Xtype xvar, Ytype yvar,
+                                     double refy, double refcores)
+const
+{
+  //double refy = 0;
+  //double refcores = 0;
   for (RunArray::const_iterator it = Runs.begin(); it != Runs.end(); ++it) {
     double X = 0;
     switch (xvar) {
       case X_INDEX : X = (double)(it - Runs.begin()); break;
       case X_CORES : X = (double)it->TotalCores(); break;
     }
-    double Y = 0;
-    switch (yvar) {
-      case Y_T_TOTAL    : Y = it->TotalTime(); break;
-      case Y_T_TRAJPROC : Y = it->TrajProcTime(); break;
-      case Y_T_TRAJREAD : Y = it->TrajReadTime(); break;
-      case Y_T_ACTFRAME : Y = it->ActionFrameTime(); break;
-    }
-    if (it == Runs.begin()) {
-      refy = Y;
-      refcores = (double)it->TotalCores();
-    }
+    double Y = YVAL( yvar, *it );
+    
+    //if (it == Runs.begin()) {
+    //  refy = Y;
+    //  refcores = (double)it->TotalCores();
+    //}
     double speedup = refy / Y;
     int totalCores = it->TotalCores();
     double ideal_speedup = (double)totalCores / refcores;
@@ -482,8 +488,18 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
     //groupout.OpenWrite("");
     typedef std::map<std::string, RunArray> RunMap;
     RunMap groupByPrefix;
+    // Reference Y for speedup will be the largest Y
+    double refY = 0;
+    double refCores = 0;
     for (RunArray::const_iterator it = Runs.begin(); it != Runs.end(); ++it)
     {
+      // Determine reference
+      double runY = YVAL(yvar, *it);
+      if (runY > refY) {
+        refY = runY;
+        refCores = (double)it->TotalCores();
+      }
+      // Insert into map by desired group type
       std::string key;
       switch (groupOpt) {
         case GROUPBY_PREFIX : key = it->Prefix(); break;
@@ -506,7 +522,7 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
     for (RunMap::const_iterator jt = groupByPrefix.begin(); jt != groupByPrefix.end(); ++jt)
     {
       groupout->Printf("#\t\t%s\n", jt->first.c_str());
-      write_to_file(*groupout, jt->second, xvar, yvar);
+      write_to_file(*groupout, jt->second, xvar, yvar, refY, refCores);
       //for (RunArray::const_iterator it = jt->second.begin(); it != jt->second.end(); ++it)
       //  mprintf("\t\t\t%s\n", it->Filename().DirPrefix().c_str());
     }
