@@ -100,7 +100,10 @@ class Exec_ParseTiming::RunTiming {
         out.assign("O" + integerToString(nthreads_));
       else
         out.assign("S");
-      if (isCUDA_) out.append("(C)");
+      if (isCUDA_) {
+        std::string tmp = out;
+        out.assign( "G(" + tmp + ")" );
+      }
       return out;
     }
 
