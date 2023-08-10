@@ -57,6 +57,7 @@ class Exec_ParseTiming::RunTiming {
     void AddTrajReadTime(double t) { t_traj_read_.push_back( t ); }
     void AddActionFrameTime(double t) { t_action_frame_.push_back( t ); }
 
+    int Nthreads() const { return nthreads_; }
     double TotalTime() const { return t_total_; }
     double TrajProcTime() const { return t_traj_proc_; }
 
@@ -485,7 +486,11 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
       switch (groupOpt) {
         case GROUPBY_PREFIX : key = it->Prefix(); break;
         case GROUPBY_NAME   : key = it->Name(); break;
-        case GROUPBY_KIND   : key = it->Name()[0]; break;
+        case GROUPBY_KIND   :
+          key = it->Name()[0];
+          if (key[0] == 'H')
+            key.append(integerToString(it->Nthreads())); 
+          break;
       }
       RunMap::iterator jt = groupByPrefix.lower_bound( key );
       if (jt == groupByPrefix.end() || jt->first != key )
