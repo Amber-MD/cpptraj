@@ -16,8 +16,8 @@ class Exec_ParseTiming : public Exec {
     // Which variables to plot
     enum Xtype { X_INDEX=0, X_CORES };
     enum Ytype { Y_T_TOTAL=0, Y_T_TRAJPROC, Y_T_TRAJREAD, Y_T_ACTFRAME };
-    // Groupo types
-    enum GroupType { GROUPBY_PREFIX = 0, GROUPBY_NAME };
+    // Groupo types. NOTE: Update GroupTypeStr in Exec_ParseTiming.cpp
+    enum GroupType { GROUPBY_PREFIX = 0, GROUPBY_NAME, GROUPBY_KIND };
 
     RunTiming read_cpptraj_output(std::string const&);
     int create_output_set(RunArray const&, DataSetList&, DataFile*,

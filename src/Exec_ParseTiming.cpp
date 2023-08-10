@@ -322,7 +322,7 @@ void Exec_ParseTiming::Help() const
 {
   mprintf("\t<filename args> ... [sortby {time|cores}] [out <file>] [name <setname>]\n"
           "\t[type {trajproc|trajread|actframe}] [reverse]\n"
-          "\t[groupout <file> [grouptype {prefix|name}]\n"
+          "\t[groupout <file> [grouptype {prefix|name|kind}]\n"
           "  Parse cpptraj output for timing data.\n"
          );
 }
@@ -377,12 +377,14 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
         groupOpt = GROUPBY_PREFIX;
       else if (grouptypeArg == "name")
         groupOpt = GROUPBY_NAME;
+      else if (grouptypeArg == "kind")
+        groupOpt = GROUPBY_KIND;
       else {
         mprinterr("Error: Unrecognized option for 'grouptype': %s\n", grouptypeArg.c_str());
         return CpptrajState::ERR;
       }
     }
-    static const char* GroupTypeStr[] = { "directory prefix", "run type name" };
+    static const char* GroupTypeStr[] = { "directory prefix", "run type name", "run kind" };
     mprintf("\tGroup by %s\n", GroupTypeStr[groupOpt]);
   }
 
@@ -483,6 +485,7 @@ Exec::RetType Exec_ParseTiming::Execute(CpptrajState& State, ArgList& argIn)
       switch (groupOpt) {
         case GROUPBY_PREFIX : key = it->Prefix(); break;
         case GROUPBY_NAME   : key = it->Name(); break;
+        case GROUPBY_KIND   : key = it->Name()[0]; break;
       }
       RunMap::iterator jt = groupByPrefix.lower_bound( key );
       if (jt == groupByPrefix.end() || jt->first != key )
