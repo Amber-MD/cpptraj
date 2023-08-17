@@ -148,7 +148,8 @@ jobs:
         echo $CONDA/bin >> $GITHUB_PATH
     - name: Install conda packages
       run: |
-        conda install setuptools cython numpy pytest mock curl python=3.8 --name base 
+        git clone https://github.com/Amber-MD/pytraj.git
+        conda env update --file pytraj/environment.yml --name base
     - name: Install cpptraj
       run: |
         export PATH=$HOME/bin:${PATH}
@@ -158,7 +159,6 @@ jobs:
         make -j2 libcpptraj
     - name: Install pytraj
       run: |        
-        git clone https://github.com/Amber-MD/pytraj.git
         source cpptraj.sh
         cd pytraj
         python setup.py install
