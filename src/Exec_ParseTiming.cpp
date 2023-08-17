@@ -329,9 +329,10 @@ const
 // Exec_ParseTiming::Help()
 void Exec_ParseTiming::Help() const
 {
-  mprintf("\t<filename args> ... [sortby {time|cores}] [out <file>] [name <setname>]\n"
+  mprintf("\t<filename args> ... [out <file>] [name <setname>]\n"
+          "\t[sortby {time|cores|filename}] [includebad]\n"
           "\t[type {trajproc|trajread|actframe}] [reverse]\n"
-          "\t[groupout <file> [grouptype {prefix|name|kind}]\n"
+          "\t[groupout <file> [grouptype {prefix|name|kind}]]\n"
           "  Parse cpptraj output for timing data.\n"
          );
 }
