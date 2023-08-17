@@ -90,6 +90,12 @@ class Exec_ParseTiming::RunTiming {
 
     FileName const& Filename() const { return filename_; }
     std::string const& Prefix() const { return prefix_; }
+    std::string const& Directory() const {
+      if (filename_.DirPrefix().empty())
+        return filename_.Full();
+      else
+        return filename_.DirPrefix();
+    }
 
     std::string Name() const {
       std::string out;
@@ -301,7 +307,7 @@ const
 
     outset.AddXY(X, Y);
     nameSet->Add(it - Runs.begin(), it->Name().c_str());
-    dirNameSet->Add(it - Runs.begin(), it->Filename().DirPrefix().c_str());
+    dirNameSet->Add(it - Runs.begin(), it->Directory().c_str());
     //it->Print();
   }
   return 0;
@@ -330,7 +336,7 @@ const
     int totalCores = it->TotalCores();
     double ideal_speedup = (double)totalCores / refcores;
     double efficiency = speedup / ideal_speedup;
-    outfile.Printf("%12.4f %12.4f %6.2f %6i %6.2f %12s %s\n", X, Y, speedup, totalCores, efficiency, it->Name().c_str(), it->Filename().DirPrefix().c_str());
+    outfile.Printf("%12.4f %12.4f %6.2f %6i %6.2f %12s %s\n", X, Y, speedup, totalCores, efficiency, it->Name().c_str(), it->Directory().c_str());
   }
 }
 
