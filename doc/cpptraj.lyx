@@ -8341,7 +8341,7 @@ The following general commands are available:
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="34" columns="2">
+<lyxtabular version="3" rows="35" columns="2">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top">
 <column alignment="center" valignment="top">
@@ -8725,6 +8725,26 @@ parallelanalysis
 
 \begin_layout Plain Layout
 (MPI only) Divide current Analyses among MPI processes.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+parsedata
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Parse timing data from CPPTRAJ output.
 \end_layout
 
 \end_inset
@@ -11453,6 +11473,175 @@ noprefix "false"
 \end_inset
 
 .
+\end_layout
+
+\begin_layout Subsection
+parsedata
+\end_layout
+
+\begin_layout LyX-Code
+parsetiming <filename args> ...
+ [out <file>] [name <setname>]
+\end_layout
+
+\begin_layout LyX-Code
+        	[sortby {time|cores|filename}] [includebad] [showdetails]
+\end_layout
+
+\begin_layout LyX-Code
+        	[type {trajproc|trajread|actframe}] [reverse]
+\end_layout
+
+\begin_layout LyX-Code
+        	[groupout <file> [grouptype {prefix|name|kind}]]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+<filename
+\begin_inset space ~
+\end_inset
+
+args> Files containing CPPTRAJ output to get timing data from.
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<file>] Write total sorted timing sets to <file>.
+\end_layout
+
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<setname>] Set name for timing data sets.
+\end_layout
+
+\begin_layout Description
+[sortby
+\begin_inset space ~
+\end_inset
+
+{time|cores|filename}] Sort timing data sets by either time, number of cores
+ (MPI processes * OpenMP threads), or file name.
+\end_layout
+
+\begin_layout Description
+[includebad] If specified, include run output for which timing data cannot
+ be extracted (e.g.
+ an incomplete/failed run).
+\end_layout
+
+\begin_layout Description
+[showdetails] If specified, details about each run will be printed to STDOUT.
+\end_layout
+
+\begin_layout Description
+[type
+\begin_inset space ~
+\end_inset
+
+{trajproc|trajread|actframe} If specified, report time other than the total
+ time (which is the default):
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+trajproc Total trajectory processing time (trajectory I/O plus action frame
+ time).
+\end_layout
+
+\begin_layout Description
+trajread Trajectory read time (requires compiling with '-timer' configure
+ option/-DTIMER compiler define).
+\end_layout
+
+\begin_layout Description
+actframe Action frame time (requires compiling with '-timer' configure option/-D
+TIMER compiler define).
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[reverse] Instead of longest time to shortest time, sort shortest time to
+ longest time.
+\end_layout
+
+\begin_layout Description
+[groupout
+\begin_inset space ~
+\end_inset
+
+<file>] Group run output by a property and write to a file.
+ Additional details will be written like speedup and efficiency (relative
+ to the slowest run).
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[grouptype
+\begin_inset space ~
+\end_inset
+
+{prefix|name|kind}] Property to group runs by in group output file.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+prefix Group by directory prefix.
+\end_layout
+
+\begin_layout Description
+name Group by run type name (see 
+\emph on
+<setname>[name]
+\emph default
+ below).
+\end_layout
+
+\begin_layout Description
+kind Group by run type name; OpenMP runs are separated by number of OpenMP
+ threads.
+\end_layout
+
+\end_deeper
+\end_deeper
+\begin_layout Standard
+DataSets Created:
+\end_layout
+
+\begin_layout Description
+<setname> Set containing sorted run times.
+\end_layout
+
+\begin_layout Description
+<setname>[name] Set containing shortedhand run names.
+ Consists of a prefix (S for serial, O for OpenMP, M for MPI, H for hybrid
+ MPI/OpenMP) followed by numbers indicating number of MPI processes 'x'
+ OpenMP threads; e.g., H16x4 means a hybrid run consisting of 16 MPI processes
+ and 4 OpenMP threads per process.
+ If CUDA is active, the name will be wrapped in 'G()', e.g.
+ G(H16x4).
+\end_layout
+
+\begin_layout Description
+<setname>[dir] Set containing output directory prefixes.
+ If no directory prefix, just contains output file name.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+The 
+\series bold
+\emph on
+parsedata
+\series default
+\emph default
+ command can be used to extract timing data from CPPTRAJ output.
 \end_layout
 
 \begin_layout Subsection
