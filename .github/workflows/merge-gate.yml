@@ -162,4 +162,4 @@ jobs:
         cd ..
     - name: Test with pytest
       run: |
-        source cpptraj.sh && cd pytraj/tests && pytest -vs --ignore=test_parallel_pmap
+        source cpptraj.sh && cd pytraj/tests && python -m pytest -vs --ignore=test_parallel_pmap
