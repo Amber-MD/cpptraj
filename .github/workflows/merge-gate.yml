@@ -148,7 +148,7 @@ jobs:
         echo $CONDA/bin >> $GITHUB_PATH
     - name: Install conda packages
       run: |
-        conda install setuptools cython numpy pytest mock curl --name base 
+        conda install setuptools cython numpy pytest mock curl python=3.8 --name base 
     - name: Install cpptraj
       run: |
         export PATH=$HOME/bin:${PATH}
