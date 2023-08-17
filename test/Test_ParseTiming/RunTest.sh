@@ -10,7 +10,7 @@ INPUT='-i parse.in'
 
 UNITNAME='Parse timing test'
 cat > parse.in <<EOF
-parsetiming hpod*.out sortby time out parse.dat includebad groupout parse.out grouptype kind showdetails
+parsetiming hpod*.out sortby time out parse.dat includebad groupout parse.out grouptype kind showdetails name Run
 list
 EOF
 RunCpptraj "$UNITNAME"
