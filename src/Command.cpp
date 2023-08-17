@@ -237,7 +237,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_NoExitOnError(),   Cmd::EXE, 1, "noexitonerror" );
   Command::AddCmd( new Exec_NoProgress(),      Cmd::EXE, 1, "noprogress" );
   Command::AddCmd( new Exec_ParallelAnalysis(),Cmd::EXE, 1, "parallelanalysis" );
-  Command::AddCmd( new Exec_ParseTiming(),     Cmd::EXE, 1, "parsetiming" ); // hidden
+  Command::AddCmd( new Exec_ParseTiming(),     Cmd::EXE, 1, "parsetiming" );
   Command::AddCmd( new Exec_Precision(),       Cmd::EXE, 1, "precision" );
   Command::AddCmd( new Exec_PrintData(),       Cmd::EXE, 1, "printdata" );
   Command::AddCmd( new Exec_QuietBlocks(),     Cmd::EXE, 1, "quietblocks" );

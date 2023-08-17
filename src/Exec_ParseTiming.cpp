@@ -11,7 +11,6 @@
 Exec_ParseTiming::Exec_ParseTiming() :
   Exec(GENERAL)
 {
-  SetHidden( true );
 }
 
 // -----------------------------------------------------------------------------
