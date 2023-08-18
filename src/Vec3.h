@@ -94,6 +94,10 @@ class Vec3 {
                    (V_[2]*rhs.V_[0]) - (V_[0]*rhs.V_[2]),   // UZVX+UXVZ
                    (V_[0]*rhs.V_[1]) - (V_[1]*rhs.V_[0]) ); // UXVY+UYVX
     }
+    /// \return New vector with each element squared
+    Vec3 Squared() const {
+      return Vec3(V_[0]*V_[0], V_[1]*V_[1], V_[2]*V_[2]);
+    }
     // TODO: Make const ref only?
     double  operator[](int idx) const { return V_[idx]; }
     double& operator[](int idx)       { return V_[idx]; }

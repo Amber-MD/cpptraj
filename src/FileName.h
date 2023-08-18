@@ -28,15 +28,28 @@ class FileName {
     void clear();
     /// \return true if string matches full or base file name.
     bool MatchFullOrBase(std::string const&) const;
-
+    /// \return the full file path
     const std::string& Full()      const { return fullPathName_;         }
+    /// \return only the base file name
     const std::string& Base()      const { return baseName_;             }
+    /// \return only the base file name extension
     const std::string& Ext()       const { return extension_;            }
+    /// \return the full file path (const char*)
     const char* full()             const { return fullPathName_.c_str(); }
+    /// \return only the base file name (const char*)
     const char* base()             const { return baseName_.c_str();     }
+    /// \return only the base file name extension (const char*)
     const char* ext()              const { return extension_.c_str();    }
+    /// \return Recognized compression extension if present
     const std::string& Compress()  const { return compressExt_;          }
+    /// \return the directory prefix, including the trailing slash
     const std::string& DirPrefix() const { return dirPrefix_;            }
+    /// \return the directory prefix, no trailing slash
+    std::string DirPrefix_NoSlash() const {
+      if (dirPrefix_.empty()) return dirPrefix_;
+      return dirPrefix_.substr(0, dirPrefix_.size()-1);
+    }
+    /// \return true if the file name is not set
     bool empty()                   const { return fullPathName_.empty(); }
   private:
     std::string fullPathName_;

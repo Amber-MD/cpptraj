@@ -39,6 +39,7 @@
 #include "Exec_Show.h"
 #include "Exec_Random.h"
 #include "Exec_CompareClusters.h"
+#include "Exec_ParseTiming.h"
 // ----- SYSTEM ----------------------------------------------------------------
 #include "Exec_System.h"
 // ----- COORDS ----------------------------------------------------------------
@@ -199,6 +200,7 @@
 #include "Analysis_HausdorffDistance.h"
 #include "Analysis_Slope.h"
 #include "Analysis_EvalPlateau.h"
+#include "Analysis_TICA.h"
 #include "Analysis_CalcDiffusion.h"
 
 CmdList Command::commands_ = CmdList();
@@ -235,6 +237,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_NoExitOnError(),   Cmd::EXE, 1, "noexitonerror" );
   Command::AddCmd( new Exec_NoProgress(),      Cmd::EXE, 1, "noprogress" );
   Command::AddCmd( new Exec_ParallelAnalysis(),Cmd::EXE, 1, "parallelanalysis" );
+  Command::AddCmd( new Exec_ParseTiming(),     Cmd::EXE, 1, "parsetiming" );
   Command::AddCmd( new Exec_Precision(),       Cmd::EXE, 1, "precision" );
   Command::AddCmd( new Exec_PrintData(),       Cmd::EXE, 1, "printdata" );
   Command::AddCmd( new Exec_QuietBlocks(),     Cmd::EXE, 1, "quietblocks" );
@@ -432,6 +435,7 @@ void Command::Init() {
   Command::AddCmd( new Analysis_Spline(),      Cmd::ANA, 1, "spline" );
   Command::AddCmd( new Analysis_Statistics(),  Cmd::ANA, 2, "stat", "statistics" );
   Command::AddCmd( new Analysis_TI(),          Cmd::ANA, 1, "ti" );
+  Command::AddCmd( new Analysis_TICA(),        Cmd::ANA, 1, "tica" ); // hidden
   Command::AddCmd( new Analysis_Timecorr(),    Cmd::ANA, 1, "timecorr" );
   Command::AddCmd( new Analysis_VectorMath(),  Cmd::ANA, 1, "vectormath" );
   Command::AddCmd( new Analysis_Wavelet(),     Cmd::ANA, 1, "wavelet" );
