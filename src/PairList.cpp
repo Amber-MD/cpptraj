@@ -5,6 +5,7 @@
 #include "StringRoutines.h" // ByteString()
 #include "Frame.h"
 #include "AtomMask.h"
+//#incl ude "Matrix.h" // DEBUG
 
 PairList::PairList() :
   cutList_(0.0),
@@ -88,6 +89,8 @@ int PairList::CreatePairList(Frame const& frmIn, Matrix_3x3 const& ucell,
     mprintf("Warning: %i atoms are off the grid. This usually indicates corrupted coordinates.\n",
             nOffGrid);
   t_map_.Stop();
+  // DEBUG
+  if (debug_ > 1) PrintCells();
   t_total_.Stop();
   return nOffGrid;
 }
@@ -99,8 +102,7 @@ int PairList::GridAtom(int atomIdx, Vec3 const& frac, Vec3 const& cart) {
   int i3 = (int)((frac[2]) * (double)nGridZ_);
   int idx = (i3*nGridX_*nGridY_)+(i2*nGridX_)+i1;
 # ifdef DEBUG_PAIRLIST
-  mprintf("GRID2 atom assigned to cell %6i%6i%10.5f%10.5f%10.5f\n",
-          atomIdx+1, idx+1, frac[0], frac[1], frac[2]);
+  mprintf("DBGPL: Atom %6i assigned to cell %6i %10.5f%10.5f%10.5f\n", atomIdx+1, idx, frac[0], frac[1], frac[2]);
 # endif
   if (idx < 0 || idx >= (int)cells_.size()) {
     // This can happen for e.g. NaN coords
@@ -229,13 +231,6 @@ int PairList::SetupGrids(Vec3 const& recipLengths) {
   return 0;
 }
 
-static inline void CheckOffset(int nGrid, int& offset, char dir) {
-  if ((nGrid+1) / 2 <= offset) {
-    offset = std::max((nGrid / 2) - 1, 1);
-    mprintf("Warning: %c cell offset reset to %i\n", dir, offset);
-  }
-}
-
 /** Calculate all of the forward neighbors for each grid cell and if
   * needed which translate vector is appropriate.
   * +X: need self and offsetX cells to the "right".
@@ -247,18 +242,18 @@ static inline void CheckOffset(int nGrid, int& offset, char dir) {
   * care about forward direction.
   */
 void PairList::CalcGridPointers(int myindexlo, int myindexhi) {
-  //Matrix<bool> PairCalcd;
-  //PairCalcd.resize(nGridMax_, 0); // Half matrix
-  //std::fill(PairCalcd.begin(), PairCalcd.end(), false);
+  // DEBUG - Check for duplicated interactions
+/*  Matrix<int> PairCalcd;
+  PairCalcd.resize(cells_.size(), 0); // Half matrix
+  std::fill(PairCalcd.begin(), PairCalcd.end(), -1);*/
+  // END DEBUG
   //  int idx = (i3*nGridX_*nGridY_)+(i2*nGridX_)+i1;
-  int offsetX = cellOffset_;
-  int offsetY = cellOffset_;
-  int offsetZ = cellOffset_;
-  // Check the cell offsets. If they are too big comared to the grid
-  // size we will end up calculating too many values.
-  CheckOffset(nGridX_, offsetX, 'X');
-  CheckOffset(nGridY_, offsetY, 'Y');
-  CheckOffset(nGridZ_, offsetZ, 'Z');
+  const int offsetX = cellOffset_;
+  const int offsetY = cellOffset_;
+  const int offsetZ = cellOffset_;
+  // Cells that are "wrapped" are not equivalent to the unwrapped version.
+  // Consequently even if we have a relatively small cell, we need to check
+  // both wrapped and unwrapped neighbors.
 
   int NP_ = 0;
   int nGridXY = nGridX_ * nGridY_;
@@ -384,16 +379,20 @@ void PairList::CalcGridPointers(int myindexlo, int myindexhi) {
           //  mprinterr("Error: You overflowed! (%i)\n", NP);
           //  return;
           //}
-//          mprintf("Grid %3i%3i%3i (%i): %zu neighbors\n", nx,ny,nz, idx, Nbr.size());
-//          for (unsigned int i = 0; i != Nbr.size(); i++)
-//            mprintf("\t%i [%i]\n", Nbr[i], Ntr[i]);
-          //mprintf("\n");
-/*          for (unsigned int i = 0; i != Nbr.size(); i++) {
-            if (PairCalcd.element(idx,Nbr[i]))
+          // DEBUG - Check for duplicated interactions
+/*
+          mprintf("Grid %3i%3i%3i (%i): %zu neighbors\n", nx,ny,nz, idx, Nbr.size());
+          for (unsigned int i = 0; i != Nbr.size(); i++)
+            mprintf("\t%4i [%i]\n", Nbr[i], Ntr[i]);
+          mprintf("\n");
+          for (unsigned int i = 0; i != Nbr.size(); i++) {
+            if (PairCalcd.element(idx,Nbr[i]) != -1 && PairCalcd.element(idx,Nbr[i]) == Ntr[i])
               mprintf("Warning: Interaction %i %i already calcd.\n", idx, Nbr[i]);
             else
-              PairCalcd.setElement(idx,Nbr[i], true);
-          }*/
+              PairCalcd.setElement(idx,Nbr[i], Ntr[i]);
+          }
+*/
+          // END DEBUG
         } // END my cell
       } // nx
     } // ny
@@ -414,4 +413,16 @@ void PairList::PrintMemory() const {
     total += cell->MemSize();
   total += ((Frac_.size() * sizeof(Vec3)) + sizeof(Varray));
   mprintf("\tTotal Grid memory: %s\n", ByteString(total, BYTE_DECIMAL).c_str());
+}
+
+void PairList::PrintCells() const {
+  for (Carray::const_iterator cell = cells_.begin(); cell != cells_.end(); ++cell) {
+    if (cell->NatomsInGrid() > 0) {
+      mprintf("DEBUG: Cell %8li atoms:", cell - cells_.begin());
+      for (CellType::const_iterator atm = cell->begin(); atm != cell->end(); ++atm) {
+        mprintf(" %i", atm->Idx()+1);
+      }
+      mprintf("\n");
+  }
+  }
 }

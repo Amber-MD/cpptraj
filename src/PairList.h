@@ -78,6 +78,8 @@ class PairList {
     void Timing(double, int) const;
     /// Print memory usage.
     void PrintMemory() const;
+    /// Print cells to stdout
+    void PrintCells() const;
     /// \return Number of grid cells.
     int NGridMax()                const { return (int)cells_.size(); }
     /// \return Specified grid cell.

@@ -6,6 +6,14 @@ CleanFiles ene.in Esander.dat force.nc Edpdp.dat CpptrajEsander.parm7 NoWat.dat
 TESTNAME='SANDER energy tests (long)'
 Requires sanderlib netcdf long
 
+# Set to 1 if compiled with -DCPPTRAJ_ESANDER_ENERGY_ORDER
+NEWORDER=0
+if [ $NEWORDER -eq 1 ] ; then
+  SAVEPREFIX='neworder.'
+else
+  SAVEPREFIX=''
+fi
+
 INPUT="-i ene.in"
 
 TestPME() {
@@ -19,7 +27,7 @@ esander S out Esander.dat saveforces
 trajout force.nc
 EOF
     RunCpptraj "$UNITNAME"
-    DoTest Esander.dat.save Esander.dat
+    DoTest "$SAVEPREFIX"Esander.dat.save Esander.dat
     NcTest force.nc.save force.nc -a 0.000001
   fi
 }
@@ -31,7 +39,7 @@ trajin ../DPDP.nc
 esander DPDP out Edpdp.dat gbsa 1
 EOF
   RunCpptraj "SANDER energy test, GB."
-  DoTest Edpdp.dat.save Edpdp.dat
+  DoTest "$SAVEPREFIX"Edpdp.dat.save Edpdp.dat
 }
 
 TestStrip() {
@@ -45,7 +53,7 @@ strip :WAT
 esander NoWat out NoWat.dat
 EOF
     RunCpptraj "$UNITNAME"
-    DoTest NoWat.dat.save NoWat.dat
+    DoTest "$SAVEPREFIX"NoWat.dat.save NoWat.dat
   fi
 }
 

@@ -162,10 +162,11 @@ int PotentialTerm_OpenMM::SetupTerm(Topology const& topIn, Box const& boxIn,
   return err;
 }
 
-/** Calculate force from OpenMM */
-void PotentialTerm_OpenMM::CalcForce(Frame& frameIn, CharMask const& maskIn) const
+#ifdef HAS_OPENMM
+/** Update unit cell information, set positions in nm. */
+void PotentialTerm_OpenMM::set_from_frame(Frame const& frameIn, CharMask const& maskIn)
+const
 {
-# ifdef HAS_OPENMM
   // Update box
   if (frameIn.BoxCrd().HasBox()) {
     Matrix_3x3 ucell = frameIn.BoxCrd().UnitCell() * OpenMM::NmPerAngstrom;
@@ -186,6 +187,29 @@ void PotentialTerm_OpenMM::CalcForce(Frame& frameIn, CharMask const& maskIn) con
     }
   }
   context_->setPositions(posInNm);
+}
+#endif
+
+/** Calculate energy from OpenMM */
+void PotentialTerm_OpenMM::CalcEnergy(Frame const& frameIn, CharMask const& maskIn) const
+{
+# ifdef HAS_OPENMM
+  // Update box, set positions
+  set_from_frame(frameIn, maskIn);
+  // Do a single minimization step, get results
+  const OpenMM::State state = context_->getState(OpenMM::State::Energy, true);
+  // Convert to kcal/mol from kJ/mol
+  *ene_ = state.getPotentialEnergy() * Constants::J_TO_CAL;
+# endif
+  return;
+}
+
+/** Calculate force from OpenMM */
+void PotentialTerm_OpenMM::CalcForce(Frame& frameIn, CharMask const& maskIn) const
+{
+# ifdef HAS_OPENMM
+  // Update box, set positions
+  set_from_frame(frameIn, maskIn);
   // Do a single minimization step
   //OpenMM::LocalEnergyMinimizer min;
   //min.minimize(*context_, 10.0, 1);

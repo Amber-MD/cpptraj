@@ -139,9 +139,9 @@ jobs:
         sudo apt-get install cmake-data cmake    
     - uses: actions/checkout@v3
     - name: Set up Python 3.8
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
       with:
-        python-version: 3.8
+        python-version: '3.8'
     - name: Add conda to system path
       run: |
         # $CONDA is an environment variable pointing to the root of the miniconda directory
@@ -153,6 +153,7 @@ jobs:
       run: |
         export PATH=$HOME/bin:${PATH}
         export LD_LIBRARY_PATH=$HOME/lib:${LD_LIBRARY_PATH}
+        export MAKE_COMMAND="make -j2"
         ./configure --buildlibs -openmp -shared gnu
         source cpptraj.sh
         make -j2 libcpptraj

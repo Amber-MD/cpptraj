@@ -484,6 +484,20 @@ int Frame::SetupFrameFromMask(AtomMask const& maskIn, std::vector<Atom> const& a
   return 0; 
 }
 
+/** Set up frame to hold # selected atoms in given mask based on
+  * given array of atoms and coordinate info.
+  */
+int Frame::SetupFrameFromMask(AtomMask const& maskIn, std::vector<Atom> const& atoms,
+                              CoordinateInfo const& cinfo)
+{
+  setupFrame( maskIn.Nselected(), cinfo );
+  Mass_.clear();
+  Mass_.reserve( maskIn.Nselected() );
+  for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom) 
+    Mass_.push_back( atoms[ *atom ].Mass() );
+  return 0;
+}
+
 // ---------- FRAME Add/remove components --------------------------------------
 int Frame::AddVelocities(Darray const& vIn) {
   if ((int)vIn.size() != ncoord_) {

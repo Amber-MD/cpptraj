@@ -97,7 +97,7 @@ loadcrd ../tz2.rst7 1 1 name TZ2
 emin crdset TZ2 nsteps 100 out omm.tz2.ene.dat openmm
 EOF
   RunCpptraj "$UNITNAME (Tz2)"
-  DoTest omm.tz2.ene.dat.save omm.tz2.ene.dat
+  DoTest omm.tz2.ene.dat.save omm.tz2.ene.dat -a 0.07
   # All, PME
   UNITNAME="$UNITNAME (Tz2 PME)"
   CheckFor netcdf

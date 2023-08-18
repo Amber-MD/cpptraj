@@ -1,0 +1,129 @@
+JobID: 19615041
+NodeList: p13n1
+SLURM_NODELIST=p13n1
+SLURM_JOB_NAME=t.gcc_8.2-cuda_11.8.0-mvapich2_2.3.7.hpod13-n.4-N.1-c.4
+SLURMD_NODENAME=p13n1
+SLURM_TOPOLOGY_ADDR=p13n1
+SLURM_PRIO_PROCESS=0
+SLURM_NODE_ALIASES=(null)
+SLURM_JOB_QOS=normal
+SLURM_TOPOLOGY_ADDR_PATTERN=node
+SLURM_NNODES=1
+SLURM_JOBID=19615041
+SLURM_NTASKS=4
+SLURM_TASKS_PER_NODE=4
+SLURM_WORKING_CLUSTER=lobos:slurmctl:6817:9728:109
+SLURM_CONF=/usr/local/slurm-22.05.8/etc/slurm.conf
+SLURM_JOB_ID=19615041
+SLURM_CPUS_PER_TASK=4
+SLURM_JOB_USER=droe
+SLURM_JOB_UID=27798
+SLURM_NODEID=0
+SLURM_SUBMIT_DIR=/u/droe/Benchmarks/Cpptraj_calcdiffusion/Cpptraj_calcrdf_MpiBenchmarks.hpod13.forTalk/test.gcc_8.2-cuda_11.8.0-mvapich2_2.3.7/hpod13-n.4-N.1-c.4
+SLURM_TASK_PID=15466
+SLURM_NPROCS=4
+SLURM_CPUS_ON_NODE=32
+SLURM_PROCID=0
+SLURM_JOB_NODELIST=p13n1
+SLURM_LOCALID=0
+SLURM_JOB_GID=9000
+SLURM_JOB_CPUS_PER_NODE=32
+SLURM_CLUSTER_NAME=lobos
+SLURM_GTIDS=0
+SLURM_SUBMIT_HOST=tesla2.lobos.nih.gov
+SLURM_JOB_PARTITION=hpod13
+SLURM_JOB_ACCOUNT=cbs
+SLURM_JOB_NUM_NODES=1
+
+CPPTRAJ: Trajectory Analysis. V6.20.2 (GitHub) MPI OpenMP
+    ___  ___  ___  ___
+     | \/ | \/ | \/ | 
+    _|_/\_|_/\_|_/\_|_
+
+| Running on 4 processes.
+| 4 OpenMP threads available.
+| Date/time: 08/08/23 13:33:15
+| Available memory: 31.007 GB
+
+INPUT: Reading input from 'cpptraj.in'
+  [parm /u/rvenable/RvProj/Unwrap/Water/box34x.psf]
+	Reading '/u/rvenable/RvProj/Unwrap/Water/box34x.psf' as Charmm PSF
+    Reading Charmm PSF file box34x.psf as topology file.
+Warning: PSF has no dihedrals.
+Warning: PSF has no impropers.
+	PSF contains 4020 atoms, 1340 residues.
+Warning: Determining bond length parameters from element types for 'box34x.psf'.
+  [set PREFIX = fromtraj.nvt]
+	Variable 'PREFIX' set to 'fromtraj.nvt'
+  [trajin /u/droe/Local_work/For/Rick/npt.diffusion/nvt.unwrap.dcd 1 30000 1]
+	Reading '/u/droe/Local_work/For/Rick/npt.diffusion/nvt.unwrap.dcd' as Charmm DCD
+	Version >= 22; assuming shape matrix is stored.
+Warning: Trajectory box type is 'Cubic' but topology box type is 'None'.
+Warning: Setting topology box information from trajectory.
+  [rdf out fromtraj.nvt.wato.agr :TIP3@OH2 0.1 12]
+    RADIAL: Calculating RDF for atoms in mask1 [:TIP3@OH2] to atoms in mask2 [:TIP3@OH2]
+	Output to fromtraj.nvt.wato.agr.
+	Histogram max 12.000000, spacing 0.100000, bins 120.
+	Normalizing using particle density of 0.033456 molecules/Ang^3.
+	Parallelizing RDF calculation with 4 threads.
+---------- RUN BEGIN -------------------------------------------------
+
+PARAMETER FILES (1 total):
+ 0: box34x.psf, 4020 atoms, 1340 res, box: Cubic, 1340 mol, 1340 solvent
+
+INPUT TRAJECTORIES (1 total):
+ 0: 'nvt.unwrap.dcd' is a CHARMM DCD file (coords) Little Endian 32 bit, Parm box34x.psf (Cubic box) (reading 30000 of 1010000)
+  Coordinate processing will occur on 30000 frames.
+
+PARALLEL INFO:
+  Process 0 will handle 7500 frames.
+  Process 1 will handle 7500 frames.
+  Process 2 will handle 7500 frames.
+  Process 3 will handle 7500 frames.
+.....................................................
+ACTION SETUP FOR PARM 'box34x.psf' (1 actions):
+  0: [rdf out fromtraj.nvt.wato.agr :TIP3@OH2 0.1 12]
+	1340 atoms in Mask1, 1340 atoms in Mask2
+	Imaging on.
+
+BEGIN PARALLEL TRAJECTORY PROCESSING:
+ 0% 10% 20% 30% 40% 50% 60% 70% 80% 90% 100% Complete.
+TIME: Rank 0 throughput= 97.9603 frames / second.
+TIME: Rank 1 throughput= 77.7931 frames / second.
+TIME: Rank 2 throughput= 71.8034 frames / second.
+TIME: Rank 3 throughput= 68.0942 frames / second.
+TIME: Avg. throughput= 272.3767 frames / second.
+
+ACTION OUTPUT:
+    RADIAL: 30000 frames, # in mask1= 1340, # in mask2 = 1340, # in common = 1340
+	Density is 44.797584 distances / Ang^3.
+TIME: Analyses took 0.0000 seconds.
+
+DATASETS (2 total):
+	PREFIX "PREFIX" (string variable), size is 1 (0.044 kB)
+	g(r)_00002 ":TIP3@OH2 => :TIP3@OH2" (double), size is 120 (0.960 kB)
+    Total data set memory usage is at least 1.004 kB
+
+DATAFILES (1 total):
+  fromtraj.nvt.wato.agr (Grace File):  :TIP3@OH2 => :TIP3@OH2
+
+RUN TIMING:
+TIME:		Init               : 0.0017 s (  0.00%)
+TIME:		Trajectory Process : 110.1416 s (100.00%)
+TIME:		Data Set Sync      : 0.0001 s (  0.00%)
+TIME:		Action Post        : 0.0001 s (  0.00%)
+TIME:		Analysis           : 0.0000 s (  0.00%)
+TIME:		Data File Write    : 0.0015 s (  0.00%)
+TIME:		Other              : 0.0009 s (  0.00%)
+TIME:	Run Total 110.1459 s
+---------- RUN END ---------------------------------------------------
+TIME: Total execution time: 110.2056 seconds.
+--------------------------------------------------------------------------------
+To cite CPPTRAJ use:
+Daniel R. Roe and Thomas E. Cheatham, III, "PTRAJ and CPPTRAJ: Software for
+  Processing and Analysis of Molecular Dynamics Trajectory Data". J. Chem.
+  Theory Comput., 2013, 9 (7), pp 3084-3095.
+Daniel R. Roe and Thomas E. Cheatham, III, "Parallelization of CPPTRAJ enables
+  large scale analysis of molecular dynamics trajectory data". J. Comp.
+  Chem., 2018, DOI: 10.1002/jcc25382.
+
