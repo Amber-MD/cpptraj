@@ -21,5 +21,6 @@ class Exec_Change : public Exec {
     int AddBond(Topology&, ArgList&) const;
     int RemoveBonds(CpptrajState&, Topology&, ArgList&) const;
     int ChangeBondParameters(Topology&, ArgList&) const;
+    int ChangeMass(Topology&, ArgList&, DataSetList const&) const;
 };
 #endif

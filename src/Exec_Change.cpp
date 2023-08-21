@@ -26,7 +26,8 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
 {
   // Change type
   enum ChangeType { UNKNOWN = 0, RESNAME, CHAINID, ORESNUMS, ICODES,
-                    ATOMNAME, ADDBOND, REMOVEBONDS, SPLITRES, BONDPARM };
+                    ATOMNAME, ADDBOND, REMOVEBONDS, SPLITRES, BONDPARM,
+                    MASS };
   ChangeType type = UNKNOWN;
   if (argIn.hasKey("resname"))
     type = RESNAME;
@@ -46,6 +47,8 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
     type = BONDPARM;
   else if (argIn.hasKey("splitres"))
     type = SPLITRES;
+  else if (argIn.hasKey("mass"))
+    type = MASS;
   if (type == UNKNOWN) {
     mprinterr("Error: No change type specified.\n");
     return CpptrajState::ERR;
@@ -77,6 +80,7 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
     case REMOVEBONDS : err = RemoveBonds(State, *parm, argIn); break;
     case BONDPARM    : err = ChangeBondParameters(*parm, argIn); break;
     case SPLITRES    : err = ChangeSplitRes(*parm, argIn); break;
+    case MASS        : err = ChangeMass(*parm, argIn, State.DSL()); break;
     case UNKNOWN  : err = 1; // sanity check
   }
   if (err != 0) return CpptrajState::ERR;
@@ -588,6 +592,28 @@ int Exec_Change::ChangeBondParameters(Topology& topIn, ArgList& argIn) const {
       case SCALE_REQ : bp.SetReq( bp.Req() * dval ); break;
     }
     topIn.AddBond(it->A1(), it->A2(), bp);
+  }
+
+  return 0;
+}
+
+/** Change mass in topology */
+int Exec_Change::ChangeMass(Topology& topIn, ArgList& argIn, DataSetList const& DSL)
+const
+{
+  std::string maskExpression = argIn.GetStringKey("of");
+  AtomMask atomsToChange;
+  if (atomsToChange.SetMaskString( maskExpression )) {
+    mprinterr("Error: Could not set mask expression.\n");
+    return 1;
+  }
+  if (topIn.SetupIntegerMask( atomsToChange )) {
+    mprinterr("Error: Could not set up mask.\n");
+    return 1;
+  }
+  if (atomsToChange.None()) {
+    mprintf("Warning: Mask '%s' selects no atoms.\n", atomsToChange.MaskString());
+    return 0;
   }
 
   return 0;
