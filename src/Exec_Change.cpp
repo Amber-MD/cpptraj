@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "TypeNameHolder.h"
 #include "ParameterTypes.h"
+#include "DataSet_1D.h"
 
 // Exec_Change::Help()
 void Exec_Change::Help() const
@@ -614,6 +615,45 @@ const
   if (atomsToChange.None()) {
     mprintf("Warning: Mask '%s' selects no atoms.\n", atomsToChange.MaskString());
     return 0;
+  }
+  atomsToChange.MaskInfo();
+
+  std::string fromSet = argIn.GetStringKey("fromset");
+  if (!fromSet.empty()) {
+    DataSet* ds = DSL.GetDataSet( fromSet );
+    if (ds == 0) {
+      mprinterr("Error: No set selected by '%s'\n", fromSet.c_str());
+      return 1;
+    }
+    if (ds->Group() != DataSet::SCALAR_1D) {
+      mprinterr("Error: Data set '%s' is not scalar 1D.\n", ds->legend());
+      return 1;
+    }
+    if (ds->Size() != (unsigned int)atomsToChange.Nselected()) {
+      mprinterr("Error: %i atoms to change mass of, but set '%s' has %zu elements.\n",
+                atomsToChange.Nselected(), ds->Size());
+      return 1;
+    }
+    DataSet_1D const& dset = static_cast<DataSet_1D const&>( *ds );
+    for (int idx = 0; idx != atomsToChange.Nselected(); idx++) {
+      Atom& currentAtom = topIn.SetAtom( atomsToChange[idx] );
+      mprintf("\tChanging mass of atom '%s' from %g to %g\n",
+              topIn.AtomMaskName(atomsToChange[idx]).c_str(),
+              currentAtom.Mass(), dset.Dval(idx));
+      currentAtom.SetMass( dset.Dval(idx) );
+    }
+  } else {
+    if (!argIn.Contains("to")) {
+      mprinterr("Error: Expected either 'fromset' or 'to' for 'change mass'.\n");
+      return 1;
+    }
+    double newMass = argIn.getKeyDouble("to", 0.0);
+    for (AtomMask::const_iterator at = atomsToChange.begin(); at != atomsToChange.end(); ++at) {
+      Atom& currentAtom = topIn.SetAtom( *at );
+      mprintf("\tChanging mass of atom '%s' from %g to %g\n", topIn.AtomMaskName(*at).c_str(),
+               currentAtom.Mass(), newMass);
+      currentAtom.SetMass( newMass );
+    }
   }
 
   return 0;
