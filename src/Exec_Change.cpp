@@ -18,6 +18,8 @@ void Exec_Change::Help() const
           "\t  addbond <mask1> <mask2> [req <length> <rk> <force constant>] |\n"
           "\t  removebonds <mask1> [<mask2>] [out <file>]}\n"
           "\t  bondparm <mask1> [<mask2>] {setrk|scalerk|setreq|scalereq} <value>\n"
+          "\t  mass [of <mask>] {to <value>|fromset <data set>}\n"
+          "\t  charge [of <mask>] {to <value>|fromset <data set>}\n"
           "  Change specified parts of topology or topology of a COORDS data set.\n",
           DataSetList::TopArgs);
 }
@@ -28,7 +30,7 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
   // Change type
   enum ChangeType { UNKNOWN = 0, RESNAME, CHAINID, ORESNUMS, ICODES,
                     ATOMNAME, ADDBOND, REMOVEBONDS, SPLITRES, BONDPARM,
-                    MASS };
+                    MASS, CHARGE };
   ChangeType type = UNKNOWN;
   if (argIn.hasKey("resname"))
     type = RESNAME;
@@ -50,6 +52,8 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
     type = SPLITRES;
   else if (argIn.hasKey("mass"))
     type = MASS;
+  else if (argIn.hasKey("charge"))
+    type = CHARGE;
   if (type == UNKNOWN) {
     mprinterr("Error: No change type specified.\n");
     return CpptrajState::ERR;
@@ -81,7 +85,8 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
     case REMOVEBONDS : err = RemoveBonds(State, *parm, argIn); break;
     case BONDPARM    : err = ChangeBondParameters(*parm, argIn); break;
     case SPLITRES    : err = ChangeSplitRes(*parm, argIn); break;
-    case MASS        : err = ChangeMass(*parm, argIn, State.DSL()); break;
+    case MASS        : err = ChangeMassOrCharge(*parm, argIn, State.DSL(), 0); break;
+    case CHARGE      : err = ChangeMassOrCharge(*parm, argIn, State.DSL(), 1); break;
     case UNKNOWN  : err = 1; // sanity check
   }
   if (err != 0) return CpptrajState::ERR;
@@ -598,10 +603,39 @@ int Exec_Change::ChangeBondParameters(Topology& topIn, ArgList& argIn) const {
   return 0;
 }
 
-/** Change mass in topology */
-int Exec_Change::ChangeMass(Topology& topIn, ArgList& argIn, DataSetList const& DSL)
+/** Function to change specific value in topology. */
+static inline void changeTopVal(Topology& topIn, int atnum, int typeIn, double newVal,
+                                const char** desc)
+{
+  Atom& currentAtom = topIn.SetAtom(atnum);
+  double oldVal;
+  switch (typeIn) {
+    case 0 :
+      oldVal = currentAtom.Mass();
+      currentAtom.SetMass( newVal );
+      break;
+    case 1 :
+      oldVal = currentAtom.Charge();
+      currentAtom.SetCharge( newVal ); break;
+  }
+  mprintf("\tChanging %s of atom '%s' from %g to %g\n", desc[typeIn],
+          topIn.AtomMaskName(atnum).c_str(), oldVal, newVal);
+}
+
+/** Change mass/charge in topology.
+  * \param typeIn: 0=mass, 1=charge
+  */
+int Exec_Change::ChangeMassOrCharge(Topology& topIn, ArgList& argIn,
+                                    DataSetList const& DSL, int typeIn)
 const
 {
+  // sanity check
+  if (typeIn > 1 || typeIn < 0) {
+    mprinterr("Internal Error: typeIn is not 0 or 1.\n");
+    return 1;
+  }
+  static const char* desc[] = { "mass", "charge" };
+
   std::string maskExpression = argIn.GetStringKey("of");
   AtomMask atomsToChange;
   if (atomsToChange.SetMaskString( maskExpression )) {
@@ -629,31 +663,24 @@ const
       mprinterr("Error: Data set '%s' is not scalar 1D.\n", ds->legend());
       return 1;
     }
-    mprintf("\tUsing data from '%s' for masses.\n", ds->legend());
+    mprintf("\tUsing data from '%s' for %s.\n", ds->legend(), desc[typeIn]);
     if (ds->Size() != (unsigned int)atomsToChange.Nselected()) {
-      mprinterr("Error: %i atoms to change mass of, but set '%s' has %zu elements.\n",
-                atomsToChange.Nselected(), ds->Size());
+      mprinterr("Error: %i atoms to change %s of, but set '%s' has %zu elements.\n",
+                atomsToChange.Nselected(), desc[typeIn], ds->Size());
       return 1;
     }
     DataSet_1D const& dset = static_cast<DataSet_1D const&>( *ds );
     for (int idx = 0; idx != atomsToChange.Nselected(); idx++) {
-      Atom& currentAtom = topIn.SetAtom( atomsToChange[idx] );
-      mprintf("\tChanging mass of atom '%s' from %g to %g\n",
-              topIn.AtomMaskName(atomsToChange[idx]).c_str(),
-              currentAtom.Mass(), dset.Dval(idx));
-      currentAtom.SetMass( dset.Dval(idx) );
+      changeTopVal(topIn, atomsToChange[idx], typeIn, dset.Dval(idx), desc);
     }
   } else {
     if (!argIn.Contains("to")) {
-      mprinterr("Error: Expected either 'fromset' or 'to' for 'change mass'.\n");
+      mprinterr("Error: Expected either 'fromset' or 'to' for 'change %s'.\n", desc[typeIn]);
       return 1;
     }
-    double newMass = argIn.getKeyDouble("to", 0.0);
+    double newVal = argIn.getKeyDouble("to", 0.0);
     for (AtomMask::const_iterator at = atomsToChange.begin(); at != atomsToChange.end(); ++at) {
-      Atom& currentAtom = topIn.SetAtom( *at );
-      mprintf("\tChanging mass of atom '%s' from %g to %g\n", topIn.AtomMaskName(*at).c_str(),
-               currentAtom.Mass(), newMass);
-      currentAtom.SetMass( newMass );
+      changeTopVal(topIn, *at, typeIn, newVal, desc);
     }
   }
 
