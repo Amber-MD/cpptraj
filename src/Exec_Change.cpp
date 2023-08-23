@@ -629,6 +629,7 @@ const
       mprinterr("Error: Data set '%s' is not scalar 1D.\n", ds->legend());
       return 1;
     }
+    mprintf("\tUsing data from '%s' for masses.\n", ds->legend());
     if (ds->Size() != (unsigned int)atomsToChange.Nselected()) {
       mprinterr("Error: %i atoms to change mass of, but set '%s' has %zu elements.\n",
                 atomsToChange.Nselected(), ds->Size());
