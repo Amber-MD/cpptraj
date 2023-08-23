@@ -2,7 +2,8 @@
 
 . ../MasterTest.sh
 
-CleanFiles change.in ala3.mod.pdb ala3.chain.pdb crdala3.chain.pdb
+CleanFiles change.in ala3.mod.pdb ala3.chain.pdb crdala3.chain.pdb \
+           AFV.zeroHmass.dat
 
 TESTNAME='Change command test'
 Requires maxthreads 1
@@ -37,6 +38,15 @@ crdout MyCrd crdala3.chain.pdb
 EOF
 RunCpptraj "Change chain ID of COORDS set test"
 DoTest ala3.chain.pdb.save crdala3.chain.pdb
+
+cat > change.in <<EOF
+parm ../AFV.parm7
+change mass of @H= to 0.0
+atoms * out AFV.zeroHmass.dat
+#parmwrite out AFV.zeroHmass.parm7
+EOF
+RunCpptraj "Change mass of atoms test"
+DoTest AFV.zeroHmass.dat.save AFV.zeroHmass.dat 
 
 EndTest
 exit 0
