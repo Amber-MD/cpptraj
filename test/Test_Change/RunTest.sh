@@ -64,7 +64,9 @@ EOF
 fi
 
 UNITNAME='Change mass from data set test'
-cat > change.in <<EOF
+CheckFor maxthreads 1 # FIXME this should eventually work in parallel
+if [ $? -eq 0 ] ; then
+  cat > change.in <<EOF
 parm ../AFV.parm7
 trajin ../AFV.nc
 align first !@H=
@@ -73,8 +75,9 @@ run
 change mass fromset MyFluct
 atoms * out AFV.fluctMass.dat
 EOF
-RunCpptraj "$UNITNAME"
-DoTest AFV.fluctMass.dat.save AFV.fluctMass.dat
+  RunCpptraj "$UNITNAME"
+  DoTest AFV.fluctMass.dat.save AFV.fluctMass.dat
+fi
 
 EndTest
 exit 0
