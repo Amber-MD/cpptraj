@@ -666,7 +666,7 @@ const
     mprintf("\tUsing data from '%s' for %s.\n", ds->legend(), desc[typeIn]);
     if (ds->Size() != (unsigned int)atomsToChange.Nselected()) {
       mprinterr("Error: %i atoms to change %s of, but set '%s' has %zu elements.\n",
-                atomsToChange.Nselected(), desc[typeIn], ds->Size());
+                atomsToChange.Nselected(), desc[typeIn], ds->legend(), ds->Size());
       return 1;
     }
     DataSet_1D const& dset = static_cast<DataSet_1D const&>( *ds );
