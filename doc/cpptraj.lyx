@@ -13743,7 +13743,14 @@ change [parm <name> | parmindex <#> | <#> |
 
 \begin_layout LyX-Code
       bondparm <make1> [<mask2>] {setrk|scalerk|setreq|scalereq} <value>
- }
+\end_layout
+
+\begin_layout LyX-Code
+      {mass|charge} [of <mask>] {to <value>|fromset <data set>}
+\end_layout
+
+\begin_layout LyX-Code
+    }
 \end_layout
 
 \begin_deeper
@@ -14031,6 +14038,41 @@ setreq Set bond equilibrium lengths to <value>.
 
 \begin_layout Description
 scalereq Scale bond equilibirum lengths by <value>.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+mass|charge Change mass or charge in specified topology.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+of
+\begin_inset space ~
+\end_inset
+
+<mask> Atoms to change mass/charge of.
+\end_layout
+
+\begin_layout Description
+to
+\begin_inset space ~
+\end_inset
+
+<value> Value to change mass/charge to.
+\end_layout
+
+\begin_layout Description
+fromset
+\begin_inset space ~
+\end_inset
+
+<data
+\begin_inset space ~
+\end_inset
+
+set> Use values in <data set> for mass/charge; must have the same number
+ of values as atoms selected by <mask>.
 \end_layout
 
 \end_deeper
