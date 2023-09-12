@@ -2054,6 +2054,7 @@ int Action_GIST::SyncAction() {
 int Action_GIST::ParallelPostCalc() {
   gist_print_TE_.Start();
   mprintf("    GIST: Performing translational entropy calc in parallel.\n");
+  gist_entropy_comm_.Start();
   // Broadcast any necessary info to other processors
   trajComm_.MasterBcast( &N_main_solvent_[0], N_main_solvent_.size(), MPI_INT );
   trajComm_.MasterBcast( &NFRAME_, 1, MPI_INT );
@@ -2106,6 +2107,7 @@ int Action_GIST::ParallelPostCalc() {
       trajComm_.Recv( &vq[0],   N_main_solvent_[gr_pt]*4, MPI_FLOAT, 0, 10102+gr_pt ); // TODO tag
     }
   }*/
+  gist_entropy_comm_.Stop();
   // Zero the grids
   for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++) {
     dTStrans_->SetGrid(gr_pt, 0);
@@ -2581,6 +2583,11 @@ void Action_GIST::Print() {
   gist_print_.Stop();
   double total = gist_init_.Total() + gist_setup_.Total() +
                  gist_action_.Total() + gist_print_.Total();
+# ifdef MPI
+  // Since translational entropy calc does not occur during print,
+  // need to add it to the total.
+  total += gist_print_TE_.Total();
+# endif
   mprintf("\tGIST timings:\n");
   gist_init_.WriteTiming(1,    "Init:  ", total);
   gist_setup_.WriteTiming(1,   "Setup: ", total);
@@ -2599,9 +2606,12 @@ void Action_GIST::Print() {
   gist_dipole_.WriteTiming(2,  "Dipole: ", gist_action_.Total());
   gist_order_.WriteTiming(2,   "Order:  ", gist_action_.Total());
   gist_print_.WriteTiming(1,   "Print: ", total);
-  gist_print_OE_.WriteTiming(2,   "Orientational Entropy:", gist_print_.Total());
-  gist_print_TE_.WriteTiming(2,   "Translational Entropy:", gist_print_.Total());
   gist_print_write_.WriteTiming(2,"GIST results write:   ", gist_print_.Total()); 
+  gist_print_OE_.WriteTiming(1,   "Orientational Entropy:", total);
+  gist_print_TE_.WriteTiming(1,   "Translational Entropy:", total);
+# ifdef MPI
+  gist_entropy_comm_.WriteTiming(2, "Entropy Arrays Communication:", gist_print_TE_.Total());
+# endif
   mprintf("TIME:\tTotal: %.4f s\n", total);
   #ifdef CUDA
   this->freeGPUMemory();

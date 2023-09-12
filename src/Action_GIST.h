@@ -291,6 +291,9 @@ class Action_GIST : public Action {
     Timer gist_order_;
     Timer gist_print_OE_; ///< Orientational entropy calc timer
     Timer gist_print_TE_; ///< Translational entropy calc timer
+#   ifdef MPI
+    Timer gist_entropy_comm_; ///< Time needed to communicate the entropy arrays.
+#   endif 
     Timer gist_print_write_; ///< GIST results file write timer
 
     Topology* CurrentParm_;    ///< Current topology, for energy calc.
