@@ -13,5 +13,10 @@ class DataIO_Numpy : public DataIO {
     int processWriteArgs(ArgList&);
     int WriteData(FileName const&, DataSetList const&);
     bool ID_DataFormat(CpptrajFile&);
+  private:
+    int read_data_as_coords(std::string const&, DataSetList&,
+                            std::vector<double> const&,
+                            unsigned long, unsigned long) const;
+
 };
 #endif

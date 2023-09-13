@@ -1,6 +1,8 @@
 #include "DataIO_Numpy.h"
 #include "CpptrajStdio.h"
 
+#include "DataSet_Coords.h"
+
 #include "libnpy/npy.hpp"
 
 /// CONSTRUCTOR
@@ -42,6 +44,62 @@ int DataIO_Numpy::processReadArgs(ArgList& argIn)
   return 0;
 }
 
+/** Read 2d numpy array as COORDS set */
+int DataIO_Numpy::read_data_as_coords(std::string const& dsname, DataSetList& dsl,
+                                      std::vector<double> const& data,
+                                      unsigned long nframes,
+                                      unsigned long ncoords)
+const
+{
+  if (ncoords % 3 != 0) {
+    mprinterr("Internal Error: DataIO_Numpy::read_data_as_coords(): # coords %lu not divisible by 3.\n", ncoords);
+    return 1;
+  }
+  unsigned long natoms = ncoords / 3;
+
+  DataSet* ds = dsl.AddSet( DataSet::COORDS, MetaData(dsname) );
+  if (ds == 0) {
+    mprinterr("Error: Could not allocate COORDS set with name '%s'\n", dsname.c_str());
+    return 1;
+  }
+  DataSet_Coords* coords = static_cast<DataSet_Coords*>( ds );
+
+  // Create a pseudo topology
+  Topology top;
+  for (unsigned long iat = 0; iat != natoms; iat++)
+    top.AddTopAtom( Atom("CA","C"), Residue("XXX", 1, ' ', ' ') );
+  top.CommonSetup(false, false);
+  top.Summary();
+
+  // Set up COORDS set
+  if (coords->CoordsSetup( top, CoordinateInfo(Box(), false, false, false) ) ) {
+    mprinterr("Error: Could not set up COORDS set '%s'\n", coords->legend());
+    return 1;
+  }
+  if (coords->Allocate(DataSet::SizeArray(1, nframes))) {
+    mprinterr("Error: Could not allocate COORDS set '%s'\n", coords->legend());
+    return 1;
+  }
+  Frame frm = coords->AllocateFrame();
+
+  std::vector<double>::const_iterator it = data.begin();
+  for (unsigned long ifrm = 0; ifrm != nframes; ifrm++) {
+    frm.ClearAtoms();
+    for (unsigned long iat = 0; iat != natoms; iat++) {
+      double xyz[3];
+      xyz[0] = *(it++);
+      xyz[1] = *(it++);
+      xyz[2] = *(it++);
+      frm.AddXYZ( xyz );
+    }
+    coords->AddFrame( frm );
+  }
+      
+
+  return 0;
+}
+  
+
 // DataIO_Numpy::ReadData()
 int DataIO_Numpy::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
@@ -59,7 +117,17 @@ int DataIO_Numpy::ReadData(FileName const& fname, DataSetList& dsl, std::string 
     mprintf("\t\t%lu\n", *it);
   mprintf("\tFortran order = %i\n", (int)dataIn.fortran_order);
 
-  return 1;
+  if (dataIn.shape.size() != 2) {
+    mprinterr("Error: Shape of numpy array is not 2 (%zu)\n", dataIn.shape.size());
+    return 1;
+  }
+
+  if (read_data_as_coords(dsname, dsl, dataIn.data, dataIn.shape[0], dataIn.shape[1])) {
+    mprinterr("Error: Could not convert numpy array to COORDS.\n");
+    return 1;
+  }
+
+  return 0;
 }
 
 // DataIO_Numpy::WriteHelp()
