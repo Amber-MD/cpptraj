@@ -1,6 +1,8 @@
 #include "DataIO_Numpy.h"
 #include "CpptrajStdio.h"
 
+#include "libnpy/npy.hpp"
+
 /// CONSTRUCTOR
 DataIO_Numpy::DataIO_Numpy()
 {
@@ -44,6 +46,19 @@ int DataIO_Numpy::processReadArgs(ArgList& argIn)
 int DataIO_Numpy::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
   mprintf("\tReading numpy array from '%s'\n", fname.full());
+  npy::npy_data<double> dataIn = npy::read_npy<double>( fname.Full() );
+
+  //std::vector<double> data = dataIn.data;
+  //std::vector<unsigned long> shape = dataIn.shape;
+  //bool fortran_order = dataIn.fortran_order;
+
+  mprintf("\tData array size = %zu\n", dataIn.data.size());
+  mprintf("\tShape array size = %zu\n", dataIn.shape.size());
+  for (std::vector<unsigned long>::const_iterator it = dataIn.shape.begin();
+                                                  it != dataIn.shape.end(); ++it)
+    mprintf("\t\t%lu\n", *it);
+  mprintf("\tFortran order = %i\n", (int)dataIn.fortran_order);
+
   return 1;
 }
 
