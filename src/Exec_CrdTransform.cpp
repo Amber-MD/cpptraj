@@ -2,12 +2,6 @@
 #include "CpptrajStdio.h"
 #include "Action_Align.h"
 
-// Exec_CrdTransform::Help()
-void Exec_CrdTransform::Help() const
-{
-
-}
-
 /** Transform coordinates by RMS-fitting to an average structure, calculating
   * a new average, then RMS-fitting to that average and so on until a
   * tolerance is reached. Essentially the procedure described by 
@@ -45,6 +39,7 @@ const
 
   double currentTol = tolIn + 9999.0;
 
+  unsigned int iteration = 0;
   while (currentTol > tolIn) {
     avgFrm.ZeroCoords();
     Vec3 tgtTrans(0.0);
@@ -60,15 +55,22 @@ const
     avgFrm.Divide( (double)crdIn->Size() );
     // Calc RMS of current average to current reference
     currentTol = avgFrm.RMSD_CenteredRef( selectedRef, rot, tgtTrans, useMass );
+    mprintf("\t%8u %12.4f\n", iteration+1, currentTol);
     // Fit the current average TODO is this necessary?
     avgFrm.Trans_Rot_Trans(tgtTrans, rot, refTrans);
     // Set current average to be new reference
     selectedRef = avgFrm;
+    iteration++;
   }
 
   return 0;
 }
   
+// Exec_CrdTransform::Help()
+void Exec_CrdTransform::Help() const
+{
+  mprintf("\t<crd set> [mask <mask>] [mass] [rmstol <tolerance>]\n");
+}
 
 // Exec_CrdTransform::Execute()
 Exec::RetType Exec_CrdTransform::Execute(CpptrajState& State, ArgList& argIn)

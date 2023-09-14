@@ -263,6 +263,7 @@ COMMON_SOURCES= \
         Exec_CompareTop.cpp \
         Exec_CrdAction.cpp \
         Exec_CrdOut.cpp \
+        Exec_CrdTransform.cpp \
         Exec_CreateSet.cpp \
         Exec_DataFile.cpp \
         Exec_DataFilter.cpp \
