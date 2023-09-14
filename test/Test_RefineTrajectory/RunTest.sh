@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles cpptraj.in rms.dat
+CleanFiles cpptraj.in rms.dat normcoords.crd
 
 INPUT='-i cpptraj.in'
 
@@ -37,9 +37,18 @@ cat > cpptraj.in <<EOF
 parm ../tz2.parm7
 loadcrd ../tz2.nc name MyCrd
 
-crdtransform MyCrd mask !@H= 
+crdtransform MyCrd rmsrefine mask !@H= 
 EOF
-RunCpptraj "$TESTNAME, using crdtransform"
+RunCpptraj "$TESTNAME, using crdtransform rmsrefine"
+
+cat > cpptraj.in <<EOF
+parm ../tz2.parm7
+loadcrd ../tz2.nc name MyCrd
+
+crdtransform MyCrd normcoords
+crdout MyCrd normcoords.crd
+EOF
+RunCpptraj "$TESTNAME, using crdtransform normcoords"
 
 EndTest
 
