@@ -117,12 +117,17 @@ int DataIO_Numpy::ReadData(FileName const& fname, DataSetList& dsl, std::string 
     mprintf("\t\t%lu\n", *it);
   mprintf("\tFortran order = %i\n", (int)dataIn.fortran_order);
 
+  // Convert to coordinates. Expect 2 dimensions, frame and ncoords
   if (dataIn.shape.size() != 2) {
     mprinterr("Error: Shape of numpy array is not 2 (%zu)\n", dataIn.shape.size());
     return 1;
   }
-
-  if (read_data_as_coords(dsname, dsl, dataIn.data, dataIn.shape[0], dataIn.shape[1])) {
+  if (dataIn.fortran_order) {
+    mprinterr("Error: Cannot yet process numpy array in fortran order.\n");
+    return 1;
+  }
+  int err = read_data_as_coords(dsname, dsl, dataIn.data, dataIn.shape[0], dataIn.shape[1]);
+  if (err != 0) {
     mprinterr("Error: Could not convert numpy array to COORDS.\n");
     return 1;
   }
