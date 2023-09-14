@@ -7,8 +7,7 @@
   * tolerance is reached. Essentially the procedure described by 
   * Klem et al. J. Chem. Theory Comput. 2022, 18, 3218−3230.
   */
-int Exec_CrdTransform::iterativeRmsRefinement(CpptrajState& State,
-                                              AtomMask const& maskIn,
+int Exec_CrdTransform::iterativeRmsRefinement(AtomMask const& maskIn,
                                               bool useMass,
                                               double tolIn,
                                               DataSet_Coords* crdIn,
@@ -108,7 +107,7 @@ Exec::RetType Exec_CrdTransform::Execute(CpptrajState& State, ArgList& argIn)
   mask.MaskInfo();
 
   // RMS iterative refinement
-  int err = iterativeRmsRefinement(State, mask, useMass, rmsTol, CRD, CRD);
+  int err = iterativeRmsRefinement(mask, useMass, rmsTol, CRD, CRD);
   if (err != 0) return CpptrajState::ERR;
 
   return CpptrajState::OK;

@@ -9,7 +9,7 @@ class Exec_CrdTransform : public Exec {
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_CrdTransform(); }
     RetType Execute(CpptrajState&, ArgList&);
   private:
-    int iterativeRmsRefinement(CpptrajState&, AtomMask const&, bool, double,
+    int iterativeRmsRefinement(AtomMask const&, bool, double,
                                DataSet_Coords*, DataSet_Coords*) const;
 };
 #endif
