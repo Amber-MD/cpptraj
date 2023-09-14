@@ -11,5 +11,6 @@ class Exec_CrdTransform : public Exec {
   private:
     int iterativeRmsRefinement(AtomMask const&, bool, double,
                                DataSet_Coords*, DataSet_Coords*) const;
+    int normalizeCoords(DataSet_Coords*, DataSet_Coords*) const;
 };
 #endif

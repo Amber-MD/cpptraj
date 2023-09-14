@@ -1,6 +1,67 @@
 #include "Exec_CrdTransform.h"
 #include "CpptrajStdio.h"
-#include "Action_Align.h"
+#include "Constants.h"
+#include <algorithm> // std::max,min
+
+static inline void getMaxMin(Frame const& frmIn, Vec3& max, Vec3& min) {
+  for (int at = 0; at != frmIn.Natom(); at++) {
+    const double* xyz = frmIn.XYZ(at);
+    for (int i = 0; i != 3; i++) {
+      max[i] = std::max(max[i], xyz[i]);
+      min[i] = std::min(min[i], xyz[i]);
+    }
+  }
+}
+
+/** Normalize coordinates between 0 and 1. */
+int Exec_CrdTransform::normalizeCoords(DataSet_Coords* crdIn,
+                                              DataSet_Coords* crdOut)
+const
+{
+  mprintf("\tNormalize coordinates between 0 and 1.\n");
+  mprintf("\tInput coords: %s\n", crdIn->legend());
+  mprintf("\tOutput coords: %s\n", crdIn->legend());
+  // Get max and min X Y and Z
+  Frame frmIn = crdIn->AllocateFrame();
+  crdIn->GetFrame(0, frmIn);
+  Vec3 max( frmIn.XYZ(0) );
+  Vec3 min( frmIn.XYZ(0) );
+  getMaxMin(frmIn, max, min);
+  for (unsigned int idx = 1; idx < crdIn->Size(); idx++) {
+    crdIn->GetFrame(idx, frmIn);
+    getMaxMin(frmIn, max, min);
+  }
+  mprintf("\tMax: %g %g %g\n", max[0], max[1], max[2]);
+  mprintf("\tMin: %g %g %g\n", min[0], min[0], min[0]);
+
+  Vec3 norm = max - min;
+  // Protect against bad values
+  bool hasBadValues = false;
+  static const char dirStr[] = { 'X', 'Y', 'Z' };
+  for (int ii = 0; ii != 3; ii++) {
+    if (norm[ii] < 0) {
+      mprinterr("Error: Min value > max value for %c coordinate.\n", dirStr[ii]);
+      hasBadValues = true;
+    }
+    if (norm[ii] < Constants::SMALL) {
+      mprinterr("Error: Min value == max value for %c coordinate.\n", dirStr[ii]);
+      hasBadValues = true;
+    }
+  }
+  if (hasBadValues) return 1;
+  // Transform coords between 0 and 1
+  for (unsigned int idx = 0; idx < crdIn->Size(); idx++) {
+    crdIn->GetFrame(idx, frmIn);
+    for (int crdidx = 0; crdidx < frmIn.size(); crdidx+=3) {
+      frmIn[crdidx  ] = (frmIn[crdidx  ] - min[0]) / norm[0];
+      frmIn[crdidx+1] = (frmIn[crdidx+1] - min[1]) / norm[1];
+      frmIn[crdidx+2] = (frmIn[crdidx+2] - min[2]) / norm[2];
+    }
+    crdOut->SetCRD(idx, frmIn);
+  }
+
+  return 0;
+}
 
 /** Transform coordinates by RMS-fitting to an average structure, calculating
   * a new average, then RMS-fitting to that average and so on until a
@@ -68,16 +129,33 @@ const
 // Exec_CrdTransform::Help()
 void Exec_CrdTransform::Help() const
 {
-  mprintf("\t<crd set> [mask <mask>] [mass] [rmstol <tolerance>]\n");
+  mprintf("\t<crd set>\n"
+          "\t{ rmsrefine [mask <mask>] [mass] [rmstol <tolerance>] |\n"
+          "\t  normcoords\n"
+          "\t}\n");
 }
 
 // Exec_CrdTransform::Execute()
 Exec::RetType Exec_CrdTransform::Execute(CpptrajState& State, ArgList& argIn)
 {
-  AtomMask mask( argIn.GetStringKey("mask") );
-  bool useMass = argIn.hasKey("mass");
-  double rmsTol = argIn.getKeyDouble("rmstol", 0.0001);
-  
+  AtomMask mask;
+  bool useMass = false;
+  double rmsTol = -1.0;
+  // Determine mode
+  enum ModeType { RMSREFINE = 0, NORMCOORDS, UNSPECIFIED };
+  ModeType mode = UNSPECIFIED;
+  if (argIn.hasKey("rmsrefine")) {
+    mode = RMSREFINE;
+    mask.SetMaskString( argIn.GetStringKey("mask") );
+    useMass = argIn.hasKey("mass");
+    rmsTol = argIn.getKeyDouble("rmstol", 0.0001);
+  } else if (argIn.hasKey("normcoords")) {
+    mode = NORMCOORDS;
+  } else {
+    mprinterr("Error: Expected 'rmsrefine' or 'normcoords'\n");
+    return CpptrajState::ERR;
+  }
+ 
   // Get COORDS set
   std::string setname = argIn.GetStringNext();
   if (setname.empty()) {
@@ -100,14 +178,20 @@ Exec::RetType Exec_CrdTransform::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   // Set up mask
-  if (CRD->Top().SetupIntegerMask( mask )) {
-    mprinterr("Error: Could not set up mask.\n");
-    return CpptrajState::ERR;
+  if (mask.MaskStringSet()) {
+    if (CRD->Top().SetupIntegerMask( mask )) {
+      mprinterr("Error: Could not set up mask.\n");
+      return CpptrajState::ERR;
+    }
+    mask.MaskInfo();
   }
-  mask.MaskInfo();
 
-  // RMS iterative refinement
-  int err = iterativeRmsRefinement(mask, useMass, rmsTol, CRD, CRD);
+  int err = 0;
+  switch (mode) {
+    case RMSREFINE : err = iterativeRmsRefinement(mask, useMass, rmsTol, CRD, CRD); break;
+    case NORMCOORDS : err = normalizeCoords(CRD, CRD); break;
+    default : err = 1; break;
+  }
   if (err != 0) return CpptrajState::ERR;
 
   return CpptrajState::OK;
