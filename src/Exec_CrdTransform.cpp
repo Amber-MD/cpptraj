@@ -200,8 +200,9 @@ const
       for (unsigned int icrd = 0; icrd < Ncoords; icrd++) {
         c_arr[icrd]  = c_sum[icrd] - frmIn[icrd];
         sq_arr[icrd] = sq_sum_total[icrd] - (frmIn[icrd]*frmIn[icrd]);
-        double val = ExtSim.Comparison(c_arr, sq_arr, metric, Nelements-1, crdIn->Top().Natom());
       }
+      double val = ExtSim.Comparison(c_arr, sq_arr, metric, Nelements-1, crdIn->Top().Natom());
+      mprintf("DBG:\t[%14.8e %14.8e]\n", (double)idx, val);
     }
     
   }
@@ -281,7 +282,8 @@ Exec::RetType Exec_CrdTransform::Execute(CpptrajState& State, ArgList& argIn)
   switch (mode) {
     case RMSREFINE  : err = iterativeRmsRefinement(mask, useMass, rmsTol, CRD, CRD); break;
     case NORMCOORDS : err = normalizeCoords(CRD, CRD); break;
-    case TRIM       : err = trimOutliers(n_trimmed, cutoff, ExtendedSimilarity::NO_METRIC, NO_CRITERION, CRD, CRD); break;
+    // TODO pass in criterion and metric
+    case TRIM       : err = trimOutliers(n_trimmed, cutoff, ExtendedSimilarity::MSD, COMP_SIM, CRD, CRD); break;
     default         : err = 1; break;
   }
   if (err != 0) return CpptrajState::ERR;
