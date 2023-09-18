@@ -2,7 +2,9 @@
 #include "CpptrajStdio.h"
 #include "Constants.h"
 #include <algorithm> // std::max,min
+#include <cmath> // floor
 
+/// Get the minimum and maximum coordinates in a given frame, store in min and max
 static inline void getMaxMin(Frame const& frmIn, Vec3& max, Vec3& min) {
   for (int at = 0; at != frmIn.Natom(); at++) {
     const double* xyz = frmIn.XYZ(at);
@@ -15,7 +17,7 @@ static inline void getMaxMin(Frame const& frmIn, Vec3& max, Vec3& min) {
 
 /** Normalize coordinates between 0 and 1. */
 int Exec_CrdTransform::normalizeCoords(DataSet_Coords* crdIn,
-                                              DataSet_Coords* crdOut)
+                                       DataSet_Coords* crdOut)
 const
 {
   mprintf("\tNormalize coordinates between 0 and 1.\n");
@@ -132,13 +134,76 @@ const
 
   return 0;
 }
-  
+
+const char* Exec_CrdTransform::TrimMetricStr_[] = {
+  "MSD", "RR", "JT", "SM", "No metric"
+};
+
+const char* Exec_CrdTransform::CriterionStr_[] = {
+  "comp_sim", "sim_to_medioid", "No criterion"
+};
+
+/** Trim a desired percentage of outliers (most dissimilar) from the COORDS
+  * data set by calculating the largest complement similarity.
+  */
+int Exec_CrdTransform::trimOutliers(int n_trimmed, double cutoffIn,
+                                    TrimMetricType metric,
+                                    CriterionType criterion,
+                                    DataSet_Coords* crdIn,
+                                    DataSet_Coords* crdOut)
+const
+{
+  mprintf("\tTrimming outliers.\n");
+  mprintf("\tUsing metric: %s\n", TrimMetricStr_[metric]);
+  mprintf("\tCriterion: %s\n", CriterionStr_[criterion]);
+  unsigned int Ncoords = crdIn->Top().Natom() * 3;
+  unsigned int Nelements = crdIn->Size() * Ncoords;
+  mprintf("\t'%s' has %u total elements.\n", crdIn->legend(), Nelements);
+  // Specify n_trimmed or cutoff, but not both.
+  if (n_trimmed < 0 && cutoffIn < 0) {
+    mprinterr("Internal Error: Must specify either number to trim or cutoff.\n");
+    return 1;
+  }
+  if (n_trimmed >= 0 && cutoffIn > 0) {
+    mprinterr("Error: Must specify either number to trim or cutoff, but not both.\n");
+    return 1;
+  }
+  int cutoff;
+  if (n_trimmed >= 0) {
+    cutoff = n_trimmed;
+    mprintf("\t# to trim: %i\n", n_trimmed);
+  } else {
+    cutoff = (int)(floor(Nelements * cutoffIn));
+    mprintf("\tFraction of outliers to remove: %f\n", cutoffIn);
+  }
+  mprintf("\tUsing cutoff value: %i\n", cutoff);
+
+  if (criterion == COMP_SIM) {
+    // Comp sim
+    std::vector<double> c_sum( Ncoords, 0.0 );
+    std::vector<double> sq_sum_total( Ncoords, 0.0 );
+    Frame frmIn = crdIn->AllocateFrame();
+    // Get sum and sum squares for each coordinate
+    for (unsigned int idx = 0; idx < crdIn->Size(); idx++) {
+      crdIn->GetFrame(idx, frmIn);
+      for (unsigned int icrd = 0; icrd < Ncoords; icrd++) {
+        c_sum[icrd] = frmIn[icrd];
+        sq_sum_total[icrd] = frmIn[icrd] * frmIn[icrd];
+      }
+    }
+  }
+
+  return 0;
+}
+
+
 // Exec_CrdTransform::Help()
 void Exec_CrdTransform::Help() const
 {
   mprintf("\t<crd set>\n"
           "\t{ rmsrefine [mask <mask>] [mass] [rmstol <tolerance>] |\n"
-          "\t  normcoords\n"
+          "\t  normcoords |\n"
+          "\t  trim\n"
           "\t}\n");
 }
 
@@ -148,8 +213,10 @@ Exec::RetType Exec_CrdTransform::Execute(CpptrajState& State, ArgList& argIn)
   AtomMask mask;
   bool useMass = false;
   double rmsTol = -1.0;
+  int n_trimmed = -1;
+  double cutoff = -1.0;
   // Determine mode
-  enum ModeType { RMSREFINE = 0, NORMCOORDS, UNSPECIFIED };
+  enum ModeType { RMSREFINE = 0, NORMCOORDS, TRIM, UNSPECIFIED };
   ModeType mode = UNSPECIFIED;
   if (argIn.hasKey("rmsrefine")) {
     mode = RMSREFINE;
@@ -158,8 +225,12 @@ Exec::RetType Exec_CrdTransform::Execute(CpptrajState& State, ArgList& argIn)
     rmsTol = argIn.getKeyDouble("rmstol", 0.0001);
   } else if (argIn.hasKey("normcoords")) {
     mode = NORMCOORDS;
+  } else if (argIn.hasKey("trim")) {
+    mode = TRIM;
+    n_trimmed = argIn.getKeyInt("ntrimmed", -1);
+    cutoff = argIn.getKeyDouble("cutoff", -1.0);
   } else {
-    mprinterr("Error: Expected 'rmsrefine' or 'normcoords'\n");
+    mprinterr("Error: Expected 'trim', 'rmsrefine', or 'normcoords'\n");
     return CpptrajState::ERR;
   }
  
@@ -195,9 +266,10 @@ Exec::RetType Exec_CrdTransform::Execute(CpptrajState& State, ArgList& argIn)
 
   int err = 0;
   switch (mode) {
-    case RMSREFINE : err = iterativeRmsRefinement(mask, useMass, rmsTol, CRD, CRD); break;
+    case RMSREFINE  : err = iterativeRmsRefinement(mask, useMass, rmsTol, CRD, CRD); break;
     case NORMCOORDS : err = normalizeCoords(CRD, CRD); break;
-    default : err = 1; break;
+    case TRIM       : err = trimOutliers(n_trimmed, cutoff, NO_METRIC, NO_CRITERION, CRD, CRD); break;
+    default         : err = 1; break;
   }
   if (err != 0) return CpptrajState::ERR;
 
