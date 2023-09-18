@@ -24,17 +24,24 @@ const
   // Get max and min X Y and Z
   Frame frmIn = crdIn->AllocateFrame();
   crdIn->GetFrame(0, frmIn);
-  Vec3 max( frmIn.XYZ(0) );
-  Vec3 min( frmIn.XYZ(0) );
-  getMaxMin(frmIn, max, min);
+  Vec3 xyzmax( frmIn.XYZ(0) );
+  Vec3 xyzmin( frmIn.XYZ(0) );
+  getMaxMin(frmIn, xyzmax, xyzmin);
   for (unsigned int idx = 1; idx < crdIn->Size(); idx++) {
     crdIn->GetFrame(idx, frmIn);
-    getMaxMin(frmIn, max, min);
+    getMaxMin(frmIn, xyzmax, xyzmin);
   }
-  mprintf("\tMax: %g %g %g\n", max[0], max[1], max[2]);
-  mprintf("\tMin: %g %g %g\n", min[0], min[0], min[0]);
+  mprintf("\tMax: %g %g %g\n", xyzmax[0], xyzmax[1], xyzmax[2]);
+  mprintf("\tMin: %g %g %g\n", xyzmin[0], xyzmin[0], xyzmin[0]);
+  // Choose the overall max and min
+  double max = xyzmax[0];
+  max = std::max(max, xyzmax[1]);
+  max = std::max(max, xyzmax[2]);
+  double min = xyzmin[0];
+  min = std::min(min, xyzmin[1]);
+  min = std::min(min, xyzmin[2]);
 
-  Vec3 norm = max - min;
+  Vec3 norm( max - min );
   // Protect against bad values
   bool hasBadValues = false;
   static const char dirStr[] = { 'X', 'Y', 'Z' };
@@ -53,9 +60,9 @@ const
   for (unsigned int idx = 0; idx < crdIn->Size(); idx++) {
     crdIn->GetFrame(idx, frmIn);
     for (int crdidx = 0; crdidx < frmIn.size(); crdidx+=3) {
-      frmIn[crdidx  ] = (frmIn[crdidx  ] - min[0]) / norm[0];
-      frmIn[crdidx+1] = (frmIn[crdidx+1] - min[1]) / norm[1];
-      frmIn[crdidx+2] = (frmIn[crdidx+2] - min[2]) / norm[2];
+      frmIn[crdidx  ] = (frmIn[crdidx  ] - min) / norm[0];
+      frmIn[crdidx+1] = (frmIn[crdidx+1] - min) / norm[1];
+      frmIn[crdidx+2] = (frmIn[crdidx+2] - min) / norm[2];
     }
     crdOut->SetCRD(idx, frmIn);
   }
