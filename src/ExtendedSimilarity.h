@@ -25,10 +25,12 @@ class ExtendedSimilarity {
     /// \return Extended comparison value for given COORDS set TODO c_threshold, w_factor
     double Comparison(DataSet_Coords&, MetricType) const;
     /// \return Extended comparison value for given arrays
-    double Comparison(Darray const&, Darray const&, MetricType) const;
+    double Comparison(Darray const&, Darray const&, MetricType, unsigned int, unsigned int) const;
   private:
 
     static const char* MetricStr_[];
+
+    double msd_condensed(Darray const&, Darray const&, unsigned int, unsigned int) const;
 
     //Darray c_sum_;      ///< Hold sum over samples of each feature
     //Darray sq_sum_;     ///< Hold sum of squares over samples of each feature
