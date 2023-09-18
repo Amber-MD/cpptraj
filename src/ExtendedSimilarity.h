@@ -1,9 +1,12 @@
 #ifndef INC_EXTENDED_SIMILARITY_H
 #define INC_EXTENDED_SIMILARITY_H
 #include <vector>
+// Fwd declares
+class DataSet_Coords;
 /// Implements extended similarity comparisons
 class ExtendedSimilarity {
   public:
+    typedef std::vector<double> Darray;
     /// Metric types
     enum MetricType { MSD = 0, ///< Mean-squared deviation
                       BUB,     ///< Bhattacharyya's U coefficient
@@ -19,12 +22,15 @@ class ExtendedSimilarity {
                       NO_METRIC };
     /// CONSTRUCTOR
     ExtendedSimilarity();
+    /// \return Extended comparison value for given COORDS set TODO c_threshold, w_factor
+    double Comparison(DataSet_Coords&, MetricType) const;
+    /// \return Extended comparison value for given arrays
+    double Comparison(Darray const&, Darray const&, MetricType) const;
   private:
-    typedef std::vector<double> Darray;
 
     static const char* MetricStr_[];
 
-    Darray c_sum_;      ///< Hold sum over samples of each feature
-    Darray sq_sum_;     ///< Hold sum of squares over samples of each feature
+    //Darray c_sum_;      ///< Hold sum over samples of each feature
+    //Darray sq_sum_;     ///< Hold sum of squares over samples of each feature
 };
 #endif
