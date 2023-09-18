@@ -31,7 +31,7 @@ for i=0;i<10;i++
 done
 list
 EOF
-RunCpptraj "$TESTNAME, using loop"
+RunCpptraj "$TESTNAME, RMS refinement using loop"
 
 cat > cpptraj.in <<EOF
 parm ../tz2.parm7
