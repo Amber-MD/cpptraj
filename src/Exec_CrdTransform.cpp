@@ -143,6 +143,13 @@ const char* Exec_CrdTransform::CriterionStr_[] = {
   "comp_sim", "sim_to_medioid", "No criterion"
 };
 
+static inline void printDarray(std::vector<double> const& array) {
+  mprintf("[");
+  for (std::vector<double>::const_iterator it = array.begin(); it != array.end(); ++it)
+    mprintf(" %f", *it);
+  mprintf("]\n");
+}
+
 /** Trim a desired percentage of outliers (most dissimilar) from the COORDS
   * data set by calculating the largest complement similarity.
   */
@@ -157,8 +164,8 @@ const
   mprintf("\tUsing metric: %s\n", ExtendedSimilarity::metricStr(metric));
   mprintf("\tCriterion: %s\n", CriterionStr_[criterion]);
   unsigned int Ncoords = crdIn->Top().Natom() * 3;
-  unsigned int Nelements = crdIn->Size() * Ncoords;
-  mprintf("\t'%s' has %u total elements.\n", crdIn->legend(), Nelements);
+  unsigned int Nframes = crdIn->Size();
+  mprintf("\t'%s' has %u coordinates, %u frames.\n", crdIn->legend(), Ncoords, Nframes);
   // Specify n_trimmed or cutoff, but not both.
   if (n_trimmed < 0 && cutoffIn < 0) {
     mprinterr("Internal Error: Must specify either number to trim or cutoff.\n");
@@ -173,7 +180,7 @@ const
     cutoff = n_trimmed;
     mprintf("\t# to trim: %i\n", n_trimmed);
   } else {
-    cutoff = (int)(floor(Nelements * cutoffIn));
+    cutoff = (int)(floor(Nframes * cutoffIn));
     mprintf("\tFraction of outliers to remove: %f\n", cutoffIn);
   }
   mprintf("\tUsing cutoff value: %i\n", cutoff);
@@ -187,10 +194,11 @@ const
     for (unsigned int idx = 0; idx < crdIn->Size(); idx++) {
       crdIn->GetFrame(idx, frmIn);
       for (unsigned int icrd = 0; icrd < Ncoords; icrd++) {
-        c_sum[icrd] = frmIn[icrd];
-        sq_sum_total[icrd] = frmIn[icrd] * frmIn[icrd];
+        c_sum[icrd] += frmIn[icrd];
+        sq_sum_total[icrd] += frmIn[icrd] * frmIn[icrd];
       }
     }
+    //printDarray(sq_sum_total);
     // For each frame, get the comp. similarity
     std::vector<double> c_arr(Ncoords, 0.0);
     std::vector<double> sq_arr(Ncoords, 0.0);
@@ -201,8 +209,12 @@ const
         c_arr[icrd]  = c_sum[icrd] - frmIn[icrd];
         sq_arr[icrd] = sq_sum_total[icrd] - (frmIn[icrd]*frmIn[icrd]);
       }
-      double val = ExtSim.Comparison(c_arr, sq_arr, metric, Nelements-1, crdIn->Top().Natom());
-      mprintf("DBG:\t[%14.8e %14.8e]\n", (double)idx, val);
+      //mprintf("%u\n", Nframes-1);
+      //printDarray(sq_arr);
+      //printDarray(c_sum);
+      //mprintf("%i\n", crdIn->Top().Natom());
+      double val = ExtSim.Comparison(c_arr, sq_arr, metric, Nframes-1, crdIn->Top().Natom());
+      mprintf("DBG:\t%u %.10f\n", idx, val);
     }
     
   }

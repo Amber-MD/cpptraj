@@ -71,7 +71,7 @@ const
 /** Mean-squared deviation
   * \param c_sum (Natoms*3) Column sum of the data
   * \param sq_sum (Natoms*3) Column sum of the squared data
-  * \param Nelements Number of data points
+  * \param Nelements Number of samples (frames) 
   * \param Natoms Number of atoms in the system
   */
 double ExtendedSimilarity::msd_condensed(Darray const& c_sum, Darray const& sq_sum, unsigned int Nelements, unsigned int Natoms)
@@ -81,7 +81,7 @@ const
   double msd = 0;
   for (unsigned int idx = 0; idx != c_sum.size(); idx++)
     msd += (2 * (Nelements * sq_sum[idx] - (c_sum[idx] * c_sum[idx])));
-  msd /= ((double)Nelements / (double(Nelements-1)));
+  msd /= ((double)Nelements * (double(Nelements-1)));
   //norm_msd = msd / N_atoms
   msd /= Natoms;
   return msd;
