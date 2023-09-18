@@ -22,8 +22,13 @@ const char* ExtendedSimilarity::MetricStr_[] = {
   "No metric"
 };
 
+/** \return Character string corresponding to given metric type. */
+const char* ExtendedSimilarity::metricStr(MetricType m) {
+  return MetricStr_[m];
+}
+
 /** \return Extended comparison value for COORDS set. */
-double ExtendedSimilarity::Comparison(DataSet_Coords& crdIn, MetricType metricIn)
+/*double ExtendedSimilarity::Comparison(DataSet_Coords& crdIn, MetricType metricIn)
 const
 {
   unsigned int Ncoords = crdIn.Top().Natom() * 3;
@@ -41,7 +46,7 @@ const
   }
   return ExtendedSimilarity::Comparison(c_sum, sq_sum_total, metricIn,
                                         Nelements-1, crdIn.Top().Natom());
-}
+}*/
 
 /** \return Extended comparison value. */
 double ExtendedSimilarity::Comparison(Darray const& c_sum, Darray const& sq_sum, MetricType metricIn,

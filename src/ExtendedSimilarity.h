@@ -22,8 +22,10 @@ class ExtendedSimilarity {
                       NO_METRIC };
     /// CONSTRUCTOR
     ExtendedSimilarity();
+    /// \return Char string corresponding to given MetricType
+    static const char* metricStr(MetricType);
     /// \return Extended comparison value for given COORDS set TODO c_threshold, w_factor
-    double Comparison(DataSet_Coords&, MetricType) const;
+    //double Comparison(DataSet_Coords&, MetricType) const;
     /// \return Extended comparison value for given arrays
     double Comparison(Darray const&, Darray const&, MetricType, unsigned int, unsigned int) const;
   private:

@@ -135,9 +135,9 @@ const
   return 0;
 }
 
-const char* Exec_CrdTransform::TrimMetricStr_[] = {
-  "MSD", "RR", "JT", "SM", "No metric"
-};
+//const char* Exec_CrdTransform::TrimMetricStr_[] = {
+//  "MSD", "RR", "JT", "SM", "No metric"
+//};
 
 const char* Exec_CrdTransform::CriterionStr_[] = {
   "comp_sim", "sim_to_medioid", "No criterion"
@@ -147,14 +147,14 @@ const char* Exec_CrdTransform::CriterionStr_[] = {
   * data set by calculating the largest complement similarity.
   */
 int Exec_CrdTransform::trimOutliers(int n_trimmed, double cutoffIn,
-                                    TrimMetricType metric,
+                                    ExtendedSimilarity::MetricType metric,
                                     CriterionType criterion,
                                     DataSet_Coords* crdIn,
                                     DataSet_Coords* crdOut)
 const
 {
   mprintf("\tTrimming outliers.\n");
-  mprintf("\tUsing metric: %s\n", TrimMetricStr_[metric]);
+  mprintf("\tUsing metric: %s\n", ExtendedSimilarity::metricStr(metric));
   mprintf("\tCriterion: %s\n", CriterionStr_[criterion]);
   unsigned int Ncoords = crdIn->Top().Natom() * 3;
   unsigned int Nelements = crdIn->Size() * Ncoords;
@@ -191,6 +191,19 @@ const
         sq_sum_total[icrd] = frmIn[icrd] * frmIn[icrd];
       }
     }
+    // For each frame, get the comp. similarity
+    std::vector<double> c_arr(Ncoords, 0.0);
+    std::vector<double> sq_arr(Ncoords, 0.0);
+    ExtendedSimilarity ExtSim;
+    for (unsigned int idx = 0; idx < crdIn->Size(); idx++) {
+      crdIn->GetFrame(idx, frmIn);
+      for (unsigned int icrd = 0; icrd < Ncoords; icrd++) {
+        c_arr[icrd]  = c_sum[icrd] - frmIn[icrd];
+        sq_arr[icrd] = sq_sum_total[icrd] - (frmIn[icrd]*frmIn[icrd]);
+        double val = ExtSim.Comparison(c_arr, sq_arr, metric, Nelements-1, crdIn->Top().Natom());
+      }
+    }
+    
   }
 
   return 0;
@@ -268,7 +281,7 @@ Exec::RetType Exec_CrdTransform::Execute(CpptrajState& State, ArgList& argIn)
   switch (mode) {
     case RMSREFINE  : err = iterativeRmsRefinement(mask, useMass, rmsTol, CRD, CRD); break;
     case NORMCOORDS : err = normalizeCoords(CRD, CRD); break;
-    case TRIM       : err = trimOutliers(n_trimmed, cutoff, NO_METRIC, NO_CRITERION, CRD, CRD); break;
+    case TRIM       : err = trimOutliers(n_trimmed, cutoff, ExtendedSimilarity::NO_METRIC, NO_CRITERION, CRD, CRD); break;
     default         : err = 1; break;
   }
   if (err != 0) return CpptrajState::ERR;
