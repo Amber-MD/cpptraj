@@ -231,6 +231,14 @@ static inline unsigned int Bsum(std::vector<bool> const& arr) {
   return count;
 }
 
+static inline double Dsum(std::vector<double> const& arr) {
+  double sum = 0;
+  for (std::vector<double>::const_iterator it = arr.begin(); it != arr.end(); ++it)
+    sum += *it;
+  return sum;
+}
+
+
 ExtendedSimilarity::Darray ExtendedSimilarity::subArray(Darray const& d, Barray const& b, unsigned int n_objects)
 {
   Darray out;
@@ -316,7 +324,12 @@ const
   Darray d_w_array = f_s( absSubArray(c_total, d_indices, n_objects), n_objects, power );
   //printDarray( d_w_array );
   Darray total_w_dis_array = f_d( absSubArray(c_total, dis_indices, n_objects), n_objects, power );
-  printDarray( total_w_dis_array );
+  //printDarray( total_w_dis_array );
+
+  double w_a = Dsum( a_w_array );
+  double w_d = Dsum( d_w_array );
+  double total_w_dis = Dsum( total_w_dis_array );
+  mprintf("%10.8g %10.8g %10.8g\n", w_a, w_d, total_w_dis);
   
   return 0;
 }
