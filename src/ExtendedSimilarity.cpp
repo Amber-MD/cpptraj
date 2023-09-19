@@ -314,7 +314,9 @@ const
   Darray a_w_array = f_s( subArray(c_total, a_indices, n_objects), n_objects, power );
   //printDarray( a_w_array );
   Darray d_w_array = f_s( absSubArray(c_total, d_indices, n_objects), n_objects, power );
-  printDarray( d_w_array );
+  //printDarray( d_w_array );
+  Darray total_w_dis_array = f_d( absSubArray(c_total, dis_indices, n_objects), n_objects, power );
+  printDarray( total_w_dis_array );
   
   return 0;
 }
