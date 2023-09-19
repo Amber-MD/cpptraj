@@ -1,6 +1,7 @@
 #include "ExtendedSimilarity.h"
 #include "DataSet_Coords.h"
 #include "CpptrajStdio.h"
+#include <cmath> // ceil, pow
 
 /** CONSTRUCTOR for MSD - sum of squares array, number of atoms. */
 ExtendedSimilarity::Opts::Opts(Darray const& sq_sum, unsigned int natoms) :
@@ -19,8 +20,17 @@ ExtendedSimilarity::Opts::Opts(MetricType mt, CoincidenceThresholdType ct, doubl
   power_(wv)
 { }
 
+/** CONSTRUCTOR - metric only, defaults for the rest. */
+ExtendedSimilarity::Opts::Opts(MetricType mt) :
+  metric_(mt),
+  cthreshType_(NO_THRESHOLD),
+  c_threshold_(0),
+  wfactorType_(FRACTION),
+  power_(0)
+{}
+
 /** \return True if options are valid. */
-bool ExtendedSimilarity::Opts::IsValid() const {
+bool ExtendedSimilarity::Opts::IsValid(unsigned int n_objects) const {
   if (metric_ == MSD) {
     if (sq_sum_ptr_ == 0 || sq_sum_ptr_->empty()) {
       mprinterr("Error: Similarity options are set up for MSD metric but sum of squares array is empty.\n");
@@ -33,6 +43,19 @@ bool ExtendedSimilarity::Opts::IsValid() const {
   } else if (metric_ == NO_METRIC) {
     mprinterr("Error: Similarity options metric not set.\n");
     return false;
+  } else {
+    if (cthreshType_ == N_OBJECTS) {
+      if ((unsigned int)c_threshold_ >= n_objects) {
+        mprinterr("Error: c_threshold cannot be equal or greater to n_objects.\n");
+        return false;
+      }
+    } else if (cthreshType_ == FRAC_OBJECTS) {
+      bool in_range = (c_threshold_ > 0 && c_threshold_ < 1);
+      if (!in_range) {
+        mprinterr("Error: c_threshold fraction must be between 0 and 1.\n");
+        return false;
+      }
+    }
   }
   return true;
 }
@@ -131,12 +154,36 @@ const
   return msd;
 }
 
+// Power weight functions
+Darray ExtendedSimilarity::f_s_power(Darray const& in, unsigned int n_objects, double p) {
+  Darray out;
+  out.reserve(in.size());
+  for (Darray::const_iterator d = in.begin(); d != in.end(); ++d)
+    out.push_back( pow(p, (double)(-(n_objects - *d))) );
+}
+
 /** Calculate 1-similarity, 0-similarity, and dissimilarity counters.
   * \param c_total Column sum of the data (c_sum)
   * \param n_objects Number of samples (frames)
-  * \param c_threshold 
+  * \param opts Extended similarity options
   */
-//int ExtendedSimilarity::calculate_counters(Darray const& c_total, unsigned int n_objects,
-//                                           int c_threshold, double cutoff, double w_factor)
-//{
+int ExtendedSimilarity::calculate_counters(Darray const& c_total, unsigned int n_objects,
+                                           Opts const& opts)
+const
+{
+  // Assign c_threshold
+  unsigned int c_threshold;
+  switch (opts.CoincidenceThreshold()) {
+    case NO_THRESHOLD : c_threshold = n_objects % 2; break;
+    case DISSIMILAR   : c_threshold = ceil(n_objects / 2); break;
+    case N_OBJECTS    : c_threshold = (unsigned int)opts.CoincidenceThresholdVal(); break;
+    case FRAC_OBJECTS : c_threshold = (unsigned int)(opts.CoincidenceThresholdVal() * n_objects); break;
+  }
+  // Set w_factor
+  typedef double (*WgtFxnType)(double, unsigned int);
+  WgtFxnType f_s; // Similarity function
+  WgtFxnType f_d; // Dissimilarity function
+
+  return 0;
+}
 

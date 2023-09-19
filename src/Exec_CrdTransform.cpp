@@ -166,6 +166,10 @@ const
   unsigned int Ncoords = crdIn->Top().Natom() * 3;
   unsigned int Nframes = crdIn->Size();
   mprintf("\t'%s' has %u coordinates, %u frames.\n", crdIn->legend(), Ncoords, Nframes);
+  if (Nframes < 2) {
+    mprintf("Warning: Less than 2 frames, nothing to trim.\n");
+    return 0;
+  }
   // Specify n_trimmed or cutoff, but not both.
   if (n_trimmed < 0 && cutoffIn < 0) {
     mprinterr("Internal Error: Must specify either number to trim or cutoff.\n");
@@ -208,7 +212,7 @@ const
       opts = ExtendedSimilarity::Opts(sq_arr, crdIn->Top().Natom());
     else
       return 1; // FIXME
-    if (!opts.IsValid()) return 1;
+    if (!opts.IsValid(Nframes-1)) return 1;
     ExtendedSimilarity ExtSim;
     CpptrajFile dbg;
     dbg.OpenWrite("test.cpptraj.out");

@@ -48,11 +48,12 @@ class ExtendedSimilarity {
   private:
 
     static const char* MetricStr_[];
-
+    /// Calculate MSD from sum and squared sum arrays
     double msd_condensed(Darray const&, Darray const&, unsigned int, unsigned int) const;
+    /// Calculate 1-similarity, 0-similarity, and dissimilarity counters from sum array
+    int calculate_counters(Darray const&, unsigned int, Opts const&) const;
 
-    //Darray c_sum_;      ///< Hold sum over samples of each feature
-    //Darray sq_sum_;     ///< Hold sum of squares over samples of each feature
+    static inline Darray f_s_power(Darray const&, unsigned int, double);
 };
 // -----------------------------------------------------------------------------
 /** Hold options for extended similarity. */
@@ -64,6 +65,8 @@ class ExtendedSimilarity::Opts {
     Opts(Darray const&, unsigned int);
     /// Constructor - metric, c. threshold type, c. threshold value, weight type, weight value
     Opts(MetricType, CoincidenceThresholdType, double, WeightFactorType, double);
+    /// Constructor - metric only (not MSD!)
+    Opts(MetricType);
     /// \return Metric type
     MetricType Metric() const { return metric_; }
     /// \return Sum of squares array (MSD)
@@ -71,8 +74,13 @@ class ExtendedSimilarity::Opts {
     /// \return Number of atoms (MSD)
     unsigned int Natoms() const { return natoms_; }
 
-    /// \return True if options are valid
-    bool IsValid() const;
+    /// \return Coincidence threshold type
+    CoincidenceThresholdType CoincidenceThreshold() const { return cthreshType_; }
+    /// \return Coincidence threshold value
+    double CoincidenceThresholdVal() const { return c_threshold_; }
+
+    /// \return True if options are valid. Takes total number of objects (frames) to check
+    bool IsValid(unsigned int) const;
   private:
     MetricType metric_;        ///< Desired metric
     Darray const* sq_sum_ptr_; ///< Pointer to sum of squares array (MSD)
