@@ -224,6 +224,13 @@ static inline void printBarray(std::vector<bool> const& arr) {
   mprintf("]\n");
 }
 
+static inline unsigned int Bsum(std::vector<bool> const& arr) {
+  unsigned int count = 0;
+  for (std::vector<bool>::const_iterator it = arr.begin(); it != arr.end(); ++it)
+    if (*it) count++;
+  return count;
+}
+
 /** Calculate 1-similarity, 0-similarity, and dissimilarity counters.
   * \param c_total Column sum of the data (c_sum)
   * \param n_objects Number of samples (frames)
@@ -263,16 +270,31 @@ const
   }
 
   typedef std::vector<bool> Barray;
+
   Barray a_indices;
   a_indices.reserve(c_total.size());
   for (Darray::const_iterator it = c_total.begin(); it != c_total.end(); ++it)
     a_indices.push_back( 2 * *it - n_objects > c_threshold );
   //printBarray( a_indices );
+
   Barray d_indices;
   d_indices.reserve(c_total.size());
   for (Darray::const_iterator it = c_total.begin(); it != c_total.end(); ++it)
     d_indices.push_back( n_objects - 2 * *it > c_threshold );
-  printBarray( d_indices );
+  //printBarray( d_indices );
+
+  Barray dis_indices;
+  dis_indices.reserve(c_total.size());
+  for (Darray::const_iterator it = c_total.begin(); it != c_total.end(); ++it)
+    dis_indices.push_back( fabs( 2 * *it - n_objects) <= c_threshold );
+  //printBarray( dis_indices );
+
+  unsigned int a_count = Bsum(a_indices);
+  unsigned int d_count = Bsum(d_indices);
+  unsigned int total_dis = Bsum(dis_indices);
+
+  mprintf("%u %u %u\n", a_count, d_count, total_dis);
+  
   return 0;
 }
 
