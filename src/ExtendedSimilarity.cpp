@@ -197,9 +197,9 @@ static inline void printDarray(std::vector<double> const& arr) {
   int col = 0;
   mprintf("[");
   for (std::vector<double>::const_iterator it = arr.begin(); it != arr.end(); ++it) {
-    mprintf(" %g", *it);
+    mprintf(" %10.8g", *it);
     col++;
-    if (col == 12) {
+    if (col == 6) {
       mprintf("\n");
       col = 0;
     }
@@ -229,6 +229,15 @@ static inline unsigned int Bsum(std::vector<bool> const& arr) {
   for (std::vector<bool>::const_iterator it = arr.begin(); it != arr.end(); ++it)
     if (*it) count++;
   return count;
+}
+
+ExtendedSimilarity::Darray ExtendedSimilarity::subArray(Darray const& d, Barray const& b, unsigned int n_objects)
+{
+  Darray out;
+  out.reserve(d.size());
+  for (unsigned int idx = 0; idx != d.size(); idx++)
+    if (b[idx]) out.push_back(2 * d[idx] - n_objects);
+  return out;
 }
 
 /** Calculate 1-similarity, 0-similarity, and dissimilarity counters.
@@ -269,7 +278,6 @@ const
       break;
   }
 
-  typedef std::vector<bool> Barray;
 
   Barray a_indices;
   a_indices.reserve(c_total.size());
@@ -294,6 +302,9 @@ const
   unsigned int total_dis = Bsum(dis_indices);
 
   mprintf("%u %u %u\n", a_count, d_count, total_dis);
+
+  Darray a_w_array = f_s( subArray(c_total, a_indices, n_objects), n_objects, power );
+  printDarray( a_w_array );
   
   return 0;
 }
