@@ -203,6 +203,8 @@ const
     std::vector<double> c_arr(Ncoords, 0.0);
     std::vector<double> sq_arr(Ncoords, 0.0);
     ExtendedSimilarity ExtSim;
+    CpptrajFile dbg;
+    dbg.OpenWrite("test.cpptraj.out");
     for (unsigned int idx = 0; idx < crdIn->Size(); idx++) {
       crdIn->GetFrame(idx, frmIn);
       for (unsigned int icrd = 0; icrd < Ncoords; icrd++) {
@@ -214,9 +216,9 @@ const
       //printDarray(c_sum);
       //mprintf("%i\n", crdIn->Top().Natom());
       double val = ExtSim.Comparison(c_arr, sq_arr, metric, Nframes-1, crdIn->Top().Natom());
-      mprintf("DBG:\t%u %.10f\n", idx, val);
+      dbg.Printf("%8u %16.8f\n", idx, val);
     }
-    
+    dbg.CloseFile();
   }
 
   return 0;
