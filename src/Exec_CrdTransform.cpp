@@ -202,6 +202,13 @@ const
     // For each frame, get the comp. similarity
     std::vector<double> c_arr(Ncoords, 0.0);
     std::vector<double> sq_arr(Ncoords, 0.0);
+    // Set up extended similarity options TODO should just be part of ExtendedSimilarity?
+    ExtendedSimilarity::Opts opts;
+    if (metric == ExtendedSimilarity::MSD)
+      opts = ExtendedSimilarity::Opts(sq_arr, crdIn->Top().Natom());
+    else
+      return 1; // FIXME
+    if (!opts.IsValid()) return 1;
     ExtendedSimilarity ExtSim;
     CpptrajFile dbg;
     dbg.OpenWrite("test.cpptraj.out");
@@ -215,12 +222,7 @@ const
       //printDarray(sq_arr);
       //printDarray(c_sum);
       //mprintf("%i\n", crdIn->Top().Natom());
-      // FIXME
-      ExtendedSimilarity::Opts opts;
-      if (metric == ExtendedSimilarity::MSD)
-        opts = ExtendedSimilarity::Opts(sq_arr, crdIn->Top().Natom());
-      else
-        return 1;
+
       double val = ExtSim.Comparison(c_arr, Nframes-1, opts);
       dbg.Printf("%8u %16.8f\n", idx, val);
     }

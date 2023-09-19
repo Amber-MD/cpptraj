@@ -78,9 +78,9 @@ EOF
 }
 
 # --------------------------------------
-#RefineWithLoop
-#RmsRefine
-#NormCoords
+RefineWithLoop
+RmsRefine
+NormCoords
 Trim
 
 EndTest

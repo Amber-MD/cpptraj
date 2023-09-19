@@ -70,6 +70,9 @@ class ExtendedSimilarity::Opts {
     Darray const& Sq_sum() const { return *sq_sum_ptr_; }
     /// \return Number of atoms (MSD)
     unsigned int Natoms() const { return natoms_; }
+
+    /// \return True if options are valid
+    bool IsValid() const;
   private:
     MetricType metric_;        ///< Desired metric
     Darray const* sq_sum_ptr_; ///< Pointer to sum of squares array (MSD)

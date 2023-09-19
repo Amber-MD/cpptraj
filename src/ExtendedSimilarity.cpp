@@ -19,6 +19,24 @@ ExtendedSimilarity::Opts::Opts(MetricType mt, CoincidenceThresholdType ct, doubl
   power_(wv)
 { }
 
+/** \return True if options are valid. */
+bool ExtendedSimilarity::Opts::IsValid() const {
+  if (metric_ == MSD) {
+    if (sq_sum_ptr_ == 0 || sq_sum_ptr_->empty()) {
+      mprinterr("Error: Similarity options are set up for MSD metric but sum of squares array is empty.\n");
+      return false;
+    }
+    if (natoms_ < 1) {
+      mprinterr("Error: Similarity options are set up for MSD metric but # atoms < 1.\n");
+      return false;
+    }
+  } else if (metric_ == NO_METRIC) {
+    mprinterr("Error: Similarity options metric not set.\n");
+    return false;
+  }
+  return true;
+}
+
 // -----------------------------------------------------------------------------
 
 /** CONSTRUCTOR */
