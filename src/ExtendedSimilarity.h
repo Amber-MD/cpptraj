@@ -53,6 +53,7 @@ class ExtendedSimilarity {
     double msd_condensed(Darray const&, Darray const&, unsigned int, unsigned int) const;
     /// \return Sub-array based on values of given boolean array
     static inline Darray subArray(Darray const&, Barray const&, unsigned int);
+    static inline Darray absSubArray(Darray const&, Barray const&, unsigned int);
     /// Calculate 1-similarity, 0-similarity, and dissimilarity counters from sum array
     int calculate_counters(Darray const&, unsigned int, Opts const&) const;
 

@@ -240,6 +240,14 @@ ExtendedSimilarity::Darray ExtendedSimilarity::subArray(Darray const& d, Barray 
   return out;
 }
 
+ExtendedSimilarity::Darray ExtendedSimilarity::absSubArray(Darray const& d, Barray const& b, unsigned int n_objects)
+{
+  Darray out;
+  out.reserve(d.size());
+  for (unsigned int idx = 0; idx != d.size(); idx++)
+    if (b[idx]) out.push_back( fabs(2 * d[idx] - n_objects) );
+  return out;
+}
 /** Calculate 1-similarity, 0-similarity, and dissimilarity counters.
   * \param c_total Column sum of the data (c_sum)
   * \param n_objects Number of samples (frames)
@@ -304,7 +312,9 @@ const
   mprintf("%u %u %u\n", a_count, d_count, total_dis);
 
   Darray a_w_array = f_s( subArray(c_total, a_indices, n_objects), n_objects, power );
-  printDarray( a_w_array );
+  //printDarray( a_w_array );
+  Darray d_w_array = f_s( absSubArray(c_total, d_indices, n_objects), n_objects, power );
+  printDarray( d_w_array );
   
   return 0;
 }
