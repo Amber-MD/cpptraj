@@ -155,11 +155,41 @@ const
 }
 
 // Power weight functions
-Darray ExtendedSimilarity::f_s_power(Darray const& in, unsigned int n_objects, double p) {
+ExtendedSimilarity::Darray ExtendedSimilarity::f_s_power(Darray const& in, unsigned int n_objects, double p) {
   Darray out;
   out.reserve(in.size());
   for (Darray::const_iterator d = in.begin(); d != in.end(); ++d)
     out.push_back( pow(p, (double)(-(n_objects - *d))) );
+  return out;
+}
+
+ExtendedSimilarity::Darray ExtendedSimilarity::f_d_power(Darray const& in, unsigned int n_objects, double p) {
+  Darray out;
+  out.reserve(in.size());
+  for (Darray::const_iterator d = in.begin(); d != in.end(); ++d)
+    out.push_back( pow(p, (double)(-(*d - (n_objects % 2)))) );
+  return out;
+}
+
+ExtendedSimilarity::Darray ExtendedSimilarity::f_s_frac(Darray const& in, unsigned int n_objects, double p) {
+  Darray out;
+  out.reserve(in.size());
+  for (Darray::const_iterator d = in.begin(); d != in.end(); ++d)
+    out.push_back( *d / n_objects );
+  return out;
+}
+
+ExtendedSimilarity::Darray ExtendedSimilarity::f_d_frac(Darray const& in, unsigned int n_objects, double p) {
+  Darray out;
+  out.reserve(in.size());
+  for (Darray::const_iterator d = in.begin(); d != in.end(); ++d)
+    out.push_back( (*d - (n_objects % 2)) / n_objects );
+  return out;
+}
+
+ExtendedSimilarity::Darray ExtendedSimilarity::f_one(Darray const& in, unsigned int n_objects, double p) {
+  Darray out(in.size(), 1.0);
+  return out;
 }
 
 /** Calculate 1-similarity, 0-similarity, and dissimilarity counters.
@@ -180,9 +210,25 @@ const
     case FRAC_OBJECTS : c_threshold = (unsigned int)(opts.CoincidenceThresholdVal() * n_objects); break;
   }
   // Set w_factor
-  typedef double (*WgtFxnType)(double, unsigned int);
+  double power = opts.WeightFactorPower();
+  typedef Darray (*WgtFxnType)(Darray const&, unsigned int, double);
   WgtFxnType f_s; // Similarity function
   WgtFxnType f_d; // Dissimilarity function
+
+  switch(opts.WeightFactor()) {
+    case POWER:
+      f_s = f_s_power;
+      f_d = f_d_power;
+      break;
+    case FRACTION:
+      f_s = f_s_frac;
+      f_d = f_d_frac;
+      break;
+    case OTHER:
+      f_s = f_one;
+      f_d = f_one;
+      break;
+  }
 
   return 0;
 }

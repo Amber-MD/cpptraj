@@ -53,7 +53,11 @@ class ExtendedSimilarity {
     /// Calculate 1-similarity, 0-similarity, and dissimilarity counters from sum array
     int calculate_counters(Darray const&, unsigned int, Opts const&) const;
 
-    static inline Darray f_s_power(Darray const&, unsigned int, double);
+    static Darray f_s_power(Darray const&, unsigned int, double);
+    static Darray f_d_power(Darray const&, unsigned int, double);
+    static Darray f_s_frac(Darray const&, unsigned int, double);
+    static Darray f_d_frac(Darray const&, unsigned int, double);
+    static Darray f_one(Darray const&, unsigned int, double);
 };
 // -----------------------------------------------------------------------------
 /** Hold options for extended similarity. */
@@ -78,6 +82,10 @@ class ExtendedSimilarity::Opts {
     CoincidenceThresholdType CoincidenceThreshold() const { return cthreshType_; }
     /// \return Coincidence threshold value
     double CoincidenceThresholdVal() const { return c_threshold_; }
+    /// \return Weight factor type
+    WeightFactorType WeightFactor() const { return wfactorType_; }
+    /// \return Weight factor power (for type POWER)
+    double WeightFactorPower() const { return power_; }
 
     /// \return True if options are valid. Takes total number of objects (frames) to check
     bool IsValid(unsigned int) const;
