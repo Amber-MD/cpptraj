@@ -8,18 +8,33 @@ class ExtendedSimilarity {
   public:
     typedef std::vector<double> Darray;
     /// Metric types
-    enum MetricType { MSD = 0, ///< Mean-squared deviation
-                      BUB,     ///< Bhattacharyya's U coefficient
-                      FAI,     ///< Faiman's coefficient
-                      GLE,     ///< Gleason's coefficient
-                      JA,      ///< Jaccard's coefficient
-                      JT,      ///< Jaccard-Tanimoto coefficient
-                      RT,      ///< Rogers-Tanimoto coefficient
-                      RR,      ///< Russell-Rao coefficient
-                      SM,      ///< Simpson's coefficient
-                      SS1,     ///< Sokal-Sneath 1 coefficient
-                      SS2,     ///< Sokal-Sneath 2 coefficient
-                      NO_METRIC };
+    enum MetricType {
+      MSD = 0, ///< Mean-squared deviation
+      BUB,     ///< Bhattacharyya's U coefficient
+      FAI,     ///< Faiman's coefficient
+      GLE,     ///< Gleason's coefficient
+      JA,      ///< Jaccard's coefficient
+      JT,      ///< Jaccard-Tanimoto coefficient
+      RT,      ///< Rogers-Tanimoto coefficient
+      RR,      ///< Russell-Rao coefficient
+      SM,      ///< Simpson's coefficient
+      SS1,     ///< Sokal-Sneath 1 coefficient
+      SS2,     ///< Sokal-Sneath 2 coefficient
+      NO_METRIC
+    };
+    /// Coincidence threshold types
+    enum CoincidenceThresholdType {
+      NO_THRESHOLD = 0, ///< Default, c_threshold = n_objects % 2
+      DISSIMILAR,       ///< Dissimilar, c_threshold = ceil(n_objects/2)
+      N_OBJECTS,        ///< Target number of objects (< total number of objects)
+      FRAC_OBJECTS      ///< Fraction of total number of objects
+    };
+    /// Weight factor types
+    enum WeightFactorType {
+      FRACTION = 0, ///< similarity = d[k]/n_objects, dissimilarity = 1 - (d[k] - n_objects % 2)/n_objects
+      POWER,        ///< similarity = n^-(n_objects - d[k]), dissimilarity = n^-(d[k] - n_objects % 2)
+      OTHER         ///< similarity = dissimilarity = 1
+    };
     /// CONSTRUCTOR
     ExtendedSimilarity();
     /// Hold extended similarity options
@@ -47,6 +62,8 @@ class ExtendedSimilarity::Opts {
     Opts() : metric_(NO_METRIC) {}
     /// MSD constructor - Sum of squares, number of atoms
     Opts(Darray const&, unsigned int);
+    /// Constructor - metric, c. threshold type, c. threshold value, weight type, weight value
+    Opts(MetricType, CoincidenceThresholdType, double, WeightFactorType, double);
     /// \return Metric type
     MetricType Metric() const { return metric_; }
     /// \return Sum of squares array (MSD)
@@ -57,5 +74,9 @@ class ExtendedSimilarity::Opts {
     MetricType metric_;        ///< Desired metric
     Darray const* sq_sum_ptr_; ///< Pointer to sum of squares array (MSD)
     unsigned int natoms_;      ///< Number of atoms (MSD)
+    CoincidenceThresholdType cthreshType_; ///< Coincidence threshold type
+    double c_threshold_;                   ///< Coincidence threshold value
+    WeightFactorType wfactorType_;         ///< Weight factor type
+    double power_;                         ///< Power for weight factor power type
 };
 #endif

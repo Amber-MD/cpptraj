@@ -9,6 +9,16 @@ ExtendedSimilarity::Opts::Opts(Darray const& sq_sum, unsigned int natoms) :
   natoms_(natoms)
 { }
 
+/** CONSTRUCTOR - metric, c. threshold type, c. threshold value, weight type, weight value */
+ExtendedSimilarity::Opts::Opts(MetricType mt, CoincidenceThresholdType ct, double cv,
+                               WeightFactorType wt, double wv) :
+  metric_(mt),
+  cthreshType_(ct),
+  c_threshold_(cv),
+  wfactorType_(wt),
+  power_(wv)
+{ }
+
 // -----------------------------------------------------------------------------
 
 /** CONSTRUCTOR */
