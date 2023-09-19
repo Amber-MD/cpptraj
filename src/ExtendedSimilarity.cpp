@@ -123,6 +123,7 @@ const
   double val = 0;
   switch (opts.Metric()) {
     case MSD : val = msd_condensed(c_sum, opts.Sq_sum(), Nframes, opts.Natoms()); break;
+    case BUB : calculate_counters(c_sum, Nframes, opts); break; //FIXME
     default:
       mprinterr("Internal Error: ExtendedSimilarity::Comparison(): Metric '%s' is unhandled.\n",
                 MetricStr_[opts.Metric()]);
@@ -192,6 +193,37 @@ ExtendedSimilarity::Darray ExtendedSimilarity::f_one(Darray const& in, unsigned 
   return out;
 }
 
+static inline void printDarray(std::vector<double> const& arr) {
+  int col = 0;
+  mprintf("[");
+  for (std::vector<double>::const_iterator it = arr.begin(); it != arr.end(); ++it) {
+    mprintf(" %g", *it);
+    col++;
+    if (col == 12) {
+      mprintf("\n");
+      col = 0;
+    }
+  }
+  mprintf("]\n");
+}
+
+static inline void printBarray(std::vector<bool> const& arr) {
+  int col = 0;
+  mprintf("[");
+  for (std::vector<bool>::const_iterator it = arr.begin(); it != arr.end(); ++it) {
+    if (*it)
+      mprintf(" True");
+    else
+      mprintf(" False");
+    col++;
+    if (col == 12) {
+      mprintf("\n");
+      col = 0;
+    }
+  }
+  mprintf("]\n");
+}
+
 /** Calculate 1-similarity, 0-similarity, and dissimilarity counters.
   * \param c_total Column sum of the data (c_sum)
   * \param n_objects Number of samples (frames)
@@ -230,6 +262,17 @@ const
       break;
   }
 
+  typedef std::vector<bool> Barray;
+  Barray a_indices;
+  a_indices.reserve(c_total.size());
+  for (Darray::const_iterator it = c_total.begin(); it != c_total.end(); ++it)
+    a_indices.push_back( 2 * *it - n_objects > c_threshold );
+  //printBarray( a_indices );
+  Barray d_indices;
+  d_indices.reserve(c_total.size());
+  for (Darray::const_iterator it = c_total.begin(); it != c_total.end(); ++it)
+    d_indices.push_back( n_objects - 2 * *it > c_threshold );
+  printBarray( d_indices );
   return 0;
 }
 
