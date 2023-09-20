@@ -47,6 +47,23 @@ class ExtendedSimilarity {
     double Comparison(Darray const&, unsigned int, Opts const&) const;
   private:
     typedef std::vector<bool> Barray;
+    /// Hold counters from calculate_counters
+    class Counters {
+      public:
+        Counters() : a_(0), w_a_(0), d_(0), w_d_(0), total_sim_(0), total_w_sim_(0),
+                     total_dis_(0), total_w_dis_(0), p_(0), w_p_(0) {}
+
+        unsigned int a_;
+        double w_a_;
+        unsigned int d_;
+        double w_d_;
+        unsigned int total_sim_;
+        double total_w_sim_;
+        unsigned int total_dis_;
+        double total_w_dis_;
+        unsigned int p_;
+        double w_p_;
+    };
 
     static const char* MetricStr_[];
     /// Calculate MSD from sum and squared sum arrays
@@ -55,7 +72,7 @@ class ExtendedSimilarity {
     static inline Darray subArray(Darray const&, Barray const&, unsigned int);
     static inline Darray absSubArray(Darray const&, Barray const&, unsigned int);
     /// Calculate 1-similarity, 0-similarity, and dissimilarity counters from sum array
-    int calculate_counters(Darray const&, unsigned int, Opts const&) const;
+    Counters calculate_counters(Darray const&, unsigned int, Opts const&) const;
 
     static Darray f_s_power(Darray const&, unsigned int, double);
     static Darray f_d_power(Darray const&, unsigned int, double);

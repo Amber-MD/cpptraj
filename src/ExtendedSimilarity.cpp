@@ -121,9 +121,10 @@ const
 {
 
   double val = 0;
+  Counters count;
   switch (opts.Metric()) {
     case MSD : val = msd_condensed(c_sum, opts.Sq_sum(), Nframes, opts.Natoms()); break;
-    case BUB : calculate_counters(c_sum, Nframes, opts); break; //FIXME
+    case BUB : count = calculate_counters(c_sum, Nframes, opts); break; //FIXME
     default:
       mprinterr("Internal Error: ExtendedSimilarity::Comparison(): Metric '%s' is unhandled.\n",
                 MetricStr_[opts.Metric()]);
@@ -269,8 +270,9 @@ ExtendedSimilarity::Darray ExtendedSimilarity::absSubArray(Darray const& d, Barr
   * \param n_objects Number of samples (frames)
   * \param opts Extended similarity options
   */
-int ExtendedSimilarity::calculate_counters(Darray const& c_total, unsigned int n_objects,
-                                           Opts const& opts)
+ExtendedSimilarity::Counters
+   ExtendedSimilarity::calculate_counters(Darray const& c_total, unsigned int n_objects,
+                                          Opts const& opts)
 const
 {
   // Assign c_threshold
@@ -320,11 +322,12 @@ const
     dis_indices.push_back( fabs( 2 * *it - n_objects) <= c_threshold );
   //printBarray( dis_indices );
 
-  unsigned int a_count = Bsum(a_indices);
-  unsigned int d_count = Bsum(d_indices);
-  unsigned int total_dis = Bsum(dis_indices);
+  Counters count;
+  count.a_         = Bsum(a_indices);
+  count.d_         = Bsum(d_indices);
+  count.total_dis_ = Bsum(dis_indices);
 
-  mprintf("%u %u %u\n", a_count, d_count, total_dis);
+  mprintf("%u %u %u\n", count.a_, count.d_, count.total_dis_);
 
   Darray a_w_array = f_s( subArray(c_total, a_indices, n_objects), n_objects, power );
   //printDarray( a_w_array );
@@ -333,11 +336,17 @@ const
   Darray total_w_dis_array = f_d( absSubArray(c_total, dis_indices, n_objects), n_objects, power );
   //printDarray( total_w_dis_array );
 
-  double w_a = Dsum( a_w_array );
-  double w_d = Dsum( d_w_array );
-  double total_w_dis = Dsum( total_w_dis_array );
-  mprintf("%10.8f %10.8f %10.8f\n", w_a, w_d, total_w_dis);
+  count.w_a_         = Dsum( a_w_array );
+  count.w_d_         = Dsum( d_w_array );
+  count.total_w_dis_ = Dsum( total_w_dis_array );
+  mprintf("%10.8f %10.8f %10.8f\n", count.w_a_, count.w_d_, count.total_w_dis_);
+
+  count.total_sim_   = count.a_ + count.d_;
+  count.total_w_sim_ = count.w_a_ + count.w_d_;
+  count.p_           = count.total_sim_ + count.total_dis_;
+  count.w_p_         = count.total_w_sim_ + count.total_w_dis_;
+  mprintf("%8u %10.8f %8u %10.8f\n", count.total_sim_, count.total_w_sim_, count.p_, count.w_p_);
   
-  return 0;
+  return count;
 }
 
