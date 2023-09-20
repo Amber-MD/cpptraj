@@ -339,6 +339,7 @@ Exec::RetType Exec_CrdTransform::Execute(CpptrajState& State, ArgList& argIn)
       mprinterr("Error: Could not set up output coords set %s\n", OUT->legend());
       return CpptrajState::ERR;
     }
+    if (!lengthWillBeModified) OUT->Allocate( DataSet::SizeArray(1, CRD->Size()) );
   }
   bool needToDeleteCRD = false;
   if (OUT == 0) {
