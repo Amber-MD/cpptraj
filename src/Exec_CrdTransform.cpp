@@ -22,7 +22,7 @@ const
 {
   mprintf("\tNormalize coordinates between 0 and 1.\n");
   mprintf("\tInput coords: %s\n", crdIn->legend());
-  mprintf("\tOutput coords: %s\n", crdIn->legend());
+  mprintf("\tOutput coords: %s\n", crdOut->legend());
   // Get max and min X Y and Z
   Frame frmIn = crdIn->AllocateFrame();
   crdIn->GetFrame(0, frmIn);
@@ -86,7 +86,7 @@ const
 {
   mprintf("\tRMS iterative refinement.\n");
   mprintf("\tInput coords: %s\n", crdIn->legend());
-  mprintf("\tOutput coords: %s\n", crdIn->legend());
+  mprintf("\tOutput coords: %s\n", crdOut->legend());
   mprintf("\tAtom mask: %s\n", maskIn.MaskString());
   mprintf("\tRMS Tolerance: %g Ang.\n", tolIn);
   if (useMass)
@@ -157,6 +157,8 @@ int Exec_CrdTransform::trimOutliers(int n_trimmed, double cutoffIn,
 const
 {
   mprintf("\tTrimming outliers.\n");
+  mprintf("\tInput coords: %s\n", crdIn->legend());
+  mprintf("\tOutput coords: %s\n", crdOut->legend());
   mprintf("\tUsing metric: %s\n", ExtendedSimilarity::metricStr(metric));
   mprintf("\tCriterion: %s\n", CriterionStr_[criterion]);
   unsigned int Ncoords = crdIn->Top().Natom() * 3;
