@@ -256,10 +256,10 @@ const
 // Exec_CrdTransform::Help()
 void Exec_CrdTransform::Help() const
 {
-  mprintf("\t<crd set>\n"
+  mprintf("\t<input crd set> [name <output crd set>]\n"
           "\t{ rmsrefine [mask <mask>] [mass] [rmstol <tolerance>] |\n"
           "\t  normcoords |\n"
-          "\t  trim\n"
+          "\t  trim [metric <metric>] [{ntrimmed <#>|cutoff <val>}]\n"
           "\t}\n");
 }
 
@@ -303,9 +303,10 @@ Exec::RetType Exec_CrdTransform::Execute(CpptrajState& State, ArgList& argIn)
   }
  
   // Get COORDS set
+  std::string outname = argIn.GetStringKey("name");
   std::string setname = argIn.GetStringNext();
   if (setname.empty()) {
-    mprinterr("Error: %s: Specify COORDS dataset name.\n", argIn.Command());
+    mprinterr("Error: %s: Specify input COORDS dataset name.\n", argIn.Command());
     return CpptrajState::ERR;
   }
   DataSet_Coords* CRD = (DataSet_Coords*)State.DSL().FindSetOfGroup( setname, DataSet::COORDINATES );
@@ -322,6 +323,20 @@ Exec::RetType Exec_CrdTransform::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: TRAJ sets not yet supported.\n"); // FIXME
     return CpptrajState::ERR;
   }
+  // ----- No more input args processed below here ---------
+
+  // Set up output set if needed TODO FRAMES set
+  DataSet_Coords* OUT = 0;
+  if (!outname.empty()) {
+    OUT = (DataSet_Coords*)State.DSL().AddSet( DataSet::COORDS, MetaData(outname) );
+    if (OUT == 0) {
+      mprinterr("Error: Could not create output coords set %s\n", outname.c_str());
+      return CpptrajState::ERR;
+    }
+  }
+  if (OUT == 0) {
+    OUT = CRD;
+  }
 
   // Set up mask
   if (mask.MaskStringSet()) {
@@ -334,10 +349,10 @@ Exec::RetType Exec_CrdTransform::Execute(CpptrajState& State, ArgList& argIn)
 
   int err = 0;
   switch (mode) {
-    case RMSREFINE  : err = iterativeRmsRefinement(mask, useMass, rmsTol, CRD, CRD); break;
-    case NORMCOORDS : err = normalizeCoords(CRD, CRD); break;
+    case RMSREFINE  : err = iterativeRmsRefinement(mask, useMass, rmsTol, CRD, OUT); break;
+    case NORMCOORDS : err = normalizeCoords(CRD, OUT); break;
     // TODO pass in criterion
-    case TRIM       : err = trimOutliers(n_trimmed, cutoff, metric, COMP_SIM, CRD, CRD); break; // FIXME
+    case TRIM       : err = trimOutliers(n_trimmed, cutoff, metric, COMP_SIM, CRD, OUT); break; // FIXME
     default         : err = 1; break;
   }
   if (err != 0) return CpptrajState::ERR;
