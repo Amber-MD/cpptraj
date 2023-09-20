@@ -244,12 +244,25 @@ const
     dbg.CloseFile();
 
     std::sort(comp_sims.begin(), comp_sims.end(), IdxValPairCmp());
+    std::vector<bool> keepFrame(comp_sims.size(), true);
     mprintf("[");
+    unsigned int nToRemove = 0;
     for (unsigned int idx = 0; idx < cutoff; idx++) {
       mprintf(" %u", comp_sims[idx].first);
+      keepFrame[comp_sims[idx].first] = false;
+      nToRemove++;
     }
     mprintf("]\n");
-  }
+    mprintf("\tRemoving %u frames.\n", nToRemove);
+
+    // Populate the output trajectory
+    for (unsigned int idx = 0; idx < crdIn->Size(); idx++) {
+      if (keepFrame[idx]) {   
+        crdIn->GetFrame(idx, frmIn);
+        crdOut->AddFrame( frmIn );
+      }
+    }  
+  } // END if comp sim
 
   return 0;
 }
