@@ -148,7 +148,7 @@ const
   Counters count;
   if (opts.Metric() != MSD)
     count = calculate_counters(c_sum, Nframes, opts);
-  mprintf("%10.8g %10.8g %10.8g %10.8g %10.8g\n", count.w_a_, count.w_d_, count.a_, count.d_, count.total_dis_);
+  //mprintf("%10.8g %10.8g %10.8g %10.8g %10.8g\n", count.w_a_, count.w_d_, count.a_, count.d_, count.total_dis_);
   switch (opts.Metric()) {
     case MSD : val = msd_condensed(c_sum, opts.Sq_sum(), Nframes, opts.Natoms()); break;
     case BUB :
