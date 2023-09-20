@@ -150,6 +150,7 @@ const
   Counters count;
   if (opts.Metric() != MSD)
     count = calculate_counters(c_sum, Nframes, opts);
+  mprintf("%10.8g %10.8g %10.8g %10.8g %10.8g\n", count.w_a_, count.w_d_, count.a_, count.d_, count.total_dis_);
   switch (opts.Metric()) {
     case MSD : val = msd_condensed(c_sum, opts.Sq_sum(), Nframes, opts.Natoms()); break;
     case BUB :
@@ -160,6 +161,8 @@ const
       mprinterr("Internal Error: ExtendedSimilarity::Comparison(): Metric '%s' is unhandled.\n",
                 MetricStr_[opts.Metric()]);
   }
+  if (opts.Metric() != MSD)
+    val = 1 - val;
 
   return val;
 }
@@ -358,7 +361,7 @@ const
   count.d_         = Bsum(d_indices);
   count.total_dis_ = Bsum(dis_indices);
 
-  mprintf("%u %u %u\n", count.a_, count.d_, count.total_dis_);
+  mprintf("%g %g %g\n", count.a_, count.d_, count.total_dis_);
 
   Darray a_w_array = f_s( subArray(c_total, a_indices, n_objects), n_objects, power );
   //printDarray( a_w_array );
@@ -376,7 +379,7 @@ const
   count.total_w_sim_ = count.w_a_ + count.w_d_;
   count.p_           = count.total_sim_ + count.total_dis_;
   count.w_p_         = count.total_w_sim_ + count.total_w_dis_;
-  mprintf("%8u %10.8f %8u %10.8f\n", count.total_sim_, count.total_w_sim_, count.p_, count.w_p_);
+  mprintf("%8g %10.8f %8g %10.8f\n", count.total_sim_, count.total_w_sim_, count.p_, count.w_p_);
   
   return count;
 }

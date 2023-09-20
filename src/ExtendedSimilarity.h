@@ -56,15 +56,15 @@ class ExtendedSimilarity {
         Counters() : a_(0), w_a_(0), d_(0), w_d_(0), total_sim_(0), total_w_sim_(0),
                      total_dis_(0), total_w_dis_(0), p_(0), w_p_(0) {}
 
-        unsigned int a_;
+        double a_;
         double w_a_;
-        unsigned int d_;
+        double d_;
         double w_d_;
-        unsigned int total_sim_;
+        double total_sim_;
         double total_w_sim_;
-        unsigned int total_dis_;
+        double total_dis_;
         double total_w_dis_;
-        unsigned int p_;
+        double p_;
         double w_p_;
     };
     /// Descriptive strings corresponding to MetricType
