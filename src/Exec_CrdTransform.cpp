@@ -224,8 +224,8 @@ const
       //mprintf("%i\n", crdIn->Top().Natom());
 
       double val = ExtSim.Comparison(c_arr, Nframes-1, opts);
-      //dbg.Printf("%8u %16.8f\n", idx, val);
-      mprintf("%8u %16.8f\n", idx, val);
+      dbg.Printf("%8u %16.8f\n", idx, val);
+      //mprintf("%8u %16.8f\n", idx, val);
     }
     dbg.CloseFile();
   }

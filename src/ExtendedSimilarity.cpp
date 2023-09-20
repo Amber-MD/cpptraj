@@ -377,7 +377,7 @@ const
   count.d_         = Bsum(d_indices);
   count.total_dis_ = Bsum(dis_indices);
 
-  mprintf("%g %g %g\n", count.a_, count.d_, count.total_dis_);
+  //mprintf("%g %g %g\n", count.a_, count.d_, count.total_dis_);
 
   Darray a_w_array = f_s( subArray(c_total, a_indices, n_objects), n_objects, power );
   //printDarray( a_w_array );
@@ -389,13 +389,13 @@ const
   count.w_a_         = Dsum( a_w_array );
   count.w_d_         = Dsum( d_w_array );
   count.total_w_dis_ = Dsum( total_w_dis_array );
-  mprintf("%10.8f %10.8f %10.8f\n", count.w_a_, count.w_d_, count.total_w_dis_);
+  //mprintf("%10.8f %10.8f %10.8f\n", count.w_a_, count.w_d_, count.total_w_dis_);
 
   count.total_sim_   = count.a_ + count.d_;
   count.total_w_sim_ = count.w_a_ + count.w_d_;
   count.p_           = count.total_sim_ + count.total_dis_;
   count.w_p_         = count.total_w_sim_ + count.total_w_dis_;
-  mprintf("%8g %10.8f %8g %10.8f\n", count.total_sim_, count.total_w_sim_, count.p_, count.w_p_);
+  //mprintf("%8g %10.8f %8g %10.8f\n", count.total_sim_, count.total_w_sim_, count.p_, count.w_p_);
   
   return count;
 }
