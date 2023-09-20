@@ -148,9 +148,14 @@ const
 
   double val = 0;
   Counters count;
+  if (opts.Metric() != MSD)
+    count = calculate_counters(c_sum, Nframes, opts);
   switch (opts.Metric()) {
     case MSD : val = msd_condensed(c_sum, opts.Sq_sum(), Nframes, opts.Natoms()); break;
-    case BUB : count = calculate_counters(c_sum, Nframes, opts); break; //FIXME
+    case BUB :
+      val = (sqrt(count.w_a_ * count.w_d_) + count.w_a_) / 
+            (sqrt(count.a_ * count.d_) + count.a_ + count.total_dis_);
+      break;
     default:
       mprinterr("Internal Error: ExtendedSimilarity::Comparison(): Metric '%s' is unhandled.\n",
                 MetricStr_[opts.Metric()]);

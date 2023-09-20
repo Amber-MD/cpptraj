@@ -135,10 +135,6 @@ const
   return 0;
 }
 
-//const char* Exec_CrdTransform::TrimMetricStr_[] = {
-//  "MSD", "RR", "JT", "SM", "No metric"
-//};
-
 const char* Exec_CrdTransform::CriterionStr_[] = {
   "comp_sim", "sim_to_medioid", "No criterion"
 };
@@ -228,7 +224,8 @@ const
       //mprintf("%i\n", crdIn->Top().Natom());
 
       double val = ExtSim.Comparison(c_arr, Nframes-1, opts);
-      dbg.Printf("%8u %16.8f\n", idx, val);
+      //dbg.Printf("%8u %16.8f\n", idx, val);
+      mprintf("%8u %16.8f\n", idx, val);
     }
     dbg.CloseFile();
   }
