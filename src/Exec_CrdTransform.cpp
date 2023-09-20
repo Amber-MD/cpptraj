@@ -333,6 +333,10 @@ Exec::RetType Exec_CrdTransform::Execute(CpptrajState& State, ArgList& argIn)
       mprinterr("Error: Could not create output coords set %s\n", outname.c_str());
       return CpptrajState::ERR;
     }
+    if (OUT->CoordsSetup( CRD->Top(), CRD->CoordsInfo() )) {
+      mprinterr("Error: Could not set up output coords set %s\n", OUT->legend());
+      return CpptrajState::ERR;
+    }
   }
   if (OUT == 0) {
     OUT = CRD;
