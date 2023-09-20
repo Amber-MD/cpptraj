@@ -1,7 +1,7 @@
 #include "ExtendedSimilarity.h"
 #include "DataSet_Coords.h"
 #include "CpptrajStdio.h"
-#include <cmath> // ceil, pow
+#include <cmath> // ceil, pow, sqrt
 
 /** CONSTRUCTOR for MSD - sum of squares array, number of atoms. */
 ExtendedSimilarity::Opts::Opts(Darray const& sq_sum, unsigned int natoms) :
@@ -136,10 +136,8 @@ const
 
 /** \return Extended comparison value.
   * \param c_sum Column sum of the data
-  * \param sq_sum Column sum of the squared data (MSD only)
-  * \param metricIn Similarity metric to use
   * \param Nframes Number of samples (frames)
-  * \param Natoms Number of atoms (MSD only)
+  * \param opts Options
   */
 double ExtendedSimilarity::Comparison(Darray const& c_sum, unsigned int Nframes, 
                                       Opts const& opts)
@@ -157,6 +155,24 @@ const
       val = (sqrt(count.w_a_ * count.w_d_) + count.w_a_) / 
             (sqrt(count.a_ * count.d_) + count.a_ + count.total_dis_);
       break;
+    case FAI :
+      val = (count.w_a_ + 0.5 * count.w_d_) / (count.p_); break;
+    case GLE :
+      val = (2 * count.w_a_) / (2 * count.a_ + count.total_dis_); break;
+    case JA :
+      val = (3 * count.w_a_) / (3 * count.a_ + count.total_dis_); break;
+    case JT :
+      val = (count.w_a_) / (count.a_ + count.total_dis_); break;
+    case RT :
+      val = (count.total_w_sim_) / (count.p_ + count.total_dis_); break;
+    case RR :
+      val = (count.w_a_) / (count.p_); break;
+    case SM :
+      val = (count.total_w_sim_) / (count.p_); break;
+    case SS1 :
+      val = (count.w_a_) / (count.a_ + 2 * count.total_dis_); break;
+    case SS2 :
+      val = (2 * count.total_w_sim_) / (count.p_ + count.total_sim_); break;
     default:
       mprinterr("Internal Error: ExtendedSimilarity::Comparison(): Metric '%s' is unhandled.\n",
                 MetricStr_[opts.Metric()]);
