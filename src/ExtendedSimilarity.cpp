@@ -155,6 +155,7 @@ const
   return msd;
 }
 
+// -------------------------------------
 // Power weight functions
 ExtendedSimilarity::Darray ExtendedSimilarity::f_s_power(Darray const& in, unsigned int n_objects, double p) {
   Darray out;
@@ -193,6 +194,8 @@ ExtendedSimilarity::Darray ExtendedSimilarity::f_one(Darray const& in, unsigned 
   return out;
 }
 
+// -------------------------------------
+/// For debug, print double array.
 static inline void printDarray(std::vector<double> const& arr) {
   int col = 0;
   mprintf("[");
@@ -207,6 +210,7 @@ static inline void printDarray(std::vector<double> const& arr) {
   mprintf("]\n");
 }
 
+/// For debug, print boolean array
 static inline void printBarray(std::vector<bool> const& arr) {
   int col = 0;
   mprintf("[");
@@ -224,6 +228,7 @@ static inline void printBarray(std::vector<bool> const& arr) {
   mprintf("]\n");
 }
 
+/// \return count of true elements in boolean array
 static inline unsigned int Bsum(std::vector<bool> const& arr) {
   unsigned int count = 0;
   for (std::vector<bool>::const_iterator it = arr.begin(); it != arr.end(); ++it)
@@ -231,6 +236,7 @@ static inline unsigned int Bsum(std::vector<bool> const& arr) {
   return count;
 }
 
+/// \return sum over double array
 static inline double Dsum(std::vector<double> const& arr) {
   double sum = 0;
   for (std::vector<double>::const_iterator it = arr.begin(); it != arr.end(); ++it)
@@ -238,7 +244,7 @@ static inline double Dsum(std::vector<double> const& arr) {
   return sum;
 }
 
-
+/** \return Array containing elements of d for which b is true, times 2 minus n_objects */
 ExtendedSimilarity::Darray ExtendedSimilarity::subArray(Darray const& d, Barray const& b, unsigned int n_objects)
 {
   Darray out;
@@ -248,6 +254,7 @@ ExtendedSimilarity::Darray ExtendedSimilarity::subArray(Darray const& d, Barray 
   return out;
 }
 
+/** \return Array containing absolute value of elements of d for which b is true, times 2 minus n_objects */
 ExtendedSimilarity::Darray ExtendedSimilarity::absSubArray(Darray const& d, Barray const& b, unsigned int n_objects)
 {
   Darray out;
@@ -256,6 +263,7 @@ ExtendedSimilarity::Darray ExtendedSimilarity::absSubArray(Darray const& d, Barr
     if (b[idx]) out.push_back( fabs(2 * d[idx] - n_objects) );
   return out;
 }
+
 /** Calculate 1-similarity, 0-similarity, and dissimilarity counters.
   * \param c_total Column sum of the data (c_sum)
   * \param n_objects Number of samples (frames)
@@ -293,20 +301,19 @@ const
       f_d = f_one;
       break;
   }
-
-
+  // A indices
   Barray a_indices;
   a_indices.reserve(c_total.size());
   for (Darray::const_iterator it = c_total.begin(); it != c_total.end(); ++it)
     a_indices.push_back( 2 * *it - n_objects > c_threshold );
   //printBarray( a_indices );
-
+  // D indices
   Barray d_indices;
   d_indices.reserve(c_total.size());
   for (Darray::const_iterator it = c_total.begin(); it != c_total.end(); ++it)
     d_indices.push_back( n_objects - 2 * *it > c_threshold );
   //printBarray( d_indices );
-
+  // Dissimilarity indices
   Barray dis_indices;
   dis_indices.reserve(c_total.size());
   for (Darray::const_iterator it = c_total.begin(); it != c_total.end(); ++it)
@@ -329,7 +336,7 @@ const
   double w_a = Dsum( a_w_array );
   double w_d = Dsum( d_w_array );
   double total_w_dis = Dsum( total_w_dis_array );
-  mprintf("%10.8g %10.8g %10.8g\n", w_a, w_d, total_w_dis);
+  mprintf("%10.8f %10.8f %10.8f\n", w_a, w_d, total_w_dis);
   
   return 0;
 }
