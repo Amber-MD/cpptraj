@@ -73,6 +73,7 @@ loadcrd ../tz2.nc name MyCrd
 
 crdtransform MyCrd trim cutoff 0.1
 #crdout MyCrd normcoords.crd
+list
 EOF
   RunCpptraj "$TESTNAME, using crdtransform trim"
 }

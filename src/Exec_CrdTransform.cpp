@@ -274,6 +274,7 @@ Exec::RetType Exec_CrdTransform::Execute(CpptrajState& State, ArgList& argIn)
   double cutoff = -1.0;
   ExtendedSimilarity::MetricType metric = ExtendedSimilarity::NO_METRIC;
   // Determine mode
+  bool lengthWillBeModified = false;
   enum ModeType { RMSREFINE = 0, NORMCOORDS, TRIM, UNSPECIFIED };
   ModeType mode = UNSPECIFIED;
   if (argIn.hasKey("rmsrefine")) {
@@ -284,6 +285,7 @@ Exec::RetType Exec_CrdTransform::Execute(CpptrajState& State, ArgList& argIn)
   } else if (argIn.hasKey("normcoords")) {
     mode = NORMCOORDS;
   } else if (argIn.hasKey("trim")) {
+    lengthWillBeModified = true;
     mode = TRIM;
     n_trimmed = argIn.getKeyInt("ntrimmed", -1);
     cutoff = argIn.getKeyDouble("cutoff", -1.0);
@@ -338,8 +340,24 @@ Exec::RetType Exec_CrdTransform::Execute(CpptrajState& State, ArgList& argIn)
       return CpptrajState::ERR;
     }
   }
+  bool needToDeleteCRD = false;
   if (OUT == 0) {
-    OUT = CRD;
+    if (!lengthWillBeModified)
+      OUT = CRD;
+    else {
+      // Need to replace CRD with a new set. Remove CRD from master DSL.
+      needToDeleteCRD = true;
+      State.DSL().PopSet( CRD );
+      OUT = (DataSet_Coords*)State.DSL().AddSet( DataSet::COORDS, CRD->Meta() );
+      if (OUT == 0) {
+        mprinterr("Error: Could not replace coords set %s\n", CRD->legend());
+        return CpptrajState::ERR;
+      }
+      if (OUT->CoordsSetup( CRD->Top(), CRD->CoordsInfo() )) {
+        mprinterr("Error: Could not set up replacement coords set %s\n", OUT->legend());
+        return CpptrajState::ERR;
+      }
+    }
   }
 
   // Set up mask
@@ -359,6 +377,7 @@ Exec::RetType Exec_CrdTransform::Execute(CpptrajState& State, ArgList& argIn)
     case TRIM       : err = trimOutliers(n_trimmed, cutoff, metric, COMP_SIM, CRD, OUT); break; // FIXME
     default         : err = 1; break;
   }
+  if (needToDeleteCRD) delete CRD;
   if (err != 0) return CpptrajState::ERR;
 
   return CpptrajState::OK;
