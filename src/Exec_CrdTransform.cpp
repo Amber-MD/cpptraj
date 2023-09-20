@@ -1,7 +1,7 @@
 #include "Exec_CrdTransform.h"
 #include "CpptrajStdio.h"
 #include "Constants.h"
-#include <algorithm> // std::max,min
+#include <algorithm> // std::max,min,sort
 #include <cmath> // floor
 
 /// Get the minimum and maximum coordinates in a given frame, store in min and max
@@ -175,15 +175,15 @@ const
     mprinterr("Error: Must specify either number to trim or cutoff, but not both.\n");
     return 1;
   }
-  int cutoff;
+  unsigned int cutoff;
   if (n_trimmed >= 0) {
-    cutoff = n_trimmed;
+    cutoff = (unsigned int)n_trimmed;
     mprintf("\t# to trim: %i\n", n_trimmed);
   } else {
-    cutoff = (int)(floor(Nframes * cutoffIn));
+    cutoff = (unsigned int)(floor(Nframes * cutoffIn));
     mprintf("\tFraction of outliers to remove: %f\n", cutoffIn);
   }
-  mprintf("\tUsing cutoff value: %i\n", cutoff);
+  mprintf("\tUsing cutoff value: %u\n", cutoff);
 
   if (criterion == COMP_SIM) {
     // Comp sim
@@ -207,9 +207,20 @@ const
     if (metric == ExtendedSimilarity::MSD)
       opts = ExtendedSimilarity::Opts(sq_arr, crdIn->Top().Natom());
     else
-      opts = ExtendedSimilarity::Opts(metric); // FIXME
+      opts = ExtendedSimilarity::Opts(metric); // FIXME add more options
     if (!opts.IsValid(Nframes-1)) return 1;
     ExtendedSimilarity ExtSim;
+
+    typedef std::pair<unsigned int, double> IdxValPairType;
+    std::vector<IdxValPairType> comp_sims;
+    comp_sims.reserve( crdIn->Size() );
+    // For sorting IdxValPairType by values
+    struct IdxValPairCmp {
+      inline bool operator()(IdxValPairType const& first, IdxValPairType const& second) {
+        return (first.second < second.second);
+      }
+    };
+
     CpptrajFile dbg;
     dbg.OpenWrite("test.cpptraj.out");
     for (unsigned int idx = 0; idx < crdIn->Size(); idx++) {
@@ -226,8 +237,16 @@ const
       double val = ExtSim.Comparison(c_arr, Nframes-1, opts);
       dbg.Printf("%8u %16.8f\n", idx, val);
       //mprintf("%8u %16.8f\n", idx, val);
+      comp_sims.push_back( IdxValPairType(idx, val) );
     }
     dbg.CloseFile();
+
+    std::sort(comp_sims.begin(), comp_sims.end(), IdxValPairCmp());
+    mprintf("[");
+    for (unsigned int idx = 0; idx < cutoff; idx++) {
+      mprintf(" %u", comp_sims[idx].first);
+    }
+    mprintf("]\n");
   }
 
   return 0;
