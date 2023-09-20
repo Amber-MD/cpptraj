@@ -1,13 +1,14 @@
 #ifndef INC_EXTENDED_SIMILARITY_H
 #define INC_EXTENDED_SIMILARITY_H
 #include <vector>
+#include <string>
 // Fwd declares
 class DataSet_Coords;
 /// Implements extended similarity comparisons
 class ExtendedSimilarity {
   public:
     typedef std::vector<double> Darray;
-    /// Metric types
+    /// Metric types. Sync with MetricStr_ and MetricKeys_
     enum MetricType {
       MSD = 0, ///< Mean-squared deviation
       BUB,     ///< Bhattacharyya's U coefficient
@@ -41,6 +42,8 @@ class ExtendedSimilarity {
     class Opts;
     /// \return Char string corresponding to given MetricType
     static const char* metricStr(MetricType);
+    /// \return Type corresponding to given keyword
+    static MetricType TypeFromKeyword(std::string const&);
     /// \return Extended comparison value for given COORDS set TODO c_threshold, w_factor
     //double Comparison(DataSet_Coords&, MetricType) const;
     /// \return Extended comparison value for given arrays
@@ -64,8 +67,10 @@ class ExtendedSimilarity {
         unsigned int p_;
         double w_p_;
     };
-
+    /// Descriptive strings corresponding to MetricType
     static const char* MetricStr_[];
+    /// Keywords corresponding to MetricType
+    static const char* MetricKeys_[];
     /// Calculate MSD from sum and squared sum arrays
     double msd_condensed(Darray const&, Darray const&, unsigned int, unsigned int) const;
     /// \return Sub-array based on values of given boolean array

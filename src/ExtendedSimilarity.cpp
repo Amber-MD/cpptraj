@@ -82,10 +82,36 @@ const char* ExtendedSimilarity::MetricStr_[] = {
   "No metric"
 };
 
+/** Keywords corresponding to MetricType. */
+const char* ExtendedSimilarity::MetricKeys_[] = {
+  "msd",
+  "bub",
+  "fai",
+  "gle",
+  "ja",
+  "jt",
+  "rt",
+  "rr",
+  "sm",
+  "ss1",
+  "ss2",
+  0
+};
+
 /** \return Character string corresponding to given metric type. */
 const char* ExtendedSimilarity::metricStr(MetricType m) {
   return MetricStr_[m];
 }
+
+/** \return MetricType corresponding to keyword. */
+ExtendedSimilarity::MetricType ExtendedSimilarity::TypeFromKeyword(std::string const& key) {
+  for (int i = 0; i < (int)NO_METRIC; i++) {
+    if (key == std::string(MetricKeys_[i])) {
+      return (MetricType)i;
+    }
+  }
+  return NO_METRIC;
+} 
 
 /** \return Extended comparison value for COORDS set. */
 /*double ExtendedSimilarity::Comparison(DataSet_Coords& crdIn, MetricType metricIn)

@@ -167,7 +167,7 @@ const
   unsigned int Nframes = crdIn->Size();
   mprintf("\t'%s' has %u coordinates, %u frames.\n", crdIn->legend(), Ncoords, Nframes);
   if (Nframes < 2) {
-    mprintf("Warning: Less than 2 frames, nothing to trim.\n");
+    mprintf("Warning: Less than 2 frames, nothing to trim.\n"); // TODO something with crdOut?
     return 0;
   }
   // Specify n_trimmed or cutoff, but not both.
@@ -211,7 +211,7 @@ const
     if (metric == ExtendedSimilarity::MSD)
       opts = ExtendedSimilarity::Opts(sq_arr, crdIn->Top().Natom());
     else
-      return 1; // FIXME
+      opts = ExtendedSimilarity::Opts(metric); // FIXME
     if (!opts.IsValid(Nframes-1)) return 1;
     ExtendedSimilarity ExtSim;
     CpptrajFile dbg;
@@ -253,8 +253,10 @@ Exec::RetType Exec_CrdTransform::Execute(CpptrajState& State, ArgList& argIn)
   AtomMask mask;
   bool useMass = false;
   double rmsTol = -1.0;
+
   int n_trimmed = -1;
   double cutoff = -1.0;
+  ExtendedSimilarity::MetricType metric = ExtendedSimilarity::NO_METRIC;
   // Determine mode
   enum ModeType { RMSREFINE = 0, NORMCOORDS, TRIM, UNSPECIFIED };
   ModeType mode = UNSPECIFIED;
@@ -269,6 +271,16 @@ Exec::RetType Exec_CrdTransform::Execute(CpptrajState& State, ArgList& argIn)
     mode = TRIM;
     n_trimmed = argIn.getKeyInt("ntrimmed", -1);
     cutoff = argIn.getKeyDouble("cutoff", -1.0);
+    std::string mstr = argIn.GetStringKey("metric");
+    if (!mstr.empty()) {
+      metric = ExtendedSimilarity::TypeFromKeyword( mstr );
+      if (metric == ExtendedSimilarity::NO_METRIC) {
+        mprinterr("Error: Metric '%s' not recognized.\n", mstr.c_str());
+        return CpptrajState::ERR;
+      }
+    } else {
+      metric = ExtendedSimilarity::MSD;
+    }
   } else {
     mprinterr("Error: Expected 'trim', 'rmsrefine', or 'normcoords'\n");
     return CpptrajState::ERR;
@@ -308,8 +320,8 @@ Exec::RetType Exec_CrdTransform::Execute(CpptrajState& State, ArgList& argIn)
   switch (mode) {
     case RMSREFINE  : err = iterativeRmsRefinement(mask, useMass, rmsTol, CRD, CRD); break;
     case NORMCOORDS : err = normalizeCoords(CRD, CRD); break;
-    // TODO pass in criterion and metric
-    case TRIM       : err = trimOutliers(n_trimmed, cutoff, ExtendedSimilarity::MSD, COMP_SIM, CRD, CRD); break;
+    // TODO pass in criterion
+    case TRIM       : err = trimOutliers(n_trimmed, cutoff, metric, COMP_SIM, CRD, CRD); break; // FIXME
     default         : err = 1; break;
   }
   if (err != 0) return CpptrajState::ERR;
