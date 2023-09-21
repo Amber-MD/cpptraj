@@ -11,7 +11,7 @@ class Exec_CrdTransform : public Exec {
     RetType Execute(CpptrajState&, ArgList&);
   private:
     enum CriterionType { COMP_SIM = 0,   ///< Remove most dissimilar objects based on complement similarity
-                         SIM_TO_MEDIOID, ///< Remove most dissimilar objects based on similarity to medioid.
+                         SIM_TO_MEDOID,  ///< Remove most dissimilar objects based on similarity to medoid.
                          NO_CRITERION };
 
     static const char* CriterionStr_[];

@@ -136,7 +136,7 @@ const
 }
 
 const char* Exec_CrdTransform::CriterionStr_[] = {
-  "comp_sim", "sim_to_medioid", "No criterion"
+  "comp_sim", "sim_to_medoid", "No criterion"
 };
 
 static inline void printDarray(std::vector<double> const& array) {
@@ -292,7 +292,8 @@ void Exec_CrdTransform::Help() const
   mprintf("\t<input crd set> [name <output crd set>]\n"
           "\t{ rmsrefine [mask <mask>] [mass] [rmstol <tolerance>] |\n"
           "\t  normcoords |\n"
-          "\t  trim [metric <metric>] [{ntrimmed <#>|cutoff <val>}]\n"
+          "\t  trim [metric <metric>] [{ntrimmed <#>|cutoff <val>}]\n
+                    [criterion {comp|medoid}]]\n"
           "\t}\n");
 }
 
@@ -306,6 +307,7 @@ Exec::RetType Exec_CrdTransform::Execute(CpptrajState& State, ArgList& argIn)
   int n_trimmed = -1;
   double cutoff = -1.0;
   ExtendedSimilarity::MetricType metric = ExtendedSimilarity::NO_METRIC;
+  CriterionType criterion = NO_CRITERION;
   // Determine mode
   bool lengthWillBeModified = false;
   enum ModeType { RMSREFINE = 0, NORMCOORDS, TRIM, UNSPECIFIED };
@@ -331,6 +333,19 @@ Exec::RetType Exec_CrdTransform::Execute(CpptrajState& State, ArgList& argIn)
       }
     } else {
       metric = ExtendedSimilarity::MSD;
+    }
+    std::string cstr = argIn.GetStringKey("criterion");
+    if (!cstr.empty()) {
+      if (cstr == "comp")
+        criterion = COMP_SIM;
+      else if (cstr == "medoid")
+        criterion = SIM_TO_MEDOID;
+      else {
+        mprinterr("Error: Unrecognized criterion: %s\n", cstr.c_str());
+        return CpptrajState::ERR;
+      }
+    } else {
+      criterion = COMP_SIM;
     }
   } else {
     mprinterr("Error: Expected 'trim', 'rmsrefine', or 'normcoords'\n");
@@ -408,7 +423,7 @@ Exec::RetType Exec_CrdTransform::Execute(CpptrajState& State, ArgList& argIn)
     case RMSREFINE  : err = iterativeRmsRefinement(mask, useMass, rmsTol, CRD, OUT); break;
     case NORMCOORDS : err = normalizeCoords(CRD, OUT); break;
     // TODO pass in criterion
-    case TRIM       : err = trimOutliers(n_trimmed, cutoff, metric, COMP_SIM, CRD, OUT); break; // FIXME
+    case TRIM       : err = trimOutliers(n_trimmed, cutoff, metric, criterion, CRD, OUT); break;
     default         : err = 1; break;
   }
   if (needToDeleteCRD) delete CRD;
