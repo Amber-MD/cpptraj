@@ -4,6 +4,7 @@
 #include <string>
 // Fwd declares
 class DataSet_Coords;
+class Frame;
 /// Implements extended similarity comparisons
 class ExtendedSimilarity {
   public:
@@ -51,6 +52,11 @@ class ExtendedSimilarity {
 
     /// Calculate complimentary similarity over given COORDS set 
     Darray CalculateCompSim(DataSet_Coords&);
+    /// Calculate complimentary similarity between two frames 
+    double CalculateCompSim(Frame const&, Frame const&);
+
+    /// \return Medoid frame index from last call to Darray CalculateCompSim
+    long int MedoidIndex() const { return max_dissim_idx_; }
   private:
     typedef std::vector<bool> Barray;
     /// Hold counters from calculate_counters

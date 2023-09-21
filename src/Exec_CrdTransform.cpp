@@ -163,6 +163,7 @@ const
   mprintf("\tCriterion: %s\n", CriterionStr_[criterion]);
   unsigned int Ncoords = crdIn->Top().Natom() * 3;
   unsigned int Nframes = crdIn->Size();
+  Frame frmIn = crdIn->AllocateFrame();
   mprintf("\t'%s' has %u coordinates, %u frames.\n", crdIn->legend(), Ncoords, Nframes);
   if (Nframes < 2) {
     mprintf("Warning: Less than 2 frames, nothing to trim.\n"); // TODO something with crdOut?
@@ -201,8 +202,23 @@ const
     dbg.Printf("%8li %16.8f\n", it - csimvals.begin(), *it);
   dbg.CloseFile();
 
+  typedef std::pair<unsigned int, double> IdxValPairType;
+  std::vector<IdxValPairType> comp_sims;
+  comp_sims.reserve( crdIn->Size() );
+  // For sorting IdxValPairType by values
+  struct IdxValPairCmp {
+    inline bool operator()(IdxValPairType const& first, IdxValPairType const& second) {
+      return (first.second < second.second);
+    }
+  };
+  struct ReverseIdxValPairCmp {
+    inline bool operator()(IdxValPairType const& first, IdxValPairType const& second) {
+      return (second.second < first.second);
+    }
+  };
+
   if (criterion == COMP_SIM) {
-    // Comp sim
+    // ----- Comp sim ------------------
 /*    std::vector<double> c_sum( Ncoords, 0.0 );
     std::vector<double> sq_sum_total( Ncoords, 0.0 );
     Frame frmIn = crdIn->AllocateFrame();
@@ -227,15 +243,7 @@ const
     if (!opts.IsValid(Nframes-1)) return 1;
     ExtendedSimilarity ExtSim;*/
 
-    typedef std::pair<unsigned int, double> IdxValPairType;
-    std::vector<IdxValPairType> comp_sims;
-    comp_sims.reserve( crdIn->Size() );
-    // For sorting IdxValPairType by values
-    struct IdxValPairCmp {
-      inline bool operator()(IdxValPairType const& first, IdxValPairType const& second) {
-        return (first.second < second.second);
-      }
-    };
+
 
 /*  
     dbg.OpenWrite("test.cpptraj.out");
@@ -273,14 +281,40 @@ const
     mprintf("\tRemoving %u frames.\n", nToRemove);
 
     // Populate the output trajectory
-    Frame frmIn = crdIn->AllocateFrame();
     for (unsigned int idx = 0; idx < crdIn->Size(); idx++) {
       if (keepFrame[idx]) {   
         crdIn->GetFrame(idx, frmIn);
         crdOut->AddFrame( frmIn );
       }
     }  
-  } // END if comp sim
+  } else if (criterion == SIM_TO_MEDOID) {
+    // ----- SIM TO MEDOID -------------
+    if (ExtSim.MedoidIndex() < 0) {
+      mprinterr("Error: Medoid index is < 0\n");
+      return 1;
+    }
+    // Get comp sim values to medoid
+    unsigned int medoid_index = (unsigned int)ExtSim.MedoidIndex();
+    mprintf("DEBUG: Medoid index= %u (%li)\n", medoid_index,ExtSim.MedoidIndex());
+    Frame medoid = crdIn->AllocateFrame();
+    crdIn->GetFrame(medoid_index, medoid);
+    //mprintf("[");
+    for (unsigned int idx = 0; idx < crdIn->Size(); idx++) {
+      if (idx != medoid_index) {
+        //mprintf("DEBUG\n");
+        crdIn->GetFrame(idx, frmIn);
+        comp_sims.push_back( IdxValPairType(idx, ExtSim.CalculateCompSim(frmIn, medoid)) );
+        //mprintf(" %10.8g", comp_sims.back().second);
+      }
+    }
+    //mprintf("]\n");
+    std::sort(comp_sims.begin(), comp_sims.end(), ReverseIdxValPairCmp());
+    mprintf("[");
+    for (unsigned int idx = 0; idx < cutoff; idx++) {
+      mprintf(" %u", comp_sims[idx].first);
+    }
+    mprintf("]\n");
+  }
 
   return 0;
 }
@@ -292,8 +326,8 @@ void Exec_CrdTransform::Help() const
   mprintf("\t<input crd set> [name <output crd set>]\n"
           "\t{ rmsrefine [mask <mask>] [mass] [rmstol <tolerance>] |\n"
           "\t  normcoords |\n"
-          "\t  trim [metric <metric>] [{ntrimmed <#>|cutoff <val>}]\n
-                    [criterion {comp|medoid}]]\n"
+          "\t  trim [metric <metric>] [{ntrimmed <#>|cutoff <val>}]\n"
+          "\t       [criterion {comp|medoid}]]\n"
           "\t}\n");
 }
 

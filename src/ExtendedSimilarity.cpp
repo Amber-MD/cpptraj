@@ -137,6 +137,48 @@ static inline void printDarray(std::vector<double> const& arr) {
   mprintf("]\n");
 }
 
+static inline void printFrame(Frame const& arr) {
+  int col = 0;
+  mprintf("[");
+  for (int idx = 0; idx != arr.size(); idx++) {
+    mprintf(" %10.8g", arr[idx]);
+    col++;
+    if (col == 6) {
+      mprintf("\n");
+      col = 0;
+    }
+  }
+  mprintf("]\n");
+}
+/** Calculate the comparitive similarity value between two frames. */
+double ExtendedSimilarity::CalculateCompSim(Frame const& f1, Frame const& f2)
+{
+  // Sanity check
+  if (metric_ == NO_METRIC || c_sum_.empty()) {
+    mprinterr("Internal Error: ExtendedSimilarity::Comparison() called before SetOpts().\n");
+    return 0;
+  }
+  //mprintf("[");
+  //printFrame(f1);
+  //printFrame(f2);
+  //mprintf("\n");
+  double val = 0;
+  unsigned int Ncoords = c_sum_.size();
+  //c_sum_.assign( Ncoords, 0.0 );
+  for (unsigned int icrd = 0; icrd < Ncoords; icrd++)
+    c_sum_[icrd] = f1[icrd] + f2[icrd];
+  if (metric_ == MSD) {
+    for (unsigned int icrd = 0; icrd < Ncoords; icrd++)
+      sq_sum_[icrd] = (f1[icrd] * f1[icrd]) + (f2[icrd] * f2[icrd]);
+    val = msd_condensed(c_sum_, sq_sum_, 2, natoms_);
+  } else {
+    val = Comparison(c_sum_, 2);
+  }
+  //mprintf("DEBUG val=%10.8g\n",val);
+
+  return val;
+}
+
 /** Calculate the comparitive similarity values for COORDS set. */
 ExtendedSimilarity::Darray ExtendedSimilarity::CalculateCompSim(DataSet_Coords& crdIn)
 {
