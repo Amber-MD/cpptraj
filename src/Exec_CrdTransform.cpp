@@ -269,24 +269,7 @@ const
       comp_sims.push_back( IdxValPairType(idx, csimvals[idx]) );
 
     std::sort(comp_sims.begin(), comp_sims.end(), IdxValPairCmp());
-    std::vector<bool> keepFrame(comp_sims.size(), true);
-    mprintf("[");
-    unsigned int nToRemove = 0;
-    for (unsigned int idx = 0; idx < cutoff; idx++) {
-      mprintf(" %u", comp_sims[idx].first);
-      keepFrame[comp_sims[idx].first] = false;
-      nToRemove++;
-    }
-    mprintf("]\n");
-    mprintf("\tRemoving %u frames.\n", nToRemove);
 
-    // Populate the output trajectory
-    for (unsigned int idx = 0; idx < crdIn->Size(); idx++) {
-      if (keepFrame[idx]) {   
-        crdIn->GetFrame(idx, frmIn);
-        crdOut->AddFrame( frmIn );
-      }
-    }  
   } else if (criterion == SIM_TO_MEDOID) {
     // ----- SIM TO MEDOID -------------
     if (ExtSim.MedoidIndex() < 0) {
@@ -309,13 +292,25 @@ const
     }
     //mprintf("]\n");
     std::sort(comp_sims.begin(), comp_sims.end(), ReverseIdxValPairCmp());
-    mprintf("[");
-    for (unsigned int idx = 0; idx < cutoff; idx++) {
-      mprintf(" %u", comp_sims[idx].first);
-    }
-    mprintf("]\n");
   }
+  std::vector<bool> keepFrame(comp_sims.size(), true);
+  mprintf("[");
+  unsigned int nToRemove = 0;
+  for (unsigned int idx = 0; idx < cutoff; idx++) {
+    mprintf(" %u", comp_sims[idx].first);
+    keepFrame[comp_sims[idx].first] = false;
+    nToRemove++;
+  }
+  mprintf("]\n");
+  mprintf("\tRemoving %u frames.\n", nToRemove);
 
+  // Populate the output trajectory
+  for (unsigned int idx = 0; idx < crdIn->Size(); idx++) {
+    if (keepFrame[idx]) {   
+      crdIn->GetFrame(idx, frmIn);
+      crdOut->AddFrame( frmIn );
+    }
+  }  
   return 0;
 }
 
