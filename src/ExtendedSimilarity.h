@@ -102,5 +102,7 @@ class ExtendedSimilarity {
     double c_threshold_;                   ///< Coincidence threshold value
     WeightFactorType wfactorType_;         ///< Weight factor type
     double power_;                         ///< Power for weight factor power type
+    double max_dissim_val_;                ///< Max dissimilarity value (medioid)
+    long int max_dissim_idx_;              ///< Max dissimilarity index (medioid)
 };
 #endif

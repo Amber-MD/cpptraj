@@ -149,7 +149,9 @@ ExtendedSimilarity::Darray ExtendedSimilarity::CalculateCompSim(DataSet_Coords& 
   unsigned int Nframes = crdIn.Size();
   unsigned int Ncoords = c_sum_.size();
   Frame frmIn = crdIn.AllocateFrame();
+  c_sum_.assign( Ncoords, 0.0 );
   if (metric_ == MSD) {
+    sq_sum_.assign( Ncoords, 0.0 );
     // Get sum and sum squares for each coordinate
     for (unsigned int idx = 0; idx < Nframes; idx++) {
       crdIn.GetFrame(idx, frmIn);
@@ -167,7 +169,7 @@ ExtendedSimilarity::Darray ExtendedSimilarity::CalculateCompSim(DataSet_Coords& 
     }
   }
 
-  // For each frame, get the comp. similarity
+  // For each frame, get the comp. similarity.
   Darray comp_sims;
   comp_sims.reserve( Nframes );
   Darray c_arr(c_sum_.size(), 0.0);
@@ -196,6 +198,16 @@ ExtendedSimilarity::Darray ExtendedSimilarity::CalculateCompSim(DataSet_Coords& 
       comp_sims.push_back( val );
     }
   }
+  // Record the medioid (max dissimilarity)
+  max_dissim_val_ = -1;
+  max_dissim_idx_ = -1;
+  for (Darray::const_iterator it = comp_sims.begin(); it != comp_sims.end(); ++it) {
+    if (*it > max_dissim_val_) {
+      max_dissim_val_ = *it;
+      max_dissim_idx_ = it - comp_sims.begin();
+    }
+  }
+  mprintf("DEBUG: Max dissim. val %g at idx %li\n", max_dissim_val_, max_dissim_idx_);
 
   return comp_sims;
 }
