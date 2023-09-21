@@ -189,7 +189,7 @@ const
 
   if (criterion == COMP_SIM) {
     // Comp sim
-    std::vector<double> c_sum( Ncoords, 0.0 );
+/*    std::vector<double> c_sum( Ncoords, 0.0 );
     std::vector<double> sq_sum_total( Ncoords, 0.0 );
     Frame frmIn = crdIn->AllocateFrame();
     // Get sum and sum squares for each coordinate
@@ -211,7 +211,9 @@ const
     else
       opts = ExtendedSimilarity::Opts(metric); // FIXME add more options
     if (!opts.IsValid(Nframes-1)) return 1;
+    ExtendedSimilarity ExtSim;*/
     ExtendedSimilarity ExtSim;
+    if (ExtSim.SetOpts( metric, crdIn->Size(), Ncoords )) return 1;
 
     typedef std::pair<unsigned int, double> IdxValPairType;
     std::vector<IdxValPairType> comp_sims;
@@ -223,7 +225,7 @@ const
       }
     };
 
-    CpptrajFile dbg;
+/*  
     dbg.OpenWrite("test.cpptraj.out");
     for (unsigned int idx = 0; idx < crdIn->Size(); idx++) {
       crdIn->GetFrame(idx, frmIn);
@@ -240,8 +242,21 @@ const
       dbg.Printf("%8u %16.8f\n", idx, val);
       //mprintf("%8u %16.8f\n", idx, val);
       comp_sims.push_back( IdxValPairType(idx, val) );
+    }*/
+    ExtendedSimilarity::Darray csimvals = ExtSim.CalculateCompSim( *crdIn );
+    if (csimvals.empty()) {
+      mprinterr("Error: No comparitive similarity values calculated.\n");
+      return 1;
     }
+    // DEBUG
+    CpptrajFile dbg;
+    dbg.OpenWrite("test.cpptraj.out");
+    for (ExtendedSimilarity::Darray::const_iterator it = csimvals.begin(); it != csimvals.end(); ++it)
+      dbg.Printf("%8li %16.8f\n", it - csimvals.begin(), *it);
     dbg.CloseFile();
+    // Place values in sortable array
+    for (unsigned int idx = 0; idx < crdIn->Size(); idx++)
+      comp_sims.push_back( IdxValPairType(idx, csimvals[idx]) );
 
     std::sort(comp_sims.begin(), comp_sims.end(), IdxValPairCmp());
     std::vector<bool> keepFrame(comp_sims.size(), true);
@@ -256,6 +271,7 @@ const
     mprintf("\tRemoving %u frames.\n", nToRemove);
 
     // Populate the output trajectory
+    Frame frmIn = crdIn->AllocateFrame();
     for (unsigned int idx = 0; idx < crdIn->Size(); idx++) {
       if (keepFrame[idx]) {   
         crdIn->GetFrame(idx, frmIn);

@@ -3,68 +3,77 @@
 #include "CpptrajStdio.h"
 #include <cmath> // ceil, pow, sqrt
 
-/** CONSTRUCTOR for MSD - sum of squares array, number of atoms. */
-ExtendedSimilarity::Opts::Opts(Darray const& sq_sum, unsigned int natoms) :
-  metric_(MSD),
-  sq_sum_ptr_(&sq_sum),
-  natoms_(natoms)
-{ }
-
-/** CONSTRUCTOR - metric, c. threshold type, c. threshold value, weight type, weight value */
-ExtendedSimilarity::Opts::Opts(MetricType mt, CoincidenceThresholdType ct, double cv,
-                               WeightFactorType wt, double wv) :
-  metric_(mt),
-  cthreshType_(ct),
-  c_threshold_(cv),
-  wfactorType_(wt),
-  power_(wv)
-{ }
-
-/** CONSTRUCTOR - metric only, defaults for the rest. */
-ExtendedSimilarity::Opts::Opts(MetricType mt) :
-  metric_(mt),
+/** CONSTRUCTOR */
+ExtendedSimilarity::ExtendedSimilarity() :
+  metric_(NO_METRIC),
   cthreshType_(NO_THRESHOLD),
   c_threshold_(0),
   wfactorType_(FRACTION),
   power_(0)
 {}
 
-/** \return True if options are valid. */
-bool ExtendedSimilarity::Opts::IsValid(unsigned int n_objects) const {
+/** Set options - metric, c. threshold type, c. threshold value, weight type, weight value,
+  * nframes, ncoords.
+  */
+int ExtendedSimilarity::SetOpts(MetricType mt, CoincidenceThresholdType ct, double cv,
+                                WeightFactorType wt, double wv, unsigned int Nframes,
+                                unsigned int Ncoords)
+{
+  metric_ = mt;
+  cthreshType_ = ct;
+  c_threshold_ = cv;
+  wfactorType_ = wt;
+  power_ = wv;
+  c_sum_.assign( Ncoords, 0.0 );
+  return isValid(Nframes);
+}
+
+/** Set options - metric, nframes, ncoords only; defaults for the rest. */
+int ExtendedSimilarity::SetOpts(MetricType mt, unsigned int Nframes, unsigned int Ncoords)
+{
+  metric_ = mt;
+  cthreshType_ = NO_THRESHOLD;
+  c_threshold_ = 0;
+  wfactorType_ = FRACTION;
+  power_ = 0;
+  c_sum_.assign( Ncoords, 0.0 );
+  return isValid(Nframes);
+}
+
+/** Check options and do any common setup.
+  * \return 0 if options are valid.
+  */
+int ExtendedSimilarity::isValid(unsigned int n_objects) {
   if (metric_ == MSD) {
-    if (sq_sum_ptr_ == 0 || sq_sum_ptr_->empty()) {
-      mprinterr("Error: Similarity options are set up for MSD metric but sum of squares array is empty.\n");
-      return false;
+    if (c_sum_.size() % 3 != 0) {
+      mprinterr("Error: # of coords (%zu) is not divisible by 3; required for MSD.\n", c_sum_.size());
+      return 1;
     }
+    natoms_ = c_sum_.size() / 3;
     if (natoms_ < 1) {
       mprinterr("Error: Similarity options are set up for MSD metric but # atoms < 1.\n");
-      return false;
+      return 1;
     }
+    sq_sum_.assign( c_sum_.size(), 0.0 );
   } else if (metric_ == NO_METRIC) {
     mprinterr("Error: Similarity options metric not set.\n");
-    return false;
+    return 1;
   } else {
     if (cthreshType_ == N_OBJECTS) {
       if ((unsigned int)c_threshold_ >= n_objects) {
         mprinterr("Error: c_threshold cannot be equal or greater to n_objects.\n");
-        return false;
+        return 1;
       }
     } else if (cthreshType_ == FRAC_OBJECTS) {
       bool in_range = (c_threshold_ > 0 && c_threshold_ < 1);
       if (!in_range) {
         mprinterr("Error: c_threshold fraction must be between 0 and 1.\n");
-        return false;
+        return 1;
       }
     }
   }
-  return true;
+  return 0;
 }
-
-// -----------------------------------------------------------------------------
-
-/** CONSTRUCTOR */
-ExtendedSimilarity::ExtendedSimilarity()
-{}
 
 /** Strings corresponding to MetricType */
 const char* ExtendedSimilarity::MetricStr_[] = {
@@ -113,44 +122,99 @@ ExtendedSimilarity::MetricType ExtendedSimilarity::TypeFromKeyword(std::string c
   return NO_METRIC;
 } 
 
-/** \return Extended comparison value for COORDS set. */
-/*double ExtendedSimilarity::Comparison(DataSet_Coords& crdIn, MetricType metricIn)
-const
-{
-  unsigned int Ncoords = crdIn.Top().Natom() * 3;
-  unsigned int Nelements = crdIn.Size() * Ncoords;
-  Darray c_sum( Ncoords, 0.0 );
-  Darray sq_sum_total( Ncoords, 0.0 );
-  Frame frmIn = crdIn.AllocateFrame();
-  // Get sum and sum squares for each coordinate
-  for (unsigned int idx = 0; idx < crdIn.Size(); idx++) {
-    crdIn.GetFrame(idx, frmIn);
-    for (unsigned int icrd = 0; icrd < Ncoords; icrd++) {
-      c_sum[icrd] = frmIn[icrd];
-      sq_sum_total[icrd] = frmIn[icrd] * frmIn[icrd];
+/// For debug, print double array.
+static inline void printDarray(std::vector<double> const& arr) {
+  int col = 0;
+  mprintf("[");
+  for (std::vector<double>::const_iterator it = arr.begin(); it != arr.end(); ++it) {
+    mprintf(" %10.8g", *it);
+    col++;
+    if (col == 6) {
+      mprintf("\n");
+      col = 0;
     }
   }
-  return ExtendedSimilarity::Comparison(c_sum, sq_sum_total, metricIn,
-                                        Nelements-1, crdIn.Top().Natom());
-}*/
+  mprintf("]\n");
+}
 
-/** \return Extended comparison value.
+/** Calculate the comparitive similarity values for COORDS set. */
+ExtendedSimilarity::Darray ExtendedSimilarity::CalculateCompSim(DataSet_Coords& crdIn)
+{
+  // Sanity check
+  if (metric_ == NO_METRIC || c_sum_.empty()) {
+    mprinterr("Internal Error: ExtendedSimilarity::Comparison() called before SetOpts().\n");
+    return Darray();
+  }
+
+  unsigned int Nframes = crdIn.Size();
+  unsigned int Ncoords = c_sum_.size();
+  Frame frmIn = crdIn.AllocateFrame();
+  if (metric_ == MSD) {
+    // Get sum and sum squares for each coordinate
+    for (unsigned int idx = 0; idx < Nframes; idx++) {
+      crdIn.GetFrame(idx, frmIn);
+      for (unsigned int icrd = 0; icrd < Ncoords; icrd++) {
+        c_sum_[icrd]  += frmIn[icrd];
+        sq_sum_[icrd] += frmIn[icrd] * frmIn[icrd];
+      }
+    }
+  } else {
+    // Get sum for each coordinate
+    for (unsigned int idx = 0; idx < Nframes; idx++) {
+      crdIn.GetFrame(idx, frmIn);
+      for (unsigned int icrd = 0; icrd < Ncoords; icrd++)
+        c_sum_[icrd] += frmIn[icrd];
+    }
+  }
+
+  // For each frame, get the comp. similarity
+  Darray comp_sims;
+  comp_sims.reserve( Nframes );
+  Darray c_arr(c_sum_.size(), 0.0);
+  if (metric_ == MSD) {
+    Darray sq_arr(sq_sum_.size(), 0.0);
+    for (unsigned int idx = 0; idx < Nframes; idx++) {
+      crdIn.GetFrame(idx, frmIn);
+      for (unsigned int icrd = 0; icrd < Ncoords; icrd++) {
+        c_arr[icrd]  = c_sum_[icrd] - frmIn[icrd];
+        sq_arr[icrd] = sq_sum_[icrd] - (frmIn[icrd]*frmIn[icrd]);
+      }
+      //printDarray(sq_arr);
+      //printDarray(c_sum);
+      double val = msd_condensed(c_arr, sq_arr, Nframes-1, natoms_);
+      //mprintf("%8u %16.8f\n", idx, val);
+      comp_sims.push_back( val );
+    }
+  } else {
+    for (unsigned int idx = 0; idx < Nframes; idx++) {
+      crdIn.GetFrame(idx, frmIn);
+      for (unsigned int icrd = 0; icrd < Ncoords; icrd++)
+        c_arr[icrd]  = c_sum_[icrd] - frmIn[icrd];
+      //printDarray(c_sum);
+      double val = Comparison(c_arr, Nframes-1);
+      //mprintf("%8u %16.8f\n", idx, val);
+      comp_sims.push_back( val );
+    }
+  }
+
+  return comp_sims;
+}
+
+/** \return Extended comparison value. Should NOT be called for MSD.
   * \param c_sum Column sum of the data
   * \param Nframes Number of samples (frames)
-  * \param opts Options
   */
-double ExtendedSimilarity::Comparison(Darray const& c_sum, unsigned int Nframes, 
-                                      Opts const& opts)
+double ExtendedSimilarity::Comparison(Darray const& c_sum, unsigned int Nframes) 
 const
 {
-
   double val = 0;
   Counters count;
-  if (opts.Metric() != MSD)
-    count = calculate_counters(c_sum, Nframes, opts);
+  count = calculate_counters(c_sum, Nframes);
   //mprintf("%10.8g %10.8g %10.8g %10.8g %10.8g\n", count.w_a_, count.w_d_, count.a_, count.d_, count.total_dis_);
-  switch (opts.Metric()) {
-    case MSD : val = msd_condensed(c_sum, opts.Sq_sum(), Nframes, opts.Natoms()); break;
+  switch (metric_) {
+    case MSD :
+      mprinterr("Internal Error: ExtendedSimilarity::Comparison() called for MSD metric.\n");
+      break;
     case BUB :
       val = (sqrt(count.w_a_ * count.w_d_) + count.w_a_) / 
             (sqrt(count.a_ * count.d_) + count.a_ + count.total_dis_);
@@ -175,12 +239,10 @@ const
       val = (2 * count.total_w_sim_) / (count.p_ + count.total_sim_); break;
     default:
       mprinterr("Internal Error: ExtendedSimilarity::Comparison(): Metric '%s' is unhandled.\n",
-                MetricStr_[opts.Metric()]);
+                MetricStr_[metric_]);
   }
-  if (opts.Metric() != MSD)
-    val = 1 - val;
-
-  return val;
+  // NOTE 1 - val is invalid for MSD, but we should not be here for MSD
+  return 1 - val;
 }
 
 /** Mean-squared deviation
@@ -246,21 +308,6 @@ ExtendedSimilarity::Darray ExtendedSimilarity::f_one(Darray const& in, unsigned 
 }
 
 // -------------------------------------
-/// For debug, print double array.
-static inline void printDarray(std::vector<double> const& arr) {
-  int col = 0;
-  mprintf("[");
-  for (std::vector<double>::const_iterator it = arr.begin(); it != arr.end(); ++it) {
-    mprintf(" %10.8g", *it);
-    col++;
-    if (col == 6) {
-      mprintf("\n");
-      col = 0;
-    }
-  }
-  mprintf("]\n");
-}
-
 /// For debug, print boolean array
 static inline void printBarray(std::vector<bool> const& arr) {
   int col = 0;
@@ -318,28 +365,25 @@ ExtendedSimilarity::Darray ExtendedSimilarity::absSubArray(Darray const& d, Barr
 /** Calculate 1-similarity, 0-similarity, and dissimilarity counters.
   * \param c_total Column sum of the data (c_sum)
   * \param n_objects Number of samples (frames)
-  * \param opts Extended similarity options
   */
 ExtendedSimilarity::Counters
-   ExtendedSimilarity::calculate_counters(Darray const& c_total, unsigned int n_objects,
-                                          Opts const& opts)
+   ExtendedSimilarity::calculate_counters(Darray const& c_total, unsigned int n_objects)
 const
 {
   // Assign c_threshold
   unsigned int c_threshold;
-  switch (opts.CoincidenceThreshold()) {
+  switch (cthreshType_) {
     case NO_THRESHOLD : c_threshold = n_objects % 2; break;
     case DISSIMILAR   : c_threshold = ceil(n_objects / 2); break;
-    case N_OBJECTS    : c_threshold = (unsigned int)opts.CoincidenceThresholdVal(); break;
-    case FRAC_OBJECTS : c_threshold = (unsigned int)(opts.CoincidenceThresholdVal() * n_objects); break;
+    case N_OBJECTS    : c_threshold = (unsigned int)c_threshold_; break;
+    case FRAC_OBJECTS : c_threshold = (unsigned int)(c_threshold_ * n_objects); break;
   }
   // Set w_factor
-  double power = opts.WeightFactorPower();
   typedef Darray (*WgtFxnType)(Darray const&, unsigned int, double);
   WgtFxnType f_s; // Similarity function
   WgtFxnType f_d; // Dissimilarity function
 
-  switch(opts.WeightFactor()) {
+  switch(wfactorType_) {
     case POWER:
       f_s = f_s_power;
       f_d = f_d_power;
@@ -379,11 +423,11 @@ const
 
   //mprintf("%g %g %g\n", count.a_, count.d_, count.total_dis_);
 
-  Darray a_w_array = f_s( subArray(c_total, a_indices, n_objects), n_objects, power );
+  Darray a_w_array = f_s( subArray(c_total, a_indices, n_objects), n_objects, power_ );
   //printDarray( a_w_array );
-  Darray d_w_array = f_s( absSubArray(c_total, d_indices, n_objects), n_objects, power );
+  Darray d_w_array = f_s( absSubArray(c_total, d_indices, n_objects), n_objects, power_ );
   //printDarray( d_w_array );
-  Darray total_w_dis_array = f_d( absSubArray(c_total, dis_indices, n_objects), n_objects, power );
+  Darray total_w_dis_array = f_d( absSubArray(c_total, dis_indices, n_objects), n_objects, power_ );
   //printDarray( total_w_dis_array );
 
   count.w_a_         = Dsum( a_w_array );

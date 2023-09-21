@@ -36,18 +36,21 @@ class ExtendedSimilarity {
       POWER,        ///< similarity = n^-(n_objects - d[k]), dissimilarity = n^-(d[k] - n_objects % 2)
       OTHER         ///< similarity = dissimilarity = 1
     };
+
     /// CONSTRUCTOR
     ExtendedSimilarity();
-    /// Hold extended similarity options
-    class Opts;
+    /// Set options - metric, c. threshold type, c. threshold value, weight type, weight value, #frames, #coords
+    int SetOpts(MetricType, CoincidenceThresholdType, double, WeightFactorType, double, unsigned int, unsigned int);
+    /// Set options - metric, #frames, #coords
+    int SetOpts(MetricType, unsigned int, unsigned int);
+
     /// \return Char string corresponding to given MetricType
     static const char* metricStr(MetricType);
     /// \return Type corresponding to given keyword
     static MetricType TypeFromKeyword(std::string const&);
-    /// \return Extended comparison value for given COORDS set TODO c_threshold, w_factor
-    //double Comparison(DataSet_Coords&, MetricType) const;
-    /// \return Extended comparison value for given arrays
-    double Comparison(Darray const&, unsigned int, Opts const&) const;
+
+    /// Calculate complimentary similarity over given COORDS set 
+    Darray CalculateCompSim(DataSet_Coords&);
   private:
     typedef std::vector<bool> Barray;
     /// Hold counters from calculate_counters
@@ -71,53 +74,29 @@ class ExtendedSimilarity {
     static const char* MetricStr_[];
     /// Keywords corresponding to MetricType
     static const char* MetricKeys_[];
+
+    /// \return 1 if set up is invalid
+    int isValid(unsigned int);
+    /// \return Extended comparison value for given arrays
+    double Comparison(Darray const&, unsigned int) const;
     /// Calculate MSD from sum and squared sum arrays
     double msd_condensed(Darray const&, Darray const&, unsigned int, unsigned int) const;
     /// \return Sub-array based on values of given boolean array
     static inline Darray subArray(Darray const&, Barray const&, unsigned int);
+    /// \return Absolute value sub-array based on values of given boolean array
     static inline Darray absSubArray(Darray const&, Barray const&, unsigned int);
     /// Calculate 1-similarity, 0-similarity, and dissimilarity counters from sum array
-    Counters calculate_counters(Darray const&, unsigned int, Opts const&) const;
+    Counters calculate_counters(Darray const&, unsigned int) const;
 
     static Darray f_s_power(Darray const&, unsigned int, double);
     static Darray f_d_power(Darray const&, unsigned int, double);
     static Darray f_s_frac(Darray const&, unsigned int, double);
     static Darray f_d_frac(Darray const&, unsigned int, double);
     static Darray f_one(Darray const&, unsigned int, double);
-};
-// -----------------------------------------------------------------------------
-/** Hold options for extended similarity. */
-class ExtendedSimilarity::Opts {
-  public:
-    /// Blank constructor
-    Opts() : metric_(NO_METRIC) {}
-    /// MSD constructor - Sum of squares, number of atoms
-    Opts(Darray const&, unsigned int);
-    /// Constructor - metric, c. threshold type, c. threshold value, weight type, weight value
-    Opts(MetricType, CoincidenceThresholdType, double, WeightFactorType, double);
-    /// Constructor - metric only (not MSD!)
-    Opts(MetricType);
-    /// \return Metric type
-    MetricType Metric() const { return metric_; }
-    /// \return Sum of squares array (MSD)
-    Darray const& Sq_sum() const { return *sq_sum_ptr_; }
-    /// \return Number of atoms (MSD)
-    unsigned int Natoms() const { return natoms_; }
 
-    /// \return Coincidence threshold type
-    CoincidenceThresholdType CoincidenceThreshold() const { return cthreshType_; }
-    /// \return Coincidence threshold value
-    double CoincidenceThresholdVal() const { return c_threshold_; }
-    /// \return Weight factor type
-    WeightFactorType WeightFactor() const { return wfactorType_; }
-    /// \return Weight factor power (for type POWER)
-    double WeightFactorPower() const { return power_; }
-
-    /// \return True if options are valid. Takes total number of objects (frames) to check
-    bool IsValid(unsigned int) const;
-  private:
     MetricType metric_;        ///< Desired metric
-    Darray const* sq_sum_ptr_; ///< Pointer to sum of squares array (MSD)
+    Darray c_sum_;             ///< Sum array
+    Darray sq_sum_;            ///< Sum of squares array (MSD)
     unsigned int natoms_;      ///< Number of atoms (MSD)
     CoincidenceThresholdType cthreshType_; ///< Coincidence threshold type
     double c_threshold_;                   ///< Coincidence threshold value
