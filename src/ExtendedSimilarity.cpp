@@ -137,6 +137,7 @@ static inline void printDarray(std::vector<double> const& arr) {
   mprintf("]\n");
 }
 
+/// For debug, print Frame
 static inline void printFrame(Frame const& arr) {
   int col = 0;
   mprintf("[");
@@ -497,4 +498,3 @@ const
   
   return count;
 }
-

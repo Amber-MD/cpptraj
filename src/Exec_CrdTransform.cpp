@@ -135,16 +135,11 @@ const
   return 0;
 }
 
+/** Strings corresponding to CriterionType */
 const char* Exec_CrdTransform::CriterionStr_[] = {
   "comp_sim", "sim_to_medoid", "No criterion"
 };
 
-static inline void printDarray(std::vector<double> const& array) {
-  mprintf("[");
-  for (std::vector<double>::const_iterator it = array.begin(); it != array.end(); ++it)
-    mprintf(" %f", *it);
-  mprintf("]\n");
-}
 
 /** Trim a desired percentage of outliers (most dissimilar) from the COORDS
   * data set by calculating the largest complement similarity.
@@ -178,6 +173,7 @@ const
     mprinterr("Error: Must specify either number to trim or cutoff, but not both.\n");
     return 1;
   }
+  // Set cutoff value
   unsigned int cutoff;
   if (n_trimmed >= 0) {
     cutoff = (unsigned int)n_trimmed;
@@ -187,7 +183,7 @@ const
     mprintf("\tFraction of outliers to remove: %f\n", cutoffIn);
   }
   mprintf("\tUsing cutoff value: %u\n", cutoff);
-
+  // Do extended similarity calculation for each frame
   ExtendedSimilarity ExtSim;
   if (ExtSim.SetOpts( metric, crdIn->Size(), Ncoords )) return 1;
   ExtendedSimilarity::Darray csimvals = ExtSim.CalculateCompSim( *crdIn );
@@ -201,7 +197,7 @@ const
   for (ExtendedSimilarity::Darray::const_iterator it = csimvals.begin(); it != csimvals.end(); ++it)
     dbg.Printf("%8li %16.8f\n", it - csimvals.begin(), *it);
   dbg.CloseFile();
-
+  // Array type for sorting by sim. value while preserving indices
   typedef std::pair<unsigned int, double> IdxValPairType;
   std::vector<IdxValPairType> comp_sims;
   comp_sims.reserve( crdIn->Size() );
@@ -219,66 +215,19 @@ const
 
   if (criterion == COMP_SIM) {
     // ----- Comp sim ------------------
-/*    std::vector<double> c_sum( Ncoords, 0.0 );
-    std::vector<double> sq_sum_total( Ncoords, 0.0 );
-    Frame frmIn = crdIn->AllocateFrame();
-    // Get sum and sum squares for each coordinate
-    for (unsigned int idx = 0; idx < crdIn->Size(); idx++) {
-      crdIn->GetFrame(idx, frmIn);
-      for (unsigned int icrd = 0; icrd < Ncoords; icrd++) {
-        c_sum[icrd] += frmIn[icrd];
-        sq_sum_total[icrd] += frmIn[icrd] * frmIn[icrd];
-      }
-    }
-    //printDarray(sq_sum_total);
-    // For each frame, get the comp. similarity
-    std::vector<double> c_arr(Ncoords, 0.0);
-    std::vector<double> sq_arr(Ncoords, 0.0);
-    // Set up extended similarity options TODO should just be part of ExtendedSimilarity?
-    ExtendedSimilarity::Opts opts;
-    if (metric == ExtendedSimilarity::MSD)
-      opts = ExtendedSimilarity::Opts(sq_arr, crdIn->Top().Natom());
-    else
-      opts = ExtendedSimilarity::Opts(metric); // FIXME add more options
-    if (!opts.IsValid(Nframes-1)) return 1;
-    ExtendedSimilarity ExtSim;*/
-
-
-
-/*  
-    dbg.OpenWrite("test.cpptraj.out");
-    for (unsigned int idx = 0; idx < crdIn->Size(); idx++) {
-      crdIn->GetFrame(idx, frmIn);
-      for (unsigned int icrd = 0; icrd < Ncoords; icrd++) {
-        c_arr[icrd]  = c_sum[icrd] - frmIn[icrd];
-        sq_arr[icrd] = sq_sum_total[icrd] - (frmIn[icrd]*frmIn[icrd]);
-      }
-      //mprintf("%u\n", Nframes-1);
-      //printDarray(sq_arr);
-      //printDarray(c_sum);
-      //mprintf("%i\n", crdIn->Top().Natom());
-
-      double val = ExtSim.Comparison(c_arr, Nframes-1, opts);
-      dbg.Printf("%8u %16.8f\n", idx, val);
-      //mprintf("%8u %16.8f\n", idx, val);
-      comp_sims.push_back( IdxValPairType(idx, val) );
-    }*/
-
-    // Place values in sortable array
+    // Place values in sortable array and sort lowest to highest.
     for (unsigned int idx = 0; idx < crdIn->Size(); idx++)
       comp_sims.push_back( IdxValPairType(idx, csimvals[idx]) );
-
     std::sort(comp_sims.begin(), comp_sims.end(), IdxValPairCmp());
-
   } else if (criterion == SIM_TO_MEDOID) {
     // ----- SIM TO MEDOID -------------
+    mprintf("\tMedoid index= %li\n", ExtSim.MedoidIndex() + 1);
     if (ExtSim.MedoidIndex() < 0) {
       mprinterr("Error: Medoid index is < 0\n");
       return 1;
     }
-    // Get comp sim values to medoid
+    // Get comp sim values to medoid (excluding medoid)
     unsigned int medoid_index = (unsigned int)ExtSim.MedoidIndex();
-    mprintf("DEBUG: Medoid index= %u (%li)\n", medoid_index,ExtSim.MedoidIndex());
     Frame medoid = crdIn->AllocateFrame();
     crdIn->GetFrame(medoid_index, medoid);
     //mprintf("[");
@@ -291,8 +240,10 @@ const
       }
     }
     //mprintf("]\n");
+    // Sort highest to lowest
     std::sort(comp_sims.begin(), comp_sims.end(), ReverseIdxValPairCmp());
   }
+  // Remove frames up to the cutoff
   std::vector<bool> keepFrame(comp_sims.size(), true);
   mprintf("[");
   unsigned int nToRemove = 0;
