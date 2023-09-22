@@ -33,6 +33,7 @@ Exec::RetType Exec_ExtendedComparison::Execute(CpptrajState& State, ArgList& arg
     mprinterr("Error: Could not set up output data set for extended comparison.\n");
     return CpptrajState::ERR;
   }
+  out->SetDim(Dimension::X, Dimension(1.0, 1.0, "Frame") ); // TODO make time an option?
   // Output file
   DataFile* df = State.DFL().AddDataFile( argIn.GetStringKey("out"), argIn );
   if (df != 0)
@@ -53,7 +54,6 @@ Exec::RetType Exec_ExtendedComparison::Execute(CpptrajState& State, ArgList& arg
     mprinterr("Error: Set '%s' has no frames.\n", CRD->legend());
     return CpptrajState::ERR;
   }
-  out->SetDim(Dimension::X, Dimension(1.0, 1.0, "Frame") ); // TODO make time an option?
   out->Allocate( DataSet::SizeArray(1, CRD->Size()) );
 
   mprintf("\tCalculating extended comparison similarity values.\n");
