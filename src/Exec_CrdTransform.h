@@ -5,7 +5,7 @@
 /// Used to transform/condition coordinates 
 class Exec_CrdTransform : public Exec {
   public:
-    Exec_CrdTransform() : Exec(COORDS) {}
+    Exec_CrdTransform() : Exec(COORDS), debug_(0) {}
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_CrdTransform(); }
     RetType Execute(CpptrajState&, ArgList&);
@@ -21,5 +21,7 @@ class Exec_CrdTransform : public Exec {
     int normalizeCoords(DataSet_Coords*, DataSet_Coords*) const;
     int trimOutliers(int, double, ExtendedSimilarity::MetricType, CriterionType,
                      DataSet_Coords*, DataSet_Coords*) const;
+
+    int debug_;
 };
 #endif

@@ -245,14 +245,14 @@ const
   }
   // Remove frames up to the cutoff
   std::vector<bool> keepFrame(comp_sims.size(), true);
-  mprintf("[");
+  if (debug_ > 0) mprintf("[");
   unsigned int nToRemove = 0;
   for (unsigned int idx = 0; idx < cutoff; idx++) {
-    mprintf(" %u", comp_sims[idx].first);
+    if (debug_ > 0) mprintf(" %u", comp_sims[idx].first+1);
     keepFrame[comp_sims[idx].first] = false;
     nToRemove++;
   }
-  mprintf("]\n");
+  if (debug_ > 0) mprintf("]\n");
   mprintf("\tRemoving %u frames.\n", nToRemove);
 
   // Populate the output trajectory
@@ -280,6 +280,7 @@ void Exec_CrdTransform::Help() const
 // Exec_CrdTransform::Execute()
 Exec::RetType Exec_CrdTransform::Execute(CpptrajState& State, ArgList& argIn)
 {
+  debug_ = State.Debug();
   AtomMask mask;
   bool useMass = false;
   double rmsTol = -1.0;
