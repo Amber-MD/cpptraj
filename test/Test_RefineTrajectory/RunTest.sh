@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles cpptraj.in rms.dat refinedcoords.crd normcoords.crd normcoords2.crd \
-           trimcoords.crd
+           trimcoords.crd trimcoords2.crd
 
 INPUT='-i cpptraj.in'
 
@@ -88,6 +88,17 @@ list
 EOF
   RunCpptraj "$TESTNAME, using crdtransform trim"
   DoTest trimcoords.crd.save trimcoords.crd
+
+  cat > cpptraj.in <<EOF
+parm ../tz2.parm7
+loadcrd ../tz2.nc name MyCrd
+
+crdtransform MyCrd trim cutoff 0.1 criterion medoid
+crdout MyCrd trimcoords2.crd
+list
+EOF
+  RunCpptraj "$TESTNAME, using crdtransform trim criterion medoid"
+  DoTest trimcoords2.crd.save trimcoords2.crd
 }
 
 # --------------------------------------
