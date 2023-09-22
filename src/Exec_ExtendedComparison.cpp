@@ -6,7 +6,7 @@
 void Exec_ExtendedComparison::Help() const
 {
   mprintf("\t<input crd set> [name <output data set>]\n"
-          "\t[metric <metric>]\n");
+          "\t[metric <metric>] [out <file>]\n");
   mprintf("  <metric> = %s\n", ExtendedSimilarity::MetricKeys().c_str());
   mprintf("  Calculate extended comparison similarity values for each trajectory frame.\n");
 }
@@ -33,6 +33,10 @@ Exec::RetType Exec_ExtendedComparison::Execute(CpptrajState& State, ArgList& arg
     mprinterr("Error: Could not set up output data set for extended comparison.\n");
     return CpptrajState::ERR;
   }
+  // Output file
+  DataFile* df = State.DFL().AddDataFile( argIn.GetStringKey("out"), argIn );
+  if (df != 0)
+    df->AddDataSet( out );
   // Get COORDS set
   std::string setname = argIn.GetStringNext();
   if (setname.empty()) {
@@ -55,6 +59,8 @@ Exec::RetType Exec_ExtendedComparison::Execute(CpptrajState& State, ArgList& arg
   mprintf("\tCalculating extended comparison similarity values.\n");
   mprintf("\tInput coords: %s\n", CRD->legend());
   mprintf("\tOutput set: %s\n", out->legend());
+  if (df != 0)
+    mprintf("\tWriting set to file: %s\n", df->DataFilename().full());
   mprintf("\tUsing metric: %s\n", ExtendedSimilarity::metricStr(metric));
 
   // Do extended similarity calculation for each frame
