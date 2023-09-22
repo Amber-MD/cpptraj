@@ -68,6 +68,7 @@ const
   Topology top;
   for (unsigned long iat = 0; iat != natoms; iat++)
     top.AddTopAtom( Atom("CA","C"), Residue("XXX", 1, ' ', ' ') );
+  top.SetSingleMolecule();
   top.CommonSetup(false, false);
   top.Summary();
 

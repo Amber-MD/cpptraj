@@ -262,7 +262,7 @@ ExtendedSimilarity::Darray ExtendedSimilarity::CalculateCompSim(DataSet_Coords& 
       max_dissim_idx_ = it - comp_sims.begin();
     }
   }
-  mprintf("DEBUG: Max dissim. val %g at idx %li\n", max_dissim_val_, max_dissim_idx_);
+  //mprintf("DEBUG: Max dissim. val %g at idx %li\n", max_dissim_val_, max_dissim_idx_);
 
   return comp_sims;
 }

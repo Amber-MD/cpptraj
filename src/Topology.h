@@ -98,6 +98,8 @@ class Topology {
     int NresInMol(int) const;
     /// Determine molecules based on bond information
     int DetermineMolecules();
+    /// Designate all atoms as part of a single molecule.
+    int SetSingleMolecule();
     // ----- Bond-specific routines --------------
     size_t Nbonds()                            const { return bonds_.size()+bondsh_.size(); }
     BondArray         const& Bonds()        const { return bonds_;        }
