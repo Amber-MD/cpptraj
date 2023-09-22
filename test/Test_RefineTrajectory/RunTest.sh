@@ -93,8 +93,8 @@ EOF
 parm ../tz2.parm7
 loadcrd ../tz2.nc name MyCrd
 
-crdtransform MyCrd trim cutoff 0.1 criterion medoid
-crdout MyCrd trimcoords2.crd
+crdtransform MyCrd trim cutoff 0.1 criterion medoid name Out
+crdout Out trimcoords2.crd
 list
 EOF
   RunCpptraj "$TESTNAME, using crdtransform trim criterion medoid"
