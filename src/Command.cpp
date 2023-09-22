@@ -271,7 +271,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_CrdAction(),        Cmd::EXE, 1, "crdaction" );
   Command::AddCmd( new Exec_CrdOut(),           Cmd::EXE, 1, "crdout" );
   Command::AddCmd( new Exec_CrdTransform(),     Cmd::EXE, 1, "crdtransform" );
-  Command::AddCmd( new Exec_Emin(),             Cmd::EXE, 1, "emin"); // hidden
+  Command::AddCmd( new Exec_Emin(),             Cmd::EXE, 1, "emin");
   Command::AddCmd( new Exec_ExtendedComparison(),Cmd::EXE,1, "extendedcomp" );
   Command::AddCmd( new Exec_Graft(),            Cmd::EXE, 1, "graft");
   Command::AddCmd( new Exec_LoadCrd(),          Cmd::EXE, 1, "loadcrd" );
