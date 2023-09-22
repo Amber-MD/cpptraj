@@ -5,7 +5,10 @@
 // Exec_ExtendedComparison::Help()
 void Exec_ExtendedComparison::Help() const
 {
-
+  mprintf("\t<input crd set> [name <output data set>]\n"
+          "\t[metric <metric>]\n");
+  mprintf("  <metric> = %s\n", ExtendedSimilarity::MetricKeys().c_str());
+  mprintf("  Calculate extended comparison similarity values for each trajectory frame.\n");
 }
 
 // Exec_ExtendedComparison::Execute()

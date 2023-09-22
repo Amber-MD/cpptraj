@@ -278,6 +278,11 @@ void Exec_CrdTransform::Help() const
           "\t  trim [metric <metric>] [{ntrimmed <#>|cutoff <val>}]\n"
           "\t       [criterion {comp|medoid}]]\n"
           "\t}\n");
+  mprintf("  <metric> = %s\n", ExtendedSimilarity::MetricKeys().c_str());
+  mprintf("  Transform a trajectory in one of several ways:\n"
+          "  - rmsrefine  : Do an iterative RMS refinement of all frames.\n"
+          "  - normcoords : Normalize coordinates between 0.0 and 1.0.\n"
+          "  - trim       : Remove trajectory frames using extended similarity metrics.\n");
 }
 
 // Exec_CrdTransform::Execute()

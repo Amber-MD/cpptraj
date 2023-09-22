@@ -269,6 +269,7 @@ COMMON_SOURCES= \
         Exec_DataFilter.cpp \
         Exec_DataSetCmd.cpp \
         Exec_Emin.cpp \
+        Exec_ExtendedComparison.cpp \
         Exec_Flatten.cpp \
         Exec_GenerateAmberRst.cpp \
         Exec_Graft.cpp \

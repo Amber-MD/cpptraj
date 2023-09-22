@@ -122,6 +122,18 @@ ExtendedSimilarity::MetricType ExtendedSimilarity::TypeFromKeyword(std::string c
   return NO_METRIC;
 } 
 
+/** \return string containing all metric keywords. */
+std::string ExtendedSimilarity::MetricKeys() {
+  std::string keys;
+  for (int i = 0; i < (int)NO_METRIC; i++) {
+    if (i == 0)
+      keys.assign( MetricKeys_[i] );
+    else
+      keys.append( " " + std::string(MetricKeys_[i]) );
+  }
+  return keys;
+}
+
 /// For debug, print double array.
 static inline void printDarray(std::vector<double> const& arr) {
   int col = 0;

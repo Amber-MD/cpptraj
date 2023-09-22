@@ -49,6 +49,8 @@ class ExtendedSimilarity {
     static const char* metricStr(MetricType);
     /// \return Type corresponding to given keyword
     static MetricType TypeFromKeyword(std::string const&);
+    /// \return string containing all metric keywords
+    static std::string MetricKeys();
 
     /// Calculate complimentary similarity over given COORDS set 
     Darray CalculateCompSim(DataSet_Coords&);
