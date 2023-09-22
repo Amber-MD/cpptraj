@@ -190,6 +190,7 @@ COMMON_SOURCES= \
         DataIO_Peaks.cpp \
         DataIO_Mdout.cpp \
         DataIO_NetCDF.cpp \
+        DataIO_Numpy.cpp \
         DataIO_RemLog.cpp \
         DataIO_Std.cpp \
         DataIO_VecTraj.cpp \
@@ -262,11 +263,13 @@ COMMON_SOURCES= \
         Exec_CompareTop.cpp \
         Exec_CrdAction.cpp \
         Exec_CrdOut.cpp \
+        Exec_CrdTransform.cpp \
         Exec_CreateSet.cpp \
         Exec_DataFile.cpp \
         Exec_DataFilter.cpp \
         Exec_DataSetCmd.cpp \
         Exec_Emin.cpp \
+        Exec_ExtendedComparison.cpp \
         Exec_Flatten.cpp \
         Exec_GenerateAmberRst.cpp \
         Exec_Graft.cpp \
@@ -301,6 +304,7 @@ COMMON_SOURCES= \
         Exec_Traj.cpp \
         Exec_UpdateParameters.cpp \
         Exec_ViewRst.cpp \
+        ExtendedSimilarity.cpp \
         File_TempName.cpp \
         FileIO_Bzip2.cpp \
         FileIO_Gzip.cpp \

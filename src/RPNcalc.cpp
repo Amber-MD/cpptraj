@@ -849,6 +849,11 @@ int RPNcalc::TokenLoop(DataSetList& DSL) const {
               // DataSet OP Value
               DataSet* ds1 = Dval[1].DS();
               double   d2  = Dval[0].Value();
+              if (ds1 == 0) {
+                mprinterr("Error: Expected data set '%s' value, but data set is null.\n",
+                          T->Description());
+                return 1;
+              }
               if (debug_ > 0)
                 mprintf("DEBUG: '%s' [%s] '%f' => 'TEMP:%li'\n", ds1->legend(), T->Description(),
                         d2, T-tokens_.begin());

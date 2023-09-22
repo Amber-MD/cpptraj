@@ -6253,7 +6253,7 @@ The following COORDS data set commands are available:
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="15" columns="2">
+<lyxtabular version="3" rows="17" columns="2">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="75text%">
@@ -6366,6 +6366,26 @@ Write a COORDS set to a file.
 \begin_inset Text
 
 \begin_layout Plain Layout
+crdtransform
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Transform a COORDS set in one of several ways.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
 createcrd
 \end_layout
 
@@ -6396,6 +6416,27 @@ emin
 
 \begin_layout Plain Layout
 Run simple energy minimization on a frame of a COORDS set.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+extendedcomp
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Calculate extended comparison similarity values for each frame in COORDS
+ set.
 \end_layout
 
 \end_inset
@@ -6727,6 +6768,147 @@ crdout crd1 crd1.pdb multi crdframes 1,10
 \end_layout
 
 \begin_layout Subsection
+crdtransform
+\end_layout
+
+\begin_layout LyX-Code
+crdtransform <input crd set> [name <output crd set>]
+\end_layout
+
+\begin_layout LyX-Code
+             { rmsrefine [mask <mask>] [mass] [rmstol <tolerance>] |
+\end_layout
+
+\begin_layout LyX-Code
+               normcoords |
+\end_layout
+
+\begin_layout LyX-Code
+               trim [metric <metric>] [{ntrimmed <#>|cutoff <val>}]
+\end_layout
+
+\begin_layout LyX-Code
+                    [criterion {comp|medoid}]]
+\end_layout
+
+\begin_layout LyX-Code
+             }
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+<input
+\begin_inset space ~
+\end_inset
+
+crd
+\begin_inset space ~
+\end_inset
+
+set> COORDS set to transform.
+\end_layout
+
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<output
+\begin_inset space ~
+\end_inset
+
+crd
+\begin_inset space ~
+\end_inset
+
+set>] COORDS set to create; if not specified <input crd set> will be modified.
+\end_layout
+
+\begin_layout Description
+rmsrefine Do iterative RMS refinement.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[mask
+\begin_inset space ~
+\end_inset
+
+<mask>] Mask of atoms to fit during refinement.
+\end_layout
+
+\begin_layout Description
+[mass] Mass-weight the refinement.
+\end_layout
+
+\begin_layout Description
+[rmstol
+\begin_inset space ~
+\end_inset
+
+<tolerance>] Tolerance (in Ang.) below which RMS-refinement will stop.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+normcoords Normalize coordinates between 0.0 and 1.0 using the minimum and
+ maximum coordinate values.
+\end_layout
+
+\begin_layout Description
+trim Remove trajectory frames using extended similarity metrics.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[metric
+\begin_inset space ~
+\end_inset
+
+<metric>] Metric to use; default MSD.
+\end_layout
+
+\begin_layout Description
+[{ntrimmed
+\begin_inset space ~
+\end_inset
+
+<#>|cutoff
+\begin_inset space ~
+\end_inset
+
+<val>} # of frames or fraction of trajectory to trim.
+\end_layout
+
+\begin_layout Description
+[criterion
+\begin_inset space ~
+\end_inset
+
+{comp|medoid}] Trim frames by comparitive similarity (i.e.
+ trim most dissimilar frames) or comparison to medoid (i.e.
+ trim most dissimilar to medoid frame).
+\end_layout
+
+\end_deeper
+\end_deeper
+\begin_layout Standard
+Transform a COORDS set in one of several ways.
+ Does not yet work with TRAJ data sets.
+ The iterative RMS refinement is similar to the procedure outlined by Klem
+ et al.
+ (J.
+ Chem.
+ Theory Comput.
+ 2022, 18, 3218−3230).
+ The extended similarity metrics are those defined by Racz et al.
+ (J.
+ Comp.-Aid.
+ Mol.
+ Design, 2022, 36, 157-173).
+\end_layout
+
+\begin_layout Subsection
 createcrd
 \end_layout
 
@@ -6945,6 +7127,359 @@ THIS COMMAND IS STILL IN DEVELOPMENT AS OF VERSION 5.0.2.
 Perform steepest descent minimization on a frame in a COORDS set using a
  very basic force field (bonds, angles, dihedrals).
  A simple nonbonded term can be added as well if desired.
+\end_layout
+
+\begin_layout Subsection
+extendedcomp
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj-extendedcomp"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout LyX-Code
+extendedcomp <input crd set> [name <output data set>]
+\end_layout
+
+\begin_layout LyX-Code
+             [metric <metric>] [out <file>]
+\end_layout
+
+\begin_layout LyX-Code
+  <metric> = msd bub fai gle ja jt rt rr sm ss1 ss2
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+<input
+\begin_inset space ~
+\end_inset
+
+crd
+\begin_inset space ~
+\end_inset
+
+set> Input COORDS set.
+\end_layout
+
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<output
+\begin_inset space ~
+\end_inset
+
+data
+\begin_inset space ~
+\end_inset
+
+set>] Output data set name containing values.
+\end_layout
+
+\begin_layout Description
+[metric
+\begin_inset space ~
+\end_inset
+
+<metric>] Metric to use.
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+,file>] File to write values to.
+\end_layout
+
+\begin_layout Standard
+DataSets generated:
+\end_layout
+
+\begin_layout Description
+<output
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name> Set containing similarity values for each COORDS frame.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Calculate extended comparison similarity values for each frame in a COORDS
+ set.
+ The extended similarity metrics are those defined by Racz et al.
+ (J.
+ Comp.-Aid.
+ Mol.
+ Design, 2022, 36, 157-173).
+ The metrics are as follows:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Tabular
+<lyxtabular version="3" rows="12" columns="2">
+<features tabularvalignment="middle">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\series bold
+Keyword
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\series bold
+Metric
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+msd
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Mean-squared deviation.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+bub
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Bhattacharyya's U coefficient
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+fai
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Faiman's coefficient
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+gle
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Gleason's coefficient
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+ja
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Jaccard's coefficient
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+jt
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Jaccard-Tanimoto coefficient
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+rt
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Rogers-Tanimoto coefficient
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+rr
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Russell-Rao coefficient
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+sm
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Simpson's coefficient
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+ss1
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Sokal-Sneath 1 coefficient
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+ss2
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Sokal-Sneath 2 coefficient
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Subsection

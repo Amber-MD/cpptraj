@@ -257,6 +257,7 @@ Action::RetType Action_Keep::DoAction(int frameNum, ActionFrame& frm)
   if (err == Action::OK) {
     keepFrame_.SetFrame(frm.Frm(), atomsToKeep_);
     frm.SetFrame( &keepFrame_ );
+    err = Action::MODIFY_COORDS;
   }
 
   return err;

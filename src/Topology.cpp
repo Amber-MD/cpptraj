@@ -1175,6 +1175,16 @@ int Topology::DetermineMolecules() {
   return 0;
 }
 
+/** Put all atoms in a single molecule. Mostly intended for cases
+  * where you want a pseudo-topology and do not really care about
+  * molecule info.
+  */
+int Topology::SetSingleMolecule() {
+  molecules_.clear();
+  molecules_.push_back( Molecule(0, Natom()) );
+  return 0;
+}
+
 // -----------------------------------------------------------------------------
 // Topology::DetermineNumExtraPoints()
 void Topology::DetermineNumExtraPoints() {
