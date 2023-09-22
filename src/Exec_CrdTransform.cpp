@@ -185,18 +185,21 @@ const
   mprintf("\tUsing cutoff value: %u\n", cutoff);
   // Do extended similarity calculation for each frame
   ExtendedSimilarity ExtSim;
-  if (ExtSim.SetOpts( metric, crdIn->Size(), Ncoords )) return 1;
+  if (ExtSim.SetOpts( metric, crdIn->Size(), Ncoords )) {
+    mprinterr("Error: Extended similarity setup for trim failed.\n");
+    return 1;
+  }
   ExtendedSimilarity::Darray csimvals = ExtSim.CalculateCompSim( *crdIn );
   if (csimvals.empty()) {
-    mprinterr("Error: No comparitive similarity values calculated.\n");
+    mprinterr("Error: No comparitive similarity values for trim calculated.\n");
     return 1;
   }
   // DEBUG
-  CpptrajFile dbg;
+/*  CpptrajFile dbg;
   dbg.OpenWrite("test.cpptraj.out");
   for (ExtendedSimilarity::Darray::const_iterator it = csimvals.begin(); it != csimvals.end(); ++it)
     dbg.Printf("%8li %16.8f\n", it - csimvals.begin(), *it);
-  dbg.CloseFile();
+  dbg.CloseFile();*/
   // Array type for sorting by sim. value while preserving indices
   typedef std::pair<unsigned int, double> IdxValPairType;
   std::vector<IdxValPairType> comp_sims;
