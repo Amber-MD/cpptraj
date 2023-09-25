@@ -13,6 +13,8 @@ class Zmatrix {
     Zmatrix();
     /// Add internal coordinate
     void AddIC(InternalCoords const&);
+    /// Add internal coordinate as next available seed
+    int AddICseed(InternalCoords const&);
     /// Convert Frame/Topology to internal coordinates array
     int SetFromFrame(Frame const&, Topology const&);
     /// Set Frame from internal coords

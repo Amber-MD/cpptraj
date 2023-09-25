@@ -19,9 +19,26 @@ void Zmatrix::AddIC(InternalCoords const& ic) {
   IC_.push_back( ic );
 }
 
+/** Add internal coords as a seed. */
+int Zmatrix::AddICseed(InternalCoords const& ic) {
+  if (seed0_ == InternalCoords::NO_ATOM)
+    seed0_ = IC_.size();
+  else if (seed1_ == InternalCoords::NO_ATOM)
+    seed1_ = IC_.size();
+  else if (seed2_ == InternalCoords::NO_ATOM)
+    seed2_ = IC_.size();
+  else {
+    mprinterr("Error: Too many seed atoms.\n");
+    return 1;
+  }
+  IC_.push_back( ic );
+  return 0;
+}
+
 /** Print to stdout */
 void Zmatrix::print() const {
   mprintf("%zu internal coords.\n", IC_.size());
+  mprintf("Seed atoms: %i %i %i\n", seed0_+1, seed1_+1, seed2_+1);
   for (ICarray::const_iterator it = IC_.begin(); it != IC_.end(); ++it)
     mprintf("\t%8li %8i %8i %8i %12.4f %12.4f %12.4f\n", it - IC_.begin() + 1,
             it->AtJ()+1, it->AtK()+1, it->AtL()+1,

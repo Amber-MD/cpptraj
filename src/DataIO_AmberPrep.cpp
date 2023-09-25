@@ -184,7 +184,11 @@ int DataIO_AmberPrep::ReadData(FileName const& fname, DataSetList& dsl, std::str
     double theta = convertToDouble(args[8]);
     double phi   = convertToDouble(args[9]);
     atIdx++;
-    zmatrix.AddIC( InternalCoords(atJ, atK, atL, dist, theta, phi) );
+    if (args[2] == ISYMDU) {
+      if (zmatrix.AddICseed( InternalCoords(atJ, atK, atL, dist, theta, phi) ))
+        return 1;
+    } else
+      zmatrix.AddIC( InternalCoords(atJ, atK, atL, dist, theta, phi) );
     line = infile.Line();
     if (line == 0) break;
   }
