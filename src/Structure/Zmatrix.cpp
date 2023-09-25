@@ -19,8 +19,8 @@ Zmatrix::Zmatrix() :
 int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn)
 {
   IC_.clear();
-  // First seed is first atom. Store XYZ.
-  IC_.push_back( InternalCoords( frameIn.XYZ(0) ) );
+  // First seed is first atom. No bonds, angles, or torsions.
+  IC_.push_back( InternalCoords() );
   seed0_ = 0;
 
   // Choose second seed as bonded atom with lowest index. Prefer heavy atoms

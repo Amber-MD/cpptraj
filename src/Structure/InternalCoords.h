@@ -1,6 +1,6 @@
 #ifndef INC_STRUCTURE_INTERNALCOORDS_H
 #define INC_STRUCTURE_INTERNALCOORDS_H
-class Vec3;
+//class Vec3;
 namespace Cpptraj {
 namespace Structure {
 /// Hold internal coordinates for an atom
@@ -18,7 +18,7 @@ class InternalCoords {
     /// CONSTRUCTOR
     InternalCoords();
     /// CONSTRUCTOR - Take pointer to XYZ coords (for first seed atom)
-    InternalCoords(const double*);
+    //InternalCoords(const double*);
     /// COPY CONSTRUCTOR
     InternalCoords(InternalCoords const&);
     /// ASSIGNMENT
@@ -30,9 +30,9 @@ class InternalCoords {
     static const int NO_ATOM;
 
     /// Zero XYZ coords (seed atom 0)
-    void ZeroXYZ();
+    //void ZeroXYZ();
     /// Set XYZ coords
-    void SetXYZ( Vec3 const&);
+    //void SetXYZ( Vec3 const&);
     /// \return Specifed value
     //double Val(ValType v) const { return val_[(int)v]; }
     /// \return Specified atom index
@@ -50,8 +50,8 @@ class InternalCoords {
   private:
     int idx_[3];    ///< Atom index for distance, angle, torsion
     double val_[3]; ///< Value for distance, angle, torsion
-    double xyz_[3]; ///< XYZ coordinates
-    bool isSet_;    ///< True if xyz coords are set
+    //double xyz_[3]; ///< XYZ coordinates
+    //bool isSet_;    ///< True if xyz coords are set
 };
 }
 }
