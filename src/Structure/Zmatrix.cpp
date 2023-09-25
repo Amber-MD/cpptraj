@@ -139,7 +139,48 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
       }
     } // END loop finding next atom to set
     mprintf("DEBUG: Next atom to set is %u\n", idx+1);
-    break; // DEBUG
+
+    InternalCoords const& ic = IC_[idx];
+    double rdist = ic.Dist();
+    double theta = ic.Theta();
+    double phi   = ic.Phi();
+
+    double sinTheta = sin(theta * Constants::DEGRAD);
+    double cosTheta = cos(theta * Constants::DEGRAD);
+    double sinPhi   = sin(phi   * Constants::DEGRAD);
+    double cosPhi   = cos(phi   * Constants::DEGRAD);
+
+    // NOTE: Want -x
+    Vec3 xyz( -(rdist * cosTheta),
+              rdist * cosPhi * sinTheta,
+              rdist * sinPhi * sinTheta );
+
+    Vec3 a = Vec3( frameOut.XYZ( ic.AtL()) );
+    Vec3 b = Vec3( frameOut.XYZ( ic.AtK()) );
+    Vec3 c = Vec3( frameOut.XYZ( ic.AtJ()) );
+
+    Vec3 ab = b - a;
+    Vec3 bc = c - b;
+    bc.Normalize();
+    Vec3 n = ab.Cross(bc);
+    n.Normalize();
+    Vec3 ncbc = n.Cross(bc);
+
+    Matrix_3x3 M( bc[0], ncbc[0], n[0],
+                  bc[1], ncbc[1], n[1],
+                  bc[2], ncbc[2], n[2] );
+
+    Vec3 d = (M * xyz) + c;
+
+    frameOut.SetXYZ( idx, d );
+    atomIsSet(idx, isSet, Nset);
+
+    // Next lowest unset atom
+    for (; lowestUnsetAtom < IC_.size(); ++lowestUnsetAtom)
+      if (!isSet[lowestUnsetAtom]) break;
+
+
+    //break; // DEBUG
   } // END loop over internal coordinates
 
 
