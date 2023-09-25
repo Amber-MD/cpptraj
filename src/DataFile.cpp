@@ -32,6 +32,7 @@
 #include "DataIO_NetCDF.h"
 #include "DataIO_AmberEne.h"
 #include "DataIO_Numpy.h"
+#include "DataIO_AmberPrep.h"
 
 // CONSTRUCTOR
 DataFile::DataFile() :
@@ -85,6 +86,7 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
 # endif
   { "Amber Energy File",  0,                             0,            DataIO_AmberEne::Alloc},
   { "Numpy array",        0,                             0,            DataIO_Numpy::Alloc},
+  { "Amber Prep File",    0,                             0,            DataIO_AmberPrep::Alloc},
   { "Unknown Data file",  0,                       0,                        0                    }
 };
 
@@ -111,6 +113,7 @@ const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
   { PEAKS,        "peaks",        ".peaks" },
   { AMBERENE,     "amberene",     ".ene" },
   { NUMPY,        "numpy",        ".npy" },
+  { AMBERPREP,    "prepin",       ".prepin" },
   { UNKNOWN_DATA, 0,        0        }
 };
 
