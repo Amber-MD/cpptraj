@@ -18,6 +18,10 @@ class InternalCoords {
     InternalCoords();
     /// CONSTRUCTOR - Take pointer to XYZ coords (for first seed atom)
     InternalCoords(const double*);
+    /// COPY CONSTRUCTOR
+    InternalCoords(InternalCoords const&);
+    /// ASSIGNMENT
+    InternalCoords& operator=(InternalCoords const&);
 
     enum IdxType { DISTANCE = 0, ANGLE, TORSION };
 
@@ -25,6 +29,8 @@ class InternalCoords {
   private:
     int idx_[3];    ///< Atom index for distance, angle, torsion
     double val_[3]; ///< Value for distance, angle, torsion
+    double xyz_[3]; ///< XYZ coordinates
+    bool isSet_;    ///< True if xyz coords are set
 };
 }
 }
