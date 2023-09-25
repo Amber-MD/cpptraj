@@ -22,6 +22,7 @@ class DataSet_Topology : public DataSet {
     int LoadTopFromFile(ArgList const&, int);
     int StripTop( std::string const& );
     void SetTop(Topology const& t) { top_ = t;            }
+    Topology& ModifyTop() { return top_; }
     void SetPindex(int p)          { top_.SetPindex( p ); }
     Topology* TopPtr()             { return &top_; } // NOTE: pytraj currently relies on this 
     Topology const& Top() const    { return top_;  }

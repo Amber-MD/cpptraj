@@ -15,6 +15,20 @@ Zmatrix::Zmatrix() :
   seed2_(InternalCoords::NO_ATOM)
 {}
 
+/** Add internal coords */
+void Zmatrix::AddIC(InternalCoords const& ic) {
+  IC_.push_back( ic );
+}
+
+/** Print to stdout */
+void Zmatrix::print() const {
+  mprintf("%zu internal coords.\n", IC_.size());
+  for (ICarray::const_iterator it = IC_.begin(); it != IC_.end(); ++it)
+    mprintf("\t%8li %8i %8i %8i %12.4f %12.4f %12.4f\n", it - IC_.begin() + 1,
+            it->AtJ()+1, it->AtK()+1, it->AtL()+1,
+            it->Dist(), it->Theta(), it->Phi());
+}
+
 /** Setup Zmatrix from Cartesian coordinates/topology. */
 int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn)
 {

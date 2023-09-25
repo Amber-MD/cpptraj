@@ -17,6 +17,8 @@ class InternalCoords {
   public:
     /// CONSTRUCTOR
     InternalCoords();
+    /// CONSTRUCTOR - Take atoms j, k, l and values dist, theta, phi
+    InternalCoords(int, int, int, double, double, double);
     /// CONSTRUCTOR - Take pointer to XYZ coords (for first seed atom)
     //InternalCoords(const double*);
     /// COPY CONSTRUCTOR

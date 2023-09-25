@@ -13,6 +13,26 @@ InternalCoords::InternalCoords() {
 //  std::fill(xyz_, xyz_+3, 0);
 }
 
+/** CONSTRUCTOR - Take indices and values */
+InternalCoords::InternalCoords(int atJ, int atK, int atL, double dist, double theta, double phi) {
+  if (atJ < 0)
+    idx_[0] = NO_ATOM;
+  else
+    idx_[0] = atJ;
+  if (atK < 0)
+    idx_[1] = NO_ATOM;
+  else
+    idx_[1] = atK;
+  if (atL < 0)
+    idx_[2] = NO_ATOM;
+  else
+    idx_[2] = atL;
+
+  val_[0] = dist;
+  val_[1] = theta;
+  val_[2] = phi;
+}
+
 /** CONSTRUCTOR - pointer to XYZ coords, for first seed atom */
 /*InternalCoords::InternalCoords(const double* xyz) {
   std::fill(idx_, idx_+3, NO_ATOM);
