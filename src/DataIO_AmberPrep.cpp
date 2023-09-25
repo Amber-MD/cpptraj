@@ -4,7 +4,6 @@
 #include "DataSet_Topology.h"
 #include "StringRoutines.h"
 #include "Structure/Zmatrix.h"
-#include "Structure/InternalCoords.h"
 
 /// CONSTRUCTOR
 DataIO_AmberPrep::DataIO_AmberPrep()
@@ -154,6 +153,7 @@ int DataIO_AmberPrep::ReadData(FileName const& fname, DataSetList& dsl, std::str
   // Loop over entries
   line = infile.Line();
   if (CheckLine(line)) return 1;
+  int atIdx = 0;
   while (line[0] != '\0') {
     mprintf("DEBUG: '%s'\n", line);
     args.SetList( line, " \t" );
@@ -172,18 +172,28 @@ int DataIO_AmberPrep::ReadData(FileName const& fname, DataSetList& dsl, std::str
     } else
       top.AddTopAtom( Atom(args[1], args[2], charge), res );
     // Add zmatrix entry. In prep file, indices start from 1.
+    int atI = convertToInteger(args[0]) - 1;
+    if (atI != atIdx) {
+      mprinterr("Error: Expected index %i, got %i\n", atIdx + 1, atI + 1);
+      return 1;
+    }
     int atJ = convertToInteger(args[4]) - 1;
     int atK = convertToInteger(args[5]) - 1;
     int atL = convertToInteger(args[6]) - 1;
     double dist  = convertToDouble(args[7]);
     double theta = convertToDouble(args[8]);
     double phi   = convertToDouble(args[9]);
+    atIdx++;
     zmatrix.AddIC( InternalCoords(atJ, atK, atL, dist, theta, phi) );
     line = infile.Line();
     if (line == 0) break;
   }
   // Ignore everything else for now
   infile.CloseFile();
+  // Add bonds to topology
+  for (Zmatrix::const_iterator it = zmatrix.begin(); it != zmatrix.end(); ++it)
+    if (it->AtJ() != InternalCoords::NO_ATOM)
+      top.AddBond( it - zmatrix.begin(), it->AtJ() );
   // Set up topology
   top.CommonSetup(true, false);
   top.Summary();

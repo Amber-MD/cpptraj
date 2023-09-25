@@ -1,12 +1,13 @@
 #ifndef INC_STRUCTURE_ZMATRIX_H
 #define INC_STRUCTURE_ZMATRIX_H
+#include "InternalCoords.h"
 class Frame;
 class Topology;
 namespace Cpptraj {
 namespace Structure {
-class InternalCoords;
 /// Hold internal coordinates for a system.
 class Zmatrix {
+    typedef std::vector<InternalCoords> ICarray;
   public:
     /// CONSTRUCTOR
     Zmatrix();
@@ -18,8 +19,11 @@ class Zmatrix {
     int SetToFrame(Frame&) const;
     /// Print to stdout
     void print() const;
+
+    typedef ICarray::const_iterator const_iterator;
+    const_iterator begin() const { return IC_.begin(); }
+    const_iterator end()   const { return IC_.end(); }
   private:
-    typedef std::vector<InternalCoords> ICarray;
 
     ICarray IC_; ///< Hold internal coordinates for all atoms
     int seed0_;  ///< Index of first seed atom

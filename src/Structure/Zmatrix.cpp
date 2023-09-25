@@ -1,6 +1,5 @@
 #include <vector>
 #include "Zmatrix.h"
-#include "InternalCoords.h"
 #include "../Frame.h"
 #include "../CpptrajStdio.h"
 #include "../Constants.h"
