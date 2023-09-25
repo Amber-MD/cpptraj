@@ -4,8 +4,10 @@ STRUCTURE_SOURCES= \
   FunctionalGroup.cpp \
   FxnGroupBuilder.cpp \
   HisProt.cpp \
+  InternalCoords.cpp \
   StructureRoutines.cpp \
   SugarBuilder.cpp \
   Sugar.cpp \
   SugarLinkAtoms.cpp \
-  SugarToken.cpp
+  SugarToken.cpp \
+  Zmatrix.cpp
