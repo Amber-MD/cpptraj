@@ -1,5 +1,6 @@
 #include <algorithm>
 #include "InternalCoords.h"
+#include "../Vec3.h"
 
 using namespace Cpptraj::Structure;
 
@@ -37,3 +38,18 @@ InternalCoords& InternalCoords::operator=(InternalCoords const& rhs) {
   return *this;
 }
 
+/** Zero out the XYZ coordinates. */
+void InternalCoords::ZeroXYZ() {
+  std::fill(idx_, idx_+3, NO_ATOM);
+  std::fill(val_, val_+3, 0);
+  std::fill(xyz_, xyz_+3, 0);
+  isSet_ = true;
+}
+
+/** Set xyz coords */
+void InternalCoords::SetXYZ(Vec3 const& xyz) {
+  xyz_[0] = xyz[0];
+  xyz_[1] = xyz[1];
+  xyz_[2] = xyz[2];
+  isSet_ = true;
+}
