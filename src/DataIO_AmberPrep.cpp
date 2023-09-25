@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "BufferedLine.h"
 #include "DataSet_Topology.h"
+#include "DataSet_Coords.h"
 #include "StringRoutines.h"
 #include "Structure/Zmatrix.h"
 
@@ -202,6 +203,27 @@ int DataIO_AmberPrep::ReadData(FileName const& fname, DataSetList& dsl, std::str
   top.CommonSetup(true, false);
   top.Summary();
   zmatrix.print();
+  // Frame set
+  ds = dsl.AddSet( DataSet::REF_FRAME, MetaData(dsname, "crd") );
+  if (ds == 0) {
+    mprinterr("Error: Could not create coordinates for prep.\n");
+    return 1;
+  }
+  DataSet_Coords* CRD = static_cast<DataSet_Coords*>( ds );
+  // Frame
+  Frame frm( top.Natom() );
+  // Internal coords to cart
+  if (zmatrix.SetToFrame( frm )) {
+    mprinterr("Error: IC to Cartesian coords failed.\n");
+    return 1;
+  }
+  // TODO delete dummy atoms
+  // Output Set up frame set
+  if (CRD->CoordsSetup(top, CoordinateInfo())) {
+    mprinterr("Error: Could not set up COORDS set for prep.\n");
+    return 1;
+  }
+  CRD->SetCRD(0, frm);
 
   return 0;
 }
