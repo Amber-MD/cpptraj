@@ -524,6 +524,9 @@ test.calcdiffusion:
 test.parsetiming:
 	@-cd Test_ParseTiming && ./RunTest.sh $(OPT)
 
+test.readprep:
+	@-cd Test_ReadPrep && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -689,7 +692,8 @@ COMPLETETESTS=test.general \
               test.avgbox \
               test.tordiff \
               test.calcdiffusion \
-              test.parsetiming
+              test.parsetiming \
+              test.readprep
 
 test.all:
 	$(MAKE) test.complete summary
