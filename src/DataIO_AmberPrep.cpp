@@ -242,7 +242,6 @@ const
   // LOOP - Read explicit loop closing bonds
   // IMPROPER - Read improper torsion angles. 
   AtPairArray BondPairs;
-  int errStat = 0;
   while (line != 0) {
     if (line[0] != '\0') {
       std::string lineStr(line);
@@ -336,7 +335,7 @@ const
   }
   CRD->SetCRD(0, frm);
 
-  return errStat;
+  return 0;
 }
 
 // DataIO_AmberPrep::ReadData()
