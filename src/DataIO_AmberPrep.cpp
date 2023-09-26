@@ -43,7 +43,7 @@ static inline int CheckLine(const char* line) {
 int DataIO_AmberPrep::readCHARGE(BufferedLine& infile) const {
   const char* line = infile.Line();
   while (line != 0 && line[0] != '\0') {
-    mprintf("DEBUG: CHARGE: %s\n", line);
+    if (debug_ > 0) mprintf("DEBUG: CHARGE: %s\n", line);
     line = infile.Line();
   }
   return 0;
@@ -53,7 +53,7 @@ int DataIO_AmberPrep::readCHARGE(BufferedLine& infile) const {
 int DataIO_AmberPrep::readLOOP(BufferedLine& infile, AtPairArray& BondPairs) const {
   const char* line = infile.Line();
   while (line != 0 && line[0] != '\0') {
-    mprintf("DEBUG: LOOP: %s\n", line);
+    if (debug_ > 0) mprintf("DEBUG: LOOP: %s\n", line);
     ArgList atpair(line, " \t");
     if (atpair.Nargs() != 2) {
       mprinterr("Error: Expected 2 atom names, got %i: %s\n", atpair.Nargs(), line);
@@ -69,7 +69,7 @@ int DataIO_AmberPrep::readLOOP(BufferedLine& infile, AtPairArray& BondPairs) con
 int DataIO_AmberPrep::readIMPROPER(BufferedLine& infile) const {
   const char* line = infile.Line();
   while (line != 0 && line[0] != '\0') {
-    mprintf("DEBUG: IMPROPER: %s\n", line);
+    if (debug_ > 0) mprintf("DEBUG: IMPROPER: %s\n", line);
     line = infile.Line();
   }
   return 0;
@@ -168,6 +168,7 @@ const
   // The cutoff distance for loop closing bonds which
   // cannot be defined by the tree structure.  Any pair of
   // atoms within this distance is assumed to be bonded.
+  // TODO implement bond search
   line = infile.Line();
   if (CheckLine(line)) return 1;
   double bondCutoff = 0;
@@ -190,6 +191,7 @@ const
   //}
   //Topology& top = ((DataSet_Topology*)ds)->ModifyTop();
   Topology top;
+  top.SetParmName( resName, infile.Filename() );
   // Residue
   Residue res(resName, 1, ' ', ' ');
   // Loop over entries
@@ -281,7 +283,6 @@ const
   // TODO bond search?
   // Set up topology
   top.CommonSetup(true, false);
-  top.SetParmName( resName, infile.Filename() );
   if (debug_ > 0)
     top.Summary();
   if (debug_ > 1)
