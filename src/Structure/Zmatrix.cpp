@@ -66,7 +66,12 @@ static inline void atomIsSet(int i, std::vector<bool>& isSet, unsigned int& Nset
   }
 }
 
-/** Set Cartesian coordinates in Frame from internal coordinates. */
+/** Set Cartesian coordinates in Frame from internal coordinates.
+  * The procedure used here is from:
+  * Parsons et al., "Practical Conversion from Torsion Space to 
+  * Cartesian Space for In Silico Protein Synthesis",
+  * J Comput Chem 26: 1063–1068, 2005.
+  */
 int Zmatrix::SetToFrame(Frame& frameOut) const {
   if ((unsigned int)frameOut.Natom() != IC_.size()) {
     mprinterr("Internal Error: Output frame size (%i) != # internal coords (%zu)\n",
@@ -78,7 +83,6 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
   unsigned int Nset = 0;
   // Set position of the first atom.
   if (seed0_ != InternalCoords::NO_ATOM) {
-    //IC_[seed0_].ZeroXYZ();
     frameOut.SetXYZ(seed0_, Vec3(0.0));
     atomIsSet(seed0_, isSet, Nset);
     // Set position of the second atom.
@@ -88,7 +92,6 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
         return 1;
       }
       double r1 = IC_[seed1_].Dist();
-      //IC_[seed1_].SetXYZ( Vec3(r1, 0, 0) );
       frameOut.SetXYZ(seed1_, Vec3(r1, 0, 0));
       atomIsSet(seed1_, isSet, Nset);
       // Set position of the third atom
@@ -107,7 +110,6 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
         double x = r2 * cos(180.0 - theta) * Constants::DEGRAD;
         double y = r2 * cos(180.0 - theta) * Constants::DEGRAD;
 
-        //IC_[seed2].SetXYZ( Vec3(r1 + x, y, 0) );
         frameOut.SetXYZ( seed2_, Vec3(r1 + x, y, 0) );
         atomIsSet(seed2_, isSet, Nset);
       } // END seed atom 2
@@ -153,8 +155,8 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
 
     // NOTE: Want -x
     Vec3 xyz( -(rdist * cosTheta),
-              rdist * cosPhi * sinTheta,
-              rdist * sinPhi * sinTheta );
+                rdist * cosPhi * sinTheta,
+                rdist * sinPhi * sinTheta );
 
     Vec3 posL = Vec3( frameOut.XYZ( ic.AtL()) );
     Vec3 posK = Vec3( frameOut.XYZ( ic.AtK()) );
