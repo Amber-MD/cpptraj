@@ -335,6 +335,10 @@ const
       if (debug_ > 0) top.Summary();
     }
   }
+  // DEBUG - back convert
+  Zmatrix tempZ;
+  tempZ.SetFromFrame( frm, top );
+  tempZ.print();
   // Output Set up frame set
   if (CRD->CoordsSetup(top, CoordinateInfo())) {
     mprinterr("Error: Could not set up COORDS set for prep.\n");

@@ -1,8 +1,12 @@
 #include <vector>
+#include <set>
 #include "Zmatrix.h"
 #include "../Frame.h"
 #include "../CpptrajStdio.h"
 #include "../Constants.h"
+#include "../DistRoutines.h"
+#include "../Topology.h"
+#include "../TorsionRoutines.h"
 #include <cmath> // cos
 
 using namespace Cpptraj::Structure;
@@ -46,15 +50,108 @@ void Zmatrix::print() const {
             it->Dist(), it->Theta(), it->Phi());
 }
 
+/// For bonded atoms, hold atom index, atom number, and # bonds.
+class AtnumNbonds {
+  public:
+    /// CONSTRUCTOR
+    AtnumNbonds(int idx, Atom const& atm) :
+      idx_(idx), priority_(mainChainPriority(atm)), nbonds_(atm.Nbonds()) {}
+    /// Sort by priority, # bonds, atom index
+    bool operator<(const AtnumNbonds& rhs) const {
+      if (priority_ == rhs.priority_) {
+        if (nbonds_ == rhs.nbonds_) {
+          return (idx_ < rhs.idx_);
+        } else {
+          return (nbonds_ < rhs.nbonds_);
+        }
+      } else {
+        return (priority_ < rhs.priority_);
+      }
+    }
+    int Idx() const { return idx_; }
+    int Priority() const { return priority_; }
+    int Nbonds() const { return nbonds_; }
+  private:
+    /// Set priority based on how likely this is to be a main chain atom.
+    static int mainChainPriority(Atom const& atm) {
+      switch(atm.Element()) {
+        case Atom::CARBON     : return 0; // highest priority
+        case Atom::NITROGEN   :
+        case Atom::BORON      : 
+        case Atom::PHOSPHORUS : return 1;
+        case Atom::OXYGEN     :
+        case Atom::SULFUR     : return 2;
+        // These atoms form only 1 bond and have lowest priority
+        case Atom::HYDROGEN   :
+        case Atom::FLUORINE   :
+        case Atom::CHLORINE   :
+        case Atom::BROMINE    :
+        case Atom::LITHIUM    : return 4;
+        default               : return 3; // 1 bond priority - 1
+      }
+      return 5; // should never get here
+    }
+
+    int idx_;      ///< Atom index
+    int priority_; ///< Likelyhood of begin a main chain atom (0 most likely)
+    int nbonds_;   ///< Number of bonded atoms
+};
+
+/// Get bonded atom priorities
+static std::set<AtnumNbonds> getBondedAtomPriorities(int seed0, Topology const& topIn, int ignoreIdx) {
+  std::set<AtnumNbonds> bondedAtoms;
+  for (Atom::bond_iterator bat = topIn[seed0].bondbegin();
+                           bat != topIn[seed0].bondend(); ++bat)
+  {
+    if (*bat != ignoreIdx)
+      bondedAtoms.insert( AtnumNbonds(*bat, topIn[*bat]) );
+  }
+  for (std::set<AtnumNbonds>::const_iterator it = bondedAtoms.begin(); it != bondedAtoms.end(); ++it)
+    mprintf("DEBUG: Atom %s bonded atom %s idx=%i priority= %i nbonds=%i\n",
+            topIn.AtomMaskName(seed0).c_str(),
+            topIn.AtomMaskName(it->Idx()).c_str(),
+            it->Idx(), it->Priority(), it->Nbonds());
+  return bondedAtoms;
+}
+
+static inline int FrontIdx(std::set<AtnumNbonds> const& in) {
+  std::set<AtnumNbonds>::const_iterator it = in.begin();
+  return it->Idx();
+}
+
 /** Setup Zmatrix from Cartesian coordinates/topology. */
 int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn)
 {
+  // TODO add ability to set up dummy atoms
+  seed0_ = InternalCoords::NO_ATOM;
+  seed1_ = InternalCoords::NO_ATOM;
+  seed2_ = InternalCoords::NO_ATOM;
   IC_.clear();
-  // First seed is first atom. No bonds, angles, or torsions.
+  // First seed is first atom. No bonds, angles, or torsions. TODO should be lowest heavy atom?
   IC_.push_back( InternalCoords() );
   seed0_ = 0;
 
   // Choose second seed as bonded atom with lowest index. Prefer heavy atoms
+  // and atoms with more than 1 bond.
+  std::set<AtnumNbonds> bondedAtoms = getBondedAtomPriorities(seed0_, topIn, -1);
+  if (!bondedAtoms.empty()) {
+    seed1_ = FrontIdx(bondedAtoms);
+    IC_.push_back( InternalCoords(seed0_, InternalCoords::NO_ATOM, InternalCoords::NO_ATOM,
+                                  sqrt(DIST2_NoImage( frameIn.XYZ(seed1_), frameIn.XYZ(seed0_) )),
+                                  0, 0) );
+    // Choose third seed, ignoring first seed.
+    bondedAtoms = getBondedAtomPriorities(seed1_, topIn, seed0_);
+    if (!bondedAtoms.empty()) {
+      seed2_ = FrontIdx(bondedAtoms);
+      IC_.push_back( InternalCoords(seed1_, seed0_, InternalCoords::NO_ATOM,
+                                    sqrt(DIST2_NoImage( frameIn.XYZ(seed2_), frameIn.XYZ(seed1_) )),
+                                    CalcAngle( frameIn.XYZ(seed2_),
+                                               frameIn.XYZ(seed1_),
+                                               frameIn.XYZ(seed0_) ) * Constants::RADDEG,
+                                    0) );
+    }
+  }
+  
 
   return 0;
 }
