@@ -92,7 +92,8 @@ const
   // Check for STOP
   if (std::string(line) == "STOP")
     return -1;
-  mprintf("DEBUG: Prep title: '%s'\n", line);
+  if (debug_ > 0)
+    mprintf("DEBUG: Prep title: '%s'\n", line);
 
   // 4 - Name of output file if an individual res file is being generated
   // NAMF
@@ -114,7 +115,8 @@ const
   std::string resName = args.GetStringNext();
   std::string coordFlag = args.GetStringNext();
   int kform = args.getNextInteger(-1);
-  mprintf("DEBUG: %s %s %i\n", resName.c_str(), coordFlag.c_str(), kform);
+  if (debug_ > 0)
+    mprintf("DEBUG: %s %s %i\n", resName.c_str(), coordFlag.c_str(), kform);
   // 6 - IFIXC , IOMIT , ISYMDU , IPOS
   // FORMAT (4A)
   // IFIXC      Flag for the type of input geometry of the residue(s)
@@ -155,9 +157,11 @@ const
   std::string IOMIT  = args.GetStringNext();
   std::string ISYMDU = args.GetStringNext();
   std::string IPOS   = args.GetStringNext();
-  mprintf("DEBUG: %s %s %s %s\n", IFIXC.c_str(), IOMIT.c_str(), ISYMDU.c_str(), IPOS.c_str());
+  if (debug_ > 0)
+    mprintf("DEBUG: %s %s %s %s\n", IFIXC.c_str(), IOMIT.c_str(), ISYMDU.c_str(), IPOS.c_str());
   if (IFIXC != "CORRECT") {
-    mprinterr("Error: IFIXC is not 'CORRECT' (%s=)\n", IFIXC.c_str());
+    mprinterr("Error: IFIXC is not 'CORRECT' (%s=); only internal coordinates currently supported.\n",
+              IFIXC.c_str());
     return 1;
   }
   // 7 - CUT
@@ -166,6 +170,11 @@ const
   // atoms within this distance is assumed to be bonded.
   line = infile.Line();
   if (CheckLine(line)) return 1;
+  double bondCutoff = 0;
+  if (line[0] != '\0')
+    bondCutoff = convertToDouble( std::string(line) );
+  if (bondCutoff > 0.0)
+    mprintf("Warning: Non-zero cutoff in prep file (%g); currently ignored.\n", bondCutoff);
   //     0 1         2         3        4     5     6     7    8        9      10
   // 8 - I IGRAPH(I) ISYMBL(I) ITREE(I) NA(I) NB(I) NC(I) R(I) THETA(I) PHI(I) CHG(I) [I = 1, NATOM]
   // FORMAT(I,3A,3I,4F)
