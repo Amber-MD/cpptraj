@@ -1,16 +1,14 @@
 #include "DataIO_AmberPrep.h"
 #include "CpptrajStdio.h"
 #include "BufferedLine.h"
-#include "DataSet_Topology.h"
 #include "DataSet_Coords.h"
 #include "StringRoutines.h"
 #include "Structure/Zmatrix.h"
 
 /// CONSTRUCTOR
-DataIO_AmberPrep::DataIO_AmberPrep()
-{
-
-}
+DataIO_AmberPrep::DataIO_AmberPrep() :
+  removeDummyAtoms_(true)
+{ }
 
 // DataIO_AmberPrep::ID_DataFormat()
 bool DataIO_AmberPrep::ID_DataFormat(CpptrajFile& infile)
@@ -22,16 +20,17 @@ bool DataIO_AmberPrep::ID_DataFormat(CpptrajFile& infile)
 // DataIO_AmberPrep::ReadHelp()
 void DataIO_AmberPrep::ReadHelp()
 {
-
+  mprintf("\tkeepdummyatoms : Keep dummy atoms instead of removing them.\n");
 }
 
 // DataIO_AmberPrep::processReadArgs()
 int DataIO_AmberPrep::processReadArgs(ArgList& argIn)
 {
-
+  removeDummyAtoms_ = !argIn.hasKey("keepdummyatoms");
   return 0;
 }
 
+/// Used to check for premature EOF
 static inline int CheckLine(const char* line) {
   if (line==0) {
     mprinterr("Error: Unexpected end of prep file.\n");
@@ -143,12 +142,13 @@ int DataIO_AmberPrep::ReadData(FileName const& fname, DataSetList& dsl, std::str
   using namespace Cpptraj::Structure;
   Zmatrix zmatrix;
   // Topology
-  DataSet* ds = dsl.AddSet( DataSet::TOPOLOGY, MetaData(dsname, "top") );
-  if (ds == 0) {
-    mprinterr("Error: Could not create topology for prep.\n");
-    return 1;
-  }
-  Topology& top = ((DataSet_Topology*)ds)->ModifyTop();
+  //DataSet* ds = dsl.AddSet( DataSet::TOPOLOGY, MetaData(dsname, "top") );
+  //if (ds == 0) {
+  //  mprinterr("Error: Could not create topology for prep.\n");
+  //  return 1;
+  //}
+  //Topology& top = ((DataSet_Topology*)ds)->ModifyTop();
+  Topology top;
   // Residue
   Residue res(resName, 1, ' ', ' ');
   // Loop over entries
@@ -201,10 +201,12 @@ int DataIO_AmberPrep::ReadData(FileName const& fname, DataSetList& dsl, std::str
       top.AddBond( it - zmatrix.begin(), it->AtJ() );
   // Set up topology
   top.CommonSetup(true, false);
+  top.SetParmName( resName, fname );
   top.Summary();
   zmatrix.print();
-  // Frame set
-  ds = dsl.AddSet( DataSet::REF_FRAME, MetaData(dsname, "crd") );
+  // Create COORDS set
+  //ds = dsl.AddSet( DataSet::REF_FRAME, MetaData(dsname, "crd") );
+  DataSet* ds = dsl.AddSet( DataSet::REF_FRAME, MetaData(dsname) );
   if (ds == 0) {
     mprinterr("Error: Could not create coordinates for prep.\n");
     return 1;
@@ -217,7 +219,33 @@ int DataIO_AmberPrep::ReadData(FileName const& fname, DataSetList& dsl, std::str
     mprinterr("Error: IC to Cartesian coords failed.\n");
     return 1;
   }
-  // TODO delete dummy atoms
+  // Delete dummy atoms if needed
+  if (removeDummyAtoms_) {
+    AtomMask keepAtoms;
+    if (keepAtoms.SetMaskString( "!@%" + ISYMDU )) {
+      mprinterr("Error: Could not set up mask string to remove dummy atoms.\n");
+      return 1;
+    }
+    if (top.SetupIntegerMask( keepAtoms )) {
+      mprinterr("Error: Could not set up mask '%s' to remove dummy atoms.\n", keepAtoms.MaskString());
+      return 1;
+    }
+    keepAtoms.MaskInfo();
+    if (keepAtoms.Nselected() == top.Natom()) {
+      mprintf("\tNo dummy atoms to remove.\n");
+    } else {
+      Topology* newTop = top.modifyStateByMask( keepAtoms );
+      if (newTop == 0) {
+        mprinterr("Error: Could not remove dummy atoms.\n");
+        return 1;
+      }
+      Frame newFrame( frm, keepAtoms );
+      top = *newTop;
+      delete newTop;
+      frm = newFrame;
+      top.Summary();
+    }
+  }
   // Output Set up frame set
   if (CRD->CoordsSetup(top, CoordinateInfo())) {
     mprinterr("Error: Could not set up COORDS set for prep.\n");

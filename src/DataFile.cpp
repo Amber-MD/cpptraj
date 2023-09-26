@@ -86,7 +86,7 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
 # endif
   { "Amber Energy File",  0,                             0,            DataIO_AmberEne::Alloc},
   { "Numpy array",        0,                             0,            DataIO_Numpy::Alloc},
-  { "Amber Prep File",    0,                             0,            DataIO_AmberPrep::Alloc},
+  { "Amber Prep File",    DataIO_AmberPrep::ReadHelp,    0,            DataIO_AmberPrep::Alloc},
   { "Unknown Data file",  0,                       0,                        0                    }
 };
 

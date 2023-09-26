@@ -13,5 +13,7 @@ class DataIO_AmberPrep : public DataIO {
     int processWriteArgs(ArgList&);
     int WriteData(FileName const&, DataSetList const&);
     bool ID_DataFormat(CpptrajFile&);
+  private:
+    bool removeDummyAtoms_; ///< Remove dummy atoms if true
 };
 #endif
