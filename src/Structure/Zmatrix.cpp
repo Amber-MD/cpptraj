@@ -156,24 +156,24 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
               rdist * cosPhi * sinTheta,
               rdist * sinPhi * sinTheta );
 
-    Vec3 a = Vec3( frameOut.XYZ( ic.AtL()) );
-    Vec3 b = Vec3( frameOut.XYZ( ic.AtK()) );
-    Vec3 c = Vec3( frameOut.XYZ( ic.AtJ()) );
+    Vec3 posL = Vec3( frameOut.XYZ( ic.AtL()) );
+    Vec3 posK = Vec3( frameOut.XYZ( ic.AtK()) );
+    Vec3 posJ = Vec3( frameOut.XYZ( ic.AtJ()) );
 
-    Vec3 ab = b - a;
-    Vec3 bc = c - b;
-    bc.Normalize();
-    Vec3 n = ab.Cross(bc);
-    n.Normalize();
-    Vec3 ncbc = n.Cross(bc);
+    Vec3 LK = posK - posL;
+    Vec3 KJ = posJ - posK;
+    KJ.Normalize();
+    Vec3 Norm = LK.Cross(KJ);
+    Norm.Normalize();
+    Vec3 NxKJ = Norm.Cross(KJ);
 
-    Matrix_3x3 M( bc[0], ncbc[0], n[0],
-                  bc[1], ncbc[1], n[1],
-                  bc[2], ncbc[2], n[2] );
+    Matrix_3x3 Rot( KJ[0], NxKJ[0], Norm[0],
+                    KJ[1], NxKJ[1], Norm[1],
+                    KJ[2], NxKJ[2], Norm[2] );
 
-    Vec3 d = (M * xyz) + c;
+    Vec3 posI = (Rot * xyz) + posJ;
 
-    frameOut.SetXYZ( idx, d );
+    frameOut.SetXYZ( idx, posI );
     atomIsSet(idx, isSet, Nset);
 
     // Next lowest unset atom
