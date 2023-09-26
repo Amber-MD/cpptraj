@@ -312,7 +312,7 @@ const
       mprinterr("Error: Could not set up mask '%s' to remove dummy atoms.\n", keepAtoms.MaskString());
       return 1;
     }
-    keepAtoms.MaskInfo();
+    if (debug_ > 0) keepAtoms.MaskInfo();
     if (keepAtoms.Nselected() == top.Natom()) {
       mprintf("\tNo dummy atoms to remove.\n");
     } else {
