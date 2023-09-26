@@ -181,6 +181,7 @@ const
   // Terminated by a blank line
   using namespace Cpptraj::Structure;
   Zmatrix zmatrix;
+  zmatrix.SetDebug( debug_ );
   // Topology
   //DataSet* ds = dsl.AddSet( DataSet::TOPOLOGY, MetaData(dsname, "top") );
   //if (ds == 0) {
@@ -196,7 +197,8 @@ const
   if (CheckLine(line)) return 1;
   int atIdx = 0;
   while (line[0] != '\0') {
-    mprintf("DEBUG: '%s'\n", line);
+    if (debug_ > 1)
+      mprintf("DEBUG: '%s'\n", line);
     args.SetList( line, " \t" );
     if (args.Nargs() != 11) {
       mprinterr("Error: Expected 11 columns in prep line, got %i\n", args.Nargs());
@@ -280,8 +282,10 @@ const
   // Set up topology
   top.CommonSetup(true, false);
   top.SetParmName( resName, infile.Filename() );
-  top.Summary();
-  zmatrix.print();
+  if (debug_ > 0)
+    top.Summary();
+  if (debug_ > 1)
+    zmatrix.print();
   // Create COORDS set
   //ds = dsl.AddSet( DataSet::REF_FRAME, MetaData(dsname, "crd") );
   DataSet* ds = dsl.AddSet( DataSet::REF_FRAME, MetaData(dsname, resName) );
@@ -321,7 +325,7 @@ const
       top = *newTop;
       delete newTop;
       frm = newFrame;
-      top.Summary();
+      if (debug_ > 0) top.Summary();
     }
   }
   // Output Set up frame set

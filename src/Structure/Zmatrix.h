@@ -11,6 +11,8 @@ class Zmatrix {
   public:
     /// CONSTRUCTOR
     Zmatrix();
+    /// Set debug level
+    void SetDebug(int d) { debug_ = d; }
     /// Add internal coordinate
     void AddIC(InternalCoords const&);
     /// Add internal coordinate as next available seed
@@ -26,7 +28,7 @@ class Zmatrix {
     const_iterator begin() const { return IC_.begin(); }
     const_iterator end()   const { return IC_.end(); }
   private:
-
+    int debug_;  ///< Print debug info
     ICarray IC_; ///< Hold internal coordinates for all atoms
     int seed0_;  ///< Index of first seed atom
     int seed1_;  ///< Index of second seed atom

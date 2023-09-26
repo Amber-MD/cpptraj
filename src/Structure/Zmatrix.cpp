@@ -9,6 +9,7 @@ using namespace Cpptraj::Structure;
 
 /** CONSTRUCTOR */
 Zmatrix::Zmatrix() :
+  debug_(0),
   seed0_(InternalCoords::NO_ATOM),
   seed1_(InternalCoords::NO_ATOM),
   seed2_(InternalCoords::NO_ATOM)
@@ -117,7 +118,7 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
   unsigned int lowestUnsetAtom = 0;
   for (; lowestUnsetAtom < IC_.size(); ++lowestUnsetAtom)
     if (!isSet[lowestUnsetAtom]) break;
-  mprintf("Lowest unset atom: %u\n", lowestUnsetAtom+1);
+  if (debug_ > 0) mprintf("DEBUG: Lowest unset atom: %u\n", lowestUnsetAtom+1);
 
   // Loop over remaining atoms
   while (Nset < IC_.size()) {
@@ -138,7 +139,7 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
         findNextAtom = false;
       }
     } // END loop finding next atom to set
-    mprintf("DEBUG: Next atom to set is %u\n", idx+1);
+    if (debug_ > 0) mprintf("DEBUG: Next atom to set is %u\n", idx+1);
 
     InternalCoords const& ic = IC_[idx];
     double rdist = ic.Dist();
