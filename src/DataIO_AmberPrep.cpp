@@ -84,8 +84,16 @@ const
   // 3 - Title
   // Descriptive header for the residue
   const char* line = infile.Line();
-  if (CheckLine(line)) return 1;
+  // If EOF here, assume missing STOP
+  if (line == 0) {
+    mprintf("Warning: Prep file '%s' missing STOP.\n", infile.Filename().base());
+    return -1;
+  }
+  // Check for STOP
+  if (std::string(line) == "STOP")
+    return -1;
   mprintf("DEBUG: Prep title: '%s'\n", line);
+
   // 4 - Name of output file if an individual res file is being generated
   // NAMF
   // Format (A80)
@@ -226,12 +234,7 @@ const
     if (line[0] != '\0') {
       std::string lineStr(line);
       if (lineStr == "DONE") {
-        // Check for STOP
-        line = infile.Line();
-        if (line == 0)
-          errStat = -1;
-        else if (std::string(line) == "STOP")
-          errStat = -1;
+
         break;
       } else if (lineStr == "CHARGE") {
         readCHARGE(infile);
