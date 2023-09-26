@@ -39,6 +39,42 @@ static inline int CheckLine(const char* line) {
   return 0;
 }
 
+/** Read CHARGE section. */
+int DataIO_AmberPrep::readCHARGE(BufferedLine& infile) const {
+  const char* line = infile.Line();
+  while (line != 0 && line[0] != '\0') {
+    mprintf("DEBUG: CHARGE: %s\n", line);
+    line = infile.Line();
+  }
+  return 0;
+}
+
+/** Read LOOP section. */
+int DataIO_AmberPrep::readLOOP(BufferedLine& infile, AtPairArray& BondPairs) const {
+  const char* line = infile.Line();
+  while (line != 0 && line[0] != '\0') {
+    mprintf("DEBUG: LOOP: %s\n", line);
+    ArgList atpair(line, " \t");
+    if (atpair.Nargs() != 2) {
+      mprinterr("Error: Expected 2 atom names, got %i: %s\n", atpair.Nargs(), line);
+      return 1;
+    }
+    BondPairs.push_back(AtPairType(atpair[0], atpair[1]));
+    line = infile.Line();
+  }
+  return 0;
+}
+
+/** Read IMPROPER section. */
+int DataIO_AmberPrep::readIMPROPER(BufferedLine& infile) const {
+  const char* line = infile.Line();
+  while (line != 0 && line[0] != '\0') {
+    mprintf("DEBUG: IMPROPER: %s\n", line);
+    line = infile.Line();
+  }
+  return 0;
+}
+
 /** Read 1 or more PREP residue sections (cards 3-10).
   * \return 1 if error, -1 if STOP/EOF, 0 if more residues to be read.
   */
@@ -183,6 +219,8 @@ const
   // 9 - Read additional information about the residue.
   // CHARGE - Read additional partial atomic charges. FORMAT (5f)
   // LOOP - Read explicit loop closing bonds
+  // IMPROPER - Read improper torsion angles. 
+  AtPairArray BondPairs;
   int errStat = 0;
   while (line != 0) {
     if (line[0] != '\0') {
@@ -195,7 +233,16 @@ const
         else if (std::string(line) == "STOP")
           errStat = -1;
         break;
-      } // TODO CHARGE, LOOP
+      } else if (lineStr == "CHARGE") {
+        readCHARGE(infile);
+      } else if (lineStr == "LOOP") {
+        if (readLOOP(infile, BondPairs)) {
+          mprinterr("Error: Reading LOOP section.\n");
+          return 1;
+        }
+      } else if (lineStr == "IMPROPER") {
+        readIMPROPER(infile);
+      } 
     }
     line = infile.Line();
   }
@@ -204,6 +251,19 @@ const
   for (Zmatrix::const_iterator it = zmatrix.begin(); it != zmatrix.end(); ++it)
     if (it->AtJ() != InternalCoords::NO_ATOM)
       top.AddBond( it - zmatrix.begin(), it->AtJ() );
+  for (AtPairArray::const_iterator it = BondPairs.begin(); it != BondPairs.end(); ++it) {
+    int idx1 = top.FindAtomInResidue(0, it->first);
+    if (idx1 < 0) {
+      mprinterr("Error: Could not find LOOP atom '%s'\n", it->first.c_str());
+      return 1;
+    }
+    int idx2 = top.FindAtomInResidue(0, it->second);
+    if (idx2 < 0) {
+      mprinterr("Error: Could not find LOOP atom '%s'\n", it->second.c_str());
+      return 1;
+    }
+    top.AddBond( idx1, idx2 );
+  }
   // TODO bond search?
   // Set up topology
   top.CommonSetup(true, false);
