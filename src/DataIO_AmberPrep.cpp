@@ -1,5 +1,6 @@
 #include "DataIO_AmberPrep.h"
 #include "CpptrajStdio.h"
+#include "BondSearch.h"
 #include "BufferedLine.h"
 #include "DataSet_Coords.h"
 #include "StringRoutines.h"
@@ -175,7 +176,8 @@ const
   if (line[0] != '\0')
     bondCutoff = convertToDouble( std::string(line) );
   if (bondCutoff > 0.0)
-    mprintf("Warning: Non-zero cutoff in prep file (%g); currently ignored.\n", bondCutoff);
+    mprintf("Warning: Non-zero cutoff in prep file (%g); will search for additional\n"
+            "Warning:  bonds based on distances.\n", bondCutoff);
   //     0 1         2         3        4     5     6     7    8        9      10
   // 8 - I IGRAPH(I) ISYMBL(I) ITREE(I) NA(I) NB(I) NC(I) R(I) THETA(I) PHI(I) CHG(I) [I = 1, NATOM]
   // FORMAT(I,3A,3I,4F)
@@ -279,7 +281,18 @@ const
     }
     top.AddBond( idx1, idx2 );
   }
-  // TODO bond search?
+  // Frame
+  Frame frm( top.Natom() );
+  // Internal coords to cart
+  if (zmatrix.SetToFrame( frm )) {
+    mprinterr("Error: IC to Cartesian coords failed.\n");
+    return 1;
+  }
+  // Bond search
+  if (bondCutoff > 0) {
+    BondSearch bondSearch;
+    bondSearch.FindBonds( top, BondSearch::SEARCH_REGULAR, frm, 0.2, debug_ );
+  }
   // Set up topology
   top.CommonSetup(true, false);
   if (debug_ > 0)
@@ -294,13 +307,7 @@ const
     return 1;
   }
   DataSet_Coords* CRD = static_cast<DataSet_Coords*>( ds );
-  // Frame
-  Frame frm( top.Natom() );
-  // Internal coords to cart
-  if (zmatrix.SetToFrame( frm )) {
-    mprinterr("Error: IC to Cartesian coords failed.\n");
-    return 1;
-  }
+  
   // Delete dummy atoms if needed
   if (removeDummyAtoms_) {
     AtomMask keepAtoms;
