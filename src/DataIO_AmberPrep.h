@@ -1,6 +1,7 @@
 #ifndef INC_DATAIO_AMBERPREP_H
 #define INC_DATAIO_AMBERPREP_H
 #include "DataIO.h"
+class BufferedLine;
 /// Read in the Amber prep file format 
 class DataIO_AmberPrep : public DataIO {
   public:
@@ -14,6 +15,8 @@ class DataIO_AmberPrep : public DataIO {
     int WriteData(FileName const&, DataSetList const&);
     bool ID_DataFormat(CpptrajFile&);
   private:
+    int readAmberPrep(BufferedLine&, DataSetList&, std::string const&) const;
+
     bool removeDummyAtoms_; ///< Remove dummy atoms if true
 };
 #endif

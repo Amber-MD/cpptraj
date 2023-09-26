@@ -39,28 +39,15 @@ static inline int CheckLine(const char* line) {
   return 0;
 }
 
-// DataIO_AmberPrep::ReadData()
-int DataIO_AmberPrep::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
+/** Read 1 or more PREP residue sections (cards 3-10).
+  * \return 1 if error, -1 if STOP/EOF, 0 if more residues to be read.
+  */
+int DataIO_AmberPrep::readAmberPrep(BufferedLine& infile, DataSetList& dsl, std::string const& dsname)
+const
 {
-  BufferedLine infile;
-
-  if (infile.OpenFileRead(fname)) {
-    mprinterr("Error: Could not open '%s'\n", fname.full());
-    return 1;
-  }
-  // 1 - Control for data base generation
-  // IDBGEN, IREST, ITYPF
-  // Format (3I)
-  const char* line = infile.Line();
-  if (CheckLine(line)) return 1;
-  // 2 - Name of the data base file. Blank if not data base gen.
-  // NAMDBF
-  // Format (A80)
-  line = infile.Line();
-  if (CheckLine(line)) return 1;
   // 3 - Title
   // Descriptive header for the residue
-  line = infile.Line();
+  const char* line = infile.Line();
   if (CheckLine(line)) return 1;
   mprintf("DEBUG: Prep title: '%s'\n", line);
   // 4 - Name of output file if an individual res file is being generated
@@ -193,20 +180,39 @@ int DataIO_AmberPrep::ReadData(FileName const& fname, DataSetList& dsl, std::str
     line = infile.Line();
     if (line == 0) break;
   }
-  // Ignore everything else for now
-  infile.CloseFile();
+  // 9 - Read additional information about the residue.
+  // CHARGE - Read additional partial atomic charges. FORMAT (5f)
+  // LOOP - Read explicit loop closing bonds
+  int errStat = 0;
+  while (line != 0) {
+    if (line[0] != '\0') {
+      std::string lineStr(line);
+      if (lineStr == "DONE") {
+        // Check for STOP
+        line = infile.Line();
+        if (line == 0)
+          errStat = -1;
+        else if (std::string(line) == "STOP")
+          errStat = -1;
+        break;
+      } // TODO CHARGE, LOOP
+    }
+    line = infile.Line();
+  }
+  // -----------------------------------
   // Add bonds to topology
   for (Zmatrix::const_iterator it = zmatrix.begin(); it != zmatrix.end(); ++it)
     if (it->AtJ() != InternalCoords::NO_ATOM)
       top.AddBond( it - zmatrix.begin(), it->AtJ() );
+  // TODO bond search?
   // Set up topology
   top.CommonSetup(true, false);
-  top.SetParmName( resName, fname );
+  top.SetParmName( resName, infile.Filename() );
   top.Summary();
   zmatrix.print();
   // Create COORDS set
   //ds = dsl.AddSet( DataSet::REF_FRAME, MetaData(dsname, "crd") );
-  DataSet* ds = dsl.AddSet( DataSet::REF_FRAME, MetaData(dsname) );
+  DataSet* ds = dsl.AddSet( DataSet::REF_FRAME, MetaData(dsname, resName) );
   if (ds == 0) {
     mprinterr("Error: Could not create coordinates for prep.\n");
     return 1;
@@ -252,6 +258,42 @@ int DataIO_AmberPrep::ReadData(FileName const& fname, DataSetList& dsl, std::str
     return 1;
   }
   CRD->SetCRD(0, frm);
+
+  return errStat;
+}
+
+// DataIO_AmberPrep::ReadData()
+int DataIO_AmberPrep::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
+{
+  BufferedLine infile;
+
+  if (infile.OpenFileRead(fname)) {
+    mprinterr("Error: Could not open '%s'\n", fname.full());
+    return 1;
+  }
+  // 1 - Control for data base generation
+  // IDBGEN, IREST, ITYPF
+  // Format (3I)
+  const char* line = infile.Line();
+  if (CheckLine(line)) return 1;
+  // 2 - Name of the data base file. Blank if not data base gen.
+  // NAMDBF
+  // Format (A80)
+  line = infile.Line();
+  if (CheckLine(line)) return 1;
+
+  bool readPrep = true;
+  while (readPrep) {
+    int errStat = readAmberPrep(infile, dsl, dsname);
+    if (errStat == 1) {
+      mprinterr("Error: Could not read residue(s) from prep file.\n");
+      return 1;
+    } else if (errStat == -1) {
+      readPrep = false;
+    }
+  }
+
+  infile.CloseFile();
 
   return 0;
 }
