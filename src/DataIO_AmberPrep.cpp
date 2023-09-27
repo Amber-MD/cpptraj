@@ -337,7 +337,7 @@ const
   }
   // DEBUG - back convert
   Zmatrix tempZ;
-  //tempZ.SetSeeds(frm, top, 5, 0, 1);
+  //tempZ.SetSeedPositions(frm, top, 5, 0, 1);
   //tempZ.SetFromFrame( frm, top );
   //tempZ.print();
   // Output Set up frame set

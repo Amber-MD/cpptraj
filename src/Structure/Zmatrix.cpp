@@ -169,7 +169,7 @@ static inline int SetJKL(int ai, Topology const& topIn, std::vector<bool> const&
 }*/
 
 /** Set seeds from specified atoms. */
-/*int Zmatrix::SetSeeds(Frame const& frameIn, Topology const& topIn, int a1, int a2, int a3)
+int Zmatrix::SetSeedPositions(Frame const& frameIn, Topology const& topIn, int a1, int a2, int a3)
 {
   // a1 must be bonded to a2
   if (!topIn[a1].IsBondedTo(a2)) {
@@ -184,11 +184,11 @@ static inline int SetJKL(int ai, Topology const& topIn, std::vector<bool> const&
     return 1;
   }
   // Store seed positions
-  seed0TopIdx_ = a1;
+  seedAt0_  = a1;
   seed0Pos_ = Vec3(frameIn.XYZ(a1));
-  seed1TopIdx_ = a2;
+  seedAt1_  = a2;
   seed1Pos_ = Vec3(frameIn.XYZ(a2));
-  seed2TopIdx_ = a3;
+  seedAt2_  = a3;
   seed2Pos_ = Vec3(frameIn.XYZ(a3));
   mprintf("DEBUG: Seed atoms: %s - %s - %s\n",
           topIn.AtomMaskName(a1).c_str(),
@@ -196,7 +196,7 @@ static inline int SetJKL(int ai, Topology const& topIn, std::vector<bool> const&
           topIn.AtomMaskName(a3).c_str());
 
   return 0;
-}*/
+}
 
 /** Setup Zmatrix from Cartesian coordinates/topology. */
 int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnum)

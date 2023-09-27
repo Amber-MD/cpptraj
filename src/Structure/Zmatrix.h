@@ -20,7 +20,7 @@ class Zmatrix {
     /// Add internal coordinate as next available IC seed
     int AddICseed(InternalCoords const&);
     /// Set seed atoms from frame/top
-    //int SetSeeds(Frame const&, Topology const&, int, int, int);
+    int SetSeedPositions(Frame const&, Topology const&, int, int, int);
     /// Convert Frame/Topology to internal coordinates array
     int SetFromFrame(Frame const&, Topology const&, int);
 
