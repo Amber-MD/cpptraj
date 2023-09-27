@@ -299,6 +299,10 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
     if (potential2From0 < potential2From1) {
       at2 = potential2From0.Idx();
       mprintf("DEBUG: 2 - 0 - 1\n");
+      mprintf("DEBUG: Seed atoms: %s - %s - %s\n",
+            topIn.AtomMaskName(at2).c_str(), 
+            topIn.AtomMaskName(at0).c_str(), 
+            topIn.AtomMaskName(at1).c_str()); 
       // D0 D1 D2 A2
       addIc(at2, DUMMY2, DUMMY1, DUMMY0, frameIn.XYZ(at2), seed2Pos_.Dptr(), seed1Pos_.Dptr(), seed0Pos_.Dptr());
       // D1 D2 A2 A0
@@ -308,6 +312,10 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
     } else {
       at2 = potential2From1.Idx();
       mprintf("DEBUG: 0 - 1 - 2\n");
+      mprintf("DEBUG: Seed atoms: %s - %s - %s\n",
+            topIn.AtomMaskName(at0).c_str(), 
+            topIn.AtomMaskName(at1).c_str(), 
+            topIn.AtomMaskName(at2).c_str()); 
       // D0 D1 D2 A0
       addIc(at0, DUMMY2, DUMMY1, DUMMY0, frameIn.XYZ(at0), seed2Pos_.Dptr(), seed1Pos_.Dptr(), seed0Pos_.Dptr());
       // D1 D2 A0 A1
@@ -315,10 +323,6 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
       // D2 A0 A1 A2
       addIc(at2, at1, at0, DUMMY2, frameIn.XYZ(at2), frameIn.XYZ(at1), frameIn.XYZ(at0), seed2Pos_.Dptr());
     }
-    mprintf("DEBUG: Seed atoms: %s %s %s\n",
-            topIn.AtomMaskName(at0).c_str(), 
-            topIn.AtomMaskName(at1).c_str(), 
-            topIn.AtomMaskName(at2).c_str()); 
 
 
 //    mprinterr("Internal Error: Automatic seed generation not yet implemented.\n");
