@@ -231,10 +231,10 @@ const
     double theta = convertToDouble(args[8]);
     double phi   = convertToDouble(args[9]);
     if (args[2] == ISYMDU) {
-      if (zmatrix.AddICseed( InternalCoords(atJ, atK, atL, dist, theta, phi), atIdx ))
+      if (zmatrix.AddICseed( InternalCoords(atIdx, atJ, atK, atL, dist, theta, phi) ))
         return 1;
     } else
-      zmatrix.AddIC( InternalCoords(atJ, atK, atL, dist, theta, phi), atIdx );
+      zmatrix.AddIC( InternalCoords(atIdx, atJ, atK, atL, dist, theta, phi) );
     atIdx++;
     line = infile.Line();
     if (line == 0) break;
@@ -336,7 +336,8 @@ const
     }
   }
   // DEBUG - back convert
-  //Zmatrix tempZ;
+  Zmatrix tempZ;
+  //tempZ.SetSeeds(frm, top, 5, 0, 1);
   //tempZ.SetFromFrame( frm, top );
   //tempZ.print();
   // Output Set up frame set

@@ -14,44 +14,44 @@ using namespace Cpptraj::Structure;
 /** CONSTRUCTOR */
 Zmatrix::Zmatrix() :
   debug_(0),
-  seed0_(InternalCoords::NO_ATOM),
-  seed1_(InternalCoords::NO_ATOM),
-  seed2_(InternalCoords::NO_ATOM),
+  icseed0_(InternalCoords::NO_ATOM),
+  icseed1_(InternalCoords::NO_ATOM),
+  icseed2_(InternalCoords::NO_ATOM)/*,
   seed0TopIdx_(InternalCoords::NO_ATOM),
   seed1TopIdx_(InternalCoords::NO_ATOM),
-  seed2TopIdx_(InternalCoords::NO_ATOM)
+  seed2TopIdx_(InternalCoords::NO_ATOM)*/
 {}
 
 /** Add internal coords */
-void Zmatrix::AddIC(InternalCoords const& ic, int topIdx) {
+void Zmatrix::AddIC(InternalCoords const& ic) {
   IC_.push_back( ic );
-  topIndices_.push_back( topIdx );
 }
 
 /** Add internal coords as a seed. */
-int Zmatrix::AddICseed(InternalCoords const& ic, int topIdx) {
-  if (seed0_ == InternalCoords::NO_ATOM)
-    seed0_ = IC_.size();
-  else if (seed1_ == InternalCoords::NO_ATOM)
-    seed1_ = IC_.size();
-  else if (seed2_ == InternalCoords::NO_ATOM)
-    seed2_ = IC_.size();
+int Zmatrix::AddICseed(InternalCoords const& ic) {
+  if (icseed0_ == InternalCoords::NO_ATOM)
+    icseed0_ = IC_.size();
+  else if (icseed1_ == InternalCoords::NO_ATOM)
+    icseed1_ = IC_.size();
+  else if (icseed2_ == InternalCoords::NO_ATOM)
+    icseed2_ = IC_.size();
   else {
-    mprinterr("Error: Too many seed atoms.\n");
+    mprinterr("Error: Too many seed ICs.\n");
     return 1;
   }
   IC_.push_back( ic );
-  topIndices_.push_back( topIdx );
   return 0;
 }
 
 /** Print to stdout */
 void Zmatrix::print() const {
   mprintf("%zu internal coords.\n", IC_.size());
-  mprintf("Seed indices: %i %i %i\n", seed0_+1, seed1_+1, seed2_+1);
+  mprintf("Seed IC indices: %i %i %i\n", icseed0_+1, icseed1_+1, icseed2_+1);
+  mprintf("%-8s %8s %8s %8s %8s %12s %12s %12s\n",
+          "#Idx", "AtI", "AtJ", "AtK", "AtL", "Dist", "Theta", "Phi");
   for (ICarray::const_iterator it = IC_.begin(); it != IC_.end(); ++it)
-    mprintf("\t%8i %8i %8i %8i %12.4f %12.4f %12.4f\n", topIndices_[it - IC_.begin()]+1,
-            it->AtJ()+1, it->AtK()+1, it->AtL()+1,
+    mprintf("%-8li %8i %8i %8i %8i %12.4f %12.4f %12.4f\n", it - IC_.begin()+1,
+            it->AtI()+1, it->AtJ()+1, it->AtK()+1, it->AtL()+1,
             it->Dist(), it->Theta(), it->Phi());
 }
 
@@ -162,14 +162,14 @@ static inline int SetJKL(int ai, Topology const& topIn, std::vector<bool> const&
 }
 
 /** \return True if no seeds are set. */
-bool Zmatrix::NoSeeds() const {
+/*bool Zmatrix::NoSeeds() const {
   return (seed0_ == InternalCoords::NO_ATOM ||
           seed1_ == InternalCoords::NO_ATOM ||
           seed2_ == InternalCoords::NO_ATOM   );
-}
+}*/
 
 /** Set seeds from specified atoms. */
-int Zmatrix::SetSeeds(Frame const& frameIn, Topology const& topIn, int a1, int a2, int a3)
+/*int Zmatrix::SetSeeds(Frame const& frameIn, Topology const& topIn, int a1, int a2, int a3)
 {
   // a1 must be bonded to a2
   if (!topIn[a1].IsBondedTo(a2)) {
@@ -196,16 +196,15 @@ int Zmatrix::SetSeeds(Frame const& frameIn, Topology const& topIn, int a1, int a
           topIn.AtomMaskName(a3).c_str());
 
   return 0;
-}
+}*/
 
 /** Setup Zmatrix from Cartesian coordinates/topology. */
 int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnum)
 {
   IC_.clear();
-  topIndices_.clear();
-  // See if we need to assign seed atoms
-  if (NoSeeds()) {
-    mprinterr("Internal Error: Automatic seed generation not yet implemented.\n");
+//  // See if we need to assign seed atoms
+//  if (NoSeeds()) {
+//    mprinterr("Internal Error: Automatic seed generation not yet implemented.\n");
 /*    mprintf("DEBUG: Generating dummy seed atoms.\n");
     seed0_ = InternalCoords::NO_ATOM;
     seed1_ = InternalCoords::NO_ATOM;
@@ -227,12 +226,12 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
     seed2_ = 2;
     topIndices_.push_back( -1 );
     seed2Pos_ = Vec3(1.0, 1.0, 0.0);*/
-  } else {
-    mprintf("DEBUG: Seed atoms: %s %s %s\n",
-            topIn.AtomMaskName(topIndices_[seed0_]).c_str(),
-            topIn.AtomMaskName(topIndices_[seed1_]).c_str(),
-            topIn.AtomMaskName(topIndices_[seed2_]).c_str());
-  }
+/*  } else {
+    mprintf("DEBUG: Seed indices: %s %s %s\n",
+            topIn.AtomMaskName(seed0_).c_str(),
+            topIn.AtomMaskName(seed1_).c_str(),
+            topIn.AtomMaskName(seed2_).c_str());
+  }*/
 
 /*
   // First seed is first atom. No bonds, angles, or torsions. TODO should be lowest heavy atom?
@@ -270,7 +269,7 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
     return 1;
   }*/
 
-
+/*
   // Do the remaining atoms
   unsigned int maxAtom = (unsigned int)topIn.Natom();
   std::vector<bool> isSet( maxAtom, false );
@@ -311,15 +310,16 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
     mprintf("DEBUG: Next atom to set is %u\n", idx+1);
     break; //DEBUG
   } // END loop over remaining atoms
-   
+   */
 
   return 0;
 }
 
-static inline void atomIsSet(int i, std::vector<bool>& isSet, unsigned int& Nset) {
-  if (!isSet[i]) {
-    isSet[i] = true;
-    Nset++;
+/// Mark an IC as used, update used count
+static inline void ICIsUsed(int i, std::vector<bool>& isUsed, unsigned int& Nused) {
+  if (!isUsed[i]) {
+    isUsed[i] = true;
+    Nused++;
   }
 }
 
@@ -330,85 +330,76 @@ static inline void atomIsSet(int i, std::vector<bool>& isSet, unsigned int& Nset
   * J Comput Chem 26: 1063–1068, 2005.
   */
 int Zmatrix::SetToFrame(Frame& frameOut) const {
-  if ((unsigned int)frameOut.Natom() != IC_.size()) {
-    mprinterr("Internal Error: Output frame size (%i) != # internal coords (%zu)\n",
-              frameOut.Natom(), IC_.size());
-    return 1;
-  }
-
-  std::vector<bool> isSet( IC_.size(), false );
-  unsigned int Nset = 0;
-  // Set position of the first atom.
-  if (seed0_ != InternalCoords::NO_ATOM) {
-    if (seed0TopIdx_ != InternalCoords::NO_ATOM)
-      frameOut.SetXYZ(topIndices_[seed0_], seed0Pos_);
-    else
-      frameOut.SetXYZ(topIndices_[seed0_], Vec3(0.0));
-    atomIsSet(seed0_, isSet, Nset);
+  // Track which atoms have Cartesian coords set
+  std::vector<bool> hasPosition( frameOut.Natom(), false );
+  // Track which ICs are used
+  std::vector<bool> isUsed( IC_.size(), false );
+  unsigned int Nused = 0;
+  // Set positions of atoms from internal coordinate seeds.
+  if (icseed0_ != InternalCoords::NO_ATOM) {
+    // First seed IC atom
+    frameOut.SetXYZ(IC_[icseed0_].AtI(), Vec3(0.0));
+    hasPosition[IC_[icseed0_].AtI()] = true;
+    ICIsUsed(icseed0_, isUsed, Nused);
     // Set position of the second atom.
-    if (seed1_ != InternalCoords::NO_ATOM) {
-      if (IC_[seed1_].AtJ() != seed0_) {
-        mprinterr("Internal Error: Atom j of seed 1 is not seed 0.\n");
+    if (icseed1_ != InternalCoords::NO_ATOM) {
+      if (IC_[icseed1_].AtJ() != IC_[icseed0_].AtI()) {
+        mprinterr("Internal Error: Atom j of seed 1 is not Atom i of seed 0.\n");
         return 1;
       }
-      double r1 = IC_[seed1_].Dist();
-      if (seed1TopIdx_ != InternalCoords::NO_ATOM)
-        frameOut.SetXYZ(topIndices_[seed1_], seed1Pos_);
-      else
-        frameOut.SetXYZ(topIndices_[seed1_], Vec3(r1, 0, 0));
-      atomIsSet(seed1_, isSet, Nset);
+      double r1 = IC_[icseed1_].Dist();
+      frameOut.SetXYZ(IC_[icseed1_].AtI(), Vec3(r1, 0, 0));
+      hasPosition[IC_[icseed1_].AtI()] = true;
+      ICIsUsed(icseed1_, isUsed, Nused);
       // Set position of the third atom
-      if (seed2_ != InternalCoords::NO_ATOM) {
-        if (IC_[seed2_].AtJ() != seed1_) {
-          mprinterr("Internal Error: Atom j of seed 2 is not seed 1.\n");
+      if (icseed2_ != InternalCoords::NO_ATOM) {
+        if (IC_[icseed2_].AtJ() != IC_[icseed1_].AtI()) {
+          mprinterr("Internal Error: Atom j of seed 2 is not Atom i of seed 1.\n");
           return 1;
         }
-        if (IC_[seed2_].AtK() != seed0_) {
-          mprinterr("Internal Error: Atom k of seed 2 is not seed 0.\n");
+        if (IC_[icseed2_].AtK() != IC_[icseed0_].AtI()) {
+          mprinterr("Internal Error: Atom k of seed 2 is not Atom i of seed 0.\n");
           return 1;
         }
-        if (seed2TopIdx_ != InternalCoords::NO_ATOM)
-          frameOut.SetXYZ(topIndices_[seed2_], seed2Pos_);
-        else {
-          double r2 = IC_[seed2_].Dist();
-          double theta = IC_[seed2_].Theta();
+        double r2 = IC_[icseed2_].Dist();
+        double theta = IC_[icseed2_].Theta();
 
-          double x = r2 * cos(180.0 - theta) * Constants::DEGRAD;
-          double y = r2 * cos(180.0 - theta) * Constants::DEGRAD;
+        double x = r2 * cos(180.0 - theta) * Constants::DEGRAD;
+        double y = r2 * cos(180.0 - theta) * Constants::DEGRAD;
 
-          frameOut.SetXYZ( topIndices_[seed2_], Vec3(r1 + x, y, 0) );
-        }
-        atomIsSet(seed2_, isSet, Nset);
+        frameOut.SetXYZ( IC_[icseed2_].AtI(), Vec3(r1 + x, y, 0) );
+        hasPosition[IC_[icseed2_].AtI()] = true;
+        ICIsUsed(icseed2_, isUsed, Nused);
       } // END seed atom 2
     } // END seed atom 1
   } // END seed atom 0
 
-  // Find the lowest unset atom
-  unsigned int lowestUnsetAtom = 0;
-  for (; lowestUnsetAtom < IC_.size(); ++lowestUnsetAtom)
-    if (!isSet[lowestUnsetAtom]) break;
-  if (debug_ > 0) mprintf("DEBUG: Lowest unset atom: %u\n", lowestUnsetAtom+1);
+  // Find the lowest unused IC
+  unsigned int lowestUnusedIC = 0;
+  for (; lowestUnusedIC < IC_.size(); ++lowestUnusedIC)
+    if (!isUsed[lowestUnusedIC]) break;
+  if (debug_ > 0) mprintf("DEBUG: Lowest unused IC: %u\n", lowestUnusedIC+1);
 
-  // Loop over remaining atoms
-  while (Nset < IC_.size()) {
-    // Find the next atom that is not yet set.
-    unsigned int idx = lowestUnsetAtom;
-    bool findNextAtom = true;
-    while (findNextAtom) {
-      while (idx < IC_.size() && isSet[idx]) idx++;
+  // Loop over remaining ICs 
+  while (Nused < IC_.size()) {
+    // Find the next IC that is not yet used.
+    unsigned int idx = lowestUnusedIC;
+    bool findNextIC = true;
+    while (findNextIC) {
+      while (idx < IC_.size() && isUsed[idx]) idx++;
       if (idx >= IC_.size()) {
-        mprinterr("Error: Could not find next atom to set.\n");
+        mprinterr("Error: Could not find next IC to use.\n");
         return 1;
       }
       // All 3 of the connecting atoms must be set
-      if (isSet[ IC_[idx].AtJ() ] &&
-          isSet[ IC_[idx].AtK() ] &&
-          isSet[ IC_[idx].AtL() ])
+      if (hasPosition[ IC_[idx].AtJ() ] &&
+          hasPosition[ IC_[idx].AtK() ] &&
+          hasPosition[ IC_[idx].AtL() ])
       {
-        findNextAtom = false;
+        findNextIC = false;
       }
     } // END loop finding next atom to set
-    if (debug_ > 0) mprintf("DEBUG: Next atom to set is %u\n", idx+1);
+    if (debug_ > 0) mprintf("DEBUG: Next IC to use is %u\n", idx+1);
 
     InternalCoords const& ic = IC_[idx];
     double rdist = ic.Dist();
@@ -442,12 +433,13 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
 
     Vec3 posI = (Rot * xyz) + posJ;
 
-    frameOut.SetXYZ( topIndices_[idx], posI );
-    atomIsSet(idx, isSet, Nset);
+    frameOut.SetXYZ( ic.AtI(), posI );
+    hasPosition[ ic.AtI() ] = true;
+    ICIsUsed(idx, isUsed, Nused);
 
-    // Next lowest unset atom
-    for (; lowestUnsetAtom < IC_.size(); ++lowestUnsetAtom)
-      if (!isSet[lowestUnsetAtom]) break;
+    // Next lowest unused IC
+    for (; lowestUnusedIC < IC_.size(); ++lowestUnusedIC)
+      if (!isUsed[lowestUnusedIC]) break;
 
 
     //break; // DEBUG

@@ -7,14 +7,20 @@ using namespace Cpptraj::Structure;
 const int InternalCoords::NO_ATOM = -1;
 
 /** CONSTRUCTOR */
-InternalCoords::InternalCoords() {
+InternalCoords::InternalCoords() : 
+  ati_(NO_ATOM)
+{
   std::fill(idx_, idx_+3, NO_ATOM);
   std::fill(val_, val_+3, 0);
-//  std::fill(xyz_, xyz_+3, 0);
 }
 
 /** CONSTRUCTOR - Take indices and values */
-InternalCoords::InternalCoords(int atJ, int atK, int atL, double dist, double theta, double phi) {
+InternalCoords::InternalCoords(int atI, int atJ, int atK, int atL,
+                               double dist, double theta, double phi) :
+  ati_(atI)
+{
+  if (ati_ < 0)
+    ati_ = NO_ATOM;
   if (atJ < 0)
     idx_[0] = NO_ATOM;
   else
@@ -33,43 +39,19 @@ InternalCoords::InternalCoords(int atJ, int atK, int atL, double dist, double th
   val_[2] = phi;
 }
 
-/** CONSTRUCTOR - pointer to XYZ coords, for first seed atom */
-/*InternalCoords::InternalCoords(const double* xyz) {
-  std::fill(idx_, idx_+3, NO_ATOM);
-  std::fill(val_, val_+3, 0);
-//  std::copy( xyz, xyz+3, xyz_ );
-//  isSet_ = true;
-}*/
-
 /** COPY CONSTRUCTOR */
-InternalCoords::InternalCoords(InternalCoords const& rhs) {
+InternalCoords::InternalCoords(InternalCoords const& rhs) :
+  ati_(rhs.ati_)
+{
   std::copy( rhs.idx_, rhs.idx_+3, idx_ );
   std::copy( rhs.val_, rhs.val_+3, val_ );
-//  std::copy( rhs.xyz_, rhs.xyz_+3, xyz_ );
 }
 
 /** ASSIGNMENT */
 InternalCoords& InternalCoords::operator=(InternalCoords const& rhs) {
   if (&rhs == this) return *this;
+  ati_ = rhs.ati_;
   std::copy( rhs.idx_, rhs.idx_+3, idx_ );
   std::copy( rhs.val_, rhs.val_+3, val_ );
-  //std::copy( rhs.xyz_, rhs.xyz_+3, xyz_ );
-  //isSet_ = rhs.isSet_;
   return *this;
 }
-
-/** Zero out the XYZ coordinates. */
-/*void InternalCoords::ZeroXYZ() {
-  std::fill(idx_, idx_+3, NO_ATOM);
-  std::fill(val_, val_+3, 0);
-  std::fill(xyz_, xyz_+3, 0);
-  isSet_ = true;
-}*/
-
-/** Set xyz coords */
-/*void InternalCoords::SetXYZ(Vec3 const& xyz) {
-  xyz_[0] = xyz[0];
-  xyz_[1] = xyz[1];
-  xyz_[2] = xyz[2];
-  isSet_ = true;
-}*/

@@ -15,17 +15,15 @@ class Zmatrix {
     Zmatrix();
     /// Set debug level
     void SetDebug(int d) { debug_ = d; }
-    /// Add internal coordinate and topology index
-    void AddIC(InternalCoords const&, int);
-    /// Add internal coordinate and topology index as next available seed
-    int AddICseed(InternalCoords const&, int);
+    /// Add internal coordinate
+    void AddIC(InternalCoords const&);
+    /// Add internal coordinate as next available IC seed
+    int AddICseed(InternalCoords const&);
     /// Set seed atoms from frame/top
-    int SetSeeds(Frame const&, Topology const&, int, int, int);
+    //int SetSeeds(Frame const&, Topology const&, int, int, int);
     /// Convert Frame/Topology to internal coordinates array
     int SetFromFrame(Frame const&, Topology const&, int);
 
-    /// \return True if any of the seeds are not set
-    bool NoSeeds() const;
     /// Set Frame from internal coords
     int SetToFrame(Frame&) const;
     /// Print to stdout
@@ -35,18 +33,18 @@ class Zmatrix {
     const_iterator begin() const { return IC_.begin(); }
     const_iterator end()   const { return IC_.end(); }
   private:
+
     int debug_;         ///< Print debug info
     ICarray IC_;        ///< Hold internal coordinates for all atoms
-    Iarray topIndices_; ///< For each IC, corresponding atom index in topology
-    int seed0_;         ///< Index into IC_ of first seed atom
-    int seed1_;         ///< Index into IC_ of second seed atom
-    int seed2_;         ///< Index into IC_ of third seed atom
-    Vec3 seed0Pos_;     ///< Seed 0 xyz
+    int icseed0_;       ///< Index into IC_ of first seed
+    int icseed1_;       ///< Index into IC_ of second seed
+    int icseed2_;       ///< Index into IC_ of third seed
+/*    Vec3 seed0Pos_;     ///< Seed 0 xyz
     Vec3 seed1Pos_;     ///< Seed 1 xyz
     Vec3 seed2Pos_;     ///< Seed 2 xyz
     int seed0TopIdx_;   ///< Seed 0 topology index if seed0Pos_ is set
     int seed1TopIdx_;   ///< Seed 1 topology index if seed1Pos_ is set
-    int seed2TopIdx_;   ///< Seed 2 topology index if seed2Pos_ is set
+    int seed2TopIdx_;   ///< Seed 2 topology index if seed2Pos_ is set*/
 };
 }
 }
