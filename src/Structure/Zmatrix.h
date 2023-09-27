@@ -19,6 +19,8 @@ class Zmatrix {
     void AddIC(InternalCoords const&, int);
     /// Add internal coordinate and topology index as next available seed
     int AddICseed(InternalCoords const&, int);
+    /// Set seed atoms from frame/top
+    int SetSeeds(Frame const&, Topology const&, int, int, int);
     /// Convert Frame/Topology to internal coordinates array
     int SetFromFrame(Frame const&, Topology const&, int);
 
@@ -42,9 +44,9 @@ class Zmatrix {
     Vec3 seed0Pos_;     ///< Seed 0 xyz
     Vec3 seed1Pos_;     ///< Seed 1 xyz
     Vec3 seed2Pos_;     ///< Seed 2 xyz
-    bool hasSeed0Pos_;  ///< True if seed0Pos_ is set
-    bool hasSeed1Pos_;  ///< True if seed1Pos_ is set
-    bool hasSeed2Pos_;  ///< True if seed2Pos_ is set
+    int seed0TopIdx_;   ///< Seed 0 topology index if seed0Pos_ is set
+    int seed1TopIdx_;   ///< Seed 1 topology index if seed1Pos_ is set
+    int seed2TopIdx_;   ///< Seed 2 topology index if seed2Pos_ is set
 };
 }
 }

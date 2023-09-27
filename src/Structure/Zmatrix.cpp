@@ -17,9 +17,9 @@ Zmatrix::Zmatrix() :
   seed0_(InternalCoords::NO_ATOM),
   seed1_(InternalCoords::NO_ATOM),
   seed2_(InternalCoords::NO_ATOM),
-  hasSeed0Pos_(false),
-  hasSeed1Pos_(false),
-  hasSeed2Pos_(false)
+  seed0TopIdx_(InternalCoords::NO_ATOM),
+  seed1TopIdx_(InternalCoords::NO_ATOM),
+  seed2TopIdx_(InternalCoords::NO_ATOM)
 {}
 
 /** Add internal coords */
@@ -168,6 +168,36 @@ bool Zmatrix::NoSeeds() const {
           seed2_ == InternalCoords::NO_ATOM   );
 }
 
+/** Set seeds from specified atoms. */
+int Zmatrix::SetSeeds(Frame const& frameIn, Topology const& topIn, int a1, int a2, int a3)
+{
+  // a1 must be bonded to a2
+  if (!topIn[a1].IsBondedTo(a2)) {
+    mprinterr("Error: In topology '%s', seed 0 atom '%s' is not bonded to seed 1 atom '%s'\n",
+              topIn.c_str(), topIn.AtomMaskName(a1).c_str(), topIn.AtomMaskName(a2).c_str());
+    return 1;
+  }
+  // a2 must be bonded to a3
+  if (!topIn[a2].IsBondedTo(a3)) {
+    mprinterr("Error: In topology '%s', seed 1 atom '%s' is not bonded to seed 2 atom '%s'\n",
+              topIn.c_str(), topIn.AtomMaskName(a2).c_str(), topIn.AtomMaskName(a3).c_str());
+    return 1;
+  }
+  // Store seed positions
+  seed0TopIdx_ = a1;
+  seed0Pos_ = Vec3(frameIn.XYZ(a1));
+  seed1TopIdx_ = a2;
+  seed1Pos_ = Vec3(frameIn.XYZ(a2));
+  seed2TopIdx_ = a3;
+  seed2Pos_ = Vec3(frameIn.XYZ(a3));
+  mprintf("DEBUG: Seed atoms: %s - %s - %s\n",
+          topIn.AtomMaskName(a1).c_str(),
+          topIn.AtomMaskName(a2).c_str(),
+          topIn.AtomMaskName(a3).c_str());
+
+  return 0;
+}
+
 /** Setup Zmatrix from Cartesian coordinates/topology. */
 int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnum)
 {
@@ -310,7 +340,7 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
   unsigned int Nset = 0;
   // Set position of the first atom.
   if (seed0_ != InternalCoords::NO_ATOM) {
-    if (hasSeed0Pos_)
+    if (seed0TopIdx_ != InternalCoords::NO_ATOM)
       frameOut.SetXYZ(topIndices_[seed0_], seed0Pos_);
     else
       frameOut.SetXYZ(topIndices_[seed0_], Vec3(0.0));
@@ -322,7 +352,7 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
         return 1;
       }
       double r1 = IC_[seed1_].Dist();
-      if (hasSeed1Pos_)
+      if (seed1TopIdx_ != InternalCoords::NO_ATOM)
         frameOut.SetXYZ(topIndices_[seed1_], seed1Pos_);
       else
         frameOut.SetXYZ(topIndices_[seed1_], Vec3(r1, 0, 0));
@@ -337,7 +367,7 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
           mprinterr("Internal Error: Atom k of seed 2 is not seed 0.\n");
           return 1;
         }
-        if (hasSeed2Pos_)
+        if (seed2TopIdx_ != InternalCoords::NO_ATOM)
           frameOut.SetXYZ(topIndices_[seed2_], seed2Pos_);
         else {
           double r2 = IC_[seed2_].Dist();
