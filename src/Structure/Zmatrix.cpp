@@ -46,7 +46,11 @@ int Zmatrix::AddICseed(InternalCoords const& ic) {
 /** Print to stdout */
 void Zmatrix::print() const {
   mprintf("%zu internal coords.\n", IC_.size());
-  mprintf("Seed IC indices: %i %i %i\n", icseed0_+1, icseed1_+1, icseed2_+1);
+  mprintf("Seed IC indices    : %i %i %i\n", icseed0_+1, icseed1_+1, icseed2_+1);
+  mprintf("Seed Cart. indices : %i %i %i\n", seedAt0_+1, seedAt1_+1, seedAt2_+1);
+  seed0Pos_.Print("Seed0");
+  seed1Pos_.Print("Seed1");
+  seed2Pos_.Print("Seed2");
   mprintf("%-8s %8s %8s %8s %8s %12s %12s %12s\n",
           "#Idx", "AtI", "AtJ", "AtK", "AtL", "Dist", "Theta", "Phi");
   for (ICarray::const_iterator it = IC_.begin(); it != IC_.end(); ++it)
@@ -161,12 +165,21 @@ static inline int SetJKL(int ai, Topology const& topIn, std::vector<bool> const&
   return 0;
 }
 
-/** \return True if no seeds are set. */
-/*bool Zmatrix::NoSeeds() const {
-  return (seed0_ == InternalCoords::NO_ATOM ||
-          seed1_ == InternalCoords::NO_ATOM ||
-          seed2_ == InternalCoords::NO_ATOM   );
-}*/
+/** \return True if all IC seeds are set. */
+bool Zmatrix::HasICSeeds() const {
+  bool has_ic_seed = (icseed0_ != InternalCoords::NO_ATOM &&
+                      icseed1_ != InternalCoords::NO_ATOM &&
+                      icseed2_ != InternalCoords::NO_ATOM   );
+  return has_ic_seed;
+}
+
+/** \return True if all Cartesian seeds are set. */
+bool Zmatrix::HasCartSeeds() const {
+  bool has_cart_seed = (seedAt0_ != InternalCoords::NO_ATOM &&
+                        seedAt1_ != InternalCoords::NO_ATOM &&
+                        seedAt2_ != InternalCoords::NO_ATOM); 
+  return has_cart_seed;
+}
 
 /** Set seeds from specified atoms. */
 int Zmatrix::SetSeedPositions(Frame const& frameIn, Topology const& topIn, int a1, int a2, int a3)
@@ -198,12 +211,31 @@ int Zmatrix::SetSeedPositions(Frame const& frameIn, Topology const& topIn, int a
   return 0;
 }
 
+const int Zmatrix::DUMMY0 = -2;
+const int Zmatrix::DUMMY1 = -3;
+const int Zmatrix::DUMMY2 = -4;
+
 /** Setup Zmatrix from Cartesian coordinates/topology. */
 int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnum)
 {
   IC_.clear();
 //  // See if we need to assign seed atoms
-//  if (NoSeeds()) {
+  if (!HasCartSeeds()) {
+    // Generate dummy positions and a "fake" IC for atom 0
+    // At0 - DUMMY2 - DUMMY1 - DUMMY0
+    // Dummy seed 0 is at the origin
+    seedAt0_  = DUMMY0;
+    seed0Pos_ = Vec3(0.0);
+    seedAt1_  = DUMMY1;
+    seed1Pos_ = Vec3(1.0, 0.0, 0.0);
+    seedAt2_  = DUMMY2;
+    seed2Pos_ = Vec3(1.0, 1.0, 1.0);
+    const double* xyz = frameIn.XYZ(0);
+    IC_.push_back( InternalCoords(0, DUMMY2, DUMMY1, DUMMY0,
+                                  sqrt(DIST2_NoImage(xyz, seed2Pos_.Dptr())),
+                                  CalcAngle(xyz, seed2Pos_.Dptr(), seed1Pos_.Dptr()) * Constants::RADDEG,
+                                  Torsion(xyz,  seed2Pos_.Dptr(), seed1Pos_.Dptr(), seed0Pos_.Dptr()) * Constants::RADDEG) );
+
 //    mprinterr("Internal Error: Automatic seed generation not yet implemented.\n");
 /*    mprintf("DEBUG: Generating dummy seed atoms.\n");
     seed0_ = InternalCoords::NO_ATOM;
@@ -226,12 +258,12 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
     seed2_ = 2;
     topIndices_.push_back( -1 );
     seed2Pos_ = Vec3(1.0, 1.0, 0.0);*/
-/*  } else {
-    mprintf("DEBUG: Seed indices: %s %s %s\n",
-            topIn.AtomMaskName(seed0_).c_str(),
-            topIn.AtomMaskName(seed1_).c_str(),
-            topIn.AtomMaskName(seed2_).c_str());
-  }*/
+  } else {
+    mprintf("DEBUG: Cartesian Seed indices: %s %s %s\n",
+            topIn.AtomMaskName(seedAt0_).c_str(),
+            topIn.AtomMaskName(seedAt1_).c_str(),
+            topIn.AtomMaskName(seedAt2_).c_str());
+  }
 
 /*
   // First seed is first atom. No bonds, angles, or torsions. TODO should be lowest heavy atom?
@@ -333,15 +365,15 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
   // Track which atoms have Cartesian coords set
   std::vector<bool> hasPosition( frameOut.Natom(), false );
   // If any seed positions are defined, set them now
-  if (seedAt0_ != InternalCoords::NO_ATOM) {
+  if (seedAt0_ > InternalCoords::NO_ATOM) {
     frameOut.SetXYZ( seedAt0_, seed0Pos_ );
     hasPosition[ seedAt0_ ] = true;
   }
-  if (seedAt1_ != InternalCoords::NO_ATOM) {
+  if (seedAt1_ > InternalCoords::NO_ATOM) {
     frameOut.SetXYZ( seedAt1_, seed1Pos_ );
     hasPosition[ seedAt1_ ] = true;
   }
-  if (seedAt2_ != InternalCoords::NO_ATOM) {
+  if (seedAt2_ > InternalCoords::NO_ATOM) {
     frameOut.SetXYZ( seedAt2_, seed2Pos_ );
     hasPosition[ seedAt2_ ] = true;
   }
@@ -387,6 +419,16 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
     } // END seed atom 1
   } // END seed atom 0
 
+  // Check if there is a DUMMY IC
+  int dummyIcIdx = -1;
+  for (const_iterator it = IC_.begin(); it != IC_.end(); ++it) {
+    if (it->AtJ() == DUMMY2) {
+      dummyIcIdx = (int)(it - IC_.begin());
+      mprintf("DEBUG: IC %i is DUMMY IC\n", dummyIcIdx);
+      break;
+    }
+  }
+
   // Find the lowest unused IC
   unsigned int lowestUnusedIC = 0;
   for (; lowestUnusedIC < IC_.size(); ++lowestUnusedIC)
@@ -398,16 +440,20 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
     // Find the next IC that is not yet used.
     unsigned int idx = lowestUnusedIC;
     bool findNextIC = true;
+    bool isDummyIc = false;
     while (findNextIC) {
       while (idx < IC_.size() && isUsed[idx]) idx++;
       if (idx >= IC_.size()) {
         mprinterr("Error: Could not find next IC to use.\n");
         return 1;
       }
+      if ((int)idx == dummyIcIdx) {
+        isDummyIc = true;
+        findNextIC = false;
       // All 3 of the connecting atoms must be set
-      if (hasPosition[ IC_[idx].AtJ() ] &&
-          hasPosition[ IC_[idx].AtK() ] &&
-          hasPosition[ IC_[idx].AtL() ])
+      } else if (hasPosition[ IC_[idx].AtJ() ] &&
+                 hasPosition[ IC_[idx].AtK() ] &&
+                 hasPosition[ IC_[idx].AtL() ])
       {
         findNextIC = false;
       }
@@ -429,9 +475,16 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
                 rdist * cosPhi * sinTheta,
                 rdist * sinPhi * sinTheta );
 
-    Vec3 posL = Vec3( frameOut.XYZ( ic.AtL()) );
-    Vec3 posK = Vec3( frameOut.XYZ( ic.AtK()) );
-    Vec3 posJ = Vec3( frameOut.XYZ( ic.AtJ()) );
+    Vec3 posL, posK, posJ;
+    if (isDummyIc) {
+      posL = seed0Pos_;
+      posK = seed1Pos_;
+      posJ = seed2Pos_;
+    } else {
+      posL = Vec3( frameOut.XYZ( ic.AtL()) );
+      posK = Vec3( frameOut.XYZ( ic.AtK()) );
+      posJ = Vec3( frameOut.XYZ( ic.AtJ()) );
+    }
 
     Vec3 LK = posK - posL;
     Vec3 KJ = posJ - posK;

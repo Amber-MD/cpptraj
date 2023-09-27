@@ -19,19 +19,19 @@ InternalCoords::InternalCoords(int atI, int atJ, int atK, int atL,
                                double dist, double theta, double phi) :
   ati_(atI)
 {
-  if (ati_ < 0)
-    ati_ = NO_ATOM;
-  if (atJ < 0)
-    idx_[0] = NO_ATOM;
-  else
+  //if (ati_ < 0)
+  //  ati_ = NO_ATOM;
+  //if (atJ < 0)
+  //  idx_[0] = NO_ATOM;
+  //else
     idx_[0] = atJ;
-  if (atK < 0)
-    idx_[1] = NO_ATOM;
-  else
+  //if (atK < 0)
+  //  idx_[1] = NO_ATOM;
+  //else
     idx_[1] = atK;
-  if (atL < 0)
-    idx_[2] = NO_ATOM;
-  else
+  //if (atL < 0)
+  //  idx_[2] = NO_ATOM;
+  //else
     idx_[2] = atL;
 
   val_[0] = dist;
