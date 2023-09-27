@@ -63,10 +63,13 @@ void Zmatrix::print() const {
 class AtnumNbonds {
   public:
     /// CONSTRUCTOR
+    AtnumNbonds() : idx_(-1), priority_(-1), nbonds_(-1) {}
+    /// CONSTRUCTOR
     AtnumNbonds(int idx, Atom const& atm) :
       idx_(idx), priority_(mainChainPriority(atm)), nbonds_(atm.Nbonds()) {}
     /// Sort by priority, # bonds, atom index
     bool operator<(const AtnumNbonds& rhs) const {
+      if (idx_ < 0) return false;
       if (priority_ == rhs.priority_) {
         if (nbonds_ == rhs.nbonds_) {
           return (idx_ < rhs.idx_);
@@ -215,11 +218,33 @@ const int Zmatrix::DUMMY0 = -2;
 const int Zmatrix::DUMMY1 = -3;
 const int Zmatrix::DUMMY2 = -4;
 
+/// Mark an IC as used, update used count
+static inline void MARK(int i, std::vector<bool>& isUsed, unsigned int& Nused) {
+  if (!isUsed[i]) {
+    isUsed[i] = true;
+    Nused++;
+  }
+}
+
+void Zmatrix::addIc(int at0, int at1, int at2, int at3,
+                   const double* xyz0, const double* xyz1,
+                   const double* xyz2, const double* xyz3)
+{
+  IC_.push_back( InternalCoords(at0, at1, at2, at3,
+                                sqrt(DIST2_NoImage(xyz0, xyz1)),
+                                CalcAngle(xyz0, xyz1, xyz2) * Constants::RADDEG,
+                                Torsion(xyz0, xyz1, xyz2, xyz3) * Constants::RADDEG) );
+}
+
 /** Setup Zmatrix from Cartesian coordinates/topology. */
 int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnum)
 {
   IC_.clear();
-//  // See if we need to assign seed atoms
+  int maxnatom = topIn.Natom();
+
+  std::vector<bool> hasIC( maxnatom, false );
+  unsigned int nHasIC = 0;
+  // See if we need to assign seed atoms
   if (!HasCartSeeds()) {
     // Generate dummy positions and a "fake" IC for atom 0
     // At0 - DUMMY2 - DUMMY1 - DUMMY0
@@ -230,11 +255,66 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
     seed1Pos_ = Vec3(1.0, 0.0, 0.0);
     seedAt2_  = DUMMY2;
     seed2Pos_ = Vec3(1.0, 1.0, 1.0);
-    const double* xyz = frameIn.XYZ(0);
-    IC_.push_back( InternalCoords(0, DUMMY2, DUMMY1, DUMMY0,
-                                  sqrt(DIST2_NoImage(xyz, seed2Pos_.Dptr())),
-                                  CalcAngle(xyz, seed2Pos_.Dptr(), seed1Pos_.Dptr()) * Constants::RADDEG,
-                                  Torsion(xyz,  seed2Pos_.Dptr(), seed1Pos_.Dptr(), seed0Pos_.Dptr()) * Constants::RADDEG) );
+    int at0 = 0;
+    if (topIn.Natom() < 2) {
+      const double* xyz0 = frameIn.XYZ(at0);
+      IC_.push_back( InternalCoords(at0, DUMMY2, DUMMY1, DUMMY0,
+                                    sqrt(DIST2_NoImage(xyz0, seed2Pos_.Dptr())),
+                                    CalcAngle(xyz0, seed2Pos_.Dptr(), seed1Pos_.Dptr()) * Constants::RADDEG,
+                                    Torsion(xyz0,  seed2Pos_.Dptr(), seed1Pos_.Dptr(), seed0Pos_.Dptr()) * Constants::RADDEG) );
+      //Mark(at0, hasIC, nHasIC);
+      return 0;
+    }
+    // Choose second seed as bonded atom with lowest index. Prefer heavy atoms
+    // and atoms with more than 1 bond.
+    std::set<AtnumNbonds> bondedTo0 = getBondedAtomPriorities(at0, topIn, -1);
+    if (bondedTo0.empty()) {
+      mprinterr("Internal Error: Zmatrix::SetFromFrame(): could not get second seed atom.\n");
+      return 1;
+    }
+    int at1 = FrontIdx( bondedTo0 );
+    if (topIn.Natom() < 3) {
+      const double* xyz0 = frameIn.XYZ(at0);
+      const double* xyz1 = frameIn.XYZ(at1);
+      IC_.push_back( InternalCoords(at1, at0, DUMMY2, DUMMY1,
+                                    sqrt(DIST2_NoImage(xyz1, xyz0)),
+                                    CalcAngle(xyz1, xyz0, seed2Pos_.Dptr()) * Constants::RADDEG,
+                                    Torsion(xyz1,  xyz0, seed2Pos_.Dptr(), seed1Pos_.Dptr()) * Constants::RADDEG) );
+      //Mark(at1, hasIC, nHasIC);
+      return 0;
+    }
+    // The third atom will either be bonded to seed 0 or seed 1.
+    int at2;
+    AtnumNbonds potential2From0, potential2From1;
+    std::set<AtnumNbonds> bondedTo1 = getBondedAtomPriorities(at1, topIn, at0);
+    if (!bondedTo1.empty()) {
+      std::set<AtnumNbonds>::const_iterator it = bondedTo1.begin();
+      potential2From1 = *it;
+    }
+    if (bondedTo0.size() >= 2) {
+      std::set<AtnumNbonds>::const_iterator it = bondedTo0.begin();
+      ++it;
+      potential2From0 = *it;
+    }
+    if (potential2From0 < potential2From1) {
+      at2 = potential2From0.Idx();
+      mprintf("DEBUG: 2 - 0 - 1\n");
+      // D0 D1 D2 A2
+      addIc(at2, DUMMY2, DUMMY1, DUMMY0, frameIn.XYZ(at2), seed2Pos_.Dptr(), seed1Pos_.Dptr(), seed0Pos_.Dptr());
+      // D1 D2 A2 A0
+      // D2 A2 A0 A1
+    } else {
+      at2 = potential2From1.Idx();
+      mprintf("DEBUG: 0 - 1 - 2\n");
+      // D0 D1 D2 A0
+      // D1 D2 A0 A1
+      // D2 A0 A1 A2
+    }
+    mprintf("DEBUG: Seed atoms: %s %s %s\n",
+            topIn.AtomMaskName(at0).c_str(), 
+            topIn.AtomMaskName(at1).c_str(), 
+            topIn.AtomMaskName(at2).c_str()); 
+
 
 //    mprinterr("Internal Error: Automatic seed generation not yet implemented.\n");
 /*    mprintf("DEBUG: Generating dummy seed atoms.\n");
@@ -347,14 +427,6 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
   return 0;
 }
 
-/// Mark an IC as used, update used count
-static inline void ICIsUsed(int i, std::vector<bool>& isUsed, unsigned int& Nused) {
-  if (!isUsed[i]) {
-    isUsed[i] = true;
-    Nused++;
-  }
-}
-
 /** Set Cartesian coordinates in Frame from internal coordinates.
   * The procedure used here is from:
   * Parsons et al., "Practical Conversion from Torsion Space to 
@@ -385,7 +457,7 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
     // First seed IC atom
     frameOut.SetXYZ(IC_[icseed0_].AtI(), Vec3(0.0));
     hasPosition[IC_[icseed0_].AtI()] = true;
-    ICIsUsed(icseed0_, isUsed, Nused);
+    MARK(icseed0_, isUsed, Nused);
     // Set position of the second atom.
     if (icseed1_ != InternalCoords::NO_ATOM) {
       if (IC_[icseed1_].AtJ() != IC_[icseed0_].AtI()) {
@@ -395,7 +467,7 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
       double r1 = IC_[icseed1_].Dist();
       frameOut.SetXYZ(IC_[icseed1_].AtI(), Vec3(r1, 0, 0));
       hasPosition[IC_[icseed1_].AtI()] = true;
-      ICIsUsed(icseed1_, isUsed, Nused);
+      MARK(icseed1_, isUsed, Nused);
       // Set position of the third atom
       if (icseed2_ != InternalCoords::NO_ATOM) {
         if (IC_[icseed2_].AtJ() != IC_[icseed1_].AtI()) {
@@ -414,7 +486,7 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
 
         frameOut.SetXYZ( IC_[icseed2_].AtI(), Vec3(r1 + x, y, 0) );
         hasPosition[IC_[icseed2_].AtI()] = true;
-        ICIsUsed(icseed2_, isUsed, Nused);
+        MARK(icseed2_, isUsed, Nused);
       } // END seed atom 2
     } // END seed atom 1
   } // END seed atom 0
@@ -501,7 +573,7 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
 
     frameOut.SetXYZ( ic.AtI(), posI );
     hasPosition[ ic.AtI() ] = true;
-    ICIsUsed(idx, isUsed, Nused);
+    MARK(idx, isUsed, Nused);
 
     // Next lowest unused IC
     for (; lowestUnusedIC < IC_.size(); ++lowestUnusedIC)

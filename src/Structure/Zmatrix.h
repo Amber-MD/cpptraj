@@ -41,6 +41,8 @@ class Zmatrix {
     static const int DUMMY1; ///< Used to denote a dummy atom 1
     static const int DUMMY2; ///< Used to denote a dummy atom 2
 
+    void addIc(int,int,int,int,const double*,const double*,const double*,const double*);
+
     int debug_;     ///< Print debug info
     ICarray IC_;    ///< Hold internal coordinates for all atoms
     int icseed0_;   ///< Index into IC_ of first seed
