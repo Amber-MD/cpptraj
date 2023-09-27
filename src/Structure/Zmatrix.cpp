@@ -16,10 +16,10 @@ Zmatrix::Zmatrix() :
   debug_(0),
   icseed0_(InternalCoords::NO_ATOM),
   icseed1_(InternalCoords::NO_ATOM),
-  icseed2_(InternalCoords::NO_ATOM)/*,
-  seed0TopIdx_(InternalCoords::NO_ATOM),
-  seed1TopIdx_(InternalCoords::NO_ATOM),
-  seed2TopIdx_(InternalCoords::NO_ATOM)*/
+  icseed2_(InternalCoords::NO_ATOM),
+  seedAt0_(InternalCoords::NO_ATOM),
+  seedAt1_(InternalCoords::NO_ATOM),
+  seedAt2_(InternalCoords::NO_ATOM)
 {}
 
 /** Add internal coords */
@@ -332,10 +332,23 @@ static inline void ICIsUsed(int i, std::vector<bool>& isUsed, unsigned int& Nuse
 int Zmatrix::SetToFrame(Frame& frameOut) const {
   // Track which atoms have Cartesian coords set
   std::vector<bool> hasPosition( frameOut.Natom(), false );
+  // If any seed positions are defined, set them now
+  if (seedAt0_ != InternalCoords::NO_ATOM) {
+    frameOut.SetXYZ( seedAt0_, seed0Pos_ );
+    hasPosition[ seedAt0_ ] = true;
+  }
+  if (seedAt1_ != InternalCoords::NO_ATOM) {
+    frameOut.SetXYZ( seedAt1_, seed1Pos_ );
+    hasPosition[ seedAt1_ ] = true;
+  }
+  if (seedAt2_ != InternalCoords::NO_ATOM) {
+    frameOut.SetXYZ( seedAt2_, seed2Pos_ );
+    hasPosition[ seedAt2_ ] = true;
+  }
   // Track which ICs are used
   std::vector<bool> isUsed( IC_.size(), false );
   unsigned int Nused = 0;
-  // Set positions of atoms from internal coordinate seeds.
+  // Set positions of atoms from internal coordinate seeds. TODO check for clashes with seedAtX?
   if (icseed0_ != InternalCoords::NO_ATOM) {
     // First seed IC atom
     frameOut.SetXYZ(IC_[icseed0_].AtI(), Vec3(0.0));

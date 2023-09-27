@@ -34,17 +34,17 @@ class Zmatrix {
     const_iterator end()   const { return IC_.end(); }
   private:
 
-    int debug_;         ///< Print debug info
-    ICarray IC_;        ///< Hold internal coordinates for all atoms
-    int icseed0_;       ///< Index into IC_ of first seed
-    int icseed1_;       ///< Index into IC_ of second seed
-    int icseed2_;       ///< Index into IC_ of third seed
-/*    Vec3 seed0Pos_;     ///< Seed 0 xyz
-    Vec3 seed1Pos_;     ///< Seed 1 xyz
-    Vec3 seed2Pos_;     ///< Seed 2 xyz
-    int seed0TopIdx_;   ///< Seed 0 topology index if seed0Pos_ is set
-    int seed1TopIdx_;   ///< Seed 1 topology index if seed1Pos_ is set
-    int seed2TopIdx_;   ///< Seed 2 topology index if seed2Pos_ is set*/
+    int debug_;     ///< Print debug info
+    ICarray IC_;    ///< Hold internal coordinates for all atoms
+    int icseed0_;   ///< Index into IC_ of first seed
+    int icseed1_;   ///< Index into IC_ of second seed
+    int icseed2_;   ///< Index into IC_ of third seed
+    Vec3 seed0Pos_; ///< Seed 0 xyz
+    Vec3 seed1Pos_; ///< Seed 1 xyz
+    Vec3 seed2Pos_; ///< Seed 2 xyz
+    int seedAt0_;   ///< Seed 0 topology index if seed0Pos_ is set
+    int seedAt1_;   ///< Seed 1 topology index if seed1Pos_ is set
+    int seedAt2_;   ///< Seed 2 topology index if seed2Pos_ is set
 };
 }
 }
