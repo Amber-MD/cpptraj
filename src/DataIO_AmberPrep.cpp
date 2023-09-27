@@ -230,12 +230,12 @@ const
     double dist  = convertToDouble(args[7]);
     double theta = convertToDouble(args[8]);
     double phi   = convertToDouble(args[9]);
-    atIdx++;
     if (args[2] == ISYMDU) {
-      if (zmatrix.AddICseed( InternalCoords(atJ, atK, atL, dist, theta, phi) ))
+      if (zmatrix.AddICseed( InternalCoords(atJ, atK, atL, dist, theta, phi), atIdx ))
         return 1;
     } else
-      zmatrix.AddIC( InternalCoords(atJ, atK, atL, dist, theta, phi) );
+      zmatrix.AddIC( InternalCoords(atJ, atK, atL, dist, theta, phi), atIdx );
+    atIdx++;
     line = infile.Line();
     if (line == 0) break;
   }
@@ -336,9 +336,9 @@ const
     }
   }
   // DEBUG - back convert
-  Zmatrix tempZ;
-  tempZ.SetFromFrame( frm, top );
-  tempZ.print();
+  //Zmatrix tempZ;
+  //tempZ.SetFromFrame( frm, top );
+  //tempZ.print();
   // Output Set up frame set
   if (CRD->CoordsSetup(top, CoordinateInfo())) {
     mprinterr("Error: Could not set up COORDS set for prep.\n");

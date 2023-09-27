@@ -8,17 +8,21 @@ namespace Structure {
 /// Hold internal coordinates for a system.
 class Zmatrix {
     typedef std::vector<InternalCoords> ICarray;
+    typedef std::vector<int> Iarray;
   public:
     /// CONSTRUCTOR
     Zmatrix();
     /// Set debug level
     void SetDebug(int d) { debug_ = d; }
-    /// Add internal coordinate
-    void AddIC(InternalCoords const&);
-    /// Add internal coordinate as next available seed
-    int AddICseed(InternalCoords const&);
+    /// Add internal coordinate and topology index
+    void AddIC(InternalCoords const&, int);
+    /// Add internal coordinate and topology index as next available seed
+    int AddICseed(InternalCoords const&, int);
     /// Convert Frame/Topology to internal coordinates array
-    int SetFromFrame(Frame const&, Topology const&);
+    int SetFromFrame(Frame const&, Topology const&, int);
+
+    /// \return True if any of the seeds are not set
+    bool NoSeeds() const;
     /// Set Frame from internal coords
     int SetToFrame(Frame&) const;
     /// Print to stdout
@@ -30,9 +34,13 @@ class Zmatrix {
   private:
     int debug_;  ///< Print debug info
     ICarray IC_; ///< Hold internal coordinates for all atoms
-    int seed0_;  ///< Index of first seed atom
-    int seed1_;  ///< Index of second seed atom
-    int seed2_;  ///< Index of third seed atom
+    Iarray topIndices_; ///< For each IC, corresponding atom index in topology
+    int seed0_;  ///< Index into IC_ of first seed atom
+    int seed1_;  ///< Index into IC_ of second seed atom
+    int seed2_;  ///< Index into IC_ of third seed atom
+    //Vec3 seed0Pos_; ///< Seed 0 xyz
+    //Vec3 seed1Pos_; ///< Seed 1 xyz
+    //Vec3 seed2Pos_; ///< Seed 2 xyz
 };
 }
 }

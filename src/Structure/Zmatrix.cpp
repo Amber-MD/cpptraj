@@ -20,12 +20,13 @@ Zmatrix::Zmatrix() :
 {}
 
 /** Add internal coords */
-void Zmatrix::AddIC(InternalCoords const& ic) {
+void Zmatrix::AddIC(InternalCoords const& ic, int topIdx) {
   IC_.push_back( ic );
+  topIndices_.push_back( topIdx );
 }
 
 /** Add internal coords as a seed. */
-int Zmatrix::AddICseed(InternalCoords const& ic) {
+int Zmatrix::AddICseed(InternalCoords const& ic, int topIdx) {
   if (seed0_ == InternalCoords::NO_ATOM)
     seed0_ = IC_.size();
   else if (seed1_ == InternalCoords::NO_ATOM)
@@ -37,13 +38,14 @@ int Zmatrix::AddICseed(InternalCoords const& ic) {
     return 1;
   }
   IC_.push_back( ic );
+  topIndices_.push_back( topIdx );
   return 0;
 }
 
 /** Print to stdout */
 void Zmatrix::print() const {
   mprintf("%zu internal coords.\n", IC_.size());
-  mprintf("Seed atoms: %i %i %i\n", seed0_+1, seed1_+1, seed2_+1);
+  mprintf("Seed indices: %i %i %i\n", seed0_+1, seed1_+1, seed2_+1);
   for (ICarray::const_iterator it = IC_.begin(); it != IC_.end(); ++it)
     mprintf("\t%8li %8i %8i %8i %12.4f %12.4f %12.4f\n", it - IC_.begin() + 1,
             it->AtJ()+1, it->AtK()+1, it->AtL()+1,
@@ -114,19 +116,92 @@ static std::set<AtnumNbonds> getBondedAtomPriorities(int seed0, Topology const& 
   return bondedAtoms;
 }
 
+/// \return Index of atom at front of set
 static inline int FrontIdx(std::set<AtnumNbonds> const& in) {
   std::set<AtnumNbonds>::const_iterator it = in.begin();
   return it->Idx();
 }
 
-/** Setup Zmatrix from Cartesian coordinates/topology. */
-int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn)
+/// \return Index of first set atom, or atom at front of set
+static inline int FirstOrFrontIdx(std::set<AtnumNbonds> const& in, std::vector<bool> const& isSet)
 {
-  // TODO add ability to set up dummy atoms
-  seed0_ = InternalCoords::NO_ATOM;
-  seed1_ = InternalCoords::NO_ATOM;
-  seed2_ = InternalCoords::NO_ATOM;
+  if (in.empty()) return -1;
+  int firstIdx = FrontIdx( in );
+  int firstSetIdx = -1;
+  if (in.size() == 1)
+    firstSetIdx = firstIdx;
+  else {
+    for (std::set<AtnumNbonds>::const_iterator it = in.begin();
+                                               it != in.end(); ++it)
+    {
+      if (isSet[it->Idx()]) {
+        firstSetIdx = it->Idx();
+        break;
+      }
+    }
+  }
+  mprintf("DEBUG: First idx= %i  First set idx= %i\n", firstIdx, firstSetIdx);
+  if (firstSetIdx > -1)
+    return firstSetIdx;
+  return firstIdx;
+}
+
+/// Set j k and l indices for given atom i
+static inline int SetJKL(int ai, Topology const& topIn, std::vector<bool> const& isSet)
+{
+  int aj, ak, al;
+
+  std::set<AtnumNbonds> bondedAtoms = getBondedAtomPriorities(ai, topIn, -1);
+  if (bondedAtoms.empty()) return 1;
+  int firstIdx = FirstOrFrontIdx( bondedAtoms, isSet );
+
+  return 0;
+}
+
+/** \return True if no seeds are set. */
+bool Zmatrix::NoSeeds() const {
+  return (seed0_ == InternalCoords::NO_ATOM ||
+          seed1_ == InternalCoords::NO_ATOM ||
+          seed2_ == InternalCoords::NO_ATOM   );
+}
+
+/** Setup Zmatrix from Cartesian coordinates/topology. */
+int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnum)
+{
   IC_.clear();
+  topIndices_.clear();
+  // See if we need to assign seed atoms
+  if (NoSeeds()) {
+    mprinterr("Internal Error: Automatic seed generation not yet implemented.\n");
+/*    mprintf("DEBUG: Generating dummy seed atoms.\n");
+    seed0_ = InternalCoords::NO_ATOM;
+    seed1_ = InternalCoords::NO_ATOM;
+    seed2_ = InternalCoords::NO_ATOM;
+    // Seed 0 is at the origin
+    IC_.push_back( InternalCoords() );
+    seed0_ = 0;
+    topIndices_.push_back( -1 );
+    seed0Pos_ = Vec3(0.0);
+    // Seed 1 is at X=1
+    IC_.push_back( InternalCoords(0, InternalCoords::NO_ATOM, InternalCoords::NO_ATOM,
+                                  1.0, 0, 0) );
+    seed1_ = 1;
+    topIndices_.push_back( -1 );
+    seed1Pos_ = Vec3(1.0, 0.0, 0.0);
+    // Seed 2 is at X=Y=1
+    IC_.push_back( InternalCoords(1, 0, InternalCoords::NO_ATOM,
+                                  1.0, 90.0, 0) );
+    seed2_ = 2;
+    topIndices_.push_back( -1 );
+    seed2Pos_ = Vec3(1.0, 1.0, 0.0);*/
+  } else {
+    mprintf("DEBUG: Seed atoms: %s %s %s\n",
+            topIn.AtomMaskName(topIndices_[seed0_]).c_str(),
+            topIn.AtomMaskName(topIndices_[seed1_]).c_str(),
+            topIn.AtomMaskName(topIndices_[seed2_]).c_str());
+  }
+
+/*
   // First seed is first atom. No bonds, angles, or torsions. TODO should be lowest heavy atom?
   IC_.push_back( InternalCoords() );
   seed0_ = 0;
@@ -151,7 +226,59 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn)
                                     0) );
     }
   }
-  
+  // If less than 4 atoms, all done.
+  if (topIn.Natom() < 4) return 0;
+
+  if (seed0_ == InternalCoords::NO_ATOM ||
+      seed1_ == InternalCoords::NO_ATOM ||
+      seed2_ == InternalCoords::NO_ATOM)
+  {
+    mprinterr("Internal Error: Zmatrix::SetFromFrame(): Not enough seeds.\n");
+    return 1;
+  }*/
+
+
+  // Do the remaining atoms
+  unsigned int maxAtom = (unsigned int)topIn.Natom();
+  std::vector<bool> isSet( maxAtom, false );
+  isSet[seed0_] = true;
+  isSet[seed1_] = true;
+  isSet[seed2_] = true;
+  unsigned int Nset = 3;
+
+  // Find the lowest unset atom
+  unsigned int lowestUnsetAtom = 0;
+  for (; lowestUnsetAtom < maxAtom; ++lowestUnsetAtom)
+    if (!isSet[lowestUnsetAtom]) break;
+  //if (debug_ > 0)
+    mprintf("DEBUG: Lowest unset atom: %u\n", lowestUnsetAtom+1);
+
+  // Loop over remaining atoms
+  while (Nset < maxAtom) {
+   // Find the next atom that is not yet set.
+    unsigned int idx = lowestUnsetAtom;
+    bool findNextAtom = true;
+    while (findNextAtom) {
+      while (idx < maxAtom && isSet[idx]) idx++;
+      if (idx >= maxAtom) {
+        mprinterr("Error: Could not find next atom to set.\n");
+        return 1;
+      }
+      SetJKL(idx, topIn, isSet);
+      break; // DEBUG
+      // All 3 of the connecting atoms must be set
+      //if (isSet[ IC_[idx].AtJ() ] &&
+      //    isSet[ IC_[idx].AtK() ] &&
+      //    isSet[ IC_[idx].AtL() ])
+      //{
+      //  findNextAtom = false;
+      //}
+    } // END loop finding next atom to set
+    //if (debug_ > 0)
+    mprintf("DEBUG: Next atom to set is %u\n", idx+1);
+    break; //DEBUG
+  } // END loop over remaining atoms
+   
 
   return 0;
 }
@@ -180,7 +307,7 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
   unsigned int Nset = 0;
   // Set position of the first atom.
   if (seed0_ != InternalCoords::NO_ATOM) {
-    frameOut.SetXYZ(seed0_, Vec3(0.0));
+    frameOut.SetXYZ(topIndices_[seed0_], Vec3(0.0));
     atomIsSet(seed0_, isSet, Nset);
     // Set position of the second atom.
     if (seed1_ != InternalCoords::NO_ATOM) {
@@ -189,7 +316,7 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
         return 1;
       }
       double r1 = IC_[seed1_].Dist();
-      frameOut.SetXYZ(seed1_, Vec3(r1, 0, 0));
+      frameOut.SetXYZ(topIndices_[seed1_], Vec3(r1, 0, 0));
       atomIsSet(seed1_, isSet, Nset);
       // Set position of the third atom
       if (seed2_ != InternalCoords::NO_ATOM) {
@@ -207,7 +334,7 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
         double x = r2 * cos(180.0 - theta) * Constants::DEGRAD;
         double y = r2 * cos(180.0 - theta) * Constants::DEGRAD;
 
-        frameOut.SetXYZ( seed2_, Vec3(r1 + x, y, 0) );
+        frameOut.SetXYZ( topIndices_[seed2_], Vec3(r1 + x, y, 0) );
         atomIsSet(seed2_, isSet, Nset);
       } // END seed atom 2
     } // END seed atom 1
@@ -272,7 +399,7 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
 
     Vec3 posI = (Rot * xyz) + posJ;
 
-    frameOut.SetXYZ( idx, posI );
+    frameOut.SetXYZ( topIndices_[idx], posI );
     atomIsSet(idx, isSet, Nset);
 
     // Next lowest unset atom
