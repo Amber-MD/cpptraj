@@ -302,13 +302,18 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
       // D0 D1 D2 A2
       addIc(at2, DUMMY2, DUMMY1, DUMMY0, frameIn.XYZ(at2), seed2Pos_.Dptr(), seed1Pos_.Dptr(), seed0Pos_.Dptr());
       // D1 D2 A2 A0
+      addIc(at0, at2, DUMMY2, DUMMY1, frameIn.XYZ(at0), frameIn.XYZ(at2), seed2Pos_.Dptr(), seed1Pos_.Dptr());
       // D2 A2 A0 A1
+      addIc(at1, at0, at2, DUMMY2, frameIn.XYZ(at1), frameIn.XYZ(at0), frameIn.XYZ(at2), seed2Pos_.Dptr());
     } else {
       at2 = potential2From1.Idx();
       mprintf("DEBUG: 0 - 1 - 2\n");
       // D0 D1 D2 A0
+      addIc(at0, DUMMY2, DUMMY1, DUMMY0, frameIn.XYZ(at0), seed2Pos_.Dptr(), seed1Pos_.Dptr(), seed0Pos_.Dptr());
       // D1 D2 A0 A1
+      addIc(at1, at0, DUMMY2, DUMMY1, frameIn.XYZ(at1), frameIn.XYZ(at0), seed2Pos_.Dptr(), seed1Pos_.Dptr());
       // D2 A0 A1 A2
+      addIc(at2, at1, at0, DUMMY2, frameIn.XYZ(at2), frameIn.XYZ(at1), frameIn.XYZ(at0), seed2Pos_.Dptr());
     }
     mprintf("DEBUG: Seed atoms: %s %s %s\n",
             topIn.AtomMaskName(at0).c_str(), 
