@@ -16,7 +16,10 @@ Zmatrix::Zmatrix() :
   debug_(0),
   seed0_(InternalCoords::NO_ATOM),
   seed1_(InternalCoords::NO_ATOM),
-  seed2_(InternalCoords::NO_ATOM)
+  seed2_(InternalCoords::NO_ATOM),
+  hasSeed0Pos_(false),
+  hasSeed1Pos_(false),
+  hasSeed2Pos_(false)
 {}
 
 /** Add internal coords */
@@ -47,7 +50,7 @@ void Zmatrix::print() const {
   mprintf("%zu internal coords.\n", IC_.size());
   mprintf("Seed indices: %i %i %i\n", seed0_+1, seed1_+1, seed2_+1);
   for (ICarray::const_iterator it = IC_.begin(); it != IC_.end(); ++it)
-    mprintf("\t%8li %8i %8i %8i %12.4f %12.4f %12.4f\n", it - IC_.begin() + 1,
+    mprintf("\t%8i %8i %8i %8i %12.4f %12.4f %12.4f\n", topIndices_[it - IC_.begin()]+1,
             it->AtJ()+1, it->AtK()+1, it->AtL()+1,
             it->Dist(), it->Theta(), it->Phi());
 }
@@ -307,7 +310,10 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
   unsigned int Nset = 0;
   // Set position of the first atom.
   if (seed0_ != InternalCoords::NO_ATOM) {
-    frameOut.SetXYZ(topIndices_[seed0_], Vec3(0.0));
+    if (hasSeed0Pos_)
+      frameOut.SetXYZ(topIndices_[seed0_], seed0Pos_);
+    else
+      frameOut.SetXYZ(topIndices_[seed0_], Vec3(0.0));
     atomIsSet(seed0_, isSet, Nset);
     // Set position of the second atom.
     if (seed1_ != InternalCoords::NO_ATOM) {
@@ -316,7 +322,10 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
         return 1;
       }
       double r1 = IC_[seed1_].Dist();
-      frameOut.SetXYZ(topIndices_[seed1_], Vec3(r1, 0, 0));
+      if (hasSeed1Pos_)
+        frameOut.SetXYZ(topIndices_[seed1_], seed1Pos_);
+      else
+        frameOut.SetXYZ(topIndices_[seed1_], Vec3(r1, 0, 0));
       atomIsSet(seed1_, isSet, Nset);
       // Set position of the third atom
       if (seed2_ != InternalCoords::NO_ATOM) {
@@ -328,13 +337,17 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
           mprinterr("Internal Error: Atom k of seed 2 is not seed 0.\n");
           return 1;
         }
-        double r2 = IC_[seed2_].Dist();
-        double theta = IC_[seed2_].Theta();
+        if (hasSeed2Pos_)
+          frameOut.SetXYZ(topIndices_[seed2_], seed2Pos_);
+        else {
+          double r2 = IC_[seed2_].Dist();
+          double theta = IC_[seed2_].Theta();
 
-        double x = r2 * cos(180.0 - theta) * Constants::DEGRAD;
-        double y = r2 * cos(180.0 - theta) * Constants::DEGRAD;
+          double x = r2 * cos(180.0 - theta) * Constants::DEGRAD;
+          double y = r2 * cos(180.0 - theta) * Constants::DEGRAD;
 
-        frameOut.SetXYZ( topIndices_[seed2_], Vec3(r1 + x, y, 0) );
+          frameOut.SetXYZ( topIndices_[seed2_], Vec3(r1 + x, y, 0) );
+        }
         atomIsSet(seed2_, isSet, Nset);
       } // END seed atom 2
     } // END seed atom 1

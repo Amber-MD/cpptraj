@@ -1,6 +1,7 @@
 #ifndef INC_STRUCTURE_ZMATRIX_H
 #define INC_STRUCTURE_ZMATRIX_H
 #include "InternalCoords.h"
+#include "../Vec3.h"
 class Frame;
 class Topology;
 namespace Cpptraj {
@@ -32,15 +33,18 @@ class Zmatrix {
     const_iterator begin() const { return IC_.begin(); }
     const_iterator end()   const { return IC_.end(); }
   private:
-    int debug_;  ///< Print debug info
-    ICarray IC_; ///< Hold internal coordinates for all atoms
+    int debug_;         ///< Print debug info
+    ICarray IC_;        ///< Hold internal coordinates for all atoms
     Iarray topIndices_; ///< For each IC, corresponding atom index in topology
-    int seed0_;  ///< Index into IC_ of first seed atom
-    int seed1_;  ///< Index into IC_ of second seed atom
-    int seed2_;  ///< Index into IC_ of third seed atom
-    //Vec3 seed0Pos_; ///< Seed 0 xyz
-    //Vec3 seed1Pos_; ///< Seed 1 xyz
-    //Vec3 seed2Pos_; ///< Seed 2 xyz
+    int seed0_;         ///< Index into IC_ of first seed atom
+    int seed1_;         ///< Index into IC_ of second seed atom
+    int seed2_;         ///< Index into IC_ of third seed atom
+    Vec3 seed0Pos_;     ///< Seed 0 xyz
+    Vec3 seed1Pos_;     ///< Seed 1 xyz
+    Vec3 seed2Pos_;     ///< Seed 2 xyz
+    bool hasSeed0Pos_;  ///< True if seed0Pos_ is set
+    bool hasSeed1Pos_;  ///< True if seed1Pos_ is set
+    bool hasSeed2Pos_;  ///< True if seed2Pos_ is set
 };
 }
 }
