@@ -336,15 +336,24 @@ const
     }
   }
   // DEBUG - back convert
+  mprintf("DEBUG: BACK CONVERT %s\n", resName.c_str());
+  mprinterr("DEBUG: BACK CONVERT %s\n", resName.c_str());
   Zmatrix tempZ;
   tempZ.SetDebug(10);
   //tempZ.SetSeedPositions(frm, top, 5, 0, 1);
-  tempZ.SetFromFrame( frm, top, 0 );
+  int tempErr = tempZ.SetFromFrame( frm, top, 0 );
+  if (tempErr != 0) {
+    mprintf("DEBUG Error: Back converting %s\n", resName.c_str());
+    mprinterr("DEBUG Error: Back converting %s\n", resName.c_str());
+    return 1;
+  }
   tempZ.print();
   Frame tmpFrame(top.Natom());
-  tempZ.SetToFrame(tmpFrame);
-  for (int ii = 0; ii < tmpFrame.Natom(); ii++)
-    tmpFrame.printAtomCoord(ii);
+  if (tempErr == 0) {
+    tempZ.SetToFrame(tmpFrame);
+    for (int ii = 0; ii < tmpFrame.Natom(); ii++)
+      tmpFrame.printAtomCoord(ii);
+  }
   // Output Set up frame set
   if (CRD->CoordsSetup(top, CoordinateInfo())) {
     mprinterr("Error: Could not set up COORDS set for prep.\n");
