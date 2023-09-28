@@ -239,15 +239,31 @@ void Zmatrix::addIc(int at0, int at1, int at2, int at3,
 /** Setup Zmatrix from Cartesian coordinates/topology. */
 int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnum)
 {
+  if (molnum < 0) {
+    mprinterr("Internal Error: Zmatrix::SetFromFrame(): Negative molecule index.\n");
+    return 1;
+  }
+  if (topIn.Nmol() < 1) {
+    mprinterr("Internal Error: Zmatrix::SetFromFrame(): No molecules.\n");
+    return 1;
+  }
   IC_.clear();
-  int maxnatom = topIn.Natom();
-
-  std::vector<bool> hasIC( maxnatom, false );
+  Molecule const& currentMol = topIn.Mol(molnum);
+  // Flatten the molecule array
+  std::vector<int> atomIndices;
+  atomIndices.reserve( currentMol.NumAtoms() );
+  for (Unit::const_iterator seg = currentMol.MolUnit().segBegin();
+                            seg != currentMol.MolUnit().segEnd(); ++seg)
+    for (int idx = seg->Begin(); idx != seg->End(); ++idx)
+      atomIndices.push_back( idx );
+  unsigned int maxnatom = atomIndices.size();
+  // Keep track of which atoms are associated with an internal coordinate
+  std::vector<bool> hasIC( topIn.Natom(), false );
   unsigned int nHasIC = 0;
   // See if we need to assign seed atoms
   if (!HasCartSeeds()) {
     // First seed atom will just be first atom TODO lowest index heavy atom?
-    int at0 = 0;
+    int at0 = atomIndices.front();
     if (maxnatom < 2) {
       seedAt0_ = at0;
       seed0Pos_ = Vec3(frameIn.XYZ(seedAt0_));
