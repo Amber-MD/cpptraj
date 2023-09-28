@@ -157,7 +157,7 @@ static inline int FirstOrFrontIdx(std::set<AtnumNbonds> const& in, std::vector<b
 }
 
 /// Set j k and l indices for given atom i
-static inline int SetJKL(int ai, Topology const& topIn, std::vector<bool> const& isSet)
+/*static inline int SetJKL(int ai, Topology const& topIn, std::vector<bool> const& isSet)
 {
   int aj, ak, al;
 
@@ -166,7 +166,7 @@ static inline int SetJKL(int ai, Topology const& topIn, std::vector<bool> const&
   int firstIdx = FirstOrFrontIdx( bondedAtoms, isSet );
 
   return 0;
-}
+}*/
 
 /** \return True if all IC seeds are set. */
 bool Zmatrix::HasICSeeds() const {
@@ -214,9 +214,9 @@ int Zmatrix::SetSeedPositions(Frame const& frameIn, Topology const& topIn, int a
   return 0;
 }
 
-const int Zmatrix::DUMMY0 = -2;
-const int Zmatrix::DUMMY1 = -3;
-const int Zmatrix::DUMMY2 = -4;
+//const int Zmatrix::DUMMY0 = -2;
+//const int Zmatrix::DUMMY1 = -3;
+//const int Zmatrix::DUMMY2 = -4;
 
 /// Mark an IC as used, update used count
 static inline void MARK(int i, std::vector<bool>& isUsed, unsigned int& Nused) {
@@ -246,6 +246,9 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
   unsigned int nHasIC = 0;
   // See if we need to assign seed atoms
   if (!HasCartSeeds()) {
+    // First seed will be first atom TODO lowest index heavy atom?
+    int at0 = 0;
+/*
     // Generate dummy positions and a "fake" IC for atom 0
     // At0 - DUMMY2 - DUMMY1 - DUMMY0
     // Dummy seed 0 is at the origin
@@ -255,14 +258,16 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
     seed1Pos_ = Vec3(1.0, 0.0, 0.0);
     seedAt2_  = DUMMY2;
     seed2Pos_ = Vec3(1.0, 1.0, 1.0);
-    int at0 = 0;
-    if (topIn.Natom() < 2) {
-      const double* xyz0 = frameIn.XYZ(at0);
+    int at0 = 0;*/
+    if (maxnatom < 2) {
+      seedAt0_ = at0;
+      seed0Pos_ = Vec3(frameIn.XYZ(seedAt0_));
+      /*const double* xyz0 = frameIn.XYZ(at0);
       IC_.push_back( InternalCoords(at0, DUMMY2, DUMMY1, DUMMY0,
                                     sqrt(DIST2_NoImage(xyz0, seed2Pos_.Dptr())),
                                     CalcAngle(xyz0, seed2Pos_.Dptr(), seed1Pos_.Dptr()) * Constants::RADDEG,
                                     Torsion(xyz0,  seed2Pos_.Dptr(), seed1Pos_.Dptr(), seed0Pos_.Dptr()) * Constants::RADDEG) );
-      //Mark(at0, hasIC, nHasIC);
+      //Mark(at0, hasIC, nHasIC);*/
       return 0;
     }
     // Choose second seed as bonded atom with lowest index. Prefer heavy atoms
@@ -273,18 +278,22 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
       return 1;
     }
     int at1 = FrontIdx( bondedTo0 );
-    if (topIn.Natom() < 3) {
-      const double* xyz0 = frameIn.XYZ(at0);
+/*
+    int at1 = FrontIdx( bondedTo0 );*/
+    if (maxnatom < 3) {
+      seedAt1_ = at1;
+      seed1Pos_ = Vec3(frameIn.XYZ(seedAt1_));
+      /*const double* xyz0 = frameIn.XYZ(at0);
       const double* xyz1 = frameIn.XYZ(at1);
       IC_.push_back( InternalCoords(at1, at0, DUMMY2, DUMMY1,
                                     sqrt(DIST2_NoImage(xyz1, xyz0)),
                                     CalcAngle(xyz1, xyz0, seed2Pos_.Dptr()) * Constants::RADDEG,
                                     Torsion(xyz1,  xyz0, seed2Pos_.Dptr(), seed1Pos_.Dptr()) * Constants::RADDEG) );
-      //Mark(at1, hasIC, nHasIC);
+      //Mark(at1, hasIC, nHasIC);*/
       return 0;
     }
     // The third atom will either be bonded to seed 0 or seed 1.
-    int at2;
+    //int at2;
     AtnumNbonds potential2From0, potential2From1;
     std::set<AtnumNbonds> bondedTo1 = getBondedAtomPriorities(at1, topIn, at0);
     if (!bondedTo1.empty()) {
@@ -297,33 +306,41 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
       potential2From0 = *it;
     }
     if (potential2From0 < potential2From1) {
-      at2 = potential2From0.Idx();
+      //seedAt2_ = potential2From0.Idx();
       mprintf("DEBUG: 2 - 0 - 1\n");
-      mprintf("DEBUG: Seed atoms: %s - %s - %s\n",
-            topIn.AtomMaskName(at2).c_str(), 
-            topIn.AtomMaskName(at0).c_str(), 
-            topIn.AtomMaskName(at1).c_str()); 
+      seedAt0_ = potential2From0.Idx();
+      seedAt1_ = at0;
+      seedAt2_ = at1;
       // D0 D1 D2 A2
-      addIc(at2, DUMMY2, DUMMY1, DUMMY0, frameIn.XYZ(at2), seed2Pos_.Dptr(), seed1Pos_.Dptr(), seed0Pos_.Dptr());
+      //addIc(at2, DUMMY2, DUMMY1, DUMMY0, frameIn.XYZ(at2), seed2Pos_.Dptr(), seed1Pos_.Dptr(), seed0Pos_.Dptr());
       // D1 D2 A2 A0
-      addIc(at0, at2, DUMMY2, DUMMY1, frameIn.XYZ(at0), frameIn.XYZ(at2), seed2Pos_.Dptr(), seed1Pos_.Dptr());
+      //addIc(at0, at2, DUMMY2, DUMMY1, frameIn.XYZ(at0), frameIn.XYZ(at2), seed2Pos_.Dptr(), seed1Pos_.Dptr());
       // D2 A2 A0 A1
-      addIc(at1, at0, at2, DUMMY2, frameIn.XYZ(at1), frameIn.XYZ(at0), frameIn.XYZ(at2), seed2Pos_.Dptr());
+      //addIc(at1, at0, at2, DUMMY2, frameIn.XYZ(at1), frameIn.XYZ(at0), frameIn.XYZ(at2), seed2Pos_.Dptr());
     } else {
-      at2 = potential2From1.Idx();
+      //seedAt2_ = potential2From1.Idx();
       mprintf("DEBUG: 0 - 1 - 2\n");
-      mprintf("DEBUG: Seed atoms: %s - %s - %s\n",
-            topIn.AtomMaskName(at0).c_str(), 
-            topIn.AtomMaskName(at1).c_str(), 
-            topIn.AtomMaskName(at2).c_str()); 
-      // D0 D1 D2 A0
-      addIc(at0, DUMMY2, DUMMY1, DUMMY0, frameIn.XYZ(at0), seed2Pos_.Dptr(), seed1Pos_.Dptr(), seed0Pos_.Dptr());
-      // D1 D2 A0 A1
-      addIc(at1, at0, DUMMY2, DUMMY1, frameIn.XYZ(at1), frameIn.XYZ(at0), seed2Pos_.Dptr(), seed1Pos_.Dptr());
-      // D2 A0 A1 A2
-      addIc(at2, at1, at0, DUMMY2, frameIn.XYZ(at2), frameIn.XYZ(at1), frameIn.XYZ(at0), seed2Pos_.Dptr());
-    }
+      seedAt0_ = at0;
+      seedAt1_ = at1;
+      seedAt2_ = potential2From1.Idx();
 
+      // D0 D1 D2 A0
+      //addIc(at0, DUMMY2, DUMMY1, DUMMY0, frameIn.XYZ(at0), seed2Pos_.Dptr(), seed1Pos_.Dptr(), seed0Pos_.Dptr());
+      // D1 D2 A0 A1
+      //addIc(at1, at0, DUMMY2, DUMMY1, frameIn.XYZ(at1), frameIn.XYZ(at0), seed2Pos_.Dptr(), seed1Pos_.Dptr());
+      // D2 A0 A1 A2
+      //addIc(at2, at1, at0, DUMMY2, frameIn.XYZ(at2), frameIn.XYZ(at1), frameIn.XYZ(at0), seed2Pos_.Dptr());
+    }
+    mprintf("DEBUG: Seed atoms: %s - %s - %s\n",
+            topIn.AtomMaskName(seedAt0_).c_str(), 
+            topIn.AtomMaskName(seedAt1_).c_str(), 
+            topIn.AtomMaskName(seedAt2_).c_str());
+    MARK(seedAt0_, hasIC, nHasIC);
+    MARK(seedAt1_, hasIC, nHasIC);
+    MARK(seedAt2_, hasIC, nHasIC);
+    seed0Pos_ = Vec3(frameIn.XYZ(seedAt0_));
+    seed1Pos_ = Vec3(frameIn.XYZ(seedAt1_));
+    seed2Pos_ = Vec3(frameIn.XYZ(seedAt2_));
 
 //    mprinterr("Internal Error: Automatic seed generation not yet implemented.\n");
 /*    mprintf("DEBUG: Generating dummy seed atoms.\n");
@@ -446,15 +463,15 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
   // Track which atoms have Cartesian coords set
   std::vector<bool> hasPosition( frameOut.Natom(), false );
   // If any seed positions are defined, set them now
-  if (seedAt0_ > InternalCoords::NO_ATOM) {
+  if (seedAt0_ != InternalCoords::NO_ATOM) {
     frameOut.SetXYZ( seedAt0_, seed0Pos_ );
     hasPosition[ seedAt0_ ] = true;
   }
-  if (seedAt1_ > InternalCoords::NO_ATOM) {
+  if (seedAt1_ != InternalCoords::NO_ATOM) {
     frameOut.SetXYZ( seedAt1_, seed1Pos_ );
     hasPosition[ seedAt1_ ] = true;
   }
-  if (seedAt2_ > InternalCoords::NO_ATOM) {
+  if (seedAt2_ != InternalCoords::NO_ATOM) {
     frameOut.SetXYZ( seedAt2_, seed2Pos_ );
     hasPosition[ seedAt2_ ] = true;
   }
@@ -500,16 +517,6 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
     } // END seed atom 1
   } // END seed atom 0
 
-  // Check if there is a DUMMY IC
-  int dummyIcIdx = -1;
-  for (const_iterator it = IC_.begin(); it != IC_.end(); ++it) {
-    if (it->AtJ() == DUMMY2) {
-      dummyIcIdx = (int)(it - IC_.begin());
-      mprintf("DEBUG: IC %i is DUMMY IC\n", dummyIcIdx);
-      break;
-    }
-  }
-
   // Find the lowest unused IC
   unsigned int lowestUnusedIC = 0;
   for (; lowestUnusedIC < IC_.size(); ++lowestUnusedIC)
@@ -521,20 +528,16 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
     // Find the next IC that is not yet used.
     unsigned int idx = lowestUnusedIC;
     bool findNextIC = true;
-    bool isDummyIc = false;
     while (findNextIC) {
       while (idx < IC_.size() && isUsed[idx]) idx++;
       if (idx >= IC_.size()) {
         mprinterr("Error: Could not find next IC to use.\n");
         return 1;
       }
-      if ((int)idx == dummyIcIdx) {
-        isDummyIc = true;
-        findNextIC = false;
       // All 3 of the connecting atoms must be set
-      } else if (hasPosition[ IC_[idx].AtJ() ] &&
-                 hasPosition[ IC_[idx].AtK() ] &&
-                 hasPosition[ IC_[idx].AtL() ])
+      if (hasPosition[ IC_[idx].AtJ() ] &&
+          hasPosition[ IC_[idx].AtK() ] &&
+          hasPosition[ IC_[idx].AtL() ])
       {
         findNextIC = false;
       }
@@ -556,16 +559,9 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
                 rdist * cosPhi * sinTheta,
                 rdist * sinPhi * sinTheta );
 
-    Vec3 posL, posK, posJ;
-    if (isDummyIc) {
-      posL = seed0Pos_;
-      posK = seed1Pos_;
-      posJ = seed2Pos_;
-    } else {
-      posL = Vec3( frameOut.XYZ( ic.AtL()) );
-      posK = Vec3( frameOut.XYZ( ic.AtK()) );
-      posJ = Vec3( frameOut.XYZ( ic.AtJ()) );
-    }
+    Vec3 posL = Vec3( frameOut.XYZ( ic.AtL()) );
+    Vec3 posK = Vec3( frameOut.XYZ( ic.AtK()) );
+    Vec3 posJ = Vec3( frameOut.XYZ( ic.AtJ()) );
 
     Vec3 LK = posK - posL;
     Vec3 KJ = posJ - posK;
@@ -591,8 +587,6 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
 
     //break; // DEBUG
   } // END loop over internal coordinates
-
-
 
   return 0;
 }

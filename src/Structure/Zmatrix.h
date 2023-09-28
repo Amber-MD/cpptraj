@@ -37,9 +37,9 @@ class Zmatrix {
     const_iterator begin() const { return IC_.begin(); }
     const_iterator end()   const { return IC_.end(); }
   private:
-    static const int DUMMY0; ///< Used to denote a dummy atom 0
-    static const int DUMMY1; ///< Used to denote a dummy atom 1
-    static const int DUMMY2; ///< Used to denote a dummy atom 2
+    //static const int DUMMY0; ///< Used to denote a dummy atom 0
+    //static const int DUMMY1; ///< Used to denote a dummy atom 1
+    //static const int DUMMY2; ///< Used to denote a dummy atom 2
 
     void addIc(int,int,int,int,const double*,const double*,const double*,const double*);
 
