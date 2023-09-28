@@ -246,54 +246,27 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
   unsigned int nHasIC = 0;
   // See if we need to assign seed atoms
   if (!HasCartSeeds()) {
-    // First seed will be first atom TODO lowest index heavy atom?
+    // First seed atom will just be first atom TODO lowest index heavy atom?
     int at0 = 0;
-/*
-    // Generate dummy positions and a "fake" IC for atom 0
-    // At0 - DUMMY2 - DUMMY1 - DUMMY0
-    // Dummy seed 0 is at the origin
-    seedAt0_  = DUMMY0;
-    seed0Pos_ = Vec3(0.0);
-    seedAt1_  = DUMMY1;
-    seed1Pos_ = Vec3(1.0, 0.0, 0.0);
-    seedAt2_  = DUMMY2;
-    seed2Pos_ = Vec3(1.0, 1.0, 1.0);
-    int at0 = 0;*/
     if (maxnatom < 2) {
       seedAt0_ = at0;
       seed0Pos_ = Vec3(frameIn.XYZ(seedAt0_));
-      /*const double* xyz0 = frameIn.XYZ(at0);
-      IC_.push_back( InternalCoords(at0, DUMMY2, DUMMY1, DUMMY0,
-                                    sqrt(DIST2_NoImage(xyz0, seed2Pos_.Dptr())),
-                                    CalcAngle(xyz0, seed2Pos_.Dptr(), seed1Pos_.Dptr()) * Constants::RADDEG,
-                                    Torsion(xyz0,  seed2Pos_.Dptr(), seed1Pos_.Dptr(), seed0Pos_.Dptr()) * Constants::RADDEG) );
-      //Mark(at0, hasIC, nHasIC);*/
       return 0;
     }
-    // Choose second seed as bonded atom with lowest index. Prefer heavy atoms
-    // and atoms with more than 1 bond.
+    // Choose second seed atom as bonded atom with lowest index. Prefer heavy
+    // atoms and atoms with more than 1 bond.
     std::set<AtnumNbonds> bondedTo0 = getBondedAtomPriorities(at0, topIn, -1);
     if (bondedTo0.empty()) {
       mprinterr("Internal Error: Zmatrix::SetFromFrame(): could not get second seed atom.\n");
       return 1;
     }
     int at1 = FrontIdx( bondedTo0 );
-/*
-    int at1 = FrontIdx( bondedTo0 );*/
     if (maxnatom < 3) {
       seedAt1_ = at1;
       seed1Pos_ = Vec3(frameIn.XYZ(seedAt1_));
-      /*const double* xyz0 = frameIn.XYZ(at0);
-      const double* xyz1 = frameIn.XYZ(at1);
-      IC_.push_back( InternalCoords(at1, at0, DUMMY2, DUMMY1,
-                                    sqrt(DIST2_NoImage(xyz1, xyz0)),
-                                    CalcAngle(xyz1, xyz0, seed2Pos_.Dptr()) * Constants::RADDEG,
-                                    Torsion(xyz1,  xyz0, seed2Pos_.Dptr(), seed1Pos_.Dptr()) * Constants::RADDEG) );
-      //Mark(at1, hasIC, nHasIC);*/
       return 0;
     }
-    // The third atom will either be bonded to seed 0 or seed 1.
-    //int at2;
+    // The third seed atom will either be bonded to seed 0 or seed 1.
     AtnumNbonds potential2From0, potential2From1;
     std::set<AtnumNbonds> bondedTo1 = getBondedAtomPriorities(at1, topIn, at0);
     if (!bondedTo1.empty()) {
@@ -306,7 +279,6 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
       potential2From0 = *it;
     }
     if (potential2From0 < potential2From1) {
-      //seedAt2_ = potential2From0.Idx();
       mprintf("DEBUG: 2 - 0 - 1\n");
       seedAt0_ = potential2From0.Idx();
       seedAt1_ = at0;
@@ -318,12 +290,10 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
       // D2 A2 A0 A1
       //addIc(at1, at0, at2, DUMMY2, frameIn.XYZ(at1), frameIn.XYZ(at0), frameIn.XYZ(at2), seed2Pos_.Dptr());
     } else {
-      //seedAt2_ = potential2From1.Idx();
       mprintf("DEBUG: 0 - 1 - 2\n");
       seedAt0_ = at0;
       seedAt1_ = at1;
       seedAt2_ = potential2From1.Idx();
-
       // D0 D1 D2 A0
       //addIc(at0, DUMMY2, DUMMY1, DUMMY0, frameIn.XYZ(at0), seed2Pos_.Dptr(), seed1Pos_.Dptr(), seed0Pos_.Dptr());
       // D1 D2 A0 A1
@@ -341,71 +311,14 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
     seed0Pos_ = Vec3(frameIn.XYZ(seedAt0_));
     seed1Pos_ = Vec3(frameIn.XYZ(seedAt1_));
     seed2Pos_ = Vec3(frameIn.XYZ(seedAt2_));
-
-//    mprinterr("Internal Error: Automatic seed generation not yet implemented.\n");
-/*    mprintf("DEBUG: Generating dummy seed atoms.\n");
-    seed0_ = InternalCoords::NO_ATOM;
-    seed1_ = InternalCoords::NO_ATOM;
-    seed2_ = InternalCoords::NO_ATOM;
-    // Seed 0 is at the origin
-    IC_.push_back( InternalCoords() );
-    seed0_ = 0;
-    topIndices_.push_back( -1 );
-    seed0Pos_ = Vec3(0.0);
-    // Seed 1 is at X=1
-    IC_.push_back( InternalCoords(0, InternalCoords::NO_ATOM, InternalCoords::NO_ATOM,
-                                  1.0, 0, 0) );
-    seed1_ = 1;
-    topIndices_.push_back( -1 );
-    seed1Pos_ = Vec3(1.0, 0.0, 0.0);
-    // Seed 2 is at X=Y=1
-    IC_.push_back( InternalCoords(1, 0, InternalCoords::NO_ATOM,
-                                  1.0, 90.0, 0) );
-    seed2_ = 2;
-    topIndices_.push_back( -1 );
-    seed2Pos_ = Vec3(1.0, 1.0, 0.0);*/
   } else {
+    // Seed atoms already set
     mprintf("DEBUG: Cartesian Seed indices: %s %s %s\n",
             topIn.AtomMaskName(seedAt0_).c_str(),
             topIn.AtomMaskName(seedAt1_).c_str(),
             topIn.AtomMaskName(seedAt2_).c_str());
   }
 
-/*
-  // First seed is first atom. No bonds, angles, or torsions. TODO should be lowest heavy atom?
-  IC_.push_back( InternalCoords() );
-  seed0_ = 0;
-
-  // Choose second seed as bonded atom with lowest index. Prefer heavy atoms
-  // and atoms with more than 1 bond.
-  std::set<AtnumNbonds> bondedAtoms = getBondedAtomPriorities(seed0_, topIn, -1);
-  if (!bondedAtoms.empty()) {
-    seed1_ = FrontIdx(bondedAtoms);
-    IC_.push_back( InternalCoords(seed0_, InternalCoords::NO_ATOM, InternalCoords::NO_ATOM,
-                                  sqrt(DIST2_NoImage( frameIn.XYZ(seed1_), frameIn.XYZ(seed0_) )),
-                                  0, 0) );
-    // Choose third seed, ignoring first seed.
-    bondedAtoms = getBondedAtomPriorities(seed1_, topIn, seed0_);
-    if (!bondedAtoms.empty()) {
-      seed2_ = FrontIdx(bondedAtoms);
-      IC_.push_back( InternalCoords(seed1_, seed0_, InternalCoords::NO_ATOM,
-                                    sqrt(DIST2_NoImage( frameIn.XYZ(seed2_), frameIn.XYZ(seed1_) )),
-                                    CalcAngle( frameIn.XYZ(seed2_),
-                                               frameIn.XYZ(seed1_),
-                                               frameIn.XYZ(seed0_) ) * Constants::RADDEG,
-                                    0) );
-    }
-  }
-  // If less than 4 atoms, all done.
-  if (topIn.Natom() < 4) return 0;
-
-  if (seed0_ == InternalCoords::NO_ATOM ||
-      seed1_ == InternalCoords::NO_ATOM ||
-      seed2_ == InternalCoords::NO_ATOM)
-  {
-    mprinterr("Internal Error: Zmatrix::SetFromFrame(): Not enough seeds.\n");
-    return 1;
-  }*/
 
 /*
   // Do the remaining atoms
