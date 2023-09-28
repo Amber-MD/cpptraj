@@ -337,9 +337,14 @@ const
   }
   // DEBUG - back convert
   Zmatrix tempZ;
+  tempZ.SetDebug(10);
   //tempZ.SetSeedPositions(frm, top, 5, 0, 1);
   tempZ.SetFromFrame( frm, top, 0 );
   tempZ.print();
+  Frame tmpFrame(top.Natom());
+  tempZ.SetToFrame(tmpFrame);
+  for (int ii = 0; ii < tmpFrame.Natom(); ii++)
+    tmpFrame.printAtomCoord(ii);
   // Output Set up frame set
   if (CRD->CoordsSetup(top, CoordinateInfo())) {
     mprinterr("Error: Could not set up COORDS set for prep.\n");
