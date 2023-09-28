@@ -28,20 +28,17 @@ class Zmatrix {
     int SetToFrame(Frame&) const;
     /// Print to stdout
     void print() const;
-    /// \return True if IC seeds are set
-    bool HasICSeeds() const;
-    /// \return True if Cartesian seeds are set
-    bool HasCartSeeds() const;
 
     typedef ICarray::const_iterator const_iterator;
     const_iterator begin() const { return IC_.begin(); }
     const_iterator end()   const { return IC_.end(); }
   private:
-    //static const int DUMMY0; ///< Used to denote a dummy atom 0
-    //static const int DUMMY1; ///< Used to denote a dummy atom 1
-    //static const int DUMMY2; ///< Used to denote a dummy atom 2
-
+    /// Calculate and add an internal coordinate given indices and Cartesian coords.
     void addIc(int,int,int,int,const double*,const double*,const double*,const double*);
+    /// \return True if IC seeds are set
+    //bool HasICSeeds() const;
+    /// \return True if Cartesian seeds are set
+    bool HasCartSeeds() const;
 
     int debug_;     ///< Print debug info
     ICarray IC_;    ///< Hold internal coordinates for all atoms

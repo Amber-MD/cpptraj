@@ -27,7 +27,9 @@ void Zmatrix::AddIC(InternalCoords const& ic) {
   IC_.push_back( ic );
 }
 
-/** Add internal coords as a seed. */
+/** Add internal coords as a IC seed. This is intended for use with systems
+  * that have dummy atoms, such as those from Amber Prep files.
+  */
 int Zmatrix::AddICseed(InternalCoords const& ic) {
   if (icseed0_ == InternalCoords::NO_ATOM)
     icseed0_ = IC_.size();
@@ -59,7 +61,11 @@ void Zmatrix::print() const {
             it->Dist(), it->Theta(), it->Phi());
 }
 
+// -------------------------------------
 /// For bonded atoms, hold atom index, atom number, and # bonds.
+/** Used to determine atom priority when looking for torsions to
+  * base ICs off of.
+  */
 class AtnumNbonds {
   public:
     /// CONSTRUCTOR
@@ -126,13 +132,13 @@ static std::set<AtnumNbonds> getBondedAtomPriorities(int seed0, Topology const& 
   return bondedAtoms;
 }
 
-/// \return Index of atom at front of set
+/// \return Index of atom at front of the set (highest priority).
 static inline int FrontIdx(std::set<AtnumNbonds> const& in) {
   std::set<AtnumNbonds>::const_iterator it = in.begin();
   return it->Idx();
 }
 
-/// \return Index of first set atom, or atom at front of set
+/// \return Index of first atom that isSet (has coords), or atom at front of the set (highest priority).
 static inline int FirstOrFrontIdx(std::set<AtnumNbonds> const& in, std::vector<bool> const& isSet)
 {
   if (in.empty()) return -1;
@@ -155,26 +161,15 @@ static inline int FirstOrFrontIdx(std::set<AtnumNbonds> const& in, std::vector<b
     return firstSetIdx;
   return firstIdx;
 }
-
-/// Set j k and l indices for given atom i
-/*static inline int SetJKL(int ai, Topology const& topIn, std::vector<bool> const& isSet)
-{
-  int aj, ak, al;
-
-  std::set<AtnumNbonds> bondedAtoms = getBondedAtomPriorities(ai, topIn, -1);
-  if (bondedAtoms.empty()) return 1;
-  int firstIdx = FirstOrFrontIdx( bondedAtoms, isSet );
-
-  return 0;
-}*/
+// -------------------------------------
 
 /** \return True if all IC seeds are set. */
-bool Zmatrix::HasICSeeds() const {
+/*bool Zmatrix::HasICSeeds() const {
   bool has_ic_seed = (icseed0_ != InternalCoords::NO_ATOM &&
                       icseed1_ != InternalCoords::NO_ATOM &&
                       icseed2_ != InternalCoords::NO_ATOM   );
   return has_ic_seed;
-}
+}*/
 
 /** \return True if all Cartesian seeds are set. */
 bool Zmatrix::HasCartSeeds() const {
@@ -214,10 +209,6 @@ int Zmatrix::SetSeedPositions(Frame const& frameIn, Topology const& topIn, int a
   return 0;
 }
 
-//const int Zmatrix::DUMMY0 = -2;
-//const int Zmatrix::DUMMY1 = -3;
-//const int Zmatrix::DUMMY2 = -4;
-
 /// Mark an IC as used, update used count
 static inline void MARK(int i, std::vector<bool>& isUsed, unsigned int& Nused) {
   if (!isUsed[i]) {
@@ -226,6 +217,9 @@ static inline void MARK(int i, std::vector<bool>& isUsed, unsigned int& Nused) {
   }
 }
 
+/** Calculate and add an internal coordinate given atom indices
+  * and corresponding Cartesian coordinates.
+  */
 void Zmatrix::addIc(int at0, int at1, int at2, int at3,
                    const double* xyz0, const double* xyz1,
                    const double* xyz2, const double* xyz3)
