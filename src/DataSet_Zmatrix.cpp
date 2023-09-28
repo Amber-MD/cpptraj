@@ -7,7 +7,7 @@ using namespace Cpptraj::Structure;
 /** CONSTRUCTOR */
 DataSet_Zmatrix::DataSet_Zmatrix() : zmatrix_(0)
 {
-
+  zmatrix_ = new Zmatrix();
 }
 
 /** DESTRUCTOR */

@@ -24,6 +24,7 @@ class DataSet_Zmatrix : public DataSet {
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
 #   endif
     // -------------------------------------------
+    Cpptraj::Structure::Zmatrix* Zptr() const { return zmatrix_; }
   private:
     Cpptraj::Structure::Zmatrix* zmatrix_;
 };

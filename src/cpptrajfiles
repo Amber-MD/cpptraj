@@ -306,6 +306,7 @@ COMMON_SOURCES= \
         Exec_Traj.cpp \
         Exec_UpdateParameters.cpp \
         Exec_ViewRst.cpp \
+        Exec_Zmatrix.cpp \
         ExtendedSimilarity.cpp \
         File_TempName.cpp \
         FileIO_Bzip2.cpp \

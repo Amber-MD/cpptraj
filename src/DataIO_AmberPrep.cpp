@@ -336,7 +336,7 @@ const
     }
   }
   // DEBUG - back convert
-  mprintf("DEBUG: BACK CONVERT %s\n", resName.c_str());
+/*  mprintf("DEBUG: BACK CONVERT %s\n", resName.c_str());
   mprinterr("DEBUG: BACK CONVERT %s\n", resName.c_str());
   Zmatrix tempZ;
   tempZ.SetDebug(10);
@@ -353,7 +353,7 @@ const
     tempZ.SetToFrame(tmpFrame);
     for (int ii = 0; ii < tmpFrame.Natom(); ii++)
       tmpFrame.printAtomCoord(ii);
-  }
+  }*/
   // Output Set up frame set
   if (CRD->CoordsSetup(top, CoordinateInfo())) {
     mprinterr("Error: Could not set up COORDS set for prep.\n");

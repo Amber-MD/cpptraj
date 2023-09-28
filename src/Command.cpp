@@ -56,6 +56,7 @@
 #include "Exec_CatCrd.h"
 #include "Exec_CrdTransform.h"
 #include "Exec_ExtendedComparison.h"
+#include "Exec_Zmatrix.h"
 // ----- TRAJECTORY ------------------------------------------------------------
 #include "Exec_Traj.h"
 // ----- TOPOLOGY --------------------------------------------------------------
@@ -280,6 +281,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_PrepareForLeap(),   Cmd::EXE, 1, "prepareforleap" );
   Command::AddCmd( new Exec_RotateDihedral(),   Cmd::EXE, 1, "rotatedihedral" );
   Command::AddCmd( new Exec_SplitCoords(),      Cmd::EXE, 1, "splitcoords" );
+  Command::AddCmd( new Exec_Zmatrix(),          Cmd::EXE, 1, "zmatrix" );
   // TRAJECTORY
   Command::AddCmd( new Exec_Ensemble(),     Cmd::EXE, 1, "ensemble" );
   Command::AddCmd( new Exec_EnsembleSize(), Cmd::EXE, 1, "ensemblesize" );
