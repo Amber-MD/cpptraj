@@ -133,7 +133,7 @@ static inline int FrontIdx(std::set<AtnumNbonds> const& in) {
 }
 
 /// \return Index of first set atom, or atom at front of set
-/*static inline int FirstOrFrontIdx(std::set<AtnumNbonds> const& in, std::vector<bool> const& isSet)
+static inline int FirstOrFrontIdx(std::set<AtnumNbonds> const& in, std::vector<bool> const& isSet)
 {
   if (in.empty()) return -1;
   int firstIdx = FrontIdx( in );
@@ -154,7 +154,7 @@ static inline int FrontIdx(std::set<AtnumNbonds> const& in) {
   if (firstSetIdx > -1)
     return firstSetIdx;
   return firstIdx;
-}*/
+}
 
 /// Set j k and l indices for given atom i
 /*static inline int SetJKL(int ai, Topology const& topIn, std::vector<bool> const& isSet)
@@ -250,16 +250,19 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
   IC_.clear();
   Molecule const& currentMol = topIn.Mol(molnum);
   // Flatten the molecule array
-  std::vector<int> atomIndices;
+  typedef std::vector<int> Iarray;
+  Iarray atomIndices;
   atomIndices.reserve( currentMol.NumAtoms() );
   for (Unit::const_iterator seg = currentMol.MolUnit().segBegin();
                             seg != currentMol.MolUnit().segEnd(); ++seg)
     for (int idx = seg->Begin(); idx != seg->End(); ++idx)
       atomIndices.push_back( idx );
   unsigned int maxnatom = atomIndices.size();
+
   // Keep track of which atoms are associated with an internal coordinate
   std::vector<bool> hasIC( topIn.Natom(), false );
   unsigned int nHasIC = 0;
+
   // See if we need to assign seed atoms
   if (!HasCartSeeds()) {
     // First seed atom will just be first atom TODO lowest index heavy atom?
@@ -335,49 +338,60 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
             topIn.AtomMaskName(seedAt2_).c_str());
   }
 
-
-/*
-  // Do the remaining atoms
-  unsigned int maxAtom = (unsigned int)topIn.Natom();
-  std::vector<bool> isSet( maxAtom, false );
-  isSet[seed0_] = true;
-  isSet[seed1_] = true;
-  isSet[seed2_] = true;
-  unsigned int Nset = 3;
-
-  // Find the lowest unset atom
-  unsigned int lowestUnsetAtom = 0;
-  for (; lowestUnsetAtom < maxAtom; ++lowestUnsetAtom)
-    if (!isSet[lowestUnsetAtom]) break;
-  //if (debug_ > 0)
-    mprintf("DEBUG: Lowest unset atom: %u\n", lowestUnsetAtom+1);
+  // Do the remaining atoms.
+  // Find the lowest unset atom.
+  unsigned int lowestUnsetIdx = 0;
+  for (; lowestUnsetIdx < maxnatom; ++lowestUnsetIdx)
+    if (!hasIC[atomIndices[lowestUnsetIdx]]) break;
+  mprintf("DEBUG: Lowest unset atom %i at index %u\n", atomIndices[lowestUnsetIdx]+1, lowestUnsetIdx);
 
   // Loop over remaining atoms
-  while (Nset < maxAtom) {
-   // Find the next atom that is not yet set.
-    unsigned int idx = lowestUnsetAtom;
+  while (nHasIC < maxnatom) {
+    // Find the next atom that is not yet set.
+    unsigned int idx = lowestUnsetIdx;
     bool findNextAtom = true;
+    int ai = -1;
+    int aj = -1;
+    int ak = -1;
+    int al = -1;
     while (findNextAtom) {
-      while (idx < maxAtom && isSet[idx]) idx++;
-      if (idx >= maxAtom) {
+      while (idx < maxnatom && hasIC[atomIndices[idx]]) idx++;
+      if (idx >= maxnatom) {
         mprinterr("Error: Could not find next atom to set.\n");
         return 1;
       }
-      SetJKL(idx, topIn, isSet);
-      break; // DEBUG
+      ai = atomIndices[idx];
+      mprintf("DEBUG:\tAttempting to set atom i %i\n", ai+1);
+      // Determine j k and l indices. Prefer atoms that have already been set.
+      std::set<AtnumNbonds> bondedAtomsI = getBondedAtomPriorities(ai, topIn, -1);
+      aj = FirstOrFrontIdx( bondedAtomsI, hasIC );
+      mprintf("DEBUG:\t\tAtom j = %i\n", aj+1);
+      std::set<AtnumNbonds> bondedAtomsJ = getBondedAtomPriorities(aj, topIn, ai); // TODO reuse bondedAtomsI?
+      ak = FirstOrFrontIdx( bondedAtomsJ, hasIC );
+      mprintf("DEBUG:\t\tAtom k = %i\n", ak+1);
+      // FIXME check for cycle here?
+      std::set<AtnumNbonds> bondedAtomsK = getBondedAtomPriorities(ak, topIn, aj); // TODO reuse bondedAtomsI?
+      al = FirstOrFrontIdx( bondedAtomsK, hasIC );
+      mprintf("DEBUG:\t\tAtom l = %i\n", al+1);
+      if (aj < 0 || ak < 0 || al < 0) {
+        mprinterr("Internal Error: Could not find torsion for atom %i %s\n", ai+1, topIn.AtomMaskName(ai).c_str());
+        return 1;
+      }
       // All 3 of the connecting atoms must be set
-      //if (isSet[ IC_[idx].AtJ() ] &&
-      //    isSet[ IC_[idx].AtK() ] &&
-      //    isSet[ IC_[idx].AtL() ])
-      //{
-      //  findNextAtom = false;
-      //}
-    } // END loop finding next atom to set
-    //if (debug_ > 0)
-    mprintf("DEBUG: Next atom to set is %u\n", idx+1);
-    break; //DEBUG
+      if (hasIC[aj] && hasIC[ak] && hasIC[al]) {
+        findNextAtom = false;
+      }
+    } // END loop over findNextAtom
+    // Create IC for i j k l
+    addIc(ai, aj, ak, al, frameIn.XYZ(ai), frameIn.XYZ(aj), frameIn.XYZ(ak), frameIn.XYZ(al));
+    MARK(ai, hasIC, nHasIC);
+
+    // Next lowest unset atom
+    for (; lowestUnsetIdx < maxnatom; ++lowestUnsetIdx)
+      if (!hasIC[atomIndices[lowestUnsetIdx]]) break;
+
+    //break; //DEBUG
   } // END loop over remaining atoms
-   */
 
   return 0;
 }
