@@ -133,7 +133,7 @@ static inline int FrontIdx(std::set<AtnumNbonds> const& in) {
 }
 
 /// \return Index of first set atom, or atom at front of set
-static inline int FirstOrFrontIdx(std::set<AtnumNbonds> const& in, std::vector<bool> const& isSet)
+/*static inline int FirstOrFrontIdx(std::set<AtnumNbonds> const& in, std::vector<bool> const& isSet)
 {
   if (in.empty()) return -1;
   int firstIdx = FrontIdx( in );
@@ -154,7 +154,7 @@ static inline int FirstOrFrontIdx(std::set<AtnumNbonds> const& in, std::vector<b
   if (firstSetIdx > -1)
     return firstSetIdx;
   return firstIdx;
-}
+}*/
 
 /// Set j k and l indices for given atom i
 /*static inline int SetJKL(int ai, Topology const& topIn, std::vector<bool> const& isSet)
