@@ -232,6 +232,7 @@ COMMON_SOURCES= \
         DataSet_StringVar.cpp \
         DataSet_Tensor.cpp \
         DataSet_unsignedInt.cpp \
+        DataSet_Zmatrix.cpp \
         Deprecated.cpp \
         DihedralSearch.cpp \
         DiffusionResults.cpp \
