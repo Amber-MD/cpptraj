@@ -32,6 +32,7 @@ const char* DataSet::Descriptions_[] = {
   "vector with scalar",         // VECTOR_SCALAR
   "unsigned integer",           // UNSIGNED_INTEGER
   "frames",                     // FRAMES
+  "zmatrix",                    // ZMATRIX
   "unknown"                     // UNKNOWN_DATA
 };
 
