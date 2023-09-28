@@ -17,6 +17,9 @@ Zmatrix::Zmatrix() :
   icseed0_(InternalCoords::NO_ATOM),
   icseed1_(InternalCoords::NO_ATOM),
   icseed2_(InternalCoords::NO_ATOM),
+  seed0Pos_(0.0),
+  seed1Pos_(0.0),
+  seed2Pos_(0.0),
   seedAt0_(InternalCoords::NO_ATOM),
   seedAt1_(InternalCoords::NO_ATOM),
   seedAt2_(InternalCoords::NO_ATOM)
@@ -116,12 +119,12 @@ class AtnumNbonds {
 };
 
 /// Get bonded atom priorities
-static std::set<AtnumNbonds> getBondedAtomPriorities(int seed0, Topology const& topIn, int ignoreIdx) {
+static std::set<AtnumNbonds> getBondedAtomPriorities(int seed0, Topology const& topIn, int ignoreIdx0, int ignoreIdx1) {
   std::set<AtnumNbonds> bondedAtoms;
   for (Atom::bond_iterator bat = topIn[seed0].bondbegin();
                            bat != topIn[seed0].bondend(); ++bat)
   {
-    if (*bat != ignoreIdx)
+    if (*bat != ignoreIdx0 && *bat != ignoreIdx1)
       bondedAtoms.insert( AtnumNbonds(*bat, topIn[*bat]) );
   }
   for (std::set<AtnumNbonds>::const_iterator it = bondedAtoms.begin(); it != bondedAtoms.end(); ++it)
@@ -231,6 +234,11 @@ void Zmatrix::addIc(int at0, int at1, int at2, int at3,
 }
 
 /** Setup Zmatrix from Cartesian coordinates/topology. */
+int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn) {
+  return SetFromFrame(frameIn, topIn, 0);
+}
+
+/** Setup Zmatrix from Cartesian coordinates/topology. */
 int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnum)
 {
   if (molnum < 0) {
@@ -268,7 +276,7 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
     }
     // Choose second seed atom as bonded atom with lowest index. Prefer heavy
     // atoms and atoms with more than 1 bond.
-    std::set<AtnumNbonds> bondedTo0 = getBondedAtomPriorities(at0, topIn, -1);
+    std::set<AtnumNbonds> bondedTo0 = getBondedAtomPriorities(at0, topIn, -1, -1);
     if (bondedTo0.empty()) {
       mprinterr("Internal Error: Zmatrix::SetFromFrame(): could not get second seed atom.\n");
       return 1;
@@ -281,7 +289,7 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
     }
     // The third seed atom will either be bonded to seed 0 or seed 1.
     AtnumNbonds potential2From0, potential2From1;
-    std::set<AtnumNbonds> bondedTo1 = getBondedAtomPriorities(at1, topIn, at0);
+    std::set<AtnumNbonds> bondedTo1 = getBondedAtomPriorities(at1, topIn, at0, -1);
     if (!bondedTo1.empty()) {
       std::set<AtnumNbonds>::const_iterator it = bondedTo1.begin();
       potential2From1 = *it;
@@ -357,24 +365,31 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
       ai = atomIndices[idx];
       mprintf("DEBUG:\tAttempting to set atom i %i\n", ai+1);
       // Determine j k and l indices. Prefer atoms that have already been set.
-      std::set<AtnumNbonds> bondedAtomsI = getBondedAtomPriorities(ai, topIn, -1);
+      std::set<AtnumNbonds> bondedAtomsI = getBondedAtomPriorities(ai, topIn, -1, -1);
       aj = FirstOrFrontIdx( bondedAtomsI, hasIC );
       mprintf("DEBUG:\t\tAtom j = %i\n", aj+1);
-      std::set<AtnumNbonds> bondedAtomsJ = getBondedAtomPriorities(aj, topIn, ai); // TODO reuse bondedAtomsI?
+      std::set<AtnumNbonds> bondedAtomsJ = getBondedAtomPriorities(aj, topIn, ai, -1); // TODO reuse bondedAtomsI?
       ak = FirstOrFrontIdx( bondedAtomsJ, hasIC );
       mprintf("DEBUG:\t\tAtom k = %i\n", ak+1);
       // FIXME check for cycle here?
-      std::set<AtnumNbonds> bondedAtomsK = getBondedAtomPriorities(ak, topIn, aj); // TODO reuse bondedAtomsI?
+      std::set<AtnumNbonds> bondedAtomsK = getBondedAtomPriorities(ak, topIn, aj, ai); // TODO reuse bondedAtomsI?
       al = FirstOrFrontIdx( bondedAtomsK, hasIC );
       mprintf("DEBUG:\t\tAtom l = %i\n", al+1);
       if (aj < 0 || ak < 0 || al < 0) {
-        mprinterr("Internal Error: Could not find torsion for atom %i %s\n", ai+1, topIn.AtomMaskName(ai).c_str());
-        return 1;
+        //mprinterr("Internal Error: Could not find torsion for atom %i %s\n", ai+1, topIn.AtomMaskName(ai).c_str());
+        //return 1;
+        mprintf("Warning: Could not find torsion for atom %i %s\n", ai+1, topIn.AtomMaskName(ai).c_str());
+        mprintf("Warning: Creating pseudo torsion using seed atoms.\n");
+        aj = seedAt2_;
+        ak = seedAt1_;
+        al = seedAt0_;
+        // TODO mark such torsions as problematic in InternalCoords?
       }
       // All 3 of the connecting atoms must be set
       if (hasIC[aj] && hasIC[ak] && hasIC[al]) {
         findNextAtom = false;
-      }
+      } else
+        idx++;
     } // END loop over findNextAtom
     // Create IC for i j k l
     addIc(ai, aj, ak, al, frameIn.XYZ(ai), frameIn.XYZ(aj), frameIn.XYZ(ak), frameIn.XYZ(al));
@@ -477,7 +492,8 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
           hasPosition[ IC_[idx].AtL() ])
       {
         findNextIC = false;
-      }
+      } else
+        idx++;
     } // END loop finding next atom to set
     if (debug_ > 0) mprintf("DEBUG: Next IC to use is %u\n", idx+1);
 

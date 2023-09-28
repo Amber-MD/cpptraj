@@ -21,8 +21,10 @@ class Zmatrix {
     int AddICseed(InternalCoords const&);
     /// Set seed atoms from frame/top
     int SetSeedPositions(Frame const&, Topology const&, int, int, int);
-    /// Convert Frame/Topology to internal coordinates array
+    /// Convert specifed molecule of Frame/Topology to internal coordinates array
     int SetFromFrame(Frame const&, Topology const&, int);
+    /// Convert molecule 0 of Frame/Topology to internal coordinates array
+    int SetFromFrame(Frame const&, Topology const&);
 
     /// Set Frame from internal coords
     int SetToFrame(Frame&) const;
