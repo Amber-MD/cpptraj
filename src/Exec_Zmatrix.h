@@ -10,5 +10,6 @@ class Exec_Zmatrix : public Exec {
     RetType Execute(CpptrajState&, ArgList&);
   private:
     int getZmatrix(DataSet_Coords*, int, int, std::string const&, DataFile*, CpptrajState&) const;
+    int putZmatrix(DataSet_Coords*, std::string const&, std::string const&, CpptrajState&) const;
 };
 #endif

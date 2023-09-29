@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles cpptraj.in zmatrix.dat zmatrix.0SB.dat
+CleanFiles cpptraj.in zmatrix.dat zmatrix.0SB.dat fromZmatrix.0SB.mol2
 
 INPUT='-i cpptraj.in'
 
@@ -22,10 +22,13 @@ Sugar() {
   cat > cpptraj.in <<EOF
 parm 0SB.mol2
 loadcrd 0SB.mol2 name 0SB
-zmatrix 0SB out zmatrix.0SB.dat
+zmatrix 0SB out zmatrix.0SB.dat name MyZ
+zmatrix 0SB zset MyZ name MyCrd
+crdout MyCrd fromZmatrix.0SB.mol2
 EOF
   RunCpptraj "$TESTNAME, Sugar"
   DoTest zmatrix.0SB.dat.save zmatrix.0SB.dat
+  DoTest 0SB.mol2 fromZmatrix.0SB.mol2
 }
 
 Basic

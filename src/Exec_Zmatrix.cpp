@@ -11,6 +11,7 @@ void Exec_Zmatrix::Help() const
 
 }
 
+/** Get Zmatrix for specified molecule at specified frame number. */
 int Exec_Zmatrix::getZmatrix(DataSet_Coords* CRD, int molnum, int frmidx,
                              std::string const& dsname, DataFile* outfile, CpptrajState& State)
 const
@@ -47,13 +48,50 @@ const
   return errStat;
 }
 
+/** Create COORDS using Zmatrix. */
+int Exec_Zmatrix::putZmatrix(DataSet_Coords* CRD, std::string const& zsetname,
+                             std::string const& dsname, CpptrajState& State)
+const
+{
+  // Get zmatrix set
+  DataSet_Zmatrix* zmatrix = (DataSet_Zmatrix*)State.DSL().FindSetOfType( zsetname, DataSet::ZMATRIX );
+  if (zmatrix == 0) {
+    mprinterr("Error: No zmatrix set with name '%s' found.\n", zsetname.c_str());
+    return 1;
+  }
+  mprintf("\tZmatrix set : %s\n", zmatrix->legend());
+
+  // Create COORDS set
+  DataSet_Coords* out = (DataSet_Coords*)State.DSL().AddSet(DataSet::COORDS, dsname, "ZMCRD");
+  if (out == 0) {
+    mprinterr("Error: Could not create COORDS set for assigning from Zmatrix.\n");
+    return 1;
+  }
+  out->CoordsSetup( CRD->Top(), CRD->CoordsInfo());
+  mprintf("\tOutput coords set : %s\n", out->legend());
+
+  // Assign
+  Frame frm = out->AllocateFrame();
+  frm.ZeroCoords();
+  if (zmatrix->Zptr()->SetToFrame( frm )) {
+    mprinterr("Error: Zmatrix to Cartesian coords failed.\n");
+    return 1;
+  }
+  out->SetCRD(0, frm);
+
+  return 0;
+}
+
 // Exec_Zmatrix::Execute()
 Exec::RetType Exec_Zmatrix::Execute(CpptrajState& State, ArgList& argIn)
 {
   int molnum = argIn.getKeyInt("molnum", 1) - 1;
   int frmidx = argIn.getKeyInt("frame", 1) - 1;
   std::string dsname = argIn.GetStringKey("name");
-  DataFile* outfile = State.DFL().AddDataFile( argIn.GetStringKey("out"), argIn );
+
+  DataFile* outfile = State.DFL().AddDataFile( argIn.GetStringKey("out"), argIn ); // TODO not if zset
+
+  std::string zsetname = argIn.GetStringKey("zset");
 
   std::string setname = argIn.GetStringNext();
   if (setname.empty()) {
@@ -66,7 +104,12 @@ Exec::RetType Exec_Zmatrix::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
 
-  int errStat = getZmatrix(CRD, molnum, frmidx, dsname, outfile, State);
+  int errStat = 0;
+  if (!zsetname.empty()) {
+    errStat = putZmatrix(CRD, zsetname, dsname, State);
+  } else {
+    errStat = getZmatrix(CRD, molnum, frmidx, dsname, outfile, State);
+  }
 
   if (errStat != 0) return CpptrajState::ERR;
   return CpptrajState::OK;
