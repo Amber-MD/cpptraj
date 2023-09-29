@@ -476,7 +476,7 @@ int Zmatrix::SetFromFrame_Trace(Frame const& frameIn, Topology const& topIn, int
         // L - K - J
         addIc(*bat, seedAt2_, seedAt1_, seedAt0_, frameIn.XYZ(*bat), frameIn.XYZ(seedAt2_), frameIn.XYZ(seedAt1_), frameIn.XYZ(seedAt0_));
         MARK(*bat, hasIC, nHasIC);
-        // Follow improper branch if needed
+        // Follow improper branch if needed: L - K - I - ?
         if (traceMol(seedAt0_, seedAt1_, *bat, frameIn, topIn, maxnatom, nHasIC, hasIC)) return 1;
       }
     }
