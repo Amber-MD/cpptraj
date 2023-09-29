@@ -17,6 +17,7 @@ Exec::RetType Exec_Zmatrix::Execute(CpptrajState& State, ArgList& argIn)
   int molnum = argIn.getKeyInt("molnum", 1) - 1;
   int frmidx = argIn.getKeyInt("frame", 1) - 1;
   std::string dsname = argIn.GetStringKey("name");
+  DataFile* outfile = State.DFL().AddDataFile( argIn.GetStringKey("out"), argIn );
 
   std::string setname = argIn.GetStringNext();
   if (setname.empty()) {
@@ -39,10 +40,15 @@ Exec::RetType Exec_Zmatrix::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: Could not allocate zmatrix set.\n");
     return CpptrajState::ERR;
   }
+  zset->SetDim(Dimension::X, Dimension(1, 1, "IC"));
+  if (outfile != 0)
+    outfile->AddDataSet( zset );
 
-  mprintf("\tOutput set : %s\n", zset->legend());
-  mprintf("\tMolecule   : %i\n", molnum + 1 );
-  mprintf("\tFrame      : %i\n", frmidx + 1 );
+  mprintf("\tOutput set  : %s\n", zset->legend());
+  mprintf("\tMolecule    : %i\n", molnum + 1 );
+  mprintf("\tFrame       : %i\n", frmidx + 1 );
+  if (outfile != 0)
+    mprintf("\tOutput file : %s\n", outfile->DataFilename().full());
 
   Frame frmIn = CRD->AllocateFrame();
   CRD->GetFrame( frmidx, frmIn );
