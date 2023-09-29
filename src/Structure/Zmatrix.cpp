@@ -238,6 +238,75 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn) {
   return SetFromFrame(frameIn, topIn, 0);
 }
 
+/** Given a first seed, automatically determine remaining 2 seeds.
+  * Set all seed indices and positions.
+  */
+int Zmatrix::autoSetSeeds(Frame const& frameIn, Topology const& topIn, unsigned int maxnatom, int firstSeed)
+{
+  int at0 = firstSeed;
+  if (maxnatom < 2) {
+    seedAt0_ = at0;
+    seed0Pos_ = Vec3(frameIn.XYZ(seedAt0_));
+    return 0;
+  }
+  // Choose second seed atom as bonded atom with lowest index. Prefer heavy
+  // atoms and atoms with more than 1 bond.
+  std::set<AtnumNbonds> bondedTo0 = getBondedAtomPriorities(at0, topIn, -1, -1);
+  if (bondedTo0.empty()) {
+    mprinterr("Internal Error: Zmatrix::SetFromFrame(): could not get second seed atom.\n");
+    return 1;
+  }
+  int at1 = FrontIdx( bondedTo0 );
+  if (maxnatom < 3) {
+    seedAt1_ = at1;
+    seed1Pos_ = Vec3(frameIn.XYZ(seedAt1_));
+    return 0;
+  }
+  // The third seed atom will either be bonded to seed 0 or seed 1.
+  AtnumNbonds potential2From0, potential2From1;
+  std::set<AtnumNbonds> bondedTo1 = getBondedAtomPriorities(at1, topIn, at0, -1);
+  if (!bondedTo1.empty()) {
+    std::set<AtnumNbonds>::const_iterator it = bondedTo1.begin();
+    potential2From1 = *it;
+  }
+  if (bondedTo0.size() >= 2) {
+    std::set<AtnumNbonds>::const_iterator it = bondedTo0.begin();
+    ++it;
+    potential2From0 = *it;
+  }
+  if (potential2From0 < potential2From1) {
+    mprintf("DEBUG: 2 - 0 - 1\n");
+    seedAt0_ = potential2From0.Idx();
+    seedAt1_ = at0;
+    seedAt2_ = at1;
+    // D0 D1 D2 A2
+    //addIc(at2, DUMMY2, DUMMY1, DUMMY0, frameIn.XYZ(at2), seed2Pos_.Dptr(), seed1Pos_.Dptr(), seed0Pos_.Dptr());
+    // D1 D2 A2 A0
+    //addIc(at0, at2, DUMMY2, DUMMY1, frameIn.XYZ(at0), frameIn.XYZ(at2), seed2Pos_.Dptr(), seed1Pos_.Dptr());
+    // D2 A2 A0 A1
+    //addIc(at1, at0, at2, DUMMY2, frameIn.XYZ(at1), frameIn.XYZ(at0), frameIn.XYZ(at2), seed2Pos_.Dptr());
+  } else {
+    mprintf("DEBUG: 0 - 1 - 2\n");
+    seedAt0_ = at0;
+    seedAt1_ = at1;
+    seedAt2_ = potential2From1.Idx();
+    // D0 D1 D2 A0
+    //addIc(at0, DUMMY2, DUMMY1, DUMMY0, frameIn.XYZ(at0), seed2Pos_.Dptr(), seed1Pos_.Dptr(), seed0Pos_.Dptr());
+    // D1 D2 A0 A1
+    //addIc(at1, at0, DUMMY2, DUMMY1, frameIn.XYZ(at1), frameIn.XYZ(at0), seed2Pos_.Dptr(), seed1Pos_.Dptr());
+    // D2 A0 A1 A2
+    //addIc(at2, at1, at0, DUMMY2, frameIn.XYZ(at2), frameIn.XYZ(at1), frameIn.XYZ(at0), seed2Pos_.Dptr());
+  }
+  mprintf("DEBUG: Seed atoms: %s - %s - %s\n",
+          topIn.AtomMaskName(seedAt0_).c_str(), 
+          topIn.AtomMaskName(seedAt1_).c_str(), 
+          topIn.AtomMaskName(seedAt2_).c_str());
+  seed0Pos_ = Vec3(frameIn.XYZ(seedAt0_));
+  seed1Pos_ = Vec3(frameIn.XYZ(seedAt1_));
+  seed2Pos_ = Vec3(frameIn.XYZ(seedAt2_));
+  return 0;
+}
+
 /** Setup Zmatrix from Cartesian coordinates/topology. */
 int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnum)
 {
@@ -268,70 +337,11 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
   // See if we need to assign seed atoms
   if (!HasCartSeeds()) {
     // First seed atom will just be first atom TODO lowest index heavy atom?
-    int at0 = atomIndices.front();
-    if (maxnatom < 2) {
-      seedAt0_ = at0;
-      seed0Pos_ = Vec3(frameIn.XYZ(seedAt0_));
-      return 0;
-    }
-    // Choose second seed atom as bonded atom with lowest index. Prefer heavy
-    // atoms and atoms with more than 1 bond.
-    std::set<AtnumNbonds> bondedTo0 = getBondedAtomPriorities(at0, topIn, -1, -1);
-    if (bondedTo0.empty()) {
-      mprinterr("Internal Error: Zmatrix::SetFromFrame(): could not get second seed atom.\n");
+    if (autoSetSeeds(frameIn, topIn, maxnatom, atomIndices.front())) {
+      mprinterr("Error: Could not automatically determine seed atoms.\n");
       return 1;
     }
-    int at1 = FrontIdx( bondedTo0 );
-    if (maxnatom < 3) {
-      seedAt1_ = at1;
-      seed1Pos_ = Vec3(frameIn.XYZ(seedAt1_));
-      return 0;
-    }
-    // The third seed atom will either be bonded to seed 0 or seed 1.
-    AtnumNbonds potential2From0, potential2From1;
-    std::set<AtnumNbonds> bondedTo1 = getBondedAtomPriorities(at1, topIn, at0, -1);
-    if (!bondedTo1.empty()) {
-      std::set<AtnumNbonds>::const_iterator it = bondedTo1.begin();
-      potential2From1 = *it;
-    }
-    if (bondedTo0.size() >= 2) {
-      std::set<AtnumNbonds>::const_iterator it = bondedTo0.begin();
-      ++it;
-      potential2From0 = *it;
-    }
-    if (potential2From0 < potential2From1) {
-      mprintf("DEBUG: 2 - 0 - 1\n");
-      seedAt0_ = potential2From0.Idx();
-      seedAt1_ = at0;
-      seedAt2_ = at1;
-      // D0 D1 D2 A2
-      //addIc(at2, DUMMY2, DUMMY1, DUMMY0, frameIn.XYZ(at2), seed2Pos_.Dptr(), seed1Pos_.Dptr(), seed0Pos_.Dptr());
-      // D1 D2 A2 A0
-      //addIc(at0, at2, DUMMY2, DUMMY1, frameIn.XYZ(at0), frameIn.XYZ(at2), seed2Pos_.Dptr(), seed1Pos_.Dptr());
-      // D2 A2 A0 A1
-      //addIc(at1, at0, at2, DUMMY2, frameIn.XYZ(at1), frameIn.XYZ(at0), frameIn.XYZ(at2), seed2Pos_.Dptr());
-    } else {
-      mprintf("DEBUG: 0 - 1 - 2\n");
-      seedAt0_ = at0;
-      seedAt1_ = at1;
-      seedAt2_ = potential2From1.Idx();
-      // D0 D1 D2 A0
-      //addIc(at0, DUMMY2, DUMMY1, DUMMY0, frameIn.XYZ(at0), seed2Pos_.Dptr(), seed1Pos_.Dptr(), seed0Pos_.Dptr());
-      // D1 D2 A0 A1
-      //addIc(at1, at0, DUMMY2, DUMMY1, frameIn.XYZ(at1), frameIn.XYZ(at0), seed2Pos_.Dptr(), seed1Pos_.Dptr());
-      // D2 A0 A1 A2
-      //addIc(at2, at1, at0, DUMMY2, frameIn.XYZ(at2), frameIn.XYZ(at1), frameIn.XYZ(at0), seed2Pos_.Dptr());
-    }
-    mprintf("DEBUG: Seed atoms: %s - %s - %s\n",
-            topIn.AtomMaskName(seedAt0_).c_str(), 
-            topIn.AtomMaskName(seedAt1_).c_str(), 
-            topIn.AtomMaskName(seedAt2_).c_str());
-    MARK(seedAt0_, hasIC, nHasIC);
-    MARK(seedAt1_, hasIC, nHasIC);
-    MARK(seedAt2_, hasIC, nHasIC);
-    seed0Pos_ = Vec3(frameIn.XYZ(seedAt0_));
-    seed1Pos_ = Vec3(frameIn.XYZ(seedAt1_));
-    seed2Pos_ = Vec3(frameIn.XYZ(seedAt2_));
+
   } else {
     // Seed atoms already set
     mprintf("DEBUG: Cartesian Seed indices: %s %s %s\n",
@@ -339,7 +349,12 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
             topIn.AtomMaskName(seedAt1_).c_str(),
             topIn.AtomMaskName(seedAt2_).c_str());
   }
-
+  // If there are less than 4 atoms we are done
+  if (maxnatom < 4) return 0;
+  // Seeds are already done
+  MARK(seedAt0_, hasIC, nHasIC);
+  MARK(seedAt1_, hasIC, nHasIC);
+  MARK(seedAt2_, hasIC, nHasIC);
   // Do the remaining atoms.
   // Find the lowest unset atom.
   unsigned int lowestUnsetIdx = 0;

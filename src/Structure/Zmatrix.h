@@ -46,6 +46,8 @@ class Zmatrix {
     /// \return Internal coord of specified index
     InternalCoords const& operator[](int i) const { return IC_[i]; }
   private:
+    /// Automatically set seeds
+    int autoSetSeeds(Frame const&, Topology const&, unsigned int, int);
     /// Calculate and add an internal coordinate given indices and Cartesian coords.
     void addIc(int,int,int,int,const double*,const double*,const double*,const double*);
     /// \return True if IC seeds are set
