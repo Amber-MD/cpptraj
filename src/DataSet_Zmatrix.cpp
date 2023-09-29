@@ -39,8 +39,11 @@ void DataSet_Zmatrix::WriteBuffer(CpptrajFile &cbuffer, SizeArray const& frame) 
   if (frame[0] >= zmatrix_->N_IC())
     cbuffer.Printf(format_.fmt(), 0, 0, 0, 0, 0, 0, 0);
   else {
+    //mprintf("DEBUG: Format: %s\n", format_.fmt());
     InternalCoords const& ic = (*zmatrix_)[frame[0]];
-    cbuffer.Printf(format_.fmt(), ic.AtI()+1, ic.AtJ()+1, ic.AtK()+1, ic.AtL()+1,
+    cbuffer.Printf(format_.fmt(),
+                   (double)(ic.AtI()+1), (double)(ic.AtJ()+1),
+                   (double)(ic.AtK()+1), (double)(ic.AtL()+1),
                    ic.Dist(), ic.Theta(), ic.Phi());
   }
 }
