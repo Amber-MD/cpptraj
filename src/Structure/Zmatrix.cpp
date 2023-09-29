@@ -1,6 +1,7 @@
 #include <vector>
 #include <set>
 #include <algorithm> // std::sort
+#include <stack>
 #include <cmath> // cos
 #include "Zmatrix.h"
 #include "../Frame.h"
@@ -311,56 +312,26 @@ static inline void printIarray(std::vector<int> const& arr, const char* desc, To
   mprintf("\n");
 }
 
-/** Set up Zmatrix from Cartesian coordinates and topology.
-  * This algorithm attempts to "trace" the molecule in a manner that
-  * should make internal coordinate assignment more "natural".
-  */
-int Zmatrix::SetFromFrame_Trace(Frame const& frameIn, Topology const& topIn, int molnum)
+/// Hold 4 atoms
+class PHI {
+  public:
+    PHI(int ai, int aj, int ak, int al) : ai_(ai), aj_(aj), ak_(ak), al_(al) {}
+    int ai_, aj_, ak_, al_;
+};
+
+/** Trace molecule starting from L - K - J - ??. */
+int Zmatrix::traceMol(int atL0, int atK0, int atJ0,
+                      Frame const& frameIn, Topology const& topIn, unsigned int maxnatom,
+                      unsigned int& nHasIC, Barray& hasIC)
 {
-  if (molnum < 0) {
-    mprinterr("Internal Error: Zmatrix::SetFromFrame(): Negative molecule index.\n");
-    return 1;
-  }
-  if (topIn.Nmol() < 1) {
-    mprinterr("Internal Error: Zmatrix::SetFromFrame(): No molecules.\n");
-    return 1;
-  }
-  IC_.clear();
-  Molecule const& currentMol = topIn.Mol(molnum);
-  unsigned int maxnatom = currentMol.NumAtoms();
+  // Will hold branches that need to be investigated
+  std::stack<PHI> Branches;
 
-  // Keep track of which atoms are associated with an internal coordinate
-  std::vector<bool> hasIC( topIn.Natom(), false );
-  unsigned int nHasIC = 0;
+  int atL = atL0;
+  int atK = atK0;
+  int atJ = atJ0;
 
-// See if we need to assign seed atoms
-  if (!HasCartSeeds()) {
-    // First seed atom will just be first atom TODO lowest index heavy atom?
-    if (autoSetSeeds(frameIn, topIn, maxnatom, currentMol.MolUnit().Front())) {
-      mprinterr("Error: Could not automatically determine seed atoms.\n");
-      return 1;
-    }
-
-  } else {
-    // Seed atoms already set
-    mprintf("DEBUG: Cartesian Seed indices: %s %s %s\n",
-            topIn.AtomMaskName(seedAt0_).c_str(),
-            topIn.AtomMaskName(seedAt1_).c_str(),
-            topIn.AtomMaskName(seedAt2_).c_str());
-  }
-  // If there are less than 4 atoms we are done
-  if (maxnatom < 4) return 0;
-  // Seeds are already done
-  MARK(seedAt0_, hasIC, nHasIC);
-  MARK(seedAt1_, hasIC, nHasIC);
-  MARK(seedAt2_, hasIC, nHasIC);
-
-  // Do the remaining atoms.
-  // By convention search like:
-  // L - K - J - 
-  int atL = seedAt0_;
-  int atK = seedAt1_;
-  int atJ = seedAt2_;
+  int debug_it = 0; // DEBUG
 
   while (nHasIC < maxnatom) {
     mprintf("\nDEBUG: nHasIC= %8u / %8u : %s - %s - %s -\n", nHasIC, maxnatom,
@@ -390,9 +361,96 @@ int Zmatrix::SetFromFrame_Trace(Frame const& frameIn, Topology const& topIn, int
       addIc(*atI, atJ, atK, atL, frameIn.XYZ(*atI), frameIn.XYZ(atJ), frameIn.XYZ(atK), frameIn.XYZ(atL));
       MARK(*atI, hasIC, nHasIC);
     }
+    // If nothing else, check the stack
+    if (OtherAtoms.empty()) {
+      // If no branches, done for now.
+      if (Branches.empty()) {
+        mprintf("DEBUG: No more branches. Exiting traceMol.\n");
+        break;
+      }
+      // Add IC for the branch
+      PHI const& p = Branches.top();
+      mprintf("DEBUG:\t\tPopped off stack: %s - %s - %s - %s\n",
+              topIn.AtomMaskName(p.al_).c_str(),
+              topIn.AtomMaskName(p.ak_).c_str(),
+              topIn.AtomMaskName(p.aj_).c_str(),
+              topIn.AtomMaskName(p.ai_).c_str());
+      addIc(p.ai_, p.aj_, p.ak_, p.al_, frameIn.XYZ(p.ai_), frameIn.XYZ(p.aj_), frameIn.XYZ(p.ak_), frameIn.XYZ(p.al_));
+      Branches.pop();
+      MARK(p.ai_, hasIC, nHasIC);
+      atL = p.ak_;
+      atK = p.aj_;
+      atJ = p.ai_;
+    } else {
+      int atI = OtherAtoms.front();
+      mprintf("DEBUG:\t\tNext: %s - %s - %s - %s\n",
+              topIn.AtomMaskName(atL).c_str(),
+              topIn.AtomMaskName(atK).c_str(),
+              topIn.AtomMaskName(atJ).c_str(),
+              topIn.AtomMaskName(atI).c_str());
+      addIc(atI, atJ, atK, atL, frameIn.XYZ(atI), frameIn.XYZ(atJ), frameIn.XYZ(atK), frameIn.XYZ(atL));
+      // Designate lowest index as next. Place remainders on the stack.
+      atL = atK;
+      atK = atJ;
+      atJ = atI;
+      for (unsigned int ii = 1; ii < OtherAtoms.size(); ii++)
+        Branches.push( PHI(OtherAtoms[ii], atJ, atK, atL) );
 
-    break; // DEBUG
+    if (debug_it == 1) break; // DEBUG
+    debug_it++; // DEBUG
   }
+  return 0;
+}
+
+/** Set up Zmatrix from Cartesian coordinates and topology.
+  * This algorithm attempts to "trace" the molecule in a manner that
+  * should make internal coordinate assignment more "natural".
+  */
+int Zmatrix::SetFromFrame_Trace(Frame const& frameIn, Topology const& topIn, int molnum)
+{
+  if (molnum < 0) {
+    mprinterr("Internal Error: Zmatrix::SetFromFrame(): Negative molecule index.\n");
+    return 1;
+  }
+  if (topIn.Nmol() < 1) {
+    mprinterr("Internal Error: Zmatrix::SetFromFrame(): No molecules.\n");
+    return 1;
+  }
+  IC_.clear();
+  Molecule const& currentMol = topIn.Mol(molnum);
+  unsigned int maxnatom = currentMol.NumAtoms();
+
+  // Keep track of which atoms are associated with an internal coordinate
+  Barray hasIC( topIn.Natom(), false );
+  unsigned int nHasIC = 0;
+
+// See if we need to assign seed atoms
+  if (!HasCartSeeds()) {
+    // First seed atom will just be first atom TODO lowest index heavy atom?
+    if (autoSetSeeds(frameIn, topIn, maxnatom, currentMol.MolUnit().Front())) {
+      mprinterr("Error: Could not automatically determine seed atoms.\n");
+      return 1;
+    }
+
+  } else {
+    // Seed atoms already set
+    mprintf("DEBUG: Cartesian Seed indices: %s %s %s\n",
+            topIn.AtomMaskName(seedAt0_).c_str(),
+            topIn.AtomMaskName(seedAt1_).c_str(),
+            topIn.AtomMaskName(seedAt2_).c_str());
+  }
+  // If there are less than 4 atoms we are done
+  if (maxnatom < 4) return 0;
+  // Seeds are already done
+  MARK(seedAt0_, hasIC, nHasIC);
+  MARK(seedAt1_, hasIC, nHasIC);
+  MARK(seedAt2_, hasIC, nHasIC);
+
+  // Do the remaining atoms.
+  // L - K - J - ?
+  if (traceMol(seedAt0_, seedAt1_, seedAt2_, frameIn, topIn, maxnatom, nHasIC, hasIC)) return 1;
+  // J - K - L - ?
+  if (traceMol(seedAt2_, seedAt1_, seedAt0_, frameIn, topIn, maxnatom, nHasIC, hasIC)) return 1;
 
   return 0;
 }
@@ -427,7 +485,7 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
   unsigned int maxnatom = atomIndices.size();
 
   // Keep track of which atoms are associated with an internal coordinate
-  std::vector<bool> hasIC( topIn.Natom(), false );
+  Barray hasIC( topIn.Natom(), false );
   unsigned int nHasIC = 0;
 
   // See if we need to assign seed atoms
@@ -524,7 +582,7 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
   */
 int Zmatrix::SetToFrame(Frame& frameOut) const {
   // Track which atoms have Cartesian coords set
-  std::vector<bool> hasPosition( frameOut.Natom(), false );
+  Barray hasPosition( frameOut.Natom(), false );
   // If any seed positions are defined, set them now
   if (seedAt0_ != InternalCoords::NO_ATOM) {
     frameOut.SetXYZ( seedAt0_, seed0Pos_ );
@@ -539,7 +597,7 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
     hasPosition[ seedAt2_ ] = true;
   }
   // Track which ICs are used
-  std::vector<bool> isUsed( IC_.size(), false );
+  Barray isUsed( IC_.size(), false );
   unsigned int Nused = 0;
   // Set positions of atoms from internal coordinate seeds. TODO check for clashes with seedAtX?
   if (icseed0_ != InternalCoords::NO_ATOM) {

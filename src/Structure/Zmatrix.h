@@ -48,10 +48,13 @@ class Zmatrix {
     InternalCoords const& operator[](int i) const { return IC_[i]; }
   private:
     typedef std::vector<int> Iarray;
+    typedef std::vector<bool> Barray;
     /// Automatically set seeds
     int autoSetSeeds(Frame const&, Topology const&, unsigned int, int);
     /// Calculate and add an internal coordinate given indices and Cartesian coords.
     void addIc(int,int,int,int,const double*,const double*,const double*,const double*);
+    /// Add internal coordiantes by tracing a molecule
+    int traceMol(int, int, int, Frame const&, Topology const&, unsigned int, unsigned int&, Barray&);
     /// \return True if IC seeds are set
     //bool HasICSeeds() const;
     /// \return True if Cartesian seeds are set
