@@ -56,7 +56,7 @@ Exec::RetType Exec_Zmatrix::Execute(CpptrajState& State, ArgList& argIn)
   Zmatrix& zmatrix = *(zset->Zptr());
 
   zmatrix.SetDebug( State.Debug() );
-  int errStat = zmatrix.SetFromFrame( frmIn, CRD->Top(), molnum );
+  int errStat = zmatrix.SetFromFrame_Trace( frmIn, CRD->Top(), molnum );
   zmatrix.print(); // DEBUG
   if (errStat != 0) return CpptrajState::ERR;
   return CpptrajState::OK;

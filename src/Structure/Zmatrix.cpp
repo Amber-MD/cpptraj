@@ -1,5 +1,7 @@
 #include <vector>
 #include <set>
+#include <algorithm> // std::sort
+#include <cmath> // cos
 #include "Zmatrix.h"
 #include "../Frame.h"
 #include "../CpptrajStdio.h"
@@ -7,7 +9,6 @@
 #include "../DistRoutines.h"
 #include "../Topology.h"
 #include "../TorsionRoutines.h"
-#include <cmath> // cos
 
 using namespace Cpptraj::Structure;
 
@@ -233,11 +234,6 @@ void Zmatrix::addIc(int at0, int at1, int at2, int at3,
                                 Torsion(xyz0, xyz1, xyz2, xyz3) * Constants::RADDEG) );
 }
 
-/** Setup Zmatrix from Cartesian coordinates/topology. */
-int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn) {
-  return SetFromFrame(frameIn, topIn, 0);
-}
-
 /** Given a first seed, automatically determine remaining 2 seeds.
   * Set all seed indices and positions.
   */
@@ -307,6 +303,14 @@ int Zmatrix::autoSetSeeds(Frame const& frameIn, Topology const& topIn, unsigned 
   return 0;
 }
 
+static inline void printIarray(std::vector<int> const& arr, const char* desc, Topology const& topIn) {
+  mprintf("DEBUG:\t\t%s:", desc);
+  for (std::vector<int>::const_iterator it = arr.begin(); it != arr.end(); ++it)
+    //mprintf(" %i", *it);
+    mprintf(" %s", topIn.AtomMaskName(*it).c_str());
+  mprintf("\n");
+}
+
 /** Set up Zmatrix from Cartesian coordinates and topology.
   * This algorithm attempts to "trace" the molecule in a manner that
   * should make internal coordinate assignment more "natural".
@@ -351,11 +355,54 @@ int Zmatrix::SetFromFrame_Trace(Frame const& frameIn, Topology const& topIn, int
   MARK(seedAt1_, hasIC, nHasIC);
   MARK(seedAt2_, hasIC, nHasIC);
 
+  // Do the remaining atoms.
+  // By convention search like:
+  // L - K - J - 
+  int atL = seedAt0_;
+  int atK = seedAt1_;
+  int atJ = seedAt2_;
+
+  while (nHasIC < maxnatom) {
+    mprintf("\nDEBUG: nHasIC= %8u / %8u : %s - %s - %s -\n", nHasIC, maxnatom,
+            topIn.AtomMaskName(atL).c_str(),
+            topIn.AtomMaskName(atK).c_str(),
+            topIn.AtomMaskName(atJ).c_str());
+    // List all atoms bonded to J with the following priority:
+    //   1) Atoms with 1 bond.
+    //   2) Low index atoms.
+    Iarray OneBondAtoms; // TODO allocate outside loop?
+    Iarray OtherAtoms;
+    for (Atom::bond_iterator bat = topIn[atJ].bondbegin(); bat != topIn[atJ].bondend(); ++bat)
+    {
+      if (!hasIC[*bat]) {
+        if (topIn[*bat].Nbonds() == 1)
+          OneBondAtoms.push_back( *bat );
+        else
+          OtherAtoms.push_back( *bat );
+      }
+    }
+    if (OtherAtoms.size() > 1)
+      std::sort( OtherAtoms.begin(), OtherAtoms.end() );
+    printIarray( OneBondAtoms, "OneBondAtoms", topIn );
+    printIarray( OtherAtoms, "OtherAtoms", topIn );
+    // Create ICs for 1 bond atoms
+    for (Iarray::const_iterator atI = OneBondAtoms.begin(); atI != OneBondAtoms.end(); ++atI) {
+      addIc(*atI, atJ, atK, atL, frameIn.XYZ(*atI), frameIn.XYZ(atJ), frameIn.XYZ(atK), frameIn.XYZ(atL));
+      MARK(*atI, hasIC, nHasIC);
+    }
+
+    break; // DEBUG
+  }
+
   return 0;
 }
 
 
 
+/** Setup Zmatrix from Cartesian coordinates/topology. */
+int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn) {
+  return SetFromFrame(frameIn, topIn, 0);
+}
 
 /** Setup Zmatrix from Cartesian coordinates/topology. */
 int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnum)
@@ -371,7 +418,6 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
   IC_.clear();
   Molecule const& currentMol = topIn.Mol(molnum);
   // Flatten the molecule array
-  typedef std::vector<int> Iarray;
   Iarray atomIndices;
   atomIndices.reserve( currentMol.NumAtoms() );
   for (Unit::const_iterator seg = currentMol.MolUnit().segBegin();
