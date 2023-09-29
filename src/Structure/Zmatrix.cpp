@@ -378,6 +378,7 @@ int Zmatrix::traceMol(int atL0, int atK0, int atJ0,
       addIc(p.ai_, p.aj_, p.ak_, p.al_, frameIn.XYZ(p.ai_), frameIn.XYZ(p.aj_), frameIn.XYZ(p.ak_), frameIn.XYZ(p.al_));
       Branches.pop();
       MARK(p.ai_, hasIC, nHasIC);
+      // Designate branch as next.
       atL = p.ak_;
       atK = p.aj_;
       atJ = p.ai_;
@@ -388,15 +389,25 @@ int Zmatrix::traceMol(int atL0, int atK0, int atJ0,
               topIn.AtomMaskName(atK).c_str(),
               topIn.AtomMaskName(atJ).c_str(),
               topIn.AtomMaskName(atI).c_str());
+      // Add lowest index as IC
       addIc(atI, atJ, atK, atL, frameIn.XYZ(atI), frameIn.XYZ(atJ), frameIn.XYZ(atK), frameIn.XYZ(atL));
-      // Designate lowest index as next. Place remainders on the stack.
+      MARK(atI, hasIC, nHasIC);
+      // Place all above lowest index on the stack.
+      for (unsigned int ii = 1; ii < OtherAtoms.size(); ii++) {
+        Branches.push( PHI(OtherAtoms[ii], atJ, atK, atL) );
+        PHI const& p = Branches.top();
+        mprintf("DEBUG:\t\tPlaced on stack: %s - %s - %s - %s (%zu)\n",
+                topIn.AtomMaskName(p.al_).c_str(),
+                topIn.AtomMaskName(p.ak_).c_str(),
+                topIn.AtomMaskName(p.aj_).c_str(),
+                topIn.AtomMaskName(p.ai_).c_str(), Branches.size());
+      }
+      // Designate lowest index as next
       atL = atK;
       atK = atJ;
       atJ = atI;
-      for (unsigned int ii = 1; ii < OtherAtoms.size(); ii++)
-        Branches.push( PHI(OtherAtoms[ii], atJ, atK, atL) );
-
-    if (debug_it == 1) break; // DEBUG
+    }
+    //if (debug_it == 1) break; // DEBUG
     debug_it++; // DEBUG
   }
   return 0;
@@ -451,6 +462,10 @@ int Zmatrix::SetFromFrame_Trace(Frame const& frameIn, Topology const& topIn, int
   if (traceMol(seedAt0_, seedAt1_, seedAt2_, frameIn, topIn, maxnatom, nHasIC, hasIC)) return 1;
   // J - K - L - ?
   if (traceMol(seedAt2_, seedAt1_, seedAt0_, frameIn, topIn, maxnatom, nHasIC, hasIC)) return 1;
+
+  if (nHasIC < maxnatom) {
+    mprintf("Warning: Not all atoms have an associated internal coordinate.\n");
+  }
 
   return 0;
 }
