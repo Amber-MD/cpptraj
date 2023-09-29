@@ -23,6 +23,8 @@ class Zmatrix {
     int SetSeedPositions(Frame const&, Topology const&, int, int, int);
     /// Convert specifed molecule of Frame/Topology to internal coordinates array
     int SetFromFrame(Frame const&, Topology const&, int);
+    /// Convert from Cartesian to Zmatrix by tracing a molecule
+    int SetFromFrame_Trace(Frame const&, Topology const&, int);
     /// Convert molecule 0 of Frame/Topology to internal coordinates array
     int SetFromFrame(Frame const&, Topology const&);
 

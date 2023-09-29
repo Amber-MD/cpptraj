@@ -307,6 +307,56 @@ int Zmatrix::autoSetSeeds(Frame const& frameIn, Topology const& topIn, unsigned 
   return 0;
 }
 
+/** Set up Zmatrix from Cartesian coordinates and topology.
+  * This algorithm attempts to "trace" the molecule in a manner that
+  * should make internal coordinate assignment more "natural".
+  */
+int Zmatrix::SetFromFrame_Trace(Frame const& frameIn, Topology const& topIn, int molnum)
+{
+  if (molnum < 0) {
+    mprinterr("Internal Error: Zmatrix::SetFromFrame(): Negative molecule index.\n");
+    return 1;
+  }
+  if (topIn.Nmol() < 1) {
+    mprinterr("Internal Error: Zmatrix::SetFromFrame(): No molecules.\n");
+    return 1;
+  }
+  IC_.clear();
+  Molecule const& currentMol = topIn.Mol(molnum);
+  unsigned int maxnatom = currentMol.NumAtoms();
+
+  // Keep track of which atoms are associated with an internal coordinate
+  std::vector<bool> hasIC( topIn.Natom(), false );
+  unsigned int nHasIC = 0;
+
+// See if we need to assign seed atoms
+  if (!HasCartSeeds()) {
+    // First seed atom will just be first atom TODO lowest index heavy atom?
+    if (autoSetSeeds(frameIn, topIn, maxnatom, currentMol.MolUnit().Front())) {
+      mprinterr("Error: Could not automatically determine seed atoms.\n");
+      return 1;
+    }
+
+  } else {
+    // Seed atoms already set
+    mprintf("DEBUG: Cartesian Seed indices: %s %s %s\n",
+            topIn.AtomMaskName(seedAt0_).c_str(),
+            topIn.AtomMaskName(seedAt1_).c_str(),
+            topIn.AtomMaskName(seedAt2_).c_str());
+  }
+  // If there are less than 4 atoms we are done
+  if (maxnatom < 4) return 0;
+  // Seeds are already done
+  MARK(seedAt0_, hasIC, nHasIC);
+  MARK(seedAt1_, hasIC, nHasIC);
+  MARK(seedAt2_, hasIC, nHasIC);
+
+  return 0;
+}
+
+
+
+
 /** Setup Zmatrix from Cartesian coordinates/topology. */
 int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnum)
 {
