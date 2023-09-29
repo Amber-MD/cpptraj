@@ -34,6 +34,17 @@ class Zmatrix {
     typedef ICarray::const_iterator const_iterator;
     const_iterator begin() const { return IC_.begin(); }
     const_iterator end()   const { return IC_.end(); }
+
+    /// \return number of internal coords
+    unsigned int N_IC() const { return IC_.size(); }
+    /// \return memory usage in bytes
+    unsigned int sizeInBytes() const { return (7*sizeof(int)) +
+                                              (9*sizeof(double)) + // 3 Vec3
+                                              (IC_.size() * InternalCoords::sizeInBytes()); }
+    /// \reserve space for # of internal coords TODO zero out seeds?
+    void reserve(unsigned int n) { IC_.reserve( n ); }
+    /// \return Internal coord of specified index
+    InternalCoords const& operator[](int i) const { return IC_[i]; }
   private:
     /// Calculate and add an internal coordinate given indices and Cartesian coords.
     void addIc(int,int,int,int,const double*,const double*,const double*,const double*);

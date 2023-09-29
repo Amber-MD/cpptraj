@@ -35,6 +35,7 @@ class InternalCoords {
     int AtK() const { return idx_[1]; }
     int AtL() const { return idx_[2]; }
 
+    static unsigned int sizeInBytes() { return (4*sizeof(int)) + (3*sizeof(double)); }
   private:
     int ati_;       ///< Atom I index
     int idx_[3];    ///< Atom indices for distance, angle, torsion
