@@ -1,0 +1,18 @@
+@<TRIPOS>MOLECULE
+Cpptraj Generated mol2 file.
+    4     3     1     0     0
+SMALL
+USER_CHARGES
+
+
+@<TRIPOS>ATOM
+      1 CH3         7.4849   -0.7179   -1.6206 Cg         1 MEX      0.000000
+      2 H1          6.7230   -0.0077   -1.9247 H1         1 MEX      0.233000
+      3 H2          7.0157   -1.6856   -1.4777 H1         1 MEX      0.000000
+      4 H3          8.2022   -0.8197   -2.4283 H1         1 MEX      0.000000
+@<TRIPOS>BOND
+    1     1     2 1
+    2     1     3 1
+    3     1     4 1
+@<TRIPOS>SUBSTRUCTURE
+      1 MEX               1 ****               0 ****  **** 
