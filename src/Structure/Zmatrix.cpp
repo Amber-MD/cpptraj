@@ -235,6 +235,94 @@ void Zmatrix::addIc(int at0, int at1, int at2, int at3,
                                 Torsion(xyz0, xyz1, xyz2, xyz3) * Constants::RADDEG) );
 }
 
+/** Simple automatic setting of seeds for a molecule.
+  * seed0 - seed1 - seed 2
+  * Prefer that seed1 has only exactly 2 bonds. It cannot have 1.
+  */
+int Zmatrix::autoSetSeeds_simple(Frame const& frameIn, Topology const& topIn, Molecule const& mol)
+{
+  seedAt0_ = InternalCoords::NO_ATOM;
+  seedAt1_ = InternalCoords::NO_ATOM;
+  seedAt2_ = InternalCoords::NO_ATOM;
+
+  // Handle special cases
+  if (mol.NumAtoms() < 1) {
+    mprinterr("Internal Error: Zmatrix::autoSetSeeds_simple() called with an empty molecule.\n");
+    return 1;
+  }
+  if (mol.NumAtoms() == 1) {
+    seedAt0_ = mol.MolUnit().Front();
+    seed0Pos_ = Vec3(frameIn.XYZ(seedAt0_));
+    return 0;
+  } else if (mol.NumAtoms() == 2) {
+    seedAt0_ = mol.MolUnit().Front();
+    seed0Pos_ = Vec3(frameIn.XYZ(seedAt0_));
+    if (topIn[seedAt0_].Nbonds() != 1) {
+      mprinterr("Internal Error: Zmatrix::autoSetSeeds_simple(): 2 atoms but no bonds.\n");
+      return 1;
+    }
+    seedAt1_ = topIn[seedAt0_].Bond(0);
+    seed1Pos_ = Vec3(frameIn.XYZ(seedAt1_));
+    return 0;
+  }
+
+  int potentialSeed1 = -1;
+  int potentialSeedNbonds = -1;
+  for (Unit::const_iterator seg = mol.MolUnit().segBegin();
+                            seg != mol.MolUnit().segEnd(); ++seg)
+  {
+    for (int idx = seg->Begin(); idx != seg->End(); ++idx) {
+      if (topIn[idx].Nbonds() > 1) {
+        // New seed1 if this seed1 has fewer bonds
+        if (potentialSeed1 == -1 || topIn[idx].Nbonds() < potentialSeedNbonds) {
+          potentialSeed1 = idx;
+          potentialSeedNbonds = topIn[idx].Nbonds();
+          if (potentialSeedNbonds == 2) {
+            seedAt1_ = idx;
+            break;
+          }
+        }
+      }
+    } // END loop over segment atoms
+    // Exit if a good seed was found
+    if (seedAt1_ != InternalCoords::NO_ATOM) break;
+  }
+  if (seedAt1_ == InternalCoords::NO_ATOM) {
+    mprintf("DEBUG: No seed1 with just 2 bonds found. Using seed1 with %i bonds.\n", potentialSeedNbonds);
+    seedAt1_ = potentialSeed1;
+  }
+  if (seedAt1_ == InternalCoords::NO_ATOM) {
+    mprinterr("Error: No seed1 could be found.\n");
+    return 1;
+  }
+
+  // seed0 will be lowest index, seed 1 will be highest
+  int lowestidx = -1;
+  int highestidx = -1;
+  for (Atom::bond_iterator bat = topIn[seedAt1_].bondbegin(); bat != topIn[seedAt1_].bondend(); ++bat)
+  {
+    if (lowestidx == -1) {
+      lowestidx = *bat;
+      highestidx = *bat;
+    } else {
+      lowestidx = std::min(lowestidx, *bat);
+      highestidx = std::max(highestidx, *bat);
+    }
+  }
+  seedAt0_ = lowestidx;
+  seedAt2_ = highestidx;
+
+  mprintf("DEBUG: Potential seed 0: %i %s\n", seedAt0_+1, topIn.AtomMaskName(seedAt0_).c_str());
+  mprintf("DEBUG: Potential seed 1: %i %s\n", seedAt1_+1, topIn.AtomMaskName(seedAt1_).c_str());
+  mprintf("DEBUG: Potential seed 2: %i %s\n", seedAt2_+1, topIn.AtomMaskName(seedAt2_).c_str());
+    
+  seed0Pos_ = Vec3(frameIn.XYZ(seedAt0_));
+  seed1Pos_ = Vec3(frameIn.XYZ(seedAt1_));
+  seed2Pos_ = Vec3(frameIn.XYZ(seedAt2_));
+
+  return 0;
+}
+
 /** Given a first seed, automatically determine remaining 2 seeds.
   * Set all seed indices and positions.
   */
@@ -438,7 +526,8 @@ int Zmatrix::SetFromFrame_Trace(Frame const& frameIn, Topology const& topIn, int
 // See if we need to assign seed atoms
   if (!HasCartSeeds()) {
     // First seed atom will just be first atom TODO lowest index heavy atom?
-    if (autoSetSeeds(frameIn, topIn, maxnatom, currentMol.MolUnit().Front())) {
+    if (autoSetSeeds_simple(frameIn, topIn, currentMol)) {
+    //if (autoSetSeeds(frameIn, topIn, maxnatom, currentMol.MolUnit().Front())) {
       mprinterr("Error: Could not automatically determine seed atoms.\n");
       return 1;
     }

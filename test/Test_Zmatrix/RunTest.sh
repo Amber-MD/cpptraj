@@ -2,7 +2,8 @@
 
 . ../MasterTest.sh
 
-CleanFiles cpptraj.in zmatrix.dat zmatrix.0SB.dat fromZmatrix.0SB.mol2
+CleanFiles cpptraj.in zmatrix.dat zmatrix.0SB.dat fromZmatrix.0SB.mol2 \
+           zmatrix.MEX.dat fromZmatrix.MEX.mol2
 
 INPUT='-i cpptraj.in'
 
@@ -31,7 +32,20 @@ EOF
   DoTest 0SB.mol2 fromZmatrix.0SB.mol2
 }
 
+MEX() {
+  cat > cpptraj.in <<EOF
+parm MEX.mol2
+loadcrd MEX.mol2 name MEX
+zmatrix MEX out zmatrix.MEX.dat name MyZ
+zmatrix MEX zset MyZ name MyCrd
+crdout MyCrd fromZmatrix.MEX.mol2
+EOF
+  RunCpptraj "$TESTNAME, methyl"
+  DoTest MEX.mol2 fromZmatrix.MEX.mol2
+}
+
 Basic
 Sugar
+MEX
 
 EndTest

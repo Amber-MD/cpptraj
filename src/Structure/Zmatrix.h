@@ -4,6 +4,7 @@
 #include "../Vec3.h"
 class Frame;
 class Topology;
+class Molecule;
 namespace Cpptraj {
 namespace Structure {
 /// Hold internal coordinates for a system.
@@ -49,6 +50,8 @@ class Zmatrix {
   private:
     typedef std::vector<int> Iarray;
     typedef std::vector<bool> Barray;
+    /// Simple version of auto set seeds based on connectivity only
+    int autoSetSeeds_simple(Frame const&, Topology const&, Molecule const&);
     /// Automatically set seeds
     int autoSetSeeds(Frame const&, Topology const&, unsigned int, int);
     /// Calculate and add an internal coordinate given indices and Cartesian coords.
