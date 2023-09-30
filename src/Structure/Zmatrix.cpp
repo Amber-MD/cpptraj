@@ -723,45 +723,46 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
   // Track which ICs are used
   Barray isUsed( IC_.size(), false );
   unsigned int Nused = 0;
-  // Set positions of atoms from internal coordinate seeds. TODO check for clashes with seedAtX?
-  if (icseed0_ != InternalCoords::NO_ATOM) {
-    // First seed IC atom
-    frameOut.SetXYZ(IC_[icseed0_].AtI(), Vec3(0.0));
-    hasPosition[IC_[icseed0_].AtI()] = true;
-    MARK(icseed0_, isUsed, Nused);
-    // Set position of the second atom.
-    if (icseed1_ != InternalCoords::NO_ATOM) {
-      if (IC_[icseed1_].AtJ() != IC_[icseed0_].AtI()) {
-        mprinterr("Internal Error: Atom j of seed 1 is not Atom i of seed 0.\n");
-        return 1;
-      }
-      double r1 = IC_[icseed1_].Dist();
-      frameOut.SetXYZ(IC_[icseed1_].AtI(), Vec3(r1, 0, 0));
-      hasPosition[IC_[icseed1_].AtI()] = true;
-      MARK(icseed1_, isUsed, Nused);
-      // Set position of the third atom
-      if (icseed2_ != InternalCoords::NO_ATOM) {
-        if (IC_[icseed2_].AtJ() != IC_[icseed1_].AtI()) {
-          mprinterr("Internal Error: Atom j of seed 2 is not Atom i of seed 1.\n");
+  if (!HasCartSeeds()) {
+    // Set positions of atoms from internal coordinate seeds. TODO check for clashes with seedAtX?
+    if (icseed0_ != InternalCoords::NO_ATOM) {
+      // First seed IC atom
+      frameOut.SetXYZ(IC_[icseed0_].AtI(), Vec3(0.0));
+      hasPosition[IC_[icseed0_].AtI()] = true;
+      MARK(icseed0_, isUsed, Nused);
+      // Set position of the second atom.
+      if (icseed1_ != InternalCoords::NO_ATOM) {
+        if (IC_[icseed1_].AtJ() != IC_[icseed0_].AtI()) {
+          mprinterr("Internal Error: Atom j of seed 1 is not Atom i of seed 0.\n");
           return 1;
         }
-        if (IC_[icseed2_].AtK() != IC_[icseed0_].AtI()) {
-          mprinterr("Internal Error: Atom k of seed 2 is not Atom i of seed 0.\n");
-          return 1;
-        }
-        double r2 = IC_[icseed2_].Dist();
-        double theta = IC_[icseed2_].Theta();
+        double r1 = IC_[icseed1_].Dist();
+        frameOut.SetXYZ(IC_[icseed1_].AtI(), Vec3(r1, 0, 0));
+        hasPosition[IC_[icseed1_].AtI()] = true;
+        MARK(icseed1_, isUsed, Nused);
+        // Set position of the third atom
+        if (icseed2_ != InternalCoords::NO_ATOM) {
+          if (IC_[icseed2_].AtJ() != IC_[icseed1_].AtI()) {
+            mprinterr("Internal Error: Atom j of seed 2 is not Atom i of seed 1.\n");
+            return 1;
+          }
+          if (IC_[icseed2_].AtK() != IC_[icseed0_].AtI()) {
+            mprinterr("Internal Error: Atom k of seed 2 is not Atom i of seed 0.\n");
+            return 1;
+          }
+          double r2 = IC_[icseed2_].Dist();
+          double theta = IC_[icseed2_].Theta();
 
-        double x = r2 * cos(180.0 - theta) * Constants::DEGRAD;
-        double y = r2 * cos(180.0 - theta) * Constants::DEGRAD;
+          double x = r2 * cos(180.0 - theta) * Constants::DEGRAD;
+          double y = r2 * cos(180.0 - theta) * Constants::DEGRAD;
 
-        frameOut.SetXYZ( IC_[icseed2_].AtI(), Vec3(r1 + x, y, 0) );
-        hasPosition[IC_[icseed2_].AtI()] = true;
-        MARK(icseed2_, isUsed, Nused);
-      } // END seed atom 2
-    } // END seed atom 1
-  } // END seed atom 0
-
+          frameOut.SetXYZ( IC_[icseed2_].AtI(), Vec3(r1 + x, y, 0) );
+          hasPosition[IC_[icseed2_].AtI()] = true;
+          MARK(icseed2_, isUsed, Nused);
+        } // END seed atom 2
+      } // END seed atom 1
+    } // END seed atom 0
+  } // END Does not have Cart. seeds
   // Find the lowest unused IC
   unsigned int lowestUnusedIC = 0;
   for (; lowestUnusedIC < IC_.size(); ++lowestUnusedIC)
