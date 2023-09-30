@@ -540,15 +540,18 @@ int Zmatrix::SetFromFrame_Trace(Frame const& frameIn, Topology const& topIn, int
             topIn.AtomMaskName(seedAt2_).c_str());
   }
   // Add IC seeds
-  AddICseed( InternalCoords(seedAt0_, InternalCoords::NO_ATOM, InternalCoords::NO_ATOM, InternalCoords::NO_ATOM,
-                            0, 0, 0) );
-  AddICseed( InternalCoords(seedAt1_, seedAt0_, InternalCoords::NO_ATOM, InternalCoords::NO_ATOM,
-                            sqrt(DIST2_NoImage(frameIn.XYZ(seedAt1_), frameIn.XYZ(seedAt0_))),
-                            0, 0) );
-  AddICseed( InternalCoords(seedAt2_, seedAt1_, seedAt0_, InternalCoords::NO_ATOM,
-                            sqrt(DIST2_NoImage(frameIn.XYZ(seedAt2_), frameIn.XYZ(seedAt1_))),
-                            CalcAngle(frameIn.XYZ(seedAt2_), frameIn.XYZ(seedAt1_), frameIn.XYZ(seedAt0_))*Constants::RADDEG,
-                            0) );
+  if (seedAt0_ != InternalCoords::NO_ATOM)
+    AddICseed( InternalCoords(seedAt0_, InternalCoords::NO_ATOM, InternalCoords::NO_ATOM, InternalCoords::NO_ATOM,
+                              0, 0, 0) );
+  if (seedAt1_ != InternalCoords::NO_ATOM)
+    AddICseed( InternalCoords(seedAt1_, seedAt0_, InternalCoords::NO_ATOM, InternalCoords::NO_ATOM,
+                              sqrt(DIST2_NoImage(frameIn.XYZ(seedAt1_), frameIn.XYZ(seedAt0_))),
+                              0, 0) );
+  if (seedAt2_ != InternalCoords::NO_ATOM)
+    AddICseed( InternalCoords(seedAt2_, seedAt1_, seedAt0_, InternalCoords::NO_ATOM,
+                              sqrt(DIST2_NoImage(frameIn.XYZ(seedAt2_), frameIn.XYZ(seedAt1_))),
+                              CalcAngle(frameIn.XYZ(seedAt2_), frameIn.XYZ(seedAt1_), frameIn.XYZ(seedAt0_))*Constants::RADDEG,
+                              0) );
   // If there are less than 4 atoms we are done
   if (maxnatom < 4) return 0;
   // Seeds are already done
