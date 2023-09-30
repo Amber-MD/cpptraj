@@ -523,7 +523,7 @@ int Zmatrix::SetFromFrame_Trace(Frame const& frameIn, Topology const& topIn, int
   Barray hasIC( topIn.Natom(), false );
   unsigned int nHasIC = 0;
 
-// See if we need to assign seed atoms
+  // See if we need to assign seed atoms
   if (!HasCartSeeds()) {
     // First seed atom will just be first atom TODO lowest index heavy atom?
     if (autoSetSeeds_simple(frameIn, topIn, currentMol)) {
@@ -539,6 +539,16 @@ int Zmatrix::SetFromFrame_Trace(Frame const& frameIn, Topology const& topIn, int
             topIn.AtomMaskName(seedAt1_).c_str(),
             topIn.AtomMaskName(seedAt2_).c_str());
   }
+  // Add IC seeds
+  AddICseed( InternalCoords(seedAt0_, InternalCoords::NO_ATOM, InternalCoords::NO_ATOM, InternalCoords::NO_ATOM,
+                            0, 0, 0) );
+  AddICseed( InternalCoords(seedAt1_, seedAt0_, InternalCoords::NO_ATOM, InternalCoords::NO_ATOM,
+                            sqrt(DIST2_NoImage(frameIn.XYZ(seedAt1_), frameIn.XYZ(seedAt0_))),
+                            0, 0) );
+  AddICseed( InternalCoords(seedAt2_, seedAt1_, seedAt0_, InternalCoords::NO_ATOM,
+                            sqrt(DIST2_NoImage(frameIn.XYZ(seedAt2_), frameIn.XYZ(seedAt1_))),
+                            CalcAngle(frameIn.XYZ(seedAt2_), frameIn.XYZ(seedAt1_), frameIn.XYZ(seedAt0_))*Constants::RADDEG,
+                            0) );
   // If there are less than 4 atoms we are done
   if (maxnatom < 4) return 0;
   // Seeds are already done
@@ -725,7 +735,11 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
   // Track which ICs are used
   Barray isUsed( IC_.size(), false );
   unsigned int Nused = 0;
-  if (!HasCartSeeds()) {
+  if (HasCartSeeds()) {
+    if (icseed0_ != InternalCoords::NO_ATOM) MARK(icseed0_, isUsed, Nused);
+    if (icseed1_ != InternalCoords::NO_ATOM) MARK(icseed1_, isUsed, Nused);
+    if (icseed2_ != InternalCoords::NO_ATOM) MARK(icseed2_, isUsed, Nused);
+  } else {
     // Set positions of atoms from internal coordinate seeds. TODO check for clashes with seedAtX?
     if (icseed0_ != InternalCoords::NO_ATOM) {
       // First seed IC atom
