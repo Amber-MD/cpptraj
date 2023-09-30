@@ -53,7 +53,7 @@ class Zmatrix {
     /// Simple version of auto set seeds based on connectivity only
     int autoSetSeeds_simple(Frame const&, Topology const&, Molecule const&);
     /// Automatically set seeds
-    int autoSetSeeds(Frame const&, Topology const&, unsigned int, int);
+//    int autoSetSeeds(Frame const&, Topology const&, unsigned int, int);
     /// Calculate and add an internal coordinate given indices and Cartesian coords.
     void addIc(int,int,int,int,const double*,const double*,const double*,const double*);
     /// Add internal coordiantes by tracing a molecule

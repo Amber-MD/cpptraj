@@ -1,6 +1,5 @@
 #include <vector>
-#include <set>
-#include <algorithm> // std::sort
+#include <algorithm> // std::sort, std::min, std::max
 #include <stack>
 #include <cmath> // cos
 #include "Zmatrix.h"
@@ -71,7 +70,7 @@ void Zmatrix::print() const {
 /** Used to determine atom priority when looking for torsions to
   * base ICs off of.
   */
-class AtnumNbonds {
+/*class AtnumNbonds {
   public:
     /// CONSTRUCTOR
     AtnumNbonds() : idx_(-1), priority_(-1), nbonds_(-1) {}
@@ -165,7 +164,7 @@ static inline int FirstOrFrontIdx(std::set<AtnumNbonds> const& in, std::vector<b
   if (firstSetIdx > -1)
     return firstSetIdx;
   return firstIdx;
-}
+}*/
 // -------------------------------------
 
 /** \return True if all IC seeds are set. */
@@ -326,6 +325,7 @@ int Zmatrix::autoSetSeeds_simple(Frame const& frameIn, Topology const& topIn, Mo
 /** Given a first seed, automatically determine remaining 2 seeds.
   * Set all seed indices and positions.
   */
+/*
 int Zmatrix::autoSetSeeds(Frame const& frameIn, Topology const& topIn, unsigned int maxnatom, int firstSeed)
 {
   int at0 = firstSeed;
@@ -390,7 +390,7 @@ int Zmatrix::autoSetSeeds(Frame const& frameIn, Topology const& topIn, unsigned 
   seed1Pos_ = Vec3(frameIn.XYZ(seedAt1_));
   seed2Pos_ = Vec3(frameIn.XYZ(seedAt2_));
   return 0;
-}
+}*/
 
 static inline void printIarray(std::vector<int> const& arr, const char* desc, Topology const& topIn) {
   mprintf("DEBUG:\t\t%s:", desc);
@@ -583,12 +583,14 @@ int Zmatrix::SetFromFrame_Trace(Frame const& frameIn, Topology const& topIn, int
 
 /** Setup Zmatrix from Cartesian coordinates/topology. */
 int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn) {
-  return SetFromFrame(frameIn, topIn, 0);
+  return SetFromFrame_Trace(frameIn, topIn, 0);
 }
 
 /** Setup Zmatrix from Cartesian coordinates/topology. */
 int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnum)
 {
+  return SetFromFrame_Trace(frameIn, topIn, molnum);
+/*
   if (molnum < 0) {
     mprinterr("Internal Error: Zmatrix::SetFromFrame(): Negative molecule index.\n");
     return 1;
@@ -695,7 +697,7 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
     //break; //DEBUG
   } // END loop over remaining atoms
 
-  return 0;
+  return 0;*/
 }
 
 /** Set Cartesian coordinates in Frame from internal coordinates.
