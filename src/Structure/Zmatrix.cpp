@@ -559,14 +559,17 @@ int Zmatrix::SetFromFrame_Trace(Frame const& frameIn, Topology const& topIn, int
       mprintf("Warning: Second seed atom %s has more than 2 bonds.\n", topIn.AtomMaskName(seedAt1_).c_str());
       // Potential tetrahedral or more.
       for (Atom::bond_iterator bat = topIn[seedAt1_].bondbegin(); bat != topIn[seedAt1_].bondend(); ++bat) {
-        // Improper based off of seed
-        //     I
-        //     |
-        // L - K - J
-        addIc(*bat, seedAt2_, seedAt1_, seedAt0_, frameIn.XYZ(*bat), frameIn.XYZ(seedAt2_), frameIn.XYZ(seedAt1_), frameIn.XYZ(seedAt0_));
-        MARK(*bat, hasIC, nHasIC);
-        // Follow improper branch if needed: L - K - I - ?
-        if (traceMol(seedAt0_, seedAt1_, *bat, frameIn, topIn, maxnatom, nHasIC, hasIC)) return 1;
+        // Ignore seed atoms
+        if (*bat != seedAt0_ && *bat != seedAt2_) {
+          // Improper based off of seed
+          //     I
+          //     |
+          // L - K - J
+          addIc(*bat, seedAt2_, seedAt1_, seedAt0_, frameIn.XYZ(*bat), frameIn.XYZ(seedAt2_), frameIn.XYZ(seedAt1_), frameIn.XYZ(seedAt0_));
+          MARK(*bat, hasIC, nHasIC);
+          // Follow improper branch if needed: L - K - I - ?
+          if (traceMol(seedAt0_, seedAt1_, *bat, frameIn, topIn, maxnatom, nHasIC, hasIC)) return 1;
+        }
       }
     }
   }
