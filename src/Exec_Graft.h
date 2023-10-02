@@ -8,5 +8,14 @@ class Exec_Graft : public Exec {
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_Graft(); }
     RetType Execute(CpptrajState&, ArgList&);
+  private:
+    typedef std::vector<int> Iarray;
+
+    static int get_bond_atoms(ArgList&, Iarray&, Iarray&, Topology const&, Topology const&);
+
+    static DataSet_Coords* get_crd(ArgList&, DataSetList const&, const char*, const char*, Frame&, const char*);
+
+    RetType graft_ic(CpptrajState&, ArgList&) const;
+    RetType graft_rms(CpptrajState&, ArgList&) const;
 };
 #endif

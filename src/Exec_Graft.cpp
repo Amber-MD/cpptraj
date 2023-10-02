@@ -41,7 +41,119 @@ static int UpdateIndices(std::vector<int>& Idxs, AtomMask const& maskIn, int off
 // Exec_Graft::Execute()
 Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
 {
-  typedef std::vector<int> Iarray;
+  if (argIn.hasKey("ic"))
+    return graft_ic(State,argIn);
+  else
+    return graft_rms(State, argIn);
+}
+
+/** Get atoms to bond <tgt>,<src> from keyword(s). */
+int Exec_Graft::get_bond_atoms(ArgList& argIn, Iarray& tgtBondAtoms, Iarray& srcBondAtoms,
+                               Topology const& tgtTop, Topology const& srcTop)
+{
+  tgtBondAtoms.clear();
+  srcBondAtoms.clear();
+  std::string kw = argIn.GetStringKey("bond");
+  while (!kw.empty()) {
+    ArgList bndarg(kw, ",");
+    if (bndarg.Nargs() != 2) {
+      mprinterr("Error: Expected 2 atom masks for 'bond' (target, source).\n");
+      return 1;
+    }
+    AtomMask tb, sb;
+    if (tb.SetMaskString(bndarg[0])) return 1;
+    if (sb.SetMaskString(bndarg[1])) return 1;
+    if (tgtTop.SetupIntegerMask(tb)) return 1;
+    if (srcTop.SetupIntegerMask(sb)) return 1;
+    if (tb.Nselected() != 1) {
+      mprinterr("Error: 'bond' target mask does not select only 1 atom.\n");
+      return 1;
+    }
+    if (sb.Nselected() != 1) {
+      mprinterr("Error: 'bond' source mask does not select only 1 atom.\n");
+      return 1;
+    }
+    tgtBondAtoms.push_back( tb[0] );
+    srcBondAtoms.push_back( sb[0] );
+    mprintf("\tWill bond target %s (%i) to source %s (%i)\n",
+            tb.MaskString(), tgtBondAtoms.back()+1,
+            sb.MaskString(), srcBondAtoms.back()+1);
+    kw = argIn.GetStringKey("bond");
+  }
+  return 0;
+}
+
+/** Get COORDS set. */
+DataSet_Coords* Exec_Graft::get_crd(ArgList& argIn, DataSetList const& DSL,
+                                    const char* key, const char* desc, Frame& srcFrame, const char* frameKey)
+{
+  std::string kw = argIn.GetStringKey(key);
+  if (kw.empty()) {
+    mprinterr("Error: %s must be specified with '%s'.\n", desc, key);
+    return 0;
+  }
+  DataSet_Coords* srcCoords = (DataSet_Coords*)DSL.FindSetOfGroup(kw, DataSet::COORDINATES);
+  if (srcCoords == 0) {
+    mprinterr("Error: %s %s not found.\n", desc, kw.c_str());
+    return 0;
+  }
+  srcFrame = srcCoords->AllocateFrame();
+  srcCoords->GetFrame(argIn.getKeyInt(frameKey, 1)-1, srcFrame);
+  return srcCoords;
+}
+
+/** Graft using internal coordinates to build the final structure. */
+Exec::RetType Exec_Graft::graft_ic(CpptrajState& State, ArgList& argIn)
+const
+{
+  // Source (fragment)
+  Frame mol1frm;
+  DataSet_Coords* mol1crd = get_crd(argIn, State.DSL(), "src", "Source COORDS", mol1frm, "srcframe");
+  if (mol1crd == 0) return CpptrajState::ERR;
+  // Target (base)
+  Frame mol0frm;
+  DataSet_Coords* mol0crd = get_crd(argIn, State.DSL(), "tgt", "Target COORDS", mol0frm, "tgtframe");
+  if (mol0crd == 0) return CpptrajState::ERR;
+  // Create output coords
+  std::string kw = argIn.GetStringKey("name");
+  if (kw.empty()) {
+    mprinterr("Error: Output COORDS must be specified with 'name'.\n");
+    return CpptrajState::ERR;
+  }
+  DataSet_Coords* outCoords = (DataSet_Coords*)State.DSL().AddSet(DataSet::COORDS, MetaData(kw));
+  if (outCoords == 0) {
+    mprinterr("Error: Output COORDS %s could not be created.\n", kw.c_str());
+    return CpptrajState::ERR;
+  }
+  // Get atoms to bond
+  Iarray tgtBondAtoms, srcBondAtoms;
+  if (get_bond_atoms(argIn, tgtBondAtoms, srcBondAtoms, mol0crd->Top(), mol1crd->Top()))
+    return CpptrajState::ERR;
+  // Combine topologies.
+  Topology combinedTop;
+  combinedTop.SetDebug( State.Debug() );
+  combinedTop.SetParmName( outCoords->Meta().Name(), FileName() );
+  combinedTop.AppendTop( mol0crd->Top() );
+  combinedTop.AppendTop( mol1crd->Top() );
+  // Combine coords.
+  // Only coords+box for now.
+  CoordinateInfo outInfo(mol0frm.BoxCrd(), false, false, false);
+  if (outCoords->CoordsSetup(combinedTop, outInfo)) return CpptrajState::ERR;
+  Frame CombinedFrame = outCoords->AllocateFrame();
+  std::copy(mol0frm.xAddress(), mol0frm.xAddress()+mol0frm.size(), CombinedFrame.xAddress());
+  std::copy(mol1frm.xAddress(), mol1frm.xAddress()+mol1frm.size(), CombinedFrame.xAddress()+mol0frm.size());
+  // Use target box TODO reset the box?
+  CombinedFrame.SetBox( mol0frm.BoxCrd() );
+  outCoords->AddFrame( CombinedFrame );
+
+
+  return CpptrajState::OK;
+}
+
+/** Graft with RMS-fitting. */
+Exec::RetType Exec_Graft::graft_rms(CpptrajState& State, ArgList& argIn)
+const
+{
   // Get source coords
   std::string kw = argIn.GetStringKey("src");
   if (kw.empty()) {
