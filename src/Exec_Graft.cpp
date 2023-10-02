@@ -228,6 +228,26 @@ const
     return CpptrajState::ERR;
   }
   zmatrix.print(); // DEBUG
+  // Update ICs corresponding to added bonds
+  for (unsigned int idx = 0; idx != tgtBondAtoms.size(); idx++) {
+    int a0 = tgtBondAtoms[idx];
+    int a1 = srcBondAtoms[idx];
+    for (unsigned int icidx = 0; icidx < zmatrix.N_IC(); icidx++) {
+      if ( (zmatrix[icidx].AtI() == a0 && zmatrix[icidx].AtJ() == a1) ||
+           (zmatrix[icidx].AtI() == a1 && zmatrix[icidx].AtJ() == a0) )
+      {
+        mprintf("DEBUG: Found IC for bond %i %i\n", a0+1, a1+1);
+        InternalCoords const& oic = zmatrix[icidx];
+        // TODO be smarter about these values
+        InternalCoords newIc( oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), 1.6, 120.0, 0.0 );
+        zmatrix.SetIC( icidx, newIc );
+      }
+    } // END loop over ICs
+  } // END loop over bonds
+  if (zmatrix.SetToFrame( CombinedFrame )) {
+    mprinterr("Error: Conversion from Zmatrix to Cartesian coords failed.\n");
+    return CpptrajState::ERR;
+  }
 
   // Add frame to the output data set
   outCoords->AddFrame( CombinedFrame );

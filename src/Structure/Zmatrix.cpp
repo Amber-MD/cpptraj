@@ -60,6 +60,10 @@ int Zmatrix::AddIC(InternalCoords const& ic) {
   return 0;
 }
 
+void Zmatrix::SetIC(unsigned int idx, InternalCoords const& ic) {
+  IC_[idx] = ic;
+}
+
 /** Add internal coords as a IC seed. This is intended for use with systems
   * that have dummy atoms, such as those from Amber Prep files.
   */

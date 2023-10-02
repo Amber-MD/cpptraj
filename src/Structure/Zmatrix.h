@@ -17,13 +17,15 @@ class Zmatrix {
     void SetDebug(int d) { debug_ = d; }
     /// Add internal coordinate
     int AddIC(InternalCoords const&);
+    /// Set specified IC
+    void SetIC(unsigned int, InternalCoords const&);
     /// Add internal coordinate as next available IC seed
     //int AddICseed(InternalCoords const&);
     /// Set seed atoms from frame/top
     int SetSeedPositions(Frame const&, Topology const&, int, int, int);
     /// Convert specifed molecule of Frame/Topology to internal coordinates array
     int SetFromFrame(Frame const&, Topology const&, int);
-    /// Convert from Cartesian to Zmatrix by tracing a molecule
+    /// Convert from Cartesian to Zmatrix by tracing a molecule FIXME fix naming
     int SetFromFrame_Trace(Frame const&, Topology const&, int);
     /// Convert molecule 0 of Frame/Topology to internal coordinates array
     int SetFromFrame(Frame const&, Topology const&);
@@ -37,6 +39,8 @@ class Zmatrix {
     const_iterator begin() const { return IC_.begin(); }
     const_iterator end()   const { return IC_.end(); }
 
+    /// \return Specified internal coord
+    InternalCoords const& operator[](int idx) const { return IC_[idx]; }
     /// \return number of internal coords
     unsigned int N_IC() const { return IC_.size(); }
     /// \return memory usage in bytes
@@ -45,8 +49,6 @@ class Zmatrix {
                                               (IC_.size() * InternalCoords::sizeInBytes()); }
     /// \reserve space for # of internal coords TODO zero out seeds?
     void reserve(unsigned int n) { IC_.reserve( n ); }
-    /// \return Internal coord of specified index
-    InternalCoords const& operator[](int i) const { return IC_[i]; }
   private:
     typedef std::vector<int> Iarray;
     typedef std::vector<bool> Barray;
