@@ -239,7 +239,7 @@ const
         mprintf("DEBUG: Found IC for bond %i %i\n", a0+1, a1+1);
         InternalCoords const& oic = zmatrix[icidx];
         // TODO be smarter about these values
-        InternalCoords newIc( oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), 1.6, 120.0, 0.0 );
+        InternalCoords newIc( oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), 1.6, 120.0, 180.0 );
         zmatrix.SetIC( icidx, newIc );
       }
     } // END loop over ICs
@@ -443,6 +443,8 @@ const
   // Add any bonds
   for (unsigned int ii = 0; ii != tgtBondAtoms.size(); ii++)
     combinedTop.AddBond( tgtBondAtoms[ii], srcBondAtoms[ii] );
+  // Regenerate the molecule info FIXME should Topology just do this?
+  if (combinedTop.DetermineMolecules()) return CpptrajState::ERR;
   combinedTop.SetParmBox( tgtFrmPtr->BoxCrd() );
   combinedTop.Brief("Grafted parm:");
 
