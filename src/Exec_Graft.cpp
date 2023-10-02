@@ -1,6 +1,7 @@
 #include "Exec_Graft.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Coords.h"
+#include "Structure/Zmatrix.h"
 #include <algorithm> // std::copy
 
 // Exec_Graft::Help()
@@ -130,6 +131,7 @@ Topology* Exec_Graft::modify_top(Topology const& topIn, AtomMask const& mask, Fr
 Exec::RetType Exec_Graft::graft_ic(CpptrajState& State, ArgList& argIn)
 const
 {
+  using namespace Cpptraj::Structure;
   // Source (fragment)
   Frame mol1frm;
   DataSet_Coords* mol1crd = get_crd(argIn, State.DSL(), "src", "Source COORDS", mol1frm, "srcframe");
@@ -204,16 +206,28 @@ const
     mprintf("DEBUG: Bond %i %s to %i %s\n",
             tgtBondAtoms[idx]+1, combinedTop.AtomMaskName(tgtBondAtoms[idx]).c_str(),
             srcBondAtoms[idx]+1, combinedTop.AtomMaskName(srcBondAtoms[idx]).c_str());
+    combinedTop.AddBond( tgtBondAtoms[idx], srcBondAtoms[idx] );
   }
-  // Combine coords.
   // Only coords+box for now.
   CoordinateInfo outInfo(mol0frm.BoxCrd(), false, false, false);
   if (outCoords->CoordsSetup(combinedTop, outInfo)) return CpptrajState::ERR; // FIXME free molXTop memory
+  // Combine coords.
   Frame CombinedFrame = outCoords->AllocateFrame();
   std::copy(mol0frm.xAddress(), mol0frm.xAddress()+mol0frm.size(), CombinedFrame.xAddress());
   std::copy(mol1frm.xAddress(), mol1frm.xAddress()+mol1frm.size(), CombinedFrame.xAddress()+mol0frm.size());
   // Use target box TODO reset the box?
   CombinedFrame.SetBox( mol0frm.BoxCrd() );
+
+  // Generate Z matrix FIXME ensure mol 0 is the one we are interested in
+  Zmatrix zmatrix;
+  zmatrix.SetDebug( 2 ); // FIXME
+  if (zmatrix.SetFromFrame(CombinedFrame, combinedTop)) {
+    mprinterr("Error: Zmatrix setup failed.\n");
+    return CpptrajState::ERR;
+  }
+  zmatrix.print(); // DEBUG
+
+  // Add frame to the output data set
   outCoords->AddFrame( CombinedFrame );
 
   if (newMol0Top) delete mol0Top;
