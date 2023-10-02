@@ -16,7 +16,11 @@ int Exec_Zmatrix::getZmatrix(DataSet_Coords* CRD, int molnum, int frmidx,
                              std::string const& dsname, DataFile* outfile, CpptrajState& State)
 const
 {
-  mprintf("\tUsing set '%s'\n", CRD->legend());
+ if (CRD == 0) {
+    mprinterr("Error: No COORDS set specified.\n");
+    return CpptrajState::ERR;
+  }
+  mprintf("\tGetting Z-matrix from set '%s'\n", CRD->legend());
   if (CRD->Size() < 1) {
     mprinterr("Error: Set '%s' is empty.\n", CRD->legend());
     return 1; 
@@ -44,12 +48,13 @@ const
 
   zmatrix.SetDebug( State.Debug() );
   int errStat = zmatrix.SetFromFrame_Trace( frmIn, CRD->Top(), molnum );
-  zmatrix.print(); // DEBUG
+  if (debug_ > 0) zmatrix.print(); // DEBUG
   return errStat;
 }
 
 /** Create COORDS using Zmatrix. */
-int Exec_Zmatrix::putZmatrix(DataSet_Coords* CRD, std::string const& zsetname,
+int Exec_Zmatrix::putZmatrix(DataSet_Coords* CRD, Topology* topIn,
+                             std::string const& zsetname,
                              std::string const& dsname, CpptrajState& State)
 const
 {
@@ -59,7 +64,7 @@ const
     mprinterr("Error: No zmatrix set with name '%s' found.\n", zsetname.c_str());
     return 1;
   }
-  mprintf("\tZmatrix set : %s\n", zmatrix->legend());
+  mprintf("\tCreating COORDS from Zmatrix set : %s\n", zmatrix->legend());
 
   // Create COORDS set
   DataSet_Coords* out = (DataSet_Coords*)State.DSL().AddSet(DataSet::COORDS, dsname, "ZMCRD");
@@ -67,13 +72,36 @@ const
     mprinterr("Error: Could not create COORDS set for assigning from Zmatrix.\n");
     return 1;
   }
-  out->CoordsSetup( CRD->Top(), CRD->CoordsInfo());
-  mprintf("\tOutput coords set : %s\n", out->legend());
+  mprintf("\tOutput COORDS set: %s\n", out->legend());
+
+  Topology* myTop = 0;
+  if (topIn != 0) {
+    mprintf("\tTopology: %s\n", topIn->c_str());
+    myTop = topIn;
+  } else if (CRD != 0) {
+    mprintf("\tTopology from COORDS set: %s\n", CRD->legend());
+    myTop = CRD->TopPtr();
+  } else {
+    mprinterr("Error: No COORDS set or Topology specified for 'zset'.\n");
+    return 1;
+  }
+  CoordinateInfo myInfo;
+  if (CRD != 0)
+    myInfo = CRD->CoordsInfo();
+  out->CoordsSetup( *myTop, myInfo);
 
   // Assign
   Frame frm = out->AllocateFrame();
   frm.ZeroCoords();
-  if (zmatrix->Zptr()->SetToFrame( frm )) {
+  int err = 0;
+  if (debug_ > 0) {
+    Zmatrix tmpZ = *(zmatrix->Zptr()); // TODO just pass debug level into Zmatrix?
+    tmpZ.SetDebug( debug_ );
+    err = tmpZ.SetToFrame( frm );
+  } else {
+    err = zmatrix->Zptr()->SetToFrame( frm );
+  }
+  if (err != 0) {
     mprinterr("Error: Zmatrix to Cartesian coords failed.\n");
     return 1;
   }
@@ -85,28 +113,29 @@ const
 // Exec_Zmatrix::Execute()
 Exec::RetType Exec_Zmatrix::Execute(CpptrajState& State, ArgList& argIn)
 {
+  debug_ = State.Debug();
   int molnum = argIn.getKeyInt("molnum", 1) - 1;
   int frmidx = argIn.getKeyInt("frame", 1) - 1;
   std::string dsname = argIn.GetStringKey("name");
-
   DataFile* outfile = State.DFL().AddDataFile( argIn.GetStringKey("out"), argIn ); // TODO not if zset
 
   std::string zsetname = argIn.GetStringKey("zset");
-
+  Topology* topIn = 0;
+  if (argIn.Contains("parm") || argIn.Contains("parmindex"))
+    topIn = (Topology*)State.DSL().GetTopology(argIn);
+  // Get COORDS set name
   std::string setname = argIn.GetStringNext();
+  // ----- No more args below here -----
   if (setname.empty()) {
     mprinterr("Error: %s: Specify COORDS dataset name.\n", argIn.Command());
     return CpptrajState::ERR;
   }
   DataSet_Coords* CRD = (DataSet_Coords*)State.DSL().FindSetOfGroup( setname, DataSet::COORDINATES );
-  if (CRD == 0) {
-    mprinterr("Error: %s: No COORDS set with name %s found.\n", argIn.Command(), setname.c_str());
-    return CpptrajState::ERR;
-  }
+
 
   int errStat = 0;
   if (!zsetname.empty()) {
-    errStat = putZmatrix(CRD, zsetname, dsname, State);
+    errStat = putZmatrix(CRD, topIn, zsetname, dsname, State);
   } else {
     errStat = getZmatrix(CRD, molnum, frmidx, dsname, outfile, State);
   }

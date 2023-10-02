@@ -234,10 +234,11 @@ int Zmatrix::SetSeedPositions(Frame const& frameIn, Topology const& topIn, int a
   seed1Pos_ = Vec3(frameIn.XYZ(a2));
   seedAt2_  = a3;
   seed2Pos_ = Vec3(frameIn.XYZ(a3));
-  mprintf("DEBUG: Seed atoms: %s - %s - %s\n",
-          topIn.AtomMaskName(a1).c_str(),
-          topIn.AtomMaskName(a2).c_str(),
-          topIn.AtomMaskName(a3).c_str());
+  if (debug_ > 0)
+    mprintf("DEBUG: Seed atoms: %s - %s - %s\n",
+            topIn.AtomMaskName(a1).c_str(),
+            topIn.AtomMaskName(a2).c_str(),
+            topIn.AtomMaskName(a3).c_str());
 
   return 0;
 }
@@ -316,7 +317,8 @@ int Zmatrix::autoSetSeeds_simple(Frame const& frameIn, Topology const& topIn, Mo
     if (seedAt1_ != InternalCoords::NO_ATOM) break;
   }
   if (seedAt1_ == InternalCoords::NO_ATOM) {
-    mprintf("DEBUG: No seed1 with just 2 bonds found. Using seed1 with %i bonds.\n", potentialSeedNbonds);
+    if (debug_ > 0)
+      mprintf("DEBUG: No seed1 with just 2 bonds found. Using seed1 with %i bonds.\n", potentialSeedNbonds);
     seedAt1_ = potentialSeed1;
   }
   if (seedAt1_ == InternalCoords::NO_ATOM) {
@@ -340,9 +342,11 @@ int Zmatrix::autoSetSeeds_simple(Frame const& frameIn, Topology const& topIn, Mo
   seedAt0_ = lowestidx;
   seedAt2_ = highestidx;
 
-  mprintf("DEBUG: Potential seed 0: %i %s\n", seedAt0_+1, topIn.AtomMaskName(seedAt0_).c_str());
-  mprintf("DEBUG: Potential seed 1: %i %s\n", seedAt1_+1, topIn.AtomMaskName(seedAt1_).c_str());
-  mprintf("DEBUG: Potential seed 2: %i %s\n", seedAt2_+1, topIn.AtomMaskName(seedAt2_).c_str());
+  if (debug_ > 0) {
+    mprintf("DEBUG: Potential seed 0: %i %s\n", seedAt0_+1, topIn.AtomMaskName(seedAt0_).c_str());
+    mprintf("DEBUG: Potential seed 1: %i %s\n", seedAt1_+1, topIn.AtomMaskName(seedAt1_).c_str());
+    mprintf("DEBUG: Potential seed 2: %i %s\n", seedAt2_+1, topIn.AtomMaskName(seedAt2_).c_str());
+  }
     
   seed0Pos_ = Vec3(frameIn.XYZ(seedAt0_));
   seed1Pos_ = Vec3(frameIn.XYZ(seedAt1_));
@@ -448,13 +452,15 @@ int Zmatrix::traceMol(int atL0, int atK0, int atJ0,
   int atK = atK0;
   int atJ = atJ0;
 
-  int debug_it = 0; // DEBUG
+  //int debug_it = 0; // DEBUG
+  unsigned int maxStack = 0;
 
   while (nHasIC < maxnatom) {
-    mprintf("\nDEBUG: nHasIC= %8u / %8u : %s - %s - %s -\n", nHasIC, maxnatom,
-            topIn.AtomMaskName(atL).c_str(),
-            topIn.AtomMaskName(atK).c_str(),
-            topIn.AtomMaskName(atJ).c_str());
+    if (debug_ > 1)
+      mprintf("\nDEBUG: nHasIC= %8u / %8u : %s - %s - %s -\n", nHasIC, maxnatom,
+              topIn.AtomMaskName(atL).c_str(),
+              topIn.AtomMaskName(atK).c_str(),
+              topIn.AtomMaskName(atJ).c_str());
     // List all atoms bonded to J with the following priority:
     //   1) Atoms with 1 bond.
     //   2) Low index atoms.
@@ -471,8 +477,10 @@ int Zmatrix::traceMol(int atL0, int atK0, int atJ0,
     }
     if (OtherAtoms.size() > 1)
       std::sort( OtherAtoms.begin(), OtherAtoms.end() );
-    printIarray( OneBondAtoms, "OneBondAtoms", topIn );
-    printIarray( OtherAtoms, "OtherAtoms", topIn );
+    if (debug_ > 1) {
+      printIarray( OneBondAtoms, "OneBondAtoms", topIn );
+      printIarray( OtherAtoms, "OtherAtoms", topIn );
+    }
     // Create ICs for 1 bond atoms
     for (Iarray::const_iterator atI = OneBondAtoms.begin(); atI != OneBondAtoms.end(); ++atI) {
       addIc(*atI, atJ, atK, atL, frameIn.XYZ(*atI), frameIn.XYZ(atJ), frameIn.XYZ(atK), frameIn.XYZ(atL));
@@ -482,16 +490,19 @@ int Zmatrix::traceMol(int atL0, int atK0, int atJ0,
     if (OtherAtoms.empty()) {
       // If no branches, done for now.
       if (Branches.empty()) {
-        mprintf("DEBUG: No more branches. Exiting traceMol.\n");
+        if (debug_ > 1)
+          mprintf("DEBUG: No more branches. Exiting traceMol.\n");
         break;
       }
       // Add IC for the branch
       PHI const& p = Branches.top();
-      mprintf("DEBUG:\t\tPopped off stack: %s - %s - %s - %s\n",
-              topIn.AtomMaskName(p.al_).c_str(),
-              topIn.AtomMaskName(p.ak_).c_str(),
-              topIn.AtomMaskName(p.aj_).c_str(),
-              topIn.AtomMaskName(p.ai_).c_str());
+      if (debug_ > 1) {
+        mprintf("DEBUG:\t\tPopped off stack: %s - %s - %s - %s\n",
+                topIn.AtomMaskName(p.al_).c_str(),
+                topIn.AtomMaskName(p.ak_).c_str(),
+                topIn.AtomMaskName(p.aj_).c_str(),
+                topIn.AtomMaskName(p.ai_).c_str());
+      }
       addIc(p.ai_, p.aj_, p.ak_, p.al_, frameIn.XYZ(p.ai_), frameIn.XYZ(p.aj_), frameIn.XYZ(p.ak_), frameIn.XYZ(p.al_));
       Branches.pop();
       MARK(p.ai_, hasIC, nHasIC);
@@ -501,23 +512,28 @@ int Zmatrix::traceMol(int atL0, int atK0, int atJ0,
       atJ = p.ai_;
     } else {
       int atI = OtherAtoms.front();
-      mprintf("DEBUG:\t\tNext: %s - %s - %s - %s\n",
-              topIn.AtomMaskName(atL).c_str(),
-              topIn.AtomMaskName(atK).c_str(),
-              topIn.AtomMaskName(atJ).c_str(),
-              topIn.AtomMaskName(atI).c_str());
+      if (debug_ > 1) {
+        mprintf("DEBUG:\t\tNext: %s - %s - %s - %s\n",
+                topIn.AtomMaskName(atL).c_str(),
+                topIn.AtomMaskName(atK).c_str(),
+                topIn.AtomMaskName(atJ).c_str(),
+                topIn.AtomMaskName(atI).c_str());
+      }
       // Add lowest index as IC
       addIc(atI, atJ, atK, atL, frameIn.XYZ(atI), frameIn.XYZ(atJ), frameIn.XYZ(atK), frameIn.XYZ(atL));
       MARK(atI, hasIC, nHasIC);
       // Place all above lowest index on the stack.
       for (unsigned int ii = 1; ii < OtherAtoms.size(); ii++) {
         Branches.push( PHI(OtherAtoms[ii], atJ, atK, atL) );
-        PHI const& p = Branches.top();
-        mprintf("DEBUG:\t\tPlaced on stack: %s - %s - %s - %s (%zu)\n",
-                topIn.AtomMaskName(p.al_).c_str(),
-                topIn.AtomMaskName(p.ak_).c_str(),
-                topIn.AtomMaskName(p.aj_).c_str(),
-                topIn.AtomMaskName(p.ai_).c_str(), Branches.size());
+        maxStack = std::max(maxStack, (unsigned int)Branches.size());
+        if (debug_ > 1) {
+          PHI const& p = Branches.top();
+          mprintf("DEBUG:\t\tPlaced on stack: %s - %s - %s - %s (%zu)\n",
+                  topIn.AtomMaskName(p.al_).c_str(),
+                  topIn.AtomMaskName(p.ak_).c_str(),
+                  topIn.AtomMaskName(p.aj_).c_str(),
+                  topIn.AtomMaskName(p.ai_).c_str(), Branches.size());
+        }
       }
       // Designate lowest index as next
       atL = atK;
@@ -525,8 +541,14 @@ int Zmatrix::traceMol(int atL0, int atK0, int atJ0,
       atJ = atI;
     }
     //if (debug_it == 1) break; // DEBUG
-    debug_it++; // DEBUG
+    //debug_it++; // DEBUG
   }
+  if (debug_ > 0)
+    mprintf("DEBUG: Max stack size (%s - %s - %s - ?)= %u\n",
+            topIn.AtomMaskName(atL0).c_str(),
+            topIn.AtomMaskName(atK0).c_str(),
+            topIn.AtomMaskName(atJ0).c_str(),
+            maxStack);
   return 0;
 }
 
@@ -563,10 +585,11 @@ int Zmatrix::SetFromFrame_Trace(Frame const& frameIn, Topology const& topIn, int
 
   } else {
     // Seed atoms already set
-    mprintf("DEBUG: Cartesian Seed indices: %s %s %s\n",
-            topIn.AtomMaskName(seedAt0_).c_str(),
-            topIn.AtomMaskName(seedAt1_).c_str(),
-            topIn.AtomMaskName(seedAt2_).c_str());
+    if (debug_ > 0)
+      mprintf("DEBUG: Cartesian Seed indices: %s %s %s\n",
+              topIn.AtomMaskName(seedAt0_).c_str(),
+              topIn.AtomMaskName(seedAt1_).c_str(),
+              topIn.AtomMaskName(seedAt2_).c_str());
   }
   // Add IC seeds
   if (seedAt0_ != InternalCoords::NO_ATOM)
