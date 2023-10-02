@@ -208,6 +208,8 @@ const
             srcBondAtoms[idx]+1, combinedTop.AtomMaskName(srcBondAtoms[idx]).c_str());
     combinedTop.AddBond( tgtBondAtoms[idx], srcBondAtoms[idx] );
   }
+  // Regenerate the molecule info FIXME should Topology just do this?
+  if (combinedTop.DetermineMolecules()) return CpptrajState::ERR;
   // Only coords+box for now.
   CoordinateInfo outInfo(mol0frm.BoxCrd(), false, false, false);
   if (outCoords->CoordsSetup(combinedTop, outInfo)) return CpptrajState::ERR; // FIXME free molXTop memory
