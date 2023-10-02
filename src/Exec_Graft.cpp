@@ -102,6 +102,30 @@ DataSet_Coords* Exec_Graft::get_crd(ArgList& argIn, DataSetList const& DSL,
   return srcCoords;
 }
 
+/** Modify given topology and frame by specified mask. Ensure the bonding
+  * atom will be present in the stripped topology.
+  * \return topology modified by mask.
+  */
+Topology* Exec_Graft::modify_top(Topology const& topIn, AtomMask const& mask, Frame& srcFrame)
+                                 
+{
+  mprintf("\tAtoms to keep from '%s' : ", topIn.c_str());
+  mask.BriefMaskInfo();
+  mprintf("\n");
+
+  Topology* srcTopPtr = topIn.modifyStateByMask( mask );
+  if (srcTopPtr == 0) {
+    mprinterr("Error: Could not modify topology %s.\n", topIn.c_str());
+    return 0;
+  }
+  Frame* srcFrmPtr = new Frame();
+  srcFrmPtr->SetupFrameV(srcTopPtr->Atoms(), srcFrame.CoordsInfo());
+  srcFrmPtr->SetFrame(srcFrame, mask);
+  srcFrame = *srcFrmPtr;
+  delete srcFrmPtr;
+  return srcTopPtr;
+}
+
 /** Graft using internal coordinates to build the final structure. */
 Exec::RetType Exec_Graft::graft_ic(CpptrajState& State, ArgList& argIn)
 const
@@ -125,20 +149,66 @@ const
     mprinterr("Error: Output COORDS %s could not be created.\n", kw.c_str());
     return CpptrajState::ERR;
   }
-  // Get atoms to bond
+ 
+ // Get atoms to bond
   Iarray tgtBondAtoms, srcBondAtoms;
   if (get_bond_atoms(argIn, tgtBondAtoms, srcBondAtoms, mol0crd->Top(), mol1crd->Top()))
     return CpptrajState::ERR;
+  // Get atoms to keep from source.
+  AtomMask mol1Mask;
+  if (mol1Mask.SetMaskString( argIn.GetStringKey("srcmask") ))
+    return CpptrajState::ERR;
+  if (mol1crd->Top().SetupIntegerMask(mol1Mask))
+    return CpptrajState::ERR;
+  // Get atoms to keep from target.
+  AtomMask mol0Mask;
+  if (mol0Mask.SetMaskString( argIn.GetStringKey("tgtmask") ))
+    return CpptrajState::ERR;
+  if (mol0crd->Top().SetupIntegerMask(mol0Mask))
+    return CpptrajState::ERR;
+  // Update the bond indices for the new topologies
+  if (UpdateIndices(tgtBondAtoms, mol0Mask, 0))
+    return CpptrajState::ERR;
+  if (UpdateIndices(srcBondAtoms, mol1Mask, mol0Mask.Nselected()))
+    return CpptrajState::ERR;
+
+  // Modify the target (mol0) topology, update bond atom indices.
+  bool newMol0Top = false;
+  Topology* mol0Top = 0;
+  if (mol0Mask.Nselected() == mol0crd->Top().Natom()) {
+    mol0Top = mol0crd->TopPtr();
+  } else {
+    newMol0Top = true;
+    mol0Top = modify_top(mol0crd->Top(), mol0Mask, mol0frm);
+    if (mol0Top == 0) return CpptrajState::ERR; // FIXME need to free mol0Top memory
+  }
+  // Modify the source (mol1) topology, update bond atom indices.
+  bool newMol1Top = false;
+  Topology* mol1Top = 0;
+  if (mol1Mask.Nselected() == mol1crd->Top().Natom()) {
+    mol1Top = mol1crd->TopPtr();
+  } else {
+    newMol1Top = true;
+    mol1Top = modify_top(mol1crd->Top(), mol1Mask, mol1frm);
+    if (mol1Top == 0) return CpptrajState::ERR; // FIXME need to free mol1Top memory
+  }
+
   // Combine topologies.
   Topology combinedTop;
   combinedTop.SetDebug( State.Debug() );
   combinedTop.SetParmName( outCoords->Meta().Name(), FileName() );
-  combinedTop.AppendTop( mol0crd->Top() );
-  combinedTop.AppendTop( mol1crd->Top() );
+  combinedTop.AppendTop( *mol0Top );
+  combinedTop.AppendTop( *mol1Top );
+  // Create bonds
+  for (unsigned int idx = 0; idx != tgtBondAtoms.size(); idx++) {
+    mprintf("DEBUG: Bond %i %s to %i %s\n",
+            tgtBondAtoms[idx]+1, combinedTop.AtomMaskName(tgtBondAtoms[idx]).c_str(),
+            srcBondAtoms[idx]+1, combinedTop.AtomMaskName(srcBondAtoms[idx]).c_str());
+  }
   // Combine coords.
   // Only coords+box for now.
   CoordinateInfo outInfo(mol0frm.BoxCrd(), false, false, false);
-  if (outCoords->CoordsSetup(combinedTop, outInfo)) return CpptrajState::ERR;
+  if (outCoords->CoordsSetup(combinedTop, outInfo)) return CpptrajState::ERR; // FIXME free molXTop memory
   Frame CombinedFrame = outCoords->AllocateFrame();
   std::copy(mol0frm.xAddress(), mol0frm.xAddress()+mol0frm.size(), CombinedFrame.xAddress());
   std::copy(mol1frm.xAddress(), mol1frm.xAddress()+mol1frm.size(), CombinedFrame.xAddress()+mol0frm.size());
@@ -146,6 +216,8 @@ const
   CombinedFrame.SetBox( mol0frm.BoxCrd() );
   outCoords->AddFrame( CombinedFrame );
 
+  if (newMol0Top) delete mol0Top;
+  if (newMol1Top) delete mol1Top;
 
   return CpptrajState::OK;
 }

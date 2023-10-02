@@ -13,6 +13,8 @@ class Exec_Graft : public Exec {
 
     static int get_bond_atoms(ArgList&, Iarray&, Iarray&, Topology const&, Topology const&);
 
+    static Topology* modify_top(Topology const&, AtomMask const&, Frame&);
+
     static DataSet_Coords* get_crd(ArgList&, DataSetList const&, const char*, const char*, Frame&, const char*);
 
     RetType graft_ic(CpptrajState&, ArgList&) const;
