@@ -16,9 +16,9 @@ class Zmatrix {
     /// Set debug level
     void SetDebug(int d) { debug_ = d; }
     /// Add internal coordinate
-    void AddIC(InternalCoords const&);
+    int AddIC(InternalCoords const&);
     /// Add internal coordinate as next available IC seed
-    int AddICseed(InternalCoords const&);
+    //int AddICseed(InternalCoords const&);
     /// Set seed atoms from frame/top
     int SetSeedPositions(Frame const&, Topology const&, int, int, int);
     /// Convert specifed molecule of Frame/Topology to internal coordinates array

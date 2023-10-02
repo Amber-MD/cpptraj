@@ -230,11 +230,11 @@ const
     double dist  = convertToDouble(args[7]);
     double theta = convertToDouble(args[8]);
     double phi   = convertToDouble(args[9]);
-    if (args[2] == ISYMDU) {
-      if (zmatrix.AddICseed( InternalCoords(atIdx, atJ, atK, atL, dist, theta, phi) ))
+    //if (args[2] == ISYMDU) {
+      if (zmatrix.AddIC( InternalCoords(atIdx, atJ, atK, atL, dist, theta, phi) ))
         return 1;
-    } else
-      zmatrix.AddIC( InternalCoords(atIdx, atJ, atK, atL, dist, theta, phi) );
+    //} else
+    //  zmatrix.AddIC( InternalCoords(atIdx, atJ, atK, atL, dist, theta, phi) );
     atIdx++;
     line = infile.Line();
     if (line == 0) break;

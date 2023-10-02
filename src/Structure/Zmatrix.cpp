@@ -26,15 +26,44 @@ Zmatrix::Zmatrix() :
   seedAt2_(InternalCoords::NO_ATOM)
 {}
 
-/** Add internal coords */
-void Zmatrix::AddIC(InternalCoords const& ic) {
+/// Error message for seed already set
+static inline int seed_err(int iseed) {
+  mprinterr("Internal Error: Internal coord seed %i is already set.\n", iseed);
+  return 1;
+}
+
+/** Add internal coords. If any of the atoms are not set assume this is one
+  * of the 3 seed atoms and determine which one.
+  */
+int Zmatrix::AddIC(InternalCoords const& ic) {
+  if (ic.AtJ() == InternalCoords::NO_ATOM &&
+      ic.AtK() == InternalCoords::NO_ATOM &&
+      ic.AtL() == InternalCoords::NO_ATOM)
+  { // Potential seed0
+    if (icseed0_ != InternalCoords::NO_ATOM)
+      return seed_err(0);
+    icseed0_ = IC_.size();
+  } else if (ic.AtK() == InternalCoords::NO_ATOM &&
+             ic.AtL() == InternalCoords::NO_ATOM)
+  { // Potential seed1
+    if (icseed1_ != InternalCoords::NO_ATOM)
+      return seed_err(1);
+    icseed1_ = IC_.size();
+  } else if (ic.AtL() == InternalCoords::NO_ATOM) {
+    // Potential seed2
+    if (icseed2_ != InternalCoords::NO_ATOM)
+      return seed_err(2);
+    icseed2_ = IC_.size();
+  }
+
   IC_.push_back( ic );
+  return 0;
 }
 
 /** Add internal coords as a IC seed. This is intended for use with systems
   * that have dummy atoms, such as those from Amber Prep files.
   */
-int Zmatrix::AddICseed(InternalCoords const& ic) {
+/*int Zmatrix::AddICseed(InternalCoords const& ic) {
   if (icseed0_ == InternalCoords::NO_ATOM)
     icseed0_ = IC_.size();
   else if (icseed1_ == InternalCoords::NO_ATOM)
@@ -47,7 +76,7 @@ int Zmatrix::AddICseed(InternalCoords const& ic) {
   }
   IC_.push_back( ic );
   return 0;
-}
+}*/
 
 /** Print to stdout */
 void Zmatrix::print() const {
@@ -541,14 +570,14 @@ int Zmatrix::SetFromFrame_Trace(Frame const& frameIn, Topology const& topIn, int
   }
   // Add IC seeds
   if (seedAt0_ != InternalCoords::NO_ATOM)
-    AddICseed( InternalCoords(seedAt0_, InternalCoords::NO_ATOM, InternalCoords::NO_ATOM, InternalCoords::NO_ATOM,
+    AddIC( InternalCoords(seedAt0_, InternalCoords::NO_ATOM, InternalCoords::NO_ATOM, InternalCoords::NO_ATOM,
                               0, 0, 0) );
   if (seedAt1_ != InternalCoords::NO_ATOM)
-    AddICseed( InternalCoords(seedAt1_, seedAt0_, InternalCoords::NO_ATOM, InternalCoords::NO_ATOM,
+    AddIC( InternalCoords(seedAt1_, seedAt0_, InternalCoords::NO_ATOM, InternalCoords::NO_ATOM,
                               sqrt(DIST2_NoImage(frameIn.XYZ(seedAt1_), frameIn.XYZ(seedAt0_))),
                               0, 0) );
   if (seedAt2_ != InternalCoords::NO_ATOM)
-    AddICseed( InternalCoords(seedAt2_, seedAt1_, seedAt0_, InternalCoords::NO_ATOM,
+    AddIC( InternalCoords(seedAt2_, seedAt1_, seedAt0_, InternalCoords::NO_ATOM,
                               sqrt(DIST2_NoImage(frameIn.XYZ(seedAt2_), frameIn.XYZ(seedAt1_))),
                               CalcAngle(frameIn.XYZ(seedAt2_), frameIn.XYZ(seedAt1_), frameIn.XYZ(seedAt0_))*Constants::RADDEG,
                               0) );
