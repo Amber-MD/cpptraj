@@ -4,6 +4,7 @@
 #include "Structure/Zmatrix.h"
 #include <algorithm> // std::copy
 
+using namespace Cpptraj::Structure;
 // Exec_Graft::Help()
 void Exec_Graft::Help() const
 {
@@ -127,11 +128,21 @@ Topology* Exec_Graft::modify_top(Topology const& topIn, AtomMask const& mask, Fr
   return srcTopPtr;
 }
 
+/// Print IC to stdout
+static inline void printIC(InternalCoords const& oic, Topology const& top)
+{
+  mprintf(" %6i %6i %6i %6i [%s - %s - %s - %s]\n",
+          oic.AtI()+1,  oic.AtJ()+1, oic.AtK()+1, oic.AtL()+1,
+          top.AtomMaskName(oic.AtI()).c_str(),
+          top.AtomMaskName(oic.AtJ()).c_str(),
+          top.AtomMaskName(oic.AtK()).c_str(),
+          top.AtomMaskName(oic.AtL()).c_str());
+}
+
 /** Graft using internal coordinates to build the final structure. */
 Exec::RetType Exec_Graft::graft_ic(CpptrajState& State, ArgList& argIn)
 const
 {
-  using namespace Cpptraj::Structure;
   // Source (fragment)
   Frame mol1frm;
   DataSet_Coords* mol1crd = get_crd(argIn, State.DSL(), "src", "Source COORDS", mol1frm, "srcframe");
@@ -233,14 +244,31 @@ const
     int a0 = tgtBondAtoms[idx];
     int a1 = srcBondAtoms[idx];
     for (unsigned int icidx = 0; icidx < zmatrix.N_IC(); icidx++) {
-      if ( (zmatrix[icidx].AtI() == a0 && zmatrix[icidx].AtJ() == a1) ||
-           (zmatrix[icidx].AtI() == a1 && zmatrix[icidx].AtJ() == a0) )
+      InternalCoords const& oic = zmatrix[icidx];
+      if ( (oic.AtI() == a0 && oic.AtJ() == a1) ||
+           (oic.AtI() == a1 && oic.AtJ() == a0) )
       {
-        mprintf("DEBUG: Found IC for bond %i %i\n", a0+1, a1+1);
-        InternalCoords const& oic = zmatrix[icidx];
+        // Set dist, theta, phi
+        double newDist = Atom::GetBondLength( combinedTop[oic.AtI()].Element(), combinedTop[oic.AtJ()].Element() );
+        mprintf("DEBUG: Found IC for bond %i %i (i j)", a0+1, a1+1);
+        printIC(oic, combinedTop);
+        mprintf("DEBUG:\t\tNew dist= %g\n", newDist);
         // TODO be smarter about these values
-        InternalCoords newIc( oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), 1.6, 120.0, 180.0 );
+        InternalCoords newIc( oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), newDist, 120.0, 180.0 );
         zmatrix.SetIC( icidx, newIc );
+      } else if ( (oic.AtJ() == a0 && oic.AtK() == a1) ||
+                  (oic.AtJ() == a1 && oic.AtK() == a0) )
+      {
+        // Set theta, phi
+        mprintf("DEBUG: Found IC for bond %i %i (j k)", a0+1, a1+1);
+        printIC(oic, combinedTop);
+        //InternalCoords newIc( oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), oic.Dist(), 120.0, oic.Phi() ); // FIXME phi
+        //zmatrix.SetIC( icidx, newIc );
+      } else if ( (oic.AtK() == a0 && oic.AtL() == a1) ||
+                  (oic.AtK() == a1 && oic.AtL() == a0) )
+      {
+        mprintf("DEBUG: Found IC for bond %i %i (k l)", a0+1, a1+1);
+        printIC(oic, combinedTop);
       }
     } // END loop over ICs
   } // END loop over bonds
