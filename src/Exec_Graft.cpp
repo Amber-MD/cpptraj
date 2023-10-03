@@ -254,8 +254,8 @@ const
         printIC(oic, combinedTop);
         mprintf("DEBUG:\t\tNew dist= %g\n", newDist);
         // TODO be smarter about these values
-        InternalCoords newIc( oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), newDist, 120.0, 180.0 );
-        zmatrix.SetIC( icidx, newIc );
+        //InternalCoords newIc( oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), newDist, 120.0, 180.0 );
+        //zmatrix.SetIC( icidx, newIc );
       } else if ( (oic.AtJ() == a0 && oic.AtK() == a1) ||
                   (oic.AtJ() == a1 && oic.AtK() == a0) )
       {
