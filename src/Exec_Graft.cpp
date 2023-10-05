@@ -3,6 +3,7 @@
 #include "DataSet_Coords.h"
 #include "Structure/Zmatrix.h"
 #include <algorithm> // std::copy
+#include <map>
 
 using namespace Cpptraj::Structure;
 // Exec_Graft::Help()
@@ -139,6 +140,21 @@ static inline void printIC(InternalCoords const& oic, Topology const& top)
           top.AtomMaskName(oic.AtL()).c_str());
 }
 
+/// Hold IC that needs to be reset
+class ICholder {
+  public:
+    typedef std::vector<unsigned int> Uarray;
+    enum ICtype { IJ = 0, JK, KL, NO_IC_TYPE };
+
+    ICholder(unsigned int i, ICtype t) : icidxs_(1, i), ictype_(t) {}
+    void AddIdx(unsigned int i) { icidxs_.push_back(i); }
+    Uarray const& Idxs() const { return icidxs_; }
+    ICtype Type()        const { return ictype_; }
+  private:
+    Uarray icidxs_; ///< Indices of ICs in zmatrix
+    ICtype ictype_; ///< Type of reset (IJ=all, JK=theta,phi, KL=phi)
+};
+
 /** Graft using internal coordinates to build the final structure. */
 Exec::RetType Exec_Graft::graft_ic(CpptrajState& State, ArgList& argIn)
 const
@@ -239,20 +255,27 @@ const
     return CpptrajState::ERR;
   }
   zmatrix.print(); // DEBUG
+  // Map atom j to ICs to change
+  typedef std::map<int, ICholder> ICmapType;
+  typedef std::pair<int, ICholder> ICpairType;
+  ICmapType ICsToChange;
   // Update ICs corresponding to added bonds
   for (unsigned int idx = 0; idx != tgtBondAtoms.size(); idx++) {
     int a0 = tgtBondAtoms[idx];
     int a1 = srcBondAtoms[idx];
+    // Loop over ICs
     for (unsigned int icidx = 0; icidx < zmatrix.N_IC(); icidx++) {
       InternalCoords const& oic = zmatrix[icidx];
+      ICholder::ICtype ictype = ICholder::NO_IC_TYPE;
       if ( (oic.AtI() == a0 && oic.AtJ() == a1) ||
            (oic.AtI() == a1 && oic.AtJ() == a0) )
       {
         // Set dist, theta, phi
-        double newDist = Atom::GetBondLength( combinedTop[oic.AtI()].Element(), combinedTop[oic.AtJ()].Element() );
         mprintf("DEBUG: Found IC for bond %i %i (i j)", a0+1, a1+1);
         printIC(oic, combinedTop);
-        mprintf("DEBUG:\t\tNew dist= %g\n", newDist);
+        ictype = ICholder::IJ;
+        //double newDist = Atom::GetBondLength( combinedTop[oic.AtI()].Element(), combinedTop[oic.AtJ()].Element() );
+        //mprintf("DEBUG:\t\tNew dist= %g\n", newDist);
         // TODO be smarter about these values
         //InternalCoords newIc( oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), newDist, 120.0, 180.0 );
         //zmatrix.SetIC( icidx, newIc );
@@ -262,6 +285,7 @@ const
         // Set theta, phi
         mprintf("DEBUG: Found IC for bond %i %i (j k)", a0+1, a1+1);
         printIC(oic, combinedTop);
+        ictype = ICholder::JK;
         //InternalCoords newIc( oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), oic.Dist(), 120.0, oic.Phi() ); // FIXME phi
         //zmatrix.SetIC( icidx, newIc );
       } else if ( (oic.AtK() == a0 && oic.AtL() == a1) ||
@@ -269,9 +293,44 @@ const
       {
         mprintf("DEBUG: Found IC for bond %i %i (k l)", a0+1, a1+1);
         printIC(oic, combinedTop);
+        ictype = ICholder::KL;
+      }
+      if (ictype != ICholder::NO_IC_TYPE) {
+        ICmapType::iterator it = ICsToChange.lower_bound( oic.AtJ() );
+        if (it == ICsToChange.end() || it->first != oic.AtJ())
+          ICsToChange.insert( ICpairType(oic.AtJ(), ICholder(icidx, ictype)) );
+        else
+          it->second.AddIdx( icidx );
       }
     } // END loop over ICs
   } // END loop over bonds
+  // Loop over ICs to change
+  for (ICmapType::const_iterator it = ICsToChange.begin(); it != ICsToChange.end(); ++it) {
+    mprintf("DEBUG: IC atomj= %i :\n", it->first+1);
+    // FIXME. Probably going to have to fix this if atom j is a chiral center
+    //double phi = -180.0;
+    //double interval = 360.0 / it->second.Idxs().size();
+    for (ICholder::Uarray::const_iterator jt = it->second.Idxs().begin();
+                                          jt != it->second.Idxs().end(); ++jt)
+    {
+      InternalCoords const& oic = zmatrix[*jt];
+      mprintf("DEBUG:\t\t");
+      printIC(oic, combinedTop);
+      double dist = oic.Dist();
+      double theta = oic.Theta();
+      double phi = oic.Phi();
+      if (it->second.Type() == ICholder::IJ) {
+        dist = Atom::GetBondLength( combinedTop[oic.AtI()].Element(), combinedTop[oic.AtJ()].Element() );
+        theta = 120.0;
+        phi = 180.0;
+      } //else if (it->second.Type() == ICholder::JK) {
+        //theta = 120.0;
+      //}
+      InternalCoords newIc( oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), dist, theta, phi );
+      zmatrix.SetIC( *jt, newIc );
+      //phi += interval;
+    }
+  }
   if (zmatrix.SetToFrame( CombinedFrame )) {
     mprinterr("Error: Conversion from Zmatrix to Cartesian coords failed.\n");
     return CpptrajState::ERR;
