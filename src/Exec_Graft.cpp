@@ -90,6 +90,8 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
   }
   Frame srcFrame = srcCoords->AllocateFrame();
   srcCoords->GetFrame(argIn.getKeyInt("srcframe", 1)-1, srcFrame);
+  bool hasSrcCharge = argIn.Contains("srccharge");
+  double srccharge = argIn.getKeyDouble("srccharge", 0);
   // Get target coords
   kw = argIn.GetStringKey("tgt");
   if (kw.empty()) {
@@ -103,6 +105,8 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
   }
   Frame tgtFrame = tgtCoords->AllocateFrame();
   tgtCoords->GetFrame(argIn.getKeyInt("tgtframe", 1)-1, tgtFrame);
+  bool hasTgtCharge = argIn.Contains("tgtcharge");
+  double tgtcharge = argIn.getKeyDouble("tgtcharge", 0);
   // Create output coords
   kw = argIn.GetStringKey("name");
   if (kw.empty()) {
@@ -233,6 +237,13 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
     srcFrmPtr = new Frame();
     srcFrmPtr->SetupFrameV(srcTopPtr->Atoms(), srcCoords->CoordsInfo());
     srcFrmPtr->SetFrame(srcFrame, srcMask);
+    // Modify charges if needed
+    if (hasSrcCharge) {
+      if (redistribute_charge(*srcTopPtr, srccharge)) {
+        mprinterr("Error: Redistribute src charge failed.\n");
+        return CpptrajState::ERR;
+      }
+    }
   }
 
   // Modify target if needed.
@@ -247,6 +258,13 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
     tgtFrmPtr = new Frame();
     tgtFrmPtr->SetupFrameV(tgtTopPtr->Atoms(), tgtCoords->CoordsInfo());
     tgtFrmPtr->SetFrame(tgtFrame, tgtMask);
+    // Modify charges if needed
+    if (hasTgtCharge) {
+      if (redistribute_charge(*tgtTopPtr, tgtcharge)) {
+        mprinterr("Error: Redistribute tgt charge failed.\n");
+        return CpptrajState::ERR;
+      }
+    }
   }
 
   // Combine topologies. Use target box info.
