@@ -223,6 +223,8 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
   // Add any bonds
   for (unsigned int ii = 0; ii != tgtBondAtoms.size(); ii++)
     combinedTop.AddBond( tgtBondAtoms[ii], srcBondAtoms[ii] );
+  // Regenerate the molecule info FIXME should Topology just do this?
+  if (combinedTop.DetermineMolecules()) return CpptrajState::ERR;
   combinedTop.SetParmBox( tgtFrmPtr->BoxCrd() );
   combinedTop.Brief("Grafted parm:");
 
