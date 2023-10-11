@@ -8,5 +8,7 @@ class Exec_Graft : public Exec {
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_Graft(); }
     RetType Execute(CpptrajState&, ArgList&);
+  private:
+    static int redistribute_charge(Topology&, double);
 };
 #endif

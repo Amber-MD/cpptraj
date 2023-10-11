@@ -38,6 +38,41 @@ static int UpdateIndices(std::vector<int>& Idxs, AtomMask const& maskIn, int off
   return 0;
 }
 
+/** Redistribute charge on atoms in topology to match a target charge. */
+int Exec_Graft::redistribute_charge(Topology& topIn, double charge) {
+  double pcharge = 0;
+  double ncharge = 0;
+  for (int iat = 0; iat != topIn.Natom(); iat++) {
+    if (topIn[iat].Charge() > 0)
+      pcharge += topIn[iat].Charge();
+    else if (topIn[iat].Charge() < 0)
+      ncharge += topIn[iat].Charge();
+  }
+  //if (fabs(pcharge) < Constants::SMALL)
+  bool PchargeZero = false;
+  if (pcharge == 0) {
+    mprintf("\tTotal positive charge is 0.0\n");
+    PchargeZero = true;
+  }
+  bool NchargeZero = false;
+  //if (fabs(ncharge) < Constants::SMALL)
+  if (ncharge == 0) {
+    mprintf("\tTotal negative charge is 0.0\n");
+    NchargeZero = true;
+  }
+  if (!PchargeZero && !NchargeZero) {
+    for (int iat = 0; iat != topIn.Natom(); iat++) {
+      double delta = topIn[iat].Charge() * (charge - pcharge - ncharge) / (pcharge - ncharge);
+      if (topIn[iat].Charge() >= 0) {
+        topIn.SetAtom(iat).SetCharge( topIn[iat].Charge() + delta );
+      } else {
+        topIn.SetAtom(iat).SetCharge( topIn[iat].Charge() - delta );
+      }
+    }
+  }
+  return 0;
+}
+
 // Exec_Graft::Execute()
 Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
 {
