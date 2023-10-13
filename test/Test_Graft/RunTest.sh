@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles cpptraj.in Final.graft.mol2 Nucleotide.pdb
+CleanFiles cpptraj.in Final.graft.mol2 Nucleotide.pdb Nucleotide.mol2
 TESTNAME='Graft test'
 Requires notparallel
 
@@ -78,8 +78,49 @@ EOF
   DoTest Nucleotide.pdb.save Nucleotide.pdb
 }
 
+# Link nucleic acid base + sugar + phosphate, fix charges.
+DNAcharge() {
+  cat > cpptraj.in <<EOF
+parm DDD.names.mol2
+loadcrd DDD.names.mol2 name Sugar parm DDD.names.mol2
+parm MP1.names.mol2
+loadcrd MP1.names.mol2 name Phos parm MP1.names.mol2
+parm ADD.names.mol2
+loadcrd ADD.names.mol2 name Base parm ADD.names.mol2
+graft \
+  tgt Base \
+  tgtcharge 0.116 \
+  src Sugar \
+  srccharge 0.2933 \
+  name BaseSugar \
+  tgtfitmask @N1,C1,H1 \
+  srcfitmask @C4,C3,O2 \
+  tgtmask !(@C1,H1,H6,H7) \
+  srcmask !(@C4,H6,H7,H8,H12,H11) \
+  bond @N1,@C3
+charge crdset BaseSugar *
+graft \
+  tgt BaseSugar \
+  tgtcharge 0.4093 \
+  src Phos \
+  srccharge -1.4093 \
+  name Nucleotide \
+  tgtfitmask @C1,O1,H1 \
+  srcfitmask @C3,O3,P1 \
+  tgtmask !(@O1,H1) \
+  srcmask !(@C3,H4,H5,H6,O1,C1,H1,H2,H3) \
+  bond @C1,@O3
+charge crdset Nucleotide *
+crdout Nucleotide Nucleotide.mol2
+quit
+EOF
+  RunCpptraj "$TESTNAME, Construct Nucleic Acid and adjust charge"
+  DoTest Nucleotide.mol2.save Nucleotide.mol2
+}
+
 TyrPry
 DNA
+DNAcharge
 
 EndTest
 exit 0
