@@ -7491,7 +7491,15 @@ graft src <source COORDS> [srcframe <#>] [srcfitmask <mask>] [srcmask <mask>]
 \end_layout
 
 \begin_layout LyX-Code
+      srccharge <charge>
+\end_layout
+
+\begin_layout LyX-Code
   	tgt <target COORDS> [tgtframe <#>] [tgtfitmask <mask>] [tgtmask <mask>]
+\end_layout
+
+\begin_layout LyX-Code
+      tgtcharge <charge>
 \end_layout
 
 \begin_layout LyX-Code
@@ -7536,6 +7544,15 @@ COORDS> Source coordinates.
 \end_layout
 
 \begin_layout Description
+[srccharge
+\begin_inset space ~
+\end_inset
+
+<charge>] If trimming atoms from source, ensure sum of charges on remaining
+ atoms equals <charge> via scaling.
+\end_layout
+
+\begin_layout Description
 tgt
 \begin_inset space ~
 \end_inset
@@ -7569,6 +7586,15 @@ COORDS> Target coordinates that will be grafted onto.
 \end_inset
 
 <mask>] Atoms to keep from target (default all).
+\end_layout
+
+\begin_layout Description
+[tgtcharge
+\begin_inset space ~
+\end_inset
+
+<charge>] If trimming atoms from target, ensure sum of charges on remaining
+ atoms equals <charge> via scaling.
 \end_layout
 
 \begin_layout Description

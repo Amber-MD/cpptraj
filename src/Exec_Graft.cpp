@@ -7,7 +7,9 @@
 void Exec_Graft::Help() const
 {
   mprintf("\tsrc <source COORDS> [srcframe <#>] [srcfitmask <mask>] [srcmask <mask>]\n"
+          "\t[srccharge <charge>\n"
           "\ttgt <target COORDS> [tgtframe <#>] [tgtfitmask <mask>] [tgtmask <mask>]\n"
+          "\t[tgtcharge <charge>\n"
           "\tname <output COORDS> [bond <tgt>,<src> ...]\n"
           "  Graft coordinates from source to coordinates in target.\n");
 }
@@ -38,6 +40,45 @@ static int UpdateIndices(std::vector<int>& Idxs, AtomMask const& maskIn, int off
   return 0;
 }
 
+/** Redistribute charge on atoms in topology to match a target charge. */
+int Exec_Graft::redistribute_charge(Topology& topIn, double charge) {
+  //mprintf("DEBUG: Redistribute charge for %s, total charge = %g\n", topIn.c_str(), charge);
+  double pcharge = 0;
+  double ncharge = 0;
+  for (int iat = 0; iat != topIn.Natom(); iat++) {
+    if (topIn[iat].Charge() > 0)
+      pcharge += topIn[iat].Charge();
+    else if (topIn[iat].Charge() < 0)
+      ncharge += topIn[iat].Charge();
+  }
+  //if (fabs(pcharge) < Constants::SMALL)
+  bool PchargeZero = false;
+  if (pcharge == 0) {
+    mprintf("\tTotal positive charge is 0.0\n");
+    PchargeZero = true;
+  }
+  bool NchargeZero = false;
+  //if (fabs(ncharge) < Constants::SMALL)
+  if (ncharge == 0) {
+    mprintf("\tTotal negative charge is 0.0\n");
+    NchargeZero = true;
+  }
+  if (!PchargeZero && !NchargeZero) {
+    //double total_charge = 0;
+    for (int iat = 0; iat != topIn.Natom(); iat++) {
+      double delta = topIn[iat].Charge() * (charge - pcharge - ncharge) / (pcharge - ncharge);
+      if (topIn[iat].Charge() >= 0) {
+        topIn.SetAtom(iat).SetCharge( topIn[iat].Charge() + delta );
+      } else {
+        topIn.SetAtom(iat).SetCharge( topIn[iat].Charge() - delta );
+      }
+      //total_charge += topIn[iat].Charge();
+    }
+    //mprintf("DEBUG: Total charge after redistribute: %g\n", total_charge);
+  }
+  return 0;
+}
+
 // Exec_Graft::Execute()
 Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
 {
@@ -55,6 +96,8 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
   }
   Frame srcFrame = srcCoords->AllocateFrame();
   srcCoords->GetFrame(argIn.getKeyInt("srcframe", 1)-1, srcFrame);
+  bool hasSrcCharge = argIn.Contains("srccharge");
+  double srccharge = argIn.getKeyDouble("srccharge", 0);
   // Get target coords
   kw = argIn.GetStringKey("tgt");
   if (kw.empty()) {
@@ -68,6 +111,8 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
   }
   Frame tgtFrame = tgtCoords->AllocateFrame();
   tgtCoords->GetFrame(argIn.getKeyInt("tgtframe", 1)-1, tgtFrame);
+  bool hasTgtCharge = argIn.Contains("tgtcharge");
+  double tgtcharge = argIn.getKeyDouble("tgtcharge", 0);
   // Create output coords
   kw = argIn.GetStringKey("name");
   if (kw.empty()) {
@@ -162,6 +207,10 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
   mprintf("\tTarget mask     :");
   tgtMask.BriefMaskInfo();
   mprintf("\n");
+  if (hasSrcCharge && (srcMask.Nselected() != srcCoords->Top().Natom()))
+    mprintf("\tAdjusting source charge to %g\n", srccharge);
+  if (hasTgtCharge && (tgtMask.Nselected() != tgtCoords->Top().Natom()))
+    mprintf("\tAdjusting target charge to %g\n", tgtcharge);
   if (doRmsFit) {
     mprintf(  "\tSource fit mask :");
     srcFitMask.BriefMaskInfo();
@@ -198,6 +247,13 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
     srcFrmPtr = new Frame();
     srcFrmPtr->SetupFrameV(srcTopPtr->Atoms(), srcCoords->CoordsInfo());
     srcFrmPtr->SetFrame(srcFrame, srcMask);
+    // Modify charges if needed
+    if (hasSrcCharge) {
+      if (redistribute_charge(*srcTopPtr, srccharge)) {
+        mprinterr("Error: Redistribute src charge failed.\n");
+        return CpptrajState::ERR;
+      }
+    }
   }
 
   // Modify target if needed.
@@ -212,6 +268,13 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
     tgtFrmPtr = new Frame();
     tgtFrmPtr->SetupFrameV(tgtTopPtr->Atoms(), tgtCoords->CoordsInfo());
     tgtFrmPtr->SetFrame(tgtFrame, tgtMask);
+    // Modify charges if needed
+    if (hasTgtCharge) {
+      if (redistribute_charge(*tgtTopPtr, tgtcharge)) {
+        mprinterr("Error: Redistribute tgt charge failed.\n");
+        return CpptrajState::ERR;
+      }
+    }
   }
 
   // Combine topologies. Use target box info.
@@ -223,6 +286,8 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
   // Add any bonds
   for (unsigned int ii = 0; ii != tgtBondAtoms.size(); ii++)
     combinedTop.AddBond( tgtBondAtoms[ii], srcBondAtoms[ii] );
+  // Regenerate the molecule info FIXME should Topology just do this?
+  if (combinedTop.DetermineMolecules()) return CpptrajState::ERR;
   combinedTop.SetParmBox( tgtFrmPtr->BoxCrd() );
   combinedTop.Brief("Grafted parm:");
 
