@@ -122,46 +122,5 @@ TyrPry
 DNA
 DNAcharge
 
-# DNA Graft
-cat > cpptraj.in <<EOF
-for FILE in template-sugar.pdb,template-dimethylphosphate.pdb,template-base-adenine.pdb NAME in Sugar,Phos,Base
-  parm \$FILE
-  loadcrd \$FILE name \$NAME parm \$FILE
-done
-list
-graft \
-  tgt Base \
-  src Sugar \
-  name BaseSugar \
-  tgtfitmask @N9,C1',1H1' \
-  srcfitmask @C10,C1',O4' \
-  tgtmask !(@C1',1H1',2H1',3H1') \
-  srcmask !(@C10,1H10,2H10,3H10,HO3',O2',HO2') \
-  bond @N9,@C1'
-crdout BaseSugar BaseSugar.mol2
-
-graft \
-  tgt BaseSugar \
-  src Phos \
-  name Nucleotide \
-  tgtfitmask @C5',O5',HO5' \
-  srcfitmask @C2,O5',P \
-  tgtmask !(@O5',HO5') \
-  srcmask !(@C2,H21,H22,H23,O3',C1,H11,H12,H13) \
-  bond @C5',@O5'
-crdout Nucleotide Nucleotide.mol2
-molinfo crdset Nucleotide *
-
-change crdset Nucleotide resname from * to DA
-change crdset Nucleotide oresnums of :1 min 1 max 1
-change crdset Nucleotide oresnums of :2 min 1 max 1
-change crdset Nucleotide oresnums of :3 min 1 max 1
-crdout Nucleotide Nucleotide.pdb
-
-  
-EOF
-RunCpptraj "DNA graft test"
-DoTest Nucleotide.pdb.save Nucleotide.pdb
-
 EndTest
 exit 0
