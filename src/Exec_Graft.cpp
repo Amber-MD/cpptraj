@@ -7,7 +7,9 @@
 void Exec_Graft::Help() const
 {
   mprintf("\tsrc <source COORDS> [srcframe <#>] [srcfitmask <mask>] [srcmask <mask>]\n"
+          "\t[srccharge <charge>\n"
           "\ttgt <target COORDS> [tgtframe <#>] [tgtfitmask <mask>] [tgtmask <mask>]\n"
+          "\t[tgtcharge <charge>\n"
           "\tname <output COORDS> [bond <tgt>,<src> ...]\n"
           "  Graft coordinates from source to coordinates in target.\n");
 }
