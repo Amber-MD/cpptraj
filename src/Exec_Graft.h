@@ -19,5 +19,6 @@ class Exec_Graft : public Exec {
 
     RetType graft_ic(CpptrajState&, ArgList&) const;
     RetType graft_rms(CpptrajState&, ArgList&) const;
+    static int redistribute_charge(Topology&, double);
 };
 #endif
