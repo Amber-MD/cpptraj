@@ -40,6 +40,7 @@ static int UpdateIndices(std::vector<int>& Idxs, AtomMask const& maskIn, int off
 
 /** Redistribute charge on atoms in topology to match a target charge. */
 int Exec_Graft::redistribute_charge(Topology& topIn, double charge) {
+  mprintf("DEBUG: Redistribute charge for %s, total charge = %g\n", topIn.c_str(), charge);
   double pcharge = 0;
   double ncharge = 0;
   for (int iat = 0; iat != topIn.Natom(); iat++) {
@@ -61,6 +62,7 @@ int Exec_Graft::redistribute_charge(Topology& topIn, double charge) {
     NchargeZero = true;
   }
   if (!PchargeZero && !NchargeZero) {
+    double total_charge = 0;
     for (int iat = 0; iat != topIn.Natom(); iat++) {
       double delta = topIn[iat].Charge() * (charge - pcharge - ncharge) / (pcharge - ncharge);
       if (topIn[iat].Charge() >= 0) {
@@ -68,7 +70,9 @@ int Exec_Graft::redistribute_charge(Topology& topIn, double charge) {
       } else {
         topIn.SetAtom(iat).SetCharge( topIn[iat].Charge() - delta );
       }
+      total_charge += topIn[iat].Charge();
     }
+    mprintf("DEBUG: Total charge after redistribute: %g\n", total_charge);
   }
   return 0;
 }
