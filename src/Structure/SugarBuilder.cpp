@@ -1116,7 +1116,7 @@ const
   Cpptraj::Chirality::ChiralType ctypeR = Cpptraj::Chirality::
                                           DetermineChirality(sugar.HighestStereocenter(),
                                                              topIn, frameIn, cdebug);
-  if (ctypeR == Cpptraj::Chirality::ERR) {
+  if (ctypeR == Cpptraj::Chirality::ERR || ctypeR == Cpptraj::Chirality::IS_UNKNOWN_CHIRALITY) {
     mprinterr("Error: Could not determine configuration for furanose.\n"); // TODO warn?
     return 1;
   }
@@ -1128,7 +1128,7 @@ const
   Cpptraj::Chirality::ChiralType ctypeA = Cpptraj::Chirality::
                                           DetermineChirality(sugar.AnomericAtom(),
                                                              topIn, frameIn, cdebug);
-  if (ctypeA == Cpptraj::Chirality::ERR) {
+  if (ctypeA == Cpptraj::Chirality::ERR || ctypeA == Cpptraj::Chirality::IS_UNKNOWN_CHIRALITY) {
     mprinterr("Error: Could not determine chirality around anomeric atom for furanose.\n"); // TODO warn?
     return 1;
   }

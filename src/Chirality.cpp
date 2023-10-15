@@ -125,9 +125,15 @@ Chirality::ChiralType Chirality::DetermineChirality(double& tors, int* AtomIndic
             break;
           }
           if (depth == 10) {
-            mprinterr("Error: Could not determine priority around '%s'\n",
+            mprintf("Warning: Could not determine priority around '%s'\n",
                       topIn.AtomMaskName(atnum).c_str());
-            return ERR;
+            if (AtomIndices != 0) {
+              AtomIndices[0] = priority[0].AtNum();
+              AtomIndices[1] = priority[1].AtNum();
+              AtomIndices[2] = priority[2].AtNum();
+              AtomIndices[3] = atnum;
+            }
+            return IS_UNKNOWN_CHIRALITY;
           }
           depth++;
         } // END while identical priorities
