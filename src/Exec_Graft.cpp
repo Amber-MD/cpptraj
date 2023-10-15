@@ -288,6 +288,11 @@ const
   std::copy(mol1frm.xAddress(), mol1frm.xAddress()+mol1frm.size(), CombinedFrame.xAddress()+mol0frm.size());
   // Use target box TODO reset the box?
   CombinedFrame.SetBox( mol0frm.BoxCrd() );
+  // Declare source atoms as 'known'. Source atoms are in residue 1
+  typedef std::vector<bool> Barray;
+  Barray atomPositionKnown( combinedTop.Natom(), false );
+  for (int aidx = combinedTop.Res(1).FirstAtom(); aidx != combinedTop.Res(1).LastAtom(); aidx++)
+    atomPositionKnown[aidx] = true;
 
   // Generate Z matrix FIXME ensure mol 0 is the one we are interested in
   Zmatrix zmatrix;
@@ -319,7 +324,7 @@ const
         //double newDist = Atom::GetBondLength( combinedTop[oic.AtI()].Element(), combinedTop[oic.AtJ()].Element() );
         //mprintf("DEBUG:\t\tNew dist= %g\n", newDist);
         double newPhi = 0;
-        if (Model::AssignPhi(newPhi, oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), combinedTop, CombinedFrame)) {
+        if (Cpptraj::Structure::Model::AssignPhi(newPhi, oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), combinedTop, CombinedFrame, atomPositionKnown)) {
           mprinterr("Error: phi assignment failed.\n");
           return CpptrajState::ERR;
         }
@@ -333,6 +338,11 @@ const
         mprintf("DEBUG: Found IC for bond %i %i (j k)", a0+1, a1+1);
         printIC(oic, combinedTop);
         ictype = ICholder::JK;
+        double newPhi = 0;
+        if (Cpptraj::Structure::Model::AssignPhi(newPhi, oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), combinedTop, CombinedFrame, atomPositionKnown)) {
+          mprinterr("Error: phi assignment failed.\n");
+          return CpptrajState::ERR;
+        }
         //InternalCoords newIc( oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), oic.Dist(), 120.0, oic.Phi() ); // FIXME phi
         //zmatrix.SetIC( icidx, newIc );
       } else if ( (oic.AtK() == a0 && oic.AtL() == a1) ||
@@ -342,6 +352,11 @@ const
         mprintf("DEBUG: Found IC for bond %i %i (k l)", a0+1, a1+1);
         printIC(oic, combinedTop);
         ictype = ICholder::KL;
+        double newPhi = 0;
+        if (Cpptraj::Structure::Model::AssignPhi(newPhi, oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), combinedTop, CombinedFrame, atomPositionKnown)) {
+          mprinterr("Error: phi assignment failed.\n");
+          return CpptrajState::ERR;
+        }
       }
       if (ictype != ICholder::NO_IC_TYPE) {
         ICmapType::iterator it = ICsToChange.lower_bound( oic.AtJ() );
