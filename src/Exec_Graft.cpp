@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "DataSet_Coords.h"
 #include "Structure/Zmatrix.h"
+#include "Structure/Model.h"
 #include <algorithm> // std::copy
 #include <map>
 
@@ -317,6 +318,11 @@ const
         ictype = ICholder::IJ;
         //double newDist = Atom::GetBondLength( combinedTop[oic.AtI()].Element(), combinedTop[oic.AtJ()].Element() );
         //mprintf("DEBUG:\t\tNew dist= %g\n", newDist);
+        double newPhi = 0;
+        if (Model::AssignPhi(newPhi, oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), combinedTop, CombinedFrame)) {
+          mprinterr("Error: phi assignment failed.\n");
+          return CpptrajState::ERR;
+        }
         // TODO be smarter about these values
         //InternalCoords newIc( oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), newDist, 120.0, 180.0 );
         //zmatrix.SetIC( icidx, newIc );
@@ -332,6 +338,7 @@ const
       } else if ( (oic.AtK() == a0 && oic.AtL() == a1) ||
                   (oic.AtK() == a1 && oic.AtL() == a0) )
       {
+        // Set phi
         mprintf("DEBUG: Found IC for bond %i %i (k l)", a0+1, a1+1);
         printIC(oic, combinedTop);
         ictype = ICholder::KL;
