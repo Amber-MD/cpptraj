@@ -22,8 +22,10 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
 
   // FIXME aj ak and al should be known
   // TODO check that atom i actually ends up on the list?
-  int priority[4];
+  std::vector<int> Priority( AJ.Nbonds() + 1 );
+  int* priority = static_cast<int*>( &Priority[0] );
   double tors = 0;
+  // DetermineChirality will always put aj as the last index.
   ChiralType chirality = DetermineChirality(tors, priority, aj, topIn, frameIn, 0); // FIXME debug
   if (chirality == ERR) {
     mprinterr("Error: Problem determining chirality around atom %s\n", topIn.AtomMaskName(aj).c_str());
@@ -36,13 +38,13 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
     mprintf("DEBUG:\t\tChirality is R\n");
   }
   mprintf("DEBUG:\t\tPriority around J:");
-  for (int idx = 0; idx < 3; idx++)
+  for (int idx = 0; idx < AJ.Nbonds(); idx++)
     mprintf(" %s(%i)", topIn.AtomMaskName(priority[idx]).c_str(), (int)atomPositionKnown[priority[idx]]);
   mprintf("\n");
 
   // Fill in what values we can for known atoms
-  double knownPhi[3];
-  for (int idx = 0; idx < 3; idx++) {
+  std::vector<double> knownPhi( AJ.Nbonds() );
+  for (int idx = 0; idx < AJ.Nbonds(); idx++) {
     int atnum = priority[idx];
     if (atnum != ak && atomPositionKnown[atnum]) {
       knownPhi[idx] = Torsion(frameIn.XYZ(atnum),
@@ -51,6 +53,12 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
                               frameIn.XYZ(al));
       mprintf("DEBUG:\t\tKnown phi for %s = %g\n", topIn.AtomMaskName(atnum).c_str(), knownPhi[idx]*Constants::RADDEG);
     }
+  }
+
+  if (AJ.Nbonds() > 1) {
+    // The interval will be 360 / (number of bonds - 1)
+    double interval = Constants::TWOPI / (AJ.Nbonds() - 1);
+    mprintf("DEBUG:\t\tInterval is %g degrees\n", interval * Constants::RADDEG);
   }
 
   return 0;
