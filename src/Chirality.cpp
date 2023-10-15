@@ -78,7 +78,8 @@ class priority_element {
   *   1-2-3-0
   * where 0 is the chiral center. Negative is S, positive is R.
   */
-Chirality::ChiralType Chirality::DetermineChirality(double& tors, int atnum,
+Chirality::ChiralType Chirality::DetermineChirality(double& tors, int* AtomIndices,
+                                                    int atnum,
                                                     Topology const& topIn,
                                                     Frame const& frameIn, int debugIn)
 {
@@ -142,6 +143,13 @@ Chirality::ChiralType Chirality::DetermineChirality(double& tors, int atnum,
     mprintf("\n");
   }
 
+  if (AtomIndices != 0) {
+    AtomIndices[0] = priority[0].AtNum();
+    AtomIndices[1] = priority[1].AtNum();
+    AtomIndices[2] = priority[2].AtNum();
+    AtomIndices[3] = atnum;
+  }
+
   tors = Torsion( frameIn.XYZ(priority[0].AtNum()),
                   frameIn.XYZ(priority[1].AtNum()),
                   frameIn.XYZ(priority[2].AtNum()),
@@ -165,5 +173,5 @@ Chirality::ChiralType Chirality::DetermineChirality(int atnum,
                                                     Frame const& frameIn, int debugIn)
 {
   double tors;
-  return DetermineChirality(tors, atnum, topIn, frameIn, debugIn);
+  return DetermineChirality(tors, 0, atnum, topIn, frameIn, debugIn);
 }
