@@ -76,10 +76,20 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
   } else {
     mprintf("DEBUG:\t\tChirality is R\n");
   }
-  mprintf("DEBUG:\t\tPriority around J (tors=%g):", tors*Constants::RADDEG);
+  mprintf("DEBUG:\t\tPriority around J %s(%i) (tors=%g):", 
+          topIn.AtomMaskName(aj).c_str(), (int)atomPositionKnown[aj], tors*Constants::RADDEG);
   for (int idx = 0; idx < AJ.Nbonds(); idx++)
     mprintf(" %s(%i)", topIn.AtomMaskName(priority[idx]).c_str(), (int)atomPositionKnown[priority[idx]]);
   mprintf("\n");
+  // Determine if chirality is valid
+  bool chirality_is_valid = true;
+  for (unsigned int idx = 0; idx < Priority.size(); idx++) {
+    if (atomPositionKnown[priority[idx]] != atomPositionKnown[aj]) {
+      chirality_is_valid = false;
+      break;
+    }
+  }
+  mprintf("DEBUG:\t\tChirality is valid: %i\n", (int)chirality_is_valid);
 
   // Fill in what values we can for known atoms
   std::vector<double> knownPhi( AJ.Nbonds() );
@@ -101,9 +111,15 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
   }
   double startPhi;
   if (knownIdx == -1) {
-    mprintf("DEBUG:\t\tNo known phi. Setting to 0.\n");
-    knownIdx = 0;
     startPhi = 0;
+    // If all atom statuses match the chirality is valid. Have R start -180.
+    if (chirality_is_valid)
+    {
+      if (chirality == IS_R) // FIXME just always start -180?
+        startPhi = -180*Constants::DEGRAD;
+    }
+    mprintf("DEBUG:\t\tNo known phi. Setting to %g.\n", startPhi*Constants::RADDEG);
+    knownIdx = 0;
   } else
     startPhi = knownPhi[knownIdx];
 

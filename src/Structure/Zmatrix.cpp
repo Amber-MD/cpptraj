@@ -769,6 +769,43 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
   return 0;*/
 }
 
+/** \return Position of atom I from given internal coordinate. */
+Vec3 Zmatrix::AtomIposition(InternalCoords const& ic, Frame const& frameOut)
+{
+    double rdist = ic.Dist();
+    double theta = ic.Theta();
+    double phi   = ic.Phi();
+
+    double sinTheta = sin(theta * Constants::DEGRAD);
+    double cosTheta = cos(theta * Constants::DEGRAD);
+    double sinPhi   = sin(phi   * Constants::DEGRAD);
+    double cosPhi   = cos(phi   * Constants::DEGRAD);
+
+    // NOTE: Want -x
+    Vec3 xyz( -(rdist * cosTheta),
+                rdist * cosPhi * sinTheta,
+                rdist * sinPhi * sinTheta );
+
+    Vec3 posL = Vec3( frameOut.XYZ( ic.AtL()) );
+    Vec3 posK = Vec3( frameOut.XYZ( ic.AtK()) );
+    Vec3 posJ = Vec3( frameOut.XYZ( ic.AtJ()) );
+
+    Vec3 LK = posK - posL;
+    Vec3 KJ = posJ - posK;
+    KJ.Normalize();
+    Vec3 Norm = LK.Cross(KJ);
+    Norm.Normalize();
+    Vec3 NxKJ = Norm.Cross(KJ);
+
+    Matrix_3x3 Rot( KJ[0], NxKJ[0], Norm[0],
+                    KJ[1], NxKJ[1], Norm[1],
+                    KJ[2], NxKJ[2], Norm[2] );
+
+    Vec3 posI = (Rot * xyz) + posJ;
+
+  return posI;
+}
+
 /** Set Cartesian coordinates in Frame from internal coordinates.
   * The procedure used here is from:
   * Parsons et al., "Practical Conversion from Torsion Space to 

@@ -353,6 +353,10 @@ const
         // TODO be smarter about these values
         InternalCoords newIc( oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), newDist, newTheta*Constants::RADDEG, newPhi*Constants::RADDEG );
         zmatrix.SetIC( icidx, newIc );
+        // Update frame
+        //Vec3 posI = Zmatrix::AtomIposition( newIc, CombinedFrame );
+        //CombinedFrame.SetXYZ( newIc.AtI(), posI );
+        //atomPositionKnown[newIc.AtI()] = true;
       } else if ( (oic.AtJ() == a0 && oic.AtK() == a1) ||
                   (oic.AtJ() == a1 && oic.AtK() == a0) )
       {
@@ -374,6 +378,10 @@ const
         mprintf("DEBUG:\t\tnewPhi = %g\n", newPhi*Constants::RADDEG); // FIXME Internal coords should be radians
         InternalCoords newIc( oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), oic.Dist(), newTheta*Constants::RADDEG, newPhi*Constants::RADDEG );
         zmatrix.SetIC( icidx, newIc );
+        // Update frame
+        //Vec3 posI = Zmatrix::AtomIposition( newIc, CombinedFrame );
+        //CombinedFrame.SetXYZ( newIc.AtI(), posI );
+        //atomPositionKnown[newIc.AtI()] = true;
       } else if ( (oic.AtK() == a0 && oic.AtL() == a1) ||
                   (oic.AtK() == a1 && oic.AtL() == a0) )
       {
@@ -389,6 +397,10 @@ const
         mprintf("DEBUG:\t\tnewPhi = %g\n", newPhi*Constants::RADDEG);
         InternalCoords newIc( oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), oic.Dist(), oic.Theta(), newPhi*Constants::RADDEG );
         zmatrix.SetIC( icidx, newIc );
+        // Update frame
+        //Vec3 posI = Zmatrix::AtomIposition( newIc, CombinedFrame );
+        //CombinedFrame.SetXYZ( newIc.AtI(), posI );
+        //atomPositionKnown[newIc.AtI()] = true;
       }
       if (ictype != ICholder::NO_IC_TYPE) {
         ICmapType::iterator it = ICsToChange.lower_bound( oic.AtJ() );

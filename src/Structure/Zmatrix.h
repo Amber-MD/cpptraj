@@ -49,6 +49,9 @@ class Zmatrix {
                                               (IC_.size() * InternalCoords::sizeInBytes()); }
     /// \reserve space for # of internal coords TODO zero out seeds?
     void reserve(unsigned int n) { IC_.reserve( n ); }
+
+    /// \return XYZ position of atom I for given internal coordinate
+    static Vec3 AtomIposition(InternalCoords const&, Frame const&);
   private:
     typedef std::vector<int> Iarray;
     typedef std::vector<bool> Barray;
