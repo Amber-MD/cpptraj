@@ -2,7 +2,8 @@
 
 . ../MasterTest.sh
 
-CleanFiles cpptraj.in Final.graft.mol2 Nucleotide.pdb Nucleotide.mol2
+CleanFiles cpptraj.in Final.graft.mol2 Nucleotide.pdb Nucleotide.mol2 \
+           IC.Final.graft.mol2
 TESTNAME='Graft test'
 Requires notparallel
 
@@ -31,10 +32,37 @@ graft \
   tgtmask @C,O,CA,HA,N,H,CB,HB2,HB3 \
   bond :1@CB,:1@C2
 crdout Final Final.graft.mol2
-
+zmatrix Final out zFinal.dat
 EOF
   RunCpptraj "$TESTNAME, Prenylated Tyrosine"
   DoTest Final.graft.mol2.save Final.graft.mol2
+}
+
+# Combine Tyr FF14SB backbone + CB with PRY fragment, use internal coords
+TyrPryIC() {
+  cat > cpptraj.in <<EOF
+set TYRFILE = ../Test_CombineCrd/Tyr.mol2
+# Load the target
+parm \$TYRFILE 
+loadcrd \$TYRFILE parmindex 0 name TYR
+
+# Load the source
+set PRYFILE= ../Test_CombineCrd/PRY-gauss-fragment.mol2
+parm \$PRYFILE
+loadcrd \$PRYFILE parmindex 1 name PRY
+
+graft ic \
+  tgt TYR \
+  src PRY \
+  name Final \
+  srcmask !(@1-4) \
+  tgtmask @C,O,CA,HA,N,H,CB,HB2,HB3 \
+  bond :1@CB,:1@C2
+crdout Final IC.Final.graft.mol2
+zmatrix Final out zicFinal.dat
+EOF
+  RunCpptraj "$TESTNAME, Prenylated Tyrosine (interncal coords)"
+  #DoTest Final.graft.mol2.save Final.graft.mol2
 }
 
 # Link nucleic acid base + sugar + phosphate
@@ -119,6 +147,7 @@ EOF
 }
 
 TyrPry
+TyrPryIC
 DNA
 DNAcharge
 

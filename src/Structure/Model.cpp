@@ -16,7 +16,7 @@ int Cpptraj::Structure::Model::AssignTheta(double& theta, int ai, int aj, int ak
   Atom const& AJ = topIn[aj];
   mprintf("DEBUG:\t\tNbonds: %i\n", AJ.Nbonds());
   // Fill in what values we can for known atoms
-  std::vector<double> knownTheta( AJ.Nbonds() );
+/*  std::vector<double> knownTheta( AJ.Nbonds() );
   int knownIdx = -1;
   for (int idx = 0; idx < AJ.Nbonds(); idx++) {
     int atnum = AJ.Bond(idx);
@@ -28,18 +28,18 @@ int Cpptraj::Structure::Model::AssignTheta(double& theta, int ai, int aj, int ak
       if (knownIdx == -1) knownIdx = idx; // FIXME handle more than 1 known
     }
   }
-  if (knownIdx == -1) {
-    mprintf("DEBUG:\t\tNo known theta.\n");
+  if (knownIdx == -1) {*/
+    //mprintf("DEBUG:\t\tNo known theta.\n");
     // Assign a theta based on hybridization
     switch (AJ.Nbonds()) {
       case 4 : theta = 109.5 * Constants::DEGRAD; break;
       case 3 : theta = 120.0 * Constants::DEGRAD; break;
       case 2 : theta = 180.0 * Constants::DEGRAD; break;
       default : mprinterr("Internal Error: AssignTheta(): Unhandled # bonds for %s (%i)\n", topIn.AtomMaskName(aj).c_str(), AJ.Nbonds()); return 1;
-    }
+    }/*
   } else {
     theta = knownTheta[knownIdx]; // TODO just use above guess via hybrid?
-  }
+  }*/
 
   return 0;
 }
@@ -86,7 +86,11 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
   int knownIdx = -1;
   for (int idx = 0; idx < AJ.Nbonds(); idx++) {
     int atnum = priority[idx];
-    if (atnum != ak && atomPositionKnown[atnum]) {
+    if (atnum != ak && atomPositionKnown[atnum] &&
+                       atomPositionKnown[aj] &&
+                       atomPositionKnown[ak] &&
+                       atomPositionKnown[al])
+    {
       knownPhi[idx] = Torsion(frameIn.XYZ(atnum),
                               frameIn.XYZ(aj),
                               frameIn.XYZ(ak),

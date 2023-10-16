@@ -290,9 +290,9 @@ const
   CombinedFrame.SetBox( mol0frm.BoxCrd() );
   // Declare source atoms as 'known'. Source atoms are in residue 1
   typedef std::vector<bool> Barray;
-  Barray atomPositionKnown( combinedTop.Natom(), false );
+  Barray atomPositionKnown;/*( combinedTop.Natom(), false );
   for (int aidx = combinedTop.Res(1).FirstAtom(); aidx != combinedTop.Res(1).LastAtom(); aidx++)
-    atomPositionKnown[aidx] = true;
+    atomPositionKnown[aidx] = true;*/
 
   // Generate Z matrix FIXME ensure mol 0 is the one we are interested in
   Zmatrix zmatrix;
@@ -317,6 +317,21 @@ const
       if ( (oic.AtI() == a0 && oic.AtJ() == a1) ||
            (oic.AtI() == a1 && oic.AtJ() == a0) )
       {
+        if (!atomPositionKnown.empty()) {
+          mprinterr("Internal Error: i j IC is not first one encountered.\n");
+          return CpptrajState::ERR;
+        }
+        // Declare atoms in residue with j k l atoms as 'known'
+        if ( combinedTop[oic.AtJ()].ResNum() != combinedTop[oic.AtK()].ResNum() ||
+             combinedTop[oic.AtJ()].ResNum() != combinedTop[oic.AtL()].ResNum() )
+        {
+          mprinterr("Internal Error: j k l atoms not part of same residue for i j IC.\n");
+          return CpptrajState::ERR;
+        }
+        int jresnum = combinedTop[oic.AtJ()].ResNum();
+        atomPositionKnown.assign( combinedTop.Natom(), false );
+        for (int aidx = combinedTop.Res(jresnum).FirstAtom(); aidx != combinedTop.Res(jresnum).LastAtom(); aidx++)
+          atomPositionKnown[aidx] = true;
         // Set dist, theta, phi
         mprintf("DEBUG: Found IC for bond %i %i (i j)", a0+1, a1+1);
         printIC(oic, combinedTop);
