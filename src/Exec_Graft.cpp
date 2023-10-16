@@ -328,6 +328,7 @@ const
           mprinterr("Error: phi assignment failed.\n");
           return CpptrajState::ERR;
         }
+        mprintf("DEBUG:\t\tnewPhi = %g\n", newPhi*Constants::RADDEG);
         // TODO be smarter about these values
         //InternalCoords newIc( oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), newDist, 120.0, 180.0 );
         //zmatrix.SetIC( icidx, newIc );
@@ -343,6 +344,7 @@ const
           mprinterr("Error: phi assignment failed.\n");
           return CpptrajState::ERR;
         }
+        mprintf("DEBUG:\t\tnewPhi = %g\n", newPhi*Constants::RADDEG);
         //InternalCoords newIc( oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), oic.Dist(), 120.0, oic.Phi() ); // FIXME phi
         //zmatrix.SetIC( icidx, newIc );
       } else if ( (oic.AtK() == a0 && oic.AtL() == a1) ||
@@ -357,6 +359,7 @@ const
           mprinterr("Error: phi assignment failed.\n");
           return CpptrajState::ERR;
         }
+        mprintf("DEBUG:\t\tnewPhi = %g\n", newPhi*Constants::RADDEG);
       }
       if (ictype != ICholder::NO_IC_TYPE) {
         ICmapType::iterator it = ICsToChange.lower_bound( oic.AtJ() );

@@ -73,6 +73,7 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
     for (int idx = knownIdx; idx < AJ.Nbonds(); idx++) {
       int atnum = priority[idx];
       if (atnum != ak) {
+        if (atnum == ai) phi = currentPhi;
         mprintf("DEBUG:\t\t\t%s phi= %g\n", topIn.AtomMaskName(atnum).c_str(), currentPhi*Constants::RADDEG);
         currentPhi += interval;
       }
@@ -81,6 +82,7 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
     for (int idx = knownIdx - 1; idx > -1; idx--) {
       int atnum = priority[idx];
       if (atnum != ak) {
+        if (atnum == ai) phi = currentPhi;
         mprintf("DEBUG:\t\t\t%s phi= %g\n", topIn.AtomMaskName(atnum).c_str(), currentPhi*Constants::RADDEG);
         currentPhi -= interval;
       }
