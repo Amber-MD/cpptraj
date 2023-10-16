@@ -58,6 +58,12 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
 
   Atom const& AJ = topIn[aj];
   mprintf("DEBUG:\t\tNbonds: %i\n", AJ.Nbonds());
+  // If atom J only has 2 bonds, ai-aj-ak-al is the only possibility.
+  if (AJ.Nbonds() < 3) {
+    mprintf("DEBUG:\t\tFewer than 3 bonds. Setting phi to -180.\n");
+    phi = -180 * Constants::DEGRAD;
+    return 0;
+  }
 
   // FIXME aj ak and al should be known
   // TODO check that atom i actually ends up on the list?
@@ -123,7 +129,7 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
   } else
     startPhi = knownPhi[knownIdx];
 
-  if (AJ.Nbonds() > 1) {
+  //if (AJ.Nbonds() > 1) {
     // The interval will be 360 / (number of bonds - 1)
     double interval = Constants::TWOPI / (AJ.Nbonds() - 1);
     mprintf("DEBUG:\t\tInterval is %g degrees\n", interval * Constants::RADDEG);
@@ -146,7 +152,7 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
         currentPhi -= interval;
       }
     }
-  }
+  //}
 
   return 0;
 }
