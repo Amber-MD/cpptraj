@@ -111,13 +111,13 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
   }
   double startPhi;
   if (knownIdx == -1) {
-    startPhi = 0;
+    startPhi = -180*Constants::DEGRAD;
     // If all atom statuses match the chirality is valid. Have R start -180.
-    if (chirality_is_valid)
-    {
-      if (chirality == IS_R) // FIXME just always start -180?
-        startPhi = -180*Constants::DEGRAD;
-    }
+    //if (chirality_is_valid)
+    //{
+    //  if (chirality == IS_R) // FIXME just always start -180?
+    //    startPhi = -180*Constants::DEGRAD;
+    //}
     mprintf("DEBUG:\t\tNo known phi. Setting to %g.\n", startPhi*Constants::RADDEG);
     knownIdx = 0;
   } else
