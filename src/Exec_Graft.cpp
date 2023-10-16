@@ -321,8 +321,14 @@ const
         mprintf("DEBUG: Found IC for bond %i %i (i j)", a0+1, a1+1);
         printIC(oic, combinedTop);
         ictype = ICholder::IJ;
-        //double newDist = Atom::GetBondLength( combinedTop[oic.AtI()].Element(), combinedTop[oic.AtJ()].Element() );
-        //mprintf("DEBUG:\t\tNew dist= %g\n", newDist);
+        double newDist = Atom::GetBondLength( combinedTop[oic.AtI()].Element(), combinedTop[oic.AtJ()].Element() );
+        mprintf("DEBUG:\t\tnewDist= %g\n", newDist);
+        double newTheta = 0;
+        if (Cpptraj::Structure::Model::AssignTheta(newTheta, oic.AtI(), oic.AtJ(), oic.AtK(), combinedTop, CombinedFrame, atomPositionKnown)) {
+          mprinterr("Error: theta assignment failed.\n");
+          return CpptrajState::ERR;
+        }
+        mprintf("DEBUG:\t\tnewTheta = %g\n", newTheta*Constants::RADDEG);
         double newPhi = 0;
         if (Cpptraj::Structure::Model::AssignPhi(newPhi, oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), combinedTop, CombinedFrame, atomPositionKnown)) {
           mprinterr("Error: phi assignment failed.\n");
@@ -330,8 +336,8 @@ const
         }
         mprintf("DEBUG:\t\tnewPhi = %g\n", newPhi*Constants::RADDEG);
         // TODO be smarter about these values
-        //InternalCoords newIc( oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), newDist, 120.0, 180.0 );
-        //zmatrix.SetIC( icidx, newIc );
+        InternalCoords newIc( oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), newDist, newTheta*Constants::RADDEG, newPhi*Constants::RADDEG );
+        zmatrix.SetIC( icidx, newIc );
       } else if ( (oic.AtJ() == a0 && oic.AtK() == a1) ||
                   (oic.AtJ() == a1 && oic.AtK() == a0) )
       {
@@ -339,14 +345,20 @@ const
         mprintf("DEBUG: Found IC for bond %i %i (j k)", a0+1, a1+1);
         printIC(oic, combinedTop);
         ictype = ICholder::JK;
+        double newTheta = 0;
+        if (Cpptraj::Structure::Model::AssignTheta(newTheta, oic.AtI(), oic.AtJ(), oic.AtK(), combinedTop, CombinedFrame, atomPositionKnown)) {
+          mprinterr("Error: theta assignment failed.\n");
+          return CpptrajState::ERR;
+        }
+        mprintf("DEBUG:\t\tnewTheta = %g\n", newTheta*Constants::RADDEG);
         double newPhi = 0;
         if (Cpptraj::Structure::Model::AssignPhi(newPhi, oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), combinedTop, CombinedFrame, atomPositionKnown)) {
           mprinterr("Error: phi assignment failed.\n");
           return CpptrajState::ERR;
         }
-        mprintf("DEBUG:\t\tnewPhi = %g\n", newPhi*Constants::RADDEG);
-        //InternalCoords newIc( oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), oic.Dist(), 120.0, oic.Phi() ); // FIXME phi
-        //zmatrix.SetIC( icidx, newIc );
+        mprintf("DEBUG:\t\tnewPhi = %g\n", newPhi*Constants::RADDEG); // FIXME Internal coords should be radians
+        InternalCoords newIc( oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), oic.Dist(), newTheta*Constants::RADDEG, newPhi*Constants::RADDEG );
+        zmatrix.SetIC( icidx, newIc );
       } else if ( (oic.AtK() == a0 && oic.AtL() == a1) ||
                   (oic.AtK() == a1 && oic.AtL() == a0) )
       {
@@ -360,6 +372,8 @@ const
           return CpptrajState::ERR;
         }
         mprintf("DEBUG:\t\tnewPhi = %g\n", newPhi*Constants::RADDEG);
+        InternalCoords newIc( oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), oic.Dist(), oic.Theta(), newPhi*Constants::RADDEG );
+        zmatrix.SetIC( icidx, newIc );
       }
       if (ictype != ICholder::NO_IC_TYPE) {
         ICmapType::iterator it = ICsToChange.lower_bound( oic.AtJ() );
@@ -382,7 +396,7 @@ const
       InternalCoords const& oic = zmatrix[*jt];
       mprintf("DEBUG:\t\t");
       printIC(oic, combinedTop);
-      double dist = oic.Dist();
+      /*double dist = oic.Dist();
       double theta = oic.Theta();
       double phi = oic.Phi();
       if (it->second.Type() == ICholder::IJ) {
@@ -394,7 +408,7 @@ const
       //}
       InternalCoords newIc( oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), dist, theta, phi );
       zmatrix.SetIC( *jt, newIc );
-      //phi += interval;
+      //phi += interval;*/
     }
   }
   if (zmatrix.SetToFrame( CombinedFrame )) {

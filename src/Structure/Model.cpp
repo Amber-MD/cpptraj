@@ -5,6 +5,45 @@
 #include "../TorsionRoutines.h"
 #include "../Constants.h"
 
+/** Attempt to assign a reasonable value for theta internal coordinate for
+  * atom i given that atoms j and k have known positions.
+  */
+int Cpptraj::Structure::Model::AssignTheta(double& theta, int ai, int aj, int ak, Topology const& topIn, Frame const& frameIn, std::vector<bool> const& atomPositionKnown)
+{
+  // Figure out hybridization and chirality of atom j.
+  mprintf("DEBUG: AssignTheta for atom j : %s\n", topIn.AtomMaskName(aj).c_str());
+
+  Atom const& AJ = topIn[aj];
+  mprintf("DEBUG:\t\tNbonds: %i\n", AJ.Nbonds());
+  // Fill in what values we can for known atoms
+  std::vector<double> knownTheta( AJ.Nbonds() );
+  int knownIdx = -1;
+  for (int idx = 0; idx < AJ.Nbonds(); idx++) {
+    int atnum = AJ.Bond(idx);
+    if (atnum != ak && atomPositionKnown[atnum]) {
+      knownTheta[idx] = CalcAngle(frameIn.XYZ(atnum),
+                                  frameIn.XYZ(aj),
+                                  frameIn.XYZ(ak));
+      mprintf("DEBUG:\t\tKnown theta for %s = %g\n", topIn.AtomMaskName(atnum).c_str(), knownTheta[idx]*Constants::RADDEG);
+      if (knownIdx == -1) knownIdx = idx; // FIXME handle more than 1 known
+    }
+  }
+  if (knownIdx == -1) {
+    mprintf("DEBUG:\t\tNo known theta.\n");
+    // Assign a theta based on hybridization
+    switch (AJ.Nbonds()) {
+      case 4 : theta = 109.5 * Constants::DEGRAD; break;
+      case 3 : theta = 120.0 * Constants::DEGRAD; break;
+      case 2 : theta = 180.0 * Constants::DEGRAD; break;
+      default : mprinterr("Internal Error: AssignTheta(): Unhandled # bonds for %s (%i)\n", topIn.AtomMaskName(aj).c_str(), AJ.Nbonds()); return 1;
+    }
+  } else {
+    theta = knownTheta[knownIdx]; // TODO just use above guess via hybrid?
+  }
+
+  return 0;
+}
+
 /** Attempt to assign a reasonable value for phi internal coordinate for atom i
   * given that atoms j k and l have known positions.
   *   j - k
