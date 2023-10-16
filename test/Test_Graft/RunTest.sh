@@ -62,7 +62,7 @@ crdout Final IC.Final.graft.mol2
 zmatrix Final out zicFinal.dat
 EOF
   RunCpptraj "$TESTNAME, Prenylated Tyrosine (interncal coords)"
-  #DoTest Final.graft.mol2.save Final.graft.mol2
+  DoTest IC.Final.graft.mol2.save IC.Final.graft.mol2
 }
 
 # Link nucleic acid base + sugar + phosphate
