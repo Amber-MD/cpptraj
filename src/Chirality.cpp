@@ -101,6 +101,7 @@ Chirality::ChiralType Chirality::DetermineChirality(double& tors, int* AtomIndic
       mprintf("DEBUG:\t\t%i Priority for %s is %i\n", idx, topIn.AtomMaskName(atom.Bond(idx)).c_str(), priority.back().Priority1());
   }
   // For any identical priorities, need to check who they are bonded to.
+  bool depth_limit_hit = false;
   for (int idx1 = 0; idx1 != atom.Nbonds(); idx1++) {
     for (int idx2 = idx1+1; idx2 != atom.Nbonds(); idx2++) {
       if (priority[idx1] == priority[idx2]) {
@@ -127,13 +128,8 @@ Chirality::ChiralType Chirality::DetermineChirality(double& tors, int* AtomIndic
           if (depth == 10) {
             mprintf("Warning: Could not determine priority around '%s'\n",
                       topIn.AtomMaskName(atnum).c_str());
-            if (AtomIndices != 0) {
-              AtomIndices[0] = priority[0].AtNum();
-              AtomIndices[1] = priority[1].AtNum();
-              AtomIndices[2] = priority[2].AtNum();
-              AtomIndices[3] = atnum;
-            }
-            return IS_UNKNOWN_CHIRALITY;
+            depth_limit_hit = true;
+            break;
           }
           depth++;
         } // END while identical priorities
@@ -150,11 +146,10 @@ Chirality::ChiralType Chirality::DetermineChirality(double& tors, int* AtomIndic
   }
 
   if (AtomIndices != 0) {
-    AtomIndices[0] = priority[0].AtNum();
-    AtomIndices[1] = priority[1].AtNum();
-    AtomIndices[2] = priority[2].AtNum();
-    AtomIndices[3] = atnum;
+    for (unsigned int ip = 0; ip != priority.size(); ++ip)
+      AtomIndices[ip] = priority[ip].AtNum();
   }
+  if (depth_limit_hit) return IS_UNKNOWN_CHIRALITY;
 
   tors = Torsion( frameIn.XYZ(priority[0].AtNum()),
                   frameIn.XYZ(priority[1].AtNum()),
