@@ -172,17 +172,6 @@ Topology* Exec_Graft::modify_top(Topology const& topIn, AtomMask const& mask, Fr
   return srcTopPtr;
 }
 
-/// Print IC to stdout
-static inline void printIC(InternalCoords const& oic, Topology const& top)
-{
-  mprintf(" %6i %6i %6i %6i [%s - %s - %s - %s]\n",
-          oic.AtI()+1,  oic.AtJ()+1, oic.AtK()+1, oic.AtL()+1,
-          top.AtomMaskName(oic.AtI()).c_str(),
-          top.AtomMaskName(oic.AtJ()).c_str(),
-          top.AtomMaskName(oic.AtK()).c_str(),
-          top.AtomMaskName(oic.AtL()).c_str());
-}
-
 /// Hold IC that needs to be reset
 class ICholder {
   public:
@@ -354,7 +343,7 @@ const
           atomPositionKnown[aidx] = true;
         // Set dist, theta, phi
         mprintf("DEBUG: Found IC for bond %i %i (i j)", a0+1, a1+1);
-        printIC(oic, combinedTop);
+        oic.printIC(combinedTop);
         ictype = ICholder::IJ;
         double newDist = Atom::GetBondLength( combinedTop[oic.AtI()].Element(), combinedTop[oic.AtJ()].Element() );
         mprintf("DEBUG:\t\tnewDist= %g\n", newDist);
@@ -382,7 +371,7 @@ const
       {
         // Set theta, phi
         mprintf("DEBUG: Found IC for bond %i %i (j k)", a0+1, a1+1);
-        printIC(oic, combinedTop);
+        oic.printIC(combinedTop);
         ictype = ICholder::JK;
         double newTheta = 0;
         if (Cpptraj::Structure::Model::AssignTheta(newTheta, oic.AtI(), oic.AtJ(), oic.AtK(), combinedTop, CombinedFrame, atomPositionKnown)) {
@@ -407,7 +396,7 @@ const
       {
         // Set phi
         mprintf("DEBUG: Found IC for bond %i %i (k l)", a0+1, a1+1);
-        printIC(oic, combinedTop);
+        oic.printIC(combinedTop);
         ictype = ICholder::KL;
         double newPhi = 0;
         if (Cpptraj::Structure::Model::AssignPhi(newPhi, oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), combinedTop, CombinedFrame, atomPositionKnown, atomChirality)) {
@@ -442,7 +431,7 @@ const
     {
       InternalCoords const& oic = zmatrix[*jt];
       mprintf("DEBUG:\t\t");
-      printIC(oic, combinedTop);
+      oic.printIC(combinedTop);
       /*double dist = oic.Dist();
       double theta = oic.Theta();
       double phi = oic.Phi();
