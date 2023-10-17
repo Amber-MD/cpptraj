@@ -124,25 +124,23 @@ graft ic \\
   srcmask !(@C10,1H10,2H10,3H10,HO3',O2',HO2') \\
   bond @N9,@C1'
 zmatrix BaseSugar out zicBaseSugar.dat
-crdout BaseSugar BaseSugar.mol2
-quit
+#crdout BaseSugar BaseSugar.mol2
+#quit
 # BaseSugar + Phosphate
-graft \\
+graft ic \\
   tgt BaseSugar \\
   src Phos \\
   name Nucleotide \\
-  tgtfitmask @C5',O5',HO5' \\
-  srcfitmask @C2,O5',P \\
   tgtmask !(@O5',HO5') \\
   srcmask !(@C2,H21,H22,H23,O3',C1,H11,H12,H13) \\
   bond @C5',@O5'
-#crdout Nucleotide Nucleotide.mol2
+crdout Nucleotide Nucleotide.ic.mol2
 # Format the PDB
-change crdset Nucleotide resname from * to DA
-change crdset Nucleotide oresnums of :1 min 1 max 1
-change crdset Nucleotide oresnums of :2 min 1 max 1
-change crdset Nucleotide oresnums of :3 min 1 max 1
-crdout Nucleotide Nucleotide.pdb
+#change crdset Nucleotide resname from * to DA
+#change crdset Nucleotide oresnums of :1 min 1 max 1
+#change crdset Nucleotide oresnums of :2 min 1 max 1
+#change crdset Nucleotide oresnums of :3 min 1 max 1
+#crdout Nucleotide Nucleotide.pdb
 EOF
   RunCpptraj "$TESTNAME, Construct Nucleic Acid, IC"
   #DoTest Nucleotide.pdb.save Nucleotide.pdb
