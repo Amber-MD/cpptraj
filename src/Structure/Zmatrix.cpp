@@ -514,10 +514,10 @@ int Zmatrix::traceMol(int atL0, int atK0, int atJ0,
         PHI const& p = Branches.top();
         if (debug_ > 1) {
           mprintf("DEBUG:\t\tPopped off stack: %s - %s - %s - %s\n",
-                  topIn.AtomMaskName(p.al_).c_str(),
-                  topIn.AtomMaskName(p.ak_).c_str(),
+                  topIn.AtomMaskName(p.ai_).c_str(),
                   topIn.AtomMaskName(p.aj_).c_str(),
-                  topIn.AtomMaskName(p.ai_).c_str());
+                  topIn.AtomMaskName(p.ak_).c_str(),
+                  topIn.AtomMaskName(p.al_).c_str());
         }
         if (!hasIC[p.ai_]) {
           addIc(p.ai_, p.aj_, p.ak_, p.al_, frameIn.XYZ(p.ai_), frameIn.XYZ(p.aj_), frameIn.XYZ(p.ak_), frameIn.XYZ(p.al_));
@@ -531,6 +531,9 @@ int Zmatrix::traceMol(int atL0, int atK0, int atJ0,
           break;
         } else {
           mprintf("DEBUG:\t\t%s already has an IC.\n", topIn.AtomMaskName(p.ai_).c_str());
+          std::vector<int> indices = AtomI_indices(p.ai_);
+          // FIXME check empty or size > 1
+          IC_[indices.front()].printIC( topIn );
           Branches.pop();
         }
       } // END while branches remain on stack
@@ -542,10 +545,10 @@ int Zmatrix::traceMol(int atL0, int atK0, int atJ0,
       int atI = OtherAtoms.front();
       if (debug_ > 1) {
         mprintf("DEBUG:\t\tNext: %s - %s - %s - %s\n",
-                topIn.AtomMaskName(atL).c_str(),
-                topIn.AtomMaskName(atK).c_str(),
+                topIn.AtomMaskName(atI).c_str(),
                 topIn.AtomMaskName(atJ).c_str(),
-                topIn.AtomMaskName(atI).c_str());
+                topIn.AtomMaskName(atK).c_str(),
+                topIn.AtomMaskName(atL).c_str());
       }
       // Add lowest index as IC
       addIc(atI, atJ, atK, atL, frameIn.XYZ(atI), frameIn.XYZ(atJ), frameIn.XYZ(atK), frameIn.XYZ(atL));
@@ -557,10 +560,10 @@ int Zmatrix::traceMol(int atL0, int atK0, int atJ0,
         if (debug_ > 1) {
           PHI const& p = Branches.top();
           mprintf("DEBUG:\t\tPlaced on stack: %s - %s - %s - %s (%zu)\n",
-                  topIn.AtomMaskName(p.al_).c_str(),
-                  topIn.AtomMaskName(p.ak_).c_str(),
+                  topIn.AtomMaskName(p.ai_).c_str(),
                   topIn.AtomMaskName(p.aj_).c_str(),
-                  topIn.AtomMaskName(p.ai_).c_str(), Branches.size());
+                  topIn.AtomMaskName(p.ak_).c_str(),
+                  topIn.AtomMaskName(p.al_).c_str(), Branches.size());
         }
       }
       // Designate lowest index as next

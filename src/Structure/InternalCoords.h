@@ -1,6 +1,6 @@
 #ifndef INC_STRUCTURE_INTERNALCOORDS_H
 #define INC_STRUCTURE_INTERNALCOORDS_H
-//class Vec3;
+class Topology;
 namespace Cpptraj {
 namespace Structure {
 /// Hold internal coordinates for an atom
@@ -36,6 +36,8 @@ class InternalCoords {
     int AtL() const { return idx_[2]; }
 
     static unsigned int sizeInBytes() { return (4*sizeof(int)) + (3*sizeof(double)); }
+
+    void printIC(Topology const&) const;
   private:
     int ati_;       ///< Atom I index
     int idx_[3];    ///< Atom indices for distance, angle, torsion

@@ -1,6 +1,7 @@
 #include <algorithm>
 #include "InternalCoords.h"
-//#incl ude "../Vec3.h"
+#include "../Topology.h"
+#include "../CpptrajStdio.h"
 
 using namespace Cpptraj::Structure;
 
@@ -54,4 +55,14 @@ InternalCoords& InternalCoords::operator=(InternalCoords const& rhs) {
   std::copy( rhs.idx_, rhs.idx_+3, idx_ );
   std::copy( rhs.val_, rhs.val_+3, val_ );
   return *this;
+}
+
+/** Print to stdout */
+void InternalCoords::printIC(Topology const& top) const {
+  mprintf(" %6i %6i %6i %6i [%s - %s - %s - %s]\n",
+          AtI()+1, AtJ()+1, AtK()+1, AtL()+1,
+          top.AtomMaskName(AtI()).c_str(),
+          top.AtomMaskName(AtJ()).c_str(),
+          top.AtomMaskName(AtK()).c_str(),
+          top.AtomMaskName(AtL()).c_str());
 }
