@@ -69,18 +69,19 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
   std::vector<int> Priority( AJ.Nbonds() );
   int* priority = static_cast<int*>( &Priority[0] );
   double tors = 0;
-  // DetermineChirality will always put aj as the last index.
+  // FIXME - Only need priority here. 
   ChiralType chirality = DetermineChirality(tors, priority, aj, topIn, frameIn, 1); // FIXME debug
   if (chirality == ERR) {
     mprinterr("Error: Problem determining chirality around atom %s\n", topIn.AtomMaskName(aj).c_str());
     return 1;
-  } else if (chirality == IS_UNKNOWN_CHIRALITY) {
+  } /*else if (chirality == IS_UNKNOWN_CHIRALITY) {
     mprintf("DEBUG:\t\tChirality is unknown\n");
   } else if (chirality == IS_S) {
     mprintf("DEBUG:\t\tChirality is S\n");
   } else {
     mprintf("DEBUG:\t\tChirality is R\n");
-  }
+  }*/
+  mprintf("DEBUG: Original chirality around J %s is %s\n", topIn.AtomMaskName(aj).c_str(), chiralStr(atomChirality[aj]));
   mprintf("DEBUG:\t\tPriority around J %s(%i) (tors=%g):", 
           topIn.AtomMaskName(aj).c_str(), (int)atomPositionKnown[aj], tors*Constants::RADDEG);
   for (int idx = 0; idx < AJ.Nbonds(); idx++)
