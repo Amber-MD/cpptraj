@@ -12,8 +12,44 @@ int Cpptraj::Structure::Model::AssignTheta(double& theta, int ai, int aj, int ak
   // Figure out hybridization and chirality of atom j.
   mprintf("DEBUG: AssignTheta for atom j : %s\n", topIn.AtomMaskName(aj).c_str());
 
+  enum HybridizationType { SP = 0, SP2, SP3, UNKNOWN_HYBRIDIZATION };
+
   Atom const& AJ = topIn[aj];
   mprintf("DEBUG:\t\tNbonds: %i\n", AJ.Nbonds());
+  // Sanity check
+  if (AJ.Nbonds() < 2) {
+    mprinterr("Internal Error: AssignTheta() called for atom J %s with fewer than 2 bonds.\n", topIn.AtomMaskName(aj).c_str());
+    return 1;
+  }
+
+  HybridizationType hybrid = UNKNOWN_HYBRIDIZATION;
+  // Handle specific elements
+  switch (AJ.Element()) {
+    case Atom::CARBON :
+      switch (AJ.Nbonds()) {
+        case 2 : hybrid = SP; break;
+        case 3 : hybrid = SP2; break;
+        case 4 : hybrid = SP3; break;
+      }
+      break;
+    case Atom::NITROGEN :
+      switch (AJ.Nbonds()) {
+        case 2 : hybrid = SP2; break;
+        case 3 : hybrid = SP3; break;
+      }
+      break;
+    case Atom::OXYGEN :
+      switch (AJ.Nbonds()) {
+        case 2 : hybrid = SP3; break;
+      }
+      break;
+    case Atom::SULFUR :
+      switch (AJ.Nbonds()) {
+        case 2 : hybrid = SP3; break;
+      }
+      break;
+    default: hybrid = UNKNOWN_HYBRIDIZATION; break;
+  }
   // Fill in what values we can for known atoms
 /*  std::vector<double> knownTheta( AJ.Nbonds() );
   int knownIdx = -1;
@@ -29,13 +65,22 @@ int Cpptraj::Structure::Model::AssignTheta(double& theta, int ai, int aj, int ak
   }
   if (knownIdx == -1) {*/
     //mprintf("DEBUG:\t\tNo known theta.\n");
-    // Assign a theta based on hybridization
+  if (hybrid == UNKNOWN_HYBRIDIZATION) {
+    // Assign a theta based on number of bonds 
     switch (AJ.Nbonds()) {
-      case 4 : theta = 109.5 * Constants::DEGRAD; break;
-      case 3 : theta = 120.0 * Constants::DEGRAD; break;
-      case 2 : theta = 180.0 * Constants::DEGRAD; break;
+      case 4 : hybrid = SP3; break;
+      case 3 : hybrid = SP2; break;
+      case 2 : hybrid = SP; break;
       default : mprinterr("Internal Error: AssignTheta(): Unhandled # bonds for %s (%i)\n", topIn.AtomMaskName(aj).c_str(), AJ.Nbonds()); return 1;
-    }/*
+    }
+  }
+  // Assign a theta based on hybridization
+  switch (hybrid) {
+    case SP3 : theta = 109.5 * Constants::DEGRAD; break;
+    case SP2 : theta = 120.0 * Constants::DEGRAD; break;
+    case SP  : theta = 180.0 * Constants::DEGRAD; break;
+    default : mprinterr("Internal Error: AssignTheta(): Unhandled hybridization for %s (%i)\n", topIn.AtomMaskName(aj).c_str(), AJ.Nbonds()); return 1;
+  }/*
   } else {
     theta = knownTheta[knownIdx]; // TODO just use above guess via hybrid?
   }*/
