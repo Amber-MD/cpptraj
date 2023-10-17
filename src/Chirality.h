@@ -6,7 +6,8 @@ namespace Cpptraj {
 namespace Chirality {
 
 enum ChiralType { ERR = 0, IS_S, IS_R, IS_UNKNOWN_CHIRALITY };
-
+/// \return String corresponding to ChiralType
+const char* chiralStr(ChiralType);
 /// \return Chirality at specified atom, set torsion value
 ChiralType DetermineChirality(double&, int*, int, Topology const&, Frame const&, int);
 /// \return Chirality at specified atom

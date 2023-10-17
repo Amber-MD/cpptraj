@@ -1,7 +1,6 @@
 #include "Model.h"
 #include "../CpptrajStdio.h"
 #include "../Topology.h"
-#include "../Chirality.h"
 #include "../TorsionRoutines.h"
 #include "../Constants.h"
 
@@ -50,7 +49,7 @@ int Cpptraj::Structure::Model::AssignTheta(double& theta, int ai, int aj, int ak
   *  /     \
   * i       l
   */
-int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, int al, Topology const& topIn, Frame const& frameIn, std::vector<bool> const& atomPositionKnown)
+int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, int al, Topology const& topIn, Frame const& frameIn, std::vector<bool> const& atomPositionKnown, std::vector<Cpptraj::Chirality::ChiralType> const& atomChirality)
 {
   using namespace Cpptraj::Chirality;
   // Figure out hybridization and chirality of atom j.
@@ -115,6 +114,10 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
       if (knownIdx == -1) knownIdx = idx; // FIXME handle more than 1 known
     }
   }
+
+  // The interval will be 360 / (number of bonds - 1)
+  double interval = Constants::TWOPI / (AJ.Nbonds() - 1);
+
   double startPhi;
   if (knownIdx == -1) {
     startPhi = -180*Constants::DEGRAD;
@@ -129,30 +132,32 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
   } else
     startPhi = knownPhi[knownIdx];
 
-  //if (AJ.Nbonds() > 1) {
-    // The interval will be 360 / (number of bonds - 1)
-    double interval = Constants::TWOPI / (AJ.Nbonds() - 1);
-    mprintf("DEBUG:\t\tInterval is %g degrees\n", interval * Constants::RADDEG);
-    // Forward direction
-    double currentPhi = startPhi;
-    for (int idx = knownIdx; idx < AJ.Nbonds(); idx++) {
-      int atnum = priority[idx];
-      if (atnum != ak) {
-        if (atnum == ai) phi = currentPhi;
-        mprintf("DEBUG:\t\t\t%s phi= %g\n", topIn.AtomMaskName(atnum).c_str(), currentPhi*Constants::RADDEG);
-        currentPhi += interval;
-      }
+  if (atomChirality[aj] == IS_R) {
+    startPhi = -startPhi;
+    interval = -interval;
+  }
+  mprintf("DEBUG:\t\tStart phi is %g degrees\n", startPhi*Constants::RADDEG);
+  mprintf("DEBUG:\t\tInterval is %g degrees\n", interval * Constants::RADDEG);
+    
+  // Forward direction
+  double currentPhi = startPhi;
+  for (int idx = knownIdx; idx < AJ.Nbonds(); idx++) {
+    int atnum = priority[idx];
+    if (atnum != ak) {
+      if (atnum == ai) phi = currentPhi;
+      mprintf("DEBUG:\t\t\t%s phi= %g\n", topIn.AtomMaskName(atnum).c_str(), currentPhi*Constants::RADDEG);
+      currentPhi += interval;
     }
-    currentPhi = startPhi - interval;
-    for (int idx = knownIdx - 1; idx > -1; idx--) {
-      int atnum = priority[idx];
-      if (atnum != ak) {
-        if (atnum == ai) phi = currentPhi;
-        mprintf("DEBUG:\t\t\t%s phi= %g\n", topIn.AtomMaskName(atnum).c_str(), currentPhi*Constants::RADDEG);
-        currentPhi -= interval;
-      }
+  }
+  currentPhi = startPhi - interval;
+  for (int idx = knownIdx - 1; idx > -1; idx--) {
+    int atnum = priority[idx];
+    if (atnum != ak) {
+      if (atnum == ai) phi = currentPhi;
+      mprintf("DEBUG:\t\t\t%s phi= %g\n", topIn.AtomMaskName(atnum).c_str(), currentPhi*Constants::RADDEG);
+      currentPhi -= interval;
     }
-  //}
+  }
 
   return 0;
 }

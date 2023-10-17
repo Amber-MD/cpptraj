@@ -9,6 +9,17 @@
 
 using namespace Cpptraj;
 
+/** \return string corresponding to ChiralType */
+const char* Chirality::chiralStr(ChiralType ct) {
+  switch (ct) {
+    case ERR : return "Error";
+    case IS_S : return "S";
+    case IS_R : return "R";
+    case IS_UNKNOWN_CHIRALITY : return "Unknown";
+  }
+  return 0;
+}
+
 /// \return Total priority (i.e. sum of atomic numbers) of atoms bonded to given atom.
 static int totalPriority(Topology const& topIn, int atnum, int rnum,
                          int depth, int tgtdepth, std::vector<bool>& Visited)

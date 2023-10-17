@@ -1,6 +1,7 @@
 #include "Exec_Graft.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Coords.h"
+#include "Chirality.h"
 #include "Structure/Zmatrix.h"
 #include "Structure/Model.h"
 #include <algorithm> // std::copy
@@ -270,6 +271,30 @@ const
   combinedTop.SetParmName( outCoords->Meta().Name(), FileName() );
   combinedTop.AppendTop( *mol0Top );
   combinedTop.AppendTop( *mol1Top );
+
+  // Only coords+box for now.
+  CoordinateInfo outInfo(mol0frm.BoxCrd(), false, false, false);
+
+  // Combine coords.
+  Frame CombinedFrame; // = outCoords->AllocateFrame();
+  CombinedFrame.SetupFrameV( combinedTop.Atoms(), outInfo );
+  std::copy(mol0frm.xAddress(), mol0frm.xAddress()+mol0frm.size(), CombinedFrame.xAddress());
+  std::copy(mol1frm.xAddress(), mol1frm.xAddress()+mol1frm.size(), CombinedFrame.xAddress()+mol0frm.size());
+  // Use target box TODO reset the box?
+  CombinedFrame.SetBox( mol0frm.BoxCrd() );
+
+  // Get chirality for each atom before we add the bond
+  using namespace Cpptraj::Chirality;
+  std::vector<ChiralType> atomChirality;
+  atomChirality.reserve( combinedTop.Natom() );
+  for (int at = 0; at < combinedTop.Natom(); at++) {
+    if (combinedTop[at].Nbonds() > 2)
+      atomChirality.push_back( DetermineChirality(at, combinedTop, CombinedFrame, 0) );
+    else
+      atomChirality.push_back( IS_UNKNOWN_CHIRALITY );
+    mprintf("DEBUG:\tAtom %4s chirality %6s\n", combinedTop.AtomMaskName(at).c_str(), chiralStr(atomChirality.back()));
+  }
+
   // Create bonds
   for (unsigned int idx = 0; idx != tgtBondAtoms.size(); idx++) {
     mprintf("DEBUG: Bond %i %s to %i %s\n",
@@ -279,16 +304,11 @@ const
   }
   // Regenerate the molecule info FIXME should Topology just do this?
   if (combinedTop.DetermineMolecules()) return CpptrajState::ERR;
-  // Only coords+box for now.
-  CoordinateInfo outInfo(mol0frm.BoxCrd(), false, false, false);
+
+  // Add to output COORDS set
   if (outCoords->CoordsSetup(combinedTop, outInfo)) return CpptrajState::ERR; // FIXME free molXTop memory
-  // Combine coords.
-  Frame CombinedFrame = outCoords->AllocateFrame();
-  std::copy(mol0frm.xAddress(), mol0frm.xAddress()+mol0frm.size(), CombinedFrame.xAddress());
-  std::copy(mol1frm.xAddress(), mol1frm.xAddress()+mol1frm.size(), CombinedFrame.xAddress()+mol0frm.size());
-  // Use target box TODO reset the box?
-  CombinedFrame.SetBox( mol0frm.BoxCrd() );
-  // Declare source atoms as 'known'. Source atoms are in residue 1
+
+  // Track atoms as 'known'. Target atoms are residue 0, Source atoms are in residue 1
   typedef std::vector<bool> Barray;
   Barray atomPositionKnown;/*( combinedTop.Natom(), false );
   for (int aidx = combinedTop.Res(1).FirstAtom(); aidx != combinedTop.Res(1).LastAtom(); aidx++)
@@ -345,7 +365,7 @@ const
         }
         mprintf("DEBUG:\t\tnewTheta = %g\n", newTheta*Constants::RADDEG);
         double newPhi = 0;
-        if (Cpptraj::Structure::Model::AssignPhi(newPhi, oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), combinedTop, CombinedFrame, atomPositionKnown)) {
+        if (Cpptraj::Structure::Model::AssignPhi(newPhi, oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), combinedTop, CombinedFrame, atomPositionKnown, atomChirality)) {
           mprinterr("Error: phi assignment failed.\n");
           return CpptrajState::ERR;
         }
@@ -371,7 +391,7 @@ const
         }
         mprintf("DEBUG:\t\tnewTheta = %g\n", newTheta*Constants::RADDEG);
         double newPhi = 0;
-        if (Cpptraj::Structure::Model::AssignPhi(newPhi, oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), combinedTop, CombinedFrame, atomPositionKnown)) {
+        if (Cpptraj::Structure::Model::AssignPhi(newPhi, oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), combinedTop, CombinedFrame, atomPositionKnown, atomChirality)) {
           mprinterr("Error: phi assignment failed.\n");
           return CpptrajState::ERR;
         }
@@ -390,7 +410,7 @@ const
         printIC(oic, combinedTop);
         ictype = ICholder::KL;
         double newPhi = 0;
-        if (Cpptraj::Structure::Model::AssignPhi(newPhi, oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), combinedTop, CombinedFrame, atomPositionKnown)) {
+        if (Cpptraj::Structure::Model::AssignPhi(newPhi, oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), combinedTop, CombinedFrame, atomPositionKnown, atomChirality)) {
           mprinterr("Error: phi assignment failed.\n");
           return CpptrajState::ERR;
         }

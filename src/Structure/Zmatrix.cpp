@@ -499,21 +499,35 @@ int Zmatrix::traceMol(int atL0, int atK0, int atJ0,
         break;
       }
       // Add IC for the branch
-      PHI const& p = Branches.top();
-      if (debug_ > 1) {
-        mprintf("DEBUG:\t\tPopped off stack: %s - %s - %s - %s\n",
-                topIn.AtomMaskName(p.al_).c_str(),
-                topIn.AtomMaskName(p.ak_).c_str(),
-                topIn.AtomMaskName(p.aj_).c_str(),
-                topIn.AtomMaskName(p.ai_).c_str());
-      }
-      addIc(p.ai_, p.aj_, p.ak_, p.al_, frameIn.XYZ(p.ai_), frameIn.XYZ(p.aj_), frameIn.XYZ(p.ak_), frameIn.XYZ(p.al_));
-      Branches.pop();
-      MARK(p.ai_, hasIC, nHasIC);
-      // Designate branch as next.
-      atL = p.ak_;
-      atK = p.aj_;
-      atJ = p.ai_;
+      bool has_next = false;
+      while (!Branches.empty()) {
+        PHI const& p = Branches.top();
+        if (debug_ > 1) {
+          mprintf("DEBUG:\t\tPopped off stack: %s - %s - %s - %s\n",
+                  topIn.AtomMaskName(p.al_).c_str(),
+                  topIn.AtomMaskName(p.ak_).c_str(),
+                  topIn.AtomMaskName(p.aj_).c_str(),
+                  topIn.AtomMaskName(p.ai_).c_str());
+        }
+        if (!hasIC[p.ai_]) {
+          addIc(p.ai_, p.aj_, p.ak_, p.al_, frameIn.XYZ(p.ai_), frameIn.XYZ(p.aj_), frameIn.XYZ(p.ak_), frameIn.XYZ(p.al_));
+          Branches.pop();
+          MARK(p.ai_, hasIC, nHasIC);
+          // Designate branch as next.
+          atL = p.ak_;
+          atK = p.aj_;
+          atJ = p.ai_;
+          has_next = true;
+          break;
+        } else {
+          mprintf("DEBUG:\t\t%s already has an IC.\n", topIn.AtomMaskName(p.ai_).c_str());
+          Branches.pop();
+        }
+      } // END while branches remain on stack
+      if (!has_next) {
+        mprintf("DEBUG:\t\tNothing left on the stack.\n");
+        break;
+      } 
     } else {
       int atI = OtherAtoms.front();
       if (debug_ > 1) {
