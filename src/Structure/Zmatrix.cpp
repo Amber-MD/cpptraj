@@ -64,6 +64,16 @@ void Zmatrix::SetIC(unsigned int idx, InternalCoords const& ic) {
   IC_[idx] = ic;
 }
 
+/** \return Array containing indices of ICs with specified atom i. */
+std::vector<int> Zmatrix::AtomI_indices(int atomi) const {
+  std::vector<int> indices;
+  for (unsigned int idx = 0; idx != IC_.size(); idx++) {
+    if (IC_[idx].AtI() == atomi)
+      indices.push_back( (int)idx );
+  }
+  return indices;
+}
+
 /** Add internal coords as a IC seed. This is intended for use with systems
   * that have dummy atoms, such as those from Amber Prep files.
   */
@@ -918,6 +928,8 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
     if (debug_ > 0) mprintf("DEBUG: Next IC to use is %u\n", idx+1);
 
     InternalCoords const& ic = IC_[idx];
+    Vec3 posI = AtomIposition(ic, frameOut);
+/*
     double rdist = ic.Dist();
     double theta = ic.Theta();
     double phi   = ic.Phi();
@@ -947,7 +959,7 @@ int Zmatrix::SetToFrame(Frame& frameOut) const {
                     KJ[1], NxKJ[1], Norm[1],
                     KJ[2], NxKJ[2], Norm[2] );
 
-    Vec3 posI = (Rot * xyz) + posJ;
+    Vec3 posI = (Rot * xyz) + posJ;*/
 
     frameOut.SetXYZ( ic.AtI(), posI );
     hasPosition[ ic.AtI() ] = true;

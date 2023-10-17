@@ -41,6 +41,8 @@ class Zmatrix {
 
     /// \return Specified internal coord
     InternalCoords const& operator[](int idx) const { return IC_[idx]; }
+    /// \return Array containing indices of ICs involving specified atom I
+    std::vector<int> AtomI_indices(int) const;
     /// \return number of internal coords
     unsigned int N_IC() const { return IC_.size(); }
     /// \return memory usage in bytes
