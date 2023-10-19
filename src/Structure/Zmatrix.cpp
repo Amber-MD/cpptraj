@@ -806,6 +806,12 @@ int Zmatrix::SetFromFrameAroundBond(int atA, int atB, Frame const& frameIn, Topo
 
   Barray hasIC( topIn.Natom(), false );
   unsigned int nHasIC = 0;
+  // Mark known atoms as already having IC
+  for (std::vector<bool>::const_iterator it = atomPositionKnown.begin();
+                                         it != atomPositionKnown.end(); ++it)
+  {
+    if (*it) MARK( it - atomPositionKnown.begin(), hasIC, nHasIC );
+  }
 
   // First, make sure atom B as a bond depth of at least 2.
   // Choose K and L atoms given atA is I and atB is J.
@@ -919,7 +925,7 @@ int Zmatrix::SetFromFrameAroundBond(int atA, int atB, Frame const& frameIn, Topo
     }
   }
   // Add the rest
-  //if (traceMol(atl0, atk0, atB, frameIn, topIn, topIn.Natom(), nHasIC, hasIC)) return 1;
+  if (traceMol(atl0, atk0, atB, frameIn, topIn, topIn.Natom(), nHasIC, hasIC)) return 1;
 
   return 0;
 }
