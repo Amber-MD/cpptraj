@@ -83,7 +83,6 @@ graft \\
   tgtmask !(@C1',1H1',2H1',3H1') \\
   srcmask !(@C10,1H10,2H10,3H10,HO3',O2',HO2') \\
   bond @N9,@C1'
-zmatrix BaseSugar out zBaseSugar.dat
 #crdout BaseSugar BaseSugar.mol2
 # BaseSugar + Phosphate
 graft \\
