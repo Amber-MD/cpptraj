@@ -59,10 +59,11 @@ InternalCoords& InternalCoords::operator=(InternalCoords const& rhs) {
 
 /** Print to stdout */
 void InternalCoords::printIC(Topology const& top) const {
-  mprintf(" %6i %6i %6i %6i [%s - %s - %s - %s]\n",
+  mprintf(" %6i %6i %6i %6i [%s - %s - %s - %s] r=%g t=%g p=%g\n",
           AtI()+1, AtJ()+1, AtK()+1, AtL()+1,
           top.AtomMaskName(AtI()).c_str(),
           top.AtomMaskName(AtJ()).c_str(),
           top.AtomMaskName(AtK()).c_str(),
-          top.AtomMaskName(AtL()).c_str());
+          top.AtomMaskName(AtL()).c_str(),
+          val_[0], val_[1], val_[2]);
 }
