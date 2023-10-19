@@ -793,6 +793,9 @@ int Zmatrix::SetFromFrameAroundBond(int atA, int atB, Frame const& frameIn, Topo
   mprintf("DEBUG: SetFromFrameAroundBond: atA= %s (%i)  atB= %s (%i)\n",
           topIn.AtomMaskName(atA).c_str(), atA+1,
           topIn.AtomMaskName(atB).c_str(), atB+1);
+  mprintf("DEBUG: Atoms:\n");
+  for (int at = 0; at != topIn.Natom(); ++at)
+    mprintf("DEBUG:\t\t%s (%i) %s\n", topIn.AtomMaskName(at).c_str(), (int)atomPositionKnown[at], Cpptraj::Chirality::chiralStr(atomChirality[at]));
   // Sanity check. A and B must be bonded
   if (!topIn[atA].IsBondedTo(atB)) {
     mprinterr("Internal Error: SetFromFrameAroundBond(): Atoms %s and %s are not bonded.\n",
@@ -800,6 +803,9 @@ int Zmatrix::SetFromFrameAroundBond(int atA, int atB, Frame const& frameIn, Topo
     return 1;
   }
   IC_.clear();
+
+  Barray hasIC( topIn.Natom(), false );
+  unsigned int nHasIC = 0;
 
   // First, make sure atom B as a bond depth of at least 2.
   // Choose K and L atoms given atA is I and atB is J.
@@ -843,25 +849,77 @@ int Zmatrix::SetFromFrameAroundBond(int atA, int atB, Frame const& frameIn, Topo
   int atl0 = KLpairs[maxIdx].second;
   mprintf("DEBUG: Chosen KL pair: %s - %s\n",topIn.AtomMaskName(atk0).c_str(),
             topIn.AtomMaskName(atl0).c_str());
-  // Set dist, theta, phi for atA atB K L internal coord
+  // ---- I J: Set dist, theta, phi for atA atB K L internal coord ---
   mprintf("DEBUG: IC (i j) %i - %i - %i - %i\n", atA+1, atB+1, atk0+1, atl0+1);
   double newDist = Atom::GetBondLength( topIn[atA].Element(), topIn[atB].Element() );
   mprintf("DEBUG:\t\tnewDist= %g\n", newDist);
   double newTheta = 0;
   if (Cpptraj::Structure::Model::AssignTheta(newTheta, atA, atB, atk0, topIn, frameIn, atomPositionKnown)) {
-    mprinterr("Error: theta assignment failed.\n");
+    mprinterr("Error: theta (i j) assignment failed.\n");
     return 1;
   }
   mprintf("DEBUG:\t\tnewTheta = %g\n", newTheta*Constants::RADDEG);
   double newPhi = 0;
   if (Cpptraj::Structure::Model::AssignPhi(newPhi, atA, atB, atk0, atl0, topIn, frameIn, atomPositionKnown, atomChirality)) {
-    mprinterr("Error: phi assignment failed.\n");
+    mprinterr("Error: phi (i j) assignment failed.\n");
     return 1;
   }
   mprintf("DEBUG:\t\tnewPhi = %g\n", newPhi*Constants::RADDEG);
-  // TODO be smarter about these values
-  InternalCoords newIc( atA, atB, atk0, atl0, newDist, newTheta*Constants::RADDEG, newPhi*Constants::RADDEG );
-  newIc.printIC(topIn);
+  IC_.push_back(InternalCoords( atA, atB, atk0, atl0, newDist, newTheta*Constants::RADDEG, newPhi*Constants::RADDEG ));
+  mprintf("DEBUG: MODEL I J IC: ");
+  IC_.back().printIC(topIn);
+  MARK( atA, hasIC, nHasIC );
+  // ----- J K: Set up ICs for X atA atB K ---------------------------
+  Atom const& AJ1 = topIn[atA];
+  //Atom const& AK1 = topIn[atB];
+  //Atom const& AL1 = topIn[atk0];
+  for (Atom::bond_iterator iat = AJ1.bondbegin(); iat != AJ1.bondend(); ++iat)
+  {
+    if (*iat != atB) {
+      // Use existing dist
+      newDist = sqrt( DIST2_NoImage(frameIn.XYZ(*iat), frameIn.XYZ(atA)) );
+      // Set theta and phi for I atA atB K
+      newTheta = 0;
+      if (Cpptraj::Structure::Model::AssignTheta(newTheta, *iat, atA, atB, topIn, frameIn, atomPositionKnown)) {
+        mprinterr("Error: theta (j k) assignment failed.\n");
+        return 1;
+      }
+      mprintf("DEBUG:\t\tnewTheta = %g\n", newTheta*Constants::RADDEG);
+      newPhi = 0;
+      if (Cpptraj::Structure::Model::AssignPhi(newPhi, *iat, atA, atB, atk0, topIn, frameIn, atomPositionKnown, atomChirality)) {
+        mprinterr("Error: phi (j k) assignment failed.\n");
+        return 1;
+      }
+      mprintf("DEBUG:\t\tnewPhi = %g\n", newPhi*Constants::RADDEG);
+      IC_.push_back(InternalCoords( *iat, atA, atB, atk0, newDist, newTheta*Constants::RADDEG, newPhi*Constants::RADDEG ));
+      mprintf("DEBUG: MODEL J K IC: ");
+      IC_.back().printIC(topIn);
+      MARK( *iat, hasIC, nHasIC );
+      // ----- K L: Set up ICs for X iat atA atB ---------------------
+      Atom const& AJ2 = topIn[*iat];
+      for (Atom::bond_iterator i2at = AJ2.bondbegin(); i2at != AJ2.bondend(); ++i2at)
+      {
+        if (*i2at != atA && *i2at != atB) {
+          // Use existing dist and theta
+          newDist = sqrt( DIST2_NoImage(frameIn.XYZ(*i2at), frameIn.XYZ(*iat)) );
+          newTheta = CalcAngle( frameIn.XYZ(*i2at), frameIn.XYZ(*iat), frameIn.XYZ(atA) );
+          // Set phi for X iat atA atB
+          newPhi = 0;
+          if (Cpptraj::Structure::Model::AssignPhi(newPhi, *i2at, *iat, atA, atB, topIn, frameIn, atomPositionKnown, atomChirality)) {
+            mprinterr("Error: phi (k l) assignment failed.\n");
+            return 1;
+          }
+          mprintf("DEBUG:\t\tnewPhi = %g\n", newPhi*Constants::RADDEG);
+          IC_.push_back(InternalCoords( *i2at, *iat, atA, atB, newDist, newTheta*Constants::RADDEG, newPhi*Constants::RADDEG ));
+          mprintf("DEBUG: MODEL K L IC: ");
+          IC_.back().printIC(topIn);
+          MARK( *i2at, hasIC, nHasIC );
+        }
+      }
+    }
+  }
+  // Add the rest
+  //if (traceMol(atl0, atk0, atB, frameIn, topIn, topIn.Natom(), nHasIC, hasIC)) return 1;
 
   return 0;
 }
