@@ -4,6 +4,7 @@
 #include <cmath> // cos
 #include <utility> // std::pair
 #include "Zmatrix.h"
+#include "Model.h"
 #include "../Frame.h"
 #include "../CpptrajStdio.h"
 #include "../Constants.h"
@@ -785,7 +786,9 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
   * direction of atom A. This means all internal coordinates with A and B
   * as I and J (should be only 1), as J and K, and as K and L.
   */
-int Zmatrix::SetFromFrameAroundBond(int atA, int atB, Frame const& frameIn, Topology const& topIn)
+int Zmatrix::SetFromFrameAroundBond(int atA, int atB, Frame const& frameIn, Topology const& topIn,
+                                    std::vector<bool> const& atomPositionKnown,
+                                    std::vector<Chirality::ChiralType> const& atomChirality)
 {
   mprintf("DEBUG: SetFromFrameAroundBond: atA= %s (%i)  atB= %s (%i)\n",
           topIn.AtomMaskName(atA).c_str(), atA+1,
@@ -799,18 +802,19 @@ int Zmatrix::SetFromFrameAroundBond(int atA, int atB, Frame const& frameIn, Topo
   IC_.clear();
 
   // First, make sure atom B as a bond depth of at least 2.
+  // Choose K and L atoms given atA is I and atB is J.
   Atom const& AJ = topIn[atB];
   typedef std::pair<int,int> Apair;
   std::vector<Apair> KLpairs;
   for (Atom::bond_iterator kat = AJ.bondbegin(); kat != AJ.bondend(); ++kat)
   {
     if (*kat != atA) {
-      mprintf("DEBUG: kat= %s\n", topIn.AtomMaskName(*kat).c_str());
+      //mprintf("DEBUG: kat= %s\n", topIn.AtomMaskName(*kat).c_str());
       Atom const& AK = topIn[*kat];
       for (Atom::bond_iterator lat = AK.bondbegin(); lat != AK.bondend(); ++lat)
       {
-        if (*lat != atB) {
-          mprintf("DEBUG: lat= %s\n", topIn.AtomMaskName(*lat).c_str());
+        if (*lat != atB && *lat != atA) {
+          //mprintf("DEBUG: lat= %s\n", topIn.AtomMaskName(*lat).c_str());
           KLpairs.push_back( Apair(*kat, *lat) );
         }
       }
@@ -820,6 +824,44 @@ int Zmatrix::SetFromFrameAroundBond(int atA, int atB, Frame const& frameIn, Topo
                                           it != KLpairs.end(); ++it)
     mprintf("DEBUG:\t\tKL pair %s - %s\n", topIn.AtomMaskName(it->first).c_str(),
             topIn.AtomMaskName(it->second).c_str());
+  if (KLpairs.empty()) {
+    mprinterr("Error: SetFromFrameAroundBond(): Could not find an atom pair bonded to atom %s\n",
+              topIn.AtomMaskName(atB).c_str());
+    return 1;
+  }
+  // TODO be smarter about how K and L are selected?
+  double maxMass = topIn[KLpairs[0].first].Mass() + topIn[KLpairs[0].second].Mass();
+  unsigned int maxIdx = 0;
+  for (unsigned int idx = 1; idx < KLpairs.size(); idx++) {
+    double sumMass = topIn[KLpairs[idx].first].Mass() + topIn[KLpairs[idx].second].Mass();
+    if (sumMass > maxMass) {
+      maxMass = sumMass;
+      maxIdx = idx;
+    }
+  }
+  int atk0 = KLpairs[maxIdx].first;
+  int atl0 = KLpairs[maxIdx].second;
+  mprintf("DEBUG: Chosen KL pair: %s - %s\n",topIn.AtomMaskName(atk0).c_str(),
+            topIn.AtomMaskName(atl0).c_str());
+  // Set dist, theta, phi for atA atB K L internal coord
+  mprintf("DEBUG: IC (i j) %i - %i - %i - %i\n", atA+1, atB+1, atk0+1, atl0+1);
+  double newDist = Atom::GetBondLength( topIn[atA].Element(), topIn[atB].Element() );
+  mprintf("DEBUG:\t\tnewDist= %g\n", newDist);
+  double newTheta = 0;
+  if (Cpptraj::Structure::Model::AssignTheta(newTheta, atA, atB, atk0, topIn, frameIn, atomPositionKnown)) {
+    mprinterr("Error: theta assignment failed.\n");
+    return 1;
+  }
+  mprintf("DEBUG:\t\tnewTheta = %g\n", newTheta*Constants::RADDEG);
+  double newPhi = 0;
+  if (Cpptraj::Structure::Model::AssignPhi(newPhi, atA, atB, atk0, atl0, topIn, frameIn, atomPositionKnown, atomChirality)) {
+    mprinterr("Error: phi assignment failed.\n");
+    return 1;
+  }
+  mprintf("DEBUG:\t\tnewPhi = %g\n", newPhi*Constants::RADDEG);
+  // TODO be smarter about these values
+  InternalCoords newIc( atA, atB, atk0, atl0, newDist, newTheta*Constants::RADDEG, newPhi*Constants::RADDEG );
+  newIc.printIC(topIn);
 
   return 0;
 }

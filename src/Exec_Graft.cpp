@@ -324,17 +324,23 @@ const
   zmatrix.print(); // DEBUG
   // Generate Zmatrix only for ICs involving bonded atoms
   Zmatrix bondZmatrix;
-  // Make atA belong to the smaller fragment
+  // Make atA belong to the smaller fragment. atB fragment will be "known"
+  Barray posKnown( combinedTop.Natom(), false );
   int atA, atB;
+  // NOTE: mol0 is tgt. mol1 is src.
   if (heavy_atom_count(*mol0Top) < heavy_atom_count(*mol1Top)) {
     atA = tgtBondAtoms[0];
     atB = srcBondAtoms[0];
+    for (int at = mol0Top->Natom(); at != combinedTop.Natom(); at++)
+      posKnown[at] = true;
   } else {
     atA = srcBondAtoms[0];
     atB = tgtBondAtoms[0];
+    for (int at = 0; at != mol0Top->Natom(); at++)
+     posKnown[at] = true;
   }
   bondZmatrix.SetDebug( 2 ); // FIXME
-  if (bondZmatrix.SetFromFrameAroundBond(atA, atB, CombinedFrame, combinedTop)) {
+  if (bondZmatrix.SetFromFrameAroundBond(atA, atB, CombinedFrame, combinedTop, posKnown, atomChirality)) {
     mprinterr("Error: Zmatrix setup for ICs around %s and %s failed.\n",
               combinedTop.AtomMaskName(atA).c_str(),
               combinedTop.AtomMaskName(atB).c_str());
