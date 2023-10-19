@@ -346,6 +346,7 @@ const
               combinedTop.AtomMaskName(atB).c_str());
     return CpptrajState::ERR;
   }
+  bondZmatrix.print();
 
   // Map atom j to ICs to change
   typedef std::map<int, ICholder> ICmapType;
