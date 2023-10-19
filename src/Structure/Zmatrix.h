@@ -11,29 +11,33 @@ namespace Structure {
 class Zmatrix {
     typedef std::vector<InternalCoords> ICarray;
   public:
+    typedef std::vector<bool> Barray;
     /// CONSTRUCTOR
     Zmatrix();
     /// Set debug level
     void SetDebug(int d) { debug_ = d; }
+    /// Print to stdout
+    void print() const;
+
+    /// \reserve space for # of internal coords TODO zero out seeds?
+    void reserve(unsigned int n) { IC_.reserve( n ); }
     /// Add internal coordinate
     int AddIC(InternalCoords const&);
     /// Set specified IC
     void SetIC(unsigned int, InternalCoords const&);
-    /// Add internal coordinate as next available IC seed
-    //int AddICseed(InternalCoords const&);
+
     /// Set seed atoms from frame/top
     int SetSeedPositions(Frame const&, Topology const&, int, int, int);
+
     /// Convert specifed molecule of Frame/Topology to internal coordinates array
     int SetFromFrame(Frame const&, Topology const&, int);
-    /// Convert from Cartesian to Zmatrix by tracing a molecule FIXME fix naming
-    int SetFromFrame_Trace(Frame const&, Topology const&, int);
     /// Convert molecule 0 of Frame/Topology to internal coordinates array
     int SetFromFrame(Frame const&, Topology const&);
 
     /// Set Frame from internal coords
     int SetToFrame(Frame&) const;
-    /// Print to stdout
-    void print() const;
+    /// Set Frame from internal coords with some positions already set
+    int SetToFrame(Frame&, Barray&) const;
 
     typedef ICarray::const_iterator const_iterator;
     const_iterator begin() const { return IC_.begin(); }
@@ -49,14 +53,11 @@ class Zmatrix {
     unsigned int sizeInBytes() const { return (7*sizeof(int)) +
                                               (9*sizeof(double)) + // 3 Vec3
                                               (IC_.size() * InternalCoords::sizeInBytes()); }
-    /// \reserve space for # of internal coords TODO zero out seeds?
-    void reserve(unsigned int n) { IC_.reserve( n ); }
 
     /// \return XYZ position of atom I for given internal coordinate
     static Vec3 AtomIposition(InternalCoords const&, Frame const&);
   private:
     typedef std::vector<int> Iarray;
-    typedef std::vector<bool> Barray;
     /// Simple version of auto set seeds based on connectivity only
     int autoSetSeeds_simple(Frame const&, Topology const&, Molecule const&);
     /// Automatically set seeds
@@ -65,6 +66,8 @@ class Zmatrix {
     void addIc(int,int,int,int,const double*,const double*,const double*,const double*);
     /// Add internal coordiantes by tracing a molecule
     int traceMol(int, int, int, Frame const&, Topology const&, unsigned int, unsigned int&, Barray&);
+    /// Convert from Cartesian to minimal Zmatrix by tracing a molecule
+    int SetFromFrame_Trace(Frame const&, Topology const&, int);
     /// \return True if IC seeds are set
     //bool HasICSeeds() const;
     /// \return True if Cartesian seeds are set

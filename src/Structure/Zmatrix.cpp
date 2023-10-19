@@ -74,24 +74,6 @@ std::vector<int> Zmatrix::AtomI_indices(int atomi) const {
   return indices;
 }
 
-/** Add internal coords as a IC seed. This is intended for use with systems
-  * that have dummy atoms, such as those from Amber Prep files.
-  */
-/*int Zmatrix::AddICseed(InternalCoords const& ic) {
-  if (icseed0_ == InternalCoords::NO_ATOM)
-    icseed0_ = IC_.size();
-  else if (icseed1_ == InternalCoords::NO_ATOM)
-    icseed1_ = IC_.size();
-  else if (icseed2_ == InternalCoords::NO_ATOM)
-    icseed2_ = IC_.size();
-  else {
-    mprinterr("Error: Too many seed ICs.\n");
-    return 1;
-  }
-  IC_.push_back( ic );
-  return 0;
-}*/
-
 /** Print to stdout */
 void Zmatrix::print() const {
   mprintf("%zu internal coords.\n", IC_.size());
@@ -834,14 +816,23 @@ Vec3 Zmatrix::AtomIposition(InternalCoords const& ic, Frame const& frameOut)
 }
 
 /** Set Cartesian coordinates in Frame from internal coordinates.
+  * Assume none of the positions in frameOut can be used initially.
+  */
+int Zmatrix::SetToFrame(Frame& frameOut) const {
+  // Track which atoms have Cartesian coords set
+  Barray hasPosition( frameOut.Natom(), false );
+  return SetToFrame(frameOut, hasPosition);
+}
+
+/** Set Cartesian coordinates in Frame from internal coordinates.
+  * Any atom with hasPosition set to true is considered a "good"
+  * position that other ICs can use.
   * The procedure used here is from:
   * Parsons et al., "Practical Conversion from Torsion Space to 
   * Cartesian Space for In Silico Protein Synthesis",
   * J Comput Chem 26: 1063–1068, 2005.
   */
-int Zmatrix::SetToFrame(Frame& frameOut) const {
-  // Track which atoms have Cartesian coords set
-  Barray hasPosition( frameOut.Natom(), false );
+int Zmatrix::SetToFrame(Frame& frameOut, Barray& hasPosition) const {
   // If any seed positions are defined, set them now
   if (seedAt0_ != InternalCoords::NO_ATOM) {
     frameOut.SetXYZ( seedAt0_, seed0Pos_ );
