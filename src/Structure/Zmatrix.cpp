@@ -887,6 +887,8 @@ int Zmatrix::SetFromFrameAroundBond(int atA, int atB, Frame const& frameIn, Topo
   Atom const& AJ1 = topIn[atA];
   //Atom const& AK1 = topIn[atB];
   //Atom const& AL1 = topIn[atk0];
+  // ToTrace will hold atoms we need to trace after the modeled ones are done.
+  std::vector<int> ToTrace;
   for (Atom::bond_iterator iat = AJ1.bondbegin(); iat != AJ1.bondend(); ++iat)
   {
     if (*iat != atB) {
@@ -928,12 +930,20 @@ int Zmatrix::SetFromFrameAroundBond(int atA, int atB, Frame const& frameIn, Topo
           mprintf("DEBUG: MODEL K L IC: ");
           IC_.back().printIC(topIn);
           MARK( *i2at, hasIC, nHasIC );
+          // Trace from atA *iat *i2at outwards
+          ToTrace.push_back(atA);
+          ToTrace.push_back(*iat);
+          ToTrace.push_back(*i2at);
+          //if (traceMol(atA, *iat, *i2at, frameIn, topIn, topIn.Natom(), nHasIC, hasIC)) return 1;
         }
       }
     }
   }
   // Add the rest
-  if (traceMol(atl0, atk0, atB, frameIn, topIn, topIn.Natom(), nHasIC, hasIC)) return 1;
+  for (unsigned int idx = 0; idx < ToTrace.size(); idx += 3) {
+    if (traceMol(ToTrace[idx], ToTrace[idx+1], ToTrace[idx+2], frameIn, topIn, topIn.Natom(), nHasIC, hasIC))
+      return 1;
+  }
 
   return 0;
 }
