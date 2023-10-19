@@ -2,6 +2,7 @@
 #include <algorithm> // std::sort, std::min, std::max
 #include <stack>
 #include <cmath> // cos
+#include <utility> // std::pair
 #include "Zmatrix.h"
 #include "../Frame.h"
 #include "../CpptrajStdio.h"
@@ -778,6 +779,52 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
   return 0;*/
 }
 
+/** Given two bonded atoms A and B, where B has a depth of at least 2
+  * (i.e., it is possible to have B be atom J where we can form J-K-L),
+  * set up a complete set of internal coordinates involving A and B in the
+  * direction of atom A. This means all internal coordinates with A and B
+  * as I and J (should be only 1), as J and K, and as K and L.
+  */
+int Zmatrix::SetFromFrameAroundBond(int atA, int atB, Frame const& frameIn, Topology const& topIn)
+{
+  mprintf("DEBUG: SetFromFrameAroundBond: atA= %s (%i)  atB= %s (%i)\n",
+          topIn.AtomMaskName(atA).c_str(), atA+1,
+          topIn.AtomMaskName(atB).c_str(), atB+1);
+  // Sanity check. A and B must be bonded
+  if (!topIn[atA].IsBondedTo(atB)) {
+    mprinterr("Internal Error: SetFromFrameAroundBond(): Atoms %s and %s are not bonded.\n",
+              topIn.AtomMaskName(atA).c_str(), topIn.AtomMaskName(atB).c_str());
+    return 1;
+  }
+  IC_.clear();
+
+  // First, make sure atom B as a bond depth of at least 2.
+  Atom const& AJ = topIn[atB];
+  typedef std::pair<int,int> Apair;
+  std::vector<Apair> KLpairs;
+  for (Atom::bond_iterator kat = AJ.bondbegin(); kat != AJ.bondend(); ++kat)
+  {
+    if (*kat != atA) {
+      mprintf("DEBUG: kat= %s\n", topIn.AtomMaskName(*kat).c_str());
+      Atom const& AK = topIn[*kat];
+      for (Atom::bond_iterator lat = AK.bondbegin(); lat != AK.bondend(); ++lat)
+      {
+        if (*lat != atB) {
+          mprintf("DEBUG: lat= %s\n", topIn.AtomMaskName(*lat).c_str());
+          KLpairs.push_back( Apair(*kat, *lat) );
+        }
+      }
+    }
+  }
+  for (std::vector<Apair>::const_iterator it = KLpairs.begin();
+                                          it != KLpairs.end(); ++it)
+    mprintf("DEBUG:\t\tKL pair %s - %s\n", topIn.AtomMaskName(it->first).c_str(),
+            topIn.AtomMaskName(it->second).c_str());
+
+  return 0;
+}
+
+// -----------------------------------------------------------------------------
 /** \return Position of atom I from given internal coordinate. */
 Vec3 Zmatrix::AtomIposition(InternalCoords const& ic, Frame const& frameOut)
 {

@@ -187,6 +187,17 @@ class ICholder {
     ICtype ictype_; ///< Type of reset (IJ=all, JK=theta,phi, KL=phi)
 };
 
+/// \return Heavy atom count
+int heavy_atom_count(Topology const& topIn) {
+  int hac = 0;
+  for (int i = 0; i != topIn.Natom(); i++) {
+    if (topIn[i].Element() != Atom::HYDROGEN &&
+        topIn[i].Element() != Atom::EXTRAPT)
+      hac++;
+  }
+  return hac;
+}
+
 /** Graft using internal coordinates to build the final structure. */
 Exec::RetType Exec_Graft::graft_ic(CpptrajState& State, ArgList& argIn)
 const
@@ -311,6 +322,25 @@ const
     return CpptrajState::ERR;
   }
   zmatrix.print(); // DEBUG
+  // Generate Zmatrix only for ICs involving bonded atoms
+  Zmatrix bondZmatrix;
+  // Make atA belong to the smaller fragment
+  int atA, atB;
+  if (heavy_atom_count(*mol0Top) < heavy_atom_count(*mol1Top)) {
+    atA = tgtBondAtoms[0];
+    atB = srcBondAtoms[0];
+  } else {
+    atA = srcBondAtoms[0];
+    atB = tgtBondAtoms[0];
+  }
+  bondZmatrix.SetDebug( 2 ); // FIXME
+  if (bondZmatrix.SetFromFrameAroundBond(atA, atB, CombinedFrame, combinedTop)) {
+    mprinterr("Error: Zmatrix setup for ICs around %s and %s failed.\n",
+              combinedTop.AtomMaskName(atA).c_str(),
+              combinedTop.AtomMaskName(atB).c_str());
+    return CpptrajState::ERR;
+  }
+
   // Map atom j to ICs to change
   typedef std::map<int, ICholder> ICmapType;
   typedef std::pair<int, ICholder> ICpairType;

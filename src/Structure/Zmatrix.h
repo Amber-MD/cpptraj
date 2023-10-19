@@ -33,6 +33,8 @@ class Zmatrix {
     int SetFromFrame(Frame const&, Topology const&, int);
     /// Convert molecule 0 of Frame/Topology to internal coordinates array
     int SetFromFrame(Frame const&, Topology const&);
+    /// Get internal coordinates around bond in one direction.
+    int SetFromFrameAroundBond(int, int, Frame const&, Topology const&);
 
     /// Set Frame from internal coords
     int SetToFrame(Frame&) const;
