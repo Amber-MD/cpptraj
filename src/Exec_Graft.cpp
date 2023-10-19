@@ -315,13 +315,13 @@ const
     atomPositionKnown[aidx] = true;*/
 
   // Generate Z matrix FIXME ensure mol 0 is the one we are interested in
-  Zmatrix zmatrix;
+/*  Zmatrix zmatrix;
   zmatrix.SetDebug( 2 ); // FIXME
   if (zmatrix.SetFromFrame(CombinedFrame, combinedTop)) {
     mprinterr("Error: Zmatrix setup failed.\n");
     return CpptrajState::ERR;
   }
-  zmatrix.print(); // DEBUG
+  zmatrix.print(); // DEBUG*/
   // Generate Zmatrix only for ICs involving bonded atoms
   Zmatrix bondZmatrix;
   // Make atA belong to the smaller fragment. atB fragment will be "known"
@@ -347,7 +347,11 @@ const
     return CpptrajState::ERR;
   }
   bondZmatrix.print();
-
+  if (bondZmatrix.SetToFrame( CombinedFrame, posKnown )) {
+    mprinterr("Error: Conversion from bondZmatrix to Cartesian coords failed.\n");
+    return CpptrajState::ERR;
+  }
+/*
   // Map atom j to ICs to change
   typedef std::map<int, ICholder> ICmapType;
   typedef std::pair<int, ICholder> ICpairType;
@@ -469,7 +473,7 @@ const
       InternalCoords const& oic = zmatrix[*jt];
       mprintf("DEBUG:\t\t");
       oic.printIC(combinedTop);
-      /*double dist = oic.Dist();
+      *double dist = oic.Dist();
       double theta = oic.Theta();
       double phi = oic.Phi();
       if (it->second.Type() == ICholder::IJ) {
@@ -481,13 +485,13 @@ const
       //}
       InternalCoords newIc( oic.AtI(), oic.AtJ(), oic.AtK(), oic.AtL(), dist, theta, phi );
       zmatrix.SetIC( *jt, newIc );
-      //phi += interval;*/
+      //phi += interval;*
     }
-  }
+  } 
   if (zmatrix.SetToFrame( CombinedFrame )) {
     mprinterr("Error: Conversion from Zmatrix to Cartesian coords failed.\n");
     return CpptrajState::ERR;
-  }
+  }*/
 
   // Add frame to the output data set
   outCoords->AddFrame( CombinedFrame );
