@@ -915,7 +915,7 @@ int Zmatrix::SetFromFrameAroundBond(int atA, int atB, Frame const& frameIn, Topo
       Atom const& AJ2 = topIn[*iat];
       for (Atom::bond_iterator i2at = AJ2.bondbegin(); i2at != AJ2.bondend(); ++i2at)
       {
-        if (*i2at != atA && *i2at != atB) {
+        if (*i2at != atA && *i2at != atB && !hasIC[*i2at]) {
           // Use existing dist and theta
           newDist = sqrt( DIST2_NoImage(frameIn.XYZ(*i2at), frameIn.XYZ(*iat)) );
           newTheta = CalcAngle( frameIn.XYZ(*i2at), frameIn.XYZ(*iat), frameIn.XYZ(atA) );
