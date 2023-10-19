@@ -469,7 +469,7 @@ int Zmatrix::traceMol(int atL0, int atK0, int atJ0,
       if (!hasIC[*bat]) {
         if (topIn[*bat].Nbonds() == 1)
           OneBondAtoms.push_back( *bat );
-        else
+        else if (*bat != atK)
           OtherAtoms.push_back( *bat );
       }
     }
@@ -482,6 +482,8 @@ int Zmatrix::traceMol(int atL0, int atK0, int atJ0,
     // Create ICs for 1 bond atoms
     for (Iarray::const_iterator atI = OneBondAtoms.begin(); atI != OneBondAtoms.end(); ++atI) {
       addIc(*atI, atJ, atK, atL, frameIn.XYZ(*atI), frameIn.XYZ(atJ), frameIn.XYZ(atK), frameIn.XYZ(atL));
+      mprintf("DEBUG: Added (1 atom) ");
+      IC_.back().printIC(topIn);
       MARK(*atI, hasIC, nHasIC);
     }
     // If nothing else, check the stack
@@ -505,6 +507,8 @@ int Zmatrix::traceMol(int atL0, int atK0, int atJ0,
         }
         if (!hasIC[p.ai_]) {
           addIc(p.ai_, p.aj_, p.ak_, p.al_, frameIn.XYZ(p.ai_), frameIn.XYZ(p.aj_), frameIn.XYZ(p.ak_), frameIn.XYZ(p.al_));
+          mprintf("DEBUG: Added (stack) ");
+          IC_.back().printIC(topIn);
           Branches.pop();
           MARK(p.ai_, hasIC, nHasIC);
           // Designate branch as next.
@@ -535,8 +539,12 @@ int Zmatrix::traceMol(int atL0, int atK0, int atJ0,
                 topIn.AtomMaskName(atL).c_str());
       }
       // Add lowest index as IC
-      addIc(atI, atJ, atK, atL, frameIn.XYZ(atI), frameIn.XYZ(atJ), frameIn.XYZ(atK), frameIn.XYZ(atL));
-      MARK(atI, hasIC, nHasIC);
+      if (!hasIC[atI]) {
+        addIc(atI, atJ, atK, atL, frameIn.XYZ(atI), frameIn.XYZ(atJ), frameIn.XYZ(atK), frameIn.XYZ(atL));
+        mprintf("DEBUG: Added (next) ");
+        IC_.back().printIC(topIn);
+        MARK(atI, hasIC, nHasIC);
+      }
       // Place all above lowest index on the stack.
       for (unsigned int ii = 1; ii < OtherAtoms.size(); ii++) {
         Branches.push( PHI(OtherAtoms[ii], atJ, atK, atL) );
