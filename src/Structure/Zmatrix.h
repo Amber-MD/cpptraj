@@ -18,7 +18,9 @@ class Zmatrix {
     /// Set debug level
     void SetDebug(int d) { debug_ = d; }
     /// Print to stdout
-    void print() const;
+    void print(Topology*) const;
+    /// Print to stdout, no atom names
+    void print() const { print(0); }
 
     /// \reserve space for # of internal coords TODO zero out seeds?
     void reserve(unsigned int n) { IC_.reserve( n ); }

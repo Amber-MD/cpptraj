@@ -77,19 +77,31 @@ std::vector<int> Zmatrix::AtomI_indices(int atomi) const {
 }
 
 /** Print to stdout */
-void Zmatrix::print() const {
+void Zmatrix::print(Topology* topIn) const {
   mprintf("%zu internal coords.\n", IC_.size());
   mprintf("Seed IC indices    : %i %i %i\n", icseed0_+1, icseed1_+1, icseed2_+1);
   mprintf("Seed Cart. indices : %i %i %i\n", seedAt0_+1, seedAt1_+1, seedAt2_+1);
   seed0Pos_.Print("Seed0");
   seed1Pos_.Print("Seed1");
   seed2Pos_.Print("Seed2");
-  mprintf("%-8s %8s %8s %8s %8s %12s %12s %12s\n",
-          "#Idx", "AtI", "AtJ", "AtK", "AtL", "Dist", "Theta", "Phi");
-  for (ICarray::const_iterator it = IC_.begin(); it != IC_.end(); ++it)
-    mprintf("%-8li %8i %8i %8i %8i %12.4f %12.4f %12.4f\n", it - IC_.begin()+1,
-            it->AtI()+1, it->AtJ()+1, it->AtK()+1, it->AtL()+1,
-            it->Dist(), it->Theta(), it->Phi());
+  if (topIn == 0) {
+    mprintf("%-8s %8s %8s %8s %8s %12s %12s %12s\n",
+            "#Idx", "AtI", "AtJ", "AtK", "AtL", "Dist", "Theta", "Phi");
+    for (ICarray::const_iterator it = IC_.begin(); it != IC_.end(); ++it)
+      mprintf("%-8li %8i %8i %8i %8i %12.4f %12.4f %12.4f\n", it - IC_.begin()+1,
+              it->AtI()+1, it->AtJ()+1, it->AtK()+1, it->AtL()+1,
+              it->Dist(), it->Theta(), it->Phi());
+  } else {
+    mprintf("%-6s %6s %8s %6s %8s %6s %8s %6s %8s %6s %6s %6s\n",
+            "#Idx", "AtI", "NmI", "AtJ", "NmJ", "AtK", "NmK", "AtL", "NmL", "Dist", "Theta", "Phi");
+    for (ICarray::const_iterator it = IC_.begin(); it != IC_.end(); ++it)
+      mprintf("%-6li %6i %8s %6i %8s %6i %8s %6i %8s %6.2f %6.2f %6.2f\n", it - IC_.begin()+1,
+              it->AtI()+1, topIn->AtomMaskName(it->AtI()).c_str(),
+              it->AtJ()+1, topIn->AtomMaskName(it->AtJ()).c_str(),
+              it->AtK()+1, topIn->AtomMaskName(it->AtK()).c_str(),
+              it->AtL()+1, topIn->AtomMaskName(it->AtL()).c_str(),
+              it->Dist(), it->Theta(), it->Phi());
+  }
 }
 
 // -------------------------------------
@@ -885,22 +897,23 @@ int Zmatrix::SetFromFrameAroundBond(int atA, int atB, Frame const& frameIn, Topo
   MARK( atA, hasIC, nHasIC );
   // ----- J K: Set up ICs for X atA atB K ---------------------------
   Atom const& AJ1 = topIn[atA];
+  int ati = -1;
   //Atom const& AK1 = topIn[atB];
   //Atom const& AL1 = topIn[atk0];
-  // ToTrace will hold atoms we need to trace after the modeled ones are done.
-  std::vector<int> ToTrace;
   for (Atom::bond_iterator iat = AJ1.bondbegin(); iat != AJ1.bondend(); ++iat)
   {
     if (*iat != atB) {
+      if (ati == -1) ati = *iat;
       // Use existing dist
       newDist = sqrt( DIST2_NoImage(frameIn.XYZ(*iat), frameIn.XYZ(atA)) );
-      // Set theta and phi for I atA atB K
+      // Set theta for I atA atB
       newTheta = 0;
       if (Cpptraj::Structure::Model::AssignTheta(newTheta, *iat, atA, atB, topIn, frameIn, atomPositionKnown)) {
         mprinterr("Error: theta (j k) assignment failed.\n");
         return 1;
       }
       mprintf("DEBUG:\t\tnewTheta = %g\n", newTheta*Constants::RADDEG);
+      // Set phi for I atA atB K
       newPhi = 0;
       if (Cpptraj::Structure::Model::AssignPhi(newPhi, *iat, atA, atB, atk0, topIn, frameIn, atomPositionKnown, atomChirality)) {
         mprinterr("Error: phi (j k) assignment failed.\n");
@@ -912,7 +925,7 @@ int Zmatrix::SetFromFrameAroundBond(int atA, int atB, Frame const& frameIn, Topo
       IC_.back().printIC(topIn);
       MARK( *iat, hasIC, nHasIC );
       // ----- K L: Set up ICs for X iat atA atB ---------------------
-      Atom const& AJ2 = topIn[*iat];
+      /*Atom const& AJ2 = topIn[*iat];
       for (Atom::bond_iterator i2at = AJ2.bondbegin(); i2at != AJ2.bondend(); ++i2at)
       {
         if (*i2at != atA && *i2at != atB && !hasIC[*i2at]) {
@@ -936,14 +949,54 @@ int Zmatrix::SetFromFrameAroundBond(int atA, int atB, Frame const& frameIn, Topo
           ToTrace.push_back(*i2at);
           //if (traceMol(atA, *iat, *i2at, frameIn, topIn, topIn.Natom(), nHasIC, hasIC)) return 1;
         }
+      } */
+    }
+  }
+  // Handle remaining atoms.
+  if (AJ1.Nbonds() > 1) {
+    if (AJ1.Nbonds() == 2) {
+      mprintf("DEBUG: 2 bonds to %s.\n", topIn.AtomMaskName(atA).c_str());
+      if (traceMol(atB, atA, ati, frameIn, topIn, topIn.Natom(), nHasIC, hasIC))
+        return 1;
+    } else {
+      // 3 or more bonds
+      double tors;
+      std::vector<int> priority( AJ1.Nbonds() );
+      int at0 = -1;
+      int at1 = -1;
+      std::vector<int> remainingAtoms;
+      Cpptraj::Chirality::DetermineChirality(tors, &priority[0], atA, topIn, frameIn, 0); // FIXME debug level
+      mprintf("DEBUG: %i bonds to %s\n", AJ1.Nbonds(), topIn.AtomMaskName(atA).c_str());
+      for (std::vector<int>::const_iterator it = priority.begin(); it != priority.end(); ++it) {
+        if (*it != atB) {
+          mprintf("DEBUG:\t\t%s\n", topIn.AtomMaskName(*it).c_str());
+          if (at0 == -1)
+            at0 = *it;
+          else if (at1 == -1)
+            at1 = *it;
+          else
+            remainingAtoms.push_back( *it );
+        }
+      }
+      // at0 atA at1
+      if (traceMol(at1, atA, at0, frameIn, topIn, topIn.Natom(), nHasIC, hasIC))
+        return 1;
+      // at1 atA, at0
+      if (traceMol(at0, atA, at1, frameIn, topIn, topIn.Natom(), nHasIC, hasIC))
+        return 1;
+      // Remaining atoms.
+      for (std::vector<int>::const_iterator it = remainingAtoms.begin(); it != remainingAtoms.end(); ++it) {
+        if (traceMol(at0, atA, *it, frameIn, topIn, topIn.Natom(), nHasIC, hasIC))
+          return 1;
       }
     }
   }
+      
   // Add the rest
-  for (unsigned int idx = 0; idx < ToTrace.size(); idx += 3) {
-    if (traceMol(ToTrace[idx], ToTrace[idx+1], ToTrace[idx+2], frameIn, topIn, topIn.Natom(), nHasIC, hasIC))
-      return 1;
-  }
+  //for (unsigned int idx = 0; idx < ToTrace.size(); idx += 3) {
+  //  if (traceMol(ToTrace[idx], ToTrace[idx+1], ToTrace[idx+2], frameIn, topIn, topIn.Natom(), nHasIC, hasIC))
+  //    return 1;
+ // }
 
   return 0;
 }
