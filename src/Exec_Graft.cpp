@@ -346,7 +346,7 @@ const
               combinedTop.AtomMaskName(atB).c_str());
     return CpptrajState::ERR;
   }
-  bondZmatrix.print();
+  bondZmatrix.print(&combinedTop);
   if (bondZmatrix.SetToFrame( CombinedFrame, posKnown )) {
     mprinterr("Error: Conversion from bondZmatrix to Cartesian coords failed.\n");
     return CpptrajState::ERR;
