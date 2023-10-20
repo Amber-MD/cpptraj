@@ -133,7 +133,7 @@ graft ic \\
   tgtmask !(@O5',HO5') \\
   srcmask !(@C2,H21,H22,H23,O3',C1,H11,H12,H13) \\
   bond @C5',@O5'
-crdout Nucleotide Nucleotide.ic.mol2
+#crdout Nucleotide Nucleotide.ic.mol2
 # Format the PDB
 change crdset Nucleotide resname from * to DA
 change crdset Nucleotide oresnums of :1 min 1 max 1
@@ -142,7 +142,7 @@ change crdset Nucleotide oresnums of :3 min 1 max 1
 crdout Nucleotide IC.Nucleotide.pdb
 EOF
   RunCpptraj "$TESTNAME, Construct Nucleic Acid, IC"
-  #DoTest Nucleotide.pdb.save Nucleotide.pdb
+  DoTest IC.Nucleotide.pdb.save IC.Nucleotide.pdb
 }
 
 # Link nucleic acid base + sugar + phosphate, fix charges.
