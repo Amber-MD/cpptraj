@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles cpptraj.in Final.graft.mol2 Nucleotide.pdb Nucleotide.mol2 \
+CleanFiles cpptraj.in Final.graft.mol2 Nucleotide.pdb Nucleotide.charge.mol2 \
            IC.Final.graft.mol2
 TESTNAME='Graft test'
 Requires notparallel
@@ -178,11 +178,11 @@ graft \
   srcmask !(@C3,H4,H5,H6,O1,C1,H1,H2,H3) \
   bond @C1,@O3
 charge crdset Nucleotide *
-crdout Nucleotide Nucleotide.mol2
+crdout Nucleotide Nucleotide.charge.mol2
 quit
 EOF
   RunCpptraj "$TESTNAME, Construct Nucleic Acid and adjust charge"
-  DoTest Nucleotide.mol2.save Nucleotide.mol2
+  DoTest Nucleotide.charge.mol2.save Nucleotide.charge.mol2
 }
 
 TyrPry
