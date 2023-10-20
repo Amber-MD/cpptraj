@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles cpptraj.in Final.graft.mol2 Nucleotide.pdb Nucleotide.charge.mol2 \
-           IC.Final.graft.mol2
+           IC.Final.graft.mol2 IC.Nucleotide.pdb
 TESTNAME='Graft test'
 Requires notparallel
 
@@ -135,11 +135,11 @@ graft ic \\
   bond @C5',@O5'
 crdout Nucleotide Nucleotide.ic.mol2
 # Format the PDB
-#change crdset Nucleotide resname from * to DA
-#change crdset Nucleotide oresnums of :1 min 1 max 1
-#change crdset Nucleotide oresnums of :2 min 1 max 1
-#change crdset Nucleotide oresnums of :3 min 1 max 1
-#crdout Nucleotide Nucleotide.pdb
+change crdset Nucleotide resname from * to DA
+change crdset Nucleotide oresnums of :1 min 1 max 1
+change crdset Nucleotide oresnums of :2 min 1 max 1
+change crdset Nucleotide oresnums of :3 min 1 max 1
+crdout Nucleotide IC.Nucleotide.pdb
 EOF
   RunCpptraj "$TESTNAME, Construct Nucleic Acid, IC"
   #DoTest Nucleotide.pdb.save Nucleotide.pdb
