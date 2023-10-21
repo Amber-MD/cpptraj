@@ -1979,12 +1979,17 @@ void Topology::AddBondArray(BondArray const& barray, BondParmArray const& bp, in
     for (BondArray::const_iterator bond = barray.begin(); bond != barray.end(); ++bond)
       AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset );
   } else {
+    bool missingParameters = false;
     for (BondArray::const_iterator bond = barray.begin(); bond != barray.end(); ++bond) {
       if (bond->Idx() > -1)
         AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset, bp[bond->Idx()] );
-      else
+      else {
+        missingParameters = true;
         AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset );
+      }
     }
+    if (missingParameters)
+      mprintf("Warning: Some bonds were missing parameters.\n");
   }
 }
 
