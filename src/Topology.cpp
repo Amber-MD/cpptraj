@@ -1975,12 +1975,17 @@ void Topology::StripDihedralParmArray(DihedralArray& newDihedralArray, std::vect
 
 // Topology::AddBondArray()
 void Topology::AddBondArray(BondArray const& barray, BondParmArray const& bp, int atomOffset) {
-  if (bp.empty())
+  if (bp.empty()) {
     for (BondArray::const_iterator bond = barray.begin(); bond != barray.end(); ++bond)
       AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset );
-  else
-    for (BondArray::const_iterator bond = barray.begin(); bond != barray.end(); ++bond)
-      AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset, bp[bond->Idx()] );
+  } else {
+    for (BondArray::const_iterator bond = barray.begin(); bond != barray.end(); ++bond) {
+      if (bond->Idx() > -1)
+        AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset, bp[bond->Idx()] );
+      else
+        AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset );
+    }
+  }
 }
 
 // Topology::AddAngleArray()
