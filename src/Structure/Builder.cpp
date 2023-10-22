@@ -41,6 +41,7 @@ int Builder::Combine(Topology& frag0Top, Frame& frag0frm,
   // not be correct, so while priority can be determined, the
   // actual chirality can not.
   // TODO store priorities as well?
+  // TODO only store for fragment 1?
   for (int at = 0; at != frag0Top.Natom(); ++at)
     atomChirality_[at] = determineChiral(at, frag0Top, frag0frm, debug_);
   int at1 = 0;
@@ -56,6 +57,17 @@ int Builder::Combine(Topology& frag0Top, Frame& frag0frm,
   frag0frm.SetupFrameV( frag0Top.Atoms(), CoordinateInfo(frag0frm.BoxCrd(), false, false, false) );
   std::copy( tmpcrd,              tmpcrd+tmpsize,                      frag0frm.xAddress() );
   std::copy( frag1frm.xAddress(), frag1frm.xAddress()+frag1frm.size(), frag0frm.xAddress()+tmpsize );
+
+  // Create the bond
+  mprintf("DEBUG: Bond %i %s to %i %s\n",
+          bondAt0+1,     frag0Top.AtomMaskName(bondAt0).c_str(),
+          bondAt1_new+1, frag0Top.AtomMaskName(bondAt1_new).c_str());
+  frag0Top.AddBond( bondAt0, bondAt1_new ); // TODO create pseudo-parameter?
+  // Regenerate the molecule info TODO should AddBond do this automatically?
+  if (frag0Top.DetermineMolecules()) {
+    mprinterr("Error: Could not determine molecule info after combining fragments.\n");
+    return 1;
+  }
 
   return 0;
 }
