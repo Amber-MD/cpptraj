@@ -9,6 +9,8 @@ class Builder {
   public:
     /// CONSTRUCTOR
     Builder();
+    /// Combine fragment1 into fragment 0
+    int Combine(Topology&, Frame&, Topology const&, Frame const&, int, int);
   private:
     typedef std::vector<Cpptraj::Chirality::ChiralType> Carray;
     typedef std::vector<int> Iarray;
@@ -16,6 +18,7 @@ class Builder {
 
     Carray atomChirality_; ///< Hold chirality for each atom in the combined system.
     Parray atomPriority_;  ///< Hold bonded atom index priority array for each atom.
+    int debug_;
 };
 }
 }
