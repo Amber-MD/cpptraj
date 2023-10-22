@@ -21,6 +21,17 @@ Cpptraj::Chirality::ChiralType determineChiral(int at, Topology const& topIn, Fr
     return Cpptraj::Chirality::IS_UNKNOWN_CHIRALITY;
 }
 
+/** \return Heavy atom count */
+int Builder::heavy_atom_count(Topology const& topIn) {
+  int hac = 0;
+  for (int i = 0; i != topIn.Natom(); i++) {
+    if (topIn[i].Element() != Atom::HYDROGEN &&
+        topIn[i].Element() != Atom::EXTRAPT)
+      hac++;
+  }
+  return hac;
+}
+
 /** Combine two units. The smaller fragment will be merged into 
   * the larger fragment.
   */
@@ -33,17 +44,6 @@ int Builder::Combine(Topology& frag0Top, Frame& frag0frm,
   } else {
     return combine01(frag0Top, frag0frm, frag1Top, frag1frm, bondAt0, bondAt1);
   }
-}
-
-/** \return Heavy atom count */
-int Builder::heavy_atom_count(Topology const& topIn) {
-  int hac = 0;
-  for (int i = 0; i != topIn.Natom(); i++) {
-    if (topIn[i].Element() != Atom::HYDROGEN &&
-        topIn[i].Element() != Atom::EXTRAPT)
-      hac++;
-  }
-  return hac;
 }
 
 /** Combine two units. Fragment 1 will be merged into Fragment 0. */
