@@ -21,16 +21,46 @@ Cpptraj::Chirality::ChiralType determineChiral(int at, Topology const& topIn, Fr
     return Cpptraj::Chirality::IS_UNKNOWN_CHIRALITY;
 }
 
-/** Combine two units. Fragment 1 will be merged into Fragment 0. */
+/** Combine two units. The smaller fragment will be merged into 
+  * the larger fragment.
+  */
 int Builder::Combine(Topology& frag0Top, Frame& frag0frm,
+                     Topology& frag1Top, Frame& frag1frm,
+                     int bondAt0, int bondAt1)
+{
+  if (heavy_atom_count(frag0Top) < heavy_atom_count(frag1Top)) {
+    return combine01(frag1Top, frag1frm, frag0Top, frag0frm, bondAt1, bondAt0);
+  } else {
+    return combine01(frag0Top, frag0frm, frag1Top, frag1frm, bondAt0, bondAt1);
+  }
+}
+
+/** \return Heavy atom count */
+int Builder::heavy_atom_count(Topology const& topIn) {
+  int hac = 0;
+  for (int i = 0; i != topIn.Natom(); i++) {
+    if (topIn[i].Element() != Atom::HYDROGEN &&
+        topIn[i].Element() != Atom::EXTRAPT)
+      hac++;
+  }
+  return hac;
+}
+
+/** Combine two units. Fragment 1 will be merged into Fragment 0. */
+int Builder::combine01(Topology& frag0Top, Frame& frag0frm,
                      Topology const& frag1Top, Frame const& frag1frm,
                      int bondAt0, int bondAt1)
 {
   using namespace Cpptraj::Chirality;
+  int newNatom = frag0Top.Natom() + frag1Top.Natom();
+
+  // The positions of atoms in fragment 0 will be "known"
+  Barray posKnown( newNatom, false );
+  for (int at = 0; at != frag0Top.Natom(); at++)
+    posKnown[at] = true;
+
   // Determine what bondAt1 will be in the combined topology.
   int bondAt1_new = bondAt1 + frag0Top.Natom();
-
-  int newNatom = frag0Top.Natom() + frag1Top.Natom();
 
   // Reserve space in atom chirality and priority arrays.
   atomChirality_.assign( newNatom, IS_UNKNOWN_CHIRALITY );
