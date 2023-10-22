@@ -310,9 +310,9 @@ const
 
   // Track atoms as 'known'. Target atoms are residue 0, Source atoms are in residue 1
   typedef std::vector<bool> Barray;
-  Barray atomPositionKnown;/*( combinedTop.Natom(), false );
-  for (int aidx = combinedTop.Res(1).FirstAtom(); aidx != combinedTop.Res(1).LastAtom(); aidx++)
-    atomPositionKnown[aidx] = true;*/
+  //Barray atomPositionKnown;/*( combinedTop.Natom(), false );
+  //for (int aidx = combinedTop.Res(1).FirstAtom(); aidx != combinedTop.Res(1).LastAtom(); aidx++)
+  //  atomPositionKnown[aidx] = true;*/
 
   // Generate Z matrix FIXME ensure mol 0 is the one we are interested in
 /*  Zmatrix zmatrix;
