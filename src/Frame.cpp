@@ -368,7 +368,7 @@ void Frame::CopyFrom(Frame const& tgtIn, Unit const& unit) {
 }
 
 // ---------- FRAME MEMORY ALLOCATION/REALLOCATION -----------------------------
-/** \return True if reallocation of coordinate arrray must occur based on 
+/** \return True if reallocation of coordinate array must occur based on 
   *         given number of atoms.
   */
 bool Frame::ReallocateX(int natomIn) {
