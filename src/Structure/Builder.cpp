@@ -99,5 +99,7 @@ int Builder::combine01(Topology& frag0Top, Frame& frag0frm,
     return 1;
   }
 
+  // Generate a zmatrix for the smaller fragment
+
   return 0;
 }
