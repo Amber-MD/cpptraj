@@ -1,24 +1,11 @@
 #include "Chirality.h"
-#include "Constants.h"
-#include "CpptrajStdio.h"
-#include "Frame.h"
-#include "Topology.h"
-#include "TorsionRoutines.h"
+#include "../Constants.h"
+#include "../CpptrajStdio.h"
+#include "../Frame.h"
+#include "../Topology.h"
+#include "../TorsionRoutines.h"
 #include <vector>
 #include <algorithm> // sort
-
-using namespace Cpptraj;
-
-/** \return string corresponding to ChiralType */
-const char* Chirality::chiralStr(ChiralType ct) {
-  switch (ct) {
-    case ERR : return "Error";
-    case IS_S : return "S";
-    case IS_R : return "R";
-    case IS_UNKNOWN_CHIRALITY : return "Unknown";
-  }
-  return 0;
-}
 
 /// \return Total priority (i.e. sum of atomic numbers) of atoms bonded to given atom.
 static int totalPriority(Topology const& topIn, int atnum, int rnum,
@@ -89,10 +76,11 @@ class priority_element {
   *   1-2-3-0
   * where 0 is the chiral center. Negative is S, positive is R.
   */
-Chirality::ChiralType Chirality::DetermineChirality(double& tors, int* AtomIndices,
-                                                    int atnum,
-                                                    Topology const& topIn,
-                                                    Frame const& frameIn, int debugIn)
+Cpptraj::Structure::ChiralType
+  Cpptraj::Structure::DetermineChirality(double& tors, int* AtomIndices,
+                                         int atnum,
+                                         Topology const& topIn,
+                                         Frame const& frameIn, int debugIn)
 {
   tors = 0.0;
   Atom const& atom = topIn[atnum];
@@ -180,9 +168,10 @@ Chirality::ChiralType Chirality::DetermineChirality(double& tors, int* AtomIndic
 }
 
 /** Determine chirality around specified atom. */
-Chirality::ChiralType Chirality::DetermineChirality(int atnum,
-                                                    Topology const& topIn,
-                                                    Frame const& frameIn, int debugIn)
+Cpptraj::Structure::ChiralType
+  Cpptraj::Structure::DetermineChirality(int atnum,
+                                         Topology const& topIn,
+                                         Frame const& frameIn, int debugIn)
 {
   double tors;
   return DetermineChirality(tors, 0, atnum, topIn, frameIn, debugIn);
