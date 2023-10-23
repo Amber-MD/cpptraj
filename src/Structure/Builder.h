@@ -1,7 +1,7 @@
 #ifndef INC_STRUCTURE_BUILDER_H
 #define INC_STRUCTURE_BUILDER_H
 #include <vector>
-//#incl ude "BuildAtom.h"
+#include "BuildAtom.h"
 class Topology;
 class Frame;
 namespace Cpptraj {
@@ -14,7 +14,7 @@ class Builder {
     /// CONSTRUCTOR
     Builder();
     /// Combine smaller fragment into larger fragment
-    int Combine(Topology&, Frame&, Topology&, Frame&, int, int);
+    int Combine(Topology&, Frame&, Topology const&, Frame const&, Topology const&, Frame const&, int, int);
   private:
     typedef std::vector<BuildAtom> AtArray;
     typedef std::vector<bool> Barray;
@@ -22,7 +22,7 @@ class Builder {
     /// \return heavy atom count
     static inline int heavy_atom_count(Topology const&);
     /// Combine fragment1 into fragment 0
-    int combine01(Topology&, Frame&, Topology const&, Frame const&, int, int);
+    int combine01(Topology&, Frame&, Topology const&, Frame const&, Topology const&, Frame const&, int, int);
 
     AtArray atoms_; ///< Hold chirality, bonded atom index priority, and position status for each atom
     int debug_;
