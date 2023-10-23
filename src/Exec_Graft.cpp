@@ -1,7 +1,7 @@
 #include "Exec_Graft.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Coords.h"
-#include "Chirality.h"
+#include "Structure/Chirality.h"
 #include "Structure/Zmatrix.h"
 #include "Structure/Model.h"
 #include <algorithm> // std::copy
@@ -284,7 +284,6 @@ const
   CombinedFrame.SetBox( mol0frm.BoxCrd() );
 
   // Get chirality for each atom before we add the bond
-  using namespace Cpptraj::Chirality;
   std::vector<ChiralType> atomChirality;
   atomChirality.reserve( combinedTop.Natom() );
   for (int at = 0; at < combinedTop.Natom(); at++) {
