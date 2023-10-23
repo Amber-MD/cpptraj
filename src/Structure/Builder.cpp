@@ -1,4 +1,6 @@
 #include "Builder.h"
+#include "BuildAtom.h"
+#include "Chirality.h"
 #include "../CpptrajStdio.h"
 #include "../Topology.h"
 #include "../Frame.h"
@@ -41,21 +43,17 @@ int Builder::combine01(Topology& frag0Top, Frame& frag0frm,
                      Topology const& frag1Top, Frame const& frag1frm,
                      int bondAt0, int bondAt1)
 {
-  using namespace Cpptraj::Chirality;
   int natom0 = frag0Top.Natom();
   int newNatom = natom0 + frag1Top.Natom();
 
+  // Reserve space in build atom array (chirality, priority, position status).
   // The positions of atoms in fragment 0 will be "known"
-  Barray posKnown( newNatom, false );
+  atoms_.assign( newNatom, BuildAtom() );
   for (int at = 0; at != natom0; at++)
-    posKnown[at] = true;
+    atoms_[at].SetPositionKnown( true );
 
   // Determine what bondAt1 will be in the combined topology.
   int bondAt1_new = bondAt1 + natom0;
-
-  // Reserve space in atom chirality and priority arrays.
-  atomChirality_.assign( newNatom, IS_UNKNOWN_CHIRALITY );
-  atomPriority_.resize( newNatom );
 
   // Get the chirality of each atom before the bond is added.
   // This is because when the bond is added the geometry between the
@@ -65,11 +63,11 @@ int Builder::combine01(Topology& frag0Top, Frame& frag0frm,
   // TODO only store for fragment 1?
   for (int at = 0; at != natom0; ++at)
     if (frag0Top[at].Nbonds() > 2)
-      atomChirality_[at] = DetermineChirality(at, frag0Top, frag0frm, debug_);
+      atoms_[at].SetChirality( DetermineChirality(at, frag0Top, frag0frm, debug_) );
   int at1 = 0;
   for (int at = natom0; at != newNatom; at++, at1++)
     if (frag1Top[at1].Nbonds() > 2)
-      atomChirality_[at] = DetermineChirality(at1, frag1Top, frag1frm, debug_);
+      atoms_[at].SetChirality( DetermineChirality(at1, frag1Top, frag1frm, debug_) );
 
   // Merge fragment 1 topology into fragment 0
   frag0Top.AppendTop( frag1Top );
@@ -97,14 +95,14 @@ int Builder::combine01(Topology& frag0Top, Frame& frag0frm,
   double tors = 0;
   for (int at = 0; at != natom0; ++at) {
     if (frag0Top[at].Nbonds() > 2) {
-      atomPriority_[at].assign(frag0Top[at].Nbonds(), -1);
-      DetermineChirality(tors, &(atomPriority_[at][0]), at, frag0Top, frag0frm, debug_);
+      atoms_[at].SetNbonds(frag0Top[at].Nbonds());
+      DetermineChirality(tors, atoms_[at].PriorityPtr(), at, frag0Top, frag0frm, debug_);
     }
   }
   for (int at = natom0; at != newNatom; at++) {
     if (frag0Top[at].Nbonds() > 2) {
-      atomPriority_[at].assign(frag0Top[at].Nbonds(), -1);
-      DetermineChirality(tors, &(atomPriority_[at][0]), at, frag0Top, frag0frm, debug_);
+      atoms_[at].SetNbonds(frag0Top[at].Nbonds());
+      DetermineChirality(tors, atoms_[at].PriorityPtr(), at, frag0Top, frag0frm, debug_);
     }
   }
   // Generate a zmatrix for the smaller fragment
