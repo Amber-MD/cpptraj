@@ -1,4 +1,5 @@
 #include "Model.h"
+#include "Chirality.h"
 #include "../CpptrajStdio.h"
 #include "../Topology.h"
 #include "../TorsionRoutines.h"
@@ -94,9 +95,8 @@ int Cpptraj::Structure::Model::AssignTheta(double& theta, int ai, int aj, int ak
   *  /     \
   * i       l
   */
-int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, int al, Topology const& topIn, Frame const& frameIn, std::vector<bool> const& atomPositionKnown, std::vector<Cpptraj::Chirality::ChiralType> const& atomChirality)
+int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, int al, Topology const& topIn, Frame const& frameIn, std::vector<bool> const& atomPositionKnown, std::vector<ChiralType> const& atomChirality)
 {
-  using namespace Cpptraj::Chirality;
   // Figure out hybridization and chirality of atom j.
   mprintf("DEBUG: AssignPhi for atom j : %s\n", topIn.AtomMaskName(aj).c_str());
 
@@ -116,7 +116,7 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
   double tors = 0;
   // FIXME - Only need priority here. 
   ChiralType chirality = DetermineChirality(tors, priority, aj, topIn, frameIn, 1); // FIXME debug
-  if (chirality == ERR) {
+  if (chirality == CHIRALITY_ERR) {
     mprinterr("Error: Problem determining chirality around atom %s\n", topIn.AtomMaskName(aj).c_str());
     return 1;
   } /*else if (chirality == IS_UNKNOWN_CHIRALITY) {
