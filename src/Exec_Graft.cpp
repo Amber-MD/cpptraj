@@ -1,9 +1,12 @@
 #include "Exec_Graft.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Coords.h"
-#include "Structure/Builder.h"
+#include "Structure/BuildAtom.h"
+#include "Structure/Chirality.h"
+#include "Structure/Zmatrix.h"
+//#incl ude "Structure/Model.h"
 #include <algorithm> // std::copy
-//#include <map>
+#include <map>
 
 using namespace Cpptraj::Structure;
 // Exec_Graft::Help()
@@ -236,13 +239,13 @@ const
     return CpptrajState::ERR;
   if (mol0crd->Top().SetupIntegerMask(mol0Mask))
     return CpptrajState::ERR;
-//  // Update the bond indices for the new topologies
-//  if (UpdateIndices(tgtBondAtoms, mol0Mask, 0))
-//    return CpptrajState::ERR;
-//  if (UpdateIndices(srcBondAtoms, mol1Mask, mol0Mask.Nselected()))
-//    return CpptrajState::ERR;
+  // Update the bond indices for the new topologies
+  if (UpdateIndices(tgtBondAtoms, mol0Mask, 0))
+    return CpptrajState::ERR;
+  if (UpdateIndices(srcBondAtoms, mol1Mask, mol0Mask.Nselected()))
+    return CpptrajState::ERR;
 
-  // Modify the target (mol0) topology.
+  // Modify the target (mol0) topology, update bond atom indices.
   bool newMol0Top = false;
   Topology* mol0Top = 0;
   if (mol0Mask.Nselected() == mol0crd->Top().Natom()) {
@@ -252,7 +255,7 @@ const
     mol0Top = modify_top(mol0crd->Top(), mol0Mask, mol0frm);
     if (mol0Top == 0) return CpptrajState::ERR; // FIXME need to free mol0Top memory
   }
-  // Modify the source (mol1) topology.
+  // Modify the source (mol1) topology, update bond atom indices.
   bool newMol1Top = false;
   Topology* mol1Top = 0;
   if (mol1Mask.Nselected() == mol1crd->Top().Natom()) {
@@ -263,18 +266,6 @@ const
     if (mol1Top == 0) return CpptrajState::ERR; // FIXME need to free mol1Top memory
   }
 
-  Builder builder;
-  Topology combinedTop;
-  Frame CombinedFrame;
-  if (builder.Combine(combinedTop, CombinedFrame,
-                      *mol0Top, mol0frm, *mol1Top, mol1frm, tgtBondAtoms[0], srcBondAtoms[0]))
-  {
-    mprinterr("Error: Fragment combination failed.\n");
-    return CpptrajState::ERR;
-  }
-  if (outCoords->CoordsSetup(combinedTop, CombinedFrame.CoordsInfo())) 
-    return CpptrajState::ERR; // FIXME free molXTop memory
-/*
   // Combine topologies.
   Topology combinedTop;
   combinedTop.SetDebug( State.Debug() );
@@ -294,6 +285,16 @@ const
   CombinedFrame.SetBox( mol0frm.BoxCrd() );
 
   // Get chirality for each atom before we add the bond
+  std::vector<BuildAtom> atomChirality( combinedTop.Natom() );
+  for (int at = 0; at < mol0Top->Natom(); at++)
+    if (combinedTop[at].Nbonds() > 2)
+      atomChirality[at].SetChirality( DetermineChirality(at, combinedTop, CombinedFrame, 0) );
+  for (int at = mol0Top->Natom(); at < combinedTop.Natom(); at++)
+    if (combinedTop[at].Nbonds() > 2)
+      atomChirality[at].SetChirality( DetermineChirality(at, combinedTop, CombinedFrame, 0) );
+  for (int at = 0; at < combinedTop.Natom(); at++)
+    mprintf("DEBUG:\tAtom %4s chirality %6s\n", combinedTop.AtomMaskName(at).c_str(), chiralStr(atomChirality[at].Chirality()));
+/*
   std::vector<ChiralType> atomChirality;
   atomChirality.reserve( combinedTop.Natom() );
   for (int at = 0; at < combinedTop.Natom(); at++) {
@@ -302,7 +303,7 @@ const
     else
       atomChirality.push_back( IS_UNKNOWN_CHIRALITY );
     mprintf("DEBUG:\tAtom %4s chirality %6s\n", combinedTop.AtomMaskName(at).c_str(), chiralStr(atomChirality.back()));
-  }
+  }*/
 
   // Create bonds
   for (unsigned int idx = 0; idx != tgtBondAtoms.size(); idx++) {
@@ -314,12 +315,27 @@ const
   // Regenerate the molecule info FIXME should Topology just do this?
   if (combinedTop.DetermineMolecules()) return CpptrajState::ERR;
 
+  // Determine priorities
+  double tors;
+  for (int at = 0; at < mol0Top->Natom(); at++) {
+    if (combinedTop[at].Nbonds() > 2) {
+      atomChirality[at].SetNbonds(combinedTop[at].Nbonds());
+      DetermineChirality(tors, atomChirality[at].PriorityPtr(), at, combinedTop, CombinedFrame, 0);
+    }
+  }
+  for (int at = mol0Top->Natom(); at < combinedTop.Natom(); at++) {
+    if (combinedTop[at].Nbonds() > 2) {
+      atomChirality[at].SetNbonds(combinedTop[at].Nbonds());
+      DetermineChirality(tors, atomChirality[at].PriorityPtr(), at, combinedTop, CombinedFrame, 0);
+    }
+  }
+
   // Add to output COORDS set
   if (outCoords->CoordsSetup(combinedTop, outInfo)) return CpptrajState::ERR; // FIXME free molXTop memory
 
   // Track atoms as 'known'. Target atoms are residue 0, Source atoms are in residue 1
   typedef std::vector<bool> Barray;
-  //Barray atomPositionKnown;//( combinedTop.Natom(), false );
+  //Barray atomPositionKnown;/*( combinedTop.Natom(), false );
   //for (int aidx = combinedTop.Res(1).FirstAtom(); aidx != combinedTop.Res(1).LastAtom(); aidx++)
   //  atomPositionKnown[aidx] = true;*/
 
@@ -331,7 +347,7 @@ const
     return CpptrajState::ERR;
   }
   zmatrix.print(); // DEBUG*/
-/*  // Generate Zmatrix only for ICs involving bonded atoms
+  // Generate Zmatrix only for ICs involving bonded atoms
   Zmatrix bondZmatrix;
   // Make atA belong to the smaller fragment. atB fragment will be "known"
   Barray posKnown( combinedTop.Natom(), false );
@@ -349,7 +365,7 @@ const
      posKnown[at] = true;
   }
   bondZmatrix.SetDebug( 2 ); // FIXME
-  if (bondZmatrix.SetFromFrameAroundBond(atA, atB, CombinedFrame, combinedTop, posKnown, atomChirality)) {
+  if (bondZmatrix.SetupICsAroundBond(atA, atB, CombinedFrame, combinedTop, posKnown, atomChirality)) {
     mprinterr("Error: Zmatrix setup for ICs around %s and %s failed.\n",
               combinedTop.AtomMaskName(atA).c_str(),
               combinedTop.AtomMaskName(atB).c_str());
@@ -359,7 +375,7 @@ const
   if (bondZmatrix.SetToFrame( CombinedFrame, posKnown )) {
     mprinterr("Error: Conversion from bondZmatrix to Cartesian coords failed.\n");
     return CpptrajState::ERR;
-  }*/
+  }
 /*
   // Map atom j to ICs to change
   typedef std::map<int, ICholder> ICmapType;
