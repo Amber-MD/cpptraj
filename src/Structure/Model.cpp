@@ -1,5 +1,5 @@
 #include "Model.h"
-#include "Chirality.h"
+#include "BuildAtom.h"
 #include "../CpptrajStdio.h"
 #include "../Topology.h"
 #include "../TorsionRoutines.h"
@@ -95,7 +95,10 @@ int Cpptraj::Structure::Model::AssignTheta(double& theta, int ai, int aj, int ak
   *  /     \
   * i       l
   */
-int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, int al, Topology const& topIn, Frame const& frameIn, std::vector<bool> const& atomPositionKnown, std::vector<ChiralType> const& atomChirality)
+int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, int al,
+                                         Topology const& topIn, Frame const& frameIn,
+                                         std::vector<bool> const& atomPositionKnown,
+                                         BuildAtom const& AtomJ)
 {
   // Figure out hybridization and chirality of atom j.
   mprintf("DEBUG: AssignPhi for atom j : %s\n", topIn.AtomMaskName(aj).c_str());
@@ -111,22 +114,23 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
 
   // FIXME aj ak and al should be known
   // TODO check that atom i actually ends up on the list?
-  std::vector<int> Priority( AJ.Nbonds() );
-  int* priority = static_cast<int*>( &Priority[0] );
+  //std::vector<int> Priority( AJ.Nbonds() );
+  //int* priority = static_cast<int*>( &AtomJ_Priority[0] );
+  std::vector<int> const& priority = AtomJ.Priority();
   double tors = 0;
   // FIXME - Only need priority here. 
-  ChiralType chirality = DetermineChirality(tors, priority, aj, topIn, frameIn, 1); // FIXME debug
-  if (chirality == CHIRALITY_ERR) {
-    mprinterr("Error: Problem determining chirality around atom %s\n", topIn.AtomMaskName(aj).c_str());
-    return 1;
-  } /*else if (chirality == IS_UNKNOWN_CHIRALITY) {
-    mprintf("DEBUG:\t\tChirality is unknown\n");
-  } else if (chirality == IS_S) {
-    mprintf("DEBUG:\t\tChirality is S\n");
-  } else {
-    mprintf("DEBUG:\t\tChirality is R\n");
-  }*/
-  mprintf("DEBUG: Original chirality around J %s is %s\n", topIn.AtomMaskName(aj).c_str(), chiralStr(atomChirality[aj]));
+  //ChiralType chirality = DetermineChirality(tors, priority, aj, topIn, frameIn, 1); // FIXME debug
+  //if (chirality == CHIRALITY_ERR) {
+  //  mprinterr("Error: Problem determining chirality around atom %s\n", topIn.AtomMaskName(aj).c_str());
+  //  return 1;
+  //} /*else if (chirality == IS_UNKNOWN_CHIRALITY) {
+  //  mprintf("DEBUG:\t\tChirality is unknown\n");
+  //} else if (chirality == IS_S) {
+  //  mprintf("DEBUG:\t\tChirality is S\n");
+  //} else {
+  //  mprintf("DEBUG:\t\tChirality is R\n");
+  //}*/
+  mprintf("DEBUG: Original chirality around J %s is %s\n", topIn.AtomMaskName(aj).c_str(), chiralStr(AtomJ.Chirality()));
   mprintf("DEBUG:\t\tPriority around J %s(%i) (tors=%g):", 
           topIn.AtomMaskName(aj).c_str(), (int)atomPositionKnown[aj], tors*Constants::RADDEG);
   for (int idx = 0; idx < AJ.Nbonds(); idx++)
@@ -134,7 +138,7 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
   mprintf("\n");
   // Determine if chirality is valid
   bool chirality_is_valid = true;
-  for (unsigned int idx = 0; idx < Priority.size(); idx++) {
+  for (unsigned int idx = 0; idx < priority.size(); idx++) {
     if (atomPositionKnown[priority[idx]] != atomPositionKnown[aj]) {
       chirality_is_valid = false;
       break;
@@ -178,7 +182,7 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
   } else
     startPhi = knownPhi[knownIdx];
 
-  if (atomChirality[aj] == IS_R) {
+  if (AtomJ.Chirality() == IS_R) {
     startPhi = -startPhi;
     interval = -interval;
   }
