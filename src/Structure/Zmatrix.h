@@ -1,8 +1,8 @@
 #ifndef INC_STRUCTURE_ZMATRIX_H
 #define INC_STRUCTURE_ZMATRIX_H
 #include "InternalCoords.h"
+#include "StructureEnum.h"
 #include "../Vec3.h"
-#include "../Chirality.h"
 class Frame;
 class Topology;
 class Molecule;
@@ -38,7 +38,7 @@ class Zmatrix {
     int SetFromFrame(Frame const&, Topology const&);
     /// Get internal coordinates around bond in one direction.
     int SetFromFrameAroundBond(int, int, Frame const&, Topology const&,
-                               std::vector<bool> const&, std::vector<Chirality::ChiralType> const&);
+                               std::vector<bool> const&, std::vector<ChiralType> const&);
 
     /// Set Frame from internal coords
     int SetToFrame(Frame&) const;

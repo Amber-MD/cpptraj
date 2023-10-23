@@ -4,6 +4,7 @@
 #include <cmath> // cos
 #include <utility> // std::pair
 #include "Zmatrix.h"
+#include "Chirality.h"
 #include "Model.h"
 #include "../Frame.h"
 #include "../CpptrajStdio.h"
@@ -808,14 +809,14 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
   */
 int Zmatrix::SetFromFrameAroundBond(int atA, int atB, Frame const& frameIn, Topology const& topIn,
                                     std::vector<bool> const& atomPositionKnown,
-                                    std::vector<Chirality::ChiralType> const& atomChirality)
+                                    std::vector<ChiralType> const& atomChirality)
 {
   mprintf("DEBUG: SetFromFrameAroundBond: atA= %s (%i)  atB= %s (%i)\n",
           topIn.AtomMaskName(atA).c_str(), atA+1,
           topIn.AtomMaskName(atB).c_str(), atB+1);
   mprintf("DEBUG: Atoms:\n");
   for (int at = 0; at != topIn.Natom(); ++at)
-    mprintf("DEBUG:\t\t%s (%i) %s\n", topIn.AtomMaskName(at).c_str(), (int)atomPositionKnown[at], Cpptraj::Chirality::chiralStr(atomChirality[at]));
+    mprintf("DEBUG:\t\t%s (%i) %s\n", topIn.AtomMaskName(at).c_str(), (int)atomPositionKnown[at], chiralStr(atomChirality[at]));
   // Sanity check. A and B must be bonded
   if (!topIn[atA].IsBondedTo(atB)) {
     mprinterr("Internal Error: SetFromFrameAroundBond(): Atoms %s and %s are not bonded.\n",
@@ -965,7 +966,7 @@ int Zmatrix::SetFromFrameAroundBond(int atA, int atB, Frame const& frameIn, Topo
       int at0 = -1;
       int at1 = -1;
       std::vector<int> remainingAtoms;
-      Cpptraj::Chirality::DetermineChirality(tors, &priority[0], atA, topIn, frameIn, 0); // FIXME debug level
+      DetermineChirality(tors, &priority[0], atA, topIn, frameIn, 0); // FIXME debug level
       mprintf("DEBUG: %i bonds to %s\n", AJ1.Nbonds(), topIn.AtomMaskName(atA).c_str());
       for (std::vector<int>::const_iterator it = priority.begin(); it != priority.end(); ++it) {
         if (*it != atB) {
