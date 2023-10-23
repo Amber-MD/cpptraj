@@ -87,7 +87,7 @@ Cpptraj::Structure::ChiralType
   if (atom.Nbonds() < 3) {
     mprinterr("Error: CalcChiralAtomTorsion called for atom %s with less than 3 bonds.\n",
               topIn.AtomMaskName(atnum).c_str());
-    return ERR;
+    return CHIRALITY_ERR;
   }
   // Calculate a priority score for each bonded atom.
   // First just use the atomic number.
