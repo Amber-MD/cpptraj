@@ -118,8 +118,8 @@ int Builder::combine01(Topology& CombinedTop, Frame& CombinedFrm,
       for (std::vector<int>::const_iterator it = atoms_[at].Priority().begin();
                                             it != atoms_[at].Priority().end(); ++it)
         mprintf(" %s", CombinedTop.AtomMaskName(*it).c_str());
-      mprintf("\n");
     }
+    mprintf("\n");
   }
 
   // Generate a zmatrix for the smaller fragment
