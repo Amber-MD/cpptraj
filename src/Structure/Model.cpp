@@ -137,14 +137,14 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
     mprintf(" %s(%i)", topIn.AtomMaskName(priority[idx]).c_str(), (int)atomPositionKnown[priority[idx]]);
   mprintf("\n");
   // Determine if chirality is valid
-  bool chirality_is_valid = true;
+/*  bool chirality_is_valid = true;
   for (unsigned int idx = 0; idx < priority.size(); idx++) {
     if (atomPositionKnown[priority[idx]] != atomPositionKnown[aj]) {
       chirality_is_valid = false;
       break;
     }
   }
-  mprintf("DEBUG:\t\tChirality is valid: %i\n", (int)chirality_is_valid);
+  mprintf("DEBUG:\t\tChirality is valid: %i\n", (int)chirality_is_valid);*/
 
   // Fill in what values we can for known atoms
   std::vector<double> knownPhi( AJ.Nbonds() );
@@ -199,6 +199,7 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
       currentPhi += interval;
     }
   }
+  // Reverse direction
   currentPhi = startPhi - interval;
   for (int idx = knownIdx - 1; idx > -1; idx--) {
     int atnum = priority[idx];

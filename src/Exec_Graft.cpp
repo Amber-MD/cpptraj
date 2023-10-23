@@ -6,7 +6,6 @@
 #include "Structure/Zmatrix.h"
 //#incl ude "Structure/Model.h"
 #include <algorithm> // std::copy
-#include <map>
 
 using namespace Cpptraj::Structure;
 // Exec_Graft::Help()
