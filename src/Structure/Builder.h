@@ -7,6 +7,7 @@ class Frame;
 namespace Cpptraj {
 namespace Structure {
 class BuildAtom;
+class Zmatrix;
 /// Used to attach different topology/frame combos using internal coordinates
 class Builder {
   public:
@@ -16,6 +17,7 @@ class Builder {
     int Combine(Topology&, Frame&, Topology&, Frame&, int, int);
   private:
     typedef std::vector<BuildAtom> AtArray;
+    typedef std::vector<bool> Barray;
 
     /// \return heavy atom count
     static inline int heavy_atom_count(Topology const&);

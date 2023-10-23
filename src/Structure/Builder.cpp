@@ -1,9 +1,10 @@
 #include "Builder.h"
 #include "BuildAtom.h"
 #include "Chirality.h"
+#include "Zmatrix.h"
 #include "../CpptrajStdio.h"
-#include "../Topology.h"
 #include "../Frame.h"
+#include "../Topology.h"
 #include <algorithm> // std::copy
 
 using namespace Cpptraj::Structure;
@@ -49,8 +50,9 @@ int Builder::combine01(Topology& frag0Top, Frame& frag0frm,
   // Reserve space in build atom array (chirality, priority, position status).
   // The positions of atoms in fragment 0 will be "known"
   atoms_.assign( newNatom, BuildAtom() );
+  Barray posKnown( newNatom, false );
   for (int at = 0; at != natom0; at++)
-    atoms_[at].SetPositionKnown( true );
+    posKnown[at] = true;
 
   // Determine what bondAt1 will be in the combined topology.
   int bondAt1_new = bondAt1 + natom0;
@@ -105,7 +107,35 @@ int Builder::combine01(Topology& frag0Top, Frame& frag0frm,
       DetermineChirality(tors, atoms_[at].PriorityPtr(), at, frag0Top, frag0frm, debug_);
     }
   }
+
+  mprintf("DEBUG: Atoms:\n");
+  for (int at = 0; at != frag0Top.Natom(); ++at) {
+    mprintf("DEBUG:\t\t%s (%i) %s", frag0Top.AtomMaskName(at).c_str(), (int)posKnown[at],
+            chiralStr(atoms_[at].Chirality()));
+    if (!atoms_[at].Priority().empty()) {
+      mprintf(" priority:");
+      for (std::vector<int>::const_iterator it = atoms_[at].Priority().begin();
+                                            it != atoms_[at].Priority().end(); ++it)
+        mprintf(" %s", frag0Top.AtomMaskName(*it).c_str());
+      mprintf("\n");
+    }
+  }
+
   // Generate a zmatrix for the smaller fragment
+  Zmatrix frag1Zmatrix;
+  frag1Zmatrix.SetDebug( 2 ); // FIXME
+  if (frag1Zmatrix.SetupICsAroundBond( bondAt0, bondAt1_new, frag0frm, frag0Top, posKnown, atoms_ ))
+  {
+    mprinterr("Error: Zmatrix setup for ICs around %s - %s failed.\n",
+              frag0Top.AtomMaskName(bondAt0).c_str(),
+              frag0Top.AtomMaskName(bondAt1).c_str());
+    return 1;
+  }
+  frag1Zmatrix.print( &frag0Top );
+  if (frag1Zmatrix.SetToFrame( frag0frm, posKnown )) {
+    mprinterr("Error: Conversion from fragment 1 Zmatrix to Cartesian coords failed.\n");
+    return 1;
+  }
 
   return 0;
 }
