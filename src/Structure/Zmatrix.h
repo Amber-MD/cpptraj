@@ -24,6 +24,8 @@ class Zmatrix {
 
     /// \reserve space for # of internal coords TODO zero out seeds?
     void reserve(unsigned int n) { IC_.reserve( n ); }
+    /// Clear the Zmatrix
+    void clear();
     /// Add internal coordinate
     int AddIC(InternalCoords const&);
     /// Set specified IC

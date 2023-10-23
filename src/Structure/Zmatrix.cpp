@@ -29,6 +29,20 @@ Zmatrix::Zmatrix() :
   seedAt2_(InternalCoords::NO_ATOM)
 {}
 
+/** Clear the zmatrix. */
+void Zmatrix::clear() {
+  IC_.clear();
+  icseed0_ = InternalCoords::NO_ATOM;
+  icseed1_ = InternalCoords::NO_ATOM;
+  icseed2_ = InternalCoords::NO_ATOM;
+  seed0Pos_ = Vec3(0.0);
+  seed1Pos_ = Vec3(0.0);
+  seed2Pos_ = Vec3(0.0);
+  seedAt0_ = InternalCoords::NO_ATOM;
+  seedAt1_ = InternalCoords::NO_ATOM;
+  seedAt2_ = InternalCoords::NO_ATOM;
+}
+
 /// Error message for seed already set
 static inline int seed_err(int iseed) {
   mprinterr("Internal Error: Internal coord seed %i is already set.\n", iseed);
