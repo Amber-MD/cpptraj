@@ -8,6 +8,7 @@ class Topology;
 class Molecule;
 namespace Cpptraj {
 namespace Structure {
+class BuildAtom;
 /// Hold internal coordinates for a system.
 class Zmatrix {
     typedef std::vector<InternalCoords> ICarray;
@@ -39,8 +40,8 @@ class Zmatrix {
     /// Convert molecule 0 of Frame/Topology to internal coordinates array
     int SetFromFrame(Frame const&, Topology const&);
     /// Get internal coordinates around bond in one direction.
-    int SetFromFrameAroundBond(int, int, Frame const&, Topology const&,
-                               std::vector<bool> const&, std::vector<ChiralType> const&);
+    int SetupICsAroundBond(int, int, Frame const&, Topology const&,
+                           std::vector<bool> const&, std::vector<BuildAtom> const&);
 
     /// Set Frame from internal coords
     int SetToFrame(Frame&) const;

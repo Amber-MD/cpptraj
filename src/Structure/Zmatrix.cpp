@@ -4,7 +4,7 @@
 #include <cmath> // cos
 #include <utility> // std::pair
 #include "Zmatrix.h"
-#include "Chirality.h"
+#include "BuildAtom.h"
 #include "Model.h"
 #include "../Frame.h"
 #include "../CpptrajStdio.h"
@@ -821,14 +821,14 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
   * direction of atom A. This means all internal coordinates with A and B
   * as I and J (should be only 1), as J and K, and as K and L.
   */
-int Zmatrix::SetFromFrameAroundBond(int atA, int atB, Frame const& frameIn, Topology const& topIn,
-                                    std::vector<bool> const& atomPositionKnown,
-                                    std::vector<ChiralType> const& atomChirality)
+int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology const& topIn,
+                                std::vector<bool> const& atomPositionKnown,
+                                std::vector<BuildAtom> const& Atoms)
 {
   mprintf("DEBUG: SetFromFrameAroundBond: atA= %s (%i)  atB= %s (%i)\n",
           topIn.AtomMaskName(atA).c_str(), atA+1,
           topIn.AtomMaskName(atB).c_str(), atB+1);
-  mprintf("DEBUG: Atoms:\n");
+/*  mprintf("DEBUG: Atoms:\n");
   for (int at = 0; at != topIn.Natom(); ++at)
     mprintf("DEBUG:\t\t%s (%i) %s\n", topIn.AtomMaskName(at).c_str(), (int)atomPositionKnown[at], chiralStr(atomChirality[at]));
   // Sanity check. A and B must be bonded
@@ -836,7 +836,7 @@ int Zmatrix::SetFromFrameAroundBond(int atA, int atB, Frame const& frameIn, Topo
     mprinterr("Internal Error: SetFromFrameAroundBond(): Atoms %s and %s are not bonded.\n",
               topIn.AtomMaskName(atA).c_str(), topIn.AtomMaskName(atB).c_str());
     return 1;
-  }
+  }*/
   IC_.clear();
 
   Barray hasIC( topIn.Natom(), false );
@@ -901,7 +901,9 @@ int Zmatrix::SetFromFrameAroundBond(int atA, int atB, Frame const& frameIn, Topo
   }
   mprintf("DEBUG:\t\tnewTheta = %g\n", newTheta*Constants::RADDEG);
   double newPhi = 0;
-  if (Cpptraj::Structure::Model::AssignPhi(newPhi, atA, atB, atk0, atl0, topIn, frameIn, atomPositionKnown, atomChirality)) {
+  if (Cpptraj::Structure::Model::AssignPhi(newPhi, atA, atB, atk0, atl0, topIn, frameIn,
+                                           atomPositionKnown, Atoms[atB]))
+  {
     mprinterr("Error: phi (i j) assignment failed.\n");
     return 1;
   }
@@ -930,7 +932,9 @@ int Zmatrix::SetFromFrameAroundBond(int atA, int atB, Frame const& frameIn, Topo
       mprintf("DEBUG:\t\tnewTheta = %g\n", newTheta*Constants::RADDEG);
       // Set phi for I atA atB K
       newPhi = 0;
-      if (Cpptraj::Structure::Model::AssignPhi(newPhi, *iat, atA, atB, atk0, topIn, frameIn, atomPositionKnown, atomChirality)) {
+      if (Cpptraj::Structure::Model::AssignPhi(newPhi, *iat, atA, atB, atk0, topIn, frameIn,
+                                               atomPositionKnown, Atoms[atA]))
+      {
         mprinterr("Error: phi (j k) assignment failed.\n");
         return 1;
       }
@@ -975,12 +979,12 @@ int Zmatrix::SetFromFrameAroundBond(int atA, int atB, Frame const& frameIn, Topo
         return 1;
     } else {
       // 3 or more bonds
-      double tors;
-      std::vector<int> priority( AJ1.Nbonds() );
+      //double tors;
+      std::vector<int> const& priority = Atoms[atA].Priority(); //( AJ1.Nbonds() );
       int at0 = -1;
       int at1 = -1;
       std::vector<int> remainingAtoms;
-      DetermineChirality(tors, &priority[0], atA, topIn, frameIn, 0); // FIXME debug level
+      //DetermineChirality(tors, &priority[0], atA, topIn, frameIn, 0); // FIXME debug level
       mprintf("DEBUG: %i bonds to %s\n", AJ1.Nbonds(), topIn.AtomMaskName(atA).c_str());
       for (std::vector<int>::const_iterator it = priority.begin(); it != priority.end(); ++it) {
         if (*it != atB) {
