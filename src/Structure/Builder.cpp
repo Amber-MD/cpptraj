@@ -42,15 +42,16 @@ int Builder::combine01(Topology& frag0Top, Frame& frag0frm,
                      int bondAt0, int bondAt1)
 {
   using namespace Cpptraj::Chirality;
-  int newNatom = frag0Top.Natom() + frag1Top.Natom();
+  int natom0 = frag0Top.Natom();
+  int newNatom = natom0 + frag1Top.Natom();
 
   // The positions of atoms in fragment 0 will be "known"
   Barray posKnown( newNatom, false );
-  for (int at = 0; at != frag0Top.Natom(); at++)
+  for (int at = 0; at != natom0; at++)
     posKnown[at] = true;
 
   // Determine what bondAt1 will be in the combined topology.
-  int bondAt1_new = bondAt1 + frag0Top.Natom();
+  int bondAt1_new = bondAt1 + natom0;
 
   // Reserve space in atom chirality and priority arrays.
   atomChirality_.assign( newNatom, IS_UNKNOWN_CHIRALITY );
@@ -62,11 +63,11 @@ int Builder::combine01(Topology& frag0Top, Frame& frag0frm,
   // determined, the actual chirality can not.
   // TODO store priorities as well?
   // TODO only store for fragment 1?
-  for (int at = 0; at != frag0Top.Natom(); ++at)
+  for (int at = 0; at != natom0; ++at)
     if (frag0Top[at].Nbonds() > 2)
       atomChirality_[at] = DetermineChirality(at, frag0Top, frag0frm, debug_);
   int at1 = 0;
-  for (int at = frag0Top.Natom(); at != newNatom; at++, at1++)
+  for (int at = natom0; at != newNatom; at++, at1++)
     if (frag1Top[at1].Nbonds() > 2)
       atomChirality_[at] = DetermineChirality(at1, frag1Top, frag1frm, debug_);
 
@@ -93,7 +94,19 @@ int Builder::combine01(Topology& frag0Top, Frame& frag0frm,
 
   // Store priorities around each atom.
   // TODO only fragment 1?
-
+  double tors = 0;
+  for (int at = 0; at != natom0; ++at) {
+    if (frag0Top[at].Nbonds() > 2) {
+      atomPriority_[at].assign(frag0Top[at].Nbonds(), -1);
+      DetermineChirality(tors, &(atomPriority_[at][0]), at, frag0Top, frag0frm, debug_);
+    }
+  }
+  for (int at = natom0; at != newNatom; at++) {
+    if (frag0Top[at].Nbonds() > 2) {
+      atomPriority_[at].assign(frag0Top[at].Nbonds(), -1);
+      DetermineChirality(tors, &(atomPriority_[at][0]), at, frag0Top, frag0frm, debug_);
+    }
+  }
   // Generate a zmatrix for the smaller fragment
 
   return 0;
