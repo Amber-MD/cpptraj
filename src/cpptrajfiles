@@ -153,7 +153,6 @@ COMMON_SOURCES= \
         ByteRoutines.cpp \
         CharMask.cpp \
         CharmmParamFile.cpp \
-        Chirality.cpp \
         CIFfile.cpp \
         ClusterMap.cpp \
         Cmd.cpp \
