@@ -125,7 +125,7 @@ int Builder::combine01(Topology& CombinedTop, Frame& CombinedFrm,
   // Generate a zmatrix for the smaller fragment
   Zmatrix frag1Zmatrix;
   frag1Zmatrix.SetDebug( 2 ); // FIXME
-  if (frag1Zmatrix.SetupICsAroundBond( bondAt0, bondAt1_new, CombinedFrm, CombinedTop, posKnown, atoms_ ))
+  if (frag1Zmatrix.SetupICsAroundBond( bondAt0, bondAt1_new, CombinedFrm, CombinedTop, posKnown, atoms_[bondAt0], atoms_[bondAt1_new] ))
   {
     mprinterr("Error: Zmatrix setup for ICs around %s - %s failed.\n",
               CombinedTop.AtomMaskName(bondAt0).c_str(),

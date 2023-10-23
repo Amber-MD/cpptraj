@@ -364,7 +364,7 @@ const
      posKnown[at] = true;
   }
   bondZmatrix.SetDebug( 2 ); // FIXME
-  if (bondZmatrix.SetupICsAroundBond(atA, atB, CombinedFrame, combinedTop, posKnown, atomChirality)) {
+  if (bondZmatrix.SetupICsAroundBond(atA, atB, CombinedFrame, combinedTop, posKnown, atomChirality[atA], atomChirality[atB])) {
     mprinterr("Error: Zmatrix setup for ICs around %s and %s failed.\n",
               combinedTop.AtomMaskName(atA).c_str(),
               combinedTop.AtomMaskName(atB).c_str());

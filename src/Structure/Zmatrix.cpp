@@ -823,7 +823,7 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnu
   */
 int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology const& topIn,
                                 std::vector<bool> const& atomPositionKnown,
-                                std::vector<BuildAtom> const& Atoms)
+                                BuildAtom const& AtomA, BuildAtom const& AtomB)
 {
   mprintf("DEBUG: SetFromFrameAroundBond: atA= %s (%i)  atB= %s (%i)\n",
           topIn.AtomMaskName(atA).c_str(), atA+1,
@@ -902,7 +902,7 @@ int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology
   mprintf("DEBUG:\t\tnewTheta = %g\n", newTheta*Constants::RADDEG);
   double newPhi = 0;
   if (Cpptraj::Structure::Model::AssignPhi(newPhi, atA, atB, atk0, atl0, topIn, frameIn,
-                                           atomPositionKnown, Atoms[atB]))
+                                           atomPositionKnown, AtomB))
   {
     mprinterr("Error: phi (i j) assignment failed.\n");
     return 1;
@@ -933,7 +933,7 @@ int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology
       // Set phi for I atA atB K
       newPhi = 0;
       if (Cpptraj::Structure::Model::AssignPhi(newPhi, *iat, atA, atB, atk0, topIn, frameIn,
-                                               atomPositionKnown, Atoms[atA]))
+                                               atomPositionKnown, AtomA))
       {
         mprinterr("Error: phi (j k) assignment failed.\n");
         return 1;
@@ -980,7 +980,7 @@ int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology
     } else {
       // 3 or more bonds
       //double tors;
-      std::vector<int> const& priority = Atoms[atA].Priority(); //( AJ1.Nbonds() );
+      std::vector<int> const& priority = AtomA.Priority(); //( AJ1.Nbonds() );
       int at0 = -1;
       int at1 = -1;
       std::vector<int> remainingAtoms;
