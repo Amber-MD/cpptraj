@@ -11,16 +11,6 @@ Builder::Builder() :
   debug_(0)
 {}
 
-/// Wrapper for DetermineChirality that checks number of bonds TODO bake into DetermineChirality?
-static inline
-Cpptraj::Chirality::ChiralType determineChiral(int at, Topology const& topIn, Frame const& frmIn, int dbg)
-{
-  if (topIn[at].Nbonds() > 2)
-    return Cpptraj::Chirality::DetermineChirality(at, topIn, frmIn, dbg);
-  else
-    return Cpptraj::Chirality::IS_UNKNOWN_CHIRALITY;
-}
-
 /** \return Heavy atom count */
 int Builder::heavy_atom_count(Topology const& topIn) {
   int hac = 0;
@@ -67,16 +57,18 @@ int Builder::combine01(Topology& frag0Top, Frame& frag0frm,
   atomPriority_.resize( newNatom );
 
   // Get the chirality of each atom before the bond is added.
-  // This is because when the bond is added the geometry will likely
-  // not be correct, so while priority can be determined, the
-  // actual chirality can not.
+  // This is because when the bond is added the geometry between the
+  // bonded atoms will likely not be correct, so while priority can be
+  // determined, the actual chirality can not.
   // TODO store priorities as well?
   // TODO only store for fragment 1?
   for (int at = 0; at != frag0Top.Natom(); ++at)
-    atomChirality_[at] = determineChiral(at, frag0Top, frag0frm, debug_);
+    if (frag0Top[at].Nbonds() > 2)
+      atomChirality_[at] = DetermineChirality(at, frag0Top, frag0frm, debug_);
   int at1 = 0;
   for (int at = frag0Top.Natom(); at != newNatom; at++, at1++)
-    atomChirality_[at1] = determineChiral(at, frag1Top, frag1frm, debug_);
+    if (frag1Top[at1].Nbonds() > 2)
+      atomChirality_[at] = DetermineChirality(at1, frag1Top, frag1frm, debug_);
 
   // Merge fragment 1 topology into fragment 0
   frag0Top.AppendTop( frag1Top );
@@ -98,6 +90,9 @@ int Builder::combine01(Topology& frag0Top, Frame& frag0frm,
     mprinterr("Error: Could not determine molecule info after combining fragments.\n");
     return 1;
   }
+
+  // Store priorities around each atom.
+  // TODO only fragment 1?
 
   // Generate a zmatrix for the smaller fragment
 
