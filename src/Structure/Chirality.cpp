@@ -176,3 +176,14 @@ Cpptraj::Structure::ChiralType
   double tors;
   return DetermineChirality(tors, 0, atnum, topIn, frameIn, debugIn);
 }
+
+/** Set priority around a specified atom. */
+Cpptraj::Structure::ChiralType
+  Cpptraj::Structure::SetPriority(std::vector<int>& priority,
+                                  int atnum, Topology const& topIn,
+                                  Frame const& frameIn, int debugIn)
+{
+  priority.resize( topIn[atnum].Nbonds() );
+  double tors;
+  return DetermineChirality(tors, &priority[0], atnum, topIn, frameIn, debugIn);
+}

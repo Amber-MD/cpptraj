@@ -70,14 +70,13 @@ int Builder::Combine(Topology&       frag0Top, Frame&       frag0frm,
   if (combinedTop.DetermineMolecules()) return 1;
 
   // Determine priorities
-  double tors;
   if (combinedTop[atA].Nbonds() > 2) {
-    AtomA.SetNbonds(combinedTop[atA].Nbonds());
-    DetermineChirality(tors, AtomA.PriorityPtr(), atA, combinedTop, CombinedFrame, 0);
+    //AtomA.SetNbonds(combinedTop[atA].Nbonds());
+    SetPriority(AtomA.ModifyPriority(), atA, combinedTop, CombinedFrame, 0);
   }
   if (combinedTop[atB].Nbonds() > 2) {
-    AtomB.SetNbonds(combinedTop[atB].Nbonds());
-    DetermineChirality(tors, AtomB.PriorityPtr(), atB, combinedTop, CombinedFrame, 0);
+    //AtomB.SetNbonds(combinedTop[atB].Nbonds());
+    SetPriority(AtomB.ModifyPriority(), atB, combinedTop, CombinedFrame, 0);
   }
 
   // Generate Zmatrix only for ICs involving bonded atoms

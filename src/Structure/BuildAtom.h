@@ -10,9 +10,11 @@ class BuildAtom {
     /// Set chirality
     void SetChirality(ChiralType c) { ctype_ = c; }
     /// Set size of priority array based on number of bonds
-    void SetNbonds(int n) { priority_.assign(n, -1); }
+    //void SetNbonds(int n) { priority_.assign(n, -1); }
     /// \return Pointer to priority array
-    int* PriorityPtr() { return &(priority_[0]); }
+    //int* PriorityPtr() { return &(priority_[0]); }
+    /// Used to modify the priority array
+    std::vector<int>& ModifyPriority() { return priority_; }
 
     /// \return Atom chirality
     ChiralType Chirality() const { return ctype_; }
