@@ -283,16 +283,40 @@ const
   // Use target box TODO reset the box?
   CombinedFrame.SetBox( mol0frm.BoxCrd() );
 
+  // Make atA belong to the smaller fragment. atB fragment will be "known"
+  typedef std::vector<bool> Barray;
+  Barray posKnown( combinedTop.Natom(), false );
+  int atA, atB;
+  // NOTE: mol0 is tgt. mol1 is src.
+  if (heavy_atom_count(*mol0Top) < heavy_atom_count(*mol1Top)) {
+    atA = tgtBondAtoms[0];
+    atB = srcBondAtoms[0];
+    for (int at = mol0Top->Natom(); at != combinedTop.Natom(); at++)
+      posKnown[at] = true;
+  } else {
+    atA = srcBondAtoms[0];
+    atB = tgtBondAtoms[0];
+    for (int at = 0; at != mol0Top->Natom(); at++)
+     posKnown[at] = true;
+  }
+
   // Get chirality for each atom before we add the bond
-  std::vector<BuildAtom> atomChirality( combinedTop.Natom() );
-  for (int at = 0; at < mol0Top->Natom(); at++)
+  BuildAtom AtomA;
+  if (combinedTop[atA].Nbonds() > 2)
+    AtomA.SetChirality( DetermineChirality(atA, combinedTop, CombinedFrame, 0) );
+  mprintf("DEBUG:\tAtom %4s chirality %6s\n", combinedTop.AtomMaskName(atA).c_str(), chiralStr(AtomA.Chirality()));
+  BuildAtom AtomB;
+  if (combinedTop[atB].Nbonds() > 2)
+    AtomB.SetChirality( DetermineChirality(atB, combinedTop, CombinedFrame, 0) );
+  mprintf("DEBUG:\tAtom %4s chirality %6s\n", combinedTop.AtomMaskName(atB).c_str(), chiralStr(AtomB.Chirality()));
+/*  for (int at = 0; at < mol0Top->Natom(); at++)
     if (combinedTop[at].Nbonds() > 2)
       atomChirality[at].SetChirality( DetermineChirality(at, combinedTop, CombinedFrame, 0) );
   for (int at = mol0Top->Natom(); at < combinedTop.Natom(); at++)
     if (combinedTop[at].Nbonds() > 2)
       atomChirality[at].SetChirality( DetermineChirality(at, combinedTop, CombinedFrame, 0) );
   for (int at = 0; at < combinedTop.Natom(); at++)
-    mprintf("DEBUG:\tAtom %4s chirality %6s\n", combinedTop.AtomMaskName(at).c_str(), chiralStr(atomChirality[at].Chirality()));
+    mprintf("DEBUG:\tAtom %4s chirality %6s\n", combinedTop.AtomMaskName(at).c_str(), chiralStr(atomChirality[at].Chirality()));*/
 /*
   std::vector<ChiralType> atomChirality;
   atomChirality.reserve( combinedTop.Natom() );
@@ -316,7 +340,15 @@ const
 
   // Determine priorities
   double tors;
-  for (int at = 0; at < mol0Top->Natom(); at++) {
+  if (combinedTop[atA].Nbonds() > 2) {
+    AtomA.SetNbonds(combinedTop[atA].Nbonds());
+    DetermineChirality(tors, AtomA.PriorityPtr(), atA, combinedTop, CombinedFrame, 0);
+  }
+  if (combinedTop[atB].Nbonds() > 2) {
+    AtomB.SetNbonds(combinedTop[atB].Nbonds());
+    DetermineChirality(tors, AtomB.PriorityPtr(), atB, combinedTop, CombinedFrame, 0);
+  }
+/*  for (int at = 0; at < mol0Top->Natom(); at++) {
     if (combinedTop[at].Nbonds() > 2) {
       atomChirality[at].SetNbonds(combinedTop[at].Nbonds());
       DetermineChirality(tors, atomChirality[at].PriorityPtr(), at, combinedTop, CombinedFrame, 0);
@@ -327,13 +359,12 @@ const
       atomChirality[at].SetNbonds(combinedTop[at].Nbonds());
       DetermineChirality(tors, atomChirality[at].PriorityPtr(), at, combinedTop, CombinedFrame, 0);
     }
-  }
+  }*/
 
   // Add to output COORDS set
   if (outCoords->CoordsSetup(combinedTop, outInfo)) return CpptrajState::ERR; // FIXME free molXTop memory
 
   // Track atoms as 'known'. Target atoms are residue 0, Source atoms are in residue 1
-  typedef std::vector<bool> Barray;
   //Barray atomPositionKnown;/*( combinedTop.Natom(), false );
   //for (int aidx = combinedTop.Res(1).FirstAtom(); aidx != combinedTop.Res(1).LastAtom(); aidx++)
   //  atomPositionKnown[aidx] = true;*/
@@ -348,23 +379,9 @@ const
   zmatrix.print(); // DEBUG*/
   // Generate Zmatrix only for ICs involving bonded atoms
   Zmatrix bondZmatrix;
-  // Make atA belong to the smaller fragment. atB fragment will be "known"
-  Barray posKnown( combinedTop.Natom(), false );
-  int atA, atB;
-  // NOTE: mol0 is tgt. mol1 is src.
-  if (heavy_atom_count(*mol0Top) < heavy_atom_count(*mol1Top)) {
-    atA = tgtBondAtoms[0];
-    atB = srcBondAtoms[0];
-    for (int at = mol0Top->Natom(); at != combinedTop.Natom(); at++)
-      posKnown[at] = true;
-  } else {
-    atA = srcBondAtoms[0];
-    atB = tgtBondAtoms[0];
-    for (int at = 0; at != mol0Top->Natom(); at++)
-     posKnown[at] = true;
-  }
+
   bondZmatrix.SetDebug( 2 ); // FIXME
-  if (bondZmatrix.SetupICsAroundBond(atA, atB, CombinedFrame, combinedTop, posKnown, atomChirality[atA], atomChirality[atB])) {
+  if (bondZmatrix.SetupICsAroundBond(atA, atB, CombinedFrame, combinedTop, posKnown, AtomA, AtomB)) {
     mprinterr("Error: Zmatrix setup for ICs around %s and %s failed.\n",
               combinedTop.AtomMaskName(atA).c_str(),
               combinedTop.AtomMaskName(atB).c_str());
