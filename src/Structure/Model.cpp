@@ -16,7 +16,9 @@ int Cpptraj::Structure::Model::AssignTheta(double& theta, int ai, int aj, int ak
   enum HybridizationType { SP = 0, SP2, SP3, UNKNOWN_HYBRIDIZATION };
 
   Atom const& AJ = topIn[aj];
-  mprintf("DEBUG:\t\tNbonds: %i\n", AJ.Nbonds());
+  mprintf("DEBUG:\t\tI %s Nbonds: %i\n", topIn[ai].ElementName(), topIn[ai].Nbonds());
+  mprintf("DEBUG:\t\tJ %s Nbonds: %i\n", AJ.ElementName(), AJ.Nbonds());
+  mprintf("DEBUG:\t\tK %s Nbonds: %i\n", topIn[ak].ElementName(), topIn[ak].Nbonds());
   // Sanity check
   if (AJ.Nbonds() < 2) {
     mprinterr("Internal Error: AssignTheta() called for atom J %s with fewer than 2 bonds.\n", topIn.AtomMaskName(aj).c_str());
