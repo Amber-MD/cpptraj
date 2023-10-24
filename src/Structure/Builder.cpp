@@ -52,6 +52,7 @@ int Builder::Combine(Topology&       frag0Top, Frame&       frag0frm,
   std::copy( tmpcrd0, tmpcrd0+natom0*3, frag0frm.xAddress() );
   std::copy( frag1frm.xAddress(), frag1frm.xAddress()+frag1frm.size(), frag0frm.xAddress()+natom0*3 );
   Frame& CombinedFrame = frag0frm;
+  delete[] tmpcrd0;
 
   // Get the chirality around each atom before the bond is added.
   BuildAtom AtomA;
