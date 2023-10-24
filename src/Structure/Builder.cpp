@@ -64,6 +64,7 @@ int Builder::Combine(Topology&       frag0Top, Frame&       frag0frm,
   mprintf("DEBUG:\tAtom %4s chirality %6s\n", combinedTop.AtomMaskName(atB).c_str(), chiralStr(AtomB.Chirality()));
 
   // Create the bond
+  mprintf("DEBUG: Bonding atom %s to %s\n", combinedTop.AtomMaskName(atA).c_str(), combinedTop.AtomMaskName(atB).c_str());
   combinedTop.AddBond( atA, atB ); // TODO pseudo-parameter?
   // // Regenerate the molecule info FIXME should Topology just do this?
   if (combinedTop.DetermineMolecules()) return 1;
