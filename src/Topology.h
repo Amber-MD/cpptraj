@@ -47,6 +47,8 @@ class Topology {
     const Atom &operator[](int idx)              const { return atoms_[idx];    }
     std::vector<Atom> const& Atoms()             const { return atoms_;         }
     Atom& SetAtom(int idx)                             { return atoms_[idx]; }
+    /// \return Count of "heavy" atoms (non-hydrogen, non-extra point)
+    unsigned int HeavyAtomCount() const;
     // ----- Amber Extra Info --------------------
     std::vector<NameType> const& TreeChainClassification() const { return tree_;   }
     std::vector<int>      const& JoinArray()               const { return ijoin_;  }

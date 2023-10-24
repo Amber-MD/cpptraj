@@ -187,17 +187,6 @@ class ICholder {
     ICtype ictype_; ///< Type of reset (IJ=all, JK=theta,phi, KL=phi)
 };
 
-/// \return Heavy atom count
-int heavy_atom_count(Topology const& topIn) {
-  int hac = 0;
-  for (int i = 0; i != topIn.Natom(); i++) {
-    if (topIn[i].Element() != Atom::HYDROGEN &&
-        topIn[i].Element() != Atom::EXTRAPT)
-      hac++;
-  }
-  return hac;
-}
-
 /** Graft using internal coordinates to build the final structure. */
 Exec::RetType Exec_Graft::graft_ic(CpptrajState& State, ArgList& argIn)
 const
@@ -288,7 +277,7 @@ const
   Barray posKnown( combinedTop.Natom(), false );
   int atA, atB;
   // NOTE: mol0 is tgt. mol1 is src.
-  if (heavy_atom_count(*mol0Top) < heavy_atom_count(*mol1Top)) {
+  if (mol0Top->HeavyAtomCount() < mol1Top->HeavyAtomCount()) {
     atA = tgtBondAtoms[0];
     atB = srcBondAtoms[0];
     for (int at = mol0Top->Natom(); at != combinedTop.Natom(); at++)

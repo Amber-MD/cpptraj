@@ -38,6 +38,17 @@ const char *Topology::c_str() const {
   return parmName_.c_str();
 }
 
+/** \return count of heavy atoms (ignore hydrogen/extra points). */
+unsigned int Topology::HeavyAtomCount() const {
+  unsigned int hac = 0;
+  for (atom_iterator at = begin(); at != end(); ++at) {
+    if (at->Element() != Atom::HYDROGEN &&
+        at->Element() != Atom::EXTRAPT)
+      hac++;
+  }
+  return hac;
+}
+
 /** Reset all PDB-related info.
   * NOTE: This routine is used by AmbPDB.
   */
