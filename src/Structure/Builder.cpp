@@ -1,4 +1,5 @@
 #include "Builder.h"
+#include "BuildAtom.h"
 #include "Chirality.h"
 #include "Zmatrix.h"
 #include "../CpptrajStdio.h"
@@ -13,128 +14,84 @@ Builder::Builder() :
   debug_(0)
 {}
 
-/** \return Heavy atom count */
-int Builder::heavy_atom_count(Topology const& topIn) {
-  int hac = 0;
-  for (int i = 0; i != topIn.Natom(); i++) {
-    if (topIn[i].Element() != Atom::HYDROGEN &&
-        topIn[i].Element() != Atom::EXTRAPT)
-      hac++;
-  }
-  return hac;
-}
-
-/** Combine two units. The smaller fragment will be merged into 
-  * the larger fragment.
-  */
-int Builder::Combine(Topology& CombinedTop, Frame& CombinedFrm,
-                     Topology const& frag0Top, Frame const& frag0frm,
+/** Combine two units. Fragment 1 will be merged into Fragment 0 and bonded. */
+int Builder::Combine(Topology&       frag0Top, Frame&       frag0frm,
                      Topology const& frag1Top, Frame const& frag1frm,
                      int bondAt0, int bondAt1)
-{
-  if (heavy_atom_count(frag0Top) < heavy_atom_count(frag1Top)) {
-    return combine01(CombinedTop, CombinedFrm, frag1Top, frag1frm, frag0Top, frag0frm, bondAt1, bondAt0);
-  } else {
-    return combine01(CombinedTop, CombinedFrm, frag0Top, frag0frm, frag1Top, frag1frm, bondAt0, bondAt1);
-  }
-}
-
-/** Combine two units. Fragment 1 will be merged into Fragment 0. */
-int Builder::combine01(Topology& CombinedTop, Frame& CombinedFrm,
-                       Topology const& frag0Top, Frame const& frag0frm,
-                       Topology const& frag1Top, Frame const& frag1frm,
-                       int bondAt0, int bondAt1)
 {
   int natom0 = frag0Top.Natom();
   int newNatom = natom0 + frag1Top.Natom();
 
-  // Reserve space in build atom array (chirality, priority, position status).
-  // The positions of atoms in fragment 0 will be "known"
-  atoms_.assign( newNatom, BuildAtom() );
+  // Determine which "direction" we will be combining the fragments.
+  // Make atA belong to the smaller fragment. atB fragment will be "known".
+  // Ensure atB index is what it will be after fragments are combined.
   Barray posKnown( newNatom, false );
-  for (int at = 0; at != natom0; at++)
-    posKnown[at] = true;
+  int atA, atB;
+  if (frag0Top.HeavyAtomCount() < frag1Top.HeavyAtomCount()) {
+    // Fragment 1 is larger
+    atA = bondAt0;
+    atB = bondAt1 + natom0;
+    for (int at = frag0Top.Natom(); at != newNatom; at++)
+      posKnown[at] = true;
+  } else {
+    // Fragment 0 is larger or equal
+    atA = bondAt1 + natom0;
+    atB = bondAt0;
+    for (int at = 0; at != natom0; at++)
+     posKnown[at] = true;
+  }
 
-  // Determine what bondAt1 will be in the combined topology.
-  int bondAt1_new = bondAt1 + natom0;
+  // Combine fragment1 into fragment 0 topology
+  Topology& combinedTop = frag0Top;
+  combinedTop.AppendTop( frag1Top );
+  // Combined fragment1 into fragment 0 coords.
+  // Need to save the original coords in frame0 since SetupFrameV does not preserve.
+  double* tmpcrd0 = new double[natom0*3];
+  std::copy( frag0frm.xAddress(), frag0frm.xAddress()+frag0frm.size(), tmpcrd0 );
+  frag0frm.SetupFrameV( combinedTop.Atoms(), CoordinateInfo(frag0frm.BoxCrd(), false, false, false));
+  std::copy( tmpcrd0, tmpcrd0+natom0*3, frag0frm.xAddress() );
+  std::copy( frag1frm.xAddress(), frag1frm.xAddress()+frag1frm.size(), frag0frm.xAddress()+natom0*3 );
+  Frame& CombinedFrame = frag0frm;
 
-  // Get the chirality of each atom before the bond is added.
-  // This is because when the bond is added the geometry between the
-  // bonded atoms will likely not be correct, so while priority can be
-  // determined, the actual chirality can not.
-  // TODO store priorities as well?
-  // TODO only store for fragment 1?
-  for (int at = 0; at != natom0; ++at)
-    if (frag0Top[at].Nbonds() > 2)
-      atoms_[at].SetChirality( DetermineChirality(at, frag0Top, frag0frm, debug_) );
-  int at1 = 0;
-  for (int at = natom0; at != newNatom; at++, at1++)
-    if (frag1Top[at1].Nbonds() > 2)
-      atoms_[at].SetChirality( DetermineChirality(at1, frag1Top, frag1frm, debug_) );
-
-  // Merge fragment 1 topology into fragment 0
-  CombinedTop = frag0Top; // TODO use append?
-  CombinedTop.AppendTop( frag1Top );
-  // Merge fragment 1 coords into fragment 0
-  CombinedFrm.SetupFrameV( CombinedTop.Atoms(), CoordinateInfo(frag0frm.BoxCrd(), false, false, false) );
-  std::copy( frag0frm.xAddress(), frag0frm.xAddress()+frag0frm.size(), CombinedFrm.xAddress() );
-  std::copy( frag1frm.xAddress(), frag1frm.xAddress()+frag1frm.size(), CombinedFrm.xAddress()+frag0frm.size() );
-  // Use target box TODO reset the box?
-  CombinedFrm.SetBox( frag0frm.BoxCrd() );
+  // Get the chirality around each atom before the bond is added.
+  BuildAtom AtomA;
+  if (combinedTop[atA].Nbonds() > 2)
+    AtomA.SetChirality( DetermineChirality(atA, combinedTop, CombinedFrame, 0) );
+  mprintf("DEBUG:\tAtom %4s chirality %6s\n", combinedTop.AtomMaskName(atA).c_str(), chiralStr(AtomA.Chirality()));
+  BuildAtom AtomB;
+  if (combinedTop[atB].Nbonds() > 2)
+    AtomB.SetChirality( DetermineChirality(atB, combinedTop, CombinedFrame, 0) );
+  mprintf("DEBUG:\tAtom %4s chirality %6s\n", combinedTop.AtomMaskName(atB).c_str(), chiralStr(AtomB.Chirality()));
 
   // Create the bond
-  mprintf("DEBUG: Bond %i %s to %i %s\n",
-          bondAt0+1,     CombinedTop.AtomMaskName(bondAt0).c_str(),
-          bondAt1_new+1, CombinedTop.AtomMaskName(bondAt1_new).c_str());
-  CombinedTop.AddBond( bondAt0, bondAt1_new ); // TODO create pseudo-parameter?
-  // Regenerate the molecule info TODO should AddBond do this automatically?
-  if (CombinedTop.DetermineMolecules()) {
-    mprinterr("Error: Could not determine molecule info after combining fragments.\n");
+  combinedTop.AddBond( atA, atB ); // TODO pseudo-parameter?
+  // // Regenerate the molecule info FIXME should Topology just do this?
+  if (combinedTop.DetermineMolecules()) return 1;
+
+  // Determine priorities
+  double tors;
+  if (combinedTop[atA].Nbonds() > 2) {
+    AtomA.SetNbonds(combinedTop[atA].Nbonds());
+    DetermineChirality(tors, AtomA.PriorityPtr(), atA, combinedTop, CombinedFrame, 0);
+  }
+  if (combinedTop[atB].Nbonds() > 2) {
+    AtomB.SetNbonds(combinedTop[atB].Nbonds());
+    DetermineChirality(tors, AtomB.PriorityPtr(), atB, combinedTop, CombinedFrame, 0);
+  }
+
+  // Generate Zmatrix only for ICs involving bonded atoms
+  Zmatrix bondZmatrix;
+
+  bondZmatrix.SetDebug( 2 ); // FIXME
+  if (bondZmatrix.SetupICsAroundBond(atA, atB, CombinedFrame, combinedTop, posKnown, AtomA, AtomB)) {
+    mprinterr("Error: Zmatrix setup for ICs around %s and %s failed.\n",
+              combinedTop.AtomMaskName(atA).c_str(),
+              combinedTop.AtomMaskName(atB).c_str());
     return 1;
   }
-
-  // Store priorities around each atom.
-  // TODO only fragment 1?
-  double tors = 0;
-  for (int at = 0; at != natom0; ++at) {
-    if (CombinedTop[at].Nbonds() > 2) {
-      atoms_[at].SetNbonds(CombinedTop[at].Nbonds());
-      DetermineChirality(tors, atoms_[at].PriorityPtr(), at, CombinedTop, CombinedFrm, debug_);
-    }
-  }
-  for (int at = natom0; at != newNatom; at++) {
-    if (CombinedTop[at].Nbonds() > 2) {
-      atoms_[at].SetNbonds(CombinedTop[at].Nbonds());
-      DetermineChirality(tors, atoms_[at].PriorityPtr(), at, CombinedTop, CombinedFrm, debug_);
-    }
-  }
-
-  mprintf("DEBUG: Atoms:\n");
-  for (int at = 0; at != CombinedTop.Natom(); ++at) {
-    mprintf("DEBUG:\t\t%s (%i) %s", CombinedTop.AtomMaskName(at).c_str(), (int)posKnown[at],
-            chiralStr(atoms_[at].Chirality()));
-    if (!atoms_[at].Priority().empty()) {
-      mprintf(" priority:");
-      for (std::vector<int>::const_iterator it = atoms_[at].Priority().begin();
-                                            it != atoms_[at].Priority().end(); ++it)
-        mprintf(" %s", CombinedTop.AtomMaskName(*it).c_str());
-    }
-    mprintf("\n");
-  }
-
-  // Generate a zmatrix for the smaller fragment
-  Zmatrix frag1Zmatrix;
-  frag1Zmatrix.SetDebug( 2 ); // FIXME
-  if (frag1Zmatrix.SetupICsAroundBond( bondAt0, bondAt1_new, CombinedFrm, CombinedTop, posKnown, atoms_[bondAt0], atoms_[bondAt1_new] ))
-  {
-    mprinterr("Error: Zmatrix setup for ICs around %s - %s failed.\n",
-              CombinedTop.AtomMaskName(bondAt0).c_str(),
-              CombinedTop.AtomMaskName(bondAt1_new).c_str());
-    return 1;
-  }
-  frag1Zmatrix.print( &CombinedTop );
-  if (frag1Zmatrix.SetToFrame( CombinedFrm, posKnown )) {
-    mprinterr("Error: Conversion from fragment 1 Zmatrix to Cartesian coords failed.\n");
+  bondZmatrix.print(&combinedTop);
+  if (bondZmatrix.SetToFrame( CombinedFrame, posKnown )) {
+    mprinterr("Error: Conversion from bondZmatrix to Cartesian coords failed.\n");
     return 1;
   }
 
