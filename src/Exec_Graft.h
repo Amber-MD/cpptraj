@@ -11,7 +11,7 @@ class Exec_Graft : public Exec {
   private:
     typedef std::vector<int> Iarray;
 
-    static int get_bond_atoms(ArgList&, Iarray&, Iarray&, Topology const&, Topology const&);
+    static int select_bond_idx(std::string const&, Topology const&); 
 
     static Topology* modify_top(Topology const&, AtomMask const&, Frame&);
 

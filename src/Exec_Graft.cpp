@@ -1,9 +1,10 @@
 #include "Exec_Graft.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Coords.h"
-#include "Structure/BuildAtom.h"
-#include "Structure/Chirality.h"
-#include "Structure/Zmatrix.h"
+#include "Structure/Builder.h"
+//#incl ude "Structure/BuildAtom.h"
+//#incl ude "Structure/Chirality.h"
+//#incl ude "Structure/Zmatrix.h"
 //#incl ude "Structure/Model.h"
 #include <algorithm> // std::copy
 
@@ -93,42 +94,6 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
     return graft_rms(State, argIn);
 }
 
-/** Get atoms to bond <tgt>,<src> from keyword(s). */
-int Exec_Graft::get_bond_atoms(ArgList& argIn, Iarray& tgtBondAtoms, Iarray& srcBondAtoms,
-                               Topology const& tgtTop, Topology const& srcTop)
-{
-  tgtBondAtoms.clear();
-  srcBondAtoms.clear();
-  std::string kw = argIn.GetStringKey("bond");
-  while (!kw.empty()) {
-    ArgList bndarg(kw, ",");
-    if (bndarg.Nargs() != 2) {
-      mprinterr("Error: Expected 2 atom masks for 'bond' (target, source).\n");
-      return 1;
-    }
-    AtomMask tb, sb;
-    if (tb.SetMaskString(bndarg[0])) return 1;
-    if (sb.SetMaskString(bndarg[1])) return 1;
-    if (tgtTop.SetupIntegerMask(tb)) return 1;
-    if (srcTop.SetupIntegerMask(sb)) return 1;
-    if (tb.Nselected() != 1) {
-      mprinterr("Error: 'bond' target mask does not select only 1 atom.\n");
-      return 1;
-    }
-    if (sb.Nselected() != 1) {
-      mprinterr("Error: 'bond' source mask does not select only 1 atom.\n");
-      return 1;
-    }
-    tgtBondAtoms.push_back( tb[0] );
-    srcBondAtoms.push_back( sb[0] );
-    mprintf("\tWill bond target %s (%i) to source %s (%i)\n",
-            tb.MaskString(), tgtBondAtoms.back()+1,
-            sb.MaskString(), srcBondAtoms.back()+1);
-    kw = argIn.GetStringKey("bond");
-  }
-  return 0;
-}
-
 /** Get COORDS set. */
 DataSet_Coords* Exec_Graft::get_crd(ArgList& argIn, DataSetList const& DSL,
                                     const char* key, const char* desc, Frame& srcFrame, const char* frameKey)
@@ -187,6 +152,23 @@ class ICholder {
     ICtype ictype_; ///< Type of reset (IJ=all, JK=theta,phi, KL=phi)
 };
 
+/** Select bond atom index. */
+int Exec_Graft::select_bond_idx(std::string const& bond0maskstr, Topology const& mol0Top) {
+  // Select bond atom indices
+  AtomMask bondmask0;
+  if (bondmask0.SetMaskString( bond0maskstr )) return -1;
+  if (mol0Top.SetupIntegerMask( bondmask0 )) return -1;
+  if (bondmask0.None()) {
+    mprinterr("Error: Bond mask '%s' selects no atoms in topology '%s'\n", bondmask0.MaskString(), mol0Top.c_str());
+    return -1;
+  }
+  if (bondmask0.Nselected() > 1) {
+    mprinterr("Error: Bond mask '%s' selects more than 1 atom in topology '%s'\n", bondmask0.MaskString(), mol0Top.c_str());
+    return -1;
+  }
+  return bondmask0[0];
+}
+
 /** Graft using internal coordinates to build the final structure. */
 Exec::RetType Exec_Graft::graft_ic(CpptrajState& State, ArgList& argIn)
 const
@@ -211,10 +193,20 @@ const
     return CpptrajState::ERR;
   }
  
- // Get atoms to bond
-  Iarray tgtBondAtoms, srcBondAtoms;
-  if (get_bond_atoms(argIn, tgtBondAtoms, srcBondAtoms, mol0crd->Top(), mol1crd->Top()))
+  // Get atoms to bond
+  std::string bondargstr = argIn.GetStringKey("bond");
+  if (bondargstr.empty()) {
+    mprinterr("Error: No 'bond' keyword specified.\n");
     return CpptrajState::ERR;
+  }
+  ArgList bondarg( bondargstr, "," );
+  if (bondarg.Nargs() != 2) {
+    mprinterr("Error: Expected 2 comma-separated masks for 'bond' keyword, got %i\n", bondarg.Nargs());
+    return CpptrajState::ERR;
+  }
+  std::string const& tgtbondmask = bondarg[0];
+  std::string const& srcbondmask = bondarg[1];
+
   // Get atoms to keep from source.
   AtomMask mol1Mask;
   if (mol1Mask.SetMaskString( argIn.GetStringKey("srcmask") ))
@@ -228,10 +220,10 @@ const
   if (mol0crd->Top().SetupIntegerMask(mol0Mask))
     return CpptrajState::ERR;
   // Update the bond indices for the new topologies
-  if (UpdateIndices(tgtBondAtoms, mol0Mask, 0))
+  /*if (UpdateIndices(tgtBondAtoms, mol0Mask, 0))
     return CpptrajState::ERR;
   if (UpdateIndices(srcBondAtoms, mol1Mask, mol0Mask.Nselected()))
-    return CpptrajState::ERR;
+    return CpptrajState::ERR;*/
 
   // Modify the target (mol0) topology, update bond atom indices.
   bool newMol0Top = false;
@@ -254,11 +246,31 @@ const
     if (mol1Top == 0) return CpptrajState::ERR; // FIXME need to free mol1Top memory
   }
 
+  // Select bond atom indices
+  int bondat0 = select_bond_idx(tgtbondmask, *mol0Top);
+  if (bondat0 < 0) {
+    mprinterr("Error: Could not select target bond atom '%s'\n", tgtbondmask.c_str());
+    return CpptrajState::ERR;
+  }
+  int bondat1 = select_bond_idx(srcbondmask, *mol1Top);
+  if (bondat1 < 0) {
+    mprinterr("Error: Could not select source bond atom '%s'\n", srcbondmask.c_str());
+    return CpptrajState::ERR;
+  }
+
   // Combine topologies.
   Topology combinedTop;
   combinedTop.SetDebug( State.Debug() );
   combinedTop.SetParmName( outCoords->Meta().Name(), FileName() );
   combinedTop.AppendTop( *mol0Top );
+
+  Frame CombinedFrame = mol0frm;
+  Builder builder;
+  if (builder.Combine( combinedTop, CombinedFrame, *mol1Top, mol1frm, bondat0, bondat1 )) {
+    mprinterr("Error: Fragment combine failed.\n");
+    return CpptrajState::ERR;
+  }
+/*
   combinedTop.AppendTop( *mol1Top );
 
   // Only coords+box for now.
@@ -297,7 +309,7 @@ const
   BuildAtom AtomB;
   if (combinedTop[atB].Nbonds() > 2)
     AtomB.SetChirality( DetermineChirality(atB, combinedTop, CombinedFrame, 0) );
-  mprintf("DEBUG:\tAtom %4s chirality %6s\n", combinedTop.AtomMaskName(atB).c_str(), chiralStr(AtomB.Chirality()));
+  mprintf("DEBUG:\tAtom %4s chirality %6s\n", combinedTop.AtomMaskName(atB).c_str(), chiralStr(AtomB.Chirality()));*/
 /*  for (int at = 0; at < mol0Top->Natom(); at++)
     if (combinedTop[at].Nbonds() > 2)
       atomChirality[at].SetChirality( DetermineChirality(at, combinedTop, CombinedFrame, 0) );
@@ -318,7 +330,7 @@ const
   }*/
 
   // Create bonds
-  for (unsigned int idx = 0; idx != tgtBondAtoms.size(); idx++) {
+/*  for (unsigned int idx = 0; idx != tgtBondAtoms.size(); idx++) {
     mprintf("DEBUG: Bond %i %s to %i %s\n",
             tgtBondAtoms[idx]+1, combinedTop.AtomMaskName(tgtBondAtoms[idx]).c_str(),
             srcBondAtoms[idx]+1, combinedTop.AtomMaskName(srcBondAtoms[idx]).c_str());
@@ -336,7 +348,7 @@ const
   if (combinedTop[atB].Nbonds() > 2) {
     AtomB.SetNbonds(combinedTop[atB].Nbonds());
     DetermineChirality(tors, AtomB.PriorityPtr(), atB, combinedTop, CombinedFrame, 0);
-  }
+  }*/
 /*  for (int at = 0; at < mol0Top->Natom(); at++) {
     if (combinedTop[at].Nbonds() > 2) {
       atomChirality[at].SetNbonds(combinedTop[at].Nbonds());
@@ -351,7 +363,7 @@ const
   }*/
 
   // Add to output COORDS set
-  if (outCoords->CoordsSetup(combinedTop, outInfo)) return CpptrajState::ERR; // FIXME free molXTop memory
+  if (outCoords->CoordsSetup(combinedTop, CombinedFrame.CoordsInfo())) return CpptrajState::ERR; // FIXME free molXTop memory
 
   // Track atoms as 'known'. Target atoms are residue 0, Source atoms are in residue 1
   //Barray atomPositionKnown;/*( combinedTop.Natom(), false );
@@ -367,7 +379,7 @@ const
   }
   zmatrix.print(); // DEBUG*/
   // Generate Zmatrix only for ICs involving bonded atoms
-  Zmatrix bondZmatrix;
+/*  Zmatrix bondZmatrix;
 
   bondZmatrix.SetDebug( 2 ); // FIXME
   if (bondZmatrix.SetupICsAroundBond(atA, atB, CombinedFrame, combinedTop, posKnown, AtomA, AtomB)) {
@@ -380,7 +392,7 @@ const
   if (bondZmatrix.SetToFrame( CombinedFrame, posKnown )) {
     mprinterr("Error: Conversion from bondZmatrix to Cartesian coords failed.\n");
     return CpptrajState::ERR;
-  }
+  }*/
 /*
   // Map atom j to ICs to change
   typedef std::map<int, ICholder> ICmapType;
