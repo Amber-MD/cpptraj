@@ -26,5 +26,8 @@ class DataIO_AmberLib : public DataIO {
     static inline SectionType id_section(std::string const&, std::string const&);
     /// Read unit from OFF file
     int read_unit(BufferedLine&, std::string&, std::string const&) const;
+
+    static int read_atoms(Topology&, std::string const&, std::string const&);
+    static int read_bonds(Topology&, std::string const&);
 };
 #endif

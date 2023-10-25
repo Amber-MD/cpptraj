@@ -69,7 +69,10 @@ int DataIO_AmberLib::ReadData(FileName const& fname, DataSetList& dsl, std::stri
       mprinterr("Error: Expected '%s', got '%s'\n", entryColumn.c_str(), line.c_str());
       return 1;
     }
-    read_unit( infile, line, *it );
+    if (read_unit( infile, line, *it )) {
+      mprinterr("Error: Reading unit '%s'\n", it->c_str());
+      return 1;
+    }
   }
 
 
@@ -100,13 +103,7 @@ DataIO_AmberLib::SectionType DataIO_AmberLib::id_section(std::string const& line
   return UNKNOWN_SECTION;
 }
 
-/** Read a unit from OFF file. It is expected that the next line from
-  * infile is the first entry in the unit.atoms table.
-  */
-int DataIO_AmberLib::read_unit(BufferedLine& infile, std::string& Line,
-                               std::string const& unitName)
-const
-{
+int DataIO_AmberLib::read_atoms(Topology& topOut, std::string const& line, std::string const& unitName) {
   // Format: "Atom name" "Type" "Type index (unused)" "resnum" "flags" "sequence" "element" "charge"
   char aname[16];
   char atype[16];
@@ -116,6 +113,46 @@ const
   int seq;
   int elt;
   double charge;
+
+  if (sscanf(line.c_str(), "%s %s %i %i %i %i %i %lf",
+             aname, atype, &typex, &resx, &flags, &seq, &elt, &charge) != 8)
+  {
+    mprinterr("Error: Expected 8 columns for atoms table line: %s\n", line.c_str());
+    return 1;
+  }
+  // Sanity check
+  if (seq-1 != topOut.Natom()) {
+    mprinterr("Error: For unit %s expected sequence %i, got %i\n", unitName.c_str(), topOut.Natom()+1, seq);
+    return 1;
+  }
+  Atom atm;
+  atm.SetName( NameType(aname) );
+  atm.SetTypeName( NameType(atype) );
+  atm.DetermineElement( elt );
+  atm.SetMassFromElement();
+  atm.SetCharge( charge );
+  Residue res( unitName, resx, ' ', ' ' );
+  topOut.AddTopAtom( atm, res );
+  return 0;
+}
+
+int DataIO_AmberLib::read_bonds(Topology& topOut, std::string const& line) {
+  int at0, at1, flags;
+  if (sscanf(line.c_str(), "%i %i %i", &at0, &at1, &flags) != 3) {
+    mprinterr("Error: Expected 3 columns for connectivity line: %s\n", line.c_str());
+    return 1;
+  }
+  topOut.AddBond( at0-1, at1-1 );
+  return 0;
+}
+
+/** Read a unit from OFF file. It is expected that the next line from
+  * infile is the first entry in the unit.atoms table.
+  */
+int DataIO_AmberLib::read_unit(BufferedLine& infile, std::string& Line,
+                               std::string const& unitName)
+const
+{
   
   SectionType currentSection = id_section( Line, unitName );
   if (currentSection == UNKNOWN_SECTION) {
@@ -123,6 +160,11 @@ const
     return 1;
   }
   mprintf("DEBUG: First section is %s\n", sectionStr_[currentSection]);
+
+  Topology top;
+  top.SetParmName( unitName, FileName() );
+  Frame frm;
+
   bool readUnit = true;
   while (readUnit) {
     const char* lineptr = infile.Line();
@@ -146,9 +188,15 @@ const
           mprintf("Warning: Could not ID section: %s\n", Line.c_str());
         } else
           mprintf("DEBUG: Section is %s\n", sectionStr_[currentSection]);
+      } else if (currentSection == ATOMTABLE) {
+        if (read_atoms(top, Line, unitName)) return 1;
+      } else if (currentSection == CONNECTIVITY) {
+        if (read_bonds(top, Line)) return 1;
       }
     }
   }
+  top.CommonSetup();
+  top.Summary();
   
   return 0;
 }
