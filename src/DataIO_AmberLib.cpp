@@ -69,7 +69,12 @@ int DataIO_AmberLib::ReadData(FileName const& fname, DataSetList& dsl, std::stri
       mprinterr("Error: Expected '%s', got '%s'\n", entryColumn.c_str(), line.c_str());
       return 1;
     }
-    if (read_unit( infile, line, *it )) {
+    DataSet_Coords* ds = (DataSet_Coords*)dsl.AddSet( DataSet::COORDS, MetaData(dsname, *it) );
+    if (ds == 0) {
+      mprinterr("Error: Could not create data set for unit %s\n", it->c_str());
+      return 1;
+    }
+    if (read_unit( ds, infile, line, *it )) {
       mprinterr("Error: Reading unit '%s'\n", it->c_str());
       return 1;
     }
@@ -103,6 +108,14 @@ DataIO_AmberLib::SectionType DataIO_AmberLib::id_section(std::string const& line
   return UNKNOWN_SECTION;
 }
 
+static inline std::string noquotes(const char* ptrIn) {
+ std::string out;
+ for (const char* ptr = ptrIn; *ptr != '\0'; ++ptr)
+   if (*ptr != '"')
+     out += *ptr;
+  return out;
+}
+
 int DataIO_AmberLib::read_atoms(Topology& topOut, std::string const& line, std::string const& unitName) {
   // Format: "Atom name" "Type" "Type index (unused)" "resnum" "flags" "sequence" "element" "charge"
   char aname[16];
@@ -126,13 +139,26 @@ int DataIO_AmberLib::read_atoms(Topology& topOut, std::string const& line, std::
     return 1;
   }
   Atom atm;
-  atm.SetName( NameType(aname) );
-  atm.SetTypeName( NameType(atype) );
+  atm.SetName( NameType(noquotes(aname)) );
+  atm.SetTypeName( NameType(noquotes(atype)) );
   atm.DetermineElement( elt );
   atm.SetMassFromElement();
   atm.SetCharge( charge );
   Residue res( unitName, resx, ' ', ' ' );
   topOut.AddTopAtom( atm, res );
+  return 0;
+}
+
+int DataIO_AmberLib::read_positions(std::vector<Vec3>& positions, std::string const& line)
+{
+  double x, y, z;
+  mprintf("DEBUG Positions %s\n", line.c_str());
+  if (sscanf(line.c_str(), "%lf %lf %lf", &x, &y, &z) != 3) {
+    mprinterr("Error: Expected 3 columns for positions line: %s\n", line.c_str());
+    return 1;
+  }
+  mprintf("DEBUG: %g %g %g\n", x, y, z);
+  positions.push_back( Vec3(x, y, z) );
   return 0;
 }
 
@@ -149,7 +175,8 @@ int DataIO_AmberLib::read_bonds(Topology& topOut, std::string const& line) {
 /** Read a unit from OFF file. It is expected that the next line from
   * infile is the first entry in the unit.atoms table.
   */
-int DataIO_AmberLib::read_unit(BufferedLine& infile, std::string& Line,
+int DataIO_AmberLib::read_unit(DataSet_Coords* crd,
+                               BufferedLine& infile, std::string& Line,
                                std::string const& unitName)
 const
 {
@@ -163,6 +190,7 @@ const
 
   Topology top;
   top.SetParmName( unitName, FileName() );
+  std::vector<Vec3> positions;
   Frame frm;
 
   bool readUnit = true;
@@ -192,11 +220,20 @@ const
         if (read_atoms(top, Line, unitName)) return 1;
       } else if (currentSection == CONNECTIVITY) {
         if (read_bonds(top, Line)) return 1;
+      } else if (currentSection == POSITIONS) {
+        if (read_positions(positions, Line)) return 1;
       }
     }
   }
   top.CommonSetup();
   top.Summary();
+  frm.SetupFrameV( top.Atoms(), CoordinateInfo() );
+  frm.ClearAtoms();
+  for (std::vector<Vec3>::const_iterator it = positions.begin(); it != positions.end(); ++it)
+    frm.AddVec3( *it );
+
+  crd->CoordsSetup(top, frm.CoordsInfo());
+  crd->AddFrame( frm );
   
   return 0;
 }
