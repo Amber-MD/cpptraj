@@ -91,6 +91,31 @@ int Cpptraj::Structure::Model::AssignTheta(double& theta, int ai, int aj, int ak
   return 0;
 }
 
+/// Recursive function to return depth from an atom along bonds
+static int atom_depth(int& depth,
+                      int at, Topology const& topIn, std::vector<bool>& visited, int maxdepth)
+{
+  if (depth == maxdepth) return 0;
+  depth++;
+  visited[at] = true;
+  int depthFromHere = 1;
+  for (Atom::bond_iterator bat = topIn[at].bondbegin(); bat != topIn[at].bondend(); ++bat)
+  {
+    if (!visited[*bat])
+      depthFromHere += atom_depth( depth, *bat, topIn, visited, maxdepth );
+  }
+  return depthFromHere;
+}
+
+static inline double wrap360(double phi) {
+  if (phi > Constants::PI)
+    return phi - Constants::TWOPI;
+  else if (phi < -Constants::PI)
+    return phi + Constants::TWOPI;
+  else
+    return phi;
+}
+
 /** Attempt to assign a reasonable value for phi internal coordinate for atom i
   * given that atoms j k and l have known positions.
   *   j - k
@@ -167,6 +192,28 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
     }
   }
 
+  // If we have to assign an initial phi, make trans the longer branch
+  if (knownIdx == -1) {
+    std::vector<bool> visited = atomPositionKnown;
+    // TODO: Ensure bonded atoms are not yet visited?
+    visited[aj] = true;
+    visited[ak] = true;
+    std::vector<int> depth( AJ.Nbonds() );
+    for (int idx = 0; idx < AJ.Nbonds(); idx++) {
+      int atnum = priority[idx];
+      if (atnum != ak) {
+        int currentDepth = 0;
+        depth[idx] = atom_depth(currentDepth, atnum, topIn, visited, 10);
+        mprintf("DEBUG:\t\tAJ %s depth from %s is %i\n",
+                topIn.AtomMaskName(aj).c_str(), topIn.AtomMaskName(atnum).c_str(), depth[idx]);
+        if (knownIdx == -1 && depth[idx] == 1) {
+          knownIdx = idx;
+          knownPhi[idx] = 0;
+        }
+      }
+    }
+  }
+
   // The interval will be 360 / (number of bonds - 1)
   double interval = Constants::TWOPI / (AJ.Nbonds() - 1);
 
@@ -199,6 +246,7 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
       if (atnum == ai) phi = currentPhi;
       mprintf("DEBUG:\t\t\t%s phi= %g\n", topIn.AtomMaskName(atnum).c_str(), currentPhi*Constants::RADDEG);
       currentPhi += interval;
+      currentPhi = wrap360(currentPhi);
     }
   }
   // Reverse direction
@@ -209,6 +257,7 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
       if (atnum == ai) phi = currentPhi;
       mprintf("DEBUG:\t\t\t%s phi= %g\n", topIn.AtomMaskName(atnum).c_str(), currentPhi*Constants::RADDEG);
       currentPhi -= interval;
+      currentPhi = wrap360(currentPhi);
     }
   }
 
