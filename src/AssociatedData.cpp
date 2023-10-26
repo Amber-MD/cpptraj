@@ -26,3 +26,7 @@ int AssociatedData_NOE::NOE_Args(ArgList& argIn) {
   }
   return 0;
 }
+
+void AssociatedData_NOE::Ainfo() const {
+  mprintf("(NOE %g < %g < %g)", l_bound_, rexp_, u_bound_);
+}

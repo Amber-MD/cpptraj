@@ -9,6 +9,7 @@ class AssociatedData {
     AssociatedData(AssociatedType t) : type_(t) {}
     AssociatedType Type() { return type_; }
     virtual AssociatedData* Copy() const = 0;
+    virtual void Ainfo() const = 0;
   private:
     AssociatedType type_;
 };
@@ -26,6 +27,7 @@ class AssociatedData_NOE : public AssociatedData {
     double NOE_rexp()   const { return rexp_;   }
 
     AssociatedData* Copy() const { return new AssociatedData_NOE(*this); }
+    void Ainfo() const;
   private:
     double l_bound_; ///< Lower bound
     double u_bound_; ///< Upper bound
