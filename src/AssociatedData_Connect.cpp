@@ -8,7 +8,7 @@ void AssociatedData_Connect::Ainfo() const {
     mprintf(" (Connect Atoms:");
     for (Iarray::const_iterator it = connect_.begin(); it != connect_.end(); ++it)
       mprintf(" %i", *it + 1);
-    mprintf("\n");
+    mprintf(")");
   }
   return;
 }

@@ -197,7 +197,7 @@ int DataIO_AmberLib::read_unit(DataSet_Coords* crd,
                                std::string const& unitName)
 const
 {
-  
+  AssociatedData_Connect ConnectAtoms;
   SectionType currentSection = id_section( Line, unitName );
   if (currentSection == UNKNOWN_SECTION) {
     mprinterr("Error: Could not ID first section: %s\n", Line.c_str());
@@ -239,6 +239,8 @@ const
         if (read_bonds(top, Line)) return 1;
       } else if (currentSection == POSITIONS) {
         if (read_positions(positions, Line)) return 1;
+      } else if (currentSection == CONNECT) {
+        if (read_connect(ConnectAtoms, Line)) return 1;
       }
     }
   }
@@ -251,6 +253,8 @@ const
 
   crd->CoordsSetup(top, frm.CoordsInfo());
   crd->AddFrame( frm );
+  ConnectAtoms.Ainfo();
+  mprintf("\n");
   
   return 0;
 }
