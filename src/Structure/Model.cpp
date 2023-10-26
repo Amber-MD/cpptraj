@@ -206,7 +206,7 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
         depth[idx] = atom_depth(currentDepth, atnum, topIn, visited, 10);
         mprintf("DEBUG:\t\tAJ %s depth from %s is %i\n",
                 topIn.AtomMaskName(aj).c_str(), topIn.AtomMaskName(atnum).c_str(), depth[idx]);
-        if (knownIdx == -1 && depth[idx] == 1) {
+        if (knownIdx == -1 && depth[idx] < 3) {
           knownIdx = idx;
           knownPhi[idx] = 0;
         }
