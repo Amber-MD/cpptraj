@@ -1,6 +1,7 @@
 #include "DataIO_AmberLib.h"
 #include "CpptrajStdio.h"
 #include "BufferedLine.h"
+#include "AssociatedData_Connect.h"
 
 /// CONSTRUCTOR
 DataIO_AmberLib::DataIO_AmberLib()
@@ -172,6 +173,22 @@ int DataIO_AmberLib::read_bonds(Topology& topOut, std::string const& line) {
   return 0;
 }
 
+int DataIO_AmberLib::read_connect(AssociatedData_Connect& ConnectAtoms, std::string const& line) {
+  int connectAtom = -1;
+  if (sscanf(line.c_str(), "%i", &connectAtom) != 1) {
+    mprinterr("Error: Expected 1 column for connect line: %s\n", line.c_str());
+    return 1;
+  }
+  // Amber lib atoms start from 1
+  if (connectAtom < 1) {
+    mprinterr("Error: Atom index < 1 in connect line: %s\n", line.c_str());
+    return 1;
+  }
+  ConnectAtoms.AddConnectAtom( connectAtom-1 );
+  return 0;
+}
+
+  
 /** Read a unit from OFF file. It is expected that the next line from
   * infile is the first entry in the unit.atoms table.
   */

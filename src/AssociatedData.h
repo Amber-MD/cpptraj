@@ -4,7 +4,7 @@ class AssociatedData {
   public:
     /// Destructor. Virtual since this class is inherited.
     virtual ~AssociatedData() {}
-    enum AssociatedType { NOE = 0 };
+    enum AssociatedType { NOE = 0, CONNECT };
     AssociatedData(AssociatedType t) : type_(t) {}
     AssociatedType Type() { return type_; }
     virtual AssociatedData* Copy() const = 0;

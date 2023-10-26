@@ -2,6 +2,7 @@
 #define INC_DATAIO_AMBERLIB_H
 #include "DataIO.h"
 class BufferedLine;
+class AssociatedData_Connect;
 /// <Enter description of DataIO_AmberLib here>
 class DataIO_AmberLib : public DataIO {
   public:
@@ -30,5 +31,6 @@ class DataIO_AmberLib : public DataIO {
     static int read_atoms(Topology&, std::string const&, std::string const&);
     static int read_bonds(Topology&, std::string const&);
     static int read_positions(std::vector<Vec3>&, std::string const&);
+    static int read_connect(AssociatedData_Connect&, std::string const&);
 };
 #endif
