@@ -1,6 +1,7 @@
 #include "Action_Distance.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
+#include "AssociatedData_NOE.h"
 
 // CONSTRUCTOR
 Action_Distance::Action_Distance() :

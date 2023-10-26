@@ -1,6 +1,7 @@
 #include <cmath> // sqrt
 #include "Analysis_Statistics.h"
 #include "CpptrajStdio.h"
+#include "AssociatedData_NOE.h"
 
 // CONSTRUCTOR
 Analysis_Statistics::Analysis_Statistics() :

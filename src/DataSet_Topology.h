@@ -2,6 +2,7 @@
 #define INC_DATASET_TOPOLOGY
 #include "DataSet.h"
 #include "Topology.h"
+class ArgList;
 /// Hold Topology data
 class DataSet_Topology : public DataSet {
   public:

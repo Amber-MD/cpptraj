@@ -8,6 +8,7 @@
 #include "DataSet_Mesh.h"
 #include "DataSet_Mat3x3.h"
 #include "StringRoutines.h"
+#include "AssociatedData_NOE.h"
 
 // Exec_DataSetCmd::Help()
 void Exec_DataSetCmd::Help() const {
