@@ -530,6 +530,9 @@ test.readprep:
 test.zmatrix:
 	@-cd Test_Zmatrix && ./RunTest.sh $(OPT)
 
+test.readoff:
+	@-cd Test_ReadOFF && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -697,7 +700,8 @@ COMPLETETESTS=test.general \
               test.calcdiffusion \
               test.parsetiming \
               test.readprep \
-              test.zmatrix
+              test.zmatrix \
+              test.readoff
 
 test.all:
 	$(MAKE) test.complete summary
