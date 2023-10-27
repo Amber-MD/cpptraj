@@ -54,18 +54,26 @@ int Builder::Combine(Topology&       frag0Top, Frame&       frag0frm,
   Frame& CombinedFrame = frag0frm;
   delete[] tmpcrd0;
 
+  int chiralityDebug;
+  if (debug_ < 1)
+    chiralityDebug = 0;
+  else
+    chiralityDebug = debug_ - 1;
   // Get the chirality around each atom before the bond is added.
   BuildAtom AtomA;
   if (combinedTop[atA].Nbonds() > 2)
-    AtomA.SetChirality( DetermineChirality(atA, combinedTop, CombinedFrame, 0) );
-  mprintf("DEBUG:\tAtom %4s chirality %6s\n", combinedTop.AtomMaskName(atA).c_str(), chiralStr(AtomA.Chirality()));
+    AtomA.SetChirality( DetermineChirality(atA, combinedTop, CombinedFrame, chiralityDebug) );
+  if (debug_ > 0)
+    mprintf("DEBUG:\tAtom %4s chirality %6s\n", combinedTop.AtomMaskName(atA).c_str(), chiralStr(AtomA.Chirality()));
   BuildAtom AtomB;
   if (combinedTop[atB].Nbonds() > 2)
-    AtomB.SetChirality( DetermineChirality(atB, combinedTop, CombinedFrame, 0) );
-  mprintf("DEBUG:\tAtom %4s chirality %6s\n", combinedTop.AtomMaskName(atB).c_str(), chiralStr(AtomB.Chirality()));
+    AtomB.SetChirality( DetermineChirality(atB, combinedTop, CombinedFrame, chiralityDebug) );
+  if (debug_ > 0)
+    mprintf("DEBUG:\tAtom %4s chirality %6s\n", combinedTop.AtomMaskName(atB).c_str(), chiralStr(AtomB.Chirality()));
 
   // Create the bond
-  mprintf("DEBUG: Bonding atom %s to %s\n", combinedTop.AtomMaskName(atA).c_str(), combinedTop.AtomMaskName(atB).c_str());
+  if (debug_ > 0)
+    mprintf("DEBUG: Bonding atom %s to %s\n", combinedTop.AtomMaskName(atA).c_str(), combinedTop.AtomMaskName(atB).c_str());
   combinedTop.AddBond( atA, atB ); // TODO pseudo-parameter?
   // // Regenerate the molecule info FIXME should Topology just do this?
   if (combinedTop.DetermineMolecules()) return 1;
@@ -73,17 +81,17 @@ int Builder::Combine(Topology&       frag0Top, Frame&       frag0frm,
   // Determine priorities
   if (combinedTop[atA].Nbonds() > 2) {
     //AtomA.SetNbonds(combinedTop[atA].Nbonds());
-    SetPriority(AtomA.ModifyPriority(), atA, combinedTop, CombinedFrame, 0);
+    SetPriority(AtomA.ModifyPriority(), atA, combinedTop, CombinedFrame, chiralityDebug);
   }
   if (combinedTop[atB].Nbonds() > 2) {
     //AtomB.SetNbonds(combinedTop[atB].Nbonds());
-    SetPriority(AtomB.ModifyPriority(), atB, combinedTop, CombinedFrame, 0);
+    SetPriority(AtomB.ModifyPriority(), atB, combinedTop, CombinedFrame, chiralityDebug);
   }
 
   // Generate Zmatrix only for ICs involving bonded atoms
   Zmatrix bondZmatrix;
 
-  bondZmatrix.SetDebug( 2 ); // FIXME
+  bondZmatrix.SetDebug( debug_ );
   if (bondZmatrix.SetupICsAroundBond(atA, atB, CombinedFrame, combinedTop, posKnown, AtomA, AtomB)) {
     mprinterr("Error: Zmatrix setup for ICs around %s and %s failed.\n",
               combinedTop.AtomMaskName(atA).c_str(),
