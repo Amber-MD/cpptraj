@@ -17,6 +17,16 @@ Exec::RetType Exec_Sequence::Execute(CpptrajState& State, ArgList& argIn)
     LibSetNames.push_back( libsetname );
     libsetname = argIn.GetStringKey("libset");
   }
+  std::string dsname = argIn.GetStringKey("name");
+  if (dsname.empty()) {
+    mprinterr("Error: No output set name specified with 'name'\n");
+    return CpptrajState::ERR;
+  }
+  DataSet_Coords* OUT = (DataSet_Coords*)State.DSL().AddSet(DataSet::COORDS, MetaData(dsname));
+  if (OUT == 0) {
+    mprinterr("Error: Could not create output COORDS set named '%s'\n", dsname.c_str());
+    return CpptrajState::ERR;
+  }
 
   // Get the actual sequence from remaining args.
   Sarray main_sequence;
@@ -42,6 +52,7 @@ Exec::RetType Exec_Sequence::Execute(CpptrajState& State, ArgList& argIn)
   for (Sarray::const_iterator it = main_sequence.begin(); it != main_sequence.end(); ++it)
     mprintf(" %s", it->c_str());
   mprintf("\n");
+  mprintf("\tOutput set name : %s\n", OUT->legend());
 
   return CpptrajState::OK;
 }
