@@ -15,9 +15,9 @@ const
   Uarray Units;
   Units.reserve( main_sequence.size() );
   typedef std::vector<int> Iarray;
-  Iarray bondat0, bondat1;
-  bondat0.reserve( Units.size() );
-  bondat1.reserve( Units.size() );
+  Iarray connectAt0, connectAt1;
+  connectAt0.reserve( Units.size() );
+  connectAt1.reserve( Units.size() );
   int total_natom = 0;
 
   for (Sarray::const_iterator it = main_sequence.begin(); it != main_sequence.end(); ++it)
@@ -65,15 +65,9 @@ const
       mprinterr("Error: Not enough connect atoms in unit '%s'\n", unit->legend());
       return 1;
     }
-    // Set up connectivity. The HEAD atom of this unit will connect to the
-    // TAIL atom of the previous unit.
-    if (Units.empty()) {
-      bondat0.push_back( C.Connect()[0] );
-      bondat1.push_back( C.Connect()[1] );
-    } else {
-      bondat0.push_back( bondat1.back() );
-      bondat1.push_back( C.Connect()[0] + total_natom );
-    }
+    // Update connect atom indices based on their position in the sequence.
+    connectAt0.push_back( C.Connect()[0] + total_natom );
+    connectAt1.push_back( C.Connect()[1] + total_natom );
     Units.push_back( unit );
     total_natom += unit->Top().Natom();
   } // END loop over sequence
@@ -82,11 +76,13 @@ const
     mprinterr("Error: No units.\n");
     return 1;
   }
+  for (unsigned int idx = 0; idx < Units.size(); idx++)
+    mprintf("\tUnit %s HEAD %i TAIL %i\n", Units[idx]->legend(), connectAt0[idx]+1, connectAt1[idx]+1);
   if (Units.size() > 1) {
     for (unsigned int idx = 1; idx < Units.size(); idx++)
       mprintf("\tConnect %s atom %i to %s atom %i\n",
-              Units[idx-1]->legend(), bondat0[idx]+1,
-              Units[idx]->legend(),   bondat1[idx]+1);
+              Units[idx-1]->legend(), connectAt1[idx-1]+1,
+              Units[idx]->legend(),   connectAt0[idx]  +1);
   }
 
   Topology combinedTop;
