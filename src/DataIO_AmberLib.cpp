@@ -184,8 +184,7 @@ int DataIO_AmberLib::read_connect(AssociatedData_Connect& ConnectAtoms, std::str
   }
   // Amber lib atoms start from 1
   if (connectAtom < 1) {
-    mprinterr("Error: Atom index < 1 in connect line: %s\n", line.c_str());
-    return 1;
+    mprintf("Warning: Atom index < 1 in connect line: %s\n", line.c_str());
   }
   ConnectAtoms.AddConnectAtom( connectAtom-1 );
   return 0;
