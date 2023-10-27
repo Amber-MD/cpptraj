@@ -598,23 +598,26 @@ int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology
   }
   int atk0 = KLpairs[maxIdx].first;
   int atl0 = KLpairs[maxIdx].second;
-  if (debug_ > 0)
+  int modelDebug = 0;
+  if (debug_ > 0) {
     mprintf("DEBUG: Chosen KL pair: %s - %s\n",topIn.AtomMaskName(atk0).c_str(),
               topIn.AtomMaskName(atl0).c_str());
+    modelDebug = debug_ - 1;
+  }
   // ---- I J: Set dist, theta, phi for atA atB K L internal coord ---
   if (debug_ > 0)
     mprintf("DEBUG: IC (i j) %i - %i - %i - %i\n", atA+1, atB+1, atk0+1, atl0+1);
   double newDist = Atom::GetBondLength( topIn[atA].Element(), topIn[atB].Element() );
   if (debug_ > 0) mprintf("DEBUG:\t\tnewDist= %g\n", newDist);
   double newTheta = 0;
-  if (Cpptraj::Structure::Model::AssignTheta(newTheta, atA, atB, atk0, topIn, frameIn, atomPositionKnown)) {
+  if (Cpptraj::Structure::Model::AssignTheta(newTheta, atA, atB, atk0, topIn, frameIn, atomPositionKnown, modelDebug)) {
     mprinterr("Error: theta (i j) assignment failed.\n");
     return 1;
   }
   if (debug_ > 0) mprintf("DEBUG:\t\tnewTheta = %g\n", newTheta*Constants::RADDEG);
   double newPhi = 0;
   if (Cpptraj::Structure::Model::AssignPhi(newPhi, atA, atB, atk0, atl0, topIn, frameIn,
-                                           atomPositionKnown, AtomB))
+                                           atomPositionKnown, AtomB, modelDebug))
   {
     mprinterr("Error: phi (i j) assignment failed.\n");
     return 1;
@@ -639,7 +642,7 @@ int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology
       newDist = sqrt( DIST2_NoImage(frameIn.XYZ(*iat), frameIn.XYZ(atA)) );
       // Set theta for I atA atB
       newTheta = 0;
-      if (Cpptraj::Structure::Model::AssignTheta(newTheta, *iat, atA, atB, topIn, frameIn, atomPositionKnown)) {
+      if (Cpptraj::Structure::Model::AssignTheta(newTheta, *iat, atA, atB, topIn, frameIn, atomPositionKnown, modelDebug)) {
         mprinterr("Error: theta (j k) assignment failed.\n");
         return 1;
       }
@@ -648,7 +651,7 @@ int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology
       // Set phi for I atA atB K
       newPhi = 0;
       if (Cpptraj::Structure::Model::AssignPhi(newPhi, *iat, atA, atB, atk0, topIn, frameIn,
-                                               atomPositionKnown, AtomA))
+                                               atomPositionKnown, AtomA, modelDebug))
       {
         mprinterr("Error: phi (j k) assignment failed.\n");
         return 1;
