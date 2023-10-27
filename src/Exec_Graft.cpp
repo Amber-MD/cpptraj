@@ -344,6 +344,7 @@ const
 
   Frame CombinedFrame = mol0frm;
   Builder builder;
+  builder.SetDebug( debug_ );
   if (builder.Combine( combinedTop, CombinedFrame, mol1Top, mol1frm, bondat0, bondat1 )) {
     mprinterr("Error: Fragment combine failed.\n");
     return 1;

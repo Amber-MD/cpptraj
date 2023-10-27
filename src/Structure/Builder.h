@@ -12,6 +12,8 @@ class Builder {
     Builder();
     /// Combine second fragment into first fragment and bond
     int Combine(Topology&, Frame&, Topology const&, Frame const&, int, int);
+    /// Set debug
+    void SetDebug(int d) { debug_ = d; }
   private:
     typedef std::vector<bool> Barray;
 

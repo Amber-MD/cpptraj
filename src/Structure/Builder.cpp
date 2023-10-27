@@ -98,7 +98,8 @@ int Builder::Combine(Topology&       frag0Top, Frame&       frag0frm,
               combinedTop.AtomMaskName(atB).c_str());
     return 1;
   }
-  bondZmatrix.print(&combinedTop);
+  if (debug_ > 0)
+    bondZmatrix.print(&combinedTop);
   if (bondZmatrix.SetToFrame( CombinedFrame, posKnown )) {
     mprinterr("Error: Conversion from bondZmatrix to Cartesian coords failed.\n");
     return 1;
