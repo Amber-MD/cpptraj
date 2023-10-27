@@ -253,6 +253,7 @@ const
 
   crd->CoordsSetup(top, frm.CoordsInfo());
   crd->AddFrame( frm );
+  crd->AssociateData( &ConnectAtoms );
   ConnectAtoms.Ainfo();
   mprintf("\n");
   
