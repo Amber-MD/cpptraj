@@ -386,7 +386,7 @@ const
       mprinterr("Error: Could not select source bond atom '%s'\n", bond1Atoms[ii].c_str());
       return 1;
     }
-    combinedTop.AddBond( bondat0, bondat1 + mol0Top.Natom() );
+    combinedTop.AddBond( bondat0, bondat1 + mol0Top.Natom() ); // TODO pseudo-parameter?
   }
   // Regenerate the molecule info FIXME should Topology just do this?
   if (combinedTop.DetermineMolecules()) return 1;
