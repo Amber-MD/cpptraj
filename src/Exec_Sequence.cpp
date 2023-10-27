@@ -1,5 +1,7 @@
 #include "Exec_Sequence.h"
 #include "CpptrajStdio.h"
+#include "AssociatedData_Connect.h"
+#include "Structure/Builder.h"
 
 /** Generate and build the specified sequence. */
 int Exec_Sequence::generate_sequence(DataSet_Coords* OUT,
@@ -12,6 +14,11 @@ const
   typedef std::vector<DataSet_Coords*> Uarray;
   Uarray Units;
   Units.reserve( main_sequence.size() );
+  typedef std::vector<int> Iarray;
+  Iarray bondat0, bondat1;
+  bondat0.reserve( Units.size() );
+  bondat1.reserve( Units.size() );
+  int total_natom = 0;
 
   for (Sarray::const_iterator it = main_sequence.begin(); it != main_sequence.end(); ++it)
   {
@@ -40,15 +47,62 @@ const
       mprinterr("Error: Unit '%s' not found.\n", it->c_str());
       return 1;
     }
+    if (unit->Size() < 1) {
+      mprinterr("Error: Unit '%s' is empty.\n", unit->legend());
+      return 1;
+    }
+    if (unit->Size() > 1) {
+      mprintf("Warning: Unit '%s' has more than 1 frame. Only using first frame.\n", unit->legend());
+    }
     // Needs to have connect associated data
     AssociatedData* ad = unit->GetAssociatedData(AssociatedData::CONNECT);
     if (ad == 0) {
       mprinterr("Error: Unit '%s' does not have CONNECT data.\n");
       return 1;
     }
+    AssociatedData_Connect const& C = static_cast<AssociatedData_Connect const&>( *ad );
+    if (C.NconnectAtoms() < 2) {
+      mprinterr("Error: Not enough connect atoms in unit '%s'\n", unit->legend());
+      return 1;
+    }
+    // Set up connectivity. The HEAD atom of this unit will connect to the
+    // TAIL atom of the previous unit.
+    if (Units.empty()) {
+      bondat0.push_back( C.Connect()[0] );
+      bondat1.push_back( C.Connect()[1] );
+    } else {
+      bondat0.push_back( bondat1.back() );
+      bondat1.push_back( C.Connect()[0] + total_natom );
+    }
     Units.push_back( unit );
+    total_natom += unit->Top().Natom();
   } // END loop over sequence
   mprintf("\tFound %zu units.\n", Units.size());
+  if (Units.empty()) {
+    mprinterr("Error: No units.\n");
+    return 1;
+  }
+  if (Units.size() > 1) {
+    for (unsigned int idx = 1; idx < Units.size(); idx++)
+      mprintf("\tConnect %s atom %i to %s atom %i\n",
+              Units[idx-1]->legend(), bondat0[idx]+1,
+              Units[idx]->legend(),   bondat1[idx]+1);
+  }
+
+  Topology combinedTop;
+  combinedTop.SetDebug( debug_ );
+  combinedTop.SetParmName( OUT->Meta().Name(), FileName() );
+  combinedTop.AppendTop( Units.front()->Top() );
+  //combinedTop.SetParmBox( Units // TODO
+  combinedTop.Brief("Sequence topology:");
+
+  Frame CombinedFrame = Units.front()->AllocateFrame();
+  Units.front()->GetFrame(0, CombinedFrame);
+
+
+  using namespace Cpptraj::Structure;
+  Builder builder;
+  
   return 0;
 }
 
@@ -64,6 +118,7 @@ void Exec_Sequence::Help() const
 // Exec_Sequence::Execute()
 Exec::RetType Exec_Sequence::Execute(CpptrajState& State, ArgList& argIn)
 {
+  debug_ = State.Debug();
   // Args
   Sarray LibSetNames;
   std::string libsetname = argIn.GetStringKey("libset");
@@ -107,6 +162,12 @@ Exec::RetType Exec_Sequence::Execute(CpptrajState& State, ArgList& argIn)
     mprintf(" %s", it->c_str());
   mprintf("\n");
   mprintf("\tOutput set name : %s\n", OUT->legend());
+
+  // Execute
+  if (generate_sequence(OUT, State.DSL(), main_sequence, LibSetNames)) {
+    mprinterr("Error: Could not generate sequence.\n");
+    return CpptrajState::ERR;
+  }
 
   return CpptrajState::OK;
 }
