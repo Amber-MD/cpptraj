@@ -1,12 +1,6 @@
 #include "Exec_Sequence.h"
 #include "CpptrajStdio.h"
 
-// Exec_Sequence::Help()
-void Exec_Sequence::Help() const
-{
-
-}
-
 /** Generate and build the specified sequence. */
 int Exec_Sequence::generate_sequence(DataSet_Coords* OUT,
                                      DataSetList const& DSL,
@@ -57,6 +51,15 @@ const
   mprintf("\tFound %zu units.\n", Units.size());
   return 0;
 }
+
+// Exec_Sequence::Help()
+void Exec_Sequence::Help() const
+{
+  mprintf("\tname <output set name> <unit0> <unit1> ...\n"
+          "\t[{libset <libsetname>} ...]\n"
+          "  Create a molecule from a sequence of units.\n");
+}
+
 
 // Exec_Sequence::Execute()
 Exec::RetType Exec_Sequence::Execute(CpptrajState& State, ArgList& argIn)
