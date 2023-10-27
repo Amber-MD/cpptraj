@@ -8,17 +8,20 @@
 /** Attempt to assign a reasonable value for theta internal coordinate for
   * atom i given that atoms j and k have known positions.
   */
-int Cpptraj::Structure::Model::AssignTheta(double& theta, int ai, int aj, int ak, Topology const& topIn, Frame const& frameIn, std::vector<bool> const& atomPositionKnown)
+int Cpptraj::Structure::Model::AssignTheta(double& theta, int ai, int aj, int ak, Topology const& topIn, Frame const& frameIn, std::vector<bool> const& atomPositionKnown, int debug)
 {
   // Figure out hybridization and chirality of atom j.
-  mprintf("DEBUG: AssignTheta for atom j : %s\n", topIn.AtomMaskName(aj).c_str());
+  if (debug > 0)
+    mprintf("DEBUG: AssignTheta for atom j : %s\n", topIn.AtomMaskName(aj).c_str());
 
   enum HybridizationType { SP = 0, SP2, SP3, UNKNOWN_HYBRIDIZATION };
 
   Atom const& AJ = topIn[aj];
-  mprintf("DEBUG:\t\tI %s Nbonds: %i\n", topIn[ai].ElementName(), topIn[ai].Nbonds());
-  mprintf("DEBUG:\t\tJ %s Nbonds: %i\n", AJ.ElementName(), AJ.Nbonds());
-  mprintf("DEBUG:\t\tK %s Nbonds: %i\n", topIn[ak].ElementName(), topIn[ak].Nbonds());
+  if (debug > 0) {
+    mprintf("DEBUG:\t\tI %s Nbonds: %i\n", topIn[ai].ElementName(), topIn[ai].Nbonds());
+    mprintf("DEBUG:\t\tJ %s Nbonds: %i\n", AJ.ElementName(), AJ.Nbonds());
+    mprintf("DEBUG:\t\tK %s Nbonds: %i\n", topIn[ak].ElementName(), topIn[ak].Nbonds());
+  }
   // Sanity check
   if (AJ.Nbonds() < 2) {
     mprinterr("Internal Error: AssignTheta() called for atom J %s with fewer than 2 bonds.\n", topIn.AtomMaskName(aj).c_str());
@@ -125,53 +128,32 @@ static inline double wrap360(double phi) {
 int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, int al,
                                          Topology const& topIn, Frame const& frameIn,
                                          std::vector<bool> const& atomPositionKnown,
-                                         BuildAtom const& AtomJ)
+                                         BuildAtom const& AtomJ, int debug)
 {
   // Figure out hybridization and chirality of atom j.
-  mprintf("DEBUG: AssignPhi for atom j : %s\n", topIn.AtomMaskName(aj).c_str());
+  if (debug > 0)
+    mprintf("DEBUG: AssignPhi for atom j : %s\n", topIn.AtomMaskName(aj).c_str());
 
   Atom const& AJ = topIn[aj];
-  mprintf("DEBUG:\t\tNbonds: %i\n", AJ.Nbonds());
+  if (debug > 0) mprintf("DEBUG:\t\tNbonds: %i\n", AJ.Nbonds());
   // If atom J only has 2 bonds, ai-aj-ak-al is the only possibility.
   if (AJ.Nbonds() < 3) {
-    mprintf("DEBUG:\t\tFewer than 3 bonds. Setting phi to -180.\n");
+    if (debug > 0)
+      mprintf("DEBUG:\t\tFewer than 3 bonds. Setting phi to -180.\n");
     phi = -180 * Constants::DEGRAD;
     return 0;
   }
 
-  // FIXME aj ak and al should be known
   // TODO check that atom i actually ends up on the list?
-  //std::vector<int> Priority( AJ.Nbonds() );
-  //int* priority = static_cast<int*>( &AtomJ_Priority[0] );
   std::vector<int> const& priority = AtomJ.Priority();
-  double tors = 0;
-  // FIXME - Only need priority here. 
-  //ChiralType chirality = DetermineChirality(tors, priority, aj, topIn, frameIn, 1); // FIXME debug
-  //if (chirality == CHIRALITY_ERR) {
-  //  mprinterr("Error: Problem determining chirality around atom %s\n", topIn.AtomMaskName(aj).c_str());
-  //  return 1;
-  //} /*else if (chirality == IS_UNKNOWN_CHIRALITY) {
-  //  mprintf("DEBUG:\t\tChirality is unknown\n");
-  //} else if (chirality == IS_S) {
-  //  mprintf("DEBUG:\t\tChirality is S\n");
-  //} else {
-  //  mprintf("DEBUG:\t\tChirality is R\n");
-  //}*/
-  mprintf("DEBUG: Original chirality around J %s is %s\n", topIn.AtomMaskName(aj).c_str(), chiralStr(AtomJ.Chirality()));
-  mprintf("DEBUG:\t\tPriority around J %s(%i) (tors=%g):", 
-          topIn.AtomMaskName(aj).c_str(), (int)atomPositionKnown[aj], tors*Constants::RADDEG);
-  for (int idx = 0; idx < AJ.Nbonds(); idx++)
-    mprintf(" %s(%i)", topIn.AtomMaskName(priority[idx]).c_str(), (int)atomPositionKnown[priority[idx]]);
-  mprintf("\n");
-  // Determine if chirality is valid
-/*  bool chirality_is_valid = true;
-  for (unsigned int idx = 0; idx < priority.size(); idx++) {
-    if (atomPositionKnown[priority[idx]] != atomPositionKnown[aj]) {
-      chirality_is_valid = false;
-      break;
-    }
+  if (debug > 0) {
+    mprintf("DEBUG: Original chirality around J %s is %s\n", topIn.AtomMaskName(aj).c_str(), chiralStr(AtomJ.Chirality()));
+    mprintf("DEBUG:\t\tPriority around J %s(%i):", 
+            topIn.AtomMaskName(aj).c_str(), (int)atomPositionKnown[aj]);
+    for (int idx = 0; idx < AJ.Nbonds(); idx++)
+      mprintf(" %s(%i)", topIn.AtomMaskName(priority[idx]).c_str(), (int)atomPositionKnown[priority[idx]]);
+    mprintf("\n");
   }
-  mprintf("DEBUG:\t\tChirality is valid: %i\n", (int)chirality_is_valid);*/
 
   // Fill in what values we can for known atoms
   std::vector<double> knownPhi( AJ.Nbonds() );
@@ -187,7 +169,8 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
                               frameIn.XYZ(aj),
                               frameIn.XYZ(ak),
                               frameIn.XYZ(al));
-      mprintf("DEBUG:\t\tKnown phi for %s = %g\n", topIn.AtomMaskName(atnum).c_str(), knownPhi[idx]*Constants::RADDEG);
+      if (debug > 0)
+        mprintf("DEBUG:\t\tKnown phi for %s = %g\n", topIn.AtomMaskName(atnum).c_str(), knownPhi[idx]*Constants::RADDEG);
       if (knownIdx == -1) knownIdx = idx; // FIXME handle more than 1 known
     }
   }
@@ -204,8 +187,9 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
       if (atnum != ak) {
         int currentDepth = 0;
         depth[idx] = atom_depth(currentDepth, atnum, topIn, visited, 10);
-        mprintf("DEBUG:\t\tAJ %s depth from %s is %i\n",
-                topIn.AtomMaskName(aj).c_str(), topIn.AtomMaskName(atnum).c_str(), depth[idx]);
+        if (debug > 0)
+          mprintf("DEBUG:\t\tAJ %s depth from %s is %i\n",
+                  topIn.AtomMaskName(aj).c_str(), topIn.AtomMaskName(atnum).c_str(), depth[idx]);
         if (knownIdx == -1 && depth[idx] < 3) {
           knownIdx = idx;
           knownPhi[idx] = 0;
@@ -220,13 +204,7 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
   double startPhi;
   if (knownIdx == -1) {
     startPhi = -180*Constants::DEGRAD;
-    // If all atom statuses match the chirality is valid. Have R start -180.
-    //if (chirality_is_valid)
-    //{
-    //  if (chirality == IS_R) // FIXME just always start -180?
-    //    startPhi = -180*Constants::DEGRAD;
-    //}
-    mprintf("DEBUG:\t\tNo known phi. Setting to %g.\n", startPhi*Constants::RADDEG);
+    if (debug > 0) mprintf("DEBUG:\t\tNo known phi. Setting to %g.\n", startPhi*Constants::RADDEG);
     knownIdx = 0;
   } else
     startPhi = knownPhi[knownIdx];
@@ -235,8 +213,10 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
     startPhi = -startPhi;
     interval = -interval;
   }
-  mprintf("DEBUG:\t\tStart phi is %g degrees\n", startPhi*Constants::RADDEG);
-  mprintf("DEBUG:\t\tInterval is %g degrees\n", interval * Constants::RADDEG);
+  if (debug > 0) {
+    mprintf("DEBUG:\t\tStart phi is %g degrees\n", startPhi*Constants::RADDEG);
+    mprintf("DEBUG:\t\tInterval is %g degrees\n", interval * Constants::RADDEG);
+  }
     
   // Forward direction
   double currentPhi = startPhi;
@@ -244,7 +224,8 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
     int atnum = priority[idx];
     if (atnum != ak) {
       if (atnum == ai) phi = currentPhi;
-      mprintf("DEBUG:\t\t\t%s phi= %g\n", topIn.AtomMaskName(atnum).c_str(), currentPhi*Constants::RADDEG);
+      if (debug > 0)
+        mprintf("DEBUG:\t\t\t%s phi= %g\n", topIn.AtomMaskName(atnum).c_str(), currentPhi*Constants::RADDEG);
       currentPhi += interval;
       currentPhi = wrap360(currentPhi);
     }
@@ -255,7 +236,8 @@ int Cpptraj::Structure::Model::AssignPhi(double& phi, int ai, int aj, int ak, in
     int atnum = priority[idx];
     if (atnum != ak) {
       if (atnum == ai) phi = currentPhi;
-      mprintf("DEBUG:\t\t\t%s phi= %g\n", topIn.AtomMaskName(atnum).c_str(), currentPhi*Constants::RADDEG);
+      if (debug > 0)
+        mprintf("DEBUG:\t\t\t%s phi= %g\n", topIn.AtomMaskName(atnum).c_str(), currentPhi*Constants::RADDEG);
       currentPhi -= interval;
       currentPhi = wrap360(currentPhi);
     }
