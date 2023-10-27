@@ -60,10 +60,10 @@ int DataIO_AmberLib::ReadData(FileName const& fname, DataSetList& dsl, std::stri
     line = infile.GetLine();
   }
   // Now should be at first unit
-  mprintf("DEBUG: Units:\n");
+  if (debug_ > 0) mprintf("DEBUG: Units:\n");
   for (Sarray::const_iterator it = UnitNames.begin(); it != UnitNames.end(); ++it)
   {
-    mprintf("DEBUG: Reading unit %s\n", it->c_str());
+    if (debug_ > 0) mprintf("DEBUG: Reading unit %s\n", it->c_str());
     std::string entryColumn = "!entry." + *it + ".unit.atoms";
     ArgList tmparg( line );
     if (tmparg.Nargs() < 1 || tmparg[0] != entryColumn) {
@@ -80,7 +80,7 @@ int DataIO_AmberLib::ReadData(FileName const& fname, DataSetList& dsl, std::stri
       return 1;
     }
   }
-
+  mprintf("\tRead %zu units from Amber OFF file.\n", UnitNames.size());
 
   return 0;
 }
@@ -109,6 +109,7 @@ DataIO_AmberLib::SectionType DataIO_AmberLib::id_section(std::string const& line
   return UNKNOWN_SECTION;
 }
 
+/// Remove quotes from string
 static inline std::string noquotes(const char* ptrIn) {
  std::string out;
  for (const char* ptr = ptrIn; *ptr != '\0'; ++ptr)
@@ -117,6 +118,7 @@ static inline std::string noquotes(const char* ptrIn) {
   return out;
 }
 
+/** Read atoms line */
 int DataIO_AmberLib::read_atoms(Topology& topOut, std::string const& line, std::string const& unitName) {
   // Format: "Atom name" "Type" "Type index (unused)" "resnum" "flags" "sequence" "element" "charge"
   char aname[16];
@@ -150,19 +152,19 @@ int DataIO_AmberLib::read_atoms(Topology& topOut, std::string const& line, std::
   return 0;
 }
 
+/** Read positions line. */
 int DataIO_AmberLib::read_positions(std::vector<Vec3>& positions, std::string const& line)
 {
   double x, y, z;
-  mprintf("DEBUG Positions %s\n", line.c_str());
   if (sscanf(line.c_str(), "%lf %lf %lf", &x, &y, &z) != 3) {
     mprinterr("Error: Expected 3 columns for positions line: %s\n", line.c_str());
     return 1;
   }
-  mprintf("DEBUG: %g %g %g\n", x, y, z);
   positions.push_back( Vec3(x, y, z) );
   return 0;
 }
 
+/** Read bonds line */
 int DataIO_AmberLib::read_bonds(Topology& topOut, std::string const& line) {
   int at0, at1, flags;
   if (sscanf(line.c_str(), "%i %i %i", &at0, &at1, &flags) != 3) {
@@ -173,6 +175,7 @@ int DataIO_AmberLib::read_bonds(Topology& topOut, std::string const& line) {
   return 0;
 }
 
+/** Read connections line */
 int DataIO_AmberLib::read_connect(AssociatedData_Connect& ConnectAtoms, std::string const& line) {
   int connectAtom = -1;
   if (sscanf(line.c_str(), "%i", &connectAtom) != 1) {
@@ -188,7 +191,6 @@ int DataIO_AmberLib::read_connect(AssociatedData_Connect& ConnectAtoms, std::str
   return 0;
 }
 
-  
 /** Read a unit from OFF file. It is expected that the next line from
   * infile is the first entry in the unit.atoms table.
   */
@@ -203,7 +205,7 @@ const
     mprinterr("Error: Could not ID first section: %s\n", Line.c_str());
     return 1;
   }
-  mprintf("DEBUG: First section is %s\n", sectionStr_[currentSection]);
+  if (debug_ > 1) mprintf("DEBUG: First section is %s\n", sectionStr_[currentSection]);
 
   Topology top;
   top.SetParmName( unitName, FileName() );
@@ -219,7 +221,7 @@ const
     }
     Line.assign(lineptr);
     if (!Line.empty()) {
-      mprintf("DEBUG: Line: %s\n", Line.c_str());
+      if (debug_ > 2) mprintf("DEBUG: Line: %s\n", Line.c_str());
       //ArgList cols( Line, " \t\n" );
       if (Line[0] == '!') {
         // See if we are at another unit
@@ -231,8 +233,9 @@ const
         currentSection = id_section( Line, unitName );
         if (currentSection == UNKNOWN_SECTION) {
           mprintf("Warning: Could not ID section: %s\n", Line.c_str());
-        } else
-          mprintf("DEBUG: Section is %s\n", sectionStr_[currentSection]);
+        } else {
+          if (debug_ > 1) mprintf("DEBUG: Section is %s\n", sectionStr_[currentSection]);
+        }
       } else if (currentSection == ATOMTABLE) {
         if (read_atoms(top, Line, unitName)) return 1;
       } else if (currentSection == CONNECTIVITY) {
@@ -245,7 +248,7 @@ const
     }
   }
   top.CommonSetup();
-  top.Summary();
+  if (debug_ > 1) top.Summary();
   frm.SetupFrameV( top.Atoms(), CoordinateInfo() );
   frm.ClearAtoms();
   for (std::vector<Vec3>::const_iterator it = positions.begin(); it != positions.end(); ++it)
@@ -254,7 +257,7 @@ const
   crd->CoordsSetup(top, frm.CoordsInfo());
   crd->AddFrame( frm );
   crd->AssociateData( &ConnectAtoms );
-  ConnectAtoms.Ainfo();
+  if (debug_ > 1) ConnectAtoms.Ainfo();
   mprintf("\n");
   
   return 0;
