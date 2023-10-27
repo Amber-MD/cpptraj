@@ -77,6 +77,7 @@ int Zmatrix::AddIC(InternalCoords const& ic) {
   return 0;
 }
 
+/** Set IC at specified position. */ // TODO check if seed?
 void Zmatrix::SetIC(unsigned int idx, InternalCoords const& ic) {
   IC_[idx] = ic;
 }
@@ -118,116 +119,6 @@ void Zmatrix::print(Topology* topIn) const {
               it->Dist(), it->Theta(), it->Phi());
   }
 }
-
-// -------------------------------------
-/// For bonded atoms, hold atom index, atom number, and # bonds.
-/** Used to determine atom priority when looking for torsions to
-  * base ICs off of.
-  */
-/*class AtnumNbonds {
-  public:
-    /// CONSTRUCTOR
-    AtnumNbonds() : idx_(-1), priority_(-1), nbonds_(-1) {}
-    /// CONSTRUCTOR
-    AtnumNbonds(int idx, Atom const& atm) :
-      idx_(idx), priority_(mainChainPriority(atm)), nbonds_(atm.Nbonds()) {}
-    /// Sort by priority, # bonds, atom index
-    bool operator<(const AtnumNbonds& rhs) const {
-      if (idx_ < 0) return false;
-      if (priority_ == rhs.priority_) {
-        if (nbonds_ == rhs.nbonds_) {
-          return (idx_ < rhs.idx_);
-        } else {
-          return (nbonds_ < rhs.nbonds_);
-        }
-      } else {
-        return (priority_ < rhs.priority_);
-      }
-    }
-    int Idx() const { return idx_; }
-    int Priority() const { return priority_; }
-    int Nbonds() const { return nbonds_; }
-  private:
-    /// Set priority based on how likely this is to be a main chain atom.
-    static int mainChainPriority(Atom const& atm) {
-      switch(atm.Element()) {
-        case Atom::CARBON     : return 0; // highest priority
-        case Atom::NITROGEN   :
-        case Atom::BORON      : 
-        case Atom::PHOSPHORUS : return 1;
-        case Atom::OXYGEN     :
-        case Atom::SULFUR     : return 2;
-        // These atoms form only 1 bond and have lowest priority
-        case Atom::HYDROGEN   :
-        case Atom::FLUORINE   :
-        case Atom::CHLORINE   :
-        case Atom::BROMINE    :
-        case Atom::LITHIUM    : return 4;
-        default               : return 3; // 1 bond priority - 1
-      }
-      return 5; // should never get here
-    }
-
-    int idx_;      ///< Atom index
-    int priority_; ///< Likelyhood of begin a main chain atom (0 most likely)
-    int nbonds_;   ///< Number of bonded atoms
-};
-
-/// Get bonded atom priorities
-static std::set<AtnumNbonds> getBondedAtomPriorities(int seed0, Topology const& topIn, int ignoreIdx0, int ignoreIdx1) {
-  std::set<AtnumNbonds> bondedAtoms;
-  for (Atom::bond_iterator bat = topIn[seed0].bondbegin();
-                           bat != topIn[seed0].bondend(); ++bat)
-  {
-    if (*bat != ignoreIdx0 && *bat != ignoreIdx1)
-      bondedAtoms.insert( AtnumNbonds(*bat, topIn[*bat]) );
-  }
-  for (std::set<AtnumNbonds>::const_iterator it = bondedAtoms.begin(); it != bondedAtoms.end(); ++it)
-    mprintf("DEBUG: Atom %s bonded atom %s idx=%i priority= %i nbonds=%i\n",
-            topIn.AtomMaskName(seed0).c_str(),
-            topIn.AtomMaskName(it->Idx()).c_str(),
-            it->Idx(), it->Priority(), it->Nbonds());
-  return bondedAtoms;
-}
-
-/// \return Index of atom at front of the set (highest priority).
-static inline int FrontIdx(std::set<AtnumNbonds> const& in) {
-  std::set<AtnumNbonds>::const_iterator it = in.begin();
-  return it->Idx();
-}
-
-/// \return Index of first atom that isSet (has coords), or atom at front of the set (highest priority).
-static inline int FirstOrFrontIdx(std::set<AtnumNbonds> const& in, std::vector<bool> const& isSet)
-{
-  if (in.empty()) return -1;
-  int firstIdx = FrontIdx( in );
-  int firstSetIdx = -1;
-  if (in.size() == 1)
-    firstSetIdx = firstIdx;
-  else {
-    for (std::set<AtnumNbonds>::const_iterator it = in.begin();
-                                               it != in.end(); ++it)
-    {
-      if (isSet[it->Idx()]) {
-        firstSetIdx = it->Idx();
-        break;
-      }
-    }
-  }
-  mprintf("DEBUG: First idx= %i  First set idx= %i\n", firstIdx, firstSetIdx);
-  if (firstSetIdx > -1)
-    return firstSetIdx;
-  return firstIdx;
-}*/
-// -------------------------------------
-
-/** \return True if all IC seeds are set. */
-/*bool Zmatrix::HasICSeeds() const {
-  bool has_ic_seed = (icseed0_ != InternalCoords::NO_ATOM &&
-                      icseed1_ != InternalCoords::NO_ATOM &&
-                      icseed2_ != InternalCoords::NO_ATOM   );
-  return has_ic_seed;
-}*/
 
 /** \return True if all Cartesian seeds are set. */
 bool Zmatrix::HasCartSeeds() const {
@@ -380,76 +271,7 @@ int Zmatrix::autoSetSeeds_simple(Frame const& frameIn, Topology const& topIn, Mo
   return 0;
 }
 
-/** Given a first seed, automatically determine remaining 2 seeds.
-  * Set all seed indices and positions.
-  */
-/*
-int Zmatrix::autoSetSeeds(Frame const& frameIn, Topology const& topIn, unsigned int maxnatom, int firstSeed)
-{
-  int at0 = firstSeed;
-  if (maxnatom < 2) {
-    seedAt0_ = at0;
-    seed0Pos_ = Vec3(frameIn.XYZ(seedAt0_));
-    return 0;
-  }
-  // Choose second seed atom as bonded atom with lowest index. Prefer heavy
-  // atoms and atoms with more than 1 bond.
-  std::set<AtnumNbonds> bondedTo0 = getBondedAtomPriorities(at0, topIn, -1, -1);
-  if (bondedTo0.empty()) {
-    mprinterr("Internal Error: Zmatrix::SetFromFrame(): could not get second seed atom.\n");
-    return 1;
-  }
-  int at1 = FrontIdx( bondedTo0 );
-  if (maxnatom < 3) {
-    seedAt1_ = at1;
-    seed1Pos_ = Vec3(frameIn.XYZ(seedAt1_));
-    return 0;
-  }
-  // The third seed atom will either be bonded to seed 0 or seed 1.
-  AtnumNbonds potential2From0, potential2From1;
-  std::set<AtnumNbonds> bondedTo1 = getBondedAtomPriorities(at1, topIn, at0, -1);
-  if (!bondedTo1.empty()) {
-    std::set<AtnumNbonds>::const_iterator it = bondedTo1.begin();
-    potential2From1 = *it;
-  }
-  if (bondedTo0.size() >= 2) {
-    std::set<AtnumNbonds>::const_iterator it = bondedTo0.begin();
-    ++it;
-    potential2From0 = *it;
-  }
-  if (potential2From0 < potential2From1) {
-    mprintf("DEBUG: 2 - 0 - 1\n");
-    seedAt0_ = potential2From0.Idx();
-    seedAt1_ = at0;
-    seedAt2_ = at1;
-    // D0 D1 D2 A2
-    //addIc(at2, DUMMY2, DUMMY1, DUMMY0, frameIn.XYZ(at2), seed2Pos_.Dptr(), seed1Pos_.Dptr(), seed0Pos_.Dptr());
-    // D1 D2 A2 A0
-    //addIc(at0, at2, DUMMY2, DUMMY1, frameIn.XYZ(at0), frameIn.XYZ(at2), seed2Pos_.Dptr(), seed1Pos_.Dptr());
-    // D2 A2 A0 A1
-    //addIc(at1, at0, at2, DUMMY2, frameIn.XYZ(at1), frameIn.XYZ(at0), frameIn.XYZ(at2), seed2Pos_.Dptr());
-  } else {
-    mprintf("DEBUG: 0 - 1 - 2\n");
-    seedAt0_ = at0;
-    seedAt1_ = at1;
-    seedAt2_ = potential2From1.Idx();
-    // D0 D1 D2 A0
-    //addIc(at0, DUMMY2, DUMMY1, DUMMY0, frameIn.XYZ(at0), seed2Pos_.Dptr(), seed1Pos_.Dptr(), seed0Pos_.Dptr());
-    // D1 D2 A0 A1
-    //addIc(at1, at0, DUMMY2, DUMMY1, frameIn.XYZ(at1), frameIn.XYZ(at0), seed2Pos_.Dptr(), seed1Pos_.Dptr());
-    // D2 A0 A1 A2
-    //addIc(at2, at1, at0, DUMMY2, frameIn.XYZ(at2), frameIn.XYZ(at1), frameIn.XYZ(at0), seed2Pos_.Dptr());
-  }
-  mprintf("DEBUG: Seed atoms: %s - %s - %s\n",
-          topIn.AtomMaskName(seedAt0_).c_str(), 
-          topIn.AtomMaskName(seedAt1_).c_str(), 
-          topIn.AtomMaskName(seedAt2_).c_str());
-  seed0Pos_ = Vec3(frameIn.XYZ(seedAt0_));
-  seed1Pos_ = Vec3(frameIn.XYZ(seedAt1_));
-  seed2Pos_ = Vec3(frameIn.XYZ(seedAt2_));
-  return 0;
-}*/
-
+/// For DEBUG, print integer array
 static inline void printIarray(std::vector<int> const& arr, const char* desc, Topology const& topIn) {
   mprintf("DEBUG:\t\t%s:", desc);
   for (std::vector<int>::const_iterator it = arr.begin(); it != arr.end(); ++it)
@@ -705,114 +527,6 @@ int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn) {
 int Zmatrix::SetFromFrame(Frame const& frameIn, Topology const& topIn, int molnum)
 {
   return SetFromFrame_Trace(frameIn, topIn, molnum);
-/*
-  if (molnum < 0) {
-    mprinterr("Internal Error: Zmatrix::SetFromFrame(): Negative molecule index.\n");
-    return 1;
-  }
-  if (topIn.Nmol() < 1) {
-    mprinterr("Internal Error: Zmatrix::SetFromFrame(): No molecules.\n");
-    return 1;
-  }
-  IC_.clear();
-  Molecule const& currentMol = topIn.Mol(molnum);
-  // Flatten the molecule array
-  Iarray atomIndices;
-  atomIndices.reserve( currentMol.NumAtoms() );
-  for (Unit::const_iterator seg = currentMol.MolUnit().segBegin();
-                            seg != currentMol.MolUnit().segEnd(); ++seg)
-    for (int idx = seg->Begin(); idx != seg->End(); ++idx)
-      atomIndices.push_back( idx );
-  unsigned int maxnatom = atomIndices.size();
-
-  // Keep track of which atoms are associated with an internal coordinate
-  Barray hasIC( topIn.Natom(), false );
-  unsigned int nHasIC = 0;
-
-  // See if we need to assign seed atoms
-  if (!HasCartSeeds()) {
-    // First seed atom will just be first atom TODO lowest index heavy atom?
-    if (autoSetSeeds(frameIn, topIn, maxnatom, atomIndices.front())) {
-      mprinterr("Error: Could not automatically determine seed atoms.\n");
-      return 1;
-    }
-
-  } else {
-    // Seed atoms already set
-    mprintf("DEBUG: Cartesian Seed indices: %s %s %s\n",
-            topIn.AtomMaskName(seedAt0_).c_str(),
-            topIn.AtomMaskName(seedAt1_).c_str(),
-            topIn.AtomMaskName(seedAt2_).c_str());
-  }
-  // If there are less than 4 atoms we are done
-  if (maxnatom < 4) return 0;
-  // Seeds are already done
-  MARK(seedAt0_, hasIC, nHasIC);
-  MARK(seedAt1_, hasIC, nHasIC);
-  MARK(seedAt2_, hasIC, nHasIC);
-  // Do the remaining atoms.
-  // Find the lowest unset atom.
-  unsigned int lowestUnsetIdx = 0;
-  for (; lowestUnsetIdx < maxnatom; ++lowestUnsetIdx)
-    if (!hasIC[atomIndices[lowestUnsetIdx]]) break;
-  mprintf("DEBUG: Lowest unset atom %i at index %u\n", atomIndices[lowestUnsetIdx]+1, lowestUnsetIdx);
-
-  // Loop over remaining atoms
-  while (nHasIC < maxnatom) {
-    // Find the next atom that is not yet set.
-    unsigned int idx = lowestUnsetIdx;
-    bool findNextAtom = true;
-    int ai = -1;
-    int aj = -1;
-    int ak = -1;
-    int al = -1;
-    while (findNextAtom) {
-      while (idx < maxnatom && hasIC[atomIndices[idx]]) idx++;
-      if (idx >= maxnatom) {
-        mprinterr("Error: Could not find next atom to set.\n");
-        return 1;
-      }
-      ai = atomIndices[idx];
-      mprintf("DEBUG:\tAttempting to set atom i %i\n", ai+1);
-      // Determine j k and l indices. Prefer atoms that have already been set.
-      std::set<AtnumNbonds> bondedAtomsI = getBondedAtomPriorities(ai, topIn, -1, -1);
-      aj = FirstOrFrontIdx( bondedAtomsI, hasIC );
-      mprintf("DEBUG:\t\tAtom j = %i\n", aj+1);
-      std::set<AtnumNbonds> bondedAtomsJ = getBondedAtomPriorities(aj, topIn, ai, -1); // TODO reuse bondedAtomsI?
-      ak = FirstOrFrontIdx( bondedAtomsJ, hasIC );
-      mprintf("DEBUG:\t\tAtom k = %i\n", ak+1);
-      // FIXME check for cycle here?
-      std::set<AtnumNbonds> bondedAtomsK = getBondedAtomPriorities(ak, topIn, aj, ai); // TODO reuse bondedAtomsI?
-      al = FirstOrFrontIdx( bondedAtomsK, hasIC );
-      mprintf("DEBUG:\t\tAtom l = %i\n", al+1);
-      if (aj < 0 || ak < 0 || al < 0) {
-        //mprinterr("Internal Error: Could not find torsion for atom %i %s\n", ai+1, topIn.AtomMaskName(ai).c_str());
-        //return 1;
-        mprintf("Warning: Could not find torsion for atom %i %s\n", ai+1, topIn.AtomMaskName(ai).c_str());
-        mprintf("Warning: Creating pseudo torsion using seed atoms.\n");
-        aj = seedAt2_;
-        ak = seedAt1_;
-        al = seedAt0_;
-        // TODO mark such torsions as problematic in InternalCoords?
-      }
-      // All 3 of the connecting atoms must be set
-      if (hasIC[aj] && hasIC[ak] && hasIC[al]) {
-        findNextAtom = false;
-      } else
-        idx++;
-    } // END loop over findNextAtom
-    // Create IC for i j k l
-    addIc(ai, aj, ak, al, frameIn.XYZ(ai), frameIn.XYZ(aj), frameIn.XYZ(ak), frameIn.XYZ(al));
-    MARK(ai, hasIC, nHasIC);
-
-    // Next lowest unset atom
-    for (; lowestUnsetIdx < maxnatom; ++lowestUnsetIdx)
-      if (!hasIC[atomIndices[lowestUnsetIdx]]) break;
-
-    //break; //DEBUG
-  } // END loop over remaining atoms
-
-  return 0;*/
 }
 
 /** Given two bonded atoms A and B, where B has a depth of at least 2
@@ -828,15 +542,6 @@ int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology
   mprintf("DEBUG: SetFromFrameAroundBond: atA= %s (%i)  atB= %s (%i)\n",
           topIn.AtomMaskName(atA).c_str(), atA+1,
           topIn.AtomMaskName(atB).c_str(), atB+1);
-/*  mprintf("DEBUG: Atoms:\n");
-  for (int at = 0; at != topIn.Natom(); ++at)
-    mprintf("DEBUG:\t\t%s (%i) %s\n", topIn.AtomMaskName(at).c_str(), (int)atomPositionKnown[at], chiralStr(atomChirality[at]));
-  // Sanity check. A and B must be bonded
-  if (!topIn[atA].IsBondedTo(atB)) {
-    mprinterr("Internal Error: SetFromFrameAroundBond(): Atoms %s and %s are not bonded.\n",
-              topIn.AtomMaskName(atA).c_str(), topIn.AtomMaskName(atB).c_str());
-    return 1;
-  }*/
   IC_.clear();
 
   Barray hasIC( topIn.Natom(), false );
@@ -979,12 +684,10 @@ int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology
         return 1;
     } else {
       // 3 or more bonds
-      //double tors;
-      std::vector<int> const& priority = AtomA.Priority(); //( AJ1.Nbonds() );
+      std::vector<int> const& priority = AtomA.Priority();
       int at0 = -1;
       int at1 = -1;
       std::vector<int> remainingAtoms;
-      //DetermineChirality(tors, &priority[0], atA, topIn, frameIn, 0); // FIXME debug level
       mprintf("DEBUG: %i bonds to %s\n", AJ1.Nbonds(), topIn.AtomMaskName(atA).c_str());
       for (std::vector<int>::const_iterator it = priority.begin(); it != priority.end(); ++it) {
         if (*it != atB) {
@@ -1011,12 +714,6 @@ int Zmatrix::SetupICsAroundBond(int atA, int atB, Frame const& frameIn, Topology
     }
   }
       
-  // Add the rest
-  //for (unsigned int idx = 0; idx < ToTrace.size(); idx += 3) {
-  //  if (traceMol(ToTrace[idx], ToTrace[idx+1], ToTrace[idx+2], frameIn, topIn, topIn.Natom(), nHasIC, hasIC))
-  //    return 1;
- // }
-
   return 0;
 }
 
@@ -1166,37 +863,6 @@ int Zmatrix::SetToFrame(Frame& frameOut, Barray& hasPosition) const {
 
     InternalCoords const& ic = IC_[idx];
     Vec3 posI = AtomIposition(ic, frameOut);
-/*
-    double rdist = ic.Dist();
-    double theta = ic.Theta();
-    double phi   = ic.Phi();
-
-    double sinTheta = sin(theta * Constants::DEGRAD);
-    double cosTheta = cos(theta * Constants::DEGRAD);
-    double sinPhi   = sin(phi   * Constants::DEGRAD);
-    double cosPhi   = cos(phi   * Constants::DEGRAD);
-
-    // NOTE: Want -x
-    Vec3 xyz( -(rdist * cosTheta),
-                rdist * cosPhi * sinTheta,
-                rdist * sinPhi * sinTheta );
-
-    Vec3 posL = Vec3( frameOut.XYZ( ic.AtL()) );
-    Vec3 posK = Vec3( frameOut.XYZ( ic.AtK()) );
-    Vec3 posJ = Vec3( frameOut.XYZ( ic.AtJ()) );
-
-    Vec3 LK = posK - posL;
-    Vec3 KJ = posJ - posK;
-    KJ.Normalize();
-    Vec3 Norm = LK.Cross(KJ);
-    Norm.Normalize();
-    Vec3 NxKJ = Norm.Cross(KJ);
-
-    Matrix_3x3 Rot( KJ[0], NxKJ[0], Norm[0],
-                    KJ[1], NxKJ[1], Norm[1],
-                    KJ[2], NxKJ[2], Norm[2] );
-
-    Vec3 posI = (Rot * xyz) + posJ;*/
 
     frameOut.SetXYZ( ic.AtI(), posI );
     hasPosition[ ic.AtI() ] = true;
