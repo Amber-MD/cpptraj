@@ -65,8 +65,9 @@ const
       mprinterr("Error: Not enough connect atoms in unit '%s'\n", unit->legend());
       return 1;
     }
-    // Update connect atom indices based on their position in the sequence.
-    connectAt0.push_back( C.Connect()[0] + total_natom );
+    // Update connect atom 1 indices based on their position in the sequence.
+    // Do not update connect atom 0 indices since they will not yet be connected.
+    connectAt0.push_back( C.Connect()[0] );
     connectAt1.push_back( C.Connect()[1] + total_natom );
     Units.push_back( unit );
     total_natom += unit->Top().Natom();
@@ -78,12 +79,6 @@ const
   }
   for (unsigned int idx = 0; idx < Units.size(); idx++)
     mprintf("\tUnit %s HEAD %i TAIL %i\n", Units[idx]->legend(), connectAt0[idx]+1, connectAt1[idx]+1);
-  if (Units.size() > 1) {
-    for (unsigned int idx = 1; idx < Units.size(); idx++)
-      mprintf("\tConnect %s atom %i to %s atom %i\n",
-              Units[idx-1]->legend(), connectAt1[idx-1]+1,
-              Units[idx]->legend(),   connectAt0[idx]  +1);
-  }
 
   Topology combinedTop;
   combinedTop.SetDebug( debug_ );
@@ -98,7 +93,23 @@ const
 
   using namespace Cpptraj::Structure;
   Builder builder;
-  
+  for (unsigned int idx = 1; idx < Units.size(); idx++) {
+    mprintf("\tConnect %s atom %i to %s atom %i\n",
+            Units[idx-1]->legend(), connectAt1[idx-1]+1,
+            Units[idx]->legend(),   connectAt0[idx]  +1);
+    Frame mol1frm = Units[idx]->AllocateFrame();
+    Units[idx]->GetFrame(0, mol1frm);
+    if (builder.Combine( combinedTop, CombinedFrame, Units[idx]->Top(), mol1frm,
+                         connectAt1[idx-1], connectAt0[idx] )) {
+      mprinterr("Error: Sequence combine between units %u %s and %u %s failed.\n",
+                idx, Units[idx-1]->legend(), idx+1, Units[idx]->legend());
+      return 1;
+    }
+  }
+
+  OUT->CoordsSetup(combinedTop, CombinedFrame.CoordsInfo());
+  OUT->AddFrame( CombinedFrame );
+
   return 0;
 }
 
