@@ -99,6 +99,13 @@ const
             Units[idx]->legend(),   connectAt0[idx]  +1);
     Frame mol1frm = Units[idx]->AllocateFrame();
     Units[idx]->GetFrame(0, mol1frm);
+    int bondat0 = connectAt1[idx-1];
+    int bondat1 = connectAt0[idx];
+    if (bondat0 < 0 || bondat1 < 0) {
+      mprinterr("Error: Invalid connect atom(s) between %s atom %i to %s atom %i\n",
+                Units[idx-1]->legend(), bondat0+1, Units[idx]->legend(), bondat1+1);
+      return 1;
+    }
     if (builder.Combine( combinedTop, CombinedFrame, Units[idx]->Top(), mol1frm,
                          connectAt1[idx-1], connectAt0[idx] )) {
       mprinterr("Error: Sequence combine between units %u %s and %u %s failed.\n",
