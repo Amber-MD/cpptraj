@@ -10,5 +10,8 @@ class Exec_Sequence : public Exec {
     RetType Execute(CpptrajState&, ArgList&);
   private:
     typedef std::vector<std::string> Sarray;
+
+    int generate_sequence(DataSet_Coords*, DataSetList const&,
+                          Sarray const&, Sarray const&) const;
 };
 #endif

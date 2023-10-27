@@ -7,6 +7,57 @@ void Exec_Sequence::Help() const
 
 }
 
+/** Generate and build the specified sequence. */
+int Exec_Sequence::generate_sequence(DataSet_Coords* OUT,
+                                     DataSetList const& DSL,
+                                     Sarray const& main_sequence,
+                                     Sarray const& LibSetNames)
+const
+{
+  // First, get all units in order.
+  typedef std::vector<DataSet_Coords*> Uarray;
+  Uarray Units;
+  Units.reserve( main_sequence.size() );
+
+  for (Sarray::const_iterator it = main_sequence.begin(); it != main_sequence.end(); ++it)
+  {
+    DataSet_Coords* unit = 0;
+    if (LibSetNames.empty()) {
+      // Look for name
+      unit = (DataSet_Coords*)DSL.FindSetOfGroup( *it, DataSet::COORDINATES );
+    } else {
+      // Look for name[aspect]
+      DataSet* ds = 0;
+      for (Sarray::const_iterator name = LibSetNames.begin(); name != LibSetNames.end(); ++name)
+      {
+        MetaData meta(*name, *it);
+        ds = DSL.CheckForSet( meta );
+        if (ds != 0) break;
+      }
+      if (ds != 0) {
+        if (ds->Group() != DataSet::COORDINATES) {
+          mprinterr("Error: Set '%s' is not of type Coordinates.\n", ds->legend());
+          return 1;
+        }
+        unit = (DataSet_Coords*)ds;
+      }
+    }
+    if (unit == 0) {
+      mprinterr("Error: Unit '%s' not found.\n", it->c_str());
+      return 1;
+    }
+    // Needs to have connect associated data
+    AssociatedData* ad = unit->GetAssociatedData(AssociatedData::CONNECT);
+    if (ad == 0) {
+      mprinterr("Error: Unit '%s' does not have CONNECT data.\n");
+      return 1;
+    }
+    Units.push_back( unit );
+  } // END loop over sequence
+  mprintf("\tFound %zu units.\n", Units.size());
+  return 0;
+}
+
 // Exec_Sequence::Execute()
 Exec::RetType Exec_Sequence::Execute(CpptrajState& State, ArgList& argIn)
 {
