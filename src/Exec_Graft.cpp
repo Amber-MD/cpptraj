@@ -340,7 +340,8 @@ const
   combinedTop.SetParmName( outCoords->Meta().Name(), FileName() );
   combinedTop.AppendTop( mol0Top );
   combinedTop.SetParmBox( mol0frm.BoxCrd() );
-  combinedTop.Brief("Grafted parm:");
+  if (debug_ > 0)
+    combinedTop.Brief("Grafted parm:");
 
   Frame CombinedFrame = mol0frm;
   Builder builder;
