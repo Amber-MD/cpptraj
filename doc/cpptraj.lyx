@@ -6253,7 +6253,7 @@ The following COORDS data set commands are available:
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="17" columns="2">
+<lyxtabular version="3" rows="18" columns="2">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="75text%">
@@ -6585,7 +6585,7 @@ Rotate specified dihedral to specified value or by given increment.
 </cell>
 </row>
 <row>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -6594,11 +6594,32 @@ splitcoords
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
 Split molecules in a COORDS set into a trajectory.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+zmatrix
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Apply Z-matrix to a COORDS set or calculate Z-matrix for a molecule/frame
+ in a COORDS set.
 \end_layout
 
 \end_inset
@@ -8885,6 +8906,124 @@ Set0
 
 \begin_layout LyX-Code
 splitcoords Set0 name Set0Split
+\end_layout
+
+\begin_layout Subsection
+zmatrix
+\end_layout
+
+\begin_layout LyX-Code
+zmatrix <COORDS set name> [name <output set name>]
+\end_layout
+
+\begin_layout LyX-Code
+        { zset <input zmatrix set> [parm <top>|parmindex <#>] |
+\end_layout
+
+\begin_layout LyX-Code
+          [molnum <mol#>] [frame <frame#>] [out <zmatrix file>] }
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+<COORDS
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name> COORDS set to calculate Z-matrix from or use as topology for applied
+ Z-matrix.
+\end_layout
+
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<output
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name>] Name of output COORDS set (if 'zset') or output Z-matrix set.
+\end_layout
+
+\begin_layout Description
+zset
+\begin_inset space ~
+\end_inset
+
+<input
+\begin_inset space ~
+\end_inset
+
+zmatrix
+\begin_inset space ~
+\end_inset
+
+set> Name of Z-matrix set to use to generate coordinates.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+parm
+\begin_inset space ~
+\end_inset
+
+<top> Use specified topology name as topology for generated coordinates.
+\end_layout
+
+\begin_layout Description
+parmindex
+\begin_inset space ~
+\end_inset
+
+<#> Use topology index as topology for generated coordinates.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[molnum
+\begin_inset space ~
+\end_inset
+
+<mol#>] Calculate Z-matrix from specified molecule (default first molecule).
+\end_layout
+
+\begin_layout Description
+[frame
+\begin_inset space ~
+\end_inset
+
+<frame#>] Calculate Z-matrix from specified molecule in specified frame
+ (default first frame).
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<zmatrix
+\begin_inset space ~
+\end_inset
+
+file>] File to write calculated Z-matrix to.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Command for working with Z-matrices.
+ If 'zset' is specified, generate coordinates from the specified Z-matrix
+ data set and topology.
+ Otherwise, calculate a Z-matrix for a single molecule from the specified
+ frame of given COORDS data set.
 \end_layout
 
 \begin_layout Section
