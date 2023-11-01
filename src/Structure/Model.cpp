@@ -41,7 +41,18 @@ int Cpptraj::Structure::Model::AssignTheta(double& theta, int ai, int aj, int ak
     case Atom::NITROGEN :
       switch (AJ.Nbonds()) {
         case 2 : hybrid = SP2; break;
-        case 3 : hybrid = SP3; break;
+        case 3 :
+          // Check for potential SP2. If only 1 of the bonded atoms is
+          // hydrogen, assume SP2. TODO actually check for aromaticity.
+          int n_hydrogens = 0;
+          for (Atom::bond_iterator bat = AJ.bondbegin(); bat != AJ.bondend(); ++bat)
+            if (topIn[*bat].Element() == Atom::HYDROGEN)
+              n_hydrogens++;
+          if (n_hydrogens == 1)
+            hybrid = SP2;
+          else
+            hybrid = SP3;
+          break;
       }
       break;
     case Atom::OXYGEN :
