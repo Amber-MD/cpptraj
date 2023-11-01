@@ -9,6 +9,7 @@
 #include "DataSet_Mat3x3.h"
 #include "StringRoutines.h"
 #include "AssociatedData_NOE.h"
+#include "AssociatedData_Connect.h"
 
 // Exec_DataSetCmd::Help()
 void Exec_DataSetCmd::Help() const {
@@ -294,6 +295,54 @@ Exec::RetType Exec_DataSetCmd::ModifyPoints(CpptrajState& State, ArgList& argIn,
     } // END loop over sets
     ds_arg = argIn.GetStringNext();
   } // END loop over set args
+  return CpptrajState::OK;
+}
+
+// Exec_DataSetCmd::SetConnect()
+Exec::RetType Exec_DataSetCmd::SetConnect(CpptrajState& State, ArgList& argIn) {
+  // Keywords
+  AssociatedData_Connect connect;
+  if (connect.ProcessAdataArgs(argIn)) {
+    mprinterr("Error: Could not process 'connect' keywords.\n");
+    return CpptrajState::ERR;
+  }
+  mprintf("\t");
+  connect.Ainfo();
+  mprintf("\n");
+  // Get Data set(s)
+  typedef std::vector<DataSet_Coords*> DCarray;
+  DCarray inputSets;
+  std::string crdsetarg = argIn.GetStringNext();
+  if (crdsetarg.empty())
+    mprintf("Warning: No data set arguments specified.\n");
+  while (!crdsetarg.empty()) {
+    DataSetList dsl1 = State.DSL().GetMultipleSets( crdsetarg );
+    for (DataSetList::const_iterator it = dsl1.begin(); it != dsl1.end(); ++it)
+    {
+      if ( (*it)->Group() != DataSet::COORDINATES ) {
+        mprintf("Warning: 'connect' only works with COORDS sets; '%s' is not COORDS.\n", (*it)->legend());
+      } else {
+        inputSets.push_back( static_cast<DataSet_Coords*>( *it ) );
+      }
+    }
+    crdsetarg = argIn.GetStringNext();
+  }
+  if (inputSets.empty()) {
+    mprinterr("Error: 'connect': No data sets selected.\n");
+    return CpptrajState::ERR;
+  }
+  mprintf("\t%zu sets.\n", inputSets.size());
+  for (DCarray::const_iterator it = inputSets.begin(); it != inputSets.end(); ++it) {
+    // Check for existing associated data
+    AssociatedData_Connect* ad = (AssociatedData_Connect*)(*it)->GetAssociatedData(AssociatedData::CONNECT);
+    if (ad == 0) {
+      (*it)->AssociateData( &connect );
+    } else {
+      mprintf("Warning: Overwriting associated data in '%s'.\n", (*it)->legend());
+      *ad = connect;
+    }
+  }
+
   return CpptrajState::OK;
 }
 
