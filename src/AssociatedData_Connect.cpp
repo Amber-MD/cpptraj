@@ -2,6 +2,14 @@
 #include "CpptrajStdio.h"
 #include "ArgList.h"
 
+/** CONSTRUCTOR - head and tail atom */
+AssociatedData_Connect::AssociatedData_Connect(int head, int tail) :
+  AssociatedData(CONNECT)
+{
+  connect_.push_back( head );
+  connect_.push_back( tail );
+}
+
 const char* AssociatedData_Connect::HelpText = "[head <head atom>] [tail <tail atom>]";
 
 int AssociatedData_Connect::ProcessAdataArgs(ArgList& argIn) {

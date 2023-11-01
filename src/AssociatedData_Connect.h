@@ -8,6 +8,8 @@ class AssociatedData_Connect : public AssociatedData {
   public:
     /// Empty CONSTRUCTOR
     AssociatedData_Connect() : AssociatedData(CONNECT) {}
+    /// CONSTRUCTOR - head and tail atom
+    AssociatedData_Connect(int, int);
     // ----- Inherited functions -------
     static const char* HelpText;
     int ProcessAdataArgs(ArgList&);
