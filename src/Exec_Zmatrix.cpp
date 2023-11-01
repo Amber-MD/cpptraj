@@ -110,7 +110,8 @@ void Exec_Zmatrix::Help() const
   mprintf("\t<COORDS set name> [name <output set name>]\n"
           "\t{ zset <input zmatrix set> [parm <top>|parmindex <#>] |\n"
           "\t  [molnum <mol#>] [frame <frame#>] [out <zmatrix file>] }\n"
-          "  If 'zset' is specified, apply Z-matrix to specified COORDS set;
+          "  If 'zset' is specified, use Z-matrix to generate coordinates using\n"
+          "  a specified topology or topology from specified COORDS set;\n"
           "  output is a new COORDS set.\n"
           "  Otherwise calculate Zmatrix for specified molecule/frame of\n"
           "  specified COORDS set; output is a Z-matrix set.\n");
@@ -120,15 +121,22 @@ void Exec_Zmatrix::Help() const
 Exec::RetType Exec_Zmatrix::Execute(CpptrajState& State, ArgList& argIn)
 {
   debug_ = State.Debug();
-  int molnum = argIn.getKeyInt("molnum", 1) - 1;
-  int frmidx = argIn.getKeyInt("frame", 1) - 1;
   std::string dsname = argIn.GetStringKey("name");
-  DataFile* outfile = State.DFL().AddDataFile( argIn.GetStringKey("out"), argIn ); // TODO not if zset
-
   std::string zsetname = argIn.GetStringKey("zset");
+  int molnum = -1;
+  int frmidx = -1;
+  DataFile* outfile = 0;
   Topology* topIn = 0;
-  if (argIn.Contains("parm") || argIn.Contains("parmindex"))
-    topIn = (Topology*)State.DSL().GetTopology(argIn);
+  if (zsetname.empty()) {
+    // Calculating Z-matrix
+    molnum = argIn.getKeyInt("molnum", 1) - 1;
+    frmidx = argIn.getKeyInt("frame", 1) - 1;
+    outfile = State.DFL().AddDataFile( argIn.GetStringKey("out"), argIn );
+  } else {
+    // Applying Zmatrix
+    if (argIn.Contains("parm") || argIn.Contains("parmindex"))
+      topIn = (Topology*)State.DSL().GetTopology(argIn);
+  }
   // Get COORDS set name
   std::string setname = argIn.GetStringNext();
   // ----- No more args below here -----
