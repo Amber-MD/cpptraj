@@ -57,7 +57,7 @@ const
     // Needs to have connect associated data
     AssociatedData* ad = unit->GetAssociatedData(AssociatedData::CONNECT);
     if (ad == 0) {
-      mprinterr("Error: Unit '%s' does not have CONNECT data.\n");
+      mprinterr("Error: Unit '%s' does not have CONNECT data.\n", unit->legend());
       return 1;
     }
     AssociatedData_Connect const& C = static_cast<AssociatedData_Connect const&>( *ad );
