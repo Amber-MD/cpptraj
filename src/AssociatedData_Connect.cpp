@@ -2,7 +2,7 @@
 #include "CpptrajStdio.h"
 #include "ArgList.h"
 
-const char* AssociatedData_Connect::HelpText = "";
+const char* AssociatedData_Connect::HelpText = "[head <head atom>] [tail <tail atom>]";
 
 int AssociatedData_Connect::ProcessAdataArgs(ArgList& argIn) {
   // Expect user atom args to start from 1
