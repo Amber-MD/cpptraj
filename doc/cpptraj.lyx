@@ -7627,19 +7627,17 @@ graft
 \end_layout
 
 \begin_layout LyX-Code
-graft src <source COORDS> [srcframe <#>] [srcfitmask <mask>] [srcmask <mask>]
+graft src <source COORDS> [srcframe <#>] [srcmask <srcmask> [srccharge <srccharg
+e>]]
 \end_layout
 
 \begin_layout LyX-Code
-      srccharge <charge>
+  	tgt <target COORDS> [tgtframe <#>] [tgtmask <tgtmask> [tgtcharge <tgtcharge>]
+]
 \end_layout
 
 \begin_layout LyX-Code
-  	tgt <target COORDS> [tgtframe <#>] [tgtfitmask <mask>] [tgtmask <mask>]
-\end_layout
-
-\begin_layout LyX-Code
-      tgtcharge <charge>
+      {ic | [srcfitmask <srcmask>] [tgtfitmask <tgtmask>]}
 \end_layout
 
 \begin_layout LyX-Code
@@ -7668,14 +7666,6 @@ COORDS> Source coordinates.
 \end_layout
 
 \begin_layout Description
-[srcfitmask
-\begin_inset space ~
-\end_inset
-
-<mask>] Atoms from source to use if RMS-fitting source onto target.
-\end_layout
-
-\begin_layout Description
 [srcmask
 \begin_inset space ~
 \end_inset
@@ -7683,6 +7673,7 @@ COORDS> Source coordinates.
 <mask>] Atoms to keep from source (default all).
 \end_layout
 
+\begin_deeper
 \begin_layout Description
 [srccharge
 \begin_inset space ~
@@ -7692,6 +7683,7 @@ COORDS> Source coordinates.
  atoms equals <charge> via scaling.
 \end_layout
 
+\end_deeper
 \begin_layout Description
 tgt
 \begin_inset space ~
@@ -7713,14 +7705,6 @@ COORDS> Target coordinates that will be grafted onto.
 \end_layout
 
 \begin_layout Description
-[tgtfitmask
-\begin_inset space ~
-\end_inset
-
-<mask>] Atoms from target to use if RMS-fitting source onto target.
-\end_layout
-
-\begin_layout Description
 [tgtmask
 \begin_inset space ~
 \end_inset
@@ -7728,6 +7712,7 @@ COORDS> Target coordinates that will be grafted onto.
 <mask>] Atoms to keep from target (default all).
 \end_layout
 
+\begin_deeper
 \begin_layout Description
 [tgtcharge
 \begin_inset space ~
@@ -7735,6 +7720,27 @@ COORDS> Target coordinates that will be grafted onto.
 
 <charge>] If trimming atoms from target, ensure sum of charges on remaining
  atoms equals <charge> via scaling.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[ic] Connect source and target using internal coordinates.
+\end_layout
+
+\begin_layout Description
+[srcfitmask
+\begin_inset space ~
+\end_inset
+
+<mask>] Atoms from source to use if RMS-fitting source onto target.
+\end_layout
+
+\begin_layout Description
+[tgtfitmask
+\begin_inset space ~
+\end_inset
+
+<mask>] Atoms from target to use if RMS-fitting source onto target.
 \end_layout
 
 \begin_layout Description
@@ -7756,7 +7762,8 @@ COORDS> Name of output COORDS set containing source grafted onto target.
 
 <tgt>,<src>] Create a bond between target atom selected by <tgt> and source
  atoms selected by <src> in the final structure.
- May be specified multiple times.
+ Must be specified only once if connecting via internal coordinates, otherwise
+ may be specified multiple times.
 \end_layout
 
 \end_deeper
@@ -7787,6 +7794,8 @@ bond
 \series default
  keyword can be used to create bonds between target and source in the final
  structure.
+ If using internal coordinates to connect the units, exactly one bond must
+ be specified.
 \end_layout
 
 \begin_layout Subsection
@@ -9030,6 +9039,22 @@ name> Name of final molecule.
 ...} One or more set name prefixes of data sets (libraries) containing units.
 \end_layout
 
+\begin_layout Standard
+Data sets created:
+\end_layout
+
+\begin_layout Description
+<output
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name> COORDS set containing final molecule.
+\end_layout
+
 \end_deeper
 \begin_layout Standard
 Connect units in different COORDS sets together to form a single molecule.
@@ -9259,6 +9284,23 @@ parmindex
 \end_inset
 
 file>] File to write calculated Z-matrix to.
+\end_layout
+
+\begin_layout Standard
+Data sets created:
+\end_layout
+
+\begin_layout Description
+<output
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name> If 'zset', COORDS set containing final coordinates.
+ Otherwise contains Z-matrix data.
 \end_layout
 
 \end_deeper

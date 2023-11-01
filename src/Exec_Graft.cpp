@@ -121,12 +121,14 @@ int Exec_Graft::select_bond_idx(std::string const& bond0maskstr, Topology const&
 // Exec_Graft::Help()
 void Exec_Graft::Help() const
 {
-  mprintf("\tsrc <source COORDS> [srcframe <#>] [srcfitmask <mask>] [srcmask <mask>]\n"
-          "\t[srccharge <charge>\n"
-          "\ttgt <target COORDS> [tgtframe <#>] [tgtfitmask <mask>] [tgtmask <mask>]\n"
-          "\t[tgtcharge <charge>\n"
+  mprintf("\tsrc <source COORDS> [srcframe <#>] [srcmask <mask> [srccharge <charge>]]\n"
+          "\ttgt <target COORDS> [tgtframe <#>] [tgtmask <mask> [tgtcharge <charge>]]\n"
+          "\t{ic | [srcfitmask <mask>] [tgtfitmask <mask>]}\n"
           "\tname <output COORDS> [bond <tgt>,<src> ...]\n"
-          "  Graft coordinates from source to coordinates in target.\n");
+          "  Graft coordinates from source to coordinates in target.\n"
+          "  If 'ic' is specified use internal coordinates to link the coordinates,\n"
+          "  otherwise rely on rms-fitting. If 'ic' is specified, exactly 1 bond\n"
+          "  must be specified.\n");
 }
 
 // Exec_Graft::Execute()
