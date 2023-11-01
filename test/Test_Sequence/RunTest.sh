@@ -4,7 +4,8 @@
 
 TESTNAME='Sequence tests'
 
-CleanFiles cpptraj.in Mol.mol2 Mol2.mol2 MOC.mol2 CNALA.mol2 Mol3.mol2
+CleanFiles cpptraj.in Mol.mol2 Mol2.mol2 MOC.mol2 CNALA.mol2 \
+           Mol3.mol2 Mol4.mol2
 
 INPUT='-i cpptraj.in'
 
@@ -35,8 +36,14 @@ loadcrd CNALA.mol2 parm CNALA.mol2 name CNALA
 dataset connect CNALA head 1
 sequence MOC CNALA name Mol3
 crdout Mol3 Mol3.mol2
+
+dataset connect MOC tailmask @O5
+dataset connect CNALA headmask @N
+sequence MOC CNALA name Mol4
+crdout Mol4 Mol4.mol2
 EOF
 RunCpptraj "$TESTNAME, mol2 files"
 DoTest Mol.mol2.save Mol3.mol2
+DoTest Mol.mol2.save Mol4.mol2
 
 EndTest
