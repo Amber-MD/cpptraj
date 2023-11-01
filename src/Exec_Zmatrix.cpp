@@ -5,12 +5,6 @@
 
 using namespace Cpptraj::Structure;
 
-// Exec_Zmatrix::Help()
-void Exec_Zmatrix::Help() const
-{
-
-}
-
 /** Get Zmatrix for specified molecule at specified frame number. */
 int Exec_Zmatrix::getZmatrix(DataSet_Coords* CRD, int molnum, int frmidx,
                              std::string const& dsname, DataFile* outfile, CpptrajState& State)
@@ -108,6 +102,18 @@ const
   out->SetCRD(0, frm);
 
   return 0;
+}
+
+// Exec_Zmatrix::Help()
+void Exec_Zmatrix::Help() const
+{
+  mprintf("\t<COORDS set name> [name <output set name>]\n"
+          "\t{ zset <input zmatrix set> [parm <top>|parmindex <#>] |\n"
+          "\t  [molnum <mol#>] [frame <frame#>] [out <zmatrix file>] }\n"
+          "  If 'zset' is specified, apply Z-matrix to specified COORDS set;
+          "  output is a new COORDS set.\n"
+          "  Otherwise calculate Zmatrix for specified molecule/frame of\n"
+          "  specified COORDS set; output is a Z-matrix set.\n");
 }
 
 // Exec_Zmatrix::Execute()
