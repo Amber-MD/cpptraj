@@ -85,7 +85,7 @@ class DataSet {
 #   endif
     // -----------------------------------------------------
     /// Associate additional data with this set.
-    void AssociateData(AssociatedData* a) { associatedData_.push_back( a->Copy() ); }
+    void AssociateData(AssociatedData const* a) { associatedData_.push_back( a->Copy() ); }
     /// Set DataSet MetaData
     int SetMeta(MetaData const&);
     /// Set DataSet ensemble number.
