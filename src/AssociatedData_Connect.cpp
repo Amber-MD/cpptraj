@@ -3,6 +3,10 @@
 
 const char* AssociatedData_Connect::HelpText = "";
 
+int AssociatedData_Connect::ProcessAdataArgs(ArgList&) {
+  return 0;
+}
+
 void AssociatedData_Connect::Ainfo() const {
   if (!connect_.empty()) {
     mprintf(" (Connect Atoms:");
