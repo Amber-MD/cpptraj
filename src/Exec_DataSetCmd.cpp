@@ -884,7 +884,7 @@ Exec::RetType Exec_DataSetCmd::ChangeModeType(CpptrajState const& State, ArgList
   // Additional options for type 'noe'
   AssociatedData_NOE noeData;
   if (dtype == MetaData::NOE) {
-    if (noeData.NOE_Args(argIn))
+    if (noeData.ProcessAdataArgs(argIn))
       return CpptrajState::ERR;
   }
   if (dmode != MetaData::UNKNOWN_MODE)

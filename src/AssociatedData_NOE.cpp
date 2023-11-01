@@ -5,7 +5,7 @@
 const char* AssociatedData_NOE::HelpText = 
   "[bound <lower> bound <upper>] [rexp <expected>] [noe_strong] [noe_medium] [noe_weak]";
 
-int AssociatedData_NOE::NOE_Args(ArgList& argIn) {
+int AssociatedData_NOE::ProcessAdataArgs(ArgList& argIn) {
   l_bound_ = argIn.getKeyDouble("bound", 0.0);
   u_bound_ = argIn.getKeyDouble("bound", 0.0);
   rexp_ = argIn.getKeyDouble("rexp", -1.0);
