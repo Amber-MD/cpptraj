@@ -14,7 +14,7 @@
 // Exec_DataSetCmd::Help()
 void Exec_DataSetCmd::Help() const {
   mprintf("\t{legend|makexy|vectorcoord|cat|make2d|droppoints|keeppoints|remove|\n"
-          "\t dim|outformat|invert|shift|mode|type} <options>\n");
+          "\t connect|dim|outformat|invert|shift|mode|type} <options>\n");
   mprintf("  Type 'help dataset <cmd>' for detailed subcommand help.\n");
 }
 
@@ -58,6 +58,8 @@ void Exec_DataSetCmd::Help(ArgList& argIn) const {
     Help_InvertSets();
   } else if (argIn.hasKey("shift")) {
     Help_Shift();
+  } else if (argIn.hasKey("connect")) {
+    mprintf("  connect %s\n", AssociatedData_Connect::HelpText);
   } else if (argIn.hasKey("mode")) {
     mprintf("  [mode <mode>] [type <type>] <set arg1> [<set arg 2> ...]\n");
     mprintf("      <mode>: ");
@@ -97,6 +99,9 @@ Exec::RetType Exec_DataSetCmd::Execute(CpptrajState& State, ArgList& argIn) {
   // ---------------------------------------------
   } else if (argIn.hasKey("make2d")) {      // Create 2D matrix from 1D set
     err = Make2D(State, argIn);
+  // ---------------------------------------------
+  } else if (argIn.hasKey("connect")) {     // Add connection atoms to COORDS set
+    err = SetConnect(State, argIn);
   // ---------------------------------------------
   } else if (argIn.hasKey("vectorcoord")) { // Extract vector X/Y/Z coord as new set
     err = VectorCoord(State, argIn);
