@@ -16,5 +16,6 @@ sequence CAPS[MOC] A15[CNALA] name Mol
 crdout Mol Mol.mol2
 EOF
 RunCpptraj "$TESTNAME"
+DoTest Mol.mol2.save Mol.mol2
 
 EndTest
