@@ -38,6 +38,17 @@ const char *Topology::c_str() const {
   return parmName_.c_str();
 }
 
+/** \return count of heavy atoms (ignore hydrogen/extra points). */
+unsigned int Topology::HeavyAtomCount() const {
+  unsigned int hac = 0;
+  for (atom_iterator at = begin(); at != end(); ++at) {
+    if (at->Element() != Atom::HYDROGEN &&
+        at->Element() != Atom::EXTRAPT)
+      hac++;
+  }
+  return hac;
+}
+
 /** Reset all PDB-related info.
   * NOTE: This routine is used by AmbPDB.
   */
@@ -1975,12 +1986,22 @@ void Topology::StripDihedralParmArray(DihedralArray& newDihedralArray, std::vect
 
 // Topology::AddBondArray()
 void Topology::AddBondArray(BondArray const& barray, BondParmArray const& bp, int atomOffset) {
-  if (bp.empty())
+  if (bp.empty()) {
     for (BondArray::const_iterator bond = barray.begin(); bond != barray.end(); ++bond)
       AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset );
-  else
-    for (BondArray::const_iterator bond = barray.begin(); bond != barray.end(); ++bond)
-      AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset, bp[bond->Idx()] );
+  } else {
+    bool missingParameters = false;
+    for (BondArray::const_iterator bond = barray.begin(); bond != barray.end(); ++bond) {
+      if (bond->Idx() > -1)
+        AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset, bp[bond->Idx()] );
+      else {
+        missingParameters = true;
+        AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset );
+      }
+    }
+    if (missingParameters)
+      mprintf("Warning: Some bonds were missing parameters.\n");
+  }
 }
 
 // Topology::AddAngleArray()

@@ -1,11 +1,11 @@
-#include "AssociatedData.h"
+#include "AssociatedData_NOE.h"
 #include "CpptrajStdio.h"
 #include "ArgList.h"
 
 const char* AssociatedData_NOE::HelpText = 
   "[bound <lower> bound <upper>] [rexp <expected>] [noe_strong] [noe_medium] [noe_weak]";
 
-int AssociatedData_NOE::NOE_Args(ArgList& argIn) {
+int AssociatedData_NOE::ProcessAdataArgs(ArgList& argIn) {
   l_bound_ = argIn.getKeyDouble("bound", 0.0);
   u_bound_ = argIn.getKeyDouble("bound", 0.0);
   rexp_ = argIn.getKeyDouble("rexp", -1.0);
@@ -25,4 +25,8 @@ int AssociatedData_NOE::NOE_Args(ArgList& argIn) {
     return 1;
   }
   return 0;
+}
+
+void AssociatedData_NOE::Ainfo() const {
+  mprintf("(NOE %g < %g < %g)", l_bound_, rexp_, u_bound_);
 }

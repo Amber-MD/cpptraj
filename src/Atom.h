@@ -97,6 +97,8 @@ class Atom {
     double ParseRadius() const;
     /// Determine element from given atomic number. Use mass/name if number < 1.
     void DetermineElement(int);
+    /// Set atomic mass from current element
+    void SetMassFromElement();
   protected:
     static const size_t NUMELEMENTS_ = 77;
   private:

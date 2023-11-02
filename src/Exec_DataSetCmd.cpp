@@ -8,11 +8,13 @@
 #include "DataSet_Mesh.h"
 #include "DataSet_Mat3x3.h"
 #include "StringRoutines.h"
+#include "AssociatedData_NOE.h"
+#include "AssociatedData_Connect.h"
 
 // Exec_DataSetCmd::Help()
 void Exec_DataSetCmd::Help() const {
   mprintf("\t{legend|makexy|vectorcoord|cat|make2d|droppoints|keeppoints|remove|\n"
-          "\t dim|outformat|invert|shift|mode|type} <options>\n");
+          "\t connect|dim|outformat|invert|shift|mode|type} <options>\n");
   mprintf("  Type 'help dataset <cmd>' for detailed subcommand help.\n");
 }
 
@@ -56,6 +58,9 @@ void Exec_DataSetCmd::Help(ArgList& argIn) const {
     Help_InvertSets();
   } else if (argIn.hasKey("shift")) {
     Help_Shift();
+  } else if (argIn.hasKey("connect")) {
+    mprintf("  connect {%s | [headmask <headmask>] [tailmask <tailmask>]}\n",
+            AssociatedData_Connect::HelpText);
   } else if (argIn.hasKey("mode")) {
     mprintf("  [mode <mode>] [type <type>] <set arg1> [<set arg 2> ...]\n");
     mprintf("      <mode>: ");
@@ -95,6 +100,9 @@ Exec::RetType Exec_DataSetCmd::Execute(CpptrajState& State, ArgList& argIn) {
   // ---------------------------------------------
   } else if (argIn.hasKey("make2d")) {      // Create 2D matrix from 1D set
     err = Make2D(State, argIn);
+  // ---------------------------------------------
+  } else if (argIn.hasKey("connect")) {     // Add connection atoms to COORDS set
+    err = SetConnect(State, argIn);
   // ---------------------------------------------
   } else if (argIn.hasKey("vectorcoord")) { // Extract vector X/Y/Z coord as new set
     err = VectorCoord(State, argIn);
@@ -293,6 +301,102 @@ Exec::RetType Exec_DataSetCmd::ModifyPoints(CpptrajState& State, ArgList& argIn,
     } // END loop over sets
     ds_arg = argIn.GetStringNext();
   } // END loop over set args
+  return CpptrajState::OK;
+}
+
+/// Function to select a single atom from a Topology based on mask expression
+static inline int select_atom(std::string const& maskexpr, Topology const& topIn)
+{
+  AtomMask mask;
+  if (mask.SetMaskString( maskexpr )) {
+    mprinterr("Error: Invalid mask expression: %s\n", maskexpr.c_str());
+    return -2;
+  }
+  if (topIn.SetupIntegerMask( mask )) {
+    mprinterr("Error: Could not set up mask %s\n", mask.MaskString());
+    return -2;
+  }
+  if (mask.None()) {
+    mprintf("Warning: Mask %s selects no atoms for %s\n", mask.MaskString(), topIn.c_str());
+    return -1;
+  }
+  if (mask.Nselected() > 1) {
+    mprinterr("Error: Mask %s selects more than 1 atom for %s\n", mask.MaskString(), topIn.c_str());
+    return -2;
+  }
+  return mask[0];
+}
+
+// Exec_DataSetCmd::SetConnect()
+Exec::RetType Exec_DataSetCmd::SetConnect(CpptrajState& State, ArgList& argIn) {
+  // Keywords
+  AssociatedData_Connect connect;
+  std::string headmaskstr = argIn.GetStringKey("headmask");
+  std::string tailmaskstr = argIn.GetStringKey("tailmask");
+  bool use_mask = true;
+  if (headmaskstr.empty() && tailmaskstr.empty()) {
+    use_mask = false;
+    if (connect.ProcessAdataArgs(argIn)) {
+      mprinterr("Error: Could not process 'connect' keywords.\n");
+      return CpptrajState::ERR;
+    }
+    mprintf("\t");
+    connect.Ainfo();
+    mprintf("\n");
+  } else {
+    if (!headmaskstr.empty()) mprintf("\tHead atom mask: %s\n", headmaskstr.c_str());
+    if (!tailmaskstr.empty()) mprintf("\tTail atom mask: %s\n", tailmaskstr.c_str());
+  }
+  // Get Data set(s)
+  typedef std::vector<DataSet_Coords*> DCarray;
+  DCarray inputSets;
+  std::string crdsetarg = argIn.GetStringNext();
+  if (crdsetarg.empty())
+    mprintf("Warning: No data set arguments specified.\n");
+  while (!crdsetarg.empty()) {
+    DataSetList dsl1 = State.DSL().GetMultipleSets( crdsetarg );
+    for (DataSetList::const_iterator it = dsl1.begin(); it != dsl1.end(); ++it)
+    {
+      if ( (*it)->Group() != DataSet::COORDINATES ) {
+        mprintf("Warning: 'connect' only works with COORDS sets; '%s' is not COORDS.\n", (*it)->legend());
+      } else {
+        inputSets.push_back( static_cast<DataSet_Coords*>( *it ) );
+      }
+    }
+    crdsetarg = argIn.GetStringNext();
+  }
+  if (inputSets.empty()) {
+    mprinterr("Error: 'connect': No data sets selected.\n");
+    return CpptrajState::ERR;
+  }
+  mprintf("\t%zu sets.\n", inputSets.size());
+  for (DCarray::const_iterator it = inputSets.begin(); it != inputSets.end(); ++it) {
+    // Process mask if needed
+    if (use_mask) {
+      int head = -1;
+      if (!headmaskstr.empty())
+        head = select_atom(headmaskstr, (*it)->Top());
+      if (head < -1) return CpptrajState::ERR;
+      int tail = -1;
+      if (!tailmaskstr.empty())
+        tail = select_atom(tailmaskstr, (*it)->Top());
+      if (tail < -1) return CpptrajState::ERR;
+      if (head == -1 && tail == -1) {
+        mprinterr("Error: Neither head atom nor tail atom could be set via mask.\n");
+        return CpptrajState::ERR;
+      }
+      connect = AssociatedData_Connect(head, tail);
+    }
+    // Check for existing associated data
+    AssociatedData_Connect* ad = (AssociatedData_Connect*)(*it)->GetAssociatedData(AssociatedData::CONNECT);
+    if (ad == 0) {
+      (*it)->AssociateData( &connect );
+    } else {
+      mprintf("Warning: Overwriting existing connect data in '%s'.\n", (*it)->legend());
+      *ad = connect;
+    }
+  }
+
   return CpptrajState::OK;
 }
 
@@ -883,7 +987,7 @@ Exec::RetType Exec_DataSetCmd::ChangeModeType(CpptrajState const& State, ArgList
   // Additional options for type 'noe'
   AssociatedData_NOE noeData;
   if (dtype == MetaData::NOE) {
-    if (noeData.NOE_Args(argIn))
+    if (noeData.ProcessAdataArgs(argIn))
       return CpptrajState::ERR;
   }
   if (dmode != MetaData::UNKNOWN_MODE)
@@ -912,7 +1016,15 @@ Exec::RetType Exec_DataSetCmd::ChangeModeType(CpptrajState const& State, ArgList
           mprintf("Warning: '%s': Expected 2D matrix data set type for mode '%s'\n",
                   (*ds)->legend(), MetaData::ModeString(dmode));
       }
-      if ( dtype == MetaData::NOE ) (*ds)->AssociateData( &noeData );
+      if ( dtype == MetaData::NOE ) {
+        AssociatedData_NOE* ad = (AssociatedData_NOE*)(*ds)->GetAssociatedData(AssociatedData::NOE);
+        if (ad == 0) {
+          (*ds)->AssociateData( &noeData );
+        } else {
+          mprintf("Warning: Overwriting existing NOE data for %s\n", (*ds)->legend());
+          *ad = noeData;
+        }
+      }
       mprintf("\t\t'%s'\n", (*ds)->legend());
       MetaData md = (*ds)->Meta();
       md.SetScalarMode( dmode );

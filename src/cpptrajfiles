@@ -140,7 +140,8 @@ COMMON_SOURCES= \
         Analysis_Wavelet.cpp \
         ArgList.cpp \
         Array1D.cpp \
-        AssociatedData.cpp \
+        AssociatedData_Connect.cpp \
+        AssociatedData_NOE.cpp \
         Atom.cpp \
         AtomMap.cpp \
         AtomMask.cpp \
@@ -153,7 +154,6 @@ COMMON_SOURCES= \
         ByteRoutines.cpp \
         CharMask.cpp \
         CharmmParamFile.cpp \
-        Chirality.cpp \
         CIFfile.cpp \
         ClusterMap.cpp \
         Cmd.cpp \
@@ -175,6 +175,8 @@ COMMON_SOURCES= \
         DataFilter.cpp \
         DataIO.cpp \
         DataIO_AmberEne.cpp \
+        DataIO_AmberLib.cpp \
+        DataIO_AmberPrep.cpp \
         DataIO_CCP4.cpp \
         DataIO_CharmmFastRep.cpp \
         DataIO_CharmmOutput.cpp \
@@ -231,6 +233,7 @@ COMMON_SOURCES= \
         DataSet_StringVar.cpp \
         DataSet_Tensor.cpp \
         DataSet_unsignedInt.cpp \
+        DataSet_Zmatrix.cpp \
         Deprecated.cpp \
         DihedralSearch.cpp \
         DiffusionResults.cpp \
@@ -295,6 +298,7 @@ COMMON_SOURCES= \
         Exec_RunAnalysis.cpp \
         Exec_ScaleDihedralK.cpp \
         Exec_Set.cpp \
+        Exec_Sequence.cpp \
         Exec_SequenceAlign.cpp \
         Exec_Show.cpp \
         Exec_SortEnsembleData.cpp \
@@ -304,6 +308,7 @@ COMMON_SOURCES= \
         Exec_Traj.cpp \
         Exec_UpdateParameters.cpp \
         Exec_ViewRst.cpp \
+        Exec_Zmatrix.cpp \
         ExtendedSimilarity.cpp \
         File_TempName.cpp \
         FileIO_Bzip2.cpp \
