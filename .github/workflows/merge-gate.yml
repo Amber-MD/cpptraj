@@ -83,7 +83,7 @@ jobs:
             make install
             cd ..
             export PATH=$HOME/bin:$PATH
-            export LD_LIBRARY_PATH=$HOME/lib:$PATH
+            export LD_LIBRARY_PATH=$HOME/lib:$LD_LIBRARY_PATH
             export DO_PARALLEL="mpirun -n 2"
             if [ $USE_OPENMP = "yes" ]; then
               export OMP_NUM_THREADS=1
