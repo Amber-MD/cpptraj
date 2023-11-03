@@ -2821,6 +2821,45 @@ bool Topology::HasChargeInfo() const {
   return false;
 }
 
+/** Redistribute charge on atoms to match given total target charge. */
+int Topology::RedistributeCharge(double charge) {
+  //mprintf("DEBUG: Redistribute charge for %s, total charge = %g\n", topIn.c_str(), charge);
+  double pcharge = 0;
+  double ncharge = 0;
+  for (unsigned int iat = 0; iat != atoms_.size(); iat++) {
+    if (atoms_[iat].Charge() > 0)
+      pcharge += atoms_[iat].Charge();
+    else if (atoms_[iat].Charge() < 0)
+      ncharge += atoms_[iat].Charge();
+  }
+  //if (fabs(pcharge) < Constants::SMALL)
+  bool PchargeZero = false;
+  if (pcharge == 0) {
+    mprintf("\tTotal positive charge is 0.0\n");
+    PchargeZero = true;
+  }
+  bool NchargeZero = false;
+  //if (fabs(ncharge) < Constants::SMALL)
+  if (ncharge == 0) {
+    mprintf("\tTotal negative charge is 0.0\n");
+    NchargeZero = true;
+  }
+  if (!PchargeZero && !NchargeZero) {
+    //double total_charge = 0;
+    for (unsigned int iat = 0; iat != atoms_.size(); iat++) {
+      double delta = atoms_[iat].Charge() * (charge - pcharge - ncharge) / (pcharge - ncharge);
+      if (atoms_[iat].Charge() >= 0) {
+        atoms_[iat].SetCharge( atoms_[iat].Charge() + delta );
+      } else {
+        atoms_[iat].SetCharge( atoms_[iat].Charge() - delta );
+      }
+      //total_charge += topIn[iat].Charge();
+    }
+    //mprintf("DEBUG: Total charge after redistribute: %g\n", total_charge);
+  }
+  return 0;
+}
+
 // -----------------------------------------------------------------------------
 
 /** Update/add to parameters in this topology with those from given set. */
