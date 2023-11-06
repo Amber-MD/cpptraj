@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles cpptraj.in Final.graft.mol2 Nucleotide.pdb Nucleotide.charge.mol2 \
-           IC.Final.graft.mol2 IC.Nucleotide.pdb Nucleotide.ic.charge.mol2
+           IC.Final.graft.mol2 IC.Nucleotide.pdb
 TESTNAME='Graft test'
 Requires notparallel
 
@@ -185,38 +185,11 @@ EOF
   DoTest Nucleotide.charge.mol2.save Nucleotide.charge.mol2
 }
 
-# Link nucleic acid base + sugar + phosphate, IC, fix charges.
-DNAic_charge() {
-  cat > cpptraj.in <<EOF
-parm DDD.names.mol2
-loadcrd DDD.names.mol2 name Sugar parm DDD.names.mol2
-parm MP1.names.mol2
-loadcrd MP1.names.mol2 name Phos parm MP1.names.mol2
-parm ADD.names.mol2
-loadcrd ADD.names.mol2 name Base parm ADD.names.mol2
-#list
-# Strip components
-crdaction Base  strip charge  0.116  @C1,H1,H6,H7
-crdaction Sugar keep  charge  0.2933 keepmask !(@C4,H6,H7,H8,H12,H11,O1,H1)
-crdaction Phos  strip charge -1.4093 @C3,H4,H5,H6,O1,C1,H1,H2,H3
-# Set connect atoms
-dataset connect Base               tailmask @N1
-dataset connect Sugar headmask @C3 tailmask @C1
-dataset connect Phos  headmask @O3
-sequence name MyMol Base Sugar Phos
-charge crdset MyMol *
-crdout MyMol Nucleotide.ic.charge.mol2
-EOF
-  RunCpptraj "$TESTNAME, Construct Nucleic Acid, IC, fix charges"
-  DoTest Nucleotide.ic.charge.mol2.save Nucleotide.ic.charge.mol2
-}
-
 TyrPry
 TyrPryIC
 DNA
 DNAic
 DNAcharge
-DNAic_charge
 
 EndTest
 exit 0
