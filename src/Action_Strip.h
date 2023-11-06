@@ -15,10 +15,12 @@ class Action_Strip: public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
-    Topology* newParm_;
-    DataSetList* masterDSL_;
-    Frame newFrame_;
-    AtomMask M1_;
-    ActionTopWriter topWriter_;
+    Topology* newParm_;         ///< Hold stripped topology.
+    DataSetList* masterDSL_;    ///< Pointer to master data set list.
+    Frame newFrame_;            ///< Hold stripped frame.
+    AtomMask M1_;               ///< Atoms to keep.
+    ActionTopWriter topWriter_; ///< Used to write stripped topology.
+    double charge_;             ///< Total charge to scale remainiing atoms to.
+    bool redist_charge_;        ///< If true, rescale charge of remaining atoms to charge_.
 };
 #endif
