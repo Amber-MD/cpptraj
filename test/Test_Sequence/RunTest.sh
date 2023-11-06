@@ -50,7 +50,10 @@ EOF
 
 # Link nucleic acid base + sugar + phosphate, IC, fix charges.
 DNAic_charge() {
-  cat > cpptraj.in <<EOF
+  UNITNAME="$TESTNAME, Construct Nucleic Acid, IC, fix charges"
+  CheckFor maxthreads 1
+  if [ $? -eq 0 ] ; then
+    cat > cpptraj.in <<EOF
 set DIR = ../Test_Graft
 parm \$DIR/DDD.names.mol2
 loadcrd \$DIR/DDD.names.mol2 name Sugar parm DDD.names.mol2
@@ -71,8 +74,9 @@ sequence name MyMol Base Sugar Phos
 charge crdset MyMol *
 crdout MyMol Nucleotide.ic.charge.mol2
 EOF
-  RunCpptraj "$TESTNAME, Construct Nucleic Acid, IC, fix charges"
-  DoTest Nucleotide.ic.charge.mol2.save Nucleotide.ic.charge.mol2
+    RunCpptraj "$UNITNAME"
+    DoTest Nucleotide.ic.charge.mol2.save Nucleotide.ic.charge.mol2
+  fi
 }
 
 Basic
