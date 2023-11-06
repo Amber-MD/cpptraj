@@ -45,5 +45,7 @@ class Action_Keep : public Action {
     AtomMask keepMask_;          ///< Mask of atoms to keep no matter what.
 
     AtomMask atomsToKeep_;       ///< Mask of all atoms to keep.
+    double charge_;              ///< Total charge to scale remainiing atoms to.
+    bool redist_charge_;         ///< If true, rescale charge of remaining atoms to charge_.
 };
 #endif

@@ -157,6 +157,8 @@ class Topology {
     void AssignNonbondParams(ParmHolder<AtomType> const&, ParmHolder<NonbondType> const&);
     /// \return True if any charge is non-zero
     bool HasChargeInfo() const;
+    /// Redistribute charge on atoms in topology to match target total charge
+    int RedistributeCharge(double);
     // ----- Water Cap Info ----------------------
     CapParmType const& Cap()    const { return cap_; }
     CapParmType&       SetCap()       { return cap_; }

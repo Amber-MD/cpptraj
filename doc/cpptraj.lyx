@@ -31746,7 +31746,7 @@ keep [ bridgedata <bridge data set> [nbridge <#>] [nobridgewarn]
 \end_layout
 
 \begin_layout LyX-Code
-     [keepmask <atoms to keep>]
+     [keepmask <atoms to keep>] [charge <new charge>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -31840,6 +31840,19 @@ to
 \end_inset
 
 keep> Mask of atoms to keep.
+\end_layout
+
+\begin_layout Description
+charge
+\begin_inset space ~
+\end_inset
+
+<new
+\begin_inset space ~
+\end_inset
+
+charge> Scale charges so total charge of remaining atoms matches the specified
+ <new charge>.
 \end_layout
 
 \begin_layout Description
@@ -40139,7 +40152,7 @@ strip
 
 \end_inset
 
- <mask> 
+ <mask> [charge <new charge>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -40157,6 +40170,19 @@ strip
 \begin_deeper
 \begin_layout Description
 <mask> Remove atoms specified by mask from the system.
+\end_layout
+
+\begin_layout Description
+charge
+\begin_inset space ~
+\end_inset
+
+<new
+\begin_inset space ~
+\end_inset
+
+charge> Scale charges so total charge of remaining atoms matches the specified
+ <new charge>.
 \end_layout
 
 \begin_layout Description

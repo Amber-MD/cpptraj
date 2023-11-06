@@ -12,7 +12,9 @@ Action_Keep::Action_Keep() :
   bridgeData_(0),
   nbridge_(0),
   bridgeWarn_(true),
-  nNonBridgeAtoms_(-1)
+  nNonBridgeAtoms_(-1),
+  charge_(0),
+  redist_charge_(false)
 {}
 
 /** DESTRUCTOR */
@@ -29,9 +31,13 @@ const char Action_Keep::STAT_NONBRIDGERES_ = 'U';
 void Action_Keep::Help() const {
   mprintf("\t[ bridgedata <bridge data set> [nbridge <#>] [nobridgewarn]\n"
           "\t [bridgeresname <res name>] bridgeresonly <resrange>] ]\n"
-          "\t[keepmask <atoms to keep>]\n");
+          "\t[keepmask <atoms to keep>] [charge <new charge>]\n");
   mprintf("%s", ActionTopWriter::Keywords());
-  mprintf("  Keep only specified parts of the system.\n");
+  mprintf("  Keep only specified parts of the system.\n"
+          "  If a bridge data set (from 'hbond') is specified, keep only the\n"
+          "  specified number of bridging residues.\n"
+          "  If 'charge' is specified, scale charges so total charge of remaining atoms\n"
+          "  matches the specified <new charge>.\n");
   mprintf("%s", ActionTopWriter::Options());
 }
 
@@ -84,6 +90,8 @@ Action::RetType Action_Keep::Init(ArgList& actionArgs, ActionInit& init, int deb
   }
 
   topWriter_.InitTopWriter(actionArgs, "keep", debugIn);
+  redist_charge_ = actionArgs.Contains("charge");
+  charge_ = actionArgs.getKeyDouble("charge", 0);
 
   mprintf("    KEEP:\n");
   if (keepMask_.MaskStringSet()) {
@@ -111,6 +119,8 @@ Action::RetType Action_Keep::Init(ArgList& actionArgs, ActionInit& init, int deb
 #   endif
   }
   topWriter_.PrintOptions();
+  if (redist_charge_)
+    mprintf("\tTotal charge of remaining atoms will be scaled to %g\n", charge_);
   return Action::OK;
 }
 
@@ -235,6 +245,8 @@ Action::RetType Action_Keep::Setup(ActionSetup& setup)
     mprinterr("Error: Could not create topology for kept atoms.\n");
     return Action::ERR;
   }
+  if (redist_charge_)
+    keepParm_->RedistributeCharge( charge_ );
   setup.SetTopology( keepParm_ );
   // Modify State if asked
   if (topWriter_.ModifyActionState(setup, keepParm_))

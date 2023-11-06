@@ -1,19 +1,25 @@
-// Action_Strip
 #include "Action_Strip.h"
 #include "CpptrajStdio.h"
 
-// CONSTRUCTOR
+/** CONSTRUCTOR */
 Action_Strip::Action_Strip() :
-  newParm_(0), masterDSL_(0) {}
+  newParm_(0),
+  masterDSL_(0),
+  charge_(0),
+  redist_charge_(false)
+{}
 
+/** Print help text to stdout. */
 void Action_Strip::Help() const {
-  mprintf("\t<mask>\n");
+  mprintf("\t<mask> [charge <new charge>]\n");
   mprintf("%s", ActionTopWriter::Keywords());
-  mprintf("  Strip atoms in <mask> from the system.\n");
+  mprintf("  Strip atoms in <mask> from the system.\n"
+          "  If 'charge' is specified, scale charges so total charge of remaining atoms\n"
+          "  matches the specified <new charge>.\n");
   mprintf("%s", ActionTopWriter::Options());
 }
 
-// DESTRUCTOR
+/** DESTRUCTOR */
 Action_Strip::~Action_Strip() {
   if (newParm_!=0) delete newParm_;
 }
@@ -23,6 +29,8 @@ Action::RetType Action_Strip::Init(ArgList& actionArgs, ActionInit& init, int de
 {
   // Get output stripped parm filename
   topWriter_.InitTopWriter(actionArgs, "stripped", debugIn);
+  redist_charge_ = actionArgs.Contains("charge");
+  charge_ = actionArgs.getKeyDouble("charge", 0);
 
   // Get mask of atoms to be stripped
   std::string mask1 = actionArgs.GetMaskNext();
@@ -39,6 +47,8 @@ Action::RetType Action_Strip::Init(ArgList& actionArgs, ActionInit& init, int de
 
   mprintf("    STRIP: Stripping atoms in mask [%s]\n", M1_.MaskString());
   topWriter_.PrintOptions();
+  if (redist_charge_)
+    mprintf("\tTotal charge of remaining atoms will be scaled to %g\n", charge_);
   masterDSL_ = init.DslPtr();
   return Action::OK;
 }
@@ -68,6 +78,8 @@ Action::RetType Action_Strip::Setup(ActionSetup& setup) {
     mprinterr("Error: Could not create new topology.\n");
     return Action::ERR;
   }
+  if (redist_charge_)
+    newParm_->RedistributeCharge( charge_ );
   setup.SetTopology( newParm_ );
   // Remove box information if asked
   if (topWriter_.ModifyActionState(setup, newParm_))
