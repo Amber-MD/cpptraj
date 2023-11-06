@@ -14,8 +14,6 @@ class Exec_Graft : public Exec {
     typedef std::vector<std::string> Sarray;
     /// Select bond index from expression in given topology
     static int select_bond_idx(std::string const&, Topology const&); 
-    /// Redistribute charge in given topology to match given target
-    static int redistribute_charge(Topology&, double);
     /// Modify topology and frame according to mask expression
     static Topology* modify_top(Topology const&, AtomMask const&, Frame&);
     /// Get COORDS data set

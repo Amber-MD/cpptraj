@@ -20,45 +20,6 @@ Exec_Graft::~Exec_Graft() {
   if (newMol1Top_ != 0) delete newMol1Top_;
 }
 
-/** Redistribute charge on atoms in topology to match a target charge. */
-int Exec_Graft::redistribute_charge(Topology& topIn, double charge) {
-  //mprintf("DEBUG: Redistribute charge for %s, total charge = %g\n", topIn.c_str(), charge);
-  double pcharge = 0;
-  double ncharge = 0;
-  for (int iat = 0; iat != topIn.Natom(); iat++) {
-    if (topIn[iat].Charge() > 0)
-      pcharge += topIn[iat].Charge();
-    else if (topIn[iat].Charge() < 0)
-      ncharge += topIn[iat].Charge();
-  }
-  //if (fabs(pcharge) < Constants::SMALL)
-  bool PchargeZero = false;
-  if (pcharge == 0) {
-    mprintf("\tTotal positive charge is 0.0\n");
-    PchargeZero = true;
-  }
-  bool NchargeZero = false;
-  //if (fabs(ncharge) < Constants::SMALL)
-  if (ncharge == 0) {
-    mprintf("\tTotal negative charge is 0.0\n");
-    NchargeZero = true;
-  }
-  if (!PchargeZero && !NchargeZero) {
-    //double total_charge = 0;
-    for (int iat = 0; iat != topIn.Natom(); iat++) {
-      double delta = topIn[iat].Charge() * (charge - pcharge - ncharge) / (pcharge - ncharge);
-      if (topIn[iat].Charge() >= 0) {
-        topIn.SetAtom(iat).SetCharge( topIn[iat].Charge() + delta );
-      } else {
-        topIn.SetAtom(iat).SetCharge( topIn[iat].Charge() - delta );
-      }
-      //total_charge += topIn[iat].Charge();
-    }
-    //mprintf("DEBUG: Total charge after redistribute: %g\n", total_charge);
-  }
-  return 0;
-}
-
 /** Get COORDS set. */
 DataSet_Coords* Exec_Graft::get_crd(ArgList& argIn, DataSetList const& DSL,
                                     const char* key, const char* desc, Frame& srcFrame, const char* frameKey)
@@ -273,7 +234,7 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
     if (mol0Top == 0) return CpptrajState::ERR;
     // Modify charges if needed
     if (hasTgtCharge) {
-      if (redistribute_charge(*mol0Top, tgtcharge)) {
+      if (mol0Top->RedistributeCharge(tgtcharge)) {
         mprinterr("Error: Redistribute tgt charge failed.\n");
         return CpptrajState::ERR;
       }
@@ -291,7 +252,7 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
     if (mol1Top == 0) return CpptrajState::ERR;
     // Modify charges if needed
     if (hasSrcCharge) {
-      if (redistribute_charge(*mol1Top, srccharge)) {
+      if (mol1Top->RedistributeCharge(srccharge)) {
         mprinterr("Error: Redistribute src charge failed.\n");
         return CpptrajState::ERR;
       }
