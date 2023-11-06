@@ -33,8 +33,7 @@ void DataSet_Coords_REF::AddFrame(Frame const& fIn) {
 
 /** Set REF from incoming frame. */
 void DataSet_Coords_REF::SetCRD(int idx, Frame const& fIn) {
-  // TODO warn if idx not zero?
-  if (idx == 0)
+  if (idx != 0)
     mprintf("Warning: In reference set '%s', attempting to set index which is not 1 (%i)\n", legend(), idx+1);
   if (frame_.empty())
     frame_.SetupFrame( fIn );

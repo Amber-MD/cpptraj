@@ -1,4 +1,5 @@
 #include "SugarBuilder.h"
+#include "Chirality.h"
 #include "FxnGroupBuilder.h"
 #include "ResStatArray.h"
 #include "StructureRoutines.h"
@@ -6,7 +7,6 @@
 #include "SugarLinkAtoms.h"
 #include "../ArgList.h"
 #include "../CharMask.h" // for linkage determination
-#include "../Chirality.h"
 #include "../CpptrajFile.h"
 #include "../CpptrajStdio.h"
 #include "../DistRoutines.h"
@@ -1113,22 +1113,18 @@ const
     cdebug = 1;
   else
     cdebug = 0;
-  Cpptraj::Chirality::ChiralType ctypeR = Cpptraj::Chirality::
-                                          DetermineChirality(sugar.HighestStereocenter(),
-                                                             topIn, frameIn, cdebug);
-  if (ctypeR == Cpptraj::Chirality::ERR) {
+  ChiralType ctypeR = DetermineChirality(sugar.HighestStereocenter(), topIn, frameIn, cdebug);
+  if (ctypeR == CHIRALITY_ERR || ctypeR == IS_UNKNOWN_CHIRALITY) {
     mprinterr("Error: Could not determine configuration for furanose.\n"); // TODO warn?
     return 1;
   }
-  if (ctypeR == Cpptraj::Chirality::IS_R)
+  if (ctypeR == IS_R)
     stoken.SetChirality(SugarToken::IS_D);
   else
     stoken.SetChirality(SugarToken::IS_L);
 
-  Cpptraj::Chirality::ChiralType ctypeA = Cpptraj::Chirality::
-                                          DetermineChirality(sugar.AnomericAtom(),
-                                                             topIn, frameIn, cdebug);
-  if (ctypeA == Cpptraj::Chirality::ERR) {
+  ChiralType ctypeA = DetermineChirality(sugar.AnomericAtom(), topIn, frameIn, cdebug);
+  if (ctypeA == CHIRALITY_ERR || ctypeA == IS_UNKNOWN_CHIRALITY) {
     mprinterr("Error: Could not determine chirality around anomeric atom for furanose.\n"); // TODO warn?
     return 1;
   }

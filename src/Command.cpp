@@ -54,6 +54,10 @@
 #include "Exec_RotateDihedral.h"
 #include "Exec_SplitCoords.h"
 #include "Exec_CatCrd.h"
+#include "Exec_CrdTransform.h"
+#include "Exec_ExtendedComparison.h"
+#include "Exec_Zmatrix.h"
+#include "Exec_Sequence.h"
 // ----- TRAJECTORY ------------------------------------------------------------
 #include "Exec_Traj.h"
 // ----- TOPOLOGY --------------------------------------------------------------
@@ -268,14 +272,18 @@ void Command::Init() {
   Command::AddCmd( new Exec_CombineCoords(),    Cmd::EXE, 1, "combinecrd" ); 
   Command::AddCmd( new Exec_CrdAction(),        Cmd::EXE, 1, "crdaction" );
   Command::AddCmd( new Exec_CrdOut(),           Cmd::EXE, 1, "crdout" );
-  Command::AddCmd( new Exec_Emin(),             Cmd::EXE, 1, "emin"); // hidden
+  Command::AddCmd( new Exec_CrdTransform(),     Cmd::EXE, 1, "crdtransform" );
+  Command::AddCmd( new Exec_Emin(),             Cmd::EXE, 1, "emin");
+  Command::AddCmd( new Exec_ExtendedComparison(),Cmd::EXE,1, "extendedcomp" );
   Command::AddCmd( new Exec_Graft(),            Cmd::EXE, 1, "graft");
   Command::AddCmd( new Exec_LoadCrd(),          Cmd::EXE, 1, "loadcrd" );
   Command::AddCmd( new Exec_LoadTraj(),         Cmd::EXE, 1, "loadtraj" );
   Command::AddCmd( new Exec_PermuteDihedrals(), Cmd::EXE, 1, "permutedihedrals" );
   Command::AddCmd( new Exec_PrepareForLeap(),   Cmd::EXE, 1, "prepareforleap" );
   Command::AddCmd( new Exec_RotateDihedral(),   Cmd::EXE, 1, "rotatedihedral" );
+  Command::AddCmd( new Exec_Sequence(),         Cmd::EXE, 1, "sequence" );
   Command::AddCmd( new Exec_SplitCoords(),      Cmd::EXE, 1, "splitcoords" );
+  Command::AddCmd( new Exec_Zmatrix(),          Cmd::EXE, 1, "zmatrix" );
   // TRAJECTORY
   Command::AddCmd( new Exec_Ensemble(),     Cmd::EXE, 1, "ensemble" );
   Command::AddCmd( new Exec_EnsembleSize(), Cmd::EXE, 1, "ensemblesize" );

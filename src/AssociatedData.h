@@ -5,30 +5,19 @@ class AssociatedData {
   public:
     /// Destructor. Virtual since this class is inherited.
     virtual ~AssociatedData() {}
-    enum AssociatedType { NOE = 0 };
+    /// Associated data types
+    enum AssociatedType { NOE = 0, CONNECT };
+    /// CONSTRUCTOR - take associated data type
     AssociatedData(AssociatedType t) : type_(t) {}
+    /// \return Associated data type
     AssociatedType Type() { return type_; }
+    /// \return A copy of the associated data
     virtual AssociatedData* Copy() const = 0;
+    /// Print associated data info to stdout
+    virtual void Ainfo() const = 0;
+    /// Process arguments for associated data
+    virtual int ProcessAdataArgs(ArgList&) = 0;
   private:
     AssociatedType type_;
-};
-
-/// For Analysis_Statistics DISTANCE NOE
-class AssociatedData_NOE : public AssociatedData {
-  public:
-    AssociatedData_NOE() : AssociatedData(NOE), l_bound_(0.0), u_bound_(0.0), rexp_(-1.0) {}
-    AssociatedData_NOE(double l, double u, double r) :
-      AssociatedData(NOE), l_bound_(l), u_bound_(u), rexp_(r) {}
-    static const char* HelpText;
-    int NOE_Args(ArgList&);
-    double NOE_bound()  const { return l_bound_;  }
-    double NOE_boundH() const { return u_bound_; }
-    double NOE_rexp()   const { return rexp_;   }
-
-    AssociatedData* Copy() const { return new AssociatedData_NOE(*this); }
-  private:
-    double l_bound_; ///< Lower bound
-    double u_bound_; ///< Upper bound
-    double rexp_;    ///< Expected distance
 };
 #endif

@@ -10,6 +10,7 @@
 #include "ViewRst.h"
 #include "BufferedLine.h"
 #include "DistRoutines.h"
+#include "AssociatedData_NOE.h"
 
 // CONSTRUCTOR
 Action_NMRrst::Action_NMRrst() :

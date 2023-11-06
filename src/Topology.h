@@ -47,6 +47,8 @@ class Topology {
     const Atom &operator[](int idx)              const { return atoms_[idx];    }
     std::vector<Atom> const& Atoms()             const { return atoms_;         }
     Atom& SetAtom(int idx)                             { return atoms_[idx]; }
+    /// \return Count of "heavy" atoms (non-hydrogen, non-extra point)
+    unsigned int HeavyAtomCount() const;
     // ----- Amber Extra Info --------------------
     std::vector<NameType> const& TreeChainClassification() const { return tree_;   }
     std::vector<int>      const& JoinArray()               const { return ijoin_;  }
@@ -98,6 +100,8 @@ class Topology {
     int NresInMol(int) const;
     /// Determine molecules based on bond information
     int DetermineMolecules();
+    /// Designate all atoms as part of a single molecule.
+    int SetSingleMolecule();
     // ----- Bond-specific routines --------------
     size_t Nbonds()                            const { return bonds_.size()+bondsh_.size(); }
     BondArray         const& Bonds()        const { return bonds_;        }
@@ -153,6 +157,8 @@ class Topology {
     void AssignNonbondParams(ParmHolder<AtomType> const&, ParmHolder<NonbondType> const&);
     /// \return True if any charge is non-zero
     bool HasChargeInfo() const;
+    /// Redistribute charge on atoms in topology to match target total charge
+    int RedistributeCharge(double);
     // ----- Water Cap Info ----------------------
     CapParmType const& Cap()    const { return cap_; }
     CapParmType&       SetCap()       { return cap_; }

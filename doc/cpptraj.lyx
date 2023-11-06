@@ -2993,6 +2993,11 @@ phipsi.dat
 \end_layout
 
 \begin_layout Standard
+Note that when reading the Amber Prep and Amber OFF Library formats, a COORDS
+ data set will be created for each unit present in these files.
+\end_layout
+
+\begin_layout Standard
 \begin_inset Float table
 wide false
 sideways false
@@ -3001,7 +3006,7 @@ status open
 \begin_layout Plain Layout
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="20" columns="5">
+<lyxtabular version="3" rows="22" columns="5">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top" width="20text%">
 <column alignment="center" valignment="top" width="20text%">
@@ -3912,7 +3917,7 @@ Used for cluster analysis.
 </cell>
 </row>
 <row>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -3921,7 +3926,7 @@ NetCDF Data
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -3930,7 +3935,7 @@ NetCDF Data
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -3939,7 +3944,7 @@ netcdf
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -3948,11 +3953,105 @@ All data
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
 Only state info saved for pH data.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Amber Prep File
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+.prepin
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+prepin
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+COORDS
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Read Only
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Amber OFF Library File
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+.off, .lib
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+off,lib
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+COORDS
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Read Only
 \end_layout
 
 \end_inset
@@ -6253,7 +6352,7 @@ The following COORDS data set commands are available:
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="15" columns="2">
+<lyxtabular version="3" rows="19" columns="2">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="75text%">
@@ -6366,6 +6465,26 @@ Write a COORDS set to a file.
 \begin_inset Text
 
 \begin_layout Plain Layout
+crdtransform
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Transform a COORDS set in one of several ways.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
 createcrd
 \end_layout
 
@@ -6396,6 +6515,27 @@ emin
 
 \begin_layout Plain Layout
 Run simple energy minimization on a frame of a COORDS set.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+extendedcomp
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Calculate extended comparison similarity values for each frame in COORDS
+ set.
 \end_layout
 
 \end_inset
@@ -6544,7 +6684,27 @@ Rotate specified dihedral to specified value or by given increment.
 </cell>
 </row>
 <row>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+sequence
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Create a new molecule from a sequence of COORDS sets.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -6553,11 +6713,32 @@ splitcoords
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
 Split molecules in a COORDS set into a trajectory.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+zmatrix
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Apply Z-matrix to a COORDS set or calculate Z-matrix for a molecule/frame
+ in a COORDS set.
 \end_layout
 
 \end_inset
@@ -6724,6 +6905,147 @@ crd1
 
 \begin_layout LyX-Code
 crdout crd1 crd1.pdb multi crdframes 1,10
+\end_layout
+
+\begin_layout Subsection
+crdtransform
+\end_layout
+
+\begin_layout LyX-Code
+crdtransform <input crd set> [name <output crd set>]
+\end_layout
+
+\begin_layout LyX-Code
+             { rmsrefine [mask <mask>] [mass] [rmstol <tolerance>] |
+\end_layout
+
+\begin_layout LyX-Code
+               normcoords |
+\end_layout
+
+\begin_layout LyX-Code
+               trim [metric <metric>] [{ntrimmed <#>|cutoff <val>}]
+\end_layout
+
+\begin_layout LyX-Code
+                    [criterion {comp|medoid}]]
+\end_layout
+
+\begin_layout LyX-Code
+             }
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+<input
+\begin_inset space ~
+\end_inset
+
+crd
+\begin_inset space ~
+\end_inset
+
+set> COORDS set to transform.
+\end_layout
+
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<output
+\begin_inset space ~
+\end_inset
+
+crd
+\begin_inset space ~
+\end_inset
+
+set>] COORDS set to create; if not specified <input crd set> will be modified.
+\end_layout
+
+\begin_layout Description
+rmsrefine Do iterative RMS refinement.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[mask
+\begin_inset space ~
+\end_inset
+
+<mask>] Mask of atoms to fit during refinement.
+\end_layout
+
+\begin_layout Description
+[mass] Mass-weight the refinement.
+\end_layout
+
+\begin_layout Description
+[rmstol
+\begin_inset space ~
+\end_inset
+
+<tolerance>] Tolerance (in Ang.) below which RMS-refinement will stop.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+normcoords Normalize coordinates between 0.0 and 1.0 using the minimum and
+ maximum coordinate values.
+\end_layout
+
+\begin_layout Description
+trim Remove trajectory frames using extended similarity metrics.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[metric
+\begin_inset space ~
+\end_inset
+
+<metric>] Metric to use; default MSD.
+\end_layout
+
+\begin_layout Description
+[{ntrimmed
+\begin_inset space ~
+\end_inset
+
+<#>|cutoff
+\begin_inset space ~
+\end_inset
+
+<val>} # of frames or fraction of trajectory to trim.
+\end_layout
+
+\begin_layout Description
+[criterion
+\begin_inset space ~
+\end_inset
+
+{comp|medoid}] Trim frames by comparitive similarity (i.e.
+ trim most dissimilar frames) or comparison to medoid (i.e.
+ trim most dissimilar to medoid frame).
+\end_layout
+
+\end_deeper
+\end_deeper
+\begin_layout Standard
+Transform a COORDS set in one of several ways.
+ Does not yet work with TRAJ data sets.
+ The iterative RMS refinement is similar to the procedure outlined by Klem
+ et al.
+ (J.
+ Chem.
+ Theory Comput.
+ 2022, 18, 3218−3230).
+ The extended similarity metrics are those defined by Racz et al.
+ (J.
+ Comp.-Aid.
+ Mol.
+ Design, 2022, 36, 157-173).
 \end_layout
 
 \begin_layout Subsection
@@ -6948,15 +7270,374 @@ Perform steepest descent minimization on a frame in a COORDS set using a
 \end_layout
 
 \begin_layout Subsection
+extendedcomp
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj-extendedcomp"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout LyX-Code
+extendedcomp <input crd set> [name <output data set>]
+\end_layout
+
+\begin_layout LyX-Code
+             [metric <metric>] [out <file>]
+\end_layout
+
+\begin_layout LyX-Code
+  <metric> = msd bub fai gle ja jt rt rr sm ss1 ss2
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+<input
+\begin_inset space ~
+\end_inset
+
+crd
+\begin_inset space ~
+\end_inset
+
+set> Input COORDS set.
+\end_layout
+
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<output
+\begin_inset space ~
+\end_inset
+
+data
+\begin_inset space ~
+\end_inset
+
+set>] Output data set name containing values.
+\end_layout
+
+\begin_layout Description
+[metric
+\begin_inset space ~
+\end_inset
+
+<metric>] Metric to use.
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+,file>] File to write values to.
+\end_layout
+
+\begin_layout Standard
+DataSets generated:
+\end_layout
+
+\begin_layout Description
+<output
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name> Set containing similarity values for each COORDS frame.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Calculate extended comparison similarity values for each frame in a COORDS
+ set.
+ The extended similarity metrics are those defined by Racz et al.
+ (J.
+ Comp.-Aid.
+ Mol.
+ Design, 2022, 36, 157-173).
+ The metrics are as follows:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Tabular
+<lyxtabular version="3" rows="12" columns="2">
+<features tabularvalignment="middle">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\series bold
+Keyword
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\series bold
+Metric
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+msd
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Mean-squared deviation.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+bub
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Bhattacharyya's U coefficient
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+fai
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Faiman's coefficient
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+gle
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Gleason's coefficient
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+ja
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Jaccard's coefficient
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+jt
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Jaccard-Tanimoto coefficient
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+rt
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Rogers-Tanimoto coefficient
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+rr
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Russell-Rao coefficient
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+sm
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Simpson's coefficient
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+ss1
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Sokal-Sneath 1 coefficient
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+ss2
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Sokal-Sneath 2 coefficient
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
 graft
 \end_layout
 
 \begin_layout LyX-Code
-graft src <source COORDS> [srcframe <#>] [srcfitmask <mask>] [srcmask <mask>]
+graft src <source COORDS> [srcframe <#>] [srcmask <srcmask> [srccharge <srccharg
+e>]]
 \end_layout
 
 \begin_layout LyX-Code
-  	tgt <target COORDS> [tgtframe <#>] [tgtfitmask <mask>] [tgtmask <mask>]
+  	tgt <target COORDS> [tgtframe <#>] [tgtmask <tgtmask> [tgtcharge <tgtcharge>]
+]
+\end_layout
+
+\begin_layout LyX-Code
+      {ic | [srcfitmask <srcmask>] [tgtfitmask <tgtmask>]}
 \end_layout
 
 \begin_layout LyX-Code
@@ -6985,14 +7666,6 @@ COORDS> Source coordinates.
 \end_layout
 
 \begin_layout Description
-[srcfitmask
-\begin_inset space ~
-\end_inset
-
-<mask>] Atoms from source to use if RMS-fitting source onto target.
-\end_layout
-
-\begin_layout Description
 [srcmask
 \begin_inset space ~
 \end_inset
@@ -7000,6 +7673,17 @@ COORDS> Source coordinates.
 <mask>] Atoms to keep from source (default all).
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+[srccharge
+\begin_inset space ~
+\end_inset
+
+<charge>] If trimming atoms from source, ensure sum of charges on remaining
+ atoms equals <charge> via scaling.
+\end_layout
+
+\end_deeper
 \begin_layout Description
 tgt
 \begin_inset space ~
@@ -7021,19 +7705,42 @@ COORDS> Target coordinates that will be grafted onto.
 \end_layout
 
 \begin_layout Description
-[tgtfitmask
-\begin_inset space ~
-\end_inset
-
-<mask>] Atoms from target to use if RMS-fitting source onto target.
-\end_layout
-
-\begin_layout Description
 [tgtmask
 \begin_inset space ~
 \end_inset
 
 <mask>] Atoms to keep from target (default all).
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[tgtcharge
+\begin_inset space ~
+\end_inset
+
+<charge>] If trimming atoms from target, ensure sum of charges on remaining
+ atoms equals <charge> via scaling.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[ic] Connect source and target using internal coordinates.
+\end_layout
+
+\begin_layout Description
+[srcfitmask
+\begin_inset space ~
+\end_inset
+
+<mask>] Atoms from source to use if RMS-fitting source onto target.
+\end_layout
+
+\begin_layout Description
+[tgtfitmask
+\begin_inset space ~
+\end_inset
+
+<mask>] Atoms from target to use if RMS-fitting source onto target.
 \end_layout
 
 \begin_layout Description
@@ -7055,7 +7762,8 @@ COORDS> Name of output COORDS set containing source grafted onto target.
 
 <tgt>,<src>] Create a bond between target atom selected by <tgt> and source
  atoms selected by <src> in the final structure.
- May be specified multiple times.
+ Must be specified only once if connecting via internal coordinates, otherwise
+ may be specified multiple times.
 \end_layout
 
 \end_deeper
@@ -7086,6 +7794,8 @@ bond
 \series default
  keyword can be used to create bonds between target and source in the final
  structure.
+ If using internal coordinates to connect the units, exactly one bond must
+ be specified.
 \end_layout
 
 \begin_layout Subsection
@@ -8274,6 +8984,147 @@ crdout TZ2 tz2.rotate.1.mol2
 \end_layout
 
 \begin_layout Subsection
+sequence
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj-sequence"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout LyX-Code
+sequence name <output set name> <unit0> <unit1> ...
+\end_layout
+
+\begin_layout LyX-Code
+         [{libset <libsetname>} ...]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+name
+\begin_inset space ~
+\end_inset
+
+<output
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name> Name of final molecule.
+\end_layout
+
+\begin_layout Description
+<unit0>
+\begin_inset space ~
+\end_inset
+
+<unit1> Name of COORDS set (with connection info).
+\end_layout
+
+\begin_layout Description
+[{libset
+\begin_inset space ~
+\end_inset
+
+<libsetname>}
+\begin_inset space ~
+\end_inset
+
+...} One or more set name prefixes of data sets (libraries) containing units.
+\end_layout
+
+\begin_layout Standard
+Data sets created:
+\end_layout
+
+\begin_layout Description
+<output
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name> COORDS set containing final molecule.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Connect units in different COORDS sets together to form a single molecule.
+ Internal coordinates are used to try to determine the correct geometry
+ around connection sites.
+ The COORDS sets must have connection information set, either from reading
+ in an Amber OFF library file or set manually via 
+\series bold
+\emph on
+dataset
+\series default
+\emph default
+ 
+\series bold
+connect
+\series default
+ (see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-datasetcmd"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+For example, the following reads in two Mol2 files as COORDS sets, sets
+ up connection atoms, then creates a molecule via 
+\series bold
+\emph on
+sequence:
+\end_layout
+
+\begin_layout LyX-Code
+parm MOC.mol2
+\end_layout
+
+\begin_layout LyX-Code
+loadcrd MOC.mol2 parm MOC.mol2 name MOC
+\end_layout
+
+\begin_layout LyX-Code
+dataset connect MOC tailmask @O5
+\end_layout
+
+\begin_layout LyX-Code
+parm CNALA.mol2 
+\end_layout
+
+\begin_layout LyX-Code
+loadcrd CNALA.mol2 parm CNALA.mol2 name CNALA
+\end_layout
+
+\begin_layout LyX-Code
+dataset connect CNALA headmask @N
+\end_layout
+
+\begin_layout LyX-Code
+sequence MOC CNALA name Mol
+\end_layout
+
+\begin_layout LyX-Code
+crdout Mol Mol.mol2
+\end_layout
+
+\begin_layout Subsection
 splitcoords
 \end_layout
 
@@ -8324,6 +9175,141 @@ Set0
 
 \begin_layout LyX-Code
 splitcoords Set0 name Set0Split
+\end_layout
+
+\begin_layout Subsection
+zmatrix
+\end_layout
+
+\begin_layout LyX-Code
+zmatrix <COORDS set name> [name <output set name>]
+\end_layout
+
+\begin_layout LyX-Code
+        { zset <input zmatrix set> [parm <top>|parmindex <#>] |
+\end_layout
+
+\begin_layout LyX-Code
+          [molnum <mol#>] [frame <frame#>] [out <zmatrix file>] }
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+<COORDS
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name> COORDS set to calculate Z-matrix from or use as topology for applied
+ Z-matrix.
+\end_layout
+
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<output
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name>] Name of output COORDS set (if 'zset') or output Z-matrix set.
+\end_layout
+
+\begin_layout Description
+zset
+\begin_inset space ~
+\end_inset
+
+<input
+\begin_inset space ~
+\end_inset
+
+zmatrix
+\begin_inset space ~
+\end_inset
+
+set> Name of Z-matrix set to use to generate coordinates.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+parm
+\begin_inset space ~
+\end_inset
+
+<top> Use specified topology name as topology for generated coordinates.
+\end_layout
+
+\begin_layout Description
+parmindex
+\begin_inset space ~
+\end_inset
+
+<#> Use topology index as topology for generated coordinates.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[molnum
+\begin_inset space ~
+\end_inset
+
+<mol#>] Calculate Z-matrix from specified molecule (default first molecule).
+\end_layout
+
+\begin_layout Description
+[frame
+\begin_inset space ~
+\end_inset
+
+<frame#>] Calculate Z-matrix from specified molecule in specified frame
+ (default first frame).
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<zmatrix
+\begin_inset space ~
+\end_inset
+
+file>] File to write calculated Z-matrix to.
+\end_layout
+
+\begin_layout Standard
+Data sets created:
+\end_layout
+
+\begin_layout Description
+<output
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name> If 'zset', COORDS set containing final coordinates.
+ Otherwise contains Z-matrix data.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Command for working with Z-matrices.
+ If 'zset' is specified, generate coordinates from the specified Z-matrix
+ data set and topology.
+ Otherwise, calculate a Z-matrix for a single molecule from the specified
+ frame of given COORDS data set.
 \end_layout
 
 \begin_layout Section
@@ -9512,6 +10498,13 @@ reference "subsec:cpptraj-filter"
 
 \begin_layout Subsection
 dataset
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj-datasetcmd"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout LyX-Code
@@ -9548,6 +10541,11 @@ dataset { legend <legend> <set> |
 \begin_layout LyX-Code
           remove <criterion> <select> <value> [and <value2>] [<set selection>]
  |
+\end_layout
+
+\begin_layout LyX-Code
+          connect {[head <head atom>] [tail <tail atom>]|[headmask <headmask>]
+ [tailmask <tailmask>]}
 \end_layout
 
 \begin_layout LyX-Code
@@ -9835,6 +10833,73 @@ selection>] Remove data sets from <set selection> according to specified
 \end_layout
 
 \begin_layout Description
+connect
+\begin_inset space ~
+\end_inset
+
+<set
+\begin_inset space ~
+\end_inset
+
+args> Add/change connect atom information (used by the sequence command,
+ 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-sequence"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+) to COORDS set(s).
+ Head atoms connect to previous residue, tail atoms connect to next residue.
+ Can use either absolute atom numbers or atom mask expressions.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[head
+\begin_inset space ~
+\end_inset
+
+<head
+\begin_inset space ~
+\end_inset
+
+atom>]
+\begin_inset space ~
+\end_inset
+
+[tail
+\begin_inset space ~
+\end_inset
+
+<tail
+\begin_inset space ~
+\end_inset
+
+atom>] Specify the head/tail atoms by atom number.
+\end_layout
+
+\begin_layout Description
+[headmask
+\begin_inset space ~
+\end_inset
+
+<headmask>]
+\begin_inset space ~
+\end_inset
+
+[tailmask
+\begin_inset space ~
+\end_inset
+
+<tailmask>] Specify the head/tail atoms by atom mask.
+\end_layout
+
+\end_deeper
+\begin_layout Description
 dim
 \begin_inset space ~
 \end_inset
@@ -10042,7 +11107,7 @@ pucker
 \end_layout
 
 \begin_layout Standard
-Options for type noe only:
+Options for 'type noe' only:
 \end_layout
 
 \begin_layout Description
@@ -30866,7 +31931,7 @@ keep [ bridgedata <bridge data set> [nbridge <#>] [nobridgewarn]
 \end_layout
 
 \begin_layout LyX-Code
-     [keepmask <atoms to keep>]
+     [keepmask <atoms to keep>] [charge <new charge>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -30960,6 +32025,19 @@ to
 \end_inset
 
 keep> Mask of atoms to keep.
+\end_layout
+
+\begin_layout Description
+charge
+\begin_inset space ~
+\end_inset
+
+<new
+\begin_inset space ~
+\end_inset
+
+charge> Scale charges so total charge of remaining atoms matches the specified
+ <new charge>.
 \end_layout
 
 \begin_layout Description
@@ -39259,7 +40337,7 @@ strip
 
 \end_inset
 
- <mask> 
+ <mask> [charge <new charge>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -39277,6 +40355,19 @@ strip
 \begin_deeper
 \begin_layout Description
 <mask> Remove atoms specified by mask from the system.
+\end_layout
+
+\begin_layout Description
+charge
+\begin_inset space ~
+\end_inset
+
+<new
+\begin_inset space ~
+\end_inset
+
+charge> Scale charges so total charge of remaining atoms matches the specified
+ <new charge>.
 \end_layout
 
 \begin_layout Description

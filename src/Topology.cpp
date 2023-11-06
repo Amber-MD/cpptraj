@@ -38,6 +38,17 @@ const char *Topology::c_str() const {
   return parmName_.c_str();
 }
 
+/** \return count of heavy atoms (ignore hydrogen/extra points). */
+unsigned int Topology::HeavyAtomCount() const {
+  unsigned int hac = 0;
+  for (atom_iterator at = begin(); at != end(); ++at) {
+    if (at->Element() != Atom::HYDROGEN &&
+        at->Element() != Atom::EXTRAPT)
+      hac++;
+  }
+  return hac;
+}
+
 /** Reset all PDB-related info.
   * NOTE: This routine is used by AmbPDB.
   */
@@ -1175,6 +1186,16 @@ int Topology::DetermineMolecules() {
   return 0;
 }
 
+/** Put all atoms in a single molecule. Mostly intended for cases
+  * where you want a pseudo-topology and do not really care about
+  * molecule info.
+  */
+int Topology::SetSingleMolecule() {
+  molecules_.clear();
+  molecules_.push_back( Molecule(0, Natom()) );
+  return 0;
+}
+
 // -----------------------------------------------------------------------------
 // Topology::DetermineNumExtraPoints()
 void Topology::DetermineNumExtraPoints() {
@@ -1965,12 +1986,22 @@ void Topology::StripDihedralParmArray(DihedralArray& newDihedralArray, std::vect
 
 // Topology::AddBondArray()
 void Topology::AddBondArray(BondArray const& barray, BondParmArray const& bp, int atomOffset) {
-  if (bp.empty())
+  if (bp.empty()) {
     for (BondArray::const_iterator bond = barray.begin(); bond != barray.end(); ++bond)
       AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset );
-  else
-    for (BondArray::const_iterator bond = barray.begin(); bond != barray.end(); ++bond)
-      AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset, bp[bond->Idx()] );
+  } else {
+    bool missingParameters = false;
+    for (BondArray::const_iterator bond = barray.begin(); bond != barray.end(); ++bond) {
+      if (bond->Idx() > -1)
+        AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset, bp[bond->Idx()] );
+      else {
+        missingParameters = true;
+        AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset );
+      }
+    }
+    if (missingParameters)
+      mprintf("Warning: Some bonds were missing parameters.\n");
+  }
 }
 
 // Topology::AddAngleArray()
@@ -2788,6 +2819,45 @@ bool Topology::HasChargeInfo() const {
     if (at->Charge() > 0.0 || at->Charge() < 0.0)
       return true;
   return false;
+}
+
+/** Redistribute charge on atoms to match given total target charge. */
+int Topology::RedistributeCharge(double charge) {
+  //mprintf("DEBUG: Redistribute charge for %s, total charge = %g\n", topIn.c_str(), charge);
+  double pcharge = 0;
+  double ncharge = 0;
+  for (unsigned int iat = 0; iat != atoms_.size(); iat++) {
+    if (atoms_[iat].Charge() > 0)
+      pcharge += atoms_[iat].Charge();
+    else if (atoms_[iat].Charge() < 0)
+      ncharge += atoms_[iat].Charge();
+  }
+  //if (fabs(pcharge) < Constants::SMALL)
+  bool PchargeZero = false;
+  if (pcharge == 0) {
+    mprintf("\tTotal positive charge is 0.0\n");
+    PchargeZero = true;
+  }
+  bool NchargeZero = false;
+  //if (fabs(ncharge) < Constants::SMALL)
+  if (ncharge == 0) {
+    mprintf("\tTotal negative charge is 0.0\n");
+    NchargeZero = true;
+  }
+  if (!PchargeZero && !NchargeZero) {
+    //double total_charge = 0;
+    for (unsigned int iat = 0; iat != atoms_.size(); iat++) {
+      double delta = atoms_[iat].Charge() * (charge - pcharge - ncharge) / (pcharge - ncharge);
+      if (atoms_[iat].Charge() >= 0) {
+        atoms_[iat].SetCharge( atoms_[iat].Charge() + delta );
+      } else {
+        atoms_[iat].SetCharge( atoms_[iat].Charge() - delta );
+      }
+      //total_charge += topIn[iat].Charge();
+    }
+    //mprintf("DEBUG: Total charge after redistribute: %g\n", total_charge);
+  }
+  return 0;
 }
 
 // -----------------------------------------------------------------------------

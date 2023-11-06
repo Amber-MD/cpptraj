@@ -1,11 +1,17 @@
 # Files for Structure subdirectory.
 STRUCTURE_SOURCES= \
+  Builder.cpp \
+  Chirality.cpp \
   Disulfide.cpp \
   FunctionalGroup.cpp \
   FxnGroupBuilder.cpp \
   HisProt.cpp \
+  InternalCoords.cpp \
+  Model.cpp \
+  StructureEnum.cpp \
   StructureRoutines.cpp \
   SugarBuilder.cpp \
   Sugar.cpp \
   SugarLinkAtoms.cpp \
-  SugarToken.cpp
+  SugarToken.cpp \
+  Zmatrix.cpp

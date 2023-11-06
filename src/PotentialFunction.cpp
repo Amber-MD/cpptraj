@@ -9,6 +9,12 @@
 #include "PotentialTerm_Angle.h"
 #include "PotentialTerm_Dihedral.h"
 
+/** DESTRUCTOR */
+PotentialFunction::~PotentialFunction() {
+  for (Parray::iterator it = terms_.begin(); it != terms_.end(); ++it)
+    delete *it;
+}
+
 /** Add a term to the potential function. */
 int PotentialFunction::AddTerm(PotentialTerm::Type typeIn, MdOpts const& opts) {
   PotentialTerm* term = 0;

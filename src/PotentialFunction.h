@@ -12,7 +12,10 @@ class MdOpts;
 /// Hold terms for additive potential.
 class PotentialFunction {
   public:
+    /// CONSTRUCTOR
     PotentialFunction() : current_(0), deg_of_freedom_(0) {}
+    /// DESTRUCTOR
+    ~PotentialFunction();
     /// Add term to function with given options
     int AddTerm(PotentialTerm::Type, MdOpts const&);
     /// Add term to function with default options

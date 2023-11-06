@@ -251,3 +251,5 @@ External code/libraries bundled with CPPTRAJ
 * CPPTRAJ uses code for the [permuted congruent pseudo-random number generator](https://www.pcg-random.org/index.html) PCG32 by Melissa O'Neill and the [Xoshiro 128++ pseudo-random number generator](http://prng.di.unimi.it) by David Blackman and Sebastino Vigna.
 
 * The code for quaternion RMSD calculation was adapted from code in [qcprot.c](https://theobald.brandeis.edu/qcp/qcprot.c) originally written by Douglas L. Theobald and Pu Lio (Brandeis University).
+
+* The code for reading numpy arrays in `src/libnpy` is from [libnpy](https://github.com/llohse/libnpy) written by Leon Merten Lohse et al. (Universität Göttingen).

@@ -136,6 +136,11 @@ void Atom::DetermineElement(int atomicnum) {
     SetElementFromName();
 }
 
+/** Set atomic mass from current element */
+void Atom::SetMassFromElement() {
+  mass_ = AtomicElementMass_[ element_ ];
+}
+
 // CONSTRUCTOR
 Atom::Atom(NameType const& aname, double charge, double mass, NameType const& atype) :
   charge_(charge), polar_(0.0), mass_(mass), gb_radius_(0.0), gb_screen_(0.0),

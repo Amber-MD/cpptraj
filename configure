@@ -2342,10 +2342,7 @@ EOF
       CXXFLAGS="$CXXFLAGS -DMPICH_IGNORE_CXX_SEEK"
     fi
   fi
-  # ----- Mac OSX --------------------------------
-  if [ "$PLATFORM" = 'Darwin' ] ; then
-    SHARED_SUFFIX='.dylib'
-    if [ "$COMPILERS" = 'clang' ] ; then
+  if [ "$COMPILERS" = 'clang' ] ; then
       # On OSX with clang, some libraries may be built with libstdc++ and will
       # fail to link without this flag.
       cat > testp.cpp <<EOF
@@ -2358,7 +2355,7 @@ EOF
         # Test with stdlib flag
         TestProgram quiet "With stdlib flag" "$CXX" "$CXXFLAGS" testp.cpp "-stdlib=libstdc++"
         if [ $? -eq 1 ] ; then
-          Err "Could not link properly with clang++ on OSX"
+          Err "Could not link libstdc++ properly with clang++"
         fi
         LDFLAGS="$LDFLAGS -stdlib=libstdc++"
       fi
@@ -2409,7 +2406,11 @@ EOF
         fi
         echo "OK"
       fi
-    fi # End if clang
+  fi # End if clang
+  # ----- Mac OSX --------------------------------
+  if [ "$PLATFORM" = 'Darwin' ] ; then
+    SHARED_SUFFIX='.dylib'
+
   # ----- Windows/Cygwin -------------------------
   elif [ "$PLATFORM" = 'windows' ] ; then
     SHARED_SUFFIX='.dll.a'

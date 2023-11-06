@@ -1,6 +1,7 @@
 #include "Action_Distance.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
+#include "AssociatedData_NOE.h"
 
 // CONSTRUCTOR
 Action_Distance::Action_Distance() :
@@ -35,7 +36,7 @@ Action::RetType Action_Distance::Init(ArgList& actionArgs, ActionInit& init, int
   std::string stypename = actionArgs.GetStringKey("type");
   if ( stypename == "noe" ) {
     stype = MetaData::NOE;
-    if (noe.NOE_Args( actionArgs )) return Action::ERR;
+    if (noe.ProcessAdataArgs( actionArgs )) return Action::ERR;
   }
   // Determine mode.
   ReferenceFrame refFrm = init.DSL().GetReferenceFrame( actionArgs );

@@ -1,13 +1,11 @@
 #include "Chirality.h"
-#include "Constants.h"
-#include "CpptrajStdio.h"
-#include "Frame.h"
-#include "Topology.h"
-#include "TorsionRoutines.h"
+#include "../Constants.h"
+#include "../CpptrajStdio.h"
+#include "../Frame.h"
+#include "../Topology.h"
+#include "../TorsionRoutines.h"
 #include <vector>
 #include <algorithm> // sort
-
-using namespace Cpptraj;
 
 /// \return Total priority (i.e. sum of atomic numbers) of atoms bonded to given atom.
 static int totalPriority(Topology const& topIn, int atnum, int rnum,
@@ -78,16 +76,18 @@ class priority_element {
   *   1-2-3-0
   * where 0 is the chiral center. Negative is S, positive is R.
   */
-Chirality::ChiralType Chirality::DetermineChirality(double& tors, int atnum,
-                                                    Topology const& topIn,
-                                                    Frame const& frameIn, int debugIn)
+Cpptraj::Structure::ChiralType
+  Cpptraj::Structure::DetermineChirality(double& tors, int* AtomIndices,
+                                         int atnum,
+                                         Topology const& topIn,
+                                         Frame const& frameIn, int debugIn)
 {
   tors = 0.0;
   Atom const& atom = topIn[atnum];
   if (atom.Nbonds() < 3) {
     mprinterr("Error: CalcChiralAtomTorsion called for atom %s with less than 3 bonds.\n",
               topIn.AtomMaskName(atnum).c_str());
-    return ERR;
+    return CHIRALITY_ERR;
   }
   // Calculate a priority score for each bonded atom.
   // First just use the atomic number.
@@ -100,6 +100,7 @@ Chirality::ChiralType Chirality::DetermineChirality(double& tors, int atnum,
       mprintf("DEBUG:\t\t%i Priority for %s is %i\n", idx, topIn.AtomMaskName(atom.Bond(idx)).c_str(), priority.back().Priority1());
   }
   // For any identical priorities, need to check who they are bonded to.
+  bool depth_limit_hit = false;
   for (int idx1 = 0; idx1 != atom.Nbonds(); idx1++) {
     for (int idx2 = idx1+1; idx2 != atom.Nbonds(); idx2++) {
       if (priority[idx1] == priority[idx2]) {
@@ -124,9 +125,10 @@ Chirality::ChiralType Chirality::DetermineChirality(double& tors, int atnum,
             break;
           }
           if (depth == 10) {
-            mprinterr("Error: Could not determine priority around '%s'\n",
+            mprintf("Warning: Could not determine priority around '%s'\n",
                       topIn.AtomMaskName(atnum).c_str());
-            return ERR;
+            depth_limit_hit = true;
+            break;
           }
           depth++;
         } // END while identical priorities
@@ -141,6 +143,12 @@ Chirality::ChiralType Chirality::DetermineChirality(double& tors, int atnum,
       mprintf(" %s", topIn.AtomMaskName(it->AtNum()).c_str());
     mprintf("\n");
   }
+
+  if (AtomIndices != 0) {
+    for (unsigned int ip = 0; ip != priority.size(); ++ip)
+      AtomIndices[ip] = priority[ip].AtNum();
+  }
+  if (depth_limit_hit) return IS_UNKNOWN_CHIRALITY;
 
   tors = Torsion( frameIn.XYZ(priority[0].AtNum()),
                   frameIn.XYZ(priority[1].AtNum()),
@@ -160,10 +168,22 @@ Chirality::ChiralType Chirality::DetermineChirality(double& tors, int atnum,
 }
 
 /** Determine chirality around specified atom. */
-Chirality::ChiralType Chirality::DetermineChirality(int atnum,
-                                                    Topology const& topIn,
-                                                    Frame const& frameIn, int debugIn)
+Cpptraj::Structure::ChiralType
+  Cpptraj::Structure::DetermineChirality(int atnum,
+                                         Topology const& topIn,
+                                         Frame const& frameIn, int debugIn)
 {
   double tors;
-  return DetermineChirality(tors, atnum, topIn, frameIn, debugIn);
+  return DetermineChirality(tors, 0, atnum, topIn, frameIn, debugIn);
+}
+
+/** Set priority around a specified atom. */
+Cpptraj::Structure::ChiralType
+  Cpptraj::Structure::SetPriority(std::vector<int>& priority,
+                                  int atnum, Topology const& topIn,
+                                  Frame const& frameIn, int debugIn)
+{
+  priority.resize( topIn[atnum].Nbonds() );
+  double tors;
+  return DetermineChirality(tors, &priority[0], atnum, topIn, frameIn, debugIn);
 }

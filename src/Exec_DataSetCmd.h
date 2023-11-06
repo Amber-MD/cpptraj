@@ -21,6 +21,7 @@ class Exec_DataSetCmd : public Exec {
 
     static void Help_ModifyPoints();
     RetType ModifyPoints(CpptrajState&, ArgList&, bool);
+    RetType SetConnect(CpptrajState&, ArgList&);
     RetType VectorCoord(CpptrajState&, ArgList&);
     RetType ChangeOutputFormat(CpptrajState const&, ArgList&);
     RetType Remove(CpptrajState&, ArgList&);
