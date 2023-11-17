@@ -1032,12 +1032,6 @@ trajin
 , 
 \series bold
 \emph on
-'gist'
-\series default
-\emph default
-, 
-\series bold
-\emph on
 'lipidorder'
 \series default
 \emph default
@@ -1080,6 +1074,17 @@ trajin
 \emph default
  Action will only work with across-trajectory parallelism if no imaging
  is to be performed.
+\end_layout
+
+\begin_layout Standard
+In addition to across-trajectory parallelism, the 
+\series bold
+\emph on
+'gist'
+\series default
+\emph default
+ command will also MPI-parallelize the entropy calculation that occurs after
+ trajectory processing.
 \end_layout
 
 \begin_layout Standard
