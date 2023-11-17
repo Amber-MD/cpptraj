@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 # Clean
-CleanFiles cluster.in C?.info.dat PW C2.dat C??.info.dat
+CleanFiles cluster.in C?.info.dat PW C2.dat C??.info.dat PW.CA
 
 TESTNAME='Cluster read info tests'
 #Requires netcdf
