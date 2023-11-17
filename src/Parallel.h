@@ -47,6 +47,7 @@
   *     2100  : Action_GIST: Compressed Xarray size
   *     2101  : Action_GIST: Compressed Xarray
   *     2200  : Action_AvgBox average box values
+  *     3000  : Action_Diffusion: Multiple time origin averaging data
   */
 class Parallel {
   public:
