@@ -97,7 +97,7 @@ const
   }
 
   visitGroupAtoms( groupAtoms, atIdx, topIn, visited );
-  mprintf("DEBUG: Potential group starting at [%s]-[%s]:", topIn.AtomMaskName(atIdx).c_str(), topIn.AtomMaskName(linkAtIdx).c_str());
+  mprintf("\tPotential functional group starting at [%s]-[%s]:", topIn.AtomMaskName(atIdx).c_str(), topIn.AtomMaskName(linkAtIdx).c_str());
   for (Iarray::const_iterator it = groupAtoms.begin(); it != groupAtoms.end(); ++it)
     mprintf(" %s", topIn.AtomMaskName( *it ).c_str());
   mprintf("\n");
@@ -122,13 +122,14 @@ const
       }
     }
   }
-  groupTop.Summary();
+  if (debug_ > 0)
+    groupTop.Summary();
   FunctionalGroup fg;
   if (fg.SetupFromTop( groupTop, linkAtom.Element() )) {
     mprinterr("Internal Error: Set up functional group topology failed.\n");
     return FG_it;
   }
-  fg.PrintInfo();
+  if (debug_ > 0) fg.PrintInfo();
 
   // Try to find a match
   for (FG_it = functionalGroups_.begin(); FG_it != functionalGroups_.end(); ++FG_it)
@@ -138,7 +139,7 @@ const
     }
   }
   if (FG_it != functionalGroups_.end()) {
-    mprintf("DEBUG: FG MATCH FOUND. ");
+    mprintf("\tFunctional group match found. ");
     FG_it->PrintInfo();
   }
   return FG_it;
