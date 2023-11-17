@@ -503,7 +503,7 @@ const
     }
     for (int rank = 1; rank < trajComm_.Size(); rank++) {
       // Receive from child
-      trajComm_.Recv( &fromChild[0], nvals_on_rank[rank], MPI_DOUBLE, rank, 10101 ); // FIXME tag
+      trajComm_.Recv( &fromChild[0], nvals_on_rank[rank], MPI_DOUBLE, rank, 3000 );
       // Sum child rank
       for (int idx = 0; idx < nvals_on_rank[rank]; idx++) {
         Sum_all[idx] += fromChild[idx];
@@ -521,7 +521,7 @@ const
       updateSet[idx] = Sum_all[idx] / Ntotal[idx];
   } else {
     // Send the values to master
-    trajComm_.Send(dset.DvalPtr(), dset.Size(), MPI_DOUBLE, 0, 10101); // FIXME tag
+    trajComm_.Send(dset.DvalPtr(), dset.Size(), MPI_DOUBLE, 0, 3000);
   }
   // Set no longer needs to be synced
   set->SetNeedsSync( false );

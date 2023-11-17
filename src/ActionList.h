@@ -30,6 +30,8 @@ class ActionList {
     int ParallelProcessPreload(Action::FArray const&);
     /// Call sync for each Action (parallel only)
     void SyncActions();
+    /// Call parallel post calc for each Action
+    void ParallelPostCalcs();
 #   endif
     /// List all Actions in the list.
     void List() const;

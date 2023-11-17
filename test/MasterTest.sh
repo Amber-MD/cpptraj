@@ -14,7 +14,7 @@
 #   CPPTRAJ_NCDUMP       : Set to ncdump command; needed for NcTest()
 #   CPPTRAJ_RM           : Command used to remove files
 #   CPPTRAJ_TIME         : Set to the 'time' command if timing requested.
-#   CPPTRAJ_NPROC        : nproc binary for counting threads in parallel tests.
+#   CPPTRAJ_NPROC        : nproc binary for counting processes in parallel tests.
 # Test output locations
 #   CPPTRAJ_TEST_RESULTS : File to record individual test results to.
 #   CPPTRAJ_TEST_ERROR   : File to record individual test errors/diffs to.
@@ -25,7 +25,7 @@
 #   CPPTRAJ_TEST_SETUP   : 'yes' if setup is complete.
 #   CPPTRAJ_TEST_CLEAN   : If 1, only cleaning tests; do not run them.
 #   CPPTRAJ_TEST_OS      : Operating system on which tests are being run. If blank assume linux.
-#   N_THREADS            : Number of MPI threads if parallel.
+#   N_THREADS            : Number of MPI processes if parallel.
 #   OMP_NUM_THREADS      : Max number of OpenMP threads.
 #   DO_PARALLEL          : MPI run command (e.g. 'mpirun -n 11')
 #   CPPTRAJ_DEBUG        : Can be set to pass global debug flag to cpptraj.
@@ -82,6 +82,7 @@ UNITNAME=''              # Current unit name for CheckFor routine.
 DESCRIP=''               # Current test/unit name for CheckEnv routine.
 FNC1=''                  # First file to NcTest(); for output in DoTest()
 FNC2=''                  # Second file to NcTest(); for output in DoTest()
+TEST_TOLERANCE=''        # Set by SetConditionalTol() to desired test tolerance.
 
 # ==============================================================================
 # TestHeader() <outfile>
@@ -188,12 +189,15 @@ DoTest() {
       # Print AT test header.
       echo "diffing $FNAME1 with $FNAME2"
     fi
+    # Both CPPTRAJ_DIFF and CPPTRAJ_NDIFF should return non-zero on diff
     if [ $USE_NDIFF -eq 0 ] ; then
       $CPPTRAJ_DIFF $DIFFARGS $DIFFOPTS $F1 $F2 > temp.diff 2>&1
+      is_diff=$?
     else
-      awk -f $CPPTRAJ_NDIFF $NDIFFARGS $F1 $F2 > temp.diff 2>&1
+      $CPPTRAJ_NDIFF $NDIFFARGS $F1 $F2 > temp.diff 2>&1
+      is_diff=$?
     fi
-    if [ -s 'temp.diff' ] ; then
+    if [ $is_diff -ne 0 ] ; then
       if [ -z "$CPPTRAJ_DACDIF" ] ; then
         OutBoth "  $FNAME1 $FNAME2 are different."
         cat temp.diff >> $CPPTRAJ_TEST_ERROR
@@ -322,6 +326,69 @@ EOF
     fi
     DoTest $DIFFARGS
     $CPPTRAJ_RM ev0.save ev0 tmp.evectest.out
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# SetConditionalTol() <name> <key> <flag> <tol> [<key> <flag> <tol> ...]
+#   Set TEST_TOLERANCE based on keyword <key>, with later tolerances having
+#   priority over earlier ones.
+SetConditionalTol() {
+  TEST_TOLERANCE=''
+  tol_name=$1
+  if [ -z "$tol_name" ] ; then
+    ErrMsg "SetConditionalTol(): no name set."
+    exit 1
+  fi
+  shift
+  tol_key=''
+  tol_flag=''
+  tol_val=''
+  while [ ! -z "$1" ] ; do
+    tmp_key=$1
+    shift
+    tmp_flag=$1
+    shift
+    tmp_val=$1
+    shift
+    if [ -z "$tmp_key" -o -z "$tmp_flag" -o -z "$tmp_val" ] ; then
+      ErrMsg "SetConditionalTol(): Improper key/flag/val."
+      exit 1
+    fi
+    # Check key
+    if [ "$tmp_key" = 'mpi' ] ; then
+      if [ ! -z "$DO_PARALLEL" ] ; then
+        if [ $N_THREADS -gt 1 ] ; then
+          tol_key=$tmp_key
+          tol_flag=$tmp_flag
+          tol_val=$tmp_val
+        fi
+      fi
+    elif [ "$tmp_key" = 'cuda' ] ; then
+      if [ ! -z "$CPPTRAJ_CUDA" ] ; then
+        tol_key=$tmp_key
+        tol_flag=$tmp_flag
+        tol_val=$tmp_val
+      fi
+    elif [ "$tmp_key" = 'openmp' ] ; then
+      if [ ! -z "$CPPTRAJ_OPENMP" ] ; then
+        tol_key=$tmp_key
+        tol_flag=$tmp_flag
+        tol_val=$tmp_val
+      fi
+    elif [ "$tmp_key" = 'default' ] ; then
+      tol_key=$tmp_key
+      tol_flag=$tmp_flag
+      tol_val=$tmp_val
+    else
+      ErrMsg "SetConditionalTol(): Unhandled key $tmp_key"
+      exit 1
+    fi
+  done # END loop over keys
+  if [ ! -z "$tol_key" ] ; then
+    TEST_TOLERANCE="$tol_flag $tol_val"
+    echo ""
+    echo "Setting $tol_key tolerance for $tol_name : $TEST_TOLERANCE"
   fi
 }
 
@@ -670,7 +737,7 @@ SetNthreads() {
       return 1
     fi
     export N_THREADS=`$CPPTRAJ_NPROC`
-    echo "  $N_THREADS MPI threads."
+    echo "  $N_THREADS MPI processes."
   fi
   return 0
 }
@@ -906,11 +973,13 @@ SetBinaries() {
   fi
   # Determine location of ndiff.awk
   if [ -z "$CPPTRAJ_NDIFF" ] ; then
-    CPPTRAJ_NDIFF=$CPPTRAJ_TEST_ROOT/utilities/ndiff/ndiff.awk
-    if [ ! -f "$CPPTRAJ_NDIFF" ] ; then
-      ErrMsg "'ndiff.awk' not present: $CPPTRAJ_NDIFF"
-      exit 1
-    fi
+    CPPTRAJ_NDIFF="$CPPTRAJ --ndiff"
+    #CPPTRAJ_NDIFF=$CPPTRAJ_TEST_ROOT/utilities/ndiff/ndiff.awk
+    #if [ ! -f "$CPPTRAJ_NDIFF" ] ; then
+    #  ErrMsg "'ndiff.awk' not present: $CPPTRAJ_NDIFF"
+    #  exit 1
+    #fi
+    #CPPTRAJ_NDIFF="awk -f $CPPTRAJ_NDIFF"
     export CPPTRAJ_NDIFF
   fi
   # Determine location of nproc/numprocs
@@ -952,7 +1021,7 @@ SetBinaries() {
   # directories the path needs to be incremented one dir up.
   if [ "$PATH_TYPE" = 'relative' -a "$CPPTRAJ_TEST_MODE" = 'master' ] ; then
     CPPTRAJ="../$CPPTRAJ"
-  #  CPPTRAJ_NDIFF="../$CPPTRAJ_NDIFF"
+    CPPTRAJ_NDIFF="../$CPPTRAJ_NDIFF"
   #  CPPTRAJ_NPROC="../$CPPTRAJ_NPROC"
   fi
 }
@@ -1076,7 +1145,7 @@ CheckEnv() {
         shift
         if [ ! -z "$DO_PARALLEL" ] ; then
           if [ $N_THREADS -gt $1 ] ; then
-            echo "  $DESCRIP can only run with $1 or fewer parallel threads."
+            echo "  $DESCRIP can only run with $1 or fewer parallel processes."
             ((CHECKERR++))
           fi
         fi
@@ -1086,7 +1155,7 @@ CheckEnv() {
         if [ ! -z "$DO_PARALLEL" ] ; then
           REMAINDER=`expr $N_THREADS % $1`
           if [ -z "$REMAINDER" -o $REMAINDER -ne 0 ] ; then
-            echo "  $DESCRIP requires a multiple of $1 parallel threads."
+            echo "  $DESCRIP requires a multiple of $1 parallel processes."
             ((CHECKERR++))
           fi
         fi
@@ -1095,7 +1164,7 @@ CheckEnv() {
         shift
         if [ ! -z "$DO_PARALLEL" ] ; then
           if [ $N_THREADS -ne $1 ] ; then
-            echo "  $DESCRIP requires exactly $1 parallel threads."
+            echo "  $DESCRIP requires exactly $1 parallel processes."
             ((CHECKERR++))
           fi
         fi

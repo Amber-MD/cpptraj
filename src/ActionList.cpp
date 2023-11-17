@@ -158,7 +158,19 @@ void ActionList::SyncActions() {
     }
   }
 }
-#endif
+
+void ActionList::ParallelPostCalcs() {
+  for (Aarray::const_iterator act = actionList_.begin(); act != actionList_.end(); ++act)
+  { // Skip deactivated actions
+    if (act->status_ != INACTIVE) {
+      //rprintf("DEBUG: Calling ParallelPostCalc() for '%s'\n", act->args_.Command());
+      if (act->ptr_->ParallelPostCalc())
+        rprintf("Warning: ParallelPostCalc failed for Action '%s'\n", act->args_.Command());
+    }
+  }
+}
+#endif /* MPI */
+
 void ActionList::List() const {
   if (!actionList_.empty()) {
     mprintf("\nACTIONS (%zu total):\n", actionList_.size());

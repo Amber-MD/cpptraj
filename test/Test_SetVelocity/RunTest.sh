@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles setvel.in tz2.vel.rst7 V1.dat tz2.scale.rst7 tz2.add.rst7
+CleanFiles setvel.in tz2.vel.rst7 V1.dat tz2.scale.rst7 tz2.add.rst7 temp.rst7
 
 INPUT='-i setvel.in'
 

@@ -35,7 +35,10 @@ EOF
 
 FixWithReadData() {
   INPUT='-i grid.in'
-  cat > grid.in <<EOF
+  UNITNAME='RMS-fitting after reading in grid data'
+  CheckFor maxthreads 10
+  if [ $? -eq 0 ] ; then
+    cat > grid.in <<EOF
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.nc
 readdata ../Test_Grid/out.dx.save name MyGrid
@@ -43,8 +46,9 @@ autoimage origin
 grid out fitwithreaddata.dx data MyGrid rmsfit :1-13 @CA
 run
 EOF
-  RunCpptraj "RMS-fitting after reading in grid data"
-  DoTest ../Test_Grid/out.dx.2.save fitwithreaddata.dx
+    RunCpptraj "$UNITNAME"
+    DoTest ../Test_Grid/out.dx.2.save fitwithreaddata.dx
+  fi
 }
 
 RunTyr

@@ -59,6 +59,8 @@ class Action : public DispatchObject {
     typedef std::vector<Frame> FArray;
     /// Process array of frames before start required by ranks > 0 (not called by master)
     virtual int ParallelPreloadFrames(FArray const&) { return 0; } // TODO: pure virtual
+    /// Any post-action calculations that should occur in parallel
+    virtual int ParallelPostCalc() { return 0; }
 #   endif
 };
 #endif

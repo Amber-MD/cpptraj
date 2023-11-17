@@ -1,11 +1,13 @@
 #ifndef INC_ACTION_GIST_H
 #define INC_ACTION_GIST_H
 #include "Action.h"
+#include "GridMover.h"
 #include "ImageOption.h"
 #include "Timer.h"
 #include "EwaldOptions.h"
 #include "CharMask.h"
 #include "GridBin.h"
+#include "PairList.h"
 #include <map>
 #ifdef CUDA
 #include "cuda_kernels/GistCudaSetup.cuh"
@@ -27,6 +29,7 @@ class Action_GIST : public Action {
     #ifdef CUDA
     ~Action_GIST() {delete[] this->solvent_;}
     #endif
+    //~Action_GIST(); // DEBUG MPI
     DispatchObject* Alloc() const { return (DispatchObject*)new Action_GIST(); }
     void Help() const;
   private:
@@ -34,6 +37,10 @@ class Action_GIST : public Action {
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
     void Print();
+#   ifdef MPI
+    int SyncAction();
+    int ParallelPostCalc();
+#   endif
 
     typedef std::vector<float> Farray;
     typedef std::vector<int> Iarray;
@@ -83,10 +90,13 @@ class Action_GIST : public Action {
         TextFormat intFmt_;
         bool is_new_line_;
     };
-
+#   ifdef MPI
+    void sync_Xarray(Xarray&) const;
+#   endif
     static inline void Ecalc(double, double, double, NonbondType const&, double&, double&);
     void NonbondEnergy_pme(Frame const&);
     void NonbondEnergy(Frame const&, Topology const&);
+    void Order_PL(Frame const&);
     void Order(Frame const&);
     // void SumEVV();
     void CollectEnergies();
@@ -123,6 +133,8 @@ class Action_GIST : public Action {
     template<typename T>
     std::vector<T> DensityWeightDataSet(const DataSet_3D& ds) const;
 
+    int CalcTranslationalEntropy(unsigned int, unsigned int) const;
+
     int debug_;      ///< Action debug level
     int numthreads_; ///< Number of OpenMP threads
 
@@ -158,7 +170,7 @@ class Action_GIST : public Action {
     // CUDA only functions
     void freeGPUMemory(void);
     void copyToGPU(void);
-    void NonbondCuda(ActionFrame);
+    void NonbondCuda(ActionFrame const&);
 
 #endif
 
@@ -179,7 +191,18 @@ class Action_GIST : public Action {
     double gridspacing_;
     Vec3 gridcntr_;
     int griddim_[3];
-    const GridBin* gridBin_;
+    DataSet_3D* masterGrid_; ///< Grid that will be used to determine voxels for all grids
+    const GridBin* gridBin_; ///< Hold the GridBin class from masterGrid_
+    GridBin borderGrid_;     ///< Hold dims for grid + 1.5 Ang buffer region.
+    Matrix_3x3 borderGridUcell0_; ///< Hold border grid original unit cell (in case of rotation).
+
+    Cpptraj::GridMover mover_; ///< Used to move the master grid if necessary
+    AtomMask moveMask_;        ///< Select atoms used to move the grid if necessary
+
+    PairList pairList_;        ///< Pair list for order calc
+    bool use_PL_;              ///< If true, user wants to use pair list
+    bool PL_active_;           ///< If true, pairlist can be used
+    double PL_cut_;            ///< Pair list cutoff
 
     std::vector<std::string> rigidAtomNames_;
     int rigidAtomIndices_[3]; ///< the 3 atoms that define the orientation of a solvent molecule;
@@ -252,8 +275,6 @@ class Action_GIST : public Action {
     Darray E_pme_;     ///< Total nonbond interaction energy(VDW + electrostatic) calculated by PME for water TODO grid?
     Darray U_E_pme_;   ///< Total nonbond interaction energy(VDW + Elec) calculated by PME for solute TODO grid?
 
-    Vec3 G_max_; ///< Grid max + 1.5 Ang.
-
     // Timing data
     Timer gist_init_;
     Timer gist_setup_;
@@ -268,6 +289,12 @@ class Action_GIST : public Action {
     Timer gist_euler_;
     Timer gist_dipole_;
     Timer gist_order_;
+    Timer gist_print_OE_; ///< Orientational entropy calc timer
+    Timer gist_print_TE_; ///< Translational entropy calc timer
+#   ifdef MPI
+    Timer gist_entropy_comm_; ///< Time needed to communicate the entropy arrays.
+#   endif 
+    Timer gist_print_write_; ///< GIST results file write timer
 
     Topology* CurrentParm_;    ///< Current topology, for energy calc.
     CpptrajFile* datafile_;    ///< GIST output
@@ -291,6 +318,9 @@ class Action_GIST : public Action {
     int max_nwat_;             ///< Max number of waters in any voxel
     int nNnSearchLayers_;      ///< Number of layers of voxels to search for nearest neighbors in the entropy search.
     int n_linear_solvents_;    ///< Count how many near-linear solvents occur during the GIST calculation.*
+#   ifdef DEBUG_GIST
+    CpptrajFile* debugOut_; ///> DEBUG
+#   endif
     bool doOrder_;             ///< If true do the order calc
     bool doEij_;               ///< If true do the i-j energy calc
     bool skipE_;               ///< If true skip the nonbond energy calc
@@ -298,5 +328,9 @@ class Action_GIST : public Action {
     bool exactNnVolume_;       ///< If true use the exact volume equation for the NN entropy
     bool useCom_;              ///< If true use the COM as the molecular center; If false, use the first atom according to rigidAtomIndices.
     bool setupSuccessful_;     ///< Used to skip Print() if setup failed.
+#   ifdef MPI
+    Parallel::Comm trajComm_;  ///< Communicator across trajectory
+#   endif
+    int watCountSubvol_;       ///< Hold nwts; if -1, trans. entropy calc has not been run
 };
 #endif

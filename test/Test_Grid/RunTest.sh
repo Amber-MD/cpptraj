@@ -4,7 +4,8 @@
 
 CleanFiles ptraj.in out.dipole out.xplor out.dx out.dx.2 test.dx box.dx mask.dx \
            nonortho.dx triclinic.nc nonortho.pdb bounds.dat bounds.mol2 \
-           bounds.xplor avg.mol2 nonortho_wrap.dx byres.dx bymol.dx
+           bounds.xplor avg.mol2 nonortho_wrap.dx byres.dx bymol.dx \
+           boxcenter.dx
 
 TESTNAME='Grid tests'
 Requires netcdf maxthreads 10
@@ -136,6 +137,18 @@ EOF
   DoTest bounds.xplor.save bounds.xplor 
 }
 
+# Grid centered on box center
+BoxCenter() {
+  TOP="../tz2.ortho.parm7"
+  cat > ptraj.in <<EOF
+trajin ../tz2.ortho.nc
+autoimage
+grid :WAT@O boxcenter 30 0.5 30 0.5 30 0.5 out boxcenter.dx
+EOF
+  RunCpptraj "Grid centered on box center test."
+  DoTest boxcenter.dx.save boxcenter.dx
+}
+
 Dipole
 Grid
 GridDxRead
@@ -145,6 +158,7 @@ MaskCenterOffset
 NonorthogonalGrid
 NonorthoGridBinCenter
 Bounds
+BoxCenter
 
 EndTest
 exit 0

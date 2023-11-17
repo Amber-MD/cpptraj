@@ -1,12 +1,12 @@
 #include "GistEntropyUtils.h"
-#include <algorithm>
-#include <cmath>
-#include <iostream>
-#include <stdexcept>
+#include <algorithm> // std::pair
+#ifdef DEBUG_GIST_6D
+# include "CpptrajFile.h"
+# include <stdexcept>
+#endif
 
-
-
-/** Compute translational and 6D distances to elements in V_XYZ_vec and V_Q_vec, store the smallest in NNd and NNs;
+/** Compute translational and 6D distances to elements in V_XYZ_vec and
+  * V_Q_vec, store the smallest in NNd and NNs.
   *
   * For each solvent molecule defined by three elements of V_XYZ_vec (its
   * position) and four elements of V_Q_vec (its quaternion), computes the 3D
@@ -30,14 +30,18 @@ void GistEntropyUtils::searchVectorsForNearestNeighbors6D(
     Vec3 center,
     float W4, float X4, float Y4, float Z4,
     const Farray& V_XYZ_vec, const Farray& V_Q_vec,
-    int omit, double& NNd, double& NNs)
+    int omit, double& NNd, double& NNs
+#   ifdef DEBUG_GIST_6D
+    , CpptrajFile* debugOut
+#   endif
+    )
 {
   int nw_tot = V_XYZ_vec.size() / 3;
-  # ifdef DEBUG_GIST
+# ifdef DEBUG_GIST_6D
   if (int(V_Q_vec.size()) != 4 * nw_tot) {
       throw std::logic_error("Inconsistent size of coordinate and quaternion arrays in TransEntropy");
   }
-  #endif
+# endif
   // This seems a bit hacky, but increases calculation speed by a few percent.
   // Works because, if nw_tot is zero, the arrays never get dereferenced.
   const float* V_XYZ = &V_XYZ_vec[0];
@@ -49,7 +53,9 @@ void GistEntropyUtils::searchVectorsForNearestNeighbors6D(
     double dy = (double)(center[1] - V_XYZ[i1+1]);
     double dz = (double)(center[2] - V_XYZ[i1+2]);
     double dd = dx*dx+dy*dy+dz*dz;
-
+#   ifdef DEBUG_GIST_6D
+    if (debugOut != 0) debugOut->Printf("\t\t\tto wat %8i dist= %12.4f\n", n1, sqrt(dd));
+#   endif
     if (dd < NNs && n1 != omit)
     {
       // NNd is always < NNs, therefore we only check dd < NNd if dd < NNs
@@ -66,6 +72,9 @@ void GistEntropyUtils::searchVectorsForNearestNeighbors6D(
  * Search a 3D grid for the nearest neighbor of a molecule in 3D (translation) and 6D (translation+rotation)
  *
  * \param center coordinates of the reference molecule
+ * \param vox_x reference molecule voxel X index.
+ * \param vox_y reference molecule voxel Y index.
+ * \param vox_z reference molecule voxel Z index.
  * \param W4 molecule orientation (quaternion)
  * \param X4 molecule orientation (quaternion)
  * \param Y4 molecule orientation (quaternion)
@@ -83,19 +92,22 @@ void GistEntropyUtils::searchVectorsForNearestNeighbors6D(
  */
 std::pair<double, double> GistEntropyUtils::searchGridNearestNeighbors6D(
     Vec3 center,
+    int vox_x, int vox_y, int vox_z,
     float W4, float X4, float Y4, float Z4,
     const std::vector<Farray>& V_XYZ, const std::vector<Farray>& V_Q,
     int grid_Nx, int grid_Ny, int grid_Nz,
-    Vec3 grid_origin,
     double grid_spacing,
-    int n_layers, int omit_in_central_vox)
+    int n_layers, int omit_in_central_vox
+#   ifdef DEBUG_GIST_6D
+    , CpptrajFile* debugOut
+#   endif
+    )
 {
   // will keep the smallest squared distance. first: trans, second: six
   std::pair<double, double>nearest(GIST_HUGE, GIST_HUGE);
-  int vox_x = int(floor((center[0] - grid_origin[0]) / grid_spacing + 0.5));
-  int vox_y = int(floor((center[1] - grid_origin[1]) / grid_spacing + 0.5));
-  int vox_z = int(floor((center[2] - grid_origin[2]) / grid_spacing + 0.5));
-
+# ifdef DEBUG_GIST_6D
+  if (debugOut != 0) debugOut->Printf("\tNN6D: voxel ijk = %8i %8i %8i\n", vox_x, vox_y, vox_z);
+# endif
   // In the innermost voxel, we want to omit the molecule that corresponds to the current center.
   int omit = omit_in_central_vox;
   for (int layer=0; layer<=n_layers; ++layer) {
@@ -115,8 +127,15 @@ std::pair<double, double> GistEntropyUtils::searchGridNearestNeighbors6D(
           // omit voxels that are contained in previous layers, i.e., that are not on the border.
           if (x_is_border || y_is_border || z_is_border) {
             int other_vox = voxel_num(x, y, z, grid_Nx, grid_Ny, grid_Nz);
+#           ifdef DEBUG_GIST_6D
+            if (debugOut != 0 && !V_XYZ[other_vox].empty()) debugOut->Printf("\t\tto other voxel %i\n", other_vox);
+#           endif
             searchVectorsForNearestNeighbors6D(
-              center, W4, X4, Y4, Z4, V_XYZ[other_vox], V_Q[other_vox], omit, nearest.first, nearest.second);
+              center, W4, X4, Y4, Z4, V_XYZ[other_vox], V_Q[other_vox], omit, nearest.first, nearest.second
+#             ifdef DEBUG_GIST_6D
+              , debugOut
+#             endif
+            );
           }
         }
       }

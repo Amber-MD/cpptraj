@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 # Clean
-CleanFiles pucker.in nucleic.dat furanoid.dat pyranoid.type.dat pyranoid.auto.dat
+CleanFiles pucker.in Ptest.in nucleic.dat furanoid.dat pyranoid.type.dat pyranoid.auto.dat
 
 TESTNAME='MultiPucker tests'
 Requires maxthreads 3

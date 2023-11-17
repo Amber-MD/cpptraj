@@ -6,7 +6,50 @@
 class Frame;
 class AtomMask;
 /// Class for creating a lists of potential pairing atoms via spatial grid.
-/** NOTE: The code in this class is based on that from the SANDER
+/** In order to use this class, the PairList must first be set up with
+  * InitPairList followed by SetupPairList. SetupPairList should be called
+  * any time the unit cell is changed.
+  * Duplicate interactions are avoided by only looking in the "forward"
+  * direction, so loops are expected to follow the following template
+  * in order to ensure all pairs within cutoff are considered:
+    int retVel = pairList_.CreatePairList( <frame>, <ucell>, <frac>, <mask> )
+    // Loop over PL cells
+    for (int cidx = 0; cidx < pairList_.NGridMax(); cidx++)
+    {
+      PairList::CellType const& thisCell = pairList_.Cell( cidx );
+      // cellList contains this cell index and all neighbors
+      PairList::Iarray const& cellList = thisCell.CellList();
+      // transList contains index to translation for the neighbors
+      PairList::Iarray const& transList = thisCell.TransList();
+      // Loop over all atoms of thisCell
+      for (PairList::CellType::const_iterator it0 = thisCell.begin();
+                                              it0 != thisCell.end(); ++it0)
+      {
+        Vec3 const& xyz0 = it0->ImageCoords(); // it0->Idx() corresponds to mask index
+        // Loop over all other atoms of thisCell
+        for (PairList::CellType::const_iterator it1 = it0 + 1;
+                                                it1 != thisCell.end(); ++it1)
+        {
+          Vec3 const& xyz1 = it1->ImageCoords();
+          Vec3 dxyz = xyz1 - xyz0;
+        }
+        // Loop over all neighbor cells
+        for (unsigned int nidx = 1; nidx != cellList.size(); nidx++)
+        {
+          PairList::CellType const& nbrCell = pairList_.Cell( cellList[nidx] );
+          // Translate vector for neighbor cell
+          Vec3 const& tVec = pairList_.TransVec( transList[nidx] );
+          // Loop over every atom in nbrCell
+          for (PairList::CellType::const_iterator it1 = nbrCell.begin();
+                                                  it1 != nbrCell.end(); ++it1)
+          {
+            Vec3 xyz1 = it1->ImageCoords() + tVec;
+            Vec3 dxyz = xyz1 - xyz0;
+          }
+        }
+      }
+    }
+  * NOTE: The code in this class is based on that from the SANDER
   *       program of Amber/AmberTools, particularly nonbond_list.F90.
   *       However, it is more memory-hungry since it stores full cell
   *       neighbor lists instead of cell centers.

@@ -1,11 +1,12 @@
 #ifndef GIST_ENTROPY_UTILS_H
 #define GIST_ENTROPY_UTILS_H
-
-#include <cstdlib>
-#include <vector>
 #include "Vec3.h"
-#include <cmath>
-
+#include <cstdlib> // fabs
+#include <cmath> // sqrt, acos
+#include <vector>
+#ifdef DEBUG_GIST_6D
+class CpptrajFile;
+#endif
 namespace GistEntropyUtils {
   typedef std::vector<float> Farray;
 
@@ -54,12 +55,20 @@ namespace GistEntropyUtils {
     */
   void searchVectorsForNearestNeighbors6D(Vec3 center,
                                           float W4, float X4, float Y4, float Z4,
-                                          const Farray& V_XYZ_vec, const Farray& V_Q_vec, int omit, double& NNd, double& NNs);
+                                          const Farray& V_XYZ_vec, const Farray& V_Q_vec,
+                                          int omit, double& NNd, double& NNs
+#                                         ifdef DEBUG_GIST_6D
+                                          , CpptrajFile* debugOut
+#                                         endif
+                                          );
 
   /**
    * Search a 3D grid for the nearest neighbor of a molecule in 3D (translation) and 6D (translation+rotation)
    *
    * \param center coordinates of the reference molecule
+   * \param vox_x reference molecule voxel X index.
+   * \param vox_y reference molecule voxel Y index.
+   * \param vox_z reference molecule voxel Z index.
    * \param W4 molecule orientation (quaternion)
    * \param X4 molecule orientation (quaternion)
    * \param Y4 molecule orientation (quaternion)
@@ -69,7 +78,6 @@ namespace GistEntropyUtils {
    * \param grid_Nx number of grid voxels in x dimension.
    * \param grid_Ny number of grid voxels in y dimension.
    * \param grid_Nz number of grid voxels in z dimension.
-   * \param grid_origin origin (xyz pos of the center of the first voxel) of the grid.
    * \param grid_spacing spacing of the grid, same in all directions.
    * \param n_layers maximum number of layers of voxels to search for nearest neighbors
    * \param omit_in_central_vox index of molecule in the central voxel to omit.
@@ -77,12 +85,16 @@ namespace GistEntropyUtils {
    */
   std::pair<double, double> searchGridNearestNeighbors6D(
       Vec3 center,
+      int vox_x, int vox_y, int vox_z,
       float W4, float X4, float Y4, float Z4,
       const std::vector<Farray>& V_XYZ, const std::vector<Farray>& V_Q,
       int grid_Nx, int grid_Ny, int grid_Nz,
-      Vec3 grid_origin,
       double grid_spacing,
-      int n_layers, int omit_in_central_vox);
+      int n_layers, int omit_in_central_vox
+#     ifdef DEBUG_GIST_6D
+      , CpptrajFile* debugOut
+#     endif
+      );
 
   const double SIX_CORR_SPACING = 0.01;
 

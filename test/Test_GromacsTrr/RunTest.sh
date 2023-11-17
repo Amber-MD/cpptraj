@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles ptraj.in cpptraj.nc mop.trr temp.crd total?.out
+CleanFiles ptraj.in cpptraj.nc mop.trr temp.crd total?.out cpptraj.trr
 
 TESTNAME='GROMACS TRR tests'
 Requires maxthreads 10

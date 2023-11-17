@@ -41,6 +41,10 @@ class Vec3 {
     }
     /// Assign const double[3] values to X Y and Z
     void Assign(const double* XYZ) { V_[0] = XYZ[0]; V_[1] = XYZ[1]; V_[2] = XYZ[2]; }
+    // NOTE: < op only defined so Vec3 can be used in std::set
+    bool operator<(Vec3 const& rhs) const {
+      return (this->Magnitude2() < rhs.Magnitude2());
+    }
     // Vector OP scalar
     void operator/=(double xIn) {
       V_[0] /= xIn;
@@ -119,6 +123,10 @@ class Vec3 {
       V_[0] = -V_[0];
       V_[1] = -V_[1];
       V_[2] = -V_[2];
+    }
+    /// \return Negated vector
+    Vec3 Negative() const {
+      return Vec3(-V_[0], -V_[1], -V_[2]);
     }
     void SetVec(double vx, double vy, double vz) {
       V_[0] = vx;

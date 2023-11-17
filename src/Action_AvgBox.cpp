@@ -66,7 +66,7 @@ int Action_AvgBox::SyncAction() {
     // Master
     double recvbuf[27];
     for (int proc = 1; proc < trajComm_.Size(); proc++) {
-      trajComm_.Recv( recvbuf, 27, MPI_DOUBLE, proc, 2100 );
+      trajComm_.Recv( recvbuf, 27, MPI_DOUBLE, proc, 2200 );
       int j = 0;
       for (int i = 0; i < 9; i++, j+= 3)
         avgbox_[i].Combine( Stats<double>(recvbuf[j], recvbuf[j+1], recvbuf[j+2]) );
@@ -83,7 +83,7 @@ int Action_AvgBox::SyncAction() {
       sendbuf[j+1] = avgbox_[i].mean();
       sendbuf[j+2] = avgbox_[i].M2();
     }
-    trajComm_.Send( sendbuf, 27, MPI_DOUBLE, 0, 2100 );
+    trajComm_.Send( sendbuf, 27, MPI_DOUBLE, 0, 2200 );
   }
   // Broadcast the unit cell
   ucell.BroadcastMatrix( trajComm_ );

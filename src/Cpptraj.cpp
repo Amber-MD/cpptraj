@@ -14,6 +14,7 @@
 #include "ParmFile.h" // ProcessMask
 #include "TopInfo.h" // ProcessMask
 #include "Timer.h"
+#include "NDiff.h"
 #include "StringRoutines.h" // TimeString
 #include "TrajectoryFile.h" // for autodetect
 #if defined(CUDA)
@@ -182,6 +183,12 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
 #   else
     err = Interactive();
 #   endif
+  } else if ( cmode == NDIFF) {
+    int ndiff = NDiff(argc, argv);
+    if (ndiff < 0)
+      mprinterr("Error: 'ndiff' error.\n");
+    FinalizeIO();
+    return ndiff;
   } else if ( cmode == ERROR ) {
     err = 1;
   }
@@ -405,6 +412,16 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       SetWorldSilent(true);
       Usage();
       return QUIT;
+    }
+    if ( arg == "--ndiff" ) {
+      // --ndiff [-v {RELERR=<tol>|ABSERR=<tol>}] <file1> <file2>
+      // Perform numerical diff and exit
+      // Check that next arg is '-v'
+      if (cmdLineArgs[iarg+1] != "-v") {
+        mprinterr("Error: Expected '-v' after '--ndiff'.\n");
+        return ERROR;
+      }
+      return NDIFF;
     }
     if ( arg == "-V" || arg == "--version" ) {
       // -V, --version: Print version number and exit

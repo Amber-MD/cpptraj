@@ -5,6 +5,7 @@
 #include "Frame.h"
 #include "DataSet_GridFlt.h"
 #include "DataSetList.h"
+#include "GridMover.h"
 class Topology;
 class ArgList;
 class CoordinateInfo;
@@ -13,8 +14,6 @@ class GridAction {
   public:
     /// Indicate whether to apply an offset to coords before gridding.
     enum OffsetType { NO_OFFSET = 0, BOX_CENTER, MASK_CENTER };
-    /// Indicate where grid should be located
-    enum MoveType { NO_MOVE = 0, TO_BOX_CTR, TO_MASK_CTR, RMS_FIT };
     /// CONSTRUCTOR
     GridAction();
     /// \return List of keywords recognized by GridInit.
@@ -28,15 +27,17 @@ class GridAction {
     Parallel::Comm const& TrajComm() const { return trajComm_; }
 #   endif
     /// Print information on given grid to STDOUT
-    void GridInfo(DataSet_GridFlt const&);
+    void GridInfo(DataSet_GridFlt const&) const;
     /// Perform any setup necessary for given Topology/CoordinateInfo
     int GridSetup(Topology const&, CoordinateInfo const&);
+
     /// Place atoms selected by given mask in given Frame on the given grid.
     inline void GridFrame(Frame const&, AtomMask const&, DataSet_GridFlt&) const;
     /// Move grid if necessary
     inline void MoveGrid(Frame const&, DataSet_GridFlt&);
     /// Anything needed to finalize the grid
-    void FinishGrid(DataSet_GridFlt&) const;
+    inline void FinishGrid(DataSet_GridFlt&) const;
+
     /// \return Type of offset to apply to coords before gridding.
     OffsetType GridOffsetType()  const { return gridOffsetType_;       }
     /// \return Mask to use for centering grid
@@ -44,20 +45,13 @@ class GridAction {
     /// \return Amount voxels should be incremented by
     float Increment()            const { return increment_;  }
   private:
-    /// Set first frame selected coords (tgt_) and original grid unit cell vectors (tgtUcell_).
-    int SetTgt(Frame const&, Matrix_3x3 const&);
-    /// Determine move type if any based on arguments
-    int determineMoveType(ArgList&, bool&);
+    /// Determine move type if any based on arguments. Set centerMask_ for rms fit
+    int determineMoveType(ArgList&, Cpptraj::GridMover::MoveType&, bool&);
 
     OffsetType gridOffsetType_;
-    MoveType gridMoveType_;
     AtomMask centerMask_;
-    float increment_;     ///< Set to -1 if negative, 1 if not.
-    Frame tgt_;           ///< For MoveType RMS_FIT, first frames selected coordinates
-    Matrix_3x3 tgtUcell_; ///< For MoveType RMS_FIT, original grid unit cell vectors
-    Frame ref_;           ///< For MoveType RMS_FIT, current frames selected coordinates
-    bool firstFrame_;     ///< For MoveType RMS_FIT, true if this is the first frame (no fit needed)
-    bool x_align_;        ///< For MoveType RMS_FIT, if true ensure grid is X-aligned in FinishGrid().
+    float increment_;           ///< Set to -1 if negative, 1 if not.
+    Cpptraj::GridMover mover_;  ///< Used to translate/rotate grid if needed.
 #   ifdef MPI
     Parallel::Comm trajComm_;
 #   endif
@@ -84,55 +78,11 @@ const
 /** Move/reorient grid if necessary. */
 void GridAction::MoveGrid(Frame const& currentFrame, DataSet_GridFlt& grid)
 {
-  if (gridMoveType_ == TO_BOX_CTR)
-    grid.SetGridCenter( currentFrame.BoxCrd().Center() );
-  else if (gridMoveType_ == TO_MASK_CTR)
-    grid.SetGridCenter( currentFrame.VGeometricCenter( centerMask_ ) );
-  else if (gridMoveType_ == RMS_FIT) {
-    grid.SetGridCenter( currentFrame.VGeometricCenter( centerMask_ ) );
-#   ifdef MPI
-    // Ranks > 0 still need to do the rotation on the first frame.
-    bool doRotate = true;
-    if (firstFrame_) {
-      SetTgt(currentFrame, grid.Bin().Ucell());
-      if (trajComm_.Rank() == 0)
-        doRotate = false;
-      firstFrame_ = false;
-    }
-    if (doRotate) {
-      // Want to rotate to coordinates in current frame. Make them the ref.
-      ref_.SetFrame( currentFrame, centerMask_ );
-      // Reset to original grid.
-      grid.Assign_Grid_UnitCell( tgtUcell_ );
-      // Do not want to modify original coords. Make a copy.
-      Frame tmpTgt( tgt_ );
-      // Rot will contain rotation from original grid to current frame.
-      Matrix_3x3 Rot;
-      Vec3 T1, T2;
-      tmpTgt.RMSD( ref_, Rot, T1, T2, false );
-      grid.Rotate_3D_Grid( Rot );
-    }
-#   else
-    if (firstFrame_) {
-      SetTgt(currentFrame, grid.Bin().Ucell());
-      //grid.SetGridCenter( tgt_.VGeometricCenter( 0, tgt_.Natom() ) );
-      firstFrame_ = false;
-    } else {
-      //grid.SetGridCenter( currentFrame.VGeometricCenter( centerMask_ ) );
-      // Want to rotate to coordinates in current frame. Make them the ref.
-      ref_.SetFrame( currentFrame, centerMask_ );
-      // Reset to original grid.
-      grid.Assign_Grid_UnitCell( tgtUcell_ );
-      // Do not want to modify original coords. Make a copy.
-      Frame tmpTgt( tgt_ );
-      // Rot will contain rotation from original grid to current frame.
-      Matrix_3x3 Rot;
-      Vec3 T1, T2;
-      tmpTgt.RMSD( ref_, Rot, T1, T2, false );
-      grid.Rotate_3D_Grid( Rot );
-      //tgt_.SetFrame( currentFrame, centerMask_ );
-    }
-#   endif
-  }
+  mover_.MoveGrid(currentFrame, centerMask_, grid);
+}
+
+/** Finish moving grid if necessary. */
+void GridAction::FinishGrid(DataSet_GridFlt& grid) const {
+  mover_.MoverFinish(grid);
 }
 #endif
