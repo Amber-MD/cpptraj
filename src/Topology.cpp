@@ -175,6 +175,34 @@ Range Topology::SoluteResidues() const {
   return solute_res;
 }
 
+/** Merge consecutive residues into a single residue. */
+int Topology::MergeResidues(int startRes, int stopRes) {
+  // Check that start and stop make sense
+  if (stopRes < startRes) {
+    mprinterr("Error: Start residue %i > stop residue %i. Cannot merge residues.\n",
+              startRes+1, stopRes+1);
+    return 1;
+  } else if (startRes == stopRes) {
+    mprintf("Warning: Start residue %i is the same as stop residue %i. Nothing to merge.\n",
+            startRes+1, stopRes+1);
+    return 0;
+  }
+  // Check for duplicate atom names
+  int startAtom = Res(startRes).FirstAtom();
+  int stopAtom = Res(stopRes).LastAtom();
+  for (int at0 = startAtom; at0 != stopAtom; at0++) {
+    for (int at1 = at0+1; at1 != stopAtom; at1++) {
+      if ( (*this)[at0].Name() == (*this)[at1].Name() ) {
+        mprintf("Warning: In merge of residues %i-%i, duplicate atom name %s (%s)\n",
+                startRes+1, stopRes+1,
+                AtomMaskName(at0).c_str(), AtomMaskName(at1).c_str());
+      }
+    }
+  }
+
+  return 0;
+}
+
 // -----------------------------------------------------------------------------
 // Topology::TruncResAtomName()
 /** Given an atom number, return a string containing the corresponding 
