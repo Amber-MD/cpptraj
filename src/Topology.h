@@ -91,6 +91,8 @@ class Topology {
     const Residue& Res(int idx)    const { return residues_[idx];    }
     Residue& SetRes(int idx)             { return residues_[idx];    }
     Range SoluteResidues() const;
+    /// Merge residues in given range
+    int MergeResidues(int, int);
     // ----- Molecule-specific routines ----------
     typedef std::vector<Molecule>::const_iterator mol_iterator;
     inline mol_iterator MolStart() const { return molecules_.begin(); }

@@ -16,9 +16,10 @@ void Exec_Change::Help() const
           "\t  icodes of <mask> min <char min> max <char max> resnum <#> |\n"
           "\t  atomname from <mask> to <value> |\n"
           "\t  addbond <mask1> <mask2> [req <length> <rk> <force constant>] |\n"
-          "\t  removebonds <mask1> [<mask2>] [out <file>]}\n"
-          "\t  bondparm <mask1> [<mask2>] {setrk|scalerk|setreq|scalereq} <value>\n"
-          "\t  {mass|charge} [of <mask>] {to <value>|fromset <data set>}\n"
+          "\t  removebonds <mask1> [<mask2>] [out <file>] |\n"
+          "\t  bondparm <mask1> [<mask2>] {setrk|scalerk|setreq|scalereq} <value> |\n"
+          "\t  {mass|charge} [of <mask>] {to <value>|fromset <data set>} |\n"
+          "\t  mergeres firstres <start res#> lastres <stop res#>\n"
           "\t}\n"
           "  Change specified parts of topology or topology of a COORDS data set.\n",
           DataSetList::TopArgs);
@@ -30,7 +31,7 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
   // Change type
   enum ChangeType { UNKNOWN = 0, RESNAME, CHAINID, ORESNUMS, ICODES,
                     ATOMNAME, ADDBOND, REMOVEBONDS, SPLITRES, BONDPARM,
-                    MASS, CHARGE };
+                    MASS, CHARGE, MERGERES };
   ChangeType type = UNKNOWN;
   if (argIn.hasKey("resname"))
     type = RESNAME;
@@ -54,6 +55,8 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
     type = MASS;
   else if (argIn.hasKey("charge"))
     type = CHARGE;
+  else if (argIn.hasKey("mergeres"))
+    type = MERGERES;
   if (type == UNKNOWN) {
     mprinterr("Error: No change type specified.\n");
     return CpptrajState::ERR;
@@ -87,6 +90,7 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
     case SPLITRES    : err = ChangeSplitRes(*parm, argIn); break;
     case MASS        : err = ChangeMassOrCharge(*parm, argIn, State.DSL(), 0); break;
     case CHARGE      : err = ChangeMassOrCharge(*parm, argIn, State.DSL(), 1); break;
+    case MERGERES    : err = ChangeMergeRes(*parm, argIn); break;
     case UNKNOWN  : err = 1; // sanity check
   }
   if (err != 0) return CpptrajState::ERR;
@@ -685,4 +689,19 @@ const
   }
 
   return 0;
-} 
+}
+
+/** Merge residues in a range. */
+int Exec_Change::ChangeMergeRes(Topology& topIn, ArgList& argIn) const {
+  int firstres = argIn.getKeyInt("firstres", 0) - 1;
+  if (firstres < 0) {
+    mprinterr("Error: 'firstres' not specified or < 1.\n");
+    return 1;
+  }
+  int lastres = argIn.getKeyInt("lastres", 0) - 1;
+  if (lastres < 0) {
+    mprinterr("Error: 'lastres' not specified or < 1.\n");
+    return 1;
+  }
+  return topIn.MergeResidues(firstres, lastres);
+}

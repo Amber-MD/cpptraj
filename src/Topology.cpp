@@ -175,6 +175,60 @@ Range Topology::SoluteResidues() const {
   return solute_res;
 }
 
+/** Merge consecutive residues into a single residue. */
+int Topology::MergeResidues(int startRes, int stopRes) {
+  // Check that start and stop make sense
+  if (startRes < 0 || stopRes < 0) {
+    mprinterr("Internal Error: MergeResidues: Either startRes (%i) or stopRes (%i) < 0.\n",
+              startRes, stopRes);
+    return 1;
+  }
+  if (stopRes < startRes) {
+    mprinterr("Error: Start residue %i > stop residue %i. Cannot merge residues.\n",
+              startRes+1, stopRes+1);
+    return 1;
+  } else if (startRes == stopRes) {
+    mprintf("Warning: Start residue %i is the same as stop residue %i. Nothing to merge.\n",
+            startRes+1, stopRes+1);
+    return 0;
+  }
+  // TODO check that residues are bonded?
+  // Check for duplicate atom names
+  int startAtom = Res(startRes).FirstAtom();
+  int stopAtom = Res(stopRes).LastAtom();
+  for (int at0 = startAtom; at0 != stopAtom; at0++) {
+    for (int at1 = at0+1; at1 != stopAtom; at1++) {
+      if ( (*this)[at0].Name() == (*this)[at1].Name() ) {
+        mprintf("Warning: In merge of residues %i-%i, duplicate atom name %s (%s)\n",
+                startRes+1, stopRes+1,
+                AtomMaskName(at0).c_str(), AtomMaskName(at1).c_str());
+      }
+    }
+  }
+  std::vector<Residue> newResidues;
+  unsigned int newNres = residues_.size() - (unsigned int)(stopRes - startRes);
+  mprintf("\tOriginally %zu residues, merging %i-%i, now %u residues.\n",
+          residues_.size(), startRes+1, stopRes+1, newNres);
+  newResidues.reserve( newNres );
+  // Residues up to but not including startRes
+  for (int ires = 0; ires != startRes; ires++)
+    newResidues.push_back( Res(ires) );
+  // The merged residue. Use chain ID etc of the first residue.
+  Residue mergedRes = Res(startRes);
+  mergedRes.SetLastAtom( Res(stopRes).LastAtom() );
+  newResidues.push_back( mergedRes );
+  // Update the atoms of the merged residues
+  for (int at = Res(startRes+1).FirstAtom(); at != Res(stopRes).LastAtom(); at++)
+    atoms_[at].SetResNum( startRes );
+  // Residues from after stopRes to end
+  for (int ires = stopRes + 1; ires < Nres(); ires++)
+    newResidues.push_back( Res(ires) );
+  // Overwrite old residue info
+  residues_ = newResidues;
+
+  return 0;
+}
+
 // -----------------------------------------------------------------------------
 // Topology::TruncResAtomName()
 /** Given an atom number, return a string containing the corresponding 
