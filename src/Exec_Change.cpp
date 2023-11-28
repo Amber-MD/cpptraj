@@ -16,9 +16,9 @@ void Exec_Change::Help() const
           "\t  icodes of <mask> min <char min> max <char max> resnum <#> |\n"
           "\t  atomname from <mask> to <value> |\n"
           "\t  addbond <mask1> <mask2> [req <length> <rk> <force constant>] |\n"
-          "\t  removebonds <mask1> [<mask2>] [out <file>]}\n"
-          "\t  bondparm <mask1> [<mask2>] {setrk|scalerk|setreq|scalereq} <value>\n"
-          "\t  {mass|charge} [of <mask>] {to <value>|fromset <data set>}\n"
+          "\t  removebonds <mask1> [<mask2>] [out <file>] |\n"
+          "\t  bondparm <mask1> [<mask2>] {setrk|scalerk|setreq|scalereq} <value> |\n"
+          "\t  {mass|charge} [of <mask>] {to <value>|fromset <data set>} |\n"
           "\t  mergeres firstres <start res#> lastres <stop res#>\n"
           "\t}\n"
           "  Change specified parts of topology or topology of a COORDS data set.\n",

@@ -14813,10 +14813,15 @@ change [parm <name> | parmindex <#> | <#> |
 
 \begin_layout LyX-Code
       bondparm <make1> [<mask2>] {setrk|scalerk|setreq|scalereq} <value>
+ |
 \end_layout
 
 \begin_layout LyX-Code
-      {mass|charge} [of <mask>] {to <value>|fromset <data set>}
+      {mass|charge} [of <mask>] {to <value>|fromset <data set>} |
+\end_layout
+
+\begin_layout LyX-Code
+      mergeres firstres <start res#> lastres <stop res#>
 \end_layout
 
 \begin_layout LyX-Code
@@ -15143,6 +15148,41 @@ fromset
 
 set> Use values in <data set> for mass/charge; must have the same number
  of values as atoms selected by <mask>.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+mergeres Merge consecutive residues.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+firsres
+\begin_inset space ~
+\end_inset
+
+<start
+\begin_inset space ~
+\end_inset
+
+res#> Index (starting from 1) of first residue to merge.
+\end_layout
+
+\begin_layout Description
+lastres
+\begin_inset space ~
+\end_inset
+
+<stop
+\begin_inset space ~
+\end_inset
+
+res#> Index (starting from 1) of last residue to merge.
+ Should be greater than 
+\series bold
+firstres
+\series default
+.
 \end_layout
 
 \end_deeper
