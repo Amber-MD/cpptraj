@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles change.in ala3.mod.pdb ala3.chain.pdb crdala3.chain.pdb \
-           AFV.zeroHmass.dat AFV.fluctMass.dat
+           AFV.zeroHmass.dat AFV.fluctMass.dat merged.?-?.mol2
 
 TESTNAME='Change command test'
 
@@ -78,6 +78,28 @@ EOF
   RunCpptraj "$UNITNAME"
   DoTest AFV.fluctMass.dat.save AFV.fluctMass.dat
 fi
+
+UNITNAME='Merge residues test'
+cat > change.in <<EOF
+set DIR = ../Test_Sequence
+parm \$DIR/Nucleotide.ic.charge.mol2.save
+
+loadcrd \$DIR/Nucleotide.ic.charge.mol2.save name MyCrd1
+loadcrd \$DIR/Nucleotide.ic.charge.mol2.save name MyCrd2
+loadcrd \$DIR/Nucleotide.ic.charge.mol2.save name MyCrd3
+
+change crdset MyCrd1 mergeres firstres 1 lastres 3
+change crdset MyCrd2 mergeres firstres 1 lastres 2
+change crdset MyCrd3 mergeres firstres 2 lastres 3
+
+crdout MyCrd1 merged.1-3.mol2
+crdout MyCrd2 merged.1-2.mol2
+crdout MyCrd3 merged.2-3.mol2
+EOF
+RunCpptraj "$UNITNAME"
+DoTest merged.1-3.mol2.save merged.1-3.mol2
+DoTest merged.1-2.mol2.save merged.1-2.mol2
+DoTest merged.2-3.mol2.save merged.2-3.mol2
 
 EndTest
 exit 0
