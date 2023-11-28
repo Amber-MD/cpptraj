@@ -192,6 +192,7 @@ int Topology::MergeResidues(int startRes, int stopRes) {
             startRes+1, stopRes+1);
     return 0;
   }
+  // TODO check that residues are bonded?
   // Check for duplicate atom names
   int startAtom = Res(startRes).FirstAtom();
   int stopAtom = Res(stopRes).LastAtom();
