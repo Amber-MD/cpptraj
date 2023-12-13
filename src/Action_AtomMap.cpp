@@ -26,6 +26,7 @@ void Action_AtomMap::Help() const {
           "  Attempt to create a map from atoms in <target> to atoms in <reference> solely\n"
           "  based on how they are bonded; remap <target> so it matches <reference>.\n"
           "  If 'rmsfit' is specified, calculate the RMSD of remapped target to reference.\n"
+          "  If 'changenames' is specified change target atom names to match reference.\n"
           "  Modes: 'all'   : try to map all atoms at once (default).\n"
           "         'byres' : map residue by residue (assumes 1 to 1 residue correspondence).\n");
 }
