@@ -5,7 +5,7 @@
 # Clean
 CleanFiles atommap.in initial.mol2 atommap.dat reordered.pdb reordered.mol2 \
            fit.mol2 rmsd.dat map.chm_to_amb.dat mapped.pdb.? rmsout.dat \
-           map.byres.chm_to_amb.dat
+           map.byres.chm_to_amb.dat map.Base.dat remap.ADD.mol2
 
 TESTNAME='Atom map tests'
 Requires maxthreads 3
@@ -89,6 +89,23 @@ EOF
   RunCpptraj "Atom map charmm->amber atom order, by residue"
   DoTest map.chm_to_amb.dat.save map.byres.chm_to_amb.dat
 fi
+
+UNITNAME='Atom map with renaming test'
+cat > atommap.in <<EOF
+for FILE in template-base-adenine.pdb,ADD.names.mol2 NAME in Base0,Base1
+  parm \$FILE
+  reference \$FILE [\$NAME] parm \$FILE
+done
+
+atommap [Base1] [Base0] mapout map.Base.dat changenames
+
+trajin ADD.names.mol2 parm ADD.names.mol2
+trajout remap.ADD.mol2 parm ADD.names.mol2
+run
+EOF
+RunCpptraj "$UNITNAME"
+DoTest remap.ADD.mol2.save remap.ADD.mol2
+
 EndTest
 
 exit 0
