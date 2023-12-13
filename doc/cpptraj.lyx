@@ -23048,7 +23048,7 @@ atomicfluct
 
 \end_inset
 
- [<name>] [out <filename>] [<mask>] [byres | byatom | bymask]
+ [<name>] [out <filename>] [<mask>] [byres [pdbres] | byatom | bymask]
 \end_layout
 
 \begin_layout LyX-Code
@@ -23081,7 +23081,8 @@ out
 \end_layout
 
 \begin_layout Description
-byres Output the average (mass-weighted) fluctuation by residue.
+byres [pdbres] Output the average (mass-weighted) fluctuation by residue.
+ If 'pdbres' is specified, the original residue numbering will be used.
 \end_layout
 
 \begin_layout Description
@@ -40466,6 +40467,18 @@ outprefix
 \series default
  keyword can be used to write stripped topologies; stripped Amber topologies
  are fully-functional.
+ Available options for 
+\series bold
+<parmopts>
+\series default
+ can be determined by running the 
+\series bold
+\emph on
+help Formats parmwrite
+\series default
+\emph default
+ command.
+ 
 \end_layout
 
 \begin_layout Standard
