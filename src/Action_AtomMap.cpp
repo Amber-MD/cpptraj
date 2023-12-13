@@ -15,15 +15,18 @@ Action_AtomMap::Action_AtomMap() :
   mode_(ALL),
   maponly_(false),
   rmsfit_(false),
+  renameAtoms_(false),
   rmsdata_(0)
 {}
 
 void Action_AtomMap::Help() const {
   mprintf("\t<target> <reference> [mapout <filename>] [maponly]\n"
           "\t[rmsfit [ rmsout <rmsout> ]] [mode {all | byres}]\n"
+          "\t[changenames]\n"
           "  Attempt to create a map from atoms in <target> to atoms in <reference> solely\n"
           "  based on how they are bonded; remap <target> so it matches <reference>.\n"
           "  If 'rmsfit' is specified, calculate the RMSD of remapped target to reference.\n"
+          "  If 'changenames' is specified change target atom names to match reference.\n"
           "  Modes: 'all'   : try to map all atoms at once (default).\n"
           "         'byres' : map residue by residue (assumes 1 to 1 residue correspondence).\n");
 }
@@ -48,6 +51,7 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, ActionInit& init, int 
 # endif
   maponly_ = actionArgs.hasKey("maponly");
   rmsfit_ = actionArgs.hasKey("rmsfit");
+  renameAtoms_ = actionArgs.hasKey("changenames");
   std::string modestring = actionArgs.GetStringKey("mode");
   if (!modestring.empty()) {
     if      (modestring == "all") mode_ = ALL;
@@ -92,14 +96,18 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, ActionInit& init, int 
     mprintf("\tMap will only be written, not used to remap input trajectories.\n");
   else
     mprintf("\tAtoms in input trajectories matching target will be remapped.\n");
-  if (!maponly_ && rmsfit_) {
-    mprintf("\tWill RMS-fit mapped atoms in tgt to reference.\n");
-    if (rmsout != 0) {
-      rmsdata_ = init.DSL().AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "RMSD");
-      if (rmsdata_==0) return Action::ERR;
-      rmsout->AddDataSet(rmsdata_);
-      mprintf("\tRMSDs will be written to '%s'\n", rmsout->DataFilename().full());
+  if (!maponly_) {
+    if (rmsfit_) {
+      mprintf("\tWill RMS-fit mapped atoms in tgt to reference.\n");
+      if (rmsout != 0) {
+        rmsdata_ = init.DSL().AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "RMSD");
+        if (rmsdata_==0) return Action::ERR;
+        rmsout->AddDataSet(rmsdata_);
+        mprintf("\tRMSDs will be written to '%s'\n", rmsout->DataFilename().full());
+      }
     }
+    if (renameAtoms_)
+      mprintf("\tTarget atom names will be renamed using reference atom names.\n");
   }
   switch (mode_) {
     case BY_RES:
@@ -206,6 +214,15 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, ActionInit& init, int 
     newFrame_->SetupFrameM( TgtFrame_->Top().Atoms() );
     // Set up new Parm
     newParm_ = TgtFrame_->Top().ModifyByMap(AMap_);
+    if (renameAtoms_) {
+      // newParm_ is already in the correct order
+      for (int refatom = 0; refatom != (int)AMap_.size(); ++refatom) {
+        if (AMap_[refatom] != -1) {
+          //mprintf("DEBUG: ref %i name %s becomes tgt %i\n", refatom+1, *(RefFrame_->Top()[refatom].Name()), targetatom+1);
+          (*newParm_).SetAtom(refatom).SetName( RefFrame_->Top()[refatom].Name() );
+        }
+      }
+    }
   }
 
   return Action::OK;
