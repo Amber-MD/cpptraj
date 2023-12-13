@@ -78,7 +78,6 @@ EOF
   RunCpptraj "Atom map charmm->amber atom order"
   DoTest map.chm_to_amb.dat.save map.chm_to_amb.dat
 
-  # Test 4
   cat > atommap.in <<EOF
 parm cg-amb.topo
 reference cg-amb.crds
@@ -90,8 +89,11 @@ EOF
   DoTest map.chm_to_amb.dat.save map.byres.chm_to_amb.dat
 fi
 
+# Test 4
 UNITNAME='Atom map with renaming test'
-cat > atommap.in <<EOF
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > atommap.in <<EOF
 for FILE in template-base-adenine.pdb,ADD.names.mol2 NAME in Base0,Base1
   parm \$FILE
   reference \$FILE [\$NAME] parm \$FILE
@@ -103,8 +105,9 @@ trajin ADD.names.mol2 parm ADD.names.mol2
 trajout remap.ADD.mol2 parm ADD.names.mol2
 run
 EOF
-RunCpptraj "$UNITNAME"
-DoTest remap.ADD.mol2.save remap.ADD.mol2
+  RunCpptraj "$UNITNAME"
+  DoTest remap.ADD.mol2.save remap.ADD.mol2
+fi
 
 EndTest
 
