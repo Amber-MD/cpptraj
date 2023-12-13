@@ -23367,6 +23367,10 @@ atommap
 
 \end_layout
 
+\begin_layout LyX-Code
+        [changenames]
+\end_layout
+
 \begin_deeper
 \begin_layout Description
 <target> Reference structure whose atoms will be remapped.
@@ -23427,6 +23431,11 @@ rmsout
 \end_layout
 
 \end_deeper
+\begin_layout Description
+changenames If specified, change names of mapped atoms in <target> to match
+ those in <reference>.
+\end_layout
+
 \end_deeper
 \begin_layout Standard
 Attempt to map the atoms of <target> to those of <reference> based on structural
