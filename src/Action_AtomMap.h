@@ -29,6 +29,7 @@ class Action_AtomMap : public Action {
     Frame rmsRefFrame_; ///< Ref frame for calculating RMS of remapped target to ref
     Frame rmsTgtFrame_; ///< Tgt frame for calculating RMS of remapped target to ref
     bool rmsfit_;       ///< If true, attempt to RMS-fit remapped target to ref
+    bool renameAtoms_;  ///< If true, rename target atoms to match reference
     DataSet* rmsdata_;  ///< RMS of remapped target to ref.
 };
 #endif
