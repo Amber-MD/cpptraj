@@ -6916,6 +6916,7 @@ static int non_axial_trim (int nat, ATOM atom[], RES res[], // NOTE: was void
   n_groups = ig;
 
 #ifdef DEBUG
+  int inew = -1;
   printf ("cusp groups\n");
   i = 0;
   for (ig = 0; ig < n_groups; ++ig) {
@@ -7236,6 +7237,8 @@ static int broken_concave_area (REAL_T probe_rad,
     total_area += broken_concave_face[iface].area;
     *broken_conc_area += broken_concave_face[iface].area;
 #ifdef DEBUG
+    int iedge = -1;
+    int ie = 0;
     printf ("-----\nbroken concave face probe %8.3f%8.3f%8.3f n_cycles %d\n",
             probe[iprobe].pos[0], probe[iprobe].pos[1], probe[iprobe].pos[2],
             broken_concave_face[iface].n_cycles);
@@ -7245,7 +7248,7 @@ static int broken_concave_area (REAL_T probe_rad,
       for (ie = 0; ie < concave_cycle[icycle].nedges; ++ie) {
         iedge = concave_cycle[icycle].edge[ie];
         if (concave_cycle[icycle].edge_direction[ie] == -1) {
-          printf (" !", iedge);
+          printf ("%d !", iedge);
         }
         printf ("%d:%d ", concave_edge[iedge].vert1, concave_edge[iedge].vert2);
       }
