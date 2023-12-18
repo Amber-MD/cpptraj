@@ -48,6 +48,9 @@ typedef struct atom {
         int n_cycles;                 // cycles of edges associated with atom
         int cycle_start;              // points to start of cyclelist for the atom
         REAL_T area;                  // accessible surf area associated with the atom
+#       ifdef DEBUG
+        int res;
+#       endif
 } ATOM;
 
 typedef struct neighbor_torus {
