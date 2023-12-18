@@ -14812,7 +14812,7 @@ change [parm <name> | parmindex <#> | <#> |
 \end_layout
 
 \begin_layout LyX-Code
-      bondparm <make1> [<mask2>] {setrk|scalerk|setreq|scalereq} <value>
+      bondparm <mask1> [<mask2>] {setrk|scalerk|setreq|scalereq} <value>
  |
 \end_layout
 
