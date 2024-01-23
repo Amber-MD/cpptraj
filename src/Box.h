@@ -40,6 +40,8 @@ class Box {
     CellShapeType CellShape() const;
     // -------------------------------------------
     // Setup routines; will set the box type and perform checks.
+    int SetupFromShapeMatrix(const double*, CheckType&);
+
     int SetupFromShapeMatrix(const double*);
 
     int SetupFromUcell(const double*);
@@ -145,6 +147,8 @@ class Box {
     static void CalcXyzAbgFromShape(double*, const double*);
     /// Calculate symmetric shape matrix from XYZ ABG array
     static void CalcShapeFromXyzAbg(double*, const double*);
+    /// Check box, optionally print skewed box warning
+    CheckType CheckBox(bool) const;
 
     double box_[6];       ///< Box X Y Z alpha beta gamma
     Matrix_3x3 unitCell_; ///< Unit cell (Cartesian) matrix

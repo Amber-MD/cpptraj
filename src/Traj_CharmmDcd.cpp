@@ -31,7 +31,8 @@ Traj_CharmmDcd::Traj_CharmmDcd() :
   zcoord_(0),
   timeStep_(0),
   stepsBetweenFrames_(0),
-  initialStep_(0)
+  initialStep_(0),
+  versionNumber_(0)
 {}
 
 // DESTRUCTOR
@@ -234,12 +235,17 @@ void Traj_CharmmDcd::setFrameSizes() {
 }
 
 void Traj_CharmmDcd::ReadHelp() {
-  mprintf("\tucell | shape: Force reading of box info as unit cell or shape matrix.\n");
+  mprintf("\tshape      : Force reading of box info as CHARMM shape matrix (XX XY YY XZ YZ ZZ).\n"
+          "\tnamdcell   : Force reading of box info as NAMD unit cell (X cos(g) Y cos(b) cos(a) Z).\n"
+          "\tcharmmcell : Force reading of box info as old CHARMM unit cell (X Y Z a b g).\n");
 }
 
+/** Process read arguments. */
 int Traj_CharmmDcd::processReadArgs(ArgList& argIn) {
-  if (argIn.hasKey("ucell"))
-    charmmCellType_ = UCELL;
+  if (argIn.hasKey("ucell") || argIn.hasKey("namdcell"))
+    charmmCellType_ = NAMD;
+  else if (argIn.hasKey("charmmcell"))
+    charmmCellType_ = CHARMM;
   else if (argIn.hasKey("shape"))
     charmmCellType_ = SHAPE;
   else
@@ -294,12 +300,12 @@ int Traj_CharmmDcd::setupTrajin(FileName const& fname, Topology* trajParm)
   Box box;
   if (boxBytes_) {
     double boxtmp[6];
-    if (ReadBox( boxtmp )) return TRAJIN_ERR;
+    if (setupBox( boxtmp )) return TRAJIN_ERR;
     if (charmmCellType_ == SHAPE) {
-      mprintf("\tVersion >= 22; assuming shape matrix is stored.\n");
+      //mprintf("\tVersion >= 22; assuming shape matrix is stored.\n");
       box.SetupFromShapeMatrix( boxtmp );
     } else {
-      mprintf("\tVersion < 22; assuming X-aligned cell.\n");
+      //mprintf("\tVersion < 22; assuming X-aligned cell.\n");
       box.SetupFromXyzAbg( boxtmp );
     }
   }
@@ -354,19 +360,22 @@ int Traj_CharmmDcd::readDcdHeader() {
   //int nsavc  = buffer.i[2];
   // Number of fixed atoms
   nfixedat_  = buffer.i[8];
+  // Version number - used to check box
+  versionNumber_ = buffer.i[19];
   // Box information
   if (buffer.i[10] != 0) {
     boxBytes_ = 48 + (2 * blockSize_); // 6(crds) * 8(double) + (hdr) + (end hdr)
     // Charmm version >= 22 stores shape matrix instead of unit cell
-    if (charmmCellType_ == UNKNOWN) {
-      if (buffer.i[19] >= 22) {
-        charmmCellType_ = SHAPE;
-      } else
-        charmmCellType_ = UCELL;
-    } else {
+//    if (charmmCellType_ == UNKNOWN) {
+//      if (buffer.i[19] >= 22) {
+//        charmmCellType_ = SHAPE;
+//      } else
+//        charmmCellType_ = CHARMM;
+//    } else {
+    if (charmmCellType_ != UNKNOWN) {
       // Box info type was specified by option.
       if (buffer.i[19] >= 22 && charmmCellType_ != SHAPE)
-        mprintf("Warning: CHARMM version is >= 22 but 'ucell' specified.\n"
+        mprintf("Warning: CHARMM version is >= 22 but 'shape' not specified.\n"
                 "Warning: Assuming box info is stored as unit cell and not shape matrix.\n");
     }
   } else
@@ -453,37 +462,115 @@ static inline double CosRadToDeg( double BoxInRad ) {
   return acos( BoxInRad ) * Constants::RADDEG;
 }
 
+/** Called if the box type is unknown. Try to figure out what kind of
+  * box parameters we actually have.
+  */
+int Traj_CharmmDcd::setupBox(double* boxtmp) {
+  if ( ReadBlock(48) < 0) return 1;
+  file_.Read(boxtmp, sizeof(double)*6);
+  if (isBigEndian_) endian_swap8(boxtmp,6);
+  if ( ReadBlock(-1) < 0) return 1;
+  // Test shape matrix
+  if (charmmCellType_ == UNKNOWN || charmmCellType_ == SHAPE) {
+    int nIssues = 0;
+    Box testBox;
+    double shape[6];
+    for (int i = 0; i < 6; i++) shape[i] = 0;
+    Box::CheckType check;
+    testBox.SetupFromShapeMatrix( boxtmp, check );
+    if (check != Box::BOX_OK) {
+      nIssues = 1;
+    } else {
+      shape[0] = testBox.UnitCell()[0];
+      shape[1] = testBox.UnitCell()[1];
+      shape[2] = testBox.UnitCell()[4];
+      shape[3] = testBox.UnitCell()[2];
+      shape[4] = testBox.UnitCell()[5];
+      shape[5] = testBox.UnitCell()[8];
+      if (!testBox.Is_Symmetric()) {
+        if (charmmCellType_ == SHAPE)
+          mprintf("Warning: Shape matrix specified but is not symmetric.\n");
+        nIssues = 1;
+      } else {
+        if (fabs(boxtmp[0] - shape[0]) > Constants::SMALL) nIssues++; // XX
+        if (fabs(boxtmp[1] - shape[1]) > Constants::SMALL) nIssues++; // XY
+        if (fabs(boxtmp[2] - shape[2]) > Constants::SMALL) nIssues++; // YY
+        if (fabs(boxtmp[3] - shape[3]) > Constants::SMALL) nIssues++; // XZ
+        if (fabs(boxtmp[4] - shape[4]) > Constants::SMALL) nIssues++; // YZ
+        if (fabs(boxtmp[5] - shape[5]) > Constants::SMALL) nIssues++; // ZZ
+      }
+    }
+    if (nIssues == 0) {
+      if (charmmCellType_ == UNKNOWN)
+        mprintf("\tSymmetric shape matrix detected.\n");
+      charmmCellType_ = SHAPE;
+    } else if (charmmCellType_ == SHAPE)
+      mprintf("Warning: Shape matrix specified but bad elements detected.\n"
+              "Warning: Original matrix : %g %g %g %g %g %g\n"
+              "Warning: Test matrix     : %g %g %g %g %g %g\n",
+              boxtmp[0], boxtmp[1], boxtmp[2], boxtmp[3], boxtmp[4], boxtmp[5],
+              shape[0], shape[1], shape[2], shape[3], shape[4], shape[5]);
+  }
+  // Test NAMD unit cell
+  if (charmmCellType_ == UNKNOWN || charmmCellType_ == NAMD) {
+    // Since NAMD stores the box angles as cos(angle), determine if the angle values are bounded between -1 and 1.
+    if ( boxtmp[4] >= -1 && boxtmp[4] <= 1 &&
+         boxtmp[3] >= -1 && boxtmp[3] <= 1 &&
+         boxtmp[1] >= -1 && boxtmp[1] <= 1    )
+    {
+      if (charmmCellType_ == UNKNOWN)
+        mprintf("\tNAMD unit cell detected.\n");
+      charmmCellType_ = NAMD;
+    } else if (charmmCellType_ == NAMD) {
+      mprintf("Warning: NAMD unit cell specified but cos(angle) values not bounded by -1, 1\n",
+              "Warning: Values: %g %g %g\n", boxtmp[4], boxtmp[3], boxtmp[1]);
+    }
+  }
+  // Test CHARMM unit cell
+  if (charmmCellType_ == UNKNOWN || charmmCellType_ == CHARMM) {
+    int nIssues = 0;
+    for (int i = 0; i < 6; i++) {
+      if (boxtmp[i] < Constants::SMALL)
+        nIssues++;
+    }
+    if (nIssues == 0) {
+      if (charmmCellType_ == UNKNOWN)
+        mprintf("\tCHARMM unit cell detected.\n");
+      charmmCellType_ = CHARMM;
+    } else if (charmmCellType_ == CHARMM) {
+      mprintf("Warning: CHARMM unit cell specified but bad box values detected.\n"
+              "Warning: Box values : %g %g %g %g %g %g\n",
+              boxtmp[0], boxtmp[1], boxtmp[2], boxtmp[3], boxtmp[4], boxtmp[5]);
+    }
+  }
+  // Fallback to version number if detection failed
+  // Charmm version >= 22 stores shape matrix instead of unit cell
+  if (charmmCellType_ == UNKNOWN && versionNumber_ > 0) {
+    mprintf("Warning: Box not detected; determining box from trajectory version number.\n");
+    if (versionNumber_ >= 22) {
+      mprintf("Warning: Version >= 22 (%i); assuming symmetric shape matrix is stored.\n", versionNumber_);
+      charmmCellType_ = SHAPE;
+    } else {
+      mprintf("Warning: Version < 22 (%i); assuming unit cell (XYZ ABG) is stored.\n", versionNumber_);
+      charmmCellType_ = CHARMM;
+    }
+  }
+  return 0;
+}
+
 // Traj_CharmmDcd::ReadBox()
 int Traj_CharmmDcd::ReadBox(double* boxtmp) {
   if ( ReadBlock(48) < 0) return 1;
   file_.Read(boxtmp, sizeof(double)*6);
   if (isBigEndian_) endian_swap8(boxtmp,6);
   if ( ReadBlock(-1) < 0) return 1;
-//  if (charmmCellType_ == SHAPE) {
-//    boxOut.SetupFromShapeMatrix( boxtmp );
-    //Box::ShapeToUcell(box, boxtmp);
-/*
-    mprintf("\nDEBUG: Original matrix: %g %g %g %g %g %g\n",
-            boxtmp[0], boxtmp[1], boxtmp[2], boxtmp[3], boxtmp[4], boxtmp[5]);
-    mprintf("DEBUG: Converted Ucell: %g %g %g %g %g %g\n",
-            box[0], box[1], box[2], box[3], box[4], box[5]);
-    double shape[6];
-    UcellToShape(shape, box);
-    mprintf("DEBUG: Test Shape     : %g %g %g %g %g %g\n",
-            shape[0], shape[1], shape[2], shape[3], shape[4], shape[5]);
-    for (int i = 0; i < 6; i++)
-      if (fabs(shape[i] - boxtmp[i]) > Constants::SMALL)
-        mprintf("Warning:\t\tPossible issue with element %i: %g %g (%g)\n",
-                i, boxtmp[i], shape[i], boxtmp[i] - shape[i]);
-*/
-//  } else {
-  if (charmmCellType_ != SHAPE) {
+  if (charmmCellType_ == NAMD) {
     // Box lengths
     double box[6];
     box[0] = boxtmp[0];
     box[1] = boxtmp[2];
     box[2] = boxtmp[5];
-    /** Older versions of CHARMM and some versions of NAMD store the box angles
+    /** Some versions of NAMD store the box angles
       * as cos(angle), so convert angle back to degrees if all of the angles are
       * bounded between -1 and 1.
       */
@@ -584,13 +671,14 @@ int Traj_CharmmDcd::readVelocity(int set, Frame& frameIn) {
 
 // Traj_CharmmDcd::WriteHelp()
 void Traj_CharmmDcd::WriteHelp() {
-  mprintf("\tx64     : Use 8 byte block size (default 4 bytes).\n"
-          "\tucell   : Write older (v21) format trajectory that stores unit cell params\n"
-          "\t          instead of shape matrix.\n"
-          "\tveltraj : Write velocity trajectory instead of coordinates.\n"
-          "\tdt      : Set trajectory time step in ps.\n"
-          "\tnstep   : # steps between frames.\n"
-          "\tstep0   : Initial step.\n"
+  mprintf("\tx64        : Use 8 byte block size (default 4 bytes).\n"
+          "\tveltraj    : Write velocity trajectory instead of coordinates.\n"
+          "\tdt         : Set trajectory time step in ps.\n"
+          "\tnstep      : # steps between frames.\n"
+          "\tstep0      : Initial step.\n"
+          "\tshape      : Force writing box info as CHARMM shape matrix (XX XY YY XZ YZ ZZ).\n"
+          "\tnamdcell   : Force writing box info as NAMD unit cell (X cos(g) Y cos(b) cos(a) Z).\n"
+          "\tcharmmcell : Force writing box info as old CHARMM unit cell (X Y Z a b g).\n"
          );
 }
 
@@ -605,8 +693,12 @@ int Traj_CharmmDcd::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
   // Determine 32 bit/64 bit block size 'if (sizeof(void*)!=4)'
   // TODO: Determine OS endianness
   isBigEndian_ = false;
-  if (argIn.hasKey("ucell"))
-    charmmCellType_ = UCELL;
+  if (argIn.hasKey("ucell") || argIn.hasKey("namdcell"))
+    charmmCellType_ = NAMD;
+  else if (argIn.hasKey("charmmcell"))
+    charmmCellType_ = CHARMM;
+  else if (argIn.hasKey("shape"))
+    charmmCellType_ = SHAPE;
   // See if we want to write as a velocity trajectory
   if (argIn.hasKey("veltraj"))
     isVel_ = true;
@@ -640,12 +732,12 @@ int Traj_CharmmDcd::setupTrajout(FileName const& fname, Topology* trajParm,
           if (charmmCellType_ == UNKNOWN) {
             if (CoordInfo().TrajBox().Is_X_Aligned()) {
               mprintf("Warning: Storing 3xlengths and 3x angles instead of shape matrix.\n");
-              charmmCellType_ = UCELL;
+              charmmCellType_ = CHARMM;
               box_ok = true;
             }
           }
         }
-      } else if (charmmCellType_ == UCELL) {
+      } else if (charmmCellType_ != SHAPE) {
         if (!CoordInfo().TrajBox().Is_X_Aligned()) {
           box_ok = false;
           mprintf("Warning: Unit cell is not X-aligned.\n");
@@ -729,7 +821,7 @@ int Traj_CharmmDcd::writeDcdHeader(int nframes) {
     charmmCellType_ = SHAPE;
   // Charmm version. Just set to 35 for now. If storing unit cell params
   // instead of shape matrix set version to 21.
-  if (charmmCellType_ == UCELL)
+  if (charmmCellType_ == CHARMM)
     buffer.i[19] = 21;
   else
     buffer.i[19] = 35;
@@ -786,18 +878,28 @@ int Traj_CharmmDcd::writeFrame(int set, Frame const& frameOut) {
     } else {
       if (!frameOut.BoxCrd().Is_X_Aligned())
         mprintf("Warning: Set %i; unit cell is not X-aligned. Box cannot be properly stored as Charmm DCD.\n", set+1);
-      /* The format for the 'box' array used in cpptraj is not the same as the
-       * one used for NAMD/CHARMM dcd files.  Refer to the reading routine above
-       * for a description of the box info.
-       */
-      boxtmp[0] = frameOut.BoxCrd().Param(Box::X);
-      boxtmp[2] = frameOut.BoxCrd().Param(Box::Y);
-      boxtmp[5] = frameOut.BoxCrd().Param(Box::Z);
-      // The angles must be reported in cos(angle) format
-      // TODO set cos(90) to zero?
-      boxtmp[1] = cos(frameOut.BoxCrd().Param(Box::GAMMA) * Constants::DEGRAD);
-      boxtmp[3] = cos(frameOut.BoxCrd().Param(Box::BETA ) * Constants::DEGRAD);
-      boxtmp[4] = cos(frameOut.BoxCrd().Param(Box::ALPHA) * Constants::DEGRAD);
+      if (charmmCellType_ == NAMD) {
+        /* The format for the 'box' array used in cpptraj is not the same as the
+         * one used for NAMD dcd files.  Refer to the reading routine above
+         * for a description of the box info.
+         */
+        boxtmp[0] = frameOut.BoxCrd().Param(Box::X);
+        boxtmp[2] = frameOut.BoxCrd().Param(Box::Y);
+        boxtmp[5] = frameOut.BoxCrd().Param(Box::Z);
+        // The angles must be reported in cos(angle) format
+        // TODO set cos(90) to zero?
+        boxtmp[1] = cos(frameOut.BoxCrd().Param(Box::GAMMA) * Constants::DEGRAD);
+        boxtmp[3] = cos(frameOut.BoxCrd().Param(Box::BETA ) * Constants::DEGRAD);
+        boxtmp[4] = cos(frameOut.BoxCrd().Param(Box::ALPHA) * Constants::DEGRAD);
+      } else {
+        // Native charmm mode
+        boxtmp[0] = frameOut.BoxCrd().Param(Box::X);
+        boxtmp[1] = frameOut.BoxCrd().Param(Box::Y);
+        boxtmp[2] = frameOut.BoxCrd().Param(Box::Z);
+        boxtmp[3] = frameOut.BoxCrd().Param(Box::ALPHA);
+        boxtmp[4] = frameOut.BoxCrd().Param(Box::BETA);
+        boxtmp[5] = frameOut.BoxCrd().Param(Box::GAMMA);
+      }
     }
     WriteBlock(48);
     if (file_.Write(boxtmp, sizeof(double)*6)) {
