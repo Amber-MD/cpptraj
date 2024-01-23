@@ -35,6 +35,7 @@ class Traj_CharmmDcd : public TrajectoryIO {
     double timeStep_;        ///< Time step for writing
     int stepsBetweenFrames_; ///< # of steps between frames (write)
     int initialStep_;        ///< Initial step (write)
+    static const double CHARMMTIME_TO_PS_; ///< Used to convert to/from charmm AKMA time
 
     union headerbyte { unsigned char c[80]; int i[20]; float f[20]; };
     int ReadBlock(int);

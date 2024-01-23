@@ -40,6 +40,9 @@ Traj_CharmmDcd::~Traj_CharmmDcd() {
   if (xcoord_!=0) delete[] xcoord_;
 }
 
+/** From charmm consta_ltm.F90 */
+const double Traj_CharmmDcd::CHARMMTIME_TO_PS_ = 4.88882129e-02;
+
 static inline bool CORD_32BIT(const unsigned char* buffer) {
   if (buffer[4] == 'C' && buffer[5] == 'O' && buffer[ 6] == 'R' && buffer[ 7] == 'D')
     return true; // 32 bit
@@ -369,7 +372,7 @@ int Traj_CharmmDcd::readDcdHeader() {
   } else
     boxBytes_ = 0;
   // Timestep - convert from AKMA to ps
-  timeStep_ = (double)(buffer.f[9]) / Constants::AMBERTIME_TO_PS;
+  timeStep_ = (double)(buffer.f[9]) * CHARMMTIME_TO_PS_;
   stepsBetweenFrames_ = buffer.i[2];
   initialStep_= buffer.i[1];
   if (debug_>0) {
@@ -720,7 +723,7 @@ int Traj_CharmmDcd::writeDcdHeader(int nframes) {
   // Number of fixed atoms
   buffer.i[8] = 0;
   // Timestep - convert from ps to AKMA
-  buffer.f[9] = (float)(timeStep_ * Constants::AMBERTIME_TO_PS);
+  buffer.f[9] = (float)(timeStep_ / CHARMMTIME_TO_PS_);
   // Default to SHAPE
   if (charmmCellType_ == UNKNOWN)
     charmmCellType_ = SHAPE;
