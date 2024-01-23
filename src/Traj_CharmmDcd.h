@@ -42,7 +42,7 @@ class Traj_CharmmDcd : public TrajectoryIO {
     void AllocateCoords();
     int readDcdHeader();
     int ReadBox(double*);
-    int writeDcdHeader();
+    int writeDcdHeader(int);
     inline void seekToFrame(int);
     inline int readXYZ(double*);
     void setFrameSizes();

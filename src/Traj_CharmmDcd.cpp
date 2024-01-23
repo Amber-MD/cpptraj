@@ -129,17 +129,18 @@ int Traj_CharmmDcd::openTrajin() {
   * frames is right after that so seek to size of int + 4.
   */
 void Traj_CharmmDcd::closeTraj() {
-  byte8 framecount;
+//  byte8 framecount;
   if (file_.IsOpen() && file_.Access() != CpptrajFile::READ) {
     file_.CloseFile();
     file_.OpenFile(CpptrajFile::UPDATE);
-    file_.Seek( blockSize_+4 );
-    framecount.i[1] = 0;
-    framecount.i[0] = dcdframes_;
+    writeDcdHeader(dcdframes_);
+//    file_.Seek( blockSize_+4 );
+//    framecount.i[1] = 0;
+//    framecount.i[0] = dcdframes_;
     if (debug_>0) mprintf("\tDEBUG: Updated DCD frame count is %i\n", dcdframes_);
     // NOTE: Here we are ensuring that ONLY 4 bytes are written. This could
     //       overflow for large # of frames.
-    file_.Write(framecount.c,sizeof(unsigned char)*4); 
+//    file_.Write(framecount.c,sizeof(unsigned char)*4); 
   }
   file_.CloseFile();
 }
@@ -665,7 +666,7 @@ int Traj_CharmmDcd::setupTrajout(FileName const& fname, Topology* trajParm,
     //dcdheadersize = (28*sizeof(int)) + 84;
     if (file_.SetupWrite( fname, debug_)) return 1;
     if (file_.OpenFile()) return 1;
-    if (writeDcdHeader()) return 1;
+    if (writeDcdHeader(0)) return 1;
   } else {
     if ( setupTrajin( fname, trajParm ) == TRAJIN_ERR ) return 1;
     mprintf("\tAppending to DCD file starting at frame %i\n", dcdframes_);
@@ -682,7 +683,7 @@ int Traj_CharmmDcd::setupTrajout(FileName const& fname, Topology* trajParm,
   * will be written at default OS size no matter what. For now alway write 
   * little-endian as well.
   */
-int Traj_CharmmDcd::writeDcdHeader() {
+int Traj_CharmmDcd::writeDcdHeader(int nframes) {
   byte8 dcdkey;
   headerbyte buffer;
   // Write 84 - CORD + header size
@@ -705,11 +706,14 @@ int Traj_CharmmDcd::writeDcdHeader() {
   memset(buffer.c, 0, 80*sizeof(unsigned char));
   // Frames
   //buffer.i[0] = trajParm->parmFrames;
-  buffer.i[0] = 0;
+  buffer.i[0] = nframes;
   // Starting timestep
   buffer.i[1] = initialStep_;
   // Number of steps between frames
   buffer.i[2] = stepsBetweenFrames_;
+  // Total steps; calculate from nframes * stepsBetweenFrames_
+  buffer.i[3] = nframes * stepsBetweenFrames_;
+  //mprintf("DEBUG: Total dcd simulation steps = %i\n", buffer.i[3]);
   // For velocity traj only
   if (isVel_)
     buffer.i[4] = 1;
@@ -744,9 +748,9 @@ int Traj_CharmmDcd::writeDcdHeader() {
   file_.Write(dcdkey.i, sizeof(int)*1);
   // If title is longer than 80 truncate it for now
   std::string title = Title();
-  if (title.size() > 80) 
+  if (title.size() > 80)
     mprintf("Warning: CharmmDCD: Title size is > 80 chars, truncating to 80.\n");
-  title.resize(80);
+  title.resize(80, ' ');
   // Write title
   file_.Write((char*)title.c_str(), 80*sizeof(char));
   // Write title end block
