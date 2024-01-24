@@ -241,12 +241,19 @@ Box::CellShapeType Box::CellShape() const {
   }
   return TRICLINIC;
 }
+/** Check box for problem. Always print skew warning. */
+Box::CheckType Box::CheckBox() const {
+  return CheckBox(true);
+}
 
 /** Check the box for potential problems. It is expected that if this routine
   * is called, valid box information is present. If not, this is an error.
+  * The warning for skewed box may be suppressed; this allows the routine
+  * to be used to detect whether incoming coordinates are potentially
+  * a symmetric shape matrix (SetupFromShapeMatrix).
   * \return BOX_NOT_PRESENT if no box, BOX_IS_SKEWED if too skewed for imaging, BOX_OK otherwise.
   */
-Box::CheckType Box::CheckBox() const {
+Box::CheckType Box::CheckBox(bool print_skew_warning) const {
   // Check for invalid lengths/angles
   bool hasZeros = false;
   for (int i = 0; i < 3; i++) {
@@ -282,8 +289,9 @@ Box::CheckType Box::CheckBox() const {
        fabs(Zaxis_X) > boxFactor * Xaxis_X ||
        fabs(Zaxis_Y) > boxFactor * Yaxis_Y )
   {
-    mprintf("Warning: Box is too skewed to perform accurate imaging.\n"
-            "Warning:  Images and imaged distances may not be the absolute minimum.\n");
+    if (print_skew_warning)
+      mprintf("Warning: Box is too skewed to perform accurate imaging.\n"
+              "Warning:  Images and imaged distances may not be the absolute minimum.\n");
     return BOX_IS_SKEWED;
   }
   return BOX_OK;
@@ -493,6 +501,38 @@ void Box::CalcShapeFromXyzAbg(double* shape, const double* box)
 // -----------------------------------------------------------------------------
 // Setup routines
 
+/** Set unit cell, fractional cell, and XYZ ABG array from shape matrix.
+  * Set check status, do not print skew warning.
+  */
+int Box::SetupFromShapeMatrix(const double* shape, CheckType& check) {
+  unitCell_[0] = shape[0];
+  unitCell_[1] = shape[1];
+  unitCell_[2] = shape[3];
+
+  unitCell_[3] = shape[1];
+  unitCell_[4] = shape[2];
+  unitCell_[5] = shape[4];
+
+  unitCell_[6] = shape[3];
+  unitCell_[7] = shape[4];
+  unitCell_[8] = shape[5];
+
+  CalcXyzAbgFromShape(box_, shape);
+
+  cellVolume_ = CalcFracFromUcell(fracCell_, unitCell_);
+
+# ifdef DEBUG_BOX
+  printBoxStatus("SetupFromShapeMatrix (with check)");
+# endif
+  // Check box, do not print skew warning
+  check = CheckBox(false);
+  if (check == BOX_NOT_PRESENT) {
+    SetNoBox();
+    return 1;
+  }
+  return 0;
+}
+
 /** Set unit cell, fractional cell, and XYZ ABG array from shape matrix. */
 int Box::SetupFromShapeMatrix(const double* shape) {
   unitCell_[0] = shape[0];
@@ -514,6 +554,7 @@ int Box::SetupFromShapeMatrix(const double* shape) {
 # ifdef DEBUG_BOX
   printBoxStatus("SetupFromShapeMatrix");
 # endif
+  // Check box, do not print skew warning
   if (CheckBox() == BOX_NOT_PRESENT) {
     SetNoBox();
     return 1;
