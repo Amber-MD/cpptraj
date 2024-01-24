@@ -12,7 +12,7 @@ void Action_Box::Help() const {
           "\t %s |\n"
           "\t nobox |\n"
           "\t auto [offset <offset>] [radii {vdw|gb|parse|none}] |\n"
-          "\t getbox {ucell|frac|shape}\n"
+          "\t getbox {ucell|frac|shape} [name <setname>] [out <file>]\n"
           "\t}\n",
           BoxArgs::Keywords_XyzAbg(), BoxArgs::Keywords_TruncOct());
   mprintf("  For each input frame, replace any box information with the information given.\n"
@@ -30,6 +30,8 @@ void Action_Box::Help() const {
 Action::RetType Action_Box::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Get keywords
+  std::string dsname;
+  DataFile* outfile = 0;
   if ( actionArgs.hasKey("nobox") )
     mode_ = REMOVE;
   else if (actionArgs.hasKey("auto")) {
@@ -60,6 +62,7 @@ Action::RetType Action_Box::Init(ArgList& actionArgs, ActionInit& init, int debu
       }
     }
   } else if (actionArgs.Contains("getbox")) {
+    mode_ = GETBOX;
     std::string getbox = actionArgs.GetStringKey("getbox");
     if (getbox == "ucell")
       getmode_ = GET_UNITCELL;
@@ -71,10 +74,22 @@ Action::RetType Action_Box::Init(ArgList& actionArgs, ActionInit& init, int debu
       mprinterr("Error: Expected getbox {ucell|frac|shape}, got %s\n", getbox.c_str());
       return Action::ERR;
     }
+    dsname = actionArgs.GetStringKey("name");
+    outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   } else {
     mode_ = SET;
     // TODO check for bad args?
     if (boxArgs_.SetBoxArgs( actionArgs )) return Action::ERR;
+  }
+
+  // Create set
+  if (mode_ == GETBOX) {
+    set_ = init.DSL().AddSet( DataSet::MAT3X3, dsname, "BOX" );
+    if (set_ == 0) {
+      mprinterr("Error: Could not create box set.\n");
+      return Action::ERR;
+    }
+    if (outfile != 0) outfile->AddDataSet( set_ );
   }
 
   mprintf("    BOX:");
@@ -91,6 +106,11 @@ Action::RetType Action_Box::Init(ArgList& actionArgs, ActionInit& init, int debu
         mprintf("\tWill use VDW, GB, or PARSE radii if available (with that priority).\n");
         break;
     }
+  } else if (mode_ == GETBOX) {
+    static const char* getstr[] = { "unit cell", "fractional cell", "shape matrix" };
+    mprintf(" Getting %s information from box.\n", getstr[getmode_]);
+    mprintf("\tOutput set: %s\n", set_->legend());
+    if (outfile != 0) mprintf("\tOutput file: %s\n", outfile->DataFilename().full());
   } else {
     boxArgs_.PrintXyzAbg();
   }
@@ -103,6 +123,13 @@ Action::RetType Action_Box::Setup(ActionSetup& setup) {
   if (mode_ == REMOVE) {
     mprintf("\tRemoving box info.\n");
     cInfo_.SetBox( Box() );
+  } else if (mode_ == GETBOX) {
+  // Check box type
+    if (!setup.CoordInfo().TrajBox().HasBox()) {
+      mprintf("Warning: Topology %s does not contain box information.\n",
+              setup.Top().c_str());
+      return Action::SKIP;
+    }
   } else {
     // SET, AUTO
     // Fill in missing box information from current box
@@ -162,6 +189,22 @@ Action::RetType Action_Box::DoAction(int frameNum, ActionFrame& frm) {
     frm.ModifyFrm().ModifyBox().SetNoBox();
   } else if (mode_ == AUTO) {
     frm.ModifyFrm().SetOrthoBoundingBox(Radii_, offset_);
+  } else if (mode_ == GETBOX) {
+    if (getmode_ == GET_UNITCELL) {
+      Matrix_3x3 const& ucell = frm.Frm().BoxCrd().UnitCell();
+      set_->Add( frameNum, ucell.Dptr() );
+    } else if (getmode_ == GET_FRACCELL) {
+      Matrix_3x3 const& frac = frm.Frm().BoxCrd().FracCell();
+      set_->Add( frameNum, frac.Dptr() );
+    } else if (getmode_ == GET_SHAPE) {
+      double shape[6];
+      frm.Frm().BoxCrd().GetSymmetricShapeMatrix(shape);
+      double ucell[9];
+      ucell[0] = shape[0]; ucell[1] = shape[1]; ucell[2] = shape[3];
+      ucell[3] = shape[1]; ucell[4] = shape[2]; ucell[5] = shape[4];
+      ucell[6] = shape[3]; ucell[7] = shape[4]; ucell[8] = shape[5];
+      set_->Add( frameNum, ucell );
+    }
   } else {
     boxArgs_.SetMissingInfo( frm.Frm().BoxCrd() );
     frm.ModifyFrm().ModifyBox().AssignFromXyzAbg( boxArgs_.XyzAbg() );

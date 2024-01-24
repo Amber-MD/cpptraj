@@ -4,7 +4,8 @@
 
 CleanFiles box.in addbox.rst7 addbox.rst7.? addbox.rst7.10 \
                   modX.rst7   modX.rst7.?   modX.rst7.10 \
-                  frame1.rst7 tz2.box.rst7 tz2.vdw.rst7
+                  frame1.rst7 tz2.box.rst7 tz2.vdw.rst7 \
+                  *.ucell.dat *.frac.dat *.shape.dat
 
 TESTNAME='Box tests'
 Requires netcdf maxthreads 10
@@ -78,6 +79,17 @@ EOF
   RunCpptraj "$UNITNAME"
   DoTest tz2.vdw.rst7.save tz2.vdw.rst7
 fi
+
+UNITNAME='Box test (get box info)'
+cat > box.in <<EOF
+parm ../tz2.ortho.parm7
+trajin ../tz2.ortho.nc
+box getbox ucell name UC out ortho.ucell.dat
+box getbox frac  name FC out ortho.frac.dat
+box getbox shape name SP out ortho.shape.dat
+run
+EOF
+RunCpptraj "$UNITNAME"
 
 EndTest
 
