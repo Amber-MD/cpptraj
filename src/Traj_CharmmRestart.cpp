@@ -7,6 +7,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h"
 #include "BufferedLine.h"
+#include "ArgList.h"
 
 /// CONSTRUCTOR
 Traj_CharmmRestart::Traj_CharmmRestart() {}
@@ -68,7 +69,71 @@ int Traj_CharmmRestart::processReadArgs(ArgList& argIn) {
 
 static inline int ErrEOF(int line) {
   mprinterr("Error: Unexpected end of file, line %i\n", line);
-  return TrajectoryIO::TRAJIN_ERR;
+  return 1; 
+}
+
+/** Read next ! section */
+int Traj_CharmmRestart::readNextSection(const char* ptr0, BufferedLine& infile, bool& readCrystal, bool& readNatom,
+                                        Topology const& trajParm)
+{
+  const char* ptr = ptr0;
+  while (ptr != 0 && ptr[1] != '!')
+    ptr = infile.Line();
+  if (ptr == 0) return 0;
+  ArgList line(ptr, "!, \t");
+  if (line.hasKey("CRYSTAL")) {
+  //if (ptr[2] == 'C' && ptr[3] == 'R' && ptr[4] == 'Y') {
+    readCrystal = true;
+    // Has unit cell information. Read the shape matrix.
+    // NOTE: Seems that the scientific exponent rep in Fortran
+    //       can sometimes come out as 'D', which confuses
+    //       sscanf, so replace that.
+    // FIXME check for old version?
+    ptr = infile.Line();
+    if (ptr == 0) return ErrEOF(infile.LineNumber());
+    double bs[6];
+    char buff[133];
+    buff[132] = '\0';
+    unsigned int idx = 0;
+    for (const char* p = ptr; *p != '\0'; ++p, ++idx) {
+      if (*p == 'D')
+        buff[idx] = 'E';
+      else
+        buff[idx] = *p;
+    }
+    ptr = infile.Line();
+    if (ptr == 0) return ErrEOF(infile.LineNumber());
+    for (const char* p = ptr; *p != '\0'; ++p, ++idx) {
+      if (*p == 'D')
+        buff[idx] = 'E';
+      else
+        buff[idx] = *p;
+    }
+    sscanf(buff, "%22lE%22lE%22lE%22lE%22lE%22lE",
+           bs, bs+1, bs+2, bs+3, bs+4, bs+5);
+    if (debug_ > 0)
+      mprintf("DEBUG: Shape Matrix: %g %g %g %g %g %g\n",
+              bs[0], bs[1], bs[2], bs[3], bs[4], bs[5]);
+    cbox_.SetupFromShapeMatrix( bs );
+    if (debug_ > 0)
+      mprintf("DEBUG: Unit cell: %g %g %g %g %g %g\n",
+              cbox_.Param(Box::X), cbox_.Param(Box::Y), cbox_.Param(Box::Z),
+              cbox_.Param(Box::ALPHA), cbox_.Param(Box::BETA), cbox_.Param(Box::GAMMA));
+
+  } else if (line.hasKey("NATOM")) { //else if (ptr[2] != 'N' || ptr[3] != 'A' || ptr[4] != 'T') {
+    readNatom = true;
+    ptr = infile.Line();
+    int natom = 0;
+    sscanf(ptr, "%12i", &natom);
+    if (debug_ > 0) mprintf("DEBUG: %i atoms.\n", natom);
+    if (natom != trajParm.Natom()) {
+      mprinterr("Error: Number of atoms in restart (%i) does not match # in\n", natom);
+      mprinterr("Error:  associated topology %s (%i)\n", trajParm.c_str(),
+                trajParm.Natom());
+    }
+    ncoord_ = natom * 3;
+  }
+  return 0;
 }
 
 /** Set up trajectory for reading.
@@ -107,65 +172,22 @@ int Traj_CharmmRestart::setupTrajin(FileName const& fname, Topology* trajParm)
 
   // Seek down to next relevant section; !CRYSTAL or !NATOM
   cbox_.SetNoBox();
-  while (ptr != 0 && ptr[1] != '!')
-    ptr = infile.Line();
-  if (ptr == 0) return ErrEOF(infile.LineNumber());
-  if (ptr[2] == 'C' && ptr[3] == 'R' && ptr[4] == 'Y') {
-    // Has unit cell information. Read the shape matrix.
-    // NOTE: Seems that the scientific exponent rep in Fortran
-    //       can sometimes come out as 'D', which confuses
-    //       sscanf, so replace that.
-    // FIXME check for old version?
-    ptr = infile.Line();
-    if (ptr == 0) return ErrEOF(infile.LineNumber());
-    double bs[6];
-    char buff[133];
-    buff[132] = '\0';
-    unsigned int idx = 0;
-    for (const char* p = ptr; *p != '\0'; ++p, ++idx) {
-      if (*p == 'D')
-        buff[idx] = 'E';
-      else
-        buff[idx] = *p;
-    }
-    ptr = infile.Line();
-    if (ptr == 0) return ErrEOF(infile.LineNumber());
-    for (const char* p = ptr; *p != '\0'; ++p, ++idx) {
-      if (*p == 'D')
-        buff[idx] = 'E';
-      else
-        buff[idx] = *p;
-    }
-    sscanf(buff, "%22lE%22lE%22lE%22lE%22lE%22lE",
-           bs, bs+1, bs+2, bs+3, bs+4, bs+5);
-    if (debug_ > 0)
-      mprintf("DEBUG: Shape Matrix: %g %g %g %g %g %g\n",
-              bs[0], bs[1], bs[2], bs[3], bs[4], bs[5]);
-    cbox_.SetupFromShapeMatrix( bs );
-    if (debug_ > 0)
-      mprintf("DEBUG: Unit cell: %g %g %g %g %g %g\n",
-              cbox_.Param(Box::X), cbox_.Param(Box::Y), cbox_.Param(Box::Z),
-              cbox_.Param(Box::ALPHA), cbox_.Param(Box::BETA), cbox_.Param(Box::GAMMA));
-    // Seek down to !NATOM
-    while (ptr != 0 && ptr[1] != '!')
-      ptr = infile.Line();
-    if ( ptr == 0 ) return ErrEOF(infile.LineNumber());
-    if (ptr[2] != 'N' || ptr[3] != 'A' || ptr[4] != 'T') {
-      mprinterr("Error: !NATOM section not found.\n");
+  bool readCrystal = false;
+  bool readNatom = false;
+  while (ptr != 0) {
+    // Seek to next section
+    if (readNextSection(ptr, infile, readCrystal, readNatom, *trajParm)) {
+      mprinterr("Error: Could not read next section in CHARMM restart.\n");
       return TRAJIN_ERR;
     }
+    if (readCrystal && readNatom) break;
+    ptr = infile.Line();
+  }
+  if (!readNatom) {
+    mprinterr("Error: Could not get number of atoms from !NATOM in CHARMM restart.\n");
+    return TRAJIN_ERR;
   }
 
-  ptr = infile.Line();
-  int natom = 0;
-  sscanf(ptr, "%12i", &natom);
-  if (debug_ > 0) mprintf("DEBUG: %i atoms.\n", natom);
-  if (natom != trajParm->Natom()) {
-    mprinterr("Error: Number of atoms in restart (%i) does not match # in\n", natom);
-    mprinterr("Error:  associated topology %s (%i)\n", trajParm->c_str(),
-              trajParm->Natom());
-  }
-  ncoord_ = natom * 3;
   // TODO temperature, time
   infile.CloseFile();
   // Box, vel, temp, time

@@ -2,6 +2,7 @@
 #define INC_TRAJ_CHARMMRESTART_H
 #include "TrajectoryIO.h"
 #include "BufferedFrame.h"
+class BufferedLine;
 /// <Enter description of Traj_CharmmRestart here>
 class Traj_CharmmRestart : public TrajectoryIO {
   public:
@@ -36,6 +37,8 @@ class Traj_CharmmRestart : public TrajectoryIO {
     // -------------------------------------------
 #   endif
     int ReadXYZ(double*);
+    /// Read the next ! section
+    int readNextSection(const char*, BufferedLine&, bool&, bool&, Topology const&);
 
     BufferedFrame inframe_;
     int ncoord_;
