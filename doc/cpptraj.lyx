@@ -18702,6 +18702,13 @@ usefrcascoords Read in forces in place of coordinates if present.
 
 \emph on
 Options for CHARMM DCD:
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj-Options-for-CHARMM"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout LyX-Code
@@ -18727,6 +18734,32 @@ charmmcell Force reading of box info as old CHARMM unit cell (X Y Z a b
 \end_layout
 
 \end_deeper
+\begin_layout Standard
+Note that CHARMM trajectories can have unit cell data stored in one of two
+ ways.
+ Older versions (<22) of charmm store the 3x lengths (X Y Z, in Angstroms)
+ and 3x angles (alpha beta gamma, in degrees).
+ Newer versions (>=22) store elements of the symmetric shape matrix (XX,
+ XY, YY, XZ, YZ, ZZ).
+ CPPTRAJ will attempt to automatically detect which type of parameters are
+ present, but this can be overridden with the 
+\series bold
+shape
+\series default
+ and 
+\series bold
+charmmcell
+\series default
+ keywords.
+ The 
+\series bold
+namdcell
+\series default
+ keyword is provided for compatibility with DCD trajectories produced by
+ VMD/NAMD, but note these trajectories only store a version of the shape
+ matrix that is correct if the unit cell is also X-aligned.
+\end_layout
+
 \begin_layout Subsubsection
 Options for PDB files:
 \begin_inset CommandInset label
@@ -19597,6 +19630,17 @@ Note that by default CPPTRAJ will try to write the symmetric shape matrix
  if box information is present.
  If this is not possible, CPPTRAJ will fall back to writing unit cell parameters
  (lengths and angles) as long as the cell is X-aligned.
+ For more information see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-Options-for-CHARMM"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
 \end_layout
 
 \begin_layout Subsubsection
