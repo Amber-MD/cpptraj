@@ -731,7 +731,7 @@ int Traj_CharmmDcd::setupTrajout(FileName const& fname, Topology* trajParm,
           mprintf("Warning: Unit cell matrix is not symmetric.\n");
           if (charmmCellType_ == UNKNOWN) {
             if (CoordInfo().TrajBox().Is_X_Aligned()) {
-              mprintf("Warning: Storing 3xlengths and 3x angles instead of shape matrix.\n");
+              mprintf("Warning: Storing 3xlengths and 3x angles instead of shape matrix in '%s'.\n", fname.base());
               charmmCellType_ = CHARMM;
               box_ok = true;
             }
