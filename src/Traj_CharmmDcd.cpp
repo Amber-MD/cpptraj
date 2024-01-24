@@ -736,15 +736,19 @@ int Traj_CharmmDcd::setupTrajout(FileName const& fname, Topology* trajParm,
               box_ok = true;
             }
           }
+        } else if (charmmCellType_ == UNKNOWN) {
+          // If no output cell type set yet and unit cell is symmetric, use shape matrix
+          charmmCellType_ = SHAPE;
         }
-      } else if (charmmCellType_ != SHAPE) {
+      }
+      if (charmmCellType_ != SHAPE) {
         if (!CoordInfo().TrajBox().Is_X_Aligned()) {
           box_ok = false;
           mprintf("Warning: Unit cell is not X-aligned.\n");
         }
       }
       if (!box_ok)
-        mprintf("Warning: Box cannot be properly stored as Charmm DCD.\n");
+        mprintf("Warning: Box cannot be properly stored in Charmm DCD format for '%s'.\n", fname.base());
     }
     dcdatom_ = trajParm->Natom();
     // dcdframes = trajParm->parmFrames;
