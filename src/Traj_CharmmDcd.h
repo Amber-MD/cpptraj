@@ -25,7 +25,7 @@ class Traj_CharmmDcd : public TrajectoryIO {
     size_t coordinate_size_; ///< Size of X|Y|Z coord frame in bytes.
     int nfixedat_;           ///< Number of fixed atoms
     int nfreeat_;            ///< Number of free atoms
-    enum CType { UNKNOWN = 0, SHAPE, UCELL };
+    enum CType { UNKNOWN = 0, SHAPE, NAMD, CHARMM };
     CType charmmCellType_;   ///< If SHAPE (default), unit cell info is stored as shape matrix.
     int* freeat_;            ///< Free atom indices
     float* xcoord_;          ///< Master coord array, start of X coords
@@ -35,14 +35,17 @@ class Traj_CharmmDcd : public TrajectoryIO {
     double timeStep_;        ///< Time step for writing
     int stepsBetweenFrames_; ///< # of steps between frames (write)
     int initialStep_;        ///< Initial step (write)
+    int versionNumber_;      ///< Version number (read); used as a fallback to assign box type
+    static const double CHARMMTIME_TO_PS_; ///< Used to convert to/from charmm AKMA time
 
     union headerbyte { unsigned char c[80]; int i[20]; float f[20]; };
     int ReadBlock(int);
     int WriteBlock(int);
     void AllocateCoords();
     int readDcdHeader();
+    int setupBox(double*);
     int ReadBox(double*);
-    int writeDcdHeader();
+    int writeDcdHeader(int);
     inline void seekToFrame(int);
     inline int readXYZ(double*);
     void setFrameSizes();
