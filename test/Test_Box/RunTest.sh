@@ -90,6 +90,9 @@ box getbox shape name SP out ortho.shape.dat
 run
 EOF
 RunCpptraj "$UNITNAME"
+DoTest ortho.ucell.dat.save ortho.ucell.dat
+DoTest ortho.frac.dat.save ortho.frac.dat
+DoTest ortho.shape.dat.save ortho.shape.dat 
 
 EndTest
 
