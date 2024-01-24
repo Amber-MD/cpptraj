@@ -88,6 +88,13 @@ box getbox ucell name UC out ortho.ucell.dat
 box getbox frac  name FC out ortho.frac.dat
 box getbox shape name SP out ortho.shape.dat
 run
+clear trajin
+clear parm
+parm ../tz2.truncoct.parm7
+trajin ../tz2.truncoct.nc
+box getbox ucell name UC1 out truncoct.ucell.dat
+box getbox frac  name FC1 out truncoct.frac.dat
+box getbox shape name SP1 out truncoct.shape.dat
 EOF
 RunCpptraj "$UNITNAME"
 DoTest ortho.ucell.dat.save ortho.ucell.dat
