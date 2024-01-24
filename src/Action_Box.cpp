@@ -2,21 +2,28 @@
 #include "CpptrajStdio.h"
 
 Action_Box::Action_Box() :
-  mode_(SET)
+  mode_(SET),
+  set_(0),
+  getmode_(GET_UNITCELL)
 {}
 
 void Action_Box::Help() const {
   mprintf("\t{%s |\n"
           "\t %s |\n"
           "\t nobox |\n"
-          "\t auto [offset <offset>] [radii {vdw|gb|parse|none}]}\n",
+          "\t auto [offset <offset>] [radii {vdw|gb|parse|none}] |\n"
+          "\t getbox {ucell|frac|shape}\n"
+          "\t}\n",
           BoxArgs::Keywords_XyzAbg(), BoxArgs::Keywords_TruncOct());
   mprintf("  For each input frame, replace any box information with the information given.\n"
           "  If 'truncoct' is specified, alpha, beta, and gamma will be set to the\n"
-          "  appropriate angle for a truncated octahedral box. If 'nobox' is specified,\n"
-          "  all existing box information will be removed. If 'auto' is specified, an\n"
-          "  orthogonal box will be set for existing atoms using the specified distance\n"
-          "  offset value, ensuring specified radii (default vdw) are enclosed.\n");
+          "  appropriate angle for a truncated octahedral box.\n"
+          "  If 'nobox' is specified, all existing box information will be removed.\n"
+          "  If 'auto' is specified, an orthogonal box will be set for existing atoms\n"
+          "  using the specified distance offset value, ensuring specified radii\n"
+          "  (default vdw) are enclosed.\n"
+          "  If 'getbox' is specified, the existing box information will be saved to\n"
+          "  a data set.\n");
 }
 
 // Action_Box::Init()
@@ -51,6 +58,18 @@ Action::RetType Action_Box::Init(ArgList& actionArgs, ActionInit& init, int debu
         mprinterr("Error: Unrecognized radii type: %s\n", rstr.c_str());
         return Action::ERR;
       }
+    }
+  } else if (actionArgs.Contains("getbox")) {
+    std::string getbox = actionArgs.GetStringKey("getbox");
+    if (getbox == "ucell")
+      getmode_ = GET_UNITCELL;
+    else if (getbox == "frac")
+      getmode_ = GET_FRACCELL;
+    else if (getbox == "shape")
+      getmode_ = GET_SHAPE;
+    else {
+      mprinterr("Error: Expected getbox {ucell|frac|shape}, got %s\n", getbox.c_str());
+      return Action::ERR;
     }
   } else {
     mode_ = SET;
