@@ -73,7 +73,7 @@ void Cpptraj::Usage() {
             "               [-h | --help] [-V | --version] [--defines] [-debug <#>]\n"
             "               [--interactive] [--log <logfile>] [-tl]\n"
             "               [-ms <mask>] [-mr <mask>] [--mask <mask>] [--resmask <mask>]\n"
-            "               [--rng %s]\n"
+            "               [--rng %s] [--charge <mask>]\n"
             "\t-p <Top0>        : * Load <Top0> as a topology file.\n"
             "\t-i <Input0>      : * Read input from file <Input0>.\n"
             "\t-y <trajin>      : * Read from trajectory file <trajin>; same as input 'trajin <trajin>'.\n"
@@ -96,8 +96,8 @@ void Cpptraj::Usage() {
             "\t-mr <mask>       : Print selected residue numbers to STDOUT.\n"
             "\t--mask <mask>    : Print detailed atom selection to STDOUT.\n"
             "\t--resmask <mask> : Print detailed residue selection to STDOUT.\n"
-            "\t--charge <mask>  : Print total charge in e- of atoms selected by <mask>.\n"
             "\t--rng <type>     : Change default random number generator.\n"
+            "\t--charge <mask>  : Print total charge in e- of atoms selected by <mask>.\n"
             "      * Denotes flag may be specified multiple times.\n"
             "\n", CpptrajState::RngKeywords());
 }
