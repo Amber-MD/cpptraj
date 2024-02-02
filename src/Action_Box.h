@@ -14,8 +14,9 @@ class Action_Box : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
-    enum ModeType { SET = 0, REMOVE, AUTO };
+    enum ModeType { SET = 0, REMOVE, AUTO, GETBOX };
     enum RadiiType { UNSPECIFIED = 0, GB, PARSE, VDW, NONE };
+    enum GetType { GET_UNITCELL = 0, GET_FRACCELL, GET_SHAPE };
 
     CoordinateInfo cInfo_; ///< For holding modified coordinate info.
     BoxArgs boxArgs_;      ///< Hold arguments for setting box (SET).
@@ -23,5 +24,7 @@ class Action_Box : public Action {
     double offset_;        ///< Offset for AUTO
     RadiiType radiiMode_;  ///< Radii type to use for AUTO
     std::vector<double> Radii_; ///< Hold radius for each atom for AUTO
+    DataSet* set_;              ///< Hold output data set for GETBOX
+    GetType getmode_;           ///> Mode for GETBOX
 };
 #endif
