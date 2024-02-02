@@ -100,6 +100,9 @@ RunCpptraj "$UNITNAME"
 DoTest ortho.ucell.dat.save ortho.ucell.dat
 DoTest ortho.frac.dat.save ortho.frac.dat
 DoTest ortho.shape.dat.save ortho.shape.dat 
+DoTest truncoct.ucell.dat.save truncoct.ucell.dat
+DoTest truncoct.frac.dat.save truncoct.frac.dat
+DoTest truncoct.shape.dat.save truncoct.shape.dat
 
 EndTest
 
