@@ -24119,14 +24119,27 @@ box
 
 \begin_layout LyX-Code
 box {[x <xval>] [y <yval>] [z <zval>] {[alpha <a>] [beta <b>] [gamma <g>]
+ |
 \end_layout
 
 \begin_layout LyX-Code
-	 [truncoct]} | nobox | auto [offset <offset>] [radii {vdw|gb|parse|none}]}
-\begin_inset Separator latexpar
-\end_inset
+	 [truncoct] [x <length>] |
+\end_layout
 
+\begin_layout LyX-Code
+     nobox |
+\end_layout
 
+\begin_layout LyX-Code
+     auto [offset <offset>] [radii {vdw|gb|parse|none}] |
+\end_layout
+
+\begin_layout LyX-Code
+     getbox {ucell|frac|shape} [name <setname>] [out <file>]
+\end_layout
+
+\begin_layout LyX-Code
+    }
 \end_layout
 
 \begin_deeper
@@ -24183,7 +24196,15 @@ Change box length(s) to specified value(s).
 \end_layout
 
 \begin_layout Description
-[truncoct] Set box angles to truncated octahedron.
+[truncoct
+\begin_inset space ~
+\end_inset
+
+[x
+\begin_inset space ~
+\end_inset
+
+<length>] Set box angles (and optionally a length) to truncated octahedron.
 \end_layout
 
 \begin_layout Description
@@ -24214,6 +24235,44 @@ radii
 \end_layout
 
 \end_deeper
+\begin_layout Description
+getbox Save existing box information to a 3x3 matrix data set.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+{ucell|frac|shape} Specify the kind of box information to save: 
+\series bold
+ucell
+\series default
+ saves the unit cell vectors, 
+\series bold
+frac
+\series default
+ saves the fractional unit cell vectors, and 
+\series bold
+shape
+\series default
+ saves the symmetric shape matrix unit cell vectors.
+\end_layout
+
+\begin_layout Description
+name
+\begin_inset space ~
+\end_inset
+
+<setname> The name of the 3x3 matrix data set.
+\end_layout
+
+\begin_layout Description
+out
+\begin_inset space ~
+\end_inset
+
+<file> File to write the 3x3 matrix data to.
+\end_layout
+
+\end_deeper
 \end_deeper
 \begin_layout Standard
 Modify box information during trajectory processing.
@@ -24228,6 +24287,8 @@ Modify box information during trajectory processing.
 auto
 \series default
  keyword.
+ If 'getbox' is specified, the existing box information will be saved to
+ a data set.
 \end_layout
 
 \begin_layout Subsection
