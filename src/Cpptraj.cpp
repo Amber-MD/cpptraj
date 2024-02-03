@@ -73,7 +73,7 @@ void Cpptraj::Usage() {
             "               [-h | --help] [-V | --version] [--defines] [-debug <#>]\n"
             "               [--interactive] [--log <logfile>] [-tl]\n"
             "               [-ms <mask>] [-mr <mask>] [--mask <mask>] [--resmask <mask>]\n"
-            "               [--rng %s]\n"
+            "               [--rng %s] [--charge <mask>]\n"
             "\t-p <Top0>        : * Load <Top0> as a topology file.\n"
             "\t-i <Input0>      : * Read input from file <Input0>.\n"
             "\t-y <trajin>      : * Read from trajectory file <trajin>; same as input 'trajin <trajin>'.\n"
@@ -97,6 +97,7 @@ void Cpptraj::Usage() {
             "\t--mask <mask>    : Print detailed atom selection to STDOUT.\n"
             "\t--resmask <mask> : Print detailed residue selection to STDOUT.\n"
             "\t--rng <type>     : Change default random number generator.\n"
+            "\t--charge <mask>  : Print total charge in e- of atoms selected by <mask>.\n"
             "      * Denotes flag may be specified multiple times.\n"
             "\n", CpptrajState::RngKeywords());
 }
@@ -271,6 +272,35 @@ std::string Cpptraj::Defines() {
   defined_str.append(" -DHAS_OPENMM");
 #endif
   return defined_str;
+}
+
+/** Calculate the total charge from the command line. */
+int Cpptraj::CalcCharge(Sarray const& topFiles, std::string const& maskexpr)
+const
+{
+  SetWorldSilent(true);
+  if (maskexpr.empty()) {
+    mprinterr("Error: No mask given for '--charge'.\n");
+    return 1;
+  }
+  if (topFiles.empty()) {
+    mprinterr("Error: No topology file specified.\n");
+    return 1;
+  }
+  ParmFile pfile;
+  Topology parm;
+  if (pfile.ReadTopology(parm, topFiles[0], State_.Debug())) return 1;
+  AtomMask tempMask( maskexpr );
+  if (parm.SetupIntegerMask( tempMask )) return 1;
+  if (tempMask.None()) {
+    mprinterr("Error: Nothing selected by mask '%s'\n", maskexpr.c_str());
+    return 1;
+  }
+  double qtotal = 0;
+  for (AtomMask::const_iterator it = tempMask.begin(); it != tempMask.end(); ++it)
+    qtotal += parm[*it].Charge();
+  loudPrintf("%g\n", qtotal);
+  return 0;
 }
 
 /** Process a mask from the command line. */
@@ -520,6 +550,10 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     } else if ( NotFinalArg(cmdLineArgs, "--resmask", iarg) ) {
       // --resmask: Parse mask string, print selected residue details
       if (ProcessMask( topFiles, refFiles, cmdLineArgs[++iarg], true, true )) return ERROR;
+      return QUIT;
+    } else if ( NotFinalArg(cmdLineArgs, "--charge", iarg) ) {
+      // --charge: Print the total charge of atoms selected by the mask
+      if (CalcCharge( topFiles, cmdLineArgs[++iarg])) return ERROR;
       return QUIT;
     } else if ( NotFinalArg(cmdLineArgs, "--rng", iarg) ) {
       // --rng: Change default RNG

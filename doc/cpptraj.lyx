@@ -419,7 +419,7 @@ cpptraj [-p <Top0>] [-i <Input0>] [-y <trajin>] [-x <trajout>]
 \end_layout
 
 \begin_layout LyX-Code
-        [--rng {marsaglia|stdlib|mt|pcg32|xo128}]
+        [--rng {marsaglia|stdlib|mt|pcg32|xo128}] [--charge <mask>]
 \end_layout
 
 \begin_deeper
@@ -580,7 +580,11 @@ cpptraj [-p <Top0>] [-i <Input0>] [-y <trajin>] [-x <trajout>]
 \end_layout
 
 \begin_layout Description
--mr <mask> : Print selected residue numbers to STDOUT.
+-mr
+\begin_inset space ~
+\end_inset
+
+<mask> : Print selected residue numbers to STDOUT.
  Selected residues are written out as 'Selected= 1 2 3 ...'
 \end_layout
 
@@ -593,11 +597,27 @@ cpptraj [-p <Top0>] [-i <Input0>] [-y <trajin>] [-x <trajout>]
 \end_layout
 
 \begin_layout Description
-–resmask <mask> : Print detailed residue selection to STDOUT.
+–resmask
+\begin_inset space ~
+\end_inset
+
+<mask> Print detailed residue selection to STDOUT.
 \end_layout
 
 \begin_layout Description
---rng <type> : Change default random number generator.
+--rng
+\begin_inset space ~
+\end_inset
+
+<type> Change default random number generator.
+\end_layout
+
+\begin_layout Description
+--charge
+\begin_inset space ~
+\end_inset
+
+<mask> Print total charge (in e-) of atoms selected by <mask> to STDOUT.
 \end_layout
 
 \end_deeper
