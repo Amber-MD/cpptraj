@@ -37,9 +37,9 @@ class PDBfile : public CpptrajFile {
     /// Get charge and radius from PQR ATOM/HETATM record.
     void pdb_ChargeAndRadius(float&, float&);
     /// Set given XYZ array with A/B/C/alpha/beta/gamma from CRYST1 record, verbose.
-    void pdb_Box_verbose(double*);
+    int pdb_Box_verbose(double*);
     /// Set given XYZ array with A/B/C/alpha/beta/gamma from CRYST1 record, terse.
-    void pdb_Box_terse(double*);
+    int pdb_Box_terse(double*);
     /// Set given array with atom and #s of bonded atoms from CONECT record.
     int pdb_Bonds(int*);
     /// \return Link record.

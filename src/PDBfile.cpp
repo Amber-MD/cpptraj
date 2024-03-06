@@ -483,24 +483,32 @@ void PDBfile::readCRYST1(double* box) {
 }
 
 /** Print a warning to STDOUT if unit cell lengths are strange. */
-static inline void box_warning(const double* box) {
-  if (box[0] == 1.0 && box[1] == 1.0 && box[2] == 1.0)
+static inline int box_warning(const double* box) {
+  if (box[0] == 1.0 && box[1] == 1.0 && box[2] == 1.0) {
     mprintf("Warning: PDB cell lengths are all 1.0 Ang.;"
             " this usually indicates an invalid box.\n");
+    return 1;
+  }
+  return 0;
 }
 
-/** Read box info from CRYST1, verbose. */
-void PDBfile::pdb_Box_verbose(double* box) {
+/** Read box info from CRYST1, verbose.
+  * \return 1 if box seems invalid.
+  */
+int PDBfile::pdb_Box_verbose(double* box) {
   readCRYST1(box);
-  box_warning(box);
+  int isbadbox = box_warning(box);
   mprintf("\tRead CRYST1 info from PDB: a=%g b=%g c=%g alpha=%g beta=%g gamma=%g\n",
           box[0], box[1], box[2], box[3], box[4], box[5]);
+  return isbadbox;
 }
 
-/** Read box info from CRYST1, warn only if box is strange looking. */
-void PDBfile::pdb_Box_terse(double* box) {
+/** Read box info from CRYST1, warn only if box is strange looking.
+  * \return 1 if box seems invalid.
+  */
+int PDBfile::pdb_Box_terse(double* box) {
   readCRYST1(box);
-  box_warning(box);
+  return box_warning(box);
 }
 
 /** Read serial #s of atoms from a CONECT record. */
