@@ -148,6 +148,7 @@ jobs:
         echo $CONDA/bin >> $GITHUB_PATH
     - name: Install conda packages
       run: |
+        which conda
         conda env update --file devtools/ci/environment.yml --name base
     - name: Install cpptraj
       run: |
