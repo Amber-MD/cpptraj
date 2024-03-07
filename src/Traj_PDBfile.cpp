@@ -111,8 +111,8 @@ int Traj_PDBfile::setupTrajin(FileName const& fname, Topology* trajParm)
       if (file_.RecType() ==  PDBfile::CRYST1) {
         // Read in box information
         double box_crd[6];
-        file_.pdb_Box_verbose( box_crd );
-        if (boxInfo.SetupFromXyzAbg( box_crd )) {
+        int is_bad_box = file_.pdb_Box_verbose( box_crd );
+        if (is_bad_box || boxInfo.SetupFromXyzAbg( box_crd )) {
           mprintf("Warning: Box information in PDB appears invalid; disabling box.\n");
           boxInfo.SetNoBox();
         }
@@ -203,8 +203,13 @@ int Traj_PDBfile::readFrame(int set, Frame& frameIn)
     // Skip non-ATOM records
     if ( file_.RecType() == PDBfile::CRYST1) {
       double xyzabg[6];
-      file_.pdb_Box_terse( xyzabg );
-      frameIn.ModifyBox().AssignFromXyzAbg( xyzabg );
+      int is_bad_box = file_.pdb_Box_terse( xyzabg );
+      if (is_bad_box == 0)
+        frameIn.ModifyBox().AssignFromXyzAbg( xyzabg );
+      else {
+        mprintf("Warning: Disabling box information.\n");
+        frameIn.ModifyBox().SetNoBox();
+      }
     }
     else if ( file_.RecType() == PDBfile::ATOM ) {
       // Check if we are filtering alt loc IDs

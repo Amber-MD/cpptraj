@@ -101,42 +101,42 @@ pipeline {
                     }
                     post { cleanup { deleteDir() } }
                 }
-                stage("Linux PGI serial build") {
-                    agent {
-                        docker {
-                            // Until we figure out why PGI compilers fail on the master Jenkins node,
-                            // force them to run on Intel CPU slaves
-                            label "pgi && intel-cpu"
-                            image 'ambermd/cpu-build:latest'
-                            alwaysPull true
-                            // Pull the licensed PGI compilers from the host machine (must have
-                            // the compilers installed in /opt/pgi)
-                            args "-v /opt/pgi:/opt/pgi"
-                        }
-                    }
+                //stage("Linux PGI serial build") {
+                //    agent {
+                //        docker {
+                //            // Until we figure out why PGI compilers fail on the master Jenkins node,
+                //            // force them to run on Intel CPU slaves
+                //            label "pgi && intel-cpu"
+                //            image 'ambermd/cpu-build:latest'
+                //            alwaysPull true
+                //            // Pull the licensed PGI compilers from the host machine (must have
+                //            // the compilers installed in /opt/pgi)
+                //            args "-v /opt/pgi:/opt/pgi"
+                //        }
+                //    }
 
-                    steps {
-                        unstash "source"
-                        script {
-                            try {
-                                sh """#!/bin/sh -ex
-                                unset CUDA_HOME
-                                ./configure --with-netcdf --with-fftw3 pgi
-                                make -j6 install
-                                cd test && make test.showerrors
-                                """
-                            } catch (error) {
-                                echo "PGI BUILD AND/OR TEST FAILED"
-                                try {
-                                    pullRequest.comment("The PGI build in Jenkins failed.")
-                                } catch (err2) {
-                                    echo "Could not post a PR comment: ${err2}"
-                                }
-                            }
-                        }
-                    }
-                    post { cleanup { deleteDir() } }
-                }
+                //    steps {
+                //        unstash "source"
+                //        script {
+                //            try {
+                //                sh """#!/bin/sh -ex
+                //                unset CUDA_HOME
+                //                ./configure --with-netcdf --with-fftw3 pgi
+                //                make -j6 install
+                //                cd test && make test.showerrors
+                //                """
+                //            } catch (error) {
+                //                echo "PGI BUILD AND/OR TEST FAILED"
+                //                try {
+                //                    pullRequest.comment("The PGI build in Jenkins failed.")
+                //                } catch (err2) {
+                //                    echo "Could not post a PR comment: ${err2}"
+                //                }
+                //            }
+                //        }
+                //    }
+                //    post { cleanup { deleteDir() } }
+                //}
                 stage("Linux GNU parallel build") {
                     agent {
                         docker {
