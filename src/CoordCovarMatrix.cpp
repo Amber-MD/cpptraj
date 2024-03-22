@@ -1,4 +1,5 @@
 #include "CoordCovarMatrix.h"
+#include "Atom.h"
 #include "AtomMask.h"
 #include "CpptrajStdio.h"
 #include "Frame.h"
@@ -18,7 +19,8 @@ void CoordCovarMatrix::Clear() {
 }
 
 /** Set up array sizess and masses. */
-int CoordCovarMatrix::SetupMatrix(Frame const& frameIn, AtomMask const& maskIn, bool useMassIn)
+int CoordCovarMatrix::SetupMatrix(std::vector<Atom> const& atoms,
+                                  AtomMask const& maskIn, bool useMassIn)
 {
   useMass_ = useMassIn;
   // TODO more size error checking
@@ -31,7 +33,7 @@ int CoordCovarMatrix::SetupMatrix(Frame const& frameIn, AtomMask const& maskIn, 
   mass_.clear();
   if (useMassIn) {
     for (AtomMask::const_iterator at = maskIn.begin(); at != maskIn.end(); ++at)
-      mass_.push_back( frameIn.Mass( *at ) );
+      mass_.push_back( atoms[*at].Mass() );
   } else {
     for (int idx = 0; idx < maskIn.Nselected(); idx++)
       mass_.push_back( 1.0 );
@@ -113,4 +115,16 @@ int CoordCovarMatrix::FinishMatrix() {
     } // END loop over elements of vect_[idx1]
   } // END outer loop over idx1
   return 0;
+}
+
+/** Debug print to STDOUT */
+void CoordCovarMatrix::DebugPrint(const char* desc) const {
+  if (desc != 0)
+    mprintf("DEBUG: CoordCovarMatrix: %s\n", desc);
+  for (unsigned int row = 0; row < covarMatrix_.Nrows(); row++) {
+    for (unsigned int col = 0; col < covarMatrix_.Ncols(); col++) {
+      mprintf(" %6.3f", covarMatrix_.element(col, row));
+    }
+    mprintf("\n");
+  }
 }

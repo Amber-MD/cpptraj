@@ -3,6 +3,7 @@
 #include "Matrix.h"
 #include "Vec3.h"
 #include <vector>
+class Atom;
 class AtomMask;
 class Frame;
 /// Coordinate covariance matrix
@@ -13,11 +14,14 @@ class CoordCovarMatrix {
     /// Clear the matrix
     void Clear();
     /// Set up the covariance matrix for selected atoms
-    int SetupMatrix(Frame const&, AtomMask const&, bool);
+    int SetupMatrix(std::vector<Atom> const&, AtomMask const&, bool);
     /// Add Frame to matrix
     void AddFrameToMatrix(Frame const&, AtomMask const&);
     /// Finish calculating the matrix (normalize, calc <rirj> - <ri><rj>)
     int FinishMatrix();
+
+    /// Print matrix elements to STDOUT for debug
+    void DebugPrint(const char*) const;
   private:
     typedef Matrix<double> MatType;
     typedef std::vector<double> Darray;
