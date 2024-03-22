@@ -6,26 +6,30 @@
 class Atom;
 class AtomMask;
 class CpptrajFile;
-class Frame;
-/// Coordinate covariance matrix
+/// Coordinate covariance matrix abstract base class
 class CoordCovarMatrix {
   public:
     /// CONSTRUCTOR
     CoordCovarMatrix();
-    /// Clear the matrix
-    void Clear();
+    /// DESTRUCTOR - virtual since inherited
+    virtual ~CoordCovarMatrix() {}
+    // --------------------------------- 
+    /// Finish calculating the matrix (normalize, calc <rirj> - <ri><rj>)
+    virtual int FinishMatrix() = 0;
+    // ---------------------------------
     /// Set up the covariance matrix for selected atoms
     int SetupMatrix(std::vector<Atom> const&, AtomMask const&, bool);
-    /// Add selected atoms in Frame to matrix
-    void AddFrameToMatrix(Frame const&, AtomMask const&);
-    /// Add Frame to matrix
-    void AddFrameToMatrix(Frame const&);
-    /// Finish calculating the matrix (normalize, calc <rirj> - <ri><rj>)
-    int FinishMatrix();
+    /// Clear the matrix
+    void Clear();
 
     /// Print matrix elements to STDOUT for debug
     void DebugPrint(const char*, CpptrajFile&) const;
-  private:
+  protected:
+    /// clear internal variables
+    virtual void clearMat() = 0;
+    /// set internal variables
+    virtual int setupMat(std::vector<Atom> const&, AtomMask const&) = 0;
+  //private: // TODO all private
     typedef Matrix<double> MatType;
     typedef std::vector<double> Darray;
     typedef std::vector<Vec3> Varray;
