@@ -11,7 +11,7 @@ cat > tica.in <<EOF
 parm ../tz2.parm7
 loadcrd ../tz2.crd name TZ2
 
-set MASK = :1-3@CA
+set MASK = :1-3@N,CA,C
 
 crdaction TZ2 matrix name M1 mwcovar out M1.dat \$MASK $MASS
 
