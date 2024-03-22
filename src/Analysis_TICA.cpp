@@ -77,18 +77,19 @@ Analysis::RetType Analysis_TICA::Analyze() {
     return Analysis::ERR;
   }
   // Allocate frames
-  Frame coords0;
-  coords0.SetupFrameFromMask( mask1_, TgtTraj_->Top().Atoms(), TgtTraj_->CoordsInfo() );
-  Frame coords1 = coords0;
+  Frame coords0 = TgtTraj_->AllocateFrame();
+  //coords0.SetupFrameFromMask( mask1_, TgtTraj_->Top().Atoms(), TgtTraj_->CoordsInfo() );
+  //Frame coords1 = coords0;
   // Matrix - half
   CoordCovarMatrix covarMatrix;
   covarMatrix.SetupMatrix(TgtTraj_->Top().Atoms(), mask1_, useMass_ );
   // Loop over frames
   for (unsigned int frm0 = 0; frm0 < Nframes; frm0++) {
     mprintf("DEBUG: Frame %i\n", frm0);
-    TgtTraj_->GetFrame(frm0, coords0, mask1_);
+    //TgtTraj_->GetFrame(frm0, coords0, mask1_);
+    TgtTraj_->GetFrame(frm0, coords0);
     // Covariance
-    covarMatrix.AddFrameToMatrix( coords0 );
+    covarMatrix.AddFrameToMatrix( coords0, mask1_ );
   } // END loop over frames
 
   // Normalize
