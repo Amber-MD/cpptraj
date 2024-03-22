@@ -164,6 +164,7 @@ COMMON_SOURCES= \
         Constraints.cpp \
         ControlBlock_For.cpp \
         CoordCovarMatrix.cpp \
+        CoordCovarMatrix_Half.cpp \
         CoordinateInfo.cpp \
         Corr.cpp \
         Cph.cpp \

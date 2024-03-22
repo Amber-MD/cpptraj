@@ -20,16 +20,14 @@ void CoordCovarMatrix::Clear() {
 }
 
 /** Set up array sizes and masses. */
-int CoordCovarMatrix::SetupMatrix(std::vector<Atom> const& atoms,
-                                  AtomMask const& maskIn, bool useMassIn)
+int CoordCovarMatrix::setupMat(std::vector<Atom> const& atoms,
+                               AtomMask const& maskIn, bool useMassIn)
 {
   useMass_ = useMassIn;
   // TODO more size error checking
   nframes_ = 0;
   vect_.assign(maskIn.Nselected(), Vec3(0.0));
   //Varray vect2(mask1_.Nselected(), Vec3(0.0));
-  // Matrix - half
-  covarMatrix_.resize( maskIn.Nselected()*3, 0 );
   // Masses
   mass_.clear();
   if (useMassIn) {
@@ -40,7 +38,7 @@ int CoordCovarMatrix::SetupMatrix(std::vector<Atom> const& atoms,
       mass_.push_back( 1.0 );
   }
   
-  return setupMat(atoms, maskIn);;
+  return 0;
 }
 
 /** Debug print to file */

@@ -1,5 +1,5 @@
 #include "Analysis_TICA.h"
-#include "CoordCovarMatrix.h"
+#include "CoordCovarMatrix_Half.h"
 #include "CpptrajStdio.h"
 
 /** CONSTRUCTOR */
@@ -81,7 +81,7 @@ Analysis::RetType Analysis_TICA::Analyze() {
   //coords0.SetupFrameFromMask( mask1_, TgtTraj_->Top().Atoms(), TgtTraj_->CoordsInfo() );
   //Frame coords1 = coords0;
   // Matrix - half
-  CoordCovarMatrix covarMatrix;
+  CoordCovarMatrix_Half covarMatrix;
   covarMatrix.SetupMatrix(TgtTraj_->Top().Atoms(), mask1_, useMass_ );
   // Loop over frames
   for (unsigned int frm0 = 0; frm0 < Nframes; frm0++) {

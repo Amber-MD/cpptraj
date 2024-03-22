@@ -17,8 +17,6 @@ class CoordCovarMatrix {
     /// Finish calculating the matrix (normalize, calc <rirj> - <ri><rj>)
     virtual int FinishMatrix() = 0;
     // ---------------------------------
-    /// Set up the covariance matrix for selected atoms
-    int SetupMatrix(std::vector<Atom> const&, AtomMask const&, bool);
     /// Clear the matrix
     void Clear();
 
@@ -27,8 +25,10 @@ class CoordCovarMatrix {
   protected:
     /// clear internal variables
     virtual void clearMat() = 0;
+
     /// set internal variables
-    virtual int setupMat(std::vector<Atom> const&, AtomMask const&) = 0;
+    int setupMat(std::vector<Atom> const&, AtomMask const&, bool);
+
   //private: // TODO all private
     typedef Matrix<double> MatType;
     typedef std::vector<double> Darray;

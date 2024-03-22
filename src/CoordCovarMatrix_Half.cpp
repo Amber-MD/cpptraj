@@ -14,10 +14,13 @@ void CoordCovarMatrix_Half::clearMat() {
 }
 
 /** Set up array sizess and masses. */
-int CoordCovarMatrix_Half::setupMat(std::vector<Atom> const& atoms,
-                                    AtomMask const& maskIn)
+int CoordCovarMatrix_Half::SetupMatrix(std::vector<Atom> const& atoms,
+                                       AtomMask const& maskIn, bool useMassIn)
 {
-  return 0;
+  // Matrix - half
+  covarMatrix_.resize( maskIn.Nselected()*3, 0 );
+
+  return setupMat(atoms, maskIn, useMassIn);
 }
 
 /** Add selected atoms in given Frame to the matrix. */
