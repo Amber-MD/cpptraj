@@ -15,5 +15,6 @@ class Analysis_TICA : public Analysis {
     int lag_; ///< TICA time lag
     AtomMask mask1_; ///< Atoms to use in matrix calc
     bool useMass_; ///< Control whether to mass-weight
+    CpptrajFile* debugFile_; ///< Debug output
 };
 #endif

@@ -5,6 +5,7 @@
 #include <vector>
 class Atom;
 class AtomMask;
+class CpptrajFile;
 class Frame;
 /// Coordinate covariance matrix
 class CoordCovarMatrix {
@@ -15,13 +16,15 @@ class CoordCovarMatrix {
     void Clear();
     /// Set up the covariance matrix for selected atoms
     int SetupMatrix(std::vector<Atom> const&, AtomMask const&, bool);
-    /// Add Frame to matrix
+    /// Add selected atoms in Frame to matrix
     void AddFrameToMatrix(Frame const&, AtomMask const&);
+    /// Add Frame to matrix
+    void AddFrameToMatrix(Frame const&);
     /// Finish calculating the matrix (normalize, calc <rirj> - <ri><rj>)
     int FinishMatrix();
 
     /// Print matrix elements to STDOUT for debug
-    void DebugPrint(const char*) const;
+    void DebugPrint(const char*, CpptrajFile&) const;
   private:
     typedef Matrix<double> MatType;
     typedef std::vector<double> Darray;

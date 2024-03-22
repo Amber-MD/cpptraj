@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles tica.in
+CleanFiles tica.in ticadebug.dat
 
 INPUT='-i tica.in'
 
@@ -14,7 +14,7 @@ set MASK = :1-3@CA
 
 crdaction TZ2 matrix name M1 mwcovar out M1.dat \$MASK
 
-runanalysis tica crdset TZ2 mask \$MASK lag 1 mass
+runanalysis tica crdset TZ2 mask \$MASK lag 1 mass debugfile ticadebug.dat
 
 list dataset
 EOF

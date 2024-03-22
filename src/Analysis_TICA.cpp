@@ -1,13 +1,13 @@
 #include "Analysis_TICA.h"
+#include "CoordCovarMatrix.h"
 #include "CpptrajStdio.h"
-#include "Matrix.h" // TODO DataSet?
-#include <cmath> // sqrt
 
 /** CONSTRUCTOR */
 Analysis_TICA::Analysis_TICA() :
   TgtTraj_(0),
   lag_(0),
-  useMass_(false)
+  useMass_(false),
+  debugFile_(0)
 {
   SetHidden(true);
 }
@@ -37,6 +37,12 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
     return Analysis::ERR;
   }
   useMass_ = analyzeArgs.hasKey("mass");
+  debugFile_ = setup.DFL().AddCpptrajFile(analyzeArgs.GetStringKey("debugfile"), "TICA debug",
+                                                                   DataFileList::TEXT, true);
+  if (debugFile_ == 0) {
+    mprinterr("Error: Could not open debug file.\n");
+    return Analysis::ERR;
+  }
 
   // Print analysis info
   mprintf("    TICA: Time independent correlation analysis.\n");
@@ -47,6 +53,8 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
     mprintf("\tMass-weighted.\n");
   else
     mprintf("\tNot mass-weighted.\n");
+  if (debugFile_ != 0)
+    mprintf("\tDebug output to %s\n", debugFile_->Filename().full());
 
   return Analysis::OK;
 }
@@ -72,18 +80,16 @@ Analysis::RetType Analysis_TICA::Analyze() {
   Frame coords0;
   coords0.SetupFrameFromMask( mask1_, TgtTraj_->Top().Atoms(), TgtTraj_->CoordsInfo() );
   Frame coords1 = coords0;
-  // Diagonal vectors
-  typedef std::vector<Vec3> Varray;
-  Varray vect(mask1_.Nselected(), Vec3(0.0));
-  //Varray vect2(mask1_.Nselected(), Vec3(0.0));
   // Matrix - half
-  Matrix<double> covarMatrix;
-  covarMatrix.resize( mask1_.Nselected()*3, 0 );
+  CoordCovarMatrix covarMatrix;
+  covarMatrix.SetupMatrix(TgtTraj_->Top().Atoms(), mask1_, useMass_ );
   // Loop over frames
   for (unsigned int frm0 = 0; frm0 < Nframes; frm0++) {
     mprintf("DEBUG: Frame %i\n", frm0);
     TgtTraj_->GetFrame(frm0, coords0, mask1_);
     // Covariance
+    covarMatrix.AddFrameToMatrix( coords0 );
+/*
     Matrix<double>::iterator mat = covarMatrix.begin();
     for (int idx1 = 0; idx1 < mask1_.Nselected(); idx1++) {
       Vec3 XYZi( coords0.XYZ(idx1) );
@@ -104,10 +110,15 @@ Analysis::RetType Analysis_TICA::Analyze() {
           *(mat++) += Vi * XYZj[2];
         } // END inner loop over idx2
       } // END loop over x y z of veci
-    } // END outer loop over idx1
+    } // END outer loop over idx1*/
   } // END loop over frames
 
   // Normalize
+  if (covarMatrix.FinishMatrix()) {
+    mprinterr("Error: Could not normalize coordinate covariance matrix for C0.\n");
+    return Analysis::ERR;
+  }
+/*
   double norm = 1.0 / (double)TgtTraj_->Size();
   for (Varray::iterator it = vect.begin(); it != vect.end(); ++it)
     *it *= norm;
@@ -145,13 +156,15 @@ Analysis::RetType Analysis_TICA::Analyze() {
         }
       } // END inner loop over idx2
     } // END loop over elements of vect[idx1]
-  } // END outer loop over idx1
+  } // END outer loop over idx1*/
   // DEBUG PRINT
+  covarMatrix.DebugPrint("C0", *debugFile_);
+/*
   for (int row = 0; row < mask1_.Nselected()*3; row++) {
     for (int col = 0; col < mask1_.Nselected()*3; col++) {
       mprintf(" %6.3f", covarMatrix.element(col, row));
     }
     mprintf("\n");
-  }
+  }*/
   return Analysis::OK;
 }

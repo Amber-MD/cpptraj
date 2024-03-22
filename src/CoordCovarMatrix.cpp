@@ -1,8 +1,10 @@
 #include "CoordCovarMatrix.h"
 #include "Atom.h"
 #include "AtomMask.h"
+#include "CpptrajFile.h"
 #include "CpptrajStdio.h"
 #include "Frame.h"
+#include <cmath> // sqrt
 
 /** CONSTRUCTOR */
 CoordCovarMatrix::CoordCovarMatrix() :
@@ -41,7 +43,7 @@ int CoordCovarMatrix::SetupMatrix(std::vector<Atom> const& atoms,
   return 0;
 }
 
-/** Add given Frame to the matrix. */
+/** Add selected atoms in given Frame to the matrix. */
 void CoordCovarMatrix::AddFrameToMatrix(Frame const& frameIn, AtomMask const& maskIn)
 {
   // Covariance
@@ -51,6 +53,7 @@ void CoordCovarMatrix::AddFrameToMatrix(Frame const& frameIn, AtomMask const& ma
     Vec3 XYZi( frameIn.XYZ(at1) );
     // Store veci and veci^2
     vect_[idx1] += XYZi;
+    XYZi.Print("XYZi");
     //vect2[idx1] += XYZi.Squared();
     // Loop over X, Y, and Z of veci
     for (int iidx = 0; iidx < 3; iidx++) {
@@ -62,6 +65,35 @@ void CoordCovarMatrix::AddFrameToMatrix(Frame const& frameIn, AtomMask const& ma
       for (int idx2 = idx1 + 1; idx2 < maskIn.Nselected(); idx2++) {
         int at2 = maskIn[idx2];
         Vec3 XYZj( frameIn.XYZ(at2) );
+        *(mat++) += Vi * XYZj[0];
+        *(mat++) += Vi * XYZj[1];
+        *(mat++) += Vi * XYZj[2];
+      } // END inner loop over idx2
+    } // END loop over x y z of veci
+  } // END outer loop over idx1
+  nframes_++;
+}
+
+/** Add given Frame to the matrix. */
+void CoordCovarMatrix::AddFrameToMatrix(Frame const& frameIn)
+{
+  // Covariance
+  MatType::iterator mat = covarMatrix_.begin();
+  for (int idx1 = 0; idx1 < frameIn.Natom(); idx1++) {
+    Vec3 XYZi( frameIn.XYZ(idx1) );
+    // Store veci and veci^2
+    vect_[idx1] += XYZi;
+    XYZi.Print("XYZi");
+    //vect2[idx1] += XYZi.Squared();
+    // Loop over X, Y, and Z of veci
+    for (int iidx = 0; iidx < 3; iidx++) {
+      double Vi = XYZi[iidx];
+      // Diagonal
+      for (int jidx = iidx; jidx < 3; jidx++)
+        *(mat++) += Vi * XYZi[jidx]; // Vi * j{0,1,2}, Vi * j{1,2}, Vi * j{2}
+      // Inner loop
+      for (int idx2 = idx1 + 1; idx2 < frameIn.Natom(); idx2++) {
+        Vec3 XYZj( frameIn.XYZ(idx2) );
         *(mat++) += Vi * XYZj[0];
         *(mat++) += Vi * XYZj[1];
         *(mat++) += Vi * XYZj[2];
@@ -117,14 +149,14 @@ int CoordCovarMatrix::FinishMatrix() {
   return 0;
 }
 
-/** Debug print to STDOUT */
-void CoordCovarMatrix::DebugPrint(const char* desc) const {
+/** Debug print to file */
+void CoordCovarMatrix::DebugPrint(const char* desc, CpptrajFile& outfile) const {
   if (desc != 0)
-    mprintf("DEBUG: CoordCovarMatrix: %s\n", desc);
+    outfile.Printf("DEBUG: CoordCovarMatrix: %s\n", desc);
   for (unsigned int row = 0; row < covarMatrix_.Nrows(); row++) {
     for (unsigned int col = 0; col < covarMatrix_.Ncols(); col++) {
-      mprintf(" %6.3f", covarMatrix_.element(col, row));
+      outfile.Printf(" %6.3f", covarMatrix_.element(col, row));
     }
-    mprintf("\n");
+    outfile.Printf("\n");
   }
 }
