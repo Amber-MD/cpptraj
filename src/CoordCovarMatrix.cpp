@@ -13,32 +13,25 @@ CoordCovarMatrix::CoordCovarMatrix() :
 /** Clear the matrix */
 void CoordCovarMatrix::Clear() {
   covarMatrix_.clear();
-  vect_.clear();
-  mass_.clear();
   nframes_ = 0;
   clearMat();
 }
 
-/** Set up array sizes and masses. */
-int CoordCovarMatrix::setupMat(std::vector<Atom> const& atoms,
-                               AtomMask const& maskIn, bool useMassIn)
+/** Setup mass array */
+void CoordCovarMatrix::set_mass_array(Darray& mass, std::vector<Atom> const& atoms,
+                                      AtomMask const& maskIn, bool useMassIn)
 {
-  useMass_ = useMassIn;
-  // TODO more size error checking
   nframes_ = 0;
-  vect_.assign(maskIn.Nselected(), Vec3(0.0));
-  //Varray vect2(mask1_.Nselected(), Vec3(0.0));
-  // Masses
-  mass_.clear();
+  useMass_ = useMassIn;
+  mass.clear();
+  mass.reserve( maskIn.Nselected() );
   if (useMassIn) {
     for (AtomMask::const_iterator at = maskIn.begin(); at != maskIn.end(); ++at)
-      mass_.push_back( atoms[*at].Mass() );
+      mass.push_back( atoms[*at].Mass() );
   } else {
     for (int idx = 0; idx < maskIn.Nselected(); idx++)
-      mass_.push_back( 1.0 );
+      mass.push_back( 1.0 );
   }
-  
-  return 0;
 }
 
 /** Debug print to file */

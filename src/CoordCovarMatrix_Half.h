@@ -21,5 +21,8 @@ class CoordCovarMatrix_Half : public CoordCovarMatrix {
     /// Clear the matrix
     void clearMat();
 
+    Varray vect_;
+    Darray mass_;
+
 };
 #endif

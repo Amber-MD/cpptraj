@@ -23,20 +23,19 @@ class CoordCovarMatrix {
     /// Print matrix elements to STDOUT for debug
     void DebugPrint(const char*, CpptrajFile&) const;
   protected:
-    /// clear internal variables
-    virtual void clearMat() = 0;
-
-    /// set internal variables
-    int setupMat(std::vector<Atom> const&, AtomMask const&, bool);
-
-  //private: // TODO all private
     typedef Matrix<double> MatType;
     typedef std::vector<double> Darray;
     typedef std::vector<Vec3> Varray;
 
+    /// clear internal variables
+    virtual void clearMat() = 0;
+
+    /// set mass array
+    void set_mass_array(Darray&, std::vector<Atom> const&, AtomMask const&, bool);
+
+  //private: // TODO all private
+
     MatType covarMatrix_;  ///< Coordinate covariance matrix
-    Varray vect_;          ///< Store average coordinates along the diagonal
-    Darray mass_;          ///< Store selected atoms masses
     unsigned int nframes_; ///< Number of frames added to the matrix
     bool useMass_;         ///< If true use mass weighting
 };
