@@ -46,8 +46,8 @@ static inline void store_diagonal(std::vector<Vec3>& vect,
   {
     const double* XYZ = frameIn.XYZ( maskIn[idx] );
     for (int ii = 0; ii < 3; ii++) {
-      vect[ii]  += XYZ[ii];
-      vect2[ii] += (XYZ[ii] * XYZ[ii]);
+      vect[idx][ii]  += XYZ[ii];
+      vect2[idx][ii] += (XYZ[ii] * XYZ[ii]);
     }
   }
 }
@@ -113,6 +113,18 @@ int CoordCovarMatrix_Full::FinishMatrix() {
     *it *= norm;
   for (MatType::iterator it = covarMatrix_.begin(); it != covarMatrix_.end(); ++it)
     *it *= norm;
+  mprintf("DEBUG: First 3 elements: %f %f %f\n",
+          covarMatrix_.element(0, 0),
+          covarMatrix_.element(1, 0),
+          covarMatrix_.element(2, 0));
+  mprintf("DEBUG: First 3 elements of V1: %f %f %f\n",
+          vect_1_[0][0],
+          vect_1_[0][1],
+          vect_1_[0][2]);
+  mprintf("DEBUG: First 3 elements of V2: %f %f %f\n",
+          vect_2_[0][0],
+          vect_2_[0][1],
+          vect_2_[0][2]);
   // Calc <riri> - <ri><ri>
   vect2_minus_vect(vect2_1_, vect_1_);
   vect2_minus_vect(vect2_2_, vect_2_);
@@ -126,6 +138,7 @@ int CoordCovarMatrix_Full::FinishMatrix() {
       for (unsigned int idx1 = 0; idx1 < vect_1_.size(); idx1++) {
         double Mass = sqrt(mass2 * mass1_[idx1]);
         for (int nx = 0; nx < 3; nx++) {
+          mprintf("mat = (%f - (%f * %f)) * %f\n", *mat, V2[ny], vect_1_[idx1][nx], Mass);
           *mat = (*mat - (V2[ny] * vect_1_[idx1][nx])) * Mass;
           ++mat;
         }
