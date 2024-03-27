@@ -39,7 +39,7 @@ void CoordCovarMatrix_Half::AddFrameToMatrix(Frame const& frameIn, AtomMask cons
     Vec3 XYZi( frameIn.XYZ(at1) );
     // Store veci and veci^2
     vect_[idx1] += XYZi;
-    XYZi.Print("XYZi");
+    //XYZi.Print("XYZi");
     //vect2[idx1] += XYZi.Squared();
     // Loop over X, Y, and Z of veci
     for (int iidx = 0; iidx < 3; iidx++) {
@@ -69,7 +69,7 @@ void CoordCovarMatrix_Half::AddFrameToMatrix(Frame const& frameIn)
     Vec3 XYZi( frameIn.XYZ(idx1) );
     // Store veci and veci^2
     vect_[idx1] += XYZi;
-    XYZi.Print("XYZi");
+    //XYZi.Print("XYZi");
     //vect2[idx1] += XYZi.Squared();
     // Loop over X, Y, and Z of veci
     for (int iidx = 0; iidx < 3; iidx++) {
