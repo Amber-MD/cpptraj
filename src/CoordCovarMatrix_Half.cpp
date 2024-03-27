@@ -108,15 +108,13 @@ int CoordCovarMatrix_Half::FinishMatrix() {
   //  vect2[k][2] -= (vect[k][2] * vect[k][2]);
   //}
   // Calc <rirj> - <ri><rj>
-  double Mass = 1.0;
-  double mass1 = 1.0;
   MatType::iterator mat = covarMatrix_.begin();
   for (unsigned int idx1 = 0; idx1 < mass_.size(); idx1++) {
-    mass1 = mass_[idx1];
+    double mass1 = mass_[idx1];
     for (int iidx = 0; iidx < 3; iidx++) {
       double Vi = vect_[idx1][iidx];
       for (unsigned int idx2 = idx1; idx2 < mass_.size(); idx2++) {
-        Mass = sqrt( mass1 * mass_[idx2] );
+        double Mass = sqrt( mass1 * mass_[idx2] );
         if (idx1 == idx2) {
           // Self
           for (int jidx = iidx; jidx < 3; jidx++) {
