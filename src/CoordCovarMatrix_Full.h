@@ -22,8 +22,8 @@ class CoordCovarMatrix_Full : public CoordCovarMatrix {
 
     Varray vect_1_;
     Varray vect_2_;
-    Varray vect2_1_; ///< Array of average diagonal elements squared
-    Varray vect2_2_;
+//    Varray vect2_1_; ///< Array of average diagonal elements squared
+//    Varray vect2_2_;
     Darray mass1_;
     Darray mass2_;
 };

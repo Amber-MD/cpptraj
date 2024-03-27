@@ -9,8 +9,8 @@ CoordCovarMatrix_Full::CoordCovarMatrix_Full()
 
 /** Clear the matrix */
 void CoordCovarMatrix_Full::clearMat() {
-  vect2_1_.clear();
-  vect2_2_.clear();
+//  vect2_1_.clear();
+//  vect2_2_.clear();
   vect_1_.clear();
   vect_2_.clear();
   mass1_.clear();
@@ -27,9 +27,9 @@ int CoordCovarMatrix_Full::SetupMatrix(std::vector<Atom> const& atoms1,
   covarMatrix_.resize( maskIn1.Nselected()*3, maskIn2.Nselected()*3 );
 
   vect_1_.assign(maskIn1.Nselected(), Vec3(0.0));
-  vect2_1_.assign(maskIn1.Nselected(), Vec3(0.0));
+//  vect2_1_.assign(maskIn1.Nselected(), Vec3(0.0));
   vect_2_.assign(maskIn2.Nselected(), Vec3(0.0));
-  vect2_2_.assign(maskIn2.Nselected(), Vec3(0.0));
+//  vect2_2_.assign(maskIn2.Nselected(), Vec3(0.0));
   set_mass_array( mass1_, atoms1, maskIn1, useMassIn );
   set_mass_array( mass2_, atoms2, maskIn2, useMassIn );
 
@@ -38,7 +38,7 @@ int CoordCovarMatrix_Full::SetupMatrix(std::vector<Atom> const& atoms1,
 
 /** Store diagonal (average and average^2) */
 static inline void store_diagonal(std::vector<Vec3>& vect,
-                                  std::vector<Vec3>& vect2,
+//                                  std::vector<Vec3>& vect2,
                                   Frame const& frameIn,
                                   AtomMask const& maskIn)
 {
@@ -47,7 +47,7 @@ static inline void store_diagonal(std::vector<Vec3>& vect,
     const double* XYZ = frameIn.XYZ( maskIn[idx] );
     for (int ii = 0; ii < 3; ii++) {
       vect[idx][ii]  += XYZ[ii];
-      vect2[idx][ii] += (XYZ[ii] * XYZ[ii]);
+//      vect2[idx][ii] += (XYZ[ii] * XYZ[ii]);
     }
   }
 }
@@ -73,13 +73,15 @@ void CoordCovarMatrix_Full::AddFrameToMatrix(Frame const& frameIn1, AtomMask con
     }
   }
   // Mask1/mask2 diagonal
-  store_diagonal(vect_1_, vect2_1_, frameIn1, maskIn1);
-  store_diagonal(vect_2_, vect2_2_, frameIn2, maskIn2);
+//  store_diagonal(vect_1_, vect2_1_, frameIn1, maskIn1);
+//  store_diagonal(vect_2_, vect2_2_, frameIn2, maskIn2);
+  store_diagonal(vect_1_, frameIn1, maskIn1);
+  store_diagonal(vect_2_, frameIn2, maskIn2);
   nframes_++;
 }
 
 /** Calculate <v^2> - <v><v> */
-static inline void vect2_minus_vect(std::vector<Vec3>& vect2, std::vector<Vec3> const& vect)
+/*static inline void vect2_minus_vect(std::vector<Vec3>& vect2, std::vector<Vec3> const& vect)
 {
   // Sanity check
   if (vect2.size() != vect.size()) {
@@ -93,7 +95,7 @@ static inline void vect2_minus_vect(std::vector<Vec3>& vect2, std::vector<Vec3> 
     for (int ny = 0; ny < 3; ny++)
       V2[ny] -= (V1[ny] * V1[ny]);
   }
-}
+}*/
 
 /** Finish processing covariance matrix */
 int CoordCovarMatrix_Full::FinishMatrix() {
@@ -107,10 +109,10 @@ int CoordCovarMatrix_Full::FinishMatrix() {
     *it *= norm;
   for (Varray::iterator it = vect_2_.begin(); it != vect_2_.end(); ++it)
     *it *= norm;
-  for (Varray::iterator it = vect2_1_.begin(); it != vect2_1_.end(); ++it)
-    *it *= norm;
-  for (Varray::iterator it = vect2_2_.begin(); it != vect2_2_.end(); ++it)
-    *it *= norm;
+//  for (Varray::iterator it = vect2_1_.begin(); it != vect2_1_.end(); ++it)
+//    *it *= norm;
+//  for (Varray::iterator it = vect2_2_.begin(); it != vect2_2_.end(); ++it)
+//    *it *= norm;
   for (MatType::iterator it = covarMatrix_.begin(); it != covarMatrix_.end(); ++it)
     *it *= norm;
   mprintf("DEBUG: First 3 elements: %f %f %f\n",
@@ -126,8 +128,8 @@ int CoordCovarMatrix_Full::FinishMatrix() {
           vect_2_[0][1],
           vect_2_[0][2]);
   // Calc <riri> - <ri><ri>
-  vect2_minus_vect(vect2_1_, vect_1_);
-  vect2_minus_vect(vect2_2_, vect_2_);
+//  vect2_minus_vect(vect2_1_, vect_1_);
+//  vect2_minus_vect(vect2_2_, vect_2_);
   // Calc <rirj> - <rj><rj>
   Matrix<double>::iterator mat = covarMatrix_.begin();
   for (unsigned int idx2 = 0; idx2 < vect_2_.size(); idx2++)
