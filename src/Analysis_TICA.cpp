@@ -1,4 +1,5 @@
 #include "Analysis_TICA.h"
+#include "CoordCovarMatrix_Full.h"
 #include "CoordCovarMatrix_Half.h"
 #include "CpptrajStdio.h"
 
@@ -36,6 +37,15 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
     mprinterr("Error: Could not set atom mask string '%s'\n", maskstr.c_str());
     return Analysis::ERR;
   }
+  maskstr = analyzeArgs.GetStringKey("mask2");
+  if (!maskstr.empty()) {
+    mprintf("DEBUG: Second mask detected.\n");
+    if (mask2_.SetMaskString( maskstr )) {
+      mprinterr("Error: Could not set second atom mask string '%s'\n", maskstr.c_str());
+      return Analysis::ERR;
+    }
+  }
+
   useMass_ = analyzeArgs.hasKey("mass");
   debugFile_ = setup.DFL().AddCpptrajFile(analyzeArgs.GetStringKey("debugfile"), "TICA debug",
                                                                    DataFileList::TEXT, true);
@@ -76,6 +86,17 @@ Analysis::RetType Analysis_TICA::Analyze() {
     mprinterr("Error: No atoms selected by mask '%s'\n", mask1_.MaskString());
     return Analysis::ERR;
   }
+  if (mask2_.MaskStringSet()) {
+    if ( TgtTraj_->Top().SetupIntegerMask( mask2_ ) ) {
+      mprinterr("Error: Could not evaluate second atom mask '%s'\n", mask2_.MaskString());
+      return Analysis::ERR;
+    }
+    mask2_.MaskInfo();
+    if (mask2_.None()) {
+      mprinterr("Error: No atoms selected by second mask '%s'\n", mask2_.MaskString());
+      return Analysis::ERR;
+    }
+  }
   // Allocate frames
   Frame coords0 = TgtTraj_->AllocateFrame();
   //coords0.SetupFrameFromMask( mask1_, TgtTraj_->Top().Atoms(), TgtTraj_->CoordsInfo() );
@@ -85,7 +106,7 @@ Analysis::RetType Analysis_TICA::Analyze() {
   covarMatrix.SetupMatrix(TgtTraj_->Top().Atoms(), mask1_, useMass_ );
   // Loop over frames
   for (unsigned int frm0 = 0; frm0 < Nframes; frm0++) {
-    mprintf("DEBUG: Frame %i\n", frm0);
+    //mprintf("DEBUG: Frame %i\n", frm0);
     //TgtTraj_->GetFrame(frm0, coords0, mask1_);
     TgtTraj_->GetFrame(frm0, coords0);
     // Covariance
@@ -99,7 +120,32 @@ Analysis::RetType Analysis_TICA::Analyze() {
   }
 
   // DEBUG PRINT
-  covarMatrix.DebugPrint("C0", *debugFile_);
+  //covarMatrix.DebugPrint("C0", *debugFile_);
+
+  if (mask2_.MaskStringSet()) {
+    // DEBUG
+    // Matrix - full
+    CoordCovarMatrix_Full CT;
+    CT.SetupMatrix(TgtTraj_->Top().Atoms(), mask1_,
+                   TgtTraj_->Top().Atoms(), mask2_, useMass_);
+    // Loop over frames
+    for (unsigned int frm0 = 0; frm0 < Nframes; frm0++) {
+      //mprintf("DEBUG: Frame %i\n", frm0);
+      //TgtTraj_->GetFrame(frm0, coords0, mask1_);
+      TgtTraj_->GetFrame(frm0, coords0);
+      // Covariance
+      CT.AddFrameToMatrix( coords0, mask1_, coords0, mask2_ );
+    } // END loop over frames
+
+    // Normalize
+    if (CT.FinishMatrix()) {
+      mprinterr("Error: Could not normalize coordinate covariance matrix for CT.\n");
+      return Analysis::ERR;
+    }
+
+    // DEBUG PRINT
+    CT.DebugPrint("CT", *debugFile_);
+  }
 
   return Analysis::OK;
 }
