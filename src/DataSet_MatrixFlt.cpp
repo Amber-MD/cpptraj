@@ -21,6 +21,15 @@ void DataSet_MatrixFlt::Clear() {
   // kind_;
 }
 
+/** Normalize the matrix */
+void DataSet_MatrixFlt::Normalize(double norm) {
+  for (Matrix<float>::iterator it = mat_.begin(); it != mat_.end(); ++it)
+  {
+    double newElt = ((double)*it) * norm;
+    *it = (float)newElt;
+  }
+}
+
 #ifdef MPI
 int DataSet_MatrixFlt::Sync(size_t total, std::vector<int> const& rank_frames,
                             Parallel::Comm const& commIn)

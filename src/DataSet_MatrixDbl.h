@@ -35,6 +35,7 @@ class DataSet_MatrixDbl : public DataSet_2D {
     const void* MatrixPtr()              const { return mat_.Ptr();        }
     void* MatrixPtr()                          { return mat_.Ptr();        }
     void Clear();
+    void Normalize(double);
     // -------------------------------------------
     unsigned int Nsnapshots()            const { return snap_;              }
     void IncrementSnapshots()                  { ++snap_;                   }

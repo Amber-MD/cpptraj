@@ -34,6 +34,7 @@ class DataSet_MatrixFlt : public DataSet_2D {
     const void* MatrixPtr()              const { return mat_.Ptr();        }
     void* MatrixPtr()                          { return mat_.Ptr();        }
     void Clear();
+    void Normalize(double);
     // -------------------------------------------
     int AddElement(float d)                    { return mat_.addElement(d); }
     /// Type definition of iterator over matrix elements.

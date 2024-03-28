@@ -45,6 +45,8 @@ class DataSet_2D : public DataSet {
     virtual void* MatrixPtr() = 0;
     /// Clear matrix
     virtual void Clear() = 0;
+    /// Normalize matrix
+    virtual void Normalize(double) = 0;
     // -------------------------------------------
     // TODO: Remove this. Only needed by DataSet_1D.h
     void Add(size_t,const void*) { }

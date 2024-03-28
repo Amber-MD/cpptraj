@@ -23,6 +23,12 @@ void DataSet_MatrixDbl::Clear() {
   snap_ = 0;
 }
 
+/** Normalize the matrix. */
+void DataSet_MatrixDbl::Normalize(double norm) {
+  for (Matrix<double>::iterator it = mat_.begin(); it != mat_.end(); ++it)
+    *it *= norm;
+}
+
 #ifdef MPI
 int DataSet_MatrixDbl::Sync(size_t total, std::vector<int> const& rank_frames,
                             Parallel::Comm const& commIn)
