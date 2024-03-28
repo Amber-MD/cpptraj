@@ -16,6 +16,7 @@ class Analysis_TICA : public Analysis {
     AtomMask mask1_; ///< Atoms to use in matrix calc
     AtomMask mask2_; ///< Second atom mask for debugging full covar matrix
     bool useMass_; ///< Control whether to mass-weight
-    CpptrajFile* debugFile_; ///< Debug output
+    CpptrajFile* debugC0_; ///< Debug output for C0
+    CpptrajFile* debugCT_; ///< Debug output for CT
 };
 #endif

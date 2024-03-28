@@ -8,7 +8,8 @@ Analysis_TICA::Analysis_TICA() :
   TgtTraj_(0),
   lag_(0),
   useMass_(false),
-  debugFile_(0)
+  debugC0_(0),
+  debugCT_(0)
 {
   SetHidden(true);
 }
@@ -47,10 +48,17 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
   }
 
   useMass_ = analyzeArgs.hasKey("mass");
-  debugFile_ = setup.DFL().AddCpptrajFile(analyzeArgs.GetStringKey("debugfile"), "TICA debug",
+
+  debugC0_ = setup.DFL().AddCpptrajFile(analyzeArgs.GetStringKey("debugc0"), "TICA C0 debug",
                                                                    DataFileList::TEXT, true);
-  if (debugFile_ == 0) {
-    mprinterr("Error: Could not open debug file.\n");
+  if (debugC0_ == 0) {
+    mprinterr("Error: Could not open C0 debug file.\n");
+    return Analysis::ERR;
+  }
+  debugCT_ = setup.DFL().AddCpptrajFile(analyzeArgs.GetStringKey("debugct"), "TICA CT debug",
+                                                                   DataFileList::TEXT, true);
+  if (debugCT_ == 0) {
+    mprinterr("Error: Could not open CT debug file.\n");
     return Analysis::ERR;
   }
 
@@ -63,8 +71,10 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
     mprintf("\tMass-weighted.\n");
   else
     mprintf("\tNot mass-weighted.\n");
-  if (debugFile_ != 0)
-    mprintf("\tDebug output to %s\n", debugFile_->Filename().full());
+  if (debugC0_ != 0)
+    mprintf("\tDebug C0 output to %s\n", debugC0_->Filename().full());
+  if (debugCT_ != 0)
+    mprintf("\tDebug CT output to %s\n", debugCT_->Filename().full());
 
   return Analysis::OK;
 }
@@ -86,6 +96,7 @@ Analysis::RetType Analysis_TICA::Analyze() {
     mprinterr("Error: No atoms selected by mask '%s'\n", mask1_.MaskString());
     return Analysis::ERR;
   }
+  // DEBUG
   if (mask2_.MaskStringSet()) {
     if ( TgtTraj_->Top().SetupIntegerMask( mask2_ ) ) {
       mprinterr("Error: Could not evaluate second atom mask '%s'\n", mask2_.MaskString());
@@ -120,7 +131,7 @@ Analysis::RetType Analysis_TICA::Analyze() {
   }
 
   // DEBUG PRINT
-  //covarMatrix.DebugPrint("C0", *debugFile_);
+  covarMatrix.DebugPrint("C0", *debugC0_);
 
   if (mask2_.MaskStringSet()) {
     // DEBUG
@@ -144,7 +155,7 @@ Analysis::RetType Analysis_TICA::Analyze() {
     }
 
     // DEBUG PRINT
-    CT.DebugPrint("CT", *debugFile_);
+    CT.DebugPrint("CT", *debugCT_);
   }
 
   return Analysis::OK;
