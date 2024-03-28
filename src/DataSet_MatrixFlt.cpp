@@ -14,6 +14,13 @@ double* DataSet_MatrixFlt::MatrixArray() const {
     matOut[i] = (double)mat_[i];
   return matOut;
 }
+
+/** Clear the matrix */
+void DataSet_MatrixFlt::Clear() {
+  mat_.clear();
+  // kind_;
+}
+
 #ifdef MPI
 int DataSet_MatrixFlt::Sync(size_t total, std::vector<int> const& rank_frames,
                             Parallel::Comm const& commIn)

@@ -33,6 +33,7 @@ class DataSet_MatrixFlt : public DataSet_2D {
     MatrixKindType MatrixKind()          const { return kind_;        }
     const void* MatrixPtr()              const { return mat_.Ptr();        }
     void* MatrixPtr()                          { return mat_.Ptr();        }
+    void Clear();
     // -------------------------------------------
     int AddElement(float d)                    { return mat_.addElement(d); }
     /// Type definition of iterator over matrix elements.

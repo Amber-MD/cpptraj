@@ -43,6 +43,8 @@ class DataSet_2D : public DataSet {
     virtual const void* MatrixPtr() const = 0;
     /// \return pointer to underlying matrix.
     virtual void* MatrixPtr() = 0;
+    /// Clear matrix
+    virtual void Clear() = 0;
     // -------------------------------------------
     // TODO: Remove this. Only needed by DataSet_1D.h
     void Add(size_t,const void*) { }
