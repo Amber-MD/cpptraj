@@ -163,9 +163,9 @@ COMMON_SOURCES= \
         ComplexArray.cpp \
         Constraints.cpp \
         ControlBlock_For.cpp \
-        CoordCovarMatrix.cpp \
-        CoordCovarMatrix_Full.cpp \
-        CoordCovarMatrix_Half.cpp \
+        CovarMatrix.cpp \
+        CovarMatrix_Full.cpp \
+        CovarMatrix_Half.cpp \
         CoordinateInfo.cpp \
         Corr.cpp \
         Cph.cpp \
