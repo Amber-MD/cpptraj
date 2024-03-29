@@ -46,3 +46,8 @@ void CoordCovarMatrix::DebugPrint(const char* desc, CpptrajFile& outfile) const 
     outfile.Printf("\n");
   }
 }
+
+/** \return True if incoming array size is divisible by nelt_ */
+bool CoordCovarMatrix::has_valid_size(Darray const& arrayIn) const {
+  return ( (arrayIn.size() % nelt_) == 0);
+}

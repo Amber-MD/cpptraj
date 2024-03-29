@@ -31,6 +31,9 @@ class CoordCovarMatrix {
     /// set mass array
     void set_mass_array(Darray&, std::vector<Atom> const&, AtomMask const&, bool);
 
+    /// \return True if incoming Darray size is divisible by nelt_
+    bool has_valid_size(Darray const&) const;
+
   //private: // TODO all private
 
     MatType covarMatrix_;  ///< Coordinate covariance matrix
