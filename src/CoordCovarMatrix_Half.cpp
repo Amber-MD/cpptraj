@@ -43,7 +43,7 @@ void CoordCovarMatrix_Half::AddFrameToMatrix(Frame const& frameIn, AtomMask cons
     for (unsigned int ej = 0; ej < nelt_; ej++)
       vect_[eidx2+ej] += XYZj[ej];
     //XYZj.Print("XYZj");
-    // Loop over X, Y, and Z of veci
+    // Loop over X, Y, and Z of vecj
     for (unsigned int jidx = 0; jidx < nelt_; jidx++) {
       double Vj = XYZj[jidx];
       // Diagonal
@@ -57,7 +57,7 @@ void CoordCovarMatrix_Half::AddFrameToMatrix(Frame const& frameIn, AtomMask cons
         *(mat++) += Vj * XYZi[1];
         *(mat++) += Vj * XYZi[2];
       } // END inner loop over idx1
-    } // END loop over x y z of veci
+    } // END loop over x y z of vecj
   } // END outer loop over idx2
   nframes_++;
 }
@@ -111,28 +111,28 @@ int CoordCovarMatrix_Half::FinishMatrix() {
   //}
   // Calc <rirj> - <ri><rj>
   MatType::iterator mat = covarMatrix_.begin();
-  for (unsigned int idx1 = 0; idx1 < mass_.size(); idx1++) {
-    double mass1 = mass_[idx1];
-    for (unsigned int iidx = 0; iidx < nelt_; iidx++) {
-      unsigned int eidx1 = idx1*nelt_;
-      double Vi = vect_[eidx1 + iidx];
-      for (unsigned int idx2 = idx1; idx2 < mass_.size(); idx2++) {
-        double Mass = sqrt( mass1 * mass_[idx2] );
-        if (idx1 == idx2) {
+  for (unsigned int idx2 = 0; idx2 < mass_.size(); idx2++) {
+    double mass2 = mass_[idx2];
+    for (unsigned int jidx = 0; jidx < nelt_; jidx++) {
+      unsigned int eidx2 = idx2*nelt_;
+      double Vj = vect_[eidx2 + jidx];
+      for (unsigned int idx1 = idx2; idx1 < mass_.size(); idx1++) {
+        double Mass = sqrt( mass2 * mass_[idx1] );
+        if (idx2 == idx1) {
           // Self
-          for (unsigned int jidx = iidx; jidx < nelt_; jidx++) {
-            *mat = (*mat - (Vi * vect_[eidx1 + jidx])) * Mass;
+          for (unsigned int ej = jidx; ej < nelt_; ej++) {
+            *mat = (*mat - (Vj * vect_[eidx2 + ej])) * Mass;
             ++mat;
           }
         } else {
-          unsigned int eidx2 = idx2*nelt_;
-          for (unsigned int jidx = 0; jidx < nelt_; jidx++) {
-            *mat = (*mat - (Vi * vect_[eidx2 + jidx])) * Mass;
+          unsigned int eidx1 = idx1*nelt_;
+          for (unsigned int iidx = 0; iidx < nelt_; iidx++) {
+            *mat = (*mat - (Vj * vect_[eidx1 + iidx])) * Mass;
             ++mat;
           }
         }
-      } // END inner loop over idx2
-    } // END loop over elements of vect_[idx1]
-  } // END outer loop over idx1
+      } // END inner loop over idx1
+    } // END loop over elements of vect_[idx2]
+  } // END outer loop over idx2
   return 0;
 }
