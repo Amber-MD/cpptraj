@@ -62,7 +62,7 @@ static inline void store_diagonal(std::vector<double>& vect, std::vector<double>
 void CoordCovarMatrix_Full::AddFrameToMatrix(Frame const& frameIn1, AtomMask const& maskIn1,
                                              Frame const& frameIn2, AtomMask const& maskIn2)
 {
-  Darray array1, array2;
+  Darray array1, array2; // TODO make class vars
   get_frame_coords(array1, frameIn1, maskIn1);
   get_frame_coords(array2, frameIn2, maskIn2);
   AddToMatrix(array1, array2);
