@@ -35,30 +35,30 @@ void CoordCovarMatrix_Half::AddFrameToMatrix(Frame const& frameIn, AtomMask cons
 {
   // Covariance
   MatType::iterator mat = covarMatrix_.begin();
-  for (int idx1 = 0; idx1 < maskIn.Nselected(); idx1++) {
-    int at1 = maskIn[idx1];
-    Vec3 XYZi( frameIn.XYZ(at1) );
-    unsigned int eidx1 = idx1 * nelt_;
+  for (int idx2 = 0; idx2 < maskIn.Nselected(); idx2++) {
+    int at2 = maskIn[idx2];
+    Vec3 XYZj( frameIn.XYZ(at2) );
+    unsigned int eidx2 = idx2 * nelt_;
     // Store average 
-    for (unsigned int ei = 0; ei < nelt_; ei++)
-      vect_[eidx1+ei] += XYZi[ei];
-    //XYZi.Print("XYZi");
+    for (unsigned int ej = 0; ej < nelt_; ej++)
+      vect_[eidx2+ej] += XYZj[ej];
+    //XYZj.Print("XYZj");
     // Loop over X, Y, and Z of veci
-    for (unsigned int iidx = 0; iidx < nelt_; iidx++) {
-      double Vi = XYZi[iidx];
+    for (unsigned int jidx = 0; jidx < nelt_; jidx++) {
+      double Vj = XYZj[jidx];
       // Diagonal
-      for (unsigned int jidx = iidx; jidx < nelt_; jidx++)
-        *(mat++) += Vi * XYZi[jidx]; // Vi * j{0,1,2}, Vi * j{1,2}, Vi * j{2}
+      for (unsigned int ej = jidx; ej < nelt_; ej++)
+        *(mat++) += Vj * XYZj[ej]; // Vj * j{0,1,2}, Vj * j{1,2}, Vj * j{2}
       // Inner loop
-      for (int idx2 = idx1 + 1; idx2 < maskIn.Nselected(); idx2++) {
-        int at2 = maskIn[idx2];
-        Vec3 XYZj( frameIn.XYZ(at2) );
-        *(mat++) += Vi * XYZj[0];
-        *(mat++) += Vi * XYZj[1];
-        *(mat++) += Vi * XYZj[2];
-      } // END inner loop over idx2
+      for (int idx1 = idx2 + 1; idx1 < maskIn.Nselected(); idx1++) {
+        int at1 = maskIn[idx1];
+        Vec3 XYZi( frameIn.XYZ(at1) );
+        *(mat++) += Vj * XYZi[0];
+        *(mat++) += Vj * XYZi[1];
+        *(mat++) += Vj * XYZi[2];
+      } // END inner loop over idx1
     } // END loop over x y z of veci
-  } // END outer loop over idx1
+  } // END outer loop over idx2
   nframes_++;
 }
 
