@@ -1,7 +1,7 @@
 #include "CoordCovarMatrix_Full.h"
 #include "AtomMask.h"
 #include "CpptrajStdio.h"
-#include "Frame.h"
+#include <cmath> //sqrt
 
 /** CONSTRUCTOR */
 CoordCovarMatrix_Full::CoordCovarMatrix_Full() :
@@ -34,7 +34,7 @@ int CoordCovarMatrix_Full::SetupMatrix(std::vector<Atom> const& atoms1,
 }
 
 /** Store diagonal (average and average^2) */
-static inline void store_diagonal(std::vector<double>& vect,
+/*static inline void store_diagonal(std::vector<double>& vect,
 //                                  std::vector<Vec3>& vect2,
                                   unsigned int nelt,
                                   Frame const& frameIn,
@@ -49,22 +49,51 @@ static inline void store_diagonal(std::vector<double>& vect,
 //      vect2[idx][ii] += (XYZ[ii] * XYZ[ii]);
     }
   }
+}*/
+
+/** Store average */
+static inline void store_diagonal(std::vector<double>& vect, std::vector<double> const& arrayIn)
+{
+  for (unsigned int idx = 0; idx < arrayIn.size(); ++idx)
+    vect[idx] += arrayIn[idx];
 }
 
 /** Add selected atoms in given Frames to the matrix. */
 void CoordCovarMatrix_Full::AddFrameToMatrix(Frame const& frameIn1, AtomMask const& maskIn1,
                                              Frame const& frameIn2, AtomMask const& maskIn2)
 {
+  Darray array1, array2;
+  get_frame_coords(array1, frameIn1, maskIn1);
+  get_frame_coords(array2, frameIn2, maskIn2);
+  AddToMatrix(array1, array2);
+}
+
+/** Add elements to the matrix. */
+void CoordCovarMatrix_Full::AddToMatrix(Darray const& array1, Darray const& array2) {
+  // sanity checks
+  if (!has_valid_size(array1)) {
+    mprinterr("Internal Error: CoordCovarMatrix_Full::AddToMatrix(): Incoming array1 size %zu not divisible by %u\n",
+              array1.size(), nelt_);
+    return;
+  }
+  if (!has_valid_size(array2)) {
+    mprinterr("Internal Error: CoordCovarMatrix_Full::AddToMatrix(): Incoming array2 size %zu not divisible by %u\n",
+              array2.size(), nelt_);
+    return;
+  }
+
   //MatType::iterator mat = covarMatrix_.begin();
-  for (int idx2 = 0; idx2 < maskIn2.Nselected(); idx2++)
+  for (unsigned int idx2 = 0; idx2 < mass2_.size(); idx2++)
   {
-    Matrix<double>::iterator mat = covarMatrix_.begin() + ((idx2*nelt_)*covarMatrix_.Ncols()); // NX
-    const double* XYZj = frameIn2.XYZ( maskIn2[idx2] );
+    unsigned int eidx2 = idx2 * nelt_;
+    Matrix<double>::iterator mat = covarMatrix_.begin() + (eidx2*covarMatrix_.Ncols()); // NX
+    const double* XYZj = (&array2[0]) + eidx2;
     for (unsigned int ny = 0; ny < nelt_; ny++) {
       double Vj = XYZj[ny];
-      for (int idx1 = 0; idx1 < maskIn1.Nselected(); idx1++)
+      for (unsigned int idx1 = 0; idx1 < mass1_.size(); idx1++)
       {
-        const double* XYZi  = frameIn1.XYZ( maskIn1[idx1] );
+        unsigned int eidx1 = idx1 * nelt_;
+        const double* XYZi = (&array1[0]) + eidx1;
         for (unsigned int nx = 0; nx < nelt_; nx++) {
           *(mat++) += Vj * XYZi[nx];
         }
@@ -74,8 +103,10 @@ void CoordCovarMatrix_Full::AddFrameToMatrix(Frame const& frameIn1, AtomMask con
   // Mask1/mask2 diagonal
 //  store_diagonal(vect_1_, vect2_1_, frameIn1, maskIn1);
 //  store_diagonal(vect_2_, vect2_2_, frameIn2, maskIn2);
-  store_diagonal(vect_1_, nelt_, frameIn1, maskIn1);
-  store_diagonal(vect_2_, nelt_, frameIn2, maskIn2);
+//  store_diagonal(vect_1_, nelt_, frameIn1, maskIn1);
+//  store_diagonal(vect_2_, nelt_, frameIn2, maskIn2);
+  store_diagonal(vect_1_, array1);
+  store_diagonal(vect_2_, array2);
   nframes_++;
 }
 

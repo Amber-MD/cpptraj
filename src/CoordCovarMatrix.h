@@ -5,6 +5,7 @@
 class Atom;
 class AtomMask;
 class CpptrajFile;
+class Frame;
 /// Coordinate covariance matrix abstract base class
 class CoordCovarMatrix {
   public:
@@ -34,6 +35,8 @@ class CoordCovarMatrix {
     /// \return True if incoming Darray size is divisible by nelt_
     bool has_valid_size(Darray const&) const;
 
+    /// Place coordinates from selected atoms in Frame into an array
+    void get_frame_coords(Darray&, Frame const&, AtomMask const&) const;
   //private: // TODO all private
 
     MatType covarMatrix_;  ///< Coordinate covariance matrix

@@ -3,6 +3,7 @@
 #include "AtomMask.h"
 #include "CpptrajFile.h"
 #include "CpptrajStdio.h"
+#include "Frame.h"
 
 /** CONSTRUCTOR - number of elements */
 CoordCovarMatrix::CoordCovarMatrix(unsigned int nelt) :
@@ -50,4 +51,18 @@ void CoordCovarMatrix::DebugPrint(const char* desc, CpptrajFile& outfile) const 
 /** \return True if incoming array size is divisible by nelt_ */
 bool CoordCovarMatrix::has_valid_size(Darray const& arrayIn) const {
   return ( (arrayIn.size() % nelt_) == 0);
+}
+
+/** Extract coordinates from given Frame into specified array. */
+void CoordCovarMatrix::get_frame_coords(Darray& arrayIn, Frame const& frameIn, AtomMask const& maskIn)
+const
+{
+  arrayIn.clear();
+  arrayIn.reserve( maskIn.Nselected() * nelt_ );
+  for (AtomMask::const_iterator at = maskIn.begin(); at != maskIn.end(); ++at) {
+    const double* XYZ = frameIn.XYZ(*at);
+    arrayIn.push_back( XYZ[0] );
+    arrayIn.push_back( XYZ[1] );
+    arrayIn.push_back( XYZ[2] );
+  }
 }

@@ -1,7 +1,6 @@
 #ifndef INC_COORDCOVARMATRIX_FULL_H
 #define INC_COORDCOVARMATRIX_FULL_H
 #include "CoordCovarMatrix.h"
-class Frame;
 /// Coordinate covanriance full matrix
 class CoordCovarMatrix_Full : public CoordCovarMatrix {
   public:
@@ -20,6 +19,8 @@ class CoordCovarMatrix_Full : public CoordCovarMatrix {
     void clearMat();
     /// Set up the covariance matrix for selected atoms
     int setupMat(std::vector<Atom> const&, AtomMask const&);
+    /// Add elements to the matrix
+    void AddToMatrix(Darray const&, Darray const&);
 
     Darray vect_1_; ///< Hold average of elements in mask1
     Darray vect_2_; ///< Hold average of elements in mask2

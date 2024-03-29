@@ -1,7 +1,6 @@
 #ifndef INC_COORDCOVARMATRIX_HALF_H
 #define INC_COORDCOVARMATRIX_HALF_H
 #include "CoordCovarMatrix.h"
-class Frame;
 /// Coordinate covariance half (self) matrix
 class CoordCovarMatrix_Half : public CoordCovarMatrix {
   public:

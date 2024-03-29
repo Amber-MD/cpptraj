@@ -1,8 +1,6 @@
 #include "CoordCovarMatrix_Half.h"
 #include "AtomMask.h"
-#include "CpptrajFile.h"
 #include "CpptrajStdio.h"
-#include "Frame.h"
 #include <cmath> // sqrt
 
 /** CONSTRUCTOR */
@@ -34,13 +32,7 @@ int CoordCovarMatrix_Half::SetupMatrix(std::vector<Atom> const& atoms,
 void CoordCovarMatrix_Half::AddFrameToMatrix(Frame const& frameIn, AtomMask const& maskIn)
 {
   Darray arrayIn; // TODO class array?
-  arrayIn.reserve( maskIn.Nselected() * nelt_ );
-  for (AtomMask::const_iterator at = maskIn.begin(); at != maskIn.end(); ++at) {
-    const double* XYZ = frameIn.XYZ(*at);
-    arrayIn.push_back( XYZ[0] );
-    arrayIn.push_back( XYZ[1] );
-    arrayIn.push_back( XYZ[2] );
-  }
+  get_frame_coords(arrayIn, frameIn, maskIn);
   AddToMatrix(arrayIn);
 }
 
