@@ -6,9 +6,9 @@
 #include "Frame.h"
 
 /** CONSTRUCTOR - number of elements */
-CoordCovarMatrix::CoordCovarMatrix(unsigned int nelt) :
+CoordCovarMatrix::CoordCovarMatrix() :
   nframes_(0),
-  nelt_(nelt),
+  nelt_(0),
   useMass_(false)
 {}
 

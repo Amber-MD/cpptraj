@@ -4,8 +4,7 @@
 #include <cmath> // sqrt
 
 /** CONSTRUCTOR */
-CoordCovarMatrix_Half::CoordCovarMatrix_Half() :
-  CoordCovarMatrix(3)
+CoordCovarMatrix_Half::CoordCovarMatrix_Half()
 {}
 
 /** Clear the matrix */
@@ -18,6 +17,7 @@ void CoordCovarMatrix_Half::clearMat() {
 int CoordCovarMatrix_Half::SetupMatrix(std::vector<Atom> const& atoms,
                                        AtomMask const& maskIn, bool useMassIn)
 {
+  nelt_ = 3; // xyz
   // Matrix - half
   covarMatrix_.resize( maskIn.Nselected()*nelt_, 0 );
 

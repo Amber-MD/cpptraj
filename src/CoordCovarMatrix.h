@@ -9,8 +9,8 @@ class Frame;
 /// Coordinate covariance matrix abstract base class
 class CoordCovarMatrix {
   public:
-    /// CONSTRUCTOR - number of elements
-    CoordCovarMatrix(unsigned int);
+    /// CONSTRUCTOR
+    CoordCovarMatrix();
     /// DESTRUCTOR - virtual since inherited
     virtual ~CoordCovarMatrix() {}
     // --------------------------------- 
