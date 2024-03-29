@@ -1,7 +1,6 @@
 #ifndef INC_COORDCOVARMATRIX_H
 #define INC_COORDCOVARMATRIX_H
 #include "Matrix.h"
-#include "Vec3.h"
 #include <vector>
 class Atom;
 class AtomMask;
