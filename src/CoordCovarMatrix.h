@@ -9,8 +9,8 @@ class CpptrajFile;
 /// Coordinate covariance matrix abstract base class
 class CoordCovarMatrix {
   public:
-    /// CONSTRUCTOR
-    CoordCovarMatrix();
+    /// CONSTRUCTOR - number of elements
+    CoordCovarMatrix(unsigned int);
     /// DESTRUCTOR - virtual since inherited
     virtual ~CoordCovarMatrix() {}
     // --------------------------------- 
@@ -25,7 +25,6 @@ class CoordCovarMatrix {
   protected:
     typedef Matrix<double> MatType;
     typedef std::vector<double> Darray;
-    typedef std::vector<Vec3> Varray;
 
     /// clear internal variables
     virtual void clearMat() = 0;
@@ -37,6 +36,7 @@ class CoordCovarMatrix {
 
     MatType covarMatrix_;  ///< Coordinate covariance matrix
     unsigned int nframes_; ///< Number of frames added to the matrix
+    unsigned int nelt_;    ///< Number of elements per i,j entry
     bool useMass_;         ///< If true use mass weighting
 };
 #endif

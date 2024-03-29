@@ -4,9 +4,10 @@
 #include "CpptrajFile.h"
 #include "CpptrajStdio.h"
 
-/** CONSTRUCTOR */
-CoordCovarMatrix::CoordCovarMatrix() :
+/** CONSTRUCTOR - number of elements */
+CoordCovarMatrix::CoordCovarMatrix(unsigned int nelt) :
   nframes_(0),
+  nelt_(nelt),
   useMass_(false)
 {}
 

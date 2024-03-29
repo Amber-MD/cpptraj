@@ -4,7 +4,8 @@
 #include "Frame.h"
 
 /** CONSTRUCTOR */
-CoordCovarMatrix_Full::CoordCovarMatrix_Full()
+CoordCovarMatrix_Full::CoordCovarMatrix_Full() :
+  CoordCovarMatrix(3)
 {}
 
 /** Clear the matrix */

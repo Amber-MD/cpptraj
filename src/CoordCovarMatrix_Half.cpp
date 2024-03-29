@@ -6,7 +6,8 @@
 #include <cmath> // sqrt
 
 /** CONSTRUCTOR */
-CoordCovarMatrix_Half::CoordCovarMatrix_Half()
+CoordCovarMatrix_Half::CoordCovarMatrix_Half() :
+  CoordCovarMatrix(3)
 {}
 
 /** Clear the matrix */
@@ -20,9 +21,9 @@ int CoordCovarMatrix_Half::SetupMatrix(std::vector<Atom> const& atoms,
                                        AtomMask const& maskIn, bool useMassIn)
 {
   // Matrix - half
-  covarMatrix_.resize( maskIn.Nselected()*3, 0 );
+  covarMatrix_.resize( maskIn.Nselected()*nelt_, 0 );
 
-  vect_.assign(maskIn.Nselected(), Vec3(0.0));
+  vect_.assign( maskIn.Nselected()*nelt_, 0 );
 
   set_mass_array(mass_, atoms, maskIn, useMassIn);
 
@@ -37,15 +38,16 @@ void CoordCovarMatrix_Half::AddFrameToMatrix(Frame const& frameIn, AtomMask cons
   for (int idx1 = 0; idx1 < maskIn.Nselected(); idx1++) {
     int at1 = maskIn[idx1];
     Vec3 XYZi( frameIn.XYZ(at1) );
-    // Store veci and veci^2
-    vect_[idx1] += XYZi;
+    unsigned int eidx1 = idx1 * nelt_;
+    // Store average 
+    for (unsigned int ei = 0; ei < nelt_; ei++)
+      vect_[eidx1+ei] += XYZi[ei];
     //XYZi.Print("XYZi");
-    //vect2[idx1] += XYZi.Squared();
     // Loop over X, Y, and Z of veci
-    for (int iidx = 0; iidx < 3; iidx++) {
+    for (unsigned int iidx = 0; iidx < nelt_; iidx++) {
       double Vi = XYZi[iidx];
       // Diagonal
-      for (int jidx = iidx; jidx < 3; jidx++)
+      for (unsigned int jidx = iidx; jidx < nelt_; jidx++)
         *(mat++) += Vi * XYZi[jidx]; // Vi * j{0,1,2}, Vi * j{1,2}, Vi * j{2}
       // Inner loop
       for (int idx2 = idx1 + 1; idx2 < maskIn.Nselected(); idx2++) {
@@ -61,7 +63,7 @@ void CoordCovarMatrix_Half::AddFrameToMatrix(Frame const& frameIn, AtomMask cons
 }
 
 /** Add given Frame to the matrix. */
-void CoordCovarMatrix_Half::AddFrameToMatrix(Frame const& frameIn)
+/*void CoordCovarMatrix_Half::AddFrameToMatrix(Frame const& frameIn)
 {
   // Covariance
   MatType::iterator mat = covarMatrix_.begin();
@@ -87,7 +89,7 @@ void CoordCovarMatrix_Half::AddFrameToMatrix(Frame const& frameIn)
     } // END loop over x y z of veci
   } // END outer loop over idx1
   nframes_++;
-}
+}*/
 
 /** Finish the matrix. */
 int CoordCovarMatrix_Half::FinishMatrix() {
@@ -97,7 +99,7 @@ int CoordCovarMatrix_Half::FinishMatrix() {
   }
   // Normalize
   double norm = 1.0 / (double)nframes_;
-  for (Varray::iterator it = vect_.begin(); it != vect_.end(); ++it)
+  for (Darray::iterator it = vect_.begin(); it != vect_.end(); ++it)
     *it *= norm;
   for (MatType::iterator it = covarMatrix_.begin(); it != covarMatrix_.end(); ++it)
     *it *= norm;
@@ -111,19 +113,21 @@ int CoordCovarMatrix_Half::FinishMatrix() {
   MatType::iterator mat = covarMatrix_.begin();
   for (unsigned int idx1 = 0; idx1 < mass_.size(); idx1++) {
     double mass1 = mass_[idx1];
-    for (int iidx = 0; iidx < 3; iidx++) {
-      double Vi = vect_[idx1][iidx];
+    for (unsigned int iidx = 0; iidx < nelt_; iidx++) {
+      unsigned int eidx1 = idx1*nelt_;
+      double Vi = vect_[eidx1 + iidx];
       for (unsigned int idx2 = idx1; idx2 < mass_.size(); idx2++) {
         double Mass = sqrt( mass1 * mass_[idx2] );
         if (idx1 == idx2) {
           // Self
-          for (int jidx = iidx; jidx < 3; jidx++) {
-            *mat = (*mat - (Vi * vect_[idx2][jidx])) * Mass;
+          for (unsigned int jidx = iidx; jidx < nelt_; jidx++) {
+            *mat = (*mat - (Vi * vect_[eidx1 + jidx])) * Mass;
             ++mat;
           }
         } else {
-          for (int jidx = 0; jidx < 3; jidx++) {
-            *mat = (*mat - (Vi * vect_[idx2][jidx])) * Mass;
+          unsigned int eidx2 = idx2*nelt_;
+          for (unsigned int jidx = 0; jidx < nelt_; jidx++) {
+            *mat = (*mat - (Vi * vect_[eidx2 + jidx])) * Mass;
             ++mat;
           }
         }

@@ -5,7 +5,7 @@ class Frame;
 /// Coordinate covariance half (self) matrix
 class CoordCovarMatrix_Half : public CoordCovarMatrix {
   public:
-    /// CONSTRUCTOR
+    /// CONSTRUCTOR 
     CoordCovarMatrix_Half();
     // ---------------------------------
     /// Finish calculating the matrix (normalize, calc <rirj> - <ri><rj>)
@@ -16,12 +16,12 @@ class CoordCovarMatrix_Half : public CoordCovarMatrix {
     /// Add selected atoms in Frame to matrix
     void AddFrameToMatrix(Frame const&, AtomMask const&);
     /// Add Frame to matrix
-    void AddFrameToMatrix(Frame const&);
+    //void AddFrameToMatrix(Frame const&);
   private:
     /// Clear the matrix
     void clearMat();
 
-    Varray vect_;
+    Darray vect_;
     Darray mass_;
 
 };

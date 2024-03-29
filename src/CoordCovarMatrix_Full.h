@@ -16,6 +16,7 @@ class CoordCovarMatrix_Full : public CoordCovarMatrix {
     void AddFrameToMatrix(Frame const&, AtomMask const&,
                           Frame const&, AtomMask const&);
   private:
+    typedef std::vector<Vec3> Varray;
     /// Clear the matrix
     void clearMat();
     /// Set up the covariance matrix for selected atoms
