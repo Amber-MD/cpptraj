@@ -53,9 +53,9 @@ void CoordCovarMatrix_Half::AddFrameToMatrix(Frame const& frameIn, AtomMask cons
       for (int idx1 = idx2 + 1; idx1 < maskIn.Nselected(); idx1++) {
         int at1 = maskIn[idx1];
         Vec3 XYZi( frameIn.XYZ(at1) );
-        *(mat++) += Vj * XYZi[0];
-        *(mat++) += Vj * XYZi[1];
-        *(mat++) += Vj * XYZi[2];
+        for (unsigned int ei = 0; ei < nelt_; ei++) {
+          *(mat++) += Vj * XYZi[ei];
+        }
       } // END inner loop over idx1
     } // END loop over x y z of vecj
   } // END outer loop over idx2
