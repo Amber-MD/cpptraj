@@ -33,12 +33,30 @@ int CoordCovarMatrix_Half::SetupMatrix(std::vector<Atom> const& atoms,
 /** Add selected atoms in given Frame to the matrix. */
 void CoordCovarMatrix_Half::AddFrameToMatrix(Frame const& frameIn, AtomMask const& maskIn)
 {
+  Darray arrayIn; // TODO class array?
+  arrayIn.reserve( maskIn.Nselected() * nelt_ );
+  for (AtomMask::const_iterator at = maskIn.begin(); at != maskIn.end(); ++at) {
+    const double* XYZ = frameIn.XYZ(*at);
+    arrayIn.push_back( XYZ[0] );
+    arrayIn.push_back( XYZ[1] );
+    arrayIn.push_back( XYZ[2] );
+  }
+  AddToMatrix(arrayIn);
+}
+
+/** Add elements to the matrix. */
+void CoordCovarMatrix_Half::AddToMatrix(Darray const& arrayIn) {
+  // sanity check
+  if (!has_valid_size(arrayIn)) {
+    mprinterr("Internal Error: CoordCovarMatrix_Half::AddToMatrix(): Incoming array size %zu not divisible by %u\n",
+              arrayIn.size(), nelt_);
+    return;
+  }
   // Covariance
   MatType::iterator mat = covarMatrix_.begin();
-  for (int idx2 = 0; idx2 < maskIn.Nselected(); idx2++) {
-    int at2 = maskIn[idx2];
-    Vec3 XYZj( frameIn.XYZ(at2) );
+  for (unsigned int idx2 = 0; idx2 < mass_.size(); idx2++) {
     unsigned int eidx2 = idx2 * nelt_;
+    const double* XYZj = (&arrayIn[0]) + eidx2;
     // Store average 
     for (unsigned int ej = 0; ej < nelt_; ej++)
       vect_[eidx2+ej] += XYZj[ej];
@@ -50,9 +68,9 @@ void CoordCovarMatrix_Half::AddFrameToMatrix(Frame const& frameIn, AtomMask cons
       for (unsigned int ej = jidx; ej < nelt_; ej++)
         *(mat++) += Vj * XYZj[ej]; // Vj * j{0,1,2}, Vj * j{1,2}, Vj * j{2}
       // Inner loop
-      for (int idx1 = idx2 + 1; idx1 < maskIn.Nselected(); idx1++) {
-        int at1 = maskIn[idx1];
-        Vec3 XYZi( frameIn.XYZ(at1) );
+      for (unsigned int idx1 = idx2 + 1; idx1 < mass_.size(); idx1++) {
+        unsigned int eidx1 = idx1 * nelt_;
+        const double* XYZi = (&arrayIn[0]) + eidx1;
         for (unsigned int ei = 0; ei < nelt_; ei++) {
           *(mat++) += Vj * XYZi[ei];
         }

@@ -18,6 +18,8 @@ class CoordCovarMatrix_Half : public CoordCovarMatrix {
     /// Add Frame to matrix
     //void AddFrameToMatrix(Frame const&);
   private:
+    /// Add elements to the matrix
+    void AddToMatrix(Darray const&);
     /// Clear the matrix
     void clearMat();
 
