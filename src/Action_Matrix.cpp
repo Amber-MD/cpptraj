@@ -886,7 +886,7 @@ void Action_Matrix::FinishCovariance(size_t element_size) {
           if (Mat_->Meta().ScalarType() == MetaData::MWCOVAR)
             Mass = sqrt( mass2 * *(m1++) );
           for (unsigned int idx = 0; idx < element_size; ++idx) {
-            mprintf("mat = (%f - (%f * %f)) * %f\n", *mat, Vi, *(v1idx1+idx), Mass);
+            mprintf("mat = (%f - (%f * %f)) * %f\n", *mat, Vi, *(v1idx1+idx), Mass); // DEBUG
             *mat = (*mat - (Vi * *(v1idx1+idx))) * Mass;
             ++mat;
           }
