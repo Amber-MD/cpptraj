@@ -111,10 +111,13 @@ int CoordCovarMatrix_Half::FinishMatrix() {
   //}
   // Calc <rirj> - <ri><rj>
   MatType::iterator mat = covarMatrix_.begin();
+//  double TwoN = (double)( covarMatrix_->Ncols() * 2 );
   for (unsigned int idx2 = 0; idx2 < mass_.size(); idx2++) {
     double mass2 = mass_[idx2];
     for (unsigned int jidx = 0; jidx < nelt_; jidx++) {
       unsigned int eidx2 = idx2*nelt_;
+//      d_m2_idx = (double)eidx2;
+//      mat = Mat_->begin() + (int)(0.5*d_m2_idx*(TwoN-d_m2_idx-1.0)+d_m2_idx);
       double Vj = vect_[eidx2 + jidx];
       for (unsigned int idx1 = idx2; idx1 < mass_.size(); idx1++) {
         double Mass = sqrt( mass2 * mass_[idx1] );
