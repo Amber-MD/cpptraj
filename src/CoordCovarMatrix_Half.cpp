@@ -13,6 +13,8 @@ void CoordCovarMatrix_Half::clearMat() {
   mass_.clear();
 }
 
+/** Set up array for incoming data sets. */
+
 /** Set up array sizess and masses. */
 int CoordCovarMatrix_Half::SetupMatrix(std::vector<Atom> const& atoms,
                                        AtomMask const& maskIn, bool useMassIn)
