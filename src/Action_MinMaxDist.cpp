@@ -100,8 +100,8 @@ void Action_MinMaxDist::printEntities(Earray const& entities, AtomMask const& ma
   mprintf("DEBUG: Selected %s in mask %s\n",
           modeStr_[mode_], maskIn.MaskString());
   for (Earray::const_iterator it = entities.begin(); it != entities.end(); ++it) {
-    if (!it->name_.empty()) {
-      mprintf("\t%s :", it->name_.c_str());
+    if (it->IsSet()) {
+      mprintf("\t%s %i :", it->name_.c_str(), it->num_ + 1);
       for (AtomMask::const_iterator at = it->emask_.begin(); at != it->emask_.end(); ++at)
         mprintf(" %i", *at + 1);
       mprintf("\n");
@@ -128,8 +128,9 @@ const
       for (int at = Res.FirstAtom(); at != Res.LastAtom(); at++) {
         if (cmask.AtomInCharMask( at )) {
           if (currentEntity.name_.empty()) {
+            currentEntity.num_  = ires;
             currentEntity.name_ = Res.Name().Truncated();
-            mprintf("NAME %s\n", currentEntity.name_.c_str());
+            //mprintf("NAME %s\n", currentEntity.name_.c_str());
           }
           currentEntity.emask_.AddSelectedAtom( at );
         }
@@ -188,6 +189,7 @@ Action::RetType Action_MinMaxDist::Setup(ActionSetup& setup)
         return Action::ERR;
       }
     }
+    // Set up DataSets for each entity pair
   }
 
   return Action::OK;

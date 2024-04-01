@@ -21,8 +21,11 @@ class Action_MinMaxDist : public Action {
     /// Used to track residues/molecules
     class Entity {
       public:
+        Entity() : num_(-1) {}
+        bool IsSet() const { return (num_ > -1); }
         AtomMask emask_;   ///< Selected atoms in entity.
         std::string name_; ///< residue/molecule name
+        int num_;          ///< residue/molecule number
     };
 
     typedef std::vector<Entity> Earray;
