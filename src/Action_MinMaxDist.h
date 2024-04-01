@@ -1,6 +1,7 @@
 #ifndef INC_ACTION_MINMAXDIST_H
 #define INC_ACTION_MINMAXDIST_H
 #include "Action.h"
+#include "ImageOption.h"
 /// Record the min/max distance between atoms/residues/molecules 
 class Action_MinMaxDist : public Action {
   public:
@@ -26,5 +27,6 @@ class Action_MinMaxDist : public Action {
     AtomMask mask2_;
     ModeType mode_;
     DistType distType_;
+    ImageOption imageOpt_; ///< Used to determine if imaging should be used.
 };
 #endif

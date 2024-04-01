@@ -24,7 +24,7 @@ const char* Action_MinMaxDist::distTypeStr_[] = {
 // Action_MinMaxDist::Help()
 void Action_MinMaxDist::Help() const {
   mprintf("\tmask1 <mask1> [mask2 <mask2>] [{byatom|byres|bymol}]\n"
-          "\t[mindist] [maxdist] [bothdist]\n"
+          "\t[mindist] [maxdist] [bothdist] [noimage]\n"
           "  Record the min/max distance between atoms/residues/molecules.\n"
          );
 }
@@ -32,6 +32,9 @@ void Action_MinMaxDist::Help() const {
 // Action_MinMaxDist::Init()
 Action::RetType Action_MinMaxDist::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+  // Get Keywords
+  imageOpt_.InitImaging( !(actionArgs.hasKey("noimage")) );
+  // Mask Keywords
   std::string mask1str = actionArgs.GetStringKey("mask1");
   if (mask1str.empty()) {
     mprinterr("Error: Must specify at least 'mask1'\n");
@@ -83,6 +86,10 @@ Action::RetType Action_MinMaxDist::Init(ArgList& actionArgs, ActionInit& init, i
   if (mask2_.MaskStringSet()) {
     mprintf("\tMask2: %s\n", mask2_.MaskString());
   }
+  if (imageOpt_.UseImage())
+    mprintf("\tDistances will use minimum image convention if box info present.\n");
+  else
+    mprintf("\tDistances will not be imaged.\n");
 
   return Action::OK;
 }
@@ -90,6 +97,12 @@ Action::RetType Action_MinMaxDist::Init(ArgList& actionArgs, ActionInit& init, i
 // Action_MinMaxDist::Setup()
 Action::RetType Action_MinMaxDist::Setup(ActionSetup& setup)
 {
+  // Set up imaging info for this topology 
+  imageOpt_.SetupImaging( setup.CoordInfo().TrajBox().HasBox() );
+  if (imageOpt_.ImagingEnabled())
+    mprintf("\tDistance imaging on.\n");
+  else
+    mprintf("\tDistance imaging off.\n");
   // Set up masks
   if (setup.Top().SetupIntegerMask( mask1_ )) {
     mprinterr("Error: Could not set up mask '%s'\n", mask1_.MaskString());
