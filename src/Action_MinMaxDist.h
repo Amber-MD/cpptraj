@@ -46,5 +46,7 @@ class Action_MinMaxDist : public Action {
     ImageOption imageOpt_; ///< Used to determine if imaging should be used.
     Earray entities1_; ///< Entities corresponding to mask1_
     Earray entities2_; ///< Entities corresponding to mask2_
+    std::string dsname_; ///< Data set name
+    DataSetList* masterDSL_; ///< Pointer to master data set list
 };
 #endif

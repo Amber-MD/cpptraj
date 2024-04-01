@@ -1,11 +1,13 @@
 #include "Action_MinMaxDist.h"
 #include "CharMask.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // integerToString
 
 /** CONSTRUCTOR */
 Action_MinMaxDist::Action_MinMaxDist() :
   mode_(NO_MODE),
-  distType_(NO_DIST)
+  distType_(NO_DIST),
+  masterDSL_(0)
 {}
 
 const char* Action_MinMaxDist::modeStr_[] = {
@@ -25,7 +27,7 @@ const char* Action_MinMaxDist::distTypeStr_[] = {
 // Action_MinMaxDist::Help()
 void Action_MinMaxDist::Help() const {
   mprintf("\tmask1 <mask1> [mask2 <mask2>] [{byatom|byres|bymol}]\n"
-          "\t[mindist] [maxdist] [bothdist] [noimage]\n"
+          "\t[mindist] [maxdist] [bothdist] [noimage] [name <setname>]\n"
           "  Record the min/max distance between atoms/residues/molecules.\n"
          );
 }
@@ -64,6 +66,11 @@ Action::RetType Action_MinMaxDist::Init(ArgList& actionArgs, ActionInit& init, i
   bool calc_maxdist = (actionArgs.hasKey("maxdist") || (actionArgs[0] == "maxdist"));
   if (actionArgs.hasKey("bothdist"))
     distType_ = BOTH_DIST;
+  // DataSet Name
+  dsname_ = actionArgs.GetStringKey("name");
+  // Default name
+  if (dsname_.empty())
+    dsname_ = init.DSL().GenerateDefaultName("MINMAXDIST");
   // Default mode
   if (mode_ == NO_MODE)
     mode_ = BY_ATOM;
@@ -80,6 +87,7 @@ Action::RetType Action_MinMaxDist::Init(ArgList& actionArgs, ActionInit& init, i
       distType_ = MIN_DIST;
     }
   }
+  masterDSL_ = init.DslPtr();
 
   mprintf("    MINMAXDIST: Calculating %s distance for selected %s.\n",
           distTypeStr_[distType_], modeStr_[mode_]);
@@ -91,6 +99,7 @@ Action::RetType Action_MinMaxDist::Init(ArgList& actionArgs, ActionInit& init, i
     mprintf("\tDistances will use minimum image convention if box info present.\n");
   else
     mprintf("\tDistances will not be imaged.\n");
+  mprintf("\tData set name: %s\n", dsname_.c_str());
 
   return Action::OK;
 }
@@ -139,7 +148,12 @@ const
   printEntities(entities, maskIn);
   return 0;
 }
-      
+
+/// Aspect for BY_RES
+inline static std::string res_aspect(int r0, int r1, Topology const& topIn)
+{
+  return std::string( integerToString(r0+1) + "_" + integerToString(r1+1) );
+}
 
 // Action_MinMaxDist::Setup()
 Action::RetType Action_MinMaxDist::Setup(ActionSetup& setup)
@@ -190,6 +204,13 @@ Action::RetType Action_MinMaxDist::Setup(ActionSetup& setup)
         {
           if (it1->num_ > it2->num_) { // TODO at least 2 res gap?
             mprintf("DEBUG: Pair %i - %i\n", it1->num_ + 1, it2->num_ + 1);
+            MetaData meta(dsname_, res_aspect(it2->num_, it1->num_, setup.Top()));
+            DataSet* ds = masterDSL_->AddSet(DataSet::FLOAT, meta);
+            if (ds == 0) {
+              mprinterr("Error: Could not allocate data set %s[%s]\n",
+                        meta.Name().c_str(), meta.Aspect().c_str());
+              return Action::ERR;
+            }
           }
         }
       }
@@ -200,6 +221,13 @@ Action::RetType Action_MinMaxDist::Setup(ActionSetup& setup)
         for (Earray::const_iterator it2 = it1 + 1; it2 != entities1_.end(); ++it2)
         {
           mprintf("DEBUG: Pair %i - %i\n", it1->num_ + 1, it2->num_ + 1);
+          MetaData meta(dsname_, res_aspect(it2->num_, it1->num_, setup.Top()));
+          DataSet* ds = masterDSL_->AddSet(DataSet::FLOAT, meta);
+          if (ds == 0) {
+            mprinterr("Error: Could not allocate data set %s[%s]\n",
+                      meta.Name().c_str(), meta.Aspect().c_str());
+            return Action::ERR;
+          }
         }
       }
     }
