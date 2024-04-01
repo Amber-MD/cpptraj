@@ -90,7 +90,20 @@ Action::RetType Action_MinMaxDist::Init(ArgList& actionArgs, ActionInit& init, i
 // Action_MinMaxDist::Setup()
 Action::RetType Action_MinMaxDist::Setup(ActionSetup& setup)
 {
-  
+  // Set up masks
+  if (setup.Top().SetupIntegerMask( mask1_ )) {
+    mprinterr("Error: Could not set up mask '%s'\n", mask1_.MaskString());
+    return Action::OK;
+  }
+  mask1_.MaskInfo();
+  if (mask2_.MaskStringSet()) {
+    if (setup.Top().SetupIntegerMask( mask2_ )) {
+      mprinterr("Error: Could not set up mask '%s'\n", mask2_.MaskString());
+      return Action::OK;
+    }
+    mask2_.MaskInfo();
+  }
+
   return Action::OK;
 }
 
