@@ -52,6 +52,7 @@ COMMON_SOURCES= \
         Action_MakeStructure.cpp \
         Action_Mask.cpp \
         Action_Matrix.cpp \
+        Action_MinMaxDist.cpp \
         Action_MinImage.cpp \
         Action_Molsurf.cpp \
         Action_MultiDihedral.cpp \

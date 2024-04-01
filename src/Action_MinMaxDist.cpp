@@ -23,7 +23,8 @@ const char* Action_MinMaxDist::distTypeStr_[] = {
 
 // Action_MinMaxDist::Help()
 void Action_MinMaxDist::Help() const {
-  mprintf("mask1 <mask1> [mask2 <mask2>]\n"
+  mprintf("\tmask1 <mask1> [mask2 <mask2>] [{byatom|byres|bymol}]\n"
+          "\t[mindist] [maxdist] [bothdist]\n"
           "  Record the min/max distance between atoms/residues/molecules.\n"
          );
 }
@@ -47,13 +48,28 @@ Action::RetType Action_MinMaxDist::Init(ArgList& actionArgs, ActionInit& init, i
       return Action::ERR;
     }
   }
-  // Default mode and distance
+  // Mode args
+  if (actionArgs.hasKey("byatom"))
+    mode_ = BY_ATOM;
+  else if (actionArgs.hasKey("byres"))
+    mode_ = BY_RES;
+  else if (actionArgs.hasKey("bymol"))
+    mode_ = BY_MOL;
+  // Distance calc type args
+  bool calc_mindist = (actionArgs.hasKey("mindist") || (actionArgs[0] == "mindist"));
+  bool calc_maxdist = (actionArgs.hasKey("maxdist") || (actionArgs[0] == "maxdist"));
+  if (actionArgs.hasKey("bothdist"))
+    distType_ = BOTH_DIST;
+  // Default mode
   if (mode_ == NO_MODE)
     mode_ = BY_ATOM;
+  // Default distance calc type
   if (distType_ == NO_DIST) {
-    if (actionArgs[0] == "mindist")
+    if (calc_mindist && calc_maxdist)
+      distType_ = BOTH_DIST;
+    else if (calc_mindist)
       distType_ = MIN_DIST;
-    else if (actionArgs[0] == "maxdist")
+    else if (calc_maxdist)
       distType_ = MAX_DIST;
     else {
       mprintf("Warning: No distance type specified and command name '%s' unrecognized. Using default.\n");
@@ -61,7 +77,7 @@ Action::RetType Action_MinMaxDist::Init(ArgList& actionArgs, ActionInit& init, i
     }
   }
 
-  mprintf("    MINMAXDIST: Calculating %s distance for selected %s\n",
+  mprintf("    MINMAXDIST: Calculating %s distance for selected %s.\n",
           distTypeStr_[distType_], modeStr_[mode_]);
   mprintf("\tMask1: %s\n", mask1_.MaskString());
   if (mask2_.MaskStringSet()) {

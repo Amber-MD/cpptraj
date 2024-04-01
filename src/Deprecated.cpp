@@ -1,10 +1,6 @@
 #include "Deprecated.h"
 #include "CpptrajStdio.h"
 
-void Deprecated_MinDist::Help() const {
-  mprinterr("  Use the 'nativecontacts' action instead.\n");
-}
-
 void Deprecated_Hbond::Help() const {
   mprinterr("  Hydrogen bond acceptors and donors are defined within the 'hbond' action.\n");
 }

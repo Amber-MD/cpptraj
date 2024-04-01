@@ -162,6 +162,7 @@
 #include "Action_Keep.h"
 #include "Action_AvgBox.h"
 #include "Action_ToroidalDiffusion.h"
+#include "Action_MinMaxDist.h"
 // ----- ANALYSIS --------------------------------------------------------------
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
@@ -362,6 +363,7 @@ void Command::Init() {
   Command::AddCmd( new Action_MakeStructure(), Cmd::ACT, 1, "makestructure" );
   Command::AddCmd( new Action_Mask(),          Cmd::ACT, 1, "mask" );
   Command::AddCmd( new Action_Matrix(),        Cmd::ACT, 1, "matrix" );
+  Command::AddCmd( new Action_MinMaxDist(),    Cmd::ACT, 2, "mindist", "maxdist" );
   Command::AddCmd( new Action_MinImage(),      Cmd::ACT, 1, "minimage" );
   Command::AddCmd( new Action_Molsurf(),       Cmd::ACT, 1, "molsurf" );
   Command::AddCmd( new Action_MultiDihedral(), Cmd::ACT, 1, "multidihedral" );
@@ -455,7 +457,6 @@ void Command::Init() {
   Command::AddCmd( new Deprecated_AvgCoord(),    Cmd::DEP, 1, "avgcoord" );
   Command::AddCmd( new Deprecated_DihScan(),     Cmd::DEP, 1, "dihedralscan" );
   Command::AddCmd( new Deprecated_Hbond(),       Cmd::DEP, 2, "acceptor", "donor" );
-  Command::AddCmd( new Deprecated_MinDist(),     Cmd::DEP, 2, "mindist", "maxdist" );
   Command::AddCmd( new Deprecated_ParmBondInfo(),Cmd::DEP, 1, "parmbondinfo" );
   Command::AddCmd( new Deprecated_ParmMolInfo(), Cmd::DEP, 1, "parmmolinfo" );
   Command::AddCmd( new Deprecated_ParmResInfo(), Cmd::DEP, 1, "parmresinfo" );
