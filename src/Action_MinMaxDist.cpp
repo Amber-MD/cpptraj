@@ -100,12 +100,10 @@ void Action_MinMaxDist::printEntities(Earray const& entities, AtomMask const& ma
   mprintf("DEBUG: Selected %s in mask %s\n",
           modeStr_[mode_], maskIn.MaskString());
   for (Earray::const_iterator it = entities.begin(); it != entities.end(); ++it) {
-    if (it->IsSet()) {
-      mprintf("\t%s %i :", it->name_.c_str(), it->num_ + 1);
-      for (AtomMask::const_iterator at = it->emask_.begin(); at != it->emask_.end(); ++at)
-        mprintf(" %i", *at + 1);
-      mprintf("\n");
-    }
+    mprintf("\t%s %i :", it->name_.c_str(), it->num_ + 1);
+    for (AtomMask::const_iterator at = it->emask_.begin(); at != it->emask_.end(); ++at)
+      mprintf(" %i", *at + 1);
+    mprintf("\n");
   }
 }
 
@@ -121,17 +119,14 @@ const
     entities.reserve(topIn.Nres());
     for (unsigned int ires = 0; ires < (unsigned int)topIn.Nres(); ires++) {
       Residue const& Res = topIn.Res(ires);
-      if (ires >= entities.size()) {
-        entities.resize(ires+1);
-      }
-      Entity& currentEntity = entities[ires];
+      bool needs_alloc = true;
       for (int at = Res.FirstAtom(); at != Res.LastAtom(); at++) {
         if (cmask.AtomInCharMask( at )) {
-          if (currentEntity.name_.empty()) {
-            currentEntity.num_  = ires;
-            currentEntity.name_ = Res.Name().Truncated();
-            //mprintf("NAME %s\n", currentEntity.name_.c_str());
+          if (needs_alloc) {
+            entities.push_back( Entity(Res.Name().Truncated(), ires) );
+            needs_alloc = false;
           }
+          Entity& currentEntity = entities.back();
           currentEntity.emask_.AddSelectedAtom( at );
         }
       }
@@ -188,9 +183,27 @@ Action::RetType Action_MinMaxDist::Setup(ActionSetup& setup)
                   modeStr_[mode_], mask2_.MaskString());
         return Action::ERR;
       }
+      // Set up DataSets for each entity pair
+      for (Earray::const_iterator it1 = entities1_.begin(); it1 != entities1_.end(); ++it1)
+      {
+        for (Earray::const_iterator it2 = entities2_.begin(); it2 != entities2_.end(); ++it2)
+        {
+          if (it1->num_ > it2->num_) { // TODO at least 2 res gap?
+            mprintf("DEBUG: Pair %i - %i\n", it1->num_ + 1, it2->num_ + 1);
+          }
+        }
+      }
+    } else {
+      // Set up DataSets for each entity pair
+      for (Earray::const_iterator it1 = entities1_.begin(); it1 != entities1_.end(); ++it1)
+      {
+        for (Earray::const_iterator it2 = it1 + 1; it2 != entities1_.end(); ++it2)
+        {
+          mprintf("DEBUG: Pair %i - %i\n", it1->num_ + 1, it2->num_ + 1);
+        }
+      }
     }
-    // Set up DataSets for each entity pair
-  }
+  } // END BY_RES, BY_MOL
 
   return Action::OK;
 }
