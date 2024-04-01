@@ -1,4 +1,5 @@
 #include "Action_MinMaxDist.h"
+#include "CharMask.h"
 #include "CpptrajStdio.h"
 
 /** CONSTRUCTOR */
@@ -94,6 +95,56 @@ Action::RetType Action_MinMaxDist::Init(ArgList& actionArgs, ActionInit& init, i
   return Action::OK;
 }
 
+/** For DEBUG, print selected atoms in entity array., */
+void Action_MinMaxDist::printEntities(Earray const& entities, AtomMask const& maskIn) const {
+  mprintf("DEBUG: Selected %s in mask %s\n",
+          modeStr_[mode_], maskIn.MaskString());
+  for (Earray::const_iterator it = entities.begin(); it != entities.end(); ++it) {
+    if (!it->name_.empty()) {
+      mprintf("\t%s :", it->name_.c_str());
+      for (AtomMask::const_iterator at = it->emask_.begin(); at != it->emask_.end(); ++at)
+        mprintf(" %i", *at + 1);
+      mprintf("\n");
+    }
+  }
+}
+
+/** Set up entities for atoms selected in given mask. */
+int Action_MinMaxDist::setupEntityArray(Earray& entities, AtomMask const& maskIn,
+                                        Topology const& topIn)
+const
+{
+  entities.clear();
+  CharMask cmask(maskIn.ConvertToCharMask(), maskIn.Nselected());
+
+  if (mode_ == BY_RES) {
+    entities.reserve(topIn.Nres());
+    for (unsigned int ires = 0; ires < (unsigned int)topIn.Nres(); ires++) {
+      Residue const& Res = topIn.Res(ires);
+      if (ires >= entities.size()) {
+        entities.resize(ires+1);
+      }
+      Entity& currentEntity = entities[ires];
+      for (int at = Res.FirstAtom(); at != Res.LastAtom(); at++) {
+        if (cmask.AtomInCharMask( at )) {
+          if (currentEntity.name_.empty()) {
+            currentEntity.name_ = Res.Name().Truncated();
+            mprintf("NAME %s\n", currentEntity.name_.c_str());
+          }
+          currentEntity.emask_.AddSelectedAtom( at );
+        }
+      }
+    } // END loop over residues
+  } else {
+    mprinterr("Internal Error: Action_MinMaxDist::setupEntityArray() Unhandled mode\n");
+    return 1;
+  }
+  // DEBUG - print entities
+  printEntities(entities, maskIn);
+  return 0;
+}
+      
+
 // Action_MinMaxDist::Setup()
 Action::RetType Action_MinMaxDist::Setup(ActionSetup& setup)
 {
@@ -109,12 +160,34 @@ Action::RetType Action_MinMaxDist::Setup(ActionSetup& setup)
     return Action::OK;
   }
   mask1_.MaskInfo();
+  if (mask1_.None()) {
+    mprintf("Warning: Nothing selected by mask '%s'\n", mask1_.MaskString());
+    return Action::SKIP;
+  }
   if (mask2_.MaskStringSet()) {
     if (setup.Top().SetupIntegerMask( mask2_ )) {
       mprinterr("Error: Could not set up mask '%s'\n", mask2_.MaskString());
       return Action::OK;
     }
     mask2_.MaskInfo();
+    if (mask2_.None()) {
+      mprintf("Warning: Nothing selected by mask '%s'\n", mask2_.MaskString());
+      return Action::SKIP;
+    }
+  }
+  if (mode_ != BY_ATOM) {
+    if (setupEntityArray(entities1_, mask1_, setup.Top())) {
+      mprinterr("Error: Could not set up %s for mask '%s'\n",
+                modeStr_[mode_], mask1_.MaskString());
+      return Action::ERR;
+    }
+    if (mask2_.MaskStringSet()) {
+      if (setupEntityArray(entities2_, mask2_, setup.Top())) {
+        mprinterr("Error: Could not set up %s for mask '%s'\n",
+                  modeStr_[mode_], mask2_.MaskString());
+        return Action::ERR;
+      }
+    }
   }
 
   return Action::OK;

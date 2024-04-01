@@ -18,15 +18,31 @@ class Action_MinMaxDist : public Action {
     static const char* modeStr_[];
     static const char* distTypeStr_[];
 
+    /// Used to track residues/molecules
+    class Entity {
+      public:
+        AtomMask emask_;   ///< Selected atoms in entity.
+        std::string name_; ///< residue/molecule name
+    };
+
+    typedef std::vector<Entity> Earray;
+
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
+
+    /// For debug, print entities to STDOUT
+    void printEntities(Earray const&, AtomMask const&) const;
+    /// Set up entity array for current mode
+    int setupEntityArray(Earray&, AtomMask const&, Topology const&) const;
 
     AtomMask mask1_;
     AtomMask mask2_;
     ModeType mode_;
     DistType distType_;
     ImageOption imageOpt_; ///< Used to determine if imaging should be used.
+    Earray entities1_; ///< Entities corresponding to mask1_
+    Earray entities2_; ///< Entities corresponding to mask2_
 };
 #endif
