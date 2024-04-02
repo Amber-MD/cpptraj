@@ -359,6 +359,32 @@ Action::RetType Action_MinMaxDist::DoAction(int frameNum, ActionFrame& frm)
   if (imageOpt_.ImagingEnabled())
     imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
 
-
+  if (mode_ == BY_ATOM) {
+    float dist;
+    if (mask2_.MaskStringSet()) {
+      if (distType_ == MIN_DIST)
+        dist = get_min_dist(mask1_, mask2_, frm.Frm());
+      else if (distType_ == MAX_DIST)
+        dist = get_max_dist(mask1_, mask2_, frm.Frm());
+    } else {
+       if (distType_ == MIN_DIST)
+        dist = get_min_dist(mask1_, frm.Frm());
+      else if (distType_ == MAX_DIST)
+        dist = get_max_dist(mask1_, frm.Frm());
+    }
+    byAtomSet_->Add( frameNum, &dist );
+  } else {
+    // BY_RES / BY_MOL
+    for (DSarray::const_iterator set = activeSets_.begin(); set != activeSets_.end(); ++set) {
+      float dist;
+      if (distType_ == MIN_DIST)
+        dist = get_min_dist(set->it1_->emask_, set->it2_->emask_, frm.Frm());
+      else if (distType_ == MAX_DIST)
+        dist = get_max_dist(set->it1_->emask_, set->it2_->emask_, frm.Frm());
+    
+      set->ds_->Add( frameNum, &dist );
+    }
+  }
+   
   return Action::OK;
 }
