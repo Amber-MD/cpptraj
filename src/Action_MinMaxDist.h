@@ -53,6 +53,10 @@ class Action_MinMaxDist : public Action {
     double get_min_dist(AtomMask const&, AtomMask const&, Frame const&) const;
     /// Get minimum distance between atoms in mask
     double get_min_dist(AtomMask const&, Frame const&) const;
+    /// Get maximum distance between atoms in masks
+    double get_max_dist(AtomMask const&, AtomMask const&, Frame const&) const;
+    /// Get maximum distance between atoms in mask
+    double get_max_dist(AtomMask const&, Frame const&) const;
 
     AtomMask mask1_;
     AtomMask mask2_;

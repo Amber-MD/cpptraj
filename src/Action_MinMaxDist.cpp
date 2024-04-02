@@ -317,13 +317,48 @@ const
   return sqrt(min_dist2);
 }
 
+/** Get max distance between all atom pairs */
+double Action_MinMaxDist::get_max_dist(AtomMask const& mask1, AtomMask const& mask2, Frame const& frameIn)
+const
+{
+  double max_dist2 = 0;
+  for (AtomMask::const_iterator at1 = mask1.begin(); at1 != mask1.end(); ++at1) {
+    const double* XYZ1 = frameIn.XYZ(*at1);
+    for (AtomMask::const_iterator at2 = mask2.begin(); at2 != mask2.end(); ++at2) {
+      if (*at1 != *at2) {
+        const double* XYZ2 = frameIn.XYZ(*at2);
+        double dist2 = DIST2(imageOpt_.ImagingType(), XYZ1, XYZ2, frameIn.BoxCrd());
+        if (dist2 > max_dist2)
+          max_dist2 = dist2;
+      }
+    }
+  }
+  return sqrt(max_dist2);
+}
+
+/** Get max distance between all atoms pairs */
+double Action_MinMaxDist::get_max_dist(AtomMask const& mask1, Frame const& frameIn)
+const
+{
+  double max_dist2 = 0; 
+  for (AtomMask::const_iterator at1 = mask1.begin(); at1 != mask1.end(); ++at1) {
+    const double* XYZ1 = frameIn.XYZ(*at1);
+    for (AtomMask::const_iterator at2 = at1 + 1; at2 != mask1.end(); ++at2) {
+      const double* XYZ2 = frameIn.XYZ(*at2);
+      double dist2 = DIST2(imageOpt_.ImagingType(), XYZ1, XYZ2, frameIn.BoxCrd());
+      if (dist2 > max_dist2)
+        max_dist2 = dist2;
+    }
+  }
+  return sqrt(max_dist2);
+}
+
 // Action_MinMaxDist::DoAction()
 Action::RetType Action_MinMaxDist::DoAction(int frameNum, ActionFrame& frm)
 {
   if (imageOpt_.ImagingEnabled())
     imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
 
-  if (
 
   return Action::OK;
 }
