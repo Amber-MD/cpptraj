@@ -149,8 +149,8 @@ const
   return 0;
 }
 
-/// Aspect for BY_RES
-inline static std::string res_aspect(int r0, int r1, Topology const& topIn)
+/// Aspect for BY_RES/BY_MOL
+inline static std::string entity_aspect(int r0, int r1)
 {
   return std::string( integerToString(r0+1) + "_" + integerToString(r1+1) );
 }
@@ -204,7 +204,7 @@ Action::RetType Action_MinMaxDist::Setup(ActionSetup& setup)
         {
           if (it1->num_ > it2->num_) { // TODO at least 2 res gap?
             mprintf("DEBUG: Pair %i - %i\n", it1->num_ + 1, it2->num_ + 1);
-            MetaData meta(dsname_, res_aspect(it2->num_, it1->num_, setup.Top()));
+            MetaData meta(dsname_, entity_aspect(it2->num_, it1->num_));
             DataSet* ds = masterDSL_->AddSet(DataSet::FLOAT, meta);
             if (ds == 0) {
               mprinterr("Error: Could not allocate data set %s[%s]\n",
@@ -221,7 +221,7 @@ Action::RetType Action_MinMaxDist::Setup(ActionSetup& setup)
         for (Earray::const_iterator it2 = it1 + 1; it2 != entities1_.end(); ++it2)
         {
           mprintf("DEBUG: Pair %i - %i\n", it1->num_ + 1, it2->num_ + 1);
-          MetaData meta(dsname_, res_aspect(it2->num_, it1->num_, setup.Top()));
+          MetaData meta(dsname_, entity_aspect(it2->num_, it1->num_));
           DataSet* ds = masterDSL_->AddSet(DataSet::FLOAT, meta);
           if (ds == 0) {
             mprinterr("Error: Could not allocate data set %s[%s]\n",
