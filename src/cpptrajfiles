@@ -343,6 +343,7 @@ COMMON_SOURCES= \
         Image_List_Mask.cpp \
         Image_List_Pair.cpp \
         Image_List_Unit.cpp \
+        InteractionData.cpp \
         InputTrajCommon.cpp \
         KDE.cpp \
         LeapInterface.cpp \

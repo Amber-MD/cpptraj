@@ -2,6 +2,7 @@
 #define INC_ACTION_MINMAXDIST_H
 #include "Action.h"
 #include "ImageOption.h"
+#include "InteractionData.h"
 /// Record the min/max distance between atoms/residues/molecules 
 class Action_MinMaxDist : public Action {
   public:
@@ -48,5 +49,6 @@ class Action_MinMaxDist : public Action {
     Earray entities2_; ///< Entities corresponding to mask2_
     std::string dsname_; ///< Data set name
     DataSetList* masterDSL_; ///< Pointer to master data set list
+    Cpptraj::InteractionData interactionSets_; ///< Hold interaction sets
 };
 #endif
