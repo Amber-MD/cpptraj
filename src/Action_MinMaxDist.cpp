@@ -31,7 +31,7 @@ const char* Action_MinMaxDist::distTypeStr_[] = {
 // Action_MinMaxDist::Help()
 void Action_MinMaxDist::Help() const {
   mprintf("\tmask1 <mask1> [mask2 <mask2>] [{byatom|byres|bymol}]\n"
-          "\t[mindist] [maxdist] [bothdist] [noimage] [name <setname>]\n"
+          "\t[mindist] [maxdist] [noimage] [name <setname>]\n"
           "  Record the min/max distance between atoms/residues/molecules.\n"
          );
 }
@@ -68,8 +68,8 @@ Action::RetType Action_MinMaxDist::Init(ArgList& actionArgs, ActionInit& init, i
   // Distance calc type args
   bool calc_mindist = (actionArgs.hasKey("mindist") || (actionArgs[0] == "mindist"));
   bool calc_maxdist = (actionArgs.hasKey("maxdist") || (actionArgs[0] == "maxdist"));
-  if (actionArgs.hasKey("bothdist"))
-    distType_ = BOTH_DIST;
+  //if (actionArgs.hasKey("bothdist"))
+  //  distType_ = BOTH_DIST;
   // DataSet Name
   dsname_ = actionArgs.GetStringKey("name");
   // Default name
@@ -80,9 +80,11 @@ Action::RetType Action_MinMaxDist::Init(ArgList& actionArgs, ActionInit& init, i
     mode_ = BY_ATOM;
   // Default distance calc type
   if (distType_ == NO_DIST) {
-    if (calc_mindist && calc_maxdist)
-      distType_ = BOTH_DIST;
-    else if (calc_mindist)
+    if (calc_mindist && calc_maxdist) {
+      //distType_ = BOTH_DIST;
+      mprinterr("Error: Can only have 'mindist' or 'maxdist', not both.\n");
+      return Action::ERR;
+    } else if (calc_mindist)
       distType_ = MIN_DIST;
     else if (calc_maxdist)
       distType_ = MAX_DIST;
@@ -320,6 +322,8 @@ Action::RetType Action_MinMaxDist::DoAction(int frameNum, ActionFrame& frm)
 {
   if (imageOpt_.ImagingEnabled())
     imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
+
+  if (
 
   return Action::OK;
 }
