@@ -29,6 +29,7 @@ class Action_MinMaxDist : public Action {
     };
 
     typedef std::vector<Entity> Earray;
+    typedef std::vector<DataSet*> DSarray;
 
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
@@ -50,5 +51,6 @@ class Action_MinMaxDist : public Action {
     std::string dsname_; ///< Data set name
     DataSetList* masterDSL_; ///< Pointer to master data set list
     Cpptraj::InteractionData interactionSets_; ///< Hold interaction sets
+    DSarray activeSets_;                       ///< Hold active interaction sets
 };
 #endif

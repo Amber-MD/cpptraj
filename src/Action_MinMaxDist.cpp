@@ -125,8 +125,8 @@ const
   CharMask cmask(maskIn.ConvertToCharMask(), maskIn.Nselected());
 
   if (mode_ == BY_RES) {
-    entities.reserve(topIn.Nres());
-    for (unsigned int ires = 0; ires < (unsigned int)topIn.Nres(); ires++) {
+    //entities.reserve(topIn.Nres());
+    for (int ires = 0; ires < topIn.Nres(); ires++) {
       Residue const& Res = topIn.Res(ires);
       bool needs_alloc = true;
       for (int at = Res.FirstAtom(); at != Res.LastAtom(); at++) {
@@ -140,6 +140,26 @@ const
         }
       }
     } // END loop over residues
+  } else if (mode_ == BY_MOL) {
+    for (int imol = 0; imol < topIn.Nmol(); imol++) {
+      Molecule const& Mol = topIn.Mol(imol);
+      bool needs_alloc = true;
+      for (Unit::const_iterator seg = Mol.MolUnit().segBegin();
+                                seg != Mol.MolUnit().segEnd(); ++seg)
+      {
+        for (int at = seg->Begin(); at < seg->End(); ++at) {
+          if (cmask.AtomInCharMask( at )) {
+            if (needs_alloc) {
+              int rnum = topIn[at].ResNum();
+              entities.push_back( Entity(topIn.Res(rnum).Name().Truncated(), imol) );
+              needs_alloc = false;
+            }
+            Entity& currentEntity = entities.back();
+            currentEntity.emask_.AddSelectedAtom( at );
+          }
+        }
+      } // END loop over molecule segments
+    } // END loop over molecules
   } else {
     mprinterr("Internal Error: Action_MinMaxDist::setupEntityArray() Unhandled mode\n");
     return 1;
@@ -191,6 +211,7 @@ Action::RetType Action_MinMaxDist::Setup(ActionSetup& setup)
                 modeStr_[mode_], mask1_.MaskString());
       return Action::ERR;
     }
+    activeSets_.clear();
     if (mask2_.MaskStringSet()) {
       if (setupEntityArray(entities2_, mask2_, setup.Top())) {
         mprinterr("Error: Could not set up %s for mask '%s'\n",
@@ -205,12 +226,13 @@ Action::RetType Action_MinMaxDist::Setup(ActionSetup& setup)
           if (it1->num_ > it2->num_) { // TODO at least 2 res gap?
             mprintf("DEBUG: Pair %i - %i\n", it1->num_ + 1, it2->num_ + 1);
             MetaData meta(dsname_, entity_aspect(it2->num_, it1->num_));
-            DataSet* ds = masterDSL_->AddSet(DataSet::FLOAT, meta);
+            DataSet* ds = interactionSets_.AddInteractionSet(*masterDSL_, DataSet::FLOAT, meta, it2->num_, it1->num_);
             if (ds == 0) {
               mprinterr("Error: Could not allocate data set %s[%s]\n",
                         meta.Name().c_str(), meta.Aspect().c_str());
               return Action::ERR;
             }
+            activeSets_.push_back( ds );
           }
         }
       }
@@ -222,15 +244,19 @@ Action::RetType Action_MinMaxDist::Setup(ActionSetup& setup)
         {
           mprintf("DEBUG: Pair %i - %i\n", it1->num_ + 1, it2->num_ + 1);
           MetaData meta(dsname_, entity_aspect(it2->num_, it1->num_));
-          DataSet* ds = masterDSL_->AddSet(DataSet::FLOAT, meta);
+          DataSet* ds = interactionSets_.AddInteractionSet(*masterDSL_, DataSet::FLOAT, meta, it2->num_, it1->num_);
           if (ds == 0) {
             mprinterr("Error: Could not allocate data set %s[%s]\n",
                       meta.Name().c_str(), meta.Aspect().c_str());
             return Action::ERR;
           }
+          activeSets_.push_back( ds );
         }
       }
     }
+    mprintf("DEBUG: Active sets:\n");
+    for (DSarray::const_iterator it = activeSets_.begin(); it != activeSets_.end(); ++it)
+      mprintf("\t%s\n", (*it)->legend());
   } // END BY_RES, BY_MOL
 
   return Action::OK;
