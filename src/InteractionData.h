@@ -2,6 +2,7 @@
 #define INC_INTERACTIONDATA_H
 #include "DataSet.h" // DataType
 #include <map>
+class DataFile;
 class DataSetList;
 class MetaData;
 namespace Cpptraj {
@@ -11,7 +12,7 @@ class InteractionData {
     InteractionData();
 
     /// Add interaction pair data set
-    DataSet* AddInteractionSet(DataSetList&, DataSet::DataType, MetaData const&, int, int);
+    DataSet* AddInteractionSet(DataSetList&, DataSet::DataType, MetaData const&, int, int, DataFile*);
   private:
     typedef std::pair<int,int> Ipair;
     typedef std::pair<Ipair,DataSet*> PairType;

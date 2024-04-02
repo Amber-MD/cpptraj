@@ -10,6 +10,7 @@
 Action_MinMaxDist::Action_MinMaxDist() :
   mode_(NO_MODE),
   distType_(NO_DIST),
+  outfile_(0),
   byAtomSet_(0),
   masterDSL_(0)
 {}
@@ -32,6 +33,7 @@ const char* Action_MinMaxDist::distTypeStr_[] = {
 void Action_MinMaxDist::Help() const {
   mprintf("\tmask1 <mask1> [mask2 <mask2>] [{byatom|byres|bymol}]\n"
           "\t[mindist] [maxdist] [noimage] [name <setname>]\n"
+          "\t[out <file>]\n"
           "  Record the min/max distance between atoms/residues/molecules.\n"
          );
 }
@@ -58,6 +60,8 @@ Action::RetType Action_MinMaxDist::Init(ArgList& actionArgs, ActionInit& init, i
       return Action::ERR;
     }
   }
+  // File args
+  outfile_ = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   // Mode args
   if (actionArgs.hasKey("byatom"))
     mode_ = BY_ATOM;
@@ -101,6 +105,8 @@ Action::RetType Action_MinMaxDist::Init(ArgList& actionArgs, ActionInit& init, i
       mprinterr("Error: Could not allocate set '%s'\n", dsname_.c_str());
       return Action::ERR;
     }
+    if (outfile_ != 0)
+      outfile_->AddDataSet( byAtomSet_ );
   }
 
   mprintf("    MINMAXDIST: Calculating %s distance for selected %s.\n",
@@ -114,6 +120,8 @@ Action::RetType Action_MinMaxDist::Init(ArgList& actionArgs, ActionInit& init, i
   else
     mprintf("\tDistances will not be imaged.\n");
   mprintf("\tData set name: %s\n", dsname_.c_str());
+  if (outfile_ != 0)
+    mprintf("Data file name: %s\n", outfile_->DataFilename().full());
 
   return Action::OK;
 }
@@ -241,7 +249,7 @@ Action::RetType Action_MinMaxDist::Setup(ActionSetup& setup)
           if (it1->num_ > it2->num_) { // TODO at least 2 res gap?
             mprintf("DEBUG: Pair %i - %i\n", it1->num_ + 1, it2->num_ + 1);
             MetaData meta(dsname_, entity_aspect(it2->num_, it1->num_));
-            DataSet* ds = interactionSets_.AddInteractionSet(*masterDSL_, DataSet::FLOAT, meta, it2->num_, it1->num_);
+            DataSet* ds = interactionSets_.AddInteractionSet(*masterDSL_, DataSet::FLOAT, meta, it2->num_, it1->num_, outfile_);
             if (ds == 0) {
               mprinterr("Error: Could not allocate data set %s[%s]\n",
                         meta.Name().c_str(), meta.Aspect().c_str());
@@ -259,7 +267,7 @@ Action::RetType Action_MinMaxDist::Setup(ActionSetup& setup)
         {
           mprintf("DEBUG: Pair %i - %i\n", it1->num_ + 1, it2->num_ + 1);
           MetaData meta(dsname_, entity_aspect(it2->num_, it1->num_));
-          DataSet* ds = interactionSets_.AddInteractionSet(*masterDSL_, DataSet::FLOAT, meta, it2->num_, it1->num_);
+          DataSet* ds = interactionSets_.AddInteractionSet(*masterDSL_, DataSet::FLOAT, meta, it2->num_, it1->num_, outfile_);
           if (ds == 0) {
             mprinterr("Error: Could not allocate data set %s[%s]\n",
                       meta.Name().c_str(), meta.Aspect().c_str());
@@ -292,6 +300,7 @@ const
       if (*at1 != *at2) {
         const double* XYZ2 = frameIn.XYZ(*at2);
         double dist2 = DIST2(imageOpt_.ImagingType(), XYZ1, XYZ2, frameIn.BoxCrd());
+        //mprintf("DEBUG: get_min_dist(m1,m2) %i %i = %f\n", *at1 + 1, *at2 + 1, sqrt(dist2));
         if (dist2 < min_dist2)
           min_dist2 = dist2;
       }

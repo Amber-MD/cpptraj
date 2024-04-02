@@ -1,5 +1,6 @@
 #include "InteractionData.h"
 #include "CpptrajStdio.h"
+#include "DataFile.h"
 #include "DataSetList.h"
 
 using namespace Cpptraj;
@@ -10,7 +11,8 @@ InteractionData::InteractionData()
 
 /** Add set tracking interaction between the two given indices. */
 DataSet* InteractionData::AddInteractionSet(DataSetList& dsl, DataSet::DataType typeIn,
-                                            MetaData const& metaIn, int i0, int i1)
+                                            MetaData const& metaIn, int i0, int i1,
+                                            DataFile* outfile)
 {
   // Check for existing interaction
   Ipair interaction;
@@ -30,6 +32,7 @@ DataSet* InteractionData::AddInteractionSet(DataSetList& dsl, DataSet::DataType 
       mprinterr("Error: Could not allocate data set %s\n", metaIn.PrintName().c_str());
       return 0;
     }
+    if (outfile != 0) outfile->AddDataSet( ds );
     it = setMap_.insert(it, PairType(interaction, ds));
   }
   // TODO check existing set for issues?
