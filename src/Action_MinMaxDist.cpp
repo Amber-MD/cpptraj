@@ -7,6 +7,7 @@
 Action_MinMaxDist::Action_MinMaxDist() :
   mode_(NO_MODE),
   distType_(NO_DIST),
+  byAtomSet_(0),
   masterDSL_(0)
 {}
 
@@ -88,6 +89,14 @@ Action::RetType Action_MinMaxDist::Init(ArgList& actionArgs, ActionInit& init, i
     }
   }
   masterDSL_ = init.DslPtr();
+  // Allocate by atom set
+  if (mode_ == BY_ATOM) {
+    byAtomSet_ = init.DSL().AddSet(DataSet::FLOAT, MetaData(dsname_));
+    if (byAtomSet_ == 0) {
+      mprinterr("Error: Could not allocate set '%s'\n", dsname_.c_str());
+      return Action::ERR;
+    }
+  }
 
   mprintf("    MINMAXDIST: Calculating %s distance for selected %s.\n",
           distTypeStr_[distType_], modeStr_[mode_]);
@@ -257,6 +266,10 @@ Action::RetType Action_MinMaxDist::Setup(ActionSetup& setup)
     mprintf("DEBUG: Active sets:\n");
     for (DSarray::const_iterator it = activeSets_.begin(); it != activeSets_.end(); ++it)
       mprintf("\t%s\n", (*it)->legend());
+    if (activeSets_.empty()) {
+      mprintf("Warning: No active interaction pairs. Skipping.\n");
+      return Action::SKIP;
+    }
   } // END BY_RES, BY_MOL
 
   return Action::OK;
