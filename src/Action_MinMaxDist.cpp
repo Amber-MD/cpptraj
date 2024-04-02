@@ -1,7 +1,10 @@
 #include "Action_MinMaxDist.h"
 #include "CharMask.h"
 #include "CpptrajStdio.h"
+#include "DistRoutines.h"
 #include "StringRoutines.h" // integerToString
+#include <limits> // Max double
+#include <cmath> // sqrt
 
 /** CONSTRUCTOR */
 Action_MinMaxDist::Action_MinMaxDist() :
@@ -214,13 +217,14 @@ Action::RetType Action_MinMaxDist::Setup(ActionSetup& setup)
       return Action::SKIP;
     }
   }
+  // By residue/molecule interaction pair data set setup
+  activeSets_.clear();
   if (mode_ != BY_ATOM) {
     if (setupEntityArray(entities1_, mask1_, setup.Top())) {
       mprinterr("Error: Could not set up %s for mask '%s'\n",
                 modeStr_[mode_], mask1_.MaskString());
       return Action::ERR;
     }
-    activeSets_.clear();
     if (mask2_.MaskStringSet()) {
       if (setupEntityArray(entities2_, mask2_, setup.Top())) {
         mprinterr("Error: Could not set up %s for mask '%s'\n",
@@ -241,7 +245,7 @@ Action::RetType Action_MinMaxDist::Setup(ActionSetup& setup)
                         meta.Name().c_str(), meta.Aspect().c_str());
               return Action::ERR;
             }
-            activeSets_.push_back( ds );
+            activeSets_.push_back( ActiveSet(ds, it1, it2) );
           }
         }
       }
@@ -259,13 +263,13 @@ Action::RetType Action_MinMaxDist::Setup(ActionSetup& setup)
                       meta.Name().c_str(), meta.Aspect().c_str());
             return Action::ERR;
           }
-          activeSets_.push_back( ds );
+          activeSets_.push_back( ActiveSet(ds, it1, it2) );
         }
       }
     }
     mprintf("DEBUG: Active sets:\n");
     for (DSarray::const_iterator it = activeSets_.begin(); it != activeSets_.end(); ++it)
-      mprintf("\t%s\n", (*it)->legend());
+      mprintf("\t%s\n", it->ds_->legend());
     if (activeSets_.empty()) {
       mprintf("Warning: No active interaction pairs. Skipping.\n");
       return Action::SKIP;
@@ -275,8 +279,47 @@ Action::RetType Action_MinMaxDist::Setup(ActionSetup& setup)
   return Action::OK;
 }
 
+/** Get min distance between all atom pairs */
+double Action_MinMaxDist::get_min_dist(AtomMask const& mask1, AtomMask const& mask2, Frame const& frameIn)
+const
+{
+  double min_dist2 = std::numeric_limits<double>::max(); 
+  for (AtomMask::const_iterator at1 = mask1.begin(); at1 != mask1.end(); ++at1) {
+    const double* XYZ1 = frameIn.XYZ(*at1);
+    for (AtomMask::const_iterator at2 = mask2.begin(); at2 != mask2.end(); ++at2) {
+      if (*at1 != *at2) {
+        const double* XYZ2 = frameIn.XYZ(*at2);
+        double dist2 = DIST2(imageOpt_.ImagingType(), XYZ1, XYZ2, frameIn.BoxCrd());
+        if (dist2 < min_dist2)
+          min_dist2 = dist2;
+      }
+    }
+  }
+  return sqrt(min_dist2);
+}
+
+/** Get min distance between all atoms pairs */
+double Action_MinMaxDist::get_min_dist(AtomMask const& mask1, Frame const& frameIn)
+const
+{
+  double min_dist2 = std::numeric_limits<double>::max(); 
+  for (AtomMask::const_iterator at1 = mask1.begin(); at1 != mask1.end(); ++at1) {
+    const double* XYZ1 = frameIn.XYZ(*at1);
+    for (AtomMask::const_iterator at2 = at1 + 1; at2 != mask1.end(); ++at2) {
+      const double* XYZ2 = frameIn.XYZ(*at2);
+      double dist2 = DIST2(imageOpt_.ImagingType(), XYZ1, XYZ2, frameIn.BoxCrd());
+      if (dist2 < min_dist2)
+        min_dist2 = dist2;
+    }
+  }
+  return sqrt(min_dist2);
+}
+
 // Action_MinMaxDist::DoAction()
 Action::RetType Action_MinMaxDist::DoAction(int frameNum, ActionFrame& frm)
 {
+  if (imageOpt_.ImagingEnabled())
+    imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
+
   return Action::OK;
 }

@@ -27,9 +27,18 @@ class Action_MinMaxDist : public Action {
         std::string name_; ///< residue/molecule name
         int num_;          ///< residue/molecule number
     };
-
     typedef std::vector<Entity> Earray;
-    typedef std::vector<DataSet*> DSarray;
+
+    /// Used to track active sets and corresponding entities
+    class ActiveSet {
+      public:
+        ActiveSet(DataSet* ds, Earray::const_iterator const& it1, Earray::const_iterator const& it2) :
+          ds_(ds), it1_(it1), it2_(it2) {}
+        DataSet* ds_;
+        Earray::const_iterator it1_;
+        Earray::const_iterator it2_;
+    };
+    typedef std::vector<ActiveSet> DSarray;
 
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
@@ -40,6 +49,10 @@ class Action_MinMaxDist : public Action {
     void printEntities(Earray const&, AtomMask const&) const;
     /// Set up entity array for current mode
     int setupEntityArray(Earray&, AtomMask const&, Topology const&) const;
+    /// Get minimum distance between atoms in masks
+    double get_min_dist(AtomMask const&, AtomMask const&, Frame const&) const;
+    /// Get minimum distance between atoms in mask
+    double get_min_dist(AtomMask const&, Frame const&) const;
 
     AtomMask mask1_;
     AtomMask mask2_;
