@@ -1,6 +1,7 @@
 #include "CoordCovarMatrix_Half.h"
 #include "AtomMask.h"
 #include "CpptrajStdio.h"
+#include "DataSet_1D.h"
 #include <cmath> // sqrt
 
 /** CONSTRUCTOR */
@@ -14,6 +15,47 @@ void CoordCovarMatrix_Half::clearMat() {
 }
 
 /** Set up array for incoming data sets. */
+int CoordCovarMatrix_Half::SetupMatrix(std::vector<DataSet_1D*> const& sets)
+{
+  int is_periodic = -1;
+  
+  for (std::vector<DataSet_1D*>::const_iterator it = sets.begin(); it != sets.end(); ++it)
+  {
+    if ((*it)->Meta().IsTorsionArray()) {
+      if (is_periodic == -1)
+        is_periodic = 1;
+      else if (is_periodic != 1) {
+        mprinterr("Error: If one set is not periodic all must be. Set '%s' is periodic.\n",
+                  (*it)->legend());
+        return 1;
+      }
+    } else {
+      if (is_periodic == -1)
+        is_periodic = 0;
+      else if (is_periodic != 0) {
+        mprinterr("Error: If one set is periodic all must be. Set '%'s is not periodic.\n",
+                  (*it)->legend());
+        return 1;
+      }
+    }
+  }
+  if (is_periodic) {
+    mprintf("\tPeriodic data sets detected.\n");
+    nelt_ = 2;
+  } else {
+    mprintf("\tNon-periodic data sets detected.\n");
+    nelt_ = 1;
+  }
+  unsigned int matSize = sets.size() * nelt_;
+  // Matrix - half
+  covarMatrix_.resize( matSize, 0 );
+
+  vect_.assign( matSize, 0 );
+
+  mass_.resize( sets.size(), 1.0 );
+
+  return 0;
+}
 
 /** Set up array sizess and masses. */
 int CoordCovarMatrix_Half::SetupMatrix(std::vector<Atom> const& atoms,
