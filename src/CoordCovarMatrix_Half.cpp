@@ -1,5 +1,6 @@
 #include "CoordCovarMatrix_Half.h"
 #include "AtomMask.h"
+#include "Constants.h"
 #include "CpptrajStdio.h"
 #include "DataSet_1D.h"
 #include <cmath> // sqrt
@@ -70,6 +71,45 @@ int CoordCovarMatrix_Half::SetupMatrix(std::vector<Atom> const& atoms,
   set_mass_array(mass_, atoms, maskIn, useMassIn);
 
   return 0;
+}
+
+/** Add data from sets to the matrix. */
+void CoordCovarMatrix_Half::AddDataToMatrix(std::vector<DataSet_1D*> const& sets)
+{
+  // TODO check empty input array
+  // Check that sets have same size
+  unsigned int maxFrames = sets.front()->Size();
+  for (std::vector<DataSet_1D*>::const_iterator it = sets.begin(); it != sets.end(); ++it)
+  {
+    if ((*it)->Size() != maxFrames) {
+      mprinterr("Error: Set '%s' does not have same size (%zu) as first set (%u)\n",
+                (*it)->legend(), (*it)->Size(), maxFrames);
+      return;
+    }
+  }
+  Darray arrayIn;
+  arrayIn.resize( sets.size() * nelt_ );
+  if (nelt_ == 2) {
+    for (unsigned int idx = 0; idx < maxFrames; idx++) {
+      unsigned int jdx = 0;
+      for (std::vector<DataSet_1D*>::const_iterator it = sets.begin(); it != sets.end(); ++it, jdx += 2)
+      {
+        double dval = (*it)->Dval(idx) * Constants::DEGRAD;
+        arrayIn[jdx  ] = cos( dval );
+        arrayIn[jdx+1] = sin( dval );
+      }
+      AddToMatrix(arrayIn);
+    }
+  } else if (nelt_ == 1) {
+    for (unsigned int idx = 0; idx < maxFrames; idx++) {
+      for (unsigned int jdx = 0; jdx < sets.size(); jdx++) {
+        arrayIn[jdx] = sets[jdx]->Dval(idx);
+      }
+    }
+  } else {
+    // Sanity check
+    mprinterr("Internal Error: CoordCovarMatrix_Half::AddDataToMatrix(): Unsupported nelt %u\n", nelt_);
+  }
 }
 
 /** Add selected atoms in given Frame to the matrix. */

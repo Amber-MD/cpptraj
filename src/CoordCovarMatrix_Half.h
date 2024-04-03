@@ -19,6 +19,8 @@ class CoordCovarMatrix_Half : public CoordCovarMatrix {
     void AddFrameToMatrix(Frame const&, AtomMask const&);
     /// Add Frame to matrix
     //void AddFrameToMatrix(Frame const&);
+    /// Add data in sets to matrix
+    void AddDataToMatrix(std::vector<DataSet_1D*> const&);
   private:
     /// Add elements to the matrix
     void AddToMatrix(Darray const&);
