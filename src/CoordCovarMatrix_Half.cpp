@@ -105,6 +105,7 @@ void CoordCovarMatrix_Half::AddDataToMatrix(std::vector<DataSet_1D*> const& sets
       for (unsigned int jdx = 0; jdx < sets.size(); jdx++) {
         arrayIn[jdx] = sets[jdx]->Dval(idx);
       }
+      AddToMatrix(arrayIn);
     }
   } else {
     // Sanity check
