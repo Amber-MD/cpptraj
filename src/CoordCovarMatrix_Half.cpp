@@ -198,6 +198,12 @@ int CoordCovarMatrix_Half::FinishMatrix() {
     *it *= norm;
   for (MatType::iterator it = covarMatrix_.begin(); it != covarMatrix_.end(); ++it)
     *it *= norm;
+  // DEBUG print mean
+  CpptrajFile outfile;
+  outfile.OpenWrite("debug.mean.dat");
+  for (Darray::iterator it = vect_.begin(); it != vect_.end(); ++it)
+    outfile.Printf("%12.6f\n", *it);
+  outfile.CloseFile();
   // Calc <riri> - <ri><ri>
   //for (int k = 0; k < mask1_.Nselected(); k++) {
   //  vect2[k][0] -= (vect[k][0] * vect[k][0]);
