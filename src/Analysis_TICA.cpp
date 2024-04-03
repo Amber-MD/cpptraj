@@ -85,20 +85,21 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
 
   // Print analysis info
   mprintf("    TICA: Time independent correlation analysis.\n");
-  if (TgtTraj_ != 0)
+  if (TgtTraj_ != 0) {
     mprintf("\tUsing coordinates from set '%s'\n", TgtTraj_->legend());
+    mprintf("\tUsing atoms selected by mask '%s'\n", mask1_.MaskString());
+    if (useMass_)
+      mprintf("\tMass-weighted.\n");
+    else
+      mprintf("\tNot mass-weighted.\n");
+  }
   if (!sets_.empty()) {
     mprintf("\tUsing %zu data sets:", sets_.size());
     for (Array1D::const_iterator it = sets_.begin(); it != sets_.end(); ++it)
       mprintf(" %s", (*it)->legend());
     mprintf("\n");
   }
-  mprintf("\tUsing atoms selected by mask '%s'\n", mask1_.MaskString());
   mprintf("\tTime lag: %i frames.\n", lag_);
-  if (useMass_)
-    mprintf("\tMass-weighted.\n");
-  else
-    mprintf("\tNot mass-weighted.\n");
   if (debugC0_ != 0)
     mprintf("\tDebug C0 output to %s\n", debugC0_->Filename().full());
   if (debugCT_ != 0)
