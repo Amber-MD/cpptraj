@@ -20,8 +20,10 @@ class CoordCovarMatrix {
     /// Clear the matrix
     void Clear();
 
-    /// Print matrix elements to STDOUT for debug
+    /// Print matrix elements to STDOUT for debug with default format
     void DebugPrint(const char*, CpptrajFile&) const;
+    /// Print matrix elements to STDOUT for debug with given format
+    void DebugPrint(const char*, CpptrajFile&, const char*) const;
   protected:
     typedef Matrix<double> MatType;
     typedef std::vector<double> Darray;

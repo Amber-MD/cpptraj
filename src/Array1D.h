@@ -25,6 +25,8 @@ class Array1D {
     int AddDataSets(DataSetList const&);
     int AddTorsionSets(DataSetList const&);
     int AddSetsFromArgs(ArgList const&, DataSetList const&);
+    /// \return the internal array
+    std::vector<DataSet_1D*> const& Array() const { return array_; }
   private:
     std::vector<DataSet_1D*> array_;
 };

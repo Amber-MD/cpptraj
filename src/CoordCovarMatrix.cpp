@@ -36,13 +36,18 @@ void CoordCovarMatrix::set_mass_array(Darray& mass, std::vector<Atom> const& ato
   }
 }
 
-/** Debug print to file */
+/** Debug print to file with default format. */
 void CoordCovarMatrix::DebugPrint(const char* desc, CpptrajFile& outfile) const {
+  DebugPrint(desc, outfile, " %6.3f");
+}
+
+/** Debug print to file */
+void CoordCovarMatrix::DebugPrint(const char* desc, CpptrajFile& outfile, const char* fmt) const {
   if (desc != 0)
     outfile.Printf("DEBUG: CoordCovarMatrix: %s\n", desc);
   for (unsigned int row = 0; row < covarMatrix_.Nrows(); row++) {
     for (unsigned int col = 0; col < covarMatrix_.Ncols(); col++) {
-      outfile.Printf(" %6.3f", covarMatrix_.element(col, row));
+      outfile.Printf(fmt, covarMatrix_.element(col, row));
     }
     outfile.Printf("\n");
   }

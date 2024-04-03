@@ -2,6 +2,7 @@
 #include "CoordCovarMatrix_Full.h"
 #include "CoordCovarMatrix_Half.h"
 #include "CpptrajStdio.h"
+#include "DataSet_1D.h"
 
 /** CONSTRUCTOR */
 Analysis_TICA::Analysis_TICA() :
@@ -22,13 +23,33 @@ void Analysis_TICA::Help() const {
 // Analysis_TICA::Setup()
 Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
-  // Attempt to get coords dataset from datasetlist
+  // Attempt to get coords dataset or datasets from datasetlist
+  TgtTraj_ = 0;
+  sets_.clear();
   std::string setname = analyzeArgs.GetStringKey("crdset");
-  TgtTraj_ = (DataSet_Coords*)setup.DSL().FindCoordsSet( setname );
-  if (TgtTraj_ == 0) {
-    mprinterr("Error: Could not locate COORDS set corresponding to %s\n",
-              setname.c_str());
-    Help();
+  std::string dataarg = analyzeArgs.GetStringKey("data");
+  if (!setname.empty() && !dataarg.empty()) {
+    mprinterr("Error: Specify either 'crdset' or 'data', not both.\n");
+    return Analysis::ERR;
+  }
+  if (!setname.empty()) {
+    TgtTraj_ = (DataSet_Coords*)setup.DSL().FindCoordsSet( setname );
+    if (TgtTraj_ == 0) {
+      mprinterr("Error: Could not locate COORDS set corresponding to %s\n",
+                setname.c_str());
+      Help();
+      return Analysis::ERR;
+    }
+  } else if (!dataarg.empty()) {
+    while (!dataarg.empty()) {
+      if (sets_.AddSetsFromArgs( ArgList(dataarg), setup.DSL() )) {
+        mprinterr("Error: Could not add data sets using argument '%s'\n", dataarg.c_str());
+        return Analysis::ERR;
+      }
+      dataarg = analyzeArgs.GetStringKey("data");
+    }
+  } else {
+    mprinterr("Error: Must specify either 'crdset' or 'data'.\n");
     return Analysis::ERR;
   }
   // Other keywords
@@ -64,7 +85,14 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
 
   // Print analysis info
   mprintf("    TICA: Time independent correlation analysis.\n");
-  mprintf("\tUsing coordinates from set '%s'\n", TgtTraj_->legend());
+  if (TgtTraj_ != 0)
+    mprintf("\tUsing coordinates from set '%s'\n", TgtTraj_->legend());
+  if (!sets_.empty()) {
+    mprintf("\tUsing %zu data sets:", sets_.size());
+    for (Array1D::const_iterator it = sets_.begin(); it != sets_.end(); ++it)
+      mprintf(" %s", (*it)->legend());
+    mprintf("\n");
+  }
   mprintf("\tUsing atoms selected by mask '%s'\n", mask1_.MaskString());
   mprintf("\tTime lag: %i frames.\n", lag_);
   if (useMass_)
@@ -81,6 +109,36 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
 
 // Analysis_TICA::Analyze()
 Analysis::RetType Analysis_TICA::Analyze() {
+  if (TgtTraj_ != 0)
+    return analyze_crdset();
+  else if (!sets_.empty())
+    return analyze_datasets();
+
+  return Analysis::ERR;
+}
+
+/** Analyze multiple 1D data sets. */
+Analysis::RetType Analysis_TICA::analyze_datasets() {
+  // Matrix - half
+  CoordCovarMatrix_Half covarMatrix;
+  if (covarMatrix.SetupMatrix( sets_.Array() )) {
+    mprinterr("Error: Could not set up C0 matrix for data sets.\n");
+    return Analysis::ERR;
+  }
+  covarMatrix.AddDataToMatrix( sets_.Array() );
+  // Normalize
+  if (covarMatrix.FinishMatrix()) {
+    mprinterr("Error: Could not normalize coordinate covariance matrix for C0.\n");
+    return Analysis::ERR;
+  }
+  // DEBUG PRINT
+  covarMatrix.DebugPrint("C0", *debugC0_, " %12.6f");
+
+  return Analysis::OK;
+}
+
+/** Analyze coordinates data set. */
+Analysis::RetType Analysis_TICA::analyze_crdset() {
   unsigned int Nframes = TgtTraj_->Size();
   if (Nframes < 1) {
     mprinterr("Error: No frames to analyze.\n");
@@ -114,7 +172,10 @@ Analysis::RetType Analysis_TICA::Analyze() {
   //Frame coords1 = coords0;
   // Matrix - half
   CoordCovarMatrix_Half covarMatrix;
-  covarMatrix.SetupMatrix(TgtTraj_->Top().Atoms(), mask1_, useMass_ );
+  if (covarMatrix.SetupMatrix(TgtTraj_->Top().Atoms(), mask1_, useMass_ )) {
+    mprinterr("Error: Could not set up C0 matrix for '%s'.\n", TgtTraj_->legend());
+    return Analysis::ERR;
+  }
   // Loop over frames
   for (unsigned int frm0 = 0; frm0 < Nframes; frm0++) {
     //mprintf("DEBUG: Frame %i\n", frm0);
