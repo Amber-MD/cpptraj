@@ -16,11 +16,11 @@ void CoordCovarMatrix_Half::clearMat() {
 }
 
 /** Set up array for incoming data sets. */
-int CoordCovarMatrix_Half::SetupMatrix(std::vector<DataSet_1D*> const& sets)
+int CoordCovarMatrix_Half::SetupMatrix(DSarray const& sets)
 {
   int is_periodic = -1;
   
-  for (std::vector<DataSet_1D*>::const_iterator it = sets.begin(); it != sets.end(); ++it)
+  for (DSarray::const_iterator it = sets.begin(); it != sets.end(); ++it)
   {
     if ((*it)->Meta().IsTorsionArray()) {
       if (is_periodic == -1)
@@ -74,12 +74,12 @@ int CoordCovarMatrix_Half::SetupMatrix(std::vector<Atom> const& atoms,
 }
 
 /** Add data from sets to the matrix. */
-void CoordCovarMatrix_Half::AddDataToMatrix(std::vector<DataSet_1D*> const& sets)
+void CoordCovarMatrix_Half::AddDataToMatrix(DSarray const& sets)
 {
   // TODO check empty input array
   // Check that sets have same size
   unsigned int maxFrames = sets.front()->Size();
-  for (std::vector<DataSet_1D*>::const_iterator it = sets.begin(); it != sets.end(); ++it)
+  for (DSarray::const_iterator it = sets.begin(); it != sets.end(); ++it)
   {
     if ((*it)->Size() != maxFrames) {
       mprinterr("Error: Set '%s' does not have same size (%zu) as first set (%u)\n",
@@ -92,7 +92,7 @@ void CoordCovarMatrix_Half::AddDataToMatrix(std::vector<DataSet_1D*> const& sets
   if (nelt_ == 2) {
     for (unsigned int idx = 0; idx < maxFrames; idx++) {
       unsigned int jdx = 0;
-      for (std::vector<DataSet_1D*>::const_iterator it = sets.begin(); it != sets.end(); ++it, jdx += 2)
+      for (DSarray::const_iterator it = sets.begin(); it != sets.end(); ++it, jdx += 2)
       {
         double dval = (*it)->Dval(idx) * Constants::DEGRAD;
         arrayIn[jdx  ] = cos( dval );

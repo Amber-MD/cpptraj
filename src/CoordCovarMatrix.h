@@ -5,6 +5,7 @@
 class Atom;
 class AtomMask;
 class CpptrajFile;
+class DataSet_1D;
 class Frame;
 /// Coordinate covariance matrix abstract base class
 class CoordCovarMatrix {
@@ -27,6 +28,7 @@ class CoordCovarMatrix {
   protected:
     typedef Matrix<double> MatType;
     typedef std::vector<double> Darray;
+    typedef std::vector<DataSet_1D*> DSarray;
 
     /// clear internal variables
     virtual void clearMat() = 0;
