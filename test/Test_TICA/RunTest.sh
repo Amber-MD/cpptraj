@@ -24,6 +24,8 @@ runanalysis tica crdset TZ2 mask :1-3@N,CA mask2 :1-3@C,O lag 1 debugct ticadebu
 list dataset
 EOF
 RunCpptraj "TICA test."
+diff M1.dat ticadebug.m1.dat
+diff M2.dat ticadebug.m2.dat
 
 EndTest
 exit 0
