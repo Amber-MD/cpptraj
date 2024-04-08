@@ -20,6 +20,8 @@ class CoordCovarMatrix_Half : public CoordCovarMatrix {
     //void AddFrameToMatrix(Frame const&);
     /// Add data in sets to matrix
     void AddDataToMatrix(DSarray const&);
+    /// Add data in sets to instantaneous and time-lagged matrices
+    void AddDataToMatrix_C0CT(DSarray const&);
   private:
     /// Add elements to the matrix
     void AddToMatrix(Darray const&);
