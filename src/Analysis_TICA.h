@@ -12,10 +12,15 @@ class Analysis_TICA : public Analysis {
     Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
+    typedef std::vector<DataSet_1D*> DSarray;
+    typedef std::vector<double> Darray;
+
     /// Analyze using coordinates data set (TgtTraj_)
     Analysis::RetType analyze_crdset();
     /// Analyze using 1D data sets (sets_)
     Analysis::RetType analyze_datasets();
+    /// Calculate instantaneous and lagged covariance matrices
+    int calculateCovariance_C0CT(DSarray const&) const;
 
     DataSet_Coords* TgtTraj_; ///< Input trajectory (crdset)
     int lag_; ///< TICA time lag

@@ -118,8 +118,84 @@ Analysis::RetType Analysis_TICA::Analyze() {
   return Analysis::ERR;
 }
 
+/// FOR DEBUG
+static inline void printDarray(const char* desc, std::vector<double> const& arrayIn)
+{
+  static const char* fmt = "%15.8f";
+  mprintf("DEBUG: %s:  [", desc);
+  int col = 0;
+  for (std::vector<double>::const_iterator it = arrayIn.begin(); it != arrayIn.end(); ++it)
+  {
+    mprintf(fmt, *it);
+    if ( (it+1) == arrayIn.end() ) mprintf("]");
+    col++;
+    if (col==4) {
+      mprintf("\n");
+      col = 0;
+    }
+  }
+  if (col != 0)
+    mprintf("\n");
+}
+
+/// Calculate sum over sets
+static inline void calculate_sum(std::vector<double>& sumX, std::vector<DataSet_1D*> const& sets, unsigned int nelt_,
+                                 unsigned int startFrame, unsigned int endFrame)
+{
+  sumX.assign( sets.size() * nelt_, 0 );
+
+  if (nelt_ == 2) {
+    mprinterr("Internal Error: CoordCovarMatrix_Half::AddDataToMatrix_C0CT(): Not implemented.\n");
+    return;
+  } else if (nelt_ == 1) {
+    for (unsigned int idx = startFrame; idx < endFrame; idx++) {
+      for (unsigned int jdx = 0; jdx < sets.size(); jdx++) {
+        sumX[jdx] += sets[jdx]->Dval(idx);
+      }
+    }
+  }
+}
+
+/** Calculate instantaneous covariance and lagged covariance arrays */
+int Analysis_TICA::calculateCovariance_C0CT(DSarray const& sets)
+const
+{
+  static unsigned int nelt_ = 1; // FIXME
+  // Check that sets have same size
+  unsigned int maxFrames = sets.front()->Size();
+  for (DSarray::const_iterator it = sets.begin(); it != sets.end(); ++it)
+  {
+    if ((*it)->Size() != maxFrames) {
+      mprinterr("Error: Set '%s' does not have same size (%zu) as first set (%u)\n",
+                (*it)->legend(), (*it)->Size(), maxFrames);
+      return 1;
+    }
+  }
+  // Calculate start and end times for C0 and CT
+  if ( (unsigned int)lag_ >= maxFrames ) {
+    mprinterr("Error: lag %i >= max frames %u\n", lag_, maxFrames);
+    return 1;
+  }
+  unsigned int c0end = maxFrames - (unsigned int)lag_;
+  mprintf("DEBUG: C0 start = %u end = %u\n", 0, c0end);
+  unsigned int ctstart = (unsigned int)lag_;
+  mprintf("DEBUG: CT start = %u end = %u\n", ctstart, maxFrames);
+
+  Darray sumX;
+  calculate_sum(sumX, sets, nelt_, 0, c0end);
+  printDarray("sx_raw", sumX);
+
+  Darray sumY;
+  calculate_sum(sumY, sets, nelt_, ctstart, maxFrames);
+  printDarray("sy_raw", sumY);
+
+  return 0;
+}
+
 /** Analyze multiple 1D data sets. */
 Analysis::RetType Analysis_TICA::analyze_datasets() {
+  calculateCovariance_C0CT( sets_.Array() );
+
   // Matrix - half
   CoordCovarMatrix_Half covarMatrix;
   if (covarMatrix.SetupMatrix( sets_.Array() )) {

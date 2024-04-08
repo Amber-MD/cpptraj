@@ -73,57 +73,9 @@ int CoordCovarMatrix_Half::SetupMatrix(std::vector<Atom> const& atoms,
   return 0;
 }
 
-/// FOR DEBUG
-static inline void printDarray(const char* desc, std::vector<double> const& arrayIn)
-{
-  static const char* fmt = "%15.8f";
-  mprintf("DEBUG: %s:  [", desc);
-  int col = 0;
-  for (std::vector<double>::const_iterator it = arrayIn.begin(); it != arrayIn.end(); ++it)
-  {
-    mprintf(fmt, *it);
-    if ( (it+1) == arrayIn.end() ) mprintf("]");
-    col++;
-    if (col==4) {
-      mprintf("\n");
-      col = 0;
-    }
-  }
-  if (col != 0)
-    mprintf("\n");
-}
-
-/** Add data for instantaneous covariance and lagged covariance arrays */
-void CoordCovarMatrix_Half::AddDataToMatrix_C0CT(DSarray const& sets)
-{
-  // Check that sets have same size
-  unsigned int maxFrames = sets.front()->Size();
-  for (DSarray::const_iterator it = sets.begin(); it != sets.end(); ++it)
-  {
-    if ((*it)->Size() != maxFrames) {
-      mprinterr("Error: Set '%s' does not have same size (%zu) as first set (%u)\n",
-                (*it)->legend(), (*it)->Size(), maxFrames);
-      return;
-    }
-  }
-  Darray sumX( sets.size() * nelt_, 0 );
-  if (nelt_ == 2) {
-    mprinterr("Internal Error: CoordCovarMatrix_Half::AddDataToMatrix_C0CT(): Not implemented.\n");
-    return;
-  } else if (nelt_ == 1) {
-    for (unsigned int idx = 0; idx < maxFrames; idx++) {
-      for (unsigned int jdx = 0; jdx < sets.size(); jdx++) {
-        sumX[jdx] += sets[jdx]->Dval(idx);
-      }
-    }
-    printDarray("sx_raw", sumX);
-  }
-}
-
 /** Add data from sets to the matrix. */
 void CoordCovarMatrix_Half::AddDataToMatrix(DSarray const& sets)
 {
-  AddDataToMatrix_C0CT(sets); // FIXME
   // TODO check empty input array
   // Check that sets have same size
   unsigned int maxFrames = sets.front()->Size();
