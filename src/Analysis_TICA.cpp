@@ -3,6 +3,7 @@
 #include "CoordCovarMatrix_Half.h"
 #include "CpptrajStdio.h"
 #include "DataSet_1D.h"
+#include "DataSet_double.h"
 
 /** CONSTRUCTOR */
 Analysis_TICA::Analysis_TICA() :
@@ -159,18 +160,73 @@ static inline void calculate_sum(std::vector<double>& sumX,
 }
 
 /// Subtract the set mean from every element of the set
-static inline void subtract_mean(std::vector<double>& out,
-                                 DataSet_1D* in,
+static inline void subtract_mean(DataSet_1D* outPtr,
+                                 DataSet_1D const* in,
                                  unsigned int nelt_,
                                  double total_weight,
                                  double sumX,
                                  unsigned int startFrame, unsigned int endFrame)
 {
-  out.clear();
-  out.reserve(endFrame - startFrame);
+  DataSet_double& out = static_cast<DataSet_double&>( *outPtr );
+  //out.clear();
+  out.Allocate(DataSet::SizeArray(1, endFrame - startFrame));
+  //out.reserve(endFrame - startFrame);
   double mean = sumX / total_weight;
-  for (unsigned int idx = startFrame; idx != endFrame; idx++)
-    out.push_back( in->Dval(idx) - mean );
+  for (unsigned int idx = startFrame; idx != endFrame; idx++) {
+    out.AddElement( in->Dval(idx) - mean );
+    //out.push_back( in->Dval(idx) - mean );
+  }
+}
+
+/// Multiply transpose of matrix by matrix
+static void matT_times_mat( std::vector<DataSet_1D*> const& M1,
+                            std::vector<DataSet_1D*> const& M2)
+{
+  for (unsigned int row = 0; row < M1.size(); row++) {
+    DataSet_1D* seti = M1[row];
+    for (unsigned int col = 0; col < M2.size(); col++) {
+      DataSet_1D* setj = M2[col];
+      //mprintf("%u %u (%zu %zu)", row, col, seti->Size(), setj->Size());
+      // seti->Size() must equal setj->Size()
+      double sum = 0;
+      for (unsigned int k = 0; k < seti->Size(); k++) {
+        sum += (seti->Dval(k) * setj->Dval(k));
+      //  for (unsigned int j = 0; j < M2[col]->Size(); j++)
+      //    sum += M1[row]->Dval(i) * M2[col]->Dval(j);
+      }
+      mprintf(" %12.4f", sum);
+    }
+    mprintf("\n");
+  }
+}
+
+/// For eaach matrix, Multiply transpose of matrix by matrix, then sum
+static void matT_times_mat_symmetric( std::vector<DataSet_1D*> const& M1,
+                                      std::vector<DataSet_1D*> const& M2 )
+{
+  if (M1.size() != M2.size()) {
+    mprinterr("Internal Error: matT_times_mat_symmetric: Different # of sets.\n");
+    return;
+  }
+  unsigned int Nrows = M1.size();
+  unsigned int Ncols = Nrows;
+  for (unsigned int row = 0; row < Nrows; row++) {
+    DataSet_1D* seti1 = M1[row];
+    DataSet_1D* seti2 = M2[row];
+    for (unsigned int col = row; col < Ncols; col++) {
+      DataSet_1D* setj1 = M1[col];
+      DataSet_1D* setj2 = M2[col];
+      double sum = 0;
+      // ALL SETS MUST HAVE SAME SIZE
+      unsigned int nframes = seti1->Size();
+      for (unsigned int k = 0; k < nframes; k++) {
+        sum += (seti1->Dval(k) * setj1->Dval(k));
+        sum += (seti2->Dval(k) * setj2->Dval(k));
+      }
+      mprintf(" %12.4f", sum);
+    }
+    mprintf("\n");
+  }
 }
 
 /** Calculate instantaneous covariance and lagged covariance arrays */
@@ -239,20 +295,59 @@ const
   printDarray("sy_raw_centered", sy_centered, "%16.8e");
 
   // Remove mean
-  typedef std::vector<Darray> DDArray;
+  typedef std::vector<DataSet_1D*> DDArray;
   DDArray CenteredX(sets.size());
   DDArray CenteredY(sets.size());
+  for (unsigned int jdx = 0; jdx != sets.size(); jdx++) {
+    CenteredX[jdx] = (DataSet_1D*)new DataSet_double();
+    CenteredY[jdx] = (DataSet_1D*)new DataSet_double();
+  }
   Darray tmpx, tmpy; // DEBUG FIXME
   // Because symmetric, sy = sx
   Darray const& sy = sx;
   for (unsigned int jdx = 0; jdx != sets.size(); jdx++) {
     subtract_mean(CenteredX[jdx], sets[jdx], nelt_, total_weight, sx[jdx], 0, c0end);
     subtract_mean(CenteredY[jdx], sets[jdx], nelt_, total_weight, sy[jdx], ctstart, maxFrames);
-    tmpx.push_back( CenteredX[jdx][0] ); // DEBUG FIXME
-    tmpy.push_back( CenteredY[jdx][0] ); // DEBUG FIXME
+    tmpx.push_back( CenteredX[jdx]->Dval(0) );
+    tmpy.push_back( CenteredY[jdx]->Dval(0) );
+    //tmpx.push_back( CenteredX[jdx][0] ); // DEBUG FIXME
+    //tmpy.push_back( CenteredY[jdx][0] ); // DEBUG FIXME
   }
   printDarray("X0", tmpx, "%16.8e");
   printDarray("Y0", tmpy, "%16.8e");
+
+  // Calculate Cxxyy
+  mprintf("CXXYY\n");
+  matT_times_mat_symmetric(CenteredX, CenteredY);
+  //matT_times_mat(CenteredX, CenteredX);
+  //mprintf("CYY\n");
+  //matT_times_mat(CenteredY);
+  //matT_times_mat(CenteredY, CenteredY);
+/*  CoordCovarMatrix_Half Cxx;
+  if (Cxx.SetupMatrix( CenteredX )) {
+    mprinterr("Error: Could not set up Cxx matrix.\n");
+    return 1;
+  }
+  Cxx.AddDataToMatrix( CenteredX );
+  CpptrajFile cxxfile;
+  cxxfile.OpenWrite("cxx.dat");
+  Cxx.DebugPrint("Cxx", cxxfile, " %12.6f");
+  CoordCovarMatrix_Half Cyy;
+  if (Cyy.SetupMatrix( CenteredY )) {
+    mprinterr("Error: Could not set up Cyy matrix.\n");
+    return 1;
+  }
+  Cyy.AddDataToMatrix( CenteredY );
+  CpptrajFile cyyfile;
+  cyyfile.OpenWrite("cyy.dat");
+  Cyy.DebugPrint("Cyy", cyyfile, " %12.6f");*/
+
+
+  // Free memory
+  for (unsigned int jdx = 0; jdx != sets.size(); jdx++) {
+    delete CenteredX[jdx];
+    delete CenteredY[jdx];
+  }
 
   return 0;
 }
