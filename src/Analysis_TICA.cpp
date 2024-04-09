@@ -180,24 +180,27 @@ static inline void subtract_mean(DataSet_1D* outPtr,
 }
 
 /// Multiply transpose of matrix by matrix
-static void matT_times_mat( std::vector<DataSet_1D*> const& M1,
+static void matT_times_mat( DataSet_2D* out,
+                            std::vector<DataSet_1D*> const& M1,
                             std::vector<DataSet_1D*> const& M2)
 {
-  for (unsigned int row = 0; row < M1.size(); row++) {
+  unsigned int Nrows = M1.size();
+  unsigned int Ncols = M2.size();
+  out->Allocate2D( Ncols, Nrows );
+  unsigned int idx = 0;
+  for (unsigned int row = 0; row < Nrows; row++) {
     DataSet_1D* seti = M1[row];
-    for (unsigned int col = 0; col < M2.size(); col++) {
+    for (unsigned int col = 0; col < Ncols; col++) {
       DataSet_1D* setj = M2[col];
-      //mprintf("%u %u (%zu %zu)", row, col, seti->Size(), setj->Size());
       // seti->Size() must equal setj->Size()
       double sum = 0;
       for (unsigned int k = 0; k < seti->Size(); k++) {
         sum += (seti->Dval(k) * setj->Dval(k));
-      //  for (unsigned int j = 0; j < M2[col]->Size(); j++)
-      //    sum += M1[row]->Dval(i) * M2[col]->Dval(j);
       }
-      mprintf(" %12.4f", sum);
+      out->SetElement(idx++, sum);
+      //mprintf(" %12.4f", sum);
     }
-    mprintf("\n");
+    //mprintf("\n");
   }
 }
 
@@ -329,7 +332,20 @@ const
   outfile1.SetupDatafile("cxxyy.dat", 0);
   outfile1.AddDataSet( &CXXYY );
   outfile1.WriteDataOut();
-  
+
+  // Calculate Cxyyx
+  DataSet_MatrixDbl Cxy, Cyx;
+  matT_times_mat(static_cast<DataSet_2D*>(&Cxy), CenteredX, CenteredY);
+  matT_times_mat(static_cast<DataSet_2D*>(&Cyx), CenteredY, CenteredX);
+  for (unsigned int idx = 0; idx != Cxy.Size(); idx++) {
+    double sum = Cxy.GetElement(idx) + Cyx.GetElement(idx);
+    Cxy.SetElement(idx, sum);
+  }
+  DataFile outfile2;
+  outfile2.SetupDatafile("cxyyx.dat", 0);
+  outfile2.AddDataSet( &Cxy );
+  outfile2.WriteDataOut();
+
   //matT_times_mat(CenteredX, CenteredX);
   //mprintf("CYY\n");
   //matT_times_mat(CenteredY);
