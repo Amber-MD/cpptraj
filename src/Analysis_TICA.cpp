@@ -326,6 +326,8 @@ const
 
   // Calculate Cxxyy
   DataSet_MatrixDbl CXXYY;// = (DataSet_2D*)new DataSet_MatrixDbl();
+  CXXYY.SetupFormat().SetFormatWidthPrecision(16,8);
+  CXXYY.SetupFormat().SetFormatType(TextFormat::SCIENTIFIC);
   mprintf("CXXYY\n");
   matT_times_mat_symmetric(static_cast<DataSet_2D*>(&CXXYY), CenteredX, CenteredY);
   DataFile outfile1;
@@ -335,6 +337,8 @@ const
 
   // Calculate Cxyyx
   DataSet_MatrixDbl Cxy, Cyx;
+  Cxy.SetupFormat().SetFormatWidthPrecision(16,8);
+  Cxy.SetupFormat().SetFormatType(TextFormat::SCIENTIFIC);
   matT_times_mat(static_cast<DataSet_2D*>(&Cxy), CenteredX, CenteredY);
   matT_times_mat(static_cast<DataSet_2D*>(&Cyx), CenteredY, CenteredX);
   for (unsigned int idx = 0; idx != Cxy.Size(); idx++) {
@@ -344,6 +348,14 @@ const
   DataFile outfile2;
   outfile2.SetupDatafile("cxyyx.dat", 0);
   outfile2.AddDataSet( &Cxy );
+  outfile2.WriteDataOut();
+
+  // Normalize
+  CXXYY.Normalize( 1.0 / total_weight );
+  Cxy.Normalize( 1.0 / total_weight );
+  outfile1.SetupDatafile("cxxyy.norm.dat", 0);
+  outfile1.WriteDataOut();
+  outfile2.SetupDatafile("cxyyx.norm.dat", 0);
   outfile2.WriteDataOut();
 
   //matT_times_mat(CenteredX, CenteredX);
