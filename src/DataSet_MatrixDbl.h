@@ -26,6 +26,7 @@ class DataSet_MatrixDbl : public DataSet_2D {
     int AllocateTriangle(size_t x)             { kind_=TRI;  return mat_.resize(0,x); }
     void UpdateElement(size_t x,size_t y,double v) { mat_.updateElement(x,y,v); }
     void SetElement(size_t x,size_t y,double d)    { mat_.setElement(x,y,d);    }
+    void SetElement(size_t i, double d)            { mat_[i] = d; }
     double GetElement(size_t x,size_t y) const { return mat_.element(x,y); }
     double GetElement(size_t i)          const { return mat_[i];           }
     size_t Nrows()                       const { return mat_.Nrows();      }

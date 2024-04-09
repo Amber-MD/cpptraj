@@ -4,6 +4,7 @@
 #include "CpptrajStdio.h"
 #include "DataSet_1D.h"
 #include "DataSet_double.h"
+#include "DataSet_MatrixDbl.h" // TODO remove?
 
 /** CONSTRUCTOR */
 Analysis_TICA::Analysis_TICA() :
@@ -201,15 +202,18 @@ static void matT_times_mat( std::vector<DataSet_1D*> const& M1,
 }
 
 /// For eaach matrix, Multiply transpose of matrix by matrix, then sum
-static void matT_times_mat_symmetric( std::vector<DataSet_1D*> const& M1,
+static void matT_times_mat_symmetric( DataSet_2D* out,
+                                      std::vector<DataSet_1D*> const& M1,
                                       std::vector<DataSet_1D*> const& M2 )
 {
   if (M1.size() != M2.size()) {
     mprinterr("Internal Error: matT_times_mat_symmetric: Different # of sets.\n");
     return;
   }
+  out->AllocateHalf( M1.size() );
   unsigned int Nrows = M1.size();
   unsigned int Ncols = Nrows;
+  unsigned int idx = 0;
   for (unsigned int row = 0; row < Nrows; row++) {
     DataSet_1D* seti1 = M1[row];
     DataSet_1D* seti2 = M2[row];
@@ -223,9 +227,10 @@ static void matT_times_mat_symmetric( std::vector<DataSet_1D*> const& M1,
         sum += (seti1->Dval(k) * setj1->Dval(k));
         sum += (seti2->Dval(k) * setj2->Dval(k));
       }
-      mprintf(" %12.4f", sum);
+      out->SetElement(idx++, sum);
+      //mprintf(" %12.4f", sum);
     }
-    mprintf("\n");
+    //mprintf("\n");
   }
 }
 
@@ -294,7 +299,7 @@ const
   printDarray("sx_raw_centered", sx_centered, "%16.8e");
   printDarray("sy_raw_centered", sy_centered, "%16.8e");
 
-  // Remove mean
+  // Remove mean // FIXME do without new
   typedef std::vector<DataSet_1D*> DDArray;
   DDArray CenteredX(sets.size());
   DDArray CenteredY(sets.size());
@@ -317,8 +322,14 @@ const
   printDarray("Y0", tmpy, "%16.8e");
 
   // Calculate Cxxyy
+  DataSet_MatrixDbl CXXYY;// = (DataSet_2D*)new DataSet_MatrixDbl();
   mprintf("CXXYY\n");
-  matT_times_mat_symmetric(CenteredX, CenteredY);
+  matT_times_mat_symmetric(static_cast<DataSet_2D*>(&CXXYY), CenteredX, CenteredY);
+  DataFile outfile1;
+  outfile1.SetupDatafile("cxxyy.dat", 0);
+  outfile1.AddDataSet( &CXXYY );
+  outfile1.WriteDataOut();
+  
   //matT_times_mat(CenteredX, CenteredX);
   //mprintf("CYY\n");
   //matT_times_mat(CenteredY);

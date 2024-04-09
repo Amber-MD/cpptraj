@@ -26,6 +26,8 @@ class DataSet_2D : public DataSet {
     virtual void UpdateElement(size_t, size_t, double) = 0;
     /// Set element at specified col/row to given value
     virtual void SetElement(size_t, size_t, double) = 0;
+    /// Set element at specified 1D index to given value
+    virtual void SetElement(size_t, double) = 0;
 
     /// \return Data from matrix at col/row 
     virtual double GetElement(size_t, size_t) const = 0;
