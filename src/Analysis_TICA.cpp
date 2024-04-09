@@ -119,9 +119,9 @@ Analysis::RetType Analysis_TICA::Analyze() {
 }
 
 /// FOR DEBUG
-static inline void printDarray(const char* desc, std::vector<double> const& arrayIn)
+static inline void printDarray(const char* desc, std::vector<double> const& arrayIn, const char* fmt)
 {
-  static const char* fmt = "%15.8f";
+  //static const char* fmt = "%15.8f";
   mprintf("DEBUG: %s:  [", desc);
   int col = 0;
   for (std::vector<double>::const_iterator it = arrayIn.begin(); it != arrayIn.end(); ++it)
@@ -138,8 +138,10 @@ static inline void printDarray(const char* desc, std::vector<double> const& arra
     mprintf("\n");
 }
 
-/// Calculate sum over sets
-static inline void calculate_sum(std::vector<double>& sumX, std::vector<DataSet_1D*> const& sets, unsigned int nelt_,
+/// Calculate sum over each set TODO weights
+static inline void calculate_sum(std::vector<double>& sumX,
+                                 std::vector<DataSet_1D*> const& sets, 
+                                 unsigned int nelt_,
                                  unsigned int startFrame, unsigned int endFrame)
 {
   sumX.assign( sets.size() * nelt_, 0 );
@@ -148,12 +150,27 @@ static inline void calculate_sum(std::vector<double>& sumX, std::vector<DataSet_
     mprinterr("Internal Error: CoordCovarMatrix_Half::AddDataToMatrix_C0CT(): Not implemented.\n");
     return;
   } else if (nelt_ == 1) {
-    for (unsigned int idx = startFrame; idx < endFrame; idx++) {
-      for (unsigned int jdx = 0; jdx < sets.size(); jdx++) {
+    for (unsigned int jdx = 0; jdx < sets.size(); jdx++) {
+      for (unsigned int idx = startFrame; idx < endFrame; idx++) {
         sumX[jdx] += sets[jdx]->Dval(idx);
       }
     }
   }
+}
+
+/// Subtract the set mean from every element of the set
+static inline void subtract_mean(std::vector<double>& out,
+                                 DataSet_1D* in,
+                                 unsigned int nelt_,
+                                 double total_weight,
+                                 double sumX,
+                                 unsigned int startFrame, unsigned int endFrame)
+{
+  out.clear();
+  out.reserve(endFrame - startFrame);
+  double mean = sumX / total_weight;
+  for (unsigned int idx = startFrame; idx != endFrame; idx++)
+    out.push_back( in->Dval(idx) - mean );
 }
 
 /** Calculate instantaneous covariance and lagged covariance arrays */
@@ -183,11 +200,59 @@ const
 
   Darray sumX;
   calculate_sum(sumX, sets, nelt_, 0, c0end);
-  printDarray("sx_raw", sumX);
+  printDarray("sx_raw", sumX, "%15.8f");
 
   Darray sumY;
   calculate_sum(sumY, sets, nelt_, ctstart, maxFrames);
-  printDarray("sy_raw", sumY);
+  printDarray("sy_raw", sumY, "%15.8f");
+
+  // Sanity check
+  if (sumX.size() != sumY.size()) {
+    mprinterr("Internal Error: Analysis_TICA::calculateCovariance_C0CT(): sumX size != sumY size\n");
+    return 1;
+  }
+
+  // Calculate effective sum (symmetric)
+  Darray sx;
+  sx.reserve( sumX.size() );
+  for (unsigned int jdx = 0; jdx != sumX.size(); jdx++)
+    sx.push_back( sumX[jdx] + sumY[jdx] );
+
+  // Total weight is times 2 because symmetric
+  //double total_weight = 0;
+  //for (Darray::const_iterator it = weights.begin(); it != weights.end(); ++it)
+  //  total_weight += *it;
+  //total_weight *= 2;
+  double total_weight = c0end * 2;
+  mprintf("DEBUG: Total weight= %f\n", total_weight);
+
+  // Center
+  Darray sx_centered, sy_centered;
+  sx_centered.reserve( sumX.size() );
+  sy_centered.reserve( sumY.size() );
+  for (unsigned int idx = 0; idx != sumX.size(); idx++)
+  {
+    sx_centered.push_back( sumX[idx] - (0.5 * sx[idx]) );
+    sy_centered.push_back( sumY[idx] - (0.5 * sx[idx]) );
+  }
+  printDarray("sx_raw_centered", sx_centered, "%16.8e");
+  printDarray("sy_raw_centered", sy_centered, "%16.8e");
+
+  // Remove mean
+  typedef std::vector<Darray> DDArray;
+  DDArray CenteredX(sets.size());
+  DDArray CenteredY(sets.size());
+  Darray tmpx, tmpy; // DEBUG FIXME
+  // Because symmetric, sy = sx
+  Darray const& sy = sx;
+  for (unsigned int jdx = 0; jdx != sets.size(); jdx++) {
+    subtract_mean(CenteredX[jdx], sets[jdx], nelt_, total_weight, sx[jdx], 0, c0end);
+    subtract_mean(CenteredY[jdx], sets[jdx], nelt_, total_weight, sy[jdx], ctstart, maxFrames);
+    tmpx.push_back( CenteredX[jdx][0] ); // DEBUG FIXME
+    tmpy.push_back( CenteredY[jdx][0] ); // DEBUG FIXME
+  }
+  printDarray("X0", tmpx, "%16.8e");
+  printDarray("Y0", tmpy, "%16.8e");
 
   return 0;
 }
