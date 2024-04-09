@@ -179,7 +179,7 @@ static inline void subtract_mean(DataSet_1D* outPtr,
   }
 }
 
-/// Multiply transpose of matrix by matrix
+/// Multiply transpose of matrix by matrix TODO since the resulting matrix is supposed to be symmetric we can speed this up
 static void matT_times_mat( DataSet_2D* out,
                             std::vector<DataSet_1D*> const& M1,
                             std::vector<DataSet_1D*> const& M2)
