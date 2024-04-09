@@ -292,6 +292,7 @@ int DataFile::SetupDatafile(FileName const& fnameIn, ArgList& argIn,
     dfType_ = (DataFormatType)FileTypes::GetTypeFromExtension(DF_WriteKeyArray, filename_.Ext(),
                                                               DATAFILE);
   // Set up DataIO based on format.
+  if (dataio_ != 0) delete dataio_;
   dataio_ = (DataIO*)FileTypes::AllocIO( DF_AllocArray, dfType_, false );
   if (dataio_ == 0) return Error("Error: Data file allocation failed.\n");
   dataio_->SetDebug( debug_ );
