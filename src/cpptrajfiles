@@ -205,6 +205,7 @@ COMMON_SOURCES= \
         DataSet.cpp \
         DataSetList.cpp \
         DataSet_1D.cpp \
+        DataSet_2D.cpp \
         DataSet_3D.cpp \
         DataSet_Coords.cpp \
         DataSet_Coords_CRD.cpp \

@@ -6,7 +6,7 @@
 #include "DataSet_double.h"
 #include "DataSet_MatrixDbl.h" // TODO remove?
 #include "DataSet_Modes.h"
-#include <cmath> //sqrt, fabs
+#include <cmath> //sqrt
 
 /** CONSTRUCTOR */
 Analysis_TICA::Analysis_TICA() :
@@ -239,27 +239,6 @@ static void matT_times_mat_symmetric( DataSet_2D* out,
   }
 }
 
-/** Check that the given matrix is symmetric. 
-  * This will work similar to numpy.allclose.
-  * https://numpy.org/doc/stable/reference/generated/numpy.allclose.html
-  */
-bool Analysis_TICA::check_symmetric(DataSet_2D const& mat) {
-  if (mat.Ncols() != mat.Nrows()) return false;
-
-  static const double rtol = 1e-5;
-  static const double atol = 1e-8;
-
-  for (unsigned int row = 0; row != mat.Nrows(); row++) {
-    for (unsigned int col = row+1; col < mat.Ncols(); col++) {
-      double a = mat.GetElement(col, row);
-      double b = mat.GetElement(row, col);
-      bool is_equiv = ((fabs(a - b) <= (atol + rtol * fabs(b))));
-      if (!is_equiv) return false;
-    }
-  }
-  return true;
-}
-
 /** Calculate instantaneous covariance and lagged covariance arrays */
 int Analysis_TICA::calculateCovariance_C0CT(DSarray const& sets)
 const
@@ -480,7 +459,7 @@ const
   outfile5.WriteDataOut();
   tmpArgs.SetAllUnmarked();
 
-  if (check_symmetric( Cxy )) {
+  if (Cxy.IsSymmetric()) {
     mprintf("\tCt is symmetric.\n");
   } else {
     mprintf("\tCt is not symmetric.\n");

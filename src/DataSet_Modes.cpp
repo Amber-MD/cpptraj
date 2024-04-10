@@ -9,7 +9,10 @@
 // Definition of Fortran subroutines called from this class
 extern "C" {
   // LAPACK
+  /// Compute the eigenvalues and (optionally) the left and/or right eigenvectors for a symmetric matrix
   void dspev_(char&, char&, int&, double*, double*, double*, int&, double*, int&);
+  /// Compute the eigenvalues and (optionally) the left and/or right eigenvectors for a general matrix
+  void dgeev_(char&, char&, int&, double*, int&, double*, double*, double*, int&, double*, int&, double*, int&, int&);
   // ARPACK
   void dsaupd_(int&, char&, int&, char*, int&, double&, double*,
                int&, double*, int&, int*, int*, double*, double*,

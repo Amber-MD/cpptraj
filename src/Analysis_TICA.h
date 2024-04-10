@@ -22,8 +22,6 @@ class Analysis_TICA : public Analysis {
     Analysis::RetType analyze_datasets();
     /// Calculate instantaneous and lagged covariance matrices
     int calculateCovariance_C0CT(DSarray const&) const;
-    /// Check if given matrix is symmetric TODO move to DataSet_2D?
-    static bool check_symmetric(DataSet_2D const&);
 
     DataSet_Coords* TgtTraj_; ///< Input trajectory (crdset)
     int lag_; ///< TICA time lag

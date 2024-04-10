@@ -83,7 +83,8 @@ class DataSet_2D : public DataSet {
       }
       return OK;
     }
-
+    /// \return True if matrix is symmetric
+    bool IsSymmetric() const;
     // -------------------------------------------
     // TODO: Remove this. Only needed by DataSet_1D.h
     void Add(size_t,const void*) { }
