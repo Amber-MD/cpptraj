@@ -316,10 +316,8 @@ const
   for (unsigned int jdx = 0; jdx != sets.size(); jdx++) {
     subtract_mean(CenteredX[jdx], sets[jdx], nelt_, total_weight, sx[jdx], 0, c0end);
     subtract_mean(CenteredY[jdx], sets[jdx], nelt_, total_weight, sy[jdx], ctstart, maxFrames);
-    tmpx.push_back( CenteredX[jdx]->Dval(0) );
-    tmpy.push_back( CenteredY[jdx]->Dval(0) );
-    //tmpx.push_back( CenteredX[jdx][0] ); // DEBUG FIXME
-    //tmpy.push_back( CenteredY[jdx][0] ); // DEBUG FIXME
+    tmpx.push_back( CenteredX[jdx]->Dval(0) ); // DEBUG
+    tmpy.push_back( CenteredY[jdx]->Dval(0) ); // DEBUG
   }
   printDarray("X0", tmpx, "%16.8e");
   printDarray("Y0", tmpy, "%16.8e");
