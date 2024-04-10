@@ -261,7 +261,7 @@ const
   mprintf("DEBUG: C0 start = %u end = %u\n", 0, c0end);
   unsigned int ctstart = (unsigned int)lag_;
   mprintf("DEBUG: CT start = %u end = %u\n", ctstart, maxFrames);
-
+  // Calculate sum over each set
   Darray sumX;
   calculate_sum(sumX, sets, nelt_, 0, c0end);
   printDarray("sx_raw", sumX, "%15.8f");
@@ -290,7 +290,7 @@ const
   double total_weight = c0end * 2;
   mprintf("DEBUG: Total weight= %f\n", total_weight);
 
-  // Center
+  // Center TODO sx_centered and sy_centered may not need to be calced
   Darray sx_centered, sy_centered;
   sx_centered.reserve( sumX.size() );
   sy_centered.reserve( sumY.size() );
@@ -327,10 +327,11 @@ const
   ArgList tmpArgs("square2d noheader");
   // Calculate Cxxyy
   DataSet_MatrixDbl CXXYY;// = (DataSet_2D*)new DataSet_MatrixDbl();
-  CXXYY.SetupFormat().SetFormatWidthPrecision(12,6);
-  CXXYY.SetupFormat().SetFormatType(TextFormat::DOUBLE);
+  CXXYY.SetupFormat().SetFormatWidthPrecision(12,6); // DEBUG
+  CXXYY.SetupFormat().SetFormatType(TextFormat::DOUBLE); // DEBUG
   mprintf("CXXYY\n");
   matT_times_mat_symmetric(static_cast<DataSet_2D*>(&CXXYY), CenteredX, CenteredY);
+  // DEBUG - write unnormalized matrix
   DataFile outfile1;
   outfile1.SetupDatafile("cxxyy.dat", tmpArgs, 0);
   outfile1.AddDataSet( &CXXYY );
@@ -339,14 +340,15 @@ const
 
   // Calculate Cxyyx
   DataSet_MatrixDbl Cxy, Cyx;
-  Cxy.SetupFormat().SetFormatWidthPrecision(12,6);
-  Cxy.SetupFormat().SetFormatType(TextFormat::DOUBLE);
+  Cxy.SetupFormat().SetFormatWidthPrecision(12,6); // DEBUG
+  Cxy.SetupFormat().SetFormatType(TextFormat::DOUBLE); // DEBUG
   matT_times_mat(static_cast<DataSet_2D*>(&Cxy), CenteredX, CenteredY);
   matT_times_mat(static_cast<DataSet_2D*>(&Cyx), CenteredY, CenteredX);
   for (unsigned int idx = 0; idx != Cxy.Size(); idx++) {
     double sum = Cxy.GetElement(idx) + Cyx.GetElement(idx);
     Cxy.SetElement(idx, sum);
   }
+  // DEBUG - write unnormalized matrix
   DataFile outfile2;
   outfile2.SetupDatafile("cxyyx.dat", tmpArgs, 0);
   outfile2.AddDataSet( &Cxy );
@@ -356,36 +358,13 @@ const
   // Normalize
   CXXYY.Normalize( 1.0 / total_weight );
   Cxy.Normalize( 1.0 / total_weight );
+  // DEBUG - write normalized matrices
   outfile1.SetupDatafile("cxxyy.norm.dat", tmpArgs, 0);
   outfile1.WriteDataOut();
   tmpArgs.SetAllUnmarked();
   outfile2.SetupDatafile("cxyyx.norm.dat", tmpArgs, 0);
   outfile2.WriteDataOut();
   tmpArgs.SetAllUnmarked();
-
-  //matT_times_mat(CenteredX, CenteredX);
-  //mprintf("CYY\n");
-  //matT_times_mat(CenteredY);
-  //matT_times_mat(CenteredY, CenteredY);
-/*  CoordCovarMatrix_Half Cxx;
-  if (Cxx.SetupMatrix( CenteredX )) {
-    mprinterr("Error: Could not set up Cxx matrix.\n");
-    return 1;
-  }
-  Cxx.AddDataToMatrix( CenteredX );
-  CpptrajFile cxxfile;
-  cxxfile.OpenWrite("cxx.dat");
-  Cxx.DebugPrint("Cxx", cxxfile, " %12.6f");
-  CoordCovarMatrix_Half Cyy;
-  if (Cyy.SetupMatrix( CenteredY )) {
-    mprinterr("Error: Could not set up Cyy matrix.\n");
-    return 1;
-  }
-  Cyy.AddDataToMatrix( CenteredY );
-  CpptrajFile cyyfile;
-  cyyfile.OpenWrite("cyy.dat");
-  Cyy.DebugPrint("Cyy", cyyfile, " %12.6f");*/
-
 
   // Free memory
   for (unsigned int jdx = 0; jdx != sets.size(); jdx++) {
