@@ -296,8 +296,12 @@ const
     mprinterr("Error: Could not open debug.mean.dat\n");
     return 1;
   }
-  for (Darray::const_iterator it = sx.begin(); it != sx.end(); ++it)
-    meanout.Printf("%12.6f\n", *it / total_weight);
+  Darray meanX;
+  meanX.reserve( sx.size() );
+  for (Darray::const_iterator it = sx.begin(); it != sx.end(); ++it) {
+    meanX.push_back( *it / total_weight);
+    meanout.Printf("%12.6f\n", meanX.back()); // DEBUG
+  }
   meanout.CloseFile();
 
   // Center TODO sx_centered and sy_centered may not need to be calced
@@ -321,7 +325,7 @@ const
     CenteredY[jdx] = (DataSet_1D*)new DataSet_double();
   }
   Darray tmpx, tmpy; // DEBUG FIXME
-  // Because symmetric, sy = sx
+  // Because symmetric, sy = sx //TODO use meanX set
   Darray const& sy = sx;
   for (unsigned int jdx = 0; jdx != sets.size(); jdx++) {
     subtract_mean(CenteredX[jdx], sets[jdx], nelt_, total_weight, sx[jdx], 0, c0end);
@@ -382,6 +386,19 @@ const
 
   // Get C0 eigenvectors/eigenvalues
   DataSet_Modes C0_Modes;
+  C0_Modes.SetAvgCoords( meanX );
+  // Want all eigenvectors
+  if (C0_Modes.CalcEigen( CXXYY, CXXYY.Ncols() )) {
+    mprinterr("Error: Could not calculate eigenvectors and eigenvales for C0 matrix.\n");
+    return 1;
+  }
+  // TODO remove negative eigenvalues
+
+  // DEBUG - print eigenvalues
+  Darray tmpevals;
+  for (int ii = 0; ii < C0_Modes.Nmodes(); ii++)
+    tmpevals.push_back( C0_Modes.Eigenvalue(ii) );
+  printDarray("C0evals", tmpevals, "%16.8e");
   
 
   return 0;
@@ -391,7 +408,7 @@ const
 Analysis::RetType Analysis_TICA::analyze_datasets() {
   calculateCovariance_C0CT( sets_.Array() );
 
-  // Matrix - half
+/*  // Matrix - half
   CoordCovarMatrix_Half covarMatrix;
   if (covarMatrix.SetupMatrix( sets_.Array() )) {
     mprinterr("Error: Could not set up C0 matrix for data sets.\n");
@@ -404,7 +421,7 @@ Analysis::RetType Analysis_TICA::analyze_datasets() {
     return Analysis::ERR;
   }
   // DEBUG PRINT
-  covarMatrix.DebugPrint("C0", *debugC0_, " %12.6f");
+  covarMatrix.DebugPrint("C0", *debugC0_, " %12.6f");*/
 
   return Analysis::OK;
 }

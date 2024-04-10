@@ -56,6 +56,12 @@ size_t DataSet_Modes::MemUsageInBytes() const {
   return mySize;
 }
 
+/** Set average coords */
+int DataSet_Modes::SetAvgCoords(std::vector<double> const& avgIn) {
+  avgcrd_ = avgIn;
+  return 0;
+}
+
 // DataSet_Modes::SetAvgCoords()
 int DataSet_Modes::SetAvgCoords(DataSet_2D const& mIn) {
   avgcrd_.clear();

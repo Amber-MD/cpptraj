@@ -38,6 +38,7 @@ class DataSet_Modes : public DataSet {
     double* EvectPtr()                     { return evectors_; }
 
     int SetAvgCoords(DataSet_2D const&);
+    int SetAvgCoords(std::vector<double> const&); // TODO deprecate above version for this one
     int SetModes(bool, int, int, const double*, const double*);
     /// Allocate memory for modes data
     int AllocateModes(unsigned int, unsigned int, unsigned int, unsigned int);
