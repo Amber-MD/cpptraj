@@ -5,6 +5,7 @@
 #include "DataSet_1D.h"
 #include "DataSet_double.h"
 #include "DataSet_MatrixDbl.h" // TODO remove?
+#include "DataSet_Modes.h"
 
 /** CONSTRUCTOR */
 Analysis_TICA::Analysis_TICA() :
@@ -289,6 +290,15 @@ const
   //total_weight *= 2;
   double total_weight = c0end * 2;
   mprintf("DEBUG: Total weight= %f\n", total_weight);
+  // DEBUG - print mean
+  CpptrajFile meanout;
+  if (meanout.OpenWrite("debug.mean.dat")) {
+    mprinterr("Error: Could not open debug.mean.dat\n");
+    return 1;
+  }
+  for (Darray::const_iterator it = sx.begin(); it != sx.end(); ++it)
+    meanout.Printf("%12.6f\n", *it / total_weight);
+  meanout.CloseFile();
 
   // Center TODO sx_centered and sy_centered may not need to be calced
   Darray sx_centered, sy_centered;
@@ -369,6 +379,10 @@ const
     delete CenteredX[jdx];
     delete CenteredY[jdx];
   }
+
+  // Get C0 eigenvectors/eigenvalues
+  DataSet_Modes C0_Modes;
+  
 
   return 0;
 }
