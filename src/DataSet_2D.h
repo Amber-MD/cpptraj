@@ -67,6 +67,23 @@ class DataSet_2D : public DataSet {
       }
       return OK;
     }
+    /// Set this matrix with the result of M1 x M2^T
+    RetType Multiply_M2transpose(DataSet_2D const& M1, DataSet_2D const& M2) {
+      if (M1.Ncols() != M2.Ncols()) return DIM_MISMATCH;
+      unsigned int len = M1.Ncols();
+      if (Allocate2D( M2.Nrows(), M1.Nrows() )) return ALLOC_ERR;
+      unsigned int idx = 0;
+      for (unsigned int row = 0; row != Nrows(); row++) {
+        for (unsigned int col = 0; col != Ncols(); col++) {
+          double sum = 0;
+          for (unsigned int k = 0; k != len; k++)
+            sum += M1.GetElement(k, row) * M2.GetElement(k, col);
+          SetElement(idx++, sum);
+        }
+      }
+      return OK;
+    }
+
     // -------------------------------------------
     // TODO: Remove this. Only needed by DataSet_1D.h
     void Add(size_t,const void*) { }
