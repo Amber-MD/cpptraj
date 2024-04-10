@@ -348,7 +348,7 @@ const
     double sum = Cxy.GetElement(idx) + Cyx.GetElement(idx);
     Cxy.SetElement(idx, sum);
   }
-  // DEBUG - write unnormalized matrix
+  // DEBUG - write unnormalized matrix
   DataFile outfile2;
   outfile2.SetupDatafile("cxyyx.dat", tmpArgs, 0);
   outfile2.AddDataSet( &Cxy );
