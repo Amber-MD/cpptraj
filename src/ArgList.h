@@ -59,6 +59,8 @@ class ArgList {
     void AddArg(std::string const&);
     /// Mark given argument
     void MarkArg(int);
+    /// Set all arguments as unmarked
+    void SetAllUnmarked();
     /// Print a warning if not all arguments are marked
     bool CheckForMoreArgs() const;
     /// Print the argument list

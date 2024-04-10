@@ -494,3 +494,8 @@ bool ArgList::Contains(const char *key) const {
     }
   return false;
 }
+
+/** Make all arguments unmarked. */
+void ArgList::SetAllUnmarked() {
+  marked_.assign( marked_.size(), false );
+}
