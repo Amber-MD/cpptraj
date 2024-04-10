@@ -238,6 +238,8 @@ static void matT_times_mat_symmetric( DataSet_2D* out,
   }
 }
 
+/** Calculate matrix times diagonal */
+
 /** Calculate instantaneous covariance and lagged covariance arrays */
 int Analysis_TICA::calculateCovariance_C0CT(DSarray const& sets)
 const
@@ -399,7 +401,30 @@ const
   for (int ii = 0; ii < C0_Modes.Nmodes(); ii++)
     tmpevals.push_back( C0_Modes.Eigenvalue(ii) );
   printDarray("C0evals", tmpevals, "%16.8e");
-  
+  // DEBUG - print first 3 values of each eigenvector
+  for (int ii = 0; ii < C0_Modes.Nmodes(); ii++) {
+    const double* evec = C0_Modes.Eigenvector(ii);
+    for (int jj = 0; jj < 3; jj++)
+      mprintf("%12.8f", evec[jj]);
+    mprintf("\n");
+  }
+
+  // Create matrix L, where rows are eigenvectors of C0 times eigenvalues of C0
+  DataSet_MatrixDbl matL;
+  matL.Allocate2D( C0_Modes.VectorSize(), C0_Modes.Nmodes() );
+  unsigned int idx = 0;
+  for (int ii = 0; ii < C0_Modes.Nmodes(); ii++) {
+    double fac = 1.0 / sqrt(C0_Modes.Eigenvalue(ii));
+    const double* evec = C0_Modes.Eigenvector(ii);
+    for (int jj = 0; jj < C0_Modes.VectorSize(); ++jj)
+      matL.SetElement(idx++, evec[jj] * fac);
+  }
+  // DEBUG - write unnormalized matrix
+  DataFile outfile3;
+  outfile3.SetupDatafile("matL.dat", tmpArgs, 0);
+  outfile3.AddDataSet( &matL );
+  outfile3.WriteDataOut();
+  tmpArgs.SetAllUnmarked();
 
   return 0;
 }
