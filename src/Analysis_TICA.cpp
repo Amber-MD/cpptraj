@@ -426,6 +426,22 @@ const
   outfile3.WriteDataOut();
   tmpArgs.SetAllUnmarked();
 
+  // L is transposed already (eigenvectors are in rows)
+  DataSet_MatrixDbl matLCt;
+  matLCt.SetupFormat().SetFormatWidthPrecision(15,8); // DEBUG
+  matLCt.SetupFormat().SetFormatType(TextFormat::SCIENTIFIC); // DEBUG
+  DataSet_2D::RetType ret = matLCt.Multiply(matL, Cxy);
+  if (ret != DataSet_2D::OK) {
+    mprinterr("Error: Could not multiply L^T x Ct\n");
+    return 1;
+  }
+  // DEBUG - write unnormalized matrix
+  DataFile outfile4;
+  outfile4.SetupDatafile("matLCt.dat", tmpArgs, 0);
+  outfile4.AddDataSet( &matLCt );
+  outfile4.WriteDataOut();
+  tmpArgs.SetAllUnmarked();
+
   return 0;
 }
 
