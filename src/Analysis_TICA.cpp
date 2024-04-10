@@ -409,28 +409,28 @@ const
     mprintf("\n");
   }
 
-  // Create matrix L, where rows are eigenvectors of C0 times eigenvalues of C0
-  DataSet_MatrixDbl matL;
-  matL.Allocate2D( C0_Modes.VectorSize(), C0_Modes.Nmodes() );
+  // Create matrix Ltrans, where rows are eigenvectors of C0 times eigenvalues of C0
+  DataSet_MatrixDbl matLtrans;
+  matLtrans.Allocate2D( C0_Modes.VectorSize(), C0_Modes.Nmodes() );
   unsigned int idx = 0;
   for (int ii = 0; ii < C0_Modes.Nmodes(); ii++) {
     double fac = 1.0 / sqrt(C0_Modes.Eigenvalue(ii));
     const double* evec = C0_Modes.Eigenvector(ii);
     for (int jj = 0; jj < C0_Modes.VectorSize(); ++jj)
-      matL.SetElement(idx++, evec[jj] * fac);
+      matLtrans.SetElement(idx++, evec[jj] * fac);
   }
   // DEBUG - write unnormalized matrix
   DataFile outfile3;
   outfile3.SetupDatafile("matL.dat", tmpArgs, 0);
-  outfile3.AddDataSet( &matL );
+  outfile3.AddDataSet( &matLtrans );
   outfile3.WriteDataOut();
   tmpArgs.SetAllUnmarked();
 
   // L is transposed already (eigenvectors are in rows)
-  DataSet_MatrixDbl matLCt;
-  matLCt.SetupFormat().SetFormatWidthPrecision(15,8); // DEBUG
-  matLCt.SetupFormat().SetFormatType(TextFormat::SCIENTIFIC); // DEBUG
-  DataSet_2D::RetType ret = matLCt.Multiply(matL, Cxy);
+  DataSet_MatrixDbl matLtransCt;
+  matLtransCt.SetupFormat().SetFormatWidthPrecision(15,8); // DEBUG
+  matLtransCt.SetupFormat().SetFormatType(TextFormat::SCIENTIFIC); // DEBUG
+  DataSet_2D::RetType ret = matLtransCt.Multiply(matLtrans, Cxy);
   if (ret != DataSet_2D::OK) {
     mprinterr("Error: Could not multiply L^T x Ct\n");
     return 1;
@@ -438,7 +438,7 @@ const
   // DEBUG - write unnormalized matrix
   DataFile outfile4;
   outfile4.SetupDatafile("matLCt.dat", tmpArgs, 0);
-  outfile4.AddDataSet( &matLCt );
+  outfile4.AddDataSet( &matLtransCt );
   outfile4.WriteDataOut();
   tmpArgs.SetAllUnmarked();
 
