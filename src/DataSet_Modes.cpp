@@ -1,9 +1,11 @@
-#include <cmath> // sqrt
 #include "DataSet_Modes.h"
-#include "CpptrajStdio.h"
 #include "ArgList.h"
 #include "Constants.h" // PI, TWOPI
+#include "CpptrajStdio.h"
+#include "DataSet_2D.h"
+#include "DataSet_MatrixDbl.h"
 #include "Frame.h"
+#include <cmath> // sqrt
 
 #ifndef NO_MATHLIB
 // Definition of Fortran subroutines called from this class
@@ -26,7 +28,7 @@ extern "C" {
 
 const char* DataSet_Modes::DeprecateFileMsg = "Modes should be read in prior to this command with 'readdata'\n";
 
-// CONSTRUCTOR
+/** CONSTRUCTOR */
 DataSet_Modes::DataSet_Modes() :
   // 0 dim indicates DataSet-specific write
   DataSet(MODES, GENERIC, TextFormat(TextFormat::DOUBLE, 10, 5), 0),
@@ -140,6 +142,26 @@ int DataSet_Modes::AllocateModes(unsigned int n_eigenvalues, unsigned int evects
   else
     mass_.clear();
   return 0;
+}
+
+/** Get all eigenvectors and eigenvalues from given matrix. They will be
+  * stored in descending order (largest eigenvalue first).
+  */
+int DataSet_Modes::CalcEigen(DataSet_2D const& mIn) {
+# ifdef NO_MATHLIB
+  mprinterr("Error: Compiled without LAPACK/BLAS routines.\n");
+  return 1;
+# else
+  int n_to_calc = mIn.Ncols();
+
+  if (mIn.IsSymmetric()) {
+    return CalcEigen(mIn, n_to_calc);
+  }
+
+  // If we are here, mIn is not symmetric. Need to solve general eigenvalue problem.
+
+  return 0;
+# endif /* NO_MATHLIB */
 }
 
 /** Get n_to_calc eigenvectors and eigenvalues from given matrix. They will be

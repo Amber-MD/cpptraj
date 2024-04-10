@@ -1,6 +1,7 @@
 #ifndef INC_DATASET_MODES_H
 #define INC_DATASET_MODES_H
-#include "DataSet_MatrixDbl.h"
+#include "DataSet.h"
+class DataSet_2D;
 /// Hold eigenvalues/eigenvectors and optionally averaged coords.
 class DataSet_Modes : public DataSet {
   public:
@@ -42,6 +43,9 @@ class DataSet_Modes : public DataSet {
     int SetModes(bool, int, int, const double*, const double*);
     /// Allocate memory for modes data
     int AllocateModes(unsigned int, unsigned int, unsigned int, unsigned int);
+    /// Calculate all eigenvalues/eigenvectors for given matrix
+    int CalcEigen(DataSet_2D const&);
+    /// Calculate specific # of eigenvalues/eigenvectors for given symmetric matrix
     int CalcEigen(DataSet_2D const&,int);
     void PrintModes();
     int EigvalToFreq(double);
