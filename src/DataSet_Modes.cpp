@@ -159,8 +159,9 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn) {
   }
 
   // If we are here, mIn is not symmetric. Need to solve general eigenvalue problem.
+  mprinterr("Internal Error: DataSet_Modes::CalcEigen: Non-symmetric matrix calc not yet implemented.\n");
 
-  return 0;
+  return 1;
 # endif /* NO_MATHLIB */
 }
 

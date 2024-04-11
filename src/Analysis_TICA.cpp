@@ -459,10 +459,21 @@ const
   outfile5.WriteDataOut();
   tmpArgs.SetAllUnmarked();
 
+  DataSet_Modes Ct_Modes;
+  Ct_Modes.SetAvgCoords( meanX );
+  // Want all eigenvectors
   if (Cxy.IsSymmetric()) {
     mprintf("\tCt is symmetric.\n");
+    //if (Ct_Modes.CalcEigen( Ct_trans, Ct_trans.Ncols() )) {
+    //  mprinterr("Error: Could not calculate eigenvectors and eigenvalues for Ct matrix.\n");
+    //  return 1;
+    //}
   } else {
     mprintf("\tCt is not symmetric.\n");
+    //if (Ct_Modes.CalcEigen( Ct_trans )) {
+    //  mprinterr("Error: Could not calculate eigenvectors and eigenvalues for Ct matrix (non-symmetric).\n");
+    //  return 1;
+    //}
   }
 
   return 0;
