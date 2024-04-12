@@ -489,6 +489,33 @@ int DataSet_Modes::MassWtEigvect() {
   return 0;
 }
 
+/** Resize so that only the first N modes are saved. */
+int DataSet_Modes::ResizeModes(int NtoSave) {
+  if (NtoSave < 1) {
+    mprinterr("Internal Error: DataSet_Modes::ResizeModes: # of modes to save < 1\n");
+    return 1;
+  }
+  if (NtoSave >= nmodes_) {
+    mprintf("Warning: No need to resize modes %s; # to keep (%i) >= # modes (%i)\n",
+            legend(), NtoSave, nmodes_);
+    return 0;
+  }
+  // Resize values
+  double* newEvals = new double[ NtoSave ];
+  std::copy( evalues_, evalues_ + NtoSave, newEvals );
+  delete[] evalues_;
+  evalues_ = newEvals;
+  // Resize vectors
+  unsigned int newSize = NtoSave * vecsize_;
+  double* newEvecs = new double[ newSize ];
+  std::copy( evectors_, evectors_ + newSize, newEvecs );
+  delete[] evectors_;
+  evectors_ = newEvecs;
+
+  nmodes_ = NtoSave;
+  return 0;
+}
+
 // DataSet_Modes::ReduceVectors() 
 int DataSet_Modes::ReduceVectors() {
   if (evectors_ == 0) {

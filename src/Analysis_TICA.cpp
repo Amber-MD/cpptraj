@@ -466,6 +466,7 @@ const
     }
   }
   mprintf("DEBUG: Index of eigenvalue smaller than %g %i\n", epsilon, idx_first_smaller);
+  C0_Modes.ResizeModes( idx_first_smaller );
   
   // DEBUG - print eigenvalues
   //printEigen( C0_Modes, "C0evals" );

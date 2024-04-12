@@ -51,6 +51,8 @@ class DataSet_Modes : public DataSet {
     int EigvalToFreq(double);
     int MassWtEigvect();
     int ReduceVectors();
+    /// Resize so that only the first N modes are saved
+    int ResizeModes(int);
     int Thermo(CpptrajFile&, int, double, double) const;
 
     double Eigenvalue(int i)         const { return evalues_[i];                } // IRED
