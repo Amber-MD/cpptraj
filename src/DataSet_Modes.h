@@ -69,6 +69,9 @@ class DataSet_Modes : public DataSet {
     bool EvecsAreMassWtd()           const { return evecsAreMassWtd_;           }
     bool EvalsAreFreq()              const { return evalsAreFreq_;              }
   private:
+    /// Class used to sort eigenvalue/index pairs
+    class EvIdxPair;
+
     int ReduceCovar();
     int ReduceDistCovar();
 

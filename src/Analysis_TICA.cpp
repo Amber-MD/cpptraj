@@ -575,6 +575,8 @@ const
       return 1;
     }
   }
+  // Sort by abs(eigenvalue)
+  Ct_Modes.SortByAbsEigenvalue();
   //printEigen( Ct_Modes, "Ctevals" );
   printEvals(Ct_Modes, "ctvals.dat");
   printEvecs(Ct_Modes, "ctvecs.dat");

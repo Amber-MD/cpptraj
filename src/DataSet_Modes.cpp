@@ -6,7 +6,6 @@
 #include "DataSet_MatrixDbl.h"
 #include "Frame.h"
 #include <cmath> // sqrt, fabs
-#include <utility> // std::pair
 #include <algorithm> // std::sort
 
 #ifndef NO_MATHLIB
@@ -525,18 +524,44 @@ void DataSet_Modes::MultiplyEvecByFac(int nvec, double fac) {
     evec[jj] *= fac;
 }
 
+/// Class used to sort eigenvalue/index pairs
+class DataSet_Modes::EvIdxPair {
+  public:
+    EvIdxPair(double e, int i) : eval_(e), idx_(i) {}
+
+    bool operator<(EvIdxPair const& rhs) const {
+      return (eval_ > rhs.eval_);
+    }
+    double Eval() const { return eval_; }
+    int Idx() const { return idx_; }
+  private:
+    double eval_;
+    int idx_;
+};
+
 /** Sort eigenvectors and eigenvalues in descending order of abs(eigenvalue) */
 void DataSet_Modes::SortByAbsEigenvalue() {
   // Create eigenvalue/index pairs
-  typedef std::pair<double,int> Epair;
-  typedef std::vector<Epair> Earray;
+  typedef std::vector<EvIdxPair> Earray;
 
   Earray Pairs;
   for (int ii = 0; ii < nmodes_; ii++)
-    Pairs.push_back( Epair(fabs(evalues_[ii]), ii) );
+    Pairs.push_back( EvIdxPair(fabs(evalues_[ii]), ii) );
   // Sort by abs(eigenvalue)
   std::sort( Pairs.begin(), Pairs.end() );
-
+  // Recreate the vectors array, sorted
+  double* newEvals = new double[ nmodes_ ];
+  double* newEvecs = new double[ nmodes_ * vecsize_ ];
+  for (Earray::const_iterator it = Pairs.begin(); it != Pairs.end(); ++it) {
+    newEvals[it - Pairs.begin()] = evalues_[it->Idx()];
+    double* evecNew = newEvecs + ((it - Pairs.begin()) * vecsize_);
+    const double* evecOld = evectors_ + (it->Idx() * vecsize_);
+    std::copy( evecOld, evecOld + vecsize_, evecNew );
+  }
+  delete[] evectors_;
+  delete[] evalues_;
+  evalues_ = newEvals;
+  evectors_ = newEvecs;
 }
 
 // DataSet_Modes::ReduceVectors() 
