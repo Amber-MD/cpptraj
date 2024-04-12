@@ -144,10 +144,10 @@ int DataSet_Modes::AllocateModes(unsigned int n_eigenvalues, unsigned int evects
   return 0;
 }
 
-/** Get all eigenvectors and eigenvalues from given matrix. They will be
-  * stored in descending order (largest eigenvalue first).
+/** Get all eigenvectors and eigenvalues from given matrix. They
+  * will be stored in descending order (largest eigenvalue first).
   */
-int DataSet_Modes::CalcEigen(DataSet_2D const& mIn) {
+int DataSet_Modes::CalcEigen_General(DataSet_2D const& mIn) {
 # ifdef NO_MATHLIB
   mprinterr("Error: Compiled without LAPACK/BLAS routines.\n");
   return 1;
@@ -165,8 +165,8 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn) {
 # endif /* NO_MATHLIB */
 }
 
-/** Get n_to_calc eigenvectors and eigenvalues from given matrix. They will be
-  * stored in descending order (largest eigenvalue first).
+/** Get n_to_calc eigenvectors and eigenvalues from given symmetric matrix.
+  * They will be stored in descending order (largest eigenvalue first).
   */
 int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
 # ifdef NO_MATHLIB
@@ -176,9 +176,33 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
   bool eigenvaluesOnly = false;
   int info = 0;
   int ncols = (int)mIn.Ncols();
-  if (mIn.MatrixKind() != DataSet_2D::HALF) {
-    mprinterr("Error: Eigenvector/value calc only for symmetric matrices.\n");
-    return 1;
+  double* mat = 0;
+  // Create copy of matrix since call to dspev destroys it
+  if (mIn.MatrixKind() == DataSet_2D::HALF) {
+    mat = mIn.MatrixArray();
+  } else {
+    // FULL or TRI matrix. Convert to HALF form.
+    // Check that Matrix is symmetric.
+    if (mIn.Nrows() != mIn.Ncols()) {
+      mprinterr("Error: # of rows in '%s' != # of columns; cannot calculate eigenvectors/values.\n",
+                mIn.legend());
+      return 1;
+    }
+    if (!mIn.IsSymmetric()) {
+      mprintf("Warning: DataSet_Modes::CalcEigen(): Matrix '%s' does not appear to be symmetric.\n",
+              mIn.legend());
+      // TODO report most dissimilar i,j pair?
+    }
+    //mprinterr("Error: Eigenvector/value calc only for symmetric matrices.\n");
+    //return 1;
+    unsigned int matsize = mIn.Ncols() * (mIn.Ncols() + 1) / 2;
+    mat = new double[matsize];
+    unsigned int idx = 0;
+    for (unsigned int row = 0; row < mIn.Nrows(); row++) {
+      for (unsigned int col = row; col < mIn.Ncols(); col++) {
+        mat[idx++] = mIn.GetElement(row, col); // row,col is lower, col,row is upper
+      }
+    }
   }
   // If number to calc is 0, assume we want eigenvalues only
   if (n_to_calc < 1) {
@@ -224,8 +248,7 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
     // Set up space to hold eigenvalues
     if (evalues_ != 0) delete[] evalues_;
     evalues_ = new double[ ncols ];
-    // Create copy of matrix since call to dspev destroys it
-    double* mat = mIn.MatrixArray();
+
     // Lower triangle; not upper since fortran array layout is inverted w.r.t. C/C++
     char uplo = 'L'; 
     // Allocate temporary workspace

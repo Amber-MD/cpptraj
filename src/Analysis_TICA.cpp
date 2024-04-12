@@ -239,6 +239,22 @@ static void matT_times_mat_symmetric( DataSet_2D* out,
   }
 }
 
+/// For debugging - print eigenvalues/eigenvectors to stdout
+static void printEigen(DataSet_Modes const& C0_Modes, const char* desc) {
+  // DEBUG - print eigenvalues
+  std::vector<double> tmpevals;
+  for (int ii = 0; ii < C0_Modes.Nmodes(); ii++)
+    tmpevals.push_back( C0_Modes.Eigenvalue(ii) );
+  printDarray(desc, tmpevals, "%16.8e");
+  // DEBUG - print first 3 values of each eigenvector
+  for (int ii = 0; ii < C0_Modes.Nmodes(); ii++) {
+    const double* evec = C0_Modes.Eigenvector(ii);
+    for (int jj = 0; jj < 3; jj++)
+      mprintf("%12.8f", evec[jj]);
+    mprintf("\n");
+  }
+}
+
 /** Calculate instantaneous covariance and lagged covariance arrays */
 int Analysis_TICA::calculateCovariance_C0CT(DSarray const& sets)
 const
@@ -396,7 +412,8 @@ const
   // TODO remove negative eigenvalues
 
   // DEBUG - print eigenvalues
-  Darray tmpevals;
+  printEigen( C0_Modes, "C0evals" );
+/*  Darray tmpevals;
   for (int ii = 0; ii < C0_Modes.Nmodes(); ii++)
     tmpevals.push_back( C0_Modes.Eigenvalue(ii) );
   printDarray("C0evals", tmpevals, "%16.8e");
@@ -406,7 +423,7 @@ const
     for (int jj = 0; jj < 3; jj++)
       mprintf("%12.8f", evec[jj]);
     mprintf("\n");
-  }
+  }*/
 
   // Create matrix Ltrans, where rows are eigenvectors of C0 times eigenvalues of C0
   DataSet_MatrixDbl matLtrans;
@@ -464,17 +481,18 @@ const
   // Want all eigenvectors
   if (Cxy.IsSymmetric()) {
     mprintf("\tCt is symmetric.\n");
-    //if (Ct_Modes.CalcEigen( Ct_trans, Ct_trans.Ncols() )) {
-    //  mprinterr("Error: Could not calculate eigenvectors and eigenvalues for Ct matrix.\n");
-    //  return 1;
-    //}
+    if (Ct_Modes.CalcEigen( Ct_trans, Ct_trans.Ncols() )) {
+      mprinterr("Error: Could not calculate eigenvectors and eigenvalues for Ct matrix.\n");
+      return 1;
+    }
   } else {
     mprintf("\tCt is not symmetric.\n");
-    //if (Ct_Modes.CalcEigen( Ct_trans )) {
-    //  mprinterr("Error: Could not calculate eigenvectors and eigenvalues for Ct matrix (non-symmetric).\n");
-    //  return 1;
-    //}
+    if (Ct_Modes.CalcEigen_General( Ct_trans )) {
+      mprinterr("Error: Could not calculate eigenvectors and eigenvalues for Ct matrix (non-symmetric).\n");
+      return 1;
+    }
   }
+  printEigen( Ct_Modes, "Ctevals" );
 
   return 0;
 }

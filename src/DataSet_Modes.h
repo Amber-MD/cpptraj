@@ -44,7 +44,7 @@ class DataSet_Modes : public DataSet {
     /// Allocate memory for modes data
     int AllocateModes(unsigned int, unsigned int, unsigned int, unsigned int);
     /// Calculate all eigenvalues/eigenvectors for given matrix
-    int CalcEigen(DataSet_2D const&);
+    int CalcEigen_General(DataSet_2D const&);
     /// Calculate specific # of eigenvalues/eigenvectors for given symmetric matrix
     int CalcEigen(DataSet_2D const&,int);
     void PrintModes();
