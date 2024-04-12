@@ -255,6 +255,18 @@ static void printEigen(DataSet_Modes const& C0_Modes, const char* desc) {
   }
 }
 
+/// For debugging - print eigenvalues to file
+static void printEvals(DataSet_Modes const& modes, const char* fname) {
+  CpptrajFile outfile;
+  if (outfile.OpenWrite(fname)) {
+    mprinterr("Internal Error: printEvals: could not open file %s\n", fname);
+    return;
+  }
+  for (int ii = 0; ii < modes.Nmodes(); ii++)
+    outfile.Printf("%12.8f\n", modes.Eigenvalue(ii));
+  outfile.CloseFile();
+}
+
 /** Calculate instantaneous covariance and lagged covariance arrays */
 int Analysis_TICA::calculateCovariance_C0CT(DSarray const& sets)
 const
@@ -412,7 +424,8 @@ const
   // TODO remove negative eigenvalues
 
   // DEBUG - print eigenvalues
-  printEigen( C0_Modes, "C0evals" );
+  //printEigen( C0_Modes, "C0evals" );
+  printEvals(C0_Modes, "sm.dat");
 /*  Darray tmpevals;
   for (int ii = 0; ii < C0_Modes.Nmodes(); ii++)
     tmpevals.push_back( C0_Modes.Eigenvalue(ii) );
@@ -427,6 +440,8 @@ const
 
   // Create matrix Ltrans, where rows are eigenvectors of C0 times eigenvalues of C0
   DataSet_MatrixDbl matLtrans;
+  matLtrans.SetupFormat().SetFormatWidthPrecision(12,8); // DEBUG
+  matLtrans.SetupFormat().SetFormatType(TextFormat::DOUBLE); // DEBUG
   matLtrans.Allocate2D( C0_Modes.VectorSize(), C0_Modes.Nmodes() );
   unsigned int idx = 0;
   for (int ii = 0; ii < C0_Modes.Nmodes(); ii++) {
@@ -437,7 +452,7 @@ const
   }
   // DEBUG - write unnormalized matrix
   DataFile outfile3;
-  outfile3.SetupDatafile("matL.dat", tmpArgs, 0);
+  outfile3.SetupDatafile("matLtrans.dat", tmpArgs, 0);
   outfile3.AddDataSet( &matLtrans );
   outfile3.WriteDataOut();
   tmpArgs.SetAllUnmarked();
