@@ -7,6 +7,7 @@
 #include "DataSet_MatrixDbl.h" // TODO remove?
 #include "DataSet_Modes.h"
 #include <cmath> //sqrt
+#include <algorithm> // std::max
 
 /** CONSTRUCTOR */
 Analysis_TICA::Analysis_TICA() :
@@ -267,6 +268,22 @@ static void printEvals(DataSet_Modes const& modes, const char* fname) {
   outfile.CloseFile();
 }
 
+/// For debugging - print eigenvectors to file
+static void printEvecs(DataSet_Modes const& modes, const char* fname) {
+  CpptrajFile outfile;
+  if (outfile.OpenWrite(fname)) {
+    mprinterr("Internal Error: printEvals: could not open file %s\n", fname);
+    return;
+  }
+  for (int ii = 0; ii < modes.Nmodes(); ii++) {
+    const double* evec = modes.Eigenvector(ii);
+    for (int jj = 0; jj < modes.VectorSize(); jj++)
+      outfile.Printf("%12.8f", evec[jj]);
+    outfile.Printf("\n");
+  }
+  outfile.CloseFile();
+}
+
 /** Calculate instantaneous covariance and lagged covariance arrays */
 int Analysis_TICA::calculateCovariance_C0CT(DSarray const& sets)
 const
@@ -421,11 +438,39 @@ const
     mprinterr("Error: Could not calculate eigenvectors and eigenvales for C0 matrix.\n");
     return 1;
   }
-  // TODO remove negative eigenvalues
-
+  // Eigenvec/vals should come out of CalcEigen sorted from largest Eigenval to smallest.
+  // Determine cutoff; C0 is symmetric positive-definite so select
+  // cutoff so that negative eigenvalues vanish.
+  double min_eval = C0_Modes.Eigenvalue(C0_Modes.Nmodes()-1);
+/*  double min_eval = C0_Modes.Eigenvalue(0);
+  for (int ii = 1; ii < C0_Modes.Nmodes(); ii++) {
+    if (C0_Modes.EigenValue(ii) < min_eval)
+      min_eval = C0_Modes.Eigenvalue(ii);
+  }*/
+  mprintf("Min C0 eigenvalue= %g\n", min_eval);
+  double epsilon = 1e-6; // FIXME TODO make user-definable
+  if (min_eval < 0) {
+    epsilon = std::max(epsilon, -min_eval + 1e-16);
+  }
+  // Get the absolute value of each eigenvector
+  Darray abs_c0_evals;
+  abs_c0_evals.reserve( C0_Modes.Nmodes() );
+  for (int ii = 0; ii < C0_Modes.Nmodes(); ii++)
+    abs_c0_evals.push_back( fabs( C0_Modes.Eigenvalue(ii) ) );
+  // Find the index of the first abs(eigenvalue) smaller than epsilon
+  int idx_first_smaller = 0;
+  for (; idx_first_smaller < C0_Modes.Nmodes(); idx_first_smaller++) {
+    if ( abs_c0_evals[idx_first_smaller] < epsilon ) {
+      mprintf("%g < %g\n", abs_c0_evals[idx_first_smaller], epsilon );
+      break;
+    }
+  }
+  mprintf("DEBUG: Index of eigenvalue smaller than %g %i\n", epsilon, idx_first_smaller);
+  
   // DEBUG - print eigenvalues
   //printEigen( C0_Modes, "C0evals" );
   printEvals(C0_Modes, "sm.dat");
+  printEvecs(C0_Modes, "Vm.dat");
 /*  Darray tmpevals;
   for (int ii = 0; ii < C0_Modes.Nmodes(); ii++)
     tmpevals.push_back( C0_Modes.Eigenvalue(ii) );
