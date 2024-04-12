@@ -516,6 +516,13 @@ int DataSet_Modes::ResizeModes(int NtoSave) {
   return 0;
 }
 
+/** Multiply all elements of specified eigenvector by a factor */
+void DataSet_Modes::MultiplyEvecByFac(int nvec, double fac) {
+  double* evec = evectors_ + (nvec * vecsize_);
+  for (int jj = 0; jj < vecsize_; jj++)
+    evec[jj] *= fac;
+}
+
 // DataSet_Modes::ReduceVectors() 
 int DataSet_Modes::ReduceVectors() {
   if (evectors_ == 0) {

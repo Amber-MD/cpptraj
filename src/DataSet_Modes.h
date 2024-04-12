@@ -47,6 +47,8 @@ class DataSet_Modes : public DataSet {
     int CalcEigen_General(DataSet_2D const&);
     /// Calculate specific # of eigenvalues/eigenvectors for given symmetric matrix
     int CalcEigen(DataSet_2D const&,int);
+    /// Multiply all elements of the specified eigenvector by given value
+    void MultiplyEvecByFac(int, double);
     void PrintModes();
     int EigvalToFreq(double);
     int MassWtEigvect();
