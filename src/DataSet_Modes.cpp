@@ -5,7 +5,9 @@
 #include "DataSet_2D.h"
 #include "DataSet_MatrixDbl.h"
 #include "Frame.h"
-#include <cmath> // sqrt
+#include <cmath> // sqrt, fabs
+#include <utility> // std::pair
+#include <algorithm> // std::sort
 
 #ifndef NO_MATHLIB
 // Definition of Fortran subroutines called from this class
@@ -521,6 +523,20 @@ void DataSet_Modes::MultiplyEvecByFac(int nvec, double fac) {
   double* evec = evectors_ + (nvec * vecsize_);
   for (int jj = 0; jj < vecsize_; jj++)
     evec[jj] *= fac;
+}
+
+/** Sort eigenvectors and eigenvalues in descending order of abs(eigenvalue) */
+void DataSet_Modes::SortByAbsEigenvalue() {
+  // Create eigenvalue/index pairs
+  typedef std::pair<double,int> Epair;
+  typedef std::vector<Epair> Earray;
+
+  Earray Pairs;
+  for (int ii = 0; ii < nmodes_; ii++)
+    Pairs.push_back( Epair(fabs(evalues_[ii]), ii) );
+  // Sort by abs(eigenvalue)
+  std::sort( Pairs.begin(), Pairs.end() );
+
 }
 
 // DataSet_Modes::ReduceVectors() 

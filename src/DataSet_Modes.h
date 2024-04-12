@@ -49,6 +49,8 @@ class DataSet_Modes : public DataSet {
     int CalcEigen(DataSet_2D const&,int);
     /// Multiply all elements of the specified eigenvector by given value
     void MultiplyEvecByFac(int, double);
+    /// Descending sort by absolute value of eigenvalues
+    void SortByAbsEigenvalue();
     void PrintModes();
     int EigvalToFreq(double);
     int MassWtEigvect();

@@ -575,7 +575,9 @@ const
       return 1;
     }
   }
-  printEigen( Ct_Modes, "Ctevals" );
+  //printEigen( Ct_Modes, "Ctevals" );
+  printEvals(Ct_Modes, "ctvals.dat");
+  printEvecs(Ct_Modes, "ctvecs.dat");
 
   return 0;
 }
