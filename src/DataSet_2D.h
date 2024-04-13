@@ -83,6 +83,34 @@ class DataSet_2D : public DataSet {
       }
       return OK;
     }
+    /// Set this matrix with the result of M1^T
+    RetType TransposeOf(DataSet_2D const& M1) {
+      RetType ret = ERR;
+      MatrixKindType m1kind = M1.MatrixKind();
+      if (m1kind == FULL) {
+        if (Allocate2D( M1.Nrows(), M1.Ncols() )) return ALLOC_ERR;
+        ret = OK;
+        for (unsigned int row = 0; row < M1.Nrows(); row++) {
+          for (unsigned int col = 0; col < M1.Ncols(); col++)
+            SetElement( row, col, M1.GetElement(col, row) );
+        }
+      } else if (m1kind == HALF) {
+        if (AllocateHalf( M1.Ncols() )) return ALLOC_ERR;
+        ret = OK;
+        for (unsigned int row = 0; row < M1.Nrows(); row++) {
+          for (unsigned int col = row; col < M1.Ncols(); col++)
+            SetElement( row, col, M1.GetElement(col, row) );
+        }
+      } else if (m1kind == TRI) {
+        if (AllocateTriangle( M1.Ncols() )) return ALLOC_ERR;
+        ret = OK;
+        for (unsigned int row = 0; row < M1.Nrows(); row++) {
+          for (unsigned int col = row + 1; col < M1.Ncols(); col++)
+            SetElement( row, col, M1.GetElement(col, row) );
+        }
+      }
+      return ret;
+    }
     /// \return True if matrix is symmetric
     bool IsSymmetric() const;
     // -------------------------------------------

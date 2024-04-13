@@ -582,6 +582,21 @@ const
   printEvals(Ct_Modes, "ctvals.dat");
   printEvecs(Ct_Modes, "ctvecs.dat");
 
+  // The following is to test the math in the same exact order as L x Ct_Modes^T
+  DataSet_MatrixDbl matL;
+  ret = matL.TransposeOf( matLtrans );
+  if (ret != DataSet_2D::OK) {
+    mprinterr("Error: Could not get transpose of L^T\n");
+    if ( ret == DataSet_2D::ALLOC_ERR) mprinterr("Error: Allocation error.\n");
+    return 1;
+  }
+  // DEBUG - write unnormalized matrix
+  DataFile outfile6;
+  outfile6.SetupDatafile("matL.dat", tmpArgs, 0);
+  outfile6.AddDataSet( &matL );
+  outfile6.WriteDataOut();
+  tmpArgs.SetAllUnmarked();
+
   return 0;
 }
 
