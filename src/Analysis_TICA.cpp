@@ -541,19 +541,13 @@ const
   // L is transposed already (eigenvectors are in rows)
   // Calculate L^T * Ct
   DataSet_MatrixDbl matLtransCt;
-  matLtransCt.SetupFormat().SetFormatWidthPrecision(15,8); // DEBUG
-  matLtransCt.SetupFormat().SetFormatType(TextFormat::SCIENTIFIC); // DEBUG
   DataSet_2D::RetType ret = matLtransCt.Multiply(matLtrans, Cxy);
   if (ret != DataSet_2D::OK) {
     mprinterr("Error: Could not multiply L^T x Ct\n");
     return 1;
   }
   // DEBUG - write unnormalized matrix
-  DataFile outfile4;
-  outfile4.SetupDatafile("matLCt.dat", tmpArgs, 0);
-  outfile4.AddDataSet( &matLtransCt );
-  outfile4.WriteDataOut();
-  tmpArgs.SetAllUnmarked();
+  printMatrix("matLCt.dat", matLtransCt, tmpArgs, 15, 8, TextFormat::SCIENTIFIC);
 
   // Calculate (L^T * Ct) * L
   // Need to use transpose of Ltrans to get L
