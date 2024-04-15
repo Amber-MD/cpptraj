@@ -164,14 +164,14 @@ static inline void calculate_sum(std::vector<double>& sumX,
 }
 
 /// Subtract the set mean from every element of the set
-static inline void subtract_mean(DataSet_1D* outPtr,
+static inline void subtract_mean(DataSet_double& out,
                                  DataSet_1D const* in,
                                  unsigned int nelt_,
                                  double total_weight,
                                  double sumX,
                                  unsigned int startFrame, unsigned int endFrame)
 {
-  DataSet_double& out = static_cast<DataSet_double&>( *outPtr );
+//  DataSet_double& out = static_cast<DataSet_double&>( *outPtr );
   //out.clear();
   out.Allocate(DataSet::SizeArray(1, endFrame - startFrame));
   //out.reserve(endFrame - startFrame);
@@ -184,21 +184,21 @@ static inline void subtract_mean(DataSet_1D* outPtr,
 
 /// Multiply transpose of matrix by matrix TODO since the resulting matrix is supposed to be symmetric we can speed this up
 static void matT_times_mat( DataSet_2D* out,
-                            std::vector<DataSet_1D*> const& M1,
-                            std::vector<DataSet_1D*> const& M2)
+                            std::vector<DataSet_double> const& M1,
+                            std::vector<DataSet_double> const& M2)
 {
   unsigned int Nrows = M1.size();
   unsigned int Ncols = M2.size();
   out->Allocate2D( Ncols, Nrows );
   unsigned int idx = 0;
   for (unsigned int row = 0; row < Nrows; row++) {
-    DataSet_1D* seti = M1[row];
+    DataSet_double const& seti = M1[row];
     for (unsigned int col = 0; col < Ncols; col++) {
-      DataSet_1D* setj = M2[col];
+      DataSet_double const& setj = M2[col];
       // seti->Size() must equal setj->Size()
       double sum = 0;
-      for (unsigned int k = 0; k < seti->Size(); k++) {
-        sum += (seti->Dval(k) * setj->Dval(k));
+      for (unsigned int k = 0; k < seti.Size(); k++) {
+        sum += (seti.Dval(k) * setj.Dval(k));
       }
       out->SetElement(idx++, sum);
       //mprintf(" %12.4f", sum);
@@ -209,8 +209,8 @@ static void matT_times_mat( DataSet_2D* out,
 
 /// For eaach matrix, Multiply transpose of matrix by matrix, then sum
 static void matT_times_mat_symmetric( DataSet_2D* out,
-                                      std::vector<DataSet_1D*> const& M1,
-                                      std::vector<DataSet_1D*> const& M2 )
+                                      std::vector<DataSet_double> const& M1,
+                                      std::vector<DataSet_double> const& M2 )
 {
   if (M1.size() != M2.size()) {
     mprinterr("Internal Error: matT_times_mat_symmetric: Different # of sets.\n");
@@ -221,17 +221,17 @@ static void matT_times_mat_symmetric( DataSet_2D* out,
   unsigned int Ncols = Nrows;
   unsigned int idx = 0;
   for (unsigned int row = 0; row < Nrows; row++) {
-    DataSet_1D* seti1 = M1[row];
-    DataSet_1D* seti2 = M2[row];
+    DataSet_double const& seti1 = M1[row];
+    DataSet_double const& seti2 = M2[row];
     for (unsigned int col = row; col < Ncols; col++) {
-      DataSet_1D* setj1 = M1[col];
-      DataSet_1D* setj2 = M2[col];
+      DataSet_double const& setj1 = M1[col];
+      DataSet_double const& setj2 = M2[col];
       double sum = 0;
       // ALL SETS MUST HAVE SAME SIZE
-      unsigned int nframes = seti1->Size();
+      unsigned int nframes = seti1.Size();
       for (unsigned int k = 0; k < nframes; k++) {
-        sum += (seti1->Dval(k) * setj1->Dval(k));
-        sum += (seti2->Dval(k) * setj2->Dval(k));
+        sum += (seti1.Dval(k) * setj1.Dval(k));
+        sum += (seti2.Dval(k) * setj2.Dval(k));
       }
       out->SetElement(idx++, sum);
       //mprintf(" %12.4f", sum);
@@ -362,22 +362,22 @@ const
   printDarray("sx_raw_centered", sx_centered, "%16.8e");
   printDarray("sy_raw_centered", sy_centered, "%16.8e");
 
-  // Remove mean // FIXME do without new
-  typedef std::vector<DataSet_1D*> DDArray;
+  // Remove mean
+  typedef std::vector<DataSet_double> DDArray;
   DDArray CenteredX(sets.size());
   DDArray CenteredY(sets.size());
-  for (unsigned int jdx = 0; jdx != sets.size(); jdx++) {
-    CenteredX[jdx] = (DataSet_1D*)new DataSet_double();
-    CenteredY[jdx] = (DataSet_1D*)new DataSet_double();
-  }
+  //for (unsigned int jdx = 0; jdx != sets.size(); jdx++) {
+  //  CenteredX[jdx] = (DataSet_1D*)new DataSet_double();
+  //  CenteredY[jdx] = (DataSet_1D*)new DataSet_double();
+  //}
   Darray tmpx, tmpy; // DEBUG FIXME
   // Because symmetric, sy = sx //TODO use meanX set
   Darray const& sy = sx;
   for (unsigned int jdx = 0; jdx != sets.size(); jdx++) {
     subtract_mean(CenteredX[jdx], sets[jdx], nelt_, total_weight, sx[jdx], 0, c0end);
     subtract_mean(CenteredY[jdx], sets[jdx], nelt_, total_weight, sy[jdx], ctstart, maxFrames);
-    tmpx.push_back( CenteredX[jdx]->Dval(0) ); // DEBUG
-    tmpy.push_back( CenteredY[jdx]->Dval(0) ); // DEBUG
+    tmpx.push_back( CenteredX[jdx].Dval(0) ); // DEBUG
+    tmpy.push_back( CenteredY[jdx].Dval(0) ); // DEBUG
   }
   printDarray("X0", tmpx, "%16.8e");
   printDarray("Y0", tmpy, "%16.8e");
@@ -425,10 +425,10 @@ const
   tmpArgs.SetAllUnmarked();
 
   // Free memory
-  for (unsigned int jdx = 0; jdx != sets.size(); jdx++) {
-    delete CenteredX[jdx];
-    delete CenteredY[jdx];
-  }
+  //for (unsigned int jdx = 0; jdx != sets.size(); jdx++) {
+  //  delete CenteredX[jdx];
+  //  delete CenteredY[jdx];
+  //}
 
   // ---------------------------------------------
   // Get C0 eigenvectors/eigenvalues
