@@ -409,10 +409,7 @@ const
   typedef std::vector<DataSet_double> DDArray;
   DDArray CenteredX(sets.size());
   DDArray CenteredY(sets.size());
-  //for (unsigned int jdx = 0; jdx != sets.size(); jdx++) {
-  //  CenteredX[jdx] = (DataSet_1D*)new DataSet_double();
-  //  CenteredY[jdx] = (DataSet_1D*)new DataSet_double();
-  //}
+
   Darray tmpx, tmpy; // DEBUG FIXME
   // Because symmetric, sy = sx //TODO use meanX set
   Darray const& sy = sx;
@@ -450,12 +447,6 @@ const
   // DEBUG - write normalized matrices
   printMatrix("cxxyy.norm.dat", CXXYY, tmpArgs);
   printMatrix("cxyyx.norm.dat", Cxy, tmpArgs);
-
-  // Free memory
-  //for (unsigned int jdx = 0; jdx != sets.size(); jdx++) {
-  //  delete CenteredX[jdx];
-  //  delete CenteredY[jdx];
-  //}
 
   // ---------------------------------------------
   // Get C0 eigenvectors/eigenvalues
@@ -536,8 +527,6 @@ const
 
   // Create matrix Ltrans, where rows are eigenvectors of C0 times eigenvalues of C0
   DataSet_MatrixDbl matLtrans;
-  matLtrans.SetupFormat().SetFormatWidthPrecision(12,8); // DEBUG
-  matLtrans.SetupFormat().SetFormatType(TextFormat::DOUBLE); // DEBUG
   matLtrans.Allocate2D( C0_Modes.VectorSize(), C0_Modes.Nmodes() );
   unsigned int idx = 0;
   for (int ii = 0; ii < C0_Modes.Nmodes(); ii++) {
@@ -547,11 +536,7 @@ const
       matLtrans.SetElement(idx++, evec[jj] * fac);
   }
   // DEBUG - write unnormalized matrix
-  DataFile outfile3;
-  outfile3.SetupDatafile("matLtrans.dat", tmpArgs, 0);
-  outfile3.AddDataSet( &matLtrans );
-  outfile3.WriteDataOut();
-  tmpArgs.SetAllUnmarked();
+  printMatrix("matLtrans.dat", matLtrans, tmpArgs, 12, 8, TextFormat::DOUBLE);
 
   // L is transposed already (eigenvectors are in rows)
   // Calculate L^T * Ct
