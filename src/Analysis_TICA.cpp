@@ -263,7 +263,7 @@ static void matT_times_mat_symmetric( DataSet_2D* out,
 }
 
 /// For debugging - print eigenvalues/eigenvectors to stdout
-static void printEigen(DataSet_Modes const& C0_Modes, const char* desc) {
+/*static void printEigen(DataSet_Modes const& C0_Modes, const char* desc) {
   // DEBUG - print eigenvalues
   std::vector<double> tmpevals;
   for (int ii = 0; ii < C0_Modes.Nmodes(); ii++)
@@ -276,7 +276,7 @@ static void printEigen(DataSet_Modes const& C0_Modes, const char* desc) {
       mprintf("%12.8f", evec[jj]);
     mprintf("\n");
   }
-}
+}*/
 
 /// For debugging - print eigenvalues to file
 static void printEvals(DataSet_Modes const& modes, const char* fname) {
@@ -581,6 +581,16 @@ const
   //printEigen( Ct_Modes, "Ctevals" );
   printEvals(Ct_Modes, "ctvals.dat");
   printEvecs(Ct_Modes, "ctvecs.dat");
+
+  // Calculate R^T * L^T to get (LR)^T
+  DataSet_MatrixDbl ctm; // FIXME DataSet_Modes eigenvectors should be in a DataSet_MatrixDbl?
+  ctm.Allocate2D( Ct_Modes.VectorSize(), Ct_Modes.Nmodes() );
+  std::copy( Ct_Modes.Eigenvectors(),
+             Ct_Modes.Eigenvectors() + (Ct_Modes.Nmodes() * Ct_Modes.VectorSize()),
+             (double*)ctm.MatrixPtr() );
+  DataSet_MatrixDbl matRt;
+  matRt.Multiply( ctm, matLtrans );
+  printMatrix("matRt.dat", matRt, tmpArgs, 12, 8, TextFormat::DOUBLE);
 
   // The following is to test the math in the same exact order as L x Ct_Modes^T
   DataSet_MatrixDbl matL;
