@@ -468,7 +468,6 @@ const
   mprintf("DEBUG: Index of eigenvalue smaller than %g %i\n", epsilon, idx_first_smaller);
   C0_Modes.ResizeModes( idx_first_smaller );
   // Enforce canonical eigenvector signs
-  //C0_Modes.SetCanonicalEvecSigns();
   for (int ii = 0; ii < C0_Modes.Nmodes(); ii++) {
     // Find the maximum absolute value of the eigenvector
     double abs_maxval = 0;
