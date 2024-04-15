@@ -430,6 +430,7 @@ const
     delete CenteredY[jdx];
   }
 
+  // ---------------------------------------------
   // Get C0 eigenvectors/eigenvalues
   DataSet_Modes C0_Modes;
   C0_Modes.SetAvgCoords( meanX );

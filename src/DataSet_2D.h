@@ -83,6 +83,23 @@ class DataSet_2D : public DataSet {
       }
       return OK;
     }
+    /// Set this matrix with the result of M1^T x M2
+    RetType Multiply_M1transpose(DataSet_2D const& M1, DataSet_2D const& M2) {
+      if (M1.Nrows() != M2.Nrows()) return DIM_MISMATCH;
+      unsigned int len = M1.Nrows();
+      if (Allocate2D( M2.Ncols(), M1.Ncols() )) return ALLOC_ERR;
+      unsigned int idx = 0;
+      for (unsigned int row = 0; row != Nrows(); row++) {
+        for (unsigned int col = 0; col != Ncols(); col++) {
+          double sum = 0;
+          for (unsigned int k = 0; k != len; k++)
+            sum += M1.GetElement(row, k) * M2.GetElement(col, k);
+          SetElement(idx++, sum);
+        }
+      }
+      return OK;
+    }
+
     /// Set this matrix with the result of M1^T
     RetType TransposeOf(DataSet_2D const& M1) {
       RetType ret = ERR;
