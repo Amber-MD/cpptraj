@@ -15,14 +15,17 @@ Analysis_TICA::Analysis_TICA() :
   lag_(0),
   useMass_(false),
   debugC0_(0),
-  debugCT_(0)
+  debugCT_(0),
+  evectorScale_(NO_SCALING)
 {
   SetHidden(true);
 }
 
 // Analysis_TICA::Help()
 void Analysis_TICA::Help() const {
-  mprintf("[crdset <set name>] [lag <time lag>] [mask <mask>] [mass]\n");
+  mprintf("{crdset <set name>|data <set arg1> ...} [lag <time lag>]\n"
+          "[mask <mask>] [mass] [map {kinetic|commute|none}]\n");
+          
 }
 
 // Analysis_TICA::Setup()
@@ -58,6 +61,20 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
     return Analysis::ERR;
   }
   // Other keywords
+  std::string maparg = analyzeArgs.GetStringKey("map");
+  if (!maparg.empty()) {
+    if (maparg == "kinetic")
+      evectorScale_ = KINETIC_MAP;
+    else if (maparg == "commute")
+      evectorScale_ = COMMUTE_MAP;
+    else if (maparg == "none")
+      evectorScale_ = NO_SCALING;
+    else {
+      mprinterr("Error: Unrecognized keyword for 'map' argument: %s\n", maparg.c_str());
+      return Analysis::ERR;
+    }
+  } else
+    evectorScale_ = KINETIC_MAP;
   lag_ = analyzeArgs.getKeyInt("lag", 1);
   std::string maskstr = analyzeArgs.GetStringKey("mask");
   if (mask1_.SetMaskString( maskstr )) {
@@ -109,6 +126,11 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
     mprintf("\tDebug C0 output to %s\n", debugC0_->Filename().full());
   if (debugCT_ != 0)
     mprintf("\tDebug CT output to %s\n", debugCT_->Filename().full());
+  switch (evectorScale_) {
+    case NO_SCALING  : mprintf("\tNot scaling eigenvectors.\n"); break;
+    case KINETIC_MAP : mprintf("\tScaling eigenvectors by eigenvalues.\n"); break;
+    case COMMUTE_MAP : mprintf("\tScaling eigenvectors by regularized time scales.\n"); break;
+  }
 
   return Analysis::OK;
 }
