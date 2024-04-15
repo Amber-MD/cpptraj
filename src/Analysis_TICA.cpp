@@ -26,7 +26,7 @@ Analysis_TICA::Analysis_TICA() :
 void Analysis_TICA::Help() const {
   mprintf("\t{crdset <COORDS set name>|data <input set arg1> ...} [lag <time lag>]\n"
           "\t[mask <mask>] [mass] [map {kinetic|commute|none}]\n"
-          "\t[name <output set name>]\n"
+          "\t[name <output set name>] [out <file>]\n"
          );
           
 }
@@ -101,6 +101,9 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
     mprinterr("Error: Could not allocate output TICA modes.\n");
     return Analysis::ERR;
   }
+  DataFile* outfile = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs);
+  if (outfile != 0)
+    outfile->AddDataSet( ticaModes_ );
 
   debugC0_ = setup.DFL().AddCpptrajFile(analyzeArgs.GetStringKey("debugc0"), "TICA C0 debug",
                                                                    DataFileList::TEXT, true);
@@ -607,10 +610,10 @@ const
   ticaModes_->SetModes(false, Ct_Modes.Nmodes(), Ct_Modes.VectorSize(),
                        Ct_Modes.EigenvaluePtr(), (const double*)matRt.MatrixPtr());
   ticaModes_->SetCanonicalEvecSigns();
-  DataFile outfile9;
-  outfile9.SetupDatafile("matRmodes.dat", 0);
-  outfile9.AddDataSet( ticaModes_ );
-  outfile9.WriteDataOut();
+  //DataFile outfile9;
+  //outfile9.SetupDatafile("matRmodes.dat", 0);
+  //outfile9.AddDataSet( ticaModes_ );
+  //outfile9.WriteDataOut();
 /*
   // The following is to test the math in the same exact order as L x Ct_Modes^T
   DataSet_MatrixDbl matL;
@@ -677,8 +680,21 @@ const
 
 /** Analyze multiple 1D data sets. */
 Analysis::RetType Analysis_TICA::analyze_datasets() {
-  calculateCovariance_C0CT( sets_.Array() );
+  if (calculateCovariance_C0CT( sets_.Array() ) || ticaModes_ == 0) {
+    mprinterr("Error: Could not calculate C0/CT matrices.\n");
+    return Analysis::ERR;
+  }
+  if (evectorScale_ == KINETIC_MAP) {
+    // Weight eigenvectors by eigenvalues
+    for (int ii = 0; ii < ticaModes_->Nmodes(); ii++)
+      ticaModes_->MultiplyEvecByFac( ii, ticaModes_->Eigenvalue(ii) );
+  } else if (evectorScale_ == COMMUTE_MAP) {
+    // Weight eigenvectors by regularized time scales
+    mprinterr("Internal Error: Commute_map not yet implemented.\n");
+    return Analysis::ERR;
+  }
 
+  
 /*  // Matrix - half
   CoordCovarMatrix_Half covarMatrix;
   if (covarMatrix.SetupMatrix( sets_.Array() )) {
