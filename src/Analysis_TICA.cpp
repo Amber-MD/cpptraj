@@ -618,6 +618,7 @@ const
   tmpArgs.SetAllUnmarked();
 
   // Calculate L * R^T
+  // TODO calculate R^T * L^T to get (LR)^T instead?
   DataSet_MatrixDbl matR;
   matR.Multiply( matL, R_trans );
 
