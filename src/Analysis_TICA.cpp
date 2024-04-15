@@ -621,6 +621,32 @@ const
   // Calculate L * R^T
   DataSet_MatrixDbl matR;
   matR.Multiply( matL, R_trans );
+
+  // Change eigenvector (in columns) signs
+  for (unsigned int col = 0; col < matR.Ncols(); col++) {
+    // Find the maximum absolute value of the eigenvector (in column)
+    double abs_maxval = 0;
+    unsigned int abs_maxidx = 0;
+    for (unsigned int row = 0; row < matR.Nrows(); row++) {
+      double dval = fabs( matR.GetElement( col, row ) );
+      if (dval > abs_maxval) {
+        abs_maxval = dval;
+        abs_maxidx = row;
+      }
+    }
+    double elt = matR.GetElement(col, abs_maxidx);
+    mprintf("argmax %u %u %g\n", col, abs_maxidx, elt);
+    double sign;
+    if (elt < 0)
+      sign = -1.0;
+    else
+      sign = 1.0;
+    // Multiply all elements of eigenvector (in column) by sign of max abs element
+    for (unsigned int row = 0; row < matR.Nrows(); row++) {
+      double dval = matR.GetElement( col, row ) * sign;
+      matR.SetElement( col, row, dval );
+    }
+  }
   // DEBUG - write unnormalized matrix
   matR.SetupFormat().SetFormatWidthPrecision(12,8); // DEBUG
   matR.SetupFormat().SetFormatType(TextFormat::DOUBLE); // DEBUG
