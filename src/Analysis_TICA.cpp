@@ -596,6 +596,39 @@ const
   outfile6.AddDataSet( &matL );
   outfile6.WriteDataOut();
   tmpArgs.SetAllUnmarked();
+  // Put eigenvectors in columns
+  DataSet_MatrixDbl R_trans;
+  if (R_trans.Allocate2D( Ct_Modes.Nmodes(), Ct_Modes.VectorSize() )) {
+    mprinterr("Error: Could not allocate matrix for Ct eigenvectors.\n");
+    return 1;
+  }
+  idx = 0;
+  for (unsigned int row = 0; row < R_trans.Nrows(); row++) {
+    for (unsigned int col = 0; col < R_trans.Ncols(); col++) {
+      const double* evec = Ct_Modes.Eigenvector(col);
+      R_trans[idx++] = evec[row];
+    }
+  }
+  // DEBUG - write unnormalized matrix
+  R_trans.SetupFormat().SetFormatWidthPrecision(12,8); // DEBUG
+  R_trans.SetupFormat().SetFormatType(TextFormat::DOUBLE); // DEBUG
+  DataFile outfile7;
+  outfile7.SetupDatafile("R_trans.dat", tmpArgs, 0);
+  outfile7.AddDataSet( &R_trans );
+  outfile7.WriteDataOut();
+  tmpArgs.SetAllUnmarked();
+
+  // Calculate L * R^T
+  DataSet_MatrixDbl matR;
+  matR.Multiply( matL, R_trans );
+  // DEBUG - write unnormalized matrix
+  matR.SetupFormat().SetFormatWidthPrecision(12,8); // DEBUG
+  matR.SetupFormat().SetFormatType(TextFormat::DOUBLE); // DEBUG
+  DataFile outfile8;
+  outfile8.SetupDatafile("matR.dat", tmpArgs, 0);
+  outfile8.AddDataSet( &matR );
+  outfile8.WriteDataOut();
+  tmpArgs.SetAllUnmarked();
 
   return 0;
 }
