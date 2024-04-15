@@ -3,6 +3,7 @@
 #include "Analysis.h"
 #include "Array1D.h"
 class DataSet_2D;
+class DataSet_Modes;
 /// <Enter description of Analysis_TICA here>
 class Analysis_TICA : public Analysis {
   public:
@@ -38,5 +39,6 @@ class Analysis_TICA : public Analysis {
     CpptrajFile* debugC0_;          ///< Debug output for C0
     CpptrajFile* debugCT_;          ///< Debug output for CT
     EvectorScaleType evectorScale_; ///< Eigenvector scaling type
+    DataSet_Modes* ticaModes_;      ///< Output TICA modes
 };
 #endif

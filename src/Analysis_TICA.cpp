@@ -16,15 +16,18 @@ Analysis_TICA::Analysis_TICA() :
   useMass_(false),
   debugC0_(0),
   debugCT_(0),
-  evectorScale_(NO_SCALING)
+  evectorScale_(NO_SCALING),
+  ticaModes_(0)
 {
   SetHidden(true);
 }
 
 // Analysis_TICA::Help()
 void Analysis_TICA::Help() const {
-  mprintf("{crdset <set name>|data <set arg1> ...} [lag <time lag>]\n"
-          "[mask <mask>] [mass] [map {kinetic|commute|none}]\n");
+  mprintf("\t{crdset <COORDS set name>|data <input set arg1> ...} [lag <time lag>]\n"
+          "\t[mask <mask>] [mass] [map {kinetic|commute|none}]\n"
+          "\t[name <output set name>]\n"
+         );
           
 }
 
@@ -92,6 +95,13 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
 
   useMass_ = analyzeArgs.hasKey("mass");
 
+  std::string dsname = analyzeArgs.GetStringKey("name");
+  ticaModes_ = (DataSet_Modes*)setup.DSL().AddSet( DataSet::MODES, dsname, "TICA" );
+  if (ticaModes_ == 0) {
+    mprinterr("Error: Could not allocate output TICA modes.\n");
+    return Analysis::ERR;
+  }
+
   debugC0_ = setup.DFL().AddCpptrajFile(analyzeArgs.GetStringKey("debugc0"), "TICA C0 debug",
                                                                    DataFileList::TEXT, true);
   if (debugC0_ == 0) {
@@ -131,6 +141,7 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
     case KINETIC_MAP : mprintf("\tScaling eigenvectors by eigenvalues.\n"); break;
     case COMMUTE_MAP : mprintf("\tScaling eigenvectors by regularized time scales.\n"); break;
   }
+  mprintf("\tTICA data set: %s\n", ticaModes_->legend());
 
   return Analysis::OK;
 }
@@ -487,7 +498,8 @@ const
   mprintf("DEBUG: Index of eigenvalue smaller than %g %i\n", epsilon, idx_first_smaller);
   C0_Modes.ResizeModes( idx_first_smaller );
   // Enforce canonical eigenvector signs
-  for (int ii = 0; ii < C0_Modes.Nmodes(); ii++) {
+  C0_Modes.SetCanonicalEvecSigns();
+/*  for (int ii = 0; ii < C0_Modes.Nmodes(); ii++) {
     // Find the maximum absolute value of the eigenvector
     double abs_maxval = 0;
     int abs_maxidx = 0;
@@ -507,7 +519,7 @@ const
       sign =  1.0;
     // Multiply all elements of the eigenvector by the sign of the max abs element
     C0_Modes.MultiplyEvecByFac( ii, sign );
-  }
+  }*/
   
   // DEBUG - print eigenvalues
   //printEigen( C0_Modes, "C0evals" );
@@ -591,15 +603,15 @@ const
   DataSet_MatrixDbl matRt;
   matRt.Multiply( ctm, matLtrans );
   printMatrix("matRt.dat", matRt, tmpArgs, 12, 8, TextFormat::DOUBLE);
-  DataSet_Modes matRmodes;
-  matRmodes.SetModes(false, Ct_Modes.Nmodes(), Ct_Modes.VectorSize(),
-                     Ct_Modes.EigenvaluePtr(), (const double*)matRt.MatrixPtr());
-  matRmodes.SetCanonicalEvecSigns();
+  //DataSet_Modes matRmodes;
+  ticaModes_->SetModes(false, Ct_Modes.Nmodes(), Ct_Modes.VectorSize(),
+                       Ct_Modes.EigenvaluePtr(), (const double*)matRt.MatrixPtr());
+  ticaModes_->SetCanonicalEvecSigns();
   DataFile outfile9;
   outfile9.SetupDatafile("matRmodes.dat", 0);
-  outfile9.AddDataSet( &matRmodes );
+  outfile9.AddDataSet( ticaModes_ );
   outfile9.WriteDataOut();
-
+/*
   // The following is to test the math in the same exact order as L x Ct_Modes^T
   DataSet_MatrixDbl matL;
   ret = matL.TransposeOf( matLtrans );
@@ -659,7 +671,7 @@ const
   }
   // DEBUG - write unnormalized matrix
   printMatrix("matR.dat", matR, tmpArgs, 12, 8, TextFormat::DOUBLE);
-
+*/
   return 0;
 }
 
