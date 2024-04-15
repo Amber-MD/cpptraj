@@ -429,22 +429,12 @@ const
   ArgList tmpArgs("square2d noheader");
   // Calculate Cxxyy
   DataSet_MatrixDbl CXXYY;// = (DataSet_2D*)new DataSet_MatrixDbl();
-//  CXXYY.SetupFormat().SetFormatWidthPrecision(12,6); // DEBUG
-//  CXXYY.SetupFormat().SetFormatType(TextFormat::DOUBLE); // DEBUG
-//  mprintf("CXXYY\n");
   matT_times_mat_symmetric(static_cast<DataSet_2D*>(&CXXYY), CenteredX, CenteredY);
   // DEBUG - write unnormalized matrix
   printMatrix("cxxyy.dat", CXXYY, tmpArgs, 12, 6, TextFormat::DOUBLE);
-//  DataFile outfile1;
-//  outfile1.SetupDatafile("cxxyy.dat", tmpArgs, 0);
-//  outfile1.AddDataSet( &CXXYY );
-//  outfile1.WriteDataOut();
-//  tmpArgs.SetAllUnmarked();
 
   // Calculate Cxyyx
   DataSet_MatrixDbl Cxy, Cyx;
-  Cxy.SetupFormat().SetFormatWidthPrecision(12,6); // DEBUG
-  Cxy.SetupFormat().SetFormatType(TextFormat::DOUBLE); // DEBUG
   matT_times_mat(static_cast<DataSet_2D*>(&Cxy), CenteredX, CenteredY);
   matT_times_mat(static_cast<DataSet_2D*>(&Cyx), CenteredY, CenteredX);
   for (unsigned int idx = 0; idx != Cxy.Size(); idx++) {
@@ -452,23 +442,14 @@ const
     Cxy.SetElement(idx, sum);
   }
   // DEBUG - write unnormalized matrix
-  DataFile outfile2;
-  outfile2.SetupDatafile("cxyyx.dat", tmpArgs, 0);
-  outfile2.AddDataSet( &Cxy );
-  outfile2.WriteDataOut();
-  tmpArgs.SetAllUnmarked();
+  printMatrix("cxyyx.dat", Cxy, tmpArgs, 12, 6, TextFormat::DOUBLE);
 
   // Normalize
   CXXYY.Normalize( 1.0 / total_weight );
   Cxy.Normalize( 1.0 / total_weight );
   // DEBUG - write normalized matrices
   printMatrix("cxxyy.norm.dat", CXXYY, tmpArgs);
-//  outfile1.SetupDatafile("cxxyy.norm.dat", tmpArgs, 0);
-//  outfile1.WriteDataOut();
-  tmpArgs.SetAllUnmarked();
-  outfile2.SetupDatafile("cxyyx.norm.dat", tmpArgs, 0);
-  outfile2.WriteDataOut();
-  tmpArgs.SetAllUnmarked();
+  printMatrix("cxyyx.norm.dat", Cxy, tmpArgs);
 
   // Free memory
   //for (unsigned int jdx = 0; jdx != sets.size(); jdx++) {
