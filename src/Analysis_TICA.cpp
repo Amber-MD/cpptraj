@@ -640,13 +640,7 @@ const
     }
   }
   // DEBUG - write unnormalized matrix
-  matR.SetupFormat().SetFormatWidthPrecision(12,8); // DEBUG
-  matR.SetupFormat().SetFormatType(TextFormat::DOUBLE); // DEBUG
-  DataFile outfile8;
-  outfile8.SetupDatafile("matR.dat", tmpArgs, 0);
-  outfile8.AddDataSet( &matR );
-  outfile8.WriteDataOut();
-  tmpArgs.SetAllUnmarked();
+  printMatrix("matR.dat", matR, tmpArgs, 12, 8, TextFormat::DOUBLE);
 
   return 0;
 }
