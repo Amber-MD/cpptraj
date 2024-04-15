@@ -51,6 +51,8 @@ class DataSet_Modes : public DataSet {
     void MultiplyEvecByFac(int, double);
     /// Descending sort by absolute value of eigenvalues
     void SortByAbsEigenvalue();
+    /// Set canonical eigenvector signs
+    void SetCanonicalEvecSigns();
     void PrintModes();
     int EigvalToFreq(double);
     int MassWtEigvect();

@@ -591,6 +591,14 @@ const
   DataSet_MatrixDbl matRt;
   matRt.Multiply( ctm, matLtrans );
   printMatrix("matRt.dat", matRt, tmpArgs, 12, 8, TextFormat::DOUBLE);
+  DataSet_Modes matRmodes;
+  matRmodes.SetModes(false, Ct_Modes.Nmodes(), Ct_Modes.VectorSize(),
+                     Ct_Modes.EigenvaluePtr(), (const double*)matRt.MatrixPtr());
+  matRmodes.SetCanonicalEvecSigns();
+  DataFile outfile9;
+  outfile9.SetupDatafile("matRmodes.dat", 0);
+  outfile9.AddDataSet( &matRmodes );
+  outfile9.WriteDataOut();
 
   // The following is to test the math in the same exact order as L x Ct_Modes^T
   DataSet_MatrixDbl matL;
