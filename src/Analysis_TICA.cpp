@@ -591,11 +591,8 @@ const
     return 1;
   }
   // DEBUG - write unnormalized matrix
-  DataFile outfile6;
-  outfile6.SetupDatafile("matL.dat", tmpArgs, 0);
-  outfile6.AddDataSet( &matL );
-  outfile6.WriteDataOut();
-  tmpArgs.SetAllUnmarked();
+  printMatrix("matL.dat", matL, tmpArgs, 12, 8, TextFormat::DOUBLE);
+
   // Put eigenvectors in columns
   DataSet_MatrixDbl R_trans;
   if (R_trans.Allocate2D( Ct_Modes.Nmodes(), Ct_Modes.VectorSize() )) {
@@ -610,13 +607,7 @@ const
     }
   }
   // DEBUG - write unnormalized matrix
-  R_trans.SetupFormat().SetFormatWidthPrecision(12,8); // DEBUG
-  R_trans.SetupFormat().SetFormatType(TextFormat::DOUBLE); // DEBUG
-  DataFile outfile7;
-  outfile7.SetupDatafile("R_trans.dat", tmpArgs, 0);
-  outfile7.AddDataSet( &R_trans );
-  outfile7.WriteDataOut();
-  tmpArgs.SetAllUnmarked();
+  printMatrix("R_trans.dat", R_trans, tmpArgs, 12, 8, TextFormat::DOUBLE);
 
   // Calculate L * R^T
   // TODO calculate R^T * L^T to get (LR)^T instead?
