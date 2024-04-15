@@ -306,6 +306,27 @@ static void printEvecs(DataSet_Modes const& modes, const char* fname) {
   outfile.CloseFile();
 }
 
+/// For debugging. Print matrix to file
+static void printMatrix(const char* fname, DataSet_2D& matR, ArgList& tmpArgs,
+                        int width, int precision, TextFormat::FmtType fmt)
+{
+  if (width > 0) {
+    matR.SetupFormat().SetFormatWidthPrecision( width, precision );
+    matR.SetupFormat().SetFormatType( fmt );
+  }
+  DataFile outfile8;
+  outfile8.SetupDatafile(fname, tmpArgs, 0);
+  outfile8.AddDataSet( &matR );
+  outfile8.WriteDataOut();
+  tmpArgs.SetAllUnmarked();
+}
+
+/// For debugging. Print matrix to file
+static void printMatrix(const char* fname, DataSet_2D& matR, ArgList& tmpArgs)
+{
+  printMatrix(fname, matR, tmpArgs, -1, -1, TextFormat::DOUBLE);
+}
+
 /** Calculate instantaneous covariance and lagged covariance arrays */
 int Analysis_TICA::calculateCovariance_C0CT(DSarray const& sets)
 const
@@ -408,16 +429,17 @@ const
   ArgList tmpArgs("square2d noheader");
   // Calculate Cxxyy
   DataSet_MatrixDbl CXXYY;// = (DataSet_2D*)new DataSet_MatrixDbl();
-  CXXYY.SetupFormat().SetFormatWidthPrecision(12,6); // DEBUG
-  CXXYY.SetupFormat().SetFormatType(TextFormat::DOUBLE); // DEBUG
-  mprintf("CXXYY\n");
+//  CXXYY.SetupFormat().SetFormatWidthPrecision(12,6); // DEBUG
+//  CXXYY.SetupFormat().SetFormatType(TextFormat::DOUBLE); // DEBUG
+//  mprintf("CXXYY\n");
   matT_times_mat_symmetric(static_cast<DataSet_2D*>(&CXXYY), CenteredX, CenteredY);
   // DEBUG - write unnormalized matrix
-  DataFile outfile1;
-  outfile1.SetupDatafile("cxxyy.dat", tmpArgs, 0);
-  outfile1.AddDataSet( &CXXYY );
-  outfile1.WriteDataOut();
-  tmpArgs.SetAllUnmarked();
+  printMatrix("cxxyy.dat", CXXYY, tmpArgs, 12, 6, TextFormat::DOUBLE);
+//  DataFile outfile1;
+//  outfile1.SetupDatafile("cxxyy.dat", tmpArgs, 0);
+//  outfile1.AddDataSet( &CXXYY );
+//  outfile1.WriteDataOut();
+//  tmpArgs.SetAllUnmarked();
 
   // Calculate Cxyyx
   DataSet_MatrixDbl Cxy, Cyx;
@@ -440,8 +462,9 @@ const
   CXXYY.Normalize( 1.0 / total_weight );
   Cxy.Normalize( 1.0 / total_weight );
   // DEBUG - write normalized matrices
-  outfile1.SetupDatafile("cxxyy.norm.dat", tmpArgs, 0);
-  outfile1.WriteDataOut();
+  printMatrix("cxxyy.norm.dat", CXXYY, tmpArgs);
+//  outfile1.SetupDatafile("cxxyy.norm.dat", tmpArgs, 0);
+//  outfile1.WriteDataOut();
   tmpArgs.SetAllUnmarked();
   outfile2.SetupDatafile("cxyyx.norm.dat", tmpArgs, 0);
   outfile2.WriteDataOut();
