@@ -567,7 +567,7 @@ void DataSet_Modes::SortByAbsEigenvalue() {
 /** Enforce canonical eigenvector signs by multiplying every element of each
   * eigenvector by the sign of the element with the greatest absolute value.
   */
-void DataSet_Modes::SetCanonicalEvecSigns() {
+/*void DataSet_Modes::SetCanonicalEvecSigns() {
   for (int ii = 0; ii < Nmodes(); ii++) {
     // Find the maximum absolute value of the eigenvector
     double abs_maxval = 0;
@@ -589,7 +589,7 @@ void DataSet_Modes::SetCanonicalEvecSigns() {
     // Multiply all elements of the eigenvector by the sign of the max abs element
     MultiplyEvecByFac( ii, sign );
   }
-}
+}*/
 
 // DataSet_Modes::ReduceVectors() 
 int DataSet_Modes::ReduceVectors() {

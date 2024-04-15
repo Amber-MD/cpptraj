@@ -52,7 +52,7 @@ class DataSet_Modes : public DataSet {
     /// Descending sort by absolute value of eigenvalues
     void SortByAbsEigenvalue();
     /// Enforce canonical signs for each eigenvector
-    void SetCanonicalEvecSigns();
+    //void SetCanonicalEvecSigns();
     void PrintModes();
     int EigvalToFreq(double);
     int MassWtEigvect();
