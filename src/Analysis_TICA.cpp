@@ -607,6 +607,7 @@ const
   matRt.Multiply( ctm, matLtrans );
   printMatrix("matRt.dat", matRt, tmpArgs, 12, 8, TextFormat::DOUBLE);
   //DataSet_Modes matRmodes;
+  ticaModes_->SetAvgCoords( Ct_Modes.AvgCrd() );
   ticaModes_->SetModes(false, Ct_Modes.Nmodes(), Ct_Modes.VectorSize(),
                        Ct_Modes.EigenvaluePtr(), (const double*)matRt.MatrixPtr());
   ticaModes_->SetCanonicalEvecSigns();
