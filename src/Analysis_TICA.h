@@ -30,15 +30,16 @@ class Analysis_TICA : public Analysis {
     /// Calculate instantaneous and lagged covariance matrices
     int calculateCovariance_C0CT(DSarray const&) const;
 
-    Array1D sets_;                  ///< Input 1D data sets (data)
-    DataSet_Coords* TgtTraj_;       ///< Input trajectory (crdset)
-    AtomMask mask1_;                ///< Atoms to use in matrix calc
-    AtomMask mask2_;                ///< Second atom mask for debugging full covar matrix
-    int lag_;                       ///< TICA time lag
-    bool useMass_;                  ///< Control whether to mass-weight
-    CpptrajFile* debugC0_;          ///< Debug output for C0
-    CpptrajFile* debugCT_;          ///< Debug output for CT
-    EvectorScaleType evectorScale_; ///< Eigenvector scaling type
-    DataSet_Modes* ticaModes_;      ///< Output TICA modes
+    Array1D sets_;                   ///< Input 1D data sets (data)
+    DataSet_Coords* TgtTraj_;        ///< Input trajectory (crdset)
+    AtomMask mask1_;                 ///< Atoms to use in matrix calc
+    AtomMask mask2_;                 ///< Second atom mask for debugging full covar matrix
+    int lag_;                        ///< TICA time lag
+    bool useMass_;                   ///< Control whether to mass-weight
+    CpptrajFile* debugC0_;           ///< Debug output for C0
+    CpptrajFile* debugCT_;           ///< Debug output for CT
+    EvectorScaleType evectorScale_;  ///< Eigenvector scaling type
+    DataSet_Modes* ticaModes_;       ///< Output TICA modes
+    DataSet_1D* cumulativeVariance_; ///< Hold output cumulative variance
 };
 #endif

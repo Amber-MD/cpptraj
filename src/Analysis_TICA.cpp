@@ -17,7 +17,8 @@ Analysis_TICA::Analysis_TICA() :
   debugC0_(0),
   debugCT_(0),
   evectorScale_(NO_SCALING),
-  ticaModes_(0)
+  ticaModes_(0),
+  cumulativeVariance_(0)
 {
   SetHidden(true);
 }
@@ -26,7 +27,7 @@ Analysis_TICA::Analysis_TICA() :
 void Analysis_TICA::Help() const {
   mprintf("\t{crdset <COORDS set name>|data <input set arg1> ...} [lag <time lag>]\n"
           "\t[mask <mask>] [mass] [map {kinetic|commute|none}]\n"
-          "\t[name <output set name>] [out <file>]\n"
+          "\t[name <output set name>] [out <file>] [cumvarout <file>]\n"
          );
           
 }
@@ -95,6 +96,7 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
 
   useMass_ = analyzeArgs.hasKey("mass");
 
+  // Allocate data sets/data file
   std::string dsname = analyzeArgs.GetStringKey("name");
   ticaModes_ = (DataSet_Modes*)setup.DSL().AddSet( DataSet::MODES, dsname, "TICA" );
   if (ticaModes_ == 0) {
@@ -104,6 +106,15 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
   DataFile* outfile = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs);
   if (outfile != 0)
     outfile->AddDataSet( ticaModes_ );
+
+  cumulativeVariance_ = (DataSet_1D*)setup.DSL().AddSet(DataSet::DOUBLE, MetaData(ticaModes_->Meta().Name(), "cumvar"));
+  if (cumulativeVariance_ == 0) {
+    mprinterr("Error: Could not allocate output cumulative variance.\n");
+    return Analysis::ERR;
+  }
+  DataFile* cvoutfile = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("cumvarout"), analyzeArgs);
+  if (cvoutfile != 0)
+    cvoutfile->AddDataSet( cumulativeVariance_ );
 
   debugC0_ = setup.DFL().AddCpptrajFile(analyzeArgs.GetStringKey("debugc0"), "TICA C0 debug",
                                                                    DataFileList::TEXT, true);
@@ -145,6 +156,11 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
     case COMMUTE_MAP : mprintf("\tScaling eigenvectors by regularized time scales.\n"); break;
   }
   mprintf("\tTICA data set: %s\n", ticaModes_->legend());
+  if (outfile != 0)
+    mprintf("\tTICA data set written to '%s'\n", outfile->DataFilename().full());
+  mprintf("\tCumulative variance set: %s\n", cumulativeVariance_->legend());
+  if (cvoutfile != 0)
+    mprintf("\tCumulative variance written to '%s'\n", cvoutfile->DataFilename().full());
 
   return Analysis::OK;
 }
@@ -694,7 +710,19 @@ Analysis::RetType Analysis_TICA::analyze_datasets() {
     mprinterr("Internal Error: Commute_map not yet implemented.\n");
     return Analysis::ERR;
   }
-
+  // Calculate cumulative variance
+  cumulativeVariance_->Allocate(DataSet::SizeArray(1, ticaModes_->Nmodes()));
+  double cumulativeSum = 0;
+  for (int ii = 0; ii < ticaModes_->Nmodes(); ii++) {
+    double dval = fabs(ticaModes_->Eigenvalue(ii));
+    dval *= dval;
+    cumulativeSum += dval;
+    cumulativeVariance_->Add(ii, &cumulativeSum);
+  }
+  // Normalize the cumulative variance
+  DataSet_double& cvset = static_cast<DataSet_double&>( *cumulativeVariance_ );
+  for (int ii = 0; ii < ticaModes_->Nmodes(); ii++)
+    cvset[ii] /= cumulativeSum;
   
 /*  // Matrix - half
   CoordCovarMatrix_Half covarMatrix;
