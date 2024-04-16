@@ -635,6 +635,8 @@ void DataFile::SetDataFilePrecision(int widthIn, int precisionIn) {
   default_width_ = widthIn;
   default_precision_ = precisionIn;
   SetList_.SetPrecisionOfDataSets("*", widthIn, precisionIn);
+  // Indicate file needs to be written
+  dflWrite_ = true;
 }
 
 // DataFile::DataSetNames()
