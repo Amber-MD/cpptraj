@@ -54,7 +54,7 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
     }
   } else if (!dataarg.empty()) {
     while (!dataarg.empty()) {
-      if (sets_.AddSetsFromArgs( ArgList(dataarg), setup.DSL() )) {
+      if (sets_.AppendSetsFromArgs( ArgList(dataarg), setup.DSL() )) {
         mprinterr("Error: Could not add data sets using argument '%s'\n", dataarg.c_str());
         return Analysis::ERR;
       }
@@ -112,6 +112,8 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
     mprinterr("Error: Could not allocate output cumulative variance.\n");
     return Analysis::ERR;
   }
+  // Change default precision
+  cumulativeVariance_->SetupFormat().SetFormatWidthPrecision(12,8);
   DataFile* cvoutfile = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("cumvarout"), analyzeArgs);
   if (cvoutfile != 0)
     cvoutfile->AddDataSet( cumulativeVariance_ );

@@ -64,8 +64,20 @@ int Array1D::AddTorsionSets(DataSetList const& SetList) {
   return 0;
 }
 
+/** Add sets from arguments, clear the list first. */
+int Array1D::AddSetsFromArgs(ArgList const& dsetArgs, DataSetList const& DSLin)
+{
+  return addSetsFromArgs(dsetArgs, DSLin, false);
+}
+
+/** Append sets from arguments to the list. */
+int Array1D::AppendSetsFromArgs(ArgList const& dsetArgs, DataSetList const& DSLin)
+{
+  return addSetsFromArgs(dsetArgs, DSLin, true);
+}
+
 // Array1D::AddSetsFromArgs()
-int Array1D::AddSetsFromArgs(ArgList const& dsetArgs, DataSetList const& DSLin) {
+int Array1D::addSetsFromArgs(ArgList const& dsetArgs, DataSetList const& DSLin, bool append) {
   DataSetList input_dsl;
   for (ArgList::const_iterator dsa = dsetArgs.begin(); dsa != dsetArgs.end(); ++dsa)
     input_dsl += DSLin.GetMultipleSets( *dsa );
@@ -74,7 +86,8 @@ int Array1D::AddSetsFromArgs(ArgList const& dsetArgs, DataSetList const& DSLin) 
     return 1;
   }
   // Add to main list
-  array_.clear();
+  if (!append)
+    array_.clear();
   if (AddDataSets( input_dsl ))
     return 1;
   return 0;
