@@ -323,6 +323,12 @@ void Analysis_TICA::calc_sums_fromPeriodicSets(Darray& means, unsigned int end1)
   }
 }
 
+/** Calculate combined effective sums for tau=0 and tau=lag for COORDS set. */
+void Analysis_TICA::calc_sums_fromCoordsSet(Darray& means, unsigned int end1) const {
+  means.assign( mask1_.Nselected() * 3, 0 );
+  unsigned int k2 = lag;
+  for (unsigned int k1 = 0; k1 < end1; k1++, k2++) {
+
 /** Calculate total weight */
 double Analysis_TICA::calc_total_weight(Darray const& weights, unsigned int end1) {
   // Total weight is times 2 because symmetric
