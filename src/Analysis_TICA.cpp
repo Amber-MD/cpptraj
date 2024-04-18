@@ -236,10 +236,34 @@ static inline void subtract_mean(DataSet_double& out,
   }
 }
 
+/** Calculate combined mean over each time interval. */
+void Analysis_TICA::calc_means_from1Dsets( Darray& means, Darray const& weights, unsigned int end1) const {
+  means.assign( sets_.size(), 0 );
+  for (unsigned int idx = 0; idx != sets_.size(); ++idx) {
+    DataSet_1D* seti = sets_[idx];
+    //unsigned int end1 = seti->Size() - lag_;
+    unsigned int k2 = lag_;
+    for (unsigned int k1 = 0; k1 < end1; k1++, k2++) {
+      means[idx] += (seti->Dval(k1) + seti->Dval(k2));
+    }
+  }
+  // Total weight is times 2 because symmetric
+  double total_weight = 0;
+  if (!weights.empty()) {
+    for (Darray::const_iterator it = weights.begin(); it != weights.end(); ++it)
+      total_weight += *it;
+    total_weight *= 2;
+  } else
+    total_weight = end1 * 2;
+  for (Darray::iterator it = means.begin(); it != means.end(); ++it)
+    *it /= total_weight;
+}
+
 /** Create XXYY and XYYX matrices. */
-void Analysis_TICA::create_matrices( DataSet_2D* matXXYY,
-                                     DataSet_2D* matXYYX,
-                                     Darray const& means )
+void Analysis_TICA::create_matrices_from1Dsets( DataSet_2D* matXXYY,
+                                                DataSet_2D* matXYYX,
+                                                Darray const& means,
+                                                unsigned int end1 )
 const
 {
   unsigned int Ncols = sets_.size(); // FIXME
@@ -261,7 +285,7 @@ const
       double offi = means[row];
       DataSet_1D* setj = sets_[col];
       double offj = means[col];
-      unsigned int end1 = seti->Size() - lag_;
+      //unsigned int end1 = seti->Size() - lag_;
       double sum = 0;
       double sumxx = 0;
       unsigned int k2 = lag_;
@@ -488,8 +512,18 @@ const
   meanout.CloseFile();
 
   // FIXME DEBUG
+  Darray means;
+  calc_means_from1Dsets( means, Darray(), c0end );
+  if (meanout.OpenWrite("test.mean.dat")) {
+    mprinterr("Error: Could not open test.mean.dat\n");
+    return 1;
+  }
+  for (Darray::const_iterator it = means.begin(); it != means.end(); ++it) {
+    meanout.Printf("%12.6f\n", *it); // DEBUG
+  }
+  meanout.CloseFile();
   DataSet_MatrixDbl matXXYY, matXYYX;
-  create_matrices(static_cast<DataSet_2D*>(&matXXYY), static_cast<DataSet_2D*>(&matXYYX), meanX);
+  create_matrices_from1Dsets(static_cast<DataSet_2D*>(&matXXYY), static_cast<DataSet_2D*>(&matXYYX), means, c0end);
   ArgList tmpArgs("square2d noheader");
   printMatrix("test.xyyx.dat", matXYYX, tmpArgs, 12, 6, TextFormat::DOUBLE);
   printMatrix("test.xxyy.dat", matXXYY, tmpArgs, 12, 6, TextFormat::DOUBLE);
