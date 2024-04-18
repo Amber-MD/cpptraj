@@ -170,12 +170,36 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
 // Analysis_TICA::Analyze()
 Analysis::RetType Analysis_TICA::Analyze() {
   if (calcMatrices()) return Analysis::ERR;
-  if (TgtTraj_ != 0)
-    return analyze_crdset();
-  else if (!sets_.empty())
-    return analyze_datasets();
 
-  return Analysis::ERR;
+  if (evectorScale_ == KINETIC_MAP) {
+    // Weight eigenvectors by eigenvalues
+    for (int ii = 0; ii < ticaModes_->Nmodes(); ii++)
+      ticaModes_->MultiplyEvecByFac( ii, ticaModes_->Eigenvalue(ii) );
+  } else if (evectorScale_ == COMMUTE_MAP) {
+    // Weight eigenvectors by regularized time scales
+    mprinterr("Internal Error: Commute_map not yet implemented.\n");
+    return Analysis::ERR;
+  }
+  // Calculate cumulative variance
+  cumulativeVariance_->Allocate(DataSet::SizeArray(1, ticaModes_->Nmodes()));
+  double cumulativeSum = 0;
+  for (int ii = 0; ii < ticaModes_->Nmodes(); ii++) {
+    double dval = fabs(ticaModes_->Eigenvalue(ii));
+    dval *= dval;
+    cumulativeSum += dval;
+    cumulativeVariance_->Add(ii, &cumulativeSum);
+  }
+  // Normalize the cumulative variance
+  DataSet_double& cvset = static_cast<DataSet_double&>( *cumulativeVariance_ );
+  for (int ii = 0; ii < ticaModes_->Nmodes(); ii++)
+    cvset[ii] /= cumulativeSum;
+
+  //if (TgtTraj_ != 0)
+  //  return analyze_crdset();
+  //else if (!sets_.empty())
+  //  return analyze_datasets();
+
+  return Analysis::OK;
 }
 
 /// FOR DEBUG
@@ -505,6 +529,11 @@ int Analysis_TICA::calcMatrices() const {
   matXYYX.Normalize( 1.0 / total_weight );
   printMatrix("test.xxyy.norm.dat", matXXYY, tmpArgs);
   printMatrix("test.xyyx.norm.dat", matXYYX, tmpArgs);
+
+  if (calculateTICA( means, matXXYY, matXYYX)) {
+    mprinterr("Error: Caclulation of TICA modes failed.\n");
+    return 1;
+  }
 
   return 0;
 }
@@ -866,28 +895,6 @@ Analysis::RetType Analysis_TICA::analyze_datasets() {
     mprinterr("Error: Could not calculate C0/CT matrices.\n");
     return Analysis::ERR;
   }
-  if (evectorScale_ == KINETIC_MAP) {
-    // Weight eigenvectors by eigenvalues
-    for (int ii = 0; ii < ticaModes_->Nmodes(); ii++)
-      ticaModes_->MultiplyEvecByFac( ii, ticaModes_->Eigenvalue(ii) );
-  } else if (evectorScale_ == COMMUTE_MAP) {
-    // Weight eigenvectors by regularized time scales
-    mprinterr("Internal Error: Commute_map not yet implemented.\n");
-    return Analysis::ERR;
-  }
-  // Calculate cumulative variance
-  cumulativeVariance_->Allocate(DataSet::SizeArray(1, ticaModes_->Nmodes()));
-  double cumulativeSum = 0;
-  for (int ii = 0; ii < ticaModes_->Nmodes(); ii++) {
-    double dval = fabs(ticaModes_->Eigenvalue(ii));
-    dval *= dval;
-    cumulativeSum += dval;
-    cumulativeVariance_->Add(ii, &cumulativeSum);
-  }
-  // Normalize the cumulative variance
-  DataSet_double& cvset = static_cast<DataSet_double&>( *cumulativeVariance_ );
-  for (int ii = 0; ii < ticaModes_->Nmodes(); ii++)
-    cvset[ii] /= cumulativeSum;
   
 /*  // Matrix - half
   CoordCovarMatrix_Half covarMatrix;
