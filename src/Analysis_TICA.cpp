@@ -498,8 +498,13 @@ int Analysis_TICA::calcMatrices() const {
   DataSet_MatrixDbl matXXYY, matXYYX;
   create_matrices_from1Dsets(static_cast<DataSet_2D*>(&matXXYY), static_cast<DataSet_2D*>(&matXYYX), means, c0end);
   ArgList tmpArgs("square2d noheader");
-  printMatrix("test.xyyx.dat", matXYYX, tmpArgs, 12, 6, TextFormat::DOUBLE);
   printMatrix("test.xxyy.dat", matXXYY, tmpArgs, 12, 6, TextFormat::DOUBLE);
+  printMatrix("test.xyyx.dat", matXYYX, tmpArgs, 12, 6, TextFormat::DOUBLE);
+  // Normalize
+  matXXYY.Normalize( 1.0 / total_weight );
+  matXYYX.Normalize( 1.0 / total_weight );
+  printMatrix("test.xxyy.norm.dat", matXXYY, tmpArgs);
+  printMatrix("test.xyyx.norm.dat", matXYYX, tmpArgs);
 
   return 0;
 }
