@@ -289,7 +289,7 @@ static void printMatrix(const char* fname, DataSet_2D& matR, ArgList& tmpArgs)
 }
 
 // -----------------------------------------------------------------------------
-/** Calculate combined effective mean for tau=0 and tau=lag. */
+/** Calculate combined effective sums for tau=0 and tau=lag for 1D data sets. */
 void Analysis_TICA::calc_sums_from1Dsets(Darray& means, unsigned int end1) const {
   means.assign( sets_.size(), 0 );
   for (unsigned int idx = 0; idx != sets_.size(); ++idx) {
@@ -298,6 +298,27 @@ void Analysis_TICA::calc_sums_from1Dsets(Darray& means, unsigned int end1) const
     unsigned int k2 = lag_;
     for (unsigned int k1 = 0; k1 < end1; k1++, k2++) {
       means[idx] += (seti->Dval(k1) + seti->Dval(k2));
+    }
+  }
+}
+
+/** Calculate combined effective sums for tau=0 and tau=lag for periodic 1D data sets. */
+void Analysis_TICA::calc_sums_fromPeriodicSets(Darray& means, unsigned int end1) const {
+  means.assign( sets_.size() * 2, 0 );
+  unsigned int jdx = 0;
+  for (unsigned int idx = 0; idx != sets_.size(); ++idx, jdx += 2) {
+    DataSet_1D* seti = sets_[idx];
+    //unsigned int end1 = seti->Size() - lag_;
+    unsigned int k2 = lag_;
+    for (unsigned int k1 = 0; k1 < end1; k1++, k2++) {
+      double theta1 = seti->Dval(k1) * Constants::DEGRAD;
+      double theta2 = seti->Dval(k2) * Constants::DEGRAD;
+      double x1 = cos( theta1 );
+      double y1 = sin( theta1 );
+      double x2 = cos( theta2 );
+      double y2 = sin( theta2 );
+      means[jdx  ] += (x1 + x2);
+      means[jdx+1] += (y1 + y2);
     }
   }
 }
