@@ -289,46 +289,6 @@ static void printMatrix(const char* fname, DataSet_2D& matR, ArgList& tmpArgs)
 }
 
 // -----------------------------------------------------------------------------
-/// Calculate sum over each set TODO weights
-static inline void calculate_sum(std::vector<double>& sumX,
-                                 std::vector<DataSet_1D*> const& sets, 
-                                 unsigned int nelt_,
-                                 unsigned int startFrame, unsigned int endFrame)
-{
-  sumX.assign( sets.size() * nelt_, 0 );
-
-  if (nelt_ == 2) {
-    mprinterr("Internal Error: CoordCovarMatrix_Half::AddDataToMatrix_C0CT(): Not implemented.\n");
-    return;
-  } else if (nelt_ == 1) {
-    for (unsigned int jdx = 0; jdx < sets.size(); jdx++) {
-      for (unsigned int idx = startFrame; idx < endFrame; idx++) {
-        sumX[jdx] += sets[jdx]->Dval(idx);
-      }
-    }
-  }
-}
-
-/// Subtract the set mean from every element of the set
-static inline void subtract_mean(DataSet_double& out,
-                                 DataSet_1D const* in,
-                                 unsigned int nelt_,
-                                 double total_weight,
-                                 double sumX,
-                                 unsigned int startFrame, unsigned int endFrame)
-{
-//  DataSet_double& out = static_cast<DataSet_double&>( *outPtr );
-  //out.clear();
-  out.Allocate(DataSet::SizeArray(1, endFrame - startFrame));
-  //out.reserve(endFrame - startFrame);
-  double mean = sumX / total_weight;
-  for (unsigned int idx = startFrame; idx != endFrame; idx++) {
-    out.AddElement( in->Dval(idx) - mean );
-    //out.push_back( in->Dval(idx) - mean );
-  }
-}
-
-// -----------------------------------------------------------------------------
 /** Calculate combined effective mean for tau=0 and tau=lag. */
 void Analysis_TICA::calc_sums_from1Dsets(Darray& means, unsigned int end1) const {
   means.assign( sets_.size(), 0 );
@@ -416,66 +376,6 @@ const
     }
   }
 }
-// -----------------------------------------------------------------------------
-
-/// Multiply transpose of matrix by matrix TODO since the resulting matrix is supposed to be symmetric we can speed this up
-static void matT_times_mat( DataSet_2D* out,
-                            std::vector<DataSet_double> const& M1,
-                            std::vector<DataSet_double> const& M2)
-{
-  unsigned int Nrows = M1.size();
-  unsigned int Ncols = M2.size();
-  out->Allocate2D( Ncols, Nrows );
-  unsigned int idx = 0;
-  for (unsigned int row = 0; row < Nrows; row++) {
-    DataSet_double const& seti = M1[row];
-    for (unsigned int col = 0; col < Ncols; col++) {
-      DataSet_double const& setj = M2[col];
-      // seti->Size() must equal setj->Size()
-      double sum = 0;
-      for (unsigned int k = 0; k < seti.Size(); k++) {
-        //if (row == 0 && col == 0) mprintf("DBG0: %u %u %u %g %g\n", row, col, k, seti.Dval(k), setj.Dval(k));
-        sum += (seti.Dval(k) * setj.Dval(k));
-      }
-      out->SetElement(idx++, sum);
-      //mprintf(" %12.4f", sum);
-    }
-    //mprintf("\n");
-  }
-}
-
-/// For eaach matrix, Multiply transpose of matrix by matrix, then sum
-static void matT_times_mat_symmetric( DataSet_2D* out,
-                                      std::vector<DataSet_double> const& M1,
-                                      std::vector<DataSet_double> const& M2 )
-{
-  if (M1.size() != M2.size()) {
-    mprinterr("Internal Error: matT_times_mat_symmetric: Different # of sets.\n");
-    return;
-  }
-  out->AllocateHalf( M1.size() );
-  unsigned int Nrows = M1.size();
-  unsigned int Ncols = Nrows;
-  unsigned int idx = 0;
-  for (unsigned int row = 0; row < Nrows; row++) {
-    DataSet_double const& seti1 = M1[row];
-    DataSet_double const& seti2 = M2[row];
-    for (unsigned int col = row; col < Ncols; col++) {
-      DataSet_double const& setj1 = M1[col];
-      DataSet_double const& setj2 = M2[col];
-      double sum = 0;
-      // ALL SETS MUST HAVE SAME SIZE
-      unsigned int nframes = seti1.Size();
-      for (unsigned int k = 0; k < nframes; k++) {
-        sum += (seti1.Dval(k) * setj1.Dval(k));
-        sum += (seti2.Dval(k) * setj2.Dval(k));
-      }
-      out->SetElement(idx++, sum);
-      //mprintf(" %12.4f", sum);
-    }
-    //mprintf("\n");
-  }
-}
 
 // -----------------------------------------------------------------------------
 /** Calculate XXYY and XYYX matrices. */
@@ -539,8 +439,8 @@ int Analysis_TICA::calcMatrices() const {
 
   return 0;
 }
-// -----------------------------------------------------------------------------
 
+// -----------------------------------------------------------------------------
 int Analysis_TICA::calculateTICA(Darray const& meanX, DataSet_2D const& CXXYY, DataSet_2D const& Cxy) const {
   ArgList tmpArgs("square2d noheader");
   // ---------------------------------------------
@@ -759,6 +659,106 @@ int Analysis_TICA::calculateTICA(Darray const& meanX, DataSet_2D const& CXXYY, D
 */
   return 0;
 }
+
+// =============================================================================
+/// Calculate sum over each set TODO weights
+static inline void calculate_sum(std::vector<double>& sumX,
+                                 std::vector<DataSet_1D*> const& sets, 
+                                 unsigned int nelt_,
+                                 unsigned int startFrame, unsigned int endFrame)
+{
+  sumX.assign( sets.size() * nelt_, 0 );
+
+  if (nelt_ == 2) {
+    mprinterr("Internal Error: CoordCovarMatrix_Half::AddDataToMatrix_C0CT(): Not implemented.\n");
+    return;
+  } else if (nelt_ == 1) {
+    for (unsigned int jdx = 0; jdx < sets.size(); jdx++) {
+      for (unsigned int idx = startFrame; idx < endFrame; idx++) {
+        sumX[jdx] += sets[jdx]->Dval(idx);
+      }
+    }
+  }
+}
+
+/// Subtract the set mean from every element of the set
+static inline void subtract_mean(DataSet_double& out,
+                                 DataSet_1D const* in,
+                                 unsigned int nelt_,
+                                 double total_weight,
+                                 double sumX,
+                                 unsigned int startFrame, unsigned int endFrame)
+{
+//  DataSet_double& out = static_cast<DataSet_double&>( *outPtr );
+  //out.clear();
+  out.Allocate(DataSet::SizeArray(1, endFrame - startFrame));
+  //out.reserve(endFrame - startFrame);
+  double mean = sumX / total_weight;
+  for (unsigned int idx = startFrame; idx != endFrame; idx++) {
+    out.AddElement( in->Dval(idx) - mean );
+    //out.push_back( in->Dval(idx) - mean );
+  }
+}
+
+/// Multiply transpose of matrix by matrix TODO since the resulting matrix is supposed to be symmetric we can speed this up
+static void matT_times_mat( DataSet_2D* out,
+                            std::vector<DataSet_double> const& M1,
+                            std::vector<DataSet_double> const& M2)
+{
+  unsigned int Nrows = M1.size();
+  unsigned int Ncols = M2.size();
+  out->Allocate2D( Ncols, Nrows );
+  unsigned int idx = 0;
+  for (unsigned int row = 0; row < Nrows; row++) {
+    DataSet_double const& seti = M1[row];
+    for (unsigned int col = 0; col < Ncols; col++) {
+      DataSet_double const& setj = M2[col];
+      // seti->Size() must equal setj->Size()
+      double sum = 0;
+      for (unsigned int k = 0; k < seti.Size(); k++) {
+        //if (row == 0 && col == 0) mprintf("DBG0: %u %u %u %g %g\n", row, col, k, seti.Dval(k), setj.Dval(k));
+        sum += (seti.Dval(k) * setj.Dval(k));
+      }
+      out->SetElement(idx++, sum);
+      //mprintf(" %12.4f", sum);
+    }
+    //mprintf("\n");
+  }
+}
+
+/// For eaach matrix, Multiply transpose of matrix by matrix, then sum
+static void matT_times_mat_symmetric( DataSet_2D* out,
+                                      std::vector<DataSet_double> const& M1,
+                                      std::vector<DataSet_double> const& M2 )
+{
+  if (M1.size() != M2.size()) {
+    mprinterr("Internal Error: matT_times_mat_symmetric: Different # of sets.\n");
+    return;
+  }
+  out->AllocateHalf( M1.size() );
+  unsigned int Nrows = M1.size();
+  unsigned int Ncols = Nrows;
+  unsigned int idx = 0;
+  for (unsigned int row = 0; row < Nrows; row++) {
+    DataSet_double const& seti1 = M1[row];
+    DataSet_double const& seti2 = M2[row];
+    for (unsigned int col = row; col < Ncols; col++) {
+      DataSet_double const& setj1 = M1[col];
+      DataSet_double const& setj2 = M2[col];
+      double sum = 0;
+      // ALL SETS MUST HAVE SAME SIZE
+      unsigned int nframes = seti1.Size();
+      for (unsigned int k = 0; k < nframes; k++) {
+        sum += (seti1.Dval(k) * setj1.Dval(k));
+        sum += (seti2.Dval(k) * setj2.Dval(k));
+      }
+      out->SetElement(idx++, sum);
+      //mprintf(" %12.4f", sum);
+    }
+    //mprintf("\n");
+  }
+}
+
 
 /** Calculate instantaneous covariance and lagged covariance arrays */
 int Analysis_TICA::calculateCovariance_C0CT(DSarray const& sets)
