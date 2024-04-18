@@ -247,7 +247,7 @@ const
   unsigned int xxyyIdx = 0;
   unsigned int xyyxIdx = 0;
 
-  //matXXYY->AllocateHalf( Ncols );
+  matXXYY->AllocateHalf( Ncols );
   matXYYX->Allocate2D( Ncols, Nrows );
 
   for (unsigned int row = 0; row < Nrows; row++) {
@@ -272,6 +272,20 @@ const
         sum += (dvali2 * dvalj1);
       }
       matXYYX->SetElement(xyyxIdx++, sum);
+      // XXYY
+      if ( col >= row ) {
+        double sumxx = 0;
+        unsigned int k2 = lag_;
+        for (unsigned int k1 = 0; k1 < end1; k1++, k2++) {
+          double dvali1 = seti->Dval(k1) - offi;
+          double dvalj2 = setj->Dval(k2) - offj;
+          double dvali2 = seti->Dval(k2) - offi;
+          double dvalj1 = setj->Dval(k1) - offj;
+          sumxx += (dvali1 * dvalj1);
+          sumxx += (dvalj2 * dvali2);
+        }
+        matXXYY->SetElement(xxyyIdx++, sumxx);
+      }
     }
   }
 }
@@ -467,10 +481,11 @@ const
   meanout.CloseFile();
 
   // FIXME DEBUG
-  DataSet_MatrixDbl matXYYX;
-  create_matrices(0, static_cast<DataSet_2D*>(&matXYYX), meanX);
+  DataSet_MatrixDbl matXXYY, matXYYX;
+  create_matrices(static_cast<DataSet_2D*>(&matXXYY), static_cast<DataSet_2D*>(&matXYYX), meanX);
   ArgList tmpArgs("square2d noheader");
   printMatrix("test.xyyx.dat", matXYYX, tmpArgs, 12, 6, TextFormat::DOUBLE);
+  printMatrix("test.xxyy.dat", matXXYY, tmpArgs, 12, 6, TextFormat::DOUBLE);
 
   // Center TODO sx_centered and sy_centered may not need to be calced
   Darray sx_centered, sy_centered;
