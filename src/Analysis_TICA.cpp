@@ -510,128 +510,8 @@ int Analysis_TICA::calcMatrices() const {
 }
 // -----------------------------------------------------------------------------
 
-/** Calculate instantaneous covariance and lagged covariance arrays */
-int Analysis_TICA::calculateCovariance_C0CT(DSarray const& sets)
-const
-{
-  static unsigned int nelt_ = 1; // FIXME
-  // Check that sets have same size
-  unsigned int maxFrames = sets.front()->Size();
-  for (DSarray::const_iterator it = sets.begin(); it != sets.end(); ++it)
-  {
-    if ((*it)->Size() != maxFrames) {
-      mprinterr("Error: Set '%s' does not have same size (%zu) as first set (%u)\n",
-                (*it)->legend(), (*it)->Size(), maxFrames);
-      return 1;
-    }
-  }
-  // Calculate start and end times for C0 and CT
-  if ( (unsigned int)lag_ >= maxFrames ) {
-    mprinterr("Error: lag %i >= max frames %u\n", lag_, maxFrames);
-    return 1;
-  }
-  unsigned int c0end = maxFrames - (unsigned int)lag_;
-  mprintf("DEBUG: C0 start = %u end = %u\n", 0, c0end);
-  unsigned int ctstart = (unsigned int)lag_;
-  mprintf("DEBUG: CT start = %u end = %u\n", ctstart, maxFrames);
-  // Calculate sum over each set
-  Darray sumX;
-  calculate_sum(sumX, sets, nelt_, 0, c0end);
-  printDarray("sx_raw", sumX, "%15.8f");
-
-  Darray sumY;
-  calculate_sum(sumY, sets, nelt_, ctstart, maxFrames);
-  printDarray("sy_raw", sumY, "%15.8f");
-
-  // Sanity check
-  if (sumX.size() != sumY.size()) {
-    mprinterr("Internal Error: Analysis_TICA::calculateCovariance_C0CT(): sumX size != sumY size\n");
-    return 1;
-  }
-
-  // Calculate effective sum (symmetric)
-  Darray sx;
-  sx.reserve( sumX.size() );
-  for (unsigned int jdx = 0; jdx != sumX.size(); jdx++)
-    sx.push_back( sumX[jdx] + sumY[jdx] );
-
-  // Total weight is times 2 because symmetric
-  //double total_weight = 0;
-  //for (Darray::const_iterator it = weights.begin(); it != weights.end(); ++it)
-  //  total_weight += *it;
-  //total_weight *= 2;
-  double total_weight = c0end * 2;
-  mprintf("DEBUG: Total weight= %f\n", total_weight);
-  // DEBUG - print mean
-  CpptrajFile meanout;
-  if (meanout.OpenWrite("debug.mean.dat")) {
-    mprinterr("Error: Could not open debug.mean.dat\n");
-    return 1;
-  }
-  Darray meanX;
-  meanX.reserve( sx.size() );
-  for (Darray::const_iterator it = sx.begin(); it != sx.end(); ++it) {
-    meanX.push_back( *it / total_weight);
-    meanout.Printf("%12.6f\n", meanX.back()); // DEBUG
-  }
-  meanout.CloseFile();
-
-
-  // Center TODO sx_centered and sy_centered may not need to be calced
-  Darray sx_centered, sy_centered;
-  sx_centered.reserve( sumX.size() );
-  sy_centered.reserve( sumY.size() );
-  for (unsigned int idx = 0; idx != sumX.size(); idx++)
-  {
-    sx_centered.push_back( sumX[idx] - (0.5 * sx[idx]) );
-    sy_centered.push_back( sumY[idx] - (0.5 * sx[idx]) );
-  }
-  printDarray("sx_raw_centered", sx_centered, "%16.8e");
-  printDarray("sy_raw_centered", sy_centered, "%16.8e");
-
-  // Remove mean
-  typedef std::vector<DataSet_double> DDArray;
-  DDArray CenteredX(sets.size());
-  DDArray CenteredY(sets.size());
-
-  Darray tmpx, tmpy; // DEBUG FIXME
-  // Because symmetric, sy = sx //TODO use meanX set
-  Darray const& sy = sx;
-  for (unsigned int jdx = 0; jdx != sets.size(); jdx++) {
-    subtract_mean(CenteredX[jdx], sets[jdx], nelt_, total_weight, sx[jdx], 0, c0end);
-    subtract_mean(CenteredY[jdx], sets[jdx], nelt_, total_weight, sy[jdx], ctstart, maxFrames);
-    tmpx.push_back( CenteredX[jdx].Dval(0) ); // DEBUG
-    tmpy.push_back( CenteredY[jdx].Dval(0) ); // DEBUG
-  }
-  printDarray("X0", tmpx, "%16.8e");
-  printDarray("Y0", tmpy, "%16.8e");
-
-  // ---------------------------------------------
+int Analysis_TICA::calculateTICA(Darray const& meanX, DataSet_2D const& CXXYY, DataSet_2D const& Cxy) const {
   ArgList tmpArgs("square2d noheader");
-  // Calculate Cxxyy
-  DataSet_MatrixDbl CXXYY;// = (DataSet_2D*)new DataSet_MatrixDbl();
-  matT_times_mat_symmetric(static_cast<DataSet_2D*>(&CXXYY), CenteredX, CenteredY);
-  // DEBUG - write unnormalized matrix
-  printMatrix("cxxyy.dat", CXXYY, tmpArgs, 12, 6, TextFormat::DOUBLE);
-
-  // Calculate Cxyyx
-  DataSet_MatrixDbl Cxy, Cyx;
-  matT_times_mat(static_cast<DataSet_2D*>(&Cxy), CenteredX, CenteredY);
-  matT_times_mat(static_cast<DataSet_2D*>(&Cyx), CenteredY, CenteredX);
-  for (unsigned int idx = 0; idx != Cxy.Size(); idx++) {
-    double sum = Cxy.GetElement(idx) + Cyx.GetElement(idx);
-    Cxy.SetElement(idx, sum);
-  }
-  // DEBUG - write unnormalized matrix
-  printMatrix("cxyyx.dat", Cxy, tmpArgs, 12, 6, TextFormat::DOUBLE);
-
-  // Normalize
-  CXXYY.Normalize( 1.0 / total_weight );
-  Cxy.Normalize( 1.0 / total_weight );
-  // DEBUG - write normalized matrices
-  printMatrix("cxxyy.norm.dat", CXXYY, tmpArgs);
-  printMatrix("cxyyx.norm.dat", Cxy, tmpArgs);
-
   // ---------------------------------------------
   // Get C0 eigenvectors/eigenvalues
   DataSet_Modes C0_Modes;
@@ -846,6 +726,137 @@ const
   // DEBUG - write unnormalized matrix
   printMatrix("matR.dat", matR, tmpArgs, 12, 8, TextFormat::DOUBLE);
 */
+  return 0;
+}
+
+/** Calculate instantaneous covariance and lagged covariance arrays */
+int Analysis_TICA::calculateCovariance_C0CT(DSarray const& sets)
+const
+{
+  static unsigned int nelt_ = 1; // FIXME
+  // Check that sets have same size
+  unsigned int maxFrames = sets.front()->Size();
+  for (DSarray::const_iterator it = sets.begin(); it != sets.end(); ++it)
+  {
+    if ((*it)->Size() != maxFrames) {
+      mprinterr("Error: Set '%s' does not have same size (%zu) as first set (%u)\n",
+                (*it)->legend(), (*it)->Size(), maxFrames);
+      return 1;
+    }
+  }
+  // Calculate start and end times for C0 and CT
+  if ( (unsigned int)lag_ >= maxFrames ) {
+    mprinterr("Error: lag %i >= max frames %u\n", lag_, maxFrames);
+    return 1;
+  }
+  unsigned int c0end = maxFrames - (unsigned int)lag_;
+  mprintf("DEBUG: C0 start = %u end = %u\n", 0, c0end);
+  unsigned int ctstart = (unsigned int)lag_;
+  mprintf("DEBUG: CT start = %u end = %u\n", ctstart, maxFrames);
+  // Calculate sum over each set
+  Darray sumX;
+  calculate_sum(sumX, sets, nelt_, 0, c0end);
+  printDarray("sx_raw", sumX, "%15.8f");
+
+  Darray sumY;
+  calculate_sum(sumY, sets, nelt_, ctstart, maxFrames);
+  printDarray("sy_raw", sumY, "%15.8f");
+
+  // Sanity check
+  if (sumX.size() != sumY.size()) {
+    mprinterr("Internal Error: Analysis_TICA::calculateCovariance_C0CT(): sumX size != sumY size\n");
+    return 1;
+  }
+
+  // Calculate effective sum (symmetric)
+  Darray sx;
+  sx.reserve( sumX.size() );
+  for (unsigned int jdx = 0; jdx != sumX.size(); jdx++)
+    sx.push_back( sumX[jdx] + sumY[jdx] );
+
+  // Total weight is times 2 because symmetric
+  //double total_weight = 0;
+  //for (Darray::const_iterator it = weights.begin(); it != weights.end(); ++it)
+  //  total_weight += *it;
+  //total_weight *= 2;
+  double total_weight = c0end * 2;
+  mprintf("DEBUG: Total weight= %f\n", total_weight);
+  // DEBUG - print mean
+  CpptrajFile meanout;
+  if (meanout.OpenWrite("debug.mean.dat")) {
+    mprinterr("Error: Could not open debug.mean.dat\n");
+    return 1;
+  }
+  Darray meanX;
+  meanX.reserve( sx.size() );
+  for (Darray::const_iterator it = sx.begin(); it != sx.end(); ++it) {
+    meanX.push_back( *it / total_weight);
+    meanout.Printf("%12.6f\n", meanX.back()); // DEBUG
+  }
+  meanout.CloseFile();
+
+
+  // Center TODO sx_centered and sy_centered may not need to be calced
+  Darray sx_centered, sy_centered;
+  sx_centered.reserve( sumX.size() );
+  sy_centered.reserve( sumY.size() );
+  for (unsigned int idx = 0; idx != sumX.size(); idx++)
+  {
+    sx_centered.push_back( sumX[idx] - (0.5 * sx[idx]) );
+    sy_centered.push_back( sumY[idx] - (0.5 * sx[idx]) );
+  }
+  printDarray("sx_raw_centered", sx_centered, "%16.8e");
+  printDarray("sy_raw_centered", sy_centered, "%16.8e");
+
+  // Remove mean
+  typedef std::vector<DataSet_double> DDArray;
+  DDArray CenteredX(sets.size());
+  DDArray CenteredY(sets.size());
+
+  Darray tmpx, tmpy; // DEBUG FIXME
+  // Because symmetric, sy = sx //TODO use meanX set
+  Darray const& sy = sx;
+  for (unsigned int jdx = 0; jdx != sets.size(); jdx++) {
+    subtract_mean(CenteredX[jdx], sets[jdx], nelt_, total_weight, sx[jdx], 0, c0end);
+    subtract_mean(CenteredY[jdx], sets[jdx], nelt_, total_weight, sy[jdx], ctstart, maxFrames);
+    tmpx.push_back( CenteredX[jdx].Dval(0) ); // DEBUG
+    tmpy.push_back( CenteredY[jdx].Dval(0) ); // DEBUG
+  }
+  printDarray("X0", tmpx, "%16.8e");
+  printDarray("Y0", tmpy, "%16.8e");
+
+  // ---------------------------------------------
+  ArgList tmpArgs("square2d noheader");
+  // Calculate Cxxyy
+  DataSet_MatrixDbl CXXYY;// = (DataSet_2D*)new DataSet_MatrixDbl();
+  matT_times_mat_symmetric(static_cast<DataSet_2D*>(&CXXYY), CenteredX, CenteredY);
+  // DEBUG - write unnormalized matrix
+  printMatrix("cxxyy.dat", CXXYY, tmpArgs, 12, 6, TextFormat::DOUBLE);
+
+  // Calculate Cxyyx
+  DataSet_MatrixDbl Cxy, Cyx;
+  matT_times_mat(static_cast<DataSet_2D*>(&Cxy), CenteredX, CenteredY);
+  matT_times_mat(static_cast<DataSet_2D*>(&Cyx), CenteredY, CenteredX);
+  for (unsigned int idx = 0; idx != Cxy.Size(); idx++) {
+    double sum = Cxy.GetElement(idx) + Cyx.GetElement(idx);
+    Cxy.SetElement(idx, sum);
+  }
+  // DEBUG - write unnormalized matrix
+  printMatrix("cxyyx.dat", Cxy, tmpArgs, 12, 6, TextFormat::DOUBLE);
+
+  // Normalize
+  CXXYY.Normalize( 1.0 / total_weight );
+  Cxy.Normalize( 1.0 / total_weight );
+  // DEBUG - write normalized matrices
+  printMatrix("cxxyy.norm.dat", CXXYY, tmpArgs);
+  printMatrix("cxyyx.norm.dat", Cxy, tmpArgs);
+
+  // ---------------------------------------------
+  if (calculateTICA( meanX, CXXYY, Cxy)) {
+    mprinterr("Error: Caclulation of TICA modes failed.\n");
+    return 1;
+  }
+
   return 0;
 }
 

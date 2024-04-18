@@ -37,6 +37,8 @@ class Analysis_TICA : public Analysis {
     void create_matrices_from1Dsets(DataSet_2D*, DataSet_2D*, Darray const&, unsigned int) const;
     /// Calculate TICA matrices
     int calcMatrices() const;
+    /// Calculate TICA modes
+    int calculateTICA(Darray const&, DataSet_2D const&, DataSet_2D const&) const;
 
     Array1D sets_;                   ///< Input 1D data sets (data)
     DataSet_Coords* TgtTraj_;        ///< Input trajectory (crdset)
