@@ -263,13 +263,13 @@ const
       double sum = 0;
       unsigned int k2 = lag_;
       for (unsigned int k1 = 0; k1 < end1; k1++, k2++) {
-        double dvali = seti->Dval(k1) - offi;
-        double dvalj = setj->Dval(k2) - offj;
+        double dvali1 = seti->Dval(k1) - offi;
+        double dvalj2 = setj->Dval(k2) - offj;
         //if (row == 0 && col == 0) mprintf("DBG1: %u %u %u %g %g\n", row, col, k1, dvali, dvalj);
-        sum += (dvali * dvalj);
-        dvali = seti->Dval(k2) - offi;
-        dvalj = setj->Dval(k1) - offj;
-        sum += (dvali * dvalj);
+        sum += (dvali1 * dvalj2);
+        double dvali2 = seti->Dval(k2) - offi;
+        double dvalj1 = setj->Dval(k1) - offj;
+        sum += (dvali2 * dvalj1);
       }
       matXYYX->SetElement(xyyxIdx++, sum);
     }
