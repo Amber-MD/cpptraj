@@ -268,10 +268,10 @@ const
       for (unsigned int k1 = 0; k1 < end1; k1++, k2++) {
         double dvali1 = seti->Dval(k1) - offi;
         double dvalj2 = setj->Dval(k2) - offj;
-        //if (row == 0 && col == 0) mprintf("DBG1: %u %u %u %g %g\n", row, col, k1, dvali, dvalj);
-        sum += (dvali1 * dvalj2);
         double dvali2 = seti->Dval(k2) - offi;
         double dvalj1 = setj->Dval(k1) - offj;
+        //if (row == 0 && col == 0) mprintf("DBG1: %u %u %u %g %g\n", row, col, k1, dvali, dvalj);
+        sum += (dvali1 * dvalj2);
         sum += (dvali2 * dvalj1);
         // XXYY
         sumxx += (dvali1 * dvalj1);
