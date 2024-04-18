@@ -248,11 +248,13 @@ const
   unsigned int xyyxIdx = 0;
 
   matXXYY->AllocateHalf( Ncols );
-  matXYYX->Allocate2D( Ncols, Nrows );
+  //matXYYX->Allocate2D( Ncols, Nrows );
+  matXYYX->AllocateHalf( Ncols );
 
   for (unsigned int row = 0; row < Nrows; row++) {
     
-    for (unsigned int col = 0; col < Ncols; col++) {
+    //for (unsigned int col = 0; col < Ncols; col++) {
+    for (unsigned int col = row; col < Ncols; col++) {
 
       // XYYX
       DataSet_1D* seti = sets_[row];
@@ -261,6 +263,7 @@ const
       double offj = means[col];
       unsigned int end1 = seti->Size() - lag_;
       double sum = 0;
+      double sumxx = 0;
       unsigned int k2 = lag_;
       for (unsigned int k1 = 0; k1 < end1; k1++, k2++) {
         double dvali1 = seti->Dval(k1) - offi;
@@ -270,10 +273,14 @@ const
         double dvali2 = seti->Dval(k2) - offi;
         double dvalj1 = setj->Dval(k1) - offj;
         sum += (dvali2 * dvalj1);
+        // XXYY
+        sumxx += (dvali1 * dvalj1);
+        sumxx += (dvalj2 * dvali2);
       }
       matXYYX->SetElement(xyyxIdx++, sum);
+      matXXYY->SetElement(xxyyIdx++, sumxx);
       // XXYY
-      if ( col >= row ) {
+/*      if ( col >= row ) {
         double sumxx = 0;
         unsigned int k2 = lag_;
         for (unsigned int k1 = 0; k1 < end1; k1++, k2++) {
@@ -285,7 +292,7 @@ const
           sumxx += (dvalj2 * dvali2);
         }
         matXXYY->SetElement(xxyyIdx++, sumxx);
-      }
+      }*/
     }
   }
 }
