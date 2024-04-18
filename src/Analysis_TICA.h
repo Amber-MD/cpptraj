@@ -29,10 +29,14 @@ class Analysis_TICA : public Analysis {
     Analysis::RetType analyze_datasets();
     /// Calculate instantaneous and lagged covariance matrices
     int calculateCovariance_C0CT(DSarray const&) const;
-    /// Calculate mean of X and Y in a single pass
-    void calc_means_from1Dsets(Darray&, Darray const&, unsigned int) const;
+    /// Calculate total weight
+    static double calc_total_weight(Darray const&, unsigned int);
+    /// Calculate sums of X and Y in a single pass
+    void calc_sums_from1Dsets(Darray&, unsigned int) const;
     /// Create XXYY and XYYX matrices in a single pass
     void create_matrices_from1Dsets(DataSet_2D*, DataSet_2D*, Darray const&, unsigned int) const;
+    /// Calculate TICA matrices
+    int calcMatrices() const;
 
     Array1D sets_;                   ///< Input 1D data sets (data)
     DataSet_Coords* TgtTraj_;        ///< Input trajectory (crdset)

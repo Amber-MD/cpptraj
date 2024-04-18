@@ -169,6 +169,7 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
 
 // Analysis_TICA::Analyze()
 Analysis::RetType Analysis_TICA::Analyze() {
+  if (calcMatrices()) return Analysis::ERR;
   if (TgtTraj_ != 0)
     return analyze_crdset();
   else if (!sets_.empty())
@@ -236,8 +237,9 @@ static inline void subtract_mean(DataSet_double& out,
   }
 }
 
-/** Calculate combined mean over each time interval. */
-void Analysis_TICA::calc_means_from1Dsets( Darray& means, Darray const& weights, unsigned int end1) const {
+// -----------------------------------------------------------------------------
+/** Calculate combined effective mean for tau=0 and tau=lag. */
+void Analysis_TICA::calc_sums_from1Dsets(Darray& means, unsigned int end1) const {
   means.assign( sets_.size(), 0 );
   for (unsigned int idx = 0; idx != sets_.size(); ++idx) {
     DataSet_1D* seti = sets_[idx];
@@ -247,6 +249,10 @@ void Analysis_TICA::calc_means_from1Dsets( Darray& means, Darray const& weights,
       means[idx] += (seti->Dval(k1) + seti->Dval(k2));
     }
   }
+}
+
+/** Calculate total weight */
+double Analysis_TICA::calc_total_weight(Darray const& weights, unsigned int end1) {
   // Total weight is times 2 because symmetric
   double total_weight = 0;
   if (!weights.empty()) {
@@ -255,8 +261,7 @@ void Analysis_TICA::calc_means_from1Dsets( Darray& means, Darray const& weights,
     total_weight *= 2;
   } else
     total_weight = end1 * 2;
-  for (Darray::iterator it = means.begin(); it != means.end(); ++it)
-    *it /= total_weight;
+  return total_weight;
 }
 
 /** Create XXYY and XYYX matrices. */
@@ -320,6 +325,7 @@ const
     }
   }
 }
+// -----------------------------------------------------------------------------
 
 /// Multiply transpose of matrix by matrix TODO since the resulting matrix is supposed to be symmetric we can speed this up
 static void matT_times_mat( DataSet_2D* out,
@@ -445,6 +451,60 @@ static void printMatrix(const char* fname, DataSet_2D& matR, ArgList& tmpArgs)
   printMatrix(fname, matR, tmpArgs, -1, -1, TextFormat::DOUBLE);
 }
 
+// -----------------------------------------------------------------------------
+/** Calculate XXYY and XYYX matrices. */
+int Analysis_TICA::calcMatrices() const {
+  // Check that sets have same size
+  unsigned int maxFrames = 0;
+  if (!sets_.empty()) {
+    maxFrames = sets_.Array().front()->Size();
+    for (DSarray::const_iterator it = sets_.begin(); it != sets_.end(); ++it)
+    {
+      if ((*it)->Size() != maxFrames) {
+        mprinterr("Error: Set '%s' does not have same size (%zu) as first set (%u)\n",
+                  (*it)->legend(), (*it)->Size(), maxFrames);
+        return 1;
+      }
+    }
+  } else {
+    mprinterr("Internal Error: Finish calcMatrices().\n");
+    return 1;
+  }
+  // Calculate start and end times for C0 and CT
+  if ( (unsigned int)lag_ >= maxFrames ) {
+    mprinterr("Error: lag %i >= max frames %u\n", lag_, maxFrames);
+    return 1;
+  }
+  unsigned int c0end = maxFrames - (unsigned int)lag_;
+  mprintf("DEBUG: C0 start = %u end = %u\n", 0, c0end);
+
+  // Calculate means 
+  Darray means;
+  calc_sums_from1Dsets( means, c0end );
+  double total_weight = calc_total_weight( Darray(), c0end );
+  for (Darray::iterator it = means.begin(); it != means.end(); ++it)
+    *it /= total_weight;
+  CpptrajFile meanout; // DEBUG
+  if (meanout.OpenWrite("test.mean.dat")) {
+    mprinterr("Error: Could not open test.mean.dat\n");
+    return 1;
+  }
+  for (Darray::const_iterator it = means.begin(); it != means.end(); ++it) {
+    meanout.Printf("%12.6f\n", *it); // DEBUG
+  }
+  meanout.CloseFile();
+
+  // Calculate matrices
+  DataSet_MatrixDbl matXXYY, matXYYX;
+  create_matrices_from1Dsets(static_cast<DataSet_2D*>(&matXXYY), static_cast<DataSet_2D*>(&matXYYX), means, c0end);
+  ArgList tmpArgs("square2d noheader");
+  printMatrix("test.xyyx.dat", matXYYX, tmpArgs, 12, 6, TextFormat::DOUBLE);
+  printMatrix("test.xxyy.dat", matXXYY, tmpArgs, 12, 6, TextFormat::DOUBLE);
+
+  return 0;
+}
+// -----------------------------------------------------------------------------
+
 /** Calculate instantaneous covariance and lagged covariance arrays */
 int Analysis_TICA::calculateCovariance_C0CT(DSarray const& sets)
 const
@@ -511,22 +571,6 @@ const
   }
   meanout.CloseFile();
 
-  // FIXME DEBUG
-  Darray means;
-  calc_means_from1Dsets( means, Darray(), c0end );
-  if (meanout.OpenWrite("test.mean.dat")) {
-    mprinterr("Error: Could not open test.mean.dat\n");
-    return 1;
-  }
-  for (Darray::const_iterator it = means.begin(); it != means.end(); ++it) {
-    meanout.Printf("%12.6f\n", *it); // DEBUG
-  }
-  meanout.CloseFile();
-  DataSet_MatrixDbl matXXYY, matXYYX;
-  create_matrices_from1Dsets(static_cast<DataSet_2D*>(&matXXYY), static_cast<DataSet_2D*>(&matXYYX), means, c0end);
-  ArgList tmpArgs("square2d noheader");
-  printMatrix("test.xyyx.dat", matXYYX, tmpArgs, 12, 6, TextFormat::DOUBLE);
-  printMatrix("test.xxyy.dat", matXXYY, tmpArgs, 12, 6, TextFormat::DOUBLE);
 
   // Center TODO sx_centered and sy_centered may not need to be calced
   Darray sx_centered, sy_centered;
@@ -558,6 +602,7 @@ const
   printDarray("Y0", tmpy, "%16.8e");
 
   // ---------------------------------------------
+  ArgList tmpArgs("square2d noheader");
   // Calculate Cxxyy
   DataSet_MatrixDbl CXXYY;// = (DataSet_2D*)new DataSet_MatrixDbl();
   matT_times_mat_symmetric(static_cast<DataSet_2D*>(&CXXYY), CenteredX, CenteredY);
