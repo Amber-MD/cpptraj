@@ -50,6 +50,7 @@ class Analysis_TICA : public Analysis {
     AtomMask mask2_;                 ///< Second atom mask for debugging full covar matrix
     int lag_;                        ///< TICA time lag
     bool useMass_;                   ///< Control whether to mass-weight
+    bool setsArePeriodic_;           ///< If true, input 1D sets are periodic (data)
     CpptrajFile* debugC0_;           ///< Debug output for C0
     CpptrajFile* debugCT_;           ///< Debug output for CT
     EvectorScaleType evectorScale_;  ///< Eigenvector scaling type

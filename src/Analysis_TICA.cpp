@@ -14,6 +14,7 @@ Analysis_TICA::Analysis_TICA() :
   TgtTraj_(0),
   lag_(0),
   useMass_(false),
+  setsArePeriodic_(false),
   debugC0_(0),
   debugCT_(0),
   evectorScale_(NO_SCALING),
@@ -59,6 +60,18 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
         return Analysis::ERR;
       }
       dataarg = analyzeArgs.GetStringKey("data");
+    }
+    // Check if sets are periodic or not
+    if (!sets_.empty()) {
+      Array1D::const_iterator setit = sets_.begin();
+      bool isTorsion = (*setit)->Meta().IsTorsionArray();
+      for (; setit != sets_.end(); ++setit) {
+        if (isTorsion != (*setit)->Meta().IsTorsionArray()) {
+          mprinterr("Error: If one set is periodic, all must be periodic (%s).\n", (*setit)->legend());
+          return Analysis::ERR;
+        }
+      }
+      setsArePeriodic_ = isTorsion;
     }
   } else {
     mprinterr("Error: Must specify either 'crdset' or 'data'.\n");
@@ -146,6 +159,10 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
     for (Array1D::const_iterator it = sets_.begin(); it != sets_.end(); ++it)
       mprintf(" %s", (*it)->legend());
     mprintf("\n");
+    if (setsArePeriodic_)
+      mprintf("\tSets are periodic (torsions).\n");
+    else
+      mprintf("\tSets are not periodic.\n");
   }
   mprintf("\tTime lag: %i frames.\n", lag_);
   if (debugC0_ != 0)
