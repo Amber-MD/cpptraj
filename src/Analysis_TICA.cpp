@@ -202,6 +202,7 @@ Analysis::RetType Analysis_TICA::Analyze() {
   return Analysis::OK;
 }
 
+// -----------------------------------------------------------------------------
 /// FOR DEBUG
 static inline void printDarray(const char* desc, std::vector<double> const& arrayIn, const char* fmt)
 {
@@ -222,6 +223,72 @@ static inline void printDarray(const char* desc, std::vector<double> const& arra
     mprintf("\n");
 }
 
+/// For debugging - print eigenvalues/eigenvectors to stdout
+/*static void printEigen(DataSet_Modes const& C0_Modes, const char* desc) {
+  // DEBUG - print eigenvalues
+  std::vector<double> tmpevals;
+  for (int ii = 0; ii < C0_Modes.Nmodes(); ii++)
+    tmpevals.push_back( C0_Modes.Eigenvalue(ii) );
+  printDarray(desc, tmpevals, "%16.8e");
+  // DEBUG - print first 3 values of each eigenvector
+  for (int ii = 0; ii < C0_Modes.Nmodes(); ii++) {
+    const double* evec = C0_Modes.Eigenvector(ii);
+    for (int jj = 0; jj < 3; jj++)
+      mprintf("%12.8f", evec[jj]);
+    mprintf("\n");
+  }
+}*/
+
+/// For debugging - print eigenvalues to file
+static void printEvals(DataSet_Modes const& modes, const char* fname) {
+  CpptrajFile outfile;
+  if (outfile.OpenWrite(fname)) {
+    mprinterr("Internal Error: printEvals: could not open file %s\n", fname);
+    return;
+  }
+  for (int ii = 0; ii < modes.Nmodes(); ii++)
+    outfile.Printf("%12.8f\n", modes.Eigenvalue(ii));
+  outfile.CloseFile();
+}
+
+/// For debugging - print eigenvectors to file
+static void printEvecs(DataSet_Modes const& modes, const char* fname) {
+  CpptrajFile outfile;
+  if (outfile.OpenWrite(fname)) {
+    mprinterr("Internal Error: printEvals: could not open file %s\n", fname);
+    return;
+  }
+  for (int ii = 0; ii < modes.Nmodes(); ii++) {
+    const double* evec = modes.Eigenvector(ii);
+    for (int jj = 0; jj < modes.VectorSize(); jj++)
+      outfile.Printf("%12.8f", evec[jj]);
+    outfile.Printf("\n");
+  }
+  outfile.CloseFile();
+}
+
+/// For debugging. Print matrix to file
+static void printMatrix(const char* fname, DataSet_2D& matR, ArgList& tmpArgs,
+                        int width, int precision, TextFormat::FmtType fmt)
+{
+  if (width > 0) {
+    matR.SetupFormat().SetFormatWidthPrecision( width, precision );
+    matR.SetupFormat().SetFormatType( fmt );
+  }
+  DataFile outfile8;
+  outfile8.SetupDatafile(fname, tmpArgs, 0);
+  outfile8.AddDataSet( &matR );
+  outfile8.WriteDataOut();
+  tmpArgs.SetAllUnmarked();
+}
+
+/// For debugging. Print matrix to file
+static void printMatrix(const char* fname, DataSet_2D& matR, ArgList& tmpArgs)
+{
+  printMatrix(fname, matR, tmpArgs, -1, -1, TextFormat::DOUBLE);
+}
+
+// -----------------------------------------------------------------------------
 /// Calculate sum over each set TODO weights
 static inline void calculate_sum(std::vector<double>& sumX,
                                  std::vector<DataSet_1D*> const& sets, 
@@ -408,71 +475,6 @@ static void matT_times_mat_symmetric( DataSet_2D* out,
     }
     //mprintf("\n");
   }
-}
-
-/// For debugging - print eigenvalues/eigenvectors to stdout
-/*static void printEigen(DataSet_Modes const& C0_Modes, const char* desc) {
-  // DEBUG - print eigenvalues
-  std::vector<double> tmpevals;
-  for (int ii = 0; ii < C0_Modes.Nmodes(); ii++)
-    tmpevals.push_back( C0_Modes.Eigenvalue(ii) );
-  printDarray(desc, tmpevals, "%16.8e");
-  // DEBUG - print first 3 values of each eigenvector
-  for (int ii = 0; ii < C0_Modes.Nmodes(); ii++) {
-    const double* evec = C0_Modes.Eigenvector(ii);
-    for (int jj = 0; jj < 3; jj++)
-      mprintf("%12.8f", evec[jj]);
-    mprintf("\n");
-  }
-}*/
-
-/// For debugging - print eigenvalues to file
-static void printEvals(DataSet_Modes const& modes, const char* fname) {
-  CpptrajFile outfile;
-  if (outfile.OpenWrite(fname)) {
-    mprinterr("Internal Error: printEvals: could not open file %s\n", fname);
-    return;
-  }
-  for (int ii = 0; ii < modes.Nmodes(); ii++)
-    outfile.Printf("%12.8f\n", modes.Eigenvalue(ii));
-  outfile.CloseFile();
-}
-
-/// For debugging - print eigenvectors to file
-static void printEvecs(DataSet_Modes const& modes, const char* fname) {
-  CpptrajFile outfile;
-  if (outfile.OpenWrite(fname)) {
-    mprinterr("Internal Error: printEvals: could not open file %s\n", fname);
-    return;
-  }
-  for (int ii = 0; ii < modes.Nmodes(); ii++) {
-    const double* evec = modes.Eigenvector(ii);
-    for (int jj = 0; jj < modes.VectorSize(); jj++)
-      outfile.Printf("%12.8f", evec[jj]);
-    outfile.Printf("\n");
-  }
-  outfile.CloseFile();
-}
-
-/// For debugging. Print matrix to file
-static void printMatrix(const char* fname, DataSet_2D& matR, ArgList& tmpArgs,
-                        int width, int precision, TextFormat::FmtType fmt)
-{
-  if (width > 0) {
-    matR.SetupFormat().SetFormatWidthPrecision( width, precision );
-    matR.SetupFormat().SetFormatType( fmt );
-  }
-  DataFile outfile8;
-  outfile8.SetupDatafile(fname, tmpArgs, 0);
-  outfile8.AddDataSet( &matR );
-  outfile8.WriteDataOut();
-  tmpArgs.SetAllUnmarked();
-}
-
-/// For debugging. Print matrix to file
-static void printMatrix(const char* fname, DataSet_2D& matR, ArgList& tmpArgs)
-{
-  printMatrix(fname, matR, tmpArgs, -1, -1, TextFormat::DOUBLE);
 }
 
 // -----------------------------------------------------------------------------
