@@ -236,6 +236,46 @@ static inline void subtract_mean(DataSet_double& out,
   }
 }
 
+/** Create XXYY and XYYX matrices. */
+void Analysis_TICA::create_matrices( DataSet_2D* matXXYY,
+                                     DataSet_2D* matXYYX,
+                                     Darray const& means )
+const
+{
+  unsigned int Ncols = sets_.size(); // FIXME
+  unsigned int Nrows = Ncols;
+  unsigned int xxyyIdx = 0;
+  unsigned int xyyxIdx = 0;
+
+  //matXXYY->AllocateHalf( Ncols );
+  matXYYX->Allocate2D( Ncols, Nrows );
+
+  for (unsigned int row = 0; row < Nrows; row++) {
+    
+    for (unsigned int col = 0; col < Ncols; col++) {
+
+      // XYYX
+      DataSet_1D* seti = sets_[row];
+      double offi = means[row];
+      DataSet_1D* setj = sets_[col];
+      double offj = means[col];
+      unsigned int end1 = seti->Size() - lag_;
+      double sum = 0;
+      unsigned int k2 = lag_;
+      for (unsigned int k1 = 0; k1 < end1; k1++, k2++) {
+        double dvali = seti->Dval(k1) - offi;
+        double dvalj = setj->Dval(k2) - offj;
+        //if (row == 0 && col == 0) mprintf("DBG1: %u %u %u %g %g\n", row, col, k1, dvali, dvalj);
+        sum += (dvali * dvalj);
+        dvali = seti->Dval(k2) - offi;
+        dvalj = setj->Dval(k1) - offj;
+        sum += (dvali * dvalj);
+      }
+      matXYYX->SetElement(xyyxIdx++, sum);
+    }
+  }
+}
+
 /// Multiply transpose of matrix by matrix TODO since the resulting matrix is supposed to be symmetric we can speed this up
 static void matT_times_mat( DataSet_2D* out,
                             std::vector<DataSet_double> const& M1,
@@ -252,6 +292,7 @@ static void matT_times_mat( DataSet_2D* out,
       // seti->Size() must equal setj->Size()
       double sum = 0;
       for (unsigned int k = 0; k < seti.Size(); k++) {
+        //if (row == 0 && col == 0) mprintf("DBG0: %u %u %u %g %g\n", row, col, k, seti.Dval(k), setj.Dval(k));
         sum += (seti.Dval(k) * setj.Dval(k));
       }
       out->SetElement(idx++, sum);
@@ -425,6 +466,12 @@ const
   }
   meanout.CloseFile();
 
+  // FIXME DEBUG
+  DataSet_MatrixDbl matXYYX;
+  create_matrices(0, static_cast<DataSet_2D*>(&matXYYX), meanX);
+  ArgList tmpArgs("square2d noheader");
+  printMatrix("test.xyyx.dat", matXYYX, tmpArgs, 12, 6, TextFormat::DOUBLE);
+
   // Center TODO sx_centered and sy_centered may not need to be calced
   Darray sx_centered, sy_centered;
   sx_centered.reserve( sumX.size() );
@@ -455,7 +502,6 @@ const
   printDarray("Y0", tmpy, "%16.8e");
 
   // ---------------------------------------------
-  ArgList tmpArgs("square2d noheader");
   // Calculate Cxxyy
   DataSet_MatrixDbl CXXYY;// = (DataSet_2D*)new DataSet_MatrixDbl();
   matT_times_mat_symmetric(static_cast<DataSet_2D*>(&CXXYY), CenteredX, CenteredY);

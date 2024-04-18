@@ -29,6 +29,8 @@ class Analysis_TICA : public Analysis {
     Analysis::RetType analyze_datasets();
     /// Calculate instantaneous and lagged covariance matrices
     int calculateCovariance_C0CT(DSarray const&) const;
+    /// Create XXYY and XYYX matrices in a single pass
+    void create_matrices(DataSet_2D*, DataSet_2D*, Darray const&) const;
 
     Array1D sets_;                   ///< Input 1D data sets (data)
     DataSet_Coords* TgtTraj_;        ///< Input trajectory (crdset)
