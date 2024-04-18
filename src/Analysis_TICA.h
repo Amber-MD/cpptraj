@@ -35,6 +35,8 @@ class Analysis_TICA : public Analysis {
     void calc_sums_from1Dsets(Darray&, unsigned int) const;
     /// Calculate sums of X and Y for periodic sets in a single pass.
     void calc_sums_fromPeriodicSets(Darray&, unsigned int) const;
+    /// Calculate sums of X and Y for COORDS sets in a single pass
+    void calc_sums_fromCoordsSet(Darray&, unsigned int) const;
     /// Create XXYY and XYYX matrices in a single pass
     void create_matrices_from1Dsets(DataSet_2D*, DataSet_2D*, Darray const&, unsigned int) const;
     /// Calculate TICA matrices

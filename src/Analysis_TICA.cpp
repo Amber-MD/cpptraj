@@ -325,9 +325,26 @@ void Analysis_TICA::calc_sums_fromPeriodicSets(Darray& means, unsigned int end1)
 
 /** Calculate combined effective sums for tau=0 and tau=lag for COORDS set. */
 void Analysis_TICA::calc_sums_fromCoordsSet(Darray& means, unsigned int end1) const {
+  // Allocate frames
+  Frame coords1 = TgtTraj_->AllocateFrame();
+  Frame coords2 = TgtTraj_->AllocateFrame();
+
   means.assign( mask1_.Nselected() * 3, 0 );
-  unsigned int k2 = lag;
+  unsigned int k2 = lag_;
   for (unsigned int k1 = 0; k1 < end1; k1++, k2++) {
+    TgtTraj_->GetFrame(k1, coords1);
+    TgtTraj_->GetFrame(k2, coords2);
+    unsigned int jdx = 0;
+    for (int idx = 0; idx != mask1_.Nselected(); ++idx, jdx += 3) {
+      int at = mask1_[idx];
+      const double* xyz1 = coords1.XYZ( at );
+      const double* xyz2 = coords2.XYZ( at );
+      means[jdx  ] += (xyz1[0] + xyz2[0]);
+      means[jdx+1] += (xyz1[1] + xyz2[1]);
+      means[jdx+2] += (xyz1[2] + xyz2[2]);
+    }
+  }
+}
 
 /** Calculate total weight */
 double Analysis_TICA::calc_total_weight(Darray const& weights, unsigned int end1) {
