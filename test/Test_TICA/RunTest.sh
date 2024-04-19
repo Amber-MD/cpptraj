@@ -37,11 +37,15 @@ rms R0 first @CA
 tica data R0 data d* name TICA lag 10 out tz2.ticamodes.dat cumvarout tz2.cumvar.dat
 run
 writedata tz2.raw.dat R0 d*
+
+projection Evec out tz2.project.dat evecs TICA data R0 data d*
+run
 EOF
 
 RunCpptraj "TICA test."
 DoTest tz2.ticamodes.dat.save tz2.ticamodes.dat
 DoTest tz2.cumvar.dat.save tz2.cumvar.dat
+DoTest tz2.project.dat.save tz2.project.dat
 #diff M1.dat ticadebug.m1.dat
 #diff M2.dat ticadebug.m2.dat
 
