@@ -1,4 +1,4 @@
-#Frame   TICA[cumvar]
+#Mode    TICA[cumvar]
        1   0.68193247
        2   0.82647376
        3   0.93987867
