@@ -383,6 +383,10 @@ void Analysis_TICA::create_matrices_from1Dsets( DataSet_2D* matXXYY,
                                                 unsigned int end1 )
 const
 {
+  MetaData md = ticaModes_->Meta();
+  md.SetScalarMode( MetaData::M_MATRIX );
+  md.SetScalarType( MetaData::DATACOVAR );
+  ticaModes_->SetMeta( md );
   unsigned int Ncols = sets_.size(); // FIXME
   unsigned int Nrows = Ncols;
   unsigned int xxyyIdx = 0;

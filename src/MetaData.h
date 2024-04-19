@@ -27,7 +27,7 @@ class MetaData {
       NOE,
       DIST,    COVAR,     MWCOVAR,
       CORREL,  DISTCOVAR, IDEA,
-      IREDMAT, DIHCOVAR,
+      IREDMAT, DIHCOVAR, DATACOVAR,
       IREDVEC,
       UNDEFINED
     };
