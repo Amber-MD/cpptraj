@@ -125,6 +125,7 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
     mprinterr("Error: Could not allocate output cumulative variance.\n");
     return Analysis::ERR;
   }
+  cumulativeVariance_->ModifyDim(Dimension::X).SetLabel("Mode");
   // Change default precision
   cumulativeVariance_->SetupFormat().SetFormatWidthPrecision(12,8);
   DataFile* cvoutfile = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("cumvarout"), analyzeArgs);
