@@ -393,11 +393,8 @@ const
   matXYYX->AllocateHalf( Ncols );
 
   for (unsigned int row = 0; row < Nrows; row++) {
-    
     //for (unsigned int col = 0; col < Ncols; col++) {
     for (unsigned int col = row; col < Ncols; col++) {
-
-      // XYYX
       DataSet_1D* seti = sets_[row];
       double offi = means[row];
       DataSet_1D* setj = sets_[col];
@@ -412,11 +409,84 @@ const
         double dvali2 = seti->Dval(k2) - offi;
         double dvalj1 = setj->Dval(k1) - offj;
         //if (row == 0 && col == 0) mprintf("DBG1: %u %u %u %g %g\n", row, col, k1, dvali, dvalj);
+        // XYYX
         sum += (dvali1 * dvalj2);
         sum += (dvali2 * dvalj1);
         // XXYY
         sumxx += (dvali1 * dvalj1);
         sumxx += (dvalj2 * dvali2);
+      }
+      matXYYX->SetElement(xyyxIdx++, sum);
+      matXXYY->SetElement(xxyyIdx++, sumxx);
+      // XXYY
+/*      if ( col >= row ) {
+        double sumxx = 0;
+        unsigned int k2 = lag_;
+        for (unsigned int k1 = 0; k1 < end1; k1++, k2++) {
+          double dvali1 = seti->Dval(k1) - offi;
+          double dvalj2 = setj->Dval(k2) - offj;
+          double dvali2 = seti->Dval(k2) - offi;
+          double dvalj1 = setj->Dval(k1) - offj;
+          sumxx += (dvali1 * dvalj1);
+          sumxx += (dvalj2 * dvali2);
+        }
+        matXXYY->SetElement(xxyyIdx++, sumxx);
+      }*/
+    }
+  }
+}
+
+/** Create XXYY and XYYX matrices for periodic 1D sets. */
+void Analysis_TICA::create_matrices_fromPeriodicSets( DataSet_2D* matXXYY, DataSet_2D* matXYYX,
+                                                Darray const& means, unsigned int end1 )
+const
+{
+  unsigned int Ncols = sets_.size(); // FIXME
+  unsigned int Nrows = Ncols;
+  unsigned int xxyyIdx = 0;
+  unsigned int xyyxIdx = 0;
+
+  matXXYY->AllocateHalf( Ncols );
+  matXYYX->AllocateHalf( Ncols );
+
+  unsigned int jr = 0;
+  for (unsigned int row = 0; row < Nrows; row++, jr += 2) {
+    unsigned int jc = jr;
+    for (unsigned int col = row; col < Ncols; col++, jc += 2) {
+      DataSet_1D* seti = sets_[row];
+      double offix = means[jr];
+      double offiy = means[jr+1];
+      DataSet_1D* setj = sets_[col];
+      double offjx = means[jc];
+      double offjy = means[jc+1];
+      double sum = 0;
+      double sumxx = 0;
+      unsigned int k2 = lag_;
+      for (unsigned int k1 = 0; k1 < end1; k1++, k2++) {
+        double dvali1  = seti->Dval(k1) * Constants::DEGRAD;
+        double dvali1x = cos( dvali1 ) - offix;
+        double dvali1y = sin( dvali1 ) - offiy;
+        double dvalj2  = setj->Dval(k2) * Constants::DEGRAD;
+        double dvalj2x = cos( dvalj2 ) - offjx;
+        double dvalj2y = sin( dvalj2 ) - offjy;
+        double dvali2  = seti->Dval(k2) * Constants::DEGRAD;
+        double dvali2x = cos( dvali2 ) - offix;
+        double dvali2y = sin( dvali2 ) - offiy;
+        double dvalj1  = setj->Dval(k1) * Constants::DEGRAD;
+        double dvalj1x = cos( dvalj1 ) - offjx;
+        double dvalj1y = cos( dvalj1 ) - offjy;
+
+        //double dvali1 = seti->Dval(k1) - offi;
+        //double dvalj2 = setj->Dval(k2) - offj;
+        //double dvali2 = seti->Dval(k2) - offi;
+        //double dvalj1 = setj->Dval(k1) - offj;
+        //if (row == 0 && col == 0) mprintf("DBG1: %u %u %u %g %g\n", row, col, k1, dvali, dvalj);
+        // XYYX
+        //sum += (dvali1 * dvalj2);
+        //sum += (dvali2 * dvalj1);
+        // XXYY
+        //sumxx += (dvali1 * dvalj1);
+        //sumxx += (dvalj2 * dvali2);
       }
       matXYYX->SetElement(xyyxIdx++, sum);
       matXXYY->SetElement(xxyyIdx++, sumxx);

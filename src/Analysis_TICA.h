@@ -39,6 +39,8 @@ class Analysis_TICA : public Analysis {
     void calc_sums_fromCoordsSet(Darray&, unsigned int) const;
     /// Create XXYY and XYYX matrices in a single pass
     void create_matrices_from1Dsets(DataSet_2D*, DataSet_2D*, Darray const&, unsigned int) const;
+    /// Create XXYY and XYYX matrices in a single pass
+    void create_matrices_fromPeriodicSets(DataSet_2D*, DataSet_2D*, Darray const&, unsigned int) const;
     /// Calculate TICA matrices
     int calcMatrices() const;
     /// Calculate TICA modes
