@@ -471,6 +471,10 @@ void Analysis_TICA::create_matrices_fromPeriodicSets( DataSet_2D* matXXYY, DataS
                                                 Darray const& means, unsigned int end1 )
 const
 {
+  MetaData md = ticaModes_->Meta();
+  md.SetScalarMode( MetaData::M_MATRIX );
+  md.SetScalarType( MetaData::DIHCOVAR );
+  ticaModes_->SetMeta( md );
   unsigned int Ncols = sets_.size(); // FIXME
   unsigned int Nrows = Ncols;
   unsigned int xxyyIdx = 0;
@@ -553,6 +557,42 @@ const
       }*/
     }
   }
+}
+
+void Analysis_TICA::create_matrices_fromCoordsSet(DataSet_2D* matXXYY, DataSet_2D* matXYYX,
+                                                Darray const& means, unsigned int end1 )
+const
+{
+  MetaData md = ticaModes_->Meta();
+  md.SetScalarMode( MetaData::M_MATRIX );
+  md.SetScalarType( MetaData::COVAR );
+  ticaModes_->SetMeta( md );
+  unsigned int Ncols = mask1_.Nselected() * 3; // FIXME
+  unsigned int Nrows = Ncols;
+
+  matXXYY->AllocateHalf( Ncols );
+  //matXYYX->Allocate2D( Ncols, Nrows );
+  matXYYX->AllocateHalf( Ncols );
+
+  // Allocate frames
+  Frame coords1;
+  coords1.SetupFrameFromMask( mask1_ );
+  Frame coords2 = coords1;
+  //Frame coords1 = TgtTraj_->AllocateFrame();
+  //Frame coords2 = TgtTraj_->AllocateFrame();
+
+  unsigned int k2 = lag_;
+  for (unsigned int k1 = 0; k1 < end1; k1++, k2++) {
+    //TgtTraj_->GetFrame(k1, coords1);
+    //TgtTraj_->GetFrame(k2, coords2);
+    TgtTraj_->GetFrame(k1, coords1, mask1_);
+    TgtTraj_->GetFrame(k2, coords2, mask1_);
+
+    unsigned int xxyyIdx = 0;
+    unsigned int xyyxIdx = 0;
+
+  } // END loop over frames
+
 }
 
 // -----------------------------------------------------------------------------
