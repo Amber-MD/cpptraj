@@ -156,6 +156,8 @@ class Frame {
     int SetupFrameFromMask(AtomMask const&, std::vector<Atom> const&);
     /// Allocate frame for selected # atoms and coordinate info.
     int SetupFrameFromMask(AtomMask const&, std::vector<Atom> const&, CoordinateInfo const&);
+    /// Allocate frame for selected # atoms
+    int SetupFrameFromMask(AtomMask const&);
     // ----- Add/remove components from Frame ----
     int AddVelocities(Darray const&);
     void RemoveVelocities();
