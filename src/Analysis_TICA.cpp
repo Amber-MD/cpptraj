@@ -13,6 +13,7 @@
 Analysis_TICA::Analysis_TICA() :
   TgtTraj_(0),
   lag_(0),
+  calcType_(COORDS),
   useMass_(false),
   setsArePeriodic_(false),
   debugC0_(0),
@@ -46,6 +47,7 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
     return Analysis::ERR;
   }
   if (!setname.empty()) {
+    calcType_ = COORDS;
     TgtTraj_ = (DataSet_Coords*)setup.DSL().FindCoordsSet( setname );
     if (TgtTraj_ == 0) {
       mprinterr("Error: Could not locate COORDS set corresponding to %s\n",
@@ -54,6 +56,7 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
       return Analysis::ERR;
     }
   } else if (!dataarg.empty()) {
+    calcType_ = DATA;
     while (!dataarg.empty()) {
       if (sets_.AppendSetsFromArgs( ArgList(dataarg), setup.DSL() )) {
         mprinterr("Error: Could not add data sets using argument '%s'\n", dataarg.c_str());
@@ -72,6 +75,8 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
         }
       }
       setsArePeriodic_ = isTorsion;
+      if (setsArePeriodic_)
+        calcType_ = PERIODIC;
     }
   } else {
     mprinterr("Error: Must specify either 'crdset' or 'data'.\n");
@@ -187,6 +192,19 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
 
 // Analysis_TICA::Analyze()
 Analysis::RetType Analysis_TICA::Analyze() {
+  if (TgtTraj_ != 0) {
+    // Evaluate mask
+    if ( TgtTraj_->Top().SetupIntegerMask( mask1_ ) ) {
+      mprinterr("Error: Could not evaluate atom mask '%s'\n", mask1_.MaskString());
+      return Analysis::ERR;
+   }
+    mask1_.MaskInfo();
+    if (mask1_.None()) {
+      mprinterr("Error: No atoms selected by mask '%s'\n", mask1_.MaskString());
+      return Analysis::ERR;
+    }
+  }
+
   if (calcMatrices()) return Analysis::ERR;
 
   if (evectorScale_ == KINETIC_MAP) {
@@ -528,9 +546,16 @@ int Analysis_TICA::calcMatrices() const {
         return 1;
       }
     }
+  } else if (TgtTraj_ != 0) {
+    maxFrames = TgtTraj_->Size();
   } else {
-    mprinterr("Internal Error: Finish calcMatrices().\n");
+    // Sanity check
+    mprinterr("Internal Error: Unhandled calculation type in calcMatrices().\n");
     return 1;
+  }
+  if (maxFrames < 1) {
+    mprinterr("Error: No frames to analyze.\n");
+    return Analysis::ERR;
   }
   // Calculate start and end times for C0 and CT
   if ( (unsigned int)lag_ >= maxFrames ) {
@@ -542,7 +567,13 @@ int Analysis_TICA::calcMatrices() const {
 
   // Calculate means 
   Darray means;
-  calc_sums_from1Dsets( means, c0end );
+  switch (calcType_) {
+    case DATA     : calc_sums_from1Dsets( means, c0end ); break;
+    case PERIODIC : calc_sums_fromPeriodicSets( means, c0end ); break;
+    case COORDS   : calc_sums_fromCoordsSet( means, c0end ); break;
+  }
+
+  // Calculate total weight
   double total_weight = calc_total_weight( Darray(), c0end );
   for (Darray::iterator it = means.begin(); it != means.end(); ++it)
     *it /= total_weight;
@@ -552,13 +583,21 @@ int Analysis_TICA::calcMatrices() const {
     return 1;
   }
   for (Darray::const_iterator it = means.begin(); it != means.end(); ++it) {
-    meanout.Printf("%12.6f\n", *it); // DEBUG
+    meanout.Printf("%12.8f\n", *it); // DEBUG
   }
   meanout.CloseFile();
 
   // Calculate matrices
   DataSet_MatrixDbl matXXYY, matXYYX;
-  create_matrices_from1Dsets(static_cast<DataSet_2D*>(&matXXYY), static_cast<DataSet_2D*>(&matXYYX), means, c0end);
+  switch (calcType_) {
+    case DATA :
+      create_matrices_from1Dsets(static_cast<DataSet_2D*>(&matXXYY), static_cast<DataSet_2D*>(&matXYYX), means, c0end);
+      break;
+    case PERIODIC :
+    case COORDS :
+      mprinterr("Internal Error: calcMatrices() not yet finished.\n");
+      return 1;
+  }
   ArgList tmpArgs("square2d noheader");
   printMatrix("test.xxyy.dat", matXXYY, tmpArgs, 12, 6, TextFormat::DOUBLE);
   printMatrix("test.xyyx.dat", matXYYX, tmpArgs, 12, 6, TextFormat::DOUBLE);

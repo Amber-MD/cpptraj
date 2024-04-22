@@ -19,6 +19,11 @@ class Analysis_TICA : public Analysis {
       KINETIC_MAP,    ///< Scale eigenvectors by eigenvalues
       COMMUTE_MAP     ///< Scale eigenvectors by regularized time scales
     };
+    enum CalcType {
+      COORDS = 0, ///< Use XYZ coordinates
+      DATA,       ///< Use 1D data sets
+      PERIODIC    ///< Use 1D periodic data sets
+    };
 
     typedef std::vector<DataSet_1D*> DSarray;
     typedef std::vector<double> Darray;
@@ -51,6 +56,7 @@ class Analysis_TICA : public Analysis {
     AtomMask mask1_;                 ///< Atoms to use in matrix calc
     AtomMask mask2_;                 ///< Second atom mask for debugging full covar matrix
     int lag_;                        ///< TICA time lag
+    CalcType calcType_;              ///< Type of calculation (TODO allow mixed data types)
     bool useMass_;                   ///< Control whether to mass-weight
     bool setsArePeriodic_;           ///< If true, input 1D sets are periodic (data)
     CpptrajFile* debugC0_;           ///< Debug output for C0
