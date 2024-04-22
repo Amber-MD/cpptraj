@@ -24,6 +24,8 @@ class DataSet_2D : public DataSet {
 
     /// Add given value to element at specified col/row
     virtual void UpdateElement(size_t, size_t, double) = 0;
+    /// Add given value to element at specified 1D index
+    virtual void UpdateElement(size_t, double) = 0;
     /// Set element at specified col/row to given value
     virtual void SetElement(size_t, size_t, double) = 0;
     /// Set element at specified 1D index to given value

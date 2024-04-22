@@ -24,6 +24,7 @@ class DataSet_MatrixFlt : public DataSet_2D {
     int AllocateHalf(size_t x)                 { kind_=HALF; return mat_.resize(x,0); }
     int AllocateTriangle(size_t x)             { kind_=TRI;  return mat_.resize(0,x); }
     void UpdateElement(size_t x,size_t y,double v) { mat_.updateElement(x,y,v); }
+    void UpdateElement(size_t i, double d)         { mat_[i] += (float)d; }
     void SetElement(size_t x,size_t y,double d)    { mat_.setElement(x,y,d);    }
     void SetElement(size_t i, double d)            { mat_[i] = d; }
     double GetElement(size_t x,size_t y) const { return (double)mat_.element(x,y); }
