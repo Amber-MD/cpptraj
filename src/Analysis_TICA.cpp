@@ -492,9 +492,26 @@ const
       double sum = 0;
       double sumxx = 0;
       unsigned int k2 = lag_;
+      double dvali1[2];
+      double dvali2[2];
+      double dvalj1[2];
+      double dvalj2[2];
       for (unsigned int k1 = 0; k1 < end1; k1++, k2++) {
-        double dvali1  = seti->Dval(k1) * Constants::DEGRAD;
-        double dvali1x = cos( dvali1 ) - offix;
+        double Di1 = seti->Dval(k1) * Constants::DEGRAD;
+        dvali1[0]  = cos( Di1 ) - offix;
+        dvali1[1]  = sin( Di1 ) - offiy;
+        double Di2 = seti->Dval(k2) * Constants::DEGRAD;
+        dvali2[0]  = cos( Di2 ) - offix;
+        dvali2[1]  = sin( Di2 ) - offiy;
+
+        double Dj1 = setj->Dval(k1) * Constants::DEGRAD;
+        dvalj1[0]  = cos( Dj1 ) - offjx;
+        dvalj1[1]  = sin( Dj1 ) - offjy;
+        double Dj2 = setj->Dval(k2) * Constants::DEGRAD;
+        dvalj2[0]  = cos( Dj2 ) - offjx;
+        dvalj2[1]  = sin( Dj2 ) - offjy;
+
+/*        double dvali1x = cos( dvali1 ) - offix;
         double dvali1y = sin( dvali1 ) - offiy;
         double dvalj2  = setj->Dval(k2) * Constants::DEGRAD;
         double dvalj2x = cos( dvalj2 ) - offjx;
@@ -504,7 +521,7 @@ const
         double dvali2y = sin( dvali2 ) - offiy;
         double dvalj1  = setj->Dval(k1) * Constants::DEGRAD;
         double dvalj1x = cos( dvalj1 ) - offjx;
-        double dvalj1y = cos( dvalj1 ) - offjy;
+        double dvalj1y = cos( dvalj1 ) - offjy;*/
 
         //double dvali1 = seti->Dval(k1) - offi;
         //double dvalj2 = setj->Dval(k2) - offj;
