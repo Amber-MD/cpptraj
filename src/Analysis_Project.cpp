@@ -1,5 +1,6 @@
 #include "Analysis_Project.h"
 #include "CpptrajStdio.h"
+#include "DataSet_1D.h"
 #include "DataSet_Modes.h"
 #include "StringRoutines.h"
 
@@ -54,6 +55,10 @@ Analysis::RetType Analysis_Project::Setup(ArgList& analyzeArgs, AnalysisSetup& s
       dataarg = analyzeArgs.GetStringKey("data");
     }
   }
+  if (Sets_.empty()) {
+    mprinterr("Error: No input data sets.\n");
+    return Analysis::ERR;
+  }
 
   // Set up data sets
   std::string setname = analyzeArgs.GetStringKey("name");
@@ -70,6 +75,12 @@ Analysis::RetType Analysis_Project::Setup(ArgList& analyzeArgs, AnalysisSetup& s
     project_.push_back( dout );
     if (DF != 0) DF->AddDataSet( dout );
   }
+
+  mprintf("    PROJECTION: Calculating projection using eigenvectors %i to %i of %s\n",
+          beg_+1, end_, modinfo_->legend());
+  if (DF != 0)
+    mprintf("\tResults are written to %s\n", DF->DataFilename().full());
+  mprintf("\t%zu input data sets.\n", Sets_.size());
 
   return Analysis::OK;
 }
@@ -111,7 +122,60 @@ Analysis::RetType Analysis_Project::Analyze() {
                 " number of average elements %i\n", Sets_.size(), modinfo_->NavgCrd());
       return Analysis::ERR;
     }
+  } else {
+    mprinterr("Error: Can only do data or dihedral modes currently.\n");
+    return Analysis::ERR; // FIXME this check should be earlier
   }
+
+  // Check that sets have same size
+  unsigned int maxFrames = 0;
+  if (!Sets_.empty()) {
+    maxFrames = Sets_.Array().front()->Size();
+    for (Array1D::const_iterator it = Sets_.begin(); it != Sets_.end(); ++it)
+    {
+      if ((*it)->Size() != maxFrames) {
+        mprinterr("Error: Set '%s' does not have same size (%zu) as first set (%u)\n",
+                  (*it)->legend(), (*it)->Size(), maxFrames);
+        return Analysis::ERR;
+      }
+    }
+  } 
+  // Loop over frames
+  for (unsigned int idx = 0; idx < maxFrames; idx++) {
+    // Always start at first eigenvector element of first mode.
+    const double* Vec = modinfo_->Eigenvector(beg_);
+    if (modinfo_->Meta().ScalarType() == MetaData::DIHCOVAR ) {
+      for (int mode = beg_; mode < end_; ++mode) {
+        DataSet_Modes::AvgIt Avg = modinfo_->AvgBegin();
+        double proj = 0.0;
+        for (Array1D::const_iterator dih = Sets_.begin();
+                                     dih != Sets_.end(); ++dih)
+        {
+          double theta = (*dih)->Dval( idx ) * Constants::DEGRAD;
+          proj += (cos(theta) - *(Avg++)) * Vec[0];
+          proj += (sin(theta) - *(Avg++)) * Vec[1];
+          Vec += 2;
+        }
+        // TODO: Convert to degrees?
+        float fproj = (float)proj;
+        project_[mode]->Add( idx, &fproj );
+      }
+    } else if (modinfo_->Meta().ScalarType() == MetaData::DATACOVAR ) {
+      for (int mode = beg_; mode < end_; ++mode) {
+        DataSet_Modes::AvgIt Avg = modinfo_->AvgBegin();
+        double proj = 0.0;
+        for (Array1D::const_iterator it = Sets_.begin();
+                                     it != Sets_.end(); ++it)
+        {
+          double dval = (*it)->Dval( idx ) - *(Avg++);
+          proj += (dval * *Vec);
+          Vec++;
+        }
+        float fproj = (float)proj;
+        project_[mode]->Add( idx, &fproj );
+      }
+    }
+  } // END loop over frames
 
   return Analysis::OK;
 }
