@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles tica.in ticadebug.dat M?.dat ticadebug.m?.dat \
-           tz2.*.dat crd.*.dat
+           tz2.*.dat crd.*.dat dih.*.dat
 
 INPUT='-i tica.in'
 
@@ -58,6 +58,19 @@ EOF
 RunCpptraj "TICA test, coordinates."
 DoTest crd.ticamodes.dat.save crd.ticamodes.dat
 DoTest crd.cumvar.dat.save crd.cumvar.dat
+
+cat > tica.in <<EOF
+parm ../tz2.parm7
+trajin ../tz2.crd
+dihedral d1 :1@C :2@N :2@CA :2@C
+dihedral d2 :2@N :2@CA :2@C :3@N
+createcrd MyCrd
+tica data d1 data d2 name TICA lag 10 out dih.ticamodes.dat cumvarout dih.cumvar.dat
+run
+EOF
+RunCpptraj "TICA test, dihedrals."
+DoTest dih.ticamodes.dat.save dih.ticamodes.dat
+DoTest dih.cumvar.dat.save dih.cumvar.dat
 
 #diff M1.dat ticadebug.m1.dat
 #diff M2.dat ticadebug.m2.dat
