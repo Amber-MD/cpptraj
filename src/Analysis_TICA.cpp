@@ -27,7 +27,6 @@ Analysis_TICA::Analysis_TICA() :
   debugCT_(0)
 # endif
 {
-  SetHidden(true);
 }
 
 /** DESTRUCTOR */

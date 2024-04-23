@@ -124,6 +124,7 @@ COMMON_SOURCES= \
         Analysis_MultiHist.cpp \
         Analysis_Overlap.cpp \
         Analysis_PhiPsi.cpp \
+        Analysis_Project.cpp \
         Analysis_Regression.cpp \
         Analysis_RemLog.cpp \
         Analysis_Rms2d.cpp \

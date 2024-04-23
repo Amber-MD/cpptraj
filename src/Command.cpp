@@ -207,6 +207,7 @@
 #include "Analysis_EvalPlateau.h"
 #include "Analysis_TICA.h"
 #include "Analysis_CalcDiffusion.h"
+#include "Analysis_Project.h"
 
 CmdList Command::commands_ = CmdList();
 
@@ -435,6 +436,7 @@ void Command::Init() {
   Command::AddCmd( new Analysis_MultiHist(),   Cmd::ANA, 1, "multihist" );
   Command::AddCmd( new Analysis_Overlap(),     Cmd::ANA, 1, "overlap" ); // hidden 
   Command::AddCmd( new Analysis_PhiPsi(),      Cmd::ANA, 1, "phipsi" );
+  Command::AddCmd( new Analysis_Project(),     Cmd::ANA, 1, "projectdata" );
   Command::AddCmd( new Analysis_Regression(),  Cmd::ANA, 1, "regress" );
   Command::AddCmd( new Analysis_RemLog(),      Cmd::ANA, 1, "remlog" );
   Command::AddCmd( new Analysis_Rms2d(),       Cmd::ANA, 2, "2drms", "rms2d" );
@@ -445,7 +447,7 @@ void Command::Init() {
   Command::AddCmd( new Analysis_Spline(),      Cmd::ANA, 1, "spline" );
   Command::AddCmd( new Analysis_Statistics(),  Cmd::ANA, 2, "stat", "statistics" );
   Command::AddCmd( new Analysis_TI(),          Cmd::ANA, 1, "ti" );
-  Command::AddCmd( new Analysis_TICA(),        Cmd::ANA, 1, "tica" ); // hidden
+  Command::AddCmd( new Analysis_TICA(),        Cmd::ANA, 1, "tica" );
   Command::AddCmd( new Analysis_Timecorr(),    Cmd::ANA, 1, "timecorr" );
   Command::AddCmd( new Analysis_VectorMath(),  Cmd::ANA, 1, "vectormath" );
   Command::AddCmd( new Analysis_Wavelet(),     Cmd::ANA, 1, "wavelet" );
