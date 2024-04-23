@@ -17,7 +17,7 @@ Analysis_Matrix::Analysis_Matrix() :
 {}
 
 void Analysis_Matrix::Help() const {
-  mprintf("\t<name> [out <filename>] [thermo [outthermo <filename>] [temp <T>]]\n"
+  mprintf("\t<matrix name> [out <filename>] [thermo [outthermo <filename>] [temp <T>]]\n"
           "\t[vecs <#>] [name <modesname>] [reduce]\n"
           "\t[ nmwiz [nmwizvecs <n>] [nmwizfile <file>] %s\n"
           "\t  nmwizmask <mask> ]\n"
