@@ -1,0 +1,49 @@
+#include "Analysis_Project.h"
+#include "CpptrajStdio.h"
+#include "DataSet_Modes.h"
+
+// Analysis_Project::Help()
+void Analysis_Project::Help() const {
+
+}
+
+// Analysis_Project::Setup()
+Analysis::RetType Analysis_Project::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
+{
+  beg_ = analyzeArgs.getKeyInt("beg", 1) - 1;
+  end_ = analyzeArgs.getKeyInt("end", 2);
+
+  std::string modesname = analyzeArgs.GetStringKey("evecs");
+  if (modesname.empty()) {
+    mprinterr("Error: No eigenvectors data set specified ('evecs <name>').\n");
+    return Analysis::ERR;
+  }
+
+  // Check if DataSet exists
+  modinfo_ = (DataSet_Modes*)setup.DSL().FindSetOfType( modesname, DataSet::MODES );
+  if (modinfo_ == 0) {
+    mprinterr("Error: No modes set '%s' found.\n", modesname.c_str());
+    return Analysis::ERR;
+  }
+  if (modinfo_->Nmodes() < 1) {
+    mprinterr("Error: modes set '%s' is empty.\n", modinfo_->legend());
+    return Analysis::ERR;
+  }
+  // Check if beg and end are in bounds.
+  if (end_ > modinfo_->Nmodes()) {
+    mprintf("Warning: 'end' %i is greater than # evecs (%i); setting end to %i\n",
+            end_, modinfo_->Nmodes(), modinfo_->Nmodes());
+    end_ = modinfo_->Nmodes();
+  }
+  if (beg_ < 0 || beg_ >= end_) {
+    mprinterr("Error: 'beg' %i out of bounds.\n", beg_+1);
+    return Analysis::ERR;
+  }
+
+  return Analysis::OK;
+}
+
+// Analysis_Project::Analyze()
+Analysis::RetType Analysis_Project::Analyze() {
+
+}
