@@ -25,6 +25,12 @@ Analysis_TICA::Analysis_TICA() :
   SetHidden(true);
 }
 
+/** DESTRUCTOR */
+Analysis_TICA::~Analysis_TICA() {
+  for (std::vector<DataSet_1D*>::iterator it = cossin_.begin(); it != cossin_.end(); ++it)
+    delete *it;
+}
+
 // Analysis_TICA::Help()
 void Analysis_TICA::Help() const {
   mprintf("\t{crdset <COORDS set name>|data <input set arg1> ...} [lag <time lag>]\n"
@@ -205,7 +211,56 @@ Analysis::RetType Analysis_TICA::Analyze() {
     }
   }
 
-  if (calcMatrices()) return Analysis::ERR;
+  // Check that sets have same size
+  unsigned int maxFrames = 0;
+  if (!sets_.empty()) {
+    maxFrames = sets_.Array().front()->Size();
+    for (DSarray::const_iterator it = sets_.begin(); it != sets_.end(); ++it)
+    {
+      if ((*it)->Size() != maxFrames) {
+        mprinterr("Error: Set '%s' does not have same size (%zu) as first set (%u)\n",
+                  (*it)->legend(), (*it)->Size(), maxFrames);
+        return Analysis::ERR;
+      }
+    }
+  } else if (TgtTraj_ != 0) {
+    maxFrames = TgtTraj_->Size();
+  } else {
+    // Sanity check
+    mprinterr("Internal Error: Unhandled calculation type in Analysis_TICA::Analyze().\n");
+    return Analysis::ERR;
+  }
+  if (maxFrames < 1) {
+    mprinterr("Error: No frames to analyze.\n");
+    return Analysis::ERR;
+  }
+  // Calculate start and end times for C0 and CT
+  if ( (unsigned int)lag_ >= maxFrames ) {
+    mprinterr("Error: lag %i >= max frames %u\n", lag_, maxFrames);
+    return Analysis::ERR;
+  }
+
+  // Split each periodic set into a cos/sin pair TODO do this prior for the mean calc
+  cossin_.clear();
+  if (calcType_ == PERIODIC) {
+    cossin_.reserve(sets_.size() * 2);
+    for (Array1D::const_iterator it = sets_.begin(); it != sets_.end(); ++it)
+    {
+      DataSet_double* CosSet = new DataSet_double();
+      CosSet->Allocate(DataSet::SizeArray(1, (*it)->Size()));
+      DataSet_double* SinSet = new DataSet_double();
+      SinSet->Allocate(DataSet::SizeArray(1, (*it)->Size()));
+      for (unsigned int ii = 0; ii < (*it)->Size(); ii++) {
+        double theta = (*it)->Dval(ii) * Constants::DEGRAD;
+        CosSet->AddElement( cos(theta) );
+        SinSet->AddElement( sin(theta) );
+      }
+      cossin_.push_back( (DataSet_1D*)CosSet );
+      cossin_.push_back( (DataSet_1D*)SinSet );
+    }
+  }
+
+  if (calcMatrices(maxFrames)) return Analysis::ERR;
 
   if (evectorScale_ == KINETIC_MAP) {
     // Weight eigenvectors by eigenvalues
@@ -326,12 +381,14 @@ static void printMatrix(const char* fname, DataSet_2D& matR, ArgList& tmpArgs)
 
 // -----------------------------------------------------------------------------
 /** Calculate combined effective sums for tau=0 and tau=lag for 1D data sets. */
-void Analysis_TICA::calc_sums_from1Dsets(Darray& means, unsigned int end1) const {
-  means.assign( sets_.size(), 0 );
-  for (unsigned int idx = 0; idx != sets_.size(); ++idx) {
-    DataSet_1D* seti = sets_[idx];
+void Analysis_TICA::calc_sums_from1Dsets(Darray& means, std::vector<DataSet_1D*> const& setsIn,
+                                         unsigned int lagIn, unsigned int end1)
+{
+  means.assign( setsIn.size(), 0 );
+  for (unsigned int idx = 0; idx != setsIn.size(); ++idx) {
+    DataSet_1D* seti = setsIn[idx];
     //unsigned int end1 = seti->Size() - lag_;
-    unsigned int k2 = lag_;
+    unsigned int k2 = lagIn;
     for (unsigned int k1 = 0; k1 < end1; k1++, k2++) {
       means[idx] += (seti->Dval(k1) + seti->Dval(k2));
     }
@@ -339,7 +396,7 @@ void Analysis_TICA::calc_sums_from1Dsets(Darray& means, unsigned int end1) const
 }
 
 /** Calculate combined effective sums for tau=0 and tau=lag for periodic 1D data sets. */
-void Analysis_TICA::calc_sums_fromPeriodicSets(Darray& means, unsigned int end1) const {
+/*void Analysis_TICA::calc_sums_fromPeriodicSets(Darray& means, unsigned int end1) const {
   means.assign( sets_.size() * 2, 0 );
   unsigned int jdx = 0;
   for (unsigned int idx = 0; idx != sets_.size(); ++idx, jdx += 2) {
@@ -357,7 +414,7 @@ void Analysis_TICA::calc_sums_fromPeriodicSets(Darray& means, unsigned int end1)
       means[jdx+1] += (y1 + y2);
     }
   }
-}
+}*/
 
 /** Calculate combined effective sums for tau=0 and tau=lag for COORDS set. */
 void Analysis_TICA::calc_sums_fromCoordsSet(Darray& means, unsigned int end1) const {
@@ -518,36 +575,16 @@ const
   md.SetScalarMode( MetaData::M_MATRIX );
   md.SetScalarType( MetaData::DIHCOVAR );
   ticaModes_->SetMeta( md );
-  unsigned int Ncols = sets_.size(); // FIXME
+  unsigned int Ncols = sets_.size() * 2;
 //  unsigned int Nrows = Ncols;
 //  unsigned int xxyyIdx = 0;
 //  unsigned int xyyxIdx = 0;
 
-  matXXYY->AllocateHalf( Ncols * 2 );
-  matXYYX->AllocateHalf( Ncols * 2 );
+  matXXYY->AllocateHalf( Ncols );
+  matXYYX->AllocateHalf( Ncols );
 
-  // Split each periodic set into a cos/sin pair TODO do this prior for the mean calc
-  std::vector<DataSet_1D*> cossin;
-  cossin.reserve(Ncols * 2);
-  for (Array1D::const_iterator it = sets_.begin(); it != sets_.end(); ++it)
-  {
-    DataSet_double* CosSet = new DataSet_double();
-    CosSet->Allocate(DataSet::SizeArray(1, (*it)->Size()));
-    DataSet_double* SinSet = new DataSet_double();
-    SinSet->Allocate(DataSet::SizeArray(1, (*it)->Size()));
-    for (unsigned int ii = 0; ii < (*it)->Size(); ii++) {
-      double theta = (*it)->Dval(ii) * Constants::DEGRAD;
-      CosSet->AddElement( cos(theta) );
-      SinSet->AddElement( sin(theta) );
-    }
-    cossin.push_back( (DataSet_1D*)CosSet );
-    cossin.push_back( (DataSet_1D*)SinSet );
-  }
+  create_matrices_from1Dsets( cossin_, matXXYY, matXYYX, means, lag_, end1 );
 
-  create_matrices_from1Dsets( cossin, matXXYY, matXYYX, means, lag_, end1 );
-
-  for (std::vector<DataSet_1D*>::iterator it = cossin.begin(); it != cossin.end(); ++it)
-    delete *it;
 /*
   unsigned int jr = 0;
   for (unsigned int row = 0; row < Nrows; row++, jr += 2) {
@@ -664,43 +701,16 @@ const
 
 // -----------------------------------------------------------------------------
 /** Calculate XXYY and XYYX matrices. */
-int Analysis_TICA::calcMatrices() const {
-  // Check that sets have same size
-  unsigned int maxFrames = 0;
-  if (!sets_.empty()) {
-    maxFrames = sets_.Array().front()->Size();
-    for (DSarray::const_iterator it = sets_.begin(); it != sets_.end(); ++it)
-    {
-      if ((*it)->Size() != maxFrames) {
-        mprinterr("Error: Set '%s' does not have same size (%zu) as first set (%u)\n",
-                  (*it)->legend(), (*it)->Size(), maxFrames);
-        return 1;
-      }
-    }
-  } else if (TgtTraj_ != 0) {
-    maxFrames = TgtTraj_->Size();
-  } else {
-    // Sanity check
-    mprinterr("Internal Error: Unhandled calculation type in calcMatrices().\n");
-    return 1;
-  }
-  if (maxFrames < 1) {
-    mprinterr("Error: No frames to analyze.\n");
-    return Analysis::ERR;
-  }
-  // Calculate start and end times for C0 and CT
-  if ( (unsigned int)lag_ >= maxFrames ) {
-    mprinterr("Error: lag %i >= max frames %u\n", lag_, maxFrames);
-    return 1;
-  }
+int Analysis_TICA::calcMatrices(unsigned int maxFrames) const {
+
   unsigned int c0end = maxFrames - (unsigned int)lag_;
   mprintf("DEBUG: C0 start = %u end = %u\n", 0, c0end);
 
   // Calculate means 
   Darray means;
   switch (calcType_) {
-    case DATA     : calc_sums_from1Dsets( means, c0end ); break;
-    case PERIODIC : calc_sums_fromPeriodicSets( means, c0end ); break;
+    case DATA     : calc_sums_from1Dsets( means, sets_.Array(), lag_, c0end ); break;
+    case PERIODIC : calc_sums_from1Dsets( means, cossin_, lag_, c0end ); break;
     case COORDS   : calc_sums_fromCoordsSet( means, c0end ); break;
   }
 

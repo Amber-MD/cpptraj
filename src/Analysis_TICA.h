@@ -8,6 +8,7 @@ class DataSet_Modes;
 class Analysis_TICA : public Analysis {
   public:
     Analysis_TICA();
+    ~Analysis_TICA();
     DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_TICA(); }
     void Help() const;
 
@@ -37,9 +38,9 @@ class Analysis_TICA : public Analysis {
     /// Calculate total weight
     static double calc_total_weight(Darray const&, unsigned int);
     /// Calculate sums of X and Y in a single pass
-    void calc_sums_from1Dsets(Darray&, unsigned int) const;
+    static void calc_sums_from1Dsets(Darray&, std::vector<DataSet_1D*> const&, unsigned int, unsigned int);
     /// Calculate sums of X and Y for periodic sets in a single pass.
-    void calc_sums_fromPeriodicSets(Darray&, unsigned int) const;
+    //void calc_sums_fromPeriodicSets(Darray&, unsigned int) const;
     /// Calculate sums of X and Y for COORDS sets in a single pass
     void calc_sums_fromCoordsSet(Darray&, unsigned int) const;
     /// Create XXYY and XYYX matrices
@@ -52,11 +53,12 @@ class Analysis_TICA : public Analysis {
     /// Create XXYY and XYYX matrices in a single pass
     void create_matrices_fromCoordsSet(DataSet_2D*, DataSet_2D*, Darray const&, unsigned int) const;
     /// Calculate TICA matrices
-    int calcMatrices() const;
+    int calcMatrices(unsigned int) const;
     /// Calculate TICA modes
     int calculateTICA(Darray const&, DataSet_2D const&, DataSet_2D const&) const;
 
     Array1D sets_;                   ///< Input 1D data sets (data)
+    DSarray cossin_;                 ///< Input 1D periodic sets converted to cos/sin pairs (data)
     DataSet_Coords* TgtTraj_;        ///< Input trajectory (crdset)
     AtomMask mask1_;                 ///< Atoms to use in matrix calc
     AtomMask mask2_;                 ///< Second atom mask for debugging full covar matrix
