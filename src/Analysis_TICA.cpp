@@ -588,9 +588,29 @@ const
     TgtTraj_->GetFrame(k1, coords1, mask1_);
     TgtTraj_->GetFrame(k2, coords2, mask1_);
 
-    unsigned int xxyyIdx = 0;
-    unsigned int xyyxIdx = 0;
+    //unsigned int xxyyIdx = 0;
+    //unsigned int xyyxIdx = 0;
+    unsigned int Idx = 0;
+    for (unsigned int row = 0; row < Nrows; row++) {
+      for (unsigned int col = row; col < Ncols; col++) {
+        double offi = means[row];
+        double offj = means[col];
 
+        double dvali1 = coords1[row] - offi;
+        double dvalj2 = coords2[col] - offj;
+        double dvali2 = coords2[row] - offi;
+        double dvalj1 = coords1[col] - offj;
+
+        // XYYX
+        matXYYX->UpdateElement(Idx, (dvali1 * dvalj2) +
+                                    (dvali2 * dvalj1));
+        // XXYY
+        matXXYY->UpdateElement(Idx, (dvali1 * dvalj1) +
+                                    (dvalj2 * dvali2));
+
+        Idx++;
+      } // END loop over cols
+    } // END loop over rows
   } // END loop over frames
 
 }
@@ -658,9 +678,11 @@ int Analysis_TICA::calcMatrices() const {
       create_matrices_from1Dsets(static_cast<DataSet_2D*>(&matXXYY), static_cast<DataSet_2D*>(&matXYYX), means, c0end);
       break;
     case PERIODIC :
-    case COORDS :
       mprinterr("Internal Error: calcMatrices() not yet finished.\n");
       return 1;
+    case COORDS :
+      create_matrices_fromCoordsSet(static_cast<DataSet_2D*>(&matXXYY), static_cast<DataSet_2D*>(&matXYYX), means, c0end);
+      break;
   }
   ArgList tmpArgs("square2d noheader");
   printMatrix("test.xxyy.dat", matXXYY, tmpArgs, 12, 6, TextFormat::DOUBLE);
