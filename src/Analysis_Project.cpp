@@ -73,6 +73,28 @@ Analysis::RetType Analysis_Project::Analyze() {
     mprinterr("Error: 'beg' %i out of bounds.\n", beg_+1);
     return Analysis::ERR;
   }
+  // Check Modes type
+  if (modinfo_->Meta().ScalarType() == MetaData::DIHCOVAR) {
+    if ((int)Sets_.size() * 2 != modinfo_->VectorSize()) {
+      mprinterr("Error: Number of dihedral data sets %zu does not correspond to"
+                " number of eigenvectors %i\n", Sets_.size()*2, modinfo_->VectorSize());
+      return Analysis::ERR;
+    } else if ((int)Sets_.size() * 2 != modinfo_->NavgCrd()) {
+      mprinterr("Error: Number of dihedral data sets %zu does not correspond to"
+                " number of average elements %i\n", Sets_.size()*2, modinfo_->NavgCrd());
+      return Analysis::ERR;
+    }
+  } else if (modinfo_->Meta().ScalarType() == MetaData::DATACOVAR) {
+    if ((int)Sets_.size() != modinfo_->VectorSize()) {
+      mprinterr("Error: Number of data sets %zu does not correspond to"
+                " number of eigenvectors %i\n", Sets_.size(), modinfo_->VectorSize());
+      return Analysis::ERR;
+    } else if ((int)Sets_.size() != modinfo_->NavgCrd()) {
+      mprinterr("Error: Number of data sets %zu does not correspond to"
+                " number of average elements %i\n", Sets_.size(), modinfo_->NavgCrd());
+      return Analysis::ERR;
+    }
+  }
 
   return Analysis::OK;
 }
