@@ -1,6 +1,7 @@
 #include "Analysis_Project.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Modes.h"
+#include "StringRoutines.h"
 
 // Analysis_Project::Help()
 void Analysis_Project::Help() const {
@@ -52,6 +53,22 @@ Analysis::RetType Analysis_Project::Setup(ArgList& analyzeArgs, AnalysisSetup& s
       }
       dataarg = analyzeArgs.GetStringKey("data");
     }
+  }
+
+  // Set up data sets
+  std::string setname = analyzeArgs.GetStringKey("name");
+  if (setname.empty())
+    setname = setup.DSL().GenerateDefaultName("Proj");
+  for (int mode = beg_; mode < end_; ++mode) {
+    int imode = mode + 1;
+    DataSet* dout = setup.DSL().AddSet( DataSet::FLOAT, MetaData(setname, imode) );
+    if (dout == 0) {
+      mprinterr("Error: Could not create output dataset for mode %i\n", imode);
+      return Analysis::ERR;
+    }
+    dout->SetLegend("Mode"+integerToString(imode));
+    project_.push_back( dout );
+    if (DF != 0) DF->AddDataSet( dout );
   }
 
   return Analysis::OK;

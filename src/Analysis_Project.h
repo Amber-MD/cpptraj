@@ -17,5 +17,6 @@ class Analysis_Project : public Analysis {
     int end_;
     DataSet_Modes* modinfo_; ///< Modes to project on
     Array1D Sets_; ///< Input data sets to project
+    std::vector<DataSet*> project_; ///< Hold output projections for each mode
 };
 #endif
