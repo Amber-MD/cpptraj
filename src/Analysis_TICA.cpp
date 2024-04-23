@@ -1,12 +1,14 @@
 #include "Analysis_TICA.h"
+#ifdef CPPTRAJ_DEBUG_TICA
 #include "CoordCovarMatrix_Full.h"
 #include "CoordCovarMatrix_Half.h"
+#endif
 #include "CpptrajStdio.h"
 #include "DataSet_1D.h"
 #include "DataSet_double.h"
-#include "DataSet_MatrixDbl.h" // TODO remove?
+#include "DataSet_MatrixDbl.h"
 #include "DataSet_Modes.h"
-#include <cmath> //sqrt
+#include <cmath> //sqrt, fabs
 #include <algorithm> // std::max
 
 /** CONSTRUCTOR */
@@ -18,8 +20,10 @@ Analysis_TICA::Analysis_TICA() :
   evectorScale_(NO_SCALING),
   ticaModes_(0),
   cumulativeVariance_(0)
+# ifdef CPPTRAJ_DEBUG_TICA
   ,debugC0_(0),
   debugCT_(0)
+# endif
 {
   SetHidden(true);
 }
@@ -107,6 +111,7 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
     mprinterr("Error: Could not set atom mask string '%s'\n", maskstr.c_str());
     return Analysis::ERR;
   }
+# ifdef CPPTRAJ_DEBUG_TICA
   maskstr = analyzeArgs.GetStringKey("mask2");
   if (!maskstr.empty()) {
     mprintf("DEBUG: Second mask detected.\n");
@@ -115,7 +120,7 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
       return Analysis::ERR;
     }
   }
-
+# endif
   //useMass_ = analyzeArgs.hasKey("mass"); // TODO enable
 
   // Allocate data sets/data file
@@ -140,7 +145,7 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
   DataFile* cvoutfile = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("cumvarout"), analyzeArgs);
   if (cvoutfile != 0)
     cvoutfile->AddDataSet( cumulativeVariance_ );
-
+# ifdef CPPTRAJ_DEBUG_TICA
   debugC0_ = setup.DFL().AddCpptrajFile(analyzeArgs.GetStringKey("debugc0"), "TICA C0 debug",
                                                                    DataFileList::TEXT, true);
   if (debugC0_ == 0) {
@@ -153,7 +158,7 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
     mprinterr("Error: Could not open CT debug file.\n");
     return Analysis::ERR;
   }
-
+# endif
   // Print analysis info
   mprintf("    TICA: Time independent correlation analysis.\n");
   if (TgtTraj_ != 0) {
@@ -175,10 +180,12 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
       mprintf("\tSets are not periodic.\n");
   }
   mprintf("\tTime lag: %i frames.\n", lag_);
+# ifdef CPPTRAJ_DEBUG_TICA
   if (debugC0_ != 0)
     mprintf("\tDebug C0 output to %s\n", debugC0_->Filename().full());
   if (debugCT_ != 0)
     mprintf("\tDebug CT output to %s\n", debugCT_->Filename().full());
+# endif
   switch (evectorScale_) {
     case NO_SCALING  : mprintf("\tNot scaling eigenvectors.\n"); break;
     case KINETIC_MAP : mprintf("\tScaling eigenvectors by eigenvalues.\n"); break;
@@ -292,6 +299,7 @@ Analysis::RetType Analysis_TICA::Analyze() {
 }
 
 // -----------------------------------------------------------------------------
+#ifdef CPPTRAJ_DEBUG_TICA
 /// FOR DEBUG
 static inline void printDarray(const char* desc, std::vector<double> const& arrayIn, const char* fmt)
 {
@@ -360,7 +368,7 @@ static void printMatrix(const char* fname, DataSet_2D& matR, ArgList& tmpArgs)
 {
   printMatrix(fname, matR, tmpArgs, -1, -1, TextFormat::DOUBLE);
 }
-
+#endif /* CPPTRAJ_DEBUG_TICA */
 // -----------------------------------------------------------------------------
 /** Calculate combined effective sums for tau=0 and tau=lag for 1D data sets. */
 void Analysis_TICA::calc_sums_from1Dsets(Darray& means, std::vector<DataSet_1D*> const& setsIn,
@@ -571,6 +579,7 @@ int Analysis_TICA::calcMatrices(unsigned int maxFrames) const {
   double total_weight = calc_total_weight( Darray(), c0end );
   for (Darray::iterator it = means.begin(); it != means.end(); ++it)
     *it /= total_weight;
+# ifdef CPPTRAJ_DEBUG_TICA
   CpptrajFile meanout; // DEBUG
   if (meanout.OpenWrite("test.mean.dat")) {
     mprinterr("Error: Could not open test.mean.dat\n");
@@ -580,6 +589,7 @@ int Analysis_TICA::calcMatrices(unsigned int maxFrames) const {
     meanout.Printf("%12.8f\n", *it); // DEBUG
   }
   meanout.CloseFile();
+#endif
 
   // Calculate matrices
   DataSet_MatrixDbl matXXYY, matXYYX;
@@ -594,15 +604,18 @@ int Analysis_TICA::calcMatrices(unsigned int maxFrames) const {
       create_matrices_fromCoordsSet(static_cast<DataSet_2D*>(&matXXYY), static_cast<DataSet_2D*>(&matXYYX), means, c0end);
       break;
   }
+# ifdef CPPTRAJ_DEBUG_TICA
   ArgList tmpArgs("square2d noheader");
   printMatrix("test.xxyy.dat", matXXYY, tmpArgs, 12, 6, TextFormat::DOUBLE);
   printMatrix("test.xyyx.dat", matXYYX, tmpArgs, 12, 6, TextFormat::DOUBLE);
+# endif
   // Normalize
   matXXYY.Normalize( 1.0 / total_weight );
   matXYYX.Normalize( 1.0 / total_weight );
+# ifdef CPPTRAJ_DEBUG_TICA
   printMatrix("test.xxyy.norm.dat", matXXYY, tmpArgs);
   printMatrix("test.xyyx.norm.dat", matXYYX, tmpArgs);
-
+# endif
   // Calculate TICA eigenmodes
   if (calculateTICA( means, matXXYY, matXYYX)) {
     mprinterr("Error: Caclulation of TICA modes failed.\n");
@@ -614,7 +627,6 @@ int Analysis_TICA::calcMatrices(unsigned int maxFrames) const {
 
 /** Calculate TICA eigenvalues/eigenvectors from C0 and CT matrices. */
 int Analysis_TICA::calculateTICA(Darray const& meanX, DataSet_2D const& CXXYY, DataSet_2D const& Cxy) const {
-  ArgList tmpArgs("square2d noheader"); // DEBUG
   // ---------------------------------------------
   // Get C0 eigenvectors/eigenvalues
   DataSet_Modes C0_Modes;
@@ -650,12 +662,11 @@ int Analysis_TICA::calculateTICA(Darray const& meanX, DataSet_2D const& CXXYY, D
   C0_Modes.ResizeModes( idx_first_smaller );
   // Enforce canonical eigenvector signs
   C0_Modes.SetCanonicalEvecSigns();
-  
-  // DEBUG - print eigenvalues
-  //printEigen( C0_Modes, "C0evals" );
+# ifdef CPPTRAJ_DEBUG_TICA
+  // DEBUG - print eigenvalues/eigenvectors
   printEvals(C0_Modes, "sm.dat");
   printEvecs(C0_Modes, "Vm.dat");
-
+# endif
   // Create matrix Ltrans, where rows are eigenvectors of C0 times eigenvalues of C0
   DataSet_MatrixDbl matLtrans;
   matLtrans.Allocate2D( C0_Modes.VectorSize(), C0_Modes.Nmodes() );
@@ -666,9 +677,11 @@ int Analysis_TICA::calculateTICA(Darray const& meanX, DataSet_2D const& CXXYY, D
     for (int jj = 0; jj < C0_Modes.VectorSize(); ++jj)
       matLtrans.SetElement(idx++, evec[jj] * fac);
   }
+# ifdef CPPTRAJ_DEBUG_TICA
   // DEBUG - write unnormalized matrix
+  ArgList tmpArgs("square2d noheader"); // DEBUG
   printMatrix("matLtrans.dat", matLtrans, tmpArgs, 12, 8, TextFormat::DOUBLE);
-
+# endif
   // L is transposed already (eigenvectors are in rows)
   // Calculate L^T * Ct
   DataSet_MatrixDbl matLtransCt;
@@ -677,9 +690,10 @@ int Analysis_TICA::calculateTICA(Darray const& meanX, DataSet_2D const& CXXYY, D
     mprinterr("Error: Could not multiply L^T x Ct\n");
     return 1;
   }
+# ifdef CPPTRAJ_DEBUG_TICA
   // DEBUG - write unnormalized matrix
   printMatrix("matLCt.dat", matLtransCt, tmpArgs, 15, 8, TextFormat::SCIENTIFIC);
-
+# endif
   // Calculate (L^T * Ct) * L
   // Need to use transpose of Ltrans to get L
   DataSet_MatrixDbl Ct_trans;
@@ -688,9 +702,10 @@ int Analysis_TICA::calculateTICA(Darray const& meanX, DataSet_2D const& CXXYY, D
     mprinterr("Error: Could not multiply (L^T x Ct) x L\n");
     return 1;
   }
+# ifdef CPPTRAJ_DEBUG_TICA
   // DEBUG - write unnormalized matrix
   printMatrix("Ct_trans.dat", Ct_trans, tmpArgs, 12, 8, TextFormat::DOUBLE);
-
+# endif
   DataSet_Modes Ct_Modes;
   Ct_Modes.SetAvgCoords( meanX );
   // Want all eigenvectors
@@ -709,10 +724,10 @@ int Analysis_TICA::calculateTICA(Darray const& meanX, DataSet_2D const& CXXYY, D
   }
   // Sort by abs(eigenvalue)
   Ct_Modes.SortByAbsEigenvalue();
-  //printEigen( Ct_Modes, "Ctevals" );
+# ifdef CPPTRAJ_DEBUG_TICA
   printEvals(Ct_Modes, "ctvals.dat");
   printEvecs(Ct_Modes, "ctvecs.dat");
-
+# endif
   // Calculate R^T * L^T to get (LR)^T
   DataSet_MatrixDbl ctm; // FIXME DataSet_Modes eigenvectors should be in a DataSet_MatrixDbl?
   ctm.Allocate2D( Ct_Modes.VectorSize(), Ct_Modes.Nmodes() );
@@ -721,7 +736,9 @@ int Analysis_TICA::calculateTICA(Darray const& meanX, DataSet_2D const& CXXYY, D
              (double*)ctm.MatrixPtr() );
   DataSet_MatrixDbl matRt;
   matRt.Multiply( ctm, matLtrans );
+# ifdef CPPTRAJ_DEBUG_TICA
   printMatrix("matRt.dat", matRt, tmpArgs, 12, 8, TextFormat::DOUBLE);
+# endif
   //DataSet_Modes matRmodes;
   ticaModes_->SetAvgCoords( Ct_Modes.AvgCrd() );
   ticaModes_->SetModes(false, Ct_Modes.Nmodes(), Ct_Modes.VectorSize(),
@@ -795,6 +812,7 @@ int Analysis_TICA::calculateTICA(Darray const& meanX, DataSet_2D const& CXXYY, D
   return 0;
 }
 
+#ifdef CPPTRAJ_DEBUG_TICA
 // =============================================================================
 /// Calculate sum over each set TODO weights
 static inline void calculate_sum(std::vector<double>& sumX,
@@ -1135,3 +1153,4 @@ Analysis::RetType Analysis_TICA::analyze_crdset() {
 
   return Analysis::OK;
 }
+#endif /* CPPTRAJ_DEBUG_TICA */

@@ -4,7 +4,7 @@
 #include "Array1D.h"
 class DataSet_2D;
 class DataSet_Modes;
-/// <Enter description of Analysis_TICA here>
+/// Perform time-independent correlation analysis 
 class Analysis_TICA : public Analysis {
   public:
     Analysis_TICA();
@@ -29,12 +29,6 @@ class Analysis_TICA : public Analysis {
     typedef std::vector<DataSet_1D*> DSarray;
     typedef std::vector<double> Darray;
 
-    /// Analyze using coordinates data set (TgtTraj_)
-    Analysis::RetType analyze_crdset();
-    /// Analyze using 1D data sets (sets_)
-    Analysis::RetType analyze_datasets();
-    /// Calculate instantaneous and lagged covariance matrices
-    int calculateCovariance_C0CT(DSarray const&) const;
     /// Calculate total weight
     static double calc_total_weight(Darray const&, unsigned int);
     /// Calculate sums of X and Y for 1D data sets in a single pass
@@ -54,21 +48,29 @@ class Analysis_TICA : public Analysis {
     int calcMatrices(unsigned int) const;
     /// Calculate TICA modes
     int calculateTICA(Darray const&, DataSet_2D const&, DataSet_2D const&) const;
+#   ifdef CPPTRAJ_DEBUG_TICA
+    /// Analyze using coordinates data set (TgtTraj_)
+    Analysis::RetType analyze_crdset();
+    /// Analyze using 1D data sets (sets_)
+    Analysis::RetType analyze_datasets();
+    /// Calculate instantaneous and lagged covariance matrices
+    int calculateCovariance_C0CT(DSarray const&) const;
+#   endif
 
     Array1D sets_;                   ///< Input 1D data sets (data)
     DSarray cossin_;                 ///< Input 1D periodic sets converted to cos/sin pairs (data)
     DataSet_Coords* TgtTraj_;        ///< Input trajectory (crdset)
-    AtomMask mask1_;                 ///< Atoms to use in matrix calc
+    AtomMask mask1_;                 ///< Atoms to use in matrix calc (crdset)
     int lag_;                        ///< TICA time lag
     CalcType calcType_;              ///< Type of calculation (TODO allow mixed data types)
-    bool useMass_;                   ///< Control whether to mass-weight
+    bool useMass_;                   ///< Control whether to mass-weight TODO enable
     EvectorScaleType evectorScale_;  ///< Eigenvector scaling type
     DataSet_Modes* ticaModes_;       ///< Output TICA modes
     DataSet_1D* cumulativeVariance_; ///< Hold output cumulative variance
-//#   ifdef CPPTRAJ_DEBUG_TICA
+#   ifdef CPPTRAJ_DEBUG_TICA
     AtomMask mask2_;                 ///< Second atom mask for debugging full covar matrix
     CpptrajFile* debugC0_;           ///< Debug output for C0
     CpptrajFile* debugCT_;           ///< Debug output for CT
-//#   endif
+#   endif
 };
 #endif
