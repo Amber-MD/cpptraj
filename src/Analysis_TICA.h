@@ -62,6 +62,7 @@ class Analysis_TICA : public Analysis {
     DataSet_Coords* TgtTraj_;        ///< Input trajectory (crdset)
     AtomMask mask1_;                 ///< Atoms to use in matrix calc (crdset)
     int lag_;                        ///< TICA time lag
+    int debug_;
     CalcType calcType_;              ///< Type of calculation (TODO allow mixed data types)
     bool useMass_;                   ///< Control whether to mass-weight TODO enable
     EvectorScaleType evectorScale_;  ///< Eigenvector scaling type

@@ -15,6 +15,7 @@
 Analysis_TICA::Analysis_TICA() :
   TgtTraj_(0),
   lag_(0),
+  debug_(0),
   calcType_(COORDS),
   useMass_(false),
   evectorScale_(NO_SCALING),
@@ -46,6 +47,7 @@ void Analysis_TICA::Help() const {
 // Analysis_TICA::Setup()
 Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
+  debug_ = debugIn;
   // Attempt to get coords dataset or datasets from datasetlist
   TgtTraj_ = 0;
   sets_.clear();
@@ -565,7 +567,8 @@ const
 int Analysis_TICA::calcMatrices(unsigned int maxFrames) const {
 
   unsigned int c0end = maxFrames - (unsigned int)lag_;
-  mprintf("DEBUG: C0 start = %u end = %u\n", 0, c0end);
+  if (debug_ > 0)
+    mprintf("DEBUG: C0 start = %u end = %u\n", 0, c0end);
 
   // Calculate means 
   Darray means;
@@ -640,7 +643,8 @@ int Analysis_TICA::calculateTICA(Darray const& meanX, DataSet_2D const& CXXYY, D
   // Determine cutoff; C0 is symmetric positive-definite so select
   // cutoff so that negative eigenvalues vanish.
   double min_eval = C0_Modes.Eigenvalue(C0_Modes.Nmodes()-1);
-  mprintf("Min C0 eigenvalue= %g\n", min_eval);
+  if (debug_ > 0)
+    mprintf("DEBUG: Min C0 eigenvalue= %g\n", min_eval);
   double epsilon = 1e-6; // FIXME TODO make user-definable
   if (min_eval < 0) {
     epsilon = std::max(epsilon, -min_eval + 1e-16);
@@ -654,11 +658,12 @@ int Analysis_TICA::calculateTICA(Darray const& meanX, DataSet_2D const& CXXYY, D
   int idx_first_smaller = 0;
   for (; idx_first_smaller < C0_Modes.Nmodes(); idx_first_smaller++) {
     if ( abs_c0_evals[idx_first_smaller] < epsilon ) {
-      mprintf("%g < %g\n", abs_c0_evals[idx_first_smaller], epsilon );
+      //mprintf("%g < %g\n", abs_c0_evals[idx_first_smaller], epsilon ); // DEBUG
       break;
     }
   }
-  mprintf("DEBUG: Index of eigenvalue smaller than %g %i\n", epsilon, idx_first_smaller);
+  if (debug_ > 0)
+    mprintf("DEBUG: Index of eigenvalue smaller than %g %i\n", epsilon, idx_first_smaller);
   C0_Modes.ResizeModes( idx_first_smaller );
   // Enforce canonical eigenvector signs
   C0_Modes.SetCanonicalEvecSigns();

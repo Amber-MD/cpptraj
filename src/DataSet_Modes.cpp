@@ -497,7 +497,7 @@ int DataSet_Modes::ResizeModes(int NtoSave) {
     return 1;
   }
   if (NtoSave >= nmodes_) {
-    mprintf("Warning: No need to resize modes %s; # to keep (%i) >= # modes (%i)\n",
+    mprintf("\tNo need to resize modes %s; # to keep (%i) >= # modes (%i)\n",
             legend(), NtoSave, nmodes_);
     return 0;
   }
