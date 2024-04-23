@@ -161,6 +161,11 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
     mprinterr("Error: Could not open CT debug file.\n");
     return Analysis::ERR;
   }
+# else
+  std::string tmparg = analyzeArgs.GetStringKey("debugc0");
+  if (!tmparg.empty()) mprintf("Warning: Not compiled with -DCPPTRAJ_DEBUG_TICA, ignoring 'debugc0'\n");
+  tmparg = analyzeArgs.GetStringKey("debugct");
+  if (!tmparg.empty()) mprintf("Warning: Not compiled with -DCPPTRAJ_DEBUG_TICA, ignoring 'debugct'\n");
 # endif
   // Print analysis info
   mprintf("    TICA: Time independent correlation analysis.\n");
