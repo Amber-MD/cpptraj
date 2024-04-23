@@ -101,7 +101,7 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
     }
   } else
     evectorScale_ = KINETIC_MAP;
-  lag_ = analyzeArgs.getKeyInt("lag", 1);
+  lag_ = analyzeArgs.getKeyInt("lag", 10);
   std::string maskstr = analyzeArgs.GetStringKey("mask");
   if (mask1_.SetMaskString( maskstr )) {
     mprinterr("Error: Could not set atom mask string '%s'\n", maskstr.c_str());
