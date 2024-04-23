@@ -15,12 +15,11 @@ Analysis_TICA::Analysis_TICA() :
   lag_(0),
   calcType_(COORDS),
   useMass_(false),
-  setsArePeriodic_(false),
-  debugC0_(0),
-  debugCT_(0),
   evectorScale_(NO_SCALING),
   ticaModes_(0),
   cumulativeVariance_(0)
+  ,debugC0_(0),
+  debugCT_(0)
 {
   SetHidden(true);
 }
@@ -34,7 +33,7 @@ Analysis_TICA::~Analysis_TICA() {
 // Analysis_TICA::Help()
 void Analysis_TICA::Help() const {
   mprintf("\t{crdset <COORDS set name>|data <input set arg1> ...} [lag <time lag>]\n"
-          "\t[mask <mask>] [mass] [map {kinetic|commute|none}]\n"
+          "\t[mask <mask>] [map {kinetic|commute|none}]\n"
           "\t[name <output set name>] [out <file>] [cumvarout <file>]\n"
          );
           
@@ -80,8 +79,7 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
           return Analysis::ERR;
         }
       }
-      setsArePeriodic_ = isTorsion;
-      if (setsArePeriodic_)
+      if (isTorsion)
         calcType_ = PERIODIC;
     }
   } else {
@@ -118,7 +116,7 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
     }
   }
 
-  useMass_ = analyzeArgs.hasKey("mass");
+  //useMass_ = analyzeArgs.hasKey("mass"); // TODO enable
 
   // Allocate data sets/data file
   std::string dsname = analyzeArgs.GetStringKey("name");
@@ -161,17 +159,17 @@ Analysis::RetType Analysis_TICA::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
   if (TgtTraj_ != 0) {
     mprintf("\tUsing coordinates from set '%s'\n", TgtTraj_->legend());
     mprintf("\tUsing atoms selected by mask '%s'\n", mask1_.MaskString());
-    if (useMass_)
-      mprintf("\tMass-weighted.\n");
-    else
-      mprintf("\tNot mass-weighted.\n");
+    //if (useMass_)
+    //  mprintf("\tMass-weighted.\n");
+    //else
+    //  mprintf("\tNot mass-weighted.\n");
   }
   if (!sets_.empty()) {
     mprintf("\tUsing %zu data sets:", sets_.size());
     for (Array1D::const_iterator it = sets_.begin(); it != sets_.end(); ++it)
       mprintf(" %s", (*it)->legend());
     mprintf("\n");
-    if (setsArePeriodic_)
+    if (calcType_ == PERIODIC)
       mprintf("\tSets are periodic (torsions).\n");
     else
       mprintf("\tSets are not periodic.\n");
