@@ -314,22 +314,6 @@ static inline void printDarray(const char* desc, std::vector<double> const& arra
     mprintf("\n");
 }
 
-/// For debugging - print eigenvalues/eigenvectors to stdout
-/*static void printEigen(DataSet_Modes const& C0_Modes, const char* desc) {
-  // DEBUG - print eigenvalues
-  std::vector<double> tmpevals;
-  for (int ii = 0; ii < C0_Modes.Nmodes(); ii++)
-    tmpevals.push_back( C0_Modes.Eigenvalue(ii) );
-  printDarray(desc, tmpevals, "%16.8e");
-  // DEBUG - print first 3 values of each eigenvector
-  for (int ii = 0; ii < C0_Modes.Nmodes(); ii++) {
-    const double* evec = C0_Modes.Eigenvector(ii);
-    for (int jj = 0; jj < 3; jj++)
-      mprintf("%12.8f", evec[jj]);
-    mprintf("\n");
-  }
-}*/
-
 /// For debugging - print eigenvalues to file
 static void printEvals(DataSet_Modes const& modes, const char* fname) {
   CpptrajFile outfile;
@@ -394,27 +378,6 @@ void Analysis_TICA::calc_sums_from1Dsets(Darray& means, std::vector<DataSet_1D*>
     }
   }
 }
-
-/** Calculate combined effective sums for tau=0 and tau=lag for periodic 1D data sets. */
-/*void Analysis_TICA::calc_sums_fromPeriodicSets(Darray& means, unsigned int end1) const {
-  means.assign( sets_.size() * 2, 0 );
-  unsigned int jdx = 0;
-  for (unsigned int idx = 0; idx != sets_.size(); ++idx, jdx += 2) {
-    DataSet_1D* seti = sets_[idx];
-    //unsigned int end1 = seti->Size() - lag_;
-    unsigned int k2 = lag_;
-    for (unsigned int k1 = 0; k1 < end1; k1++, k2++) {
-      double theta1 = seti->Dval(k1) * Constants::DEGRAD;
-      double theta2 = seti->Dval(k2) * Constants::DEGRAD;
-      double x1 = cos( theta1 );
-      double y1 = sin( theta1 );
-      double x2 = cos( theta2 );
-      double y2 = sin( theta2 );
-      means[jdx  ] += (x1 + x2);
-      means[jdx+1] += (y1 + y2);
-    }
-  }
-}*/
 
 /** Calculate combined effective sums for tau=0 and tau=lag for COORDS set. */
 void Analysis_TICA::calc_sums_fromCoordsSet(Darray& means, unsigned int end1) const {
@@ -512,58 +475,11 @@ const
   md.SetScalarType( MetaData::DATACOVAR );
   ticaModes_->SetMeta( md );
   unsigned int Ncols = sets_.size(); // FIXME
-//  unsigned int Nrows = Ncols;
-//  unsigned int xxyyIdx = 0;
-//  unsigned int xyyxIdx = 0;
 
   matXXYY->AllocateHalf( Ncols );
-  //matXYYX->Allocate2D( Ncols, Nrows );
   matXYYX->AllocateHalf( Ncols );
 
   create_matrices_from1Dsets( sets_.Array(), matXXYY, matXYYX, means, lag_, end1 );
-/*
-  for (unsigned int row = 0; row < Nrows; row++) {
-    //for (unsigned int col = 0; col < Ncols; col++) {
-    for (unsigned int col = row; col < Ncols; col++) {
-      DataSet_1D* seti = sets_[row];
-      double offi = means[row];
-      DataSet_1D* setj = sets_[col];
-      double offj = means[col];
-      //unsigned int end1 = seti->Size() - lag_;
-      double sum = 0;
-      double sumxx = 0;
-      unsigned int k2 = lag_;
-      for (unsigned int k1 = 0; k1 < end1; k1++, k2++) {
-        double dvali1 = seti->Dval(k1) - offi;
-        double dvalj2 = setj->Dval(k2) - offj;
-        double dvali2 = seti->Dval(k2) - offi;
-        double dvalj1 = setj->Dval(k1) - offj;
-        //if (row == 0 && col == 0) mprintf("DBG1: %u %u %u %g %g\n", row, col, k1, dvali, dvalj);
-        // XYYX
-        sum += (dvali1 * dvalj2);
-        sum += (dvali2 * dvalj1);
-        // XXYY
-        sumxx += (dvali1 * dvalj1);
-        sumxx += (dvalj2 * dvali2);
-      }
-      matXYYX->SetElement(xyyxIdx++, sum);
-      matXXYY->SetElement(xxyyIdx++, sumxx);
-      // XXYY
- *      if ( col >= row ) {
-        double sumxx = 0;
-        unsigned int k2 = lag_;
-        for (unsigned int k1 = 0; k1 < end1; k1++, k2++) {
-          double dvali1 = seti->Dval(k1) - offi;
-          double dvalj2 = setj->Dval(k2) - offj;
-          double dvali2 = seti->Dval(k2) - offi;
-          double dvalj1 = setj->Dval(k1) - offj;
-          sumxx += (dvali1 * dvalj1);
-          sumxx += (dvalj2 * dvali2);
-        }
-        matXXYY->SetElement(xxyyIdx++, sumxx);
-      }* 
-    }
-  }*/
 }
 
 /** Create XXYY and XYYX matrices for periodic 1D sets. */
@@ -576,70 +492,11 @@ const
   md.SetScalarType( MetaData::DIHCOVAR );
   ticaModes_->SetMeta( md );
   unsigned int Ncols = sets_.size() * 2;
-//  unsigned int Nrows = Ncols;
-//  unsigned int xxyyIdx = 0;
-//  unsigned int xyyxIdx = 0;
 
   matXXYY->AllocateHalf( Ncols );
   matXYYX->AllocateHalf( Ncols );
 
   create_matrices_from1Dsets( cossin_, matXXYY, matXYYX, means, lag_, end1 );
-
-/*
-  unsigned int jr = 0;
-  for (unsigned int row = 0; row < Nrows; row++, jr += 2) {
-    unsigned int jc = jr;
-    for (unsigned int col = row; col < Ncols; col++, jc += 2) {
-      DataSet_1D* seti = sets_[row];
-      double offix = means[jr];
-      double offiy = means[jr+1];
-      DataSet_1D* setj = sets_[col];
-      double offjx = means[jc];
-      double offjy = means[jc+1];
-      double sum[2];
-      sum[0] = 0;
-      sum[1] = 0;
-      double sumxx[2];
-      sumxx[0] = 0;
-      sumxx[1] = 0;
-      unsigned int k2 = lag_;
-      double dvali1[2];
-      double dvali2[2];
-      double dvalj1[2];
-      double dvalj2[2];
-      for (unsigned int k1 = 0; k1 < end1; k1++, k2++) {
-        double Di1 = seti->Dval(k1) * Constants::DEGRAD;
-        dvali1[0]  = cos( Di1 ) - offix;
-        dvali1[1]  = sin( Di1 ) - offiy;
-        double Di2 = seti->Dval(k2) * Constants::DEGRAD;
-        dvali2[0]  = cos( Di2 ) - offix;
-        dvali2[1]  = sin( Di2 ) - offiy;
-
-        double Dj1 = setj->Dval(k1) * Constants::DEGRAD;
-        dvalj1[0]  = cos( Dj1 ) - offjx;
-        dvalj1[1]  = sin( Dj1 ) - offjy;
-        double Dj2 = setj->Dval(k2) * Constants::DEGRAD;
-        dvalj2[0]  = cos( Dj2 ) - offjx;
-        dvalj2[1]  = sin( Dj2 ) - offjy;
-
-        for (int ii = 0; ii < 2; ii++) {
-          // XYYX
-          sum[ii] += (dvali1[ii] * dvalj2[ii]);
-          sum[ii] += (dvali2[ii] * dvalj1[ii]);
-          // XXYY
-          sumxx[ii] += (dvali1[ii] * dvalj1[ii]);
-          sumxx[ii] += (dvalj2[ii] * dvali2[ii]);
-        }
-        //if (row == 0 && col == 0) mprintf("DBG1: %u %u %u %g %g\n", row, col, k1, dvali, dvalj);
-      } // END loop over frames
-      mprintf("DEBUG: row %u col %u sum= %g %g  sumxx= %g %g\n", row, col, sum[0], sum[1], sumxx[0], sumxx[1]);
-      matXYYX->SetElement(xyyxIdx++, sum[0]);
-      matXYYX->SetElement(xyyxIdx++, sum[1]);
-      matXXYY->SetElement(xxyyIdx++, sumxx[0]);
-      matXXYY->SetElement(xxyyIdx++, sumxx[1]);
-    } // END loop over columns
-  } // END loop over rows
-*/
 }
 
 /** Create XXYY and XYYX matrices for COORDS set. */
@@ -655,7 +512,6 @@ const
   unsigned int Nrows = Ncols;
 
   matXXYY->AllocateHalf( Ncols );
-  //matXYYX->Allocate2D( Ncols, Nrows );
   matXYYX->AllocateHalf( Ncols );
 
   // Allocate frames
@@ -696,7 +552,6 @@ const
       } // END loop over cols
     } // END loop over rows
   } // END loop over frames
-
 }
 
 // -----------------------------------------------------------------------------
@@ -750,6 +605,7 @@ int Analysis_TICA::calcMatrices(unsigned int maxFrames) const {
   printMatrix("test.xxyy.norm.dat", matXXYY, tmpArgs);
   printMatrix("test.xyyx.norm.dat", matXYYX, tmpArgs);
 
+  // Calculate TICA eigenmodes
   if (calculateTICA( means, matXXYY, matXYYX)) {
     mprinterr("Error: Caclulation of TICA modes failed.\n");
     return 1;
@@ -758,9 +614,9 @@ int Analysis_TICA::calcMatrices(unsigned int maxFrames) const {
   return 0;
 }
 
-// -----------------------------------------------------------------------------
+/** Calculate TICA eigenvalues/eigenvectors from C0 and CT matrices. */
 int Analysis_TICA::calculateTICA(Darray const& meanX, DataSet_2D const& CXXYY, DataSet_2D const& Cxy) const {
-  ArgList tmpArgs("square2d noheader");
+  ArgList tmpArgs("square2d noheader"); // DEBUG
   // ---------------------------------------------
   // Get C0 eigenvectors/eigenvalues
   DataSet_Modes C0_Modes;
@@ -774,11 +630,6 @@ int Analysis_TICA::calculateTICA(Darray const& meanX, DataSet_2D const& CXXYY, D
   // Determine cutoff; C0 is symmetric positive-definite so select
   // cutoff so that negative eigenvalues vanish.
   double min_eval = C0_Modes.Eigenvalue(C0_Modes.Nmodes()-1);
-/*  double min_eval = C0_Modes.Eigenvalue(0);
-  for (int ii = 1; ii < C0_Modes.Nmodes(); ii++) {
-    if (C0_Modes.EigenValue(ii) < min_eval)
-      min_eval = C0_Modes.Eigenvalue(ii);
-  }*/
   mprintf("Min C0 eigenvalue= %g\n", min_eval);
   double epsilon = 1e-6; // FIXME TODO make user-definable
   if (min_eval < 0) {
@@ -801,43 +652,11 @@ int Analysis_TICA::calculateTICA(Darray const& meanX, DataSet_2D const& CXXYY, D
   C0_Modes.ResizeModes( idx_first_smaller );
   // Enforce canonical eigenvector signs
   C0_Modes.SetCanonicalEvecSigns();
-/*  for (int ii = 0; ii < C0_Modes.Nmodes(); ii++) {
-    // Find the maximum absolute value of the eigenvector
-    double abs_maxval = 0;
-    int abs_maxidx = 0;
-    const double* evec = C0_Modes.Eigenvector(ii);
-    for (int jj = 0; jj < C0_Modes.VectorSize(); jj++) {
-      double dval = fabs( evec[jj] );
-      if ( dval > abs_maxval ) {
-        abs_maxval = dval;
-        abs_maxidx = jj;
-      }
-    }
-    mprintf("argmax %i %i %g\n", ii, abs_maxidx, evec[abs_maxidx]);
-    double sign;
-    if ( evec[abs_maxidx] < 0 )
-      sign = -1.0;
-    else
-      sign =  1.0;
-    // Multiply all elements of the eigenvector by the sign of the max abs element
-    C0_Modes.MultiplyEvecByFac( ii, sign );
-  }*/
   
   // DEBUG - print eigenvalues
   //printEigen( C0_Modes, "C0evals" );
   printEvals(C0_Modes, "sm.dat");
   printEvecs(C0_Modes, "Vm.dat");
-/*  Darray tmpevals;
-  for (int ii = 0; ii < C0_Modes.Nmodes(); ii++)
-    tmpevals.push_back( C0_Modes.Eigenvalue(ii) );
-  printDarray("C0evals", tmpevals, "%16.8e");
-  // DEBUG - print first 3 values of each eigenvector
-  for (int ii = 0; ii < C0_Modes.Nmodes(); ii++) {
-    const double* evec = C0_Modes.Eigenvector(ii);
-    for (int jj = 0; jj < 3; jj++)
-      mprintf("%12.8f", evec[jj]);
-    mprintf("\n");
-  }*/
 
   // Create matrix Ltrans, where rows are eigenvectors of C0 times eigenvalues of C0
   DataSet_MatrixDbl matLtrans;

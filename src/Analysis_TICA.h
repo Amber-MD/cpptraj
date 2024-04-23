@@ -37,20 +37,18 @@ class Analysis_TICA : public Analysis {
     int calculateCovariance_C0CT(DSarray const&) const;
     /// Calculate total weight
     static double calc_total_weight(Darray const&, unsigned int);
-    /// Calculate sums of X and Y in a single pass
+    /// Calculate sums of X and Y for 1D data sets in a single pass
     static void calc_sums_from1Dsets(Darray&, std::vector<DataSet_1D*> const&, unsigned int, unsigned int);
-    /// Calculate sums of X and Y for periodic sets in a single pass.
-    //void calc_sums_fromPeriodicSets(Darray&, unsigned int) const;
     /// Calculate sums of X and Y for COORDS sets in a single pass
     void calc_sums_fromCoordsSet(Darray&, unsigned int) const;
-    /// Create XXYY and XYYX matrices
+    /// Create XXYY and XYYX matrices from an array of 1D sets
     static void create_matrices_from1Dsets(std::vector<DataSet_1D*> const&, DataSet_2D*, DataSet_2D*,
                                            Darray const&, unsigned int, unsigned int);
-    /// Create XXYY and XYYX matrices in a single pass
+    /// Create XXYY and XYYX matrices from an array of 1D sets in a single pass
     void create_matrices_from1Dsets(DataSet_2D*, DataSet_2D*, Darray const&, unsigned int) const;
-    /// Create XXYY and XYYX matrices in a single pass
+    /// Create XXYY and XYYX matrices from an array of periodic 1D sets in a single pass
     void create_matrices_fromPeriodicSets(DataSet_2D*, DataSet_2D*, Darray const&, unsigned int) const;
-    /// Create XXYY and XYYX matrices in a single pass
+    /// Create XXYY and XYYX matrices from COORDS set in a single pass
     void create_matrices_fromCoordsSet(DataSet_2D*, DataSet_2D*, Darray const&, unsigned int) const;
     /// Calculate TICA matrices
     int calcMatrices(unsigned int) const;
