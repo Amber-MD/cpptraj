@@ -25,6 +25,40 @@ Analysis::RetType Analysis_Project::Setup(ArgList& analyzeArgs, AnalysisSetup& s
     mprinterr("Error: No modes set '%s' found.\n", modesname.c_str());
     return Analysis::ERR;
   }
+
+  // Output Filename
+  DataFile* DF = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
+
+  Sets_.clear();
+  std::string diharg = analyzeArgs.GetStringKey("dihedrals");
+  std::string dataarg = analyzeArgs.GetStringKey("data");
+  if (!diharg.empty() && !dataarg.empty()) {
+    mprinterr("Error: Specify either 'dihedrals' or 'data', not both.\n");
+    return Analysis::ERR;
+  }
+  if (!diharg.empty()) {
+    // Get dihedral data sets
+    Sets_.AddTorsionSets( setup.DSL().GetMultipleSets( diharg ) );
+    if ( Sets_.empty() ) {
+      mprinterr("Error: No valid data sets found.\n");
+      return Analysis::ERR;
+    }
+  }
+  if (!dataarg.empty()) {
+    while (!dataarg.empty()) {
+      if (Sets_.AppendSetsFromArgs( ArgList(dataarg), setup.DSL() )) {
+        mprinterr("Error: Could not add data sets using argument '%s'\n", dataarg.c_str());
+        return Analysis::ERR;
+      }
+      dataarg = analyzeArgs.GetStringKey("data");
+    }
+  }
+
+  return Analysis::OK;
+}
+
+// Analysis_Project::Analyze()
+Analysis::RetType Analysis_Project::Analyze() {
   if (modinfo_->Nmodes() < 1) {
     mprinterr("Error: modes set '%s' is empty.\n", modinfo_->legend());
     return Analysis::ERR;
@@ -41,9 +75,4 @@ Analysis::RetType Analysis_Project::Setup(ArgList& analyzeArgs, AnalysisSetup& s
   }
 
   return Analysis::OK;
-}
-
-// Analysis_Project::Analyze()
-Analysis::RetType Analysis_Project::Analyze() {
-
 }
