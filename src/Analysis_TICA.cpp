@@ -403,6 +403,47 @@ double Analysis_TICA::calc_total_weight(Darray const& weights, unsigned int end1
 }
 
 /** Create XXYY and XYYX matrices. */
+void Analysis_TICA::create_matrices_from1Dsets( std::vector<DataSet_1D*> const& setsIn,
+                                                DataSet_2D* matXXYY,
+                                                DataSet_2D* matXYYX,
+                                                Darray const& means,
+                                                unsigned int lagIn,
+                                                unsigned int end1 )
+{
+  unsigned int Nrows = matXXYY->Nrows();
+  unsigned int Ncols = matXXYY->Ncols();
+  unsigned int xxyyIdx = 0;
+  unsigned int xyyxIdx = 0;
+
+  for (unsigned int row = 0; row < Nrows; row++) {
+    for (unsigned int col = row; col < Ncols; col++) {
+      DataSet_1D* seti = setsIn[row];
+      double offi = means[row];
+      DataSet_1D* setj = setsIn[col];
+      double offj = means[col];
+      double sum = 0;
+      double sumxx = 0;
+      unsigned int k2 = lagIn;
+      for (unsigned int k1 = 0; k1 < end1; k1++, k2++) {
+        double dvali1 = seti->Dval(k1) - offi;
+        double dvalj2 = setj->Dval(k2) - offj;
+        double dvali2 = seti->Dval(k2) - offi;
+        double dvalj1 = setj->Dval(k1) - offj;
+        //if (row == 0 && col == 0) mprintf("DBG1: %u %u %u %g %g\n", row, col, k1, dvali, dvalj);
+        // XYYX
+        sum += (dvali1 * dvalj2);
+        sum += (dvali2 * dvalj1);
+        // XXYY
+        sumxx += (dvali1 * dvalj1);
+        sumxx += (dvalj2 * dvali2);
+      }
+      matXYYX->SetElement(xyyxIdx++, sum);
+      matXXYY->SetElement(xxyyIdx++, sumxx);
+    }
+  }
+}
+
+/** Create XXYY and XYYX matrices. */
 void Analysis_TICA::create_matrices_from1Dsets( DataSet_2D* matXXYY,
                                                 DataSet_2D* matXYYX,
                                                 Darray const& means,
@@ -414,14 +455,16 @@ const
   md.SetScalarType( MetaData::DATACOVAR );
   ticaModes_->SetMeta( md );
   unsigned int Ncols = sets_.size(); // FIXME
-  unsigned int Nrows = Ncols;
-  unsigned int xxyyIdx = 0;
-  unsigned int xyyxIdx = 0;
+//  unsigned int Nrows = Ncols;
+//  unsigned int xxyyIdx = 0;
+//  unsigned int xyyxIdx = 0;
 
   matXXYY->AllocateHalf( Ncols );
   //matXYYX->Allocate2D( Ncols, Nrows );
   matXYYX->AllocateHalf( Ncols );
 
+  create_matrices_from1Dsets( sets_.Array(), matXXYY, matXYYX, means, lag_, end1 );
+/*
   for (unsigned int row = 0; row < Nrows; row++) {
     //for (unsigned int col = 0; col < Ncols; col++) {
     for (unsigned int col = row; col < Ncols; col++) {
@@ -449,7 +492,7 @@ const
       matXYYX->SetElement(xyyxIdx++, sum);
       matXXYY->SetElement(xxyyIdx++, sumxx);
       // XXYY
-/*      if ( col >= row ) {
+ *      if ( col >= row ) {
         double sumxx = 0;
         unsigned int k2 = lag_;
         for (unsigned int k1 = 0; k1 < end1; k1++, k2++) {
@@ -461,9 +504,9 @@ const
           sumxx += (dvalj2 * dvali2);
         }
         matXXYY->SetElement(xxyyIdx++, sumxx);
-      }*/
+      }* 
     }
-  }
+  }*/
 }
 
 /** Create XXYY and XYYX matrices for periodic 1D sets. */
@@ -476,13 +519,36 @@ const
   md.SetScalarType( MetaData::DIHCOVAR );
   ticaModes_->SetMeta( md );
   unsigned int Ncols = sets_.size(); // FIXME
-  unsigned int Nrows = Ncols;
-  unsigned int xxyyIdx = 0;
-  unsigned int xyyxIdx = 0;
+//  unsigned int Nrows = Ncols;
+//  unsigned int xxyyIdx = 0;
+//  unsigned int xyyxIdx = 0;
 
-  matXXYY->AllocateHalf( Ncols );
-  matXYYX->AllocateHalf( Ncols );
+  matXXYY->AllocateHalf( Ncols * 2 );
+  matXYYX->AllocateHalf( Ncols * 2 );
 
+  // Split each periodic set into a cos/sin pair TODO do this prior for the mean calc
+  std::vector<DataSet_1D*> cossin;
+  cossin.reserve(Ncols * 2);
+  for (Array1D::const_iterator it = sets_.begin(); it != sets_.end(); ++it)
+  {
+    DataSet_double* CosSet = new DataSet_double();
+    CosSet->Allocate(DataSet::SizeArray(1, (*it)->Size()));
+    DataSet_double* SinSet = new DataSet_double();
+    SinSet->Allocate(DataSet::SizeArray(1, (*it)->Size()));
+    for (unsigned int ii = 0; ii < (*it)->Size(); ii++) {
+      double theta = (*it)->Dval(ii) * Constants::DEGRAD;
+      CosSet->AddElement( cos(theta) );
+      SinSet->AddElement( sin(theta) );
+    }
+    cossin.push_back( (DataSet_1D*)CosSet );
+    cossin.push_back( (DataSet_1D*)SinSet );
+  }
+
+  create_matrices_from1Dsets( cossin, matXXYY, matXYYX, means, lag_, end1 );
+
+  for (std::vector<DataSet_1D*>::iterator it = cossin.begin(); it != cossin.end(); ++it)
+    delete *it;
+/*
   unsigned int jr = 0;
   for (unsigned int row = 0; row < Nrows; row++, jr += 2) {
     unsigned int jc = jr;
@@ -529,12 +595,14 @@ const
         }
         //if (row == 0 && col == 0) mprintf("DBG1: %u %u %u %g %g\n", row, col, k1, dvali, dvalj);
       } // END loop over frames
+      mprintf("DEBUG: row %u col %u sum= %g %g  sumxx= %g %g\n", row, col, sum[0], sum[1], sumxx[0], sumxx[1]);
       matXYYX->SetElement(xyyxIdx++, sum[0]);
       matXYYX->SetElement(xyyxIdx++, sum[1]);
       matXXYY->SetElement(xxyyIdx++, sumxx[0]);
       matXXYY->SetElement(xxyyIdx++, sumxx[1]);
     } // END loop over columns
   } // END loop over rows
+*/
 }
 
 /** Create XXYY and XYYX matrices for COORDS set. */
