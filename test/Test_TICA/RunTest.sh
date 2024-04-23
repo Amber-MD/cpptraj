@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles tica.in ticadebug.dat M?.dat ticadebug.m?.dat \
-           tz2.*.dat
+           tz2.*.dat crd.*.dat
 
 INPUT='-i tica.in'
 
@@ -41,11 +41,24 @@ writedata tz2.raw.dat R0 d*
 projection Evec out tz2.project.dat evecs TICA data R0 data d*
 run
 EOF
-
-RunCpptraj "TICA test."
+RunCpptraj "TICA test, 1D data sets."
 DoTest tz2.ticamodes.dat.save tz2.ticamodes.dat
 DoTest tz2.cumvar.dat.save tz2.cumvar.dat
 DoTest tz2.project.dat.save tz2.project.dat
+
+cat > tica.in <<EOF
+parm ../tz2.parm7
+loadcrd ../tz2.crd name MyCrd
+tica crdset MyCrd mask @CA name TICA lag 10 out crd.ticamodes.dat cumvarout crd.cumvar.dat
+run
+# DEBUG
+#crdaction MyCrd strip !@CA
+#runanalysis tica crdset MyCrd name TICA2 lag 10 out crd.tica2modes.dat cumvarout crd.cumvar2.dat
+EOF
+RunCpptraj "TICA test, coordinates."
+DoTest crd.ticamodes.dat.save crd.ticamodes.dat
+DoTest crd.cumvar.dat.save crd.cumvar.dat
+
 #diff M1.dat ticadebug.m1.dat
 #diff M2.dat ticadebug.m2.dat
 
