@@ -226,9 +226,9 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
   }
 # endif
   if (eigenvaluesOnly)
-    mprintf("\tCalculating eigenvalues only.\n");
+    mprintf("\tCalculating eigenvalues only for %s.\n", mIn.legend());
   else
-    mprintf("\tCalculating eigenvectors and eigenvalues.\n");
+    mprintf("\tCalculating eigenvectors and eigenvalues for %s.\n", mIn.legend());
   // -----------------------------------------------------------------
   if (calcAll) {
     mprintf("\tCalculating all eigenmodes.\n");

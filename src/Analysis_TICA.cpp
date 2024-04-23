@@ -8,6 +8,7 @@
 #include "DataSet_double.h"
 #include "DataSet_MatrixDbl.h"
 #include "DataSet_Modes.h"
+#include "ProgressBar.h"
 #include <cmath> //sqrt, fabs
 #include <algorithm> // std::max
 
@@ -443,7 +444,10 @@ void Analysis_TICA::create_matrices_from1Dsets( std::vector<DataSet_1D*> const& 
   unsigned int xxyyIdx = 0;
   unsigned int xyyxIdx = 0;
 
+  ParallelProgress progress(Nrows);
+
   for (unsigned int row = 0; row < Nrows; row++) {
+    progress.Update(row);
     for (unsigned int col = row; col < Ncols; col++) {
       DataSet_1D* seti = setsIn[row];
       double offi = means[row];
@@ -469,6 +473,7 @@ void Analysis_TICA::create_matrices_from1Dsets( std::vector<DataSet_1D*> const& 
       matXXYY->SetElement(xxyyIdx++, sumxx);
     }
   }
+  progress.Finish();
 }
 
 /** Create XXYY and XYYX matrices. */
@@ -529,8 +534,10 @@ const
   //Frame coords1 = TgtTraj_->AllocateFrame();
   //Frame coords2 = TgtTraj_->AllocateFrame();
 
+  ParallelProgress progress( end1 );
   unsigned int k2 = lag_;
   for (unsigned int k1 = 0; k1 < end1; k1++, k2++) {
+    progress.Update( k1 );
     //TgtTraj_->GetFrame(k1, coords1);
     //TgtTraj_->GetFrame(k2, coords2);
     TgtTraj_->GetFrame(k1, coords1, mask1_);
@@ -560,12 +567,13 @@ const
       } // END loop over cols
     } // END loop over rows
   } // END loop over frames
+  progress.Finish();
 }
 
 // -----------------------------------------------------------------------------
 /** Calculate XXYY and XYYX matrices. */
 int Analysis_TICA::calcMatrices(unsigned int maxFrames) const {
-
+  mprintf("\tCalculating C0 and CT matrices.\n");
   unsigned int c0end = maxFrames - (unsigned int)lag_;
   if (debug_ > 0)
     mprintf("DEBUG: C0 start = %u end = %u\n", 0, c0end);
@@ -596,6 +604,7 @@ int Analysis_TICA::calcMatrices(unsigned int maxFrames) const {
 
   // Calculate matrices
   DataSet_MatrixDbl matXXYY, matXYYX;
+  matXXYY.SetMeta(MetaData("C0"));
   switch (calcType_) {
     case DATA :
       create_matrices_from1Dsets(static_cast<DataSet_2D*>(&matXXYY), static_cast<DataSet_2D*>(&matXYYX), means, c0end);
@@ -692,7 +701,7 @@ int Analysis_TICA::calculateTICA(Darray const& meanX, DataSet_2D const& CXXYY, D
   DataSet_MatrixDbl matLtransCt;
   DataSet_2D::RetType ret = matLtransCt.Multiply(matLtrans, Cxy);
   if (ret != DataSet_2D::OK) {
-    mprinterr("Error: Could not multiply L^T x Ct\n");
+    mprinterr("Error: Could not multiply L^T x CT\n");
     return 1;
   }
 # ifdef CPPTRAJ_DEBUG_TICA
@@ -702,9 +711,10 @@ int Analysis_TICA::calculateTICA(Darray const& meanX, DataSet_2D const& CXXYY, D
   // Calculate (L^T * Ct) * L
   // Need to use transpose of Ltrans to get L
   DataSet_MatrixDbl Ct_trans;
+  Ct_trans.SetMeta(MetaData("CT"));
   ret = Ct_trans.Multiply_M2transpose(matLtransCt, matLtrans);
   if (ret != DataSet_2D::OK) {
-    mprinterr("Error: Could not multiply (L^T x Ct) x L\n");
+    mprinterr("Error: Could not multiply (L^T x CT) x L\n");
     return 1;
   }
 # ifdef CPPTRAJ_DEBUG_TICA
@@ -715,15 +725,15 @@ int Analysis_TICA::calculateTICA(Darray const& meanX, DataSet_2D const& CXXYY, D
   Ct_Modes.SetAvgCoords( meanX );
   // Want all eigenvectors
   if (Cxy.IsSymmetric()) {
-    mprintf("\tCt is symmetric.\n");
+    mprintf("\tCT is symmetric.\n");
     if (Ct_Modes.CalcEigen( Ct_trans, Ct_trans.Ncols() )) {
-      mprinterr("Error: Could not calculate eigenvectors and eigenvalues for Ct matrix.\n");
+      mprinterr("Error: Could not calculate eigenvectors and eigenvalues for CT matrix.\n");
       return 1;
     }
   } else {
-    mprintf("\tCt is not symmetric.\n");
+    mprintf("\tCT is not symmetric.\n");
     if (Ct_Modes.CalcEigen_General( Ct_trans )) {
-      mprinterr("Error: Could not calculate eigenvectors and eigenvalues for Ct matrix (non-symmetric).\n");
+      mprinterr("Error: Could not calculate eigenvectors and eigenvalues for CT matrix (non-symmetric).\n");
       return 1;
     }
   }
