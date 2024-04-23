@@ -580,7 +580,7 @@ void DataSet_Modes::SetCanonicalEvecSigns() {
         abs_maxidx = jj;
       }
     }
-    mprintf("argmax %i %i %g\n", ii, abs_maxidx, evec[abs_maxidx]);
+    //mprintf("argmax %i %i %g\n", ii, abs_maxidx, evec[abs_maxidx]); // DEBUG
     double sign;
     if ( evec[abs_maxidx] < 0 )
       sign = -1.0;
