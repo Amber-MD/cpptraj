@@ -106,6 +106,10 @@ Action::RetType Action_MinMaxDist::Init(ArgList& actionArgs, ActionInit& init, i
       return Action::ERR;
     }
   }
+  // Checks
+  if (mode_ == BY_ATOM && distType_ == MIN_DIST && !mask2_.MaskStringSet())
+    mprintf("Warning: Minimum by atom distance for a single mask will always be the shortest bond distance.\n");
+  // Save master data set list
   masterDSL_ = init.DslPtr();
   // Allocate by atom set
   if (mode_ == BY_ATOM) {
@@ -132,7 +136,7 @@ Action::RetType Action_MinMaxDist::Init(ArgList& actionArgs, ActionInit& init, i
     mprintf("\tDistances will not be imaged.\n");
   mprintf("\tData set name: %s\n", dsname_.c_str());
   if (outfile_ != 0)
-    mprintf("Data file name: %s\n", outfile_->DataFilename().full());
+    mprintf("\tData file name: %s\n", outfile_->DataFilename().full());
 
   return Action::OK;
 }
