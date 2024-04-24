@@ -20011,7 +20011,7 @@ Mod
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="90" columns="3">
+<lyxtabular version="3" rows="91" columns="3">
 <features islongtable="true" longtabularalignment="center">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="65text%">
@@ -21398,6 +21398,36 @@ matrix
 
 \begin_layout Plain Layout
 Calculate a matrix of the specified type from input coordinates.
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+mindist/maxdist
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Calculate the minimum or maximum distance between pairs of atoms/residues/molecu
+les.
 \end_layout
 
 \end_inset
@@ -34322,24 +34352,128 @@ matrix dist @CA out distmat.dat
 \end_layout
 
 \begin_layout Subsection
-mindist
+mindist/maxdist
+\end_layout
+
+\begin_layout LyX-Code
+{min|max}dist mask1 <mask1> [mask2 <mask2>] [{byatom|byres|bymol}]
+\end_layout
+
+\begin_layout LyX-Code
+              [noimage] [name <setname>] [out <file>] [resoffset <#>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+mask1
+\begin_inset space ~
+\end_inset
+
+<mask1> First mask for selecting atoms.
+\end_layout
+
+\begin_layout Description
+[mask2
+\begin_inset space ~
+\end_inset
+
+<mask2>] Optional second mask for selecting atoms.
+\end_layout
+
+\begin_layout Description
+[{byatom|byres|bymol}]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+byatom Report the minimum or maximum distance between atoms in <mask1> or
+ between atoms in <mask1> and atoms in <mask2>.
+\end_layout
+
+\begin_layout Description
+byres Report the minimum or maximum distance between all residue pairs selected
+ by <mask1>, or pairs of residues selected by <mask1> and residues selected
+ by <mask2> (excluding certain pairs, see 
+\series bold
+resoffset
+\series default
+).
+\end_layout
+
+\begin_layout Description
+bymol Report the minimum or maximum distance between all molecule pairs
+ selected by <mask1>, or pairs of molecules selected by <mask1> and molecules
+ selected by <mask2>.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[noimage] Do not use the minimum image convention for distances.
+\end_layout
+
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<setname>] Output data set name.
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<file>] Write data to <file>.
+\end_layout
+
+\begin_layout Description
+[resoffset
+\begin_inset space ~
+\end_inset
+
+<#>] For 
+\series bold
+byres
+\series default
+, ignore residue pairs if the difference in residue numbers is greater than
+ the cutoff (default 1).
 \end_layout
 
 \begin_layout Standard
-This functionality is now part of the 
+Data Sets Created:
+\end_layout
+
+\begin_layout Description
+<name> For 
 \series bold
-\emph on
-nativecontacts
+byatom
 \series default
-\emph default
- command; see 
-\begin_inset CommandInset ref
-LatexCommand vref
-reference "subsec:cpptraj-nativecontacts"
+, a set containing the minimum or maximum distance for each frame.
+\end_layout
 
-\end_inset
+\begin_layout Description
+<name>[<#>_<#>] For 
+\series bold
+byres
+\series default
+/
+\series bold
+b
+\series default
+ymol, a set containing the minimum or maximum distance between the residue/molec
+ule pair specified by the numbers in the aspect, e.g.
+ '<name>[1_3]' for 
+\series bold
+byres
+\series default
+ would be between residues 1 and 3.
+\end_layout
 
-.
+\end_deeper
+\begin_layout Standard
+Calculate the minimum or maximum distance in Angstroms between atoms or
+ residue/molecule pairs.
 \end_layout
 
 \begin_layout Subsection
