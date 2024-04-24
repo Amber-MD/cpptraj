@@ -53845,6 +53845,121 @@ tica { crdset <COORDS set name> [mask <mask>] |
      [name <output set name>] [out <file>] [cumvarout <file>]
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+crdset
+\begin_inset space ~
+\end_inset
+
+<COORDS
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name> Input coordinates (COORDS) data set.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+mask
+\begin_inset space ~
+\end_inset
+
+<mask> Selected atoms in input coordinates (COORDS) data set.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+data
+\begin_inset space ~
+\end_inset
+
+<input
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+arg1> Input 1D data set name(s), may specify more than once.
+ If any data set is periodic, all need to be periodic.
+\end_layout
+
+\begin_layout Description
+lag
+\begin_inset space ~
+\end_inset
+
+<time
+\begin_inset space ~
+\end_inset
+
+lag> TICA lag time in frames.
+\end_layout
+
+\begin_layout Description
+map
+\begin_inset space ~
+\end_inset
+
+{kinetic|commute|none} How to transform the resulting eigenvectors.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+kinetic (default) Scale eigenvectors by eigenvalues so that distances in
+ the transformed data approximate kinetic distances; particularly useful
+ if using the projections to cluster.
+\end_layout
+
+\begin_layout Description
+commute Scale eigenvectors by regularized time scales, sqrt(timescale_i
+ / 2), so that distances in the transformed data will approximate commute
+ distances.
+\end_layout
+
+\begin_layout Description
+none Do not scale eigenvectors.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+name
+\begin_inset space ~
+\end_inset
+
+<output
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name> Output data set name.
+\end_layout
+
+\begin_layout Description
+out
+\begin_inset space ~
+\end_inset
+
+<file> File to write TICA modes to.
+\end_layout
+
+\begin_layout Description
+cumvarout
+\begin_inset space ~
+\end_inset
+
+<file> File to write eigenvalue cumulative variance to.
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 Perform time-independent correlation analysis (TICA).
  Similar to principal component analysis (PCA), TICA calculates eigenvectors/eig
@@ -53861,7 +53976,9 @@ literal "true"
 
 \end_inset
 
- 
+ The analysis can be performed on either coordinates or 1D data sets; the
+ data sets can either be all periodic (in which case they will be converted
+ to cos/sin form) or not.
 \end_layout
 
 \begin_layout Subsection
