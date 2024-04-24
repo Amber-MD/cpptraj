@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles mmdist.in tz2.byatom.dat temp.dat tz2.byatom.1.dat \
-           tz2.byres.1.dat
+           tz2.byres.?.dat
 
 TESTNAME='Min/max distance tests'
 
@@ -33,9 +33,12 @@ trajin ../tz2.truncoct.crd
 
 mindist name ResMin1 mask1 :1-7 byres out tz2.byres.1.dat
 maxdist name ResMax1 mask1 :1-7 byres out tz2.byres.1.dat
+mindist name ResMin2 mask1 :2-4 mask2 :9-11 byres out tz2.byres.2.dat
+maxdist name ResMax2 mask1 :2-4 mask2 :9-11 byres out tz2.byres.2.dat
 EOF
 RunCpptraj "Min/max distance by residue tests"
 DoTest tz2.byres.1.dat.save tz2.byres.1.dat
+DoTest tz2.byres.2.dat.save tz2.byres.2.dat
 
 EndTest
 exit 0
