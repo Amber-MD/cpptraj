@@ -258,6 +258,21 @@ Action::RetType Action_MinMaxDist::Setup(ActionSetup& setup)
                   modeStr_[mode_], mask2_.MaskString());
         return Action::ERR;
       }
+      // Check if entity numbers overlap
+      std::vector<bool> entity_selected;
+      if (mode_ == BY_RES)
+        entity_selected.assign( setup.Top().Nres(), false );
+      else if (mode_ == BY_MOL)
+        entity_selected.assign( setup.Top().Nmol(), false );
+      for (Earray::const_iterator it1 = entities1_.begin(); it1 != entities1_.end(); ++it1)
+        entity_selected[it1->num_] = true;
+      for (Earray::const_iterator it2 = entities2_.begin(); it2 != entities2_.end(); ++it2) {
+        if (entity_selected[it2->num_]) {
+          mprinterr("Error: %s selected by mask2 '%s' must not overlap those selected by mask1 '%s'\n",
+                    modeStr_[mode_], mask2_.MaskString(), mask1_.MaskString());
+          return Action::ERR;
+        }
+      }
       // Set up DataSets for each entity pair
       int tgtOffset = 0;
       if (mode_ == BY_RES)
@@ -267,10 +282,11 @@ Action::RetType Action_MinMaxDist::Setup(ActionSetup& setup)
         for (Earray::const_iterator it2 = entities2_.begin(); it2 != entities2_.end(); ++it2)
         {
           int offset = it1->num_ - it2->num_;
+          if (offset < 0) offset = -offset;
           if (offset > tgtOffset) {
             if (debug_ > 1)
               mprintf("DEBUG: Pair %i - %i\n", it1->num_ + 1, it2->num_ + 1);
-            MetaData meta(dsname_, entity_aspect(it2->num_, it1->num_));
+            MetaData meta(dsname_, entity_aspect(it1->num_, it2->num_));
             DataSet* ds = interactionSets_.AddInteractionSet(*masterDSL_, DataSet::FLOAT, meta, it2->num_, it1->num_, outfile_);
             if (ds == 0) {
               mprinterr("Error: Could not allocate data set %s[%s]\n",
@@ -295,7 +311,7 @@ Action::RetType Action_MinMaxDist::Setup(ActionSetup& setup)
           if (offset > tgtOffset) {
             if (debug_ > 1)
               mprintf("DEBUG: Pair %i - %i\n", it1->num_ + 1, it2->num_ + 1);
-            MetaData meta(dsname_, entity_aspect(it2->num_, it1->num_));
+            MetaData meta(dsname_, entity_aspect(it1->num_, it2->num_));
             DataSet* ds = interactionSets_.AddInteractionSet(*masterDSL_, DataSet::FLOAT, meta, it2->num_, it1->num_, outfile_);
             if (ds == 0) {
               mprinterr("Error: Could not allocate data set %s[%s]\n",
