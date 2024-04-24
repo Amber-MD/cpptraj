@@ -12,7 +12,9 @@ Action_MinMaxDist::Action_MinMaxDist() :
   distType_(NO_DIST),
   outfile_(0),
   byAtomSet_(0),
-  masterDSL_(0)
+  masterDSL_(0),
+  debug_(0),
+  resOffset_(0)
 {}
 
 const char* Action_MinMaxDist::modeStr_[] = {
@@ -32,8 +34,7 @@ const char* Action_MinMaxDist::distTypeStr_[] = {
 // Action_MinMaxDist::Help()
 void Action_MinMaxDist::Help() const {
   mprintf("\tmask1 <mask1> [mask2 <mask2>] [{byatom|byres|bymol}]\n"
-          "\t[mindist] [maxdist] [noimage] [name <setname>]\n"
-          "\t[out <file>]\n"
+          "\t[noimage] [name <setname>] [out <file>] [resoffset <#>]\n"
           "  Record the min/max distance between atoms/residues/molecules.\n"
          );
 }
@@ -41,8 +42,10 @@ void Action_MinMaxDist::Help() const {
 // Action_MinMaxDist::Init()
 Action::RetType Action_MinMaxDist::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+  debug_ = debugIn;
   // Get Keywords
   imageOpt_.InitImaging( !(actionArgs.hasKey("noimage")) );
+  resOffset_ = actionArgs.getKeyInt("resoffset", 1);
   // Mask Keywords
   std::string mask1str = actionArgs.GetStringKey("mask1");
   if (mask1str.empty()) {
@@ -70,8 +73,13 @@ Action::RetType Action_MinMaxDist::Init(ArgList& actionArgs, ActionInit& init, i
   else if (actionArgs.hasKey("bymol"))
     mode_ = BY_MOL;
   // Distance calc type args
-  bool calc_mindist = (actionArgs.hasKey("mindist") || (actionArgs[0] == "mindist"));
-  bool calc_maxdist = (actionArgs.hasKey("maxdist") || (actionArgs[0] == "maxdist"));
+  // TODO This action is a little different in that it looks at the 
+  //      command name to figure out if user wants minimum or maximum
+  //      distance. May break if command name is updated and this isnt.
+  //bool calc_mindist = (actionArgs.hasKey("mindist") || (actionArgs[0] == "mindist"));
+  //bool calc_maxdist = (actionArgs.hasKey("maxdist") || (actionArgs[0] == "maxdist"));
+  bool calc_mindist = (actionArgs[0][0] == 'm' && actionArgs[0][1] == 'i' && actionArgs[0][2] == 'n');
+  bool calc_maxdist = (actionArgs[0][0] == 'm' && actionArgs[0][1] == 'a' && actionArgs[0][2] == 'x');
   //if (actionArgs.hasKey("bothdist"))
   //  distType_ = BOTH_DIST;
   // DataSet Name
@@ -93,8 +101,9 @@ Action::RetType Action_MinMaxDist::Init(ArgList& actionArgs, ActionInit& init, i
     else if (calc_maxdist)
       distType_ = MAX_DIST;
     else {
-      mprintf("Warning: No distance type specified and command name '%s' unrecognized. Using default.\n");
-      distType_ = MIN_DIST;
+      mprinterr("Internal Error: No distance type specified and command name '%s' unrecognized.\n",
+                actionArgs[0].c_str());
+      return Action::ERR;
     }
   }
   masterDSL_ = init.DslPtr();
@@ -111,6 +120,8 @@ Action::RetType Action_MinMaxDist::Init(ArgList& actionArgs, ActionInit& init, i
 
   mprintf("    MINMAXDIST: Calculating %s distance for selected %s.\n",
           distTypeStr_[distType_], modeStr_[mode_]);
+  if (mode_ == BY_RES)
+    mprintf("\tResidue offset: %i\n", resOffset_);
   mprintf("\tMask1: %s\n", mask1_.MaskString());
   if (mask2_.MaskStringSet()) {
     mprintf("\tMask2: %s\n", mask2_.MaskString());
@@ -187,7 +198,9 @@ const
     return 1;
   }
   // DEBUG - print entities
-  printEntities(entities, maskIn);
+  if (debug_ > 0)
+    printEntities(entities, maskIn);
+  mprintf("\t%zu %s selected by mask '%s'\n", entities.size(), modeStr_[mode_], maskIn.MaskString());
   return 0;
 }
 
@@ -242,12 +255,17 @@ Action::RetType Action_MinMaxDist::Setup(ActionSetup& setup)
         return Action::ERR;
       }
       // Set up DataSets for each entity pair
+      int tgtOffset = 0;
+      if (mode_ == BY_RES)
+        tgtOffset = resOffset_;
       for (Earray::const_iterator it1 = entities1_.begin(); it1 != entities1_.end(); ++it1)
       {
         for (Earray::const_iterator it2 = entities2_.begin(); it2 != entities2_.end(); ++it2)
         {
-          if (it1->num_ > it2->num_) { // TODO at least 2 res gap?
-            mprintf("DEBUG: Pair %i - %i\n", it1->num_ + 1, it2->num_ + 1);
+          int offset = it1->num_ - it2->num_;
+          if (offset > tgtOffset) {
+            if (debug_ > 1)
+              mprintf("DEBUG: Pair %i - %i\n", it1->num_ + 1, it2->num_ + 1);
             MetaData meta(dsname_, entity_aspect(it2->num_, it1->num_));
             DataSet* ds = interactionSets_.AddInteractionSet(*masterDSL_, DataSet::FLOAT, meta, it2->num_, it1->num_, outfile_);
             if (ds == 0) {
@@ -261,25 +279,36 @@ Action::RetType Action_MinMaxDist::Setup(ActionSetup& setup)
       }
     } else {
       // Set up DataSets for each entity pair
+      int tgtOffset = 0;
+      if (mode_ == BY_RES)
+        tgtOffset = resOffset_;
       for (Earray::const_iterator it1 = entities1_.begin(); it1 != entities1_.end(); ++it1)
       {
         for (Earray::const_iterator it2 = it1 + 1; it2 != entities1_.end(); ++it2)
         {
-          mprintf("DEBUG: Pair %i - %i\n", it1->num_ + 1, it2->num_ + 1);
-          MetaData meta(dsname_, entity_aspect(it2->num_, it1->num_));
-          DataSet* ds = interactionSets_.AddInteractionSet(*masterDSL_, DataSet::FLOAT, meta, it2->num_, it1->num_, outfile_);
-          if (ds == 0) {
-            mprinterr("Error: Could not allocate data set %s[%s]\n",
-                      meta.Name().c_str(), meta.Aspect().c_str());
-            return Action::ERR;
+          int offset = it1->num_ - it2->num_;
+          if (offset < 0) offset = -offset;
+          if (offset > tgtOffset) {
+            if (debug_ > 1)
+              mprintf("DEBUG: Pair %i - %i\n", it1->num_ + 1, it2->num_ + 1);
+            MetaData meta(dsname_, entity_aspect(it2->num_, it1->num_));
+            DataSet* ds = interactionSets_.AddInteractionSet(*masterDSL_, DataSet::FLOAT, meta, it2->num_, it1->num_, outfile_);
+            if (ds == 0) {
+              mprinterr("Error: Could not allocate data set %s[%s]\n",
+                        meta.Name().c_str(), meta.Aspect().c_str());
+              return Action::ERR;
+            }
+            activeSets_.push_back( ActiveSet(ds, it1, it2) );
           }
-          activeSets_.push_back( ActiveSet(ds, it1, it2) );
         }
       }
     }
-    mprintf("DEBUG: Active sets:\n");
-    for (DSarray::const_iterator it = activeSets_.begin(); it != activeSets_.end(); ++it)
-      mprintf("\t%s\n", it->ds_->legend());
+    mprintf("\t%zu active pairs of %s\n", activeSets_.size(), modeStr_[mode_]);
+    if (debug_ > 0) {
+      mprintf("DEBUG: Active sets:\n");
+      for (DSarray::const_iterator it = activeSets_.begin(); it != activeSets_.end(); ++it)
+        mprintf("\t%s\n", it->ds_->legend());
+    }
     if (activeSets_.empty()) {
       mprintf("Warning: No active interaction pairs. Skipping.\n");
       return Action::SKIP;

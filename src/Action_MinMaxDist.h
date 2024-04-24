@@ -71,5 +71,7 @@ class Action_MinMaxDist : public Action {
     DataSetList* masterDSL_; ///< Pointer to master data set list
     Cpptraj::InteractionData interactionSets_; ///< Hold interaction sets
     DSarray activeSets_;                       ///< Hold active interaction sets
+    int debug_;
+    int resOffset_;          ///< If BY_RES, do not look at pairs separated by less than resOffset_ in sequence
 };
 #endif
