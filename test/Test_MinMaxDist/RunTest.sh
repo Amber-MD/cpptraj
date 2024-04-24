@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles mmdist.in tz2.byatom.dat temp.dat tz2.byatom.1.dat \
-           tz2.byres.?.dat
+           tz2.byres.?.dat tz2.bymol.?.dat
 
 TESTNAME='Min/max distance tests'
 
@@ -40,5 +40,18 @@ RunCpptraj "Min/max distance by residue tests"
 DoTest tz2.byres.1.dat.save tz2.byres.1.dat
 DoTest tz2.byres.2.dat.save tz2.byres.2.dat
 
+cat > mmdist.in <<EOF
+parm ../tz2.truncoct.parm7
+trajin ../tz2.truncoct.crd
+
+mindist name MolMin1 mask1 ^1-10 bymol out tz2.bymol.1.dat
+maxdist name MolMax1 mask1 ^1-10 bymol out tz2.bymol.1.dat
+mindist name MolMin2 mask1 ^1 mask2 ^342,567,638,1026,1560,1846&@O bymol out tz2.bymol.2.dat
+maxdist name MolMax2 mask1 ^1 mask2 ^342,567,638,1026,1560,1846&@O bymol out tz2.bymol.2.dat
+#closest 1 ^1 first closestout temp.dat
+EOF
+RunCpptraj "Min/max distance by molecule tests"
+DoTest tz2.bymol.1.dat.save tz2.bymol.1.dat
+DoTest tz2.bymol.2.dat.save tz2.bymol.2.dat
 EndTest
 exit 0
