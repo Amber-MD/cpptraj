@@ -37,9 +37,13 @@ Analysis_TICA::~Analysis_TICA() {
 
 // Analysis_TICA::Help()
 void Analysis_TICA::Help() const {
-  mprintf("\t{crdset <COORDS set name>|data <input set arg1> ...} [lag <time lag>]\n"
-          "\t[mask <mask>] [map {kinetic|commute|none}]\n"
+  mprintf("\t{ crdset <COORDS set name> [mask <mask>] |\n"
+          "\t  data <input set arg1> ... }\n"
+          "\t[lag <time lag>] [map {kinetic|commute|none}]\n"
           "\t[name <output set name>] [out <file>] [cumvarout <file>]\n"
+          "  Perform time-independent correlation analysis for either coordinates\n"
+          "  or 1D data sets; the data sets can either be all periodic (in which case\n"
+          "  they will be converted to cos/sin form) or not.\n"
          );
           
 }
