@@ -6,7 +6,9 @@
 
 // Analysis_Project::Help()
 void Analysis_Project::Help() const {
-
+  mprintf("\tevecs <evecs dataset> [name <name>] [out <outfile>] [beg <beg>] [end <end>]\n"
+          "\t{[dihedrals <dataset arg>] | [data <dataset arg> ...]}\n"
+          "  Calculate projection along given eigenvectors.\n");
 }
 
 // Analysis_Project::Setup()

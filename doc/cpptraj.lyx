@@ -37256,6 +37256,13 @@ principal :1-76 dorotation out principal.dat
 
 \begin_layout Subsection
 projection
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj-projection"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout LyX-Code
@@ -37264,7 +37271,7 @@ projection [<name>] evecs <dataset name> [out <outfile>] [beg <beg>] [end
 \end_layout
 
 \begin_layout LyX-Code
-           [<mask>] [dihedrals <dataset arg>]
+           {[<mask>] | [dihedrals <dataset arg>] | [data <dataset arg> ...]}
 \end_layout
 
 \begin_layout LyX-Code
@@ -37335,6 +37342,21 @@ arg>] (Dihedral covariance only) Dihedral data sets to use in projection;
 \end_layout
 
 \begin_layout Description
+[data
+\begin_inset space ~
+\end_inset
+
+<dataset
+\begin_inset space ~
+\end_inset
+
+arg>] (Data covariance only, e.g.
+ from TICA).
+ 1D data sets to use in projection; MUST CORRESPOND TO HOW EIGENVECTORS
+ WERE GENERATED.
+\end_layout
+
+\begin_layout Description
 [start
 \begin_inset space ~
 \end_inset
@@ -37397,6 +37419,12 @@ Projects snapshots onto eigenvectors obtained by diagonalizing covariance
 diagmatrix
 \series default
 \shape default
+/
+\series bold
+\emph on
+tica
+\series default
+\emph default
 ) or previously read-in (e.g.
  with 
 \series bold
@@ -43192,7 +43220,7 @@ trajin
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="49" columns="3">
+<lyxtabular version="3" rows="50" columns="3">
 <features islongtable="true" longtabularalignment="center">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="50text%">
@@ -44221,6 +44249,35 @@ Calculate and plot the average phi and psi values from input dihedral data
 
 \begin_layout Plain Layout
 N phi/psi dihedrals
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+projectdata
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Project data along eigenmodes.
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+eigenmodes, N 1D scalar
 \end_layout
 
 \end_inset
@@ -51717,6 +51774,113 @@ run
 
 \begin_layout LyX-Code
 phipsi DPDP[phi] DPDP[psi] out phipsi.dat resrange 1-22
+\end_layout
+
+\begin_layout Subsection
+projectdata
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj-projectdata"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout LyX-Code
+projectdata evecs <evecs dataset> [name <name>] [out <outfile>] [beg <beg>]
+ [end <end>]
+\end_layout
+
+\begin_layout LyX-Code
+            {[dihedrals <dataset arg>] | [data <dataset arg> ...]}
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+evecs
+\begin_inset space ~
+\end_inset
+
+<dataset
+\begin_inset space ~
+\end_inset
+
+name> Data set containing eigenvectors (modes).
+\end_layout
+
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<name>] Output data set name.
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<outfile>] Write projections to <outfile>.
+\end_layout
+
+\begin_layout Description
+[beg
+\begin_inset space ~
+\end_inset
+
+<beg>] First eigenvector/mode to use (default 1).
+\end_layout
+
+\begin_layout Description
+[end
+\begin_inset space ~
+\end_inset
+
+<end>] Final eigenvector/mode to use (default 2).
+\end_layout
+
+\begin_layout Description
+[dihedrals
+\begin_inset space ~
+\end_inset
+
+<dataset
+\begin_inset space ~
+\end_inset
+
+arg>] (Dihedral covariance only) Dihedral data sets to use in projection;
+ MUST CORRESPOND TO HOW EIGENVECTORS WERE GENERATED.
+\end_layout
+
+\begin_layout Description
+[data
+\begin_inset space ~
+\end_inset
+
+<dataset
+\begin_inset space ~
+\end_inset
+
+arg>] (Data covariance only, e.g.
+ from TICA).
+ 1D data sets to use in projection; MUST CORRESPOND TO HOW EIGENVECTORS
+ WERE GENERATED.
+\end_layout
+
+\begin_layout Standard
+Data Sets Created:
+\end_layout
+
+\begin_layout Description
+<name>:<#> Projection data set for mode <#>.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Project data along previously generated eigenmodes from e.g.
+ PCA or TICA.
 \end_layout
 
 \begin_layout Subsection
