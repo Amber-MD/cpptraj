@@ -43192,7 +43192,7 @@ trajin
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="48" columns="3">
+<lyxtabular version="3" rows="49" columns="3">
 <features islongtable="true" longtabularalignment="center">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="50text%">
@@ -44489,6 +44489,35 @@ Peform Gaussian quadrature integration for given DV/DL data sets.
 
 \begin_layout Plain Layout
 N 1D scalar
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+tica
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Perform time-independent correlation analysis.
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+COORDS, N 1D scalar
 \end_layout
 
 \end_inset
@@ -53793,6 +53822,46 @@ For example, to perform Gaussian quadrature integration using data sets
 \begin_layout LyX-Code
 ti TIdata nq 9 name Curve out skip.agr curveout curve.agr nskip 0,5,10,15,20,30,40
 ,50
+\end_layout
+
+\begin_layout Subsection
+tica
+\end_layout
+
+\begin_layout LyX-Code
+tica { crdset <COORDS set name> [mask <mask>] |
+\end_layout
+
+\begin_layout LyX-Code
+       data <input set arg1> ...
+ }
+\end_layout
+
+\begin_layout LyX-Code
+     [lag <time lag>] [map {kinetic|commute|none}]
+\end_layout
+
+\begin_layout LyX-Code
+     [name <output set name>] [out <file>] [cumvarout <file>]
+\end_layout
+
+\begin_layout Standard
+Perform time-independent correlation analysis (TICA).
+ Similar to principal component analysis (PCA), TICA calculates eigenvectors/eig
+envalues (i.e.
+ eigenmodes) from input data sets (either coordinates or a combination of
+ other 1D data sets).
+ Whereas the eigenvectors from PCA describe the variance in the input data,
+ the eigenvectors from TICA describe the maximal autocorrelation in the
+ input data at the given lag time.
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Perez2013"
+literal "true"
+
+\end_inset
+
+ 
 \end_layout
 
 \begin_layout Subsection
