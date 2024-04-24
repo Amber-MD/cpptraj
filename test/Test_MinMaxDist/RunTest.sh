@@ -2,7 +2,8 @@
 
 . ../MasterTest.sh
 
-CleanFiles mmdist.in tz2.byatom.dat temp.dat tz2.byatom.1.dat
+CleanFiles mmdist.in tz2.byatom.dat temp.dat tz2.byatom.1.dat \
+           tz2.byres.1.dat
 
 TESTNAME='Min/max distance tests'
 
@@ -16,6 +17,9 @@ maxdist name Max mask1 :2 mask2 :11 byatom out tz2.byatom.dat
 mindist name Min1 mask1 ^1 byatom out tz2.byatom.1.dat
 maxdist name Max1 mask1 ^1 byatom out tz2.byatom.1.dat
 
+mindist name ResMin1 mask1 ^1 byres out tz2.byres.1.dat
+maxdist name ResMax1 mask1 ^1 byres out tz2.byres.1.dat
+
 #nativecontacts :2 :11 savenonnative mindist out temp.dat
 #nativecontacts :2 :11 savenonnative maxdist out temp.dat
 #nativecontacts ^1 maxdist out temp.dat
@@ -24,6 +28,7 @@ EOF
 RunCpptraj "Min/max distance test"
 DoTest tz2.byatom.dat.save tz2.byatom.dat
 DoTest tz2.byatom.1.dat.save tz2.byatom.1.dat
+DoTest tz2.byres.1.dat.save tz2.byres.1.dat
 
 EndTest
 exit 0
