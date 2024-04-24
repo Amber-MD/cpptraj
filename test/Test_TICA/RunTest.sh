@@ -38,7 +38,8 @@ tica data R0 data d* name TICA lag 10 out tz2.ticamodes.dat cumvarout tz2.cumvar
 run
 writedata tz2.raw.dat R0 d*
 
-projection Evec out tz2.project.dat evecs TICA data R0 data d*
+#projection Evec out tz2.project.dat evecs TICA data R0 data d*
+runanalysis projectdata name Evec out tz2.project.dat evecs TICA data R0 data d*
 run
 EOF
 RunCpptraj "TICA test, 1D data sets."
