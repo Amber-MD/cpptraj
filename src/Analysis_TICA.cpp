@@ -36,21 +36,6 @@ Analysis_TICA::~Analysis_TICA() {
     delete *it;
 }
 
-/// DEBUG: Write Darray to a file
-/*static void DarrayOut(const char* fname, std::vector<double> const& array, const char* fmt)
-{
-  CpptrajFile outfile;
-  if (outfile.OpenWrite(fname)) {
-    mprinterr("Error: Could not open %s\n", fname);
-    return;
-  }
-  for (std::vector<double>::const_iterator it = array.begin(); it != array.end(); ++it) {
-    outfile.Printf(fmt, *it);
-    outfile.Printf("\n");
-  }
-  outfile.CloseFile();
-}*/
-
 // Analysis_TICA::Help()
 void Analysis_TICA::Help() const {
   mprintf("\t{ crdset <COORDS set name> [mask <mask>] |\n"
@@ -307,24 +292,6 @@ Analysis::RetType Analysis_TICA::Analyze() {
       double rts = 0.5 * ts * dval;
       ticaModes_->MultiplyEvecByFac( ii, sqrt(rts / 2.0) );
     }
-/*
-    Darray timescales;
-    timescales.reserve( ticaModes_->Nmodes() );
-    for (int ii = 0; ii < ticaModes_->Nmodes(); ii++) {
-      timescales.push_back( 1 - lag_ / log(fabs(ticaModes_->Eigenvalue(ii))) );
-    }
-    DarrayOut("test.timescales.dat", timescales, "%12.8f");
-    // Dampen timescales < lag time
-    Darray reg_timescales;
-    reg_timescales.reserve( timescales.size() );
-    for (Darray::const_iterator it = timescales.begin(); it != timescales.end(); ++it) {
-      double dval = tanh(Constants::PI * ((*it - lag_) / lag_) + 1);
-      dval = std::max(dval, 0.0);
-      //mprintf("DEBUG: dval %li %12.8f\n", it - timescales.begin(), dval);
-      reg_timescales.push_back( 0.5 * *it * dval );
-      ticaModes_->MultiplyEvecByFac( it - timescales.begin(), sqrt(reg_timescales.back() / 2.0) );
-    }
-    DarrayOut("test.regts.dat", reg_timescales, "%12.8f");*/
   }
 
   // Calculate cumulative variance
