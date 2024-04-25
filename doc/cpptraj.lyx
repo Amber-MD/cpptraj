@@ -48439,7 +48439,7 @@ name "subsec:diagmatrix-|-analyze"
 \end_layout
 
 \begin_layout LyX-Code
-diagmatrix <name> [out <filename>] [thermo [outthermo <filename>]]
+diagmatrix <matrix name> [out <filename>] [thermo [outthermo <filename>]]
 \end_layout
 
 \begin_layout LyX-Code
@@ -48458,7 +48458,11 @@ diagmatrix <name> [out <filename>] [thermo [outthermo <filename>]]
 \begin_layout Description
 
 \series bold
-<name>
+<matrix
+\begin_inset space ~
+\end_inset
+
+name>
 \series default
  Name of symmetric matrix to diagonalize.
 \end_layout
@@ -54091,6 +54095,7 @@ key "Noe2016"
 literal "true"
 
 \end_inset
+
 
 \end_layout
 
