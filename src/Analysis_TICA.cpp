@@ -37,7 +37,7 @@ Analysis_TICA::~Analysis_TICA() {
 }
 
 /// DEBUG: Write Darray to a file
-static void DarrayOut(const char* fname, std::vector<double> const& array, const char* fmt)
+/*static void DarrayOut(const char* fname, std::vector<double> const& array, const char* fmt)
 {
   CpptrajFile outfile;
   if (outfile.OpenWrite(fname)) {
@@ -49,7 +49,7 @@ static void DarrayOut(const char* fname, std::vector<double> const& array, const
     outfile.Printf("\n");
   }
   outfile.CloseFile();
-}
+}*/
 
 // Analysis_TICA::Help()
 void Analysis_TICA::Help() const {
@@ -300,6 +300,14 @@ Analysis::RetType Analysis_TICA::Analyze() {
       ticaModes_->MultiplyEvecByFac( ii, ticaModes_->Eigenvalue(ii) );
   } else if (evectorScale_ == COMMUTE_MAP) {
     // Weight eigenvectors by regularized time scales
+    for (int ii = 0; ii < ticaModes_->Nmodes(); ii++) {
+      double ts = 1 - lag_ / log(fabs(ticaModes_->Eigenvalue(ii)));
+      double dval = tanh(Constants::PI * ((ts - lag_) / lag_) + 1);
+      dval = std::max(dval, 0.0);
+      double rts = 0.5 * ts * dval;
+      ticaModes_->MultiplyEvecByFac( ii, sqrt(rts / 2.0) );
+    }
+/*
     Darray timescales;
     timescales.reserve( ticaModes_->Nmodes() );
     for (int ii = 0; ii < ticaModes_->Nmodes(); ii++) {
@@ -316,7 +324,7 @@ Analysis::RetType Analysis_TICA::Analyze() {
       reg_timescales.push_back( 0.5 * *it * dval );
       ticaModes_->MultiplyEvecByFac( it - timescales.begin(), sqrt(reg_timescales.back() / 2.0) );
     }
-    DarrayOut("test.regts.dat", reg_timescales, "%12.8f");
+    DarrayOut("test.regts.dat", reg_timescales, "%12.8f");*/
   }
 
   // Calculate cumulative variance
