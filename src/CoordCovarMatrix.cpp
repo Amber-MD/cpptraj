@@ -63,7 +63,8 @@ void CoordCovarMatrix::get_frame_coords(Darray& arrayIn, Frame const& frameIn, A
 const
 {
   arrayIn.clear();
-  arrayIn.reserve( (unsigned int)maskIn.Nselected() * nelt_ );
+  unsigned int arraySize = (unsigned int)maskIn.Nselected() * nelt_;
+  arrayIn.reserve( arraySize );
   for (AtomMask::const_iterator at = maskIn.begin(); at != maskIn.end(); ++at) {
     const double* XYZ = frameIn.XYZ(*at);
     arrayIn.push_back( XYZ[0] );

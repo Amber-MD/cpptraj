@@ -22,11 +22,13 @@ int CoordCovarMatrix_Full::SetupMatrix(std::vector<Atom> const& atoms1,
                                        AtomMask const& maskIn2, bool useMassIn)
 {
   nelt_ = 3; // xyz
+  unsigned int arraySize1 = (unsigned int)maskIn1.Nselected() * nelt_;
+  unsigned int arraySize2 = (unsigned int)maskIn2.Nselected() * nelt_;
   // Matrix - full
-  covarMatrix_.resize( (unsigned int)maskIn1.Nselected()*nelt_, (unsigned int)maskIn2.Nselected()*nelt_ );
+  covarMatrix_.resize( arraySize1, arraySize2 );
 
-  vect_1_.assign((unsigned int)maskIn1.Nselected()*nelt_, 0);
-  vect_2_.assign((unsigned int)maskIn2.Nselected()*nelt_, 0);
+  vect_1_.assign(arraySize1, 0);
+  vect_2_.assign(arraySize2, 0);
   set_mass_array( mass1_, atoms1, maskIn1, useMassIn );
   set_mass_array( mass2_, atoms2, maskIn2, useMassIn );
 
