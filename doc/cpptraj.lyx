@@ -37445,9 +37445,11 @@ readdata
 
 \family sans
 \series bold
+\emph on
 matrix
 \family default
 \series default
+\emph default
 
 \begin_inset Quotes erd
 \end_inset
@@ -37467,6 +37469,23 @@ projection
 \series default
 \emph default
  command.
+ If only 1D data sets need to be projected, see the 
+\series bold
+\emph on
+projectdata
+\series default
+\emph default
+ analysis command, 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-projectdata"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
 \end_layout
 
 \begin_layout Subsection
@@ -51885,6 +51904,23 @@ Data Sets Created:
 \begin_layout Standard
 Project data along previously generated eigenmodes from e.g.
  PCA or TICA.
+ This is a faster alternative to the 
+\series bold
+\emph on
+projection
+\series default
+\emph default
+ command (
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-projection"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+) if only 1D data sets need to be projected.
 \end_layout
 
 \begin_layout Subsection
