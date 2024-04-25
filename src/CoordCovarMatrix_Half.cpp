@@ -64,9 +64,9 @@ int CoordCovarMatrix_Half::SetupMatrix(std::vector<Atom> const& atoms,
 {
   nelt_ = 3; // xyz
   // Matrix - half
-  covarMatrix_.resize( maskIn.Nselected()*nelt_, 0 );
+  covarMatrix_.resize( (unsigned int)maskIn.Nselected()*nelt_, 0 );
 
-  vect_.assign( maskIn.Nselected()*nelt_, 0 );
+  vect_.assign( (unsigned int)maskIn.Nselected()*nelt_, 0 );
 
   set_mass_array(mass_, atoms, maskIn, useMassIn);
 
