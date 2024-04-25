@@ -947,7 +947,7 @@ static void matT_times_mat_symmetric( DataSet_2D* out,
 int Analysis_TICA::calculateCovariance_C0CT(DSarray const& sets)
 const
 {
-  static unsigned int nelt_ = 1; // FIXME
+  static unsigned int nelt_ = 1;
   // Check that sets have same size
   unsigned int maxFrames = sets.front()->Size();
   for (DSarray::const_iterator it = sets.begin(); it != sets.end(); ++it)
@@ -1027,7 +1027,7 @@ const
   DDArray CenteredX(sets.size());
   DDArray CenteredY(sets.size());
 
-  Darray tmpx, tmpy; // DEBUG FIXME
+  Darray tmpx, tmpy; // DEBUG
   // Because symmetric, sy = sx //TODO use meanX set
   Darray const& sy = sx;
   for (unsigned int jdx = 0; jdx != sets.size(); jdx++) {

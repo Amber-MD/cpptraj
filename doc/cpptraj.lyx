@@ -54084,6 +54084,14 @@ kinetic (default) Scale eigenvectors by eigenvalues so that distances in
 commute Scale eigenvectors by regularized time scales, sqrt(timescale_i
  / 2), so that distances in the transformed data will approximate commute
  distances.
+ Timescales smaller than the lag time are dampened.
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Noe2016"
+literal "true"
+
+\end_inset
+
 \end_layout
 
 \begin_layout Description
