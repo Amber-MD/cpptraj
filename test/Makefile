@@ -539,6 +539,9 @@ test.readoff:
 test.sequence:
 	@-cd Test_Sequence && ./RunTest.sh $(OPT)
 
+test.tica:
+	@-cd Test_TICA && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -709,7 +712,8 @@ COMPLETETESTS=test.general \
               test.readprep \
               test.zmatrix \
               test.readoff \
-              test.sequence
+              test.sequence \
+              test.tica
 
 test.all:
 	$(MAKE) test.complete summary

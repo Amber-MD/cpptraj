@@ -4,6 +4,7 @@
 #include "StringRoutines.h" // integerToString
 #include "Constants.h" // DEGRAD
 #include "DataSet_1D.h"
+#include "DataSet_Modes.h"
 
 // CONSTRUCTOR
 Action_Projection::Action_Projection() :
@@ -14,7 +15,7 @@ Action_Projection::Action_Projection() :
 
 void Action_Projection::Help() const {
   mprintf("\t[<name>] evecs <evecs dataset> [out <outfile>] [beg <beg>] [end <end>]\n"
-          "\t[<mask>] [dihedrals <dataset arg>]\n\t%s\n"
+          "\t{[<mask>] | [dihedrals <dataset arg>] | [data <dataset arg> ...]}\n\t%s\n"
           "  Calculate projection along given eigenvectors.\n", ActionFrameCounter::HelpText);
 }
 
@@ -65,9 +66,10 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, ActionInit& init, i
   if (modinfo_->Meta().ScalarType() != MetaData::COVAR &&
       modinfo_->Meta().ScalarType() != MetaData::MWCOVAR &&
       modinfo_->Meta().ScalarType() != MetaData::DIHCOVAR &&
-      modinfo_->Meta().ScalarType() != MetaData::IDEA)
+      modinfo_->Meta().ScalarType() != MetaData::IDEA &&
+      modinfo_->Meta().ScalarType() != MetaData::DATACOVAR)
   {
-    mprinterr("Error: evecs type is not COVAR, MWCOVAR, DIHCOVAR, or IDEA.\n");
+    mprinterr("Error: evecs type is not COVAR, MWCOVAR, DIHCOVAR, DATACOVAR, or IDEA.\n");
     return Action::ERR;
   }
 
@@ -89,6 +91,16 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, ActionInit& init, i
       mprinterr("Error: Number of dihedral data sets %zu does not correspond to"
                 " number of average elements %i\n", DihedralSets_.size()*2, modinfo_->NavgCrd());
       return Action::ERR;
+    }
+  } else if (modinfo_->Meta().ScalarType() == MetaData::DATACOVAR) {
+    DihedralSets_.clear();
+    std::string dataarg = actionArgs.GetStringKey("data");
+    while (!dataarg.empty()) {
+      if (DihedralSets_.AppendSetsFromArgs( ArgList(dataarg), init.DSL() )) {
+        mprinterr("Error: Could not add data sets using argument '%s'\n", dataarg.c_str());
+        return Action::ERR;
+      }
+      dataarg = actionArgs.GetStringKey("data");
     }
   } else {
     // Get mask
@@ -129,6 +141,8 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, ActionInit& init, i
   FrameCounterInfo();
   if (modinfo_->Meta().ScalarType() == MetaData::DIHCOVAR)
     mprintf("\t%zu dihedral data sets.\n", DihedralSets_.size());
+  else if (modinfo_->Meta().ScalarType() == MetaData::DATACOVAR)
+    mprintf("\t%zu data sets.\n", DihedralSets_.size());
   else
     mprintf("\tAtom Mask: [%s]\n", mask_.MaskString());
 
@@ -137,7 +151,9 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, ActionInit& init, i
 
 // Action_Projection::Setup()
 Action::RetType Action_Projection::Setup(ActionSetup& setup) {
-  if (modinfo_->Meta().ScalarType() != MetaData::DIHCOVAR) {
+  if (modinfo_->Meta().ScalarType() != MetaData::DIHCOVAR &&
+      modinfo_->Meta().ScalarType() != MetaData::DATACOVAR)
+  {
     // Setup mask
     if (setup.Top().SetupIntegerMask( mask_ )) return Action::ERR;
     if (mask_.None()) {
@@ -224,6 +240,20 @@ Action::RetType Action_Projection::DoAction(int frameNum, ActionFrame& frm) {
         Vec += 2;
       }
       // TODO: Convert to degrees?
+      float fproj = (float)proj;
+      project_[mode]->Add( frameNum, &fproj );
+    }
+  } else if (modinfo_->Meta().ScalarType() == MetaData::DATACOVAR ) {
+    for (int mode = beg_; mode < end_; ++mode) {
+      DataSet_Modes::AvgIt Avg = modinfo_->AvgBegin();
+      double proj = 0.0;
+      for (Array1D::const_iterator it = DihedralSets_.begin();
+                                   it != DihedralSets_.end(); ++it)
+      {
+        double dval = (*it)->Dval( frm.TrajoutNum() ) - *(Avg++);
+        proj += (dval * *Vec);
+        Vec++;
+      }
       float fproj = (float)proj;
       project_[mode]->Add( frameNum, &fproj );
     }

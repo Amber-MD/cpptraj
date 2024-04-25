@@ -162,6 +162,7 @@
 #include "Action_Keep.h"
 #include "Action_AvgBox.h"
 #include "Action_ToroidalDiffusion.h"
+#include "Action_MinMaxDist.h"
 // ----- ANALYSIS --------------------------------------------------------------
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
@@ -206,6 +207,7 @@
 #include "Analysis_EvalPlateau.h"
 #include "Analysis_TICA.h"
 #include "Analysis_CalcDiffusion.h"
+#include "Analysis_Project.h"
 
 CmdList Command::commands_ = CmdList();
 
@@ -362,6 +364,7 @@ void Command::Init() {
   Command::AddCmd( new Action_MakeStructure(), Cmd::ACT, 1, "makestructure" );
   Command::AddCmd( new Action_Mask(),          Cmd::ACT, 1, "mask" );
   Command::AddCmd( new Action_Matrix(),        Cmd::ACT, 1, "matrix" );
+  Command::AddCmd( new Action_MinMaxDist(),    Cmd::ACT, 2, "mindist", "maxdist" );
   Command::AddCmd( new Action_MinImage(),      Cmd::ACT, 1, "minimage" );
   Command::AddCmd( new Action_Molsurf(),       Cmd::ACT, 1, "molsurf" );
   Command::AddCmd( new Action_MultiDihedral(), Cmd::ACT, 1, "multidihedral" );
@@ -433,6 +436,7 @@ void Command::Init() {
   Command::AddCmd( new Analysis_MultiHist(),   Cmd::ANA, 1, "multihist" );
   Command::AddCmd( new Analysis_Overlap(),     Cmd::ANA, 1, "overlap" ); // hidden 
   Command::AddCmd( new Analysis_PhiPsi(),      Cmd::ANA, 1, "phipsi" );
+  Command::AddCmd( new Analysis_Project(),     Cmd::ANA, 1, "projectdata" );
   Command::AddCmd( new Analysis_Regression(),  Cmd::ANA, 1, "regress" );
   Command::AddCmd( new Analysis_RemLog(),      Cmd::ANA, 1, "remlog" );
   Command::AddCmd( new Analysis_Rms2d(),       Cmd::ANA, 2, "2drms", "rms2d" );
@@ -443,7 +447,7 @@ void Command::Init() {
   Command::AddCmd( new Analysis_Spline(),      Cmd::ANA, 1, "spline" );
   Command::AddCmd( new Analysis_Statistics(),  Cmd::ANA, 2, "stat", "statistics" );
   Command::AddCmd( new Analysis_TI(),          Cmd::ANA, 1, "ti" );
-  Command::AddCmd( new Analysis_TICA(),        Cmd::ANA, 1, "tica" ); // hidden
+  Command::AddCmd( new Analysis_TICA(),        Cmd::ANA, 1, "tica" );
   Command::AddCmd( new Analysis_Timecorr(),    Cmd::ANA, 1, "timecorr" );
   Command::AddCmd( new Analysis_VectorMath(),  Cmd::ANA, 1, "vectormath" );
   Command::AddCmd( new Analysis_Wavelet(),     Cmd::ANA, 1, "wavelet" );
@@ -455,7 +459,6 @@ void Command::Init() {
   Command::AddCmd( new Deprecated_AvgCoord(),    Cmd::DEP, 1, "avgcoord" );
   Command::AddCmd( new Deprecated_DihScan(),     Cmd::DEP, 1, "dihedralscan" );
   Command::AddCmd( new Deprecated_Hbond(),       Cmd::DEP, 2, "acceptor", "donor" );
-  Command::AddCmd( new Deprecated_MinDist(),     Cmd::DEP, 2, "mindist", "maxdist" );
   Command::AddCmd( new Deprecated_ParmBondInfo(),Cmd::DEP, 1, "parmbondinfo" );
   Command::AddCmd( new Deprecated_ParmMolInfo(), Cmd::DEP, 1, "parmmolinfo" );
   Command::AddCmd( new Deprecated_ParmResInfo(), Cmd::DEP, 1, "parmresinfo" );

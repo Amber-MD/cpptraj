@@ -1,6 +1,7 @@
 #ifndef INC_DATASET_MODES_H
 #define INC_DATASET_MODES_H
-#include "DataSet_MatrixDbl.h"
+#include "DataSet.h"
+class DataSet_2D;
 /// Hold eigenvalues/eigenvectors and optionally averaged coords.
 class DataSet_Modes : public DataSet {
   public:
@@ -38,14 +39,26 @@ class DataSet_Modes : public DataSet {
     double* EvectPtr()                     { return evectors_; }
 
     int SetAvgCoords(DataSet_2D const&);
+    int SetAvgCoords(std::vector<double> const&); // TODO deprecate above version for this one
     int SetModes(bool, int, int, const double*, const double*);
     /// Allocate memory for modes data
     int AllocateModes(unsigned int, unsigned int, unsigned int, unsigned int);
+    /// Calculate all eigenvalues/eigenvectors for given matrix
+    int CalcEigen_General(DataSet_2D const&);
+    /// Calculate specific # of eigenvalues/eigenvectors for given symmetric matrix
     int CalcEigen(DataSet_2D const&,int);
+    /// Multiply all elements of the specified eigenvector by given value
+    void MultiplyEvecByFac(int, double);
+    /// Descending sort by absolute value of eigenvalues
+    void SortByAbsEigenvalue();
+    /// Set canonical eigenvector signs
+    void SetCanonicalEvecSigns();
     void PrintModes();
     int EigvalToFreq(double);
     int MassWtEigvect();
     int ReduceVectors();
+    /// Resize so that only the first N modes are saved
+    int ResizeModes(int);
     int Thermo(CpptrajFile&, int, double, double) const;
 
     double Eigenvalue(int i)         const { return evalues_[i];                } // IRED
@@ -58,6 +71,9 @@ class DataSet_Modes : public DataSet {
     bool EvecsAreMassWtd()           const { return evecsAreMassWtd_;           }
     bool EvalsAreFreq()              const { return evalsAreFreq_;              }
   private:
+    /// Class used to sort eigenvalue/index pairs
+    class EvIdxPair;
+
     int ReduceCovar();
     int ReduceDistCovar();
 

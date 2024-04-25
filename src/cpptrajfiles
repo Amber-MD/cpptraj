@@ -52,6 +52,7 @@ COMMON_SOURCES= \
         Action_MakeStructure.cpp \
         Action_Mask.cpp \
         Action_Matrix.cpp \
+        Action_MinMaxDist.cpp \
         Action_MinImage.cpp \
         Action_Molsurf.cpp \
         Action_MultiDihedral.cpp \
@@ -123,6 +124,7 @@ COMMON_SOURCES= \
         Analysis_MultiHist.cpp \
         Analysis_Overlap.cpp \
         Analysis_PhiPsi.cpp \
+        Analysis_Project.cpp \
         Analysis_Regression.cpp \
         Analysis_RemLog.cpp \
         Analysis_Rms2d.cpp \
@@ -163,6 +165,9 @@ COMMON_SOURCES= \
         ComplexArray.cpp \
         Constraints.cpp \
         ControlBlock_For.cpp \
+        CoordCovarMatrix.cpp \
+        CoordCovarMatrix_Full.cpp \
+        CoordCovarMatrix_Half.cpp \
         CoordinateInfo.cpp \
         Corr.cpp \
         Cph.cpp \
@@ -201,6 +206,7 @@ COMMON_SOURCES= \
         DataSet.cpp \
         DataSetList.cpp \
         DataSet_1D.cpp \
+        DataSet_2D.cpp \
         DataSet_3D.cpp \
         DataSet_Coords.cpp \
         DataSet_Coords_CRD.cpp \
@@ -339,6 +345,7 @@ COMMON_SOURCES= \
         Image_List_Mask.cpp \
         Image_List_Pair.cpp \
         Image_List_Unit.cpp \
+        InteractionData.cpp \
         InputTrajCommon.cpp \
         KDE.cpp \
         LeapInterface.cpp \

@@ -498,6 +498,15 @@ int Frame::SetupFrameFromMask(AtomMask const& maskIn, std::vector<Atom> const& a
   return 0;
 }
 
+/** Set up frame to hold selected number of atoms in given mask.
+  * All masses will be 1.0.
+  */
+int Frame::SetupFrameFromMask(AtomMask const& maskIn) {
+  ReallocateX( maskIn.Nselected() );
+  Mass_.assign( maskIn.Nselected(), 1.0 );
+  return 0;
+}
+
 // ---------- FRAME Add/remove components --------------------------------------
 int Frame::AddVelocities(Darray const& vIn) {
   if ((int)vIn.size() != ncoord_) {

@@ -1,15 +1,21 @@
-#include <cmath> // sqrt
 #include "DataSet_Modes.h"
-#include "CpptrajStdio.h"
 #include "ArgList.h"
 #include "Constants.h" // PI, TWOPI
+#include "CpptrajStdio.h"
+#include "DataSet_2D.h"
+#include "DataSet_MatrixDbl.h"
 #include "Frame.h"
+#include <cmath> // sqrt, fabs
+#include <algorithm> // std::sort
 
 #ifndef NO_MATHLIB
 // Definition of Fortran subroutines called from this class
 extern "C" {
   // LAPACK
+  /// Compute the eigenvalues and (optionally) the left and/or right eigenvectors for a symmetric matrix
   void dspev_(char&, char&, int&, double*, double*, double*, int&, double*, int&);
+  /// Compute the eigenvalues and (optionally) the left and/or right eigenvectors for a general matrix
+  void dgeev_(char&, char&, int&, double*, int&, double*, double*, double*, int&, double*, int&, double*, int&, int&);
   // ARPACK
   void dsaupd_(int&, char&, int&, char*, int&, double&, double*,
                int&, double*, int&, int*, int*, double*, double*,
@@ -23,7 +29,7 @@ extern "C" {
 
 const char* DataSet_Modes::DeprecateFileMsg = "Modes should be read in prior to this command with 'readdata'\n";
 
-// CONSTRUCTOR
+/** CONSTRUCTOR */
 DataSet_Modes::DataSet_Modes() :
   // 0 dim indicates DataSet-specific write
   DataSet(MODES, GENERIC, TextFormat(TextFormat::DOUBLE, 10, 5), 0),
@@ -54,6 +60,12 @@ size_t DataSet_Modes::MemUsageInBytes() const {
   if (evectors_ != 0)
     mySize += ((size_t)nmodes_ * (size_t)vecsize_ * sizeof(double));
   return mySize;
+}
+
+/** Set average coords */
+int DataSet_Modes::SetAvgCoords(std::vector<double> const& avgIn) {
+  avgcrd_ = avgIn;
+  return 0;
 }
 
 // DataSet_Modes::SetAvgCoords()
@@ -133,8 +145,29 @@ int DataSet_Modes::AllocateModes(unsigned int n_eigenvalues, unsigned int evects
   return 0;
 }
 
-/** Get n_to_calc eigenvectors and eigenvalues from given matrix. They will be
-  * stored in descending order (largest eigenvalue first).
+/** Get all eigenvectors and eigenvalues from given matrix. They
+  * will be stored in descending order (largest eigenvalue first).
+  */
+int DataSet_Modes::CalcEigen_General(DataSet_2D const& mIn) {
+# ifdef NO_MATHLIB
+  mprinterr("Error: Compiled without LAPACK/BLAS routines.\n");
+  return 1;
+# else
+  int n_to_calc = mIn.Ncols();
+
+  if (mIn.IsSymmetric()) {
+    return CalcEigen(mIn, n_to_calc);
+  }
+
+  // If we are here, mIn is not symmetric. Need to solve general eigenvalue problem.
+  mprinterr("Internal Error: DataSet_Modes::CalcEigen: Non-symmetric matrix calc not yet implemented.\n");
+
+  return 1;
+# endif /* NO_MATHLIB */
+}
+
+/** Get n_to_calc eigenvectors and eigenvalues from given symmetric matrix.
+  * They will be stored in descending order (largest eigenvalue first).
   */
 int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
 # ifdef NO_MATHLIB
@@ -144,9 +177,33 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
   bool eigenvaluesOnly = false;
   int info = 0;
   int ncols = (int)mIn.Ncols();
-  if (mIn.MatrixKind() != DataSet_2D::HALF) {
-    mprinterr("Error: Eigenvector/value calc only for symmetric matrices.\n");
-    return 1;
+  double* mat = 0;
+  // Create copy of matrix since call to dspev destroys it
+  if (mIn.MatrixKind() == DataSet_2D::HALF) {
+    mat = mIn.MatrixArray();
+  } else {
+    // FULL or TRI matrix. Convert to HALF form.
+    // Check that Matrix is symmetric.
+    if (mIn.Nrows() != mIn.Ncols()) {
+      mprinterr("Error: # of rows in '%s' != # of columns; cannot calculate eigenvectors/values.\n",
+                mIn.legend());
+      return 1;
+    }
+    if (!mIn.IsSymmetric()) {
+      mprintf("Warning: DataSet_Modes::CalcEigen(): Matrix '%s' does not appear to be symmetric.\n",
+              mIn.legend());
+      // TODO report most dissimilar i,j pair?
+    }
+    //mprinterr("Error: Eigenvector/value calc only for symmetric matrices.\n");
+    //return 1;
+    unsigned int matsize = mIn.Ncols() * (mIn.Ncols() + 1) / 2;
+    mat = new double[matsize];
+    unsigned int idx = 0;
+    for (unsigned int row = 0; row < mIn.Nrows(); row++) {
+      for (unsigned int col = row; col < mIn.Ncols(); col++) {
+        mat[idx++] = mIn.GetElement(row, col); // row,col is lower, col,row is upper
+      }
+    }
   }
   // If number to calc is 0, assume we want eigenvalues only
   if (n_to_calc < 1) {
@@ -169,9 +226,9 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
   }
 # endif
   if (eigenvaluesOnly)
-    mprintf("\tCalculating eigenvalues only.\n");
+    mprintf("\tCalculating eigenvalues only for %s.\n", mIn.legend());
   else
-    mprintf("\tCalculating eigenvectors and eigenvalues.\n");
+    mprintf("\tCalculating eigenvectors and eigenvalues for %s.\n", mIn.legend());
   // -----------------------------------------------------------------
   if (calcAll) {
     mprintf("\tCalculating all eigenmodes.\n");
@@ -192,8 +249,7 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
     // Set up space to hold eigenvalues
     if (evalues_ != 0) delete[] evalues_;
     evalues_ = new double[ ncols ];
-    // Create copy of matrix since call to dspev destroys it
-    double* mat = mIn.MatrixArray();
+
     // Lower triangle; not upper since fortran array layout is inverted w.r.t. C/C++
     char uplo = 'L'; 
     // Allocate temporary workspace
@@ -432,6 +488,107 @@ int DataSet_Modes::MassWtEigvect() {
   }
   evecsAreMassWtd_ = true;
   return 0;
+}
+
+/** Resize so that only the first N modes are saved. */
+int DataSet_Modes::ResizeModes(int NtoSave) {
+  if (NtoSave < 1) {
+    mprinterr("Internal Error: DataSet_Modes::ResizeModes: # of modes to save < 1\n");
+    return 1;
+  }
+  if (NtoSave >= nmodes_) {
+    mprintf("\tNo need to resize modes %s; # to keep (%i) >= # modes (%i)\n",
+            legend(), NtoSave, nmodes_);
+    return 0;
+  }
+  // Resize values
+  double* newEvals = new double[ NtoSave ];
+  std::copy( evalues_, evalues_ + NtoSave, newEvals );
+  delete[] evalues_;
+  evalues_ = newEvals;
+  // Resize vectors
+  unsigned int newSize = NtoSave * vecsize_;
+  double* newEvecs = new double[ newSize ];
+  std::copy( evectors_, evectors_ + newSize, newEvecs );
+  delete[] evectors_;
+  evectors_ = newEvecs;
+
+  nmodes_ = NtoSave;
+  return 0;
+}
+
+/** Multiply all elements of specified eigenvector by a factor */
+void DataSet_Modes::MultiplyEvecByFac(int nvec, double fac) {
+  double* evec = evectors_ + (nvec * vecsize_);
+  for (int jj = 0; jj < vecsize_; jj++)
+    evec[jj] *= fac;
+}
+
+/// Class used to sort eigenvalue/index pairs
+class DataSet_Modes::EvIdxPair {
+  public:
+    EvIdxPair(double e, int i) : eval_(e), idx_(i) {}
+
+    bool operator<(EvIdxPair const& rhs) const {
+      return (eval_ > rhs.eval_);
+    }
+    double Eval() const { return eval_; }
+    int Idx() const { return idx_; }
+  private:
+    double eval_;
+    int idx_;
+};
+
+/** Sort eigenvectors and eigenvalues in descending order of abs(eigenvalue) */
+void DataSet_Modes::SortByAbsEigenvalue() {
+  // Create eigenvalue/index pairs
+  typedef std::vector<EvIdxPair> Earray;
+
+  Earray Pairs;
+  for (int ii = 0; ii < nmodes_; ii++)
+    Pairs.push_back( EvIdxPair(fabs(evalues_[ii]), ii) );
+  // Sort by abs(eigenvalue)
+  std::sort( Pairs.begin(), Pairs.end() );
+  // Recreate the vectors array, sorted
+  double* newEvals = new double[ nmodes_ ];
+  double* newEvecs = new double[ nmodes_ * vecsize_ ];
+  for (Earray::const_iterator it = Pairs.begin(); it != Pairs.end(); ++it) {
+    newEvals[it - Pairs.begin()] = evalues_[it->Idx()];
+    double* evecNew = newEvecs + ((it - Pairs.begin()) * vecsize_);
+    const double* evecOld = evectors_ + (it->Idx() * vecsize_);
+    std::copy( evecOld, evecOld + vecsize_, evecNew );
+  }
+  delete[] evectors_;
+  delete[] evalues_;
+  evalues_ = newEvals;
+  evectors_ = newEvecs;
+}
+
+/** Enforce canonical eigenvector signs by multiplying every element of each
+  * eigenvector by the sign of the element with the greatest absolute value.
+  */
+void DataSet_Modes::SetCanonicalEvecSigns() {
+  for (int ii = 0; ii < Nmodes(); ii++) {
+    // Find the maximum absolute value of the eigenvector
+    double abs_maxval = 0;
+    int abs_maxidx = 0;
+    const double* evec = Eigenvector(ii);
+    for (int jj = 0; jj < VectorSize(); jj++) {
+      double dval = fabs( evec[jj] );
+      if ( dval > abs_maxval ) {
+        abs_maxval = dval;
+        abs_maxidx = jj;
+      }
+    }
+    //mprintf("argmax %i %i %g\n", ii, abs_maxidx, evec[abs_maxidx]); // DEBUG
+    double sign;
+    if ( evec[abs_maxidx] < 0 )
+      sign = -1.0;
+    else
+      sign =  1.0;
+    // Multiply all elements of the eigenvector by the sign of the max abs element
+    MultiplyEvecByFac( ii, sign );
+  }
 }
 
 // DataSet_Modes::ReduceVectors() 

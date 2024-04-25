@@ -1,9 +1,9 @@
 #ifndef INC_ACTION_PROJECTION_H
 #define INC_ACTION_PROJECTION_H
 #include "Action.h"
-#include "DataSet_Modes.h"
 #include "ActionFrameCounter.h"
 #include "Array1D.h"
+class DataSet_Modes;
 /// project snapshots on normal modes
 class Action_Projection : public Action, ActionFrameCounter {
   public:

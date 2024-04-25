@@ -50,6 +50,7 @@ const char* DataIO_Evecs::MatrixOutputString(MetaData::scalarType typeIn) {
     case MetaData::IDEA :      ptr = "IDEA"; break;
     case MetaData::IREDMAT  :  ptr = "IRED"; break;
     case MetaData::DIHCOVAR :  ptr = "DIHCOVAR"; break;
+    case MetaData::DATACOVAR : ptr = "DATACOVAR"; break;
     default:                  ptr = "UNKNOWN";
   }
   return ptr;

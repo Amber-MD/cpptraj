@@ -20011,7 +20011,7 @@ Mod
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="90" columns="3">
+<lyxtabular version="3" rows="91" columns="3">
 <features islongtable="true" longtabularalignment="center">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="65text%">
@@ -21398,6 +21398,36 @@ matrix
 
 \begin_layout Plain Layout
 Calculate a matrix of the specified type from input coordinates.
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+mindist/maxdist
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Calculate the minimum or maximum distance between pairs of atoms/residues/molecu
+les.
 \end_layout
 
 \end_inset
@@ -34322,24 +34352,128 @@ matrix dist @CA out distmat.dat
 \end_layout
 
 \begin_layout Subsection
-mindist
+mindist/maxdist
+\end_layout
+
+\begin_layout LyX-Code
+{min|max}dist mask1 <mask1> [mask2 <mask2>] [{byatom|byres|bymol}]
+\end_layout
+
+\begin_layout LyX-Code
+              [noimage] [name <setname>] [out <file>] [resoffset <#>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+mask1
+\begin_inset space ~
+\end_inset
+
+<mask1> First mask for selecting atoms.
+\end_layout
+
+\begin_layout Description
+[mask2
+\begin_inset space ~
+\end_inset
+
+<mask2>] Optional second mask for selecting atoms.
+\end_layout
+
+\begin_layout Description
+[{byatom|byres|bymol}]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+byatom Report the minimum or maximum distance between atoms in <mask1> or
+ between atoms in <mask1> and atoms in <mask2>.
+\end_layout
+
+\begin_layout Description
+byres Report the minimum or maximum distance between all residue pairs selected
+ by <mask1>, or pairs of residues selected by <mask1> and residues selected
+ by <mask2> (excluding certain pairs, see 
+\series bold
+resoffset
+\series default
+).
+\end_layout
+
+\begin_layout Description
+bymol Report the minimum or maximum distance between all molecule pairs
+ selected by <mask1>, or pairs of molecules selected by <mask1> and molecules
+ selected by <mask2>.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[noimage] Do not use the minimum image convention for distances.
+\end_layout
+
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<setname>] Output data set name.
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<file>] Write data to <file>.
+\end_layout
+
+\begin_layout Description
+[resoffset
+\begin_inset space ~
+\end_inset
+
+<#>] For 
+\series bold
+byres
+\series default
+, ignore residue pairs if the difference in residue numbers is greater than
+ the cutoff (default 1).
 \end_layout
 
 \begin_layout Standard
-This functionality is now part of the 
+Data Sets Created:
+\end_layout
+
+\begin_layout Description
+<name> For 
 \series bold
-\emph on
-nativecontacts
+byatom
 \series default
-\emph default
- command; see 
-\begin_inset CommandInset ref
-LatexCommand vref
-reference "subsec:cpptraj-nativecontacts"
+, a set containing the minimum or maximum distance for each frame.
+\end_layout
 
-\end_inset
+\begin_layout Description
+<name>[<#>_<#>] For 
+\series bold
+byres
+\series default
+/
+\series bold
+b
+\series default
+ymol, a set containing the minimum or maximum distance between the residue/molec
+ule pair specified by the numbers in the aspect, e.g.
+ '<name>[1_3]' for 
+\series bold
+byres
+\series default
+ would be between residues 1 and 3.
+\end_layout
 
-.
+\end_deeper
+\begin_layout Standard
+Calculate the minimum or maximum distance in Angstroms between atoms or
+ residue/molecule pairs.
 \end_layout
 
 \begin_layout Subsection
@@ -37122,6 +37256,13 @@ principal :1-76 dorotation out principal.dat
 
 \begin_layout Subsection
 projection
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj-projection"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout LyX-Code
@@ -37130,7 +37271,7 @@ projection [<name>] evecs <dataset name> [out <outfile>] [beg <beg>] [end
 \end_layout
 
 \begin_layout LyX-Code
-           [<mask>] [dihedrals <dataset arg>]
+           {[<mask>] | [dihedrals <dataset arg>] | [data <dataset arg> ...]}
 \end_layout
 
 \begin_layout LyX-Code
@@ -37201,6 +37342,21 @@ arg>] (Dihedral covariance only) Dihedral data sets to use in projection;
 \end_layout
 
 \begin_layout Description
+[data
+\begin_inset space ~
+\end_inset
+
+<dataset
+\begin_inset space ~
+\end_inset
+
+arg>] (Data covariance only, e.g.
+ from TICA).
+ 1D data sets to use in projection; MUST CORRESPOND TO HOW EIGENVECTORS
+ WERE GENERATED.
+\end_layout
+
+\begin_layout Description
 [start
 \begin_inset space ~
 \end_inset
@@ -37263,6 +37419,12 @@ Projects snapshots onto eigenvectors obtained by diagonalizing covariance
 diagmatrix
 \series default
 \shape default
+/
+\series bold
+\emph on
+tica
+\series default
+\emph default
 ) or previously read-in (e.g.
  with 
 \series bold
@@ -37283,9 +37445,11 @@ readdata
 
 \family sans
 \series bold
+\emph on
 matrix
 \family default
 \series default
+\emph default
 
 \begin_inset Quotes erd
 \end_inset
@@ -37305,6 +37469,23 @@ projection
 \series default
 \emph default
  command.
+ If only 1D data sets need to be projected, see the 
+\series bold
+\emph on
+projectdata
+\series default
+\emph default
+ analysis command, 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-projectdata"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
 \end_layout
 
 \begin_layout Subsection
@@ -43058,7 +43239,7 @@ trajin
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="48" columns="3">
+<lyxtabular version="3" rows="50" columns="3">
 <features islongtable="true" longtabularalignment="center">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="50text%">
@@ -44097,6 +44278,35 @@ N phi/psi dihedrals
 \begin_inset Text
 
 \begin_layout Plain Layout
+projectdata
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Project data along eigenmodes.
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+eigenmodes, N 1D scalar
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
 regress
 \end_layout
 
@@ -44355,6 +44565,35 @@ Peform Gaussian quadrature integration for given DV/DL data sets.
 
 \begin_layout Plain Layout
 N 1D scalar
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+tica
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Perform time-independent correlation analysis.
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+COORDS, N 1D scalar
 \end_layout
 
 \end_inset
@@ -48219,7 +48458,7 @@ name "subsec:diagmatrix-|-analyze"
 \end_layout
 
 \begin_layout LyX-Code
-diagmatrix <name> [out <filename>] [thermo [outthermo <filename>]]
+diagmatrix <matrix name> [out <filename>] [thermo [outthermo <filename>]]
 \end_layout
 
 \begin_layout LyX-Code
@@ -48238,7 +48477,11 @@ diagmatrix <name> [out <filename>] [thermo [outthermo <filename>]]
 \begin_layout Description
 
 \series bold
-<name>
+<matrix
+\begin_inset space ~
+\end_inset
+
+name>
 \series default
  Name of symmetric matrix to diagonalize.
 \end_layout
@@ -51557,6 +51800,130 @@ phipsi DPDP[phi] DPDP[psi] out phipsi.dat resrange 1-22
 \end_layout
 
 \begin_layout Subsection
+projectdata
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj-projectdata"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout LyX-Code
+projectdata evecs <evecs dataset> [name <name>] [out <outfile>] [beg <beg>]
+ [end <end>]
+\end_layout
+
+\begin_layout LyX-Code
+            {[dihedrals <dataset arg>] | [data <dataset arg> ...]}
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+evecs
+\begin_inset space ~
+\end_inset
+
+<dataset
+\begin_inset space ~
+\end_inset
+
+name> Data set containing eigenvectors (modes).
+\end_layout
+
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<name>] Output data set name.
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<outfile>] Write projections to <outfile>.
+\end_layout
+
+\begin_layout Description
+[beg
+\begin_inset space ~
+\end_inset
+
+<beg>] First eigenvector/mode to use (default 1).
+\end_layout
+
+\begin_layout Description
+[end
+\begin_inset space ~
+\end_inset
+
+<end>] Final eigenvector/mode to use (default 2).
+\end_layout
+
+\begin_layout Description
+[dihedrals
+\begin_inset space ~
+\end_inset
+
+<dataset
+\begin_inset space ~
+\end_inset
+
+arg>] (Dihedral covariance only) Dihedral data sets to use in projection;
+ MUST CORRESPOND TO HOW EIGENVECTORS WERE GENERATED.
+\end_layout
+
+\begin_layout Description
+[data
+\begin_inset space ~
+\end_inset
+
+<dataset
+\begin_inset space ~
+\end_inset
+
+arg>] (Data covariance only, e.g.
+ from TICA).
+ 1D data sets to use in projection; MUST CORRESPOND TO HOW EIGENVECTORS
+ WERE GENERATED.
+\end_layout
+
+\begin_layout Standard
+Data Sets Created:
+\end_layout
+
+\begin_layout Description
+<name>:<#> Projection data set for mode <#>.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Project data along previously generated eigenmodes from e.g.
+ PCA or TICA.
+ This is a faster alternative to the 
+\series bold
+\emph on
+projection
+\series default
+\emph default
+ command (
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-projection"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+) if only 1D data sets need to be projected.
+\end_layout
+
+\begin_layout Subsection
 regress
 \end_layout
 
@@ -53659,6 +54026,172 @@ For example, to perform Gaussian quadrature integration using data sets
 \begin_layout LyX-Code
 ti TIdata nq 9 name Curve out skip.agr curveout curve.agr nskip 0,5,10,15,20,30,40
 ,50
+\end_layout
+
+\begin_layout Subsection
+tica
+\end_layout
+
+\begin_layout LyX-Code
+tica { crdset <COORDS set name> [mask <mask>] |
+\end_layout
+
+\begin_layout LyX-Code
+       data <input set arg1> ...
+ }
+\end_layout
+
+\begin_layout LyX-Code
+     [lag <time lag>] [map {kinetic|commute|none}]
+\end_layout
+
+\begin_layout LyX-Code
+     [name <output set name>] [out <file>] [cumvarout <file>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+crdset
+\begin_inset space ~
+\end_inset
+
+<COORDS
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name> Input coordinates (COORDS) data set.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+mask
+\begin_inset space ~
+\end_inset
+
+<mask> Selected atoms in input coordinates (COORDS) data set.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+data
+\begin_inset space ~
+\end_inset
+
+<input
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+arg1> Input 1D data set name(s), may specify more than once.
+ If any data set is periodic, all need to be periodic.
+\end_layout
+
+\begin_layout Description
+lag
+\begin_inset space ~
+\end_inset
+
+<time
+\begin_inset space ~
+\end_inset
+
+lag> TICA lag time in frames.
+\end_layout
+
+\begin_layout Description
+map
+\begin_inset space ~
+\end_inset
+
+{kinetic|commute|none} How to transform the resulting eigenvectors.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+kinetic (default) Scale eigenvectors by eigenvalues so that distances in
+ the transformed data approximate kinetic distances; particularly useful
+ if using the projections to cluster.
+\end_layout
+
+\begin_layout Description
+commute Scale eigenvectors by regularized time scales, sqrt(timescale_i
+ / 2), so that distances in the transformed data will approximate commute
+ distances.
+ Timescales smaller than the lag time are dampened.
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Noe2016"
+literal "true"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Description
+none Do not scale eigenvectors.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+name
+\begin_inset space ~
+\end_inset
+
+<output
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name> Output data set name.
+\end_layout
+
+\begin_layout Description
+out
+\begin_inset space ~
+\end_inset
+
+<file> File to write TICA modes to.
+\end_layout
+
+\begin_layout Description
+cumvarout
+\begin_inset space ~
+\end_inset
+
+<file> File to write eigenvalue cumulative variance to.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Perform time-independent correlation analysis (TICA).
+ Similar to principal component analysis (PCA), TICA calculates eigenvectors/eig
+envalues (i.e.
+ eigenmodes) from input data sets (either coordinates or a combination of
+ other 1D data sets).
+ Whereas the eigenvectors from PCA describe the variance in the input data,
+ the eigenvectors from TICA describe the maximal autocorrelation in the
+ input data at the given lag time.
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Perez2013"
+literal "true"
+
+\end_inset
+
+ The analysis can be performed on either coordinates or 1D data sets; the
+ data sets can either be all periodic (in which case they will be converted
+ to cos/sin form) or not.
 \end_layout
 
 \begin_layout Subsection

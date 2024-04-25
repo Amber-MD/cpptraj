@@ -292,6 +292,16 @@ int DataFile::SetupDatafile(FileName const& fnameIn, ArgList& argIn,
     dfType_ = (DataFormatType)FileTypes::GetTypeFromExtension(DF_WriteKeyArray, filename_.Ext(),
                                                               DATAFILE);
   // Set up DataIO based on format.
+  std::vector<DataSet*> previousSets;
+  if (dataio_ != 0) {
+    delete dataio_;
+    if (!SetList_.empty()) {
+      // Save current sets so they can be re-added with the new DataIO object
+      for (DataSetList::const_iterator it = SetList_.begin(); it != SetList_.end(); ++it)
+        previousSets.push_back( *it );
+    }
+    SetList_.ClearAll();
+  }
   dataio_ = (DataIO*)FileTypes::AllocIO( DF_AllocArray, dfType_, false );
   if (dataio_ == 0) return Error("Error: Data file allocation failed.\n");
   dataio_->SetDebug( debug_ );
@@ -301,6 +311,15 @@ int DataFile::SetupDatafile(FileName const& fnameIn, ArgList& argIn,
 # endif
   if (!argIn.empty())
     ProcessArgs( argIn );
+  // Re-add sets if necessary
+  if (!previousSets.empty()) {
+    for (std::vector<DataSet*>::const_iterator it = previousSets.begin(); it != previousSets.end(); ++it) {
+      if ( AddDataSet( *it ) ) {
+        mprinterr("Error: Could not add set '%s' to file '%s'\n", (*it)->legend(), filename_.full());
+        return 1;
+      }
+    }
+  }
   return 0;
 }
 
@@ -616,6 +635,8 @@ void DataFile::SetDataFilePrecision(int widthIn, int precisionIn) {
   default_width_ = widthIn;
   default_precision_ = precisionIn;
   SetList_.SetPrecisionOfDataSets("*", widthIn, precisionIn);
+  // Indicate file needs to be written
+  dflWrite_ = true;
 }
 
 // DataFile::DataSetNames()

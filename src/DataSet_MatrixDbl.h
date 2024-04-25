@@ -25,7 +25,9 @@ class DataSet_MatrixDbl : public DataSet_2D {
     int AllocateHalf(size_t x)                 { kind_=HALF; return mat_.resize(x,0); }
     int AllocateTriangle(size_t x)             { kind_=TRI;  return mat_.resize(0,x); }
     void UpdateElement(size_t x,size_t y,double v) { mat_.updateElement(x,y,v); }
+    void UpdateElement(size_t i, double d)         { mat_[i] += d; }
     void SetElement(size_t x,size_t y,double d)    { mat_.setElement(x,y,d);    }
+    void SetElement(size_t i, double d)            { mat_[i] = d; }
     double GetElement(size_t x,size_t y) const { return mat_.element(x,y); }
     double GetElement(size_t i)          const { return mat_[i];           }
     size_t Nrows()                       const { return mat_.Nrows();      }
@@ -34,6 +36,8 @@ class DataSet_MatrixDbl : public DataSet_2D {
     MatrixKindType MatrixKind()          const { return kind_;             }
     const void* MatrixPtr()              const { return mat_.Ptr();        }
     void* MatrixPtr()                          { return mat_.Ptr();        }
+    void Clear();
+    void Normalize(double);
     // -------------------------------------------
     unsigned int Nsnapshots()            const { return snap_;              }
     void IncrementSnapshots()                  { ++snap_;                   }

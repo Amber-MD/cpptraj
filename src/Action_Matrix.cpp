@@ -853,6 +853,10 @@ void Action_Matrix::FinishCovariance(size_t element_size) {
   double Mass = 1.0;
   double mass2 = 1.0;
 
+//  mprintf("DEBUG: First 3 elements: %f %f %f\n",
+//          Mat_->GetElement(0, 0),
+//          Mat_->GetElement(1, 0),
+//          Mat_->GetElement(2, 0));
   DataSet_MatrixDbl::iterator mat = Mat_->begin();
   // Calc <riri> - <ri><ri>
   Vect2MinusVect(); // Is vect2 used?
@@ -862,6 +866,14 @@ void Action_Matrix::FinishCovariance(size_t element_size) {
     M_iterator m2 = mass2_.begin();
     // Position for mask2 halfway through vect/vect2
     v_iterator v1idx2begin = Mat_->v1begin() + Mat_->Ncols();
+//    mprintf("DEBUG: First 3 elements of V1: %f %f %f\n",
+//            *(Mat_->v1begin()),
+//            *(Mat_->v1begin() + 1),
+//            *(Mat_->v1begin() + 2));
+//    mprintf("DEBUG: First 3 elements of V2: %f %f %f\n",
+//            *(v1idx2begin),
+//            *(v1idx2begin + 1),
+//            *(v1idx2begin + 2));
     for (v_iterator v1idx2 = v1idx2begin; v1idx2 != Mat_->v1end(); v1idx2 += element_size)
     {
       if (Mat_->Meta().ScalarType() == MetaData::MWCOVAR)
@@ -874,6 +886,7 @@ void Action_Matrix::FinishCovariance(size_t element_size) {
           if (Mat_->Meta().ScalarType() == MetaData::MWCOVAR)
             Mass = sqrt( mass2 * *(m1++) );
           for (unsigned int idx = 0; idx < element_size; ++idx) {
+            //mprintf("mat = (%f - (%f * %f)) * %f\n", *mat, Vi, *(v1idx1+idx), Mass); // DEBUG
             *mat = (*mat - (Vi * *(v1idx1+idx))) * Mass;
             ++mat;
           }

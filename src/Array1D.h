@@ -24,8 +24,15 @@ class Array1D {
     void SortArray1D();
     int AddDataSets(DataSetList const&);
     int AddTorsionSets(DataSetList const&);
+    /// Add sets to the list, clear first
     int AddSetsFromArgs(ArgList const&, DataSetList const&);
+    /// Append sets to the list
+    int AppendSetsFromArgs(ArgList const&, DataSetList const&);
+    /// \return the internal array
+    std::vector<DataSet_1D*> const& Array() const { return array_; }
   private:
+    int addSetsFromArgs(ArgList const&, DataSetList const&, bool);
+
     std::vector<DataSet_1D*> array_;
 };
 #endif

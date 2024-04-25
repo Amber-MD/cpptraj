@@ -16,7 +16,7 @@ const char* MetaData::Stypes[] = {
   // Matrix
   "distance",    "covariance",          "mass-weighted covariance",
   "correlation", "distance covariance", "IDEA",
-  "IRED",        "dihedral covariance",
+  "IRED",        "dihedral covariance", "data covariance",
   // Vector
   "IRED",
   "notype" };
@@ -29,7 +29,7 @@ const MetaData::scalarMode MetaData::TypeModes[] = {
   M_DISTANCE,
   M_MATRIX,  M_MATRIX, M_MATRIX,
   M_MATRIX,  M_MATRIX, M_MATRIX,
-  M_MATRIX,  M_MATRIX,
+  M_MATRIX,  M_MATRIX, M_MATRIX,
   M_VECTOR,
   UNKNOWN_MODE };
 
