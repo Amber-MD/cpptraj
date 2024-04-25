@@ -3,13 +3,14 @@
 #include "CoordCovarMatrix_Full.h"
 #include "CoordCovarMatrix_Half.h"
 #endif
+#include "Constants.h" // PI
 #include "CpptrajStdio.h"
 #include "DataSet_1D.h"
 #include "DataSet_double.h"
 #include "DataSet_MatrixDbl.h"
 #include "DataSet_Modes.h"
 #include "ProgressBar.h"
-#include <cmath> //sqrt, fabs
+#include <cmath> //sqrt, fabs, log
 #include <algorithm> // std::max
 
 /** CONSTRUCTOR */
@@ -33,6 +34,21 @@ Analysis_TICA::Analysis_TICA() :
 Analysis_TICA::~Analysis_TICA() {
   for (std::vector<DataSet_1D*>::iterator it = cossin_.begin(); it != cossin_.end(); ++it)
     delete *it;
+}
+
+/// DEBUG: Write Darray to a file
+static void DarrayOut(const char* fname, std::vector<double> const& array, const char* fmt)
+{
+  CpptrajFile outfile;
+  if (outfile.OpenWrite(fname)) {
+    mprinterr("Error: Could not open %s\n", fname);
+    return;
+  }
+  for (std::vector<double>::const_iterator it = array.begin(); it != array.end(); ++it) {
+    outfile.Printf(fmt, *it);
+    outfile.Printf("\n");
+  }
+  outfile.CloseFile();
 }
 
 // Analysis_TICA::Help()
@@ -284,9 +300,25 @@ Analysis::RetType Analysis_TICA::Analyze() {
       ticaModes_->MultiplyEvecByFac( ii, ticaModes_->Eigenvalue(ii) );
   } else if (evectorScale_ == COMMUTE_MAP) {
     // Weight eigenvectors by regularized time scales
-    mprinterr("Internal Error: Commute_map not yet implemented.\n");
-    return Analysis::ERR;
+    Darray timescales;
+    timescales.reserve( ticaModes_->Nmodes() );
+    for (int ii = 0; ii < ticaModes_->Nmodes(); ii++) {
+      timescales.push_back( 1 - lag_ / log(fabs(ticaModes_->Eigenvalue(ii))) );
+    }
+    DarrayOut("test.timescales.dat", timescales, "%12.8f");
+    // Dampen timescales < lag time
+    Darray reg_timescales;
+    reg_timescales.reserve( timescales.size() );
+    for (Darray::const_iterator it = timescales.begin(); it != timescales.end(); ++it) {
+      double dval = tanh(Constants::PI * ((*it - lag_) / lag_) + 1);
+      dval = std::max(dval, 0.0);
+      //mprintf("DEBUG: dval %li %12.8f\n", it - timescales.begin(), dval);
+      reg_timescales.push_back( 0.5 * *it * dval );
+      ticaModes_->MultiplyEvecByFac( it - timescales.begin(), sqrt(reg_timescales.back() / 2.0) );
+    }
+    DarrayOut("test.regts.dat", reg_timescales, "%12.8f");
   }
+
   // Calculate cumulative variance
   cumulativeVariance_->Allocate(DataSet::SizeArray(1, ticaModes_->Nmodes()));
   double cumulativeSum = 0;
