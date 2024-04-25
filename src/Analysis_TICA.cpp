@@ -502,7 +502,7 @@ const
   md.SetScalarMode( MetaData::M_MATRIX );
   md.SetScalarType( MetaData::DATACOVAR );
   ticaModes_->SetMeta( md );
-  unsigned int Ncols = sets_.size(); // FIXME
+  unsigned int Ncols = sets_.size();
 
   matXXYY->AllocateHalf( Ncols );
   matXYYX->AllocateHalf( Ncols );
@@ -536,7 +536,7 @@ const
   md.SetScalarMode( MetaData::M_MATRIX );
   md.SetScalarType( MetaData::COVAR );
   ticaModes_->SetMeta( md );
-  unsigned int Ncols = mask1_.Nselected() * 3; // FIXME
+  unsigned int Ncols = mask1_.Nselected() * 3;
   unsigned int Nrows = Ncols;
 
   matXXYY->AllocateHalf( Ncols );

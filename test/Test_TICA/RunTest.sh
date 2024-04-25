@@ -35,6 +35,7 @@ distance d4.9  :4@CA :9@CA
 distance d5.8  :5@CA :8@CA
 rms R0 first @CA
 tica data R0 data d* name TICA lag 10 out tz2.ticamodes.dat cumvarout tz2.cumvar.dat
+tica data R0 data d* name TICA2 lag 10 map commute out tz2.tica2modes.dat
 run
 writedata tz2.raw.dat R0 d*
 
@@ -46,6 +47,7 @@ RunCpptraj "TICA test, 1D data sets."
 DoTest tz2.ticamodes.dat.save tz2.ticamodes.dat
 DoTest tz2.cumvar.dat.save tz2.cumvar.dat
 DoTest tz2.project.dat.save tz2.project.dat
+DoTest tz2.tica2modes.dat.save tz2.tica2modes.dat
 
 cat > tica.in <<EOF
 parm ../tz2.parm7
