@@ -3,7 +3,37 @@
 #include "StructureMapper.h"
 #include "CpptrajStdio.h"
 #include "TorsionRoutines.h"
-#include "Structure/Chirality.h" // DEBUG
+#include "Structure/Chirality.h"
+
+/** CONSTRUCTOR */
+StructureMapper::StructureMapper() :
+  debug_(0),
+  Nmapped_(0),
+  refTop_(0),
+  tgtTop_(0),
+  refFrame_(0),
+  tgtFrame_(0)
+{}
+
+/** DESTRUCTOR */
+StructureMapper::~StructureMapper() {
+  if (refTop_ != 0) delete refTop_;
+  if (tgtTop_ != 0) delete tgtTop_;
+  if (refFrame_ != 0) delete refFrame_;
+  if (tgtFrame_ != 0) delete tgtFrame_;
+}
+
+/** Clear pseudo top/frames */
+void StructureMapper::clearPseudoTopFrame() {
+  if (refTop_ != 0) delete refTop_;
+  if (tgtTop_ != 0) delete tgtTop_;
+  if (refFrame_ != 0) delete refFrame_;
+  if (tgtFrame_ != 0) delete tgtFrame_;
+  refTop_ = 0;
+  tgtTop_ = 0;
+  refFrame_ = 0;
+  tgtFrame_ = 0;
+}
 
 // StructureMapper::mapBondsToUnique()
 /** For each atom R in reference already mapped to unique atom T in 
@@ -120,18 +150,27 @@ int StructureMapper::mapChiral_viaPriority(MapType& AMapIn,
     return 0;
   }
 
-  // Create pseudo tops
-  Topology refTop;
-  Frame refFrame;
-  createPseudoTop( refTop, refFrame, RefMap_, "REF" );
+  // Create pseudo tops only if needed
+  if (refTop_ == 0) {
+    mprintf("DEBUG: Creating pseudo topologies.\n");
+    //Topology refTop;
+    //Frame refFrame;
+    refTop_ = new Topology();
+    refFrame_ = new Frame();
+    createPseudoTop( *refTop_, *refFrame_, RefMap_, "REF" );
+  }
   std::vector<int> refPriority;
-  Cpptraj::Structure::SetPriority( refPriority, refatom, refTop, refFrame, 0);
+  Cpptraj::Structure::SetPriority( refPriority, refatom, *refTop_, *refFrame_, 0);
 
-  Topology tgtTop;
-  Frame tgtFrame;
-  createPseudoTop( tgtTop, tgtFrame, TgtMap_, "TGT" );
+  if (tgtTop_ == 0) {
+    //Topology tgtTop;
+    //Frame tgtFrame;
+    tgtTop_ = new Topology();
+    tgtFrame_ = new Frame();
+    createPseudoTop( *tgtTop_, *tgtFrame_, TgtMap_, "TGT" );
+  }
   std::vector<int> tgtPriority;
-  Cpptraj::Structure::SetPriority( tgtPriority, tgtatom, tgtTop, tgtFrame, 0);
+  Cpptraj::Structure::SetPriority( tgtPriority, tgtatom, *tgtTop_, *tgtFrame_, 0);
 
   mprintf("Ref Priority:");
   for (std::vector<int>::const_iterator it = refPriority.begin(); it != refPriority.end(); ++it)
@@ -923,6 +962,7 @@ int StructureMapper::CreateMap(DataSet_Coords_REF* RefFrameIn,
   debug_ = debugIn; 
   RefMap_.SetDebug(debug_);
   TgtMap_.SetDebug(debug_);
+  clearPseudoTopFrame();
 
   // Try to map entire Tgt to Ref
   if (RefMap_.Setup(RefFrameIn->Top(), RefFrameIn->RefFrame())!=0) return 1;
@@ -984,6 +1024,7 @@ int StructureMapper::CreateMapByResidue(DataSet_Coords_REF* RefFrameIn,
   MapType mapOut;
   mapOut.reserve( RefFrameIn->Top().Natom() );
   for (int res = 0; res != maxres; res++) {
+    clearPseudoTopFrame();
     // Try to map residue in Tgt to Ref
     if (RefMap_.SetupResidue(RefFrameIn->Top(), RefFrameIn->RefFrame(), res))
       return 1;

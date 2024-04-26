@@ -6,7 +6,11 @@
 class StructureMapper {
   public:
     typedef std::vector<int> MapType;
-    StructureMapper() {}
+    /// CONSTRUCTOR
+    StructureMapper();
+    /// DESTRUCTOR
+    ~StructureMapper();
+
     int CreateMap(DataSet_Coords_REF*, DataSet_Coords_REF*, int);
     int CreateMapByResidue(DataSet_Coords_REF*, DataSet_Coords_REF*, int);
     int operator[](int idx)         const { return AMap_[idx];   }
@@ -32,11 +36,17 @@ class StructureMapper {
     int MapUniqueAtoms(AtomMap&, AtomMap&);
     int MapWithNoUniqueAtoms( AtomMap&, AtomMap& );
     void CountMappedAtoms();
+    /// Clear pseudo topology/frames
+    void clearPseudoTopFrame();
 
     AtomMap RefMap_; ///< Reference atom order.
     AtomMap TgtMap_; ///< Atoms to be reordered.
     MapType AMap_;
     int debug_;
     int Nmapped_; ///< Number of atoms in tgt actually mapped to ref
+    Topology* refTop_; ///< Pseudo topology for current ref atoms being mapped to
+    Topology* tgtTop_; ///< Pseudo topology for current tgt atoms being mapped
+    Frame* refFrame_;  ///< Pseudo frame for current ref atoms being mapped to
+    Frame* tgtFrame_;  ///< Pseudo frame for current tgt atoms being mapped
 };
 #endif
