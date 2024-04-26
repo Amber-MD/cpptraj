@@ -160,7 +160,8 @@ int StructureMapper::mapChiral_viaPriority(MapType& AMapIn,
     createPseudoTop( *refTop_, *refFrame_, RefMap_, "REF" );
   }
   std::vector<int> refPriority;
-  Cpptraj::Structure::SetPriority( refPriority, refatom, *refTop_, *refFrame_, 0);
+  Cpptraj::Structure::ChiralType refchiral =
+    Cpptraj::Structure::SetPriority( refPriority, refatom, *refTop_, *refFrame_, 0);
 
   if (tgtTop_ == 0) {
     //Topology tgtTop;
@@ -170,13 +171,14 @@ int StructureMapper::mapChiral_viaPriority(MapType& AMapIn,
     createPseudoTop( *tgtTop_, *tgtFrame_, TgtMap_, "TGT" );
   }
   std::vector<int> tgtPriority;
-  Cpptraj::Structure::SetPriority( tgtPriority, tgtatom, *tgtTop_, *tgtFrame_, 0);
+  Cpptraj::Structure::ChiralType tgtchiral = 
+    Cpptraj::Structure::SetPriority( tgtPriority, tgtatom, *tgtTop_, *tgtFrame_, 0);
 
-  mprintf("Ref Priority:");
+  mprintf("Ref Priority (%s):", Cpptraj::Structure::chiralStr(refchiral));
   for (std::vector<int>::const_iterator it = refPriority.begin(); it != refPriority.end(); ++it)
     mprintf(" %4i", *it + 1);
   mprintf("\n");
-  mprintf("Tgt Priority:");
+  mprintf("Tgt Priority (%s):", Cpptraj::Structure::chiralStr(tgtchiral));
   for (std::vector<int>::const_iterator it = tgtPriority.begin(); it != tgtPriority.end(); ++it)
     mprintf(" %4i", *it + 1);
   mprintf("\n");
