@@ -85,6 +85,117 @@ int StructureMapper::mapBondsToUnique(AtomMap& Ref, AtomMap& Tgt) {
   return numMappedAtoms;
 }        
 
+/// Get possible permutations
+static void permutations(std::vector< std::vector<int> >& res, std::vector<int> nums, int l, int h)
+{
+  // End case - add the vector to result and return
+  if (l == h) {
+    res.push_back(nums);
+    return;
+  }
+
+  // Make permutations
+  for (int i = l; i <= h; i++) {
+    // Swap
+    std::swap(nums[l], nums[i]);
+    // Get permutation for next larger value of l
+    permutations(res, nums, l + 1, h);
+    // Backtracking
+    std::swap(nums[l], nums[i]);
+  }
+}
+
+/// Get all permutations of an array
+static std::vector< std::vector<int> > permute(std::vector<int>& nums) {
+  std::vector< std::vector<int> > result;
+  int x = nums.size() - 1;
+
+  permutations(result, nums, 0, x);
+  return result;
+}
+
+/** Given two mapped chiral centers with same # of unmapped atoms,
+  * determine mapping for bonded atoms via brute force.
+  * \param AMapIn atom map, AMapIn[refatom] = tgtatom
+  */
+int StructureMapper::mapChiral_withUnmappedAtoms(MapType& AMapIn,
+                                                 AtomMap& Ref, AtomMap& Tgt,
+                                                 int nMapped, const int* mappedR, const int* mappedT,
+                                                 int nUnmapped, const int* unMappedR, const int* unMappedT)
+const
+{
+  int numMappedAtoms = 0;
+  if (debug_ > 0) {
+    for (int i=0; i < nMapped; i++)
+      mprintf("\t   Mapped\t%4i:%s %4i:%s\n", 
+              mappedR[i]+1, Ref[mappedR[i]].c_str(),
+              mappedT[i]+1, Tgt[mappedT[i]].c_str());
+    for (int i=0; i < nUnmapped; i++)
+      mprintf("\tNotMappedRef\t%4i:%s\n", unMappedR[i]+1, Ref[unMappedR[i]].c_str());
+    for (int i=0; i < nUnmapped; i++)
+      mprintf("\tNotMappedTgt\t         %4i:%4s\n", unMappedT[i]+1, Tgt[unMappedT[i]].c_str());
+  }
+  // The first atom in mappedR/mappedT is the mapped chiral center, X.
+  // This will be the second atom in our "improper" dihedral:
+  // A0 - X - A1
+  //      |
+  //      A2
+  //MapAtom const& refX = Ref[ mappedR[0] ];
+  //MapAtom const& tgtX = Tgt[ mappedT[0] ];
+  int nbonds = nMapped + nUnmapped;
+  std::vector<int> ref_atoms( nbonds, -1 );
+  std::vector<int> tgt_atoms( nbonds, -1 );
+  ref_atoms[1] = mappedR[0];
+  tgt_atoms[1] = mappedT[0];
+  // Fill in any remaining mapped atoms
+  int idx = 0;
+  for (int i = 1; i < nMapped; i++) {
+    if (idx == 1) idx = 2;
+    ref_atoms[idx] = mappedR[i];
+    tgt_atoms[idx] = mappedT[i];
+    idx++;
+  }
+  // Unmapped reference atoms go in order
+  int ridx = idx;
+  for (int i = 0; i < nUnmapped; i++) {
+    if (ridx == 1) ridx = 2;
+    ref_atoms[ridx] = unMappedR[i];
+    ridx++;
+  }
+  // Use first 4 atoms in ref_atoms to get reference improper
+  double ref_improper = Torsion( RefMap_[ref_atoms[0]].XYZ(),
+                                 RefMap_[ref_atoms[1]].XYZ(),
+                                 RefMap_[ref_atoms[2]].XYZ(),
+                                 RefMap_[ref_atoms[3]].XYZ() );
+  mprintf("DEBUG: Starting maps for improper calc (ref torsion %g):\n", ref_improper*Constants::RADDEG);
+  for (unsigned int jdx = 0; jdx < ref_atoms.size(); jdx++)
+    mprintf("\t%6i - %6i\n", ref_atoms[jdx]+1, tgt_atoms[jdx]+1);
+  // Try all permutations of target
+  std::vector<int> indices;
+  indices.reserve( nUnmapped );
+  for (int i = 0; i < nUnmapped; i++)
+    indices.push_back( i );
+  typedef std::vector< std::vector<int> > IIarray;
+  IIarray idxPermutations = permute( indices );
+  for (IIarray::const_iterator it = idxPermutations.begin(); it != idxPermutations.end(); ++it)
+  {
+    std::vector<int> const& idxs = *it;
+    //mprintf("Tgt atoms: %i %i %i\n", unMappedT[idxs[0]]+1, unMappedT[idxs[1]]+1, unMappedT[idxs[2]]+1);
+    int tidx = idx;
+    for (int i = 0; i < nUnmapped; i++) {
+      if (tidx == 1) tidx = 2;
+      tgt_atoms[tidx] = unMappedT[idxs[i]];
+      tidx++;
+    }
+    mprintf("Tgt atoms:");
+    for (std::vector<int>::const_iterator jt = tgt_atoms.begin(); jt != tgt_atoms.end(); ++jt)
+      mprintf(" %i", *jt + 1);
+    mprintf("\n");
+  }
+
+  return numMappedAtoms;
+}
+
 // StructureMapper::mapChiral()
 /** Given two atommaps and a map relating the two, find chiral centers for
   * which at least 3 of the atoms have been mapped. Assign the remaining
@@ -183,8 +294,16 @@ int StructureMapper::mapChiral(AtomMap& Ref, AtomMap& Tgt) {
     //if (nunique==5) continue;
     // Require at least 3 unique atoms for dihedral calc. 
     if (nunique<3) {
-      if (debug_>0) 
-        mprintf("Warning: Center has < 3 mapped atoms, dihedral cannot be calcd.\n");
+      int nmc = 0;
+      if (notunique_r == notunique_t) {
+        nmc = mapChiral_withUnmappedAtoms(AMap_, Ref, Tgt, nunique, uR, uT, notunique_r, nR, nT);
+      }
+      if (debug_ > 0) {
+        if (nmc < 1) 
+          mprintf("Warning: Center has < 3 mapped atoms, dihedral cannot be calcd.\n");
+        else
+          mprintf("Warning: Brute-force mapped chiral center atoms.\n");
+      }
       continue;
     }
     // Calculate reference improper dihedrals

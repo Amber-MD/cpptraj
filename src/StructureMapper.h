@@ -18,6 +18,11 @@ class StructureMapper {
     bool AllTgtMapped()             const { return (Nmapped_ == TgtMap_.Natom()); }
   private:
     int mapBondsToUnique(AtomMap&, AtomMap&);
+    /// Map unmapped atoms bonded to mapped chiral cenmters, brute force
+    int mapChiral_withUnmappedAtoms(MapType&, AtomMap&, AtomMap&,
+                                    int, const int*, const int*,
+                                    int, const int*, const int*) const;
+
     int mapChiral(AtomMap&, AtomMap&);
     int mapByIndex(AtomMap&, AtomMap&);
     int mapUniqueRefToTgt(AtomMap&, AtomMap&, int);
