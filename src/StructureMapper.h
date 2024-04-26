@@ -22,6 +22,8 @@ class StructureMapper {
     int mapChiral_withUnmappedAtoms(MapType&, AtomMap&, AtomMap&,
                                     int, const int*, const int*,
                                     int, const int*, const int*) const;
+    /// Map unmapped atoms bonded to mapped chiral centers via priority
+    int mapChiral_viaPriority(MapType&, AtomMap&, AtomMap&, int, int);
 
     int mapChiral(AtomMap&, AtomMap&);
     int mapByIndex(AtomMap&, AtomMap&);

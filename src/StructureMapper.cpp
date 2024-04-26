@@ -3,6 +3,7 @@
 #include "StructureMapper.h"
 #include "CpptrajStdio.h"
 #include "TorsionRoutines.h"
+#include "Structure/Chirality.h" // DEBUG
 
 // StructureMapper::mapBondsToUnique()
 /** For each atom R in reference already mapped to unique atom T in 
@@ -84,6 +85,86 @@ int StructureMapper::mapBondsToUnique(AtomMap& Ref, AtomMap& Tgt) {
   } // End loop over newSingle
   return numMappedAtoms;
 }        
+
+/// Create pseudo topology from map FIXME should probably be saved and not generated each time
+static inline void createPseudoTop(Topology& top, Frame& frm, AtomMap const& atoms, std::string const& resname)
+{
+  frm.SetupFrame( atoms.Natom() );
+  frm.ClearAtoms();
+
+  for (int at = 0; at != atoms.Natom(); at++) {
+    top.AddTopAtom( static_cast<Atom const&>(atoms[at]), Residue(resname, 1, ' ', ' ') );
+    frm.AddXYZ( atoms[at].XYZ() );
+  }
+}
+
+/** Given two mapped chiral centers with same # of bonded atoms,
+  * determine mapping for bonded atoms via priority.
+  * \param AMapIn atom map, AMapIn[refatom] = tgtatom
+  */
+int StructureMapper::mapChiral_viaPriority(MapType& AMapIn,
+                                           AtomMap& Ref, AtomMap& Tgt,
+                                           int refatom, int tgtatom)
+{
+  int numMappedAtoms = 0;
+  // Sanity check
+  if (RefMap_[refatom].Nbonds() != TgtMap_[tgtatom].Nbonds()) {
+    mprintf("Warning: %4i:%s # bonds %i != %4i:%s %i\n",
+              refatom+1, RefMap_[refatom].c_str(), RefMap_[refatom].Nbonds(),
+              tgtatom+1, TgtMap_[tgtatom].c_str(), TgtMap_[tgtatom].Nbonds());
+    return 0;
+  }
+  if (RefMap_[refatom].Nbonds() < 3) {
+    mprintf("Warning: %4i:%s has < 3 bonds %i.\n",
+              refatom+1, RefMap_[refatom].c_str(), RefMap_[refatom].Nbonds());
+    return 0;
+  }
+
+  // Create pseudo tops
+  Topology refTop;
+  Frame refFrame;
+  createPseudoTop( refTop, refFrame, RefMap_, "REF" );
+  std::vector<int> refPriority;
+  Cpptraj::Structure::SetPriority( refPriority, refatom, refTop, refFrame, 0);
+
+  Topology tgtTop;
+  Frame tgtFrame;
+  createPseudoTop( tgtTop, tgtFrame, TgtMap_, "TGT" );
+  std::vector<int> tgtPriority;
+  Cpptraj::Structure::SetPriority( tgtPriority, tgtatom, tgtTop, tgtFrame, 0);
+
+  mprintf("Ref Priority:");
+  for (std::vector<int>::const_iterator it = refPriority.begin(); it != refPriority.end(); ++it)
+    mprintf(" %4i", *it + 1);
+  mprintf("\n");
+  mprintf("Tgt Priority:");
+  for (std::vector<int>::const_iterator it = tgtPriority.begin(); it != tgtPriority.end(); ++it)
+    mprintf(" %4i", *it + 1);
+  mprintf("\n");
+  // Sanity check
+  if (refPriority.size() != tgtPriority.size()) {
+    mprinterr("Internal Error: Size of ref/tgt priority arrays do not match.\n");
+    return -1;
+  }
+
+  // Map atoms via priority as long as both atoms are unmapped
+  for (unsigned int idx = 0; idx != refPriority.size(); idx++) {
+    int Rat = refPriority[idx];
+    int Tat = tgtPriority[idx];
+    if (!RefMap_[Rat].IsMapped() && !TgtMap_[Tat].IsMapped()) {
+      mprintf("\tMapping ref %i:%s to tgt %i:%s via chiral priority.\n",
+              Rat+1, RefMap_[Rat].c_str(), Tat+1, TgtMap_[Tat].c_str());
+      AMapIn[Rat] = Tat;
+      Ref[Rat].SetMapped();
+      Tgt[Tat].SetMapped();
+      Ref.MarkAtomComplete(Rat, false);
+      Tgt.MarkAtomComplete(Tat, false);
+      numMappedAtoms++;
+    }
+  }
+
+  return numMappedAtoms;
+}
 
 /// Get possible permutations
 static void permutations(std::vector< std::vector<int> >& res, std::vector<int> nums, int l, int h)
@@ -190,8 +271,13 @@ const
     mprintf("Tgt atoms:");
     for (std::vector<int>::const_iterator jt = tgt_atoms.begin(); jt != tgt_atoms.end(); ++jt)
       mprintf(" %i", *jt + 1);
-    mprintf("\n");
+    double tgt_improper = Torsion( TgtMap_[tgt_atoms[0]].XYZ(),
+                                   TgtMap_[tgt_atoms[1]].XYZ(),
+                                   TgtMap_[tgt_atoms[2]].XYZ(),
+                                   TgtMap_[tgt_atoms[3]].XYZ() );
+    mprintf("  torsion= %g\n", tgt_improper * Constants::RADDEG);
   }
+
 
   return numMappedAtoms;
 }
@@ -296,13 +382,16 @@ int StructureMapper::mapChiral(AtomMap& Ref, AtomMap& Tgt) {
     if (nunique<3) {
       int nmc = 0;
       if (notunique_r == notunique_t) {
-        nmc = mapChiral_withUnmappedAtoms(AMap_, Ref, Tgt, nunique, uR, uT, notunique_r, nR, nT);
+        //nmc = mapChiral_withUnmappedAtoms(AMap_, Ref, Tgt, nunique, uR, uT, notunique_r, nR, nT);
+        nmc = mapChiral_viaPriority(AMap_, Ref, Tgt, uR[0], uT[0]);
       }
       if (debug_ > 0) {
         if (nmc < 1) 
           mprintf("Warning: Center has < 3 mapped atoms, dihedral cannot be calcd.\n");
-        else
-          mprintf("Warning: Brute-force mapped chiral center atoms.\n");
+        else {
+          mprintf("Warning: Brute-force mapped %i chiral center atoms.\n", nmc);
+          numMappedAtoms += nmc;
+        }
       }
       continue;
     }
