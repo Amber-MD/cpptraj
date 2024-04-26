@@ -39,11 +39,17 @@ int StructureMapper::mapBondsToUnique(AtomMap& Ref, AtomMap& Tgt) {
       {
         // Check that bonded atom r is not already mapped
         if (Ref[*r].IsMapped()) continue;
-        //mprintf("        Ref: Checking non-mapped %i:%s bonded to %i:%s\n",r,Ref->names[r],
-        //        atom,Ref->names[atom]);
+        if (debug_ > 1)
+          mprintf("        Ref: Checking non-mapped %i:%s bonded to %i:%s\n",
+                  *r+1, Ref[*r].c_str(), ratom+1, Ref[ratom].c_str());
         // Check that non-mapped bonded ref atom r atomID is not the same as any 
         // other non-mapped bonded atomID.
-        if ( Ref.BondIsRepeated(ratom, *r) ) continue;
+        if ( Ref.BondIsRepeated(ratom, *r) ) {
+          if (debug_ > 1)
+            mprintf("            There is a duplicate atomID bonded to  %i:%s\n",
+                    ratom+1, Ref[ratom].c_str());
+          continue;
+        }
         // At this point r is the only one of its kind bonded to atom.
         // Check if there is an analogous atom bonded to unique Target atom
         // tatom.

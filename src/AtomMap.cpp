@@ -115,7 +115,7 @@ bool AtomMap::BondIsRepeated(int atom, int bondedAtom) const {
     for (Atom::bond_iterator bondedAtom2 = mapatoms_[atom].bondbegin();
                              bondedAtom2 != mapatoms_[atom].bondend(); bondedAtom2++)
     {
-      if (mapatoms_[*bondedAtom2].IsMapped()) continue;
+      if (bondedAtom == *bondedAtom2 || mapatoms_[*bondedAtom2].IsMapped()) continue;
       if (mapatoms_[bondedAtom].AtomID() == mapatoms_[*bondedAtom2].AtomID())
         return true;
     }
