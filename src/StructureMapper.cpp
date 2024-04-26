@@ -599,6 +599,11 @@ int StructureMapper::mapByIndex(AtomMap& Ref, AtomMap& Tgt) {
               " against mapped Tgt %i:%s (isChiral=%i)\n",
               ratom+1, Ref[ratom].c_str(), (int)Ref[ratom].IsChiral(),
               tatom+1, Tgt[tatom].c_str(), (int)Tgt[tatom].IsChiral());
+    // Can we map via priority?
+    if (Ref[ratom].Nbonds() > 2 && Ref[ratom].Nbonds() == Tgt[tatom].Nbonds()) {
+      int nmc = mapChiral_viaPriority( AMap_, Ref, Tgt, ratom, tatom );
+      if (nmc > 0) numAtomsMapped += nmc;
+    }
     for (Atom::bond_iterator r = Ref[ratom].bondbegin(); r != Ref[ratom].bondend(); r++)
     {
       if (debug_>1) 
