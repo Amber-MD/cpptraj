@@ -26,6 +26,8 @@ class StructureMapper {
     int mapChiral_withUnmappedAtoms(MapType&, AtomMap&, AtomMap&,
                                     int, const int*, const int*,
                                     int, const int*, const int*) const;
+    /// Get ref and tgt bonded atom priorities
+    int getAtomPriorities(std::vector<int>&, std::vector<int>&, int, int);
     /// Map unmapped atoms bonded to mapped chiral centers via priority
     int mapChiral_viaPriority(MapType&, AtomMap&, AtomMap&, int, int);
 

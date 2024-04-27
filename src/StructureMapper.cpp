@@ -128,6 +128,66 @@ static inline void createPseudoTop(Topology& top, Frame& frm, AtomMap const& ato
   }
 }
 
+/** Get atom priorities around given reference and target atoms. */
+int StructureMapper::getAtomPriorities(std::vector<int>& refPriority,
+                                       std::vector<int>& tgtPriority,
+                                       int refatom, int tgtatom)
+{
+  refPriority.clear();
+  tgtPriority.clear();
+  // Sanity check
+  if (RefMap_[refatom].Nbonds() != TgtMap_[tgtatom].Nbonds()) {
+    mprintf("Warning: %4i:%s # bonds %i != %4i:%s %i\n",
+              refatom+1, RefMap_[refatom].c_str(), RefMap_[refatom].Nbonds(),
+              tgtatom+1, TgtMap_[tgtatom].c_str(), TgtMap_[tgtatom].Nbonds());
+    return 1;
+  }
+  if (RefMap_[refatom].Nbonds() < 3) {
+    mprintf("Warning: %4i:%s has < 3 bonds %i.\n",
+              refatom+1, RefMap_[refatom].c_str(), RefMap_[refatom].Nbonds());
+    return 1;
+  }
+
+  // Create pseudo tops only if needed
+  if (refTop_ == 0) {
+    mprintf("DEBUG: Creating pseudo topologies.\n");
+    //Topology refTop;
+    //Frame refFrame;
+    refTop_ = new Topology();
+    refFrame_ = new Frame();
+    createPseudoTop( *refTop_, *refFrame_, RefMap_, "REF" );
+  }
+  //std::vector<int> refPriority;
+  Cpptraj::Structure::ChiralType refchiral =
+    Cpptraj::Structure::SetPriority( refPriority, refatom, *refTop_, *refFrame_, 0);
+
+  if (tgtTop_ == 0) {
+    //Topology tgtTop;
+    //Frame tgtFrame;
+    tgtTop_ = new Topology();
+    tgtFrame_ = new Frame();
+    createPseudoTop( *tgtTop_, *tgtFrame_, TgtMap_, "TGT" );
+  }
+  //std::vector<int> tgtPriority;
+  Cpptraj::Structure::ChiralType tgtchiral = 
+    Cpptraj::Structure::SetPriority( tgtPriority, tgtatom, *tgtTop_, *tgtFrame_, 0);
+
+  mprintf("Ref Priority (%s):", Cpptraj::Structure::chiralStr(refchiral));
+  for (std::vector<int>::const_iterator it = refPriority.begin(); it != refPriority.end(); ++it)
+    mprintf(" %4i", *it + 1);
+  mprintf("\n");
+  mprintf("Tgt Priority (%s):", Cpptraj::Structure::chiralStr(tgtchiral));
+  for (std::vector<int>::const_iterator it = tgtPriority.begin(); it != tgtPriority.end(); ++it)
+    mprintf(" %4i", *it + 1);
+  mprintf("\n");
+  // Sanity check
+  if (refPriority.size() != tgtPriority.size()) {
+    mprinterr("Internal Error: Size of ref/tgt priority arrays do not match.\n");
+    return -1;
+  }
+  return 0;
+}
+
 /** Given two mapped chiral centers with same # of bonded atoms,
   * determine mapping for bonded atoms via priority.
   * \param AMapIn atom map, AMapIn[refatom] = tgtatom
@@ -137,6 +197,14 @@ int StructureMapper::mapChiral_viaPriority(MapType& AMapIn,
                                            int refatom, int tgtatom)
 {
   int numMappedAtoms = 0;
+  std::vector<int> refPriority;
+  std::vector<int> tgtPriority;
+  int err = getAtomPriorities(refPriority, tgtPriority, refatom, tgtatom);
+  if (err == 1)
+    return 0;
+  else if (err == -1)
+    return -1;
+/*
   // Sanity check
   if (RefMap_[refatom].Nbonds() != TgtMap_[tgtatom].Nbonds()) {
     mprintf("Warning: %4i:%s # bonds %i != %4i:%s %i\n",
@@ -159,7 +227,6 @@ int StructureMapper::mapChiral_viaPriority(MapType& AMapIn,
     refFrame_ = new Frame();
     createPseudoTop( *refTop_, *refFrame_, RefMap_, "REF" );
   }
-  std::vector<int> refPriority;
   Cpptraj::Structure::ChiralType refchiral =
     Cpptraj::Structure::SetPriority( refPriority, refatom, *refTop_, *refFrame_, 0);
 
@@ -170,7 +237,6 @@ int StructureMapper::mapChiral_viaPriority(MapType& AMapIn,
     tgtFrame_ = new Frame();
     createPseudoTop( *tgtTop_, *tgtFrame_, TgtMap_, "TGT" );
   }
-  std::vector<int> tgtPriority;
   Cpptraj::Structure::ChiralType tgtchiral = 
     Cpptraj::Structure::SetPriority( tgtPriority, tgtatom, *tgtTop_, *tgtFrame_, 0);
 
@@ -187,7 +253,7 @@ int StructureMapper::mapChiral_viaPriority(MapType& AMapIn,
     mprinterr("Internal Error: Size of ref/tgt priority arrays do not match.\n");
     return -1;
   }
-
+*/
   // Map atoms via priority as long as both atoms are unmapped
   for (unsigned int idx = 0; idx != refPriority.size(); idx++) {
     int Rat = refPriority[idx];
