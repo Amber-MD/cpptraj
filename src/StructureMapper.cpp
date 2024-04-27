@@ -266,14 +266,16 @@ int StructureMapper::mapChiral_viaPriority(MapType& AMapIn,
     int Rat = refPriority[idx];
     int Tat = tgtPriority[idx];
     if (!RefMap_[Rat].IsMapped() && !TgtMap_[Tat].IsMapped()) {
-      mprintf("\tMapping ref %i:%s to tgt %i:%s via chiral priority.\n",
-              Rat+1, RefMap_[Rat].c_str(), Tat+1, TgtMap_[Tat].c_str());
-      AMapIn[Rat] = Tat;
-      Ref[Rat].SetMapped();
-      Tgt[Tat].SetMapped();
-      Ref.MarkAtomComplete(Rat, false);
-      Tgt.MarkAtomComplete(Tat, false);
-      numMappedAtoms++;
+      if (RefMap_[Rat].CharName() == TgtMap_[Tat].CharName()) {
+        mprintf("\tMapping ref %i:%s to tgt %i:%s via chiral priority.\n",
+                Rat+1, RefMap_[Rat].c_str(), Tat+1, TgtMap_[Tat].c_str());
+        AMapIn[Rat] = Tat;
+        Ref[Rat].SetMapped();
+        Tgt[Tat].SetMapped();
+        Ref.MarkAtomComplete(Rat, false);
+        Tgt.MarkAtomComplete(Tat, false);
+        numMappedAtoms++;
+      }
     }
   }
 
