@@ -714,11 +714,20 @@ int StructureMapper::mapByIndex(AtomMap& Ref, AtomMap& Tgt) {
               ratom+1, Ref[ratom].c_str(), (int)Ref[ratom].IsChiral(),
               tatom+1, Tgt[tatom].c_str(), (int)Tgt[tatom].IsChiral());
     // Can we map via priority?
-    if (Ref[ratom].Nbonds() > 2 && Ref[ratom].Nbonds() == Tgt[tatom].Nbonds()) {
-      int nmc = mapChiral_viaPriority( AMap_, Ref, Tgt, ratom, tatom );
-      if (nmc > 0) numAtomsMapped += nmc;
+    std::vector<int> refPriority, tgtPriority;
+    int errval = 1;
+    if (Ref[ratom].Nbonds() > 2 && Tgt[tatom].Nbonds() > 2) {
+      errval = getAtomPriorities( refPriority, tgtPriority, ratom, tatom );
+      if (errval == 0) mprintf("DEBUG: Using ref/tgt bonded atom priorities.\n");
     }
-    for (Atom::bond_iterator r = Ref[ratom].bondbegin(); r != Ref[ratom].bondend(); r++)
+    if (errval != 0) {
+      // Could not properly get priorities
+      mprintf("DEBUG: Using original bond orders.\n");
+      refPriority = Ref[ratom].BondIdxArray();
+      tgtPriority = Tgt[tatom].BondIdxArray();
+    }
+    //for (Atom::bond_iterator r = Ref[ratom].bondbegin(); r != Ref[ratom].bondend(); r++)
+    for (Atom::bond_iterator r = refPriority.begin(); r != refPriority.end(); r++)
     {
       if (debug_>1) 
         mprintf("\t\tRefBond %i:%s [%1i]\n",*r+1,Ref[*r].c_str(),(int)Ref[*r].IsMapped());
@@ -727,7 +736,8 @@ int StructureMapper::mapByIndex(AtomMap& Ref, AtomMap& Tgt) {
       // mapChiral take care of them.
       if (Ref[ratom].IsChiral() && Ref[*r].Nbonds()==1) continue;
       match = -1;
-      for (Atom::bond_iterator t = Tgt[tatom].bondbegin(); t != Tgt[tatom].bondend(); t++)
+      //for (Atom::bond_iterator t = Tgt[tatom].bondbegin(); t != Tgt[tatom].bondend(); t++)
+      for (Atom::bond_iterator t = tgtPriority.begin(); t != tgtPriority.end(); t++)
       {
         if (debug_>1) 
           mprintf("\t\t\tTgtBond %i:%s [%1i]\n",*t+1,Tgt[*t].c_str(),(int)Tgt[*t].IsMapped());
