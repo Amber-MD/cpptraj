@@ -125,8 +125,9 @@ Cpptraj::Structure::ChiralType
             break;
           }
           if (depth == 10) {
-            mprintf("Warning: Could not determine priority around '%s'\n",
-                      topIn.AtomMaskName(atnum).c_str());
+            if (debugIn > -1)
+              mprintf("Warning: Could not determine priority around '%s'\n",
+                        topIn.AtomMaskName(atnum).c_str());
             depth_limit_hit = true;
             break;
           }
@@ -186,4 +187,15 @@ Cpptraj::Structure::ChiralType
   priority.resize( topIn[atnum].Nbonds() );
   double tors;
   return DetermineChirality(tors, &priority[0], atnum, topIn, frameIn, debugIn);
+}
+
+/** Set priority around a specified atom. Do not warn if priority cannot be set. */
+Cpptraj::Structure::ChiralType
+  Cpptraj::Structure::SetPriority_silent(std::vector<int>& priority,
+                                         int atnum, Topology const& topIn,
+                                         Frame const& frameIn)
+{
+  priority.resize( topIn[atnum].Nbonds() );
+  double tors;
+  return DetermineChirality(tors, &priority[0], atnum, topIn, frameIn, -1);
 }

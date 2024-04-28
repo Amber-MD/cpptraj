@@ -158,7 +158,7 @@ int StructureMapper::getAtomPriorities(std::vector<int>& refPriority,
   }
   //std::vector<int> refPriority;
   Cpptraj::Structure::ChiralType refchiral =
-    Cpptraj::Structure::SetPriority( refPriority, refatom, *refTop_, *refFrame_, 0);
+    Cpptraj::Structure::SetPriority_silent( refPriority, refatom, *refTop_, *refFrame_);
 
   if (tgtTop_ == 0) {
     //Topology tgtTop;
@@ -169,7 +169,7 @@ int StructureMapper::getAtomPriorities(std::vector<int>& refPriority,
   }
   //std::vector<int> tgtPriority;
   Cpptraj::Structure::ChiralType tgtchiral = 
-    Cpptraj::Structure::SetPriority( tgtPriority, tgtatom, *tgtTop_, *tgtFrame_, 0);
+    Cpptraj::Structure::SetPriority_silent( tgtPriority, tgtatom, *tgtTop_, *tgtFrame_);
 
   if (debug_ > 0) {
     mprintf("Ref Priority (%s):", Cpptraj::Structure::chiralStr(refchiral));

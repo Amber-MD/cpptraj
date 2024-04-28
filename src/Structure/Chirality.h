@@ -13,6 +13,8 @@ ChiralType DetermineChirality(double&, int*, int, Topology const&, Frame const&,
 ChiralType DetermineChirality(int, Topology const&, Frame const&, int);
 /// \return Chirality at specified atom, set priority
 ChiralType SetPriority(std::vector<int>&, int, Topology const&, Frame const&, int);
+/// \return Chirality at specified atom, set priority, no warnings
+ChiralType SetPriority_silent(std::vector<int>&, int, Topology const&, Frame const&);
 }
 }
 #endif
