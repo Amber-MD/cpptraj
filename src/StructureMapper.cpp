@@ -517,8 +517,8 @@ int StructureMapper::mapChiral(AtomMap& Ref, AtomMap& Tgt) {
                        RefMap_[uR[1]].XYZ(), 
                        RefMap_[uR[2]].XYZ(),
                        RefMap_[nR[i]].XYZ() );
-      if (debug_>1) mprintf("    Ref Improper %i [%3i,%3i,%3i,%3i]= %lf\n",i,
-                           uR[0]+1, uR[1]+1, uR[2]+1, nR[i]+1, dR[i]+1);
+      if (debug_>1) mprintf("    Ref Improper %i [%3i,%3i,%3i,%3i]= %g\n",i,
+                           uR[0]+1, uR[1]+1, uR[2]+1, nR[i]+1, dR[i]*Constants::RADDEG);
     }
     // Calculate target improper dihedrals
     for (int i=0; i<notunique_t; i++) {
@@ -527,7 +527,7 @@ int StructureMapper::mapChiral(AtomMap& Ref, AtomMap& Tgt) {
                        TgtMap_[uT[2]].XYZ(),
                        TgtMap_[nT[i]].XYZ() );
       if (debug_>1) mprintf("    Tgt Improper %i [%3i,%3i,%3i,%3i]= %lf\n",i,
-                           uR[0]+1, uR[1]+1, uR[2]+1, nT[i]+1, dT[i]+1);
+                           uT[0]+1, uT[1]+1, uT[2]+1, nT[i]+1, dT[i]*Constants::RADDEG);
     }
     // Match impropers to each other using a cutoff. Note that all torsions
     // are in radians.
