@@ -149,7 +149,7 @@ int StructureMapper::getAtomPriorities(std::vector<int>& refPriority,
 
   // Create pseudo tops only if needed
   if (refTop_ == 0) {
-    mprintf("DEBUG: Creating pseudo topologies.\n");
+    if (debug_ > 0) mprintf("DEBUG: Creating pseudo topologies.\n");
     //Topology refTop;
     //Frame refFrame;
     refTop_ = new Topology();
@@ -171,14 +171,16 @@ int StructureMapper::getAtomPriorities(std::vector<int>& refPriority,
   Cpptraj::Structure::ChiralType tgtchiral = 
     Cpptraj::Structure::SetPriority( tgtPriority, tgtatom, *tgtTop_, *tgtFrame_, 0);
 
-  mprintf("Ref Priority (%s):", Cpptraj::Structure::chiralStr(refchiral));
-  for (std::vector<int>::const_iterator it = refPriority.begin(); it != refPriority.end(); ++it)
-    mprintf(" %4i", *it + 1);
-  mprintf("\n");
-  mprintf("Tgt Priority (%s):", Cpptraj::Structure::chiralStr(tgtchiral));
-  for (std::vector<int>::const_iterator it = tgtPriority.begin(); it != tgtPriority.end(); ++it)
-    mprintf(" %4i", *it + 1);
-  mprintf("\n");
+  if (debug_ > 0) {
+    mprintf("Ref Priority (%s):", Cpptraj::Structure::chiralStr(refchiral));
+    for (std::vector<int>::const_iterator it = refPriority.begin(); it != refPriority.end(); ++it)
+      mprintf(" %4i", *it + 1);
+    mprintf("\n");
+    mprintf("Tgt Priority (%s):", Cpptraj::Structure::chiralStr(tgtchiral));
+    for (std::vector<int>::const_iterator it = tgtPriority.begin(); it != tgtPriority.end(); ++it)
+      mprintf(" %4i", *it + 1);
+    mprintf("\n");
+  }
 
   return 0;
 }
@@ -267,8 +269,9 @@ int StructureMapper::mapChiral_viaPriority(MapType& AMapIn,
     int Tat = tgtPriority[idx];
     if (!RefMap_[Rat].IsMapped() && !TgtMap_[Tat].IsMapped()) {
       if (RefMap_[Rat].CharName() == TgtMap_[Tat].CharName()) {
-        mprintf("\tMapping ref %i:%s to tgt %i:%s via chiral priority.\n",
-                Rat+1, RefMap_[Rat].c_str(), Tat+1, TgtMap_[Tat].c_str());
+        if (debug_ > 0)
+          mprintf("\tMapping ref %i:%s to tgt %i:%s via chiral priority.\n",
+                  Rat+1, RefMap_[Rat].c_str(), Tat+1, TgtMap_[Tat].c_str());
         AMapIn[Rat] = Tat;
         Ref[Rat].SetMapped();
         Tgt[Tat].SetMapped();
@@ -720,11 +723,13 @@ int StructureMapper::mapByIndex(AtomMap& Ref, AtomMap& Tgt) {
     int errval = 1;
     if (Ref[ratom].Nbonds() > 2 && Tgt[tatom].Nbonds() > 2) {
       errval = getAtomPriorities( refPriority, tgtPriority, ratom, tatom );
-      if (errval == 0) mprintf("DEBUG: Using ref/tgt bonded atom priorities.\n");
+      if (debug_ > 0 && errval == 0)
+        mprintf("DEBUG: Using ref/tgt bonded atom priorities.\n");
     }
     if (errval != 0) {
       // Could not properly get priorities
-      mprintf("DEBUG: Using original bond orders.\n");
+      if (debug_ > 0)
+        mprintf("DEBUG: Using original bond orders.\n");
       refPriority = Ref[ratom].BondIdxArray();
       tgtPriority = Tgt[tatom].BondIdxArray();
     }
