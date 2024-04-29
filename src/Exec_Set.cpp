@@ -13,9 +13,9 @@ void Exec_Set::Help() const {
           DataSetList::TopIdxArgs);
   mprintf("  Set (<OP> = '=') or append (<OP> = '+=') a script variable.\n"
           "  - Set script variable <variable> to value <value>.\n"
-          "  - Set script variable to the number of atoms/residues/molecules\n"
-          "    or selected atom #s/residue #s/original residue #s/molecule #s\n"
-          "    in the given mask.\n"
+          "  - Set script variable to the number of atoms/residues/molecules in,\n"
+          "    selected atom #s/residue #s/original residue #s/molecule #s in,\n"
+          "    or total charge/mass of atoms selected by the given mask.\n"
           "  - Set script variable to the current number of frames that will\n"
           "     be read from all previous 'trajin' statements.\n");
 }
