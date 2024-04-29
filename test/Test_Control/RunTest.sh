@@ -5,7 +5,7 @@
 CleanFiles for.in TRP.vec.dat TRP.rms.dat TRP.CA.dist.dat TRP.tocenter.dat \
            nh.dat rms.nofit.dat last10.dat distance.dat nested.agr \
            EndToEnd0.dat EndToEnd1.dat EndToEnd2.agr temp.*.dat \
-           DataOut.dat testset.dist.dat nested2.dat hbavg.dat
+           DataOut.dat testset.dist.dat nested2.dat hbavg.dat qm.dat
 
 TESTNAME='Loop tests'
 Requires netcdf maxthreads 10
@@ -210,6 +210,16 @@ run
 EOF
 RunCpptraj "$UNITNAME"
 DoTest hbavg.dat.save hbavg.dat
+
+UNITNAME='Set charge/mass'
+cat > for.in <<EOF
+parm ../tz2.parm7
+set TOTALQ = charge inmask *
+set TOTALM = mass inmask *
+writedata qm.dat TOTALQ TOTALM
+EOF
+RunCpptraj "$UNITNAME"
+DoTest qm.dat.save qm.dat
 
 EndTest
 exit 0

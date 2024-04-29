@@ -18,7 +18,7 @@ void Exec_Change::Help() const
           "\t  addbond <mask1> <mask2> [req <length> <rk> <force constant>] |\n"
           "\t  removebonds <mask1> [<mask2>] [out <file>] |\n"
           "\t  bondparm <mask1> [<mask2>] {setrk|scalerk|setreq|scalereq} <value> |\n"
-          "\t  {mass|charge} [of <mask>] {to <value>|fromset <data set>} |\n"
+          "\t  {mass|charge} [of <mask>] {to <value>|by <offset>|fromset <data set>} |\n"
           "\t  mergeres firstres <start res#> lastres <stop res#>\n"
           "\t}\n"
           "  Change specified parts of topology or topology of a COORDS data set.\n",
@@ -608,22 +608,32 @@ int Exec_Change::ChangeBondParameters(Topology& topIn, ArgList& argIn) const {
 }
 
 /** Function to change specific value in topology. */
-static inline void changeTopVal(Topology& topIn, int atnum, int typeIn, double newVal,
-                                const char** desc)
+void Exec_Change::changeTopVal(Topology& topIn, int atnum, ChangeType typeIn, double newVal)
 {
   Atom& currentAtom = topIn.SetAtom(atnum);
   double oldVal;
   switch (typeIn) {
-    case 0 :
+    case MASS_TO :
       oldVal = currentAtom.Mass();
+      mprintf("\tChanging mass of atom '%s' from %g to %g\n", topIn.AtomMaskName(atnum).c_str(), oldVal, newVal);
       currentAtom.SetMass( newVal );
       break;
-    case 1 :
+    case CHARGE_TO :
       oldVal = currentAtom.Charge();
-      currentAtom.SetCharge( newVal ); break;
+      mprintf("\tChanging charge of atom '%s' from %g to %g\n", topIn.AtomMaskName(atnum).c_str(), oldVal, newVal);
+      currentAtom.SetCharge( newVal );
+      break;
+    case MASS_BY :
+      oldVal = currentAtom.Mass();
+      mprintf("\tChanging mass of atom '%s' by %g to %g\n", topIn.AtomMaskName(atnum).c_str(), newVal, oldVal+newVal);
+      currentAtom.SetMass( oldVal + newVal );
+      break;
+    case CHARGE_BY :
+      oldVal = currentAtom.Charge();
+      mprintf("\tChanging charge of atom '%s' by %g to %g\n", topIn.AtomMaskName(atnum).c_str(), newVal, oldVal+newVal);
+      currentAtom.SetCharge( oldVal + newVal );
+      break;
   }
-  mprintf("\tChanging %s of atom '%s' from %g to %g\n", desc[typeIn],
-          topIn.AtomMaskName(atnum).c_str(), oldVal, newVal);
 }
 
 /** Change mass/charge in topology.
@@ -658,6 +668,7 @@ const
 
   std::string fromSet = argIn.GetStringKey("fromset");
   if (!fromSet.empty()) {
+    // Get charges from a data set
     DataSet* ds = DSL.GetDataSet( fromSet );
     if (ds == 0) {
       mprinterr("Error: No set selected by '%s'\n", fromSet.c_str());
@@ -673,18 +684,46 @@ const
                 atomsToChange.Nselected(), desc[typeIn], ds->legend(), ds->Size());
       return 1;
     }
+    ChangeType ctype;
+    if (typeIn == 0)
+      ctype = MASS_TO;
+    else
+      ctype = CHARGE_TO;
     DataSet_1D const& dset = static_cast<DataSet_1D const&>( *ds );
     for (int idx = 0; idx != atomsToChange.Nselected(); idx++) {
-      changeTopVal(topIn, atomsToChange[idx], typeIn, dset.Dval(idx), desc);
+      changeTopVal(topIn, atomsToChange[idx], ctype, dset.Dval(idx));
     }
   } else {
-    if (!argIn.Contains("to")) {
-      mprinterr("Error: Expected either 'fromset' or 'to' for 'change %s'.\n", desc[typeIn]);
+    // Get charge/offset from command line
+    ChangeType ctype;
+    bool change_to = argIn.Contains("to");
+    bool change_by = argIn.Contains("by");
+    if (!change_to && !change_by) {
+      mprinterr("Error: Expected either 'fromset', 'to', or 'by' for 'change %s'.\n", desc[typeIn]);
       return 1;
     }
-    double newVal = argIn.getKeyDouble("to", 0.0);
-    for (AtomMask::const_iterator at = atomsToChange.begin(); at != atomsToChange.end(); ++at) {
-      changeTopVal(topIn, *at, typeIn, newVal, desc);
+    if (change_to && change_by) {
+      mprinterr("Error: Specify either 'to' or 'by', not both.\n");
+      return 1;
+    }
+    if (change_to) {
+      if (typeIn == 0)
+        ctype = MASS_TO;
+      else
+        ctype = CHARGE_TO;
+      double newVal = argIn.getKeyDouble("to", 0.0);
+      for (AtomMask::const_iterator at = atomsToChange.begin(); at != atomsToChange.end(); ++at) {
+        changeTopVal(topIn, *at, ctype, newVal);
+      }
+    } else if (change_by) {
+      if (typeIn == 0)
+        ctype = MASS_BY;
+      else
+        ctype = CHARGE_BY;
+      double offset = argIn.getKeyDouble("by", 0.0);
+      for (AtomMask::const_iterator at = atomsToChange.begin(); at != atomsToChange.end(); ++at) {
+        changeTopVal(topIn, *at, ctype, offset);
+      }
     }
   }
 

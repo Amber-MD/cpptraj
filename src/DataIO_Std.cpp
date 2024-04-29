@@ -14,6 +14,7 @@
 #include "DataSet_double.h" // For reading TODO remove dependency?
 #include "DataSet_float.h" // For reading TODO remove dependency?
 #include "DataSet_string.h" // For reading TODO remove dependency?
+#include "DataSet_StringVar.h"
 #include "DataSet_Vector.h" // For reading TODO remove dependency?
 #include "DataSet_Mat3x3.h" // For reading TODO remove dependency?
 #include "DataSet_PairwiseCache_MEM.h" // For reading
@@ -44,6 +45,7 @@ DataIO_Std::DataIO_Std() :
   dims_[0] = 0;
   dims_[1] = 0;
   dims_[2] = 0;
+  SetValid( DataSet::STRINGVAR );
 }
 
 static void PrintColumnError(int idx) {
@@ -1161,6 +1163,9 @@ int DataIO_Std::WriteData(FileName const& fname, DataSetList const& SetList)
     if (SetList[0]->Group() == DataSet::PWCACHE) {
       // Special case of 2D - may have sieved frames.
       err = WriteCmatrix(file, SetList);
+    } else if (SetList[0]->Type() == DataSet::STRINGVAR) {
+      // For debugging string variables
+      err = WriteStringVars(file, SetList);
     } else if (SetList[0]->Ndim() == 1) {
       if (group_ == NO_TYPE) {
         if (isInverted_)
@@ -1176,6 +1181,24 @@ int DataIO_Std::WriteData(FileName const& fname, DataSetList const& SetList)
     file.CloseFile();
   }
   return err;
+}
+
+/** For debugging string variables, write out to a file. */
+int DataIO_Std::WriteStringVars(CpptrajFile& file, DataSetList const& Sets) const {
+  for (DataSetList::const_iterator ds = Sets.begin(); ds != Sets.end(); ++ds)
+  {
+    if ( (*ds)->Type() != DataSet::STRINGVAR ) {
+      mprintf("Warning: First variable written to %s was a string variable, skipping '%s'\n",
+              file.Filename().full(), (*ds)->legend());
+    } else {
+      DataSet_StringVar const& var = static_cast<DataSet_StringVar const&>( *(*ds) );
+      file.Write( var.Meta().Name().c_str(), var.Meta().Name().size() );
+      file.Printf(" = ");
+      file.Write( var.Value().c_str(), var.Value().size() );
+      file.Printf("\n");
+    }
+  }
+  return 0;
 }
 
 // DataIO_Std::WriteCmatrix()

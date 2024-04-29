@@ -6,15 +6,16 @@
 void Exec_Set::Help() const {
   mprintf("\t{ <variable> <OP> <value> |\n"
           "\t  <variable> <OP> {atoms|residues|molecules|atomnums|\n"
-          "\t                   resnums|oresnums|molnums} inmask <mask>\n"
+          "\t                   resnums|oresnums|molnums|\n"
+          "\t                   charge|mass} inmask <mask>\n"
           "\t    [%s]\n"
           "\t  <variable> <OP> trajinframes }\n",
           DataSetList::TopIdxArgs);
   mprintf("  Set (<OP> = '=') or append (<OP> = '+=') a script variable.\n"
           "  - Set script variable <variable> to value <value>.\n"
-          "  - Set script variable to the number of atoms/residues/molecules\n"
-          "    or selected atom #s/residue #s/original residue #s/molecule #s\n"
-          "    in the given mask.\n"
+          "  - Set script variable to the number of atoms/residues/molecules in,\n"
+          "    selected atom #s/residue #s/original residue #s/molecule #s in,\n"
+          "    or total charge/mass of atoms selected by the given mask.\n"
           "  - Set script variable to the current number of frames that will\n"
           "     be read from all previous 'trajin' statements.\n");
 }
@@ -72,6 +73,16 @@ Exec::RetType Exec_Set::Execute(CpptrajState& State, ArgList& argIn)
       for (std::vector<int>::const_iterator it = resnums.begin(); it != resnums.end(); ++it)
         oresnums.push_back( top->Res(*it).OriginalResNum() );
       value = ArrayToRangeExpression( oresnums, 0 );
+    } else if (equals.hasKey("charge")) {
+      double sum_q = 0;
+      for (AtomMask::const_iterator it = mask.begin(); it != mask.end(); ++it)
+        sum_q += (*top)[*it].Charge();
+      value = doubleToString( sum_q );
+    } else if (equals.hasKey("mass")) {
+      double sum_m = 0;
+      for (AtomMask::const_iterator it = mask.begin(); it != mask.end(); ++it)
+        sum_m += (*top)[*it].Mass();
+      value = doubleToString( sum_m );
     } else {
       mprinterr("Error: Expected one of: 'atoms', 'residues', 'molecules',\n"
                 "Error:   'atomnums', 'resnums', 'oresnums', or 'molnums'.\n");

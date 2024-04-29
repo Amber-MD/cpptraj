@@ -2652,7 +2652,11 @@ set { <variable> <OP> <value> |
 \end_layout
 
 \begin_layout LyX-Code
-	                   resnums|oresnums|molnums} inmask <mask>
+	                   resnums|oresnums|molnums|
+\end_layout
+
+\begin_layout LyX-Code
+                       charge|mass} inmask <mask>
 \end_layout
 
 \begin_layout LyX-Code
@@ -2702,8 +2706,9 @@ inmask
 \end_inset
 
 <mask> Set/append a script variable to/by the total number of atoms/residues/mol
-ecules or a range expression of selected atom #s/residue #s/original residue
- #s/molecule #s in the given mask expression.
+ecules in, a range expression of selected atom #s/residue #s/original residue
+ #s/molecule #s in, or the total charge/mass of atoms selected by the given
+ mask expression.
 \end_layout
 
 \begin_deeper
@@ -14837,7 +14842,8 @@ change [parm <name> | parmindex <#> | <#> |
 \end_layout
 
 \begin_layout LyX-Code
-      {mass|charge} [of <mask>] {to <value>|fromset <data set>} |
+      {mass|charge} [of <mask>] {to <value>|by <offset>|fromset <data set>}
+ |
 \end_layout
 
 \begin_layout LyX-Code
@@ -15155,6 +15161,14 @@ to
 \end_inset
 
 <value> Value to change mass/charge to.
+\end_layout
+
+\begin_layout Description
+by
+\begin_inset space ~
+\end_inset
+
+<offset> Value to offset masses/charges by.
 \end_layout
 
 \begin_layout Description

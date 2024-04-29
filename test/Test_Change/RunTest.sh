@@ -3,7 +3,8 @@
 . ../MasterTest.sh
 
 CleanFiles change.in ala3.mod.pdb ala3.chain.pdb crdala3.chain.pdb \
-           AFV.zeroHmass.dat AFV.fluctMass.dat merged.?-?.mol2
+           AFV.zeroHmass.dat AFV.fluctMass.dat merged.?-?.mol2 \
+           AFV.zeroHcharge.dat AFV.1.offset.dat
 
 TESTNAME='Change command test'
 
@@ -77,6 +78,33 @@ atoms * out AFV.fluctMass.dat
 EOF
   RunCpptraj "$UNITNAME"
   DoTest AFV.fluctMass.dat.save AFV.fluctMass.dat
+fi
+
+UNITNAME='Change charge of atoms test'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > change.in <<EOF
+parm ../AFV.parm7
+change charge of @H= to 0.0
+atoms * out AFV.zeroHcharge.dat
+#parmwrite out AFV.zeroHcharge.parm7
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest AFV.zeroHcharge.dat.save AFV.zeroHcharge.dat
+fi
+
+UNITNAME='Change charge/mass of atoms by offset test'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > change.in <<EOF
+parm ../AFV.parm7
+change charge of :1 by -1.0
+change mass of :1 by 1.0
+parmstrip !:1
+atoms * out AFV.1.offset.dat
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest AFV.1.offset.dat.save AFV.1.offset.dat
 fi
 
 UNITNAME='Merge residues test'
