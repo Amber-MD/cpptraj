@@ -5,7 +5,8 @@
 # Clean
 CleanFiles atommap.in initial.mol2 atommap.dat reordered.pdb reordered.mol2 \
            fit.mol2 rmsd.dat map.chm_to_amb.dat mapped.pdb.? rmsout.dat \
-           map.byres.chm_to_amb.dat map.Base.dat remap.ADD.mol2
+           map.byres.chm_to_amb.dat map.Base.dat remap.ADD.mol2 \
+           heme.atommap.dat reordered.targetHeme.mol2
 
 TESTNAME='Atom map tests'
 Requires maxthreads 3
@@ -107,6 +108,27 @@ run
 EOF
   RunCpptraj "$UNITNAME"
   DoTest remap.ADD.mol2.save remap.ADD.mol2
+fi
+
+# Test 5
+UNITNAME='Atom map, heme test.'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > atommap.in <<EOF
+parm targetHeme.mol2
+reference targetHeme.mol2 parmindex 0
+parm 6O3I_heme.mol2
+reference 6O3I_heme.mol2 parmindex 1
+# ATOMMAP TARGET REFERENCE
+atommap targetHeme.mol2 6O3I_heme.mol2 mapout heme.atommap.dat
+trajin targetHeme.mol2
+align ref 6O3I_heme.mol2
+trajout reordered.targetHeme.mol2
+run
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest reordered.targetHeme.mol2.save reordered.targetHeme.mol2
+  DoTest heme.atommap.dat.save heme.atommap.dat
 fi
 
 EndTest
