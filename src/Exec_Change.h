@@ -10,7 +10,7 @@ class Exec_Change : public Exec {
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_Change(); }
     RetType Execute(CpptrajState&, ArgList&);
   private:
-    enum ChangeType { MASS_TO = 0, CHARGE_TO, MASS_BY, CHARGE_BY };
+    enum ChangeType { MASS_TO = 0, CHARGE_TO, MASS_BY, CHARGE_BY, MASS_BYFAC, CHARGE_BYFAC };
     /// Change mass or charge
     static inline void changeTopVal(Topology&, int, ChangeType, double);
 

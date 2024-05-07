@@ -14842,8 +14842,11 @@ change [parm <name> | parmindex <#> | <#> |
 \end_layout
 
 \begin_layout LyX-Code
-      {mass|charge} [of <mask>] {to <value>|by <offset>|fromset <data set>}
- |
+      {mass|charge} [of <mask>] {to <value> |by <offset> |
+\end_layout
+
+\begin_layout LyX-Code
+                                 byfac <factor> |fromset <data set>} |
 \end_layout
 
 \begin_layout LyX-Code
@@ -15169,6 +15172,14 @@ by
 \end_inset
 
 <offset> Value to offset masses/charges by.
+\end_layout
+
+\begin_layout Description
+byfac
+\begin_inset space ~
+\end_inset
+
+<factor> Value to multiply masses/charges by.
 \end_layout
 
 \begin_layout Description

@@ -4,7 +4,7 @@
 
 CleanFiles change.in ala3.mod.pdb ala3.chain.pdb crdala3.chain.pdb \
            AFV.zeroHmass.dat AFV.fluctMass.dat merged.?-?.mol2 \
-           AFV.zeroHcharge.dat AFV.1.offset.dat
+           AFV.zeroHcharge.dat AFV.1.offset.dat AFV.1.byfac.dat
 
 TESTNAME='Change command test'
 
@@ -102,9 +102,13 @@ change charge of :1 by -1.0
 change mass of :1 by 1.0
 parmstrip !:1
 atoms * out AFV.1.offset.dat
+change charge of :1 byfac 0.5
+change mass of :1 byfac 2.0
+atoms * out AFV.1.byfac.dat
 EOF
   RunCpptraj "$UNITNAME"
   DoTest AFV.1.offset.dat.save AFV.1.offset.dat
+  DoTest AFV.1.byfac.dat.save AFV.1.byfac.dat
 fi
 
 UNITNAME='Merge residues test'
