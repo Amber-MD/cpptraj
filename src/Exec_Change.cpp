@@ -18,7 +18,8 @@ void Exec_Change::Help() const
           "\t  addbond <mask1> <mask2> [req <length> <rk> <force constant>] |\n"
           "\t  removebonds <mask1> [<mask2>] [out <file>] |\n"
           "\t  bondparm <mask1> [<mask2>] {setrk|scalerk|setreq|scalereq} <value> |\n"
-          "\t  {mass|charge} [of <mask>] {to <value>|by <offset>|fromset <data set>} |\n"
+          "\t  {mass|charge} [of <mask>] {to <value> |by <offset> |\n"
+          "\t                             byfac <factor> |fromset <data set>} |\n"
           "\t  mergeres firstres <start res#> lastres <stop res#>\n"
           "\t}\n"
           "  Change specified parts of topology or topology of a COORDS data set.\n",
@@ -633,6 +634,16 @@ void Exec_Change::changeTopVal(Topology& topIn, int atnum, ChangeType typeIn, do
       mprintf("\tChanging charge of atom '%s' by %g to %g\n", topIn.AtomMaskName(atnum).c_str(), newVal, oldVal+newVal);
       currentAtom.SetCharge( oldVal + newVal );
       break;
+    case MASS_BYFAC :
+      oldVal = currentAtom.Mass();
+      mprintf("\tChanging mass of atom '%s' by factor of %g to %g\n", topIn.AtomMaskName(atnum).c_str(), newVal, oldVal*newVal);
+      currentAtom.SetMass( oldVal * newVal );
+      break;
+    case CHARGE_BYFAC :
+      oldVal = currentAtom.Charge();
+      mprintf("\tChanging charge of atom '%s' by factor of %g to %g\n", topIn.AtomMaskName(atnum).c_str(), newVal, oldVal*newVal);
+      currentAtom.SetCharge( oldVal * newVal );
+      break;
   }
 }
 
@@ -698,11 +709,15 @@ const
     ChangeType ctype;
     bool change_to = argIn.Contains("to");
     bool change_by = argIn.Contains("by");
-    if (!change_to && !change_by) {
-      mprinterr("Error: Expected either 'fromset', 'to', or 'by' for 'change %s'.\n", desc[typeIn]);
+    bool change_byfac = argIn.Contains("byfac");
+    int nchange = 0;
+    if (change_to) nchange++;
+    if (change_by) nchange++;
+    if (change_byfac) nchange++;
+    if (nchange < 1) {
+      mprinterr("Error: Expected either 'fromset', 'to', 'by', or 'byfac' for 'change %s'.\n", desc[typeIn]);
       return 1;
-    }
-    if (change_to && change_by) {
+    } else if (nchange > 1) {
       mprinterr("Error: Specify either 'to' or 'by', not both.\n");
       return 1;
     }
@@ -723,6 +738,15 @@ const
       double offset = argIn.getKeyDouble("by", 0.0);
       for (AtomMask::const_iterator at = atomsToChange.begin(); at != atomsToChange.end(); ++at) {
         changeTopVal(topIn, *at, ctype, offset);
+      }
+    } else if (change_byfac) {
+      if (typeIn == 0)
+        ctype = MASS_BYFAC;
+      else
+        ctype = CHARGE_BYFAC;
+      double fac = argIn.getKeyDouble("byfac", 0.0);
+      for (AtomMask::const_iterator at = atomsToChange.begin(); at != atomsToChange.end(); ++at) {
+        changeTopVal(topIn, *at, ctype, fac);
       }
     }
   }
