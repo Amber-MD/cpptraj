@@ -272,14 +272,17 @@ bool CIFfile::ID_CIF(CpptrajFile& fileIn) {
   int ndata = 0; // Number of '_XXX' entries seen
   bool foundLoop = false;
   bool foundEntryID = false;
+  bool foundDataBlock = false;
   for (int i = 0; i < 10; i++) {
     std::string lineIn = fileIn.GetLine();
     if (lineIn[0] == '_') ndata++;
+    if (lineIn.compare(0,5,"data_")==0) foundDataBlock = true;
     if (lineIn.compare(0,5,"loop_")==0) foundLoop = true;
     if (lineIn.compare(0,9,"_entry.id")==0) foundEntryID = true;
   }
   fileIn.CloseFile();
-  return ( ndata > 2 && (foundLoop || foundEntryID) );
+  if (foundDataBlock || foundLoop || foundEntryID) return true;
+  return ( ndata > 2 && (foundLoop || foundEntryID || foundDataBlock) );
 }
 
 // CIFfile::Read()
