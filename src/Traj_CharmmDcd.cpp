@@ -375,8 +375,7 @@ int Traj_CharmmDcd::readDcdHeader() {
     if (charmmCellType_ != UNKNOWN) {
       // Box info type was specified by option.
       if (buffer.i[19] >= 22 && charmmCellType_ != SHAPE)
-        mprintf("Warning: CHARMM version is >= 22 but 'shape' not specified.\n"
-                "Warning: Assuming box info is stored as unit cell and not shape matrix.\n");
+        mprintf("Warning: CHARMM version is >= 22 but an option other than 'shape' was specified.\n");
     }
   } else
     boxBytes_ = 0;
@@ -513,6 +512,15 @@ int Traj_CharmmDcd::setupBox(double* boxtmp) {
   }
   // Test NAMD unit cell
   if (charmmCellType_ == UNKNOWN || charmmCellType_ == NAMD) {
+    mprintf("DEBUG: NAMD unit cell test, celltype %i\n", (int)charmmCellType_);
+    mprintf("DEBUG: boxtmp: %g %g %g %g %g %g\n", boxtmp[0], boxtmp[1], boxtmp[2], boxtmp[3], boxtmp[4], boxtmp[5]);
+    // Expect that values are stored as X, gamma, Y, beta, alpha, Z
+    //                                  0  1      2  3     4      5
+    // Will need to resort them as expected by Box (X Y Z alpha beta gamma)
+    double newbox[6];
+    newbox[0] = boxtmp[0];
+    newbox[1] = boxtmp[2];
+    newbox[2] = boxtmp[5];
     // Since NAMD stores the box angles as cos(angle), determine if the angle values are bounded between -1 and 1.
     if ( boxtmp[4] >= -1 && boxtmp[4] <= 1 &&
          boxtmp[3] >= -1 && boxtmp[3] <= 1 &&
@@ -521,10 +529,21 @@ int Traj_CharmmDcd::setupBox(double* boxtmp) {
       if (charmmCellType_ == UNKNOWN)
         mprintf("\tNAMD unit cell detected.\n");
       charmmCellType_ = NAMD;
+      // Convert the angles back to degrees
+      newbox[3] = CosRadToDeg( boxtmp[4] );
+      newbox[4] = CosRadToDeg( boxtmp[3] );
+      newbox[5] = CosRadToDeg( boxtmp[1] );
     } else if (charmmCellType_ == NAMD) {
       mprintf("Warning: NAMD unit cell specified but cos(angle) values not bounded by -1, 1\n",
               "Warning: Values: %g %g %g\n", boxtmp[4], boxtmp[3], boxtmp[1]);
+      // Assume the angles are already in degrees
+      newbox[3] = boxtmp[4];
+      newbox[4] = boxtmp[3];
+      newbox[5] = boxtmp[1];
     }
+    // Set with re-ordered (and possibly converted) values
+    for (int i = 0; i < 6; i++)
+      boxtmp[i] = newbox[i];
   }
   // Test CHARMM unit cell
   if (charmmCellType_ == UNKNOWN || charmmCellType_ == CHARMM) {
@@ -565,6 +584,7 @@ int Traj_CharmmDcd::ReadBox(double* boxtmp) {
   if (isBigEndian_) endian_swap8(boxtmp,6);
   if ( ReadBlock(-1) < 0) return 1;
   if (charmmCellType_ == NAMD) {
+    // Expect that values are stored as X, gamma, Y, beta, alpha, Z
     // Box lengths
     double box[6];
     box[0] = boxtmp[0];
