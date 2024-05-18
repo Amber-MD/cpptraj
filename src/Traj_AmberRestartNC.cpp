@@ -294,7 +294,7 @@ int Traj_AmberRestartNC::writeFrame(int set, Frame const& frameOut) {
   // write box
   if (cellLengthVID_ != -1) {
     if (!frameOut.BoxCrd().Is_X_Aligned())
-      mprintf("Warning: Set %i; unit cell is not X-aligned. Box cannot be properly stored as Amber NetCDF restart.\n", set+1);
+      incrementXalignWarnCount(set, "Amber NetCDF restart");
     count_[0] = 3;
     count_[1] = 0;
     if (NC::CheckErr(nc_put_vara_double(ncid_,cellLengthVID_,start_,count_,frameOut.BoxCrd().XyzPtr())))

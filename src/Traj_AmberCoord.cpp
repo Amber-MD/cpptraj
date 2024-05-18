@@ -168,7 +168,7 @@ int Traj_AmberCoord::writeFrame(int set, Frame const& frameOut) {
   
   if (numBoxCoords_ != 0) {
     if (!frameOut.BoxCrd().Is_X_Aligned())
-      mprintf("Warning: Set %i; unit cell is not X-aligned. Box cannot be properly stored as Amber ASCII trajectory.\n", set+1);
+      incrementXalignWarnCount(set, "Amber ASCII trajectory");
     file_.DoubleToBuffer(frameOut.BoxCrd().XyzPtr(), numBoxCoords_, outfmt_);
   }
 

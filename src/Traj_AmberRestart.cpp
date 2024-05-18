@@ -344,7 +344,7 @@ int Traj_AmberRestart::writeFrame(int set, Frame const& frameOut) {
   // Write box to buffer
   if (numBoxCoords_!=0) {
     if (!frameOut.BoxCrd().Is_X_Aligned())
-      mprintf("Warning: Set %i; unit cell is not X-aligned. Box cannot be properly stored as Amber ASCII restart.\n", set+1);
+      incrementXalignWarnCount(set, "Amber ASCII restart");
     file_.DoubleToBuffer(frameOut.BoxCrd().XyzPtr(), numBoxCoords_, "%12.7f");
   }
 

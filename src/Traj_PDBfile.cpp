@@ -837,7 +837,7 @@ void Traj_PDBfile::WriteBonds() {
 void Traj_PDBfile::writeBox(int set, Box const& box) {
   if (write_cryst1_) {
     if (!box.Is_X_Aligned())
-      mprintf("Warning: Set %i; unit cell is not X-aligned. Box cannot be properly stored in PDB CRYST1.\n", set+1);
+      incrementXalignWarnCount(set, "PDB CRYST1");
     file_.WriteCRYST1( box.XyzPtr(), space_group_.c_str() );
   }
 }
