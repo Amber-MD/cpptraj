@@ -481,7 +481,7 @@ int Traj_CharmmDcd::setupBox(double* boxtmp) {
     // Check if a non-orthogonal cell has angles close to but not quite 90 deg.
     Box::CellShapeType boxShape = testBox.CellShape();
     if (boxShape != Box::CUBIC && boxShape != Box::TETRAGONAL && boxShape != Box::ORTHORHOMBIC) {
-      testBox.PrintDebug("DCD Shape Matrix Check"); // DEBUG
+      if (debug_ > 0) testBox.PrintDebug("DCD Shape Matrix Check"); // DEBUG
       double deltaA = fabs( 90.0 - testBox.Param(Box::ALPHA) );
       double deltaB = fabs( 90.0 - testBox.Param(Box::BETA) );
       double deltaG = fabs( 90.0 - testBox.Param(Box::GAMMA) );
@@ -489,10 +489,17 @@ int Traj_CharmmDcd::setupBox(double* boxtmp) {
            deltaB > Constants::SMALL && deltaB < 1.0 &&
            deltaG > Constants::SMALL && deltaG < 1.0 )
       {
-        mprintf("Warning: Cell is non-orthogonal but all angles are close to 90 deg.\n"
-                "Warning: If this trajectory is from NAMD with a non-orthogonal cell\n"
-                "Warning: the 'namdcell' option must be used since NAMD does not store\n"
-                "Warning: the actual symmetric shape matrix.\n");
+        if (charmmCellType_ != UNKNOWN) {
+          mprintf("Warning: Cell is non-orthogonal but all angles from the symmetric shape\n"
+                  "Warning: matrix are close to 90 deg (%g %g %g).\n",
+                  testBox.Param(Box::ALPHA), testBox.Param(Box::BETA), testBox.Param(Box::GAMMA));
+          mprintf("Warning: If this trajectory is from NAMD with a non-orthogonal cell\n"
+                  "Warning: the 'namdcell' option must be used since NAMD does not store\n"
+                  "Warning: the actual symmetric shape matrix.\n");
+        } else {
+          // User has not specified box; this is likely a NAMD DCD with non-orthogonal cell
+          check = Box::BOX_IS_SKEWED;
+        }
       }
     }
     if (check != Box::BOX_OK) {
@@ -530,8 +537,8 @@ int Traj_CharmmDcd::setupBox(double* boxtmp) {
   }
   // Test NAMD unit cell
   if (charmmCellType_ == UNKNOWN || charmmCellType_ == NAMD) {
-    mprintf("DEBUG: NAMD unit cell test, celltype %i\n", (int)charmmCellType_);
-    mprintf("DEBUG: boxtmp: %g %g %g %g %g %g\n", boxtmp[0], boxtmp[1], boxtmp[2], boxtmp[3], boxtmp[4], boxtmp[5]);
+    //mprintf("DEBUG: NAMD unit cell test, celltype %i\n", (int)charmmCellType_);
+    //mprintf("DEBUG: boxtmp: %g %g %g %g %g %g\n", boxtmp[0], boxtmp[1], boxtmp[2], boxtmp[3], boxtmp[4], boxtmp[5]);
     // Expect that values are stored as X, gamma, Y, beta, alpha, Z
     //                                  0  1      2  3     4      5
     // Will need to resort them as expected by Box (X Y Z alpha beta gamma)
@@ -578,7 +585,7 @@ int Traj_CharmmDcd::setupBox(double* boxtmp) {
       charmmCellType_ = CHARMM;
     } else if (charmmCellType_ == CHARMM) {
       mprintf("Warning: CHARMM unit cell specified but bad box values detected.\n"
-              "Warning: Box values : %g %g %g %g %g %g\n",
+              "Warning: Box values (XYZ, ABG) : %g %g %g Ang., %g %g %g deg.\n",
               boxtmp[0], boxtmp[1], boxtmp[2], boxtmp[3], boxtmp[4], boxtmp[5]);
     }
   }
