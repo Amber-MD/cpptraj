@@ -103,6 +103,7 @@ void Trajout_Single::EndTraj() {
     else
 #   endif
       trajio_->closeTraj();
+    trajio_->PrintWarnings(traj_.Filename().Base());
   }
   //  SetTrajIsOpen(false);
   //}

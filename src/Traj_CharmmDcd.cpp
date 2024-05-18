@@ -890,7 +890,7 @@ int Traj_CharmmDcd::writeFrame(int set, Frame const& frameOut) {
     double boxtmp[6];
     if (charmmCellType_ == SHAPE) {
       if (!frameOut.BoxCrd().Is_Symmetric())
-        mprintf("Warning: Set %i; unit cell is not symmetric. Box cannot be properly stored as Charmm DCD.\n", set+1);
+        incrementSymmetricWarnCount(set, "Charmm DCD");
       //frameOut.BoxCrd().GetSymmetricShapeMatrix( boxtmp );
       Matrix_3x3 const& ucell = frameOut.BoxCrd().UnitCell();
       boxtmp[0] = ucell[0]; // XX
@@ -901,7 +901,7 @@ int Traj_CharmmDcd::writeFrame(int set, Frame const& frameOut) {
       boxtmp[5] = ucell[8]; // ZZ
     } else {
       if (!frameOut.BoxCrd().Is_X_Aligned())
-        mprintf("Warning: Set %i; unit cell is not X-aligned. Box cannot be properly stored as Charmm DCD.\n", set+1);
+        incrementXalignWarnCount(set, "Charmm DCD");
       if (charmmCellType_ == NAMD) {
         /* The format for the 'box' array used in cpptraj is not the same as the
          * one used for NAMD dcd files.  Refer to the reading routine above

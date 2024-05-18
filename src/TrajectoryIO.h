@@ -26,8 +26,10 @@ class FrameArray;
   */
 class TrajectoryIO : public BaseIOtype {
   public:
-    TrajectoryIO() : debug_(0) {}
-    virtual ~TrajectoryIO() {} // virtual since this class is inherited.
+    /// CONSTRUCTOR
+    TrajectoryIO();
+    /// DESTRUCTOR - virtual since this class is inherited.
+    virtual ~TrajectoryIO() {}
     // -----------===== Inherited functions =====-----------
     /// \return true if file format matches trajectory type.
     virtual bool ID_TrajFormat(CpptrajFile&) = 0;
@@ -105,6 +107,9 @@ class TrajectoryIO : public BaseIOtype {
     virtual void parallelCloseTraj() { return ; }
 #   endif
     // -----------------------------------------------------
+    /// Print any warnings. Resets warning counts.
+    void PrintWarnings(std::string const&);
+
     CoordinateInfo const& CoordInfo() const { return coordInfo_; }
     std::string const& Title()        const { return title_;     }
 
@@ -112,6 +117,11 @@ class TrajectoryIO : public BaseIOtype {
     void SetTitle(std::string const& tIn)        { title_ = tIn;     }
   protected:
     void SetCoordInfo(CoordinateInfo const& cIn) { coordInfo_ = cIn; }
+    /// Increment X-align warn count
+    void incrementXalignWarnCount(int, const char*);
+    /// Increment symmetric warn count
+    void incrementSymmetricWarnCount(int, const char*);
+
     int debug_;               ///< Trajectory debug level.
 #   ifdef MPI
     /// Broadcast coordinate info etc. to non-master processes
@@ -120,5 +130,7 @@ class TrajectoryIO : public BaseIOtype {
   private:
     CoordinateInfo coordInfo_; ///< Metadata associated with coordinate Frame
     std::string title_;        ///< Set to trajectory title.
+    unsigned int nwarn_cell_not_xaligned_; ///< Count of frames where unit cell is not X-aligned
+    unsigned int nwarn_cell_not_symmetric_; ///< Count of frames where unit cell is not symmetric
 }; 
 #endif
