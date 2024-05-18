@@ -121,12 +121,15 @@ int EnsembleOut_Multi::InitEnsembleWrite(std::string const& tnameIn,
 void EnsembleOut_Multi::EndEnsemble() {
   //if (TrajIsOpen()) {
     for (IOarrayType::const_iterator tio = ioarray_.begin(); tio != ioarray_.end(); ++tio)
+    {
 #     ifdef MPI
       if (trajComm_.Size() > 1)
         (*tio)->parallelCloseTraj();
       else
 #     endif
         (*tio)->closeTraj();
+      (*tio)->PrintWarnings( fileNames_[tio-ioarray_.begin()] );
+    }
   //  SetTrajIsOpen( false );
   //}
 }

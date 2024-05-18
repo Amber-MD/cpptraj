@@ -19,6 +19,7 @@ class EnsembleOut_Single : public EnsembleOut {
   private:
     TrajectoryIO* eio_; // TODO Make EnsembleIO
     int ensembleSize_;
+    std::string fname_;
 };
 #endif
 #endif

@@ -25,6 +25,7 @@ int EnsembleOut_Single::InitEnsembleWrite(std::string const& tnameIn,
     mprinterr("Internal Error: InitTrajWrite: No filename given.\n");
     return 1;
   }
+  fname_ = tnameIn;
   // Require that ensemble size is set.
   ensembleSize_ = ensembleSizeIn; 
   if (ensembleSize_ < 1) {
@@ -74,7 +75,10 @@ int EnsembleOut_Single::InitEnsembleWrite(std::string const& tnameIn,
 // EnsembleOut_Single::EndEnsemble()
 void EnsembleOut_Single::EndEnsemble() {
   //if (TrajIsOpen()) {
-  if (eio_ != 0) eio_->closeTraj(); // Handle no init case
+  if (eio_ != 0) {
+    eio_->closeTraj(); // Handle no init case
+    eio_->PrintWarnings(fname_);
+  }
   //  SetTrajIsOpen(false);
   //}
 }
