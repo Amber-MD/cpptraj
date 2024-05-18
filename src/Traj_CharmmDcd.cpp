@@ -469,6 +469,7 @@ int Traj_CharmmDcd::setupBox(double* boxtmp) {
   file_.Read(boxtmp, sizeof(double)*6);
   if (isBigEndian_) endian_swap8(boxtmp,6);
   if ( ReadBlock(-1) < 0) return 1;
+  if (debug_ > 0) mprintf("DEBUG: Raw box values: %g %g %g %g %g %g\n", boxtmp[0], boxtmp[1], boxtmp[2], boxtmp[3], boxtmp[4], boxtmp[5]);
   // Test shape matrix
   if (charmmCellType_ == UNKNOWN || charmmCellType_ == SHAPE) {
     int nIssues = 0;
@@ -538,7 +539,6 @@ int Traj_CharmmDcd::setupBox(double* boxtmp) {
   // Test NAMD unit cell
   if (charmmCellType_ == UNKNOWN || charmmCellType_ == NAMD) {
     //mprintf("DEBUG: NAMD unit cell test, celltype %i\n", (int)charmmCellType_);
-    //mprintf("DEBUG: boxtmp: %g %g %g %g %g %g\n", boxtmp[0], boxtmp[1], boxtmp[2], boxtmp[3], boxtmp[4], boxtmp[5]);
     // Expect that values are stored as X, gamma, Y, beta, alpha, Z
     //                                  0  1      2  3     4      5
     // Will need to resort them as expected by Box (X Y Z alpha beta gamma)
@@ -558,6 +558,7 @@ int Traj_CharmmDcd::setupBox(double* boxtmp) {
       newbox[3] = CosRadToDeg( boxtmp[4] );
       newbox[4] = CosRadToDeg( boxtmp[3] );
       newbox[5] = CosRadToDeg( boxtmp[1] );
+      if (debug_ > 0) mprintf("DEBUG: angles in degrees: %g %g %g\n", newbox[3], newbox[4], newbox[5]);
     } else if (charmmCellType_ == NAMD) {
       mprintf("Warning: NAMD unit cell specified but cos(angle) values not bounded by -1, 1\n",
               "Warning: Values: %g %g %g\n", boxtmp[4], boxtmp[3], boxtmp[1]);
