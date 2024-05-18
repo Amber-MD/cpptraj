@@ -477,6 +477,24 @@ int Traj_CharmmDcd::setupBox(double* boxtmp) {
     for (int i = 0; i < 6; i++) shape[i] = 0;
     Box::CheckType check;
     testBox.SetupFromShapeMatrix( boxtmp, check );
+    // NAMD stores a pseudo-shape matrix that fails for non-orthogonal cells.
+    // Check if a non-orthogonal cell has angles close to but not quite 90 deg.
+    Box::CellShapeType boxShape = testBox.CellShape();
+    if (boxShape != Box::CUBIC && boxShape != Box::TETRAGONAL && boxShape != Box::ORTHORHOMBIC) {
+      testBox.PrintDebug("DCD Shape Matrix Check"); // DEBUG
+      double deltaA = fabs( 90.0 - testBox.Param(Box::ALPHA) );
+      double deltaB = fabs( 90.0 - testBox.Param(Box::BETA) );
+      double deltaG = fabs( 90.0 - testBox.Param(Box::GAMMA) );
+      if ( deltaA > Constants::SMALL && deltaA < 1.0 &&
+           deltaB > Constants::SMALL && deltaB < 1.0 &&
+           deltaG > Constants::SMALL && deltaG < 1.0 )
+      {
+        mprintf("Warning: Cell is non-orthogonal but all angles are close to 90 deg.\n"
+                "Warning: If this trajectory is from NAMD with a non-orthogonal cell\n"
+                "Warning: the 'namdcell' option must be used since NAMD does not store\n"
+                "Warning: the actual symmetric shape matrix.\n");
+      }
+    }
     if (check != Box::BOX_OK) {
       nIssues = 1;
     } else {
@@ -541,9 +559,11 @@ int Traj_CharmmDcd::setupBox(double* boxtmp) {
       newbox[4] = boxtmp[3];
       newbox[5] = boxtmp[1];
     }
-    // Set with re-ordered (and possibly converted) values
-    for (int i = 0; i < 6; i++)
-      boxtmp[i] = newbox[i];
+    if (charmmCellType_ == NAMD) {
+      // Set with re-ordered (and possibly converted) values
+      for (int i = 0; i < 6; i++)
+        boxtmp[i] = newbox[i];
+    }
   }
   // Test CHARMM unit cell
   if (charmmCellType_ == UNKNOWN || charmmCellType_ == CHARMM) {
