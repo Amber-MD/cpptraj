@@ -375,8 +375,7 @@ int Traj_CharmmDcd::readDcdHeader() {
     if (charmmCellType_ != UNKNOWN) {
       // Box info type was specified by option.
       if (buffer.i[19] >= 22 && charmmCellType_ != SHAPE)
-        mprintf("Warning: CHARMM version is >= 22 but 'shape' not specified.\n"
-                "Warning: Assuming box info is stored as unit cell and not shape matrix.\n");
+        mprintf("Warning: CHARMM version is >= 22 but an option other than 'shape' was specified.\n");
     }
   } else
     boxBytes_ = 0;
@@ -470,6 +469,7 @@ int Traj_CharmmDcd::setupBox(double* boxtmp) {
   file_.Read(boxtmp, sizeof(double)*6);
   if (isBigEndian_) endian_swap8(boxtmp,6);
   if ( ReadBlock(-1) < 0) return 1;
+  if (debug_ > 0) mprintf("DEBUG: Raw box values: %g %g %g %g %g %g\n", boxtmp[0], boxtmp[1], boxtmp[2], boxtmp[3], boxtmp[4], boxtmp[5]);
   // Test shape matrix
   if (charmmCellType_ == UNKNOWN || charmmCellType_ == SHAPE) {
     int nIssues = 0;
@@ -478,6 +478,31 @@ int Traj_CharmmDcd::setupBox(double* boxtmp) {
     for (int i = 0; i < 6; i++) shape[i] = 0;
     Box::CheckType check;
     testBox.SetupFromShapeMatrix( boxtmp, check );
+    // NAMD stores a pseudo-shape matrix that fails for non-orthogonal cells.
+    // Check if a non-orthogonal cell has angles close to but not quite 90 deg.
+    Box::CellShapeType boxShape = testBox.CellShape();
+    if (boxShape != Box::CUBIC && boxShape != Box::TETRAGONAL && boxShape != Box::ORTHORHOMBIC) {
+      if (debug_ > 0) testBox.PrintDebug("DCD Shape Matrix Check"); // DEBUG
+      double deltaA = fabs( 90.0 - testBox.Param(Box::ALPHA) );
+      double deltaB = fabs( 90.0 - testBox.Param(Box::BETA) );
+      double deltaG = fabs( 90.0 - testBox.Param(Box::GAMMA) );
+      if ( deltaA > Constants::SMALL && deltaA < 1.0 &&
+           deltaB > Constants::SMALL && deltaB < 1.0 &&
+           deltaG > Constants::SMALL && deltaG < 1.0 )
+      {
+        if (charmmCellType_ != UNKNOWN) {
+          mprintf("Warning: Cell is non-orthogonal but all angles from the symmetric shape\n"
+                  "Warning: matrix are close to 90 deg (%g %g %g).\n",
+                  testBox.Param(Box::ALPHA), testBox.Param(Box::BETA), testBox.Param(Box::GAMMA));
+          mprintf("Warning: If this trajectory is from NAMD with a non-orthogonal cell\n"
+                  "Warning: the 'namdcell' option must be used since NAMD does not store\n"
+                  "Warning: the actual symmetric shape matrix.\n");
+        } else {
+          // User has not specified box; this is likely a NAMD DCD with non-orthogonal cell
+          check = Box::BOX_IS_SKEWED;
+        }
+      }
+    }
     if (check != Box::BOX_OK) {
       nIssues = 1;
     } else {
@@ -513,6 +538,14 @@ int Traj_CharmmDcd::setupBox(double* boxtmp) {
   }
   // Test NAMD unit cell
   if (charmmCellType_ == UNKNOWN || charmmCellType_ == NAMD) {
+    //mprintf("DEBUG: NAMD unit cell test, celltype %i\n", (int)charmmCellType_);
+    // Expect that values are stored as X, gamma, Y, beta, alpha, Z
+    //                                  0  1      2  3     4      5
+    // Will need to resort them as expected by Box (X Y Z alpha beta gamma)
+    double newbox[6];
+    newbox[0] = boxtmp[0];
+    newbox[1] = boxtmp[2];
+    newbox[2] = boxtmp[5];
     // Since NAMD stores the box angles as cos(angle), determine if the angle values are bounded between -1 and 1.
     if ( boxtmp[4] >= -1 && boxtmp[4] <= 1 &&
          boxtmp[3] >= -1 && boxtmp[3] <= 1 &&
@@ -521,9 +554,23 @@ int Traj_CharmmDcd::setupBox(double* boxtmp) {
       if (charmmCellType_ == UNKNOWN)
         mprintf("\tNAMD unit cell detected.\n");
       charmmCellType_ = NAMD;
+      // Convert the angles back to degrees
+      newbox[3] = CosRadToDeg( boxtmp[4] );
+      newbox[4] = CosRadToDeg( boxtmp[3] );
+      newbox[5] = CosRadToDeg( boxtmp[1] );
+      if (debug_ > 0) mprintf("DEBUG: angles in degrees: %g %g %g\n", newbox[3], newbox[4], newbox[5]);
     } else if (charmmCellType_ == NAMD) {
       mprintf("Warning: NAMD unit cell specified but cos(angle) values not bounded by -1, 1\n",
               "Warning: Values: %g %g %g\n", boxtmp[4], boxtmp[3], boxtmp[1]);
+      // Assume the angles are already in degrees
+      newbox[3] = boxtmp[4];
+      newbox[4] = boxtmp[3];
+      newbox[5] = boxtmp[1];
+    }
+    if (charmmCellType_ == NAMD) {
+      // Set with re-ordered (and possibly converted) values
+      for (int i = 0; i < 6; i++)
+        boxtmp[i] = newbox[i];
     }
   }
   // Test CHARMM unit cell
@@ -539,7 +586,7 @@ int Traj_CharmmDcd::setupBox(double* boxtmp) {
       charmmCellType_ = CHARMM;
     } else if (charmmCellType_ == CHARMM) {
       mprintf("Warning: CHARMM unit cell specified but bad box values detected.\n"
-              "Warning: Box values : %g %g %g %g %g %g\n",
+              "Warning: Box values (XYZ, ABG) : %g %g %g Ang., %g %g %g deg.\n",
               boxtmp[0], boxtmp[1], boxtmp[2], boxtmp[3], boxtmp[4], boxtmp[5]);
     }
   }
@@ -565,6 +612,7 @@ int Traj_CharmmDcd::ReadBox(double* boxtmp) {
   if (isBigEndian_) endian_swap8(boxtmp,6);
   if ( ReadBlock(-1) < 0) return 1;
   if (charmmCellType_ == NAMD) {
+    // Expect that values are stored as X, gamma, Y, beta, alpha, Z
     // Box lengths
     double box[6];
     box[0] = boxtmp[0];
@@ -870,7 +918,7 @@ int Traj_CharmmDcd::writeFrame(int set, Frame const& frameOut) {
     double boxtmp[6];
     if (charmmCellType_ == SHAPE) {
       if (!frameOut.BoxCrd().Is_Symmetric())
-        mprintf("Warning: Set %i; unit cell is not symmetric. Box cannot be properly stored as Charmm DCD.\n", set+1);
+        incrementSymmetricWarnCount(set, "Charmm DCD");
       //frameOut.BoxCrd().GetSymmetricShapeMatrix( boxtmp );
       Matrix_3x3 const& ucell = frameOut.BoxCrd().UnitCell();
       boxtmp[0] = ucell[0]; // XX
@@ -881,7 +929,7 @@ int Traj_CharmmDcd::writeFrame(int set, Frame const& frameOut) {
       boxtmp[5] = ucell[8]; // ZZ
     } else {
       if (!frameOut.BoxCrd().Is_X_Aligned())
-        mprintf("Warning: Set %i; unit cell is not X-aligned. Box cannot be properly stored as Charmm DCD.\n", set+1);
+        incrementXalignWarnCount(set, "Charmm DCD");
       if (charmmCellType_ == NAMD) {
         /* The format for the 'box' array used in cpptraj is not the same as the
          * one used for NAMD dcd files.  Refer to the reading routine above

@@ -447,7 +447,7 @@ int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
   // Write box
   if (cellLengthVID_ != -1) {
     if (!frameOut.BoxCrd().Is_X_Aligned())
-      mprintf("Warning: Set %i; unit cell is not X-aligned. Box cannot be properly stored as Amber NetCDF trajectory.\n", set+1);
+      incrementXalignWarnCount(set, "Amber NetCDF trajectory");
     count_[1] = 3;
     count_[2] = 0;
     if (NC::CheckErr(nc_put_vara_double(ncid_, cellLengthVID_, start_, count_,
