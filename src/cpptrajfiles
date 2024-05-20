@@ -568,6 +568,7 @@ VMDPLUGIN_OBJECTS= \
 # These objects contain trajectory file functionality. Requires core and file libraries.
 LIBCPPTRAJ_TRAJ_OBJECTS= \
   TrajectoryFile.o \
+  TrajectoryIO.o \
   Trajin_Single.o \
   Trajout_Single.o \
   InputTrajCommon.o \
