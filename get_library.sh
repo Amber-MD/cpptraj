@@ -209,6 +209,8 @@ $MAKE_COMMAND $MAKE_TARGET > $COMPILE_LOG 2>&1
 if [ $? -ne 0 ] ; then
   echo "Build failed."
   echo "Check $COMPILE_LOG for errors."
+  # DEBUG
+  #cat $COMPILE_LOG
   exit 1
 fi
 

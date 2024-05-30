@@ -133,8 +133,8 @@ COMPOUT='cpptrajcfg.compile.out'
 NETCDF_SRCTAR='v4.9.2.tar.gz'
 NETCDF_SRCDIR='netcdf-c-4.9.2'
 NETCDF_URL="https://github.com/Unidata/netcdf-c/archive/refs/tags/$NETCDF_SRCTAR"
-NETCDF_OPTS=" --disable-byterange --disable-libxml2 --disable-netcdf-4 --disable-dap $windows_hostflag --disable-shared --disable-doxygen"
-NETCDF4_OPTS=" --disable-byterange --disable-libxml2 --disable-dap $windows_hostflag --disable-shared --disable-doxygen"
+NETCDF_OPTS=" --disable-byterange --disable-libxml2 --disable-netcdf-4 --disable-dap --disable-nczarr $windows_hostflag --disable-shared --disable-doxygen"
+NETCDF4_OPTS=" --disable-byterange --disable-libxml2 --disable-dap --disable-nczarr $windows_hostflag --disable-shared --disable-doxygen"
 
 HDF5_SRCTAR='hdf5-1_10_9.tar.gz'
 HDF5_SRCDIR='hdf5-hdf5-1_10_9'
