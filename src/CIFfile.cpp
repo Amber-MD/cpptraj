@@ -65,7 +65,7 @@ int CIFfile::DataBlock::GetColumnData(int NexpectedCols, BufferedLine& infile, b
 {
   const char* SEP = " \t";
   // Allocate for a line of data
-  columnData_.push_back( Sarray() );
+  //columnData_.push_back( Sarray() );
   // Tokenize the initial line
   int nReadCols = 0;
   int Ncols = infile.TokenizeLine(SEP);
@@ -149,6 +149,12 @@ int CIFfile::DataBlock::AddSerialDataRecord( const char* ptr, BufferedLine& infi
   return 0;
 }
 
+/** Start a serial data block. */
+void CIFfile::DataBlock::StartSerialDataBlock() {
+  // Allocate for a line of data
+  columnData_.push_back( Sarray() );
+}
+
 /** Add column label from loop section. */
 int CIFfile::DataBlock::AddLoopColumn( const char* ptr, BufferedLine& infile ) {
   if (ptr == 0) return 1;
@@ -170,6 +176,8 @@ int CIFfile::DataBlock::AddLoopColumn( const char* ptr, BufferedLine& infile ) {
 
 /** Add loop data. */
 int CIFfile::DataBlock::AddLoopData( const char* ptr, BufferedLine& infile ) {
+  // Allocate for a line of data
+  columnData_.push_back( Sarray() );
   // Should be as much data as there are column headers
   if (GetColumnData( columnHeaders_.size(), infile, false )) return 1;
   return 0;
@@ -224,7 +232,8 @@ std::string CIFfile::DataBlock::Data(std::string const& idIn) const {
   if (columnHeaders_.empty() || columnData_.empty()) return std::string("");
   int colnum = ColumnIndex( idIn );
   if (colnum == -1) return std::string("");
-  return columnData_[colnum].front();
+  //return columnData_[colnum].front();
+  return columnData_[0][colnum];
 }
 
 // -----------------------------------------------------------------------------
@@ -256,6 +265,15 @@ int CIFfile::CIFdata::AddDataBlock( DataBlock const& block ) {
   } else
     cifdata_.insert( std::pair<std::string, DataBlock>(block.Header(), block) );
   return 0;
+}
+
+/** Print CIF data blocks */
+void CIFfile::CIFdata::PrintDataBlocks() const {
+  for (CIF_DataType::const_iterator it = cifdata_.begin(); it != cifdata_.end(); ++it)
+  {
+    mprintf("\tData block: %s\n", it->first.c_str());
+    it->second.ListData();
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -317,6 +335,7 @@ int CIFfile::Read(FileName const& fnameIn, int debugIn) {
     } else if ( currentMode == SERIAL ) {
       // SERIAL data block
       DataBlock serial;
+      serial.StartSerialDataBlock();
       while ( ptr != 0 && ptr[0] == '_' ) {
         serial.AddSerialDataRecord(ptr, file_);
         ptr = file_.Line();
@@ -371,4 +390,14 @@ const
     }
   }
   return emptyblock;
+}
+
+/** List all data currently in the CIFfile. */
+void CIFfile::ListAllData() const {
+  for (std::vector<CIFdata>::const_iterator it = data_.begin();
+                                            it != data_.end(); ++it)
+  {
+    mprintf("CIF data: %s\n", it->DataName().c_str());
+    it->PrintDataBlocks();
+  }
 }

@@ -17,6 +17,7 @@ class CIFfile {
         bool empty()                const { return dataHeader_.empty(); }
         int AddHeader(std::string const&);
         int AddSerialDataRecord(const char*, BufferedLine&);
+        void StartSerialDataBlock();
         int AddLoopColumn(const char*, BufferedLine&);
         int AddLoopData(const char*, BufferedLine&);
         void Append(DataBlock const&);
@@ -48,6 +49,10 @@ class CIFfile {
         int AddDataBlock(DataBlock const&);
         /// Get data block with specified header
         DataBlock const& GetDataBlock(std::string const&) const;
+        /// Print CIF data blocks
+        void PrintDataBlocks() const;
+        /// \return CIF data name
+        std::string const& DataName() const { return dataName_; }
       private:
         typedef std::map<std::string, DataBlock> CIF_DataType;
         /// Map block names to DataBlocks
@@ -67,6 +72,9 @@ class CIFfile {
 
     DataBlock const& GetBlockWithColValue(std::string const&, std::string const&,
                                           std::string const&) const;
+
+    /// For debugging, list all data currently in the CIF file.
+    void ListAllData() const;
 
   private:
     //int AddDataBlock(DataBlock const&);
