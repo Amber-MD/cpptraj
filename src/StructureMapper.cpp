@@ -123,7 +123,7 @@ static inline void createPseudoTop(Topology& top, Frame& frm, AtomMap const& ato
   frm.ClearAtoms();
 
   for (int at = 0; at != atoms.Natom(); at++) {
-    top.AddTopAtom( static_cast<Atom const&>(atoms[at]), Residue(resname, 1, ' ', ' ') );
+    top.AddTopAtom( static_cast<Atom const&>(atoms[at]), Residue(resname, 1, ' ', "") );
     frm.AddXYZ( atoms[at].XYZ() );
   }
 }

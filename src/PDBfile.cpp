@@ -316,7 +316,7 @@ Residue PDBfile::missing_res() const {
   int currentres = atoi(numbuf.c_str());
   //mprintf("DEBUG: Missing residue %s %i icode= %c chain= %c\n",
   //        currentname.c_str(), currentres, currenticode, currentchain);
-  return Residue(currentname, currentres, currenticode, currentchain);
+  return Residue(currentname, currentres, currenticode, std::string(1, currentchain));
 }
 
 
@@ -410,7 +410,7 @@ Residue PDBfile::pdb_Residue() {
   linebuffer_[26] = '\0';
   int resnum = atoi( linebuffer_+22 );
   linebuffer_[26] = icode;
-  return Residue( resName, resnum, icode, linebuffer_[21] );
+  return Residue( resName, resnum, icode, std::string(1, linebuffer_[21]) );
 }
 
 // PDBfile::pdb_XYZ()

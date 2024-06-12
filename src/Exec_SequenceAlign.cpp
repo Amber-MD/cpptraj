@@ -177,7 +177,7 @@ Exec::RetType Exec_SequenceAlign::Execute(CpptrajState& State, ArgList& argIn) {
       // Residue in query does not exist for subject. Just put placeholder CA for now.
       Vec3 Zero(0.0);
       placeHolder.push_back( sTop.Natom() );
-      sTop.AddTopAtom( Atom("CA", "C "), Residue(SresName, sres+1, ' ', ' ') );
+      sTop.AddTopAtom( Atom("CA", "C "), Residue(SresName, sres+1, ' ', "") );
       sFrame.AddXYZ( Zero.Dptr() );
     }
   }

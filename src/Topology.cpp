@@ -611,7 +611,7 @@ int Topology::Setup_NoResInfo() {
       if (nO == 1 && nH == 2) res_name = "HOH";
     } else
       res_name = default_res_name;
-    residues_.push_back( Residue(res_name, resnum+1, ' ', ' ') );
+    residues_.push_back( Residue(res_name, resnum+1, ' ', "") );
     residues_.back().SetFirstAtom( mol->MolUnit().Front() );
     residues_.back().SetLastAtom( mol->MolUnit().Back() );
     // Update atom residue numbers

@@ -194,7 +194,7 @@ int Mol2File::Mol2Atom(Atom& atom, Residue& res, double* XYZ) {
   }
 
   atom = Atom( NameType(mol2name), NameType(mol2type), atof(mol2charge) );
-  res = Residue( NameType(mol2resname), atoi(mol2resnum), ' ', ' ' );
+  res = Residue( NameType(mol2resname), atoi(mol2resnum), ' ', "" );
 
   XYZ[0] = atof( mol2x );
   XYZ[1] = atof( mol2y );

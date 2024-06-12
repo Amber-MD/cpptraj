@@ -27,10 +27,10 @@ class Residue {
       originalResNum_(r), segID_(-1), icode_(ic), isTerminal_(false)
     {}
     /// CONSTRUCTOR - Res name, original resnum, res icode, segment ID
-    Residue(NameType const& n, int r, char i, int s) :
+/*    Residue(NameType const& n, int r, char i, int s) :
       resname_(n), firstAtom_(-1), lastAtom_(-1), originalResNum_(r), segID_(s),
        icode_(i), isTerminal_(false)
-    {}
+    {}*/
     /// \return True if this residue does not match given residue
     bool operator!=(const Residue& rhs) const {
       return ( originalResNum_ != rhs.originalResNum_ ||

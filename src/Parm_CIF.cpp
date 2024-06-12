@@ -111,7 +111,7 @@ int Parm_CIF::ReadParm(FileName const& fname, Topology &TopIn) {
       current_res = convertToInteger( (*line)[ COL[RNUM] ] );
     TopIn.AddTopAtom( Atom((*line)[ COL[ANAME] ], "  "),
                       Residue(currentResName, current_res, icode,
-                              (*line)[ COL[CHAINID] ][0]) );
+                              (*line)[ COL[CHAINID] ]) );
     Coords.AddXYZ( XYZ );
   }
   // Search for bonds

@@ -18,7 +18,7 @@ int Parm_SDF::ReadParm(FileName const& fname, Topology &parmOut) {
   if (infile.ReadHeader()) return 1;
   parmOut.SetParmName( infile.SDF_Title(), infile.Filename() );
   // Read atoms. Put everything in same residue.
-  Residue sdf_res("LIG", 0, ' ', ' ');
+  Residue sdf_res("LIG", 0, ' ', "");
   double XYZ[3];
   Frame Coords;
   for (int i = 0; i < infile.SDF_Natoms(); i++) {
