@@ -31,7 +31,6 @@ Traj_PDBfile::Traj_PDBfile() :
   bfacbyres_(false),
   occbyres_(false),
   pdbTop_(0),
-  chainchar_(' '),
   keepAltLoc_(' '),
   bfacdata_(0),
   occdata_(0),
@@ -320,12 +319,18 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
   prependExt_ = argIn.hasKey("keepext"); // Implies MULTI
   if (prependExt_) pdbWriteMode_ = MULTI;
   space_group_ = argIn.GetStringKey("sg");
-  std::string temp = argIn.GetStringKey("chainid");
-  if (!temp.empty()) chainchar_ = temp[0];
+  chainchar_ = argIn.GetStringKey("chainid");
+  if (!chainchar_.empty()) {
+    if (chainchar_.size() > 1) {
+      mprintf("Warning: Specified chain ID %s is too big for PDB, truncating to %c\n",
+              chainchar_.c_str(), chainchar_[0]);
+      chainchar_.assign(1, chainchar_[0]);
+    }
+  }
   if (argIn.hasKey("usecol21"))
     file_.SetUseCol21( true );
   // Check for data sets
-  temp = argIn.GetStringKey("bfacdata");
+  std::string temp = argIn.GetStringKey("bfacdata");
   if (!temp.empty()) {
     bfacdata_ = DSLin.GetDataSet( temp );
     if (bfacdata_ == 0) {
@@ -481,7 +486,7 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
   else
     def_chainid = ' ';
    // If no chain ID specified, determine chain ID.
-  if (chainchar_ == ' ') {
+  if (chainchar_.empty()) {
     chainID_.reserve( trajParm->Nres() );
     for (Topology::res_iterator res = trajParm->ResStart(); res != trajParm->ResEnd(); ++res)
       if (res->HasChainID())
@@ -489,7 +494,7 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
       else
         chainID_.push_back( def_chainid );
   } else
-    chainID_.resize(trajParm->Nres(), chainchar_);
+    chainID_.resize(trajParm->Nres(), chainchar_[0]);
         
   // Save residue names. If pdbres specified convert to PDBV3 residue names.
   resNames_.clear();

@@ -89,7 +89,7 @@ class Traj_PDBfile: public TrajectoryIO {
     PDBfile file_;
     std::vector<char> chainID_;      ///< Hold chainID for each residue.
     std::vector<NameType> resNames_; ///< Hold residue names.
-    char chainchar_;
+    std::string chainchar_;          ///< User-specified chain ID
     char keepAltLoc_;                ///< If not blank, only read atoms with this alt. loc. ID
     DataSet* bfacdata_;
     DataSet* occdata_;
