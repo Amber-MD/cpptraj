@@ -1,11 +1,12 @@
 #ifndef INC_ATOMTOPTYPE_H
 #define INC_ATOMTOPTYPE_H
+#include <string>
 /// Hold atom topology information which can be used when re-ordering
 class AtomTopType {
   public:
     enum PdbType { ATOM = 0, HETATM };
     /// Type, index, resnum, icode, chain
-    AtomTopType(PdbType t, int i, int r, char e, char c) :
+    AtomTopType(PdbType t, int i, int r, char e, std::string const& c) :
       type_(t), index_(i), resnum_(r), icode_(e), chainid_(c) {}
 
     /// \return true if less than (Chain, resnum, icode, index)
@@ -53,6 +54,6 @@ class AtomTopType {
     int index_;    ///< The atom index
     int resnum_;   ///< The residue number
     char icode_;   ///< The residue insertion code.
-    char chainid_; ///< The chain
+    std::string chainid_; ///< The chain
 };
 #endif

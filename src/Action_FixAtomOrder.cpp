@@ -116,7 +116,7 @@ Action::RetType Action_FixAtomOrder::PdbOrder(ActionSetup& setup) {
     else
       pt = AtomTopType::ATOM;
     atoms.push_back( AtomTopType(pt, idx, res.OriginalResNum(),
-                                 res.Icode(), res.ChainId()) );
+                                 res.Icode(), res.ChainID()) );
   }
   // Sort by PDB info
   std::sort(atoms.begin(), atoms.end());

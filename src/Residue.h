@@ -80,6 +80,8 @@ class Residue {
     inline char Icode()           const { return icode_;          }
     /// \return Chain ID
     inline std::string const& ChainID() const { return chainID_; }
+    /// \return const char* for printing chain ID to stdout
+    inline const char* chainID()        const { return chainID_.c_str(); }
     /// \return 1 character chain ID; warn if chainID is more than 1 character
     char ChainID_1char() const;
     /// \return True if chain ID is not blank.
