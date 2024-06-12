@@ -63,7 +63,7 @@ void Topology::ResetPDBinfo() {
   {
     res->SetOriginalNum( resnum );
     res->SetIcode(' ');
-    res->SetChainID(' ');
+    res->SetChainID("");
   }
   missingRes_.clear();
   missingHet_.clear();
@@ -335,7 +335,7 @@ std::string Topology::TruncResNameOnumId(int res) const {
   std::string name = residues_[res].Name().Truncated() + "_" +
                      integerToString(residues_[res].OriginalResNum());
   if (residues_[res].HasChainID())
-    name.append( "_" + std::string(1, residues_[res].ChainId()) );
+    name.append( "_" + residues_[res].ChainID() );
   return name;
 }
 
@@ -1864,7 +1864,7 @@ int Topology::SplitResidue(AtomMask const& maskIn, NameType const& newName,
     for (int rnum = tgtResNum+1; rnum < Nres(); rnum++, newResNum++) {
       newTop->residues_.push_back( residues_[rnum] );
       if (newTop->residues_.back().OriginalResNum() == res.OriginalResNum() &&
-          newTop->residues_.back().ChainId() == res.ChainId())
+          newTop->residues_.back().ChainID() == res.ChainID())
         newTop->residues_.back().SetIcode(++icode1);
       for (int at = newTop->residues_.back().FirstAtom();
                at != newTop->residues_.back().LastAtom(); ++at)
@@ -2247,7 +2247,7 @@ int Topology::AppendTop(Topology const& NewTop) {
     }
     //AddTopAtom( CurrentAtom, Residue(res.Name(), CurrentAtom.ResNum() + resOffset + 1,
     AddTopAtom( CurrentAtom, Residue(res.Name(), res.OriginalResNum(),
-                                     res.Icode(), res.ChainId()) );
+                                     res.Icode(), res.ChainID()) );
   } // END loop over incoming atoms
   // NONBONDS
   if (!doNonBond) {

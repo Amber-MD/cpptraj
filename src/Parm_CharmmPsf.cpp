@@ -204,9 +204,9 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
   char psficode;
   double psfcharge;
   double psfmass;
-  typedef std::vector<std::string> Sarray;
+//  typedef std::vector<std::string> Sarray;
   ParmHolder<AtomType>& atomTypes = params_.AT();
-  Sarray SegIDs;
+//  Sarray SegIDs;
   bool firstLine = true;
   enum PsfFormatType { T_CHARMM = 0, T_VMD };
   PsfFormatType psfFormatType = T_CHARMM;
@@ -255,7 +255,7 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
     int psfresnum = ParseResID(psficode, psfresid);
     //mprintf("DEBUG: resnum %10i  icode %c\n", psfresnum, psficode);
     // Search for segment ID
-    int idx = -1;
+    /*int idx = -1;
     if (segmentID[0] != '\0') {
       for (int i = 0; i != (int)SegIDs.size(); i++)
         if (SegIDs[i].compare( segmentID )==0) {
@@ -267,10 +267,10 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
         SegIDs.push_back( segmentID );
         if (debug_>0) mprintf("DEBUG: New segment ID %i '%s'\n", idx, SegIDs.back().c_str());
       }
-    }
+    }*/
     atomTypes.AddParm( TypeNameHolder(NameType(psftype)), AtomType(psfmass), false );
     Atom chmAtom( psfname, psfcharge, psfmass, psftype );
-    parmOut.AddTopAtom( chmAtom, Residue(psfresname, psfresnum, ' ', idx) );
+    parmOut.AddTopAtom( chmAtom, Residue(psfresname, psfresnum, ' ', std::string(segmentID)) );
   } // END loop over atoms 
   // Advance to <nbond> !NBOND
   int bondatoms[9];

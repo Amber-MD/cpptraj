@@ -762,7 +762,7 @@ static bool res_missing_het(int rnum, Topology const& topIn) {
     //mprintf("DEBUG: HET %s %i '%c' '%c'\n", *(het->Name()), het->OriginalResNum(), het->Icode(), het->ChainId());
     if ( het->OriginalResNum() == res.OriginalResNum() &&
          het->Icode()          == res.Icode() &&
-         het->ChainId()        == res.ChainId() &&
+         het->ChainID()        == res.ChainID() &&
          het->Name()           == res.Name() )
       return true;
   }
