@@ -10,6 +10,15 @@ const char* Parm_CIF::Entries[] = {
   "label_seq_id", "label_asym_id"
 };
 
+/// \return column id of data item with given key; print error message if missing
+static inline int checkForCol(CIFfile::DataBlock const& block, std::string const& key)
+{
+  int colid = block.ColumnIndex( key );
+  if (colid == -1)
+    mprinterr("Error: CIF block is missing data item '%s'\n", key.c_str());
+  return colid;
+}
+
 // Parm_CIF::ReadParm()
 int Parm_CIF::ReadParm(FileName const& fname, Topology &TopIn) {
   CIFfile infile;
@@ -108,6 +117,33 @@ int Parm_CIF::ReadParm(FileName const& fname, Topology &TopIn) {
   // Search for bonds
   BondSearch bondSearch;
   bondSearch.FindBonds( TopIn, searchType_, Coords, Offset_, debug_ );
+
+  CIFfile::DataBlock const& connectBlock = infile.GetDataBlock("_struct_conn");
+  if (!connectBlock.empty()) {
+    mprintf("\tBlock 'struct_conn' found.\n");
+    int conn_type_idcol = checkForCol(connectBlock, "conn_type_id");
+    int r1_chaincol = checkForCol(connectBlock, "ptnr1_label_asym_id");
+    int r1_atomcol  = checkForCol(connectBlock, "ptnr1_label_atom_id");
+    int r1_namecol  = checkForCol(connectBlock, "ptnr1_label_comp_id");
+    int r1_numcol   = checkForCol(connectBlock, "ptnr1_label_seq_id");
+    bool block_is_valid = !(conn_type_idcol == -1 ||
+                            r1_chaincol == -1 ||
+                            r1_atomcol == -1 ||
+                            r1_namecol == -1 ||
+                            r1_numcol == -1
+                           );
+    if (block_is_valid) {
+      for (line = connectBlock.begin(); line != connectBlock.end(); ++line) {
+        mprintf("R1 %s %s Chain ID %s Atom %s\n",
+                (*line)[r1_namecol].c_str(),
+                (*line)[r1_numcol].c_str(),
+                (*line)[r1_chaincol].c_str(),
+                (*line)[r1_atomcol].c_str());
+      }
+    } else {
+      mprintf("Warning: Structure connectivity block is missing 1 or more data items, skipping.\n");
+    }
+  }
   // Get title. 
   CIFfile::DataBlock const& entryblock = infile.GetDataBlock("_entry");
   std::string ciftitle;
