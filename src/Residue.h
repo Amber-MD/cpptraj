@@ -8,28 +8,28 @@ class Residue {
     /// CONSTRUCTOR
     Residue() :
       resname_(""), firstAtom_(0), lastAtom_(0), originalResNum_(0), segID_(-1),
-      icode_(' '), chainID_(BLANK_CHAINID_), isTerminal_(false)
+      icode_(' '), isTerminal_(false)
     {}
     /// CONSTRUCTOR - Copy given Residue, set first and last atom indices.
     Residue(Residue const& r, int first, int last) :
-      resname_(r.resname_), firstAtom_(first), lastAtom_(last),
-      originalResNum_(r.originalResNum_), segID_(r.segID_), icode_(r.icode_),
-      chainID_(r.chainID_), isTerminal_(false)
+      resname_(r.resname_), chainID_(r.chainID_), firstAtom_(first),
+      lastAtom_(last), originalResNum_(r.originalResNum_), segID_(r.segID_),
+      icode_(r.icode_), isTerminal_(false)
     {}
     /// CONSTRUCTOR - Res name, original resnum, icode, chain ID
-    Residue(NameType const& n, int r, char ic, char cid) :
-      resname_(n), firstAtom_(-1), lastAtom_(-1), originalResNum_(r), segID_(-1),
-      icode_(ic), chainID_(cid), isTerminal_(false)
+    Residue(NameType const& n, int r, char ic, std::string const& cid) :
+      resname_(n), chainID_(cid), firstAtom_(-1), lastAtom_(-1),
+      originalResNum_(r), segID_(-1), icode_(ic), isTerminal_(false)
     {}
     /// CONSTRUCTOR - Res name, first atom, last atom, original resnum, icode, chain ID
-    Residue(NameType const& n, int first, int last, int r, char ic, char cid) :
-      resname_(n), firstAtom_(first), lastAtom_(last),
-      originalResNum_(r), segID_(-1), icode_(ic), chainID_(cid), isTerminal_(false)
+    Residue(NameType const& n, int first, int last, int r, char ic, std::string const& cid) :
+      resname_(n), chainID_(cid), firstAtom_(first), lastAtom_(last),
+      originalResNum_(r), segID_(-1), icode_(ic), isTerminal_(false)
     {}
     /// CONSTRUCTOR - Res name, original resnum, res icode, segment ID
     Residue(NameType const& n, int r, char i, int s) :
       resname_(n), firstAtom_(-1), lastAtom_(-1), originalResNum_(r), segID_(s),
-       icode_(i), chainID_(BLANK_CHAINID_), isTerminal_(false)
+       icode_(i), isTerminal_(false)
     {}
     /// \return True if this residue does not match given residue
     bool operator!=(const Residue& rhs) const {
@@ -63,14 +63,14 @@ class Residue {
       return dist;
     }
 
-    inline void SetFirstAtom(int i)        { firstAtom_ = i;      }
-    inline void SetLastAtom(int i)         { lastAtom_ = i;       }
-    inline void SetOriginalNum(int i)      { originalResNum_ = i; }
-    inline void SetSegID(int s)            { segID_ = s;          }
-    inline void SetIcode(char c)           { icode_ = c;          }
-    inline void SetChainID(char c)         { chainID_ = c;        }
-    inline void SetName(NameType const& n) { resname_ = n;        }
-    inline void SetTerminal(bool t)        { isTerminal_ = t;     }
+    inline void SetFirstAtom(int i)              { firstAtom_ = i;      }
+    inline void SetLastAtom(int i)               { lastAtom_ = i;       }
+    inline void SetOriginalNum(int i)            { originalResNum_ = i; }
+    inline void SetSegID(int s)                  { segID_ = s;          }
+    inline void SetIcode(char c)                 { icode_ = c;          }
+    inline void SetChainId(std::string const& c) { chainID_ = c;        }
+    inline void SetName(NameType const& n)       { resname_ = n;        }
+    inline void SetTerminal(bool t)              { isTerminal_ = t;     }
     /// \return First atom in residue, indexing from 0
     inline int FirstAtom()        const { return firstAtom_;      }
     /// \return Atom _after_ the last in residue, indexing from 0
@@ -79,9 +79,11 @@ class Residue {
     inline int SegID()            const { return segID_;          }
     inline char Icode()           const { return icode_;          }
     /// \return Chain ID
-    inline char ChainId()         const { return chainID_; }
+    inline std::string const& ChainID() const { return chainID_; }
+    /// \return 1 character chain ID; warn if chainID is more than 1 character
+    char ChainID_1char() const;
     /// \return True if chain ID is not blank.
-    bool HasChainID()             const { return (chainID_ != BLANK_CHAINID_); }
+    inline bool HasChainID()      const { return !chainID_.empty(); }
     inline const char *c_str()    const { return *resname_;       }
     inline NameType const& Name() const { return resname_;        }
     inline bool IsTerminal()      const { return isTerminal_;     }
@@ -99,17 +101,15 @@ class Residue {
     /// Convert this residue name to single letter.
     char SingleCharName() const { return ConvertResName( *resname_ ); }
   private:
-    /// Character that denotes no chain ID.
-    static const char BLANK_CHAINID_;
     /// Chain ID to use if one is desired but no chain ID set.
     static const char DEFAULT_CHAINID_;
-    NameType resname_;   ///< Residue name.
-    int firstAtom_;      ///< Index of first atom (from 0).
-    int lastAtom_;       ///< Atom index after last atom in residue.
-    int originalResNum_; ///< Original residue number.
-    int segID_;          ///< Segment ID index.
-    char icode_;         ///< Residue insertion code.
-    char chainID_;       ///< Residue chain ID
-    bool isTerminal_;    ///< True if residue was originally a terminal residue
+    NameType resname_;    ///< Residue name.
+    std::string chainID_; ///< Residue chain ID
+    int firstAtom_;       ///< Index of first atom (from 0).
+    int lastAtom_;        ///< Atom index after last atom in residue.
+    int originalResNum_;  ///< Original residue number.
+    int segID_;           ///< Segment ID index.
+    char icode_;          ///< Residue insertion code.
+    bool isTerminal_;     ///< True if residue was originally a terminal residue
 };
 #endif

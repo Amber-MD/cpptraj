@@ -1,9 +1,16 @@
 #include "Residue.h"
+#include "CpptrajStdio.h"
 #include <cctype> // tolower
 
-const char Residue::BLANK_CHAINID_ = ' ';
-
 const char Residue::DEFAULT_CHAINID_ = 'Z';
+
+/** \return 1 character chain ID, warn if chain ID is larger than that. */
+char Residue::ChainID_1char() const {
+  if (chainID_.size() == 1) return chainID_[0];
+  if (chainID_.empty()) return ' ';
+  mprintf("Warning: Chain ID '%s' is larger than 1 character. Truncating.\n", chainID_.c_str());
+  return chainID_[0];
+}
 
 char Residue::ConvertResName(std::string const& r) {
   if (r.compare(0,3,"ALA")==0) return 'A';
