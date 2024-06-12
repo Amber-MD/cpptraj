@@ -1142,7 +1142,7 @@ int Parm_Amber::ReadPdbRes(Topology& TopIn, FortranData const& FMT) {
 int Parm_Amber::ReadPdbChainID(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_PDB_CHAIN, values_[NRES], FMT)) return 1;
   for (int idx = 0; idx != values_[NRES]; idx++)
-    TopIn.SetRes(idx).SetChainID( *(file_.NextElement()) );
+    TopIn.SetRes(idx).SetChainID( std::string(file_.NextElement()) );
   return 0;
 }
 
@@ -2422,13 +2422,20 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     file_.FlushBuffer();
   }
   if (hasChainID) {
-    // PDB chain IDs
+    // PDB chain IDs. Max # chars currently supported is 4.
     if (BufferAlloc(F_PDB_CHAIN, TopOut.Nres())) return 1;
-    char cid[2];
-    cid[1] = '\0';
+    char cid[5];
+    //cid[4] = '\0';
     for (Topology::res_iterator res = TopOut.ResStart(); res != TopOut.ResEnd(); ++res)
     {
-      cid[0] = res->ChainId();
+      if (res->ChainID().size() > 4) {
+        res->ChainID().copy( cid, 4, 0 );
+        cid[4] = '\0';
+        mprintf("Warning: Chain ID %s is > 4 chars, truncating to %s\n", res->chainID(), cid);
+      } else {
+        res->ChainID().copy( cid, res->ChainID().size(), 0 );
+        cid[res->ChainID().size()] = '\0';
+      }
       file_.CharToBuffer( cid );
     }
     file_.FlushBuffer();

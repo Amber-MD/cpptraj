@@ -68,7 +68,7 @@ class Residue {
     inline void SetOriginalNum(int i)            { originalResNum_ = i; }
     inline void SetSegID(int s)                  { segID_ = s;          }
     inline void SetIcode(char c)                 { icode_ = c;          }
-    inline void SetChainId(std::string const& c) { chainID_ = c;        }
+    inline void SetChainID(std::string const& c) { chainID_ = c;        }
     inline void SetName(NameType const& n)       { resname_ = n;        }
     inline void SetTerminal(bool t)              { isTerminal_ = t;     }
     /// \return First atom in residue, indexing from 0

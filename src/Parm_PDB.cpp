@@ -146,9 +146,9 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
       TopIn.AddTopAtom(pdbAtom, infile.pdb_Residue());
       if (altLoc != ' ' && keepAltLoc_ == ' ') {
         Residue const& lastRes = TopIn.Res(TopIn.Nres()-1);
-        mprintf("Warning: Atom %i %s in res %s %i %c has alternate location specifier %c\n",
+        mprintf("Warning: Atom %i %s in res %s %i %s has alternate location specifier %c\n",
                 atnum, *pdbAtom.Name(), *lastRes.Name(), lastRes.OriginalResNum(),
-                lastRes.ChainId(), altLoc);
+                lastRes.chainID(), altLoc);
       }
       Coords.AddXYZ( XYZ );
 #     ifdef TIMER
@@ -184,8 +184,8 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
       mprintf("DEBUG: Missing Residues: ");
       for (std::vector<Residue>::const_iterator res = missingResidues.begin();
                                                 res != missingResidues.end(); ++res)
-        mprintf(" {%s %i %c %c}", *(res->Name()), res->OriginalResNum(),
-                                  res->Icode(), res->ChainId());
+        mprintf(" {%s %i %c %s}", *(res->Name()), res->OriginalResNum(),
+                                  res->Icode(), res->chainID());
       mprintf("\n");
     }
   }
@@ -195,8 +195,8 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
       mprintf("DEBUG: Residues missing heteroatoms: ");
       for (std::vector<Residue>::const_iterator res = missingHet.begin();
                                                 res != missingHet.end(); ++res)
-        mprintf(" {%s %i %c %c}", *(res->Name()), res->OriginalResNum(),
-                                  res->Icode(), res->ChainId());
+        mprintf(" {%s %i %c %s}", *(res->Name()), res->OriginalResNum(),
+                                  res->Icode(), res->chainID());
       mprintf("\n");
     }
   }
@@ -235,7 +235,7 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
       for (Topology::res_iterator res = TopIn.ResStart(); res != TopIn.ResEnd(); ++res) {
         if (r1 == TopIn.ResEnd()) {
           if (link->Rnum1() == res->OriginalResNum() &&
-              link->Chain1() == res->ChainId() &&
+              link->Chain1() == res->ChainID_1char() &&
               link->Icode1() == res->Icode())
           {
             r1 = res;
@@ -244,7 +244,7 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
         }
         if (r2 == TopIn.ResEnd()) {
           if (link->Rnum2() == res->OriginalResNum() &&
-              link->Chain2() == res->ChainId() &&
+              link->Chain2() == res->ChainID_1char() &&
               link->Icode2() == res->Icode())
           {
             r2 = res;

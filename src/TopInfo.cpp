@@ -158,6 +158,18 @@ int TopInfo::maxResNameWidth(std::vector<int> const& resNums) const {
   return nWidth;
 }
 
+/** \return max residue chain ID length from selection. */
+int TopInfo::maxResChainIdWidth(std::vector<int> const& resNums) const {
+  int nWidth = 1;
+  for (std::vector<int>::const_iterator rnum = resNums.begin(); rnum != resNums.end(); ++rnum)
+  {
+    int cid_size = parm_->Res(*rnum).ChainID().size();
+    if (cid_size > nWidth)
+      nWidth = cid_size;
+  }
+  return nWidth;
+}
+
 // TopInfo::PrintResidueInfo()
 int TopInfo::PrintResidueInfo(std::string const& maskExpression) const {
   if (maskExpression.empty()) {
@@ -172,11 +184,12 @@ int TopInfo::PrintResidueInfo(std::string const& maskExpression) const {
     std::vector<int> resNums = parm_->ResnumsSelectedBy(mask);
     mprintf("%zu residues selected.\n", resNums.size());
     int rn_width = maxResNameWidth( resNums );
+    int cid_width = maxResChainIdWidth( resNums );
 
     int awidth = std::max(5, DigitWidth(parm_->Natom()));
     int rwidth = std::max(5, DigitWidth(parm_->Nres()));
     int mwidth = std::max(5, DigitWidth(parm_->Nmol()));
-    outfile_->Printf("%-*s %-*s %*s %*s %*s %*s %*s %c %c\n",
+    outfile_->Printf("%-*s %-*s %*s %*s %*s %*s %*s %-*s %c\n",
                rwidth, "#Res",
                rn_width, "Name",
                awidth, "First",
@@ -184,11 +197,12 @@ int TopInfo::PrintResidueInfo(std::string const& maskExpression) const {
                awidth, "Natom",
                rwidth, "#Orig",
                mwidth, "#Mol",
-               'C', 'I');
+               cid_width, "C",
+               'I');
     for (std::vector<int>::const_iterator rnum = resNums.begin(); rnum != resNums.end(); ++rnum)
     {
       Residue const& res = parm_->Res(*rnum);
-      outfile_->Printf("%*i %-*s %*i %*i %*i %*i %*i %c %c\n",
+      outfile_->Printf("%*i %-*s %*i %*i %*i %*i %*i %-*s %c\n",
                        rwidth, *rnum + 1,
                        rn_width, res.c_str(),
                        awidth, res.FirstAtom()+1,
@@ -196,7 +210,8 @@ int TopInfo::PrintResidueInfo(std::string const& maskExpression) const {
                        awidth, res.NumAtoms(),
                        rwidth, res.OriginalResNum(),
                        mwidth, (*parm_)[res.FirstAtom()].MolNum()+1,
-                       res.ChainId(), res.Icode());
+                       cid_width, res.chainID(),
+                       res.Icode());
     }
   }
   return 0;
@@ -285,19 +300,35 @@ int TopInfo::PrintMoleculeInfo(std::string const& maskString) const {
     else {
       std::vector<int> molNums = parm_->MolnumsSelectedBy( mask );
       mprintf("%zu molecules.\n", molNums.size());
+      // Get first residue number of each molecule in order to determine
+      // max chain ID width.
+      std::vector<int> firstResNums;
+      for (std::vector<int>::const_iterator mnum = molNums.begin();
+                                            mnum != molNums.end(); ++mnum)
+      {
+        Molecule const& Mol = parm_->Mol(*mnum);
+        // Loop over segments
+        for (Unit::const_iterator seg = Mol.MolUnit().segBegin();
+                                  seg != Mol.MolUnit().segEnd(); ++seg)
+        {
+          int firstres = (*parm_)[ seg->Begin() ].ResNum();
+          firstResNums.push_back( firstres );
+        }
+      }
       // TODO determine max segments
       int mn_width = maxMolNameWidth( molNums );
+      int cid_width = maxResChainIdWidth( firstResNums );
       int awidth = std::max(5, DigitWidth(parm_->Natom()));
       int rwidth = std::max(5, DigitWidth(parm_->Nres()));
       int mwidth = std::max(5, DigitWidth(parm_->Nmol()));
-      outfile_->Printf("%-*s %*s %*s %*s %*s %-*s %c\n",
+      outfile_->Printf("%-*s %*s %*s %*s %*s %-*s %-*s\n",
                        mwidth, "#Mol",
                        awidth, "Natom",
                        rwidth, "Nres",
                        rwidth, "Res0",
                        rwidth, "Res1", 
                        mn_width, "Name",
-                       'C');
+                       cid_width, "C");
       for (std::vector<int>::const_iterator mnum = molNums.begin();
                                             mnum != molNums.end(); ++mnum)
       {
@@ -309,12 +340,12 @@ int TopInfo::PrintMoleculeInfo(std::string const& maskString) const {
         {
           int firstres = (*parm_)[ seg->Begin() ].ResNum();
           int lastres  = (*parm_)[ seg->End()-1 ].ResNum();
-          outfile_->Printf(" %*i %*i %*i %-*s %c",
+          outfile_->Printf(" %*i %*i %*i %-*s %-*s",
                            rwidth, lastres-firstres+1,
                            rwidth, firstres+1,
                            rwidth, lastres+1,
                            mn_width, parm_->Res(firstres).c_str(),
-                           parm_->Res(firstres).ChainId());
+                           cid_width, parm_->Res(firstres).chainID());
         } // END loop over segments
         if ( Mol.IsSolvent() ) outfile_->Printf(" SOLVENT");
         outfile_->Printf("\n");
