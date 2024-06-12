@@ -438,7 +438,7 @@ ExtendedSimilarity::Counters
 const
 {
   // Assign c_threshold
-  unsigned int c_threshold;
+  unsigned int c_threshold = 0;
   switch (cthreshType_) {
     case NO_THRESHOLD : c_threshold = n_objects % 2; break;
     case DISSIMILAR   : c_threshold = ceil(n_objects / 2); break;
@@ -447,8 +447,8 @@ const
   }
   // Set w_factor
   typedef Darray (*WgtFxnType)(Darray const&, unsigned int, double);
-  WgtFxnType f_s; // Similarity function
-  WgtFxnType f_d; // Dissimilarity function
+  WgtFxnType f_s = 0; // Similarity function
+  WgtFxnType f_d = 0; // Dissimilarity function
 
   switch(wfactorType_) {
     case POWER:
