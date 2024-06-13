@@ -151,7 +151,7 @@ BoxArgs.o : BoxArgs.cpp ArgList.h Box.h BoxArgs.h CpptrajStdio.h Matrix_3x3.h Pa
 BufferedFrame.o : BufferedFrame.cpp BufferedFrame.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h Parallel.h TextFormat.h
 BufferedLine.o : BufferedLine.cpp BufferedLine.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h Parallel.h
 ByteRoutines.o : ByteRoutines.cpp
-CIFfile.o : CIFfile.cpp ArgList.h Atom.h BufferedLine.h CIFfile.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h NameType.h Parallel.h SymbolExporting.h
+CIFfile.o : CIFfile.cpp ArgList.h Atom.h BufferedLine.h CIFfile.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h NameType.h Parallel.h StringRoutines.h SymbolExporting.h
 CharMask.o : CharMask.cpp Atom.h CharMask.h CpptrajStdio.h MaskToken.h Molecule.h NameType.h Residue.h Segment.h SymbolExporting.h Unit.h
 CharmmParamFile.o : CharmmParamFile.cpp ArgList.h AtomType.h BufferedLine.h CharmmParamFile.h Constants.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h NameType.h Parallel.h ParameterHolders.h ParameterSet.h ParameterTypes.h StringRoutines.h TypeNameHolder.h
 Cluster/Algorithm.o : Cluster/Algorithm.cpp Cluster/Algorithm.h Cluster/CentroidArray.h Cluster/Cframes.h Cluster/Metric.h Cluster/MetricArray.h Cluster/Node.h CpptrajStdio.h

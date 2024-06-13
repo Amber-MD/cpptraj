@@ -69,7 +69,8 @@ class CIFfile {
     FileName const& CIFname() const { return file_.Filename(); }
     /// Get data from most recently added data set
     DataBlock const& GetDataBlock(std::string const&h) const { return data_.back().GetDataBlock(h); }
-
+    /// Set box info from _cell data block if present.
+    int cif_Box_verbose(double*) const;
     //DataBlock const& GetBlockWithColValue(std::string const&, std::string const&,
     //                                      std::string const&) const;
 

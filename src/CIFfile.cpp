@@ -2,6 +2,7 @@
 #include "ArgList.h"
 #include "CIFfile.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // convertToDouble
 
 static inline int LineError(const char* msg, int num, const char* ptr) {
   mprinterr("Error: CIF line %i: %s\n", num, msg);
@@ -401,3 +402,38 @@ void CIFfile::ListAllData() const {
     it->PrintDataBlocks();
   }
 }
+
+/** Get box info from _cell block.
+  * \return 1 if box seems invalid.
+  */
+int CIFfile::cif_Box_verbose(double* cif_box) const {
+  if (cif_box == 0) {
+    mprinterr("Internal Error: CIFfile::cif_Box_verbose: Null box passed in.\n");
+    return 1;
+  }
+  DataBlock const& cellblock = GetDataBlock("_cell");
+  if (cellblock.empty()) {
+    cif_box[0] = 0;
+    cif_box[1] = 0;
+    cif_box[2] = 0;
+    cif_box[3] = 0;
+    cif_box[4] = 0;
+    cif_box[5] = 0;
+  } else {
+    cif_box[0] = convertToDouble( cellblock.Data("length_a") );
+    cif_box[1] = convertToDouble( cellblock.Data("length_b") );
+    cif_box[2] = convertToDouble( cellblock.Data("length_c") );
+    if (cif_box[0] == 1.0 && cif_box[1] == 1.0 && cif_box[2] == 1.0) {
+      mprintf("Warning: CIF cell lengths are all 1.0 Ang.;"
+              " this usually indicates an invalid box.\n");
+      return 1;
+    }
+    cif_box[3] = convertToDouble( cellblock.Data("angle_alpha") );
+    cif_box[4] = convertToDouble( cellblock.Data("angle_beta" ) );
+    cif_box[5] = convertToDouble( cellblock.Data("angle_gamma") );
+    mprintf("\tRead cell info from CIF: a=%g b=%g c=%g alpha=%g beta=%g gamma=%g\n",
+              cif_box[0], cif_box[1], cif_box[2], cif_box[3], cif_box[4], cif_box[5]);
+  }
+  return 0;
+}
+
