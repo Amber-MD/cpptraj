@@ -17,6 +17,7 @@ class Exec_AddMissingRes::Pres {
     int Tnum()                 const { return tNum_; }
     char Icode()               const { return icode_; }
     std::string const& Chain() const { return chain_; }
+    const char* chainStr()     const { return chain_.c_str(); }
   private:
     std::string name_;  ///< Residue name
     int oNum_;          ///< Original (e.g. PDB) residue number

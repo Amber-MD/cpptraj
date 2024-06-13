@@ -242,8 +242,8 @@ const
 
   // Printout
   for (Garray::const_iterator it = Gaps.begin(); it != Gaps.end(); ++it) {
-    outfile.Printf("  Gap %c %4s %6i to %4s %6i %6zu\n",
-                   it->front().Chain(),
+    outfile.Printf("  Gap %s %4s %6i to %4s %6i %6zu\n",
+                   it->front().chainStr(),
                    it->front().Name().c_str(), it->front().Onum(),
                    it->back().Name().c_str(), it->back().Onum(),
                    it->size());
@@ -975,17 +975,17 @@ const
   {
     Pres const& gapRes0 = gap->front();
     Pres const& gapRes1 = gap->back();
-    mprintf("\tAttempting to insert gap %c %s %i to %s %i:\n", gapRes0.Chain(),
+    mprintf("\tAttempting to insert gap %s %s %i to %s %i:\n", gapRes0.chainStr(),
             gapRes0.Name().c_str(), gapRes0.Onum(),
             gapRes1.Name().c_str(), gapRes1.Onum());
     // Search until we find the correct chain
     while (resPtr != AllResidues.end() && resPtr->Chain() != gapRes0.Chain())
       ++resPtr;
     if (resPtr == AllResidues.end()) {
-      mprinterr("Error: Chain %c not found\n", gapRes0.Chain());
+      mprinterr("Error: Chain %s not found\n", gapRes0.chainStr());
       return 1;
     }
-    mprintf("\t  Chain %c found: %s %i\n", gapRes0.Chain(),
+    mprintf("\t  Chain %s found: %s %i\n", gapRes0.chainStr(),
             resPtr->Name().c_str(), resPtr->Onum());
     // Search until we find an appropriate resnum to insert after
     int resDelta0 = gapRes0.Onum() - resPtr->Onum();
@@ -994,8 +994,8 @@ const
     {
       ++resPtr;
       if (resPtr == AllResidues.end()) {
-        mprinterr("Error: Could not find appropriate # to insert %i in Chain %c.\n",
-                  gapRes0.Onum(), gapRes0.Chain());
+        mprinterr("Error: Could not find appropriate # to insert %i in Chain %s.\n",
+                  gapRes0.Onum(), gapRes0.chainStr());
         return 1;
       }
       resDelta0 = gapRes0.Onum() - resPtr->Onum();
@@ -1029,8 +1029,8 @@ const
   int nResMissing = 0;
   for (ResList::const_iterator it = AllResidues.begin(); it != AllResidues.end(); ++it)
   {
-    mprintf("\t%4s %6i %6i %c %c\n", it->Name().c_str(), it->Onum(), it->Tnum(),
-            it->Icode(), it->Chain());
+    mprintf("\t%4s %6i %6i %c %s\n", it->Name().c_str(), it->Onum(), it->Tnum(),
+            it->Icode(), it->chainStr());
     if (it->Tnum() < 0)
       nResMissing++;
     else
