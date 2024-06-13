@@ -404,13 +404,14 @@ void CIFfile::ListAllData() const {
 }
 
 /** Get box info from _cell block.
-  * \return 1 if box seems invalid.
+  * \return 1 if box seems invalid, -1 if not box, 0 otherwise.
   */
 int CIFfile::cif_Box_verbose(double* cif_box) const {
   if (cif_box == 0) {
     mprinterr("Internal Error: CIFfile::cif_Box_verbose: Null box passed in.\n");
     return 1;
   }
+  int box_stat = 0;
   DataBlock const& cellblock = GetDataBlock("_cell");
   if (cellblock.empty()) {
     cif_box[0] = 0;
@@ -419,6 +420,7 @@ int CIFfile::cif_Box_verbose(double* cif_box) const {
     cif_box[3] = 0;
     cif_box[4] = 0;
     cif_box[5] = 0;
+    box_stat = -1;
   } else {
     cif_box[0] = convertToDouble( cellblock.Data("length_a") );
     cif_box[1] = convertToDouble( cellblock.Data("length_b") );
@@ -426,7 +428,7 @@ int CIFfile::cif_Box_verbose(double* cif_box) const {
     if (cif_box[0] == 1.0 && cif_box[1] == 1.0 && cif_box[2] == 1.0) {
       mprintf("Warning: CIF cell lengths are all 1.0 Ang.;"
               " this usually indicates an invalid box.\n");
-      return 1;
+      box_stat = 1;
     }
     cif_box[3] = convertToDouble( cellblock.Data("angle_alpha") );
     cif_box[4] = convertToDouble( cellblock.Data("angle_beta" ) );
@@ -434,6 +436,6 @@ int CIFfile::cif_Box_verbose(double* cif_box) const {
     mprintf("\tRead cell info from CIF: a=%g b=%g c=%g alpha=%g beta=%g gamma=%g\n",
               cif_box[0], cif_box[1], cif_box[2], cif_box[3], cif_box[4], cif_box[5]);
   }
-  return 0;
+  return box_stat;
 }
 
