@@ -3,7 +3,7 @@
 #include "ParmIO.h"
 class Parm_CIF : public ParmIO {
   public :
-    Parm_CIF() { }
+    Parm_CIF();
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Parm_CIF(); }
     bool ID_ParmFormat(CpptrajFile&);
     int processReadArgs(ArgList&) { return 0; }
@@ -12,6 +12,7 @@ class Parm_CIF : public ParmIO {
     int processWriteArgs(ArgList&) { return 0; }
   private:
     enum EntryType { ANAME=0, RNAME, X, Y, Z, RNUM, CHAINID, NENTRY };
-    static const char* Entries[];
+    static const char* Entries_[];
+    bool read_struct_conn_;
 };
 #endif

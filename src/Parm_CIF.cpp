@@ -4,8 +4,13 @@
 #include "CpptrajStdio.h"
 #include "BondSearch.h"
 
+/** CONSTRUCTOR */
+Parm_CIF::Parm_CIF() :
+  read_struct_conn_(false) // TODO enable
+{}
+
 // NOTE: MUST correspond to EntryType!
-const char* Parm_CIF::Entries[] = {
+const char* Parm_CIF::Entries_[] = {
   "label_atom_id", "label_comp_id", "Cartn_x", "Cartn_y", "Cartn_z", 
   "label_seq_id", "label_asym_id"
 };
@@ -90,13 +95,13 @@ int Parm_CIF::ReadParm(FileName const& fname, Topology &TopIn) {
   // Get essential columns
   int COL[NENTRY];
   for (int i = 0; i < (int)NENTRY; i++) {
-    COL[i] = block.ColumnIndex(Entries[i]);
+    COL[i] = block.ColumnIndex(Entries_[i]);
     if (COL[i] == -1) {
       mprinterr("Error: In CIF file '%s' could not find entry '%s' in block '%s'\n",
-                fname.full(), Entries[i], block.Header().c_str());
+                fname.full(), Entries_[i], block.Header().c_str());
       return 1;
     }
-    if (debug_>0) mprintf("DEBUG: '%s' column = %i\n", Entries[i], COL[i]);
+    if (debug_>0) mprintf("DEBUG: '%s' column = %i\n", Entries_[i], COL[i]);
   }
   // Get optional columns
   int auth_res_col = block.ColumnIndex("auth_seq_id");
@@ -164,55 +169,58 @@ int Parm_CIF::ReadParm(FileName const& fname, Topology &TopIn) {
   BondSearch bondSearch;
   bondSearch.FindBonds( TopIn, searchType_, Coords, Offset_, debug_ );
 
-  CIFfile::DataBlock const& connectBlock = infile.GetDataBlock("_struct_conn");
-  if (!connectBlock.empty()) {
-    mprintf("\tBlock 'struct_conn' found.\n");
-    int conn_type_idcol = checkForCol(connectBlock, "conn_type_id");
-    int r1_chaincol = checkForCol(connectBlock, "ptnr1_label_asym_id");
-    int r1_atomcol  = checkForCol(connectBlock, "ptnr1_label_atom_id");
-    int r1_namecol  = checkForCol(connectBlock, "ptnr1_label_comp_id");
-    int r1_numcol   = checkForCol(connectBlock, "ptnr1_label_seq_id");
-    int r2_chaincol = checkForCol(connectBlock, "ptnr2_label_asym_id");
-    int r2_atomcol  = checkForCol(connectBlock, "ptnr2_label_atom_id");
-    int r2_namecol  = checkForCol(connectBlock, "ptnr2_label_comp_id");
-    int r2_numcol   = checkForCol(connectBlock, "ptnr2_label_seq_id");
-    bool block_is_valid = !(conn_type_idcol == -1 ||
-                            r1_chaincol == -1 ||
-                            r1_atomcol == -1 ||
-                            r1_namecol == -1 ||
-                            r1_numcol == -1 ||
-                            r2_chaincol == -1 ||
-                            r2_atomcol == -1 ||
-                            r2_namecol == -1 ||
-                            r2_numcol == -1
-                           );
-    if (block_is_valid) {
-      // All required columns are present. Loop over struct_conn entries
-      for (line = connectBlock.begin(); line != connectBlock.end(); ++line) {
-        // Allowed values: covale, disulf, hydrog, metalc
-        if ((*line)[conn_type_idcol] == "covale" ||
-            (*line)[conn_type_idcol] == "disulf")
-        {
-          mprintf("%s R1 %s %s Chain ID %s Atom %s -- R2 %s %s Chain ID %s Atom %s\n",
-                  (*line)[conn_type_idcol].c_str(),
-                  (*line)[r1_namecol].c_str(),
-                  (*line)[r1_numcol].c_str(),
-                  (*line)[r1_chaincol].c_str(),
-                  (*line)[r1_atomcol].c_str(),
-                  (*line)[r2_namecol].c_str(),
-                  (*line)[r2_numcol].c_str(),
-                  (*line)[r2_chaincol].c_str(),
-                  (*line)[r2_atomcol].c_str()
-                 );
-          add_cif_bond(TopIn,
-                       (*line)[r1_namecol], (*line)[r1_numcol], (*line)[r1_chaincol], (*line)[r1_atomcol],
-                       (*line)[r2_namecol], (*line)[r2_numcol], (*line)[r2_chaincol], (*line)[r2_atomcol]);
+  if (read_struct_conn_) {
+    CIFfile::DataBlock const& connectBlock = infile.GetDataBlock("_struct_conn");
+    if (!connectBlock.empty()) {
+      mprintf("\tBlock 'struct_conn' found.\n");
+      int conn_type_idcol = checkForCol(connectBlock, "conn_type_id");
+      int r1_chaincol = checkForCol(connectBlock, "ptnr1_label_asym_id");
+      int r1_atomcol  = checkForCol(connectBlock, "ptnr1_label_atom_id");
+      int r1_namecol  = checkForCol(connectBlock, "ptnr1_label_comp_id");
+      int r1_numcol   = checkForCol(connectBlock, "ptnr1_label_seq_id");
+      int r2_chaincol = checkForCol(connectBlock, "ptnr2_label_asym_id");
+      int r2_atomcol  = checkForCol(connectBlock, "ptnr2_label_atom_id");
+      int r2_namecol  = checkForCol(connectBlock, "ptnr2_label_comp_id");
+      int r2_numcol   = checkForCol(connectBlock, "ptnr2_label_seq_id");
+      bool block_is_valid = !(conn_type_idcol == -1 ||
+                              r1_chaincol == -1 ||
+                              r1_atomcol == -1 ||
+                              r1_namecol == -1 ||
+                              r1_numcol == -1 ||
+                              r2_chaincol == -1 ||
+                              r2_atomcol == -1 ||
+                              r2_namecol == -1 ||
+                              r2_numcol == -1
+                             );
+      if (block_is_valid) {
+        // All required columns are present. Loop over struct_conn entries
+        for (line = connectBlock.begin(); line != connectBlock.end(); ++line) {
+          // Allowed values: covale, disulf, hydrog, metalc
+          if ((*line)[conn_type_idcol] == "covale" ||
+              (*line)[conn_type_idcol] == "disulf")
+          {
+            mprintf("%s R1 %s %s Chain ID %s Atom %s -- R2 %s %s Chain ID %s Atom %s\n",
+                    (*line)[conn_type_idcol].c_str(),
+                    (*line)[r1_namecol].c_str(),
+                    (*line)[r1_numcol].c_str(),
+                    (*line)[r1_chaincol].c_str(),
+                    (*line)[r1_atomcol].c_str(),
+                    (*line)[r2_namecol].c_str(),
+                    (*line)[r2_numcol].c_str(),
+                    (*line)[r2_chaincol].c_str(),
+                    (*line)[r2_atomcol].c_str()
+                   );
+            add_cif_bond(TopIn,
+                         (*line)[r1_namecol], (*line)[r1_numcol], (*line)[r1_chaincol], (*line)[r1_atomcol],
+                         (*line)[r2_namecol], (*line)[r2_numcol], (*line)[r2_chaincol], (*line)[r2_atomcol]);
+          }
         }
+      } else {
+        mprintf("Warning: Structure connectivity block is missing 1 or more data items, skipping.\n");
       }
-    } else {
-      mprintf("Warning: Structure connectivity block is missing 1 or more data items, skipping.\n");
     }
-  }
+  } // END read struct_conn
+
   // Get title. 
   CIFfile::DataBlock const& entryblock = infile.GetDataBlock("_entry");
   std::string ciftitle;
