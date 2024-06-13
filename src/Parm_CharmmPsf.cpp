@@ -448,7 +448,7 @@ int Parm_CharmmPsf::WriteParm(FileName const& fname, Topology const& parm) {
   unsigned int idx = 1;
   // Make segment ids based on molecule type for now.
   Mol::Marray mols = Mol::UniqueCount(parm);
-  mprintf("Warning: Assigning segment IDs based on molecule type.\n");
+  mprintf("Warning: Unknown segment IDs will be assigned based on molecule type.\n");
   int currentMol = 0;
   int currentMtype = FindMolType(currentMol, mols);
   const char* segid = mols[currentMtype].name_.c_str();
@@ -463,12 +463,16 @@ int Parm_CharmmPsf::WriteParm(FileName const& fname, Topology const& parm) {
   //   !XPLOR & !DRUDE : ECH     EHA
   // Where ECH is electronegativity for atoms and EHA is hardness for atoms.
   const char* atmfmt = 0;
+  // segIdMax is used to ensure ChainID will not overflow
+  unsigned int segIdMax;
   if (extfmt_) {
+    segIdMax = 9;
     if (xplor_)
       atmfmt = "%10i %-8s %-8i %-8s %-8s %-6s %14.6G%14.6G%8i\n";
     else
       atmfmt = "%10i %-8s %-8i %-8s %-8s %4s %14.6G%14.6G%8i\n";
   } else {
+    segIdMax = 5;
     if (xplor_)
       atmfmt = "%8i %-4s %-4i %-4s %-4s %-4s %14.6G%14.6G%8i\n";
     else
@@ -484,6 +488,9 @@ int Parm_CharmmPsf::WriteParm(FileName const& fname, Topology const& parm) {
         segid = mols[currentMtype].name_.c_str();
       }
     }
+    // If there is a chain ID, use that instead.
+    if (parm.Res(resnum).HasChainID() && parm.Res(resnum).ChainID().size() < segIdMax)
+      segid = parm.Res(resnum).chainID();
     // Figure out how atom type is being printed.
     std::string psftype;
     if (xplor_)
