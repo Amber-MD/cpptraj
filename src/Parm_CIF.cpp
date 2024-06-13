@@ -126,19 +126,39 @@ int Parm_CIF::ReadParm(FileName const& fname, Topology &TopIn) {
     int r1_atomcol  = checkForCol(connectBlock, "ptnr1_label_atom_id");
     int r1_namecol  = checkForCol(connectBlock, "ptnr1_label_comp_id");
     int r1_numcol   = checkForCol(connectBlock, "ptnr1_label_seq_id");
+    int r2_chaincol = checkForCol(connectBlock, "ptnr2_label_asym_id");
+    int r2_atomcol  = checkForCol(connectBlock, "ptnr2_label_atom_id");
+    int r2_namecol  = checkForCol(connectBlock, "ptnr2_label_comp_id");
+    int r2_numcol   = checkForCol(connectBlock, "ptnr2_label_seq_id");
     bool block_is_valid = !(conn_type_idcol == -1 ||
                             r1_chaincol == -1 ||
                             r1_atomcol == -1 ||
                             r1_namecol == -1 ||
-                            r1_numcol == -1
+                            r1_numcol == -1 ||
+                            r2_chaincol == -1 ||
+                            r2_atomcol == -1 ||
+                            r2_namecol == -1 ||
+                            r2_numcol == -1
                            );
     if (block_is_valid) {
+      // All required columns are present. Loop over struct_conn entries
       for (line = connectBlock.begin(); line != connectBlock.end(); ++line) {
-        mprintf("R1 %s %s Chain ID %s Atom %s\n",
-                (*line)[r1_namecol].c_str(),
-                (*line)[r1_numcol].c_str(),
-                (*line)[r1_chaincol].c_str(),
-                (*line)[r1_atomcol].c_str());
+        // Allowed values: covale, disulf, hydrog, metalc
+        if ((*line)[conn_type_idcol] == "covale" ||
+            (*line)[conn_type_idcol] == "disulf")
+        {
+          mprintf("%s R1 %s %s Chain ID %s Atom %s -- R2 %s %s Chain ID %s Atom %s\n",
+                  (*line)[conn_type_idcol].c_str(),
+                  (*line)[r1_namecol].c_str(),
+                  (*line)[r1_numcol].c_str(),
+                  (*line)[r1_chaincol].c_str(),
+                  (*line)[r1_atomcol].c_str(),
+                  (*line)[r2_namecol].c_str(),
+                  (*line)[r2_numcol].c_str(),
+                  (*line)[r2_chaincol].c_str(),
+                  (*line)[r2_atomcol].c_str()
+                 );
+        }
       }
     } else {
       mprintf("Warning: Structure connectivity block is missing 1 or more data items, skipping.\n");
