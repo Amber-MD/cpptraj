@@ -561,10 +561,13 @@ int Topology::CommonSetup(bool molsearch, bool renumberResidues)
     }
   } // END renumber residues based on molecules
 
-  // Set up solvent information
-  if (SetSolventInfo())
-    mprinterr("Error: Could not determine solvent information for %s.\n", c_str());
-
+  // Set up solvent information. Only do this if there are molecules.
+  if (molsearch || !molecules_.empty()) {
+    if (SetSolventInfo()) {
+      mprinterr("Error: Could not determine solvent information for %s.\n", c_str());
+      return 1;
+    }
+  }
   // Determine # of extra points.
   DetermineNumExtraPoints();
 
