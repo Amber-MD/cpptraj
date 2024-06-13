@@ -19,6 +19,52 @@ static inline int checkForCol(CIFfile::DataBlock const& block, std::string const
   return colid;
 }
 
+/// Attempt to add a bond between specified atoms to the Topology
+static inline void add_cif_bond(Topology& topIn,
+                                std::string const& r1name,
+                                std::string const& r1num,
+                                std::string const& r1chain,
+                                std::string const& r1atom,
+                                std::string const& r2name,
+                                std::string const& r2num,
+                                std::string const& r2chain,
+                                std::string const& r2atom)
+{
+  AtomMask m1, m2;
+  if (m1.SetMaskString(":" + r1name + "&:;" + r1num + "&::" + r1chain + "&@" + r1atom)) {
+    mprinterr("Internal Error: add_cif_bond: Could not set atom 1 mask.\n");
+    return;
+  }
+  if (m2.SetMaskString(":" + r2name + "&:;" + r2num + "&::" + r2chain + "&@" + r2atom)) {
+    mprinterr("Internal Error: add_cif_bond: Could not set atom 2 mask.\n");
+    return;
+  }
+  if (topIn.SetupIntegerMask(m1)) {
+    mprinterr("Internal Error: add_cif_bond: Could not set up atom 1 mask.\n");
+    return;
+  }
+  if (topIn.SetupIntegerMask(m2)) {
+    mprinterr("Internal Error: add_cif_bond: Could not set up atom 2 mask.\n");
+    return;
+  }
+  if (m1.Nselected() > 1) {
+    mprinterr("Internal Error: add_cif_bond: atom 1 mask selects more than 1 atom.\n");
+    return;
+  }
+  if (m2.Nselected() > 1) {
+    mprinterr("Internal Error: add_cif_bond: atom 2 mask selects more than 1 atom.\n");
+    return;
+  }
+  if (m1.None()) {
+    mprintf("Warning: CIF atom 1 '%s' not found.\n", m1.MaskString());
+    return;
+  }
+  if (m2.None()) {
+    mprintf("Warning: CIF atom 2 '%s' not found.\n", m2.MaskString());
+    return;
+  }
+}
+
 // Parm_CIF::ReadParm()
 int Parm_CIF::ReadParm(FileName const& fname, Topology &TopIn) {
   CIFfile infile;
@@ -158,6 +204,9 @@ int Parm_CIF::ReadParm(FileName const& fname, Topology &TopIn) {
                   (*line)[r2_chaincol].c_str(),
                   (*line)[r2_atomcol].c_str()
                  );
+          add_cif_bond(TopIn,
+                       (*line)[r1_namecol], (*line)[r1_numcol], (*line)[r1_chaincol], (*line)[r1_atomcol],
+                       (*line)[r2_namecol], (*line)[r2_numcol], (*line)[r2_chaincol], (*line)[r2_atomcol]);
         }
       }
     } else {
