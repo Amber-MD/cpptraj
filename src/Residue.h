@@ -7,24 +7,26 @@ class Residue {
   public:
     /// CONSTRUCTOR
     Residue() :
-      resname_(""), firstAtom_(0), lastAtom_(0), originalResNum_(0), segID_(-1),
+      resname_(""), firstAtom_(0), lastAtom_(0), originalResNum_(0), //segID_(-1),
       icode_(' '), isTerminal_(false)
     {}
     /// CONSTRUCTOR - Copy given Residue, set first and last atom indices.
     Residue(Residue const& r, int first, int last) :
       resname_(r.resname_), chainID_(r.chainID_), firstAtom_(first),
-      lastAtom_(last), originalResNum_(r.originalResNum_), segID_(r.segID_),
+      lastAtom_(last), originalResNum_(r.originalResNum_), //segID_(r.segID_),
       icode_(r.icode_), isTerminal_(false)
     {}
     /// CONSTRUCTOR - Res name, original resnum, icode, chain ID
     Residue(NameType const& n, int r, char ic, std::string const& cid) :
       resname_(n), chainID_(cid), firstAtom_(-1), lastAtom_(-1),
-      originalResNum_(r), segID_(-1), icode_(ic), isTerminal_(false)
+      originalResNum_(r), //segID_(-1),
+      icode_(ic), isTerminal_(false)
     { checkChainId(); }
     /// CONSTRUCTOR - Res name, first atom, last atom, original resnum, icode, chain ID
     Residue(NameType const& n, int first, int last, int r, char ic, std::string const& cid) :
       resname_(n), chainID_(cid), firstAtom_(first), lastAtom_(last),
-      originalResNum_(r), segID_(-1), icode_(ic), isTerminal_(false)
+      originalResNum_(r), //segID_(-1),
+      icode_(ic), isTerminal_(false)
     { checkChainId(); }
     /// CONSTRUCTOR - Res name, original resnum, res icode, segment ID
 /*    Residue(NameType const& n, int r, char i, int s) :
@@ -34,7 +36,7 @@ class Residue {
     /// \return True if this residue does not match given residue
     bool operator!=(const Residue& rhs) const {
       return ( originalResNum_ != rhs.originalResNum_ ||
-               segID_          != rhs.segID_          ||
+               //segID_          != rhs.segID_          ||
                icode_          != rhs.icode_          ||
                chainID_        != rhs.chainID_        ||
                (originalResNum_ == rhs.originalResNum_ && resname_ != rhs.resname_) );
@@ -66,7 +68,7 @@ class Residue {
     inline void SetFirstAtom(int i)              { firstAtom_ = i;      }
     inline void SetLastAtom(int i)               { lastAtom_ = i;       }
     inline void SetOriginalNum(int i)            { originalResNum_ = i; }
-    inline void SetSegID(int s)                  { segID_ = s;          }
+//    inline void SetSegID(int s)                  { segID_ = s;          }
     inline void SetIcode(char c)                 { icode_ = c;          }
     inline void SetChainID(std::string const& c) { chainID_ = c; checkChainId(); }
     inline void SetName(NameType const& n)       { resname_ = n;        }
@@ -76,7 +78,7 @@ class Residue {
     /// \return Atom _after_ the last in residue, indexing from 0
     inline int LastAtom()         const { return lastAtom_;       }
     inline int OriginalResNum()   const { return originalResNum_; }
-    inline int SegID()            const { return segID_;          }
+//    inline int SegID()            const { return segID_;          }
     inline char Icode()           const { return icode_;          }
     /// \return Chain ID
     inline std::string const& ChainID() const { return chainID_; }
@@ -112,7 +114,7 @@ class Residue {
     int firstAtom_;       ///< Index of first atom (from 0).
     int lastAtom_;        ///< Atom index after last atom in residue.
     int originalResNum_;  ///< Original residue number.
-    int segID_;           ///< Segment ID index.
+//    int segID_;           ///< Segment ID index.
     char icode_;          ///< Residue insertion code.
     bool isTerminal_;     ///< True if residue was originally a terminal residue
 };
