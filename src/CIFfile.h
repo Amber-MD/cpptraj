@@ -70,8 +70,8 @@ class CIFfile {
     /// Get data from most recently added data set
     DataBlock const& GetDataBlock(std::string const&h) const { return data_.back().GetDataBlock(h); }
 
-    DataBlock const& GetBlockWithColValue(std::string const&, std::string const&,
-                                          std::string const&) const;
+    //DataBlock const& GetBlockWithColValue(std::string const&, std::string const&,
+    //                                      std::string const&) const;
 
     /// For debugging, list all data currently in the CIF file.
     void ListAllData() const;

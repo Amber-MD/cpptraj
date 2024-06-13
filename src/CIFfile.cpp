@@ -372,7 +372,7 @@ int CIFfile::Read(FileName const& fnameIn, int debugIn) {
 }
 
 /** Vector with DataBlocks corresponding to given header and value. */
-CIFfile::DataBlock const& CIFfile::GetBlockWithColValue(
+/*CIFfile::DataBlock const& CIFfile::GetBlockWithColValue(
                                                    std::string const& header,
                                                    std::string const& col,
                                                    std::string const& value)
@@ -390,7 +390,7 @@ const
     }
   }
   return emptyblock;
-}
+}*/
 
 /** List all data currently in the CIFfile. */
 void CIFfile::ListAllData() const {
