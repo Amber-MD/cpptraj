@@ -171,22 +171,14 @@ int Parm_CIF::ReadParm(FileName const& fname, Topology &TopIn) {
     ciftitle = entryblock.Data("id");
   TopIn.SetParmName( ciftitle, infile.CIFname() );
   // Get unit cell parameters if present.
-  CIFfile::DataBlock const& cellblock = infile.GetDataBlock("_cell");
-  if (!cellblock.empty()) {
-    double cif_box[6];
-    cif_box[0] = convertToDouble( cellblock.Data("length_a") );
-    cif_box[1] = convertToDouble( cellblock.Data("length_b") );
-    cif_box[2] = convertToDouble( cellblock.Data("length_c") );
-    cif_box[3] = convertToDouble( cellblock.Data("angle_alpha") );
-    cif_box[4] = convertToDouble( cellblock.Data("angle_beta" ) );
-    cif_box[5] = convertToDouble( cellblock.Data("angle_gamma") );
-    mprintf("\tRead cell info from CIF: a=%g b=%g c=%g alpha=%g beta=%g gamma=%g\n",
-              cif_box[0], cif_box[1], cif_box[2], cif_box[3], cif_box[4], cif_box[5]);
+  double cif_box[6];
+  int box_stat = infile.cif_Box_verbose( cif_box );
+  if (box_stat != -1) {
     Box parmBox;
     parmBox.SetupFromXyzAbg( cif_box );
-    TopIn.SetParmBox( parmBox ); 
+    TopIn.SetParmBox( parmBox );
   }
-  
+
   return 0;
 }
 
