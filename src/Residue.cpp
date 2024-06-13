@@ -1,6 +1,6 @@
 #include "Residue.h"
 #include "CpptrajStdio.h"
-#include <cctype> // tolower
+#include <cctype> // tolower, isspace
 
 const char Residue::DEFAULT_CHAINID_ = 'Z';
 
@@ -10,6 +10,15 @@ char Residue::ChainID_1char() const {
   if (chainID_.empty()) return ' ';
   mprintf("Warning: Chain ID '%s' is larger than 1 character. Truncating.\n", chainID_.c_str());
   return chainID_[0];
+}
+
+/** Check if a blank string has been set as the chain ID; if so, clear it. */
+void Residue::checkChainId() {
+  for (std::string::const_iterator it = chainID_.begin(); it != chainID_.end(); ++it) {
+    if (!isspace( *it )) return;
+  }
+  // If we are here, everything is whitespace.
+  chainID_.clear();
 }
 
 char Residue::ConvertResName(std::string const& r) {

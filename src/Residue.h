@@ -20,12 +20,12 @@ class Residue {
     Residue(NameType const& n, int r, char ic, std::string const& cid) :
       resname_(n), chainID_(cid), firstAtom_(-1), lastAtom_(-1),
       originalResNum_(r), segID_(-1), icode_(ic), isTerminal_(false)
-    {}
+    { checkChainId(); }
     /// CONSTRUCTOR - Res name, first atom, last atom, original resnum, icode, chain ID
     Residue(NameType const& n, int first, int last, int r, char ic, std::string const& cid) :
       resname_(n), chainID_(cid), firstAtom_(first), lastAtom_(last),
       originalResNum_(r), segID_(-1), icode_(ic), isTerminal_(false)
-    {}
+    { checkChainId(); }
     /// CONSTRUCTOR - Res name, original resnum, res icode, segment ID
 /*    Residue(NameType const& n, int r, char i, int s) :
       resname_(n), firstAtom_(-1), lastAtom_(-1), originalResNum_(r), segID_(s),
@@ -68,7 +68,7 @@ class Residue {
     inline void SetOriginalNum(int i)            { originalResNum_ = i; }
     inline void SetSegID(int s)                  { segID_ = s;          }
     inline void SetIcode(char c)                 { icode_ = c;          }
-    inline void SetChainID(std::string const& c) { chainID_ = c;        }
+    inline void SetChainID(std::string const& c) { chainID_ = c; checkChainId(); }
     inline void SetName(NameType const& n)       { resname_ = n;        }
     inline void SetTerminal(bool t)              { isTerminal_ = t;     }
     /// \return First atom in residue, indexing from 0
@@ -103,6 +103,8 @@ class Residue {
     /// Convert this residue name to single letter.
     char SingleCharName() const { return ConvertResName( *resname_ ); }
   private:
+    /// Check if chain ID is blank; if so, clear it.
+    void checkChainId();
     /// Chain ID to use if one is desired but no chain ID set.
     static const char DEFAULT_CHAINID_;
     NameType resname_;    ///< Residue name.
