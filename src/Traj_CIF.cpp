@@ -69,18 +69,13 @@ int Traj_CIF::setupTrajin(FileName const& fname, Topology* trajParm)
   mprintf("\t%i atoms, %i models.\n", Natoms_, Nmodels_);
   // Get unit cell parameters if present.
   boxInfo_.SetNoBox();
-  CIFfile::DataBlock const& cellblock = file_.GetDataBlock("_cell");
-  if (!cellblock.empty()) {
-    double cif_box[6];
-    cif_box[0] = convertToDouble( cellblock.Data("length_a") );
-    cif_box[1] = convertToDouble( cellblock.Data("length_b") );
-    cif_box[2] = convertToDouble( cellblock.Data("length_c") );
-    cif_box[3] = convertToDouble( cellblock.Data("angle_alpha") );
-    cif_box[4] = convertToDouble( cellblock.Data("angle_beta" ) );
-    cif_box[5] = convertToDouble( cellblock.Data("angle_gamma") );
-    mprintf("\tRead cell info from CIF: a=%g b=%g c=%g alpha=%g beta=%g gamma=%g\n",
-              cif_box[0], cif_box[1], cif_box[2], cif_box[3], cif_box[4], cif_box[5]);
-    boxInfo_.SetupFromXyzAbg( cif_box);
+  double cif_box[6];
+  int box_stat = file_.cif_Box_verbose( cif_box );
+  if (box_stat != -1) {
+    if (box_stat || boxInfo_.SetupFromXyzAbg( cif_box )) {
+      mprintf("Warning: Box information in CIF appears invalid; disabling box.\n");
+      boxInfo_.SetNoBox();
+    }
   }
   // Set traj info - No velocity, temperature, time.
   SetCoordInfo( CoordinateInfo( boxInfo_, false, false, false ) );

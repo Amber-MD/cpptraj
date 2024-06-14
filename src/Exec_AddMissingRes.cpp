@@ -32,8 +32,8 @@ Exec_AddMissingRes::Rlist::iterator Exec_AddMissingRes::FindClosestRes(Rlist& Re
                                                                        int& lowestAbsDist)
 const
 {
-  mprintf("DEBUG: Searching for closest residue to %s %i %c %c\n",
-          *(tgtRes.Name()), tgtRes.OriginalResNum(), tgtRes.Icode(), tgtRes.ChainId());
+  mprintf("DEBUG: Searching for closest residue to %s %i %c %s\n",
+          *(tgtRes.Name()), tgtRes.OriginalResNum(), tgtRes.Icode(), tgtRes.chainID());
   Rlist::iterator pos = ResList.begin();
   Rlist::iterator closest = pos;
   lowestAbsDist = tgtRes.AbsResDist( *pos );
@@ -89,14 +89,14 @@ const
   // DEBUG
   if (debug_ > 0)
     for (Rlist::const_iterator it = missingResidues.begin(); it != missingResidues.end(); ++it)
-      mprintf("DEBUG: Missing residue %s %i icode= %c chain= %c\n",
-              *(it->Name()), it->OriginalResNum(), it->Icode(), it->ChainId());
+      mprintf("DEBUG: Missing residue %s %i icode= %c chain= %s\n",
+              *(it->Name()), it->OriginalResNum(), it->Icode(), it->chainID());
 
   // Put existing residues into a list
   ResList.clear();
   for (Topology::res_iterator res = topIn.ResStart(); res != topIn.ResEnd(); ++res)
     if (std::find(ignoreseq.begin(), ignoreseq.end(), res->Name()) == ignoreseq.end())
-      ResList.push_back( Residue(res->Name(), res->OriginalResNum(), res->Icode(), res->ChainId()) );
+      ResList.push_back( Residue(res->Name(), res->OriginalResNum(), res->Icode(), res->ChainID()) );
 
   // Figure out where to insert the missing residues.
   while (!missingResidues.empty()) {
@@ -109,7 +109,7 @@ const
       ++gapEnd;
       if (gapEnd == missingResidues.end()) break;
       int resDelta = gapEnd->OriginalResNum() - currentRes->OriginalResNum();
-      if ( gapEnd->ChainId() != currentRes->ChainId() )
+      if ( gapEnd->ChainID() != currentRes->ChainID() )
         searchGap = false;
       else if ( resDelta == 0 ) {
         int icodeDelta = (int)gapEnd->Icode() - (int)currentRes->Icode();
@@ -130,14 +130,14 @@ const
     mprintf("Gap:\n");
     int gapLength = 0;
     for (Rlist::iterator it = gapStart; it != gapEnd; ++it) {
-      mprintf("\tRes %s %i icode= %c chain= %c\n",
-              *(it->Name()), it->OriginalResNum(), it->Icode(), it->ChainId());
+      mprintf("\tRes %s %i icode= %c chain= %s\n",
+              *(it->Name()), it->OriginalResNum(), it->Icode(), it->chainID());
       gapLength++;
     }
     mprintf("\t  Gap length= %i\n", gapLength);
     // Gap Output
-    outfile.Printf("  Gap %c %4s %6i to %4s %6i %6i\n",
-                   gapStart->ChainId(), *(gapStart->Name()), gapStart->OriginalResNum(),
+    outfile.Printf("  Gap %s %4s %6i to %4s %6i %6i\n",
+                   gapStart->chainID(), *(gapStart->Name()), gapStart->OriginalResNum(),
                    *(gapFinalRes->Name()), gapFinalRes->OriginalResNum(), gapLength);
     // Print residues
     unsigned int col = 1;
@@ -154,13 +154,13 @@ const
     // Find closest res to start
     int startDist = -1, endDist = -1;
     Rlist::iterator closestStart = FindClosestRes(ResList, *gapStart, startDist);
-    mprintf("\t  Closest res to gap start is %s %i %c %c (%i)\n",
-            *(closestStart->Name()), closestStart->OriginalResNum(), closestStart->Icode(), closestStart->ChainId(), startDist);
+    mprintf("\t  Closest res to gap start is %s %i %c %s (%i)\n",
+            *(closestStart->Name()), closestStart->OriginalResNum(), closestStart->Icode(), closestStart->chainID(), startDist);
     Rlist::iterator closestEnd = ResList.end();
     if (gapStart != gapFinalRes) {
       closestEnd = FindClosestRes(ResList, *gapFinalRes, endDist);
-      mprintf("\t  Closest res to gap end is %s %i %c %c (%i)\n",
-              *(closestEnd->Name()), closestEnd->OriginalResNum(), closestEnd->Icode(), closestEnd->ChainId(), endDist);
+      mprintf("\t  Closest res to gap end is %s %i %c %s (%i)\n",
+              *(closestEnd->Name()), closestEnd->OriginalResNum(), closestEnd->Icode(), closestEnd->chainID(), endDist);
     }
     if (startDist > 1 && endDist > 1) {
       mprinterr("Error: Cannot find place to attach gap start or end.\n");
@@ -204,8 +204,8 @@ const
  
   mprintf("Final residues:\n");
   for (Rlist::const_iterator it = ResList.begin(); it != ResList.end(); ++it) 
-    mprintf("\tRes %s %i icode= %c chain= %c\n",
-            *(it->Name()), it->OriginalResNum(), it->Icode(), it->ChainId());
+    mprintf("\tRes %s %i icode= %c chain= %s\n",
+            *(it->Name()), it->OriginalResNum(), it->Icode(), it->chainID());
 
 
   return 0;
@@ -221,7 +221,7 @@ const
                                             res != topIn.MissingRes().end(); ++res)
   {
     int currentres = res->OriginalResNum();
-    char currentchain = res->ChainId();
+    std::string const& currentchain = res->ChainID();
     Pres thisRes(res->Name().Truncated(), currentres, res->Icode(), currentchain);
     // Is this the first "gap"?
     if (Gaps.empty())
@@ -242,8 +242,8 @@ const
 
   // Printout
   for (Garray::const_iterator it = Gaps.begin(); it != Gaps.end(); ++it) {
-    outfile.Printf("  Gap %c %4s %6i to %4s %6i %6zu\n",
-                   it->front().Chain(),
+    outfile.Printf("  Gap %s %4s %6i to %4s %6i %6zu\n",
+                   it->front().chainStr(),
                    it->front().Name().c_str(), it->front().Onum(),
                    it->back().Name().c_str(), it->back().Onum(),
                    it->size());
@@ -535,7 +535,7 @@ const
   CharMask isMissing = CAmissing;
   int ridx = 0;
   int gapStart = -1;
-  char chain = ' ';
+  std::string chain;
   while (ridx < newTop.Nres())
   {
     // Determine the next gap
@@ -544,27 +544,27 @@ const
       if (CAmissing.AtomInCharMask(ridx)) {
         //mprintf("Start gap %i\n", ridx);
         gapStart = ridx;
-        chain = CAtop.Res(ridx).ChainId();
+        chain = CAtop.Res(ridx).ChainID();
         // Find gap end
         int gapEnd = gapStart + 1;
         for (; gapEnd <= newTop.Nres(); gapEnd++) {
           if (gapEnd == newTop.Nres() ||
               !CAmissing.AtomInCharMask(gapEnd) ||
-              CAtop.Res(gapEnd).ChainId() != chain)
+              CAtop.Res(gapEnd).ChainID() != chain)
           {
             // The real end of the gap is the previous res
             gapEnd = gapEnd - 1;
-            mprintf("\tNew Gap: %c %i to %i\n", chain, gapStart+1, gapEnd+1);
+            mprintf("\tNew Gap: %s %i to %i\n", chain.c_str(), gapStart+1, gapEnd+1);
             // -----------------------------------
             // Is there a previous residue
             int prev_res = gapStart - 1;
             if (prev_res < 0 ||
-                newTop.Res(prev_res).ChainId() != newTop.Res(gapStart).ChainId())
+                newTop.Res(prev_res).ChainID() != newTop.Res(gapStart).ChainID())
               prev_res = -1;
             // Is there a next residue
             int next_res = gapEnd + 1;
             if (next_res == newTop.Nres() ||
-                newTop.Res(next_res).ChainId() != newTop.Res(gapEnd).ChainId())
+                newTop.Res(next_res).ChainID() != newTop.Res(gapEnd).ChainID())
               next_res = -1;
             mprintf("\t  Prev res %i  Next res %i\n", prev_res + 1, next_res + 1);
             if (prev_res == -1 && next_res == -1) {
@@ -627,12 +627,12 @@ const
       //mprintf("DEBUG: Originally missing CA res %s bonded to", CAtop.TruncResNameNum(ridx).c_str());
       // This was a missing residue. Bond it to the previous/next residue in same chain.
       int pidx = ridx - 1;
-      if (pidx > 0 && CAtop.Res(pidx).ChainId() == CAtop.Res(ridx).ChainId()) {
+      if (pidx > 0 && CAtop.Res(pidx).ChainID() == CAtop.Res(ridx).ChainID()) {
         CAtop.AddBond(pidx, ridx, CAbond);
         //mprintf(" %s", CAtop.TruncResNameNum(pidx).c_str());
       }
       int nidx = ridx + 1;
-      if (nidx < CAtop.Nres() && CAtop.Res(ridx).ChainId() == CAtop.Res(nidx).ChainId()) {
+      if (nidx < CAtop.Nres() && CAtop.Res(ridx).ChainID() == CAtop.Res(nidx).ChainID()) {
         CAtop.AddBond(ridx, nidx, CAbond);
         //mprintf(" %s", CAtop.TruncResNameNum(nidx).c_str());
       }
@@ -687,7 +687,7 @@ static inline void AddResToTopologies(Residue const& srcRes, Topology const& sou
                                       std::vector<int>& originalAtToNew, int& newAtNum)
 {
   // Add atoms for this residue 
-  Residue newres(srcRes.Name(), srcRes.OriginalResNum(), srcRes.Icode(), srcRes.ChainId());
+  Residue newres(srcRes.Name(), srcRes.OriginalResNum(), srcRes.Icode(), srcRes.ChainID());
   int caidx = -1;
   // Calculate the center of the residue as we go in case we need it
   Vec3 vcenter(0.0);
@@ -766,7 +766,7 @@ const
     // Does this residue exist in the source topology?
     Topology::res_iterator srcFound = srcRes;
     for (; srcFound != sourceTop.ResEnd(); ++srcFound) {
-      if (tgtRes->ChainId()        == srcFound->ChainId() && // TODO compare name?
+      if (tgtRes->ChainID()        == srcFound->ChainID() && // TODO compare name?
           tgtRes->OriginalResNum() == srcFound->OriginalResNum() &&
           tgtRes->Icode()          == srcFound->Icode())
       {
@@ -775,9 +775,9 @@ const
     }
     if (srcFound != sourceTop.ResEnd()) {
       missingInNew.push_back( false );
-      mprintf("FOUND %s %i %c %c (%s %i %c %c).\n",
-              *(tgtRes->Name()), tgtRes->OriginalResNum(), tgtRes->Icode(), tgtRes->ChainId(),
-              *(srcFound->Name()), srcFound->OriginalResNum(), srcFound->Icode(), srcFound->ChainId());
+      mprintf("FOUND %s %i %c %s (%s %i %c %s).\n",
+              *(tgtRes->Name()), tgtRes->OriginalResNum(), tgtRes->Icode(), tgtRes->chainID(),
+              *(srcFound->Name()), srcFound->OriginalResNum(), srcFound->Icode(), srcFound->chainID());
       sourceResUsed[ srcFound - sourceTop.ResStart() ] = true;
       // Add atoms for this residue 
       AddResToTopologies(*srcFound, sourceTop, sourceFrame, srcFound-sourceTop.ResStart(),
@@ -785,10 +785,10 @@ const
                          CAtop, CAcrd, CAmissing, originalAtToNew, newAtNum);
       ++srcRes;
     } else {
-      mprintf("MISSING %s %i %c %c.\n", *(tgtRes->Name()), tgtRes->OriginalResNum(), tgtRes->Icode(), tgtRes->ChainId());
+      mprintf("MISSING %s %i %c %s.\n", *(tgtRes->Name()), tgtRes->OriginalResNum(), tgtRes->Icode(), tgtRes->chainID());
       // Add a placeholder for this residue
       newTop.AddTopAtom( Atom("CA", "C "),
-                         Residue(tgtRes->Name(), tgtRes->OriginalResNum(), tgtRes->Icode(), tgtRes->ChainId()) );
+                         Residue(tgtRes->Name(), tgtRes->OriginalResNum(), tgtRes->Icode(), tgtRes->ChainID()) );
       missingInNew.push_back( true );
       //if (newTop.Nres() > (int)missingInNew.size())
       //  missingInNew.resize( newTop.Nres(), false );
@@ -801,7 +801,7 @@ const
       Atom CaAtom("CA", "CA", 0);
       CaAtom.SetCharge(1.0);
       CAtop.AddTopAtom( CaAtom,
-                        Residue(tgtRes->Name(), tgtRes->OriginalResNum(), tgtRes->Icode(), tgtRes->ChainId()) );
+                        Residue(tgtRes->Name(), tgtRes->OriginalResNum(), tgtRes->Icode(), tgtRes->ChainID()) );
       CAcrd.push_back( 0 );
       CAcrd.push_back( 0 );
       CAcrd.push_back( 0 );
@@ -813,7 +813,7 @@ const
     if (!sourceResUsed[ridx]) {
       missingInNew.push_back( false );
       Residue const& res = sourceTop.Res(ridx);
-      mprintf("\t%s %i %c %c\n", *(res.Name()), res.OriginalResNum(), res.Icode(), res.ChainId());
+      mprintf("\t%s %i %c %s\n", *(res.Name()), res.OriginalResNum(), res.Icode(), res.chainID());
       // Add atoms for this residue
       AddResToTopologies(res, sourceTop, sourceFrame, ridx,
                          newTop, newCrd,
@@ -825,7 +825,7 @@ const
   for (int ridx = 0; ridx != newTop.Nres(); ridx++)
   {
     if (ridx + 1 == newTop.Nres() ||
-        newTop.Res(ridx).ChainId() != newTop.Res(ridx+1).ChainId())
+        newTop.Res(ridx).ChainID() != newTop.Res(ridx+1).ChainID())
       newTop.SetRes(ridx).SetTerminal(true);
   }
   // Add original bonds to new topology.
@@ -847,7 +847,7 @@ const
       //mprintf("DEBUG: Originally missing CA res %s bonded to", CAtop.TruncResNameNum(ridx).c_str());
       // This was a missing residue. Bond it to the previous/next residue in same chain.
       int pidx = ridx - 1;
-      if (pidx > 0 && newTop.Res(pidx).ChainId() == newTop.Res(ridx).ChainId()) {
+      if (pidx > 0 && newTop.Res(pidx).ChainID() == newTop.Res(ridx).ChainID()) {
         if (!missingInNew[pidx]) {
           // Bond this CA to previous residue C
           int idx = newTop.FindAtomInResidue(pidx, "C");
@@ -858,7 +858,7 @@ const
         //mprintf(" %s", CAtop.TruncResNameNum(pidx).c_str());
       }
       int nidx = ridx + 1;
-      if (nidx < CAtop.Nres() && CAtop.Res(ridx).ChainId() == CAtop.Res(nidx).ChainId()) {
+      if (nidx < CAtop.Nres() && CAtop.Res(ridx).ChainID() == CAtop.Res(nidx).ChainID()) {
         if (!missingInNew[nidx]) {
           // Bond this CA to next residue N
           int idx = newTop.FindAtomInResidue(nidx, "N");
@@ -881,8 +881,8 @@ const
   for (int ridx = 0; ridx != newTop.Nres(); ridx++)
   {
     Residue const& res = newTop.Res(ridx);
-    mprintf("%8i %4s %8i %c %c %i (CA %s)\n",
-            ridx+1, *(res.Name()), res.OriginalResNum(), res.Icode(), res.ChainId(),
+    mprintf("%8i %4s %8i %c %s %i (CA %s)\n",
+            ridx+1, *(res.Name()), res.OriginalResNum(), res.Icode(), res.chainID(),
             (int)missingInNew[ridx], *(CAtop.Res(ridx).Name()));
   }
 
@@ -962,7 +962,7 @@ const
   for (int rnum = 0; rnum != topIn.Nres(); ++rnum) {
     Residue const& Res = topIn.Res(rnum);
     AllResidues.push_back( Pres(Res.Name().Truncated(), Res.OriginalResNum(), rnum,
-                                Res.Icode(), Res.ChainId()) );
+                                Res.Icode(), Res.ChainID()) );
   }
   // Sanity check
   if (AllResidues.empty()) {
@@ -975,17 +975,17 @@ const
   {
     Pres const& gapRes0 = gap->front();
     Pres const& gapRes1 = gap->back();
-    mprintf("\tAttempting to insert gap %c %s %i to %s %i:\n", gapRes0.Chain(),
+    mprintf("\tAttempting to insert gap %s %s %i to %s %i:\n", gapRes0.chainStr(),
             gapRes0.Name().c_str(), gapRes0.Onum(),
             gapRes1.Name().c_str(), gapRes1.Onum());
     // Search until we find the correct chain
     while (resPtr != AllResidues.end() && resPtr->Chain() != gapRes0.Chain())
       ++resPtr;
     if (resPtr == AllResidues.end()) {
-      mprinterr("Error: Chain %c not found\n", gapRes0.Chain());
+      mprinterr("Error: Chain %s not found\n", gapRes0.chainStr());
       return 1;
     }
-    mprintf("\t  Chain %c found: %s %i\n", gapRes0.Chain(),
+    mprintf("\t  Chain %s found: %s %i\n", gapRes0.chainStr(),
             resPtr->Name().c_str(), resPtr->Onum());
     // Search until we find an appropriate resnum to insert after
     int resDelta0 = gapRes0.Onum() - resPtr->Onum();
@@ -994,8 +994,8 @@ const
     {
       ++resPtr;
       if (resPtr == AllResidues.end()) {
-        mprinterr("Error: Could not find appropriate # to insert %i in Chain %c.\n",
-                  gapRes0.Onum(), gapRes0.Chain());
+        mprinterr("Error: Could not find appropriate # to insert %i in Chain %s.\n",
+                  gapRes0.Onum(), gapRes0.chainStr());
         return 1;
       }
       resDelta0 = gapRes0.Onum() - resPtr->Onum();
@@ -1029,8 +1029,8 @@ const
   int nResMissing = 0;
   for (ResList::const_iterator it = AllResidues.begin(); it != AllResidues.end(); ++it)
   {
-    mprintf("\t%4s %6i %6i %c %c\n", it->Name().c_str(), it->Onum(), it->Tnum(),
-            it->Icode(), it->Chain());
+    mprintf("\t%4s %6i %6i %c %s\n", it->Name().c_str(), it->Onum(), it->Tnum(),
+            it->Icode(), it->chainStr());
     if (it->Tnum() < 0)
       nResMissing++;
     else
@@ -1076,7 +1076,7 @@ const
       originalIdxToNew.push_back( newResNum );
       // This residue is present in the original PDB
       Residue const& topres = topIn.Res(it->Tnum());
-      Residue newres(topres.Name(), topres.OriginalResNum(), topres.Icode(), topres.ChainId());
+      Residue newres(topres.Name(), topres.OriginalResNum(), topres.Icode(), topres.ChainID());
       int caidx = -1;
       // Calculate the center of the residue as we go in case we need it
       Vec3 vcenter(0.0);
@@ -1119,7 +1119,7 @@ const
   for (int ridx = 0; ridx != newTop.Nres(); ridx++)
   {
     if (ridx + 1 == newTop.Nres() ||
-        newTop.Res(ridx).ChainId() != newTop.Res(ridx+1).ChainId())
+        newTop.Res(ridx).ChainID() != newTop.Res(ridx+1).ChainID())
       newTop.SetRes(ridx).SetTerminal(true);
   }
   // Add original bonds to new topology.
@@ -1144,10 +1144,10 @@ const
     if (it->Tnum() < 0) {
       // This was a missing residue. Bond it to the previous/next residue in same chain.
       int pidx = ridx - 1;
-      if (pidx > 0 && CAtop.Res(pidx).ChainId() == CAtop.Res(ridx).ChainId())
+      if (pidx > 0 && CAtop.Res(pidx).ChainID() == CAtop.Res(ridx).ChainID())
         CAtop.AddBond(pidx, ridx, CAbond);
       int nidx = ridx + 1;
-      if (nidx < CAtop.Nres() && CAtop.Res(ridx).ChainId() == CAtop.Res(nidx).ChainId())
+      if (nidx < CAtop.Nres() && CAtop.Res(ridx).ChainID() == CAtop.Res(nidx).ChainID())
         CAtop.AddBond(ridx, nidx, CAbond);
     } else {
       // Check which residues this was originally bonded to

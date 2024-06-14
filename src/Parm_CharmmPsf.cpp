@@ -204,9 +204,9 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
   char psficode;
   double psfcharge;
   double psfmass;
-  typedef std::vector<std::string> Sarray;
+//  typedef std::vector<std::string> Sarray;
   ParmHolder<AtomType>& atomTypes = params_.AT();
-  Sarray SegIDs;
+//  Sarray SegIDs;
   bool firstLine = true;
   enum PsfFormatType { T_CHARMM = 0, T_VMD };
   PsfFormatType psfFormatType = T_CHARMM;
@@ -255,7 +255,7 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
     int psfresnum = ParseResID(psficode, psfresid);
     //mprintf("DEBUG: resnum %10i  icode %c\n", psfresnum, psficode);
     // Search for segment ID
-    int idx = -1;
+    /*int idx = -1;
     if (segmentID[0] != '\0') {
       for (int i = 0; i != (int)SegIDs.size(); i++)
         if (SegIDs[i].compare( segmentID )==0) {
@@ -267,10 +267,10 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
         SegIDs.push_back( segmentID );
         if (debug_>0) mprintf("DEBUG: New segment ID %i '%s'\n", idx, SegIDs.back().c_str());
       }
-    }
+    }*/
     atomTypes.AddParm( TypeNameHolder(NameType(psftype)), AtomType(psfmass), false );
     Atom chmAtom( psfname, psfcharge, psfmass, psftype );
-    parmOut.AddTopAtom( chmAtom, Residue(psfresname, psfresnum, ' ', idx) );
+    parmOut.AddTopAtom( chmAtom, Residue(psfresname, psfresnum, ' ', std::string(segmentID)) );
   } // END loop over atoms 
   // Advance to <nbond> !NBOND
   int bondatoms[9];
@@ -448,7 +448,7 @@ int Parm_CharmmPsf::WriteParm(FileName const& fname, Topology const& parm) {
   unsigned int idx = 1;
   // Make segment ids based on molecule type for now.
   Mol::Marray mols = Mol::UniqueCount(parm);
-  mprintf("Warning: Assigning segment IDs based on molecule type.\n");
+  mprintf("Warning: Unknown segment IDs will be assigned based on molecule type.\n");
   int currentMol = 0;
   int currentMtype = FindMolType(currentMol, mols);
   const char* segid = mols[currentMtype].name_.c_str();
@@ -463,12 +463,16 @@ int Parm_CharmmPsf::WriteParm(FileName const& fname, Topology const& parm) {
   //   !XPLOR & !DRUDE : ECH     EHA
   // Where ECH is electronegativity for atoms and EHA is hardness for atoms.
   const char* atmfmt = 0;
+  // segIdMax is used to ensure ChainID will not overflow
+  unsigned int segIdMax;
   if (extfmt_) {
+    segIdMax = 9;
     if (xplor_)
       atmfmt = "%10i %-8s %-8i %-8s %-8s %-6s %14.6G%14.6G%8i\n";
     else
       atmfmt = "%10i %-8s %-8i %-8s %-8s %4s %14.6G%14.6G%8i\n";
   } else {
+    segIdMax = 5;
     if (xplor_)
       atmfmt = "%8i %-4s %-4i %-4s %-4s %-4s %14.6G%14.6G%8i\n";
     else
@@ -484,6 +488,9 @@ int Parm_CharmmPsf::WriteParm(FileName const& fname, Topology const& parm) {
         segid = mols[currentMtype].name_.c_str();
       }
     }
+    // If there is a chain ID, use that instead.
+    if (parm.Res(resnum).HasChainID() && parm.Res(resnum).ChainID().size() < segIdMax)
+      segid = parm.Res(resnum).chainID();
     // Figure out how atom type is being printed.
     std::string psftype;
     if (xplor_)

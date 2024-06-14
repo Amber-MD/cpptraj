@@ -1022,8 +1022,11 @@ void MaskTokenArray::SelectChainID(ResArrayT const& residues, NameType const& na
 {
   for (ResArrayT::const_iterator res = residues.begin();
                                  res != residues.end(); ++res)
-    if ( res->ChainId() == name[0] )
+  {
+    NameType cid( res->ChainID() );
+    if ( cid.Match( name ) )
       std::fill(mask + res->FirstAtom(), mask + res->LastAtom(), SelectedChar_);
+  }
 }
 
 /** Select by molecule number.

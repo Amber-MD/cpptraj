@@ -149,7 +149,7 @@ Exec::RetType Exec_SequenceAlign::Execute(CpptrajState& State, ArgList& argIn) {
     NameType SresName( Residue::ConvertResName(Sbjct[sres]) );
     if (qres != -1) {
       Residue const& QR = qref.Parm().Res(qres);
-      Residue SR(SresName, sres+1, ' ', QR.ChainId());
+      Residue SR(SresName, sres+1, ' ', QR.ChainID());
       if (Query[qres] == Sbjct[sres]) { // Exact match. All non-H atoms.
         for (int qat = QR.FirstAtom(); qat != QR.LastAtom(); qat++)
         {
@@ -177,7 +177,7 @@ Exec::RetType Exec_SequenceAlign::Execute(CpptrajState& State, ArgList& argIn) {
       // Residue in query does not exist for subject. Just put placeholder CA for now.
       Vec3 Zero(0.0);
       placeHolder.push_back( sTop.Natom() );
-      sTop.AddTopAtom( Atom("CA", "C "), Residue(SresName, sres+1, ' ', ' ') );
+      sTop.AddTopAtom( Atom("CA", "C "), Residue(SresName, sres+1, ' ', "") );
       sFrame.AddXYZ( Zero.Dptr() );
     }
   }

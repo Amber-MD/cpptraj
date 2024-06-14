@@ -23,10 +23,11 @@ int FxnGroupBuilder::AddGroups() {
   //       |
   //       O3
   Topology so3top;
-  so3top.AddTopAtom( Atom("S",  "S "), Residue("SO3", 1, ' ', ' ') );
-  so3top.AddTopAtom( Atom("O1", "O "), Residue("SO3", 1, ' ', ' ') );
-  so3top.AddTopAtom( Atom("O2", "O "), Residue("SO3", 1, ' ', ' ') );
-  so3top.AddTopAtom( Atom("O3", "O "), Residue("SO3", 1, ' ', ' ') );
+  Residue so3res("SO3", 1, ' ', "");
+  so3top.AddTopAtom( Atom("S",  "S "), so3res );
+  so3top.AddTopAtom( Atom("O1", "O "), so3res );
+  so3top.AddTopAtom( Atom("O2", "O "), so3res );
+  so3top.AddTopAtom( Atom("O3", "O "), so3res );
   so3top.AddBond(0, 1);
   so3top.AddBond(0, 2);
   so3top.AddBond(0, 3);
@@ -36,13 +37,13 @@ int FxnGroupBuilder::AddGroups() {
   // Hydroxyl
   // (C1) - O1
   Topology ohtop;
-  ohtop.AddTopAtom( Atom("O1", "O"), Residue("ROH", 1, ' ', ' ') );
+  ohtop.AddTopAtom( Atom("O1", "O"), Residue("ROH", 1, ' ', "") );
   if (fg.SetupFromTop( ohtop, Atom::CARBON ))
     return 1;
   functionalGroups_.push_back( fg );
   // Hydroxyl
   // (C1) - O1 - HO1
-  ohtop.AddTopAtom( Atom("HO1", "H"), Residue("ROH", 1, ' ', ' ') );
+  ohtop.AddTopAtom( Atom("HO1", "H"), Residue("ROH", 1, ' ', "") );
   ohtop.AddBond(0, 1);
   if (fg.SetupFromTop( ohtop, Atom::CARBON ))
     return 1;

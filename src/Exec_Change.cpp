@@ -293,10 +293,8 @@ const
     return 1;
   }
   if (name.size() != 1) {
-    mprinterr("Error: Chain ID can only be a single character.\n");
-    return 1;
+    mprintf("Warning: Chain IDs with multiple characters are not supported by all output formats.\n");
   }
-  char cid = name[0];
   // Residues to change
   std::string mexpr = argIn.GetStringKey("of");
   if (mexpr.empty()) {
@@ -312,10 +310,10 @@ const
   std::vector<int> resNums = topIn.ResnumsSelectedBy( mask );
   for (std::vector<int>::const_iterator rnum = resNums.begin(); rnum != resNums.end(); ++rnum)
   {
-    mprintf("\tChanging chain ID of residue %s from '%c' to '%c'\n",
+    mprintf("\tChanging chain ID of residue %s from '%s' to '%s'\n",
             topIn.TruncResNameNum(*rnum).c_str(),
-            topIn.Res(*rnum).ChainId(), cid);
-    topIn.SetRes(*rnum).SetChainID( cid );
+            topIn.Res(*rnum).chainID(), name.c_str());
+    topIn.SetRes(*rnum).SetChainID( name );
   }
   return 0;
 }

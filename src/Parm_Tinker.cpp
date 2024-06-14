@@ -25,7 +25,7 @@ int Parm_Tinker::ReadParm(FileName const& fname, Topology &parmOut) {
                                    c != infile.TinkerTitle().end(); ++c)
     resname += *c;
   if (resname.size() > 3) resname.resize(3);
-  Residue tinker_res( resname, 0, ' ', ' ' );
+  Residue tinker_res( resname, 0, ' ', "" );
   // Put atoms into topology
   for (std::vector<Atom>::const_iterator atom = Atoms.begin();
                                          atom != Atoms.end();

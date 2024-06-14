@@ -415,10 +415,10 @@ int Parm_Gromacs::ReadParm(FileName const& fname, Topology &TopIn) {
       {
         if (atom->mass_ > -1.0)
           TopIn.AddTopAtom( Atom( atom->aname_, atom->charge_, atom->mass_, atom->atype_),
-                            Residue(atom->rname_, atom->rnum_ + resoffset, ' ', ' ') );
+                            Residue(atom->rname_, atom->rnum_ + resoffset, ' ', "") );
         else
           TopIn.AddTopAtom( Atom( atom->aname_, atom->atype_, atom->charge_ ),
-                            Residue(atom->rname_, atom->rnum_ + resoffset, ' ', ' ') );
+                            Residue(atom->rname_, atom->rnum_ + resoffset, ' ', "") );
       }
       for (BondArray::const_iterator bond = Bonds.begin(); bond != Bonds.end(); bond += 2)
         TopIn.AddBond( *bond + atomoffset , *(bond+1) + atomoffset );

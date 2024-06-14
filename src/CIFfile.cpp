@@ -2,6 +2,7 @@
 #include "ArgList.h"
 #include "CIFfile.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // convertToDouble
 
 static inline int LineError(const char* msg, int num, const char* ptr) {
   mprinterr("Error: CIF line %i: %s\n", num, msg);
@@ -65,7 +66,7 @@ int CIFfile::DataBlock::GetColumnData(int NexpectedCols, BufferedLine& infile, b
 {
   const char* SEP = " \t";
   // Allocate for a line of data
-  columnData_.push_back( Sarray() );
+  //columnData_.push_back( Sarray() );
   // Tokenize the initial line
   int nReadCols = 0;
   int Ncols = infile.TokenizeLine(SEP);
@@ -149,6 +150,12 @@ int CIFfile::DataBlock::AddSerialDataRecord( const char* ptr, BufferedLine& infi
   return 0;
 }
 
+/** Start a serial data block. */
+void CIFfile::DataBlock::StartSerialDataBlock() {
+  // Allocate for a line of data
+  columnData_.push_back( Sarray() );
+}
+
 /** Add column label from loop section. */
 int CIFfile::DataBlock::AddLoopColumn( const char* ptr, BufferedLine& infile ) {
   if (ptr == 0) return 1;
@@ -170,6 +177,8 @@ int CIFfile::DataBlock::AddLoopColumn( const char* ptr, BufferedLine& infile ) {
 
 /** Add loop data. */
 int CIFfile::DataBlock::AddLoopData( const char* ptr, BufferedLine& infile ) {
+  // Allocate for a line of data
+  columnData_.push_back( Sarray() );
   // Should be as much data as there are column headers
   if (GetColumnData( columnHeaders_.size(), infile, false )) return 1;
   return 0;
@@ -224,7 +233,8 @@ std::string CIFfile::DataBlock::Data(std::string const& idIn) const {
   if (columnHeaders_.empty() || columnData_.empty()) return std::string("");
   int colnum = ColumnIndex( idIn );
   if (colnum == -1) return std::string("");
-  return columnData_[colnum].front();
+  //return columnData_[colnum].front();
+  return columnData_[0][colnum];
 }
 
 // -----------------------------------------------------------------------------
@@ -256,6 +266,15 @@ int CIFfile::CIFdata::AddDataBlock( DataBlock const& block ) {
   } else
     cifdata_.insert( std::pair<std::string, DataBlock>(block.Header(), block) );
   return 0;
+}
+
+/** Print CIF data blocks */
+void CIFfile::CIFdata::PrintDataBlocks() const {
+  for (CIF_DataType::const_iterator it = cifdata_.begin(); it != cifdata_.end(); ++it)
+  {
+    mprintf("\tData block: %s\n", it->first.c_str());
+    it->second.ListData();
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -317,6 +336,7 @@ int CIFfile::Read(FileName const& fnameIn, int debugIn) {
     } else if ( currentMode == SERIAL ) {
       // SERIAL data block
       DataBlock serial;
+      serial.StartSerialDataBlock();
       while ( ptr != 0 && ptr[0] == '_' ) {
         serial.AddSerialDataRecord(ptr, file_);
         ptr = file_.Line();
@@ -353,7 +373,7 @@ int CIFfile::Read(FileName const& fnameIn, int debugIn) {
 }
 
 /** Vector with DataBlocks corresponding to given header and value. */
-CIFfile::DataBlock const& CIFfile::GetBlockWithColValue(
+/*CIFfile::DataBlock const& CIFfile::GetBlockWithColValue(
                                                    std::string const& header,
                                                    std::string const& col,
                                                    std::string const& value)
@@ -371,4 +391,51 @@ const
     }
   }
   return emptyblock;
+}*/
+
+/** List all data currently in the CIFfile. */
+void CIFfile::ListAllData() const {
+  for (std::vector<CIFdata>::const_iterator it = data_.begin();
+                                            it != data_.end(); ++it)
+  {
+    mprintf("CIF data: %s\n", it->DataName().c_str());
+    it->PrintDataBlocks();
+  }
 }
+
+/** Get box info from _cell block.
+  * \return 1 if box seems invalid, -1 if not box, 0 otherwise.
+  */
+int CIFfile::cif_Box_verbose(double* cif_box) const {
+  if (cif_box == 0) {
+    mprinterr("Internal Error: CIFfile::cif_Box_verbose: Null box passed in.\n");
+    return 1;
+  }
+  int box_stat = 0;
+  DataBlock const& cellblock = GetDataBlock("_cell");
+  if (cellblock.empty()) {
+    cif_box[0] = 0;
+    cif_box[1] = 0;
+    cif_box[2] = 0;
+    cif_box[3] = 0;
+    cif_box[4] = 0;
+    cif_box[5] = 0;
+    box_stat = -1;
+  } else {
+    cif_box[0] = convertToDouble( cellblock.Data("length_a") );
+    cif_box[1] = convertToDouble( cellblock.Data("length_b") );
+    cif_box[2] = convertToDouble( cellblock.Data("length_c") );
+    if (cif_box[0] == 1.0 && cif_box[1] == 1.0 && cif_box[2] == 1.0) {
+      mprintf("Warning: CIF cell lengths are all 1.0 Ang.;"
+              " this usually indicates an invalid box.\n");
+      box_stat = 1;
+    }
+    cif_box[3] = convertToDouble( cellblock.Data("angle_alpha") );
+    cif_box[4] = convertToDouble( cellblock.Data("angle_beta" ) );
+    cif_box[5] = convertToDouble( cellblock.Data("angle_gamma") );
+    mprintf("\tRead cell info from CIF: a=%g b=%g c=%g alpha=%g beta=%g gamma=%g\n",
+              cif_box[0], cif_box[1], cif_box[2], cif_box[3], cif_box[4], cif_box[5]);
+  }
+  return box_stat;
+}
+

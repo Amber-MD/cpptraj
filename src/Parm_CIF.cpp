@@ -4,11 +4,71 @@
 #include "CpptrajStdio.h"
 #include "BondSearch.h"
 
+/** CONSTRUCTOR */
+Parm_CIF::Parm_CIF() :
+  read_struct_conn_(false) // TODO enable
+{}
+
 // NOTE: MUST correspond to EntryType!
-const char* Parm_CIF::Entries[] = {
+const char* Parm_CIF::Entries_[] = {
   "label_atom_id", "label_comp_id", "Cartn_x", "Cartn_y", "Cartn_z", 
   "label_seq_id", "label_asym_id"
 };
+
+/// \return column id of data item with given key; print error message if missing
+static inline int checkForCol(CIFfile::DataBlock const& block, std::string const& key)
+{
+  int colid = block.ColumnIndex( key );
+  if (colid == -1)
+    mprinterr("Error: CIF block is missing data item '%s'\n", key.c_str());
+  return colid;
+}
+
+/// Attempt to add a bond between specified atoms to the Topology
+static inline void add_cif_bond(Topology& topIn,
+                                std::string const& r1name,
+                                std::string const& r1num,
+                                std::string const& r1chain,
+                                std::string const& r1atom,
+                                std::string const& r2name,
+                                std::string const& r2num,
+                                std::string const& r2chain,
+                                std::string const& r2atom)
+{
+  AtomMask m1, m2;
+  if (m1.SetMaskString(":" + r1name + "&:;" + r1num + "&::" + r1chain + "&@" + r1atom)) {
+    mprinterr("Internal Error: add_cif_bond: Could not set atom 1 mask.\n");
+    return;
+  }
+  if (m2.SetMaskString(":" + r2name + "&:;" + r2num + "&::" + r2chain + "&@" + r2atom)) {
+    mprinterr("Internal Error: add_cif_bond: Could not set atom 2 mask.\n");
+    return;
+  }
+  if (topIn.SetupIntegerMask(m1)) {
+    mprinterr("Internal Error: add_cif_bond: Could not set up atom 1 mask.\n");
+    return;
+  }
+  if (topIn.SetupIntegerMask(m2)) {
+    mprinterr("Internal Error: add_cif_bond: Could not set up atom 2 mask.\n");
+    return;
+  }
+  if (m1.Nselected() > 1) {
+    mprinterr("Internal Error: add_cif_bond: atom 1 mask selects more than 1 atom.\n");
+    return;
+  }
+  if (m2.Nselected() > 1) {
+    mprinterr("Internal Error: add_cif_bond: atom 2 mask selects more than 1 atom.\n");
+    return;
+  }
+  if (m1.None()) {
+    mprintf("Warning: CIF atom 1 '%s' not found.\n", m1.MaskString());
+    return;
+  }
+  if (m2.None()) {
+    mprintf("Warning: CIF atom 2 '%s' not found.\n", m2.MaskString());
+    return;
+  }
+}
 
 // Parm_CIF::ReadParm()
 int Parm_CIF::ReadParm(FileName const& fname, Topology &TopIn) {
@@ -35,13 +95,13 @@ int Parm_CIF::ReadParm(FileName const& fname, Topology &TopIn) {
   // Get essential columns
   int COL[NENTRY];
   for (int i = 0; i < (int)NENTRY; i++) {
-    COL[i] = block.ColumnIndex(Entries[i]);
+    COL[i] = block.ColumnIndex(Entries_[i]);
     if (COL[i] == -1) {
       mprinterr("Error: In CIF file '%s' could not find entry '%s' in block '%s'\n",
-                fname.full(), Entries[i], block.Header().c_str());
+                fname.full(), Entries_[i], block.Header().c_str());
       return 1;
     }
-    if (debug_>0) mprintf("DEBUG: '%s' column = %i\n", Entries[i], COL[i]);
+    if (debug_>0) mprintf("DEBUG: '%s' column = %i\n", Entries_[i], COL[i]);
   }
   // Get optional columns
   int auth_res_col = block.ColumnIndex("auth_seq_id");
@@ -102,12 +162,65 @@ int Parm_CIF::ReadParm(FileName const& fname, Topology &TopIn) {
       current_res = convertToInteger( (*line)[ COL[RNUM] ] );
     TopIn.AddTopAtom( Atom((*line)[ COL[ANAME] ], "  "),
                       Residue(currentResName, current_res, icode,
-                              (*line)[ COL[CHAINID] ][0]) );
+                              (*line)[ COL[CHAINID] ]) );
     Coords.AddXYZ( XYZ );
   }
   // Search for bonds
   BondSearch bondSearch;
   bondSearch.FindBonds( TopIn, searchType_, Coords, Offset_, debug_ );
+
+  if (read_struct_conn_) {
+    CIFfile::DataBlock const& connectBlock = infile.GetDataBlock("_struct_conn");
+    if (!connectBlock.empty()) {
+      mprintf("\tBlock 'struct_conn' found.\n");
+      int conn_type_idcol = checkForCol(connectBlock, "conn_type_id");
+      int r1_chaincol = checkForCol(connectBlock, "ptnr1_label_asym_id");
+      int r1_atomcol  = checkForCol(connectBlock, "ptnr1_label_atom_id");
+      int r1_namecol  = checkForCol(connectBlock, "ptnr1_label_comp_id");
+      int r1_numcol   = checkForCol(connectBlock, "ptnr1_label_seq_id");
+      int r2_chaincol = checkForCol(connectBlock, "ptnr2_label_asym_id");
+      int r2_atomcol  = checkForCol(connectBlock, "ptnr2_label_atom_id");
+      int r2_namecol  = checkForCol(connectBlock, "ptnr2_label_comp_id");
+      int r2_numcol   = checkForCol(connectBlock, "ptnr2_label_seq_id");
+      bool block_is_valid = !(conn_type_idcol == -1 ||
+                              r1_chaincol == -1 ||
+                              r1_atomcol == -1 ||
+                              r1_namecol == -1 ||
+                              r1_numcol == -1 ||
+                              r2_chaincol == -1 ||
+                              r2_atomcol == -1 ||
+                              r2_namecol == -1 ||
+                              r2_numcol == -1
+                             );
+      if (block_is_valid) {
+        // All required columns are present. Loop over struct_conn entries
+        for (line = connectBlock.begin(); line != connectBlock.end(); ++line) {
+          // Allowed values: covale, disulf, hydrog, metalc
+          if ((*line)[conn_type_idcol] == "covale" ||
+              (*line)[conn_type_idcol] == "disulf")
+          {
+            mprintf("%s R1 %s %s Chain ID %s Atom %s -- R2 %s %s Chain ID %s Atom %s\n",
+                    (*line)[conn_type_idcol].c_str(),
+                    (*line)[r1_namecol].c_str(),
+                    (*line)[r1_numcol].c_str(),
+                    (*line)[r1_chaincol].c_str(),
+                    (*line)[r1_atomcol].c_str(),
+                    (*line)[r2_namecol].c_str(),
+                    (*line)[r2_numcol].c_str(),
+                    (*line)[r2_chaincol].c_str(),
+                    (*line)[r2_atomcol].c_str()
+                   );
+            add_cif_bond(TopIn,
+                         (*line)[r1_namecol], (*line)[r1_numcol], (*line)[r1_chaincol], (*line)[r1_atomcol],
+                         (*line)[r2_namecol], (*line)[r2_numcol], (*line)[r2_chaincol], (*line)[r2_atomcol]);
+          }
+        }
+      } else {
+        mprintf("Warning: Structure connectivity block is missing 1 or more data items, skipping.\n");
+      }
+    }
+  } // END read struct_conn
+
   // Get title. 
   CIFfile::DataBlock const& entryblock = infile.GetDataBlock("_entry");
   std::string ciftitle;
@@ -115,22 +228,14 @@ int Parm_CIF::ReadParm(FileName const& fname, Topology &TopIn) {
     ciftitle = entryblock.Data("id");
   TopIn.SetParmName( ciftitle, infile.CIFname() );
   // Get unit cell parameters if present.
-  CIFfile::DataBlock const& cellblock = infile.GetDataBlock("_cell");
-  if (!cellblock.empty()) {
-    double cif_box[6];
-    cif_box[0] = convertToDouble( cellblock.Data("length_a") );
-    cif_box[1] = convertToDouble( cellblock.Data("length_b") );
-    cif_box[2] = convertToDouble( cellblock.Data("length_c") );
-    cif_box[3] = convertToDouble( cellblock.Data("angle_alpha") );
-    cif_box[4] = convertToDouble( cellblock.Data("angle_beta" ) );
-    cif_box[5] = convertToDouble( cellblock.Data("angle_gamma") );
-    mprintf("\tRead cell info from CIF: a=%g b=%g c=%g alpha=%g beta=%g gamma=%g\n",
-              cif_box[0], cif_box[1], cif_box[2], cif_box[3], cif_box[4], cif_box[5]);
+  double cif_box[6];
+  int box_stat = infile.cif_Box_verbose( cif_box );
+  if (box_stat != -1) {
     Box parmBox;
     parmBox.SetupFromXyzAbg( cif_box );
-    TopIn.SetParmBox( parmBox ); 
+    TopIn.SetParmBox( parmBox );
   }
-  
+
   return 0;
 }
 

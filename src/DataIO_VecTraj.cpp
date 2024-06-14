@@ -67,7 +67,7 @@ int DataIO_VecTraj::WriteData(FileName const& fname, DataSetList const& SetList)
   pseudo.AddBondParm( BondParmType(0.0, 1.0) );
   int natom = 0;
   for (unsigned int nres = 1; nres <= VecSets.size(); nres++) {
-    Residue vec_res("VEC", nres, ' ', ' ');
+    Residue vec_res("VEC", nres, ' ', "");
     if (VecNeedsBond[nres-1]) {
       pseudo.AddTopAtom(Atom("OXYZ", 0), vec_res);
       pseudo.AddTopAtom(Atom("VXYZ", 0), vec_res);

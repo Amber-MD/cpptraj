@@ -18,7 +18,7 @@ PDBfile::SSBOND::SSBOND() :
 PDBfile::SSBOND::SSBOND(int idx1, int idx2, Residue const& r1, Residue const& r2) :
   idx1_(  idx1),                idx2_(  idx2),
   rnum1_( r1.OriginalResNum()), rnum2_( r2.OriginalResNum()),
-  chain1_(r1.ChainId()),        chain2_(r2.ChainId()),
+  chain1_(r1.ChainID_1char()),        chain2_(r2.ChainID_1char()),
   icode1_(r1.Icode()),          icode2_(r2.Icode())
 {
   std::copy(r1.c_str(), r1.c_str()+3, name1_);
@@ -316,7 +316,7 @@ Residue PDBfile::missing_res() const {
   int currentres = atoi(numbuf.c_str());
   //mprintf("DEBUG: Missing residue %s %i icode= %c chain= %c\n",
   //        currentname.c_str(), currentres, currenticode, currentchain);
-  return Residue(currentname, currentres, currenticode, currentchain);
+  return Residue(currentname, currentres, currenticode, std::string(1, currentchain));
 }
 
 
@@ -410,7 +410,7 @@ Residue PDBfile::pdb_Residue() {
   linebuffer_[26] = '\0';
   int resnum = atoi( linebuffer_+22 );
   linebuffer_[26] = icode;
-  return Residue( resName, resnum, icode, linebuffer_[21] );
+  return Residue( resName, resnum, icode, std::string(1, linebuffer_[21]) );
 }
 
 // PDBfile::pdb_XYZ()

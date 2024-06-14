@@ -147,7 +147,7 @@ int DataIO_AmberLib::read_atoms(Topology& topOut, std::string const& line, std::
   atm.DetermineElement( elt );
   atm.SetMassFromElement();
   atm.SetCharge( charge );
-  Residue res( unitName, resx, ' ', ' ' );
+  Residue res( unitName, resx, ' ', "" );
   topOut.AddTopAtom( atm, res );
   return 0;
 }
