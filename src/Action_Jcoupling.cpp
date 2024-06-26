@@ -56,9 +56,16 @@ int Action_Jcoupling::loadKarplus(std::string const& filename) {
   if (buffer == 0) return fileEOF(filename);
   while (buffer != 0) {
     // Skip empty lines (BufferedLine.Line() removes newlines) and comments
-    while (buffer[0]=='\0' || buffer[0]=='#')
+    while (buffer[0]=='\0' || buffer[0]=='#') {
       buffer = KarplusFile.Line();
-    if (buffer == 0) return fileEOF(filename);
+      if (buffer == 0) {
+        if (JcoupleData_.empty())
+          return fileEOF(filename);
+        else
+          break;
+      }
+    }
+    if (buffer == 0) break;
     const char* ptr = buffer;
     // First char is optional type. If optional type is C, then the Karplus 
     // function specified in Perez et al. JACS (2001) 123 will be used, and 
