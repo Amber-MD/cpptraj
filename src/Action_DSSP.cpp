@@ -600,8 +600,8 @@ Action::RetType Action_DSSP::Setup(ActionSetup& setup)
       if (Res->IsMissingAtoms()) {
         mprintf("Warning: Res %s is missing atoms", setup.Top().TruncResNameNum( Res->Num() ).c_str());
         if (Res->C() == -1)  mprintf(" %s", *BB_C_);
-        if (Res->O() == -1)  mprintf(" %s", *BB_N_);
-        if (Res->N() == -1)  mprintf(" %s", *BB_O_);
+        if (Res->O() == -1)  mprintf(" %s", *BB_O_);
+        if (Res->N() == -1)  mprintf(" %s", *BB_N_);
         if (Res->H() == -1)  mprintf(" %s", *BB_H_);
         if (Res->CA() == -1) mprintf(" %s", *BB_CA_);
         mprintf("\n");
