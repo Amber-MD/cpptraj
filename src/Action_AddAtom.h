@@ -20,5 +20,6 @@ class Action_AddAtom : public Action {
     Topology* newParm_;         ///< Hold topology with added atom
     ActionTopWriter topWriter_; ///< Used to write new topology.
     Atom newAtom_;              ///< New atom
+    NameType residueName_;      ///< Residue name new atom will belong to.
 };
 #endif

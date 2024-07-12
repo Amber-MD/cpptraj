@@ -19,6 +19,9 @@ void Action_AddAtom::Help() const {
 // Action_AddAtom::Init()
 Action::RetType Action_AddAtom::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+  // Get output stripped parm filename
+  topWriter_.InitTopWriter(actionArgs, "stripped", debugIn);
+
   std::string aname = actionArgs.GetStringKey("aname");
   if (aname.empty()) {
     mprinterr("Error: Must specify atom name with 'aname'.\n");
@@ -37,11 +40,15 @@ Action::RetType Action_AddAtom::Init(ArgList& actionArgs, ActionInit& init, int 
   std::string rname = actionArgs.GetStringKey("rname");
   if (rname.empty())
     rname.assign("TMP");
-  NameType residueName( rname );
+  residueName_ = NameType( rname );
 
+  newAtom_ = Atom(atomName, elt.c_str());
 
   mprintf("    ADDATOM: Adding atom named '%s', element %s, residue name '%s'\n",
-          *atomName, elt.c_str(), *residueName);
+          *atomName, elt.c_str(), *residueName_);
+  topWriter_.PrintOptions();
+
+  return Action::OK;
 }
 
 // Action_AddAtom::Setup()
