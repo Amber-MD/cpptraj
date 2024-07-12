@@ -163,6 +163,7 @@
 #include "Action_AvgBox.h"
 #include "Action_ToroidalDiffusion.h"
 #include "Action_MinMaxDist.h"
+#include "Action_AddAtom.h"
 // ----- ANALYSIS --------------------------------------------------------------
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
@@ -315,6 +316,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_UBInfo(),        Cmd::EXE, 2, "ubinfo", "printub" );
   Command::AddCmd( new Exec_UpdateParameters(), Cmd::EXE, 1, "updateparameters");
   // ACTION
+  Command::AddCmd( new Action_AddAtom(),       Cmd::ACT, 1, "addatom" );
   Command::AddCmd( new Action_Align(),         Cmd::ACT, 1, "align" );
   Command::AddCmd( new Action_Angle(),         Cmd::ACT, 1, "angle" );
   Command::AddCmd( new Action_AreaPerMol(),    Cmd::ACT, 1, "areapermol" );
