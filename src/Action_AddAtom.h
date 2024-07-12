@@ -18,8 +18,10 @@ class Action_AddAtom : public Action {
     void Print() {}
 
     Topology* newParm_;         ///< Hold topology with added atom
+    Frame newFrame_;            ///< Hold coords with added atom
     ActionTopWriter topWriter_; ///< Used to write new topology.
     Atom newAtom_;              ///< New atom
     NameType residueName_;      ///< Residue name new atom will belong to.
+    Vec3 xyz_;                  ///< New atom position
 };
 #endif

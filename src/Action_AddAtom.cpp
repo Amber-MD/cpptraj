@@ -13,7 +13,10 @@ Action_AddAtom::~Action_AddAtom() {
 
 // Action_AddAtom::Help()
 void Action_AddAtom::Help() const {
-
+  mprintf("\taname <name> [elt <element>] [rname <res name>]\n"
+          "\t[xyz <X> <Y> <Z>]\n");
+  mprintf("%s", ActionTopWriter::Keywords());
+  mprintf("  Add an atom to current topology/coordinates.\n");
 }
 
 // Action_AddAtom::Init()
@@ -42,10 +45,24 @@ Action::RetType Action_AddAtom::Init(ArgList& actionArgs, ActionInit& init, int 
     rname.assign("TMP");
   residueName_ = NameType( rname );
 
+  if (actionArgs.Contains("xyz")) {
+    ArgList xyzargs = actionArgs.GetNstringKey("xyz", 3);
+    if (xyzargs.Nargs() != 3) {
+      mprinterr("Error: Expected 3 arguments after 'xyz', got '%i'\n", xyzargs.Nargs());
+      return Action::ERR;
+    }
+    xyz_[0] = xyzargs.getNextDouble(0);
+    xyz_[1] = xyzargs.getNextDouble(0);
+    xyz_[2] = xyzargs.getNextDouble(0);
+  } else
+    xyz_ = Vec3(0.0);
+
+  // ----- No more args after here -----
   newAtom_ = Atom(atomName, elt.c_str());
 
   mprintf("    ADDATOM: Adding atom named '%s', element %s, residue name '%s'\n",
           *atomName, elt.c_str(), *residueName_);
+  mprintf("\tAtom will be placed at XYZ= %g %g %g\n", xyz_[0], xyz_[1], xyz_[2]);
   topWriter_.PrintOptions();
 
   return Action::OK;
@@ -54,11 +71,42 @@ Action::RetType Action_AddAtom::Init(ArgList& actionArgs, ActionInit& init, int 
 // Action_AddAtom::Setup()
 Action::RetType Action_AddAtom::Setup(ActionSetup& setup)
 {
+  // Copy existing topology
+  if (newParm_ != 0) delete newParm_;
+  newParm_ = new Topology( setup.Top() );
+  // Set up the new residue
+  Residue const& lastRes = setup.Top().Res( setup.Top().Nres()-1 );
+  int newResNum = lastRes.OriginalResNum() + 1;
+  Residue newRes( residueName_, newResNum, ' ', "" );
+  // Add to new topology
+  newParm_->AddTopAtom( newAtom_, newRes );
+  mprintf("\tAdded '%s'\n", newParm_->AtomMaskName( setup.Top().Natom() ).c_str());
 
+  setup.SetTopology( newParm_ );
+  // Remove box information if asked
+  if (topWriter_.ModifyActionState(setup, newParm_))
+    return Action::ERR;
+  // Allocate space for new frame
+  newFrame_.SetupFrameV(setup.Top().Atoms(), setup.CoordInfo());
+
+  // If prefix given then output stripped topology
+  topWriter_.WriteTops( setup.Top() );
+
+  return Action::MODIFY_TOPOLOGY;
 }
 
 // Action_AddAtom::DoAction()
 Action::RetType Action_AddAtom::DoAction(int frameNum, ActionFrame& frm)
 {
 
+  newFrame_.CopyFrom( frm.Frm(), 0, newParm_->Natom()-1 );
+  int idx = (newParm_->Natom()-1) * 3;
+  newFrame_[idx  ] = xyz_[0];
+  newFrame_[idx+1] = xyz_[1];
+  newFrame_[idx+2] = xyz_[2];
+
+  // Set frame
+  frm.SetFrame( &newFrame_ );
+
+  return Action::MODIFY_COORDS;
 }
