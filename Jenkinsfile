@@ -74,33 +74,33 @@ pipeline {
 
                     post { cleanup { deleteDir() } }
                 }
-                stage("Linux Intel Serial Build") {
-                    when { expression { return false } }
-                    agent {
-                        docker {
-                            image 'ambermd/cpu-build:latest'
-                            alwaysPull true
-                            label "docker && intel"
-                            // There's no way to have a docker container installed with a licensed
-                            // copy of the Intel compilers, so we need to mount it from the host
-                            // machine. This introduces the constraint that *all* of the Jenkins
-                            // slaves need to have the Intel compilers available at /opt/intel
-                            args "-v /opt/intel:/opt/intel"
-                        }
-                    }
+                //stage("Linux Intel Serial Build") {
+                //    when { expression { return false } }
+                //    agent {
+                //        docker {
+                //            image 'ambermd/cpu-build:latest'
+                //            alwaysPull true
+                //            label "docker && intel"
+                //            // There's no way to have a docker container installed with a licensed
+                //            // copy of the Intel compilers, so we need to mount it from the host
+                //            // machine. This introduces the constraint that *all* of the Jenkins
+                //            // slaves need to have the Intel compilers available at /opt/intel
+                //            args "-v /opt/intel:/opt/intel"
+                //        }
+                //    }
 
-                    environment {
-                        MKL_HOME = "/opt/intel/compilers_and_libraries/linux/mkl"
-                    }
+                //    environment {
+                //        MKL_HOME = "/opt/intel/compilers_and_libraries/linux/mkl"
+                //    }
 
-                    steps {
-                        unstash "source"
-                        sh "./configure --with-netcdf -mkl intel"
-                        sh "make -j4 install"
-                        sh "cd test && make test.showerrors"
-                    }
-                    post { cleanup { deleteDir() } }
-                }
+                //    steps {
+                //        unstash "source"
+                //        sh "./configure --with-netcdf -mkl intel"
+                //        sh "make -j4 install"
+                //        sh "cd test && make test.showerrors"
+                //    }
+                //    post { cleanup { deleteDir() } }
+                //}
                 //stage("Linux PGI serial build") {
                 //    agent {
                 //        docker {
