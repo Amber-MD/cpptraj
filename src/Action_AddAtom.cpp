@@ -20,7 +20,7 @@ void Action_AddAtom::Help() const {
 Action::RetType Action_AddAtom::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Get output stripped parm filename
-  topWriter_.InitTopWriter(actionArgs, "stripped", debugIn);
+  topWriter_.InitTopWriter(actionArgs, "modified", debugIn);
 
   std::string aname = actionArgs.GetStringKey("aname");
   if (aname.empty()) {
