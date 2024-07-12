@@ -59,6 +59,9 @@ class Topology {
     void SetTreeChainClassification(int idx, NameType const& n) { tree_[idx] = n;   }
     void SetJoinArray(int idx, int j)                           { ijoin_[idx] = j;  }
     void SetRotateArray(int idx, int r)                         { irotat_[idx] = r; }
+    void AddTreeChainClassification(NameType const& n)          { tree_.push_back(n); }
+    void AddJoinArray(int j)                                    { ijoin_.push_back(j); }
+    void AddRotateArray(int r)                                  { irotat_.push_back(r); }
     // ----- PDB info ----------------------------
     /// Reset all PDB-related info
     void ResetPDBinfo();
