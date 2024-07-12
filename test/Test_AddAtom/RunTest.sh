@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles addatom.in tz2.addatom.pdb tz2.mask.dat
+CleanFiles addatom.in tz2.addatom.pdb tz2.mask.dat tz2.mg.mol2
 
 TESTNAME='Add atom tests'
 
@@ -21,5 +21,15 @@ EOF
 RunCpptraj "Add atom test"
 DoTest tz2.addatom.pdb.save tz2.addatom.pdb
 DoTest tz2.mask.dat.save tz2.mask.dat
+
+cat > addatom.in <<EOF
+parm ../tz2.parm7
+trajin ../tz2.pdb 1 1
+strip !:1
+addatom aname MG rname MG mass 24.3 charge 2 xyz 3 4 5
+trajout tz2.mg.mol2
+EOF
+RunCpptraj "Add atom test, MG"
+DoTest tz2.mg.mol2.save tz2.mg.mol2
 
 EndTest

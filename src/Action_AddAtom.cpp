@@ -14,7 +14,7 @@ Action_AddAtom::~Action_AddAtom() {
 // Action_AddAtom::Help()
 void Action_AddAtom::Help() const {
   mprintf("\taname <name> [elt <element>] [rname <res name>]\n"
-          "\t[xyz <X> <Y> <Z>]\n");
+          "\t[xyz <X> <Y> <Z>] [mass <mass>] [charge <charge>]\n");
   mprintf("%s", ActionTopWriter::Keywords());
   mprintf("  Add an atom to current topology/coordinates.\n");
 }
@@ -45,6 +45,21 @@ Action::RetType Action_AddAtom::Init(ArgList& actionArgs, ActionInit& init, int 
     rname.assign("TMP");
   residueName_ = NameType( rname );
 
+  bool has_mass = false;
+  double mass = 0;
+  if (actionArgs.Contains("mass")) {
+    has_mass = true;
+    mass = actionArgs.getKeyDouble("mass", 0);
+  }
+
+  bool has_charge = false;
+  double charge = 0;
+  if (actionArgs.Contains("charge")) {
+    has_charge = true;
+    charge = actionArgs.getKeyDouble("charge", 0);
+  }
+
+  // ----- Last arg to process -----
   if (actionArgs.Contains("xyz")) {
     ArgList xyzargs = actionArgs.GetNstringKey("xyz", 3);
     if (xyzargs.Nargs() != 3) {
@@ -59,9 +74,13 @@ Action::RetType Action_AddAtom::Init(ArgList& actionArgs, ActionInit& init, int 
 
   // ----- No more args after here -----
   newAtom_ = Atom(atomName, elt.c_str());
+  if (has_mass) newAtom_.SetMass( mass );
+  if (has_charge) newAtom_.SetCharge( charge );
 
   mprintf("    ADDATOM: Adding atom named '%s', element %s, residue name '%s'\n",
           *atomName, elt.c_str(), *residueName_);
+  if (has_mass) mprintf("\tAtom mass = %g\n", mass);
+  if (has_charge) mprintf("\tAtom charge = %g\n", charge);
   mprintf("\tAtom will be placed at XYZ= %g %g %g\n", xyz_[0], xyz_[1], xyz_[2]);
   topWriter_.PrintOptions();
 
