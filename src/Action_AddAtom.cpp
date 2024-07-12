@@ -80,6 +80,7 @@ Action::RetType Action_AddAtom::Setup(ActionSetup& setup)
   Residue newRes( residueName_, newResNum, ' ', "" );
   // Add to new topology
   newParm_->AddTopAtom( newAtom_, newRes );
+  newParm_->CommonSetup();
   mprintf("\tAdded '%s'\n", newParm_->AtomMaskName( setup.Top().Natom() ).c_str());
 
   setup.SetTopology( newParm_ );
