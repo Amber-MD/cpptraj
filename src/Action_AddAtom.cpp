@@ -80,6 +80,17 @@ Action::RetType Action_AddAtom::Setup(ActionSetup& setup)
   Residue newRes( residueName_, newResNum, ' ', "" );
   // Add to new topology
   newParm_->AddTopAtom( newAtom_, newRes );
+  // If topology has PDB info, set that as well TODO handle in Topology?
+  if (!newParm_->AtomAltLoc().empty()) newParm_->AddAtomAltLoc(' ');
+  if (!newParm_->Occupancy().empty()) newParm_->AddOccupancy(1.0);
+  if (!newParm_->Bfactor().empty()) newParm_->AddBfactor(0.0);
+  if (!newParm_->PdbSerialNum().empty())
+    newParm_->AddPdbSerialNum( newParm_->PdbSerialNum().back() + 1 );
+  // If topology has extra Amber info, add placeholder values
+  if (!newParm_->TreeChainClassification().empty()) newParm_->AddTreeChainClassification("BLA");
+  if (!newParm_->JoinArray().empty()) newParm_->AddJoinArray(0);
+  if (!newParm_->RotateArray().empty()) newParm_->AddRotateArray(0);
+  // Final setup
   newParm_->CommonSetup();
   mprintf("\tAdded '%s'\n", newParm_->AtomMaskName( setup.Top().Natom() ).c_str());
 
