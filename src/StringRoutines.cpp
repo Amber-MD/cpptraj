@@ -93,12 +93,20 @@ int DigitWidth(long int numberIn) {
   return (minusSign + numi);
 }
 
-// FloatWidth()
-/** \return the number of characters necessary to express given float. */
-int FloatWidth(double floatIn) {
-  double float_exponent = fabs( log10( floatIn ) );
-  ++float_exponent;
-  return (int)float_exponent; // Cast to int implicitly rounds down
+/** \return the number of characters necessary for a minimal representation of
+  *         the fractional part of a floating point number, i.e. the number of
+  *         leading zeros plus 1. characters necessary to express given float.
+  */
+int MinNumFracChars(double floatIn) {
+  // Split number into integer and fractional part
+  double intpart = 0;
+  double frac = modf(floatIn, &intpart);
+  // Leading zeros
+  int n_leading_zeros = 0;
+  double absfrac = fabs(frac);
+  if (absfrac > 0)
+    n_leading_zeros = (int)ceil( fabs( log10( absfrac ) ) ) - 1;
+  return n_leading_zeros + 1;
 }
 
 // ---------- STRING CONVERSION ROUTINES --------------------------------------- 

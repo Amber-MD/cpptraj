@@ -15,8 +15,8 @@ std::string AppendNumber(std::string const &, int);
 int WildcardMatch(std::string const&, std::string const&);
 /// \return number of characters needed to represent given digit.
 int DigitWidth(long int);
-/// \return number of characters needed to represent given floating point.
-int FloatWidth(double);
+/// \return Min number of chars needed to represent fractional part of given floating point.
+int MinNumFracChars(double);
 /// Remove any trailing whitespace from string.
 void RemoveTrailingWhitespace(std::string &);
 /// \return string stripped of trailing whitespace.

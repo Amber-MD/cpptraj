@@ -59,7 +59,7 @@ void TextFormat::SetCoordFormat(size_t maxFrames, double min, double step,
   int col_width = DigitWidth( (long int)maxCoord );
   // Check if the precision is enough to support the step size.
   if (step < 1.0) {
-    int prec_exp_width = FloatWidth( step );
+    int prec_exp_width = MinNumFracChars( step );
     if (prec_exp_width > col_precision)
       col_precision = prec_exp_width;
   }
