@@ -96,9 +96,20 @@ int DigitWidth(long int numberIn) {
 // FloatWidth()
 /** \return the number of characters necessary to express given float. */
 int FloatWidth(double floatIn) {
+  int total_width = 0;
+  if (floatIn < 0)
+    total_width = 1;
+  else if (floatIn > 0)
+    total_width = 0;
+  else {
+    // Cannot take log of 0. Return 3 chars for 0.0.
+    return 3;
+  }
   double float_exponent = fabs( log10( floatIn ) );
   ++float_exponent;
-  return (int)float_exponent; // Cast to int implicitly rounds down
+
+  total_width += (int)float_exponent; // Cast to int implicitly rounds down
+  return total_width;
 }
 
 // ---------- STRING CONVERSION ROUTINES --------------------------------------- 
