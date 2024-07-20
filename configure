@@ -2645,6 +2645,12 @@ while [ ! -z "$1" ] ; do
   shift
 done
 
+# If CUDA is no longer off, turn it on.
+if [ "${LIB_STAT[$LCUDA]}" != 'off' -a $USE_CUDA -eq 0 ] ; then
+  echo '  Enabling CUDA.'
+  USE_CUDA=1
+fi
+
 # Determine platform if not already specified
 if [ -z "$PLATFORM" ] ; then
   PLATFORM=`uname -s | awk '{print $1}'`
