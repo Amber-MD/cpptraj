@@ -2048,8 +2048,12 @@ SetupMKL() {
 #  8.X        .....................................................................
 #  9.X                    .....................................................................
 # 10.X                    ...........................................................................
-# 11.X                                ...........................................................................
-CUDA_SM_LIST='sm_20 sm_21 sm_30 sm_32 sm_35 sm_37 sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80 sm_86 sm_87'
+# 11.0                                .......................................................................
+# 11.1-11.4                           .............................................................................
+# 11.5-11.7.1                         ..................................................................................
+# 11.8                                .........................................................................................
+# 12.0-12.5                                       ..................................................................................
+CUDA_SM_LIST='sm_20 sm_21 sm_30 sm_32 sm_35 sm_37 sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80 sm_86 sm_87 sm_89 sm_90'
 
 # SetSupportedSM <major v> <minor v>
 # Set Shader models supported by current cuda version
@@ -2084,11 +2088,19 @@ SetSupportedSM() {
   elif [ $1 -eq 11 ] ; then
     if [ $2 -lt 1 ] ; then
       CUDA_SM_LIST='sm_35 sm_37 sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80'
+    elif [ $2 -gt 7 ] ; then
+      CUDA_SM_LIST='sm_35 sm_37 sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80 sm_86 sm_87 sm_89'
     elif [ $2 -gt 4 ] ; then
       CUDA_SM_LIST='sm_35 sm_37 sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80 sm_86 sm_87'
     else
       CUDA_SM_LIST='sm_35 sm_37 sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80 sm_86'
     fi
+  elif [ $1 -eq 12 ] ; then
+    if [ $2 -gt 5 ] ; then
+      echo "CUDA > 12.5 has not been tested yet. Set SHADER_MODEL manually."
+      exit 1
+    fi
+    CUDA_SM_LIST='sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80 sm_86 sm_87 sm_89 sm_90'
   else
     echo "Automatic support for CUDA $1.$2 is currently unsupported. Set SHADER_MODEL manually."
     exit 1
@@ -2644,6 +2656,12 @@ while [ ! -z "$1" ] ; do
   esac
   shift
 done
+
+# If CUDA is no longer off, turn it on.
+if [ "${LIB_STAT[$LCUDA]}" != 'off' -a $USE_CUDA -eq 0 ] ; then
+  echo '  Enabling CUDA.'
+  USE_CUDA=1
+fi
 
 # Determine platform if not already specified
 if [ -z "$PLATFORM" ] ; then
