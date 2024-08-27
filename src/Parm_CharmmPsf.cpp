@@ -134,17 +134,19 @@ class Parm_CharmmPsf::LonePair {
   public:
     //LonePair() : numSupport_(0), idx_(-1), dist_(0), ang_(0), dih_(0) {}
     LonePair(int n, int i, const char* t, double dist, double ang, double dih) :
-      numSupport_(n), idx_(i), type_(t), dist_(dist), ang_(ang), dih_(dih) {}
+      nat_(n), idx_(i), type_(t), dist_(dist), ang_(ang), dih_(dih) {}
 
-    int Nat() const { return numSupport_; }
+    int Nat() const { return nat_; }
     int Idx() const { return idx_; }
     const char* lptype() const { return type_.c_str(); }
     double Dist() const { return dist_; }
     double Ang() const { return ang_; }
     double Dih() const { return dih_; }
+
+    void Print() const { mprintf(" %i %i %s %f %f %f", Nat(), Idx()+1, lptype(), Dist(), Ang(), Dih()); }
   private:
-    int numSupport_; ///< # support atoms
-    int idx_;        ///< Index of support atoms in support (host) array
+    int nat_;          ///< Number of support atoms
+    int idx_;          ///< Index of support atoms in support (host) array
     std::string type_; ///< Lone pair type TODO make char?
     double dist_;      ///< Distance in angstroms
     double ang_;       ///< Angle in degrees
@@ -158,7 +160,7 @@ const
 {
   std::vector<LonePair> LPs;
   LPs.reserve( numlp );
-
+  // Read the lone pairs
   const char* buffer = 0;
   char type[9];
   type[8] = '\0';
@@ -187,8 +189,38 @@ const
     }
     LPs.push_back( LonePair(num, idx-1, type, dist, ang, dih) );
   }
-  for (std::vector<LonePair>::const_iterator it = LPs.begin(); it != LPs.end(); ++it)
-    mprintf("DEBUG: LP: %i %i %s %f %f %f\n", it->Nat(), it->Idx()+1, it->lptype(), it->Dist(), it->Ang(), it->Dih());
+  // Read the lone pair atoms
+  int lpat[8];
+  int nlines = numlph / 8;
+  if ( (numlph%8) > 0 )
+    nlines++;
+  std::vector<int> LPatoms;
+  LPatoms.reserve( numlph );
+  for (int ilp = 0; ilp != nlines; ilp++) {
+    if ( (buffer = infile.Line()) == 0) {
+      mprinterr("Error: Reading lone pair atoms on line %i\n", infile.LineNumber());
+      return 1;
+    }
+    int nscan = sscanf(buffer, "%i %i %i %i %i %i %i %i",
+                       lpat, lpat+1, lpat+2, lpat+3, lpat+4, lpat+5, lpat+6, lpat+7);
+    for (int ii = 0; ii != nscan; ii++)
+      LPatoms.push_back( lpat[ii]-1 );
+  }
+  if ( (unsigned int)numlph != LPatoms.size() ) {
+    mprinterr("Error: Number of lone pair atoms read (%zu) != expected (%i)\n", LPatoms.size(), numlph);
+    return 1;
+  }
+
+  for (std::vector<LonePair>::const_iterator it = LPs.begin(); it != LPs.end(); ++it) {
+    mprintf("DEBUG: LP:");
+    it->Print();
+    mprintf(" Atoms:");
+    int jj = it->Idx();
+    // Nat() is the number of support atoms; +1 for the lone pair atom itself
+    for (int ii = 0; ii <= it->Nat(); ii++, jj++)
+      mprintf(" %i", LPatoms[jj]+1);
+    mprintf("\n");
+  }
 
   return 0;
 }
