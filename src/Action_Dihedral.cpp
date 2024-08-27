@@ -81,6 +81,12 @@ Action::RetType Action_Dihedral::Setup(ActionSetup& setup) {
   if (setup.Top().SetupIntegerMask(M2_)) return Action::ERR;
   if (setup.Top().SetupIntegerMask(M3_)) return Action::ERR;
   if (setup.Top().SetupIntegerMask(M4_)) return Action::ERR;
+  if (useMass_) {
+    if (setup.Top().MaskHasZeroMass(M1_)) useMass_ = false;
+    if (setup.Top().MaskHasZeroMass(M2_)) useMass_ = false;
+    if (setup.Top().MaskHasZeroMass(M3_)) useMass_ = false;
+    if (setup.Top().MaskHasZeroMass(M4_)) useMass_ = false;
+  }
   mprintf("\t");
   M1_.BriefMaskInfo();
   M2_.BriefMaskInfo();
