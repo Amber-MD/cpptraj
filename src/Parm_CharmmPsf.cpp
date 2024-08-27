@@ -231,7 +231,7 @@ const
     }
   }
   // DEBUG - Print out lone pair information
-  if (debug_ > 0) {
+  if (debug_ > 1) {
     for (std::vector<LonePair>::const_iterator it = LPs.begin(); it != LPs.end(); ++it) {
       mprintf("DEBUG: LP:");
       it->Print();
@@ -501,7 +501,7 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
     sscanf(buffer,"%i %i %10s", &numlp, &numlph, tag);
   }
   if (numlp > -1) {
-    mprintf("DEBUG: PSF contains %i lone pairs, %i lone pair hosts.\n", numlp, numlph);
+    if (debug_ > 0) mprintf("DEBUG: PSF contains %i lone pairs, %i lone pair hosts.\n", numlp, numlph);
     if (ReadLonePairs(infile, numlp, numlph, parmOut)) return 1;
   }
 
