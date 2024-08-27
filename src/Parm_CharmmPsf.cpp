@@ -231,15 +231,17 @@ const
     }
   }
   // DEBUG - Print out lone pair information
-  for (std::vector<LonePair>::const_iterator it = LPs.begin(); it != LPs.end(); ++it) {
-    mprintf("DEBUG: LP:");
-    it->Print();
-    mprintf(" Atoms:");
-    int jj = it->Idx();
-    // Nat() is the number of support atoms; +1 for the lone pair atom itself
-    for (int ii = 0; ii <= it->Nat(); ii++, jj++)
-      mprintf(" %i", LPatoms[jj]+1);
-    mprintf("\n");
+  if (debug_ > 0) {
+    for (std::vector<LonePair>::const_iterator it = LPs.begin(); it != LPs.end(); ++it) {
+      mprintf("DEBUG: LP:");
+      it->Print();
+      mprintf(" Atoms:");
+      int jj = it->Idx();
+      // Nat() is the number of support atoms; +1 for the lone pair atom itself
+      for (int ii = 0; ii <= it->Nat(); ii++, jj++)
+        mprintf(" %i", LPatoms[jj]+1);
+      mprintf("\n");
+    }
   }
 
   return 0;
@@ -247,6 +249,7 @@ const
 
 const unsigned int Parm_CharmmPsf::ChmStrMax_ = 9;
 
+/** Extract residue number and alternatively the insertion code. */
 int Parm_CharmmPsf::ParseResID(char& psficode, const char* psfresid)
 {
   char buf[ChmStrMax_];
@@ -367,6 +370,12 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
         mprintf("Warning: During read of PSF atoms, expected to read 6 columns, got %i (line %i)\n", nread, infile.LineNumber());
       }
     }
+    // Determine if this is a Drude particle
+    Atom::AtomicElementType psfElt = Atom::UNKNOWN_ELEMENT;
+    if (psftype[0] == 'D') {
+      //mprintf("DEBUG: Potential Drude particle: %s %s\n", psfname, psftype);
+      psfElt = Atom::DRUDE;
+    }
     // Extract residue number and alternatively insertion code.
     int psfresnum = ParseResID(psficode, psfresid);
     //mprintf("DEBUG: resnum %10i  icode %c\n", psfresnum, psficode);
@@ -385,7 +394,7 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
       }
     }*/
     atomTypes.AddParm( TypeNameHolder(NameType(psftype)), AtomType(psfmass), false );
-    Atom chmAtom( psfname, psfcharge, psfmass, psftype );
+    Atom chmAtom( psfname, psfcharge, psfmass, psftype, psfElt );
     parmOut.AddTopAtom( chmAtom, Residue(psfresname, psfresnum, ' ', std::string(segmentID)) );
   } // END loop over atoms 
   // Advance to <nbond> !NBOND
