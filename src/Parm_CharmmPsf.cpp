@@ -129,6 +129,14 @@ int Parm_CharmmPsf::ReadDihedrals(BufferedLine& infile, int ndihedral, const cha
   return 0;
 }
 
+/** Read lone pairs. */
+int Parm_CharmmPsf::ReadLonePairs(BufferedLine& infile, int numlp, int numlph, Topology& parmOut)
+const
+{
+
+  return 0;
+}
+
 const unsigned int Parm_CharmmPsf::ChmStrMax_ = 9;
 
 int Parm_CharmmPsf::ParseResID(char& psficode, const char* psfresid)
@@ -366,6 +374,20 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
     if (ReadDihedrals(infile, nimproper, "improper", parmOut)) return 1;
   } else
     mprintf("Warning: PSF has no impropers.\n");
+  // SKIPPING NDON, NACC, NNB, NGRP
+  // Advance to <# lone pairs> <# lone pair hosts> NUMLP NUMLPH
+  int numlp = -1;
+  int numlph = -1;
+  while (strncmp(tag, "!NUMLP", 6) !=0) {
+    const char* buffer = infile.Line();
+    if ( buffer == 0 ) break;
+    sscanf(buffer,"%i %i %10s", &numlp, &numlph, tag);
+  }
+  if (numlp > -1) {
+    mprintf("DEBUG: PSF contains %i lone pairs, %i lone pair hosts.\n", numlp, numlph);
+    if (ReadLonePairs(infile, numlp, numlph, parmOut)) return 1;
+  }
+
   mprintf("\tPSF contains %i atoms, %i residues.\n", parmOut.Natom(), parmOut.Nres());
 
   infile.CloseFile();
