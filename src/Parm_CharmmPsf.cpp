@@ -210,7 +210,27 @@ const
     mprinterr("Error: Number of lone pair atoms read (%zu) != expected (%i)\n", LPatoms.size(), numlph);
     return 1;
   }
-
+  // Add bonds for lone pairs TODO angles and dihedrals?
+  for (std::vector<LonePair>::const_iterator it = LPs.begin(); it != LPs.end(); ++it) {
+    // Sanity check
+    int lpAtomIdx = LPatoms[it->Idx()];
+    int bondedAtomIdx = LPatoms[it->Idx()+1];
+    if ( parmOut[lpAtomIdx].Element() != Atom::EXTRAPT ) {
+      mprintf("Warning: PSF defines atom %s as lone pair, but it does not appear to be one.\n",
+               parmOut.AtomMaskName( lpAtomIdx ).c_str());
+    }
+    if (params_.BP().empty()) {
+      // Just add the bond to lone pair
+      parmOut.AddBond( lpAtomIdx, bondedAtomIdx );
+    } else {
+      // Add the bond and distance as a parameter FIXME is Rk=0 ok?
+      // FIXME what does a negative distance mean?
+      double req = it->Dist();
+      if (req < 0) req = -req;
+      parmOut.AddBond( lpAtomIdx, bondedAtomIdx, BondParmType(0, req) );
+    }
+  }
+  // DEBUG - Print out lone pair information
   for (std::vector<LonePair>::const_iterator it = LPs.begin(); it != LPs.end(); ++it) {
     mprintf("DEBUG: LP:");
     it->Print();
