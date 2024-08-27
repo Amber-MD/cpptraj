@@ -53,11 +53,6 @@ Action::RetType Action_Angle::Setup(ActionSetup& setup) {
   if (setup.Top().SetupIntegerMask(Mask1_)) return Action::ERR;
   if (setup.Top().SetupIntegerMask(Mask2_)) return Action::ERR;
   if (setup.Top().SetupIntegerMask(Mask3_)) return Action::ERR;
-  if (useMass_) {
-    if (setup.Top().MaskHasZeroMass(Mask1_)) useMass_ = false;
-    if (setup.Top().MaskHasZeroMass(Mask2_)) useMass_ = false;
-    if (setup.Top().MaskHasZeroMass(Mask3_)) useMass_ = false;
-  }
   mprintf("\t");
   Mask1_.BriefMaskInfo();
   Mask2_.BriefMaskInfo();
@@ -66,6 +61,12 @@ Action::RetType Action_Angle::Setup(ActionSetup& setup) {
   if (Mask1_.None() || Mask2_.None() || Mask3_.None()) {
     mprintf("Warning: angle: One or more masks contain 0 atoms.\n");
     return Action::SKIP;
+  }
+  // Check if center of mass is possible
+  if (useMass_) {
+    if (setup.Top().MaskHasZeroMass(Mask1_)) useMass_ = false;
+    if (setup.Top().MaskHasZeroMass(Mask2_)) useMass_ = false;
+    if (setup.Top().MaskHasZeroMass(Mask3_)) useMass_ = false;
   }
   return Action::OK;  
 }
