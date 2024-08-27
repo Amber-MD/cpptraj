@@ -129,10 +129,66 @@ int Parm_CharmmPsf::ReadDihedrals(BufferedLine& infile, int ndihedral, const cha
   return 0;
 }
 
+// ----- Charmm Lone Pair ------------------------
+class Parm_CharmmPsf::LonePair {
+  public:
+    //LonePair() : numSupport_(0), idx_(-1), dist_(0), ang_(0), dih_(0) {}
+    LonePair(int n, int i, const char* t, double dist, double ang, double dih) :
+      numSupport_(n), idx_(i), type_(t), dist_(dist), ang_(ang), dih_(dih) {}
+
+    int Nat() const { return numSupport_; }
+    int Idx() const { return idx_; }
+    const char* lptype() const { return type_.c_str(); }
+    double Dist() const { return dist_; }
+    double Ang() const { return ang_; }
+    double Dih() const { return dih_; }
+  private:
+    int numSupport_; ///< # support atoms
+    int idx_;        ///< Index of support atoms in support (host) array
+    std::string type_; ///< Lone pair type TODO make char?
+    double dist_;      ///< Distance in angstroms
+    double ang_;       ///< Angle in degrees
+    double dih_;       ///< Dihedral in degrees
+};
+// -----------------------------------------------
+
 /** Read lone pairs. */
 int Parm_CharmmPsf::ReadLonePairs(BufferedLine& infile, int numlp, int numlph, Topology& parmOut)
 const
 {
+  std::vector<LonePair> LPs;
+  LPs.reserve( numlp );
+
+  const char* buffer = 0;
+  char type[9];
+  type[8] = '\0';
+  int num = 0;
+  int idx = -1;
+  double dist = 0;
+  double ang = 0;
+  double dih = 0;
+  for (int ilp = 0; ilp != numlp; ilp++) {
+    if ( (buffer = infile.Line()) == 0) {
+      mprinterr("Error: Reading lone pair %i on line %i\n", ilp+1, infile.LineNumber());
+      return 1;
+    }
+    //mprintf("DEBUG: LP: %s\n", buffer);
+    num = 0;
+    idx = -1;
+    dist = 0;
+    ang = 0;
+    dih = 0;
+    type[0] = '\0';
+    int nscan = sscanf(buffer, "%i %i %s %lf %lf %lf", &num, &idx, type, &dist, &ang, &dih);
+    if (nscan < 4) {
+      mprinterr("Error: Only read %i values for lone pair line, expected at least 4.\n", nscan);
+      mprinterr("Error: Line %i: %s\n", infile.LineNumber(), buffer);
+      return 1;
+    }
+    LPs.push_back( LonePair(num, idx-1, type, dist, ang, dih) );
+  }
+  for (std::vector<LonePair>::const_iterator it = LPs.begin(); it != LPs.end(); ++it)
+    mprintf("DEBUG: LP: %i %i %s %f %f %f\n", it->Nat(), it->Idx()+1, it->lptype(), it->Dist(), it->Ang(), it->Dih());
 
   return 0;
 }

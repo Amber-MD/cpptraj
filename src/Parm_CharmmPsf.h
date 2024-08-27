@@ -15,6 +15,8 @@ class Parm_CharmmPsf : public ParmIO {
     static void WriteHelp();
     int processWriteArgs(ArgList&);
   private:
+    class LonePair;
+
     static const unsigned int ChmStrMax_;
     //static inline int FindTag(char*, const char*, int, BufferedLine&);
     static inline int ParseResID(char&, const char*);
