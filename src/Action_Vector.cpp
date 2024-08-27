@@ -15,6 +15,7 @@ Action_Vector::Action_Vector() :
   vcorr_(0),
   ptrajoutput_(false),
   needBoxInfo_(false),
+  useMass_(true),
   CurrentParm_(0),
   outfile_(0)
 {}
@@ -22,7 +23,7 @@ Action_Vector::Action_Vector() :
 // Action_Vector::Help()
 void Action_Vector::Help() const {
   mprintf("\t[<name>] <Type> [out <filename> [ptrajoutput]] [<mask1>] [<mask2>]\n"
-          "\t[magnitude] [ired] [gridset <grid>]\n"
+          "\t[magnitude] [geom] [ired] [gridset <grid>]\n"
           "\t<Type> = { mask     | minimage  | dipole | center   | corrplane | \n"
           "\t           box      | boxcenter | ucellx | ucelly   | ucellz    | \n"
           "\t           momentum | principal [x|y|z]  | velocity | force       }\n" 
@@ -38,7 +39,9 @@ void Action_Vector::Help() const {
           "    momentum         : Store total momentum vector of atoms in <mask1> (requires velocities).\n"
           "    principal [x|y|z]: X, Y, or Z principal axis vector for atoms in <mask1>.\n"
           "    velocity         : Store velocity of atoms in <mask1> (requires velocities).\n"
-          "    force            : Store force of atoms in <mask1> (requires forces).\n");
+          "    force            : Store force of atoms in <mask1> (requires forces).\n"
+          "  If 'magnitude' is specified, also calculate the vector magnitude.\n"
+          "  If 'geom' is specified, use geometric centers, otherwise use center of mass.\n");
 }
 
 // DESTRUCTOR
@@ -257,6 +260,11 @@ Action::RetType Action_Vector::Setup(ActionSetup& setup) {
       return Action::ERR;
     }
   }
+  // Check if center of mass is possible
+  if (useMass_) {
+    if (mask_.MaskStringSet() && setup.Top().MaskHasZeroMass( mask_ )) useMass_ = false;
+    if (mask2_.MaskStringSet() && setup.Top().MaskHasZeroMass( mask2_ )) useMass_ = false;
+  }
   CurrentParm_ = setup.TopAddress();
   return Action::OK;
 }
@@ -371,10 +379,19 @@ Vec3 Action_Vector::leastSquaresPlane(int n, const double* vcorr) {
 }
 
 // -----------------------------------------------------------------------------
+Vec3 Action_Vector::GetVec(Frame const& currentFrame, AtomMask const& maskIn)
+const
+{
+  if (useMass_)
+    return currentFrame.VCenterOfMass(maskIn);
+  else
+    return currentFrame.VGeometricCenter(maskIn);
+}
+
 // Action_Vector::Mask()
 void Action_Vector::Mask(Frame const& currentFrame) {
-  Vec3 CXYZ = currentFrame.VCenterOfMass(mask_);
-  Vec3 VXYZ = currentFrame.VCenterOfMass(mask2_);
+  Vec3 CXYZ = GetVec(currentFrame, mask_);
+  Vec3 VXYZ = GetVec(currentFrame, mask2_);
   VXYZ -= CXYZ;
   Vec_->AddVxyzo(VXYZ, CXYZ);
 }
@@ -421,7 +438,7 @@ void Action_Vector::Principal(Frame const& currentFrame) {
 
 // Action_Vector::CorrPlane()
 void Action_Vector::CorrPlane(Frame const& currentFrame) {
-  Vec3 CXYZ = currentFrame.VCenterOfMass(mask_);
+  Vec3 CXYZ = GetVec(currentFrame, mask_);
   int idx = 0;
   for (AtomMask::const_iterator atom = mask_.begin();
                               atom != mask_.end(); ++atom)
@@ -454,8 +471,8 @@ void Action_Vector::BoxLengths(Box const& box) {
 
 // Action_Vector::MinImage()
 void Action_Vector::MinImage(Frame const& frm) {
-  Vec3 com1 = frm.VCenterOfMass(mask_);
-  Vec_->AddVxyzo( MinImagedVec(com1, frm.VCenterOfMass(mask2_), frm.BoxCrd().UnitCell(), frm.BoxCrd().FracCell()), com1 );
+  Vec3 com1 = GetVec(frm, mask_);
+  Vec_->AddVxyzo( MinImagedVec(com1, GetVec(frm, mask2_), frm.BoxCrd().UnitCell(), frm.BoxCrd().FracCell()), com1 );
 }
 
 /// \return The center of selected elements in given array.
@@ -476,7 +493,7 @@ static inline Vec3 CalcCenter(const double* xyz, AtomMask const& maskIn) {
 Action::RetType Action_Vector::DoAction(int frameNum, ActionFrame& frm) {
   switch ( mode_ ) {
     case MASK        : Mask(frm.Frm()); break;
-    case CENTER      : Vec_->AddVxyz( frm.Frm().VCenterOfMass(mask_) ); break;
+    case CENTER      : Vec_->AddVxyz( GetVec(frm.Frm(), mask_) ); break;
     case MOMENTUM    : Vec_->AddVxyz( frm.Frm().VMomentum(mask_) ); break;
     case VELOCITY    : Vec_->AddVxyz( CalcCenter(frm.Frm().vAddress(), mask_) ); break;
     case FORCE       : Vec_->AddVxyz( CalcCenter(frm.Frm().fAddress(), mask_) ); break; 
