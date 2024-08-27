@@ -113,8 +113,10 @@ Action::RetType Action_Distance::Init(ArgList& actionArgs, ActionInit& init, int
   */
 Action::RetType Action_Distance::Setup(ActionSetup& setup) {
   if (setup.Top().SetupIntegerMask( Mask1_ )) return Action::ERR;
+  if (useMass_ && setup.Top().MaskHasZeroMass( Mask1_ )) useMass_ = false;
   if (mode_ == NORMAL) {
     if (setup.Top().SetupIntegerMask( Mask2_ )) return Action::ERR;
+    if (useMass_ && setup.Top().MaskHasZeroMass( Mask2_ )) useMass_ = false;
     mprintf("\t%s (%i atoms) to %s (%i atoms)",
             Mask1_.MaskString(), Mask1_.Nselected(),
             Mask2_.MaskString(),Mask2_.Nselected());

@@ -1397,6 +1397,19 @@ std::vector<int> Topology::MolnumsSelectedBy(AtomMask const& mask) const {
   return tmp;
 }
 
+/** \return True if total mass of selected atoms is zero. */
+bool Topology::MaskHasZeroMass(AtomMask const& mask) const {
+  double totalMass = 0;
+  for (AtomMask::const_iterator it = mask.begin(); it != mask.end(); ++it)
+    totalMass += atoms_[*it].Mass();
+  if (totalMass == 0) {
+    mprintf("Warning: The total mass of atoms in mask '%s' is zero; cannot use mass-weighting.\n",
+              mask.MaskString());
+    return true;
+  }
+  return false;
+}
+
 // -----------------------------------------------------------------------------
 int Topology::scale_dihedral_K(DihedralArray& dihedrals, CharMask const& Mask,
                                double scale_factor, bool useAll)
