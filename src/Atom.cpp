@@ -626,7 +626,13 @@ double Atom::GetBondLength(AtomicElementType atom1, AtomicElementType atom2) {
     }
   } else {
     AtomicElementType e1, e2;
-    if (atom1 < atom2) {
+    if (atom1 == EXTRAPT) {
+      e1 = atom1;
+      e2 = atom1;
+    } else if (atom2 == EXTRAPT) {
+      e1 = atom2;
+      e2 = atom1;
+    } else if (atom1 < atom2) {
       e1 = atom1;
       e2 = atom2;
     } else {
@@ -699,6 +705,16 @@ double Atom::GetBondLength(AtomicElementType atom1, AtomicElementType atom2) {
           case CHLORINE : cut=2.07; break;
           case MAGNESIUM: cut=2.42; break; // Est. from covalent radii S 1.03 + Mg 1.39
           default: WarnBondLengthDefault(e1,e2,cut);
+        }
+        break;
+      case EXTRAPT: // Bonds to lone pairs
+        switch (e2) {
+          case OXYGEN : cut=0.3; break;
+          case CARBON : cut=1.4; break;
+          default: // Different default for lone pairs
+            cut=0.4;
+            mprintf("Warning: Bond length not found for %s - %s, using default= %f\n",
+                    AtomicElementName_[e1], AtomicElementName_[e2], cut);
         }
         break;
       default: WarnBondLengthDefault(e1,e2,cut);
