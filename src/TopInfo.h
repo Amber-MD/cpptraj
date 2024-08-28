@@ -24,6 +24,7 @@ class TopInfo {
     int PrintMoleculeInfo(std::string const&) const;
     int PrintShortMolInfo(std::string const&) const;
     int PrintBondInfo(std::string const&, std::string const&, bool) const;
+    int PrintBondParm() const;
     int PrintAngleInfo(std::string const&, std::string const&, std::string const&) const;
     int PrintDihedralInfo(std::string const&, std::string const&,
                           std::string const&, std::string const&,bool) const;
