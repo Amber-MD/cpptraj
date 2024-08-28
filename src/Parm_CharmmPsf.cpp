@@ -241,6 +241,20 @@ const
         parmOut.AddAngle( lpAtomIdx, bondedAtomIdx, angleAtomIdx, AngleParmType(0, teq) );
       }
     }
+    // Dihedral
+    if (it->Nat() > 2) {
+      int angleAtomIdx = LPatoms[it->Idx()+2];
+      int dihAtomIdx = LPatoms[it->Idx()+3];
+      if (params_.DP().empty()) {
+        parmOut.AddDihedral( lpAtomIdx, bondedAtomIdx, angleAtomIdx, dihAtomIdx );
+      } else {
+        // Add the dihedral as a parameter (use radians) FIXME Pk, Pn, etc?
+        DihedralParmType dpt;
+        dpt.SetPhase( it->Dih() * Constants::DEGRAD );
+        // FIXME OK for normal type for lone pair?
+        parmOut.AddDihedral( DihedralType(lpAtomIdx, bondedAtomIdx, angleAtomIdx, dihAtomIdx, DihedralType::NORMAL), dpt );
+      }
+    }
   }
   // DEBUG - Print out lone pair information
   if (debug_ > 1) {
