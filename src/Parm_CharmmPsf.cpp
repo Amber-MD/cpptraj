@@ -219,15 +219,27 @@ const
       mprintf("Warning: PSF defines atom %s as lone pair, but it does not appear to be one.\n",
                parmOut.AtomMaskName( lpAtomIdx ).c_str());
     }
+    // Bond
     if (params_.BP().empty()) {
       // Just add the bond to lone pair
       parmOut.AddBond( lpAtomIdx, bondedAtomIdx );
     } else {
-      // Add the bond and distance as a parameter FIXME is Rk=0 ok?
+      // Add the distance as a parameter FIXME is Rk=0 ok?
       // FIXME what does a negative distance mean?
       double req = it->Dist();
       if (req < 0) req = -req;
       parmOut.AddBond( lpAtomIdx, bondedAtomIdx, BondParmType(0, req) );
+    }
+    // Angle
+    if (it->Nat() > 1) {
+      int angleAtomIdx = LPatoms[it->Idx()+2];
+      if (params_.AP().empty()) {
+        parmOut.AddAngle( lpAtomIdx, bondedAtomIdx, angleAtomIdx );
+      } else {
+        // Add the angle as a parameter (in radians) FIXME is Tk=0 ok?
+        double teq = it->Ang() * Constants::DEGRAD;
+        parmOut.AddAngle( lpAtomIdx, bondedAtomIdx, angleAtomIdx, AngleParmType(0, teq) );
+      }
     }
   }
   // DEBUG - Print out lone pair information
