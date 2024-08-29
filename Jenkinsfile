@@ -191,56 +191,56 @@ pipeline {
             }
         }
 
-        stage("Post-test steps") {
-            parallel {
-                stage("Publish the manual") {
-                    stages {
-                        stage("Build the manual") {
-                            agent {
-                                docker {
-                                    image 'ambermd/lyx:latest'
-                                    alwaysPull true
-                                }
-                            }
+        //stage("Post-test steps") {
+        //    parallel {
+        //        stage("Publish the manual") {
+        //            stages {
+        //                stage("Build the manual") {
+        //                    agent {
+        //                        docker {
+        //                            image 'ambermd/lyx:latest'
+        //                            alwaysPull true
+        //                        }
+        //                    }
 
-                            steps {
-                                unstash "source"
-                                sh """#!/bin/sh -ex
-                                    make docs
-                                    cd doc
-                                    lyx -batch --export pdf2 CpptrajManual.lyx
-                                    lyx -batch --export pdf2 CpptrajDevelopmentGuide.lyx
-                                """
-                                stash includes: "doc/**", name: "documentation"
-                            }
+        //                    steps {
+        //                        unstash "source"
+        //                        sh """#!/bin/sh -ex
+        //                            make docs
+        //                            cd doc
+        //                            lyx -batch --export pdf2 CpptrajManual.lyx
+        //                            lyx -batch --export pdf2 CpptrajDevelopmentGuide.lyx
+        //                        """
+        //                        stash includes: "doc/**", name: "documentation"
+        //                    }
 
-                            post { cleanup { deleteDir() } }
-                        }
-                        stage("Publish the manual") {
-                            agent { label 'linux' }
+        //                    post { cleanup { deleteDir() } }
+        //                }
+        //                stage("Publish the manual") {
+        //                    agent { label 'linux' }
 
-                            steps {
-                                unstash 'documentation'
-                                // Eventually it would be nice to do something better than simply archive
-                                // and make the artifacts available from Jenkins.
-                                archiveArtifacts 'doc/CpptrajManual.pdf,doc/CpptrajDevelopmentGuide.pdf'
-                                // It would be nice to get this in a better place, but for now this
-                                // will suffice.
-                                publishHTML([
-                                    allowMissing: false,
-                                    alwaysLinkToLastBuild: false,
-                                    keepAll: false,
-                                    reportDir: 'doc/html',
-                                    reportFiles: 'index.html',
-                                    reportName: 'Doxygen Documentation',
-                                    reportTitles: ''])
-                            }
+        //                    steps {
+        //                        unstash 'documentation'
+        //                        // Eventually it would be nice to do something better than simply archive
+        //                        // and make the artifacts available from Jenkins.
+        //                        archiveArtifacts 'doc/CpptrajManual.pdf,doc/CpptrajDevelopmentGuide.pdf'
+        //                        // It would be nice to get this in a better place, but for now this
+        //                        // will suffice.
+        //                        publishHTML([
+        //                            allowMissing: false,
+        //                            alwaysLinkToLastBuild: false,
+        //                            keepAll: false,
+        //                            reportDir: 'doc/html',
+        //                            reportFiles: 'index.html',
+        //                            reportName: 'Doxygen Documentation',
+        //                            reportTitles: ''])
+        //                    }
 
-                            post { cleanup { deleteDir() } }
-                        }
-                    }
-                }
-            }
-        }
+        //                    post { cleanup { deleteDir() } }
+        //                }
+        //            }
+        //        }
+        //    }
+        //}
     }
 }
