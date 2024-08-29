@@ -84,6 +84,7 @@ Exec::RetType Exec_UBInfo::Execute(CpptrajState& State, ArgList& argIn) {
 
 // -----------------------------------------------------------------------------
 void Exec_BondParmInfo::Help() const {
+  mprintf("\t[%s] [out <file>]\n", DataSetList::TopIdxArgs);
   mprintf("  Print bond parameter table.\n");
 }
 
