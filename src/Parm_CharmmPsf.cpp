@@ -308,7 +308,7 @@ int Parm_CharmmPsf::ParseResID(char& psficode, const char* psfresid)
   * Mask selection requires natom, nres, names, resnames, resnums.
   */
 int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
-  const size_t TAGSIZE = 10; 
+  const size_t TAGSIZE = 11;
   char tag[TAGSIZE];
   tag[0]='\0';
 
