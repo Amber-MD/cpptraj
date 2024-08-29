@@ -43104,7 +43104,7 @@ vector [<name>] <Type> [out <filename> [ptrajoutput]] [<mask1>] [<mask2>]
 \end_layout
 
 \begin_layout LyX-Code
-   	[magnitude] [ired] [gridset <grid>]
+   	[magnitude] [geom] [ired] [gridset <grid>] [debye]
 \end_layout
 
 \begin_layout LyX-Code
@@ -43185,6 +43185,11 @@ ptraj
 \end_layout
 
 \begin_layout Description
+[geom] If specified,
+ use geometric centers instead of centers of mass.
+\end_layout
+
+\begin_layout Description
 [ired] Mark this vector for subsequent IRED analysis with commands 'matrix ired' and 'ired'.
 \end_layout
 
@@ -43208,6 +43213,14 @@ boxcenter
 ucell[x|y|z]
 \series default
 .
+\end_layout
+
+\begin_layout Description
+[debye] (
+\series bold
+'dipole'
+\series default
+ vector only) Report dipole vector in units of Debye instead of e-*Ang.
 \end_layout
 
 \begin_layout Standard
@@ -43267,8 +43280,13 @@ dipole Store the dipole and center of mass of the atoms specified in
 <mask1>
 \series default
 .
- The vector is not converted to appropriate units,
- nor is the value well-defined if the atoms in the mask are not overall charge neutral.
+ The dipole vector has units of e-*Ang unless 
+\series bold
+'debye'
+\series default
+ is specified for units of Debye.
+ The center is always stored as simply Ang (since it is just coordinates).
+ Note that the value may not be well-defined if the atoms in the mask are not overall charge neutral.
 \end_layout
 
 \begin_layout Description
