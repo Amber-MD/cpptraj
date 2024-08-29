@@ -39,6 +39,8 @@ class Atom {
     Atom(NameType const&, NameType const&, double);
     /// Take atom name, type name, and type index.
     Atom(NameType const&, NameType const&, int);
+    /// Take atom name, charge, mass, and type name (TODO deprecate)
+    Atom(NameType const&, double, double, NameType const&);
     /// Take atom name, charge, mass, type name, and element
     Atom(NameType const&, double, double, NameType const&, AtomicElementType);
     /// Atom name, charge, polarizability, atomic num, mass, type index, type name, gb radius and screen parameters.

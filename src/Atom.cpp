@@ -141,7 +141,20 @@ void Atom::SetMassFromElement() {
   mass_ = AtomicElementMass_[ element_ ];
 }
 
-// CONSTRUCTOR
+/** CONSTRUCTOR - Take name, charge, mass, type. Guess element.
+  * TODO - deprecate this, currently only retained for pytraj.
+  */
+Atom::Atom(NameType const& aname, double charge, double mass, NameType const& atype) :
+  charge_(charge), polar_(0.0), mass_(mass), gb_radius_(0.0), gb_screen_(0.0),
+  aname_(aname), atype_(atype), atype_index_(0), element_(UNKNOWN_ELEMENT),
+  resnum_(0), mol_(0)
+{
+  DetermineElement(0);
+}
+
+/** CONSTRUCTOR - name, charge, mass, type, element. If element
+  * is unknown, guess.
+  */
 Atom::Atom(NameType const& aname, double charge, double mass, NameType const& atype, AtomicElementType elt) :
   charge_(charge), polar_(0.0), mass_(mass), gb_radius_(0.0), gb_screen_(0.0),
   aname_(aname), atype_(atype), atype_index_(0), element_(elt),
