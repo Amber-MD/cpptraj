@@ -28,7 +28,7 @@ class Atom {
       STRONTIUM,  TIN,        ANTIMONY, TITANIUM,  TECHNETIUM, TELLURIUM,  // 66
       TANTALUM,   THALLIUM,   VANADIUM, TUNGSTEN,  XENON,      ZIRCONIUM,  // 72
       YTTRIUM,    LUTETIUM,   SAMARIUM,
-      EXTRAPT 
+      EXTRAPT,    DRUDE
     };
     // Constructors and assignment ---------------
     Atom();
@@ -39,8 +39,10 @@ class Atom {
     Atom(NameType const&, NameType const&, double);
     /// Take atom name, type name, and type index.
     Atom(NameType const&, NameType const&, int);
-    /// Take atom name, charge, mass, and type name
+    /// Take atom name, charge, mass, and type name (TODO deprecate)
     Atom(NameType const&, double, double, NameType const&);
+    /// Take atom name, charge, mass, type name, and element
+    Atom(NameType const&, double, double, NameType const&, AtomicElementType);
     /// Atom name, charge, polarizability, atomic num, mass, type index, type name, gb radius and screen parameters.
     Atom(NameType const&, double, double, int, double, int, NameType const&, double, double);
     Atom(const Atom &);
@@ -100,7 +102,7 @@ class Atom {
     /// Set atomic mass from current element
     void SetMassFromElement();
   protected:
-    static const size_t NUMELEMENTS_ = 77;
+    static const size_t NUMELEMENTS_ = 78;
   private:
     static CPPTRAJ_EXPORT const int AtomicElementNum_[];
     static CPPTRAJ_EXPORT const char* AtomicElementName_[];

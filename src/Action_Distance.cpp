@@ -136,6 +136,13 @@ Action::RetType Action_Distance::Setup(ActionSetup& setup) {
   else
     mprintf(", imaging off");
   mprintf(".\n");
+  // Check if center of mass not possible
+  if (useMass_) {
+    if (setup.Top().MaskHasZeroMass( Mask1_ )) useMass_ = false;
+    if (mode_ == NORMAL) {
+      if (setup.Top().MaskHasZeroMass( Mask2_ )) useMass_ = false;
+    }
+  }
 
   return Action::OK;  
 }

@@ -26,6 +26,8 @@ class Action_Vector : public Action {
 
     static double solve_cubic_eq(double,double,double,double);
     static Vec3 leastSquaresPlane(int,const double*);
+    /// \return Center of mass or geometric center of atoms in given mask
+    inline Vec3 GetVec(Frame const&, AtomMask const&) const;
     void Mask(Frame const&);
     void Dipole(Frame const&);
     void Principal(Frame const&);
@@ -40,7 +42,9 @@ class Action_Vector : public Action {
     double* vcorr_;         ///< Temp. space for calculating CorrPlane
     vectorMode mode_;       ///< Vector calculation mode
     bool ptrajoutput_;      ///< If true output in ptraj format
-    bool needBoxInfo_;      ///< If true box info required. 
+    bool needBoxInfo_;      ///< If true box info required.
+    bool useMass_;          ///< If true, centers are mass-weighted 
+    bool dipole_in_debye_;  ///< If true, report dipole vector values in Debye
     Topology* CurrentParm_; ///< Current topology (for dipole)
     AtomMask mask_;
     AtomMask mask2_;

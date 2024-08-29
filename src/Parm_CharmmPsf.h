@@ -15,11 +15,14 @@ class Parm_CharmmPsf : public ParmIO {
     static void WriteHelp();
     int processWriteArgs(ArgList&);
   private:
+    class LonePair;
+
     static const unsigned int ChmStrMax_;
     //static inline int FindTag(char*, const char*, int, BufferedLine&);
     static inline int ParseResID(char&, const char*);
     static inline int FindTag(char*, const char*, BufferedLine&);
     int ReadDihedrals(BufferedLine&, int, const char*, Topology&) const;
+    int ReadLonePairs(BufferedLine&, int, int, Topology&) const;
 
     inline void WriteSectionHeader(CpptrajFile&, const char*, int) const;
 

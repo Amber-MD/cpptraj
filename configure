@@ -168,7 +168,7 @@ PNETCDF_OPTS='--disable-fortran --disable-cxx'
 
 FFTW_SRCTAR='fftw-3.3.9.tar.gz'
 FFTW_SRCDIR='fftw-3.3.9'
-FFTW_URL="ftp://ftp.fftw.org/pub/fftw/$FFTW_SRCTAR"
+FFTW_URL="https://fftw.org/pub/fftw/$FFTW_SRCTAR"
 FFTW_OPTS='--enable-threads --with-combined-threads --with-pic --disable-fortran'
 
 # ----- Variables for downloading MPI ------------

@@ -129,8 +129,153 @@ int Parm_CharmmPsf::ReadDihedrals(BufferedLine& infile, int ndihedral, const cha
   return 0;
 }
 
+// ----- Charmm Lone Pair ------------------------
+class Parm_CharmmPsf::LonePair {
+  public:
+    //LonePair() : numSupport_(0), idx_(-1), dist_(0), ang_(0), dih_(0) {}
+    LonePair(int n, int i, const char* t, double dist, double ang, double dih) :
+      nat_(n), idx_(i), type_(t), dist_(dist), ang_(ang), dih_(dih) {}
+
+    int Nat() const { return nat_; }
+    int Idx() const { return idx_; }
+    const char* lptype() const { return type_.c_str(); }
+    double Dist() const { return dist_; }
+    double Ang() const { return ang_; }
+    double Dih() const { return dih_; }
+
+    void Print() const { mprintf(" %i %i %s %f %f %f", Nat(), Idx()+1, lptype(), Dist(), Ang(), Dih()); }
+  private:
+    int nat_;          ///< Number of support atoms
+    int idx_;          ///< Index of support atoms in support (host) array
+    std::string type_; ///< Lone pair type TODO make char?
+    double dist_;      ///< Distance in angstroms
+    double ang_;       ///< Angle in degrees
+    double dih_;       ///< Dihedral in degrees
+};
+// -----------------------------------------------
+
+/** Read lone pairs. */
+int Parm_CharmmPsf::ReadLonePairs(BufferedLine& infile, int numlp, int numlph, Topology& parmOut)
+const
+{
+  std::vector<LonePair> LPs;
+  LPs.reserve( numlp );
+  // Read the lone pairs
+  const char* buffer = 0;
+  char type[9];
+  type[8] = '\0';
+  int num = 0;
+  int idx = -1;
+  double dist = 0;
+  double ang = 0;
+  double dih = 0;
+  for (int ilp = 0; ilp != numlp; ilp++) {
+    if ( (buffer = infile.Line()) == 0) {
+      mprinterr("Error: Reading lone pair %i on line %i\n", ilp+1, infile.LineNumber());
+      return 1;
+    }
+    //mprintf("DEBUG: LP: %s\n", buffer);
+    num = 0;
+    idx = -1;
+    dist = 0;
+    ang = 0;
+    dih = 0;
+    type[0] = '\0';
+    int nscan = sscanf(buffer, "%i %i %s %lf %lf %lf", &num, &idx, type, &dist, &ang, &dih);
+    if (nscan < 4) {
+      mprinterr("Error: Only read %i values for lone pair line, expected at least 4.\n", nscan);
+      mprinterr("Error: Line %i: %s\n", infile.LineNumber(), buffer);
+      return 1;
+    }
+    LPs.push_back( LonePair(num, idx-1, type, dist, ang, dih) );
+  }
+  // Read the lone pair atoms
+  int lpat[8];
+  int nlines = numlph / 8;
+  if ( (numlph%8) > 0 )
+    nlines++;
+  std::vector<int> LPatoms;
+  LPatoms.reserve( numlph );
+  for (int ilp = 0; ilp != nlines; ilp++) {
+    if ( (buffer = infile.Line()) == 0) {
+      mprinterr("Error: Reading lone pair atoms on line %i\n", infile.LineNumber());
+      return 1;
+    }
+    int nscan = sscanf(buffer, "%i %i %i %i %i %i %i %i",
+                       lpat, lpat+1, lpat+2, lpat+3, lpat+4, lpat+5, lpat+6, lpat+7);
+    for (int ii = 0; ii != nscan; ii++)
+      LPatoms.push_back( lpat[ii]-1 );
+  }
+  if ( (unsigned int)numlph != LPatoms.size() ) {
+    mprinterr("Error: Number of lone pair atoms read (%zu) != expected (%i)\n", LPatoms.size(), numlph);
+    return 1;
+  }
+  // Add bonds for lone pairs TODO angles and dihedrals?
+  for (std::vector<LonePair>::const_iterator it = LPs.begin(); it != LPs.end(); ++it) {
+    // Sanity check
+    int lpAtomIdx = LPatoms[it->Idx()];
+    int bondedAtomIdx = LPatoms[it->Idx()+1];
+    if ( parmOut[lpAtomIdx].Element() != Atom::EXTRAPT ) {
+      mprintf("Warning: PSF defines atom %s as lone pair, but it does not appear to be one.\n",
+               parmOut.AtomMaskName( lpAtomIdx ).c_str());
+    }
+    // Bond
+    if (params_.BP().empty()) {
+      // Just add the bond to lone pair
+      parmOut.AddBond( lpAtomIdx, bondedAtomIdx );
+    } else {
+      // Add the distance as a parameter FIXME is Rk=0 ok?
+      // FIXME what does a negative distance mean?
+      double req = it->Dist();
+      if (req < 0) req = -req;
+      parmOut.AddBond( lpAtomIdx, bondedAtomIdx, BondParmType(0, req) );
+    }
+    // Angle
+    if (it->Nat() > 1) {
+      int angleAtomIdx = LPatoms[it->Idx()+2];
+      if (params_.AP().empty()) {
+        parmOut.AddAngle( lpAtomIdx, bondedAtomIdx, angleAtomIdx );
+      } else {
+        // Add the angle as a parameter (in radians) FIXME is Tk=0 ok?
+        double teq = it->Ang() * Constants::DEGRAD;
+        parmOut.AddAngle( lpAtomIdx, bondedAtomIdx, angleAtomIdx, AngleParmType(0, teq) );
+      }
+    }
+    // Dihedral
+    if (it->Nat() > 2) {
+      int angleAtomIdx = LPatoms[it->Idx()+2];
+      int dihAtomIdx = LPatoms[it->Idx()+3];
+      if (params_.DP().empty()) {
+        parmOut.AddDihedral( lpAtomIdx, bondedAtomIdx, angleAtomIdx, dihAtomIdx );
+      } else {
+        // Add the dihedral as a parameter (use radians) FIXME Pk, Pn, etc?
+        DihedralParmType dpt;
+        dpt.SetPhase( it->Dih() * Constants::DEGRAD );
+        // FIXME OK for normal type for lone pair?
+        parmOut.AddDihedral( DihedralType(lpAtomIdx, bondedAtomIdx, angleAtomIdx, dihAtomIdx, DihedralType::NORMAL), dpt );
+      }
+    }
+  }
+  // DEBUG - Print out lone pair information
+  if (debug_ > 1) {
+    for (std::vector<LonePair>::const_iterator it = LPs.begin(); it != LPs.end(); ++it) {
+      mprintf("DEBUG: LP:");
+      it->Print();
+      mprintf(" Atoms:");
+      int jj = it->Idx();
+      // Nat() is the number of support atoms; +1 for the lone pair atom itself
+      for (int ii = 0; ii <= it->Nat(); ii++, jj++)
+        mprintf(" %i", LPatoms[jj]+1);
+      mprintf("\n");
+    }
+  }
+
+  return 0;
+}
+
 const unsigned int Parm_CharmmPsf::ChmStrMax_ = 9;
 
+/** Extract residue number and alternatively the insertion code. */
 int Parm_CharmmPsf::ParseResID(char& psficode, const char* psfresid)
 {
   char buf[ChmStrMax_];
@@ -163,7 +308,7 @@ int Parm_CharmmPsf::ParseResID(char& psficode, const char* psfresid)
   * Mask selection requires natom, nres, names, resnames, resnums.
   */
 int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
-  const size_t TAGSIZE = 10; 
+  const size_t TAGSIZE = 11;
   char tag[TAGSIZE];
   tag[0]='\0';
 
@@ -251,6 +396,12 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
         mprintf("Warning: During read of PSF atoms, expected to read 6 columns, got %i (line %i)\n", nread, infile.LineNumber());
       }
     }
+    // Determine if this is a Drude particle
+    Atom::AtomicElementType psfElt = Atom::UNKNOWN_ELEMENT;
+    if (psftype[0] == 'D') {
+      //mprintf("DEBUG: Potential Drude particle: %s %s\n", psfname, psftype);
+      psfElt = Atom::DRUDE;
+    }
     // Extract residue number and alternatively insertion code.
     int psfresnum = ParseResID(psficode, psfresid);
     //mprintf("DEBUG: resnum %10i  icode %c\n", psfresnum, psficode);
@@ -269,7 +420,7 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
       }
     }*/
     atomTypes.AddParm( TypeNameHolder(NameType(psftype)), AtomType(psfmass), false );
-    Atom chmAtom( psfname, psfcharge, psfmass, psftype );
+    Atom chmAtom( psfname, psfcharge, psfmass, psftype, psfElt );
     parmOut.AddTopAtom( chmAtom, Residue(psfresname, psfresnum, ' ', std::string(segmentID)) );
   } // END loop over atoms 
   // Advance to <nbond> !NBOND
@@ -366,6 +517,20 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
     if (ReadDihedrals(infile, nimproper, "improper", parmOut)) return 1;
   } else
     mprintf("Warning: PSF has no impropers.\n");
+  // SKIPPING NDON, NACC, NNB, NGRP
+  // Advance to <# lone pairs> <# lone pair hosts> NUMLP NUMLPH
+  int numlp = -1;
+  int numlph = -1;
+  while (strncmp(tag, "!NUMLP", 6) !=0) {
+    const char* buffer = infile.Line();
+    if ( buffer == 0 ) break;
+    sscanf(buffer,"%i %i %10s", &numlp, &numlph, tag);
+  }
+  if (numlp > -1) {
+    if (debug_ > 0) mprintf("DEBUG: PSF contains %i lone pairs, %i lone pair hosts.\n", numlp, numlph);
+    if (ReadLonePairs(infile, numlp, numlph, parmOut)) return 1;
+  }
+
   mprintf("\tPSF contains %i atoms, %i residues.\n", parmOut.Natom(), parmOut.Nres());
 
   infile.CloseFile();

@@ -759,6 +759,7 @@ void Topology::AddBond(int atom1, int atom2, BondParmType const& BPin) {
     pidx = (int)bondparm_.size();
     bondparm_.push_back( BPin );
   }
+  //mprintf("DEBUG: Add bond %i - %i Rk=%f Req=%f (%i)\n", atom1+1, atom2+1, BPin.Rk(), BPin.Req(), pidx);
   AddBond( atom1, atom2, pidx );
 }
 
@@ -825,17 +826,43 @@ int Topology::RemoveBond(int atom1, int atom2)
   * For bonds to H always insert the H second.
   */
 void Topology::AddBond(int atom1, int atom2, int pidxIn) {
+  //mprintf("DEBUG: Enter AddBond(%i, %i, %i)\n", atom1+1, atom2+1, pidxIn);
   // Check if atoms are out of range.
   if (WarnOutOfRange(atoms_.size(), atom1, "bond")) return;
   if (WarnOutOfRange(atoms_.size(), atom2, "bond")) return;
+  bool a1H = (atoms_[atom1].Element() == Atom::HYDROGEN);
+  bool a2H = (atoms_[atom2].Element() == Atom::HYDROGEN);
   // Check for duplicate bond
   for (Atom::bond_iterator ba = atoms_[atom1].bondbegin();
                            ba != atoms_[atom1].bondend(); ++ba)
+  {
     if ( *ba == atom2 ) {
       if (debug_ > 0)
         mprintf("Warning: Bond between atoms %i and %i already exists.\n", atom1+1, atom2+1);
+      // If the bond already exists but does not yet have a parameter, update
+      // the parameter index before exiting.
+      if (pidxIn > -1 && pidxIn < (int)bondparm_.size()) {
+        BondArray* BONDS = 0;
+        if (a1H || a2H)
+          BONDS = &bondsh_;
+        else
+          BONDS= &bonds_;
+        for (BondArray::iterator it = BONDS->begin(); it != BONDS->end(); ++it) {
+          if ( (it->A1() == atom1 && it->A2() == atom2) ||
+               (it->A1() == atom2 && it->A2() == atom1) )
+          {
+            mprintf("DEBUG: Existing bond found. Existing Idx %i\n", it->Idx());
+            if (it->Idx() < 0) {
+              mprintf("DEBUG: Adding bond parameter index %i for existing bond.\n", pidxIn);
+              it->SetIdx( pidxIn );
+            }
+            break;
+          }
+        } // END loop over target bond array
+      }
       return;
     }
+  } // END check for duplicate bond.
   // Check if parm index is out of range;
   int pidx;
   if (pidxIn < (int)bondparm_.size())
@@ -844,9 +871,7 @@ void Topology::AddBond(int atom1, int atom2, int pidxIn) {
     mprintf("Warning: No bond parameters for index %i\n", pidxIn);
     pidx = -1;
   }
-  bool a1H = (atoms_[atom1].Element() == Atom::HYDROGEN);
-  bool a2H = (atoms_[atom2].Element() == Atom::HYDROGEN);
-  //mprintf("\t\t\tAdding bond %i to %i (isH=%i)\n",atom1+1,atom2+1,(int)isH);
+  //mprintf("\t\t\tAdding bond %i to %i (a1H=%i a2H=%i) idx=%i\n",atom1+1,atom2+1,(int)a1H,(int)a2H,pidx);
   // Update bonds arrays
   if (a1H || a2H) {
     if (a1H)
@@ -1395,6 +1420,19 @@ std::vector<int> Topology::MolnumsSelectedBy(AtomMask const& mask) const {
   for (std::set<int>::const_iterator it = molnums.begin(); it != molnums.end(); ++it)
     tmp.push_back( *it );
   return tmp;
+}
+
+/** \return True if total mass of selected atoms is zero. */
+bool Topology::MaskHasZeroMass(AtomMask const& mask) const {
+  double totalMass = 0;
+  for (AtomMask::const_iterator it = mask.begin(); it != mask.end(); ++it)
+    totalMass += atoms_[*it].Mass();
+  if (totalMass == 0) {
+    mprintf("Warning: The total mass of atoms in mask '%s' is zero; cannot use mass-weighting.\n",
+              mask.MaskString());
+    return true;
+  }
+  return false;
 }
 
 // -----------------------------------------------------------------------------

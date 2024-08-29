@@ -414,7 +414,7 @@ int Parm_Gromacs::ReadParm(FileName const& fname, Topology &TopIn) {
       for (AtomArray::const_iterator atom = Mol.begin(); atom != Mol.end(); ++atom)
       {
         if (atom->mass_ > -1.0)
-          TopIn.AddTopAtom( Atom( atom->aname_, atom->charge_, atom->mass_, atom->atype_),
+          TopIn.AddTopAtom( Atom( atom->aname_, atom->charge_, atom->mass_, atom->atype_, Atom::UNKNOWN_ELEMENT),
                             Residue(atom->rname_, atom->rnum_ + resoffset, ' ', "") );
         else
           TopIn.AddTopAtom( Atom( atom->aname_, atom->atype_, atom->charge_ ),

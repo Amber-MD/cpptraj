@@ -38,6 +38,14 @@ class Exec_UBInfo : public Exec {
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_UBInfo(); }
     RetType Execute(CpptrajState&, ArgList&);
 };
+/// Print bond parameters
+class Exec_BondParmInfo : public Exec {
+  public:
+    Exec_BondParmInfo() : Exec(PARM) {}
+    void Help() const;
+    DispatchObject* Alloc() const { return (DispatchObject*)new Exec_BondParmInfo(); }
+    RetType Execute(CpptrajState&, ArgList&);
+};
 /// Print angle info for atoms in mask.
 class Exec_AngleInfo : public Exec {
   public:

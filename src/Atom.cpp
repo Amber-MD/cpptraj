@@ -17,7 +17,7 @@ const int Atom::AtomicElementNum_[NUMELEMENTS_] = { 0,
  38, 50, 51, 22, 43, 52,
  73, 81, 23, 74, 54, 40,
  39, 71, 62,
- 0
+ 0,   0
 };
 
 /// Atom names corresponding to AtomicElementType.
@@ -36,7 +36,7 @@ const char* Atom::AtomicElementName_[NUMELEMENTS_] = { "??",
   "SR", "SN", "SB", "TI", "TC", "TE",
   "TA", "TL", "V",  "W",  "XE", "ZR",
   "Y",  "LU", "SM",
-  "XP"
+  "XP", "DR"
 };
 
 /** Values taken from 'http://www.webelements.com/' */
@@ -54,7 +54,7 @@ const double Atom::AtomicElementMass_[NUMELEMENTS_] = { 1.0,
    87.62,     118.710,    121.760,      47.867,     98,       127.60,
   180.94788,  204.3833,    50.9415,    183.84,     131.293,    91.224,
    88.90585,  174.9668,   150.36,
-    0.0
+    0.0,        0.0
 };
 
 /** Values taken from parm10.dat and ion frcmod files as the average Rmin/2
@@ -72,7 +72,7 @@ const double Atom::AtomicElementRadius_[NUMELEMENTS_] = { 1.0,
   1.745, 1.000, 1.000, 1.000, 1.000, 1.000, 2.019, 2.419, 1.000, 1.000,
   1.000, 1.666, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000,
   1.000, 1.000, 1.000, 1.850,
-  0.000 /* extra point has no radius */
+  0.000, 0.0 /* extra point/Drude has no radius */
 };
 
 // CONSTRUCTOR
@@ -141,13 +141,27 @@ void Atom::SetMassFromElement() {
   mass_ = AtomicElementMass_[ element_ ];
 }
 
-// CONSTRUCTOR
+/** CONSTRUCTOR - Take name, charge, mass, type. Guess element.
+  * TODO - deprecate this, currently only retained for pytraj.
+  */
 Atom::Atom(NameType const& aname, double charge, double mass, NameType const& atype) :
   charge_(charge), polar_(0.0), mass_(mass), gb_radius_(0.0), gb_screen_(0.0),
   aname_(aname), atype_(atype), atype_index_(0), element_(UNKNOWN_ELEMENT),
   resnum_(0), mol_(0)
 {
   DetermineElement(0);
+}
+
+/** CONSTRUCTOR - name, charge, mass, type, element. If element
+  * is unknown, guess.
+  */
+Atom::Atom(NameType const& aname, double charge, double mass, NameType const& atype, AtomicElementType elt) :
+  charge_(charge), polar_(0.0), mass_(mass), gb_radius_(0.0), gb_screen_(0.0),
+  aname_(aname), atype_(atype), atype_index_(0), element_(elt),
+  resnum_(0), mol_(0)
+{
+  if (element_ == UNKNOWN_ELEMENT)
+    DetermineElement(0);
 }
 
 // CONSTRUCTOR
@@ -625,7 +639,13 @@ double Atom::GetBondLength(AtomicElementType atom1, AtomicElementType atom2) {
     }
   } else {
     AtomicElementType e1, e2;
-    if (atom1 < atom2) {
+    if (atom1 == EXTRAPT) {
+      e1 = atom1;
+      e2 = atom1;
+    } else if (atom2 == EXTRAPT) {
+      e1 = atom2;
+      e2 = atom1;
+    } else if (atom1 < atom2) {
       e1 = atom1;
       e2 = atom2;
     } else {
@@ -698,6 +718,16 @@ double Atom::GetBondLength(AtomicElementType atom1, AtomicElementType atom2) {
           case CHLORINE : cut=2.07; break;
           case MAGNESIUM: cut=2.42; break; // Est. from covalent radii S 1.03 + Mg 1.39
           default: WarnBondLengthDefault(e1,e2,cut);
+        }
+        break;
+      case EXTRAPT: // Bonds to lone pairs
+        switch (e2) {
+          case OXYGEN : cut=0.3; break;
+          case CARBON : cut=1.4; break;
+          default: // Different default for lone pairs
+            cut=0.4;
+            mprintf("Warning: Bond length not found for %s - %s, using default= %f\n",
+                    AtomicElementName_[e1], AtomicElementName_[e2], cut);
         }
         break;
       default: WarnBondLengthDefault(e1,e2,cut);

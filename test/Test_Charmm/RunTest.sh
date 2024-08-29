@@ -4,7 +4,7 @@
 
 CleanFiles charmm.in test.ala3.pdb.? test.ala3.pdb.10 first.ala3.crd \
            test.psf test.ala3.dcd second.ala3.crd strip.chamber.parm7 \
-           run0.res_0.mol2 cpptraj.psf cpptraj.cor
+           run0.res_0.mol2 cpptraj.psf cpptraj.cor ala3.drude.mol2
 
 TESTNAME='Charmm DCD tests'
 Requires maxthreads 10
@@ -86,6 +86,18 @@ trajout cpptraj.cor segid ALA3
 EOF
   RunCpptraj "$UNITNAME"
   DoTest cpptraj.cor.save cpptraj.cor
+fi
+
+UNITNAME='CHARMM Drude PSF test'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > charmm.in <<EOF
+parm ala3.drude.psf
+trajin ala3.drude.crd
+trajout ala3.drude.mol2
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest ala3.drude.mol2 ala3.drude.mol2.save
 fi
 
 EndTest

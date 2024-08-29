@@ -540,6 +540,14 @@ int TopInfo::PrintBondInfo(std::string const& mask1exp, std::string const& mask2
   return 0;
 }
 
+/** Print bond parameters */
+int TopInfo::PrintBondParm() const {
+  outfile_->Printf("%-10s %8s %8s\n", "#Idx", "Rk", "Req");
+  for (BondParmArray::const_iterator bp = parm_->BondParm().begin(); bp != parm_->BondParm().end(); ++bp)
+    outfile_->Printf("%-10li %8.3f %8.3f\n", bp - parm_->BondParm().begin(), bp->Rk(), bp->Req());
+  return 0;
+}
+
 // TopInfo::PrintAngles()
 void TopInfo::PrintAngles(AngleArray const& aarray, AngleParmArray const& angleparm,
                           CharMask const& mask1, CharMask const& mask2, CharMask const& mask3,

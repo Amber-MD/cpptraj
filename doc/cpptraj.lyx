@@ -14247,7 +14247,7 @@ The following topology related commands are available:
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="22" columns="2">
+<lyxtabular version="3" rows="23" columns="2">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top">
 <column alignment="center" valignment="top">
@@ -14336,6 +14336,26 @@ bondinfo,
 
 \begin_layout Plain Layout
 Print bond info for selected atoms.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+bondparminfo
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Print the bond parameter table.
 \end_layout
 
 \end_inset
@@ -15055,6 +15075,67 @@ atom names
 \begin_layout Standard
 If 2 masks are given instead of 1,
  print info for bonds with first atom in <mask1> and second atom in <mask2>.
+\end_layout
+
+\begin_layout Subsection
+bondparminfo
+\end_layout
+
+\begin_layout LyX-Code
+bondparminfo [parm <name> | crdset <set> | parmindex <#> | <#>] [out <file>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[parm
+\begin_inset space ~
+\end_inset
+
+<name>
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+parmindex
+\begin_inset space ~
+\end_inset
+
+<#>
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+<#>] Name/tag or index of topology.
+ Default is first loaded topology.
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<file>] File to print to (default STDOUT).
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Print the bond parameter table with format:
+\end_layout
+
+\begin_layout LyX-Code
+#Idx Rk Req
+\end_layout
+
+\begin_layout Standard
+Where Idx is the internal bond parameter index,
+ Rk is the bond force constant (in kcal/mol*Ang^2),
+ and Req is the bond equilibrium value (in Ang.).
 \end_layout
 
 \begin_layout Subsection
@@ -43023,7 +43104,7 @@ vector [<name>] <Type> [out <filename> [ptrajoutput]] [<mask1>] [<mask2>]
 \end_layout
 
 \begin_layout LyX-Code
-   	[magnitude] [ired] [gridset <grid>]
+   	[magnitude] [geom] [ired] [gridset <grid>] [debye]
 \end_layout
 
 \begin_layout LyX-Code
@@ -43104,6 +43185,11 @@ ptraj
 \end_layout
 
 \begin_layout Description
+[geom] If specified,
+ use geometric centers instead of centers of mass.
+\end_layout
+
+\begin_layout Description
 [ired] Mark this vector for subsequent IRED analysis with commands 'matrix ired' and 'ired'.
 \end_layout
 
@@ -43127,6 +43213,14 @@ boxcenter
 ucell[x|y|z]
 \series default
 .
+\end_layout
+
+\begin_layout Description
+[debye] (
+\series bold
+'dipole'
+\series default
+ vector only) Report dipole vector in units of Debye instead of e-*Ang.
 \end_layout
 
 \begin_layout Standard
@@ -43186,8 +43280,13 @@ dipole Store the dipole and center of mass of the atoms specified in
 <mask1>
 \series default
 .
- The vector is not converted to appropriate units,
- nor is the value well-defined if the atoms in the mask are not overall charge neutral.
+ The dipole vector has units of e-*Ang unless 
+\series bold
+'debye'
+\series default
+ is specified for units of Debye.
+ The center is always stored as simply Ang (since it is just coordinates).
+ Note that the value may not be well-defined if the atoms in the mask are not overall charge neutral.
 \end_layout
 
 \begin_layout Description

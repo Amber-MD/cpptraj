@@ -62,6 +62,12 @@ Action::RetType Action_Angle::Setup(ActionSetup& setup) {
     mprintf("Warning: angle: One or more masks contain 0 atoms.\n");
     return Action::SKIP;
   }
+  // Check if center of mass is possible
+  if (useMass_) {
+    if (setup.Top().MaskHasZeroMass(Mask1_)) useMass_ = false;
+    if (setup.Top().MaskHasZeroMass(Mask2_)) useMass_ = false;
+    if (setup.Top().MaskHasZeroMass(Mask3_)) useMass_ = false;
+  }
   return Action::OK;  
 }
 

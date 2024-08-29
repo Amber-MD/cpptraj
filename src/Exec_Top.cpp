@@ -83,6 +83,19 @@ Exec::RetType Exec_UBInfo::Execute(CpptrajState& State, ArgList& argIn) {
 }
 
 // -----------------------------------------------------------------------------
+void Exec_BondParmInfo::Help() const {
+  mprintf("\t[%s] [out <file>]\n", DataSetList::TopIdxArgs);
+  mprintf("  Print bond parameter table.\n");
+}
+
+Exec::RetType Exec_BondParmInfo::Execute(CpptrajState& State, ArgList& argIn) {
+  TopInfo info;
+  if (CommonSetup(info, State, argIn, "Bond info")) return CpptrajState::ERR;
+  if (info.PrintBondParm()) return CpptrajState::ERR;
+  return CpptrajState::OK;
+}
+
+// -----------------------------------------------------------------------------
 void Exec_AngleInfo::Help() const {
   mprintf("\t[%s] [<mask1>] [<mask2> <mask3>]\n\t[out <file>]\n", DataSetList::TopIdxArgs);
   mprintf("  For specified topology (first by default) either print angle info for all\n"
