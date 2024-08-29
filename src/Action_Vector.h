@@ -44,6 +44,7 @@ class Action_Vector : public Action {
     bool ptrajoutput_;      ///< If true output in ptraj format
     bool needBoxInfo_;      ///< If true box info required.
     bool useMass_;          ///< If true, centers are mass-weighted 
+    bool dipole_in_debye_;  ///< If true, report dipole vector values in Debye
     Topology* CurrentParm_; ///< Current topology (for dipole)
     AtomMask mask_;
     AtomMask mask2_;

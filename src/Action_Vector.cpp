@@ -16,6 +16,7 @@ Action_Vector::Action_Vector() :
   ptrajoutput_(false),
   needBoxInfo_(false),
   useMass_(true),
+  dipole_in_debye_(false),
   CurrentParm_(0),
   outfile_(0)
 {}
@@ -23,7 +24,7 @@ Action_Vector::Action_Vector() :
 // Action_Vector::Help()
 void Action_Vector::Help() const {
   mprintf("\t[<name>] <Type> [out <filename> [ptrajoutput]] [<mask1>] [<mask2>]\n"
-          "\t[magnitude] [geom] [ired] [gridset <grid>]\n"
+          "\t[magnitude] [geom] [ired] [gridset <grid>] [debye]\n"
           "\t<Type> = { mask     | minimage  | dipole | center   | corrplane | \n"
           "\t           box      | boxcenter | ucellx | ucelly   | ucellz    | \n"
           "\t           momentum | principal [x|y|z]  | velocity | force       }\n" 
@@ -41,7 +42,8 @@ void Action_Vector::Help() const {
           "    velocity         : Store velocity of atoms in <mask1> (requires velocities).\n"
           "    force            : Store force of atoms in <mask1> (requires forces).\n"
           "  If 'magnitude' is specified, also calculate the vector magnitude.\n"
-          "  If 'geom' is specified, use geometric centers, otherwise use center of mass.\n");
+          "  If 'geom' is specified, use geometric centers, otherwise use center of mass.\n"
+          "  If 'debye' is specified, report 'dipole' vector in Debye instead of e-*Ang.\n");
 }
 
 // DESTRUCTOR
@@ -100,6 +102,7 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, ActionInit& init, int d
     mprinterr("Error: 'ptrajoutput' and 'magnitude' are incompatible.\n");
     return Action::ERR;
   }
+  dipole_in_debye_ = actionArgs.hasKey("debye");
   needBoxInfo_ = false;
   // Deprecated: corrired, corr, ired
   if ( actionArgs.hasKey("principal") ) {
@@ -212,6 +215,12 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, ActionInit& init, int d
   mprintf("\n");
   if (gridSet_ != 0)
     mprintf("\tExtracting box vectors from grid set '%s'\n", gridSet_->legend());
+  if (mode_ == DIPOLE) {
+    if (dipole_in_debye_)
+      mprintf("\tDipole vector units will be Debye.\n");
+    else
+      mprintf("\tDipole vector units will be e-*Ang.\n");
+  }
 
   return Action::OK;
 }
@@ -413,6 +422,8 @@ void Action_Vector::Dipole(Frame const& currentFrame) {
     VXYZ += ( XYZ );
   }
   CXYZ /= total_mass;
+  if (dipole_in_debye_)
+    VXYZ /= Constants::DEBYE_EA;
   Vec_->AddVxyzo( VXYZ, CXYZ );
 }
 
