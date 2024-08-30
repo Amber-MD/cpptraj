@@ -826,7 +826,8 @@ int Topology::RemoveBond(int atom1, int atom2)
   * For bonds to H always insert the H second.
   */
 void Topology::AddBond(int atom1, int atom2, int pidxIn) {
-  //mprintf("DEBUG: Enter AddBond(%i, %i, %i)\n", atom1+1, atom2+1, pidxIn);
+  //mprintf("DEBUG: Enter AddBond(%i, %i, %s, %s, %i)\n", atom1+1, atom2+1,
+  //        AtomMaskName(atom1).c_str(), AtomMaskName(atom2).c_str(), pidxIn);
   // Check if atoms are out of range.
   if (WarnOutOfRange(atoms_.size(), atom1, "bond")) return;
   if (WarnOutOfRange(atoms_.size(), atom2, "bond")) return;
@@ -851,9 +852,13 @@ void Topology::AddBond(int atom1, int atom2, int pidxIn) {
           if ( (it->A1() == atom1 && it->A2() == atom2) ||
                (it->A1() == atom2 && it->A2() == atom1) )
           {
-            mprintf("DEBUG: Existing bond found. Existing Idx %i\n", it->Idx());
+            if (debug_ > 0)
+              mprintf("DEBUG: Existing bond found. Existing Idx %i Rk=%f Req=%f\n",
+                      it->Idx(), bondparm_[it->Idx()].Rk(), bondparm_[it->Idx()].Req());
             if (it->Idx() < 0) {
-              mprintf("DEBUG: Adding bond parameter index %i for existing bond.\n", pidxIn);
+              if (debug_ > 0)
+                mprintf("DEBUG: Adding bond parameter index %i Rk=%f Req=%f for existing bond.\n",
+                        pidxIn, bondparm_[pidxIn].Rk(), bondparm_[pidxIn].Req());
               it->SetIdx( pidxIn );
             }
             break;
