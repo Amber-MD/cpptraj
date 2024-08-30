@@ -48,13 +48,32 @@ int Parm_CharmmPsf::processReadArgs(ArgList& argIn) {
 }
 
 // Parm_CharmmPsf::FindTag()
+/** Scan for the given PSF tag of format <#> <TAG>
+  * \return the <#> value of the tag, or -1 if no tag found.
+  */
 int Parm_CharmmPsf::FindTag(char* tag, const char* target, BufferedLine& infile) {
-  int nval = 0;
-  int tgtsize = strlen( target );
-  while (strncmp(tag,target,tgtsize)!=0) {
-    const char* buffer = infile.Line();
-    if ( buffer == 0 ) return 0;
-    sscanf(buffer,"%i %10s",&nval,tag);
+  int nval = -1;
+  // Check the current line
+  const char* buffer = infile.CurrentLine();
+  //mprintf("DEBUG: Current Line: %s\n", buffer);
+  const char* ptr = strstr(buffer, target);
+  while (ptr == 0) {
+    // Check subsequent lines
+    buffer = infile.Line();
+    if (buffer == 0) return -1;
+    //mprintf("DEBUG: Subsequent line: %s\n", buffer);
+    ptr = strstr(buffer, target);
+  }
+  if (ptr != 0) {
+    //mprintf("DEBUG: Line found: %s\n", buffer);
+    int nscan = sscanf(buffer,"%i %10s", &nval, tag);
+    // Sanity check
+    if (nscan != 2) {
+      mprinterr("Error: Could not get value for PSF tag %s\n", target);
+      return -1;
+    //int tgtsize = strlen( target );
+    //if (strncmp(tag, target, tgtsize) != 0)
+    }
   }
   return nval;
 }
@@ -521,10 +540,20 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
   // Advance to <# lone pairs> <# lone pair hosts> NUMLP NUMLPH
   int numlp = -1;
   int numlph = -1;
-  while (strncmp(tag, "!NUMLP", 6) !=0) {
-    const char* buffer = infile.Line();
-    if ( buffer == 0 ) break;
-    sscanf(buffer,"%i %i %10s", &numlp, &numlph, tag);
+  buffer = infile.CurrentLine();
+  const char* ptr = strstr(buffer, "!NUMLP");
+  while (ptr == 0) {
+    buffer = infile.Line();
+    if (buffer == 0) break;
+    ptr = strstr(buffer, "!NUMLP");
+  }
+  if (ptr != 0) {
+    int nscan = sscanf(buffer, "%i %i %10s", &numlp, &numlph, tag);
+    // Sanity check
+    if (nscan != 3) {
+      mprinterr("Error: Could not scan values for !NUMLP NUMLPH\n");
+      return 1;
+    }
   }
   if (numlp > -1) {
     if (debug_ > 0) mprintf("DEBUG: PSF contains %i lone pairs, %i lone pair hosts.\n", numlp, numlph);
