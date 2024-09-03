@@ -1691,7 +1691,7 @@ int SugarBuilder::FindSugarC1Linkages(int rnum1, int c_beg,
                                       NameType const& solventResName)
 const
 {
-  Residue const& res1 = topIn.SetRes(rnum1);
+  //Residue const& res1 = topIn.SetRes(rnum1);
   // If the anomeric atom is already bonded to another residue, skip this.
   for (Atom::bond_iterator bat = topIn[c_beg].bondbegin();
                            bat != topIn[c_beg].bondend(); ++bat)
@@ -1716,6 +1716,11 @@ const
   Atom::AtomicElementType a1Elt = topIn[c_beg].Element(); // Should always be C
   if (debug_ > 0)
     mprintf("DEBUG: Anomeric ring carbon: %s\n", topIn.ResNameNumAtomNameNum(c_beg).c_str());
+  // Calculate residue centers //FIXME can speed this up.
+  std::vector<Vec3> residueCenters;
+  residueCenters.reserve( topIn.Nres() );
+  for (int rr = 0; rr < topIn.Nres(); rr++)
+    residueCenters.push_back( frameIn.VGeometricCenter( topIn.Res(rr).FirstAtom(), topIn.Res(rr).LastAtom() ) );
   // Loop over other residues
   for (int rnum2 = 0; rnum2 < topIn.Nres(); rnum2++)
   {
@@ -1723,10 +1728,12 @@ const
       Residue const& res2 = topIn.Res(rnum2);
       // Ignore solvent residues
       if (res2.Name() != solventResName) {
-        int at1 = res1.FirstAtom();
+        //int at1 = res1.FirstAtom();
         int at2 = res2.FirstAtom();
         // Initial residue-residue distance based on first atoms in each residue
-        double dist2_1 = DIST2_NoImage( frameIn.XYZ(at1), frameIn.XYZ(at2) );
+        //double dist2_1 = DIST2_NoImage( frameIn.XYZ(at1), frameIn.XYZ(at2) );
+        // Initial residue-residue center distance
+        double dist2_1 = DIST2_NoImage( residueCenters[rnum1].Dptr(), residueCenters[rnum2].Dptr() );
         if (dist2_1 < rescut2) {
           if (debug_ > 1)
             mprintf("DEBUG: Residue %s to %s = %f\n",
@@ -1739,6 +1746,8 @@ const
               double D2 = DIST2_NoImage( frameIn.XYZ(c_beg), frameIn.XYZ(at2) );
               Atom::AtomicElementType a2Elt = topIn[at2].Element();
               double cutoff2 = Atom::GetBondLength(a1Elt, a2Elt) + offset;
+                  mprintf("DEBUG: Atom %s to %s = %f cut %f\n",
+                          topIn.AtomMaskName(c_beg).c_str(), topIn.AtomMaskName(at2).c_str(), sqrt(D2), cutoff2);
               cutoff2 *= cutoff2;
               if (D2 < cutoff2) {
                 if (debug_ > 1)
