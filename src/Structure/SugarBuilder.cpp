@@ -1763,12 +1763,12 @@ const
           // Do the rest of the atoms in res2 to the anomeric carbon
           for (; at2 != res2.LastAtom(); ++at2)
           {
-            if (!topIn[c_beg].IsBondedTo(at2)) {
+            if (topIn[at2].Element() != Atom::HYDROGEN && !topIn[c_beg].IsBondedTo(at2)) {
               double D2 = DIST2_NoImage( frameIn.XYZ(c_beg), frameIn.XYZ(at2) );
               Atom::AtomicElementType a2Elt = topIn[at2].Element();
               double cutoff2 = Atom::GetBondLength(a1Elt, a2Elt) + offset_;
-                  mprintf("DEBUG: Atom %s to %s = %f cut %f\n",
-                          topIn.AtomMaskName(c_beg).c_str(), topIn.AtomMaskName(at2).c_str(), sqrt(D2), cutoff2);
+              //    mprintf("DEBUG: Atom %s to %s = %f cut %f\n",
+              //            topIn.AtomMaskName(c_beg).c_str(), topIn.AtomMaskName(at2).c_str(), sqrt(D2), cutoff2);
               cutoff2 *= cutoff2;
               if (D2 < cutoff2) {
                 if (debug_ > 1)
