@@ -16,6 +16,8 @@ using namespace Cpptraj::Structure;
 
 /** CONSTRUCTOR */
 SugarBuilder::SugarBuilder(int debugIn) :
+  rescut2_(64.0), // default initial cutoff 8 Ang
+  offset_(0.2),
   hasGlycam_(false),
   useSugarName_(false),
   debug_(debugIn)
@@ -23,6 +25,8 @@ SugarBuilder::SugarBuilder(int debugIn) :
 
 /** Initialize options. */
 int SugarBuilder::InitOptions(bool hasGlycamIn,
+                              double rescutIn,
+                              double offsetIn,
                               std::string const& sugarmaskstrIn,
                               std::string const& determineSugarsBy,
                               std::string const& resmapfile)
@@ -32,6 +36,11 @@ int SugarBuilder::InitOptions(bool hasGlycamIn,
     return 1;
   }
   hasGlycam_ = hasGlycamIn;
+  if (rescutIn <= 0)
+    rescut2_ = 64.0;
+  else
+    rescut2_ = rescutIn * rescutIn;
+  offset_ = offsetIn;
   sugarmaskstr_ = sugarmaskstrIn;
 
   // Check options
@@ -64,6 +73,8 @@ int SugarBuilder::InitOptions(bool hasGlycamIn,
   // Write options to stdout
   if (hasGlycam_)
     mprintf("\tAssuming sugars already have glycam residue names.\n");
+  mprintf("\tInitial residue-residue cutoff for determining linkages: %g Ang.\n", sqrt(rescut2_));
+  mprintf("\tOffset added to bond cutoffs for determining linkages: %g Ang.\n", offset_);
   return 0;
 }
 
@@ -1685,13 +1696,23 @@ int SugarBuilder::IdentifySugar(Sugar& sugarIn, Topology& topIn,
 }
 
 // -----------------------------------------------------------------------------
+/** Cache residue centers. */
+void SugarBuilder::CacheResidueCenters(Topology const& topIn, Frame const& frameIn)
+{
+  residueCenters_.clear();
+  mprintf("\tCaching residue-residue center distances.\n");
+  residueCenters_.reserve( topIn.Nres() );
+  for (int rr = 0; rr < topIn.Nres(); rr++)
+    residueCenters_.push_back( frameIn.VGeometricCenter( topIn.Res(rr).FirstAtom(), topIn.Res(rr).LastAtom() ) );
+}
+
 /** Attempt to find any missing linkages to the anomeric carbon in sugar. */
 int SugarBuilder::FindSugarC1Linkages(int rnum1, int c_beg,
                                       Topology& topIn, Frame const& frameIn,
                                       NameType const& solventResName)
 const
 {
-  Residue const& res1 = topIn.SetRes(rnum1);
+  //Residue const& res1 = topIn.SetRes(rnum1);
   // If the anomeric atom is already bonded to another residue, skip this.
   for (Atom::bond_iterator bat = topIn[c_beg].bondbegin();
                            bat != topIn[c_beg].bondend(); ++bat)
@@ -1705,9 +1726,9 @@ const
   }
   // TODO pass these in
   // residue first atom to residue first atom cutoff^2
-  const double rescut2 = 64.0;
+  //const double rescut2 = 64.0;
   // bond cutoff offset
-  const double offset = 0.2;
+  //const double offset = 0.2;
   // index of atom to be bonded to c_beg
   int closest_at = -1;
   // distance^2 of atom to be bonded to c_beg
@@ -1716,6 +1737,11 @@ const
   Atom::AtomicElementType a1Elt = topIn[c_beg].Element(); // Should always be C
   if (debug_ > 0)
     mprintf("DEBUG: Anomeric ring carbon: %s\n", topIn.ResNameNumAtomNameNum(c_beg).c_str());
+  // Calculate residue centers
+  if (residueCenters_.empty()) {
+    mprinterr("Internal Error: Residue center distances were not cached.\n");
+    return 1;
+  }
   // Loop over other residues
   for (int rnum2 = 0; rnum2 < topIn.Nres(); rnum2++)
   {
@@ -1723,11 +1749,13 @@ const
       Residue const& res2 = topIn.Res(rnum2);
       // Ignore solvent residues
       if (res2.Name() != solventResName) {
-        int at1 = res1.FirstAtom();
+        //int at1 = res1.FirstAtom();
         int at2 = res2.FirstAtom();
         // Initial residue-residue distance based on first atoms in each residue
-        double dist2_1 = DIST2_NoImage( frameIn.XYZ(at1), frameIn.XYZ(at2) );
-        if (dist2_1 < rescut2) {
+        //double dist2_1 = DIST2_NoImage( frameIn.XYZ(at1), frameIn.XYZ(at2) );
+        // Initial residue-residue center distance
+        double dist2_1 = DIST2_NoImage( residueCenters_[rnum1].Dptr(), residueCenters_[rnum2].Dptr() );
+        if (dist2_1 < rescut2_) {
           if (debug_ > 1)
             mprintf("DEBUG: Residue %s to %s = %f\n",
                     topIn.TruncResNameOnumId(rnum1).c_str(), topIn.TruncResNameOnumId(rnum2).c_str(),
@@ -1735,10 +1763,12 @@ const
           // Do the rest of the atoms in res2 to the anomeric carbon
           for (; at2 != res2.LastAtom(); ++at2)
           {
-            if (!topIn[c_beg].IsBondedTo(at2)) {
+            if (topIn[at2].Element() != Atom::HYDROGEN && !topIn[c_beg].IsBondedTo(at2)) {
               double D2 = DIST2_NoImage( frameIn.XYZ(c_beg), frameIn.XYZ(at2) );
               Atom::AtomicElementType a2Elt = topIn[at2].Element();
-              double cutoff2 = Atom::GetBondLength(a1Elt, a2Elt) + offset;
+              double cutoff2 = Atom::GetBondLength(a1Elt, a2Elt) + offset_;
+              //    mprintf("DEBUG: Atom %s to %s = %f cut %f\n",
+              //            topIn.AtomMaskName(c_beg).c_str(), topIn.AtomMaskName(at2).c_str(), sqrt(D2), cutoff2);
               cutoff2 *= cutoff2;
               if (D2 < cutoff2) {
                 if (debug_ > 1)
@@ -1798,6 +1828,9 @@ int SugarBuilder::FixSugarsStructure(Topology& topIn, Frame& frameIn,
     mprintf("Warning: No sugar atoms selected by %s\n", sugarMask.MaskString());
     return 0;
   }
+  // Cache residue distances if we will be looking for linkages
+  if (c1bondsearch)
+    CacheResidueCenters(topIn, frameIn);
   //CharMask cmask( sugarMask.ConvertToCharMask(), sugarMask.Nselected() );
   // Get sugar residue numbers.
   Iarray sugarResNums = topIn.ResnumsSelectedBy( sugarMask );
@@ -1828,6 +1861,7 @@ int SugarBuilder::FixSugarsStructure(Topology& topIn, Frame& frameIn,
   }
 
   if (c1bondsearch) {
+    
     // Loop over sugar indices to see if anomeric C is missing bonds
     for (std::vector<Sugar>::const_iterator sugar = Sugars_.begin();
                                             sugar != Sugars_.end(); ++sugar)

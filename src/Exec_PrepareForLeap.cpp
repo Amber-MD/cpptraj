@@ -653,6 +653,7 @@ void Exec_PrepareForLeap::Help() const
           "\t  [cysmask <cysmask>] [disulfidecut <cut>] [newcysname <name>]}]\n"
           "\t[{nosugars |\n"
           "\t  sugarmask <sugarmask> [noc1search] [nosplitres]\n"
+          "\t  [rescut <residue cutoff>] [bondoffset <offset>]\n"
           "\t  [resmapfile <file>]\n"
           "\t  [hasglycam] [determinesugarsby {geom|name}]\n"
           "\t }]\n"
@@ -785,6 +786,8 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   if (prepare_sugars) {
     // Init options
     if (sugarBuilder.InitOptions( argIn.hasKey("hasglycam"),
+                                  argIn.getKeyDouble("rescut", 8.0),
+                                  argIn.getKeyDouble("bondoffset", 0.2),
                                   argIn.GetStringKey("sugarmask"),
                                   argIn.GetStringKey("determinesugarsby", "geometry"),
                                   argIn.GetStringKey("resmapfile") ))

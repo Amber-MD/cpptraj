@@ -8501,6 +8501,10 @@ prepareforleap crdset <coords set> [frame <#>] name <out coords set>
 \end_layout
 
 \begin_layout LyX-Code
+                        [rescut <residue cutoff>] [bondoffset <offset>]
+\end_layout
+
+\begin_layout LyX-Code
                         [resmapfile <file>]
 \end_layout
 
@@ -8828,11 +8832,42 @@ resmapfile
 \end_layout
 
 \begin_layout Description
-[noc1search] If specified disable search for missing sugar C1 atom bonds.
+[noc1search] If specified,
+ disable search for missing linkages to sugar C1 atom bonds.
 \end_layout
 
 \begin_layout Description
-[nosplitres] If specified do not attempt to split off functional groups from sugars into separate residues.
+[nosplitres] If specified,
+ do not attempt to split off functional groups from sugars into separate residues.
+\end_layout
+
+\begin_layout Description
+[rescut
+\begin_inset space ~
+\end_inset
+
+<residue
+\begin_inset space ~
+\end_inset
+
+cutoff>] Initial distance cutoff (default 8 Ang.) for residue center to residue center distance when looking for missing sugar linkages.
+\end_layout
+
+\begin_layout Description
+[bondoffset
+\begin_inset space ~
+\end_inset
+
+<offset>] Offset (default 0.2 Ang.) to add to 
+\begin_inset Quotes eld
+\end_inset
+
+ideal
+\begin_inset Quotes erd
+\end_inset
+
+ bond distances when looking for missing sugar linkages.
+ Can be increased to accommodate distorted structures.
 \end_layout
 
 \begin_layout Description
