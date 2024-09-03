@@ -51,4 +51,11 @@ if [ $GEN_DEV -eq 1 ] ; then
   fi
   ls -l CpptrajDevelopmentGuide.pdf
 fi
+
+# Update checksums if needed
+if [ $GEN_MANUAL -ne 0 -o $GEN_DEV -ne 0 ] ; then
+  echo "Updating document checksums."
+  md5sum *.lyx > DocumentChecksums.txt
+  ls -l DocumentChecksums.txt
+fi
 exit 0
