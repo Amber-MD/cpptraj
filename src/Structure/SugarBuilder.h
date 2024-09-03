@@ -17,8 +17,8 @@ class SugarBuilder {
     typedef std::vector<Sugar> Array;
     /// CONSTRUCTOR - Take debug level
     SugarBuilder(int);
-    /// Init options: hasGlycam, sugar mask str, determineSugarsBy, resmapfile
-    int InitOptions(bool, std::string const&, std::string const&, std::string const&);
+    /// Init options: hasGlycam, residue cutoff, bond offset, sugar mask str, determineSugarsBy, resmapfile
+    int InitOptions(bool, double, double, std::string const&, std::string const&, std::string const&);
     /// \return true if given res name is a recognized PDB sugar
     bool IsRecognizedPdbSugar(NameType const&) const;
     /// ID sugar rings, find missing C1 links, split off functional groups
@@ -83,6 +83,8 @@ class SugarBuilder {
                       Cpptraj::Structure::ResStatArray&,
                       std::set<BondType>&,
                       std::set<BondType>&);
+    /// Cache residue centers for determining linkages
+    void CacheResidueCenters(Topology const&, Frame const&);
     /// Try to find missing linkages to anomeric carbon in sugar.
     int FindSugarC1Linkages(int, int, Topology&, Frame const&, NameType const&) const;
     
@@ -107,6 +109,9 @@ class SugarBuilder {
 
     Array Sugars_;             ///< Array of found sugars
     std::string sugarmaskstr_; ///< Mask string for selecting sugars
+    double rescut2_;           ///< Cutoff for determining if residue centers are close enough to bond
+    double offset_;            ///< Bond cutoff offset for determining if atoms are bonded
+    std::vector<Vec3> residueCenters_; ///< Residue centers for determining bonding.
     bool hasGlycam_;           ///< If true, assume sugars already have glycam names
     bool useSugarName_;        ///< If true, base form/chirality on name instead of geometry
     AtomMap myMap_;            ///< Used to determine unique atoms for chirality
