@@ -3,7 +3,7 @@ channels:
 dependencies:
     - python=3.10
     - pyflakes
-    - numpy
+    - numpy=2.0.0
     - cython=0.29.36
     - setuptools
     - pytest
