@@ -11,6 +11,8 @@ class EnergyDecomposer {
     EnergyDecomposer();
     /// Initialize with arguments
     int InitDecomposer(ArgList&, int);
+    /// Print options to stdout
+    void PrintOpts() const;
   private:
     CharMask selectedAtoms_; ///< Mask of atoms that energy will be recorded for.
     int debug_;              ///< Debug level
