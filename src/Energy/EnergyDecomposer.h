@@ -7,6 +7,7 @@ class ArgList;
 class BondType;
 class DataSet;
 class DataSetList;
+class Frame;
 class Topology;
 namespace Cpptraj {
 namespace Energy {
@@ -21,21 +22,24 @@ class EnergyDecomposer {
     void PrintOpts() const;
     /// Topology-based setup
     int SetupDecomposer(Topology const&);
+    /// Calculate and decompose energies for given frame.
+    int CalcEne(Frame const&);
   private:
     typedef std::vector< Stats<double> > EneArrayType;
     typedef std::vector<BondType> BndArrayType;
-    typedef std::vector<int> Iarray;
 
     /// Set up selected bonds
-    void setupBonds(BndArrayType const&);
+    int setupBonds(BndArrayType const&);
+    /// Calculate bond energies
+    void calcBonds(Frame const&);
 
     CharMask selectedAtoms_; ///< Mask of atoms that energy will be recorded for.
     DataSet* eneOut_;        ///< Will hold the average energy of each selected entity for output.
     int debug_;              ///< Debug level
 
     BndArrayType bonds_;     ///< Hold all bonds to be calculated
-    Iarray indices_;         ///< Hold indices of each selected entity.
     EneArrayType energies_;  ///< Used to accumulate the average energy of each selected entity.
+    Topology const* currentTop_;
 };
 }
 }
