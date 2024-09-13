@@ -2,12 +2,14 @@
 #include <cmath> // sqrt for Ene_Bond etc
 #include "Ene_Bond.h"
 #include "Ene_Angle.h"
+#include "Kernel_Fourier.h"
 #include "../ArgList.h"
 #include "../CpptrajStdio.h"
 #include "../DataFileList.h"
 #include "../DataSet_Mesh.h"
 #include "../DataSetList.h"
 #include "../ParameterTypes.h"
+#include "../TorsionRoutines.h"
 #include <algorithm> //std::sort
 
 using namespace Cpptraj::Energy;
@@ -99,6 +101,26 @@ int EnergyDecomposer::setupAngles(AngArrayType const& anglesIn) {
   return 0;
 }
 
+/** Set up dihedrals. */
+int EnergyDecomposer::setupDihedrals(DihArrayType const& dihedralsIn) {
+  for (DihArrayType::const_iterator dih = dihedralsIn.begin(); dih != dihedralsIn.end(); ++dih)
+  {
+    if ( selectedAtoms_.AtomInCharMask( dih->A1() ) ||
+         selectedAtoms_.AtomInCharMask( dih->A2() ) ||
+         selectedAtoms_.AtomInCharMask( dih->A3() ) ||
+         selectedAtoms_.AtomInCharMask( dih->A4() ) )
+    {
+      if (dih->Idx() < 0) {
+        mprinterr("Error: Dihedral %i - %i - %i - %i does not have parameters, cannot calculate energy.\n",
+                  dih->A1()+1, dih->A2()+1, dih->A3()+1, dih->A4()+1);
+        return 1;
+      }
+      dihedrals_.push_back( *dih );
+    }
+  }
+  return 0;
+}
+
 /** Topology-based setup.
   * \return 0 if setup OK, 1 if error, -1 if nothing selected.
   */
@@ -143,6 +165,11 @@ int EnergyDecomposer::SetupDecomposer(Topology const& topIn) {
   if (setupAngles( topIn.Angles() )) return 1;
   if (setupAngles( topIn.AnglesH() )) return 1;
   std::sort( angles_.begin(), angles_.end() );
+  // Set up dihedrals
+  dihedrals_.clear();
+  if (setupDihedrals( topIn.Dihedrals() )) return 1;
+  if (setupDihedrals( topIn.DihedralsH() )) return 1;
+  std::sort( dihedrals_.begin(), dihedrals_.end() );
 
   // DEBUG
   mprintf("DEBUG: Saving energy for atoms:\n");
@@ -155,6 +182,9 @@ int EnergyDecomposer::SetupDecomposer(Topology const& topIn) {
   mprintf("DEBUG: Angles:\n");
   for (AngArrayType::const_iterator ang = angles_.begin(); ang != angles_.end(); ++ang)
     mprintf("\t%s - %s - %s\n", topIn.AtomMaskName(ang->A1()).c_str(), topIn.AtomMaskName(ang->A2()).c_str(), topIn.AtomMaskName(ang->A3()).c_str());
+  mprintf("DEBUG: Dihedrals:\n");
+  for (DihArrayType::const_iterator dih = dihedrals_.begin(); dih != dihedrals_.end(); ++dih)
+    mprintf("\t%s - %s - %s - %s\n", topIn.AtomMaskName(dih->A1()).c_str(), topIn.AtomMaskName(dih->A2()).c_str(), topIn.AtomMaskName(dih->A3()).c_str(), topIn.AtomMaskName(dih->A4()).c_str());
 
   currentTop_ = &topIn;
 
@@ -202,6 +232,28 @@ void EnergyDecomposer::calcAngles( Frame const& frameIn ) {
   }
 }
 
+/** Calculate dihedral energies. */
+void EnergyDecomposer::calcDihedrals( Frame const& frameIn ) {
+  for (DihArrayType::const_iterator dih = dihedrals_.begin(); dih != dihedrals_.end(); ++dih)
+  {
+    DihedralParmType const& DP = currentTop_->DihedralParm()[ dih->Idx() ];
+
+    double theta = Torsion( frameIn.XYZ(dih->A1()),
+                            frameIn.XYZ(dih->A2()),
+                            frameIn.XYZ(dih->A3()),
+                            frameIn.XYZ(dih->A4()) );
+    double ene = Kernel_Fourier<double>( theta, DP.Pk(), DP.Pn(), DP.Phase() );
+
+    mprintf("DEBUG: DIH %f\n", ene);
+    // Divide the energy equally between the four atoms.
+    double ene_fourth = ene / 4.0;
+    saveEne( dih->A1(), ene_fourth );
+    saveEne( dih->A2(), ene_fourth );
+    saveEne( dih->A3(), ene_fourth );
+    saveEne( dih->A4(), ene_fourth );
+  }
+}
+
 /** Calculate and decompose energies. */
 int EnergyDecomposer::CalcEne(Frame const& frameIn) {
   if (currentTop_ == 0) {
@@ -213,6 +265,8 @@ int EnergyDecomposer::CalcEne(Frame const& frameIn) {
   calcBonds(frameIn);
   // Angles
   calcAngles(frameIn);
+  // Dihedrals
+  calcDihedrals(frameIn);
 
   // Accumulate the energies
   for (unsigned int idx = 0; idx != energies_.size(); idx++) {
