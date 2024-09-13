@@ -5,6 +5,8 @@
 #include "../OnlineVarT.h"
 class ArgList;
 class BondType;
+class DataFile;
+class DataFileList;
 class DataSet;
 class DataSetList;
 class Frame;
@@ -17,7 +19,7 @@ class EnergyDecomposer {
     /// CONSTRUCTOR
     EnergyDecomposer();
     /// Initialize with arguments
-    int InitDecomposer(ArgList&, DataSetList&, int);
+    int InitDecomposer(ArgList&, DataSetList&, DataFileList&, int);
     /// Print options to stdout
     void PrintOpts() const;
     /// Topology-based setup
@@ -40,6 +42,7 @@ class EnergyDecomposer {
 
     CharMask selectedAtoms_; ///< Mask of atoms that energy will be recorded for.
     DataSet* eneOut_;        ///< Will hold the average energy of each selected entity for output.
+    DataFile* outfile_;      ///< Output file
     int debug_;              ///< Debug level
 
     BndArrayType bonds_;     ///< Hold all bonds to be calculated

@@ -3,6 +3,7 @@
 #include "Ene_Bond.h"
 #include "../ArgList.h"
 #include "../CpptrajStdio.h"
+#include "../DataFileList.h"
 #include "../DataSet_Mesh.h"
 #include "../DataSetList.h"
 #include "../ParameterTypes.h"
@@ -13,15 +14,18 @@ using namespace Cpptraj::Energy;
 /** CONSTRUCTOR */
 EnergyDecomposer::EnergyDecomposer() :
   eneOut_(0),
+  outfile_(0),
   debug_(0),
   currentTop_(0)
 { }
 
 /** Initialize decomposer. */
-int EnergyDecomposer::InitDecomposer(ArgList& argIn, DataSetList& DSLin, int debugIn)
+int EnergyDecomposer::InitDecomposer(ArgList& argIn, DataSetList& DSLin, DataFileList& DFLin,
+                                     int debugIn)
 {
   debug_ = debugIn;
-
+  // Process keywords
+  outfile_ = DFLin.AddDataFile( argIn.GetStringKey("out"), argIn );
   // Get atom mask
   if (selectedAtoms_.SetMaskString( argIn.GetMaskNext() ))
     return 1;
@@ -38,6 +42,8 @@ int EnergyDecomposer::InitDecomposer(ArgList& argIn, DataSetList& DSLin, int deb
   eneOut_->SetNeedsSync( false ); // Not a time series
 # endif
   eneOut_->ModifyDim(Dimension::X).SetLabel("Atom");
+  if (outfile_ != 0)
+    outfile_->AddDataSet( eneOut_ );
 
   return 0;
 }
@@ -50,6 +56,8 @@ void EnergyDecomposer::PrintOpts() const {
   }
   mprintf("\tCalculating for atoms selected by mask: %s\n", selectedAtoms_.MaskString());
   mprintf("\tData set name: %s\n", eneOut_->legend());
+  if (outfile_ != 0)
+    mprintf("\tOutput file: %s\n", outfile_->DataFilename().full());
 }
 
 // -----------------------------------------------------------------------------

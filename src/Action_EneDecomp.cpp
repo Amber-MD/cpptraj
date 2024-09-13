@@ -9,7 +9,7 @@ void Action_EneDecomp::Help() const {
 // Action_EneDecomp::Init()
 Action::RetType Action_EneDecomp::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
-  if (eneDecomp_.InitDecomposer( actionArgs, init.DSL(), debugIn ))
+  if (eneDecomp_.InitDecomposer( actionArgs, init.DSL(), init.DFL(), debugIn ))
     return  Action::ERR;
   mprintf("    ENEDECOMP: Decomposing energy for selected atoms.\n");
   eneDecomp_.PrintOpts();
