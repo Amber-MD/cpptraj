@@ -1,13 +1,15 @@
 #include "EnergyDecomposer.h"
 #include <cmath> // sqrt for Ene_Bond etc
-#include "Ene_Bond.h"
 #include "Ene_Angle.h"
+#include "Ene_Bond.h"
+#include "Ene_LJ_6_12.h"
 #include "Kernel_Fourier.h"
 #include "../ArgList.h"
 #include "../CpptrajStdio.h"
 #include "../DataFileList.h"
 #include "../DataSet_Mesh.h"
 #include "../DataSetList.h"
+#include "../DistRoutines.h"
 #include "../ParameterTypes.h"
 #include "../TorsionRoutines.h"
 #include <algorithm> //std::sort
@@ -251,6 +253,13 @@ void EnergyDecomposer::calcDihedrals( Frame const& frameIn ) {
     saveEne( dih->A2(), ene_fourth );
     saveEne( dih->A3(), ene_fourth );
     saveEne( dih->A4(), ene_fourth );
+    // 1-4 energy
+    double rij2 = DIST2_NoImage( frameIn.XYZ(dih->A1()), frameIn.XYZ(dih->A4()) );
+    NonbondType const& LJ = currentTop_->GetLJparam(dih->A1(), dih->A4());
+    double e_vdw = Ene_LJ_6_12( rij2, LJ.A(), LJ.B() );
+    double ene_half = e_vdw * 0.5;
+    saveEne( dih->A1(), ene_half );
+    saveEne( dih->A4(), ene_half );
   }
 }
 
