@@ -236,6 +236,7 @@ void EnergyDecomposer::calcAngles( Frame const& frameIn ) {
 
 /** Calculate dihedral energies. */
 void EnergyDecomposer::calcDihedrals( Frame const& frameIn ) {
+  static const double QFAC = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
   for (DihArrayType::const_iterator dih = dihedrals_.begin(); dih != dihedrals_.end(); ++dih)
   {
     DihedralParmType const& DP = currentTop_->DihedralParm()[ dih->Idx() ];
@@ -253,11 +254,20 @@ void EnergyDecomposer::calcDihedrals( Frame const& frameIn ) {
     saveEne( dih->A2(), ene_fourth );
     saveEne( dih->A3(), ene_fourth );
     saveEne( dih->A4(), ene_fourth );
-    // 1-4 energy
+    // 1-4 vdw energy
     double rij2 = DIST2_NoImage( frameIn.XYZ(dih->A1()), frameIn.XYZ(dih->A4()) );
     NonbondType const& LJ = currentTop_->GetLJparam(dih->A1(), dih->A4());
     double e_vdw = Ene_LJ_6_12( rij2, LJ.A(), LJ.B() );
+    e_vdw /= DP.SCNB();
     double ene_half = e_vdw * 0.5;
+    saveEne( dih->A1(), ene_half );
+    saveEne( dih->A4(), ene_half );
+    // 1-4 coulomb energy
+    double rij = sqrt(rij2);
+    double qiqj = QFAC * (*currentTop_)[dih->A1()].Charge() * (*currentTop_)[dih->A4()].Charge();
+    double e_elec = qiqj / rij;
+    e_elec /= DP.SCEE();
+    ene_half = e_elec * 0.5;
     saveEne( dih->A1(), ene_half );
     saveEne( dih->A4(), ene_half );
   }
