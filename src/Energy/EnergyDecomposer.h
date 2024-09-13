@@ -11,7 +11,7 @@ class Frame;
 class Topology;
 namespace Cpptraj {
 namespace Energy {
-/// Used to break down pairwise-additive energy by atom or residue
+/// Used to break down pairwise-additive energy by atom
 class EnergyDecomposer {
   public:
     /// CONSTRUCTOR
@@ -24,12 +24,17 @@ class EnergyDecomposer {
     int SetupDecomposer(Topology const&);
     /// Calculate and decompose energies for given frame.
     int CalcEne(Frame const&);
+    /// Finish the calculation by putting energies in output DataSet
+    int FinishCalc();
   private:
     typedef std::vector< Stats<double> > EneArrayType;
     typedef std::vector<BondType> BndArrayType;
 
     /// Set up selected bonds
     int setupBonds(BndArrayType const&);
+
+    /// Save energy contribution for atom if it is selected
+    inline void saveEne(int, double);
     /// Calculate bond energies
     void calcBonds(Frame const&);
 

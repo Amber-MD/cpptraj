@@ -31,5 +31,12 @@ Action::RetType Action_EneDecomp::Setup(ActionSetup& setup)
 // Action_EneDecomp::DoAction()
 Action::RetType Action_EneDecomp::DoAction(int frameNum, ActionFrame& frm)
 {
-  return Action::ERR; // FIXME
+  if (eneDecomp_.CalcEne( frm.Frm() ))
+    return Action::ERR;
+  return Action::OK;
+}
+
+// Action_EneDecomp::Print()
+void Action_EneDecomp::Print() {
+  eneDecomp_.FinishCalc();
 }

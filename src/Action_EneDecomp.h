@@ -19,7 +19,7 @@ class Action_EneDecomp : public Action {
     /// Do the action
     Action::RetType DoAction(int, ActionFrame&);
     /// Print results/finish calculations
-    void Print() {}
+    void Print();
 
     Cpptraj::Energy::EnergyDecomposer eneDecomp_; ///< Do the actual decomposition
 };

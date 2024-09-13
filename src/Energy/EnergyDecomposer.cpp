@@ -1,6 +1,9 @@
 #include "EnergyDecomposer.h"
+#include <cmath> // sqrt for Ene_Bond etc
+#include "Ene_Bond.h"
 #include "../ArgList.h"
 #include "../CpptrajStdio.h"
+#include "../DataSet_Mesh.h"
 #include "../DataSetList.h"
 #include "../ParameterTypes.h"
 #include <algorithm> //std::sort
@@ -31,6 +34,10 @@ int EnergyDecomposer::InitDecomposer(ArgList& argIn, DataSetList& DSLin, int deb
     mprinterr("Error: Could not allocate decomp. output set '%s'\n", setname.c_str());
     return 1;
   }
+# ifdef MPI
+  eneOut_->SetNeedsSync( false ); // Not a time series
+# endif
+  eneOut_->ModifyDim(Dimension::X).SetLabel("Atom");
 
   return 0;
 }
@@ -119,9 +126,25 @@ int EnergyDecomposer::SetupDecomposer(Topology const& topIn) {
 }
 
 // -----------------------------------------------------------------------------
+/** Save energy contribution to atom if it is selected. */
+void EnergyDecomposer::saveEne(int idx, double ene_cont) {
+  if (selectedAtoms_.AtomInCharMask( idx ))
+    energies_[ idx ].accumulate( ene_cont );
+}
+
 /** Calculate bond energies. */
 void EnergyDecomposer::calcBonds( Frame const& frameIn ) {
-  //for (BndArrayType::const_iterator bnd = bonds_.begin(); bnd != bonds_.end(); ++bnd)
+  for (BndArrayType::const_iterator bnd = bonds_.begin(); bnd != bonds_.end(); ++bnd)
+  {
+    BondParmType const& BP = currentTop_->BondParm()[ bnd->Idx() ];
+    double ene = Ene_Bond<double>( frameIn.XYZ( bnd->A1() ),
+                                   frameIn.XYZ( bnd->A2() ),
+                                   BP.Req(), BP.Rk() );
+    // Divide the energy equally between the two atoms.
+    double ene_half = ene * 0.5;
+    saveEne( bnd->A1(), ene_half );
+    saveEne( bnd->A2(), ene_half );
+  }
 }
 
 /** Calculate and decompose energies. */
@@ -133,5 +156,24 @@ int EnergyDecomposer::CalcEne(Frame const& frameIn) {
   // Bonds
   calcBonds(frameIn);
 
+  return 0;
+}
+
+// -----------------------------------------------------------------------------
+/** Finish the calculation by putting the results into the output DataSet. */
+int EnergyDecomposer::FinishCalc() {
+  if (energies_.empty() || eneOut_ == 0) {
+    mprinterr("Internal Error: EnergyDecomposer::FinishCalc() called before setup.\n");
+    return 1;
+  }
+  // Only add entities that have data.
+  DataSet_Mesh& set = static_cast<DataSet_Mesh&>( *eneOut_ );
+  set.Clear();
+  // TODO allocate?
+  for (unsigned int idx = 0; idx != energies_.size(); idx++) {
+    if ( energies_[idx].nData() > 0 ) {
+      set.AddXY( idx+1, energies_[idx].mean() );
+    }
+  }
   return 0;
 }
