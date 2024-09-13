@@ -3,6 +3,7 @@
 #include "../CpptrajStdio.h"
 #include "../DataSetList.h"
 #include "../ParameterTypes.h"
+#include <algorithm> //std::sort
 
 using namespace Cpptraj::Energy;
 
@@ -42,6 +43,18 @@ void EnergyDecomposer::PrintOpts() const {
   mprintf("\tData set name: %s\n", eneOut_->legend());
 }
 
+/** Set up bonds. */
+void EnergyDecomposer::setupBonds(BndArrayType const& bondsIn) {
+  for (BndArrayType::const_iterator bnd = bondsIn.begin(); bnd != bondsIn.end(); ++bnd)
+  {
+    if ( selectedAtoms_.AtomInCharMask( bnd->A1() ) ||
+         selectedAtoms_.AtomInCharMask( bnd->A2() ) )
+    {
+      bonds_.push_back( *bnd );
+    }
+  }
+}
+
 /** Topology-based setup.
   * \return 0 if setup OK, 1 if error, -1 if nothing selected.
   */
@@ -56,6 +69,14 @@ int EnergyDecomposer::SetupDecomposer(Topology const& topIn) {
     mprintf("Warning: Nothing selected by mask '%s'\n", selectedAtoms_.MaskString());
     return -1;
   }
+  // Set up bonds
+  bonds_.clear();
+  setupBonds( topIn.Bonds() );
+  setupBonds( topIn.BondsH() );
+  std::sort( bonds_.begin(), bonds_.end() );
+  mprintf("DEBUG: Bonds:\n");
+  for (BndArrayType::const_iterator bnd = bonds_.begin(); bnd != bonds_.end(); ++bnd)
+    mprintf("\t%s - %s\n", topIn.AtomMaskName(bnd->A1()).c_str(), topIn.AtomMaskName(bnd->A2()).c_str());
 
   return 0;
 }
