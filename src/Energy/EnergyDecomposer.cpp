@@ -92,6 +92,11 @@ int EnergyDecomposer::SetupDecomposer(Topology const& topIn) {
   setupBonds( topIn.Bonds() );
   setupBonds( topIn.BondsH() );
   std::sort( bonds_.begin(), bonds_.end() );
+
+  // DEBUG
+  mprintf("DEBUG: Saving energy for atoms:\n");
+  for (Iarray::const_iterator it = indices_.begin(); it != indices_.end(); ++it)
+    mprintf("\t%s\n", topIn.AtomMaskName( *it ).c_str());
   mprintf("DEBUG: Bonds:\n");
   for (BndArrayType::const_iterator bnd = bonds_.begin(); bnd != bonds_.end(); ++bnd)
     mprintf("\t%s - %s\n", topIn.AtomMaskName(bnd->A1()).c_str(), topIn.AtomMaskName(bnd->A2()).c_str());
