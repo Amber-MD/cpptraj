@@ -43,6 +43,7 @@ void EnergyDecomposer::PrintOpts() const {
   mprintf("\tData set name: %s\n", eneOut_->legend());
 }
 
+// -----------------------------------------------------------------------------
 /** Set up bonds. */
 void EnergyDecomposer::setupBonds(BndArrayType const& bondsIn) {
   for (BndArrayType::const_iterator bnd = bondsIn.begin(); bnd != bondsIn.end(); ++bnd)
@@ -69,6 +70,23 @@ int EnergyDecomposer::SetupDecomposer(Topology const& topIn) {
     mprintf("Warning: Nothing selected by mask '%s'\n", selectedAtoms_.MaskString());
     return -1;
   }
+  // Set up calculation arrays
+  if (indices_.empty()) {
+    // First time setup
+    indices_.reserve( selectedAtoms_.Nselected() );
+    for (int idx = 0; idx != topIn.Natom(); idx++)
+      if (selectedAtoms_.AtomInCharMask( idx ))
+        indices_.push_back( idx );
+    energies_.resize( selectedAtoms_.Nselected() );
+  } else {
+    // Already setup. Warn if indices have changed.
+    if ((unsigned int)selectedAtoms_.Nselected() != indices_.size()) {
+      // FIXME implement this
+      mprinterr("Error: Number of selected atoms has changed in topology '%s'\n", topIn.c_str());
+      mprinterr("Error: Not yet supported by energy decomposition.\n");
+      return 1;
+    }
+  }
   // Set up bonds
   bonds_.clear();
   setupBonds( topIn.Bonds() );
@@ -80,3 +98,5 @@ int EnergyDecomposer::SetupDecomposer(Topology const& topIn) {
 
   return 0;
 }
+
+// -----------------------------------------------------------------------------
