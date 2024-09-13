@@ -1,4 +1,5 @@
 #include "EnergyDecomposer.h"
+#include "../ArgList.h"
 
 using namespace Cpptraj::Energy;
 
@@ -6,3 +7,10 @@ using namespace Cpptraj::Energy;
 EnergyDecomposer::EnergyDecomposer()
 { }
 
+/** Initialize decomposer. */
+int EnergyDecomposer::InitDecomposer(ArgList&, int debugIn)
+{
+  debug_ = debugIn;
+
+  return 0;
+}
