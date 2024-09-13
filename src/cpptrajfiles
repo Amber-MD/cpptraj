@@ -35,6 +35,7 @@ COMMON_SOURCES= \
         Action_Dipole.cpp \
         Action_Distance.cpp \
         Action_DistRmsd.cpp \
+        Action_EneDecomp.cpp \
         Action_Energy.cpp \
         Action_FilterByData.cpp \
         Action_FixAtomOrder.cpp \

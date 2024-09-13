@@ -164,6 +164,7 @@
 #include "Action_ToroidalDiffusion.h"
 #include "Action_MinMaxDist.h"
 #include "Action_AddAtom.h"
+#include "Action_EneDecomp.h"
 // ----- ANALYSIS --------------------------------------------------------------
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
@@ -347,6 +348,7 @@ void Command::Init() {
   Command::AddCmd( new Action_DNAionTracker(), Cmd::ACT, 1, "dnaiontracker" ); // hidden
   Command::AddCmd( new Action_DistRmsd(),      Cmd::ACT, 2, "drms", "drmsd" );
   Command::AddCmd( new Action_DSSP(),          Cmd::ACT, 2, "dssp", "secstruct" );
+  Command::AddCmd( new Action_EneDecomp(),     Cmd::ACT, 1, "enedecomp" );
   Command::AddCmd( new Action_Energy(),        Cmd::ACT, 1, "energy" );
   Command::AddCmd( new Action_Esander(),       Cmd::ACT, 1, "esander" );
   Command::AddCmd( new Action_FilterByData(),  Cmd::ACT, 1, "filter" );
