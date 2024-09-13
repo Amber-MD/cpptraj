@@ -1,6 +1,7 @@
 #include "EnergyDecomposer.h"
 #include <cmath> // sqrt for Ene_Bond etc
 #include "Ene_Bond.h"
+#include "Ene_Angle.h"
 #include "../ArgList.h"
 #include "../CpptrajStdio.h"
 #include "../DataFileList.h"
@@ -79,6 +80,25 @@ int EnergyDecomposer::setupBonds(BndArrayType const& bondsIn) {
   return 0;
 }
 
+/** Set up angles. */
+int EnergyDecomposer::setupAngles(AngArrayType const& anglesIn) {
+  for (AngArrayType::const_iterator ang = anglesIn.begin(); ang != anglesIn.end(); ++ang)
+  {
+    if ( selectedAtoms_.AtomInCharMask( ang->A1() ) ||
+         selectedAtoms_.AtomInCharMask( ang->A2() ) ||
+         selectedAtoms_.AtomInCharMask( ang->A3() ) )
+    {
+      if (ang->Idx() < 0) {
+        mprinterr("Error: Angle %i - %i - %i does not have parameters, cannot calculate energy.\n",
+                  ang->A1()+1, ang->A2()+1, ang->A3()+1);
+        return 1;
+      }
+      angles_.push_back( *ang );
+    }
+  }
+  return 0;
+}
+
 /** Topology-based setup.
   * \return 0 if setup OK, 1 if error, -1 if nothing selected.
   */
@@ -118,6 +138,11 @@ int EnergyDecomposer::SetupDecomposer(Topology const& topIn) {
   if (setupBonds( topIn.Bonds() )) return 1;
   if (setupBonds( topIn.BondsH() )) return 1;
   std::sort( bonds_.begin(), bonds_.end() );
+  // Set up angles
+  angles_.clear();
+  if (setupAngles( topIn.Angles() )) return 1;
+  if (setupAngles( topIn.AnglesH() )) return 1;
+  std::sort( angles_.begin(), angles_.end() );
 
   // DEBUG
   mprintf("DEBUG: Saving energy for atoms:\n");
@@ -127,6 +152,9 @@ int EnergyDecomposer::SetupDecomposer(Topology const& topIn) {
   mprintf("DEBUG: Bonds:\n");
   for (BndArrayType::const_iterator bnd = bonds_.begin(); bnd != bonds_.end(); ++bnd)
     mprintf("\t%s - %s\n", topIn.AtomMaskName(bnd->A1()).c_str(), topIn.AtomMaskName(bnd->A2()).c_str());
+  mprintf("DEBUG: Angles:\n");
+  for (AngArrayType::const_iterator ang = angles_.begin(); ang != angles_.end(); ++ang)
+    mprintf("\t%s - %s - %s\n", topIn.AtomMaskName(ang->A1()).c_str(), topIn.AtomMaskName(ang->A2()).c_str(), topIn.AtomMaskName(ang->A3()).c_str());
 
   currentTop_ = &topIn;
 
@@ -137,7 +165,7 @@ int EnergyDecomposer::SetupDecomposer(Topology const& topIn) {
 /** Save energy contribution to atom if it is selected. */
 void EnergyDecomposer::saveEne(int idx, double ene_cont) {
   if (selectedAtoms_.AtomInCharMask( idx ))
-    energies_[ idx ].accumulate( ene_cont );
+    currentEne_[ idx ] += ene_cont;
 }
 
 /** Calculate bond energies. */
@@ -148,10 +176,29 @@ void EnergyDecomposer::calcBonds( Frame const& frameIn ) {
     double ene = Ene_Bond<double>( frameIn.XYZ( bnd->A1() ),
                                    frameIn.XYZ( bnd->A2() ),
                                    BP.Req(), BP.Rk() );
+    mprintf("DEBUG: BND %f\n", ene);
     // Divide the energy equally between the two atoms.
     double ene_half = ene * 0.5;
     saveEne( bnd->A1(), ene_half );
     saveEne( bnd->A2(), ene_half );
+  }
+}
+
+/** Calculate angle energies. */
+void EnergyDecomposer::calcAngles( Frame const& frameIn ) {
+  for (AngArrayType::const_iterator ang = angles_.begin(); ang != angles_.end(); ++ang)
+  {
+    AngleParmType const& AP = currentTop_->AngleParm()[ ang->Idx() ];
+    double ene = Ene_Angle<double>( frameIn.XYZ( ang->A1() ),
+                                    frameIn.XYZ( ang->A2() ),
+                                    frameIn.XYZ( ang->A3() ),
+                                    AP.Teq(), AP.Tk() );
+    mprintf("DEBUG: ANG %f\n", ene);
+    // Divide the energy equally between the three atoms.
+    double ene_third = ene / 3.0;
+    saveEne( ang->A1(), ene_third );
+    saveEne( ang->A2(), ene_third );
+    saveEne( ang->A3(), ene_third );
   }
 }
 
@@ -161,8 +208,17 @@ int EnergyDecomposer::CalcEne(Frame const& frameIn) {
     mprinterr("Internal Error: EnergyDecomposer::CalcEne() called before setup.\n");
     return 1;
   }
+  currentEne_.assign( energies_.size(), 0.0 );
   // Bonds
   calcBonds(frameIn);
+  // Angles
+  calcAngles(frameIn);
+
+  // Accumulate the energies
+  for (unsigned int idx = 0; idx != energies_.size(); idx++) {
+    if (selectedAtoms_.AtomInCharMask( idx ))
+      energies_[idx].accumulate( currentEne_[idx] );
+  }
 
   return 0;
 }
