@@ -1,0 +1,3 @@
+# Files for Energy subdirectory.
+ENERGY_SOURCES= \
+  EnergyDecomposer.cpp

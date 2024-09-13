@@ -1,0 +1,1 @@
+EnergyDecomposer.o : EnergyDecomposer.cpp ../Atom.h ../CharMask.h ../MaskToken.h ../Molecule.h ../NameType.h ../Residue.h ../Segment.h ../SymbolExporting.h ../Unit.h EnergyDecomposer.h
