@@ -20,7 +20,12 @@ Action::RetType Action_EneDecomp::Init(ArgList& actionArgs, ActionInit& init, in
 // Action_EneDecomp::Setup()
 Action::RetType Action_EneDecomp::Setup(ActionSetup& setup)
 {
-  return Action::ERR; // FIXME
+  int ret = eneDecomp_.SetupDecomposer( setup.Top() );
+  if (ret == -1)
+    return Action::SKIP;
+  else if (ret == 1)
+    return Action::ERR;
+  return Action::OK;
 }
 
 // Action_EneDecomp::DoAction()

@@ -4,8 +4,10 @@
 #include "../CharMask.h"
 #include "../OnlineVarT.h"
 class ArgList;
+class BondType;
 class DataSet;
 class DataSetList;
+class Topology;
 namespace Cpptraj {
 namespace Energy {
 /// Used to break down pairwise-additive energy by atom or residue
@@ -17,6 +19,8 @@ class EnergyDecomposer {
     int InitDecomposer(ArgList&, DataSetList&, int);
     /// Print options to stdout
     void PrintOpts() const;
+    /// Topology-based setup
+    int SetupDecomposer(Topology const&);
   private:
     typedef std::vector< Stats<double> > EneArrayType;
 
@@ -24,6 +28,9 @@ class EnergyDecomposer {
     DataSet* eneOut_;        ///< Will hold the average energy of each selected entity for output.
     EneArrayType energies_;  ///< Used to accumulate the average energy of each selected entity.
     int debug_;              ///< Debug level
+
+    typedef std::vector<BondType> BndArrayType;
+    BndArrayType bonds_; ///< Hold all bonds to be calculated
 };
 }
 }

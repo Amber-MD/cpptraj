@@ -2,6 +2,7 @@
 #include "../ArgList.h"
 #include "../CpptrajStdio.h"
 #include "../DataSetList.h"
+#include "../ParameterTypes.h"
 
 using namespace Cpptraj::Energy;
 
@@ -39,4 +40,22 @@ void EnergyDecomposer::PrintOpts() const {
   }
   mprintf("\tCalculating for atoms selected by mask: %s\n", selectedAtoms_.MaskString());
   mprintf("\tData set name: %s\n", eneOut_->legend());
+}
+
+/** Topology-based setup.
+  * \return 0 if setup OK, 1 if error, -1 if nothing selected.
+  */
+int EnergyDecomposer::SetupDecomposer(Topology const& topIn) {
+  // First set up the mask
+  if (topIn.SetupCharMask( selectedAtoms_ )) {
+    mprinterr("Error: Could not set up mask '%s'\n", selectedAtoms_.MaskString());
+    return 1;
+  }
+  selectedAtoms_.MaskInfo();
+  if (selectedAtoms_.None()) {
+    mprintf("Warning: Nothing selected by mask '%s'\n", selectedAtoms_.MaskString());
+    return -1;
+  }
+
+  return 0;
 }
