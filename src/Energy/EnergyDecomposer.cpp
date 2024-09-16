@@ -259,6 +259,7 @@ void EnergyDecomposer::calcDihedrals( Frame const& frameIn ) {
     NonbondType const& LJ = currentTop_->GetLJparam(dih->A1(), dih->A4());
     double e_vdw = Ene_LJ_6_12( rij2, LJ.A(), LJ.B() );
     e_vdw /= DP.SCNB();
+    mprintf("DEBUG: V14 %f\n", e_vdw);
     double ene_half = e_vdw * 0.5;
     saveEne( dih->A1(), ene_half );
     saveEne( dih->A4(), ene_half );
@@ -267,6 +268,7 @@ void EnergyDecomposer::calcDihedrals( Frame const& frameIn ) {
     double qiqj = QFAC * (*currentTop_)[dih->A1()].Charge() * (*currentTop_)[dih->A4()].Charge();
     double e_elec = qiqj / rij;
     e_elec /= DP.SCEE();
+    mprintf("DEBUG: E14 %f\n", e_elec);
     ene_half = e_elec * 0.5;
     saveEne( dih->A1(), ene_half );
     saveEne( dih->A4(), ene_half );
