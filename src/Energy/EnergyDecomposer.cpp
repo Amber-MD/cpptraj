@@ -267,24 +267,26 @@ void EnergyDecomposer::calcDihedrals( Frame const& frameIn ) {
     saveEne( dih->A2(), ene_fourth );
     saveEne( dih->A3(), ene_fourth );
     saveEne( dih->A4(), ene_fourth );
-    // 1-4 vdw energy
-    double rij2 = DIST2_NoImage( frameIn.XYZ(dih->A1()), frameIn.XYZ(dih->A4()) );
-    NonbondType const& LJ = currentTop_->GetLJparam(dih->A1(), dih->A4());
-    double e_vdw = Ene_LJ_6_12( rij2, LJ.A(), LJ.B() );
-    e_vdw /= DP.SCNB();
-    mprintf("DEBUG: V14 %f\n", e_vdw);
-    double ene_half = e_vdw * 0.5;
-    saveEne( dih->A1(), ene_half );
-    saveEne( dih->A4(), ene_half );
-    // 1-4 coulomb energy
-    double rij = sqrt(rij2);
-    double qiqj = QFAC_ * (*currentTop_)[dih->A1()].Charge() * (*currentTop_)[dih->A4()].Charge();
-    double e_elec = qiqj / rij;
-    e_elec /= DP.SCEE();
-    mprintf("DEBUG: E14 %f\n", e_elec);
-    ene_half = e_elec * 0.5;
-    saveEne( dih->A1(), ene_half );
-    saveEne( dih->A4(), ene_half );
+    if (dih->Type() == DihedralType::NORMAL) {
+      // 1-4 vdw energy
+      double rij2 = DIST2_NoImage( frameIn.XYZ(dih->A1()), frameIn.XYZ(dih->A4()) );
+      NonbondType const& LJ = currentTop_->GetLJparam(dih->A1(), dih->A4());
+      double e_vdw = Ene_LJ_6_12( rij2, LJ.A(), LJ.B() );
+      e_vdw /= DP.SCNB();
+      mprintf("DEBUG: V14 %f\n", e_vdw);
+      double ene_half = e_vdw * 0.5;
+      saveEne( dih->A1(), ene_half );
+      saveEne( dih->A4(), ene_half );
+      // 1-4 coulomb energy
+      double rij = sqrt(rij2);
+      double qiqj = QFAC_ * (*currentTop_)[dih->A1()].Charge() * (*currentTop_)[dih->A4()].Charge();
+      double e_elec = qiqj / rij;
+      e_elec /= DP.SCEE();
+      mprintf("DEBUG: E14 %f\n", e_elec);
+      ene_half = e_elec * 0.5;
+      saveEne( dih->A1(), ene_half );
+      saveEne( dih->A4(), ene_half );
+    }
   }
 }
 
