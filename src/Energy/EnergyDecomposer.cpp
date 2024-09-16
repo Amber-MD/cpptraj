@@ -16,6 +16,8 @@
 
 using namespace Cpptraj::Energy;
 
+const double EnergyDecomposer::QFAC_ = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
+
 /** CONSTRUCTOR */
 EnergyDecomposer::EnergyDecomposer() :
   eneOut_(0),
@@ -172,6 +174,18 @@ int EnergyDecomposer::SetupDecomposer(Topology const& topIn) {
   if (setupDihedrals( topIn.Dihedrals() )) return 1;
   if (setupDihedrals( topIn.DihedralsH() )) return 1;
   std::sort( dihedrals_.begin(), dihedrals_.end() );
+  // For nonbonds, set up all selected atoms in an integer atom mask.
+  //mask_ = AtomMask( selectedAtoms_.ConvertToIntMask(), selectedAtoms_.Natom() );
+  // Need to set up ex
+  // TODO if using pairlist, needs to be EXCLUDE_SELF and FULL
+  //if (Excluded_.SetupExcludedForAtoms( topIn.Atoms(), mask_, 4 ))
+  if (Excluded_.SetupExcluded( topIn.Atoms(), 4,
+                               ExclusionArray::NO_EXCLUDE_SELF,
+                               ExclusionArray::ONLY_GREATER_IDX ))
+  {
+    mprinterr("Error: Could not set up atom exclusion list for energy decomposition.\n");
+    return 1;
+  }
 
   // DEBUG
   mprintf("DEBUG: Saving energy for atoms:\n");
@@ -234,9 +248,8 @@ void EnergyDecomposer::calcAngles( Frame const& frameIn ) {
   }
 }
 
-/** Calculate dihedral energies. */
+/** Calculate dihedral and LJ 1-4 energies. */
 void EnergyDecomposer::calcDihedrals( Frame const& frameIn ) {
-  static const double QFAC = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
   for (DihArrayType::const_iterator dih = dihedrals_.begin(); dih != dihedrals_.end(); ++dih)
   {
     DihedralParmType const& DP = currentTop_->DihedralParm()[ dih->Idx() ];
@@ -265,7 +278,7 @@ void EnergyDecomposer::calcDihedrals( Frame const& frameIn ) {
     saveEne( dih->A4(), ene_half );
     // 1-4 coulomb energy
     double rij = sqrt(rij2);
-    double qiqj = QFAC * (*currentTop_)[dih->A1()].Charge() * (*currentTop_)[dih->A4()].Charge();
+    double qiqj = QFAC_ * (*currentTop_)[dih->A1()].Charge() * (*currentTop_)[dih->A4()].Charge();
     double e_elec = qiqj / rij;
     e_elec /= DP.SCEE();
     mprintf("DEBUG: E14 %f\n", e_elec);
@@ -273,6 +286,39 @@ void EnergyDecomposer::calcDihedrals( Frame const& frameIn ) {
     saveEne( dih->A1(), ene_half );
     saveEne( dih->A4(), ene_half );
   }
+}
+
+/** Simple nonbonded energy calculation with no cutoff. */
+void EnergyDecomposer::calcNB_simple(Frame const& frameIn) {
+  for (int atom1 = 0; atom1 < currentTop_->Natom(); atom1++) {
+    bool atom1_is_selected = selectedAtoms_.AtomInCharMask( atom1 );
+    ExclusionArray::ExListType const& excludedAtoms = Excluded_[atom1];
+    for (int atom2 = atom1 + 1; atom2 < currentTop_->Natom(); atom2++) {
+      bool atom2_is_selected = selectedAtoms_.AtomInCharMask( atom2 );
+      if (atom1_is_selected || atom2_is_selected) {
+        ExclusionArray::ExListType::const_iterator it = excludedAtoms.find( atom2 );
+        if (it == excludedAtoms.end()) {
+          // Either atom1 or atom2 is selected and the interaction is not excluded.
+          // vdw energy TODO image distances?
+          double rij2 = DIST2_NoImage( frameIn.XYZ(atom1), frameIn.XYZ(atom2) );
+          NonbondType const& LJ = currentTop_->GetLJparam(atom1, atom2);
+          double e_vdw = Ene_LJ_6_12( rij2, LJ.A(), LJ.B() );
+          mprintf("DEBUG: VDW %f\n", e_vdw);
+          double ene_half = e_vdw * 0.5;
+          saveEne( atom1, ene_half );
+          saveEne( atom2, ene_half );
+          // Coulomb energy
+          double rij = sqrt(rij2);
+          double qiqj = QFAC_ * (*currentTop_)[atom1].Charge() * (*currentTop_)[atom2].Charge();
+          double e_elec = qiqj / rij;
+          mprintf("DEBUG: ELE %f\n", e_elec);
+          ene_half = e_elec * 0.5;
+          saveEne( atom1, ene_half );
+          saveEne( atom2, ene_half );
+        } // END atom2 not excluded from atom1
+      } // END atom1 or atom2 is selected
+    } // END inner loop over atoms
+  } // END outer loop over atoms
 }
 
 /** Calculate and decompose energies. */
@@ -288,6 +334,8 @@ int EnergyDecomposer::CalcEne(Frame const& frameIn) {
   calcAngles(frameIn);
   // Dihedrals
   calcDihedrals(frameIn);
+  // Nonbonds
+  calcNB_simple(frameIn);
 
   // Accumulate the energies
   for (unsigned int idx = 0; idx != energies_.size(); idx++) {

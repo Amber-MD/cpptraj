@@ -1,7 +1,9 @@
 #ifndef INC_ENERGY_ENERGYDECOMPOSER_H
 #define INC_ENERGY_ENERGYDECOMPOSER_H
 #include <vector>
+#include "../AtomMask.h"
 #include "../CharMask.h"
+#include "../ExclusionArray.h"
 #include "../OnlineVarT.h"
 class AngleType;
 class ArgList;
@@ -31,6 +33,8 @@ class EnergyDecomposer {
     /// Finish the calculation by putting energies in output DataSet
     int FinishCalc();
   private:
+    static const double QFAC_; ///< Coulomb prefactor
+
     typedef std::vector<double> Darray;
     typedef std::vector< Stats<double> > EneArrayType;
     typedef std::vector<BondType> BndArrayType;
@@ -52,17 +56,21 @@ class EnergyDecomposer {
     void calcAngles(Frame const&);
     /// Calculate dihedral energies
     void calcDihedrals(Frame const&);
+    /// Calculate simple nonbonded energies, no cutoff
+    void calcNB_simple(Frame const&);
 
     CharMask selectedAtoms_; ///< Mask of atoms that energy will be recorded for.
     DataSet* eneOut_;        ///< Will hold the average energy of each selected entity for output.
     DataFile* outfile_;      ///< Output file
     int debug_;              ///< Debug level
 
-    BndArrayType bonds_;     ///< Hold all bonds to be calculated
-    AngArrayType angles_;    ///< Hold all angles to be calculated
-    DihArrayType dihedrals_; ///< Hold all dihedrals to be calculated
-    EneArrayType energies_;  ///< Used to accumulate the average energy of each selected entity.
-    Topology const* currentTop_;
+    BndArrayType bonds_;         ///< Hold all bonds to be calculated
+    AngArrayType angles_;        ///< Hold all angles to be calculated
+    DihArrayType dihedrals_;     ///< Hold all dihedrals to be calculated
+    //AtomMask mask_;              ///< Atom mask for nonbonded calculations
+    ExclusionArray Excluded_;    ///< Hold excluded atoms lists for each selected atom
+    EneArrayType energies_;      ///< Used to accumulate the average energy of each selected entity.
+    Topology const* currentTop_; ///< Current topology from Setup
 
     Darray currentEne_;      ///< Hold the total energy of each atom for the current frame
 };
