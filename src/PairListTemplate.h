@@ -8,6 +8,8 @@ template <typename T, template <typename> class EngineClass>
 void PairListTemplate(PairList const& PL, ExclusionArray const& Excluded, double cut2,
                       EngineClass<T>& engine)
 {
+  engine.FrameBeginCalc();
+
   int cidx;
 
   for (cidx = 0; cidx < PL.NGridMax(); cidx++)
@@ -46,7 +48,6 @@ void PairListTemplate(PairList const& PL, ExclusionArray const& Excluded, double
           // If atom excluded, calc adjustment, otherwise calc elec. energy.
           if (excluded.find( it1->Idx() ) == excluded.end())
           {
-
             if ( rij2 < cut2 ) {
 #             ifdef NBDBG
               if (it0->Idx() < it1->Idx())
@@ -57,7 +58,7 @@ void PairListTemplate(PairList const& PL, ExclusionArray const& Excluded, double
               engine.CutoffSatisfied(rij2, *it0, *it1);
             }
           } else {
-#           include "EnergyKernel_Adjust.h"
+            engine.CutoffNotSatisfied(rij2, *it0, *it1);
           }
         } // END loop over other atoms in thisCell
         // Loop over all neighbor cells
@@ -77,8 +78,9 @@ void PairListTemplate(PairList const& PL, ExclusionArray const& Excluded, double
           for (PairList::CellType::const_iterator it1 = nbrCell.begin();
                                                   it1 != nbrCell.end(); ++it1)
           {
+            engine.SetupAtom1( *it1 );
             Vec3 const& xyz1 = it1->ImageCoords();
-            double q1 = Charge_[it1->Idx()];
+            //double q1 = Charge_[it1->Idx()];
             Vec3 dxyz = xyz1 + tVec - xyz0;
             double rij2 = dxyz.Magnitude2();
             //mprintf("\t\tAtom %6i {%f %f %f} to atom %6i {%f %f %f} = %f Ang\n", it0->Idx()+1, xyz0[0], xyz0[1], xyz0[2], it1->Idx()+1, xyz1[0], xyz1[1], xyz1[2], sqrt(rij2));
@@ -99,10 +101,10 @@ void PairListTemplate(PairList const& PL, ExclusionArray const& Excluded, double
                 else
                   mprintf("NBDBG %6i%6i\n", it1->Idx()+1, it0->Idx()+1);
 #               endif
-#               include "EnergyKernel_Nonbond.h"
+                engine.CutoffSatisfied(rij2, *it0, *it1);
               }
             } else {
-#             include "EnergyKernel_Adjust.h"
+              engine.CutoffNotSatisfied(rij2, *it0, *it1);
             }
           } // END loop over neighbor cell atoms
         } // END Loop over neighbor cells
@@ -110,4 +112,5 @@ void PairListTemplate(PairList const& PL, ExclusionArray const& Excluded, double
     } // END if thisCell is not empty
   } // Loop over cells
 } // END PairListTemplate
+} // END namespace Cpptraj
 #endif
