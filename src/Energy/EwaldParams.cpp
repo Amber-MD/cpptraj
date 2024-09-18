@@ -5,6 +5,18 @@
 
 using namespace Cpptraj::Energy;
 
+/** CONSTRUCTOR */
+EwaldParams::EwaldParams() :
+  ew_coeff_(0.0),
+  lw_coeff_(0.0),
+  switch_width_(0.0),
+  cutoff_(0.0),
+  cut2_(0.0),
+  cut2_0_(0.0),
+  dsumTol_(0.0),
+  debug_(0)
+{}
+
 static inline double DABS(double xIn) { if (xIn < 0.0) return -xIn; else return xIn; }
 
 /** Determine Ewald coefficient from cutoff and direct sum tolerance.
