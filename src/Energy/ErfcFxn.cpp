@@ -1,6 +1,8 @@
 #include "ErfcFxn.h"
-#include "CpptrajStdio.h"
+#include "../CpptrajStdio.h"
 #include <cmath>
+
+using namespace Cpptraj::Energy;
 
 static inline double DABS(double xIn) { if (xIn < 0.0) return -xIn; else return xIn; }
 

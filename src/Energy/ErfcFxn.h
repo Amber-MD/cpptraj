@@ -2,6 +2,8 @@
 #define INC_ERFCFXN_H
 #include "../SplineFxnTable.h"
 #include "../Timer.h"
+namespace Cpptraj {
+namespace Energy {
 /// Complimentary error function
 class ErfcFxn {
   public:
@@ -19,11 +21,13 @@ class ErfcFxn {
       return erfcval;
 #     endif
     }
-  private:
     /// ERFC function from sander
     static double erfc_func(double);
+  private:
 
     SplineFxnTable table_;
     Timer t_erfc_; ///< For recording how much time is spent doing erfc lookup
 };
+}
+}
 #endif
