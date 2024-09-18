@@ -15,6 +15,8 @@ class PairListEngine_Ewald_LJLR {
   public:
     PairListEngine_Ewald_LJLR() : NB_(0) {}
     // -------------------------------------------
+    /// Call at the beginning of the frame calculation
+    void FrameBeginCalc() { Evdw_ = 0; Eelec_ = 0; Eadjust_ = 0; }
     /// Call for atom 0 when looping over atoms of thisCell
     void SetupAtom0( PairList::AtmType const& atom0 ) {
       q0_ = Charge_[atom0.Idx()];
@@ -23,8 +25,6 @@ class PairListEngine_Ewald_LJLR {
     void SetupAtom1( PairList::AtmType const& atom1 ) {
       q1_ = Charge_[atom1.Idx()];
     }
-    /// Call at the beginning of the frame calculation
-    void FrameBeginCalc() { Evdw_ = 0; Eelec_ = 0; Eadjust_ = 0; }
     /// Call when cutoff is satisfied
     void CutoffSatisfied(T const& rij2,
                          PairList::AtmType const& atom0,
