@@ -1,6 +1,5 @@
 #ifndef INC_ENERGY_ENE_LJ_6_12_H
 #define INC_ENERGY_ENE_LJ_6_12_H
-#include "Kernel_Harmonic.h"
 namespace Cpptraj {
 namespace Energy {
 /// \return LJ 6-12 energy
