@@ -53,19 +53,17 @@ class PairListEngine_Nonbond {
       Eadjust_ += Kernel_EwaldAdjust<T>( q0_, q1_, sqrt(rij2), ew_coeff_, erfc_ );
     }
   private:
-    
     T q0_;                  ///< Charge on atom 0
     T q1_;                  ///< Charge on atom 1
     T Evdw_;                ///< VDW sum for current frame
     T Eelec_;               ///< Coulomb sum for current frame
     T Eadjust_;             ///< Adjust energy sum for current frame
 
-    T ew_coeff_;            ///< Ewald coefficient
-
-    ErfcFxn erfc_; ///< Hold spline interpolation for erfc
-    std::vector<T> Charge_; ///< Array of charges
-    Iarray TypeIndices_;  ///< Hold atom type indices for selected atoms
-    NonbondParmType const* NB_; ///< Pointer to nonbonded parameters
+    T ew_coeff_;                  ///< Ewald coefficient
+    ErfcFxn erfc_;                ///< Hold spline interpolation for erfc
+    std::vector<T> Charge_;       ///< Array of charges
+    Iarray TypeIndices_;          ///< Hold atom type indices for selected atoms
+    NonbondParmType const* NB_;   ///< Pointer to nonbonded parameters
     Kernel_LJswitch<T> ljswitch_; ///< LJ switching function
 };
 } // END namespace Cpptraj

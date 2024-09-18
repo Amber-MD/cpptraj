@@ -5,7 +5,7 @@
 namespace Cpptraj {
 /// Template for doing pair list calculations
 template <typename T, template <typename> class EngineClass>
-void PairListTemplate(PairList const& PL, ExclusionArray const& Excluded, double cut2,
+void PairListTemplate(PairList const& PL, ExclusionArray const& Excluded, T cut2,
                       EngineClass<T>& engine)
 {
   engine.FrameBeginCalc();
@@ -27,7 +27,6 @@ void PairListTemplate(PairList const& PL, ExclusionArray const& Excluded, double
       {
         engine.SetupAtom0( *it0 );
         Vec3 const& xyz0 = it0->ImageCoords();
-        //double q0 = Charge_[it0->Idx()];
 #       ifdef DEBUG_PAIRLIST
         mprintf("DBG: Cell %6i (%6i atoms):\n", cidx, thisCell.NatomsInGrid());
 #       endif
@@ -39,9 +38,8 @@ void PairListTemplate(PairList const& PL, ExclusionArray const& Excluded, double
         {
           engine.SetupAtom1( *it1 );
           Vec3 const& xyz1 = it1->ImageCoords();
-          //double q1 = Charge_[it1->Idx()];
           Vec3 dxyz = xyz1 - xyz0;
-          double rij2 = dxyz.Magnitude2();
+          T rij2 = dxyz.Magnitude2();
 #         ifdef DEBUG_PAIRLIST
           mprintf("\tAtom %6i to atom %6i (%f)\n", it0->Idx()+1, it1->Idx()+1, sqrt(rij2));
 #         endif
@@ -80,9 +78,8 @@ void PairListTemplate(PairList const& PL, ExclusionArray const& Excluded, double
           {
             engine.SetupAtom1( *it1 );
             Vec3 const& xyz1 = it1->ImageCoords();
-            //double q1 = Charge_[it1->Idx()];
             Vec3 dxyz = xyz1 + tVec - xyz0;
-            double rij2 = dxyz.Magnitude2();
+            T rij2 = dxyz.Magnitude2();
             //mprintf("\t\tAtom %6i {%f %f %f} to atom %6i {%f %f %f} = %f Ang\n", it0->Idx()+1, xyz0[0], xyz0[1], xyz0[2], it1->Idx()+1, xyz1[0], xyz1[1], xyz1[2], sqrt(rij2));
 #           ifdef DEBUG_PAIRLIST
             mprintf("\t\tAtom %6i to atom %6i (%f)\n", it0->Idx()+1, it1->Idx()+1, sqrt(rij2));
