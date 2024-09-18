@@ -1,3 +1,6 @@
 # Files for Energy subdirectory.
 ENERGY_SOURCES= \
-  EnergyDecomposer.cpp
+  EnergyDecomp_Ewald.cpp \
+  EnergyDecomposer.cpp \
+  ErfcFxn.cpp \
+  EwaldParams.cpp
