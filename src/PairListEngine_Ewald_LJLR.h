@@ -3,7 +3,7 @@
 #include "Energy/Ene_LJ_6_12.h"
 #include "ErfcFxn.h"
 #include "Kernel_EwaldAdjust.h"
-#include "Kernel_LJswitch.h"
+#include "LJswitch.h"
 #include "PairList.h"
 #include "ParameterTypes.h"
 #include <vector>
@@ -66,7 +66,7 @@ class PairListEngine_Ewald_LJLR {
     std::vector<T> Charge_;       ///< Array of charges
     Iarray TypeIndices_;          ///< Hold atom type indices for selected atoms
     NonbondParmType const* NB_;   ///< Pointer to nonbonded parameters
-    Kernel_LJswitch<T> ljswitch_; ///< LJ switching function
+    LJswitch<T> ljswitch_;        ///< LJ switching function
 };
 } // END namespace Cpptraj
 #endif
