@@ -1,5 +1,5 @@
-#ifndef INC_PAIRLISTENGINE_NONBOND_H
-#define INC_PAIRLISTENGINE_NONBOND_H
+#ifndef INC_PAIRLISTENGINE_EWALD_LJLR_H
+#define INC_PAIRLISTENGINE_EWALD_LJLR_H
 #include "Energy/Ene_LJ_6_12.h"
 #include "ErfcFxn.h"
 #include "Kernel_EwaldAdjust.h"
@@ -8,12 +8,12 @@
 #include "ParameterTypes.h"
 #include <vector>
 namespace Cpptraj {
-/// Nonbond calculation for pairlist with Ewald and VDW LR correction
+/// Direct space nonbond calculation using pairlist with Ewald and VDW LR correction
 template <typename T>
-class PairListEngine_Nonbond {
+class PairListEngine_Ewald_LJLR {
     typedef std::vector<int> Iarray;
   public:
-    PairListEngine_Nonbond() : NB_(0) {}
+    PairListEngine_Ewald_LJLR() : NB_(0) {}
     // -------------------------------------------
     /// Call for atom 0 when looping over atoms of thisCell
     void SetupAtom0( PairList::AtmType const& atom0 ) {
