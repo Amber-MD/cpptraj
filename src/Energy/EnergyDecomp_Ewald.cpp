@@ -1,4 +1,5 @@
 #include "EnergyDecomp_Ewald.h"
+#include "../ExclusionArray.h"
 #include "../ParameterTypes.h"
 #include <cmath>
 
@@ -6,10 +7,23 @@ using namespace Cpptraj::Energy;
 
 EnergyDecomp_Ewald::EnergyDecomp_Ewald() {}
 
+// -----------------------------------------------------------------------------
+
+double EnergyDecomp_Ewald::ERFC(double rIn) {
+# ifdef _OPENMP
+  return EW_.ErfcEW( rIn );
+# else
+  t_erfc_.Start();
+  double erfcval = EW_.ErfcEW( rIn );
+  t_erfc_.Stop();
+  return erfcval;
+# endif
+}
+
 double EnergyDecomp_Ewald::adjust(double q0, double q1, double rij) {
   t_adjust_.Start();
   //double erfc = erfc_func(ew_coeff_ * rij);
-  double erfc = erfc_.ERFC(ew_coeff_ * rij);
+  double erfc = ERFC(rij);
   double d0 = (erfc - 1.0) / rij;
   t_adjust_.Stop();
   return (q0 * q1 * d0);
@@ -21,10 +35,10 @@ void EnergyDecomp_Ewald::calcAdjust(double& e_adjust, double& Eljpme_correction_
                                     double q0, double q1, double rij2)
 {
   e_adjust += adjust(q0, q1, sqrt(rij2));
-  if (lw_coeff_ > 0.0) {
+  if (EW_.LW_Coeff() > 0.0) {
     // LJ PME direct space exclusion correction
     // NOTE: Assuming excluded pair is within cutoff
-    double kr2 = lw_coeff_ * lw_coeff_ * rij2;
+    double kr2 = EW_.LW_Coeff() * EW_.LW_Coeff() * rij2;
     double kr4 = kr2 * kr2;
     //double kr6 = kr2 * kr4;
     double expterm = exp(-kr2);
@@ -44,7 +58,7 @@ void EnergyDecomp_Ewald::ene_nb(double& Eelec, double& Evdw, double& Eljpme_corr
   double rij = sqrt( rij2 );
   double qiqj = q0 * q1;
   //double erfc = erfc_func(ew_coeff_ * rij);
-  double erfc = erfc_.ERFC(ew_coeff_ * rij);
+  double erfc = ERFC(rij);
   double e_elec = qiqj * erfc / rij;
   Eelec += e_elec;
   //mprintf("EELEC %4i%4i%12.5f%12.5f%12.5f%3.0f%3.0f%3.0f\n",
@@ -58,7 +72,7 @@ void EnergyDecomp_Ewald::ene_nb(double& Eelec, double& Evdw, double& Eljpme_corr
   int nbindex = NB_->GetLJindex(TypeIndices_[atom0.Idx()],
                                 TypeIndices_[atom1.Idx()]);
   if (nbindex > -1) {
-    double vswitch = ljswitch_.switch_fn(rij2);
+    double vswitch = EW_.Switch_Fn(rij2);
     NonbondType const& LJ = NB_->NBarray()[ nbindex ];
     double r2    = 1.0 / rij2;
     double r6    = r2 * r2 * r2;
@@ -68,9 +82,9 @@ void EnergyDecomp_Ewald::ene_nb(double& Eelec, double& Evdw, double& Eljpme_corr
     double e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)
     Evdw += (e_vdw * vswitch);
     //mprintf("PVDW %8i%8i%20.6f%20.6f\n", ta0+1, ta1+1, e_vdw, r2);
-    if (lw_coeff_ > 0.0) {
+    if (EW_.LW_Coeff() > 0.0) {
       // LJ PME direct space correction
-      double kr2 = lw_coeff_ * lw_coeff_ * rij2;
+      double kr2 = EW_.LW_Coeff() * EW_.LW_Coeff() * rij2;
       double kr4 = kr2 * kr2;
       //double kr6 = kr2 * kr4;
       double expterm = exp(-kr2);
@@ -82,7 +96,8 @@ void EnergyDecomp_Ewald::ene_nb(double& Eelec, double& Evdw, double& Eljpme_corr
 
 /** Direct space nonbonded energy calculation for Ewald */
 void EnergyDecomp_Ewald::ene_ewald_direct(double& Eelec, double& evdw_out, double& eadjust_out,
-                                          Frame const& frameIn)
+                                          Frame const& frameIn, PairList const& PL,
+                                          ExclusionArray const& Excluded)
 {
   t_direct_.Start();
   Eelec = 0.0;
@@ -96,9 +111,9 @@ void EnergyDecomp_Ewald::ene_ewald_direct(double& Eelec, double& evdw_out, doubl
   {
 # pragma omp for
 # endif
-  for (cidx = 0; cidx < PL_.NGridMax(); cidx++)
+  for (cidx = 0; cidx < PL.NGridMax(); cidx++)
   {
-    PairList::CellType const& thisCell = PL_.Cell( cidx );
+    PairList::CellType const& thisCell = PL.Cell( cidx );
     if (thisCell.NatomsInGrid() > 0)
     {
       // cellList contains this cell index and all neighbors.
@@ -115,7 +130,7 @@ void EnergyDecomp_Ewald::ene_ewald_direct(double& Eelec, double& evdw_out, doubl
         mprintf("DBG: Cell %6i (%6i atoms):\n", cidx, thisCell.NatomsInGrid());
 #       endif
         // Exclusion list for this atom
-        ExclusionArray::ExListType const& excluded = Excluded_[it0->Idx()];
+        ExclusionArray::ExListType const& excluded = Excluded[it0->Idx()];
         // Calc interaction of atom to all other atoms in thisCell.
         for (PairList::CellType::const_iterator it1 = it0 + 1;
                                                 it1 != thisCell.end(); ++it1)
@@ -131,7 +146,7 @@ void EnergyDecomp_Ewald::ene_ewald_direct(double& Eelec, double& evdw_out, doubl
           if (excluded.find( it1->Idx() ) == excluded.end())
           {
 
-            if ( rij2 < cut2_ ) {
+            if ( rij2 < EW_.Cut2() ) {
 #             ifdef NBDBG
               if (it0->Idx() < it1->Idx())
                 mprintf("NBDBG %6i%6i\n", it0->Idx()+1, it1->Idx()+1);
@@ -147,12 +162,12 @@ void EnergyDecomp_Ewald::ene_ewald_direct(double& Eelec, double& evdw_out, doubl
         // Loop over all neighbor cells
         for (unsigned int nidx = 1; nidx != cellList.size(); nidx++)
         {
-          PairList::CellType const& nbrCell = PL_.Cell( cellList[nidx] );
+          PairList::CellType const& nbrCell = PL.Cell( cellList[nidx] );
 #         ifdef DEBUG_PAIRLIST
           if (nbrCell.NatomsInGrid()>0) mprintf("\tto neighbor cell %6i\n", cellList[nidx]+1);
 #         endif
           // Translate vector for neighbor cell
-          Vec3 const& tVec = PL_.TransVec( transList[nidx] );
+          Vec3 const& tVec = PL.TransVec( transList[nidx] );
 #         ifdef DEBUG_PAIRLIST
           if (nbrCell.NatomsInGrid()>0) mprintf("DBG:\tto neighbor cell %6i (%6i atoms) tVec= %f %f %f\n", cellList[nidx], nbrCell.NatomsInGrid(), tVec[0], tVec[1], tVec[2]);
 #         endif
@@ -176,7 +191,7 @@ void EnergyDecomp_Ewald::ene_ewald_direct(double& Eelec, double& evdw_out, doubl
             {
 
               //mprintf("\t\t\tdist= %f\n", sqrt(rij2));
-              if ( rij2 < cut2_ ) {
+              if ( rij2 < EW_.Cut2() ) {
 #               ifdef NBDBG
                 if (it0->Idx() < it1->Idx())
                   mprintf("NBDBG %6i%6i\n", it0->Idx()+1, it1->Idx()+1);
