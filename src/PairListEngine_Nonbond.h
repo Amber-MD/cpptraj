@@ -14,6 +14,7 @@ class PairListEngine_Nonbond {
     typedef std::vector<int> Iarray;
   public:
     PairListEngine_Nonbond() : NB_(0) {}
+    // -------------------------------------------
     /// Call for atom 0 when looping over atoms of thisCell
     void SetupAtom0( PairList::AtmType const& atom0 ) {
       q0_ = Charge_[atom0.Idx()];
@@ -52,6 +53,7 @@ class PairListEngine_Nonbond {
     {
       Eadjust_ += Kernel_EwaldAdjust<T>( q0_, q1_, sqrt(rij2), ew_coeff_, erfc_ );
     }
+    // -------------------------------------------
   private:
     T q0_;                  ///< Charge on atom 0
     T q1_;                  ///< Charge on atom 1
