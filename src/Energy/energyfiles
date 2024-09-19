@@ -3,4 +3,5 @@ ENERGY_SOURCES= \
   EnergyDecomp_Ewald.cpp \
   EnergyDecomposer.cpp \
   ErfcFxn.cpp \
-  EwaldParams.cpp
+  EwaldParams.cpp \
+  EwaldParams_PME.cpp

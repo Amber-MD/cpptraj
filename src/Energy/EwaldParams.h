@@ -2,12 +2,18 @@
 #define INC_ENERGY_EWALDPARAMS_H
 #include "ErfcFxn.h"
 class Box;
+class EwaldOptions;
 namespace Cpptraj {
 namespace Energy {
 class EwaldParams {
   public:
     EwaldParams();
-
+    // Virtual since inherited
+    virtual ~EwaldParams() {}
+    // -------------------------------------------
+    virtual int InitEwald(Box const&, EwaldOptions const&, int) = 0;
+    // -------------------------------------------
+    // TODO make protected?
     int CheckInput(Box const&, int, double, double,
                    double, double, double,
                    double, double);
@@ -31,6 +37,17 @@ class EwaldParams {
     double LW_Coeff() const { return lw_coeff_; }
     /// \return Direct space cutoff (in Ang squared)
     double Cut2() const { return cut2_; }
+
+    /// \return Direct space cutoff (in Ang)
+    double Cutoff() const { return cutoff_; }
+    /// \return Direct sum tolerance
+    double DirectSumTol() const { return dsumTol_; }
+    /// \return Ewald coefficient
+    double EwaldCoeff() const { return ew_coeff_; }
+    /// \return LJ Ewald coefficient
+    double LJ_EwaldCoeff() const { return lw_coeff_; }
+    /// \return LJ switch width (in Ang.)
+    double LJ_SwitchWidth() const { return switch_width_; }
   private:
     double FindEwaldCoefficient(double, double);
 
