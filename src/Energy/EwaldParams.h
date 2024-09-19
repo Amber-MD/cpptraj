@@ -8,6 +8,7 @@ class EwaldOptions;
 class Topology;
 namespace Cpptraj {
 namespace Energy {
+/// Parameters common to all Ewald methods
 class EwaldParams {
   public:
     EwaldParams();

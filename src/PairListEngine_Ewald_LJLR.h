@@ -53,6 +53,8 @@ class PairListEngine_Ewald_LJLR {
       Eadjust_ += Cpptraj::Energy::Kernel_EwaldAdjust<T>( q0_, q1_, rij, erfcval );
     }
     // -------------------------------------------
+    Cpptraj::Energy::EwaldParams_PME& ModifyEwaldParams() { return EW_; }
+    Cpptraj::Energy::EwaldParams_PME const& EwaldParams() const { return EW_; }
   private:
     T q0_;                  ///< Charge on atom 0
     T q1_;                  ///< Charge on atom 1
