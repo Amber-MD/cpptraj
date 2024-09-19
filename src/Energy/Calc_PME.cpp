@@ -5,7 +5,9 @@
 
 using namespace Cpptraj::Energy;
 
-Calc_PME::Calc_PME() {}
+Calc_PME::Calc_PME() :
+  Recip_(PME_Recip::COULOMB)
+{}
 
 /** Set up PME parameters. */
 int Calc_PME::Init(Box const& boxIn, EwaldOptions const& pmeOpts, int debugIn)
