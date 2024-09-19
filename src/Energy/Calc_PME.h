@@ -1,9 +1,8 @@
 #ifndef INC_ENERGY_CALC_PME_H
 #define INC_ENERGY_CALC_PME_H
-#include <vector>
+#include "PME_Recip.h"
 #include "VDW_LongRange_Correction.h"
 #include "../ExclusionArray.h"
-#include "../helpme_standalone.h"
 #include "../PairList.h"
 #include "../PairListEngine_Ewald_LJLR.h"
 class AtomMask;
@@ -22,14 +21,11 @@ class Calc_PME {
     int CalcNonbondEnergy(Frame const&, AtomMask const&, double&, double&);
 
   private:
-    typedef std::vector<double> Darray;
-
     PairListEngine_Ewald_LJLR<double> NBengine_;
-    PMEInstanceD pme_object_;
+    PME_Recip Recip_;
     PairList pairList_;
     ExclusionArray Excluded_;
     VDW_LongRange_Correction VDW_LR_; ///< For calculating the long range VDW correction
-    Darray coordsD_; ///< Hold selected coords for recip calc
 };
 }
 }

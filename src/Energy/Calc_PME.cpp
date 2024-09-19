@@ -19,6 +19,7 @@ int Calc_PME::Init(Box const& boxIn, EwaldOptions const& pmeOpts, int debugIn)
   if (pairList_.SetupPairList( boxIn ))
     return 1;
   VDW_LR_.SetDebug( debugIn );
+  Recip_.SetDebug( debugIn );
 
   return 0;
 }
@@ -33,9 +34,6 @@ int Calc_PME::Setup(Topology const& topIn, AtomMask const& maskIn) {
     mprinterr("Error: PME calculation long range VDW correction setup failed.\n");
     return 1;
   }
-  // Reserve space for coords for the reciprocal part of the calculation
-  coordsD_.clear();
-  coordsD_.reserve( maskIn.Nselected() * 3);
   // Setup exclusion list
   // Use distance of 4 (up to dihedrals)
   if (Excluded_.SetupExcluded(topIn.Atoms(), maskIn, 4,

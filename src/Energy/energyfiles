@@ -6,4 +6,5 @@ ENERGY_SOURCES= \
   ErfcFxn.cpp \
   EwaldParams.cpp \
   EwaldParams_PME.cpp \
+  PME_Recip.cpp \
   VDW_LongRange_Correction.cpp
