@@ -1,4 +1,5 @@
 #include "EwaldParams_PME.h"
+#include "../AtomMask.h"
 #include "../CpptrajStdio.h"
 #include "../EwaldOptions.h"
 
@@ -53,6 +54,18 @@ int EwaldParams_PME::InitEwald(Box const& boxIn, EwaldOptions const& pmeOpts, in
   // Set up pair list
   //if (Setup_Pairlist(boxIn, pmeOpts.SkinNB())) return 1;
 
+  return 0;
+}
+
+/** Setup PME calculation. */
+int EwaldParams_PME::SetupEwald(Topology const& topIn, AtomMask const& maskIn) {
+  CalculateCharges(topIn, maskIn);
+  // NOTE: These dont need to actually be calculated if the lj ewald coeff
+  //       is 0.0, but do it here anyway to avoid segfaults.
+  //CalculateC6params( topIn, maskIn );
+  coordsD_.clear();
+  coordsD_.reserve( maskIn.Nselected() * 3);
+  //SetupExclusionList(topIn, maskIn);
   return 0;
 }
 

@@ -2,6 +2,7 @@
 #include "../Box.h"
 #include "../Constants.h"
 #include "../CpptrajStdio.h"
+#include "../Topology.h"
 
 using namespace Cpptraj::Energy;
 
@@ -14,7 +15,10 @@ EwaldParams::EwaldParams() :
   cut2_(0.0),
   cut2_0_(0.0),
   dsumTol_(0.0),
-  debug_(0)
+  debug_(0),
+  NB_(0),
+  sumq_(0),
+  sumq2_(0)
 {}
 
 static inline double DABS(double xIn) { if (xIn < 0.0) return -xIn; else return xIn; }
@@ -114,5 +118,24 @@ int EwaldParams::CheckInput(Box const& boxIn, int debugIn, double cutoffIn, doub
   cut2_0_ = cut0 * cut0;
 
   return 0;
+}
+/** Convert charges to Amber units. Calculate sum of charges and squared charges. */
+void EwaldParams::CalculateCharges(Topology const& topIn, AtomMask const& maskIn) {
+  NB_ = static_cast<NonbondParmType const*>( &(topIn.Nonbond()) );
+
+  sumq_ = 0.0;
+  sumq2_ = 0.0;
+  Charge_.clear();
+  TypeIndices_.clear();
+  for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom) {
+    double qi = topIn[*atom].Charge() * Constants::ELECTOAMBER;
+    Charge_.push_back(qi);
+    sumq_ += qi;
+    sumq2_ += (qi * qi);
+    // Store atom type indices for selected atoms.
+    TypeIndices_.push_back( topIn[*atom].TypeIndex() );
+  }
+  //mprintf("DEBUG: sumq= %20.10f   sumq2= %20.10f\n", sumq_, sumq2_);
+  //Setup_VDW_Correction( topIn, maskIn );
 }
 

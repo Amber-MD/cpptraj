@@ -4,7 +4,6 @@
 #include "Energy/EwaldParams_PME.h"
 #include "Energy/Kernel_EwaldAdjust.h"
 #include "PairList.h"
-#include "ParameterTypes.h"
 #include <vector>
 namespace Cpptraj {
 /// Direct space nonbond calculation using pairlist with Ewald and VDW LR correction
@@ -12,17 +11,17 @@ template <typename T>
 class PairListEngine_Ewald_LJLR {
     typedef std::vector<int> Iarray;
   public:
-    PairListEngine_Ewald_LJLR() : NB_(0) {}
+    PairListEngine_Ewald_LJLR() {}
     // -------------------------------------------
     /// Call at the beginning of the frame calculation
     void FrameBeginCalc() { Evdw_ = 0; Eelec_ = 0; Eadjust_ = 0; }
     /// Call for atom 0 when looping over atoms of thisCell
     void SetupAtom0( PairList::AtmType const& atom0 ) {
-      q0_ = Charge_[atom0.Idx()];
+      q0_ = EW_.Charge(atom0.Idx());
     }
     /// Call for atom 1 when looping over interaction atoms of this/other cell
     void SetupAtom1( PairList::AtmType const& atom1 ) {
-      q1_ = Charge_[atom1.Idx()];
+      q1_ = EW_.Charge(atom1.Idx());
     }
     /// Call when cutoff is satisfied
     void CutoffSatisfied(T const& rij2,
@@ -36,11 +35,10 @@ class PairListEngine_Ewald_LJLR {
       T e_elec = qiqj * erfcval / rij;
       Eelec_ += e_elec;
 
-      int nbindex = NB_->GetLJindex(TypeIndices_[atom0.Idx()],
-                                    TypeIndices_[atom1.Idx()]);
+      int nbindex = EW_.NbIndex(atom0.Idx(), atom1.Idx());
       if (nbindex > -1) {
         double vswitch = EW_.Switch_Fn(rij2);
-        NonbondType const& LJ = NB_->NBarray()[ nbindex ];
+        NonbondType const& LJ = EW_.GetLJ( nbindex );
         T e_vdw = Cpptraj::Energy::Ene_LJ_6_12<T>(rij2, LJ.A(), LJ.B());
         Evdw_ += (e_vdw * vswitch);
       }
@@ -62,9 +60,6 @@ class PairListEngine_Ewald_LJLR {
     T Eelec_;               ///< Coulomb sum for current frame
     T Eadjust_;             ///< Adjust energy sum for current frame
 
-    std::vector<T> Charge_;       ///< Array of charges
-    Iarray TypeIndices_;          ///< Hold atom type indices for selected atoms
-    NonbondParmType const* NB_;   ///< Pointer to nonbonded parameters
     Cpptraj::Energy::EwaldParams_PME EW_;          ///< Hold Ewald parameters for PME
 };
 } // END namespace Cpptraj
