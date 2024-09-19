@@ -11,7 +11,6 @@ class EwaldParams_PME : public EwaldParams {
   private:
     int nfft_[3]; ///< Number of FFT grid points in each direction
     int order_;   ///< PME B spline order
-    Darray coordsD_; ///< Hold coordinates for selected atoms
 };
 }
 }

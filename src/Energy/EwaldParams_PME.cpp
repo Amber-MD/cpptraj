@@ -60,12 +60,5 @@ int EwaldParams_PME::InitEwald(Box const& boxIn, EwaldOptions const& pmeOpts, in
 /** Setup PME calculation. */
 int EwaldParams_PME::SetupEwald(Topology const& topIn, AtomMask const& maskIn) {
   CalculateCharges(topIn, maskIn);
-  // NOTE: These dont need to actually be calculated if the lj ewald coeff
-  //       is 0.0, but do it here anyway to avoid segfaults.
-  //CalculateC6params( topIn, maskIn );
-  coordsD_.clear();
-  coordsD_.reserve( maskIn.Nselected() * 3);
-  //SetupExclusionList(topIn, maskIn);
   return 0;
 }
-

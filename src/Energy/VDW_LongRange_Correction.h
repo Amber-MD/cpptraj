@@ -10,7 +10,7 @@ class VDW_LongRange_Correction {
   public:
     VDW_LongRange_Correction();
     void SetDebug(int);
-    void Setup_VDW_Correction(Topology const&, AtomMask const&);
+    int Setup_VDW_Correction(Topology const&, AtomMask const&);
     /// \return Full VDW long range correction from cutoff and volume
     double Vdw_Correction(double cutoff_, double volume) const {
       double prefac = Constants::TWOPI / (3.0*volume*cutoff_*cutoff_*cutoff_);

@@ -12,15 +12,15 @@ VDW_LongRange_Correction::VDW_LongRange_Correction() :
 void VDW_LongRange_Correction::SetDebug(int debugIn) { debug_ = debugIn; }
 
 /** Determine VDW long range correction prefactor. */
-void VDW_LongRange_Correction::Setup_VDW_Correction(Topology const& topIn,
+int VDW_LongRange_Correction::Setup_VDW_Correction(Topology const& topIn,
                                                     AtomMask const& maskIn)
 {
   Vdw_Recip_term_ = 0.0;
   NonbondParmType const* NB_ = static_cast<NonbondParmType const*>( &(topIn.Nonbond()) );
   if (!NB_->HasNonbond()) {
-    mprintf("Warning: '%s' has no nonbonded parameters. Cannot calculate VDW correction.\n",
+    mprinterr("Error: '%s' has no nonbonded parameters. Cannot calculate VDW correction.\n",
             topIn.c_str());
-    return;
+    return 1;
   }
   Iarray N_vdw_type_; 
   // Count the number of each unique nonbonded type.
@@ -53,5 +53,5 @@ void VDW_LongRange_Correction::Setup_VDW_Correction(Topology const& topIn,
     }
     //atype_vdw_recip_terms_.push_back(atype_vdw_term);  // the nonbond interaction for each atom type
   }
+  return 0;
 }
-
