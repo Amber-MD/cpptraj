@@ -1,5 +1,6 @@
 #ifndef INC_ENERGY_CALC_PME_H
 #define INC_ENERGY_CALC_PME_H
+#include "VDW_LongRange_Correction.h"
 #include "../ExclusionArray.h"
 #include "../helpme_standalone.h"
 #include "../PairList.h"
@@ -24,6 +25,7 @@ class Calc_PME {
     PMEInstanceD pme_object_;
     PairList pairList_;
     ExclusionArray Excluded_;
+    VDW_LongRange_Correction VDW_LR_; ///< For calculating the long range VDW correction
 };
 }
 }

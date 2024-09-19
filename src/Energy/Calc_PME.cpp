@@ -17,6 +17,7 @@ int Calc_PME::Init(Box const& boxIn, EwaldOptions const& pmeOpts, int debugIn)
     return 1;
   if (pairList_.SetupPairList( boxIn ))
     return 1;
+  VDW_LR_.SetDebug( debugIn );
 
   return 0;
 }
