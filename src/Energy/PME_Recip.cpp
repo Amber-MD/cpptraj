@@ -8,9 +8,20 @@ typedef helpme::Matrix<double> Mat;
 
 using namespace Cpptraj::Energy;
 
-PME_Recip::PME_Recip() :
+PME_Recip::PME_Recip(Type typeIn) :
   debug_(0)
-{}
+{
+  switch (typeIn) {
+    case COULOMB:
+      distKernelExponent_ = 1;
+      scaleFac_ = 1.0;
+      break;
+    case LJ:
+      distKernelExponent_ = 6;
+      scaleFac_ = -1.0;
+      break;
+  }
+}
 
 void PME_Recip::SetDebug(int d) { debug_ = d; }
 
@@ -134,7 +145,7 @@ double PME_Recip::Recip_ParticleMesh(Frame const& frameIn, AtomMask const& maskI
   // NOTE: Scale factor for Charmm is 332.0716
   // NOTE: The electrostatic constant has been baked into the Charge_ array already.
   //auto pme_object = std::unique_ptr<PMEInstanceD>(new PMEInstanceD());
-  pme_object_.setup(1, ew_coeffIn, orderIn, nfft1, nfft2, nfft3, 1.0, 0);
+  pme_object_.setup(distKernelExponent_, ew_coeffIn, orderIn, nfft1, nfft2, nfft3, scaleFac_, 0);
   // Sets the unit cell lattice vectors, with units consistent with those used to specify coordinates.
   // Args: 1 = the A lattice parameter in units consistent with the coordinates.
   //       2 = the B lattice parameter in units consistent with the coordinates.

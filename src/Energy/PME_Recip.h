@@ -11,7 +11,9 @@ namespace Energy {
 class PME_Recip {
     typedef std::vector<double> Darray;
   public:
-    PME_Recip();
+    enum Type { COULOMB = 0, LJ };
+
+    PME_Recip(Type);
     void SetDebug(int);
     double Recip_ParticleMesh(Frame const&, AtomMask const&, Box const&,
                               Darray&, const int*, double, int);
@@ -24,6 +26,8 @@ class PME_Recip {
     Darray coordsD_;
     Timer t_recip_; ///< Recip calc timer
     int debug_;
+    int distKernelExponent_; ///< Exponent of the distance kernel: 1 for Coulomb, 6 for LJ
+    double scaleFac_; ///< scale factor to be applied to all computed energies and derivatives thereof
 };
 }
 }
