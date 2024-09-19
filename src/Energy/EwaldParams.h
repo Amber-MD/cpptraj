@@ -34,6 +34,8 @@ class EwaldParams {
         return (xoff_m_x*xoff_m_x) * (cut2_1 + 2.0*rij2 - 3.0*cut2_0_) * (fac*fac*fac);
       }
     }
+    /// \return Self energy for the given volume
+    double SelfEnergy(double) const;
 
     /// \return Direct space cutoff (in Ang squared)
     double Cut2() const { return cut2_; }

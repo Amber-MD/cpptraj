@@ -139,3 +139,17 @@ void EwaldParams::CalculateCharges(Topology const& topIn, AtomMask const& maskIn
   //Setup_VDW_Correction( topIn, maskIn );
 }
 
+/** Electrostatic self energy. This is the cancelling Gaussian plus the "neutralizing plasma". */
+double EwaldParams::SelfEnergy(double volume) const {
+  static const double INVSQRTPI = 1.0 / sqrt(Constants::PI);
+//  t_self_.Start();
+  double d0 = -ew_coeff_ * INVSQRTPI;
+  double ene = sumq2_ * d0;
+//  mprintf("DEBUG: d0= %20.10f   ene= %20.10f\n", d0, ene);
+  double factor = Constants::PI / (ew_coeff_ * ew_coeff_ * volume);
+  double ee_plasma = -0.5 * factor * sumq_ * sumq_;
+  ene += ee_plasma;
+//  t_self_.Stop();
+  return ene;
+}
+
