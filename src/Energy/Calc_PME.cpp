@@ -129,5 +129,5 @@ void Calc_PME::Timing(double total) const {
 //  t_erfc_.WriteTiming(3,  "ERFC:  ", t_direct_.Total());
 //  t_adjust_.WriteTiming(3,"Adjust:", t_direct_.Total());
 //# endif
-//  pairList_.Timing(total);
+  pairList_.Timing(total);
 }
