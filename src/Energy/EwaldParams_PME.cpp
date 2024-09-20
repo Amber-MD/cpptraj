@@ -2,6 +2,7 @@
 #include "../AtomMask.h"
 #include "../CpptrajStdio.h"
 #include "../EwaldOptions.h"
+#include "../Frame.h"
 
 using namespace Cpptraj::Energy;
 
@@ -60,5 +61,25 @@ int EwaldParams_PME::InitEwald(Box const& boxIn, EwaldOptions const& pmeOpts, in
 /** Setup PME calculation. */
 int EwaldParams_PME::SetupEwald(Topology const& topIn, AtomMask const& maskIn) {
   CalculateCharges(topIn, maskIn);
+  // Sanity check
+  if (Charge().size() != (unsigned int)maskIn.Nselected()) {
+    mprinterr("Internal Error: EwaldParams_PME::SetupEwald(): Charge/coords size mismatch (%zu vs %i\n",
+              Charge().size(), maskIn.Nselected());
+    return 1;
+  }
+
+  coordsD_.clear();
+  coordsD_.reserve( maskIn.Nselected()*3 );
   return 0;
+}
+
+/** Put selected coords in separate array for recip calc. */
+void EwaldParams_PME::FillRecipCoords(Frame const& frameIn, AtomMask const& maskIn)
+{
+  for (AtomMask::const_iterator atm = maskIn.begin(); atm != maskIn.end(); ++atm) {
+    const double* XYZ = frameIn.XYZ( *atm );
+    coordsD_.push_back( XYZ[0] );
+    coordsD_.push_back( XYZ[1] );
+    coordsD_.push_back( XYZ[2] );
+  }
 }

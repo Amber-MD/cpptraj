@@ -60,6 +60,8 @@ class EwaldParams {
     typedef std::vector<int> Iarray;
     typedef std::vector<double> Darray;
 
+    /// \return Charge array
+    Darray const& Charge() const { return Charge_; }
     /// Set Ewald parametsr, check them and set defaults if needed.
     int CheckInput(Box const&, int, double, double,
                    double, double, double,

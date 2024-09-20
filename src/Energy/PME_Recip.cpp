@@ -97,29 +97,13 @@ int PME_Recip::DetermineNfft(int& nfft1, int& nfft2, int& nfft3, Box const& boxI
 }
 
 /** \return Reciprocal space part of PME energy calc. */
-// TODO currently helPME needs the charge array to be non-const, need to fix that
-double PME_Recip::Recip_ParticleMesh(Frame const& frameIn, AtomMask const& maskIn,
-                                     Box const& boxIn, Darray& ChargeIn,
+// TODO currently helPME needs the coords/charge arrays to be non-const, need to fix that
+double PME_Recip::Recip_ParticleMesh(Darray& coordsDin, Box const& boxIn, Darray& ChargeIn,
                                      const int* nfftIn, double ew_coeffIn, int orderIn)
 {
-  // Sanity check
-  if (ChargeIn.size() != (unsigned int)maskIn.Nselected()) {
-    mprinterr("Internal Error: PME_Recip::Recip_ParticleMesh: Charge/coords size mismatch (%zu vs %i\n", ChargeIn.size(), maskIn.Nselected());
-    return 0;
-  }
-
-  coordsD_.clear();
-  coordsD_.reserve( maskIn.Nselected()*3 );
-  for (AtomMask::const_iterator atm = maskIn.begin(); atm != maskIn.end(); ++atm) {
-    const double* XYZ = frameIn.XYZ( *atm );
-    coordsD_.push_back( XYZ[0] );
-    coordsD_.push_back( XYZ[1] );
-    coordsD_.push_back( XYZ[2] );
-  }
-
   t_recip_.Start();
   // This essentially makes coordsD and chargesD point to arrays.
-  Mat coordsD(&coordsD_[0], ChargeIn.size(), 3);
+  Mat coordsD(&coordsDin[0], ChargeIn.size(), 3);
   Mat chargesD(&ChargeIn[0], ChargeIn.size(), 1);
   int nfft1 = -1;
   int nfft2 = -1;
