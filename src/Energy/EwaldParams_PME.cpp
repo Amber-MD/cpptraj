@@ -76,6 +76,7 @@ int EwaldParams_PME::SetupEwald(Topology const& topIn, AtomMask const& maskIn) {
 /** Put selected coords in separate array for recip calc. */
 void EwaldParams_PME::FillRecipCoords(Frame const& frameIn, AtomMask const& maskIn)
 {
+  coordsD_.clear();
   for (AtomMask::const_iterator atm = maskIn.begin(); atm != maskIn.end(); ++atm) {
     const double* XYZ = frameIn.XYZ( *atm );
     coordsD_.push_back( XYZ[0] );
