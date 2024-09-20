@@ -67,6 +67,7 @@ COMMON_SOURCES= \
         Action_Outtraj.cpp \
         Action_PairDist.cpp \
         Action_Pairwise.cpp \
+        Action_PmeTest.cpp \
         Action_Principal.cpp \
         Action_Projection.cpp \
         Action_Pucker.cpp \

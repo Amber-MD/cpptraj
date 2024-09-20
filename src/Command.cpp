@@ -165,6 +165,7 @@
 #include "Action_MinMaxDist.h"
 #include "Action_AddAtom.h"
 #include "Action_EneDecomp.h"
+#include "Action_PmeTest.h"
 // ----- ANALYSIS --------------------------------------------------------------
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
@@ -381,6 +382,7 @@ void Command::Init() {
   Command::AddCmd( new Action_Outtraj(),       Cmd::ACT, 1, "outtraj" );
   Command::AddCmd( new Action_PairDist(),      Cmd::ACT, 1, "pairdist" );
   Command::AddCmd( new Action_Pairwise(),      Cmd::ACT, 1, "pairwise" );
+  Command::AddCmd( new Action_PmeTest(),       Cmd::ACT, 1, "pmetest" ); // hidden
   Command::AddCmd( new Action_Principal(),     Cmd::ACT, 1, "principal" );
   Command::AddCmd( new Action_Projection(),    Cmd::ACT, 1, "projection" );
   Command::AddCmd( new Action_Pucker(),        Cmd::ACT, 1, "pucker" );
