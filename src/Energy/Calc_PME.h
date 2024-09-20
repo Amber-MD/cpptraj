@@ -20,6 +20,7 @@ class Calc_PME {
     int Setup(Topology const&, AtomMask const&);
     int CalcNonbondEnergy(Frame const&, AtomMask const&, double&, double&);
 
+    void Timing(double) const;
   private:
     PairListEngine_Ewald_LJLR<double> NBengine_;
     PME_Recip Recip_;
@@ -27,6 +28,7 @@ class Calc_PME {
     ExclusionArray Excluded_;
     VDW_LongRange_Correction VDW_LR_; ///< For calculating the long range VDW correction
     Timer t_total_;
+    Timer t_direct_;
 };
 }
 }

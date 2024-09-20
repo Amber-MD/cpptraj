@@ -16,6 +16,8 @@ class PME_Recip {
     PME_Recip(Type);
     void SetDebug(int);
     double Recip_ParticleMesh(Darray&, Box const&, Darray&, const int*, double, int);
+
+    Timer const& Timing() const { return t_recip_; }
   private:
     static bool check_prime_factors(int);
     static int ComputeNFFT(double);

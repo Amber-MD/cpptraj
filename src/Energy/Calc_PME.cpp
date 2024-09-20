@@ -93,9 +93,10 @@ int Calc_PME::CalcNonbondEnergy(Frame const& frameIn, AtomMask const& maskIn,
   //  e_vdw6recip = 0.0;
     double e_vdw_lr_correction = VDW_LR_.Vdw_Correction( NBengine_.EwaldParams().Cutoff(), volume );
   //}
-
+  t_direct_.Start();
   Cpptraj::PairListTemplate<double>(pairList_, Excluded_,
                                     NBengine_.EwaldParams().Cut2(), NBengine_);
+  t_direct_.Stop();
 
   if (NBengine_.EwaldParams().Debug() > 0) {
     mprintf("DEBUG: Nonbond energy components:\n");
@@ -117,4 +118,16 @@ int Calc_PME::CalcNonbondEnergy(Frame const& frameIn, AtomMask const& maskIn,
   return 0;
 }
 
-
+void Calc_PME::Timing(double total) const {
+  t_total_.WriteTiming(1,  "  PME Total:", total);
+  //t_self_.WriteTiming(2,   "Self:      ", t_total_.Total());
+  Recip_.Timing().WriteTiming(2,  "Recip:     ", t_total_.Total());
+//  if (t_trig_tables_.Total() > 0.0)
+//    t_trig_tables_.WriteTiming(3, "Calc trig tables:", t_recip_.Total());
+  t_direct_.WriteTiming(2, "Direct:    ", t_total_.Total());
+//# ifndef _OPENMP
+//  t_erfc_.WriteTiming(3,  "ERFC:  ", t_direct_.Total());
+//  t_adjust_.WriteTiming(3,"Adjust:", t_direct_.Total());
+//# endif
+//  pairList_.Timing(total);
+}
