@@ -26,6 +26,7 @@ class Calc_PME {
     PairList pairList_;
     ExclusionArray Excluded_;
     VDW_LongRange_Correction VDW_LR_; ///< For calculating the long range VDW correction
+    Timer t_total_;
 };
 }
 }

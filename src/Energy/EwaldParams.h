@@ -46,6 +46,8 @@ class EwaldParams {
     /// \return Nonbonded parameter at nonobonded parameter index
     NonbondType const& GetLJ(int nbindex) const { return NB_->NBarray()[ nbindex ]; }
 
+    /// \return Debug level
+    int Debug() const { return debug_; }
     /// \return Direct space cutoff (in Ang)
     double Cutoff() const { return cutoff_; }
     /// \return Direct sum tolerance
@@ -56,9 +58,12 @@ class EwaldParams {
     double LJ_EwaldCoeff() const { return lw_coeff_; }
     /// \return LJ switch width (in Ang.)
     double LJ_SwitchWidth() const { return switch_width_; }
+
+    // FIXME do not return const because helPME needs the array to be non-const. Should be fixed
+    std::vector<double>& SelectedCharges() { return Charge_; }
   protected:
-    typedef std::vector<int> Iarray;
     typedef std::vector<double> Darray;
+    typedef std::vector<int> Iarray;
 
     /// \return Charge array
     Darray const& Charge() const { return Charge_; }
