@@ -130,6 +130,18 @@ double PME_Recip::Recip_ParticleMesh(Darray& coordsDin, Box const& boxIn, Darray
   // NOTE: The electrostatic constant has been baked into the Charge_ array already.
   //auto pme_object = std::unique_ptr<PMEInstanceD>(new PMEInstanceD());
   pme_object_.setup(distKernelExponent_, ew_coeffIn, orderIn, nfft1, nfft2, nfft3, scaleFac_, 0);
+  // Check the unit cell vectors
+  PMEInstanceD::LatticeType lattice = PMEInstanceD::LatticeType::XAligned;
+  // TODO just pass in Ucell when helPME supports it
+  //boxIn.PrintDebug("pme");
+  if (!boxIn.Is_X_Aligned()) {
+    if (boxIn.Is_Symmetric())
+      lattice = PMEInstanceD::LatticeType::ShapeMatrix;
+    else {
+      mprinterr("Error: Unit cell is not X-aligned or symmetric; cannot set PME recip grid.\n");
+      return 0;
+    }
+  }
   // Sets the unit cell lattice vectors, with units consistent with those used to specify coordinates.
   // Args: 1 = the A lattice parameter in units consistent with the coordinates.
   //       2 = the B lattice parameter in units consistent with the coordinates.
@@ -140,7 +152,7 @@ double PME_Recip::Recip_ParticleMesh(Darray& coordsDin, Box const& boxIn, Darray
   //       7 = lattice type
   pme_object_.setLatticeVectors(boxIn.Param(Box::X), boxIn.Param(Box::Y), boxIn.Param(Box::Z),
                                 boxIn.Param(Box::ALPHA), boxIn.Param(Box::BETA), boxIn.Param(Box::GAMMA),
-                                PMEInstanceD::LatticeType::XAligned);
+                                lattice);
   double erecip = pme_object_.computeERec(0, chargesD, coordsD);
 
   t_recip_.Stop();
