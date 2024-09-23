@@ -1,5 +1,6 @@
 # Files for Energy subdirectory.
 ENERGY_SOURCES= \
+  Calc_LJPME.cpp \
   Calc_PME.cpp \
   EnergyDecomposer.cpp \
   ErfcFxn.cpp \
