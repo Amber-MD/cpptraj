@@ -4,6 +4,7 @@ ENERGY_SOURCES= \
   EnergyDecomposer.cpp \
   ErfcFxn.cpp \
   EwaldParams.cpp \
+  EwaldParams_LJPME.cpp \
   EwaldParams_PME.cpp \
   PME_Recip.cpp \
   VDW_LongRange_Correction.cpp

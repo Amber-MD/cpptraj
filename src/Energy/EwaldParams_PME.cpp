@@ -24,8 +24,7 @@ int EwaldParams_PME::InitEwald(Box const& boxIn, EwaldOptions const& pmeOpts, in
     return 1;
   }
   if (CheckInput(boxIn, debugIn, pmeOpts.Cutoff(), pmeOpts.DsumTol(), pmeOpts.EwCoeff(),
-                 pmeOpts.LwCoeff(), pmeOpts.LJ_SwWidth(),
-                 pmeOpts.ErfcDx(), pmeOpts.SkinNB()))
+                 pmeOpts.LJ_SwWidth(), pmeOpts.ErfcDx(), pmeOpts.SkinNB()))
     return 1;
   nfft_[0] = pmeOpts.Nfft1();
   nfft_[1] = pmeOpts.Nfft2();
@@ -38,9 +37,7 @@ int EwaldParams_PME::InitEwald(Box const& boxIn, EwaldOptions const& pmeOpts, in
   mprintf("\tParticle Mesh Ewald params:\n");
   mprintf("\t  Cutoff= %g   Direct Sum Tol= %g   Ewald coeff.= %g  NB skin= %g\n",
           Cutoff(), DirectSumTol(), EwaldCoeff(), pmeOpts.SkinNB());
-  if (LJ_EwaldCoeff() > 0.0)
-    mprintf("\t  LJ Ewald coeff.= %g\n", LJ_EwaldCoeff());
-  if (LJ_SwitchWidth() > 0.0)
+    if (LJ_SwitchWidth() > 0.0)
     mprintf("\t  LJ switch width= %g\n", LJ_SwitchWidth());
   mprintf("\t  Bspline order= %i\n", order_);
   //mprintf("\t  Erfc table dx= %g, size= %zu\n", erfcTableDx_, erfc_table_.size()/4);

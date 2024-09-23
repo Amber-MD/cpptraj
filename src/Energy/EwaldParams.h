@@ -54,8 +54,6 @@ class EwaldParams {
     double DirectSumTol() const { return dsumTol_; }
     /// \return Ewald coefficient
     double EwaldCoeff() const { return ew_coeff_; }
-    /// \return LJ Ewald coefficient
-    double LJ_EwaldCoeff() const { return lw_coeff_; }
     /// \return LJ switch width (in Ang.)
     double LJ_SwitchWidth() const { return switch_width_; }
 
@@ -65,12 +63,12 @@ class EwaldParams {
     typedef std::vector<double> Darray;
     typedef std::vector<int> Iarray;
 
+    static inline double DABS(double xIn) { if (xIn < 0.0) return -xIn; else return xIn; }
     /// \return Charge array
     Darray const& Charge() const { return Charge_; }
     /// Set Ewald parametsr, check them and set defaults if needed.
     int CheckInput(Box const&, int, double, double,
-                   double, double, double,
-                   double, double);
+                   double, double, double, double);
     /// Calculate sum q, sum q^2. 
     void CalculateCharges(Topology const&, AtomMask const&);
   private:
@@ -78,7 +76,6 @@ class EwaldParams {
     double FindEwaldCoefficient(double, double);
 
     double ew_coeff_;                  ///< Ewald coefficient
-    double lw_coeff_;                  ///< LJ Ewald coefficient
     double switch_width_; ///< Switching window size for LJ switch if active
     double cutoff_;       ///< Direct space cutoff
     double cut2_;         ///< Direct space cutoff squared.

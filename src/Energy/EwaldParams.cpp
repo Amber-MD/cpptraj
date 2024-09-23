@@ -9,7 +9,6 @@ using namespace Cpptraj::Energy;
 /** CONSTRUCTOR */
 EwaldParams::EwaldParams() :
   ew_coeff_(0.0),
-  lw_coeff_(0.0),
   switch_width_(0.0),
   cutoff_(0.0),
   cut2_(0.0),
@@ -21,7 +20,6 @@ EwaldParams::EwaldParams() :
   sumq2_(0)
 {}
 
-static inline double DABS(double xIn) { if (xIn < 0.0) return -xIn; else return xIn; }
 
 /** Determine Ewald coefficient from cutoff and direct sum tolerance.
   * Original Code: SANDER: findewaldcof
@@ -60,14 +58,12 @@ double EwaldParams::FindEwaldCoefficient(double cutoff, double dsum_tol)
 
 /** Check some common input. */
 int EwaldParams::CheckInput(Box const& boxIn, int debugIn, double cutoffIn, double dsumTolIn,
-                      double ew_coeffIn, double lw_coeffIn, double switch_widthIn,
-                      double erfcTableDxIn, double skinnbIn)
+                      double ew_coeffIn, double switch_widthIn, double erfcTableDxIn, double skinnbIn)
 {
   debug_ = debugIn;
   cutoff_ = cutoffIn;
   dsumTol_ = dsumTolIn;
   ew_coeff_ = ew_coeffIn;
-  lw_coeff_ = lw_coeffIn;
   switch_width_ = switch_widthIn;
   double erfcTableDx = erfcTableDxIn;
   // Check input
@@ -105,13 +101,7 @@ int EwaldParams::CheckInput(Box const& boxIn, int debugIn, double cutoffIn, doub
     mprinterr("Error: Could not set up spline table for ERFC\n");
     return 1;
   }
-  // TODO do for C6 as well
-  // TODO for C6 correction term
-  if (lw_coeff_ < 0.0)
-    lw_coeff_ = 0.0;
-  else if (DABS(lw_coeff_) < Constants::SMALL)
-    lw_coeff_ = ew_coeff_;
-
+  
   // Calculate some common factors.
   cut2_ = cutoff_ * cutoff_;
   double cut0 = cutoff_ - switch_width_;
