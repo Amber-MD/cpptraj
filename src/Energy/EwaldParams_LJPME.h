@@ -14,7 +14,7 @@ class EwaldParams_LJPME : public EwaldParams_PME {
     double LJ_EwaldCoeff() const { return lw_coeff_; }
 
     /// \return LJPME self energy
-    double Self6() const;
+    double Self6() const { return ljpme_self_; }
   private:
    Darray Cparam_;   ///< Hold selected atomic C6 coefficients for LJ PME
    double lw_coeff_; ///< LJ Ewald coefficient
