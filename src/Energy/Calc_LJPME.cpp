@@ -114,4 +114,10 @@ int Calc_LJPME::CalcNonbondEnergy(Frame const& frameIn, AtomMask const& maskIn,
   return 0;
 }
 
+void Calc_LJPME::Timing(double total) const {
+  t_total_.WriteTiming(1,  "  LJPME Total:", total);
+  Recip_.Timing().WriteTiming(2,  "Recip:     ", t_total_.Total());
+  t_direct_.WriteTiming(2, "Direct:    ", t_total_.Total());
 
+  pairList_.Timing(total);
+}
