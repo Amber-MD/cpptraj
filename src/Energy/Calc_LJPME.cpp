@@ -1,6 +1,7 @@
 #include "Calc_LJPME.h"
 #include "../CpptrajStdio.h"
 #include "../EwaldOptions.h"
+#include "../Topology.h"
 
 using namespace Cpptraj::Energy;
 
@@ -25,4 +26,24 @@ int Calc_LJPME::Init(Box const& boxIn, EwaldOptions const& pmeOpts, int debugIn)
 
   return 0;
 }
+
+/** Setup LJPME calculation. */
+int Calc_LJPME::Setup(Topology const& topIn, AtomMask const& maskIn) {
+  if (NBengine_.ModifyEwaldParams().SetupEwald(topIn, maskIn)) {
+    mprinterr("Error: LJPME calculation setup failed.\n");
+    return 1;
+  }
+  // Setup exclusion list
+  // Use distance of 4 (up to dihedrals)
+  if (Excluded_.SetupExcluded(topIn.Atoms(), maskIn, 4,
+                              ExclusionArray::EXCLUDE_SELF,
+                              ExclusionArray::FULL))
+  {
+    mprinterr("Error: Could not set up exclusion list for LJPME calculation.\n");
+    return 1;
+  }
+
+  return 0;
+}
+
 
