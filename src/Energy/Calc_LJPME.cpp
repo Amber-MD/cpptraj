@@ -76,7 +76,7 @@ int Calc_LJPME::CalcNonbondEnergy(Frame const& frameIn, AtomMask const& maskIn,
                                             );
   double e_vdw6recip = LJrecip_.Recip_ParticleMesh( NBengine_.ModifyEwaldParams().SelectedCoords(),
                                                     frameIn.BoxCrd(),
-                                                    NBengine_.ModifyEwaldParams().SelectedCharges(),
+                                                    NBengine_.ModifyEwaldParams().SelectedC6params(),
                                                     NBengine_.EwaldParams().NFFT(),
                                                     NBengine_.EwaldParams().LJ_EwaldCoeff(),
                                                     NBengine_.EwaldParams().Order()
