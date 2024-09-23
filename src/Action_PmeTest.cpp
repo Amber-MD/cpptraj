@@ -25,8 +25,10 @@ Action::RetType Action_PmeTest::Init(ArgList& actionArgs, ActionInit& init, int 
     method_ = 0;
   else if (actionArgs.hasKey("new"))
     method_ = 1;
+  else if (actionArgs.hasKey("newljpme"))
+    method_ = 2;
   else {
-    mprinterr("Error: Specify original or new.\n");
+    mprinterr("Error: Specify original, new, or newljpme.\n");
     return Action::ERR;
   }
   DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
@@ -51,6 +53,8 @@ Action::RetType Action_PmeTest::Init(ArgList& actionArgs, ActionInit& init, int 
     mprintf("\tOriginal PME method.\n");
   else if (method_ == 1)
     mprintf("\tNew PME method.\n");
+  else if (method_ == 2)
+    mprintf("\tNew LJPME method.\n");
 
   ewaldOpts_.PrintOptions();
 
@@ -77,6 +81,11 @@ Action::RetType Action_PmeTest::Setup(ActionSetup& setup)
       return Action::ERR;
     if (PME1_.Setup( setup.Top(), Mask1_ ))
       return Action::ERR;
+  } else if (method_ == 2) {
+    if (PME2_.Init(setup.CoordInfo().TrajBox(), ewaldOpts_, debug_))
+      return Action::ERR;
+    if (PME2_.Setup( setup.Top(), Mask1_ ))
+      return Action::ERR;
   }
   return Action::OK;
 }
@@ -91,6 +100,8 @@ Action::RetType Action_PmeTest::DoAction(int frameNum, ActionFrame& frm)
     err = PME0_.CalcNonbondEnergy(frm.Frm(), Mask1_, ene, ene2);
   } else if (method_ == 1) {
     err = PME1_.CalcNonbondEnergy(frm.Frm(), Mask1_, ene, ene2);
+  }  else if (method_ == 2) {
+    err = PME2_.CalcNonbondEnergy(frm.Frm(), Mask1_, ene, ene2);
   }
   if (err != 0) return Action::ERR;
   ele_->Add(frameNum, &ene);
@@ -104,4 +115,6 @@ void Action_PmeTest::Print() {
     PME0_.Timing(t_nb_.Total());
   else if (method_ == 1)
     PME1_.Timing(t_nb_.Total());
+  else if (method_ == 2)
+    PME2_.Timing(t_nb_.Total());
 }
