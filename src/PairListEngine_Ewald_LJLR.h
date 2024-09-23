@@ -4,12 +4,10 @@
 #include "Energy/EwaldParams_PME.h"
 #include "Energy/Kernel_EwaldAdjust.h"
 #include "PairList.h"
-#include <vector>
 namespace Cpptraj {
 /// Direct space nonbond calculation using pairlist with Ewald and VDW LR correction
 template <typename T>
 class PairListEngine_Ewald_LJLR {
-    typedef std::vector<int> Iarray;
   public:
     PairListEngine_Ewald_LJLR() {}
     // -------------------------------------------
