@@ -77,7 +77,7 @@ class PairListEngine_Ewald_LJPME {
     Cpptraj::Energy::EwaldParams_LJPME& ModifyEwaldParams() { return EW_; }
     Cpptraj::Energy::EwaldParams_LJPME const& EwaldParams() const { return EW_; }
 
-    T Evdw() const { return Evdw_; }
+    T Evdw() const { return Evdw_ + Eljpme_correction_ + Eljpme_correction_excl_; }
     T Eelec() const { return Eelec_; }
     T Eadjust() const { return Eadjust_; }
   private:
