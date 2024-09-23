@@ -48,11 +48,11 @@ class PairListEngine_Ewald_LJPME {
         Evdw_ += (e_vdw * vswitch);
         //mprintf("PVDW %8i%8i%20.6f%20.6f\n", ta0+1, ta1+1, e_vdw, r2);
         // LJ PME direct space correction
-        T kr2 = lw_coeff_ * lw_coeff_ * rij2;
+        T kr2 = EW_.LJ_EwaldCoeff() * EW_.LJ_EwaldCoeff() * rij2;
         T kr4 = kr2 * kr2;
         //double kr6 = kr2 * kr4;
         T expterm = exp(-kr2);
-        T Cij = Cparam_[it0->Idx()] * Cparam_[it1->Idx()];
+        T Cij = EW_.CalcCij(it0->Idx(), it1->Idx()); //Cparam_[it0->Idx()] * Cparam_[it1->Idx()];
         Eljpme_correction_ += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) * r6 * vswitch * Cij;
       }
     }
@@ -66,13 +66,13 @@ class PairListEngine_Ewald_LJPME {
       Eadjust_ += Cpptraj::Energy::Kernel_EwaldAdjust<T>( q0_, q1_, rij, erfcval );
       // LJ PME direct space exclusion correction
       // NOTE: Assuming excluded pair is within cutoff
-      T kr2 = lw_coeff_ * lw_coeff_ * rij2;
+      T kr2 = EW_.LJ_EwaldCoeff() * EW_.LJ_EwaldCoeff() * rij2;
       T kr4 = kr2 * kr2;
       //double kr6 = kr2 * kr4;
       T expterm = exp(-kr2);
       T r4 = rij2 * rij2;
       T r6 = rij2 * r4;
-      T Cij = Cparam_[it0->Idx()] * Cparam_[it1->Idx()];
+      T Cij = EW_.CalcCij(it0->Idx(), it1->Idx()); //Cparam_[it0->Idx()] * Cparam_[it1->Idx()];
       Eljpme_correction_excl_ += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) / r6 * Cij;
     }
     // -------------------------------------------
