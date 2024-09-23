@@ -8,7 +8,7 @@ namespace Cpptraj {
 template <typename T>
 class PairListEngine_Ewald_LJPME {
   public:
-    PairListEngine_Ewald_LJLR() {}
+    PairListEngine_Ewald_LJPME() {}
     // -------------------------------------------
     /// Call at the beginning of the frame calculation
     void FrameBeginCalc() { Evdw_ = 0; Eelec_ = 0; Eadjust_ = 0;
@@ -50,7 +50,7 @@ class PairListEngine_Ewald_LJPME {
         T kr4 = kr2 * kr2;
         //double kr6 = kr2 * kr4;
         T expterm = exp(-kr2);
-        T Cij = EW_.CalcCij(it0->Idx(), it1->Idx()); //Cparam_[it0->Idx()] * Cparam_[it1->Idx()];
+        T Cij = EW_.CalcCij(atom0.Idx(), atom1.Idx()); //Cparam_[it0->Idx()] * Cparam_[it1->Idx()];
         Eljpme_correction_ += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) * r6 * vswitch * Cij;
       }
     }
@@ -70,7 +70,7 @@ class PairListEngine_Ewald_LJPME {
       T expterm = exp(-kr2);
       T r4 = rij2 * rij2;
       T r6 = rij2 * r4;
-      T Cij = EW_.CalcCij(it0->Idx(), it1->Idx()); //Cparam_[it0->Idx()] * Cparam_[it1->Idx()];
+      T Cij = EW_.CalcCij(atom0.Idx(), atom1.Idx()); //Cparam_[it0->Idx()] * Cparam_[it1->Idx()];
       Eljpme_correction_excl_ += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) / r6 * Cij;
     }
     // -------------------------------------------
