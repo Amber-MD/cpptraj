@@ -55,7 +55,7 @@ class PairListEngine_Ewald_LJPME {
       }
     }
     /// Call when cutoff is not satisfied
-    void CutoffNotSatisfied(T const& rij2,
+    void AtomPairExcluded(T const& rij2,
                             PairList::AtmType const& atom0,
                             PairList::AtmType const& atom1)
     {

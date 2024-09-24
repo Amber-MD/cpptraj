@@ -60,7 +60,7 @@ void PairListTemplate(PairList const& PL, ExclusionArray const& Excluded, T cut2
               engine.CutoffSatisfied(rij2, *it0, *it1);
             }
           } else {
-            engine.CutoffNotSatisfied(rij2, *it0, *it1);
+            engine.AtomPairExcluded(rij2, *it0, *it1);
           }
         } // END loop over other atoms in thisCell
         // Loop over all neighbor cells
@@ -105,7 +105,7 @@ void PairListTemplate(PairList const& PL, ExclusionArray const& Excluded, T cut2
                 engine.CutoffSatisfied(rij2, *it0, *it1);
               }
             } else {
-              engine.CutoffNotSatisfied(rij2, *it0, *it1);
+              engine.AtomPairExcluded(rij2, *it0, *it1);
             }
           } // END loop over neighbor cell atoms
         } // END Loop over neighbor cells
