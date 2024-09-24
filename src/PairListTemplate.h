@@ -11,7 +11,11 @@ void PairListTemplate(PairList const& PL, ExclusionArray const& Excluded, T cut2
   engine.FrameBeginCalc();
 
   int cidx;
-
+# ifdef _OPENMP
+# pragma omp parallel private(cidx) reduction(+: engine)
+  {
+# pragma omp for
+# endif
   for (cidx = 0; cidx < PL.NGridMax(); cidx++)
   {
     PairList::CellType const& thisCell = PL.Cell( cidx );
@@ -108,6 +112,9 @@ void PairListTemplate(PairList const& PL, ExclusionArray const& Excluded, T cut2
       } // Loop over thisCell atoms
     } // END if thisCell is not empty
   } // Loop over cells
+# ifdef _OPENMP
+  } // END pragma omp parallel
+# endif
 } // END PairListTemplate
 } // END namespace Cpptraj
 #endif

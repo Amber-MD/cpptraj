@@ -80,6 +80,16 @@ class PairListEngine_Ewald_LJPME {
     T Evdw() const { return Evdw_ + Eljpme_correction_ + Eljpme_correction_excl_; }
     T Eelec() const { return Eelec_; }
     T Eadjust() const { return Eadjust_; }
+#   ifdef _OPENMP
+    /// To allow reduction of the energy terms
+    void operator+=(PairListEngine_Ewald_LJPME const& rhs) {
+      Evdw_ += rhs.Evdw_;
+      Eelec_ += rhs.Eelec_;
+      Eadjust_ += rhs.Eadjust_;
+      Eljpme_correction_ += rhs.Eljpme_correction_;
+      Eljpme_correction_excl_ += rhs.Eljpme_correction_excl_;
+    }
+#   endif
   private:
     T q0_;                  ///< Charge on atom 0
     T q1_;                  ///< Charge on atom 1
@@ -91,5 +101,8 @@ class PairListEngine_Ewald_LJPME {
 
     Cpptraj::Energy::EwaldParams_LJPME EW_;          ///< Hold Ewald parameters for LJPME
 };
+#ifdef _OPENMP
+#pragma omp declare reduction( + : PairListEngine_Ewald_LJPME<double> : omp_out += omp_in ) initializer( omp_priv = omp_orig )
+#endif
 } // END namespace Cpptraj
 #endif
