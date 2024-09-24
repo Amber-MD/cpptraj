@@ -40,9 +40,9 @@ class EwaldParams {
     /// \return Direct space cutoff (in Ang squared)
     double Cut2() const { return cut2_; }
     /// \return Charge for given atom index
-    double Charge(int idx) { return Charge_[idx]; }
+    double Charge(int idx) const { return Charge_[idx]; }
     /// \return Nonbonded index for given atom indices
-    int NbIndex(int idx0, int idx1) { return NB_->GetLJindex(TypeIndices_[idx0], TypeIndices_[idx1]); }
+    int NbIndex(int idx0, int idx1) const { return NB_->GetLJindex(TypeIndices_[idx0], TypeIndices_[idx1]); }
     /// \return Nonbonded parameter at nonobonded parameter index
     NonbondType const& GetLJ(int nbindex) const { return NB_->NBarray()[ nbindex ]; }
 
