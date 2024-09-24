@@ -17,7 +17,8 @@ class PME_Recip {
     void SetDebug(int);
     double Recip_ParticleMesh(Darray&, Box const&, Darray&, const int*, double, int);
 
-    Timer const& Timing() const { return t_recip_; }
+    Timer const& Timing_Total() const { return t_recip_; }
+    //Timer const& Timing_Calc() const { return t_calc_; }
   private:
     static bool check_prime_factors(int);
     static int ComputeNFFT(double);
@@ -25,6 +26,7 @@ class PME_Recip {
 
     PMEInstanceD pme_object_;
     Timer t_recip_; ///< Recip calc timer
+    //Timer t_calc_;
     int debug_;
     int distKernelExponent_; ///< Exponent of the distance kernel: 1 for Coulomb, 6 for LJ
     double scaleFac_; ///< scale factor to be applied to all computed energies and derivatives thereof

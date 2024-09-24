@@ -153,8 +153,9 @@ double PME_Recip::Recip_ParticleMesh(Darray& coordsDin, Box const& boxIn, Darray
   pme_object_.setLatticeVectors(boxIn.Param(Box::X), boxIn.Param(Box::Y), boxIn.Param(Box::Z),
                                 boxIn.Param(Box::ALPHA), boxIn.Param(Box::BETA), boxIn.Param(Box::GAMMA),
                                 lattice);
+  //t_calc_.Start();
   double erecip = pme_object_.computeERec(0, chargesD, coordsD);
-
+  //t_calc_.Stop();
   t_recip_.Stop();
   return erecip;
 }

@@ -121,7 +121,8 @@ int Calc_PME::CalcNonbondEnergy(Frame const& frameIn, AtomMask const& maskIn,
 void Calc_PME::Timing(double total) const {
   t_total_.WriteTiming(1,  "  PME Total:", total);
   //t_self_.WriteTiming(2,   "Self:      ", t_total_.Total());
-  Recip_.Timing().WriteTiming(2,  "Recip:     ", t_total_.Total());
+  Recip_.Timing_Total().WriteTiming(2,  "Recip:     ", t_total_.Total());
+  //Recip_.Timing_Calc().WriteTiming(3,"Recip. Calc:", Recip_.Timing_Total().Total());
 //  if (t_trig_tables_.Total() > 0.0)
 //    t_trig_tables_.WriteTiming(3, "Calc trig tables:", t_recip_.Total());
   t_direct_.WriteTiming(2, "Direct:    ", t_total_.Total());
