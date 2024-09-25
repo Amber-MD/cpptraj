@@ -1,6 +1,7 @@
 #include "EwaldCalc_Decomp_PME.h"
 #include "../CpptrajStdio.h"
 #include "../EwaldOptions.h"
+#include "../Topology.h"
 
 using namespace Cpptraj::Energy;
 
@@ -21,6 +22,29 @@ int EwaldCalc_Decomp_PME::Init(Box const& boxIn, EwaldOptions const& pmeOpts, in
     return 1;
   VDW_LR_.SetDebug( debugIn );
   Recip_.SetDebug( debugIn );
+
+  return 0;
+}
+
+/** Setup PME calculation. */
+int EwaldCalc_Decomp_PME::Setup(Topology const& topIn, AtomMask const& maskIn) {
+  if (NBengine_.ModifyEwaldParams().SetupEwald(topIn, maskIn)) {
+    mprinterr("Error: PME calculation setup failed.\n");
+    return 1;
+  }
+  if (VDW_LR_.Setup_VDW_Correction( topIn, maskIn )) {
+    mprinterr("Error: PME calculation long range VDW correction setup failed.\n");
+    return 1;
+  }
+  // Setup exclusion list
+  // Use distance of 4 (up to dihedrals)
+  if (Excluded_.SetupExcluded(topIn.Atoms(), maskIn, 4,
+                              ExclusionArray::EXCLUDE_SELF,
+                              ExclusionArray::FULL))
+  {
+    mprinterr("Error: Could not set up exclusion list for PME calculation.\n");
+    return 1;
+  }
 
   return 0;
 }
