@@ -167,3 +167,52 @@ double PME_Recip::Recip_ParticleMesh(Darray& coordsDin, Box const& boxIn, Darray
   return erecip;
 }
 
+/** \return Reciprocal space part of PME energy calc. */
+// TODO currently helPME needs the coords/charge arrays to be non-const, need to fix that
+double PME_Recip::Recip_Decomp(Darray& atom_recip,
+                               Darray& coordsDin, Box const& boxIn, Darray& ChargeIn,
+                               const int* nfftIn, double ew_coeffIn, int orderIn)
+{
+  t_recip_.Start();
+  atom_recip.resize( ChargeIn.size() );
+  // This essentially makes coordsD and chargesD point to arrays.
+  Mat coordsD(&coordsDin[0], ChargeIn.size(), 3);
+  Mat chargesD(&ChargeIn[0], ChargeIn.size(), 1);
+  int nfft1 = -1;
+  int nfft2 = -1;
+  int nfft3 = -1;
+  if (nfftIn != 0) {
+    nfft1 = nfftIn[0];
+    nfft2 = nfftIn[1];
+    nfft3 = nfftIn[2];
+  }
+  if ( DetermineNfft(nfft1, nfft2, nfft3, boxIn) ) {
+    mprinterr("Error: Could not determine FFT grid spacing.\n");
+    return 0.0;
+  }
+  // Instantiate double precision PME object
+  pme_object_.setup(distKernelExponent_, ew_coeffIn, orderIn, nfft1, nfft2, nfft3, scaleFac_, 0);
+  // Check the unit cell vectors
+  PMEInstanceD::LatticeType lattice;
+  if (set_lattice(lattice, boxIn)) return 0;
+  // Sets the unit cell lattice vectors, with units consistent with those used to specify coordinates.
+  pme_object_.setLatticeVectors(boxIn.Param(Box::X), boxIn.Param(Box::Y), boxIn.Param(Box::Z),
+                                boxIn.Param(Box::ALPHA), boxIn.Param(Box::BETA), boxIn.Param(Box::GAMMA),
+                                lattice);
+  //t_calc_.Start();
+  // TODO precalc
+  Mat e_potentialD_(ChargeIn.size(), 4);
+  e_potentialD_.setConstant(0.0);
+  pme_object_.computePRec(0, chargesD, coordsD, coordsD, 1, e_potentialD_);
+  double erecip = 0;
+  for(unsigned int i = 0; i < ChargeIn.size(); i++)
+  {
+    atom_recip[i]=0.5 * ChargeIn[i] * e_potentialD_(i,0);
+    erecip += atom_recip[i];
+  }
+
+  //t_calc_.Stop();
+  t_recip_.Stop();
+  return erecip;
+}
+

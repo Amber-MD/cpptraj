@@ -16,6 +16,7 @@ class PME_Recip {
     PME_Recip(Type);
     void SetDebug(int);
     double Recip_ParticleMesh(Darray&, Box const&, Darray&, const int*, double, int);
+    double Recip_Decomp(Darray&, Darray&, Box const&, Darray&, const int*, double, int);
 
     Timer const& Timing_Total() const { return t_recip_; }
     //Timer const& Timing_Calc() const { return t_calc_; }

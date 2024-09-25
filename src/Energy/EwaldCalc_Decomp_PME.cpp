@@ -79,15 +79,18 @@ int EwaldCalc_Decomp_PME::CalcDecomposedNonbondEnergy(Frame const& frameIn, Atom
   NBengine_.ModifyEwaldParams().FillRecipCoords( frameIn, maskIn );
 
   //  MapCoords(frameIn, ucell, recip, maskIn);
+  Darray atom_recip;
   // FIXME helPME requires coords and charge arrays to be non-const
-  double e_recip = Recip_.Recip_ParticleMesh( NBengine_.ModifyEwaldParams().SelectedCoords(),
-                                              frameIn.BoxCrd(),
-                                              NBengine_.ModifyEwaldParams().SelectedCharges(),
-                                              NBengine_.EwaldParams().NFFT(),
-                                              NBengine_.EwaldParams().EwaldCoeff(),
-                                              NBengine_.EwaldParams().Order()
-                                            );
-  mprintf("DEBUG: Recip energy: %f\n", e_recip);
+  double e_recip = Recip_.Recip_Decomp( atom_recip,
+                                        NBengine_.ModifyEwaldParams().SelectedCoords(),
+                                        frameIn.BoxCrd(),
+                                        NBengine_.ModifyEwaldParams().SelectedCharges(),
+                                        NBengine_.EwaldParams().NFFT(),
+                                        NBengine_.EwaldParams().EwaldCoeff(),
+                                        NBengine_.EwaldParams().Order()
+                                      );
+  mprintf("DEBUG: Recip energy      : %f\n", e_recip);
+  mprintf("DEBUG: Sum of recip array: %f\n", sumArray(atom_recip));
 
   return 0;
 }
