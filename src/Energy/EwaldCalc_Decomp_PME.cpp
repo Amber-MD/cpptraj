@@ -1,6 +1,7 @@
 #include "EwaldCalc_Decomp_PME.h"
 #include "../CpptrajStdio.h"
 #include "../EwaldOptions.h"
+#include "../PairListTemplate.h"
 #include "../Topology.h"
 
 using namespace Cpptraj::Energy;
@@ -91,6 +92,35 @@ int EwaldCalc_Decomp_PME::CalcDecomposedNonbondEnergy(Frame const& frameIn, Atom
                                       );
   mprintf("DEBUG: Recip energy      : %f\n", e_recip);
   mprintf("DEBUG: Sum of recip array: %f\n", sumArray(atom_recip));
+  // TODO distribute
+  double e_vdw_lr_correction = VDW_LR_.Vdw_Correction( NBengine_.EwaldParams().Cutoff(), volume );
+  t_direct_.Start();
+  Cpptraj::PairListTemplate<double>(pairList_, Excluded_,
+                                    NBengine_.EwaldParams().Cut2(), NBengine_);
+  t_direct_.Stop();
+  mprintf("DEBUG: Direct Elec. energy : %f\n", NBengine_.Eelec());
+  mprintf("DEBUG: Sum of elec. energy : %f\n", sumArray(NBengine_.Eatom_Elec()));
+  mprintf("DEBUG: Direct VDW energy   : %f\n", NBengine_.Evdw());
+  mprintf("DEBUG: Sum of VDW energy   : %f\n", sumArray(NBengine_.Eatom_EVDW()));
+  mprintf("DEBUG: Direct Adjust energy: %f\n", NBengine_.Eadjust());
+  mprintf("DEBUG: Sum of Adjust energy: %f\n", sumArray(NBengine_.Eatom_EAdjust()));
 
+  if (NBengine_.EwaldParams().Debug() > 0) {
+    mprintf("DEBUG: Nonbond energy components:\n");
+    mprintf("     Evdw                   = %24.12f\n", NBengine_.Evdw() + e_vdw_lr_correction );
+    mprintf("     Ecoulomb               = %24.12f\n", e_self + e_recip +
+                                                       NBengine_.Eelec() +
+                                                       NBengine_.Eadjust());
+    mprintf("\n");
+    mprintf("     E electrostatic (self) = %24.12f\n", e_self);
+    mprintf("                     (rec)  = %24.12f\n", e_recip);
+    mprintf("                     (dir)  = %24.12f\n", NBengine_.Eelec());
+    mprintf("                     (adj)  = %24.12f\n", NBengine_.Eadjust());
+    mprintf("     E vanDerWaals   (dir)  = %24.12f\n", NBengine_.Evdw());
+    mprintf("                     (LR)   = %24.12f\n", e_vdw_lr_correction);
+  }
+  e_vdw = NBengine_.Evdw() + e_vdw_lr_correction;
+  e_elec = e_self + e_recip + NBengine_.Eelec() + NBengine_.Eadjust();
+  t_total_.Stop();
   return 0;
 }
