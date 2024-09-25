@@ -33,6 +33,11 @@ int EnergyDecomposer::InitDecomposer(ArgList& argIn, DataSetList& DSLin, DataFil
   debug_ = debugIn;
   // Process keywords
   outfile_ = DFLin.AddDataFile( argIn.GetStringKey("out"), argIn );
+  use_pme_ = argIn.hasKey("pme");
+  if (use_pme_) {
+    if (ewaldOpts_.GetOptions(EwaldOptions::PME, argIn, "enedecomp"))
+        return 1;
+  }
   // Get atom mask
   if (selectedAtoms_.SetMaskString( argIn.GetMaskNext() ))
     return 1;
@@ -65,6 +70,9 @@ void EnergyDecomposer::PrintOpts() const {
   mprintf("\tData set name: %s\n", eneOut_->legend());
   if (outfile_ != 0)
     mprintf("\tOutput file: %s\n", outfile_->DataFilename().full());
+  if (use_pme_)
+    ewaldOpts_.PrintOptions();
+
 }
 
 // -----------------------------------------------------------------------------
@@ -128,7 +136,7 @@ int EnergyDecomposer::setupDihedrals(DihArrayType const& dihedralsIn) {
 /** Topology-based setup.
   * \return 0 if setup OK, 1 if error, -1 if nothing selected.
   */
-int EnergyDecomposer::SetupDecomposer(Topology const& topIn) {
+int EnergyDecomposer::SetupDecomposer(Topology const& topIn, Box const& boxIn) {
   // First set up the mask
   if (topIn.SetupCharMask( selectedAtoms_ )) {
     mprinterr("Error: Could not set up mask '%s'\n", selectedAtoms_.MaskString());
@@ -174,17 +182,30 @@ int EnergyDecomposer::SetupDecomposer(Topology const& topIn) {
   if (setupDihedrals( topIn.Dihedrals() )) return 1;
   if (setupDihedrals( topIn.DihedralsH() )) return 1;
   std::sort( dihedrals_.begin(), dihedrals_.end() );
-  // For nonbonds, set up all selected atoms in an integer atom mask.
-  //mask_ = AtomMask( selectedAtoms_.ConvertToIntMask(), selectedAtoms_.Natom() );
-  // Need to set up ex
-  // TODO if using pairlist, needs to be EXCLUDE_SELF and FULL
-  //if (Excluded_.SetupExcludedForAtoms( topIn.Atoms(), mask_, 4 ))
-  if (Excluded_.SetupExcluded( topIn.Atoms(), 4,
-                               ExclusionArray::NO_EXCLUDE_SELF,
-                               ExclusionArray::ONLY_GREATER_IDX ))
-  {
-    mprinterr("Error: Could not set up atom exclusion list for energy decomposition.\n");
-    return 1;
+  if (use_pme_) {
+    if (!boxIn.HasBox()) {
+      mprinterr("Error: PME requires unit cell information.\n");
+      return 1;
+    }
+    // Set up for all atoms FIXME
+    AtomMask Imask(0, topIn.Natom());
+    if (PME_.Init(boxIn, ewaldOpts_, debug_))
+      return 1;
+    if (PME_.Setup( topIn, Imask ))
+      return 1;
+  } else {
+    // For nonbonds, set up all selected atoms in an integer atom mask.
+    //mask_ = AtomMask( selectedAtoms_.ConvertToIntMask(), selectedAtoms_.Natom() );
+    // Need to set up ex
+    // TODO if using pairlist, needs to be EXCLUDE_SELF and FULL
+    //if (Excluded_.SetupExcludedForAtoms( topIn.Atoms(), mask_, 4 ))
+    if (Excluded_.SetupExcluded( topIn.Atoms(), 4,
+                                 ExclusionArray::NO_EXCLUDE_SELF,
+                                 ExclusionArray::ONLY_GREATER_IDX ))
+    {
+      mprinterr("Error: Could not set up atom exclusion list for energy decomposition.\n");
+      return 1;
+    }
   }
 
   // DEBUG

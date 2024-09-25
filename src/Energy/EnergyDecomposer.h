@@ -1,8 +1,10 @@
 #ifndef INC_ENERGY_ENERGYDECOMPOSER_H
 #define INC_ENERGY_ENERGYDECOMPOSER_H
 #include <vector>
+#include "EwaldCalc_Decomp_PME.h"
 #include "../AtomMask.h"
 #include "../CharMask.h"
+#include "../EwaldOptions.h"
 #include "../ExclusionArray.h"
 #include "../OnlineVarT.h"
 class AngleType;
@@ -26,8 +28,8 @@ class EnergyDecomposer {
     int InitDecomposer(ArgList&, DataSetList&, DataFileList&, int);
     /// Print options to stdout
     void PrintOpts() const;
-    /// Topology-based setup
-    int SetupDecomposer(Topology const&);
+    /// Topology-based setup. Box only needed for PME
+    int SetupDecomposer(Topology const&, Box const& boxIn);
     /// Calculate and decompose energies for given frame.
     int CalcEne(Frame const&);
     /// Finish the calculation by putting energies in output DataSet
@@ -63,6 +65,8 @@ class EnergyDecomposer {
     DataSet* eneOut_;        ///< Will hold the average energy of each selected entity for output.
     DataFile* outfile_;      ///< Output file
     int debug_;              ///< Debug level
+    bool use_pme_;           ///< If true use PME for the nonbonds
+    EwaldOptions ewaldOpts_; ///< Hold Ewald options
 
     BndArrayType bonds_;         ///< Hold all bonds to be calculated
     AngArrayType angles_;        ///< Hold all angles to be calculated
@@ -71,6 +75,8 @@ class EnergyDecomposer {
     ExclusionArray Excluded_;    ///< Hold excluded atoms lists for each selected atom
     EneArrayType energies_;      ///< Used to accumulate the average energy of each selected entity.
     Topology const* currentTop_; ///< Current topology from Setup
+
+    EwaldCalc_Decomp_PME PME_;  ///< For calculating pairwise decomposed PME energies
 
     Darray currentEne_;      ///< Hold the total energy of each atom for the current frame
 };
