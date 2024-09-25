@@ -20,8 +20,13 @@ class VDW_LongRange_Correction {
     }
   private:
     typedef std::vector<int> Iarray;
+    typedef std::vector<double> Darray;
     double Vdw_Recip_term_;
     int debug_;
+    // Below variables are needed for per-atom decomp
+    Iarray vdw_type_; ///< VDW type for each seleccted atom (#atoms)
+    Iarray N_vdw_type_; ///< Count of atoms that have each VDW type index (#types)
+    Darray atype_vdw_recip_terms_; ///< the nonbond interaction for each atom type (#types)
 };
 }
 }

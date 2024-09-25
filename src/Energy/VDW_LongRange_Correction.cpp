@@ -22,14 +22,16 @@ int VDW_LongRange_Correction::Setup_VDW_Correction(Topology const& topIn,
             topIn.c_str());
     return 1;
   }
-  Iarray N_vdw_type_; 
   // Count the number of each unique nonbonded type.
   N_vdw_type_.assign( NB_->Ntypes(), 0 );
-  //vdw_type_.clear();
+  atype_vdw_recip_terms_.clear();
+  atype_vdw_recip_terms_.reserve( N_vdw_type_.size() );
+  vdw_type_.clear();
+  vdw_type_.reserve( maskIn.Nselected() );
   for (AtomMask::const_iterator atm = maskIn.begin(); atm != maskIn.end(); ++atm)
   {
     N_vdw_type_[ topIn[*atm].TypeIndex() ]++;
-    //vdw_type_.push_back( topIn[*atm].TypeIndex() );
+    vdw_type_.push_back( topIn[*atm].TypeIndex() );
   }
   if (debug_ > 0) {
     mprintf("DEBUG: %zu VDW types.\n", N_vdw_type_.size());
@@ -51,7 +53,7 @@ int VDW_LongRange_Correction::Setup_VDW_Correction(Topology const& topIn,
         Vdw_Recip_term_ += N_vdw_type_[itype] * N_vdw_type_[jtype] * NB_->NBarray()[ nbidx ].B();
       }
     }
-    //atype_vdw_recip_terms_.push_back(atype_vdw_term);  // the nonbond interaction for each atom type
+    atype_vdw_recip_terms_.push_back(atype_vdw_term);
   }
   return 0;
 }
