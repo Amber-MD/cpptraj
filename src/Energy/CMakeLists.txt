@@ -2,6 +2,7 @@
 target_sources(cpptraj_common_obj PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}/EnergyDecomposer.cpp
   ${CMAKE_CURRENT_LIST_DIR}/ErfcFxn.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/EwaldCalc_Decomp_PME.cpp
   ${CMAKE_CURRENT_LIST_DIR}/EwaldCalc_LJPME.cpp
   ${CMAKE_CURRENT_LIST_DIR}/EwaldCalc_PME.cpp
   ${CMAKE_CURRENT_LIST_DIR}/EwaldParams.cpp
