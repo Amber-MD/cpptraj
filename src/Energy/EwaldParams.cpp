@@ -6,6 +6,8 @@
 
 using namespace Cpptraj::Energy;
 
+const double EwaldParams::INVSQRTPI_ = 1.0 / sqrt(Constants::PI);
+
 /** CONSTRUCTOR */
 EwaldParams::EwaldParams() :
   ew_coeff_(0.0),
@@ -131,9 +133,8 @@ void EwaldParams::CalculateCharges(Topology const& topIn, AtomMask const& maskIn
 
 /** Electrostatic self energy. This is the cancelling Gaussian plus the "neutralizing plasma". */
 double EwaldParams::SelfEnergy(double volume) const {
-  static const double INVSQRTPI = 1.0 / sqrt(Constants::PI);
 //  t_self_.Start();
-  double d0 = -ew_coeff_ * INVSQRTPI;
+  double d0 = -ew_coeff_ * INVSQRTPI_;
   double ene = sumq2_ * d0;
 //  mprintf("DEBUG: d0= %20.10f   ene= %20.10f\n", d0, ene);
   double factor = Constants::PI / (ew_coeff_ * ew_coeff_ * volume);
@@ -143,3 +144,23 @@ double EwaldParams::SelfEnergy(double volume) const {
   return ene;
 }
 
+/** Electrostatic self energy on each atom. */
+double EwaldParams::DecomposedSelfEnergy(Darray& atom_self, double volume) const {
+  double d0 = -ew_coeff_ * INVSQRTPI_;
+  double ene = sumq2_ * d0;
+//  mprintf("DEBUG: d0= %20.10f   ene= %20.10f\n", d0, ene);
+  double factor = Constants::PI / (ew_coeff_ * ew_coeff_ * volume);
+  double ee_plasma = -0.5 * factor * sumq_ * sumq_;
+
+  atom_self.resize( Charge_.size() );
+
+  // Distribute the "neutrilizing plasma" to atoms equally
+  for (unsigned int i = 0; i < Charge_.size(); i++)
+  {
+    atom_self[i] = Charge_[i]*Charge_[i]*d0 + ee_plasma/Charge_.size();
+    mprintf("DEBUG: Self energy atom %i = %f\n", i+1, atom_self[i]);
+  }
+
+  ene += ee_plasma;
+  return ene;
+}

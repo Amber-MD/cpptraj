@@ -49,3 +49,37 @@ int EwaldCalc_Decomp_PME::Setup(Topology const& topIn, AtomMask const& maskIn) {
   return 0;
 }
 
+/** Calculate full nonbonded energy with PME */
+int EwaldCalc_Decomp_PME::CalcDecomposedNonbondEnergy(Frame const& frameIn, AtomMask const& maskIn,
+                                     double& e_elec, double& e_vdw,
+                                     Darray& atom_elec, Darray& atom_vdw)
+{
+  t_total_.Start();
+  double volume = frameIn.BoxCrd().CellVolume();
+  Darray atom_self;
+  double e_self = NBengine_.EwaldParams().DecomposedSelfEnergy( atom_self, volume );
+  mprintf("DEBUG: Total self energy: %f\n", e_self);
+
+  int retVal = pairList_.CreatePairList(frameIn, frameIn.BoxCrd().UnitCell(),
+                                        frameIn.BoxCrd().FracCell(), maskIn);
+  if (retVal != 0) {
+    mprinterr("Error: Pairlist creation failed for PME calc.\n");
+    return 1;
+  }
+
+  // TODO make more efficient
+  NBengine_.ModifyEwaldParams().FillRecipCoords( frameIn, maskIn );
+
+  //  MapCoords(frameIn, ucell, recip, maskIn);
+  // FIXME helPME requires coords and charge arrays to be non-const
+  double e_recip = Recip_.Recip_ParticleMesh( NBengine_.ModifyEwaldParams().SelectedCoords(),
+                                              frameIn.BoxCrd(),
+                                              NBengine_.ModifyEwaldParams().SelectedCharges(),
+                                              NBengine_.EwaldParams().NFFT(),
+                                              NBengine_.EwaldParams().EwaldCoeff(),
+                                              NBengine_.EwaldParams().Order()
+                                            );
+  mprintf("DEBUG: Recip energy: %f\n", e_recip);
+
+  return 0;
+}

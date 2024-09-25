@@ -36,6 +36,8 @@ class EwaldParams {
     }
     /// \return Self energy for the given volume
     double SelfEnergy(double) const;
+    /// \return Self energy for given volume. Set self energy for each atom.
+    double DecomposedSelfEnergy(std::vector<double>&, double) const;
 
     /// \return Direct space cutoff (in Ang squared)
     double Cut2() const { return cut2_; }
@@ -72,6 +74,7 @@ class EwaldParams {
     /// Calculate sum q, sum q^2. 
     void CalculateCharges(Topology const&, AtomMask const&);
   private:
+    static const double INVSQRTPI_;
 
     double FindEwaldCoefficient(double, double);
 
