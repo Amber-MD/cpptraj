@@ -18,6 +18,8 @@ class VDW_LongRange_Correction {
       //if (debug_ > 0) mprintf("DEBUG: Vdw correction %20.10f\n", e_vdwr);
       return e_vdwr;
     }
+    /// VDW correction decomposed per atom
+    double Vdw_Decomp_Correction(std::vector<double>&, double, double) const;
   private:
     typedef std::vector<int> Iarray;
     typedef std::vector<double> Darray;

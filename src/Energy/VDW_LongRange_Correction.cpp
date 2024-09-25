@@ -57,3 +57,23 @@ int VDW_LongRange_Correction::Setup_VDW_Correction(Topology const& topIn,
   }
   return 0;
 }
+
+/** Decomposed long range VDW correction */
+double VDW_LongRange_Correction::Vdw_Decomp_Correction(std::vector<double>& atom_ecorr,
+                                                       double cutoff_, double volume)
+const
+{
+  atom_ecorr.resize( vdw_type_.size() );
+  double prefac = Constants::TWOPI / (3.0*volume*cutoff_*cutoff_*cutoff_);
+  double e_vdwr = -prefac * Vdw_Recip_term_;
+
+  for (unsigned int i = 0; i != vdw_type_.size(); i++)
+  {
+    int v_type = vdw_type_[i];
+
+    double term = atype_vdw_recip_terms_[v_type] / N_vdw_type_[v_type];
+
+    atom_ecorr[i] = -prefac * term;
+  }
+  return e_vdwr;
+}

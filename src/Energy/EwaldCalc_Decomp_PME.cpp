@@ -93,7 +93,11 @@ int EwaldCalc_Decomp_PME::CalcDecomposedNonbondEnergy(Frame const& frameIn, Atom
   mprintf("DEBUG: Recip energy      : %f\n", e_recip);
   mprintf("DEBUG: Sum of recip array: %f\n", sumArray(atom_recip));
   // TODO distribute
-  double e_vdw_lr_correction = VDW_LR_.Vdw_Correction( NBengine_.EwaldParams().Cutoff(), volume );
+  Darray atom_vdwlr;
+  double e_vdw_lr_correction = VDW_LR_.Vdw_Decomp_Correction( atom_vdwlr,
+                                                       NBengine_.EwaldParams().Cutoff(), volume );
+  mprintf("DEBUG: VDW correction       : %f\n", e_vdw_lr_correction);
+  mprintf("DEBUG: Sum of VDW correction: %f\n", sumArray(atom_vdwlr));
   t_direct_.Start();
   Cpptraj::PairListTemplate<double>(pairList_, Excluded_,
                                     NBengine_.EwaldParams().Cut2(), NBengine_);
