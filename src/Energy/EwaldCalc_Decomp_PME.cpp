@@ -49,6 +49,13 @@ int EwaldCalc_Decomp_PME::Setup(Topology const& topIn, AtomMask const& maskIn) {
   return 0;
 }
 
+static inline double sumArray(std::vector<double> const& arrayIn) {
+  double sum = 0;
+  for (std::vector<double>::const_iterator it = arrayIn.begin(); it != arrayIn.end(); ++it)
+    sum += *it;
+  return sum;
+}
+
 /** Calculate full nonbonded energy with PME */
 int EwaldCalc_Decomp_PME::CalcDecomposedNonbondEnergy(Frame const& frameIn, AtomMask const& maskIn,
                                      double& e_elec, double& e_vdw,
@@ -59,6 +66,7 @@ int EwaldCalc_Decomp_PME::CalcDecomposedNonbondEnergy(Frame const& frameIn, Atom
   Darray atom_self;
   double e_self = NBengine_.EwaldParams().DecomposedSelfEnergy( atom_self, volume );
   mprintf("DEBUG: Total self energy: %f\n", e_self);
+  mprintf("DEBUG: Sum of self array: %f\n", sumArray(atom_self));
 
   int retVal = pairList_.CreatePairList(frameIn, frameIn.BoxCrd().UnitCell(),
                                         frameIn.BoxCrd().FracCell(), maskIn);

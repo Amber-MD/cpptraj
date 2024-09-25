@@ -20,7 +20,7 @@ Action::RetType Action_EneDecomp::Init(ArgList& actionArgs, ActionInit& init, in
 // Action_EneDecomp::Setup()
 Action::RetType Action_EneDecomp::Setup(ActionSetup& setup)
 {
-  int ret = eneDecomp_.SetupDecomposer( setup.Top() );
+  int ret = eneDecomp_.SetupDecomposer( setup.Top(), setup.CoordInfo().TrajBox() );
   if (ret == -1)
     return Action::SKIP;
   else if (ret == 1)

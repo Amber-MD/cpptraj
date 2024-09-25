@@ -358,7 +358,14 @@ int EnergyDecomposer::CalcEne(Frame const& frameIn) {
   // Dihedrals
   calcDihedrals(frameIn);
   // Nonbonds
-  calcNB_simple(frameIn);
+  if (use_pme_) { // FIXME atommask?
+    double e_elec, e_vdw;
+    std::vector<double> atom_elec, atom_vdw;
+    PME_.CalcDecomposedNonbondEnergy(frameIn, AtomMask(0, frameIn.Natom()),
+                                     e_elec, e_vdw, atom_elec, atom_vdw);
+  } else {
+    calcNB_simple(frameIn);
+  }
 
   // Accumulate the energies
   for (unsigned int idx = 0; idx != energies_.size(); idx++) {
