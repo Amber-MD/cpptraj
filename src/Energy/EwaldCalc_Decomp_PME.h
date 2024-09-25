@@ -4,6 +4,7 @@
 #include "VDW_LongRange_Correction.h"
 #include "../ExclusionArray.h"
 #include "../PairList.h"
+#include "../PairListEngine_Ewald_Decomp_LJLR.h"
 class AtomMask;
 class Box;
 class EwaldOptions;
@@ -21,6 +22,7 @@ class EwaldCalc_Decomp_PME {
     int CalcDecomposedNonbondEnergy(Frame const&, AtomMask const&, double&, double&,
                                     Darray&, Darray&);
   private:
+    PairListEngine_Ewald_Decomp_LJLR<double> NBengine_;
     PME_Recip Recip_;
     PairList pairList_;
     ExclusionArray Excluded_;
