@@ -1,14 +1,14 @@
-#ifndef INC_ENERGY_CALC_LJPME_H
-#define INC_ENERGY_CALC_LJPME_H
+#ifndef INC_ENERGY_EWALDCALC_LJPME_H
+#define INC_ENERGY_EWALDCALC_LJPME_H
 #include "PME_Recip.h"
 #include "../ExclusionArray.h"
 #include "../PairList.h"
 #include "../PairListEngine_Ewald_LJPME.h"
 namespace Cpptraj {
 namespace Energy {
-class Calc_LJPME {
+class EwaldCalc_LJPME {
   public:
-    Calc_LJPME();
+    EwaldCalc_LJPME();
     /// Init with Box, EwaldOptions and debug level
     int Init(Box const&, EwaldOptions const&, int);
     int Setup(Topology const&, AtomMask const&);

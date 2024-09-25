@@ -1,8 +1,8 @@
 #ifndef INC_ACTION_PMETEST_H
 #define INC_ACTION_PMETEST_H
 #include "Action.h"
-#include "Energy/Calc_PME.h"
-#include "Energy/Calc_LJPME.h"
+#include "Energy/EwaldCalc_PME.h"
+#include "Energy/EwaldCalc_LJPME.h"
 #include "Ewald_ParticleMesh.h"
 #include "EwaldOptions.h"
 #include "Timer.h"
@@ -19,8 +19,8 @@ class Action_PmeTest : public Action {
     void Print();
 
     Ewald_ParticleMesh PME0_;
-    Cpptraj::Energy::Calc_PME PME1_;
-    Cpptraj::Energy::Calc_LJPME PME2_;
+    Cpptraj::Energy::EwaldCalc_PME PME1_;
+    Cpptraj::Energy::EwaldCalc_LJPME PME2_;
     EwaldOptions ewaldOpts_;
     AtomMask Mask1_;
     DataSet* ele_;

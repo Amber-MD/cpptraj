@@ -1,5 +1,5 @@
-#ifndef INC_ENERGY_CALC_PME_H
-#define INC_ENERGY_CALC_PME_H
+#ifndef INC_ENERGY_EWALDCALC_PME_H
+#define INC_ENERGY_EWALDCALC_PME_H
 #include "PME_Recip.h"
 #include "VDW_LongRange_Correction.h"
 #include "../ExclusionArray.h"
@@ -12,9 +12,9 @@ class Frame;
 class Topology;
 namespace Cpptraj {
 namespace Energy {
-class Calc_PME {
+class EwaldCalc_PME {
   public:
-    Calc_PME();
+    EwaldCalc_PME();
     /// Init with Box, EwaldOptions and debug level
     int Init(Box const&, EwaldOptions const&, int);
     int Setup(Topology const&, AtomMask const&);

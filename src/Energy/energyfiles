@@ -1,9 +1,9 @@
 # Files for Energy subdirectory.
 ENERGY_SOURCES= \
-  Calc_LJPME.cpp \
-  Calc_PME.cpp \
   EnergyDecomposer.cpp \
   ErfcFxn.cpp \
+  EwaldCalc_LJPME.cpp \
+  EwaldCalc_PME.cpp \
   EwaldParams.cpp \
   EwaldParams_LJPME.cpp \
   EwaldParams_PME.cpp \

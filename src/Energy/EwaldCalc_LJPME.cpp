@@ -1,4 +1,4 @@
-#include "Calc_LJPME.h"
+#include "EwaldCalc_LJPME.h"
 #include "../CpptrajStdio.h"
 #include "../EwaldOptions.h"
 #include "../PairListTemplate.h"
@@ -6,13 +6,13 @@
 
 using namespace Cpptraj::Energy;
 
-Calc_LJPME::Calc_LJPME() :
+EwaldCalc_LJPME::EwaldCalc_LJPME() :
   Recip_(PME_Recip::COULOMB),
   LJrecip_(PME_Recip::LJ)
 {}
 
 /** Set up LJPME parameters. */
-int Calc_LJPME::Init(Box const& boxIn, EwaldOptions const& pmeOpts, int debugIn)
+int EwaldCalc_LJPME::Init(Box const& boxIn, EwaldOptions const& pmeOpts, int debugIn)
 {
   if (NBengine_.ModifyEwaldParams().InitEwald(boxIn, pmeOpts, debugIn)) {
     mprinterr("Error: LJPME calculation init failed.\n");
@@ -29,7 +29,7 @@ int Calc_LJPME::Init(Box const& boxIn, EwaldOptions const& pmeOpts, int debugIn)
 }
 
 /** Setup LJPME calculation. */
-int Calc_LJPME::Setup(Topology const& topIn, AtomMask const& maskIn) {
+int EwaldCalc_LJPME::Setup(Topology const& topIn, AtomMask const& maskIn) {
   if (NBengine_.ModifyEwaldParams().SetupEwald(topIn, maskIn)) {
     mprinterr("Error: LJPME calculation setup failed.\n");
     return 1;
@@ -48,7 +48,7 @@ int Calc_LJPME::Setup(Topology const& topIn, AtomMask const& maskIn) {
 }
 
 /** Calculate full nonbonded energy with LJPME */
-int Calc_LJPME::CalcNonbondEnergy(Frame const& frameIn, AtomMask const& maskIn,
+int EwaldCalc_LJPME::CalcNonbondEnergy(Frame const& frameIn, AtomMask const& maskIn,
                                 double& e_elec, double& e_vdw)
 {
   t_total_.Start();
@@ -114,7 +114,7 @@ int Calc_LJPME::CalcNonbondEnergy(Frame const& frameIn, AtomMask const& maskIn,
   return 0;
 }
 
-void Calc_LJPME::Timing(double total) const {
+void EwaldCalc_LJPME::Timing(double total) const {
   t_total_.WriteTiming(1,  "  LJPME Total:", total);
   Recip_.Timing_Total().WriteTiming(2,  "Recip:     ", t_total_.Total());
   //Recip_.Timing_Calc().WriteTiming(3,  "Recip. Calc   :", Recip_.Timing_Total().Total());

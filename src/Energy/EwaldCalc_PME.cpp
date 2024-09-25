@@ -1,4 +1,4 @@
-#include "Calc_PME.h"
+#include "EwaldCalc_PME.h"
 #include "../CpptrajStdio.h"
 #include "../EwaldOptions.h"
 #include "../PairListTemplate.h"
@@ -6,12 +6,12 @@
 
 using namespace Cpptraj::Energy;
 
-Calc_PME::Calc_PME() :
+EwaldCalc_PME::EwaldCalc_PME() :
   Recip_(PME_Recip::COULOMB)
 {}
 
 /** Set up PME parameters. */
-int Calc_PME::Init(Box const& boxIn, EwaldOptions const& pmeOpts, int debugIn)
+int EwaldCalc_PME::Init(Box const& boxIn, EwaldOptions const& pmeOpts, int debugIn)
 {
   if (NBengine_.ModifyEwaldParams().InitEwald(boxIn, pmeOpts, debugIn)) {
     mprinterr("Error: PME calculation init failed.\n");
@@ -28,7 +28,7 @@ int Calc_PME::Init(Box const& boxIn, EwaldOptions const& pmeOpts, int debugIn)
 }
 
 /** Setup PME calculation. */
-int Calc_PME::Setup(Topology const& topIn, AtomMask const& maskIn) {
+int EwaldCalc_PME::Setup(Topology const& topIn, AtomMask const& maskIn) {
   if (NBengine_.ModifyEwaldParams().SetupEwald(topIn, maskIn)) {
     mprinterr("Error: PME calculation setup failed.\n");
     return 1;
@@ -51,7 +51,7 @@ int Calc_PME::Setup(Topology const& topIn, AtomMask const& maskIn) {
 }
 
 /** Calculate full nonbonded energy with PME */
-int Calc_PME::CalcNonbondEnergy(Frame const& frameIn, AtomMask const& maskIn,
+int EwaldCalc_PME::CalcNonbondEnergy(Frame const& frameIn, AtomMask const& maskIn,
                                 double& e_elec, double& e_vdw)
 {
   t_total_.Start();
@@ -118,7 +118,7 @@ int Calc_PME::CalcNonbondEnergy(Frame const& frameIn, AtomMask const& maskIn,
   return 0;
 }
 
-void Calc_PME::Timing(double total) const {
+void EwaldCalc_PME::Timing(double total) const {
   t_total_.WriteTiming(1,  "  PME Total:", total);
   //t_self_.WriteTiming(2,   "Self:      ", t_total_.Total());
   Recip_.Timing_Total().WriteTiming(2,  "Recip:     ", t_total_.Total());
