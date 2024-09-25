@@ -96,6 +96,22 @@ int PME_Recip::DetermineNfft(int& nfft1, int& nfft2, int& nfft3, Box const& boxI
   return 0;
 }
 
+/** \return 1 if the box type is invalid for helPME */
+int PME_Recip::set_lattice(PMEInstanceD::LatticeType& lattice, Box const& boxIn) {
+  lattice = PMEInstanceD::LatticeType::XAligned;
+  // TODO just pass in Ucell when helPME supports it
+  //boxIn.PrintDebug("pme");
+  if (!boxIn.Is_X_Aligned()) {
+    if (boxIn.Is_Symmetric())
+      lattice = PMEInstanceD::LatticeType::ShapeMatrix;
+    else {
+      mprinterr("Error: Unit cell is not X-aligned or symmetric; cannot set PME recip grid.\n");
+      return 1;
+    }
+  }
+  return 0;
+}
+
 /** \return Reciprocal space part of PME energy calc. */
 // TODO currently helPME needs the coords/charge arrays to be non-const, need to fix that
 double PME_Recip::Recip_ParticleMesh(Darray& coordsDin, Box const& boxIn, Darray& ChargeIn,
@@ -131,17 +147,8 @@ double PME_Recip::Recip_ParticleMesh(Darray& coordsDin, Box const& boxIn, Darray
   //auto pme_object = std::unique_ptr<PMEInstanceD>(new PMEInstanceD());
   pme_object_.setup(distKernelExponent_, ew_coeffIn, orderIn, nfft1, nfft2, nfft3, scaleFac_, 0);
   // Check the unit cell vectors
-  PMEInstanceD::LatticeType lattice = PMEInstanceD::LatticeType::XAligned;
-  // TODO just pass in Ucell when helPME supports it
-  //boxIn.PrintDebug("pme");
-  if (!boxIn.Is_X_Aligned()) {
-    if (boxIn.Is_Symmetric())
-      lattice = PMEInstanceD::LatticeType::ShapeMatrix;
-    else {
-      mprinterr("Error: Unit cell is not X-aligned or symmetric; cannot set PME recip grid.\n");
-      return 0;
-    }
-  }
+  PMEInstanceD::LatticeType lattice;
+  if (set_lattice(lattice, boxIn)) return 0;
   // Sets the unit cell lattice vectors, with units consistent with those used to specify coordinates.
   // Args: 1 = the A lattice parameter in units consistent with the coordinates.
   //       2 = the B lattice parameter in units consistent with the coordinates.

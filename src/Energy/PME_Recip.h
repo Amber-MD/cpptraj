@@ -23,6 +23,7 @@ class PME_Recip {
     static bool check_prime_factors(int);
     static int ComputeNFFT(double);
     int DetermineNfft(int&, int&, int&, Box const&) const;
+    static int set_lattice(PMEInstanceD::LatticeType&, Box const&);
 
     PMEInstanceD pme_object_;
     Timer t_recip_; ///< Recip calc timer
