@@ -1,6 +1,7 @@
 #ifndef INC_PAIRLISTENGINE_EWALD_LJPME_H
 #define INC_PAIRLISTENGINE_EWALD_LJPME_H
 #include "Energy/EwaldParams_LJPME.h"
+#include "Energy/Ene_LJPME_6_12.h"
 #include "Energy/Kernel_EwaldAdjust.h"
 #include "PairList.h"
 namespace Cpptraj {
@@ -37,6 +38,14 @@ class PairListEngine_Ewald_LJPME {
       if (nbindex > -1) {
         double vswitch = EW_.Switch_Fn(rij2);
         NonbondType const& LJ = EW_.GetLJ( nbindex );
+        T e_vdw, e_pmevdw;
+        Cpptraj::Energy::
+        Ene_LJPME_6_12<T>( e_vdw, e_pmevdw,
+                           rij2, LJ.A(), LJ.B(), EW_.LJ_EwaldCoeff(),
+                           EW_.CalcCij(atom0.Idx(), atom1.Idx()) );
+        Evdw_ += (e_vdw * vswitch);
+        Eljpme_correction_ += (e_pmevdw * vswitch);
+/*
         T r2    = 1.0 / rij2;
         T r6    = r2 * r2 * r2;
         T r12   = r6 * r6;
@@ -51,7 +60,7 @@ class PairListEngine_Ewald_LJPME {
         //double kr6 = kr2 * kr4;
         T expterm = exp(-kr2);
         T Cij = EW_.CalcCij(atom0.Idx(), atom1.Idx()); //Cparam_[it0->Idx()] * Cparam_[it1->Idx()];
-        Eljpme_correction_ += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) * r6 * vswitch * Cij;
+        Eljpme_correction_ += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) * r6 * vswitch * Cij;*/
       }
     }
     /// Call when cutoff is not satisfied
