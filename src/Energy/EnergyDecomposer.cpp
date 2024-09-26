@@ -346,6 +346,7 @@ void EnergyDecomposer::calcNB_simple(Frame const& frameIn) {
 
 /** Calculate and decompose energies. */
 int EnergyDecomposer::CalcEne(Frame const& frameIn) {
+  t_total_.Start();
   if (currentTop_ == 0) {
     mprinterr("Internal Error: EnergyDecomposer::CalcEne() called before setup.\n");
     return 1;
@@ -377,6 +378,7 @@ int EnergyDecomposer::CalcEne(Frame const& frameIn) {
     if (selectedAtoms_.AtomInCharMask( idx ))
       energies_[idx].accumulate( currentEne_[idx] );
   }
+  t_total_.Stop();
 
   return 0;
 }
@@ -396,6 +398,10 @@ int EnergyDecomposer::FinishCalc() {
     if ( energies_[idx].nData() > 0 ) {
       set.AddXY( idx+1, energies_[idx].mean() );
     }
+  }
+  t_total_.WriteTiming(0, "  Decomp total:");
+  if (use_pme_) {
+    PME_.Timing(t_total_.Total());
   }
   return 0;
 }

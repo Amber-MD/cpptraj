@@ -136,3 +136,10 @@ int EwaldCalc_Decomp_PME::CalcDecomposedNonbondEnergy(Frame const& frameIn, Atom
   t_total_.Stop();
   return 0;
 }
+
+void EwaldCalc_Decomp_PME::Timing(double total) const {
+  t_total_.WriteTiming(1,  "  PME decomp Total:", total);
+  Recip_.Timing_Total().WriteTiming(2,  "Recip:     ", t_total_.Total());
+  t_direct_.WriteTiming(2, "Direct:    ", t_total_.Total());
+  pairList_.Timing(total);
+}

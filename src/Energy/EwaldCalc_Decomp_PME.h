@@ -21,6 +21,7 @@ class EwaldCalc_Decomp_PME {
     int Setup(Topology const&, AtomMask const&); // TODO CharMask?
     int CalcDecomposedNonbondEnergy(Frame const&, AtomMask const&, double&, double&,
                                     Darray&, Darray&);
+    void Timing(double) const;
   private:
     PairListEngine_Ewald_Decomp_LJLR<double> NBengine_;
     PME_Recip Recip_;

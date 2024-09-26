@@ -7,6 +7,7 @@
 #include "../EwaldOptions.h"
 #include "../ExclusionArray.h"
 #include "../OnlineVarT.h"
+#include "../Timer.h"
 class AngleType;
 class ArgList;
 class BondType;
@@ -79,6 +80,8 @@ class EnergyDecomposer {
     EwaldCalc_Decomp_PME PME_;  ///< For calculating pairwise decomposed PME energies
 
     Darray currentEne_;      ///< Hold the total energy of each atom for the current frame
+
+    Timer t_total_; ///< Total calc time
 };
 }
 }

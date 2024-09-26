@@ -158,7 +158,7 @@ double EwaldParams::DecomposedSelfEnergy(Darray& atom_self, double volume) const
   for (unsigned int i = 0; i < Charge_.size(); i++)
   {
     atom_self[i] = Charge_[i]*Charge_[i]*d0 + ee_plasma/Charge_.size();
-    mprintf("DEBUG: Self energy atom %i = %f\n", i+1, atom_self[i]);
+    //mprintf("DEBUG: Self energy atom %i = %f\n", i+1, atom_self[i]);
   }
 
   ene += ee_plasma;
