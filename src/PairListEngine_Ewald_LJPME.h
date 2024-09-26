@@ -60,15 +60,6 @@ class PairListEngine_Ewald_LJPME {
       Eljpme_correction_excl_ += Cpptraj::Energy::
                                  Kernel_LJPME_Adjust( rij2, EW_.LJ_EwaldCoeff(),
                                                       EW_.CalcCij(atom0.Idx(), atom1.Idx()) );
-/*      // NOTE: Assuming excluded pair is within cutoff
-      T kr2 = EW_.LJ_EwaldCoeff() * EW_.LJ_EwaldCoeff() * rij2;
-      T kr4 = kr2 * kr2;
-      //double kr6 = kr2 * kr4;
-      T expterm = exp(-kr2);
-      T r4 = rij2 * rij2;
-      T r6 = rij2 * r4;
-      T Cij = EW_.CalcCij(atom0.Idx(), atom1.Idx()); //Cparam_[it0->Idx()] * Cparam_[it1->Idx()];
-      Eljpme_correction_excl_ += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) / r6 * Cij;*/
     }
     // -------------------------------------------
     Cpptraj::Energy::EwaldParams_LJPME& ModifyEwaldParams() { return EW_; }
