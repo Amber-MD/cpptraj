@@ -363,6 +363,11 @@ int EnergyDecomposer::CalcEne(Frame const& frameIn) {
     std::vector<double> atom_elec, atom_vdw;
     PME_.CalcDecomposedNonbondEnergy(frameIn, AtomMask(0, frameIn.Natom()),
                                      e_elec, e_vdw, atom_elec, atom_vdw);
+    for (int at = 0; at < currentTop_->Natom(); at++) {
+      if (selectedAtoms_.AtomInCharMask(at)) {
+        saveEne( at, atom_elec[at] + atom_vdw[at] );
+      }
+    }
   } else {
     calcNB_simple(frameIn);
   }

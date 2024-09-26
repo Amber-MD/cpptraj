@@ -125,6 +125,14 @@ int EwaldCalc_Decomp_PME::CalcDecomposedNonbondEnergy(Frame const& frameIn, Atom
   }
   e_vdw = NBengine_.Evdw() + e_vdw_lr_correction;
   e_elec = e_self + e_recip + NBengine_.Eelec() + NBengine_.Eadjust();
+  // TODO preallocate?
+  atom_elec.resize( NBengine_.Eatom_Elec().size() );
+  atom_vdw.resize(  NBengine_.Eatom_EVDW().size() );
+  for (unsigned int idx = 0; idx != atom_elec.size(); idx++)
+  {
+    atom_elec[idx] = atom_self[idx] + atom_recip[idx] + NBengine_.Eatom_Elec()[idx] + NBengine_.Eatom_EAdjust()[idx];
+    atom_vdw[idx]  = NBengine_.Eatom_EVDW()[idx] + atom_vdwlr[idx];
+  }
   t_total_.Stop();
   return 0;
 }
