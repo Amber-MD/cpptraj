@@ -3,6 +3,7 @@
 #include "Energy/EwaldParams_LJPME.h"
 #include "Energy/Ene_LJPME_6_12.h"
 #include "Energy/Kernel_EwaldAdjust.h"
+#include "Energy/Kernel_LJPME_Adjust.h"
 #include "PairList.h"
 namespace Cpptraj {
 /// Direct space nonbond calculation using pairlist with Ewald and LJPME for VDW
@@ -45,22 +46,6 @@ class PairListEngine_Ewald_LJPME {
                            EW_.CalcCij(atom0.Idx(), atom1.Idx()) );
         Evdw_ += (e_vdw * vswitch);
         Eljpme_correction_ += (e_pmevdw * vswitch);
-/*
-        T r2    = 1.0 / rij2;
-        T r6    = r2 * r2 * r2;
-        T r12   = r6 * r6;
-        T f12   = LJ.A() * r12;  // A/r^12
-        T f6    = LJ.B() * r6;   // B/r^6
-        T e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)
-        Evdw_ += (e_vdw * vswitch);
-        //mprintf("PVDW %8i%8i%20.6f%20.6f\n", ta0+1, ta1+1, e_vdw, r2);
-        // LJ PME direct space correction
-        T kr2 = EW_.LJ_EwaldCoeff() * EW_.LJ_EwaldCoeff() * rij2;
-        T kr4 = kr2 * kr2;
-        //double kr6 = kr2 * kr4;
-        T expterm = exp(-kr2);
-        T Cij = EW_.CalcCij(atom0.Idx(), atom1.Idx()); //Cparam_[it0->Idx()] * Cparam_[it1->Idx()];
-        Eljpme_correction_ += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) * r6 * vswitch * Cij;*/
       }
     }
     /// Call when cutoff is not satisfied
@@ -72,7 +57,10 @@ class PairListEngine_Ewald_LJPME {
       T erfcval = EW_.ErfcEW( rij );
       Eadjust_ += Cpptraj::Energy::Kernel_EwaldAdjust<T>( q0_, q1_, rij, erfcval );
       // LJ PME direct space exclusion correction
-      // NOTE: Assuming excluded pair is within cutoff
+      Eljpme_correction_excl_ += Cpptraj::Energy::
+                                 Kernel_LJPME_Adjust( rij2, EW_.LJ_EwaldCoeff(),
+                                                      EW_.CalcCij(atom0.Idx(), atom1.Idx()) );
+/*      // NOTE: Assuming excluded pair is within cutoff
       T kr2 = EW_.LJ_EwaldCoeff() * EW_.LJ_EwaldCoeff() * rij2;
       T kr4 = kr2 * kr2;
       //double kr6 = kr2 * kr4;
@@ -80,7 +68,7 @@ class PairListEngine_Ewald_LJPME {
       T r4 = rij2 * rij2;
       T r6 = rij2 * r4;
       T Cij = EW_.CalcCij(atom0.Idx(), atom1.Idx()); //Cparam_[it0->Idx()] * Cparam_[it1->Idx()];
-      Eljpme_correction_excl_ += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) / r6 * Cij;
+      Eljpme_correction_excl_ += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) / r6 * Cij;*/
     }
     // -------------------------------------------
     Cpptraj::Energy::EwaldParams_LJPME& ModifyEwaldParams() { return EW_; }
