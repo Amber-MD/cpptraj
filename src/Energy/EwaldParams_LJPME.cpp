@@ -64,3 +64,16 @@ int EwaldParams_LJPME::SetupEwald(Topology const& topIn, AtomMask const& maskIn)
   return 0;
 }
 
+/** Calculate decomposed self6 energies. */
+void EwaldParams_LJPME::CalcDecomposedSelf6Energy() {
+  atom_vdwself6_.clear();
+  atom_vdwself6_.reserve( Cparam_.size() );
+  double ew2 = lw_coeff_ * lw_coeff_;
+  double ew6 = ew2 * ew2 * ew2;
+  double c6sum = 0.0;
+  for (Darray::const_iterator it = Cparam_.begin(); it != Cparam_.end(); ++it)
+  {
+    c6sum += ew6 * (*it * *it);
+    atom_vdwself6_.push_back(ew6 * (*it * *it)/12.0);
+  }
+}
