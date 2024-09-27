@@ -23,6 +23,7 @@ EnergyDecomposer::EnergyDecomposer() :
   eneOut_(0),
   outfile_(0),
   debug_(0),
+  nbcalctype_(SIMPLE),
   currentTop_(0)
 { }
 
@@ -33,8 +34,12 @@ int EnergyDecomposer::InitDecomposer(ArgList& argIn, DataSetList& DSLin, DataFil
   debug_ = debugIn;
   // Process keywords
   outfile_ = DFLin.AddDataFile( argIn.GetStringKey("out"), argIn );
-  use_pme_ = argIn.hasKey("pme");
-  if (use_pme_) {
+  nbcalctype_ = SIMPLE;
+  if (argIn.hasKey("pme"))
+    nbcalctype_ = PME;
+  else if (argIn.Contains("ljpme")) // FIXME using Contains() since EwaldOptions parses ljpme
+    nbcalctype_ = LJPME;
+  if (nbcalctype_ == PME || nbcalctype_ == LJPME) {
     if (ewaldOpts_.GetOptions(EwaldOptions::PME, argIn, "enedecomp"))
         return 1;
   }
@@ -70,7 +75,7 @@ void EnergyDecomposer::PrintOpts() const {
   mprintf("\tData set name: %s\n", eneOut_->legend());
   if (outfile_ != 0)
     mprintf("\tOutput file: %s\n", outfile_->DataFilename().full());
-  if (use_pme_)
+  if (nbcalctype_ != SIMPLE)
     ewaldOpts_.PrintOptions();
 
 }
@@ -182,17 +187,24 @@ int EnergyDecomposer::SetupDecomposer(Topology const& topIn, Box const& boxIn) {
   if (setupDihedrals( topIn.Dihedrals() )) return 1;
   if (setupDihedrals( topIn.DihedralsH() )) return 1;
   std::sort( dihedrals_.begin(), dihedrals_.end() );
-  if (use_pme_) {
+  if (nbcalctype_ != SIMPLE) {
     if (!boxIn.HasBox()) {
       mprinterr("Error: PME requires unit cell information.\n");
       return 1;
     }
     // Set up for all atoms FIXME
     AtomMask Imask(0, topIn.Natom());
-    if (PME_.Init(boxIn, ewaldOpts_, debug_))
-      return 1;
-    if (PME_.Setup( topIn, Imask ))
-      return 1;
+    if (nbcalctype_ == PME) {
+      if (PME_.Init(boxIn, ewaldOpts_, debug_))
+        return 1;
+      if (PME_.Setup( topIn, Imask ))
+        return 1;
+    } else if (nbcalctype_ == LJPME) {
+      if (LJPME_.Init(boxIn, ewaldOpts_, debug_))
+        return 1;
+      if (LJPME_.Setup( topIn, Imask ))
+        return 1;
+    }
   } else {
     // For nonbonds, set up all selected atoms in an integer atom mask.
     //mask_ = AtomMask( selectedAtoms_.ConvertToIntMask(), selectedAtoms_.Natom() );
@@ -359,11 +371,15 @@ int EnergyDecomposer::CalcEne(Frame const& frameIn) {
   // Dihedrals
   calcDihedrals(frameIn);
   // Nonbonds
-  if (use_pme_) { // FIXME atommask?
+  if (nbcalctype_ != SIMPLE) { // FIXME atommask?
     double e_elec, e_vdw;
     std::vector<double> atom_elec, atom_vdw;
-    PME_.CalcDecomposedNonbondEnergy(frameIn, AtomMask(0, frameIn.Natom()),
-                                     e_elec, e_vdw, atom_elec, atom_vdw);
+    if (nbcalctype_ == PME)
+      PME_.CalcDecomposedNonbondEnergy(frameIn, AtomMask(0, frameIn.Natom()),
+                                       e_elec, e_vdw, atom_elec, atom_vdw);
+    else if (nbcalctype_ == LJPME)
+      LJPME_.CalcDecomposedNonbondEnergy(frameIn, AtomMask(0, frameIn.Natom()),
+                                       e_elec, e_vdw, atom_elec, atom_vdw);
     for (int at = 0; at < currentTop_->Natom(); at++) {
       if (selectedAtoms_.AtomInCharMask(at)) {
         saveEne( at, atom_elec[at] + atom_vdw[at] );
@@ -400,7 +416,7 @@ int EnergyDecomposer::FinishCalc() {
     }
   }
   t_total_.WriteTiming(0, "  Decomp total:");
-  if (use_pme_) {
+  if (nbcalctype_ != SIMPLE) {
     PME_.Timing(t_total_.Total());
   }
   return 0;

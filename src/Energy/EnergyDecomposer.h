@@ -2,6 +2,7 @@
 #define INC_ENERGY_ENERGYDECOMPOSER_H
 #include <vector>
 #include "EwaldCalc_Decomp_PME.h"
+#include "EwaldCalc_Decomp_LJPME.h"
 #include "../AtomMask.h"
 #include "../CharMask.h"
 #include "../EwaldOptions.h"
@@ -36,6 +37,8 @@ class EnergyDecomposer {
     /// Finish the calculation by putting energies in output DataSet
     int FinishCalc();
   private:
+    enum NonBondCalcType { SIMPLE = 0, PME, LJPME };
+
     static const double QFAC_; ///< Coulomb prefactor
 
     typedef std::vector<double> Darray;
@@ -66,7 +69,7 @@ class EnergyDecomposer {
     DataSet* eneOut_;        ///< Will hold the average energy of each selected entity for output.
     DataFile* outfile_;      ///< Output file
     int debug_;              ///< Debug level
-    bool use_pme_;           ///< If true use PME for the nonbonds
+    NonBondCalcType nbcalctype_; ///< What calc type to use for the nonbonds
     EwaldOptions ewaldOpts_; ///< Hold Ewald options
 
     BndArrayType bonds_;         ///< Hold all bonds to be calculated
@@ -78,6 +81,7 @@ class EnergyDecomposer {
     Topology const* currentTop_; ///< Current topology from Setup
 
     EwaldCalc_Decomp_PME PME_;  ///< For calculating pairwise decomposed PME energies
+    EwaldCalc_Decomp_LJPME LJPME_;  ///< For calculating pairwise decomposed LJPME energies
 
     Darray currentEne_;      ///< Hold the total energy of each atom for the current frame
 
