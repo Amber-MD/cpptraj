@@ -1,4 +1,4 @@
-#include "EwaldCalc_Decomp_PME.h"
+#include "EwaldCalc_Decomp_LJPME.h"
 #include "../CpptrajStdio.h"
 #include "../EwaldOptions.h"
 #include "../PairListTemplate.h"
@@ -6,35 +6,32 @@
 
 using namespace Cpptraj::Energy;
 
-EwaldCalc_Decomp_PME::EwaldCalc_Decomp_PME() :
-  Recip_(PME_Recip::COULOMB)
+EwaldCalc_Decomp_LJPME::EwaldCalc_Decomp_LJPME() :
+  Recip_(PME_Recip::COULOMB),
+  LJrecip_(PME_Recip::LJ)
 {}
 
-/** Set up PME parameters. */
-int EwaldCalc_Decomp_PME::Init(Box const& boxIn, EwaldOptions const& pmeOpts, int debugIn)
+/** Set up LJPME parameters. */
+int EwaldCalc_Decomp_LJPME::Init(Box const& boxIn, EwaldOptions const& pmeOpts, int debugIn)
 {
   if (NBengine_.ModifyEwaldParams().InitEwald(boxIn, pmeOpts, debugIn)) {
-    mprinterr("Error: Decomposable PME calculation init failed.\n");
+    mprinterr("Error: Decomposable LJPME calculation init failed.\n");
     return 1;
   }
   if (pairList_.InitPairList(NBengine_.EwaldParams().Cutoff(), pmeOpts.SkinNB(), debugIn))
     return 1;
   if (pairList_.SetupPairList( boxIn ))
     return 1;
-  VDW_LR_.SetDebug( debugIn );
   Recip_.SetDebug( debugIn );
+  LJrecip_.SetDebug( debugIn );
 
   return 0;
 }
 
-/** Setup PME calculation. */
-int EwaldCalc_Decomp_PME::Setup(Topology const& topIn, AtomMask const& maskIn) {
+/** Setup LJPME calculation. */
+int EwaldCalc_Decomp_LJPME::Setup(Topology const& topIn, AtomMask const& maskIn) {
   if (NBengine_.ModifyEwaldParams().SetupEwald(topIn, maskIn)) {
-    mprinterr("Error: PME calculation setup failed.\n");
-    return 1;
-  }
-  if (VDW_LR_.Setup_VDW_Correction( topIn, maskIn )) {
-    mprinterr("Error: PME calculation long range VDW correction setup failed.\n");
+    mprinterr("Error: LJPME calculation setup failed.\n");
     return 1;
   }
   // Setup exclusion list
@@ -43,7 +40,7 @@ int EwaldCalc_Decomp_PME::Setup(Topology const& topIn, AtomMask const& maskIn) {
                               ExclusionArray::EXCLUDE_SELF,
                               ExclusionArray::FULL))
   {
-    mprinterr("Error: Could not set up exclusion list for PME calculation.\n");
+    mprinterr("Error: Could not set up exclusion list for LJPME calculation.\n");
     return 1;
   }
 
@@ -58,10 +55,10 @@ static inline double sumArray(std::vector<double> const& arrayIn) {
   return sum;
 }
 
-/** Calculate full nonbonded energy with PME */
-int EwaldCalc_Decomp_PME::CalcDecomposedNonbondEnergy(Frame const& frameIn, AtomMask const& maskIn,
-                                     double& e_elec, double& e_vdw,
-                                     Darray& atom_elec, Darray& atom_vdw)
+/** Calculate full nonbonded energy with LJPME */
+int EwaldCalc_Decomp_LJPME::CalcDecomposedNonbondEnergy(Frame const& frameIn, AtomMask const& maskIn,
+                                double& e_elec, double& e_vdw,
+                                Darray& atom_elec, Darray& atom_vdw)
 {
   t_total_.Start();
   double volume = frameIn.BoxCrd().CellVolume();
@@ -69,11 +66,13 @@ int EwaldCalc_Decomp_PME::CalcDecomposedNonbondEnergy(Frame const& frameIn, Atom
   double e_self = NBengine_.EwaldParams().DecomposedSelfEnergy( atom_self, volume );
   mprintf("DEBUG: Total self energy: %f\n", e_self);
   mprintf("DEBUG: Sum of self array: %f\n", sumArray(atom_self));
+  // FIXME do decomposed self6
+  Darray atom_vdwself6;
 
   int retVal = pairList_.CreatePairList(frameIn, frameIn.BoxCrd().UnitCell(),
                                         frameIn.BoxCrd().FracCell(), maskIn);
   if (retVal != 0) {
-    mprinterr("Error: Pairlist creation failed for PME calc.\n");
+    mprinterr("Error: Pairlist creation failed for LJPME calc.\n");
     return 1;
   }
 
@@ -84,21 +83,31 @@ int EwaldCalc_Decomp_PME::CalcDecomposedNonbondEnergy(Frame const& frameIn, Atom
   Darray atom_recip;
   // FIXME helPME requires coords and charge arrays to be non-const
   double e_recip = Recip_.Recip_Decomp( atom_recip,
-                                        NBengine_.ModifyEwaldParams().SelectedCoords(),
-                                        frameIn.BoxCrd(),
-                                        NBengine_.ModifyEwaldParams().SelectedCharges(),
-                                        NBengine_.EwaldParams().NFFT(),
-                                        NBengine_.EwaldParams().EwaldCoeff(),
-                                        NBengine_.EwaldParams().Order()
-                                      );
+                                              NBengine_.ModifyEwaldParams().SelectedCoords(),
+                                              frameIn.BoxCrd(),
+                                              NBengine_.ModifyEwaldParams().SelectedCharges(),
+                                              NBengine_.EwaldParams().NFFT(),
+                                              NBengine_.EwaldParams().EwaldCoeff(),
+                                              NBengine_.EwaldParams().Order()
+                                            );
   mprintf("DEBUG: Recip energy      : %f\n", e_recip);
   mprintf("DEBUG: Sum of recip array: %f\n", sumArray(atom_recip));
-  // TODO distribute
-  Darray atom_vdwlr;
-  double e_vdw_lr_correction = VDW_LR_.Vdw_Decomp_Correction( atom_vdwlr,
-                                                       NBengine_.EwaldParams().Cutoff(), volume );
-  mprintf("DEBUG: VDW correction       : %f\n", e_vdw_lr_correction);
-  mprintf("DEBUG: Sum of VDW correction: %f\n", sumArray(atom_vdwlr));
+  Darray atom_vdw6recip;
+  double e_vdw6recip = LJrecip_.Recip_Decomp( atom_vdw6recip,
+                                                    NBengine_.ModifyEwaldParams().SelectedCoords(),
+                                                    frameIn.BoxCrd(),
+                                                    NBengine_.ModifyEwaldParams().SelectedC6params(),
+                                                    NBengine_.EwaldParams().NFFT(),
+                                                    NBengine_.EwaldParams().LJ_EwaldCoeff(),
+                                                    NBengine_.EwaldParams().Order()
+                                                  );
+  mprintf("DEBUG: VDW Recip energy      : %f\n", e_vdw6recip);
+  mprintf("DEBUG: Sum of VDW recip array: %f\n", sumArray(atom_vdw6recip));
+  if (NBengine_.EwaldParams().Debug() > 0) {
+    mprintf("DEBUG: e_vdw6self = %16.8f\n", NBengine_.EwaldParams().Self6());
+    mprintf("DEBUG: Evdwrecip = %16.8f\n", e_vdw6recip);
+  }
+
   t_direct_.Start();
   Cpptraj::PairListTemplate<double>(pairList_, Excluded_,
                                     NBengine_.EwaldParams().Cut2(), NBengine_);
@@ -112,7 +121,9 @@ int EwaldCalc_Decomp_PME::CalcDecomposedNonbondEnergy(Frame const& frameIn, Atom
 
   if (NBengine_.EwaldParams().Debug() > 0) {
     mprintf("DEBUG: Nonbond energy components:\n");
-    mprintf("     Evdw                   = %24.12f\n", NBengine_.Evdw() + e_vdw_lr_correction );
+    mprintf("     Evdw                   = %24.12f\n", NBengine_.Evdw() +
+                                                       NBengine_.EwaldParams().Self6() +
+                                                       e_vdw6recip);
     mprintf("     Ecoulomb               = %24.12f\n", e_self + e_recip +
                                                        NBengine_.Eelec() +
                                                        NBengine_.Eadjust());
@@ -122,9 +133,10 @@ int EwaldCalc_Decomp_PME::CalcDecomposedNonbondEnergy(Frame const& frameIn, Atom
     mprintf("                     (dir)  = %24.12f\n", NBengine_.Eelec());
     mprintf("                     (adj)  = %24.12f\n", NBengine_.Eadjust());
     mprintf("     E vanDerWaals   (dir)  = %24.12f\n", NBengine_.Evdw());
-    mprintf("                     (LR)   = %24.12f\n", e_vdw_lr_correction);
+    mprintf("                     (6slf) = %24.12f\n", NBengine_.EwaldParams().Self6());
+    mprintf("                     (6rcp) = %24.12f\n", e_vdw6recip);
   }
-  e_vdw = NBengine_.Evdw() + e_vdw_lr_correction;
+  e_vdw = NBengine_.Evdw() + NBengine_.EwaldParams().Self6() + e_vdw6recip;
   e_elec = e_self + e_recip + NBengine_.Eelec() + NBengine_.Eadjust();
   // TODO preallocate?
   atom_elec.resize( NBengine_.Eatom_Elec().size() );
@@ -132,15 +144,20 @@ int EwaldCalc_Decomp_PME::CalcDecomposedNonbondEnergy(Frame const& frameIn, Atom
   for (unsigned int idx = 0; idx != atom_elec.size(); idx++)
   {
     atom_elec[idx] = atom_self[idx] + atom_recip[idx] + NBengine_.Eatom_Elec()[idx] + NBengine_.Eatom_EAdjust()[idx];
-    atom_vdw[idx]  = NBengine_.Eatom_EVDW()[idx] + atom_vdwlr[idx];
+    atom_vdw[idx]  = NBengine_.Eatom_EVDW()[idx] + atom_vdwself6[idx] + atom_vdw6recip[idx];
   }
+
   t_total_.Stop();
   return 0;
 }
 
-void EwaldCalc_Decomp_PME::Timing(double total) const {
-  t_total_.WriteTiming(1,  "  PME decomp Total:", total);
+void EwaldCalc_Decomp_LJPME::Timing(double total) const {
+  t_total_.WriteTiming(1,  "  LJPME Total:", total);
   Recip_.Timing_Total().WriteTiming(2,  "Recip:     ", t_total_.Total());
+  //Recip_.Timing_Calc().WriteTiming(3,  "Recip. Calc   :", Recip_.Timing_Total().Total());
+  LJrecip_.Timing_Total().WriteTiming(2,"LJRecip:   ", t_total_.Total());
+  //LJrecip_.Timing_Calc().WriteTiming(3,"LJ Recip. Calc:", LJrecip_.Timing_Total().Total());
   t_direct_.WriteTiming(2, "Direct:    ", t_total_.Total());
+
   pairList_.Timing(total);
 }

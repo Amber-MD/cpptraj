@@ -71,7 +71,7 @@ class PairListEngine_Ewald_Decomp_LJPME {
       T erfcval = EW_.ErfcEW( rij );
       T e_adj = Cpptraj::Energy::Kernel_EwaldAdjust<T>( q0_, q1_, rij, erfcval );
       Eadjust_ += e_adj;
-      e_half = e_adj * 0.5;
+      T e_half = e_adj * 0.5;
       // LJ PME direct space exclusion correction
       T e_ljpme_adj = Cpptraj::Energy::
                       Kernel_LJPME_Adjust( rij2, EW_.LJ_EwaldCoeff(),
