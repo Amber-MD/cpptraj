@@ -34,6 +34,7 @@ int EwaldCalc_Decomp_LJPME::Setup(Topology const& topIn, AtomMask const& maskIn)
     mprinterr("Error: LJPME calculation setup failed.\n");
     return 1;
   }
+  NBengine_.ModifyEwaldParams().CalcDecomposedSelf6Energy();
   // Setup exclusion list
   // Use distance of 4 (up to dihedrals)
   if (Excluded_.SetupExcluded(topIn.Atoms(), maskIn, 4,
@@ -67,7 +68,9 @@ int EwaldCalc_Decomp_LJPME::CalcDecomposedNonbondEnergy(Frame const& frameIn, At
   mprintf("DEBUG: Total self energy: %f\n", e_self);
   mprintf("DEBUG: Sum of self array: %f\n", sumArray(atom_self));
   // FIXME do decomposed self6
-  Darray atom_vdwself6;
+  Darray const& atom_vdwself6 = NBengine_.EwaldParams().Atom_Self6Energies();
+  mprintf("DEBUG: Total self6 energy: %f\n", NBengine_.EwaldParams().Self6());
+  mprintf("DEBUG: Sum of self6 array: %f\n", sumArray(atom_vdwself6));
 
   int retVal = pairList_.CreatePairList(frameIn, frameIn.BoxCrd().UnitCell(),
                                         frameIn.BoxCrd().FracCell(), maskIn);
