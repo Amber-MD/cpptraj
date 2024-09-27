@@ -2,6 +2,7 @@
 ENERGY_SOURCES= \
   EnergyDecomposer.cpp \
   ErfcFxn.cpp \
+  EwaldCalc_Decomp_LJPME.cpp \
   EwaldCalc_Decomp_PME.cpp \
   EwaldCalc_LJPME.cpp \
   EwaldCalc_PME.cpp \
