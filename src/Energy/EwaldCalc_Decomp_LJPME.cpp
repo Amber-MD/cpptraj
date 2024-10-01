@@ -18,7 +18,7 @@ int EwaldCalc_Decomp_LJPME::Init(Box const& boxIn, EwaldOptions const& pmeOpts, 
     mprinterr("Error: Decomposable LJPME calculation init failed.\n");
     return 1;
   }
-  if (pairList_.InitPairList(NBengine_.EwaldParams().Cutoff(), pmeOpts.SkinNB(), debugIn))
+  if (pairList_.InitPairList(pmeOpts.Cutoff(), pmeOpts.SkinNB(), debugIn))
     return 1;
   if (pairList_.SetupPairList( boxIn ))
     return 1;
