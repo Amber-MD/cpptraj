@@ -11,9 +11,10 @@ class Analysis_VectorMath : public Analysis {
     Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
-    enum ModeType {  DOTPRODUCT = 0, DOTANGLE, CROSSPRODUCT };
+    enum ModeType {  DOTPRODUCT = 0, DOTANGLE, CROSSPRODUCT, MAGNITUDE };
     static const char* ModeString[];
 
+    int Magnitude(DataSet*, DataSet_Vector const&) const;
     int DotProduct(DataSet*, DataSet_Vector&, DataSet_Vector&,
                    unsigned int, unsigned int, unsigned int) const;
     int CrossProduct(DataSet*, DataSet_Vector&, DataSet_Vector&,
