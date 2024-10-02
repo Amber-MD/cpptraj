@@ -5640,7 +5640,7 @@ Read
 \end_layout
 
 \begin_layout LyX-Code
- [vector] |
+ [vector [magnitude]] |
 \end_layout
 
 \begin_layout LyX-Code
@@ -5737,7 +5737,7 @@ nosquare2d Read data as XYZ matrix (i.e.
 \begin_layout Description
 vector Read data as vector.
  If indices are present they will be skipped.
- Assume first 3 columns after the index volumn are vector X,
+ Assume first 3 columns after the index column are vector X,
  Y,
  and Z,
  and (if present) the next 3 columns contain vector origin X,
@@ -5745,6 +5745,14 @@ vector Read data as vector.
  and Z.
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+magnitude If specified,
+ assume vector file last column contains vector magnitudes;
+ read these into a set with Aspect 'Mag'.
+\end_layout
+
+\end_deeper
 \begin_layout Description
 mat3x3 Read data as 3x3 matrix.
  If indices are present they will be skipped.
@@ -55687,7 +55695,7 @@ vectormath vec1 <vecname1> vec2 <vecname2> [out <filename>] [norm] [name <setnam
 \end_layout
 
 \begin_layout LyX-Code
-           [ dotproduct | dotangle | crossproduct ]
+           [ dotproduct | dotangle | crossproduct | magnitude ]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -55741,11 +55749,23 @@ vec2
 \end_layout
 
 \begin_layout Description
+[magnitude] Calculate the magnitude of the vectors selected by 
+\series bold
+vec1
+\series default
+ (no need to specify 
+\series bold
+vec2
+\series default
+).
+\end_layout
+
+\begin_layout Description
 [norm] Normalize the vectors;
  this will affect any subsequent calculations with the vectors.
  This is turned on automatically if 
 \series bold
-dotangle
+dotangle/magnitude
 \series default
  specified.
 \end_layout
