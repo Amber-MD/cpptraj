@@ -32,7 +32,8 @@ DataIO_Std::DataIO_Std() :
   indexcol_(-1),
   isInverted_(false), 
   hasXcolumn_(true), 
-  writeHeader_(true), 
+  writeHeader_(true),
+  read_vector_magnitude_(false), 
   square2d_(true),
   sparse_(false),
   originSpecified_(false),
@@ -92,6 +93,7 @@ void DataIO_Std::ReadHelp() {
           "\t\tprec {dbl|flt*}       : Grid precision; double or float (default float).\n"
           "\t\tbin {center|corner*}  : Coords specify bin centers or corners (default corners).\n"
           "\tvector         : Read data as vector: VX VY VZ [OX OY OZ]\n"
+          "\t\tmagnitude : Assume vector data final column contains vector magnitude.\n"
           "\tmat3x3         : Read data as 3x3 matrices: M(1,1) M(1,2) ... M(3,2) M(3,3)\n");
 
 }
@@ -157,6 +159,11 @@ int DataIO_Std::processReadArgs(ArgList& argIn) {
         return 1;
       }
     }
+  }
+  // Options for vector
+  if (mode_ == READVEC) {
+    if (argIn.hasKey("magnitude"))
+      read_vector_magnitude_ = true;
   }
   // Options for 2d
   if (mode_ == READ2D) {
@@ -853,6 +860,17 @@ int DataIO_Std::Read_Vector(std::string const& fname,
       return 1;
     }
   }
+  DataSet* magset = 0;
+  if (read_vector_magnitude_) {
+    magset = datasetlist.CheckForSet( MetaData(dsname, "Mag") );
+    if (magset != 0) {
+      mprintf("\tAppening vector magnitude data to set '%s'\n", magset->legend());
+      if (magset->Type() != DataSet::DOUBLE) {
+        mprinterr("Error: Cannot append magnitude data to set '%s', wrong type.\n", magset->legend());
+        return 1;
+      }
+    }
+  }
   // Buffer file
   BufferedLine buffer;
   if (buffer.OpenFileRead( fname )) return 1;
@@ -871,14 +889,29 @@ int DataIO_Std::Read_Vector(std::string const& fname,
     mprinterr("Error: Could not tokenize line.\n");
     return 1;
   }
-  if (ncols == 3 || ncols == 6 || ncols == 9)
-    hasIndex = false;
-  else if (ncols == 4 || ncols == 7 || ncols == 10) {
-    hasIndex = true;
-    mprintf("Warning: Not reading vector data indices.\n");
+  // Try to determine what data is present based on the number of columns
+  if (read_vector_magnitude_) {
+    mprintf("\tAssuming final column contains vector magnitude data.\n");
+    if (ncols == 4 || ncols == 7 || ncols == 10)
+      hasIndex = false;
+    else if (ncols == 5 || ncols == 8 || ncols == 11) {
+      hasIndex = true;
+      mprintf("Warning: Not reading vector data indices.\n");
+    } else {
+      mprinterr("Error: Expected 3, 6, or 9 columns of vector data plus 1 column\n"
+                "Error:   of magnitude data, got %i.\n", ncols);
+      return 1;
+    }
   } else {
-    mprinterr("Error: Expected 3, 6, or 9 columns of vector data, got %i.\n", ncols);
-    return 1;
+    if (ncols == 3 || ncols == 6 || ncols == 9)
+      hasIndex = false;
+    else if (ncols == 4 || ncols == 7 || ncols == 10) {
+      hasIndex = true;
+      mprintf("Warning: Not reading vector data indices.\n");
+    } else {
+      mprinterr("Error: Expected 3, 6, or 9 columns of vector data, got %i.\n", ncols);
+      return 1;
+    }
   }
   bool hasOrigins;
   if (ncols >= 6) {
@@ -923,9 +956,14 @@ int DataIO_Std::Read_Vector(std::string const& fname,
     ds = datasetlist.AddSet(dtype, dsname);
     if (ds == 0) return 1;
   }
+  if (read_vector_magnitude_ && magset == 0) {
+    magset = datasetlist.AddSet(DataSet::DOUBLE, MetaData(dsname, "Mag"));
+    if (magset == 0) return 1;
+  }
   // Read vector data
   double vec[6];
   std::fill(vec, vec+6, 0.0);
+  double vmag = 0;
   size_t ndata = ds->Size();
   while (linebuffer != 0) {
     if (hasIndex)

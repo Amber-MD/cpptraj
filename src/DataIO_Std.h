@@ -51,6 +51,7 @@ class DataIO_Std : public DataIO {
     bool isInverted_;  ///< For 1D writes invert X/Y.
     bool hasXcolumn_;
     bool writeHeader_;
+    bool read_vector_magnitude_; ///< For vector reads, assume final column contains magnitude
     bool square2d_;
     bool sparse_;          ///< 3d writes, only write voxels with value > cut_
     bool originSpecified_; ///< 3d reads, true if origin specified
