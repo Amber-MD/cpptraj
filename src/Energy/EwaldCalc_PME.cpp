@@ -17,10 +17,6 @@ int EwaldCalc_PME::Init(Box const& boxIn, EwaldOptions const& pmeOpts, int debug
     mprinterr("Error: PME calculation init failed.\n");
     return 1;
   }
-  if (pairList_.InitPairList(pmeOpts.Cutoff(), pmeOpts.SkinNB(), debugIn))
-    return 1;
-  if (pairList_.SetupPairList( boxIn ))
-    return 1;
   VDW_LR_.SetDebug( debugIn );
   Recip_.SetDebug( debugIn );
 
@@ -37,33 +33,18 @@ int EwaldCalc_PME::Setup(Topology const& topIn, AtomMask const& maskIn) {
     mprinterr("Error: PME calculation long range VDW correction setup failed.\n");
     return 1;
   }
-  // Setup exclusion list
-  // Use distance of 4 (up to dihedrals)
-  if (Excluded_.SetupExcluded(topIn.Atoms(), maskIn, 4,
-                              ExclusionArray::EXCLUDE_SELF,
-                              ExclusionArray::FULL))
-  {
-    mprinterr("Error: Could not set up exclusion list for PME calculation.\n");
-    return 1;
-  }
 
   return 0;
 }
 
 /** Calculate full nonbonded energy with PME */
 int EwaldCalc_PME::CalcNonbondEnergy(Frame const& frameIn, AtomMask const& maskIn,
-                                double& e_elec, double& e_vdw)
+                                     PairList const& pairList_, ExclusionArray const& Excluded_,
+                                     double& e_elec, double& e_vdw)
 {
   t_total_.Start();
   double volume = frameIn.BoxCrd().CellVolume();
   double e_self = NBengine_.EwaldParams().SelfEnergy( volume );
-
-  int retVal = pairList_.CreatePairList(frameIn, frameIn.BoxCrd().UnitCell(),
-                                        frameIn.BoxCrd().FracCell(), maskIn);
-  if (retVal != 0) {
-    mprinterr("Error: Pairlist creation failed for PME calc.\n");
-    return 1;
-  }
 
   // TODO make more efficient
   NBengine_.ModifyEwaldParams().FillRecipCoords( frameIn, maskIn );
@@ -130,5 +111,4 @@ void EwaldCalc_PME::Timing(double total) const {
 //  t_erfc_.WriteTiming(3,  "ERFC:  ", t_direct_.Total());
 //  t_adjust_.WriteTiming(3,"Adjust:", t_direct_.Total());
 //# endif
-  pairList_.Timing(total);
 }

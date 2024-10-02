@@ -18,10 +18,6 @@ int EwaldCalc_LJPME::Init(Box const& boxIn, EwaldOptions const& pmeOpts, int deb
     mprinterr("Error: LJPME calculation init failed.\n");
     return 1;
   }
-  if (pairList_.InitPairList(pmeOpts.Cutoff(), pmeOpts.SkinNB(), debugIn))
-    return 1;
-  if (pairList_.SetupPairList( boxIn ))
-    return 1;
   Recip_.SetDebug( debugIn );
   LJrecip_.SetDebug( debugIn );
 
@@ -34,33 +30,18 @@ int EwaldCalc_LJPME::Setup(Topology const& topIn, AtomMask const& maskIn) {
     mprinterr("Error: LJPME calculation setup failed.\n");
     return 1;
   }
-  // Setup exclusion list
-  // Use distance of 4 (up to dihedrals)
-  if (Excluded_.SetupExcluded(topIn.Atoms(), maskIn, 4,
-                              ExclusionArray::EXCLUDE_SELF,
-                              ExclusionArray::FULL))
-  {
-    mprinterr("Error: Could not set up exclusion list for LJPME calculation.\n");
-    return 1;
-  }
 
   return 0;
 }
 
 /** Calculate full nonbonded energy with LJPME */
 int EwaldCalc_LJPME::CalcNonbondEnergy(Frame const& frameIn, AtomMask const& maskIn,
-                                double& e_elec, double& e_vdw)
+                                       PairList const& pairList_, ExclusionArray const& Excluded_,
+                                       double& e_elec, double& e_vdw)
 {
   t_total_.Start();
   double volume = frameIn.BoxCrd().CellVolume();
   double e_self = NBengine_.EwaldParams().SelfEnergy( volume );
-
-  int retVal = pairList_.CreatePairList(frameIn, frameIn.BoxCrd().UnitCell(),
-                                        frameIn.BoxCrd().FracCell(), maskIn);
-  if (retVal != 0) {
-    mprinterr("Error: Pairlist creation failed for LJPME calc.\n");
-    return 1;
-  }
 
   // TODO make more efficient
   NBengine_.ModifyEwaldParams().FillRecipCoords( frameIn, maskIn );
@@ -121,6 +102,4 @@ void EwaldCalc_LJPME::Timing(double total) const {
   LJrecip_.Timing_Total().WriteTiming(2,"LJRecip:   ", t_total_.Total());
   //LJrecip_.Timing_Calc().WriteTiming(3,"LJ Recip. Calc:", LJrecip_.Timing_Total().Total());
   t_direct_.WriteTiming(2, "Direct:    ", t_total_.Total());
-
-  pairList_.Timing(total);
 }
