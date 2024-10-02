@@ -883,7 +883,7 @@ int DataIO_Std::Read_Vector(std::string const& fname,
   // 9 (VXYZ OXYZ VXYZ+OXYZ) values, optionally with indices.
   int ntokens = buffer.TokenizeLine( SEPARATORS );
   int ncols = ntokens; // Number of columns of vector data.
-  int nv = 0;          // Number of columns to actually read from (3 or 6).
+  int nexpected = 0;   // Number of columns expected to actually read from (3 or 6).
   bool hasIndex;
   if (ntokens < 1) {
     mprinterr("Error: Could not tokenize line.\n");
@@ -910,12 +910,13 @@ int DataIO_Std::Read_Vector(std::string const& fname,
       mprintf("Warning: Not reading vector data indices.\n");
     } else {
       mprinterr("Error: Expected 3, 6, or 9 columns of vector data, got %i.\n", ncols);
+      mprinterr("Error:   If vector data contains a magnitude column, specify 'magnitude'.\n");
       return 1;
     }
   }
   bool hasOrigins;
   if (ncols >= 6) {
-    nv = 6;
+    nexpected = 6;
     mprintf("\tReading vector X Y Z and origin X Y Z values.\n");
     hasOrigins = true;
     // If set already exists, see if it doesnt have origins.
@@ -936,7 +937,7 @@ int DataIO_Std::Read_Vector(std::string const& fname,
       delete oldSet;
     }
   } else {
-    nv = 3;
+    nexpected = 3;
     mprintf("\tReading vector X Y Z values.\n");
     hasOrigins = false;
     // If set already exists, see if it has origins.
@@ -964,23 +965,29 @@ int DataIO_Std::Read_Vector(std::string const& fname,
   double vec[6];
   std::fill(vec, vec+6, 0.0);
   double vmag = 0;
+  // +1 expected column if reading magnitudes
+  if (magset != 0)
+    nexpected++;
   size_t ndata = ds->Size();
   while (linebuffer != 0) {
     if (hasIndex)
-      ntokens = sscanf(linebuffer, "%*f %lf %lf %lf %lf %lf %lf",
-                       vec, vec+1, vec+2, vec+3, vec+4, vec+5);
+      ntokens = sscanf(linebuffer, "%*f %lf %lf %lf %lf %lf %lf %lf",
+                       vec, vec+1, vec+2, vec+3, vec+4, vec+5, &vmag);
     else
-      ntokens = sscanf(linebuffer, "%lf %lf %lf %lf %lf %lf",
-                       vec, vec+1, vec+2, vec+3, vec+4, vec+5);
-    if (ntokens != nv) {
+      ntokens = sscanf(linebuffer, "%lf %lf %lf %lf %lf %lf %lf",
+                       vec, vec+1, vec+2, vec+3, vec+4, vec+5, &vmag);
+    if (ntokens != nexpected) {
       mprinterr("Error: In vector file, line %i: expected %i values, got %i\n",
-                buffer.LineNumber(), nv, ntokens);
+                buffer.LineNumber(), nexpected, ntokens);
       break;
     }
     if (hasOrigins)
-      ds->Add( ndata++, vec );
+      ds->Add( ndata, vec );
     else
       ((DataSet_Vector*)ds)->AddVxyz( Vec3(vec) ); // TODO: Remove if DataSet_Vector is split to with/without origins
+    if (magset != 0)
+      magset->Add(ndata, &vmag);
+    ndata++;
     linebuffer = buffer.Line();
   }
   return 0;
