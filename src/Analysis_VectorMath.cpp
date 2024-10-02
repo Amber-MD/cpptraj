@@ -1,4 +1,5 @@
 #include <algorithm> // std::min, std::max
+#include <cmath> // sqrt
 #include "Analysis_VectorMath.h"
 #include "CpptrajStdio.h"
 #include "Constants.h"
@@ -7,7 +8,7 @@
 
 /// Strings corresponding to modes, used in output.
 const char* Analysis_VectorMath::ModeString[] = {
-  "Dot product", "Angle from dot product", "Cross product" };
+  "Dot product", "Angle from dot product", "Cross product", "Magnitude" };
 
 // CONSTRUCTOR
 Analysis_VectorMath::Analysis_VectorMath() :
@@ -17,46 +18,24 @@ Analysis_VectorMath::Analysis_VectorMath() :
 
 void Analysis_VectorMath::Help() const {
   mprintf("\tvec1 <vecname1> vec2 <vecname2> [out <filename>] [norm] [name <setname>]\n"
-          "\t[ dotproduct | dotangle | crossproduct ]\n"
+          "\t[ dotproduct | dotangle | crossproduct | magnitude ]\n"
           "  Calculate dot product, angle from dot product (degrees), or cross product\n"
           "  for specified vectors. Either vec1 or vec2 can be size 1, otherwise they\n"
-          "  must both be the same size.\n");
+          "  must both be the same size. If 'magnitude' is specified, just calculate\n"
+          "  the magnitudes of the vectors selected by 'vec1' (no need to specify\n"
+          "  'vec2').\n");
 }
 
 // Analysis_VectorMath::Setup()
 Analysis::RetType Analysis_VectorMath::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
-  // Get Vectors
-  DataSetList vsets1 = setup.DSL().SelectGroupSets( analyzeArgs.GetStringKey("vec1"),
-                                                  DataSet::VECTOR_1D );
-  if (vsets1.empty()) {
-    mprinterr("Error: 'vec1' not found.\n");
-    return Analysis::ERR;
-  }
-  DataSetList vsets2 = setup.DSL().SelectGroupSets( analyzeArgs.GetStringKey("vec2"),
-                                                  DataSet::VECTOR_1D );
-  if (vsets2.empty()) {
-    mprinterr("Error: 'vec2' not found.\n");
-    return Analysis::ERR;
-  }
-
-  if (vsets1.size() != vsets2.size()) {
-    mprinterr("Error: 'vec1' (%zu) and 'vec2' (%zu) do not select the same number of sets.\n",
-              vsets1.size(), vsets2.size());
-    return Analysis::ERR;
-  }
-
-  for (DataSetList::const_iterator it = vsets1.begin(); it != vsets1.end(); ++it)
-    vinfo1_.push_back( static_cast<DataSet_Vector*>( *it ) );
-  for (DataSetList::const_iterator it = vsets2.begin(); it != vsets2.end(); ++it)
-    vinfo2_.push_back( static_cast<DataSet_Vector*>( *it ) );
-
   std::string setname = analyzeArgs.GetStringKey("name");
   norm_ = analyzeArgs.hasKey("norm");
   // Check for dotproduct/crossproduct keywords. Default is dotproduct.
   mode_ = DOTPRODUCT;
   DataSet::DataType dtype = DataSet::DOUBLE;
   const char* dname = "Dot";
+  bool requires_two_vecs = true;
   if (analyzeArgs.hasKey("dotproduct")) {
     mode_ = DOTPRODUCT;
   } else if (analyzeArgs.hasKey("dotangle")) {
@@ -67,7 +46,47 @@ Analysis::RetType Analysis_VectorMath::Setup(ArgList& analyzeArgs, AnalysisSetup
     mode_ = CROSSPRODUCT;
     dtype = DataSet::VECTOR;
     dname = "Cross";
+  } else if (analyzeArgs.hasKey("magnitude")) {
+    mode_ = MAGNITUDE;
+    dname = "Mag";
+    requires_two_vecs = false;
+    if (norm_) {
+      mprintf("Warning: 'norm' does not make sense with 'magnitude', ignoring.\n");
+      norm_ = false;
+    }
   }
+
+  // Get Vectors
+  DataSetList vsets1 = setup.DSL().SelectGroupSets( analyzeArgs.GetStringKey("vec1"),
+                                                    DataSet::VECTOR_1D );
+  if (vsets1.empty()) {
+    mprinterr("Error: 'vec1' not found.\n");
+    return Analysis::ERR;
+  }
+
+  DataSetList vsets2;
+  if (requires_two_vecs) {
+    vsets2 = setup.DSL().SelectGroupSets( analyzeArgs.GetStringKey("vec2"),
+                                          DataSet::VECTOR_1D );
+    if (vsets2.empty()) {
+      mprinterr("Error: 'vec2' not found.\n");
+      return Analysis::ERR;
+    }
+
+    if (vsets1.size() != vsets2.size()) {
+      mprinterr("Error: 'vec1' (%zu) and 'vec2' (%zu) do not select the same number of sets.\n",
+                vsets1.size(), vsets2.size());
+      return Analysis::ERR;
+    }
+  }
+
+  for (DataSetList::const_iterator it = vsets1.begin(); it != vsets1.end(); ++it)
+    vinfo1_.push_back( static_cast<DataSet_Vector*>( *it ) );
+  if (requires_two_vecs) {
+    for (DataSetList::const_iterator it = vsets2.begin(); it != vsets2.end(); ++it)
+      vinfo2_.push_back( static_cast<DataSet_Vector*>( *it ) );
+  }
+
   // Set up output file in DataFileList if necessary
   DataFile* outfile = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
   // Set up output data sets based on mode
@@ -89,18 +108,41 @@ Analysis::RetType Analysis_VectorMath::Setup(ArgList& analyzeArgs, AnalysisSetup
 
   // Print Status
   mprintf("    VECTORMATH:");
-  if (vinfo1_.size() == 1)
-    mprintf(" Calculating %s of vectors %s and %s\n", ModeString[mode_], vinfo1_[0]->legend(), vinfo2_[0]->legend());
-  else {
-    mprintf(" Calculating %s of:\n", ModeString[mode_]);
-    for (unsigned int ii = 0; ii < vinfo1_.size(); ii++)
-      mprintf("\t  %s and %s\n", vinfo1_[ii]->legend(), vinfo2_[ii]->legend());
+  if (requires_two_vecs) {
+    if (vinfo1_.size() == 1)
+      mprintf(" Calculating %s of vectors %s and %s\n", ModeString[mode_], vinfo1_[0]->legend(), vinfo2_[0]->legend());
+    else {
+      mprintf(" Calculating %s of:\n", ModeString[mode_]);
+      for (unsigned int ii = 0; ii < vinfo1_.size(); ii++)
+        mprintf("\t  %s and %s\n", vinfo1_[ii]->legend(), vinfo2_[ii]->legend());
+    }
+  } else {
+    if (vinfo1_.size() == 1)
+      mprintf(" Calculating %s of vector %s\n", ModeString[mode_], vinfo1_[0]->legend());
+    else {
+      mprintf(" Calculating %s of:\n", ModeString[mode_]);
+      for (DVarray::const_iterator it = vinfo1_.begin(); it != vinfo1_.end(); ++it)
+        mprintf("\t  %s\n", (*it)->legend());
+    }
   }
   if (norm_) mprintf("\tVectors will be normalized.\n");
   if (outfile != 0)
     mprintf("\tResults are written to %s\n", outfile->DataFilename().full());
 
   return Analysis::OK;
+}
+
+/** Calculate the magnitude of each vector. */
+int Analysis_VectorMath::Magnitude(DataSet* Dout, DataSet_Vector const& V1)
+const
+{
+  DataSet_double& Out = static_cast<DataSet_double&>( *Dout );
+  Out.Resize( V1.Size() );
+  for (unsigned int idx = 0; idx < V1.Size(); idx++)
+  {
+    Out[idx] = sqrt( V1[idx].Magnitude2() );
+  }
+  return 0;
 }
 
 // Analysis_VectorMath::DotProduct()
@@ -182,10 +224,30 @@ const
 
 // Analysis_VectorMath::Analyze()
 Analysis::RetType Analysis_VectorMath::Analyze() {
-  for (unsigned int ii = 0; ii < vinfo1_.size(); ii++)
-  {
-    int err = DoMath( DataOut_[ii], *(vinfo1_[ii]), *(vinfo2_[ii]) );
-    if (err != 0) return Analysis::ERR;
+  if (vinfo2_.empty()) {
+    // Single set ops
+    for (unsigned int ii = 0; ii < vinfo1_.size(); ii++)
+    {
+      if (vinfo1_[ii]->Size() < 1) {
+        mprintf("Warning: Vector set '%s' is empty.\n", vinfo1_[ii]->legend());
+        continue;
+      }
+      int err = 1;
+      if (mode_ == MAGNITUDE)
+        err = Magnitude( DataOut_[ii], *(vinfo1_[ii]) );
+      if (err != 0) {
+        mprinterr("Error: A problem occurred when performing vector math for set '%s'\n",
+                  vinfo1_[ii]->legend());
+        return Analysis::ERR;
+      }
+    }
+  } else {
+    // Two set ops
+    for (unsigned int ii = 0; ii < vinfo1_.size(); ii++)
+    {
+      int err = DoMath( DataOut_[ii], *(vinfo1_[ii]), *(vinfo2_[ii]) );
+      if (err != 0) return Analysis::ERR;
+    }
   }
   return Analysis::OK;
 }
