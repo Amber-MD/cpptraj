@@ -18,10 +18,12 @@ Analysis_VectorMath::Analysis_VectorMath() :
 
 void Analysis_VectorMath::Help() const {
   mprintf("\tvec1 <vecname1> vec2 <vecname2> [out <filename>] [norm] [name <setname>]\n"
-          "\t[ dotproduct | dotangle | crossproduct ]\n"
+          "\t[ dotproduct | dotangle | crossproduct | magnitude ]\n"
           "  Calculate dot product, angle from dot product (degrees), or cross product\n"
           "  for specified vectors. Either vec1 or vec2 can be size 1, otherwise they\n"
-          "  must both be the same size.\n");
+          "  must both be the same size. If 'magnitude' is specified, just calculate\n"
+          "  the magnitudes of the vectors selected by 'vec1' (no need to specify\n"
+          "  'vec2').\n");
 }
 
 // Analysis_VectorMath::Setup()
