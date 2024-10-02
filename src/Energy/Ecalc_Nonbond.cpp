@@ -44,3 +44,19 @@ int Ecalc_Nonbond::SetupNonbondCalc(Topology const& topIn, AtomMask const& maskI
   }
   return 0;
 }
+
+/** Calc */
+int Ecalc_Nonbond::NonbondEnergy(Frame const& frameIn, AtomMask const& maskIn,
+                                 double& e_elec, double& e_vdw)
+{
+  if (needs_pairlist_) {
+    if (pairList_.CreatePairList(frameIn, frameIn.BoxCrd().UnitCell(),
+                                 frameIn.BoxCrd().FracCell(), maskIn) != 0)
+    {
+      mprinterr("Error: Pairlist creation failed for nonbond calc.\n");
+      return 1;
+    }
+  }
+
+  return 0;
+}
