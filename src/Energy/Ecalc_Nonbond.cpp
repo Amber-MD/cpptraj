@@ -1,6 +1,7 @@
 #include "Ecalc_Nonbond.h"
 #include "../CpptrajStdio.h"
 #include "../EwaldOptions.h"
+#include "../Topology.h"
 
 using namespace Cpptraj::Energy;
 
@@ -27,5 +28,19 @@ int Ecalc_Nonbond::InitNonbondCalc(CalcType typeIn, Box const& boxIn,
       return 1;
   }
 
+  return 0;
+}
+
+/** Setup */
+int Ecalc_Nonbond::SetupNonbondCalc(Topology const& topIn, AtomMask const& maskIn) {
+  // Setup exclusion list
+  // Use distance of 4 (up to dihedrals)
+  if (Excluded_.SetupExcluded(topIn.Atoms(), maskIn, 4,
+                              ExclusionArray::EXCLUDE_SELF,
+                              ExclusionArray::FULL))
+  {
+    mprinterr("Error: Could not set up exclusion list for nonbonded calculation.\n");
+    return 1;
+  }
   return 0;
 }
