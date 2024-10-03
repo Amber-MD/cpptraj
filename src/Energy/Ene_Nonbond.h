@@ -4,6 +4,11 @@
 namespace Cpptraj {
 namespace Energy {
 /// Calculate simple nonbond energy with Coulomb and LJ 6-12
+/** NOTE: To make this file more lightweight, there are no includes for
+  *       Frame, AtomMask, etc. It is assumed that before this file is
+  *       included there will be at least '#include "Topology.h" and
+  *       'include <cmath>' (for the sqrt).
+  */
 template <typename T>
 void Ene_Nonbond(Frame const& fIn, Topology const& tIn, AtomMask const& mask,
                  ExclusionArray const& Excluded, T const& QFAC, T& Eelec, T& Evdw)
