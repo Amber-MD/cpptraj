@@ -1,8 +1,7 @@
 #include "EwaldCalc_PME.h"
 #include "../CpptrajStdio.h"
-#include "../EwaldOptions.h"
+#include "../Frame.h"
 #include "../PairListTemplate.h"
-#include "../Topology.h"
 
 using namespace Cpptraj::Energy;
 
