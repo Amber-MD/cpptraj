@@ -1,6 +1,7 @@
 #ifndef INC_ENERGY_EWALDCALC_DECOMP_H
 #define INC_ENERGY_EWALDCALC_DECOMP_H
 #include "EwaldCalc.h"
+#include <vector>
 namespace Cpptraj {
 namespace Energy {
 /// Abstract base class for decomposable Ewald calcs.
@@ -12,18 +13,19 @@ class EwaldCalc_Decomp : public EwaldCalc {
     // virtual since inherited
     ~EwaldCalc_Decomp() {}
 
-    virtual int CalcDecomposedNonbondEnergy(Frame const&, AtomMask const&,
-                                            PairList const& pairList, ExclusionArray const& Excluded,
-                                            double&, double&, Darray&, Darray&) = 0;
-
-    /// Just call the CalcDecomposedNonbondEnergy() routine with temp arrays.
-    int CalcNonbondEnergy(Frame const& frameIn, AtomMask const& maskIn,
-                          PairList const& pairList, ExclusionArray const& Excluded,
-                         double& e_elec, double& e_vdw)
-    {
-      Darray atom_elec, atom_vdw;
-      return CalcDecomposedNonbondEnergy(frameIn, maskIn, pairList, Excluded, e_elec, e_vdw, atom_elec, atom_vdw);
+    Darray const& Atom_Elec() const { return atom_elec_; }
+    Darray const& Atom_VDW() const { return atom_vdw_; }
+  protected:
+    /// For DEBUG, \return sum of given array
+    static inline double sumArray(Darray const& arrayIn) {
+      double sum = 0;
+      for (Darray::const_iterator it = arrayIn.begin(); it != arrayIn.end(); ++it)
+        sum += *it;
+      return sum;
     }
+
+    Darray atom_elec_; ///< Hold electrostatic contribution for each atom
+    Darray atom_vdw_;  ///< Hold VDW contribution for each atom
 };
 }
 }

@@ -1,8 +1,7 @@
 #include "EwaldCalc_Decomp_PME.h"
 #include "../CpptrajStdio.h"
-#include "../EwaldOptions.h"
+#include "../Frame.h"
 #include "../PairListTemplate.h"
-#include "../Topology.h"
 
 using namespace Cpptraj::Energy;
 
@@ -17,10 +16,6 @@ int EwaldCalc_Decomp_PME::Init(Box const& boxIn, EwaldOptions const& pmeOpts, in
     mprinterr("Error: Decomposable PME calculation init failed.\n");
     return 1;
   }
-  if (pairList_.InitPairList(pmeOpts.Cutoff(), pmeOpts.SkinNB(), debugIn))
-    return 1;
-  if (pairList_.SetupPairList( boxIn ))
-    return 1;
   VDW_LR_.SetDebug( debugIn );
   Recip_.SetDebug( debugIn );
 
@@ -37,31 +32,15 @@ int EwaldCalc_Decomp_PME::Setup(Topology const& topIn, AtomMask const& maskIn) {
     mprinterr("Error: PME calculation long range VDW correction setup failed.\n");
     return 1;
   }
-  // Setup exclusion list
-  // Use distance of 4 (up to dihedrals)
-  if (Excluded_.SetupExcluded(topIn.Atoms(), maskIn, 4,
-                              ExclusionArray::EXCLUDE_SELF,
-                              ExclusionArray::FULL))
-  {
-    mprinterr("Error: Could not set up exclusion list for PME calculation.\n");
-    return 1;
-  }
+  // TODO reserve atom_elec and atom_vdw?
 
   return 0;
 }
 
-// DEBUG
-static inline double sumArray(std::vector<double> const& arrayIn) {
-  double sum = 0;
-  for (std::vector<double>::const_iterator it = arrayIn.begin(); it != arrayIn.end(); ++it)
-    sum += *it;
-  return sum;
-}
-
-/** Calculate full nonbonded energy with PME */
-int EwaldCalc_Decomp_PME::CalcDecomposedNonbondEnergy(Frame const& frameIn, AtomMask const& maskIn,
-                                     double& e_elec, double& e_vdw,
-                                     Darray& atom_elec, Darray& atom_vdw)
+/** Calculate full decompoesd nonbonded energy with PME */
+int EwaldCalc_Decomp_PME::CalcNonbondEnergy(Frame const& frameIn, AtomMask const& maskIn,
+                                            PairList const& pairList_, ExclusionArray const& Excluded_,
+                                            double& e_elec, double& e_vdw)
 {
   t_total_.Start();
   double volume = frameIn.BoxCrd().CellVolume();
@@ -69,13 +48,6 @@ int EwaldCalc_Decomp_PME::CalcDecomposedNonbondEnergy(Frame const& frameIn, Atom
   double e_self = NBengine_.EwaldParams().DecomposedSelfEnergy( atom_self, volume );
   mprintf("DEBUG: Total self energy: %f\n", e_self);
   mprintf("DEBUG: Sum of self array: %f\n", sumArray(atom_self));
-
-  int retVal = pairList_.CreatePairList(frameIn, frameIn.BoxCrd().UnitCell(),
-                                        frameIn.BoxCrd().FracCell(), maskIn);
-  if (retVal != 0) {
-    mprinterr("Error: Pairlist creation failed for PME calc.\n");
-    return 1;
-  }
 
   // TODO make more efficient
   NBengine_.ModifyEwaldParams().FillRecipCoords( frameIn, maskIn );
@@ -127,12 +99,12 @@ int EwaldCalc_Decomp_PME::CalcDecomposedNonbondEnergy(Frame const& frameIn, Atom
   e_vdw = NBengine_.Evdw() + e_vdw_lr_correction;
   e_elec = e_self + e_recip + NBengine_.Eelec() + NBengine_.Eadjust();
   // TODO preallocate?
-  atom_elec.resize( NBengine_.Eatom_Elec().size() );
-  atom_vdw.resize(  NBengine_.Eatom_EVDW().size() );
-  for (unsigned int idx = 0; idx != atom_elec.size(); idx++)
+  atom_elec_.resize( NBengine_.Eatom_Elec().size() );
+  atom_vdw_.resize(  NBengine_.Eatom_EVDW().size() );
+  for (unsigned int idx = 0; idx != atom_elec_.size(); idx++)
   {
-    atom_elec[idx] = atom_self[idx] + atom_recip[idx] + NBengine_.Eatom_Elec()[idx] + NBengine_.Eatom_EAdjust()[idx];
-    atom_vdw[idx]  = NBengine_.Eatom_EVDW()[idx] + atom_vdwlr[idx];
+    atom_elec_[idx] = atom_self[idx] + atom_recip[idx] + NBengine_.Eatom_Elec()[idx] + NBengine_.Eatom_EAdjust()[idx];
+    atom_vdw_[idx]  = NBengine_.Eatom_EVDW()[idx] + atom_vdwlr[idx];
   }
   t_total_.Stop();
   return 0;
@@ -142,5 +114,4 @@ void EwaldCalc_Decomp_PME::Timing(double total) const {
   t_total_.WriteTiming(1,  "  PME decomp Total:", total);
   Recip_.Timing_Total().WriteTiming(2,  "Recip:     ", t_total_.Total());
   t_direct_.WriteTiming(2, "Direct:    ", t_total_.Total());
-  pairList_.Timing(total);
 }
