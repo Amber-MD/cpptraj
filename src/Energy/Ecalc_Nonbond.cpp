@@ -1,11 +1,15 @@
 #include "Ecalc_Nonbond.h"
 #include "EwaldCalc_PME.h"
 #include "EwaldCalc_LJPME.h"
+#include "EwaldCalc_Decomp_PME.h"
+#include "EwaldCalc_Decomp_LJPME.h"
+#include "../CharMask.h"
 #include "../CpptrajStdio.h"
 #include "../EwaldOptions.h"
 #include "../Topology.h"
-#include <cmath> // sqrt for Ene_Nonbond
+#include <cmath> // sqrt for Ene_Nonbond, Ene_Decomp_Nonbond
 #include "Ene_Nonbond.h"
+#include "Ene_Decomp_Nonbond.h"
 
 using namespace Cpptraj::Energy;
 
@@ -14,7 +18,8 @@ Ecalc_Nonbond::Ecalc_Nonbond() :
   calc_(0),
   currentTop_(0),
   type_(UNSPECIFIED),
-  needs_pairlist_(false)
+  needs_pairlist_(false),
+  decompose_energy_(false)
 {}
 
 /** DESTRUCTOR */
@@ -24,11 +29,12 @@ Ecalc_Nonbond::~Ecalc_Nonbond() {
 }
 
 /** Init */
-int Ecalc_Nonbond::InitNonbondCalc(CalcType typeIn, Box const& boxIn,
-                                   EwaldOptions const& pmeOpts, int debugIn)
+int Ecalc_Nonbond::InitNonbondCalc(CalcType typeIn, bool decompose_energyIn,
+                                   Box const& boxIn, EwaldOptions const& pmeOpts, int debugIn)
 {
   currentTop_ = 0;
   type_ = typeIn;
+  decompose_energy_ = decompose_energyIn;
 
   needs_pairlist_ = false;
   calc_ = 0;
@@ -37,11 +43,17 @@ int Ecalc_Nonbond::InitNonbondCalc(CalcType typeIn, Box const& boxIn,
       break;
     case PME    :
       needs_pairlist_ = true;
-      calc_ = new EwaldCalc_PME();
+      if (decompose_energy_)
+        calc_ = new EwaldCalc_Decomp_PME();
+      else
+        calc_ = new EwaldCalc_PME();
       break;
     case LJPME  :
       needs_pairlist_ = true;
-      calc_ = new EwaldCalc_LJPME();
+      if (decompose_energy_)
+        calc_ = new EwaldCalc_Decomp_LJPME();
+      else
+        calc_ = new EwaldCalc_LJPME();
       break;
     case UNSPECIFIED :
       mprinterr("Internal Error: Ecalc_Nonbond::InitNonbondCalc(): No nonbonded calc type specified.\n");
@@ -109,6 +121,51 @@ int Ecalc_Nonbond::NonbondEnergy(Frame const& frameIn, AtomMask const& maskIn,
   t_total_.Stop();
   return err;
 }
+
+/** Energy decomp calc */
+int Ecalc_Nonbond::DecomposedNonbondEnergy(Frame const& frameIn, CharMask const& cmaskIn,
+                                           double& e_elec, double& e_vdw,
+                                           Darray& atom_elec, Darray& atom_vdw)
+{
+  // sanity check
+  if (!decompose_energy_) {
+    mprinterr("Internal Error: Ecalc_Nonbond::DecomposedNonbondEnergy(): Not set up for energy decomp.\n");
+    return 1;
+  }
+  t_total_.Start();
+
+  int err = 0;
+  if (type_ == SIMPLE) {
+    static const double QFAC = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
+    Ene_Decomp_Nonbond<double>(frameIn, *currentTop_, cmaskIn, Excluded_, QFAC,
+                               e_elec, e_vdw, atom_elec, atom_vdw);
+  } else {
+    // FIXME this is an unneeded atom mask.
+    AtomMask tmpMask(0, frameIn.Natom());
+
+    if (needs_pairlist_) {
+      if (pairList_.CreatePairList(frameIn, frameIn.BoxCrd().UnitCell(),
+                                   frameIn.BoxCrd().FracCell(), tmpMask) != 0)
+      {
+        mprinterr("Error: Pairlist creation failed for nonbond calc.\n");
+        return 1;
+      }
+    }
+
+    err = calc_->CalcNonbondEnergy(frameIn, tmpMask, pairList_, Excluded_,
+                                   e_elec, e_vdw);
+    EwaldCalc_Decomp const* EW_ENE = static_cast<EwaldCalc_Decomp const*>( calc_ );
+    for (int at = 0; at < frameIn.Natom(); at++) {
+      if (cmaskIn.AtomInCharMask(at)) {
+        atom_elec[at] += EW_ENE->Atom_Elec()[at];
+        atom_vdw[at] += EW_ENE->Atom_VDW()[at];
+      }
+    }
+  }
+  t_total_.Stop();
+  return err;
+}
+
 
 /** Print timing */
 void Ecalc_Nonbond::PrintTiming(double total) const {

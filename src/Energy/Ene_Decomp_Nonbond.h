@@ -12,9 +12,12 @@ namespace Energy {
 template <typename T>
 void Ene_Decomp_Nonbond(Frame const& fIn, Topology const& tIn, CharMask const& selectedAtoms,
                         ExclusionArray const& Excluded, T const& QFAC,
+                        T& Eelec, T& Evdw,
                         std::vector<double>& atom_elec,
                         std::vector<double>& atom_vdw)
 {
+  Eelec = 0;
+  Evdw = 0;
   for (int atom1 = 0; atom1 < tIn.Natom(); atom1++) {
     bool atom1_is_selected = selectedAtoms.AtomInCharMask( atom1 );
     const double* crd1 = fIn.XYZ( atom1 );
@@ -35,6 +38,7 @@ void Ene_Decomp_Nonbond(Frame const& fIn, Topology const& tIn, CharMask const& s
           NonbondType const& LJ = tIn.GetLJparam(atom1, atom2);
           T e_vdw = Ene_LJ_6_12<T>( rij2, LJ.A(), LJ.B() );
           mprintf("DEBUG: VDW %f\n", e_vdw);
+          Evdw += e_vdw;
           T ene_half = e_vdw * 0.5;
           if (atom1_is_selected) atom_vdw[atom1] += ene_half;
           if (atom2_is_selected) atom_vdw[atom2] += ene_half;
@@ -43,6 +47,7 @@ void Ene_Decomp_Nonbond(Frame const& fIn, Topology const& tIn, CharMask const& s
           T qiqj = QFAC * tIn[atom1].Charge() * tIn[atom2].Charge();
           T e_elec = qiqj / rij;
           mprintf("DEBUG: ELE %f\n", e_elec);
+          Eelec += e_elec;
           ene_half = e_elec * 0.5;
           if (atom1_is_selected) atom_elec[atom1] += ene_half;
           if (atom2_is_selected) atom_elec[atom2] += ene_half;
