@@ -1,4 +1,6 @@
 #include "Ecalc_Nonbond.h"
+#include "EwaldCalc_PME.h"
+#include "EwaldCalc_LJPME.h"
 #include "../CpptrajStdio.h"
 #include "../EwaldOptions.h"
 #include "../Topology.h"
@@ -11,15 +13,34 @@ Ecalc_Nonbond::Ecalc_Nonbond() :
   needs_pairlist_(false)
 {}
 
+/** DESTRUCTOR */
+Ecalc_Nonbond::~Ecalc_Nonbond() {
+  if (calc_ != 0)
+    delete calc_;
+}
+
 /** Init */
 int Ecalc_Nonbond::InitNonbondCalc(CalcType typeIn, Box const& boxIn,
                                    EwaldOptions const& pmeOpts, int debugIn)
 {
-  if (typeIn == UNSPECIFIED) {
-    mprinterr("Internal Error: Ecalc_Nonbond::InitNonbondCalc(): No nonbonded calc type specified.\n");
-    return 1;
-  }
+  type_ = typeIn;
   needs_pairlist_ = false;
+
+  calc_ = 0;
+  switch (type_) {
+    case SIMPLE : break;
+    case PME    :
+      needs_pairlist_ = true;
+      calc_ = new EwaldCalc_PME();
+      break;
+    case LJPME  :
+      needs_pairlist_ = true;
+      calc_ = new EwaldCalc_LJPME();
+      break;
+    case UNSPECIFIED :
+      mprinterr("Internal Error: Ecalc_Nonbond::InitNonbondCalc(): No nonbonded calc type specified.\n");
+      return 1;
+  }
 
   if (needs_pairlist_) {
     if (pairList_.InitPairList(pmeOpts.Cutoff(), pmeOpts.SkinNB(), debugIn))
@@ -49,6 +70,7 @@ int Ecalc_Nonbond::SetupNonbondCalc(Topology const& topIn, AtomMask const& maskI
 int Ecalc_Nonbond::NonbondEnergy(Frame const& frameIn, AtomMask const& maskIn,
                                  double& e_elec, double& e_vdw)
 {
+  t_total_.Start();
   if (needs_pairlist_) {
     if (pairList_.CreatePairList(frameIn, frameIn.BoxCrd().UnitCell(),
                                  frameIn.BoxCrd().FracCell(), maskIn) != 0)
@@ -58,5 +80,14 @@ int Ecalc_Nonbond::NonbondEnergy(Frame const& frameIn, AtomMask const& maskIn,
     }
   }
 
-  return 0;
+  int err = calc_->CalcNonbondEnergy(frameIn, maskIn, pairList_, Excluded_,
+                                     e_elec, e_vdw);
+  t_total_.Stop();
+  return err;
+}
+
+/** Print timing */
+void Ecalc_Nonbond::PrintTiming(double total) const {
+  calc_->Timing( t_total_.Total() );
+  t_total_.WriteTiming(0, "Nonbond total:");
 }
