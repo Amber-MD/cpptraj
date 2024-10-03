@@ -113,5 +113,7 @@ int Ecalc_Nonbond::NonbondEnergy(Frame const& frameIn, AtomMask const& maskIn,
 /** Print timing */
 void Ecalc_Nonbond::PrintTiming(double total) const {
   if (calc_ != 0) calc_->Timing( t_total_.Total() );
+  if (needs_pairlist_)
+    pairList_.Timing( t_total_.Total() );
   t_total_.WriteTiming(0, "Nonbond total:");
 }
