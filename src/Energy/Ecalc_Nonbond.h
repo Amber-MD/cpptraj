@@ -25,6 +25,7 @@ class Ecalc_Nonbond {
     void PrintTiming(double) const;
   private:
     EwaldCalc* calc_;
+    Topology const* currentTop_; ///< Current Topology, set by SetupNonbondCalc()
     PairList pairList_;
     ExclusionArray Excluded_;
     Timer t_total_;
