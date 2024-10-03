@@ -64,6 +64,7 @@ Action::RetType Action_PmeTest::Init(ArgList& actionArgs, ActionInit& init, int 
 // Action_PmeTest::Setup()
 Action::RetType Action_PmeTest::Setup(ActionSetup& setup)
 {
+  using namespace Cpptraj::Energy;
   // Set up mask
   if (setup.Top().SetupIntegerMask(Mask1_)) return Action::ERR;
   if (Mask1_.None()) {
@@ -77,14 +78,14 @@ Action::RetType Action_PmeTest::Setup(ActionSetup& setup)
       return Action::ERR;
     PME0_.Setup( setup.Top(), Mask1_ );
   } else if (method_ == 1) {
-    if (PME1_.Init(setup.CoordInfo().TrajBox(), ewaldOpts_, debug_))
+    if (NB_.InitNonbondCalc(Ecalc_Nonbond::PME, setup.CoordInfo().TrajBox(), ewaldOpts_, debug_))
       return Action::ERR;
-    if (PME1_.Setup( setup.Top(), Mask1_ ))
+    if (NB_.SetupNonbondCalc( setup.Top(), Mask1_ ))
       return Action::ERR;
   } else if (method_ == 2) {
-    if (PME2_.Init(setup.CoordInfo().TrajBox(), ewaldOpts_, debug_))
+    if (NB_.InitNonbondCalc(Ecalc_Nonbond::LJPME, setup.CoordInfo().TrajBox(), ewaldOpts_, debug_))
       return Action::ERR;
-    if (PME2_.Setup( setup.Top(), Mask1_ ))
+    if (NB_.SetupNonbondCalc( setup.Top(), Mask1_ ))
       return Action::ERR;
   }
   return Action::OK;
@@ -99,9 +100,9 @@ Action::RetType Action_PmeTest::DoAction(int frameNum, ActionFrame& frm)
   if (method_ == 0) {
     err = PME0_.CalcNonbondEnergy(frm.Frm(), Mask1_, ene, ene2);
   } else if (method_ == 1) {
-    err = PME1_.CalcNonbondEnergy(frm.Frm(), Mask1_, ene, ene2);
+    err = NB_.NonbondEnergy(frm.Frm(), Mask1_, ene, ene2);
   }  else if (method_ == 2) {
-    err = PME2_.CalcNonbondEnergy(frm.Frm(), Mask1_, ene, ene2);
+    err = NB_.NonbondEnergy(frm.Frm(), Mask1_, ene, ene2);
   }
   if (err != 0) return Action::ERR;
   ele_->Add(frameNum, &ene);
@@ -114,7 +115,7 @@ void Action_PmeTest::Print() {
   if (method_ == 0)
     PME0_.Timing(t_nb_.Total());
   else if (method_ == 1)
-    PME1_.Timing(t_nb_.Total());
+    NB_.PrintTiming(t_nb_.Total());
   else if (method_ == 2)
-    PME2_.Timing(t_nb_.Total());
+    NB_.PrintTiming(t_nb_.Total());
 }
