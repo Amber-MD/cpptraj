@@ -18,7 +18,6 @@ Ecalc_Nonbond::Ecalc_Nonbond() :
   calc_(0),
   currentTop_(0),
   type_(UNSPECIFIED),
-  needs_pairlist_(false),
   decompose_energy_(false)
 {}
 
@@ -36,20 +35,17 @@ int Ecalc_Nonbond::InitNonbondCalc(CalcType typeIn, bool decompose_energyIn,
   type_ = typeIn;
   decompose_energy_ = decompose_energyIn;
 
-  needs_pairlist_ = false;
   calc_ = 0;
   switch (type_) {
     case SIMPLE :
       break;
     case PME    :
-      needs_pairlist_ = true;
       if (decompose_energy_)
         calc_ = new EwaldCalc_Decomp_PME();
       else
         calc_ = new EwaldCalc_PME();
       break;
     case LJPME  :
-      needs_pairlist_ = true;
       if (decompose_energy_)
         calc_ = new EwaldCalc_Decomp_LJPME();
       else
@@ -59,14 +55,17 @@ int Ecalc_Nonbond::InitNonbondCalc(CalcType typeIn, bool decompose_energyIn,
       mprinterr("Internal Error: Ecalc_Nonbond::InitNonbondCalc(): No nonbonded calc type specified.\n");
       return 1;
   }
+  if (type_ != SIMPLE && calc_ == 0) {
+    mprinterr("Internal Error: Ecalc_Nonbond::InitNonbondCalc(): Ewald calc alloc failed.\n");
+    return 1;
+  }
 
-  if (needs_pairlist_) {
+  if (calc_ != 0) {
+    // Ewald calcs need pairlist
     if (pairList_.InitPairList(pmeOpts.Cutoff(), pmeOpts.SkinNB(), debugIn))
       return 1;
     if (pairList_.SetupPairList( boxIn ))
       return 1;
-  }
-  if (calc_ != 0) {
     if (calc_->Init( boxIn, pmeOpts, debugIn ))
       return 1;
   }
@@ -104,20 +103,19 @@ int Ecalc_Nonbond::NonbondEnergy(Frame const& frameIn, AtomMask const& maskIn,
     static const double QFAC = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
     Ene_Nonbond<double>(frameIn, *currentTop_, maskIn, Excluded_, QFAC,
                         e_elec, e_vdw);
-  } else {
-
-    if (needs_pairlist_) {
-      if (pairList_.CreatePairList(frameIn, frameIn.BoxCrd().UnitCell(),
-                                   frameIn.BoxCrd().FracCell(), maskIn) != 0)
-      {
-        mprinterr("Error: Pairlist creation failed for nonbond calc.\n");
-        return 1;
-      }
+  } else if (calc_ != 0) {
+    if (pairList_.CreatePairList(frameIn, frameIn.BoxCrd().UnitCell(),
+                                 frameIn.BoxCrd().FracCell(), maskIn) != 0)
+    {
+      mprinterr("Error: Pairlist creation failed for nonbond calc.\n");
+      return 1;
     }
 
     err = calc_->CalcNonbondEnergy(frameIn, maskIn, pairList_, Excluded_,
                                    e_elec, e_vdw);
-  }
+  } else
+    return 1; // Sanity check
+
   t_total_.Stop();
   return err;
 }
@@ -139,17 +137,15 @@ int Ecalc_Nonbond::DecomposedNonbondEnergy(Frame const& frameIn, CharMask const&
     static const double QFAC = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
     Ene_Decomp_Nonbond<double>(frameIn, *currentTop_, cmaskIn, Excluded_, QFAC,
                                e_elec, e_vdw, atom_elec, atom_vdw);
-  } else {
+  } else if (calc_ != 0) {
     // FIXME this is an unneeded atom mask.
     AtomMask tmpMask(0, frameIn.Natom());
 
-    if (needs_pairlist_) {
-      if (pairList_.CreatePairList(frameIn, frameIn.BoxCrd().UnitCell(),
-                                   frameIn.BoxCrd().FracCell(), tmpMask) != 0)
-      {
-        mprinterr("Error: Pairlist creation failed for nonbond calc.\n");
-        return 1;
-      }
+    if (pairList_.CreatePairList(frameIn, frameIn.BoxCrd().UnitCell(),
+                                 frameIn.BoxCrd().FracCell(), tmpMask) != 0)
+    {
+      mprinterr("Error: Pairlist creation failed for nonbond calc.\n");
+      return 1;
     }
 
     err = calc_->CalcNonbondEnergy(frameIn, tmpMask, pairList_, Excluded_,
@@ -161,7 +157,9 @@ int Ecalc_Nonbond::DecomposedNonbondEnergy(Frame const& frameIn, CharMask const&
         atom_vdw[at] += EW_ENE->Atom_VDW()[at];
       }
     }
-  }
+  } else
+    return 1; // sanity check
+
   t_total_.Stop();
   return err;
 }
@@ -169,8 +167,9 @@ int Ecalc_Nonbond::DecomposedNonbondEnergy(Frame const& frameIn, CharMask const&
 
 /** Print timing */
 void Ecalc_Nonbond::PrintTiming(double total) const {
-  if (calc_ != 0) calc_->Timing( t_total_.Total() );
-  if (needs_pairlist_)
+  if (calc_ != 0) {
+    calc_->Timing( t_total_.Total() );
     pairList_.Timing( t_total_.Total() );
+  }
   t_total_.WriteTiming(0, "Nonbond total:");
 }

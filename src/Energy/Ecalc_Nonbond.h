@@ -36,7 +36,6 @@ class Ecalc_Nonbond {
     ExclusionArray Excluded_;
     Timer t_total_;
     CalcType type_;
-    bool needs_pairlist_;
     bool decompose_energy_;
 };
 }
