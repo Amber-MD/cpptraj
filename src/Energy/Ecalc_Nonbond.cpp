@@ -60,6 +60,11 @@ int Ecalc_Nonbond::InitNonbondCalc(CalcType typeIn, bool decompose_energyIn,
     return 1;
   }
 
+  if (type_ != SIMPLE && !boxIn.HasBox()) {
+    mprinterr("Error: Ewald requires unit cell information.\n");
+    return 1;
+  }
+
   if (calc_ != 0) {
     // Ewald calcs need pairlist
     if (pairList_.InitPairList(pmeOpts.Cutoff(), pmeOpts.SkinNB(), debugIn))

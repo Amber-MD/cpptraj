@@ -78,12 +78,12 @@ Action::RetType Action_PmeTest::Setup(ActionSetup& setup)
       return Action::ERR;
     PME0_.Setup( setup.Top(), Mask1_ );
   } else if (method_ == 1) {
-    if (NB_.InitNonbondCalc(Ecalc_Nonbond::PME, setup.CoordInfo().TrajBox(), ewaldOpts_, debug_))
+    if (NB_.InitNonbondCalc(Ecalc_Nonbond::PME, false, setup.CoordInfo().TrajBox(), ewaldOpts_, debug_))
       return Action::ERR;
     if (NB_.SetupNonbondCalc( setup.Top(), Mask1_ ))
       return Action::ERR;
   } else if (method_ == 2) {
-    if (NB_.InitNonbondCalc(Ecalc_Nonbond::LJPME, setup.CoordInfo().TrajBox(), ewaldOpts_, debug_))
+    if (NB_.InitNonbondCalc(Ecalc_Nonbond::LJPME, false, setup.CoordInfo().TrajBox(), ewaldOpts_, debug_))
       return Action::ERR;
     if (NB_.SetupNonbondCalc( setup.Top(), Mask1_ ))
       return Action::ERR;

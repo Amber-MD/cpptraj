@@ -23,7 +23,6 @@ EnergyDecomposer::EnergyDecomposer() :
   eneOut_(0),
   outfile_(0),
   debug_(0),
-  nbcalctype_(SIMPLE),
   currentTop_(0)
 { }
 
@@ -34,12 +33,12 @@ int EnergyDecomposer::InitDecomposer(ArgList& argIn, DataSetList& DSLin, DataFil
   debug_ = debugIn;
   // Process keywords
   outfile_ = DFLin.AddDataFile( argIn.GetStringKey("out"), argIn );
-  nbcalctype_ = SIMPLE;
+  nbcalctype_ = Ecalc_Nonbond::SIMPLE;
   if (argIn.hasKey("pme"))
-    nbcalctype_ = PME;
+    nbcalctype_ = Ecalc_Nonbond::PME;
   else if (argIn.Contains("ljpme")) // FIXME using Contains() since EwaldOptions parses ljpme
-    nbcalctype_ = LJPME;
-  if (nbcalctype_ == PME || nbcalctype_ == LJPME) {
+    nbcalctype_ = Ecalc_Nonbond::LJPME;
+  if (nbcalctype_ != Ecalc_Nonbond::SIMPLE) {
     if (ewaldOpts_.GetOptions(EwaldOptions::PME, argIn, "enedecomp"))
         return 1;
   }
@@ -75,7 +74,7 @@ void EnergyDecomposer::PrintOpts() const {
   mprintf("\tData set name: %s\n", eneOut_->legend());
   if (outfile_ != 0)
     mprintf("\tOutput file: %s\n", outfile_->DataFilename().full());
-  if (nbcalctype_ != SIMPLE)
+  if (nbcalctype_ != Ecalc_Nonbond::SIMPLE)
     ewaldOpts_.PrintOptions();
 
 }
@@ -187,37 +186,16 @@ int EnergyDecomposer::SetupDecomposer(Topology const& topIn, Box const& boxIn) {
   if (setupDihedrals( topIn.Dihedrals() )) return 1;
   if (setupDihedrals( topIn.DihedralsH() )) return 1;
   std::sort( dihedrals_.begin(), dihedrals_.end() );
-  if (nbcalctype_ != SIMPLE) {
-    if (!boxIn.HasBox()) {
-      mprinterr("Error: PME requires unit cell information.\n");
-      return 1;
-    }
-    // Set up for all atoms FIXME
-    AtomMask Imask(0, topIn.Natom());
-    if (nbcalctype_ == PME) {
-      if (PME_.Init(boxIn, ewaldOpts_, debug_))
-        return 1;
-      if (PME_.Setup( topIn, Imask ))
-        return 1;
-    } else if (nbcalctype_ == LJPME) {
-      if (LJPME_.Init(boxIn, ewaldOpts_, debug_))
-        return 1;
-      if (LJPME_.Setup( topIn, Imask ))
-        return 1;
-    }
-  } else {
-    // For nonbonds, set up all selected atoms in an integer atom mask.
-    //mask_ = AtomMask( selectedAtoms_.ConvertToIntMask(), selectedAtoms_.Natom() );
-    // Need to set up ex
-    // TODO if using pairlist, needs to be EXCLUDE_SELF and FULL
-    //if (Excluded_.SetupExcludedForAtoms( topIn.Atoms(), mask_, 4 ))
-    if (Excluded_.SetupExcluded( topIn.Atoms(), 4,
-                                 ExclusionArray::NO_EXCLUDE_SELF,
-                                 ExclusionArray::ONLY_GREATER_IDX ))
-    {
-      mprinterr("Error: Could not set up atom exclusion list for energy decomposition.\n");
-      return 1;
-    }
+  // Set up nonbonds
+  // Set up for all atoms FIXME
+  AtomMask Imask(0, topIn.Natom());
+  if (NB_.InitNonbondCalc(nbcalctype_, true, boxIn, ewaldOpts_, debug_)) {
+    mprinterr("Error: Nonbond decomp init failed.\n");
+    return 1;
+  }
+  if (NB_.SetupNonbondCalc(topIn, Imask)) {
+    mprinterr("Error: Nonbond decomp setup failed.\n");
+    return 1;
   }
 
   // DEBUG
@@ -324,6 +302,7 @@ void EnergyDecomposer::calcDihedrals( Frame const& frameIn ) {
 }
 
 /** Simple nonbonded energy calculation with no cutoff. */
+/*
 void EnergyDecomposer::calcNB_simple(Frame const& frameIn) {
   for (int atom1 = 0; atom1 < currentTop_->Natom(); atom1++) {
     bool atom1_is_selected = selectedAtoms_.AtomInCharMask( atom1 );
@@ -354,7 +333,7 @@ void EnergyDecomposer::calcNB_simple(Frame const& frameIn) {
       } // END atom1 or atom2 is selected
     } // END inner loop over atoms
   } // END outer loop over atoms
-}
+}*/
 
 /** Calculate and decompose energies. */
 int EnergyDecomposer::CalcEne(Frame const& frameIn) {
@@ -371,7 +350,14 @@ int EnergyDecomposer::CalcEne(Frame const& frameIn) {
   // Dihedrals
   calcDihedrals(frameIn);
   // Nonbonds
-  if (nbcalctype_ != SIMPLE) { // FIXME atommask?
+  double e_elec, e_vdw;
+  if (NB_.DecomposedNonbondEnergy(frameIn, selectedAtoms_, e_elec, e_vdw,
+                                  currentEne_, currentEne_))
+  {
+    mprinterr("Error: Decompose nonbond energy calc failed.\n");
+    return 1;
+  }
+/*  if (nbcalctype_ != SIMPLE) { // FIXME atommask?
     double e_elec, e_vdw;
     std::vector<double> atom_elec, atom_vdw;
     if (nbcalctype_ == PME)
@@ -387,7 +373,7 @@ int EnergyDecomposer::CalcEne(Frame const& frameIn) {
     }
   } else {
     calcNB_simple(frameIn);
-  }
+  }*/
 
   // Accumulate the energies
   for (unsigned int idx = 0; idx != energies_.size(); idx++) {
@@ -416,8 +402,6 @@ int EnergyDecomposer::FinishCalc() {
     }
   }
   t_total_.WriteTiming(0, "  Decomp total:");
-  if (nbcalctype_ != SIMPLE) {
-    PME_.Timing(t_total_.Total());
-  }
+  NB_.PrintTiming(t_total_.Total());
   return 0;
 }
