@@ -1,8 +1,7 @@
 #include "EwaldCalc_Decomp_LJPME.h"
 #include "../CpptrajStdio.h"
-#include "../EwaldOptions.h"
+#include "../Frame.h"
 #include "../PairListTemplate.h"
-#include "../Topology.h"
 
 using namespace Cpptraj::Energy;
 
@@ -18,10 +17,6 @@ int EwaldCalc_Decomp_LJPME::Init(Box const& boxIn, EwaldOptions const& pmeOpts, 
     mprinterr("Error: Decomposable LJPME calculation init failed.\n");
     return 1;
   }
-  if (pairList_.InitPairList(pmeOpts.Cutoff(), pmeOpts.SkinNB(), debugIn))
-    return 1;
-  if (pairList_.SetupPairList( boxIn ))
-    return 1;
   Recip_.SetDebug( debugIn );
   LJrecip_.SetDebug( debugIn );
 
@@ -35,49 +30,27 @@ int EwaldCalc_Decomp_LJPME::Setup(Topology const& topIn, AtomMask const& maskIn)
     return 1;
   }
   NBengine_.ModifyEwaldParams().CalcDecomposedSelf6Energy();
-  // Setup exclusion list
-  // Use distance of 4 (up to dihedrals)
-  if (Excluded_.SetupExcluded(topIn.Atoms(), maskIn, 4,
-                              ExclusionArray::EXCLUDE_SELF,
-                              ExclusionArray::FULL))
-  {
-    mprinterr("Error: Could not set up exclusion list for LJPME calculation.\n");
-    return 1;
-  }
+  // TODO reserve atom_elec and atom_vdw?
 
   return 0;
 }
 
-// DEBUG
-static inline double sumArray(std::vector<double> const& arrayIn) {
-  double sum = 0;
-  for (std::vector<double>::const_iterator it = arrayIn.begin(); it != arrayIn.end(); ++it)
-    sum += *it;
-  return sum;
-}
-
 /** Calculate full nonbonded energy with LJPME */
-int EwaldCalc_Decomp_LJPME::CalcDecomposedNonbondEnergy(Frame const& frameIn, AtomMask const& maskIn,
-                                double& e_elec, double& e_vdw,
-                                Darray& atom_elec, Darray& atom_vdw)
+int EwaldCalc_Decomp_LJPME::CalcNonbondEnergy(Frame const& frameIn, AtomMask const& maskIn,
+                                              PairList const& pairList_, ExclusionArray const& Excluded_,
+                                              double& e_elec, double& e_vdw)
 {
   t_total_.Start();
   double volume = frameIn.BoxCrd().CellVolume();
+  // Do decomposed self
   Darray atom_self;
   double e_self = NBengine_.EwaldParams().DecomposedSelfEnergy( atom_self, volume );
   mprintf("DEBUG: Total self energy: %f\n", e_self);
   mprintf("DEBUG: Sum of self array: %f\n", sumArray(atom_self));
-  // FIXME do decomposed self6
+  // Do decomposed self6
   Darray const& atom_vdwself6 = NBengine_.EwaldParams().Atom_Self6Energies();
   mprintf("DEBUG: Total self6 energy: %f\n", NBengine_.EwaldParams().Self6());
   mprintf("DEBUG: Sum of self6 array: %f\n", sumArray(atom_vdwself6));
-
-  int retVal = pairList_.CreatePairList(frameIn, frameIn.BoxCrd().UnitCell(),
-                                        frameIn.BoxCrd().FracCell(), maskIn);
-  if (retVal != 0) {
-    mprinterr("Error: Pairlist creation failed for LJPME calc.\n");
-    return 1;
-  }
 
   // TODO make more efficient
   NBengine_.ModifyEwaldParams().FillRecipCoords( frameIn, maskIn );
@@ -142,12 +115,12 @@ int EwaldCalc_Decomp_LJPME::CalcDecomposedNonbondEnergy(Frame const& frameIn, At
   e_vdw = NBengine_.Evdw() + NBengine_.EwaldParams().Self6() + e_vdw6recip;
   e_elec = e_self + e_recip + NBengine_.Eelec() + NBengine_.Eadjust();
   // TODO preallocate?
-  atom_elec.resize( NBengine_.Eatom_Elec().size() );
-  atom_vdw.resize(  NBengine_.Eatom_EVDW().size() );
-  for (unsigned int idx = 0; idx != atom_elec.size(); idx++)
+  atom_elec_.resize( NBengine_.Eatom_Elec().size() );
+  atom_vdw_.resize(  NBengine_.Eatom_EVDW().size() );
+  for (unsigned int idx = 0; idx != atom_elec_.size(); idx++)
   {
-    atom_elec[idx] = atom_self[idx] + atom_recip[idx] + NBengine_.Eatom_Elec()[idx] + NBengine_.Eatom_EAdjust()[idx];
-    atom_vdw[idx]  = NBengine_.Eatom_EVDW()[idx] + atom_vdwself6[idx] + atom_vdw6recip[idx];
+    atom_elec_[idx] = atom_self[idx] + atom_recip[idx] + NBengine_.Eatom_Elec()[idx] + NBengine_.Eatom_EAdjust()[idx];
+    atom_vdw_[idx]  = NBengine_.Eatom_EVDW()[idx] + atom_vdwself6[idx] + atom_vdw6recip[idx];
   }
 
   t_total_.Stop();
@@ -161,6 +134,4 @@ void EwaldCalc_Decomp_LJPME::Timing(double total) const {
   LJrecip_.Timing_Total().WriteTiming(2,"LJRecip:   ", t_total_.Total());
   //LJrecip_.Timing_Calc().WriteTiming(3,"LJ Recip. Calc:", LJrecip_.Timing_Total().Total());
   t_direct_.WriteTiming(2, "Direct:    ", t_total_.Total());
-
-  pairList_.Timing(total);
 }

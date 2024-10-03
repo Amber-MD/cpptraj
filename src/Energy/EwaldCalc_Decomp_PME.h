@@ -8,8 +8,6 @@ namespace Cpptraj {
 namespace Energy {
 class EwaldCalc_Decomp_PME : public EwaldCalc_Decomp {
   public:
-    typedef std::vector<double> Darray;
-
     EwaldCalc_Decomp_PME();
     int Init(Box const&, EwaldOptions const&, int);
     int Setup(Topology const&, AtomMask const&); // TODO CharMask?
