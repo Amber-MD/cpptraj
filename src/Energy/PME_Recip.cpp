@@ -1,8 +1,7 @@
 #include "PME_Recip.h"
-#include "../AtomMask.h"
 #include "../Box.h"
 #include "../CpptrajStdio.h"
-#include "../Frame.h"
+#include "../EwaldOptions.h"
 
 typedef helpme::Matrix<double> Mat;
 
@@ -23,7 +22,29 @@ PME_Recip::PME_Recip(Type typeIn) :
   }
 }
 
-void PME_Recip::SetDebug(int d) { debug_ = d; }
+/** Init */
+int PME_Recip::InitRecip(EwaldOptions const& pmeOpts, int debugIn) {
+  debug_ = debugIn;
+  nfft_[0] = pmeOpts.Nfft1();
+  nfft_[1] = pmeOpts.Nfft2();
+  nfft_[2] = pmeOpts.Nfft3();
+  order_ = pmeOpts.SplineOrder();
+  // Set defaults if necessary
+  if (order_ < 1) order_ = 6;
+  return 0;
+}
+
+/** Print options to stdout. */
+void PME_Recip::PrintRecipOpts() const {
+  mprintf("\t  Bspline order= %i\n", order_);
+  mprintf("\t ");
+  for (int i = 0; i != 3; i++)
+    if (nfft_[i] == -1)
+      mprintf(" NFFT%i=auto", i+1);
+    else
+      mprintf(" NFFT%i=%i", i+1, nfft_[i]);
+  mprintf("\n");
+}
 
 /** \return true if given number is a product of powers of 2, 3, or 5. */
 bool PME_Recip::check_prime_factors(int nIn) {
@@ -114,21 +135,16 @@ int PME_Recip::set_lattice(PMEInstanceD::LatticeType& lattice, Box const& boxIn)
 
 /** \return Reciprocal space part of PME energy calc. */
 // TODO currently helPME needs the coords/charge arrays to be non-const, need to fix that
-double PME_Recip::Recip_ParticleMesh(Darray& coordsDin, Box const& boxIn, Darray& ChargeIn,
-                                     const int* nfftIn, double ew_coeffIn, int orderIn)
+double PME_Recip::Recip_ParticleMesh(Darray& coordsDin, Box const& boxIn, Darray& ChargeIn, double ew_coeffIn)
 {
   t_recip_.Start();
   // This essentially makes coordsD and chargesD point to arrays.
   Mat coordsD(&coordsDin[0], ChargeIn.size(), 3);
   Mat chargesD(&ChargeIn[0], ChargeIn.size(), 1);
-  int nfft1 = -1;
-  int nfft2 = -1;
-  int nfft3 = -1;
-  if (nfftIn != 0) {
-    nfft1 = nfftIn[0];
-    nfft2 = nfftIn[1];
-    nfft3 = nfftIn[2];
-  }
+  int nfft1 = nfft_[0];
+  int nfft2 = nfft_[1];
+  int nfft3 = nfft_[2];
+
   if ( DetermineNfft(nfft1, nfft2, nfft3, boxIn) ) {
     mprinterr("Error: Could not determine FFT grid spacing.\n");
     return 0.0;
@@ -145,7 +161,7 @@ double PME_Recip::Recip_ParticleMesh(Darray& coordsDin, Box const& boxIn, Darray
   // NOTE: Scale factor for Charmm is 332.0716
   // NOTE: The electrostatic constant has been baked into the Charge_ array already.
   //auto pme_object = std::unique_ptr<PMEInstanceD>(new PMEInstanceD());
-  pme_object_.setup(distKernelExponent_, ew_coeffIn, orderIn, nfft1, nfft2, nfft3, scaleFac_, 0);
+  pme_object_.setup(distKernelExponent_, ew_coeffIn, order_, nfft1, nfft2, nfft3, scaleFac_, 0);
   // Check the unit cell vectors
   PMEInstanceD::LatticeType lattice;
   if (set_lattice(lattice, boxIn)) return 0;
@@ -170,28 +186,23 @@ double PME_Recip::Recip_ParticleMesh(Darray& coordsDin, Box const& boxIn, Darray
 /** \return Reciprocal space part of PME energy calc. */
 // TODO currently helPME needs the coords/charge arrays to be non-const, need to fix that
 double PME_Recip::Recip_Decomp(Darray& atom_recip,
-                               Darray& coordsDin, Box const& boxIn, Darray& ChargeIn,
-                               const int* nfftIn, double ew_coeffIn, int orderIn)
+                               Darray& coordsDin, Box const& boxIn, Darray& ChargeIn, double ew_coeffIn)
 {
   t_recip_.Start();
   atom_recip.resize( ChargeIn.size() );
   // This essentially makes coordsD and chargesD point to arrays.
   Mat coordsD(&coordsDin[0], ChargeIn.size(), 3);
   Mat chargesD(&ChargeIn[0], ChargeIn.size(), 1);
-  int nfft1 = -1;
-  int nfft2 = -1;
-  int nfft3 = -1;
-  if (nfftIn != 0) {
-    nfft1 = nfftIn[0];
-    nfft2 = nfftIn[1];
-    nfft3 = nfftIn[2];
-  }
+  int nfft1 = nfft_[0];
+  int nfft2 = nfft_[1];
+  int nfft3 = nfft_[2];
+
   if ( DetermineNfft(nfft1, nfft2, nfft3, boxIn) ) {
     mprinterr("Error: Could not determine FFT grid spacing.\n");
     return 0.0;
   }
   // Instantiate double precision PME object
-  pme_object_.setup(distKernelExponent_, ew_coeffIn, orderIn, nfft1, nfft2, nfft3, scaleFac_, 0);
+  pme_object_.setup(distKernelExponent_, ew_coeffIn, order_, nfft1, nfft2, nfft3, scaleFac_, 0);
   // Check the unit cell vectors
   PMEInstanceD::LatticeType lattice;
   if (set_lattice(lattice, boxIn)) return 0;
