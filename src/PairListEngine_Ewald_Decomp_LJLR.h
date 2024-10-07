@@ -1,7 +1,7 @@
 #ifndef INC_PAIRLISTENGINE_EWALD_DECOMP_LJLR_H
 #define INC_PAIRLISTENGINE_EWALD_DECOMP_LJLR_H
 #include "Energy/Ene_LJ_6_12.h"
-#include "Energy/EwaldParams_PME.h"
+#include "Energy/EwaldParams.h"
 #include "Energy/Kernel_EwaldAdjust.h"
 #include "PairList.h"
 namespace Cpptraj {
@@ -67,8 +67,8 @@ class PairListEngine_Ewald_Decomp_LJLR {
       atom_eadj_[atom1.Idx()] += e_half;
     }
     // -------------------------------------------
-    Cpptraj::Energy::EwaldParams_PME& ModifyEwaldParams() { return EW_; }
-    Cpptraj::Energy::EwaldParams_PME const& EwaldParams() const { return EW_; }
+    Cpptraj::Energy::EwaldParams& ModifyEwaldParams() { return EW_; }
+    Cpptraj::Energy::EwaldParams const& EwaldParams() const { return EW_; }
 
     T Evdw() const { return Evdw_; }
     T Eelec() const { return Eelec_; }
@@ -102,7 +102,7 @@ class PairListEngine_Ewald_Decomp_LJLR {
     Darray atom_evdw_;      ///< Sum of VDW E on each atom for current frame
     Darray atom_eadj_;      ///< Sum of excluded atom adjust E on each atom for current frame
 
-    Cpptraj::Energy::EwaldParams_PME EW_;          ///< Hold Ewald parameters for PME
+    Cpptraj::Energy::EwaldParams EW_;          ///< Hold Ewald parameters for PME
 };
 #ifdef _OPENMP
 #pragma omp declare reduction( + : PairListEngine_Ewald_Decomp_LJLR<double> : omp_out += omp_in ) initializer( omp_priv = omp_orig )
