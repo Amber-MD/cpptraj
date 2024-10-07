@@ -1,9 +1,9 @@
 #ifndef INC_ENERGY_EWALDPARAMS_LJPME_H
 #define INC_ENERGY_EWALDPARAMS_LJPME_H
-#include "EwaldParams_PME.h"
+#include "EwaldParams.h"
 namespace Cpptraj {
 namespace Energy {
-class EwaldParams_LJPME : public EwaldParams_PME {
+class EwaldParams_LJPME : public EwaldParams {
   public:
     EwaldParams_LJPME();
 

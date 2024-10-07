@@ -15,7 +15,7 @@ EwaldParams_LJPME::EwaldParams_LJPME() :
 /** Set up LJPME parameters. */
 int EwaldParams_LJPME::InitEwald(Box const& boxIn, EwaldOptions const& pmeOpts, int debugIn)
 {
-  if (EwaldParams_PME::InitEwald(boxIn, pmeOpts, debugIn)) return 1;
+  if (EwaldParams::InitEwald(boxIn, pmeOpts, debugIn)) return 1;
 
   lw_coeff_ = pmeOpts.LwCoeff();
 
@@ -37,7 +37,7 @@ int EwaldParams_LJPME::InitEwald(Box const& boxIn, EwaldOptions const& pmeOpts, 
 
 /** Setup LJPME calculation. */
 int EwaldParams_LJPME::SetupEwald(Topology const& topIn, AtomMask const& maskIn) {
-  if (EwaldParams_PME::SetupEwald(topIn, maskIn)) return 1;
+  if (EwaldParams::SetupEwald(topIn, maskIn)) return 1;
 
   // Calcuate C6 parameters
   if (lw_coeff_ > 0.0) {
