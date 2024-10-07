@@ -9,7 +9,5 @@ ENERGY_SOURCES= \
   EwaldCalc_PME.cpp \
   EwaldParams.cpp \
   EwaldParams_LJPME.cpp \
-  EwaldParams_PME.cpp \
   PME_Recip.cpp \
-  RecipCoords.cpp \
   VDW_LongRange_Correction.cpp
