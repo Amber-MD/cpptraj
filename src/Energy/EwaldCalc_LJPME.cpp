@@ -1,5 +1,6 @@
 #include "EwaldCalc_LJPME.h"
 #include "../CpptrajStdio.h"
+#include "../EwaldOptions.h"
 #include "../Frame.h"
 #include "../PairListTemplate.h"
 
@@ -13,12 +14,24 @@ EwaldCalc_LJPME::EwaldCalc_LJPME() :
 /** Set up LJPME parameters. */
 int EwaldCalc_LJPME::Init(Box const& boxIn, EwaldOptions const& pmeOpts, int debugIn)
 {
+  // Sanity check
+  if (pmeOpts.Type() == EwaldOptions::REG_EWALD) {
+    mprinterr("Internal Error: Options were set up for regular Ewald only.\n");
+    return 1;
+  }
+  mprintf("\tParticle Mesh Ewald (LJPME) params:\n");
   if (NBengine_.ModifyEwaldParams().InitEwald(boxIn, pmeOpts, debugIn)) {
     mprinterr("Error: LJPME calculation init failed.\n");
     return 1;
   }
-  Recip_.SetDebug( debugIn );
-  LJrecip_.SetDebug( debugIn );
+  if (Recip_.InitRecip(pmeOpts, debugIn)) {
+    mprinterr("Error: LJPME recip init failed.\n");
+    return 1;
+  }
+  if (LJrecip_.InitRecip(pmeOpts, debugIn)) {
+    mprinterr("Error: LJPME LJ recip init failed.\n");
+    return 1;
+  }
 
   return 0;
 }
@@ -50,16 +63,12 @@ int EwaldCalc_LJPME::CalcNonbondEnergy(Frame const& frameIn, AtomMask const& mas
   double e_recip = Recip_.Recip_ParticleMesh( NBengine_.ModifyEwaldParams().SelectedCoords(),
                                               frameIn.BoxCrd(),
                                               NBengine_.ModifyEwaldParams().SelectedCharges(),
-                                              NBengine_.EwaldParams().NFFT(),
-                                              NBengine_.EwaldParams().EwaldCoeff(),
-                                              NBengine_.EwaldParams().Order()
+                                              NBengine_.EwaldParams().EwaldCoeff()
                                             );
   double e_vdw6recip = LJrecip_.Recip_ParticleMesh( NBengine_.ModifyEwaldParams().SelectedCoords(),
                                                     frameIn.BoxCrd(),
                                                     NBengine_.ModifyEwaldParams().SelectedC6params(),
-                                                    NBengine_.EwaldParams().NFFT(),
-                                                    NBengine_.EwaldParams().LJ_EwaldCoeff(),
-                                                    NBengine_.EwaldParams().Order()
+                                                    NBengine_.EwaldParams().LJ_EwaldCoeff()
                                                   );
   if (NBengine_.EwaldParams().Debug() > 0) {
     mprintf("DEBUG: e_vdw6self = %16.8f\n", NBengine_.EwaldParams().Self6());

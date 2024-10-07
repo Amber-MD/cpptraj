@@ -1,5 +1,6 @@
 #include "EwaldCalc_Decomp_LJPME.h"
 #include "../CpptrajStdio.h"
+#include "../EwaldOptions.h"
 #include "../Frame.h"
 #include "../PairListTemplate.h"
 
@@ -13,12 +14,24 @@ EwaldCalc_Decomp_LJPME::EwaldCalc_Decomp_LJPME() :
 /** Set up LJPME parameters. */
 int EwaldCalc_Decomp_LJPME::Init(Box const& boxIn, EwaldOptions const& pmeOpts, int debugIn)
 {
+  // Sanity check
+  if (pmeOpts.Type() == EwaldOptions::REG_EWALD) {
+    mprinterr("Internal Error: Options were set up for regular Ewald only.\n");
+    return 1;
+  }
+  mprintf("\tDecomposable Particle Mesh Ewald (LJPME) params:\n");
   if (NBengine_.ModifyEwaldParams().InitEwald(boxIn, pmeOpts, debugIn)) {
     mprinterr("Error: Decomposable LJPME calculation init failed.\n");
     return 1;
   }
-  Recip_.SetDebug( debugIn );
-  LJrecip_.SetDebug( debugIn );
+  if (Recip_.InitRecip(pmeOpts, debugIn)) {
+    mprinterr("Error: Decomposable LJPME recip init failed.\n");
+    return 1;
+  }
+  if (LJrecip_.InitRecip(pmeOpts, debugIn)) {
+    mprinterr("Error: Decomposable LJPME LJ recip init failed.\n");
+    return 1;
+  }
 
   return 0;
 }
@@ -62,9 +75,7 @@ int EwaldCalc_Decomp_LJPME::CalcNonbondEnergy(Frame const& frameIn, AtomMask con
                                               NBengine_.ModifyEwaldParams().SelectedCoords(),
                                               frameIn.BoxCrd(),
                                               NBengine_.ModifyEwaldParams().SelectedCharges(),
-                                              NBengine_.EwaldParams().NFFT(),
-                                              NBengine_.EwaldParams().EwaldCoeff(),
-                                              NBengine_.EwaldParams().Order()
+                                              NBengine_.EwaldParams().EwaldCoeff()
                                             );
   mprintf("DEBUG: Recip energy      : %f\n", e_recip);
   mprintf("DEBUG: Sum of recip array: %f\n", sumArray(atom_recip));
@@ -73,9 +84,7 @@ int EwaldCalc_Decomp_LJPME::CalcNonbondEnergy(Frame const& frameIn, AtomMask con
                                                     NBengine_.ModifyEwaldParams().SelectedCoords(),
                                                     frameIn.BoxCrd(),
                                                     NBengine_.ModifyEwaldParams().SelectedC6params(),
-                                                    NBengine_.EwaldParams().NFFT(),
-                                                    NBengine_.EwaldParams().LJ_EwaldCoeff(),
-                                                    NBengine_.EwaldParams().Order()
+                                                    NBengine_.EwaldParams().LJ_EwaldCoeff()
                                                   );
   mprintf("DEBUG: VDW Recip energy      : %f\n", e_vdw6recip);
   mprintf("DEBUG: Sum of VDW recip array: %f\n", sumArray(atom_vdw6recip));
