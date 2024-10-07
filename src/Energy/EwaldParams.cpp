@@ -2,6 +2,7 @@
 #include "../Box.h"
 #include "../Constants.h"
 #include "../CpptrajStdio.h"
+#include "../EwaldOptions.h"
 #include "../Topology.h"
 
 using namespace Cpptraj::Energy;
@@ -111,14 +112,50 @@ int EwaldParams::CheckInput(Box const& boxIn, int debugIn, double cutoffIn, doub
 
   return 0;
 }
-/** Convert charges to Amber units. Calculate sum of charges and squared charges. */
-void EwaldParams::CalculateCharges(Topology const& topIn, AtomMask const& maskIn) {
+
+/** Initialize */
+int EwaldParams::InitEwald(Box const& boxIn, EwaldOptions const& pmeOpts, int debugIn)
+{
+  if (CheckInput(boxIn, debugIn, pmeOpts.Cutoff(), pmeOpts.DsumTol(), pmeOpts.EwCoeff(),
+                 pmeOpts.LJ_SwWidth(), pmeOpts.ErfcDx(), pmeOpts.SkinNB()))
+    return 1;
+  mprintf("\t  Cutoff= %g   Direct Sum Tol= %g   Ewald coeff.= %g  NB skin= %g\n",
+          Cutoff(), DirectSumTol(), EwaldCoeff(), pmeOpts.SkinNB());
+  if (LJ_SwitchWidth() > 0.0)
+    mprintf("\t  LJ switch width= %g\n", LJ_SwitchWidth());
+   //mprintf("\t  Erfc table dx= %g, size= %zu\n", erfcTableDx_, erfc_table_.size()/4);
+  return 0;
+}
+
+/** Reserve space for selected atoms */
+void EwaldParams::reserveRecipCoords(AtomMask const& maskIn) {
+  coordsD_.reserve( maskIn.Nselected()*3 );
+}
+
+/** Fill recip coords with XYZ coords of selected atoms. */
+void EwaldParams::FillRecipCoords(Frame const& frameIn, AtomMask const& maskIn)
+{
+  coordsD_.clear();
+  for (AtomMask::const_iterator atm = maskIn.begin(); atm != maskIn.end(); ++atm) {
+    const double* XYZ = frameIn.XYZ( *atm );
+    coordsD_.push_back( XYZ[0] );
+    coordsD_.push_back( XYZ[1] );
+    coordsD_.push_back( XYZ[2] );
+  }
+}
+
+/** Convert charges to Amber units. Calculate sum of charges and squared charges.
+  * Store LJ type indices for selected atoms.
+  */
+int EwaldParams::SetupEwald(Topology const& topIn, AtomMask const& maskIn) {
   NB_ = static_cast<NonbondParmType const*>( &(topIn.Nonbond()) );
 
   sumq_ = 0.0;
   sumq2_ = 0.0;
   Charge_.clear();
+  Charge_.reserve( maskIn.Nselected() );
   TypeIndices_.clear();
+  TypeIndices_.reserve( maskIn.Nselected() );
   for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom) {
     double qi = topIn[*atom].Charge() * Constants::ELECTOAMBER;
     Charge_.push_back(qi);
@@ -129,6 +166,8 @@ void EwaldParams::CalculateCharges(Topology const& topIn, AtomMask const& maskIn
   }
   //mprintf("DEBUG: sumq= %20.10f   sumq2= %20.10f\n", sumq_, sumq2_);
   //Setup_VDW_Correction( topIn, maskIn );
+  reserveRecipCoords(maskIn);
+  return 0;
 }
 
 /** Electrostatic self energy. This is the cancelling Gaussian plus the "neutralizing plasma". */

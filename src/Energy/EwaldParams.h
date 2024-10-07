@@ -5,6 +5,7 @@
 class AtomMask;
 class Box;
 class EwaldOptions;
+class Frame;
 class Topology;
 namespace Cpptraj {
 namespace Energy {
@@ -15,10 +16,12 @@ class EwaldParams {
     // Virtual since inherited
     virtual ~EwaldParams() {}
     // -------------------------------------------
-    virtual int InitEwald(Box const&, EwaldOptions const&, int) = 0;
-    virtual int SetupEwald(Topology const&, AtomMask const&) = 0;
+    virtual int InitEwald(Box const&, EwaldOptions const&, int);
+    virtual int SetupEwald(Topology const&, AtomMask const&);
     // -------------------------------------------
 
+    ///  Fill recip coords with XYZ coords of selected atoms.
+    void FillRecipCoords(Frame const&, AtomMask const&);
     /// \return ERFC value of given distance times the Ewald coefficient
     double ErfcEW(double rIn) const { return erfc_.ErfcInterpolated( ew_coeff_*rIn ); }
     /// \return LJ switch fn value
@@ -63,6 +66,8 @@ class EwaldParams {
 
     // FIXME do not return const because helPME needs the array to be non-const. Should be fixed
     std::vector<double>& SelectedCharges() { return Charge_; }
+    // FIXME do not return const because helPME needs the array to be non-const. Should be fixed
+    std::vector<double>& SelectedCoords() { return coordsD_; }
   protected:
     typedef std::vector<double> Darray;
     typedef std::vector<int> Iarray;
@@ -73,12 +78,12 @@ class EwaldParams {
     /// Set Ewald parametsr, check them and set defaults if needed.
     int CheckInput(Box const&, int, double, double,
                    double, double, double, double);
-    /// Calculate sum q, sum q^2. 
-    void CalculateCharges(Topology const&, AtomMask const&);
   private:
     static const double INVSQRTPI_;
 
     double FindEwaldCoefficient(double, double);
+    /// Reserve space for selected coordinates for recip calcs
+    void reserveRecipCoords(AtomMask const&);
 
     double ew_coeff_;                  ///< Ewald coefficient
     double switch_width_; ///< Switching window size for LJ switch if active
@@ -90,6 +95,7 @@ class EwaldParams {
 
     ErfcFxn erfc_;              ///< Hold spline interpolation for erfc
 
+    Darray coordsD_;            ///< Hold selected coords for recip calcs
     Darray Charge_;             ///< Hold charges for selected atoms
     Iarray TypeIndices_;        ///< Hold atom type indices for selected atoms
     NonbondParmType const* NB_; ///< Pointer to nonbonded parameters
