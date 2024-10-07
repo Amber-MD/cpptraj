@@ -15,6 +15,8 @@ class RecipCoords {
     int ReserveForSelected(AtomMask const&);
     void FillRecipCoords(Frame const&, AtomMask const&);
 
+    // FIXME: helPME requires this array be non-const right now
+    Darray& CoordsD() { return coordsD_; }
   private:
     Darray coordsD_;
 };

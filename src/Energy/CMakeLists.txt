@@ -11,5 +11,6 @@ target_sources(cpptraj_common_obj PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}/EwaldParams_LJPME.cpp
   ${CMAKE_CURRENT_LIST_DIR}/EwaldParams_PME.cpp
   ${CMAKE_CURRENT_LIST_DIR}/PME_Recip.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/RecipCoords.cpp
   ${CMAKE_CURRENT_LIST_DIR}/VDW_LongRange_Correction.cpp
 )
