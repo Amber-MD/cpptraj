@@ -1,5 +1,6 @@
 #include "EwaldCalc_Decomp_PME.h"
 #include "../CpptrajStdio.h"
+#include "../EwaldOptions.h"
 #include "../Frame.h"
 #include "../PairListTemplate.h"
 
@@ -12,12 +13,21 @@ EwaldCalc_Decomp_PME::EwaldCalc_Decomp_PME() :
 /** Set up PME parameters. */
 int EwaldCalc_Decomp_PME::Init(Box const& boxIn, EwaldOptions const& pmeOpts, int debugIn)
 {
+  // Sanity check
+  if (pmeOpts.Type() == EwaldOptions::REG_EWALD) {
+    mprinterr("Internal Error: Options were set up for regular Ewald only.\n");
+    return 1;
+  }
+  mprintf("\tDecomposed Particle Mesh Ewald params:\n");
   if (NBengine_.ModifyEwaldParams().InitEwald(boxIn, pmeOpts, debugIn)) {
     mprinterr("Error: Decomposable PME calculation init failed.\n");
     return 1;
   }
   VDW_LR_.SetDebug( debugIn );
-  Recip_.SetDebug( debugIn );
+  if (Recip_.InitRecip(pmeOpts, debugIn)) {
+    mprinterr("Error: PME recip init failed.\n");
+    return 1;
+  }
 
   return 0;
 }
@@ -59,9 +69,7 @@ int EwaldCalc_Decomp_PME::CalcNonbondEnergy(Frame const& frameIn, AtomMask const
                                         NBengine_.ModifyEwaldParams().SelectedCoords(),
                                         frameIn.BoxCrd(),
                                         NBengine_.ModifyEwaldParams().SelectedCharges(),
-                                        NBengine_.EwaldParams().NFFT(),
-                                        NBengine_.EwaldParams().EwaldCoeff(),
-                                        NBengine_.EwaldParams().Order()
+                                        NBengine_.EwaldParams().EwaldCoeff()
                                       );
   mprintf("DEBUG: Recip energy      : %f\n", e_recip);
   mprintf("DEBUG: Sum of recip array: %f\n", sumArray(atom_recip));
