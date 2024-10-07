@@ -28,7 +28,6 @@ int EwaldCalc_PME::Init(Box const& boxIn, EwaldOptions const& pmeOpts, int debug
     mprinterr("Error: PME recip init failed.\n");
     return 1;
   }
-  Recip_.PrintRecipOpts();
 
   return 0;
 }

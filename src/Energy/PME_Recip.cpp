@@ -31,11 +31,13 @@ int PME_Recip::InitRecip(EwaldOptions const& pmeOpts, int debugIn) {
   order_ = pmeOpts.SplineOrder();
   // Set defaults if necessary
   if (order_ < 1) order_ = 6;
+  PrintRecipOpts();
   return 0;
 }
 
 /** Print options to stdout. */
 void PME_Recip::PrintRecipOpts() const {
+  mprintf("\tRecip opts (distance kernel exponent= %i\n", distKernelExponent_);
   mprintf("\t  Bspline order= %i\n", order_);
   mprintf("\t ");
   for (int i = 0; i != 3; i++)
