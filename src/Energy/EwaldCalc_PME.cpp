@@ -1,5 +1,6 @@
 #include "EwaldCalc_PME.h"
 #include "../CpptrajStdio.h"
+#include "../EwaldOptions.h"
 #include "../Frame.h"
 #include "../PairListTemplate.h"
 
@@ -12,12 +13,22 @@ EwaldCalc_PME::EwaldCalc_PME() :
 /** Set up PME parameters. */
 int EwaldCalc_PME::Init(Box const& boxIn, EwaldOptions const& pmeOpts, int debugIn)
 {
+  // Sanity check
+  if (pmeOpts.Type() == EwaldOptions::REG_EWALD) {
+    mprinterr("Internal Error: Options were set up for regular Ewald only.\n");
+    return 1;
+  }
+  mprintf("\tParticle Mesh Ewald params:\n");
   if (NBengine_.ModifyEwaldParams().InitEwald(boxIn, pmeOpts, debugIn)) {
     mprinterr("Error: PME calculation init failed.\n");
     return 1;
   }
   VDW_LR_.SetDebug( debugIn );
-  Recip_.SetDebug( debugIn );
+  if (Recip_.InitRecip(pmeOpts, debugIn)) {
+    mprinterr("Error: PME recip init failed.\n");
+    return 1;
+  }
+  Recip_.PrintRecipOpts();
 
   return 0;
 }
@@ -53,9 +64,7 @@ int EwaldCalc_PME::CalcNonbondEnergy(Frame const& frameIn, AtomMask const& maskI
   double e_recip = Recip_.Recip_ParticleMesh( NBengine_.ModifyEwaldParams().SelectedCoords(),
                                               frameIn.BoxCrd(),
                                               NBengine_.ModifyEwaldParams().SelectedCharges(),
-                                              NBengine_.EwaldParams().NFFT(),
-                                              NBengine_.EwaldParams().EwaldCoeff(),
-                                              NBengine_.EwaldParams().Order()
+                                              NBengine_.EwaldParams().EwaldCoeff()
                                             );
 
   // TODO branch
