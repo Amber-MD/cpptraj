@@ -51,7 +51,7 @@ class Ewald_Recip {
     Iarray mlim2_;        ///< Hold m2 reciprocal indices
     int multCut_;         ///< Hold index after which multiplier should be 2.0.
 #   endif
-    double ew_coeff_;     ///< Ewald coefficient
+    double fac_;          ///< Hold (PI^2) / (Ewald coefficient)^2
     double maxexp_;       ///< Determines how far out recip vectors go? TODO check!
     double rsumTol_;      ///< Reciprocal space sum tolerance.
     int mlimit_[3];       ///< Number of units in each direction to calc recip. sum.

@@ -22,7 +22,7 @@ Ewald_Recip::Ewald_Recip() :
 # ifdef _OPENMP
   multCut_(0),
 # endif
-  ew_coeff_(0.0),
+  fac_(0.0),
   maxexp_(0.0),
   rsumTol_(0.0),
   maxmlim_(0)
@@ -111,7 +111,7 @@ int Ewald_Recip::InitRecip(EwaldOptions const& ewOpts, double ew_coeffIn,
   debug_ = debugIn;
   rsumTol_ = ewOpts.RsumTol();
   maxexp_ = ewOpts.MaxExp();
-  ew_coeff_ = ew_coeffIn;
+  fac_ = (Constants::PI*Constants::PI) / (ew_coeffIn * ew_coeffIn);
   mlimit_[0] = ewOpts.Mlimits1();
   mlimit_[1] = ewOpts.Mlimits2();
   mlimit_[2] = ewOpts.Mlimits3();
@@ -130,14 +130,13 @@ int Ewald_Recip::InitRecip(EwaldOptions const& ewOpts, double ew_coeffIn,
   }
 
   // Set defaults if necessary
-  ew_coeff_ = ew_coeffIn;
   if (rsumTol_ < Constants::SMALL)
     rsumTol_ = 5E-5;
   if (maxmlim_ > 0)
     maxexp_ = FindMaxexpFromMlim(mlimit_, boxIn.FracCell());
   else {
     if ( maxexp_ < Constants::SMALL )
-      maxexp_ = FindMaxexpFromTol(ew_coeff_, rsumTol_);
+      maxexp_ = FindMaxexpFromTol(ew_coeffIn, rsumTol_);
     // eigmin typically bigger than this unless cell is badly distorted.
     double eigmin = 0.5;
     // Calculate lengths of reciprocal vectors
@@ -228,7 +227,6 @@ double Ewald_Recip::Recip_Regular(Matrix_3x3 const& recip, double volume,
                                   Varray const& Frac, Darray const& Charge)
 {
   t_recip_.Start();
-  double fac = (Constants::PI*Constants::PI) / (ew_coeff_ * ew_coeff_);
   double maxexp2 = maxexp_ * maxexp_;
   double ene = 0.0;
   // Number of M values is the max + 1.
@@ -332,7 +330,7 @@ double Ewald_Recip::Recip_Regular(Matrix_3x3 const& recip, double volume,
         double eterm = 0.0;
 //        double vterm = 0.0;
         if ( m1*m1 + m2*m2 + m3*m3 > 0 ) {
-          eterm = exp(-fac*msq) / denom;
+          eterm = exp(-fac_*msq) / denom;
 //          vterm = 2.0 * (fac*msq + 1.0) / msq;
         }
         // mult takes care to double count for symmetry. Can take care of
