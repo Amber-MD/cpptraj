@@ -181,5 +181,41 @@ int Ewald_Recip::SetupRecip(int nselected) {
 //    sinf2_.push_back( 0.0 );
 //    sinf3_.push_back( 0.0 );
 // }
+# ifdef _OPENMP
+  // Pre-calculate m1 and m2 indices
+  mlim1_.clear();
+  mlim2_.clear();
+  multCut_ = 0;
+  for (int m1 = 0; m1 <= mlimit_[0]; m1++) {
+    for (int m2 = -mlimit_[1]; m2 <= mlimit_[1]; m2++) {
+      mlim1_.push_back( m1 );
+      mlim2_.push_back( m2 );
+    }
+    // After this index (end of m1 == 0) multiplier must be 2.0
+    if (m1 == 0)
+      multCut_ = (int)mlim1_.size();
+  }
+  // Each thread will need its own space for trig math
+  int numthreads;
+# pragma omp parallel
+  {
+#   pragma omp master
+    {
+      numthreads = omp_get_num_threads();
+      mprintf("\tParallelizing calculation with %i threads\n", numthreads);
+    }
+  }
+  unsigned int asize = (unsigned int)nselected * (unsigned int)numthreads;
+  c12_.resize( asize );
+  s12_.resize( asize );
+  c3_.resize(  asize );
+  s3_.resize(  asize );
+#else /* _OPENMP */
+  c12_.resize( nselected );
+  s12_.resize( nselected );
+  c3_.resize(  nselected );
+  s3_.resize(  nselected );
+# endif /* _OPENMP */
+
   return 0;
 }
