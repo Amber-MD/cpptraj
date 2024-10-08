@@ -31,3 +31,21 @@ int EwaldCalc_Regular::Init(Box const& boxIn, EwaldOptions const& pmeOpts, int d
   return 0;
 }
 
+/** Setup PME calculation. */
+int EwaldCalc_Regular::Setup(Topology const& topIn, AtomMask const& maskIn) {
+  if (NBengine_.ModifyEwaldParams().SetupEwald(topIn, maskIn)) {
+    mprinterr("Error: Ewald calculation setup failed.\n");
+    return 1;
+  }
+  if (VDW_LR_.Setup_VDW_Correction( topIn, maskIn )) {
+    mprinterr("Error: Ewald calculation long range VDW correction setup failed.\n");
+    return 1;
+  }
+  if (Recip_.SetupRecip( maskIn.Nselected() )) {
+    mprinterr("Error: Ewald calculation recip setup failed.\n");
+    return 1;
+  }
+
+  return 0;
+}
+
