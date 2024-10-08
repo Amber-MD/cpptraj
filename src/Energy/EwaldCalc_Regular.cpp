@@ -94,7 +94,7 @@ int EwaldCalc_Regular::CalcNonbondEnergy(Frame const& frameIn, AtomMask const& m
 }
 
 void EwaldCalc_Regular::Timing(double total) const {
-  t_total_.WriteTiming(1,  "  PME Total:", total);
+  t_total_.WriteTiming(1,  "  Ewald Total:", total);
   Recip_.PrintTiming(t_total_.Total());
   t_direct_.WriteTiming(2, "Direct:    ", t_total_.Total());
 }

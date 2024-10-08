@@ -99,8 +99,10 @@ int Ecalc_Nonbond::SetupNonbondCalc(Topology const& topIn, AtomMask const& maskI
     return 1;
   }
   if (calc_ != 0) {
-    if (calc_->Setup(topIn, maskIn))
+    if (calc_->Setup(topIn, maskIn)) {
+      mprinterr("Error: Nonbonded calculation setup failed.\n");
       return 1;
+    }
   }
   return 0;
 }

@@ -106,7 +106,7 @@ Action::RetType Action_PmeTest::Setup(ActionSetup& setup)
       opt = Ecalc_Nonbond::PME;
     else if (method_ == 2)
       opt = Ecalc_Nonbond::LJPME;
-    else if (method_ == 3)
+    else if (method_ == 4)
       opt = Ecalc_Nonbond::REGULAR_EWALD;
 
     if (NB_.InitNonbondCalc(opt, false, setup.CoordInfo().TrajBox(), ewaldOpts_, debug_))
