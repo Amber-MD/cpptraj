@@ -7,7 +7,9 @@ ENERGY_SOURCES= \
   EwaldCalc_Decomp_PME.cpp \
   EwaldCalc_LJPME.cpp \
   EwaldCalc_PME.cpp \
+  EwaldCalc_Regular.cpp \
   EwaldParams.cpp \
   EwaldParams_LJPME.cpp \
+  Ewald_Recip.cpp \
   PME_Recip.cpp \
   VDW_LongRange_Correction.cpp
