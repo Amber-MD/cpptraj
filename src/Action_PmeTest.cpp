@@ -97,6 +97,8 @@ Action::RetType Action_PmeTest::Setup(ActionSetup& setup)
       return Action::ERR;
     PME0_.Setup( setup.Top(), Mask1_ );
   } else if (method_ == 3) {
+    if (EWALD0_.Init(setup.CoordInfo().TrajBox(), ewaldOpts_, debug_))
+      return Action::ERR;
     EWALD0_.Setup( setup.Top(), Mask1_ );
   } else {
     Ecalc_Nonbond::CalcType opt = Ecalc_Nonbond::UNSPECIFIED;
