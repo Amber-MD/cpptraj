@@ -1,8 +1,9 @@
 #include "Ecalc_Nonbond.h"
-#include "EwaldCalc_PME.h"
 #include "EwaldCalc_LJPME.h"
-#include "EwaldCalc_Decomp_PME.h"
+#include "EwaldCalc_PME.h"
+#include "EwaldCalc_Regular.h"
 #include "EwaldCalc_Decomp_LJPME.h"
+#include "EwaldCalc_Decomp_PME.h"
 #include "../CharMask.h"
 #include "../CpptrajStdio.h"
 #include "../EwaldOptions.h"
@@ -50,6 +51,13 @@ int Ecalc_Nonbond::InitNonbondCalc(CalcType typeIn, bool decompose_energyIn,
         calc_ = new EwaldCalc_Decomp_LJPME();
       else
         calc_ = new EwaldCalc_LJPME();
+      break;
+    case REGULAR_EWALD :
+      if (decompose_energy_) {
+        mprinterr("Internal Error: Ecalc_Nonbond::InitNonbondCalc(): Cannot decompose regular Ewald calc.\n");
+        return 1;
+      } else
+        calc_ = new EwaldCalc_Regular();
       break;
     case UNSPECIFIED :
       mprinterr("Internal Error: Ecalc_Nonbond::InitNonbondCalc(): No nonbonded calc type specified.\n");

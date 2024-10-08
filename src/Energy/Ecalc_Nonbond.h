@@ -13,7 +13,7 @@ class Ecalc_Nonbond {
   public:
     typedef std::vector<double> Darray;
 
-    enum CalcType { SIMPLE = 0, PME, LJPME, UNSPECIFIED };
+    enum CalcType { SIMPLE = 0, PME, LJPME, REGULAR_EWALD, UNSPECIFIED };
     /// CONSTRUCTOR
     Ecalc_Nonbond();
     /// DESTRUCTOR
