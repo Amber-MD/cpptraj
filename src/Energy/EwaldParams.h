@@ -11,6 +11,7 @@ namespace Cpptraj {
 namespace Energy {
 /// Parameters common to all Ewald methods
 class EwaldParams {
+    static const double INVSQRTPI_;
   public:
     EwaldParams();
     // Virtual since inherited
@@ -63,6 +64,8 @@ class EwaldParams {
     double EwaldCoeff() const { return ew_coeff_; }
     /// \return LJ switch width (in Ang.)
     double LJ_SwitchWidth() const { return switch_width_; }
+    /// \return 1 / sqrt(PI)
+    static const double INVSQRTPI() { return INVSQRTPI_; }
 
     // FIXME do not return const because helPME needs the array to be non-const. Should be fixed
     std::vector<double>& SelectedCharges() { return Charge_; }
@@ -79,8 +82,6 @@ class EwaldParams {
     int CheckInput(Box const&, int, double, double,
                    double, double, double, double);
   private:
-    static const double INVSQRTPI_;
-
     double FindEwaldCoefficient(double, double);
     /// Reserve space for selected coordinates for recip calcs
     void reserveRecipCoords(AtomMask const&);
