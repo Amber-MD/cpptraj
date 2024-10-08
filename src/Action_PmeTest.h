@@ -3,6 +3,7 @@
 #include "Action.h"
 #include "Energy/Ecalc_Nonbond.h"
 #include "Ewald_ParticleMesh.h"
+#include "Ewald_Regular.h"
 #include "EwaldOptions.h"
 #include "Timer.h"
 /// <Enter description of Action_PmeTest here>
@@ -18,6 +19,7 @@ class Action_PmeTest : public Action {
     void Print();
 
     Ewald_ParticleMesh PME0_;
+    Ewald_Regular EWALD0_;
     Cpptraj::Energy::Ecalc_Nonbond NB_;
     EwaldOptions ewaldOpts_;
     AtomMask Mask1_;
