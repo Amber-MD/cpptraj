@@ -22,7 +22,7 @@ class Ewald_Recip {
     void PrintRecipOpts() const;
     /// Set up trig tables for the given number of selected atoms
     int SetupRecip(int);
-    /// Regular Ewald recip energy (unit cell vecs, volume, frac coords, charges)
+    /// Regular Ewald recip energy (fractional cell vecs, volume, frac coords, charges)
     double Recip_Regular(Matrix_3x3 const&, double, Varray const&, Darray const&);
     /// Print timing
     void PrintTiming(double) const;

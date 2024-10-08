@@ -66,6 +66,8 @@ class EwaldParams {
     double LJ_SwitchWidth() const { return switch_width_; }
     /// \return 1 / sqrt(PI)
     static const double INVSQRTPI() { return INVSQRTPI_; }
+    /// \return Charge array
+    std::vector<double> const& Charge() const { return Charge_; }
 
     // FIXME do not return const because helPME needs the array to be non-const. Should be fixed
     std::vector<double>& SelectedCharges() { return Charge_; }
@@ -76,8 +78,6 @@ class EwaldParams {
     typedef std::vector<int> Iarray;
 
     static inline double DABS(double xIn) { if (xIn < 0.0) return -xIn; else return xIn; }
-    /// \return Charge array
-    Darray const& Charge() const { return Charge_; }
     /// Set Ewald parametsr, check them and set defaults if needed.
     int CheckInput(Box const&, int, double, double,
                    double, double, double, double);
