@@ -8,7 +8,7 @@
 #include "../Matrix_3x3.h"
 #include "../StringRoutines.h" // ByteString
 #include "../Vec3.h"
-#include <cmath> // sqrt
+#include <cmath> // sqrt, cos, sin
 #include <algorithm> // std::max 
 
 using namespace Cpptraj::Energy;
