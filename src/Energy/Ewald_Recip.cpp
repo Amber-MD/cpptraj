@@ -376,3 +376,8 @@ double Ewald_Recip::Recip_Regular(Matrix_3x3 const& recip, double volume,
   return ene * 0.5;
 }
 
+void Ewald_Recip::PrintTiming(double total) const {
+  t_recip_.WriteTiming(2,  "Recip:     ", total);
+  if (t_trig_tables_.Total() > 0.0)
+    t_trig_tables_.WriteTiming(3, "Calc trig tables:", t_recip_.Total());
+}

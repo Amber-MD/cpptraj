@@ -24,6 +24,8 @@ class Ewald_Recip {
     int SetupRecip(int);
     /// Regular Ewald recip energy (unit cell vecs, volume, frac coords, charges)
     double Recip_Regular(Matrix_3x3 const&, double, Varray const&, Darray const&);
+    /// Print timing
+    void PrintTiming(double) const;
   private:
     /// Determine max length for reciprocal calcs based on reciprocal limits
     static double FindMaxexpFromMlim(const int*, Matrix_3x3 const&);
