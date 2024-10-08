@@ -1,26 +1,30 @@
 #ifndef INC_ENERGY_EWALD_RECIP_H
 #define INC_ENERGY_EWALD_RECIP_H
 #include <vector>
+#include "../Timer.h"
 class Box;
 class EwaldOptions;
 class Matrix_3x3;
 class Vec3;
 namespace Cpptraj {
 namespace Energy {
-class EwaldParams;
 /// For calculating reciprocal space energy using the "regular" Ewald summation
 class Ewald_Recip {
   public:
+    typedef std::vector<double> Darray;
+    typedef std::vector<Vec3> Varray;
+
     Ewald_Recip();
 
-
-    int InitRecip(EwaldOptions const&, EwaldParams const&, Box const&, int);
+    /// Init with options, Ewald coeff, box, debug
+    int InitRecip(EwaldOptions const&, double, Box const&, int);
+    /// print options to stdout
     void PrintRecipOpts() const;
     /// Set up trig tables for the given number of selected atoms
     int SetupRecip(int);
+    /// Regular Ewald recip energy (unit cell vecs, volume, frac coords, charges)
+    double Recip_Regular(Matrix_3x3 const&, double, Varray const&, Darray const&);
   private:
-    typedef std::vector<double> Darray;
-
     /// Determine max length for reciprocal calcs based on reciprocal limits
     static double FindMaxexpFromMlim(const int*, Matrix_3x3 const&);
     /// Determine max length for reciprocal calcs based on Ewald coefficient and recip tol.
@@ -45,11 +49,15 @@ class Ewald_Recip {
     Iarray mlim2_;        ///< Hold m2 reciprocal indices
     int multCut_;         ///< Hold index after which multiplier should be 2.0.
 #   endif
+    double ew_coeff_;     ///< Ewald coefficient
     double maxexp_;       ///< Determines how far out recip vectors go? TODO check!
     double rsumTol_;      ///< Reciprocal space sum tolerance.
     int mlimit_[3];       ///< Number of units in each direction to calc recip. sum.
     int maxmlim_;         ///< The max of the three mlimit_ values.
     int debug_;
+
+    Timer t_recip_; ///< Recip calc timer
+    Timer t_trig_tables_; ///< Trig tables calc timer
 };
 }
 }
