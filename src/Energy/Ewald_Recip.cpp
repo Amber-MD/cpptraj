@@ -6,6 +6,7 @@
 #include "../CpptrajStdio.h"
 #include "../EwaldOptions.h"
 #include "../Matrix_3x3.h"
+#include "../StringRoutines.h" // ByteString
 #include "../Vec3.h"
 #include <cmath> // sqrt
 #include <algorithm> // std::max 
@@ -153,4 +154,32 @@ void Ewald_Recip::PrintRecipOpts() const {
   mprintf("\t  MaxExp= %g   Recip. Sum Tol= %g\n", maxexp_, rsumTol_);
   //mprintf("\t  Erfc table dx= %g, size= %zu\n", erfcTableDx_, erfc_table_.size()/4);
   mprintf("\t  mlimits= {%i,%i,%i} Max=%i\n", mlimit_[0], mlimit_[1], mlimit_[2], maxmlim_);
+}
+
+/** Setup trig tables for given number of selected atoms. */
+int Ewald_Recip::SetupRecip(int nselected) {
+  // Build exponential factors for use in structure factors.
+  // These arrays are laid out in 1D; value for each atom at each m, i.e.
+  // A0M0 A1M0 A2M0 ... ANM0 A0M1 ... ANMX
+  // Number of M values is the max + 1.
+  int mmax = maxmlim_ + 1;
+  unsigned int tsize = nselected * mmax;
+  cosf1_.assign( tsize, 1.0 );
+  cosf2_.assign( tsize, 1.0 );
+  cosf3_.assign( tsize, 1.0 );
+  sinf1_.assign( tsize, 0.0 );
+  sinf2_.assign( tsize, 0.0 );
+  sinf3_.assign( tsize, 0.0 );
+  mprintf("\tMemory used by trig tables: %s\n",
+          ByteString(6*tsize*sizeof(double), BYTE_DECIMAL).c_str());
+  // M0
+//  for (int i = 0; i != maskIn.Nselected(); i++) {
+//    cosf1_.push_back( 1.0 );
+//    cosf2_.push_back( 1.0 );
+//    cosf3_.push_back( 1.0 );
+//    sinf1_.push_back( 0.0 );
+//    sinf2_.push_back( 0.0 );
+//    sinf3_.push_back( 0.0 );
+// }
+  return 0;
 }

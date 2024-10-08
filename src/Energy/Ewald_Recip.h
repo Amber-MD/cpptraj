@@ -16,6 +16,8 @@ class Ewald_Recip {
 
     int InitRecip(EwaldOptions const&, EwaldParams const&, Box const&, int);
     void PrintRecipOpts() const;
+    /// Set up trig tables for the given number of selected atoms
+    int SetupRecip(int);
   private:
     typedef std::vector<double> Darray;
 
