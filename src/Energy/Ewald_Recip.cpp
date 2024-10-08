@@ -1,8 +1,10 @@
 #include "Ewald_Recip.h"
 #include "ErfcFxn.h" // erfc_func
 #include "EwaldParams.h"
+#include "../Box.h"
 #include "../Constants.h"
 #include "../CpptrajStdio.h"
+#include "../EwaldOptions.h"
 #include "../Matrix_3x3.h"
 #include "../Vec3.h"
 #include <cmath> // sqrt
@@ -100,3 +102,55 @@ void Ewald_Recip::GetMlimits(int* mlimit, double maxexp, double eigmin,
   mprintf("\tNumber of reciprocal vectors: %i\n", nrecvecs);
 }
 
+/** Init */
+int Ewald_Recip::InitRecip(EwaldOptions const& ewOpts, EwaldParams const& ewParams,
+                           Box const& boxIn, int debugIn)
+{
+  debug_ = debugIn;
+  rsumTol_ = ewOpts.RsumTol();
+  maxexp_ = ewOpts.MaxExp();
+  mlimit_[0] = ewOpts.Mlimits1();
+  mlimit_[1] = ewOpts.Mlimits2();
+  mlimit_[2] = ewOpts.Mlimits3();
+
+  // Check input
+  if (mlimit_[0] < 0 || mlimit_[1] < 0 || mlimit_[2] < 0) {
+    mprinterr("Error: Cannot specify negative mlimit values.\n");
+    return 1;
+  }
+  maxmlim_ = mlimit_[0];
+  maxmlim_ = std::max(maxmlim_, mlimit_[1]);
+  maxmlim_ = std::max(maxmlim_, mlimit_[2]);
+  if (maxexp_ < 0.0) {
+    mprinterr("Error: maxexp is less than 0.0\n");
+    return 1;
+  }
+
+  // Set defaults if necessary
+  if (rsumTol_ < Constants::SMALL)
+    rsumTol_ = 5E-5;
+  if (maxmlim_ > 0)
+    maxexp_ = FindMaxexpFromMlim(mlimit_, boxIn.FracCell());
+  else {
+    if ( maxexp_ < Constants::SMALL )
+      maxexp_ = FindMaxexpFromTol(ewParams.EwaldCoeff(), rsumTol_);
+    // eigmin typically bigger than this unless cell is badly distorted.
+    double eigmin = 0.5;
+    // Calculate lengths of reciprocal vectors
+    GetMlimits(mlimit_, maxexp_, eigmin, boxIn.RecipLengths(), boxIn.FracCell());
+    maxmlim_ = mlimit_[0];
+    maxmlim_ = std::max(maxmlim_, mlimit_[1]);
+    maxmlim_ = std::max(maxmlim_, mlimit_[2]);
+  }
+
+  PrintRecipOpts();
+  return 0;
+}
+
+/** Print options to stdout */
+void Ewald_Recip::PrintRecipOpts() const {
+  mprintf("\tRecip opts (regular Ewald):\n");
+  mprintf("\t  MaxExp= %g   Recip. Sum Tol= %g\n", maxexp_, rsumTol_);
+  //mprintf("\t  Erfc table dx= %g, size= %zu\n", erfcTableDx_, erfc_table_.size()/4);
+  mprintf("\t  mlimits= {%i,%i,%i} Max=%i\n", mlimit_[0], mlimit_[1], mlimit_[2], maxmlim_);
+}

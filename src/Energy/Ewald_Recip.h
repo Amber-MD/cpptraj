@@ -1,14 +1,21 @@
 #ifndef INC_ENERGY_EWALD_RECIP_H
 #define INC_ENERGY_EWALD_RECIP_H
 #include <vector>
+class Box;
+class EwaldOptions;
 class Matrix_3x3;
 class Vec3;
 namespace Cpptraj {
 namespace Energy {
+class EwaldParams;
 /// For calculating reciprocal space energy using the "regular" Ewald summation
 class Ewald_Recip {
   public:
     Ewald_Recip();
+
+
+    int InitRecip(EwaldOptions const&, EwaldParams const&, Box const&, int);
+    void PrintRecipOpts() const;
   private:
     typedef std::vector<double> Darray;
 
@@ -40,6 +47,7 @@ class Ewald_Recip {
     double rsumTol_;      ///< Reciprocal space sum tolerance.
     int mlimit_[3];       ///< Number of units in each direction to calc recip. sum.
     int maxmlim_;         ///< The max of the three mlimit_ values.
+    int debug_;
 };
 }
 }
