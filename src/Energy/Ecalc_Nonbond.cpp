@@ -1,9 +1,11 @@
 #include "Ecalc_Nonbond.h"
+#include "EwaldCalc_Regular.h"
+#ifdef LIBPME
 #include "EwaldCalc_LJPME.h"
 #include "EwaldCalc_PME.h"
-#include "EwaldCalc_Regular.h"
 #include "EwaldCalc_Decomp_LJPME.h"
 #include "EwaldCalc_Decomp_PME.h"
+#endif
 #include "../CharMask.h"
 #include "../CpptrajStdio.h"
 #include "../EwaldOptions.h"
@@ -40,6 +42,7 @@ int Ecalc_Nonbond::InitNonbondCalc(CalcType typeIn, bool decompose_energyIn,
   switch (type_) {
     case SIMPLE :
       break;
+#   ifdef LIBPME
     case PME    :
       if (decompose_energy_)
         calc_ = new EwaldCalc_Decomp_PME();
@@ -52,6 +55,10 @@ int Ecalc_Nonbond::InitNonbondCalc(CalcType typeIn, bool decompose_energyIn,
       else
         calc_ = new EwaldCalc_LJPME();
       break;
+#   else
+    case PME : mprinterr("Error: PME requires compiling with LIBPME (FFTW3 and C++11 support).\n"); return 1;
+    case LJPME : mprinterr("Error: LJPME requires compiling with LIBPME (FFTW3 and C++11 support).\n"); return 1;
+#   endif
     case REGULAR_EWALD :
       if (decompose_energy_) {
         mprinterr("Internal Error: Ecalc_Nonbond::InitNonbondCalc(): Cannot decompose regular Ewald calc.\n");

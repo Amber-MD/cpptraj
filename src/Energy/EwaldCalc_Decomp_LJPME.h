@@ -1,5 +1,6 @@
 #ifndef INC_ENERGY_EWALDCALC_DECOMP_LJPME_H
 #define INC_ENERGY_EWALDCALC_DECOMP_LJPME_H
+#ifdef LIBPME
 #include "EwaldCalc_Decomp.h"
 #include "PME_Recip.h"
 #include "../PairListEngine_Ewald_Decomp_LJPME.h"
@@ -23,4 +24,5 @@ class EwaldCalc_Decomp_LJPME : public EwaldCalc_Decomp {
 };
 }
 }
+#endif
 #endif

@@ -1,4 +1,5 @@
 #include "EwaldCalc_PME.h"
+#ifdef LIBPME
 #include "../CpptrajStdio.h"
 #include "../EwaldOptions.h"
 #include "../Frame.h"
@@ -119,3 +120,4 @@ void EwaldCalc_PME::Timing(double total) const {
 //  t_adjust_.WriteTiming(3,"Adjust:", t_direct_.Total());
 //# endif
 }
+#endif /* LIBPME */

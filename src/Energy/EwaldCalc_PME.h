@@ -1,5 +1,6 @@
 #ifndef INC_ENERGY_EWALDCALC_PME_H
 #define INC_ENERGY_EWALDCALC_PME_H
+#ifdef LIBPME
 #include "EwaldCalc.h"
 #include "PME_Recip.h"
 #include "VDW_LongRange_Correction.h"
@@ -24,4 +25,5 @@ class EwaldCalc_PME : public EwaldCalc {
 };
 }
 }
+#endif
 #endif

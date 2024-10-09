@@ -1,5 +1,6 @@
 #ifndef INC_ENERGY_EWALDCALC_DECOMP_PME_H
 #define INC_ENERGY_EWALDCALC_DECOMP_PME_H
+#ifdef LIBPME
 #include "EwaldCalc_Decomp.h"
 #include "PME_Recip.h"
 #include "VDW_LongRange_Correction.h"
@@ -22,4 +23,5 @@ class EwaldCalc_Decomp_PME : public EwaldCalc_Decomp {
 };
 }
 }
+#endif /* LIBPME */
 #endif

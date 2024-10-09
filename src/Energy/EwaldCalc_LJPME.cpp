@@ -1,4 +1,5 @@
 #include "EwaldCalc_LJPME.h"
+#ifdef LIBPME
 #include "../CpptrajStdio.h"
 #include "../EwaldOptions.h"
 #include "../Frame.h"
@@ -111,3 +112,4 @@ void EwaldCalc_LJPME::Timing(double total) const {
   //LJrecip_.Timing_Calc().WriteTiming(3,"LJ Recip. Calc:", LJrecip_.Timing_Total().Total());
   t_direct_.WriteTiming(2, "Direct:    ", t_total_.Total());
 }
+#endif /* LIBPME */

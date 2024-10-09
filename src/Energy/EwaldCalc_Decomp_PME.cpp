@@ -1,4 +1,5 @@
 #include "EwaldCalc_Decomp_PME.h"
+#ifdef LIBPME
 #include "../CpptrajStdio.h"
 #include "../EwaldOptions.h"
 #include "../Frame.h"
@@ -123,3 +124,4 @@ void EwaldCalc_Decomp_PME::Timing(double total) const {
   Recip_.Timing_Total().WriteTiming(2,  "Recip:     ", t_total_.Total());
   t_direct_.WriteTiming(2, "Direct:    ", t_total_.Total());
 }
+#endif /* LIBPME */
