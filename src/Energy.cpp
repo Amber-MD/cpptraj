@@ -11,8 +11,6 @@
 #include "Energy/Ene_Bond.h"
 #include "Energy/Ene_LJ_6_12.h"
 
-const double Energy_Amber::QFAC = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
-
 // CONSTRUCTOR
 Energy_Amber::Energy_Amber() : debug_(0) {}
 
@@ -187,7 +185,7 @@ double Energy_Amber::Calc_14_Energy(Frame const& fIn, DihedralArray const& Dihed
       e_vdw /= dp.SCNB();
       Evdw14 += e_vdw;
       // Coulomb
-      double qiqj = QFAC * tIn[d->A1()].Charge() * tIn[d->A4()].Charge();
+      double qiqj = Constants::COULOMBFACTOR * tIn[d->A1()].Charge() * tIn[d->A4()].Charge();
       double e_elec = qiqj / rij;
       e_elec /= dp.SCEE();
       Eq14 += e_elec;
@@ -246,7 +244,7 @@ double Energy_Amber::E_Nonbond(Frame const& fIn, Topology const& tIn, AtomMask c
         double e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)*/
         Evdw += e_vdw;
         // Coulomb
-        double qiqj = QFAC * tIn[atom1].Charge() * tIn[atom2].Charge();
+        double qiqj = Constants::COULOMBFACTOR * tIn[atom1].Charge() * tIn[atom2].Charge();
         double e_elec = qiqj / rij;
         Eelec += e_elec;
 #       ifdef DEBUG_ENERGY
@@ -349,7 +347,7 @@ double Energy_Amber::E_Elec(Frame const& fIn, Topology const& tIn, AtomMask cons
         double rij2 = DIST2_NoImage( crd1, fIn.XYZ( atom2 ) );
         double rij = sqrt( rij2 );
         // Coulomb
-        double qiqj = QFAC * tIn[atom1].Charge() * tIn[atom2].Charge();
+        double qiqj = Constants::COULOMBFACTOR * tIn[atom1].Charge() * tIn[atom2].Charge();
         double e_elec = qiqj / rij;
         Eelec += e_elec;
 #       ifdef DEBUG_ENERGY
@@ -392,7 +390,7 @@ double Energy_Amber::E_DirectSum(Frame const& fIn, Topology const& tIn, AtomMask
     for (AtomMask::const_iterator atom2 = mask.begin(); atom2 != mask.end(); ++atom2)
     {
       Vec3 frac2 = fIn.BoxCrd().FracCell() * Vec3(fIn.XYZ( *atom2 )); // atom j in fractional coords
-      double qiqj = QFAC * tIn[*atom1].Charge() * tIn[*atom2].Charge();
+      double qiqj = Constants::COULOMBFACTOR * tIn[*atom1].Charge() * tIn[*atom2].Charge();
       // Loop over images of atom j
       for (std::vector<Vec3>::const_iterator ixyz = Cells.begin(); ixyz != Cells.end(); ++ixyz)
       {

@@ -115,8 +115,7 @@ int Ecalc_Nonbond::NonbondEnergy(Frame const& frameIn, AtomMask const& maskIn,
 
   int err = 0;
   if (type_ == SIMPLE) {
-    static const double QFAC = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
-    Ene_Nonbond<double>(frameIn, *currentTop_, maskIn, Excluded_, QFAC,
+    Ene_Nonbond<double>(frameIn, *currentTop_, maskIn, Excluded_, Constants::COULOMBFACTOR,
                         e_elec, e_vdw);
   } else if (calc_ != 0) {
     if (pairList_.CreatePairList(frameIn, frameIn.BoxCrd().UnitCell(),
@@ -149,8 +148,7 @@ int Ecalc_Nonbond::DecomposedNonbondEnergy(Frame const& frameIn, CharMask const&
 
   int err = 0;
   if (type_ == SIMPLE) {
-    static const double QFAC = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
-    Ene_Decomp_Nonbond<double>(frameIn, *currentTop_, cmaskIn, Excluded_, QFAC,
+    Ene_Decomp_Nonbond<double>(frameIn, *currentTop_, cmaskIn, Excluded_, Constants::COULOMBFACTOR,
                                e_elec, e_vdw, atom_elec, atom_vdw);
   } else if (calc_ != 0) {
     // FIXME this is an unneeded atom mask.

@@ -965,7 +965,6 @@ void Action_GIST::setSoluteSolvent(const Topology& top)
 const Vec3 Action_GIST::x_lab_ = Vec3(1.0, 0.0, 0.0);
 const Vec3 Action_GIST::y_lab_ = Vec3(0.0, 1.0, 0.0);
 const Vec3 Action_GIST::z_lab_ = Vec3(0.0, 0.0, 1.0);
-const double Action_GIST::QFAC_ = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
 const int Action_GIST::OFF_GRID_ = -1;
 const int Action_GIST::UNKNOWN_MOLECULE_ = -1;
 
@@ -1023,7 +1022,7 @@ void Action_GIST::Ecalc(double rij2, double q1, double q2, NonbondType const& LJ
   double f6    = LJ.B() * r6;   // B/r^6
          Evdw  = f12 - f6;      // (A/r^12)-(B/r^6)
   // Coulomb
-  double qiqj  = QFAC_ * q1 * q2;
+  double qiqj  = Constants::COULOMBFACTOR * q1 * q2;
          Eelec = qiqj / rij;
 }
 

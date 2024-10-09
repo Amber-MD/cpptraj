@@ -37,7 +37,6 @@ class Energy_Amber {
     double Calc_14_Energy(Frame const&, DihedralArray const&, DihedralParmArray const&,
                           Topology const&, CharMask const&, double&);
 
-    static const double QFAC;
     int debug_;
 };
 #endif 

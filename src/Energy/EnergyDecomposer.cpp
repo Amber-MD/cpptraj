@@ -16,8 +16,6 @@
 
 using namespace Cpptraj::Energy;
 
-const double EnergyDecomposer::QFAC_ = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
-
 /** CONSTRUCTOR */
 EnergyDecomposer::EnergyDecomposer() :
   eneOut_(0),
@@ -290,7 +288,7 @@ void EnergyDecomposer::calcDihedrals( Frame const& frameIn ) {
       saveEne( dih->A4(), ene_half );
       // 1-4 coulomb energy
       double rij = sqrt(rij2);
-      double qiqj = QFAC_ * (*currentTop_)[dih->A1()].Charge() * (*currentTop_)[dih->A4()].Charge();
+      double qiqj = Constants::COULOMBFACTOR * (*currentTop_)[dih->A1()].Charge() * (*currentTop_)[dih->A4()].Charge();
       double e_elec = qiqj / rij;
       e_elec /= DP.SCEE();
       mprintf("DEBUG: E14 %f\n", e_elec);

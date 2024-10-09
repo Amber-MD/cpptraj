@@ -34,8 +34,6 @@ class EnergyDecomposer {
     /// Finish the calculation by putting energies in output DataSet
     int FinishCalc();
   private:
-    static const double QFAC_; ///< Coulomb prefactor
-
     typedef std::vector<double> Darray;
     typedef std::vector< Stats<double> > EneArrayType;
     typedef std::vector<BondType> BndArrayType;

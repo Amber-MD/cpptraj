@@ -70,7 +70,6 @@ class Action_Pairwise: public Action {
     CpptrajFile* avgout_;      ///< File for printing average energies
     PDBfile PdbOut_;           ///< PDB with atoms colored by evdw/eelec
     CpptrajFile* Eout_;        ///< Output file for atom energies.
-    static const double QFAC;  ///< Convert charges to kcal/mol units
     bool scalePdbE_;           ///< If true scale PDB energy each frame between 0 and 100
     ExclusionArray Excluded0_; ///< Hold exclusion arrays for atoms selected by Mask0_
     ExclusionArray ExcludedR_; ///< Hold exclusion arrays for atoms selected by RefMask_

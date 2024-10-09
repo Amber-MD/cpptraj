@@ -9,7 +9,7 @@ MdOpts::MdOpts() :
   scaleNB_(1.0/2.0), // Amber default
   cutEE_(8.0),       // in Ang., Amber default
   cutNB_(8.0),       // in Ang., Amber default
-  qfac_(Constants::ELECTOAMBER * Constants::ELECTOAMBER), // Assume charges in elec. units, Amber default
+  qfac_(Constants::COULOMBFACTOR), // Assume charges in elec. units, Amber default
   nExclude_(4)       // Exclude dihedral, angle, bond
 {}
 
@@ -53,7 +53,7 @@ int MdOpts::GetOptsFromArgs(ArgList& argIn)
     }
   }
   nExclude_ = argIn.getKeyInt("nexclude", 4);
-  qfac_ = argIn.getKeyDouble("qfac", Constants::ELECTOAMBER * Constants::ELECTOAMBER);
+  qfac_ = argIn.getKeyDouble("qfac", Constants::COULOMBFACTOR);
   
   return 0;
 }
