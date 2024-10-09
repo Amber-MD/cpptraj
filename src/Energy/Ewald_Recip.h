@@ -46,7 +46,7 @@ class Ewald_Recip {
     Darray c3_;
     Darray s3_;
 #   ifdef _OPENMP
-    typedef Ewald::Iarray Iarray;
+    typedef std::vector<int> Iarray;
     Iarray mlim1_;        ///< Hold m1 reciprocal indices
     Iarray mlim2_;        ///< Hold m2 reciprocal indices
     int multCut_;         ///< Hold index after which multiplier should be 2.0.

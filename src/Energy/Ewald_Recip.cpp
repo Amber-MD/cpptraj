@@ -9,7 +9,10 @@
 #include "../StringRoutines.h" // ByteString
 #include "../Vec3.h"
 #include <cmath> // sqrt, cos, sin
-#include <algorithm> // std::max 
+#include <algorithm> // std::max
+#ifdef _OPENMP
+# include <omp.h>
+#endif 
 
 using namespace Cpptraj::Energy;
 
