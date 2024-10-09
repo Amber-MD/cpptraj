@@ -97,7 +97,7 @@ class PairListEngine_Ewald_Decomp_LJPME {
         lhs[idx] += rhs[idx];
     }
     /// To allow reduction of the energy terms
-    void operator+=(PairListEngine_Ewald_LJPME const& rhs) {
+    void operator+=(PairListEngine_Ewald_Decomp_LJPME const& rhs) {
       Evdw_ += rhs.Evdw_;
       Eelec_ += rhs.Eelec_;
       Eadjust_ += rhs.Eadjust_;
@@ -124,7 +124,7 @@ class PairListEngine_Ewald_Decomp_LJPME {
     Cpptraj::Energy::EwaldParams_LJPME EW_;          ///< Hold Ewald parameters for LJPME
 };
 #ifdef _OPENMP
-#pragma omp declare reduction( + : PairListEngine_Ewald_LJPME<double> : omp_out += omp_in ) initializer( omp_priv = omp_orig )
+#pragma omp declare reduction( + : PairListEngine_Ewald_Decomp_LJPME<double> : omp_out += omp_in ) initializer( omp_priv = omp_orig )
 #endif
 } // END namespace Cpptraj
 #endif
