@@ -67,7 +67,6 @@ COMMON_SOURCES= \
         Action_Outtraj.cpp \
         Action_PairDist.cpp \
         Action_Pairwise.cpp \
-        Action_PmeTest.cpp \
         Action_Principal.cpp \
         Action_Projection.cpp \
         Action_Pucker.cpp \
@@ -257,9 +256,6 @@ COMMON_SOURCES= \
         EnsembleOut_Multi.cpp \
         EnsembleOut_Single.cpp \
         EnsembleOutList.cpp \
-        Ewald.cpp \
-        Ewald_ParticleMesh.cpp \
-        Ewald_Regular.cpp \
         EwaldOptions.cpp \
         ExclusionArray.cpp \
         Exec_AddMissingRes.cpp \
