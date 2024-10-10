@@ -73,6 +73,10 @@ class EwaldParams {
     std::vector<double>& SelectedCharges() { return Charge_; }
     // FIXME do not return const because helPME needs the array to be non-const. Should be fixed
     std::vector<double>& SelectedCoords() { return coordsD_; }
+
+    // FIXME these can probably go away after GIST_PME is converted
+    double SumQ() const { return sumq_; }
+    double SumQ2() const { return sumq2_; }
   protected:
     typedef std::vector<double> Darray;
     typedef std::vector<int> Iarray;
