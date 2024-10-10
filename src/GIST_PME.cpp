@@ -6,6 +6,7 @@
 #include "Constants.h"
 #include "ParameterTypes.h"
 #include "Topology.h"
+#include "EwaldOptions.h"
 
 /** CONSTRUCTOR */
 GIST_PME::GIST_PME() :
@@ -22,6 +23,29 @@ const char* GIST_PME::InteractionTypeStr_[] = {
   "Both_Ongrid"
 };
 
+/** Init GIST PME calculation */
+int GIST_PME::Init(Box const& boxIn, EwaldOptions const& pmeOpts, int debugIn)
+{
+  // Sanity check
+  if (pmeOpts.Type() == EwaldOptions::REG_EWALD) {
+    mprinterr("Internal Error: Options were set up for regular Ewald only.\n");
+    return 1;
+  }
+  mprintf("\tGIST Particle Mesh Ewald params:\n");
+  if (InitEwald(boxIn, pmeOpts, debugIn)) {
+    mprinterr("Error: PME calculation init failed.\n");
+    return 1;
+  }
+  // Ewald calcs need pairlist
+  if (pairList_.InitPairList(pmeOpts.Cutoff(), pmeOpts.SkinNB(), debugIn))
+    return 1;
+  if (pairList_.SetupPairList( boxIn ))
+    return 1;
+
+  return 0;
+}
+
+
 /** Setup up GIST PME calculation. Currently must be run on all atoms. */
 int GIST_PME::Setup_PME_GIST(Topology const& topIn, unsigned int nthreads, double NeighborCut2_in)
 {
@@ -29,7 +53,7 @@ int GIST_PME::Setup_PME_GIST(Topology const& topIn, unsigned int nthreads, doubl
   // Select everything
   allAtoms_ = AtomMask(0, topIn.Natom());
   // Set up PME
-  if (Setup( topIn, allAtoms_ )) {
+  if (SetupEwald( topIn, allAtoms_ )) {
     mprinterr("Error: GIST PME setup failed.\n");
     return 1;
   }
@@ -112,7 +136,7 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn,
     coordsD_.push_back( XYZ[2] );
   }
 
-  unsigned int natoms = E_elec_self_.size();
+  //unsigned int natoms = E_elec_self_.size();
 
   // Recip Potential for each atom
   e_potentialD_.setConstant(0.0);
@@ -126,7 +150,7 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn,
   // TODO branch
   // e_vdw_lr_correction was previously set but unused.
   // double e_vdw_lr_correction;
-  double e_vdw6self, e_vdw6recip;
+  /*double e_vdw6self, e_vdw6recip;
   if (lw_coeff_ > 0.0) {
     std::fill(E_vdw_self_.begin(), E_vdw_self_.end(), 0);
     e_vdw6self = Self6_GIST(E_vdw_self_);
@@ -151,12 +175,12 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn,
     // e_vdw_lr_correction = 0.0;
   } else {
     e_vdw6self = 0.0;
-    e_vdw6recip = 0.0;
+    e_vdw6recip = 0.0;*/
     std::fill(E_vdw_lr_cor_.begin(), E_vdw_lr_cor_.end(), 0);
     // e_vdw_lr_correction = Vdw_Correction_GIST( volume, atomIsSolute, E_UV_in[0], E_VV_in[0] );
     Vdw_Correction_GIST( volume, atomIsSolute, E_UV_in[0], E_VV_in[0] );
     //mprintf("e_vdw_lr_correction: %f \n", e_vdw_lr_correction);
-  }
+  /*}*/
 
   double e_vdw = 0.0;
   double e_direct = Direct_GIST( pairList_, e_vdw, atom_voxel, atomIsSolute, atomIsSolventO,
@@ -166,7 +190,7 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn,
 
   //mprintf("e_elec_self: %f , e_elec_direct: %f, e_vdw6direct: %f \n", e_self, e_direct, e_vdw);
 
-  if (debug_ > 0)
+  if (Debug() > 0)
     mprintf("DEBUG: gistpme Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f  Evdw= %20.10f\n",
             e_self, e_recip, e_direct, e_vdw);
 
@@ -197,7 +221,7 @@ int GIST_PME::CalcNonbondEnergy_GIST(Frame const& frameIn,
 # endif
 
   // DEBUG
-  if (debug_ > 0) {
+  if (Debug() > 0) {
     // Calculate the sum of each terms
     double E_elec_direct_sum = SumDarray( E_elec_direct_[0] );
     double E_vdw_direct_sum = SumDarray( E_vdw_direct_[0] );
@@ -225,12 +249,13 @@ double GIST_PME::Self_GIST(double volume, Darray& atom_self,
                            Darray& e_vv_elec)
 {
   t_self_.Start();
-  double d0 = -ew_coeff_ * INVSQRTPI_;
+  double d0 = -EwaldCoeff() * INVSQRTPI();
   double ene = SumQ2() * d0;
 //  mprintf("DEBUG: d0= %20.10f   ene= %20.10f\n", d0, ene);
-  double factor = Constants::PI / (ew_coeff_ * ew_coeff_ * volume);
+  double factor = Constants::PI / (EwaldCoeff() * EwaldCoeff() * volume);
   double ee_plasma = -0.5 * factor * SumQ() * SumQ();
 
+  Darray const& Charge_ = Charge();
   for( unsigned int i=0; i< Charge_.size();i++)
   {
     // distribute the "neutrilizing plasma" to atoms equally
@@ -253,7 +278,7 @@ double GIST_PME::Self_GIST(double volume, Darray& atom_self,
 }
 
 /** Lennard-Jones self energy. for GIST */
-double GIST_PME::Self6_GIST(Darray& atom_vdw_self) {
+/*double GIST_PME::Self6_GIST(Darray& atom_vdw_self) {
   t_self_.Start(); // TODO precalc
   double ew2 = lw_coeff_ * lw_coeff_;
   double ew6 = ew2 * ew2 * ew2;
@@ -267,7 +292,7 @@ double GIST_PME::Self6_GIST(Darray& atom_vdw_self) {
   }
   t_self_.Stop();
   return c6sum / 12.0;
-}
+}*/
 
 /** PME recip calc for GIST to store decomposed recipical energy for every atom. */
 double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn,
@@ -277,8 +302,8 @@ double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn,
 {
   t_recip_.Start();
   // This essentially makes coordsD and chargesD point to arrays.
-  MatType coordsD(&coordsD_[0], Charge_.size(), 3);
-  MatType chargesD(&Charge_[0], Charge_.size(), 1);
+  MatType coordsD(&coordsD_[0], Charge().size(), 3);
+  MatType chargesD(&SelectedCharges()[0], Charge().size(), 1);
   int nfft1 = Nfft(0);
   int nfft2 = Nfft(1);
   int nfft3 = Nfft(2);
@@ -298,7 +323,7 @@ double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn,
   // NOTE: Scale factor for Charmm is 332.0716
   // NOTE: The electrostatic constant has been baked into the Charge_ array already.
   //auto pme_object = std::unique_ptr<PMEInstanceD>(new PMEInstanceD());
-  pme_object_.setup(1, ew_coeff_, Order(), nfft1, nfft2, nfft3, 1.0, 0);
+  pme_object_.setup(1, EwaldCoeff(), Order(), nfft1, nfft2, nfft3, 1.0, 0);
   // Sets the unit cell lattice vectors, with units consistent with those used to specify coordinates.
   // Args: 1 = the A lattice parameter in units consistent with the coordinates.
   //       2 = the B lattice parameter in units consistent with the coordinates.
@@ -313,9 +338,9 @@ double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn,
   //double erecip = pme_object_.computeERec(0, chargesD, coordsD);
   double erecip = 0;
   pme_object_.computePRec(0,chargesD,coordsD,coordsD,1,e_potentialD_);
-  for(unsigned int i =0; i < Charge_.size(); i++)
+  for(unsigned int i =0; i < Charge().size(); i++)
   {
-    E_elec_recip_[i]=0.5 * Charge_[i] * e_potentialD_(i,0);
+    E_elec_recip_[i]=0.5 * Charge()[i] * e_potentialD_(i,0);
   }
 
   // For UV interaction, we need solute charges + positions and on-grid solvent positions.
@@ -326,18 +351,18 @@ double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn,
   Darray Vcoords, Vcharges;
   unsigned int xidx = 0; // Index into coordsD_
   unsigned int n_on_grid = 0; // Number of solvent atoms on grid
-  for (unsigned int atidx = 0; atidx != Charge_.size(); atidx++, xidx += 3)
+  for (unsigned int atidx = 0; atidx != Charge().size(); atidx++, xidx += 3)
   {
     if (atomIsSolute[atidx]) {
       Ucoords.push_back( coordsD_[xidx  ] );
       Ucoords.push_back( coordsD_[xidx+1] );
       Ucoords.push_back( coordsD_[xidx+2] );
-      Ucharges.push_back( Charge_[atidx] );
+      Ucharges.push_back( Charge()[atidx] );
     } else {
       Vcoords.push_back( coordsD_[xidx  ] );
       Vcoords.push_back( coordsD_[xidx+1] );
       Vcoords.push_back( coordsD_[xidx+2] );
-      Vcharges.push_back( Charge_[atidx] );
+      Vcharges.push_back( Charge()[atidx] );
       if (atom_voxel[atidx] > -1) {
         onGridCoords.push_back( coordsD_[xidx  ] );
         onGridCoords.push_back( coordsD_[xidx+1] );
@@ -360,7 +385,7 @@ double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn,
 #   ifdef DEBUG_GIST_PME
     mprintf("DEBUG: gistpme uv recip at %i erecip= %20.10g\n", onGridAt[i], Charge_[onGridAt[i]] * ongrid_potentialD(i, 0));
 #   endif
-    e_uv_elec[onGridAt[i]] += Charge_[onGridAt[i]] * ongrid_potentialD(i, 0);
+    e_uv_elec[onGridAt[i]] += Charge()[onGridAt[i]] * ongrid_potentialD(i, 0);
   }
   // VV recip.
   // NOTE: If we do not zero the potential matrix, it will be summed into
@@ -370,7 +395,7 @@ double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn,
 #   ifdef DEBUG_GIST_PME
     mprintf("DEBUG: gistpme vv recip at %i erecip= %20.10g\n", onGridAt[i], Charge_[onGridAt[i]] * ongrid_potentialD(i, 0));
 #   endif
-    e_vv_elec[onGridAt[i]] += Charge_[onGridAt[i]] * ongrid_potentialD(i, 0);
+    e_vv_elec[onGridAt[i]] += Charge()[onGridAt[i]] * ongrid_potentialD(i, 0);
   }
 
   t_recip_.Stop();
@@ -378,7 +403,7 @@ double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn,
 }
 
 /** The LJ PME reciprocal term for GIST*/ 
-double GIST_PME::LJ_Recip_ParticleMesh_GIST(Box const& boxIn, MatType& potential)
+/*double GIST_PME::LJ_Recip_ParticleMesh_GIST(Box const& boxIn, MatType& potential)
 {
   t_recip_.Start();
   int nfft1 = Nfft(0);
@@ -402,7 +427,7 @@ double GIST_PME::LJ_Recip_ParticleMesh_GIST(Box const& boxIn, MatType& potential
   pme_vdw_.computePRec(0,cparamD,coordsD,coordsD,1,potential);
   t_recip_.Stop();
   return evdwrecip;
-}
+}*/
 
 /** Calculate full VDW long range correction from volume. */
 double GIST_PME::Vdw_Correction_GIST(double volume,
@@ -410,7 +435,7 @@ double GIST_PME::Vdw_Correction_GIST(double volume,
                                      std::vector<bool> const& atomIsSolute,
                                      Darray& e_uv_vdw, Darray& e_vv_vdw)
 {
-  double prefac = Constants::TWOPI / (3.0*volume*cutoff_*cutoff_*cutoff_);
+  double prefac = Constants::TWOPI / (3.0*volume*Cutoff()*Cutoff()*Cutoff());
   //mprintf("VDW correction prefac: %.15f \n", prefac);
   double e_vdwr = -prefac * Vdw_Recip_Term();
 
@@ -458,7 +483,7 @@ double GIST_PME::Vdw_Correction_GIST(double volume,
     // }
   }
 
-  if (debug_ > 0) mprintf("DEBUG: gistpme Vdw correction %20.10f\n", e_vdwr);
+  if (Debug() > 0) mprintf("DEBUG: gistpme Vdw correction %20.10f\n", e_vdwr);
   return e_vdwr;
 }
 
@@ -472,9 +497,9 @@ double GIST_PME::Direct_GIST(PairList const& PL, double& evdw_out,
                              std::vector<Farray>& Neighbor_in)
             
 {
-  if (lw_coeff_ > 0.0)
-    return Direct_VDW_LJPME_GIST(PL, evdw_out);
-  else
+  //if (lw_coeff_ > 0.0)
+  //  return Direct_VDW_LJPME_GIST(PL, evdw_out);
+  //else
     return Direct_VDW_LongRangeCorrection_GIST(PL, evdw_out, atom_voxel, atomIsSolute, atomIsSolventO,
                                                E_UV_in,
                                                E_VV_in,
@@ -575,7 +600,7 @@ void GIST_PME::Ekernel_NB(double& Eelec, double& Evdw,
                 t_erfc_.Start();
 #               endif
                 //double erfc = erfc_func(ew_coeff_ * rij);
-                double erfc = ErfcFxn(ew_coeff_ * rij);
+                double erfc = ErfcEW(rij);
 #               ifndef _OPENMP
                 t_erfc_.Stop();
 #               endif
@@ -604,11 +629,10 @@ void GIST_PME::Ekernel_NB(double& Eelec, double& Evdw,
                   e_vv[idx1] += e_elec;
                 }
 
-                int nbindex = NB().GetLJindex(TypeIdx(idx0),
-                                              TypeIdx(idx1));
+                int nbindex = NbIndex(idx0, idx1);
                 if (nbindex > -1) {
-                  double vswitch = SwitchFxn(rij2, cut2_0_, cut2_);
-                  NonbondType const& LJ = NB().NBarray()[ nbindex ];
+                  double vswitch = Switch_Fn(rij2);
+                  NonbondType const& LJ = GetLJ( nbindex );
                   double r2    = 1.0 / rij2;
                   double r6    = r2 * r2 * r2;
                   double r12   = r6 * r6;
@@ -772,7 +796,7 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
                                               it0 != thisCell.end(); ++it0)
       {
         Vec3 const& xyz0 = it0->ImageCoords();
-        double q0 = Charge_[it0->Idx()];
+        double q0 = Charge()[it0->Idx()];
         // The voxel # of it0
         int it0_voxel = atom_voxel[it0->Idx()];
         bool it0_solute = atomIsSolute[it0->Idx()];
@@ -792,7 +816,7 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
           bool it1_solventO = atomIsSolventO[it1->Idx()];
           if (it0_voxel > -1 || it1_voxel > -1) {
             Vec3 const& xyz1 = it1->ImageCoords();
-            double q1 = Charge_[it1->Idx()];
+            double q1 = Charge()[it1->Idx()];
             Vec3 dxyz = xyz1 - xyz0;
             double rij2 = dxyz.Magnitude2();
 #           ifdef DEBUG_PAIRLIST
@@ -802,7 +826,7 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
             // If atom excluded, calc adjustment, otherwise calc elec. energy.
             if (excluded.find( it1->Idx() ) == excluded.end())
             {
-              if ( rij2 < cut2_ ) {
+              if ( rij2 < Cut2() ) {
                 Ekernel_NB(Eelec, Evdw, rij2, q0, q1, it0->Idx(), it1->Idx(), e_elec_direct, e_vdw_direct,
                              interactionType,//  it0_voxel, it1_voxel, 
                              // e_uv_vdw, e_uv_elec, e_vv_vdw, e_vv_elec);
@@ -836,7 +860,7 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
             bool it1_solventO = atomIsSolventO[it1->Idx()];
             if (it0_voxel > -1 || it1_voxel > -1) {
               Vec3 const& xyz1 = it1->ImageCoords();
-              double q1 = Charge_[it1->Idx()];
+              double q1 = Charge()[it1->Idx()];
               Vec3 dxyz = xyz1 + tVec - xyz0;
               double rij2 = dxyz.Magnitude2();
 #             ifdef DEBUG_PAIRLIST
@@ -849,7 +873,7 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
               if (excluded.find( it1->Idx() ) == excluded.end())
               {
                 //mprintf("\t\t\tdist= %f\n", sqrt(rij2));
-                if ( rij2 < cut2_ ) {
+                if ( rij2 < Cut2() ) {
                   Ekernel_NB(Eelec, Evdw, rij2, q0, q1, it0->Idx(), it1->Idx(), e_elec_direct, e_vdw_direct,
                              interactionType,// it0_voxel, it1_voxel, 
                              // e_uv_vdw, e_uv_elec, e_vv_vdw, e_vv_elec);
@@ -893,10 +917,10 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
 }
 
 /** Direct space calculation with LJ PME for GIST. */ // TODO enable
-double GIST_PME::Direct_VDW_LJPME_GIST(PairList const& PL, double& evdw_out)
-{
-  mprinterr("Error: LJPME does not yet work with GIST.\n");
-  return 0;
+//double GIST_PME::Direct_VDW_LJPME_GIST(PairList const& PL, double& evdw_out)
+//{
+//  mprinterr("Error: LJPME does not yet work with GIST.\n");
+//  return 0;
 /*
   t_direct_.Start();
   double Eelec = 0.0;
@@ -1026,5 +1050,5 @@ double GIST_PME::Direct_VDW_LJPME_GIST(PairList const& PL, double& evdw_out)
   evdw_out = Evdw + Eljpme_correction + Eljpme_correction_excl;
   return Eelec + e_adjust;
 */
-}
+//}
 #endif /* LIBPME */
