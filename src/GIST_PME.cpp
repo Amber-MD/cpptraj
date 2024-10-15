@@ -1072,4 +1072,17 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
   return Eelec + e_adjust;
 */
 //}
+
+void GIST_PME::Timing(double total) const {
+  t_total_.WriteTiming(1,  "  GIST_PME_total:", total);
+  t_self_.WriteTiming(2,   "Self:      ", t_total_.Total());
+  t_recip_.WriteTiming(2,  "Recip:     ", t_total_.Total());
+  t_direct_.WriteTiming(2, "Direct:    ", t_total_.Total());
+//# ifndef _OPENMP
+//  t_erfc_.WriteTiming(3,  "ERFC:  ", t_direct_.Total());
+//  t_adjust_.WriteTiming(3,"Adjust:", t_direct_.Total());
+//# endif
+  pairList_.Timing(total);
+} 
+
 #endif /* LIBPME */

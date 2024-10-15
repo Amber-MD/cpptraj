@@ -32,6 +32,8 @@ class GIST_PME : private Cpptraj::Energy::EwaldParams {
     int Init(Box const&, EwaldOptions const&, int);
     /// Setup PME calc. for top, all atoms. Allocate memory for internal arrays (# threads)
     int Setup_PME_GIST(Topology const&, unsigned int, double);
+    /// Print timing data
+    void Timing(double) const;
     /// Calculate nonbonded energy with PME for GIST
     int CalcNonbondEnergy_GIST(Frame const&, std::vector<int> const&,
                                std::vector<bool> const&,
