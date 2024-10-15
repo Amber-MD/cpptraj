@@ -12,4 +12,5 @@ ENERGY_SOURCES= \
   EwaldParams_LJPME.cpp \
   Ewald_Recip.cpp \
   PME_Recip.cpp \
+  PME_RecipParams.cpp \
   VDW_LongRange_Correction.cpp
