@@ -7,6 +7,7 @@
 #include "ParameterTypes.h"
 #include "Topology.h"
 #include "EwaldOptions.h"
+#include "Energy/Kernel_EwaldAdjust.h"
 
 /** CONSTRUCTOR */
 GIST_PME::GIST_PME() :
@@ -33,9 +34,14 @@ int GIST_PME::Init(Box const& boxIn, EwaldOptions const& pmeOpts, int debugIn)
   }
   mprintf("\tGIST Particle Mesh Ewald params:\n");
   if (InitEwald(boxIn, pmeOpts, debugIn)) {
-    mprinterr("Error: PME calculation init failed.\n");
+    mprinterr("Error: GIST PME calculation init failed.\n");
     return 1;
   }
+  if (recipParams_.InitRecip(pmeOpts, debugIn)) {
+    mprinterr("Error: GIST PME calculation recip init failed.\n");
+    return 1;
+  }
+  VDW_LR_.SetDebug( debugIn );
   // Ewald calcs need pairlist
   if (pairList_.InitPairList(pmeOpts.Cutoff(), pmeOpts.SkinNB(), debugIn))
     return 1;
@@ -55,6 +61,20 @@ int GIST_PME::Setup_PME_GIST(Topology const& topIn, unsigned int nthreads, doubl
   // Set up PME
   if (SetupEwald( topIn, allAtoms_ )) {
     mprinterr("Error: GIST PME setup failed.\n");
+    return 1;
+  }
+  // Set up VDW long range correction
+  if (VDW_LR_.Setup_VDW_Correction( topIn, allAtoms_ )) {
+    mprinterr("Error: GIST PME calculation long range VDW correction setup failed.\n");
+    return 1;
+  }
+  // Setup exclusion list
+  // Use distance of 4 (up to dihedrals)
+  if (excluded_.SetupExcluded(topIn.Atoms(), allAtoms_, 4,
+                              ExclusionArray::EXCLUDE_SELF,
+                              ExclusionArray::FULL))
+  { 
+    mprinterr("Error: Could not set up exclusion list for GIST PME calculation.\n");
     return 1;
   }
 
@@ -304,10 +324,8 @@ double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn,
   // This essentially makes coordsD and chargesD point to arrays.
   MatType coordsD(&coordsD_[0], Charge().size(), 3);
   MatType chargesD(&SelectedCharges()[0], Charge().size(), 1);
-  int nfft1 = Nfft(0);
-  int nfft2 = Nfft(1);
-  int nfft3 = Nfft(2);
-  if ( DetermineNfft(nfft1, nfft2, nfft3, boxIn) ) {
+  int nfft1, nfft2, nfft3;
+  if ( recipParams_.DetermineNfft(nfft1, nfft2, nfft3, boxIn) ) {
     mprinterr("Error: Could not determine grid spacing.\n");
     return 0.0;
   }
@@ -323,7 +341,7 @@ double GIST_PME::Recip_ParticleMesh_GIST(Box const& boxIn,
   // NOTE: Scale factor for Charmm is 332.0716
   // NOTE: The electrostatic constant has been baked into the Charge_ array already.
   //auto pme_object = std::unique_ptr<PMEInstanceD>(new PMEInstanceD());
-  pme_object_.setup(1, EwaldCoeff(), Order(), nfft1, nfft2, nfft3, 1.0, 0);
+  pme_object_.setup(1, EwaldCoeff(), recipParams_.Order(), nfft1, nfft2, nfft3, 1.0, 0);
   // Sets the unit cell lattice vectors, with units consistent with those used to specify coordinates.
   // Args: 1 = the A lattice parameter in units consistent with the coordinates.
   //       2 = the B lattice parameter in units consistent with the coordinates.
@@ -437,18 +455,18 @@ double GIST_PME::Vdw_Correction_GIST(double volume,
 {
   double prefac = Constants::TWOPI / (3.0*volume*Cutoff()*Cutoff()*Cutoff());
   //mprintf("VDW correction prefac: %.15f \n", prefac);
-  double e_vdwr = -prefac * Vdw_Recip_Term();
+  double e_vdwr = -prefac * VDW_LR_.Vdw_Recip_Term();
 
   //mprintf("Cparam size: %i \n",Cparam_.size());
 
   //mprintf("volume of the unit cell: %f", volume);
 
 
-  for ( unsigned int i = 0; i != vdw_type_.size(); i++)
+  for ( unsigned int i = 0; i != VDW_LR_.VDW_Type().size(); i++)
   {
     double term(0);
 
-    int v_type=vdw_type_[i];
+    int v_type = VDW_LR_.VDW_Type()[i];
 
     //v_type is the vdw_type of atom i, each atom has a atom type
 
@@ -458,7 +476,7 @@ double GIST_PME::Vdw_Correction_GIST(double volume,
 
 
 
-    term = atype_vdw_recip_terms_[v_type] / N_vdw_type_[v_type];
+    term = VDW_LR_.Atype_VDW_Recip_Terms()[v_type] / VDW_LR_.N_VDW_Type()[v_type];
 
     //mprintf("for i = %i,vdw_type = %i, Number of atoms in this vdw_type_= %i, Total vdw_recip_terms_ for this type= %f,  vdw_recip_term for atom i= %f \n",i,vdw_type_[i],N_vdw_type_[vdw_type_[i]],atype_vdw_recip_terms_[vdw_type_[i]],term);
 
@@ -685,7 +703,10 @@ void GIST_PME::Ekernel_Adjust(double& e_adjust,
                               double* e_uv_elec, double* e_vv_elec)
 {
 
-              double adjust = AdjustFxn(q0,q1,sqrt(rij2));
+              //double adjust = AdjustFxn(q0,q1,sqrt(rij2));
+              double rij = sqrt(rij2);
+              double erfcval = ErfcEW( rij );
+              double adjust = Cpptraj::Energy::Kernel_EwaldAdjust<double>( q0, q1, rij, erfcval );
 
               e_adjust += adjust;
 
@@ -806,7 +827,7 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
         mprintf("DBG: Cell %6i (%6i atoms):\n", cidx+1, thisCell.NatomsInGrid());
 #       endif
         // Exclusion list for this atom
-        ExclusionArray::ExListType const& excluded = Excluded()[it0->Idx()];
+        ExclusionArray::ExListType const& excluded = excluded_[it0->Idx()];
         // Calc interaction of atom to all other atoms in thisCell.
         for (PairList::CellType::const_iterator it1 = it0 + 1;
                                                 it1 != thisCell.end(); ++it1)

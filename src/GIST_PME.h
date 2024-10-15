@@ -4,6 +4,9 @@
 #include <vector>
 #include "AtomMask.h"
 #include "Energy/EwaldParams.h"
+#include "Energy/PME_RecipParams.h"
+#include "Energy/VDW_LongRange_Correction.h"
+#include "ExclusionArray.h"
 #include "helpme_standalone.h"
 #include "PairList.h"
 #include "Timer.h"
@@ -131,8 +134,13 @@ class GIST_PME : private Cpptraj::Energy::EwaldParams {
     Timer t_recip_;
     Timer t_direct_;
     Timer t_self_;
+
     PairList pairList_;
     Darray coordsD_;
+    Cpptraj::Energy::PME_RecipParams recipParams_; ///< Hold parameters for recip part of PME
+    PMEInstanceD pme_object_;
+    Cpptraj::Energy::VDW_LongRange_Correction VDW_LR_; ///< For calculating the long range VDW correction
+    ExclusionArray excluded_;
 };
 #endif /* LIBPME */
 #endif
