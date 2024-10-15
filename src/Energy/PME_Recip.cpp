@@ -1,5 +1,4 @@
 #include "PME_Recip.h"
-#include "PME_RecipParams.h"
 #include "../Box.h"
 #include "../CpptrajStdio.h"
 
@@ -21,6 +20,19 @@ PME_Recip::PME_Recip(Type typeIn)
   }
 }
 
+/** Init */
+int PME_Recip::InitRecip(EwaldOptions const& pmeOpts, int debugIn) {
+  if (recipParams_.InitRecip(pmeOpts, debugIn)) return 1;
+  PrintRecipOpts();
+  return 0;
+}
+
+/** Print options to stdout. */
+void PME_Recip::PrintRecipOpts() const {
+  mprintf("\tRecip opts (distance kernel exponent= %i\n", distKernelExponent_);
+  recipParams_.PrintRecipOpts();
+}
+
 /** \return 1 if the box type is invalid for helPME */
 int PME_Recip::set_lattice(PMEInstanceD::LatticeType& lattice, Box const& boxIn) {
   lattice = PMEInstanceD::LatticeType::XAligned;
@@ -39,8 +51,7 @@ int PME_Recip::set_lattice(PMEInstanceD::LatticeType& lattice, Box const& boxIn)
 
 /** \return Reciprocal space part of PME energy calc. */
 // TODO currently helPME needs the coords/charge arrays to be non-const, need to fix that
-double PME_Recip::Recip_ParticleMesh(PME_RecipParams const& recipParams,
-                                     Darray& coordsDin, Box const& boxIn,
+double PME_Recip::Recip_ParticleMesh(Darray& coordsDin, Box const& boxIn,
                                      Darray& ChargeIn, double ew_coeffIn)
 {
   t_recip_.Start();
@@ -49,7 +60,7 @@ double PME_Recip::Recip_ParticleMesh(PME_RecipParams const& recipParams,
   Mat chargesD(&ChargeIn[0], ChargeIn.size(), 1);
   int nfft1, nfft2, nfft3;
 
-  if ( recipParams.DetermineNfft(nfft1, nfft2, nfft3, boxIn) ) {
+  if ( recipParams_.DetermineNfft(nfft1, nfft2, nfft3, boxIn) ) {
     mprinterr("Error: Could not determine FFT grid spacing.\n");
     return 0.0;
   }
@@ -65,7 +76,7 @@ double PME_Recip::Recip_ParticleMesh(PME_RecipParams const& recipParams,
   // NOTE: Scale factor for Charmm is 332.0716
   // NOTE: The electrostatic constant has been baked into the Charge_ array already.
   //auto pme_object = std::unique_ptr<PMEInstanceD>(new PMEInstanceD());
-  pme_object_.setup(distKernelExponent_, ew_coeffIn, recipParams.Order(), nfft1, nfft2, nfft3, scaleFac_, 0);
+  pme_object_.setup(distKernelExponent_, ew_coeffIn, recipParams_.Order(), nfft1, nfft2, nfft3, scaleFac_, 0);
   // Check the unit cell vectors
   PMEInstanceD::LatticeType lattice;
   if (set_lattice(lattice, boxIn)) return 0;
@@ -89,8 +100,7 @@ double PME_Recip::Recip_ParticleMesh(PME_RecipParams const& recipParams,
 
 /** \return Reciprocal space part of PME energy calc. */
 // TODO currently helPME needs the coords/charge arrays to be non-const, need to fix that
-double PME_Recip::Recip_Decomp(PME_RecipParams const& recipParams,
-                               Darray& atom_recip,
+double PME_Recip::Recip_Decomp(Darray& atom_recip,
                                Darray& coordsDin, Box const& boxIn,
                                Darray& ChargeIn, double ew_coeffIn)
 {
@@ -101,13 +111,13 @@ double PME_Recip::Recip_Decomp(PME_RecipParams const& recipParams,
   Mat chargesD(&ChargeIn[0], ChargeIn.size(), 1);
   int nfft1, nfft2, nfft3;
 
-  if ( recipParams.DetermineNfft(nfft1, nfft2, nfft3, boxIn) ) {
+  if ( recipParams_.DetermineNfft(nfft1, nfft2, nfft3, boxIn) ) {
     mprinterr("Error: Could not determine FFT grid spacing.\n");
     return 0.0;
   }
 
   // Instantiate double precision PME object
-  pme_object_.setup(distKernelExponent_, ew_coeffIn, recipParams.Order(), nfft1, nfft2, nfft3, scaleFac_, 0);
+  pme_object_.setup(distKernelExponent_, ew_coeffIn, recipParams_.Order(), nfft1, nfft2, nfft3, scaleFac_, 0);
   // Check the unit cell vectors
   PMEInstanceD::LatticeType lattice;
   if (set_lattice(lattice, boxIn)) return 0;

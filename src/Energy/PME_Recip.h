@@ -2,10 +2,10 @@
 #define INC_ENERGY_PME_RECIP_H
 #include "../helpme_standalone.h"
 #include "../Timer.h"
+#include "PME_RecipParams.h"
 class Box;
 namespace Cpptraj {
 namespace Energy {
-class PME_RecipParams;
 /// Do the reciprocal part of a PME calculation
 class PME_Recip {
     typedef std::vector<double> Darray;
@@ -14,8 +14,13 @@ class PME_Recip {
 
     PME_Recip(Type);
 
-    double Recip_ParticleMesh(PME_RecipParams const&, Darray&, Box const&, Darray&, double);
-    double Recip_Decomp(PME_RecipParams const&, Darray&, Darray&, Box const&, Darray&, double);
+    /// Initialize
+    int InitRecip(EwaldOptions const& pmeOpts, int);
+    /// Print options to stdout
+    void PrintRecipOpts() const;
+
+    double Recip_ParticleMesh(Darray&, Box const&, Darray&, double);
+    double Recip_Decomp(Darray&, Darray&, Box const&, Darray&, double);
 
     Timer const& Timing_Total() const { return t_recip_; }
     //Timer const& Timing_Calc() const { return t_calc_; }
@@ -23,10 +28,11 @@ class PME_Recip {
     static int set_lattice(PMEInstanceD::LatticeType&, Box const&);
 
     PMEInstanceD pme_object_;
-    Timer t_recip_; ///< Recip calc timer
+    PME_RecipParams recipParams_; ///< Hold PME recip parameters
+    Timer t_recip_;               ///< Recip calc timer
     //Timer t_calc_;
-    int distKernelExponent_; ///< Exponent of the distance kernel: 1 for Coulomb, 6 for LJ
-    double scaleFac_; ///< scale factor to be applied to all computed energies and derivatives thereof
+    int distKernelExponent_;      ///< Exponent of the distance kernel: 1 for Coulomb, 6 for LJ
+    double scaleFac_;             ///< scale factor to be applied to all computed energies and derivatives thereof
 };
 }
 }
