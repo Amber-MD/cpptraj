@@ -24,7 +24,6 @@ int PME_RecipParams::InitRecip(EwaldOptions const& pmeOpts, int debugIn) {
   order_ = pmeOpts.SplineOrder();
   // Set defaults if necessary
   if (order_ < 1) order_ = 6;
-  PrintRecipOpts();
   return 0;
 }
 
