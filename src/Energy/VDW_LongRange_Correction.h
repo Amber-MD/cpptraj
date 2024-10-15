@@ -7,6 +7,8 @@ class Topology;
 namespace Cpptraj {
 namespace Energy {
 class VDW_LongRange_Correction {
+    typedef std::vector<int> Iarray;
+    typedef std::vector<double> Darray;
   public:
     VDW_LongRange_Correction();
     void SetDebug(int);
@@ -20,9 +22,13 @@ class VDW_LongRange_Correction {
     }
     /// VDW correction decomposed per atom
     double Vdw_Decomp_Correction(std::vector<double>&, double, double) const;
+
+    // FIXME below are currently exposed for GIST_PME
+    double Vdw_Recip_Term() const { return Vdw_Recip_term_; }
+    Iarray const& VDW_Type() const { return vdw_type_; }
+    Darray const& Atype_VDW_Recip_Terms() const { return atype_vdw_recip_terms_; }
+    Iarray const& N_VDW_Type() const { return N_vdw_type_; }
   private:
-    typedef std::vector<int> Iarray;
-    typedef std::vector<double> Darray;
     double Vdw_Recip_term_;
     int debug_;
     // Below variables are needed for per-atom decomp
