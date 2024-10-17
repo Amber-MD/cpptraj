@@ -65,7 +65,7 @@ int ErfcFxn::FillErfcTable( double erfcTableDx, double beg, double end )
     mprinterr("Error: Could not set up spline table for ERFC\n");
     return 1;
   }
-  table_.PrintMemUsage("\t");
-  table_.PrintTableInfo("\t");
+  table_.PrintMemUsage("\t  ");
+  table_.PrintTableInfo("\t  ");
   return 0;
 }

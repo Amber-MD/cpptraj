@@ -54,7 +54,7 @@ double EwaldParams::FindEwaldCoefficient(double cutoff, double dsum_tol)
     else
       xhi = xval;
   }
-  mprintf("\tEwald coefficient for cut=%g, direct sum tol=%g is %g\n",
+  mprintf("\t  Ewald coefficient determined using cut=%g, direct sum tol=%g is %g\n",
           cutoff, dsum_tol, xval);
   return xval;
 }
