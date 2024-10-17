@@ -1,10 +1,15 @@
 #include "Ecalc_Nonbond.h"
 #include "EwaldCalc_Regular.h"
 #ifdef LIBPME
-#include "EwaldCalc_LJPME.h"
-#include "EwaldCalc_PME.h"
-#include "EwaldCalc_Decomp_LJPME.h"
-#include "EwaldCalc_Decomp_PME.h"
+# include "EwaldCalc_LJPME.h"
+# include "EwaldCalc_PME.h"
+# include "EwaldCalc_Decomp_LJPME.h"
+# include "EwaldCalc_Decomp_PME.h"
+#else
+// TODO This is here for when LIBPME is not defined because there is
+//      currently no decomp version of regular Ewald. If there ever is
+//      this inlclude can be removed.
+# include "EwaldCalc_Decomp.h"
 #endif
 #include "../CharMask.h"
 #include "../CpptrajStdio.h"
