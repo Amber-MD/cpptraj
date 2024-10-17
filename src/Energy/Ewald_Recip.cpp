@@ -70,7 +70,7 @@ double Ewald_Recip::FindMaxexpFromTol(double ewCoeff, double rsumTol) {
     else
       xhi = xval;
   }
-  mprintf("\tMaxExp for Ewald coefficient %g, direct sum tol %g is %g\n",
+  mprintf("\t  MaxExp determined from Ewald coefficient %g, direct sum tol %g is %g\n",
           ewCoeff, rsumTol, xval);
   return xval;
 }
@@ -104,7 +104,7 @@ void Ewald_Recip::GetMlimits(int* mlimit, double maxexp, double eigmin,
       }
     }
   }
-  mprintf("\tNumber of reciprocal vectors: %i\n", nrecvecs);
+  mprintf("\t  Number of reciprocal vectors: %i\n", nrecvecs);
 }
 
 /** Init */
@@ -133,6 +133,7 @@ int Ewald_Recip::InitRecip(EwaldOptions const& ewOpts, double ew_coeffIn,
   }
 
   // Set defaults if necessary
+  mprintf("\tRecip opts (regular Ewald):\n");
   if (rsumTol_ < Constants::SMALL)
     rsumTol_ = 5E-5;
   if (maxmlim_ > 0)
@@ -155,7 +156,6 @@ int Ewald_Recip::InitRecip(EwaldOptions const& ewOpts, double ew_coeffIn,
 
 /** Print options to stdout */
 void Ewald_Recip::PrintRecipOpts() const {
-  mprintf("\tRecip opts (regular Ewald):\n");
   mprintf("\t  MaxExp= %g   Recip. Sum Tol= %g\n", maxexp_, rsumTol_);
   //mprintf("\t  Erfc table dx= %g, size= %zu\n", erfcTableDx_, erfc_table_.size()/4);
   mprintf("\t  mlimits= {%i,%i,%i} Max=%i\n", mlimit_[0], mlimit_[1], mlimit_[2], maxmlim_);
