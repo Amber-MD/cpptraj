@@ -18,8 +18,6 @@ class Ewald_Recip {
 
     /// Init with options, Ewald coeff, box, debug
     int InitRecip(EwaldOptions const&, double, Box const&, int);
-    /// print options to stdout
-    void PrintRecipOpts() const;
     /// Set up trig tables for the given number of selected atoms
     int SetupRecip(int);
     /// Regular Ewald recip energy (fractional cell vecs, volume, frac coords, charges)
@@ -27,6 +25,9 @@ class Ewald_Recip {
     /// Print timing
     void PrintTiming(double) const;
   private:
+    /// print options to stdout
+    void PrintRecipOpts() const;
+
     /// Determine max length for reciprocal calcs based on reciprocal limits
     static double FindMaxexpFromMlim(const int*, Matrix_3x3 const&);
     /// Determine max length for reciprocal calcs based on Ewald coefficient and recip tol.

@@ -16,8 +16,6 @@ class PME_Recip {
 
     /// Initialize
     int InitRecip(EwaldOptions const& pmeOpts, int);
-    /// Print options to stdout
-    void PrintRecipOpts() const;
 
     double Recip_ParticleMesh(Darray&, Box const&, Darray&, double);
     double Recip_Decomp(Darray&, Darray&, Box const&, Darray&, double);
@@ -25,6 +23,9 @@ class PME_Recip {
     Timer const& Timing_Total() const { return t_recip_; }
     //Timer const& Timing_Calc() const { return t_calc_; }
   private:
+    /// Print options to stdout
+    void PrintRecipOpts() const;
+
     static int set_lattice(PMEInstanceD::LatticeType&, Box const&);
 
     PMEInstanceD pme_object_;
