@@ -15,7 +15,6 @@ EwaldParams_LJPME::EwaldParams_LJPME() :
 /** Set up LJPME parameters. */
 int EwaldParams_LJPME::InitEwald(Box const& boxIn, EwaldOptions const& pmeOpts, int debugIn)
 {
-  mprintf("DEBUG: EwaldParams_LJPME::InitEwald()\n");
   if (EwaldParams::InitEwald(boxIn, pmeOpts, debugIn)) return 1;
 
   lw_coeff_ = pmeOpts.LwCoeff();
