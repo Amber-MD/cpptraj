@@ -86,7 +86,7 @@ int EwaldOptions::GetOptions(OptType typeIn, ArgList& actionArgs, const char* de
   // LJ Options
   // NOTE: lwcoeff_ > 0 is LJPME on. An lwcoeff_ of -1 is off, and 0 is set from ewcoeff_.
   lwcoeff_ = -1;
-  if (actionArgs.hasKey("ljpme")) {
+  if (actionArgs.hasKey("ljpme") || type_ == LJPME) {
     if (!allowLjPme_) {
       mprinterr("Error: LJ PME option 'ljpme' not allowed for '%s'\n", desc);
       return 1;
