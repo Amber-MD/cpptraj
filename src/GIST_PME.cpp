@@ -796,7 +796,6 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
   neighbor = &(Neighbor_in[mythread][0]);
 # pragma omp for
 # endif
-//# include "PairListLoop.h"
   for (cidx = 0; cidx < PL.NGridMax(); cidx++)
   {
     PairList::CellType const& thisCell = PL.Cell( cidx );
@@ -950,7 +949,6 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
   {
 # pragma omp for
 # endif
-//# include "PairListLoop.h"
   double Evdw_temp(0),Eljpme_correction_temp(0), Eljpme_correction_excl_temp(0);
   double Eelec_temp(0),E_adjust_temp(0);
   
@@ -990,10 +988,10 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
           if (excluded.find( it1->Idx() ) == excluded.end())
           {
             if ( rij2 < cut2_ ) {
-#             include "EnergyKernel_Nonbond.h"
+#             incl ude "EnergyKernel_Nonbond.h"
             }
           } else {
-#           include "EnergyKernel_Adjust.h"
+#           incl ude "EnergyKernel_Adjust.h"
           }
         } // END loop over other atoms in thisCell
         // Loop over all neighbor cells
@@ -1024,10 +1022,10 @@ double GIST_PME::Direct_VDW_LongRangeCorrection_GIST(PairList const& PL, double&
             {
               //mprintf("\t\t\tdist= %f\n", sqrt(rij2));
               if ( rij2 < cut2_ ) {
-#               include "EnergyKernel_Nonbond.h"
+#               incl ude "EnergyKernel_Nonbond.h"
               }
             } else {
-#             include "EnergyKernel_Adjust.h"
+#             incl ude "EnergyKernel_Adjust.h"
             }
           } // END loop over neighbor cell atoms
         
