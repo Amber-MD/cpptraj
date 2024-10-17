@@ -15,8 +15,8 @@ EwaldCalc_PME::EwaldCalc_PME() :
 int EwaldCalc_PME::Init(Box const& boxIn, EwaldOptions const& pmeOpts, int debugIn)
 {
   // Sanity check
-  if (pmeOpts.Type() == EwaldOptions::REG_EWALD) {
-    mprinterr("Internal Error: Options were set up for regular Ewald only.\n");
+  if (!pmeOpts.IsPmeType()) {
+    mprinterr("Internal Error: EwaldCalc_PME::Init(): Options were not set up for PME.\n");
     return 1;
   }
   mprintf("\tParticle Mesh Ewald params:\n");

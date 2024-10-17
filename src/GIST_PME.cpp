@@ -28,8 +28,8 @@ const char* GIST_PME::InteractionTypeStr_[] = {
 int GIST_PME::Init(Box const& boxIn, EwaldOptions const& pmeOpts, int debugIn)
 {
   // Sanity check
-  if (pmeOpts.Type() == EwaldOptions::REG_EWALD) {
-    mprinterr("Internal Error: Options were set up for regular Ewald only.\n");
+  if (pmeOpts.Type() != EwaldOptions::PME) {
+    mprinterr("Internal Error: GIST_PME::Init(): Options were not set up for non-LJ PME.\n");
     return 1;
   }
   mprintf("\tGIST Particle Mesh Ewald params:\n");

@@ -16,8 +16,8 @@ EwaldCalc_Decomp_LJPME::EwaldCalc_Decomp_LJPME() :
 int EwaldCalc_Decomp_LJPME::Init(Box const& boxIn, EwaldOptions const& pmeOpts, int debugIn)
 {
   // Sanity check
-  if (pmeOpts.Type() == EwaldOptions::REG_EWALD) {
-    mprinterr("Internal Error: Options were set up for regular Ewald only.\n");
+  if (!pmeOpts.IsPmeType()) {
+    mprinterr("Internal Error: EwaldCalc_Decomp_LJPME::Init(): Options were not set up for PME.\n");
     return 1;
   }
   mprintf("\tDecomposable Particle Mesh Ewald (LJPME) params:\n");

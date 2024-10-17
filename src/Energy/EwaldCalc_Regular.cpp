@@ -13,8 +13,8 @@ EwaldCalc_Regular::EwaldCalc_Regular()
 int EwaldCalc_Regular::Init(Box const& boxIn, EwaldOptions const& pmeOpts, int debugIn)
 {
   // Sanity check
-  if (pmeOpts.Type() == EwaldOptions::PME) {
-    mprinterr("Internal Error: Options were set up for PME only.\n");
+  if (pmeOpts.IsPmeType()) {
+    mprinterr("Internal Error: EwaldCalc_Regular::Init(): Options were set up for PME only.\n");
     return 1;
   }
   mprintf("\tRegular Ewald params:\n");
