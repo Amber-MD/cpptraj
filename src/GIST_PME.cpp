@@ -610,18 +610,12 @@ void GIST_PME::Ekernel_NB(double& Eelec, double& Evdw,
                           InteractionType interactionType,//  int voxel0, int voxel1,
                           double* e_uv,//  double* e_uv_elec,
                           double* e_vv)//, double* e_vv_elec)
-//const Cannot be const because of the timer
+const
 {
                 double rij = sqrt( rij2 );
                 double qiqj = q0 * q1;
-#               ifndef _OPENMP
-                t_erfc_.Start();
-#               endif
                 //double erfc = erfc_func(ew_coeff_ * rij);
                 double erfc = ErfcEW(rij);
-#               ifndef _OPENMP
-                t_erfc_.Stop();
-#               endif
                 double e_elec = qiqj * erfc / rij;
                 Eelec += e_elec;
 

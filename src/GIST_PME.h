@@ -79,7 +79,7 @@ class GIST_PME : private Cpptraj::Energy::EwaldParams {
 
     /// Nonbond energy kernel
     inline void Ekernel_NB(double&, double&, double, double, double, int, int, double*, double*,
-                           InteractionType, double*, double*);
+                           InteractionType, double*, double*) const;
     // Adjust energy kernel
     inline void Ekernel_Adjust(double&, double, double, double, int, int, double*,
                                InteractionType, double*, double*);
