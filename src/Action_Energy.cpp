@@ -176,10 +176,10 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
 #     ifdef LIBPME
       elecType_ = PME;
       nbCalcType_ = Ecalc_Nonbond::PME;
-      if (actionArgs.Contains("ljpme"))
-        nbCalcType_ = Ecalc_Nonbond::LJPME;
       if (ewaldOpts_.GetOptions(EwaldOptions::PME, actionArgs, "energy"))
         return Action::ERR;
+      if (ewaldOpts_.Type() == EwaldOptions::LJPME)
+        nbCalcType_ = Ecalc_Nonbond::LJPME;
 #     else
       mprinterr("Error: 'pme' requires compiling with LIBPME (FFTW3 and C++11 support).\n");
       return Action::ERR;

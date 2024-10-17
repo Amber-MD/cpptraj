@@ -34,11 +34,11 @@ int EnergyDecomposer::InitDecomposer(ArgList& argIn, DataSetList& DSLin, DataFil
   nbcalctype_ = Ecalc_Nonbond::SIMPLE;
   if (argIn.hasKey("pme"))
     nbcalctype_ = Ecalc_Nonbond::PME;
-  else if (argIn.Contains("ljpme")) // FIXME using Contains() since EwaldOptions parses ljpme
-    nbcalctype_ = Ecalc_Nonbond::LJPME;
   if (nbcalctype_ != Ecalc_Nonbond::SIMPLE) {
     if (ewaldOpts_.GetOptions(EwaldOptions::PME, argIn, "enedecomp"))
-        return 1;
+      return 1;
+    if (ewaldOpts_.Type() == EwaldOptions::LJPME)
+      nbcalctype_ = Ecalc_Nonbond::LJPME;
   }
   // Get atom mask
   if (selectedAtoms_.SetMaskString( argIn.GetMaskNext() ))
