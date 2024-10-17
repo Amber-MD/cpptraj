@@ -542,6 +542,9 @@ test.sequence:
 test.tica:
 	@-cd Test_TICA && ./RunTest.sh $(OPT)
 
+test.enedecomp:
+	@-cd Test_EneDecomp && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -713,7 +716,8 @@ COMPLETETESTS=test.general \
               test.zmatrix \
               test.readoff \
               test.sequence \
-              test.tica
+              test.tica \
+              test.enedecomp
 
 test.all:
 	$(MAKE) test.complete summary
