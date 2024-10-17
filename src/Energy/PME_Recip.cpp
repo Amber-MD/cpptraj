@@ -29,7 +29,12 @@ int PME_Recip::InitRecip(EwaldOptions const& pmeOpts, int debugIn) {
 
 /** Print options to stdout. */
 void PME_Recip::PrintRecipOpts() const {
-  mprintf("\tRecip opts (distance kernel exponent= %i\n", distKernelExponent_);
+  if (distKernelExponent_ == 1)
+    mprintf("\tParticle Mesh Coulomb Reciprocal opts:\n");
+  else if (distKernelExponent_ == 6)
+    mprintf("\tParticle Mesh LJ Reciprocal opts:\n");
+  else
+    mprintf("\tReciprocal opts (distance kernel exponent= %i)\n", distKernelExponent_);
   recipParams_.PrintRecipOpts();
 }
 
