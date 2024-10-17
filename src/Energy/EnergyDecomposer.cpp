@@ -35,10 +35,16 @@ int EnergyDecomposer::InitDecomposer(ArgList& argIn, DataSetList& DSLin, DataFil
   if (argIn.hasKey("pme"))
     nbcalctype_ = Ecalc_Nonbond::PME;
   if (nbcalctype_ != Ecalc_Nonbond::SIMPLE) {
+#   ifdef LIBPME
+    ewaldOpts_.AllowLjPme(false); // TODO enable LJPME decomp
     if (ewaldOpts_.GetOptions(EwaldOptions::PME, argIn, "enedecomp"))
       return 1;
     if (ewaldOpts_.Type() == EwaldOptions::LJPME)
       nbcalctype_ = Ecalc_Nonbond::LJPME;
+#   else
+    mprinterr("Error: 'pme' with energy decomposition requires compilation with LIBPME.\n");
+    return 1;
+#   endif
   }
   // Get atom mask
   if (selectedAtoms_.SetMaskString( argIn.GetMaskNext() ))
