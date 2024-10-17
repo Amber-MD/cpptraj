@@ -41,7 +41,7 @@ UsageFull() {
   echo "    -debugon   : Add -DDEBUG flag to activate additional internal debugging."
   echo "    -nolfs     : Do not enable large file support."
   echo "    -shared    : Configure for generating libcpptraj (implies -nosanderlib)."
-  echo "    -fftw3     : Use FFTW instead of pubfft for FFT."
+  echo "    -pubfft    : Use pubfft instead of FFTW for FFT (disables PME functionality)."
   echo "    -windows   : Set up for use with MinGW compilers for a native Windows build."
   echo "  LIBRARY OPTIONS"
   echo "    -<lib>             : Enable library."
@@ -1038,7 +1038,7 @@ EOF
       if [ "${LIB_STAT[$LFFTW3]}" = 'optional' ] ; then
         WrnMsg "FFTW test failed. CPPTRAJ will use the built-in PubFFT routines."
         if [ $BUILD_LIBS -eq 1 ] ; then
-          echo "To force CPPTRAJ to build its own FFTW, reconfigure and specify '-fftw3'."
+          echo "To force CPPTRAJ to build its own FFTW, reconfigure and specify '--buildlibs'."
         fi
         LIB_STAT[$LFFTW3]='off'
       elif [ "${LIB_STAT[$LFFTW3]}" = 'enabled' ] ; then
@@ -2605,6 +2605,7 @@ while [ ! -z "$1" ] ; do
     '-tune'          ) USE_OPT=2 ;;
     '-noc++11'       ) C11_SUPPORT='no' ;;
     '-windows'       ) PLATFORM='windows' ;;
+    '-pubfft'        ) LIB_STAT[$LFFTW3]='off' ;;
     # Cpptraj options
     '-nolfs'           ) LFS='' ;;
     '-single-ensemble' ) USE_SINGLEENSEMBLE=1 ;;
