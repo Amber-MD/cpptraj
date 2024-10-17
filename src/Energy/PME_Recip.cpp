@@ -1,4 +1,5 @@
 #include "PME_Recip.h"
+#ifdef LIBPME
 #include "../Box.h"
 #include "../CpptrajStdio.h"
 
@@ -146,4 +147,4 @@ double PME_Recip::Recip_Decomp(Darray& atom_recip,
   t_recip_.Stop();
   return erecip;
 }
-
+#endif /* LIBPME */

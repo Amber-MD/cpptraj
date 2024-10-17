@@ -1,5 +1,6 @@
 #ifndef INC_ENERGY_PME_RECIP_H
 #define INC_ENERGY_PME_RECIP_H
+#ifdef LIBPME
 #include "../helpme_standalone.h"
 #include "../Timer.h"
 #include "PME_RecipParams.h"
@@ -37,4 +38,5 @@ class PME_Recip {
 };
 }
 }
+#endif /* LIBPME */
 #endif
