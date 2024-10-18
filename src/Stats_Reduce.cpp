@@ -1,5 +1,10 @@
 #include "Stats_Reduce.h"
-
+/** Calculate overall average/stdev for array elements using the parallel
+  * form of the Online algorithm ( Chan, T.F.; Golub, G.H.; LeVeque, R.J.
+  * (1979), "Updating Formulae and a Pairwise Algorithm for Computing Sample
+  * Variances.", Technical Report STAN-CS-79-773, Department of Computer
+  * Science, Stanford University ).
+  */
 int Cpptraj::Stats_Reduce(Parallel::Comm const& trajComm_,
                           std::vector< Stats<double> >& histogram_,
                           unsigned long& maxbin_)
