@@ -88,9 +88,10 @@ void EnergyDecomposer::PrintOpts() const {
   mprintf("\tData set name: %s\n", eneOut_->legend());
   if (outfile_ != 0)
     mprintf("\tOutput file: %s\n", outfile_->DataFilename().full());
-  if (nbcalctype_ != Ecalc_Nonbond::SIMPLE)
+  if (nbcalctype_ != Ecalc_Nonbond::SIMPLE) {
+    mprintf("\tUsing PME.\n");
     ewaldOpts_.PrintOptions();
-
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -376,6 +377,7 @@ int EnergyDecomposer::FinishCalc() {
       set.AddXY( idx+1, energies_[idx].mean() );
     }
   }
+  mprintf("Timing for energy decomposition: '%s'\n", eneOut_->legend());
   t_total_.WriteTiming(0, "  Decomp total:");
   NB_.PrintTiming(t_total_.Total());
   return 0;
