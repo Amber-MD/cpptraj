@@ -8,6 +8,8 @@ namespace Energy {
   *       Frame, CharMask, etc. It is assumed that before this file is
   *       included there will be at least '#include "Topology.h" and
   *       'include <cmath>' (for the sqrt).
+  * Comple with -DCPPTRAJ_DEBUG_ENEDECOMP for more details on the individual
+  * contributions.
   */
 template <typename T>
 void Ene_Decomp_Nonbond(Frame const& fIn, Topology const& tIn, CharMask const& selectedAtoms,
@@ -37,7 +39,9 @@ void Ene_Decomp_Nonbond(Frame const& fIn, Topology const& tIn, CharMask const& s
           // VDW
           NonbondType const& LJ = tIn.GetLJparam(atom1, atom2);
           T e_vdw = Ene_LJ_6_12<T>( rij2, LJ.A(), LJ.B() );
+#         ifdef CPPTRAJ_DEBUG_ENEDECOMP
           mprintf("DEBUG: VDW %f\n", e_vdw);
+#         endif
           Evdw += e_vdw;
           T ene_half = e_vdw * 0.5;
           if (atom1_is_selected) atom_vdw[atom1] += ene_half;
@@ -46,7 +50,9 @@ void Ene_Decomp_Nonbond(Frame const& fIn, Topology const& tIn, CharMask const& s
           T rij = sqrt(rij2);
           T qiqj = QFAC * tIn[atom1].Charge() * tIn[atom2].Charge();
           T e_elec = qiqj / rij;
+#         ifdef CPPTRAJ_DEBUG_ENEDECOMP
           mprintf("DEBUG: ELE %f\n", e_elec);
+#         endif
           Eelec += e_elec;
           ene_half = e_elec * 0.5;
           if (atom1_is_selected) atom_elec[atom1] += ene_half;

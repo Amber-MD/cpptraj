@@ -7,6 +7,11 @@
 #include "../PairListEngine_Ewald_Decomp_LJLR.h"
 namespace Cpptraj {
 namespace Energy {
+/** Energy decomposition for nonbonded calculation using PME and VDW
+  * long-range correction.
+  * Comple with -DCPPTRAJ_DEBUG_ENEDECOMP for more details on the individual
+  * contributions.
+  */
 class EwaldCalc_Decomp_PME : public EwaldCalc_Decomp {
   public:
     EwaldCalc_Decomp_PME();

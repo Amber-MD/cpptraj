@@ -57,9 +57,10 @@ int EwaldCalc_Decomp_PME::CalcNonbondEnergy(Frame const& frameIn, AtomMask const
   double volume = frameIn.BoxCrd().CellVolume();
   Darray atom_self;
   double e_self = NBengine_.EwaldParams().DecomposedSelfEnergy( atom_self, volume );
+# ifdef CPPTRAJ_DEBUG_ENEDECOMP
   mprintf("DEBUG: Total self energy: %f\n", e_self);
   mprintf("DEBUG: Sum of self array: %f\n", sumArray(atom_self));
-
+# endif
   // TODO make more efficient
   NBengine_.ModifyEwaldParams().FillRecipCoords( frameIn, maskIn );
 
@@ -71,25 +72,30 @@ int EwaldCalc_Decomp_PME::CalcNonbondEnergy(Frame const& frameIn, AtomMask const
                                         NBengine_.ModifyEwaldParams().SelectedCharges(),
                                         NBengine_.EwaldParams().EwaldCoeff()
                                       );
+# ifdef CPPTRAJ_DEBUG_ENEDECOMP
   mprintf("DEBUG: Recip energy      : %f\n", e_recip);
   mprintf("DEBUG: Sum of recip array: %f\n", sumArray(atom_recip));
+# endif
   // TODO distribute
   Darray atom_vdwlr;
   double e_vdw_lr_correction = VDW_LR_.Vdw_Decomp_Correction( atom_vdwlr,
                                                        NBengine_.EwaldParams().Cutoff(), volume );
+# ifdef CPPTRAJ_DEBUG_ENEDECOMP
   mprintf("DEBUG: VDW correction       : %f\n", e_vdw_lr_correction);
   mprintf("DEBUG: Sum of VDW correction: %f\n", sumArray(atom_vdwlr));
+# endif
   t_direct_.Start();
   Cpptraj::PairListTemplate<double>(pairList_, Excluded_,
                                     NBengine_.EwaldParams().Cut2(), NBengine_);
   t_direct_.Stop();
+# ifdef CPPTRAJ_DEBUG_ENEDECOMP
   mprintf("DEBUG: Direct Elec. energy : %f\n", NBengine_.Eelec());
   mprintf("DEBUG: Sum of elec. energy : %f\n", sumArray(NBengine_.Eatom_Elec()));
   mprintf("DEBUG: Direct VDW energy   : %f\n", NBengine_.Evdw());
   mprintf("DEBUG: Sum of VDW energy   : %f\n", sumArray(NBengine_.Eatom_EVDW()));
   mprintf("DEBUG: Direct Adjust energy: %f\n", NBengine_.Eadjust());
   mprintf("DEBUG: Sum of Adjust energy: %f\n", sumArray(NBengine_.Eatom_EAdjust()));
-
+# endif
   if (NBengine_.EwaldParams().Debug() > 0) {
     mprintf("DEBUG: Nonbond energy components:\n");
     mprintf("     Evdw                   = %24.12f\n", NBengine_.Evdw() + e_vdw_lr_correction );
