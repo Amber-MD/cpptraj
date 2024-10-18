@@ -35,6 +35,7 @@ COMMON_SOURCES= \
         Action_Dipole.cpp \
         Action_Distance.cpp \
         Action_DistRmsd.cpp \
+        Action_EneDecomp.cpp \
         Action_Energy.cpp \
         Action_FilterByData.cpp \
         Action_FixAtomOrder.cpp \
@@ -255,9 +256,6 @@ COMMON_SOURCES= \
         EnsembleOut_Multi.cpp \
         EnsembleOut_Single.cpp \
         EnsembleOutList.cpp \
-        Ewald.cpp \
-        Ewald_ParticleMesh.cpp \
-        Ewald_Regular.cpp \
         EwaldOptions.cpp \
         ExclusionArray.cpp \
         Exec_AddMissingRes.cpp \
@@ -411,6 +409,7 @@ COMMON_SOURCES= \
         SimplexMin.cpp \
         Spline.cpp \
         SplineFxnTable.cpp \
+        Stats_Reduce.cpp \
         StringRoutines.cpp \
         StructureCheck.cpp \
         StructureMapper.cpp \
@@ -479,7 +478,7 @@ SOURCES=$(COMMON_SOURCES) \
 # by libcpptraj. They MUST have the '.LIBCPPTRAJ.o' extension and will be
 # compiled with the '-DLIBCPPTRAJ' define.
 # NOTE: This variable MUST be in cpptrajfiles as the cmake build expects it.
-LIBCPPTRAJ_OBJECTS=$(COMMON_SOURCES:.cpp=.o) $(CSOURCES:.c=.o) $(CLUSTER_SOURCEFILES:.cpp=.o) $(STRUCTURE_SOURCEFILES:.cpp=.o) \
+LIBCPPTRAJ_OBJECTS=$(COMMON_SOURCES:.cpp=.o) $(CSOURCES:.c=.o) $(CLUSTER_SOURCEFILES:.cpp=.o) $(STRUCTURE_SOURCEFILES:.cpp=.o) $(ENERGY_SOURCEFILES:.cpp=.o) \
         Action_Esander.LIBCPPTRAJ.o \
         Command.LIBCPPTRAJ.o \
         Cpptraj.LIBCPPTRAJ.o \

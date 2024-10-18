@@ -8,9 +8,11 @@ include Cluster/clusterfiles
 CLUSTER_SOURCEFILES=$(CLUSTER_SOURCES:%.cpp=Cluster/%.cpp)
 include Structure/structurefiles
 STRUCTURE_SOURCEFILES=$(STRUCTURE_SOURCES:%.cpp=Structure/%.cpp)
+include Energy/energyfiles
+ENERGY_SOURCEFILES=$(ENERGY_SOURCES:%.cpp=Energy/%.cpp)
 
 # All object files
-OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o) $(CLUSTER_SOURCEFILES:.cpp=.o) $(STRUCTURE_SOURCEFILES:.cpp=.o)
+OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o) $(CLUSTER_SOURCEFILES:.cpp=.o) $(STRUCTURE_SOURCEFILES:.cpp=.o) $(ENERGY_SOURCEFILES:.cpp=.o)
 
 # General rules
 .cpp.o:
@@ -27,6 +29,7 @@ DEL_FILE = /bin/rm -f
 showsources:
 	@echo $(CLUSTER_SOURCEFILES)
 	@echo $(STRUCTURE_SOURCEFILES)
+	@echo $(ENERGY_SOURCEFILES)
 
 showobjects:
 	@echo $(OBJECTS)
@@ -137,7 +140,7 @@ findDepend: FindDepend.cpp FindDepend.o
 	$(CXX) -o findDepend FindDepend.o
 
 depend: findDepend
-	./findDepend $(SOURCES) $(CSOURCES) $(CLUSTER_SOURCEFILES) $(STRUCTURE_SOURCEFILES) > cpptrajdepend
+	./findDepend $(SOURCES) $(CSOURCES) $(CLUSTER_SOURCEFILES) $(STRUCTURE_SOURCEFILES) $(ENERGY_SOURCEFILES) > cpptrajdepend
 
 dependclean:
 	$(DEL_FILE) FindDepend.o findDepend
@@ -151,6 +154,7 @@ clean:
 	cd cuda_kernels && $(MAKE) clean
 	cd Cluster && $(MAKE) clean
 	cd Structure && $(MAKE) clean
+	cd Energy && $(MAKE) clean
 	cd tng && $(MAKE) clean
 
 uninstall_lib:
@@ -174,6 +178,7 @@ uninstall: uninstall_lib uninstall_inc
 	cd cuda_kernels && $(MAKE) uninstall
 	cd Cluster && $(MAKE) uninstall
 	cd Structure && $(MAKE) uninstall
+	cd Energy && $(MAKE) uninstall
 
 # Header dependencies
 include cpptrajdepend

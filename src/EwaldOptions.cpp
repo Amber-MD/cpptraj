@@ -72,6 +72,10 @@ int EwaldOptions::GetCommaSeparatedArgs(ArgList& argIn, const char* keyword, int
 
 /** Parse Ewald options from ArgList. */
 int EwaldOptions::GetOptions(OptType typeIn, ArgList& actionArgs, const char* desc) {
+  if (typeIn == NOT_SET) {
+    mprinterr("Internal Error: EwaldOptions::GetOptions(): Type is not set.\n");
+    return 1;
+  }
   type_ = typeIn;
   // Common options
   cutoff_ = actionArgs.getKeyDouble("cut", 8.0);
@@ -82,27 +86,31 @@ int EwaldOptions::GetOptions(OptType typeIn, ArgList& actionArgs, const char* de
   // LJ Options
   // NOTE: lwcoeff_ > 0 is LJPME on. An lwcoeff_ of -1 is off, and 0 is set from ewcoeff_.
   lwcoeff_ = -1;
-  if (actionArgs.hasKey("ljpme")) {
+  if (actionArgs.hasKey("ljpme") || type_ == LJPME) {
     if (!allowLjPme_) {
       mprinterr("Error: LJ PME option 'ljpme' not allowed for '%s'\n", desc);
       return 1;
     }
+    type_ = LJPME;
     lwcoeff_ = 0.4;
   }
   lwcoeff_ = actionArgs.getKeyDouble("ewcoefflj", lwcoeff_);
-  if (!allowLjPme_ && lwcoeff_ >= 0) {
-    mprinterr("Error: LJ PME option 'ewcoefflj' not allowed for '%s'\n", desc);
-    return 1;
+  if (lwcoeff_ >= 0) {
+    if (!allowLjPme_) {
+      mprinterr("Error: LJ PME option 'ewcoefflj' not allowed for '%s'\n", desc);
+      return 1;
+    }
+    type_ = LJPME;
   }
   ljswidth_ = actionArgs.getKeyDouble("ljswidth", 0.0);
   // Regular Ewald options
-  if (type_ != PME) {
+  if (!IsPmeType()) {
     rsumtol_ = actionArgs.getKeyDouble("rsumtol", 5E-5);
     maxexp_ = actionArgs.getKeyDouble("maxexp", 0.0);
     if (GetCommaSeparatedArgs(actionArgs, "mlimits", mlimits1_, mlimits2_, mlimits3_, 0)) return 1;
   }
   // PME options
-  if (type_ != REG_EWALD) {
+  if (IsPmeType()) {
     npoints_ = actionArgs.getKeyInt("order", 6);
     if (GetCommaSeparatedArgs(actionArgs, "nfft", nfft1_, nfft2_, nfft3_, -1)) return 1;
   }
@@ -124,7 +132,7 @@ void EwaldOptions::PrintOptions() const {
   if (skinnb_ > 0)
     mprintf("\tSize of non-bonded \"skin\"= %.4f\n", skinnb_);
   // Regular Ewald options
-  if (type_ != PME) {
+  if (!IsPmeType()) {
     if (rsumtol_ != 0.0)
       mprintf("\tReciprocal sum tolerance= %g\n", rsumtol_);
     if (maxexp_ == 0.0)
@@ -138,16 +146,14 @@ void EwaldOptions::PrintOptions() const {
               mlimits1_, mlimits2_, mlimits3_);
   }
   // PME options
-  if (type_ != REG_EWALD) {
+  if (IsPmeType()) {
     mprintf("\tSpline order= %i\n", npoints_);
     if (nfft1_ < 1 && nfft2_ < 1 && nfft3_ < 1)
       mprintf("\tWill determine number of FFT grid points from box size.\n");
     else
       mprintf("\tNumber of FFT grid points in each direction= {%i,%i,%i}\n",
               nfft1_, nfft2_, nfft3_);
-  }
-  // LJ options
-  if (type_ != REG_EWALD) {
+    // LJ options
     if (lwcoeff_ < 0)
       mprintf("\tUsing long range correction for nonbond VDW calc.\n");
     else if (lwcoeff_ > 0.0)

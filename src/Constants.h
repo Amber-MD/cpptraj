@@ -58,6 +58,8 @@ namespace Constants {
   const double ELECTOAMBER  = 18.2223;
   /// Convert Amber charge to electron charge
   const double AMBERTOELEC  = 1.0 / ELECTOAMBER;
+  /// Calculate energy in kcal/mol from charge^2/Ang
+  const double COULOMBFACTOR = ELECTOAMBER * ELECTOAMBER;
   /// Convert from Amber internal units of time (1/20.455 ps) to ps.
   /** Amber operates in kcal/mol units for energy, amu for masses,
     * and Angstoms for distances. For convenience when calculating KE from

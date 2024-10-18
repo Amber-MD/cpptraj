@@ -1,9 +1,9 @@
 #include "Action_Energy.h"
 #include "CpptrajStdio.h"
-#include "Ewald_Regular.h"
-#include "Ewald_ParticleMesh.h"
 #include "PotentialFunction.h"
 #include "MdOpts.h"
+
+using namespace Cpptraj::Energy;
 
 /// CONSTRUCTOR
 Action_Energy::Action_Energy() :
@@ -12,7 +12,7 @@ Action_Energy::Action_Energy() :
   currentParm_(0),
   npoints_(0),
   debug_(0),
-  EW_(0),
+  nbCalcType_(Ecalc_Nonbond::UNSPECIFIED),
   potential_(0),
   use_openmm_(false),
   dt_(0),
@@ -23,7 +23,6 @@ Action_Energy::Action_Energy() :
 
 /// DESTRUCTOR
 Action_Energy::~Action_Energy() {
-  if (EW_ != 0) delete EW_;
   if (potential_ != 0) delete potential_;
 }
 
@@ -160,7 +159,6 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
   // Electrostatics type.
   std::string etypearg = actionArgs.GetStringKey("etype");
   elecType_ = NO_ELE;
-  EW_ = 0;
   if (!etypearg.empty()) {
     termEnabled[ELEC] = true;
     if (etypearg == "directsum") {
@@ -170,16 +168,18 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
     } else if (etypearg == "ewald") {
       // Ewald method
       elecType_ = EWALD;
+      nbCalcType_ = Ecalc_Nonbond::REGULAR_EWALD;
       if (ewaldOpts_.GetOptions(EwaldOptions::REG_EWALD, actionArgs, "energy"))
         return Action::ERR;
-      EW_ = (Ewald*)new Ewald_Regular();
     } else if (etypearg == "pme") {
       // particle mesh Ewald method
 #     ifdef LIBPME
       elecType_ = PME;
+      nbCalcType_ = Ecalc_Nonbond::PME;
       if (ewaldOpts_.GetOptions(EwaldOptions::PME, actionArgs, "energy"))
         return Action::ERR;
-      EW_ = (Ewald*)new Ewald_ParticleMesh();
+      if (ewaldOpts_.Type() == EwaldOptions::LJPME)
+        nbCalcType_ = Ecalc_Nonbond::LJPME;
 #     else
       mprinterr("Error: 'pme' requires compiling with LIBPME (FFTW3 and C++11 support).\n");
       return Action::ERR;
@@ -361,10 +361,11 @@ Action::RetType Action_Energy::Setup(ActionSetup& setup) {
     }
   }
   // Set up Ewald if necessary.
-  if (elecType_ == EWALD || elecType_ == PME) {
-    if (EW_->Init(setup.CoordInfo().TrajBox(), ewaldOpts_, debug_))
+  if (nbCalcType_ != Ecalc_Nonbond::UNSPECIFIED) {
+    if (NB_.InitNonbondCalc(nbCalcType_, false, setup.CoordInfo().TrajBox(), ewaldOpts_, debug_))
       return Action::ERR;
-    EW_->Setup( setup.Top(), Imask_ );
+    if (NB_.SetupNonbondCalc( setup.Top(), Imask_ ))
+      return Action::ERR;
   }
   // For KE, check for velocities/forces
   if (KEtype_ != KE_NONE) {
@@ -479,9 +480,9 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
         break;
       case C_EWALD:
       case C_PME: // Elec must be enabled, vdw may not be
-        time_NB_.Start();
-        err = EW_->CalcNonbondEnergy(frm.Frm(), Imask_, ene, ene2);
-        time_NB_.Stop();
+        //time_NB_.Start();
+        err = NB_.NonbondEnergy(frm.Frm(), Imask_, ene, ene2);
+        //time_NB_.Stop();
         if (err != 0) return Action::ERR;
         Energy_[ELEC]->Add(frameNum, &ene);
         if (Energy_[VDW] != 0) Energy_[VDW]->Add(frameNum, &ene2);
@@ -532,10 +533,10 @@ void Action_Energy::Print() {
     time_tors_.WriteTiming(1,  "TORSION     :", time_total_.Total());
   if (time_14_.Total() > 0.0)
     time_14_.WriteTiming(1,    "1-4_NONBOND :", time_total_.Total());
-  if (time_NB_.Total() > 0.0) {
+  if (nbCalcType_ != Ecalc_Nonbond::UNSPECIFIED)
+    NB_.PrintTiming(time_total_.Total());
+  else if (time_NB_.Total() > 0.0) {
     time_NB_.WriteTiming(1,    "NONBOND     :", time_total_.Total());
-    if (elecType_ == EWALD || elecType_ == PME)
-      EW_->Timing(time_NB_.Total());
   }
   if (time_ke_.Total() > 0.0)
     time_ke_.WriteTiming(1,    "KE          :", time_total_.Total());

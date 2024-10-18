@@ -1,11 +1,12 @@
 #include <cmath>
-
 #include "Action_PairDist.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h"
 #include "DistRoutines.h"
 #include "DataSet_Mesh.h"
-
+#ifdef MPI
+# include "Stats_Reduce.h"
+#endif
 
 /** Calculate pair distribution function P(r) between two masks.
   * \author Hannes H. Loeffler.
@@ -243,6 +244,8 @@ int Action_PairDist::SyncAction() {
     trajComm_.Barrier();
     // END DEBUG
 */
+    Cpptraj::Stats_Reduce(trajComm_, histogram_, maxbin_);
+/*
     std::vector<double> buffer;
     unsigned long rank_size;
     if (trajComm_.Master()) {
@@ -283,7 +286,7 @@ int Action_PairDist::SyncAction() {
         buffer.push_back( (double)histogram_[i].nData() );
       }
       trajComm_.SendMaster(&buffer[0], buffer.size(), trajComm_.Rank(), MPI_DOUBLE);
-    }
+    }*/
   }
   return 0;
 }

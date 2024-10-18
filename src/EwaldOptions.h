@@ -6,7 +6,7 @@ class EwaldOptions {
   public:
     EwaldOptions();
     /// Type of options
-    enum OptType { NOT_SET = 0, REG_EWALD, PME };
+    enum OptType { NOT_SET = 0, REG_EWALD, PME, LJPME };
 
     static const char* KeywordsCommon1();
     static const char* KeywordsCommon2();
@@ -20,8 +20,10 @@ class EwaldOptions {
     int GetOptions(OptType, ArgList&, const char*);
     /// Print options to stdout
     void PrintOptions() const;
-
+    /// \return Current calculation type
     OptType Type() const { return type_; }
+    /// \return True if current calculation is a PME type
+    bool IsPmeType() const { return (type_ == PME) || (type_ == LJPME); }
 
     // Options common to all Ewald
     double Cutoff()     const { return cutoff_; }

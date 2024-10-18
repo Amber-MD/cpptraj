@@ -13,6 +13,7 @@ class DataSet_Mesh : public DataSet_1D {
     DataSet_Mesh(int,double,double);
     static DataSet* Alloc() { return (DataSet*)new DataSet_Mesh();            }
     void Resize(size_t n)   { mesh_x_.resize(n, 0.0); mesh_y_.resize(n, 0.0); }
+    void Clear()            { mesh_x_.clear(); mesh_y_.clear(); }
     // ----- DataSet functions -------------------
     size_t Size()                       const { return mesh_x_.size();     }
 #   ifdef MPI

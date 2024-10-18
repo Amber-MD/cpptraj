@@ -9,8 +9,7 @@
 #include "ExclusionArray.h"
 #include "Energy/Ene_Angle.h"
 #include "Energy/Ene_Bond.h"
-
-const double Energy_Amber::QFAC = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
+#include "Energy/Ene_LJ_6_12.h"
 
 // CONSTRUCTOR
 Energy_Amber::Energy_Amber() : debug_(0) {}
@@ -176,16 +175,17 @@ double Energy_Amber::Calc_14_Energy(Frame const& fIn, DihedralArray const& Dihed
       double rij = sqrt( rij2 );
       // VDW
       NonbondType const& LJ = tIn.GetLJparam(d->A1(), d->A4());
-      double r2    = 1.0 / rij2;
+      double e_vdw = Cpptraj::Energy::Ene_LJ_6_12( rij2, LJ.A(), LJ.B() );
+/*      double r2    = 1.0 / rij2;
       double r6    = r2 * r2 * r2;
       double r12   = r6 * r6;
       double f12   = LJ.A() * r12;  // A/r^12
       double f6    = LJ.B() * r6;   // B/r^6
-      double e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)
+      double e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)*/
       e_vdw /= dp.SCNB();
       Evdw14 += e_vdw;
       // Coulomb
-      double qiqj = QFAC * tIn[d->A1()].Charge() * tIn[d->A4()].Charge();
+      double qiqj = Constants::COULOMBFACTOR * tIn[d->A1()].Charge() * tIn[d->A4()].Charge();
       double e_elec = qiqj / rij;
       e_elec /= dp.SCEE();
       Eq14 += e_elec;
@@ -235,15 +235,16 @@ double Energy_Amber::E_Nonbond(Frame const& fIn, Topology const& tIn, AtomMask c
         double rij = sqrt( rij2 );
         // VDW
         NonbondType const& LJ = tIn.GetLJparam(atom1, atom2);
-        double r2    = 1.0 / rij2;
+        double e_vdw = Cpptraj::Energy::Ene_LJ_6_12( rij2, LJ.A(), LJ.B() );
+        /*double r2    = 1.0 / rij2;
         double r6    = r2 * r2 * r2;
         double r12   = r6 * r6;
         double f12   = LJ.A() * r12;  // A/r^12
         double f6    = LJ.B() * r6;   // B/r^6
-        double e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)
+        double e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)*/
         Evdw += e_vdw;
         // Coulomb
-        double qiqj = QFAC * tIn[atom1].Charge() * tIn[atom2].Charge();
+        double qiqj = Constants::COULOMBFACTOR * tIn[atom1].Charge() * tIn[atom2].Charge();
         double e_elec = qiqj / rij;
         Eelec += e_elec;
 #       ifdef DEBUG_ENERGY
@@ -294,12 +295,13 @@ double Energy_Amber::E_VDW(Frame const& fIn, Topology const& tIn, AtomMask const
         double rij2 = DIST2_NoImage( crd1, fIn.XYZ( atom2 ) );
         // VDW
         NonbondType const& LJ = tIn.GetLJparam(atom1, atom2);
-        double r2    = 1.0 / rij2;
+        double e_vdw = Cpptraj::Energy::Ene_LJ_6_12( rij2, LJ.A(), LJ.B() );
+        /*double r2    = 1.0 / rij2;
         double r6    = r2 * r2 * r2;
         double r12   = r6 * r6;
         double f12   = LJ.A() * r12;  // A/r^12
         double f6    = LJ.B() * r6;   // B/r^6
-        double e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)
+        double e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)*/
         Evdw += e_vdw;
 #       ifdef DEBUG_ENERGY
         mprintf("\tEVDW  %4i -- %4i: A=  %12.5e  B=  %12.5e  r2= %12.5f  E= %12.5e\n",
@@ -345,7 +347,7 @@ double Energy_Amber::E_Elec(Frame const& fIn, Topology const& tIn, AtomMask cons
         double rij2 = DIST2_NoImage( crd1, fIn.XYZ( atom2 ) );
         double rij = sqrt( rij2 );
         // Coulomb
-        double qiqj = QFAC * tIn[atom1].Charge() * tIn[atom2].Charge();
+        double qiqj = Constants::COULOMBFACTOR * tIn[atom1].Charge() * tIn[atom2].Charge();
         double e_elec = qiqj / rij;
         Eelec += e_elec;
 #       ifdef DEBUG_ENERGY
@@ -388,7 +390,7 @@ double Energy_Amber::E_DirectSum(Frame const& fIn, Topology const& tIn, AtomMask
     for (AtomMask::const_iterator atom2 = mask.begin(); atom2 != mask.end(); ++atom2)
     {
       Vec3 frac2 = fIn.BoxCrd().FracCell() * Vec3(fIn.XYZ( *atom2 )); // atom j in fractional coords
-      double qiqj = QFAC * tIn[*atom1].Charge() * tIn[*atom2].Charge();
+      double qiqj = Constants::COULOMBFACTOR * tIn[*atom1].Charge() * tIn[*atom2].Charge();
       // Loop over images of atom j
       for (std::vector<Vec3>::const_iterator ixyz = Cells.begin(); ixyz != Cells.end(); ++ixyz)
       {

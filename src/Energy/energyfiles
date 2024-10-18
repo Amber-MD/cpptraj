@@ -1,0 +1,16 @@
+# Files for Energy subdirectory.
+ENERGY_SOURCES= \
+  Ecalc_Nonbond.cpp \
+  EnergyDecomposer.cpp \
+  ErfcFxn.cpp \
+  EwaldCalc_Decomp_LJPME.cpp \
+  EwaldCalc_Decomp_PME.cpp \
+  EwaldCalc_LJPME.cpp \
+  EwaldCalc_PME.cpp \
+  EwaldCalc_Regular.cpp \
+  EwaldParams.cpp \
+  EwaldParams_LJPME.cpp \
+  Ewald_Recip.cpp \
+  PME_Recip.cpp \
+  PME_RecipParams.cpp \
+  VDW_LongRange_Correction.cpp

@@ -1,21 +1,31 @@
-#include <algorithm> // copy/fill/min/max
-#include <cmath>
-#include "Ewald_Regular.h"
-#include "CpptrajStdio.h"
-#include "Constants.h"
-#include "StringRoutines.h" // ByteString
-#include "AtomMask.h"
-#include "Frame.h"
-#include "EwaldOptions.h"
+#include "Ewald_Recip.h"
+#include "ErfcFxn.h" // erfc_func
+#include "EwaldParams.h" // INVSQRTPI
+#include "../Box.h"
+#include "../Constants.h"
+#include "../CpptrajStdio.h"
+#include "../EwaldOptions.h"
+#include "../Matrix_3x3.h"
+#include "../StringRoutines.h" // ByteString
+#include "../Vec3.h"
+#include <cmath> // sqrt, cos, sin
+#include <algorithm> // std::max
 #ifdef _OPENMP
 # include <omp.h>
-#endif
+#endif 
 
-/// CONSTRUCTOR
-Ewald_Regular::Ewald_Regular() :
+using namespace Cpptraj::Energy;
+
+// Absolute value functions
+static inline int IABS(   int    xIn) { if (xIn < 0  ) return -xIn; else return xIn; }
+static inline double DABS(double xIn) { if (xIn < 0  ) return -xIn; else return xIn; }
+
+/** CONSTRUCTOR */
+Ewald_Recip::Ewald_Recip() :
 # ifdef _OPENMP
   multCut_(0),
 # endif
+  fac_(0.0),
   maxexp_(0.0),
   rsumTol_(0.0),
   maxmlim_(0)
@@ -26,7 +36,7 @@ Ewald_Regular::Ewald_Regular() :
 }
 
 /** \return maxexp value based on mlimits */
-double Ewald_Regular::FindMaxexpFromMlim(const int* mlimit, Matrix_3x3 const& recip) {
+double Ewald_Recip::FindMaxexpFromMlim(const int* mlimit, Matrix_3x3 const& recip) {
   double maxexp = DABS( (double)mlimit[0] * recip[0] );
   double z2     = DABS( (double)mlimit[1] * recip[4] );
   maxexp = std::max(maxexp, z2);
@@ -36,7 +46,7 @@ double Ewald_Regular::FindMaxexpFromMlim(const int* mlimit, Matrix_3x3 const& re
 }
 
 /** \return maxexp value based on Ewald coefficient and reciprocal sum tolerance. */
-double Ewald_Regular::FindMaxexpFromTol(double ewCoeff, double rsumTol) {
+double Ewald_Recip::FindMaxexpFromTol(double ewCoeff, double rsumTol) {
   double xval = 0.5;
   int nloop = 0;
   double term = 0.0;
@@ -44,7 +54,7 @@ double Ewald_Regular::FindMaxexpFromTol(double ewCoeff, double rsumTol) {
     xval = 2.0 * xval;
     nloop++;
     double yval = Constants::PI * xval / ewCoeff;
-    term = 2.0 * ewCoeff * erfc_func(yval) * INVSQRTPI_;
+    term = 2.0 * ewCoeff * ErfcFxn::erfc_func(yval) * EwaldParams::INVSQRTPI();
   } while (term >= rsumTol);
 
   // Binary search tolerance is 2^-60
@@ -54,21 +64,20 @@ double Ewald_Regular::FindMaxexpFromTol(double ewCoeff, double rsumTol) {
   for (int i = 0; i != ntimes; i++) {
     xval = (xlo + xhi) / 2.0;
     double yval = Constants::PI * xval / ewCoeff;
-    double term = 2.0 * ewCoeff * erfc_func(yval) * INVSQRTPI_;
+    double term = 2.0 * ewCoeff * ErfcFxn::erfc_func(yval) * EwaldParams::INVSQRTPI();
     if (term > rsumTol)
       xlo = xval;
     else
       xhi = xval;
   }
-  mprintf("\tMaxExp for Ewald coefficient %g, direct sum tol %g is %g\n",
+  mprintf("\t  MaxExp determined from Ewald coefficient %g, direct sum tol %g is %g\n",
           ewCoeff, rsumTol, xval);
   return xval;
 }
 
-static inline int IABS(int    xIn) { if (xIn < 0  ) return -xIn; else return xIn; }
 
 /** Get mlimits. */
-void Ewald_Regular::GetMlimits(int* mlimit, double maxexp, double eigmin, 
+void Ewald_Recip::GetMlimits(int* mlimit, double maxexp, double eigmin, 
                        Vec3 const& reclng, Matrix_3x3 const& recip)
 {
   //mprintf("DEBUG: Recip lengths %12.4f%12.4f%12.4f\n", reclng[0], reclng[1], reclng[2]);
@@ -95,25 +104,17 @@ void Ewald_Regular::GetMlimits(int* mlimit, double maxexp, double eigmin,
       }
     }
   }
-  mprintf("\tNumber of reciprocal vectors: %i\n", nrecvecs);
+  mprintf("\t  Number of reciprocal vectors: %i\n", nrecvecs);
 }
 
-/** Init regular Ewald calculation. */
-int Ewald_Regular::Init(Box const& boxIn, EwaldOptions const& ewOpts, int debugIn)
-//double cutoffIn, double dsumTolIn, double rsumTolIn,
-//                     double ew_coeffIn, double maxexpIn, double skinnbIn,
-//                     double erfcTableDxIn, int debugIn, const int* mlimitsIn)
+/** Init */
+int Ewald_Recip::InitRecip(EwaldOptions const& ewOpts, double ew_coeffIn,
+                           Box const& boxIn, int debugIn)
 {
-  if (ewOpts.Type() == EwaldOptions::PME) {
-    mprinterr("Internal Error: Ewald options set up for PME\n");
-    return 1;
-  }
-  if (CheckInput(boxIn, debugIn, ewOpts.Cutoff(), ewOpts.DsumTol(), ewOpts.EwCoeff(),
-                 -1.0, ewOpts.LJ_SwWidth(),
-                 ewOpts.ErfcDx(), ewOpts.SkinNB()))
-    return 1;
+  debug_ = debugIn;
   rsumTol_ = ewOpts.RsumTol();
   maxexp_ = ewOpts.MaxExp();
+  fac_ = (Constants::PI*Constants::PI) / (ew_coeffIn * ew_coeffIn);
   mlimit_[0] = ewOpts.Mlimits1();
   mlimit_[1] = ewOpts.Mlimits2();
   mlimit_[2] = ewOpts.Mlimits3();
@@ -132,13 +133,14 @@ int Ewald_Regular::Init(Box const& boxIn, EwaldOptions const& ewOpts, int debugI
   }
 
   // Set defaults if necessary
+  mprintf("\tRecip opts (regular Ewald):\n");
   if (rsumTol_ < Constants::SMALL)
     rsumTol_ = 5E-5;
   if (maxmlim_ > 0)
     maxexp_ = FindMaxexpFromMlim(mlimit_, boxIn.FracCell());
   else {
     if ( maxexp_ < Constants::SMALL )
-      maxexp_ = FindMaxexpFromTol(ew_coeff_, rsumTol_);
+      maxexp_ = FindMaxexpFromTol(ew_coeffIn, rsumTol_);
     // eigmin typically bigger than this unless cell is badly distorted.
     double eigmin = 0.5;
     // Calculate lengths of reciprocal vectors
@@ -148,31 +150,25 @@ int Ewald_Regular::Init(Box const& boxIn, EwaldOptions const& ewOpts, int debugI
     maxmlim_ = std::max(maxmlim_, mlimit_[2]);
   }
 
-  mprintf("\tEwald params:\n");
-  mprintf("\t  Cutoff= %g   Direct Sum Tol= %g   Ewald coeff.= %g\n",
-          cutoff_, dsumTol_, ew_coeff_);
-  mprintf("\t  MaxExp= %g   Recip. Sum Tol= %g   NB skin= %g\n",
-          maxexp_, rsumTol_, ewOpts.SkinNB());
-  //mprintf("\t  Erfc table dx= %g, size= %zu\n", erfcTableDx_, erfc_table_.size()/4);
-  mprintf("\t  mlimits= {%i,%i,%i} Max=%i\n", mlimit_[0], mlimit_[1], mlimit_[2], maxmlim_);
-  // Set up pair list
-  if (Setup_Pairlist(boxIn, ewOpts.SkinNB())) return 1;
-
+  PrintRecipOpts();
   return 0;
 }
 
-/** Setup regular Ewald calculation. */
-int Ewald_Regular::Setup(Topology const& topIn, AtomMask const& maskIn) {
-  CalculateCharges(topIn, maskIn);
-  // Blank C6 Arrays. TODO actually blank them
-  CalculateC6params( topIn, maskIn );
+/** Print options to stdout */
+void Ewald_Recip::PrintRecipOpts() const {
+  mprintf("\t  MaxExp= %g   Recip. Sum Tol= %g\n", maxexp_, rsumTol_);
+  //mprintf("\t  Erfc table dx= %g, size= %zu\n", erfcTableDx_, erfc_table_.size()/4);
+  mprintf("\t  mlimits= {%i,%i,%i} Max=%i\n", mlimit_[0], mlimit_[1], mlimit_[2], maxmlim_);
+}
 
+/** Setup trig tables for given number of selected atoms. */
+int Ewald_Recip::SetupRecip(int nselected) {
   // Build exponential factors for use in structure factors.
   // These arrays are laid out in 1D; value for each atom at each m, i.e.
   // A0M0 A1M0 A2M0 ... ANM0 A0M1 ... ANMX
   // Number of M values is the max + 1.
   int mmax = maxmlim_ + 1;
-  unsigned int tsize = maskIn.Nselected() * mmax;
+  unsigned int tsize = nselected * mmax;
   cosf1_.assign( tsize, 1.0 );
   cosf2_.assign( tsize, 1.0 );
   cosf3_.assign( tsize, 1.0 );
@@ -190,9 +186,6 @@ int Ewald_Regular::Setup(Topology const& topIn, AtomMask const& maskIn) {
 //    sinf2_.push_back( 0.0 );
 //    sinf3_.push_back( 0.0 );
 // }
-
-  SetupExclusionList(topIn, maskIn);
-
 # ifdef _OPENMP
   // Pre-calculate m1 and m2 indices
   mlim1_.clear();
@@ -217,27 +210,28 @@ int Ewald_Regular::Setup(Topology const& topIn, AtomMask const& maskIn) {
       mprintf("\tParallelizing calculation with %i threads\n", numthreads);
     }
   }
-  unsigned int asize = (unsigned int)maskIn.Nselected() * (unsigned int)numthreads;
+  unsigned int asize = (unsigned int)nselected * (unsigned int)numthreads;
   c12_.resize( asize );
   s12_.resize( asize );
   c3_.resize(  asize );
   s3_.resize(  asize );
-#else
-  c12_.resize( maskIn.Nselected() );
-  s12_.resize( maskIn.Nselected() );
-  c3_.resize(  maskIn.Nselected() );
-  s3_.resize(  maskIn.Nselected() );
-# endif
+#else /* _OPENMP */
+  c12_.resize( nselected );
+  s12_.resize( nselected );
+  c3_.resize(  nselected );
+  s3_.resize(  nselected );
+# endif /* _OPENMP */
+
   return 0;
 }
 
 /** Reciprocal space energy counteracting the neutralizing charge distribution. */
-double Ewald_Regular::Recip_Regular(Matrix_3x3 const& recip, double volume) {
+double Ewald_Recip::Recip_Regular(Matrix_3x3 const& recip, double volume,
+                                  Varray const& Frac, Darray const& Charge)
+{
   t_recip_.Start();
-  double fac = (Constants::PI*Constants::PI) / (ew_coeff_ * ew_coeff_);
   double maxexp2 = maxexp_ * maxexp_;
   double ene = 0.0;
-  Varray const& Frac = pairList_.FracCoords();
   // Number of M values is the max + 1.
   int mmax = maxmlim_ + 1;
   // Build exponential factors for use in structure factors.
@@ -339,7 +333,7 @@ double Ewald_Regular::Recip_Regular(Matrix_3x3 const& recip, double volume) {
         double eterm = 0.0;
 //        double vterm = 0.0;
         if ( m1*m1 + m2*m2 + m3*m3 > 0 ) {
-          eterm = exp(-fac*msq) / denom;
+          eterm = exp(-fac_*msq) / denom;
 //          vterm = 2.0 * (fac*msq + 1.0) / msq;
         }
         // mult takes care to double count for symmetry. Can take care of
@@ -363,8 +357,8 @@ double Ewald_Regular::Recip_Regular(Matrix_3x3 const& recip, double volume) {
           double cstruct = 0.0;
           double sstruct = 0.0;
           for (unsigned int i = 0; i != Frac.size(); i++) {
-            cstruct += Charge_[i] * c3[i];
-            sstruct += Charge_[i] * s3[i];
+            cstruct += Charge[i] * c3[i];
+            sstruct += Charge[i] * s3[i];
           }
           double struc2 = cstruct*cstruct + sstruct*sstruct;
           ene += eterm * struc2;
@@ -383,30 +377,8 @@ double Ewald_Regular::Recip_Regular(Matrix_3x3 const& recip, double volume) {
   return ene * 0.5;
 }
 
-/** Calculate Ewald energy. Faster version that uses pair list. */
-int Ewald_Regular::CalcNonbondEnergy(Frame const& frameIn, AtomMask const& maskIn,
-                              double& e_elec, double& e_vdw)
-{
-  t_total_.Start();
-  double volume = frameIn.BoxCrd().CellVolume();
-  double e_self = Self( volume );
-  double e_vdwr = Vdw_Correction( volume );
-
-  int retVal = pairList_.CreatePairList(frameIn, frameIn.BoxCrd().UnitCell(), frameIn.BoxCrd().FracCell(), maskIn);
-  if (retVal != 0) {
-    mprinterr("Error: Grid setup failed.\n");
-    return 1;
-  }
-
-//  MapCoords(frameIn, ucell, recip, maskIn);
-  double e_recip = Recip_Regular( frameIn.BoxCrd().FracCell(), volume );
-  e_vdw = 0.0;
-  double e_adjust = 0.0;
-  double e_direct = Direct( pairList_, e_vdw, e_adjust );
-  if (debug_ > 0)
-    mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f  Eadjust= %20.10f  Evdw= %20.10f\n", e_self, e_recip, e_direct, e_adjust, e_vdw);
-  e_vdw += e_vdwr;
-  t_total_.Stop();
-  e_elec = e_self + e_recip + e_direct + e_adjust;
-  return 0;
+void Ewald_Recip::PrintTiming(double total) const {
+  t_recip_.WriteTiming(2,  "Recip:     ", total);
+  if (t_trig_tables_.Total() > 0.0)
+    t_trig_tables_.WriteTiming(3, "Calc trig tables:", t_recip_.Total());
 }

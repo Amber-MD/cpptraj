@@ -6,7 +6,7 @@
 #include "Timer.h"
 #include "ExclusionArray.h"
 #include "EwaldOptions.h"
-class Ewald;
+#include "Energy/Ecalc_Nonbond.h"
 class PotentialFunction;
 /// Calculate energy 
 class Action_Energy: public Action {
@@ -50,7 +50,8 @@ class Action_Energy: public Action {
     std::string setname_;          ///< Output DataSet name
     int npoints_;                  ///< # cells in each direction (DIRECT)
     int debug_;
-    Ewald* EW_;                    ///< Ewald energy class.
+    Cpptraj::Energy::Ecalc_Nonbond NB_; ///< Nonbond energy calc class.
+    Cpptraj::Energy::Ecalc_Nonbond::CalcType nbCalcType_; ///< Nonbond calculation type
     EwaldOptions ewaldOpts_;       ///< Ewald options
 
     PotentialFunction* potential_; ///< TODO currently just for openmm, use for everything

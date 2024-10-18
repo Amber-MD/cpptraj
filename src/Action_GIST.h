@@ -184,7 +184,6 @@ class Action_GIST : public Action {
     static const Vec3 y_lab_;
     static const Vec3 z_lab_;
     static const double maxD_;
-    static const double QFAC_;
     static const int OFF_GRID_; ///< Value in atom_voxel_ that indicates atom is off the grid
     static const int UNKNOWN_MOLECULE_;
 

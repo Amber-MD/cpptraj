@@ -43,8 +43,6 @@ void Action_Pairwise::Help() const {
           "            and  : Print both energies if both cutoffs are satisfied.\n");
 }
 
-const double Action_Pairwise::QFAC = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
-
 // Action_Pairwise::Init()
 Action::RetType Action_Pairwise::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
@@ -369,7 +367,7 @@ void Action_Pairwise::NonbondEnergy(Frame const& frameIn, Topology const& parmIn
         //force=((12*f12)-(6*f6))*r2; // (12A/r^13)-(6B/r^7)
         //scalarmult(f,JI,F);
         // Coulomb energy 
-        double qiqj = QFAC * parmIn[maskatom1].Charge() * parmIn[maskatom2].Charge();
+        double qiqj = Constants::COULOMBFACTOR * parmIn[maskatom1].Charge() * parmIn[maskatom2].Charge();
         double e_elec = qiqj / rij;
         Eelec_ += e_elec;
         // Coulomb Force

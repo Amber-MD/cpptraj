@@ -65,8 +65,6 @@ void PotentialTerm_Dihedral::CalcForce(Frame& frameIn, CharMask const& maskIn) c
   double dr[13];
   double dtx[7][13];
 
-  double QFAC = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
-
   EnergyKernel_NonBond_Simple<double> NB14;
   //mprintf("FCALC\n");
   for (DihedralArray::const_iterator dih = activeDihs_.begin(); dih != activeDihs_.end(); ++dih)
@@ -80,7 +78,7 @@ void PotentialTerm_Dihedral::CalcForce(Frame& frameIn, CharMask const& maskIn) c
       int nbindex = nonbond_->GetLJindex( A1.TypeIndex(), A4.TypeIndex() );
       NonbondType const& LJ = nonbond_->NBarray( nbindex );
       NB14.Calc_F_E( frameIn, dih->A1(), dih->A4(), LJ.A(), LJ.B(),
-                     QFAC, A1.Charge(), A4.Charge(),
+                     Constants::COULOMBFACTOR, A1.Charge(), A4.Charge(),
                      1.0/DP.SCNB(), 1.0/DP.SCEE(), maskIn,
                      *Enb14_, *Eq14_);
     }
