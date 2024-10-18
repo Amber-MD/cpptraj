@@ -4,6 +4,21 @@
 #include "ExclusionArray.h"
 namespace Cpptraj {
 /// Template for doing pair list calculations
+/** This template is designed to make it simpler to use the PairList class.
+  * It takes a PairList, an excluded atom array (ExclusionArray), a cutoff
+  * (squared), and an "Engine".
+  * The Engine determines what is done when the cutoff is satisfied vs
+  * when the interaction is excluded. It should also be a template and have
+  * the following functions:
+  * void FrameBeginCalc() : What to do at the beginning of each frame/calc.
+  * void SetupAtom0(int idx0) : What to do for the outer loop atom.
+  * void SetupAtom1(int idx1) : What to do for the inner loop atoms.
+  * void CutoffSatisfied(double rij2, int idx0, idx1) : What to do when the
+  *      cutoff squared is satisfied for atom indices 0 and 1.
+  * void AtomPairExcluded(double rij2, int idx0, idx1) : What to do when the
+  *      pair interaction between atom indices 0 and 1 is excluded.
+  * 
+  */
 template <typename T, template <typename> class EngineClass>
 void PairListTemplate(PairList const& PL, ExclusionArray const& Excluded, T cut2,
                       EngineClass<T>& engine)
