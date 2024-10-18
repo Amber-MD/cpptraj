@@ -480,9 +480,9 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
         break;
       case C_EWALD:
       case C_PME: // Elec must be enabled, vdw may not be
-        time_NB_.Start();
+        //time_NB_.Start();
         err = NB_.NonbondEnergy(frm.Frm(), Imask_, ene, ene2);
-        time_NB_.Stop();
+        //time_NB_.Stop();
         if (err != 0) return Action::ERR;
         Energy_[ELEC]->Add(frameNum, &ene);
         if (Energy_[VDW] != 0) Energy_[VDW]->Add(frameNum, &ene2);
@@ -533,11 +533,10 @@ void Action_Energy::Print() {
     time_tors_.WriteTiming(1,  "TORSION     :", time_total_.Total());
   if (time_14_.Total() > 0.0)
     time_14_.WriteTiming(1,    "1-4_NONBOND :", time_total_.Total());
-  if (time_NB_.Total() > 0.0) {
-    if (nbCalcType_ != Ecalc_Nonbond::UNSPECIFIED)
-      NB_.PrintTiming(time_total_.Total());
-    else
-      time_NB_.WriteTiming(1,    "NONBOND     :", time_total_.Total());
+  if (nbCalcType_ != Ecalc_Nonbond::UNSPECIFIED)
+    NB_.PrintTiming(time_total_.Total());
+  else if (time_NB_.Total() > 0.0) {
+    time_NB_.WriteTiming(1,    "NONBOND     :", time_total_.Total());
   }
   if (time_ke_.Total() > 0.0)
     time_ke_.WriteTiming(1,    "KE          :", time_total_.Total());
