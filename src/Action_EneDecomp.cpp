@@ -3,7 +3,7 @@
 
 // Action_EneDecomp::Help()
 void Action_EneDecomp::Help() const {
-
+  Cpptraj::Energy::EnergyDecomposer::HelpText(); 
 }
 
 // Action_EneDecomp::Init()

@@ -23,6 +23,8 @@ class EnergyDecomposer {
   public:
     /// CONSTRUCTOR
     EnergyDecomposer();
+    /// Print help text to stdout
+    static void HelpText();
     /// Initialize with arguments
     int InitDecomposer(ArgList&, DataSetList&, DataFileList&, int);
     /// Print options to stdout
@@ -55,8 +57,6 @@ class EnergyDecomposer {
     void calcAngles(Frame const&);
     /// Calculate dihedral energies
     void calcDihedrals(Frame const&);
-    /// Calculate simple nonbonded energies, no cutoff
-    //void calcNB_simple(Frame const&);
 
     CharMask selectedAtoms_; ///< Mask of atoms that energy will be recorded for.
     DataSet* eneOut_;        ///< Will hold the average energy of each selected entity for output.
