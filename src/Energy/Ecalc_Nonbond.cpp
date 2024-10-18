@@ -192,9 +192,9 @@ int Ecalc_Nonbond::DecomposedNonbondEnergy(Frame const& frameIn, CharMask const&
 
 /** Print timing */
 void Ecalc_Nonbond::PrintTiming(double total) const {
+  t_total_.WriteTiming(1,    "NONBOND     :", total);
   if (calc_ != 0) {
     calc_->Timing( t_total_.Total() );
     pairList_.Timing( t_total_.Total() );
   }
-  t_total_.WriteTiming(0, "Nonbond total:");
 }

@@ -534,9 +534,10 @@ void Action_Energy::Print() {
   if (time_14_.Total() > 0.0)
     time_14_.WriteTiming(1,    "1-4_NONBOND :", time_total_.Total());
   if (time_NB_.Total() > 0.0) {
-    time_NB_.WriteTiming(1,    "NONBOND     :", time_total_.Total());
     if (nbCalcType_ != Ecalc_Nonbond::UNSPECIFIED)
-      NB_.PrintTiming(time_NB_.Total());
+      NB_.PrintTiming(time_total_.Total());
+    else
+      time_NB_.WriteTiming(1,    "NONBOND     :", time_total_.Total());
   }
   if (time_ke_.Total() > 0.0)
     time_ke_.WriteTiming(1,    "KE          :", time_total_.Total());
