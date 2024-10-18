@@ -213,19 +213,21 @@ int EnergyDecomposer::SetupDecomposer(Topology const& topIn, Box const& boxIn) {
   }
 
   // DEBUG
-  mprintf("DEBUG: Saving energy for atoms:\n");
-  for (int idx = 0; idx != topIn.Natom(); idx++)
-    if (selectedAtoms_.AtomInCharMask( idx ))
-      mprintf("\t%s\n", topIn.AtomMaskName( idx ).c_str());
-  mprintf("DEBUG: Bonds:\n");
-  for (BndArrayType::const_iterator bnd = bonds_.begin(); bnd != bonds_.end(); ++bnd)
-    mprintf("\t%s - %s\n", topIn.AtomMaskName(bnd->A1()).c_str(), topIn.AtomMaskName(bnd->A2()).c_str());
-  mprintf("DEBUG: Angles:\n");
-  for (AngArrayType::const_iterator ang = angles_.begin(); ang != angles_.end(); ++ang)
-    mprintf("\t%s - %s - %s\n", topIn.AtomMaskName(ang->A1()).c_str(), topIn.AtomMaskName(ang->A2()).c_str(), topIn.AtomMaskName(ang->A3()).c_str());
-  mprintf("DEBUG: Dihedrals:\n");
-  for (DihArrayType::const_iterator dih = dihedrals_.begin(); dih != dihedrals_.end(); ++dih)
-    mprintf("\t%s - %s - %s - %s\n", topIn.AtomMaskName(dih->A1()).c_str(), topIn.AtomMaskName(dih->A2()).c_str(), topIn.AtomMaskName(dih->A3()).c_str(), topIn.AtomMaskName(dih->A4()).c_str());
+  if (debug_ > 0) {
+    mprintf("DEBUG: Saving energy for atoms:\n");
+    for (int idx = 0; idx != topIn.Natom(); idx++)
+      if (selectedAtoms_.AtomInCharMask( idx ))
+        mprintf("\t%s\n", topIn.AtomMaskName( idx ).c_str());
+    mprintf("DEBUG: Bonds:\n");
+    for (BndArrayType::const_iterator bnd = bonds_.begin(); bnd != bonds_.end(); ++bnd)
+      mprintf("\t%s - %s\n", topIn.AtomMaskName(bnd->A1()).c_str(), topIn.AtomMaskName(bnd->A2()).c_str());
+    mprintf("DEBUG: Angles:\n");
+    for (AngArrayType::const_iterator ang = angles_.begin(); ang != angles_.end(); ++ang)
+      mprintf("\t%s - %s - %s\n", topIn.AtomMaskName(ang->A1()).c_str(), topIn.AtomMaskName(ang->A2()).c_str(), topIn.AtomMaskName(ang->A3()).c_str());
+    mprintf("DEBUG: Dihedrals:\n");
+    for (DihArrayType::const_iterator dih = dihedrals_.begin(); dih != dihedrals_.end(); ++dih)
+      mprintf("\t%s - %s - %s - %s\n", topIn.AtomMaskName(dih->A1()).c_str(), topIn.AtomMaskName(dih->A2()).c_str(), topIn.AtomMaskName(dih->A3()).c_str(), topIn.AtomMaskName(dih->A4()).c_str());
+  }
 
   currentTop_ = &topIn;
 
