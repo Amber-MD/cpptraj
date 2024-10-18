@@ -1,4 +1,5 @@
 #include "Stats_Reduce.h"
+#ifdef MPI
 /** Calculate overall average/stdev for array elements using the parallel
   * form of the Online algorithm ( Chan, T.F.; Golub, G.H.; LeVeque, R.J.
   * (1979), "Updating Formulae and a Pairwise Algorithm for Computing Sample
@@ -54,3 +55,4 @@ int Cpptraj::Stats_Reduce(Parallel::Comm const& trajComm_,
   
   return 0;
 }
+#endif /* MPI */
