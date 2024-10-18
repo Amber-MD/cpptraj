@@ -20478,7 +20478,7 @@ Mod
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="92" columns="3">
+<lyxtabular version="3" rows="93" columns="3">
 <features islongtable="true" longtabularalignment="center">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="65text%">
@@ -21367,6 +21367,35 @@ dssp,
 
 \begin_layout Plain Layout
 Calculate secondary structure content using the DSSP algorithm
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+enedecomp
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Perform per-atom energy decomposition.
 \end_layout
 
 \end_inset
@@ -27789,6 +27818,144 @@ nolink "false"
 \end_layout
 
 \begin_layout Subsection
+enedecomp
+\end_layout
+
+\begin_layout LyX-Code
+enedecomp [<name>] [<mask>] [out <filename>]
+\end_layout
+
+\begin_layout LyX-Code
+          [ pme [cut <cutoff>] [dsumtol <dtol>] [ewcoeff <coeff>]
+\end_layout
+
+\begin_layout LyX-Code
+                [erfcdx <dx>] [skinnb <skinnb>] [ljswidth <width>]
+\end_layout
+
+\begin_layout LyX-Code
+                [order <order>] [nfft <nfft1>,<nfft2>,<nfft3>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[<name>] Data set name.
+\end_layout
+
+\begin_layout Description
+[<mask>] Mask of atoms to calculate energy for.
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<filename>] File to write results to.
+\end_layout
+
+\begin_layout Description
+[pme] Use particle mesh Ewald for electrostatics;
+ van der Waals energy will be calculated using a long-range correction for periodicity.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+cut
+\begin_inset space ~
+\end_inset
+
+<cutoff> Direct space cutoff in Angstroms (default 8.0).
+\end_layout
+
+\begin_layout Description
+dsumtol
+\begin_inset space ~
+\end_inset
+
+<dtol> Direct sum tolerance (default 0.00001).
+ Used to determine Ewald coefficient.
+\end_layout
+
+\begin_layout Description
+ewcoeff
+\begin_inset space ~
+\end_inset
+
+<coeff> Ewald coefficient in 1/Ang.
+\end_layout
+
+\begin_layout Description
+erfcdx
+\begin_inset space ~
+\end_inset
+
+<dx> Spacing to use for the ERFC splines (default 0.0002 Ang.).
+\end_layout
+
+\begin_layout Description
+skinnb Used to determine pairlist atoms (added to cut,
+ so pairlist cutoff is 
+\series bold
+cut
+\series default
+ + 
+\series bold
+skinnb
+\series default
+);
+ included in order to maintain consistency with results from sander.
+\end_layout
+
+\begin_layout Description
+ljswidth
+\begin_inset space ~
+\end_inset
+
+<width> If specified,
+ use a force-switching form for the Lennard-Jones calculation from <cutoff>-<width> to <cutoff>.
+\end_layout
+
+\begin_layout Description
+order
+\begin_inset space ~
+\end_inset
+
+<order> Spline order for charges.
+\end_layout
+
+\begin_layout Description
+nfft
+\begin_inset space ~
+\end_inset
+
+<nfft1>,<nfft2>,<nfft3> Explicitly set the number of FFT grid points in each dimension.
+ Will be determined automatically from unit cell dimensions if not specified.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+DataSets created:
+\end_layout
+
+\begin_layout Description
+<name> Set containing atom index and the corresponding average energy over frames.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Perform per-atom energy decomposition for selected atoms.
+ The energy is calculated for the entire system but only the energies for selected atoms will be reported.
+ The energy is composed of the regular bond,
+ angle,
+ torsion,
+ 1-4 nonbonded,
+ and nonbonded terms.
+ If 'pme' is specified the non-bonded terms will us PME for electrostatics and a long-range periodic correction for van der Waals,
+ otherwise a simple model with no cutoff will be used.
+\end_layout
+
+\begin_layout Subsection
 energy
 \end_layout
 
@@ -28154,7 +28321,7 @@ nfft
 \end_inset
 
 <nfft1>,<nfft2>,<nfft3> Explicitly set the number of FFT grid points in each dimension.
- Will be determined automatically if not specified.
+ Will be determined automatically from unit cell dimensions if not specified.
 \end_layout
 
 \begin_layout Description
