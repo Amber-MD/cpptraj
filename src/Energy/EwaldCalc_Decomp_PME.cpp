@@ -63,7 +63,6 @@ int EwaldCalc_Decomp_PME::CalcNonbondEnergy(Frame const& frameIn, AtomMask const
   // TODO make more efficient
   NBengine_.ModifyEwaldParams().FillRecipCoords( frameIn, maskIn );
 
-  //  MapCoords(frameIn, ucell, recip, maskIn);
   Darray atom_recip;
   // FIXME helPME requires coords and charge arrays to be non-const
   double e_recip = Recip_.Recip_Decomp( atom_recip,

@@ -59,7 +59,6 @@ int EwaldCalc_PME::CalcNonbondEnergy(Frame const& frameIn, AtomMask const& maskI
   // TODO make more efficient
   NBengine_.ModifyEwaldParams().FillRecipCoords( frameIn, maskIn );
 
-  //  MapCoords(frameIn, ucell, recip, maskIn);
   // FIXME helPME requires coords and charge arrays to be non-const
   double e_recip = Recip_.Recip_ParticleMesh( NBengine_.ModifyEwaldParams().SelectedCoords(),
                                               frameIn.BoxCrd(),
@@ -67,21 +66,8 @@ int EwaldCalc_PME::CalcNonbondEnergy(Frame const& frameIn, AtomMask const& maskI
                                               NBengine_.EwaldParams().EwaldCoeff()
                                             );
 
-  // TODO branch
-  //double e_vdw6self, e_vdw6recip;
-  //if (lw_coeff_ > 0.0) {
-  //  e_vdw6self = Self6();
-  //  e_vdw6recip = LJ_Recip_ParticleMesh( frameIn.BoxCrd() );
-  //  if (debug_ > 0) {
-  //    mprintf("DEBUG: e_vdw6self = %16.8f\n", e_vdw6self);
-  //    mprintf("DEBUG: Evdwrecip = %16.8f\n", e_vdw6recip);
-  //  }
-  //  e_vdw_lr_correction = 0.0;
-  //} else {
-  //  e_vdw6self = 0.0;
-  //  e_vdw6recip = 0.0;
-    double e_vdw_lr_correction = VDW_LR_.Vdw_Correction( NBengine_.EwaldParams().Cutoff(), volume );
-  //}
+  double e_vdw_lr_correction = VDW_LR_.Vdw_Correction( NBengine_.EwaldParams().Cutoff(), volume );
+
   t_direct_.Start();
   Cpptraj::PairListTemplate<double>(pairList_, Excluded_,
                                     NBengine_.EwaldParams().Cut2(), NBengine_);
@@ -109,15 +95,7 @@ int EwaldCalc_PME::CalcNonbondEnergy(Frame const& frameIn, AtomMask const& maskI
 
 void EwaldCalc_PME::Timing(double total) const {
   t_total_.WriteTiming(1,  "  PME Total:", total);
-  //t_self_.WriteTiming(2,   "Self:      ", t_total_.Total());
   Recip_.Timing_Total().WriteTiming(2,  "Recip:     ", t_total_.Total());
-  //Recip_.Timing_Calc().WriteTiming(3,"Recip. Calc:", Recip_.Timing_Total().Total());
-//  if (t_trig_tables_.Total() > 0.0)
-//    t_trig_tables_.WriteTiming(3, "Calc trig tables:", t_recip_.Total());
   t_direct_.WriteTiming(2, "Direct:    ", t_total_.Total());
-//# ifndef _OPENMP
-//  t_erfc_.WriteTiming(3,  "ERFC:  ", t_direct_.Total());
-//  t_adjust_.WriteTiming(3,"Adjust:", t_direct_.Total());
-//# endif
 }
 #endif /* LIBPME */

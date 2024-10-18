@@ -59,7 +59,6 @@ int EwaldCalc_LJPME::CalcNonbondEnergy(Frame const& frameIn, AtomMask const& mas
   // TODO make more efficient
   NBengine_.ModifyEwaldParams().FillRecipCoords( frameIn, maskIn );
 
-  //  MapCoords(frameIn, ucell, recip, maskIn);
   // FIXME helPME requires coords and charge arrays to be non-const
   double e_recip = Recip_.Recip_ParticleMesh( NBengine_.ModifyEwaldParams().SelectedCoords(),
                                               frameIn.BoxCrd(),
@@ -107,9 +106,7 @@ int EwaldCalc_LJPME::CalcNonbondEnergy(Frame const& frameIn, AtomMask const& mas
 void EwaldCalc_LJPME::Timing(double total) const {
   t_total_.WriteTiming(1,  "  LJPME Total:", total);
   Recip_.Timing_Total().WriteTiming(2,  "Recip:     ", t_total_.Total());
-  //Recip_.Timing_Calc().WriteTiming(3,  "Recip. Calc   :", Recip_.Timing_Total().Total());
   LJrecip_.Timing_Total().WriteTiming(2,"LJRecip:   ", t_total_.Total());
-  //LJrecip_.Timing_Calc().WriteTiming(3,"LJ Recip. Calc:", LJrecip_.Timing_Total().Total());
   t_direct_.WriteTiming(2, "Direct:    ", t_total_.Total());
 }
 #endif /* LIBPME */
