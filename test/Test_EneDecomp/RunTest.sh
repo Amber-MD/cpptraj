@@ -7,12 +7,12 @@ TESTNAME='Energy decomposition tests'
 CleanFiles enedecomp.in ene.*.dat decomp.*.dat Total.*.dat
 
 TESTNAME='Particle mesh Ewald tests'
-Requires maxthreads 1 
+#Requires maxthreads 1 
 
 INPUT='-i enedecomp.in'
 
 UNITNAME='NaCl box decomposition'
-CheckFor libpme
+CheckFor libpme maxthreads 1
 if [ $? -eq 0 ] ; then
   cat > enedecomp.in <<EOF
 parm ../Test_Ewald/nacl.box.parm7
@@ -35,7 +35,9 @@ EOF
 fi
 
 UNITNAME='AFV decomposition'
-cat > enedecomp.in <<EOF
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > enedecomp.in <<EOF
 parm ../AFV.parm7 
 trajin AFV.rst7
 energy ENE out ene.AFV.dat
@@ -45,9 +47,23 @@ run
 Total = sum(ATM)
 writedata Total.AFV.dat Total
 EOF
-RunCpptraj "$UNITNAME"
-DoTest decomp.AFV.dat.save decomp.AFV.dat
-DoTest ene.AFV.dat.save ene.AFV.dat
-DoTest Total.AFV.dat.save Total.AFV.dat
+  RunCpptraj "$UNITNAME"
+  DoTest decomp.AFV.dat.save decomp.AFV.dat
+  DoTest ene.AFV.dat.save ene.AFV.dat
+  DoTest Total.AFV.dat.save Total.AFV.dat
+fi
+
+UNITNAME='Trpzip2 decomposition'
+CheckFor netcdf maxthreads 10
+if [ $? -eq 0 ] ; then
+  cat > enedecomp.in <<EOF
+parm ../tz2.parm7
+trajin ../tz2.nc 1 10
+enedecomp TZ2 * out decomp.tz2.dat
+run
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest decomp.tz2.dat.save decomp.tz2.dat
+fi
 
 EndTest
