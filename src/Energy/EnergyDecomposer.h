@@ -19,6 +19,9 @@ class Topology;
 namespace Cpptraj {
 namespace Energy {
 /// Used to break down pairwise-additive energy by atom
+/** Comple with -DCPPTRAJ_DEBUG_ENEDECOMP for more details on the individual
+  * contributions.
+  */
 class EnergyDecomposer {
   public:
     /// CONSTRUCTOR

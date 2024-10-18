@@ -249,7 +249,9 @@ void EnergyDecomposer::calcBonds( Frame const& frameIn ) {
     double ene = Ene_Bond<double>( frameIn.XYZ( bnd->A1() ),
                                    frameIn.XYZ( bnd->A2() ),
                                    BP.Req(), BP.Rk() );
+#   ifdef CPPTRAJ_DEBUG_ENEDECOMP
     mprintf("DEBUG: BND %f\n", ene);
+#   endif
     // Divide the energy equally between the two atoms.
     double ene_half = ene * 0.5;
     saveEne( bnd->A1(), ene_half );
@@ -266,7 +268,9 @@ void EnergyDecomposer::calcAngles( Frame const& frameIn ) {
                                     frameIn.XYZ( ang->A2() ),
                                     frameIn.XYZ( ang->A3() ),
                                     AP.Teq(), AP.Tk() );
+#   ifdef CPPTRAJ_DEBUG_ENEDECOMP
     mprintf("DEBUG: ANG %f\n", ene);
+#   endif
     // Divide the energy equally between the three atoms.
     double ene_third = ene / 3.0;
     saveEne( ang->A1(), ene_third );
@@ -287,7 +291,9 @@ void EnergyDecomposer::calcDihedrals( Frame const& frameIn ) {
                             frameIn.XYZ(dih->A4()) );
     double ene = Kernel_Fourier<double>( theta, DP.Pk(), DP.Pn(), DP.Phase() );
 
+#   ifdef CPPTRAJ_DEBUG_ENEDECOMP
     mprintf("DEBUG: DIH %f\n", ene);
+#   endif
     // Divide the energy equally between the four atoms.
     double ene_fourth = ene / 4.0;
     saveEne( dih->A1(), ene_fourth );
@@ -300,7 +306,9 @@ void EnergyDecomposer::calcDihedrals( Frame const& frameIn ) {
       NonbondType const& LJ = currentTop_->GetLJparam(dih->A1(), dih->A4());
       double e_vdw = Ene_LJ_6_12( rij2, LJ.A(), LJ.B() );
       e_vdw /= DP.SCNB();
+#     ifdef CPPTRAJ_DEBUG_ENEDECOMP
       mprintf("DEBUG: V14 %f\n", e_vdw);
+#     endif
       double ene_half = e_vdw * 0.5;
       saveEne( dih->A1(), ene_half );
       saveEne( dih->A4(), ene_half );
@@ -309,7 +317,9 @@ void EnergyDecomposer::calcDihedrals( Frame const& frameIn ) {
       double qiqj = Constants::COULOMBFACTOR * (*currentTop_)[dih->A1()].Charge() * (*currentTop_)[dih->A4()].Charge();
       double e_elec = qiqj / rij;
       e_elec /= DP.SCEE();
+#     ifdef CPPTRAJ_DEBUG_ENEDECOMP
       mprintf("DEBUG: E14 %f\n", e_elec);
+#     endif
       ene_half = e_elec * 0.5;
       saveEne( dih->A1(), ene_half );
       saveEne( dih->A4(), ene_half );
