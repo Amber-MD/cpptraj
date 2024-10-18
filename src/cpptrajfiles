@@ -409,6 +409,7 @@ COMMON_SOURCES= \
         SimplexMin.cpp \
         Spline.cpp \
         SplineFxnTable.cpp \
+        Stats_Reduce.cpp \
         StringRoutines.cpp \
         StructureCheck.cpp \
         StructureMapper.cpp \
