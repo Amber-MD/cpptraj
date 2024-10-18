@@ -6,6 +6,9 @@
 #include "../EwaldOptions.h"
 #include "../OnlineVarT.h"
 #include "../Timer.h"
+#ifdef MPI
+# include "../Parallel.h"
+#endif
 class AngleType;
 class ArgList;
 class BondType;
@@ -38,6 +41,10 @@ class EnergyDecomposer {
     int CalcEne(Frame const&);
     /// Finish the calculation by putting energies in output DataSet
     int FinishCalc();
+#   ifdef MPI
+    /// Reduce the decomposed array to the master rank
+    int ReduceToMaster(Parallel::Comm const&);
+#   endif
   private:
     typedef std::vector<double> Darray;
     typedef std::vector< Stats<double> > EneArrayType;

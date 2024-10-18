@@ -12,6 +12,9 @@
 #include "../DistRoutines.h"
 #include "../ParameterTypes.h"
 #include "../TorsionRoutines.h"
+#ifdef MPI
+# include "../Stats_Reduce.h"
+#endif
 #include <algorithm> //std::sort
 
 using namespace Cpptraj::Energy;
@@ -382,3 +385,14 @@ int EnergyDecomposer::FinishCalc() {
   NB_.PrintTiming(t_total_.Total());
   return 0;
 }
+
+#ifdef MPI
+/** Reduce the per-atom energy array to the master rank.
+  * Should be called before FinishCalc().
+  */
+int EnergyDecomposer::ReduceToMaster(Parallel::Comm const& trajComm) {
+  unsigned long maxbin;
+  Stats_Reduce( trajComm, energies_, maxbin );
+  return 0;
+}
+#endif

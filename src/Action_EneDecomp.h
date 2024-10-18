@@ -20,7 +20,13 @@ class Action_EneDecomp : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     /// Print results/finish calculations
     void Print();
+#   ifdef MPI
+    int SyncAction();
+#   endif
 
     Cpptraj::Energy::EnergyDecomposer eneDecomp_; ///< Do the actual decomposition
+#   ifdef MPI
+    Parallel::Comm trajComm_; ///< Across-trajectory communicator
+#   endif
 };
 #endif
