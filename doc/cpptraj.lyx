@@ -24177,7 +24177,7 @@ atommap
 \end_layout
 
 \begin_layout LyX-Code
-        [changenames]
+        [changenames] [chiralimpcut <cut>]
 \end_layout
 
 \begin_deeper
@@ -24246,6 +24246,14 @@ changenames If specified,
  change names of mapped atoms in <target> to match those in <reference>.
 \end_layout
 
+\begin_layout Description
+chiralimpcut
+\begin_inset space ~
+\end_inset
+
+<cut> sets the improper dihedral angle cutoff for determining mapping via chirality (default 10 deg.).
+\end_layout
+
 \end_deeper
 \begin_layout Standard
 Attempt to map the atoms of <target> to those of <reference> based on structural similarity.
@@ -24269,6 +24277,34 @@ rmsfit
 \series default
  keyword is useful in cases where the atom mapping will not be complete (e.g.
  two ligands with the same scaffold but different substituents).
+ If 
+\series bold
+changenames
+\series default
+ is specified,
+ in addition to remapping,
+ the target atom names will be changed to match the reference atom names.
+\end_layout
+
+\begin_layout Standard
+Part of the mapping process involves mapping atoms bonded to chiral centers,
+ which in turn involves calculating so-called 
+\begin_inset Quotes eld
+\end_inset
+
+improper
+\begin_inset Quotes erd
+\end_inset
+
+ dihedral angles to determine the orientation of the bonded atoms.
+ By default the code assumes the orientation of the atoms around the chiral centers are fairly close,
+ hence there is a small improper dihedral angle cutoff of 10 degrees.
+ However,
+ this can be increased via the 
+\series bold
+chiralimpcut
+\series default
+ keyword to handle cases where one structure is distorted with respect to the other.
 \end_layout
 
 \begin_layout Standard

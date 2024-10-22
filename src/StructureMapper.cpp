@@ -2,6 +2,7 @@
 #include <list>
 #include "StructureMapper.h"
 #include "CpptrajStdio.h"
+#include "DataSet_Coords_REF.h"
 #include "TorsionRoutines.h"
 #include "Structure/Chirality.h"
 
@@ -12,7 +13,8 @@ StructureMapper::StructureMapper() :
   refTop_(0),
   tgtTop_(0),
   refFrame_(0),
-  tgtFrame_(0)
+  tgtFrame_(0),
+  chiral_improper_cut_(10.0*Constants::DEGRAD)
 {}
 
 /** DESTRUCTOR */
@@ -33,6 +35,16 @@ void StructureMapper::clearPseudoTopFrame() {
   tgtTop_ = 0;
   refFrame_ = 0;
   tgtFrame_ = 0;
+}
+
+/** Set chiral improper angle cutoff (in degrees, convert to radians). */
+void StructureMapper::SetChiralImproperCut(double cutInDeg) {
+  if (cutInDeg < 0) {
+    mprintf("Warning: Negative value given for chiral improper angle cutoff.\n"
+            "Warning: Setting to 0.0.\n");
+    chiral_improper_cut_ = 0;
+  } else
+    chiral_improper_cut_ = cutInDeg * Constants::DEGRAD;
 }
 
 // StructureMapper::mapBondsToUnique()
@@ -401,6 +413,48 @@ const
   return numMappedAtoms;
 }
 
+/** Map given ref atom to target atom. */
+void StructureMapper::map_atoms(int iR, int iT, AtomMap& Ref, AtomMap& Tgt, int& numMappedAtoms,
+                                const char* desc)
+{
+  if (debug_>0)
+    mprintf("    Mapping tgt atom %i:%s to ref atom %i:%s based on %s.\n",
+            iT+1, Tgt[iT].c_str(), iR+1, Ref[iR].c_str(), desc );
+  AMap_[ iR ] = iT;
+  ++numMappedAtoms;
+  // Once an atom has been mapped set its mapped flag
+  Ref[iR].SetMapped();
+  Tgt[iT].SetMapped();
+}
+
+/** \return true if the absolute value of the given value is less than
+  *         the chiral improper cutoff.
+  */
+bool StructureMapper::chiralImproperCutSatisfied(double deltaIn) const {
+  double delta;
+  if (deltaIn < 0.0)
+    delta = -deltaIn;
+  else
+    delta = deltaIn;
+  return (delta < chiral_improper_cut_);
+}
+
+/** Warning for when atoms will be mapped but delta seems large. */
+void StructureMapper::check_large_delta(int iR, int iT, AtomMap const& Ref, AtomMap const& Tgt,
+                                        int ratom, int tatom, double delta)
+const
+{
+  if (!chiralImproperCutSatisfied(delta))
+    mprintf("Warning: Ref %i:%s and Tgt %i:%s bonded to chiral centers\n"
+            "Warning: %i:%s | %i:%s have the same sign but a large delta\n"
+            "Warning: (%.4f deg). This can indicate structural problems in either\n"
+            "Warning: the target or reference. Mapping atoms, but it is recommended\n"
+            "Warning: the structures be visually inspected for problems.\n",
+            iR+1, Ref[iR].c_str(), iT+1, Tgt[iT].c_str(),
+            ratom+1, Ref[ratom].c_str(), tatom+1, Tgt[tatom].c_str(),
+            delta*Constants::RADDEG);
+}
+
 // StructureMapper::mapChiral()
 /** Given two atommaps and a map relating the two, find chiral centers for
   * which at least 3 of the atoms have been mapped. Assign the remaining
@@ -532,42 +586,79 @@ int StructureMapper::mapChiral(AtomMap& Ref, AtomMap& Tgt) {
       if (debug_>1) mprintf("    Tgt Improper %i [%3i,%3i,%3i,%3i]= %lf\n",i,
                            uT[0]+1, uT[1]+1, uT[2]+1, nT[i]+1, dT[i]*Constants::RADDEG);
     }
-    // Match impropers to each other using a cutoff. Note that all torsions
-    // are in radians.
-    // NOTE: 10.0 degrees seems reasonable? Also there is currently no 
-    //       check for repeated deltas.
-    for (int i=0; i<notunique_r; i++) {
-      for (int j=0; j<notunique_t; j++) {
-        double delta = dR[i] - dT[j];
-        if (delta<0.0) delta=-delta;
-        if (delta<0.17453292519943295769236907684886) {
-          if (debug_>0)
-            mprintf("    Mapping tgt atom %i:%s to ref atom %i:%s based on chirality.\n",
-                    nT[j]+1, Tgt[nT[j]].c_str(), nR[i]+1, Ref[nR[i]].c_str() );
-          AMap_[ nR[i] ] = nT[j];
-          ++numMappedAtoms;
-          // Once an atom has been mapped set its mapped flag
-          Ref[nR[i]].SetMapped();
-          Tgt[nT[j]].SetMapped();
-        } else if (notunique_r == 1 && notunique_t == 1) {
-          // This is the only non-mapped atom of the chiral center but for
-          // some reason the improper dihedral doesnt match. Map it but warn
-          // the user.
-          mprintf("Warning: Ref %i:%s and Tgt %i:%s are the only unmapped atoms of chiral\n"
-                  "Warning: centers %i:%s | %i:%s, but the improper dihedral angles do not\n"
-                  "Warning: match (%.4f rad != %.4f rad). This can indicate structural problems\n"
-                  "Warning: in either the target or reference. Mapping atoms, but it is\n"
-                  "Warning: recommended the structures be visually inspected for problems.\n",
-                  nR[i]+1, Ref[nR[i]].c_str(), nT[j]+1, Tgt[nT[j]].c_str(),
-                  ratom+1, Ref[ratom].c_str(), tatom+1, Tgt[tatom].c_str(),
-                  dR[i], dT[j]);
-          AMap_[ nR[i] ] = nT[j];
-          ++numMappedAtoms;
-          Ref[nR[i]].SetMapped();
-          Tgt[nT[j]].SetMapped();
-        }
+    // Try different mapping methods
+    bool successful_map = false;
+    if (notunique_r == 1 && notunique_t == 1) {
+      // Only 1 non-mapped atom of each chiral center.
+      // If for some reason the improper dihedral doesnt match, map it
+      // but warn the user.
+      if (!chiralImproperCutSatisfied(dR[0] - dT[0])) {
+        mprintf("Warning: Ref %i:%s and Tgt %i:%s are the only unmapped atoms of chiral\n"
+                "Warning: centers %i:%s | %i:%s, but the improper dihedral angles do not\n"
+                "Warning: match (%.4f deg != %.4f deg). This can indicate structural problems\n"
+                "Warning: in either the target or reference. Mapping atoms, but it is\n"
+                "Warning: recommended the structures be visually inspected for problems.\n",
+                nR[0]+1, Ref[nR[0]].c_str(), nT[0]+1, Tgt[nT[0]].c_str(),
+                ratom+1, Ref[ratom].c_str(), tatom+1, Tgt[tatom].c_str(),
+                dR[0]*Constants::RADDEG, dT[0]*Constants::RADDEG);
+      }
+      map_atoms( nR[0], nT[0], Ref, Tgt, numMappedAtoms, "only unmapped atom" );
+      successful_map = true;
+    } else if (notunique_r == 2 && notunique_t == 2) {
+      // Chiral center atom, 2 mapped atoms, 2 unmapped atoms.
+      // Expect one atom to have positive dihedral, one to have negative.
+      // Map positive to positive and negative to negative.
+      int ref_0, ref_1, tgt_0, tgt_1;
+      if (dR[0] < 0)
+        ref_0 = -1;
+      else
+        ref_0 = 1;
+      if (dR[1] < 0)
+        ref_1 = -1;
+      else
+        tgt_1 = 1;
+      if (dT[0] < 0)
+        tgt_0 = -1;
+      else
+        tgt_0 = 1;
+      if (dT[1] < 0)
+        tgt_1 = -1;
+      else
+        tgt_1 = 1;
+      if ( (ref_0 + ref_1 == 0) && (tgt_0 + tgt_1 == 0) ) {
+        // Each has a positive and negative angle.
+        if (ref_0 == tgt_0) {
+          check_large_delta(nR[0], nT[0], Ref, Tgt, ratom, tatom, dR[0]-dT[0]);
+          check_large_delta(nR[1], nT[1], Ref, Tgt, ratom, tatom, dR[1]-dT[1]);
+
+          map_atoms( nR[0], nT[0], Ref, Tgt, numMappedAtoms, "chirality sign" );
+          map_atoms( nR[1], nT[1], Ref, Tgt, numMappedAtoms, "chirality sign" );
+          successful_map = true;
+        } else if (ref_0 == tgt_1) {
+          check_large_delta(nR[0], nT[1], Ref, Tgt, ratom, tatom, dR[0]-dT[1]);
+          check_large_delta(nR[1], nT[0], Ref, Tgt, ratom, tatom, dR[1]-dT[0]);
+
+          map_atoms( nR[0], nT[1], Ref, Tgt, numMappedAtoms, "chirality sign" );
+          map_atoms( nR[1], nT[0], Ref, Tgt, numMappedAtoms, "chirality sign" );
+          successful_map = true;
+        } 
       }
     }
+    if (!successful_map) {
+      // Chiral map general (previous default) method.
+      // Match impropers to each other using a cutoff. Note that all torsions
+      // are in radians.
+      // NOTE: 10.0 degrees seems reasonable? Also there is currently no 
+      //       check for repeated deltas.
+      for (int i=0; i < notunique_r; i++) {
+        for (int j=0; j < notunique_t; j++) {
+          double delta = dR[i] - dT[j];
+          if (chiralImproperCutSatisfied(delta)) {
+            map_atoms( nR[i], nT[j], Ref, Tgt, numMappedAtoms, "chirality angle" );
+          }
+        }
+      }
+    } // END chiral map general method 
     // Check if ref atom or tgt atom is now completely mapped
     Ref.MarkAtomComplete(ratom,false);
     Tgt.MarkAtomComplete(tatom,false);

@@ -1,7 +1,7 @@
 #ifndef INC_STRUCTUREMAPPER_H
 #define INC_STRUCTUREMAPPER_H
 #include "AtomMap.h"
-#include "DataSet_Coords_REF.h"
+class DataSet_Coords_REF;
 /// Attempt to create a one-to-one mapping between atoms in two structures.
 class StructureMapper {
   public:
@@ -10,6 +10,9 @@ class StructureMapper {
     StructureMapper();
     /// DESTRUCTOR
     ~StructureMapper();
+
+    /// Set the improper angle cutoff (in deg.) for mapping via chirality.
+    void SetChiralImproperCut(double);
 
     int CreateMap(DataSet_Coords_REF*, DataSet_Coords_REF*, int);
     int CreateMapByResidue(DataSet_Coords_REF*, DataSet_Coords_REF*, int);
@@ -31,6 +34,10 @@ class StructureMapper {
     /// Map unmapped atoms bonded to mapped chiral centers via priority
     int mapChiral_viaPriority(MapType&, AtomMap&, AtomMap&, int, int);
 
+    void map_atoms(int, int, AtomMap&, AtomMap&, int&, const char*);
+    bool chiralImproperCutSatisfied(double) const;
+    void check_large_delta(int, int, AtomMap const&, AtomMap const&, int, int, double) const;
+
     int mapChiral(AtomMap&, AtomMap&);
     int mapByIndex(AtomMap&, AtomMap&);
     int mapUniqueRefToTgt(AtomMap&, AtomMap&, int);
@@ -50,5 +57,6 @@ class StructureMapper {
     Topology* tgtTop_; ///< Pseudo topology for current tgt atoms being mapped
     Frame* refFrame_;  ///< Pseudo frame for current ref atoms being mapped to
     Frame* tgtFrame_;  ///< Pseudo frame for current tgt atoms being mapped
+    double chiral_improper_cut_; ///< Cutoff for mapping chiral based on improper angle (radians)
 };
 #endif
