@@ -33,6 +33,8 @@ class StructureMapper {
 
     void map_atoms(int, int, AtomMap&, AtomMap&, int&, const char*);
     bool chiralImproperCutSatisfied(double) const;
+    void check_large_delta(int, int, AtomMap const&, AtomMap const&, int, int, double) const;
+
     int mapChiral(AtomMap&, AtomMap&);
     int mapByIndex(AtomMap&, AtomMap&);
     int mapUniqueRefToTgt(AtomMap&, AtomMap&, int);

@@ -428,6 +428,22 @@ bool StructureMapper::chiralImproperCutSatisfied(double deltaIn) const {
   return (delta < chiral_improper_cut_);
 }
 
+/** Warning for when atoms will be mapped but delta seems large. */
+void StructureMapper::check_large_delta(int iR, int iT, AtomMap const& Ref, AtomMap const& Tgt,
+                                        int ratom, int tatom, double delta)
+const
+{
+  if (!chiralImproperCutSatisfied(delta))
+    mprintf("Warning: Ref %i:%s and Tgt %i:%s bonded to chiral centers\n"
+            "Warning: %i:%s | %i:%s have the same sign but a large delta\n"
+            "Warning: (%.4f deg). This can indicate structural problems in either\n"
+            "Warning: the target or reference. Mapping atoms, but it is recommended\n"
+            "Warning: the structures be visually inspected for problems.\n",
+            iR+1, Ref[iR].c_str(), iT+1, Tgt[iT].c_str(),
+            ratom+1, Ref[ratom].c_str(), tatom+1, Tgt[tatom].c_str(),
+            delta*Constants::RADDEG);
+}
+
 // StructureMapper::mapChiral()
 /** Given two atommaps and a map relating the two, find chiral centers for
   * which at least 3 of the atoms have been mapped. Assign the remaining
@@ -601,10 +617,16 @@ int StructureMapper::mapChiral(AtomMap& Ref, AtomMap& Tgt) {
       if ( (ref_0 + ref_1 == 0) && (tgt_0 + tgt_1 == 0) ) {
         // Each has a positive and negative angle.
         if (ref_0 == tgt_0) {
+          check_large_delta(nR[0], nT[0], Ref, Tgt, ratom, tatom, dR[0]-dT[0]);
+          check_large_delta(nR[1], nT[1], Ref, Tgt, ratom, tatom, dR[1]-dT[1]);
+
           map_atoms( nR[0], nT[0], Ref, Tgt, numMappedAtoms, "chirality sign" );
           map_atoms( nR[1], nT[1], Ref, Tgt, numMappedAtoms, "chirality sign" );
           successful_map = true;
         } else if (ref_0 == tgt_1) {
+          check_large_delta(nR[0], nT[1], Ref, Tgt, ratom, tatom, dR[0]-dT[1]);
+          check_large_delta(nR[1], nT[0], Ref, Tgt, ratom, tatom, dR[1]-dT[0]);
+
           map_atoms( nR[0], nT[1], Ref, Tgt, numMappedAtoms, "chirality sign" );
           map_atoms( nR[1], nT[0], Ref, Tgt, numMappedAtoms, "chirality sign" );
           successful_map = true;
@@ -617,8 +639,8 @@ int StructureMapper::mapChiral(AtomMap& Ref, AtomMap& Tgt) {
       // are in radians.
       // NOTE: 10.0 degrees seems reasonable? Also there is currently no 
       //       check for repeated deltas.
-      for (int i=0; i<notunique_r; i++) {
-        for (int j=0; j<notunique_t; j++) {
+      for (int i=0; i < notunique_r; i++) {
+        for (int j=0; j < notunique_t; j++) {
           double delta = dR[i] - dT[j];
           if (chiralImproperCutSatisfied(delta)) {
             map_atoms( nR[i], nT[j], Ref, Tgt, numMappedAtoms, "chirality angle" );
