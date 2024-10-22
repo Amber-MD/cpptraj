@@ -1,7 +1,7 @@
 #ifndef INC_STRUCTUREMAPPER_H
 #define INC_STRUCTUREMAPPER_H
 #include "AtomMap.h"
-#include "DataSet_Coords_REF.h"
+class DataSet_Coords_REF;
 /// Attempt to create a one-to-one mapping between atoms in two structures.
 class StructureMapper {
   public:
@@ -10,6 +10,9 @@ class StructureMapper {
     StructureMapper();
     /// DESTRUCTOR
     ~StructureMapper();
+
+    /// Set the improper angle cutoff (in deg.) for mapping via chirality.
+    void SetChiralImproperCut(double);
 
     int CreateMap(DataSet_Coords_REF*, DataSet_Coords_REF*, int);
     int CreateMapByResidue(DataSet_Coords_REF*, DataSet_Coords_REF*, int);

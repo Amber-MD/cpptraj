@@ -2,6 +2,7 @@
 #include <list>
 #include "StructureMapper.h"
 #include "CpptrajStdio.h"
+#include "DataSet_Coords_REF.h"
 #include "TorsionRoutines.h"
 #include "Structure/Chirality.h"
 
@@ -34,6 +35,16 @@ void StructureMapper::clearPseudoTopFrame() {
   tgtTop_ = 0;
   refFrame_ = 0;
   tgtFrame_ = 0;
+}
+
+/** Set chiral improper angle cutoff (in degrees, convert to radians). */
+void StructureMapper::SetChiralImproperCut(double cutInDeg) {
+  if (cutInDeg < 0) {
+    mprintf("Warning: Negative value given for chiral improper angle cutoff.\n"
+            "Warning: Setting to 0.0.\n");
+    chiral_improper_cut_ = 0;
+  } else
+    chiral_improper_cut_ = cutInDeg * Constants::DEGRAD;
 }
 
 // StructureMapper::mapBondsToUnique()
