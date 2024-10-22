@@ -622,22 +622,6 @@ int StructureMapper::mapChiral(AtomMap& Ref, AtomMap& Tgt) {
           double delta = dR[i] - dT[j];
           if (chiralImproperCutSatisfied(delta)) {
             map_atoms( nR[i], nT[j], Ref, Tgt, numMappedAtoms, "chirality angle" );
-          } else if (notunique_r == 1 && notunique_t == 1) {
-            // This is the only non-mapped atom of the chiral center but for
-            // some reason the improper dihedral doesnt match. Map it but warn
-            // the user.
-            mprintf("Warning: Ref %i:%s and Tgt %i:%s are the only unmapped atoms of chiral\n"
-                    "Warning: centers %i:%s | %i:%s, but the improper dihedral angles do not\n"
-                    "Warning: match (%.4f rad != %.4f rad). This can indicate structural problems\n"
-                    "Warning: in either the target or reference. Mapping atoms, but it is\n"
-                    "Warning: recommended the structures be visually inspected for problems.\n",
-                    nR[i]+1, Ref[nR[i]].c_str(), nT[j]+1, Tgt[nT[j]].c_str(),
-                    ratom+1, Ref[ratom].c_str(), tatom+1, Tgt[tatom].c_str(),
-                    dR[i], dT[j]);
-            AMap_[ nR[i] ] = nT[j];
-            ++numMappedAtoms;
-            Ref[nR[i]].SetMapped();
-            Tgt[nT[j]].SetMapped();
           }
         }
       }
