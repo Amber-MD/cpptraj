@@ -32,6 +32,7 @@ class StructureMapper {
     int mapChiral_viaPriority(MapType&, AtomMap&, AtomMap&, int, int);
 
     void map_atoms(int, int, AtomMap&, AtomMap&, int&);
+    bool chiralImproperCutSatisfied(double) const;
     int mapChiral(AtomMap&, AtomMap&);
     int mapByIndex(AtomMap&, AtomMap&);
     int mapUniqueRefToTgt(AtomMap&, AtomMap&, int);
@@ -51,5 +52,6 @@ class StructureMapper {
     Topology* tgtTop_; ///< Pseudo topology for current tgt atoms being mapped
     Frame* refFrame_;  ///< Pseudo frame for current ref atoms being mapped to
     Frame* tgtFrame_;  ///< Pseudo frame for current tgt atoms being mapped
+    double chiral_improper_cut_; ///< Cutoff for mapping chiral based on improper angle (radians)
 };
 #endif

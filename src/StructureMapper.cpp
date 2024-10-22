@@ -12,7 +12,8 @@ StructureMapper::StructureMapper() :
   refTop_(0),
   tgtTop_(0),
   refFrame_(0),
-  tgtFrame_(0)
+  tgtFrame_(0),
+  chiral_improper_cut_(10.0*Constants::DEGRAD)
 {}
 
 /** DESTRUCTOR */
@@ -401,6 +402,7 @@ const
   return numMappedAtoms;
 }
 
+/** Map given ref atom to target atom. */
 void StructureMapper::map_atoms(int iR, int iT, AtomMap& Ref, AtomMap& Tgt, int& numMappedAtoms)
 {
   if (debug_>0)
@@ -411,6 +413,18 @@ void StructureMapper::map_atoms(int iR, int iT, AtomMap& Ref, AtomMap& Tgt, int&
   // Once an atom has been mapped set its mapped flag
   Ref[iR].SetMapped();
   Tgt[iT].SetMapped();
+}
+
+/** \return true if the absolute value of the given value is less than
+  *         the chiral improper cutoff.
+  */
+bool StructureMapper::chiralImproperCutSatisfied(double deltaIn) const {
+  double delta;
+  if (deltaIn < 0.0)
+    delta = -deltaIn;
+  else
+    delta = deltaIn;
+  return (delta < chiral_improper_cut_);
 }
 
 // StructureMapper::mapChiral()
@@ -589,8 +603,7 @@ int StructureMapper::mapChiral(AtomMap& Ref, AtomMap& Tgt) {
       for (int i=0; i<notunique_r; i++) {
         for (int j=0; j<notunique_t; j++) {
           double delta = dR[i] - dT[j];
-          if (delta<0.0) delta=-delta;
-          if (delta<0.17453292519943295769236907684886) {
+          if (chiralImproperCutSatisfied(delta)) {
             if (debug_>0)
               mprintf("    Mapping tgt atom %i:%s to ref atom %i:%s based on chirality.\n",
                       nT[j]+1, Tgt[nT[j]].c_str(), nR[i]+1, Ref[nR[i]].c_str() );
