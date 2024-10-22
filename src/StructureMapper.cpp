@@ -577,8 +577,7 @@ int StructureMapper::mapChiral(AtomMap& Ref, AtomMap& Tgt) {
       }
       map_atoms( nR[0], nT[0], Ref, Tgt, numMappedAtoms, "only unmapped atom" );
       successful_map = true;
-    }
-    if (notunique_r == 2 && notunique_t == 2) {
+    } else if (notunique_r == 2 && notunique_t == 2) {
       // Chiral center atom, 2 mapped atoms, 2 unmapped atoms.
       // Expect one atom to have positive dihedral, one to have negative.
       // Map positive to positive and negative to negative.
@@ -622,14 +621,7 @@ int StructureMapper::mapChiral(AtomMap& Ref, AtomMap& Tgt) {
         for (int j=0; j<notunique_t; j++) {
           double delta = dR[i] - dT[j];
           if (chiralImproperCutSatisfied(delta)) {
-            if (debug_>0)
-              mprintf("    Mapping tgt atom %i:%s to ref atom %i:%s based on chirality.\n",
-                      nT[j]+1, Tgt[nT[j]].c_str(), nR[i]+1, Ref[nR[i]].c_str() );
-            AMap_[ nR[i] ] = nT[j];
-            ++numMappedAtoms;
-            // Once an atom has been mapped set its mapped flag
-            Ref[nR[i]].SetMapped();
-            Tgt[nT[j]].SetMapped();
+            map_atoms( nR[i], nT[j], Ref, Tgt, numMappedAtoms, "chirality angle" );
           } else if (notunique_r == 1 && notunique_t == 1) {
             // This is the only non-mapped atom of the chiral center but for
             // some reason the improper dihedral doesnt match. Map it but warn
