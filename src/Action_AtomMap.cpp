@@ -22,13 +22,16 @@ Action_AtomMap::Action_AtomMap() :
 void Action_AtomMap::Help() const {
   mprintf("\t<target> <reference> [mapout <filename>] [maponly]\n"
           "\t[rmsfit [ rmsout <rmsout> ]] [mode {all | byres}]\n"
-          "\t[changenames]\n"
+          "\t[changenames] [chiralimpcut <cut>]\n"
           "  Attempt to create a map from atoms in <target> to atoms in <reference> solely\n"
           "  based on how they are bonded; remap <target> so it matches <reference>.\n"
           "  If 'rmsfit' is specified, calculate the RMSD of remapped target to reference.\n"
           "  If 'changenames' is specified change target atom names to match reference.\n"
+          "  'chiralimpcut' sets the improper dihedral angle cutoff for determining\n"
+          "    mapping via chirality (default 10 deg.)\n"
           "  Modes: 'all'   : try to map all atoms at once (default).\n"
-          "         'byres' : map residue by residue (assumes 1 to 1 residue correspondence).\n");
+          "         'byres' : map residue by residue (assumes 1 to 1 residue correspondence).\n"
+         );
 }
 
 // DESTRUCTOR
@@ -49,6 +52,7 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, ActionInit& init, int 
   // Prevent non-master from writing.
   if (!init.TrajComm().Master()) outputfile = 0;
 # endif
+  double chiral_improper_cut_deg = actionArgs.getKeyDouble("chiralimpcut", 10.0);
   maponly_ = actionArgs.hasKey("maponly");
   rmsfit_ = actionArgs.hasKey("rmsfit");
   renameAtoms_ = actionArgs.hasKey("changenames");
@@ -96,6 +100,8 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, ActionInit& init, int 
     mprintf("\tMap will only be written, not used to remap input trajectories.\n");
   else
     mprintf("\tAtoms in input trajectories matching target will be remapped.\n");
+  mprintf("\tCutoff for determining mapping via chiral improper dihedral angle: %g deg.\n",
+          chiral_improper_cut_deg);
   if (!maponly_) {
     if (rmsfit_) {
       mprintf("\tWill RMS-fit mapped atoms in tgt to reference.\n");
@@ -119,6 +125,7 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, ActionInit& init, int 
   // ---------------------------------------------
   int err = 0;
   StructureMapper Mapper;
+  Mapper.SetChiralImproperCut(chiral_improper_cut_deg);
   switch (mode_) {
     case BY_RES: err = Mapper.CreateMapByResidue( RefFrame_, TgtFrame_, debug_ ); break;
     case ALL   : err = Mapper.CreateMap( RefFrame_, TgtFrame_, debug_ ); break;
