@@ -403,11 +403,12 @@ const
 }
 
 /** Map given ref atom to target atom. */
-void StructureMapper::map_atoms(int iR, int iT, AtomMap& Ref, AtomMap& Tgt, int& numMappedAtoms)
+void StructureMapper::map_atoms(int iR, int iT, AtomMap& Ref, AtomMap& Tgt, int& numMappedAtoms,
+                                const char* desc)
 {
   if (debug_>0)
-    mprintf("    Mapping tgt atom %i:%s to ref atom %i:%s based on chirality value.\n",
-            iT+1, Tgt[iT].c_str(), iR+1, Ref[iR].c_str() );
+    mprintf("    Mapping tgt atom %i:%s to ref atom %i:%s based on %s.\n",
+            iT+1, Tgt[iT].c_str(), iR+1, Ref[iR].c_str(), desc );
   AMap_[ iR ] = iT;
   ++numMappedAtoms;
   // Once an atom has been mapped set its mapped flag
@@ -560,6 +561,23 @@ int StructureMapper::mapChiral(AtomMap& Ref, AtomMap& Tgt) {
     }
     // Try different mapping methods
     bool successful_map = false;
+    if (notunique_r == 1 && notunique_t == 1) {
+      // Only 1 non-mapped atom of each chiral center.
+      // If for some reason the improper dihedral doesnt match, map it
+      // but warn the user.
+      if (!chiralImproperCutSatisfied(dR[0] - dT[0])) {
+        mprintf("Warning: Ref %i:%s and Tgt %i:%s are the only unmapped atoms of chiral\n"
+                "Warning: centers %i:%s | %i:%s, but the improper dihedral angles do not\n"
+                "Warning: match (%.4f deg != %.4f deg). This can indicate structural problems\n"
+                "Warning: in either the target or reference. Mapping atoms, but it is\n"
+                "Warning: recommended the structures be visually inspected for problems.\n",
+                nR[0]+1, Ref[nR[0]].c_str(), nT[0]+1, Tgt[nT[0]].c_str(),
+                ratom+1, Ref[ratom].c_str(), tatom+1, Tgt[tatom].c_str(),
+                dR[0]*Constants::RADDEG, dT[0]*Constants::RADDEG);
+      }
+      map_atoms( nR[0], nT[0], Ref, Tgt, numMappedAtoms, "only unmapped atom" );
+      successful_map = true;
+    }
     if (notunique_r == 2 && notunique_t == 2) {
       // Chiral center atom, 2 mapped atoms, 2 unmapped atoms.
       // Expect one atom to have positive dihedral, one to have negative.
@@ -584,12 +602,12 @@ int StructureMapper::mapChiral(AtomMap& Ref, AtomMap& Tgt) {
       if ( (ref_0 + ref_1 == 0) && (tgt_0 + tgt_1 == 0) ) {
         // Each has a positive and negative angle.
         if (ref_0 == tgt_0) {
-          map_atoms( nR[0], nT[0], Ref, Tgt, numMappedAtoms );
-          map_atoms( nR[1], nT[1], Ref, Tgt, numMappedAtoms );
+          map_atoms( nR[0], nT[0], Ref, Tgt, numMappedAtoms, "chirality sign" );
+          map_atoms( nR[1], nT[1], Ref, Tgt, numMappedAtoms, "chirality sign" );
           successful_map = true;
         } else if (ref_0 == tgt_1) {
-          map_atoms( nR[0], nT[1], Ref, Tgt, numMappedAtoms );
-          map_atoms( nR[1], nT[0], Ref, Tgt, numMappedAtoms );
+          map_atoms( nR[0], nT[1], Ref, Tgt, numMappedAtoms, "chirality sign" );
+          map_atoms( nR[1], nT[0], Ref, Tgt, numMappedAtoms, "chirality sign" );
           successful_map = true;
         } 
       }
