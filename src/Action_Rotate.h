@@ -1,6 +1,7 @@
 #ifndef INC_ACTION_ROTATE_H
 #define INC_ACTION_ROTATE_H
 #include "Action.h"
+#include "ParallelSetFrameNum.h"
 class DataSet_Mat3x3;
 /// Rotate coordinates or calculate rotations from rotation matrices
 class Action_Rotate : public Action {
@@ -33,5 +34,6 @@ class Action_Rotate : public Action {
     DataSet* dsout_ty_;         ///< Hold output theta Y (calc)
     DataSet* dsout_tz_;         ///< Hold output theta Z (calc)
     DataSet* dsout_t_;          ///< Hold output theta (calc)
+    Cpptraj::ParallelSetFrameNum parallelNum_;
 };
 #endif
