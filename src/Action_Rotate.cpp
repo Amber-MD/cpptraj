@@ -202,28 +202,28 @@ Action::RetType Action_Rotate::DoAction(int frameNum, ActionFrame& frm) {
       frm.ModifyFrm().ModifyBox().RotateUcell( RotMatrix_ );
   } else if (mode_ == DATASET) {
     // Rotate coordinates using rotation matrices in DataSet
-    if (frm.TrajoutNum() >= (int)rmatrices_->Size()) {
-      mprintf("Warning: Frame %i out of range for set '%s'\n",
+    if (frameNum >= (int)rmatrices_->Size()) {
+      rprintf("Warning: Frame %i out of range for set '%s'\n",
               frm.TrajoutNum()+1, rmatrices_->legend());
       return Action::ERR;
     }
     if (inverse_) {
-      frm.ModifyFrm().InverseRotate((*rmatrices_)[frm.TrajoutNum()], mask_);
+      frm.ModifyFrm().InverseRotate((*rmatrices_)[frameNum], mask_);
       if (all_atoms_selected_)
-        frm.ModifyFrm().ModifyBox().InverseRotateUcell( (*rmatrices_)[frm.TrajoutNum()] );
+        frm.ModifyFrm().ModifyBox().InverseRotateUcell( (*rmatrices_)[frameNum] );
     } else {
-      frm.ModifyFrm().Rotate((*rmatrices_)[frm.TrajoutNum()], mask_);
+      frm.ModifyFrm().Rotate((*rmatrices_)[frameNum], mask_);
       if (all_atoms_selected_)
-        frm.ModifyFrm().ModifyBox().RotateUcell( (*rmatrices_)[frm.TrajoutNum()] );
+        frm.ModifyFrm().ModifyBox().RotateUcell( (*rmatrices_)[frameNum] );
     }
   } else if (mode_ == CALC) {
     // Calculate rotations around X Y and Z axes from rotation matrices in DataSet
-    if (frm.TrajoutNum() >= (int)rmatrices_->Size()) {
-      mprintf("Warning: Frame %i out of range for set '%s'\n",
+    if (frameNum >= (int)rmatrices_->Size()) {
+      rprintf("Warning: Frame %i out of range for set '%s'\n",
               frm.TrajoutNum()+1, rmatrices_->legend());
       return Action::ERR;
     }
-    Matrix_3x3 const& RM = (*rmatrices_)[frm.TrajoutNum()];
+    Matrix_3x3 const& RM = (*rmatrices_)[frameNum];
     double tx, ty, tz;
     RM.RotationAngles(tx, ty, tz);
     tx *= Constants::RADDEG;
