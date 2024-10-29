@@ -11,9 +11,11 @@ void ParallelSetFrameNum::SetForParallel(DataSet const* setIn) {
     exists_ = true;
   else
     exists_ = false;
+# ifdef DEBUG_CPPTRAJ_PARALLELSETFRAMENUM
   if (!exists_)
     rprintf("DEBUG: Set '%s' does not yet exist.\n", set_->legend());
   else
     rprintf("DEBUG: Set '%s' exists with size %zu.\n", set_->legend(), set_->Size());
+# endif
 # endif /*MPI */
 }
