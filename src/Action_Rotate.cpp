@@ -38,6 +38,7 @@ int Action_Rotate::Get3x3Set(DataSetList const& DSL, std::string const& dsname) 
     mprinterr("Error: No 3x3 matrices data set '%s'\n", dsname.c_str());
     return 1;
   }
+  parallelNum_.SetForParallel( rmatrices_ );
   return 0;
 }
 
@@ -201,29 +202,31 @@ Action::RetType Action_Rotate::DoAction(int frameNum, ActionFrame& frm) {
     if (all_atoms_selected_)
       frm.ModifyFrm().ModifyBox().RotateUcell( RotMatrix_ );
   } else if (mode_ == DATASET) {
+    int dsidx = parallelNum_.ParallelFrameNum(frameNum, frm.TrajoutNum());
     // Rotate coordinates using rotation matrices in DataSet
-    if (frameNum >= (int)rmatrices_->Size()) {
+    if (dsidx >= (int)rmatrices_->Size()) {
       rprintf("Warning: Frame %i out of range for set '%s'\n",
               frm.TrajoutNum()+1, rmatrices_->legend());
       return Action::ERR;
     }
     if (inverse_) {
-      frm.ModifyFrm().InverseRotate((*rmatrices_)[frameNum], mask_);
+      frm.ModifyFrm().InverseRotate((*rmatrices_)[dsidx], mask_);
       if (all_atoms_selected_)
-        frm.ModifyFrm().ModifyBox().InverseRotateUcell( (*rmatrices_)[frameNum] );
+        frm.ModifyFrm().ModifyBox().InverseRotateUcell( (*rmatrices_)[dsidx] );
     } else {
-      frm.ModifyFrm().Rotate((*rmatrices_)[frameNum], mask_);
+      frm.ModifyFrm().Rotate((*rmatrices_)[dsidx], mask_);
       if (all_atoms_selected_)
-        frm.ModifyFrm().ModifyBox().RotateUcell( (*rmatrices_)[frameNum] );
+        frm.ModifyFrm().ModifyBox().RotateUcell( (*rmatrices_)[dsidx] );
     }
   } else if (mode_ == CALC) {
+    int dsidx = parallelNum_.ParallelFrameNum(frameNum, frm.TrajoutNum());
     // Calculate rotations around X Y and Z axes from rotation matrices in DataSet
-    if (frameNum >= (int)rmatrices_->Size()) {
+    if (dsidx >= (int)rmatrices_->Size()) {
       rprintf("Warning: Frame %i out of range for set '%s'\n",
               frm.TrajoutNum()+1, rmatrices_->legend());
       return Action::ERR;
     }
-    Matrix_3x3 const& RM = (*rmatrices_)[frameNum];
+    Matrix_3x3 const& RM = (*rmatrices_)[dsidx];
     double tx, ty, tz;
     RM.RotationAngles(tx, ty, tz);
     tx *= Constants::RADDEG;
