@@ -12,6 +12,8 @@ class DataSet_Mat3x3 : public DataSet {
     size_t Size()                       const { return data_.size(); }
 #   ifdef MPI
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&);
+    /// Ensure each process has all frames
+    int Bcast(Parallel::Comm const&);
 #   endif
     void Info()                         const { return;              }
     int Allocate(SizeArray const&);
