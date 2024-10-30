@@ -336,6 +336,7 @@ test.rotatedihedral:
 
 test.dataset:
 	@-cd Test_DataSetCmd && ./RunTest.sh $(OPT)
+	@-cd Test_Parallel_Dataset && ./RunTest.sh $(OPT)
 
 test.remap:
 	@-cd Test_Remap && ./RunTest.sh $(OPT)
