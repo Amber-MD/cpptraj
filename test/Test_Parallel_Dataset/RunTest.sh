@@ -8,7 +8,7 @@ TESTNAME='Test handling of read-in vs generated data sets'
 
 . ../MasterTest.sh
 
-CleanFiles cpptraj.in TZ2.RM.dat TZ2.rotate.dat TZ2.rotate.fromset.dat
+CleanFiles cpptraj.in TZ2.RM.dat TZ2.rotate.dat TZ2.rotate.fromset.dat TZ2.rotate2.dat
 
 INPUT='-i cpptraj.in'
 
@@ -24,10 +24,15 @@ reference ../tz2.nc lastframe [LAST]
 rmsd TZ2 ref [LAST] :1-12@CA savematrices matricesout TZ2.RM.dat
 # Extract rotations from matrices
 rotate calcfrom TZ2[RM] name Rot out TZ2.rotate.dat
+run
+
+# Extract rotations from the generated set (set should count as read-in now)
+rotate calcfrom TZ2[RM] name Rot2 out TZ2.rotate2.dat
 EOF
   RunCpptraj "$UNITNAME"
   DoTest TZ2.RM.dat.save TZ2.RM.dat
   DoTest TZ2.rotate.dat.save TZ2.rotate.dat
+  DoTest TZ2.rotate.dat.save TZ2.rotate2.dat -I \#Frame
 fi
 
 UNITNAME="Handling of read-in dataset with 'rotate' command"
