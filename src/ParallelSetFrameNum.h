@@ -1,5 +1,8 @@
 #ifndef INC_PARALLELSETFRAMENUM_H
 #define INC_PARALLELSETFRAMENUM_H
+#ifdef MPI
+# include "Parallel.h"
+#endif
 class DataSet;
 namespace Cpptraj {
 /// Used to pick the correct frame from a data set in parallel
@@ -10,13 +13,18 @@ namespace Cpptraj {
   * In case 1, the data set should be accessed using ActionFrame::TrajoutNum().
   * In case 2, the data set should be accessed using the frameNum variable
   * since the set has not yet been synced.
+  * The SetForParallel() routine will also ensure the data set is broadcast
+  * to all processes if it needs to be.
   */
 class ParallelSetFrameNum {
   public:
     /// CONSTRUCTOR
     ParallelSetFrameNum() : set_(0), exists_(false) {}
+#   ifdef MPI
+    void SetComm(Parallel::Comm const& commIn) { trajComm_ = commIn; }
+#   endif
     /// Initialize with DataSet, record if it has any data yet.
-    void SetForParallel(DataSet const*);
+    int SetForParallel(DataSet*);
     /// \return Correct frame number in parallel based on whether set exists or is being generated
     int ParallelFrameNum(int frameNum, int trajoutNum) const {
 #     ifdef MPI
@@ -31,8 +39,11 @@ class ParallelSetFrameNum {
 #     endif
     }
   private:
-    DataSet const* set_; ///< The DataSet in question
+    DataSet* set_; ///< The DataSet in question
     bool exists_;  ///< True if set exists, false if it is being generated.
+#   ifdef MPI
+    Parallel::Comm trajComm_; ///< The communicator associated with the set
+#   endif
 };
 } // END namespace Cpptraj
 #endif
