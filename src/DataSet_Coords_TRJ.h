@@ -18,6 +18,8 @@ class DataSet_Coords_TRJ : public DataSet_Coords {
     size_t Size() const                          { return IDX_.MaxFrames(); }
 #   ifdef MPI
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
+    /// All data is on disk, no need to broadcast
+    int Bcast(Parallel::Comm const&) { return 0; }
 #   endif
     void Info() const;
     void Add( size_t, const void* )              { return;            }
