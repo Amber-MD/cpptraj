@@ -16,6 +16,8 @@ class DataSet_Vector : public DataSet {
     size_t Size()                       const { return vectors_.size(); }
 #   ifdef MPI
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&);
+    /// Ensure each process has all frames
+    int Bcast(Parallel::Comm const&);
 #   endif
     void Info()                         const { return;                 }
     int Allocate(SizeArray const&);
@@ -64,6 +66,10 @@ class DataSet_Vector : public DataSet {
     /// \return Constant for normalization via spherical harmonics addition theorem.
     static double SphericalHarmonicsNorm(int); 
   private:
+#   ifdef MPI
+    /// Used to broadcast a Varray
+    static int bcast_Varray(Varray&, Parallel::Comm const&);
+#   endif
     int order_;      ///< Order for spherical harmonics calculations
     Varray vectors_;
     Varray origins_;
