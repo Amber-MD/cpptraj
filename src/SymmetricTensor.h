@@ -29,6 +29,7 @@ template <class T> class SymmetricTensor {
     T const& U23() const { return U_[5]; }
 
     T const* Ptr() const { return U_; }
+    T* Ptr() { return U_; }
   private:
     T U_[6];
 };
