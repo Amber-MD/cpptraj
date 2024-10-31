@@ -1498,6 +1498,28 @@ int Frame::RecvFrame(int sendrank, Parallel::Comm const& commIn) {
   return 0;
 }
 
+/** Broadcast all data from master. */
+int Frame::BcastFrame(Parallel::Comm const& commIn) {
+  int err = commIn.MasterBcast( X_, ncoord_, MPI_DOUBLE );
+  if (V_ != 0)
+    err += commIn.MasterBcast( V_, ncoord_, MPI_DOUBLE );
+  if (F_ != 0)
+    err += commIn.MasterBcast( F_, ncoord_, MPI_DOUBLE );
+  err += box_.BroadcastBox( commIn );
+  err += commIn.MasterBcast( &T_,               1, MPI_DOUBLE);
+  err += commIn.MasterBcast( &pH_,              1, MPI_DOUBLE);
+  err += commIn.MasterBcast( &redox_,           1, MPI_DOUBLE);
+  err += commIn.MasterBcast( &time_,            1, MPI_DOUBLE);
+  int remdIndicesSize = remd_indices_.size();
+  err += commIn.MasterBcast( &remdIndicesSize, 1, MPI_INT );
+  remd_indices_.resize( remdIndicesSize );
+  err += commIn.MasterBcast( &remd_indices_[0], remd_indices_.size(), MPI_INT );
+  err += commIn.MasterBcast( &repidx_,          1,       MPI_INT);
+  err += commIn.MasterBcast( &crdidx_,          1,       MPI_INT);
+  err += commIn.MasterBcast( &step_,            1,       MPI_INT);
+  return 0;
+}
+
 /** Sum across all ranks, store in master. */
 int Frame::SumToMaster(Parallel::Comm const& commIn) {
   if (commIn.Master()) {
