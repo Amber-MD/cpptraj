@@ -97,4 +97,20 @@ const
   //rprintf("DEBUG: Send %zu frames toRank %i tag %i\n", Data_.size(), toRank, tag);
   return commIn.Send( (void*)&(Data_[0]), Data_.size(), MPI_UNSIGNED, toRank, tag );
 }
+
+/** Broadcast data to all processes.
+  */
+int DataSet_unsignedInt::Bcast(Parallel::Comm const& commIn) {
+  if (commIn.Size() == 1) return 0;
+  // Assume all data is currently on the master process.
+  long int totalSize = Size();
+  int err = commIn.MasterBcast( &totalSize, 1, MPI_LONG );
+  if (!commIn.Master()) {
+    //rprintf("DEBUG: Resizing array to %i\n", totalSize);
+    Data_.resize( totalSize );
+  }
+  // Broadcast data
+  err += commIn.MasterBcast( &Data_[0], totalSize, MPI_UNSIGNED );
+  return commIn.CheckError( err );
+}
 #endif
