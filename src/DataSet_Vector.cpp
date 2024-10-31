@@ -279,7 +279,7 @@ int DataSet_Vector::bcast_Varray(Varray& vecs, Parallel::Comm const& commIn) {
     //rprintf("DEBUG: Resizing array to %i\n", totalSize);
     vecs.resize( totalSize );
   }
-  // Broadcast each matrix separately
+  // Broadcast each vector separately
   for (unsigned int idx = 0; idx < vecs.size(); idx++)
     err += commIn.MasterBcast( vecs[idx].Dptr(), 3, MPI_DOUBLE );
   return err;
