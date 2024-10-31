@@ -27,6 +27,8 @@ class DataSet_integer_mem : public DataSet_integer {
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&);
     int Recv(size_t, unsigned int, int, int, int, Parallel::Comm const&);
     int Send(int, int, Parallel::Comm const&) const;
+    /// Ensure each process has all frames
+    int Bcast(Parallel::Comm const&);
 #   endif
     void Info()                 const { return;                    }
     int Allocate(SizeArray const&);
