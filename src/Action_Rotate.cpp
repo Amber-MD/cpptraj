@@ -38,7 +38,8 @@ int Action_Rotate::Get3x3Set(DataSetList const& DSL, std::string const& dsname) 
     mprinterr("Error: No 3x3 matrices data set '%s'\n", dsname.c_str());
     return 1;
   }
-  parallelNum_.SetForParallel( rmatrices_ );
+  if (parallelNum_.SetForParallel( rmatrices_ ))
+    return 1;
   return 0;
 }
 
@@ -77,6 +78,9 @@ int Action_Rotate::SetupOutputSets(DataSetList& DSL, std::string const& dsname,
 /** Initialize action. */
 Action::RetType Action_Rotate::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  parallelNum_.SetComm( init.TrajComm() );
+# endif
   double xrot = 0.0, yrot = 0.0, zrot = 0.0;
   DataFile* outfile = 0;
   std::string output_setname;

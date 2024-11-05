@@ -78,4 +78,19 @@ int DataSet_float::Sync(size_t total, std::vector<int> const& rank_frames,
     commIn.SendMaster( &(Data_[0]), Data_.size(), commIn.Rank(), MPI_FLOAT );
   return 0;
 }
+/** Broadcast data to all processes.
+  */
+int DataSet_float::Bcast(Parallel::Comm const& commIn) {
+  if (commIn.Size() == 1) return 0;
+  // Assume all data is currently on the master process.
+  long int totalSize = Size();
+  int err = commIn.MasterBcast( &totalSize, 1, MPI_LONG );
+  if (!commIn.Master()) {
+    //rprintf("DEBUG: Resizing array to %i\n", totalSize);
+    Data_.resize( totalSize );
+  }
+  // Broadcast data
+  err += commIn.MasterBcast( &Data_[0], totalSize, MPI_FLOAT );
+  return commIn.CheckError( err );
+}
 #endif

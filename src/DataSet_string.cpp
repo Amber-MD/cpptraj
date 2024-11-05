@@ -148,4 +148,38 @@ int DataSet_string::Sync(size_t total, std::vector<int> const& rank_frames,
   }
   return 0;
 }
+
+/** Broadcast data to all processes.
+  */
+int DataSet_string::Bcast(Parallel::Comm const& commIn) {
+  if (commIn.Size() == 1) return 0;
+  // Broadcast the format width
+  int maxWidth = format_.Width();
+  int err = commIn.MasterBcast( &maxWidth, 1, MPI_INT );
+  // Assume all data is currently on the master process.
+  long int totalSize = Size();
+  err += commIn.MasterBcast( &totalSize, 1, MPI_LONG );
+  if (!commIn.Master()) {
+    //rprintf("DEBUG: Resizing array to %i\n", totalSize);
+    Data_.resize( totalSize );
+    format_.SetWidth( maxWidth );
+  }
+  std::vector<int> strSizes( totalSize, 0 );
+  if (commIn.Master()) {
+    // On master rank, first send other ranks all string sizes
+    for (unsigned int idx = 0; idx != Size(); idx++)
+      strSizes[idx] = Data_[idx].size();
+    commIn.MasterBcast( &strSizes[0], totalSize, MPI_INT );
+  } else {
+    // On non master ranks, first receive sizes broadcast from master
+    commIn.MasterBcast( &strSizes[0], totalSize, MPI_INT );
+    // Resize each string
+    for (unsigned int idx = 0; idx != Size(); idx++)
+      Data_[idx].resize( strSizes[idx] );
+  }
+  // Now broadcast each string
+  for (unsigned int idx = 0; idx < Size(); idx++)
+    err += commIn.MasterBcast( &(Data_[idx][0]), strSizes[idx], MPI_CHAR );
+   return err; 
+}
 #endif

@@ -280,6 +280,7 @@ class Frame {
     // ----- Parallel Routines -------------------
     int SendFrame(int, Parallel::Comm const&) const;
     int RecvFrame(int, Parallel::Comm const&);
+    int BcastFrame(Parallel::Comm const&);
     int SumToMaster(Parallel::Comm const&);
 #   endif
   private:

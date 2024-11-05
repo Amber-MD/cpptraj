@@ -45,4 +45,23 @@ int DataSet_Mat3x3::Sync(size_t total, std::vector<int> const& rank_frames,
   }
   return 0;
 }
+
+/** Broadcast data to all processes.
+  * NOTE: For now, do multiple separate broadcasts for each element.
+  *       In the future this should probably be consolidated.
+  */
+int DataSet_Mat3x3::Bcast(Parallel::Comm const& commIn) {
+  if (commIn.Size() == 1) return 0;
+  // Assume all data is currently on the master process.
+  long int totalSize = Size();
+  int err = commIn.MasterBcast( &totalSize, 1, MPI_LONG );
+  if (!commIn.Master()) {
+    //rprintf("DEBUG: Resizing array to %i\n", totalSize);
+    Resize( totalSize );
+  }
+  // Broadcast each matrix separately
+  for (unsigned int idx = 0; idx < Size(); idx++)
+    err += commIn.MasterBcast( data_[idx].Dptr(), 9, MPI_DOUBLE );
+  return commIn.CheckError( err );
+}
 #endif

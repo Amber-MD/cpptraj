@@ -34,6 +34,23 @@ int DataSet_Coords_FRM::Sync(size_t total, std::vector<int> const& rank_frames,
   }
   return 0;
 }
+
+/** Broadcast data to all processes.
+  */
+int DataSet_Coords_FRM::Bcast(Parallel::Comm const& commIn) {
+  if (commIn.Size() == 1) return 0;
+  // Assume all data is currently on the master process.
+  long int totalSize = Size();
+  int err = commIn.MasterBcast( &totalSize, 1, MPI_LONG );
+  if (!commIn.Master()) {
+    //rprintf("DEBUG: Resizing array to %i\n", totalSize);
+    frames_.resize( totalSize );
+  }
+  // Broadcast each matrix separately
+  for (unsigned int idx = 0; idx < Size(); idx++)
+    err += frames_[idx].BcastFrame( commIn );
+  return commIn.CheckError( err );
+}
 #endif
 
 /** Add a single element. */

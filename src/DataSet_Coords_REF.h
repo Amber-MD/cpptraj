@@ -13,6 +13,8 @@ class DataSet_Coords_REF : public DataSet_Coords {
     size_t Size() const { if (!frame_.empty()) return 1; else return 0; }
 #   ifdef MPI
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
+    /// Ensure each process has the frame
+    int Bcast(Parallel::Comm const&);
 #   endif
     void Info() const;
     void Add( size_t, const void* )              { return;     }

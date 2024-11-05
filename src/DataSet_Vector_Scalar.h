@@ -20,6 +20,8 @@ class DataSet_Vector_Scalar : public DataSet {
     size_t MemUsageInBytes() const;
 #   ifdef MPI
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&);
+    /// Ensure each process has all frames
+    int Bcast(Parallel::Comm const&);
 #   endif
     // -------------------------------------------
     Vec3 const& Vec(unsigned int i) const { return vecs_[i]; }

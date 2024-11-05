@@ -145,6 +145,20 @@ int Action_Average::SyncAction() {
   AvgFrame_.SumToMaster(trajComm_);
   if (trajComm_.Master())
     Nframes_ = total_frames;
+  // If setting up a COORDS set, do it here for non-master ranks since Print()
+  // is only called by the master.
+  if (crdset_ != 0) {
+    trajComm_.MasterBcast( &Nframes_, 1, MPI_INT );
+    AvgFrame_.BcastFrame( trajComm_ );
+    // Do non-master rank setup of the DataSet here. Master will still do it
+    // in Print().
+    if (!trajComm_.Master()) {
+      AvgFrame_.Divide( (double)Nframes_ );
+      DataSet_Coords_REF& ref = static_cast<DataSet_Coords_REF&>( *crdset_ );
+      ref.CoordsSetup( AvgParm_, CoordinateInfo() ); // Coords Only
+      ref.AddFrame( AvgFrame_ );
+    }
+  }
   return 0;
 }
 #endif

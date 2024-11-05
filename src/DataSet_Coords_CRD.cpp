@@ -183,8 +183,8 @@ int DataSet_Coords_CRD::Sync(size_t total, std::vector<int> const& rank_frames,
 int DataSet_Coords_CRD::Bcast(Parallel::Comm const& commIn) {
   if (commIn.Size() == 1) return 0;
   // Assume all data is currently on the master process.
-  int totalSize = Size();
-  int err = commIn.MasterBcast( &totalSize, 1, MPI_INT );
+  long int totalSize = Size();
+  int err = commIn.MasterBcast( &totalSize, 1, MPI_LONG );
   if (!commIn.Master()) {
     //rprintf("DEBUG: Resizing array to %i\n", totalSize);
     frames_.Resize( totalSize );

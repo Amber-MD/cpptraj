@@ -12,6 +12,8 @@ class DataSet_integer_disk : public DataSet_integer {
     size_t Size() const { return nvals_; }
 #   ifdef MPI
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&);
+    /// No need to broadcast, all data on disk
+    int Bcast(Parallel::Comm const&) { return 0; }
 #   endif
     void Info() const;
     int Allocate(SizeArray const&);

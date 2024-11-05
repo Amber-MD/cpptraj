@@ -7,9 +7,43 @@ DataSet_Tensor::DataSet_Tensor() :
 {}
 
 #ifdef MPI
-int DataSet_Tensor::Sync(size_t, std::vector<int> const&, Parallel::Comm const&)
+int DataSet_Tensor::Sync(size_t total, std::vector<int> const& rank_frames,
+                         Parallel::Comm const& commIn)
 {
-  return 1;
+  if (commIn.Size()==1) return 0;
+  if (commIn.Master()) {
+    // Resize to accept data from other ranks.
+    Data_.resize( total );
+    int midx = rank_frames[0]; // Index on master
+    for (int rank = 1; rank < commIn.Size(); rank++) {
+      for (int ridx = 0; ridx != rank_frames[rank]; ridx++, midx++)
+        // TODO: Consolidate to 1 send/recv via arrays?
+        commIn.SendMaster( Data_[midx].Ptr(), 6, rank, MPI_DOUBLE );
+    }
+  } else { // Send data to master
+    for (unsigned int ridx = 0; ridx != Data_.size(); ++ridx)
+      commIn.SendMaster( Data_[ridx].Ptr(), 6, commIn.Rank(), MPI_DOUBLE );
+  }
+  return 0;
+}
+
+/** Broadcast data to all processes.
+  * NOTE: For now, do multiple separate broadcasts for each element.
+  *       In the future this should probably be consolidated.
+  */
+int DataSet_Tensor::Bcast(Parallel::Comm const& commIn) {
+  if (commIn.Size() == 1) return 0;
+  // Assume all data is currently on the master process.
+  long int totalSize = Size();
+  int err = commIn.MasterBcast( &totalSize, 1, MPI_LONG );
+  if (!commIn.Master()) {
+    //rprintf("DEBUG: Resizing array to %i\n", totalSize);
+    Data_.resize( totalSize );
+  }
+  // Broadcast each tensor separately
+  for (unsigned int idx = 0; idx < Size(); idx++)
+    err += commIn.MasterBcast( Data_[idx].Ptr(), 6, MPI_DOUBLE );
+  return commIn.CheckError( err );
 }
 #endif
 

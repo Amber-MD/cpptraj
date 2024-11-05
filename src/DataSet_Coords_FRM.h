@@ -16,6 +16,8 @@ class DataSet_Coords_FRM : public DataSet_Coords {
 #   ifdef MPI
     /// Synchronize all data to the master process
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&);
+    /// Ensure each process has all frames
+    int Bcast(Parallel::Comm const&);
 #   endif
     /// Print info to stdout
     void Info() const { return; }

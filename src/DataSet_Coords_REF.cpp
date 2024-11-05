@@ -126,3 +126,12 @@ int DataSet_Coords_REF::StripRef(AtomMask const& stripMask) {
     delete stripParm; // OK to free, parm has been copied by CoordsSetup.
     return 0;
 }
+
+#ifdef MPI
+/** Broadcast the frame to all processes.
+  */
+int DataSet_Coords_REF::Bcast(Parallel::Comm const& commIn) {
+  int err = frame_.BcastFrame( commIn );
+  return commIn.CheckError( err );
+}
+#endif /*MPI*/
