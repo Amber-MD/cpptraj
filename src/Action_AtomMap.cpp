@@ -56,6 +56,10 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, ActionInit& init, int 
   maponly_ = actionArgs.hasKey("maponly");
   rmsfit_ = actionArgs.hasKey("rmsfit");
   renameAtoms_ = actionArgs.hasKey("changenames");
+  if (rmsfit_ && renameAtoms_) {
+    mprinterr("Error: Specify either 'rmsfit' or 'changenames', not both.\n");
+    return Action::ERR;
+  }
   std::string modestring = actionArgs.GetStringKey("mode");
   if (!modestring.empty()) {
     if      (modestring == "all") mode_ = ALL;
@@ -177,6 +181,11 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, ActionInit& init, int 
   // performed using all atoms that were successfully mapped from 
   // target to reference.
   if (rmsfit_) {
+    if (Mapper.Nmapped() < 3) {
+      mprinterr("Error: Only %i atoms mapped, require at least 3 for RMS-fit.\n",
+                 Mapper.Nmapped());
+      return Action::ERR;
+    }
     rmsRefFrame_.SetupFrame( Mapper.Nmapped() );
     rmsTgtFrame_ = rmsRefFrame_;
     // Set up a reference frame containing only mapped reference atoms
@@ -221,13 +230,16 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, ActionInit& init, int 
     newFrame_->SetupFrameM( TgtFrame_->Top().Atoms() );
     // Set up new Parm
     newParm_ = TgtFrame_->Top().ModifyByMap(AMap_);
+    //newParm_->Summary(); // DEBUG
     if (renameAtoms_) {
       // newParm_ is already in the correct order
       for (int refatom = 0; refatom != (int)AMap_.size(); ++refatom) {
         if (AMap_[refatom] != -1) {
-          //mprintf("DEBUG: ref %i name %s becomes tgt %i\n", refatom+1, *(RefFrame_->Top()[refatom].Name()), targetatom+1);
+          //mprintf("DEBUG: %i name %s becomes ref name %s\n", refatom+1,
+          //        *((*newParm_)[refatom].Name()),
+          //        *(RefFrame_->Top()[refatom].Name()));
           (*newParm_).SetAtom(refatom).SetName( RefFrame_->Top()[refatom].Name() );
-        }
+        } 
       }
     }
   }
@@ -240,10 +252,16 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, ActionInit& init, int 
   * replace current parm with mapped parm.
   */
 Action::RetType Action_AtomMap::Setup(ActionSetup& setup) {
+  if (rmsfit_) {
+    mprintf("\trmsfit specified, %i atoms.\n",rmsRefFrame_.Natom());
+    return Action::OK;
+  }
+
   if (maponly_) {
     mprintf("\tmaponly was specified, not using atom map during traj read.\n");
     return Action::OK;
   }
+
   if (setup.Top().Pindex() != TgtFrame_->Top().Pindex() ||
       setup.Top().Natom() != TgtFrame_->Top().Natom()) 
   {
@@ -254,10 +272,7 @@ Action::RetType Action_AtomMap::Setup(ActionSetup& setup) {
     mprintf("Warning: Not using map for this topology.\n");
     return Action::SKIP;
   }
-  if (rmsfit_) {
-    mprintf("\trmsfit specified, %i atoms.\n",rmsRefFrame_.Natom());
-    return Action::OK;
-  }
+
   mprintf("\tMap for parm %s -> %s (%i atom).\n",TgtFrame_->Top().c_str(),
           RefFrame_->Top().c_str(), TgtFrame_->Top().Natom());
 
