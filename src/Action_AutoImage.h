@@ -17,6 +17,9 @@ class Action_AutoImage : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
+    /// Autoimage using distances
+    Action::RetType autoimage_by_distance(int, ActionFrame&);
+
     AtomMask anchorMask_; ///< Used to center anchor region.
     std::string anchor_;  ///< Mask expression for anchor region.
     std::string fixed_;   ///< Mask expression for fixed region.

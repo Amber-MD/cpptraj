@@ -208,6 +208,11 @@ Action::RetType Action_AutoImage::Setup(ActionSetup& setup) {
 
 // Action_AutoImage::DoAction()
 Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
+  return autoimage_by_distance(frameNum, frm);
+}
+
+/** Original autoimage algorithm by distance. */
+Action::RetType Action_AutoImage::autoimage_by_distance(int frameNum, ActionFrame& frm) {
   Vec3 fcom;
   Vec3 bp, bm, offset(0.0);
   Vec3 Trans, framecenter, imagedcenter, anchorcenter;
