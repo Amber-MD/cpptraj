@@ -411,6 +411,9 @@ Action::RetType Action_AutoImage::autoimage_by_vector(int frameNum, ActionFrame&
       }
       mprintf("\t--------------------\n");
     }
+    // Convert back to Cartesian
+    for (int at = 0; at != frameIn.Natom(); ++at)
+      frm.ModifyFrm().SetXYZ(at, box.UnitCell().TransposeMult( fracCoords_[at] ));
   }
 
 
