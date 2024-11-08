@@ -23,6 +23,8 @@ class Action_AutoImage : public Action {
 
     /// \return vector that can be used to move an imaged fixed molecule back to its reference location
     static inline Vec3 calc_frac_image_vec(Vec3 const&, bool&);
+    /// \return vector needed to image a molecule back into the cell
+    static inline Vec3 wrap_frac(Vec3 const&, Vec3 const&, Vec3 const&, bool&);
     /// Translate given unit
     static inline void translate_unit(Varray&, Vec3 const&, Unit const&);
     /// \return center of unit according to given array of coords

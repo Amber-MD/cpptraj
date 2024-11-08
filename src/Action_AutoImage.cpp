@@ -298,6 +298,36 @@ Vec3 Action_AutoImage::calc_frac_image_vec(Vec3 const& delta_frac, bool& need_to
   return ivec_frac;
 }
 
+/** Calculate vector needed to wrap molecule back in the primary cell.
+  * \return vector needed to image the molecule in frac space
+  * \param min minimum frac coords
+  * \param max maximum frac coords
+  * \param pos current molecule position in frac coords
+  * \param need_to_move set to true if returned vector is not zero.
+  */
+Vec3 Action_AutoImage::wrap_frac(Vec3 const& min, Vec3 const& max, Vec3 const& pos, bool& need_to_move) {
+  Vec3 ivec_frac(0.0);
+  need_to_move = false;
+
+  //Vec3 min = center - 0.5;
+  //Vec3 max = center + 0.5;
+
+  Vec3 current = pos;
+  for (int idx = 0; idx != 3; idx++) {
+    while (current[idx] < min[idx]) {
+      current[idx] += 1.0;
+      ivec_frac[idx] += 1.0;
+      need_to_move = true;
+    }
+    while (current[idx] > max[idx]) {
+      current[idx] -= 1.0;
+      ivec_frac[idx] -= 1.0;
+      need_to_move = true;
+    }
+  }
+  return ivec_frac;
+}
+
 /** Center the anchor molecule. */
 Vec3 Action_AutoImage::center_anchor_molecule(ActionFrame& frm, bool is_ortho, bool use_ortho) const {
   Box const& box = frm.Frm().BoxCrd();
@@ -410,6 +440,21 @@ Action::RetType Action_AutoImage::autoimage_by_vector(int frameNum, ActionFrame&
         test_vec.Print(            "after imaging         ");
       }
       mprintf("\t--------------------\n");
+    }
+    // Mobile molecules
+    Vec3 minvec = anchor_center_frac - 0.5;
+    Vec3 maxvec = anchor_center_frac + 0.5;
+    minvec.Print("MinVec");
+    maxvec.Print("MaxVec");
+    for (Image::List_Unit::const_iterator it = mobileList_->begin();
+                                          it != mobileList_->end(); ++it, ++refVec)
+    {
+      Vec3 mobile_unit_center_frac = unit_center(fracCoords_, *it);
+      bool need_to_move;
+      Vec3 image_vec = wrap_frac( minvec, maxvec, mobile_unit_center_frac, need_to_move );
+      if (need_to_move) {
+        translate_unit(fracCoords_, image_vec, *it);
+      }
     }
     // Convert back to Cartesian
     for (int at = 0; at != frameIn.Natom(); ++at)
