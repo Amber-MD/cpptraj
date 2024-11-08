@@ -9,6 +9,7 @@
 // CONSTRUCTOR
 Action_AutoImage::Action_AutoImage() :
   debug_(0),
+  mode_(UNSPECIFIED),
   origin_(false),
   usecom_(true),
   truncoct_(false),
@@ -53,6 +54,20 @@ Action::RetType Action_AutoImage::Init(ArgList& actionArgs, ActionInit& init, in
   anchor_ = actionArgs.GetStringKey("anchor");
   fixed_  = actionArgs.GetStringKey("fixed");
   mobile_ = actionArgs.GetStringKey("mobile");
+  std::string modestr = actionArgs.GetStringKey("mode");
+  if (modestr.empty()) {
+    // Default mode
+    mode_ = BY_DISTANCE;
+  } else {
+    if (modestr == "bydist")
+      mode_ = BY_DISTANCE;
+    else if (modestr == "byvec")
+      mode_ = BY_VECTOR;
+    else {
+      mprinterr("Error: '%s' is not a recognized autoimage mode.\n", modestr.c_str());
+      return Action::ERR;
+    }
+  }
   // Get mask expression for anchor if none yet specified
   if (anchor_.empty())  
     anchor_ = actionArgs.GetMaskNext();
@@ -76,8 +91,13 @@ Action::RetType Action_AutoImage::Init(ArgList& actionArgs, ActionInit& init, in
   if (!mobile_.empty())
     mprintf("\tAtoms in mask [%s] will be imaged independently of anchor region.\n",
             mobile_.c_str());
-  if (movingAnchor_)
-    mprintf("\tWhen imaging fixed molecules anchor will be set to previous fixed molecule.\n");
+  if (mode_ == BY_DISTANCE) {
+    mprintf("\tAuto-imaging using molecule distances.\n");
+    if (movingAnchor_)
+      mprintf("\tWhen imaging fixed molecules anchor will be set to previous fixed molecule.\n");
+  } else if (mode_ == BY_VECTOR) {
+    mprintf("\tAuto-imaging using molecule vectors.\n");
+  }
 
   return Action::OK;
 }
@@ -208,7 +228,19 @@ Action::RetType Action_AutoImage::Setup(ActionSetup& setup) {
 
 // Action_AutoImage::DoAction()
 Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
-  return autoimage_by_distance(frameNum, frm);
+  Action::RetType ret = Action::ERR;
+  switch (mode_) {
+    case BY_DISTANCE : ret = autoimage_by_distance(frameNum, frm); break;
+    case BY_VECTOR   : ret = autoimage_by_vector(frameNum, frm); break;
+    case UNSPECIFIED : ret = Action::ERR;
+  }
+  return ret;
+}
+
+/** Autoimage molecules using reference vectors to anchor. */
+Action::RetType Action_AutoImage::autoimage_by_vector(int frameNum, ActionFrame& frm) {
+
+  return MODIFY_COORDS;
 }
 
 /** Original autoimage algorithm by distance. */

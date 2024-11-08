@@ -17,14 +17,19 @@ class Action_AutoImage : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
+    enum Mode { BY_DISTANCE=0, BY_VECTOR, UNSPECIFIED };
+
     /// Autoimage using distances
     Action::RetType autoimage_by_distance(int, ActionFrame&);
+    /// Autoimage using vectors 
+    Action::RetType autoimage_by_vector(int, ActionFrame&);
 
     AtomMask anchorMask_; ///< Used to center anchor region.
     std::string anchor_;  ///< Mask expression for anchor region.
     std::string fixed_;   ///< Mask expression for fixed region.
     std::string mobile_;  ///< Mask expression for mobile region.
     int debug_;
+    Mode mode_;           ///< Autoimage mode
     bool origin_;         ///< If true imaging occurs w.r.t. coordinate origin.
     bool usecom_;         ///< If true imaging of mobile region uses molecule center.
     bool truncoct_;       ///< If true image into truncated octahedron shape.
