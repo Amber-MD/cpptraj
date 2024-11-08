@@ -367,7 +367,7 @@ Action::RetType Action_AutoImage::autoimage_by_vector(int frameNum, ActionFrame&
   bool is_ortho = box.Is_X_Aligned_Ortho();
   bool use_ortho = (is_ortho && triclinic_ == OFF);
 
-  mprintf("DEBUG: ---------- autoimage_by_vector %i\n", frameNum);
+//  mprintf("DEBUG: ---------- autoimage_by_vector %i\n", frameNum);
   // We need the first frame to be properly imaged. Always use by distance first.
   if (RefVecs_.empty()) {
     Action::RetType ret = autoimage_by_distance(frameNum, frm);
@@ -391,61 +391,61 @@ Action::RetType Action_AutoImage::autoimage_by_vector(int frameNum, ActionFrame&
   for (AtomMask::const_iterator at = anchorMask_.begin(); at != anchorMask_.end(); ++at)
     anchor_center_frac += fracCoords_[*at];
   anchor_center_frac /= (double)anchorMask_.Nselected();
-  anchor_center_frac.Print("anchor_center_frac");
+//  anchor_center_frac.Print("anchor_center_frac"); // DEBUG
 
   // If this is the first frame, save reference vectors to center
   if (RefVecs_.empty()) {
-    mprintf("DEBUG: Populating reference vectors.\n");
+//    mprintf("DEBUG: Populating reference vectors.\n");
     for (Image::List_Unit::const_iterator it = fixedList_->begin();
                                           it != fixedList_->end(); ++it)
     {
       // DEBUG
-      for (Unit::const_iterator seg = it->segBegin(); seg != it->segEnd(); ++seg) {
-        mprintf("DEBUG: Fixed unit %li segment %li : %i to %i\n",
-                it - fixedList_->begin(), seg - it->segBegin(),
-                seg->Begin(), seg->End());
-      }
+//      for (Unit::const_iterator seg = it->segBegin(); seg != it->segEnd(); ++seg) {
+//        mprintf("DEBUG: Fixed unit %li segment %li : %i to %i\n",
+//                it - fixedList_->begin(), seg - it->segBegin(),
+//                seg->Begin(), seg->End());
+//      }
       Vec3 fixed_unit_center_frac = unit_center(fracCoords_, *it);
-      fixed_unit_center_frac.Print("fixed_unit_center_frac");
+//      fixed_unit_center_frac.Print("fixed_unit_center_frac"); // DEBUG
       // Vector from fixed unit back to the anchor
       RefVecs_.push_back( fixed_unit_center_frac - anchor_center_frac );
-      RefVecs_.back().Print("RefVec");
+//      RefVecs_.back().Print("RefVec"); // DEBUG
     } // END loop over fixed entities
   } else {
     // Not the first frame. Compare reference vectors to center
-    mprintf("DEBUG: Comparing reference vectors.\n");
+//    mprintf("DEBUG: Comparing reference vectors.\n");
     Varray::const_iterator refVec = RefVecs_.begin();
     for (Image::List_Unit::const_iterator it = fixedList_->begin();
                                           it != fixedList_->end(); ++it, ++refVec)
     {
       Vec3 fixed_unit_center_frac = unit_center(fracCoords_, *it);
-      fixed_unit_center_frac.Print("fixed_unit_center_frac");
+//      fixed_unit_center_frac.Print("fixed_unit_center_frac"); // DEBUG
       Vec3 anchor_to_fixed_frac = fixed_unit_center_frac - anchor_center_frac;
-      anchor_to_fixed_frac.Print(  "anchor_to_fixed_frac  ");
-      refVec->Print(               "currentref            ");
+//      anchor_to_fixed_frac.Print(  "anchor_to_fixed_frac  "); // DEBUG
+//      refVec->Print(               "currentref            "); // DEBUG
       Vec3 delta_frac = anchor_to_fixed_frac - *refVec;
-      delta_frac.Print(            "delta_frac            ");
+//      delta_frac.Print(            "delta_frac            "); // DEBUG
       bool need_to_move;
       Vec3 image_vec = calc_frac_image_vec( delta_frac, need_to_move );
-      mprintf("\tNeed to move= %i\n", (int)need_to_move);
-      image_vec.Print(             "image_vec             ");
+//      mprintf("\tNeed to move= %i\n", (int)need_to_move); // DEBUG
+//      image_vec.Print(             "image_vec             "); // DEBUG
       // Test that image_vec would do a good job moving the fixed unit
-      Vec3 test_vec = fixed_unit_center_frac + image_vec;
-      test_vec.Print(              "test_vec              ");
+//      Vec3 test_vec = fixed_unit_center_frac + image_vec; // DEBUG
+//      test_vec.Print(              "test_vec              "); // DEBUG
       // Move the unit if needed
       if (need_to_move) {
         translate_unit(fracCoords_, image_vec, *it);
         // Test that the image worked
-        test_vec = unit_center(fracCoords_, *it);
-        test_vec.Print(            "after imaging         ");
+//        test_vec = unit_center(fracCoords_, *it); // DEBUG
+//        test_vec.Print(            "after imaging         "); // DEBUG
       }
-      mprintf("\t--------------------\n");
+//      mprintf("\t--------------------\n"); // DEBUG
     }
     // Mobile molecules
     Vec3 minvec = anchor_center_frac - 0.5;
     Vec3 maxvec = anchor_center_frac + 0.5;
-    minvec.Print("MinVec");
-    maxvec.Print("MaxVec");
+//    minvec.Print("MinVec"); // DEBUG
+//    maxvec.Print("MaxVec"); // DEBUG
     for (Image::List_Unit::const_iterator it = mobileList_->begin();
                                           it != mobileList_->end(); ++it, ++refVec)
     {
@@ -460,7 +460,6 @@ Action::RetType Action_AutoImage::autoimage_by_vector(int frameNum, ActionFrame&
     for (int at = 0; at != frameIn.Natom(); ++at)
       frm.ModifyFrm().SetXYZ(at, box.UnitCell().TransposeMult( fracCoords_[at] ));
   }
-
 
   return MODIFY_COORDS;
 }
