@@ -71,6 +71,7 @@ Action::RetType Action_AutoImage::Init(ArgList& actionArgs, ActionInit& init, in
   // Get mask expression for anchor if none yet specified
   if (anchor_.empty())  
     anchor_ = actionArgs.GetMaskNext();
+  RefVecs_.clear();
 
   mprintf("    AUTOIMAGE: To");
   if (origin_)
@@ -223,6 +224,9 @@ Action::RetType Action_AutoImage::Setup(ActionSetup& setup) {
 
   truncoct_ = (triclinic_==FAMILIAR);
 
+  if (mode_ == BY_VECTOR)
+    RefVecs_.reserve( fixedList_->nEntities() );
+
   return Action::OK;
 }
 
@@ -237,8 +241,154 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
   return ret;
 }
 
+/** \return center of given unit. */
+Vec3 Action_AutoImage::unit_center(Varray const& fracCoords, Unit const& unit)
+{
+  Vec3 vcenter(0.0);
+  unsigned int natoms = 0;
+  for (Unit::const_iterator seg = unit.segBegin(); seg != unit.segEnd(); ++seg)
+  {
+    for (int at = seg->Begin(); at != seg->End(); ++at) {
+      vcenter += fracCoords[at];
+      natoms++;
+    }
+  }
+  vcenter /= (double)natoms;
+  return vcenter;
+}
+
+/** \return frac coord vector needed to properly image the unit. */
+Vec3 Action_AutoImage::calc_frac_image_vec(Vec3 const& delta_frac) {
+  Vec3 ivec_frac(0.0);
+
+  for (int idx = 0; idx != 3; idx++) {
+    double abs_dval = delta_frac[idx];
+    if (abs_dval < 0.0) abs_dval = -abs_dval;
+    if (abs_dval > 0.5) {
+      // Vector has shifted more than half a box length.
+      double currentVal = delta_frac[idx];
+      if (delta_frac[idx] > 0.0) {
+        //increment = -1.0;
+        while (currentVal > 0.5) {
+          currentVal -= 1.0;
+          ivec_frac[idx] -= 1.0;
+        }
+      } else {
+        //increment = 1.0;
+        while (currentVal < -0.5) {
+          currentVal += 1.0;
+          ivec_frac[idx] += 1.0;
+        }
+      }
+    } // END more than half box length traveled
+  } // END loop over xyz idx
+  return ivec_frac;
+}
+
+/** Center the anchor molecule. */
+Vec3 Action_AutoImage::center_anchor_molecule(ActionFrame& frm, bool is_ortho, bool use_ortho) const {
+  Box const& box = frm.Frm().BoxCrd();
+  //bool is_ortho = frm.Frm().BoxCrd().Is_X_Aligned_Ortho();
+  //bool use_ortho = (is_ortho && triclinic_ == OFF);
+  // Store anchor point in fcom for now.
+  Vec3 fcom;
+  if (useMass_)
+    fcom = frm.Frm().VCenterOfMass( anchorMask_ );
+  else
+    fcom = frm.Frm().VGeometricCenter( anchorMask_ );
+  // Determine translation to anchor point, store in fcom.
+  // Anchor center will be in anchorcenter.
+  Vec3 anchorcenter;
+  if (origin_) {
+    // Center is coordinate origin (0,0,0)
+    fcom.Neg();
+    anchorcenter.Zero();
+  } else {
+    // Center on box center
+    if (is_ortho || truncoct_)
+      // Center is box xyz over 2
+      anchorcenter = box.Center();
+    else
+      // Center in frac coords is (0.5,0.5,0.5)
+      anchorcenter = box.UnitCell().TransposeMult(Vec3(0.5));
+    fcom = anchorcenter - fcom;
+  }
+  frm.ModifyFrm().Translate(fcom);
+  return anchorcenter;
+}
+
 /** Autoimage molecules using reference vectors to anchor. */
 Action::RetType Action_AutoImage::autoimage_by_vector(int frameNum, ActionFrame& frm) {
+  mprintf("DEBUG: ---------- autoimage_by_vector %i\n", frameNum);
+  // We need the first frame to be properly imaged. Always use by distance first.
+  if (RefVecs_.empty()) {
+    Action::RetType ret = autoimage_by_distance(frameNum, frm);
+    if (ret != Action::MODIFY_COORDS) {
+      mprinterr("Error: autoimage by vector initial re-image by distance failed.\n");
+      return ret;
+    }
+  } else {
+    // Just move the anchor to the center
+    bool is_ortho = frm.Frm().BoxCrd().Is_X_Aligned_Ortho();
+    bool use_ortho = (is_ortho && triclinic_ == OFF);
+    center_anchor_molecule(frm, is_ortho, use_ortho);
+  }
+
+  Frame const& frameIn = frm.Frm();
+  // Convert everything to fractional coords.
+  Varray fracCoords_;
+  fracCoords_.reserve( frameIn.Natom() );
+  for (int at = 0; at != frameIn.Natom(); ++at)
+    fracCoords_.push_back( frameIn.BoxCrd().FracCell() * Vec3(frameIn.XYZ(at)) );
+
+  // Calculate anchor center
+  Vec3 anchor_center_frac( 0.0 );
+  for (AtomMask::const_iterator at = anchorMask_.begin(); at != anchorMask_.end(); ++at)
+    anchor_center_frac += fracCoords_[*at];
+  anchor_center_frac /= (double)anchorMask_.Nselected();
+  anchor_center_frac.Print("anchor_center_frac");
+
+  // If this is the first frame, save reference vectors to center
+  if (RefVecs_.empty()) {
+    mprintf("DEBUG: Populating reference vectors.\n");
+    for (Image::List_Unit::const_iterator it = fixedList_->begin();
+                                          it != fixedList_->end(); ++it)
+    {
+      // DEBUG
+      for (Unit::const_iterator seg = it->segBegin(); seg != it->segEnd(); ++seg) {
+        mprintf("DEBUG: Fixed unit %li segment %li : %i to %i\n",
+                it - fixedList_->begin(), seg - it->segBegin(),
+                seg->Begin(), seg->End());
+      }
+      Vec3 fixed_unit_center_frac = unit_center(fracCoords_, *it);
+      fixed_unit_center_frac.Print("fixed_unit_center_frac");
+      // Vector from fixed unit back to the anchor
+      RefVecs_.push_back( fixed_unit_center_frac - anchor_center_frac );
+      RefVecs_.back().Print("RefVec");
+    } // END loop over fixed entities
+  } else {
+    // Not the first frame. Compare reference vectors to center
+    mprintf("DEBUG: Comparing reference vectors.\n");
+    Varray::const_iterator refVec = RefVecs_.begin();
+    for (Image::List_Unit::const_iterator it = fixedList_->begin();
+                                          it != fixedList_->end(); ++it, ++refVec)
+    {
+      Vec3 fixed_unit_center_frac = unit_center(fracCoords_, *it);
+      fixed_unit_center_frac.Print("fixed_unit_center_frac");
+      Vec3 anchor_to_fixed_frac = fixed_unit_center_frac - anchor_center_frac;
+      anchor_to_fixed_frac.Print(  "anchor_to_fixed_frac  ");
+      refVec->Print(               "currentref            ");
+      Vec3 delta_frac = anchor_to_fixed_frac - *refVec;
+      delta_frac.Print(            "delta_frac            ");
+      Vec3 image_vec = calc_frac_image_vec( delta_frac );
+      image_vec.Print(             "image_vec             ");
+      // Test that image_vec would do a good job moving the fixed unit
+      Vec3 test_vec = fixed_unit_center_frac + image_vec;
+      test_vec.Print(              "test_vec              ");
+      mprintf("\t--------------------\n");
+    }
+  }
+
 
   return MODIFY_COORDS;
 }
@@ -247,11 +397,13 @@ Action::RetType Action_AutoImage::autoimage_by_vector(int frameNum, ActionFrame&
 Action::RetType Action_AutoImage::autoimage_by_distance(int frameNum, ActionFrame& frm) {
   Vec3 fcom;
   Vec3 bp, bm, offset(0.0);
-  Vec3 Trans, framecenter, imagedcenter, anchorcenter;
+  Vec3 Trans, framecenter, imagedcenter;
 
   Box const& box = frm.Frm().BoxCrd();
   bool is_ortho = frm.Frm().BoxCrd().Is_X_Aligned_Ortho();
   bool use_ortho = (is_ortho && triclinic_ == OFF);
+  Vec3 anchorcenter = center_anchor_molecule(frm, is_ortho, use_ortho);
+/*
   // Store anchor point in fcom for now.
   if (useMass_)
     fcom = frm.Frm().VCenterOfMass( anchorMask_ );
@@ -273,7 +425,7 @@ Action::RetType Action_AutoImage::autoimage_by_distance(int frameNum, ActionFram
       anchorcenter = box.UnitCell().TransposeMult(Vec3(0.5));
     fcom = anchorcenter - fcom;
   }
-  frm.ModifyFrm().Translate(fcom);
+  frm.ModifyFrm().Translate(fcom);*/
 
   // Setup imaging, and image everything in current Frame
   // according to mobileList_.
