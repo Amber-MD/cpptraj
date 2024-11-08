@@ -257,15 +257,28 @@ Vec3 Action_AutoImage::unit_center(Varray const& fracCoords, Unit const& unit)
   return vcenter;
 }
 
+/** Translate given unit. */
+void Action_AutoImage::translate_unit(Varray& fracCoords, Vec3 const& trans, Unit const& unit)
+{
+  for (Unit::const_iterator seg = unit.segBegin(); seg != unit.segEnd(); ++seg)
+  {
+    for (int at = seg->Begin(); at != seg->End(); ++at) {
+      fracCoords[at] += trans;
+    }
+  }
+}
+
 /** \return frac coord vector needed to properly image the unit. */
-Vec3 Action_AutoImage::calc_frac_image_vec(Vec3 const& delta_frac) {
+Vec3 Action_AutoImage::calc_frac_image_vec(Vec3 const& delta_frac, bool& need_to_move) {
   Vec3 ivec_frac(0.0);
+  need_to_move = false;
 
   for (int idx = 0; idx != 3; idx++) {
     double abs_dval = delta_frac[idx];
     if (abs_dval < 0.0) abs_dval = -abs_dval;
     if (abs_dval > 0.5) {
       // Vector has shifted more than half a box length.
+      need_to_move = true;
       double currentVal = delta_frac[idx];
       if (delta_frac[idx] > 0.0) {
         //increment = -1.0;
@@ -319,6 +332,11 @@ Vec3 Action_AutoImage::center_anchor_molecule(ActionFrame& frm, bool is_ortho, b
 
 /** Autoimage molecules using reference vectors to anchor. */
 Action::RetType Action_AutoImage::autoimage_by_vector(int frameNum, ActionFrame& frm) {
+  Frame const& frameIn = frm.Frm();
+  Box const& box = frameIn.BoxCrd();
+  bool is_ortho = box.Is_X_Aligned_Ortho();
+  bool use_ortho = (is_ortho && triclinic_ == OFF);
+
   mprintf("DEBUG: ---------- autoimage_by_vector %i\n", frameNum);
   // We need the first frame to be properly imaged. Always use by distance first.
   if (RefVecs_.empty()) {
@@ -329,12 +347,9 @@ Action::RetType Action_AutoImage::autoimage_by_vector(int frameNum, ActionFrame&
     }
   } else {
     // Just move the anchor to the center
-    bool is_ortho = frm.Frm().BoxCrd().Is_X_Aligned_Ortho();
-    bool use_ortho = (is_ortho && triclinic_ == OFF);
     center_anchor_molecule(frm, is_ortho, use_ortho);
   }
 
-  Frame const& frameIn = frm.Frm();
   // Convert everything to fractional coords.
   Varray fracCoords_;
   fracCoords_.reserve( frameIn.Natom() );
@@ -380,11 +395,20 @@ Action::RetType Action_AutoImage::autoimage_by_vector(int frameNum, ActionFrame&
       refVec->Print(               "currentref            ");
       Vec3 delta_frac = anchor_to_fixed_frac - *refVec;
       delta_frac.Print(            "delta_frac            ");
-      Vec3 image_vec = calc_frac_image_vec( delta_frac );
+      bool need_to_move;
+      Vec3 image_vec = calc_frac_image_vec( delta_frac, need_to_move );
+      mprintf("\tNeed to move= %i\n", (int)need_to_move);
       image_vec.Print(             "image_vec             ");
       // Test that image_vec would do a good job moving the fixed unit
       Vec3 test_vec = fixed_unit_center_frac + image_vec;
       test_vec.Print(              "test_vec              ");
+      // Move the unit if needed
+      if (need_to_move) {
+        translate_unit(fracCoords_, image_vec, *it);
+        // Test that the image worked
+        test_vec = unit_center(fracCoords_, *it);
+        test_vec.Print(            "after imaging         ");
+      }
       mprintf("\t--------------------\n");
     }
   }

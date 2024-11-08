@@ -21,7 +21,10 @@ class Action_AutoImage : public Action {
 
     typedef std::vector<Vec3> Varray;
 
-    static inline Vec3 calc_frac_image_vec(Vec3 const&);
+    /// \return vector that can be used to move an imaged fixed molecule back to its reference location
+    static inline Vec3 calc_frac_image_vec(Vec3 const&, bool&);
+    /// Translate given unit
+    static inline void translate_unit(Varray&, Vec3 const&, Unit const&);
     /// \return center of unit according to given array of coords
     static inline Vec3 unit_center(Varray const&, Unit const&);
     /// Move anchor molecule to the center
