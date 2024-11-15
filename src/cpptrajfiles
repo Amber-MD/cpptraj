@@ -87,6 +87,7 @@ COMMON_SOURCES= \
         Action_Surf.cpp \
         Action_SymmetricRmsd.cpp \
         Action_Temperature.cpp \
+        Action_Test.cpp \
         Action_Time.cpp \
         Action_ToroidalDiffusion.cpp \
         Action_Translate.cpp \
@@ -247,6 +248,7 @@ COMMON_SOURCES= \
         DihedralSearch.cpp \
         DiffusionResults.cpp \
         DistRoutines.cpp \
+        Dist_Imaged.cpp \
         Energy.cpp \
         EnergyArray.cpp \
         EnsembleIn.cpp \
