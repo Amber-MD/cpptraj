@@ -24,6 +24,7 @@ COMMON_SOURCES= \
         Action_Closest.cpp \
         Action_ClusterDihedral.cpp \
         Action_Contacts.cpp \
+        Action_ConvertToFrac.cpp \
         Action_CreateCrd.cpp \
         Action_CreateReservoir.cpp \
         Action_DNAionTracker.cpp \
