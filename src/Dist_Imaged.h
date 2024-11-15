@@ -5,5 +5,7 @@ class Matrix_3x3;
 namespace Cpptraj {
 /// Calculate minimum imaged distance (squared) between two coordinates in Cartesian space
 double Dist2_Imaged(Vec3 const&, Vec3 const&, Matrix_3x3 const&, Matrix_3x3 const&, int*);
+/// Calculate minimum imaged distance (squared) between two coordinates in Cartesian space
+double Dist2_Imaged_A(Vec3 const&, Vec3 const&, Matrix_3x3 const&, Matrix_3x3 const&, int*);
 }
 #endif

@@ -21,5 +21,6 @@ class Action_Test : public Action {
     CpptrajFile* outfile_;
     Timer t1_;
     Timer t2_;
+    Timer t3_;
 };
 #endif

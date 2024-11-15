@@ -69,17 +69,39 @@ Action::RetType Action_Test::DoAction(int frameNum, ActionFrame& frm)
   for (std::vector<int>::const_iterator it = firstAtoms_.begin(); it != firstAtoms_.end(); ++it)
   {
     Vec3 mol2( frm.Frm().XYZ( *it ) );
-    int ixyz[3];
+    int ixyz1[3];
     t1_.Start();
-    double d1_sq = DIST2_ImageNonOrtho(mol1.Dptr(), mol2.Dptr(), box.UnitCell(), box.FracCell());
+    //double d1_sq = DIST2_ImageNonOrtho(mol1.Dptr(), mol2.Dptr(), box.UnitCell(), box.FracCell());
+    double d1_sq = DIST2_ImageNonOrthoRecip(box.FracCell() * mol1, box.FracCell() * mol2, -1.0, ixyz1, box.UnitCell());
     t1_.Stop();
+
+    int ixyz2[3];
     t2_.Start();
-    double d2_sq = Cpptraj::Dist2_Imaged(mol1, mol2, box.UnitCell(), box.FracCell(), ixyz);
+    double d2_sq = Cpptraj::Dist2_Imaged(mol1, mol2, box.UnitCell(), box.FracCell(), ixyz2);
     t2_.Stop();
     double delta = d1_sq - d2_sq;
     if (delta < 0.0) delta = -delta;
-    if (delta > Constants::SMALL)
-      outfile_->Printf("%8i %12.4f %12.4f\n", *it, sqrt(d1_sq), sqrt(d2_sq));
+    if (delta > Constants::SMALL ||
+        ixyz1[0] != ixyz2[0] ||
+        ixyz1[1] != ixyz2[1] ||
+        ixyz1[2] != ixyz2[2])
+      outfile_->Printf("D2 %8i %12.4f %12.4f {%2i %2i %2i} {%2i %2i %2i}\n", *it, sqrt(d1_sq), sqrt(d2_sq),
+                       ixyz1[0], ixyz1[1], ixyz1[2],
+                       ixyz2[0], ixyz2[1], ixyz2[2]);
+
+    int ixyz3[3];
+    t3_.Start();
+    double d3_sq = Cpptraj::Dist2_Imaged_A(mol1, mol2, box.UnitCell(), box.FracCell(), ixyz3);
+    t3_.Stop();
+    delta = d1_sq - d3_sq;
+    if (delta < 0.0) delta = -delta;
+    if (delta > Constants::SMALL ||
+        ixyz1[0] != ixyz3[0] ||
+        ixyz1[1] != ixyz3[1] ||
+        ixyz1[2] != ixyz3[2])
+      outfile_->Printf("D3 %8i %12.4f %12.4f {%2i %2i %2i} {%2i %2i %2i}\n", *it, sqrt(d1_sq), sqrt(d3_sq),
+                       ixyz1[0], ixyz1[1], ixyz1[2],
+                       ixyz3[0], ixyz3[1], ixyz3[2]);
   }
   return Action::OK; 
 }
@@ -88,4 +110,5 @@ void Action_Test::Print() {
   mprintf("    TEST ACTION.\n");
   t1_.WriteTiming(1, "Original dist :");
   t2_.WriteTiming(1, "New dist      :");
+  t3_.WriteTiming(1, "New dist A    :");
 }
