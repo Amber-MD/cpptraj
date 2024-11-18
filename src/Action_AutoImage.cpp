@@ -98,7 +98,10 @@ Action::RetType Action_AutoImage::Init(ArgList& actionArgs, ActionInit& init, in
     if (movingAnchor_)
       mprintf("\tWhen imaging fixed molecules anchor will be set to previous fixed molecule.\n");
   } else if (mode_ == BY_VECTOR) {
-    mprintf("\tAuto-imaging using molecule vectors.\n");
+    mprintf("\tAuto-imaging fixed molecules using molecule vectors.\n");
+    if (movingAnchor_)
+      mprintf("\tFor the first frame the anchor will be set to previous fixed molecule\n"
+              "\t  when imaging fixed molecules.\n");
   }
 
   return Action::OK;
