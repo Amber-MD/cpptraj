@@ -339,7 +339,7 @@ void Command::Init() {
   Command::AddCmd( new Action_Closest(),       Cmd::ACT, 2, "closest", "closestwaters" );
   Command::AddCmd( new Action_ClusterDihedral(),Cmd::ACT,1, "clusterdihedral" );
   Command::AddCmd( new Action_Contacts(),      Cmd::ACT, 1, "contacts" );
-  Command::AddCmd( new Action_ConvertToFrac(), Cmd::ACT, 1, "converttofrac" );
+  Command::AddCmd( new Action_ConvertToFrac(), Cmd::ACT, 1, "converttofrac" ); // hidden
   Command::AddCmd( new Action_CreateCrd(),     Cmd::ACT, 1, "createcrd" );
   Command::AddCmd( new Action_CreateReservoir(),Cmd::ACT,1, "createreservoir" );
   Command::AddCmd( new Action_Density(),       Cmd::ACT, 1, "density" );

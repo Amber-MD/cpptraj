@@ -4,7 +4,7 @@
 /// <Enter description of Action_ConvertToFrac here>
 class Action_ConvertToFrac : public Action {
   public:
-    Action_ConvertToFrac() {}
+    Action_ConvertToFrac() { SetHidden(true); }
     DispatchObject* Alloc() const { return (DispatchObject*)new Action_ConvertToFrac(); }
     void Help() const;
   private:
