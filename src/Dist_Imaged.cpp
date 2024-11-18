@@ -1,9 +1,9 @@
 #include "Dist_Imaged.h"
-#include "CpptrajStdio.h" // DEBUG
+//#incl ude "CpptrajStdio.h" // DEBUG
 #include "Matrix_3x3.h"
 #include "Vec3.h"
-#include <limits>
-#include <cmath> // DEBUG
+#include <limits> // numeric_limits<double>::max()
+//#incl ude <cmath> // DEBUG
 
 /// Bring each coordinate back into the main unit cell (0 to 1)
 static inline void wrap_frac(Vec3& frac) {
@@ -31,11 +31,11 @@ double Cpptraj::Dist2_Imaged(Vec3 const& xyz1, Vec3 const& xyz2,
   wrap_frac(f1);
   wrap_frac(f2);
 
-  // DEBUG: f1 to f2 in fractional space
-  Vec3 fdelta = f2 - f1;
-  Vec3 fdelta_abs = fdelta;
-  for (int idx = 0; idx != 3; idx++) // DEBUG
-    if (fdelta_abs[idx] < 0) fdelta_abs[idx] = -fdelta_abs[idx]; // DEBUG
+//  // DEBUG: f1 to f2 in fractional space
+//  Vec3 fdelta = f2 - f1;
+//  Vec3 fdelta_abs = fdelta;
+//  for (int idx = 0; idx != 3; idx++) // DEBUG
+//    if (fdelta_abs[idx] < 0) fdelta_abs[idx] = -fdelta_abs[idx]; // DEBUG
 
   // Calculate wrapped f2 back in Cartesian space
   Vec3 c2 = ucell.TransposeMult( f2 );
@@ -68,20 +68,20 @@ double Cpptraj::Dist2_Imaged(Vec3 const& xyz1, Vec3 const& xyz2,
   } // END loop over X image indices
 
   // DEBUG
-  for (int idx = 0; idx != 3; idx++) {
-    if (ixyz[idx] != 0) {
-      int fdelta_sign = 0;
-      if (fdelta[idx] > 0)
-        fdelta_sign = 1;
-      else if (fdelta[idx] < 0)
-        fdelta_sign = -1;
-      if (fdelta_sign != ixyz[idx]) {
-    //if (ixyz[idx] != 0 && fdelta_abs[idx] < 0.5)
-        mprintf("DEBUG: ixyz %2i %2i %2i  fdelta= %12.4f %12.4f %12.4f\n",
-                ixyz[0], ixyz[1], ixyz[2], fdelta[0], fdelta[1], fdelta[2]);
-      }
-    }
-  } 
+//  for (int idx = 0; idx != 3; idx++) {
+//    if (ixyz[idx] != 0) {
+//      int fdelta_sign = 0;
+//      if (fdelta[idx] > 0)
+//        fdelta_sign = 1;
+//      else if (fdelta[idx] < 0)
+//        fdelta_sign = -1;
+//      if (fdelta_sign != ixyz[idx]) {
+//    //if (ixyz[idx] != 0 && fdelta_abs[idx] < 0.5)
+//        mprintf("DEBUG: ixyz %2i %2i %2i  fdelta= %12.4f %12.4f %12.4f\n",
+//                ixyz[0], ixyz[1], ixyz[2], fdelta[0], fdelta[1], fdelta[2]);
+//      }
+//    }
+//  } 
 
   return minD2;
 }
@@ -90,6 +90,7 @@ double Cpptraj::Dist2_Imaged(Vec3 const& xyz1, Vec3 const& xyz2,
   * Assumes fractional coordinates have already been wrapped into the 
   * primary unit cell. Also set the indices of the closest image of
   * f1 to f2.
+  * TODO use in place of DIST2_ImageNonOrthoRecip()
   */
 double Cpptraj::Dist2_Imaged_Frac(Vec3 const& f1, Vec3 const& f2,
                                   Matrix_3x3 const& ucell, Matrix_3x3 const& fcell,
@@ -168,8 +169,8 @@ double Cpptraj::Dist2_Imaged_Frac(Vec3 const& f1, Vec3 const& f2,
 }
 
 /** Calculate minimum imaged distance^2 between two points in Cartesian space.
-
   * Also set the indices of the closest image of xyz1 to xyz2.
+  * TODO use in place of DIST2_ImageNonOrtho()
   */
 double Cpptraj::Dist2_Imaged_Cart(Vec3 const& xyz1, Vec3 const& xyz2,
                                   Matrix_3x3 const& ucell, Matrix_3x3 const& fcell,
