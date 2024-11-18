@@ -41,9 +41,9 @@ void Action_AutoImage::Help() const {
           "  previous \"fixed\" molecule; this is only expected to work well\n"
           "  when \"fixed\" molecules that are sequential are also geometrically\n"
           "  close.\n"
-          "  The 'mode' keyword determines how \"fixed\" molecules will be fixed.\n"
-          "  If 'bydist' (the default), fixed molecules will use the image closest\n"
-          "  to the \"anchor\" molecule. If 'byvec', fixed molecules will use the image\n"
+          "  The 'mode' keyword determines how \"fixed\" molecules will be treated.\n"
+          "  If 'bydist' (the default), \"fixed\" molecules will use the image closest\n"
+          "  to the \"anchor\" molecule. If 'byvec', \"fixed\" molecules will use the image\n"
           "  closest to their orientation with respect to the anchor in the first frame.\n"
          );
 }
