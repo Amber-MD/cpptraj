@@ -387,15 +387,15 @@ Action::RetType Action_AutoImage::autoimage_by_vector(int frameNum, ActionFrame&
   for (int at = 0; at != frameIn.Natom(); ++at)
     fracCoords_.push_back( frameIn.BoxCrd().FracCell() * Vec3(frameIn.XYZ(at)) );
 
-  // Calculate anchor center
+  // Calculate anchor center in fractional space
   Vec3 anchor_center_frac( 0.0 );
   for (AtomMask::const_iterator at = anchorMask_.begin(); at != anchorMask_.end(); ++at)
     anchor_center_frac += fracCoords_[*at];
   anchor_center_frac /= (double)anchorMask_.Nselected();
 //  anchor_center_frac.Print("anchor_center_frac"); // DEBUG
 
-  // If this is the first frame, save reference vectors to center
   if (RefVecs_.empty()) {
+  // If this is the first frame, save reference vectors to center
 //    mprintf("DEBUG: Populating reference vectors.\n");
     for (Image::List_Unit::const_iterator it = fixedList_->begin();
                                           it != fixedList_->end(); ++it)
@@ -442,6 +442,7 @@ Action::RetType Action_AutoImage::autoimage_by_vector(int frameNum, ActionFrame&
       }
 //      mprintf("\t--------------------\n"); // DEBUG
     }
+
     // Mobile molecules
     Vec3 minvec = anchor_center_frac - 0.5;
     Vec3 maxvec = anchor_center_frac + 0.5;
@@ -460,10 +461,11 @@ Action::RetType Action_AutoImage::autoimage_by_vector(int frameNum, ActionFrame&
       if (truncoct_) {
         // Center of mobile unit after imaging
         Vec3 translated_coord_frac = mobile_unit_center_frac + image_vec;
-        // Closest distance of mobile unit to anchor center
+        // Closest distance of mobile unit center to anchor center
         int ixyz[3];
         Cpptraj::Dist2_Imaged_Frac( translated_coord_frac, anchor_center_frac, box.UnitCell(), box.FracCell(), ixyz );
         if (ixyz[0] != 0 || ixyz[1] != 0 || ixyz[2] != 0) {
+          // The reflection is closer to the center, so move the mobile unit.
           translate_unit(fracCoords_, Vec3(ixyz[0], ixyz[1], ixyz[2]), *it);
           //boxTransOut += ucell.TransposeMult( ixyz );
           //if (debug > 2)
