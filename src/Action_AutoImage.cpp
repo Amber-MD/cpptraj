@@ -2,6 +2,7 @@
 #include "Action_AutoImage.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
+#include "Dist_Imaged.h"
 #include "ImageRoutines.h"
 #include "CharMask.h"
 #include "Image_List_Unit.h"
@@ -454,6 +455,20 @@ Action::RetType Action_AutoImage::autoimage_by_vector(int frameNum, ActionFrame&
       Vec3 image_vec = wrap_frac( minvec, maxvec, mobile_unit_center_frac, need_to_move );
       if (need_to_move) {
         translate_unit(fracCoords_, image_vec, *it);
+      }
+      // Convert to familiar truncated octahedron shape.
+      if (truncoct_) {
+        // Center of mobile unit after imaging
+        Vec3 translated_coord_frac = mobile_unit_center_frac + image_vec;
+        // Closest distance of mobile unit to anchor center
+        int ixyz[3];
+        Cpptraj::Dist2_Imaged_Frac( translated_coord_frac, anchor_center_frac, box.UnitCell(), box.FracCell(), ixyz );
+        if (ixyz[0] != 0 || ixyz[1] != 0 || ixyz[2] != 0) {
+          translate_unit(fracCoords_, Vec3(ixyz[0], ixyz[1], ixyz[2]), *it);
+          //boxTransOut += ucell.TransposeMult( ixyz );
+          //if (debug > 2)
+          //  mprintf("  IMAGING, FAMILIAR OFFSETS ARE %i %i %i\n", ixyz[0], ixyz[1], ixyz[2]);
+        }
       }
     }
     // Convert back to Cartesian
