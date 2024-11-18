@@ -28,8 +28,8 @@ Action_AutoImage::~Action_AutoImage() {
 }
 
 void Action_AutoImage::Help() const {
-  mprintf("\t[<mask> | anchor <mask> [fixed <fmask>] [mobile <mmask>]]\n"
-          "\t[origin] [firstatom] [familiar | triclinic] [moveanchor]\n"
+  mprintf("\t[{<mask> | anchor <mask> [fixed <fmask>] [mobile <mmask>]}]\n"
+          "\t[origin] [firstatom] [{familiar|triclinic}] [moveanchor]\n"
           "\t[mode {bydist|byvec}]\n"
           "  Automatically center and image periodic trajectory.\n"
           "  The \"anchor\" molecule (default the first molecule) will be centered;\n"
