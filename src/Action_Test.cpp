@@ -91,7 +91,7 @@ Action::RetType Action_Test::DoAction(int frameNum, ActionFrame& frm)
 
     int ixyz3[3];
     t3_.Start();
-    double d3_sq = Cpptraj::Dist2_Imaged_A(mol1, mol2, box.UnitCell(), box.FracCell(), ixyz3);
+    double d3_sq = Cpptraj::Dist2_Imaged_Cart(mol1, mol2, box.UnitCell(), box.FracCell(), ixyz3);
     t3_.Stop();
     delta = d1_sq - d3_sq;
     if (delta < 0.0) delta = -delta;

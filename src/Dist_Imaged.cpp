@@ -86,22 +86,15 @@ double Cpptraj::Dist2_Imaged(Vec3 const& xyz1, Vec3 const& xyz2,
   return minD2;
 }
 
-/** Calculate minimum imaged distance^2 between two points in Cartesian space.
-  * Also set the indices of the closest image.
+/** Calculate minimum imaged distance^2 between two points in Fractional space.
+  * Assumes fractional coordinates have already been wrapped into the 
+  * primary unit cell. Also set the indices of the closest image of
+  * f1 to f2.
   */
-double Cpptraj::Dist2_Imaged_A(Vec3 const& xyz1, Vec3 const& xyz2,
-                               Matrix_3x3 const& ucell, Matrix_3x3 const& fcell,
-                               int* ixyz)
+double Cpptraj::Dist2_Imaged_Frac(Vec3 const& f1, Vec3 const& f2,
+                                  Matrix_3x3 const& ucell, Matrix_3x3 const& fcell,
+                                  int* ixyz)
 {
-  // Wrap each coordinate in fractional coordinates back to the main unit cell
-  // (so each frac coord is between 0 and 1).
-  Vec3 f1 = fcell * xyz1;
-
-  Vec3 f2 = fcell * xyz2;
-
-  wrap_frac(f1);
-  wrap_frac(f2);
-
   // Calculate f2 to f1 in fractional space
   Vec3 fdelta = f2 - f1;
   //fdelta.Print("fdelta");
@@ -174,3 +167,22 @@ double Cpptraj::Dist2_Imaged_A(Vec3 const& xyz1, Vec3 const& xyz2,
   return minD2;
 }
 
+/** Calculate minimum imaged distance^2 between two points in Cartesian space.
+
+  * Also set the indices of the closest image of xyz1 to xyz2.
+  */
+double Cpptraj::Dist2_Imaged_Cart(Vec3 const& xyz1, Vec3 const& xyz2,
+                                  Matrix_3x3 const& ucell, Matrix_3x3 const& fcell,
+                                  int* ixyz)
+{
+  // Wrap each coordinate in fractional coordinates back to the main unit cell
+  // (so each frac coord is between 0 and 1).
+  Vec3 f1 = fcell * xyz1;
+
+  Vec3 f2 = fcell * xyz2;
+
+  wrap_frac(f1);
+  wrap_frac(f2);
+
+  return Dist2_Imaged_Frac(f1, f2, ucell, fcell, ixyz);
+}
