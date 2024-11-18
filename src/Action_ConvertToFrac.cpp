@@ -3,7 +3,8 @@
 
 // Action_ConvertToFrac::Help()
 void Action_ConvertToFrac::Help() const {
-
+  mprintf("THIS ACTION IS CURRENTLY ONLY FOR DEBUGGING PURPOSES.\n"
+          "    Converts all Cartesian coordinates to fractional space.\n");
 }
 
 // Action_ConvertToFrac::Init()
