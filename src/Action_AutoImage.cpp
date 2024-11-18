@@ -30,6 +30,7 @@ Action_AutoImage::~Action_AutoImage() {
 void Action_AutoImage::Help() const {
   mprintf("\t[<mask> | anchor <mask> [fixed <fmask>] [mobile <mmask>]]\n"
           "\t[origin] [firstatom] [familiar | triclinic] [moveanchor]\n"
+          "\t[mode {bydist|byvec}]\n"
           "  Automatically center and image periodic trajectory.\n"
           "  The \"anchor\" molecule (default the first molecule) will be centered;\n"
           "  all \"fixed\" molecules will be imaged only if imaging brings them closer\n"
@@ -39,7 +40,12 @@ void Action_AutoImage::Help() const {
           "  If 'moveanchor' is specified the anchor point will be set to the\n"
           "  previous \"fixed\" molecule; this is only expected to work well\n"
           "  when \"fixed\" molecules that are sequential are also geometrically\n"
-          "  close.\n");
+          "  close.\n"
+          "  The 'mode' keyword determines how \"fixed\" molecules will be fixed.\n"
+          "  If 'bydist' (the default), fixed molecules will use the image closest\n"
+          "  to the \"anchor\" molecule. If 'byvec', fixed molecules will use the image\n"
+          "  closest to their orientation with respect to the anchor in the first frame.\n"
+         );
 }
 
 // Action_AutoImage::Init()
