@@ -47,7 +47,10 @@ int ForLoop_mask::SetupFor(CpptrajState& State, ArgList& argIn) {
   }
   Topology* top = State.DSL().GetTopByIndex( argIn );
   if (top != 0) currentTop_ = top;
-  if (currentTop_ == 0) return 1;
+  if (currentTop_ == 0) {
+    mprinterr("Error: No topology found for mask for loop.\n");
+    return 1;
+  }
   // Get the variable name
   if (SetupLoopVar( State.DSL(), argIn.GetStringNext() )) return 1;
 
