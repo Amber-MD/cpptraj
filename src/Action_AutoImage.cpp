@@ -68,9 +68,10 @@ Action::RetType Action_AutoImage::Init(ArgList& actionArgs, ActionInit& init, in
   } else {
     if (modestr == "bydist")
       mode_ = BY_DISTANCE;
-    else if (modestr == "byvec")
+    else if (modestr == "byvec") {
       mode_ = BY_VECTOR;
-    else {
+      mprintf("Warning: 'mode byvec' is still being tested. Check results carefully.\n");
+    } else {
       mprinterr("Error: '%s' is not a recognized autoimage mode.\n", modestr.c_str());
       return Action::ERR;
     }
