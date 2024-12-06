@@ -1560,6 +1560,29 @@ SetupLibraries() {
 }
 
 #-------------------------------------------------------------------------------
+# Check compiler version.
+CheckCompilerVersion() {
+  c_compiler=$1
+  basecc=`basename $c_compiler`
+  # Use -v
+  cc_version=`$c_compiler -v 2>&1 | grep -E "$basecc |[vV]ersion " \
+                  | sed -e 's/Open64//' -e 's/(.*)//' -e 's/^[a-zA-Z :]* //' -e 's/ .*//'`
+  if [ -z "$cc_version" ] ; then
+     echo "Error: $c_compiler is not well formed or produces unusual version details!"
+     echo "       Check for a CC environment variable."
+     exit 1
+  else
+     echo "  The version of $c_compiler is $cc_version"
+  fi
+  # use '.' as only field delimiter.
+  cc_version=`echo $cc_version | sed -e 's/-/./'`
+  cc_version_major=`echo $cc_version | cut -d'.' -f1`
+  cc_version_minor=`echo $cc_version | cut -d'.' -f2`
+  cc_version_patch=`echo $cc_version | cut -d'.' -f3`
+  #echo "DEBUG: $cc_version $cc_version_major $cc_version_minor $cc_version_patch"
+  #exit 1 # DEBUG
+}
+
 # Set up compiler commands and compiler options
 SetupCompilers() {
   if [ ! -z "$CXX" ] ; then echo "C++ compiler (CXX) set to $CXX" ; fi
@@ -1625,6 +1648,13 @@ SetupCompilers() {
       picflag='-fPIC'
       C11FLAG='-std=gnu++11'
       staticlink='-lquadmath'
+      # Check compiler version
+      CheckCompilerVersion $CC 
+      # Set version-specific flags
+      if [ $cc_version_major -ge 14 ] ; then
+        # Needed for readline with gcc >= 14
+        CFLAGS="$CFLAGS -D_DEFAULT_SOURCE -D_XOPEN_SOURCE"
+      fi
       ;;
    'clang' )
       if [ -z "$CC" ]; then CC=clang; fi
@@ -1638,6 +1668,13 @@ SetupCompilers() {
       FLINK='-lgfortran'
       picflag='-fPIC'
       C11FLAG='-std=c++11'
+      # Check the GNU compiler version
+      CheckCompilerVersion gcc
+      # Set version-specific flags
+      if [ $cc_version_major -ge 14 ] ; then
+        # Needed for readline with gcc >= 14
+        CFLAGS="$CFLAGS -D_DEFAULT_SOURCE -D_XOPEN_SOURCE"
+      fi
       ;;
    'oneapi' )
       if [ -z "$CC" ]; then CC=icx; fi
