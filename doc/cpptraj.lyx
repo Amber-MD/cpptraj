@@ -24348,15 +24348,15 @@ autoimage
 \end_layout
 
 \begin_layout LyX-Code
-autoimage [<mask> | anchor <mask> [fixed <mask>] [mobile <mask>]]
+autoimage [{<mask> | anchor <mask> [fixed <mask>] [mobile <mask>]}]
 \end_layout
 
 \begin_layout LyX-Code
-          [origin] [firstatom] [familiar | triclinic]
-\begin_inset Separator latexpar
-\end_inset
+          [origin] [firstatom] [{familiar|triclinic}] [moveanchor]
+\end_layout
 
-
+\begin_layout LyX-Code
+          [mode {bydist|byvec}]
 \end_layout
 
 \begin_deeper
@@ -24416,6 +24416,45 @@ anchor
 [triclinic] Force general triclinic imaging.
 \end_layout
 
+\begin_layout Description
+[moveanchor] When treating 
+\begin_inset Quotes eld
+\end_inset
+
+fixed
+\begin_inset Quotes erd
+\end_inset
+
+ molecules,
+ the anchor point will be set to the previous "fixed" molecule;
+ this is only expected to work well when "fixed" molecules that are sequential are also geometrically close.
+ Most useful in more condensed systems like those containing membranes.
+\end_layout
+
+\begin_layout Description
+[mode
+\begin_inset space ~
+\end_inset
+
+{bydist|byvec}] How to treat 'fixed' molecules.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+bydist The default.
+ 'Fixed' molecules will use the image closest to the "anchor" molecule.
+\end_layout
+
+\begin_layout Description
+byvec Fixed molecules will use the image closest to their orientation with respect to the anchor in the first frame.
+ May work better than 
+\series bold
+'bydist'
+\series default
+ for systems containing membranes.
+\end_layout
+
+\end_deeper
 \end_deeper
 \begin_layout Standard
 Automatically center and image (by molecule) a trajectory with periodic boundaries.
@@ -24459,6 +24498,20 @@ The autoimage command works for the majority of systems;
  it is recommended to choose as the anchor a small region which should lie near the center of your system.
  For example,
  in a protein dimer system one could choose a single residue that is near the center of the interface between the two monomers.
+ The 
+\series bold
+'moveanchor'
+\series default
+ and 
+\series bold
+'mode
+\series default
+ 
+\series bold
+byvec'
+\series default
+ options may also help in cases where the system is more condensed,
+ such as those containing membranes.
 \end_layout
 
 \begin_layout Subsection

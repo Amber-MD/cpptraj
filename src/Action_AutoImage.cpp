@@ -2,6 +2,7 @@
 #include "Action_AutoImage.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
+#include "Dist_Imaged.h"
 #include "ImageRoutines.h"
 #include "CharMask.h"
 #include "Image_List_Unit.h"
@@ -9,6 +10,7 @@
 // CONSTRUCTOR
 Action_AutoImage::Action_AutoImage() :
   debug_(0),
+  mode_(UNSPECIFIED),
   origin_(false),
   usecom_(true),
   truncoct_(false),
@@ -26,8 +28,9 @@ Action_AutoImage::~Action_AutoImage() {
 }
 
 void Action_AutoImage::Help() const {
-  mprintf("\t[<mask> | anchor <mask> [fixed <fmask>] [mobile <mmask>]]\n"
-          "\t[origin] [firstatom] [familiar | triclinic] [moveanchor]\n"
+  mprintf("\t[{<mask> | anchor <mask> [fixed <fmask>] [mobile <mmask>]}]\n"
+          "\t[origin] [firstatom] [{familiar|triclinic}] [moveanchor]\n"
+          "\t[mode {bydist|byvec}]\n"
           "  Automatically center and image periodic trajectory.\n"
           "  The \"anchor\" molecule (default the first molecule) will be centered;\n"
           "  all \"fixed\" molecules will be imaged only if imaging brings them closer\n"
@@ -37,7 +40,12 @@ void Action_AutoImage::Help() const {
           "  If 'moveanchor' is specified the anchor point will be set to the\n"
           "  previous \"fixed\" molecule; this is only expected to work well\n"
           "  when \"fixed\" molecules that are sequential are also geometrically\n"
-          "  close.\n");
+          "  close.\n"
+          "  The 'mode' keyword determines how \"fixed\" molecules will be treated.\n"
+          "  If 'bydist' (the default), \"fixed\" molecules will use the image closest\n"
+          "  to the \"anchor\" molecule. If 'byvec', \"fixed\" molecules will use the image\n"
+          "  closest to their orientation with respect to the anchor in the first frame.\n"
+         );
 }
 
 // Action_AutoImage::Init()
@@ -53,9 +61,25 @@ Action::RetType Action_AutoImage::Init(ArgList& actionArgs, ActionInit& init, in
   anchor_ = actionArgs.GetStringKey("anchor");
   fixed_  = actionArgs.GetStringKey("fixed");
   mobile_ = actionArgs.GetStringKey("mobile");
+  std::string modestr = actionArgs.GetStringKey("mode");
+  if (modestr.empty()) {
+    // Default mode
+    mode_ = BY_DISTANCE;
+  } else {
+    if (modestr == "bydist")
+      mode_ = BY_DISTANCE;
+    else if (modestr == "byvec") {
+      mode_ = BY_VECTOR;
+      mprintf("Warning: 'mode byvec' is still being tested. Check results carefully.\n");
+    } else {
+      mprinterr("Error: '%s' is not a recognized autoimage mode.\n", modestr.c_str());
+      return Action::ERR;
+    }
+  }
   // Get mask expression for anchor if none yet specified
   if (anchor_.empty())  
     anchor_ = actionArgs.GetMaskNext();
+  RefVecs_.clear();
 
   mprintf("    AUTOIMAGE: To");
   if (origin_)
@@ -76,8 +100,16 @@ Action::RetType Action_AutoImage::Init(ArgList& actionArgs, ActionInit& init, in
   if (!mobile_.empty())
     mprintf("\tAtoms in mask [%s] will be imaged independently of anchor region.\n",
             mobile_.c_str());
-  if (movingAnchor_)
-    mprintf("\tWhen imaging fixed molecules anchor will be set to previous fixed molecule.\n");
+  if (mode_ == BY_DISTANCE) {
+    mprintf("\tAuto-imaging using molecule distances.\n");
+    if (movingAnchor_)
+      mprintf("\tWhen imaging fixed molecules anchor will be set to previous fixed molecule.\n");
+  } else if (mode_ == BY_VECTOR) {
+    mprintf("\tAuto-imaging fixed molecules using molecule vectors.\n");
+    if (movingAnchor_)
+      mprintf("\tFor the first frame the anchor will be set to previous fixed molecule\n"
+              "\t  when imaging fixed molecules.\n");
+  }
 
   return Action::OK;
 }
@@ -203,18 +235,273 @@ Action::RetType Action_AutoImage::Setup(ActionSetup& setup) {
 
   truncoct_ = (triclinic_==FAMILIAR);
 
+  if (mode_ == BY_VECTOR)
+    RefVecs_.reserve( fixedList_->nEntities() );
+
   return Action::OK;
 }
 
 // Action_AutoImage::DoAction()
 Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
+  Action::RetType ret = Action::ERR;
+  switch (mode_) {
+    case BY_DISTANCE : ret = autoimage_by_distance(frameNum, frm); break;
+    case BY_VECTOR   : ret = autoimage_by_vector(frameNum, frm); break;
+    case UNSPECIFIED : ret = Action::ERR;
+  }
+  return ret;
+}
+
+/** \return center of given unit. */
+Vec3 Action_AutoImage::unit_center(Varray const& fracCoords, Unit const& unit)
+{
+  Vec3 vcenter(0.0);
+  unsigned int natoms = 0;
+  for (Unit::const_iterator seg = unit.segBegin(); seg != unit.segEnd(); ++seg)
+  {
+    for (int at = seg->Begin(); at != seg->End(); ++at) {
+      vcenter += fracCoords[at];
+      natoms++;
+    }
+  }
+  vcenter /= (double)natoms;
+  return vcenter;
+}
+
+/** Translate given unit. */
+void Action_AutoImage::translate_unit(Varray& fracCoords, Vec3 const& trans, Unit const& unit)
+{
+  for (Unit::const_iterator seg = unit.segBegin(); seg != unit.segEnd(); ++seg)
+  {
+    for (int at = seg->Begin(); at != seg->End(); ++at) {
+      fracCoords[at] += trans;
+    }
+  }
+}
+
+/** \return frac coord vector needed to properly image the unit. */
+Vec3 Action_AutoImage::calc_frac_image_vec(Vec3 const& delta_frac, bool& need_to_move) {
+  Vec3 ivec_frac(0.0);
+  need_to_move = false;
+
+  for (int idx = 0; idx != 3; idx++) {
+    double abs_dval = delta_frac[idx];
+    if (abs_dval < 0.0) abs_dval = -abs_dval;
+    if (abs_dval > 0.5) {
+      // Vector has shifted more than half a box length.
+      need_to_move = true;
+      double currentVal = delta_frac[idx];
+      if (delta_frac[idx] > 0.0) {
+        //increment = -1.0;
+        while (currentVal > 0.5) {
+          currentVal -= 1.0;
+          ivec_frac[idx] -= 1.0;
+        }
+      } else {
+        //increment = 1.0;
+        while (currentVal < -0.5) {
+          currentVal += 1.0;
+          ivec_frac[idx] += 1.0;
+        }
+      }
+    } // END more than half box length traveled
+  } // END loop over xyz idx
+  return ivec_frac;
+}
+
+/** Calculate vector needed to wrap molecule back in the primary cell.
+  * \return vector needed to image the molecule in frac space
+  * \param min minimum frac coords
+  * \param max maximum frac coords
+  * \param pos current molecule position in frac coords
+  * \param need_to_move set to true if returned vector is not zero.
+  */
+Vec3 Action_AutoImage::wrap_frac(Vec3 const& min, Vec3 const& max, Vec3 const& pos, bool& need_to_move) {
+  Vec3 ivec_frac(0.0);
+  need_to_move = false;
+
+  //Vec3 min = center - 0.5;
+  //Vec3 max = center + 0.5;
+
+  Vec3 current = pos;
+  for (int idx = 0; idx != 3; idx++) {
+    while (current[idx] < min[idx]) {
+      current[idx] += 1.0;
+      ivec_frac[idx] += 1.0;
+      need_to_move = true;
+    }
+    while (current[idx] > max[idx]) {
+      current[idx] -= 1.0;
+      ivec_frac[idx] -= 1.0;
+      need_to_move = true;
+    }
+  }
+  return ivec_frac;
+}
+
+/** Center the anchor molecule. */
+Vec3 Action_AutoImage::center_anchor_molecule(ActionFrame& frm, bool is_ortho, bool use_ortho) const {
+  Box const& box = frm.Frm().BoxCrd();
+  //bool is_ortho = frm.Frm().BoxCrd().Is_X_Aligned_Ortho();
+  //bool use_ortho = (is_ortho && triclinic_ == OFF);
+  // Store anchor point in fcom for now.
+  Vec3 fcom;
+  if (useMass_)
+    fcom = frm.Frm().VCenterOfMass( anchorMask_ );
+  else
+    fcom = frm.Frm().VGeometricCenter( anchorMask_ );
+  // Determine translation to anchor point, store in fcom.
+  // Anchor center will be in anchorcenter.
+  Vec3 anchorcenter;
+  if (origin_) {
+    // Center is coordinate origin (0,0,0)
+    fcom.Neg();
+    anchorcenter.Zero();
+  } else {
+    // Center on box center
+    if (is_ortho || truncoct_)
+      // Center is box xyz over 2
+      anchorcenter = box.Center();
+    else
+      // Center in frac coords is (0.5,0.5,0.5)
+      anchorcenter = box.UnitCell().TransposeMult(Vec3(0.5));
+    fcom = anchorcenter - fcom;
+  }
+  frm.ModifyFrm().Translate(fcom);
+  return anchorcenter;
+}
+
+/** Autoimage molecules using reference vectors to anchor. */
+Action::RetType Action_AutoImage::autoimage_by_vector(int frameNum, ActionFrame& frm) {
+  Frame const& frameIn = frm.Frm();
+  Box const& box = frameIn.BoxCrd();
+  bool is_ortho = box.Is_X_Aligned_Ortho();
+  bool use_ortho = (is_ortho && triclinic_ == OFF);
+
+//  mprintf("DEBUG: ---------- autoimage_by_vector %i\n", frameNum);
+  // We need the first frame to be properly imaged. Always use by distance first.
+  if (RefVecs_.empty()) {
+    Action::RetType ret = autoimage_by_distance(frameNum, frm);
+    if (ret != Action::MODIFY_COORDS) {
+      mprinterr("Error: autoimage by vector initial re-image by distance failed.\n");
+      return ret;
+    }
+  } else {
+    // Just move the anchor to the center
+    center_anchor_molecule(frm, is_ortho, use_ortho);
+  }
+
+  // Convert everything to fractional coords.
+  Varray fracCoords_;
+  fracCoords_.reserve( frameIn.Natom() );
+  for (int at = 0; at != frameIn.Natom(); ++at)
+    fracCoords_.push_back( frameIn.BoxCrd().FracCell() * Vec3(frameIn.XYZ(at)) );
+
+  // Calculate anchor center in fractional space
+  Vec3 anchor_center_frac( 0.0 );
+  for (AtomMask::const_iterator at = anchorMask_.begin(); at != anchorMask_.end(); ++at)
+    anchor_center_frac += fracCoords_[*at];
+  anchor_center_frac /= (double)anchorMask_.Nselected();
+//  anchor_center_frac.Print("anchor_center_frac"); // DEBUG
+
+  if (RefVecs_.empty()) {
+  // If this is the first frame, save reference vectors to center
+//    mprintf("DEBUG: Populating reference vectors.\n");
+    for (Image::List_Unit::const_iterator it = fixedList_->begin();
+                                          it != fixedList_->end(); ++it)
+    {
+      // DEBUG
+//      for (Unit::const_iterator seg = it->segBegin(); seg != it->segEnd(); ++seg) {
+//        mprintf("DEBUG: Fixed unit %li segment %li : %i to %i\n",
+//                it - fixedList_->begin(), seg - it->segBegin(),
+//                seg->Begin(), seg->End());
+//      }
+      Vec3 fixed_unit_center_frac = unit_center(fracCoords_, *it);
+//      fixed_unit_center_frac.Print("fixed_unit_center_frac"); // DEBUG
+      // Vector from fixed unit back to the anchor
+      RefVecs_.push_back( fixed_unit_center_frac - anchor_center_frac );
+//      RefVecs_.back().Print("RefVec"); // DEBUG
+    } // END loop over fixed entities
+  } else {
+    // Not the first frame. Compare reference vectors to center
+//    mprintf("DEBUG: Comparing reference vectors.\n");
+    Varray::const_iterator refVec = RefVecs_.begin();
+    for (Image::List_Unit::const_iterator it = fixedList_->begin();
+                                          it != fixedList_->end(); ++it, ++refVec)
+    {
+      Vec3 fixed_unit_center_frac = unit_center(fracCoords_, *it);
+//      fixed_unit_center_frac.Print("fixed_unit_center_frac"); // DEBUG
+      Vec3 anchor_to_fixed_frac = fixed_unit_center_frac - anchor_center_frac;
+//      anchor_to_fixed_frac.Print(  "anchor_to_fixed_frac  "); // DEBUG
+//      refVec->Print(               "currentref            "); // DEBUG
+      Vec3 delta_frac = anchor_to_fixed_frac - *refVec;
+//      delta_frac.Print(            "delta_frac            "); // DEBUG
+      bool need_to_move;
+      Vec3 image_vec = calc_frac_image_vec( delta_frac, need_to_move );
+//      mprintf("\tNeed to move= %i\n", (int)need_to_move); // DEBUG
+//      image_vec.Print(             "image_vec             "); // DEBUG
+      // Test that image_vec would do a good job moving the fixed unit
+//      Vec3 test_vec = fixed_unit_center_frac + image_vec; // DEBUG
+//      test_vec.Print(              "test_vec              "); // DEBUG
+      // Move the unit if needed
+      if (need_to_move) {
+        translate_unit(fracCoords_, image_vec, *it);
+        // Test that the image worked
+//        test_vec = unit_center(fracCoords_, *it); // DEBUG
+//        test_vec.Print(            "after imaging         "); // DEBUG
+      }
+//      mprintf("\t--------------------\n"); // DEBUG
+    }
+
+    // Mobile molecules
+    Vec3 minvec = anchor_center_frac - 0.5;
+    Vec3 maxvec = anchor_center_frac + 0.5;
+//    minvec.Print("MinVec"); // DEBUG
+//    maxvec.Print("MaxVec"); // DEBUG
+    for (Image::List_Unit::const_iterator it = mobileList_->begin();
+                                          it != mobileList_->end(); ++it, ++refVec)
+    {
+      Vec3 mobile_unit_center_frac = unit_center(fracCoords_, *it);
+      bool need_to_move;
+      Vec3 image_vec = wrap_frac( minvec, maxvec, mobile_unit_center_frac, need_to_move );
+      if (need_to_move) {
+        translate_unit(fracCoords_, image_vec, *it);
+      }
+      // Convert to familiar truncated octahedron shape.
+      if (truncoct_) {
+        // Center of mobile unit after imaging
+        Vec3 translated_coord_frac = mobile_unit_center_frac + image_vec;
+        // Closest distance of mobile unit center to anchor center
+        int ixyz[3];
+        Cpptraj::Dist2_Imaged_Frac( translated_coord_frac, anchor_center_frac, box.UnitCell(), box.FracCell(), ixyz );
+        if (ixyz[0] != 0 || ixyz[1] != 0 || ixyz[2] != 0) {
+          // The reflection is closer to the center, so move the mobile unit.
+          translate_unit(fracCoords_, Vec3(ixyz[0], ixyz[1], ixyz[2]), *it);
+          //boxTransOut += ucell.TransposeMult( ixyz );
+          //if (debug > 2)
+          //  mprintf("  IMAGING, FAMILIAR OFFSETS ARE %i %i %i\n", ixyz[0], ixyz[1], ixyz[2]);
+        }
+      }
+    }
+    // Convert back to Cartesian
+    for (int at = 0; at != frameIn.Natom(); ++at)
+      frm.ModifyFrm().SetXYZ(at, box.UnitCell().TransposeMult( fracCoords_[at] ));
+  }
+
+  return MODIFY_COORDS;
+}
+
+/** Original autoimage algorithm by distance. */
+Action::RetType Action_AutoImage::autoimage_by_distance(int frameNum, ActionFrame& frm) {
   Vec3 fcom;
   Vec3 bp, bm, offset(0.0);
-  Vec3 Trans, framecenter, imagedcenter, anchorcenter;
+  Vec3 Trans, framecenter, imagedcenter;
 
   Box const& box = frm.Frm().BoxCrd();
   bool is_ortho = frm.Frm().BoxCrd().Is_X_Aligned_Ortho();
   bool use_ortho = (is_ortho && triclinic_ == OFF);
+  Vec3 anchorcenter = center_anchor_molecule(frm, is_ortho, use_ortho);
+/*
   // Store anchor point in fcom for now.
   if (useMass_)
     fcom = frm.Frm().VCenterOfMass( anchorMask_ );
@@ -236,7 +523,7 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
       anchorcenter = box.UnitCell().TransposeMult(Vec3(0.5));
     fcom = anchorcenter - fcom;
   }
-  frm.ModifyFrm().Translate(fcom);
+  frm.ModifyFrm().Translate(fcom);*/
 
   // Setup imaging, and image everything in current Frame
   // according to mobileList_.

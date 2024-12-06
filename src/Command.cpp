@@ -165,6 +165,8 @@
 #include "Action_MinMaxDist.h"
 #include "Action_AddAtom.h"
 #include "Action_EneDecomp.h"
+#include "Action_ConvertToFrac.h"
+#include "Action_Test.h"
 // ----- ANALYSIS --------------------------------------------------------------
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
@@ -337,6 +339,7 @@ void Command::Init() {
   Command::AddCmd( new Action_Closest(),       Cmd::ACT, 2, "closest", "closestwaters" );
   Command::AddCmd( new Action_ClusterDihedral(),Cmd::ACT,1, "clusterdihedral" );
   Command::AddCmd( new Action_Contacts(),      Cmd::ACT, 1, "contacts" );
+  Command::AddCmd( new Action_ConvertToFrac(), Cmd::ACT, 1, "converttofrac" ); // hidden
   Command::AddCmd( new Action_CreateCrd(),     Cmd::ACT, 1, "createcrd" );
   Command::AddCmd( new Action_CreateReservoir(),Cmd::ACT,1, "createreservoir" );
   Command::AddCmd( new Action_Density(),       Cmd::ACT, 1, "density" );
@@ -400,6 +403,7 @@ void Command::Init() {
   Command::AddCmd( new Action_Surf(),          Cmd::ACT, 1, "surf" );
   Command::AddCmd( new Action_SymmetricRmsd(), Cmd::ACT, 1, "symmrmsd" );
   Command::AddCmd( new Action_Temperature(),   Cmd::ACT, 1, "temperature" );
+  Command::AddCmd( new Action_Test(),          Cmd::ACT, 1, "testtest" ); // HIDDEN
   Command::AddCmd( new Action_Time(),          Cmd::ACT, 1, "time" );
   Command::AddCmd( new Action_ToroidalDiffusion(), Cmd::ACT, 1, "tordiff" );
   Command::AddCmd( new Action_Translate(),     Cmd::ACT, 2, "trans", "translate" );

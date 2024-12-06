@@ -2,16 +2,38 @@
 
 . ../MasterTest.sh
 
-CleanFiles image.in reimage.mdcrd image.G3_3A.rst7 image.cpptraj.Fg238.rst7
+CleanFiles image.in reimage.mdcrd image.G3_3A.rst7 image.cpptraj.Fg238.rst7 \
+           D.agr walp_2.strip.imaged.crd
 
 TRAJ=ptraj.image.nc
 INPUT="-i image.in"
 
 TESTNAME='AutoImage tests'
-Requires maxthreads 2
+
+UNITNAME='AutoImage by vector test'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > image.in <<EOF
+parm walp_2.strip.parm7
+trajin walp_2.strip.dcd
+autoimage mode byvec
+strip !(^1,2|:52,57,77)
+trajout walp_2.strip.imaged.crd
+#for M in 1,2,3,4,5
+#  set MASK = ^
+#  set MASK += \$M
+#  set MASK += &!@/H
+#  diffusion D\$M \$MASK noimage
+#done
+run
+#writedata D.agr D*[A]
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest walp_2.strip.imaged.crd.save walp_2.strip.imaged.crd
+fi
 
 UNITNAME='AutoImage test (split DNA duplex)'
-CheckFor netcdf
+CheckFor netcdf maxthreads 2
 if [ $? -eq 0 ] ; then
   cat > image.in <<EOF
 parm ../dna30.parm7
