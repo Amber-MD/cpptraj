@@ -31,7 +31,7 @@
 #define HAVE_FCNTL 1
 
 /* Define if you have the getpwent function. */
-#define HAVE_GETPWENT 1
+// #define HAVE_GETPWENT 1
 
 /* Define if you have the getpwnam function. */
 #define HAVE_GETPWNAM 1
@@ -58,7 +58,7 @@
 #define HAVE_KILL 1
 
 /* Define if you have the lstat function. */
-#define HAVE_LSTAT 1
+//  #define HAVE_LSTAT 1
 
 /* Define if you have the mbrlen function. */
 #define HAVE_MBRLEN 1
@@ -79,9 +79,9 @@
 #define HAVE_SELECT 1
 
 /* Define if you have the setenv function.  */
-#ifndef SYSV
-#define HAVE_SETENV 1
-#endif
+// #ifndef SYSV
+// #define HAVE_SETENV 1
+// #endif
 
 /* Define if you have the setlocale function. */
 #define HAVE_SETLOCALE 1
