@@ -1,0 +1,58 @@
+package:
+  name: cpptraj
+#  version 0.1   trying to adapt recipe from AmberClassic
+  version: 0.1
+
+source:
+  path: ../
+  
+build:
+  number: 0
+
+requirements:
+  build:
+   - make
+   - {{ compiler('fortran') }}
+   - {{ compiler('c') }}
+   - {{ compiler('cxx') }}
+#  - {{ mpi }} # [ mpi == "mpich" ]
+#  - {{ compiler('nvcc') }} # [ linux and not aarch64 ]
+#  - coreutils
+   - llvm-openmp  # [osx]
+   - libgomp      # [linux and not aarch64]
+   - fftw
+   - readline
+   - openblas
+   - libnetcdf
+   - netcdf-fortran
+#  - libboost-devel
+
+  host:
+#  - libboost-devel
+   - openblas
+   - libnetcdf
+   - netcdf-fortran
+   - llvm-openmp  # [osx]
+   - libgomp      # [linux and not aarch64]
+#  - {{ mpi }} # [ mpi == "mpich" ]
+   - fftw
+   - readline
+
+  run:
+#  - libboost-devel
+   - llvm-openmp  # [osx]
+   - libgomp      # [linux and not aarch64]
+   - openblas
+   - libnetcdf
+   - netcdf-fortran
+#  - {{ mpi }} # [ mpi == "mpich" ]
+   - fftw
+   - readline
+
+about:
+    home: https://github.com/Amber-MD/cpptraj.git
+    license: GNU General Public License (GPL)
+    license_file: 
+       - LICENSE
+    summary: 'Performs analysis of MD trajectories, especially for biomolecules'
+
