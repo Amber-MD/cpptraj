@@ -1,4 +1,4 @@
 #!/bin/bash
 
-unset AMBERCLASSICHOME
+unset CPPTRAJHOME
 
