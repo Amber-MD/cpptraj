@@ -7,7 +7,7 @@ source:
   path: ../
   
 build:
-  number: 0
+  number: 2
 
 requirements:
   build:
@@ -21,8 +21,8 @@ requirements:
    - llvm-openmp  # [osx]
    - libgomp      # [linux and not aarch64]
    - fftw
-   - readline
    - openblas
+#  - readline
    - libnetcdf
    - netcdf-fortran
 #  - libboost-devel
@@ -36,7 +36,7 @@ requirements:
    - libgomp      # [linux and not aarch64]
 #  - {{ mpi }} # [ mpi == "mpich" ]
    - fftw
-   - readline
+#  - readline
 
   run:
 #  - libboost-devel
@@ -47,7 +47,7 @@ requirements:
    - netcdf-fortran
 #  - {{ mpi }} # [ mpi == "mpich" ]
    - fftw
-   - readline
+#  - readline
 
 about:
     home: https://github.com/Amber-MD/cpptraj.git

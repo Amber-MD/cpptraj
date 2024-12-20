@@ -1,9 +1,10 @@
 #!/bin/sh
 
-./configure -openblas -shared gnu
+./configure -openblas -fftw3 -zlib -bzlib -shared gnu
+
 make install
 
-rsync -a README.md config.h LICENSE bin lib $PREFIX
+rsync -a README.md Makefile config.h LICENSE dat bin lib $PREFIX
 
 # mkdir -p $PREFIX/doc
 # rsync -a doc/cpptraj.pdf $PREFIX/doc
