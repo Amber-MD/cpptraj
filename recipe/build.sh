@@ -1,10 +1,16 @@
 #!/bin/sh
 
-./configure -openblas -fftw3 -zlib -bzlib -shared gnu
+arch=`uname`
+
+if [ "$uname" == "Darwin" ]; then
+   ./configure -openblas -fftw3 -zlib -bzlib -shared clang
+else
+   ./configure -openblas -fftw3 -zlib -bzlib -shared configure
+endif
 
 make install
 
-rsync -a README.md Makefile config.h LICENSE dat bin lib $PREFIX
+rsync -a README.md config.h LICENSE dat bin lib $PREFIX
 
 # mkdir -p $PREFIX/doc
 # rsync -a doc/cpptraj.pdf $PREFIX/doc
