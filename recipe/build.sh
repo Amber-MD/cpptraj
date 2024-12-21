@@ -2,11 +2,11 @@
 
 arch=`uname`
 
-if [ "$uname" == "Darwin" ]; then
-   ./configure -openblas -fftw3 -zlib -bzlib -shared clang
+if [ "$arch" == "Darwin" ]; then
+   ./configure -openblas -arpack -fftw3 -zlib -bzlib -shared clang
 else
-   ./configure -openblas -fftw3 -zlib -bzlib -shared configure
-endif
+   ./configure -openmm -openblas -fftw3 -zlib -bzlib -shared -openmp -arpack gnu
+fi
 
 make install
 

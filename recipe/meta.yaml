@@ -1,13 +1,14 @@
 package:
   name: cpptraj
 #  version 0.1   trying to adapt recipe from AmberClassic
-  version: 0.1
+#  version 0.2   small tweaks get allow osx-64 build
+  version: 0.2
 
 source:
   path: ../
   
 build:
-  number: 2
+  number: 0
 
 requirements:
   build:
@@ -22,6 +23,8 @@ requirements:
    - libgomp      # [linux and not aarch64]
    - fftw
    - openblas
+   - arpack
+   - openmm
 #  - readline
    - libnetcdf
    - netcdf-fortran
@@ -30,6 +33,8 @@ requirements:
   host:
 #  - libboost-devel
    - openblas
+   - arpack
+   - openmm
    - libnetcdf
    - netcdf-fortran
    - llvm-openmp  # [osx]
@@ -43,6 +48,8 @@ requirements:
    - llvm-openmp  # [osx]
    - libgomp      # [linux and not aarch64]
    - openblas
+   - arpack
+   - openmm
    - libnetcdf
    - netcdf-fortran
 #  - {{ mpi }} # [ mpi == "mpich" ]
