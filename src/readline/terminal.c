@@ -96,6 +96,7 @@ static char *term_string_buffer = (char *)NULL;
 
 static int tcap_initialized;
 
+#define NEED_EXTERN_PC 1
 #if !defined (__linux__)
 #  if defined (__EMX__) || defined (NEED_EXTERN_PC)
 extern 
