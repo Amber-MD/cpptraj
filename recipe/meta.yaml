@@ -2,13 +2,20 @@ package:
   name: cpptraj
 #  version 0.1   trying to adapt recipe from AmberClassic
 #  version 0.2   small tweaks get allow osx-64 build
-  version: 0.2
+#  version 0.3   add mpi and pnetcdf support
+  version: 0.3
 
 source:
   path: ../
+# url:
+# sha256:
   
 build:
-  number: 0
+  number: 1
+  skip: True # [win or ppc65le or aarch64]
+
+mpi:
+   - mpich
 
 requirements:
   build:
@@ -16,22 +23,18 @@ requirements:
    - {{ compiler('fortran') }}
    - {{ compiler('c') }}
    - {{ compiler('cxx') }}
-#  - {{ mpi }} # [ mpi == "mpich" ]
-#  - {{ compiler('nvcc') }} # [ linux and not aarch64 ]
+   - {{ mpi }} # [ mpi == "mpich" ]
+   - libpnetcdf
+#  - {{ compiler('nvcc') }} # [ linux ]
 #  - coreutils
    - llvm-openmp  # [osx]
-   - libgomp      # [linux and not aarch64]
+   - libgomp      # [linux]
    - fftw
-   - openblas
-   - arpack
-   - openmm
-#  - readline
+   - readline
    - libnetcdf
    - netcdf-fortran
-#  - libboost-devel
 
   host:
-#  - libboost-devel
    - openblas
    - arpack
    - openmm
@@ -39,12 +42,12 @@ requirements:
    - netcdf-fortran
    - llvm-openmp  # [osx]
    - libgomp      # [linux and not aarch64]
-#  - {{ mpi }} # [ mpi == "mpich" ]
+   - {{ mpi }} # [ mpi == "mpich" ]
+   - libpnetcdf
    - fftw
-#  - readline
+   - readline
 
   run:
-#  - libboost-devel
    - llvm-openmp  # [osx]
    - libgomp      # [linux and not aarch64]
    - openblas
@@ -52,14 +55,25 @@ requirements:
    - openmm
    - libnetcdf
    - netcdf-fortran
-#  - {{ mpi }} # [ mpi == "mpich" ]
+   - {{ mpi }} # [ mpi == "mpich" ]
+   - libpnetcdf
    - fftw
-#  - readline
+   - readline
+
+test:
+  commands:
+   - cpptraj --help
 
 about:
     home: https://github.com/Amber-MD/cpptraj.git
-    license: GNU General Public License (GPL)
+    license: GPL-3.0-or-later
     license_file: 
        - LICENSE
     summary: 'Performs analysis of MD trajectories, especially for biomolecules'
+    description: |
+      CPPTRAJ is a program designed to process and analyze molecular
+      dynamics trajectories and relevant data sets derived from their
+      analysis. CPPTRAJ supports many popular MD software packages including
+      Amber, CHARMM, Gromacs, and NAMD.
+
 
