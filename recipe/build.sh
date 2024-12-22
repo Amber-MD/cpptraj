@@ -4,13 +4,17 @@ arch=`uname`
 
 if [ "$arch" == "Darwin" ]; then
    ./configure -openblas -arpack -fftw3 -zlib -bzlib -shared clang
+   make install
 else
-   ./configure -openmm -openblas -fftw3 -zlib -bzlib -shared -openmp -arpack gnu
+   ./configure -readline -openmm -openblas -fftw3 -zlib -bzlib -shared -arpack gnu
+   make install
+   make clean
+   ./configure -readline -openmm -openblas -fftw3 -zlib -bzlib -shared -mpi -arpack gnu
+   make install
 fi
 
-make install
 
-rsync -a README.md config.h LICENSE dat bin lib $PREFIX
+rsync -a README.md config.h LICENSE dat bin lib test $PREFIX
 
 # mkdir -p $PREFIX/doc
 # rsync -a doc/cpptraj.pdf $PREFIX/doc
