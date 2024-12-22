@@ -1073,7 +1073,7 @@ EOF
 TestReadline() {
   cat > testp.cpp <<EOF
 #include <cstdio>
-#include <readline.h>
+#include <readline/readline.h>
 static char *line_read = (char *)NULL;
 // Do not want to actually run this so leave outside main
 void Unused() { line_read = readline(""); }
@@ -1514,11 +1514,11 @@ SetupLibraries() {
         if [ $i -eq $LREADLINE ] ; then
           # For external readline, we need to link libtermcap for windows
           # and libncurses for Linux
-          #if [ $USE_WINDOWS -eq 1 ]; then
+          if [ $USE_WINDOWS -eq 1 ]; then
             lflag="$lflag -ltermcap"
-          #else
-          #  lflag="$lflag -lncurses"
-          #fi
+          else
+            lflag="$lflag -lncurses"
+          fi
         elif [ $i -eq $LSANDER ] ; then
           # Always specify libsander location to prevent pulling in
           # other amber libraries.
