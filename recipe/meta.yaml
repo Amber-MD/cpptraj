@@ -30,8 +30,8 @@ requirements:
    - {{ mpi }} # [ mpi == "mpich" ]
    - libpnetcdf
    - {{ compiler('nvcc') }} # [ linux ]
-   - coreutils
-   - nvcc_linux-64
+   - coreutils # [ linux ]
+   - nvcc_linux-64 # [ linux ]
    - llvm-openmp  # [osx]
    - libgomp      # [linux]
    - fftw
