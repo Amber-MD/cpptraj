@@ -1,6 +1,14 @@
 #!/bin/sh
 
-tar cvf ../cpptraj_v0.3.tar configure dat get_library.sh LICENSE Makefile src 
+version=$1
+
+tar cvf ../cpptraj-$version.tar configure dat get_library.sh \
+   LICENSE Makefile src test doc README.md
 cd ..
-gzip cpptraj_v0.3.tar
+gzip cpptraj-$version.tar
+
+rsync -av cpptraj-$version.tar.gz \
+    amber@194.195.210.182:ambermd-website.rcsb.rutgers.edu/downloads
+
+curl -sL https://ambermd.org/downloads/cpptraj-$version.tar.gz | openssl sha256
 
