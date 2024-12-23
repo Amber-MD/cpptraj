@@ -1,0 +1,6 @@
+#!/bin/sh
+
+tar cvf ../cpptraj_v0.3.tar configure dat get_library.sh LICENSE Makefile src 
+cd ..
+gzip cpptraj_v0.3.tar
+

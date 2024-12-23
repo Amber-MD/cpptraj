@@ -1,21 +1,25 @@
+{% set version = "0.4" %}
+{% set mpi = "mpich" %}
+
 package:
   name: cpptraj
 #  version 0.1   trying to adapt recipe from AmberClassic
 #  version 0.2   small tweaks get allow osx-64 build
 #  version 0.3   add mpi and pnetcdf support
-  version: 0.3
+#  version 0.4   build from url; add cuda
+  version: {{ version }}
 
 source:
   path: ../
-# url:
-# sha256:
+# url: https://ambermd.org/downloads/cpptraj-{{ version }}.tar.gz
+# sha256: 2d7eddf4a4fdc5ab8af499728011673030fffef46b6b1f96852e045de6db9082
   
 build:
-  number: 1
+  number: 0
   skip: True # [win or ppc65le or aarch64]
 
 mpi:
-   - mpich
+   - {{ mpi }}
 
 requirements:
   build:
@@ -25,8 +29,9 @@ requirements:
    - {{ compiler('cxx') }}
    - {{ mpi }} # [ mpi == "mpich" ]
    - libpnetcdf
-#  - {{ compiler('nvcc') }} # [ linux ]
-#  - coreutils
+   - {{ compiler('nvcc') }} # [ linux ]
+   - coreutils
+   - nvcc_linux-64
    - llvm-openmp  # [osx]
    - libgomp      # [linux]
    - fftw

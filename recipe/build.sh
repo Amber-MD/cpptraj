@@ -1,23 +1,28 @@
 #!/bin/sh
 
+export NVCC=nvcc
+# export SHADER_MODEL=sm_89
+
 arch=`uname`
 
 if [ "$arch" == "Darwin" ]; then
-   ./configure -openblas -arpack -fftw3 -zlib -bzlib -shared clang
+   ./configure  -readline -openmm -openblas -fftw3 -zlib -bzlib -shared -arpack clang
    make install
 else
-   ./configure -readline -openmm -openblas -fftw3 -zlib -bzlib -shared -arpack gnu
+   ./configure -cuda -readline -openmm -openblas -fftw3 -zlib -bzlib -shared -arpack gnu
    make install
    make clean
-   ./configure -readline -openmm -openblas -fftw3 -zlib -bzlib -shared -mpi -arpack gnu
+   ./configure -mpi -readline -openmm -openblas -fftw3 -zlib -bzlib -shared -arpack gnu
    make install
+   make clean
+   ./configure  -readline -openmm -openblas -fftw3 -zlib -bzlib -shared -arpack gnu
 fi
 
 
 rsync -a README.md config.h LICENSE dat bin lib test $PREFIX
 
-# mkdir -p $PREFIX/doc
-# rsync -a doc/cpptraj.pdf $PREFIX/doc
+mkdir -p $PREFIX/doc
+rsync -a doc/CpptrajManual.pdf $PREFIX/doc
 
 # Export CPPTRAJHOME automatically
 mkdir -p ${PREFIX}/etc/conda/{activate,deactivate}.d

@@ -33,8 +33,8 @@ unittest: config.h
 # Clean up
 clean: config.h
 	cd src && $(MAKE) clean
-	cd test && $(MAKE) clean
-	cd unitTests && $(MAKE) clean
+#	cd test && $(MAKE) clean
+#	cd unitTests && $(MAKE) clean
 
 docs: src/cpptraj.Doxyfile
 	cd doc && make docs
