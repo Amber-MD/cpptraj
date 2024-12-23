@@ -16,6 +16,7 @@ else
    make install
    make clean
    ./configure  -readline -openmm -openblas -fftw3 -zlib -bzlib -shared -arpack gnu
+   make install
 fi
 
 
