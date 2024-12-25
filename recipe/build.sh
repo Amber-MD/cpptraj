@@ -6,9 +6,18 @@ export NVCC=nvcc
 arch=`uname`
 
 if [ "$arch" == "Darwin" ]; then
-   ./configure  -readline -openmm -openblas -fftw3 -zlib -bzlib -shared -arpack clang
+
+   ./configure  -openmp -readline -openmm -openblas -fftw3 -zlib -bzlib -shared -arpack clang
    make install
+   make clean
+   ./configure -mpi -readline -openmm -openblas -fftw3 -zlib -bzlib -shared -arpack clang
+   make install
+   make clean
+   ./configure -readline -openmm -openblas -fftw3 -zlib -bzlib -shared -arpack clang
+   make install
+
 else
+
    ./configure -cuda -readline -openmm -openblas -fftw3 -zlib -bzlib -shared -arpack gnu
    make install
    make clean
@@ -17,6 +26,7 @@ else
    make clean
    ./configure  -readline -openmm -openblas -fftw3 -zlib -bzlib -shared -arpack gnu
    make install
+
 fi
 
 

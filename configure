@@ -1662,7 +1662,7 @@ SetupCompilers() {
       if [ -z "$FC" ]; then FC=gfortran; fi
       hostflags=''
       optflags='-O3'
-      ompflag='-fopenmp'
+      ompflag='-Xclang -fopenmp'
       freefmtflag='-ffree-form'
       foptflags='-O3'
       FLINK='-lgfortran'
