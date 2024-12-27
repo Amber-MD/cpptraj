@@ -10,12 +10,12 @@ package:
   version: {{ version }}
 
 source:
-# path: ../
-  url: https://ambermd.org/downloads/cpptraj-{{ version }}.tar.gz
-  sha256: 6be4dda3f6f59610d97b2cdb8f6745ca05cff60705ba95dbcfc07c10fd083d95
+  path: ../
+# url: https://ambermd.org/downloads/cpptraj-{{ version }}.tar.gz
+# sha256: 6be4dda3f6f59610d97b2cdb8f6745ca05cff60705ba95dbcfc07c10fd083d95
   
 build:
-  number: 0
+  number: 1
   skip: True # [win or ppc65le or aarch64]
 
 mpi:
