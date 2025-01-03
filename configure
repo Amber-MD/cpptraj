@@ -318,9 +318,9 @@ LIB_D_ON[$LFFTW3]='-DFFTW_FFT'
 LIB_DOFF[$LFFTW3]=''
 LIB_TYPE[$LFFTW3]='cpp'
 
-LIB_STAT[$LREADLINE]='bundled'
+LIB_STAT[$LREADLINE]='enabled'
 LIB_CKEY[$LREADLINE]='readline'
-LIB_HOME[$LREADLINE]='readline'
+LIB_HOME[$LREADLINE]=''
 LIB_FLAG[$LREADLINE]='-lreadline'
 LIB_STTC[$LREADLINE]='libreadline.a'
 LIB_D_ON[$LREADLINE]=''
@@ -1073,7 +1073,7 @@ EOF
 TestReadline() {
   cat > testp.cpp <<EOF
 #include <cstdio>
-#include <readline.h>
+#include <readline/readline.h>
 static char *line_read = (char *)NULL;
 // Do not want to actually run this so leave outside main
 void Unused() { line_read = readline(""); }
@@ -1503,23 +1503,24 @@ SetupLibraries() {
             lflag="-L$lhdir ${LIB_FLAG[$i]}"
           fi
           # Library-specific CPPTRAJ_INC fixes when home specified.
-          if [ $i -eq $LREADLINE ] ; then
-            linc="$linc/readline"
-          fi
+          #if [ $i -eq $LREADLINE ] ; then
+          #  linc="$linc/readline"
+          #fi
           if [ $i -eq $LXDRFILE ] ; then
             linc="$linc/xdrfile"
           fi
         fi
         # Library-specific flag fixes
-        if [ $i -eq $LREADLINE ] ; then
+#        if [ $i -eq $LREADLINE ] ; then
           # For external readline, we need to link libtermcap for windows
           # and libncurses for Linux
           #if [ $USE_WINDOWS -eq 1 ]; then
-            lflag="$lflag -ltermcap"
+#            lflag="$lflag -ltermcap"
           #else
           #  lflag="$lflag -lncurses"
           #fi
-        elif [ $i -eq $LSANDER ] ; then
+#        elif [ $i -eq $LSANDER ] ; then
+        if [ $i -eq $LSANDER ] ; then
           # Always specify libsander location to prevent pulling in
           # other amber libraries.
           if [ ! -f "${LIB_FLAG[$LSANDER]}" ] ; then

@@ -8,8 +8,8 @@
 #   include <iostream>
 #else
 #   define READLINE_LIBRARY
-#   include <readline.h>
-#   include <history.h>
+#   include <readline/readline.h>
+#   include <readline/history.h>
 #endif
 #include "ReadLine.h"
 #include "Command.h"
