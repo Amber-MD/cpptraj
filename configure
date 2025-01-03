@@ -1079,7 +1079,18 @@ static char *line_read = (char *)NULL;
 void Unused() { line_read = readline(""); }
 int main() { return 0; }
 EOF
-  TestProgram "  Checking Readline" "$CXX" "$CXXFLAGS ${LIB_INCL[$LREADLINE]}" testp.cpp "${LIB_FLAG[$LREADLINE]}"
+
+  if [ "${LIB_STAT[$LREADLINE]}" = 'specified' ] ; then
+    TestProgram "  Checking Readline" "$CXX" "$CXXFLAGS ${LIB_INCL[$LREADLINE]}" testp.cpp "${LIB_FLAG[$LREADLINE]}"
+  else
+    TestProgram silent "  Checking Readline" "$CXX" "$CXXFLAGS ${LIB_INCL[$LREADLINE]}" testp.cpp "${LIB_FLAG[$LREADLINE]}"
+    if [ $? -ne 0 ] ; then
+      echo "No readline available; using bundled readline."
+      LIB_STAT[$LREADLINE]='bundled'
+      LIB_FLAG[$LREADLINE]='readline/libreadline.a'
+      LIB_INCL[$LREADLINE]='-I.'
+    fi
+  fi
 }
 
 TestXdrfile() {
