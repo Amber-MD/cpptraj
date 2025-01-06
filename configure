@@ -1083,8 +1083,26 @@ EOF
   if [ "${LIB_STAT[$LREADLINE]}" = 'specified' ] ; then
     TestProgram "  Checking Readline" "$CXX" "$CXXFLAGS ${LIB_INCL[$LREADLINE]}" testp.cpp "${LIB_FLAG[$LREADLINE]}"
   else
+    # Test with just -lreadline
     TestProgram silent "  Checking Readline" "$CXX" "$CXXFLAGS ${LIB_INCL[$LREADLINE]}" testp.cpp "${LIB_FLAG[$LREADLINE]}"
-    if [ $? -ne 0 ] ; then
+    lreadline_err=$?
+    if [ $lreadline_err -ne 0 ] ; then
+      # Try -ltermcap
+      TestProgram silent "  Checking Readline with termcap" "$CXX" "$CXXFLAGS ${LIB_INCL[$LREADLINE]}" testp.cpp "${LIB_FLAG[$LREADLINE]} -ltermcap"
+      lreadline_err=$?
+      if [ $lreadline_err -eq 0 ] ; then
+        LIB_FLAG[$LREADLINE]="${LIB_FLAG[$LREADLINE]} -ltermcap"
+      fi
+    fi
+    if [ $lreadline_err -ne 0 ] ; then
+      # Try -lncurses
+      TestProgram silent "  Checking Readline with ncurses" "$CXX" "$CXXFLAGS ${LIB_INCL[$LREADLINE]}" testp.cpp "${LIB_FLAG[$LREADLINE]} -lncurses"
+      lreadline_err=$?
+      if [ $lreadline_err -eq 0 ] ; then
+        LIB_FLAG[$LREADLINE]="${LIB_FLAG[$LREADLINE]} -lncurses"
+      fi
+    fi
+    if [ $lreadline_err -ne 0 ] ; then
       echo "No readline available; using bundled readline."
       LIB_STAT[$LREADLINE]='bundled'
       LIB_FLAG[$LREADLINE]='readline/libreadline.a'
