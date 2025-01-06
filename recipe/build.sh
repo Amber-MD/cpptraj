@@ -24,6 +24,9 @@ else
    ./configure -mpi -readline -openmm -openblas -fftw3 -zlib -bzlib -shared -arpack gnu
    make install
    make clean
+   ./configure  -openmp -readline -openmm -openblas -fftw3 -zlib -bzlib -shared -arpack gnu
+   make install
+   make clean
    ./configure  -readline -openmm -openblas -fftw3 -zlib -bzlib -shared -arpack gnu
    make install
 
@@ -34,6 +37,8 @@ rsync -a README.md config.h LICENSE dat bin lib test $PREFIX
 
 mkdir -p $PREFIX/doc
 rsync -a doc/CpptrajManual.pdf $PREFIX/doc
+mkdir -p $PREFIX/include/cpptraj 
+rsync src/*.h $PREFIX/include/cpptraj/ 
 
 # Export CPPTRAJHOME automatically
 mkdir -p ${PREFIX}/etc/conda/{activate,deactivate}.d
