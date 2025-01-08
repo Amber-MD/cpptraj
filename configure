@@ -1701,8 +1701,8 @@ SetupCompilers() {
       # Check the GNU compiler version
       CheckCompilerVersion gcc
       # Set version-specific flags
-      if [ $cc_version_major -ge 14 ] ; then
-        # Needed for readline with gcc >= 14
+      if [ $cc_version_major -ge 13 ] ; then
+        # Needed for readline with gcc >= 13
         CFLAGS="$CFLAGS -D_DEFAULT_SOURCE -D_XOPEN_SOURCE"
       fi
       ;;
