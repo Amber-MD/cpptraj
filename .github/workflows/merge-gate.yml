@@ -138,10 +138,10 @@ jobs:
         sudo apt-get install clang
         sudo apt-get install cmake-data cmake    
     - uses: actions/checkout@v4
-    - name: Set up Python 3.10
+    - name: Set up Python 3.11
       uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
+        python-version: '3.11'
     - name: Add conda to system path
       run: |
         # $CONDA is an environment variable pointing to the root of the miniconda directory
@@ -149,7 +149,7 @@ jobs:
     - name: Install conda packages
       run: |
         which conda
-        conda install conda=23.11.0 python=3.10
+        conda install conda=23.11.0 python=3.11
         conda --version
         conda env update --file devtools/ci/environment.yml --name base
     - name: Install cpptraj
