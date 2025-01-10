@@ -17,7 +17,7 @@ source:
   
 build:
   number: 0
-  skip: True # [win or ppc65le or aarch64]
+  skip: True # [win or ppc65le]
 
 mpi:
    - {{ mpi }}
