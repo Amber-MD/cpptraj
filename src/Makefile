@@ -59,7 +59,7 @@ cpptraj$(SFX)$(EXE): $(OBJECTS) $(FFT_TARGET) $(READLINE_TARGET) $(CUDA_TARGET) 
 
 libcpptraj: $(LIBCPPTRAJ_TARGET)
 
-$(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX): $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET) $(XDRFILE_TARGET) $(ARPACK_TARGET) $(TNGFILE_TARGET)
+$(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX): $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET) $(XDRFILE_TARGET) $(ARPACK_TARGET) $(TNGFILE_TARGET) install_headers
 	$(VB)echo Install $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX)
 	$(VB)$(CXX) -shared -o $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX) $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET) $(CPPTRAJ_LIB) $(LDFLAGS)
 
@@ -74,10 +74,11 @@ install_dat:
 
 # Headers ------------------------------
 $(CPPTRAJINC):
-	mkdir $(CPPTRAJINC)
+	-mkdir $(CPPTRAJINC)
 
 install_headers: $(CPPTRAJINC)
-	-for file in $(CPPTRAJ_HEADERS) ; do \
+	$(VB) echo Installing CPPTRAJ headers to $(CPPTRAJINC)
+	$(VB)-for file in $(CPPTRAJ_HEADERS) ; do \
 	  $(INSTALL) -D $${file} $(CPPTRAJINC)/$${file} ; \
 	done
 
