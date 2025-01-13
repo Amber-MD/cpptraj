@@ -3,6 +3,8 @@ include ../config.h
 
 include cpptrajfiles
 
+include cpptrajheaders
+
 # Object files from subdirectories go here
 include Cluster/clusterfiles
 CLUSTER_SOURCEFILES=$(CLUSTER_SOURCES:%.cpp=Cluster/%.cpp)
@@ -69,6 +71,15 @@ install_dat:
 	-$(INSTALL_DATA) ../dat/README             $(CPPTRAJDAT)/
 	-$(INSTALL_DATA) ../dat/Carbohydrate_PDB_Glycam_Names.txt $(CPPTRAJDAT)/
 	-$(INSTALL_DATA) ../dat/PDB_ResidueNames.txt $(CPPTRAJDAT)/
+
+# Headers ------------------------------
+$(CPPTRAJINC):
+	mkdir $(CPPTRAJINC)
+
+install_headers: $(CPPTRAJINC)
+	-for file in $(CPPTRAJ_HEADERS) ; do \
+	  $(INSTALL) -D $${file} $(CPPTRAJINC)/$${file} ; \
+	done
 
 # Static libraries ---------------------
 #$(CPPTRAJLIB)/libcpptraj.a: $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET)
