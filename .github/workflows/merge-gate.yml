@@ -149,7 +149,7 @@ jobs:
     - name: Install conda packages
       run: |
         which conda
-        conda install conda=23.11.0 python=3.10
+        conda install conda=24.11.0 python=3.10
         conda --version
         conda env update --file devtools/ci/environment.yml --name base
     - name: Install cpptraj

@@ -179,16 +179,30 @@ endif()
 #------------------------------------------------------------------------------------------
 # Header installation
 
-if(INSTALL_HEADERS)
+#if(INSTALL_HEADERS)
 	# grab all .h files from the main directory.
 	file(GLOB CPPTRAJ_HEADERS "*.h")
 	list(REMOVE_ITEM CPPTRAJ_HEADERS "SymbolExporting.h")
 	
 	# also grab xdrfile headers since some of them are used by cpptraj headers
-	file(GLOB XDRFILE_HEADERS "xdrfile/*.h")
+	#file(GLOB XDRFILE_HEADERS "xdrfile/*.h")
+        file(GLOB CLUSTER_HEADERS "Cluster/*.h")
+        file(GLOB STRUCTURE_HEADERS "Structure/*.h")
+        file(GLOB ENERGY_HEADERS "Energy/*.h")
 
-	install(FILES ${CPPTRAJ_HEADERS} DESTINATION ${INCDIR}/cpptraj)
-	install(FILES ${XDRFILE_HEADERS} DESTINATION ${INCDIR}/cpptraj/xdrfile)
+        if(INSIDE_AMBER)
+	  install(FILES ${CPPTRAJ_HEADERS} DESTINATION ${INCDIR}/cpptraj)
+	  #install(FILES ${XDRFILE_HEADERS} DESTINATION ${INCDIR}/cpptraj/xdrfile)
+          install(FILES ${CLUSTER_HEADERS} DESTINATION ${INCDIR}/cpptraj/Cluster)
+          install(FILES ${STRUCTURE_HEADERS} DESTINATION ${INCDIR}/cpptraj/Structure)
+          install(FILES ${ENERGY_HEADERS} DESTINATION ${INCDIR}/cpptraj/Energy)
+        else()
+	  install(FILES ${CPPTRAJ_HEADERS} DESTINATION ${INCDIR})
+	  #install(FILES ${XDRFILE_HEADERS} DESTINATION ${INCDIR}/xdrfile)
+          install(FILES ${CLUSTER_HEADERS} DESTINATION ${INCDIR}/Cluster)
+          install(FILES ${STRUCTURE_HEADERS} DESTINATION ${INCDIR}/Structure)
+          install(FILES ${ENERGY_HEADERS} DESTINATION ${INCDIR}/Energy)
+        endif()
 	
 	# configure SymbolExporting.h specially for the current install type
 	if(SHARED)
@@ -200,7 +214,7 @@ if(INSTALL_HEADERS)
 	
 	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/SymbolExporting-installversion.h DESTINATION ${INCDIR}/cpptraj RENAME SymbolExporting.h)
 	
-endif()
+#endif()
 
 # Check for C++11 support
 set(HAS_C11_SUPPORT FALSE)
