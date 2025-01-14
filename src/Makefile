@@ -3,6 +3,8 @@ include ../config.h
 
 include cpptrajfiles
 
+include cpptrajheaders
+
 # Object files from subdirectories go here
 include Cluster/clusterfiles
 CLUSTER_SOURCEFILES=$(CLUSTER_SOURCES:%.cpp=Cluster/%.cpp)
@@ -43,7 +45,7 @@ install: $(INSTALL_TARGETS)
 # Cpptraj ------------------------------
 install_cpptraj: cpptraj$(SFX)$(EXE)
 	$(VB)echo Install cpptraj$(SFX)$(EXE) to $(CPPTRAJBIN)
-	$(VB)mv cpptraj$(SFX)$(EXE) $(CPPTRAJBIN)
+	$(VB)$(INSTALL_PROGRAM) cpptraj$(SFX)$(EXE) $(CPPTRAJBIN)
 
 cpptraj$(SFX)$(EXE): $(OBJECTS) $(FFT_TARGET) $(READLINE_TARGET) $(CUDA_TARGET) $(XDRFILE_TARGET) $(ARPACK_TARGET) $(TNGFILE_TARGET)
 	$(VB)echo Link cpptraj$(SFX)$(EXE)
@@ -57,18 +59,28 @@ cpptraj$(SFX)$(EXE): $(OBJECTS) $(FFT_TARGET) $(READLINE_TARGET) $(CUDA_TARGET) 
 
 libcpptraj: $(LIBCPPTRAJ_TARGET)
 
-$(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX): $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET) $(XDRFILE_TARGET) $(ARPACK_TARGET) $(TNGFILE_TARGET)
+$(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX): $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET) $(XDRFILE_TARGET) $(ARPACK_TARGET) $(TNGFILE_TARGET) install_headers
 	$(VB)echo Install $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX)
 	$(VB)$(CXX) -shared -o $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX) $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET) $(CPPTRAJ_LIB) $(LDFLAGS)
 
 # Data directory -----------------------
 install_dat:
-	-cp ../dat/ATOMTYPE_CHECK.TAB $(CPPTRAJDAT)/
-	-cp ../dat/BONDTYPE_CHECK.TAB $(CPPTRAJDAT)/
-	-cp ../dat/Karplus.txt        $(CPPTRAJDAT)/
-	-cp ../dat/README             $(CPPTRAJDAT)/
-	-cp ../dat/Carbohydrate_PDB_Glycam_Names.txt $(CPPTRAJDAT)/
-	-cp ../dat/PDB_ResidueNames.txt $(CPPTRAJDAT)/
+	-$(INSTALL_DATA) ../dat/ATOMTYPE_CHECK.TAB $(CPPTRAJDAT)/
+	-$(INSTALL_DATA) ../dat/BONDTYPE_CHECK.TAB $(CPPTRAJDAT)/
+	-$(INSTALL_DATA) ../dat/Karplus.txt        $(CPPTRAJDAT)/
+	-$(INSTALL_DATA) ../dat/README             $(CPPTRAJDAT)/
+	-$(INSTALL_DATA) ../dat/Carbohydrate_PDB_Glycam_Names.txt $(CPPTRAJDAT)/
+	-$(INSTALL_DATA) ../dat/PDB_ResidueNames.txt $(CPPTRAJDAT)/
+
+# Headers ------------------------------
+$(CPPTRAJINC):
+	-mkdir $(CPPTRAJINC)
+
+install_headers: $(CPPTRAJINC)
+	$(VB) echo Installing CPPTRAJ headers to $(CPPTRAJINC)
+	$(VB)-for file in $(CPPTRAJ_HEADERS) ; do \
+	  $(INSTALL) -D $${file} $(CPPTRAJINC)/$${file} ; \
+	done
 
 # Static libraries ---------------------
 #$(CPPTRAJLIB)/libcpptraj.a: $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET)

@@ -44,3 +44,4 @@ add_library(readline STATIC ${CPPTRAJ_READLINE_SOURCES})
 target_compile_definitions(readline PRIVATE HAVE_CONFIG_H=1) # make sure the code uses the premade config.h
 make_pic_if_needed(readline)
 target_include_directories(readline PUBLIC .)
+target_include_directories(readline PUBLIC ../)

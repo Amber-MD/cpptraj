@@ -318,9 +318,9 @@ LIB_D_ON[$LFFTW3]='-DFFTW_FFT'
 LIB_DOFF[$LFFTW3]=''
 LIB_TYPE[$LFFTW3]='cpp'
 
-LIB_STAT[$LREADLINE]='bundled'
+LIB_STAT[$LREADLINE]='enabled'
 LIB_CKEY[$LREADLINE]='readline'
-LIB_HOME[$LREADLINE]='readline'
+LIB_HOME[$LREADLINE]=''
 LIB_FLAG[$LREADLINE]='-lreadline'
 LIB_STTC[$LREADLINE]='libreadline.a'
 LIB_D_ON[$LREADLINE]=''
@@ -1073,13 +1073,42 @@ EOF
 TestReadline() {
   cat > testp.cpp <<EOF
 #include <cstdio>
-#include <readline.h>
+#include <readline/readline.h>
 static char *line_read = (char *)NULL;
 // Do not want to actually run this so leave outside main
 void Unused() { line_read = readline(""); }
 int main() { return 0; }
 EOF
-  TestProgram "  Checking Readline" "$CXX" "$CXXFLAGS ${LIB_INCL[$LREADLINE]}" testp.cpp "${LIB_FLAG[$LREADLINE]}"
+
+  if [ "${LIB_STAT[$LREADLINE]}" = 'specified' ] ; then
+    TestProgram "  Checking Readline" "$CXX" "$CXXFLAGS ${LIB_INCL[$LREADLINE]}" testp.cpp "${LIB_FLAG[$LREADLINE]}"
+  else
+    # Test with just -lreadline
+    TestProgram silent "  Checking Readline" "$CXX" "$CXXFLAGS ${LIB_INCL[$LREADLINE]}" testp.cpp "${LIB_FLAG[$LREADLINE]}"
+    lreadline_err=$?
+    if [ $lreadline_err -ne 0 ] ; then
+      # Try -ltermcap
+      TestProgram silent "  Checking Readline with termcap" "$CXX" "$CXXFLAGS ${LIB_INCL[$LREADLINE]}" testp.cpp "${LIB_FLAG[$LREADLINE]} -ltermcap"
+      lreadline_err=$?
+      if [ $lreadline_err -eq 0 ] ; then
+        LIB_FLAG[$LREADLINE]="${LIB_FLAG[$LREADLINE]} -ltermcap"
+      fi
+    fi
+    if [ $lreadline_err -ne 0 ] ; then
+      # Try -lncurses
+      TestProgram silent "  Checking Readline with ncurses" "$CXX" "$CXXFLAGS ${LIB_INCL[$LREADLINE]}" testp.cpp "${LIB_FLAG[$LREADLINE]} -lncurses"
+      lreadline_err=$?
+      if [ $lreadline_err -eq 0 ] ; then
+        LIB_FLAG[$LREADLINE]="${LIB_FLAG[$LREADLINE]} -lncurses"
+      fi
+    fi
+    if [ $lreadline_err -ne 0 ] ; then
+      echo "No readline available; using bundled readline."
+      LIB_STAT[$LREADLINE]='bundled'
+      LIB_FLAG[$LREADLINE]='readline/libreadline.a'
+      LIB_INCL[$LREADLINE]='-I.'
+    fi
+  fi
 }
 
 TestXdrfile() {
@@ -1503,22 +1532,22 @@ SetupLibraries() {
             lflag="-L$lhdir ${LIB_FLAG[$i]}"
           fi
           # Library-specific CPPTRAJ_INC fixes when home specified.
-          if [ $i -eq $LREADLINE ] ; then
-            linc="$linc/readline"
-          fi
+          #if [ $i -eq $LREADLINE ] ; then
+          #  linc="$linc/readline"
+          #fi
           if [ $i -eq $LXDRFILE ] ; then
             linc="$linc/xdrfile"
           fi
         fi
         # Library-specific flag fixes
-        if [ $i -eq $LREADLINE ] ; then
+#        if [ $i -eq $LREADLINE ] ; then
           # For external readline, we need to link libtermcap for windows
           # and libncurses for Linux
-          #if [ $USE_WINDOWS -eq 1 ]; then
+          if [ $USE_WINDOWS -eq 1 ]; then
             lflag="$lflag -ltermcap"
-          #else
-          #  lflag="$lflag -lncurses"
-          #fi
+          else
+            lflag="$lflag -lncurses"
+          fi
         elif [ $i -eq $LSANDER ] ; then
           # Always specify libsander location to prevent pulling in
           # other amber libraries.
@@ -1662,7 +1691,7 @@ SetupCompilers() {
       if [ -z "$FC" ]; then FC=gfortran; fi
       hostflags=''
       optflags='-O3'
-      ompflag='-fopenmp'
+      ompflag='-Xclang -fopenmp'
       freefmtflag='-ffree-form'
       foptflags='-O3'
       FLINK='-lgfortran'
@@ -1671,8 +1700,8 @@ SetupCompilers() {
       # Check the GNU compiler version
       CheckCompilerVersion gcc
       # Set version-specific flags
-      if [ $cc_version_major -ge 14 ] ; then
-        # Needed for readline with gcc >= 14
+      if [ $cc_version_major -ge 13 ] ; then
+        # Needed for readline with gcc >= 13
         CFLAGS="$CFLAGS -D_DEFAULT_SOURCE -D_XOPEN_SOURCE"
       fi
       ;;
@@ -2565,6 +2594,12 @@ if [ -z "`which grep`" ] ; then
   Err "CPPTRAJ configure requires 'grep'."
 fi
 
+# Check for the 'install/ binary
+INSTALL=`which install`
+if [ -z "$INSTALL" ] ; then
+  Err "CPPTRAJ configure requires 'install'."
+fi
+
 #echo "Path to configure: $WORKDIR"
 #echo "Current dir      : $CURRENTDIR"
 
@@ -2952,6 +2987,10 @@ CPPTRAJINC="$CPPTRAJINC"
 CPPTRAJDAT="$CPPTRAJDAT"
 
 INSTALL_TARGETS=$INSTALL_TARGETS
+
+INSTALL=$INSTALL
+INSTALL_PROGRAM=$INSTALL
+INSTALL_DATA=$INSTALL -m 644
 
 EOF
 if [ ! -z "$DBGFLAGS" ] ; then

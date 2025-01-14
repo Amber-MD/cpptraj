@@ -1,0 +1,85 @@
+{% set version = "0.5" %}
+{% set mpi = "mpich" %}
+
+package:
+  name: cpptraj
+#  version 0.1   trying to adapt recipe from AmberClassic
+#  version 0.2   small tweaks get allow osx-64 build
+#  version 0.3   add mpi and pnetcdf support
+#  version 0.4   build from url; add cuda
+#  version 0.5   try to get all exectuables; add headers for pytraj
+  version: {{ version }}
+
+source:
+  path: ../
+# url: https://ambermd.org/downloads/cpptraj-{{ version }}.tar.gz
+# sha256: 6be4dda3f6f59610d97b2cdb8f6745ca05cff60705ba95dbcfc07c10fd083d95
+  
+build:
+  number: 0
+  skip: True # [win or ppc65le]
+
+mpi:
+   - {{ mpi }}
+
+requirements:
+  build:
+   - make
+   - {{ compiler('fortran') }}
+   - {{ compiler('c') }}
+   - {{ compiler('cxx') }}
+   - {{ mpi }} # [ mpi == "mpich" ]
+   - libpnetcdf
+   - {{ compiler('nvcc') }} # [ linux ]
+   - coreutils # [ linux ]
+   - nvcc_linux-64 # [ linux ]
+   - llvm-openmp  # [osx]
+   - libgomp      # [linux]
+   - fftw
+   - readline
+   - libnetcdf
+   - netcdf-fortran
+
+  host:
+   - openblas
+   - arpack
+   - openmm
+   - libnetcdf
+   - netcdf-fortran
+   - llvm-openmp  # [osx]
+   - libgomp      # [linux and not aarch64]
+   - {{ mpi }} # [ mpi == "mpich" ]
+   - libpnetcdf
+   - fftw
+   - readline
+
+  run:
+   - llvm-openmp  # [osx]
+   - libgomp      # [linux and not aarch64]
+   - openblas
+   - arpack
+   - openmm
+   - libnetcdf
+   - netcdf-fortran
+   - {{ mpi }} # [ mpi == "mpich" ]
+   - libpnetcdf
+   - fftw
+   - readline
+
+test:
+  commands:
+   - cpptraj --help
+
+about:
+    home: https://github.com/Amber-MD/cpptraj.git
+    license: GPL-3.0-or-later
+    license_file: 
+       - LICENSE
+    summary: 'Performs analysis of MD trajectories, especially for biomolecules'
+    description: |
+      CPPTRAJ is a program designed to process and analyze molecular
+      dynamics trajectories and relevant data sets derived from their
+      analysis. CPPTRAJ supports many popular MD software packages including
+      Amber, CHARMM, Gromacs, and NAMD.
+
+
