@@ -2595,6 +2595,12 @@ if [ -z "`which grep`" ] ; then
   Err "CPPTRAJ configure requires 'grep'."
 fi
 
+# Check for the 'install/ binary
+INSTALL=`which install`
+if [ -z "$INSTALL" ] ; then
+  Err "CPPTRAJ configure requires 'install'."
+fi
+
 #echo "Path to configure: $WORKDIR"
 #echo "Current dir      : $CURRENTDIR"
 
@@ -2982,6 +2988,10 @@ CPPTRAJINC="$CPPTRAJINC"
 CPPTRAJDAT="$CPPTRAJDAT"
 
 INSTALL_TARGETS=$INSTALL_TARGETS
+
+INSTALL=$INSTALL
+INSTALL_PROGRAM=$INSTALL
+INSTALL_DATA=$INSTALL -m 644
 
 EOF
 if [ ! -z "$DBGFLAGS" ] ; then

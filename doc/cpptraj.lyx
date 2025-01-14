@@ -1,16 +1,25 @@
 #LyX 2.4 created this file. For more info see https://www.lyx.org/
-\lyxformat 620
+\lyxformat 544
 \begin_document
 \begin_header
 \save_transient_properties true
 \origin unavailable
 \textclass article
+\begin_preamble
+% Added by lyx2lyx
+%% Variable width box for table cells
+\newenvironment{cellvarwidth}[1][t]
+    {\begin{varwidth}[#1]{\linewidth}}
+    {\@finalstrut\@arstrutbox\end{varwidth}}
+% Added by lyx2lyx
+\usepackage{varwidth}
+\end_preamble
 \use_default_options true
-\maintain_unincluded_children no
+\maintain_unincluded_children false
 \language english
 \language_package default
-\inputencoding auto-legacy
-\fontencoding auto
+\inputencoding auto
+\fontencoding global
 \font_roman "default" "default"
 \font_sans "default" "default"
 \font_typewriter "default" "default"
@@ -18,9 +27,7 @@
 \font_default_family default
 \use_non_tex_fonts false
 \font_sc false
-\font_roman_osf false
-\font_sans_osf false
-\font_typewriter_osf false
+\font_osf false
 \font_sf_scale 100 100
 \font_tt_scale 100 100
 \use_microtype false
@@ -64,9 +71,7 @@
 \suppress_date false
 \justification true
 \use_refstyle 1
-\use_formatted_ref 0
 \use_minted 0
-\use_lineno 0
 \index Index
 \shortcut idx
 \color #008000
@@ -82,16 +87,11 @@
 \papercolumns 1
 \papersides 1
 \paperpagestyle default
-\tablestyle default
 \tracking_changes false
 \output_changes false
-\change_bars false
-\postpone_fragile_content false
 \html_math_output 0
 \html_css_as_file 0
 \html_be_strict false
-\docbook_table_output 0
-\docbook_mathml_prefix 1
 \end_header
 
 \begin_body
@@ -157,7 +157,6 @@ cpptraj
 \begin_inset CommandInset ref
 LatexCommand ref
 reference "subsec:CpptrajOpenMP"
-nolink "false"
 
 \end_inset
 
@@ -262,7 +261,6 @@ Users can manipulate data sets using mathematical expressions (with some limitat
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj-Data-Set-Math"
-nolink "false"
 
 \end_inset
 
@@ -723,7 +721,6 @@ loadcrd
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "sec:Coordinates-as-a"
-nolink "false"
 
 \end_inset
 
@@ -751,7 +748,6 @@ Coords (Immediate) These commands are used to manipulate COORDS data sets;
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "sec:Coordinates-as-a"
-nolink "false"
 
 \end_inset
 
@@ -793,7 +789,6 @@ cpptraj
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj-Data-Set-Math"
-nolink "false"
 
 \end_inset
 
@@ -1189,7 +1184,6 @@ reference "subsec:cpptraj-calcdiffusion"
 plural "false"
 caps "false"
 noprefix "false"
-nolink "false"
 
 \end_inset
 
@@ -1712,7 +1706,6 @@ number} e.g.
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:parmed_addPDB"
-nolink "false"
 
 \end_inset
 
@@ -3013,7 +3006,6 @@ readdata
 \begin_inset CommandInset ref
 LatexCommand ref
 reference "tab:cpptraj-DataFile-formats"
-nolink "false"
 
 \end_inset
 
@@ -3044,7 +3036,6 @@ ptraj
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "sec:Datafile-Commands"
-nolink "false"
 
 \end_inset
 
@@ -3112,8 +3103,6 @@ Note that when reading the Amber Prep and Amber OFF Library formats,
 
 \begin_layout Standard
 \begin_inset Float table
-placement document
-alignment document
 wide false
 sideways false
 status open
@@ -5177,7 +5166,6 @@ writedata
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj_writedata"
-nolink "false"
 
 \end_inset
 
@@ -5191,7 +5179,6 @@ create
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj_create"
-nolink "false"
 
 \end_inset
 
@@ -5206,7 +5193,6 @@ readdata
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj_readdata"
-nolink "false"
 
 \end_inset
 
@@ -5249,7 +5235,6 @@ cpptraj
 \begin_inset CommandInset ref
 LatexCommand ref
 reference "tab:cpptraj-DataFile-formats"
-nolink "false"
 
 \end_inset
 
@@ -5265,7 +5250,6 @@ datafile
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj_datafile_command"
-nolink "false"
 
 \end_inset
 
@@ -6061,7 +6045,6 @@ readdata
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj-remlog"
-nolink "false"
 
 \end_inset
 
@@ -6182,7 +6165,6 @@ This can be used to write out a representation of a vector data set which can th
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj-vector"
-nolink "false"
 
 \end_inset
 
@@ -6212,7 +6194,6 @@ trajfmt
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "tab:cpptraj-trajformats"
-nolink "false"
 
 \end_inset
 
@@ -6387,7 +6368,6 @@ Note that when reading in constant pH data the data set aspect will be set to th
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj_sortensembledata"
-nolink "false"
 
 \end_inset
 
@@ -7257,7 +7237,6 @@ This command is actually an Action that can be used to create COORDS data sets d
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj_createcrd"
-nolink "false"
 
 \end_inset
 
@@ -8045,7 +8024,6 @@ reference "subsec:cpptraj_trajin"
 plural "false"
 caps "false"
 noprefix "false"
-nolink "false"
 
 \end_inset
 
@@ -9060,7 +9038,6 @@ Reference coordinates can now be used and manipulated like COORDS data sets.
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj_reference"
-nolink "false"
 
 \end_inset
 
@@ -9309,7 +9286,6 @@ reference "subsec:cpptraj-datasetcmd"
 plural "false"
 caps "false"
 noprefix "false"
-nolink "false"
 
 \end_inset
 
@@ -10287,8 +10263,6 @@ activeref
 \begin_layout LyX-Code
 activeref
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -10327,7 +10301,6 @@ calc <expression>
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj-Data-Set-Math"
-nolink "false"
 
 \end_inset
 
@@ -10389,8 +10362,6 @@ name "subsec:cpptraj_create"
 \begin_layout LyX-Code
 create
 \begin_inset Index idx
-range none
-pageformat default
 status open
 
 \begin_layout Plain Layout
@@ -10419,7 +10390,6 @@ Add specified data sets to the data file named <filename>;
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "sec:Datafile-Commands"
-nolink "false"
 
 \end_inset
 
@@ -10486,8 +10456,6 @@ name "subsec:cpptraj_datafile_command"
 \begin_layout LyX-Code
 datafile
 \begin_inset Index idx
-range none
-pageformat default
 status open
 
 \begin_layout Plain Layout
@@ -10505,7 +10473,6 @@ Pass <datafile arg> to data file <filename>.
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "sec:Datafile-Commands"
-nolink "false"
 
 \end_inset
 
@@ -10740,7 +10707,6 @@ filter
 \begin_inset CommandInset ref
 LatexCommand pageref
 reference "subsec:cpptraj-filter"
-nolink "false"
 
 \end_inset
 
@@ -11089,7 +11055,6 @@ reference "subsec:cpptraj-sequence"
 plural "false"
 caps "false"
 noprefix "false"
-nolink "false"
 
 \end_inset
 
@@ -12373,8 +12338,6 @@ debug | prnlev
 \begin_layout LyX-Code
 debug
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -12610,8 +12573,6 @@ help
 \begin_layout LyX-Code
 help
 \begin_inset Index idx
-range none
-pageformat default
 status open
 
 \begin_layout Plain Layout
@@ -12723,8 +12684,6 @@ noexitonerror
 \begin_layout LyX-Code
 noexitonerror
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -12764,8 +12723,6 @@ noprogress
 \begin_layout LyX-Code
 noprogress
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -12807,7 +12764,6 @@ reference "subsec:cpptraj_hausdorff"
 plural "false"
 caps "false"
 noprefix "false"
-nolink "false"
 
 \end_inset
 
@@ -12993,8 +12949,6 @@ precision
 \begin_layout LyX-Code
 precision
 \begin_inset Index idx
-range none
-pageformat default
 status open
 
 \begin_layout Plain Layout
@@ -13187,8 +13141,6 @@ name "subsec:cpptraj_readdata"
 \begin_layout LyX-Code
 readdata
 \begin_inset Index idx
-range none
-pageformat default
 status open
 
 \begin_layout Plain Layout
@@ -13233,7 +13185,6 @@ Read data from file <filename> and store as data sets.
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "tab:cpptraj-DataFile-formats"
-nolink "false"
 
 \end_inset
 
@@ -13242,7 +13193,6 @@ nolink "false"
 \begin_inset CommandInset ref
 LatexCommand ref
 reference "sec:Datafile-Commands"
-nolink "false"
 
 \end_inset
 
@@ -13348,7 +13298,6 @@ If one filename is given,
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "sec:Datafile-Commands"
-nolink "false"
 
 \end_inset
 
@@ -13391,8 +13340,6 @@ readinput
 \begin_layout LyX-Code
 readinput
 \begin_inset Index idx
-range none
-pageformat default
 status open
 
 \begin_layout Plain Layout
@@ -13638,8 +13585,6 @@ select
 \begin_layout LyX-Code
 select
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -13788,7 +13733,6 @@ With no arguments,
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "sec:Datafile-Commands"
-nolink "false"
 
 \end_inset
 
@@ -16207,8 +16151,6 @@ parm
 \begin_layout LyX-Code
 parm
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -16255,7 +16197,6 @@ parm
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:Parameter/Reference-Tagging"
-nolink "false"
 
 \end_inset
 
@@ -16337,7 +16278,6 @@ Read in parameter file.
 \begin_inset CommandInset ref
 LatexCommand vpageref
 reference "tab:cpptraj-Topology-formats"
-nolink "false"
 
 \end_inset
 
@@ -16466,7 +16406,6 @@ reference "subsec:cpptraj-trajin-pdb"
 plural "false"
 caps "false"
 noprefix "false"
-nolink "false"
 
 \end_inset
 
@@ -16511,8 +16450,6 @@ parmbox
 \begin_layout LyX-Code
 parmbox
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -16657,8 +16594,6 @@ parminfo
 \begin_layout LyX-Code
 parminfo
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -16681,8 +16616,6 @@ parmstrip
 \begin_layout LyX-Code
 parmstrip
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -16749,8 +16682,6 @@ parmwrite
 \begin_layout LyX-Code
 parmwrite
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -16949,8 +16880,6 @@ resinfo
 \begin_layout LyX-Code
 resinfo
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -18652,8 +18581,6 @@ name "subsec:cpptraj_reference"
 \begin_layout LyX-Code
 reference
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -18736,7 +18663,6 @@ Use specified trajectory as reference coordinates.
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:Parameter/Reference-Tagging"
-nolink "false"
 
 \end_inset
 
@@ -18804,8 +18730,6 @@ name "subsec:cpptraj_trajin"
 \begin_layout LyX-Code
 trajin
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -19003,7 +18927,6 @@ Read in trajectory specified by filename.
 \begin_inset CommandInset ref
 LatexCommand pageref
 reference "tab:cpptraj-trajformats"
-nolink "false"
 
 \end_inset
 
@@ -19284,7 +19207,6 @@ reference "subsec:cpptraj-parm-pdb"
 plural "false"
 caps "false"
 noprefix "false"
-nolink "false"
 
 \end_inset
 
@@ -19305,8 +19227,6 @@ name "subsec:cpptraj-trajout"
 \begin_layout LyX-Code
 trajout
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -19352,7 +19272,6 @@ trajout
 \begin_inset CommandInset ref
 LatexCommand vpageref
 reference "tab:cpptraj-trajformats"
-nolink "false"
 
 \end_inset
 
@@ -19460,7 +19379,6 @@ During a run,
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj_outtraj"
-nolink "false"
 
 \end_inset
 
@@ -19469,7 +19387,6 @@ nolink "false"
 \begin_inset CommandInset ref
 LatexCommand pageref
 reference "tab:cpptraj-trajformats"
-nolink "false"
 
 \end_inset
 
@@ -19868,7 +19785,6 @@ reference "subsec:cpptraj_atomicfluct"
 plural "false"
 caps "false"
 noprefix "false"
-nolink "false"
 
 \end_inset
 
@@ -20122,7 +20038,6 @@ reference "subsec:cpptraj-Options-for-CHARMM"
 plural "false"
 caps "false"
 noprefix "false"
-nolink "false"
 
 \end_inset
 
@@ -20379,7 +20294,6 @@ crdaction
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj_crdaction"
-nolink "false"
 
 \end_inset
 
@@ -21233,11 +21147,33 @@ Calculate the dihedral angle using four points.
 \begin_inset Text
 
 \begin_layout Plain Layout
+\begin_inset ERT
+status collapsed
+
+\begin_layout Plain Layout
+
+
+\backslash
+begin{cellvarwidth}
+\end_layout
+
+\end_inset
 dihrms
 \end_layout
 
 \begin_layout Plain Layout
 dihedralrms
+\begin_inset ERT
+status collapsed
+
+\begin_layout Plain Layout
+
+
+\backslash
+end{cellvarwidth}
+\end_layout
+
+\end_inset
 \end_layout
 
 \end_inset
@@ -23595,8 +23531,6 @@ angle
 \begin_layout LyX-Code
 angle
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -23845,8 +23779,6 @@ name "subsec:cpptraj_atomicfluct"
 \begin_layout LyX-Code
 atomicfluct
 \begin_inset Index idx
-range none
-pageformat default
 status open
 
 \begin_layout Plain Layout
@@ -24155,8 +24087,6 @@ atommap
 \begin_layout LyX-Code
 atommap
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -24528,8 +24458,6 @@ name "subsec:cpptraj-average"
 \begin_layout LyX-Code
 average
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -24640,7 +24568,6 @@ rms
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj-rmsd"
-nolink "false"
 
 \end_inset
 
@@ -24658,7 +24585,6 @@ trajout
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj-trajout"
-nolink "false"
 
 \end_inset
 
@@ -24760,7 +24686,6 @@ reference "subsec:cpptraj_unwrap"
 plural "false"
 caps "false"
 noprefix "false"
-nolink "false"
 
 \end_inset
 
@@ -24940,7 +24865,6 @@ grid
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj_grid"
-nolink "false"
 
 \end_inset
 
@@ -25134,8 +25058,6 @@ center
 \begin_layout LyX-Code
 center
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -25234,8 +25156,6 @@ check | checkoverlap | checkstructure
 \begin_layout LyX-Code
 check
 \begin_inset Index idx
-range none
-pageformat default
 status open
 
 \begin_layout Plain Layout
@@ -25538,8 +25458,6 @@ closest | closestwaters
 \begin_layout LyX-Code
 closest
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -25730,7 +25648,6 @@ solvent
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj_solvent"
-nolink "false"
 
 \end_inset
 
@@ -25800,7 +25717,6 @@ Although the
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj-cluster-analysis"
-nolink "false"
 
 \end_inset
 
@@ -25814,8 +25730,6 @@ clusterdihedral
 \begin_layout LyX-Code
 clusterdihedral
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -25975,7 +25889,6 @@ nativecontacts
 \begin_inset CommandInset ref
 LatexCommand vpageref
 reference "subsec:cpptraj-nativecontacts"
-nolink "false"
 
 \end_inset
 
@@ -26742,7 +26655,6 @@ reference "subsec:cpptraj_avgbox"
 plural "false"
 caps "false"
 noprefix "false"
-nolink "false"
 
 \end_inset
 
@@ -26762,7 +26674,6 @@ reference "subsec:cpptraj_unwrap"
 plural "false"
 caps "false"
 noprefix "false"
-nolink "false"
 
 \end_inset
 
@@ -26944,7 +26855,6 @@ reference "subsec:cpptraj-calcdiffusion"
 plural "false"
 caps "false"
 noprefix "false"
-nolink "false"
 
 \end_inset
 
@@ -26967,8 +26877,6 @@ dihedral
 \begin_layout LyX-Code
 dihedral
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -27053,7 +26961,6 @@ reference "subsec:cpptraj_multidihedral"
 plural "false"
 caps "false"
 noprefix "false"
-nolink "false"
 
 \end_inset
 
@@ -27168,7 +27075,6 @@ reference "subsec:cpptraj_multidihedral"
 plural "false"
 caps "false"
 noprefix "false"
-nolink "false"
 
 \end_inset
 
@@ -27191,7 +27097,6 @@ permutedihedrals
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj_permutedihedrals"
-nolink "false"
 
 \end_inset
 
@@ -27453,7 +27358,6 @@ grid
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj_grid"
-nolink "false"
 
 \end_inset
 
@@ -27472,8 +27376,6 @@ distance
 \begin_layout LyX-Code
 distance
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -27673,7 +27575,6 @@ type noe
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj_statistics"
-nolink "false"
 
 \end_inset
 
@@ -27687,8 +27588,6 @@ drms | drmsd (distance RMSD)
 \begin_layout LyX-Code
 drmsd
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -27899,7 +27798,6 @@ See
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj-secstruct"
-nolink "false"
 
 \end_inset
 
@@ -28138,7 +28036,6 @@ reference "subsec:cpptraj-emin"
 plural "false"
 caps "false"
 noprefix "false"
-nolink "false"
 
 \end_inset
 
@@ -28662,7 +28559,6 @@ ntc
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "chap:sander"
-nolink "false"
 
 \end_inset
 
@@ -28968,7 +28864,6 @@ datafilter
 \begin_inset CommandInset ref
 LatexCommand pageref
 reference "subsec:cpptraj-datafilter"
-nolink "false"
 
 \end_inset
 
@@ -29150,8 +29045,6 @@ gist (Grid Inhomogeneous Solvation Theory)
 \begin_layout LyX-Code
 gist
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -29849,7 +29742,6 @@ literal "true"
 \begin_inset CommandInset ref
 LatexCommand ref
 reference "gist-1-1"
-nolink "false"
 
 \end_inset
 
@@ -29881,8 +29773,6 @@ In order to carry out a GIST calculation,
 
 \begin_layout Standard
 \begin_inset Float figure
-placement document
-alignment document
 wide false
 sideways false
 status open
@@ -30939,8 +30829,6 @@ Inhomogeneous fluid solvation theory,
 
 \begin_layout Standard
 \begin_inset Float table
-placement document
-alignment document
 wide false
 sideways false
 status open
@@ -31891,7 +31779,6 @@ bounds
 \begin_inset CommandInset ref
 LatexCommand vpageref
 reference "subsec:cpptraj-bounds"
-nolink "false"
 
 \end_inset
 
@@ -32073,8 +31960,6 @@ name "subsec:cpptraj-hbond"
 \begin_layout LyX-Code
 hbond
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -32599,7 +32484,6 @@ reference "subsec:cpptraj-keep"
 plural "false"
 caps "false"
 noprefix "false"
-nolink "false"
 
 \end_inset
 
@@ -32621,7 +32505,6 @@ lifetime
 \begin_inset CommandInset ref
 LatexCommand vpageref
 reference "subsec:cpptraj-lifetime"
-nolink "false"
 
 \end_inset
 
@@ -32888,8 +32771,6 @@ image
 \begin_layout LyX-Code
 image
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -33048,8 +32929,6 @@ jcoupling
 \begin_layout LyX-Code
 jcoupling
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -33327,7 +33206,6 @@ reference "subsec:cpptraj-hbond"
 plural "false"
 caps "false"
 noprefix "false"
-nolink "false"
 
 \end_inset
 
@@ -33604,8 +33482,6 @@ lie
 \begin_layout LyX-Code
 lie
 \begin_inset Index idx
-range none
-pageformat default
 status open
 
 \begin_layout Plain Layout
@@ -34831,8 +34707,6 @@ mask
 \begin_layout LyX-Code
 mask
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -35328,7 +35202,6 @@ ired
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj-vector"
-nolink "false"
 
 \end_inset
 
@@ -35455,7 +35328,6 @@ vector
 \begin_inset CommandInset ref
 LatexCommand vpageref
 reference "subsec:cpptraj-vector"
-nolink "false"
 
 \end_inset
 
@@ -35513,7 +35385,6 @@ reference "sec:Datafile-Commands"
 plural "false"
 caps "false"
 noprefix "false"
-nolink "false"
 
 \end_inset
 
@@ -35758,8 +35629,6 @@ molsurf
 \begin_layout LyX-Code
 molsurf
 \begin_inset Index idx
-range none
-pageformat default
 status open
 
 \begin_layout Plain Layout
@@ -35877,7 +35746,6 @@ surf
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj_surf"
-nolink "false"
 
 \end_inset
 
@@ -36365,8 +36233,6 @@ nastruct
 \begin_layout LyX-Code
 nastruct
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -37865,7 +37731,6 @@ hbond
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj-lifetime"
-nolink "false"
 
 \end_inset
 
@@ -37955,8 +37820,6 @@ name "subsec:cpptraj_outtraj"
 \begin_layout LyX-Code
 outtraj
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -37990,7 +37853,6 @@ args] Output trajectory arguments (see
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj-trajout"
-nolink "false"
 
 \end_inset
 
@@ -38742,7 +38604,6 @@ matrix
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "sec:cpptraj-Matrix-Vector-Analysis-Examples"
-nolink "false"
 
 \end_inset
 
@@ -38768,7 +38629,6 @@ reference "subsec:cpptraj-projectdata"
 plural "false"
 caps "false"
 noprefix "false"
-nolink "false"
 
 \end_inset
 
@@ -38782,8 +38642,6 @@ pucker
 \begin_layout LyX-Code
 pucker
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -38995,8 +38853,6 @@ radgyr | rog
 \begin_layout LyX-Code
 radgyr
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -39086,8 +38942,6 @@ radial | rdf
 \begin_layout LyX-Code
 radial
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -39756,8 +39610,6 @@ name "subsec:cpptraj-rmsd"
 \begin_layout LyX-Code
 rmsd
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -40213,7 +40065,6 @@ Although the
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj-rms2d"
-nolink "false"
 
 \end_inset
 
@@ -40237,7 +40088,6 @@ Although the
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj-rmsavgcorr"
-nolink "false"
 
 \end_inset
 
@@ -40253,7 +40103,6 @@ See
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj_atomicfluct"
-nolink "false"
 
 \end_inset
 
@@ -40540,7 +40389,6 @@ The
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj-rotdif"
-nolink "false"
 
 \end_inset
 
@@ -40590,8 +40438,6 @@ runavg | runningaverage
 \begin_layout LyX-Code
 runavg
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -40672,8 +40518,6 @@ name "subsec:cpptraj-secstruct"
 \begin_layout LyX-Code
 secstruct
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -41895,7 +41739,6 @@ peakfile
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj_volmap"
-nolink "false"
 
 \end_inset
 
@@ -42027,8 +41870,6 @@ strip
 \begin_layout LyX-Code
 strip
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -42196,8 +42037,6 @@ name "subsec:cpptraj_surf"
 \begin_layout LyX-Code
 surf
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -42839,7 +42678,6 @@ reference "subsec:cpptraj-diffusion"
 plural "false"
 caps "false"
 noprefix "false"
-nolink "false"
 
 \end_inset
 
@@ -42856,7 +42694,6 @@ reference "subsec:cpptraj_unwrap"
 plural "false"
 caps "false"
 noprefix "false"
-nolink "false"
 
 \end_inset
 
@@ -42879,7 +42716,6 @@ reference "subsec:cpptraj-diffusion"
 plural "false"
 caps "false"
 noprefix "false"
-nolink "false"
 
 \end_inset
 
@@ -42998,8 +42834,6 @@ unstrip
 \begin_layout LyX-Code
 unstrip
 \begin_inset Index idx
-range none
-pageformat default
 status open
 
 \begin_layout Plain Layout
@@ -43290,7 +43124,6 @@ reference "subsec:cpptraj_avgbox"
 plural "false"
 caps "false"
 noprefix "false"
-nolink "false"
 
 \end_inset
 
@@ -43713,7 +43546,6 @@ Cpptraj supports writing out vector data in a pseudo-trajectory format for easy 
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "sec:Datafile-Commands"
-nolink "false"
 
 \end_inset
 
@@ -44516,7 +44348,6 @@ readdata
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj_readdata"
-nolink "false"
 
 \end_inset
 
@@ -44577,7 +44408,6 @@ runanalysis
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj_runanalysis"
-nolink "false"
 
 \end_inset
 
@@ -46483,7 +46313,6 @@ reference "subsec:cpptraj-diffusion"
 plural "false"
 caps "false"
 noprefix "false"
-nolink "false"
 
 \end_inset
 
@@ -46504,7 +46333,6 @@ reference "subsec:cpptraj_unwrap"
 plural "false"
 caps "false"
 noprefix "false"
-nolink "false"
 
 \end_inset
 
@@ -46523,7 +46351,6 @@ reference "subsec:cpptraj-diffusion"
 plural "false"
 caps "false"
 noprefix "false"
-nolink "false"
 
 \end_inset
 
@@ -46542,7 +46369,6 @@ reference "subsec:cpptraj-loadtraj"
 plural "false"
 caps "false"
 noprefix "false"
-nolink "false"
 
 \end_inset
 
@@ -47010,7 +46836,6 @@ Lifetime curves (see
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj-lifetime"
-nolink "false"
 
 \end_inset
 
@@ -47137,8 +46962,6 @@ cluster
 \begin_layout LyX-Code
 cluster
 \begin_inset Index idx
-range none
-pageformat default
 status open
 
 \begin_layout Plain Layout
@@ -47721,7 +47544,6 @@ srmsd
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj_symmrmsd"
-nolink "false"
 
 \end_inset
 
@@ -48390,7 +48212,6 @@ reference "subsec:cpptraj-lifetime"
 plural "false"
 caps "false"
 noprefix "false"
-nolink "false"
 
 \end_inset
 
@@ -49193,7 +49014,6 @@ readdata
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj_cphdatafile"
-nolink "false"
 
 \end_inset
 
@@ -49245,7 +49065,6 @@ cphstats
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "sec:cphstats"
-nolink "false"
 
 \end_inset
 
@@ -49270,7 +49089,6 @@ readensembledata
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj_readensembledata"
-nolink "false"
 
 \end_inset
 
@@ -49284,7 +49102,6 @@ sortensembledata
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj_sortensembledata"
-nolink "false"
 
 \end_inset
 
@@ -49316,8 +49133,6 @@ corr | correlationcoe
 \begin_layout LyX-Code
 corr
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -49643,7 +49458,6 @@ curvefit <dset> { <equation>  |
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj-Data-Set-Math"
-nolink "false"
 
 \end_inset
 
@@ -49787,7 +49601,6 @@ Perform non-linear curve fitting for the specified data set using the Levenberg-
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj-Data-Set-Math"
-nolink "false"
 
 \end_inset
 
@@ -50818,8 +50631,6 @@ hist | histogram
 \begin_layout LyX-Code
 hist
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -52915,7 +52726,6 @@ set
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj-Data-Set-Math"
-nolink "false"
 
 \end_inset
 
@@ -53051,7 +52861,6 @@ curvefit
 \begin_inset CommandInset ref
 LatexCommand vpageref
 reference "subsec:cpptraj_curvefit"
-nolink "false"
 
 \end_inset
 
@@ -53359,7 +53168,6 @@ reference "subsec:cpptraj-projection"
 plural "false"
 caps "false"
 noprefix "false"
-nolink "false"
 
 \end_inset
 
@@ -53699,8 +53507,6 @@ name "subsec:cpptraj-rms2d"
 \begin_layout LyX-Code
 rms2d
 \begin_inset Index idx
-range none
-pageformat default
 status collapsed
 
 \begin_layout Plain Layout
@@ -53769,7 +53575,6 @@ set>] Name of previously generated COORDS DataSet.
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj_symmrmsd"
-nolink "false"
 
 \end_inset
 
@@ -53963,8 +53768,6 @@ name "subsec:cpptraj-rmsavgcorr"
 \begin_layout LyX-Code
 rmsavgcorr
 \begin_inset Index idx
-range none
-pageformat default
 status open
 
 \begin_layout Plain Layout
@@ -54525,7 +54328,6 @@ Rotation matrices are generated via an RMS fit to a reference structure (see
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj-rmsd"
-nolink "false"
 
 \end_inset
 
@@ -54534,7 +54336,6 @@ nolink "false"
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj-average"
-nolink "false"
 
 \end_inset
 
@@ -56544,7 +56345,6 @@ epsilon
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj_dbscan_Hints"
-nolink "false"
 
 \end_inset
 
