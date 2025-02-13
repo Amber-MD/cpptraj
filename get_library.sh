@@ -196,7 +196,7 @@ if [ -z "$MAKE_COMMAND" ] ; then
   elif [ $NPROC -le 2 ] ; then
     MAKE_COMMAND='make'
   else
-    HALF=`echo "$NPROC / 2" | bc`
+    ((HALF = $NPROC / 2))
     MAKE_COMMAND="make -j$HALF"
   fi
   echo "    MAKE_COMMAND is not set; set to '$MAKE_COMMAND'"
