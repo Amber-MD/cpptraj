@@ -1,9 +1,9 @@
 channels:
     - conda-forge
 dependencies:
-    - python=3.10
+    - python=3.12
     - pyflakes
-    - numpy=2.0.0
+    - numpy=2.2.1
     - cython=0.29.36
     - setuptools
     - pytest
