@@ -156,8 +156,9 @@ jobs:
         export LD_LIBRARY_PATH=$CONDA/lib:${LD_LIBRARY_PATH}
         echo $PATH
         echo $LD_LIBRARY_PATH
+        ls $CONDA/lib
         export MAKE_COMMAND="make -j2"
-        ./configure --buildlibs -openmp -shared gnu
+        ./configure --buildlibs -openmp -shared --with-zlib=$CONDA --with-bzlib=$CONDA --with-hdf5=$CONDA --with-netcdf=$CONDA --with-fftw3=$CONDA gnu
         source cpptraj.sh
         make -j2 libcpptraj
     - name: Install pytraj
