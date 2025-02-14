@@ -720,7 +720,7 @@ EOF
       if [ $? -ne 0 ] ; then
         CheckRebuild "HDF5" "${LIB_FLAG[$LHDF5]}"
 	# If zlib was specified, pass that to hdf5
-        if [ "${LIB_STAT[$LZIP]}"='specified' ] ; then
+        if [ "${LIB_STAT[$LZIP]}" = 'specified' ] ; then
           hdf5zlib="--with-zlib=${LIB_HOME[$LZIP]}"
 	else
           hdf5zlib=''
