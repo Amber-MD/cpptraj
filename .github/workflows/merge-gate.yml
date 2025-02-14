@@ -145,13 +145,17 @@ jobs:
     - name: Install conda packages
       run: |
         which conda
-        conda install conda=24.11.0 python=3.12
+        conda install conda python=3.12
         conda --version
         conda env update --file devtools/ci/environment.yml --name base
     - name: Install cpptraj
       run: |
         export PATH=$HOME/bin:${PATH}
         export LD_LIBRARY_PATH=$HOME/lib:${LD_LIBRARY_PATH}
+        export PATH=$CONDA/bin:${PATH}
+        export LD_LIBRARY_PATH=$CONDA/lib:${LD_LIBRARY_PATH}
+        echo $PATH
+        echo $LD_LIBRARY_PATH
         export MAKE_COMMAND="make -j2"
         ./configure --buildlibs -openmp -shared gnu
         source cpptraj.sh
@@ -159,10 +163,14 @@ jobs:
     - name: Install pytraj
       run: |        
         git clone https://github.com/Amber-MD/pytraj.git
+        export PATH=$CONDA/bin:${PATH}
+        export LD_LIBRARY_PATH=$CONDA/lib:${LD_LIBRARY_PATH}
         source cpptraj.sh
         cd pytraj
         python setup.py install
         cd ..
     - name: Test with pytest
       run: |
+        export PATH=$CONDA/bin:${PATH}
+        export LD_LIBRARY_PATH=$CONDA/lib:${LD_LIBRARY_PATH}
         source cpptraj.sh && cd pytraj/tests && pytest -vs --ignore=test_parallel_pmap
