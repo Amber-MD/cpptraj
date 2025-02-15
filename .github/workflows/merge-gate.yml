@@ -131,17 +131,13 @@ jobs:
     steps:
     - name: Install prerequisite packages
       run: |
-        sudo apt-get install gfortran
-        sudo apt-get install libbz2-dev
-        sudo apt-get install libblas-dev liblapack-dev
-        sudo apt-get install libfftw3-dev
         sudo apt-get install clang
         sudo apt-get install cmake-data cmake    
     - uses: actions/checkout@v4
-    - name: Set up Python 3.10
+    - name: Set up Python 3.12
       uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
+        python-version: '3.12'
     - name: Add conda to system path
       run: |
         # $CONDA is an environment variable pointing to the root of the miniconda directory
@@ -149,24 +145,33 @@ jobs:
     - name: Install conda packages
       run: |
         which conda
-        conda install conda=24.11.0 python=3.10
+        conda install conda python=3.12
         conda --version
         conda env update --file devtools/ci/environment.yml --name base
     - name: Install cpptraj
       run: |
         export PATH=$HOME/bin:${PATH}
         export LD_LIBRARY_PATH=$HOME/lib:${LD_LIBRARY_PATH}
+        export PATH=$CONDA/bin:${PATH}
+        export LD_LIBRARY_PATH=$CONDA/lib:${LD_LIBRARY_PATH}
+        echo $PATH
+        echo $LD_LIBRARY_PATH
+        ls $CONDA/lib
         export MAKE_COMMAND="make -j2"
-        ./configure --buildlibs -openmp -shared gnu
+        ./configure --buildlibs -openmp -shared --with-zlib=$CONDA --with-bzlib=$CONDA --with-hdf5=$CONDA --with-netcdf=$CONDA --with-fftw3=$CONDA gnu
         source cpptraj.sh
         make -j2 libcpptraj
     - name: Install pytraj
       run: |        
         git clone https://github.com/Amber-MD/pytraj.git
+        export PATH=$CONDA/bin:${PATH}
+        export LD_LIBRARY_PATH=$CONDA/lib:${LD_LIBRARY_PATH}
         source cpptraj.sh
         cd pytraj
         python setup.py install
         cd ..
     - name: Test with pytest
       run: |
+        export PATH=$CONDA/bin:${PATH}
+        export LD_LIBRARY_PATH=$CONDA/lib:${LD_LIBRARY_PATH}
         source cpptraj.sh && cd pytraj/tests && pytest -vs --ignore=test_parallel_pmap

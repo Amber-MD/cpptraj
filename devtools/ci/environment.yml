@@ -1,7 +1,7 @@
 channels:
     - conda-forge
 dependencies:
-    - python=3.10
+    - python=3.12
     - pyflakes
     - numpy=2.0.0
     - cython=0.29.36
@@ -9,3 +9,8 @@ dependencies:
     - pytest
     - mock
     - curl
+    - gcc_linux-64
+    - gxx_linux-64
+    - gfortran_linux-64
+    - netcdf4
+    - fftw
