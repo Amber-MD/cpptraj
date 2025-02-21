@@ -240,9 +240,11 @@ int EnergyDecomposer::SetupDecomposer(Topology const& topIn, Box const& boxIn) {
 
 // -----------------------------------------------------------------------------
 /** Save energy contribution to atom if it is selected. */
-void EnergyDecomposer::saveEne(int idx, double ene_cont) {
-  if (selectedAtoms_.AtomInCharMask( idx ))
+void EnergyDecomposer::saveEne(int idx, double ene_cont, Darray& componentEne) {
+  if (selectedAtoms_.AtomInCharMask( idx )) {
     currentEne_[ idx ] += ene_cont;
+    componentEne[ idx ] += ene_cont;
+  }
 }
 
 /** Calculate bond energies. */
@@ -258,8 +260,8 @@ void EnergyDecomposer::calcBonds( Frame const& frameIn ) {
 #   endif
     // Divide the energy equally between the two atoms.
     double ene_half = ene * 0.5;
-    saveEne( bnd->A1(), ene_half );
-    saveEne( bnd->A2(), ene_half );
+    saveEne( bnd->A1(), ene_half, currentBnd_ );
+    saveEne( bnd->A2(), ene_half, currentBnd_ );
   }
 }
 
@@ -277,9 +279,9 @@ void EnergyDecomposer::calcAngles( Frame const& frameIn ) {
 #   endif
     // Divide the energy equally between the three atoms.
     double ene_third = ene / 3.0;
-    saveEne( ang->A1(), ene_third );
-    saveEne( ang->A2(), ene_third );
-    saveEne( ang->A3(), ene_third );
+    saveEne( ang->A1(), ene_third, currentAng_ );
+    saveEne( ang->A2(), ene_third, currentAng_ );
+    saveEne( ang->A3(), ene_third, currentAng_ );
   }
 }
 
@@ -300,10 +302,10 @@ void EnergyDecomposer::calcDihedrals( Frame const& frameIn ) {
 #   endif
     // Divide the energy equally between the four atoms.
     double ene_fourth = ene / 4.0;
-    saveEne( dih->A1(), ene_fourth );
-    saveEne( dih->A2(), ene_fourth );
-    saveEne( dih->A3(), ene_fourth );
-    saveEne( dih->A4(), ene_fourth );
+    saveEne( dih->A1(), ene_fourth, currentDih_ );
+    saveEne( dih->A2(), ene_fourth, currentDih_ );
+    saveEne( dih->A3(), ene_fourth, currentDih_ );
+    saveEne( dih->A4(), ene_fourth, currentDih_ );
     if (dih->Type() == DihedralType::NORMAL) {
       // 1-4 vdw energy
       double rij2 = DIST2_NoImage( frameIn.XYZ(dih->A1()), frameIn.XYZ(dih->A4()) );
@@ -314,8 +316,8 @@ void EnergyDecomposer::calcDihedrals( Frame const& frameIn ) {
       mprintf("DEBUG: V14 %f\n", e_vdw);
 #     endif
       double ene_half = e_vdw * 0.5;
-      saveEne( dih->A1(), ene_half );
-      saveEne( dih->A4(), ene_half );
+      saveEne( dih->A1(), ene_half, currentV14_ );
+      saveEne( dih->A4(), ene_half, currentV14_ );
       // 1-4 coulomb energy
       double rij = sqrt(rij2);
       double qiqj = Constants::COULOMBFACTOR * (*currentTop_)[dih->A1()].Charge() * (*currentTop_)[dih->A4()].Charge();
@@ -325,8 +327,8 @@ void EnergyDecomposer::calcDihedrals( Frame const& frameIn ) {
       mprintf("DEBUG: E14 %f\n", e_elec);
 #     endif
       ene_half = e_elec * 0.5;
-      saveEne( dih->A1(), ene_half );
-      saveEne( dih->A4(), ene_half );
+      saveEne( dih->A1(), ene_half, currentE14_ );
+      saveEne( dih->A4(), ene_half, currentE14_ );
     }
   }
 }

@@ -60,7 +60,7 @@ class EnergyDecomposer {
     int setupDihedrals(DihArrayType const&);
 
     /// Save energy contribution for atom if it is selected
-    inline void saveEne(int, double);
+    inline void saveEne(int, double, Darray&);
     /// Calculate bond energies
     void calcBonds(Frame const&);
     /// Calculate angle energies
@@ -85,6 +85,11 @@ class EnergyDecomposer {
     Ecalc_Nonbond NB_;  ///< For calculating pairwise decomposed nonbond energies
 
     Darray currentEne_;      ///< Hold the total energy of each atom for the current frame
+    Darray currentBnd_;      ///< Hold the bond energy of each atom for the current frame
+    Darray currentAng_;      ///< Hold the angle energy of each atom for the current frame
+    Darray currentDih_;      ///< Hold the dihedral energy of each atom for the current frame
+    Darray currentV14_;      ///< Hold the 1-4 vdW energy of each atom for the current frame
+    Darray currentE14_;      ///< Hold the 1-4 elec. energy of each atom for the current frame
 
     Timer t_total_; ///< Total calc time
 };
