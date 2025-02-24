@@ -22,13 +22,21 @@ using namespace Cpptraj::Energy;
 /** CONSTRUCTOR */
 EnergyDecomposer::EnergyDecomposer() :
   eneOut_(0),
+  eBndOut_(0),
+  eAngOut_(0),
+  eDihOut_(0),
+  eV14Out_(0),
+  eE14Out_(0),
+  eEleOut_(0),
+  eVdwOut_(0),
   outfile_(0),
   debug_(0),
+  saveComponents_(false),
   currentTop_(0)
 { }
 
 void EnergyDecomposer::HelpText() {
-  mprintf("\t[<name>] [<mask>] [out <filename>]\n"
+  mprintf("\t[<name>] [<mask>] [out <filename>] [savecomponents]\n"
           "\t[ pme %s\n"
           "\t      %s\n"
           "\t      %s\n",
@@ -44,6 +52,7 @@ int EnergyDecomposer::InitDecomposer(ArgList& argIn, DataSetList& DSLin, DataFil
   debug_ = debugIn;
   // Process keywords
   outfile_ = DFLin.AddDataFile( argIn.GetStringKey("out"), argIn );
+  saveComponents_ = argIn.hasKey("savecomponents");
   nbcalctype_ = Ecalc_Nonbond::SIMPLE;
   if (argIn.hasKey("pme"))
     nbcalctype_ = Ecalc_Nonbond::PME;
@@ -77,8 +86,44 @@ int EnergyDecomposer::InitDecomposer(ArgList& argIn, DataSetList& DSLin, DataFil
   eneOut_->ModifyDim(Dimension::X).SetLabel("Atom");
   if (outfile_ != 0)
     outfile_->AddDataSet( eneOut_ );
+  if (saveComponents_) {
+    // NOTE: Deliberately chosen to match the aspects in Action_Energy.cpp
+    eBndOut_ = addCompSet(DSLin, "bond");
+    eAngOut_ = addCompSet(DSLin, "angle");
+    eDihOut_ = addCompSet(DSLin, "dih");
+    eV14Out_ = addCompSet(DSLin, "vdw14");
+    eE14Out_ = addCompSet(DSLin, "elec14");
+    eEleOut_ = addCompSet(DSLin, "elec");
+    eVdwOut_ = addCompSet(DSLin, "vdw");
+  }
 
   return 0;
+}
+
+/** Add a component data set to the DataSetList.
+  * \return Allocated dataset, 0 on error.
+  */
+DataSet* EnergyDecomposer::addCompSet(DataSetList& DSLin, std::string const& aspect)
+{
+  if (eneOut_ == 0) {
+    mprinterr("Internal Error: EnergyDecomposer::addCompSet() called before main set allocated.\n");
+    return 0;
+  }
+  MetaData md( eneOut_->Meta().Name(), aspect );
+  DataSet* ds = DSLin.AddSet(DataSet::XYMESH, md);
+  if (ds == 0) {
+    mprinterr("Error: Could not allocate decomp. component set '%s[%s]'\n",
+              md.Name().c_str(), md.Aspect().c_str());
+    return 0;
+  }
+# ifdef MPI
+  ds->SetNeedsSync( false ); // Not a time series
+# endif
+  ds->ModifyDim(Dimension::X).SetLabel("Atom");
+  if (outfile_ != 0)
+    outfile_->AddDataSet( ds );
+
+  return ds;
 }
 
 /** Print options to stdout. */
@@ -88,6 +133,10 @@ void EnergyDecomposer::PrintOpts() const {
     return;
   }
   mprintf("\tCalculating for atoms selected by mask: %s\n", selectedAtoms_.MaskString());
+  if (saveComponents_)
+    mprintf("\tSaving individual energy components for each atom.\n");
+  else
+    mprintf("\tOnly saving total energy for each atom.\n");
   mprintf("\tData set name: %s\n", eneOut_->legend());
   if (outfile_ != 0)
     mprintf("\tOutput file: %s\n", outfile_->DataFilename().full());
@@ -189,6 +238,16 @@ int EnergyDecomposer::SetupDecomposer(Topology const& topIn, Box const& boxIn) {
       return 1;
     }
   }
+  // Set up component energy arrays
+  if (saveComponents_) {
+    if (eBonds_.empty())     eBonds_.resize(     topIn.Natom() );
+    if (eAngles_.empty())    eAngles_.resize(    topIn.Natom() );
+    if (eDihedrals_.empty()) eDihedrals_.resize( topIn.Natom() );
+    if (eVDW14_.empty())     eVDW14_.resize(     topIn.Natom() );
+    if (eELE14_.empty())     eELE14_.resize(     topIn.Natom() );
+    if (eElec_.empty())      eElec_.resize(      topIn.Natom() );
+    if (eVdw_.empty())       eVdw_.resize(       topIn.Natom() );
+  }
   // Set up bonds
   bonds_.clear();
   if (setupBonds( topIn.Bonds() )) return 1;
@@ -240,9 +299,12 @@ int EnergyDecomposer::SetupDecomposer(Topology const& topIn, Box const& boxIn) {
 
 // -----------------------------------------------------------------------------
 /** Save energy contribution to atom if it is selected. */
-void EnergyDecomposer::saveEne(int idx, double ene_cont) {
-  if (selectedAtoms_.AtomInCharMask( idx ))
+void EnergyDecomposer::saveEne(int idx, double ene_cont, Darray& componentEne) {
+  if (selectedAtoms_.AtomInCharMask( idx )) {
     currentEne_[ idx ] += ene_cont;
+    if (saveComponents_)
+      componentEne[ idx ] += ene_cont;
+  }
 }
 
 /** Calculate bond energies. */
@@ -258,8 +320,8 @@ void EnergyDecomposer::calcBonds( Frame const& frameIn ) {
 #   endif
     // Divide the energy equally between the two atoms.
     double ene_half = ene * 0.5;
-    saveEne( bnd->A1(), ene_half );
-    saveEne( bnd->A2(), ene_half );
+    saveEne( bnd->A1(), ene_half, currentBnd_ );
+    saveEne( bnd->A2(), ene_half, currentBnd_ );
   }
 }
 
@@ -277,9 +339,9 @@ void EnergyDecomposer::calcAngles( Frame const& frameIn ) {
 #   endif
     // Divide the energy equally between the three atoms.
     double ene_third = ene / 3.0;
-    saveEne( ang->A1(), ene_third );
-    saveEne( ang->A2(), ene_third );
-    saveEne( ang->A3(), ene_third );
+    saveEne( ang->A1(), ene_third, currentAng_ );
+    saveEne( ang->A2(), ene_third, currentAng_ );
+    saveEne( ang->A3(), ene_third, currentAng_ );
   }
 }
 
@@ -300,10 +362,10 @@ void EnergyDecomposer::calcDihedrals( Frame const& frameIn ) {
 #   endif
     // Divide the energy equally between the four atoms.
     double ene_fourth = ene / 4.0;
-    saveEne( dih->A1(), ene_fourth );
-    saveEne( dih->A2(), ene_fourth );
-    saveEne( dih->A3(), ene_fourth );
-    saveEne( dih->A4(), ene_fourth );
+    saveEne( dih->A1(), ene_fourth, currentDih_ );
+    saveEne( dih->A2(), ene_fourth, currentDih_ );
+    saveEne( dih->A3(), ene_fourth, currentDih_ );
+    saveEne( dih->A4(), ene_fourth, currentDih_ );
     if (dih->Type() == DihedralType::NORMAL) {
       // 1-4 vdw energy
       double rij2 = DIST2_NoImage( frameIn.XYZ(dih->A1()), frameIn.XYZ(dih->A4()) );
@@ -314,8 +376,8 @@ void EnergyDecomposer::calcDihedrals( Frame const& frameIn ) {
       mprintf("DEBUG: V14 %f\n", e_vdw);
 #     endif
       double ene_half = e_vdw * 0.5;
-      saveEne( dih->A1(), ene_half );
-      saveEne( dih->A4(), ene_half );
+      saveEne( dih->A1(), ene_half, currentV14_ );
+      saveEne( dih->A4(), ene_half, currentV14_ );
       // 1-4 coulomb energy
       double rij = sqrt(rij2);
       double qiqj = Constants::COULOMBFACTOR * (*currentTop_)[dih->A1()].Charge() * (*currentTop_)[dih->A4()].Charge();
@@ -325,8 +387,8 @@ void EnergyDecomposer::calcDihedrals( Frame const& frameIn ) {
       mprintf("DEBUG: E14 %f\n", e_elec);
 #     endif
       ene_half = e_elec * 0.5;
-      saveEne( dih->A1(), ene_half );
-      saveEne( dih->A4(), ene_half );
+      saveEne( dih->A1(), ene_half, currentE14_ );
+      saveEne( dih->A4(), ene_half, currentE14_ );
     }
   }
 }
@@ -339,6 +401,15 @@ int EnergyDecomposer::CalcEne(Frame const& frameIn) {
     return 1;
   }
   currentEne_.assign( energies_.size(), 0.0 );
+  if (saveComponents_) {
+    currentBnd_.assign( energies_.size(), 0.0 );
+    currentAng_.assign( energies_.size(), 0.0 );
+    currentDih_.assign( energies_.size(), 0.0 );
+    currentV14_.assign( energies_.size(), 0.0 );
+    currentE14_.assign( energies_.size(), 0.0 );
+    currentELE_.assign( energies_.size(), 0.0 );
+    currentVDW_.assign( energies_.size(), 0.0 );
+  }
   // Bonds
   calcBonds(frameIn);
   // Angles
@@ -347,17 +418,43 @@ int EnergyDecomposer::CalcEne(Frame const& frameIn) {
   calcDihedrals(frameIn);
   // Nonbonds
   double e_elec, e_vdw;
-  if (NB_.DecomposedNonbondEnergy(frameIn, selectedAtoms_, e_elec, e_vdw,
-                                  currentEne_, currentEne_))
-  {
-    mprinterr("Error: Decompose nonbond energy calc failed.\n");
-    return 1;
-  }
+  if (saveComponents_) {
+    // Want the separate elec/vdw components of each atom
+    if (NB_.DecomposedNonbondEnergy(frameIn, selectedAtoms_, e_elec, e_vdw,
+                                    currentELE_, currentVDW_))
+    {
+      mprinterr("Error: Decompose nonbond energy calc (with individual components) failed.\n");
+      return 1;
+    }
+    // Update the total energy with NB components and accumulate
+    for (unsigned int idx = 0; idx != energies_.size(); idx++) {
+      if (selectedAtoms_.AtomInCharMask( idx )) {
+        currentEne_[idx] += (currentELE_[idx] + currentVDW_[idx]);
+        // Accumulate total and all components
+        energies_[idx].accumulate( currentEne_[idx] );
+        eBonds_[idx].accumulate( currentBnd_[idx] );
+        eAngles_[idx].accumulate( currentAng_[idx] );
+        eDihedrals_[idx].accumulate( currentDih_[idx] );
+        eVDW14_[idx].accumulate( currentV14_[idx] );
+        eELE14_[idx].accumulate( currentE14_[idx] );
+        eElec_[idx].accumulate( currentELE_[idx] );
+        eVdw_[idx].accumulate( currentVDW_[idx] );
+      }
+    }
+  } else {
+    // Only interested in the total energy of each atom
+    if (NB_.DecomposedNonbondEnergy(frameIn, selectedAtoms_, e_elec, e_vdw,
+                                    currentEne_, currentEne_))
+    {
+      mprinterr("Error: Decompose nonbond energy calc failed.\n");
+      return 1;
+    }
 
-  // Accumulate the energies
-  for (unsigned int idx = 0; idx != energies_.size(); idx++) {
-    if (selectedAtoms_.AtomInCharMask( idx ))
-      energies_[idx].accumulate( currentEne_[idx] );
+    // Accumulate the energies
+    for (unsigned int idx = 0; idx != energies_.size(); idx++) {
+      if (selectedAtoms_.AtomInCharMask( idx ))
+        energies_[idx].accumulate( currentEne_[idx] );
+    }
   }
   t_total_.Stop();
 
@@ -365,6 +462,20 @@ int EnergyDecomposer::CalcEne(Frame const& frameIn) {
 }
 
 // -----------------------------------------------------------------------------
+void EnergyDecomposer::populateOutputData(DataSet* dsOut, EneArrayType const& energies)
+const
+{
+   // Only add entities that have data.
+  DataSet_Mesh& set = static_cast<DataSet_Mesh&>( *dsOut );
+  set.Clear();
+  // TODO allocate?
+  for (unsigned int idx = 0; idx != energies.size(); idx++) {
+    if ( energies[idx].nData() > 0 ) {
+      set.AddXY( idx+1, energies[idx].mean() );
+    }
+  }
+}
+
 /** Finish the calculation by putting the results into the output DataSet. */
 int EnergyDecomposer::FinishCalc() {
   if (energies_.empty() || eneOut_ == 0) {
@@ -372,13 +483,15 @@ int EnergyDecomposer::FinishCalc() {
     return 1;
   }
   // Only add entities that have data.
-  DataSet_Mesh& set = static_cast<DataSet_Mesh&>( *eneOut_ );
-  set.Clear();
-  // TODO allocate?
-  for (unsigned int idx = 0; idx != energies_.size(); idx++) {
-    if ( energies_[idx].nData() > 0 ) {
-      set.AddXY( idx+1, energies_[idx].mean() );
-    }
+  populateOutputData( eneOut_, energies_ );
+  if (saveComponents_) {
+    populateOutputData( eBndOut_, eBonds_ );
+    populateOutputData( eAngOut_, eAngles_ );
+    populateOutputData( eDihOut_, eDihedrals_ );
+    populateOutputData( eV14Out_, eVDW14_ );
+    populateOutputData( eE14Out_, eELE14_ );
+    populateOutputData( eEleOut_, eElec_ );
+    populateOutputData( eVdwOut_, eVdw_ );
   }
   mprintf("Timing for energy decomposition: '%s'\n", eneOut_->legend());
   t_total_.WriteTiming(0, "  Decomp total:");
@@ -393,6 +506,15 @@ int EnergyDecomposer::FinishCalc() {
 int EnergyDecomposer::ReduceToMaster(Parallel::Comm const& trajComm) {
   unsigned long maxbin;
   Stats_Reduce( trajComm, energies_, maxbin );
+  if (saveComponents_) {
+    Stats_Reduce( trajComm, eBonds_, maxbin );
+    Stats_Reduce( trajComm, eAngles_, maxbin );
+    Stats_Reduce( trajComm, eDihedrals_, maxbin );
+    Stats_Reduce( trajComm, eVDW14_, maxbin );
+    Stats_Reduce( trajComm, eELE14_, maxbin );
+    Stats_Reduce( trajComm, eElec_, maxbin );
+    Stats_Reduce( trajComm, eVdw_, maxbin );
+  }
   return 0;
 }
 #endif

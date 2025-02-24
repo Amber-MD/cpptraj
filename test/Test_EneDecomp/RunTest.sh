@@ -23,6 +23,9 @@ energy Pme nonbond out ene.nacl.box.dat \
 enedecomp ATM * out decomp.nacl.box.dat \
   pme cut 5.6 dsumtol 0.0000001 skinnb 0.01 nfft 32,32,32
 
+enedecomp ATN * out decomp.components.nacl.box.dat savecomponents \
+  pme cut 5.6 dsumtol 0.0000001 skinnb 0.01 nfft 32,32,32
+
 #enedecomp ATM @4 out decomp.nacl.box.dat
 run
 Total = sum(ATM)
@@ -32,6 +35,7 @@ EOF
   DoTest decomp.nacl.box.dat.save decomp.nacl.box.dat
   DoTest ene.nacl.box.dat.save ene.nacl.box.dat
   DoTest Total.nacl.box.dat.save Total.nacl.box.dat
+  DoTest decomp.components.nacl.box.dat.save decomp.components.nacl.box.dat
 fi
 
 UNITNAME='AFV decomposition'
@@ -60,10 +64,12 @@ if [ $? -eq 0 ] ; then
 parm ../tz2.parm7
 trajin ../tz2.nc 1 10
 enedecomp TZ2 * out decomp.tz2.dat
+enedecomp TZ3 * out decomp.components.tz2.dat savecomponents
 run
 EOF
   RunCpptraj "$UNITNAME"
   DoTest decomp.tz2.dat.save decomp.tz2.dat
+  DoTest decomp.components.tz2.dat.save decomp.components.tz2.dat
 fi
 
 EndTest
