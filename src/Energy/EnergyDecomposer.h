@@ -81,6 +81,13 @@ class EnergyDecomposer {
     DihArrayType dihedrals_;     ///< Hold all dihedrals to be calculated
     //AtomMask mask_;              ///< Atom mask for nonbonded calculations
     EneArrayType energies_;      ///< Used to accumulate the average energy of each selected entity.
+    EneArrayType eBonds_;        ///< Accumulate average bond energy
+    EneArrayType eAngles_;       ///< Accumulate average angle energy
+    EneArrayType eDihedrals_;    ///< Accumulate average dihedral energy
+    EneArrayType eVDW14_;        ///< Accumulate average 1-4 vdW energy
+    EneArrayType eELE14_;        ///< Accumulate average 1-4 elec. energy
+    EneArrayType eElec_;         ///< Accumulate average electrostatic energy
+    EneArrayType eVdw_;          ///< Accumulate average vdW energy
     Topology const* currentTop_; ///< Current topology from Setup
 
     Ecalc_Nonbond NB_;  ///< For calculating pairwise decomposed nonbond energies
@@ -91,6 +98,8 @@ class EnergyDecomposer {
     Darray currentDih_;      ///< Hold the dihedral energy of each atom for the current frame
     Darray currentV14_;      ///< Hold the 1-4 vdW energy of each atom for the current frame
     Darray currentE14_;      ///< Hold the 1-4 elec. energy of each atom for the current frame
+    Darray currentELE_;      ///< Hold elec. energy of each atom for the current frame
+    Darray currentVDW_;      ///< Hold vdW energy of each atom for the current frame
 
     Timer t_total_; ///< Total calc time
 };

@@ -45,6 +45,7 @@ int EnergyDecomposer::InitDecomposer(ArgList& argIn, DataSetList& DSLin, DataFil
   debug_ = debugIn;
   // Process keywords
   outfile_ = DFLin.AddDataFile( argIn.GetStringKey("out"), argIn );
+  saveComponents_ = argIn.hasKey("savecomponents");
   nbcalctype_ = Ecalc_Nonbond::SIMPLE;
   if (argIn.hasKey("pme"))
     nbcalctype_ = Ecalc_Nonbond::PME;
@@ -89,6 +90,10 @@ void EnergyDecomposer::PrintOpts() const {
     return;
   }
   mprintf("\tCalculating for atoms selected by mask: %s\n", selectedAtoms_.MaskString());
+  if (saveComponents_)
+    mprintf("\tSaving individual energy components for each atom.\n");
+  else
+    mprintf("\tOnly saving total energy for each atom.\n");
   mprintf("\tData set name: %s\n", eneOut_->legend());
   if (outfile_ != 0)
     mprintf("\tOutput file: %s\n", outfile_->DataFilename().full());
@@ -189,6 +194,16 @@ int EnergyDecomposer::SetupDecomposer(Topology const& topIn, Box const& boxIn) {
       mprinterr("Error: Not yet supported by energy decomposition.\n");
       return 1;
     }
+  }
+  // Set up component energy arrays
+  if (saveComponents_) {
+    if (eBonds_.empty())     eBonds_.resize(     topIn.Natom() );
+    if (eAngles_.empty())    eAngles_.resize(    topIn.Natom() );
+    if (eDihedrals_.empty()) eDihedrals_.resize( topIn.Natom() );
+    if (eVDW14_.empty())     eVDW14_.resize(     topIn.Natom() );
+    if (eELE14_.empty())     eELE14_.resize(     topIn.Natom() );
+    if (eElec_.empty())      eElec_.resize(      topIn.Natom() );
+    if (eVdw_.empty())       eVdw_.resize(       topIn.Natom() );
   }
   // Set up bonds
   bonds_.clear();
@@ -349,6 +364,8 @@ int EnergyDecomposer::CalcEne(Frame const& frameIn) {
     currentDih_.assign( energies_.size(), 0.0 );
     currentV14_.assign( energies_.size(), 0.0 );
     currentE14_.assign( energies_.size(), 0.0 );
+    currentELE_.assign( energies_.size(), 0.0 );
+    currentVDW_.assign( energies_.size(), 0.0 );
   }
   // Bonds
   calcBonds(frameIn);
@@ -358,17 +375,43 @@ int EnergyDecomposer::CalcEne(Frame const& frameIn) {
   calcDihedrals(frameIn);
   // Nonbonds
   double e_elec, e_vdw;
-  if (NB_.DecomposedNonbondEnergy(frameIn, selectedAtoms_, e_elec, e_vdw,
-                                  currentEne_, currentEne_))
-  {
-    mprinterr("Error: Decompose nonbond energy calc failed.\n");
-    return 1;
-  }
+  if (saveComponents_) {
+    // Want the separate elec/vdw components of each atom
+    if (NB_.DecomposedNonbondEnergy(frameIn, selectedAtoms_, e_elec, e_vdw,
+                                    currentELE_, currentVDW_))
+    {
+      mprinterr("Error: Decompose nonbond energy calc (with individual components) failed.\n");
+      return 1;
+    }
+    // Update the total energy with NB components and accumulate
+    for (unsigned int idx = 0; idx != energies_.size(); idx++) {
+      if (selectedAtoms_.AtomInCharMask( idx )) {
+        currentEne_[idx] = currentELE_[idx] + currentVDW_[idx];
+        // Accumulate total and all components
+        energies_[idx].accumulate( currentEne_[idx] );
+        eBonds_[idx].accumulate( currentBnd_[idx] );
+        eAngles_[idx].accumulate( currentAng_[idx] );
+        eDihedrals_[idx].accumulate( currentDih_[idx] );
+        eVDW14_[idx].accumulate( currentV14_[idx] );
+        eELE14_[idx].accumulate( currentE14_[idx] );
+        eElec_[idx].accumulate( currentELE_[idx] );
+        eVdw_[idx].accumulate( currentVDW_[idx] );
+      }
+    }
+  } else {
+    // Only interested in the total energy of each atom
+    if (NB_.DecomposedNonbondEnergy(frameIn, selectedAtoms_, e_elec, e_vdw,
+                                    currentEne_, currentEne_))
+    {
+      mprinterr("Error: Decompose nonbond energy calc failed.\n");
+      return 1;
+    }
 
-  // Accumulate the energies
-  for (unsigned int idx = 0; idx != energies_.size(); idx++) {
-    if (selectedAtoms_.AtomInCharMask( idx ))
-      energies_[idx].accumulate( currentEne_[idx] );
+    // Accumulate the energies
+    for (unsigned int idx = 0; idx != energies_.size(); idx++) {
+      if (selectedAtoms_.AtomInCharMask( idx ))
+        energies_[idx].accumulate( currentEne_[idx] );
+    }
   }
   t_total_.Stop();
 
