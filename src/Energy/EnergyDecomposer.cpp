@@ -24,6 +24,7 @@ EnergyDecomposer::EnergyDecomposer() :
   eneOut_(0),
   outfile_(0),
   debug_(0),
+  saveComponents_(false),
   currentTop_(0)
 { }
 
@@ -243,7 +244,8 @@ int EnergyDecomposer::SetupDecomposer(Topology const& topIn, Box const& boxIn) {
 void EnergyDecomposer::saveEne(int idx, double ene_cont, Darray& componentEne) {
   if (selectedAtoms_.AtomInCharMask( idx )) {
     currentEne_[ idx ] += ene_cont;
-    componentEne[ idx ] += ene_cont;
+    if (saveComponents_)
+      componentEne[ idx ] += ene_cont;
   }
 }
 
@@ -341,6 +343,13 @@ int EnergyDecomposer::CalcEne(Frame const& frameIn) {
     return 1;
   }
   currentEne_.assign( energies_.size(), 0.0 );
+  if (saveComponents_) {
+    currentBnd_.assign( energies_.size(), 0.0 );
+    currentAng_.assign( energies_.size(), 0.0 );
+    currentDih_.assign( energies_.size(), 0.0 );
+    currentV14_.assign( energies_.size(), 0.0 );
+    currentE14_.assign( energies_.size(), 0.0 );
+  }
   // Bonds
   calcBonds(frameIn);
   // Angles

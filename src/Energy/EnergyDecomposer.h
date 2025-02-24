@@ -72,6 +72,7 @@ class EnergyDecomposer {
     DataSet* eneOut_;        ///< Will hold the average energy of each selected entity for output.
     DataFile* outfile_;      ///< Output file
     int debug_;              ///< Debug level
+    bool saveComponents_;    ///< If true, save per-atom energies for individual energy components 
     EwaldOptions ewaldOpts_; ///< Hold Ewald options
     Cpptraj::Energy::Ecalc_Nonbond::CalcType nbcalctype_;
 
