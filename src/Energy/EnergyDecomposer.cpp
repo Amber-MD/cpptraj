@@ -429,7 +429,7 @@ int EnergyDecomposer::CalcEne(Frame const& frameIn) {
     // Update the total energy with NB components and accumulate
     for (unsigned int idx = 0; idx != energies_.size(); idx++) {
       if (selectedAtoms_.AtomInCharMask( idx )) {
-        currentEne_[idx] = currentELE_[idx] + currentVDW_[idx];
+        currentEne_[idx] += (currentELE_[idx] + currentVDW_[idx]);
         // Accumulate total and all components
         energies_[idx].accumulate( currentEne_[idx] );
         eBonds_[idx].accumulate( currentBnd_[idx] );
