@@ -506,6 +506,15 @@ int EnergyDecomposer::FinishCalc() {
 int EnergyDecomposer::ReduceToMaster(Parallel::Comm const& trajComm) {
   unsigned long maxbin;
   Stats_Reduce( trajComm, energies_, maxbin );
+  if (saveComponents_) {
+    Stats_Reduce( trajComm, eBonds_, maxbin );
+    Stats_Reduce( trajComm, eAngles_, maxbin );
+    Stats_Reduce( trajComm, eDihedrals_, maxbin );
+    Stats_Reduce( trajComm, eVDW14_, maxbin );
+    Stats_Reduce( trajComm, eELE14_, maxbin );
+    Stats_Reduce( trajComm, eElec_, maxbin );
+    Stats_Reduce( trajComm, eVdw_, maxbin );
+  }
   return 0;
 }
 #endif
