@@ -22,6 +22,13 @@ using namespace Cpptraj::Energy;
 /** CONSTRUCTOR */
 EnergyDecomposer::EnergyDecomposer() :
   eneOut_(0),
+  eBndOut_(0),
+  eAngOut_(0),
+  eDihOut_(0),
+  eV14Out_(0),
+  eE14Out_(0),
+  eEleOut_(0),
+  eVdwOut_(0),
   outfile_(0),
   debug_(0),
   saveComponents_(false),
@@ -79,8 +86,44 @@ int EnergyDecomposer::InitDecomposer(ArgList& argIn, DataSetList& DSLin, DataFil
   eneOut_->ModifyDim(Dimension::X).SetLabel("Atom");
   if (outfile_ != 0)
     outfile_->AddDataSet( eneOut_ );
+  if (saveComponents_) {
+    // NOTE: Deliberately chosen to match the aspects in Action_Energy.cpp
+    eBndOut_ = addCompSet(DSLin, "bond");
+    eAngOut_ = addCompSet(DSLin, "angle");
+    eDihOut_ = addCompSet(DSLin, "dih");
+    eV14Out_ = addCompSet(DSLin, "vdw14");
+    eE14Out_ = addCompSet(DSLin, "elec14");
+    eEleOut_ = addCompSet(DSLin, "elec");
+    eVdwOut_ = addCompSet(DSLin, "vdw");
+  }
 
   return 0;
+}
+
+/** Add a component data set to the DataSetList.
+  * \return Allocated dataset, 0 on error.
+  */
+DataSet* EnergyDecomposer::addCompSet(DataSetList& DSLin, std::string const& aspect)
+{
+  if (eneOut_ == 0) {
+    mprinterr("Internal Error: EnergyDecomposer::addCompSet() called before main set allocated.\n");
+    return 0;
+  }
+  MetaData md( eneOut_->Meta().Name(), aspect );
+  DataSet* ds = DSLin.AddSet(DataSet::XYMESH, md);
+  if (ds == 0) {
+    mprinterr("Error: Could not allocate decomp. component set '%s[%s]'\n",
+              md.Name().c_str(), md.Aspect().c_str());
+    return 0;
+  }
+# ifdef MPI
+  ds->SetNeedsSync( false ); // Not a time series
+# endif
+  ds->ModifyDim(Dimension::X).SetLabel("Atom");
+  if (outfile_ != 0)
+    outfile_->AddDataSet( ds );
+
+  return ds;
 }
 
 /** Print options to stdout. */
@@ -419,6 +462,20 @@ int EnergyDecomposer::CalcEne(Frame const& frameIn) {
 }
 
 // -----------------------------------------------------------------------------
+void EnergyDecomposer::populateOutputData(DataSet* dsOut, EneArrayType const& energies)
+const
+{
+   // Only add entities that have data.
+  DataSet_Mesh& set = static_cast<DataSet_Mesh&>( *dsOut );
+  set.Clear();
+  // TODO allocate?
+  for (unsigned int idx = 0; idx != energies.size(); idx++) {
+    if ( energies[idx].nData() > 0 ) {
+      set.AddXY( idx+1, energies[idx].mean() );
+    }
+  }
+}
+
 /** Finish the calculation by putting the results into the output DataSet. */
 int EnergyDecomposer::FinishCalc() {
   if (energies_.empty() || eneOut_ == 0) {
@@ -426,13 +483,15 @@ int EnergyDecomposer::FinishCalc() {
     return 1;
   }
   // Only add entities that have data.
-  DataSet_Mesh& set = static_cast<DataSet_Mesh&>( *eneOut_ );
-  set.Clear();
-  // TODO allocate?
-  for (unsigned int idx = 0; idx != energies_.size(); idx++) {
-    if ( energies_[idx].nData() > 0 ) {
-      set.AddXY( idx+1, energies_[idx].mean() );
-    }
+  populateOutputData( eneOut_, energies_ );
+  if (saveComponents_) {
+    populateOutputData( eBndOut_, eBonds_ );
+    populateOutputData( eAngOut_, eAngles_ );
+    populateOutputData( eDihOut_, eDihedrals_ );
+    populateOutputData( eV14Out_, eVDW14_ );
+    populateOutputData( eE14Out_, eELE14_ );
+    populateOutputData( eEleOut_, eElec_ );
+    populateOutputData( eVdwOut_, eVdw_ );
   }
   mprintf("Timing for energy decomposition: '%s'\n", eneOut_->legend());
   t_total_.WriteTiming(0, "  Decomp total:");
