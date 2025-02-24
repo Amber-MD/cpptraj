@@ -1,3 +1,3 @@
 b37726e7a841f6fc695ecd7fb040ffbf  CpptrajDevelopmentGuide.lyx
-1f4d9c647b6717314560290a4d3f9f06  cpptraj.lyx
+a39607942c916369bcba6dfa9109f18b  cpptraj.lyx
 5d9b5b5ed47a3ded57b6464df99b3585  CpptrajManual.lyx
