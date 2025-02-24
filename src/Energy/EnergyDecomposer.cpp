@@ -36,7 +36,7 @@ EnergyDecomposer::EnergyDecomposer() :
 { }
 
 void EnergyDecomposer::HelpText() {
-  mprintf("\t[<name>] [<mask>] [out <filename>]\n"
+  mprintf("\t[<name>] [<mask>] [out <filename>] [savecomponents]\n"
           "\t[ pme %s\n"
           "\t      %s\n"
           "\t      %s\n",
