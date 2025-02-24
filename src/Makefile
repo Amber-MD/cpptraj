@@ -74,7 +74,7 @@ install_dat:
 
 # Headers ------------------------------
 $(CPPTRAJINC):
-	-mkdir $(CPPTRAJINC)
+	-mkdir -p $(CPPTRAJINC)
 
 install_headers: $(CPPTRAJINC)
 	$(VB) echo Installing CPPTRAJ headers to $(CPPTRAJINC)
