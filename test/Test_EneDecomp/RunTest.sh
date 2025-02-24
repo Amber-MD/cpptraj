@@ -64,10 +64,12 @@ if [ $? -eq 0 ] ; then
 parm ../tz2.parm7
 trajin ../tz2.nc 1 10
 enedecomp TZ2 * out decomp.tz2.dat
+enedecomp TZ3 * out decomp.components.tz2.dat savecomponents
 run
 EOF
   RunCpptraj "$UNITNAME"
   DoTest decomp.tz2.dat.save decomp.tz2.dat
+  DoTest decomp.components.tz2.dat.save decomp.components.tz2.dat
 fi
 
 EndTest
