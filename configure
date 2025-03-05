@@ -195,6 +195,7 @@ USE_PROFILE=0     # 0 = no profiling, 1 = C++ profiling, 2 = GLIBC profiling, 3 
 USE_AMBERLIB=0    # 1 = Use AMBERHOME to fill in NetCDF/BLAS/LAPACK/ARPACK as needed
 BUILD_LIBS=0      # 1 = Means automatically say yes to building enabled libs when not present.
 BUILD_MPI=''      # If not empty, attempt to download and build specified mpi dist.
+icpp=0            # Used to count cmake_prefix_paths
 
 USE_SINGLEENSEMBLE=0 # Enable support for single ensemble trajectories
 USE_CPPTRAJDEBUG=0   # Enable internal cpptraj debug flags
@@ -2510,6 +2511,20 @@ EOF
 }
 
 #-------------------------------------------------------------------------------
+# Add cmake prefix path
+AddCmakePrefixPath() {
+  # Search for existing
+  for ((i=$icpp; i < $icpp; i++)) ; do
+    if [ "$1" = "${cmake_prefix_paths[$i]}" ] ; then
+      echo DEBUG duplicate path $1
+      return 0
+    fi
+  done
+  echo add cmake prefix path $icpp $1
+  cmake_prefix_paths[$icpp]=$1
+  ((icpp++))
+}
+
 # Use cmake to configure build.
 SetupCmake() {
   CMAKE=`which cmake`
@@ -2584,6 +2599,25 @@ SetupCmake() {
   if [ $COMPILE_VERBOSE -eq 1 ] ; then
     cmake_options="$cmake_options -DCMAKE_VERBOSE_MAKEFILE=TRUE"
   fi
+  # Libraries
+  icpp=0
+  if [ "${LIB_STAT[$LNETCDF]}" = 'specified' ] ; then
+    AddCmakePrefixPath "${LIB_HOME[$LNETCDF]}"
+  fi
+  if [ "${LIB_STAT[$LZIP]}" = 'specified' ] ; then
+    AddCmakePrefixPath "${LIB_HOME[$LZIP]}"
+  fi
+  if [ $icpp -gt 0 ] ; then
+    cmppstring=""
+    for ((i=0; i < $icpp; i++)) ; do
+      if [ ! -z "$cmppstring" ] ; then
+        cmppstring="$cmppstring;${cmake_prefix_paths[$i]}"
+      else
+        cmppstring="${cmake_prefix_paths[$i]}"
+      fi
+    done
+    cmake_options="$cmake_options -DCMAKE_PREFIX_PATH=$cmppstring"
+  fi  
   echo "  Cmake options: $WORKDIR $cmake_options"
   # Run cmake
   $CMAKE $WORKDIR $cmake_options
