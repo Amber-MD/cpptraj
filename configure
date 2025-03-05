@@ -2514,8 +2514,8 @@ EOF
 # Add cmake prefix path
 AddCmakePrefixPath() {
   # Search for existing
-  for ((i=$icpp; i < $icpp; i++)) ; do
-    if [ "$1" = "${cmake_prefix_paths[$i]}" ] ; then
+  for ((idx1=0; idx1 < $icpp; idx1++)) ; do
+    if [ "$1" = "${cmake_prefix_paths[$idx1]}" ] ; then
       echo DEBUG duplicate path $1
       return 0
     fi
@@ -2601,19 +2601,29 @@ SetupCmake() {
   fi
   # Libraries
   icpp=0
-  if [ "${LIB_STAT[$LNETCDF]}" = 'specified' ] ; then
-    AddCmakePrefixPath "${LIB_HOME[$LNETCDF]}"
-  fi
-  if [ "${LIB_STAT[$LZIP]}" = 'specified' ] ; then
-    AddCmakePrefixPath "${LIB_HOME[$LZIP]}"
-  fi
+  for ((idx=0; idx < $NLIB; idx++)) ; do
+    if [ "${LIB_STAT[$idx]}" = 'specified' ] ; then
+      echo Lib $idx # DEBUG
+      AddCmakePrefixPath "${LIB_HOME[$idx]}"
+    fi
+  done
+  #if [ "${LIB_STAT[$LNETCDF]}" = 'specified' ] ; then
+  #  AddCmakePrefixPath "${LIB_HOME[$LNETCDF]}"
+  #fi
+  #if [ "${LIB_STAT[$LZIP]}" = 'specified' ] ; then
+  #  AddCmakePrefixPath "${LIB_HOME[$LZIP]}"
+  #fi
+  #if [ "${LIB_STAT[$LBZIP]}" = 'specified' ] ; then
+  #  AddCmakePrefixPath "${LIB_HOME[$LBZIP]}"
+  #fi
+
   if [ $icpp -gt 0 ] ; then
     cmppstring=""
-    for ((i=0; i < $icpp; i++)) ; do
+    for ((idx=0; idx < $icpp; idx++)) ; do
       if [ ! -z "$cmppstring" ] ; then
-        cmppstring="$cmppstring;${cmake_prefix_paths[$i]}"
+        cmppstring="$cmppstring;${cmake_prefix_paths[$idx]}"
       else
-        cmppstring="${cmake_prefix_paths[$i]}"
+        cmppstring="${cmake_prefix_paths[$idx]}"
       fi
     done
     cmake_options="$cmake_options -DCMAKE_PREFIX_PATH=$cmppstring"
