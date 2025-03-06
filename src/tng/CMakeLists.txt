@@ -27,6 +27,10 @@ add_compile_options(${OPT_CFLAGS})
 add_library(tng_io STATIC ${TNG_IO_SOURCES})
 make_pic_if_needed(tng_io)
 target_include_directories(tng_io PUBLIC .)
+if(zlib_ENABLED)
+        include_directories(${ZLIB_INCLUDE_DIRS})
+endif()
+
 
 # checks based on tng_io's cmake script
 check_all_includes(C inttypes.h)

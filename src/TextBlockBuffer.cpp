@@ -68,7 +68,7 @@ int TextBlockBuffer::BlockToDoubles(double* darray) {
   {
     Line();
     char* ptr = BufferPosition();
-    if (*ptr == '\0' || ptr == 0) return (int)elt;
+    if (ptr == 0 || *ptr == '\0') return (int)elt;
     unsigned int nRemaining = Nelts_ - elt;
     unsigned int maxcol = std::min(Ncols_, nRemaining);
     // Loop over columns in line
