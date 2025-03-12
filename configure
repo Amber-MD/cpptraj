@@ -690,8 +690,7 @@ EOF
       hdf5_flags="-lhdf5_hl -lhdf5 -ldl ${LIB_FLAG[$LZIP]}"
     fi
   fi
-  #TestProgram silent "  Checking NetCDF4/HDF5" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]}"
-  TestProgram "  Checking NetCDF4/HDF5" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]} $hdf5_flags"
+  TestProgram silent "  Checking NetCDF4/HDF5" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]} $hdf5_flags"
   if [ $? -eq 0 ] ; then
     # HDF5 support is present.
     # If we are going to build our own netcdf, it needs to know how to link
