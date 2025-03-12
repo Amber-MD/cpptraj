@@ -679,13 +679,27 @@ void unused() {
 }
 int main() { printf("Testing\n"); printf("%s\n",nc_strerror(0)); return 0; }
 EOF
-  TestProgram silent "  Checking NetCDF4/HDF5" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]}"
+  # If netcdf was specified and only the static library is available, need
+  # to add extra flags for hdf5.
+  nc_requires_hdf5_flags=0
+  if [ "${LIB_STAT[$LNETCDF]}" = 'specified' ] ; then
+    export LD_LIBRARY_PATH="${LIB_HOME[$LNETCDF]}/lib:$LD_LIBRARY_PATH"
+    if [ ! -f "${LIB_HOME[$LNETCDF]}/lib/libnetcdf.so" -a -f "${LIB_HOME[$LNETCDF]}/lib/libnetcdf.a" ] ; then
+      echo "DEBUG: Only static NetCDF library is present."
+      nc_requires_hdf5_flags=1
+      hdf5_flags="-lhdf5_hl -lhdf5 -ldl ${LIB_FLAG[$LZIP]}"
+    fi
+  fi
+  #TestProgram silent "  Checking NetCDF4/HDF5" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]}"
+  TestProgram "  Checking NetCDF4/HDF5" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]} $hdf5_flags"
   if [ $? -eq 0 ] ; then
     # HDF5 support is present.
     # If we are going to build our own netcdf, it needs to know how to link
     # HDF5.
     if [ "${LIB_MAKE[$LNETCDF]}" = 'yes' ] ; then
       LIB_FLAG[$LHDF5]="-lhdf5_hl -lhdf5 -ldl ${LIB_FLAG[$LZIP]}"
+    elif [ $nc_requires_hdf5_flags -eq 1 ] ; then
+      LIB_FLAG[$LNETCDF]="${LIB_FLAG[$LNETCDF]} $hdf5_flags"
     fi
     return 0
   fi
