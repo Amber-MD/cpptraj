@@ -685,7 +685,7 @@ EOF
   if [ "${LIB_STAT[$LNETCDF]}" = 'specified' ] ; then
     export LD_LIBRARY_PATH="${LIB_HOME[$LNETCDF]}/lib:$LD_LIBRARY_PATH"
     if [ ! -f "${LIB_HOME[$LNETCDF]}/lib/libnetcdf.so" -a -f "${LIB_HOME[$LNETCDF]}/lib/libnetcdf.a" ] ; then
-      echo "DEBUG: Only static NetCDF library is present."
+      #echo "DEBUG: Only static NetCDF library is present."
       nc_requires_hdf5_flags=1
       hdf5_flags="-lhdf5_hl -lhdf5 -ldl ${LIB_FLAG[$LZIP]}"
     fi
