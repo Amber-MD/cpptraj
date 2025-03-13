@@ -52,6 +52,7 @@ UsageFull() {
   echo "    --nobuildlibs      : Do not asking about building enabled libraries."
   echo "    -makenetcdf        : Have cpptraj build its own NetCDF."
   echo "    -makeblas          : Have cpptraj build its own LAPACK/BLAS."
+  echo "    --libdir=<dir>     : Look for libraries in <dir> (useful to point to e.g. a previous CPPTRAJ install."
   echo "    Libraries: netcdf pnetcdf zlib bzlib blas lapack arpack fftw3 readline sanderlib xdrfile tng openmm"
   echo "    Note: pnetcdf is needed for writing NetCDF trajectories with MPI."
   echo "  LINKING OPTIONS"
@@ -125,6 +126,7 @@ EXE=''                    # Binary executable suffix
 REBUILDOPT=''             # Can be set to --rebuild and passed to get_library.sh
 BUILDTESTOPT='silent'     # Set to blank to avoid asking about building libraries
 INSTALL_DAT='install_dat' # Target for installing data directory
+SPECIFIED_LIB_DIR=''      # Specified library directory
 #CPPTRAJSRC=''             # CPPTRAJ source directory
 COMPERR='cpptrajcfg.compile.err'
 COMPOUT='cpptrajcfg.compile.out'
@@ -679,13 +681,36 @@ void unused() {
 }
 int main() { printf("Testing\n"); printf("%s\n",nc_strerror(0)); return 0; }
 EOF
-  TestProgram silent "  Checking NetCDF4/HDF5" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]}"
+  # If netcdf was specified and only the static library is available, need
+  # to add extra flags for hdf5.
+  nc_requires_hdf5_flags=0
+  lhdf5_hl='-lhdf5_hl'
+  lhdf5='-lhdf5'
+  if [ ! -z "${LIB_HOME[$LHDF5]}" ] ; then
+    if [ -f "${LIB_HOME[$LHDF5]}/lib/libhdf5_hl.a" ] ; then
+      lhdf5_hl=${LIB_HOME[$LHDF5]}/lib/libhdf5_hl.a
+    fi
+    if [ -f "${LIB_HOME[$LHDF5]}/lib/libhdf5.a" ] ; then
+      lhdf5=${LIB_HOME[$LHDF5]}/lib/libhdf5.a
+    fi
+  fi
+  if [ "${LIB_STAT[$LNETCDF]}" = 'specified' ] ; then
+    export LD_LIBRARY_PATH="${LIB_HOME[$LNETCDF]}/lib:$LD_LIBRARY_PATH"
+    if [ ! -f "${LIB_HOME[$LNETCDF]}/lib/libnetcdf.so" -a -f "${LIB_HOME[$LNETCDF]}/lib/libnetcdf.a" ] ; then
+      #echo "DEBUG: Only static NetCDF library is present."
+      nc_requires_hdf5_flags=1
+      hdf5_flags="$lhdf5_hl $lhdf5 -ldl ${LIB_FLAG[$LZIP]}"
+    fi
+  fi
+  TestProgram silent "  Checking NetCDF4/HDF5" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]} $hdf5_flags"
   if [ $? -eq 0 ] ; then
     # HDF5 support is present.
     # If we are going to build our own netcdf, it needs to know how to link
     # HDF5.
     if [ "${LIB_MAKE[$LNETCDF]}" = 'yes' ] ; then
-      LIB_FLAG[$LHDF5]="-lhdf5_hl -lhdf5 -ldl ${LIB_FLAG[$LZIP]}"
+      LIB_FLAG[$LHDF5]="$ldhf5_hl $lhdf5 -ldl ${LIB_FLAG[$LZIP]}"
+    elif [ $nc_requires_hdf5_flags -eq 1 ] ; then
+      LIB_FLAG[$LNETCDF]="${LIB_FLAG[$LNETCDF]} $hdf5_flags"
     fi
     return 0
   fi
@@ -1460,6 +1485,7 @@ SetupLibraries() {
       LIB_STAT[$LFFTW3]='amberopt'
       LIB_LINK[$LFFTW3]='static'
     elif [ "${LIB_STAT[$LFFTW3]}" == 'enabled' ] ; then
+      echo "  Using fftw from $AMBERHOME"
       LIB_STAT[$LFFTW3]='specified'
       LIB_HOME[$LFFTW3]=$AMBERHOME
       LIB_LINK[$LFFTW3]='static'
@@ -1477,6 +1503,66 @@ SetupLibraries() {
       fi
     fi
   done
+  # Use specified directory to fill in libraries if needed
+  if [ ! -z "$SPECIFIED_LIB_DIR" ] ; then
+    if [ ! -d "$SPECIFIED_LIB_DIR" ] ; then
+      Err "Specified library directory $SPECIFIED_LIB_DIR not found."
+    fi
+    if [ "${LIB_STAT[$LNETCDF]}" == 'enabled' ] ; then
+      echo "  Using netcdf from $SPECIFIED_LIB_DIR"
+      LIB_STAT[$LNETCDF]='specified'
+      LIB_HOME[$LNETCDF]=$SPECIFIED_LIB_DIR
+      #LIB_LINK[$LNETCDF]='static'
+    fi
+    if [ "${LIB_STAT[$LHDF5]}" == 'enabled' ] ; then
+      echo "  Using hdf5 from $SPECIFIED_LIB_DIR"
+      LIB_STAT[$LHDF5]='specified'
+      LIB_HOME[$LHDF5]=$SPECIFIED_LIB_DIR
+      #LIB_LINK[$LHDF5]='static'
+    fi
+    if [ "${LIB_STAT[$LARPACK]}" == 'enabled' -a "$BLAS_TYPE" != 'openblas' ] ; then
+      echo "  Using arpack from $SPECIFIED_LIB_DIR"
+      LIB_STAT[$LARPACK]='specified'
+      LIB_HOME[$LARPACK]=$SPECIFIED_LIB_DIR
+      #LIB_LINK[$LARPACK]='static'
+    fi
+    if [ "${LIB_STAT[$LFFTW3]}" == 'enabled' ] ; then
+      echo "  Using fftw from $SPECIFIED_LIB_DIR"
+      LIB_STAT[$LFFTW3]='specified'
+      LIB_HOME[$LFFTW3]=$SPECIFIED_LIB_DIR
+      #LIB_LINK[$LFFTW3]='static'
+    fi
+    if [ "${LIB_STAT[$LBZIP]}" == 'enabled' ] ; then
+      echo "  Using bzip from $SPECIFIED_LIB_DIR"
+      LIB_STAT[$LBZIP]='specified'
+      LIB_HOME[$LBZIP]=$SPECIFIED_LIB_DIR
+      #LIB_LINK[$LBZIP]='static'
+    fi
+    if [ "${LIB_STAT[$LZIP]}" == 'enabled' ] ; then
+      echo "  Using zlib from $SPECIFIED_LIB_DIR"
+      LIB_STAT[$LZIP]='specified'
+      LIB_HOME[$LZIP]=$SPECIFIED_LIB_DIR
+      #LIB_LINK[$LZIP]='static'
+    fi
+    if [ "${LIB_STAT[$LZIP]}" == 'enabled' ] ; then
+      echo "  Using zlib from $SPECIFIED_LIB_DIR"
+      LIB_STAT[$LZIP]='specified'
+      LIB_HOME[$LZIP]=$SPECIFIED_LIB_DIR
+      #LIB_LINK[$LZIP]='static'
+    fi
+    if [ "${LIB_STAT[$LLAPACK]}" == 'enabled' ] ; then
+      echo "  Using lapack from $SPECIFIED_LIB_DIR"
+      LIB_STAT[$LLAPACK]='specified'
+      LIB_HOME[$LLAPACK]=$SPECIFIED_LIB_DIR
+      #LIB_LINK[$LLAPACK]='static'
+    fi
+    if [ "${LIB_STAT[$LBLAS]}" == 'enabled' ] ; then
+      echo "  Using blas from $SPECIFIED_LIB_DIR"
+      LIB_STAT[$LBLAS]='specified'
+      LIB_HOME[$LBLAS]=$SPECIFIED_LIB_DIR
+      #LIB_LINK[$LBLAS]='static'
+    fi
+  fi
   # Set up library paths
   for ((i=0; i < $NLIB; i++)) ; do
     lhome=''
@@ -2755,6 +2841,7 @@ while [ ! -z "$1" ] ; do
     '--requires-pthread') REQUIRES_PTHREAD=1 ;;
     '--buildlibs'       ) BUILD_LIBS=1 ;;
     '--nobuildlibs'     ) BUILD_LIBS=0 ; BUILDTESTOPT='' ;;
+    '--libdir'          ) SPECIFIED_LIB_DIR=$VALUE ;;
     # Install options
     '--compile-verbose' ) COMPILE_VERBOSE=1 ;;
     '-noclean'          ) CLEAN='no' ;;
