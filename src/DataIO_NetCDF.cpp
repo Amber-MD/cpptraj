@@ -1539,7 +1539,7 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
       // Define the X variable.
       NcVar xVar = defineVar(Dimensions_[dimIdx].DID(), NC_DOUBLE, ds->Meta().PrintName(), "X");
       if (xVar.Empty()) {
-        mprinterr("Error: Could not define Y variable for '%s'\n", ds->legend());
+        mprinterr("Error: Could not define X variable for '%s'\n", ds->legend());
         return 1;
       }
       set_vars.push_back( xVar );
