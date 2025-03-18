@@ -69,7 +69,7 @@ NC::FormatType NC::GetFormatType(std::string const& fnameIn) {
 // NC::CheckErr()
 bool NC::CheckErr(int ncerr) {
   if ( ncerr != NC_NOERR ) {
-    mprintf("%s\n", nc_strerror(ncerr));
+    mprinterr("Error: %s\n", nc_strerror(ncerr));
     return true;
   }
   return false;

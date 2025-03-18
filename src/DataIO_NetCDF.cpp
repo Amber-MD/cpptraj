@@ -1428,8 +1428,8 @@ int DataIO_NetCDF::writeData_vector_scalar(DataSet const* ds) {
 }
 
 /** Write 1D DataSets that share an index dimension. */
-int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArray const& sets) {
-  if (ds->Type() == DataSet::PH)
+int DataIO_NetCDF::writeData_1D(DataSet const* firstSet, Dimension const& dim, SetArray const& sets) {
+  if (firstSet->Type() == DataSet::PH)
     mprintf("Warning: Currently only State information saved for pH sets.\n");
   if (debug_ > 0) {
     mprintf("DEBUG: Sets for dimension '%s' %f %f:", dim.label(), dim.Min(), dim.Step());
@@ -1439,7 +1439,7 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
   }
   // Define the dimension. Ensure name is unique by appending an index.
   if (EnterDefineMode(ncid_)) return 1;
-  int dimIdx = defineDim( "length", ds->Size(), ds->Meta().Legend() );
+  int dimIdx = defineDim( "length", firstSet->Size(), firstSet->Meta().Legend() );
   if (dimIdx < 0) return 1;
   NcDim lengthDim = Dimensions_[dimIdx];
   
@@ -1466,6 +1466,8 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
         return 1;
     }
     // Add variable(s)
+    if (debug_ > 0)
+      mprintf("DEBUG: Defining variable '%s' for set '%s'\n", it->DS()->Meta().PrintName().c_str(), it->DS()->legend());
     variables.push_back( VarArray() );
     VarArray& set_vars = variables.back();
     if (it->DS()->Type() == DataSet::STRING) {
@@ -1529,22 +1531,23 @@ int DataIO_NetCDF::writeData_1D(DataSet const* ds, Dimension const& dim, SetArra
       set_vars.push_back( mat3x3Var );
     } else if (it->DS()->Type() == DataSet::XYMESH) {
       // ----- XY mesh set -------------
+      DataSet_Mesh const& meshSet = static_cast<DataSet_Mesh const&>( *(it->DS()) );
       // Define the Y variable
-      NcVar yVar = defineVar(Dimensions_[dimIdx].DID(), NC_DOUBLE, ds->Meta().PrintName(), "Y");
+      NcVar yVar = defineVar(Dimensions_[dimIdx].DID(), NC_DOUBLE, meshSet.Meta().PrintName(), "Y");
       if (yVar.Empty()) {
-        mprinterr("Error: Could not define Y variable for set '%s'\n", ds->legend());
+        mprinterr("Error: Could not define Y variable for set '%s'\n", meshSet.legend());
         return 1;
       }
       set_vars.push_back( yVar );
       // Define the X variable.
-      NcVar xVar = defineVar(Dimensions_[dimIdx].DID(), NC_DOUBLE, ds->Meta().PrintName(), "X");
+      NcVar xVar = defineVar(Dimensions_[dimIdx].DID(), NC_DOUBLE, meshSet.Meta().PrintName(), "X");
       if (xVar.Empty()) {
-        mprinterr("Error: Could not define Y variable for '%s'\n", ds->legend());
+        mprinterr("Error: Could not define X variable for '%s'\n", meshSet.legend());
         return 1;
       }
       set_vars.push_back( xVar );
       // Add DataSet info to variable
-      if (AddDataSetInfo(ds, std::vector<int>(1, xVar.VID()), ncid_, yVar.VID())) return 1;
+      if (AddDataSetInfo(it->DS(), std::vector<int>(1, xVar.VID()), ncid_, yVar.VID())) return 1;
     } else {
       // ----- All other 1D sets -------
       set_vars.push_back( defineVar(lengthDim.DID(), dtype, it->DS()->Meta().PrintName(), "Y") );
