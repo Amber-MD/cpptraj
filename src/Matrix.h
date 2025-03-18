@@ -2,6 +2,7 @@
 #define INC_MATRIX_H
 #include "ArrayIterator.h"
 #include <cmath> // For linear least squares
+#include <algorithm> // for copy()
 /// Two-dimensional matrix template.
 template <class T> class Matrix {
 // TODO: Type may not be necessary here if in DataSet_2D
