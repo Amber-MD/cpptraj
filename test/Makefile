@@ -546,6 +546,13 @@ test.tica:
 test.enedecomp:
 	@-cd Test_EneDecomp && ./RunTest.sh $(OPT)
 
+# Only GPU-specific tests should go here
+GPUTESTS=test.closest \
+         test.solvent \
+         test.watershell \
+         test.gist \
+         test.radial
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -730,10 +737,10 @@ test.openmp:
 	$(MAKE) test.complete summary OPT="$(OPT) openmp"
 
 test.cuda:
-	$(MAKE) test.complete summary OPT="$(OPT) cuda"
+	$(MAKE) test.gpu summary OPT="$(OPT) cuda"
 
 test.hip:
-	$(MAKE) test.complete summary OPT="$(OPT) hip"
+	$(MAKE) test.gpu summary OPT="$(OPT) hip"
 
 test.libcpptraj:
 	@cd Test_Libcpptraj && ./RunTest.sh $(OPT)
@@ -741,7 +748,12 @@ test.libcpptraj:
 test.complete: CpptrajTest.sh MasterTest.sh
 	@./CpptrajTest.sh --target test.cpptraj $(OPT)
 
+test.gpu: CpptrajTest.sh MasterTest.sh
+	@./CpptrajTest.sh --target test.cpptraj.gpu $(OPT)
+
 test.cpptraj: $(COMPLETETESTS)
+
+test.cpptraj.gpu: $(GPUTESTS)
 
 test.showerrors:
 	$(MAKE) test.complete summary OPT="$(OPT) showerrors long"
