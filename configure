@@ -2212,8 +2212,10 @@ SetupMKL() {
 # 11.1-11.4                           .............................................................................
 # 11.5-11.7.1                         ..................................................................................
 # 11.8                                .........................................................................................
-# 12.0-12.5                                       ..................................................................................
-CUDA_SM_LIST='sm_20 sm_21 sm_30 sm_32 sm_35 sm_37 sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80 sm_86 sm_87 sm_89 sm_90'
+# 12.0-12.6                                       ..................................................................................
+# 12.8                                            ..........................................................................................
+# 12.9                                            .................................................................................................
+CUDA_SM_LIST='sm_20 sm_21 sm_30 sm_32 sm_35 sm_37 sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80 sm_86 sm_87 sm_89 sm_90 sm_120 sm_121'
 
 # SetSupportedSM <major v> <minor v>
 # Set Shader models supported by current cuda version
@@ -2256,13 +2258,18 @@ SetSupportedSM() {
       CUDA_SM_LIST='sm_35 sm_37 sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80 sm_86'
     fi
   elif [ $1 -eq 12 ] ; then
-    if [ $2 -gt 5 ] ; then
-      echo "CUDA > 12.5 has not been tested yet. Set SHADER_MODEL manually."
+    if [ $2 -le 7 ] ; then
+      CUDA_SM_LIST='sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80 sm_86 sm_87 sm_89 sm_90'
+    elif [ $2 -eq 8 ] ; then
+      CUDA_SM_LIST='sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80 sm_86 sm_87 sm_89 sm_90 sm_120'
+    elif [ $2 -eq 9 ] ; then
+      CUDA_SM_LIST='sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80 sm_86 sm_87 sm_89 sm_90 sm_120 sm_121'
+    else
+      echo "CUDA 12.$2 has not been tested yet. Set SHADER_MODEL manually."
       exit 1
     fi
-    CUDA_SM_LIST='sm_50 sm_52 sm_53 sm_60 sm_61 sm_62 sm_70 sm_72 sm_75 sm_80 sm_86 sm_87 sm_89 sm_90'
   else
-    echo "Automatic support for CUDA $1.$2 is currently unsupported. Set SHADER_MODEL manually."
+    echo "Automatic shader model detection for CUDA $1.$2 is currently unsupported. Set SHADER_MODEL manually."
     exit 1
   fi
   echo "  Supported shader models: $CUDA_SM_LIST"
