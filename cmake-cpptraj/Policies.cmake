@@ -20,8 +20,3 @@ if(POLICY CMP0083)
 	#NEW: make executables position independent if they have PROPERTY POSITION_INDEPENDENT_CODE set
 	cmake_policy(SET CMP0083 NEW)
 endif()
-
-if(POLICY CMP0057)
-  # Support new IN_LIST if() operator.
-  cmake_policy(SET CMP0057 NEW)
-endif()
