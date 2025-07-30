@@ -16,27 +16,55 @@ int Traj_CIF::openTrajin() {
   return 0;
 }
 
+/** Determine what block has the coordinates we need. */
+int Traj_CIF::determineCoordsBlock() {
+  blockName_.clear();
+  CIFfile::DataBlock const& block1 = file_.GetDataBlock("_atom_site");
+  if (!block1.empty()) {
+    blockName_ = "_atom_site";
+    entryName_ = "_entry";
+    xstr_ = "Cartn_x";
+    ystr_ = "Cartn_y";
+    zstr_ = "Cartn_z";
+    nstr_ = "id";
+    return 0;
+  }
+  CIFfile::DataBlock const& block2 = file_.GetDataBlock("_chem_comp_atom");
+  if (!block2.empty()) {
+    blockName_ = "_chem_comp_atom";
+    entryName_ = "_chem_comp";
+    xstr_ = "model_Cartn_x";
+    ystr_ = "model_Cartn_y";
+    zstr_ = "model_Cartn_z";
+    nstr_ = "pdbx_ordinal";
+    return 0;
+  }
+  return 1;
+}
+
 // Traj_CIF::setupTrajin()
 /** Read in entire CIF file. */
 int Traj_CIF::setupTrajin(FileName const& fname, Topology* trajParm)
 {
   if (file_.Read( fname, debug_ )) return TRAJIN_ERR;
-  CIFfile::DataBlock const& block = file_.GetDataBlock("_atom_site");
+  determineCoordsBlock();
+  CIFfile::DataBlock const& block = file_.GetDataBlock(blockName_);
   if (block.empty()) return TRAJIN_ERR;
   // Get coordinate x/y/z columns
-  Cartn_x_col_ = block.ColumnIndex("Cartn_x");
-  Cartn_y_col_ = block.ColumnIndex("Cartn_y");
-  Cartn_z_col_ = block.ColumnIndex("Cartn_z");
+  Cartn_x_col_ = block.ColumnIndex(xstr_);
+  Cartn_y_col_ = block.ColumnIndex(ystr_);
+  Cartn_z_col_ = block.ColumnIndex(zstr_);
   if (Cartn_x_col_ == -1 || Cartn_y_col_ == -1 || Cartn_z_col_ == -1) {
-    mprinterr("Error: Could not find Cartn_x|y|z columns in CIF file.\n");
+    mprinterr("Error: Could not find %s|%s|%s columns in CIF file.\n",
+              xstr_.c_str(), ystr_.c_str(), zstr_.c_str());
     return TRAJIN_ERR;
   }
   // Determine # atoms and # models
   Nmodels_ = 0;
   int model_col = block.ColumnIndex("pdbx_PDB_model_num");
-  int id_col    = block.ColumnIndex("id");
+  int id_col    = block.ColumnIndex(nstr_);
   if (id_col == -1) {
-    mprinterr("Error: No ID column found in _atom_site block.\n");
+    mprinterr("Error: No %s column found in %s block.\n", nstr_.c_str(), blockName_.c_str());
     return TRAJIN_ERR;
   }
   CIFfile::DataBlock::data_it line = block.end();
@@ -80,7 +108,7 @@ int Traj_CIF::setupTrajin(FileName const& fname, Topology* trajParm)
   // Set traj info - No velocity, temperature, time.
   SetCoordInfo( CoordinateInfo( boxInfo_, false, false, false ) );
   // Get title. 
-  CIFfile::DataBlock const& entryblock = file_.GetDataBlock("_entry");
+  CIFfile::DataBlock const& entryblock = file_.GetDataBlock(entryName_);
   if (!entryblock.empty())
     SetTitle( entryblock.Data("id") );
 
@@ -91,7 +119,7 @@ int Traj_CIF::setupTrajin(FileName const& fname, Topology* trajParm)
 int Traj_CIF::readFrame(int set, Frame& frameIn) {
   //if (set >= Nmodels_) return 1;
   // FIXME: Shouldnt have to always search for the block
-  CIFfile::DataBlock const& block = file_.GetDataBlock("_atom_site");
+  CIFfile::DataBlock const& block = file_.GetDataBlock(blockName_);
   CIFfile::DataBlock::data_it line = block.begin() + (set * Natoms_);
   CIFfile::DataBlock::data_it end  = line + Natoms_;
   double *Xptr = frameIn.xAddress(); 
