@@ -105,7 +105,8 @@ int Parm_CIF::read_chem_comp_atom(CIFfile& infile, FileName const& fname, Topolo
   if (block.empty()) {
     return -1;
   }
-  mprintf("DEBUG: Reading _chem_comp_atom\n");
+  if (debug_ > 0)
+    mprintf("DEBUG: Reading _chem_comp_atom\n");
   // Get essential columns 
   int atom_id_col = get_essential(block, "atom_id", fname);
   if (atom_id_col == -1) return 1;
@@ -117,7 +118,10 @@ int Parm_CIF::read_chem_comp_atom(CIFfile& infile, FileName const& fname, Topolo
   if (model_Cartn_y_col == -1) return 1;
   int model_Cartn_z_col = get_essential(block, "model_Cartn_z", fname);
   if (model_Cartn_z_col == -1) return 1;
-  mprintf("DEBUG: cols: %i %i %i %i %i \n", atom_id_col, comp_id_col, model_Cartn_x_col, model_Cartn_y_col, model_Cartn_z_col);
+  int type_symbol_col = get_essential(block, "type_symbol", fname);
+  if (type_symbol_col == -1) return 1;
+  if (debug_ > 0)
+    mprintf("DEBUG: cols: %i %i %i %i %i %i\n", atom_id_col, comp_id_col, model_Cartn_x_col, model_Cartn_y_col, model_Cartn_z_col, type_symbol_col);
   // Loop over all atoms
   int current_res = 1; // FIXME only ever one residue?
   double XYZ[3];
@@ -134,7 +138,18 @@ int Parm_CIF::read_chem_comp_atom(CIFfile& infile, FileName const& fname, Topolo
     XYZ[1] = convertToDouble( (*line)[ model_Cartn_y_col ] );
     XYZ[2] = convertToDouble( (*line)[ model_Cartn_x_col ] );
     NameType currentResName( (*line)[ comp_id_col ] );
-    TopIn.AddTopAtom( Atom((*line)[ atom_id_col ], "  "),
+    char ELT[3];
+    ELT[0] = ' ';
+    ELT[1] = ' ';
+    ELT[2] = '\0';
+    std::string const& eltstr = (*line)[ type_symbol_col ];
+    if (eltstr.size() == 1) {
+      ELT[0] = eltstr[0];
+    } else if (!eltstr.empty()) {
+      ELT[0] = eltstr[0];
+      ELT[1] = eltstr[1];
+    }
+    TopIn.AddTopAtom( Atom((*line)[ atom_id_col ], ELT),
                       Residue(currentResName, current_res, icode, chainid) );
 //                              (*line)[ COL[CHAINID] ]) );
     Coords.AddXYZ( XYZ );
@@ -167,7 +182,8 @@ int Parm_CIF::read_chem_comp_atom(CIFfile& infile, FileName const& fname, Topolo
           if (idx2 < 0)
             mprinterr("Error: Atom 2 %s not found for bond to %s\n", *a2name, *a1name);
           if (idx1 < 0 || idx2 < 0) return 1;
-          mprintf("DEBUG: Adding bond %s %s\n", *a1name, *a2name);
+          if (debug_ > 1) 
+            mprintf("DEBUG: Adding bond %s %s\n", *a1name, *a2name);
           TopIn.AddBond(idx1, idx2);
         }
         need_bond_search = false;
