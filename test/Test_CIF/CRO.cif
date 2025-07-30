@@ -1,0 +1,170 @@
+data_CRO
+# 
+_chem_comp.id                                    CRO 
+_chem_comp.name                                  "{2-[(1R,2R)-1-amino-2-hydroxypropyl]-4-(4-hydroxybenzylidene)-5-oxo-4,5-dihydro-1H-imidazol-1-yl}acetic acid" 
+_chem_comp.type                                  "L-PEPTIDE LINKING" 
+_chem_comp.pdbx_type                             ATOMP 
+_chem_comp.formula                               "C15 H17 N3 O5" 
+_chem_comp.mon_nstd_parent_comp_id               "THR, TYR, GLY" 
+_chem_comp.pdbx_synonyms                         "PEPTIDE DERIVED CHROMOPHORE" 
+_chem_comp.pdbx_formal_charge                    0 
+_chem_comp.pdbx_initial_date                     1999-07-08 
+_chem_comp.pdbx_modified_date                    2015-01-28 
+_chem_comp.pdbx_ambiguous_flag                   N 
+_chem_comp.pdbx_release_status                   REL 
+_chem_comp.pdbx_replaced_by                      ? 
+_chem_comp.pdbx_replaces                         ? 
+_chem_comp.formula_weight                        319.313 
+_chem_comp.one_letter_code                       TYG 
+_chem_comp.three_letter_code                     CRO 
+_chem_comp.pdbx_model_coordinates_details        ? 
+_chem_comp.pdbx_model_coordinates_missing_flag   N 
+_chem_comp.pdbx_ideal_coordinates_details        Corina 
+_chem_comp.pdbx_ideal_coordinates_missing_flag   N 
+_chem_comp.pdbx_model_coordinates_db_code        1EMA 
+_chem_comp.pdbx_subcomponent_list                ? 
+_chem_comp.pdbx_processing_site                  RCSB 
+# 
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.alt_atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_align 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.model_Cartn_x 
+_chem_comp_atom.model_Cartn_y 
+_chem_comp_atom.model_Cartn_z 
+_chem_comp_atom.pdbx_model_Cartn_x_ideal 
+_chem_comp_atom.pdbx_model_Cartn_y_ideal 
+_chem_comp_atom.pdbx_model_Cartn_z_ideal 
+_chem_comp_atom.pdbx_component_atom_id 
+_chem_comp_atom.pdbx_component_comp_id 
+_chem_comp_atom.pdbx_ordinal 
+CRO N1   N1   N 0 1 N N N 24.077 27.513 36.610 -0.887 -2.457 -1.671 N1   CRO 1  
+CRO CA1  CA1  C 0 1 N N R 25.011 26.478 37.078 -1.796 -1.613 -0.883 CA1  CRO 2  
+CRO CB1  CB1  C 0 1 N N R 25.931 26.035 35.930 -2.051 -2.268 0.476  CB1  CRO 3  
+CRO CG1  CG1  C 0 1 N N N 25.155 25.422 34.796 -2.569 -3.693 0.267  CG1  CRO 4  
+CRO OG1  OG1  O 0 1 N N N 26.679 27.129 35.461 -0.832 -2.309 1.221  OG1  CRO 5  
+CRO C1   C1   C 0 1 N N N 25.730 27.106 38.245 -1.171 -0.257 -0.678 C1   CRO 6  
+CRO N2   N2   N 0 1 N N N 26.975 27.732 38.216 0.100  -0.054 -0.523 N2   CRO 7  
+CRO N3   N3   N 0 1 N N N 25.274 27.124 39.509 -1.871 0.916  -0.637 N3   CRO 8  
+CRO C2   C2   C 0 1 N N N 26.043 27.875 40.370 -0.996 1.927  -0.439 C2   CRO 9  
+CRO O2   O2   O 0 1 N N N 26.022 27.962 41.566 -1.248 3.115  -0.347 O2   CRO 10 
+CRO CA2  CA2  C 0 1 N N N 27.197 28.245 39.512 0.327  1.285  -0.362 CA2  CRO 11 
+CRO CA3  CA3  C 0 1 N N N 23.919 26.721 39.842 -3.322 1.054  -0.783 CA3  CRO 12 
+CRO C3   C3   C 0 1 N N N 23.745 25.326 40.360 -3.974 0.960  0.572  C3   CRO 13 
+CRO O3   O3   O 0 1 N N N 22.885 25.116 41.193 -3.297 0.794  1.559  O3   CRO 14 
+CRO CB2  CB2  C 0 1 N N N 28.329 28.822 39.960 1.543  1.904  -0.169 CB2  CRO 15 
+CRO CG2  CG2  C 0 1 Y N N 29.437 29.370 39.124 2.757  1.101  -0.008 CG2  CRO 16 
+CRO CD1  CD1  C 0 1 Y N N 29.541 29.103 37.742 2.709  -0.290 -0.180 CD1  CRO 17 
+CRO CD2  CD2  C 0 1 Y N N 30.487 30.110 39.805 3.973  1.721  0.313  CD2  CRO 18 
+CRO CE1  CE1  C 0 1 Y N N 30.707 29.546 37.033 3.850  -1.035 -0.033 CE1  CRO 19 
+CRO CE2  CE2  C 0 1 Y N N 31.614 30.563 39.085 5.107  0.964  0.463  CE2  CRO 20 
+CRO CZ   CZ   C 0 1 Y N N 31.718 30.300 37.721 5.054  -0.415 0.285  CZ   CRO 21 
+CRO OH   OH   O 0 1 N N N 32.894 30.804 36.971 6.180  -1.158 0.429  OH   CRO 22 
+CRO OXT  OXT  O 0 1 N Y N 24.535 24.383 39.849 -5.308 1.060  0.682  OXT  CRO 23 
+CRO HN11 HN11 H 0 0 N N N 23.484 27.793 37.365 -0.004 -2.576 -1.198 HN11 CRO 24 
+CRO H2   HN2  H 0 1 N Y N 24.593 28.304 36.281 -1.311 -3.349 -1.877 H2   CRO 25 
+CRO HA1  HA1  H 0 1 N N N 24.445 25.604 37.433 -2.741 -1.501 -1.415 HA1  CRO 26 
+CRO HB1  HB1  H 0 1 N N N 26.615 25.270 36.327 -2.793 -1.689 1.026  HB1  CRO 27 
+CRO HG11 HG11 H 0 0 N N N 24.572 24.567 35.170 -1.827 -4.272 -0.283 HG11 CRO 28 
+CRO HG12 HG12 H 0 0 N N N 24.473 26.173 34.371 -2.750 -4.159 1.235  HG12 CRO 29 
+CRO HG13 HG13 H 0 0 N N N 25.853 25.078 34.018 -3.499 -3.661 -0.301 HG13 CRO 30 
+CRO HOG1 HOG1 H 0 0 N N N 27.167 27.512 36.181 -0.125 -2.810 0.791  HOG1 CRO 31 
+CRO HA31 HA31 H 0 0 N N N 23.544 27.412 40.611 -3.551 2.021  -1.231 HA31 CRO 32 
+CRO HA32 HA32 H 0 0 N N N 23.308 26.818 38.932 -3.700 0.258  -1.425 HA32 CRO 33 
+CRO HXT  HXT  H 0 1 N Y N 24.317 23.543 40.236 -5.681 0.994  1.572  HXT  CRO 34 
+CRO HB2  HB2  H 0 1 N N N 28.446 28.895 41.031 1.600  2.982  -0.138 HB2  CRO 35 
+CRO HD1  HD1  H 0 1 N N N 28.754 28.573 37.226 1.775  -0.772 -0.427 HD1  CRO 36 
+CRO HD2  HD2  H 0 1 N N N 30.405 30.313 40.862 4.017  2.792  0.442  HD2  CRO 37 
+CRO HE1  HE1  H 0 1 N N N 30.824 29.313 35.985 3.816  -2.106 -0.170 HE1  CRO 38 
+CRO HE2  HE2  H 0 1 N N N 32.394 31.112 39.591 6.044  1.440  0.710  HE2  CRO 39 
+CRO HOH  HOH  H 0 1 N N N 33.467 31.279 37.561 6.682  -1.274 -0.389 HOH  CRO 40 
+# 
+loop_
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+_chem_comp_bond.pdbx_ordinal 
+CRO CG1 CB1  SING N N 1  
+CRO OG1 CB1  SING N N 2  
+CRO CB1 CA1  SING N N 3  
+CRO N1  CA1  SING N N 4  
+CRO OH  CZ   SING N N 5  
+CRO CE1 CZ   DOUB Y N 6  
+CRO CE1 CD1  SING Y N 7  
+CRO CA1 C1   SING N N 8  
+CRO CZ  CE2  SING Y N 9  
+CRO CD1 CG2  DOUB Y N 10 
+CRO N2  C1   DOUB N N 11 
+CRO N2  CA2  SING N N 12 
+CRO C1  N3   SING N N 13 
+CRO CE2 CD2  DOUB Y N 14 
+CRO CG2 CD2  SING Y N 15 
+CRO CG2 CB2  SING N N 16 
+CRO N3  CA3  SING N N 17 
+CRO N3  C2   SING N N 18 
+CRO CA2 CB2  DOUB N Z 19 
+CRO CA2 C2   SING N N 20 
+CRO CA3 C3   SING N N 21 
+CRO OXT C3   SING N N 22 
+CRO C3  O3   DOUB N N 23 
+CRO C2  O2   DOUB N N 24 
+CRO N1  HN11 SING N N 25 
+CRO N1  H2   SING N N 26 
+CRO CA1 HA1  SING N N 27 
+CRO CB1 HB1  SING N N 28 
+CRO CG1 HG11 SING N N 29 
+CRO CG1 HG12 SING N N 30 
+CRO CG1 HG13 SING N N 31 
+CRO OG1 HOG1 SING N N 32 
+CRO CA3 HA31 SING N N 33 
+CRO CA3 HA32 SING N N 34 
+CRO OXT HXT  SING N N 35 
+CRO CB2 HB2  SING N N 36 
+CRO CD1 HD1  SING N N 37 
+CRO CD2 HD2  SING N N 38 
+CRO CE1 HE1  SING N N 39 
+CRO CE2 HE2  SING N N 40 
+CRO OH  HOH  SING N N 41 
+# 
+loop_
+_pdbx_chem_comp_descriptor.comp_id 
+_pdbx_chem_comp_descriptor.type 
+_pdbx_chem_comp_descriptor.program 
+_pdbx_chem_comp_descriptor.program_version 
+_pdbx_chem_comp_descriptor.descriptor 
+CRO SMILES           ACDLabs              12.01 "O=C1C(\N=C(N1CC(=O)O)C(N)C(O)C)=C\c2ccc(O)cc2"                                                                                                    
+CRO InChI            InChI                1.03  "InChI=1S/C15H17N3O5/c1-8(19)13(16)14-17-11(15(23)18(14)7-12(21)22)6-9-2-4-10(20)5-3-9/h2-6,8,13,19-20H,7,16H2,1H3,(H,21,22)/b11-6-/t8-,13+/m1/s1" 
+CRO InChIKey         InChI                1.03  UZCDFHUXSDKGEZ-NGDPAIJVSA-N                                                                                                                        
+CRO SMILES_CANONICAL CACTVS               3.385 "C[C@@H](O)[C@H](N)C1=N\C(=C/c2ccc(O)cc2)C(=O)N1CC(O)=O"                                                                                           
+CRO SMILES           CACTVS               3.385 "C[CH](O)[CH](N)C1=NC(=Cc2ccc(O)cc2)C(=O)N1CC(O)=O"                                                                                                
+CRO SMILES_CANONICAL "OpenEye OEToolkits" 1.7.6 "C[C@H]([C@@H](C1=N/C(=C\c2ccc(cc2)O)/C(=O)N1CC(=O)O)N)O"                                                                                          
+CRO SMILES           "OpenEye OEToolkits" 1.7.6 "CC(C(C1=NC(=Cc2ccc(cc2)O)C(=O)N1CC(=O)O)N)O"                                                                                                      
+# 
+loop_
+_pdbx_chem_comp_identifier.comp_id 
+_pdbx_chem_comp_identifier.type 
+_pdbx_chem_comp_identifier.program 
+_pdbx_chem_comp_identifier.program_version 
+_pdbx_chem_comp_identifier.identifier 
+CRO "SYSTEMATIC NAME" ACDLabs              12.01 "[(4Z)-2-[(1R,2R)-1-amino-2-hydroxypropyl]-4-(4-hydroxybenzylidene)-5-oxo-4,5-dihydro-1H-imidazol-1-yl]acetic acid"           
+CRO "SYSTEMATIC NAME" "OpenEye OEToolkits" 1.7.6 "2-[(4Z)-2-[(1R,2R)-1-azanyl-2-oxidanyl-propyl]-4-[(4-hydroxyphenyl)methylidene]-5-oxidanylidene-imidazol-1-yl]ethanoic acid" 
+# 
+loop_
+_pdbx_chem_comp_audit.comp_id 
+_pdbx_chem_comp_audit.action_type 
+_pdbx_chem_comp_audit.date 
+_pdbx_chem_comp_audit.processing_site 
+CRO "Create component"      1999-07-08 RCSB 
+CRO "Modify aromatic_flag"  2011-06-04 RCSB 
+CRO "Modify descriptor"     2011-06-04 RCSB 
+CRO "Modify parent residue" 2015-01-28 RCSB 
+# 

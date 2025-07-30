@@ -24,6 +24,9 @@ class Traj_CIF : public TrajectoryIO {
     int setupTrajout(FileName const&, Topology*, CoordinateInfo const&,int, bool) { return 1; }
     int writeFrame(int,Frame const&)                           { return 1; } 
 
+    /// Determine name of block containing coordinates.
+    int determineCoordsBlock();
+
     CIFfile file_;
     Box boxInfo_;
     int Natoms_;
@@ -31,5 +34,11 @@ class Traj_CIF : public TrajectoryIO {
     int Cartn_x_col_;
     int Cartn_y_col_;
     int Cartn_z_col_;
+    std::string blockName_; ///< Name of block containing the coordinate information
+    std::string entryName_; ///< Name of block containing entry info
+    std::string xstr_;      ///< Name of column with X coords
+    std::string ystr_;      ///< Name of column with Y coords
+    std::string zstr_;      ///< Name of column with Z coords
+    std::string nstr_;      ///< Name of the column containing atom number
 };
 #endif

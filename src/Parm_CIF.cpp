@@ -70,16 +70,161 @@ static inline void add_cif_bond(Topology& topIn,
   }
 }
 
-// Parm_CIF::ReadParm()
+/** Read data from CIF file. */
 int Parm_CIF::ReadParm(FileName const& fname, Topology &TopIn) {
   CIFfile infile;
+  if (infile.Read( fname, debug_ )) return 1;
+
+  int read_stat = read_atom_site(infile, fname, TopIn);
+  // -1 means the _atom_site data block wasnt found. Try _chem_comp_atom
+  if (read_stat == -1)
+    read_stat = read_chem_comp_atom(infile, fname, TopIn);
+  // If still -1 here then no relevant data blocks found
+  if (read_stat == -1) {
+    mprinterr("Error: CIF data blocks '_atom_site' or '_chem_comp_atom' not found.\n");
+    return 1;
+  }
+
+  return read_stat;
+}
+
+/// Get essential column, print error message if not found
+static inline int get_essential(CIFfile::DataBlock const& block, std::string const& key, FileName const& fname)
+{
+  int col = block.ColumnIndex( key );
+  if (col == -1) {
+    mprinterr("Error: In CIF file '%s' could not find entry '%s' in block '%s'\n",
+              fname.full(), key.c_str(), block.Header().c_str());
+  }
+  return col;
+}
+
+/** Read _chem_comp_atom data block. */
+int Parm_CIF::read_chem_comp_atom(CIFfile& infile, FileName const& fname, Topology& TopIn) const {
+  CIFfile::DataBlock const& block = infile.GetDataBlock("_chem_comp_atom");
+  if (block.empty()) {
+    return -1;
+  }
+  if (debug_ > 0)
+    mprintf("DEBUG: Reading _chem_comp_atom\n");
+  // Get essential columns 
+  int atom_id_col = get_essential(block, "atom_id", fname);
+  if (atom_id_col == -1) return 1;
+  int comp_id_col = get_essential(block, "comp_id", fname);
+  if (comp_id_col == -1) return 1;
+  int model_Cartn_x_col = get_essential(block, "model_Cartn_x", fname);
+  if (model_Cartn_x_col == -1) return 1;
+  int model_Cartn_y_col = get_essential(block, "model_Cartn_y", fname);
+  if (model_Cartn_y_col == -1) return 1;
+  int model_Cartn_z_col = get_essential(block, "model_Cartn_z", fname);
+  if (model_Cartn_z_col == -1) return 1;
+  int type_symbol_col = get_essential(block, "type_symbol", fname);
+  if (type_symbol_col == -1) return 1;
+  if (debug_ > 0)
+    mprintf("DEBUG: cols: %i %i %i %i %i %i\n", atom_id_col, comp_id_col, model_Cartn_x_col, model_Cartn_y_col, model_Cartn_z_col, type_symbol_col);
+  // Loop over all atoms
+  int current_res = 1; // FIXME only ever one residue?
+  double XYZ[3];
+  //double occupancy = 1.0;
+  //double bfactor = 0.0;
+  //char altloc = ' ';
+  char icode = ' ';
+  std::string chainid = "";
+  //int auth_res = -1;
+  Frame Coords;
+  for (CIFfile::DataBlock::data_it line = block.begin(); line != block.end(); ++line)
+  {
+    XYZ[0] = convertToDouble( (*line)[ model_Cartn_x_col ] );
+    XYZ[1] = convertToDouble( (*line)[ model_Cartn_y_col ] );
+    XYZ[2] = convertToDouble( (*line)[ model_Cartn_x_col ] );
+    NameType currentResName( (*line)[ comp_id_col ] );
+    char ELT[3];
+    ELT[0] = ' ';
+    ELT[1] = ' ';
+    ELT[2] = '\0';
+    std::string const& eltstr = (*line)[ type_symbol_col ];
+    if (eltstr.size() == 1) {
+      ELT[0] = eltstr[0];
+    } else if (!eltstr.empty()) {
+      ELT[0] = eltstr[0];
+      ELT[1] = eltstr[1];
+    }
+    TopIn.AddTopAtom( Atom((*line)[ atom_id_col ], ELT),
+                      Residue(currentResName, current_res, icode, chainid) );
+//                              (*line)[ COL[CHAINID] ]) );
+    Coords.AddXYZ( XYZ );
+  }
+
+  // Determine connectivity
+  bool need_bond_search = true;
+  //if (read_struct_conn_) {
+    CIFfile::DataBlock const& connectBlock = infile.GetDataBlock("_chem_comp_bond");
+    if (!connectBlock.empty()) {
+      mprintf("\tBlock '_chem_comp_bond' found.\n");
+      bool block_is_valid = true;
+      int at1_col = get_essential(connectBlock, "atom_id_1", fname);
+      int at2_col = get_essential(connectBlock, "atom_id_2", fname);
+      block_is_valid = (at1_col != -1 && at2_col != -1);
+      if (block_is_valid) {
+        for (CIFfile::DataBlock::data_it bond = connectBlock.begin(); bond != connectBlock.end(); ++bond)
+        {
+          NameType a1name( (*bond)[ at1_col ] );
+          NameType a2name( (*bond)[ at2_col ] );
+          int idx1 = -1;
+          int idx2 = -1;
+          for (int atnum = 0; atnum != TopIn.Natom(); atnum++) {
+            if ( idx1 == -1 && TopIn[atnum].Name() == a1name ) idx1 = atnum;
+            if ( idx2 == -1 && TopIn[atnum].Name() == a2name ) idx2 = atnum;
+            if (idx1 > -1 && idx2 > -1) break;
+          }
+          if (idx1 < 0)
+            mprinterr("Error: Atom 1 %s not found for bond to %s\n", *a1name, *a2name);
+          if (idx2 < 0)
+            mprinterr("Error: Atom 2 %s not found for bond to %s\n", *a2name, *a1name);
+          if (idx1 < 0 || idx2 < 0) return 1;
+          if (debug_ > 1) 
+            mprintf("DEBUG: Adding bond %s %s\n", *a1name, *a2name);
+          TopIn.AddBond(idx1, idx2);
+        }
+        need_bond_search = false;
+      }
+    } else {
+      mprinterr("Error: Required block '_chem_comp_bond' not found.\n");
+      return 1;
+    }
+  //}
+
+  if (need_bond_search) {
+    // Search for bonds
+    BondSearch bondSearch;
+    bondSearch.FindBonds( TopIn, searchType_, Coords, Offset_, debug_ );
+  }
+
+  // Get title. 
+  CIFfile::DataBlock const& entryblock = infile.GetDataBlock("_chem_comp");
+  std::string ciftitle;
+  if (!entryblock.empty())
+    ciftitle = entryblock.Data("id");
+  TopIn.SetParmName( ciftitle, infile.CIFname() );
+  // Get unit cell parameters if present.
+//  double cif_box[6];
+//  int box_stat = infile.cif_Box_verbose( cif_box );
+//  if (box_stat != -1) {
+//    Box parmBox;
+//    parmBox.SetupFromXyzAbg( cif_box );
+//    TopIn.SetParmBox( parmBox );
+//  }
+
+  return 0;
+}
+
+/** Read _atom_site data block. */
+int Parm_CIF::read_atom_site(CIFfile& infile, FileName const& fname, Topology& TopIn) const {
   CIFfile::DataBlock::data_it line;
 
-  if (infile.Read( fname, debug_ )) return 1;
   CIFfile::DataBlock const& block = infile.GetDataBlock("_atom_site");
   if (block.empty()) {
-    mprinterr("Error: CIF data block '_atom_site' not found.\n");
-    return 1;
+    return -1;
   }
   // Does this CIF contain multiple models?
   int Nmodels = 0;
