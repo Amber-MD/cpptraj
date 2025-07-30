@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles cif.in 1LE1.pdb temp?.crd
+CleanFiles cif.in 1LE1.pdb temp?.crd Cpptraj.pdb
 
 TESTNAME='CIF tests'
 Requires maxthreads 6
@@ -34,6 +34,15 @@ trajout temp2.crd
 EOF
 RunCpptraj "Generate offset traj from CIF"
 DoTest temp1.crd temp2.crd
+
+# Test reading in _chem_comp_atom block
+cat > cif.in <<EOF
+parm CRO.cif
+trajin CRO.cif
+trajout Cpptraj.pdb
+EOF
+RunCpptraj "Read in _chem_comp_atom block"
+DoTest Cpptraj.pdb.save Cpptraj.pdb
 
 EndTest
 exit 0
