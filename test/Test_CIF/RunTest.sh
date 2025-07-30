@@ -20,6 +20,19 @@ EOF
   DoTest 1LE1.pdb.save 1LE1.pdb
 fi
 
+# Test reading in _chem_comp_atom block
+UNITNAME='Read in _chem_comp_atom block'
+CheckFor notparallel
+if [ $? -eq 0 ] ; then
+  cat > cif.in <<EOF
+parm CRO.cif
+trajin CRO.cif
+trajout Cpptraj.pdb
+EOF
+  RunCpptraj "Read in _chem_comp_atom block"
+  DoTest Cpptraj.pdb.save Cpptraj.pdb
+fi
+
 # Test read with offset
 cat > cif.in <<EOF
 parm 1LE1.pdb.save
@@ -34,15 +47,6 @@ trajout temp2.crd
 EOF
 RunCpptraj "Generate offset traj from CIF"
 DoTest temp1.crd temp2.crd
-
-# Test reading in _chem_comp_atom block
-cat > cif.in <<EOF
-parm CRO.cif
-trajin CRO.cif
-trajout Cpptraj.pdb
-EOF
-RunCpptraj "Read in _chem_comp_atom block"
-DoTest Cpptraj.pdb.save Cpptraj.pdb
 
 EndTest
 exit 0
