@@ -5,7 +5,7 @@
 CleanFiles ws.in wsc.noimage.agr wsc.noimage.avg.dat wsc.closest.dat temp.closest.parm7 temp.closest.nc
 
 TESTNAME='Watershell/Closest tests'
-Requires netcdf maxthreads 10
+Requires netcdf maxthreads 1
 INPUT="ws.in"
 
 # Orthorhombic imaging
