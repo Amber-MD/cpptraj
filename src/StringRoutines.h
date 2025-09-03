@@ -35,6 +35,8 @@ std::string RemoveLeadingChars(std::string const&, int);
 int convertToInteger(std::string const &);
 /// Convert string to double.
 double convertToDouble(std::string const &);
+/// Convert string to integer; report any rounding from double
+int roundToInteger(std::string const&);
 /// Convert integer to string
 std::string integerToString(int);
 /// Convert integer to string, pad given width with zeros if necessary.

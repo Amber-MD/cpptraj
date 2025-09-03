@@ -356,6 +356,22 @@ double ArgList::getNextDouble(double def) {
   return def;
 }
 
+/* \param def Value to return if no args found.
+ * \return Next unmarked double argument as an int, or def
+  */
+int ArgList::NextDoubleToInt(int def) {
+  for (unsigned int arg=0; arg < arglist_.size(); arg++)
+    if (!marked_[arg]) {
+      // Check that first char is indeed a digit, '.', or '-', if not then continue
+      if (validDouble(arglist_[arg])) {
+        int ival = roundToInteger(arglist_[arg]);
+        marked_[arg]=true;
+        return ival;
+      }
+    }
+  return def;
+}
+
 // ArgList::GetStringKey()
 /** Search the argument list for key, return the argument following key
   * as a string if found, otherwise return 0.

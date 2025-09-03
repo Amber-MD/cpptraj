@@ -142,6 +142,22 @@ double convertToDouble(std::string const &s) {
   return d;
 }
 
+/** Convert input string (which could be float) to an integer.
+  * Report if any rounding occurred.
+  */
+int roundToInteger(std::string const& s) {
+  double dval = convertToDouble( s );
+  double ipart;
+  double fpart = modf( dval, &ipart );
+  if (fpart > 0) {
+    double rounded_dval = round( dval );
+    int rounded_ival = (int)rounded_dval;
+    mprintf("Warning: Rounding %f to %i\n", dval, rounded_ival);
+    return rounded_ival;
+  }
+  return (int)ipart;
+}
+
 // RemoveTrailingWhitespace()
 /// Remove any trailing whitespace from string.
 void RemoveTrailingWhitespace(std::string &line) {
