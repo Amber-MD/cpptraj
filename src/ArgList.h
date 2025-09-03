@@ -85,6 +85,8 @@ class ArgList {
     int getNextInteger(int);
     /// \return the next unmarked double
     double getNextDouble(double);
+    /// \return the next unmarked double as an integer
+    int NextDoubleToInt(int);
     /// \return the string following the given key
     std::string const& GetStringKey(const char *);
     /// \return ArgList containing N unmarked arguments following given key

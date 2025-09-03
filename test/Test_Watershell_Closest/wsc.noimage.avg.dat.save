@@ -1,0 +1,2 @@
+#Set     AvgLower[avg] AvgLower[sd] AvgLower[ymin] AvgLower[ymax] AvgLower[yminidx] AvgLower[ymaxidx] AvgLower[names]
+       1         119.1        6.172            109            129                 9                 3     "WS[lower]"

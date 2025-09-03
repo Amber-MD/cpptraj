@@ -60,7 +60,7 @@ Action::RetType Action_Closest::Init(ArgList& actionArgs, ActionInit& init, int 
   trajComm_ = init.TrajComm();
 # endif
   // Get Keywords
-  closestWaters_ = actionArgs.getNextInteger(-1);
+  closestWaters_ = actionArgs.NextDoubleToInt(-1);
   if (closestWaters_ < 0) {
     mprinterr("Error: Invalid # solvent molecules to keep (%i).\n",
               closestWaters_);
@@ -278,7 +278,7 @@ Action::RetType Action_Closest::Setup(ActionSetup& setup) {
 
   // Check the total number of solvent atoms to be kept.
   NsolventAtoms *= closestWaters_;
-  mprintf("\tKeeping %i solvent atoms.\n",NsolventAtoms);
+  mprintf("\tKeeping %i solvent atoms in %i solvent molecules.\n",NsolventAtoms, closestWaters_);
   if (NsolventAtoms < 1) {
     mprintf("Warning: # of solvent atoms to be kept is < 1.\n");
     return Action::SKIP;
