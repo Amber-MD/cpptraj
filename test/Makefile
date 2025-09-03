@@ -546,6 +546,9 @@ test.tica:
 test.enedecomp:
 	@-cd Test_EneDecomp && ./RunTest.sh $(OPT)
 
+test.watershellclosest:
+	@-cd Test_Watershell_Closest && ./RunTest.sh $(OPT)
+
 # Only GPU-specific tests should go here
 GPUTESTS=test.closest \
          test.solvent \
@@ -725,7 +728,8 @@ COMPLETETESTS=test.general \
               test.readoff \
               test.sequence \
               test.tica \
-              test.enedecomp
+              test.enedecomp \
+              test.watershellclosest
 
 test.all:
 	$(MAKE) test.complete summary
