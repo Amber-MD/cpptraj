@@ -915,7 +915,35 @@ const
           break;
       }
       var_in_arg = varname.substr(pos+1, len-1);
-      ds = CheckForSet( var_in_arg );
+      //mprintf("DEBUG: var_in_arg = %s\n", var_in_arg.c_str());
+      // Convert to a MetaData search string.
+      MetaData::SearchString mdss( var_in_arg );
+      // Need at least a name
+      if (mdss.NameArg().empty()) {
+        mprinterr("Error: Malformed variable name: %s\n", var_in_arg.c_str());
+        return -1;
+      }
+      // Set up the MetaData object. Should only pertain to a single data set
+      MetaData md( mdss.NameArg() );
+      if (!mdss.AspectArg().empty())
+        md.SetAspect( mdss.AspectArg() );
+      if (!mdss.IdxRange().Empty()) {
+        if (mdss.IdxRange().Size() > 1) {
+          mprinterr("Error: Variable '%s' contains an index range; should pertain to 1 set.\n",
+                    var_in_arg.c_str());
+          return -1;
+        }
+        md.SetIdx( mdss.IdxRange().Front() );
+      }
+      if (!mdss.MemberRange().Empty()) {
+        if (mdss.MemberRange().Size() > 1) {
+          mprinterr("Error: Variable '%s' contains a member range; should pertain to 1 set.\n",
+                    var_in_arg.c_str());
+          return -1;
+        }
+        md.SetEnsembleNum( mdss.MemberRange().Front() );
+      }
+      ds = CheckForSet( md );
     }
     if (ds == 0) {
       mprinterr("Error: Unrecognized variable in command: %s\n", var_in_arg.c_str());
