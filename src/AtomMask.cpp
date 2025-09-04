@@ -196,8 +196,16 @@ void AtomMask::AddAtomRange(int minAtom, int maxAtom) {
 
 /** Add atoms in given unit to mask. */
 void AtomMask::AddUnit(Unit const& unitIn) {
+  // Atoms in a unit should already be sorted, and should have no duplicates.
   for (Unit::const_iterator it = unitIn.segBegin(); it != unitIn.segEnd(); ++it)
-    AddAtomRange( it->Begin(), it->End() );
+  {
+    //AddAtomRange( it->Begin(), it->End() );
+    for (int atom = it->Begin(); atom < it->End(); atom++)
+      Selected_.push_back( atom );
+  }
+  // Update Natom_ if necessary
+  if (Selected_.back() >= Natom_)
+    Natom_ = Selected_.back() + 1;
 }
 
 // AtomMask::AddMaskAtPosition()
