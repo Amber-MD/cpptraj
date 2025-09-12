@@ -61,9 +61,22 @@ class Action_Radial: public Action {
     DataSet* rawrdf_;
     int debug_;
     Vec3 specified_xyz_;      ///< XYZ coordinates for SPECIFIED
+    bool useMass_;            ///< If true use C.o.M. for center/byres/bymol, otherwise geometric center.
 
     int SetupSiteArrayByAtom(Marray&, AtomMask const&) const;
     int SetupSiteArrayByRes(Marray&, Topology const&, AtomMask const&) const;
     int SetupSiteArrayByMol(Marray&, Topology const&, AtomMask const&) const;
+    /// \return Geometric center or center of mass based on useMass_
+    inline Vec3 getCenter(Frame const&, AtomMask const&) const;
 };
-#endif  
+// ----- INLINE FUNCTIONS -----
+/** \return Geometric center or center of mass of atoms in mask */
+Vec3 Action_Radial::getCenter(Frame const& frm, AtomMask const& mask)
+const
+{
+  if (useMass_)
+    return frm.VCenterOfMass( mask );
+  else
+    return frm.VGeometricCenter( mask );
+}
+#endif
