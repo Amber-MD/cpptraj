@@ -34,12 +34,13 @@ Action_Radial::Action_Radial() :
   Dset_(0),
   intrdf_(0),
   rawrdf_(0),
-  debug_(0)
+  debug_(0),
+  useMass_(false)
 {} 
 
 void Action_Radial::Help() const {
   mprintf("\t[out <outfilename>] <spacing> <maximum> <solvent mask1> [<solute mask2>]\n"
-          "\t[noimage]\n"
+          "\t[noimage] [mass]\n"
           "\t[density <density> | volume] [<dataset name>] [intrdf <file>] [rawrdf <file>]\n"
           "\t[{{center1|center2|nointramol|toxyz <x>,<y>,<z>} |\n"
           "\t  [byres1] [byres2] [bymol1] [bymol2]}]\n"
@@ -48,8 +49,10 @@ void Action_Radial::Help() const {
           "  to each atom in <solute mask2>.\n"
           "  center1|center2 will use the center of *all* atoms selected by masks 1 and 2 respectively.\n"
           "  nointramol will ignore distances when both atoms are part of the same molecule.\n"
-          "  If byresX or bymolX are specified, distances will be between the centers of mass\n"
-          "  of residues/molecules selected by mask1 or mask2.\n");
+          "  If byresX or bymolX are specified, distances will be between the centers of\n"
+          "  of residues/molecules selected by mask1 or mask2.\n"
+          "  If 'mass' is specified use the centers of mass for centerX/byresX/bymolX,\n"
+          "  otherwise use geometric center.\n");
 }
 
 inline Action::RetType Rdf_Err(const char* msg) {
@@ -69,6 +72,8 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
   std::string outfilename = actionArgs.GetStringKey("out");
   // Default particle density (mols/Ang^3) for water based on 1.0 g/mL
   density_ = actionArgs.getKeyDouble("density",0.033456);
+  // Use center of mass?
+  useMass_ = actionArgs.hasKey("mass");
 
   // Determine mode, by site TODO better integrate with other modes
   bool needMask2 = true;
@@ -238,20 +243,23 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
   if (rawrdf_ != 0)
     mprintf("\tRaw RDF bin values will be output to %s\n",
             rawrdfFile->DataFilename().full());
+  static const char* centerStr = "geometric center";
+  if (useMass_)
+    centerStr = "center of mass";
   if (rmode_ == BYSITE) {
     if (siteMode1_ == BYRES)
-      mprintf("\tUsing center of residues selected by mask1 '%s'\n", Mask1_.MaskString());
+      mprintf("\tUsing %s of residues selected by mask1 '%s'\n", centerStr, Mask1_.MaskString());
     else if (siteMode1_ == BYMOL)
-      mprintf("\tUsing center of molecules selected by mask1 '%s'\n", Mask1_.MaskString());
+      mprintf("\tUsing %s of molecules selected by mask1 '%s'\n", centerStr, Mask1_.MaskString());
     if (siteMode2_ == BYRES)
-      mprintf("\tUsing center of residues selected by mask2 '%s'\n", Mask2_.MaskString());
+      mprintf("\tUsing %s of residues selected by mask2 '%s'\n", centerStr, Mask2_.MaskString());
     else if (siteMode2_ == BYMOL)
-      mprintf("\tUsing center of molecules selected by mask2 '%s'\n", Mask2_.MaskString());
+      mprintf("\tUsing %s of molecules selected by mask2 '%s'\n", centerStr, Mask2_.MaskString());
   } else {
     if (rmode_==CENTER1)
-      mprintf("\tUsing center of all atoms selected by mask1.\n");
+      mprintf("\tUsing %s of all atoms selected by mask1.\n", centerStr);
     else if (rmode_==CENTER2)
-      mprintf("\tUsing center of all atoms selected by mask2.\n");
+      mprintf("\tUsing %s of all atoms selected by mask2.\n", centerStr);
     else if (rmode_==NO_INTRAMOL)
       mprintf("\tIgnoring intramolecular distances.\n");
     else if (rmode_ == SPECIFIED)
@@ -641,11 +649,11 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
     for (nmask1 = 0; nmask1 < mask1_max; nmask1++)
     {
       AtomMask const& site1 = Sites1_[nmask1];
-      Vec3 com1 = frm.Frm().VGeometricCenter( site1 );
+      Vec3 com1 = getCenter( frm.Frm(), site1 );
       for (Marray::const_iterator site2 = Sites2_.begin(); site2 != Sites2_.end(); ++site2)
       {
         if (site1 != *site2) {
-          Vec3 com2 = frm.Frm().VGeometricCenter( *site2 );
+          Vec3 com2 = getCenter( frm.Frm(), *site2 );
           D = DIST2(imageOpt_.ImagingType(), com1.Dptr(), com2.Dptr(), frm.Frm().BoxCrd());
           if (D <= maximum2_) {
             D = sqrt(D);
@@ -672,7 +680,7 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
     if (rmode_ == SPECIFIED)
       coord_center = specified_xyz_;
     else
-      coord_center = frm.Frm().VGeometricCenter(OuterMask_);
+      coord_center = getCenter( frm.Frm(), OuterMask_ );
     int mask2_max = InnerMask_.Nselected();
 #   ifdef _OPENMP
 #   pragma omp parallel private(nmask2,atom2,D,idx,mythread)
