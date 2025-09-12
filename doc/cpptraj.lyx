@@ -38478,7 +38478,7 @@ radial
 \end_layout
 
 \begin_layout LyX-Code
-       [noimage]
+       [noimage] [mass]
 \end_layout
 
 \begin_layout LyX-Code
@@ -38537,6 +38537,11 @@ mask2>] (Optional) If specified calculate RDF of all atoms in <solvent mask1>
 \end_layout
 
 \begin_layout Description
+[mass] Use center of mass for centerX/byresX/bymolX keywords, otherwise
+ use geometric center.
+\end_layout
+
+\begin_layout Description
 [density
 \begin_inset space ~
 \end_inset
@@ -38581,13 +38586,13 @@ ame>).
 \end_layout
 
 \begin_layout Description
-[center1] Calculate RDF from geometric center of atoms in <solvent mask1>
- to all atoms in <solute mask2>.
+[center1] Calculate RDF from center of atoms in <solvent mask1> to all atoms
+ in <solute mask2>.
 \end_layout
 
 \begin_layout Description
-[center2] Calculate RDF from geometric center of atoms in <solute mask2>
- to all atoms in <solvent mask1>.
+[center2] Calculate RDF from center of atoms in <solute mask2> to all atoms
+ in <solvent mask1>.
 \end_layout
 
 \begin_layout Description
@@ -38599,28 +38604,24 @@ ame>).
 \begin_inset space ~
 \end_inset
 
-<x>,<y>,<z>] Calculate RDF from center of atoms in <solvent mask1> to point
+<x>,<y>,<z>] Calculate RDF from atoms selected by <solvent mask1> to point
  specified by <x> <y> and <z> (in Ang.).
 \end_layout
 
 \begin_layout Description
-[byres1] Calculate using the centers of mass of each residue in the first
- mask.
+[byres1] Calculate using the centers of each residue in the first mask.
 \end_layout
 
 \begin_layout Description
-[bymol1] Calculate using the centers of mass of each molecule in the first
- mask.
+[bymol1] Calculate using the centers of each molecule in the first mask.
 \end_layout
 
 \begin_layout Description
-[byres2] Calculate using the centers of mass of each residue in the second
- mask.
+[byres2] Calculate using the centers of each residue in the second mask.
 \end_layout
 
 \begin_layout Description
-[bymol2] Calculate using the centers of mass of each molecule in the second
- mask.
+[bymol2] Calculate using the centers of each molecule in the second mask.
 \end_layout
 
 \begin_layout Standard
@@ -38691,6 +38692,41 @@ center2
 nointramol
 \series default
  keyword.
+ If 
+\series bold
+byresX
+\series default
+ or 
+\series bold
+bymolX
+\series default
+ are specified, distances will be between the centers of of residues/molecules
+ selected by 
+\series bold
+<solvent mask1>
+\series default
+ or 
+\series bold
+<solute mask2>
+\series default
+.
+ If 
+\series bold
+mass
+\series default
+ is specified use the centers of mass for 
+\series bold
+centerX
+\series default
+/
+\series bold
+byresX
+\series default
+/
+\series bold
+bymolX
+\series default
+, otherwise use geometric center.
 \end_layout
 
 \begin_layout Standard
