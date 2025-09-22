@@ -39,6 +39,7 @@
 #include <tuple>
 #include <unistd.h>
 #include <vector>
+#include <cstdint>
 
 // original file: src/cartesiantransform.h
 
