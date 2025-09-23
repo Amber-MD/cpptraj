@@ -38700,7 +38700,7 @@ byresX
 \series bold
 bymolX
 \series default
- are specified, distances will be between the centers of of residues/molecules
+ are specified, distances will be between the centers of residues/molecules
  selected by 
 \series bold
 <solvent mask1>
