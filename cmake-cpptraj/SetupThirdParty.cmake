@@ -150,7 +150,7 @@ if(NEED_mkl)
 	
 	# Static MKL is not the default at this time.
 	# <long_explanation>
-	# MKL has a fftw3 compatibility interface.  Wierdly enough, this interface is spread out between several different libraries: the main interface library, the 
+	# MKL has a fftw3 compatibility interface.  Weirdly enough, this interface is spread out between several different libraries: the main interface library, the
 	# cdft library, and the actual fftw3 interface library (which is distributed as source code, not a binary).
 	# So, even though we don't use the fftw3 interface, there are symbols in the main MKL libraries which conflict with the symbols from fftw3.
 	# Oddly, on many platforms, the linker handles this fine.  However, in at least one case (the SDSC supercomputer Comet, running a derivative of CentOS),
@@ -346,9 +346,9 @@ endif()
 # we can now reset this back to the default behavior -- targets will be made PIC as needed in the individual CMake scripts
 unset(CMAKE_POSITION_INDEPENDENT_CODE)
 
-set(FORCE_EXTERNAL_LIBS "" CACHE STRING "3rd party libraries to force using the system version of. Accepts a semicolon-seperated list of library names from the 3rd Party Libraries section of the build report.")
-set(FORCE_INTERNAL_LIBS "" CACHE STRING "3rd party libraries to force to build inside Amber. Accepts a semicolon-seperated list of library names from the 3rd Party Libraries section of the build report.")
-set(FORCE_DISABLE_LIBS "" CACHE STRING "3rd party libraries to force Amber to not use at all. Accepts a semicolon-seperated list of library names from the 3rd Party Libraries section of the build report.")
+set(FORCE_EXTERNAL_LIBS "" CACHE STRING "3rd party libraries to force using the system version of. Accepts a semicolon-separated list of library names from the 3rd Party Libraries section of the build report.")
+set(FORCE_INTERNAL_LIBS "" CACHE STRING "3rd party libraries to force to build inside Amber. Accepts a semicolon-separated list of library names from the 3rd Party Libraries section of the build report.")
+set(FORCE_DISABLE_LIBS "" CACHE STRING "3rd party libraries to force Amber to not use at all. Accepts a semicolon-separated list of library names from the 3rd Party Libraries section of the build report.")
 
 # look for and handle suspicious tools
 if(NOT TRUST_SYSTEM_LIBS)
@@ -379,39 +379,42 @@ endif()
 foreach(TOOL ${FORCE_EXTERNAL_LIBS})
 	colormsg(YELLOW "Forcing ${TOOL} to be sourced externally")
 
-	list_contains(VALID_TOOL ${TOOL} ${3RDPARTY_TOOLS})
+	string(TOLOWER ${TOOL} TOOL_LOWERCASE)
+	list_contains(VALID_TOOL ${TOOL_LOWERCASE} ${3RDPARTY_TOOLS})
 	
 	if(NOT VALID_TOOL)
 		message(FATAL_ERROR "${TOOL} is not a valid 3rd party library name.")
 	endif()
 	
-	set_3rdparty(${TOOL} EXTERNAL)
+	set_3rdparty(${TOOL_LOWERCASE} EXTERNAL)
 endforeach()
 
 if(INSIDE_AMBER)
 	foreach(TOOL ${FORCE_INTERNAL_LIBS})
 		colormsg(GREEN "Forcing ${TOOL} to be built internally")
 	
-		list_contains(VALID_TOOL ${TOOL} ${3RDPARTY_TOOLS})
+		string(TOLOWER ${TOOL} TOOL_LOWERCASE)
+		list_contains(VALID_TOOL ${TOOL_LOWERCASE} ${3RDPARTY_TOOLS})
 		
 		if(NOT VALID_TOOL)
 			message(FATAL_ERROR "${TOOL} is not a valid 3rd party library name.")
 		endif()
 		
-		set_3rdparty(${TOOL} INTERNAL)
+		set_3rdparty(${TOOL_LOWERCASE} INTERNAL)
 	endforeach()
 endif()
 
 foreach(TOOL ${FORCE_DISABLE_LIBS})
 	colormsg(HIRED "Forcing ${TOOL} to be disabled")
 
-	list_contains(VALID_TOOL ${TOOL} ${3RDPARTY_TOOLS})
+	string(TOLOWER ${TOOL} TOOL_LOWERCASE)
+	list_contains(VALID_TOOL ${TOOL_LOWERCASE} ${3RDPARTY_TOOLS})
 	
 	if(NOT VALID_TOOL)
 		message(FATAL_ERROR "${TOOL} is not a valid 3rd party library name.")
 	endif()
 	
-	set_3rdparty(${TOOL} DISABLED)
+	set_3rdparty(${TOOL_LOWERCASE} DISABLED)
 endforeach()
 
 # force all unneeded tools to be disabled
