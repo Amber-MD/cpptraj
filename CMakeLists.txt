@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.3) # need 3.3 for POLICY CMP0057
+cmake_minimum_required(VERSION 3.5) # need at least 3.3 for POLICY CMP0057
 project(cpptraj NONE)
 
 #version number
