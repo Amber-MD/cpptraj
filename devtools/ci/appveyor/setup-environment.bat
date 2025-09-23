@@ -36,7 +36,7 @@ if %BUILD_TYPE% equ cmake-vs (
         sh -lc "curl -O https://repo.msys2.org/msys/x86_64/msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz"
         sh -lc "curl -O https://repo.msys2.org/msys/x86_64/msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz.sig"
         sh -lc "pacman-key --verify msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz.sig"
-        sh -lc "pacman -U msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz"
+        sh -lc "pacman -U --config <(echo) msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz"
 	sh -lc "pacman -Syu --noconfirm --needed mingw-w64-x86_64-netcdf mingw-w64-x86_64-openblas mingw-w64-x86_64-arpack mingw-w64-x86_64-gcc mingw-w64-x86_64-gcc-fortran mingw-w64-x86_64-ncurses mingw-w64-x86_64-readline diffutils mingw-w64-x86_64-fftw"
 
 	rem build NetCDF (we need our own version since the one in Pacman has an unwanted dependency on HDF5 and Termcap)
