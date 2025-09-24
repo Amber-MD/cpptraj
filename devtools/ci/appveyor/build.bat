@@ -30,8 +30,7 @@ if %BUILD_TYPE% equ cmake-mingw (
 )
 
 if %BUILD_TYPE% equ configure-mingw (
-	sh -lc "./configure -nohdf5 -nofftw3 --buildlibs --with-bzlib=/mingw64/ --with-zlib=/mingw64 --with-readline=/mingw64/ -nofftw3 -shared -windows gnu" || exit /b
-	make libcpptraj -j2 || exit /b
+	sh -lc "./configure -nonetcdf -nofftw3 --buildlibs --with-bzlib=/mingw64/ --with-zlib=/mingw64 --with-readline=/mingw64/ -shared -windows gnu" || exit /b
 	make install -j2 || exit /b
 )
 

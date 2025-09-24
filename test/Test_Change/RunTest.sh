@@ -65,7 +65,7 @@ EOF
 fi
 
 UNITNAME='Change mass from data set test'
-CheckFor maxthreads 1 # FIXME this should eventually work in parallel
+CheckFor netcdf maxthreads 1 # FIXME this should eventually work in parallel
 if [ $? -eq 0 ] ; then
   cat > change.in <<EOF
 parm ../AFV.parm7
