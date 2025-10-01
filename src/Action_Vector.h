@@ -3,6 +3,7 @@
 #include "Action.h"
 class DataSet_Vector;
 class DataSet_3D;
+class CharMask;
 class Action_Vector : public Action {
   public:
     Action_Vector();
@@ -29,6 +30,7 @@ class Action_Vector : public Action {
     /// \return Center of mass or geometric center of atoms in given mask
     inline Vec3 GetVec(Frame const&, AtomMask const&) const;
     void Mask(Frame const&);
+    void BondDipole(Frame const&);
     void Dipole(Frame const&);
     void Principal(Frame const&);
     void CorrPlane(Frame const&);
@@ -49,5 +51,6 @@ class Action_Vector : public Action {
     AtomMask mask_;
     AtomMask mask2_;
     CpptrajFile* outfile_;
+    CharMask* cmask_;
 };
 #endif

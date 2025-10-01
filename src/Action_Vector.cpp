@@ -2,6 +2,7 @@
 #include <algorithm> // sort
 #include "Constants.h" // PI
 #include "Action_Vector.h"
+#include "CharMask.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h" // MinImagedVec, includes Matrix_3x3 for principal
 #include "DataSet_Vector.h"
@@ -403,6 +404,61 @@ void Action_Vector::Mask(Frame const& currentFrame) {
   Vec3 VXYZ = GetVec(currentFrame, mask2_);
   VXYZ -= CXYZ;
   Vec_->AddVxyzo(VXYZ, CXYZ);
+}
+
+/** Calculate net dipole from individual bond dipoles. */
+void Action_Vector::BondDipole(Frame const& currentFrame) {
+  Vec3 VXYZ(0.0, 0.0, 0.0); // Negative, head
+  Vec3 OXYZ(0.0, 0.0, 0.0); // Positive, tail
+  Topology const& currentTop = *CurrentParm_;
+
+  unsigned int Nbonds;
+  for (AtomMask::const_iterator iat = mask_.begin(); iat != mask_.end(); ++iat)
+  {
+    Atom const& currentAtom = currentTop[*iat];
+    Vec3 XYZ0( currentFrame.XYZ(*iat) );
+    double q0 = currentAtom.Charge();
+    for (Atom::bond_iterator bit = currentAtom.bondbegin(); bit != currentAtom.bondend(); ++bit)
+    {
+      if (*bit > *iat && cmask_->AtomInCharMask( *bit )) {
+        // Both atoms in the bond are selected.
+        Vec3 XYZ1( currentFrame.XYZ(*bit) );
+        double q1 = currentTop[*bit].Charge();
+        // Calc dipole
+        Vec3 vDipole(0.0, 0.0, 0.0);
+        Vec3 vBond(0.0, 0.0, 0.0);
+        bool chargeEquals = false;
+        if ( q0 < q1 ) {
+          vBond = XYZ0 - XYZ1;
+          vDipole = vBond * (q1 - q0);
+        } else if (q1 < q0) {
+          vBond = XYZ1 - XYZ0;
+          vDipole = vBond * (q0 - q1);
+        } else {
+          chargeEquals = true;
+        }
+        if (!chargeEquals) {
+          // Subtract half the dipole from the bond center to get the dipole origin
+          Vec3 vBondCtr = vBond / 2.0;
+          Vec3 vDipoleHalf = vDipole / 2.0;
+          Vec3 vOrigin = vBondCtr - vDipoleHalf;
+          // DEBUG
+          mprintf("DEBUG: Bond %s -- %s oxyz={%f %f %f} vxyz={%f %f %f} mag=%f\n",
+                  currentTop.AtomMaskName(*iat).c_str(),
+                  currentTop.AtomMaskName(*bit).c_str(),
+                  vOrigin[0], vOrigin[1], vOrigin[2],
+                  vDipole[0], vDipole[1], vDipole[2]);
+          // Sum
+          VXYZ += vDipole;
+          OXYZ += vOrigin;
+          Nbonds++;
+        }
+      }
+    } // END loop over bonded atoms
+  } // END loop over mask atoms
+  if (dipole_in_debye_)
+    VXYZ /= Constants::DEBYE_EA;
+  Vec_->AddVxyzo( VXYZ, OXYZ );
 }
 
 // Action_Vector::Dipole()
