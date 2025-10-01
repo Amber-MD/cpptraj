@@ -447,7 +447,8 @@ void Action_Vector::BondDipole(Frame const& currentFrame) {
                   currentTop.AtomMaskName(*iat).c_str(),
                   currentTop.AtomMaskName(*bit).c_str(),
                   vOrigin[0], vOrigin[1], vOrigin[2],
-                  vDipole[0], vDipole[1], vDipole[2]);
+                  vDipole[0], vDipole[1], vDipole[2],
+                  sqrt(vDipole.Magnitude2()));
           // Sum
           VXYZ += vDipole;
           OXYZ += vOrigin;
