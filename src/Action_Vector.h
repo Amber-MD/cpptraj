@@ -15,7 +15,8 @@ class Action_Vector : public Action {
       NO_OP=0,   PRINCIPAL_X, PRINCIPAL_Y, PRINCIPAL_Z,
       DIPOLE,    BOX,         MASK,
       CORRPLANE, CENTER,      BOX_X,       BOX_Y,       BOX_Z,
-      BOX_CTR,   MINIMAGE,    MOMENTUM,    VELOCITY,    FORCE
+      BOX_CTR,   MINIMAGE,    MOMENTUM,    VELOCITY,    FORCE,
+      BONDDIPOLE
     };
     static const char* ModeString_[];
     static const bool NeedsOrigin_[];

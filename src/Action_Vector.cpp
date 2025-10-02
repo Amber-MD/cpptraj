@@ -19,8 +19,15 @@ Action_Vector::Action_Vector() :
   useMass_(true),
   dipole_in_debye_(false),
   CurrentParm_(0),
-  outfile_(0)
+  outfile_(0),
+  cmask_(0)
 {}
+
+// DESTRUCTOR
+Action_Vector::~Action_Vector() {
+  if (vcorr_!=0) delete[] vcorr_;
+  if (cmask_ != 0) delete cmask_;
+}
 
 // Action_Vector::Help()
 void Action_Vector::Help() const {
@@ -47,23 +54,20 @@ void Action_Vector::Help() const {
           "  If 'debye' is specified, report 'dipole' vector in Debye instead of e-*Ang.\n");
 }
 
-// DESTRUCTOR
-Action_Vector::~Action_Vector() {
-  if (vcorr_!=0) delete[] vcorr_;
-}
-
 const char* Action_Vector::ModeString_[] = {
   "NO_OP", "Principal X", "Principal Y", "Principal Z",
   "Dipole", "Box", "Mask",
   "CorrPlane", "Center", "Unit cell X", "Unit cell Y", "Unit cell Z",
-  "Box Center", "MinImage", "Momentum", "Velocity", "Force"
+  "Box Center", "MinImage", "Momentum", "Velocity", "Force",
+  "Bond Dipole"
 };
 
 const bool Action_Vector::NeedsOrigin_[] = {
   false, true, true, true,
   true, false, true,
   true, false, true, true, true,
-  false, true, false, false, false
+  false, true, false, false, false,
+  true
 };
 
 static Action::RetType WarnDeprecated() {
@@ -121,6 +125,8 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, ActionInit& init, int d
     mode_ = FORCE;
   else if (actionArgs.hasKey("dipole"))
     mode_ = DIPOLE;
+  else if (actionArgs.hasKey("bonddipole"))
+    mode_ = BONDDIPOLE;
   else if (actionArgs.hasKey("box"))
     mode_ = BOX;
   else if (actionArgs.hasKey("corrplane"))
@@ -177,6 +183,9 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, ActionInit& init, int d
     }
     if (mask2_.SetMaskString( maskexpr )) return Action::ERR;
   }
+  // Allocate Char mask for bond dipole
+  if (mode_ == BONDDIPOLE)
+    cmask_ = new CharMask();
   // Set up vector dataset and IRED status
   MetaData md(actionArgs.GetStringNext(), MetaData::M_VECTOR);
   if (isIred) md.SetScalarType( MetaData::IREDVEC );
@@ -216,7 +225,7 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, ActionInit& init, int d
   mprintf("\n");
   if (gridSet_ != 0)
     mprintf("\tExtracting box vectors from grid set '%s'\n", gridSet_->legend());
-  if (mode_ == DIPOLE) {
+  if (mode_ == DIPOLE || mode_ == BONDDIPOLE) {
     if (dipole_in_debye_)
       mprintf("\tDipole vector units will be Debye.\n");
     else
@@ -252,6 +261,10 @@ Action::RetType Action_Vector::Setup(ActionSetup& setup) {
     if (mask_.None()) {
       mprinterr("Error: First vector mask is empty.\n");
       return Action::ERR;
+    }
+    // Set up char mask if needed
+    if (cmask_ != 0) {
+      *cmask_ = CharMask( mask_.ConvertToCharMask(), mask_.Nselected() );
     }
   }
 
@@ -427,25 +440,30 @@ void Action_Vector::BondDipole(Frame const& currentFrame) {
         // Calc dipole
         Vec3 vDipole(0.0, 0.0, 0.0);
         Vec3 vBond(0.0, 0.0, 0.0);
+        Vec3 vOrigin(0.0, 0.0, 0.0);
         bool chargeEquals = false;
         if ( q0 < q1 ) {
           vBond = XYZ0 - XYZ1;
           vDipole = vBond * (q1 - q0);
+          vOrigin = XYZ1;
         } else if (q1 < q0) {
           vBond = XYZ1 - XYZ0;
           vDipole = vBond * (q0 - q1);
+          vOrigin = XYZ0;
         } else {
           chargeEquals = true;
         }
         if (!chargeEquals) {
+          //vDipole /= 3.0;
           // Subtract half the dipole from the bond center to get the dipole origin
-          Vec3 vBondCtr = vBond / 2.0;
-          Vec3 vDipoleHalf = vDipole / 2.0;
-          Vec3 vOrigin = vBondCtr - vDipoleHalf;
+          //Vec3 vBondCtr = vBond / 2.0;
+          //Vec3 vDipoleHalf = vDipole / 2.0;
+          //Vec3 vOrigin = vOrigin + vBondCtr - vDipoleHalf;
           // DEBUG
-          mprintf("DEBUG: Bond %s -- %s oxyz={%f %f %f} vxyz={%f %f %f} mag=%f\n",
-                  currentTop.AtomMaskName(*iat).c_str(),
-                  currentTop.AtomMaskName(*bit).c_str(),
+          mprintf("DEBUG: Bond %s(%f) -- %s(%f) bxyz={%f %f %f} oxyz={%f %f %f} vxyz={%f %f %f} mag=%f\n",
+                  currentTop.AtomMaskName(*iat).c_str(), q0,
+                  currentTop.AtomMaskName(*bit).c_str(), q1,
+                  vBond[0], vBond[1], vBond[2],
                   vOrigin[0], vOrigin[1], vOrigin[2],
                   vDipole[0], vDipole[1], vDipole[2],
                   sqrt(vDipole.Magnitude2()));
@@ -567,6 +585,7 @@ Action::RetType Action_Vector::DoAction(int frameNum, ActionFrame& frm) {
     case VELOCITY    : Vec_->AddVxyz( CalcCenter(frm.Frm().vAddress(), mask_) ); break;
     case FORCE       : Vec_->AddVxyz( CalcCenter(frm.Frm().fAddress(), mask_) ); break; 
     case DIPOLE      : Dipole(frm.Frm()); break;
+    case BONDDIPOLE  : BondDipole(frm.Frm()); break;
     case PRINCIPAL_X :
     case PRINCIPAL_Y :
     case PRINCIPAL_Z : Principal(frm.Frm()); break;
