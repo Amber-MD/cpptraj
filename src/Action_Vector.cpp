@@ -412,7 +412,7 @@ void Action_Vector::BondDipole(Frame const& currentFrame) {
   Vec3 OXYZ(0.0, 0.0, 0.0); // Positive, tail
   Topology const& currentTop = *CurrentParm_;
 
-  unsigned int Nbonds;
+  unsigned int Nbonds = 0;
   for (AtomMask::const_iterator iat = mask_.begin(); iat != mask_.end(); ++iat)
   {
     Atom const& currentAtom = currentTop[*iat];
@@ -459,6 +459,7 @@ void Action_Vector::BondDipole(Frame const& currentFrame) {
   } // END loop over mask atoms
   if (dipole_in_debye_)
     VXYZ /= Constants::DEBYE_EA;
+  OXYZ /= (double)Nbonds;
   Vec_->AddVxyzo( VXYZ, OXYZ );
 }
 
