@@ -464,6 +464,10 @@ void Action_Vector::BondDipole(Frame const& currentFrame) {
             hasCharge = calcBondDipole( vBond, vDipole, vOrigin, q0, XYZ0, XYZ1 );
           } else if (atom1.Element()==Atom::HYDROGEN || atom1.Nbonds() == 1) {
             hasCharge = calcBondDipole( vBond, vDipole, vOrigin, q1, XYZ1, XYZ0 );
+          } else {
+            mprintf("DEBUG: Unhandled number of bonds: %s=%i, %s=%i\n",
+                     currentTop.AtomMaskName(*iat).c_str(), atom0.Nbonds(),
+                     currentTop.AtomMaskName(*bit).c_str(), atom1.Nbonds());
           }
         }
 
