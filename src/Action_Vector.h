@@ -31,6 +31,7 @@ class Action_Vector : public Action {
     /// \return Center of mass or geometric center of atoms in given mask
     inline Vec3 GetVec(Frame const&, AtomMask const&) const;
     void Mask(Frame const&);
+    static inline bool calcBondDipole(Vec3&, Vec3&, Vec3&, double, Vec3 const&, Vec3 const&);
     void BondDipole(Frame const&);
     void Dipole(Frame const&);
     void Principal(Frame const&);

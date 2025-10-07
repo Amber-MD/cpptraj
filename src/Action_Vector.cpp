@@ -419,6 +419,23 @@ void Action_Vector::Mask(Frame const& currentFrame) {
   Vec_->AddVxyzo(VXYZ, CXYZ);
 }
 
+/** Calculate dipole */
+bool Action_Vector::calcBondDipole(Vec3& vBond, Vec3& vDipole, Vec3& vOrigin, double q0, Vec3 const& XYZ0, Vec3 const& XYZ1)
+{
+  bool hasCharge = true;
+  if (q0 < 0.0) {
+    vBond = XYZ0 - XYZ1;
+    vDipole = vBond * (-q0);
+    vOrigin = XYZ1;
+  } else if (q0 > 0.0) {
+    vBond = XYZ1 - XYZ0;
+    vDipole = vBond * q0;
+    vOrigin = XYZ0;
+  } else
+    hasCharge = false;
+  return hasCharge;
+}
+
 /** Calculate net dipole from individual bond dipoles. */
 void Action_Vector::BondDipole(Frame const& currentFrame) {
   Vec3 VXYZ(0.0, 0.0, 0.0); // Negative, head
@@ -428,32 +445,29 @@ void Action_Vector::BondDipole(Frame const& currentFrame) {
   unsigned int Nbonds = 0;
   for (AtomMask::const_iterator iat = mask_.begin(); iat != mask_.end(); ++iat)
   {
-    Atom const& currentAtom = currentTop[*iat];
+    Atom const& atom0 = currentTop[*iat];
     Vec3 XYZ0( currentFrame.XYZ(*iat) );
-    double q0 = currentAtom.Charge();
-    for (Atom::bond_iterator bit = currentAtom.bondbegin(); bit != currentAtom.bondend(); ++bit)
+    double q0 = atom0.Charge();
+    for (Atom::bond_iterator bit = atom0.bondbegin(); bit != atom0.bondend(); ++bit)
     {
       if (*bit > *iat && cmask_->AtomInCharMask( *bit )) {
         // Both atoms in the bond are selected.
+        Atom const& atom1 = currentTop[*bit];
         Vec3 XYZ1( currentFrame.XYZ(*bit) );
-        double q1 = currentTop[*bit].Charge();
-        // Calc dipole
+        double q1 = atom1.Charge();
         Vec3 vDipole(0.0, 0.0, 0.0);
         Vec3 vBond(0.0, 0.0, 0.0);
         Vec3 vOrigin(0.0, 0.0, 0.0);
-        bool chargeEquals = false;
-        if ( q0 < q1 ) {
-          vBond = XYZ0 - XYZ1;
-          vDipole = vBond * (q1 - q0);
-          vOrigin = XYZ1;
-        } else if (q1 < q0) {
-          vBond = XYZ1 - XYZ0;
-          vDipole = vBond * (q0 - q1);
-          vOrigin = XYZ0;
-        } else {
-          chargeEquals = true;
+        bool hasCharge = false;
+        if (atom0.Element() != atom1.Element()) {
+          if (atom0.Element()==Atom::HYDROGEN || atom0.Nbonds() == 1) {
+            hasCharge = calcBondDipole( vBond, vDipole, vOrigin, q0, XYZ0, XYZ1 );
+          } else if (atom1.Element()==Atom::HYDROGEN || atom1.Nbonds() == 1) {
+            hasCharge = calcBondDipole( vBond, vDipole, vOrigin, q1, XYZ1, XYZ0 );
+          }
         }
-        if (!chargeEquals) {
+
+        if (hasCharge) {
           //vDipole /= 3.0;
           // Subtract half the dipole from the bond center to get the dipole origin
           //Vec3 vBondCtr = vBond / 2.0;
