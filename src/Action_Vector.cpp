@@ -436,6 +436,29 @@ bool Action_Vector::calcBondDipole(Vec3& vBond, Vec3& vDipole, Vec3& vOrigin, do
   return hasCharge;
 }
 
+static inline bool bondedAtomHas1bond(Topology const& topIn, Atom const& atomIn, int ignoreIdx)
+{
+  for (int ii=0; ii < atomIn.Nbonds(); ii++) {
+    int bondedAtomIdx = atomIn.Bond(ii);
+    if (bondedAtomIdx != ignoreIdx) {
+      if (topIn[bondedAtomIdx].Nbonds() == 1) return true;
+    }
+  }
+  return false;
+}
+
+static inline double bondedAtomCharge(Topology const& topIn, Atom const& atomIn, int ignoreIdx)
+{
+  for (int ii=0; ii < atomIn.Nbonds(); ii++) {
+    int bondedAtomIdx = atomIn.Bond(ii);
+    if (bondedAtomIdx != ignoreIdx) {
+      if (topIn[bondedAtomIdx].Nbonds() == 1)
+        return topIn[bondedAtomIdx].Charge();
+    }
+  }
+  return 0.0;
+}
+
 /** Calculate net dipole from individual bond dipoles. */
 void Action_Vector::BondDipole(Frame const& currentFrame) {
   Vec3 VXYZ(0.0, 0.0, 0.0); // Negative, head
@@ -464,6 +487,16 @@ void Action_Vector::BondDipole(Frame const& currentFrame) {
             hasCharge = calcBondDipole( vBond, vDipole, vOrigin, q0, XYZ0, XYZ1 );
           } else if (atom1.Element()==Atom::HYDROGEN || atom1.Nbonds() == 1) {
             hasCharge = calcBondDipole( vBond, vDipole, vOrigin, q1, XYZ1, XYZ0 );
+          } else if (atom0.Nbonds() == 2 && bondedAtomHas1bond(currentTop, atom0, *bit)) {
+            // atom0 is bonded to a single other atom, X-atom0-atom1. Sum up X and atom0 charge
+            double q0X = q0 + bondedAtomCharge(currentTop, atom0, *bit);
+            mprintf("DEBUG: Total charge on %s is %f\n", currentTop.AtomMaskName(*iat).c_str(), q0X);
+            hasCharge = calcBondDipole( vBond, vDipole, vOrigin, q0X, XYZ0, XYZ1 );
+          } else if (atom1.Nbonds() == 2 && bondedAtomHas1bond(currentTop, atom1, *iat)) {
+            // atom1 is bonded to a single other atom, X-atom1-atom0. Sum up X and atom1 charge
+            double q1X = q1 + bondedAtomCharge(currentTop, atom1, *iat);
+            mprintf("DEBUG: Total charge on %s is %f\n", currentTop.AtomMaskName(*bit).c_str(), q1X);
+            hasCharge = calcBondDipole( vBond, vDipole, vOrigin, q1X, XYZ1, XYZ0 );
           } else {
             mprintf("DEBUG: Unhandled number of bonds: %s=%i, %s=%i\n",
                      currentTop.AtomMaskName(*iat).c_str(), atom0.Nbonds(),
