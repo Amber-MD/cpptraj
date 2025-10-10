@@ -55,5 +55,6 @@ class Action_Vector : public Action {
     AtomMask mask2_;
     CpptrajFile* outfile_;
     CharMask* cmask_;
+    int debug_;
 };
 #endif
