@@ -228,6 +228,8 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, ActionInit& init, int d
   if (gridSet_ != 0)
     mprintf("\tExtracting box vectors from grid set '%s'\n", gridSet_->legend());
   if (mode_ == DIPOLE || mode_ == BONDDIPOLE) {
+    if (mode_ == BONDDIPOLE) //TODO remove when no longer testing
+      mprintf("Warning: 'bonddipole' mode is still experimental. Use with caution.\n");
     if (dipole_in_debye_)
       mprintf("\tDipole vector units will be Debye.\n");
     else
