@@ -462,7 +462,7 @@ static inline double bondedAtomsCharge(Topology const& topIn, Atom const& atomIn
 }
 
 /** Calculate net dipole from individual bond dipoles. */
-void Action_Vector::BondDipole(Frame const& currentFrame) {
+void Action_Vector::BondDipole_individualBonds(Frame const& currentFrame) {
   Vec3 VXYZ(0.0, 0.0, 0.0); // Negative, head
   Vec3 OXYZ(0.0, 0.0, 0.0); // Positive, tail
   Topology const& currentTop = *CurrentParm_;
@@ -507,7 +507,6 @@ void Action_Vector::BondDipole(Frame const& currentFrame) {
         }
 
         if (hasCharge) {
-          //vDipole /= 3.0;
           // Subtract half the dipole from the bond center to get the dipole origin
           //Vec3 vBondCtr = vBond / 2.0;
           //Vec3 vDipoleHalf = vDipole / 2.0;
@@ -531,6 +530,65 @@ void Action_Vector::BondDipole(Frame const& currentFrame) {
   if (dipole_in_debye_)
     VXYZ /= Constants::DEBYE_EA;
   OXYZ /= (double)Nbonds;
+  Vec_->AddVxyzo( VXYZ, OXYZ );
+}
+
+/** Calculate net dipole from atoms, origin from individual bond dipoles. */
+void Action_Vector::BondDipole_net_bondOrigin(Frame const& currentFrame) {
+  Vec3 VXYZ(0.0, 0.0, 0.0); // Negative, head
+  Vec3 OXYZ(0.0, 0.0, 0.0); // Positive, tail
+  Topology const& currentTop = *CurrentParm_;
+
+  unsigned int Nbonds = 0;
+  for (AtomMask::const_iterator iat = mask_.begin(); iat != mask_.end(); ++iat)
+  {
+    Atom const& atom0 = currentTop[*iat];
+    Vec3 XYZ0( currentFrame.XYZ(*iat) );
+    double q0 = atom0.Charge();
+    double en0 = atom0.PaulingElectroNeg();
+    // Note that negative charge will decrease the vector (towards the origin)
+    // but by convention we want to point towards the negative charge, so at
+    // the end the vector will have to be negated.
+    VXYZ += ( XYZ0 * q0 );
+    // Store bond origins according to electronegativity.
+    for (Atom::bond_iterator bit = atom0.bondbegin(); bit != atom0.bondend(); ++bit)
+    {
+      if (*bit > *iat && cmask_->AtomInCharMask( *bit )) {
+        // Both atoms in the bond are selected.
+        Atom const& atom1 = currentTop[*bit];
+        Vec3 XYZ1( currentFrame.XYZ(*bit) );
+        double q1 = atom1.Charge(); // DEBUG
+        double en1 = atom1.PaulingElectroNeg();
+        Vec3 vOrigin(0.0, 0.0, 0.0);
+        bool en_is_different = true;
+        if (en0 > en1) {
+          // atom0 is more negative
+          //vBond = XYZ0 - XYZ1;
+          vOrigin = XYZ1;
+        } else if (en1 > en0) {
+          // atom1 is more negative
+          //vBond = XYZ1 - XYZ0;
+          vOrigin = XYZ0;
+        } else
+          en_is_different = false;
+
+        if (en_is_different) {
+          // DEBUG
+          mprintf("DEBUG: Bond %s(%f) -- %s(%f) oxyz={%f %f %f}\n",
+                  currentTop.AtomMaskName(*iat).c_str(), q0,
+                  currentTop.AtomMaskName(*bit).c_str(), q1,
+                  vOrigin[0], vOrigin[1], vOrigin[2]);
+          // Sum
+          OXYZ += vOrigin;
+          Nbonds++;
+        }
+      }
+    } // END loop over bonded atoms
+  } // END loop over mask atoms
+  if (dipole_in_debye_)
+    VXYZ /= Constants::DEBYE_EA;
+  OXYZ /= (double)Nbonds;
+  VXYZ.Neg();
   Vec_->AddVxyzo( VXYZ, OXYZ );
 }
 
@@ -638,7 +696,8 @@ Action::RetType Action_Vector::DoAction(int frameNum, ActionFrame& frm) {
     case VELOCITY    : Vec_->AddVxyz( CalcCenter(frm.Frm().vAddress(), mask_) ); break;
     case FORCE       : Vec_->AddVxyz( CalcCenter(frm.Frm().fAddress(), mask_) ); break; 
     case DIPOLE      : Dipole(frm.Frm()); break;
-    case BONDDIPOLE  : BondDipole(frm.Frm()); break;
+//    case BONDDIPOLE  : BondDipole_individualBonds(frm.Frm()); break;
+    case BONDDIPOLE  : BondDipole_net_bondOrigin(frm.Frm()); break;
     case PRINCIPAL_X :
     case PRINCIPAL_Y :
     case PRINCIPAL_Z : Principal(frm.Frm()); break;
