@@ -75,6 +75,32 @@ const double Atom::AtomicElementRadius_[NUMELEMENTS_] = { 1.0,
   0.000, 0.0 /* extra point/Drude has no radius */
 };
 
+/** Pauling electronegativity values from:
+  * A.L. Allred,
+  * Electronegativity values from thermochemical data,
+  * Journal of Inorganic and Nuclear Chemistry,
+  * Volume 17, Issues 3–4, 1961, Pages 215-221,
+  * https://doi.org/10.1016/0022-1902(61)80142-5.
+  * https://www.sciencedirect.com/science/article/pii/0022190261801425
+  * Atoms with no electronegativity value are assigned -1.0.
+  */
+const double Atom::PaulingElectroNeg_[NUMELEMENTS_] = { -1.0,
+  2.20, 2.04, 2.55, 3.04, 3.44, 3.98,
+  2.19, 2.58, 3.16, 2.96, 1.83, 1.00,
+  2.66, 1.31, 1.90, 0.98, 0.82, 0.82,
+  0.79, 1.65, 0.93, 1.61, -1.0, 2.18,
+  1.93, 2.54, 2.20, 1.57, 0.89, 2.02,
+  1.66, 1.88, 1.69, 0.70, 1.81, 2.01,
+  -1.0, 1.30, 2.00, 1.78, 2.20, 3.00,
+  1.55, 2.16, -1.0, 1.91, 1.60, 2.20,
+  2.20, 2.28, 2.33, 2.00, 2.20, 2.28,
+  1.90, -1.0, 0.90, 1.90, 1.36, 2.55,
+  0.95, 1.96, 2.05, 1.54, 1.90, 2.10,
+  1.50, 1.62, 1.63, 2.36, 2.60, 1.33,
+  1.22, 1.27, 1.17,
+  -1.0, -1.0 /* extra point/Drude has no EN value. TODO should that change? */
+};
+
 // CONSTRUCTOR
 Atom::Atom() : charge_(0.0), polar_(0.0), mass_(1.0), gb_radius_(0.0),
                gb_screen_(0.0), aname_(""), atype_(""), atype_index_(0),

@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles vector.in vtest.dat.? vtest.dat.?? v8.mol2 corr.v0.v8.dat \
-           avgcoord.out res5.out
+           avgcoord.out res5.out V0.mol2
 
 INPUT="-i vector.in"
 # Test Vector mask, principle xyz, dipole, box 
@@ -92,6 +92,22 @@ vector v12 minimage ^1 :385 magnitude out vtest.dat.12
 EOF
   RunCpptraj "$UNITNAME"
   DoTest vtest.dat.12.save vtest.dat.12
+fi
+
+# Test bond dipole vector
+UNITNAME='Bond dipole vector test.'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > vector.in <<EOF
+parm dna30.mol2
+trajin dna30.mol2 
+vector V0 bonddipole ^1,2 magnitude out vtest.dat.14
+run
+writedata V0.mol2 V0 vectraj trajfmt mol2
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest vtest.dat.14.save vtest.dat.14
+  DoTest V0.mol2.save V0.mol2
 fi
 
 EndTest

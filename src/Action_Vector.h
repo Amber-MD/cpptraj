@@ -3,6 +3,7 @@
 #include "Action.h"
 class DataSet_Vector;
 class DataSet_3D;
+class CharMask;
 class Action_Vector : public Action {
   public:
     Action_Vector();
@@ -14,7 +15,8 @@ class Action_Vector : public Action {
       NO_OP=0,   PRINCIPAL_X, PRINCIPAL_Y, PRINCIPAL_Z,
       DIPOLE,    BOX,         MASK,
       CORRPLANE, CENTER,      BOX_X,       BOX_Y,       BOX_Z,
-      BOX_CTR,   MINIMAGE,    MOMENTUM,    VELOCITY,    FORCE
+      BOX_CTR,   MINIMAGE,    MOMENTUM,    VELOCITY,    FORCE,
+      BONDDIPOLE
     };
     static const char* ModeString_[];
     static const bool NeedsOrigin_[];
@@ -29,6 +31,9 @@ class Action_Vector : public Action {
     /// \return Center of mass or geometric center of atoms in given mask
     inline Vec3 GetVec(Frame const&, AtomMask const&) const;
     void Mask(Frame const&);
+    static inline bool calcBondDipole(Vec3&, Vec3&, Vec3&, double, Vec3 const&, Vec3 const&);
+    void BondDipole_individualBonds(Frame const&);
+    void BondDipole_net_bondOrigin(Frame const&);
     void Dipole(Frame const&);
     void Principal(Frame const&);
     void CorrPlane(Frame const&);
@@ -49,5 +54,7 @@ class Action_Vector : public Action {
     AtomMask mask_;
     AtomMask mask2_;
     CpptrajFile* outfile_;
+    CharMask* cmask_;
+    int debug_;
 };
 #endif
