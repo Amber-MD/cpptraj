@@ -589,6 +589,8 @@ void Action_Vector::BondDipole_net_bondOrigin(Frame const& currentFrame) {
     VXYZ /= Constants::DEBYE_EA;
   OXYZ /= (double)Nbonds;
   VXYZ.Neg();
+  // Shift it so the center of VXYZ will end up at the origin.
+  OXYZ -= (VXYZ / 2.0);
   Vec_->AddVxyzo( VXYZ, OXYZ );
 }
 
