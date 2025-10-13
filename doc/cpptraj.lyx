@@ -6,12 +6,6 @@
 \origin unavailable
 \textclass article
 \begin_preamble
-% Added by lyx2lyx
-%% Variable width box for table cells
-\newenvironment{cellvarwidth}[1][t]
-    {\begin{varwidth}[#1]{\linewidth}}
-    {\@finalstrut\@arstrutbox\end{varwidth}}
-% Added by lyx2lyx
 \usepackage{varwidth}
 \end_preamble
 \use_default_options true
@@ -20918,36 +20912,11 @@ Calculate the dihedral angle using four points.
 \begin_inset Text
 
 \begin_layout Plain Layout
-\begin_inset ERT
-status collapsed
-
-\begin_layout Plain Layout
-
-
-\backslash
-begin{cellvarwidth}
-\end_layout
-
-\end_inset
-
-dihrms
+dihrms, 
 \end_layout
 
 \begin_layout Plain Layout
 dihedralrms
-\begin_inset ERT
-status collapsed
-
-\begin_layout Plain Layout
-
-
-\backslash
-end{cellvarwidth}
-\end_layout
-
-\end_inset
-
-
 \end_layout
 
 \end_inset
