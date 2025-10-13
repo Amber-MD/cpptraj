@@ -55231,7 +55231,8 @@ vectormath vec1 <vecname1> vec2 <vecname2> [out <filename>] [norm] [name
 \end_layout
 
 \begin_layout LyX-Code
-           [ dotproduct | dotangle | crossproduct | magnitude ]
+           [ dotproduct | dotangle | crossproduct | magnitude | average
+ ]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -55272,6 +55273,24 @@ vec2
 \end_layout
 
 \begin_layout Description
+[norm] Normalize the vectors; this will affect any subsequent calculations
+ with the vectors.
+ This is turned on automatically if 
+\series bold
+dotangle/magnitude
+\series default
+ specified.
+\end_layout
+
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<setname>] Output data set name.
+\end_layout
+
+\begin_layout Description
 [dotproduct] (Default) Calculate the dot-product of the two vectors.
 \end_layout
 
@@ -55297,13 +55316,59 @@ vec2
 \end_layout
 
 \begin_layout Description
-[norm] Normalize the vectors; this will affect any subsequent calculations
- with the vectors.
- This is turned on automatically if 
+[average] Calculate the average (over frames) of vectors selected by 
 \series bold
-dotangle/magnitude
+vec1
 \series default
- specified.
+ (no need to specify 
+\series bold
+vec2
+\series default
+).
+\end_layout
+
+\begin_layout Standard
+DataSets created:
+\end_layout
+
+\begin_layout Description
+<setname>[Dot] (double) Vector dot product (
+\series bold
+dotproduct
+\series default
+ only).
+\end_layout
+
+\begin_layout Description
+<setname>[Angle] (double) Angle in degrees from vector dot product (
+\series bold
+dotangle
+\series default
+ only).
+\end_layout
+
+\begin_layout Description
+<setname>[Cross] (vector) Cross product (
+\series bold
+crossproduct
+\series default
+ only).
+\end_layout
+
+\begin_layout Description
+<setname>[Mag] (double) Magnitude (
+\series bold
+magnitude
+\series default
+ only).
+\end_layout
+
+\begin_layout Description
+<setname>[Avg] (vector) Average vector (
+\series bold
+average
+\series default
+ only).
 \end_layout
 
 \end_deeper
