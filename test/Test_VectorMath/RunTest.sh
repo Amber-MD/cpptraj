@@ -2,7 +2,8 @@
 
 . ../MasterTest.sh
 
-CleanFiles vectors.dat dotproduct.dat corr.in v1init_dot_v1.dat Magnitude.dat
+CleanFiles vectors.dat dotproduct.dat corr.in v1init_dot_v1.dat Magnitude.dat \
+           Average.dat
 
 INPUT="corr.in"
 TOP=../tz2.parm7
@@ -36,6 +37,14 @@ runanalysis vectormath vec1 V1 magnitude out Magnitude.dat name V1Mag
 EOF
 RunCpptraj "$UNITNAME"
 DoTest Magnitude.dat.save Magnitude.dat
+
+UNITNAME='Vector average tests'
+cat > corr.in <<EOF
+readdata ../Test_Vector/vtest.dat.12.save as dat vector magnitude name V12
+runanalysis vectormath vec1 V12 average out Average.dat name V12avg
+EOF
+RunCpptraj "$UNITNAME"
+DoTest Average.dat.save Average.dat
 
 EndTest
 exit 0 
