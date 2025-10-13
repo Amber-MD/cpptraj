@@ -8,7 +8,7 @@
 
 /// Strings corresponding to modes, used in output.
 const char* Analysis_VectorMath::ModeString[] = {
-  "Dot product", "Angle from dot product", "Cross product", "Magnitude" };
+  "Dot product", "Angle from dot product", "Cross product", "Magnitude", "Average" };
 
 // CONSTRUCTOR
 Analysis_VectorMath::Analysis_VectorMath() :
@@ -18,12 +18,12 @@ Analysis_VectorMath::Analysis_VectorMath() :
 
 void Analysis_VectorMath::Help() const {
   mprintf("\tvec1 <vecname1> vec2 <vecname2> [out <filename>] [norm] [name <setname>]\n"
-          "\t[ dotproduct | dotangle | crossproduct | magnitude ]\n"
+          "\t[ dotproduct | dotangle | crossproduct | magnitude | average ]\n"
           "  Calculate dot product, angle from dot product (degrees), or cross product\n"
           "  for specified vectors. Either vec1 or vec2 can be size 1, otherwise they\n"
-          "  must both be the same size. If 'magnitude' is specified, just calculate\n"
-          "  the magnitudes of the vectors selected by 'vec1' (no need to specify\n"
-          "  'vec2').\n");
+          "  must both be the same size.\n"
+          "  If 'magnitude' or 'average' is specified, just calculate the magnitudes\n"
+          "  or averages of the vector selected by 'vec1' (no need to specify 'vec2').\n");
 }
 
 // Analysis_VectorMath::Setup()
@@ -54,6 +54,11 @@ Analysis::RetType Analysis_VectorMath::Setup(ArgList& analyzeArgs, AnalysisSetup
       mprintf("Warning: 'norm' does not make sense with 'magnitude', ignoring.\n");
       norm_ = false;
     }
+  } else if (analyzeArgs.hasKey("average")) {
+    mode_ = AVERAGE;
+    dtype = DataSet::VECTOR;
+    dname = "Avg";
+    requires_two_vecs = false;
   }
 
   // Get Vectors
@@ -142,6 +147,26 @@ const
   {
     Out[idx] = sqrt( V1[idx].Magnitude2() );
   }
+  return 0;
+}
+
+/** Calculate the average vector. */
+int Analysis_VectorMath::Average(DataSet* Dout, DataSet_Vector const& V1)
+const
+{
+  DataSet_Vector& Out = static_cast<DataSet_Vector&>( *Dout );
+  Vec3 VXYZ(0.0, 0.0, 0.0);
+  for (unsigned int idx = 0; idx < V1.Size(); idx++)
+    VXYZ += V1[idx];
+  VXYZ /= (double)V1.Size();
+  if (V1.HasOrigins()) {
+    Vec3 OXYZ(0.0, 0.0, 0.0);
+    for (unsigned int idx = 0; idx < V1.Size(); idx++)
+      OXYZ += V1.OXYZ(idx);
+    OXYZ /= (double)V1.Size();
+    Out.AddVxyzo( VXYZ, OXYZ );
+  } else
+    Out.AddVxyz( VXYZ );
   return 0;
 }
 
@@ -235,6 +260,8 @@ Analysis::RetType Analysis_VectorMath::Analyze() {
       int err = 1;
       if (mode_ == MAGNITUDE)
         err = Magnitude( DataOut_[ii], *(vinfo1_[ii]) );
+      else if (mode_ == AVERAGE)
+        err = Average( DataOut_[ii], *(vinfo1_[ii]) );
       if (err != 0) {
         mprinterr("Error: A problem occurred when performing vector math for set '%s'\n",
                   vinfo1_[ii]->legend());
