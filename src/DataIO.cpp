@@ -1,5 +1,7 @@
 #include "DataIO.h"
+#include "Constants.h"
 #include "CpptrajStdio.h"
+#include "DataSet_1D.h"
 #include "DataSet_MatrixDbl.h"
 
 // CONSTRUCTOR
@@ -37,6 +39,8 @@ bool DataIO::CheckValidFor( DataSet const& dataIn ) const {
   return false;
 }
 
+/** \return 1 if any set in the given array does not have the given number of dimensions, 0 otherwise.
+  */
 int DataIO::CheckAllDims(DataSetList const& array, unsigned int tgtDim) {
   for (DataSetList::const_iterator set = array.begin(); set != array.end(); ++set)
   {
@@ -48,24 +52,105 @@ int DataIO::CheckAllDims(DataSetList const& array, unsigned int tgtDim) {
   }
   return 0;
 }
+/*
+/// \return true if floating point values are equivalent. Used to check X values.
+static inline bool FEQ(double v1, double v2) {
+  double delta = v1 - v2;
+  if (delta < 0.0) delta = -delta;
+  return (delta < Constants::SMALL);
+}
 
-int DataIO::CheckXDimension(DataSetList const& array) {
-  if (array.empty()) return 0; // FIXME return error?
-  int err = 0;
-  Dimension const& Xdim = static_cast<Dimension const&>(array[0]->Dim(0));
-  for (DataSetList::const_iterator set = array.begin(); set != array.end(); ++set)
-  {
-    if ((*set)->Dim(0) != Xdim) {
-      mprinterr("Error: X Dimension of %s != %s\n", (*set)->legend(),
-                array[0]->legend());
-      mprinterr("Error:  %s: Min=%f Step=%f\n", (*set)->legend(),
-                (*set)->Dim(0).Min(), (*set)->Dim(0).Step());
-      mprinterr("Error:  %s: Min=%f Step=%f\n", array[0]->legend(),
-                Xdim.Min(), Xdim.Step());
-      ++err;
+/// \return true if floating point values are not equivalent. Used to check X values.
+static inline bool FNE(double v1, double v2) {
+  double delta = v1 - v2;
+  if (delta < 0.0) delta = -delta;
+  return (delta > Constants::SMALL);
+}*/
+
+/// \return X coordinate of given set.
+static inline double xCoordVal(DataSet const& set, unsigned int idx) {
+  if (set.Group() == DataSet::SCALAR_1D) {
+    DataSet_1D const& s1 = static_cast<DataSet_1D const&>( set );
+    return s1.Xcrd(idx);
+  } else
+    return set.Dim(0).Coord(idx);
+}
+
+/** Check if X dimension of 2 given sets matches. */
+bool DataIO::xDimMatch(DataSet const& ref, DataSet const& set) {
+  if (set.Type() == DataSet::XYMESH) {
+    // Need to explicitly check X values
+    DataSet_1D const& s1 = static_cast<DataSet_1D const&>( set );
+    for (unsigned int idx = 0; idx != set.Size(); idx++) {
+      double x0val = xCoordVal(ref, idx);
+      double xval = s1.Xcrd(idx);
+      if (FNE( x0val, xval )) {
+        mprinterr("Error: X coordinate of %s (%f) != %s (%f) at index %u\n",
+                  set.legend(), xval, ref.legend(), x0val, idx);
+        return false;
+      }
     }
+  } else if (set.Dim(0) != ref.Dim(0)) {
+    mprinterr("Error: X Dimension of %s != %s\n", set.legend(), ref.legend());
+    mprinterr("Error:  %s: Min=%f Step=%f\n", set.legend(), set.Dim(0).Min(), set.Dim(0).Step());
+    mprinterr("Error:  %s: Min=%f Step=%f\n", ref.legend(), ref.Dim(0).Min(), ref.Dim(0).Step());
+    return false;
   }
-  return err;
+  return true;
+}
+
+/** Ensure that the X dimension of each set in the array matches. */
+int DataIO::CheckXDimension(std::vector<int>& Xmatch, DataSetList const& array) {
+  if (array.empty()) return 0; // FIXME return error?
+  Xmatch.clear();
+  Xmatch.resize( array.size(), -1 );
+  // First dimension always matches itself
+  Xmatch[0] = 0;
+  if (array.size() == 1) {
+    // Only one X dimension, no checks needed
+    return 0;
+  }
+
+  // Loop over all sets
+  unsigned int currentMatchIndex = 0;
+  unsigned int NsetsChecked = 0;
+  int numUniqueXdims = 0;
+//  int err = 0;
+//  Dimension const& Xdim = static_cast<Dimension const&>(array[0]->Dim(0));
+  while (NsetsChecked < array.size()) {
+    DataSet const& currentRef = *(array[currentMatchIndex]);
+    // Advance to next set that is not matched.
+    unsigned int currentIndex = 1;
+    while (currentIndex < array.size() && Xmatch[currentIndex] != -1) ++currentIndex;
+    if (currentIndex == array.size()) break;
+    // Loop over remaining sets
+    ++numUniqueXdims;
+    for (unsigned int setIdx = currentIndex; setIdx < array.size(); setIdx++)
+    {
+      DataSet const& currentSet = *array[setIdx];
+      // Check if currentSet Xdim matches the current reference
+      if (Xmatch[setIdx] == -1 && xDimMatch( currentRef, currentSet )) {
+        Xmatch[setIdx] = (int)currentMatchIndex;
+        NsetsChecked++;
+      }
+    }
+    // Next reference will be the first unmatched set
+    while (currentMatchIndex < array.size() && Xmatch[currentMatchIndex] != -1)
+      currentMatchIndex++;
+  }
+  mprintf("DEBUG: Xdim match indices:\n");
+  for (unsigned int idx = 0; idx != array.size(); idx++)
+    mprintf("DEBUG:\t%20s %i\n", array[idx]->legend(), Xmatch[idx]);
+
+//  DataSetList::const_iterator set = array.begin();
+//  for (DataSetList::const_iterator set = array.begin(); set != array.end(); ++set)
+//  {
+//    Dimension const& currentRefXdim = static_cast<Dimension const&>( array[currentMatchIndex]->Dim(0) );
+//  }
+//  return err;
+  if (numUniqueXdims > 1)
+    return 1;
+  return 0;
 }
 
 size_t DataIO::DetermineMax(DataSetList const& array) {

@@ -36,8 +36,9 @@ class DataIO : public BaseIOtype {
     void SetValid(DataSet::DataType t) { valid_.push_back( t ); }
     /// Check that all sets in given list have given dimension.
     static int CheckAllDims(DataSetList const&, unsigned int);
+    static bool xDimMatch(DataSet const&, DataSet const&);
     /// Check that X dim for all sets in given list match; all must be 1D.
-    static int CheckXDimension(DataSetList const&);
+    static int CheckXDimension(std::vector<int>&, DataSetList const&);
     /// \return max size of DataSets in given list.
     static size_t DetermineMax(DataSetList const&);
     /// Convert flattened matrix array to matrix in DataSetList.

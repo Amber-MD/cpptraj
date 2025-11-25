@@ -451,7 +451,8 @@ int DataIO_Gnuplot::WriteSets1D(DataSetList const& Sets)
 {
   // FIXME: Check that dimension of each set matches.
   if (Sets.empty()) return 1;
-  CheckXDimension( Sets );
+  std::vector<int> xdimIds;
+  CheckXDimension( xdimIds, Sets );
   // Determine size of largest DataSet.
   size_t maxFrames = DetermineMax( Sets );
   // Use X dimension of set 0 for all set dimensions.
