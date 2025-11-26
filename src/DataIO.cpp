@@ -100,11 +100,12 @@ bool DataIO::xDimMatch(DataSet const& ref, DataSet const& set) {
 }
 
 /** Ensure that the X dimension of each set in the array matches. */
-DataIO::DSLarray DataIO::CheckXDimension(std::vector<int>& Xmatch, DataSetList const& array) {
+DataIO::DSLarray DataIO::CheckXDimension(DataSetList const& array) {
   DSLarray OUT;
   if (array.empty()) return OUT; // FIXME return error?
-  Xmatch.clear();
-  Xmatch.resize( array.size(), -1 );
+  //Xmatch.clear();
+  //Xmatch.resize( array.size(), -1 );
+  std::vector<int> Xmatch(array.size(), -1);
 
   // Loop over all sets
   unsigned int NsetsChecked = 0;

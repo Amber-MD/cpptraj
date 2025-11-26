@@ -48,5 +48,6 @@ class DataIO_Gnuplot : public DataIO {
     void JpegOut(size_t,size_t);
     void WriteDefinedPalette(int);
     int WriteSets1D(DataSetList const&);
+    int writeSets1D_MatchingXdim(DataSetList const&);
 };
 #endif

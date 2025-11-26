@@ -41,7 +41,7 @@ class DataIO : public BaseIOtype {
     /// Typedef for an array of DataSetLists
     typedef std::vector<DataSetList> DSLarray;
     /// Check that X dim for all sets in given list match; all must be 1D.
-    static DSLarray CheckXDimension(std::vector<int>&, DataSetList const&);
+    static DSLarray CheckXDimension(DataSetList const&);
     /// \return max size of DataSets in given list.
     static size_t DetermineMax(DataSetList const&);
     /// Convert flattened matrix array to matrix in DataSetList.
