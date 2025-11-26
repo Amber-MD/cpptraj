@@ -90,7 +90,9 @@ bool DataIO::xDimMatch(DataSet const& ref, DataSet const& set) {
     if (endval == 0)
       // One of the sets is empty; automatic non-match TODO should just match?
       return false;
-    for (int idx = endval - 1; idx >= 0; idx--) {
+    //for (int idx = endval - 1; idx >= 0; idx--)
+    for (unsigned int idx = 0; idx < endval; idx++)
+    {
       double refXval = xCoordVal(ref, idx);
       double setXval = xCoordVal(set, idx);
       if (FNE( refXval, setXval )) {
