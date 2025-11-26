@@ -4,7 +4,8 @@
 
 CleanFiles atomic.in fluct.*.dat dpdp.fluct.dat dpdp.adp.dat \
            fluct.2.pdb occ.2.pdb scale.2.pdb fluct.1.pdb \
-           dpdp.adp.pdb myfluct.adp.dat heavy.adp.pdb
+           dpdp.adp.pdb myfluct.adp.dat heavy.adp.pdb \
+           tz2.byres.dat
 TESTNAME='Atomic fluctuations tests' 
 Requires netcdf
 
@@ -48,7 +49,9 @@ TOP=../tz2.parm7
 cat > $INPUT <<EOF
 trajin ../tz2.nc
 atomicfluct A0 :2-12
-atomicfluct A1 @C,CA,N byres bfactor
+atomicfluct A1 @C,CA,N byres bfactor out tz2.byres.dat
+atomicfluct A2 :TRP@C,CA,N resrange 1-13 byres bfactor out tz2.byres.dat
+atomicfluct A3 :TRP@C,CA,N byres bfactor out tz2.byres.dat
 average crdset MyAvg
 run
 crdout MyAvg fluct.2.pdb bfacdata A0 chainid " "

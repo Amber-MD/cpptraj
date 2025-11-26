@@ -285,7 +285,7 @@ const
   }
   if (outfile != 0) outfile->AddDataSet( nameSet );
   nameSet->Allocate( DataSet::SizeArray(1, Runs.size()) );
-  nameSet->SetDim(Dimension::X, Xdim);
+  nameSet->SetDim(Dimension::X, Xdim, ds);
 
   DataSet* dirNameSet = DSL.AddSet(DataSet::STRING, MetaData(dsname, "dir"));
   if (dirNameSet == 0) {
@@ -294,7 +294,7 @@ const
   }
   if (outfile != 0) outfile->AddDataSet( dirNameSet );
   dirNameSet->Allocate( DataSet::SizeArray(1, Runs.size()) );
-  dirNameSet->SetDim(Dimension::X, Xdim);
+  dirNameSet->SetDim(Dimension::X, Xdim, ds);
 
   for (RunArray::const_iterator it = Runs.begin(); it != Runs.end(); ++it) {
     double X = 0;

@@ -1291,7 +1291,19 @@ int DataIO_Std::WriteDataNormal(CpptrajFile& file, DataSetList const& Sets) {
   // For this output to work the X-dimension of all sets needs to match.
   // The most important things for output are min and step so just check that.
   // Use X dimension of set 0 for all set dimensions.
-  CheckXDimension( Sets );
+  DataIO::DSLarray SetLists = CheckXDimension( Sets );
+  int err = 0;
+  for (DataIO::DSLarray::const_iterator dslit = SetLists.begin(); dslit != SetLists.end(); ++dslit)
+  {
+    if (dslit != SetLists.begin())
+      file.Printf("\n");
+    err += writeDataNormal_MatchingXdim(file, *dslit);
+  }
+  return err;
+}
+
+/** Write data sets in given data set list to file; all X dimensions should be matching. */
+int DataIO_Std::writeDataNormal_MatchingXdim(CpptrajFile& file, DataSetList const& Sets) {
   // TODO: Check for empty dim.
   DataSet* Xdata = Sets[0];
   Dimension const& Xdim = static_cast<Dimension const&>( Xdata->Dim(0) );

@@ -19,8 +19,8 @@ Action_AtomicFluct::Action_AtomicFluct() :
 {}
 
 void Action_AtomicFluct::Help() const {
-  mprintf("\t[<name>] [out <filename>] [<mask>] [byres [pdbres] | byatom | bymask]\n"
-          "\t[bfactor] [calcadp [adpout <file>]]\n"
+  mprintf("\t[<name>] [out <filename>] [<mask>] [bfactor] [calcadp [adpout <file>]]\n"
+          "\t[{byres [pdbres] [resrange <range>] | byatom | bymask}]\n"
           "\t%s\n"
           "  Calculate atomic fluctuations of atoms in <mask>\n", ActionFrameCounter::HelpText);
 }
@@ -41,6 +41,13 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, ActionInit& init, 
   if (actionArgs.hasKey("byres")) {
     outtype_ = BYRES;
     usePdbRes_ = actionArgs.hasKey("pdbres");
+    std::string resrangearg = actionArgs.GetStringKey("resrange");
+    if (!resrangearg.empty()) {
+      if (resRange_.SetRange( resrangearg )) {
+        mprinterr("Error: Could not set resrange arg %s\n", resrangearg.c_str());
+        return Action::ERR;
+      }
+    }
   } else if (actionArgs.hasKey("bymask"))
     outtype_ = BYMASK;
   else if (actionArgs.hasKey("byatom") || actionArgs.hasKey("byatm"))
@@ -95,6 +102,10 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, ActionInit& init, 
     case BYMASK: mprintf(" over entire atom mask.\n"); break;
   }
   if (usePdbRes_) mprintf("\tUsing PDB residue numbers if present in topology.\n");
+  if (!resRange_.Empty()) {
+    if (outtype_ == BYRES)
+      mprintf("\tResidue range arg: %s\n", resRange_.RangeArg());
+  }
   if (outfile != 0)
     mprintf("\tOutput to file %s\n", outfile->DataFilename().full());
   mprintf("\tAtom mask: [%s]\n",Mask_.MaskString());
@@ -140,6 +151,20 @@ Action::RetType Action_AtomicFluct::Setup(ActionSetup& setup) {
     if (fluctParm_ != setup.TopAddress())
       mprintf("Warning: Topology is changing. Will base output only using topology '%s'.\n",
               fluctParm_->c_str());
+  }
+  // If a residue range is set, ensure every selected residue is a member of the range
+  if (!resRange_.Empty()) {
+    if (outtype_ == BYRES) {
+      std::vector<int> selectedRes = setup.Top().ResnumsSelectedBy( Mask_ );
+      for (std::vector<int>::const_iterator ires = selectedRes.begin();
+                                            ires != selectedRes.end(); ires++)
+      {
+        if (!resRange_.InRange( *ires + 1 )) {
+          mprinterr("Error: Selected residue %i is not in specified resrange %s\n", *ires+1, resRange_.RangeArg());
+          return Action::ERR;
+        }
+      }
+    }
   }
   return Action::OK;
 }
@@ -187,8 +212,8 @@ int Action_AtomicFluct::SyncAction() {
 
 // Action_AtomicFluct::Print() 
 void Action_AtomicFluct::Print() {
+  if (sets_ < 1) return;
   mprintf("    ATOMICFLUCT: Calculating fluctuations for %i sets.\n",sets_);
-
   double Nsets = (double)sets_;
   // SumCoords will hold the average: <R>
   SumCoords_.Divide(Nsets);
@@ -254,33 +279,74 @@ void Action_AtomicFluct::Print() {
     for (int idx = 0; idx < (int)Results.size(); idx++)
       dset.AddXY( Mask_[idx]+1, Results[idx] );
   } else if (outtype_ == BYRES) {
-    // By residue output
     dset.ModifyDim(Dimension::X).SetLabel("Res");
-    int lastidx = (int)Results.size() - 1;
-    double fluct = 0.0;
-    double xi = 0.0;
-    for (int idx = 0; idx < (int)Results.size(); idx++) {
-      int atom = Mask_[idx];
-      double mass = (*fluctParm_)[atom].Mass();
-      fluct += Results[idx] * mass;
-      xi += mass;
-      int currentres = (*fluctParm_)[atom].ResNum();
-      int nextres;
-      if (idx != lastidx) {
-        int nextatom = Mask_[idx+1];
-        nextres = (*fluctParm_)[nextatom].ResNum();
-      } else
-        nextres = -1;
-      if (nextres != currentres) {
+    if (resRange_.Empty()) {
+      // Original By residue output
+      int lastidx = (int)Results.size() - 1;
+      double fluct = 0.0;
+      double xi = 0.0;
+      for (int idx = 0; idx < (int)Results.size(); idx++) {
+        int atom = Mask_[idx];
+        double mass = (*fluctParm_)[atom].Mass();
+        fluct += Results[idx] * mass;
+        xi += mass;
+        int currentres = (*fluctParm_)[atom].ResNum();
+        int nextres;
+        if (idx != lastidx) {
+          int nextatom = Mask_[idx+1];
+          nextres = (*fluctParm_)[nextatom].ResNum();
+        } else
+          nextres = -1;
+        if (nextres != currentres) {
+          int resnum;
+          if (usePdbRes_)
+            resnum = fluctParm_->Res(currentres).OriginalResNum();
+          else
+            resnum = currentres + 1;
+          dset.AddXY( resnum, fluct / xi );
+          xi = 0.0;
+          fluct = 0.0;
+        }
+      }
+    } else {
+      // Range was specified
+      std::vector<int> atomToMaskIdx( fluctParm_->Natom(), -1);
+      for (AtomMask::const_iterator it = Mask_.begin(); it != Mask_.end(); ++it)
+        atomToMaskIdx[*it] = it - Mask_.begin();
+      std::vector<int> selectedRes = fluctParm_->ResnumsSelectedBy( Mask_ );
+      std::vector<int>::const_iterator ires = selectedRes.begin();
+      for (Range::const_iterator it = resRange_.begin(); it != resRange_.end(); ++it)
+      {
+        int tgtres = *it - 1;
         int resnum;
         if (usePdbRes_)
-          resnum = fluctParm_->Res(currentres).OriginalResNum();
+          resnum = fluctParm_->Res(tgtres).OriginalResNum();
         else
-          resnum = currentres + 1;
-        dset.AddXY( resnum, fluct / xi );
-        xi = 0.0;
-        fluct = 0.0;
-      }
+          resnum = *it;
+        if (ires == selectedRes.end() || tgtres < *ires) {
+          // Specified res not selected
+          dset.AddXY( resnum, 0.0 );
+        } else if (tgtres == *ires) {
+          // Specified res selected
+          double fluct = 0.0;
+          double xi = 0.0;
+          for (int at = fluctParm_->Res(*ires).FirstAtom(); at != fluctParm_->Res(*ires).LastAtom(); ++at)
+          {
+            int idx = atomToMaskIdx[at];
+            if (idx != -1) {
+              double mass = (*fluctParm_)[at].Mass();
+              fluct += Results[idx] * mass;
+              xi += mass;
+            }
+          }
+          dset.AddXY( resnum, fluct / xi );
+          ++ires;
+        } else {
+          // Sanity check
+          mprinterr("Internal Error: Action_AtomicFluct::Print(): resrange print failed; tgtres = %i, ires = %i\n", *it, *ires+1);
+          return;
+        }
+      } // END loop over resnums in range
     }
   } else if (outtype_ == BYMASK) {
     // By mask output

@@ -23524,15 +23524,15 @@ atomicfluct
 
 \end_inset
 
- [<name>] [out <filename>] [<mask>] [byres [pdbres] | byatom | bymask]
+ [<name>] [out <filename>] [<mask>] [bfactor] [calcadp [adpout <file>]]
 \end_layout
 
 \begin_layout LyX-Code
-            [bfactor] [calcadp [adpout <file>]]
+        	[{byres [pdbres] [resrange <range>] | byatom | bymask}]
 \end_layout
 
 \begin_layout LyX-Code
-            [start <start>] [stop <stop>] [offset <offset>]
+        	[start <start>] [stop <stop>] [offset <offset>]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -23557,23 +23557,6 @@ out
 \end_layout
 
 \begin_layout Description
-byres [pdbres] Output the average (mass-weighted) fluctuation by residue.
- If 'pdbres' is specified, the original residue numbering will be used.
-\end_layout
-
-\begin_layout Description
-bymask Output the average (mass-weighted) fluctuation for all atoms in <mask>.
-\end_layout
-
-\begin_layout Description
-byatom
-\begin_inset space ~
-\end_inset
-
-(default) Output the fluctuation by atom.
-\end_layout
-
-\begin_layout Description
 [bfactor] Calculate atomic positional fluctuations squared and weight by
  
 \begin_inset Formula $\frac{8}{3}\pi^{2}$
@@ -23594,6 +23577,39 @@ graphic B-factors.
 
 <file>]] Calculate anisotropic displacement parameters and optionally output
  them to <file>.
+\end_layout
+
+\begin_layout Description
+byres [pdbres] Output the average (mass-weighted) fluctuation by residue.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+pdbres If specified, the original residue numbering will be used.
+\end_layout
+
+\begin_layout Description
+resrange
+\begin_inset space ~
+\end_inset
+
+<range> Calculate fluctuations for residues in the given range argument.
+ The residues selected by <mask> must be a subset of residues specified
+ with <range>.
+ Unselected residues will get a fluctuation of 0.0.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+bymask Output the average (mass-weighted) fluctuation for all atoms in <mask>.
+\end_layout
+
+\begin_layout Description
+byatom
+\begin_inset space ~
+\end_inset
+
+(default) Output the fluctuation by atom.
 \end_layout
 
 \begin_layout Description

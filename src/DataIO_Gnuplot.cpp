@@ -451,7 +451,20 @@ int DataIO_Gnuplot::WriteSets1D(DataSetList const& Sets)
 {
   // FIXME: Check that dimension of each set matches.
   if (Sets.empty()) return 1;
-  CheckXDimension( Sets );
+  DataIO::DSLarray SetLists = CheckXDimension( Sets );
+  if (Sets.size() > 1) {
+    mprintf("Warning: Multiple X dimensions detected for sets being written to file '%s'\n",
+            file_.Filename().full());
+    mprintf("Warning: Sets with matching X dimensions will be written to separate plots.\n");
+  }
+  int err = 0;
+  for (DataIO::DSLarray::const_iterator dslit = SetLists.begin(); dslit != SetLists.end(); ++dslit)
+    err += writeSets1D_MatchingXdim(*dslit);
+  return err;
+}
+
+/** Write data sets to file; the X dimension of all sets should be the same */
+int DataIO_Gnuplot::writeSets1D_MatchingXdim(DataSetList const& Sets) {
   // Determine size of largest DataSet.
   size_t maxFrames = DetermineMax( Sets );
   // Use X dimension of set 0 for all set dimensions.

@@ -34,6 +34,7 @@ class DataIO_Std : public DataIO {
     int WriteStringVars(CpptrajFile&, DataSetList const&) const;
     int WriteCmatrix(CpptrajFile&, DataSetList const&);
     int WriteDataNormal(CpptrajFile&,DataSetList const&);
+    int writeDataNormal_MatchingXdim(CpptrajFile&, DataSetList const&);
     int WriteDataInverted(CpptrajFile&,DataSetList const&);
     int WriteData2D(CpptrajFile&, DataSetList const&);
     int WriteData3D(CpptrajFile&, DataSetList const&);
