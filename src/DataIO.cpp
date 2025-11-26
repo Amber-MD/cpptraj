@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "DataSet_1D.h"
 #include "DataSet_MatrixDbl.h"
+#include <algorithm> // std::min
 
 // CONSTRUCTOR
 DataIO::DataIO() :
@@ -79,9 +80,17 @@ static inline double xCoordVal(DataSet const& set, unsigned int idx) {
 /** Check if X dimension of 2 given sets matches. */
 bool DataIO::xDimMatch(DataSet const& ref, DataSet const& set) {
   if (set.Type() == DataSet::XYMESH) {
+    if (ref.Size() == 0 && set.Size() == 0)
+      // No values in either; automatic match
+      return true;
     // Need to explicitly check X values
     DataSet_1D const& s1 = static_cast<DataSet_1D const&>( set );
-    for (unsigned int idx = 0; idx != set.Size(); idx++) {
+    // Start from the end since that is most likely to not match
+    unsigned int endval = std::min(set.Size(), ref.Size());
+    if (endval == 0)
+      // One of the sets is empty; automatic non-match TODO should just match?
+      return false;
+    for (int idx = endval - 1; idx >= 0; idx--) {
       double x0val = xCoordVal(ref, idx);
       double xval = s1.Xcrd(idx);
       if (FNE( x0val, xval )) {
