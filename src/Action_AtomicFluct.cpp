@@ -212,8 +212,8 @@ int Action_AtomicFluct::SyncAction() {
 
 // Action_AtomicFluct::Print() 
 void Action_AtomicFluct::Print() {
+  if (sets_ < 1) return;
   mprintf("    ATOMICFLUCT: Calculating fluctuations for %i sets.\n",sets_);
-
   double Nsets = (double)sets_;
   // SumCoords will hold the average: <R>
   SumCoords_.Divide(Nsets);
