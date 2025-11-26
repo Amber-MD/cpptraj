@@ -100,47 +100,54 @@ bool DataIO::xDimMatch(DataSet const& ref, DataSet const& set) {
 }
 
 /** Ensure that the X dimension of each set in the array matches. */
-int DataIO::CheckXDimension(std::vector<int>& Xmatch, DataSetList const& array) {
-  if (array.empty()) return 0; // FIXME return error?
+DataIO::DSLarray DataIO::CheckXDimension(std::vector<int>& Xmatch, DataSetList const& array) {
+  DSLarray OUT;
+  if (array.empty()) return OUT; // FIXME return error?
   Xmatch.clear();
   Xmatch.resize( array.size(), -1 );
-  // First dimension always matches itself
-  Xmatch[0] = 0;
-  if (array.size() == 1) {
-    // Only one X dimension, no checks needed
-    return 0;
-  }
 
   // Loop over all sets
-  unsigned int currentMatchIndex = 0;
   unsigned int NsetsChecked = 0;
-  int numUniqueXdims = 0;
 //  int err = 0;
 //  Dimension const& Xdim = static_cast<Dimension const&>(array[0]->Dim(0));
   while (NsetsChecked < array.size()) {
-    DataSet const& currentRef = *(array[currentMatchIndex]);
-    // Advance to next set that is not matched.
-    unsigned int currentIndex = 1;
+    // Find the first unmatched set
+    unsigned int currentIndex = 0; 
     while (currentIndex < array.size() && Xmatch[currentIndex] != -1) ++currentIndex;
-    if (currentIndex == array.size()) break;
+    if (currentIndex >= array.size()) break;
+    DataSet const& currentRef = *(array[currentIndex]);
+    mprintf("DEBUG: Current ref: %s\n", currentRef.legend());
+    Xmatch[currentIndex] = currentIndex;
+    OUT.push_back( DataSetList() );
+    OUT.back().AddCopyOfSet( array[currentIndex] );
     // Loop over remaining sets
-    ++numUniqueXdims;
-    for (unsigned int setIdx = currentIndex; setIdx < array.size(); setIdx++)
+    mprintf("DEBUG: Starting at set %u\n", currentIndex+1);
+    for (unsigned int setIdx = currentIndex+1; setIdx < array.size(); setIdx++)
     {
       DataSet const& currentSet = *array[setIdx];
-      // Check if currentSet Xdim matches the current reference
-      if (Xmatch[setIdx] == -1 && xDimMatch( currentRef, currentSet )) {
-        Xmatch[setIdx] = (int)currentMatchIndex;
-        NsetsChecked++;
+      if (Xmatch[setIdx] == -1) {
+        mprintf("DEBUG:\t\tChecking %s", currentSet.legend());
+        // Check if currentSet Xdim matches the current reference
+        if (xDimMatch( currentRef, currentSet )) {
+          mprintf(" MATCH!");
+          Xmatch[setIdx] = (int)currentIndex;
+          OUT.back().AddCopyOfSet( array[setIdx] );
+          NsetsChecked++;
+        }
+        mprintf("\n");
       }
     }
-    // Next reference will be the first unmatched set
-    while (currentMatchIndex < array.size() && Xmatch[currentMatchIndex] != -1)
-      currentMatchIndex++;
   }
   mprintf("DEBUG: Xdim match indices:\n");
   for (unsigned int idx = 0; idx != array.size(); idx++)
     mprintf("DEBUG:\t%20s %i\n", array[idx]->legend(), Xmatch[idx]);
+  mprintf("DEBUG: Sets grouped by Xdim:\n");
+  for (DSLarray::const_iterator it = OUT.begin(); it != OUT.end(); ++it) {
+    mprintf("\t");
+    for (DataSetList::const_iterator jt = it->begin(); jt != it->end(); ++jt)
+      mprintf(" %s", (*jt)->legend());
+    mprintf("\n");
+  }
 
 //  DataSetList::const_iterator set = array.begin();
 //  for (DataSetList::const_iterator set = array.begin(); set != array.end(); ++set)
@@ -148,9 +155,7 @@ int DataIO::CheckXDimension(std::vector<int>& Xmatch, DataSetList const& array) 
 //    Dimension const& currentRefXdim = static_cast<Dimension const&>( array[currentMatchIndex]->Dim(0) );
 //  }
 //  return err;
-  if (numUniqueXdims > 1)
-    return 1;
-  return 0;
+  return OUT;
 }
 
 size_t DataIO::DetermineMax(DataSetList const& array) {
