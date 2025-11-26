@@ -79,6 +79,7 @@ static inline double xCoordVal(DataSet const& set, unsigned int idx) {
 
 /** Check if X dimension of 2 given sets matches. */
 bool DataIO::xDimMatch(DataSet const& ref, DataSet const& set) {
+  if (ref.Ndim() < 1 || set.Ndim() < 1) return false;
   if (ref.Type() == DataSet::XYMESH || set.Type() == DataSet::XYMESH) {
     if (ref.Size() == 0 && set.Size() == 0)
       // No values in either; automatic match
@@ -107,7 +108,10 @@ bool DataIO::xDimMatch(DataSet const& ref, DataSet const& set) {
   return true;
 }
 
-/** Ensure that the X dimension of each set in the array matches. */
+/** Ensure that the X dimension of each set in the array matches.
+  * \return An array of DataSetLists where the sets in each
+  *         DataSetList all have matching X dimensions.
+  */
 DataIO::DSLarray DataIO::CheckXDimension(DataSetList const& array) {
   DSLarray OUT;
   if (array.empty()) return OUT; // FIXME return error?
