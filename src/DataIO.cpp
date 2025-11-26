@@ -79,30 +79,29 @@ static inline double xCoordVal(DataSet const& set, unsigned int idx) {
 
 /** Check if X dimension of 2 given sets matches. */
 bool DataIO::xDimMatch(DataSet const& ref, DataSet const& set) {
-  if (set.Type() == DataSet::XYMESH) {
+  if (ref.Type() == DataSet::XYMESH || set.Type() == DataSet::XYMESH) {
     if (ref.Size() == 0 && set.Size() == 0)
       // No values in either; automatic match
       return true;
     // Need to explicitly check X values
-    DataSet_1D const& s1 = static_cast<DataSet_1D const&>( set );
     // Start from the end since that is most likely to not match
     unsigned int endval = std::min(set.Size(), ref.Size());
     if (endval == 0)
       // One of the sets is empty; automatic non-match TODO should just match?
       return false;
     for (int idx = endval - 1; idx >= 0; idx--) {
-      double x0val = xCoordVal(ref, idx);
-      double xval = s1.Xcrd(idx);
-      if (FNE( x0val, xval )) {
-        mprinterr("Error: X coordinate of %s (%f) != %s (%f) at index %u\n",
-                  set.legend(), xval, ref.legend(), x0val, idx);
+      double refXval = xCoordVal(ref, idx);
+      double setXval = xCoordVal(set, idx);
+      if (FNE( refXval, setXval )) {
+        mprintf("Warning: X coordinate of %s (%f) != %s (%f) at index %u\n",
+                set.legend(), setXval, ref.legend(), refXval, idx);
         return false;
       }
     }
   } else if (set.Dim(0) != ref.Dim(0)) {
-    mprinterr("Error: X Dimension of %s != %s\n", set.legend(), ref.legend());
-    mprinterr("Error:  %s: Min=%f Step=%f\n", set.legend(), set.Dim(0).Min(), set.Dim(0).Step());
-    mprinterr("Error:  %s: Min=%f Step=%f\n", ref.legend(), ref.Dim(0).Min(), ref.Dim(0).Step());
+    mprintf("Warning: X Dimension of %s (Min=%f Step=%f) != %s (Min=%f Step=%f)\n",
+            set.legend(), set.Dim(0).Min(), set.Dim(0).Step(),
+            ref.legend(), ref.Dim(0).Min(), ref.Dim(0).Step());
     return false;
   }
   return true;
@@ -126,29 +125,30 @@ DataIO::DSLarray DataIO::CheckXDimension(DataSetList const& array) {
     while (currentIndex < array.size() && Xmatch[currentIndex] != -1) ++currentIndex;
     if (currentIndex >= array.size()) break;
     DataSet const& currentRef = *(array[currentIndex]);
-    mprintf("DEBUG: Current ref: %s\n", currentRef.legend());
+//    mprintf("DEBUG: Current ref: %s\n", currentRef.legend());
     Xmatch[currentIndex] = currentIndex;
     OUT.push_back( DataSetList() );
     OUT.back().AddCopyOfSet( array[currentIndex] );
     // Loop over remaining sets
-    mprintf("DEBUG: Starting at set %u\n", currentIndex+1);
+//    mprintf("DEBUG: Starting at set %u\n", currentIndex+1);
     for (unsigned int setIdx = currentIndex+1; setIdx < array.size(); setIdx++)
     {
       DataSet const& currentSet = *array[setIdx];
       if (Xmatch[setIdx] == -1) {
-        mprintf("DEBUG:\t\tChecking %s", currentSet.legend());
+//        mprintf("DEBUG:\t\tChecking %s", currentSet.legend());
         // Check if currentSet Xdim matches the current reference
         if (xDimMatch( currentRef, currentSet )) {
-          mprintf(" MATCH!");
+//          mprintf(" MATCH!");
           Xmatch[setIdx] = (int)currentIndex;
           OUT.back().AddCopyOfSet( array[setIdx] );
           NsetsChecked++;
         }
-        mprintf("\n");
+//        mprintf("\n");
       }
     }
   }
-  mprintf("DEBUG: Xdim match indices:\n");
+  // DEBUG
+/*  mprintf("DEBUG: Xdim match indices:\n");
   for (unsigned int idx = 0; idx != array.size(); idx++)
     mprintf("DEBUG:\t%20s %i\n", array[idx]->legend(), Xmatch[idx]);
   mprintf("DEBUG: Sets grouped by Xdim:\n");
@@ -157,8 +157,16 @@ DataIO::DSLarray DataIO::CheckXDimension(DataSetList const& array) {
     for (DataSetList::const_iterator jt = it->begin(); jt != it->end(); ++jt)
       mprintf(" %s", (*jt)->legend());
     mprintf("\n");
+  }*/
+  if (OUT.size() > 1) {
+    mprintf("Warning: Not all sets had matching X dimensions. They will be grouped in the file like so:\n");
+    for (DSLarray::const_iterator it = OUT.begin(); it != OUT.end(); ++it) {
+      mprintf("\t");
+      for (DataSetList::const_iterator jt = it->begin(); jt != it->end(); ++jt)
+        mprintf(" %s", (*jt)->legend());
+      mprintf("\n");
+    }
   }
-
 //  DataSetList::const_iterator set = array.begin();
 //  for (DataSetList::const_iterator set = array.begin(); set != array.end(); ++set)
 //  {

@@ -1294,7 +1294,11 @@ int DataIO_Std::WriteDataNormal(CpptrajFile& file, DataSetList const& Sets) {
   DataIO::DSLarray SetLists = CheckXDimension( Sets );
   int err = 0;
   for (DataIO::DSLarray::const_iterator dslit = SetLists.begin(); dslit != SetLists.end(); ++dslit)
+  {
+    if (dslit != SetLists.begin())
+      file.Printf("\n");
     err += writeDataNormal_MatchingXdim(file, *dslit);
+  }
   return err;
 }
 
