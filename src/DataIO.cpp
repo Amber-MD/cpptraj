@@ -80,11 +80,15 @@ static inline double xCoordVal(DataSet const& set, unsigned int idx) {
 /** Check if X dimension of 2 given sets matches. */
 bool DataIO::xDimMatch(DataSet const& ref, DataSet const& set) {
   if (ref.Ndim() < 1 || set.Ndim() < 1) return false;
-  if (ref.Type() == DataSet::XYMESH || set.Type() == DataSet::XYMESH) {
+  // First check if the reference set is the index set for incoming set.
+  if ( set.DimIndexSet(0) != 0 && set.DimIndexSet(0) == (DataSet const*)(&ref) ) {
+    //mprintf("DEBUG: %s is the X index set for %s\n", ref.legend(), set.legend());
+    return true;
+  } else if (ref.Type() == DataSet::XYMESH || set.Type() == DataSet::XYMESH) {
+    // Either one of both sets is a mesh. Need to explicitly check X values.
     if (ref.Size() == 0 && set.Size() == 0)
       // No values in either; automatic match
       return true;
-    // Need to explicitly check X values
     // Start from the end since that is most likely to not match
     unsigned int endval = std::min(set.Size(), ref.Size());
     if (endval == 0)
