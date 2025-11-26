@@ -33,5 +33,6 @@ class Action_AtomicFluct : public Action, ActionFrameCounter {
     outputType outtype_;
     DataSet* dataout_;
     DataSet* adpset_; ///< DataSet for holding anisotropic temp. factors
+    Range resRange_;
 };
 #endif
