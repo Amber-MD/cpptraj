@@ -82,6 +82,13 @@ int Solvate::InitSetbox(ArgList& argIn, int debugIn) {
   return 0;
 }
 
+/** Print info to stdout */
+void Solvate::PrintSolvateInfo() const {
+  mprintf("\tSolvent buffer XYZ: %g %g %g Ang.\n", bufferX_, bufferY_, bufferZ_);
+  mprintf("\tSolvent closeness: %g Ang.\n", closeness_);
+  mprintf("\tSolvent isotropic=%i  clip=%i  center_=%i\n", (int)isotropic_, (int)clip_, (int)center_);
+} 
+
 /** Get solvent unit box from DataSetList */
 DataSet_Coords* Solvate::GetSolventUnit(DataSetList const& DSL) const {
   if (solventBoxName_.empty()) {
@@ -163,6 +170,22 @@ int Solvate::setVdwBoundingBox(double& boxX, double& boxY, double& boxZ,
                                Frame& frameOut)
 const
 {
+  if (isotropic_) {
+    // Center on origin and align principal axes.
+    Vec3 ctr = frameOut.VGeometricCenter();
+    ctr.Neg();
+    frameOut.Translate(ctr);
+
+    Matrix_3x3 Inertia;
+    Vec3 Eval;
+    frameOut.CalculateInertia( AtomMask(0, frameOut.Natom()), Inertia );
+    Inertia.Diagonalize( Eval );
+    printf("Eigenvalues: %f %f %f\n", Eval[0], Eval[1], Eval[2]);
+
+    frameOut.Rotate( Inertia );
+    //frameOut.ModifyBox().RotateUcell( Inertia );
+  }
+
   // Set vdw bounding box
   double Xmin = 0;
   double Ymin = 0;

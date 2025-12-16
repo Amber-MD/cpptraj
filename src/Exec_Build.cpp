@@ -895,6 +895,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
       mprinterr("Error: Init solvate failed.\n");
       return CpptrajState::ERR;
     }
+    solvator.PrintSolvateInfo();
   } else if (argIn.hasKey("setbox")) {
     add_solvent = SETBOX;
     if (solvator.InitSetbox(argIn, debug_)) {

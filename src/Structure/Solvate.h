@@ -34,6 +34,8 @@ class Solvate {
     /// \return Solvent unit selected from given DataSetList
     DataSet_Coords* GetSolventUnit(DataSetList const&) const;
     //std::string const& SolventBoxName() const { return solventBoxName_; }
+    /// Print solvate info to stdout
+    void PrintSolvateInfo() const;
   private:
     /// Get buffer arguments
     int getBufferArg(ArgList&, double);
