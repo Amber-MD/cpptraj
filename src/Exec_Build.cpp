@@ -795,11 +795,17 @@ void Exec_Build::Help() const
           "\t[%s]\n"
           "\t[{%s} ...]\n"
           "\t[{%s} ...]\n"
+          "\t[{solvate %s\n"
+          "\t          %s |\n"
+          "\t  setbox %s}]\n"
           "%s"
           "%s",
           Cpptraj::Structure::Creator::other_keywords_,
           Cpptraj::Structure::Creator::template_keywords_,
           Cpptraj::Structure::Creator::parm_keywords_,
+          Cpptraj::Structure::Solvate::SolvateKeywords1(),
+          Cpptraj::Structure::Solvate::SolvateKeywords2(),
+          Cpptraj::Structure::Solvate::SetboxKeywords(),
           Cpptraj::Structure::HisProt::keywords_,
           Cpptraj::Structure::Disulfide::keywords_
          );
@@ -880,12 +886,19 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   std::string solventResName = argIn.GetStringKey("solventresname", "HOH");
   mprintf("\tSolvent residue name: %s\n", solventResName.c_str());
 
-  bool add_solvent = false;
+  enum SolvateModeType { NO_SOLVATE = 0, SOLVATEBOX, SETBOX };
+  SolvateModeType add_solvent = NO_SOLVATE;
   Cpptraj::Structure::Solvate solvator;
   if (argIn.hasKey("solvate")) {
-    add_solvent = true;
+    add_solvent = SOLVATEBOX;
     if (solvator.InitSolvate(argIn, debug_)) {
       mprinterr("Error: Init solvate failed.\n");
+      return CpptrajState::ERR;
+    }
+  } else if (argIn.hasKey("setbox")) {
+    add_solvent = SETBOX;
+    if (solvator.InitSetbox(argIn, debug_)) {
+      mprinterr("Error: Init setbox failed.\n");
       return CpptrajState::ERR;
     }
   }
@@ -1095,7 +1108,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   }
 
   std::string checkMaskString("*");
-  if (add_solvent) {
+  if (add_solvent == SOLVATEBOX) {
     t_solvate_.Start();
     // Record initial number of atoms and residues
     int initial_natom = topOut.Natom();
@@ -1115,6 +1128,13 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
     // clash with solute, just check the solute.
     checkMaskString.assign( "@1-" + integerToString(initial_natom) );
     t_solvate_.Stop();
+  } else if (add_solvent == SETBOX) {
+    t_solvate_.Start();
+    if (solvator.SetVdwBoundingBox( topOut, frameOut, *(creator.MainParmSetPtr()) )) {
+      mprinterr("Error: Setting box failed.\n");
+      return CpptrajState::ERR;
+    }
+    mprintf("\tAdding VDW bounding box.\n");
   }
 
   // Assign parameters. This will create the bond/angle/dihedral/improper

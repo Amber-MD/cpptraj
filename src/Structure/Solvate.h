@@ -20,13 +20,23 @@ class Solvate {
     Solvate();
     /// Initialize
     int InitSolvate(ArgList&, int);
+    /// Initialize for setbox
+    int InitSetbox(ArgList&, int);
+    /// Set VDW bounding box
+    int SetVdwBoundingBox(Topology&, Frame&, Cpptraj::Parm::ParameterSet const& set0);
     /// Solvate with box
     int SolvateBox(Topology&, Frame&, Cpptraj::Parm::ParameterSet const&, DataSet_Coords&);
+
+    static const char* SetboxKeywords();
+    static const char* SolvateKeywords1();
+    static const char* SolvateKeywords2();
 
     /// \return Solvent unit selected from given DataSetList
     DataSet_Coords* GetSolventUnit(DataSetList const&) const;
     //std::string const& SolventBoxName() const { return solventBoxName_; }
   private:
+    /// Get buffer arguments
+    int getBufferArg(ArgList&, double);
     /// Get radii for atoms in topology
     std::vector<double> getAtomRadii(double&, Topology const&,
                                      Cpptraj::Parm::ParameterSet const&) const;

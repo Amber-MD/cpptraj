@@ -23,23 +23,41 @@ Solvate::Solvate() :
 {
 }
 
-/** Initialize arguments. */
-int Solvate::InitSolvate(ArgList& argIn, int debugIn) {
-  debug_ = debugIn;
+const char* Solvate::SetboxKeywords() {
+  return "[{buffer <buffer> | bufx <bufx> bufy <bufy> bufz <bufz>}]";
+}
 
+const char* Solvate::SolvateKeywords1() {
+  return "{buffer <buffer> | bufx <bufx> bufy <bufy> bufz <bufz>}";
+}
+
+const char* Solvate::SolvateKeywords2() {
+  return "solventbox <unit> [closeness <closeness>] [iso] [nocenter]";
+}
+
+/** Get any buffer arguments */
+int Solvate::getBufferArg(ArgList& argIn, double defaultBuffer) {
   if (argIn.Contains("buffer")) {
-    bufferX_ = argIn.getKeyDouble("buffer", -1.0);
+    bufferX_ = argIn.getKeyDouble("buffer", defaultBuffer);
     bufferY_ = bufferX_;
     bufferZ_ = bufferX_;
   } else {
-    bufferX_ = argIn.getKeyDouble("bufx", -1.0);
-    bufferY_ = argIn.getKeyDouble("bufy", -1.0);
-    bufferZ_ = argIn.getKeyDouble("bufz", -1.0);
+    bufferX_ = argIn.getKeyDouble("bufx", defaultBuffer);
+    bufferY_ = argIn.getKeyDouble("bufy", defaultBuffer);
+    bufferZ_ = argIn.getKeyDouble("bufz", defaultBuffer);
   }
   if (bufferX_ < 0 || bufferY_ < 0 || bufferZ_ < 0) {
     mprinterr("Error: Either 'buffer' or 'bufx/bufy/bufx' must be specified and >= 0\n");
     return 1;
   }
+  return 0;
+}
+
+/** Initialize arguments. */
+int Solvate::InitSolvate(ArgList& argIn, int debugIn) {
+  debug_ = debugIn;
+
+  if (getBufferArg(argIn, -1.0)) return 1;
 
   isotropic_ = argIn.hasKey("iso");
 
@@ -51,6 +69,15 @@ int Solvate::InitSolvate(ArgList& argIn, int debugIn) {
 
   closeness_ = argIn.getKeyDouble("closeness", 1.0);
   center_ = !argIn.hasKey("nocenter");
+
+  return 0;
+}
+
+/** Initialize args for setbox */
+int Solvate::InitSetbox(ArgList& argIn, int debugIn) {
+  debug_ = debugIn;
+
+  if (getBufferArg(argIn, 0.0)) return 1;
 
   return 0;
 }
@@ -187,6 +214,38 @@ const
   // Translate to origin
   frameOut.Translate(toCenter);
 
+  return 0;
+}
+
+/** Set VDW bounding box */
+int Solvate::SetVdwBoundingBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::ParameterSet const& set0)
+{
+  // Set vdw box
+  double soluteMaxR;
+  std::vector<double> soluteRadii = getAtomRadii(soluteMaxR, topOut, set0) ;
+  double boxX, boxY, boxZ;
+  if (setVdwBoundingBox(boxX, boxY, boxZ, soluteRadii, frameOut)) {
+    mprinterr("Error: Setting vdw bounding box for %s failed.\n", topOut.c_str());
+    return 1;
+  }
+  mprintf("  Solute vdw bounding box:              %-5.3f %-5.3f %-5.3f\n", boxX, boxY, boxZ);
+
+  double dXWidth = boxX + bufferX_ * 2;
+  double dYWidth = boxY + bufferY_ * 2;
+  double dZWidth = boxZ + bufferZ_ * 2;
+
+    mprintf("  Total bounding box for atom centers:  %5.3f %5.3f %5.3f\n", 
+            dXWidth, dYWidth, dZWidth );
+
+  // Setup box
+  frameOut.ModifyBox().SetupFromXyzAbg(boxX, boxY, boxZ, 90.0, 90.0, 90.0);
+  frameOut.BoxCrd().PrintInfo();
+  topOut.SetParmBox( frameOut.BoxCrd() );
+  mprintf("  Total vdw box size:%s%5.3f %5.3f %5.3f angstroms.\n", "                   ",
+          frameOut.BoxCrd().Param(Box::X),
+          frameOut.BoxCrd().Param(Box::Y),
+          frameOut.BoxCrd().Param(Box::Z));
+  mprintf("  Volume: %5.3lf A^3\n", frameOut.BoxCrd().CellVolume());
   return 0;
 }
 
