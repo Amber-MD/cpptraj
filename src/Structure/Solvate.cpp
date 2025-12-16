@@ -167,10 +167,10 @@ const
 /** Set VDW bounding box. */
 int Solvate::setVdwBoundingBox(double& boxX, double& boxY, double& boxZ,
                                std::vector<double> const& Radii,
-                               Frame& frameOut)
+                               Frame& frameOut, bool orient)
 const
 {
-  if (isotropic_) {
+  if (orient) {
     // Center on origin and align principal axes.
     Vec3 ctr = frameOut.VGeometricCenter();
     ctr.Neg();
@@ -182,8 +182,23 @@ const
     Inertia.Diagonalize( Eval );
     printf("Eigenvalues: %f %f %f\n", Eval[0], Eval[1], Eval[2]);
 
-    frameOut.Rotate( Inertia );
-    //frameOut.ModifyBox().RotateUcell( Inertia );
+    // Check the handedness of the diagonalized matrix
+    // If it is the wrong hand then it will transform the unit into a mirror image.
+    Vec3 vPos = Inertia.Row1().Cross( Inertia.Row2() );
+    mprintf("VPOS= %f %f %f\n", vPos[0], vPos[1], vPos[2]);
+    double dDot = vPos * Inertia.Row3();
+    mprintf( "The handedness of the transformation is (+1=Right): %f\n", dDot );
+
+    // If the handedness of the matrix is wrong then change it
+    if ( dDot < 0.0 ) {
+      Inertia[6] *= -1.0;
+      Inertia[7] *= -1.0;
+      Inertia[8] *= -1.0;
+    }
+
+    //frameOut.Rotate( Inertia );
+    // CPPTRAJ inverse rotate consistent with MatrixTimesVector from LEAP
+    frameOut.InverseRotate( Inertia );
   }
 
   // Set vdw bounding box
@@ -247,7 +262,7 @@ int Solvate::SetVdwBoundingBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm:
   double soluteMaxR;
   std::vector<double> soluteRadii = getAtomRadii(soluteMaxR, topOut, set0) ;
   double boxX, boxY, boxZ;
-  if (setVdwBoundingBox(boxX, boxY, boxZ, soluteRadii, frameOut)) {
+  if (setVdwBoundingBox(boxX, boxY, boxZ, soluteRadii, frameOut, isotropic_)) {
     mprinterr("Error: Setting vdw bounding box for %s failed.\n", topOut.c_str());
     return 1;
   }
@@ -290,7 +305,7 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
   double soluteMaxR;
   std::vector<double> soluteRadii = getAtomRadii(soluteMaxR, topOut, set0) ;
   double boxX, boxY, boxZ;
-  if (setVdwBoundingBox(boxX, boxY, boxZ, soluteRadii, frameOut)) {
+  if (setVdwBoundingBox(boxX, boxY, boxZ, soluteRadii, frameOut, isotropic_)) {
     mprinterr("Error: Setting vdw bounding box for %s failed.\n", topOut.c_str());
     return 1;
   }
@@ -355,7 +370,7 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
     solventY = solventFrame.BoxCrd().Param(Box::Y);
     solventZ = solventFrame.BoxCrd().Param(Box::Z);
   } else {
-    if (setVdwBoundingBox(solventX, solventY, solventZ, solventRadii, solventFrame)) {
+    if (setVdwBoundingBox(solventX, solventY, solventZ, solventRadii, solventFrame, false)) {
       mprinterr("Error: Setting vdw bounding box for %s failed.\n", topOut.c_str());
       return 1;
     }
@@ -392,7 +407,7 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
 
   // Define the size of the new solvent/solute system
   soluteRadii = getAtomRadii(soluteMaxR, topOut, set0) ;
-  if (setVdwBoundingBox(boxX, boxY, boxZ, soluteRadii, frameOut)) {
+  if (setVdwBoundingBox(boxX, boxY, boxZ, soluteRadii, frameOut, false)) {
     mprinterr("Error: Setting vdw bounding box for solute/solvent system failed.\n", topOut.c_str());
     return 1;
   }
