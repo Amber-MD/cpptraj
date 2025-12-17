@@ -402,7 +402,7 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
     clipX_ = 0.5 * boxX + bufferX_;
     clipY_ = 0.5 * boxY + bufferY_;
     clipZ_ = 0.5 * boxZ + bufferZ_;
-    //mprintf("cCriteria: %f %f %f\n", clipX_, clipY_, clipZ_);
+    mprintf("cCriteria: %f %f %f\n", clipX_, clipY_, clipZ_);
   }
 /*
     if ( bOct ) {
@@ -468,8 +468,20 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
     mprinterr("Error: Setting vdw bounding box for solute/solvent system failed.\n", topOut.c_str());
     return 1;
   }
+  if (doTruncatedOct_) {
+    double dAngle = 0;
+    ewald_rotate(frameOut, dAngle);
+    mprintf("EwaldRotate: %f\n", dAngle);
+    // Add an angstrom to the desired box size rather than using the bounding box size
+    dAngle = clipX_ + .5;
+    boxX = boxY = boxZ = dAngle * sqrt(3.0) * 0.5;
+  }
+
   // Setup box
-  frameOut.ModifyBox().SetupFromXyzAbg(boxX, boxY, boxZ, 90.0, 90.0, 90.0);
+  double boxBeta = 90.0;
+  if (doTruncatedOct_)
+    boxBeta = Box::TruncatedOctAngle();
+  frameOut.ModifyBox().SetupFromXyzAbg(boxX, boxY, boxZ, boxBeta, boxBeta, boxBeta);
   frameOut.BoxCrd().PrintInfo();
   topOut.SetParmBox( frameOut.BoxCrd() );
   mprintf("  Total vdw box size:%s%5.3f %5.3f %5.3f angstroms.\n", "                   ",
