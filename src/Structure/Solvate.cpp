@@ -7,6 +7,7 @@
 #include "../Topology.h"
 #include "../Parm/ParameterSet.h"
 #include <algorithm> //std::max
+#include <cmath> // cos, sin, sqrt
 
 using namespace Cpptraj::Structure;
 
@@ -54,8 +55,9 @@ int Solvate::getBufferArg(ArgList& argIn, double defaultBuffer) {
 }
 
 /** Initialize arguments. */
-int Solvate::InitSolvate(ArgList& argIn, int debugIn) {
+int Solvate::InitSolvate(ArgList& argIn, bool octIn, int debugIn) {
   debug_ = debugIn;
+  doTruncatedOct_ = octIn;
 
   if (getBufferArg(argIn, -1.0)) return 1;
 
@@ -69,6 +71,13 @@ int Solvate::InitSolvate(ArgList& argIn, int debugIn) {
 
   closeness_ = argIn.getKeyDouble("closeness", 1.0);
   center_ = !argIn.hasKey("nocenter");
+
+  if (doTruncatedOct_) {
+    if (!clip_) {
+      mprinterr("Error: Truncated octahedral box currently requires 'clip'.\n");
+      return 1;
+    }
+  }
 
   return 0;
 }
@@ -285,6 +294,54 @@ int Solvate::SetVdwBoundingBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm:
           frameOut.BoxCrd().Param(Box::Z));
   mprintf("  Volume: %5.3lf A^3\n", frameOut.BoxCrd().CellVolume());
   return 0;
+}
+
+/** Rotate 45 deg. around z axis, (90-tetra/2) around y axis, 90 around x axis.
+  *    (1  0  0)    (cos2  0 -sin2)    (cos1 -sin1  0)
+  *    (0  0 -1)    (   0  1     0)    (sin1  cos1  0)
+  *    (0  1  0)    (sin2  0  cos2)    (   0     0  1)
+  *
+  *    cntr-clk       clock              clock
+  *    Looking down + axis of rotation toward origin
+  *
+  * For isotropic truncated octahedral box only.
+  */
+void ewald_rotate(Frame& frameOut, double& dPAngle)
+{
+  double tetra_angl = 2 * acos( 1. / sqrt(3.) );
+  double pi = 3.1415927; // FIXME use Constants
+  double phi = pi / 4.;
+  double cos1 = cos(phi);
+  double sin1 = sin(phi);
+         phi = pi/2. - tetra_angl/2.;
+  double cos2 = sqrt(2.)/sqrt(3.);
+  double sin2=1./sqrt(3.);
+
+  double t11= cos2*cos1;
+  double t12=-cos2*sin1;
+  double t13=-sin2;
+  double t21=-sin2*cos1;
+  double t22= sin2*sin1;
+  double t23=-cos2;
+  double t31= sin1;
+  double t32= cos1;
+  double t33=0;
+
+  //lAtoms = lLoop( (OBJEKT)uUnit, ATOMS );
+  //while ( (aAtom = (ATOM)oNext(&lAtoms)) != NULL ) {
+  //      double  dX, dY, dZ;
+  double* xyz = frameOut.xAddress();
+  for (int at = 0; at != frameOut.Natom(); at++, xyz += 3)
+  {
+    double dX = xyz[0];
+    double dY = xyz[1];
+    double dZ = xyz[2];
+
+    xyz[0] = t11*dX + t12*dY + t13*dZ;
+    xyz[1] = t21*dX + t22*dY + t23*dZ;
+    xyz[2] = t31*dX + t32*dY + t33*dZ;
+  }
+  dPAngle = tetra_angl*180./pi;
 }
 
 /** Create box, fill with solvent */

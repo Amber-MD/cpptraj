@@ -19,7 +19,7 @@ class Solvate {
     /// CONSTRUCTOR
     Solvate();
     /// Initialize
-    int InitSolvate(ArgList&, int);
+    int InitSolvate(ArgList&, bool, int);
     /// Initialize for setbox
     int InitSetbox(ArgList&, int);
     /// Set VDW bounding box
@@ -50,8 +50,9 @@ class Solvate {
     int determineValidSolventResidues(std::vector<int>&, std::vector<int> const&,
                                       Frame const&, Topology const&, Frame const&,
                                       std::vector<double> const&, std::vector<double> const&) const;
-
-    // Add solvent unit boxes
+    /// Ewald rotate for trun. oct system
+    static void ewald_rotate(Frame&, double&);
+    /// Add solvent unit boxes
     int addSolventUnits(int, int, int, double, double, double, double, double, double, double,
                         Frame&, Topology const&, Frame&, Topology&,
                         std::vector<double> const&, std::vector<double> const&) const;
@@ -67,6 +68,7 @@ class Solvate {
     bool isotropic_;
     bool clip_;
     bool center_;
+    bool doTruncatedOct_;
     std::string solventBoxName_;
     static const double ATOM_DEFAULT_RADIUS_; ///< Atom default radius from LEaP
     static const double CLOSENESSMODIFIER_;   ///< Overlap closeness modifier from LEaP
