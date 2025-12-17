@@ -82,14 +82,17 @@ const
     // Determine if this is a terminal residue
     Cpptraj::Structure::TerminalType resTermType;
     if (currentRes.IsTerminal()) {
-      mprintf("DEBUG: %s End terminal due to TERMINAL status.\n", topIn.TruncResNameNum(ires).c_str());
       resTermType = Cpptraj::Structure::END_TERMINAL;
+      if (debug_ > 0)
+        mprintf("DEBUG: %s End terminal due to TERMINAL status.\n", topIn.TruncResNameNum(ires).c_str());
     } else if (ires == 0 && topIn.Nres() > 1) {
       resTermType = Cpptraj::Structure::BEG_TERMINAL;
-      mprintf("DEBUG: %s Begin terminal due to first residue.\n", topIn.TruncResNameNum(ires).c_str());
+      if (debug_ > 0)
+        mprintf("DEBUG: %s Begin terminal due to first residue.\n", topIn.TruncResNameNum(ires).c_str());
     } else if (pres > -1 && topIn.Res(pres).IsTerminal()) {
       resTermType = Cpptraj::Structure::BEG_TERMINAL;
-      mprintf("DEBUG: %s Begin terminal due to previous residue TERMINAL status.\n", topIn.TruncResNameNum(ires).c_str());
+      if (debug_ > 0)
+        mprintf("DEBUG: %s Begin terminal due to previous residue TERMINAL status.\n", topIn.TruncResNameNum(ires).c_str());
     } else if (nres < topIn.Nres() && (topIn.Res(nres).ChainID() != currentRes.ChainID())// ||
 //                                        (topIn.Res(nres).OriginalResNum() == currentRes.OriginalResNum() &&
 //                                         topIn.Res(nres).Icode()          != currentRes.Icode()
@@ -98,10 +101,12 @@ const
               )
     {
       resTermType = Cpptraj::Structure::END_TERMINAL;
-      mprintf("DEBUG: %s End terminal due to chain ID.\n", topIn.TruncResNameNum(ires).c_str());
+      if (debug_ > 0)
+        mprintf("DEBUG: %s End terminal due to chain ID.\n", topIn.TruncResNameNum(ires).c_str());
     } else if (nres == topIn.Nres()) {
       resTermType = Cpptraj::Structure::END_TERMINAL;
-      mprintf("DEBUG: %s End terminal due to last residue.\n", topIn.TruncResNameNum(ires).c_str());
+      if (debug_ > 0)
+        mprintf("DEBUG: %s End terminal due to last residue.\n", topIn.TruncResNameNum(ires).c_str());
     } else {
       resTermType = Cpptraj::Structure::NON_TERMINAL;
     }

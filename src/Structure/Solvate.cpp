@@ -57,90 +57,6 @@ int Solvate::getBufferArg(ArgList& argIn, double defaultBuffer) {
   return 0;
 }
 
-/** Scale buffer if needed to meet diagonal clearance. */
-void Solvate::octBoxCheck(Frame const& frameOut) {
-  if (frameOut.Natom() < 1) return;
-  double dPBuf[4];
-
-  dPBuf[0] = bufferX_;
-  dPBuf[1] = bufferY_;
-  dPBuf[2] = bufferZ_;
-  dPBuf[3] = bufferD_;
-  mprintf("dPBuf %f %f %f %f\n", dPBuf[0], dPBuf[1], dPBuf[2], dPBuf[3]);
-
-  const double* XYZ = frameOut.XYZ(0);
-  double dXmax = XYZ[0];
-  double dYmax = XYZ[1];
-  double dZmax = XYZ[2];
-  double dXmin = XYZ[0];
-  double dYmin = XYZ[1];
-  double dZmin = XYZ[2];
-
-  for (int at = 1; at < frameOut.Natom(); at++)
-  {
-    XYZ = frameOut.XYZ(at);
-    if      ( XYZ[0] > dXmax )
-            dXmax = XYZ[0];
-    else if ( XYZ[0] < dXmin )
-            dXmin = XYZ[0];
-    if      ( XYZ[1] > dYmax )
-            dYmax = XYZ[1];
-    else if ( XYZ[1] < dYmin )
-            dYmin = XYZ[1];
-    if      ( XYZ[2] > dZmax )
-            dZmax = XYZ[2];
-    else if ( XYZ[2] < dZmin )
-            dZmin = XYZ[2];
-  }
-
-  // calc halfbox on centers
-  double dXhalf = 0.5 * (dXmax - dXmin) + dPBuf[0];
-  double dYhalf = 0.5 * (dYmax - dYmin) + dPBuf[1];
-  double dZhalf = 0.5 * (dZmax - dZmin) + dPBuf[2];
-
-  // find unit vector of diagonal
-  double dX = dYhalf * dZhalf;
-  double dY = dXhalf * dZhalf;
-  double dZ = dXhalf * dYhalf;
-
-  double dTmp = 1.0 / sqrt( dX*dX + dY*dY + dZ*dZ );
-
-  double dXunit = dX * dTmp;
-  double dYunit = dY * dTmp;
-  double dZunit = dZ * dTmp;
-
-  // find max atom distance from origin along the diagonal
-  double dMax = 0.0;
-  for (int at = 0; at < frameOut.Natom(); at++)
-  {
-    XYZ = frameOut.XYZ(at);
-    dTmp = fabs(XYZ[0]) * dXunit +
-           fabs(XYZ[1]) * dYunit +
-           fabs(XYZ[2]) * dZunit;
-    if ( dTmp > dMax )
-      dMax = dTmp;
-  }
-
-  // calc distance of diagonal face from origin
-  double dBmax = 0.5 * sqrt( dXhalf*dXhalf + dYhalf*dYhalf + dZhalf*dZhalf );
-
-  // see if diagonal clearance is satisfied
-  dTmp = dMax + dPBuf[3];
-  if ( dTmp <= dBmax ) {
-    if ( dPBuf[3] == 0.0 )
-      mprintf( "(Diagonal clearance is %f)\n", dMax );
-    return;
-  }
-
-  //  not satisfied: scale up box
-  dTmp /= dBmax;
-  mprintf("Scaling up box by a factor of %f to meet diagonal cut criterion\n", dTmp );
-
-  bufferX_ *= dTmp;
-  bufferY_ *= dTmp;
-  bufferZ_ *= dTmp;
-}
-
 /** Initialize arguments. */
 int Solvate::InitSolvate(ArgList& argIn, bool octIn, int debugIn) {
   debug_ = debugIn;
@@ -276,14 +192,14 @@ const
     Vec3 Eval;
     frameOut.CalculateInertia( AtomMask(0, frameOut.Natom()), Inertia );
     Inertia.Diagonalize( Eval );
-    printf("Eigenvalues: %f %f %f\n", Eval[0], Eval[1], Eval[2]);
+    //mprintf("Eigenvalues: %f %f %f\n", Eval[0], Eval[1], Eval[2]);
 
     // Check the handedness of the diagonalized matrix
     // If it is the wrong hand then it will transform the unit into a mirror image.
     Vec3 vPos = Inertia.Row1().Cross( Inertia.Row2() );
-    mprintf("VPOS= %f %f %f\n", vPos[0], vPos[1], vPos[2]);
+    //mprintf("VPOS= %f %f %f\n", vPos[0], vPos[1], vPos[2]);
     double dDot = vPos * Inertia.Row3();
-    mprintf( "The handedness of the transformation is (+1=Right): %f\n", dDot );
+    //mprintf( "The handedness of the transformation is (+1=Right): %f\n", dDot );
 
     // If the handedness of the matrix is wrong then change it
     if ( dDot < 0.0 ) {
@@ -381,6 +297,90 @@ int Solvate::SetVdwBoundingBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm:
           frameOut.BoxCrd().Param(Box::Z));
   mprintf("  Volume: %5.3lf A^3\n", frameOut.BoxCrd().CellVolume());
   return 0;
+}
+
+/** Scale buffer if needed to meet diagonal clearance. */
+void Solvate::octBoxCheck(Frame const& frameOut) {
+  if (frameOut.Natom() < 1) return;
+  double dPBuf[4];
+
+  dPBuf[0] = bufferX_;
+  dPBuf[1] = bufferY_;
+  dPBuf[2] = bufferZ_;
+  dPBuf[3] = bufferD_;
+  //mprintf("dPBuf %f %f %f %f\n", dPBuf[0], dPBuf[1], dPBuf[2], dPBuf[3]);
+
+  const double* XYZ = frameOut.XYZ(0);
+  double dXmax = XYZ[0];
+  double dYmax = XYZ[1];
+  double dZmax = XYZ[2];
+  double dXmin = XYZ[0];
+  double dYmin = XYZ[1];
+  double dZmin = XYZ[2];
+
+  for (int at = 1; at < frameOut.Natom(); at++)
+  {
+    XYZ = frameOut.XYZ(at);
+    if      ( XYZ[0] > dXmax )
+            dXmax = XYZ[0];
+    else if ( XYZ[0] < dXmin )
+            dXmin = XYZ[0];
+    if      ( XYZ[1] > dYmax )
+            dYmax = XYZ[1];
+    else if ( XYZ[1] < dYmin )
+            dYmin = XYZ[1];
+    if      ( XYZ[2] > dZmax )
+            dZmax = XYZ[2];
+    else if ( XYZ[2] < dZmin )
+            dZmin = XYZ[2];
+  }
+
+  // calc halfbox on centers
+  double dXhalf = 0.5 * (dXmax - dXmin) + dPBuf[0];
+  double dYhalf = 0.5 * (dYmax - dYmin) + dPBuf[1];
+  double dZhalf = 0.5 * (dZmax - dZmin) + dPBuf[2];
+
+  // find unit vector of diagonal
+  double dX = dYhalf * dZhalf;
+  double dY = dXhalf * dZhalf;
+  double dZ = dXhalf * dYhalf;
+
+  double dTmp = 1.0 / sqrt( dX*dX + dY*dY + dZ*dZ );
+
+  double dXunit = dX * dTmp;
+  double dYunit = dY * dTmp;
+  double dZunit = dZ * dTmp;
+
+  // find max atom distance from origin along the diagonal
+  double dMax = 0.0;
+  for (int at = 0; at < frameOut.Natom(); at++)
+  {
+    XYZ = frameOut.XYZ(at);
+    dTmp = fabs(XYZ[0]) * dXunit +
+           fabs(XYZ[1]) * dYunit +
+           fabs(XYZ[2]) * dZunit;
+    if ( dTmp > dMax )
+      dMax = dTmp;
+  }
+
+  // calc distance of diagonal face from origin
+  double dBmax = 0.5 * sqrt( dXhalf*dXhalf + dYhalf*dYhalf + dZhalf*dZhalf );
+
+  // see if diagonal clearance is satisfied
+  dTmp = dMax + dPBuf[3];
+  if ( dTmp <= dBmax ) {
+    if ( dPBuf[3] == 0.0 )
+      mprintf("  (Diagonal clearance is %f)\n", dMax );
+    return;
+  }
+
+  //  not satisfied: scale up box
+  dTmp /= dBmax;
+  mprintf("  Scaling up box by a factor of %f to meet diagonal cut criterion\n", dTmp );
+
+  bufferX_ *= dTmp;
+  bufferY_ *= dTmp;
+  bufferZ_ *= dTmp;
 }
 
 /** Rotate 45 deg. around z axis, (90-tetra/2) around y axis, 90 around x axis.
@@ -493,16 +493,9 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
     clipX_ = 0.5 * boxX + bufferX_;
     clipY_ = 0.5 * boxY + bufferY_;
     clipZ_ = 0.5 * boxZ + bufferZ_;
-    mprintf("cCriteria: %f %f %f\n", clipX_, clipY_, clipZ_);
+    //mprintf("cCriteria: %f %f %f\n", clipX_, clipY_, clipZ_);
   }
-/*
-    if ( bOct ) {
-        // maybe allow oct clip on integer boxes someday.. but for now:
-        if ( !bClip )
-                DFATAL(( "oct but no clip\n" ));
-        iCriteria |= TOOLOUTSIDEOFOCTBOX;
-    }
-*/
+
   // TODO check COORDS size
   Frame solventFrame = SOLVENTBOX.AllocateFrame();
   SOLVENTBOX.GetFrame(0, solventFrame);
@@ -562,7 +555,7 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
   if (doTruncatedOct_) {
     double dAngle = 0;
     ewald_rotate(frameOut, dAngle);
-    mprintf("EwaldRotate: %f\n", dAngle);
+    //mprintf("EwaldRotate: %f\n", dAngle);
     // Add an angstrom to the desired box size rather than using the bounding box size
     dAngle = clipX_ + .5;
     boxX = boxY = boxZ = dAngle * sqrt(3.0) * 0.5;
@@ -576,7 +569,7 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
     boxY *= 2.0;
     boxZ *= 2.0;
   }
-  mprintf("Max: %f %f %f\n", boxX, boxY, boxZ);
+  //mprintf("Max: %f %f %f\n", boxX, boxY, boxZ);
   frameOut.ModifyBox().SetupFromXyzAbg(boxX, boxY, boxZ, boxBeta, boxBeta, boxBeta);
   frameOut.BoxCrd().PrintInfo();
   topOut.SetParmBox( frameOut.BoxCrd() );
@@ -742,18 +735,21 @@ int Solvate::addSolventUnits(int numX, int numY, int numZ, double soluteMaxR,
                              std::vector<double> const& solventRadii)
 const
 {
-  mprintf( "Max R = %f\n", soluteMaxR);
-  mprintf( "The number of boxes:  x=%2d  y=%2d  z=%2d\n", numX, numY, numZ );
+  if (debug_ > 0) {
+    mprintf( "Max R = %f\n", soluteMaxR);
+    mprintf( "The number of boxes:  x=%2d  y=%2d  z=%2d\n", numX, numY, numZ );
+  }
   int NboxesToAdd = numX * numY * numZ;
   int NatomsToAdd = NboxesToAdd * solventTop.Natom();
-  mprintf("Will add %i boxes, %i atoms.\n", NboxesToAdd, NatomsToAdd);
+  mprintf("  Will add %i solvent boxes, max %i atoms.\n", NboxesToAdd, NatomsToAdd);
   frameOut.IncreaseX( NatomsToAdd );
 
   // Current solvent unit center
   Vec3 currentSolventCenter = solventFrame.VGeometricCenter();
 
   int firstSolventAtom = topOut.Natom();
-  mprintf("DEBUG: First solvent atom is %i\n", firstSolventAtom+1);
+  if (debug_ > 0)
+    mprintf("DEBUG: First solvent atom is %i\n", firstSolventAtom+1);
 
   std::vector<int> bondedAtoms;
   bondedAtoms.reserve(12); // Reserve for 6 bonds

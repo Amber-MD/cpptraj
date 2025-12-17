@@ -39,8 +39,6 @@ class Solvate {
   private:
     /// Get buffer arguments
     int getBufferArg(ArgList&, double);
-    /// Scale up buffer sizes for oct box if needed
-    void octBoxCheck(Frame const&);
     /// Get radii for atoms in topology
     std::vector<double> getAtomRadii(double&, Topology const&,
                                      Cpptraj::Parm::ParameterSet const&) const;
@@ -52,6 +50,8 @@ class Solvate {
     int determineValidSolventResidues(std::vector<int>&, std::vector<int> const&,
                                       Frame const&, Topology const&, Frame const&,
                                       std::vector<double> const&, std::vector<double> const&) const;
+    /// Scale up buffer sizes for oct box if needed
+    void octBoxCheck(Frame const&);
     /// Ewald rotate for trun. oct system
     static void ewald_rotate(Frame&, double&);
     /// Add solvent unit boxes
