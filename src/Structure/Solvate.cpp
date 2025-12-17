@@ -570,8 +570,13 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
 
   // Setup box
   double boxBeta = 90.0;
-  if (doTruncatedOct_)
+  if (doTruncatedOct_) {
     boxBeta = Box::TruncatedOctAngle();
+    boxX *= 2.0;
+    boxY *= 2.0;
+    boxZ *= 2.0;
+  }
+  mprintf("Max: %f %f %f\n", boxX, boxY, boxZ);
   frameOut.ModifyBox().SetupFromXyzAbg(boxX, boxY, boxZ, boxBeta, boxBeta, boxBeta);
   frameOut.BoxCrd().PrintInfo();
   topOut.SetParmBox( frameOut.BoxCrd() );
