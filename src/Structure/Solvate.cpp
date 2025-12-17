@@ -17,6 +17,7 @@ Solvate::Solvate() :
   bufferX_(0),
   bufferY_(0),
   bufferZ_(0),
+  bufferD_(0),
   closeness_(1.0),
   isotropic_(false),
   clip_(true),
@@ -42,16 +43,102 @@ int Solvate::getBufferArg(ArgList& argIn, double defaultBuffer) {
     bufferX_ = argIn.getKeyDouble("buffer", defaultBuffer);
     bufferY_ = bufferX_;
     bufferZ_ = bufferX_;
+    bufferD_ = bufferX_;
   } else {
     bufferX_ = argIn.getKeyDouble("bufx", defaultBuffer);
     bufferY_ = argIn.getKeyDouble("bufy", defaultBuffer);
     bufferZ_ = argIn.getKeyDouble("bufz", defaultBuffer);
+    bufferD_ = argIn.getKeyDouble("bufd", defaultBuffer);
   }
   if (bufferX_ < 0 || bufferY_ < 0 || bufferZ_ < 0) {
     mprinterr("Error: Either 'buffer' or 'bufx/bufy/bufx' must be specified and >= 0\n");
     return 1;
   }
   return 0;
+}
+
+/** Scale buffer if needed to meet diagonal clearance. */
+void Solvate::octBoxCheck(Frame const& frameOut) {
+  if (frameOut.Natom() < 1) return;
+  double dPBuf[4];
+
+  dPBuf[0] = bufferX_;
+  dPBuf[1] = bufferY_;
+  dPBuf[2] = bufferZ_;
+  dPBuf[3] = bufferD_;
+  mprintf("dPBuf %f %f %f %f\n", dPBuf[0], dPBuf[1], dPBuf[2], dPBuf[3]);
+
+  const double* XYZ = frameOut.XYZ(0);
+  double dXmax = XYZ[0];
+  double dYmax = XYZ[1];
+  double dZmax = XYZ[2];
+  double dXmin = XYZ[0];
+  double dYmin = XYZ[1];
+  double dZmin = XYZ[2];
+
+  for (int at = 1; at < frameOut.Natom(); at++)
+  {
+    XYZ = frameOut.XYZ(at);
+    if      ( XYZ[0] > dXmax )
+            dXmax = XYZ[0];
+    else if ( XYZ[0] < dXmin )
+            dXmin = XYZ[0];
+    if      ( XYZ[1] > dYmax )
+            dYmax = XYZ[1];
+    else if ( XYZ[1] < dYmin )
+            dYmin = XYZ[1];
+    if      ( XYZ[2] > dZmax )
+            dZmax = XYZ[2];
+    else if ( XYZ[2] < dZmin )
+            dZmin = XYZ[2];
+  }
+
+  // calc halfbox on centers
+  double dXhalf = 0.5 * (dXmax - dXmin) + dPBuf[0];
+  double dYhalf = 0.5 * (dYmax - dYmin) + dPBuf[1];
+  double dZhalf = 0.5 * (dZmax - dZmin) + dPBuf[2];
+
+  // find unit vector of diagonal
+  double dX = dYhalf * dZhalf;
+  double dY = dXhalf * dZhalf;
+  double dZ = dXhalf * dYhalf;
+
+  double dTmp = 1.0 / sqrt( dX*dX + dY*dY + dZ*dZ );
+
+  double dXunit = dX * dTmp;
+  double dYunit = dY * dTmp;
+  double dZunit = dZ * dTmp;
+
+  // find max atom distance from origin along the diagonal
+  double dMax = 0.0;
+  for (int at = 0; at < frameOut.Natom(); at++)
+  {
+    XYZ = frameOut.XYZ(at);
+    dTmp = fabs(XYZ[0]) * dXunit +
+           fabs(XYZ[1]) * dYunit +
+           fabs(XYZ[2]) * dZunit;
+    if ( dTmp > dMax )
+      dMax = dTmp;
+  }
+
+  // calc distance of diagonal face from origin
+  double dBmax = 0.5 * sqrt( dXhalf*dXhalf + dYhalf*dYhalf + dZhalf*dZhalf );
+
+  // see if diagonal clearance is satisfied
+  dTmp = dMax + dPBuf[3];
+  if ( dTmp <= dBmax ) {
+    if ( dPBuf[3] == 0.0 )
+      mprintf( "(Diagonal clearance is %f)\n", dMax );
+    return;
+  }
+
+  //  not satisfied: scale up box
+  dTmp /= dBmax;
+  mprintf("Scaling up box by a factor of %f to meet diagonal cut criterion\n", dTmp );
+
+  bufferX_ *= dTmp;
+  bufferY_ *= dTmp;
+  bufferZ_ *= dTmp;
 }
 
 /** Initialize arguments. */
@@ -95,7 +182,7 @@ int Solvate::InitSetbox(ArgList& argIn, int debugIn) {
 void Solvate::PrintSolvateInfo() const {
   mprintf("\tSolvent buffer XYZ: %g %g %g Ang.\n", bufferX_, bufferY_, bufferZ_);
   mprintf("\tSolvent closeness: %g Ang.\n", closeness_);
-  mprintf("\tSolvent isotropic=%i  clip=%i  center_=%i\n", (int)isotropic_, (int)clip_, (int)center_);
+  mprintf("\tSolvent isotropic=%i  clip=%i  center_=%i  oct=%i\n", (int)isotropic_, (int)clip_, (int)center_, (int)doTruncatedOct_);
 } 
 
 /** Get solvent unit box from DataSetList */
@@ -306,7 +393,7 @@ int Solvate::SetVdwBoundingBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm:
   *
   * For isotropic truncated octahedral box only.
   */
-void ewald_rotate(Frame& frameOut, double& dPAngle)
+void Solvate::ewald_rotate(Frame& frameOut, double& dPAngle)
 {
   double tetra_angl = 2 * acos( 1. / sqrt(3.) );
   double pi = 3.1415927; // FIXME use Constants
@@ -354,6 +441,7 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
               topOut.c_str(), topOut.Natom(), frameOut.Natom());
     return 1;
   }
+
   // TODO Remove any existing box info?
   //if (frameOut.BoxCrd.HasBox())
   // TODO principal align
@@ -366,6 +454,9 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
     mprinterr("Error: Setting vdw bounding box for %s failed.\n", topOut.c_str());
     return 1;
   }
+  // Check if buffers need to be increased for trunc oct.
+  if (doTruncatedOct_)
+    octBoxCheck( frameOut );
   mprintf("  Solute vdw bounding box:              %-5.3f %-5.3f %-5.3f\n", boxX, boxY, boxZ);
 
   double dXWidth = boxX + bufferX_ * 2;
@@ -588,15 +679,28 @@ const
       const double* VXYZ = solventFrame.XYZ(vat);
       // First check for clipping
       if (clip_) {
-        //if ( fabs(VXYZ[0]) >= clipX_ ) { collision = true; mprintf("CLIP %12.4f %12.4f %12.4f\n",VXYZ[0],VXYZ[1],VXYZ[2]); break; }
-        //if ( fabs(VXYZ[1]) >= clipY_ ) { collision = true; mprintf("CLIP %12.4f %12.4f %12.4f\n",VXYZ[0],VXYZ[1],VXYZ[2]); break; }
-        //if ( fabs(VXYZ[2]) >= clipZ_ ) { collision = true; mprintf("CLIP %12.4f %12.4f %12.4f\n",VXYZ[0],VXYZ[1],VXYZ[2]); break; }
-        if ( fabs(VXYZ[0]) >= clipX_ ) { collision = true; break; }
-        if ( fabs(VXYZ[1]) >= clipY_ ) { collision = true; break; }
-        if ( fabs(VXYZ[2]) >= clipZ_ ) { collision = true; break; }
+        double dXabs = fabs(VXYZ[0]);
+        double dYabs = fabs(VXYZ[1]);
+        double dZabs = fabs(VXYZ[2]);
+        //if ( dXabs >= clipX_ ) { collision = true; mprintf("CLIP %12.4f %12.4f %12.4f\n",VXYZ[0],VXYZ[1],VXYZ[2]); break; }
+        //if ( dYabs >= clipY_ ) { collision = true; mprintf("CLIP %12.4f %12.4f %12.4f\n",VXYZ[0],VXYZ[1],VXYZ[2]); break; }
+        //if ( dZabs >= clipZ_ ) { collision = true; mprintf("CLIP %12.4f %12.4f %12.4f\n",VXYZ[0],VXYZ[1],VXYZ[2]); break; }
+        if ( dXabs >= clipX_ ) { collision = true; break; }
+        if ( dYabs >= clipY_ ) { collision = true; break; }
+        if ( dZabs >= clipZ_ ) { collision = true; break; }
+        // Check if atom falls outside of oct/diagonal clip
+        if (doTruncatedOct_) {
+          double dX = 0.5 * (clipX_ - dXabs) / clipX_;
+                 dX = fabs( dX - 0.5 );
+          double dY = 0.5 * (clipY_ - dYabs) / clipY_;
+                 dY = fabs( dY - 0.5 );
+          double dZ = 0.5 * (clipZ_ - dZabs) / clipZ_;
+                 dZ = fabs( dZ - 0.5 );
+          if ( ( dX + dY + dZ )  >  0.75 ) { collision = true; break; }
+        }
       }
       double dR = solventRadii[vat] * closeness_ * CLOSENESSMODIFIER_;
-      // Loop over close solute atoms, check fir ckasg
+      // Loop over close solute atoms, check for clash
       for (std::vector<int>::const_iterator uat = closeSoluteAtoms.begin(); uat != closeSoluteAtoms.end(); ++uat)
       {
         const double* UXYZ = frameOut.XYZ(*uat);

@@ -39,6 +39,8 @@ class Solvate {
   private:
     /// Get buffer arguments
     int getBufferArg(ArgList&, double);
+    /// Scale up buffer sizes for oct box if needed
+    void octBoxCheck(Frame const&);
     /// Get radii for atoms in topology
     std::vector<double> getAtomRadii(double&, Topology const&,
                                      Cpptraj::Parm::ParameterSet const&) const;
@@ -61,6 +63,7 @@ class Solvate {
     double bufferX_;
     double bufferY_;
     double bufferZ_;
+    double bufferD_;
     double closeness_;
     double clipX_;
     double clipY_;

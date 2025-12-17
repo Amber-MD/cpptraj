@@ -795,7 +795,7 @@ void Exec_Build::Help() const
           "\t[%s]\n"
           "\t[{%s} ...]\n"
           "\t[{%s} ...]\n"
-          "\t[{solvate %s\n"
+          "\t[{{solvatebox|solvateoct} %s\n"
           "\t          %s |\n"
           "\t  setbox %s}]\n"
           "%s"
@@ -889,10 +889,17 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   enum SolvateModeType { NO_SOLVATE = 0, SOLVATEBOX, SETBOX };
   SolvateModeType add_solvent = NO_SOLVATE;
   Cpptraj::Structure::Solvate solvator;
-  if (argIn.hasKey("solvate")) {
+  if (argIn.hasKey("solvatebox")) {
     add_solvent = SOLVATEBOX;
-    if (solvator.InitSolvate(argIn, debug_)) {
-      mprinterr("Error: Init solvate failed.\n");
+    if (solvator.InitSolvate(argIn, false, debug_)) {
+      mprinterr("Error: Init solvatebox failed.\n");
+      return CpptrajState::ERR;
+    }
+    solvator.PrintSolvateInfo();
+  } else if (argIn.hasKey("solvateoct")) {
+    add_solvent = SOLVATEBOX;
+    if (solvator.InitSolvate(argIn, true, debug_)) {
+      mprinterr("Error: Init solvateoct failed.\n");
       return CpptrajState::ERR;
     }
     solvator.PrintSolvateInfo();
