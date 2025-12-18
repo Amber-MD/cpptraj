@@ -307,7 +307,7 @@ void Frame::Info(const char *msg) const {
 // Frame::IncreaseX()
 /** Increase the maximum size of the Frame by offset. */
 int Frame::IncreaseX(int offset) {
-  mprintf("DEBUG: Increasing max number of atoms from %i to %i\n", maxnatom_, maxnatom_ + offset);
+  //mprintf("DEBUG: Increasing max number of atoms from %i to %i\n", maxnatom_, maxnatom_ + offset);
   maxnatom_ += offset;
   if (maxnatom_ < 1) {
     mprinterr("Internal Error: Frame::IncreaseX(): New size is < 1 atom.\n");
