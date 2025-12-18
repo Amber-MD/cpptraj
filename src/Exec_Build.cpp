@@ -26,15 +26,8 @@ Exec_Build::Exec_Build() :
   check_structure_(true),
   keepMissingSourceAtoms_(false),
   requireAllInputAtoms_(false),
-  sugarBuilder_(0),
   outCrdPtr_(0)
 {}
-
-/** DESTRUCTOR */
-Exec_Build::~Exec_Build() {
-  if (sugarBuilder_ != 0)
-    delete sugarBuilder_;
-}
 
 /** Search in array of atom bonding pairs for given bonding pair. */
 bool Exec_Build::hasBondingPair(IParray const& bpairs, Ipair const& bpair) {
@@ -1045,17 +1038,15 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
     mprintf("\tNot attempting to prepare sugars.\n");
   else
     mprintf("\tWill attempt to prepare sugars.\n");
-  if (sugarBuilder_ != 0) delete sugarBuilder_;
-  sugarBuilder_ = 0;
+  Cpptraj::Structure::SugarBuilder sugarBuilder(debug_);
   if (prepare_sugars) {
-    sugarBuilder_ = new Cpptraj::Structure::SugarBuilder(debug_);
     // Init options
-    if (sugarBuilder_->InitOptions( argIn.hasKey("hasglycam"),
-                                    argIn.getKeyDouble("rescut", 8.0),
-                                    argIn.getKeyDouble("bondoffset", 0.2),
-                                    argIn.GetStringKey("sugarmask"),
-                                    argIn.GetStringKey("determinesugarsby", "geometry"),
-                                    argIn.GetStringKey("resmapfile") ))
+    if (sugarBuilder.InitOptions( argIn.hasKey("hasglycam"),
+                                  argIn.getKeyDouble("rescut", 8.0),
+                                  argIn.getKeyDouble("bondoffset", 0.2),
+                                  argIn.GetStringKey("sugarmask"),
+                                  argIn.GetStringKey("determinesugarsby", "geometry"),
+                                  argIn.GetStringKey("resmapfile") ))
     {
       mprinterr("Error: Sugar options init failed.\n");
       return CpptrajState::ERR;
@@ -1075,14 +1066,14 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
     // adding missing bonds to C1 atoms.
     // This is done before any identification takes place since we want
     // to identify based on the most up-to-date topology.
-    if (sugarBuilder_->FixSugarsStructure(topIn, frameIn,
-                                          c1bondsearch, splitres, solventResName,
-                                          SugarBonds))
+    if (sugarBuilder.FixSugarsStructure(topIn, frameIn,
+                                        c1bondsearch, splitres, solventResName,
+                                        SugarBonds))
     {
       mprinterr("Error: Sugar structure modification failed.\n");
       return CpptrajState::ERR;
     }
-    if (sugarBuilder_->PrepareSugars(true, resStat, topIn, frameIn, SugarBonds))
+    if (sugarBuilder.PrepareSugars(true, resStat, topIn, frameIn, SugarBonds))
     {
       mprinterr("Error: Sugar preparation failed.\n");
       return CpptrajState::ERR;

@@ -5,14 +5,13 @@
 namespace Cpptraj {
 namespace Structure {
 class Creator;
-class SugarBuilder;
 }
 }
 /// Used to build a structure 
 class Exec_Build : public Exec {
   public:
     Exec_Build();
-    ~Exec_Build();
+    ~Exec_Build() {}
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_Build(); }
     RetType Execute(CpptrajState&, ArgList&);
@@ -48,7 +47,6 @@ class Exec_Build : public Exec {
     bool check_structure_; ///< If true check the resulting structure
     bool keepMissingSourceAtoms_;
     bool requireAllInputAtoms_;
-    Cpptraj::Structure::SugarBuilder* sugarBuilder_;
     DataSet* outCrdPtr_; ///< Hold built COORDS
 
     Timer t_total_;
