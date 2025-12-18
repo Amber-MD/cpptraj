@@ -34,7 +34,7 @@ const char* Solvate::SolvateKeywords1() {
 }
 
 const char* Solvate::SolvateKeywords2() {
-  return "solventbox <unit> [closeness <closeness>] [iso] [nocenter]";
+  return "solventbox <unit> [closeness <closeness>] [{iso|aniso}] [nocenter]";
 }
 
 /** Get any buffer arguments */
@@ -64,7 +64,14 @@ int Solvate::InitSolvate(ArgList& argIn, bool octIn, int debugIn) {
 
   if (getBufferArg(argIn, -1.0)) return 1;
 
-  isotropic_ = argIn.hasKey("iso");
+  if (doTruncatedOct_) {
+    if (argIn.hasKey("aniso"))
+      isotropic_ = false;
+    else
+      isotropic_ = true;
+  } else {
+    isotropic_ = argIn.hasKey("iso");
+  }
 
   solventBoxName_ = argIn.GetStringKey("solventbox");
   if (solventBoxName_.empty()) {
@@ -98,6 +105,7 @@ int Solvate::InitSetbox(ArgList& argIn, int debugIn) {
 void Solvate::PrintSolvateInfo() const {
   mprintf("\tSolvent buffer XYZ: %g %g %g Ang.\n", bufferX_, bufferY_, bufferZ_);
   mprintf("\tSolvent closeness: %g Ang.\n", closeness_);
+  // FIXME improve output
   mprintf("\tSolvent isotropic=%i  clip=%i  center_=%i  oct=%i\n", (int)isotropic_, (int)clip_, (int)center_, (int)doTruncatedOct_);
 } 
 
