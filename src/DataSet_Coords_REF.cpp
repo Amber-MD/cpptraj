@@ -14,7 +14,7 @@ void DataSet_Coords_REF::Info() const {
 
 /** Set up REF coords with given Topology and coordinate info. */
 int DataSet_Coords_REF::CoordsSetup(Topology const& topIn, CoordinateInfo const& cInfoIn) {
-  top_ = topIn;
+  set_topology( topIn );
   cInfo_ = cInfoIn;
 
   if (frame_.SetupFrameV( topIn.Atoms(), cInfoIn )) {

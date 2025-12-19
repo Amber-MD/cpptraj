@@ -36,6 +36,7 @@ class DataSet_Coords : public DataSet {
     void UpdateCoordsInfoBox(Box const&);
   protected:
     void CommonInfo() const;
+    void set_topology(Topology const&);
     Topology top_;         ///< Topology corresponding to coordinates.
     CoordinateInfo cInfo_; ///< Describes coordinate Frame
 };

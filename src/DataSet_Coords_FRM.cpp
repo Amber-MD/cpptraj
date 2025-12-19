@@ -115,7 +115,7 @@ void DataSet_Coords_FRM::CopyBlock(size_t startIdx, DataSet const* dptrIn, size_
 // -----------------------------------------------
 /** Set up COORDS with given Topology and coordinate info. */
 int DataSet_Coords_FRM::CoordsSetup(Topology const& topIn, CoordinateInfo const& cInfoIn) {
-  top_ = topIn;
+  set_topology( topIn );
   cInfo_ = cInfoIn;
 
   //if (frames_.SetupFrameArray(cInfo_, topIn.Natom(), framesToReserve_)) {

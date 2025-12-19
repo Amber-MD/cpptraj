@@ -19,7 +19,7 @@ DataSet_Coords_TRJ::~DataSet_Coords_TRJ() {
 
 int DataSet_Coords_TRJ::CoordsSetup(Topology const& topIn, CoordinateInfo const& cInfoIn ) {
   if (trajinList_.empty()) {
-    top_ = topIn;
+    set_topology( topIn );
     cInfo_ = cInfoIn;
   } else {
     if ( topIn.Natom() != top_.Natom() ) {
