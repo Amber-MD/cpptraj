@@ -15,10 +15,15 @@ class Exec_Build : public Exec {
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_Build(); }
     RetType Execute(CpptrajState&, ArgList&);
+
     /// Stand-alone execution
     RetType BuildStructure(DataSet*, DataSetList&, int, ArgList&, Cpptraj::Parm::GB_RadiiType);
     /// \return Output COORDS set
     DataSet* OutCrdPtr() const { return outCrdPtr_; }
+    /// Clean input coords, fill in missing atoms
+    int CleanAndFillStructure(DataSet*, int, std::string const&, std::string const&,
+                              DataSetList&, int, Cpptraj::Structure::Creator const&);
+    void PrintTiming() const;
   private:
     typedef std::vector<int> Iarray;
     // Keep track of which residues are connected to each other
