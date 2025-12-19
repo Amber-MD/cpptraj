@@ -1083,7 +1083,8 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
 
   // Fill in atoms with templates
   t_fill_.Start();
-  Topology topOut;
+  //Topology topOut;
+  Topology& topOut = static_cast<Topology&>( *(crdout.TopPtr()) );
   topOut.SetDebug( debug_ );
   if (outset.empty()) {
     // In-place output COORDS. Copy over existing topology metadata
