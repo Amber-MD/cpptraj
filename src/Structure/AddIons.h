@@ -2,6 +2,7 @@
 #define INC_CPPTRAJ_STRUCTURE_ADDIONS_H
 #include "../Random.h"
 #include <string>
+class DataSet_Coords;
 class DataSetList;
 class Frame;
 class Topology;
@@ -24,6 +25,9 @@ class AddIons {
     /// \return True if at least 1 ion has been specified.
     bool IsSetup() const { return !ion1name_.empty(); }
   private:
+    /// \return Ion unit specified by given name
+    DataSet_Coords* GetIonUnit(std::string const&, DataSetList const&) const;
+
     std::string ion1name_; ///< Name of first ion
     std::string ion2name_; ///< Name of second ion
     int Nion1_; ///< Number of first ion to add

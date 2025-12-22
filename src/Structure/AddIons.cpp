@@ -1,5 +1,7 @@
 #include "AddIons.h"
 #include "../CpptrajStdio.h"
+#include "../DataSet_Coords.h"
+#include "../DataSetList.h"
 #include "../Topology.h"
 
 using namespace Cpptraj::Structure;
@@ -66,6 +68,45 @@ void AddIons::PrintAddIonsInfo() const {
   mprintf("\tIon RNG seed: %i\n", RNG_.Seed());
 }
 
+/** Get ion unit box from DataSetList. */ // TODO consolidate with Solvate::GetSolventUnit()?
+DataSet_Coords* AddIons::GetIonUnit(std::string const& ionname, DataSetList const& DSL) const {
+  if (ionname.empty()) {
+    mprinterr("Internal Error: AddIons::GetIonUnit() called before ion name set.\n");
+    return 0;
+  }
+  DataSetList sets = DSL.SelectGroupSets( "*", DataSet::COORDINATES ); // TODO specific set type for units?
+  // First try to match aspect, then match name
+  DataSet_Coords* ionUnit = 0;
+  // Aspect
+  for (DataSetList::const_iterator it = sets.begin(); it != sets.end(); ++it)
+  {
+    DataSet_Coords* ds = static_cast<DataSet_Coords*>( *it );
+    if (!ds->Meta().Aspect().empty()) {
+      if (ionname == ds->Meta().Aspect()) {
+        ionUnit = ds;
+        break;
+      }
+    }
+  }
+  // Name
+  if (ionUnit == 0) {
+    for (DataSetList::const_iterator it = sets.begin(); it != sets.end(); ++it)
+    {
+      DataSet_Coords* ds = static_cast<DataSet_Coords*>( *it );
+      if (ionname == ds->Meta().Name()) {
+        ionUnit = ds;
+        break;
+      }
+    }
+  }
+  if (ionUnit != 0)
+    mprintf("\tIon unit: %s\n", ionUnit->legend());
+  else
+    mprinterr("Error: Could not get ion unit named %s\n", ionname.c_str());
+
+  return ionUnit;
+}
+
 /** Add ions randomly, replacing solvent molecules. */
 int AddIons::AddIonsRand(Topology& topOut, Frame& frameOut, DataSetList const& DSL,
                          Cpptraj::Parm::ParameterSet const& set0)
@@ -82,6 +123,13 @@ const
     mprintf("Warning: Adding the ions anyway.\n");
   } else {
     mprintf("\tTotal charge on %s is %g\n", topOut.c_str(), totalCharge);
+  }
+
+  // Get first ion
+  DataSet_Coords* Ion1 = GetIonUnit( ion1name_, DSL );
+  if (Ion1 == 0) {
+    mprinterr("Error: Ion with name '%s' not found.\n", ion1name_.c_str());
+    return 1;
   }
 
   return 0;
