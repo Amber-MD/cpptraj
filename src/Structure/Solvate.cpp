@@ -794,42 +794,7 @@ const
         currentSolventCenter[2] = dZ;
 
         // Add valid residues from solvent unit to output topology for this cube
-//        int currentResNum = topOut.Nres();
-        //for (int ires = 0; ires != solventTop.Nres(); ires++)
         topOut.AddSolventResidues( solventTop, validSolventResidues, frameOut, solventFrame );
-/*        for (std::vector<int>::const_iterator ires = validSolventResidues.begin();
-                                              ires != validSolventResidues.end(); ++ires)
-        {
-          int atomOffset = topOut.Natom();
-          Residue solventRes = solventTop.Res(*ires);
-          solventRes.SetOriginalNum( currentResNum++ );
-          bondedAtoms.clear();
-          for (int iat = solventRes.FirstAtom(); iat != solventRes.LastAtom(); iat++)
-          {
-            Atom solventAtom = solventTop[iat];
-            // Save solvent bonds
-            for (Atom::bond_iterator bat = solventAtom.bondbegin(); bat != solventAtom.bondend(); ++bat) {
-              if (*bat > iat) {
-                bondedAtoms.push_back(  iat + atomOffset - solventRes.FirstAtom() );
-                bondedAtoms.push_back( *bat + atomOffset - solventRes.FirstAtom() );
-              }
-            }
-            solventAtom.ClearBonds(); // FIXME AddTopAtom should clear
-            topOut.AddTopAtom( solventAtom, solventRes );
-            // Add PDB info if the topology already has it.
-            if (!topOut.Bfactor().empty()) topOut.AddBfactor( 0 );
-            if (!topOut.Occupancy().empty()) topOut.AddOccupancy( 1 );
-            if (!topOut.PdbSerialNum().empty()) topOut.AddPdbSerialNum( topOut.Natom() );
-            const double* VXYZ = solventFrame.XYZ(iat);
-            frameOut.AddXYZ( VXYZ );
-          } // END loop over solvent atoms
-          // Add bonds
-          for (std::vector<int>::const_iterator it = bondedAtoms.begin(); it != bondedAtoms.end(); ++it) {
-            int at0 = *it;
-            ++it;
-            topOut.AddBond( at0, *it );
-          }
-        } // END loop over solvent unit residues*/
         // Append solvent frame
         //frameOut.AppendFrame( solventFrame );
       } // END loop over Z
