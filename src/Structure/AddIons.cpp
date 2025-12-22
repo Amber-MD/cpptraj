@@ -13,8 +13,8 @@ using namespace Cpptraj::Structure;
 
 /** CONSTRUCTOR */
 AddIons::AddIons() :
-  Nion1_(-1),
-  Nion2_(-1),
+  Nion1_(0),
+  Nion2_(0),
   debug_(0),
   separation_(0.0)
 {}
@@ -40,7 +40,7 @@ int AddIons::InitAddIons(std::string const& ion1nameIn, int Nion1,
 
   if (ion2nameIn.empty()) {
     ion2name_.clear();
-    Nion2_ = -1;
+    Nion2_ = 0;
   } else {
     ion2name_ = ion2nameIn;
     if (Nion2 < 1) {
@@ -139,6 +139,12 @@ int AddIons::AddIonsRand(Topology& topOut, Frame& frameOut, DataSetList const& D
                          Cpptraj::Parm::ParameterSet const& set0)
 const
 {
+  // Check that there are solvent molecules.
+  int nsolvent = topOut.Nsolvent();
+  if (nsolvent < 1) {
+    mprinterr("Error: No solvent present in '%s'. Add solvent first.\n", topOut.c_str());
+    return 1;
+  }
   // Unit total charge
   double totalCharge = topOut.TotalCharge();
   if ( fabs(totalCharge) < Constants::SMALL ) {
@@ -195,6 +201,15 @@ const
     // Get the nearest integer number of ions needed to neutralize the system.
     iIon1 = (int)lrint( fabs(totalCharge) / fabs(chargeIon1) );
     mprintf("\tNumber of %s ions required to neutralize: %i\n", ion1name_.c_str(), iIon1);
+  }
+
+  // Check that there is enough solvent to swap
+  int nIons = iIon1 + Nion2_;
+  if ( nIons == nsolvent )
+    mprintf("Warning: # of ions to add (%i) is same as number of solvent molecules (%i)\n", nIons, nsolvent);
+  else if (nIons > nsolvent) {
+    mprinterr("Error: # of ions to add (%i) is larger than number of solvent molecules (%i)\n", nIons, nsolvent);
+    return 1;
   }
 
   // Get atom radius for each ion
