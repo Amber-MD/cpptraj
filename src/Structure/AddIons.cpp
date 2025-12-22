@@ -1,8 +1,10 @@
 #include "AddIons.h"
+#include "../Constants.h"
 #include "../CpptrajStdio.h"
 #include "../DataSet_Coords.h"
 #include "../DataSetList.h"
 #include "../Topology.h"
+#include <cmath> //fabs, lrint
 
 using namespace Cpptraj::Structure;
 
@@ -130,6 +132,44 @@ const
   if (Ion1 == 0) {
     mprinterr("Error: Ion with name '%s' not found.\n", ion1name_.c_str());
     return 1;
+  }
+  // Check that there is a net charge
+  double chargeIon1 = Ion1->Top().TotalCharge();
+  if ( fabs(chargeIon1) < Constants::SMALL) {
+    mprinterr("Error: Ion unit 1 '%s' does not have a net charge\n", Ion1->legend());
+    return 1;
+  }
+
+  // Get second ion
+  DataSet_Coords* Ion2 = 0;
+  double chargeIon2 = 0.0;
+  if (!ion2name_.empty()) {
+    Ion2 = GetIonUnit( ion2name_, DSL );
+    if (Ion2 == 0) {
+      mprinterr("Error: Ion with name '%s' not found.\n", ion2name_.c_str());
+      return 1;
+    }
+    // Check that there is a net charge
+    chargeIon2 = Ion2->Top().TotalCharge();
+    if ( fabs(chargeIon2) < Constants::SMALL) {
+      mprinterr("Error: Ion unit 2 '%s' does not have a net charge\n", Ion2->legend());
+      return 1;
+    }
+  }
+
+  // Check that ion can actually neutralize
+  int iIon1 = Nion1_;
+  if (Nion1_ < 1) {
+    if ( (chargeIon1 < 0 && totalCharge < 0) ||
+         (chargeIon1 > 0 && totalCharge > 0) )
+    {
+      mprinterr("Error: First ion and system charges have same sign (%g and %g); can't neutralize.\n",
+                chargeIon1, totalCharge);
+      return 1;
+    }
+    // Get the nearest integer number of ions needed to neutralize the system.
+    iIon1 = (int)lrint( fabs(totalCharge) / fabs(chargeIon1) );
+    mprintf("\tNumber of %s ions required to neutralize: %i\n", ion1name_.c_str(), iIon1);
   }
 
   return 0;
