@@ -191,6 +191,15 @@ Range Topology::SoluteResidues() const {
   return solute_res;
 }
 
+/** \return an array containing solvent molecule numbers. */
+std::vector<int> Topology::SolventMolNums() const {
+  std::vector<int> solventMolNums;
+  for (std::vector<Molecule>::const_iterator mol = molecules_.begin(); mol != molecules_.end(); ++mol)
+    if (mol->IsSolvent())
+      solventMolNums.push_back( mol - molecules_.begin() );
+  return solventMolNums;
+}
+
 /** Merge consecutive residues into a single residue. */
 int Topology::MergeResidues(int startRes, int stopRes) {
   // Check that start and stop make sense

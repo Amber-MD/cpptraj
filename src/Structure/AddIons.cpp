@@ -6,6 +6,7 @@
 #include "../CpptrajStdio.h"
 #include "../DataSet_Coords.h"
 #include "../DataSetList.h"
+#include "../DistRoutines.h"
 #include "../Topology.h"
 #include <cmath> //fabs, lrint
 
@@ -69,7 +70,8 @@ void AddIons::PrintAddIonsInfo() const {
     mprintf("\tAdding %i %s ions.\n", Nion1_, ion1name_.c_str());
   if (!ion2name_.empty())
     mprintf("\tAdding %i %s ions.\n", Nion2_, ion2name_.c_str());
-  mprintf("\tMinimum ion separation is %g Ang.\n", separation_);
+  if (separation_ > 0.0)
+    mprintf("\tMinimum ion separation is %g Ang.\n", separation_);
   mprintf("\tIon RNG seed: %i\n", RNG_.Seed());
 }
 
@@ -190,6 +192,7 @@ const
 
   // Check that ion can actually neutralize
   int iIon1 = Nion1_;
+  int iIon2 = Nion2_; 
   if (Nion1_ < 1) {
     if ( (chargeIon1 < 0 && totalCharge < 0) ||
          (chargeIon1 > 0 && totalCharge > 0) )
@@ -204,7 +207,7 @@ const
   }
 
   // Check that there is enough solvent to swap
-  int nIons = iIon1 + Nion2_;
+  int nIons = iIon1 + iIon2;
   if ( nIons == nsolvent )
     mprintf("Warning: # of ions to add (%i) is same as number of solvent molecules (%i)\n", nIons, nsolvent);
   else if (nIons > nsolvent) {
@@ -223,6 +226,69 @@ const
     ion2radii = GetAtomRadii( Ion2, set0.AT() );
 
   mprintf("DEBUG: Nsolvent = %i\n", topOut.Nsolvent());
+
+  std::vector<int> solventMolNums = topOut.SolventMolNums();
+
+  typedef std::vector<Vec3> Varray;
+  Varray ionPositions;
+  if (separation_ > 0.0)
+    ionPositions.reserve( nIons );
+  double cut2 = separation_ * separation_;
+
+  int failCounter = 0;
+  while ( iIon1 || iIon2 ) {
+    if (iIon1) {
+      // Pick a random solvent molecule to replace
+      int solvIdx = RNG_.rn_num() % (int)solventMolNums.size();
+      int ntries = 0;
+      while ( solventMolNums[solvIdx] == -1 ) {
+        ntries++;
+        if (ntries > 100) {
+          mprinterr("Error: Could not find a solvent molecule to swap with after 100 tries.\n");
+          return 1;
+        }
+        solvIdx = RNG_.rn_num() % (int)solventMolNums.size();
+      }
+      
+      // Do not try it again. It will either be used or be invalid due to distances.
+      int solventMolNum = solventMolNums[solvIdx];
+      mprintf("DEBUG: Trying swap with solvent molecule %i\n", solventMolNum);
+      solventMolNums[solvIdx] = -1;
+ 
+     // Get position of solvent residue atom. TODO should this be the geometric center?
+      Molecule const& solventMol = topOut.Mol( solventMolNum );
+      int firstAt = solventMol.MolUnit().Front();
+      Vec3 pos( frameOut.XYZ(firstAt) );
+
+      // Check that this position isnt too close to other positions
+      bool placeIon = true;
+      for (Varray::const_iterator previousPos = ionPositions.begin(); previousPos != ionPositions.end(); ++previousPos)
+      {
+        // TODO imaging
+        double dist2 = DIST2_NoImage( pos, *previousPos );
+        if (dist2 < cut2) {
+          ++failCounter;
+          placeIon = false;
+          break;
+        }
+      }
+
+      if (placeIon) {
+        mprintf("%zu: Placed %s in %s at (%4.2lf, %4.2lf, %4.2lf).\n", ionPositions.size(), Ion1->legend(), topOut.c_str(),
+                pos[0], pos[1], pos[2]);
+        if (separation_ > 0.0)
+          ionPositions.push_back( pos );
+
+        --iIon1;
+      }
+
+      // Safety valve
+      if (failCounter > 100) {
+        mprinterr("Error: Could not place %i ions with a minimum separation of %f after 100 tries.\n", nIons, separation_);
+        return 1;
+      }
+    }
+  }
 
   return 0;
 }
