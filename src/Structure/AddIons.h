@@ -6,6 +6,7 @@ class DataSet_Coords;
 class DataSetList;
 class Frame;
 class Topology;
+class Vec3;
 namespace Cpptraj {
 namespace Parm {
 class ParameterSet;
@@ -25,8 +26,12 @@ class AddIons {
     /// \return True if at least 1 ion has been specified.
     bool IsSetup() const { return !ion1name_.empty(); }
   private:
+    typedef std::vector<Vec3> Varray;
+
     /// \return Ion unit specified by given name
     DataSet_Coords* GetIonUnit(std::string const&, DataSetList const&) const;
+    /// Place ion within topology
+    int place_ion(int&, int&, Varray&, DataSet_Coords*, Topology&, Frame&, std::vector<int>&, double, int) const;
 
     std::string ion1name_; ///< Name of first ion
     std::string ion2name_; ///< Name of second ion

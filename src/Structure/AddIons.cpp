@@ -238,57 +238,73 @@ const
   int failCounter = 0;
   while ( iIon1 || iIon2 ) {
     if (iIon1) {
-      // Pick a random solvent molecule to replace
-      int solvIdx = RNG_.rn_num() % (int)solventMolNums.size();
-      int ntries = 0;
-      while ( solventMolNums[solvIdx] == -1 ) {
-        ntries++;
-        if (ntries > 100) {
-          mprinterr("Error: Could not find a solvent molecule to swap with after 100 tries.\n");
-          return 1;
-        }
-        solvIdx = RNG_.rn_num() % (int)solventMolNums.size();
-      }
-      
-      // Do not try it again. It will either be used or be invalid due to distances.
-      int solventMolNum = solventMolNums[solvIdx];
-      mprintf("DEBUG: Trying swap with solvent molecule %i\n", solventMolNum);
-      solventMolNums[solvIdx] = -1;
- 
-     // Get position of solvent residue atom. TODO should this be the geometric center?
-      Molecule const& solventMol = topOut.Mol( solventMolNum );
-      int firstAt = solventMol.MolUnit().Front();
-      Vec3 pos( frameOut.XYZ(firstAt) );
-
-      // Check that this position isnt too close to other positions
-      bool placeIon = true;
-      for (Varray::const_iterator previousPos = ionPositions.begin(); previousPos != ionPositions.end(); ++previousPos)
-      {
-        // TODO imaging
-        double dist2 = DIST2_NoImage( pos, *previousPos );
-        if (dist2 < cut2) {
-          ++failCounter;
-          placeIon = false;
-          break;
-        }
-      }
-
-      if (placeIon) {
-        mprintf("%zu: Placed %s in %s at (%4.2lf, %4.2lf, %4.2lf).\n", ionPositions.size(), Ion1->legend(), topOut.c_str(),
-                pos[0], pos[1], pos[2]);
-        if (separation_ > 0.0)
-          ionPositions.push_back( pos );
-
-        --iIon1;
-      }
-
-      // Safety valve
-      if (failCounter > 100) {
-        mprinterr("Error: Could not place %i ions with a minimum separation of %f after 100 tries.\n", nIons, separation_);
+      if (place_ion(iIon1, failCounter, ionPositions, Ion1, topOut, frameOut, solventMolNums, cut2, nIons))
         return 1;
-      }
+    }
+    if (iIon2) {
+      if (place_ion(iIon2, failCounter, ionPositions, Ion2, topOut, frameOut, solventMolNums, cut2, nIons))
+        return 1;
     }
   }
 
+  return 0;
+}
+
+/** Select a solvent molecule to swap with that is not too close to other ions positions. */
+int AddIons::place_ion(int& iIon1, int& failCounter, Varray& ionPositions,
+                       DataSet_Coords* ionCrd, Topology& topOut, Frame& frameOut,
+                       std::vector<int>& solventMolNums, double cut2, int nIons)
+const
+{
+  // Pick a random solvent molecule to replace
+  int solvIdx = RNG_.rn_num() % (int)solventMolNums.size();
+  int ntries = 0;
+  while ( solventMolNums[solvIdx] == -1 ) {
+    ntries++;
+    if (ntries > 100) {
+      mprinterr("Error: Could not find a solvent molecule to swap with after 100 tries.\n");
+      return 1;
+    }
+    solvIdx = RNG_.rn_num() % (int)solventMolNums.size();
+  }
+  
+  // Do not try it again. It will either be used or be invalid due to distances.
+  int solventMolNum = solventMolNums[solvIdx];
+  mprintf("DEBUG: Trying swap %s with solvent molecule %i\n", ionCrd->legend(), solventMolNum);
+  solventMolNums[solvIdx] = -1;
+ 
+  // Get position of solvent residue atom. TODO should this be the geometric center?
+  Molecule const& solventMol = topOut.Mol( solventMolNum );
+  int firstAt = solventMol.MolUnit().Front();
+  Vec3 pos( frameOut.XYZ(firstAt) );
+
+  // Check that this position isnt too close to other positions
+  bool placeIon = true;
+  for (Varray::const_iterator previousPos = ionPositions.begin(); previousPos != ionPositions.end(); ++previousPos)
+  {
+    // TODO imaging
+    double dist2 = DIST2_NoImage( pos, *previousPos );
+    if (dist2 < cut2) {
+      ++failCounter;
+      placeIon = false;
+      break;
+    }
+  }
+
+  if (placeIon) {
+    mprintf("%zu: Placed %s in %s at (%4.2lf, %4.2lf, %4.2lf).\n", iIon1, ionCrd->legend(), topOut.c_str(),
+            pos[0], pos[1], pos[2]);
+    if (separation_ > 0.0)
+      ionPositions.push_back( pos );
+
+    --iIon1;
+  }
+
+  // Safety valve
+  if (failCounter > 100) {
+    mprinterr("Error: Could not place %i ions with a minimum separation of %f after 100 tries.\n", nIons, separation_);
+    return 1;
+  }
+  
   return 0;
 }
