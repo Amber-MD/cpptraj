@@ -1130,6 +1130,14 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
     return CpptrajState::ERR;
   }
 
+  // Create empty arrays for the TREE, JOIN, and IROTAT arrays
+  topOut.AllocTreeChainClassification( );
+  topOut.AllocJoinArray();
+  topOut.AllocRotateArray();
+    // Finalize topology - determine molecules, dont renumber residues, dont assign default bond params
+  topOut.CommonSetup(true, false, false);
+
+  // Solvate/add ions
   std::string checkMaskString("*");
   if (add_solvent == SOLVATEBOX) {
     t_solvate_.Start();
@@ -1183,12 +1191,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
     mprinterr("Error: Could not assign GB parameters for '%s'\n", topOut.c_str());
     ret = CpptrajState::ERR;
   }
-  // Create empty arrays for the TREE, JOIN, and IROTAT arrays
-  topOut.AllocTreeChainClassification( );
-  topOut.AllocJoinArray();
-  topOut.AllocRotateArray();
-    // Finalize topology - determine molecules, dont renumber residues, dont assign default bond params
-  topOut.CommonSetup(true, false, false);
+
   topOut.Summary();
   t_assign_.Stop();
 

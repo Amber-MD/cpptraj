@@ -493,6 +493,58 @@ int Topology::addTopAtom(Atom const& atomIn, Residue const& resIn,
   return 0;
 }
 
+/** Add specified solvent residues from given topology to this topology. */
+int Topology::AddSolventResidues(Topology const& solventTop, std::vector<int> const& solventResNums,
+                                 Frame& frameOut, Frame const& solventFrame)
+{
+  std::vector<int> bondedAtoms;
+  for (std::vector<int>::const_iterator ires = solventResNums.begin();
+                                        ires != solventResNums.end(); ++ires)
+  {
+    int atomOffset = Natom();
+    Residue solventRes = solventTop.Res(*ires);
+    solventRes.SetOriginalNum( residues_.size() + 1 );
+    bondedAtoms.clear();
+    for (int iat = solventRes.FirstAtom(); iat != solventRes.LastAtom(); iat++)
+    {
+      Atom solventAtom = solventTop[iat];
+      // Save solvent bonds
+      for (Atom::bond_iterator bat = solventAtom.bondbegin(); bat != solventAtom.bondend(); ++bat) {
+        if (*bat > iat) {
+          bondedAtoms.push_back(  iat + atomOffset - solventRes.FirstAtom() );
+          bondedAtoms.push_back( *bat + atomOffset - solventRes.FirstAtom() );
+        }
+      }
+      solventAtom.ClearBonds(); // FIXME AddTopAtom should clear
+      AddTopAtom( solventAtom, solventRes );
+      if (solventAtom.Element() == Atom::EXTRAPT)
+        n_extra_pts_++;
+      // Add PDB info if the topology already has it. FIXME read from incoming top
+      if (!bfactor_.empty()) bfactor_.push_back( 0 );
+      if (!occupancy_.empty()) occupancy_.push_back( 1 );
+      if (!pdbSerialNum_.empty()) pdbSerialNum_.push_back( Natom() );
+      if (!atom_altloc_.empty()) atom_altloc_.push_back( ' ' );
+      // Add extra arrays
+      if (!tree_.empty()) tree_.push_back("BLA");
+      if (!ijoin_.empty()) ijoin_.push_back(0);
+      if (!irotat_.empty()) irotat_.push_back(0);
+      const double* VXYZ = solventFrame.XYZ(iat);
+      frameOut.AddXYZ( VXYZ );
+    } // END loop over solvent atoms
+    // Add bonds
+    for (std::vector<int>::const_iterator it = bondedAtoms.begin(); it != bondedAtoms.end(); ++it) {
+      int at0 = *it;
+      ++it;
+      AddBond( at0, *it );
+    }
+    // Add molecule
+    molecules_.push_back( Molecule(atomOffset, Natom()) );
+    molecules_.back().SetSolvent();
+    NsolventMolecules_++;
+  } // END loop over solvent unit residues
+  return 0;
+}
+
 /*
 // Topology::StartNewMol()
 void Topology::StartNewMol() {

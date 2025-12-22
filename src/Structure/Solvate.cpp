@@ -794,9 +794,10 @@ const
         currentSolventCenter[2] = dZ;
 
         // Add valid residues from solvent unit to output topology for this cube
-        int currentResNum = topOut.Nres();
+//        int currentResNum = topOut.Nres();
         //for (int ires = 0; ires != solventTop.Nres(); ires++)
-        for (std::vector<int>::const_iterator ires = validSolventResidues.begin();
+        topOut.AddSolventResidues( solventTop, validSolventResidues, frameOut, solventFrame );
+/*        for (std::vector<int>::const_iterator ires = validSolventResidues.begin();
                                               ires != validSolventResidues.end(); ++ires)
         {
           int atomOffset = topOut.Natom();
@@ -828,7 +829,7 @@ const
             ++it;
             topOut.AddBond( at0, *it );
           }
-        } // END loop over solvent unit residues
+        } // END loop over solvent unit residues*/
         // Append solvent frame
         //frameOut.AppendFrame( solventFrame );
       } // END loop over Z

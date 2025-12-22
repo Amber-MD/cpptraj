@@ -1,4 +1,7 @@
 #include "AddIons.h"
+#include "../Parm/ParameterSet.h"
+#include "../Parm/ParmHolder.h"
+#include "../AtomType.h"
 #include "../Constants.h"
 #include "../CpptrajStdio.h"
 #include "../DataSet_Coords.h"
@@ -109,6 +112,28 @@ DataSet_Coords* AddIons::GetIonUnit(std::string const& ionname, DataSetList cons
   return ionUnit;
 }
 
+/// \return Array containing radii for every atom
+static inline std::vector<double> GetAtomRadii(DataSet_Coords* crd, Cpptraj::Parm::ParmHolder<AtomType> const& newAtomTypeParams)
+{
+  static const double ATOM_DEFAULT_RADIUS = 1.5; // To match LEAP
+  std::vector<double> OUT;
+  OUT.reserve( crd->Top().Natom() );
+
+  for (std::vector<Atom>::const_iterator at = crd->Top().begin(); at != crd->Top().end(); ++at)
+  {
+    bool found;
+    TypeNameHolder atype( at->Type() );
+    AtomType AT = newAtomTypeParams.FindParam( atype, found );
+    if (found && AT.HasLJ())
+      OUT.push_back( AT.LJ().Radius() );
+    else {
+      mprintf("Warning: Atom type parameter not found for '%s', using default radius %g\n", *atype[0], ATOM_DEFAULT_RADIUS);
+      OUT.push_back( ATOM_DEFAULT_RADIUS );
+    }
+  }
+  return OUT;
+}
+
 /** Add ions randomly, replacing solvent molecules. */
 int AddIons::AddIonsRand(Topology& topOut, Frame& frameOut, DataSetList const& DSL,
                          Cpptraj::Parm::ParameterSet const& set0)
@@ -171,6 +196,18 @@ const
     iIon1 = (int)lrint( fabs(totalCharge) / fabs(chargeIon1) );
     mprintf("\tNumber of %s ions required to neutralize: %i\n", ion1name_.c_str(), iIon1);
   }
+
+  // Get atom radius for each ion
+  typedef std::vector<double> Darray;
+
+  Darray ion1radii, ion2radii;
+
+  ion1radii = GetAtomRadii( Ion1, set0.AT() );
+
+  if (Ion2 != 0)
+    ion2radii = GetAtomRadii( Ion2, set0.AT() );
+
+  mprintf("DEBUG: Nsolvent = %i\n", topOut.Nsolvent());
 
   return 0;
 }
