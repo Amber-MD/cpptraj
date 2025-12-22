@@ -53,6 +53,19 @@ int AddIons::InitAddIons(std::string const& ion1nameIn, int Nion1,
   return 0;
 }
 
+/** Print setup info to stdout */
+void AddIons::PrintAddIonsInfo() const {
+  if (ion1name_.empty()) return;
+  if (Nion1_ < 1)
+    mprintf("\tAdding enough %s ions to neutralize.\n");
+  else
+    mprintf("\tAdding %i %s ions.\n", Nion1_, ion1name_.c_str());
+  if (!ion2name_.empty())
+    mprintf("\tAdding %i %s ions.\n", Nion2_, ion2name_.c_str());
+  mprintf("\tMinimum ion separation is %g Ang.\n", separation_);
+  mprintf("\tIon RNG seed: %i\n", RNG_.Seed());
+}
+
 /** Add ions randomly, replacing solvent molecules. */
 int AddIons::AddIonsRand(Topology& topOut, Frame& frameOut, DataSetList const& DSL,
                          Cpptraj::Parm::ParameterSet const& set0)

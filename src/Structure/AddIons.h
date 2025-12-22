@@ -16,6 +16,8 @@ class AddIons {
     AddIons();
     /// Init - unit, ion1, Nion1, ion2, Nion2, separation, random seed, debug
     int InitAddIons(std::string const&, int, std::string const&, int, double, int, int);
+    /// Print info to stdout
+    void PrintAddIonsInfo() const;
     /// Add ions randomly
     int AddIonsRand(Topology&, Frame&, DataSetList const&, Cpptraj::Parm::ParameterSet const&) const;
   private:
