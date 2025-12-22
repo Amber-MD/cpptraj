@@ -20,8 +20,10 @@ class AddIons {
     void PrintAddIonsInfo() const;
     /// Add ions randomly
     int AddIonsRand(Topology&, Frame&, DataSetList const&, Cpptraj::Parm::ParameterSet const&) const;
+
+    /// \return True if at least 1 ion has been specified.
+    bool IsSetup() const { return !ion1name_.empty(); }
   private:
-    std::string unitname_; ///< System to add ions to
     std::string ion1name_; ///< Name of first ion
     std::string ion2name_; ///< Name of second ion
     int Nion1_; ///< Number of first ion to add

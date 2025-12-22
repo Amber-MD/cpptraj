@@ -57,7 +57,7 @@ int AddIons::InitAddIons(std::string const& ion1nameIn, int Nion1,
 void AddIons::PrintAddIonsInfo() const {
   if (ion1name_.empty()) return;
   if (Nion1_ < 1)
-    mprintf("\tAdding enough %s ions to neutralize.\n");
+    mprintf("\tAdding enough %s ions to neutralize.\n", ion1name_.c_str());
   else
     mprintf("\tAdding %i %s ions.\n", Nion1_, ion1name_.c_str());
   if (!ion2name_.empty())

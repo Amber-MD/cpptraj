@@ -6,6 +6,7 @@
 #include "StringRoutines.h" // integerToString
 #include "Trajout_Single.h"
 #include "Parm/AssignParams.h"
+#include "Structure/AddIons.h"
 #include "Structure/Builder.h"
 #include "Structure/Creator.h"
 #include "Structure/Disulfide.h"
@@ -909,6 +910,23 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
     }
   }
 
+  Cpptraj::Structure::AddIons addIons;
+  if (add_solvent == SOLVATEBOX) {
+    if (argIn.hasKey("addionsrand")) {
+      std::string ion1name = argIn.GetStringKey("ion1");
+      int nion1 = argIn.getKeyInt("nion1", -1);
+      std::string ion2name = argIn.GetStringKey("ion2");
+      int nion2 = argIn.getKeyInt("nion2", -1);
+      double minsep = argIn.getKeyDouble("minsep", 0.0);
+      int ionseed = argIn.getKeyInt("ionseed", -1);
+      if (addIons.InitAddIons(ion1name, nion1, ion2name, nion2, minsep, ionseed, debug_)) {
+        mprinterr("Error: Init addions failed.\n");
+        return CpptrajState::ERR;
+      }
+      addIons.PrintAddIonsInfo();
+    }
+  }
+
   keepMissingSourceAtoms_ = argIn.hasKey("keepmissingatoms");
   if (keepMissingSourceAtoms_)
     mprintf("\tInput atoms missing from templates will be kept.\n");
@@ -1132,6 +1150,13 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
     // Since by design the SolvateBox routine ensures solvent does not
     // clash with solute, just check the solute.
     checkMaskString.assign( "@1-" + integerToString(initial_natom) );
+    // Add ions if needed
+    if (addIons.IsSetup()) {
+      if (addIons.AddIonsRand( topOut, frameOut, DSL, *(creator.MainParmSetPtr()) )) {
+        mprinterr("Error: Adding ions failed.\n");
+        return CpptrajState::ERR;
+      }
+    }
     t_solvate_.Stop();
   } else if (add_solvent == SETBOX) {
     t_solvate_.Start();
