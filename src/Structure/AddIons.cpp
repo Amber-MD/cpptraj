@@ -1,5 +1,6 @@
 #include "AddIons.h"
 #include "../CpptrajStdio.h"
+#include "../Topology.h"
 
 using namespace Cpptraj::Structure;
 
@@ -12,43 +13,63 @@ AddIons::AddIons() :
 {}
 
 /** Initialize */
-int AddIons::InitAddIons(std::string const& unitNameIn,
-                         std::string const& ion1nameIn, int Nion1,
+int AddIons::InitAddIons(std::string const& ion1nameIn, int Nion1,
                          std::string const& ion2nameIn, int Nion2,
                          double separationIn, int seedIn, int debugIn)
 {
   debug_ = debugIn;
 
-  if (unitNameIn.empty()) {
-    mprinterr("Internal Error: AddIons::InitAddIons() called with empty unit name.\n");
-    return 1;
-  }
-  unitname_ = unitNameIn;
-
   if (ion1nameIn.empty()) {
-    mprinterr("Internal Error: AddIons::InitAddIons() called with empty ion name.\n");
+    mprinterr("Error: Must specify at least one ion name.\n");
     return 1;
   }
   ion1name_ = ion1nameIn;
   if (Nion1 < 0) {
-    mprinterr("Error: Number of %s ions cannot be less than 0 (%i)\n", ion1nameIn.c_str(), Nion1);
-    return 1;
-  }
-  Nion1_ = Nion1;
+    //mprinterr("Error: Number of %s ions cannot be less than 0 (%i)\n", ion1nameIn.c_str(), Nion1);
+    //return 1;
+    Nion1_ = 0;
+  } else
+    Nion1_ = Nion1;
 
   if (ion2nameIn.empty()) {
     ion2name_.clear();
     Nion2_ = -1;
   } else {
     ion2name_ = ion2nameIn;
-    if (Nion2 < 0) {
-      mprinterr("Error: Number of %s ions cannot be less than 0 (%i)\n", ion2nameIn.c_str(), Nion2);
+    if (Nion2 < 1) {
+      mprinterr("Error: Number of second %s ions cannot be less than 1 (%i)\n", ion2nameIn.c_str(), Nion2);
       return 1;
     }
   }
 
   separation_ = separationIn;
+  if (separation_ < 0.0) {
+    mprinterr("Error: Separation must be >= 0.0 (%f)\n", separation_);
+    return 1;
+  }
+
   RNG_.rn_set( seedIn );
+
+  return 0;
+}
+
+/** Add ions randomly, replacing solvent molecules. */
+int AddIons::AddIonsRand(Topology& topOut, Frame& frameOut, DataSetList const& DSL,
+                         Cpptraj::Parm::ParameterSet const& set0)
+const
+{
+  // Unit total charge
+  double totalCharge = topOut.TotalCharge();
+  if ( fabs(totalCharge) < Constants::SMALL ) {
+    mprintf("Warning: %s has a total charge of 0.\n", topOut.c_str());
+    if (Nion1_ < 1) {
+      mprintf("Warning: Cannot neutralize.\n");
+      return 0;
+    }
+    mprintf("Warning: Adding the ions anyway.\n");
+  } else {
+    mprintf("\tTotal charge on %s is %g\n", topOut.c_str(), totalCharge);
+  }
 
   return 0;
 }

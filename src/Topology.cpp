@@ -2401,6 +2401,15 @@ bool Topology::HasChargeInfo() const {
   return false;
 }
 
+/** \return Total charge */
+double Topology::TotalCharge() const {
+  double sumQ = 0.0;
+  for (std::vector<Atom>::const_iterator at = atoms_.begin();
+                                         at != atoms_.end(); ++at)
+    sumQ += at->Charge();
+  return sumQ;
+}
+
 /** Redistribute charge on atoms to match given total target charge. */
 int Topology::RedistributeCharge(double charge) {
   //mprintf("DEBUG: Redistribute charge for %s, total charge = %g\n", topIn.c_str(), charge);
