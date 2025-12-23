@@ -9,6 +9,7 @@
 #include "../DistRoutines.h"
 #include "../Topology.h"
 #include <cmath> //fabs, lrint
+#include <cstdlib> // FIXME debug
 
 using namespace Cpptraj::Structure;
 
@@ -235,6 +236,9 @@ const
     ionPositions.reserve( nIons );
   double cut2 = separation_ * separation_;
 
+  // FIXME DEBUG
+  srand( 1 );
+
   int failCounter = 0;
   while ( iIon1 || iIon2 ) {
     if (iIon1) {
@@ -270,7 +274,7 @@ const
   
   // Do not try it again. It will either be used or be invalid due to distances.
   int solventMolNum = solventMolNums[solvIdx];
-  mprintf("DEBUG: Trying swap %s with solvent molecule %i\n", ionCrd->legend(), solventMolNum);
+  mprintf("DEBUG: ntries=%i Trying swap %s with solvent molecule %i\n", ntries, ionCrd->legend(), solventMolNum);
   solventMolNums[solvIdx] = -1;
  
   // Get position of solvent residue atom. TODO should this be the geometric center?
