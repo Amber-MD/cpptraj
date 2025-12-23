@@ -511,6 +511,7 @@ int Topology::AddSolventResidues(Topology const& solventTop, std::vector<int> co
                                         ires != solventResNums.end(); ++ires)
   {
     int atomOffset = Natom();
+    int molnum = molecules_.size();
     Residue solventRes = solventTop.Res(*ires);
     solventRes.SetOriginalNum( residues_.size() + 1 );
     bondedAtoms.clear();
@@ -526,6 +527,7 @@ int Topology::AddSolventResidues(Topology const& solventTop, std::vector<int> co
       }
       solventAtom.ClearBonds(); // FIXME AddTopAtom should clear
       AddTopAtom( solventAtom, solventRes );
+      atoms_.back().SetMol( molnum );
       if (solventAtom.Element() == Atom::EXTRAPT)
         n_extra_pts_++;
       // Add PDB info if the topology already has it. FIXME read from incoming top
