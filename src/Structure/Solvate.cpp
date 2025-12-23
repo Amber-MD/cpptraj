@@ -268,7 +268,9 @@ const
   Vec3 toCenter( -(Xmin + 0.5 * boxX),
                  -(Ymin + 0.5 * boxY),
                  -(Zmin + 0.5 * boxZ) );
-  //mprintf("ToolCenterUnitByRadii translate vector is %f %f %f\n", toCenter[0], toCenter[1], toCenter[2]);
+# ifdef CPPTRAJ_DEBUG_SOLVATE
+  mprintf("ToolCenterUnitByRadii translate vector is %f %f %f\n", toCenter[0], toCenter[1], toCenter[2]); // DEBUG
+# endif
   // Translate to origin
   frameOut.Translate(toCenter);
 
@@ -456,7 +458,10 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
 
   // Set vdw box
   double soluteMaxR;
-  std::vector<double> soluteRadii = getAtomRadii(soluteMaxR, topOut, set0) ;
+  std::vector<double> soluteRadii = getAtomRadii(soluteMaxR, topOut, set0);
+  // DEBUG
+  //for (int iat = 0; iat != topOut.Natom(); iat++)
+  //  mprintf("SOLUTERADIUS %s %f\n",*(topOut[iat].Name()), soluteRadii[iat]);
   double boxX, boxY, boxZ;
   if (setVdwBoundingBox(boxX, boxY, boxZ, soluteRadii, frameOut, isotropic_)) {
     mprinterr("Error: Setting vdw bounding box for %s failed.\n", topOut.c_str());
@@ -501,7 +506,9 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
     clipX_ = 0.5 * boxX + bufferX_;
     clipY_ = 0.5 * boxY + bufferY_;
     clipZ_ = 0.5 * boxZ + bufferZ_;
-    //mprintf("cCriteria: %f %f %f\n", clipX_, clipY_, clipZ_);
+#   ifdef CPPTRAJ_DEBUG_SOLVATE
+    mprintf("cCriteria: %f %f %f\n", clipX_, clipY_, clipZ_); // DEBUG
+#   endif
   }
 
   // TODO check COORDS size
@@ -621,11 +628,17 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
 /** \return a list of solute atoms that might clash with solvent. */
 int Solvate::findCloseSoluteAtoms(std::vector<int>& closeSoluteAtoms, double soluteMaxR,
                                   int firstSolventAtom, Frame const& frameOut, Vec3 const& vCenter,
-                                  double dXWidth, double dYWidth, double dZWidth)
+                                  double dXWidth, double dYWidth, double dZWidth
+#                                 ifdef CPPTRAJ_DEBUG_SOLVATE
+                                  ,std::vector<double> const& soluteRadii // DEBUG
+#                                 endif
+                                 )
 const
 {
   closeSoluteAtoms.clear();
-//  mprintf( "Searching for close solute atoms, buffer zone %f solute max %f closeness %f\n", 0.0, soluteMaxR, closeness_);
+# ifdef CPPTRAJ_DEBUG_SOLVATE
+  mprintf( "Searching for close solute atoms, buffer zone %f solute max %f closeness %f\n", 0.0, soluteMaxR, closeness_); // DEBUG
+# endif
   // Determine clearance from the box for testing whether
   // a solute atom might contact an atom in the box. Assumes
   // solvent box includes vdw.
@@ -642,7 +655,9 @@ const
   double dYmax = vCenter[1] + dYWidth/2.0 + dTemp;
   double dZmin = vCenter[2] - dZWidth/2.0 - dTemp;
   double dZmax = vCenter[2] + dZWidth/2.0 + dTemp;
-//  mprintf("Search clearances %f Min= %f %f %f Max= %f %f %f\n", dTemp, dXmin, dYmin, dZmin, dXmax, dYmax, dZmax);
+# ifdef CPPTRAJ_DEBUG_SOLVATE
+  mprintf("Search clearances %f Min= %f %f %f Max= %f %f %f\n", dTemp, dXmin, dYmin, dZmin, dXmax, dYmax, dZmax); // DEBUG
+# endif
 
   // Loop over solute atoms
   for (int at = 0; at < firstSolventAtom; at++)
@@ -656,7 +671,9 @@ const
     if ( XYZ[2] > dZmax ) continue;
 
     // all atom.coords inside solvent limit, so add to list
-//    mprintf("Found an interesting sphere %f %f %f\n", XYZ[0], XYZ[1], XYZ[2] );
+#   ifdef CPPTRAJ_DEBUG_SOLVATE
+    mprintf("Found an interesting sphere %f %f %f r=%f\n", XYZ[0], XYZ[1], XYZ[2], soluteRadii[at] ); // DEBUG
+#   endif
     closeSoluteAtoms.push_back( at );
   }
   return 0;
@@ -688,12 +705,15 @@ const
         double dXabs = fabs(VXYZ[0]);
         double dYabs = fabs(VXYZ[1]);
         double dZabs = fabs(VXYZ[2]);
-        //if ( dXabs >= clipX_ ) { collision = true; mprintf("CLIP %12.4f %12.4f %12.4f\n",VXYZ[0],VXYZ[1],VXYZ[2]); break; }
-        //if ( dYabs >= clipY_ ) { collision = true; mprintf("CLIP %12.4f %12.4f %12.4f\n",VXYZ[0],VXYZ[1],VXYZ[2]); break; }
-        //if ( dZabs >= clipZ_ ) { collision = true; mprintf("CLIP %12.4f %12.4f %12.4f\n",VXYZ[0],VXYZ[1],VXYZ[2]); break; }
+#       ifdef CPPTRAJ_DEBUG_SOLVATE
+        if ( dXabs >= clipX_ ) { collision = true; mprintf("CLIP %12.4f %12.4f %12.4f\n",VXYZ[0],VXYZ[1],VXYZ[2]); break; } // DEBUG
+        if ( dYabs >= clipY_ ) { collision = true; mprintf("CLIP %12.4f %12.4f %12.4f\n",VXYZ[0],VXYZ[1],VXYZ[2]); break; } // DEBUG
+        if ( dZabs >= clipZ_ ) { collision = true; mprintf("CLIP %12.4f %12.4f %12.4f\n",VXYZ[0],VXYZ[1],VXYZ[2]); break; } // DEBUG
+#       else
         if ( dXabs >= clipX_ ) { collision = true; break; }
         if ( dYabs >= clipY_ ) { collision = true; break; }
         if ( dZabs >= clipZ_ ) { collision = true; break; }
+#       endif
         // Check if atom falls outside of oct/diagonal clip
         if (doTruncatedOct_) {
           double dX = 0.5 * (clipX_ - dXabs) / clipX_;
@@ -721,7 +741,9 @@ const
 
         if (dist2 < dRadii) {
           collision = true;
-          //mprintf("OVERLAP %12.4f %12.4f %12.4f %12.4f %12.4f\n", VXYZ[0],VXYZ[1],VXYZ[2], dist2, dRadii);
+#         ifdef CPPTRAJ_DEBUG_SOLVATE
+          mprintf("OVERLAP %12.4f %12.4f %12.4f %12.4f %12.4f %12.4f %12.4f\n", VXYZ[0],VXYZ[1],VXYZ[2], dist2, dRadii, solventRadii[vat], soluteRadii[*uat]); // DEBUG
+#         endif
           break;
         }
       } // END loop over close solute atoms
@@ -771,13 +793,20 @@ const
     for ( int iy=0; iy < numY; iy++, dY -= dYSolvent ) {
       double dZ = dZStart;
       for ( int iz=0; iz < numZ; iz++, dZ -= dZSolvent ) {
-        //mprintf( "Adding box at: x=%d  y=%d  z=%d\n", ix, iy, iz);
+#       ifdef CPPTRAJ_DEBUG_SOLVATE
+        mprintf( "Adding box at: x=%d  y=%d  z=%d\n", ix, iy, iz); // DEBUG
+#       endif
         Vec3 vPos(dX, dY, dZ);
 
         findCloseSoluteAtoms(closeSoluteAtoms, soluteMaxR, firstSolventAtom, frameOut, vPos,
-                             dXSolvent, dYSolvent, dZSolvent);
-
-        //mprintf( "Center of solvent box is: %lf, %lf, %lf\n", dX, dY, dZ );
+                             dXSolvent, dYSolvent, dZSolvent
+#                            ifdef CPPTRAJ_DEBUG_SOLVATE
+                             , soluteRadii // DEBUG soluteRadii
+#                            endif
+                            );
+#       ifdef CPPTRAJ_DEBUG_SOLVATE
+        mprintf( "Center of solvent box is: %lf, %lf, %lf\n", dX, dY, dZ ); // DEBUG
+#       endif
         Vec3 trans( dX - currentSolventCenter[0],
                     dY - currentSolventCenter[1],
                     dZ - currentSolventCenter[2] );

@@ -45,7 +45,11 @@ class Solvate {
     /// Set vdW bounding box
     int setVdwBoundingBox(double&, double&, double&, std::vector<double> const&, Frame&, bool) const;
     /// Find solute atoms within a solvent box at given center
-    int findCloseSoluteAtoms(std::vector<int>&, double, int, Frame const&, Vec3 const&, double, double, double) const;
+    int findCloseSoluteAtoms(std::vector<int>&, double, int, Frame const&, Vec3 const&, double, double, double
+#                            ifdef CPPTRAJ_DEBUG_SOLVATE
+                             , std::vector<double> const&
+#                            endif
+                            ) const;
     /// Determine which solvent residues do not clash with given solute atoms
     int determineValidSolventResidues(std::vector<int>&, std::vector<int> const&,
                                       Frame const&, Topology const&, Frame const&,
