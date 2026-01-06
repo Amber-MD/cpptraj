@@ -320,7 +320,7 @@ const
 /** Select a solvent molecule to swap with that is not too close to other ions positions. */
 int AddIons::place_ion(int& iIon1, int& failCounter, Varray& ionPositions,
                        DataSet_Coords* ionCrd, Topology& topOut, Frame& frameOut,
-                       std::vector<int> const& solventMolNums, double cut2, int nIons,
+                       std::vector<int>& solventMolNums, double cut2, int nIons,
                        std::vector<int>& atomMap, VstatArray& molStat)
 const
 {
@@ -338,7 +338,7 @@ const
   
   // Do not try it again. It will either be used or be invalid due to distances.
   int solventMolNum = solventMolNums[solvIdx];
-  mprintf("DEBUG: ntries=%i Trying swap %s with solvent molecule %i\n", ntries, ionCrd->legend(), solventMolNum);
+  mprintf("DEBUG: ntries=%i Trying swap %s with solvent molecule %i (idx= %i)\n", ntries, ionCrd->legend(), solventMolNum, solvIdx);
   molStat[solventMolNum] = TRIED;
  
   // Get position of solvent residue atom. TODO should this be the geometric center?
@@ -380,6 +380,10 @@ const
       atomMap.push_back( iat );
     topOut.AddResidues( ionCrd->Top(), validIonResidues, frameOut, ionFrame, false );
     --iIon1;
+    // Resize the active solvent molecules array
+    for (unsigned int vidx = solvIdx + 1; vidx < solventMolNums.size(); vidx++)
+      solventMolNums[vidx-1] = solventMolNums[vidx];
+    solventMolNums.resize( solventMolNums.size() - 1 );
   }
 
   // Safety valve
