@@ -28,10 +28,13 @@ class AddIons {
   private:
     typedef std::vector<Vec3> Varray;
 
+    enum VmolStatType { UNUSED = 0, USED, SWAPPED };
+    typedef std::vector<VmolStatType> VstatArray;
+
     /// \return Ion unit specified by given name
     DataSet_Coords* GetIonUnit(std::string const&, DataSetList const&) const;
     /// Place ion within topology
-    int place_ion(int&, int&, Varray&, DataSet_Coords*, Topology&, Frame&, std::vector<int>&, double, int) const;
+    int place_ion(int&, int&, Varray&, DataSet_Coords*, Topology&, Frame&, std::vector<int> const&, double, int, std::vector<int>&, VstatArray&) const;
 
     std::string ion1name_; ///< Name of first ion
     std::string ion2name_; ///< Name of second ion
