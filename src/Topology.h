@@ -329,7 +329,7 @@ class Topology {
   private:
     typedef std::vector<std::string> Sarray;
 
-    void SetAtomBondInfo(BondArray const&);
+    //void SetAtomBondInfo(BondArray const&);
     // NOTE: Use set so that elements are always sorted.
     typedef std::vector< std::set<Atom::AtomicElementType> > BP_mapType;
     /// Generate a bond parameter for the given bond based on atom elements

@@ -834,13 +834,13 @@ double Topology::GetVDWdepth(int a1) const {
 // Topology::SetAtomBondInfo()
 /** Set up bond information in the atoms array based on given BondArray.
   */
-void Topology::SetAtomBondInfo(BondArray const& bonds) {
+/*void Topology::SetAtomBondInfo(BondArray const& bonds) {
   // Add bonds based on array 
   for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd) {
     atoms_[ bnd->A1() ].AddBondToIdx( bnd->A2() );
     atoms_[ bnd->A2() ].AddBondToIdx( bnd->A1() );
   }
-}
+}*/
 
 // -----------------------------------------------------------------------------
 /** Check if given bond parm exists in given bond parm array. Add if not.
@@ -1697,8 +1697,15 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   newParm->radius_set_ = radius_set_;
   newParm->debug_ = debug_;
 
-  // Reverse Atom map
+  // Reverse Atom map. Generate here so it can be used to regenerate
+  // bonded atom info below.
   std::vector<int> atomMap( atoms_.size(),-1 );
+  for (int newatom = 0; newatom < (int)MapIn.size(); newatom++) {
+    int oldatom = MapIn[ newatom ];
+    // Store map of oldatom to newatom
+    atomMap[oldatom] = newatom;
+  }
+
   // Save solvent status of atoms
   std::vector<bool> isSolvent;
   isSolvent.reserve( MapIn.size() );
@@ -1709,8 +1716,6 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   for (int newatom = 0; newatom < (int)MapIn.size(); newatom++) {
     int oldatom = MapIn[ newatom ];
     if (oldatom < 0) continue;
-    // Store map of oldatom to newatom
-    atomMap[oldatom] = newatom;
     // Copy oldatom 
     Atom newparmAtom = atoms_[oldatom];
     // Save oldatom residue number
@@ -1726,8 +1731,15 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
       newParm->residues_.back().SetTerminal( cr.IsTerminal() );
       oldres = curres;
     }
-    // Clear bond information from new atom
+    // Regenerate bond information for new atom, excluding any removed atoms.
+    std::vector<int> oldBondedAtoms = newparmAtom.BondIdxArray();
     newparmAtom.ClearBonds();
+    for (std::vector<int>::const_iterator it = oldBondedAtoms.begin(); it != oldBondedAtoms.end(); ++it)
+    {
+      int newBondedAtom = atomMap[*it];
+      if (newBondedAtom > -1)
+        newparmAtom.AddBondToIdx( newBondedAtom );
+    }
     // Set new atom num and residue num
     newparmAtom.SetResNum( newParm->residues_.size() - 1 );
     // Check if this atom belongs to a solvent molecule.
@@ -1757,8 +1769,8 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   // Set up new bond information
   newParm->bonds_ = StripBondArray( bonds_, atomMap );
   newParm->bondsh_ = StripBondArray( bondsh_, atomMap );
-  newParm->SetAtomBondInfo( newParm->bonds_ );
-  newParm->SetAtomBondInfo( newParm->bondsh_ );
+//  newParm->SetAtomBondInfo( newParm->bonds_ );
+//  newParm->SetAtomBondInfo( newParm->bondsh_ );
   std::vector<int> parmMap( bondparm_.size(), -1 ); // Map[oldidx] = newidx
   StripBondParmArray( newParm->bonds_,  parmMap, newParm->bondparm_ );
   StripBondParmArray( newParm->bondsh_, parmMap, newParm->bondparm_ );
