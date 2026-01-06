@@ -229,6 +229,14 @@ const
   mprintf("DEBUG: Nsolvent = %i\n", topOut.Nsolvent());
 
   std::vector<int> solventMolNums = topOut.SolventMolNums();
+  // DEBUG
+  mprintf("DEBUG: Solvent molecule #s:");
+  for (std::vector<int>::const_iterator it = solventMolNums.begin(); it != solventMolNums.end(); ++it)
+    mprintf(" %i", *it);
+  mprintf("\n"); // DEBUG
+
+  mprintf("Adding %d counter ions to \"%s\". %d solvent molecules will remain.\n",
+          iIon1 + iIon2, topOut.c_str(), (int)topOut.SolventMolNums().size() - iIon1 - iIon2);
 
   typedef std::vector<Vec3> Varray;
   Varray ionPositions;
@@ -296,11 +304,24 @@ const
   }
 
   if (placeIon) {
+    std::vector<int> validIonResidues;
+    validIonResidues.reserve( ionCrd->Top().Nres() );
+    for (int ires = 0; ires != ionCrd->Top().Nres() ; ++ires)
+      validIonResidues.push_back( ires );
+    Frame ionFrame = ionCrd->AllocateFrame(); //TODO allocate outside this routine
+    ionCrd->GetFrame(0, ionFrame);
+    Vec3 currentIonCenter = ionFrame.VGeometricCenter();
+    Vec3 trans( pos[0] - currentIonCenter[0],
+                pos[1] - currentIonCenter[1],
+                pos[2] - currentIonCenter[2] );
+    ionFrame.Translate(trans);
+    Vec3 debugVec = ionFrame.VGeometricCenter();
+    debugVec.Print("DEBUG: check ion center");
     mprintf("%zu: Placed %s in %s at (%4.2lf, %4.2lf, %4.2lf).\n", iIon1, ionCrd->legend(), topOut.c_str(),
             pos[0], pos[1], pos[2]);
     if (separation_ > 0.0)
       ionPositions.push_back( pos );
-
+    topOut.AddResidues( ionCrd->Top(), validIonResidues, frameOut, ionFrame, false );
     --iIon1;
   }
 

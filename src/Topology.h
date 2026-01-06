@@ -275,8 +275,8 @@ class Topology {
     // ----- Setup routines ----------------------
     /// Add an atom to the topology inside given residue
     int AddTopAtom(Atom const&, Residue const&);
-    /// Add specified solvent residues from given topology
-    int AddSolventResidues(Topology const&, std::vector<int> const&, Frame&, Frame const&);
+    /// Add specified residues from given topology; optionally make them solvent
+    int AddResidues(Topology const&, std::vector<int> const&, Frame&, Frame const&, bool);
     /// Add an atom to the topology inside given residue and molecule number
     int addTopAtom(Atom const&, Residue const&, unsigned int, bool);
     //void StartNewMol();

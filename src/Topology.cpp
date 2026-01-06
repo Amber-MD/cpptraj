@@ -502,9 +502,9 @@ int Topology::addTopAtom(Atom const& atomIn, Residue const& resIn,
   return 0;
 }
 
-/** Add specified solvent residues from given topology to this topology. */
-int Topology::AddSolventResidues(Topology const& solventTop, std::vector<int> const& solventResNums,
-                                 Frame& frameOut, Frame const& solventFrame)
+/** Add specified residues from given topology to this topology. Mark solvent if needed. */
+int Topology::AddResidues(Topology const& solventTop, std::vector<int> const& solventResNums,
+                          Frame& frameOut, Frame const& solventFrame, bool is_solvent)
 {
   std::vector<int> bondedAtoms;
   for (std::vector<int>::const_iterator ires = solventResNums.begin();
@@ -552,7 +552,8 @@ int Topology::AddSolventResidues(Topology const& solventTop, std::vector<int> co
     }
     // Add molecule
     molecules_.push_back( Molecule(atomOffset, Natom()) );
-    molecules_.back().SetSolvent();
+    if (is_solvent)
+      molecules_.back().SetSolvent();
     NsolventMolecules_++;
   } // END loop over solvent unit residues
   return 0;

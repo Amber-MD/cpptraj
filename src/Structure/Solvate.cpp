@@ -823,7 +823,7 @@ const
         currentSolventCenter[2] = dZ;
 
         // Add valid residues from solvent unit to output topology for this cube
-        topOut.AddSolventResidues( solventTop, validSolventResidues, frameOut, solventFrame );
+        topOut.AddResidues( solventTop, validSolventResidues, frameOut, solventFrame, true );
         // Append solvent frame
         //frameOut.AppendFrame( solventFrame );
       } // END loop over Z
