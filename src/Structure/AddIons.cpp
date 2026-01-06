@@ -230,20 +230,26 @@ const
 
   std::vector<int> soluteMolNums;
   std::vector<int> solventMolNums;// = topOut.SolventMolNums();
+  VstatArray molStat;
+  molStat.reserve(topOut.Nmol());
   int molnum = 0;
   for (Topology::mol_iterator mol = topOut.MolStart(); mol != topOut.MolEnd(); ++mol, ++molnum)
   {
-    if (mol->IsSolvent())
+    if (mol->IsSolvent()) {
       solventMolNums.push_back( molnum );
-    else
+      molStat.push_back( UNUSED );
+    } else {
       soluteMolNums.push_back( molnum );
+      molStat.push_back( SOLUTE );
+    }
   }
   // DEBUG
   mprintf("DEBUG: Solvent molecule #s:");
   for (std::vector<int>::const_iterator it = solventMolNums.begin(); it != solventMolNums.end(); ++it)
     mprintf(" %i", *it);
   mprintf("\n"); // DEBUG
-  VstatArray solventStat(solventMolNums.size(), UNUSED);
+
+  //VstatArray solventStat(solventMolNums.size(), UNUSED);
 
   mprintf("Adding %d counter ions to \"%s\". %d solvent molecules will remain.\n",
           iIon1 + iIon2, topOut.c_str(), (int)topOut.SolventMolNums().size() - iIon1 - iIon2);
@@ -271,20 +277,19 @@ const
   int failCounter = 0;
   while ( iIon1 || iIon2 ) {
     if (iIon1) {
-      if (place_ion(iIon1, failCounter, ionPositions, Ion1, topOut, frameOut, solventMolNums, cut2, nIons, atomMap, solventStat))
+      if (place_ion(iIon1, failCounter, ionPositions, Ion1, topOut, frameOut, solventMolNums, cut2, nIons, atomMap, molStat))
         return 1;
     }
     if (iIon2) {
-      if (place_ion(iIon2, failCounter, ionPositions, Ion2, topOut, frameOut, solventMolNums, cut2, nIons, atomMap, solventStat))
+      if (place_ion(iIon2, failCounter, ionPositions, Ion2, topOut, frameOut, solventMolNums, cut2, nIons, atomMap, molStat))
         return 1;
     }
   }
 
   // Add back any solvent that was not swapped
-  for (unsigned int idx = 0; idx != solventMolNums.size(); ++idx)
+  for (unsigned int imol = 0; imol != molStat.size(); ++imol)
   {
-    if (solventStat[idx] != SWAPPED) {
-      int imol = solventMolNums[idx];
+    if (molStat[imol] != SWAPPED && molStat[imol] != SOLUTE) {
       Molecule const& Mol = topOut.Mol( imol );
       for (Unit::const_iterator seg = Mol.MolUnit().segBegin(); seg != Mol.MolUnit().segEnd(); ++seg)
         for (int idx = seg->Begin(); idx != seg->End(); ++idx)
@@ -316,13 +321,13 @@ const
 int AddIons::place_ion(int& iIon1, int& failCounter, Varray& ionPositions,
                        DataSet_Coords* ionCrd, Topology& topOut, Frame& frameOut,
                        std::vector<int> const& solventMolNums, double cut2, int nIons,
-                       std::vector<int>& atomMap, VstatArray& solventStat)
+                       std::vector<int>& atomMap, VstatArray& molStat)
 const
 {
   // Pick a random solvent molecule to replace
   int solvIdx = RNG_.rn_num() % (int)solventMolNums.size();
   int ntries = 0;
-  while ( solventStat[solvIdx] != UNUSED ) {
+  while ( molStat[solventMolNums[solvIdx]] != UNUSED ) {
     ntries++;
     if (ntries > 100) {
       mprinterr("Error: Could not find a solvent molecule to swap with after 100 tries.\n");
@@ -334,7 +339,7 @@ const
   // Do not try it again. It will either be used or be invalid due to distances.
   int solventMolNum = solventMolNums[solvIdx];
   mprintf("DEBUG: ntries=%i Trying swap %s with solvent molecule %i\n", ntries, ionCrd->legend(), solventMolNum);
-  solventStat[solvIdx] = USED;
+  molStat[solventMolNum] = TRIED;
  
   // Get position of solvent residue atom. TODO should this be the geometric center?
   Molecule const& solventMol = topOut.Mol( solventMolNum );
@@ -355,7 +360,7 @@ const
   }
 
   if (placeIon) {
-    solventStat[solvIdx] = SWAPPED;
+    molStat[solventMolNum] = SWAPPED;
     std::vector<int> validIonResidues;
     validIonResidues.reserve( ionCrd->Top().Nres() );
     for (int ires = 0; ires != ionCrd->Top().Nres() ; ++ires)

@@ -28,7 +28,7 @@ class AddIons {
   private:
     typedef std::vector<Vec3> Varray;
 
-    enum VmolStatType { UNUSED = 0, USED, SWAPPED };
+    enum VmolStatType { UNUSED = 0, TRIED, SWAPPED, SOLUTE };
     typedef std::vector<VmolStatType> VstatArray;
 
     /// \return Ion unit specified by given name
