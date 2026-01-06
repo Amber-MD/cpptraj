@@ -263,8 +263,8 @@ const
   // FIXME DEBUG
   srand( 1 );
 
-  // Add ions loop
   // To match how LEaP orders systems (solute/ions/solvent), need to have an atom map.
+  // First add solute.
   std::vector<int> atomMap;
   for (std::vector<int>::const_iterator imol = soluteMolNums.begin(); imol != soluteMolNums.end(); ++imol)
   {
@@ -274,6 +274,7 @@ const
         atomMap.push_back( idx );
   }
 
+  // Add ions loop. Will initially be added to the end of the topology and reordered afterwards.
   int failCounter = 0;
   while ( iIon1 || iIon2 ) {
     if (iIon1) {
