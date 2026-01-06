@@ -310,11 +310,7 @@ const
       validIonResidues.push_back( ires );
     Frame ionFrame = ionCrd->AllocateFrame(); //TODO allocate outside this routine
     ionCrd->GetFrame(0, ionFrame);
-    Vec3 currentIonCenter = ionFrame.VGeometricCenter();
-    Vec3 trans( pos[0] - currentIonCenter[0],
-                pos[1] - currentIonCenter[1],
-                pos[2] - currentIonCenter[2] );
-    ionFrame.Translate(trans);
+    ionFrame.CenterOnPoint( pos, false ); // Use geometric center
     Vec3 debugVec = ionFrame.VGeometricCenter();
     debugVec.Print("DEBUG: check ion center");
     mprintf("%zu: Placed %s in %s at (%4.2lf, %4.2lf, %4.2lf).\n", iIon1, ionCrd->legend(), topOut.c_str(),

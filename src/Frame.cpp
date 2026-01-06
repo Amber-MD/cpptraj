@@ -1054,6 +1054,20 @@ Vec3 Frame::CenterOnOrigin(bool useMassIn)
   return center;
 }
 
+/** Center all atoms on given point. */
+void Frame::CenterOnPoint(Vec3 const& pos, bool useMassIn)
+{
+  Vec3 currentCenter;
+  if (useMassIn)
+    currentCenter = VCenterOfMass();
+  else
+    currentCenter = VGeometricCenter();
+  Vec3 trans( pos[0] - currentCenter[0],
+              pos[1] - currentCenter[1],
+              pos[2] - currentCenter[2] );
+  Translate(trans);
+}
+
 // Frame::Align()
 void Frame::Align(Frame const& REF, AtomMask const& mask) {
   Frame tmpRef(REF, mask);

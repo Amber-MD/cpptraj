@@ -227,6 +227,8 @@ class Frame {
     inline Vec3 VCenterOfMass(Unit const&) const;
     /// \return Geometric center of atoms in Unit
     inline Vec3 VGeometricCenter(Unit const&) const;
+    /// \return Center of mass of all atoms in Frame
+    inline Vec3 VCenterOfMass() const;
     /// \return Geometric center of all atoms in Frame
     inline Vec3 VGeometricCenter() const;
     /// Translate atoms in mask by Vec
@@ -262,6 +264,8 @@ class Frame {
     void Scale(AtomMask const&, double, double, double);
     /// Translate atoms to origin.
     Vec3 CenterOnOrigin(bool);
+    /// Translate atoms to given point.
+    void CenterOnPoint(Vec3 const&, bool);
     // Align on reference
     void Align(Frame const&, AtomMask const&);
     // Coordinate calculation
@@ -385,6 +389,11 @@ Vec3 Frame::VCenterOfMass(int startAtom, int stopAtom) const {
   return Vec3( Coord0 / sumMass, Coord1 / sumMass, Coord2 / sumMass );
 }
 
+/** Center of mass of all atoms */
+Vec3 Frame::VCenterOfMass() const {
+  return VCenterOfMass(0, natom_);
+}
+
 /** Calculate the center of mass of a unit. */
 Vec3 Frame::VCenterOfMass(Unit const& unit) const {
   Vec3 out(0.0);
@@ -405,6 +414,7 @@ Vec3 Frame::VCenterOfMass(Unit const& unit) const {
   return out;
 }
 
+/** Geometric center of a range of atoms */
 Vec3 Frame::VGeometricCenter(int startAtom, int stopAtom) const {
   double Coord0 = 0.0;
   double Coord1 = 0.0;
@@ -421,6 +431,7 @@ Vec3 Frame::VGeometricCenter(int startAtom, int stopAtom) const {
   return Vec3( Coord0 / sumMass, Coord1 / sumMass, Coord2 / sumMass );
 }
 
+/** Geometric center of all atoms */
 Vec3 Frame::VGeometricCenter() const {
   return VGeometricCenter(0, natom_);
 }
