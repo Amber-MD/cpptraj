@@ -404,8 +404,9 @@ void LJ1264_Params::setupForWaterModel(WaterModelType wmIn)
   c4params_.clear();
   waterModel_ = wmIn;
 
+
   switch (waterModel_) {
-    case UNKNOWN_WATER_MODEL : break;
+    case UNKNOWN_WATER_MODEL : return;
     case TIP3P   : set_tip3p_params(); break;
     case TIP4PEW : set_tip4pew_params(); break;
     case SPCE    : set_spce_params(); break;
@@ -414,6 +415,8 @@ void LJ1264_Params::setupForWaterModel(WaterModelType wmIn)
     case FB3     : set_fb3_params(); break;
     case FB4     : set_fb4_params(); break;
   }
+
+  mprintf("\tUsing default C4 parameters for %s\n", WaterModelStr(waterModel_));
 }
 
 /** Read a 2 column file with format <name> <value> */
@@ -470,6 +473,7 @@ int LJ1264_Params::Init_LJ1264(std::string const& maskIn, std::string const& c4f
     mask_ = ":ZN";
   else
     mask_ = maskIn;
+  mprintf("\tLJ 12-6-4 mask: %s\n", mask_.c_str());
 
   if (c4fileIn.empty())
     setupForWaterModel( wmIn );

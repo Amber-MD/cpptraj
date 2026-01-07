@@ -5,4 +5,5 @@ PARM_SOURCES= \
   GetParams.cpp \
   LJ1264_Params.cpp \
   Merge.cpp \
-  ParameterSet.cpp
+  ParameterSet.cpp \
+  ParmEnum.cpp

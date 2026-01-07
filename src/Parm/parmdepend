@@ -4,3 +4,4 @@ GetParams.o : GetParams.cpp ../Atom.h ../AtomMask.h ../AtomType.h ../Box.h ../Cm
 LJ1264_Params.o : LJ1264_Params.cpp ../ArgList.h ../BufferedLine.h ../CpptrajFile.h ../CpptrajStdio.h ../FileIO.h ../FileName.h ../Parallel.h LJ1264_Params.h ParmEnum.h
 Merge.o : Merge.cpp ../Atom.h ../Constants.h ../CpptrajStdio.h ../NameType.h ../ParameterTypes.h ../Residue.h ../StringRoutines.h ../SymbolExporting.h ../TypeNameHolder.h Merge.h ParmEnum.h ParmHolder.h
 ParameterSet.o : ParameterSet.cpp ../AtomType.h ../CmapParmHolder.h ../Constants.h ../CpptrajFile.h ../CpptrajStdio.h ../FileIO.h ../FileName.h ../NameType.h ../Parallel.h ../ParameterTypes.h ../Parm/ParmEnum.h ../TypeNameHolder.h ../UpdateParameters.h DihedralParmHolder.h ImproperParmHolder.h ParameterSet.h ParmEnum.h ParmHolder.h
+ParmEnum.o : ParmEnum.cpp ParmEnum.h
