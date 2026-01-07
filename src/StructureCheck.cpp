@@ -196,11 +196,9 @@ int StructureCheck::Setup(Topology const& topIn, Box const& boxIn)
   // Set up exclusion list
   if (checkType_ == PL_1_MASK || checkType_ == NO_PL_1_MASK) {
     mprintf("\tExcluding bond interactions.\n");
-    // Set up atom exclusion list. If just checking bonds we could just use a
-    // distance of 2. However, in order to ignore "close contacts" for water
-    // model hydrogens with extra points, increase to 3.
-    // FIXME check angles since these are now excluded.
-    if (Excluded_.SetupExcluded(topIn.Atoms(), Mask1_, 3, ex_self_opt, ex_list_opt)) {
+    // Set up atom exclusion list. Distance of 2 since we are not
+    // yet checking angles and dihedrals. 
+    if (Excluded_.SetupExcluded(topIn.Atoms(), Mask1_, 2, ex_self_opt, ex_list_opt)) {
       mprinterr("Error: StructureCheck: Could not set up excluded atoms list.\n");
       return 1;
     }
