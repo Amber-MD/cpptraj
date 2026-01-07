@@ -49,6 +49,7 @@ int AddIons::InitAddIons(std::string const& ion1nameIn, int Nion1,
       mprinterr("Error: Number of second %s ions cannot be less than 1 (%i)\n", ion2nameIn.c_str(), Nion2);
       return 1;
     }
+    Nion2_ = Nion2;
   }
 
   separation_ = separationIn;
@@ -259,9 +260,6 @@ const
   if (separation_ > 0.0)
     ionPositions.reserve( nIons );
   double cut2 = separation_ * separation_;
-
-  // FIXME DEBUG
-  srand( 1 );
 
   // To match how LEaP orders systems (solute/ions/solvent), need to have an atom map.
   // First add solute.
