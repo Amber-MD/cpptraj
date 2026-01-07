@@ -6,6 +6,7 @@
 #include "StringRoutines.h" // integerToString
 #include "Trajout_Single.h"
 #include "Parm/AssignParams.h"
+#include "Parm/LJ1264_Params.h"
 #include "Structure/AddIons.h"
 #include "Structure/Builder.h"
 #include "Structure/Creator.h"
@@ -1190,6 +1191,14 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   if (Cpptraj::Parm::Assign_GB_Radii( topOut, gbradii )) {
     mprinterr("Error: Could not assign GB parameters for '%s'\n", topOut.c_str());
     ret = CpptrajState::ERR;
+  }
+
+  // FIXME
+  // LJ 12-6-4
+  Cpptraj::Parm::LJ1264_Params lj1264;
+  if (lj1264.Init_LJ1264("", "", Cpptraj::Parm::TIP3P, "", 1.0)) {
+    mprinterr("Error: Init of LJ 12-6-4 failed.\n");
+    return CpptrajState::ERR;
   }
 
   topOut.Summary();

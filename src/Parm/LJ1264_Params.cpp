@@ -430,7 +430,7 @@ int LJ1264_Params::read_2col_file(std::string const& infileName, NameMapType& ma
   }
   const char* ptr = infile.Line();
   while (ptr != 0) {
-    ArgList line(ptr, " \t");
+    ArgList line(ptr, " \t\"'");
     if (line.Nargs() > 0 && line[0][0] != '#')
     {
       if (line.Nargs() < 2) {
