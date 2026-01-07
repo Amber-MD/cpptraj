@@ -1,4 +1,8 @@
 #include "LJ1264_Params.h"
+#include "../ArgList.h"
+#include "../BufferedLine.h"
+#include "../CpptrajStdio.h"
+#include <cstdlib> // atof
 
 using namespace Cpptraj::Parm;
 
@@ -410,4 +414,80 @@ void LJ1264_Params::setupForWaterModel(WaterModelType wmIn)
     case FB3     : set_fb3_params(); break;
     case FB4     : set_fb4_params(); break;
   }
+}
+
+/** Read a 2 column file with format <name> <value> */
+int LJ1264_Params::read_2col_file(std::string const& infileName, NameMapType& mapIn)
+{
+  mapIn.clear();
+  BufferedLine infile;
+  if (infile.OpenFileRead(infileName)) {
+    mprinterr("Error: Could not open '%s'\n", infileName.c_str());
+    return 1;
+  }
+  const char* ptr = infile.Line();
+  while (ptr != 0) {
+    ArgList line(ptr, " \t");
+    if (line.Nargs() > 0 && line[0][0] != '#')
+    {
+      if (line.Nargs() < 2) {
+        mprinterr("Error: Expected a file with at least 2 columns. Line %i has %i: %s\n",
+                  infile.LineNumber(), line.Nargs(), ptr);
+        return 1;
+      }
+      double col2 = atof( line[1].c_str() );
+      // TODO report doubles
+      mapIn.insert( NameMapPair(line[0], col2) );
+    }
+    ptr = infile.Line();
+  }
+  infile.CloseFile();
+  return 0;
+}
+
+/** Read polarizabilities. */
+int LJ1264_Params::read_pol(std::string const& polfile)
+{
+  mprintf("\tReading atomic polarizabilities from '%s'\n", polfile.c_str());
+  return read_2col_file(polfile, pol_);
+}
+
+/** Initialize */
+int LJ1264_Params::Init_LJ1264(std::string const& maskIn, std::string const& c4fileIn, WaterModelType wmIn,
+                              std::string const& polfileIn, double tunfactorIn)
+{
+  tunfactor_ = tunfactorIn;
+
+  if (maskIn.empty())
+    mask_ = ":ZN";
+  else
+    mask_ = maskIn;
+
+  if (c4fileIn.empty())
+    setupForWaterModel( wmIn );
+  else {
+    // TODO
+    mprinterr("Internal Error: Not set up for reading external c4 params yet.\n");
+    return 1;
+  }
+
+  std::string polfile;
+  if (polfileIn.empty()) {
+    // First, need to determine where the Amber FF files are
+    const char* env = getenv("AMBERHOME");
+    if (env != 0)
+      polfile = std::string(env) + "/dat/leap/parm/lj_1264_pol.dat";
+    else {
+      mprinterr("Error: AMBERHOME not set. Cannot find 'lj_1264_pol.dat'.\n");
+      return 1;
+    }
+  } else
+    polfile = polfileIn;
+  if (!File::Exists(polfile)) {
+    mprinterr("Error: Polarizability file not found: %s\n", polfile.c_str());
+    return 1;
+  }
+  if (read_pol(polfile)) return 1;
+
+  return 0;
 }

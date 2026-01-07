@@ -26,10 +26,14 @@ class LJ1264_Params {
     /// Set C4 params for given water model
     void setupForWaterModel(WaterModelType);
 
+    int read_2col_file(std::string const&, NameMapType&);
+    int read_pol(std::string const&);
+
     WaterModelType waterModel_; ///< Water model that C3 parameters have been set for
     NameMapType c4params_; ///< C4 parameters
     NameMapType pol_; ///< Polarizabilities
     double tunfactor_; ///< Tuning factor
+    std::string mask_; ///< Mask for selecting metal centers
 };
 }
 }
