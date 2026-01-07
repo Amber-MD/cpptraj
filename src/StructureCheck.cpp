@@ -13,6 +13,7 @@
 
 /// CONSTRUCTOR
 StructureCheck::StructureCheck() :
+  XP_Exclude_Mask_("&!@/XP"),
   bondoffset_(1.15),
   bondMinOffset_(0.50),
   nonbondcut2_(0.64), // (0.8 Ang)^2
@@ -25,6 +26,7 @@ StructureCheck::StructureCheck() :
   bondcheck_(true),
   ringcheck_(true),
   saveProblems_(false),
+  checkExtraPts_(false),
   lastFmt_(F_ATOM)
 {}
 
@@ -43,9 +45,35 @@ double StructureCheck::RingAngleCut_Deg() const {
   return ring_acut_ * Constants::RADDEG;
 }
 
+/** Create mask string based on if we are excluding extra points or not. */
+std::string StructureCheck::checkMaskStr(std::string const& maskIn)
+const
+{
+  std::string maskOut;
+  if (maskIn.empty())
+    maskOut = "*" + XP_Exclude_Mask_;
+  else
+    maskOut = maskIn + XP_Exclude_Mask_;
+  mprintf("DEBUG: StructureCheck::checkMaskStr(): String is %s\n", maskOut.c_str());
+  return maskOut;
+}
+
+/** Set options with default for extra points (exclude) */
+int StructureCheck::SetOptions(bool imageOn, bool checkBonds, bool saveProblemsIn,
+                               int debugIn,
+                               std::string const& mask1, std::string const& mask2, 
+                               double overlapCut, double bondLengthOffset, double bondMinOffset,
+                               double pairListCut,
+                               bool checkRings, double ring_shortd, double ring_dcut, double ring_acut)
+{
+  return SetOptions(imageOn, checkBonds, saveProblemsIn, false, debugIn, mask1, mask2, "", overlapCut,
+                    bondLengthOffset, bondMinOffset, pairListCut, checkRings, ring_shortd, ring_dcut, ring_acut);
+}
+
 // StructureCheck::SetOptions()
-int StructureCheck::SetOptions(bool imageOn, bool checkBonds, bool saveProblemsIn, int debugIn,
-                               std::string const& mask1, std::string const& mask2,
+int StructureCheck::SetOptions(bool imageOn, bool checkBonds, bool saveProblemsIn, bool checkExtraPtsIn,
+                               int debugIn,
+                               std::string const& mask1, std::string const& mask2, std::string const& XP_Exclude_MaskIn,
                                double overlapCut, double bondLengthOffset, double bondMinOffset,
                                double pairListCut,
                                bool checkRings, double ring_shortd, double ring_dcut, double ring_acut)
@@ -54,6 +82,7 @@ int StructureCheck::SetOptions(bool imageOn, bool checkBonds, bool saveProblemsI
   bondcheck_ = checkBonds;
   ringcheck_ = checkRings;
   saveProblems_ = saveProblemsIn;
+  checkExtraPts_ = checkExtraPtsIn;
   debug_ = debugIn;
   bondoffset_ = bondLengthOffset;
   bondMinOffset_ = bondMinOffset;
@@ -65,9 +94,16 @@ int StructureCheck::SetOptions(bool imageOn, bool checkBonds, bool saveProblemsI
     ring_dcut2_ = ring_dcut * ring_dcut;
   if (ring_acut > 0)
     ring_acut_ = ring_acut * Constants::DEGRAD;
-  if (Mask1_.SetMaskString( mask1 )) return 1;
+  if (!XP_Exclude_MaskIn.empty())
+    XP_Exclude_Mask_ = XP_Exclude_MaskIn;
+  else
+    XP_Exclude_Mask_ = "&!@/XP"; // Select extra points by element
+  if (checkExtraPts_) {
+    XP_Exclude_Mask_.clear();
+  }
+  if (Mask1_.SetMaskString( checkMaskStr(mask1) )) return 1;
   if (!mask2.empty()) {
-    if (Mask2_.SetMaskString( mask2 )) return 1;
+    if (Mask2_.SetMaskString( checkMaskStr(mask2) )) return 1;
   }
   // TODO error checking
   # ifdef _OPENMP

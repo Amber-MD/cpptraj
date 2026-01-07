@@ -32,9 +32,13 @@ class StructureCheck {
     // -------------------------------------------
     /// CONSTRUCTOR
     StructureCheck();
-    /// Options: imageOn, checkBonds, saveProblems, debug, mask1, mask2, ovrlpCut, bndLenOffset, minBndLenOffset, PListCut
+    /// Options: imageOn, checkBonds, saveProblems, check extrapoints, debug, mask1, mask2, extra points exclude mask, ovrlpCut, bndLenOffset, minBndLenOffset, PListCut
+    int SetOptions(bool, bool, bool, bool, int, std::string const&, std::string const&, std::string const&,
+                   double, double, double, double, bool, double, double, double);
+    /// Options (no extra points): imageOn, checkBonds, saveProblems, debug, mask1, mask2, ovrlpCut, bndLenOffset, minBndLenOffset, PListCut
     int SetOptions(bool, bool, bool, int, std::string const&, std::string const&,
                    double, double, double, double, bool, double, double, double);
+
     /// Setup for given topology and box.
     int Setup(Topology const&, Box const&);
     /// \return Number of abnormal bonds.
@@ -112,6 +116,8 @@ class StructureCheck {
     static const char* Fmt_[];
     /// Type of overlap check
     enum CheckType { NO_PL_1_MASK=0, NO_PL_2_MASKS, PL_1_MASK };
+    /// \return mask string based on if extra points are being excluded
+    std::string checkMaskStr(std::string const&) const;
     /// Add selected bonds in BondArray to list to be checked.
     void ProcessBondArray(BondArray const&, BondParmArray const&, CharMask const&);
     /// Add selected bonds in topology to list to be checked.
@@ -160,6 +166,7 @@ class StructureCheck {
     AtomMask Mask2_;        ///< Optional mask of atoms to check against atoms in Mask1
     AtomMask OuterMask_;    ///< Mask with the most atoms.
     AtomMask InnerMask_;    ///< Mask with fewer atoms.
+    std::string XP_Exclude_Mask_;   ///< Expression to deselect extra points
     double bondoffset_;     ///< Report bonds larger than Req + bondoffset_
     double bondMinOffset_;  ///< Report bonds less than Req - bondMinOffset_
     double nonbondcut2_;    ///< Report distance^2 less than nonbondcut2_
@@ -172,6 +179,7 @@ class StructureCheck {
     bool bondcheck_;        ///< If true check bonds as well
     bool ringcheck_;        ///< If true check bond/ring intersections
     bool saveProblems_;     ///< If true save problems in problemAtoms_
+    bool checkExtraPts_;    ///< If true check extra points.
     FmtType lastFmt_;       ///< Format of problems currently stored in problemAtoms_
 };
 #endif
