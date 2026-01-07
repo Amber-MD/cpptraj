@@ -337,7 +337,8 @@ const
   
   // Do not try it again. It will either be used or be invalid due to distances.
   int solventMolNum = solventMolNums[solvIdx];
-  mprintf("DEBUG: ntries=%i Trying swap %s with solvent molecule %i (idx= %i)\n", ntries, ionCrd->legend(), solventMolNum, solvIdx);
+  if (debug_ > 0)
+    mprintf("DEBUG: ntries=%i Trying swap %s with solvent molecule %i (idx= %i)\n", ntries, ionCrd->legend(), solventMolNum, solvIdx);
   molStat[solventMolNum] = TRIED;
  
   // Get position of solvent residue atom. TODO should this be the geometric center?
@@ -369,7 +370,7 @@ const
     ionFrame.CenterOnPoint( pos, false ); // Use geometric center
     //Vec3 debugVec = ionFrame.VGeometricCenter();
     //debugVec.Print("DEBUG: check ion center");
-    mprintf("%zu: Placed %s in %s at (%4.2lf, %4.2lf, %4.2lf).\n", iIon1, ionCrd->legend(), topOut.c_str(),
+    mprintf("  %zu: Placed %s in %s at (%4.2lf, %4.2lf, %4.2lf).\n", iIon1, ionCrd->legend(), topOut.c_str(),
             pos[0], pos[1], pos[2]);
     if (separation_ > 0.0)
       ionPositions.push_back( pos );
