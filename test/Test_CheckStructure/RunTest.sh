@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles check.in report.dat nprob.dat tz2.dat skip.dat around.dat d1.dat \
-           partial.report.dat tz2.cut0.9.dat entangled.dat
+           partial.report.dat tz2.cut0.9.dat entangled.dat report.opcbox.dat
 
 INPUT="-i check.in"
 
@@ -80,6 +80,20 @@ run
 EOF
   RunCpptraj "$UNITNAME"
   DoTest entangled.dat.save entangled.dat
+fi
+
+UNITNAME='Check with extra points'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > check.in <<EOF
+parm opcbox.mol2
+trajin opcbox.mol2
+box x 18.8648434  y 18.4781075  z 19.0062408 alpha 90
+check reportfile report.opcbox.dat checkxp
+run
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest report.opcbox.dat.save report.opcbox.dat
 fi
 
 EndTest
