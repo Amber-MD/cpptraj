@@ -316,6 +316,11 @@ void Atom::SetElementFromName() {
     case 'R' :
       if (c2=='b') element_ = RUBIDIUM;
       break;
+    // Check for extra points
+    case 'E' :
+      if (c2=='P') {element_ = EXTRAPT; break;}
+    case 'X' :
+      if (c2=='P') {element_ = EXTRAPT; break;}
     default:
       SetElementFromSymbol(c1, c2);
       if (element_ == UNKNOWN_ELEMENT)
