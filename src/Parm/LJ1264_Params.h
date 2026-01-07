@@ -28,6 +28,7 @@ class LJ1264_Params {
 
     int read_2col_file(std::string const&, NameMapType&);
     int read_pol(std::string const&);
+    int read_c4(std::string const&);
 
     WaterModelType waterModel_; ///< Water model that C3 parameters have been set for
     NameMapType c4params_; ///< C4 parameters

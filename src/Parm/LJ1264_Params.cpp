@@ -452,6 +452,14 @@ int LJ1264_Params::read_pol(std::string const& polfile)
   return read_2col_file(polfile, pol_);
 }
 
+/** Read C4 params */
+int LJ1264_Params::read_c4(std::string const& c4file)
+{
+  mprintf("\tReading C4 parameters from '%s'\n", c4file.c_str());
+  waterModel_ = UNKNOWN_WATER_MODEL;
+  return read_2col_file(c4file, c4params_);
+}
+
 /** Initialize */
 int LJ1264_Params::Init_LJ1264(std::string const& maskIn, std::string const& c4fileIn, WaterModelType wmIn,
                               std::string const& polfileIn, double tunfactorIn)
@@ -466,8 +474,12 @@ int LJ1264_Params::Init_LJ1264(std::string const& maskIn, std::string const& c4f
   if (c4fileIn.empty())
     setupForWaterModel( wmIn );
   else {
-    // TODO
-    mprinterr("Internal Error: Not set up for reading external c4 params yet.\n");
+    if (read_c4(c4fileIn)) return 1;
+  }
+
+  // Sanity check
+  if (c4params_.empty()) {
+    mprinterr("Error: No C4 parameters loaded.\n");
     return 1;
   }
 
