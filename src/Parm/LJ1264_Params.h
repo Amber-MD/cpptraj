@@ -17,6 +17,12 @@ class LJ1264_Params {
 
     /// Set C4 parameters for TIP3P
     void set_tip3p_params();
+    void set_tip4pew_params();
+    void set_spce_params();
+    void set_opc3_params();
+    void set_opc_params();
+    void set_fb3_params();
+    void set_fb4_params();
     /// Set C4 params for given water model
     void setupForWaterModel(WaterModelType);
 
