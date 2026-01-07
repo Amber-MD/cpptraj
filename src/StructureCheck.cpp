@@ -54,7 +54,7 @@ const
     maskOut = "*" + XP_Exclude_Mask_;
   else
     maskOut = maskIn + XP_Exclude_Mask_;
-  mprintf("DEBUG: StructureCheck::checkMaskStr(): String is %s\n", maskOut.c_str());
+  //mprintf("DEBUG: StructureCheck::checkMaskStr(): String is %s\n", maskOut.c_str());
   return maskOut;
 }
 
