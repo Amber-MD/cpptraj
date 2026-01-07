@@ -23,6 +23,7 @@ void Action_CheckStructure::Help() const {
           "\t[cut <cut>] [nobondcheck] [silent] [plcut <cut>]\n"
           "\t[{noringcheck | [ringshortdist <rsdist>] [ringdcut <ringdcut>]\n"
           "\t                [ringacut <ringacut>]}]\n"
+          "\t[{checkxp | xpmask <xpmask>}]\n"
           "  Check atoms in <mask> for atomic overlaps less than <cut> (default 0.8 Ang)\n"
           "  and unusual bond lengths greater than equilibrium length + <offset>\n"
           "  (default 1.15 Ang) or less than equilibrium length - <minoffset>\n"
@@ -36,6 +37,9 @@ void Action_CheckStructure::Help() const {
           "  center is less than <rsdist>, or less than <ringdcut> and the angle\n"
           "  between the bond vector and ring perpendicular vector is less than\n"
           "  <ringacut>.\n"
+          "  By default, extra points will be ignored as determined by 'xpmask'; the\n"
+          "  default mask to select extra points is '&@\\XP'. If 'checkxp' is specified\n",
+          "  extra points will also be checked.\n"
           "  Warnings will go to the file specified by 'reportfile', STDOUT,\n"
           "  or will be suppressed if 'silent' is specified. If 'skipbadframes'\n"
           "  is specified, subsequent Actions will be skipped if any problems\n"
@@ -58,14 +62,22 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, ActionInit& ini
   double nonbondcut = actionArgs.getKeyDouble("cut",0.8);
   double plcut      = actionArgs.getKeyDouble("plcut", -1);
   //  actionArgs.getKeyDouble("plcut", std::max(8.0, nonbondcut))
+  bool checkxp = false;
+  std::string xpmask = "";
+  if (actionArgs.hasKey("checkxp"))
+    checkxp = true;
+  else
+    xpmask = actionArgs.GetStringKey("xpmask");
   // Structure checker setup
   int err = check_.SetOptions(
     !(actionArgs.hasKey("noimage")),
     !actionArgs.hasKey("nobondcheck"),
     (outfile_ != 0), // saveProblems
+    checkxp,
     debugIn,
     actionArgs.GetMaskNext(),
     around,
+    xpmask,
     nonbondcut,
     actionArgs.getKeyDouble("offset",1.15),
     actionArgs.getKeyDouble("minoffset", 0.5),

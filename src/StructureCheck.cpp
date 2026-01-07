@@ -164,6 +164,8 @@ int StructureCheck::Setup(Topology const& topIn, Box const& boxIn)
 {
   imageOpt_.SetupImaging( boxIn.HasBox() );
   bondList_.clear();
+  if (!checkExtraPts_)
+    mprintf("\tExcluding extra points using mask expression '%s'.\n", XP_Exclude_Mask_.c_str());
   // Set up first mask
   if ( topIn.SetupIntegerMask( Mask1_ ) ) return 1;
   if (Mask1_.None()) {
