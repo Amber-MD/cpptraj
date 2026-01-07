@@ -3,5 +3,6 @@ PARM_SOURCES= \
   AssignParams.cpp \
   GB_Params.cpp \
   GetParams.cpp \
+  LJ1264_Params.cpp \
   Merge.cpp \
   ParameterSet.cpp

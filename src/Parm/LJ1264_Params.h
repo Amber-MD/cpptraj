@@ -1,0 +1,30 @@
+#ifndef INC_PARM_LJ1264_PARAMS_H
+#define INC_PARM_LJ1264_PARAMS_H
+#include "ParmEnum.h"
+#include <map>
+#include <string>
+namespace Cpptraj {
+namespace Parm {
+/// Used to assign LJ 12-6-4 C coefficients
+class LJ1264_Params {
+  public:
+    LJ1264_Params();
+    /// Init - mask, c4 file, water model, polarization file, tuning factor
+    int Init_LJ1264(std::string const&, std::string const&, WaterModelType, std::string const&, double);
+  private:
+    typedef std::pair<std::string, double> NameMapPair;
+    typedef std::map<std::string, double> NameMapType;
+
+    /// Set C4 parameters for TIP3P
+    void set_tip3p_params();
+    /// Set C4 params for given water model
+    void setupForWaterModel(WaterModelType);
+
+    WaterModelType waterModel_; ///< Water model that C3 parameters have been set for
+    NameMapType c4params_; ///< C4 parameters
+    NameMapType pol_; ///< Polarizabilities
+    double tunfactor_; ///< Tuning factor
+};
+}
+}
+#endif
