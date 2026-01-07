@@ -227,7 +227,7 @@ const
   if (Ion2 != 0)
     ion2radii = GetAtomRadii( Ion2, set0.AT() );
 
-  mprintf("DEBUG: Nsolvent = %i\n", topOut.Nsolvent());
+  //mprintf("DEBUG: Nsolvent = %i\n", topOut.Nsolvent());
 
   std::vector<int> soluteMolNums;
   std::vector<int> solventMolNums;// = topOut.SolventMolNums();
@@ -245,14 +245,14 @@ const
     }
   }
   // DEBUG
-  mprintf("DEBUG: Solvent molecule #s:");
-  for (std::vector<int>::const_iterator it = solventMolNums.begin(); it != solventMolNums.end(); ++it)
-    mprintf(" %i", *it);
-  mprintf("\n"); // DEBUG
+  //mprintf("DEBUG: Solvent molecule #s:");
+  //for (std::vector<int>::const_iterator it = solventMolNums.begin(); it != solventMolNums.end(); ++it)
+  //  mprintf(" %i", *it);
+  //mprintf("\n"); // DEBUG
 
   //VstatArray solventStat(solventMolNums.size(), UNUSED);
 
-  mprintf("Adding %d counter ions to \"%s\". %d solvent molecules will remain.\n",
+  mprintf("  Adding %d counter ions to \"%s\". %d solvent molecules will remain.\n",
           iIon1 + iIon2, topOut.c_str(), (int)topOut.SolventMolNums().size() - iIon1 - iIon2);
 
   typedef std::vector<Vec3> Varray;
@@ -297,9 +297,9 @@ const
   }
 
   // DEBUG
-  mprintf("DEBUG: Atom Map:\n");
-  for (unsigned int idx = 0; idx != atomMap.size(); idx++)
-    mprintf("\tOld=%8i -> New=%8u\n", atomMap[idx], idx);
+  //mprintf("DEBUG: Atom Map:\n");
+  //for (unsigned int idx = 0; idx != atomMap.size(); idx++)
+  //  mprintf("\tOld=%8i -> New=%8u\n", atomMap[idx], idx);
 
   //FIXME this is not very efficient memory-wise
   Topology* reorderedTop = topOut.ModifyByMap(atomMap);
@@ -367,8 +367,8 @@ const
     Frame ionFrame = ionCrd->AllocateFrame(); //TODO allocate outside this routine
     ionCrd->GetFrame(0, ionFrame);
     ionFrame.CenterOnPoint( pos, false ); // Use geometric center
-    Vec3 debugVec = ionFrame.VGeometricCenter();
-    debugVec.Print("DEBUG: check ion center");
+    //Vec3 debugVec = ionFrame.VGeometricCenter();
+    //debugVec.Print("DEBUG: check ion center");
     mprintf("%zu: Placed %s in %s at (%4.2lf, %4.2lf, %4.2lf).\n", iIon1, ionCrd->legend(), topOut.c_str(),
             pos[0], pos[1], pos[2]);
     if (separation_ > 0.0)
