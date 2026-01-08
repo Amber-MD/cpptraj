@@ -33,7 +33,8 @@ class Solvate {
 
     /// \return Solvent unit selected from given DataSetList
     DataSet_Coords* GetSolventUnit(DataSetList const&) const;
-    //std::string const& SolventBoxName() const { return solventBoxName_; }
+    /// \return Solvent box name
+    std::string const& SolventBoxName() const { return solventBoxName_; }
     /// Print solvate info to stdout
     void PrintSolvateInfo() const;
   private:
