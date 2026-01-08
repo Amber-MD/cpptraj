@@ -8,6 +8,32 @@ class Topology;
 namespace Cpptraj {
 namespace Parm {
 /// Used to assign LJ 12-6-4 C coefficients
+/** Adds the LENNARD_JONES_CCOEF term for the ion 12-6-4 Lennard-Jones potential
+  * term. If provided, the mask will allow you to specify which ions. If not
+  * provided, :ZN will be used for the mask by default. The C4 parameter between
+  * the ion and water can either be taken from the references for the requested
+  * [watermodel] (TIP3P, TIP4PEW, SPCE, OPC3, OPC, FB3, and FB4) or provided in
+  * the file specified by the c4file keyword. The polarizabilities must be
+  * present in the the polfile file. The chemical symbol of the element will be
+  * used to determine the atom type.
+  * Parameters are expected in a file with 2 columns:
+  *     <atom type>   <parameter>
+
+  * All defaults come from Ref. [1], [2], [3], [4], [5] and [6]
+
+  * [1] Pengfei Li and Kenneth M. Merz, J. Chem. Theory Comput., 2014, 10,
+  *     289-297.
+  * [2] Pengfei Li, Lin F. Song and Kenneth M. Merz, J. Phys. Chem. B, 2015,
+  *     119, 883-895.
+  * [3] Pengfei Li, Lin F. Song and Kenneth M. Merz, J. Chem. Theory Comput.,
+  *     2015, 11, 1645-1657.
+  * [4] Zhen Li, Lin Frank Song, Pengfei Li, and Kenneth M. Merz Jr. J. Chem.
+  *     Theory Comput., 2020, 16, 4429-4442.
+  * [5] Arkajyoti Sengupta, Zhen Li, Lin Frank Song, Pengfei Li, and Kenneth M.
+  *     Merz Jr., J. Chem. Inf. Model., 2021, 61, 869-880.
+  * [6] Zhen Li, Lin Frank Song, Pengfei Li, and Kenneth M. Merz Jr. J. Chem.
+  *     Theory Comput., 2021, 17, 2342-2354.
+  */
 class LJ1264_Params {
   public:
     LJ1264_Params();
