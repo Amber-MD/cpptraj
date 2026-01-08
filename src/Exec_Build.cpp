@@ -1009,6 +1009,20 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   }
   mprintf("\tGB radii set: %s\n", Cpptraj::Parm::GbTypeStr(gbradii).c_str());
 
+  // LJ 12-6-4
+  Cpptraj::Parm::LJ1264_Params lj1264;
+  if (argIn.hasKey("lj1264")) {
+    mprintf("\tEnabling LJ 12-6-4 parameters.\n");
+    std::string lj1264mask = argIn.GetStringKey("lj1264mask");
+    std::string c4file = argIn.GetStringKey("c4file");
+    std::string polfile = argIn.GetStringKey("polfile");
+    double tunfactor = argIn.getKeyDouble("tunfactor", 1.0);
+    if (lj1264.Init_LJ1264(lj1264mask, c4file, Cpptraj::Parm::TIP3P, polfile, tunfactor)) {
+      mprinterr("Error: Init of LJ 12-6-4 failed.\n");
+      return CpptrajState::ERR;
+    }
+  }
+
   // Get templates and parameter sets.
   t_get_templates_.Start();
   Cpptraj::Structure::Creator creator( debug_ );
@@ -1194,12 +1208,6 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   }
 
   // FIXME
-  // LJ 12-6-4
-  Cpptraj::Parm::LJ1264_Params lj1264;
-  if (lj1264.Init_LJ1264("", "", Cpptraj::Parm::TIP3P, "", 1.0)) {
-    mprinterr("Error: Init of LJ 12-6-4 failed.\n");
-    return CpptrajState::ERR;
-  }
 
   topOut.Summary();
   t_assign_.Stop();
