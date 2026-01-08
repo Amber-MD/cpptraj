@@ -722,6 +722,8 @@ class NonbondParmType {
     void SetNLJ14terms(int n)    { lj14_.assign( n, NonbondType() ); }
     /// Set number of LJC terms
     void SetNLJCterms(int n)     { ccoef_.assign( n, 0 ); }
+    /// Create an array of LJC terms the same size as LJ A/B all set to zero
+    void AllocateLJC() { ccoef_.assign( nbarray_.size(), 0.0 ); }
     /// Set specified LJ term
     NonbondType& SetLJ(int i)    { return nbarray_[i];                  }
     /// Set specified LJ 1-4 term.

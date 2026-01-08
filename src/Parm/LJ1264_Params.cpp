@@ -1,11 +1,13 @@
 #include "LJ1264_Params.h"
 #include "../ArgList.h"
 #include "../BufferedLine.h"
+#include "../Constants.h" // SMALL
 #include "../CpptrajStdio.h"
+#include "../StringRoutines.h" // integerToString
 #include "../Topology.h"
 #include <cstdlib> // atof
 #include <cctype> // tolower
-#include "StringRoutines.h" // integerToString
+#include <cmath>
 
 using namespace Cpptraj::Parm;
 
@@ -519,6 +521,11 @@ int LJ1264_Params::Init_LJ1264(std::string const& maskIn, std::string const& c4f
 int LJ1264_Params::AssignLJ1264(Topology& topOut)
 {
   mprintf("\tAssigning LJ 12-6-4 parameters.\n");
+  // Must already have nonbond info
+  if (!topOut.Nonbond().HasNonbond()) {
+    mprinterr("Error: Topology %s does not have LJ A/B nonbond parameters; required before setting LJ 12-6-4 nonbond parameters.\n");
+    return 1;
+  }
   if (topOut.SetupIntegerMask( mask_ )) {
     mprinterr("Error: Could not set up mask '%s'\n", mask_.MaskString());
     return 1;
@@ -531,7 +538,12 @@ int LJ1264_Params::AssignLJ1264(Topology& topOut)
     return 0;
   }
 
-  // For each selected atom get the type index, element, charge
+  typedef std::pair<int, double> IdxParamMapPair;
+  typedef std::map<int, double> IdxParamMapType;
+  //typedef std::pair<IdxParamMapType::iterator, bool> IdxParamMapRet;
+  IdxParamMapType idxC4Map;
+
+  // For each selected atom get the type index, element, charge, C4 parameter
   for (AtomMask::const_iterator at = mask_.begin(); at != mask_.end(); ++at)
   {
     int typeIdx = topOut[*at].TypeIndex();
@@ -540,6 +552,12 @@ int LJ1264_Params::AssignLJ1264(Topology& topOut)
       mprinterr("Error: Atom %s does not have an atom type index.\n", topOut.AtomMaskName(*at).c_str());
       return 1;
     }
+    // Was this type index already seen?
+    IdxParamMapType::const_iterator ret = idxC4Map.find( typeIdx );
+    if (ret != idxC4Map.end()) {
+      continue; // TODO check that C4 param matches?
+    }
+    // Figure out charge and element
     int iCharge = (int)topOut[*at].Charge();
     std::string eltName = std::string(topOut[*at].ElementName());
     // LJ 12-6-4 convention is element name second char is lower case
@@ -553,8 +571,71 @@ int LJ1264_Params::AssignLJ1264(Topology& topOut)
                 topOut.AtomMaskName(*at).c_str(), typeIdx, iCharge, eltName.c_str());
       return 1;
     }
+    // Save the type index/C4 param pair
+    idxC4Map.insert( IdxParamMapPair(typeIdx, c4it->second) );
+
     mprintf("DEBUG: %s : idx=%i  chg=%i  ename=%s  C4=%g\n", topOut.AtomMaskName(*at).c_str(), typeIdx, iCharge, ename.c_str(), c4it->second);
   }
+  mprintf("\t  %zu unique C4 parameters for atoms selected by '%s'\n", idxC4Map.size(), mask_.MaskString());
+
+  // For each atom type index find the polarizability
+  IdxParamMapType idxPolMap;
+
+  for (int at = 0; at != topOut.Natom(); at++)
+  {
+    Atom const& ATM = topOut[at];
+    int typeIdx = ATM.TypeIndex();
+    // Sanity check
+    if (typeIdx < 0) {
+      mprinterr("Error: Atom %s does not have an atom type index.\n", topOut.AtomMaskName(at).c_str());
+      return 1;
+    }
+    // Find a polarization from the atom type
+    NameMapType::const_iterator polit = pol_.find( ATM.Type().Truncated() );
+    if (polit == pol_.end()) {
+      mprinterr("Error: Could not find LJ 12-6-4 polarization for atom type %s (%s)\n", *(ATM.Type()), topOut.AtomMaskName(at).c_str());
+      return 1;
+    }
+    // See if this type index was already seen
+    IdxParamMapType::const_iterator ret = idxPolMap.find( typeIdx );
+    if (ret != idxPolMap.end()) {
+      // Ensure polarization is a match
+      if ( fabs( polit->second - ret->second ) > Constants::SMALL ) {
+        // Find the previous atom type matching this index
+        int ii = 0;
+        for (; ii < topOut.Natom(); ii++) {
+          if (topOut[ii].TypeIndex() == typeIdx) break;
+        }
+        mprinterr("Error: Polarizability parameter of atom type %s is not the same as that of type %s,\n",
+                  *(ATM.Type()), *(topOut[ii].Type()));
+        mprinterr("Error:   but their VDW parameters are the same.\n");
+        return 1;
+      }
+    } else {
+      // New polarization
+      mprintf("DEBUG: idx= %i  type= %s  pol= %g\n", typeIdx, *(ATM.Type()), polit->second);
+      idxPolMap.insert( IdxParamMapPair(typeIdx, polit->second) );
+    }
+  }
+
+  // Allocate space for the LJC params
+  topOut.SetNonbond().AllocateLJC();
+
+  // Loop over all metal type indices
+  for (IdxParamMapType::const_iterator it = idxC4Map.begin(); it != idxC4Map.end(); ++it)
+  {
+    // Loop over all other atom type indices
+    for (int jidx = 0; jidx < topOut.Nonbond().Ntypes(); jidx++)
+    {
+      int ljidx = topOut.Nonbond().GetLJindex( it->first, jidx );
+      IdxParamMapType::const_iterator jt = idxPolMap.find( jidx );
+      mprintf("DEBUG: Type1= %i  Type2= %i  NBidx= %i  Pol= %g\n", it->first, jidx, ljidx, jt->second);
+      if (ljidx < 0) {
+        mprinterr("Error: Type pair %i -- %i is an LJ 10-12 pair, not LJ 6-12.\n", it->first, jidx);
+        return 1;
+      }
+    } // END loop over all atom types indices
+  } // END loop over all metal type indices
 
   return 0;
 }
