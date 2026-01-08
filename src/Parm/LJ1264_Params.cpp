@@ -11,10 +11,13 @@
 
 using namespace Cpptraj::Parm;
 
+const double LJ1264_Params::DEFAULT_WATER_POL_ = 1.444; ///< Polarizability of water
+
 /** CONSTRUCTOR */
 LJ1264_Params::LJ1264_Params() :
   waterModel_(UNKNOWN_WATER_MODEL),
-  tunfactor_(1.0)
+  tunfactor_(1.0),
+  WATER_POL_(DEFAULT_WATER_POL_)
 {}
 
 void LJ1264_Params::set_tip3p_params() {
@@ -579,7 +582,18 @@ int LJ1264_Params::AssignLJ1264(Topology& topOut)
   mprintf("\t  %zu unique C4 parameters for atoms selected by '%s'\n", idxC4Map.size(), mask_.MaskString());
 
   // For each atom type index find the polarizability
-  IdxParamMapType idxPolMap;
+  //IdxParamMapType idxPolMap;
+  class TypePol {
+    public:
+      TypePol() : pol_(0) {}
+
+      bool IsSet() const { return typeName_.len() > 0; }
+
+      NameType typeName_;
+      double pol_;
+  };
+  typedef std::vector<TypePol> IdxPolArray;
+  IdxPolArray idxPol( topOut.Nonbond().Ntypes() );
 
   for (int at = 0; at != topOut.Natom(); at++)
   {
@@ -597,24 +611,23 @@ int LJ1264_Params::AssignLJ1264(Topology& topOut)
       return 1;
     }
     // See if this type index was already seen
-    IdxParamMapType::const_iterator ret = idxPolMap.find( typeIdx );
-    if (ret != idxPolMap.end()) {
+    if (idxPol[typeIdx].IsSet()) {
+
+//    IdxParamMapType::const_iterator ret = idxPolMap.find( typeIdx );
+//    if (ret != idxPolMap.end()) {
       // Ensure polarization is a match
-      if ( fabs( polit->second - ret->second ) > Constants::SMALL ) {
-        // Find the previous atom type matching this index
-        int ii = 0;
-        for (; ii < topOut.Natom(); ii++) {
-          if (topOut[ii].TypeIndex() == typeIdx) break;
-        }
-        mprinterr("Error: Polarizability parameter of atom type %s is not the same as that of type %s,\n",
-                  *(ATM.Type()), *(topOut[ii].Type()));
+      if ( fabs( polit->second - idxPol[typeIdx].pol_ ) > Constants::SMALL ) {
+        mprinterr("Error: Polarizability parameter of atom type %s (%g) is not the same as that of type %s (%g),\n",
+                  *(ATM.Type()), polit->second, *(idxPol[typeIdx].typeName_), idxPol[typeIdx].pol_);
         mprinterr("Error:   but their VDW parameters are the same.\n");
         return 1;
       }
     } else {
       // New polarization
       mprintf("DEBUG: idx= %i  type= %s  pol= %g\n", typeIdx, *(ATM.Type()), polit->second);
-      idxPolMap.insert( IdxParamMapPair(typeIdx, polit->second) );
+      idxPol[typeIdx].typeName_ = ATM.Type();
+      idxPol[typeIdx].pol_ = polit->second;
+      //idxPolMap.insert( IdxParamMapPair(typeIdx, polit->second) );
     }
   }
 
@@ -628,12 +641,23 @@ int LJ1264_Params::AssignLJ1264(Topology& topOut)
     for (int jidx = 0; jidx < topOut.Nonbond().Ntypes(); jidx++)
     {
       int ljidx = topOut.Nonbond().GetLJindex( it->first, jidx );
-      IdxParamMapType::const_iterator jt = idxPolMap.find( jidx );
-      mprintf("DEBUG: Type1= %i  Type2= %i  NBidx= %i  Pol= %g\n", it->first, jidx, ljidx, jt->second);
+      //IdxParamMapType::const_iterator jt = idxPolMap.find( jidx );
+      TypePol const& POL = idxPol[jidx];
+      mprintf("DEBUG: Type1= %i  C4= %g  Type2= %i  NBidx= %i  Pol= %g\n", it->first, it->second, jidx, ljidx, POL.pol_);
       if (ljidx < 0) {
         mprinterr("Error: Type pair %i -- %i is an LJ 10-12 pair, not LJ 6-12.\n", it->first, jidx);
         return 1;
       }
+      // Calculate final C4 term
+      double ljc;
+      if (POL.typeName_ == "OW")
+        // There is only one C4 term that exists between water and a certain ion
+        ljc = it->second;
+      else
+        // There are two C4 terms that need to add together between two different ions
+        ljc = topOut.Nonbond().LJC_Array( ljidx ) + (it->second / WATER_POL_ * POL.pol_ * tunfactor_);
+      mprintf("DEBUG:\t\tFinal LJC = %g\n", ljc);
+      topOut.SetNonbond().SetLJC( ljidx, ljc );
     } // END loop over all atom types indices
   } // END loop over all metal type indices
 

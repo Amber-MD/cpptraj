@@ -37,10 +37,13 @@ class LJ1264_Params {
     int read_pol(std::string const&);
     int read_c4(std::string const&);
 
+    static const double DEFAULT_WATER_POL_; ///< Default Polarizability of water
+
     WaterModelType waterModel_; ///< Water model that C4 parameters have been set for
     NameMapType c4params_; ///< C4 parameters
     NameMapType pol_; ///< Polarizabilities
     double tunfactor_; ///< Tuning factor
+    double WATER_POL_; ///< Polarizability of water
     AtomMask mask_; ///< Mask for selecting metal centers
 };
 }
