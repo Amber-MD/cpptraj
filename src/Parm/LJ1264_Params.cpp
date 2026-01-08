@@ -2,7 +2,10 @@
 #include "../ArgList.h"
 #include "../BufferedLine.h"
 #include "../CpptrajStdio.h"
+#include "../Topology.h"
 #include <cstdlib> // atof
+#include <cctype> // tolower
+#include "StringRoutines.h" // integerToString
 
 using namespace Cpptraj::Parm;
 
@@ -470,10 +473,14 @@ int LJ1264_Params::Init_LJ1264(std::string const& maskIn, std::string const& c4f
   tunfactor_ = tunfactorIn;
 
   if (maskIn.empty())
-    mask_ = ":ZN";
-  else
-    mask_ = maskIn;
-  mprintf("\tLJ 12-6-4 mask: %s\n", mask_.c_str());
+    mask_.SetMaskString(":ZN");
+  else {
+    if (mask_.SetMaskString(maskIn)) {
+      mprinterr("Error: Could not set mask string '%s'\n", maskIn.c_str());
+      return 1;
+    }
+  }
+  mprintf("\tLJ 12-6-4 mask: %s\n", mask_.MaskString());
 
   if (c4fileIn.empty())
     setupForWaterModel( wmIn );
@@ -504,6 +511,50 @@ int LJ1264_Params::Init_LJ1264(std::string const& maskIn, std::string const& c4f
     return 1;
   }
   if (read_pol(polfile)) return 1;
+
+  return 0;
+}
+
+/** Parameterize */
+int LJ1264_Params::AssignLJ1264(Topology& topOut)
+{
+  mprintf("\tAssigning LJ 12-6-4 parameters.\n");
+  if (topOut.SetupIntegerMask( mask_ )) {
+    mprinterr("Error: Could not set up mask '%s'\n", mask_.MaskString());
+    return 1;
+  }
+  mprintf("\t  Mask selection: ");
+  mask_.BriefMaskInfo();
+  mprintf("\n");
+  if (mask_.None()) {
+    mprintf("Warning: Nothing selected by mask '%s'\n", mask_.MaskString());
+    return 0;
+  }
+
+  // For each selected atom get the type index, element, charge
+  for (AtomMask::const_iterator at = mask_.begin(); at != mask_.end(); ++at)
+  {
+    int typeIdx = topOut[*at].TypeIndex();
+    // Sanity check
+    if (typeIdx < 0) {
+      mprinterr("Error: Atom %s does not have an atom type index.\n", topOut.AtomMaskName(*at).c_str());
+      return 1;
+    }
+    int iCharge = (int)topOut[*at].Charge();
+    std::string eltName = std::string(topOut[*at].ElementName());
+    // LJ 12-6-4 convention is element name second char is lower case
+    if (eltName.size() > 1) eltName[1] = tolower(eltName[1]);
+    // Append the integer charge
+    std::string ename = eltName + integerToString(iCharge);
+    // Get the C4 parameter
+    NameMapType::const_iterator c4it = c4params_.find( ename );
+    if (c4it == c4params_.end()) {
+      mprinterr("Error: Could not find a C4 parameter for atom %s, type index %i, charge %i, element %s\n",
+                topOut.AtomMaskName(*at).c_str(), typeIdx, iCharge, eltName.c_str());
+      return 1;
+    }
+    mprintf("DEBUG: %s : idx=%i  chg=%i  ename=%s  C4=%g\n", topOut.AtomMaskName(*at).c_str(), typeIdx, iCharge, ename.c_str(), c4it->second);
+  }
 
   return 0;
 }

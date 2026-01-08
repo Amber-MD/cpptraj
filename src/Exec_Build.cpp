@@ -1206,8 +1206,13 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
     mprinterr("Error: Could not assign GB parameters for '%s'\n", topOut.c_str());
     ret = CpptrajState::ERR;
   }
-
-  // FIXME
+  // Assign LJ 12-6-4 parameters
+  if (lj1264.HasC4Params()) {
+    if (lj1264.AssignLJ1264(topOut)) {
+      mprinterr("Error: Could not assign LJ 12-6-4 parameters for '%s'\n", topOut.c_str());
+      ret = CpptrajState::ERR;
+    }
+  }
 
   topOut.Summary();
   t_assign_.Stop();
