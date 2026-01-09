@@ -296,24 +296,24 @@ int Solvate::SetVdwBoundingBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm:
     mprinterr("Error: Setting vdw bounding box for %s failed.\n", topOut.c_str());
     return 1;
   }
-  mprintf("  Solute vdw bounding box:              %-5.3f %-5.3f %-5.3f\n", boxX, boxY, boxZ);
+  mprintf("\t  Solute vdw bounding box:              %-5.3f %-5.3f %-5.3f\n", boxX, boxY, boxZ);
 
   double dXWidth = boxX + bufferX_ * 2;
   double dYWidth = boxY + bufferY_ * 2;
   double dZWidth = boxZ + bufferZ_ * 2;
 
-    mprintf("  Total bounding box for atom centers:  %5.3f %5.3f %5.3f\n", 
+    mprintf("\t  Total bounding box for atom centers:  %5.3f %5.3f %5.3f\n", 
             dXWidth, dYWidth, dZWidth );
 
   // Setup box
   frameOut.ModifyBox().SetupFromXyzAbg(boxX, boxY, boxZ, 90.0, 90.0, 90.0);
   frameOut.BoxCrd().PrintInfo();
   topOut.SetParmBox( frameOut.BoxCrd() );
-  mprintf("  Total vdw box size:%s%5.3f %5.3f %5.3f angstroms.\n", "                   ",
+  mprintf("\t  Total vdw box size:%s%5.3f %5.3f %5.3f angstroms.\n", "                   ",
           frameOut.BoxCrd().Param(Box::X),
           frameOut.BoxCrd().Param(Box::Y),
           frameOut.BoxCrd().Param(Box::Z));
-  mprintf("  Volume: %5.3lf A^3\n", frameOut.BoxCrd().CellVolume());
+  mprintf("\t  Volume: %5.3f A^3\n", frameOut.BoxCrd().CellVolume());
   return 0;
 }
 
@@ -388,13 +388,13 @@ void Solvate::octBoxCheck(Frame const& frameOut) {
   dTmp = dMax + dPBuf[3];
   if ( dTmp <= dBmax ) {
     if ( dPBuf[3] == 0.0 )
-      mprintf("  (Diagonal clearance is %f)\n", dMax );
+      mprintf("\t  (Diagonal clearance is %f)\n", dMax );
     return;
   }
 
   //  not satisfied: scale up box
   dTmp /= dBmax;
-  mprintf("  Scaling up box by a factor of %f to meet diagonal cut criterion\n", dTmp );
+  mprintf("\t  Scaling up box by a factor of %f to meet diagonal cut criterion\n", dTmp );
 
   bufferX_ *= dTmp;
   bufferY_ *= dTmp;
@@ -478,7 +478,7 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
   // Check if buffers need to be increased for trunc oct.
   if (doTruncatedOct_)
     octBoxCheck( frameOut );
-  mprintf("  Solute vdw bounding box:              %-5.3f %-5.3f %-5.3f\n", boxX, boxY, boxZ);
+  mprintf("\t  Solute vdw bounding box:              %-5.3f %-5.3f %-5.3f\n", boxX, boxY, boxZ);
 
   double dXWidth = boxX + bufferX_ * 2;
   double dYWidth = boxY + bufferY_ * 2;
@@ -493,9 +493,9 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
 
     dTemp = (dMax * dMax * dMax - dTemp ) / dTemp;
 
-    mprintf("  Total bounding box for atom centers:  %5.3f %5.3f %5.3f\n", 
+    mprintf("\t  Total bounding box for atom centers:  %5.3f %5.3f %5.3f\n", 
             dXWidth, dYWidth, dZWidth );
-    mprintf("      (box expansion for 'iso' is %5.1lf%%)\n", dTemp * 100.0 );
+    mprintf("\t      (box expansion for 'iso' is %5.1lf%%)\n", dTemp * 100.0 );
 
      // To make the actual clip right, 'iso' the solute box
     dTemp = std::max(boxX, boxY);
@@ -503,7 +503,7 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
     //dXBox = dYBox = dZBox = dTemp;
     boxX = boxY = boxZ = dTemp;
   } else
-    mprintf("  Total bounding box for atom centers:  %5.3f %5.3f %5.3f\n", 
+    mprintf("\t  Total bounding box for atom centers:  %5.3f %5.3f %5.3f\n", 
             dXWidth, dYWidth, dZWidth );
 
   if (clip_) {
@@ -539,7 +539,7 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
       return 1;
     }
   }
-  mprintf("  Solvent unit box:                     %5.3f %5.3f %5.3f\n", solventX, solventY, solventZ);
+  mprintf("\t  Solvent unit box:                     %5.3f %5.3f %5.3f\n", solventX, solventY, solventZ);
 
   // See how many solvent boxes required in each dimension
 
@@ -594,13 +594,13 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
   }
   //mprintf("Max: %f %f %f\n", boxX, boxY, boxZ);
   frameOut.ModifyBox().SetupFromXyzAbg(boxX, boxY, boxZ, boxBeta, boxBeta, boxBeta);
-  frameOut.BoxCrd().PrintInfo();
+  frameOut.BoxCrd().PrintInfo("\t  ");
   topOut.SetParmBox( frameOut.BoxCrd() );
-  mprintf("  Total vdw box size:%s%5.3f %5.3f %5.3f angstroms.\n", "                   ",
-          frameOut.BoxCrd().Param(Box::X),
-          frameOut.BoxCrd().Param(Box::Y),
-          frameOut.BoxCrd().Param(Box::Z));
-  mprintf("  Volume: %5.3lf A^3\n", frameOut.BoxCrd().CellVolume());
+  //mprintf("\t  Total vdw box size:%s%5.3f %5.3f %5.3f angstroms.\n", "                   ",
+  //        frameOut.BoxCrd().Param(Box::X),
+  //        frameOut.BoxCrd().Param(Box::Y),
+  //        frameOut.BoxCrd().Param(Box::Z));
+  mprintf("\t  Volume: %5.3lf A^3\n", frameOut.BoxCrd().CellVolume());
   // Sum mass
   double sumMass = 0.0;
   for (int at = 0; at < topOut.Natom(); at++) {
@@ -612,7 +612,7 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
     }
   }
   if (sumMass > 0.0) {
-    mprintf("  Total mass %5.3f amu,  Density %5.3lf g/cc\n", sumMass, sumMass / (frameOut.BoxCrd().CellVolume() * 0.602204));
+    mprintf("\t  Total mass %5.3f amu,  Density %5.3lf g/cc\n", sumMass, sumMass / (frameOut.BoxCrd().CellVolume() * 0.602204));
   } else {
     mprintf("Warning: Mass could not be determined, so density unknown (i.e. type of all atoms could not be found)\n");
   }
@@ -779,7 +779,7 @@ const
   }
   int NboxesToAdd = numX * numY * numZ;
   int NatomsToAdd = NboxesToAdd * solventTop.Natom();
-  mprintf("  Will add %i solvent boxes, max %i atoms.\n", NboxesToAdd, NatomsToAdd);
+  mprintf("\t  Will add %i solvent boxes, max %i atoms.\n", NboxesToAdd, NatomsToAdd);
   frameOut.IncreaseX( NatomsToAdd );
 
   // Current solvent unit center

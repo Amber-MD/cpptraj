@@ -311,10 +311,15 @@ void Box::SetNoBox() {
   cellVolume_ = 0;
 }
 
+/** Print box info to STDOUT preceded by text. */
+void Box::PrintInfo(const char* desc) const {
+  mprintf("%sBox: '%s' XYZ= { %8.3f %8.3f %8.3f } ABG= { %6.2f %6.2f %6.2f }\n", desc,
+          CellShapeName(), box_[0], box_[1], box_[2], box_[3], box_[4], box_[5]);
+}
+
 /** Print box info to STDOUT. */
 void Box::PrintInfo() const {
-  mprintf("\tBox: '%s' XYZ= { %8.3f %8.3f %8.3f } ABG= { %6.2f %6.2f %6.2f }\n",
-          CellShapeName(), box_[0], box_[1], box_[2], box_[3], box_[4], box_[5]);
+  PrintInfo("\t");
 }
 
 // -----------------------------------------------------------------------------

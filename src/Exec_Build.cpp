@@ -1187,7 +1187,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
       mprinterr("Error: Adding solvent failed.\n");
       return CpptrajState::ERR;
     }
-    mprintf("\tAdded %i residues.\n", topOut.Nres() - initial_nres);
+    mprintf("\t  Added %i solvent residues.\n", topOut.Nres() - initial_nres);
     // Since by design the SolvateBox routine ensures solvent does not
     // clash with solute, just check the solute.
     checkMaskString.assign( "@1-" + integerToString(initial_natom) );
