@@ -427,7 +427,7 @@ void LJ1264_Params::setupForWaterModel(WaterModelType wmIn)
     case FB4     : set_fb4_params(); break;
   }
 
-  mprintf("\tUsing default C4 parameters for %s\n", WaterModelStr(waterModel_));
+  mprintf("\t  Using default C4 parameters for %s\n", WaterModelStr(waterModel_));
 }
 
 /** Read a 2 column file with format <name> <value> */
@@ -462,14 +462,14 @@ int LJ1264_Params::read_2col_file(std::string const& infileName, NameMapType& ma
 /** Read polarizabilities. */
 int LJ1264_Params::read_pol(std::string const& polfile)
 {
-  mprintf("\tReading atomic polarizabilities from '%s'\n", polfile.c_str());
+  mprintf("\t  Reading atomic polarizabilities from '%s'\n", polfile.c_str());
   return read_2col_file(polfile, pol_);
 }
 
 /** Read C4 params */
 int LJ1264_Params::read_c4(std::string const& c4file)
 {
-  mprintf("\tReading C4 parameters from '%s'\n", c4file.c_str());
+  mprintf("\t  Reading C4 parameters from '%s'\n", c4file.c_str());
   waterModel_ = UNKNOWN_WATER_MODEL;
   return read_2col_file(c4file, c4params_);
 }
@@ -478,8 +478,10 @@ int LJ1264_Params::read_c4(std::string const& c4file)
 int LJ1264_Params::Init_LJ1264(std::string const& maskIn, std::string const& c4fileIn, WaterModelType wmIn,
                               std::string const& polfileIn, double tunfactorIn, int debugIn)
 {
+  mprintf("\tLJ 12-6-4 Init\n");
   debug_ = debugIn;
   tunfactor_ = tunfactorIn;
+  mprintf("\t  LJ 12-6-4 tuning factor: %g\n", tunfactor_);
 
   if (maskIn.empty())
     mask_.SetMaskString(":ZN");
@@ -489,7 +491,7 @@ int LJ1264_Params::Init_LJ1264(std::string const& maskIn, std::string const& c4f
       return 1;
     }
   }
-  mprintf("\tLJ 12-6-4 mask: %s\n", mask_.MaskString());
+  mprintf("\t  LJ 12-6-4 mask: %s\n", mask_.MaskString());
 
   if (c4fileIn.empty())
     setupForWaterModel( wmIn );
@@ -534,14 +536,14 @@ int LJ1264_Params::AssignLJ1264(Topology& topOut)
     return 1;
   }
   if (topOut.SetupIntegerMask( mask_ )) {
-    mprinterr("Error: Could not set up mask '%s'\n", mask_.MaskString());
+    mprinterr("Error: Could not set up LJ 12-6-4 mask '%s'\n", mask_.MaskString());
     return 1;
   }
-  mprintf("\t  Mask selection: ");
+  mprintf("\t  LJ 12-6-4 mask selection: ");
   mask_.BriefMaskInfo();
   mprintf("\n");
   if (mask_.None()) {
-    mprintf("Warning: Nothing selected by mask '%s'\n", mask_.MaskString());
+    mprintf("Warning: Nothing selected by LJ 12-6-4 mask '%s'\n", mask_.MaskString());
     return 0;
   }
 
@@ -581,7 +583,9 @@ int LJ1264_Params::AssignLJ1264(Topology& topOut)
     // Save the type index/C4 param pair
     idxC4Map.insert( IdxParamMapPair(typeIdx, c4it->second) );
 
-    mprintf("DEBUG: %s : idx=%i  chg=%i  ename=%s  C4=%g\n", topOut.AtomMaskName(*at).c_str(), typeIdx, iCharge, ename.c_str(), c4it->second);
+    if (debug_ > 0)
+       mprintf("DEBUG: %s : idx=%i  chg=%i  ename=%s  C4=%g\n", topOut.AtomMaskName(*at).c_str(),
+               typeIdx, iCharge, ename.c_str(), c4it->second);
   }
   mprintf("\t  %zu unique C4 parameters for atoms selected by '%s'\n", idxC4Map.size(), mask_.MaskString());
 
@@ -628,7 +632,8 @@ int LJ1264_Params::AssignLJ1264(Topology& topOut)
       }
     } else {
       // New polarization
-      mprintf("DEBUG: idx= %i  type= %s  pol= %g\n", typeIdx, *(ATM.Type()), polit->second);
+      if (debug_ > 0)
+        mprintf("DEBUG: idx= %i  type= %s  pol= %g\n", typeIdx, *(ATM.Type()), polit->second);
       idxPol[typeIdx].typeName_ = ATM.Type();
       idxPol[typeIdx].pol_ = polit->second;
       //idxPolMap.insert( IdxParamMapPair(typeIdx, polit->second) );
@@ -647,7 +652,9 @@ int LJ1264_Params::AssignLJ1264(Topology& topOut)
       int ljidx = topOut.Nonbond().GetLJindex( it->first, jidx );
       //IdxParamMapType::const_iterator jt = idxPolMap.find( jidx );
       TypePol const& POL = idxPol[jidx];
-      mprintf("DEBUG: Type1= %i  C4= %g  Type2= %i  NBidx= %i  Pol= %g\n", it->first, it->second, jidx, ljidx, POL.pol_);
+      if (debug_ > 0)
+        mprintf("DEBUG: Type1= %i  C4= %g  Type2= %i  NBidx= %i  Pol= %g\n", it->first, it->second,
+                jidx, ljidx, POL.pol_);
       if (ljidx < 0) {
         mprinterr("Error: Type pair %i -- %i is an LJ 10-12 pair, not LJ 6-12.\n", it->first, jidx);
         return 1;
@@ -660,7 +667,8 @@ int LJ1264_Params::AssignLJ1264(Topology& topOut)
       else
         // There are two C4 terms that need to add together between two different ions
         ljc = topOut.Nonbond().LJC_Array( ljidx ) + (it->second / WATER_POL_ * POL.pol_ * tunfactor_);
-      mprintf("DEBUG:\t\tFinal LJC = %g\n", ljc);
+      if (debug_ > 0)
+        mprintf("DEBUG:\t\tFinal LJC = %g\n", ljc);
       topOut.SetNonbond().SetLJC( ljidx, ljc );
     } // END loop over all atom types indices
   } // END loop over all metal type indices
