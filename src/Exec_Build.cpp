@@ -19,7 +19,7 @@
 #include "Structure/Sugar.h"
 #include "StructureCheck.h"
 #include <set> // For warning about missing residue templates
-#include <cmath> // fabs, modf
+#include <cmath> // fabs
 
 /** CONSTRUCTOR */
 Exec_Build::Exec_Build() :
@@ -1312,13 +1312,13 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
 
   // Total charge check
   double totalSystemCharge = crdout.Top().TotalCharge();
-  double q_frac, q_int;
-  q_frac = modf(totalSystemCharge, &q_int);
+  double absSystemCharge = fabs(totalSystemCharge);
+  double q_frac = fabs( absSystemCharge - (double)(int)(absSystemCharge+0.5) );
   // NOTE: These cutoffs are the same as in LEaP
-  if ( fabs(q_frac) > 0.01 )
-   mprintf("Warning: The charge of the system (%f) is not integral.\n", totalSystemCharge);
-  if ( fabs(totalSystemCharge) > 0.01 )
-    mprintf("Warning: The charge of the system (%f) is not zero.\n", totalSystemCharge);
+  if ( q_frac > 0.01 )
+   mprintf("Warning: The charge of the system is not integral: %f\n", totalSystemCharge);
+  if ( absSystemCharge > 0.01 )
+    mprintf("Warning: The charge of the system is not zero: %f\n", totalSystemCharge);
 
   if (!outputTopologyName.empty()) {
     ParmFile pfile;

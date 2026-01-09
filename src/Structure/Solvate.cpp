@@ -453,6 +453,7 @@ void Solvate::ewald_rotate(Frame& frameOut, double& dPAngle)
 int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::ParameterSet const& set0,
                         DataSet_Coords& SOLVENTBOX)
 {
+  mprintf("\tAdding solvent.\n");
   // Sanity check
   if (topOut.Natom() != frameOut.Natom()) {
     mprinterr("Internal Error: Solvate::SolvateBox(): Topology %s #atoms %i != frame #atoms %i\n",

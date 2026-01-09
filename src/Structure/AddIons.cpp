@@ -66,15 +66,16 @@ int AddIons::InitAddIons(std::string const& ion1nameIn, int Nion1,
 /** Print setup info to stdout */
 void AddIons::PrintAddIonsInfo() const {
   if (ion1name_.empty()) return;
+  mprintf("\tIon info:\n");
   if (Nion1_ < 1)
-    mprintf("\tAdding enough %s ions to neutralize.\n", ion1name_.c_str());
+    mprintf("\t  Adding enough %s ions to neutralize.\n", ion1name_.c_str());
   else
-    mprintf("\tAdding %i %s ions.\n", Nion1_, ion1name_.c_str());
+    mprintf("\t  Adding %i %s ions.\n", Nion1_, ion1name_.c_str());
   if (!ion2name_.empty())
-    mprintf("\tAdding %i %s ions.\n", Nion2_, ion2name_.c_str());
+    mprintf("\t  Adding %i %s ions.\n", Nion2_, ion2name_.c_str());
   if (separation_ > 0.0)
-    mprintf("\tMinimum ion separation is %g Ang.\n", separation_);
-  mprintf("\tIon RNG seed: %i\n", RNG_.Seed());
+    mprintf("\t  Minimum ion separation is %g Ang.\n", separation_);
+  mprintf("\t  Ion RNG seed: %i\n", RNG_.Seed());
 }
 
 /** Get ion unit box from DataSetList. */ // TODO consolidate with Solvate::GetSolventUnit()?
@@ -109,7 +110,7 @@ DataSet_Coords* AddIons::GetIonUnit(std::string const& ionname, DataSetList cons
     }
   }
   if (ionUnit != 0)
-    mprintf("\tIon unit: %s\n", ionUnit->legend());
+    mprintf("\t  Ion unit: %s\n", ionUnit->legend());
   else
     mprinterr("Error: Could not get ion unit named %s\n", ionname.c_str());
 
@@ -143,6 +144,7 @@ int AddIons::AddIonsRand(Topology& topOut, Frame& frameOut, DataSetList const& D
                          Cpptraj::Parm::ParameterSet const& set0)
 const
 {
+  mprintf("\tAdding ions by randomly swapping with solvent.\n");
   // Check that there are solvent molecules.
   int nsolvent = topOut.Nsolvent();
   if (nsolvent < 1) {
@@ -159,7 +161,7 @@ const
     }
     mprintf("Warning: Adding the ions anyway.\n");
   } else {
-    mprintf("\tTotal charge on %s is %g\n", topOut.c_str(), totalCharge);
+    mprintf("\t  Total charge on %s is %g\n", topOut.c_str(), totalCharge);
   }
 
   // Get first ion
@@ -205,7 +207,7 @@ const
     }
     // Get the nearest integer number of ions needed to neutralize the system.
     iIon1 = (int)lrint( fabs(totalCharge) / fabs(chargeIon1) );
-    mprintf("\tNumber of %s ions required to neutralize: %i\n", ion1name_.c_str(), iIon1);
+    mprintf("\t  Number of %s ions required to neutralize: %i\n", ion1name_.c_str(), iIon1);
   }
 
   // Check that there is enough solvent to swap
@@ -252,7 +254,7 @@ const
 
   //VstatArray solventStat(solventMolNums.size(), UNUSED);
 
-  mprintf("  Adding %d counter ions to \"%s\". %d solvent molecules will remain.\n",
+  mprintf("\t  Adding %d counter ions to \"%s\". %d solvent molecules will remain.\n",
           iIon1 + iIon2, topOut.c_str(), (int)topOut.SolventMolNums().size() - iIon1 - iIon2);
 
   typedef std::vector<Vec3> Varray;
@@ -370,8 +372,9 @@ const
     ionFrame.CenterOnPoint( pos, false ); // Use geometric center
     //Vec3 debugVec = ionFrame.VGeometricCenter();
     //debugVec.Print("DEBUG: check ion center");
-    mprintf("  %zu: Placed %s in %s at (%4.2lf, %4.2lf, %4.2lf).\n", iIon1, ionCrd->legend(), topOut.c_str(),
-            pos[0], pos[1], pos[2]);
+    if (debug_ > 0)
+      mprintf("\t  %zu: Placed %s in %s at (%4.2lf, %4.2lf, %4.2lf).\n", iIon1, ionCrd->legend(), topOut.c_str(),
+              pos[0], pos[1], pos[2]);
     if (separation_ > 0.0)
       ionPositions.push_back( pos );
     int ionAtoms0 = topOut.Natom();
