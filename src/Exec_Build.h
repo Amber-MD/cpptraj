@@ -63,6 +63,9 @@ class Exec_Build : public Exec {
     Timer t_fill_;
     Timer t_fill_template_;
     Timer t_fill_build_;
+    Timer t_fill_build_internals_;
+    Timer t_fill_build_build_;
+    Timer t_fill_build_link_;
     Timer t_assign_;
     Timer t_check_;
     Timer t_solvate_;

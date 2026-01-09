@@ -678,6 +678,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
         structureBuilder.SetParameters( creator.MainParmSetPtr() );
       // Generate internals from the template, update indices to this topology.
       DataSet_Coords* resTemplate = ResTemplates[ires];
+      t_fill_build_internals_.Start();
       Frame templateFrame = resTemplate->AllocateFrame();
       resTemplate->GetFrame( 0, templateFrame );
       if (structureBuilder.GenerateInternals(templateFrame, resTemplate->Top(),
@@ -686,9 +687,11 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
         mprinterr("Error: Generate internals for residue template failed.\n");
         return 1;
       }
+      t_fill_build_internals_.Stop();
       structureBuilder.UpdateIndicesWithOffset( *it );
       //mprintf("DEBUG: Residue type: %s terminal\n", Cpptraj::Structure::terminalStr(*termType));
       // Is this residue connected to an earlier residue?
+      t_fill_build_link_.Start();
       for (IParray::const_iterator resBonds = resBondingAtoms[ires].begin();
                                    resBonds != resBondingAtoms[ires].end(); ++resBonds)
       {
@@ -709,16 +712,19 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
           }
         }
       }
+      t_fill_build_link_.Stop();
       // Update internal coords from known positions
       if (structureBuilder.UpdateICsFromFrame( frameOut, topOut, hasPosition )) {
         mprinterr("Error: Failed to update internals with values from existing positions.\n");
         return 1;
       }
+      t_fill_build_build_.Start();
       if (structureBuilder.BuildFromInternals(frameOut, topOut, hasPosition)) {
         mprinterr("Error: Building residue %s failed.\n",
                   topOut.TruncResNameOnumId(ires).c_str());
         buildFailed = true;
       }
+      t_fill_build_build_.Stop();
     } else {
       // All atoms present. Just connect
       // Is this residue connected to an earlier residue?
@@ -1672,4 +1678,7 @@ void Exec_Build::PrintTiming() const {
   t_fill_.WriteTiming         (2, "Fill missing atoms  :", t_total_.Total());
   t_fill_template_.WriteTiming(3, "Get template atoms :", t_fill_.Total());
   t_fill_build_.WriteTiming   (3, "Build atoms        :", t_fill_.Total());
+  t_fill_build_internals_.WriteTiming(4, "Internals :", t_fill_build_.Total());
+  t_fill_build_build_.WriteTiming    (4, "Build     :", t_fill_build_.Total());
+  t_fill_build_link_.WriteTiming     (4, "Link      :", t_fill_build_.Total());
 }
