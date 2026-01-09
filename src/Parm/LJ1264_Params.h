@@ -37,8 +37,8 @@ namespace Parm {
 class LJ1264_Params {
   public:
     LJ1264_Params();
-    /// Init - mask, c4 file, water model, polarization file, tuning factor
-    int Init_LJ1264(std::string const&, std::string const&, WaterModelType, std::string const&, double);
+    /// Init - mask, c4 file, water model, polarization file, tuning factor, debug
+    int Init_LJ1264(std::string const&, std::string const&, WaterModelType, std::string const&, double, int);
     /// Assign Topology with LJ 12-6-4 params
     int AssignLJ1264(Topology&);
 
@@ -71,6 +71,7 @@ class LJ1264_Params {
     double tunfactor_; ///< Tuning factor
     double WATER_POL_; ///< Polarizability of water
     AtomMask mask_; ///< Mask for selecting metal centers
+    int debug_;
 };
 }
 }

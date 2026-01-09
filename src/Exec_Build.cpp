@@ -1035,7 +1035,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
       mprintf("Warning: Unable to determine water model for LJ 12-6-4. Using TIP3P.\n");
       wm = Cpptraj::Parm::TIP3P;
     }
-    if (lj1264.Init_LJ1264(lj1264mask, c4file, wm, polfile, tunfactor)) {
+    if (lj1264.Init_LJ1264(lj1264mask, c4file, wm, polfile, tunfactor, debug_)) {
       mprinterr("Error: Init of LJ 12-6-4 failed.\n");
       return CpptrajState::ERR;
     }

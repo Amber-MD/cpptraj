@@ -17,9 +17,11 @@ const double LJ1264_Params::DEFAULT_WATER_POL_ = 1.444; ///< Polarizability of w
 LJ1264_Params::LJ1264_Params() :
   waterModel_(UNKNOWN_WATER_MODEL),
   tunfactor_(1.0),
-  WATER_POL_(DEFAULT_WATER_POL_)
+  WATER_POL_(DEFAULT_WATER_POL_),
+  debug_(0)
 {}
 
+// ----- WATER MODEL LJC PARAMETERS GO HERE ------------------------------------
 void LJ1264_Params::set_tip3p_params() {
   c4params_.insert( NameMapPair("Li1", 27.0) );
   c4params_.insert( NameMapPair("Na1", 0.0) );
@@ -405,13 +407,14 @@ void LJ1264_Params::set_fb4_params() {
   c4params_.insert( NameMapPair("Th4", 601.0) );
 }
 
-/** Set up C4 parameters for given water model */
+// -----------------------------------------------------------------------------
+
+/** Set up default C4 parameters for given water model */
 void LJ1264_Params::setupForWaterModel(WaterModelType wmIn)
 {
   if (wmIn == waterModel_) return;
   c4params_.clear();
   waterModel_ = wmIn;
-
 
   switch (waterModel_) {
     case UNKNOWN_WATER_MODEL : return;
@@ -473,8 +476,9 @@ int LJ1264_Params::read_c4(std::string const& c4file)
 
 /** Initialize */
 int LJ1264_Params::Init_LJ1264(std::string const& maskIn, std::string const& c4fileIn, WaterModelType wmIn,
-                              std::string const& polfileIn, double tunfactorIn)
+                              std::string const& polfileIn, double tunfactorIn, int debugIn)
 {
+  debug_ = debugIn;
   tunfactor_ = tunfactorIn;
 
   if (maskIn.empty())
