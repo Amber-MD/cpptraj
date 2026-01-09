@@ -19,6 +19,7 @@
 #include "Structure/Sugar.h"
 #include "StructureCheck.h"
 #include <set> // For warning about missing residue templates
+#include <cmath> // fabs, modf
 
 /** CONSTRUCTOR */
 Exec_Build::Exec_Build() :
@@ -884,7 +885,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   Topology topIn = coords.Top(); // FIXME do not work on the copy, work on the top itself
 
   std::string solventResName = argIn.GetStringKey("solventresname", "HOH");
-  mprintf("\tSolvent residue name: %s\n", solventResName.c_str());
+  mprintf("\tResidues named '%s' will be recognized as solvent.\n", solventResName.c_str());
 
   enum SolvateModeType { NO_SOLVATE = 0, SOLVATEBOX, SETBOX };
   SolvateModeType add_solvent = NO_SOLVATE;
@@ -1012,7 +1013,6 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   // LJ 12-6-4
   Cpptraj::Parm::LJ1264_Params lj1264;
   if (argIn.hasKey("lj1264")) {
-    mprintf("\tEnabling LJ 12-6-4 parameters.\n");
     std::string lj1264mask = argIn.GetStringKey("lj1264mask");
     std::string c4file = argIn.GetStringKey("c4file");
     std::string polfile = argIn.GetStringKey("polfile");
@@ -1309,6 +1309,16 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
       frameOut.ModifyBox().SetNoBox();
     t_check_.Stop();
   }
+
+  // Total charge check
+  double totalSystemCharge = crdout.Top().TotalCharge();
+  double q_frac, q_int;
+  q_frac = modf(totalSystemCharge, &q_int);
+  // NOTE: These cutoffs are the same as in LEaP
+  if ( fabs(q_frac) > 0.01 )
+   mprintf("Warning: The charge of the system (%f) is not integral.\n", totalSystemCharge);
+  if ( fabs(totalSystemCharge) > 0.01 )
+    mprintf("Warning: The charge of the system (%f) is not zero.\n", totalSystemCharge);
 
   if (!outputTopologyName.empty()) {
     ParmFile pfile;

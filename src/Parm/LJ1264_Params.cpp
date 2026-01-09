@@ -478,7 +478,7 @@ int LJ1264_Params::read_c4(std::string const& c4file)
 int LJ1264_Params::Init_LJ1264(std::string const& maskIn, std::string const& c4fileIn, WaterModelType wmIn,
                               std::string const& polfileIn, double tunfactorIn, int debugIn)
 {
-  mprintf("\tLJ 12-6-4 Init\n");
+  mprintf("\tEnabling LJ 12-6-4 parameters.\n");
   debug_ = debugIn;
   tunfactor_ = tunfactorIn;
   mprintf("\t  LJ 12-6-4 tuning factor: %g\n", tunfactor_);

@@ -103,10 +103,18 @@ int Solvate::InitSetbox(ArgList& argIn, int debugIn) {
 
 /** Print info to stdout */
 void Solvate::PrintSolvateInfo() const {
-  mprintf("\tSolvent buffer XYZ: %g %g %g Ang.\n", bufferX_, bufferY_, bufferZ_);
-  mprintf("\tSolvent closeness: %g Ang.\n", closeness_);
-  // FIXME improve output
-  mprintf("\tSolvent isotropic=%i  clip=%i  center_=%i  oct=%i\n", (int)isotropic_, (int)clip_, (int)center_, (int)doTruncatedOct_);
+  if (doTruncatedOct_)
+    mprintf("\tAdding solvent from %s using a truncated octahedral unit cell.\n", solventBoxName_.c_str());
+  else
+    mprintf("\tAdding solvent from %s using an orthorhombic unit cell.\n", solventBoxName_.c_str());
+  mprintf("\t  Solvent buffer XYZ: %g %g %g Ang.\n", bufferX_, bufferY_, bufferZ_);
+  mprintf("\t  Solvent closeness: %g Ang.\n", closeness_);
+  if (isotropic_)
+    mprintf("\t  Solute will be centered at the origin and principal-aligned before solvating.\n");
+  if (clip_)
+    mprintf("\t  Solvent outside the primary unit cell will be removed.\n");
+  if (center_)
+    mprintf("\t  Final system will be centered at box center after solvation.\n");
 } 
 
 /** Get solvent unit box from DataSetList */
