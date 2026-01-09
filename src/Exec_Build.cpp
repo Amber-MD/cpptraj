@@ -51,7 +51,6 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
                                        Topology const& topIn, Frame const& frameIn,
                                        Cpptraj::Structure::Creator const& creator,
                                        std::vector<BondType> const& topInBonds)
-const
 {
   // Array of head/tail connect atoms for each residue
   Iarray resHeadAtoms;
@@ -64,6 +63,7 @@ const
   std::vector<DataSet_Coords*> ResTemplates;
   ResTemplates.reserve( topIn.Nres() );
 
+  t_fill_template_.Start();
   // Initial loop to try to match residues to templates
   int newNatom = 0;
   unsigned int n_no_template_found = 0;
@@ -414,6 +414,7 @@ const
       topOut.AddBond(it->first, it->second);
     }
   } // END loop over source residues
+  t_fill_template_.Stop();
   if (nRefAtomsMissing > 0)
     mprintf("\t%i template atoms missing in source.\n", nRefAtomsMissing);
   if (nAtomsNotInTemplates > 0) {
@@ -661,6 +662,7 @@ const
 
   // -----------------------------------
   // Build using internal coords if needed.
+  t_fill_build_.Start();
   bool buildFailed = false;
   for (Iarray::const_iterator it = AtomOffsets.begin(); it != AtomOffsets.end(); ++it)
   {
@@ -733,6 +735,7 @@ const
       }
     }
   } // END loop over atom offsets
+  t_fill_build_.Stop();
 
   // DEBUG - Print new top/coords
   if (debug_ > 1) {
@@ -1667,5 +1670,6 @@ void Exec_Build::PrintTiming() const {
   t_disulfide_.WriteTiming    (2, "Disulfide detection :", t_total_.Total());
   t_sugar_.WriteTiming        (2, "Sugar preparation   :", t_total_.Total());
   t_fill_.WriteTiming         (2, "Fill missing atoms  :", t_total_.Total());
+  t_fill_template_.WriteTiming(3, "Get template atoms :", t_fill_.Total());
+  t_fill_build_.WriteTiming   (3, "Build atoms        :", t_fill_.Total());
 }
-

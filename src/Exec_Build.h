@@ -39,7 +39,7 @@ class Exec_Build : public Exec {
     /// Create new topology/frame using templates
     int FillAtomsWithTemplates(Topology&, Frame&, Topology const&, Frame const&,
                                Cpptraj::Structure::Creator const&,
-                               std::vector<BondType> const&) const;
+                               std::vector<BondType> const&);
     /// Map atoms in topology to template
     static std::vector<int> MapAtomsToTemplate(Topology const&, int, DataSet_Coords*, Cpptraj::Structure::Creator const&, std::vector<NameType>&, int&);
     /// Transfer bonds from old topology to new topology
@@ -61,6 +61,8 @@ class Exec_Build : public Exec {
     Timer t_disulfide_;
     Timer t_sugar_;
     Timer t_fill_;
+    Timer t_fill_template_;
+    Timer t_fill_build_;
     Timer t_assign_;
     Timer t_check_;
     Timer t_solvate_;
