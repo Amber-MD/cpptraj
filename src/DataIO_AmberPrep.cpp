@@ -376,7 +376,7 @@ int DataIO_AmberPrep::readAmberPrep(BufferedLine& infile, DataSetList& dsl, std:
     bondSearch.FindBonds( top, BondSearch::SEARCH_REGULAR, frm, 0.2, debug_ );
   }
   // Set up topology
-  top.CommonSetup(true, false, false);
+  top.CommonSetup(true, false);
   if (debug_ > 0)
     top.Summary();
   if (debug_ > 1)

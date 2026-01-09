@@ -513,8 +513,8 @@ const
     return 1;
   }
 
-  // Finalize topology - determine molecules, dont renumber residues, assign default bond params
-  topOut.CommonSetup(true, false, true);
+  // Finalize topology - determine molecules, dont renumber residues
+  topOut.CommonSetup(true, false);
   topOut.Summary();
   // Add to output data set
   if (outCoords->CoordsSetup(topOut, frameOut.CoordsInfo())) return 1;

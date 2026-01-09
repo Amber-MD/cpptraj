@@ -1167,8 +1167,8 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   topOut.AllocTreeChainClassification( );
   topOut.AllocJoinArray();
   topOut.AllocRotateArray();
-    // Finalize topology - determine molecules, dont renumber residues, dont assign default bond params
-  topOut.CommonSetup(true, false, false);
+    // Finalize topology - determine molecules, dont renumber residues
+  topOut.CommonSetup(true, false);
 
   // Solvate/add ions
   std::string checkMaskString("*");
@@ -1640,8 +1640,8 @@ int Exec_Build::CleanAndFillStructure(DataSet* inCrdPtr, int tgtframe, std::stri
   topOut.AllocTreeChainClassification( );
   topOut.AllocJoinArray();
   topOut.AllocRotateArray();
-    // Finalize topology - determine molecules, dont renumber residues, dont assign default bond params
-  topOut.CommonSetup(true, false, false);
+    // Finalize topology - determine molecules, dont renumber residues
+  topOut.CommonSetup(true, false);
   topOut.Summary();
   t_assign_.Stop();
 

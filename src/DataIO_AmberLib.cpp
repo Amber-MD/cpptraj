@@ -270,8 +270,8 @@ class unitEntry {
     void AddBoxVal(double d) { boundbox_.push_back( d ); }
     /// Finish setting up the unit
     int FinishUnit(DataSet_Coords* crd, int debug_) {
-      // Set up topology; determine molecules, but no residue renumber or bond parm determination
-      top_.CommonSetup(true, false, false);
+      // Set up topology; determine molecules, but no residue renumber
+      top_.CommonSetup(true, false);
       if (debug_ > 1) top_.Summary();
       Frame frm;
       frm.SetupFrameV( top_.Atoms(), CoordinateInfo() );

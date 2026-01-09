@@ -212,8 +212,8 @@ const
     }
   }
 
-  // Finalize topology - determine molecules, dont renumber residues, assign default bond params
-  topOut.CommonSetup(true, false, true);
+  // Finalize topology - determine molecules, dont renumber residues
+  topOut.CommonSetup(true, false);
   topOut.Summary();
 
   OUT->CoordsSetup(topOut, frameOut.CoordsInfo());
