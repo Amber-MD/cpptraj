@@ -1,7 +1,7 @@
 #ifndef INC_TOPOLOGY_H
 #define INC_TOPOLOGY_H
 #include <string>
-#include <set> // BP_mapType
+#include <set> // AtomDistance 
 #include "Atom.h"
 #include "Residue.h"
 #include "Molecule.h"
@@ -282,9 +282,7 @@ class Topology {
     //void StartNewMol();
     /// Perform common final setup: optional molecule determination, renumber residues by molecules
     int CommonSetup(bool, bool);
-    /// Perform common final setup: optional molecule determination, renumber residues by molecules, assign bond parameters
-    int CommonSetup(bool, bool, bool);
-    /// Perform common final setup with molecule determination on, renumber residues off, assign bond parameters on.
+    /// Perform common final setup with molecule determination on, renumber residues off
     int CommonSetup() { return CommonSetup(true, false); }
     /// Set up with no residue info TODO deprecate in favor of routine in CommonSetup?
     int Setup_NoResInfo();
@@ -329,13 +327,6 @@ class Topology {
   private:
     typedef std::vector<std::string> Sarray;
 
-    //void SetAtomBondInfo(BondArray const&);
-    // NOTE: Use set so that elements are always sorted.
-    typedef std::vector< std::set<Atom::AtomicElementType> > BP_mapType;
-    /// Generate a bond parameter for the given bond based on atom elements
-    void genBondParam(BondType&, BP_mapType&);
-    /// Fill in bond parameters with estimations based on atomic element types
-    void generateBondParameters();
     /// \return Index of existing/added bond parameter in given array
     static inline int addBondParm(BondParmArray&, BondParmType const&);
     /// \return Index of existing/added angle parameter in given array

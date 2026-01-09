@@ -119,7 +119,7 @@ class StructureCheck {
     /// \return mask string based on if extra points are being excluded
     std::string checkMaskStr(std::string const&) const;
     /// Add selected bonds in BondArray to list to be checked.
-    void ProcessBondArray(BondArray const&, BondParmArray const&, CharMask const&);
+    void ProcessBondArray(BondArray const&, BondParmArray const&, CharMask const&, std::vector<Atom> const&);
     /// Add selected bonds in topology to list to be checked.
     void SetupBondList(AtomMask const&, Topology const&);
     /// Check for intersection between bond and ring

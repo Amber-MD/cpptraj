@@ -1,4 +1,4 @@
-#include <algorithm> // find, copy, fill
+#include <algorithm> // copy, fill
 #include <stack> // For large system molecule search
 #include "Topology.h"
 #include "AtomMask.h"
@@ -599,24 +599,12 @@ const
   return false;
 }
 
-// Topology::CommonSetup()
-/** Set up common to all topologies. Assign bond lengths if none are present.
+/** Set up common to all topologies.
   * \param molsearch If true, determine molecules based on bond info.
   * \param renumberResidues If true, renumber residues if any residue is part of more than 1 molecule
   *        e.g. when alternate locations are present.
   */
 int Topology::CommonSetup(bool molsearch, bool renumberResidues)
-{
-  return CommonSetup(molsearch, renumberResidues, true);
-}
-
-/** Set up common to all topologies.
-  * \param molsearch If true, determine molecules based on bond info.
-  * \param renumberResidues If true, renumber residues if any residue is part of more than 1 molecule
-  *        e.g. when alternate locations are present.
-  * \param assignBondParm If true, assign default bond lengths if no parameters present.
-  */
-int Topology::CommonSetup(bool molsearch, bool renumberResidues, bool assignBondParm)
 {
   // Check the size of any "extra" arrays
   if (CheckExtraSize(tree_.size(), "Amber tree")) return 1;
@@ -626,10 +614,7 @@ int Topology::CommonSetup(bool molsearch, bool renumberResidues, bool assignBond
   if (CheckExtraSize(occupancy_.size(), "PDB occupancy")) return 1;
   if (CheckExtraSize(bfactor_.size(), "PDB Bfactor")) return 1;
   if (CheckExtraSize(pdbSerialNum_.size(), "PDB serial #")) return 1;
-  // TODO: Make bond parm assignment / molecule search optional?
-  // Assign default lengths if necessary (for e.g. CheckStructure)
-  if (assignBondParm && bondparm_.empty())
-    generateBondParameters();
+  // Molecule search
   if (molsearch) {
     // Determine molecule info from bonds
     if (DetermineMolecules())
@@ -864,41 +849,6 @@ int Topology::addBondParm(BondParmArray& bparray, BondParmType const& BPin)
   }
   return pidx;
 }
-
-/** Create parameters for given bond based on element types. */
-void Topology::genBondParam(BondType& bnd, BP_mapType& bpMap)
-{
-  unsigned int bp_idx;
-  Atom::AtomicElementType a1Elt = atoms_[bnd.A1()].Element();
-  Atom::AtomicElementType a2Elt = atoms_[bnd.A2()].Element();
-  std::set<Atom::AtomicElementType> Eset;
-  Eset.insert( a1Elt );
-  Eset.insert( a2Elt );
-  // Has this bond parameter been defined?
-  BP_mapType::iterator bp = std::find(bpMap.begin(), bpMap.end(), Eset);
-  if (bp == bpMap.end()) { // Bond parameter Not defined
-    bp_idx = bondparm_.size();
-    bpMap.push_back( Eset );
-    bondparm_.push_back( BondParmType(0.0, Atom::GetBondLength(a1Elt, a2Elt)) );
-  } else
-    bp_idx = bp - bpMap.begin();
-  //mprintf("DEBUG:\t\t%i:[%s] -- %i:[%s] Cut=%f BPidx=%u\n",
-  //        bnd.A1()+1, atoms_[bnd.A1()].c_str(), bnd.A2()+1, atoms_[bnd.A2()].c_str(),
-  //        bondparm_[bp_idx].Req(), bp_idx);
-  bnd.SetIdx( bp_idx );
-}
-
-/** Fill in bond parameters based on atomic element types. */
-void Topology::generateBondParameters() {
-  mprintf("Warning: Determining bond length parameters from element types for '%s'.\n", c_str());
-  bondparm_.clear();
-  // Hold indices into bondparm for unique element pairs
-  BP_mapType bpMap;
-  for (BondArray::iterator bnd = bondsh_.begin(); bnd != bondsh_.end(); ++bnd)
-    genBondParam( *bnd, bpMap ); 
-  for (BondArray::iterator bnd = bonds_.begin(); bnd != bonds_.end(); ++bnd)
-    genBondParam( *bnd, bpMap );
-} 
 
 // Topology::AddBond()
 void Topology::AddBond(int atom1, int atom2, BondParmType const& BPin) {

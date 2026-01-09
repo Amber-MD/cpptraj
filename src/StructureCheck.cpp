@@ -125,15 +125,19 @@ int StructureCheck::SetOptions(bool imageOn, bool checkBonds, bool saveProblemsI
   * the mask.
   */
 void StructureCheck::ProcessBondArray(BondArray const& Bonds, BondParmArray const& Parm,
-                                      CharMask const& cMask)
+                                      CharMask const& cMask, std::vector<Atom> const& Atoms)
 {
   for (BondArray::const_iterator bnd = Bonds.begin(); bnd != Bonds.end(); ++bnd)
   {
     if ( cMask.AtomInCharMask(bnd->A1()) && cMask.AtomInCharMask(bnd->A2()) ) {
-      if (bnd->Idx() < 0)
-        mprintf("Warning: Bond parameters not present for atoms %i-%i, skipping.\n",
-                bnd->A1()+1, bnd->A2()+1);
-      else {
+      if (bnd->Idx() < 0) {
+        //mprintf("Warning: Bond parameters not present for atoms %i-%i, skipping.\n",
+        //        bnd->A1()+1, bnd->A2()+1);
+        Atom::AtomicElementType a1Elt = Atoms[bnd->A1()].Element();
+        Atom::AtomicElementType a2Elt = Atoms[bnd->A2()].Element();
+        double Req_off = Atom::GetBondLength(a1Elt, a2Elt);
+        bondList_.push_back( Problem(bnd->A1(), bnd->A2(), Req_off) );
+      } else {
         double Req_off = Parm[ bnd->Idx() ].Req();// + bondoffset_;
         //bondList_.push_back( Problem(bnd->A1(), bnd->A2(), Req_off*Req_off) );
         bondList_.push_back( Problem(bnd->A1(), bnd->A2(), Req_off) );
@@ -146,8 +150,8 @@ void StructureCheck::ProcessBondArray(BondArray const& Bonds, BondParmArray cons
 void StructureCheck::SetupBondList(AtomMask const& iMask, Topology const& top) {
   CharMask cMask( iMask.ConvertToCharMask(), iMask.Nselected() );
  
-  ProcessBondArray(top.Bonds(),  top.BondParm(), cMask);
-  ProcessBondArray(top.BondsH(), top.BondParm(), cMask);
+  ProcessBondArray(top.Bonds(),  top.BondParm(), cMask, top.Atoms());
+  ProcessBondArray(top.BondsH(), top.BondParm(), cMask, top.Atoms());
   // Only look at bonds to heavy atoms for rings
   ringBonds_.clear();
   ringBonds_.reserve( top.Bonds().size() );
