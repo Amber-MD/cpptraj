@@ -3,6 +3,7 @@
 #include "../CharMask.h"
 #include "../CpptrajStdio.h"
 #include "../Topology.h"
+#include <map>
 
 using namespace Cpptraj::Structure;
 
@@ -75,9 +76,43 @@ static std::vector<int> findCycle(int at, int tgtAt, int previousAt, int res, To
   return std::vector<int>();
 }
 
+void RingFinder::useCachedRings(Topology const& topIn, int res, CharMask const& cmask, RingNamesType const& ringNamesArray)
+{
+  mprintf("DEBUG: Using cached values for residue %s, %zu rings.\n", topIn.TruncResNameNum(res).c_str(), ringNamesArray.size());
+  for (RingNamesType::const_iterator rnames = ringNamesArray.begin(); rnames != ringNamesArray.end(); ++rnames)
+  {
+    // Find all ring atoms. They must be present and selected.
+    bool allAtomsFound = true;
+    std::vector<int> ringAtoms;
+    ringAtoms.reserve(rnames->size());
+    for (AtomNameArray::const_iterator aname = rnames->begin(); aname != rnames->end(); ++aname)
+    {
+      NameType const& atmName = *aname;
+      int at = topIn.FindAtomInResidue(res, atmName);
+      if (at < 0) {
+        mprintf("Warning: Ring atom %s not found in residue %s\n", *atmName, topIn.TruncResNameNum(res).c_str());
+        allAtomsFound = false;
+        break;
+      }
+      if (!cmask.AtomInCharMask(at)) {
+        allAtomsFound = false;
+        break;
+      }
+      ringAtoms.push_back(at);
+    }
+    if (allAtomsFound)
+      rings_.push_back( AtomMask(ringAtoms, topIn.Natom()) );
+  } // END loop over rings in residue
+}
+
 /** Set up ring finder for topology. */
 int RingFinder::SetupRingFinder(Topology const& topIn, AtomMask const& maskIn) {
   rings_.clear();
+
+  typedef std::pair<NameType, RingNamesType> RingCachePair;
+  typedef std::map<NameType, RingNamesType> RingCacheType;
+  // Hold names of ring atoms for each unique type of residue.
+  RingCacheType RingCache;
 
   CharMask cmask( maskIn.ConvertToCharMask(), maskIn.Nselected() );
 
@@ -85,6 +120,14 @@ int RingFinder::SetupRingFinder(Topology const& topIn, AtomMask const& maskIn) {
   // Do not look for rings that span residues.
   for (int res = 0; res < topIn.Nres(); res++) {
     Residue const& currentRes = topIn.Res(res);
+    // Check the cache
+    RingCacheType::const_iterator it = RingCache.find( currentRes.Name() );
+    if ( it != RingCache.end() ) {
+      useCachedRings( topIn, res, cmask, it->second );
+      continue;
+    }
+    // First time this residue has been seen. Do the full ring search.
+    RingNamesType ringNamesArray;
     // Ignore solvent
     if (topIn.Mol( topIn[currentRes.FirstAtom()].MolNum() ).IsSolvent()) continue;
     std::vector<int> startAtoms;
@@ -155,8 +198,14 @@ int RingFinder::SetupRingFinder(Topology const& topIn, AtomMask const& maskIn) {
                     if (!cmask.AtomInCharMask( *rt )) allfound = false;
                   }
                   if (debug_ > 0) mprintf(" }\n");
-                  if (allfound)
+                  if (allfound) {
                     rings_.push_back( AtomMask(ringAtoms, topIn.Natom()) );
+                    AtomNameArray rnames;
+                    rnames.reserve( ringAtoms.size() );
+                    for (std::vector<int>::const_iterator zt = ringAtoms.begin(); zt != ringAtoms.end(); ++zt)
+                      rnames.push_back( topIn[*zt].Name() );
+                    ringNamesArray.push_back( rnames );
+                  }
                 }
               } // END bond atom 2 in residue
             } // END inner loop over bonds
@@ -164,6 +213,7 @@ int RingFinder::SetupRingFinder(Topology const& topIn, AtomMask const& maskIn) {
         } // END outer loop over bonds
       } // END # bonds > 1
     } // END loop over potential start atoms
+    RingCache.insert( RingCachePair( currentRes.Name(), ringNamesArray ) );
   } // END loop over all residues
 
   return 0;

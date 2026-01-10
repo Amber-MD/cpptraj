@@ -3,6 +3,8 @@
 #include <vector>
 class ArgList;
 class AtomMask;
+class CharMask;
+class NameType;
 class Topology;
 namespace Cpptraj {
 namespace Structure {
@@ -19,6 +21,10 @@ class RingFinder {
     AtomMask const& operator[](int idx) const { return rings_[idx]; }
   private:
     typedef std::vector<AtomMask> Marray;
+    typedef std::vector<NameType> AtomNameArray;
+    typedef std::vector<AtomNameArray> RingNamesType;
+
+    void useCachedRings(Topology const&, int, CharMask const&, RingNamesType const&);
 
     Marray rings_; ///< Array of masks corresponding to rings
     int debug_;
