@@ -2,6 +2,8 @@
 #define INC_STRUCTURE_BUILDER_H
 #include <vector>
 #include "../AtomType.h"
+
+#include "../Timer.h" // DEBUG
 class Atom;
 class Topology;
 class Frame;
@@ -36,6 +38,7 @@ class Builder {
     /// Generate internal coordinates in the same manner as LEaP
     int GenerateInternals(Frame const&, Topology const&, Barray const&);
     /// Generate internal coordinates around a link between residues in same manner as LEaP
+    int GenerateInternalsAroundLink(int, int, Frame const&, Topology const&, Barray const&, BuildType, Barray const&);
     int GenerateInternalsAroundLink(int, int, Frame const&, Topology const&, Barray const&, BuildType);
     /// Update existing indices with given offset
     void UpdateIndicesWithOffset(int);
@@ -50,6 +53,8 @@ class Builder {
     //int GetZmatrixFromInternals(Zmatrix&, Topology const&) const;
     /// Adjust torsion around a bond so that atoms with longest 'depth' are trans
     int AdjustIcAroundLink(int, int, Frame const&, Topology const&);
+
+    static void PrintTiming(int, double);
   private:
     typedef std::vector<int> Iarray;
 
@@ -144,6 +149,10 @@ class Builder {
     Larray internalBonds_;
     Carray internalChirality_;
     Iarray Rnums_;               ///< Hold residue indices pertaining to current internals
+
+    static Timer timeg_builder_IALsetup_;
+    static Timer timeg_builder_IALspan_;
+    static Timer timeg_builder_IALgen_;
 };
 /// ----- Hold torsion internal ------------------
 class Cpptraj::Structure::Builder::InternalTorsion {

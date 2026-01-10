@@ -664,6 +664,8 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
   // Build using internal coords if needed.
   t_fill_build_.Start();
   bool buildFailed = false;
+  Cpptraj::Structure::Builder::Barray tmpHasPosition(topOut.Natom(), false);
+  int nextTempHasPositionStart = 0;
   for (Iarray::const_iterator it = AtomOffsets.begin(); it != AtomOffsets.end(); ++it)
   {
     long int ires = it-AtomOffsets.begin();
@@ -700,10 +702,18 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
             mprintf("\t\tResidue connection: %s - %s\n",
                     topOut.AtomMaskName(resBonds->first).c_str(),
                     topOut.AtomMaskName(resBonds->second).c_str());
+          t_fill_build_link_bond_.Start();
           topOut.AddBond(resBonds->first, resBonds->second);
+          t_fill_build_link_bond_.Stop();
           // Generate internals around the link
+          Residue const& R0 = topIn.Res(topOut[resBonds->first].ResNum());
+          for (int at = nextTempHasPositionStart; at < R0.FirstAtom(); at++)
+            tmpHasPosition[at] = true;
+          nextTempHasPositionStart = R0.FirstAtom();
+
           if (structureBuilder.GenerateInternalsAroundLink(resBonds->first, resBonds->second,
-                                                            frameOut, topOut, hasPosition, Cpptraj::Structure::Builder::BUILD))
+                                                           frameOut, topOut, hasPosition, Cpptraj::Structure::Builder::BUILD,
+                                                           tmpHasPosition))
           {
             mprinterr("Error: Assign torsions around inter-residue link %s - %s failed.\n",
                       topOut.AtomMaskName(resBonds->first).c_str(),
@@ -1681,4 +1691,6 @@ void Exec_Build::PrintTiming() const {
   t_fill_build_internals_.WriteTiming(4, "Internals :", t_fill_build_.Total());
   t_fill_build_build_.WriteTiming    (4, "Build     :", t_fill_build_.Total());
   t_fill_build_link_.WriteTiming     (4, "Link      :", t_fill_build_.Total());
+  t_fill_build_link_bond_.WriteTiming(5, "Link Bond :", t_fill_build_link_.Total());
+  Cpptraj::Structure::Builder::PrintTiming(5, t_fill_build_link_.Total());
 }

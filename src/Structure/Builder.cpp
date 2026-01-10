@@ -17,6 +17,10 @@
 using namespace Cpptraj::Structure;
 using namespace Cpptraj::Parm;
 
+Timer Builder::timeg_builder_IALsetup_ = Timer();
+Timer Builder::timeg_builder_IALgen_ = Timer();
+Timer Builder::timeg_builder_IALspan_ = Timer();
+
 /** CONSTRUCTOR */
 Builder::Builder() :
   debug_(0),
@@ -1592,7 +1596,20 @@ int Builder::generateAtomInternals(int at, Frame const& frameIn, Topology const&
 
   return 0;
 }
- 
+
+int Builder::GenerateInternalsAroundLink(int at0, int at1,
+                                         Frame const& frameIn, Topology const& topIn,
+                                         Barray const& hasPosition,
+                                         BuildType btype)
+{
+  Atom const& A0 = topIn[at0];
+  Residue const& R0 = topIn.Res(A0.ResNum());
+  Barray tmpHasPosition( topIn.Natom(), false );
+  for (int at = 0; at < R0.FirstAtom(); at++)
+    tmpHasPosition[at] = true;
+  return GenerateInternalsAroundLink(at0, at1, frameIn, topIn, hasPosition, btype, tmpHasPosition);
+}
+
 /** Generate internal coordinates around a bond linking two residues
   * in the same manner as LEaP.
   * \param zmatrix Hold output ICs
@@ -1602,12 +1619,14 @@ int Builder::generateAtomInternals(int at, Frame const& frameIn, Topology const&
 int Builder::GenerateInternalsAroundLink(int at0, int at1,
                                          Frame const& frameIn, Topology const& topIn,
                                          Barray const& hasPosition,
-                                         BuildType btype)
+                                         BuildType btype,
+                                         Barray const& tmpHasPosition)
 {
   if (debug_ > 0) {
     mprintf("DEBUG: ----- Entering Builder::GenerateInternalsAroundLink. -----\n");
     mprintf("DEBUG: Link: %s to %s\n", topIn.AtomMaskName(at0).c_str(), topIn.AtomMaskName(at1).c_str());
   }
+  timeg_builder_IALsetup_.Start();
   // Sanity check
   Atom const& A0 = topIn[at0];
   Atom const& A1 = topIn[at1];
@@ -1619,9 +1638,10 @@ int Builder::GenerateInternalsAroundLink(int at0, int at1,
   // this residue as having position, and all other atoms as not having
   // position.
   Residue const& R0 = topIn.Res(A0.ResNum());
-  Barray tmpHasPosition( topIn.Natom(), false );
-  for (int at = 0; at < R0.FirstAtom(); at++)
-    tmpHasPosition[at] = true;
+  //Barray tmpHasPosition( topIn.Natom(), false );
+  //for (int at = nextTempHasPositionStart_; at < R0.FirstAtom(); at++)
+  //  tmpHasPosition_[at] = true;
+  //nextTempHasPositionStart_ = R0.FirstAtom();
   // Create spanning tree across the link
   int actualAt1;
   if (btype == BUILD)
@@ -1630,7 +1650,11 @@ int Builder::GenerateInternalsAroundLink(int at0, int at1,
   else
     // Only want the 'forward' tree
     actualAt1 = at1;
+  timeg_builder_IALsetup_.Stop();
+  timeg_builder_IALspan_.Start();
   Iarray span_atoms = GenerateSpanningTree(at0, actualAt1, 4, topIn.Atoms());
+  timeg_builder_IALspan_.Stop();
+  timeg_builder_IALgen_.Start();
   for (Iarray::const_iterator it = span_atoms.begin(); it != span_atoms.end(); ++it)
   {
     //mprintf("SPANNING TREE ATOM: %s\n", *(topIn[*it].Name()));
@@ -1655,7 +1679,15 @@ int Builder::GenerateInternalsAroundLink(int at0, int at1,
   }
   if (debug_ > 0)
     mprintf("DEBUG: ----- Leaving Builder::GenerateInternalsAroundLink. -----\n");
+  timeg_builder_IALgen_.Stop();
   return 0;
+}
+
+void Builder::PrintTiming(int indent, double total)
+{
+  timeg_builder_IALsetup_.WriteTiming(indent, "Internals Around Link Setup : ", total);
+  timeg_builder_IALspan_.WriteTiming (indent, "Internals Around Link Span  : ", total);
+  timeg_builder_IALgen_.WriteTiming  (indent, "Internals Around Link Gen   : ", total);
 }
 
 /** For debugging, print all the complete internals associated with the given atom. */
