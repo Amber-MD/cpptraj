@@ -6,6 +6,7 @@
 #include "AtomMask.h"
 #include "ParameterTypes.h"
 #include "Structure/RingFinder.h"
+#include "Timer.h"
 // Forward declares
 class Topology;
 class CharMask;
@@ -52,6 +53,8 @@ class StructureCheck {
     /// Write existing problems to the given file
     void WriteProblemsToFile(CpptrajFile*, int, Topology const&) const;
 
+
+    void PrintTiming(int, double) const;
     /// Format of problems currently stored in problemAtoms_
     enum FmtType { F_ATOM =0, F_BOND, F_RING };
 
@@ -181,5 +184,10 @@ class StructureCheck {
     bool saveProblems_;     ///< If true save problems in problemAtoms_
     bool checkExtraPts_;    ///< If true check extra points.
     FmtType lastFmt_;       ///< Format of problems currently stored in problemAtoms_
+
+    Timer t_setup_;
+    Timer t_setup_bonds_;
+    Timer t_setup_exclusion_;
+    Timer t_setup_ringfinder_;
 };
 #endif

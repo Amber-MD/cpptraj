@@ -69,6 +69,10 @@ class Exec_Build : public Exec {
     Timer t_fill_build_link_bond_;
     Timer t_assign_;
     Timer t_check_;
+    Timer t_check_bonds_;
+    Timer t_check_overlaps_;
+    Timer t_check_rings_;
+    Timer t_check_setup_;
     Timer t_solvate_;
 };
 #endif

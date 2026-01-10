@@ -1304,10 +1304,13 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
       }
       frameOut.BoxCrd().PrintInfo();
     }
+    t_check_setup_.Start();
     if (check.Setup( topOut, frameOut.BoxCrd() )) {
       mprinterr("Error: Structure check setup failed.\n");
       return CpptrajState::ERR;
     }
+    t_check_setup_.Stop();
+    check.PrintTiming(1, t_check_setup_.Total());
     check.Mask1().MaskInfo();
     if (check.ImageOpt().ImagingEnabled())
       mprintf("\tImaging on.\n");
@@ -1316,11 +1319,17 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
     // TODO make file a user option
     CpptrajFile check_output;
     check_output.OpenWrite("");
+    t_check_overlaps_.Start();
     int Ntotal_problems = check.CheckOverlaps( frameOut );
+    t_check_overlaps_.Stop();
     check.WriteProblemsToFile( &check_output, 1, topOut );
+    t_check_bonds_.Start();
     Ntotal_problems += check.CheckBonds( frameOut );
+    t_check_bonds_.Stop();
     check.WriteProblemsToFile( &check_output, 1, topOut );
+    t_check_rings_.Start();
     Ntotal_problems += check.CheckRings( frameOut );
+    t_check_rings_.Stop();
     check.WriteProblemsToFile( &check_output, 1, topOut );
     mprintf("\t%i total problems detected.\n", Ntotal_problems);
     // If box was added for check only, remove it
@@ -1367,6 +1376,10 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   if (add_solvent)
     t_solvate_.WriteTiming    (2, "Solvate             :", t_total_.Total());
   t_check_.WriteTiming        (2, "Structure check     :", t_total_.Total());
+  t_check_overlaps_.WriteTiming(3, "Overlaps :", t_check_.Total());
+  t_check_bonds_.WriteTiming   (3, "Bonds    :", t_check_.Total());
+  t_check_rings_.WriteTiming   (3, "Rings    :", t_check_.Total());
+  t_check_setup_.WriteTiming   (3, "Setup    :", t_check_.Total());
   t_assign_.WriteTiming       (2, "Param./Top. gen.    :", t_total_.Total());
   AP.WriteAssignTiming(3, t_assign_.Total());
 
