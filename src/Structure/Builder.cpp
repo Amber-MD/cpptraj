@@ -1604,6 +1604,9 @@ int Builder::GenerateInternalsAroundLink(int at0, int at1,
 {
   Atom const& A0 = topIn[at0];
   Residue const& R0 = topIn.Res(A0.ResNum());
+  // In order to mimic the way LEaP does things, mark all atoms before
+  // this residue as having position, and all other atoms as not having
+  // position.
   Barray tmpHasPosition( topIn.Natom(), false );
   for (int at = 0; at < R0.FirstAtom(); at++)
     tmpHasPosition[at] = true;
@@ -1634,10 +1637,8 @@ int Builder::GenerateInternalsAroundLink(int at0, int at1,
     mprintf("Warning: Builder::GenerateInternalsAroundLink(): Atoms are in the same residue.\n");
     //return 1;
   }
-  // In order to mimic the way LEaP does things, mark all atoms before
-  // this residue as having position, and all other atoms as not having
-  // position.
-  Residue const& R0 = topIn.Res(A0.ResNum());
+
+  //Residue const& R0 = topIn.Res(A0.ResNum());
   //Barray tmpHasPosition( topIn.Natom(), false );
   //for (int at = nextTempHasPositionStart_; at < R0.FirstAtom(); at++)
   //  tmpHasPosition_[at] = true;
