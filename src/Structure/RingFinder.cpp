@@ -78,7 +78,8 @@ static std::vector<int> findCycle(int at, int tgtAt, int previousAt, int res, To
 
 void RingFinder::useCachedRings(Topology const& topIn, int res, CharMask const& cmask, RingNamesType const& ringNamesArray)
 {
-  mprintf("DEBUG: Using cached values for residue %s, %zu rings.\n", topIn.TruncResNameNum(res).c_str(), ringNamesArray.size());
+  if (debug_ > 0)
+    mprintf("DEBUG: Using cached values for residue %s, %zu rings.\n", topIn.TruncResNameNum(res).c_str(), ringNamesArray.size());
   for (RingNamesType::const_iterator rnames = ringNamesArray.begin(); rnames != ringNamesArray.end(); ++rnames)
   {
     // Find all ring atoms. They must be present and selected.
