@@ -324,7 +324,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
           if (has_pdbn) topOut.AddPdbSerialNum( topIn.PdbSerialNum()[itgt] );
           //pdb[itgt-currentRes.FirstAtom()] = iref;
           // Check source atoms for inter-residue connections.
-          Atom const& sourceAtom = topIn[itgt];
+/*          Atom const& sourceAtom = topIn[itgt];
           for (Atom::bond_iterator bat = sourceAtom.bondbegin(); bat != sourceAtom.bondend(); ++bat) {
             if ( topIn[*bat].ResNum() < ires ) {
               // Use template atom names. Use saved names in case source name had an alias.
@@ -336,7 +336,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
                         *bat+1, *(topIn[*bat].Name()), topIn[*bat].ResNum()+1, *(SourceAtomNames[*bat]));
               }
             }
-          }
+          }*/
         }
       } // END loop over template atoms
       if (nTgtAtomsMissing > 0) {
