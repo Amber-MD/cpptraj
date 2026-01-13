@@ -811,7 +811,7 @@ void Exec_Build::Help() const
 {
   mprintf("\tname <output COORDS> crdset <COORDS set> [frame <#>]\n"
           "\t[title <title>] [gb <radii>] [verbose <#>] [keepmissingatoms]\n"
-          "\t[parmout <topology file>] [crdout <coord file>]\n"
+          "\t[parmout <topology file>] [crdout <coord file>] [simplecheck]\n"
           "\t[%s]\n"
           "\t[{%s} ...]\n"
           "\t[{%s} ...]\n"
@@ -883,6 +883,13 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   std::string title = argIn.GetStringKey("title");
   std::string outputTopologyName = argIn.GetStringKey("parmout");
   std::string outputCoordsName = argIn.GetStringKey("crdout");
+  if (argIn.hasKey("simplecheck")) {
+    mprintf("\tSimple check: will only check bond lengths.\n");
+    check_structure_ = false;
+  } else {
+    mprintf("\tWill check bond lengths, atomic overlaps, and ring intersections.\n");
+    check_structure_ = true;
+  }
   if (!outputTopologyName.empty())
     mprintf("\tWill write topology to %s\n", outputTopologyName.c_str());
   if (!outputCoordsName.empty())
@@ -1335,6 +1342,46 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
     // If box was added for check only, remove it
     if (box_added)
       frameOut.ModifyBox().SetNoBox();
+    t_check_.Stop();
+  } else {
+    // Just check bond lengths
+    t_check_.Start();
+    StructureCheck check;
+    if (check.SetOptions( false, // image 
+                          true,  // check bonds
+                          true,  // save problems
+                          debug_, // debug
+                          checkMaskString, // mask 1
+                          "", // mask 2
+                          0.8, // nonbond cut. NOTE: leap check cut is 1.5
+                          1.15, // bond long offset
+                          0.5, // bond short offset
+                          -1, // pairlist cut (-1 for heuristic)
+                          false, // ring check
+                          0, // 0 = default ring check short distance cut
+                          0, // 0 = default ring check long distance cut
+                          0  // 0 = default ring check angle cut
+        ))
+    {
+      mprinterr("Error: Structure check options failed.\n");
+      return CpptrajState::ERR;
+    }
+    t_check_setup_.Start();
+    if (check.Setup( topOut, frameOut.BoxCrd() )) {
+      mprinterr("Error: Structure check setup failed.\n");
+      return CpptrajState::ERR;
+    }
+    t_check_setup_.Stop();
+    check.PrintTiming(1, t_check_setup_.Total());
+    check.Mask1().MaskInfo();
+    // TODO make file a user option
+    CpptrajFile check_output;
+    check_output.OpenWrite("");
+    t_check_bonds_.Start();
+    int Ntotal_problems = check.CheckBonds( frameOut );
+    t_check_bonds_.Stop();
+    check.WriteProblemsToFile( &check_output, 1, topOut );
+    mprintf("\t%i total problems detected.\n", Ntotal_problems);
     t_check_.Stop();
   }
 
