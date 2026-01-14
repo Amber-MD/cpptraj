@@ -147,6 +147,9 @@ const Parm_Amber::ParmFlag Parm_Amber::FLAGS_[] = {
   { "CMAP_RESOLUTION",             "%FORMAT(20I4)"},    // # steps along each Phi/Psi CMAP axis
   { "CMAP_PARAMETER_",             "%FORMAT(8F9.5)"},   // CMAP grid
   { "CMAP_INDEX",                  "%FORMAT(6I8)" },    // Atom i,j,k,l,m of cross term and idx
+  // Extended format flags
+  { "DIHEDRALS_INC_HYDROGEN",      "%FORMAT(8I10)" },   // For topologies with high atom counts
+  { "DIHEDRALS_WITHOUT_HYDROGEN",  "%FORMAT(8I10)" },   // For topologies with high atom counts
   { 0, 0 }
 };
 
@@ -1623,18 +1626,33 @@ int Parm_Amber::BufferAlloc(FlagType ftype, FortranData const& FMT, int nvals, i
   return 0;
 }
 
+/** Flush the current file buffer. Check for errors. */
+int Parm_Amber::flushFileBuffer(FlagType flagIn) {
+  int err = 0;
+  if (file_.ErrorCount() > 0) {
+    mprinterr("Error: Encountered %i errors writing FLAG %s\n", file_.ErrorCount(), FLAGS_[flagIn].Flag);
+    err += file_.ErrorCount();
+  }
+  if (file_.OverflowCount() > 0) {
+    mprinterr("Error: Encountered %i character overflows writing FLAG %s\n", file_.OverflowCount(), FLAGS_[flagIn].Flag);
+    err += file_.OverflowCount();
+  }
+  file_.FlushBuffer();
+  return err;
+}
+
 // Parm_Amber::WriteBondParm()
 int Parm_Amber::WriteBondParm(FlagType RKflag, FlagType REQflag, BondParmArray const& BP) {
   // BOND RK
   if (BufferAlloc(RKflag, BP.size())) return 1;
   for (BondParmArray::const_iterator it = BP.begin(); it != BP.end(); ++it)
     file_.DblToBuffer( it->Rk() );
-  file_.FlushBuffer();
+  if (flushFileBuffer( RKflag )) return 1;
   // BOND REQ
   if (BufferAlloc(REQflag, BP.size())) return 1;
   for (BondParmArray::const_iterator it = BP.begin(); it != BP.end(); ++it)
     file_.DblToBuffer( it->Req() );
-  file_.FlushBuffer();
+  if (flushFileBuffer( REQflag )) return 1;
   return 0;
 }
 
@@ -1644,12 +1662,12 @@ int Parm_Amber::WriteLJ(FlagType Aflag, FlagType Bflag, NonbondArray const& NB) 
   if (BufferAlloc(Aflag, NB.size())) return 1;
   for (NonbondArray::const_iterator it = NB.begin(); it != NB.end(); ++it)
     file_.DblToBuffer( it->A() );
-  file_.FlushBuffer();
+  if (flushFileBuffer( Aflag )) return 1;
   // LJ B terms
   if (BufferAlloc(Bflag, NB.size())) return 1;
   for (NonbondArray::const_iterator it = NB.begin(); it != NB.end(); ++it)
     file_.DblToBuffer( it->B() );
-  file_.FlushBuffer();
+  if (flushFileBuffer( Bflag )) return 1;
   return 0;
 }
 
@@ -1661,7 +1679,7 @@ int Parm_Amber::WriteBonds(FlagType flag, BondArray const& BND) {
     file_.IntToBuffer( it->A2()*3 );
     file_.IntToBuffer( it->Idx()+1 );
   }
-  file_.FlushBuffer();
+  if (flushFileBuffer( flag )) return 1;
   return 0;
 }
 
@@ -1674,7 +1692,7 @@ int Parm_Amber::WriteAngles(FlagType flag, AngleArray const& ANG) {
     file_.IntToBuffer( it->A3()*3 );
     file_.IntToBuffer( it->Idx()+1 );
   }
-  file_.FlushBuffer();
+  if (flushFileBuffer( flag )) return 1;
   return 0;
 }
 
@@ -1717,7 +1735,7 @@ int Parm_Amber::WriteDihedrals(FlagType flag, DihedralArray const& DIH) {
       file_.IntToBuffer( dihIdxs[3] );
     file_.IntToBuffer( it->Idx()+1 );
   }
-  file_.FlushBuffer();
+  if (flushFileBuffer( flag )) return 1;
   return 0;
 }
 
@@ -1735,7 +1753,7 @@ int Parm_Amber::WriteTreeChainClassification(std::vector<NameType> const& tree) 
   if (BufferAlloc(F_ITREE, tree.size())) return 1;
   for (std::vector<NameType>::const_iterator it = tree.begin(); it != tree.end(); ++it)
     file_.CharToBuffer( *(*it) );
-  file_.FlushBuffer();
+  if (flushFileBuffer( F_ITREE )) return 1;
   return 0;
 }
 
@@ -1744,7 +1762,7 @@ int Parm_Amber::WriteIjoin(std::vector<int> const& ijoin) {
   if (BufferAlloc(F_JOIN, ijoin.size())) return 1;
   for (std::vector<int>::const_iterator it = ijoin.begin(); it != ijoin.end(); ++it)
     file_.IntToBuffer( *it );
-  file_.FlushBuffer();
+  if (flushFileBuffer( F_JOIN )) return 1;
   return 0;
 }
 
@@ -1753,7 +1771,7 @@ int Parm_Amber::WriteIrotat(std::vector<int> const& irotat) {
   if (BufferAlloc(F_IROTAT, irotat.size())) return 1;
   for (std::vector<int>::const_iterator it = irotat.begin(); it != irotat.end(); ++it)
     file_.IntToBuffer( *it );
-  file_.FlushBuffer();
+  if (flushFileBuffer( F_IROTAT )) return 1;
   return 0;
 }
 
@@ -2000,7 +2018,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   else
     file_.IntToBuffer( 0 );
   file_.IntToBuffer( TopOut.NextraPts() ); // NEXTRA
-  file_.FlushBuffer();
+  if (flushFileBuffer( F_POINTERS )) return 1;
  
   // CHAMBER only - FF type description
   if (ptype_ == CHAMBER) {
@@ -2023,31 +2041,31 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   if (BufferAlloc(F_NAMES, TopOut.Natom())) return 1;
   for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
     file_.CharToBuffer( atm->c_str() );
-  file_.FlushBuffer();
+  if (flushFileBuffer( F_NAMES )) return 1;
 
   // CHARGES
   if (BufferAlloc(F_CHARGE, TopOut.Natom())) return 1;
   for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
     file_.DblToBuffer( atm->Charge() * elec_to_parm_ );
-  file_.FlushBuffer();
+  if (flushFileBuffer( F_CHARGE )) return 1;
 
   // ATOMIC NUMBER
   if (BufferAlloc(F_ATOMICNUM, TopOut.Natom())) return 1;
   for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
     file_.IntToBuffer( atm->AtomicNumber() );
-  file_.FlushBuffer();
+  if (flushFileBuffer( F_ATOMICNUM )) return 1;
 
   // MASS
   if (BufferAlloc(F_MASS, TopOut.Natom())) return 1;
   for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
     file_.DblToBuffer( atm->Mass() );
-  file_.FlushBuffer();
+  if (flushFileBuffer( F_MASS )) return 1;
 
   // TYPE INDEX
   if (BufferAlloc(F_ATYPEIDX, TopOut.Natom())) return 1;
   for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
     file_.IntToBuffer( atm->TypeIndex()+1 );
-  file_.FlushBuffer();
+  if (flushFileBuffer( F_ATYPEIDX )) return 1;
 
   // NUMEX
   if (BufferAlloc(F_NUMEX, TopOut.Natom())) return 1;
@@ -2059,7 +2077,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     else
       file_.IntToBuffer( (int)exList->size() );
   }
-  file_.FlushBuffer();
+  if (flushFileBuffer( F_NUMEX )) return 1;
 
   // NONBONDED INDICES - positive needs to be shifted by +1 for fortran
   if (BufferAlloc(F_NB_INDEX, TopOut.Nonbond().NBindex().size())) return 1;
@@ -2069,19 +2087,19 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
       file_.IntToBuffer( *it + 1 );
     else
       file_.IntToBuffer( *it );
-  file_.FlushBuffer();
+  if (flushFileBuffer( F_NB_INDEX )) return 1;
 
   // RESIDUE NAME
   if (BufferAlloc(F_RESNAMES, TopOut.Nres())) return 1;
   for (Topology::res_iterator res = TopOut.ResStart(); res != TopOut.ResEnd(); ++res)
     file_.CharToBuffer( res->c_str() );
-  file_.FlushBuffer();
+  if (flushFileBuffer( F_RESNAMES )) return 1;
 
   // RESIDUE POINTERS
   if (BufferAlloc(F_RESNUMS, TopOut.Nres())) return 1;
   for (Topology::res_iterator res = TopOut.ResStart(); res != TopOut.ResEnd(); ++res)
     file_.IntToBuffer( res->FirstAtom()+1 );
-  file_.FlushBuffer();
+  if (flushFileBuffer( F_RESNUMS )) return 1;
 
   // BOND RK and REQ
   if (WriteBondParm(F_BONDRK, F_BONDREQ, TopOut.BondParm())) return 1;
@@ -2091,14 +2109,14 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   for (AngleParmArray::const_iterator it = TopOut.AngleParm().begin();
                                       it != TopOut.AngleParm().end(); ++it)
     file_.DblToBuffer( it->Tk() );
-  file_.FlushBuffer();
+  if (flushFileBuffer( F_ANGLETK )) return 1;
 
   // ANGLE TEQ
   if (BufferAlloc(F_ANGLETEQ, TopOut.AngleParm().size())) return 1;
   for (AngleParmArray::const_iterator it = TopOut.AngleParm().begin();
                                       it != TopOut.AngleParm().end(); ++it)
     file_.DblToBuffer( it->Teq() );
-  file_.FlushBuffer();
+  if (flushFileBuffer( F_ANGLETEQ )) return 1;
 
   // CHARMM only - Urey-Bradley
   if (ptype_ == CHAMBER) {
@@ -2106,7 +2124,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     if (BufferAlloc(F_CHM_UBC, 2)) return 1;
     file_.IntToBuffer( TopOut.UB().size() );
     file_.IntToBuffer( TopOut.UBparm().size() );
-    file_.FlushBuffer();
+    if (flushFileBuffer( F_CHM_UBC )) return 1;
     // UB terms
     if (BufferAlloc(F_CHM_UB, TopOut.UB().size()*3)) return 1;
     for (BondArray::const_iterator it = TopOut.UB().begin();
@@ -2116,7 +2134,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
       file_.IntToBuffer( it->A2()+1 );
       file_.IntToBuffer( it->Idx()+1 );
     }
-    file_.FlushBuffer();
+    if (flushFileBuffer( F_CHM_UB )) return 1;
     // UB FORCE CONSTANTS and EQ
     if (WriteBondParm(F_CHM_UBFC, F_CHM_UBEQ, TopOut.UBparm())) return 1;
   }
@@ -2126,42 +2144,42 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   for (DihedralParmArray::const_iterator it = TopOut.DihedralParm().begin();
                                          it != TopOut.DihedralParm().end(); ++it)
     file_.DblToBuffer( it->Pk() );
-  file_.FlushBuffer();
+  if (flushFileBuffer( F_DIHPK )) return 1;
 
   // DIHEDRAL PN 
   if (BufferAlloc(F_DIHPN, TopOut.DihedralParm().size())) return 1;
   for (DihedralParmArray::const_iterator it = TopOut.DihedralParm().begin();
                                          it != TopOut.DihedralParm().end(); ++it)
     file_.DblToBuffer( it->Pn() );
-  file_.FlushBuffer();
+  if (flushFileBuffer( F_DIHPN )) return 1;
 
   // DIHEDRAL PHASE
   if (BufferAlloc(F_DIHPHASE, TopOut.DihedralParm().size())) return 1;
   for (DihedralParmArray::const_iterator it = TopOut.DihedralParm().begin();
                                          it != TopOut.DihedralParm().end(); ++it)
     file_.DblToBuffer( it->Phase() );
-  file_.FlushBuffer();
+  if (flushFileBuffer( F_DIHPHASE )) return 1;
 
   // DIHEDRAL SCEE
   if (BufferAlloc(F_SCEE, TopOut.DihedralParm().size())) return 1;
   for (DihedralParmArray::const_iterator it = TopOut.DihedralParm().begin();
                                          it != TopOut.DihedralParm().end(); ++it)
     file_.DblToBuffer( it->SCEE() );
-  file_.FlushBuffer();
+  if (flushFileBuffer( F_SCEE )) return 1;
 
   // DIHEDRAL SCNB
   if (BufferAlloc(F_SCNB, TopOut.DihedralParm().size())) return 1;
   for (DihedralParmArray::const_iterator it = TopOut.DihedralParm().begin();
                                          it != TopOut.DihedralParm().end(); ++it)
     file_.DblToBuffer( it->SCNB() );
-  file_.FlushBuffer();
+  if (flushFileBuffer( F_SCNB )) return 1;
 
   // CHAMBER only - Impropers
   if (ptype_ == CHAMBER) {
     // NUM IMPROPERS
     if (BufferAlloc(F_CHM_NIMP, 1)) return 1;
     file_.IntToBuffer( TopOut.Impropers().size() );
-    file_.FlushBuffer();
+    if (flushFileBuffer( F_CHM_NIMP )) return 1;
     // IMPROPER TERMS
     if (BufferAlloc(F_CHM_IMP, TopOut.Impropers().size()*5)) return 1;
     for (DihedralArray::const_iterator it = TopOut.Impropers().begin();
@@ -2179,30 +2197,30 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
         file_.IntToBuffer( it->A4() + 1 );
       file_.IntToBuffer( it->Idx() + 1 );
     }
-    file_.FlushBuffer();
+    if (flushFileBuffer( F_CHM_IMP )) return 1;
     // NUM IMPROPER PARAMS
     if (BufferAlloc(F_CHM_NIMPT, 1)) return 1;
     file_.IntToBuffer( TopOut.ImproperParm().size() );
-    file_.FlushBuffer();
+    if (flushFileBuffer( F_CHM_IMP )) return 1;
     // IMPROPER FORCE CONSTANTS
     if (BufferAlloc(F_CHM_IMPFC, TopOut.ImproperParm().size())) return 1;
     for (DihedralParmArray::const_iterator it = TopOut.ImproperParm().begin();
                                            it != TopOut.ImproperParm().end(); ++it)
       file_.DblToBuffer( it->Pk() );
-    file_.FlushBuffer();
+    if (flushFileBuffer( F_CHM_IMPFC )) return 1;
     // IMPROPER PHASES
     if (BufferAlloc(F_CHM_IMPP, TopOut.ImproperParm().size())) return 1;
     for (DihedralParmArray::const_iterator it = TopOut.ImproperParm().begin();
                                            it != TopOut.ImproperParm().end(); ++it)
       file_.DblToBuffer( it->Phase() );
-    file_.FlushBuffer();
+    if (flushFileBuffer( F_CHM_IMPP )) return 1;
   }
 
   // SOLTY - Currently unused but must be written.
   if (BufferAlloc(F_SOLTY, n_unique_atom_types)) return 1;
   for (unsigned int idx = 0; idx != n_unique_atom_types; idx++)
     file_.DblToBuffer( 0.0 );
-  file_.FlushBuffer();
+  if (flushFileBuffer( F_SOLTY )) return 1;
 
   // LJ A and B terms
   if (WriteLJ(F_LJ_A, F_LJ_B, TopOut.Nonbond().NBarray())) return 1;
@@ -2219,14 +2237,26 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   if (WriteAngles(F_ANGLESH, TopOut.AnglesH())) return 1;
   if (WriteAngles(F_ANGLES,  TopOut.Angles()) ) return 1;
   // DIHEDRALSH and DIHEDRALS
-  if (WriteDihedrals(F_DIHH, TopOut.DihedralsH())) return 1;
-  if (WriteDihedrals(F_DIH,  TopOut.Dihedrals()) ) return 1;
+  FlagType flag_dihh, flag_dih;
+  // Check if the largest possible index will be greater than the default
+  // format width. If so, need a larger format.
+  if (TopOut.Natom()*3 < 10000000) {
+    flag_dihh = F_DIHH;
+    flag_dih  = F_DIH;
+  } else {
+    mprintf("Warning: Topology has >= 10M atoms. Using extended dihedral format strings.\n");
+    mprintf("Warning: This may confuse topology readers that do not actually read the FLAG format strings.\n");
+    flag_dihh = F_DIHH_LARGE;
+    flag_dih  = F_DIH_LARGE;
+  }
+  if (WriteDihedrals(flag_dihh, TopOut.DihedralsH())) return 1;
+  if (WriteDihedrals(flag_dih,  TopOut.Dihedrals()) ) return 1;
 
   // EXCLUDED ATOMS LIST
   if (BufferAlloc(F_EXCLUDE, Excluded.size())) return 1;
   for (Iarray::const_iterator it = Excluded.begin(); it != Excluded.end(); ++it)
     file_.IntToBuffer( *it );
-  file_.FlushBuffer();
+  if (flushFileBuffer( F_EXCLUDE )) return 1;
   Excluded.clear();
 
   // HBOND ASOL
@@ -2234,21 +2264,21 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   for (HB_ParmArray::const_iterator it = TopOut.Nonbond().HBarray().begin();
                                     it != TopOut.Nonbond().HBarray().end(); ++it)
     file_.DblToBuffer( it->Asol() );
-  file_.FlushBuffer();
+  if (flushFileBuffer( F_ASOL )) return 1;
 
   // HBOND BSOL
   if (BufferAlloc(F_BSOL, TopOut.Nonbond().HBarray().size())) return 1;
   for (HB_ParmArray::const_iterator it = TopOut.Nonbond().HBarray().begin();
                                     it != TopOut.Nonbond().HBarray().end(); ++it)
     file_.DblToBuffer( it->Bsol() );
-  file_.FlushBuffer();
+  if (flushFileBuffer( F_BSOL )) return 1;
 
   // HBOND HBCUT 
   if (BufferAlloc(F_HBCUT, TopOut.Nonbond().HBarray().size())) return 1;
   for (HB_ParmArray::const_iterator it = TopOut.Nonbond().HBarray().begin();
                                     it != TopOut.Nonbond().HBarray().end(); ++it)
     file_.DblToBuffer( it->HBcut() );
-  file_.FlushBuffer();
+  if (flushFileBuffer( F_HBCUT )) return 1;
 
   // AMBER ATOM TYPES
   if (BufferAlloc(F_TYPES, TopOut.Natom())) return 1;
@@ -2258,7 +2288,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     if (!atm->HasType()) ++NemptyTypes;
     file_.CharToBuffer( *(atm->Type()) );
   }
-  file_.FlushBuffer();
+  if (flushFileBuffer( F_TYPES )) return 1;
   if (NemptyTypes > 0) mprintf("Warning: %i empty atom type names.\n", NemptyTypes);
 
   // TODO: Generate automatically
@@ -2304,12 +2334,12 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
       file_.IntToBuffer( finalSoluteRes ); // Already +1
       file_.IntToBuffer( TopOut.Nmol() );
       file_.IntToBuffer( firstSolventMol + 1 );
-      file_.FlushBuffer();
+      if (flushFileBuffer( F_SOLVENT_POINTER )) return 1;
       // ATOMS PER MOLECULE
       if (BufferAlloc(F_ATOMSPERMOL, TopOut.Nmol())) return 1;
       for (Topology::mol_iterator mol = TopOut.MolStart(); mol != TopOut.MolEnd(); mol++)
         file_.IntToBuffer( mol->NumAtoms() );
-      file_.FlushBuffer();
+      if (flushFileBuffer( F_ATOMSPERMOL )) return 1;
     } else {
       // ----- Non-contiguous molecules ----------
       // Molecules are not contiguous. In order to ensure that #s in the
@@ -2359,12 +2389,12 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
       file_.IntToBuffer( finalSoluteRes ); // Already +1
       file_.IntToBuffer( segments.size() );
       file_.IntToBuffer( firstSolventMol + 1 );
-      file_.FlushBuffer();
+      if (flushFileBuffer( F_SOLVENT_POINTER )) return 1;
       // ATOMS PER MOLECULE
       if (BufferAlloc(F_ATOMSPERMOL, segments.size())) return 1;
       for (SegArray::const_iterator it = segments.begin(); it != segments.end(); ++it)
         file_.IntToBuffer( it->first.Size() );
-      file_.FlushBuffer();
+      if (flushFileBuffer( F_ATOMSPERMOL )) return 1;
     }
     // BOX DIMENSIONS
     if (BufferAlloc(F_PARMBOX, 4)) return 1;
@@ -2378,20 +2408,20 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     file_.DblToBuffer( TopOut.ParmBox().Param(Box::X) );
     file_.DblToBuffer( TopOut.ParmBox().Param(Box::Y) );
     file_.DblToBuffer( TopOut.ParmBox().Param(Box::Z) );
-    file_.FlushBuffer();
+    if (flushFileBuffer( F_PARMBOX )) return 1;
   }
 
   // CAP info
   if (TopOut.Cap().NatCap() > 0) {
     if (BufferAlloc(F_CAP_INFO, 1)) return 1;
     file_.IntToBuffer( TopOut.Cap().NatCap()+1 );
-    file_.FlushBuffer();
+    if (flushFileBuffer( F_CAP_INFO )) return 1;
     if (BufferAlloc(F_CAP_INFO2, 4)) return 1;
     file_.DblToBuffer( TopOut.Cap().CutCap() );
     file_.DblToBuffer( TopOut.Cap().xCap() );
     file_.DblToBuffer( TopOut.Cap().yCap() );
     file_.DblToBuffer( TopOut.Cap().zCap() );
-    file_.FlushBuffer();
+    if (flushFileBuffer( F_CAP_INFO2 )) return 1;
   }
 
   // Only write GB params if actually present. At least one atom must have something.
@@ -2409,24 +2439,24 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     if (BufferAlloc(F_RADII, TopOut.Natom())) return 1;
     for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
       file_.DblToBuffer( atm->GBRadius() );
-    file_.FlushBuffer();
+    if (flushFileBuffer( F_RADII )) return 1;
     // GB SCREENING PARAMS
     if (BufferAlloc(F_SCREEN, TopOut.Natom())) return 1;
     for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
       file_.DblToBuffer( atm->Screen() );
-    file_.FlushBuffer();
+    if (flushFileBuffer( F_SCREEN )) return 1;
   }
 
   // Polarizability
   if (BufferAlloc(F_IPOL, 1)) return 1;
   file_.IntToBuffer( TopOut.Ipol() );
-  file_.FlushBuffer();
+  if (flushFileBuffer( F_IPOL )) return 1;
   if (TopOut.Ipol() > 0) {
     // Only write polarizabilities if IPOL is set.
     if (BufferAlloc(F_POLAR, TopOut.Natom())) return 1;
     for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
       file_.DblToBuffer( atm->Polar() );
-    file_.FlushBuffer();
+    if (flushFileBuffer( F_POLAR )) return 1;
   }
 
   // Write CMAP parameters
@@ -2436,14 +2466,14 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     if (BufferAlloc(f_count, 2)) return 1;
     file_.IntToBuffer( TopOut.Cmap().size() );     // CMAP terms
     file_.IntToBuffer( TopOut.CmapGrid().size() ); // CMAP grids
-    file_.FlushBuffer();
+    if (flushFileBuffer( f_count )) return 1;
     // CMAP GRID RESOLUTIONS
     const FlagType f_grid_res = (ptype_ == CHAMBER) ? F_CHM_CMAPR : F_CMAPR;
     if (BufferAlloc(f_grid_res, TopOut.CmapGrid().size())) return 1;
     for (CmapGridArray::const_iterator grid = TopOut.CmapGrid().begin();
                                        grid != TopOut.CmapGrid().end(); ++grid)
       file_.IntToBuffer( (int)grid->Resolution() );
-    file_.FlushBuffer();
+    if (flushFileBuffer( f_grid_res )) return 1;
     // CMAP GRIDS
     int ngrid = 1;
     const FlagType f_grid = (ptype_ == CHAMBER) ? F_CHM_CMAPP : F_CMAPP;
@@ -2466,7 +2496,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
       for (std::vector<double>::const_iterator it = grid->Grid().begin();
                                                it != grid->Grid().end(); ++it)
         file_.DblToBuffer( *it );
-      file_.FlushBuffer();
+      if (flushFileBuffer( f_grid )) return 1;
     }
     // CMAP terms
     const FlagType f_param = (ptype_ == CHAMBER) ? F_CHM_CMAPI : F_CMAPI;
@@ -2481,7 +2511,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
       file_.IntToBuffer( it->A5() + 1 );
       file_.IntToBuffer( it->Idx() + 1 );
     }
-    file_.FlushBuffer();
+    if (flushFileBuffer( f_param )) return 1;
   }
 
   // LES parameters
@@ -2489,7 +2519,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     // LES NTYP
     if (BufferAlloc(F_LES_NTYP, 1)) return 1;
     file_.IntToBuffer( TopOut.LES().Ntypes() );
-    file_.FlushBuffer();
+    if (flushFileBuffer( F_LES_NTYP )) return 1;
     // Sanity check.
     if ( (int)TopOut.LES().Array().size() != TopOut.Natom() ) {
       mprinterr("Internal Error: # LES atoms (%zu) != # atoms in topology (%i).\n",
@@ -2501,25 +2531,25 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     for (LES_Array::const_iterator les = TopOut.LES().Array().begin();
                                    les != TopOut.LES().Array().end(); ++les)
       file_.IntToBuffer( les->Type() );
-    file_.FlushBuffer();
+    if (flushFileBuffer( F_LES_TYPE )) return 1;
     // LES FAC
     if (BufferAlloc(F_LES_FAC, TopOut.LES().FAC().size())) return 1;
     for (std::vector<double>::const_iterator it = TopOut.LES().FAC().begin();
                                              it != TopOut.LES().FAC().end(); ++it)
       file_.DblToBuffer( *it );
-    file_.FlushBuffer();
+    if (flushFileBuffer( F_LES_FAC )) return 1;
     // LES CNUM
     if (BufferAlloc(F_LES_CNUM, TopOut.LES().Array().size())) return 1;
     for (LES_Array::const_iterator les = TopOut.LES().Array().begin();
                                    les != TopOut.LES().Array().end(); ++les)
       file_.IntToBuffer( les->Copy() );
-    file_.FlushBuffer();
+    if (flushFileBuffer( F_LES_CNUM )) return 1;
     // LES ID
     if (BufferAlloc(F_LES_ID, TopOut.LES().Array().size())) return 1;
     for (LES_Array::const_iterator les = TopOut.LES().Array().begin();
                                    les != TopOut.LES().Array().end(); ++les)
       file_.IntToBuffer( les->ID() );
-    file_.FlushBuffer();
+    if (flushFileBuffer( F_LES_ID )) return 1;
   }
 
   if (hasOrigResNums || hasChainID || hasIcodes) {
@@ -2543,7 +2573,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     if (err != 0) return 1;
     for (Topology::res_iterator res = TopOut.ResStart(); res != TopOut.ResEnd(); ++res)
       file_.IntToBuffer( res->OriginalResNum() );
-    file_.FlushBuffer();
+    if (flushFileBuffer( F_PDB_RES )) return 1;
   }
   if (hasChainID) {
     // PDB chain IDs. Max # chars currently supported is 4.
@@ -2562,7 +2592,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
       }
       file_.CharToBuffer( cid );
     }
-    file_.FlushBuffer();
+    if (flushFileBuffer( F_PDB_CHAIN )) return 1;
   }
   if (hasIcodes) {
     // PDB residue insertion codes
@@ -2574,7 +2604,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
       icode[0] = res->Icode();
       file_.CharToBuffer( icode );
     }
-    file_.FlushBuffer();
+    if (flushFileBuffer( F_PDB_ICODE )) return 1;
   }
   if (hasOcc) {
     // PDB atomic occupancy
@@ -2583,7 +2613,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     for (std::vector<float>::const_iterator it = TopOut.Occupancy().begin();
                                             it != TopOut.Occupancy().end(); ++it)
       file_.DblToBuffer( *it );
-    file_.FlushBuffer();
+    if (flushFileBuffer( F_PDB_OCC )) return 1;
   }
   if (hasBfac) {
     // PDB atomic B-factors
@@ -2592,7 +2622,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     for (std::vector<float>::const_iterator it = TopOut.Bfactor().begin();
                                             it != TopOut.Bfactor().end(); ++it)
       file_.DblToBuffer( *it );
-    file_.FlushBuffer();
+    if (flushFileBuffer( F_PDB_BFAC )) return 1;
   }
   if (hasNum) {
     // PDB original serial numbers
@@ -2601,7 +2631,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     for (std::vector<int>::const_iterator it = TopOut.PdbSerialNum().begin();
                                           it != TopOut.PdbSerialNum().end(); ++it)
       file_.IntToBuffer( *it );
-    file_.FlushBuffer();
+    if (flushFileBuffer( F_PDB_NUM )) return 1;
   }
 
   // LJ C terms.
@@ -2611,7 +2641,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     if (BufferAlloc(F_LJ_C, ccoef.size())) return 1;
     for (std::vector<double>::const_iterator it = ccoef.begin(); it != ccoef.end(); ++it)
       file_.DblToBuffer( *it );
-    file_.FlushBuffer();
+    if (flushFileBuffer( F_LJ_C )) return 1;
   }
 
   return 0;

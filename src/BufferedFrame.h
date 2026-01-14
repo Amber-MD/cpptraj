@@ -68,6 +68,10 @@ class BufferedFrame : public CpptrajFile {
     const char* Buffer() const { return buffer_;    }
     /// \return Total output file size for given number of frames.
     size_t OutputFileSize(unsigned int n) const { return offset_ + (frameSize_ * n); }
+    /// \return Number of errors since last time WriteFrame() was called.
+    int ErrorCount() const { return errorCount_; }
+    /// \return Number of character overflows since last time WriteFrame() was called.
+    int OverflowCount() const { return overflowCount_; }
   private:
     size_t CalcFrameSize(int) const;
     inline void AdvanceCol();
