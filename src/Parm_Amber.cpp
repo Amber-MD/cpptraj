@@ -134,6 +134,10 @@ const Parm_Amber::ParmFlag Parm_Amber::FLAGS_[] = {
   { "CHARMM_CMAP_PARAMETER_",             "%FORMAT(8(F9.5))"}, // CMAP grid
   { "CHARMM_CMAP_INDEX",                  "%FORMAT(6I8)" }, // Atom i,j,k,l,m of cross term and idx
   { "FORCE_FIELD_TYPE",                   "%FORMAT(i2,a78)"},// NOTE: Cannot use with SetFortranType
+  { "CHARGE",                             "%FORMAT(3E24.16)"}, // CHAMBER charge, F_CHM_CHARGE
+  { "ANGLE_EQUIL_VALUE",                  "%FORMAT(3E25.17)"}, // CHAMBER angle eq value, F_CHM_ANGLETEQ
+  { "LENNARD_JONES_ACOEF",                "%FORMAT(3E24.16)"}, // CHAMBER LJ A coef, F_CHM_LJ_A
+  { "LENNARD_JONES_BCOEF",                "%FORMAT(3E24.16)"}, // CHAMBER LJ B coef, F_CHM_LJ_B
   // PDB extra info
   { "RESIDUE_NUMBER", "%FORMAT(20I4)" },                // PDB residue number
   { "RESIDUE_CHAINID", F20a4 },                         // PDB chain ID
@@ -1549,13 +1553,6 @@ int Parm_Amber::processWriteArgs(ArgList& argIn) {
 /** \return Format for given flag. */
 Parm_Amber::FortranData Parm_Amber::WriteFormat(FlagType fflag) const {
   FortranData FMT;
-  // For chamber, certain flags have different format (boo).
-  if (ptype_ == CHAMBER) {
-    if      (fflag == F_CHARGE  ) FMT.ParseFortranFormat("%FORMAT(3E24.16)");
-    else if (fflag == F_ANGLETEQ) FMT.ParseFortranFormat("%FORMAT(3E25.17)");
-    else if (fflag == F_LJ_A    ) FMT.ParseFortranFormat("%FORMAT(3E24.16)");
-    else if (fflag == F_LJ_B    ) FMT.ParseFortranFormat("%FORMAT(3E24.16)");
-  }
   if (FMT.Ftype() == UNKNOWN_FTYPE)
     FMT.ParseFortranFormat( FLAGS_[fflag].Fmt );
   //mprintf("DEBUG: Flag '%s' format '%s'\n", FLAGS_[fflag].Flag, FMT.Fstr());
@@ -2044,10 +2041,11 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   if (flushFileBuffer( F_NAMES )) return 1;
 
   // CHARGES
-  if (BufferAlloc(F_CHARGE, TopOut.Natom())) return 1;
+  const FlagType f_charge = (ptype_ == CHAMBER) ? F_CHM_CHARGE : F_CHARGE;
+  if (BufferAlloc(f_charge, TopOut.Natom())) return 1;
   for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
     file_.DblToBuffer( atm->Charge() * elec_to_parm_ );
-  if (flushFileBuffer( F_CHARGE )) return 1;
+  if (flushFileBuffer( f_charge )) return 1;
 
   // ATOMIC NUMBER
   if (BufferAlloc(F_ATOMICNUM, TopOut.Natom())) return 1;
@@ -2112,11 +2110,12 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   if (flushFileBuffer( F_ANGLETK )) return 1;
 
   // ANGLE TEQ
-  if (BufferAlloc(F_ANGLETEQ, TopOut.AngleParm().size())) return 1;
+  const FlagType f_angleteq = (ptype_ == CHAMBER) ? F_CHM_ANGLETEQ : F_ANGLETEQ;
+  if (BufferAlloc(f_angleteq, TopOut.AngleParm().size())) return 1;
   for (AngleParmArray::const_iterator it = TopOut.AngleParm().begin();
                                       it != TopOut.AngleParm().end(); ++it)
     file_.DblToBuffer( it->Teq() );
-  if (flushFileBuffer( F_ANGLETEQ )) return 1;
+  if (flushFileBuffer( f_angleteq )) return 1;
 
   // CHARMM only - Urey-Bradley
   if (ptype_ == CHAMBER) {
@@ -2223,7 +2222,9 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   if (flushFileBuffer( F_SOLTY )) return 1;
 
   // LJ A and B terms
-  if (WriteLJ(F_LJ_A, F_LJ_B, TopOut.Nonbond().NBarray())) return 1;
+  const FlagType f_lj_a = (ptype_ == CHAMBER) ? F_CHM_LJ_A : F_LJ_A;
+  const FlagType f_lj_b = (ptype_ == CHAMBER) ? F_CHM_LJ_B : F_LJ_B;
+  if (WriteLJ(f_lj_a, f_lj_b, TopOut.Nonbond().NBarray())) return 1;
  
   // CHAMBER only - LJ 1-4 terms
   if (ptype_ == CHAMBER) {
