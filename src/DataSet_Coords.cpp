@@ -21,6 +21,10 @@ void DataSet_Coords::UpdateCoordsInfoBox( Box const& boxIn ) {
 /** Copy the incoming topology if different from current topology. */
 void DataSet_Coords::set_topology(Topology const& topIn)
 {
+  if (&topIn != &top_) {
+    top_ = topIn;
+  }
+/*
   if (&topIn == &top_) {
     mprintf("DEBUG: set_topology called with existing topology (%s)\n", top_.c_str());
   } else {
@@ -28,4 +32,5 @@ void DataSet_Coords::set_topology(Topology const& topIn)
       mprintf("DEBUG: set_topology: overwriting top %s with top %s\n", top_.c_str(), topIn.c_str());
     top_ = topIn;
   }
+*/
 }
