@@ -14,6 +14,7 @@ using namespace Cpptraj::Structure;
 /** CONSTRUCTOR */
 Solvate::Solvate() :
   debug_(0),
+  nsolvent_(0),
   bufferX_(0),
   bufferY_(0),
   bufferZ_(0),
@@ -30,7 +31,8 @@ const char* Solvate::SetboxKeywords() {
 }
 
 const char* Solvate::SolvateKeywords1() {
-  return "{buffer <buffer> | bufx <bufx> bufy <bufy> bufz <bufz>}";
+  //return "{buffer <buffer> | bufx <bufx> bufy <bufy> bufz <bufz> | nsolvent <#>}";
+  return "{buffer <buffer> | bufx <bufx> bufy <bufy> bufz <bufz> }";
 }
 
 const char* Solvate::SolvateKeywords2() {
@@ -50,9 +52,11 @@ int Solvate::getBufferArg(ArgList& argIn, double defaultBuffer) {
     bufferZ_ = argIn.getKeyDouble("bufz", defaultBuffer);
     bufferD_ = argIn.getKeyDouble("bufd", defaultBuffer);
   }
-  if (bufferX_ < 0 || bufferY_ < 0 || bufferZ_ < 0) {
-    mprinterr("Error: Either 'buffer' or 'bufx/bufy/bufx' must be specified and >= 0\n");
-    return 1;
+  if (nsolvent_ < 1) {
+    if (bufferX_ < 0 || bufferY_ < 0 || bufferZ_ < 0) {
+      mprinterr("Error: Either 'buffer' or 'bufx/bufy/bufx' must be specified and >= 0\n");
+      return 1;
+    }
   }
   return 0;
 }
@@ -61,6 +65,8 @@ int Solvate::getBufferArg(ArgList& argIn, double defaultBuffer) {
 int Solvate::InitSolvate(ArgList& argIn, bool octIn, int debugIn) {
   debug_ = debugIn;
   doTruncatedOct_ = octIn;
+  //nsolvent_ = (unsigned int)argIn.getKeyInt("nsolvent", 0);
+  nsolvent_ = 0; // TODO enable
 
   if (getBufferArg(argIn, -1.0)) return 1;
 
@@ -95,6 +101,7 @@ int Solvate::InitSolvate(ArgList& argIn, bool octIn, int debugIn) {
 /** Initialize args for setbox */
 int Solvate::InitSetbox(ArgList& argIn, int debugIn) {
   debug_ = debugIn;
+  nsolvent_ = 0;
 
   if (getBufferArg(argIn, 0.0)) return 1;
 
@@ -107,6 +114,8 @@ void Solvate::PrintSolvateInfo() const {
     mprintf("\tAdding solvent from %s using a truncated octahedral unit cell.\n", solventBoxName_.c_str());
   else
     mprintf("\tAdding solvent from %s using an orthorhombic unit cell.\n", solventBoxName_.c_str());
+  if (nsolvent_ > 0)
+    mprintf("\t  %u target number of solvent molecules.\n", nsolvent_);
   mprintf("\t  Solvent buffer XYZ: %g %g %g Ang.\n", bufferX_, bufferY_, bufferZ_);
   mprintf("\t  Solvent closeness: %g Ang.\n", closeness_);
   if (isotropic_)
@@ -149,7 +158,7 @@ DataSet_Coords* Solvate::GetSolventUnit(DataSetList const& DSL) const {
     }
   }
   if (solventUnit != 0)
-    mprintf("\tSolvent unit: %s\n", solventUnit->legend());
+    mprintf("\t  Solvent unit: %s\n", solventUnit->legend());
   else
     mprinterr("Error: Could not get solvent unit named %s\n", solventBoxName_.c_str());
 
@@ -449,10 +458,131 @@ void Solvate::ewald_rotate(Frame& frameOut, double& dPAngle)
   dPAngle = tetra_angl*180./pi;
 }
 
+/** Adjust box widths */
+void Solvate::adjustBoxWidths(double& dXWidth, double& dYWidth, double& dZWidth,
+                              double& boxX, double& boxY, double& boxZ)
+const
+{
+  if (isotropic_) {
+    double dTemp = dXWidth * dYWidth * dZWidth;
+
+    double dMax = std::max(dXWidth, dYWidth);
+    dMax = std::max(dMax, dZWidth);
+    dXWidth = dYWidth = dZWidth = dMax;
+
+    dTemp = (dMax * dMax * dMax - dTemp ) / dTemp;
+
+    mprintf("\t  Total bounding box for atom centers:  %5.3f %5.3f %5.3f\n", 
+            dXWidth, dYWidth, dZWidth );
+    mprintf("\t      (box expansion for 'iso' is %5.1lf%%)\n", dTemp * 100.0 );
+
+     // To make the actual clip right, 'iso' the solute box
+    dTemp = std::max(boxX, boxY);
+    dTemp = std::max(dTemp, boxZ);
+    //dXBox = dYBox = dZBox = dTemp;
+    boxX = boxY = boxZ = dTemp;
+  } else
+    mprintf("\t  Total bounding box for atom centers:  %5.3f %5.3f %5.3f\n", 
+            dXWidth, dYWidth, dZWidth );
+}
+
+/** Create box, fill with target number of solvent molecules. */
+int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptraj::Parm::ParameterSet const& set0,
+                                       DataSetList const& DSL)
+{
+  mprintf("\tAdding %u solvent molecules.\n", nsolvent_);
+  if (nsolvent_ < 1) return 0;
+  // Sanity check
+  if (topOut.Natom() != frameOut.Natom()) {
+    mprinterr("Internal Error: Solvate::SolvateBox(): Topology %s #atoms %i != frame #atoms %i\n",
+              topOut.c_str(), topOut.Natom(), frameOut.Natom());
+    return 1;
+  }
+  // Get solvent unit box
+  DataSet_Coords* solventUnitBox = GetSolventUnit( DSL );
+  if (solventUnitBox == 0) {
+    mprinterr("Error: Getting solvent unit failed.\n");
+    return 1;
+  }
+  DataSet_Coords& SOLVENTBOX = static_cast<DataSet_Coords&>( *solventUnitBox );
+
+  // TODO check COORDS size
+  Frame solventFrame = SOLVENTBOX.AllocateFrame();
+  SOLVENTBOX.GetFrame(0, solventFrame);
+
+  // Set vdw box for solvent
+  double solventBoxVol = 0;
+  double solventMaxR;
+  std::vector<double> solventRadii = getAtomRadii(solventMaxR, SOLVENTBOX.Top(), set0);
+  double solventX, solventY, solventZ;
+  if (solventFrame.BoxCrd().HasBox()) {
+    // Use input box lengths
+    // TODO check ortho?
+    solventX = solventFrame.BoxCrd().Param(Box::X);
+    solventY = solventFrame.BoxCrd().Param(Box::Y);
+    solventZ = solventFrame.BoxCrd().Param(Box::Z);
+    solventBoxVol = solventFrame.BoxCrd().CellVolume();
+  } else {
+    if (setVdwBoundingBox(solventX, solventY, solventZ, solventRadii, solventFrame, false)) {
+      mprinterr("Error: Setting vdw bounding box for %s failed.\n", SOLVENTBOX.legend());
+      return 1;
+    }
+    solventBoxVol = solventX * solventY * solventZ;
+  }
+  mprintf("\t  Solvent unit box:                     %5.3f %5.3f %5.3f (%g Ang^3)\n", solventX, solventY, solventZ, solventBoxVol);
+
+  // Set solute box
+  double soluteMaxR;
+  std::vector<double> soluteRadii = getAtomRadii(soluteMaxR, topOut, set0);
+  double boxX, boxY, boxZ;
+  if (setVdwBoundingBox(boxX, boxY, boxZ, soluteRadii, frameOut, isotropic_)) {
+    mprinterr("Error: Setting vdw bounding box for %s failed.\n", topOut.c_str());
+    return 1;
+  }
+  // Check if buffers need to be increased for trunc oct.
+  if (doTruncatedOct_)
+    octBoxCheck( frameOut );
+  mprintf("\t  Solute vdw bounding box:              %-5.3f %-5.3f %-5.3f\n", boxX, boxY, boxZ);
+
+  // Ratio of solute box size to solvent box size 
+  double soluteFac = (boxX*boxY*boxZ) / solventBoxVol;
+  mprintf("\t  Solute is %g times the solvent box.\n", soluteFac);
+  // Estimate how many solvent molecules will be removed by solvent
+  unsigned int nMolsRemovedBySolute = (unsigned int)ceil( soluteFac * (double)SOLVENTBOX.Top().Nmol() );
+  mprintf("\t  Estimating approximately %u solvent molecules will be removed by solute.\n", nMolsRemovedBySolute);
+  //unsigned int nBoxesForSolvent = (unsigned int)ceil( (double)nsolvent / (double)SOLVENTBOX.Top().Nmol() );
+  // Calculate the solvent box density
+  double solventBoxDensity = (double)SOLVENTBOX.Top().Nmol() / solventBoxVol;
+  mprintf("\t  Solvent box density is %g mols/Ang^3\n", solventBoxDensity);
+  // Calculate how many solvent molecules we actually need to add given that solute will remove some
+  unsigned int neededNumberOfSolvent = nsolvent_ + nMolsRemovedBySolute;
+  // Calculate what volume of solvent is needed to hit the actual solvent molecule target
+  double tgtVol = (double)neededNumberOfSolvent / solventBoxDensity;
+  mprintf("\t  Target volume: %g Ang^3\n", tgtVol);
+  // Calculate number of solvent boxes needed
+  //unsigned int neededNumberOfBoxes = (unsigned int)ceil( tgtVol / solventBoxVol );
+  //mprintf("\t  Need %u solvent boxes.\n", neededNumberOfBoxes);
+  double tgtLen = pow(tgtVol, (1.0/3.0));
+  mprintf("\t  Target length: %g Ang\n", tgtLen);
+  double bX = (tgtLen - boxX) / 2.0;
+  double bY = (tgtLen - boxY) / 2.0;
+  double bZ = (tgtLen - boxZ) / 2.0;
+  mprintf("\t  Buffer: %g %g %g\n", bX, bY, bZ);
+  
+  //unsigned int nSolventBoxesNeeded = (unsigned int)ceil( (double)neededNumberOfSolvent / (double)SOLVENTBOX.Top().Nmol() );
+  //mprintf("\t  Estimating %u solvent boxes will be needed.\n", nSolventBoxesNeeded);
+
+
+  return 0;
+}
+
 /** Create box, fill with solvent */
 int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::ParameterSet const& set0,
                         DataSetList const& DSL)
 {
+  if (nsolvent_ > 0) {
+    return SolvateBoxWithExactNumber(topOut, frameOut, set0, DSL);
+  }
   mprintf("\tAdding solvent.\n");
   // Sanity check
   if (topOut.Natom() != frameOut.Natom()) {
@@ -492,6 +622,8 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
   double dYWidth = boxY + bufferY_ * 2;
   double dZWidth = boxZ + bufferZ_ * 2;
 
+  adjustBoxWidths(dXWidth, dYWidth, dZWidth, boxX, boxY, boxZ);
+/*
   if (isotropic_) {
     double dTemp = dXWidth * dYWidth * dZWidth;
 
@@ -513,6 +645,7 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
   } else
     mprintf("\t  Total bounding box for atom centers:  %5.3f %5.3f %5.3f\n", 
             dXWidth, dYWidth, dZWidth );
+*/
 
   if (clip_) {
     //  If the solvated system should be clipped to the exact
@@ -543,7 +676,7 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
     solventZ = solventFrame.BoxCrd().Param(Box::Z);
   } else {
     if (setVdwBoundingBox(solventX, solventY, solventZ, solventRadii, solventFrame, false)) {
-      mprinterr("Error: Setting vdw bounding box for %s failed.\n", topOut.c_str());
+      mprinterr("Error: Setting vdw bounding box for %s failed.\n", SOLVENTBOX.legend());
       return 1;
     }
   }

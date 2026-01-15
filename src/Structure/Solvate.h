@@ -38,6 +38,10 @@ class Solvate {
   private:
     /// \return Solvent unit selected from given DataSetList
     DataSet_Coords* GetSolventUnit(DataSetList const&) const;
+    /// Adjust box widths
+    void adjustBoxWidths(double&, double&, double&, double&, double&, double&) const;
+    /// Solvate with box and specified number of solvent
+    int SolvateBoxWithExactNumber(Topology&, Frame&, Cpptraj::Parm::ParameterSet const&, DataSetList const&);
     /// Get buffer arguments
     int getBufferArg(ArgList&, double);
     /// Get radii for atoms in topology
@@ -65,6 +69,7 @@ class Solvate {
                         std::vector<double> const&, std::vector<double> const&) const;
 
     int debug_;
+    unsigned int nsolvent_;
     double bufferX_;
     double bufferY_;
     double bufferZ_;
