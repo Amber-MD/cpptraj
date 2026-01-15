@@ -25,19 +25,19 @@ class Solvate {
     /// Set VDW bounding box
     int SetVdwBoundingBox(Topology&, Frame&, Cpptraj::Parm::ParameterSet const& set0);
     /// Solvate with box
-    int SolvateBox(Topology&, Frame&, Cpptraj::Parm::ParameterSet const&, DataSet_Coords&);
+    int SolvateBox(Topology&, Frame&, Cpptraj::Parm::ParameterSet const&, DataSetList const&);
 
     static const char* SetboxKeywords();
     static const char* SolvateKeywords1();
     static const char* SolvateKeywords2();
 
-    /// \return Solvent unit selected from given DataSetList
-    DataSet_Coords* GetSolventUnit(DataSetList const&) const;
     /// \return Solvent box name
     std::string const& SolventBoxName() const { return solventBoxName_; }
     /// Print solvate info to stdout
     void PrintSolvateInfo() const;
   private:
+    /// \return Solvent unit selected from given DataSetList
+    DataSet_Coords* GetSolventUnit(DataSetList const&) const;
     /// Get buffer arguments
     int getBufferArg(ArgList&, double);
     /// Get radii for atoms in topology

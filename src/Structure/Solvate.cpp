@@ -451,7 +451,7 @@ void Solvate::ewald_rotate(Frame& frameOut, double& dPAngle)
 
 /** Create box, fill with solvent */
 int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::ParameterSet const& set0,
-                        DataSet_Coords& SOLVENTBOX)
+                        DataSetList const& DSL)
 {
   mprintf("\tAdding solvent.\n");
   // Sanity check
@@ -460,6 +460,13 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
               topOut.c_str(), topOut.Natom(), frameOut.Natom());
     return 1;
   }
+  // Get solvent unit box
+  DataSet_Coords* solventUnitBox = GetSolventUnit( DSL );
+  if (solventUnitBox == 0) {
+    mprinterr("Error: Getting solvent unit failed.\n");
+    return 1;
+  }
+  DataSet_Coords& SOLVENTBOX = static_cast<DataSet_Coords&>( *solventUnitBox );
 
   // TODO Remove any existing box info?
   //if (frameOut.BoxCrd.HasBox())

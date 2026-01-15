@@ -1203,13 +1203,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
     // Record initial number of atoms and residues
     int initial_natom = topOut.Natom();
     int initial_nres = topOut.Nres();
-    // Get solvent unit box
-    DataSet_Coords* solventUnitBox = solvator.GetSolventUnit( DSL );
-    if (solventUnitBox == 0) {
-      mprinterr("Error: Getting solvent unit failed.\n");
-      return CpptrajState::ERR;
-    }
-    if (solvator.SolvateBox( topOut, frameOut, *(creator.MainParmSetPtr()), *solventUnitBox )) {
+    if (solvator.SolvateBox( topOut, frameOut, *(creator.MainParmSetPtr()), DSL )) {
       mprinterr("Error: Adding solvent failed.\n");
       return CpptrajState::ERR;
     }
