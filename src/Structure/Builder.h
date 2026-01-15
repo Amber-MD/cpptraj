@@ -2,8 +2,9 @@
 #define INC_STRUCTURE_BUILDER_H
 #include <vector>
 #include "../AtomType.h"
-
-#include "../Timer.h" // DEBUG
+#ifdef TIMER
+# include "../Timer.h" // DEBUG
+#endif
 class Atom;
 class Topology;
 class Frame;
@@ -149,10 +150,21 @@ class Builder {
     Larray internalBonds_;
     Carray internalChirality_;
     Iarray Rnums_;               ///< Hold residue indices pertaining to current internals
-
+#   ifdef TIMER
     static Timer timeg_builder_IALsetup_;
     static Timer timeg_builder_IALspan_;
     static Timer timeg_builder_IALgen_;
+    static Timer timeg_builder_IALgen_internals_;
+    static Timer timeg_builder_IALgen_missing_;
+    static Timer timeg_builder_torsions_;
+    static Timer timeg_builder_angles_;
+    static Timer timeg_builder_bonds_;
+    static Timer timeg_builder_chirality_;
+    static Timer timeg_ang_search_;
+    static Timer timeg_ang_model_;
+    static Timer timeg_MBA_getAngleParam_;
+    static Timer timeg_MBA_getAtomHybrid_;
+#   endif
 };
 /// ----- Hold torsion internal ------------------
 class Cpptraj::Structure::Builder::InternalTorsion {

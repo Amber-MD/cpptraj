@@ -17,9 +17,21 @@
 using namespace Cpptraj::Structure;
 using namespace Cpptraj::Parm;
 
+#ifdef TIMER
 Timer Builder::timeg_builder_IALsetup_ = Timer();
-Timer Builder::timeg_builder_IALgen_ = Timer();
 Timer Builder::timeg_builder_IALspan_ = Timer();
+Timer Builder::timeg_builder_IALgen_ = Timer();
+Timer Builder::timeg_builder_IALgen_internals_ = Timer();
+Timer Builder::timeg_builder_IALgen_missing_ = Timer();
+Timer Builder::timeg_builder_torsions_ = Timer();
+Timer Builder::timeg_builder_angles_ = Timer();
+Timer Builder::timeg_builder_bonds_ = Timer();
+Timer Builder::timeg_builder_chirality_ = Timer();
+Timer Builder::timeg_ang_search_ = Timer();
+Timer Builder::timeg_ang_model_ = Timer();
+Timer Builder::timeg_MBA_getAngleParam_ = Timer();
+Timer Builder::timeg_MBA_getAtomHybrid_ = Timer();
+#endif
 
 /** CONSTRUCTOR */
 Builder::Builder() :
@@ -968,9 +980,18 @@ double Builder::ModelBondLength(int ai, int aj, Topology const& topIn) const {
 double Builder::ModelBondAngle(int ai, int aj, int ak, Topology const& topIn) const {
   // First look up parameter
   double theta = 0;
+# ifdef TIMER
+  timeg_MBA_getAngleParam_.Start();
+# endif
   if (getAngleParam(theta, ai, aj, ak, topIn)) {
+#   ifdef TIMER
+    timeg_MBA_getAngleParam_.Stop();
+#   endif
     return theta;
   }
+# ifdef TIMER
+  timeg_MBA_getAngleParam_.Stop();
+# endif
   Atom const& AJ = topIn[aj];
   // Figure out hybridization and chirality of atom j.
   if (debug_ > 0) {
@@ -978,8 +999,13 @@ double Builder::ModelBondAngle(int ai, int aj, int ak, Topology const& topIn) co
     mprintf("DEBUG:\t\tJ %s Nbonds: %i\n", AJ.ElementName(), AJ.Nbonds());
     mprintf("DEBUG:\t\tK %s Nbonds: %i\n", topIn[ak].ElementName(), topIn[ak].Nbonds());
   }
+# ifdef TIMER
+  timeg_MBA_getAtomHybrid_.Start();
+# endif
   AtomType::HybridizationType hybrid = getAtomHybridization( AJ, topIn.Atoms() );
-
+# ifdef TIMER
+  timeg_MBA_getAtomHybrid_.Stop();
+# endif
   // Guess hybrid if needed
   //if (hybrid == AtomType::UNKNOWN_HYBRIDIZATION)
   //  hybrid = GuessAtomHybridization(AJ, topIn.Atoms());
@@ -1484,6 +1510,9 @@ int Builder::generateAtomInternals(int at, Frame const& frameIn, Topology const&
   if (debug_ > 0)
     mprintf( "Building internals for: %s\n", topIn.LeapName(at).c_str());
   // Torsions
+# ifdef TIMER
+  timeg_builder_torsions_.Start();
+# endif
   Atom const& AtA = topIn[at];
   for (Atom::bond_iterator bat = AtA.bondbegin(); bat != AtA.bondend(); ++bat) {
     Atom const& AtB = topIn[*bat];
@@ -1506,7 +1535,13 @@ int Builder::generateAtomInternals(int at, Frame const& frameIn, Topology const&
       }
     }
   }
+# ifdef TIMER
+  timeg_builder_torsions_.Stop();
+# endif
   // Angles
+# ifdef TIMER
+  timeg_builder_angles_.Start();
+# endif
   for (Atom::bond_iterator bat = AtA.bondbegin(); bat != AtA.bondend(); ++bat) {
     Atom const& AtB = topIn[*bat];
     for (Atom::bond_iterator cat = AtB.bondbegin(); cat != AtB.bondend(); ++cat) {
@@ -1516,7 +1551,13 @@ int Builder::generateAtomInternals(int at, Frame const& frameIn, Topology const&
                   topIn.LeapName(at).c_str(),
                   topIn.LeapName(*bat).c_str(),
                   topIn.LeapName(*cat).c_str());
+#       ifdef TIMER
+        timeg_ang_search_.Start();
+#       endif
         int aidx = getExistingAngleIdx(at, *bat, *cat);
+#       ifdef TIMER
+        timeg_ang_search_.Stop();
+#       endif
         if (aidx < 0) {
           double dValue = 0;
           if (hasPosition[at] &&
@@ -1527,7 +1568,13 @@ int Builder::generateAtomInternals(int at, Frame const& frameIn, Topology const&
             dValue = CalcAngle(frameIn.XYZ(at), frameIn.XYZ(*bat), frameIn.XYZ(*cat));
           } else {
             if (debug_ > 1) mprintf("Got bond angle from model builder\n");
+#           ifdef TIMER
+            timeg_ang_model_.Start();
+#           endif
             dValue = ModelBondAngle(at, *bat, *cat, topIn);
+#           ifdef TIMER
+            timeg_ang_model_.Stop();
+#           endif
           }
           if (debug_ > 1)
             mprintf("++++Angle INTERNAL: %f  for %s - %s - %s\n", dValue*Constants::RADDEG,
@@ -1541,7 +1588,13 @@ int Builder::generateAtomInternals(int at, Frame const& frameIn, Topology const&
       }
     } // END loop over atoms bonded to B
   } // END loop over atoms bonded to A
+# ifdef TIMER
+  timeg_builder_angles_.Stop();
+# endif
   // Bonds
+# ifdef TIMER
+  timeg_builder_bonds_.Start();
+# endif
   for (Atom::bond_iterator bat = AtA.bondbegin(); bat != AtA.bondend(); ++bat) {
     if (debug_ > 1)
       mprintf("Building bond INTERNAL for: %s - %s\n",
@@ -1568,7 +1621,13 @@ int Builder::generateAtomInternals(int at, Frame const& frameIn, Topology const&
       if (debug_ > 1) mprintf( "Bond length INTERNAL already defined\n" );
     }
   } // END loop over atoms bonded to A
+# ifdef TIMER
+  timeg_builder_bonds_.Stop();
+# endif
   // Chirality
+# ifdef TIMER
+  timeg_builder_chirality_.Start();
+# endif
   double dChi = 0;
   int cidx = getExistingChiralityIdx(at);
   if (determineChirality(dChi, at, frameIn, topIn, hasPosition)) {
@@ -1593,7 +1652,9 @@ int Builder::generateAtomInternals(int at, Frame const& frameIn, Topology const&
         mprintf("Using already-defined chirality (%f).\n", internalChirality_[cidx].ChiralVal());
     }
   }
-
+# ifdef TIMER
+  timeg_builder_chirality_.Stop();
+# endif
   return 0;
 }
 
@@ -1629,7 +1690,9 @@ int Builder::GenerateInternalsAroundLink(int at0, int at1,
     mprintf("DEBUG: ----- Entering Builder::GenerateInternalsAroundLink. -----\n");
     mprintf("DEBUG: Link: %s to %s\n", topIn.AtomMaskName(at0).c_str(), topIn.AtomMaskName(at1).c_str());
   }
+# ifdef TIMER
   timeg_builder_IALsetup_.Start();
+# endif
   // Sanity check
   Atom const& A0 = topIn[at0];
   Atom const& A1 = topIn[at1];
@@ -1651,11 +1714,16 @@ int Builder::GenerateInternalsAroundLink(int at0, int at1,
   else
     // Only want the 'forward' tree
     actualAt1 = at1;
+# ifdef TIMER
   timeg_builder_IALsetup_.Stop();
   timeg_builder_IALspan_.Start();
+# endif
   Iarray span_atoms = GenerateSpanningTree(at0, actualAt1, 4, topIn.Atoms());
+# ifdef TIMER
   timeg_builder_IALspan_.Stop();
   timeg_builder_IALgen_.Start();
+  timeg_builder_IALgen_internals_.Start();
+# endif
   for (Iarray::const_iterator it = span_atoms.begin(); it != span_atoms.end(); ++it)
   {
     //mprintf("SPANNING TREE ATOM: %s\n", *(topIn[*it].Name()));
@@ -1664,6 +1732,10 @@ int Builder::GenerateInternalsAroundLink(int at0, int at1,
       return 1;
     }
   }
+# ifdef TIMER
+  timeg_builder_IALgen_internals_.Stop();
+  timeg_builder_IALgen_missing_.Start();
+# endif
   // FIXME this is a hack to make certain we have all the angle/bond terms we need
   if (debug_ > 0)
     mprintf("DEBUG: LOOKING FOR MISSING ANGLE/BOND PARAMS.\n");
@@ -1680,15 +1752,32 @@ int Builder::GenerateInternalsAroundLink(int at0, int at1,
   }
   if (debug_ > 0)
     mprintf("DEBUG: ----- Leaving Builder::GenerateInternalsAroundLink. -----\n");
+# ifdef TIMER
+  timeg_builder_IALgen_missing_.Stop();
   timeg_builder_IALgen_.Stop();
+# endif
   return 0;
 }
 
+/** Write timing data to stdout. Only availabe if TIMER was defined. */
 void Builder::PrintTiming(int indent, double total)
 {
-  timeg_builder_IALsetup_.WriteTiming(indent, "Internals Around Link Setup : ", total);
-  timeg_builder_IALspan_.WriteTiming (indent, "Internals Around Link Span  : ", total);
-  timeg_builder_IALgen_.WriteTiming  (indent, "Internals Around Link Gen   : ", total);
+# ifdef TIMER
+  timeg_builder_IALsetup_.WriteTiming(indent, "Internals Around Link Setup :", total);
+  timeg_builder_IALspan_.WriteTiming (indent, "Internals Around Link Span  :", total);
+  timeg_builder_IALgen_.WriteTiming  (indent, "Internals Around Link Gen   :", total);
+  timeg_builder_IALgen_missing_.WriteTiming  (indent+1, "Link Gen missing terms  :", timeg_builder_IALgen_.Total());
+  timeg_builder_IALgen_internals_.WriteTiming(indent+1, "Link Gen atom internals :", timeg_builder_IALgen_.Total());
+  timeg_builder_torsions_.WriteTiming (indent+2, "Torsions  :", timeg_builder_IALgen_internals_.Total());
+  timeg_builder_angles_.WriteTiming   (indent+2, "Angles    :", timeg_builder_IALgen_internals_.Total());
+  timeg_ang_search_.WriteTiming(indent+3, "Search :", timeg_builder_angles_.Total());
+  timeg_ang_model_.WriteTiming (indent+3, "Model  :", timeg_builder_angles_.Total());
+  timeg_MBA_getAngleParam_.WriteTiming(indent+4,"GetParam  :", timeg_ang_model_.Total());
+  timeg_MBA_getAtomHybrid_.WriteTiming(indent+4,"GetHybrid :", timeg_ang_model_.Total());
+  timeg_builder_bonds_.WriteTiming    (indent+2, "Bonds     :", timeg_builder_IALgen_internals_.Total());
+  timeg_builder_chirality_.WriteTiming(indent+2, "Chirality :", timeg_builder_IALgen_internals_.Total());
+# endif
+  return;
 }
 
 /** For debugging, print all the complete internals associated with the given atom. */
