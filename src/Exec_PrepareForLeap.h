@@ -37,7 +37,7 @@ class Exec_PrepareForLeap : public Exec {
     int FindTerByBonds(Topology&, CharMask const&) const;
 
     /// Run leap to generate topology, perform any modifications
-    int RunLeap(std::string const&, std::string const&) const;
+    int RunLeap(std::string const&, std::string const&, Cpptraj::Structure::SugarBuilder const&) const;
 
     /// Download missing parameters
     int DownloadParameters(Cpptraj::Structure::ResStatArray&, RmapType const&,

@@ -31,8 +31,10 @@ class SugarBuilder {
     int PrepareSugars(bool, ResStatArray&, Topology&, Frame const&, std::vector<BondType>&);
     /// Set each sugar as a terminal residue
     void SetEachSugarAsTerminal(Topology&) const;
-    /// Print any functional group warnings
+    /// Print any found functional group warnings
     void PrintFxnGroupWarnings(Topology const&) const;
+    /// Perform any necessary modifications for found functional groups
+    int ModifyFoundFxnGroups(Topology&, bool&) const;
   private:
     typedef std::vector<int> Iarray;
 

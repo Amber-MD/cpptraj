@@ -532,3 +532,132 @@ void FxnGroupBuilder::LeapFxnGroupWarning(Topology const& topIn) const {
     }
   }
 }
+
+/// \return index of oxygen atom bonded to this atom but not in same residue
+static inline int getLinkOxygenIdx(Topology const& leaptop, int at, int rnum) {
+  int o_idx = -1;
+  for (Atom::bond_iterator bat = leaptop[at].bondbegin();
+                           bat != leaptop[at].bondend(); ++bat)
+  {
+    if (leaptop[*bat].Element() == Atom::OXYGEN && leaptop[*bat].ResNum() != rnum) {
+      o_idx = *bat;
+      break;
+    }
+  }
+  return o_idx;
+}
+
+/// \return index of carbon bonded to link oxygen not in same residue
+static inline int getLinkCarbonIdx(Topology const& leaptop, int at, int rnum)
+{
+  int o_idx = getLinkOxygenIdx(leaptop, at, rnum);
+  if (o_idx == -1) return o_idx;
+  int c_idx = -1;
+  for (Atom::bond_iterator bat = leaptop[o_idx].bondbegin();
+                           bat != leaptop[o_idx].bondend(); ++bat)
+  {
+    if (leaptop[*bat].Element() == Atom::CARBON && leaptop[*bat].ResNum() != rnum) {
+      c_idx = *bat;
+      break;
+    }
+  }
+  return c_idx;
+}
+
+/** Modify functional groups if needed. */
+int FxnGroupBuilder::ModifyFxnGroups(Topology& leaptop, bool& top_is_modified)
+const
+{
+  // Make necessary adjustments for found residues
+  // NOTE: If deoxy carbons are ever handled, need to add H1 hydrogen and
+  //       add the former -OH charge to the carbon.
+  for (FRarray::const_iterator it = foundGroups_.begin(); it != foundGroups_.end(); ++it)
+  {
+    int rnum = it->Ires();
+    Residue const& res = leaptop.Res(rnum);
+    if (it->Ftype() == FunctionalGroup::G_SO3) {
+      int o_idx = -1;
+      // Need to adjust the charge on the bonded oxygen by +0.031
+      for (int at = res.FirstAtom(); at != res.LastAtom(); at++) {
+        if (leaptop[at].Element() == Atom::SULFUR) {
+          o_idx = getLinkOxygenIdx( leaptop, at, rnum );
+          if (o_idx != -1) break;
+        }
+      }
+      if (o_idx == -1) {
+        mprinterr("Error: Could not find oxygen link atom for '%s'\n",
+                  leaptop.TruncResNameOnumId(rnum).c_str());
+        return 1;
+      }
+      double newcharge = leaptop[o_idx].Charge() + 0.031;
+      mprintf("\tFxn group '%s'; changing charge on %s from %f to %f\n", *(res.Name()),
+              leaptop.AtomMaskName(o_idx).c_str(), leaptop[o_idx].Charge(), newcharge);
+      leaptop.SetAtom(o_idx).SetCharge( newcharge );
+      top_is_modified = true;
+    } else if (it->Ftype() == FunctionalGroup::G_CH3) { // MEX
+      int c_idx = -1;
+      // Need to adjust the charge on the carbon bonded to link oxygen by -0.039
+      for (int at = res.FirstAtom(); at != res.LastAtom(); at++) {
+        if (leaptop[at].Element() == Atom::CARBON) {
+          c_idx = getLinkCarbonIdx( leaptop, at, rnum );
+          if (c_idx != -1) break;
+        }
+      }
+      if (c_idx == -1) {
+        mprinterr("Error: Could not find carbon bonded to oxygen link atom for '%s'\n",
+                  leaptop.TruncResNameOnumId(rnum).c_str());
+        return 1;
+      }
+      double newcharge = leaptop[c_idx].Charge() - 0.039;
+      mprintf("\tFxn group '%s'; changing charge on %s from %f to %f\n", *(res.Name()),
+              leaptop.AtomMaskName(c_idx).c_str(), leaptop[c_idx].Charge(), newcharge);
+      leaptop.SetAtom(c_idx).SetCharge( newcharge );
+      top_is_modified = true;
+    } else if (it->Ftype() == FunctionalGroup::G_ACX) {
+      int c_idx = -1;
+      // Need to adjust the charge on the carbon bonded to link oxygen by +0.008
+      for (int at = res.FirstAtom(); at != res.LastAtom(); at++) {
+        if (leaptop[at].Element() == Atom::CARBON) {
+          // This needs to be the acetyl carbon, ensure it is bonded to an oxygen
+          for (Atom::bond_iterator bat = leaptop[at].bondbegin();
+                                   bat != leaptop[at].bondend(); ++bat)
+          {
+            if (leaptop[*bat].Element() == Atom::OXYGEN) {
+              c_idx = getLinkCarbonIdx( leaptop, at, rnum );
+              if (c_idx != -1) break;
+            }
+          }
+          if (c_idx != -1) break;
+        }
+      }
+      if (c_idx == -1) {
+        mprinterr("Error: Could not find carbon bonded to oxygen link atom for '%s'\n",
+                  leaptop.TruncResNameOnumId(rnum).c_str());
+        return 1;
+      }
+      double newcharge = leaptop[c_idx].Charge() + 0.008;
+      mprintf("\tFxn group '%s'; changing charge on %s from %f to %f\n", *(res.Name()),
+              leaptop.AtomMaskName(c_idx).c_str(), leaptop[c_idx].Charge(), newcharge);
+      leaptop.SetAtom(c_idx).SetCharge( newcharge );
+      top_is_modified = true;
+    }
+  } // END loop over residues
+
+  // DEBUG: Print out total charge on each residue
+  double total_q = 0;
+  for (Topology::res_iterator res = leaptop.ResStart(); res != leaptop.ResEnd(); ++res)
+  {
+    double tcharge = 0;
+    for (int at = res->FirstAtom(); at != res->LastAtom(); ++at) {
+      total_q += leaptop[at].Charge();
+      tcharge += leaptop[at].Charge();
+    }
+    if (debug_ > 0) {
+      mprintf("DEBUG:\tResidue %10s charge= %12.5f\n",
+              leaptop.TruncResNameOnumId(res-leaptop.ResStart()).c_str(), tcharge);
+    }
+  }
+  mprintf("\tTotal charge: %16.8f\n", total_q);
+
+  return 0;
+}

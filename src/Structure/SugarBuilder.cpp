@@ -2006,3 +2006,11 @@ void SugarBuilder::PrintFxnGroupWarnings(Topology const& topIn) const {
   if (FGB_ != 0)
     FGB_->LeapFxnGroupWarning(topIn);
 }
+
+/** Perform any necessary topology modifications for found functional groups. */
+int SugarBuilder::ModifyFoundFxnGroups(Topology& topIn, bool& top_is_modified) const {
+  int err = 0;
+  if (FGB_ != 0)
+    err = FGB_->ModifyFxnGroups(topIn, top_is_modified);
+  return err;
+}
