@@ -4,6 +4,7 @@
 #include "ParmEnum.h"
 #include <map>
 #include <string>
+class ArgList;
 class Topology;
 namespace Cpptraj {
 namespace Parm {
@@ -37,6 +38,8 @@ namespace Parm {
 class LJ1264_Params {
   public:
     LJ1264_Params();
+    /// Init from keywords
+    int Init_LJ1264(ArgList&, int, std::string const&);
     /// Init - mask, c4 file, water model, polarization file, tuning factor, debug
     int Init_LJ1264(std::string const&, std::string const&, WaterModelType, std::string const&, double, int);
     /// Assign Topology with LJ 12-6-4 params
