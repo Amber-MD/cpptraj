@@ -61,14 +61,6 @@ Cpptraj::Parm::GB_RadiiType Cpptraj::Parm::GbTypeFromKey(std::string const& key)
   return UNKNOWN_GB;
 }
 
-/** Print all recognized GB radii keywords to stdout */
-void Cpptraj::Parm::PrintGbRadiiKeywords() {
-  mprintf("    <radii> =");
-  for (int ig = 0; ig != (int)UNKNOWN_GB; ig++)
-    mprintf(" %s", GbTypeKey((GB_RadiiType)ig));
-  mprintf("\n");
-}
-
 /// These are the numeric iGBparm values used in LEaP
 static const int GB_RadiiTypeIGB_[] = {
   0, // bondi
@@ -84,6 +76,16 @@ static const int GB_RadiiTypeIGB_[] = {
 // =============================================================================
 /** CONSTRUCTOR */
 Cpptraj::Parm::GB_Params::GB_Params() : gbradii_(Cpptraj::Parm::UNKNOWN_GB) {}
+
+/** Print keywords to stdout. */
+void Cpptraj::Parm::GB_Params::HelpText() {
+  mprintf("\t[gb {");
+  for (int ig = 0; ig != (int)UNKNOWN_GB; ig++) {
+    if (ig > 0) mprintf("|");
+    mprintf("%s", GbTypeKey((GB_RadiiType)ig));
+  }
+  mprintf("}]\n");
+}
 
 /** Init radii set */
 int Cpptraj::Parm::GB_Params::Init_GB_Radii(ArgList& argIn, Cpptraj::Parm::GB_RadiiType gbRadIn)

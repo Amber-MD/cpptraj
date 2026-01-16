@@ -24,14 +24,14 @@ std::string GbAmberFlag(GB_RadiiType);
 std::string GbTypeStr(GB_RadiiType);
 /// \return GB radii type corresponding to string
 GB_RadiiType GbTypeFromKey(std::string const&);
-/// Print GB radii keywords to stdout
-void PrintGbRadiiKeywords();
 
 /// Used to assign GB radii to a Topology
 class GB_Params {
   public:
     /// CONSTRUCTOR
     GB_Params();
+    /// Print Help text to stdout
+    static void HelpText();
     /// Initialize 
     int Init_GB_Radii(ArgList&, GB_RadiiType);
     /// Assign GB radii

@@ -227,15 +227,14 @@ const
 // Exec_Sequence::Help()
 void Exec_Sequence::Help() const
 {
-  mprintf("\tname <output set name> <unit0> <unit1> ...\n"
-          "\t[gb <radii>] [verbose <#>]\n" 
-          "\t[%s]\n"
+  mprintf("\tname <output set name> <unit0> <unit1> ... [verbose <#>]\n");
+  Cpptraj::Parm::GB_Params::HelpText();
+  mprintf("\t[%s]\n"
           "\t[{%s} ...]\n"
           "\t[{%s} ...]\n",
           Cpptraj::Structure::Creator::other_keywords_,
           Cpptraj::Structure::Creator::template_keywords_,
           Cpptraj::Structure::Creator::parm_keywords_);
-  Cpptraj::Parm::PrintGbRadiiKeywords();
   mprintf("  Create a molecule from a sequence of units.\n"
           "  If parameter sets are loaded, parameters will be assigned to <output set name>.\n");
 }
@@ -250,7 +249,7 @@ Exec::RetType Exec_Sequence::Execute(CpptrajState& State, ArgList& argIn)
   int verbose = argIn.getKeyInt("verbose", 0);
   // GB radii set. Default to mbondi
   Cpptraj::Parm::GB_Params gbradii;
-  if (gbradii.Init_GB_Radii(argIn, Cpptraj::Parm::MBONDI)) return CpptrajState::ERR;
+  if (gbradii.Init_GB_Radii(argIn, Cpptraj::Parm::UNKNOWN_GB)) return CpptrajState::ERR;
 
   // Creator args
   Cpptraj::Structure::Creator creator(debug_);

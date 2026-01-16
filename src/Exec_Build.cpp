@@ -810,9 +810,10 @@ const
 void Exec_Build::Help() const
 {
   mprintf("\tname <output COORDS> crdset <COORDS set> [frame <#>]\n"
-          "\t[title <title>] [gb <radii>] [verbose <#>] [keepmissingatoms]\n"
-          "\t[parmout <topology file>] [crdout <coord file>] [simplecheck]\n"
-          "\t[%s]\n"
+          "\t[title <title>] [verbose <#>] [keepmissingatoms]\n"
+          "\t[parmout <topology file>] [crdout <coord file>] [simplecheck]\n");
+  Cpptraj::Parm::GB_Params::HelpText();
+  mprintf("\t[%s]\n"
           "\t[{%s} ...]\n"
           "\t[{%s} ...]\n"
           "\t[{{solvatebox|solvateoct} %s\n"
@@ -829,7 +830,6 @@ void Exec_Build::Help() const
           Cpptraj::Structure::HisProt::keywords_,
           Cpptraj::Structure::Disulfide::keywords_
          );
-  Cpptraj::Parm::PrintGbRadiiKeywords();
   mprintf("  Build complete topology and parameters from given crdset.\n");
 }
 
