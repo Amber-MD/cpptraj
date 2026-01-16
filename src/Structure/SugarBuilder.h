@@ -8,6 +8,7 @@ class NameType;
 namespace Cpptraj {
 namespace Structure {
 // Forward declares
+class FxnGroupBuilder;
 class Sugar;
 class ResStatArray;
 /// Class for preparing sugars in a topology
@@ -17,6 +18,8 @@ class SugarBuilder {
     typedef std::vector<Sugar> Array;
     /// CONSTRUCTOR - Take debug level
     SugarBuilder(int);
+    /// DESTRUCTOR
+    ~SugarBuilder();
     /// Init options: hasGlycam, residue cutoff, bond offset, sugar mask str, determineSugarsBy, resmapfile
     int InitOptions(bool, double, double, std::string const&, std::string const&, std::string const&);
     /// \return true if given res name is a recognized PDB sugar
@@ -118,6 +121,7 @@ class SugarBuilder {
     bool useSugarName_;        ///< If true, base form/chirality on name instead of geometry
     AtomMap myMap_;            ///< Used to determine unique atoms for chirality
     int debug_;
+    FxnGroupBuilder* FGB_;
 };
 }
 }
