@@ -1189,6 +1189,13 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
     return CpptrajState::ERR;
   }
 
+  // Perform any modifications necessary for the sugar functional groups
+  bool top_is_modified = false;
+  if (sugarBuilder.ModifyFoundFxnGroups(topOut, top_is_modified)) {
+    mprinterr("Error: Could not make necessary modifications to detected sugar functional groups.\n");
+    return CpptrajState::ERR;
+  }
+
   // Create empty arrays for the TREE, JOIN, and IROTAT arrays
   topOut.AllocTreeChainClassification( );
   topOut.AllocJoinArray();
