@@ -2000,3 +2000,9 @@ void SugarBuilder::SetEachSugarAsTerminal(Topology& topIn) const {
       topIn.SetRes(rnum-1).SetTerminal(true);
   }
 }
+
+/** Print warnings related to functional groups. */
+void SugarBuilder::PrintFxnGroupWarnings(Topology const& topIn) const {
+  if (FGB_ != 0)
+    FGB_->LeapFxnGroupWarning(topIn);
+}

@@ -442,21 +442,6 @@ int Exec_PrepareForLeap::RunLeap(std::string const& ff_file,
   return 0;
 }
 
-/** Print warnings for residues that will need to be modified in leap. */
-void Exec_PrepareForLeap::LeapFxnGroupWarning(Topology const& topIn, int rnum) {
-  Residue const& res = topIn.Res(rnum);
-  if ( res.Name() == "SO3" ) {
-    mprintf("Warning: Residue '%s'; after LEaP, will need to adjust the charge on the link oxygen by +0.031.\n",
-            topIn.TruncResNameNum(rnum).c_str());
-  } else if ( res.Name() == "MEX" ) {
-    mprintf("Warning: Residue '%s'; after LEaP, will need to adjust the charge on the carbon bonded to link oxygen by -0.039.\n",
-            topIn.TruncResNameNum(rnum).c_str());
-  } else if ( res.Name() == "ACX" ) {
-    mprintf("Warning: Residue '%s'; after LEaP, will need to adjust the charge on the carbon bonded to link oxygen by +0.008.\n",
-            topIn.TruncResNameNum(rnum).c_str());
-  }
-}
-
 /** Try to download missing parameters. */
 int Exec_PrepareForLeap::DownloadParameters(ResStatArray& resStat, RmapType const& resNames,
                                             Topology const& topIn, CpptrajFile* leapInput,
@@ -1008,6 +993,8 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Internal Error: Could not allocate problemout file.\n");
     return CpptrajState::ERR;
   }
+  // Print warnings related to functional groups
+  sugarBuilder.PrintFxnGroupWarnings(topIn);
   //mprintf("\tResidues with potential problems:\n");
   int fatal_errors = 0;
   int potential_errors = 0;
@@ -1015,7 +1002,6 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   static const char* msg2 = "Fatal problem     : ";
   for (ResStatArray::const_iterator it = resStat.begin(); it != resStat.end(); ++it)
   {
-    LeapFxnGroupWarning(topIn, it-resStat.begin());
     //if ( *it == VALIDATED )
     //  mprintf("\t\t%s VALIDATED\n", topIn.TruncResNameOnumId(it-resStat_.begin()).c_str());
     //else

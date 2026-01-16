@@ -38,8 +38,6 @@ class Exec_PrepareForLeap : public Exec {
 
     /// Run leap to generate topology, perform any modifications
     int RunLeap(std::string const&, std::string const&) const;
-    /// Print a warning for residues that will need modification after leap
-    static void LeapFxnGroupWarning(Topology const&, int);
 
     /// Download missing parameters
     int DownloadParameters(Cpptraj::Structure::ResStatArray&, RmapType const&,

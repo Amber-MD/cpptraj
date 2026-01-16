@@ -16,6 +16,8 @@ class FxnGroupBuilder {
     FxnGroupBuilder(int);
     /// Determine if sugar has functional groups that need to be split off into separate residues
     int CheckForFunctionalGroups(Sugar&, Topology&, Frame&);
+    /// Print LEAP-related warnings for found functional groups
+    void LeapFxnGroupWarning(Topology const&) const;
 
     typedef std::vector<FxnResType>::const_iterator const_iterator;
     const_iterator begin() const { return foundGroups_.begin(); }

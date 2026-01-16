@@ -514,3 +514,21 @@ int FxnGroupBuilder::CheckIfSugarIsTerminal(Sugar& sugar, Topology& topIn, Frame
   sugar.RemapIndices( atomMap, original_at0, original_at1 );
   return 0;
 }
+
+/** Print out warnings related to found functional groups. */
+void FxnGroupBuilder::LeapFxnGroupWarning(Topology const& topIn) const {
+  for (FRarray::const_iterator it = foundGroups_.begin(); it != foundGroups_.end(); ++it)
+  {
+    int rnum = it->Ires();
+    if ( it->Ftype() == FunctionalGroup::G_SO3 ) {
+    mprintf("Warning: Residue '%s'; after LEaP, will need to adjust the charge on the link oxygen by +0.031.\n",
+            topIn.TruncResNameNum(rnum).c_str());
+    } else if ( it->Ftype() == FunctionalGroup::G_CH3 ) {
+      mprintf("Warning: Residue '%s'; after LEaP, will need to adjust the charge on the carbon bonded to link oxygen by -0.039.\n",
+              topIn.TruncResNameNum(rnum).c_str());
+    } else if ( it->Ftype() == FunctionalGroup::G_ACX ) {
+      mprintf("Warning: Residue '%s'; after LEaP, will need to adjust the charge on the carbon bonded to link oxygen by +0.008.\n",
+              topIn.TruncResNameNum(rnum).c_str());
+    }
+  }
+}
