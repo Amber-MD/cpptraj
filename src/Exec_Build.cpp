@@ -1024,29 +1024,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   // LJ 12-6-4
   Cpptraj::Parm::LJ1264_Params lj1264;
   if (argIn.hasKey("lj1264")) {
-    std::string lj1264mask = argIn.GetStringKey("lj1264mask");
-    std::string c4file = argIn.GetStringKey("c4file");
-    std::string polfile = argIn.GetStringKey("polfile");
-    double tunfactor = argIn.getKeyDouble("tunfactor", 1.0);
-    // Try to guess the water model if we are solvating
-    Cpptraj::Parm::WaterModelType wm = Cpptraj::Parm::UNKNOWN_WATER_MODEL;
-    if (add_solvent == SOLVATEBOX) {
-      if (solvator.SolventBoxName() == "TIP3PBOX") wm = Cpptraj::Parm::TIP3P;
-      else if (solvator.SolventBoxName() == "TIP4PEWBOX") wm = Cpptraj::Parm::TIP4PEW;
-      else if (solvator.SolventBoxName() == "SPCBOX") wm = Cpptraj::Parm::SPCE;
-      else if (solvator.SolventBoxName() == "OPC3BOX") wm = Cpptraj::Parm::OPC3;
-      else if (solvator.SolventBoxName() == "OPCBOX") wm = Cpptraj::Parm::OPC;
-      else if (solvator.SolventBoxName() == "FB3BOX") wm = Cpptraj::Parm::FB3;
-      else if (solvator.SolventBoxName() == "FB4BOX") wm = Cpptraj::Parm::FB4;
-      else
-        mprintf("Warning: Unable to determine solvent model for LJ 12-6-4 from solvent box name %s\n",
-                solvator.SolventBoxName().c_str());
-    }
-    if (wm == Cpptraj::Parm::UNKNOWN_WATER_MODEL) {
-      mprintf("Warning: Unable to determine water model for LJ 12-6-4. Using TIP3P.\n");
-      wm = Cpptraj::Parm::TIP3P;
-    }
-    if (lj1264.Init_LJ1264(lj1264mask, c4file, wm, polfile, tunfactor, debug_)) {
+    if (lj1264.Init_LJ1264( argIn, debug_, solvator.SolventBoxName())) {
       mprinterr("Error: Init of LJ 12-6-4 failed.\n");
       return CpptrajState::ERR;
     }
