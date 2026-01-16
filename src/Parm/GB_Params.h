@@ -1,6 +1,7 @@
 #ifndef INC_PARM_GBPARAMS_H
 #define INC_PARM_GBPARAMS_H
 #include <string>
+class ArgList;
 class Topology;
 namespace Cpptraj {
 namespace Parm {
@@ -25,8 +26,21 @@ std::string GbTypeStr(GB_RadiiType);
 GB_RadiiType GbTypeFromKey(std::string const&);
 /// Print GB radii keywords to stdout
 void PrintGbRadiiKeywords();
-/// Assign GB radii
-int Assign_GB_Radii(Topology&, GB_RadiiType);
+
+/// Used to assign GB radii to a Topology
+class GB_Params {
+  public:
+    /// CONSTRUCTOR
+    GB_Params();
+    /// Initialize 
+    int Init_GB_Radii(ArgList&, GB_RadiiType);
+    /// Assign GB radii
+    int Assign_GB_Radii(Topology&) const;
+  private:
+    static void assign_gb_radii(Topology&, GB_RadiiType);
+    static void assign_gb_screen(Topology&, GB_RadiiType);
+    GB_RadiiType gbradii_; ///< Type of GB radii to assign
+};
 }
 }
 #endif 

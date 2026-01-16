@@ -1018,23 +1018,8 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   mprintf("\tOutput COORDS set: %s\n", crdout.legend());
 
   // GB radii set
-  Cpptraj::Parm::GB_RadiiType gbradii;
-  if (gbRadIn == Cpptraj::Parm::UNKNOWN_GB) {
-    // No radii set specified. Check for keyword.
-    gbradii = Cpptraj::Parm::MBONDI; // Default
-    std::string gbset = argIn.GetStringKey("gb");
-    if (!gbset.empty()) {
-      gbradii = Cpptraj::Parm::GbTypeFromKey( gbset );
-      if (gbradii == Cpptraj::Parm::UNKNOWN_GB) {
-        mprinterr("Error: Unknown GB radii set: %s\n", gbset.c_str());
-        return CpptrajState::ERR;
-      }
-    }
-  } else {
-    // Use passed-in GB radii set
-    gbradii = gbRadIn;
-  }
-  mprintf("\tGB radii set: %s\n", Cpptraj::Parm::GbTypeStr(gbradii).c_str());
+  Cpptraj::Parm::GB_Params gbradii;
+  if (gbradii.Init_GB_Radii(argIn, gbRadIn)) return CpptrajState::ERR;
 
   // LJ 12-6-4
   Cpptraj::Parm::LJ1264_Params lj1264;
@@ -1247,7 +1232,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
     ret = CpptrajState::ERR;
   }
   // Assign GB parameters
-  if (Cpptraj::Parm::Assign_GB_Radii( topOut, gbradii )) {
+  if (gbradii.Assign_GB_Radii(topOut)) {
     mprinterr("Error: Could not assign GB parameters for '%s'\n", topOut.c_str());
     ret = CpptrajState::ERR;
   }

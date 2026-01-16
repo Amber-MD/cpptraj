@@ -1,6 +1,7 @@
 #include "GB_Params.h"
-#include "../Topology.h"
+#include "../ArgList.h"
 #include "../CpptrajStdio.h"
+#include "../Topology.h"
 
 static const char* GB_RadiiTypeStr_[] = {
   "Bondi radii", // 0
@@ -80,8 +81,34 @@ static const int GB_RadiiTypeIGB_[] = {
   999999
 };
 
+// =============================================================================
+/** CONSTRUCTOR */
+Cpptraj::Parm::GB_Params::GB_Params() : gbradii_(Cpptraj::Parm::UNKNOWN_GB) {}
+
+/** Init radii set */
+int Cpptraj::Parm::GB_Params::Init_GB_Radii(ArgList& argIn, Cpptraj::Parm::GB_RadiiType gbRadIn)
+{
+  if (gbRadIn == Cpptraj::Parm::UNKNOWN_GB) {
+    // No radii set specified. Check for keyword.
+    gbradii_ = Cpptraj::Parm::MBONDI; // Default
+    std::string gbset = argIn.GetStringKey("gb");
+    if (!gbset.empty()) {
+      gbradii_ = Cpptraj::Parm::GbTypeFromKey( gbset );
+      if (gbradii_ == Cpptraj::Parm::UNKNOWN_GB) {
+        mprinterr("Error: Unknown GB radii set: %s\n", gbset.c_str());
+        return 1;
+      }
+    }
+  } else {
+    // Use passed-in GB radii set
+    gbradii_ = gbRadIn;
+  }
+  mprintf("\tGB radii set: %s\n", Cpptraj::Parm::GbTypeStr(gbradii_).c_str());
+  return 0;
+}
+
 /** Assign GB radii. */
-static void assign_gb_radii(Topology& top, Cpptraj::Parm::GB_RadiiType radiiSet)
+void Cpptraj::Parm::GB_Params::assign_gb_radii(Topology& top, Cpptraj::Parm::GB_RadiiType radiiSet)
 {
   int iGBparm = GB_RadiiTypeIGB_[radiiSet];
   for (int iat = 0; iat != top.Natom(); iat++)
@@ -318,7 +345,7 @@ static void assign_gb_radii(Topology& top, Cpptraj::Parm::GB_RadiiType radiiSet)
 }
 
 /** Assign GB screening parameters. */
-static void assign_gb_screen(Topology& top, Cpptraj::Parm::GB_RadiiType radiiSet)
+void Cpptraj::Parm::GB_Params::assign_gb_screen(Topology& top, Cpptraj::Parm::GB_RadiiType radiiSet)
 {
   int iGBparm = GB_RadiiTypeIGB_[radiiSet];
   for (int iat = 0; iat != top.Natom(); iat++)
@@ -424,16 +451,17 @@ static void assign_gb_screen(Topology& top, Cpptraj::Parm::GB_RadiiType radiiSet
 }
 
 /** Assign GB radii and screening parameters based on the given radius set. */
-int Cpptraj::Parm::Assign_GB_Radii(Topology& top, GB_RadiiType radiiSet)
+int Cpptraj::Parm::GB_Params::Assign_GB_Radii(Topology& top)
+const
 {
-  if (radiiSet == UNKNOWN_GB) {
+  if (gbradii_ == UNKNOWN_GB) {
     mprinterr("Error: Unknown GB radii set.\n");
     return 1;
   }
-  mprintf("\tUsing GB radii set: %s\n", GB_RadiiTypeStr_[radiiSet]);
-  top.SetGBradiiSet( std::string(GB_RadiiAmberFlag_[radiiSet]) );
-  assign_gb_radii( top, radiiSet );
-  assign_gb_screen( top, radiiSet );
+  mprintf("\tUsing GB radii set: %s\n", GB_RadiiTypeStr_[gbradii_]);
+  top.SetGBradiiSet( std::string(GB_RadiiAmberFlag_[gbradii_]) );
+  assign_gb_radii( top, gbradii_ );
+  assign_gb_screen( top, gbradii_ );
 
   return 0;
 }

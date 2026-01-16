@@ -248,16 +248,10 @@ Exec::RetType Exec_Sequence::Execute(CpptrajState& State, ArgList& argIn)
 
   // Args
   int verbose = argIn.getKeyInt("verbose", 0);
-  // GB radii set.
-  Cpptraj::Parm::GB_RadiiType gbradii = Cpptraj::Parm::MBONDI; // Default
-  std::string gbset = argIn.GetStringKey("gb");
-  if (!gbset.empty()) {
-    gbradii = Cpptraj::Parm::GbTypeFromKey( gbset );
-    if (gbradii == Cpptraj::Parm::UNKNOWN_GB) {
-      mprinterr("Error: Unknown GB radii set: %s\n", gbset.c_str());
-      return CpptrajState::ERR;
-    }
-  }
+  // GB radii set. Default to mbondi
+  Cpptraj::Parm::GB_Params gbradii;
+  if (gbradii.Init_GB_Radii(argIn, Cpptraj::Parm::MBONDI)) return CpptrajState::ERR;
+
   // Creator args
   Cpptraj::Structure::Creator creator(debug_);
   if (creator.InitCreator(argIn, State.DSL(), debug_)) {
@@ -314,7 +308,7 @@ Exec::RetType Exec_Sequence::Execute(CpptrajState& State, ArgList& argIn)
       ret = CpptrajState::ERR;
     }
     // Assign GB parameters
-    if (Cpptraj::Parm::Assign_GB_Radii( topOut, gbradii )) {
+    if (gbradii.Assign_GB_Radii( topOut )) {
       mprinterr("Error: Could not assign GB parameters for '%s'\n", topOut.c_str());
       ret = CpptrajState::ERR;
     }
