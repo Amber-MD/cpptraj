@@ -303,11 +303,11 @@ int FxnGroupBuilder::CheckForFunctionalGroups(Sugar& sugar, Topology& topIn, Fra
   bool atomsRemain = true;
   while (atomsRemain) {
     // Even if the residue is split, rnum will always refer to the original
-    // sugar since the split SO3 will come AFTER this residue.
-    // Find an oxygen that is both bound to a chain carbon and an SO3 group
-    // in this residue.
+    // sugar since the split functional group will come AFTER this residue.
+    // Find an oxygen that is both bound to a chain carbon and a recognized
+    // functional group in this residue.
     int o_idx = -1;
-    int so3_idx = -1;
+    int hvy_idx = -1;
     Iarray selected;
     FunctionalGroup::Type groupType = FunctionalGroup::UNRECOGNIZED_GROUP;
     Iarray::const_iterator cat = sugar.ChainAtoms().begin();
@@ -333,20 +333,20 @@ int FxnGroupBuilder::CheckForFunctionalGroups(Sugar& sugar, Topology& topIn, Fra
             // DEBUG
             groupType = IdFunctionalGroup(selected, rnum, *sat, o_idx, topIn);
             if (groupType != FunctionalGroup::UNRECOGNIZED_GROUP) {
-              so3_idx = *sat;
+              hvy_idx = *sat;
               break;
             }
           } // END loop over bonds to oxygen
-          if (so3_idx != -1) break;
+          if (hvy_idx != -1) break;
         } // END atom is oxygen
       } // END loop over bonds to carbon
-      if (so3_idx != -1) break;
+      if (hvy_idx != -1) break;
     } // END loop over chain atoms
     if (cat == sugar.ChainAtoms().end())
       atomsRemain = false;
     else {
       // sanity check
-      if (so3_idx == -1 || o_idx == -1 || selected.empty()) {
+      if (hvy_idx == -1 || o_idx == -1 || selected.empty()) {
         mprinterr("Internal Error: Functional group index is negative.\n");
         return 1;
       }

@@ -8,7 +8,7 @@ namespace Cpptraj {
 namespace Structure {
 class Sugar;
 /// Class to help prepare recognized functional groups
-// TODO change function names, update help text
+// TODO Determine if we need GetGroup() 
 class FxnGroupBuilder {
   public:
     class FxnResType;
