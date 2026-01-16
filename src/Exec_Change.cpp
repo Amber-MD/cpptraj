@@ -5,6 +5,7 @@
 #include "ParameterTypes.h"
 #include "DataSet_1D.h"
 #include "DataSet_NameMap.h"
+#include "Parm/GB_Params.h"
 
 // Exec_Change::Help()
 void Exec_Change::Help() const
@@ -22,9 +23,12 @@ void Exec_Change::Help() const
           "\t  {mass|charge} [of <mask>] {to <value> |by <offset> |\n"
           "\t                             byfac <factor> |fromset <data set>} |\n"
           "\t  mergeres firstres <start res#> lastres <stop res#>\n"
+          "\t  %s\n"
           "\t}\n"
           "  Change specified parts of topology or topology of a COORDS data set.\n",
-          DataSetList::TopArgs);
+          DataSetList::TopArgs,
+          Cpptraj::Parm::GB_Params::HelpText().c_str()
+         );
 }
 
 // Exec_Change::Execute()
@@ -33,7 +37,7 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
   // Change type
   enum ChangeType { UNKNOWN = 0, RESNAME, CHAINID, ORESNUMS, ICODES,
                     ATOMNAME, ADDBOND, REMOVEBONDS, SPLITRES, BONDPARM,
-                    MASS, CHARGE, MERGERES };
+                    MASS, CHARGE, MERGERES, GBRADII };
   ChangeType type = UNKNOWN;
   if (argIn.hasKey("resname"))
     type = RESNAME;
@@ -59,6 +63,8 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
     type = CHARGE;
   else if (argIn.hasKey("mergeres"))
     type = MERGERES;
+  else if (argIn.Contains("gb"))
+    type = GBRADII;
   if (type == UNKNOWN) {
     mprinterr("Error: No change type specified.\n");
     return CpptrajState::ERR;
@@ -93,10 +99,19 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
     case MASS        : err = ChangeMassOrCharge(*parm, argIn, State.DSL(), 0); break;
     case CHARGE      : err = ChangeMassOrCharge(*parm, argIn, State.DSL(), 1); break;
     case MERGERES    : err = ChangeMergeRes(*parm, argIn); break;
+    case GBRADII     : err = ChangeGbRadii(*parm, argIn); break;
     case UNKNOWN  : err = 1; // sanity check
   }
   if (err != 0) return CpptrajState::ERR;
   return CpptrajState::OK;
+}
+
+/** Change the GB radii */
+int Exec_Change::ChangeGbRadii(Topology& parm, ArgList& argIn) const {
+  Cpptraj::Parm::GB_Params gbradii;
+  if (gbradii.Init_GB_Radii(argIn, Cpptraj::Parm::UNKNOWN_GB)) return 1;
+  if (gbradii.Assign_GB_Radii(parm)) return 1;
+  return 0;
 }
 
 // Exec_Change::ChangeSplitRes()

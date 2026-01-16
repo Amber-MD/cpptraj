@@ -78,13 +78,14 @@ static const int GB_RadiiTypeIGB_[] = {
 Cpptraj::Parm::GB_Params::GB_Params() : gbradii_(Cpptraj::Parm::UNKNOWN_GB) {}
 
 /** Print keywords to stdout. */
-void Cpptraj::Parm::GB_Params::HelpText() {
-  mprintf("\t[gb {");
+std::string Cpptraj::Parm::GB_Params::HelpText() {
+  std::string out("gb {");
   for (int ig = 0; ig != (int)UNKNOWN_GB; ig++) {
-    if (ig > 0) mprintf("|");
-    mprintf("%s", GbTypeKey((GB_RadiiType)ig));
+    if (ig > 0) out.append("|");
+    out.append(std::string( GbTypeKey((GB_RadiiType)ig) ));
   }
-  mprintf("}]\n");
+  out.append("}");
+  return out;
 }
 
 /** Init radii set */

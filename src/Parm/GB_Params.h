@@ -30,8 +30,8 @@ class GB_Params {
   public:
     /// CONSTRUCTOR
     GB_Params();
-    /// Print Help text to stdout
-    static void HelpText();
+    /// \return recognized GB radii keywords.
+    static std::string HelpText();
     /// Initialize 
     int Init_GB_Radii(ArgList&, GB_RadiiType);
     /// Assign GB radii

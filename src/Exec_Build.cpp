@@ -812,7 +812,7 @@ void Exec_Build::Help() const
   mprintf("\tname <output COORDS> crdset <COORDS set> [frame <#>]\n"
           "\t[title <title>] [verbose <#>] [keepmissingatoms]\n"
           "\t[parmout <topology file>] [crdout <coord file>] [simplecheck]\n");
-  Cpptraj::Parm::GB_Params::HelpText();
+  mprintf("\t[%s]\n", Cpptraj::Parm::GB_Params::HelpText().c_str());
   mprintf("\t[%s]\n"
           "\t[{%s} ...]\n"
           "\t[{%s} ...]\n"

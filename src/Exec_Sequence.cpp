@@ -228,7 +228,7 @@ const
 void Exec_Sequence::Help() const
 {
   mprintf("\tname <output set name> <unit0> <unit1> ... [verbose <#>]\n");
-  Cpptraj::Parm::GB_Params::HelpText();
+  mprintf("\t[%s]\n", Cpptraj::Parm::GB_Params::HelpText().c_str());
   mprintf("\t[%s]\n"
           "\t[{%s} ...]\n"
           "\t[{%s} ...]\n",
