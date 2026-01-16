@@ -14,6 +14,7 @@ class Exec_Change : public Exec {
     /// Change mass or charge
     static inline void changeTopVal(Topology&, int, ChangeType, double);
 
+    int ChangeLJ1264(Topology&, ArgList&, int) const;
     int ChangeGbRadii(Topology&, ArgList&) const;
     int ChangeSplitRes(Topology&, ArgList&) const;
     int ChangeResidueName(Topology&, ArgList&) const;

@@ -6,6 +6,7 @@
 #include "DataSet_1D.h"
 #include "DataSet_NameMap.h"
 #include "Parm/GB_Params.h"
+#include "Parm/LJ1264_Params.h"
 
 // Exec_Change::Help()
 void Exec_Change::Help() const
@@ -24,10 +25,12 @@ void Exec_Change::Help() const
           "\t                             byfac <factor> |fromset <data set>} |\n"
           "\t  mergeres firstres <start res#> lastres <stop res#>\n"
           "\t  %s\n"
+          "\t  lj1264 %s\n"
           "\t}\n"
           "  Change specified parts of topology or topology of a COORDS data set.\n",
           DataSetList::TopArgs,
-          Cpptraj::Parm::GB_Params::HelpText().c_str()
+          Cpptraj::Parm::GB_Params::HelpText().c_str(),
+          Cpptraj::Parm::LJ1264_Params::HelpText().c_str()
          );
 }
 
@@ -37,7 +40,7 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
   // Change type
   enum ChangeType { UNKNOWN = 0, RESNAME, CHAINID, ORESNUMS, ICODES,
                     ATOMNAME, ADDBOND, REMOVEBONDS, SPLITRES, BONDPARM,
-                    MASS, CHARGE, MERGERES, GBRADII };
+                    MASS, CHARGE, MERGERES, GBRADII, LJ1264 };
   ChangeType type = UNKNOWN;
   if (argIn.hasKey("resname"))
     type = RESNAME;
@@ -63,6 +66,8 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
     type = CHARGE;
   else if (argIn.hasKey("mergeres"))
     type = MERGERES;
+  else if (argIn.hasKey("lj1264"))
+    type = LJ1264;
   else if (argIn.Contains("gb"))
     type = GBRADII;
   if (type == UNKNOWN) {
@@ -100,10 +105,19 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
     case CHARGE      : err = ChangeMassOrCharge(*parm, argIn, State.DSL(), 1); break;
     case MERGERES    : err = ChangeMergeRes(*parm, argIn); break;
     case GBRADII     : err = ChangeGbRadii(*parm, argIn); break;
+    case LJ1264      : err = ChangeLJ1264(*parm, argIn, State.Debug()); break;
     case UNKNOWN  : err = 1; // sanity check
   }
   if (err != 0) return CpptrajState::ERR;
   return CpptrajState::OK;
+}
+
+/** Change the LJ 1264 params */
+int Exec_Change::ChangeLJ1264(Topology& parm, ArgList& argIn, int debugIn) const {
+  Cpptraj::Parm::LJ1264_Params lj1264;
+  if (lj1264.Init_LJ1264(argIn, debugIn, "")) return 1;
+  if (lj1264.AssignLJ1264(parm)) return 1;
+  return 0;
 }
 
 /** Change the GB radii */
