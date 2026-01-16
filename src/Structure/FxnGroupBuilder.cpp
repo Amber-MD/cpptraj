@@ -285,9 +285,16 @@ const
 
 /** Check for functional groups that need to be separate residues. */
 int FxnGroupBuilder::CheckForFunctionalGroups(Sugar& sugar, Topology& topIn, Frame& frameIn)
-const
 {
+  resTypes_.clear();
   int rnum = sugar.ResNum(topIn);
+  // First check if there is a terminal group on the sugar anomeric carbon
+  if (CheckIfSugarIsTerminal( sugar, topIn, frameIn )) {
+    mprinterr("Error: Checking if if sugar %s has terminal functional groups failed.\n",
+              topIn.TruncResNameOnumId(sugar.ResNum(topIn)).c_str());
+    return 1;
+  }
+  // Check the rest of the sugar
   int original_at0 = topIn.Res(rnum).FirstAtom();
   int original_at1 = topIn.Res(rnum).LastAtom();
   std::string sugarName = topIn.TruncResNameOnumId(rnum);
@@ -385,8 +392,9 @@ const
                   sugarName.c_str());
         return 1;
       }
-      // Set the split residue as terminal
+      // Set the split residue as terminal, increment the residue offset
       topIn.SetRes(rnum+1).SetTerminal(true);
+      resTypes_.push_back( groupType );
       // Reorder the frame to match
       Frame oldFrame = frameIn;
       frameIn.SetCoordinatesByMap( oldFrame, atomMap );
@@ -398,6 +406,16 @@ const
     //atomsRemain = false; // DEBUG
   } // END while atoms remain
 
+  // Record new residue numbers for found types.
+  int resOffset = (int)resTypes_.size();
+  mprintf("DEBUG: Split off %i groups from residue %i: ", resOffset, rnum+1);
+  for (FTarray::const_iterator rt = resTypes_.begin(); rt != resTypes_.end(); ++rt) {
+    mprintf(" %i:%s", rnum+resOffset+1, FunctionalGroup::typeString(*rt)); // DEBUG
+    foundGroups_.push_back( FxnResType(rnum+resOffset, *rt) );
+    --resOffset;
+  }
+  mprintf("\n"); // DEBUG
+
   return 0;
 }
 
@@ -405,7 +423,6 @@ const
   * to be a separate ROH residue.
   */
 int FxnGroupBuilder::CheckIfSugarIsTerminal(Sugar& sugar, Topology& topIn, Frame& frameIn)
-const
 {
   int rnum = sugar.ResNum(topIn);
   int anomericAtom = sugar.AnomericAtom();
@@ -484,6 +501,7 @@ const
   }
   // Set the split residue as terminal
   topIn.SetRes(rnum+1).SetTerminal(true);
+  resTypes_.push_back( groupType );
   // DEBUG
   //for (int at = original_at0; at != original_at1; at++)
   //  mprintf("DEBUG:\t\tAtomMap[%i] = %i\n", at, atomMap[at]);

@@ -1887,16 +1887,16 @@ int SugarBuilder::FixSugarsStructure(Topology& topIn, Frame& frameIn,
   FxnGroupBuilder FGB(debug_);
   if (splitres) {
     // Loop over sugar indices to see if residues have ROH that must be split off
-    for (std::vector<Sugar>::iterator sugar = Sugars_.begin();
-                                      sugar != Sugars_.end(); ++sugar)
-    {
-      if (sugar->NotSet()) continue;
-      if (FGB.CheckIfSugarIsTerminal(*sugar, topIn, frameIn)) {
-        mprinterr("Error: Checking if sugar %s has terminal functional groups failed.\n",
-                  topIn.TruncResNameOnumId(sugar->ResNum(topIn)).c_str());
-        return 1;
-      }
-    } // End loop over sugar indices
+    //for (std::vector<Sugar>::iterator sugar = Sugars_.begin();
+    //                                  sugar != Sugars_.end(); ++sugar)
+    //{
+    //  if (sugar->NotSet()) continue;
+    //  if (FGB.CheckIfSugarIsTerminal(*sugar, topIn, frameIn)) {
+    //    mprinterr("Error: Checking if sugar %s has terminal functional groups failed.\n",
+    //              topIn.TruncResNameOnumId(sugar->ResNum(topIn)).c_str());
+    //    return 1;
+    //  }
+    //} // End loop over sugar indices
 
     // Loop over chain indices to see if residues need to be split
     for (std::vector<Sugar>::iterator sugar = Sugars_.begin();
@@ -1914,7 +1914,11 @@ int SugarBuilder::FixSugarsStructure(Topology& topIn, Frame& frameIn,
     //                                    sugar != sugarResidues.end(); ++sugar)
     //  sugar->PrintInfo(topIn);
   }
-
+  if (FGB.NgroupsFound() > 0) {
+    mprintf("\t  Found %u functional groups:\n", FGB.NgroupsFound());
+    for (FxnGroupBuilder::const_iterator it = FGB.begin(); it != FGB.end(); ++it)
+      mprintf("\t    %li : %s (%s)\n", it - FGB.begin(), topIn.TruncResNameNum(it->Ires()).c_str(), FunctionalGroup::typeString(it->Ftype()));
+  }
 
   return 0;
 }
