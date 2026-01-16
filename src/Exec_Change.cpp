@@ -114,6 +114,8 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
 
 /** Change the LJ 1264 params */
 int Exec_Change::ChangeLJ1264(Topology& parm, ArgList& argIn, int debugIn) const {
+  mprintf("Warning: If topology '%s' was not generated with the proper LJ 12-6-4 frcmod loaded\n"
+          "Warning:   this will not be adding the correct C coefficients!\n", parm.c_str());
   Cpptraj::Parm::LJ1264_Params lj1264;
   if (lj1264.Init_LJ1264(argIn, debugIn, "")) return 1;
   if (lj1264.AssignLJ1264(parm)) return 1;

@@ -526,6 +526,26 @@ int LJ1264_Params::Init_LJ1264(std::string const& maskIn, std::string const& c4f
 
   return 0;
 }
+/*
+int LJ1264_Params::LoadNonbonds(std::string const& frcmodNameIn) const {
+  std::string frcmodName;
+  if (frcmodNameIn.empty()) {
+    // Determine frcmod file from the water model
+    // First, need to determine where the Amber FF files are
+    const char* env = getenv("AMBERHOME");
+    if (env != 0)
+      frcmodName = std::string(env) + "/dat/leap/parm/frcmod.";
+    else {
+      mprinterr("Error: AMBERHOME not set. Cannot find LJ 12-6-4 frcmod files.\n");
+      return 1;
+    }
+
+    switch (waterModel_) {
+      case UNKNOWN_WATER_MODEL :
+        mprintf("Warning: Unknown water model; cannot determine LJ 12-6-4 frcmod file named.\n");
+        return 0;
+      case Cpptraj::Parm::TIP3P : frcmodName.append("ions234lm_1264_tip3p");
+*/
 
 /** \return Help text. */
 std::string LJ1264_Params::HelpText() {
