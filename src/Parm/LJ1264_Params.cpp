@@ -483,9 +483,10 @@ int LJ1264_Params::Init_LJ1264(std::string const& maskIn, std::string const& c4f
   tunfactor_ = tunfactorIn;
   mprintf("\t  LJ 12-6-4 tuning factor: %g\n", tunfactor_);
 
-  if (maskIn.empty())
+  if (maskIn.empty()) {
+    mprintf("Warning: No LJ 12-6-4 mask specified; using default.\n");
     mask_.SetMaskString(":ZN");
-  else {
+  } else {
     if (mask_.SetMaskString(maskIn)) {
       mprinterr("Error: Could not set mask string '%s'\n", maskIn.c_str());
       return 1;
@@ -526,12 +527,23 @@ int LJ1264_Params::Init_LJ1264(std::string const& maskIn, std::string const& c4f
   return 0;
 }
 
+/** \return Help text. */
+std::string LJ1264_Params::HelpText() {
+  std::string out("[lj1264mask <mask>] [tunfactor <fac>] [c4file <c4file>] [polfile <polfile>] [lj1264solvent <solvent>]");
+  return out;
+}
+
 /** Init from argument list */
-int LJ1264_Params::Init_LJ1264(ArgList& argIn, int debugIn, std::string const& solventBoxName) {
+int LJ1264_Params::Init_LJ1264(ArgList& argIn, int debugIn, std::string const& solventBoxNameIn) {
   std::string lj1264mask = argIn.GetStringKey("lj1264mask");
   std::string c4file = argIn.GetStringKey("c4file");
   std::string polfile = argIn.GetStringKey("polfile");
   double tunfactor = argIn.getKeyDouble("tunfactor", 1.0);
+  std::string solventBoxName;
+  if (solventBoxNameIn.empty())
+    solventBoxName = argIn.GetStringKey("lj1264solvent");
+  else
+    solventBoxName = solventBoxNameIn;
   // Try to guess the water model if we are solvating
   Cpptraj::Parm::WaterModelType wm = Cpptraj::Parm::UNKNOWN_WATER_MODEL;
   if (!solventBoxName.empty()) {

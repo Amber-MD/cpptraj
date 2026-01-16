@@ -38,6 +38,8 @@ namespace Parm {
 class LJ1264_Params {
   public:
     LJ1264_Params();
+    /// \return Help text
+    static std::string HelpText();
     /// Init from keywords
     int Init_LJ1264(ArgList&, int, std::string const&);
     /// Init - mask, c4 file, water model, polarization file, tuning factor, debug

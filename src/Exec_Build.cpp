@@ -813,6 +813,7 @@ void Exec_Build::Help() const
           "\t[title <title>] [verbose <#>] [keepmissingatoms]\n"
           "\t[parmout <topology file>] [crdout <coord file>] [simplecheck]\n");
   mprintf("\t[%s]\n", Cpptraj::Parm::GB_Params::HelpText().c_str());
+  mprintf("\t[lj1264 %s]\n", Cpptraj::Parm::LJ1264_Params::HelpText().c_str());
   mprintf("\t[%s]\n"
           "\t[{%s} ...]\n"
           "\t[{%s} ...]\n"
