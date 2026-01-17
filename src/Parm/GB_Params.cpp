@@ -106,8 +106,12 @@ int Cpptraj::Parm::GB_Params::Init_GB_Radii(ArgList& argIn, Cpptraj::Parm::GB_Ra
     // Use passed-in GB radii set
     gbradii_ = gbRadIn;
   }
-  mprintf("\tGB radii set: %s\n", Cpptraj::Parm::GbTypeStr(gbradii_).c_str());
   return 0;
+}
+
+/** Print current setup. */
+void Cpptraj::Parm::GB_Params::GB_Info() const {
+  mprintf("\tGB radii set: %s\n", Cpptraj::Parm::GbTypeStr(gbradii_).c_str());
 }
 
 /** Assign GB radii. */

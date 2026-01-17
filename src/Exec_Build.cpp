@@ -1216,6 +1216,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
     ret = CpptrajState::ERR;
   }
   // Assign GB parameters
+  gbradii.GB_Info();
   if (gbradii.Assign_GB_Radii(topOut)) {
     mprinterr("Error: Could not assign GB parameters for '%s'\n", topOut.c_str());
     ret = CpptrajState::ERR;
