@@ -885,10 +885,8 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   std::string outputTopologyName = argIn.GetStringKey("parmout");
   std::string outputCoordsName = argIn.GetStringKey("crdout");
   if (argIn.hasKey("simplecheck")) {
-    mprintf("\tSimple check: will only check bond lengths.\n");
     check_structure_ = false;
   } else {
-    mprintf("\tWill check bond lengths, atomic overlaps, and ring intersections.\n");
     check_structure_ = true;
   }
   if (!outputTopologyName.empty())
@@ -966,7 +964,27 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
     mprintf("\tRequire all input atoms to be found in templates.\n");
   else
     mprintf("\tInput atoms not found in templates will be ignored.\n");
+  // ---------------------------------------------
+  mprintf("    -----===== Getting templates and parameters ===== -----\n");
+  // Get templates and parameter sets.
+  t_get_templates_.Start();
+  Cpptraj::Structure::Creator creator( debug_ );
+  if (creator.InitCreator(argIn, DSL, debug_)) {
+    return CpptrajState::ERR;
+  }
+  if (!creator.HasTemplates()) {
+    mprintf("Warning: No residue templates loaded.\n");
+  }
+  if (!creator.HasMainParmSet()) {
+    mprinterr("Error: No parameter sets.\n");
+    return CpptrajState::ERR;
+  }
+  t_get_templates_.Stop();
+  // FIXME hide behind ifdef?
+  creator.TimingInfo(t_get_templates_.Total(), 2);
 
+  // ---------------------------------------------
+  mprintf("    -----===== Structure Prep ===== -----\n");
   // Do histidine detection before H atoms are removed
   t_hisDetect_.Start();
   if (!argIn.hasKey("nohisdetect")) {
@@ -1030,23 +1048,6 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
       return CpptrajState::ERR;
     }
   }
-
-  // Get templates and parameter sets.
-  t_get_templates_.Start();
-  Cpptraj::Structure::Creator creator( debug_ );
-  if (creator.InitCreator(argIn, DSL, debug_)) {
-    return CpptrajState::ERR;
-  }
-  if (!creator.HasTemplates()) {
-    mprintf("Warning: No residue templates loaded.\n");
-  }
-  if (!creator.HasMainParmSet()) {
-    mprinterr("Error: No parameter sets.\n");
-    return CpptrajState::ERR;
-  }
-  t_get_templates_.Stop();
-  // FIXME hide behind ifdef?
-  creator.TimingInfo(t_get_templates_.Total(), 2);
 
   // All residues start unknown
   Cpptraj::Structure::ResStatArray resStat( topIn.Nres() );
@@ -1123,6 +1124,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   t_sugar_.Stop();
 
   // Fill in atoms with templates
+  mprintf("    -----===== Match residues to templates, fill missing atoms =====-----\n");
   t_fill_.Start();
   //Topology topOut;
   Topology& topOut = static_cast<Topology&>( *(crdout.TopPtr()) );
@@ -1170,6 +1172,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   // Solvate/add ions
   std::string checkMaskString("*");
   if (add_solvent == SOLVATEBOX) {
+    mprintf("    -----===== Solvate =====-----\n");
     t_solvate_.Start();
     // Record initial number of atoms and residues
     int initial_natom = topOut.Natom();
@@ -1191,6 +1194,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
     }
     t_solvate_.Stop();
   } else if (add_solvent == SETBOX) {
+    mprintf("    -----===== Set Box =====-----\n");
     t_solvate_.Start();
     if (solvator.SetVdwBoundingBox( topOut, frameOut, *(creator.MainParmSetPtr()) )) {
       mprinterr("Error: Setting box failed.\n");
@@ -1201,6 +1205,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
 
   // Assign parameters. This will create the bond/angle/dihedral/improper
   // arrays as well.
+  mprintf("    -----===== Assign Parameters =====-----\n");
   t_assign_.Start();
   Exec::RetType ret = CpptrajState::OK;
   Cpptraj::Parm::AssignParams AP;
@@ -1228,15 +1233,17 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
 
   // Update coords 
   if (crdout.CoordsSetup( topOut, frameOut.CoordsInfo() )) { // FIXME better coordinate info
-    mprinterr("Error: Could not set up output COORDS.\n");
+    mprinterr("Error: Could not set up output COORDS data set.\n");
     return CpptrajState::ERR;
   }
   crdout.SetCRD(0, frameOut);
 
   // Structure check
+  mprintf("    -----===== Structure Check =====-----\n");
+  StructureCheck check;
   if (check_structure_) {
+    mprintf("\tWill check bond lengths, atomic overlaps, and ring intersections.\n");
     t_check_.Start();
-    StructureCheck check;
     if (check.SetOptions( true, // image 
                           true, // check bonds
                           true,  // save problems
@@ -1310,8 +1317,8 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
     t_check_.Stop();
   } else {
     // Just check bond lengths
+    mprintf("\tSimple check: will only check bond lengths.\n");
     t_check_.Start();
-    StructureCheck check;
     if (check.SetOptions( false, // image 
                           true,  // check bonds
                           true,  // save problems
@@ -1360,6 +1367,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   if ( absSystemCharge > 0.01 )
     mprintf("Warning: The charge of the system is not zero: %f\n", totalSystemCharge);
 
+  mprintf("    -----===== File Output =====-----\n");
   if (!outputTopologyName.empty()) {
     ParmFile pfile;
     if (pfile.WriteTopology(crdout.Top(), outputTopologyName, argIn, ParmFile::UNKNOWN_PARM, debug_)) {
@@ -1384,6 +1392,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   }
   t_total_.Stop();
 
+  mprintf("    -----===== Timing =====-----\n");
   PrintTiming();
   if (add_solvent)
     t_solvate_.WriteTiming    (2, "Solvate             :", t_total_.Total());
