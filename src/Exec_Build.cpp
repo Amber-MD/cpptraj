@@ -964,6 +964,36 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
     mprintf("\tRequire all input atoms to be found in templates.\n");
   else
     mprintf("\tInput atoms not found in templates will be ignored.\n");
+
+  // Set up Output coords
+  if (!outset.empty()) {
+    // Separate output COORDS set.
+    outCrdPtr_ = DSL.AddSet( DataSet::COORDS, outset );
+  } else {
+    // In-place output COORDS
+    DSL.RemoveSet( inCrdPtr );
+    outCrdPtr_ = DSL.AddSet( DataSet::COORDS, inCrdPtr->Meta() );
+  }
+  if (outCrdPtr_ == 0) {
+    mprinterr("Error: Could not allocate output COORDS set with name '%s'\n", outset.c_str());
+    return CpptrajState::ERR;
+  }
+  DataSet_Coords& crdout = static_cast<DataSet_Coords&>( *((DataSet_Coords*)outCrdPtr_) );
+  mprintf("\tOutput COORDS set: %s\n", crdout.legend());
+
+  // GB radii set
+  Cpptraj::Parm::GB_Params gbradii;
+  if (gbradii.Init_GB_Radii(argIn, gbRadIn)) return CpptrajState::ERR;
+
+  // LJ 12-6-4
+  Cpptraj::Parm::LJ1264_Params lj1264;
+  if (argIn.hasKey("lj1264")) {
+    if (lj1264.Init_LJ1264( argIn, debug_, solvator.SolventBoxName())) {
+      mprinterr("Error: Init of LJ 12-6-4 failed.\n");
+      return CpptrajState::ERR;
+    }
+  }
+
   // ---------------------------------------------
   mprintf("    -----===== Getting templates and parameters ===== -----\n");
   // Get templates and parameter sets.
@@ -1019,35 +1049,6 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
     return CpptrajState::ERR;
   }
   t_clean_.Stop();
-
-  // Set up Output coords
-  if (!outset.empty()) {
-    // Separate output COORDS set.
-    outCrdPtr_ = DSL.AddSet( DataSet::COORDS, outset );
-  } else {
-    // In-place output COORDS
-    DSL.RemoveSet( inCrdPtr );
-    outCrdPtr_ = DSL.AddSet( DataSet::COORDS, inCrdPtr->Meta() );
-  }
-  if (outCrdPtr_ == 0) {
-    mprinterr("Error: Could not allocate output COORDS set with name '%s'\n", outset.c_str());
-    return CpptrajState::ERR;
-  }
-  DataSet_Coords& crdout = static_cast<DataSet_Coords&>( *((DataSet_Coords*)outCrdPtr_) );
-  mprintf("\tOutput COORDS set: %s\n", crdout.legend());
-
-  // GB radii set
-  Cpptraj::Parm::GB_Params gbradii;
-  if (gbradii.Init_GB_Radii(argIn, gbRadIn)) return CpptrajState::ERR;
-
-  // LJ 12-6-4
-  Cpptraj::Parm::LJ1264_Params lj1264;
-  if (argIn.hasKey("lj1264")) {
-    if (lj1264.Init_LJ1264( argIn, debug_, solvator.SolventBoxName())) {
-      mprinterr("Error: Init of LJ 12-6-4 failed.\n");
-      return CpptrajState::ERR;
-    }
-  }
 
   // All residues start unknown
   Cpptraj::Structure::ResStatArray resStat( topIn.Nres() );
