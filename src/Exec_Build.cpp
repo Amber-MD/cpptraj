@@ -849,10 +849,6 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
   std::string outset = argIn.GetStringKey("name");
-  if (outset.empty()) {
-    mprinterr("Error: Must specify output COORDS set with 'name'\n");
-    return CpptrajState::ERR;
-  }
 
   return BuildStructure(inCrdPtr, outset, State.DSL(), State.Debug(), argIn, Cpptraj::Parm::UNKNOWN_GB);
 }
@@ -877,6 +873,11 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   }
   if (inCrdPtr->Group() != DataSet::COORDINATES) {
     mprinterr("Error: Set '%s' is not coordinates, cannot use for building.\n", inCrdPtr->legend());
+    return CpptrajState::ERR;
+  }
+  if (outset.empty() && inCrdPtr->Size() > 1) {
+    mprinterr("Error: Set '%s' has more than 1 frame; must specify an output COORDS set in order to build.\n",
+              inCrdPtr->legend());
     return CpptrajState::ERR;
   }
   debug_ = debugIn;
@@ -971,8 +972,9 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
     outCrdPtr_ = DSL.AddSet( DataSet::COORDS, outset );
   } else {
     // In-place output COORDS
+    MetaData inCrdMeta = inCrdPtr->Meta();
     DSL.RemoveSet( inCrdPtr );
-    outCrdPtr_ = DSL.AddSet( DataSet::COORDS, inCrdPtr->Meta() );
+    outCrdPtr_ = DSL.AddSet( DataSet::COORDS, inCrdMeta );
   }
   if (outCrdPtr_ == 0) {
     mprinterr("Error: Could not allocate output COORDS set with name '%s'\n", outset.c_str());
@@ -994,7 +996,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
     }
   }
 
-  // ---------------------------------------------
+  // =============================================
   mprintf("    -----===== Getting templates and parameters ===== -----\n");
   // Get templates and parameter sets.
   t_get_templates_.Start();
@@ -1013,7 +1015,6 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   // FIXME hide behind ifdef?
   creator.TimingInfo(t_get_templates_.Total(), 2);
 
-  // ---------------------------------------------
   mprintf("    -----===== Structure Prep ===== -----\n");
   // Do histidine detection before H atoms are removed
   t_hisDetect_.Start();
@@ -1148,11 +1149,10 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   }
   t_fill_.Stop();
 
-  // Add the disulfide/sugar bonds
+  // Add the disulfide bonds
   int addBondsErr = transfer_bonds( topOut, topIn, DisulfideBonds );
-  //addBondsErr += transfer_bonds( topOut, topIn, SugarBonds );
   if (addBondsErr != 0) {
-    mprinterr("Error: Adding disulfide/sugar bonds failed.\n");
+    mprinterr("Error: Adding disulfide bonds failed.\n");
     return CpptrajState::ERR;
   }
 
@@ -1169,6 +1169,8 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   topOut.AllocRotateArray();
     // Finalize topology - determine molecules, dont renumber residues
   topOut.CommonSetup(true, false);
+
+  // =============================================
 
   // Solvate/add ions
   std::string checkMaskString("*");
