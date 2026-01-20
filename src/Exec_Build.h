@@ -47,7 +47,7 @@ class Exec_Build : public Exec {
 
     RetType BuildStructure(DataSet*, std::string const&, DataSetList&, int, ArgList&, Cpptraj::Parm::GB_RadiiType);
 
-    int StructurePrepAndFillTemplates(ArgList&, Topology&, Frame&, Topology&, std::string const&, Cpptraj::Structure::Creator const&); // NOTE not const bc of timers
+    int StructurePrepAndFillTemplates(ArgList&, Topology&, Frame&, Topology&, Frame&, std::string const&, Cpptraj::Structure::Creator const&); // NOTE not const bc of timers
 
     int debug_;
     int check_box_natom_;  ///< Systems larger than this will have box added so PL check can be used

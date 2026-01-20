@@ -1028,6 +1028,13 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   // FIXME hide behind ifdef?
   creator.TimingInfo(t_get_templates_.Total(), 2);
 
+  Frame frameOut;
+  if (StructurePrepAndFillTemplates(argIn, topIn, frameIn,
+                                    topOut, frameOut,
+                                    solventResName,
+                                    creator))
+    return CpptrajState::ERR;
+/*
   mprintf("    -----===== Structure Prep ===== -----\n");
   // Do histidine detection before H atoms are removed
   t_hisDetect_.Start();
@@ -1168,7 +1175,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   topOut.AllocRotateArray();
     // Finalize topology - determine molecules, dont renumber residues
   topOut.CommonSetup(true, false);
-
+*/
   // =============================================
 
   // Solvate/add ions
@@ -1412,7 +1419,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
 
 /** Prepare the structure, fill missing atoms from templates */ // NOTE: topIn/frameIn cant be const, SugarBuilder reorders during fxn group detect 
 int Exec_Build::StructurePrepAndFillTemplates(ArgList& argIn, Topology& topIn, Frame& frameIn,
-                                              Topology& topOut,
+                                              Topology& topOut, Frame& frameOut,
                                               std::string const& solventResName,
                                               Cpptraj::Structure::Creator const& creator)
 {
@@ -1529,7 +1536,8 @@ int Exec_Build::StructurePrepAndFillTemplates(ArgList& argIn, Topology& topIn, F
   // Fill in atoms with templates
   mprintf("    -----===== Match residues to templates, fill missing atoms =====-----\n");
   t_fill_.Start();
-  Frame frameOut;
+  //Frame frameOut;
+  frameOut = Frame(); // TODO reserve?
   if (FillAtomsWithTemplates(topOut, frameOut, topIn, frameIn, creator, SugarBonds)) {
     mprinterr("Error: Could not fill in atoms using templates.\n");
     return 1;
