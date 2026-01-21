@@ -906,6 +906,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   Frame frameIn = coords.AllocateFrame();
   coords.GetFrame(tgtframe, frameIn);
   // Get modifiable topology
+  // NOTE: Topology is copied here because it might be destroyed if doing in-place build.
   //Topology& topIn = *(coords.TopPtr());
   //Topology const& topIn = coords.Top();
   Topology topIn = coords.Top(); // FIXME do not work on the copy, work on the top itself
