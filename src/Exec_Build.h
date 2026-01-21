@@ -17,7 +17,7 @@ class Exec_Build : public Exec {
     RetType Execute(CpptrajState&, ArgList&);
 
     /// Stand-alone execution - only build, do not parameterize/solvate
-    RetType BuildStructure(DataSet*, DataSetList&, int, std::string const&, std::string const&);
+    RetType BuildStructure(DataSet*, DataSetList&, int, std::string const&, std::string const&, bool);
     /// \return Output COORDS set
     DataSet* OutCrdPtr() const { return outCrdPtr_; }
     /// Print Timing data
@@ -55,6 +55,9 @@ class Exec_Build : public Exec {
     bool check_structure_;        ///< If true check the resulting structure
     bool keepMissingSourceAtoms_; ///< If true, attempt to keep input atoms that are missing from templates
     bool requireAllInputAtoms_;   ///< If true, require all input atoms to be found in templates.
+    bool doHisDetect_;
+    bool doDisulfide_;
+    bool doSugar_;
     DataSet* outCrdPtr_;          ///< Hold built (output) COORDS
 
     Timer t_total_;

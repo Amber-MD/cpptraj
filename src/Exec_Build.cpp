@@ -855,7 +855,8 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
 
 /** Standalone execute. For DataIO_LeapRC. Operate on inCrdPtr */
 Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, int debugIn,
-                                         std::string const& outset, std::string const& title)
+                                         std::string const& outset, std::string const& title,
+                                         bool enableExtraDetection)
                                          
 {
   t_total_.Start();
@@ -894,6 +895,9 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
   std::string solventResName = "HOH"; //argIn.GetStringKey("solventresname", "HOH");
   keepMissingSourceAtoms_ = false; //argIn.hasKey("keepmissingatoms");
   requireAllInputAtoms_ = false; //argIn.hasKey("requireallinputatoms");
+  doHisDetect_ = enableExtraDetection;
+  doDisulfide_ = enableExtraDetection;
+  doSugar_     = enableExtraDetection;
 
   // Set up Output coords
   if (setupOutputCoords(inCrdPtr, outset, title, DSL)) {
@@ -1002,6 +1006,9 @@ Exec::RetType Exec_Build::BuildAndParmStructure(DataSet* inCrdPtr, std::string c
   } else {
     check_structure_ = true;
   }
+  doHisDetect_ = !argIn.hasKey("nodisulfides");
+  doDisulfide_ = !argIn.hasKey("nohisdetect");
+  doSugar_ = !argIn.hasKey("nosugars");
   if (!outputTopologyName.empty())
     mprintf("\tWill write topology to %s\n", outputTopologyName.c_str());
   if (!outputCoordsName.empty())
@@ -1087,37 +1094,6 @@ Exec::RetType Exec_Build::BuildAndParmStructure(DataSet* inCrdPtr, std::string c
   DataSet_Coords& crdout = static_cast<DataSet_Coords&>( *((DataSet_Coords*)outCrdPtr_) );
   Topology& topOut = static_cast<Topology&>( *(crdout.TopPtr()) );
 
-/*
-  std::string default_title( ((DataSet_Coords*)inCrdPtr)->Top().c_str() );
-  if (!outset.empty()) {
-    // Separate output COORDS set.
-    outCrdPtr_ = DSL.AddSet( DataSet::COORDS, outset );
-  } else {
-    // In-place output COORDS
-    MetaData inCrdMeta = inCrdPtr->Meta();
-    std::string originalParmName( ((DataSet_Coords*)inCrdPtr)->Top().ParmName() );
-    FileName    originalFileName( ((DataSet_Coords*)inCrdPtr)->Top().OriginalFilename() );
-    DSL.RemoveSet( inCrdPtr );
-    outCrdPtr_ = DSL.AddSet( DataSet::COORDS, inCrdMeta );
-    // Copy over existing topology name, file
-    ((DataSet_Coords*)outCrdPtr_)->TopPtr()->SetParmName( originalParmName, originalFileName );
-  }
-  if (outCrdPtr_ == 0) {
-    mprinterr("Error: Could not allocate output COORDS set with name '%s'\n", outset.c_str());
-    return CpptrajState::ERR;
-  }
-  DataSet_Coords& crdout = static_cast<DataSet_Coords&>( *((DataSet_Coords*)outCrdPtr_) );
-  mprintf("\tOutput COORDS set: %s\n", crdout.legend());
-  Topology& topOut = static_cast<Topology&>( *(crdout.TopPtr()) );
-  topOut.SetDebug( debug_ );
-
-  if (!title.empty())
-    topOut.SetParmName( title, FileName() );
-  else if (topOut.ParmName().empty()) {
-    // TODO better default
-    topOut.SetParmName( default_title, topOut.OriginalFilename() );
-  }*/
-
   // GB radii set
   Cpptraj::Parm::GB_Params gbradii;
   if (gbradii.Init_GB_Radii(argIn, gbRadIn)) return CpptrajState::ERR;
@@ -1156,148 +1132,6 @@ Exec::RetType Exec_Build::BuildAndParmStructure(DataSet* inCrdPtr, std::string c
                                     solventResName,
                                     creator))
     return CpptrajState::ERR;
-/*
-  mprintf("    -----===== Structure Prep ===== -----\n");
-  // Do histidine detection before H atoms are removed
-  t_hisDetect_.Start();
-  if (!argIn.hasKey("nohisdetect")) {
-    Cpptraj::Structure::HisProt hisProt;
-    if (hisProt.InitHisProt( argIn, debug_ )) {
-      mprinterr("Error: Could not initialize histidine detection.\n");
-      return CpptrajState::ERR;
-    }
-    hisProt.HisProtInfo();
-    if (hisProt.DetermineHisProt( topIn )) {
-      mprinterr("Error: HIS protonation detection failed.\n");
-      return CpptrajState::ERR;
-    }
-  }
-  t_hisDetect_.Stop();
-
-  // Clean up structure
-  t_clean_.Start();
-  Cpptraj::Structure::PdbCleaner pdbCleaner;
-  pdbCleaner.SetDebug( debug_ );
-  if (pdbCleaner.InitPdbCleaner( argIn, solventResName, std::vector<int>() )) {
-    mprinterr("Error: Could not init PDB cleaner.\n");
-    return CpptrajState::ERR;
-  }
-  if (pdbCleaner.SetupPdbCleaner( topIn )) {
-    mprinterr("Error: Could not set up PDB cleaner.\n");
-    return CpptrajState::ERR;
-  }
-  pdbCleaner.PdbCleanerInfo();
-  if (pdbCleaner.ModifyCoords(topIn, frameIn)) {
-    mprinterr("Error: Could not clean PDB.\n");
-    return CpptrajState::ERR;
-  }
-  t_clean_.Stop();
-
-  // All residues start unknown
-  Cpptraj::Structure::ResStatArray resStat( topIn.Nres() );
-  std::vector<BondType> DisulfideBonds;
-  std::vector<BondType> SugarBonds;
-
-  // Disulfide search
-  t_disulfide_.Start();
-  if (!argIn.hasKey("nodisulfides")) {
-    Cpptraj::Structure::Disulfide disulfide;
-    if (disulfide.InitDisulfide( argIn, Cpptraj::Structure::Disulfide::ADD_BONDS, debug_ )) {
-      mprinterr("Error: Could not init disulfide search.\n");
-      return CpptrajState::ERR;
-    }
-    if (disulfide.SearchForDisulfides( resStat, topIn, frameIn, DisulfideBonds ))
-    {
-      mprinterr("Error: Disulfide search failed.\n");
-      return CpptrajState::ERR;
-    }
-  } else {
-    mprintf("\tNot searching for disulfides.\n");
-  }
-  t_disulfide_.Stop();
-
-  // Handle sugars.
-  t_sugar_.Start();
-  // TODO should be on a residue by residue basis in FillAtomsWithTemplates
-  bool prepare_sugars = !argIn.hasKey("nosugars");
-  if (!prepare_sugars)
-    mprintf("\tNot attempting to prepare sugars.\n");
-  else
-    mprintf("\tWill attempt to prepare sugars.\n");
-  Cpptraj::Structure::SugarBuilder sugarBuilder(debug_);
-  if (prepare_sugars) {
-    // Init options
-    if (sugarBuilder.InitOptions( argIn.hasKey("hasglycam"),
-                                  argIn.getKeyDouble("rescut", 8.0),
-                                  argIn.getKeyDouble("bondoffset", 0.2),
-                                  argIn.GetStringKey("sugarmask"),
-                                  argIn.GetStringKey("determinesugarsby", "geometry"),
-                                  argIn.GetStringKey("resmapfile") ))
-    {
-      mprinterr("Error: Sugar options init failed.\n");
-      return CpptrajState::ERR;
-    }
-    bool splitres = !argIn.hasKey("nosplitres");
-    if (splitres)
-      mprintf("\tWill split off recognized sugar functional groups into separate residues.\n");
-    else
-      mprintf("\tNot splitting recognized sugar functional groups into separate residues.\n");
-    bool c1bondsearch = !argIn.hasKey("noc1search");
-    if (c1bondsearch)
-      mprintf("\tWill search for missing bonds to sugar anomeric atoms.\n");
-    else
-      mprintf("\tNot searching for missing bonds to sugar anomeric atoms.\n");
-    // May need to modify sugar structure/topology, either by splitting
-    // C1 hydroxyls of terminal sugars into ROH residues, and/or by
-    // adding missing bonds to C1 atoms.
-    // This is done before any identification takes place since we want
-    // to identify based on the most up-to-date topology.
-    if (sugarBuilder.FixSugarsStructure(topIn, frameIn,
-                                        c1bondsearch, splitres, solventResName,
-                                        SugarBonds))
-    {
-      mprinterr("Error: Sugar structure modification failed.\n");
-      return CpptrajState::ERR;
-    }
-    if (sugarBuilder.PrepareSugars(true, resStat, topIn, frameIn, SugarBonds))
-    {
-      mprinterr("Error: Sugar preparation failed.\n");
-      return CpptrajState::ERR;
-    }
-  }
-  t_sugar_.Stop();
-
-  // Fill in atoms with templates
-  mprintf("    -----===== Match residues to templates, fill missing atoms =====-----\n");
-  t_fill_.Start();
-  Frame frameOut;
-  if (FillAtomsWithTemplates(topOut, frameOut, topIn, frameIn, creator, SugarBonds)) {
-    mprinterr("Error: Could not fill in atoms using templates.\n");
-    return CpptrajState::ERR;
-  }
-  t_fill_.Stop();
-
-  // Add the disulfide bonds
-  int addBondsErr = transfer_bonds( topOut, topIn, DisulfideBonds );
-  if (addBondsErr != 0) {
-    mprinterr("Error: Adding disulfide bonds failed.\n");
-    return CpptrajState::ERR;
-  }
-
-  // Perform any modifications necessary for the sugar functional groups
-  bool top_is_modified = false;
-  if (sugarBuilder.ModifyFoundFxnGroups(topOut, top_is_modified)) {
-    mprinterr("Error: Could not make necessary modifications to detected sugar functional groups.\n");
-    return CpptrajState::ERR;
-  }
-
-  // Create empty arrays for the TREE, JOIN, and IROTAT arrays
-  topOut.AllocTreeChainClassification( );
-  topOut.AllocJoinArray();
-  topOut.AllocRotateArray();
-    // Finalize topology - determine molecules, dont renumber residues
-  topOut.CommonSetup(true, false);
-*/
   // =============================================
 
   // Solvate/add ions
@@ -1548,7 +1382,7 @@ int Exec_Build::StructurePrepAndFillTemplates(ArgList& argIn, Topology& topIn, F
   mprintf("    -----===== Structure Prep ===== -----\n");
   // Do histidine detection before H atoms are removed
   t_hisDetect_.Start();
-  if (!argIn.hasKey("nohisdetect")) {
+  if (doHisDetect_) {
     Cpptraj::Structure::HisProt hisProt;
     if (hisProt.InitHisProt( argIn, debug_ )) {
       mprinterr("Error: Could not initialize histidine detection.\n");
@@ -1559,6 +1393,8 @@ int Exec_Build::StructurePrepAndFillTemplates(ArgList& argIn, Topology& topIn, F
       mprinterr("Error: HIS protonation detection failed.\n");
       return 1;
     }
+  } else {
+    mprintf("\tNot preparing histidines.\n");
   }
   t_hisDetect_.Stop();
 
@@ -1588,7 +1424,7 @@ int Exec_Build::StructurePrepAndFillTemplates(ArgList& argIn, Topology& topIn, F
 
   // Disulfide search
   t_disulfide_.Start();
-  if (!argIn.hasKey("nodisulfides")) {
+  if (doDisulfide_) {
     Cpptraj::Structure::Disulfide disulfide;
     if (disulfide.InitDisulfide( argIn, Cpptraj::Structure::Disulfide::ADD_BONDS, debug_ )) {
       mprinterr("Error: Could not init disulfide search.\n");
@@ -1607,13 +1443,12 @@ int Exec_Build::StructurePrepAndFillTemplates(ArgList& argIn, Topology& topIn, F
   // Handle sugars.
   t_sugar_.Start();
   // TODO should be on a residue by residue basis in FillAtomsWithTemplates
-  bool prepare_sugars = !argIn.hasKey("nosugars");
-  if (!prepare_sugars)
+  if (!doSugar_)
     mprintf("\tNot attempting to prepare sugars.\n");
   else
     mprintf("\tWill attempt to prepare sugars.\n");
   Cpptraj::Structure::SugarBuilder sugarBuilder(debug_);
-  if (prepare_sugars) {
+  if (doSugar_) {
     // Init options
     if (sugarBuilder.InitOptions( argIn.hasKey("hasglycam"),
                                   argIn.getKeyDouble("rescut", 8.0),
