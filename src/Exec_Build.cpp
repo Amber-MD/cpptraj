@@ -850,17 +850,93 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
   }
   std::string outset = argIn.GetStringKey("name");
 
-  return BuildStructure(inCrdPtr, outset, State.DSL(), State.Debug(), argIn, Cpptraj::Parm::UNKNOWN_GB);
+  return BuildAndParmStructure(inCrdPtr, outset, State.DSL(), State.Debug(), argIn, Cpptraj::Parm::UNKNOWN_GB);
 }
 
 /** Standalone execute. For DataIO_LeapRC. Operate on inCrdPtr */
-Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, 
-                                         DataSetList& DSL, int debugIn, ArgList& argIn,
-                                         Cpptraj::Parm::GB_RadiiType gbRadIn)
+Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, int debugIn,
+                                         std::string const& outset, std::string const& title)
+                                         
 {
-  return BuildStructure(inCrdPtr, "", DSL, debugIn, argIn, gbRadIn);
+  t_total_.Start();
+  if (inCrdPtr == 0) {
+    mprinterr("Internal Error: Exec_Build::BuildStructure(): Null input coordinates.\n");
+    return CpptrajState::ERR;
+  }
+  if (inCrdPtr->Group() != DataSet::COORDINATES) {
+    mprinterr("Error: Set '%s' is not coordinates, cannot use for building.\n", inCrdPtr->legend());
+    return CpptrajState::ERR;
+  }
+  if (outset.empty() && inCrdPtr->Size() > 1) {
+    mprinterr("Error: Set '%s' has more than 1 frame; must specify an output COORDS set in order to build.\n",
+              inCrdPtr->legend());
+    return CpptrajState::ERR;
+  }
+  debug_ = debugIn;
+
+  // TODO make it so this can be const (cant bc GetFrame)
+  DataSet_Coords& coords = static_cast<DataSet_Coords&>( *((DataSet_Coords*)inCrdPtr) );
+  // Get frame from input coords
+  int tgtframe = 0;
+  //mprintf("\tUsing frame %i from COORDS set %s\n", tgtframe+1, coords.legend());
+  if (tgtframe < 0 || tgtframe >= (int)coords.Size()) {
+    mprinterr("Error: Frame is out of range.\n");
+    return CpptrajState::ERR;
+  }
+  Frame frameIn = coords.AllocateFrame();
+  coords.GetFrame(tgtframe, frameIn);
+  // Get modifiable topology
+  // NOTE: Topology is copied here because it might be destroyed if doing in-place build.
+  Topology topIn = coords.Top(); // FIXME do not work on the copy, work on the top itself
+
+  // Set some defaults
+  ArgList argIn;
+  std::string solventResName = "HOH"; //argIn.GetStringKey("solventresname", "HOH");
+  keepMissingSourceAtoms_ = false; //argIn.hasKey("keepmissingatoms");
+  requireAllInputAtoms_ = false; //argIn.hasKey("requireallinputatoms");
+
+  // Set up Output coords
+  if (setupOutputCoords(inCrdPtr, outset, title, DSL)) {
+    mprinterr("Error: Could not set up OUTPUT coords for build.\n");
+    return CpptrajState::ERR;
+  }
+  DataSet_Coords& crdout = static_cast<DataSet_Coords&>( *((DataSet_Coords*)outCrdPtr_) );
+  Topology& topOut = static_cast<Topology&>( *(crdout.TopPtr()) );
+
+  // Get templates.
+  t_get_templates_.Start();
+  Cpptraj::Structure::Creator creator;
+  if (creator.InitCreator(argIn, DSL, debug_)) {
+    return CpptrajState::ERR;
+  }
+  if (!creator.HasTemplates()) {
+    mprintf("Warning: No residue templates loaded.\n");
+  }
+  t_get_templates_.Stop();
+
+  Frame frameOut;
+  if (StructurePrepAndFillTemplates(argIn, topIn, frameIn,
+                                    topOut, frameOut,
+                                    solventResName,
+                                    creator))
+    return CpptrajState::ERR;
+
+  // Update coords 
+  if (crdout.CoordsSetup( topOut, frameOut.CoordsInfo() )) { // FIXME better coordinate info
+    mprinterr("Error: Could not set up output COORDS data set.\n");
+    return CpptrajState::ERR;
+  }
+  crdout.SetCRD(0, frameOut);
+
+  t_total_.Stop();
+
+  mprintf("    -----===== Timing =====-----\n");
+  PrintTiming();
+
+  return CpptrajState::OK;
 }
 
+// -----------------------------------------------------------------------------
 /** Set up output COORDS (Topology) */
 int Exec_Build::setupOutputCoords(DataSet* inCrdPtr, std::string const& outset, std::string const& title, DataSetList& DSL)
 {
@@ -898,9 +974,9 @@ int Exec_Build::setupOutputCoords(DataSet* inCrdPtr, std::string const& outset, 
 }
 
 /** Run the full build, parameterize, and check. */
-Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& outset,
-                                         DataSetList& DSL, int debugIn, ArgList& argIn,
-                                         Cpptraj::Parm::GB_RadiiType gbRadIn)
+Exec::RetType Exec_Build::BuildAndParmStructure(DataSet* inCrdPtr, std::string const& outset,
+                                                DataSetList& DSL, int debugIn, ArgList& argIn,
+                                                Cpptraj::Parm::GB_RadiiType gbRadIn)
 {
   t_total_.Start();
   if (inCrdPtr == 0) {
@@ -1059,7 +1135,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   mprintf("    -----===== Getting templates and parameters ===== -----\n");
   // Get templates and parameter sets.
   t_get_templates_.Start();
-  Cpptraj::Structure::Creator creator( debug_ );
+  Cpptraj::Structure::Creator creator;
   if (creator.InitCreator(argIn, DSL, debug_)) {
     return CpptrajState::ERR;
   }
@@ -1613,310 +1689,7 @@ int Exec_Build::StructurePrepAndFillTemplates(ArgList& argIn, Topology& topIn, F
   return 0;
 }
 
-/** Standalone execute. For DataIO_LeapRC. */
-int Exec_Build::CleanAndFillStructure(DataSet* inCrdPtr, int tgtframe, std::string const& outset, std::string const& title,
-                                      DataSetList& DSL, int debugIn, Cpptraj::Structure::Creator const& creator)
-{
-  t_total_.Start();
-  if (inCrdPtr == 0) {
-    mprinterr("Internal Error: Exec_Build::BuildStructure(): Null input coordinates.\n");
-    return 1;
-  }
-  if (inCrdPtr->Group() != DataSet::COORDINATES) {
-    mprinterr("Error: Set '%s' is not coordinates, cannot use for building.\n", inCrdPtr->legend());
-    return 1;
-  }
-  debug_ = debugIn;
-//  int verbose = argIn.getKeyInt("verbose", 0);
-//  std::string title = argIn.GetStringKey("title");
-//  std::string outputTopologyName = argIn.GetStringKey("parmout");
-//  std::string outputCoordsName = argIn.GetStringKey("crdout");
-//  if (!outputTopologyName.empty())
-//    mprintf("\tWill write topology to %s\n", outputTopologyName.c_str());
-//  if (!outputCoordsName.empty())
-//    mprintf("\tWill write coords to %s\n", outputCoordsName.c_str());
-  // TODO make it so this can be const (cant bc GetFrame)
-  DataSet_Coords& coords = static_cast<DataSet_Coords&>( *((DataSet_Coords*)inCrdPtr) );
-  // Get frame from input coords
-  //int tgtframe = argIn.getKeyInt("frame", 1) - 1;
-  mprintf("\tUsing frame %i from COORDS set %s\n", tgtframe+1, coords.legend());
-  if (tgtframe < 0 || tgtframe >= (int)coords.Size()) {
-    mprinterr("Error: Frame is out of range.\n");
-    return 1;
-  }
-  Frame frameIn = coords.AllocateFrame();
-  coords.GetFrame(tgtframe, frameIn);
-  // Get modifiable topology
-  //Topology& topIn = *(coords.TopPtr());
-  //Topology const& topIn = coords.Top();
-  Topology topIn = coords.Top(); // FIXME do not work on the copy, work on the top itself
-
-  //std::string solventResName = argIn.GetStringKey("solventresname", "HOH");
-  //mprintf("\tSolvent residue name: %s\n", solventResName.c_str());
-
-//  enum SolvateModeType { NO_SOLVATE = 0, SOLVATEBOX, SETBOX };
-//  SolvateModeType add_solvent = NO_SOLVATE;
-//  Cpptraj::Structure::Solvate solvator;
-//  if (argIn.hasKey("solvatebox")) {
-//    add_solvent = SOLVATEBOX;
-//    if (solvator.InitSolvate(argIn, false, debug_)) {
-//      mprinterr("Error: Init solvatebox failed.\n");
-//      return CpptrajState::ERR;
-//    }
-//    solvator.PrintSolvateInfo();
-//  } else if (argIn.hasKey("solvateoct")) {
-//    add_solvent = SOLVATEBOX;
-//    if (solvator.InitSolvate(argIn, true, debug_)) {
-//      mprinterr("Error: Init solvateoct failed.\n");
-//      return CpptrajState::ERR;
-//    }
-//    solvator.PrintSolvateInfo();
-//  } else if (argIn.hasKey("setbox")) {
-//    add_solvent = SETBOX;
-//    if (solvator.InitSetbox(argIn, debug_)) {
-//      mprinterr("Error: Init setbox failed.\n");
-//      return CpptrajState::ERR;
-//    }
-//  }
-
-  keepMissingSourceAtoms_ = false; // FIXME
-//  keepMissingSourceAtoms_ = argIn.hasKey("keepmissingatoms");
-  if (keepMissingSourceAtoms_)
-    mprintf("\tInput atoms missing from templates will be kept.\n");
-  else
-    mprintf("\tInput atoms missing from templates will be ignored.\n");
-  requireAllInputAtoms_ = false; // FIXME
-//  requireAllInputAtoms_ = argIn.hasKey("requireallinputatoms");
-  if (requireAllInputAtoms_)
-    mprintf("\tRequire all input atoms to be found in templates.\n");
-  else
-    mprintf("\tInput atoms not found in templates will be ignored.\n");
-
-  // Do histidine detection before H atoms are removed
-  ArgList argIn; // FIXME
-  t_hisDetect_.Start();
-//  if (!argIn.hasKey("nohisdetect")) {
-    Cpptraj::Structure::HisProt hisProt;
-    if (hisProt.InitHisProt( argIn, debug_ )) {
-      mprinterr("Error: Could not initialize histidine detection.\n");
-      return 1;
-    }
-    hisProt.HisProtInfo();
-    if (hisProt.DetermineHisProt( topIn )) {
-      mprinterr("Error: HIS protonation detection failed.\n");
-      return 1;
-    }
-//  }
-  t_hisDetect_.Stop();
-
-  // Clean up structure
-  t_clean_.Start();
-  Cpptraj::Structure::PdbCleaner pdbCleaner;
-  pdbCleaner.SetDebug( debug_ );
-  std::string solventResName = "HOH"; //FIXME
-  if (pdbCleaner.InitPdbCleaner( argIn, solventResName, std::vector<int>() )) {
-    mprinterr("Error: Could not init PDB cleaner.\n");
-    return 1;
-  }
-  if (pdbCleaner.SetupPdbCleaner( topIn )) {
-    mprinterr("Error: Could not set up PDB cleaner.\n");
-    return 1;
-  }
-  pdbCleaner.PdbCleanerInfo();
-  if (pdbCleaner.ModifyCoords(topIn, frameIn)) {
-    mprinterr("Error: Could not clean PDB.\n");
-    return 1;
-  }
-  t_clean_.Stop();
-
-  // Set up Output coords
-  if (!outset.empty()) {
-    // Separate output COORDS set.
-    outCrdPtr_ = DSL.AddSet( DataSet::COORDS, outset );
-  } else {
-    // In-place output COORDS
-    DSL.RemoveSet( inCrdPtr );
-    outCrdPtr_ = DSL.AddSet( DataSet::COORDS, inCrdPtr->Meta() );
-  }
-  if (outCrdPtr_ == 0) {
-    mprinterr("Error: Could not allocate output COORDS set with name '%s'\n", outset.c_str());
-    return 1;
-  }
-  DataSet_Coords& crdout = static_cast<DataSet_Coords&>( *((DataSet_Coords*)outCrdPtr_) );
-  mprintf("\tOutput COORDS set: %s\n", crdout.legend());
-/*
-  // GB radii set
-  Cpptraj::Parm::GB_RadiiType gbradii;
-  if (gbRadIn == Cpptraj::Parm::UNKNOWN_GB) {
-    // No radii set specified. Check for keyword.
-    gbradii = Cpptraj::Parm::MBONDI; // Default
-    //std::string gbset = argIn.GetStringKey("gb");
-    //if (!gbset.empty()) {
-    //  gbradii = Cpptraj::Parm::GbTypeFromKey( gbset );
-    //  if (gbradii == Cpptraj::Parm::UNKNOWN_GB) {
-    //    mprinterr("Error: Unknown GB radii set: %s\n", gbset.c_str());
-    //    return CpptrajState::ERR;
-    //  }
-    //}
-  } else {
-    // Use passed-in GB radii set
-    gbradii = gbRadIn;
-  }
-  mprintf("\tGB radii set: %s\n", Cpptraj::Parm::GbTypeStr(gbradii).c_str());
-*/
-  // Get templates and parameter sets.
-/*  t_get_templates_.Start();
-  Cpptraj::Structure::Creator creator( debug_ );
-  if (creator.InitCreator(argIn, DSL, debug_)) {
-    return 1;
-  }
-  if (!creator.HasTemplates()) {
-    mprintf("Warning: No residue templates loaded.\n");
-  }
-  if (!creator.HasMainParmSet()) {
-    mprinterr("Error: No parameter sets.\n");
-    return 1;
-  }
-  t_get_templates_.Stop();
-  // FIXME hide behind ifdef?
-  creator.TimingInfo(t_get_templates_.Total(), 2);*/
-
-  // All residues start unknown
-  Cpptraj::Structure::ResStatArray resStat( topIn.Nres() );
-  std::vector<BondType> DisulfideBonds;
-  std::vector<BondType> SugarBonds;
-
-  // Disulfide search
-  t_disulfide_.Start();
-  //if (!argIn.hasKey("nodisulfides")) {
-    Cpptraj::Structure::Disulfide disulfide;
-    if (disulfide.InitDisulfide( argIn, Cpptraj::Structure::Disulfide::ADD_BONDS, debug_ )) {
-      mprinterr("Error: Could not init disulfide search.\n");
-      return 1;
-    }
-    if (disulfide.SearchForDisulfides( resStat, topIn, frameIn, DisulfideBonds ))
-    {
-      mprinterr("Error: Disulfide search failed.\n");
-      return 1;
-    }
-  //} else {
-  //  mprintf("\tNot searching for disulfides.\n");
-  //}
-  t_disulfide_.Stop();
-
-  // Handle sugars.
-  t_sugar_.Start();
-  // TODO should be on a residue by residue basis in FillAtomsWithTemplates
-  //bool prepare_sugars = !argIn.hasKey("nosugars");
-  bool prepare_sugars = true; //FIXME
-  if (!prepare_sugars)
-    mprintf("\tNot attempting to prepare sugars.\n");
-  else
-    mprintf("\tWill attempt to prepare sugars.\n");
-  Cpptraj::Structure::SugarBuilder sugarBuilder(debug_);
-  if (prepare_sugars) {
-    // Init options
-    // FIXME
-    bool hasglycam = false;
-    double rescut = 8.0;
-    double bondoffset = 0.2;
-    std::string sugarmask("");
-    std::string determinesugarsby("geometry");
-    std::string resmapfile("");
-    if (sugarBuilder.InitOptions( hasglycam,
-                                  rescut,
-                                  bondoffset,
-                                  sugarmask,
-                                  determinesugarsby,
-                                  resmapfile ))
-    {
-      mprinterr("Error: Sugar options init failed.\n");
-      return 1;
-    }
-    bool splitres = true; // FIXME
-    //bool splitres = !argIn.hasKey("nosplitres");
-    if (splitres)
-      mprintf("\tWill split off recognized sugar functional groups into separate residues.\n");
-    else
-      mprintf("\tNot splitting recognized sugar functional groups into separate residues.\n");
-    //bool c1bondsearch = !argIn.hasKey("noc1search");
-    bool c1bondsearch = true; // FIXME
-    if (c1bondsearch)
-      mprintf("\tWill search for missing bonds to sugar anomeric atoms.\n");
-    else
-      mprintf("\tNot searching for missing bonds to sugar anomeric atoms.\n");
-    // May need to modify sugar structure/topology, either by splitting
-    // C1 hydroxyls of terminal sugars into ROH residues, and/or by
-    // adding missing bonds to C1 atoms.
-    // This is done before any identification takes place since we want
-    // to identify based on the most up-to-date topology.
-    if (sugarBuilder.FixSugarsStructure(topIn, frameIn,
-                                        c1bondsearch, splitres, solventResName,
-                                        SugarBonds))
-    {
-      mprinterr("Error: Sugar structure modification failed.\n");
-      return 1;
-    }
-    if (sugarBuilder.PrepareSugars(true, resStat, topIn, frameIn, SugarBonds))
-    {
-      mprinterr("Error: Sugar preparation failed.\n");
-      return 1;
-    }
-  }
-  t_sugar_.Stop();
-
-  // Fill in atoms with templates
-  t_fill_.Start();
-  //Topology topOut;
-  Topology& topOut = static_cast<Topology&>( *(crdout.TopPtr()) );
-  topOut.SetDebug( debug_ );
-  if (outset.empty()) {
-    // In-place output COORDS. Copy over existing topology metadata
-    topOut.CopyTopMetadata( topIn );
-  }
-  if (!title.empty())
-    topOut.SetParmName( title, FileName() );
-  else if (topOut.ParmName().empty()) {
-    // TODO better default
-    topOut.SetParmName( std::string(topIn.c_str()), FileName() );
-  }
-  Frame frameOut;
-  if (FillAtomsWithTemplates(topOut, frameOut, topIn, frameIn, creator, SugarBonds)) {
-    mprinterr("Error: Could not fill in atoms using templates.\n");
-    return 1;
-  }
-  t_fill_.Stop();
-
-  // Add the disulfide/sugar bonds
-  int addBondsErr = transfer_bonds( topOut, topIn, DisulfideBonds );
-  //addBondsErr += transfer_bonds( topOut, topIn, SugarBonds );
-  if (addBondsErr != 0) {
-    mprinterr("Error: Adding disulfide/sugar bonds failed.\n");
-    return 1;
-  }
-
-  // Create empty arrays for the TREE, JOIN, and IROTAT arrays
-  topOut.AllocTreeChainClassification( );
-  topOut.AllocJoinArray();
-  topOut.AllocRotateArray();
-    // Finalize topology - determine molecules, dont renumber residues
-  topOut.CommonSetup(true, false);
-  topOut.Summary();
-  t_assign_.Stop();
-
-  // Update coords 
-  if (crdout.CoordsSetup( topOut, frameOut.CoordsInfo() )) { // FIXME better coordinate info
-    mprinterr("Error: Could not set up output COORDS.\n");
-    return CpptrajState::ERR;
-  }
-  crdout.SetCRD(0, frameOut);
-  t_total_.Stop();
-
-  PrintTiming();
-
-  return 0;
-}
-
+/** Write timing info to stdout */
 void Exec_Build::PrintTiming() const {
   t_total_.WriteTiming(1, "Build timing:");
   t_hisDetect_.WriteTiming    (2, "Histidine detection :", t_total_.Total());

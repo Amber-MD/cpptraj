@@ -14,6 +14,8 @@
 #include "Parm_Amber.h"
 #include "StringRoutines.h" // ToLower
 #include "Trajout_Single.h"
+#include "Parm/AssignParams.h"
+#include "Structure/Creator.h"
 #include <cstdlib> //getenv
 #include <cstring> // strncmp
 
@@ -583,6 +585,20 @@ int DataIO_LeapRC::LoadMol2(ArgList const& argIn, DataSetList& dsl) const {
   }
   mprintf("\tLoaded file '%s' into '%s'\n",
           args[2].c_str(), args[0].c_str());
+
+  // Assume we want the remaining args to be passed to the builder.
+  args.MarkArg(0);
+  args.MarkArg(1);
+  args.MarkArg(2);
+  ArgList tmparg = args.RemainingArgs();
+
+  Exec_Build build;
+  Exec::RetType ret = build.BuildStructure( coordsIn.added_back(), dsl, debug_, "", "default_name" );
+  if (ret == CpptrajState::ERR) {
+    mprinterr("Error: Build of '%s' failed.\n", args[2].c_str());
+    return 1;
+  }
+
   return 0;
 }
 
@@ -619,14 +635,13 @@ int DataIO_LeapRC::LoadPDB(ArgList const& argIn, DataSetList& dsl) const {
   args.MarkArg(2);
   ArgList tmparg = args.RemainingArgs();
 
-/*  tmparg.AddArg("name " + args[0]);
-  DataSet_LeapOpts& OPTS = static_cast<DataSet_LeapOpts&>( *leapopts_ );
   Exec_Build build;
-  Exec::RetType ret = build.BuildStructure( coordsIn.added_back(), dsl, debug_, tmparg, OPTS.PbRadii() );
+  Exec::RetType ret = build.BuildStructure( coordsIn.added_back(), dsl, debug_, "", "default_name" );
   if (ret == CpptrajState::ERR) {
     mprinterr("Error: Build of '%s' failed.\n", args[2].c_str());
     return 1;
-  }*/
+  }
+
   return 0;
 }
 
@@ -723,18 +738,39 @@ const
     mprinterr("Error: '%s' is empty.\n", ds->legend());
     return 1;
   }
+  DataSet_Coords& crd = static_cast<DataSet_Coords&>( *ds ); // FIXME this really should be const
 
-  // Build
+  // Give the Topology parameters 
   ArgList buildarg = line.RemainingArgs();
+  // Default GB radii
   DataSet_LeapOpts& OPTS = static_cast<DataSet_LeapOpts&>( *leapopts_ );
-  Exec_Build build;
-  Exec::RetType ret = build.BuildStructure( ds, dsl, debug_, buildarg, OPTS.PbRadii() );
-  if (ret == CpptrajState::ERR) {
-    mprinterr("Error: Build of '%s' failed.\n", unitName.c_str());
+  Cpptraj::Parm::GB_Params gbradii;
+  if (gbradii.Init_GB_Radii(OPTS.PbRadii())) return 1;
+  // Get parameters
+  Cpptraj::Structure::Creator creator;
+  if (creator.InitCreator(buildarg, dsl, debug_)) {
     return 1;
   }
-
-  DataSet_Coords& crd = static_cast<DataSet_Coords&>( *(build.OutCrdPtr()) ); // FIXME this really should be const
+  if (!creator.HasMainParmSet()) {
+    mprinterr("Error: No parameter sets.\n");
+    return 1;
+  }
+  // Assign parameters
+  Cpptraj::Parm::AssignParams AP;
+  AP.SetDebug( debug_ );
+  AP.SetVerbose( debug_ );
+  Topology& topOut = *(crd.TopPtr());
+  if ( AP.AssignParameters( topOut, *(creator.MainParmSetPtr()) ) ) {
+    mprinterr("Error: Could not assign parameters for '%s'.\n", topOut.c_str());
+    return 1;
+  }
+  // Assign GB parameters
+  gbradii.GB_Info();
+  if (gbradii.Assign_GB_Radii(topOut)) {
+    mprinterr("Error: Could not assign GB parameters for '%s'\n", topOut.c_str());
+    return 1;
+  }
+ 
   Parm_Amber parmOut;
   parmOut.SetDebug( debug_ );
   if (parmOut.WriteParm( topName, crd.Top() )) {

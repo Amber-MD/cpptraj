@@ -34,6 +34,8 @@ class GB_Params {
     static std::string HelpText();
     /// Initialize 
     int Init_GB_Radii(ArgList&, GB_RadiiType);
+    /// Initialize  no args
+    int Init_GB_Radii(GB_RadiiType);
     // Print current setup
     void GB_Info() const;
     /// Assign GB radii

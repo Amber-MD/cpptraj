@@ -109,6 +109,19 @@ int Cpptraj::Parm::GB_Params::Init_GB_Radii(ArgList& argIn, Cpptraj::Parm::GB_Ra
   return 0;
 }
 
+/** Init radii set - no args */
+int Cpptraj::Parm::GB_Params::Init_GB_Radii(Cpptraj::Parm::GB_RadiiType gbRadIn)
+{
+  if (gbRadIn == Cpptraj::Parm::UNKNOWN_GB) {
+    // No radii set specified.
+    gbradii_ = Cpptraj::Parm::MBONDI; // Default
+  } else {
+    // Use passed-in GB radii set
+    gbradii_ = gbRadIn;
+  }
+  return 0;
+}
+
 /** Print current setup. */
 void Cpptraj::Parm::GB_Params::GB_Info() const {
   mprintf("\tGB radii set: %s\n", Cpptraj::Parm::GbTypeStr(gbradii_).c_str());

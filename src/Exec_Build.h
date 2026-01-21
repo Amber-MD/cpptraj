@@ -16,13 +16,11 @@ class Exec_Build : public Exec {
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_Build(); }
     RetType Execute(CpptrajState&, ArgList&);
 
-    /// Stand-alone execution
-    RetType BuildStructure(DataSet*, DataSetList&, int, ArgList&, Cpptraj::Parm::GB_RadiiType);
+    /// Stand-alone execution - only build, do not parameterize/solvate
+    RetType BuildStructure(DataSet*, DataSetList&, int, std::string const&, std::string const&);
     /// \return Output COORDS set
     DataSet* OutCrdPtr() const { return outCrdPtr_; }
-    /// Clean input coords, fill in missing atoms
-    int CleanAndFillStructure(DataSet*, int, std::string const&, std::string const&,
-                              DataSetList&, int, Cpptraj::Structure::Creator const&);
+    /// Print Timing data
     void PrintTiming() const;
   private:
     typedef std::vector<int> Iarray;
@@ -47,17 +45,17 @@ class Exec_Build : public Exec {
 
     /// Set up output COORDS (outCrdPtr_) and Topology
     int setupOutputCoords(DataSet*, std::string const&, std::string const&, DataSetList&);
-
-    RetType BuildStructure(DataSet*, std::string const&, DataSetList&, int, ArgList&, Cpptraj::Parm::GB_RadiiType);
-
+    /// Build, parameterize, solvate, and check
+    RetType BuildAndParmStructure(DataSet*, std::string const&, DataSetList&, int, ArgList&, Cpptraj::Parm::GB_RadiiType);
+    /// Do input structure clean/prep and fill in missing atoms from templates
     int StructurePrepAndFillTemplates(ArgList&, Topology&, Frame&, Topology&, Frame&, std::string const&, Cpptraj::Structure::Creator const&); // NOTE not const bc of timers
 
     int debug_;
-    int check_box_natom_;  ///< Systems larger than this will have box added so PL check can be used
-    bool check_structure_; ///< If true check the resulting structure
-    bool keepMissingSourceAtoms_;
-    bool requireAllInputAtoms_;
-    DataSet* outCrdPtr_; ///< Hold built COORDS
+    int check_box_natom_;         ///< Systems larger than this will have box added so PL check can be used
+    bool check_structure_;        ///< If true check the resulting structure
+    bool keepMissingSourceAtoms_; ///< If true, attempt to keep input atoms that are missing from templates
+    bool requireAllInputAtoms_;   ///< If true, require all input atoms to be found in templates.
+    DataSet* outCrdPtr_;          ///< Hold built (output) COORDS
 
     Timer t_total_;
     Timer t_hisDetect_;
