@@ -967,14 +967,19 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
     mprintf("\tInput atoms not found in templates will be ignored.\n");
 
   // Set up Output coords
+  std::string default_title( ((DataSet_Coords*)inCrdPtr)->Top().c_str() );
   if (!outset.empty()) {
     // Separate output COORDS set.
     outCrdPtr_ = DSL.AddSet( DataSet::COORDS, outset );
   } else {
     // In-place output COORDS
     MetaData inCrdMeta = inCrdPtr->Meta();
+    std::string originalParmName( ((DataSet_Coords*)inCrdPtr)->Top().ParmName() );
+    FileName    originalFileName( ((DataSet_Coords*)inCrdPtr)->Top().OriginalFilename() );
     DSL.RemoveSet( inCrdPtr );
     outCrdPtr_ = DSL.AddSet( DataSet::COORDS, inCrdMeta );
+    // Copy over existing topology name, file
+    ((DataSet_Coords*)outCrdPtr_)->TopPtr()->SetParmName( originalParmName, originalFileName );
   }
   if (outCrdPtr_ == 0) {
     mprinterr("Error: Could not allocate output COORDS set with name '%s'\n", outset.c_str());
@@ -984,16 +989,12 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   mprintf("\tOutput COORDS set: %s\n", crdout.legend());
   Topology& topOut = static_cast<Topology&>( *(crdout.TopPtr()) );
   topOut.SetDebug( debug_ );
-  if (outset.empty()) {
-    // In-place output COORDS. Copy over existing topology metadata
-    topOut.CopyTopMetadata( topIn );
-  }
+
   if (!title.empty())
     topOut.SetParmName( title, FileName() );
   else if (topOut.ParmName().empty()) {
     // TODO better default
-    title.assign( topIn.c_str() );
-    topOut.SetParmName( title, FileName() );
+    topOut.SetParmName( default_title, topOut.OriginalFilename() );
   }
 
   // GB radii set
