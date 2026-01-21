@@ -13,6 +13,8 @@ class AtomMap {
     int Natom() const { return (int)mapatoms_.size(); }
     /// Set the debug level of the AtomMap.
     void SetDebug(int d) { debug_ = d; }
+    /// Set whether we are allowing no bonds during Setup or not.
+    void SetAllowNoBonds(bool b) { allowNoBonds_ = b; }
     /// Setup AtomMap with all atoms from input Topology.
     int Setup(Topology const&, Frame const&);
     /// Setup AtomMap with just atoms from specified Residue.
@@ -41,5 +43,6 @@ class AtomMap {
     typedef std::vector<MapAtom> Marray;
     Marray mapatoms_;
     int debug_;
+    bool allowNoBonds_; ///< If true, do not make having no bonds an error
 };
 #endif

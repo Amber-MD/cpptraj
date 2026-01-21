@@ -1821,6 +1821,7 @@ int SugarBuilder::FixSugarsStructure(Topology& topIn, Frame& frameIn,
   // Set up an AtomMap for this residue to help determine stereocenters.
   // This is required by the IdSugarRing() function.
   //myMap_.SetDebug(debug_); // DEBUG
+  myMap_.SetAllowNoBonds( true );
   if (myMap_.Setup(topIn, frameIn)) {
     mprinterr("Internal Error: FixSugarsStructure: Atom map setup failed.\n");
     return 1;

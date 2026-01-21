@@ -3,7 +3,7 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-AtomMap::AtomMap() : debug_(0) {}
+AtomMap::AtomMap() : debug_(0), allowNoBonds_(false) {}
 
 /// Blank AtomMap for empty return of bracket operator
 MapAtom AtomMap::EMPTYMAPATOM = MapAtom();
@@ -294,8 +294,10 @@ int AtomMap::CheckBonds() {
     }
   }
   if (total_bonds == 0 && mapatoms_.size() > 1) {
-    mprinterr("Error: No bond information present, required by AtomMap.\n");
-    return 1;
+    if (!allowNoBonds_) {
+      mprinterr("Error: No bond information present, required by AtomMap.\n");
+      return 1;
+    }
   }
 
   // DEBUG
