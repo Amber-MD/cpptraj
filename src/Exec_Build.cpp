@@ -861,7 +861,43 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr,
   return BuildStructure(inCrdPtr, "", DSL, debugIn, argIn, gbRadIn);
 }
 
-/** Standalone execute. For DataIO_LeapRC. */
+/** Set up output COORDS (Topology) */
+int Exec_Build::setupOutputCoords(DataSet* inCrdPtr, std::string const& outset, std::string const& title, DataSetList& DSL)
+{
+  // Set up Output coords
+  std::string default_title( ((DataSet_Coords*)inCrdPtr)->Top().c_str() );
+  if (!outset.empty()) {
+    // Separate output COORDS set.
+    outCrdPtr_ = DSL.AddSet( DataSet::COORDS, outset );
+  } else {
+    // In-place output COORDS
+    MetaData inCrdMeta = inCrdPtr->Meta();
+    std::string originalParmName( ((DataSet_Coords*)inCrdPtr)->Top().ParmName() );
+    FileName    originalFileName( ((DataSet_Coords*)inCrdPtr)->Top().OriginalFilename() );
+    DSL.RemoveSet( inCrdPtr );
+    outCrdPtr_ = DSL.AddSet( DataSet::COORDS, inCrdMeta );
+    // Copy over existing topology name, file
+    ((DataSet_Coords*)outCrdPtr_)->TopPtr()->SetParmName( originalParmName, originalFileName );
+  }
+  if (outCrdPtr_ == 0) {
+    mprinterr("Error: Could not allocate output COORDS set with name '%s'\n", outset.c_str());
+    return 1;
+  }
+  DataSet_Coords& crdout = static_cast<DataSet_Coords&>( *((DataSet_Coords*)outCrdPtr_) );
+  mprintf("\tOutput COORDS set: %s\n", crdout.legend());
+  Topology& topOut = static_cast<Topology&>( *(crdout.TopPtr()) );
+  topOut.SetDebug( debug_ );
+
+  if (!title.empty())
+    topOut.SetParmName( title, FileName() );
+  else if (topOut.ParmName().empty()) {
+    // TODO better default
+    topOut.SetParmName( default_title, topOut.OriginalFilename() );
+  }
+  return 0;
+}
+
+/** Run the full build, parameterize, and check. */
 Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& outset,
                                          DataSetList& DSL, int debugIn, ArgList& argIn,
                                          Cpptraj::Parm::GB_RadiiType gbRadIn)
@@ -968,6 +1004,14 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
     mprintf("\tInput atoms not found in templates will be ignored.\n");
 
   // Set up Output coords
+  if (setupOutputCoords(inCrdPtr, outset, title, DSL)) {
+    mprinterr("Error: Could not set up OUTPUT coords for build.\n");
+    return CpptrajState::ERR;
+  }
+  DataSet_Coords& crdout = static_cast<DataSet_Coords&>( *((DataSet_Coords*)outCrdPtr_) );
+  Topology& topOut = static_cast<Topology&>( *(crdout.TopPtr()) );
+
+/*
   std::string default_title( ((DataSet_Coords*)inCrdPtr)->Top().c_str() );
   if (!outset.empty()) {
     // Separate output COORDS set.
@@ -996,7 +1040,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, std::string const& o
   else if (topOut.ParmName().empty()) {
     // TODO better default
     topOut.SetParmName( default_title, topOut.OriginalFilename() );
-  }
+  }*/
 
   // GB radii set
   Cpptraj::Parm::GB_Params gbradii;

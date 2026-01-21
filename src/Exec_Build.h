@@ -45,6 +45,9 @@ class Exec_Build : public Exec {
     /// Transfer bonds from old topology to new topology
     int transfer_bonds(Topology&, Topology const&, std::vector<BondType> const&) const;
 
+    /// Set up output COORDS (outCrdPtr_) and Topology
+    int setupOutputCoords(DataSet*, std::string const&, std::string const&, DataSetList&);
+
     RetType BuildStructure(DataSet*, std::string const&, DataSetList&, int, ArgList&, Cpptraj::Parm::GB_RadiiType);
 
     int StructurePrepAndFillTemplates(ArgList&, Topology&, Frame&, Topology&, Frame&, std::string const&, Cpptraj::Structure::Creator const&); // NOTE not const bc of timers
