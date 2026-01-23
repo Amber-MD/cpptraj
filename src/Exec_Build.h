@@ -30,6 +30,8 @@ class Exec_Build : public Exec {
     typedef std::pair<int,int> Ipair;
     typedef std::vector<Ipair> IParray;
 
+    /// Print error message of websites to consult
+    static void printErrMsgWebsites();
     /// \return true if given IParray has the given Ipair
     static inline bool hasBondingPair(IParray const&, Ipair const&);
     /// \return true if given array of residue connections has target residue index.

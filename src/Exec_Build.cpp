@@ -32,6 +32,11 @@ Exec_Build::Exec_Build() :
   outCrdPtr_(0)
 {}
 
+void Exec_Build::printErrMsgWebsites() {
+  mprinterr("Error: See https://ambermd.org/AmberModels.php for more information\n"
+             "Error: or email the Amber mailing list http://lists.ambermd.org/mailman/listinfo/amber\n");
+}
+
 /** Search in array of atom bonding pairs for given bonding pair. */
 bool Exec_Build::hasBondingPair(IParray const& bpairs, Ipair const& bpair) {
   for (IParray::const_iterator it = bpairs.begin(); it != bpairs.end(); ++it)
@@ -452,6 +457,11 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
           mprinterr("Error:\t%s missing types for%s\n", topOut.TruncResNameNum(ires).c_str(), missingTypes.c_str());
       }
     }
+    mprinterr("Error: Suggestions:\n"
+              "Error:   1) Load an Amber force field using 'source <leaprc file>', e.g. 'source leaprc.protein.ff19SB'\n"
+              "Error:   2) Load residue templates from library/coords files with 'readdata <file> as <type>', e.g. 'readdata amino19.lib as off'\n");
+    printErrMsgWebsites();
+
     return 1;
   }
 
@@ -1119,7 +1129,11 @@ Exec::RetType Exec_Build::BuildAndParmStructure(DataSet* inCrdPtr, std::string c
     mprintf("Warning: No residue templates loaded.\n");
   }
   if (!creator.HasMainParmSet()) {
-    mprinterr("Error: No parameter sets.\n");
+    mprinterr("Error: No parameter sets found.\n");
+    mprinterr("Error: Building a system requires that force field parameters be loaded. Suggestions:\n"
+              "Error:   1) Load an Amber force field using 'source <leaprc file>', e.g. 'source leaprc.protein.ff19SB'\n"
+              "Error:   2) Load individual parameter files with 'readdata <file> as <type>', e.g. 'readdata parm10.dat as amberff'\n");
+    printErrMsgWebsites();
     return CpptrajState::ERR;
   }
   t_get_templates_.Stop();
