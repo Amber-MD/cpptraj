@@ -459,7 +459,7 @@ int Exec_Build::FillAtomsWithTemplates(Topology& topOut, Frame& frameOut,
     }
     mprinterr("Error: Suggestions:\n"
               "Error:   1) Load an Amber force field using 'source <leaprc file>', e.g. 'source leaprc.protein.ff19SB'\n"
-              "Error:   2) Load residue templates from library/coords files with 'readdata <file> as <type>', e.g. 'readdata amino19.lib as off'\n");
+              "Error:   2) Load residue templates with atom types from library/coords files with 'readdata <file> as <type>', e.g. 'readdata amino19.lib as off'\n");
     printErrMsgWebsites();
 
     return 1;
