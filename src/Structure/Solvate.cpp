@@ -500,6 +500,17 @@ unsigned int Solvate::nBoxesInLayer(int n) {
   return cube - cubem1;
 }
 
+/** Calculate the number of boxes needed to create a given cube */
+unsigned int Solvate::nBoxesInCube(int n) {
+  // Special case; no layers is 1 cube
+  if (n < 1) return 1;
+  unsigned int nSide = (unsigned int)n + 2;
+  // Special case; 1 layer, 27 boxes (3x3x3 cubes).
+  if (nSide == 3) return 27;
+  unsigned int cube = nSide * nSide * nSide;
+  return cube;
+}
+
 /** Create box, fill with target number of solvent molecules. */
 int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptraj::Parm::ParameterSet const& set0,
                                        DataSetList const& DSL)
@@ -569,13 +580,16 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
   long int nSolventAdded = 0;
   int layer = 0;
   while (nSolventAdded < nsolvent_) {
-    nSolventAdded = (long int)(nBoxesInLayer(layer) * (unsigned int)SOLVENTBOX.Top().Nmol());
+    nSolventAdded = (long int)(nBoxesInCube(layer) * (unsigned int)SOLVENTBOX.Top().Nmol());
     nSolventAdded = nSolventAdded - (long int)nMolsRemovedBySolute;
     mprintf("DEBUG: Layer %i, # solvent added = %li\n", layer, nSolventAdded);
     layer++;
   }
-  
   // NOTE: layer is actually layer+1 right now
+  if (layer > 1) {
+    layer = (layer - 1) + 2;
+  }
+
   double dXWidth = ((double)layer * solventX);
   double dYWidth = ((double)layer * solventY);
   double dZWidth = ((double)layer * solventZ);

@@ -42,6 +42,8 @@ class Solvate {
     void adjustBoxWidths(double&, double&, double&, double&, double&, double&) const;
     /// \return number of boxes needed to create layer
     static unsigned int nBoxesInLayer(int);
+    /// \return number of boxes needed to create cube 
+    static unsigned int nBoxesInCube(int);
     /// Solvate with box and specified number of solvent
     int SolvateBoxWithExactNumber(Topology&, Frame&, Cpptraj::Parm::ParameterSet const&, DataSetList const&);
     /// Get buffer arguments
