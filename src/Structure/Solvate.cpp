@@ -67,6 +67,7 @@ int Solvate::InitSolvate(ArgList& argIn, bool octIn, int debugIn) {
   doTruncatedOct_ = octIn;
   nsolvent_ = (unsigned int)argIn.getKeyInt("nsolvent", 0);
   //nsolvent_ = 0; // TODO enable
+  if (nsolvent_ > 0) clip_ = false;
 
   if (getBufferArg(argIn, -1.0)) return 1;
 
@@ -573,7 +574,36 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
     mprintf("DEBUG: Layer %i, # solvent added = %li\n", layer, nSolventAdded);
     layer++;
   }
-    
+  
+  // NOTE: layer is actually layer+1 right now
+  double dXWidth = ((double)layer * solventX);
+  double dYWidth = ((double)layer * solventY);
+  double dZWidth = ((double)layer * solventZ);
+  mprintf("DEBUG: Estimated size with buffer: %f %f %f\n", dXWidth, dYWidth, dZWidth);
+
+  // See how many solvent boxes required in each dimension
+  int iX = (int)( dXWidth / solventX ) + 1;
+  int iY = (int)( dYWidth / solventY ) + 1;
+  int iZ = (int)( dZWidth / solventZ ) + 1;
+
+  //  Calculate the center of the first solvent box 
+  //  (the one that goes in the max XYZ corner), given
+  //  that the solute is centered at 0,0,0
+  double dXStart = 0.5 * solventX * (double) (iX-1);
+  double dYStart = 0.5 * solventY * (double) (iY-1);
+  double dZStart = 0.5 * solventZ * (double) (iZ-1);
+
+  addSolventUnits(iX, iY, iZ, soluteMaxR, dXStart, dYStart, dZStart, solventX, solventY, solventZ,
+                  solventFrame, SOLVENTBOX.Top(), frameOut, topOut,
+                  soluteRadii, solventRadii);
+
+  // Define the size of the new solvent/solute system
+  soluteRadii = getAtomRadii(soluteMaxR, topOut, set0) ;
+  if (setVdwBoundingBox(boxX, boxY, boxZ, soluteRadii, frameOut, false)) {
+    mprinterr("Error: Setting vdw bounding box for solute/solvent system failed.\n", topOut.c_str());
+    return 1;
+  }
+
   //unsigned int nBoxesForSolvent = (unsigned int)ceil( (double)nsolvent / (double)SOLVENTBOX.Top().Nmol() );
 //  // Calculate the solvent box density
 //  double solventBoxDensity = (double)SOLVENTBOX.Top().Nmol() / solventBoxVol;
@@ -897,7 +927,7 @@ const
                  dZ = fabs( dZ - 0.5 );
           if ( ( dX + dY + dZ )  >  0.75 ) { collision = true; break; }
         }
-      }
+      } // END if clip
       double dR = solventRadii[vat] * closeness_ * CLOSENESSMODIFIER_;
       // Loop over close solute atoms, check for clash
       for (std::vector<int>::const_iterator uat = closeSoluteAtoms.begin(); uat != closeSoluteAtoms.end(); ++uat)
