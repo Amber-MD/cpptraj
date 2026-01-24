@@ -40,6 +40,8 @@ class Solvate {
     DataSet_Coords* GetSolventUnit(DataSetList const&) const;
     /// Adjust box widths
     void adjustBoxWidths(double&, double&, double&, double&, double&, double&) const;
+    /// \return number of boxes needed to create layer
+    static unsigned int nBoxesInLayer(int);
     /// Solvate with box and specified number of solvent
     int SolvateBoxWithExactNumber(Topology&, Frame&, Cpptraj::Parm::ParameterSet const&, DataSetList const&);
     /// Get buffer arguments

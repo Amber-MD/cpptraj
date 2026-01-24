@@ -65,8 +65,8 @@ int Solvate::getBufferArg(ArgList& argIn, double defaultBuffer) {
 int Solvate::InitSolvate(ArgList& argIn, bool octIn, int debugIn) {
   debug_ = debugIn;
   doTruncatedOct_ = octIn;
-  //nsolvent_ = (unsigned int)argIn.getKeyInt("nsolvent", 0);
-  nsolvent_ = 0; // TODO enable
+  nsolvent_ = (unsigned int)argIn.getKeyInt("nsolvent", 0);
+  //nsolvent_ = 0; // TODO enable
 
   if (getBufferArg(argIn, -1.0)) return 1;
 
@@ -486,6 +486,19 @@ const
             dXWidth, dYWidth, dZWidth );
 }
 
+/** Calculate the number of boxes needed to create a given layer */
+unsigned int Solvate::nBoxesInLayer(int n) {
+  // Special case; no layers is 1 cube
+  if (n < 1) return 1;
+  unsigned int nSide = (unsigned int)n + 2;
+  // Special case; 1 layer, center cube is surrounded by 26 boxes (3x3x3 cubes minus the center).
+  if (nSide == 3) return 26;
+  unsigned int nSidem1 = nSide - 1;
+  unsigned int cube = nSide * nSide * nSide;
+  unsigned int cubem1 = nSidem1 * nSidem1 * nSidem1;
+  return cube - cubem1;
+}
+
 /** Create box, fill with target number of solvent molecules. */
 int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptraj::Parm::ParameterSet const& set0,
                                        DataSetList const& DSL)
@@ -550,24 +563,35 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
   // Estimate how many solvent molecules will be removed by solvent
   unsigned int nMolsRemovedBySolute = (unsigned int)ceil( soluteFac * (double)SOLVENTBOX.Top().Nmol() );
   mprintf("\t  Estimating approximately %u solvent molecules will be removed by solute.\n", nMolsRemovedBySolute);
+
+  // How many "layers" are needed to be over the target number?
+  long int nSolventAdded = 0;
+  int layer = 0;
+  while (nSolventAdded < nsolvent_) {
+    nSolventAdded = (long int)(nBoxesInLayer(layer) * (unsigned int)SOLVENTBOX.Top().Nmol());
+    nSolventAdded = nSolventAdded - (long int)nMolsRemovedBySolute;
+    mprintf("DEBUG: Layer %i, # solvent added = %li\n", layer, nSolventAdded);
+    layer++;
+  }
+    
   //unsigned int nBoxesForSolvent = (unsigned int)ceil( (double)nsolvent / (double)SOLVENTBOX.Top().Nmol() );
-  // Calculate the solvent box density
-  double solventBoxDensity = (double)SOLVENTBOX.Top().Nmol() / solventBoxVol;
-  mprintf("\t  Solvent box density is %g mols/Ang^3\n", solventBoxDensity);
-  // Calculate how many solvent molecules we actually need to add given that solute will remove some
-  unsigned int neededNumberOfSolvent = nsolvent_ + nMolsRemovedBySolute;
-  // Calculate what volume of solvent is needed to hit the actual solvent molecule target
-  double tgtVol = (double)neededNumberOfSolvent / solventBoxDensity;
-  mprintf("\t  Target volume: %g Ang^3\n", tgtVol);
-  // Calculate number of solvent boxes needed
-  //unsigned int neededNumberOfBoxes = (unsigned int)ceil( tgtVol / solventBoxVol );
-  //mprintf("\t  Need %u solvent boxes.\n", neededNumberOfBoxes);
-  double tgtLen = pow(tgtVol, (1.0/3.0));
-  mprintf("\t  Target length: %g Ang\n", tgtLen);
-  double bX = (tgtLen - boxX) / 2.0;
-  double bY = (tgtLen - boxY) / 2.0;
-  double bZ = (tgtLen - boxZ) / 2.0;
-  mprintf("\t  Buffer: %g %g %g\n", bX, bY, bZ);
+//  // Calculate the solvent box density
+//  double solventBoxDensity = (double)SOLVENTBOX.Top().Nmol() / solventBoxVol;
+//  mprintf("\t  Solvent box density is %g mols/Ang^3\n", solventBoxDensity);
+//  // Calculate how many solvent molecules we actually need to add given that solute will remove some
+//  unsigned int neededNumberOfSolvent = nsolvent_ + nMolsRemovedBySolute;
+//  // Calculate what volume of solvent is needed to hit the actual solvent molecule target
+//  double tgtVol = (double)neededNumberOfSolvent / solventBoxDensity;
+//  mprintf("\t  Target volume: %g Ang^3\n", tgtVol);
+//  // Calculate number of solvent boxes needed
+//  //unsigned int neededNumberOfBoxes = (unsigned int)ceil( tgtVol / solventBoxVol );
+//  //mprintf("\t  Need %u solvent boxes.\n", neededNumberOfBoxes);
+//  double tgtLen = pow(tgtVol, (1.0/3.0));
+//  mprintf("\t  Target length: %g Ang\n", tgtLen);
+//  double bX = (tgtLen - boxX) / 2.0;
+//  double bY = (tgtLen - boxY) / 2.0;
+//  double bZ = (tgtLen - boxZ) / 2.0;
+//  mprintf("\t  Buffer: %g %g %g\n", bX, bY, bZ);
   
   //unsigned int nSolventBoxesNeeded = (unsigned int)ceil( (double)neededNumberOfSolvent / (double)SOLVENTBOX.Top().Nmol() );
   //mprintf("\t  Estimating %u solvent boxes will be needed.\n", nSolventBoxesNeeded);
