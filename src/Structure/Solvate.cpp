@@ -511,6 +511,11 @@ unsigned int Solvate::nBoxesInCube(int n) {
   return cube;
 }
 
+static inline void checkBuffer(double& buf, double min, double max) {
+  if (buf < min) buf = min;
+  if (buf > max) buf = max;
+}
+
 /** Create box, fill with target number of solvent molecules. */
 int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptraj::Parm::ParameterSet const& set0,
                                        DataSetList const& DSL)
@@ -607,14 +612,22 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
   double dYStart = 0.5 * solventY * (double) (iY-1);
   double dZStart = 0.5 * solventZ * (double) (iZ-1);
 
+  int firstSolventRes = topOut.Nres();
+
   addSolventUnits(iX, iY, iZ, soluteMaxR, dXStart, dYStart, dZStart, solventX, solventY, solventZ,
                   solventFrame, SOLVENTBOX.Top(), frameOut, topOut,
                   soluteRadii, solventRadii);
 
   // Define the size of the new solvent/solute system
+  double maxX, maxY, maxZ;
   soluteRadii = getAtomRadii(soluteMaxR, topOut, set0) ;
-  if (setVdwBoundingBox(boxX, boxY, boxZ, soluteRadii, frameOut, false)) {
+  if (setVdwBoundingBox(maxX, maxY, maxZ, soluteRadii, frameOut, false)) {
     mprinterr("Error: Setting vdw bounding box for solute/solvent system failed.\n", topOut.c_str());
+    return 1;
+  }
+
+  if (firstSolventRes >= topOut.Nres()) {
+    mprinterr("Internal Error: Solvate::SolvateBoxWithExactNumber(): No solvent added.\n");
     return 1;
   }
 
@@ -640,6 +653,110 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
   //unsigned int nSolventBoxesNeeded = (unsigned int)ceil( (double)neededNumberOfSolvent / (double)SOLVENTBOX.Top().Nmol() );
   //mprintf("\t  Estimating %u solvent boxes will be needed.\n", nSolventBoxesNeeded);
 
+  frameOut.CenterOnOrigin(false);
+
+  // FIXME make user-specifiable
+  double alpha = 90.0;
+  double beta  = 90.0;
+  double gamma = 90.0;
+
+  double bufX = boxX + ((maxX - boxX) / 2.0);
+  double bufY = boxY + ((maxY - boxY) / 2.0);
+  double bufZ = boxZ + ((maxZ - boxZ) / 2.0);
+  // This loop uses the same logic as my old Solvate.sh script
+  // (https://github.com/drroe/Solvate.sh/blob/master/Solvate.sh)
+  bool loop = true;
+  int ntries = 0;
+  double change = 0.001;
+  int lastdiff = 0;
+  Box newBox;
+  while (loop) {
+    mprintf("DEBUG: %i) Buffer %f %f %f\n", ntries, bufX, bufY, bufZ);
+    // Define the unit cell
+    newBox.SetupFromXyzAbg( bufX, bufY, bufZ, alpha, beta, gamma );
+    newBox.PrintInfo();
+    // Convert to fractional
+    int nSolventInCell = 0;
+    Matrix_3x3 const& recip = newBox.FracCell();
+    for (int ires = firstSolventRes; ires < topOut.Nres(); ires++) {
+      bool inCell = true;
+      Residue const& currentRes = topOut.Res(ires);
+      //mprintf("\t\t%s\n", topOut.TruncResNameNum(ires).c_str());
+      for (int at = currentRes.FirstAtom(); at != currentRes.LastAtom(); at++) {
+        const double* XYZ = frameOut.XYZ(at);
+        Vec3 fc = recip * Vec3( XYZ );
+        //mprintf("\t\t\t%s xyz={%f %f %f} frac={%f %f %f}\n", topOut.AtomMaskName(at).c_str(), XYZ[0], XYZ[1], XYZ[2], fc[0], fc[1], fc[2]);
+        if (fc[0] > 0.5) { inCell = false; break; }
+        if (fc[1] > 0.5) { inCell = false; break; }
+        if (fc[2] > 0.5) { inCell = false; break; }
+        if (fc[0] < -0.5) { inCell = false; break; }
+        if (fc[1] < -0.5) { inCell = false; break; }
+        if (fc[2] < -0.5) { inCell = false; break; }
+      }
+      //mprintf("\t\tInCell= %i\n", (int)inCell);
+      if (inCell)
+        nSolventInCell++;
+    } // END loop over solvent residues
+
+    // How far off is it?
+    int diff = nsolvent_ - nSolventInCell;
+    mprintf("DEBUG:\t%i solvent residues in cell. Diff: %i\n", nSolventInCell, diff);
+    // If this is the first time trhough choose an appropriate change val
+    if (ntries == 0) {
+      change = 0.001;
+    }
+    // See if we have tol more waters than the target TODO
+    if (diff == 0) {
+     loop = false;
+     mprintf("DEBUG: Found.\n");
+    } else {
+      double CHANGE_DIR = 0;
+      if ( lastdiff > 0 && diff < 0) {
+        change = change / 2.0;
+        CHANGE_DIR=-1;
+      } else if ( lastdiff < 0 && diff > 0) {
+        change = change / 2.0;
+        CHANGE_DIR=-1;
+      } else if (ntries > 0) {
+        // If we took a step and the size of the step we just took is smaller
+        // than the remaining distance to target, increase the step size.
+        int STEPSIZE = diff - lastdiff;
+        if (STEPSIZE < 0) {
+         STEPSIZE = -STEPSIZE;
+        } 
+        int ABSDIFF = diff;
+        if (ABSDIFF < 0) {
+          ABSDIFF = -ABSDIFF;
+        }
+        //printf " STEP=%i ABS=%i " $STEPSIZE $ABSDIFF
+        if ( STEPSIZE > 0 && STEPSIZE < ABSDIFF) {
+          change = change * 2.4;
+          CHANGE_DIR=1;
+        }
+      }
+      lastdiff = diff;
+      // Choose a new buffer value
+      double CD = change * (double)diff; // TODO should be minus?
+      double newbufX = bufX + CD; // TODO should be minus
+      double newbufY = bufY + CD; // TODO should be minus
+      double newbufZ = bufZ + CD; // TODO should be minus
+      //CheckBuffer $newbuffer;
+      //lastbuffer=$buffer
+      checkBuffer(newbufX, boxX, maxX);
+      checkBuffer(newbufY, boxY, maxY);
+      checkBuffer(newbufZ, boxZ, maxZ);
+      bufX = newbufX;
+      bufY = newbufY;
+      bufZ = newbufZ;
+      mprintf("DEBUG: Change: %G (%g) newBuf= %f %f %f\n", change, CHANGE_DIR, bufX, bufY, bufZ);
+    } // END change calc
+
+    // Safety valve
+    if (ntries > 100) {
+      mprintf("\tTaking too long - moving on...\n");
+      loop = false;
+    }
+  } // END cell loop
 
   return 0;
 }
