@@ -46,6 +46,8 @@ class Solvate {
     static unsigned int nBoxesInCube(int);
     /// Solvate with box and specified number of solvent
     int SolvateBoxWithExactNumber(Topology&, Frame&, Cpptraj::Parm::ParameterSet const&, DataSetList const&);
+    // Finish box
+    int finishBox(Topology&, Frame&, Cpptraj::Parm::ParameterSet const&) const;
     /// Get buffer arguments
     int getBufferArg(ArgList&, double);
     /// Get radii for atoms in topology
