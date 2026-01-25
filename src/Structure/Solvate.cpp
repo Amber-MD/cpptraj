@@ -613,7 +613,9 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
   double dYStart = 0.5 * solventY * (double) (iY-1);
   double dZStart = 0.5 * solventZ * (double) (iZ-1);
 
+//  int firstSolventAtom = topOut.Natom(); // DEBUG
   int firstSolventRes = topOut.Nres();
+//  mprintf("DEBUG: First solvent atom %i, first solvent res %i\n", topOut.Natom(), firstSolventRes);
 
   addSolventUnits(iX, iY, iZ, soluteMaxR, dXStart, dYStart, dZStart, solventX, solventY, solventZ,
                   solventFrame, SOLVENTBOX.Top(), frameOut, topOut,
@@ -665,6 +667,18 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
   double bufX = boxX + ((maxX - boxX) / 2.0);
   double bufY = boxY + ((maxY - boxY) / 2.0);
   double bufZ = boxZ + ((maxZ - boxZ) / 2.0);
+
+  // Mask selecting everything that should be kept. Always keep solute
+  CharMask cmask( topOut.Natom() );
+  for (int ires = 0; ires < firstSolventRes; ires++) {
+    Residue const& currentRes = topOut.Res(ires);
+    //mprintf("\t\t%s\n", topOut.TruncResNameNum(ires).c_str());
+    for (int at = currentRes.FirstAtom(); at != currentRes.LastAtom(); at++) {
+      cmask.SelectAtom(at, true);
+    }
+  }
+//  cmask.MaskInfo(); // DEBUG
+
   // This loop uses the same logic as my old Solvate.sh script
   // (https://github.com/drroe/Solvate.sh/blob/master/Solvate.sh)
   bool loop = true;
@@ -677,14 +691,6 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
     // Define the unit cell
     newBox.SetupFromXyzAbg( bufX, bufY, bufZ, alpha, beta, gamma );
     newBox.PrintInfo();
-    CharMask cmask( topOut.Natom() );
-    for (int ires = 0; ires < firstSolventRes; ires++) {
-      Residue const& currentRes = topOut.Res(ires);
-      //mprintf("\t\t%s\n", topOut.TruncResNameNum(ires).c_str());
-      for (int at = currentRes.FirstAtom(); at != currentRes.LastAtom(); at++) {
-        cmask.SelectAtom(at, true);
-      }
-    }
     // Convert to fractional
     int nSolventInCell = 0;
     Matrix_3x3 const& recip = newBox.FracCell();
@@ -705,16 +711,23 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
       }
       //mprintf("\t\tInCell= %i\n", (int)inCell);
       if (inCell) {
+        // Keep solvent
         for (int at = currentRes.FirstAtom(); at != currentRes.LastAtom(); at++)
           cmask.SelectAtom(at, true);
         nSolventInCell++;
+      } else {
+        // Remove solvent
+        for (int at = currentRes.FirstAtom(); at != currentRes.LastAtom(); at++)
+          cmask.SelectAtom(at, false);
       }
     } // END loop over solvent residues
+    //cmask.MaskInfo(); // DEBUG
+    //mprintf("DEBUG: Should select %i atoms.\n", firstSolventAtom + (nSolventInCell*topOut.Res(firstSolventRes).NumAtoms()));
 
     // How far off is it?
     int diff = nsolvent_ - nSolventInCell;
     mprintf("DEBUG:\t%i solvent residues in cell. Diff: %i\n", nSolventInCell, diff);
-    // If this is the first time trhough choose an appropriate change val
+    // If this is the first time through choose an appropriate change val
     if (ntries == 0) {
       change = 0.001;
     }
@@ -795,6 +808,23 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
       loop = false;
     }
   } // END cell loop
+
+//  cmask.MaskInfo();
+  AtomMask imask( cmask.ConvertToIntMask(), topOut.Natom() );
+//  imask.MaskInfo();
+  Topology* newParm = topOut.modifyStateByMask( imask );
+  if (newParm == 0) {
+    mprinterr("Error: Could not create topology with the desired # of solvent.\n");
+    return 1;
+  }
+  topOut = *newParm;
+  delete newParm;
+  topOut.Brief("Topology with target # of solvent:");
+
+  Frame newFrame;
+  newFrame.SetupFrameV(topOut.Atoms(), frameOut.CoordsInfo());
+  newFrame.SetFrame( frameOut, imask );
+  frameOut = newFrame;
 
   return 0;
 }
