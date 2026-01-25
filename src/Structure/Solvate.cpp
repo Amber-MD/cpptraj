@@ -91,7 +91,7 @@ int Solvate::InitSolvate(ArgList& argIn, bool octIn, int debugIn) {
   center_ = !argIn.hasKey("nocenter");
 
   if (doTruncatedOct_) {
-    if (!clip_) {
+    if (!clip_ && nsolvent_ < 1) {
       mprinterr("Error: Truncated octahedral box currently requires 'clip'.\n");
       return 1;
     }
@@ -659,9 +659,14 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
   frameOut.CenterOnOrigin(false);
 
   // FIXME make user-specifiable
-  double alpha = 90.0;
-  double beta  = 90.0;
-  double gamma = 90.0;
+  double boxBeta;
+  if (doTruncatedOct_)
+    boxBeta = Box::TruncatedOctAngle();
+  else
+    boxBeta = 90.0;
+  double alpha = boxBeta;
+  double beta  = boxBeta;
+  double gamma = boxBeta;
   int negtol = -5;
 
   double bufX = boxX + ((maxX - boxX) / 2.0);
