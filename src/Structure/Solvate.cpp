@@ -1,5 +1,6 @@
 #include "Solvate.h"
 #include "../ArgList.h"
+#include "../CharMask.h"
 #include "../CpptrajStdio.h"
 #include "../DataSet_Coords.h"
 #include "../DataSetList.h"
@@ -659,6 +660,7 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
   double alpha = 90.0;
   double beta  = 90.0;
   double gamma = 90.0;
+  int negtol = -5;
 
   double bufX = boxX + ((maxX - boxX) / 2.0);
   double bufY = boxY + ((maxY - boxY) / 2.0);
@@ -675,6 +677,14 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
     // Define the unit cell
     newBox.SetupFromXyzAbg( bufX, bufY, bufZ, alpha, beta, gamma );
     newBox.PrintInfo();
+    CharMask cmask( topOut.Natom() );
+    for (int ires = 0; ires < firstSolventRes; ires++) {
+      Residue const& currentRes = topOut.Res(ires);
+      //mprintf("\t\t%s\n", topOut.TruncResNameNum(ires).c_str());
+      for (int at = currentRes.FirstAtom(); at != currentRes.LastAtom(); at++) {
+        cmask.SelectAtom(at, true);
+      }
+    }
     // Convert to fractional
     int nSolventInCell = 0;
     Matrix_3x3 const& recip = newBox.FracCell();
@@ -694,8 +704,11 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
         if (fc[2] < -0.5) { inCell = false; break; }
       }
       //mprintf("\t\tInCell= %i\n", (int)inCell);
-      if (inCell)
+      if (inCell) {
+        for (int at = currentRes.FirstAtom(); at != currentRes.LastAtom(); at++)
+          cmask.SelectAtom(at, true);
         nSolventInCell++;
+      }
     } // END loop over solvent residues
 
     // How far off is it?
@@ -706,9 +719,34 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
       change = 0.001;
     }
     // See if we have tol more waters than the target TODO
-    if (diff == 0) {
-     loop = false;
-     mprintf("DEBUG: Found.\n");
+    if (diff < 0 && diff >= negtol) {
+      // Close enough, just remove the last water residue(s)
+      int nToRemove = -diff;
+      mprintf("\tOnly %i solvent molecules off, removing them.\n", nToRemove);
+      for (int ires = topOut.Nres() - 1; ires > firstSolventRes-1; ires--) {
+        Residue const& currentRes = topOut.Res(ires);
+        if (cmask.AtomInCharMask( currentRes.FirstAtom() )) {
+          mprintf("Removing %s\n", topOut.TruncResNameNum(ires).c_str());
+          for (int at = currentRes.FirstAtom(); at != currentRes.LastAtom(); at++)
+            cmask.SelectAtom(at, false);
+          nToRemove--;
+        }
+        if (nToRemove < 1) break;
+      }
+      if (nToRemove > 0) {
+        mprinterr("Error: Could not remove enough solvent residues.\n");
+        return 1;
+      }
+      //int LASTRES = firstSolventRes + nSolventInCell;
+      //int FIRSTRES = LASTRES + diff + 1;
+      //mprintf("\tOnly %i off, removing solvent residue(s) (%i-%i)", diff, FIRSTRES, LASTRES);
+      //for (int RRES = LASTRES; RRES >= FIRSTRES; RRES--) {
+      //  mprintf("DEBUG: remove $MOLNAME $MOLNAME.%i\n", RRES-1);
+      //}
+      loop = false;
+    } else if (diff == 0) {
+      loop = false;
+      mprintf("DEBUG: Found.\n");
     } else {
       double CHANGE_DIR = 0;
       if ( lastdiff > 0 && diff < 0) {
