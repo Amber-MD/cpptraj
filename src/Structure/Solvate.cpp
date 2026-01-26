@@ -90,8 +90,8 @@ int Solvate::InitSolvate(ArgList& argIn, bool octIn, int debugIn) {
   closeness_ = argIn.getKeyDouble("closeness", 1.0);
   center_ = !argIn.hasKey("nocenter");
 
-  if (doTruncatedOct_) {
-    if (!clip_ && nsolvent_ < 1) {
+  if (doTruncatedOct_ && nsolvent_ < 1) {
+    if (!clip_) {
       mprinterr("Error: Truncated octahedral box currently requires 'clip'.\n");
       return 1;
     }
@@ -659,19 +659,27 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
   frameOut.CenterOnOrigin(false);
 
   // FIXME make user-specifiable
-  double boxBeta;
-  if (doTruncatedOct_)
-    boxBeta = Box::TruncatedOctAngle();
-  else
-    boxBeta = 90.0;
-  double alpha = boxBeta;
-  double beta  = boxBeta;
-  double gamma = boxBeta;
+  double alpha, beta, gamma;
+  if (doTruncatedOct_) {
+    alpha = Box::TruncatedOctAngle();
+    beta = alpha;
+    gamma = alpha;
+  } else {
+    alpha = 90.0;
+    beta  = 90.0;
+    gamma = 90.0;
+  }
   int negtol = -5;
 
   double bufX = boxX + ((maxX - boxX) / 2.0);
   double bufY = boxY + ((maxY - boxY) / 2.0);
   double bufZ = boxZ + ((maxZ - boxZ) / 2.0);
+
+  if (doTruncatedOct_) {
+    if (bufX >= bufY && bufX >= bufZ) { bufY = bufX; bufZ = bufX; }
+    if (bufY >= bufX && bufY >= bufZ) { bufX = bufY; bufZ = bufY; }
+    if (bufZ >= bufX && bufZ >= bufY) { bufX = bufZ; bufY = bufZ; }
+  }
 
   // Mask selecting everything that should be kept. Always keep solute
   CharMask cmask( topOut.Natom() );
@@ -831,7 +839,12 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
   newFrame.SetFrame( frameOut, imask );
   frameOut = newFrame;
 
-  return finishBox(topOut, frameOut, set0);
+  frameOut.SetBox( newBox );
+  frameOut.BoxCrd().PrintInfo("\t  ");
+  topOut.SetParmBox( frameOut.BoxCrd() );
+  mprintf("\t  Volume: %5.3lf A^3\n", frameOut.BoxCrd().CellVolume());
+
+  return 0;
 }
 
 /** Create box, fill with solvent */
@@ -968,8 +981,6 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
                   solventFrame, SOLVENTBOX.Top(), frameOut, topOut,
                   soluteRadii, solventRadii);
 
-  return finishBox(topOut, frameOut, set0);
-/*
   // Define the size of the new solvent/solute system
   soluteRadii = getAtomRadii(soluteMaxR, topOut, set0) ;
   if (setVdwBoundingBox(boxX, boxY, boxZ, soluteRadii, frameOut, false)) {
@@ -1031,73 +1042,6 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
     }
   }
 
-  return 0;*/
-}
-
-/** Finish box */
-int Solvate::finishBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::ParameterSet const& set0) const {
-  // Define the size of the new solvent/solute system
-  double boxX, boxY, boxZ;
-  double soluteMaxR;
-  std::vector<double> soluteRadii = getAtomRadii(soluteMaxR, topOut, set0) ;
-  if (setVdwBoundingBox(boxX, boxY, boxZ, soluteRadii, frameOut, false)) {
-    mprinterr("Error: Setting vdw bounding box for solute/solvent system failed.\n", topOut.c_str());
-    return 1;
-  }
-  if (doTruncatedOct_) {
-    double dAngle = 0;
-    ewald_rotate(frameOut, dAngle);
-    //mprintf("EwaldRotate: %f\n", dAngle);
-    // Add an angstrom to the desired box size rather than using the bounding box size
-    dAngle = clipX_ + .5;
-    boxX = boxY = boxZ = dAngle * sqrt(3.0) * 0.5;
-  }
-
-  // Setup box
-  double boxBeta = 90.0;
-  if (doTruncatedOct_) {
-    boxBeta = Box::TruncatedOctAngle();
-    boxX *= 2.0;
-    boxY *= 2.0;
-    boxZ *= 2.0;
-  }
-  //mprintf("Max: %f %f %f\n", boxX, boxY, boxZ);
-  frameOut.ModifyBox().SetupFromXyzAbg(boxX, boxY, boxZ, boxBeta, boxBeta, boxBeta);
-  frameOut.BoxCrd().PrintInfo("\t  ");
-  topOut.SetParmBox( frameOut.BoxCrd() );
-  //mprintf("\t  Total vdw box size:%s%5.3f %5.3f %5.3f angstroms.\n", "                   ",
-  //        frameOut.BoxCrd().Param(Box::X),
-  //        frameOut.BoxCrd().Param(Box::Y),
-  //        frameOut.BoxCrd().Param(Box::Z));
-  mprintf("\t  Volume: %5.3lf A^3\n", frameOut.BoxCrd().CellVolume());
-  // Sum mass
-  double sumMass = 0.0;
-  for (int at = 0; at < topOut.Natom(); at++) {
-    if (topOut[at].HasType()) {
-      Cpptraj::Parm::ParmHolder<AtomType>::const_iterator it = set0.AT().GetParam( TypeNameHolder(topOut[at].Type()) );
-      if (it != set0.AT().end()) {
-        sumMass += it->second.Mass();
-      }
-    }
-  }
-  if (sumMass > 0.0) {
-    mprintf("\t  Total mass %5.3f amu,  Density %5.3lf g/cc\n", sumMass, sumMass / (frameOut.BoxCrd().CellVolume() * 0.602204));
-  } else {
-    mprintf("Warning: Mass could not be determined, so density unknown (i.e. type of all atoms could not be found)\n");
-  }
-  // Center if needed
-  if (center_) {
-    double dX2 = boxX * 0.5;
-    double dY2 = boxY * 0.5;
-    double dZ2 = boxZ * 0.5;
-    double* xptr = frameOut.xAddress();
-    for (int at = 0; at < frameOut.Natom(); at++, xptr += 3)
-    {
-      xptr[0] += dX2;
-      xptr[1] += dY2;
-      xptr[2] += dZ2;
-    }
-  }
   return 0;
 }
 
