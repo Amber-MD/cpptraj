@@ -11,6 +11,9 @@
 #include <algorithm> //std::max
 #include <cmath> // cos, sin, sqrt
 
+// DEBUG
+//#inc lude "../Trajout_Single.h"
+
 using namespace Cpptraj::Structure;
 
 /** CONSTRUCTOR */
@@ -641,6 +644,13 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
   addSolventUnits(iX, iY, iZ, soluteMaxR, dXStart, dYStart, dZStart, solventX, solventY, solventZ,
                   solventFrame, SOLVENTBOX.Top(), frameOut, topOut,
                   soluteRadii, solventRadii);
+  // DEBUG
+//  Trajout_Single trajout;
+//  trajout.InitTrajWrite("BigCube.mol2", ArgList(), DataSetList(), TrajectoryFile::MOL2FILE);
+//  trajout.SetupTrajWrite(&topOut, frameOut.CoordsInfo(), 1);
+//  trajout.WriteSingle(0, frameOut);
+//  trajout.EndTraj();
+  // END DEBUG
 
   // Define the size of the new solvent/solute system
   double maxX, maxY, maxZ;
