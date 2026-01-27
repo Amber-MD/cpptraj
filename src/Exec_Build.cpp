@@ -830,6 +830,8 @@ void Exec_Build::Help() const
           "\t[{{solvatebox|solvateoct} %s\n"
           "\t          %s |\n"
           "\t  setbox %s}]\n"
+          "\t[addionsrand ion1 <name1> nion1 <num1> [ion2 <name2> nion2 <num2>]\n"
+          "\t  [minsep <dist>] [ionseed <seed>]]\n"
           "%s"
           "%s"
           "%s",
