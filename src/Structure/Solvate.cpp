@@ -847,6 +847,7 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
     } // END change calc
 
     // Safety valve
+    ntries++;
     if (ntries > 100) {
       mprintf("\tTaking too long - moving on...\n");
       loop = false;
@@ -876,7 +877,7 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
   mprintf("\t  Volume: %5.3lf A^3\n", frameOut.BoxCrd().CellVolume());
 
   // Reimage FIXME create separate init routine for autoimage
-/*  Action_AutoImage autoimage;
+  Action_AutoImage autoimage;
   ArgList actionargs;
   DataSetList tempdsl;
   DataFileList tempdfl;
@@ -896,7 +897,7 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
   if (ret == Action::ERR) {
     mprinterr("Error: Could not autoimage post-solvate.\n");
     return 1;
-  }*/
+  }
 
   calculateDensity(topOut, frameOut, set0);
 
