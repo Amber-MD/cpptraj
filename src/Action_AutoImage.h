@@ -11,10 +11,12 @@ class Action_AutoImage : public Action {
     ~Action_AutoImage();
     DispatchObject* Alloc() const { return (DispatchObject*)new Action_AutoImage(); }
     void Help() const;
-  private:
+
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
+
+  private:
     void Print() {}
 
     enum Mode { BY_DISTANCE=0, BY_VECTOR, UNSPECIFIED };

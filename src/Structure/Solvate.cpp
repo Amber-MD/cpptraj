@@ -1,4 +1,5 @@
 #include "Solvate.h"
+#include "../Action_AutoImage.h"
 #include "../ArgList.h"
 #include "../CharMask.h"
 #include "../CpptrajStdio.h"
@@ -843,6 +844,29 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
   frameOut.BoxCrd().PrintInfo("\t  ");
   topOut.SetParmBox( frameOut.BoxCrd() );
   mprintf("\t  Volume: %5.3lf A^3\n", frameOut.BoxCrd().CellVolume());
+
+  // Reimage FIXME create separate init routine for autoimage
+  Action_AutoImage autoimage;
+  ArgList actionargs;
+  DataSetList tempdsl;
+  DataFileList tempdfl;
+  ActionInit AI(tempdsl, tempdfl);
+  if (autoimage.Init(actionargs, AI, debug_) != Action::OK) {
+    mprinterr("Error: Could not initialize autoimage for post-solvate.\n");
+    return 1;
+  }
+  ActionSetup AS( &topOut, frameOut.CoordsInfo(), 1 );
+  Action::RetType ret = autoimage.Setup( AS );
+  if ( ret == Action::ERR || ret == Action::SKIP ) {
+    mprinterr("Error: Could not setup autoimage for post-solvate.\n");
+    return 1;
+  }
+  ActionFrame frm( &frameOut, 0 );
+  ret = autoimage.DoAction(0, frm);
+  if (ret == Action::ERR) {
+    mprinterr("Error: Could not autoimage post-solvate.\n");
+    return 1;
+  }
 
   return 0;
 }
