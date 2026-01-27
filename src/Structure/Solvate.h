@@ -40,6 +40,8 @@ class Solvate {
     DataSet_Coords* GetSolventUnit(DataSetList const&) const;
     /// Adjust box widths
     void adjustBoxWidths(double&, double&, double&, double&, double&, double&) const;
+    /// Calculate density
+    static void calculateDensity(Topology const&, Frame const&, Cpptraj::Parm::ParameterSet const&);
     /// \return number of boxes needed to create layer
     static unsigned int nBoxesInLayer(int);
     /// \return number of boxes needed to create cube 

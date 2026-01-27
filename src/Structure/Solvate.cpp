@@ -489,6 +489,26 @@ const
             dXWidth, dYWidth, dZWidth );
 }
 
+/** Calculate total density */
+void Solvate::calculateDensity(Topology const& topOut, Frame const& frameOut, Cpptraj::Parm::ParameterSet const& set0)
+{
+  // Sum mass
+  double sumMass = 0.0;
+  for (int at = 0; at < topOut.Natom(); at++) {
+    if (topOut[at].HasType()) {
+      Cpptraj::Parm::ParmHolder<AtomType>::const_iterator it = set0.AT().GetParam( TypeNameHolder(topOut[at].Type()) );
+      if (it != set0.AT().end()) {
+        sumMass += it->second.Mass();
+      }
+    }
+  }
+  if (sumMass > 0.0) {
+    mprintf("\t  Total mass %5.3f amu,  Density %5.3lf g/cc\n", sumMass, sumMass / (frameOut.BoxCrd().CellVolume() * 0.602204));
+  } else {
+    mprintf("Warning: Mass could not be determined, so density unknown (i.e. type of all atoms could not be found)\n");
+  }
+}
+
 /** Calculate the number of boxes needed to create a given layer */
 unsigned int Solvate::nBoxesInLayer(int n) {
   // Special case; no layers is 1 cube
@@ -846,7 +866,7 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
   mprintf("\t  Volume: %5.3lf A^3\n", frameOut.BoxCrd().CellVolume());
 
   // Reimage FIXME create separate init routine for autoimage
-  Action_AutoImage autoimage;
+/*  Action_AutoImage autoimage;
   ArgList actionargs;
   DataSetList tempdsl;
   DataFileList tempdfl;
@@ -866,7 +886,9 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
   if (ret == Action::ERR) {
     mprinterr("Error: Could not autoimage post-solvate.\n");
     return 1;
-  }
+  }*/
+
+  calculateDensity(topOut, frameOut, set0);
 
   return 0;
 }
@@ -1037,7 +1059,8 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
   //        frameOut.BoxCrd().Param(Box::Y),
   //        frameOut.BoxCrd().Param(Box::Z));
   mprintf("\t  Volume: %5.3lf A^3\n", frameOut.BoxCrd().CellVolume());
-  // Sum mass
+  calculateDensity(topOut, frameOut, set0);
+/*  // Sum mass
   double sumMass = 0.0;
   for (int at = 0; at < topOut.Natom(); at++) {
     if (topOut[at].HasType()) {
@@ -1051,7 +1074,7 @@ int Solvate::SolvateBox(Topology& topOut, Frame& frameOut, Cpptraj::Parm::Parame
     mprintf("\t  Total mass %5.3f amu,  Density %5.3lf g/cc\n", sumMass, sumMass / (frameOut.BoxCrd().CellVolume() * 0.602204));
   } else {
     mprintf("Warning: Mass could not be determined, so density unknown (i.e. type of all atoms could not be found)\n");
-  }
+  }*/
   // Center if needed
   if (center_) {
     double dX2 = boxX * 0.5;
