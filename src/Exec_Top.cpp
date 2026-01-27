@@ -174,7 +174,7 @@ Exec::RetType Exec_AtomInfo::Execute(CpptrajState& State, ArgList& argIn) {
 
 // -----------------------------------------------------------------------------
 void Exec_ResInfo::Help() const {
-  mprintf("\t[%s] <mask> [short [maxwidth <#res>] [groupsize <#res>]]\n\t[out <file>]\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s] <mask> \n\t[short {nucleic|[maxwidth <#res>] [groupsize <#res>]}]\n\t[out <file>]\n", DataSetList::TopIdxArgs);
   mprintf("  Print info for residues in <mask> for specified topology (first by default).\n"
           "  If 'short' is specified print residue info in shorter form.\n");
 }
