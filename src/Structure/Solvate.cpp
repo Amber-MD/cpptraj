@@ -727,6 +727,7 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
   // (https://github.com/drroe/Solvate.sh/blob/master/Solvate.sh)
   int smallestNegDiff = 0;
   Vec3 smallestBuf(0.0);
+  int nTimesSmallestSeen = 0;
   bool loop = true;
   int ntries = 0;
   double change = 0.001;
@@ -778,6 +779,11 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
       if (smallestNegDiff == 0 || diff > smallestNegDiff) {
         smallestNegDiff = diff;
         smallestBuf = Vec3(bufX, bufY, bufZ);
+        nTimesSmallestSeen = 1;
+      } else if (smallestNegDiff == diff) {
+        nTimesSmallestSeen++;
+        // Update smallest buffer; presumably is closer
+        smallestBuf = Vec3(bufX, bufY, bufZ);
       }
     }  
     // If this is the first time through choose an appropriate change val
@@ -785,7 +791,7 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
       change = 0.001;
     }
     // See if we have tol more waters than the target TODO
-    if (diff < 0 && diff >= negtol) {
+    if ((diff < 0 && nTimesSmallestSeen > 4) || (diff < 0 && diff >= negtol)) {
       // Close enough, just remove the last water residue(s)
       int nToRemove = -diff;
       mprintf("\tOnly %i solvent molecules off, removing them.\n", nToRemove);
@@ -860,7 +866,7 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
     if (ntries > 100) {
       mprintf("\tTaking too long - moving on...\n");
       loop = false;
-      mprintf("DEBUG: SmallestNegDiff %i : %f %f %f\n", smallestNegDiff, smallestBuf[0], smallestBuf[1], smallestBuf[2]);
+      mprintf("DEBUG: SmallestNegDiff %i (%i) : %f %f %f\n", smallestNegDiff, nTimesSmallestSeen, smallestBuf[0], smallestBuf[1], smallestBuf[2]);
     }
   } // END cell loop
 
