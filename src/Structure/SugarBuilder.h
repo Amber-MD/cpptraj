@@ -20,8 +20,10 @@ class SugarBuilder {
     SugarBuilder(int);
     /// DESTRUCTOR
     ~SugarBuilder();
-    /// Init options: hasGlycam, residue cutoff, bond offset, sugar mask str, determineSugarsBy, resmapfile
-    int InitOptions(bool, double, double, std::string const&, std::string const&, std::string const&);
+    /// Keywords
+    static const char* keywords_;
+    /// Initialize from ArgList
+    int InitSugarBuilder(ArgList&);
     /// \return true if given res name is a recognized PDB sugar
     bool IsRecognizedPdbSugar(NameType const&) const;
     /// ID sugar rings, find missing C1 links, split off functional groups
@@ -47,6 +49,8 @@ class SugarBuilder {
     typedef std::pair<std::string, int> ResIdxPairType;
     typedef std::map<std::string, int> ResIdxMapType;
 
+    /// Init options: hasGlycam, residue cutoff, bond offset, sugar mask str, determineSugarsBy, resmapfile
+    int InitOptions(bool, double, double, std::string const&, std::string const&, std::string const&);
     /// Set a reduced PDB res to glycam map when dat file not found.
     void SetGlycamPdbResMap();
     /// Load PDB res to glycam map from dat file

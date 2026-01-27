@@ -725,6 +725,8 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
 
   // This loop uses the same logic as my old Solvate.sh script
   // (https://github.com/drroe/Solvate.sh/blob/master/Solvate.sh)
+  int smallestNegDiff = 0;
+  Vec3 smallestBuf(0.0);
   bool loop = true;
   int ntries = 0;
   double change = 0.001;
@@ -771,6 +773,13 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
     // How far off is it?
     int diff = nsolvent_ - nSolventInCell;
     mprintf("DEBUG:\t%i solvent residues in cell. Diff: %i\n", nSolventInCell, diff);
+
+    if (diff < 0) {
+      if (smallestNegDiff == 0 || diff > smallestNegDiff) {
+        smallestNegDiff = diff;
+        smallestBuf = Vec3(bufX, bufY, bufZ);
+      }
+    }  
     // If this is the first time through choose an appropriate change val
     if (ntries == 0) {
       change = 0.001;
@@ -851,6 +860,7 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
     if (ntries > 100) {
       mprintf("\tTaking too long - moving on...\n");
       loop = false;
+      mprintf("DEBUG: SmallestNegDiff %i : %f %f %f\n", smallestNegDiff, smallestBuf[0], smallestBuf[1], smallestBuf[2]);
     }
   } // END cell loop
 

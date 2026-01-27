@@ -413,12 +413,7 @@ void Exec_PrepareForLeap::Help() const
           "\t[molmask <molmask> ...] [determinemolmask <mask>]\n"
           "%s"
           "%s"
-          "\t[{nosugars |\n"
-          "\t  sugarmask <sugarmask> [noc1search] [nosplitres]\n"
-          "\t  [rescut <residue cutoff>] [bondoffset <offset>]\n"
-          "\t  [resmapfile <file>]\n"
-          "\t  [hasglycam] [determinesugarsby {geom|name}]\n"
-          "\t }]\n"
+          "%s"
           "  Prepare the structure in the given coords set for easier processing\n"
           "  with the LEaP program from AmberTools. Any existing/potential\n"
           "  disulfide bonds will be identified and the residue names changed\n"
@@ -431,7 +426,8 @@ void Exec_PrepareForLeap::Help() const
           "  The command will attempt to download parameters for unknown\n"
           "  residues unless 'nodlparams' is specified.\n",
           HisProt::keywords_,
-          Disulfide::keywords_
+          Disulfide::keywords_,
+          SugarBuilder::keywords_
          );
 }
 
@@ -572,12 +568,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   SugarBuilder sugarBuilder(debug_);
   if (prepare_sugars) {
     // Init options
-    if (sugarBuilder.InitOptions( argIn.hasKey("hasglycam"),
-                                  argIn.getKeyDouble("rescut", 8.0),
-                                  argIn.getKeyDouble("bondoffset", 0.2),
-                                  argIn.GetStringKey("sugarmask"),
-                                  argIn.GetStringKey("determinesugarsby", "geometry"),
-                                  argIn.GetStringKey("resmapfile") ))
+    if (sugarBuilder.InitSugarBuilder( argIn ))
     {
       mprinterr("Error: Sugar options init failed.\n");
       return CpptrajState::ERR;

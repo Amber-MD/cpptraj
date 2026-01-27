@@ -29,6 +29,25 @@ SugarBuilder::~SugarBuilder() {
   if (FGB_ != 0) delete FGB_;
 }
 
+/** Sugar options */
+const char* SugarBuilder::keywords_ =
+  "\t[{nosugars |\n"
+  "\t  sugarmask <sugarmask> [noc1search] [nosplitres]\n"
+  "\t  [rescut <residue cutoff>] [bondoffset <offset>]\n"
+  "\t  [resmapfile <file>]\n"
+  "\t  [hasglycam] [determinesugarsby {geom|name}]\n"
+  "\t }]\n";
+
+/** Get options from arglist */
+int SugarBuilder::InitSugarBuilder(ArgList& argIn) {
+  return InitOptions( argIn.hasKey("hasglycam"),
+                      argIn.getKeyDouble("rescut", 8.0),
+                      argIn.getKeyDouble("bondoffset", 0.2),
+                      argIn.GetStringKey("sugarmask"),
+                      argIn.GetStringKey("determinesugarsby", "geometry"),
+                      argIn.GetStringKey("resmapfile") );
+}
+
 /** Initialize options. */
 int SugarBuilder::InitOptions(bool hasGlycamIn,
                               double rescutIn,

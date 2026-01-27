@@ -831,6 +831,7 @@ void Exec_Build::Help() const
           "\t          %s |\n"
           "\t  setbox %s}]\n"
           "%s"
+          "%s"
           "%s",
           Cpptraj::Structure::Creator::other_keywords_,
           Cpptraj::Structure::Creator::template_keywords_,
@@ -839,7 +840,8 @@ void Exec_Build::Help() const
           Cpptraj::Structure::Solvate::SolvateKeywords2(),
           Cpptraj::Structure::Solvate::SetboxKeywords(),
           Cpptraj::Structure::HisProt::keywords_,
-          Cpptraj::Structure::Disulfide::keywords_
+          Cpptraj::Structure::Disulfide::keywords_,
+          Cpptraj::Structure::SugarBuilder::keywords_
          );
   mprintf("  Build complete topology and parameters from given crdset.\n");
 }
@@ -1464,12 +1466,7 @@ int Exec_Build::StructurePrepAndFillTemplates(ArgList& argIn, Topology& topIn, F
   Cpptraj::Structure::SugarBuilder sugarBuilder(debug_);
   if (doSugar_) {
     // Init options
-    if (sugarBuilder.InitOptions( argIn.hasKey("hasglycam"),
-                                  argIn.getKeyDouble("rescut", 8.0),
-                                  argIn.getKeyDouble("bondoffset", 0.2),
-                                  argIn.GetStringKey("sugarmask"),
-                                  argIn.GetStringKey("determinesugarsby", "geometry"),
-                                  argIn.GetStringKey("resmapfile") ))
+    if (sugarBuilder.InitSugarBuilder( argIn ))
     {
       mprinterr("Error: Sugar options init failed.\n");
       return 1;
