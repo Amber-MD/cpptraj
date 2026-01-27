@@ -16684,7 +16684,11 @@ parmresinfo
 
 \end_inset
 
- [parm <name> | parmindex <#> | <#>] <mask> [short [maxwidth <#res>]]
+ [parm <name> | parmindex <#> | <#>] <mask>
+\end_layout
+
+\begin_layout LyX-Code
+        [short {nucleic|[maxwidth <#res>] [groupsize <#res>]}]
 \end_layout
 
 \begin_layout LyX-Code
@@ -16736,6 +16740,19 @@ parmindex
 \end_inset
 
 <#res>] Max # of residues to print in one line (default 50).
+\end_layout
+
+\begin_layout Description
+[groupsize
+\begin_inset space ~
+\end_inset
+
+<#res>] Max # of residues to put in a group (default 10).
+\end_layout
+
+\begin_layout Description
+[nucleic] Do a printout suitable for nucleic acid residues (maxwidth 45,
+ groupsize 3).
 \end_layout
 
 \end_deeper
