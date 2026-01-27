@@ -21,7 +21,7 @@ class TopInfo {
     void SetPrintParameterIndices(bool b) { printIndices_ = b; }
 
     int PrintAtomInfo(std::string const&) const;
-    int PrintShortResInfo(std::string const&, int) const;
+    int PrintShortResInfo(std::string const&, int, int) const;
     int PrintResidueInfo(std::string const&) const;
     int PrintMoleculeInfo(std::string const&) const;
     int PrintShortMolInfo(std::string const&) const;

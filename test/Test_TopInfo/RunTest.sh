@@ -4,7 +4,7 @@
 
 CleanFiles info.in atoms.dat residues.dat bonds.dat angles.dat dihedrals.dat \
            molecules.dat masscharge.dat values.dat molshort.dat molselect.dat \
-           molselect2.dat ChargeMass.dat tz2.dihedrals.24.dat
+           molselect2.dat ChargeMass.dat tz2.dihedrals.24.dat ftu.res.out ftu.nucleic.out
 
 INPUT="-i info.in"
 cat > info.in <<EOF
@@ -44,6 +44,10 @@ molinfo short 1 *
 molinfo short out molshort.dat 1 *
 resinfo ^2,5-7,100 out molselect.dat parm dna30.parm7
 atoms ^1:DC@P,O?P out molselect2.dat parmindex 1
+
+parm ../FtuFabI.NAD.TCL.parm7
+resinfo parmindex 2 ^1 short maxwidth 45 groupsize 3 out ftu.res.out
+resinfo parmindex 2 ^1 short nucleic out ftu.nucleic.out
 quit
 EOF
 RunCpptraj "Topology info print test."
@@ -59,6 +63,8 @@ DoTest molselect.dat.save molselect.dat
 DoTest molselect2.dat.save molselect2.dat
 DoTest ChargeMass.dat.save ChargeMass.dat
 DoTest tz2.dihedrals.24.dat.save tz2.dihedrals.24.dat
+DoTest ftu.res.out.save ftu.res.out
+DoTest ftu.res.out.save ftu.nucleic.out
 
 UNITNAME='Topology info with reference coords test'
 CheckFor netcdf
