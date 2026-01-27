@@ -218,7 +218,7 @@ int TopInfo::PrintResidueInfo(std::string const& maskExpression) const {
 }
 
 /** Print residue info using single char names. */ // TODO use Topology::ResnumsSelectedBy
-int TopInfo::PrintShortResInfo(std::string const& maskString, int maxChar) const {
+int TopInfo::PrintShortResInfo(std::string const& maskString, int maxChar, int groupSize) const {
   if (maskString.empty()) {
     mprinterr("Error: No valid mask given for short residue info.\n");
     return 1;
@@ -261,7 +261,7 @@ int TopInfo::PrintShortResInfo(std::string const& maskString, int maxChar) const
           if (current_res == max_res) break;
           startRes = -1;
           resLine.clear();
-        } else if ((total % 10) == 0)
+        } else if ((total % groupSize) == 0)
           resLine += ' ';
         rn = current_res;
       }
