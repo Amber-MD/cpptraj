@@ -19,7 +19,7 @@ class TopInfo {
     int SetupTopInfo(Topology const* p, DataSet_Coords* c) { return SetupTopInfo(0, p, c); }
 
     int PrintAtomInfo(std::string const&) const;
-    int PrintShortResInfo(std::string const&, int) const;
+    int PrintShortResInfo(std::string const&, int, int) const;
     int PrintResidueInfo(std::string const&) const;
     int PrintMoleculeInfo(std::string const&) const;
     int PrintShortMolInfo(std::string const&) const;
