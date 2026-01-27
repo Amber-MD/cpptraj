@@ -181,11 +181,12 @@ void Exec_ResInfo::Help() const {
 
 Exec::RetType Exec_ResInfo::Execute(CpptrajState& State, ArgList& argIn) {
   bool printShort = argIn.hasKey("short");
+  int maxwidth = argIn.getKeyInt("maxwidth", 50);
   TopInfo info;
   if (CommonSetup(info, State, argIn, "Residue info")) return CpptrajState::ERR;
   int err;
   if (printShort)
-    err = info.PrintShortResInfo( argIn.GetMaskNext(), argIn.getKeyInt("maxwidth",50) );
+    err = info.PrintShortResInfo( argIn.GetMaskNext(), maxwidth );
   else
     err = info.PrintResidueInfo( argIn.GetMaskNext() );
   if (err != 0) return CpptrajState::ERR;
