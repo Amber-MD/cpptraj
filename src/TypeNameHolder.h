@@ -118,6 +118,32 @@ class TypeNameHolder {
         tstr.append( " " + std::string( *(*it) ) );
       return tstr;
     }
+    /// Sort typenames so that the first typename < the last
+    void SortNames(NameType const& wc) {
+      if (types_.size() < 2) return;
+      unsigned int last = types_.size() - 1;
+      // Replace wildcards with spaces so they appear first
+      if (wc.len() > 0) {
+        if (types_[0]    == wc) types_[0]    = NameType(" ");
+        if (types_[last] == wc) types_[last] = NameType(" ");
+      }
+      if (types_[0] > types_[last]) {
+        // Need to swap TODO record if we swapped these names?
+        if (types_.size() < 4)
+          tswap(types_[0], types_[last]);
+        else {
+          unsigned int half = types_.size() / 2;
+          unsigned int jj = last;
+          for (unsigned int ii = 0; ii < half; ii++, jj--)
+            tswap(types_[ii], types_[jj]);
+        }
+      }
+      // Restore wildcards
+      if (wc.len() > 0) {
+        if (types_[0]    == " ") types_[0]    = wc;
+        if (types_[last] == " ") types_[last] = wc;
+      }
+    }
     /// Sort typenames alphabetically, preserving the 3rd position (for impropers)
     void SortImproperByAlpha(NameType const& wc) {
       if (types_.size() != 4) return;
