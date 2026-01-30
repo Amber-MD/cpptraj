@@ -7,9 +7,8 @@
 //#incl ude "CpptrajStdio.h" // DEBUG
 namespace Cpptraj {
 namespace Parm {
-/// Used to associate atom type names with an object (parameter etc)
+/// Used to associate atom type names with an object (parameter etc) in an array
 template <class T> class ParmArray {
-    // TODO may want to actually use a map one day for performance reasons.
     typedef std::pair<TypeNameHolder,T> Bpair;
     typedef std::vector<Bpair> Bmap;
   public:
@@ -23,8 +22,6 @@ template <class T> class ParmArray {
     bool empty()        const { return bpmap_.empty(); }
     /// \return Last parameter to be overwritten from AddParm()
     T const& PreviousParm() const { return previousParm_; }
-    /// Set wildcard character
-    //void SetWildcard(char wc) { wc_ = NameType(std::string(1, wc)); }
     /// Add (or update if allowed) given parameter to holder.
     RetType AddParm(TypeNameHolder const& types, T const& bp, bool allowUpdate) {
       // Check if parm for these types exist
@@ -73,36 +70,10 @@ template <class T> class ParmArray {
     iterator begin() { return bpmap_.begin(); }
     /// \return iterator to end
     iterator end()   { return bpmap_.end();   }
-    /// \return Parameter matching given types, or empty parameter if not found.
-//    T FindParam(TypeNameHolder const& types, bool& found) const { // TODO only use GetParam()?
-//      found = true;
-//      for (const_iterator it = begin(); it != end(); ++it)
-//        if (it->first.Match_NoWC( types )) return it->second;
-//      //if (wc_.len() > 0) {
-//      //  for (const_iterator it = begin(); it != end(); ++it)
-//      //    if (it->first.Match_WC( types, wc_)) return it->second;
-//      //}
-//      found = false;
-//      return T();
-//    }
-    /// \return iterator to parameter matching the given types.
-//    iterator GetParam(TypeNameHolder const& types) {
-//      for (iterator it = bpmap_.begin(); it != bpmap_.end(); ++it)
-//        if (it->first.Match_NoWC( types )) return it;
-//      //if (wc_.len() > 0) {
-//      //  for (iterator it = bpmap_.begin(); it != bpmap_.end(); ++it)
-//      //    if (it->first.Match_WC( types, wc_)) return it;
-//      //}
-//      return bpmap_.end();
-//    }
     /// \return const iterator to parameter matching the given types.
     const_iterator GetParam(TypeNameHolder const& types) const {
       for (const_iterator it = bpmap_.begin(); it != bpmap_.end(); ++it)
         if (it->first.Match_NoWC( types )) return it;
-      //if (wc_.len() > 0) {
-      //  for (const_iterator it = bpmap_.begin(); it != bpmap_.end(); ++it)
-      //    if (it->first.Match_WC( types, wc_)) return it;
-      //}
       return bpmap_.end();
     }
     /// \return size in memory in bytes
@@ -117,7 +88,6 @@ template <class T> class ParmArray {
   private:
     Bmap bpmap_;
     T previousParm_; ///< When parameter is updated, store previous value.
-    //NameType wc_; ///< Wildcard character
 };
 } // END namespace Parm
 } // END namespace Cpptraj
