@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <map>
 #include "TypeNameHolder.h"
 
 static const int Err(const char* msg) {
@@ -15,6 +16,12 @@ static const int Err(const char* msg) {
     return ( lhs > rhs );
   }
 } reverseSortObj;*/
+
+static inline void printTypes(TypeNameHolder const& types)
+{
+  for (unsigned int ii = 0; ii < types.Size(); ii++)
+    printf(" %4s", *types[ii]);
+}
 
 int main() {
   TypeNameHolder type1;
@@ -90,6 +97,36 @@ int main() {
   if (ismatch) return Err("TypeNameHolder improper no WC match failed.");
   ismatch = ip2.Match_WC( ip1, "X" );
   if (!ismatch) return Err("TypeNameHolder improper WC match failed.");
+
+  typedef std::pair<TypeNameHolder, double> ParmPair;
+  typedef std::map<TypeNameHolder, double> ParmMap;
+  ParmMap parmMap;
+  parmMap.insert( ParmPair(ip1, 1.0) );
+  parmMap.insert( ParmPair(ip2, 3.0) );
+  dp1.SortNames("X");
+  dp2.SortNames("X");
+  parmMap.insert( ParmPair(dp1, 2.0) );
+  parmMap.insert( ParmPair(dp2, 0.0) );
+
+  for (ParmMap::const_iterator it = parmMap.begin(); it != parmMap.end(); ++it)
+  {
+    printTypes( it->first );
+    printf(" %f\n", it->second);
+  }
+
+  TypeNameHolder key(4);
+  key.AddName("HO");
+  key.AddName("O");
+  key.AddName("CX");
+  key.AddName("CT");
+
+  key.SortNames("X");
+  ParmMap::const_iterator ret = parmMap.find( key );
+  printTypes(key);
+  if ( ret == parmMap.end())
+    return Err("Using TypeNameHolder to find key in map failed.");
+  printf(" <->");
+  printTypes(ret->first);
 
   return 0;
 }
