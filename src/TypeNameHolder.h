@@ -1,5 +1,6 @@
 #ifndef INC_TYPENAMEHOLDER_H
 #define INC_TYPENAMEHOLDER_H
+#include <vector>
 #include <cstddef> // size_t
 #include "NameType.h"
 /// Used to hold one or more atom type names.
@@ -55,6 +56,8 @@ class TypeNameHolder {
     }
     /// \return true if either direction is an exact match, no wildcard.
     bool operator==(TypeNameHolder const& rhs) const { return Match_NoWC(rhs); }
+    /// \return true if neither direction is an exact match.
+    bool operator!=(TypeNameHolder const& rhs) const { return !Match_NoWC(rhs); }
     /// \return true if either direction is a match, taking into account wildcard.
     bool Match_WC(TypeNameHolder const& rhs, NameType const& wildcard) const {
       // Sanity check
@@ -142,6 +145,22 @@ class TypeNameHolder {
       if (wc.len() > 0) {
         if (types_[0]    == " ") types_[0]    = wc;
         if (types_[last] == " ") types_[last] = wc;
+      }
+    }
+    /// Sort typenames so that the first typename < the last, no wildcard
+    void SortNames() {
+      if (types_.size() < 2) return;
+      unsigned int last = types_.size() - 1;
+      if (types_[0] > types_[last]) {
+        // Need to swap TODO record if we swapped these names?
+        if (types_.size() < 4)
+          tswap(types_[0], types_[last]);
+        else {
+          unsigned int half = types_.size() / 2;
+          unsigned int jj = last;
+          for (unsigned int ii = 0; ii < half; ii++, jj--)
+            tswap(types_[ii], types_[jj]);
+        }
       }
     }
     /// Sort typenames alphabetically, preserving the 3rd position (for impropers)

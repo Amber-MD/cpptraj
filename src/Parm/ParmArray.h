@@ -1,17 +1,20 @@
-#ifndef INC_PARM_PARMHOLDER_H
-#define INC_PARM_PARMHOLDER_H
-#include <map>
+#ifndef INC_PARM_PARMARRAY_H
+#define INC_PARM_PARMARRAY_H
+#include <vector>
+#include <utility> // std::pair
 #include "ParmEnum.h"
 #include "../TypeNameHolder.h"
+//#incl ude "CpptrajStdio.h" // DEBUG
 namespace Cpptraj {
 namespace Parm {
 /// Used to associate atom type names with an object (parameter etc)
-template <class T> class ParmHolder {
+template <class T> class ParmArray {
+    // TODO may want to actually use a map one day for performance reasons.
     typedef std::pair<TypeNameHolder,T> Bpair;
-    typedef std::map<TypeNameHolder,T> Bmap;
+    typedef std::vector<Bpair> Bmap;
   public:
     /// CONSTRUCTOR
-    ParmHolder() {}
+    ParmArray() {}
     /// Clear all parameters
     void clear()              { bpmap_.clear(); }
     /// \return Number of parameters
@@ -20,19 +23,27 @@ template <class T> class ParmHolder {
     bool empty()        const { return bpmap_.empty(); }
     /// \return Last parameter to be overwritten from AddParm()
     T const& PreviousParm() const { return previousParm_; }
+    /// Set wildcard character
+    //void SetWildcard(char wc) { wc_ = NameType(std::string(1, wc)); }
     /// Add (or update if allowed) given parameter to holder.
-    RetType AddParm(TypeNameHolder const& typesIn, T const& bp, bool allowUpdate) {
-      // Ensure types are sorted
-      TypeNameHolder types = typesIn;
-      types.SortNames();
+    RetType AddParm(TypeNameHolder const& types, T const& bp, bool allowUpdate) {
       // Check if parm for these types exist
-      typename Bmap::iterator it = bpmap_.lower_bound( types );
-      if (it == bpmap_.end() || it->first != types) {
+      typename Bmap::iterator it = bpmap_.begin();
+      for (; it != bpmap_.end(); ++it)
+        if (it->first.Match_NoWC( types )) break;
+      if (it == bpmap_.end()) {
         // New parm
-        it = bpmap_.insert(it, Bpair(types, bp));
+        //mprintf("DEBUG: New parameter:");
+        //for (TypeNameHolder::const_iterator it = types.begin(); it != types.end(); ++it)
+        //  mprintf(" '%s'", *(*it));
+        //mprintf("\n");
+        bpmap_.push_back( Bpair(types, bp) );
       } else {
         if (bp < it->second || it->second < bp) {
-          // Potential update of existing parameter
+          //mprintf("DEBUG: Potential update of existing parameter:");
+          //for (TypeNameHolder::const_iterator it = types.begin(); it != types.end(); ++it)
+          //  mprintf(" '%s'", *(*it));
+          //mprintf("\n");
           if (allowUpdate) {
             previousParm_ = it->second;
             it->second = bp;
@@ -63,28 +74,36 @@ template <class T> class ParmHolder {
     /// \return iterator to end
     iterator end()   { return bpmap_.end();   }
     /// \return Parameter matching given types, or empty parameter if not found.
-    T FindParam(TypeNameHolder const& typesIn, bool& found) const {
-      TypeNameHolder types = typesIn;
-      types.SortNames();
-      typename Bmap::const_iterator it = bpmap_.find( types );
-      if (it == bpmap_.end()) {
-        found = false;
-        return T();
-      }
-      found = true;
-      return it->second;
-    }
+//    T FindParam(TypeNameHolder const& types, bool& found) const { // TODO only use GetParam()?
+//      found = true;
+//      for (const_iterator it = begin(); it != end(); ++it)
+//        if (it->first.Match_NoWC( types )) return it->second;
+//      //if (wc_.len() > 0) {
+//      //  for (const_iterator it = begin(); it != end(); ++it)
+//      //    if (it->first.Match_WC( types, wc_)) return it->second;
+//      //}
+//      found = false;
+//      return T();
+//    }
     /// \return iterator to parameter matching the given types.
-    iterator GetParam(TypeNameHolder const& typesIn) {
-      TypeNameHolder types = typesIn;
-      types.SortNames();
-      return bpmap_.find( types );
-    }
+//    iterator GetParam(TypeNameHolder const& types) {
+//      for (iterator it = bpmap_.begin(); it != bpmap_.end(); ++it)
+//        if (it->first.Match_NoWC( types )) return it;
+//      //if (wc_.len() > 0) {
+//      //  for (iterator it = bpmap_.begin(); it != bpmap_.end(); ++it)
+//      //    if (it->first.Match_WC( types, wc_)) return it;
+//      //}
+//      return bpmap_.end();
+//    }
     /// \return const iterator to parameter matching the given types.
-    const_iterator GetParam(TypeNameHolder const& typesIn) const {
-      TypeNameHolder types = typesIn;
-      types.SortNames();
-      return bpmap_.find( types );
+    const_iterator GetParam(TypeNameHolder const& types) const {
+      for (const_iterator it = bpmap_.begin(); it != bpmap_.end(); ++it)
+        if (it->first.Match_NoWC( types )) return it;
+      //if (wc_.len() > 0) {
+      //  for (const_iterator it = bpmap_.begin(); it != bpmap_.end(); ++it)
+      //    if (it->first.Match_WC( types, wc_)) return it;
+      //}
+      return bpmap_.end();
     }
     /// \return size in memory in bytes
     size_t DataSize() const {
@@ -98,6 +117,7 @@ template <class T> class ParmHolder {
   private:
     Bmap bpmap_;
     T previousParm_; ///< When parameter is updated, store previous value.
+    //NameType wc_; ///< Wildcard character
 };
 } // END namespace Parm
 } // END namespace Cpptraj

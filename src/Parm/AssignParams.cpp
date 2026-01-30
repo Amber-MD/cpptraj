@@ -1,5 +1,6 @@
 #include "AssignParams.h"
 #include "GetParams.h"
+#include "ParmArray.h"
 #include "ParmHolder.h"
 #include "DihedralParmHolder.h"
 #include "ImproperParmHolder.h"
@@ -641,7 +642,8 @@ const
   bool hasLJ14 = !new14.empty();
   bool hasLJC = !newLJC.empty();
   // Generate array of only the types that are currently in Topology. TODO should this be a permanent part of Topology?
-  ParmHolder<AtomType> currentAtomTypes;
+  //ParmHolder<AtomType> currentAtomTypes;
+  ParmArray<AtomType> currentAtomTypes;
   for (AtArray::const_iterator atm = topOut.begin(); atm != topOut.end(); ++atm)
   {
     if (atm->HasType()) {
@@ -672,15 +674,15 @@ const
   NonbondParmType& nonbond = topOut.SetNonbond();
   nonbond.Clear();
   // Set type indices in order.
-  for (ParmHolder<AtomType>::iterator t1 = currentAtomTypes.begin(); t1 != currentAtomTypes.end(); ++t1)
+  for (ParmArray<AtomType>::iterator t1 = currentAtomTypes.begin(); t1 != currentAtomTypes.end(); ++t1)
     t1->second.SetTypeIdx( -1 );
   int n_unique_lj_types = 0;
-  for (ParmHolder<AtomType>::iterator t1 = currentAtomTypes.begin(); t1 != currentAtomTypes.end(); ++t1)
+  for (ParmArray<AtomType>::iterator t1 = currentAtomTypes.begin(); t1 != currentAtomTypes.end(); ++t1)
   {
     if (t1->second.OriginalIdx() == -1) {
       t1->second.SetTypeIdx( n_unique_lj_types );
       // Look for equivalent nonbond types
-      for (ParmHolder<AtomType>::iterator t2 = t1 + 1; t2 != currentAtomTypes.end(); ++t2) {
+      for (ParmArray<AtomType>::iterator t2 = t1 + 1; t2 != currentAtomTypes.end(); ++t2) {
         // Everything must match
         if (!hasLJ14) {
           if (t2->second.OriginalIdx() == -1 && t1->second.LJ() == t2->second.LJ()) {
@@ -710,12 +712,12 @@ const
   if (hasLJC)
     nonbond.SetNLJCterms( nonbond.NBarray().size() );
   // Loop over all atom type pairs
-  for (ParmHolder<AtomType>::const_iterator t1 = currentAtomTypes.begin(); t1 != currentAtomTypes.end(); ++t1)
+  for (ParmArray<AtomType>::const_iterator t1 = currentAtomTypes.begin(); t1 != currentAtomTypes.end(); ++t1)
   {
     NameType const& name1 = t1->first[0];
     //mprintf("DEBUG: Type1= %s (%i)\n", *name1, nidx1);
     AtomType const& type1 = t1->second;
-    for (ParmHolder<AtomType>::const_iterator t2 = t1; t2 != currentAtomTypes.end(); ++t2)
+    for (ParmArray<AtomType>::const_iterator t2 = t1; t2 != currentAtomTypes.end(); ++t2)
     {
       NameType const& name2 = t2->first[0];
       //mprintf("DEBUG:\t\tType2= %s (%i)\n", *name2, nidx2);
@@ -774,7 +776,7 @@ const
   for (AtArray::iterator atm = topOut.ModifyAtoms().begin(); atm != topOut.ModifyAtoms().end(); ++atm)
   {
     int tidx = -1;
-    ParmHolder<AtomType>::const_iterator it = currentAtomTypes.GetParam( TypeNameHolder(atm->Type()) );
+    ParmArray<AtomType>::const_iterator it = currentAtomTypes.GetParam( TypeNameHolder(atm->Type()) );
     if (it == currentAtomTypes.end()) {
       mprintf("Warning: Atom type not found for %s (type %s)\n",
               topOut.TruncResAtomNameNum( atm - topOut.ModifyAtoms().begin() ).c_str(),

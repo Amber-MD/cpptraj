@@ -80,8 +80,9 @@ void ParameterSet::Print(CpptrajFile& Out) const {
   if (has_elements)
     Out.Printf(" %2s", "El");
   Out.Printf("\n");
-  for (ParmHolder<AtomType>::const_iterator at = atomTypes_.begin(); at != atomTypes_.end(); ++at) {
-    Out.Printf("\t%6s %8li %2i %12.4f %12.4f %12.4f %12.4f", *(at->first[0]), at - atomTypes_.begin(), (int)at->second.HasLJ(), at->second.LJ().Radius(), at->second.LJ().Depth(), at->second.Mass(), at->second.Polarizability());
+  unsigned int atidx = 0;
+  for (ParmHolder<AtomType>::const_iterator at = atomTypes_.begin(); at != atomTypes_.end(); ++at, atidx++) {
+    Out.Printf("\t%6s %8u %2i %12.4f %12.4f %12.4f %12.4f", *(at->first[0]), atidx, (int)at->second.HasLJ(), at->second.LJ().Radius(), at->second.LJ().Depth(), at->second.Mass(), at->second.Polarizability());
     if (has_hybridizations)
       Out.Printf(" %3s", hybStr[at->second.Hybridization()]);
     if (has_elements)
