@@ -46,6 +46,8 @@ New functionality
 
 - The `permutedihedrals` command will now check rings.
 
+- The `graft` command will now use CONNECT atom information if it is present.
+
 New file formats recognized
 ===========================
 - Read Amber parameter (force field) files.
