@@ -3,7 +3,8 @@
 . ../MasterTest.sh
 
 CleanFiles cpptraj.in Final.graft.mol2 Nucleotide.pdb Nucleotide.charge.mol2 \
-           IC.Final.graft.mol2 IC.Nucleotide.pdb
+           IC.Final.graft.mol2 IC.Nucleotide.pdb Out.mol2 \
+           zFinal.dat zicBaseSugar.dat zicFinal.dat
 TESTNAME='Graft test'
 Requires notparallel
 
@@ -185,11 +186,27 @@ EOF
   DoTest Nucleotide.charge.mol2.save Nucleotide.charge.mol2
 }
 
+# Remove existing N-terminal residue, graft another one on
+RemoveAndGraft() {
+  cat > cpptraj.in <<EOF
+parm ../tz2.parm7
+loadcrd ../tz2.rst7 name MyMol
+readdata NALA.lib name NALA
+crdaction MyMol strip :1
+graft src NALA[NALA] tgt MyMol ic bond :1@N,:1@C name Out
+crdout Out Out.mol2
+quit
+EOF
+  RunCpptraj "Remove an existing residue and graft on a new one."
+  DoTest Out.mol2.save Out.mol2
+}
+
 TyrPry
 TyrPryIC
 DNA
 DNAic
 DNAcharge
+RemoveAndGraft
 
 EndTest
 exit 0

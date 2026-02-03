@@ -1,0 +1,105 @@
+!!index array str
+ "NALA"
+!entry.NALA.unit.atoms table  str name  str type  int typex  int resx  int flags  int seq  int elmnt  dbl chg
+ "N" "N3" 0 1 131072 1 7 0.141400
+ "H1" "H" 0 1 131072 2 1 0.199700
+ "H2" "H" 0 1 131072 3 1 0.199700
+ "H3" "H" 0 1 131072 4 1 0.199700
+ "CA" "CX" 0 1 131072 5 6 0.096200
+ "HA" "HP" 0 1 131072 6 1 0.088900
+ "CB" "CT" 0 1 131072 7 6 -0.059700
+ "HB1" "HC" 0 1 131072 8 1 0.030000
+ "HB2" "HC" 0 1 131072 9 1 0.030000
+ "HB3" "HC" 0 1 131072 10 1 0.030000
+ "C" "C" 0 1 131072 11 6 0.616300
+ "O" "O" 0 1 131072 12 8 -0.572200
+!entry.NALA.unit.atomspertinfo table  str pname  str ptype  int ptypex  int pelmnt  dbl pchg
+ "N" "N3" 0 -1 0.0
+ "H1" "H" 0 -1 0.0
+ "H2" "H" 0 -1 0.0
+ "H3" "H" 0 -1 0.0
+ "CA" "CX" 0 -1 0.0
+ "HA" "HP" 0 -1 0.0
+ "CB" "CT" 0 -1 0.0
+ "HB1" "HC" 0 -1 0.0
+ "HB2" "HC" 0 -1 0.0
+ "HB3" "HC" 0 -1 0.0
+ "C" "C" 0 -1 0.0
+ "O" "O" 0 -1 0.0
+!entry.NALA.unit.boundbox array dbl
+ -1.000000
+ 0.0
+ 0.0
+ 0.0
+ 0.0
+!entry.NALA.unit.childsequence single int
+ 2
+!entry.NALA.unit.connect array int
+ 0
+ 11
+!entry.NALA.unit.connectivity table  int atom1x  int atom2x  int flags
+ 1 2 1
+ 1 3 1
+ 1 4 1
+ 1 5 1
+ 5 6 1
+ 5 7 1
+ 5 11 1
+ 7 8 1
+ 7 9 1
+ 7 10 1
+ 11 12 1
+!entry.NALA.unit.hierarchy table  str abovetype  int abovex  str belowtype  int belowx
+ "U" 0 "R" 1
+ "R" 1 "A" 1
+ "R" 1 "A" 2
+ "R" 1 "A" 3
+ "R" 1 "A" 4
+ "R" 1 "A" 5
+ "R" 1 "A" 6
+ "R" 1 "A" 7
+ "R" 1 "A" 8
+ "R" 1 "A" 9
+ "R" 1 "A" 10
+ "R" 1 "A" 11
+ "R" 1 "A" 12
+!entry.NALA.unit.name single str
+ "NALA"
+!entry.NALA.unit.positions table  dbl x  dbl y  dbl z
+ 3.325770 1.547909 -1.607204E-06
+ 4.046154 0.839991 -2.855245E-06
+ 2.823094 1.499508 -0.874687
+ 2.823097 1.499507 0.874685
+ 3.970048 2.845795 -1.311163E-07
+ 3.671663 3.400129 -0.889820
+ 3.576965 3.653838 1.232143
+ 3.877484 3.115795 2.131197
+ 4.075059 4.623017 1.205786
+ 2.496995 3.801075 1.241379
+ 5.485541 2.705207 -4.398755E-06
+ 6.008824 1.593175 -8.449768E-06
+!entry.NALA.unit.residueconnect table  int c1x  int c2x  int c3x  int c4x  int c5x  int c6x
+ 0 11 0 0 0 0
+!entry.NALA.unit.residues table  str name  int seq  int childseq  int startatomx  str restype  int imagingx
+ "NALA" 1 13 1 "p" 0
+!entry.NALA.unit.residuesPdbSequenceNumber array int
+ 0
+!entry.NALA.unit.solventcap array dbl
+ -1.000000
+ 0.0
+ 0.0
+ 0.0
+ 0.0
+!entry.NALA.unit.velocities table  dbl x  dbl y  dbl z
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
+ 0.0 0.0 0.0
