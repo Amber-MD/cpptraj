@@ -15,8 +15,6 @@ New Commands
 
 New Keywords
 ============
-- FIXME check this: Introduce the `byatom` keyword to `checkchirality` action to check the chirality of any atoms in specified mask that are chiral centers.
-
 - Introduce ring intersection check to `checkstructure` action.
 ```
 {noringcheck | [ringshortdist <rsdist>] [ringdcut <ringdcut>]
@@ -35,6 +33,8 @@ Add `namemap <mapset>` keywords for `change atomname from <mask>` to use an atom
 Add `gb` to `change` command to chang GB radii.
 
 Add `complete` keyword to `zmatrix` command to get complete zmatrix instead of minimal zmatrix.
+
+Add `atombondorder` keyword to mol2 output; sort bonds by first atom index (similar to how leap writes mol2 files).
 
 New functionality
 =================
@@ -71,3 +71,9 @@ Misc Fixes
 - Improve handling of very large topology files.
 
 - Better handling of very small boxes with pairlist code.
+
+Not Yet Ready
+=============
+- Introduce the `byatom` keyword to `checkchirality` action to check the chirality of any atoms in specified mask that are chiral centers.
+
+
