@@ -1,4 +1,5 @@
 #include "Exec_Graft.h"
+#include "AssociatedData_Connect.h"
 #include "CharMask.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Coords.h"
@@ -89,6 +90,25 @@ int Exec_Graft::select_bond_idx(std::string const& bond0maskstr, Topology const&
   return bondmask0[0];
 }
 
+/** Get connect atoms from associated data */
+Exec_Graft::Iarray Exec_Graft::getConnectAtoms( AssociatedData* ad )
+{
+  if (ad == 0) return Iarray();
+  AssociatedData_Connect const& CONN = static_cast<AssociatedData_Connect const&>( *ad );
+  return CONN.Connect();
+}
+
+/** Print connect atoms to stdout */
+void Exec_Graft::print_connect(const char* desc, Iarray const& connect, Topology const& top)
+{
+  if (connect.empty()) return;
+  mprintf("\t  %s :", desc);
+  for (Iarray::const_iterator it = connect.begin(); it != connect.end(); ++it)
+    if (*it > -1)
+      mprintf(" %s", top.AtomMaskName(*it).c_str());
+  mprintf("\n");
+}
+
 // Exec_Graft::Help()
 void Exec_Graft::Help() const
 {
@@ -113,10 +133,14 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
   Frame mol1frm;
   DataSet_Coords* mol1crd = get_crd(argIn, State.DSL(), "src", "Source COORDS", mol1frm, "srcframe");
   if (mol1crd == 0) return CpptrajState::ERR;
+  AssociatedData* ad1 = mol1crd->GetAssociatedData(AssociatedData::CONNECT);
+  Iarray connect1 = getConnectAtoms( ad1 );
   // Target (0, base)
   Frame mol0frm;
   DataSet_Coords* mol0crd = get_crd(argIn, State.DSL(), "tgt", "Target COORDS", mol0frm, "tgtframe");
   if (mol0crd == 0) return CpptrajState::ERR;
+  AssociatedData* ad0 = mol0crd->GetAssociatedData(AssociatedData::CONNECT);
+  Iarray connect0 = getConnectAtoms( ad0 );
 
   // Create output coords
   std::string kw = argIn.GetStringKey("name");
@@ -192,7 +216,9 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
 
   // Info
   mprintf("\tSource coords   : %s\n", mol1crd->legend());
+  print_connect("Source connect atoms", connect1, mol1crd->Top());
   mprintf("\tTarget coords   : %s\n", mol0crd->legend());
+  print_connect("Target connect atoms", connect0, mol0crd->Top());
   mprintf("\tOutput coords   : %s\n", outCoords->legend());
   mprintf("\tSource mask     :");
   mol1Mask.BriefMaskInfo();
@@ -234,6 +260,36 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   if (use_ic) {
+    if (bond0ArgStrings.empty()) {
+      // Do we have connect atoms?
+      if (!connect0.empty() && !connect1.empty()) {
+        // We have connect atoms.
+        int tail0 = -1;
+        int tail1 = -1;
+        int head0 = connect0[0];
+        int head1 = connect1[0];
+        if (connect0.size() > 1) tail0 = connect0[1];
+        if (connect1.size() > 1) tail1 = connect1[1];
+        // If we only have one of each that is easy
+        if (head0 != -1 && tail0 == -1 && head1 == -1 && tail1 != -1) {
+          // Head0, tail1
+          bond0ArgStrings.push_back( mol0crd->Top().AtomMaskName(head0) );
+          bond1ArgStrings.push_back( mol1crd->Top().AtomMaskName(tail1) );
+        } else if (head0 == -1 && tail0 != -1 && head1 != -1 && tail1 == -1) {
+          // Head1, tail0
+          bond0ArgStrings.push_back( mol0crd->Top().AtomMaskName(tail0) );
+          bond1ArgStrings.push_back( mol1crd->Top().AtomMaskName(head1) );
+        } else if (head0 != -1 && tail0 != -1 && head1 != -1 && tail1 != -1) {
+          // Default head of source (1) to tail of target (0)
+          bond0ArgStrings.push_back( mol0crd->Top().AtomMaskName(tail0) );
+          bond1ArgStrings.push_back( mol1crd->Top().AtomMaskName(head1) );
+        } else {
+          mprinterr("Error: No bonds specified and not enough CONNECT atoms:\n");
+          mprinterr("Error: head0 %i tail0 %i head1 %i tail1 %i\n", head0+1, tail0+1, head1+1, tail1+1);
+          return CpptrajState::ERR;
+        }
+      }
+    }
     // Get internals for both topologies before they are modified.
     get_original_orientations(mol0crd->Top(), mol0frm, mol1crd->Top(), mol1frm,
                               mol0Mask, mol1Mask, bond0ArgStrings, bond1ArgStrings);

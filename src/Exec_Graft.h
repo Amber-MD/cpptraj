@@ -12,6 +12,10 @@ class Exec_Graft : public Exec {
   private:
     typedef std::vector<int> Iarray;
     typedef std::vector<std::string> Sarray;
+    /// \return Array of connect atoms from associated data
+    static Iarray getConnectAtoms(AssociatedData*);
+    /// print connect atoms to stdout
+    static void print_connect(const char*, Iarray const&, Topology const&);
     /// Select bond index from expression in given topology
     static int select_bond_idx(std::string const&, Topology const&); 
     /// Modify topology and frame according to mask expression
