@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles cpptraj.in Final.graft.mol2 Nucleotide.pdb Nucleotide.charge.mol2 \
-           IC.Final.graft.mol2 IC.Nucleotide.pdb Out.mol2 \
+           IC.Final.graft.mol2 IC.Nucleotide.pdb Out.mol2 Out2.mol2 \
            zFinal.dat zicBaseSugar.dat zicFinal.dat
 TESTNAME='Graft test'
 Requires notparallel
@@ -193,12 +193,26 @@ parm ../tz2.parm7
 loadcrd ../tz2.rst7 name MyMol
 readdata NALA.lib name NALA
 crdaction MyMol strip :1
+dataset MyMol connect headmask :1@N
 graft src NALA[NALA] tgt MyMol ic bond :1@N,:1@C name Out
+graft src NALA[NALA] tgt MyMol ic name Out2
 crdout Out Out.mol2
+crdout Out2 Out2.mol2
 quit
 EOF
   RunCpptraj "Remove an existing residue and graft on a new one."
   DoTest Out.mol2.save Out.mol2
+  DoTest Out.mol2.save Out2.mol2
+}
+
+# Graft residues with CONNECT atoms
+GraftWithConnect() {
+  cat > cpptraj.in <<EOF
+readdata ALA.ARG.lib name LIB
+graft src LIB[ARG] tgt LIB[ALA] ic name Mol
+crdout Mol ala.arg.mol2
+EOF
+  RunCpptraj "Graft residues with CONNECT atoms"
 }
 
 TyrPry
@@ -207,6 +221,7 @@ DNA
 DNAic
 DNAcharge
 RemoveAndGraft
+GraftWithConnect
 
 EndTest
 exit 0
