@@ -6,10 +6,11 @@
 #include "Structure/Chirality.h"
 
 void Action_CheckChirality::Help() const {
-  mprintf("\t[<name>] [<mask1>] [out <filename>] [byatom]\n"
-          "  Check the chirality of amino acid residues in <mask1>.\n"
-          "  If 'byatom' is specified, check the chirality of any atoms in\n"
-          "  <mask1> that are chiral centers.\n");
+  //mprintf("\t[<name>] [<mask1>] [out <filename>] [byatom]\n"
+  mprintf("\t[<name>] [<mask1>] [out <filename>]\n"
+          "  Check the chirality of amino acid residues in <mask1>.\n");
+//          "  If 'byatom' is specified, check the chirality of any atoms in\n"
+//          "  <mask1> that are chiral centers.\n");
 }
 
 /** CONSTRUCTOR */
@@ -28,7 +29,8 @@ Action::RetType Action_CheckChirality::Init(ArgList& actionArgs, ActionInit& ini
   debug_ = debugIn;
   // Get keywords
   outfile_ = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
-  byatom_ = actionArgs.hasKey("byatom");
+  //byatom_ = actionArgs.hasKey("byatom");i //FIXME - not ready for primetime, needs more testing
+  byatom_ = false;
   // Get Masks
   if (Mask1_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
   // Set up DataSets
