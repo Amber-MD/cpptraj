@@ -175,7 +175,7 @@ double Energy_Amber::Calc_14_Energy(Frame const& fIn, DihedralArray const& Dihed
       double rij = sqrt( rij2 );
       // VDW
       NonbondType const& LJ = tIn.GetLJparam(d->A1(), d->A4());
-      double e_vdw = Cpptraj::Energy::Ene_LJ_6_12( rij2, LJ.A(), LJ.B() );
+      double e_vdw = Cpptraj::Energy::Ene_LJ_12_6_4( rij2, LJ.A(), LJ.B(), LJ.C() );
 /*      double r2    = 1.0 / rij2;
       double r6    = r2 * r2 * r2;
       double r12   = r6 * r6;
@@ -235,7 +235,7 @@ double Energy_Amber::E_Nonbond(Frame const& fIn, Topology const& tIn, AtomMask c
         double rij = sqrt( rij2 );
         // VDW
         NonbondType const& LJ = tIn.GetLJparam(atom1, atom2);
-        double e_vdw = Cpptraj::Energy::Ene_LJ_6_12( rij2, LJ.A(), LJ.B() );
+        double e_vdw = Cpptraj::Energy::Ene_LJ_12_6_4( rij2, LJ.A(), LJ.B(), LJ.C() );
         /*double r2    = 1.0 / rij2;
         double r6    = r2 * r2 * r2;
         double r12   = r6 * r6;
@@ -295,7 +295,7 @@ double Energy_Amber::E_VDW(Frame const& fIn, Topology const& tIn, AtomMask const
         double rij2 = DIST2_NoImage( crd1, fIn.XYZ( atom2 ) );
         // VDW
         NonbondType const& LJ = tIn.GetLJparam(atom1, atom2);
-        double e_vdw = Cpptraj::Energy::Ene_LJ_6_12( rij2, LJ.A(), LJ.B() );
+        double e_vdw = Cpptraj::Energy::Ene_LJ_12_6_4( rij2, LJ.A(), LJ.B(), LJ.C() );
         /*double r2    = 1.0 / rij2;
         double r6    = r2 * r2 * r2;
         double r12   = r6 * r6;
