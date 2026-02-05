@@ -45,7 +45,7 @@ class PairListEngine_Ewald_Decomp_LJLR {
       if (nbindex > -1) {
         double vswitch = EW_.Switch_Fn(rij2);
         NonbondType const& LJ = EW_.GetLJ( nbindex );
-        T e_vdw = Cpptraj::Energy::Ene_LJ_12_6_4<T>(rij2, LJ.A(), LJ.B(), LJ.C());
+        T e_vdw = Cpptraj::Energy::Ene_LJ_6_12<T>(rij2, LJ.A(), LJ.B());
         e_vdw *= vswitch;
         Evdw_ += e_vdw;
         e_half = e_vdw * 0.5;
