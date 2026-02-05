@@ -36,6 +36,8 @@ class Energy_Amber {
                              CharMask const&);
     double Calc_14_Energy(Frame const&, DihedralArray const&, DihedralParmArray const&,
                           Topology const&, CharMask const&, double&);
+    double Calc_14_Energy_LJC(Frame const&, DihedralArray const&, DihedralParmArray const&,
+                          Topology const&, CharMask const&, double&);
 
     int debug_;
 };

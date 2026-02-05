@@ -10,6 +10,7 @@
 #include "Energy/Ene_Angle.h"
 #include "Energy/Ene_Bond.h"
 #include "Energy/Ene_LJ_6_12.h"
+#include "Energy/Ene_LJ_12_6_4.h"
 
 // CONSTRUCTOR
 Energy_Amber::Energy_Amber() : debug_(0) {}
@@ -192,6 +193,49 @@ double Energy_Amber::Calc_14_Energy(Frame const& fIn, DihedralArray const& Dihed
 #     ifdef DEBUG_ENERGY
       mprintf("\tEVDW14  %4i -- %4i: A=  %12.5e  B=  %12.5e  r2= %12.5f  E= %12.5e\n",
               d->A1()+1, d->A4()+1, LJ.A(), LJ.B(), rij2, e_vdw);
+      mprintf("\tEELEC14 %4i -- %4i: q1= %12.5e  q2= %12.5e  r=  %12.5f  E= %12.5e\n",
+              d->A1()+1, d->A4()+1, tIn[d->A1()].Charge(), tIn[d->A4()].Charge(),
+              rij, e_elec);
+#     endif
+    }
+  }
+  return Evdw14;
+}
+
+// Energy_Amber::Calc_14_Energy_LJC()
+double Energy_Amber::Calc_14_Energy_LJC(Frame const& fIn, DihedralArray const& Dihedrals,
+                                        DihedralParmArray const& DPA, Topology const& tIn,
+                                        CharMask const& mask, double& Eq14)
+{
+  double Evdw14 = 0.0;
+  for (DihedralArray::const_iterator d = Dihedrals.begin(); d != Dihedrals.end(); d++)
+  {
+    if (d->Type() == DihedralType::NORMAL &&
+        mask.AtomInCharMask(d->A1()) && mask.AtomInCharMask(d->A4()))
+    {
+      int dpidx = d->Idx();
+      if (dpidx < 0) {
+        if (debug_ > 0)
+          mprintf("Warning: 1-4 pair %i -- %i has no parameters.\n", d->A1()+1, d->A4()+1);
+        continue;
+      }
+      DihedralParmType const& dp = DPA[dpidx];
+      double rij2 = DIST2_NoImage( fIn.XYZ(d->A1()), fIn.XYZ(d->A4()) );
+      double rij = sqrt( rij2 );
+      // VDW
+      double LJC = 0;
+      NonbondType const& LJ = tIn.GetLJCparam(LJC, d->A1(), d->A4());
+      double e_vdw = Cpptraj::Energy::Ene_LJ_12_6_4( rij2, LJ.A(), LJ.B(), LJC );
+      e_vdw /= dp.SCNB();
+      Evdw14 += e_vdw;
+      // Coulomb
+      double qiqj = Constants::COULOMBFACTOR * tIn[d->A1()].Charge() * tIn[d->A4()].Charge();
+      double e_elec = qiqj / rij;
+      e_elec /= dp.SCEE();
+      Eq14 += e_elec;
+#     ifdef DEBUG_ENERGY
+      mprintf("\tEVDW14  %4i -- %4i: A=  %12.5e  B=  %12.5e  C=  %12.5e  r2= %12.5f  E= %12.5e\n",
+              d->A1()+1, d->A4()+1, LJ.A(), LJ.B(), LJC, rij2, e_vdw);
       mprintf("\tEELEC14 %4i -- %4i: q1= %12.5e  q2= %12.5e  r=  %12.5f  E= %12.5e\n",
               d->A1()+1, d->A4()+1, tIn[d->A1()].Charge(), tIn[d->A4()].Charge(),
               rij, e_elec);

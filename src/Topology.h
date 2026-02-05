@@ -185,6 +185,8 @@ class Topology {
     double GetVDWdepth(int) const;
     /// \return Lennard-Jones 6-12 parameters for given pair of atoms
     inline NonbondType const& GetLJparam(int, int) const;
+    /// \return Lennard-Jones 6-12 parameters for given pair of atoms, set the LJC parameter
+    inline NonbondType const& GetLJCparam(double&, int, int) const;
     /// \return True if any charge is non-zero
     bool HasChargeInfo() const;
     /// \return Total charge
@@ -414,6 +416,16 @@ NonbondType const& Topology::GetLJparam(int a1, int a2) const {
   int nbindex = nonbond_.GetLJindex( atoms_[a1].TypeIndex(), atoms_[a2].TypeIndex() );
   if (nbindex < 0) // Means Amber Hbond, return A = B = 0.0
     return LJ_EMPTY;
+  return nonbond_.NBarray( nbindex );
+}
+NonbondType const& Topology::GetLJCparam(double& LJC, int a1, int a2) const {
+  int nbindex = nonbond_.GetLJindex( atoms_[a1].TypeIndex(), atoms_[a2].TypeIndex() );
+  if (nbindex < 0) // Means Amber Hbond, return A = B = 0.0
+    return LJ_EMPTY;
+  if (nonbond_.Has_C_Coeff())
+    LJC = nonbond_.LJC_Array(nbindex);
+  else
+    LJC = 0;
   return nonbond_.NBarray( nbindex );
 }
 // -----------------------------------------------------------------------------
