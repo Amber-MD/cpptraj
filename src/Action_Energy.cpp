@@ -468,7 +468,7 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
         break;
       case C_NBD: // Both nonbond terms must be enabled 
         time_NB_.Start();
-        ene = ENE_.E_Nonbond(frm.Frm(), *currentParm_, Imask_, ene2, Excluded_);
+        ene = ENE_.E_Nonbond(frm.Frm(), *currentParm_, Imask_, ene2, Excluded_, lj1264_);
         time_NB_.Stop();
         Energy_[VDW]->Add(frameNum, &ene);
         Energy_[ELEC]->Add(frameNum, &ene2);
