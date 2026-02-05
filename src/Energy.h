@@ -16,7 +16,7 @@ class Energy_Amber {
     double E_angle(Frame const&, Topology const&, CharMask const&);
     double E_torsion(Frame const&, Topology const&, CharMask const&);
     double E_14_Nonbond(Frame const&, Topology const&, CharMask const&, double&, bool);
-    double E_Nonbond(Frame const&, Topology const&, AtomMask const&, double&, ExclusionArray const&);
+    double E_Nonbond(Frame const&, Topology const&, AtomMask const&, double&, ExclusionArray const&, bool);
     double E_VDW(Frame const&, Topology const&, AtomMask const&, ExclusionArray const&);
     double E_Elec(Frame const&, Topology const&, AtomMask const&, ExclusionArray const&);
 
@@ -38,6 +38,8 @@ class Energy_Amber {
                           Topology const&, CharMask const&, double&);
     double Calc_14_Energy_LJC(Frame const&, DihedralArray const&, DihedralParmArray const&,
                           Topology const&, CharMask const&, double&);
+    double E_Nonbond_6_12(Frame const&, Topology const&, AtomMask const&, double&, ExclusionArray const&);
+    double E_Nonbond_LJC(Frame const&, Topology const&, AtomMask const&, double&, ExclusionArray const&);
 
     int debug_;
 };
