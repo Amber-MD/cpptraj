@@ -370,7 +370,7 @@ void EnergyDecomposer::calcDihedrals( Frame const& frameIn ) {
       // 1-4 vdw energy
       double rij2 = DIST2_NoImage( frameIn.XYZ(dih->A1()), frameIn.XYZ(dih->A4()) );
       NonbondType const& LJ = currentTop_->GetLJparam(dih->A1(), dih->A4());
-      double e_vdw = Ene_LJ_12_6_4( rij2, LJ.A(), LJ.B(), LJ.C() );
+      double e_vdw = Ene_LJ_6_12( rij2, LJ.A(), LJ.B() );
       e_vdw /= DP.SCNB();
 #     ifdef CPPTRAJ_DEBUG_ENEDECOMP
       mprintf("DEBUG: V14 %f\n", e_vdw);
