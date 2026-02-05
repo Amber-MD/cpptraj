@@ -145,12 +145,19 @@ double Energy_Amber::CalcTorsionEnergy(Frame const& fIn, DihedralArray const& Di
 // -----------------------------------------------------------------------------
 /** 1-4 nonbond energy */
 double Energy_Amber::E_14_Nonbond(Frame const& fIn, Topology const& tIn, CharMask const& mask,
-                                  double& Eq14)
+                                  double& Eq14, bool lj1264)
 {
   Eq14 = 0.0;
-  // Heavy atom dihedrals
-  double Evdw14 = Calc_14_Energy(fIn, tIn.Dihedrals(), tIn.DihedralParm(), tIn, mask, Eq14);
-  Evdw14 += Calc_14_Energy(fIn, tIn.DihedralsH(), tIn.DihedralParm(), tIn, mask, Eq14);
+  double Evdw14;
+  if (lj1264) {
+    Evdw14 = Calc_14_Energy_LJC(fIn, tIn.Dihedrals(), tIn.DihedralParm(), tIn, mask, Eq14);
+    Evdw14 += Calc_14_Energy_LJC(fIn, tIn.DihedralsH(), tIn.DihedralParm(), tIn, mask, Eq14);
+  } else {
+    // Heavy atom dihedrals
+    Evdw14 = Calc_14_Energy(fIn, tIn.Dihedrals(), tIn.DihedralParm(), tIn, mask, Eq14);
+    // Dihedrals including hydrogen
+    Evdw14 += Calc_14_Energy(fIn, tIn.DihedralsH(), tIn.DihedralParm(), tIn, mask, Eq14);
+  }
   return Evdw14;
 }
 

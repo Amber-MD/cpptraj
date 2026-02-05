@@ -15,7 +15,7 @@ class Energy_Amber {
     double E_bond(Frame const&, Topology const&, CharMask const&, bool);
     double E_angle(Frame const&, Topology const&, CharMask const&);
     double E_torsion(Frame const&, Topology const&, CharMask const&);
-    double E_14_Nonbond(Frame const&, Topology const&, CharMask const&, double&);
+    double E_14_Nonbond(Frame const&, Topology const&, CharMask const&, double&, bool);
     double E_Nonbond(Frame const&, Topology const&, AtomMask const&, double&, ExclusionArray const&);
     double E_VDW(Frame const&, Topology const&, AtomMask const&, ExclusionArray const&);
     double E_Elec(Frame const&, Topology const&, AtomMask const&, ExclusionArray const&);
