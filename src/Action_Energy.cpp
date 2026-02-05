@@ -18,7 +18,9 @@ Action_Energy::Action_Energy() :
   dt_(0),
   need_lj_params_(false),
   needs_exclList_(false),
-  bondsToH_(true)
+  bondsToH_(true),
+  lj1264_(false),
+  useLj1264_(false)
 {}
 
 /// DESTRUCTOR
@@ -29,7 +31,7 @@ Action_Energy::~Action_Energy() {
 void Action_Energy::Help() const {
   mprintf("\t[<name>] [<mask1>] [out <filename>] [nobondstoh] [openmm [<mdopts>]]\n"
           "\t[bond] [angle] [dihedral] {[nb14]|[e14]|[v14]} {[nonbond] | [elec] [vdw]}\n"
-          "\t[{nokinetic|kinetic [ketype {vel|vv}] [dt <dt>]}]\n"
+          "\t[{nokinetic|kinetic [ketype {vel|vv}] [dt <dt>]}] [lj1264]\n"
           "\t[ etype { simple |\n"
           "\t          directsum [npoints <N>] |\n"
           "\t          ewald %s\n"
@@ -99,6 +101,8 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
     return Action::ERR;
 #   endif /* HAS_OPENMM */
   }
+  // LJ 12-6-4
+  useLj1264_ = actionArgs.hasKey("lj1264");
   // Determine which energy terms are active 
   std::vector<bool> termEnabled((int)TOTAL+1, false);
   if (use_openmm_) {
@@ -290,6 +294,8 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
   } else {
     if (termEnabled[BOND] && !bondsToH_)
       mprintf("\tNot calculating energy of bonds to hydrogen.\n");
+    if (useLj1264_)
+      mprintf("\tWill use LJ 12-6-4 (C) coefficients if present.\n");
     if (elecType_ != NO_ELE)
       mprintf("\tElectrostatics method: %s\n", ElecStr[elecType_]);
     if (elecType_ == DIRECTSUM) {
@@ -343,11 +349,24 @@ Action::RetType Action_Energy::Setup(ActionSetup& setup) {
 
   Imask_ = AtomMask(Mask1_.ConvertToIntMask(), Mask1_.Natom());
   // Check for LJ terms
-  if (need_lj_params_ && !setup.Top().Nonbond().HasNonbond())
-  {
-    mprinterr("Error: LJ energy calc requested but topology '%s'\n"
-              "Error:   does not have LJ parameters.\n", setup.Top().c_str());
-    return Action::ERR;
+  lj1264_ = false;
+  if (need_lj_params_) {
+    if (!setup.Top().Nonbond().HasNonbond())
+    {
+      mprinterr("Error: LJ energy calc requested but topology '%s'\n"
+                "Error:   does not have LJ parameters.\n", setup.Top().c_str());
+      return Action::ERR;
+    }
+    if (useLj1264_) {
+      if (setup.Top().Nonbond().Has_C_Coeff())
+        lj1264_ = true;
+      else
+        mprintf("Warning: 'lj1264' specified but no LJ 12-6-4 (C) terms present in topology '%s'\n", setup.Top().c_str());
+    } else {
+      if (setup.Top().Nonbond().Has_C_Coeff()) {
+        mprintf("Warning: Topology has LJ C coefficients. To use these, specify 'lj1264'\n");
+      }
+    }
   }
   // Set up exclusion list if necessary.
   if (needs_exclList_) {
@@ -440,7 +459,7 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
         break;
       case C_N14:
         time_14_.Start();
-        ene = ENE_.E_14_Nonbond(frm.Frm(), *currentParm_, Mask1_, ene2);
+        ene = ENE_.E_14_Nonbond(frm.Frm(), *currentParm_, Mask1_, ene2, lj1264_);
         time_14_.Stop();
         if (Energy_[V14] != 0) Energy_[V14]->Add(frameNum, &ene);
         if (Energy_[Q14] != 0) Energy_[Q14]->Add(frameNum, &ene2);

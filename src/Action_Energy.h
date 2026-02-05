@@ -61,6 +61,8 @@ class Action_Energy: public Action {
     bool need_lj_params_;          ///< True if LJ parameters needed.
     bool needs_exclList_;          ///< True if Excluded_ needs to be set up.
     bool bondsToH_;                ///< True if we want to calculate energy of bonds with H
+    bool lj1264_;                  ///< True if LJ 12-6-4 (C) terms are active
+    bool useLj1264_;               ///< True if we want to use LJ 12-6-4 (C) terms if present
     Timer time_total_;
     Timer time_bond_;
     Timer time_angle_;
