@@ -358,9 +358,10 @@ Action::RetType Action_Energy::Setup(ActionSetup& setup) {
       return Action::ERR;
     }
     if (useLj1264_) {
-      if (setup.Top().Nonbond().Has_C_Coeff())
+      if (setup.Top().Nonbond().Has_C_Coeff()) {
         lj1264_ = true;
-      else
+        mprintf("\tLJ 12-6-4 (C) terms are active.\n");
+      } else
         mprintf("Warning: 'lj1264' specified but no LJ 12-6-4 (C) terms present in topology '%s'\n", setup.Top().c_str());
     } else {
       if (setup.Top().Nonbond().Has_C_Coeff()) {
