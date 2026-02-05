@@ -476,7 +476,7 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
         break;
       case C_LJ:
         time_NB_.Start();
-        ene = ENE_.E_VDW(frm.Frm(), *currentParm_, Imask_, Excluded_);
+        ene = ENE_.E_VDW(frm.Frm(), *currentParm_, Imask_, Excluded_, lj1264_);
         time_NB_.Stop();
         Energy_[VDW]->Add(frameNum, &ene);
         Etot += ene;

@@ -383,6 +383,16 @@ double Energy_Amber::E_Nonbond_LJC(Frame const& fIn, Topology const& tIn, AtomMa
 
 // -----------------------------------------------------------------------------
 double Energy_Amber::E_VDW(Frame const& fIn, Topology const& tIn, AtomMask const& mask,
+                           ExclusionArray const& Excluded, bool lj1264)
+{
+  if (lj1264)
+    return E_VDW_LJC(fIn, tIn, mask, Excluded);
+  else
+    return E_VDW_6_12(fIn, tIn, mask, Excluded);
+}
+
+// E_VDW_6_12
+double Energy_Amber::E_VDW_6_12(Frame const& fIn, Topology const& tIn, AtomMask const& mask,
                            ExclusionArray const& Excluded)
 {
   double Evdw = 0.0;
@@ -423,6 +433,53 @@ double Energy_Amber::E_VDW(Frame const& fIn, Topology const& tIn, AtomMask const
 #       ifdef DEBUG_ENERGY
         mprintf("\tEVDW  %4i -- %4i: A=  %12.5e  B=  %12.5e  r2= %12.5f  E= %12.5e\n",
                 atom1+1, atom2+1, LJ.A(), LJ.B(), rij2, e_vdw);
+#       endif
+      }
+    }
+  }
+# ifdef _OPENMP
+  } // END omp parallel
+# endif
+  return Evdw;
+}
+
+// E_VDW_LJC
+double Energy_Amber::E_VDW_LJC(Frame const& fIn, Topology const& tIn, AtomMask const& mask,
+                           ExclusionArray const& Excluded)
+{
+  double Evdw = 0.0;
+  int idx1;
+# ifdef _OPENMP
+# pragma omp parallel private(idx1) reduction(+ : Evdw)
+  {
+# pragma omp for
+# endif
+  for (idx1 = 0; idx1 < mask.Nselected(); idx1++)
+  {
+    int atom1 = mask[idx1];
+    // Set up coord for this atom
+    const double* crd1 = fIn.XYZ( atom1 );
+    // Set up exclusion list for this atom
+    // TODO refactor inner loop to be more like StructureCheck
+    ExclusionArray::ExListType::const_iterator excluded_idx = Excluded[idx1].begin();
+    for (int idx2 = idx1 + 1; idx2 < mask.Nselected(); idx2++)
+    {
+      int atom2 = mask[idx2];
+      // Advance excluded list up to current selected atom
+      while (excluded_idx != Excluded[idx1].end() && *excluded_idx < idx2) ++excluded_idx;
+      // If atom is excluded, just increment to next excluded atom.
+      if (excluded_idx != Excluded[idx1].end() && idx2 == *excluded_idx)
+        ++excluded_idx;
+      else {
+        double rij2 = DIST2_NoImage( crd1, fIn.XYZ( atom2 ) );
+        // VDW
+        double LJC = 0;
+        NonbondType const& LJ = tIn.GetLJCparam(LJC, atom1, atom2);
+        double e_vdw = Cpptraj::Energy::Ene_LJ_12_6_4( rij2, LJ.A(), LJ.B(), LJC );
+        Evdw += e_vdw;
+#       ifdef DEBUG_ENERGY
+        mprintf("\tEVDW  %4i -- %4i: A=  %12.5e  B=  %12.5e  C=  %12.5e  r2= %12.5f  E= %12.5e\n",
+                atom1+1, atom2+1, LJ.A(), LJ.B(), LJC, rij2, e_vdw);
 #       endif
       }
     }
