@@ -279,12 +279,15 @@ class NonbondType {
 #     define tol_ 0.00000001
       //static const double tol_ = 0.00000001;
   public:
-    NonbondType() : A_(0), B_(0) {}
-    NonbondType(double a, double b) : A_(a), B_(b) {}
+    NonbondType() : A_(0), B_(0), C_(0) {}
+    NonbondType(double a, double b, double c=0.0) : A_(a), B_(b), C_(c) {}
     inline double A() const { return A_; }
     inline double B() const { return B_; }
+    inline double C() const { return C_; }
     void SetA(double a) { A_ = a; }
     void SetB(double b) { B_ = b; }
+    void SetC(double c) { C_ = c; }
+
     double Radius() const {
       if (B_ > 0.0)
         return (0.5 * pow(2.0 * A_ / B_, (1.0/6.0)));
@@ -300,19 +303,23 @@ class NonbondType {
     /// \return True if A and B match
     bool operator==(NonbondType const& rhs) const {
       return ( (fabs(A_ - rhs.A_) < tol_) &&
-               (fabs(B_ - rhs.B_) < tol_) );
+               (fabs(B_ - rhs.B_) < tol_) &&
+               (fabs(C_ - rhs.C_) < tol_) );
     }
     /// \return True if A and B do not match
     bool operator!=(NonbondType const& rhs) const {
       return ( (fabs(A_ - rhs.A_) > tol_) ||
-               (fabs(B_ - rhs.B_) > tol_) );
+               (fabs(B_ - rhs.B_) > tol_) ||
+               (fabs(C_ - rhs.C_) > tol_) );
     }
     /// \return True if A less than zero, or B if A is equal.
     bool operator<(NonbondType const& rhs) const {
       if (*this != rhs) {
-        if ( (fabs(A_ - rhs.A_) < tol_) )
+        if ( (fabs(A_ - rhs.A_) < tol_) ) {
+          if (fabs(B_ - rhs.B_) < tol_)
+            return (C_ < rhs.C_);
           return (B_ < rhs.B_);
-        else
+        } else
           return (A_ < rhs.A_);
       } else
         return false;
@@ -320,6 +327,7 @@ class NonbondType {
   private:
     double A_;
     double B_;
+    double C_;
 #   undef tol_
 };
 typedef std::vector<NonbondType> NonbondArray;
@@ -371,20 +379,20 @@ typedef std::vector<LJparmType> LJparmArray;
   */
 class NonbondParmType {
   public:
-    NonbondParmType() : ntypes_(0) {}
+    NonbondParmType() : ntypes_(0), has_c_param_(false) {}
 //    NonbondParmType(int n, std::vector<int> const& nbi, NonbondArray const& nba,
 //                    HB_ParmArray const& hba) :
 //                      ntypes_(n), nbindex_(nbi), nbarray_(nba), hbarray_(hba) {}
     inline bool HasNonbond()             const { return ntypes_ > 0; }
     inline int Ntypes()                  const { return ntypes_;     }
-    bool Has_C_Coeff()                   const { return !ccoef_.empty(); }
+    bool Has_C_Coeff()                   const { return has_c_param_; }
     std::vector<int> const& NBindex()    const { return nbindex_;    }
     /// \return Array of LJ 12-6 A and B parameters
     NonbondArray     const& NBarray()    const { return nbarray_;    }
     /// \return Array of LJ 10-12 (hbond) parameters
     HB_ParmArray     const& HBarray()    const { return hbarray_;    }
     /// \return Array of LJ 12-6-4 C parameters
-    std::vector<double> const& LJC_Array() const { return ccoef_; }
+    //std::vector<double> const& LJC_Array() const { return ccoef_; }
     /// \return LJ 6-12 A and B parameter at specified index
     NonbondType const& NBarray(int i)    const { return nbarray_[i]; }
     /// \return LJ 10-12 (hbond) parameter at specified index
@@ -406,8 +414,8 @@ class NonbondParmType {
     void SetNHBterms(int n)   { hbarray_.assign( n, HB_ParmType() ); }
     /// Set specified HB term
     HB_ParmType& SetHB(int i) { return hbarray_[i];                  }
-    /// Add a LJ C parameter
-    void AddLJC(double c) { ccoef_.push_back( c ); }
+    /// Set a LJ C parameter
+    void SetLJC(int i, double c) { nbarray_[i].SetC(c); has_c_param_ = true; }
     /// Set specified nbindex location to given value.
     void SetNbIdx(int idx, int nbidx) { nbindex_[idx] = nbidx; }
     /// Add given LJ term to nonbond array and update nonbond index array.
@@ -439,13 +447,13 @@ class NonbondParmType {
       nbindex_[ntypes_ * type2 + type1] = ndx;
       hbarray_.push_back( HB );
     }
-    void Clear() { ntypes_ = 0; nbindex_.clear(); nbarray_.clear(); hbarray_.clear(); }
+    void Clear() { ntypes_ = 0; nbindex_.clear(); nbarray_.clear(); hbarray_.clear(); has_c_param_ = false; }
   private:
     int ntypes_;               ///< Number of unique atom types
     std::vector<int> nbindex_; ///< Hold indices into arrays nbarray/hbarray for atom type pairs
     NonbondArray nbarray_;     ///< Hold Lennard-Jones 6-12 A and B parameters for all pairs.
     HB_ParmArray hbarray_;     ///< Hold 10-12 Amber HBond params for all pairs.
-    std::vector<double> ccoef_; ///< Hold Lennard-Jones C parameters for 12-6-4 LJ potential.
+    bool has_c_param_;         ///< True if Lennard-Jones C parameters for 12-6-4 LJ potential present.
 };
 // ----- LES PARAMETERS --------------------------------------------------------
 /// Hold LES atom parameters

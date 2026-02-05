@@ -38,7 +38,7 @@ void Ene_Decomp_Nonbond(Frame const& fIn, Topology const& tIn, CharMask const& s
           T rij2 = (dx*dx) + (dy*dy) + (dz*dz);
           // VDW
           NonbondType const& LJ = tIn.GetLJparam(atom1, atom2);
-          T e_vdw = Ene_LJ_6_12<T>( rij2, LJ.A(), LJ.B() );
+          T e_vdw = Ene_LJ_12_6_4<T>( rij2, LJ.A(), LJ.B(), LJ.C() );
 #         ifdef CPPTRAJ_DEBUG_ENEDECOMP
           mprintf("DEBUG: VDW %f\n", e_vdw);
 #         endif

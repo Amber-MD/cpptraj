@@ -77,7 +77,7 @@ void PotentialTerm_Dihedral::CalcForce(Frame& frameIn, CharMask const& maskIn) c
       Atom const& A4 = (*atoms_)[dih->A4()];
       int nbindex = nonbond_->GetLJindex( A1.TypeIndex(), A4.TypeIndex() );
       NonbondType const& LJ = nonbond_->NBarray( nbindex );
-      NB14.Calc_F_E( frameIn, dih->A1(), dih->A4(), LJ.A(), LJ.B(),
+      NB14.Calc_F_E( frameIn, dih->A1(), dih->A4(), LJ.A(), LJ.B(), LJ.C(),
                      Constants::COULOMBFACTOR, A1.Charge(), A4.Charge(),
                      1.0/DP.SCNB(), 1.0/DP.SCEE(), maskIn,
                      *Enb14_, *Eq14_);
