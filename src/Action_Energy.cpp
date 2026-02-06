@@ -184,6 +184,13 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
         return Action::ERR;
       if (ewaldOpts_.Type() == EwaldOptions::LJPME)
         nbCalcType_ = Ecalc_Nonbond::LJPME;
+      if (useLj1264_) {
+        if (nbCalcType_ != Ecalc_Nonbond::PME) {
+          mprinterr("Error: 'lj1264' is only compatible with regular PME.\n");
+          return Action::ERR;
+        }
+        nbCalcType_ = Ecalc_Nonbond::LJCPME;
+      }
 #     else
       mprinterr("Error: 'pme' requires compiling with LIBPME (FFTW3 and C++11 support).\n");
       return Action::ERR;
