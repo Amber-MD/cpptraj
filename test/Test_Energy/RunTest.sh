@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles ene.in ene.agr short.dat tz2.dat strip.dat elec.dat vdw.dat
+CleanFiles ene.in ene.agr short.dat tz2.dat strip.dat elec.dat vdw.dat 1d23.lj1264.dat 1d23.dat
 
 INPUT="-i ene.in"
 
@@ -55,6 +55,24 @@ EOF
   DoTest strip.dat.save strip.dat
   DoTest elec.dat.save elec.dat
   DoTest vdw.dat.save vdw.dat
+fi
+
+UNITNAME='Test LJ 12-6-4 energy'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > ene.in <<EOF
+parm ../1d23.tip3p.lj1264.parm7
+trajin ../1d23.tip3p.rst7
+energy out 1d23.dat No1264 \
+  etype pme cut 8.0 dsumtol 0.00001 \
+  order 6 nfft 60,60,60
+energy out 1d23.lj1264.dat Cppt lj1264 \
+  etype pme cut 8.0 dsumtol 0.00001 \
+  order 6 nfft 60,60,60
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest 1d23.dat.save 1d23.dat
+  DoTest 1d23.lj1264.dat.save 1d23.lj1264.dat
 fi
 
 EndTest
