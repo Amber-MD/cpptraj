@@ -3,6 +3,7 @@ ENERGY_SOURCES= \
   Ecalc_Nonbond.cpp \
   EnergyDecomposer.cpp \
   ErfcFxn.cpp \
+  EwaldCalc_Decomp_LJCPME.cpp \
   EwaldCalc_Decomp_LJPME.cpp \
   EwaldCalc_Decomp_PME.cpp \
   EwaldCalc_LJCPME.cpp \
