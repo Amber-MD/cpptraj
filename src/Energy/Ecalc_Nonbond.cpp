@@ -6,6 +6,7 @@
 # include "EwaldCalc_LJCPME.h"
 # include "EwaldCalc_Decomp_LJPME.h"
 # include "EwaldCalc_Decomp_PME.h"
+# include "EwaldCalc_Decomp_LJCPME.h"
 #else
 // TODO This is here for when LIBPME is not defined because there is
 //      currently no decomp version of regular Ewald. If there ever is
@@ -62,8 +63,10 @@ int Ecalc_Nonbond::InitNonbondCalc(CalcType typeIn, bool decompose_energyIn,
         calc_ = new EwaldCalc_LJPME();
       break;
     case LJCPME :
-      // FIXME do decompose energy
-      calc_ = new EwaldCalc_LJCPME();
+      if (decompose_energy_)
+        calc_ = new EwaldCalc_Decomp_LJCPME();
+      else
+        calc_ = new EwaldCalc_LJCPME();
       break;
 #   else
     case PME : mprinterr("Error: PME requires compiling with LIBPME (FFTW3 and C++11 support).\n"); return 1;
