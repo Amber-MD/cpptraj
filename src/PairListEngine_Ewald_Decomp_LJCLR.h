@@ -1,5 +1,5 @@
-#ifndef INC_PAIRLISTENGINE_EWALD_DECOMP_LJLR_H
-#define INC_PAIRLISTENGINE_EWALD_DECOMP_LJLR_H
+#ifndef INC_PAIRLISTENGINE_EWALD_DECOMP_LJCLR_H
+#define INC_PAIRLISTENGINE_EWALD_DECOMP_LJCLR_H
 #include "Energy/Ene_LJ_12_6_4.h"
 #include "Energy/EwaldParams.h"
 #include "Energy/Kernel_EwaldAdjust.h"
@@ -7,10 +7,10 @@
 namespace Cpptraj {
 /// Direct space nonbond calculation using pairlist with decomposable Ewald and VDW LR correction
 template <typename T>
-class PairListEngine_Ewald_Decomp_LJLR {
+class PairListEngine_Ewald_Decomp_LJCLR {
     typedef std::vector<T> Darray;
   public:
-    PairListEngine_Ewald_Decomp_LJLR() {}
+    PairListEngine_Ewald_Decomp_LJCLR() {}
     // -------------------------------------------
     /// Call at the beginning of the frame calculation
     void FrameBeginCalc() { Evdw_ = 0; Eelec_ = 0; Eadjust_ = 0; 
@@ -83,7 +83,7 @@ class PairListEngine_Ewald_Decomp_LJLR {
         lhs[idx] += rhs[idx];
     }
     /// To allow reduction of the energy terms
-    void operator+=(PairListEngine_Ewald_Decomp_LJLR const& rhs) {
+    void operator+=(PairListEngine_Ewald_Decomp_LJCLR const& rhs) {
       Evdw_ += rhs.Evdw_;
       Eelec_ += rhs.Eelec_;
       Eadjust_ += rhs.Eadjust_;
@@ -106,7 +106,7 @@ class PairListEngine_Ewald_Decomp_LJLR {
     Cpptraj::Energy::EwaldParams EW_;          ///< Hold Ewald parameters for PME
 };
 #ifdef _OPENMP
-#pragma omp declare reduction( + : PairListEngine_Ewald_Decomp_LJLR<double> : omp_out += omp_in ) initializer( omp_priv = omp_orig )
+#pragma omp declare reduction( + : PairListEngine_Ewald_Decomp_LJCLR<double> : omp_out += omp_in ) initializer( omp_priv = omp_orig )
 #endif
 } // END namespace Cpptraj
 #endif
