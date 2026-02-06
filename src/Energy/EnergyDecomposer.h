@@ -82,6 +82,8 @@ class EnergyDecomposer {
     DataFile* outfile_;      ///< Output file
     int debug_;              ///< Debug level
     bool saveComponents_;    ///< If true, save per-atom energies for individual energy components 
+    bool lj1264_;            ///< True if LJ 12-6-4 (C) terms are active
+    bool useLj1264_;         ///< True if we want to use LJ 12-6-4 (C) terms if present
     EwaldOptions ewaldOpts_; ///< Hold Ewald options
     Cpptraj::Energy::Ecalc_Nonbond::CalcType nbcalctype_;
 

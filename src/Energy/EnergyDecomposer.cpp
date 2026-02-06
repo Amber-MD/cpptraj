@@ -32,12 +32,14 @@ EnergyDecomposer::EnergyDecomposer() :
   outfile_(0),
   debug_(0),
   saveComponents_(false),
+  lj1264_(false),
+  useLj1264_(false),
   currentTop_(0)
 { }
 
 void EnergyDecomposer::HelpText() {
   mprintf("\t[<name>] [<mask>] [out <filename>] [savecomponents]\n"
-          "\t[ pme %s\n"
+          "\t[ pme %s [lj1264]\n"
           "\t      %s\n"
           "\t      %s\n",
           EwaldOptions::KeywordsCommon1(),
@@ -53,6 +55,8 @@ int EnergyDecomposer::InitDecomposer(ArgList& argIn, DataSetList& DSLin, DataFil
   // Process keywords
   outfile_ = DFLin.AddDataFile( argIn.GetStringKey("out"), argIn );
   saveComponents_ = argIn.hasKey("savecomponents");
+  // LJ 12-6-4
+  useLj1264_ = argIn.hasKey("lj1264");
   nbcalctype_ = Ecalc_Nonbond::SIMPLE;
   if (argIn.hasKey("pme"))
     nbcalctype_ = Ecalc_Nonbond::PME;
@@ -63,10 +67,22 @@ int EnergyDecomposer::InitDecomposer(ArgList& argIn, DataSetList& DSLin, DataFil
       return 1;
     if (ewaldOpts_.Type() == EwaldOptions::LJPME)
       nbcalctype_ = Ecalc_Nonbond::LJPME;
+    if (useLj1264_) {
+      if (nbcalctype_ != Ecalc_Nonbond::PME) {
+        mprinterr("Error: 'lj1264' is only compatible with regular PME.\n");
+        return 1;
+      }
+      nbcalctype_ = Ecalc_Nonbond::LJCPME;
+    }
 #   else
     mprinterr("Error: 'pme' with energy decomposition requires compilation with LIBPME.\n");
     return 1;
 #   endif
+  } else {
+    if (useLj1264_) {
+      mprinterr("Error: 'lj1264' currently requires 'pme'.\n");
+      return 1;
+    }
   }
   // Get atom mask
   if (selectedAtoms_.SetMaskString( argIn.GetMaskNext() ))
@@ -142,6 +158,8 @@ void EnergyDecomposer::PrintOpts() const {
     mprintf("\tOutput file: %s\n", outfile_->DataFilename().full());
   if (nbcalctype_ != Ecalc_Nonbond::SIMPLE) {
     mprintf("\tUsing PME.\n");
+    if (useLj1264_)
+      mprintf("\tWill use LJ 12-6-4 (C) coefficients if present.\n");
     ewaldOpts_.PrintOptions();
   }
 }
@@ -217,6 +235,27 @@ int EnergyDecomposer::SetupDecomposer(Topology const& topIn, Box const& boxIn) {
   if (selectedAtoms_.None()) {
     mprintf("Warning: Nothing selected by mask '%s'\n", selectedAtoms_.MaskString());
     return -1;
+  }
+  // Check for LJ terms
+  lj1264_ = false;
+  if (topIn.Nonbond().HasNonbond())
+  {
+    if (useLj1264_) {
+      if (topIn.Nonbond().Has_C_Coeff()) {
+        lj1264_ = true;
+        mprintf("\tLJ 12-6-4 (C) terms are active.\n");
+      } else
+        mprintf("Warning: 'lj1264' specified but no LJ 12-6-4 (C) terms present in topology '%s'\n", topIn.c_str());
+    } else {
+      if (topIn.Nonbond().Has_C_Coeff()) {
+        mprintf("Warning: Topology has LJ C coefficients. To use these, specify 'lj1264'\n");
+      }
+    }
+  } else {
+    if (useLj1264_) {
+      mprinterr("Error: 'lj1264' specified but no nonbond parameters present.\n");
+      return 1;
+    }
   }
   // Set up calculation arrays
   if (energies_.empty()) {
