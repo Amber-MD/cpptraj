@@ -11,6 +11,8 @@ class CMAP {
   public:
     CMAP();
 
+    /// Setup CMAP splines etc
+    int Setup_CMAP_Ene(Topology const&);
     /// Calculate CMAP energy
     double Ene_CMAP(CmapArray const&, Frame const&) const;
   private:

@@ -14,6 +14,7 @@ Action_Energy::Action_Energy() :
   npoints_(0),
   debug_(0),
   nbCalcType_(Ecalc_Nonbond::UNSPECIFIED),
+  cmap_(0),
   potential_(0),
   use_openmm_(false),
   dt_(0),
@@ -27,6 +28,7 @@ Action_Energy::Action_Energy() :
 /// DESTRUCTOR
 Action_Energy::~Action_Energy() {
   if (potential_ != 0) delete potential_;
+  if (cmap_ != 0) delete cmap_;
 }
 
 void Action_Energy::Help() const {
@@ -216,8 +218,10 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
     Ecalcs_.push_back(C_ANG);
   if (termEnabled[DIHEDRAL])
     Ecalcs_.push_back(C_DIH);
-  if (termEnabled[CMAP])
+  if (termEnabled[CMAP]) {
     Ecalcs_.push_back(C_CMAP);
+    cmap_ = new Cpptraj::Energy::CMAP();
+  }
   if (termEnabled[KE]) {
     if (KEtype_ == KE_AUTO)
       Ecalcs_.push_back(C_KEAUTO);
@@ -360,6 +364,13 @@ Action::RetType Action_Energy::Setup(ActionSetup& setup) {
   }
 
   Imask_ = AtomMask(Mask1_.ConvertToIntMask(), Mask1_.Natom());
+  // CMAP
+  if (cmap_ != 0) {
+    if (cmap_->Setup_CMAP_Ene(setup.Top())) {
+      mprinterr("Error: CMAP setup failed.\n");
+      return Action::ERR;
+    }
+  }
   // Check for LJ terms
   lj1264_ = false;
   if (need_lj_params_) {
@@ -441,8 +452,6 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
   double Etot = 0.0, ene, ene2;
   int err = 0;
 
-  Cpptraj::Energy::CMAP cmap;
-
   if (use_openmm_) {
     if (potential_->CalculateEnergy( frm.Frm() )) return Action::ERR;
     Etot = potential_->Energy().Ene( EnergyArray::E_OPENMM ); 
@@ -474,7 +483,7 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
         break;
       case C_CMAP:
         time_cmap_.Start();
-        ene = cmap.Ene_CMAP(currentParm_->Cmap(), frm.Frm());
+        ene = cmap_->Ene_CMAP(currentParm_->Cmap(), frm.Frm());
         time_cmap_.Stop();
         Energy_[CMAP]->Add(frameNum, &ene);
         Etot += ene;

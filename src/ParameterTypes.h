@@ -898,7 +898,7 @@ class CmapGridType {
       // NOTE : CMAPs are read in from Amber topologys in COLUMN-MAJOR order
       int ix = wrap_grid(col, resolution_);
       int iy = wrap_grid(row, resolution_);
-      return ( (ix * resolution_) + iy );
+      return grid_[(ix * resolution_) + iy];
     }
     /// \return array of residue names this CMAP applies to
     std::vector<std::string> const& ResNames() const { return resNames_; }

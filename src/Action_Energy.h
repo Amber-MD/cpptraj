@@ -7,6 +7,11 @@
 #include "ExclusionArray.h"
 #include "EwaldOptions.h"
 #include "Energy/Ecalc_Nonbond.h"
+namespace Cpptraj {
+namespace Energy {
+class CMAP;
+}
+}
 class PotentialFunction;
 /// Calculate energy 
 class Action_Energy: public Action {
@@ -54,6 +59,8 @@ class Action_Energy: public Action {
     Cpptraj::Energy::Ecalc_Nonbond NB_; ///< Nonbond energy calc class.
     Cpptraj::Energy::Ecalc_Nonbond::CalcType nbCalcType_; ///< Nonbond calculation type
     EwaldOptions ewaldOpts_;       ///< Ewald options
+
+    Cpptraj::Energy::CMAP* cmap_;  ///< For calculating cmap energies
 
     PotentialFunction* potential_; ///< TODO currently just for openmm, use for everything
     bool use_openmm_;              ///< If true use openmm for calculating total E

@@ -169,3 +169,17 @@ int CMAP::generate_cmap_derivatives(Topology const& topIn)
 
   return 0;
 }
+
+/** Set up CMAP-related terms */
+int CMAP::Setup_CMAP_Ene(Topology const& topIn) {
+  if (!topIn.HasCmap()) {
+    mprintf("Warning: No CMAP parameters in '%s'\n", topIn.c_str());
+    return 0;
+  }
+  if (generate_cmap_derivatives(topIn)) {
+    mprinterr("Error: Could not set up CMAP derivatives.\n");
+    return 1;
+  }
+
+  return 0;
+}
