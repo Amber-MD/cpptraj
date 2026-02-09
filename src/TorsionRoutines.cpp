@@ -112,7 +112,20 @@ void Torsion_and_part_deriv(const double* XA, const double* XB, const double* XC
   //  gradphi_abcd(m) = upabc(m) * onesizpab
   //  gradphi_abcd(9+m) = upbcd(m) * onesizpdc
   //enddo
-  
+  // following chap 5 of thesis of Bekker we have grad phi wrt b = -grad phi wrt a
+  // plus some vec S and rad phi wrt c = -grad phi wrt d - S
+  // S is perp to rcb; using simple torque rule and identity for
+  // triple cross product he derives S (eqn 5.20)
+  for (int m = 0; m < 3; m++) {
+    double vecS = (dotp_ab_cb*onesizcb)*dA[m] + (dotp_dc_cb*onesizcb)*dD[m];
+    dB[m] = vecS - dA[m];
+    dC[m] = -vecS - dD[m];
+  }
+  //do m = 1,3
+  //  vecS(m) = (dotp_ab_cb*onesizcb)*gradphi_abcd(m) + (dotp_dc_cb*onesizcb)*gradphi_abcd(m+9)
+  //  gradphi_abcd(m+3) = vecS(m) - gradphi_abcd(m)
+  //  gradphi_abcd(m+6) = -vecS(m) - gradphi_abcd(m+9)
+  //enddo
 }
 
 /// Constant used in AS pucker calc
