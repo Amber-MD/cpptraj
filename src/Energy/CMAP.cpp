@@ -9,6 +9,13 @@ using namespace Cpptraj::Energy;
 /** CONSTRUCTOR */
 CMAP::CMAP() {}
 
+/// DEBUG - print gradients
+static inline void print_grad(Vec3 const& dA, Vec3 const& dB, Vec3 const& dC, Vec3 const& dD)
+{
+  for (int i = 0; i < 3; i++)
+    mprintf("DEBUG:\t\tdX %12.4f%12.4f%12.4f%12.4f\n", dA[i], dB[i], dC[i], dD[i]);
+}
+
 /** Calculate CMAP energy */
 double CMAP::Ene_CMAP(CmapArray const& Cmaps, Frame const& frameIn)
 const
@@ -32,6 +39,7 @@ const
     Torsion_and_part_deriv( ixyz, jxyz, kxyz, lxyz,
                             dAphi, dBphi, dCphi, dDphi,
                             cosphi_ijkl, sinphi_ijkl );
+    print_grad(dAphi, dBphi, dCphi, dDphi);
     double phi = copysign(acos(cosphi_ijkl),sinphi_ijkl) * Constants::RADDEG;
     mprintf("DEBUG: Dihedral 1 %i %i %i %i = %g deg.\n", cmap->A1()+1, cmap->A2()+1, cmap->A3()+1, cmap->A4()+1, phi);
 
@@ -43,6 +51,7 @@ const
     Torsion_and_part_deriv( jxyz, kxyz, lxyz, mxyz,
                             dApsi, dBpsi, dCpsi, dDpsi,
                             cospsi_jklm, sinpsi_jklm );
+    print_grad(dApsi, dBpsi, dCpsi, dDpsi);
     double psi = copysign(acos(cospsi_jklm),sinpsi_jklm) * Constants::RADDEG;
     mprintf("DEBUG: Dihedral 2 %i %i %i %i = %g deg.\n", cmap->A2()+1, cmap->A3()+1, cmap->A4()+1, cmap->A5()+1, psi);
   }
