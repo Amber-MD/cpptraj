@@ -2,6 +2,7 @@
 #include "../CpptrajStdio.h" // DEBUG
 #include "../Frame.h"
 #include "../ParameterTypes.h"
+#include "../Topology.h"
 #include "../TorsionRoutines.h"
 
 using namespace Cpptraj::Energy;
@@ -104,4 +105,67 @@ double CMAP::evaluate_cubic_spline(int step_size, std::vector<double> const& y,
   //write(6,'(a,f15.6)'),"yout is :", yout
   //write(6,'(a)'),""
   return dyout;
+}
+
+/** Called once after CMAP parameters have been read. This populates
+  * various partial derivatives in the cmapParameter%{dPsi,dPhi,dPsi_dPhi}
+  * object. It does this using a cubic spline on the read in CMAP grid.
+  *
+  * Later, this information is used to evaluate an arbitary phi/phi angle
+  * for a given crossterm.
+  */
+int CMAP::generate_cmap_derivatives(Topology const& topIn)
+{
+  if (!topIn.HasCmap()) {
+    mprinterr("Internal Error: CMAP::generate_cmap_derivatives(): Topology '%s' does not have CMAP parameters.\n", topIn.c_str());
+    return 1;
+  }
+  // Loop over all grids
+  for (CmapGridArray::const_iterator grid = topIn.CmapGrid().begin();
+                                     grid != topIn.CmapGrid().end(); ++grid)
+  {
+    int res = grid->Resolution();
+    int halfRes = res / 2;
+    int twoRes = res * 2;
+    int step_size = 360 / res;
+
+    std::vector<double> tmpy(twoRes);
+    std::vector<double> tmpy2(twoRes);
+
+    // 1) calculate dE/dPhi
+    for (int row = 0; row < res; row++)
+    {
+      // Step up one row each cycle, splining across all columns
+
+      // Fill an *extended* tmp array (tmpy) for with CMAP values
+      // for the 1D splining like CHARMM.
+      // It is possible CHARMM does this to avoid edge issues.
+
+      unsigned int k=0; //interal offset counter for tmp array
+      mprintf("DEBUG: Row %6i from %6i to %6i\n", row, -halfRes, res+halfRes-1);
+      for (int col = -halfRes; col < res+halfRes; col++) { // -12 to 35
+        tmpy[k] = grid->Grid(col, row);
+        mprintf("DEBUG:\t\t%6i%12.4f\n", k, tmpy[k]);
+        k++;
+      }
+
+/*
+      !Calculate spline coeffients (tmpy2) for each of the 1D
+      !horizontal rows in the CMAP table
+      call generate_cubic_spline(twoRes, step_size, tmpy, tmpy2)
+     
+      !Calculate %dPhi for using each row
+      !of energies and corresponding splines in tmpy and tmpy2
+      do j=1,res
+        !evaluate_cubic_spline(n,step_size, gridOrigin, y,y2,xin,yout)
+
+        !offset array passed to evaluate_cubic_spline
+        call evaluate_cubic_spline(step_size, tmpy, tmpy2, &
+                                   j+12, gbl_cmap_dPhi(i,row,j))
+      enddo
+*/
+    } // END loop over rows
+  } // END loop over grids
+
+  return 0;
 }

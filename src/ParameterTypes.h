@@ -877,6 +877,15 @@ class CapParmType {
 // ----- CHAMBER PARAMETERS ----------------------------------------------------
 /// Hold CMAP grid parameters // FIXME use NameType
 class CmapGridType {
+    static inline int wrap_grid(int iin, int res) {
+      int iout = iin;
+      if (iout < 0) {
+        while (iout < 0) iout += res;
+      } else if (iout >= res) {
+        while (iout >= res) iout -= res;
+      }
+      return iout;
+    }
   public:
     CmapGridType() : nCmapRes_(0), resolution_(0) {}
     CmapGridType(unsigned int r) : nCmapRes_(0), resolution_(r), grid_(r*r, 0.0) {}
@@ -884,6 +893,13 @@ class CmapGridType {
     unsigned int Resolution()                const { return resolution_;       }
     /// \return CMAP grid
     std::vector<double> const& Grid()        const { return grid_;             }
+    /// \return CMAP grid point for specified column and row.
+    double Grid(int col, int row) const {
+      // NOTE : CMAPs are read in from Amber topologys in COLUMN-MAJOR order
+      int ix = wrap_grid(col, resolution_);
+      int iy = wrap_grid(row, resolution_);
+      return ( (ix * resolution_) + iy );
+    }
     /// \return array of residue names this CMAP applies to
     std::vector<std::string> const& ResNames() const { return resNames_; }
     /// \return true if given name matches a residue name
