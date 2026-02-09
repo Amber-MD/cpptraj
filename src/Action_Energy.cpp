@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "PotentialFunction.h"
 #include "MdOpts.h"
+#include "Energy/CMAP.h"
 
 using namespace Cpptraj::Energy;
 
@@ -31,6 +32,7 @@ Action_Energy::~Action_Energy() {
 void Action_Energy::Help() const {
   mprintf("\t[<name>] [<mask1>] [out <filename>] [nobondstoh] [openmm [<mdopts>]]\n"
           "\t[bond] [angle] [dihedral] {[nb14]|[e14]|[v14]} {[nonbond] | [elec] [vdw]}\n"
+          "\t[cmap]\n"
           "\t[{nokinetic|kinetic [ketype {vel|vv}] [dt <dt>]}] [lj1264]\n"
           "\t[ etype { simple |\n"
           "\t          directsum [npoints <N>] |\n"
@@ -63,11 +65,11 @@ void Action_Energy::Help(ArgList& argIn) const {
 }
 
 /// Corresponds to Etype 
-static const char* AspectStr[] = {"bond", "angle", "dih", "vdw14", "elec14",
+static const char* AspectStr[] = {"bond", "angle", "dih", "cmap", "vdw14", "elec14",
                                   "vdw", "elec", "kinetic", "total"};
 
 /// Corresponds to Etype
-static const char* EtypeStr[] = {"Bonds", "Angles", "Dihedrals", "1-4 VDW", "1-4 Elec.",
+static const char* EtypeStr[] = {"Bonds", "Angles", "Dihedrals", "CMAP", "1-4 VDW", "1-4 Elec.",
                                  "VDW", "Elec.", "Kinetic", "Total"};
 
 /// Corresponds to ElecType 
@@ -112,6 +114,7 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
     termEnabled[BOND] = actionArgs.hasKey("bond");
     termEnabled[ANGLE] = actionArgs.hasKey("angle");
     termEnabled[DIHEDRAL] = actionArgs.hasKey("dihedral");
+    termEnabled[CMAP] = actionArgs.hasKey("cmap");
     termEnabled[V14] = actionArgs.hasKey("v14");
     termEnabled[Q14] = actionArgs.hasKey("e14");
     termEnabled[VDW] = actionArgs.hasKey("vdw");
@@ -213,6 +216,8 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
     Ecalcs_.push_back(C_ANG);
   if (termEnabled[DIHEDRAL])
     Ecalcs_.push_back(C_DIH);
+  if (termEnabled[CMAP])
+    Ecalcs_.push_back(C_CMAP);
   if (termEnabled[KE]) {
     if (KEtype_ == KE_AUTO)
       Ecalcs_.push_back(C_KEAUTO);
@@ -436,6 +441,8 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
   double Etot = 0.0, ene, ene2;
   int err = 0;
 
+  Cpptraj::Energy::CMAP cmap;
+
   if (use_openmm_) {
     if (potential_->CalculateEnergy( frm.Frm() )) return Action::ERR;
     Etot = potential_->Energy().Ene( EnergyArray::E_OPENMM ); 
@@ -463,6 +470,13 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
         ene = ENE_.E_torsion(frm.Frm(), *currentParm_, Mask1_);
         time_tors_.Stop();
         Energy_[DIHEDRAL]->Add(frameNum, &ene);
+        Etot += ene;
+        break;
+      case C_CMAP:
+        time_cmap_.Start();
+        ene = cmap.Ene_CMAP(currentParm_->Cmap(), frm.Frm());
+        time_cmap_.Stop();
+        Energy_[CMAP]->Add(frameNum, &ene);
         Etot += ene;
         break;
       case C_N14:
@@ -558,6 +572,8 @@ void Action_Energy::Print() {
     time_angle_.WriteTiming(1, "ANGLE       :", time_total_.Total());
   if (time_tors_.Total() > 0.0)
     time_tors_.WriteTiming(1,  "TORSION     :", time_total_.Total());
+  if (time_cmap_.Total() > 0.0)
+    time_cmap_.WriteTiming(1,  "CMAP        :", time_total_.Total());
   if (time_14_.Total() > 0.0)
     time_14_.WriteTiming(1,    "1-4_NONBOND :", time_total_.Total());
   if (nbCalcType_ != Ecalc_Nonbond::UNSPECIFIED)

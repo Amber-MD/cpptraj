@@ -23,14 +23,15 @@ class Action_Energy: public Action {
     void Print();
 
     /// Corresponds to data sets.
-    enum Etype { BOND = 0, ANGLE, DIHEDRAL, V14, Q14, VDW, ELEC, KE, TOTAL};
+    enum Etype { BOND = 0, ANGLE, DIHEDRAL, CMAP, V14, Q14, VDW, ELEC, KE, TOTAL};
     /// Add energy data set of specified type.
     int AddSet(Etype, DataSetList&, DataFile*, std::string const&);
     /// For debugging the direct sum convergence
     double Dbg_Direct(Frame const&,int);
     /// Corresponds to calculations.
     enum CalcType { C_BND = 0, C_ANG, C_DIH, C_N14, C_NBD, C_LJ,
-                    C_COULOMB, C_DIRECT, C_EWALD, C_PME, C_KEAUTO, C_KEVEL, C_KEVV };
+                    C_COULOMB, C_DIRECT, C_EWALD, C_PME, C_KEAUTO, C_KEVEL, C_KEVV,
+                    C_CMAP };
     /// Corresponds to type of electrostatics.
     enum ElecType { NO_ELE = 0, SIMPLE, DIRECTSUM, EWALD, PME };
     /// Corresponds to type of KE calc.
@@ -70,5 +71,6 @@ class Action_Energy: public Action {
     Timer time_14_;
     Timer time_NB_;
     Timer time_ke_;
+    Timer time_cmap_;
 };
 #endif
