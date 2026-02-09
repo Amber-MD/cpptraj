@@ -40,6 +40,42 @@ double Torsion(const double *a1, const double *a2, const double *a3, const doubl
   return angle;
 }
 
+/** Calculate the torsion and partial derivative.
+  * From Tom Darden's generic torsion code in AM_VAL_GEOM_torsion in
+  * amoeba_valence.f.
+  * Adapted to C++ by DRR - any mistakes are mine!
+  */
+void Torsion_and_part_deriv(const double* XA, const double* XB, const double* XC, const double* XD,
+                            Vec3& dA, Vec3& dB, Vec3& dC, Vec3& dD,
+                            double& cosphi, double& sinphi)
+{
+  Vec3 rab( XA[0] - XB[0],
+            XA[1] - XB[1],
+            XA[2] - XB[2] );
+  Vec3 rcb( XC[0] - XB[0],
+            XC[1] - XB[1],
+            XC[2] - XB[2] );
+  Vec3 rdc( XD[0] - XC[0],
+            XD[1] - XC[1],
+            XD[2] - XC[2] );
+
+  double onesizcb = 1.0/sqrt(rcb[0]*rcb[0]+rcb[1]*rcb[1]+rcb[2]*rcb[2]);
+  Vec3 ucb = rcb*onesizcb;
+  double dotp_ab_cb = rab[0]*ucb[0]+rab[1]*ucb[1]+rab[2]*ucb[2];
+  // upab is unit vector along component rab perp to ucb
+  double dot = rab[0]*ucb[0]+rab[1]*ucb[1]+rab[2]*ucb[2];
+  Vec3 upab = rab - ucb*dot; //dot*ucb;
+  double onesizpab = 1.0/sqrt(upab[0]*upab[0]+upab[1]*upab[1]+upab[2]*upab[2]);
+       upab = upab * onesizpab;
+  double dotp_dc_cb = rdc[0]*ucb[0]+rdc[1]*ucb[1]+rdc[2]*ucb[2];
+  // updc is unit vector along component rdc perp to ucb
+         dot = rdc[0]*ucb[0]+rdc[1]*ucb[1]+rdc[2]*ucb[2];
+  Vec3 updc = rdc - ucb*dot; //dot*ucb;
+  double onesizpdc = 1.0/sqrt(updc[0]*updc[0]+updc[1]*updc[1]+updc[2]*updc[2]);
+       updc = updc * onesizpdc;
+  // cosine of phi is given by dot product of upab and updc
+}
+
 /// Constant used in AS pucker calc
 static const double pi_over_5 = Constants::PI / 5.0;
 
