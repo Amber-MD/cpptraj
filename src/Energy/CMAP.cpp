@@ -89,6 +89,35 @@ const
     mprintf("DEBUG: Dihedral 2 %i %i %i %i = %30.15f%30.15f%30.15f\n", cmap->A2()+1, cmap->A3()+1, cmap->A4()+1, cmap->A5()+1, psi, cospsi_jklm, sinpsi_jklm);
 
     ene_cmap = charmm_calc_cmap_from_phi_psi(phi, psi, cmap->Idx(), dPhi, dPsi);
+
+    // Do force calc
+    // Convert over to degrees per interval
+    CmapGridType const& cmapGrid = (*(cmapGridPtr_))[cmap->Idx()];
+    double rad_to_deg_coeff = Constants::RADDEG * 1 / (double)(360.0 / cmapGrid.Resolution());
+    for (unsigned int i = 0; i < 4; i++) {
+      dPhi_dijkl[i] *= rad_to_deg_coeff;
+      dPsi_djklm[i] *= rad_to_deg_coeff;
+      // Use chain rule to obtain the energy gradient wrt to coordinate
+      dPhi_dijkl[i] *= dPhi;
+      dPsi_djklm[i] *= dPsi;
+    }
+    mprintf("FINAL PHI\n");
+    for (unsigned int i = 0; i < 4; i++)
+      for (unsigned int j = 0; j < 3; j++)
+        mprintf("%16.8f\n", dPhi_dijkl[i][j]);
+    mprintf("FINAL PSI\n");
+    for (unsigned int i = 0; i < 4; i++)
+      for (unsigned int j = 0; j < 3; j++)
+        mprintf("%16.8f\n", dPsi_djklm[i][j]);
+
+    std::vector<Vec3> frc(5, Vec3(0.0));
+    for (int n = 0; n < 3; n++) {
+      frc[0][n] = -dPhi_dijkl[0][n];
+      frc[1][n] = -dPhi_dijkl[1][n] - dPsi_djklm[0][n];
+      frc[2][n] = -dPhi_dijkl[2][n] - dPsi_djklm[1][n];
+      frc[3][n] = -dPhi_dijkl[3][n] - dPsi_djklm[2][n];
+      frc[4][n] =                   - dPsi_djklm[3][n];
+    }
   }
   return ene_cmap;
 }
@@ -250,6 +279,7 @@ const
     dPsi = dPsi*phiFrac +( 3.0*c4*psiFrac + 2.0*c3 )*psiFrac + c2;
   }
   mprintf("FINAL %16.8f %16.8f %16.8f\n", ene_cmap, dPhi, dPsi);
+
   return ene_cmap;
 }
 
