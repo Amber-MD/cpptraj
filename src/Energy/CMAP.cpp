@@ -193,7 +193,7 @@ int CMAP::generate_cmap_derivatives(Topology const& topIn)
       // for the 1D splining like CHARMM.
       // It is possible CHARMM does this to avoid edge issues.
 
-      unsigned int k=0; //interal offset counter for tmp array
+      unsigned int k=0; // index for tmpy array
       mprintf("DEBUG: Row %6i from %6i to %6i\n", row, -halfRes, res+halfRes-1);
       for (int col = -halfRes; col < res+halfRes; col++) { // -12 to 35
         tmpy[k] = grid->Grid(col, row);
@@ -213,6 +213,33 @@ int CMAP::generate_cmap_derivatives(Topology const& topIn)
         cmap_dPhi_[gidx].setElement(row, j, dPhi);
       }
     } // END loop over rows
+
+    // 2) calculate dE/dPsi
+    for (int col = 0; col < res; col++)
+    {
+      // Step across one column each cycle, splining up each column
+
+      unsigned int k=0; // index for tmpy array
+      mprintf("DEBUG: Col %6i from %6i to %6i\n", col, -halfRes, res+halfRes-1);
+      for (int row = -halfRes; row < res+halfRes; row++) { // -12 to 35
+        tmpy[k] = grid->Grid(col, row);
+        mprintf("DEBUG:\t\t%6i%12.4f\n", k, tmpy[k]);
+        k++;
+      }
+
+      // Calculate spline coeffients (tmpy2) for each of the 1D
+      // vertical columns in the CMAP table
+      generate_cubic_spline(twoRes, step_size, tmpy, tmpy2);
+     
+      // Calculate %dPsi for using each column of energies and
+      // corresponding splines in tmpy and tmpy2
+      for (int j = 0; j < res; j++) {
+        // offset array passed to evaluate_cubic_spline
+        double dPsi = evaluate_cubic_spline(step_size, tmpy, tmpy2, j+halfRes); //gbl_cmap_dPsi(i,j,col))
+        cmap_dPsi_[gidx].setElement(j, col, dPsi);
+      }
+    } // END loop over cols
+
   } // END loop over grids
 
   return 0;
