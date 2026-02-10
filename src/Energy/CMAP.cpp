@@ -117,6 +117,11 @@ const
       frc[2][n] = -dPhi_dijkl[2][n] - dPsi_djklm[1][n];
       frc[3][n] = -dPhi_dijkl[3][n] - dPsi_djklm[2][n];
       frc[4][n] =                   - dPsi_djklm[3][n];
+      mprintf("i %3i %16.8f\n", n, frc[0][n]);
+      mprintf("j %3i %16.8f\n", n, frc[1][n]);
+      mprintf("k %3i %16.8f\n", n, frc[2][n]);
+      mprintf("l %3i %16.8f\n", n, frc[3][n]);
+      mprintf("m %3i %16.8f\n", n, frc[4][n]);
     }
   }
   return ene_cmap;
