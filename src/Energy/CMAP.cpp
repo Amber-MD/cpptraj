@@ -88,7 +88,7 @@ const
     double psi = copysign(acos(cospsi_jklm),sinpsi_jklm) * Constants::RADDEG;
     mprintf("DEBUG: Dihedral 2 %i %i %i %i = %30.15f%30.15f%30.15f\n", cmap->A2()+1, cmap->A3()+1, cmap->A4()+1, cmap->A5()+1, psi, cospsi_jklm, sinpsi_jklm);
 
-    ene_cmap = charmm_calc_cmap_from_phi_psi(phi, psi, cmap->Idx(), dPhi, dPsi);
+    ene_cmap += charmm_calc_cmap_from_phi_psi(phi, psi, cmap->Idx(), dPhi, dPsi);
 
     // Do force calc
     // Convert over to degrees per interval
