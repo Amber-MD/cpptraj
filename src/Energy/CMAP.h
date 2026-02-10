@@ -30,6 +30,8 @@ class CMAP {
     DMarray cmap_dPsi_; ///< Hold dE/dPsi for each CMAP grid
     DMarray cmap_dPhi_dPsi_; ///< Hold d^2E/dPhidPsi for each CMAP grid
     CmapGridArray const* cmapGridPtr_; ///< Pointer to CMAP grids this was set up with.
+
+    static const int wt_[16][16]; ///< Weight matrix
 };
 }
 }

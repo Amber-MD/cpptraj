@@ -11,6 +11,26 @@ using namespace Cpptraj::Energy;
 CMAP::CMAP() : cmapGridPtr_(0)
 {}
 
+/** The weight matrix */
+const int CMAP::wt_[16][16] = {
+  {1, 0, -3,  2, 0, 0,  0,  0, -3,  0,  9, -6,  2,  0, -6,  4},
+  {0, 0,  0,  0, 0, 0,  0,  0,  3,  0, -9,  6, -2,  0,  6, -4},
+  {0, 0,  0,  0, 0, 0,  0,  0,  0,  0,  9, -6,  0,  0, -6,  4},
+  {0, 0,  3, -2, 0, 0,  0,  0,  0,  0, -9,  6,  0,  0,  6, -4},
+  {0, 0,  0,  0, 1, 0, -3,  2, -2,  0,  6, -4,  1,  0, -3,  2},
+  {0, 0,  0,  0, 0, 0,  0,  0, -1,  0,  3, -2,  1,  0, -3,  2},
+  {0, 0,  0,  0, 0, 0,  0,  0,  0,  0, -3,  2,  0,  0,  3, -2},
+  {0, 0,  0,  0, 0, 0,  3, -2,  0,  0, -6,  4,  0,  0,  3, -2},
+  {0, 1, -2,  1, 0, 0,  0,  0,  0, -3,  6, -3,  0,  2, -4,  2},
+  {0, 0,  0,  0, 0, 0,  0,  0,  0,  3, -6,  3,  0, -2,  4, -2},
+  {0, 0,  0,  0, 0, 0,  0,  0,  0,  0, -3,  3,  0,  0,  2, -2},
+  {0, 0, -1,  1, 0, 0,  0,  0,  0,  0,  3, -3,  0,  0, -2,  2},
+  {0, 0,  0,  0, 0, 1, -2,  1,  0, -2,  4, -2,  0,  1, -2,  1},
+  {0, 0,  0,  0, 0, 0,  0,  0,  0, -1,  2, -1,  0,  1, -2,  1},
+  {0, 0,  0,  0, 0, 0,  0,  0,  0,  0,  1, -1,  0,  0, -1,  1},
+  {0, 0,  0,  0, 0, 0, -1,  1,  0,  0,  2, -2,  0,  0, -1,  1}
+};
+
 /// DEBUG - print gradients
 static inline void print_grad(Vec3 const& dA, Vec3 const& dB, Vec3 const& dC, Vec3 const& dD)
 {
@@ -69,6 +89,22 @@ static inline double dmodulo(double a, double p) {
   return ( a - floor(a / p) * p );
 }
 
+static inline void print_stencil(const char* desc, const double (&matrix)[2][2])
+{
+  mprintf("%s:\n", desc);
+  mprintf("%9.6f %9.6f\n", matrix[1][0], matrix[1][1]);
+  mprintf("%9.6f %9.6f\n", matrix[0][0], matrix[0][1]);
+  mprintf("\n");
+}
+
+static inline void flatten_stencil(double(&out)[4], const double(&matrix)[2][2])
+{
+  out[0] = matrix[0][0];
+  out[1] = matrix[0][1];
+  out[2] = matrix[1][1];
+  out[3] = matrix[1][0];
+}
+
 /** Calculate the CMAP energy given psi,phi and the cmap parameter */
 double CMAP::charmm_calc_cmap_from_phi_psi(double phi, double psi, int cidx, double& dPhi, double& dPsi)
 const
@@ -100,15 +136,72 @@ const
     for (int j = 0; j < 2; j++) {
       E_stencil[i][j] = cmapGrid.Grid(x+j, y+i);
 
-      dPhi_stencil[i][j] = cmap_dPhi_[cidx].element_wrapped(x+j, y+i);
+      dPhi_stencil[i][j] = cmap_dPhi_[cidx].element_wrapped(y+i, x+j);
 
-      dPsi_stencil[i][j] = cmap_dPsi_[cidx].element_wrapped(x+j, y+i);
+      dPsi_stencil[i][j] = cmap_dPsi_[cidx].element_wrapped(y+i, x+j);
 
-      dPhi_dPsi_stencil[i][j] = cmap_dPhi_dPsi_[cidx].element_wrapped(x+j, y+i);
+      dPhi_dPsi_stencil[i][j] = cmap_dPhi_dPsi_[cidx].element_wrapped(y+i, x+j);
     }
   }
 
+  print_stencil("CMAP", E_stencil);
+  print_stencil("dPhi", dPhi_stencil);
+  print_stencil("dPsi", dPsi_stencil);
+  print_stencil("dPhi_dPsi", dPhi_dPsi_stencil);
 
+  // Convert the 2x2 stencils into a 1D array for processing
+  // by weight_stencil.
+  // The array starts at the bottom left of the 2x2, working
+  // around counterclockwise:
+  //
+  //          4 3
+  //          1 2
+  //
+  //There may be a cleaner/better way of doing this
+  double E_stencil_1D[4];
+  double dPhi_stencil_1D[4];
+  double dPsi_stencil_1D[4];
+  double dPhi_dPsi_stencil_1D[4];
+
+  flatten_stencil(E_stencil_1D, E_stencil);
+  mprintf("%9.6f %9.6f %9.6f %9.6f\n", E_stencil_1D[0], E_stencil_1D[1], E_stencil_1D[2], E_stencil_1D[3]);
+  flatten_stencil(dPhi_stencil_1D, dPhi_stencil);
+  flatten_stencil(dPsi_stencil_1D, dPsi_stencil);
+  flatten_stencil(dPhi_dPsi_stencil_1D, dPhi_dPsi_stencil);
+/*
+  E_stencil_1D(0) = E_stencil(0,0)
+  E_stencil_1D(1) = E_stencil(0,1)
+  E_stencil_1D(2) = E_stencil(1,1)
+  E_stencil_1D(3) = E_stencil(1,0)
+
+  !DEBUG
+  !write(6,'(f9.6)'),E_stencil_1D
+
+  dPhi_stencil_1D(1) = dPhi_stencil(1,1)
+  dPhi_stencil_1D(2) = dPhi_stencil(1,2)
+  dPhi_stencil_1D(3) = dPhi_stencil(2,2)
+  dPhi_stencil_1D(4) = dPhi_stencil(2,1)
+
+  dPsi_stencil_1D(1) = dPsi_stencil(1,1)
+  dPsi_stencil_1D(2) = dPsi_stencil(1,2)
+  dPsi_stencil_1D(3) = dPsi_stencil(2,2)
+  dPsi_stencil_1D(4) = dPsi_stencil(2,1)
+
+  dPhi_dPsi_stencil_1D(1) = dPhi_dPsi_stencil(1,1)
+  dPhi_dPsi_stencil_1D(2) = dPhi_dPsi_stencil(1,2)
+  dPhi_dPsi_stencil_1D(3) = dPhi_dPsi_stencil(2,2)
+  dPhi_dPsi_stencil_1D(4) = dPhi_dPsi_stencil(2,1)
+
+  !Weight d{Psi,dPhi,dPhidPsi}_stencil
+  call weight_stencil(gbl_cmap_grid_step_size(cmap_idx), &
+                      E_stencil_1D,              &
+                      dPhi_stencil_1D,           &
+                      dPsi_stencil_1D,           &
+                      dPhi_dPsi_stencil_1D,      &
+                      c )
+
+  call bicubic_interpolation(phiFrac, psiFrac, c, E, dphi, dpsi)
+*/
   return ene_cmap;
 }
 
