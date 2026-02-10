@@ -59,7 +59,7 @@ const
     mprintf("DEBUG: Dihedral 2 %i %i %i %i = %30.15f%30.15f%30.15f\n", cmap->A2()+1, cmap->A3()+1, cmap->A4()+1, cmap->A5()+1, psi, cospsi_jklm, sinpsi_jklm);
 
     double dPhi, dPsi;
-    ene_cmap = charmm_calc_cmap_from_phi_psi(phi, psi, (*(cmapGridPtr_))[cmap->Idx()], dPhi, dPsi);
+    ene_cmap = charmm_calc_cmap_from_phi_psi(phi, psi, cmap->Idx(), dPhi, dPsi);
   }
   return ene_cmap;
 }
@@ -70,9 +70,10 @@ static inline double dmodulo(double a, double p) {
 }
 
 /** Calculate the CMAP energy given psi,phi and the cmap parameter */
-double CMAP::charmm_calc_cmap_from_phi_psi(double phi, double psi, CmapGridType const& cmapGrid, double& dPhi, double& dPsi)
+double CMAP::charmm_calc_cmap_from_phi_psi(double phi, double psi, int cidx, double& dPhi, double& dPsi)
 const
 {
+  CmapGridType const& cmapGrid = (*(cmapGridPtr_))[cidx];
   static const int gridOrigin = -180; ///< Where the 2D grid starts in degrees
   int step_size = 360 / cmapGrid.Resolution();
   double ene_cmap = 0.0;
@@ -89,6 +90,24 @@ const
   double phiFrac = dmodulo((phi - gridOrigin), step_size) / step_size;
   double psiFrac = dmodulo((psi - gridOrigin), step_size) / step_size;
   mprintf("phiFrac %16.8f  psiFrac %16.8f\n", phiFrac, psiFrac);
+
+  double E_stencil[2][2];
+  double dPhi_stencil[2][2];
+  double dPsi_stencil[2][2];
+  double dPhi_dPsi_stencil[2][2];
+
+  for (int i = 0; i < 2; i++) {
+    for (int j = 0; j < 2; j++) {
+      E_stencil[i][j] = cmapGrid.Grid(x+j, y+i);
+
+      dPhi_stencil[i][j] = cmap_dPhi_[cidx].element_wrapped(x+j, y+i);
+
+      dPsi_stencil[i][j] = cmap_dPsi_[cidx].element_wrapped(x+j, y+i);
+
+      dPhi_dPsi_stencil[i][j] = cmap_dPhi_dPsi_[cidx].element_wrapped(x+j, y+i);
+    }
+  }
+
 
   return ene_cmap;
 }
