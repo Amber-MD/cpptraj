@@ -162,10 +162,20 @@ int CMAP::generate_cmap_derivatives(Topology const& topIn)
     mprinterr("Internal Error: CMAP::generate_cmap_derivatives(): Topology '%s' does not have CMAP parameters.\n", topIn.c_str());
     return 1;
   }
+  // Allocate partial derivative matrices
+  cmap_dPhi_.resize( topIn.CmapGrid().size() );
+  cmap_dPsi_.resize( topIn.CmapGrid().size() );
+  for (unsigned int idx = 0; idx != topIn.CmapGrid().size(); idx++) {
+    unsigned int res = topIn.CmapGrid()[idx].Resolution();
+    cmap_dPhi_[idx].resize( res, res );
+    cmap_dPsi_[idx].resize( res, res );
+  } 
   // Loop over all grids
   for (CmapGridArray::const_iterator grid = topIn.CmapGrid().begin();
                                      grid != topIn.CmapGrid().end(); ++grid)
   {
+    // gidx is the cmap grid index
+    long int gidx = grid - topIn.CmapGrid().begin();
     int res = grid->Resolution();
     int halfRes = res / 2;
     int twoRes = res * 2;
@@ -200,6 +210,7 @@ int CMAP::generate_cmap_derivatives(Topology const& topIn)
       for (int j = 0; j < res; j++) {
         // offset array passed to evaluate_cubic_spline
         double dPhi = evaluate_cubic_spline(step_size, tmpy, tmpy2, j+halfRes); //gbl_cmap_dPhi(i,row,j))
+        cmap_dPhi_[gidx].setElement(row, j, dPhi);
       }
     } // END loop over rows
   } // END loop over grids
