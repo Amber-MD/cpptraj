@@ -6,6 +6,7 @@ class CmapArray;
 class CmapGridArray;
 class Frame;
 class Topology;
+class Vec3;
 namespace Cpptraj {
 namespace Energy {
 /// Implement CMAP energy term
@@ -18,6 +19,9 @@ class CMAP {
     /// Calculate CMAP energy
     double Ene_CMAP(CmapArray const&, Frame const&) const;
   private:
+    double get_cmap_energy(CmapArray const&, Frame const&, double&, double&,
+                             Vec3(&dPhi_dijkl)[4], Vec3(&dPsi_djklm)[4]) const;
+
     double charmm_calc_cmap_from_phi_psi(double, double, int, double&, double&) const;
     static double evaluate_cubic_spline(int, std::vector<double> const&, std::vector<double> const&, int);
     int generate_cmap_derivatives(Topology const&);
