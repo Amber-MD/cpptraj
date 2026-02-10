@@ -97,12 +97,12 @@ static inline void print_stencil(const char* desc, const double (&matrix)[2][2])
   mprintf("\n");
 }
 
-static inline void flatten_stencil(double(&out)[4], const double(&matrix)[2][2])
+static inline void flatten_stencil(double* out, const double(&matrix)[2][2], double step_size)
 {
-  out[0] = matrix[0][0];
-  out[1] = matrix[0][1];
-  out[2] = matrix[1][1];
-  out[3] = matrix[1][0];
+  out[0] = matrix[0][0] * step_size;
+  out[1] = matrix[0][1] * step_size;
+  out[2] = matrix[1][1] * step_size;
+  out[3] = matrix[1][0] * step_size;
 }
 
 /** Calculate the CMAP energy given psi,phi and the cmap parameter */
@@ -158,16 +158,18 @@ const
   //          1 2
   //
   //There may be a cleaner/better way of doing this
-  double E_stencil_1D[4];
-  double dPhi_stencil_1D[4];
-  double dPsi_stencil_1D[4];
-  double dPhi_dPsi_stencil_1D[4];
+  //double E_stencil_1D[4];
+  //double dPhi_stencil_1D[4];
+  //double dPsi_stencil_1D[4];
+  //double dPhi_dPsi_stencil_1D[4];
 
-  flatten_stencil(E_stencil_1D, E_stencil);
-  mprintf("%9.6f %9.6f %9.6f %9.6f\n", E_stencil_1D[0], E_stencil_1D[1], E_stencil_1D[2], E_stencil_1D[3]);
-  flatten_stencil(dPhi_stencil_1D, dPhi_stencil);
-  flatten_stencil(dPsi_stencil_1D, dPsi_stencil);
-  flatten_stencil(dPhi_dPsi_stencil_1D, dPhi_dPsi_stencil);
+  std::vector<double> E_stencil_1D(16);
+  double* dptr = &(E_stencil_1D[0]);
+  flatten_stencil(dptr, E_stencil, 1);
+  //mprintf("%9.6f %9.6f %9.6f %9.6f\n", E_stencil_1D[0], E_stencil_1D[1], E_stencil_1D[2], E_stencil_1D[3]);
+  flatten_stencil(dptr+4, dPhi_stencil, step_size);
+  flatten_stencil(dptr+8, dPsi_stencil, step_size);
+  flatten_stencil(dptr+12, dPhi_dPsi_stencil, step_size*step_size);
 /*
   E_stencil_1D(0) = E_stencil(0,0)
   E_stencil_1D(1) = E_stencil(0,1)
@@ -199,7 +201,21 @@ const
                       dPsi_stencil_1D,           &
                       dPhi_dPsi_stencil_1D,      &
                       c )
-
+*/
+  // Generate coefficients for bicubic interpolation
+  for (std::vector<double>::const_iterator it = E_stencil_1D.begin(); it != E_stencil_1D.end(); ++it)
+    mprintf("%16.8f\n", *it);
+  
+  std::vector<double> coeff(16);
+  for (int i = 0; i < 16; i++) {
+    coeff[i] = 0.0;
+    for (int k = 0; k < 16; k++) {
+      coeff[i] += wt_[k][i] * E_stencil_1D[k];
+    }
+  }
+  for (std::vector<double>::const_iterator it = coeff.begin(); it != coeff.end(); ++it)
+    mprintf("%16.8f\n", *it);
+/*
   call bicubic_interpolation(phiFrac, psiFrac, c, E, dphi, dpsi)
 */
   return ene_cmap;
