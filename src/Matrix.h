@@ -34,6 +34,8 @@ template <class T> class Matrix {
     /// \return element at specified col and row.
     const T& element(size_t,size_t) const;
     T&       element(size_t,size_t);
+    /// \return element at specified col and row. Out-of-bound indices will be wrapped.
+    const T& element_wrapped(long int, long int) const;
     /// \return number of rows (Y).
     size_t Nrows()     const { return nrows_;     }
     /// \return number of cols (X).
@@ -117,6 +119,16 @@ template <class T> class Matrix {
         return -1L;
       size_t i1 = i + 1UL;
       return (long int)(( (nX * i) - ((i1 * i) / 2UL) ) + j - i1);
+    }
+    /// If an index is out of bounds, wrap it
+    static inline long int wrap_grid(long int iin, long int res) {
+      long int iout = iin;
+      if (iout < 0) {
+        while (iout < 0) iout += res;
+      } else if (iout >= res) {
+        while (iout >= res) iout -= res;
+      }
+      return iout;
     }
 };
 // COPY CONSTRUCTOR
@@ -251,6 +263,14 @@ template<class T> const T& Matrix<T>::element(size_t xIn, size_t yIn) const {
 /** \return Reference to specified element at column xIn and row yIn. */
 template<class T> T& Matrix<T>::element(size_t xIn, size_t yIn) {
   long int idx = indexFxn_(ncols_, xIn, yIn);
+  if (idx < 0) return diagElt_; // In case of xIn == yIn for TRIANGLE
+  return elements_[idx];
+}
+/** \return element at specified col and row. Out-of-bound indices will be wrapped. */
+template<class T> const T& Matrix<T>::element_wrapped(long int xIn, long int yIn) const {
+  long int ix = wrap_grid(xIn, ncols_);
+  long int iy = wrap_grid(yIn, nrows_);
+  long int idx = indexFxn_(ncols_, ix, iy);
   if (idx < 0) return diagElt_; // In case of xIn == yIn for TRIANGLE
   return elements_[idx];
 }

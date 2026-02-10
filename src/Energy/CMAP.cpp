@@ -165,10 +165,12 @@ int CMAP::generate_cmap_derivatives(Topology const& topIn)
   // Allocate partial derivative matrices
   cmap_dPhi_.resize( topIn.CmapGrid().size() );
   cmap_dPsi_.resize( topIn.CmapGrid().size() );
+  cmap_dPhi_dPsi_.resize( topIn.CmapGrid().size() );
   for (unsigned int idx = 0; idx != topIn.CmapGrid().size(); idx++) {
     unsigned int res = topIn.CmapGrid()[idx].Resolution();
     cmap_dPhi_[idx].resize( res, res );
     cmap_dPsi_[idx].resize( res, res );
+    cmap_dPhi_dPsi_[idx].resize( res, res );
   } 
   // Loop over all grids
   for (CmapGridArray::const_iterator grid = topIn.CmapGrid().begin();
@@ -237,6 +239,26 @@ int CMAP::generate_cmap_derivatives(Topology const& topIn)
         // offset array passed to evaluate_cubic_spline
         double dPsi = evaluate_cubic_spline(step_size, tmpy, tmpy2, j+halfRes); //gbl_cmap_dPsi(i,j,col))
         cmap_dPsi_[gidx].setElement(j, col, dPsi);
+      }
+    } // END loop over cols
+
+    // 3) calculate d^2E/dPhidPsi
+    // TODO Interpolate partitial derivative of psi; dE/dPhi ?
+    for (int col = 0; col < res; col++)
+    {
+      unsigned int k=0;
+      mprintf("DEBUG: D2 %6i from %6i to %6i\n", col, -halfRes, res+halfRes-1);
+      for (int row = -halfRes; row < res+halfRes; row++) { // -12 to 35
+        tmpy[k] = cmap_dPhi_[gidx].element_wrapped(row, col);
+        mprintf("DEBUG:\t\t%6i%12.4f\n", k, tmpy[k]);
+        k++;
+      }
+
+      generate_cubic_spline(twoRes, step_size, tmpy, tmpy2);
+     
+      for (int j = 0; j < res; j++) {
+        double dPhiPsi = evaluate_cubic_spline(step_size, tmpy, tmpy2, j+halfRes); //gbl_cmap_dPhi_dPsi(i,j,col))
+        cmap_dPhi_dPsi_[gidx].setElement(j, col, dPhiPsi);
       }
     } // END loop over cols
 

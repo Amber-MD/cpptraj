@@ -26,6 +26,7 @@ class CMAP {
 
     DMarray cmap_dPhi_; ///< Hold dE/dPhi for each CMAP grid
     DMarray cmap_dPsi_; ///< Hold dE/dPsi for each CMAP grid
+    DMarray cmap_dPhi_dPsi_; ///< Hold d^2E/dPhidPsi for each CMAP grid
 };
 }
 }
