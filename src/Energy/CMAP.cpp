@@ -8,7 +8,8 @@
 using namespace Cpptraj::Energy;
 
 /** CONSTRUCTOR */
-CMAP::CMAP() {}
+CMAP::CMAP() : cmapGridPtr_(0)
+{}
 
 /// DEBUG - print gradients
 static inline void print_grad(Vec3 const& dA, Vec3 const& dB, Vec3 const& dC, Vec3 const& dD)
@@ -41,8 +42,9 @@ const
                             dAphi, dBphi, dCphi, dDphi,
                             cosphi_ijkl, sinphi_ijkl );
     print_grad(dAphi, dBphi, dCphi, dDphi);
+    mprintf("%30.15f\n", acos(cosphi_ijkl));
     double phi = copysign(acos(cosphi_ijkl),sinphi_ijkl) * Constants::RADDEG;
-    mprintf("DEBUG: Dihedral 1 %i %i %i %i = %g deg.\n", cmap->A1()+1, cmap->A2()+1, cmap->A3()+1, cmap->A4()+1, phi);
+    mprintf("DEBUG: Dihedral 1 %i %i %i %i = %30.15f%30.15f%30.15f\n", cmap->A1()+1, cmap->A2()+1, cmap->A3()+1, cmap->A4()+1, phi, cosphi_ijkl, sinphi_ijkl);
 
     // Calculate the dihedral angle (psi) and the derivatives of the
     // four coordinates with respect to psi. Remember this subroutine is
@@ -54,11 +56,44 @@ const
                             cospsi_jklm, sinpsi_jklm );
     print_grad(dApsi, dBpsi, dCpsi, dDpsi);
     double psi = copysign(acos(cospsi_jklm),sinpsi_jklm) * Constants::RADDEG;
-    mprintf("DEBUG: Dihedral 2 %i %i %i %i = %g deg.\n", cmap->A2()+1, cmap->A3()+1, cmap->A4()+1, cmap->A5()+1, psi);
+    mprintf("DEBUG: Dihedral 2 %i %i %i %i = %30.15f%30.15f%30.15f\n", cmap->A2()+1, cmap->A3()+1, cmap->A4()+1, cmap->A5()+1, psi, cospsi_jklm, sinpsi_jklm);
+
+    double dPhi, dPsi;
+    ene_cmap = charmm_calc_cmap_from_phi_psi(phi, psi, (*(cmapGridPtr_))[cmap->Idx()], dPhi, dPsi);
   }
   return ene_cmap;
 }
 
+/// Used to mimic Fortran modulo with REAL arguments
+static inline double dmodulo(double a, double p) {
+  return ( a - floor(a / p) * p );
+}
+
+/** Calculate the CMAP energy given psi,phi and the cmap parameter */
+double CMAP::charmm_calc_cmap_from_phi_psi(double phi, double psi, CmapGridType const& cmapGrid, double& dPhi, double& dPsi)
+const
+{
+  static const int gridOrigin = -180; ///< Where the 2D grid starts in degrees
+  int step_size = 360 / cmapGrid.Resolution();
+  double ene_cmap = 0.0;
+  // Work out nearest complete grid point on the CMAP grid from
+  // phi and psi and use this to form a 2x2 stencil
+  mprintf("x= %16.8f  y= %16.8f\n", (phi - gridOrigin)/(step_size),(psi - gridOrigin)/(step_size) );
+  int x = (int)( (phi - gridOrigin)/(step_size) );
+  int y = (int)( (psi - gridOrigin)/(step_size) );
+  mprintf("x= %6i  y= %6i\n", x, y);
+
+  // Work out the fraction of the CMAP grid step that the interpolated
+  // point takes up.
+  // This will give the remainder part and then it is divided by the step size
+  double phiFrac = dmodulo((phi - gridOrigin), step_size) / step_size;
+  double psiFrac = dmodulo((psi - gridOrigin), step_size) / step_size;
+  mprintf("phiFrac %16.8f  psiFrac %16.8f\n", phiFrac, psiFrac);
+
+  return ene_cmap;
+}
+
+// -----------------------------------------------------------------------------
 /** This is reduced version of a typical cubic spline routine
   * that one may find in a recipe book of a numerical flavour.
   *
@@ -273,6 +308,7 @@ int CMAP::Setup_CMAP_Ene(Topology const& topIn) {
     mprintf("Warning: No CMAP parameters in '%s'\n", topIn.c_str());
     return 0;
   }
+  cmapGridPtr_ = &(topIn.CmapGrid());
   if (generate_cmap_derivatives(topIn)) {
     mprinterr("Error: Could not set up CMAP derivatives.\n");
     return 1;

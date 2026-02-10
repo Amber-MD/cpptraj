@@ -3,6 +3,8 @@
 #include <vector>
 #include "../Matrix.h"
 class CmapArray;
+class CmapGridArray;
+class CmapGridType;
 class Frame;
 class Topology;
 namespace Cpptraj {
@@ -17,6 +19,7 @@ class CMAP {
     /// Calculate CMAP energy
     double Ene_CMAP(CmapArray const&, Frame const&) const;
   private:
+    double charmm_calc_cmap_from_phi_psi(double, double, CmapGridType const&, double&, double&) const;
     static double evaluate_cubic_spline(int, std::vector<double> const&, std::vector<double> const&, int);
     int generate_cmap_derivatives(Topology const&);
     static void generate_cubic_spline(int, int, std::vector<double> const&, std::vector<double>&);
@@ -27,6 +30,7 @@ class CMAP {
     DMarray cmap_dPhi_; ///< Hold dE/dPhi for each CMAP grid
     DMarray cmap_dPsi_; ///< Hold dE/dPsi for each CMAP grid
     DMarray cmap_dPhi_dPsi_; ///< Hold d^2E/dPhidPsi for each CMAP grid
+    CmapGridArray const* cmapGridPtr_; ///< Pointer to CMAP grids this was set up with.
 };
 }
 }
