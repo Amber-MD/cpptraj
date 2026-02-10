@@ -107,6 +107,48 @@ double CMAP::evaluate_cubic_spline(int step_size, std::vector<double> const& y,
   return dyout;
 }
 
+/** Generates the set cubic splining coefficients from a 1D array with
+  * the assumption that the distance between the points is constant. This
+  * interpolation method ensures that the derivative of this spline is
+  * continuous across the boundary of two intervals.
+  *
+  * These coefficients are only calculated *once*, but are later used on
+  * multiple occassions by another subroutine to interpolate anywhere
+  * between two points in this 1D array.
+  */
+void CMAP::generate_cubic_spline(int n, int step_size, std::vector<double> const& y, std::vector<double>& y2)
+{
+  // tmp array used internally for the decomposition loop
+  std::vector<double> tmp(n);
+  // Lower and upper boundaries are natural
+  y2[0]  = 0.0;
+  tmp[0] = 0.0;
+
+  for (int i = 1; i < n-1; i++)
+  {
+    // y2 is used initially as a temp storage array
+    double p = 0.5*y2[i-1] + 2.0;
+    //Debug
+    y2[i]  = -0.5/p;
+    tmp[i] = ( y[i+1]-2.0*y[i] + y[i-1] ) / (double)step_size;
+    tmp[i] = ( 3.0* (tmp[i]/(double)step_size) - 0.5 *tmp[ i-1 ] )/p;
+    mprintf("%6i y2= %16.8f  tmp= %16.8f\n", i, y2[i], tmp[i]);
+  }
+
+  // Set the upper boundary
+  y2[n-1] = 0.0;
+
+  for (int i = n-2; i > -1; i--)
+  {
+    y2[i]=y2[i]*y2[i+1]+tmp[i];
+    mprintf("%6i %16.8f\n", i, y2[i]);
+    //mprintf("\t\t\tn is %i:\n",n);
+    //mprintf("\t\t\tStep size is : %i\n",step_size);
+    //mprintf("\t\t\ty is : %f\n",y[i]);
+    //mprintf("\t\t\ty2 is : %f\n",y2[i]);
+  }
+}
+
 /** Called once after CMAP parameters have been read. This populates
   * various partial derivatives in the cmapParameter%{dPsi,dPhi,dPsi_dPhi}
   * object. It does this using a cubic spline on the read in CMAP grid.
@@ -149,21 +191,16 @@ int CMAP::generate_cmap_derivatives(Topology const& topIn)
         k++;
       }
 
-/*
-      !Calculate spline coeffients (tmpy2) for each of the 1D
-      !horizontal rows in the CMAP table
-      call generate_cubic_spline(twoRes, step_size, tmpy, tmpy2)
+      // Calculate spline coeffients (tmpy2) for each of the 1D
+      // horizontal rows in the CMAP table
+      generate_cubic_spline(twoRes, step_size, tmpy, tmpy2);
      
-      !Calculate %dPhi for using each row
-      !of energies and corresponding splines in tmpy and tmpy2
-      do j=1,res
-        !evaluate_cubic_spline(n,step_size, gridOrigin, y,y2,xin,yout)
-
-        !offset array passed to evaluate_cubic_spline
-        call evaluate_cubic_spline(step_size, tmpy, tmpy2, &
-                                   j+12, gbl_cmap_dPhi(i,row,j))
-      enddo
-*/
+      // Calculate %dPhi for using each row
+      // of energies and corresponding splines in tmpy and tmpy2
+      for (int j = 0; j < res; j++) {
+        // offset array passed to evaluate_cubic_spline
+        double dPhi = evaluate_cubic_spline(step_size, tmpy, tmpy2, j+halfRes); //gbl_cmap_dPhi(i,row,j))
+      }
     } // END loop over rows
   } // END loop over grids
 

@@ -18,6 +18,7 @@ class CMAP {
   private:
     static double evaluate_cubic_spline(int, std::vector<double> const&, std::vector<double> const&, int);
     int generate_cmap_derivatives(Topology const&);
+    static void generate_cubic_spline(int, int, std::vector<double> const&, std::vector<double>&);
 };
 }
 }
