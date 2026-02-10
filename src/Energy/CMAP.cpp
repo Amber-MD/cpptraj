@@ -113,6 +113,8 @@ const
   static const int gridOrigin = -180; ///< Where the 2D grid starts in degrees
   int step_size = 360 / cmapGrid.Resolution();
   double ene_cmap = 0.0;
+  dPhi = 0.0;
+  dPsi = 0.0;
   // Work out nearest complete grid point on the CMAP grid from
   // phi and psi and use this to form a 2x2 stencil
   mprintf("x= %16.8f  y= %16.8f\n", (phi - gridOrigin)/(step_size),(psi - gridOrigin)/(step_size) );
@@ -170,6 +172,9 @@ const
   flatten_stencil(dptr+4, dPhi_stencil, step_size);
   flatten_stencil(dptr+8, dPsi_stencil, step_size);
   flatten_stencil(dptr+12, dPhi_dPsi_stencil, step_size*step_size);
+  for (std::vector<double>::const_iterator it = E_stencil_1D.begin(); it != E_stencil_1D.end(); ++it)
+    mprintf("%16.8f\n", *it);
+ 
 /*
   E_stencil_1D(0) = E_stencil(0,0)
   E_stencil_1D(1) = E_stencil(0,1)
@@ -203,9 +208,8 @@ const
                       c )
 */
   // Generate coefficients for bicubic interpolation
-  for (std::vector<double>::const_iterator it = E_stencil_1D.begin(); it != E_stencil_1D.end(); ++it)
-    mprintf("%16.8f\n", *it);
-  
+  // NOTE: This is based on routine weight_stencil in cmap.F90
+ 
   std::vector<double> coeff(16);
   for (int i = 0; i < 16; i++) {
     coeff[i] = 0.0;
@@ -218,6 +222,25 @@ const
 /*
   call bicubic_interpolation(phiFrac, psiFrac, c, E, dphi, dpsi)
 */
+  // Bicubic interpolation
+  // NOTE: This is based on routine bicubic_interpolation in cmap.F90
+  std::vector<double>::const_reverse_iterator Cit = coeff.rbegin();
+  std::vector<double>::const_reverse_iterator Dit = coeff.rbegin();
+  for (int i = 3; i > -1; i--, Cit += 4, Dit++) {
+    mprintf("BICUBIC %i %16.8f %16.8f %16.8f %16.8f\n", i, *(Cit), *(Cit+1), *(Cit+2), *(Cit+3));
+    mprintf("BICUBIC2 %i %16.8f %16.8f %16.8f\n", i, *(Dit), *(Dit+4), *(Dit+8));
+    double c4 = *(Cit);
+    double c3 = *(Cit+1);
+    double c2 = *(Cit+2);
+    double c1 = *(Cit+3);
+    double d4 = *(Dit);
+    double d3 = *(Dit+4);
+    double d2 = *(Dit+8);
+    ene_cmap =  ene_cmap*phiFrac +( (c4*psiFrac + c3)*psiFrac + c2 )*psiFrac + c1;
+    dPhi = dPhi*psiFrac +( 3.0*d4*phiFrac + 2.0*d3 )*phiFrac + d2;
+    dPsi = dPsi*phiFrac +( 3.0*c4*psiFrac + 2.0*c3 )*psiFrac + c2;
+  }
+  mprintf("FINAL %16.8f %16.8f %16.8f\n", ene_cmap, dPhi, dPsi);
   return ene_cmap;
 }
 
