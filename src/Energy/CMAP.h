@@ -30,6 +30,8 @@ class CMAP {
     double Ene_CMAP(Frame const&) const;
     /// Calculate CMAP energy and force
     double Ene_Frc_CMAP(Frame const&, double*) const;
+    /// \return True if there are CMAP terms
+    bool HasCMAPs() const { return (selected_cmaps_ != 0 || all_cmaps_ != 0); }
   private:
     //double get_cmap_energy(CmapArray const&, Frame const&, double&, double&,
     //                         Vec3(&dPhi_dijkl)[4], Vec3(&dPsi_djklm)[4]) const;

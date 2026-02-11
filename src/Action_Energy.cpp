@@ -482,11 +482,13 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
         Etot += ene;
         break;
       case C_CMAP:
-        time_cmap_.Start();
-        ene = cmap_->Ene_CMAP(frm.Frm());
-        time_cmap_.Stop();
-        Energy_[CMAP]->Add(frameNum, &ene);
-        Etot += ene;
+        if (cmap_->HasCMAPs()) {
+          time_cmap_.Start();
+          ene = cmap_->Ene_CMAP(frm.Frm());
+          time_cmap_.Stop();
+          Energy_[CMAP]->Add(frameNum, &ene);
+          Etot += ene;
+        }
         break;
       case C_N14:
         time_14_.Start();
