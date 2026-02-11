@@ -18,8 +18,8 @@ class Action_FixAtomOrder: public Action {
     void Print() {}
 
     void VisitAtom(int,int,Topology const&);
-    Action::RetType PdbOrder(ActionSetup&);
-    Action::RetType FixMolecules(ActionSetup&);
+    Action::RetType PdbOrder(Topology const&);
+    Action::RetType FixMolecules(Topology const&);
 
     enum ModeType {FIX_MOLECULES = 0, PDB_ORDER};
 
