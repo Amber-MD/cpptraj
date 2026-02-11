@@ -121,6 +121,8 @@ class Topology {
     int DetermineMolecules();
     /// Designate all atoms as part of a single molecule.
     int SetSingleMolecule();
+    /// \return True if molecules with non-contiguous residues are present
+    bool HasNoncontiguousMols() const { return hasNonContiguousMols_; }
     // ----- Bond-specific routines --------------
     size_t Nbonds()                            const { return bonds_.size()+bondsh_.size(); }
     BondArray         const& Bonds()        const { return bonds_;        }
@@ -406,10 +408,11 @@ class Topology {
     Frame refCoords_;       ///< Internal reference coords for distance-based masks
 
     int debug_;
-    int ipol_;              ///< 0 if fixed charge, 1 if polarizable
-    int NsolventMolecules_; ///< Number of molecules marked SOLVENT
-    int pindex_;            ///< Internal index used to ID Topology 
-    int n_extra_pts_;       ///< Number of extra points.
+    int ipol_;                  ///< 0 if fixed charge, 1 if polarizable
+    int NsolventMolecules_;     ///< Number of molecules marked SOLVENT
+    int pindex_;                ///< Internal index used to ID Topology 
+    int n_extra_pts_;           ///< Number of extra points.
+    bool hasNonContiguousMols_; ///< Set to true during DetermineMolecules() if there are molecules with non-contiguous residues
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
 NonbondType const& Topology::GetLJparam(int a1, int a2) const {

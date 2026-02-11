@@ -21,7 +21,8 @@ Topology::Topology() :
   ipol_(0),
   NsolventMolecules_(0),
   pindex_(0),
-  n_extra_pts_(0)
+  n_extra_pts_(0),
+  hasNonContiguousMols_(false)
 { }
 
 /** Copy the metadata from another Topology. */
@@ -1282,6 +1283,7 @@ int Topology::NresInMol(int idx) const {
   * recursive search over the bonds of each atom.
   */
 int Topology::DetermineMolecules() {
+  hasNonContiguousMols_ = false;
   // Since this is always done only print when debugging
   if (debug_>0) mprintf("\t%s: determining molecule info from bonds.\n",c_str());
   // Reset molecule info for each atom
@@ -1339,6 +1341,7 @@ int Topology::DetermineMolecules() {
     }
   }
   if (!nonContiguousMols.empty()) {
+    hasNonContiguousMols_ = true;
     mprintf("Warning: %zu molecules have non-contiguous segments of atoms.\n", nonContiguousMols.size());
     for (std::vector< std::vector<Molecule>::const_iterator >::const_iterator it = nonContiguousMols.begin();
                                                                               it != nonContiguousMols.end(); ++it)
