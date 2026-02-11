@@ -40,12 +40,14 @@ const int CMAP::wt_[16][16] = {
   {0, 0,  0,  0, 0, 0, -1,  1,  0,  0,  2, -2,  0,  0, -1,  1}
 };
 
+#ifdef DEBUG_CPPTRAJ_CMAP
 /// DEBUG - print gradients
 static inline void print_grad(Vec3 const& dA, Vec3 const& dB, Vec3 const& dC, Vec3 const& dD)
 {
   for (int i = 0; i < 3; i++)
     mprintf("DEBUG:\t\tdX %12.4f%12.4f%12.4f%12.4f\n", dA[i], dB[i], dC[i], dD[i]);
 }
+#endif
 
 /** Calculate CMAP energy */
 /*double CMAP::Ene_CMAP(CmapArray const& Cmaps, Frame const& frameIn)
@@ -97,11 +99,14 @@ const
     Torsion_and_part_deriv( ixyz, jxyz, kxyz, lxyz,
                             dPhi_dijkl[0], dPhi_dijkl[1], dPhi_dijkl[2], dPhi_dijkl[3],
                             cosphi_ijkl, sinphi_ijkl );
+#   ifdef DEBUG_CPPTRAJ_CMAP
     print_grad(dPhi_dijkl[0], dPhi_dijkl[1], dPhi_dijkl[2], dPhi_dijkl[3]);
+#   endif
 //    mprintf("%30.15f\n", acos(cosphi_ijkl));
     double phi = copysign(acos(cosphi_ijkl),sinphi_ijkl) * Constants::RADDEG;
+#   ifdef DEBUG_CPPTRAJ_CMAP
     mprintf("DEBUG: Dihedral 1 %i %i %i %i = %30.15f%30.15f%30.15f\n", cmap->A1()+1, cmap->A2()+1, cmap->A3()+1, cmap->A4()+1, phi, cosphi_ijkl, sinphi_ijkl);
-
+#   endif
     // Calculate the dihedral angle (psi) and the derivatives of the
     // four coordinates with respect to psi. Remember this subroutine is
     // operating in radians.
@@ -109,27 +114,30 @@ const
     Torsion_and_part_deriv( jxyz, kxyz, lxyz, mxyz,
                             dPsi_djklm[0], dPsi_djklm[1], dPsi_djklm[2], dPsi_djklm[3],
                             cospsi_jklm, sinpsi_jklm );
+#   ifdef DEBUG_CPPTRAJ_CMAP
     print_grad(dPsi_djklm[0], dPsi_djklm[1], dPsi_djklm[2], dPsi_djklm[3]);
+#   endif
     double psi = copysign(acos(cospsi_jklm),sinpsi_jklm) * Constants::RADDEG;
+#   ifdef DEBUG_CPPTRAJ_CMAP
     mprintf("DEBUG: Dihedral 2 %i %i %i %i = %30.15f%30.15f%30.15f\n", cmap->A2()+1, cmap->A3()+1, cmap->A4()+1, cmap->A5()+1, psi, cospsi_jklm, sinpsi_jklm);
-
+#   endif
     ene_cmap += charmm_calc_cmap_from_phi_psi(phi, psi, cmap->Idx(), dPhi, dPsi);
   } // END loop over CMAPs
   return ene_cmap;
 }
 
 /** Calculate CMAP energy and force */
-double CMAP::Ene_Frc_CMAP(Frame const& frameIn)
+double CMAP::Ene_Frc_CMAP(Frame const& frameIn, double* forcePtr)
 const
 {
   if ( all_cmaps_ != 0)
-    return Ene_Frc_CMAP( *all_cmaps_, frameIn );
+    return Ene_Frc_CMAP( *all_cmaps_, frameIn, forcePtr );
   else
-    return Ene_Frc_CMAP( *selected_cmaps_, frameIn );
+    return Ene_Frc_CMAP( *selected_cmaps_, frameIn, forcePtr );
 }
 
 /** Calculate CMAP energy and force */
-double CMAP::Ene_Frc_CMAP(CmapArray const& Cmaps, Frame const& frameIn)
+double CMAP::Ene_Frc_CMAP(CmapArray const& Cmaps, Frame const& frameIn, double* forcePtr)
 const
 {
   double ene_cmap = 0.0;
@@ -153,11 +161,14 @@ const
     Torsion_and_part_deriv( ixyz, jxyz, kxyz, lxyz,
                             dPhi_dijkl[0], dPhi_dijkl[1], dPhi_dijkl[2], dPhi_dijkl[3],
                             cosphi_ijkl, sinphi_ijkl );
+#   ifdef DEBUG_CPPTRAJ_CMAP
     print_grad(dPhi_dijkl[0], dPhi_dijkl[1], dPhi_dijkl[2], dPhi_dijkl[3]);
+#   endif
 //    mprintf("%30.15f\n", acos(cosphi_ijkl));
     double phi = copysign(acos(cosphi_ijkl),sinphi_ijkl) * Constants::RADDEG;
+#   ifdef DEBUG_CPPTRAJ_CMAP
     mprintf("DEBUG: Dihedral 1 %i %i %i %i = %30.15f%30.15f%30.15f\n", cmap->A1()+1, cmap->A2()+1, cmap->A3()+1, cmap->A4()+1, phi, cosphi_ijkl, sinphi_ijkl);
-
+#   endif
     // Calculate the dihedral angle (psi) and the derivatives of the
     // four coordinates with respect to psi. Remember this subroutine is
     // operating in radians.
@@ -165,10 +176,13 @@ const
     Torsion_and_part_deriv( jxyz, kxyz, lxyz, mxyz,
                             dPsi_djklm[0], dPsi_djklm[1], dPsi_djklm[2], dPsi_djklm[3],
                             cospsi_jklm, sinpsi_jklm );
+#   ifdef DEBUG_CPPTRAJ_CMAP
     print_grad(dPsi_djklm[0], dPsi_djklm[1], dPsi_djklm[2], dPsi_djklm[3]);
+#   endif
     double psi = copysign(acos(cospsi_jklm),sinpsi_jklm) * Constants::RADDEG;
+#   ifdef DEBUG_CPPTRAJ_CMAP
     mprintf("DEBUG: Dihedral 2 %i %i %i %i = %30.15f%30.15f%30.15f\n", cmap->A2()+1, cmap->A3()+1, cmap->A4()+1, cmap->A5()+1, psi, cospsi_jklm, sinpsi_jklm);
-
+#   endif
     ene_cmap += charmm_calc_cmap_from_phi_psi(phi, psi, cmap->Idx(), dPhi, dPsi);
 
     // Do force calc
@@ -182,6 +196,7 @@ const
       dPhi_dijkl[i] *= dPhi;
       dPsi_djklm[i] *= dPsi;
     }
+#   ifdef DEBUG_CPPTRAJ_CMAP
     mprintf("FINAL PHI\n");
     for (unsigned int i = 0; i < 4; i++)
       for (unsigned int j = 0; j < 3; j++)
@@ -190,7 +205,8 @@ const
     for (unsigned int i = 0; i < 4; i++)
       for (unsigned int j = 0; j < 3; j++)
         mprintf("%16.8f\n", dPsi_djklm[i][j]);
-
+#   endif
+#   ifdef DEBUG_CPPTRAJ_CMAP
     std::vector<Vec3> frc(5, Vec3(0.0));
     for (int n = 0; n < 3; n++) {
       frc[0][n] = -dPhi_dijkl[0][n];
@@ -203,6 +219,19 @@ const
       mprintf("k %3i %16.8f\n", n, frc[2][n]);
       mprintf("l %3i %16.8f\n", n, frc[3][n]);
       mprintf("m %3i %16.8f\n", n, frc[4][n]);
+    }
+#   endif
+    double* fi = forcePtr + (cmap->A1() * 3);
+    double* fj = forcePtr + (cmap->A1() * 3);
+    double* fk = forcePtr + (cmap->A1() * 3);
+    double* fl = forcePtr + (cmap->A1() * 3);
+    double* fm = forcePtr + (cmap->A1() * 3);
+    for (int n = 0; n < 3; n++) {
+      fi[n] += -dPhi_dijkl[0][n];
+      fj[n] += -dPhi_dijkl[1][n] - dPsi_djklm[0][n];
+      fk[n] += -dPhi_dijkl[2][n] - dPsi_djklm[1][n];
+      fl[n] += -dPhi_dijkl[3][n] - dPsi_djklm[2][n];
+      fm[n] +=                   - dPsi_djklm[3][n];
     }
   }
   return ene_cmap;
@@ -443,7 +472,9 @@ void CMAP::generate_cubic_spline(int n, int step_size, std::vector<double> const
     y2[i]  = -0.5/p;
     tmp[i] = ( y[i+1]-2.0*y[i] + y[i-1] ) / (double)step_size;
     tmp[i] = ( 3.0* (tmp[i]/(double)step_size) - 0.5 *tmp[ i-1 ] )/p;
+#   ifdef DEBUG_CPPTRAJ_CMAP
     mprintf("%6i y2= %16.8f  tmp= %16.8f\n", i, y2[i], tmp[i]);
+#   endif
   }
 
   // Set the upper boundary
@@ -452,7 +483,9 @@ void CMAP::generate_cubic_spline(int n, int step_size, std::vector<double> const
   for (int i = n-2; i > -1; i--)
   {
     y2[i]=y2[i]*y2[i+1]+tmp[i];
+#   ifdef DEBUG_CPPTRAJ_CMAP
     mprintf("%6i %16.8f\n", i, y2[i]);
+#   endif
     //mprintf("\t\t\tn is %i:\n",n);
     //mprintf("\t\t\tStep size is : %i\n",step_size);
     //mprintf("\t\t\ty is : %f\n",y[i]);
@@ -507,10 +540,14 @@ int CMAP::generate_cmap_derivatives(Topology const& topIn)
       // It is possible CHARMM does this to avoid edge issues.
 
       unsigned int k=0; // index for tmpy array
+#     ifdef DEBUG_CPPTRAJ_CMAP
       mprintf("DEBUG: Row %6i from %6i to %6i\n", row, -halfRes, res+halfRes-1);
+#     endif
       for (int col = -halfRes; col < res+halfRes; col++) { // -12 to 35
         tmpy[k] = grid->Grid(col, row);
+#       ifdef DEBUG_CPPTRAJ_CMAP
         mprintf("DEBUG:\t\t%6i%12.4f\n", k, tmpy[k]);
+#       endif
         k++;
       }
 
@@ -533,10 +570,14 @@ int CMAP::generate_cmap_derivatives(Topology const& topIn)
       // Step across one column each cycle, splining up each column
 
       unsigned int k=0; // index for tmpy array
+#     ifdef DEBUG_CPPTRAJ_CMAP
       mprintf("DEBUG: Col %6i from %6i to %6i\n", col, -halfRes, res+halfRes-1);
+#     endif
       for (int row = -halfRes; row < res+halfRes; row++) { // -12 to 35
         tmpy[k] = grid->Grid(col, row);
+#       ifdef DEBUG_CPPTRAJ_CMAP
         mprintf("DEBUG:\t\t%6i%12.4f\n", k, tmpy[k]);
+#       endif
         k++;
       }
 
@@ -558,10 +599,14 @@ int CMAP::generate_cmap_derivatives(Topology const& topIn)
     for (int col = 0; col < res; col++)
     {
       unsigned int k=0;
+#     ifdef DEBUG_CPPTRAJ_CMAP
       mprintf("DEBUG: D2 %6i from %6i to %6i\n", col, -halfRes, res+halfRes-1);
+#     endif
       for (int row = -halfRes; row < res+halfRes; row++) { // -12 to 35
         tmpy[k] = cmap_dPhi_[gidx].element_wrapped(row, col);
+#       ifdef DEBUG_CPPTRAJ_CMAP
         mprintf("DEBUG:\t\t%6i%12.4f\n", k, tmpy[k]);
+#       endif
         k++;
       }
 

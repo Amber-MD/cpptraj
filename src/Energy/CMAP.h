@@ -11,24 +11,30 @@ class Vec3;
 namespace Cpptraj {
 namespace Energy {
 /// Implement CMAP energy term
+/** This class implements the 2D dihedral energy grid correction map (CMAP)
+  * energy and force calculations: see MacKerell et. al JACS 2004 126 698-699.
+  * The code in this class is largely based off of the cmap.F90 file
+  * from the pmemd program of Amber, adapted to C++ by DRR.
+  * Compile with DEBUG_CPPTRAJ_CMAP for more detailed debug output.
+  */
 class CMAP {
   public:
     CMAP();
     ~CMAP();
 
-    /// Setup CMAP splines etc
+    /// Setup CMAP terms to be calculated, splines, etc
     int Setup_CMAP_Ene(Topology const&, CharMask const&);
     /// Calculate CMAP energy
     double Ene_CMAP(Frame const&) const;
     /// Calculate CMAP energy and force
-    double Ene_Frc_CMAP(Frame const&) const;
+    double Ene_Frc_CMAP(Frame const&, double*) const;
   private:
     //double get_cmap_energy(CmapArray const&, Frame const&, double&, double&,
     //                         Vec3(&dPhi_dijkl)[4], Vec3(&dPsi_djklm)[4]) const;
     /// Calculate CMAP energy
     double Ene_CMAP(CmapArray const&, Frame const&) const;
     /// Calculate CMAP energy and force
-    double Ene_Frc_CMAP(CmapArray const&, Frame const&) const;
+    double Ene_Frc_CMAP(CmapArray const&, Frame const&, double*) const;
 
     double charmm_calc_cmap_from_phi_psi(double, double, int, double&, double&) const;
     static double evaluate_cubic_spline(int, std::vector<double> const&, std::vector<double> const&, int);
