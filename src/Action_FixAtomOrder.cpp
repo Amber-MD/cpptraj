@@ -55,6 +55,38 @@ Action::RetType Action_FixAtomOrder::Init(ArgList& actionArgs, ActionInit& init,
   return Action::OK;
 }
 
+/** Separate routine that will just fix the atom order. */
+int Action_FixAtomOrder::FixMoleculeOrder(Topology& topOut, Frame& frameOut, int debugIn)
+{
+  debug_ = debugIn;
+  mode_ = FIX_MOLECULES;
+  if (FixMolecules(topOut) != Action::OK) {
+    mprinterr("Error: Fixing molecule order failed.\n");
+    return 1;
+  }
+  if (debug_ > 0) {
+    mprintf("\tNew atom mapping:\n");
+    for (MapType::const_iterator atom = atomMap_.begin();
+                                 atom != atomMap_.end(); ++atom)
+      mprintf("\t\tNew atom %8li => old atom %8i\n", atom - atomMap_.begin() + 1, *atom + 1);
+  }
+  // Create new topology based on map
+  if (newParm_ != 0) delete newParm_;
+  newParm_ = topOut.ModifyByMap( atomMap_ );
+  if (newParm_ == 0) {
+    mprinterr("Error: Could not create re-ordered topology.\n");
+    return Action::ERR;
+  }
+  topOut = *newParm_;
+  
+  // Allocate space for new frame and reorder coords
+  newFrame_.SetupFrameV( newParm_->Atoms(), frameOut.CoordsInfo() );
+  newFrame_.SetCoordinatesByMap( frameOut, atomMap_ );
+  frameOut = newFrame_;
+
+  return 0;
+}
+
 // Action_FixAtomOrder::setup()
 Action::RetType Action_FixAtomOrder::Setup(ActionSetup& setup) {
   Action::RetType ret;

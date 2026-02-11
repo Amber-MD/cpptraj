@@ -11,6 +11,8 @@ class Action_FixAtomOrder: public Action {
     ~Action_FixAtomOrder();
     DispatchObject* Alloc() const { return (DispatchObject*)new Action_FixAtomOrder(); }
     void Help() const;
+    /// Standalone routine for e.g. the Exec_Build command
+    int FixMoleculeOrder(Topology&, Frame&, int);
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
