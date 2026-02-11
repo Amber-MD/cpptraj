@@ -1,4 +1,5 @@
 #include "Exec_Build.h"
+#include "Action_FixAtomOrder.h"
 #include "AssociatedData_Connect.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Parameters.h" // For casting DataSet_Parameters to ParameterSet
@@ -29,6 +30,10 @@ Exec_Build::Exec_Build() :
   check_structure_(true),
   keepMissingSourceAtoms_(false),
   requireAllInputAtoms_(false),
+  doHisDetect_(true),
+  doDisulfide_(true),
+  doSugar_(true),
+  fixAtomOrder_(true),
   outCrdPtr_(0)
 {}
 
@@ -820,7 +825,7 @@ const
 void Exec_Build::Help() const
 {
   mprintf("\tname <output COORDS> crdset <COORDS set> [frame <#>]\n"
-          "\t[title <title>] [verbose <#>] [keepmissingatoms]\n"
+          "\t[title <title>] [verbose <#>] [keepmissingatoms] [nofixorder]\n"
           "\t[parmout <topology file>] [crdout <coord file>] [simplecheck]\n");
   mprintf("\t[%s]\n", Cpptraj::Parm::GB_Params::HelpText().c_str());
   mprintf("\t[lj1264 %s]\n", Cpptraj::Parm::LJ1264_Params::HelpText().c_str());
@@ -912,6 +917,7 @@ Exec::RetType Exec_Build::BuildStructure(DataSet* inCrdPtr, DataSetList& DSL, in
   doHisDetect_ = enableExtraDetection;
   doDisulfide_ = enableExtraDetection;
   doSugar_     = enableExtraDetection;
+  fixAtomOrder_ = enableExtraDetection;
 
   // Set up Output coords
   if (setupOutputCoords(inCrdPtr, outset, title, DSL)) {
@@ -1013,6 +1019,10 @@ Exec::RetType Exec_Build::BuildAndParmStructure(DataSet* inCrdPtr, std::string c
   debug_ = debugIn;
   int verbose = argIn.getKeyInt("verbose", 0);
   std::string title = argIn.GetStringKey("title");
+  if (argIn.hasKey("nofixorder"))
+    fixAtomOrder_ = false;
+  else
+    fixAtomOrder_ = true;
   std::string outputTopologyName = argIn.GetStringKey("parmout");
   std::string outputCoordsName = argIn.GetStringKey("crdout");
   if (argIn.hasKey("simplecheck")) {
@@ -1534,6 +1544,20 @@ int Exec_Build::StructurePrepAndFillTemplates(ArgList& argIn, Topology& topIn, F
   topOut.AllocRotateArray();
     // Finalize topology - determine molecules, dont renumber residues
   topOut.CommonSetup(true, false);
+
+  if (topOut.HasNoncontiguousMols()) {
+    mprintf("\tMolecules with non-contiguous stretches of residues are present.\n");
+    if (fixAtomOrder_) {
+      mprintf("\tReordering topology/coords so that molecules are contiguous.\n");
+      Action_FixAtomOrder fixOrder;
+      if (fixOrder.FixMoleculeOrder(topOut, frameOut, debug_)) {
+        mprinterr("Error: Could not fix molecule order.\n");
+        return 1;
+      }
+    } else {
+      mprintf("\t'nofixorder' was specified - not reordering molecules.\n");
+    }
+  }
   return 0;
 }
 

@@ -60,6 +60,7 @@ class Exec_Build : public Exec {
     bool doHisDetect_;
     bool doDisulfide_;
     bool doSugar_;
+    bool fixAtomOrder_;           ///< If true will attempt to make sure residues in molecules are contiguous
     DataSet* outCrdPtr_;          ///< Hold built (output) COORDS
 
     Timer t_total_;
