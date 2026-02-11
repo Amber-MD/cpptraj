@@ -242,6 +242,7 @@ static inline double dmodulo(double a, double p) {
   return ( a - floor(a / p) * p );
 }
 
+#ifdef DEBUG_CPPTRAJ_CMAP
 static inline void print_stencil(const char* desc, const double (&matrix)[2][2])
 {
   mprintf("%s:\n", desc);
@@ -249,7 +250,17 @@ static inline void print_stencil(const char* desc, const double (&matrix)[2][2])
   mprintf("%9.6f %9.6f\n", matrix[0][0], matrix[0][1]);
   mprintf("\n");
 }
+#endif
 
+/// Convert the 2x2 stencils into a 1D array for processing by weight_stencil.
+/** The array starts at the bottom left of the 2x2, working
+  * around counterclockwise:
+  *
+  *          4 3
+  *          1 2
+  *
+  * NOTE: There may be a cleaner/better way of doing this
+  */
 static inline void flatten_stencil(double* out, const double(&matrix)[2][2], double step_size)
 {
   out[0] = matrix[0][0] * step_size;
@@ -270,18 +281,20 @@ const
   dPsi = 0.0;
   // Work out nearest complete grid point on the CMAP grid from
   // phi and psi and use this to form a 2x2 stencil
-  mprintf("x= %16.8f  y= %16.8f\n", (phi - gridOrigin)/(step_size),(psi - gridOrigin)/(step_size) );
+//  mprintf("x= %16.8f  y= %16.8f\n", (phi - gridOrigin)/(step_size),(psi - gridOrigin)/(step_size) );
   int x = (int)( (phi - gridOrigin)/(step_size) );
   int y = (int)( (psi - gridOrigin)/(step_size) );
+# ifdef DEBUG_CPPTRAJ_CMAP
   mprintf("x= %6i  y= %6i\n", x, y);
-
+# endif
   // Work out the fraction of the CMAP grid step that the interpolated
   // point takes up.
   // This will give the remainder part and then it is divided by the step size
   double phiFrac = dmodulo((phi - gridOrigin), step_size) / step_size;
   double psiFrac = dmodulo((psi - gridOrigin), step_size) / step_size;
+# ifdef DEBUG_CPPTRAJ_CMAP
   mprintf("phiFrac %16.8f  psiFrac %16.8f\n", phiFrac, psiFrac);
-
+# endif
   double E_stencil[2][2];
   double dPhi_stencil[2][2];
   double dPsi_stencil[2][2];
@@ -298,26 +311,14 @@ const
       dPhi_dPsi_stencil[i][j] = cmap_dPhi_dPsi_[cidx].element_wrapped(y+i, x+j);
     }
   }
-
+# ifdef DEBUG_CPPTRAJ_CMAP
   print_stencil("CMAP", E_stencil);
   print_stencil("dPhi", dPhi_stencil);
   print_stencil("dPsi", dPsi_stencil);
   print_stencil("dPhi_dPsi", dPhi_dPsi_stencil);
-
+# endif
   // Convert the 2x2 stencils into a 1D array for processing
-  // by weight_stencil.
-  // The array starts at the bottom left of the 2x2, working
-  // around counterclockwise:
-  //
-  //          4 3
-  //          1 2
-  //
-  //There may be a cleaner/better way of doing this
-  //double E_stencil_1D[4];
-  //double dPhi_stencil_1D[4];
-  //double dPsi_stencil_1D[4];
-  //double dPhi_dPsi_stencil_1D[4];
-
+  // by the below weight_stencil code.
   std::vector<double> E_stencil_1D(16);
   double* dptr = &(E_stencil_1D[0]);
   flatten_stencil(dptr, E_stencil, 1);
@@ -325,44 +326,12 @@ const
   flatten_stencil(dptr+4, dPhi_stencil, step_size);
   flatten_stencil(dptr+8, dPsi_stencil, step_size);
   flatten_stencil(dptr+12, dPhi_dPsi_stencil, step_size*step_size);
+# ifdef DEBUG_CPPTRAJ_CMAP
   for (std::vector<double>::const_iterator it = E_stencil_1D.begin(); it != E_stencil_1D.end(); ++it)
     mprintf("%16.8f\n", *it);
- 
-/*
-  E_stencil_1D(0) = E_stencil(0,0)
-  E_stencil_1D(1) = E_stencil(0,1)
-  E_stencil_1D(2) = E_stencil(1,1)
-  E_stencil_1D(3) = E_stencil(1,0)
-
-  !DEBUG
-  !write(6,'(f9.6)'),E_stencil_1D
-
-  dPhi_stencil_1D(1) = dPhi_stencil(1,1)
-  dPhi_stencil_1D(2) = dPhi_stencil(1,2)
-  dPhi_stencil_1D(3) = dPhi_stencil(2,2)
-  dPhi_stencil_1D(4) = dPhi_stencil(2,1)
-
-  dPsi_stencil_1D(1) = dPsi_stencil(1,1)
-  dPsi_stencil_1D(2) = dPsi_stencil(1,2)
-  dPsi_stencil_1D(3) = dPsi_stencil(2,2)
-  dPsi_stencil_1D(4) = dPsi_stencil(2,1)
-
-  dPhi_dPsi_stencil_1D(1) = dPhi_dPsi_stencil(1,1)
-  dPhi_dPsi_stencil_1D(2) = dPhi_dPsi_stencil(1,2)
-  dPhi_dPsi_stencil_1D(3) = dPhi_dPsi_stencil(2,2)
-  dPhi_dPsi_stencil_1D(4) = dPhi_dPsi_stencil(2,1)
-
-  !Weight d{Psi,dPhi,dPhidPsi}_stencil
-  call weight_stencil(gbl_cmap_grid_step_size(cmap_idx), &
-                      E_stencil_1D,              &
-                      dPhi_stencil_1D,           &
-                      dPsi_stencil_1D,           &
-                      dPhi_dPsi_stencil_1D,      &
-                      c )
-*/
+# endif
   // Generate coefficients for bicubic interpolation
   // NOTE: This is based on routine weight_stencil in cmap.F90
- 
   std::vector<double> coeff(16);
   for (int i = 0; i < 16; i++) {
     coeff[i] = 0.0;
@@ -370,18 +339,19 @@ const
       coeff[i] += wt_[k][i] * E_stencil_1D[k];
     }
   }
+# ifdef DEBUG_CPPTRAJ_CMAP
   for (std::vector<double>::const_iterator it = coeff.begin(); it != coeff.end(); ++it)
     mprintf("%16.8f\n", *it);
-/*
-  call bicubic_interpolation(phiFrac, psiFrac, c, E, dphi, dpsi)
-*/
+# endif
   // Bicubic interpolation
   // NOTE: This is based on routine bicubic_interpolation in cmap.F90
   std::vector<double>::const_reverse_iterator Cit = coeff.rbegin();
   std::vector<double>::const_reverse_iterator Dit = coeff.rbegin();
   for (int i = 3; i > -1; i--, Cit += 4, Dit++) {
+#   ifdef DEBUG_CPPTRAJ_CMAP
     mprintf("BICUBIC %i %16.8f %16.8f %16.8f %16.8f\n", i, *(Cit), *(Cit+1), *(Cit+2), *(Cit+3));
     mprintf("BICUBIC2 %i %16.8f %16.8f %16.8f\n", i, *(Dit), *(Dit+4), *(Dit+8));
+#   endif
     double c4 = *(Cit);
     double c3 = *(Cit+1);
     double c2 = *(Cit+2);
@@ -393,8 +363,9 @@ const
     dPhi = dPhi*psiFrac +( 3.0*d4*phiFrac + 2.0*d3 )*phiFrac + d2;
     dPsi = dPsi*phiFrac +( 3.0*c4*psiFrac + 2.0*c3 )*psiFrac + c2;
   }
+# ifdef DEBUG_CPPTRAJ_CMAP
   mprintf("FINAL %16.8f %16.8f %16.8f\n", ene_cmap, dPhi, dPsi);
-
+# endif
   return ene_cmap;
 }
 
