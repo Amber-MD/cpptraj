@@ -22,6 +22,8 @@ class CMAP {
     CMAP();
     ~CMAP();
 
+    /// Set debug level
+    void SetDebug(int);
     /// Setup CMAP terms to be calculated, splines, etc
     int Setup_CMAP_Ene(Topology const&, CharMask const&);
     /// Calculate CMAP energy
@@ -50,6 +52,7 @@ class CMAP {
     CmapGridArray const* cmapGridPtr_; ///< Pointer to CMAP grids this was set up with.
     CmapArray* selected_cmaps_; ///< Hold cmaps to calculate energy for if not all selected.
     CmapArray const* all_cmaps_; ///< Pointer to CMAP array in Topology when all selected.
+    int debug_;
 
     static const int wt_[16][16]; ///< Weight matrix
 };

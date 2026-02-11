@@ -12,12 +12,18 @@ using namespace Cpptraj::Energy;
 CMAP::CMAP() :
   cmapGridPtr_(0),
   selected_cmaps_(0),
-  all_cmaps_(0)
+  all_cmaps_(0),
+  debug_(0)
 {}
 
 /** DESTRUCTOR */
 CMAP::~CMAP() {
   if (selected_cmaps_ != 0) delete selected_cmaps_;
+}
+
+/** Set debug level */
+void CMAP::SetDebug(int debugIn) {
+  debug_ = debugIn;
 }
 
 /** The weight matrix */
@@ -633,14 +639,16 @@ int CMAP::Setup_CMAP_Ene(Topology const& topIn, CharMask const& cmask) {
     }
     mprintf("\t%zu CMAPs.\n", selected_cmaps_->size());
   }
-  for (CmapArray::const_iterator cmap = cmaparray->begin(); cmap != cmaparray->end(); ++cmap)
-  {
-    mprintf("\t\tSelecting CMAP %s - %s - %s - %s - %s\n",
-            topIn.AtomMaskName(cmap->A1()).c_str(),
-            topIn.AtomMaskName(cmap->A2()).c_str(),
-            topIn.AtomMaskName(cmap->A3()).c_str(),
-            topIn.AtomMaskName(cmap->A4()).c_str(),
-            topIn.AtomMaskName(cmap->A5()).c_str());
+  if (debug_ > 0) {
+    for (CmapArray::const_iterator cmap = cmaparray->begin(); cmap != cmaparray->end(); ++cmap)
+    {
+      mprintf("\t\tSelecting CMAP %s - %s - %s - %s - %s\n",
+              topIn.AtomMaskName(cmap->A1()).c_str(),
+              topIn.AtomMaskName(cmap->A2()).c_str(),
+              topIn.AtomMaskName(cmap->A3()).c_str(),
+              topIn.AtomMaskName(cmap->A4()).c_str(),
+              topIn.AtomMaskName(cmap->A5()).c_str());
+    }
   }
   return 0;
 }
