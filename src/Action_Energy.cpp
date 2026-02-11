@@ -366,7 +366,7 @@ Action::RetType Action_Energy::Setup(ActionSetup& setup) {
   Imask_ = AtomMask(Mask1_.ConvertToIntMask(), Mask1_.Natom());
   // CMAP
   if (cmap_ != 0) {
-    if (cmap_->Setup_CMAP_Ene(setup.Top())) {
+    if (cmap_->Setup_CMAP_Ene(setup.Top(), Mask1_)) {
       mprinterr("Error: CMAP setup failed.\n");
       return Action::ERR;
     }
@@ -483,7 +483,7 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
         break;
       case C_CMAP:
         time_cmap_.Start();
-        ene = cmap_->Ene_CMAP(currentParm_->Cmap(), frm.Frm());
+        ene = cmap_->Ene_CMAP(frm.Frm());
         time_cmap_.Stop();
         Energy_[CMAP]->Add(frameNum, &ene);
         Etot += ene;

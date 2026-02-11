@@ -594,12 +594,15 @@ int CMAP::Setup_CMAP_Ene(Topology const& topIn, CharMask const& cmask) {
     return 1;
   }
 
+  CmapArray const* cmaparray = 0;
   if (cmask.All()) {
     mprintf("\tAll CMAPs will be selected.\n");
     all_cmaps_ = &(topIn.Cmap());
+    cmaparray = all_cmaps_;
     mprintf("\t%zu CMAPs.\n", all_cmaps_->size());
   } else {
     selected_cmaps_ = new CmapArray();
+    cmaparray = (CmapArray const*)selected_cmaps_;
     for (CmapArray::const_iterator cmap = topIn.Cmap().begin();
                                    cmap != topIn.Cmap().end(); ++cmap)
     {
@@ -609,17 +612,19 @@ int CMAP::Setup_CMAP_Ene(Topology const& topIn, CharMask const& cmask) {
            cmask.AtomInCharMask(cmap->A4()) &&
            cmask.AtomInCharMask(cmap->A5()) )
       {
-        mprintf("\t\tSelecting CMAP %s - %s - %s - %s - %s\n",
-                topIn.AtomMaskName(cmap->A1()).c_str(),
-                topIn.AtomMaskName(cmap->A2()).c_str(),
-                topIn.AtomMaskName(cmap->A3()).c_str(),
-                topIn.AtomMaskName(cmap->A4()).c_str(),
-                topIn.AtomMaskName(cmap->A5()).c_str());
         selected_cmaps_->push_back( *cmap );
       }
     }
     mprintf("\t%zu CMAPs.\n", selected_cmaps_->size());
   }
-
+  for (CmapArray::const_iterator cmap = cmaparray->begin(); cmap != cmaparray->end(); ++cmap)
+  {
+    mprintf("\t\tSelecting CMAP %s - %s - %s - %s - %s\n",
+            topIn.AtomMaskName(cmap->A1()).c_str(),
+            topIn.AtomMaskName(cmap->A2()).c_str(),
+            topIn.AtomMaskName(cmap->A3()).c_str(),
+            topIn.AtomMaskName(cmap->A4()).c_str(),
+            topIn.AtomMaskName(cmap->A5()).c_str());
+  }
   return 0;
 }
