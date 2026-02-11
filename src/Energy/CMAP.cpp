@@ -1,5 +1,6 @@
 #include "CMAP.h"
-#include "../CpptrajStdio.h" // DEBUG
+#include "../CharMask.h"
+#include "../CpptrajStdio.h"
 #include "../Frame.h"
 #include "../ParameterTypes.h"
 #include "../Topology.h"
@@ -8,8 +9,16 @@
 using namespace Cpptraj::Energy;
 
 /** CONSTRUCTOR */
-CMAP::CMAP() : cmapGridPtr_(0)
+CMAP::CMAP() :
+  cmapGridPtr_(0),
+  selected_cmaps_(0),
+  all_cmaps_(0)
 {}
+
+/** DESTRUCTOR */
+CMAP::~CMAP() {
+  if (selected_cmaps_ != 0) delete selected_cmaps_;
+}
 
 /** The weight matrix */
 const int CMAP::wt_[16][16] = {
@@ -52,6 +61,16 @@ const
 /*double CMAP::get_cmap_energy(CmapArray const& Cmaps, Frame const& frameIn,
                              double& dPhi, double& dPsi,
                              Vec3(&dPhi_dijkl)[4], Vec3(&dPsi_djklm)[4])*/
+
+/** Calculate CMAP energy */
+double CMAP::Ene_CMAP(Frame const& frameIn)
+const
+{
+  if ( all_cmaps_ != 0)
+    return Ene_CMAP( *all_cmaps_, frameIn );
+  else
+    return Ene_CMAP( *selected_cmaps_, frameIn );
+}
 
 /** Calculate CMAP energy */
 double CMAP::Ene_CMAP(CmapArray const& Cmaps, Frame const& frameIn)
@@ -97,6 +116,16 @@ const
     ene_cmap += charmm_calc_cmap_from_phi_psi(phi, psi, cmap->Idx(), dPhi, dPsi);
   } // END loop over CMAPs
   return ene_cmap;
+}
+
+/** Calculate CMAP energy and force */
+double CMAP::Ene_Frc_CMAP(Frame const& frameIn)
+const
+{
+  if ( all_cmaps_ != 0)
+    return Ene_Frc_CMAP( *all_cmaps_, frameIn );
+  else
+    return Ene_Frc_CMAP( *selected_cmaps_, frameIn );
 }
 
 /** Calculate CMAP energy and force */
@@ -550,7 +579,11 @@ int CMAP::generate_cmap_derivatives(Topology const& topIn)
 }
 
 /** Set up CMAP-related terms */
-int CMAP::Setup_CMAP_Ene(Topology const& topIn) {
+int CMAP::Setup_CMAP_Ene(Topology const& topIn, CharMask const& cmask) {
+  if (selected_cmaps_ != 0) delete selected_cmaps_;
+  selected_cmaps_ = 0;
+  all_cmaps_ = 0;
+
   if (!topIn.HasCmap()) {
     mprintf("Warning: No CMAP parameters in '%s'\n", topIn.c_str());
     return 0;
@@ -559,6 +592,33 @@ int CMAP::Setup_CMAP_Ene(Topology const& topIn) {
   if (generate_cmap_derivatives(topIn)) {
     mprinterr("Error: Could not set up CMAP derivatives.\n");
     return 1;
+  }
+
+  if (cmask.All()) {
+    mprintf("\tAll CMAPs will be selected.\n");
+    all_cmaps_ = &(topIn.Cmap());
+    mprintf("\t%zu CMAPs.\n", all_cmaps_->size());
+  } else {
+    selected_cmaps_ = new CmapArray();
+    for (CmapArray::const_iterator cmap = topIn.Cmap().begin();
+                                   cmap != topIn.Cmap().end(); ++cmap)
+    {
+      if ( cmask.AtomInCharMask(cmap->A1()) &&
+           cmask.AtomInCharMask(cmap->A2()) &&
+           cmask.AtomInCharMask(cmap->A3()) &&
+           cmask.AtomInCharMask(cmap->A4()) &&
+           cmask.AtomInCharMask(cmap->A5()) )
+      {
+        mprintf("\t\tSelecting CMAP %s - %s - %s - %s - %s\n",
+                topIn.AtomMaskName(cmap->A1()).c_str(),
+                topIn.AtomMaskName(cmap->A2()).c_str(),
+                topIn.AtomMaskName(cmap->A3()).c_str(),
+                topIn.AtomMaskName(cmap->A4()).c_str(),
+                topIn.AtomMaskName(cmap->A5()).c_str());
+        selected_cmaps_->push_back( *cmap );
+      }
+    }
+    mprintf("\t%zu CMAPs.\n", selected_cmaps_->size());
   }
 
   return 0;
