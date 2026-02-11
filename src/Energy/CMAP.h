@@ -18,9 +18,11 @@ class CMAP {
     int Setup_CMAP_Ene(Topology const&);
     /// Calculate CMAP energy
     double Ene_CMAP(CmapArray const&, Frame const&) const;
+    /// Calculate CMAP energy and force
+    double Ene_Frc_CMAP(CmapArray const&, Frame const&) const;
   private:
-    double get_cmap_energy(CmapArray const&, Frame const&, double&, double&,
-                             Vec3(&dPhi_dijkl)[4], Vec3(&dPsi_djklm)[4]) const;
+    //double get_cmap_energy(CmapArray const&, Frame const&, double&, double&,
+    //                         Vec3(&dPhi_dijkl)[4], Vec3(&dPsi_djklm)[4]) const;
 
     double charmm_calc_cmap_from_phi_psi(double, double, int, double&, double&) const;
     static double evaluate_cubic_spline(int, std::vector<double> const&, std::vector<double> const&, int);

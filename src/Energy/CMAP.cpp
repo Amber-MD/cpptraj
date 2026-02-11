@@ -39,22 +39,74 @@ static inline void print_grad(Vec3 const& dA, Vec3 const& dB, Vec3 const& dC, Ve
 }
 
 /** Calculate CMAP energy */
-double CMAP::Ene_CMAP(CmapArray const& Cmaps, Frame const& frameIn)
+/*double CMAP::Ene_CMAP(CmapArray const& Cmaps, Frame const& frameIn)
 const
 {
     Vec3 dPhi_dijkl[4];
     Vec3 dPsi_djklm[4];
     double dPhi, dPsi;
   return get_cmap_energy(Cmaps, frameIn, dPhi, dPsi, dPhi_dijkl, dPsi_djklm);
-}
+}*/
 
 /** Calculate CMAP energy and partial derivatives */
-double CMAP::get_cmap_energy(CmapArray const& Cmaps, Frame const& frameIn,
+/*double CMAP::get_cmap_energy(CmapArray const& Cmaps, Frame const& frameIn,
                              double& dPhi, double& dPsi,
-                             Vec3(&dPhi_dijkl)[4], Vec3(&dPsi_djklm)[4])
+                             Vec3(&dPhi_dijkl)[4], Vec3(&dPsi_djklm)[4])*/
+
+/** Calculate CMAP energy */
+double CMAP::Ene_CMAP(CmapArray const& Cmaps, Frame const& frameIn)
 const
 {
   double ene_cmap = 0.0;
+  Vec3 dPhi_dijkl[4];
+  Vec3 dPsi_djklm[4];
+  double dPhi, dPsi;
+
+  for (CmapArray::const_iterator cmap = Cmaps.begin();
+                                 cmap != Cmaps.end(); ++cmap)
+  {
+    const double* ixyz = frameIn.XYZ( cmap->A1() );
+    const double* jxyz = frameIn.XYZ( cmap->A2() );
+    const double* kxyz = frameIn.XYZ( cmap->A3() );
+    const double* lxyz = frameIn.XYZ( cmap->A4() );
+    const double* mxyz = frameIn.XYZ( cmap->A5() );
+
+    // Calculate the dihedral angle (phi) and the derivatives of the
+    // four coordinates with respect to phi. Remember this subroutine is
+    // operating in radians.
+    double cosphi_ijkl, sinphi_ijkl;
+    Torsion_and_part_deriv( ixyz, jxyz, kxyz, lxyz,
+                            dPhi_dijkl[0], dPhi_dijkl[1], dPhi_dijkl[2], dPhi_dijkl[3],
+                            cosphi_ijkl, sinphi_ijkl );
+    print_grad(dPhi_dijkl[0], dPhi_dijkl[1], dPhi_dijkl[2], dPhi_dijkl[3]);
+//    mprintf("%30.15f\n", acos(cosphi_ijkl));
+    double phi = copysign(acos(cosphi_ijkl),sinphi_ijkl) * Constants::RADDEG;
+    mprintf("DEBUG: Dihedral 1 %i %i %i %i = %30.15f%30.15f%30.15f\n", cmap->A1()+1, cmap->A2()+1, cmap->A3()+1, cmap->A4()+1, phi, cosphi_ijkl, sinphi_ijkl);
+
+    // Calculate the dihedral angle (psi) and the derivatives of the
+    // four coordinates with respect to psi. Remember this subroutine is
+    // operating in radians.
+    double cospsi_jklm, sinpsi_jklm;
+    Torsion_and_part_deriv( jxyz, kxyz, lxyz, mxyz,
+                            dPsi_djklm[0], dPsi_djklm[1], dPsi_djklm[2], dPsi_djklm[3],
+                            cospsi_jklm, sinpsi_jklm );
+    print_grad(dPsi_djklm[0], dPsi_djklm[1], dPsi_djklm[2], dPsi_djklm[3]);
+    double psi = copysign(acos(cospsi_jklm),sinpsi_jklm) * Constants::RADDEG;
+    mprintf("DEBUG: Dihedral 2 %i %i %i %i = %30.15f%30.15f%30.15f\n", cmap->A2()+1, cmap->A3()+1, cmap->A4()+1, cmap->A5()+1, psi, cospsi_jklm, sinpsi_jklm);
+
+    ene_cmap += charmm_calc_cmap_from_phi_psi(phi, psi, cmap->Idx(), dPhi, dPsi);
+  } // END loop over CMAPs
+  return ene_cmap;
+}
+
+/** Calculate CMAP energy and force */
+double CMAP::Ene_Frc_CMAP(CmapArray const& Cmaps, Frame const& frameIn)
+const
+{
+  double ene_cmap = 0.0;
+  Vec3 dPhi_dijkl[4];
+  Vec3 dPsi_djklm[4];
+  double dPhi, dPsi;
 
   for (CmapArray::const_iterator cmap = Cmaps.begin();
                                  cmap != Cmaps.end(); ++cmap)
