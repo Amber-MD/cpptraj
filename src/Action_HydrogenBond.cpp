@@ -379,7 +379,7 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
       if (!setup.Top().Mol(molnum).IsSolvent() && IsFON( setup.Top()[*at] ))
         AcceptorMask_.AddSelectedAtom( *at );
     }
-    AcceptorMask_.SetNatoms( Mask_.NmaskAtoms() );
+    AcceptorMask_.SetNatoms( Mask_.Natom() );
   }
   int lastAcceptor = -1;
   if (!AcceptorMask_.None())
