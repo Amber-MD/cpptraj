@@ -5,13 +5,27 @@ The major change in this version is the introduction of the ability of CPPTRAJ t
 
 New Commands
 ============
-- `build` - Allow full build and parameterization of systems for MD, including CMAP, LJ 12-6-4, solvation, and ions.
+- `build` - Allow full build and parameterization of systems for MD, including CMAP, LJ 12-6-4, solvation, and ions. Includes `prepareforleap` and `fixatomorder` functionality.
 
 - `source` - Read (limited) leaprc files.
 
 - `mutate` - Mutate residues from one kind to another, keeping only common atoms.
 
 - `desc` - DEBUG: describe a selection in the same manner as leap.
+
+New functionality
+=================
+- Read topology/coordinates with the 'readdata' command.
+
+- More complete read of Amber library/prep files.
+
+- Read CMAP energy term from Amber MDOUT file.
+
+- The `permutedihedrals` command will now check rings.
+
+- The `graft` command will now use CONNECT atom information if it is present.
+
+- The `energy` command will now calculate CMAP energies (if CMAP parameters are present) and/or LJ 12-6-4 contributions to VDW energy (if `lj1264` is specified).
 
 New Keywords
 ============
@@ -30,23 +44,13 @@ If `checkxp` is specified, extra points will be included. By default, extra poin
 
 Add `namemap <mapset>` keywords for `change atomname from <mask>` to use an atom name map for determining new atom names.
 
-Add `gb` to `change` command to chang GB radii.
+Add `gb` to `change` command to change GB radii.
 
 Add `complete` keyword to `zmatrix` command to get complete zmatrix instead of minimal zmatrix.
 
 Add `atombondorder` keyword to mol2 output; sort bonds by first atom index (similar to how leap writes mol2 files).
 
-New functionality
-=================
-- Read topology/coordinates with the 'readdata' command.
-
-- More complete read of Amber library/prep files.
-
-- Read CMAP energy term from Amber MDOUT file.
-
-- The `permutedihedrals` command will now check rings.
-
-- The `graft` command will now use CONNECT atom information if it is present.
+Add `lj1264` keyword to the `energy` command to enable LJ 12-6-4 energy calculation.
 
 New file formats recognized
 ===========================
