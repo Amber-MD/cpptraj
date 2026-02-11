@@ -2,7 +2,8 @@
 
 . ../MasterTest.sh
 
-CleanFiles ene.in ene.agr short.dat tz2.dat strip.dat elec.dat vdw.dat 1d23.lj1264.dat 1d23.dat
+CleanFiles ene.in ene.agr short.dat tz2.dat strip.dat elec.dat vdw.dat \
+           1d23.lj1264.dat 1d23.dat tz2.cmap.dat
 
 INPUT="-i ene.in"
 
@@ -74,6 +75,19 @@ EOF
   DoTest 1d23.dat.save 1d23.dat
   DoTest 1d23.lj1264.dat.save 1d23.lj1264.dat
 fi
+
+UNITNAME='Test CMAP energy'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > ene.in <<EOF
+parm tz2.cmap.parm7
+trajin ../tz2.rst7
+energy Cppt out tz2.cmap.dat
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest tz2.cmap.dat.save tz2.cmap.dat
+fi
+
 
 EndTest
 exit 0
