@@ -36,8 +36,7 @@ const char* Solvate::SetboxKeywords() {
 }
 
 const char* Solvate::SolvateKeywords1() {
-  //return "{buffer <buffer> | bufx <bufx> bufy <bufy> bufz <bufz> | nsolvent <#>}";
-  return "{buffer <buffer> | bufx <bufx> bufy <bufy> bufz <bufz> }";
+  return "{buffer <buffer> | bufx <bufx> bufy <bufy> bufz <bufz> | nsolvent <#>}";
 }
 
 const char* Solvate::SolvateKeywords2() {
@@ -71,7 +70,6 @@ int Solvate::InitSolvate(ArgList& argIn, bool octIn, int debugIn) {
   debug_ = debugIn;
   doTruncatedOct_ = octIn;
   nsolvent_ = (unsigned int)argIn.getKeyInt("nsolvent", 0);
-  //nsolvent_ = 0; // TODO enable
   if (nsolvent_ > 0) clip_ = false;
 
   if (getBufferArg(argIn, -1.0)) return 1;

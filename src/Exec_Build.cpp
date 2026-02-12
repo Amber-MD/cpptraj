@@ -824,8 +824,9 @@ const
 // Exec_Build::Help()
 void Exec_Build::Help() const
 {
-  mprintf("\tname <output COORDS> crdset <COORDS set> [frame <#>]\n"
-          "\t[title <title>] [verbose <#>] [keepmissingatoms] [nofixorder]\n"
+  mprintf("\tname <output COORDS> crdset <COORDS set> [frame <#>]\n");
+  Cpptraj::Structure::PdbCleaner::Help();
+  mprintf("\t[title <title>] [verbose <#>] [keepmissingatoms] [nofixorder]\n"
           "\t[parmout <topology file>] [crdout <coord file>] [simplecheck]\n");
   mprintf("\t[%s]\n", Cpptraj::Parm::GB_Params::HelpText().c_str());
   mprintf("\t[lj1264 %s]\n", Cpptraj::Parm::LJ1264_Params::HelpText().c_str());
