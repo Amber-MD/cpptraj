@@ -2,6 +2,7 @@
 #include "Action_FixAtomOrder.h"
 #include "AssociatedData_Connect.h"
 #include "CpptrajStdio.h"
+#include "DataIO_Coords.h"
 #include "DataSet_Parameters.h" // For casting DataSet_Parameters to ParameterSet
 #include "ParmFile.h"
 #include "StringRoutines.h" // integerToString
@@ -857,18 +858,32 @@ void Exec_Build::Help() const
 // Exec_Build::Execute()
 Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
 {
+  std::string outset = argIn.GetStringKey("name");
   // Get input coords
+  DataSet* inCrdPtr = 0;
   std::string crdset = argIn.GetStringKey("crdset");
   if (crdset.empty()) {
-    mprinterr("Error: Must specify input COORDS set with 'crdset'\n");
-    return CpptrajState::ERR;
+    // Try to load a file
+    FileName fname(argIn.GetStringNext());
+    if (File::Exists( fname )) {
+      DataIO_Coords crdin;
+      if (crdin.ReadData(fname, State.DSL(), fname.Base())) {
+        mprinterr("Error: Could not read top/coords from '%s'\n", fname.full());
+        return CpptrajState::ERR;
+      }
+      inCrdPtr = crdin.added_back();
+    }
+  } else {
+    inCrdPtr = State.DSL().FindSetOfGroup( crdset, DataSet::COORDINATES );
+    if (inCrdPtr == 0) {
+      mprinterr("Error: No COORDS set found matching %s\n", crdset.c_str());
+      return CpptrajState::ERR;
+    }
   }
-  DataSet* inCrdPtr = State.DSL().FindSetOfGroup( crdset, DataSet::COORDINATES );
   if (inCrdPtr == 0) {
-    mprinterr("Error: No COORDS set found matching %s\n", crdset.c_str());
+    mprinterr("Error: Must specify file to build or COORDS set with 'crdset'\n");
     return CpptrajState::ERR;
   }
-  std::string outset = argIn.GetStringKey("name");
 
   return BuildAndParmStructure(inCrdPtr, outset, State.DSL(), State.Debug(), argIn, Cpptraj::Parm::UNKNOWN_GB);
 }
