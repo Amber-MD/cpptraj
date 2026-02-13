@@ -1031,8 +1031,8 @@ Exec::RetType Exec_Build::BuildAndParmStructure(DataSet* inCrdPtr, std::string c
   } else {
     check_structure_ = true;
   }
-  doHisDetect_ = !argIn.hasKey("nodisulfides");
-  doDisulfide_ = !argIn.hasKey("nohisdetect");
+  doHisDetect_ = !argIn.hasKey("nohisdetect");
+  doDisulfide_ = !argIn.hasKey("nodisulfides");
   doSugar_ = !argIn.hasKey("nosugars");
   if (!outputTopologyName.empty())
     mprintf("\tWill write topology to %s\n", outputTopologyName.c_str());
