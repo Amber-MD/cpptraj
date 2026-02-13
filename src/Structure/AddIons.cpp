@@ -315,6 +315,8 @@ const
   Frame frameOutCopy = frameOut;
   frameOut.ModifyByMap( frameOutCopy, atomMap );
 
+  // TODO if PDB original residue number/atom number is present, it needs to be regenerated for ions/waters 
+
   return 0;
 }
 
