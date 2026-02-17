@@ -553,30 +553,55 @@ static inline void add_cmap_default_atoms(CmapGridType& cmap) {
   * Atom : C - N - CA - C - N
   */ 
 int AmberParamFile::read_cmap(CmapGridType& currentCmap, ParameterSet& prm, CmapType& currentCmapFlag,
-                              std::string const& line)
+                              std::string const& line, int& cmap_count_is_index)
 const
 {
   ArgList argline(line);
   if (argline.Nargs() > 1)
   {
+    // NOTE: CMAP_COUNT is used differently in different files. For example,
+    //       in ff19SB it is used as an index of the current CMAP parameter
+    //       being read. However, in ff12polL it is used to give a total
+    //       count of CMAP parameters
     if (argline[0] == "%FLAG") {
       if (argline[1] == "CMAP_COUNT") {
         // New CMAP term. Ignore the index for now. If a previous CMAP
         // was read make sure its OK.
+        //if (!currentCmap.empty()) {
+        //  if (currentCmap.AtomNames().empty()) add_cmap_default_atoms( currentCmap );
+        //  if (check_cmap(prm.CMAP().size()+1, currentCmap)) return 1;
+        //  prm.CMAP().AddParm( currentCmap, true, debug_ );
+        //  currentCmap = CmapGridType();
+        //}
+        int cmapcount = argline.getKeyInt("CMAP_COUNT", -1);
+        mprintf("DEBUG: Cmap count: %i\n", cmapcount);
+        //if ( cmapcount != (int)prm.CMAP().size()+1 )
+        //  mprintf("Warning: CMAP term is not in numerical order. CMAP_COUNT %i, expected %zu\n",
+        //          cmapcount, prm.CMAP().size());
+        if (cmap_count_is_index == -1) {
+          if  (cmapcount == (int)prm.CMAP().size()) {
+            mprintf("DEBUG: Assuming CMAP count is based on index.\n");
+            cmap_count_is_index = 1;
+          } else {
+            mprintf("DEBUG: Assuming CMAP count is the total number of CMAPS\n");
+            cmap_count_is_index = 0;
+          }
+        } else if (cmap_count_is_index == 1 && cmapcount != (int)prm.CMAP().size()) {
+          mprintf("Warning: CMAP term is not in numerical order. CMAP_COUNT %i, expected %zu\n",
+                  cmapcount, prm.CMAP().size());
+
+        }
+        return 0;
+      } else if (argline[1] == "CMAP_TITLE") {
+        currentCmapFlag = CMAP_TITLE;
+        // New CMAP term. If a previous CMAP was read make sure it is OK.
         if (!currentCmap.empty()) {
           if (currentCmap.AtomNames().empty()) add_cmap_default_atoms( currentCmap );
           if (check_cmap(prm.CMAP().size()+1, currentCmap)) return 1;
           prm.CMAP().AddParm( currentCmap, true, debug_ );
           currentCmap = CmapGridType();
         }
-        int cmapcount = argline.getKeyInt("CMAP_COUNT", -1);
-        //mprintf("DEBUG: Cmap count: %i\n", cmapcount);
-        if ( cmapcount != (int)prm.CMAP().size()+1 )
-          mprintf("Warning: CMAP term is not in numerical order. CMAP_COUNT %i, expected %zu\n",
-                  cmapcount, prm.CMAP().size());
-        return 0;
-      } else if (argline[1] == "CMAP_TITLE") {
-        currentCmapFlag = CMAP_TITLE;
+
         return 0;
       } else if (argline[1] == "CMAP_RESLIST") {
         currentCmapFlag = CMAP_RESLIST;
@@ -589,7 +614,7 @@ const
         return 0;
       } else if (argline[1] == "CMAP_RESOLUTION") {
         int cmapres = argline.getKeyInt("CMAP_RESOLUTION", -1);
-        //mprintf("DEBUG: Cmap res: %i\n", cmapres);
+        mprintf("DEBUG: Cmap res: %i\n", cmapres);
         if (cmapres < 1) {
           mprinterr("Error: Bad CMAP resolution: %s\n", line.c_str());
           return 1;
@@ -600,6 +625,10 @@ const
         currentCmapFlag = CMAP_PARAMETER;
         return 0;
       }
+    } else if (argline[0][0] == '%' && argline[0][1] == 'C' && argline[0][2] == 'O') {
+      // Assume comment
+      currentCmapFlag = CMAP_COMMENT;
+      mprintf("DEBUG: CMAP comment: %s\n", line.c_str());
     }
   }
 
@@ -609,7 +638,7 @@ const
                         terms, terms+1, terms+2, terms+3,
                         terms+4, terms+5, terms+6, terms+7);
     for (int i = 0; i != nterms; i++) {
-      //mprintf("DEBUG: cmap term %f\n", terms[i] );
+      mprintf("DEBUG: cmap term %f\n", terms[i] );
       currentCmap.AddToGrid( terms[i] );
     }
   } else if (currentCmapFlag == CMAP_RESLIST) {
@@ -620,6 +649,7 @@ const
       rn = resnames.GetStringNext();
     }
   } else if (currentCmapFlag == CMAP_TITLE) {
+    mprintf("DEBUG: CMAP TITLE: %s\n", line.c_str());
     currentCmap.SetTitle( line );
   }
   return 0;
@@ -668,6 +698,7 @@ int AmberParamFile::assign_offdiag(ParameterSet& prm, Oarray const& Offdiag) con
 /** Read parametrers from Amber frcmod file. */
 int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname) const
 {
+  int cmap_count_is_index = -1;
   // Set wildcard character for dihedrals and impropers
   prm.DP().SetWildcard('X');
   prm.IP().SetWildcard('X');
@@ -736,7 +767,7 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname) const
         else if (section == LJEDIT)
           err = read_ljedit(Offdiag, ptr);
         else if (section == CMAP)
-          err = read_cmap(currentCmap, prm, currentCmapFlag, line);
+          err = read_cmap(currentCmap, prm, currentCmapFlag, line, cmap_count_is_index);
         else if (section == IPOL)
           err = read_ipol(prm, ptr);
         if (err != 0) {
