@@ -408,6 +408,20 @@ const
   return 0;
 }
 
+/** Read IPOL section */
+int AmberParamFile::read_ipol(ParameterSet& prm, const char* ptr)
+const
+{
+  mprintf("DEBUG: Read IPOL.\n");
+  int ipolIn = -1;
+  if (sscanf(ptr, "%i", &ipolIn) != 1) {
+    mprinterr("Error: Could not read IPOL value from line: %s\n", ptr);
+    return 1;
+  }
+  mprintf("DEBUG: IPOL value is %i\n", ipolIn);
+  return 0;
+}
+
 /** Read radius/depth input for LJ 6-12 nonbond. */
 int AmberParamFile::read_nb_RE(NonbondSet& nbset, const char* ptr)
 const
@@ -694,6 +708,7 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname) const
       else if (line.compare(0, 4, "IMPR") == 0) section = IMPROPER;
       else if (line.compare(0, 4, "HBON") == 0) section = LJ1012;
       else if (line.compare(0, 4, "CMAP") == 0) section = CMAP;
+      else if (line.compare(0, 4, "IPOL") == 0) section = IPOL;
       else if (line.compare(0, 6, "LJEDIT") == 0) {
         section = LJEDIT;
         prm.SetHasLJparams( true );
@@ -722,6 +737,8 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname) const
           err = read_ljedit(Offdiag, ptr);
         else if (section == CMAP)
           err = read_cmap(currentCmap, prm, currentCmapFlag, line);
+        else if (section == IPOL)
+          err = read_ipol(prm, ptr);
         if (err != 0) {
           mprinterr("Error: Reading line: %s\n", ptr);
           return 1;

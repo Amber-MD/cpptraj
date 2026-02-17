@@ -27,7 +27,7 @@ class AmberParamFile {
     static const int MAXSYMLEN;
 
     enum SectionType { ATYPE = 0, HYDROPHILIC, BOND, ANGLE, DIHEDRAL, IMPROPER, 
-                       LJ1012, NB_EQUIV, NONBOND, LJEDIT, CMAP, UNKNOWN };
+                       LJ1012, NB_EQUIV, NONBOND, LJEDIT, CMAP, IPOL, UNKNOWN };
     enum CmapType { CMAP_INITIAL, CMAP_TITLE, CMAP_RESLIST, CMAP_PARAMETER };
 
     class NonbondSet;
@@ -47,6 +47,8 @@ class AmberParamFile {
     int read_improper(ParameterSet&, const char*) const;
     /// Read LJ 10-12 hbond line
     int read_lj1012(ParameterSet&, const char*) const;
+    /// Read IPOL line
+    int read_ipol(ParameterSet&, const char*) const;
     /// Read LJ 6-12 R/depth line
     int read_nb_RE(NonbondSet&, const char*) const;
     /// Read LJ 6-12 A/C coefficient line
