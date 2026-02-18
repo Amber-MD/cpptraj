@@ -678,20 +678,28 @@ const
   } // END line starts with %
 
   if (currentCmapFlag == CMAP_PARAMETER) {
-    ArgList termArgs(line, " ,\t\r");
-    for (int i = 0; i != termArgs.Nargs(); i++) {
-      double term = termArgs.getNextDouble(0.0);
-      mprintf("DEBUG: cmap term %f\n", term);
-      currentCmap.AddToGrid( term );
+    // Another annoyance; CMAP parameters can be in regular formatted 
+    // 8 column F9.5, or comma-separated list
+    size_t found = line.find_first_of(",");
+    if (found != std::string::npos) {
+      // Comma-separated
+      ArgList termArgs(line, " ,\t\r");
+      for (int i = 0; i != termArgs.Nargs(); i++) {
+        double term = termArgs.getNextDouble(0.0);
+        mprintf("DEBUG: cmap term %f\n", term);
+        currentCmap.AddToGrid( term );
+      }
+    } else {
+      // Assume 8F9.5
+      double terms[8];
+      int nterms = sscanf(line.c_str(), "%9lf%9lf%9lf%9lf%9lf%9lf%9lf%9lf",
+                          terms, terms+1, terms+2, terms+3,
+                          terms+4, terms+5, terms+6, terms+7);
+      for (int i = 0; i != nterms; i++) {
+        mprintf("DEBUG: cmap term %f\n", terms[i] );
+        currentCmap.AddToGrid( terms[i] );
+      }
     }
-    //double terms[8];
-    //int nterms = sscanf(line.c_str(), "%lf %lf %lf %lf %lf %lf %lf %lf",
-    //                    terms, terms+1, terms+2, terms+3,
-    //                    terms+4, terms+5, terms+6, terms+7);
-    //for (int i = 0; i != nterms; i++) {
-    //  mprintf("DEBUG: cmap term %f\n", terms[i] );
-    //  currentCmap.AddToGrid( terms[i] );
-    //}
   } else if (currentCmapFlag == CMAP_RESLIST) {
     ArgList resnames( line );
     std::string rn = resnames.GetStringNext();
