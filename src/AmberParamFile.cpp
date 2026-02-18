@@ -749,7 +749,11 @@ int AmberParamFile::assign_nb(ParameterSet& prm, NonbondSet const& nbset) const 
       mprinterr("Error: Nonbond parameters defined for previously undefined type '%s'.\n",
                 *(it->first[0]));
       return 1;
-    } 
+    }
+    if (at->second.LJ() != it->second)
+      mprintf("Warning: Changing type %s radius from %g to %g, depth from %g to %g\n", *(it->first[0]),
+              at->second.LJ().Radius(), it->second.Radius(),
+              at->second.LJ().Depth(), it->second.Depth());
     at->second.SetLJ( it->second );
   }
   return 0;
