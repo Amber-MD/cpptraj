@@ -129,9 +129,14 @@ const
   if (ret == Cpptraj::Parm::SAME)
     mprintf("Warning: Duplicated %s\n", typeNameStr(types, "atom").c_str());
   else if (ret == Cpptraj::Parm::UPDATED) {
-    mprintf("Warning: Redefining %s from mass= %g pol= %g to mass= %g pol= %g\n",
-             typeNameStr(types, "atom").c_str(),
-             prm.AT().PreviousParm().Mass(), prm.AT().PreviousParm().Polarizability(), amass, atpol);
+    AtomType const& prev = prm.AT().PreviousParm();
+    bool diff_mass = (prev.Mass() != amass);
+    bool diff_pol  = (prev.Polarizability() != atpol);
+    mprintf("Warning: Redefining %s", typeNameStr(types, "atom").c_str());
+             //prm.AT().PreviousParm().Mass(), prm.AT().PreviousParm().Polarizability(), amass, atpol);
+    if (diff_mass) mprintf(" from mass %g to %g", prev.Mass(), amass);
+    if (diff_pol)  mprintf(" from pol %g to %g", prev.Polarizability(), atpol);
+    mprintf("\n");
   } else if (ret == Cpptraj::Parm::ERR) {
     mprinterr("Error: Reading %s\n", typeNameStr(types, "atom").c_str());
     return 1;
