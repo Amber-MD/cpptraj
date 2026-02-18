@@ -551,6 +551,11 @@ static inline void add_cmap_default_atoms(CmapGridType& cmap) {
   cmap.AddAtomName("CA");
   cmap.AddAtomName("C");
   cmap.AddAtomName("N");
+  cmap.AddResOffset( -1 );
+  cmap.AddResOffset(  0 );
+  cmap.AddResOffset(  0 );
+  cmap.AddResOffset(  0 );
+  cmap.AddResOffset(  1 );
 }
 
 /** Read CMAP section
@@ -673,6 +678,8 @@ const
           if (debug_ > 0)
             mprintf("DEBUG: Residue offsets: %i %i %i %i %i\n",
                     residxs[0], residxs[1], residxs[2], residxs[3], residxs[4]);
+          for (int i = 0; i < 5; i++)
+            currentCmap.AddResOffset( residxs[i] );
         } else {
           mprintf("Warning: Unhandled CMAP FLAG %s\n", argline[1].c_str());
         }

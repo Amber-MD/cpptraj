@@ -910,6 +910,8 @@ class CmapGridType {
     }*/
     /// \return array of atom names this CMAP applies to
     std::vector<std::string> const& AtomNames() const { return atomNames_; }
+    /// \return array of residue offsets corresponding to atom names
+    std::vector<int> ResOffsets() const { return resOffsets_; }
     /// \return Expected number of CMAP residue names
     int NcmapResNames()                      const { return nCmapRes_; }
     /// \return Grid size as integer, used for topology write
@@ -940,11 +942,15 @@ class CmapGridType {
     void AddResName(std::string const& n) { resNames_.push_back( n ); }
     /// Add atom name this CMAP will apply to
     void AddAtomName(std::string const& n) { atomNames_.push_back( n ); }
+    /// Add residue offset for each atom name
+    void AddResOffset(int i) { resOffsets_.push_back( i ); }
     /// \return True if the CMAP is valid
     bool CmapIsValid() const {
       if (resolution_ == 0 || resolution_*resolution_ != grid_.size())
         return false;
       if (atomNames_.size() != 5)
+        return false;
+      if (resOffsets_.size() != 5)
         return false;
       if (resNames_.empty())
         return false;
