@@ -88,6 +88,21 @@ class AtomType {
       hasLJ14_ = rhs.hasLJ14_;
       return *this;
     }
+    /// COPY CONSTRUCTOR
+    AtomType(AtomType const& rhs) :
+      lj_(rhs.lj_),
+      lj14_(rhs.lj14_),
+      mass_(rhs.mass_),
+      polarizability_(rhs.polarizability_),
+      oidx_(rhs.oidx_),
+      hybrid_(rhs.hybrid_),
+      hasLJ_(rhs.hasLJ_),
+      hasLJ14_(rhs.hasLJ14_)
+    {
+      elt_[0] = rhs.elt_[0];
+      elt_[1] = rhs.elt_[1];
+      elt_[2] = '\0';
+    }
   private:
     LJparmType lj_;         ///< Default Lennard-Jones parameters (always valid for self).
     LJparmType lj14_;       ///< Lennard-Jones 1-4 parameters (optional).
