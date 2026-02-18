@@ -526,6 +526,11 @@ int AmberParamFile::check_cmap(int currentCmapIdx, CmapGridType const& cmap) con
   }
   if (!cmap.CmapIsValid()) {
     mprinterr("Error: CMAP term %i '%s' is not valid.\n", currentCmapIdx, cmap.Title().c_str());
+    // Why not?
+    if (cmap.Resolution() < 1) mprinterr("Error: Resolution is 0.\n");
+    if ((int)(cmap.Resolution() * cmap.Resolution()) != cmap.Size()) mprinterr("Error: Resolution %u*%u != grid size %i\n",cmap.Resolution(), cmap.Resolution(), cmap.Size());
+    if (cmap.AtomNames().size() != 5) mprinterr("Error: Expected 5 atom names (got %zu)\n", cmap.AtomNames().size());
+    if (cmap.NcmapResNames() < 1) mprinterr("Error: No residue names set up.\n");
     return 1;
   }
   if (!cmap.CmapNresIsValid()) {
@@ -643,6 +648,11 @@ const
                   atmArgs[4].c_str(),
                   atmArgs[5].c_str(),
                   atmArgs[6].c_str());
+          currentCmap.AddAtomName( atmArgs[2] );
+          currentCmap.AddAtomName( atmArgs[3] );
+          currentCmap.AddAtomName( atmArgs[4] );
+          currentCmap.AddAtomName( atmArgs[5] );
+          currentCmap.AddAtomName( atmArgs[6] );
         } else if (argline[1] == "CMAP_RESIDX") {
           currentCmapFlag = CMAP_RESIDX;
           if (argline.Nargs() < 7) {
@@ -668,14 +678,20 @@ const
   } // END line starts with %
 
   if (currentCmapFlag == CMAP_PARAMETER) {
-    double terms[8];
-    int nterms = sscanf(line.c_str(), "%lf %lf %lf %lf %lf %lf %lf %lf",
-                        terms, terms+1, terms+2, terms+3,
-                        terms+4, terms+5, terms+6, terms+7);
-    for (int i = 0; i != nterms; i++) {
-      mprintf("DEBUG: cmap term %f\n", terms[i] );
-      currentCmap.AddToGrid( terms[i] );
+    ArgList termArgs(line, " ,\t\r");
+    for (int i = 0; i != termArgs.Nargs(); i++) {
+      double term = termArgs.getNextDouble(0.0);
+      mprintf("DEBUG: cmap term %f\n", term);
+      currentCmap.AddToGrid( term );
     }
+    //double terms[8];
+    //int nterms = sscanf(line.c_str(), "%lf %lf %lf %lf %lf %lf %lf %lf",
+    //                    terms, terms+1, terms+2, terms+3,
+    //                    terms+4, terms+5, terms+6, terms+7);
+    //for (int i = 0; i != nterms; i++) {
+    //  mprintf("DEBUG: cmap term %f\n", terms[i] );
+    //  currentCmap.AddToGrid( terms[i] );
+    //}
   } else if (currentCmapFlag == CMAP_RESLIST) {
     ArgList resnames( line );
     std::string rn = resnames.GetStringNext();
