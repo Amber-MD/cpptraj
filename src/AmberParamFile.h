@@ -28,7 +28,8 @@ class AmberParamFile {
 
     enum SectionType { ATYPE = 0, HYDROPHILIC, BOND, ANGLE, DIHEDRAL, IMPROPER, 
                        LJ1012, NB_EQUIV, NONBOND, LJEDIT, CMAP, IPOL, UNKNOWN };
-    enum CmapType { CMAP_INITIAL, CMAP_TITLE, CMAP_RESLIST, CMAP_PARAMETER, CMAP_COMMENT };
+    enum CmapType { CMAP_INITIAL, CMAP_TITLE, CMAP_RESLIST, CMAP_PARAMETER, CMAP_COMMENT,
+                    CMAP_RESIDX,  CMAP_ATMLIST };
 
     class NonbondSet;
     class OffdiagNB;

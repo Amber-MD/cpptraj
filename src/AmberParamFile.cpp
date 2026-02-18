@@ -556,81 +556,116 @@ int AmberParamFile::read_cmap(CmapGridType& currentCmap, ParameterSet& prm, Cmap
                               std::string const& line, int& cmap_count_is_index)
 const
 {
-  ArgList argline(line);
-  if (argline.Nargs() > 1)
-  {
-    // NOTE: CMAP_COUNT is used differently in different files. For example,
-    //       in ff19SB it is used as an index of the current CMAP parameter
-    //       being read. However, in ff12polL it is used to give a total
-    //       count of CMAP parameters
-    if (argline[0] == "%FLAG") {
-      if (argline[1] == "CMAP_COUNT") {
-        // New CMAP term. Ignore the index for now. If a previous CMAP
-        // was read make sure its OK.
-        //if (!currentCmap.empty()) {
-        //  if (currentCmap.AtomNames().empty()) add_cmap_default_atoms( currentCmap );
-        //  if (check_cmap(prm.CMAP().size()+1, currentCmap)) return 1;
-        //  prm.CMAP().AddParm( currentCmap, true, debug_ );
-        //  currentCmap = CmapGridType();
-        //}
-        int cmapcount = argline.getKeyInt("CMAP_COUNT", -1);
-        mprintf("DEBUG: Cmap count: %i\n", cmapcount);
-        //if ( cmapcount != (int)prm.CMAP().size()+1 )
-        //  mprintf("Warning: CMAP term is not in numerical order. CMAP_COUNT %i, expected %zu\n",
-        //          cmapcount, prm.CMAP().size());
-        if (cmap_count_is_index == -1) {
-          if  (cmapcount == (int)prm.CMAP().size()) {
-            mprintf("DEBUG: Assuming CMAP count is based on index.\n");
-            cmap_count_is_index = 1;
-          } else {
-            mprintf("DEBUG: Assuming CMAP count is the total number of CMAPS\n");
-            cmap_count_is_index = 0;
+  if (line.empty()) return 0;
+  // At this point, line should have no leading whitespace
+
+  if (line[0] == '%') {
+    ArgList argline(line);
+    if (argline.Nargs() > 1) {
+      // NOTE: CMAP_COUNT is used differently in different files. For example,
+      //       in ff19SB it is used as an index of the current CMAP parameter
+      //       being read. However, in ff12polL it is used to give a total
+      //       count of CMAP parameters
+      if (argline[0] == "%FLAG") {
+        if (argline[1] == "CMAP_COUNT") {
+          // New CMAP term. Ignore the index for now. If a previous CMAP
+          // was read make sure its OK.
+          //if (!currentCmap.empty()) {
+          //  if (currentCmap.AtomNames().empty()) add_cmap_default_atoms( currentCmap );
+          //  if (check_cmap(prm.CMAP().size()+1, currentCmap)) return 1;
+          //  prm.CMAP().AddParm( currentCmap, true, debug_ );
+          //  currentCmap = CmapGridType();
+          //}
+          int cmapcount = argline.getKeyInt("CMAP_COUNT", -1);
+          mprintf("DEBUG: Cmap count: %i\n", cmapcount);
+          //if ( cmapcount != (int)prm.CMAP().size()+1 )
+          //  mprintf("Warning: CMAP term is not in numerical order. CMAP_COUNT %i, expected %zu\n",
+          //          cmapcount, prm.CMAP().size());
+          if (cmap_count_is_index == -1) {
+            if  (cmapcount == (int)prm.CMAP().size()) {
+              mprintf("DEBUG: Assuming CMAP count is based on index.\n");
+              cmap_count_is_index = 1;
+            } else {
+              mprintf("DEBUG: Assuming CMAP count is the total number of CMAPS\n");
+              cmap_count_is_index = 0;
+            }
+          } else if (cmap_count_is_index == 1 && cmapcount != (int)prm.CMAP().size()) {
+            mprintf("Warning: CMAP term is not in numerical order. CMAP_COUNT %i, expected %zu\n",
+                    cmapcount, prm.CMAP().size());
+  
           }
-        } else if (cmap_count_is_index == 1 && cmapcount != (int)prm.CMAP().size()) {
-          mprintf("Warning: CMAP term is not in numerical order. CMAP_COUNT %i, expected %zu\n",
-                  cmapcount, prm.CMAP().size());
+          return 0;
+        } else if (argline[1] == "CMAP_TITLE") {
+          currentCmapFlag = CMAP_TITLE;
+          // New CMAP term. If a previous CMAP was read make sure it is OK.
+          if (!currentCmap.empty()) {
+            if (currentCmap.AtomNames().empty()) add_cmap_default_atoms( currentCmap );
+            if (check_cmap(prm.CMAP().size()+1, currentCmap)) return 1;
+            prm.CMAP().AddParm( currentCmap, true, debug_ );
+            currentCmap = CmapGridType();
+          }
 
+          return 0;
+        } else if (argline[1] == "CMAP_RESLIST") {
+          currentCmapFlag = CMAP_RESLIST;
+          int nres = argline.getKeyInt("CMAP_RESLIST", -1);
+          if (nres < 1) {
+            mprinterr("Error: Bad CMAP # residues: %s\n", line.c_str());
+            return 1;
+          }
+          mprintf("DEBUG: CMAP_RESLIST expect %i residues.\n", nres);
+          currentCmap.SetNumCmapRes( nres );
+          return 0;
+        } else if (argline[1] == "CMAP_RESOLUTION") {
+          int cmapres = argline.getKeyInt("CMAP_RESOLUTION", -1);
+          mprintf("DEBUG: Cmap resolution: %i\n", cmapres);
+          if (cmapres < 1) {
+            mprinterr("Error: Bad CMAP resolution: %s\n", line.c_str());
+            return 1;
+          }
+          currentCmap.SetResolution( cmapres );
+          return 0;
+        } else if (argline[1] == "CMAP_PARAMETER") {
+          currentCmapFlag = CMAP_PARAMETER;
+          return 0;
+        } else if (argline[1] == "CMAP_ATMLIST") {
+          currentCmapFlag = CMAP_ATMLIST;
+          // Remove any dashes as well
+          ArgList atmArgs(line, " -");
+          if (atmArgs.Nargs() < 7) {
+            mprinterr("Error: Malformed CMAP_ATMLIST line; expected 5 elements, got %i\n", atmArgs.Nargs() - 2);
+            mprinterr("Error: %s\n", line.c_str());
+            return 1;
+          }
+          mprintf("DEBUG: Atom names: %s %s %s %s %s\n",
+                  atmArgs[2].c_str(),
+                  atmArgs[3].c_str(),
+                  atmArgs[4].c_str(),
+                  atmArgs[5].c_str(),
+                  atmArgs[6].c_str());
+        } else if (argline[1] == "CMAP_RESIDX") {
+          currentCmapFlag = CMAP_RESIDX;
+          if (argline.Nargs() < 7) {
+            mprinterr("Error: Malformed CMAP_RESIDX line; expected 5 elements, got %i\n", argline.Nargs() - 2);
+            mprinterr("Error: %s\n", line.c_str());
+            return 1;
+          }
+          int residxs[5];
+          for (int i = 0; i < 5; i++)
+            residxs[i] = argline.getNextInteger(0);
+          mprintf("DEBUG: Residue offsets: %i %i %i %i %i\n",
+                  residxs[0], residxs[1], residxs[2], residxs[3], residxs[4]);
+        } else {
+          mprintf("Warning: Unhandled CMAP FLAG %s\n", argline[1].c_str());
         }
-        return 0;
-      } else if (argline[1] == "CMAP_TITLE") {
-        currentCmapFlag = CMAP_TITLE;
-        // New CMAP term. If a previous CMAP was read make sure it is OK.
-        if (!currentCmap.empty()) {
-          if (currentCmap.AtomNames().empty()) add_cmap_default_atoms( currentCmap );
-          if (check_cmap(prm.CMAP().size()+1, currentCmap)) return 1;
-          prm.CMAP().AddParm( currentCmap, true, debug_ );
-          currentCmap = CmapGridType();
-        }
-
-        return 0;
-      } else if (argline[1] == "CMAP_RESLIST") {
-        currentCmapFlag = CMAP_RESLIST;
-        int nres = argline.getKeyInt("CMAP_RESLIST", -1);
-        if (nres < 1) {
-          mprinterr("Error: Bad CMAP # residues: %s\n", line.c_str());
-          return 1;
-        }
-        currentCmap.SetNumCmapRes( nres );
-        return 0;
-      } else if (argline[1] == "CMAP_RESOLUTION") {
-        int cmapres = argline.getKeyInt("CMAP_RESOLUTION", -1);
-        mprintf("DEBUG: Cmap res: %i\n", cmapres);
-        if (cmapres < 1) {
-          mprinterr("Error: Bad CMAP resolution: %s\n", line.c_str());
-          return 1;
-        }
-        currentCmap.SetResolution( cmapres );
-        return 0;
-      } else if (argline[1] == "CMAP_PARAMETER") {
-        currentCmapFlag = CMAP_PARAMETER;
+      } else if (argline[0][0] == '%' && argline[0][1] == 'C' && argline[0][2] == 'O') {
+        // Assume comment
+        currentCmapFlag = CMAP_COMMENT;
+        mprintf("DEBUG: CMAP comment: %s\n", line.c_str());
         return 0;
       }
-    } else if (argline[0][0] == '%' && argline[0][1] == 'C' && argline[0][2] == 'O') {
-      // Assume comment
-      currentCmapFlag = CMAP_COMMENT;
-      mprintf("DEBUG: CMAP comment: %s\n", line.c_str());
-    }
-  }
+    } // END line args > 1
+  } // END line starts with %
 
   if (currentCmapFlag == CMAP_PARAMETER) {
     double terms[8];
