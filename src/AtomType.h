@@ -73,8 +73,8 @@ class AtomType {
     AtomType& operator=(AtomType const& rhs) {
       if (this == &rhs) return *this;
       //mprintf("DEBUG: Assign elt %c%c oldHasLj=%i oldR=%f newHasLj=%i newR=%f\n", elt_[0], elt_[1], (int)hasLJ_, lj_.Radius(), (int)rhs.hasLJ_, rhs.lj_.Radius());
-      if (rhs.hasLJ_) lj_ = rhs.lj_;
-      if (rhs.hasLJ14_) lj14_ = rhs.lj14_;
+      if (rhs.hasLJ_)   { lj_   = rhs.lj_;   hasLJ_ = true; }
+      if (rhs.hasLJ14_) { lj14_ = rhs.lj14_; hasLJ14_ = true; }
       //mprintf("DEBUG: After Assign elt %c%c newR=%f\n", elt_[0], elt_[1], lj_.Radius());
       mass_ = rhs.mass_;
       polarizability_ = rhs.polarizability_;
@@ -84,8 +84,8 @@ class AtomType {
       elt_[0] = rhs.elt_[0];
       elt_[1] = rhs.elt_[1];
       //elt_[2] = rhs.elt_[2];
-      hasLJ_ = rhs.hasLJ_;
-      hasLJ14_ = rhs.hasLJ14_;
+      //hasLJ_ = rhs.hasLJ_;
+      //hasLJ14_ = rhs.hasLJ14_;
       return *this;
     }
     /// COPY CONSTRUCTOR
