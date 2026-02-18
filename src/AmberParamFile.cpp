@@ -750,7 +750,8 @@ int AmberParamFile::assign_nb(ParameterSet& prm, NonbondSet const& nbset) const 
                 *(it->first[0]));
       return 1;
     }
-    if (at->second.LJ() != it->second)
+    //mprintf("DEBUG: searched type %s hasLJ=%i\n", *(at->first[0]), (int)at->second.HasLJ());
+    if (at->second.HasLJ() && at->second.LJ() != it->second)
       mprintf("Warning: Changing type %s radius from %g to %g, depth from %g to %g\n", *(it->first[0]),
               at->second.LJ().Radius(), it->second.Radius(),
               at->second.LJ().Depth(), it->second.Depth());
