@@ -976,6 +976,7 @@ class CmapGridType {
     std::string title_;        ///< CMAP title (from parameter file)
     std::vector<std::string> resNames_;  ///< Residue name(s) this CMAP will apply to
     std::vector<std::string> atomNames_; ///< 5x atom names this CMAP will apply to
+    std::vector<int> resOffsets_; ///< 5x residue offset corresponding to each atom name
 };
 /// Hold an array of CMAP grids
 class CmapGridArray {

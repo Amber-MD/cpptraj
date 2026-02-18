@@ -412,13 +412,14 @@ const
 int AmberParamFile::read_ipol(ParameterSet& prm, const char* ptr)
 const
 {
-  mprintf("DEBUG: Read IPOL.\n");
+  //mprintf("DEBUG: Read IPOL.\n");
   int ipolIn = -1;
   if (sscanf(ptr, "%i", &ipolIn) != 1) {
     mprinterr("Error: Could not read IPOL value from line: %s\n", ptr);
     return 1;
   }
-  mprintf("DEBUG: IPOL value is %i\n", ipolIn);
+  if (debug_ > 0)
+    mprintf("DEBUG: IPOL value is %i\n", ipolIn);
   return 0;
 }
 
@@ -582,16 +583,19 @@ const
           //  currentCmap = CmapGridType();
           //}
           int cmapcount = argline.getKeyInt("CMAP_COUNT", -1);
-          mprintf("DEBUG: Cmap count: %i\n", cmapcount);
+          if (debug_ > 0)
+            mprintf("DEBUG: Cmap count: %i\n", cmapcount);
           //if ( cmapcount != (int)prm.CMAP().size()+1 )
           //  mprintf("Warning: CMAP term is not in numerical order. CMAP_COUNT %i, expected %zu\n",
           //          cmapcount, prm.CMAP().size());
           if (cmap_count_is_index == -1) {
             if  (cmapcount == (int)prm.CMAP().size()) {
-              mprintf("DEBUG: Assuming CMAP count is based on index.\n");
+              if (debug_ > 0)
+                mprintf("DEBUG: Assuming CMAP count is based on index.\n");
               cmap_count_is_index = 1;
             } else {
-              mprintf("DEBUG: Assuming CMAP count is the total number of CMAPS\n");
+              if (debug_ > 0)
+                mprintf("DEBUG: Assuming CMAP count is the total number of CMAPS\n");
               cmap_count_is_index = 0;
             }
           } else if (cmap_count_is_index == 1 && cmapcount != (int)prm.CMAP().size()) {
@@ -618,12 +622,14 @@ const
             mprinterr("Error: Bad CMAP # residues: %s\n", line.c_str());
             return 1;
           }
-          mprintf("DEBUG: CMAP_RESLIST expect %i residues.\n", nres);
+          if (debug_ > 0)
+            mprintf("DEBUG: CMAP_RESLIST expect %i residues.\n", nres);
           currentCmap.SetNumCmapRes( nres );
           return 0;
         } else if (argline[1] == "CMAP_RESOLUTION") {
           int cmapres = argline.getKeyInt("CMAP_RESOLUTION", -1);
-          mprintf("DEBUG: Cmap resolution: %i\n", cmapres);
+          if (debug_ > 0)
+            mprintf("DEBUG: Cmap resolution: %i\n", cmapres);
           if (cmapres < 1) {
             mprinterr("Error: Bad CMAP resolution: %s\n", line.c_str());
             return 1;
@@ -642,12 +648,13 @@ const
             mprinterr("Error: %s\n", line.c_str());
             return 1;
           }
-          mprintf("DEBUG: Atom names: %s %s %s %s %s\n",
-                  atmArgs[2].c_str(),
-                  atmArgs[3].c_str(),
-                  atmArgs[4].c_str(),
-                  atmArgs[5].c_str(),
-                  atmArgs[6].c_str());
+          if (debug_ > 0)
+            mprintf("DEBUG: Atom names: %s %s %s %s %s\n",
+                    atmArgs[2].c_str(),
+                    atmArgs[3].c_str(),
+                    atmArgs[4].c_str(),
+                    atmArgs[5].c_str(),
+                    atmArgs[6].c_str());
           currentCmap.AddAtomName( atmArgs[2] );
           currentCmap.AddAtomName( atmArgs[3] );
           currentCmap.AddAtomName( atmArgs[4] );
@@ -663,15 +670,16 @@ const
           int residxs[5];
           for (int i = 0; i < 5; i++)
             residxs[i] = argline.getNextInteger(0);
-          mprintf("DEBUG: Residue offsets: %i %i %i %i %i\n",
-                  residxs[0], residxs[1], residxs[2], residxs[3], residxs[4]);
+          if (debug_ > 0)
+            mprintf("DEBUG: Residue offsets: %i %i %i %i %i\n",
+                    residxs[0], residxs[1], residxs[2], residxs[3], residxs[4]);
         } else {
           mprintf("Warning: Unhandled CMAP FLAG %s\n", argline[1].c_str());
         }
       } else if (argline[0][0] == '%' && argline[0][1] == 'C' && argline[0][2] == 'O') {
         // Assume comment
         currentCmapFlag = CMAP_COMMENT;
-        mprintf("DEBUG: CMAP comment: %s\n", line.c_str());
+        if (debug_ > 0) mprintf("DEBUG: CMAP comment: %s\n", line.c_str());
         return 0;
       }
     } // END line args > 1
@@ -686,7 +694,7 @@ const
       ArgList termArgs(line, " ,\t\r");
       for (int i = 0; i != termArgs.Nargs(); i++) {
         double term = termArgs.getNextDouble(0.0);
-        mprintf("DEBUG: cmap term %f\n", term);
+        if (debug_ > 1) mprintf("DEBUG: cmap term %f\n", term);
         currentCmap.AddToGrid( term );
       }
     } else {
@@ -695,8 +703,11 @@ const
       int nterms = sscanf(line.c_str(), "%9lf%9lf%9lf%9lf%9lf%9lf%9lf%9lf",
                           terms, terms+1, terms+2, terms+3,
                           terms+4, terms+5, terms+6, terms+7);
+      if (debug_ > 1) {
+        for (int i = 0; i != nterms; i++)
+          mprintf("DEBUG: cmap term %f\n", terms[i] );
+      }
       for (int i = 0; i != nterms; i++) {
-        mprintf("DEBUG: cmap term %f\n", terms[i] );
         currentCmap.AddToGrid( terms[i] );
       }
     }
@@ -708,7 +719,8 @@ const
       rn = resnames.GetStringNext();
     }
   } else if (currentCmapFlag == CMAP_TITLE) {
-    mprintf("DEBUG: CMAP TITLE: %s\n", line.c_str());
+    if (debug_ > 0)
+      mprintf("DEBUG: CMAP TITLE: %s\n", line.c_str());
     currentCmap.SetTitle( line );
   }
   return 0;
