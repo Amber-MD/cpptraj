@@ -2017,12 +2017,12 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   file_.IntToBuffer( TopOut.NextraPts() ); // NEXTRA
   if (flushFileBuffer( F_POINTERS )) return 1;
  
-  // CHAMBER only - FF type description
-  if (ptype_ == CHAMBER) {
+  // FF type description
+  if (ptype_ == CHAMBER || !TopOut.Description().empty()) {
     file_.Printf("%%FLAG %-74s\n%-80s\n", FLAGS_[F_FF_TYPE].Flag, FLAGS_[F_FF_TYPE].Fmt);
     int nlines = (int)TopOut.Description().size();
     if (nlines > 99) {
-      mprintf("Warning: Number of CHAMBER description lines > 99. Only writing 99.\n", nlines);
+      mprintf("Warning: Number of %s description lines > 99 (%i). Only writing 99.\n", FLAGS_[F_FF_TYPE].Flag, nlines);
       nlines = 99;
     }
     if (nlines > 0) {
@@ -2032,11 +2032,6 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
       // No description. Write a placeholder.
       file_.Printf("%2i%78s\n", 1, "CHARMM:");
     }
-  } else if (!TopOut.Description().empty()) {
-    // Add as comments
-    for (std::vector<std::string>::const_iterator it = TopOut.Description().begin();
-                                                  it != TopOut.Description().end(); ++it)
-      file_.Printf("%%COMMENT %s\n", it->c_str());
   }
 
   // NAMES
