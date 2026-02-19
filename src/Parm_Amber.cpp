@@ -1263,7 +1263,7 @@ static inline int fftype_err(const char* ptr, const char* Flag) {
   *       If this fails print a warning and try to continue.
   */
 int Parm_Amber::ReadChamberFFtype(Topology& TopIn, FortranData const& FMT) {
-  mprintf("\tCHAMBER topology:\n");
+  mprintf("\tForce field description:\n");
   if (FMT.Ftype() != FINT)
     mprintf("Warning: In '%s' expected format to begin with integer. Skipping.\n",
             FLAGS_[F_FF_TYPE].Flag);
