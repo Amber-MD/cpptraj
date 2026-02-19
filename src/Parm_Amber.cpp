@@ -154,6 +154,10 @@ const Parm_Amber::ParmFlag Parm_Amber::FLAGS_[] = {
   // Extended format flags
   { "DIHEDRALS_INC_HYDROGEN",      "%FORMAT(8I10)" },   // For topologies with high atom counts
   { "DIHEDRALS_WITHOUT_HYDROGEN",  "%FORMAT(8I10)" },   // For topologies with high atom counts
+  { "BONDS_INC_HYDROGEN",          "%FORMAT(8I10)" }, ///< Bonds to hydrogen
+  { "BONDS_WITHOUT_HYDROGEN",      "%FORMAT(8I10)" }, ///< Bonds not including hydrogen
+  { "ANGLES_INC_HYDROGEN",         "%FORMAT(8I10)" },
+  { "ANGLES_WITHOUT_HYDROGEN",     "%FORMAT(8I10)" },
   { 0, 0 }
 };
 
@@ -2231,12 +2235,25 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     if (WriteLJ(F_LJ14A, F_LJ14B, TopOut.Nonbond().LJ14())) return 1;
   }
 
-  // BONDSH and BONDS
-  if (WriteBonds(F_BONDSH, TopOut.BondsH())) return 1;
-  if (WriteBonds(F_BONDS,  TopOut.Bonds()) ) return 1;
-  // ANGLESH and ANGLES
-  if (WriteAngles(F_ANGLESH, TopOut.AnglesH())) return 1;
-  if (WriteAngles(F_ANGLES,  TopOut.Angles()) ) return 1;
+  // BONDSH and BONDS, ANGLESH and ANGLES
+  FlagType flag_bndh, flag_bnd, flag_angh, flag_ang;
+  if (TopOut.Natom()*3 < 100000000) {
+    flag_bndh = F_BONDSH;
+    flag_bnd  = F_BONDS;
+    flag_angh = F_ANGLESH;
+    flag_ang  = F_ANGLES;
+  } else {
+    mprintf("Warning: Topology has >= 100M atoms. Using extended bond/angle format strings.\n");
+    mprintf("Warning: This may confuse topology readers that do not actually read the FLAG format strings.\n");
+    flag_bndh = F_BNDH_LARGE;
+    flag_bnd  = F_BND_LARGE;
+    flag_angh = F_ANGH_LARGE;
+    flag_ang  = F_ANG_LARGE;
+  }
+  if (WriteBonds(flag_bndh, TopOut.BondsH())) return 1;
+  if (WriteBonds(flag_bnd,  TopOut.Bonds()) ) return 1;
+  if (WriteAngles(flag_angh, TopOut.AnglesH())) return 1;
+  if (WriteAngles(flag_ang,  TopOut.Angles()) ) return 1;
   // DIHEDRALSH and DIHEDRALS
   FlagType flag_dihh, flag_dih;
   // Check if the largest possible index will be greater than the default
