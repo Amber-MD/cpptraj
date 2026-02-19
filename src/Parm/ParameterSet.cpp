@@ -235,6 +235,16 @@ int ParameterSet::UpdateParamSet(ParameterSet const& set1, UpdateCount& uc, int 
     set0.Debug("originalp.dat");
     set1.Debug("incomingp.dat");
   }
+  // Save names/files
+  for (Sarray::const_iterator it = set1.name_.begin(); it != set1.name_.end(); ++it)
+    name_.push_back( *it );
+  for (FNarray::const_iterator it = set1.fname_.begin(); it != set1.fname_.end(); ++it)
+    fname_.push_back( *it );
+  if (debugIn > 0) {
+    mprintf("DEBUG: Combined name: %s\n", ParamSetName().c_str());
+    for (FNarray::const_iterator it = fname_.begin(); it != fname_.end(); ++it)
+      mprintf("\t%s\n", it->base());
+  }
 
   // Bond parameters
   uc.nBondsUpdated_ = UpdateParameters< ParmHolder<BondParmType> >(set0.BP(), set1.BP(), "bond", verbose);
