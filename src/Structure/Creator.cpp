@@ -346,7 +346,7 @@ int Creator::getParameterSets(ArgList& argIn, DataSetList const& DSL) {
   //  return CpptrajState::ERR;
   //}
   if (!ParamSets.empty()) {
-    mprintf("\tParameter sets:\n"); // TODO put these names in the final combined parameter set
+    mprintf("\tParameter sets:\n");
     for (Parray::const_iterator it = ParamSets.begin(); it != ParamSets.end(); ++it)
       mprintf("\t  %s\n", (*it)->legend());
 
@@ -358,11 +358,14 @@ int Creator::getParameterSets(ArgList& argIn, DataSetList const& DSL) {
       free_parmset_mem_ = true;
       mprintf("\tCombining parameter sets.\n");
       Parray::const_iterator it = ParamSets.begin();
+      mprintf("\t  Initial parameter set: %s\n", (*it)->legend());
       mainParmSet_ = new DataSet_Parameters( *(*it) );
       ++it;
       Cpptraj::Parm::ParameterSet::UpdateCount UC;
-      for (; it != ParamSets.end(); ++it)
-        mainParmSet_->UpdateParamSet( *(*it), UC, debug_, debug_+1 ); // Make it so verbosity is at least 1 to report overwritten params 
+      for (; it != ParamSets.end(); ++it) {
+        mprintf("\t  Adding parameter set: %s\n", (*it)->legend());
+        mainParmSet_->UpdateParamSet( *(*it), UC, debug_, debug_+1 ); // Make it so verbosity is at least 1 to report overwritten params
+      }
     }
   }
   return 0;
