@@ -2032,6 +2032,11 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
       // No description. Write a placeholder.
       file_.Printf("%2i%78s\n", 1, "CHARMM:");
     }
+  } else if (!TopOut.Description().empty()) {
+    // Add as comments
+    for (std::vector<std::string>::const_iterator it = TopOut.Description().begin();
+                                                  it != TopOut.Description().end(); ++it)
+      file_.Printf("%%COMMENT %s\n", it->c_str());
   }
 
   // NAMES

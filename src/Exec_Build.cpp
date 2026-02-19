@@ -1558,7 +1558,11 @@ int Exec_Build::StructurePrepAndFillTemplates(ArgList& argIn, Topology& topIn, F
   topOut.AllocTreeChainClassification( );
   topOut.AllocJoinArray();
   topOut.AllocRotateArray();
-    // Finalize topology - determine molecules, dont renumber residues
+  for (Cpptraj::Parm::ParameterSet::FNarray::const_iterator
+         fn = creator.MainParmSetPtr()->ParamSetFile().begin();
+         fn != creator.MainParmSetPtr()->ParamSetFile().end(); ++fn)
+    topOut.AddDescription( fn->Base() );
+  // Finalize topology - determine molecules, dont renumber residues
   topOut.CommonSetup(true, false);
 
   if (topOut.HasNoncontiguousMols()) {
