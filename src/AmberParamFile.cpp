@@ -806,6 +806,7 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname) const
   std::string title(ptr);
   mprintf("\tTitle: %s\n", title.c_str());
   prm.SetParamSetName( title );
+  prm.SetParamSetFile( fname );
   NonbondSet nbset(title);
   Oarray Offdiag;
   // Read file
@@ -914,6 +915,7 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
   std::string title(ptr);
   mprintf("\tTitle: %s\n", title.c_str());
   prm.SetParamSetName( title );
+  prm.SetParamSetFile( fname );
   std::vector<std::string> last_symbols;
   last_symbols.reserve(4);
   // Read file
