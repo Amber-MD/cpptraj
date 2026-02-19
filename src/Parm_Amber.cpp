@@ -2243,7 +2243,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     flag_angh = F_ANGLESH;
     flag_ang  = F_ANGLES;
   } else {
-    mprintf("Warning: Topology has >= 100M atoms. Using extended bond/angle format strings.\n");
+    mprintf("Warning: Topology has > 33M atoms. Using extended bond/angle format strings.\n");
     mprintf("Warning: This may confuse topology readers that do not actually read the FLAG format strings.\n");
     flag_bndh = F_BNDH_LARGE;
     flag_bnd  = F_BND_LARGE;
@@ -2262,7 +2262,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     flag_dihh = F_DIHH;
     flag_dih  = F_DIH;
   } else {
-    mprintf("Warning: Topology has >= 10M atoms. Using extended dihedral format strings.\n");
+    mprintf("Warning: Topology has > 3M atoms. Using extended dihedral format strings.\n");
     mprintf("Warning: This may confuse topology readers that do not actually read the FLAG format strings.\n");
     flag_dihh = F_DIHH_LARGE;
     flag_dih  = F_DIH_LARGE;
