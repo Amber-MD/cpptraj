@@ -45,11 +45,14 @@ int AddIons::InitAddIons(std::string const& ion1nameIn, int Nion1,
     Nion2_ = 0;
   } else {
     ion2name_ = ion2nameIn;
-    if (Nion2 < 1) {
-      mprinterr("Error: Number of second %s ions cannot be less than 1 (%i)\n", ion2nameIn.c_str(), Nion2);
-      return 1;
-    }
-    Nion2_ = Nion2;
+    //if (Nion2 < 1) {
+    //  mprinterr("Error: Number of second %s ions cannot be less than 1 (%i)\n", ion2nameIn.c_str(), Nion2);
+    //  return 1;
+    //}
+    if (Nion2 < 0)
+      Nion2_ = 0;
+    else
+      Nion2_ = Nion2;
   }
 
   separation_ = separationIn;
@@ -71,8 +74,12 @@ void AddIons::PrintAddIonsInfo() const {
     mprintf("\t  Adding enough %s ions to neutralize.\n", ion1name_.c_str());
   else
     mprintf("\t  Adding %i %s ions.\n", Nion1_, ion1name_.c_str());
-  if (!ion2name_.empty())
-    mprintf("\t  Adding %i %s ions.\n", Nion2_, ion2name_.c_str());
+  if (!ion2name_.empty()) {
+    if (Nion2_ < 1)
+      mprintf("\t  Adding enough %s ions to neutralize.\n", ion2name_.c_str());
+    else
+      mprintf("\t  Adding %i %s ions.\n", Nion2_, ion2name_.c_str());
+  }
   if (separation_ > 0.0)
     mprintf("\t  Minimum ion separation is %g Ang.\n", separation_);
   mprintf("\t  Ion RNG seed: %i\n", RNG_.Seed());
@@ -197,18 +204,46 @@ const
   // Check that ion can actually neutralize
   int iIon1 = Nion1_;
   int iIon2 = Nion2_; 
+  bool can_neutralize1 = true;
+  bool is_neutralized = false;
   if (Nion1_ < 1) {
     if ( (chargeIon1 < 0 && totalCharge < 0) ||
          (chargeIon1 > 0 && totalCharge > 0) )
     {
-      mprinterr("Error: First ion and system charges have same sign (%g and %g); can't neutralize.\n",
+      mprintf("Warning: First ion and system charges have same sign (%g and %g); can't neutralize.\n",
                 chargeIon1, totalCharge);
-      return 1;
+      can_neutralize1 = false;
+    } else {
+      // Get the nearest integer number of ions needed to neutralize the system.
+      iIon1 = (int)lrint( fabs(totalCharge+(chargeIon2*Nion2_)) / fabs(chargeIon1) );
+      mprintf("\t  Number of %s ions required to neutralize: %i\n", ion1name_.c_str(), iIon1);
+      is_neutralized = true;
     }
-    // Get the nearest integer number of ions needed to neutralize the system.
-    iIon1 = (int)lrint( fabs(totalCharge) / fabs(chargeIon1) );
-    mprintf("\t  Number of %s ions required to neutralize: %i\n", ion1name_.c_str(), iIon1);
   }
+
+  bool can_neutralize2 = true;
+  if (Ion2 != 0 && Nion2_ < 1 && !is_neutralized) {
+    if ( (chargeIon2 < 0 && totalCharge < 0) ||
+         (chargeIon2 > 0 && totalCharge > 0) )
+    {
+      mprintf("Warning: Second ion and system charges have same sign (%g and %g); can't neutralize.\n",
+                chargeIon2, totalCharge);
+      can_neutralize2 = false;
+    } else {
+      // Get the nearest integer number of ions needed to neutralize the system.
+      iIon2 = (int)lrint( fabs(totalCharge+(chargeIon1*iIon1)) / fabs(chargeIon2) );
+      mprintf("\t  Number of %s ions required to neutralize: %i\n", ion2name_.c_str(), iIon2);
+    }
+  }
+
+  if (!can_neutralize1 && !can_neutralize2) {
+    mprinterr("Error: Could not automatically neutralize system charge with specified ions.\n");
+    return 1;
+  }
+  if (iIon1 > 0)
+    mprintf("\t  Adding %i %s ions\n", iIon1, ion1name_.c_str());
+  if (iIon2 > 0)
+    mprintf("\t  Adding %i %s ions\n", iIon2, ion2name_.c_str());
 
   // Check that there is enough solvent to swap
   int nIons = iIon1 + iIon2;

@@ -968,6 +968,31 @@ const
   return remap_cmap_indices(topOut, originalCmapIndices, cmapGrids, cmapTerms, cmapIn);
 }
 
+/// Calculate the residue offsets for atoms
+static inline void calc_res_offsets(int* resoffsets, Topology const& topOut, int rnum2, DihedralType const& dih, int a5)
+{
+  resoffsets[0] = topOut[dih.A1()].ResNum() - rnum2;
+  resoffsets[1] = topOut[dih.A2()].ResNum() - rnum2;
+  resoffsets[2] = topOut[dih.A3()].ResNum() - rnum2;
+  resoffsets[3] = topOut[dih.A4()].ResNum() - rnum2;
+  resoffsets[4] = topOut[a5      ].ResNum() - rnum2;
+//  mprintf("DEBUG: Cmap res offsets: %i %i %i %i %i\n",
+//          resoffsets[0],
+//          resoffsets[1],
+//          resoffsets[2],
+//          resoffsets[3],
+//          resoffsets[4]);
+}
+
+/// \return true if residue offsets match
+static inline bool res_offsets_match(const int* resoffsets, std::vector<int> const& cmapResOffsets)
+{
+  for (int i = 0; i < 5; i++) {
+    if (resoffsets[i] != cmapResOffsets[i]) return false;
+  }
+  return true;
+}
+
 /** Assign CMAP parameters. Also generates CMAP terms from dihedrals. */
 int AssignParams::AssignCmapParams(Topology const& topOut, DihedralArray const& allDih, CmapParmHolder const& cmapIn,
                                CmapGridArray& cmapGrids, CmapArray& cmapTerms)
@@ -979,6 +1004,8 @@ const
   typedef std::vector<std::string> Sarray;
   std::vector<Sarray> CmapResNames;
   std::vector<Sarray> CmapAtomNames;
+  typedef std::vector<int> Iarray;
+  std::vector<Iarray> CmapResOffsets;
   // The LEaP convention is to number the CMAP parameters in the same
   // order as they are listed in the original parameter file. This
   // variable keeps track of those indices.
@@ -990,6 +1017,7 @@ const
     if (dih->IsImproper() || dih->Skip14()) continue;
     // Get residue name for A2
     Atom const& A2 = topOut[dih->A2()];
+    int rnum2 = A2.ResNum();
     // TODO make sure A2-A4 in same residue?
     NameType const& rn2 = topOut.Res( A2.ResNum() ).Name();
     // Is this residue already in cmapGrids?
@@ -1002,9 +1030,14 @@ const
         //a5 = cmap_anames_match(*dih, atoms_, cmapGrids[idx]);
         a5 = cmap_anames_match(*dih, topOut.Atoms(), CmapAtomNames[idx]);
         if (a5 > -1) {
-          //cidx = (int)idx;
-          cidx = originalCmapIndices[idx];
-          break;
+          // Calc offsets
+          int resoffsets[5];
+          calc_res_offsets(resoffsets, topOut, rnum2, *dih, a5);
+          if (res_offsets_match(resoffsets, CmapResOffsets[idx])) {
+            //cidx = (int)idx;
+            cidx = originalCmapIndices[idx];
+            break;
+          }
         }
       }
     }
@@ -1030,14 +1063,20 @@ const
           //a5 = cmap_anames_match(*dih, atoms_, cmapIn[idx]);
           a5 = cmap_anames_match(*dih, topOut.Atoms(), cmapIn[idx].AtomNames());
           if (a5 > -1) {
-            //cidx = (int)cmapGrids.size();
-            cidx = (int)idx;
-            //cmapGrids.push_back( cmapIn[idx] );
-            CmapResNames.push_back( cmapIn[idx].ResNames() );
-            CmapAtomNames.push_back( cmapIn[idx].AtomNames() );
-            originalCmapIndices.push_back( idx );
-            //nidx = (int)idx;
-            break;
+            // Calc offsets
+            int resoffsets[5];
+            calc_res_offsets(resoffsets, topOut, rnum2, *dih, a5);
+            if (res_offsets_match(resoffsets, cmapIn[idx].ResOffsets())) {
+              //cidx = (int)cmapGrids.size();
+              cidx = (int)idx;
+              //cmapGrids.push_back( cmapIn[idx] );
+              CmapResNames.push_back( cmapIn[idx].ResNames() );
+              CmapAtomNames.push_back( cmapIn[idx].AtomNames() );
+              CmapResOffsets.push_back( cmapIn[idx].ResOffsets() );
+              originalCmapIndices.push_back( idx );
+              //nidx = (int)idx;
+              break;
+            }
           }
         }
       }

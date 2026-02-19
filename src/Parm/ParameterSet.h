@@ -5,6 +5,7 @@
 #include "ImproperParmHolder.h"
 #include "../AtomType.h"
 #include "../CmapParmHolder.h"
+#include "../FileName.h"
 #include "../ParameterTypes.h"
 class CpptrajFile;
 /// Hold a set of parameters for atom types, bonds, angles, etc.
@@ -17,6 +18,8 @@ namespace Parm {
 class ParameterSet {
   public:
     ParameterSet() : hasLJparams_(false) {}
+
+    typedef std::vector<FileName> FNarray;
 
     ParmHolder<AtomType>& AT()         { return atomTypes_; }
     ParmHolder<NonbondType>& NB()      { return nbParm_;    }
@@ -49,6 +52,8 @@ class ParameterSet {
     std::string const& NbParamName()         const { return NBname_;    }
     /// \return Parameter set names as a single line
     std::string ParamSetName()        const;
+    /// \return File name array
+    FNarray const& ParamSetFile() const { return fname_; }
     /// Write parameters to file with given name
     void Debug(const char*) const;
     /// Write parameters to stdout
@@ -85,6 +90,8 @@ class ParameterSet {
     int AddHydrophilicAtomType(NameType const&);
     /// Set parameter set name
     void SetParamSetName(std::string const&);
+    /// Set parameter set file name
+    void SetParamSetFile(FileName const&);
     /// Set nonbond parameter set name
     void SetNbParamName(std::string const&);
     /// \return Size in memory in bytes
@@ -99,6 +106,7 @@ class ParameterSet {
     int updateCmapParams(CmapParmHolder const&, int, int);
 
     Sarray name_;                          ///< Parameter set name(s)
+    FNarray fname_;                        ///< Parameter set file(s)
     std::string NBname_;                   ///< Nonbond set name
 
     ParmHolder<AtomType> atomTypes_;       ///< Atom types

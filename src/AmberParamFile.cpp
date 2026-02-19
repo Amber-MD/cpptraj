@@ -129,9 +129,14 @@ const
   if (ret == Cpptraj::Parm::SAME)
     mprintf("Warning: Duplicated %s\n", typeNameStr(types, "atom").c_str());
   else if (ret == Cpptraj::Parm::UPDATED) {
-    mprintf("Warning: Redefining %s from mass= %g pol= %g to mass= %g pol= %g\n",
-             typeNameStr(types, "atom").c_str(),
-             prm.AT().PreviousParm().Mass(), prm.AT().PreviousParm().Polarizability(), amass, atpol);
+    AtomType const& prev = prm.AT().PreviousParm();
+    bool diff_mass = (prev.Mass() != amass);
+    bool diff_pol  = (prev.Polarizability() != atpol);
+    mprintf("Warning: Redefining %s", typeNameStr(types, "atom").c_str());
+             //prm.AT().PreviousParm().Mass(), prm.AT().PreviousParm().Polarizability(), amass, atpol);
+    if (diff_mass) mprintf(" from mass %g to %g", prev.Mass(), amass);
+    if (diff_pol)  mprintf(" from pol %g to %g", prev.Polarizability(), atpol);
+    mprintf("\n");
   } else if (ret == Cpptraj::Parm::ERR) {
     mprinterr("Error: Reading %s\n", typeNameStr(types, "atom").c_str());
     return 1;
@@ -408,6 +413,21 @@ const
   return 0;
 }
 
+/** Read IPOL section */
+int AmberParamFile::read_ipol(ParameterSet& prm, const char* ptr)
+const
+{
+  //mprintf("DEBUG: Read IPOL.\n");
+  int ipolIn = -1;
+  if (sscanf(ptr, "%i", &ipolIn) != 1) {
+    mprinterr("Error: Could not read IPOL value from line: %s\n", ptr);
+    return 1;
+  }
+  if (debug_ > 0)
+    mprintf("DEBUG: IPOL value is %i\n", ipolIn);
+  return 0;
+}
+
 /** Read radius/depth input for LJ 6-12 nonbond. */
 int AmberParamFile::read_nb_RE(NonbondSet& nbset, const char* ptr)
 const
@@ -512,6 +532,11 @@ int AmberParamFile::check_cmap(int currentCmapIdx, CmapGridType const& cmap) con
   }
   if (!cmap.CmapIsValid()) {
     mprinterr("Error: CMAP term %i '%s' is not valid.\n", currentCmapIdx, cmap.Title().c_str());
+    // Why not?
+    if (cmap.Resolution() < 1) mprinterr("Error: Resolution is 0.\n");
+    if ((int)(cmap.Resolution() * cmap.Resolution()) != cmap.Size()) mprinterr("Error: Resolution %u*%u != grid size %i\n",cmap.Resolution(), cmap.Resolution(), cmap.Size());
+    if (cmap.AtomNames().size() != 5) mprinterr("Error: Expected 5 atom names (got %zu)\n", cmap.AtomNames().size());
+    if (cmap.NcmapResNames() < 1) mprinterr("Error: No residue names set up.\n");
     return 1;
   }
   if (!cmap.CmapNresIsValid()) {
@@ -531,6 +556,11 @@ static inline void add_cmap_default_atoms(CmapGridType& cmap) {
   cmap.AddAtomName("CA");
   cmap.AddAtomName("C");
   cmap.AddAtomName("N");
+  cmap.AddResOffset( -1 );
+  cmap.AddResOffset(  0 );
+  cmap.AddResOffset(  0 );
+  cmap.AddResOffset(  0 );
+  cmap.AddResOffset(  1 );
 }
 
 /** Read CMAP section
@@ -539,64 +569,159 @@ static inline void add_cmap_default_atoms(CmapGridType& cmap) {
   * Atom : C - N - CA - C - N
   */ 
 int AmberParamFile::read_cmap(CmapGridType& currentCmap, ParameterSet& prm, CmapType& currentCmapFlag,
-                              std::string const& line)
+                              std::string const& line, int& cmap_count_is_index)
 const
 {
-  ArgList argline(line);
-  if (argline.Nargs() > 1)
-  {
-    if (argline[0] == "%FLAG") {
-      if (argline[1] == "CMAP_COUNT") {
-        // New CMAP term. Ignore the index for now. If a previous CMAP
-        // was read make sure its OK.
-        if (!currentCmap.empty()) {
-          if (currentCmap.AtomNames().empty()) add_cmap_default_atoms( currentCmap );
-          if (check_cmap(prm.CMAP().size()+1, currentCmap)) return 1;
-          prm.CMAP().AddParm( currentCmap, true, debug_ );
-          currentCmap = CmapGridType();
+  if (line.empty()) return 0;
+  // At this point, line should have no leading whitespace
+
+  if (line[0] == '%') {
+    ArgList argline(line);
+    if (argline.Nargs() > 1) {
+      // NOTE: CMAP_COUNT is used differently in different files. For example,
+      //       in ff19SB it is used as an index of the current CMAP parameter
+      //       being read. However, in ff12polL it is used to give a total
+      //       count of CMAP parameters
+      if (argline[0] == "%FLAG") {
+        if (argline[1] == "CMAP_COUNT") {
+          // New CMAP term. Ignore the index for now. If a previous CMAP
+          // was read make sure its OK.
+          //if (!currentCmap.empty()) {
+          //  if (currentCmap.AtomNames().empty()) add_cmap_default_atoms( currentCmap );
+          //  if (check_cmap(prm.CMAP().size()+1, currentCmap)) return 1;
+          //  prm.CMAP().AddParm( currentCmap, true, debug_ );
+          //  currentCmap = CmapGridType();
+          //}
+          int cmapcount = argline.getKeyInt("CMAP_COUNT", -1);
+          if (debug_ > 0)
+            mprintf("DEBUG: Cmap count: %i\n", cmapcount);
+          //if ( cmapcount != (int)prm.CMAP().size()+1 )
+          //  mprintf("Warning: CMAP term is not in numerical order. CMAP_COUNT %i, expected %zu\n",
+          //          cmapcount, prm.CMAP().size());
+          if (cmap_count_is_index == -1) {
+            if  (cmapcount == (int)prm.CMAP().size()) {
+              if (debug_ > 0)
+                mprintf("DEBUG: Assuming CMAP count is based on index.\n");
+              cmap_count_is_index = 1;
+            } else {
+              if (debug_ > 0)
+                mprintf("DEBUG: Assuming CMAP count is the total number of CMAPS\n");
+              cmap_count_is_index = 0;
+            }
+          } else if (cmap_count_is_index == 1 && cmapcount != (int)prm.CMAP().size()) {
+            mprintf("Warning: CMAP term is not in numerical order. CMAP_COUNT %i, expected %zu\n",
+                    cmapcount, prm.CMAP().size());
+  
+          }
+          return 0;
+        } else if (argline[1] == "CMAP_TITLE") {
+          currentCmapFlag = CMAP_TITLE;
+          // New CMAP term. If a previous CMAP was read make sure it is OK.
+          if (!currentCmap.empty()) {
+            if (currentCmap.AtomNames().empty()) add_cmap_default_atoms( currentCmap );
+            if (check_cmap(prm.CMAP().size()+1, currentCmap)) return 1;
+            prm.CMAP().AddParm( currentCmap, true, debug_ );
+            currentCmap = CmapGridType();
+          }
+
+          return 0;
+        } else if (argline[1] == "CMAP_RESLIST") {
+          currentCmapFlag = CMAP_RESLIST;
+          int nres = argline.getKeyInt("CMAP_RESLIST", -1);
+          if (nres < 1) {
+            mprinterr("Error: Bad CMAP # residues: %s\n", line.c_str());
+            return 1;
+          }
+          if (debug_ > 0)
+            mprintf("DEBUG: CMAP_RESLIST expect %i residues.\n", nres);
+          currentCmap.SetNumCmapRes( nres );
+          return 0;
+        } else if (argline[1] == "CMAP_RESOLUTION") {
+          int cmapres = argline.getKeyInt("CMAP_RESOLUTION", -1);
+          if (debug_ > 0)
+            mprintf("DEBUG: Cmap resolution: %i\n", cmapres);
+          if (cmapres < 1) {
+            mprinterr("Error: Bad CMAP resolution: %s\n", line.c_str());
+            return 1;
+          }
+          currentCmap.SetResolution( cmapres );
+          return 0;
+        } else if (argline[1] == "CMAP_PARAMETER") {
+          currentCmapFlag = CMAP_PARAMETER;
+          return 0;
+        } else if (argline[1] == "CMAP_ATMLIST") {
+          currentCmapFlag = CMAP_ATMLIST;
+          // Remove any dashes as well
+          ArgList atmArgs(line, " -");
+          if (atmArgs.Nargs() < 7) {
+            mprinterr("Error: Malformed CMAP_ATMLIST line; expected 5 elements, got %i\n", atmArgs.Nargs() - 2);
+            mprinterr("Error: %s\n", line.c_str());
+            return 1;
+          }
+          if (debug_ > 0)
+            mprintf("DEBUG: Atom names: %s %s %s %s %s\n",
+                    atmArgs[2].c_str(),
+                    atmArgs[3].c_str(),
+                    atmArgs[4].c_str(),
+                    atmArgs[5].c_str(),
+                    atmArgs[6].c_str());
+          currentCmap.AddAtomName( atmArgs[2] );
+          currentCmap.AddAtomName( atmArgs[3] );
+          currentCmap.AddAtomName( atmArgs[4] );
+          currentCmap.AddAtomName( atmArgs[5] );
+          currentCmap.AddAtomName( atmArgs[6] );
+        } else if (argline[1] == "CMAP_RESIDX") {
+          currentCmapFlag = CMAP_RESIDX;
+          if (argline.Nargs() < 7) {
+            mprinterr("Error: Malformed CMAP_RESIDX line; expected 5 elements, got %i\n", argline.Nargs() - 2);
+            mprinterr("Error: %s\n", line.c_str());
+            return 1;
+          }
+          int residxs[5];
+          for (int i = 0; i < 5; i++)
+            residxs[i] = argline.getNextInteger(0);
+          if (debug_ > 0)
+            mprintf("DEBUG: Residue offsets: %i %i %i %i %i\n",
+                    residxs[0], residxs[1], residxs[2], residxs[3], residxs[4]);
+          for (int i = 0; i < 5; i++)
+            currentCmap.AddResOffset( residxs[i] );
+        } else {
+          mprintf("Warning: Unhandled CMAP FLAG %s\n", argline[1].c_str());
         }
-        int cmapcount = argline.getKeyInt("CMAP_COUNT", -1);
-        //mprintf("DEBUG: Cmap count: %i\n", cmapcount);
-        if ( cmapcount != (int)prm.CMAP().size()+1 )
-          mprintf("Warning: CMAP term is not in numerical order. CMAP_COUNT %i, expected %zu\n",
-                  cmapcount, prm.CMAP().size());
-        return 0;
-      } else if (argline[1] == "CMAP_TITLE") {
-        currentCmapFlag = CMAP_TITLE;
-        return 0;
-      } else if (argline[1] == "CMAP_RESLIST") {
-        currentCmapFlag = CMAP_RESLIST;
-        int nres = argline.getKeyInt("CMAP_RESLIST", -1);
-        if (nres < 1) {
-          mprinterr("Error: Bad CMAP # residues: %s\n", line.c_str());
-          return 1;
-        }
-        currentCmap.SetNumCmapRes( nres );
-        return 0;
-      } else if (argline[1] == "CMAP_RESOLUTION") {
-        int cmapres = argline.getKeyInt("CMAP_RESOLUTION", -1);
-        //mprintf("DEBUG: Cmap res: %i\n", cmapres);
-        if (cmapres < 1) {
-          mprinterr("Error: Bad CMAP resolution: %s\n", line.c_str());
-          return 1;
-        }
-        currentCmap.SetResolution( cmapres );
-        return 0;
-      } else if (argline[1] == "CMAP_PARAMETER") {
-        currentCmapFlag = CMAP_PARAMETER;
+      } else if (argline[0][0] == '%' && argline[0][1] == 'C' && argline[0][2] == 'O') {
+        // Assume comment
+        currentCmapFlag = CMAP_COMMENT;
+        if (debug_ > 0) mprintf("DEBUG: CMAP comment: %s\n", line.c_str());
         return 0;
       }
-    }
-  }
+    } // END line args > 1
+  } // END line starts with %
 
   if (currentCmapFlag == CMAP_PARAMETER) {
-    double terms[8];
-    int nterms = sscanf(line.c_str(), "%lf %lf %lf %lf %lf %lf %lf %lf",
-                        terms, terms+1, terms+2, terms+3,
-                        terms+4, terms+5, terms+6, terms+7);
-    for (int i = 0; i != nterms; i++) {
-      //mprintf("DEBUG: cmap term %f\n", terms[i] );
-      currentCmap.AddToGrid( terms[i] );
+    // Another annoyance; CMAP parameters can be in regular formatted 
+    // 8 column F9.5, or comma-separated list
+    size_t found = line.find_first_of(",");
+    if (found != std::string::npos) {
+      // Comma-separated
+      ArgList termArgs(line, " ,\t\r");
+      for (int i = 0; i != termArgs.Nargs(); i++) {
+        double term = termArgs.getNextDouble(0.0);
+        if (debug_ > 1) mprintf("DEBUG: cmap term %f\n", term);
+        currentCmap.AddToGrid( term );
+      }
+    } else {
+      // Assume 8F9.5
+      double terms[8];
+      int nterms = sscanf(line.c_str(), "%9lf%9lf%9lf%9lf%9lf%9lf%9lf%9lf",
+                          terms, terms+1, terms+2, terms+3,
+                          terms+4, terms+5, terms+6, terms+7);
+      if (debug_ > 1) {
+        for (int i = 0; i != nterms; i++)
+          mprintf("DEBUG: cmap term %f\n", terms[i] );
+      }
+      for (int i = 0; i != nterms; i++) {
+        currentCmap.AddToGrid( terms[i] );
+      }
     }
   } else if (currentCmapFlag == CMAP_RESLIST) {
     ArgList resnames( line );
@@ -606,6 +731,8 @@ const
       rn = resnames.GetStringNext();
     }
   } else if (currentCmapFlag == CMAP_TITLE) {
+    if (debug_ > 0)
+      mprintf("DEBUG: CMAP TITLE: %s\n", line.c_str());
     currentCmap.SetTitle( line );
   }
   return 0;
@@ -622,7 +749,12 @@ int AmberParamFile::assign_nb(ParameterSet& prm, NonbondSet const& nbset) const 
       mprinterr("Error: Nonbond parameters defined for previously undefined type '%s'.\n",
                 *(it->first[0]));
       return 1;
-    } 
+    }
+    //mprintf("DEBUG: searched type %s hasLJ=%i\n", *(at->first[0]), (int)at->second.HasLJ());
+    if (at->second.HasLJ() && at->second.LJ() != it->second)
+      mprintf("Warning: Changing type %s radius from %g to %g, depth from %g to %g\n", *(it->first[0]),
+              at->second.LJ().Radius(), it->second.Radius(),
+              at->second.LJ().Depth(), it->second.Depth());
     at->second.SetLJ( it->second );
   }
   return 0;
@@ -654,6 +786,7 @@ int AmberParamFile::assign_offdiag(ParameterSet& prm, Oarray const& Offdiag) con
 /** Read parametrers from Amber frcmod file. */
 int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname) const
 {
+  int cmap_count_is_index = -1;
   // Set wildcard character for dihedrals and impropers
   prm.DP().SetWildcard('X');
   prm.IP().SetWildcard('X');
@@ -673,6 +806,7 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname) const
   std::string title(ptr);
   mprintf("\tTitle: %s\n", title.c_str());
   prm.SetParamSetName( title );
+  prm.SetParamSetFile( fname );
   NonbondSet nbset(title);
   Oarray Offdiag;
   // Read file
@@ -694,6 +828,7 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname) const
       else if (line.compare(0, 4, "IMPR") == 0) section = IMPROPER;
       else if (line.compare(0, 4, "HBON") == 0) section = LJ1012;
       else if (line.compare(0, 4, "CMAP") == 0) section = CMAP;
+      else if (line.compare(0, 4, "IPOL") == 0) section = IPOL;
       else if (line.compare(0, 6, "LJEDIT") == 0) {
         section = LJEDIT;
         prm.SetHasLJparams( true );
@@ -721,7 +856,9 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname) const
         else if (section == LJEDIT)
           err = read_ljedit(Offdiag, ptr);
         else if (section == CMAP)
-          err = read_cmap(currentCmap, prm, currentCmapFlag, line);
+          err = read_cmap(currentCmap, prm, currentCmapFlag, line, cmap_count_is_index);
+        else if (section == IPOL)
+          err = read_ipol(prm, ptr);
         if (err != 0) {
           mprinterr("Error: Reading line: %s\n", ptr);
           return 1;
@@ -778,6 +915,7 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
   std::string title(ptr);
   mprintf("\tTitle: %s\n", title.c_str());
   prm.SetParamSetName( title );
+  prm.SetParamSetFile( fname );
   std::vector<std::string> last_symbols;
   last_symbols.reserve(4);
   // Read file

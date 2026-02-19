@@ -27,8 +27,9 @@ class AmberParamFile {
     static const int MAXSYMLEN;
 
     enum SectionType { ATYPE = 0, HYDROPHILIC, BOND, ANGLE, DIHEDRAL, IMPROPER, 
-                       LJ1012, NB_EQUIV, NONBOND, LJEDIT, CMAP, UNKNOWN };
-    enum CmapType { CMAP_INITIAL, CMAP_TITLE, CMAP_RESLIST, CMAP_PARAMETER };
+                       LJ1012, NB_EQUIV, NONBOND, LJEDIT, CMAP, IPOL, UNKNOWN };
+    enum CmapType { CMAP_INITIAL, CMAP_TITLE, CMAP_RESLIST, CMAP_PARAMETER, CMAP_COMMENT,
+                    CMAP_RESIDX,  CMAP_ATMLIST };
 
     class NonbondSet;
     class OffdiagNB;
@@ -47,6 +48,8 @@ class AmberParamFile {
     int read_improper(ParameterSet&, const char*) const;
     /// Read LJ 10-12 hbond line
     int read_lj1012(ParameterSet&, const char*) const;
+    /// Read IPOL line
+    int read_ipol(ParameterSet&, const char*) const;
     /// Read LJ 6-12 R/depth line
     int read_nb_RE(NonbondSet&, const char*) const;
     /// Read LJ 6-12 A/C coefficient line
@@ -56,7 +59,7 @@ class AmberParamFile {
     /// Check for issues in CMAP section
     inline int check_cmap(int, CmapGridType const&) const;
     /// Read CMAP section
-    int read_cmap(CmapGridType&, ParameterSet&, CmapType&, std::string const&) const;
+    int read_cmap(CmapGridType&, ParameterSet&, CmapType&, std::string const&, int&) const;
     /// Assign parameters from NonbondSet to ParameterSet
     int assign_nb(ParameterSet&, NonbondSet const&) const;
     /// Assign parameters from OffdiagNB array to ParameterSet

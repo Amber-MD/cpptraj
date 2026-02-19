@@ -37,6 +37,12 @@ void ParameterSet::Debug(const char* fnameIn) const {
 /** Write summary to stdout. */
 void ParameterSet::Summary() const {
   mprintf("\tParameter set: %s\n", ParamSetName().c_str());
+  if (!fname_.empty()) {
+    mprintf("\tFiles:");
+    for (FNarray::const_iterator fn = fname_.begin(); fn != fname_.end(); ++fn)
+      mprintf(" %s", fn->base());
+    mprintf("\n");
+  }
   mprintf("\t  %zu atom types:", atomTypes_.size());
   for (ParmHolder<AtomType>::const_iterator at = atomTypes_.begin(); at != atomTypes_.end(); ++at)
     mprintf(" %s", *(at->first[0]));
@@ -58,6 +64,12 @@ void ParameterSet::Summary() const {
 void ParameterSet::Print(CpptrajFile& Out) const {
   if (!name_.empty())
     Out.Printf("Parameter set: %s\n", ParamSetName().c_str());
+  if (!fname_.empty()) {
+    Out.Printf("\tFiles:");
+    for (FNarray::const_iterator fn = fname_.begin(); fn != fname_.end(); ++fn)
+      Out.Printf(" %s", fn->base());
+    Out.Printf("\n");
+  }
   if (!NBname_.empty())
     Out.Printf("Nonbond parameters name: %s\n", NBname_.c_str());
   static const char* hybStr[] = {"SP ", "SP2", "SP3", "UNK"};
@@ -279,6 +291,11 @@ std::string ParameterSet::ParamSetName() const {
 /** Set parameter set name. */
 void ParameterSet::SetParamSetName(std::string const& nameIn) {
   name_.push_back( nameIn );
+}
+
+/** Set parameter set file */
+void ParameterSet::SetParamSetFile(FileName const& fnameIn) {
+  fname_.push_back( fnameIn );
 }
 
 /** Set nonbond parameter set name. */
