@@ -49,7 +49,7 @@ int AddIons::InitAddIons(std::string const& ion1nameIn, int Nion1,
     //  mprinterr("Error: Number of second %s ions cannot be less than 1 (%i)\n", ion2nameIn.c_str(), Nion2);
     //  return 1;
     //}
-    if (Nion2_ < 0)
+    if (Nion2 < 0)
       Nion2_ = 0;
     else
       Nion2_ = Nion2;
