@@ -5,7 +5,7 @@ The major change in this version is the introduction of the ability of CPPTRAJ t
 
 New Commands
 ============
-- `build` - Allow full build and parameterization of systems for MD, including CMAP, LJ 12-6-4, solvation, and ions. Includes `prepareforleap` and `fixatomorder` functionality.
+- `build` - Allow full build and parameterization of systems for MD, including CMAP, LJ 12-6-4, solvation, and ions. Includes `prepareforleap` and `fixatomorder` functionality. Can create macromolecular assemblies from PDBs with multiple models.
 
 - `source` - Read (limited) leaprc files.
 
