@@ -709,6 +709,7 @@ EOF
   fi
   if [ "${LIB_STAT[$LNETCDF]}" = 'specified' ] ; then
     export LD_LIBRARY_PATH="${LIB_HOME[$LNETCDF]}/lib:$LD_LIBRARY_PATH"
+    SetLibDir "${LIB_HOME[$LNETCDF]}" "libnetcdf.a"
     if [ ! -f "${LIB_HOME[$LNETCDF]}/$LIBDIR/libnetcdf.so" -a -f "${LIB_HOME[$LNETCDF]}/$LIBDIR/libnetcdf.a" ] ; then
       #echo "DEBUG: Only static NetCDF library is present."
       nc_requires_hdf5_flags=1
@@ -751,6 +752,7 @@ EOF
   if [ $? -ne 0 ] ; then
     if [ "${LIB_STAT[$LHDF5]}" = 'enabled' ] ; then
       # See if there is already a version of HDF5 in CPPTRAJHOME
+      SetLibDir "$CPPTRAJHOME" "libhdf5_hl.a"
       LIB_STAT[$LHDF5]='specified'
       LIB_HOME[$LHDF5]=$CPPTRAJHOME
       LIB_FLAG[$LHDF5]="$CPPTRAJHOME/$LIBDIR/libhdf5_hl.a $CPPTRAJHOME/$LIBDIR/${LIB_STTC[$LHDF5]} -ldl ${LIB_FLAG[$LZIP]}"
@@ -797,11 +799,12 @@ EOF
     rebuild_netcdf='--rebuild'
   fi
   if [ $check_netcdf -ne 0 -o "${LIB_MAKE[$LNETCDF]}" == 'yes' ] ; then
+    SetLibDir "$CPPTRAJHOME" "${LIB_STTC[$LNETCDF]}"
     if [ "${LIB_STAT[$LNETCDF]}" = 'enabled' ] ; then
       # See if there is already a version of NetCDF in CPPTRAJHOME
       LIB_STAT[$LNETCDF]='specified'
       LIB_HOME[$LNETCDF]=$CPPTRAJHOME
-      LIB_FLAG[$LNETCDF]=$CPPTRAJHOME/lib/${LIB_STTC[$LNETCDF]}
+      LIB_FLAG[$LNETCDF]=$CPPTRAJHOME/$LIBDIR/${LIB_STTC[$LNETCDF]}
       LIB_INCL[$LNETCDF]="-I$CPPTRAJHOME/include"
       if [ "${LIB_STAT[$LHDF5]}" != 'off' ] ; then
         # Netcdf needs to know where hdf5 is
@@ -822,7 +825,7 @@ EOF
             echo "Overriding MAKE_COMMAND with 'make -j1' to avoid NetCDF4/HDF5 race conditions."
           fi
           PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS LIBNAME='netcdf' MAKE_COMMAND='make -j1' \
-              CPPFLAGS=${LIB_INCL[$LHDF5]} LDFLAGS="-L$CPPTRAJHOME/lib" \
+              CPPFLAGS=${LIB_INCL[$LHDF5]} LDFLAGS="-L$CPPTRAJHOME/$LIBDIR" \
               SRCDIR=$NETCDF_SRCDIR SRCTAR=$NETCDF_SRCTAR URL=$NETCDF_URL ./get_library.sh $rebuild_netcdf $NETCDF4_OPTS
           netcdferr=$?
         else
