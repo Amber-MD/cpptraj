@@ -121,6 +121,11 @@ static inline DihedralType idxWithOffset(DihedralType const& dih1, int idx, unsi
 
 // -------------------------------------
 static inline void noParmWarning(TypeNameHolder const& types) {
+  bool all_empty = true;
+  for (unsigned int idx = 0; idx < types.Size(); idx++) {
+    if (types[idx].len() > 0) { all_empty = false; break; }
+  }
+  if (all_empty) return;
   if (types.Size() == 2)
     mprintf("Warning: No bond parameters for types %s - %s\n", *(types[0]), *(types[1]));
   else if (types.Size() == 3)
