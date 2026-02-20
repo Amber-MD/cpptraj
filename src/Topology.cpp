@@ -2395,7 +2395,12 @@ int Topology::AppendTop(Topology const& NewTop, int verbose_, bool reduce_bond_p
   AssignParams assign;
   assign.SetDebug( debug_ );
   assign.SetVerbose( verbose_ );
-  assign.AssignNonbondParams( topOut, myAtomTypes, myNB, my14, myLJC, myHB );
+  if ( myAtomTypes.size() < 1) {
+    if (verbose_ > 1)
+      mprintf("Warning: No atom types; cannot assign nonbond parameters.\n");
+  } else {
+    assign.AssignNonbondParams( topOut, myAtomTypes, myNB, my14, myLJC, myHB );
+  }
 
   // The version of AddTopAtom() with molecule number already determines
   // molecules and number of solvent molecules.
