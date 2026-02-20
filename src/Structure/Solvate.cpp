@@ -783,13 +783,14 @@ int Solvate::SolvateBoxWithExactNumber(Topology& topOut, Frame& frameOut, Cpptra
         // Update smallest buffer; presumably is closer
         smallestBuf = Vec3(bufX, bufY, bufZ);
       }
-    }  
+    } 
+    mprintf("DEBUG: SmallestNegDiff= %i  nTimesSmallestSeen= %i\n", smallestNegDiff, nTimesSmallestSeen);
     // If this is the first time through choose an appropriate change val
     if (ntries == 0) {
       change = 0.001;
     }
     // See if we have tol more waters than the target TODO
-    if ((diff < 0 && nTimesSmallestSeen > 4) || (diff < 0 && diff >= negtol)) {
+    if ((diff < 0 && nTimesSmallestSeen > 2) || (diff < 0 && diff >= negtol)) {
       // Close enough, just remove the last water residue(s)
       int nToRemove = -diff;
       mprintf("\tOnly %i solvent molecules off, removing them.\n", nToRemove);
