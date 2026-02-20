@@ -40,7 +40,7 @@ class Parm_Amber : public ParmIO {
       F_PDB_RES,      F_PDB_CHAIN,    F_PDB_ICODE, F_PDB_ALT,    F_PDB_BFAC,
       F_PDB_OCC,      F_PDB_NUM,      F_CMAPC,     F_CMAPR,      F_CMAPP,
       F_CMAPI,        F_DIHH_LARGE,   F_DIH_LARGE, F_BNDH_LARGE, F_BND_LARGE,
-      F_ANGH_LARGE,   F_ANG_LARGE
+      F_ANGH_LARGE,   F_ANG_LARGE,    F_PNT_LARGE
     };
     /// Used to hold %FLAG/FORMAT string pairs. Corresponds to FlagType.
     struct ParmFlag {
@@ -161,6 +161,7 @@ class Parm_Amber : public ParmIO {
     int WriteIjoin(std::vector<int> const&);
     int WriteIrotat(std::vector<int> const&);
     int WriteExtra(Topology const&, int);
+    FlagType check_pointers(Topology const&, unsigned int, unsigned int, unsigned int) const;
  
     static const int AMBERPOINTERS_;
     /// Contain topology flags enumerated by FlagType

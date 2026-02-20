@@ -61,6 +61,7 @@ static const char* F5E16 = "%FORMAT(5E16.8)";
 static const char* F3I8  = "%FORMAT(3I8)";
 static const char* F1a80 = "%FORMAT(1a80)";
 static const char* F1I8  = "%FORMAT(1I8)";
+static const char* F8I10 = "%FORMAT(8I10)";
 /// Constant strings for Amber parm flags and fortran formats. Enumerated by FlagType
 const Parm_Amber::ParmFlag Parm_Amber::FLAGS_[] = {
   { "POINTERS",                   F10I8 }, ///< Described above in topValues
@@ -152,12 +153,13 @@ const Parm_Amber::ParmFlag Parm_Amber::FLAGS_[] = {
   { "CMAP_PARAMETER_",             "%FORMAT(8F9.5)"},   // CMAP grid
   { "CMAP_INDEX",                  "%FORMAT(6I8)" },    // Atom i,j,k,l,m of cross term and idx
   // Extended format flags
-  { "DIHEDRALS_INC_HYDROGEN",      "%FORMAT(8I10)" },   // For topologies with high atom counts
-  { "DIHEDRALS_WITHOUT_HYDROGEN",  "%FORMAT(8I10)" },   // For topologies with high atom counts
-  { "BONDS_INC_HYDROGEN",          "%FORMAT(8I10)" }, ///< Bonds to hydrogen
-  { "BONDS_WITHOUT_HYDROGEN",      "%FORMAT(8I10)" }, ///< Bonds not including hydrogen
-  { "ANGLES_INC_HYDROGEN",         "%FORMAT(8I10)" },
-  { "ANGLES_WITHOUT_HYDROGEN",     "%FORMAT(8I10)" },
+  { "DIHEDRALS_INC_HYDROGEN",      F8I10 },   // For topologies with high atom counts
+  { "DIHEDRALS_WITHOUT_HYDROGEN",  F8I10 },   // For topologies with high atom counts
+  { "BONDS_INC_HYDROGEN",          F8I10 }, ///< Bonds to hydrogen
+  { "BONDS_WITHOUT_HYDROGEN",      F8I10 }, ///< Bonds not including hydrogen
+  { "ANGLES_INC_HYDROGEN",         F8I10 },
+  { "ANGLES_WITHOUT_HYDROGEN",     F8I10 },
+  { "POINTERS",                    F8I10 }, ///< Described above in topValues
   { 0, 0 }
 };
 
@@ -1841,6 +1843,61 @@ static inline int check_array_size(unsigned int expectedSize, unsigned int actua
   return 0;
 }
 
+/// \return true if incoming value will overflow the default POINTERS width (8 digits)
+template <typename T> bool GT_MAX_PTR(T valIn) { return (valIn > (T)99999999); } 
+
+/** Check the pointers from the input Topology and return a flag big enough
+  * to accommodate them.
+  */
+Parm_Amber::FlagType Parm_Amber::check_pointers(Topology const& TopOut, unsigned int excludedSize, unsigned int n_unique_atom_types, unsigned int maxResSize ) const {
+  FlagType flag_pointers = F_POINTERS;
+
+  if (GT_MAX_PTR( TopOut.Natom() )) flag_pointers = F_PNT_LARGE; // NATOM
+  if (GT_MAX_PTR( TopOut.Nonbond().Ntypes() )) flag_pointers = F_PNT_LARGE; // NTYPES
+  if (GT_MAX_PTR( TopOut.BondsH().size() )) flag_pointers = F_PNT_LARGE; // NBONH
+  if (GT_MAX_PTR( TopOut.Bonds().size() )) flag_pointers = F_PNT_LARGE; // NBONA
+  if (GT_MAX_PTR( TopOut.AnglesH().size() )) flag_pointers = F_PNT_LARGE; // NTHETH
+  if (GT_MAX_PTR( TopOut.Angles().size() )) flag_pointers = F_PNT_LARGE; // NTHETA
+  if (GT_MAX_PTR( TopOut.DihedralsH().size() )) flag_pointers = F_PNT_LARGE; // NPHIH
+  if (GT_MAX_PTR( TopOut.Dihedrals().size() )) flag_pointers = F_PNT_LARGE; // NPHIA
+  //if (GT_MAX_PTR( 0 )) flag_pointers = F_PNT_LARGE; // NHPARM, not used
+  //if (TopOut.LES().HasLES()) { // NPARM
+  //  mprintf("Warning: Excluded atom list for LES info is not correct.\n");
+  //  file_.IntToBuffer( 1 );
+  //} else
+  //  file_.IntToBuffer( 0 );
+  if (GT_MAX_PTR( excludedSize )) flag_pointers = F_PNT_LARGE; // NNB
+  if (GT_MAX_PTR( TopOut.Nres() )) flag_pointers = F_PNT_LARGE; // NRES
+  //   NOTE: Assuming MBONA == NBONA etc
+  if (GT_MAX_PTR( TopOut.Bonds().size() )) flag_pointers = F_PNT_LARGE; // MBONA
+  if (GT_MAX_PTR( TopOut.Angles().size() )) flag_pointers = F_PNT_LARGE; // MTHETA
+  if (GT_MAX_PTR( TopOut.Dihedrals().size() )) flag_pointers = F_PNT_LARGE; // MPHIA
+  if (GT_MAX_PTR( TopOut.BondParm().size() )) flag_pointers = F_PNT_LARGE; // NUMBND
+  if (GT_MAX_PTR( TopOut.AngleParm().size() )) flag_pointers = F_PNT_LARGE; // NUMANG
+  if (GT_MAX_PTR( TopOut.DihedralParm().size() )) flag_pointers = F_PNT_LARGE; // NPTRA
+  if (GT_MAX_PTR( n_unique_atom_types )) flag_pointers = F_PNT_LARGE; // NATYP, only for SOLTY
+  if (GT_MAX_PTR( TopOut.Nonbond().HBarray().size() )) flag_pointers = F_PNT_LARGE; // NPHB
+  //file_.IntToBuffer( 0 ); // IFPERT
+  //file_.IntToBuffer( 0 ); // NBPER
+  //file_.IntToBuffer( 0 ); // NGPER
+  //file_.IntToBuffer( 0 ); // NDPER
+  //file_.IntToBuffer( 0 ); // MBPER
+  //file_.IntToBuffer( 0 ); // MGPER
+  //file_.IntToBuffer( 0 ); // MDPER
+  //file_.IntToBuffer( ifbox ); // IFBOX
+  if (GT_MAX_PTR( maxResSize )) flag_pointers = F_PNT_LARGE; // NMXRS
+  //if (TopOut.Cap().NatCap() > 0) // IFCAP
+  //  file_.IntToBuffer( 1 );
+  //else
+  //  file_.IntToBuffer( 0 );
+  if (GT_MAX_PTR( TopOut.NextraPts() )) flag_pointers = F_PNT_LARGE; // NEXTRA
+
+  if (flag_pointers != F_POINTERS)
+    mprintf("Warning: Very large values detected; using extended format string for POINTERS.\n");
+
+  return flag_pointers;
+}
+
 // Parm_Amber::WriteParm()
 int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   if (file_.OpenWrite( fname )) return 1;
@@ -1975,7 +2032,11 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   }
 
   // POINTERS
-  if (BufferAlloc(F_POINTERS, AMBERPOINTERS_)) return 1;
+  Cpptraj::Parm::GetParams GP;
+  GP.SetDebug( debug_ );
+  unsigned int n_unique_atom_types = GP.NuniqueAtomTypes( TopOut );
+  FlagType flag_pointers = check_pointers( TopOut, Excluded.size(), n_unique_atom_types, maxResSize );
+  if (BufferAlloc(flag_pointers, AMBERPOINTERS_)) return 1;
   file_.IntToBuffer( TopOut.Natom() ); // NATOM
   file_.IntToBuffer( TopOut.Nonbond().Ntypes() ); // NTYPES
   file_.IntToBuffer( TopOut.BondsH().size() ); // NBONH
@@ -2000,9 +2061,6 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   file_.IntToBuffer( TopOut.BondParm().size() ); // NUMBND
   file_.IntToBuffer( TopOut.AngleParm().size() ); // NUMANG
   file_.IntToBuffer( TopOut.DihedralParm().size() ); // NPTRA
-  Cpptraj::Parm::GetParams GP;
-  GP.SetDebug( debug_ );
-  unsigned int n_unique_atom_types = GP.NuniqueAtomTypes( TopOut );
   file_.IntToBuffer( n_unique_atom_types ); // NATYP, only for SOLTY
   file_.IntToBuffer( TopOut.Nonbond().HBarray().size() ); // NPHB
   file_.IntToBuffer( 0 ); // IFPERT
@@ -2019,7 +2077,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   else
     file_.IntToBuffer( 0 );
   file_.IntToBuffer( TopOut.NextraPts() ); // NEXTRA
-  if (flushFileBuffer( F_POINTERS )) return 1;
+  if (flushFileBuffer( flag_pointers )) return 1;
  
   // FF type description
   if (ptype_ == CHAMBER || !TopOut.Description().empty()) {
