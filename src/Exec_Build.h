@@ -36,6 +36,8 @@ class Exec_Build : public Exec {
     static inline bool hasBondingPair(IParray const&, Ipair const&);
     /// \return true if given array of residue connections has target residue index.
     static inline bool resIsConnected(Iarray const&, int);
+    /// Create assembly from input COORDS
+    int createAssembly(Topology&, Frame&, DataSet_Coords&) const;
     /// Create new topology/frame using templates
     int FillAtomsWithTemplates(Topology&, Frame&, Topology const&, Frame const&,
                                Cpptraj::Structure::Creator const&,

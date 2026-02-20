@@ -825,7 +825,7 @@ const
 // Exec_Build::Help()
 void Exec_Build::Help() const
 {
-  mprintf("\t[name <output COORDS>] {crdset <COORDS set>|<file>} [frame <#>]\n");
+  mprintf("\t[name <output COORDS>] {crdset <COORDS set>|<file>} [{frame <#>|doassembly}]\n");
   Cpptraj::Structure::PdbCleaner::Help();
   mprintf("\t[title <title>] [verbose <#>] [keepmissingatoms] [nofixorder]\n"
           "\t[parmout <topology file>] [crdout <coord file>] [simplecheck]\n");
@@ -886,6 +886,39 @@ Exec::RetType Exec_Build::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   return BuildAndParmStructure(inCrdPtr, outset, State.DSL(), State.Debug(), argIn, Cpptraj::Parm::UNKNOWN_GB);
+}
+
+/** Create an assembly from all the frames in the input coordinates. */
+int Exec_Build::createAssembly(Topology& topIn, Frame& frameIn,
+                               DataSet_Coords& CRDIN)
+const
+{
+  if (CRDIN.Size() < 2) {
+    mprintf("Warning: Only %zu frames in COORDS set '%s'; no assembly needed.\n");
+    frameIn = CRDIN.AllocateFrame();
+    CRDIN.GetFrame(0, frameIn);
+    topIn = CRDIN.Top();
+  } else {
+    mprintf("\tCreating assembly from %zu structures:", CRDIN.Size());
+    for (unsigned int idx = 0; idx < CRDIN.Size(); idx++) {
+      mprintf(" %u", idx+1);
+      topIn.AppendTop( CRDIN.Top(), debug_, false, false );
+    }
+    frameIn.SetupFrameV( topIn.Atoms(), CRDIN.CoordsInfo() );
+    Frame frm = CRDIN.AllocateFrame();
+    mprintf("\n\tCopying coordinates for assembly:");
+    double *output = frameIn.xAddress();
+    for (unsigned int idx = 0; idx < CRDIN.Size(); idx++) {
+      // Coords
+      mprintf(" %u", idx+1);
+      CRDIN.GetFrame(idx, frm);
+      std::copy(frm.xAddress(), frm.xAddress()+frm.size(), output);
+      output += frm.size();
+    }
+    mprintf("\n");
+    topIn.Brief("Assembly");
+  }
+  return 0;
 }
 
 /** Standalone execute. For DataIO_LeapRC. Operate on inCrdPtr */
@@ -1019,6 +1052,8 @@ Exec::RetType Exec_Build::BuildAndParmStructure(DataSet* inCrdPtr, std::string c
                                                 Cpptraj::Parm::GB_RadiiType gbRadIn)
 {
   t_total_.Start();
+  debug_ = debugIn;
+  int verbose = argIn.getKeyInt("verbose", 0);
   if (inCrdPtr == 0) {
     mprinterr("Internal Error: Exec_Build::BuildStructure(): Null input coordinates.\n");
     return CpptrajState::ERR;
@@ -1027,13 +1062,12 @@ Exec::RetType Exec_Build::BuildAndParmStructure(DataSet* inCrdPtr, std::string c
     mprinterr("Error: Set '%s' is not coordinates, cannot use for building.\n", inCrdPtr->legend());
     return CpptrajState::ERR;
   }
-  if (outset.empty() && inCrdPtr->Size() > 1) {
+  bool doassembly = argIn.hasKey("doassembly");
+  if (!doassembly && outset.empty() && inCrdPtr->Size() > 1) {
     mprinterr("Error: Set '%s' has more than 1 frame; must specify an output COORDS set in order to build.\n",
               inCrdPtr->legend());
     return CpptrajState::ERR;
   }
-  debug_ = debugIn;
-  int verbose = argIn.getKeyInt("verbose", 0);
   std::string title = argIn.GetStringKey("title");
   if (argIn.hasKey("nofixorder"))
     fixAtomOrder_ = false;
@@ -1053,22 +1087,32 @@ Exec::RetType Exec_Build::BuildAndParmStructure(DataSet* inCrdPtr, std::string c
     mprintf("\tWill write topology to %s\n", outputTopologyName.c_str());
   if (!outputCoordsName.empty())
     mprintf("\tWill write coords to %s\n", outputCoordsName.c_str());
+
+  Frame frameIn;
+  Topology topIn;
   // TODO make it so this can be const (cant bc GetFrame)
   DataSet_Coords& coords = static_cast<DataSet_Coords&>( *((DataSet_Coords*)inCrdPtr) );
-  // Get frame from input coords
-  int tgtframe = argIn.getKeyInt("frame", 1) - 1;
-  mprintf("\tUsing frame %i from COORDS set %s\n", tgtframe+1, coords.legend());
-  if (tgtframe < 0 || tgtframe >= (int)coords.Size()) {
-    mprinterr("Error: Frame is out of range.\n");
-    return CpptrajState::ERR;
+  if (doassembly) {
+    if (createAssembly(topIn, frameIn, coords)) {
+      mprinterr("Error: Assembly creation failed.\n");
+      return CpptrajState::ERR;
+    }
+  } else {
+    // Get frame from input coords
+    int tgtframe = argIn.getKeyInt("frame", 1) - 1;
+    mprintf("\tUsing frame %i from COORDS set %s\n", tgtframe+1, coords.legend());
+    if (tgtframe < 0 || tgtframe >= (int)coords.Size()) {
+      mprinterr("Error: Frame is out of range.\n");
+      return CpptrajState::ERR;
+    }
+    frameIn = coords.AllocateFrame();
+    coords.GetFrame(tgtframe, frameIn);
+    // Get modifiable topology
+    // NOTE: Topology is copied here because it might be destroyed if doing in-place build.
+    //Topology& topIn = *(coords.TopPtr());
+    //Topology const& topIn = coords.Top();
+    topIn = coords.Top(); // FIXME do not work on the copy, work on the top itself
   }
-  Frame frameIn = coords.AllocateFrame();
-  coords.GetFrame(tgtframe, frameIn);
-  // Get modifiable topology
-  // NOTE: Topology is copied here because it might be destroyed if doing in-place build.
-  //Topology& topIn = *(coords.TopPtr());
-  //Topology const& topIn = coords.Top();
-  Topology topIn = coords.Top(); // FIXME do not work on the copy, work on the top itself
 
   std::string solventResName = argIn.GetStringKey("solventresname", "HOH");
   mprintf("\tResidues named '%s' will be recognized as solvent.\n", solventResName.c_str());
