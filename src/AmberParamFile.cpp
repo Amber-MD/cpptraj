@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "BufferedLine.h"
 #include "StringRoutines.h"
+#include "Parm/DihedralParmSet.h"
 #include "Parm/ParameterSet.h"
 #include "Parm/ParmHolder.h"
 #include "Constants.h"
@@ -246,7 +247,7 @@ const
   * of pn is used only for identifying the existence of the next term and 
   * only the absolute value of PN is kept.
   */
-int AmberParamFile::read_dihedral(ParameterSet& prm, const char* ptr,
+int AmberParamFile::read_dihedral(DihedralParmSet& prm, const char* ptr,
                                   std::vector<std::string>& last_symbols,
                                   bool first_char_is_space)
 const
@@ -299,13 +300,13 @@ const
   types.AddName( symbols[2] );
   types.AddName( symbols[3] );
   Cpptraj::Parm::RetType ret =
-    prm.DP().AddParm(types, DihedralParmType(PK / (double)IDIVF, PN, PHASE*Constants::DEGRAD, scee, scnb), true);
+    prm.AddDihParm(types, DihedralParmType(PK / (double)IDIVF, PN, PHASE*Constants::DEGRAD, scee, scnb), true);
   if (ret == Cpptraj::Parm::SAME)
     mprintf("Warning: Duplicated %s\n", typeNameStr(types, "dihedral").c_str());
   else if (ret == Cpptraj::Parm::UPDATED) // TODO SCEE/SCNB?
     mprintf("Warning: Redefining %s (PN=%g) from PK= %g Phase= %g to PK= %g Phase= %g\n",
              typeNameStr(types, "dihedral").c_str(), PN,
-             prm.DP().PreviousParm().Pk(), prm.DP().PreviousParm().Phase()*Constants::RADDEG, PK/(double)IDIVF, PHASE);
+             prm.PreviousParm().Pk(), prm.PreviousParm().Phase()*Constants::RADDEG, PK/(double)IDIVF, PHASE);
   else if (ret == Cpptraj::Parm::ERR) {
     mprinterr("Error: Reading %s\n", typeNameStr(types, "dihedral").c_str());
     return 1;
@@ -316,6 +317,17 @@ const
     //mprintf("DEBUG: %s\n", ptr);
   //}
   last_symbols = symbols;
+  return 0;
+}
+
+/** Put read-in dihedral parameters into the given ParameterSet.
+  * Warn about missing multiplicities.
+  */
+int AmberParamFile::dihparm_to_parmset(ParameterSet& prm, DihedralParmSet const& dihPrm)
+const
+{
+  for (DihedralParmSet::const_iterator it = dihPrm.begin(); it != dihPrm.end(); ++it)
+    prm.DP().AddParm( it->first, it->second, true );
   return 0;
 }
 
@@ -783,7 +795,7 @@ int AmberParamFile::assign_offdiag(ParameterSet& prm, Oarray const& Offdiag) con
   return 0;
 }
 
-/** Read parametrers from Amber frcmod file. */
+/** Read parameters from Amber frcmod file. */
 int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname) const
 {
   int cmap_count_is_index = -1;
@@ -809,6 +821,7 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname) const
   prm.SetParamSetFile( fname );
   NonbondSet nbset(title);
   Oarray Offdiag;
+  DihedralParmSet dihPrm;
   // Read file
   SectionType section = UNKNOWN;
   CmapType currentCmapFlag = CMAP_INITIAL;
@@ -846,7 +859,7 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname) const
         else if (section == ANGLE)
           err = read_angle(prm, ptr);
         else if (section == DIHEDRAL)
-          err = read_dihedral(prm, ptr, last_symbols, first_char_is_space);
+          err = read_dihedral(dihPrm, ptr, last_symbols, first_char_is_space);
         else if (section == IMPROPER)
           err = read_improper(prm, ptr);
         else if (section == LJ1012)
@@ -873,6 +886,8 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname) const
     if (check_cmap(prm.CMAP().size(), currentCmap)) return 1;
     prm.CMAP().AddParm( currentCmap, true, debug_ );
   }
+  // Add dihedrals
+  if (dihparm_to_parmset(prm, dihPrm)) return 1;
   // Nonbonds
   if (assign_nb(prm, nbset)) return 1;
   // Off-diagonal NB modifications
@@ -918,6 +933,7 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
   prm.SetParamSetFile( fname );
   std::vector<std::string> last_symbols;
   last_symbols.reserve(4);
+  DihedralParmSet dihPrm;
   // Read file
   int readNbType = 0;
   SectionType section = ATYPE;
@@ -1006,7 +1022,7 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
     } else if (section == ANGLE) {
       read_err = read_angle(prm, ptr);
     } else if (section == DIHEDRAL) {
-      read_err = read_dihedral(prm, ptr, last_symbols, first_char_is_space);
+      read_err = read_dihedral(dihPrm, ptr, last_symbols, first_char_is_space);
     } else if (section == IMPROPER) {
       read_err = read_improper(prm, ptr);
     } else if (section == LJ1012) {
@@ -1041,6 +1057,9 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
     } 
     ptr = infile.Line();
   } // END loop over file.
+
+  // Add dihedrals
+  if (dihparm_to_parmset(prm, dihPrm)) return 1;
 
   // Deal with nonbond and equivalence
   if (!NBsets.empty()) {

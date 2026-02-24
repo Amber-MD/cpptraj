@@ -16,11 +16,11 @@ class TypeNameHolder {
     typedef Narray::const_iterator const_iterator;
     TypeNameHolder() {}
     /// CONSTRUCTOR - Take single atom type name
-    TypeNameHolder(NameType const& nameIn) : types_(1, nameIn) {}
+    TypeNameHolder(NameType const& nameIn) : types_(1, nameIn), is_swapped_(false) {}
     /// CONSTRUCTOR - Take array of atom type names
-    TypeNameHolder(Narray const& namesIn) : types_(namesIn) {}
+    TypeNameHolder(Narray const& namesIn) : types_(namesIn), is_swapped_(false) {}
     /// CONSTRUCTOR - Reserve space for given number of type names
-    TypeNameHolder(int size) { types_.clear(); types_.reserve(size); }
+    TypeNameHolder(int size) : is_swapped_(false) { types_.clear(); types_.reserve(size); }
 /*    /// CONSTRUCTOR - Set wildcard name and reserve space for given number of type names.
     TypeNameHolder(int size, NameType const& wc) : wildcard_(wc) { types_.clear(); types_.reserve(size); }*/
     /// Add atom type name.
@@ -132,6 +132,7 @@ class TypeNameHolder {
       }
       if (types_[0] > types_[last]) {
         // Need to swap TODO record if we swapped these names?
+        is_swapped_ = true;
         if (types_.size() < 4)
           tswap(types_[0], types_[last]);
         else {
@@ -140,7 +141,8 @@ class TypeNameHolder {
           for (unsigned int ii = 0; ii < half; ii++, jj--)
             tswap(types_[ii], types_[jj]);
         }
-      }
+      } else
+        is_swapped_ = false;
       // Restore wildcards
       if (wc.len() > 0) {
         if (types_[0]    == " ") types_[0]    = wc;
@@ -188,5 +190,6 @@ class TypeNameHolder {
   private:
     Narray types_;
     //NameType wildcard_;
+    bool is_swapped_;
 };
 #endif

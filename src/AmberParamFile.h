@@ -7,12 +7,14 @@ class CmapGridType;
 class FileName;
 namespace Cpptraj {
 namespace Parm {
+class DihedralParmSet;
 class ParameterSet;
 }
 }
 /// Used to read in Amber parameters from Amber FF/FRCMOD file.
 class AmberParamFile {
     typedef Cpptraj::Parm::ParameterSet ParameterSet;
+    typedef Cpptraj::Parm::DihedralParmSet DihedralParmSet;
   public:
     AmberParamFile();
     /// Read main Amber FF file
@@ -43,7 +45,8 @@ class AmberParamFile {
     /// Read angle line
     int read_angle(ParameterSet&, const char*) const;
     /// Read dihedral line
-    int read_dihedral(ParameterSet&, const char*, std::vector<std::string>&, bool) const;
+    int read_dihedral(DihedralParmSet&, const char*, std::vector<std::string>&, bool) const;
+    int dihparm_to_parmset(ParameterSet&, DihedralParmSet const&) const;
     /// Read improper line
     int read_improper(ParameterSet&, const char*) const;
     /// Read LJ 10-12 hbond line
