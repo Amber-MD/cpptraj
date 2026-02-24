@@ -18,6 +18,8 @@ class DihedralParmSet {
     typedef std::map<TypeNameHolder, DihedralParmArray> Dmap;
   public:
     DihedralParmSet() {}
+    /// \return Last parameter to be overwritten from AddParm()
+    DihedralParmType const& PreviousParm() const { return previousParm_; }
     /// Add (or update) a single dihedral parameter for given atom types.
     RetType AddDihParm(TypeNameHolder const& types, DihedralParmType const& dp, bool allowUpdate) {
       // Check if dihedral parm for these types exist
