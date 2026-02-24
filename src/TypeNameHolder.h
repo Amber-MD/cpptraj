@@ -184,7 +184,7 @@ class TypeNameHolder {
       }
     }
     /// \return size in bytes
-    size_t DataSize() const { return (types_.size()*NameType::DataSize()) + NameType::DataSize(); }
+    size_t DataSize() const { return (types_.size()*NameType::DataSize()); }
   private:
     Narray types_;
     //NameType wildcard_;
