@@ -1,6 +1,6 @@
 #ifndef INC_PARM_DIHEDRALPARMSET_H
 #define INC_PARM_DIHEDRALPARMSET_H
-#include <map>
+//#include <map>
 #include "ParmEnum.h"
 #include "../ParameterTypes.h"
 #include "../TypeNameHolder.h"
@@ -15,7 +15,8 @@ namespace Parm {
   */
 class DihedralParmSet {
     typedef std::pair<TypeNameHolder, DihedralParmArray> Dpair;
-    typedef std::map<TypeNameHolder, DihedralParmArray> Dmap;
+    //typedef std::map<TypeNameHolder, DihedralParmArray> Dmap;
+    typedef std::vector<Dpair> Dmap;
   public:
     DihedralParmSet() {}
     /// \return Last parameter to be overwritten from AddParm()
@@ -26,15 +27,27 @@ class DihedralParmSet {
     const_iterator end()   const { return dihparm_.end(); }
 
     /// Add (or update) a single dihedral parameter for given atom types.
-    RetType AddDihParm(TypeNameHolder const& typesIn, DihedralParmType const& dp, bool allowUpdate) {
+    RetType AddDihParm(TypeNameHolder const& types, DihedralParmType const& dp, bool allowUpdate) {
       // Ensure types are sorted
-      TypeNameHolder types = typesIn;
-      types.SortNames();
+      //TypeNameHolder types = typesIn;
+      //types.SortNames();
       // Check if dihedral parm for these types exist
-      Dmap::iterator it0 = dihparm_.lower_bound( types );
-      if (it0 == dihparm_.end() || it0->first != types) {
-        // Brand new dihedral for these types
-        it0 = dihparm_.insert(it0, Dpair(types, DihedralParmArray(1, dp)));
+      //Dmap::iterator it0 = dihparm_.lower_bound( types );
+      //if (it0 == dihparm_.end() || it0->first != types) {
+      //  // Brand new dihedral for these types
+      //  it0 = dihparm_.insert(it0, Dpair(types, DihedralParmArray(1, dp)));
+      // Check if parm for these types exist
+      Dmap::iterator it0 = dihparm_.begin();
+      for (; it0 != dihparm_.end(); ++it0)
+      {
+        if (it0->first.Match_NoWC( types ))
+          break;
+      }
+      if (it0 == dihparm_.end()) {
+        // Brand new dihedral for these types.
+        //mprintf("DEBUG: New dihedral parm: %s %s %s %s pk=%12.4f pn=%12.4f pp=%12.4f\n",
+        //        *types[0], *types[1], *types[2], *types[3], dp.Pk(), dp.Pn(), dp.Phase());
+        dihparm_.push_back( Dpair(types, DihedralParmArray(1, dp)) );
       } else {
         // If we are here types match - check multiplicity
         DihedralParmArray::iterator it1 = it0->second.begin();
