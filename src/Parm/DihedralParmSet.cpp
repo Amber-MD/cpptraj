@@ -33,7 +33,7 @@ int DihedralParmSet::ToDihParm(DihedralParmHolder& DP) const
       mprintf("Warning: Duplicated %s\n", it->first.TypeNameStr("dihedral").c_str());
     else if (ret == Cpptraj::Parm::UPDATED) {// TODO SCEE/SCNB?
       mprintf("Warning: Redefining %s from\n", it->first.TypeNameStr("dihedral").c_str());
-      printdih(DP.PreviousArray());
+      printdih(DP.PreviousParm());
       mprintf("Warning: to\n");
       printdih(it->second);
     } else if (ret == Cpptraj::Parm::ERR) {
@@ -66,7 +66,7 @@ int DihedralParmSet::ToImpParm(ImproperParmHolder& IP) const
       mprintf("Warning: Duplicated %s\n", it->first.TypeNameStr("improper").c_str());
     else if (ret == Cpptraj::Parm::UPDATED) {
       mprintf("Warning: Redefining %s from\n", it->first.TypeNameStr("improper").c_str());
-      printdih(IP.PreviousArray());
+      printdih(IP.PreviousParm());
       mprintf("Warning: to\n");
       printdih(it->second);
     } else if (ret == Cpptraj::Parm::ERR) {

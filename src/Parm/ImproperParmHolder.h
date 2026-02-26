@@ -36,8 +36,7 @@ class ImproperParmHolder : private DihedralParmHolder {
     /// \return True if no parameters
     bool empty()               const { return DihedralParmHolder::empty(); }
     /// \return Last parameter to be overwritten from AddParm()
-//    DihedralParmType const& PreviousParm() const { return DihedralParmHolder::PreviousParm(); }
-    DihedralParmArray const& PreviousArray() const { return DihedralParmHolder::PreviousArray(); }
+    DihedralParmArray const& PreviousParm() const { return DihedralParmHolder::PreviousParm(); }
     /// \return Wildcard
     NameType const& Wildcard() const { return wc_; }
     /// \return True if an exact match is required to find a parameter

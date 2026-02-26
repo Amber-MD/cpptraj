@@ -27,8 +27,7 @@ class DihedralParmHolder {
     /// \return true if no dihedral parameters
     bool empty()        const { return bpmap_.empty(); }
     /// \return Last parameter to be overwritten from AddParm()
-//    DihedralParmType const& PreviousParm() const { return previousParm_; }
-    DihedralParmArray const& PreviousArray() const { return previousArray_; }
+    DihedralParmArray const& PreviousParm() const { return previousParm_; }
     /// Set wildcard character
     void SetWildcard(char wc) { wc_ = NameType(std::string(1, wc)); }
 /*
@@ -123,7 +122,7 @@ class DihedralParmHolder {
           }
         }
         if (update) {
-          previousArray_ = it0->second;
+          previousParm_ = it0->second;
           it0->second = dpa;
           return UPDATED;
         } else
@@ -172,8 +171,7 @@ class DihedralParmHolder {
     NameType wc_; ///< Wildcard character
   private:
     Bmap bpmap_;
-//    DihedralParmType previousParm_; ///< When parameter is updated, store previous value. TODO remove?
-    DihedralParmArray previousArray_; ///< When array is updated, store previous value
+    DihedralParmArray previousParm_; ///< When parameter is updated, store previous value.
 };
 } // END namespace Parm
 } // END namespace Cpptraj
