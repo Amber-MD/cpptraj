@@ -8,5 +8,4 @@ PARM_SOURCES= \
   LJ1264_Params.cpp \
   Merge.cpp \
   ParameterSet.cpp \
-  ParmEnum.cpp \
-  test.cpp
+  ParmEnum.cpp

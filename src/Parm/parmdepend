@@ -7,4 +7,3 @@ LJ1264_Params.o : LJ1264_Params.cpp ../ArgList.h ../Atom.h ../AtomMask.h ../Box.
 Merge.o : Merge.cpp ../Atom.h ../Constants.h ../CpptrajStdio.h ../NameType.h ../ParameterTypes.h ../Residue.h ../StringRoutines.h ../SymbolExporting.h ../TypeNameHolder.h Merge.h ParmEnum.h ParmHolder.h
 ParameterSet.o : ParameterSet.cpp ../AtomType.h ../CmapParmHolder.h ../Constants.h ../CpptrajFile.h ../CpptrajStdio.h ../FileIO.h ../FileName.h ../NameType.h ../Parallel.h ../ParameterTypes.h ../Parm/ParmEnum.h ../TypeNameHolder.h ../UpdateParameters.h DihedralParmHolder.h ImproperParmHolder.h ParameterSet.h ParmEnum.h ParmHolder.h
 ParmEnum.o : ParmEnum.cpp ParmEnum.h
-test.o : test.cpp ../Constants.h ../NameType.h ../ParameterTypes.h ../TypeNameHolder.h DihedralParmSet.h ParmEnum.h
