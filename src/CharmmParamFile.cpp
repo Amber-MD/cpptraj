@@ -1,9 +1,10 @@
 #include "CharmmParamFile.h"
+#include "ArgList.h"
+#include "BufferedLine.h"
+#include "Constants.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // RemoveTrailingWhitespace()
-#include "ArgList.h"
-#include "Constants.h"
-#include "BufferedLine.h"
+#include "Parm/DihedralParmSet.h"
 #include "Parm/ParameterSet.h"
 
 static inline std::string Input(const char* line) {
@@ -86,6 +87,8 @@ int CharmmParamFile::ReadParams(Cpptraj::Parm::ParameterSet& prm, FileName const
   // Set wildcard character for dihedrals and impropers
   prm.DP().SetWildcard('X');
   prm.IP().SetWildcard('X');
+  DihedralParmSet dihPrm;
+  DihedralParmSet impPrm;
 
   while (ReadInput(input, infile)) {
     if (input.empty()) continue;
@@ -235,9 +238,9 @@ int CharmmParamFile::ReadParams(Cpptraj::Parm::ParameterSet& prm, FileName const
               double pn = args.getNextDouble(0);
               double phase = args.getNextDouble(0) * Constants::DEGRAD;
               if (currentSection == DIHEDRALS)
-                prm.DP().AddParm(types, DihedralParmType(pk, pn, phase, 1.0, 1.0), false);
+                dihPrm.AddDihParm(types, DihedralParmType(pk, pn, phase, 1.0, 1.0), false);
               else
-                prm.IP().AddParm(types, DihedralParmType(pk, pn, phase), false);
+                impPrm.AddDihParm(types, DihedralParmType(pk, pn, phase), false);
             }
           } else if (currentSection == NONBONDED) {
             // NONBONDED PARAMETERS TODO do not add if not already present
@@ -290,6 +293,9 @@ int CharmmParamFile::ReadParams(Cpptraj::Parm::ParameterSet& prm, FileName const
       }  // END line not blank
     } // END if not title or comment 
   } // END loop over file read
+  // Add dihedrals/impropers
+  if (dihPrm.ToDihParm(prm.DP())) return 1;
+  if (impPrm.ToImpParm(prm.IP())) return 1;
   if (debugIn > 0) 
     prm.Debug();
 
