@@ -20,7 +20,10 @@ class DihedralParmSet {
     //typedef std::map<TypeNameHolder, DihedralParmArray> Dmap;
     typedef std::vector<Dpair> Dmap;
   public:
-    DihedralParmSet() {}
+    /// CONSTRUCTOR
+    DihedralParmSet() : debug_(0) {}
+    /// CONSTRUCTOR - with debug level
+    DihedralParmSet(int debugIn) : debug_(debugIn) {}
     /// \return Last parameter to be overwritten from AddParm()
     DihedralParmType const& PreviousParm() const { return previousParm_; }
 
@@ -109,6 +112,7 @@ class DihedralParmSet {
 
     Dmap dihparm_;
     DihedralParmType previousParm_; ///< When parameter is updated, store previous value.
+    int debug_; ///< Debug level
 };
 }
 }

@@ -790,8 +790,8 @@ int AmberParamFile::ReadFrcmod(ParameterSet& prm, FileName const& fname) const
   prm.SetParamSetFile( fname );
   NonbondSet nbset(title);
   Oarray Offdiag;
-  DihedralParmSet dihPrm;
-  DihedralParmSet impPrm;
+  DihedralParmSet dihPrm( debug_ );
+  DihedralParmSet impPrm( debug_ );
   // Read file
   SectionType section = UNKNOWN;
   CmapType currentCmapFlag = CMAP_INITIAL;
@@ -904,8 +904,8 @@ int AmberParamFile::ReadParams(ParameterSet& prm, FileName const& fname,
   prm.SetParamSetFile( fname );
   std::vector<std::string> last_symbols;
   last_symbols.reserve(4);
-  DihedralParmSet dihPrm;
-  DihedralParmSet impPrm;
+  DihedralParmSet dihPrm( debug_ );
+  DihedralParmSet impPrm( debug_ );
   // Read file
   int readNbType = 0;
   SectionType section = ATYPE;

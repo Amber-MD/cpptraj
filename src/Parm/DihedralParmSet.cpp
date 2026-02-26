@@ -32,7 +32,8 @@ int DihedralParmSet::ToDihParm(DihedralParmHolder& DP) const
   for (DihedralParmSet::const_iterator it = begin(); it != end(); ++it)
   {
     // Check multiplicites; warn if one seems missing
-    check_mult("dihedral", it->first, it->second);
+    if (debug_ > 0)
+      check_mult("dihedral", it->first, it->second);
 
     Cpptraj::Parm::RetType ret = DP.AddParm( it->first, it->second, true );
     if (ret == Cpptraj::Parm::SAME)
@@ -56,7 +57,8 @@ int DihedralParmSet::ToImpParm(ImproperParmHolder& IP) const
   for (DihedralParmSet::const_iterator it = begin(); it != end(); ++it)
   {
     // Check multiplicites; warn if one seems missing
-    check_mult("improper", it->first, it->second);
+    if (debug_ > 0)
+      check_mult("improper", it->first, it->second);
 
     Cpptraj::Parm::RetType ret = IP.AddParm( it->first, it->second, true );
     if (ret == Cpptraj::Parm::SAME)

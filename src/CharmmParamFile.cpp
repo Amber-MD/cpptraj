@@ -87,8 +87,8 @@ int CharmmParamFile::ReadParams(Cpptraj::Parm::ParameterSet& prm, FileName const
   // Set wildcard character for dihedrals and impropers
   prm.DP().SetWildcard('X');
   prm.IP().SetWildcard('X');
-  DihedralParmSet dihPrm;
-  DihedralParmSet impPrm;
+  DihedralParmSet dihPrm( debugIn );
+  DihedralParmSet impPrm( debugIn );
 
   while (ReadInput(input, infile)) {
     if (input.empty()) continue;
