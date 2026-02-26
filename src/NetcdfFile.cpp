@@ -599,7 +599,8 @@ int NetcdfFile::ReadRemdValues(Frame& frm) {
       } else if (remValType_.DimType(idx) == ReplicaDimArray::REDOX) {
         frm.SetRedOx( RemdValues_[idx] );
         //mprintf("DEBUG: RedOx= %g\n", frm.RedOx());
-      }
+      } else
+        mprinterr("Internal Error: NetcdfFile::ReadRemdValues(): Unhandled remd value read for dim %i (%s)\n", idx, ReplicaDimArray::dimType(remValType_.DimType(idx)));
     }
   }
   return 0;
@@ -1681,7 +1682,9 @@ int NetcdfFile::parallelWriteRemdValues(int set, Frame const& frm) {
       } else if (remValType_.DimType(idx) == ReplicaDimArray::REDOX) {
         RemdValues_[idx] = frm.RedOx();
         //mprintf("DEBUG: RedOx= %g\n", frm.RedOx());
-      }
+      } else
+        rprinterr("Internal Error: NetcdfFile::WriteRemdValues(): Unhandled remd value write for dim %i (%s)\n", idx, ReplicaDimArray::dimType(remValType_.DimType(idx)));
+
     }
     pcount_[1] = remd_dimension_; // # dimensions
     if ( NC::CheckErr(ncmpi_put_vara_double(ncid_, RemdValuesVID_, pstart_, pcount_, &RemdValues_[0])) )
