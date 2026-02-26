@@ -1673,6 +1673,8 @@ int NetcdfFile::parallelWriteRemdValues(int set, Frame const& frm) {
       if (remValType_.DimType(idx) == ReplicaDimArray::TEMPERATURE) {
         RemdValues_[idx] = frm.Temperature();
         //mprintf("DEBUG: T= %g\n", frm.Temperature());
+      } else if (remValType_.DimType(idx) == ReplicaDimArray::HAMILTONIAN) {
+        RemdValues_[idx] = (double)(frm.RemdIndices()[idx]);
       } else if (remValType_.DimType(idx) == ReplicaDimArray::PH) {
         RemdValues_[idx] = frm.pH();
         //mprintf("DEBUG: pH= %g\n", frm.pH());
